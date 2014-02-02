@@ -306,37 +306,52 @@ HubEntryList FavoriteManager::getPublicHubs() {
 }
 
 void FavoriteManager::removeallRecent() {
-	recentHubs.clear();
+	{
+		WLock l(cs);
+		recentHubs.clear();
+	}
+
 	recentsave();
 }
 
 
 void FavoriteManager::addRecent(const RecentHubEntryPtr& aEntry) {
-	auto i = getRecentHub(aEntry->getServer());
-	if(i != recentHubs.end()) {
-		return;
+	{
+		WLock l(cs);
+		auto i = getRecentHub(aEntry->getServer());
+		if (i != recentHubs.end()) {
+			return;
+		}
+
+		recentHubs.push_back(aEntry);
 	}
 
-	recentHubs.push_back(aEntry);
 	fire(FavoriteManagerListener::RecentAdded(), aEntry);
 	recentsave();
 }
 
 void FavoriteManager::removeRecent(const RecentHubEntryPtr& entry) {
-	auto i = find(recentHubs.begin(), recentHubs.end(), entry);
-	if(i == recentHubs.end()) {
-		return;
+	{
+		WLock l(cs);
+		auto i = find(recentHubs.begin(), recentHubs.end(), entry);
+		if (i == recentHubs.end()) {
+			return;
+		}
+
+		fire(FavoriteManagerListener::RecentRemoved(), entry);
+		recentHubs.erase(i);
 	}
-		
-	fire(FavoriteManagerListener::RecentRemoved(), entry);
-	recentHubs.erase(i);
+
 	recentsave();
 }
 
 void FavoriteManager::updateRecent(const RecentHubEntryPtr& entry) {
-	auto i = find(recentHubs.begin(), recentHubs.end(), entry);
-	if(i == recentHubs.end()) {
-		return;
+	{
+		RLock l(cs);
+		auto i = find(recentHubs.begin(), recentHubs.end(), entry);
+		if (i == recentHubs.end()) {
+			return;
+		}
 	}
 		
 	fire(FavoriteManagerListener::RecentUpdated(), entry);
@@ -593,13 +608,16 @@ void FavoriteManager::recentsave() {
 	xml.addTag("Hubs");
 	xml.stepIn();
 
-	for(const auto rhe: recentHubs) {
-		xml.addTag("Hub");
-		xml.addChildAttrib("Name", rhe->getName());
-		xml.addChildAttrib("Description", rhe->getDescription());
-		xml.addChildAttrib("Users", rhe->getUsers());
-		xml.addChildAttrib("Shared", rhe->getShared());
-		xml.addChildAttrib("Server", rhe->getServer());
+	{
+		RLock l(cs);
+		for (const auto rhe : recentHubs) {
+			xml.addTag("Hub");
+			xml.addChildAttrib("Name", rhe->getName());
+			xml.addChildAttrib("Description", rhe->getDescription());
+			xml.addChildAttrib("Users", rhe->getUsers());
+			xml.addChildAttrib("Shared", rhe->getShared());
+			xml.addChildAttrib("Server", rhe->getServer());
+		}
 	}
 
 	xml.stepOut();
@@ -1011,12 +1029,9 @@ void FavoriteManager::setHubList(int aHubList) {
 }
 
 RecentHubEntryPtr FavoriteManager::getRecentHubEntry(const string& aServer) {
-	for(auto r: recentHubs) {
-		if(Util::stricmp(r->getServer(), aServer) == 0) {
-			return r;
-		}
-	}
-	return nullptr;
+	RLock l(cs);
+	auto p = getRecentHub(aServer);
+	return p == recentHubs.end() ? nullptr : *p;
 }
 
 void FavoriteManager::refresh(bool forceDownload /* = false */) {

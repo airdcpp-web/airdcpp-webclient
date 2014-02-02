@@ -77,7 +77,7 @@ public:
 	Identity(const Identity& rhs);
 
 	Identity& operator=(const Identity& rhs) {
-		FastLock l(cs);
+		RLock l(cs);
 		*static_cast<Flags*>(this) = rhs;
 		user = rhs.user;
 		sid = rhs.sid;
@@ -170,7 +170,7 @@ private:
 	typedef map<short, string> InfMap;
 	InfMap info;
 
-	static FastCriticalSection cs;
+	static SharedMutex cs;
 };
 
 class OnlineUser :  public FastAlloc<OnlineUser>, public intrusive_ptr_base<OnlineUser>, public UserInfoBase, private boost::noncopyable {

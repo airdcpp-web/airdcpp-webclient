@@ -34,7 +34,7 @@
 
 namespace dcpp {
 
-FastCriticalSection Identity::cs;
+SharedMutex Identity::cs;
 
 OnlineUser::OnlineUser(const UserPtr& ptr, ClientBase& client_, uint32_t sid_) : identity(ptr, sid_), client(client_), isInList(false) { 
 }
@@ -118,7 +118,7 @@ uint8_t Identity::getSlots() const {
 
 void Identity::getParams(ParamMap& sm, const string& prefix, bool compatibility) const {
 	{
-		FastLock l(cs);
+		RLock l(cs);
 		for(auto& i: info) {
 			sm[prefix + string((char*)(&i.first), 2)] = i.second;
 		}
@@ -209,20 +209,20 @@ const string& Identity::getCountry() const {
 }
 
 string Identity::get(const char* name) const {
-	FastLock l(cs);
+	RLock l(cs);
 	auto i = info.find(*(short*)name);
 	return i == info.end() ? Util::emptyString : i->second;
 }
 
 bool Identity::isSet(const char* name) const {
-	FastLock l(cs);
+	RLock l(cs);
 	auto i = info.find(*(short*)name);
 	return i != info.end();
 }
 
 
 void Identity::set(const char* name, const string& val) {
-	FastLock l(cs);
+	WLock l(cs);
 	if(val.empty())
 		info.erase(*(short*)name);
 	else
@@ -242,7 +242,7 @@ bool Identity::supports(const string& name) const {
 std::map<string, string> Identity::getInfo() const {
 	std::map<string, string> ret;
 
-	FastLock l(cs);
+	RLock l(cs);
 	for(auto& i: info) {
 		ret[string((char*)(&i.first), 2)] = i.second;
 	}
