@@ -77,7 +77,7 @@ public:
 	Identity(const Identity& rhs);
 
 	Identity& operator=(const Identity& rhs) {
-		RLock l(cs);
+		WLock l(cs);
 		*static_cast<Flags*>(this) = rhs;
 		user = rhs.user;
 		sid = rhs.sid;

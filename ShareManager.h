@@ -279,7 +279,7 @@ public:
 	void rebuildMonitoring() noexcept;
 	void handleChangedFiles() noexcept;
 private:
-	unique_ptr<DirectoryMonitor> monitor;
+	DirectoryMonitor monitor;
 
 	uint64_t totalSearches = 0;
 	uint64_t tthSearches = 0;
