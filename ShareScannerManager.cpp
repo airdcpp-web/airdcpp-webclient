@@ -40,23 +40,25 @@ atomic_flag ShareScannerManager::scanning;
 #endif
 
 ShareScannerManager::ShareScannerManager() : stop(false) {
+	// case sensitive
 	releaseReg.assign(AirUtil::getReleaseRegBasic());
 	simpleReleaseReg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9_]{2,}))");
+	longReleaseReg.assign(AirUtil::getReleaseRegLong(false));
+
 	emptyDirReg.assign("(\\S*(((nfo|dir).?fix)|nfo.only)\\S*)", boost::regex_constants::icase);
-	rarReg.assign("(.+\\.((r\\w{2})|(0\\d{2})))");
-	rarMp3Reg.assign("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)|(flac)))");
+	rarReg.assign("(.+\\.((r\\w{2})|(0\\d{2})))", boost::regex_constants::icase);
+	rarMp3Reg.assign("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)|(flac)))", boost::regex_constants::icase);
 	audioBookReg.assign(".+(-|\\()AUDIOBOOK(-|\\)).+", boost::regex_constants::icase);
 	flacReg.assign(".+(-|\\()(LOSSLESS|FLAC)((-|\\)).+)?", boost::regex_constants::icase);
-	zipReg.assign("(.+\\.zip)");
-	longReleaseReg.assign(AirUtil::getReleaseRegLong(false));
-	mvidReg.assign("(.+\\.(m2v|avi|mkv|mp(e)?g))");
-	proofImageReg.assign("(.*(jp(e)?g|png))", boost::regex_constants::icase);
+	zipReg.assign("(.+\\.zip)", boost::regex_constants::icase);
+	mvidReg.assign("(.+\\.(m2v|avi|mkv|mp(e)?g))", boost::regex_constants::icase);
+	sampleExtrasReg.assign("(.*(jp(e)?g|png|vob))", boost::regex_constants::icase);
 	subDirReg.assign("((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))", boost::regex_constants::icase);
-	extraRegs[AUDIOBOOK].assign("(.+\\.(jp(e)?g|png|m3u|cue|zip|sfv|nfo))");
-	extraRegs[FLAC].assign("(.+\\.(jp(e)?g|png|m3u|cue|log|sfv|nfo))");
-	extraRegs[NORMAL].assign("(.+\\.(jp(e)?g|png|m3u|cue|diz|sfv|nfo))");
-	zipFolderReg.assign("(.+\\.(jp(e)?g|png|diz|zip|nfo|sfv))");
-	subReg.assign("(.{0,8}[Ss]ub(s|pack)?)");
+	extraRegs[AUDIOBOOK].assign("(.+\\.(jp(e)?g|png|m3u|cue|zip|sfv|nfo))", boost::regex_constants::icase);
+	extraRegs[FLAC].assign("(.+\\.(jp(e)?g|png|m3u|cue|log|sfv|nfo))", boost::regex_constants::icase);
+	extraRegs[NORMAL].assign("(.+\\.(jp(e)?g|png|m3u|cue|diz|sfv|nfo))", boost::regex_constants::icase);
+	zipFolderReg.assign("(.+\\.(jp(e)?g|png|diz|zip|nfo|sfv))", boost::regex_constants::icase);
+	subReg.assign("(.{0,8}[Ss]ub(s|pack)?)", boost::regex_constants::icase);
 }
 
 ShareScannerManager::~ShareScannerManager() { 
@@ -416,8 +418,9 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 					//check that all files have the same extension.. otherwise there are extras
 					string extension;
 					for(auto& fileName: fileList) {
-						//ignore image files
-						if (boost::regex_match(Util::getFileExt(fileName), proofImageReg))
+						// ignore image files
+						// some strange releases also have extra vob files
+						if (boost::regex_match(Util::getFileExt(fileName), sampleExtrasReg))
 							continue;
 						
 						string loopExt = Util::getFileExt(fileName);

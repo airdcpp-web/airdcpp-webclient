@@ -94,7 +94,7 @@ private:
 	boost::regex mvidReg;
 	boost::regex zipReg;
 	boost::regex zipFolderReg;
-	boost::regex proofImageReg;
+	boost::regex sampleExtrasReg;
 	boost::regex subDirReg;
 	boost::regex subReg;
 	boost::regex extraRegs[3];
