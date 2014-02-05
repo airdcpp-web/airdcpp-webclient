@@ -133,7 +133,6 @@ void ShareManager::startup(function<void(const string&)> splashF, function<void(
 			}
 		}
 
-		//monitor.addDirectory(R"(C:\)");
 		addMonitoring(monitorPaths);
 		TimerManager::getInstance()->addListener(this);
 
