@@ -216,6 +216,7 @@ public:
 
 	SharedMutex& getCS() { return cs; }
 	const Bundle::StringBundleMap& getBundles() const { return bundleQueue.getBundles(); }
+	const QueueItem::StringMap& getSmallItems() const { return fileQueue.getSmallItems(); }
 	void recheckFile(const string& aPath) noexcept;
 private:
 	friend class QueueLoader;

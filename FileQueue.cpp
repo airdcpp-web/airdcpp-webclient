@@ -57,6 +57,9 @@ pair<QueueItem::StringMap::const_iterator, bool> FileQueue::add(QueueItemPtr& qi
 			dcassert(qi->getSize() >= 0);
 			queueSize += qi->getSize();
 		}
+		if (!qi->isSet(QueueItem::FLAG_FINISHED) && qi->isAnySet(QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_USER_LIST | QueueItem::FLAG_OPEN)) {
+			smallItems.emplace(const_cast<string*>(&qi->getTarget()), qi);
+		}
 	}
 	return ret;
 }
@@ -69,6 +72,9 @@ void FileQueue::remove(QueueItemPtr& qi) noexcept {
 		if (!qi->isSet(QueueItem::FLAG_USER_LIST) && (!qi->isSet(QueueItem::FLAG_FINISHED) || !qi->getBundle()) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
 			dcassert(qi->getSize() >= 0);
 			queueSize -= qi->getSize();
+		} 
+		if (qi->isAnySet(QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_USER_LIST) || QueueItem::FLAG_OPEN) {
+			smallItems.erase(const_cast<string*>(&qi->getTarget()));
 		}
 	}
 	dcassert(queueSize >= 0);
