@@ -302,7 +302,7 @@ private:
 	void checkSource(const HintedUser& aUser) const throw(QueueException);
 
 	/** Check that we can download from this user */
-	void validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, QueueItemBase::Priority aPrio) const throw(QueueException, FileException, DupeException);
+	void validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, QueueItemBase::Priority& priority_) const throw(QueueException, FileException, DupeException);
 
 	/** Sanity check for the target filename */
 	//static string checkTargetPath(const string& aTarget) throw(QueueException, FileException);
