@@ -61,7 +61,7 @@ namespace dcpp {
 	private:
 		class DirectoryDownloadInfo : public intrusive_ptr_base<DirectoryDownloadInfo> {
 		public:
-			DirectoryDownloadInfo() : priority(QueueItem::DEFAULT) { }
+			DirectoryDownloadInfo() : priority(QueueItemBase::DEFAULT) { }
 			DirectoryDownloadInfo(const UserPtr& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, TargetUtil::TargetType aTargetType, QueueItemBase::Priority p,
 				SizeCheckMode aPromptSizeConfirm, ProfileToken aAutoSearch, bool aRecursiveListAttempted) :
 				listPath(aListPath), target(aTarget), priority(p), targetType(aTargetType), sizeConfirm(aPromptSizeConfirm), listing(nullptr), autoSearch(aAutoSearch), bundleName(aBundleName), 

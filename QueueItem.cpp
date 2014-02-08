@@ -455,7 +455,7 @@ Segment QueueItem::getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t
 }
 
 Segment QueueItem::checkOverlaps(int64_t blockSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const {
-	if(allowOverlap && partialSource == NULL && bundle && SETTING(OVERLAP_SLOW_SOURCES) && lastSpeed > 0) {
+	if(allowOverlap && !partialSource && bundle && SETTING(OVERLAP_SLOW_SOURCES) && lastSpeed > 0) {
 		// overlap slow running chunk
 		for(auto d: downloads) {
 			// current chunk mustn't be already overlapped
