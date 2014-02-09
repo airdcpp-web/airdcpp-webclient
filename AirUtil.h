@@ -107,11 +107,11 @@ public:
 
 	// Returns true if aDir is a sub directory of aParent
 	// Note: matching is always case insensitive. This will also handle directory paths in aParent without the trailing slash to work with Windows limitations (share monitoring)
-	static bool isSub(const string& aDir, const string& aParent);
+	static bool isSub(const string& aDir, const string& aParent, const char separator = PATH_SEPARATOR);
 
 	// Returns true if aSub is a subdir of aDir OR both are the same directory
 	// Note: matching is always case insensitive. This will also handle directory paths in aSub without the trailing slash to work with Windows limitations (share monitoring)
-	static bool isParentOrExact(const string& aDir, const string& aSub);
+	static bool isParentOrExact(const string& aDir, const string& aSub, const char separator = PATH_SEPARATOR);
 
 	static const string getReleaseRegLong(bool chat);
 	static const string getReleaseRegBasic();

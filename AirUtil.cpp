@@ -814,7 +814,7 @@ string AirUtil::getTitle(const string& searchTerm) {
 }
 
 /* returns true if aDir is a subdir of aParent */
-bool AirUtil::isSub(const string& aTestSub, const string& aParent) {
+bool AirUtil::isSub(const string& aTestSub, const string& aParent, const char separator) {
 	if (aTestSub.length() <= aParent.length())
 		return false;
 
@@ -822,11 +822,11 @@ bool AirUtil::isSub(const string& aTestSub, const string& aParent) {
 		return false;
 
 	// either the parent must end with a separator or it must follow in the subdirectory
-	return aParent.empty() || aParent.back() == PATH_SEPARATOR || aTestSub[aParent.length()] == PATH_SEPARATOR;
+	return aParent.empty() || aParent.back() == separator || aTestSub[aParent.length()] == separator;
 }
 
 /* returns true if aSub is a subdir of aDir OR both are the same dir */
-bool AirUtil::isParentOrExact(const string& aTestParent, const string& aSub) {
+bool AirUtil::isParentOrExact(const string& aTestParent, const string& aSub, const char separator) {
 	if (aSub.length() < aTestParent.length())
 		return false;
 
@@ -834,7 +834,7 @@ bool AirUtil::isParentOrExact(const string& aTestParent, const string& aSub) {
 		return false;
 
 	// either the parent must end with a separator or it must follow in the subdirectory
-	return aSub.empty() || aTestParent.length() == aSub.length() || aTestParent.back() == PATH_SEPARATOR || aSub[aTestParent.length()] == PATH_SEPARATOR;
+	return aSub.empty() || aTestParent.length() == aSub.length() || aTestParent.back() == separator || aSub[aTestParent.length()] == separator;
 }
 
 }

@@ -1012,7 +1012,7 @@ void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDi
 
 				//also clean the visited dirs
 				for (auto i = baseDirs.begin(); i != baseDirs.end();) {
-					if (AirUtil::isSub(i->first, baseDir)) {
+					if (AirUtil::isSub(i->first, baseDir, '/')) {
 						i = baseDirs.erase(i);
 					}
 					else {
