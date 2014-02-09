@@ -340,7 +340,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 	}
 
 	// don't handle queued bundles in here (parent directories for bundles shouldn't be totally ignored really...)
-	if (find_if(*bundlePaths_, IsParentOrExactOrSub<false>(Text::toLower(info.path))) != (*bundlePaths_).end()) {
+	if (find_if(*bundlePaths_, IsParentOrExactOrSub(info.path)) != (*bundlePaths_).end()) {
 		return true;
 	} /*else {
 		// remove files inside bundle directories if this is a parent directory
@@ -663,7 +663,7 @@ void ShareManager::removeNotifications(DirModifyInfo::List::iterator p, const st
 	} else {
 		// remove subitems
 		for (auto i = p->files.begin(); i != p->files.end();) {
-			if (AirUtil::isParentOrExactCase(aPath, i->first)) {
+			if (AirUtil::isParentOrExact(aPath, i->first)) {
 				i = p->files.erase(i);
 			} else {
 				i++;
@@ -2563,51 +2563,9 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 		{		
 			WLock l(cs);
 			if(t.first != REFRESH_ALL) {
-				for(auto p = refreshDirs.begin(); p != refreshDirs.end(); ) {
-					auto& ri = **p;
-
-					//recursively remove the content of this dir from TTHIndex and dir name list
-					if (ri.oldRoot)
-						cleanIndices(*ri.oldRoot);
-
-					//clear this path and its children from root paths
-					for(auto i = rootPaths.begin(); i != rootPaths.end(); ) {
-						if (AirUtil::isParentOrExact(ri.path, i->first)) {
-							if (t.first == ADD_DIR && AirUtil::isSub(i->first, ri.root->getProfileDir()->getPath()) && !i->second->getParent()) {
-								//in case we are adding a new parent
-								File::deleteFile(i->second->getProfileDir()->getCacheXmlPath());
-								cleanIndices(*i->second);
-							}
-
-							i = rootPaths.erase(i);
-						} else {
-							i++;
-						}
-					}
-
-					//set the parent for refreshed subdirectories
-					if (!ri.oldRoot || ri.oldRoot->getParent()) {
-						Directory::Ptr parent = nullptr;
-						if (!ri.oldRoot) {
-							//get the parent
-							parent = findDirectory(Util::getParentDir(ri.path), true, true, true);
-							if (!parent) {
-								p = refreshDirs.erase(p);
-								continue;
-							}
-						} else {
-							parent = ri.oldRoot->getParent();
-						}
-
-						//set the parent
-						ri.root->setParent(parent.get());
-						parent->directories.erase_key(ri.root->realName.getLower());
-						parent->directories.insert_sorted(ri.root);
-						parent->updateModifyDate();
-					}
-
-					p++;
-				}
+				refreshDirs.erase(boost::remove_if(refreshDirs, [&](RefreshInfoPtr& ri) {
+					return !handleRefreshedDirectory(ri, static_cast<TaskType>(t.first)); 
+				}), refreshDirs.end());
 
 				bloom->merge(*refreshBloom);
 				mergeRefreshChanges(refreshDirs, dirNameMap, rootPaths, tthIndex, totalHash, sharedSize, &dirtyProfiles);
@@ -2640,6 +2598,58 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 	}
 	refreshRunning = false;
 	refreshing.clear();
+}
+
+bool ShareManager::handleRefreshedDirectory(RefreshInfoPtr& ri, TaskType aTaskType) {
+	//recursively remove the content of this dir from TTHIndex and dir name list
+	if (ri->oldRoot)
+		cleanIndices(*ri->oldRoot);
+
+	//clear this path and its children from root paths
+	for (auto i = rootPaths.begin(); i != rootPaths.end();) {
+		if (AirUtil::isParentOrExact(ri->path, i->first)) {
+			if (aTaskType == ADD_DIR && AirUtil::isSub(i->first, ri->root->getProfileDir()->getPath()) && !i->second->getParent()) {
+				//in case we are adding a new parent
+				File::deleteFile(i->second->getProfileDir()->getCacheXmlPath());
+				cleanIndices(*i->second);
+			}
+
+			i = rootPaths.erase(i);
+		} else {
+			i++;
+		}
+	}
+
+	//set the parent for refreshed subdirectories
+	if (!ri->oldRoot || ri->oldRoot->getParent()) {
+		if (SETTING(SKIP_EMPTY_DIRS_SHARE) && ri->root->directories.empty() && ri->root->files.empty()) {
+			if (ri->oldRoot) {
+				cleanIndices(*ri->oldRoot);
+				ri->oldRoot->directories.erase_key(ri->root->realName.getLower());
+			}
+
+			return false;
+		}
+
+		Directory::Ptr parent = nullptr;
+		if (!ri->oldRoot) {
+			//get the parent
+			parent = findDirectory(Util::getParentDir(ri->path), true, true, true);
+			if (!parent) {
+				return false;
+			}
+		} else {
+			parent = ri->oldRoot->getParent();
+		}
+
+		//set the parent
+		ri->root->setParent(parent.get());
+		parent->directories.erase_key(ri->root->realName.getLower());
+		parent->directories.insert_sorted(ri->root);
+		parent->updateModifyDate();
+	}
+
+	return true;
 }
 
 void ShareManager::on(TimerManagerListener::Second, uint64_t /*tick*/) noexcept {
@@ -3403,7 +3413,7 @@ void ShareManager::removeNotifications(const string& aPath) noexcept {
 bool ShareManager::allowAddDir(const string& aPath) const noexcept {
 	{
 		RLock l(cs);
-		const auto mi = find_if(rootPaths | map_keys, IsParentOrExact<true>(aPath));
+		const auto mi = find_if(rootPaths | map_keys, IsParentOrExact(aPath));
 		if (mi.base() != rootPaths.end()) {
 			string fullPathLower = *mi;
 			int pathPos = mi->length();
@@ -3429,7 +3439,7 @@ bool ShareManager::allowAddDir(const string& aPath) const noexcept {
 }
 
 ShareManager::Directory::Ptr ShareManager::findDirectory(const string& fname, bool allowAdd, bool report, bool checkExcludes /*true*/) noexcept {
-	auto mi = find_if(rootPaths | map_keys, IsParentOrExact<true>(fname)).base();
+	auto mi = find_if(rootPaths | map_keys, IsParentOrExact(fname)).base();
 	if (mi != rootPaths.end()) {
 		auto curDir = mi->second;
 		StringList sl = StringTokenizer<string>(fname.substr(mi->first.length()), PATH_SEPARATOR).getTokens();

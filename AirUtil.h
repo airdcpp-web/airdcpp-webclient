@@ -105,23 +105,13 @@ public:
 
 	static void fileEvent(const string& tgt, bool file=false);
 
-	/* returns true if aDir is a subdir of aParent */
-	static inline bool isSub(const string& aDir, const string& aParent) {
-		return (aDir.length() > aParent.length() && (Util::stricmp(aDir.substr(0, aParent.length()), aParent) == 0));
-	}
+	// Returns true if aDir is a sub directory of aParent
+	// Note: matching is always case insensitive. This will also handle directory paths in aParent without the trailing slash to work with Windows limitations (share monitoring)
+	static bool isSub(const string& aDir, const string& aParent);
 
-	/* returns true if aSub is a subdir of aDir OR both are the same dir */
-	static inline bool isParentOrExact(const string& aDir, const string& aSub) {
-		return (aSub.length() >= aDir.length() && (Util::stricmp(aSub.substr(0, aDir.length()), aDir) == 0));
-	}
-
-	static inline bool isSubCase(const string& aDir, const string& aParent) {
-		return (aDir.length() > aParent.length() && (compare(aDir.substr(0, aParent.length()), aParent) == 0));
-	}
-
-	static inline bool isParentOrExactCase(const string& aDir, const string& aSub) {
-		return (aSub.length() >= aDir.length() && (compare(aSub.substr(0, aDir.length()), aDir) == 0));
-	}
+	// Returns true if aSub is a subdir of aDir OR both are the same directory
+	// Note: matching is always case insensitive. This will also handle directory paths in aSub without the trailing slash to work with Windows limitations (share monitoring)
+	static bool isParentOrExact(const string& aDir, const string& aSub);
 
 	static const string getReleaseRegLong(bool chat);
 	static const string getReleaseRegBasic();
@@ -159,31 +149,28 @@ private:
 
 };
 
-template<bool NoCase>
 class IsParentOrExact {
 public:
 	IsParentOrExact(const string& compareTo) : a(compareTo) {}
-	bool operator()(const string& p) { return NoCase ? AirUtil::isParentOrExact(p, a) : AirUtil::isParentOrExactCase(p, a); }
+	bool operator()(const string& p) { return AirUtil::isParentOrExact(p, a); }
 private:
 	IsParentOrExact& operator=(const IsParentOrExact&);
 	const string& a;
 };
 
-template<bool NoCase>
 class IsParentOrExactOrSub {
 public:
 	IsParentOrExactOrSub(const string& compareTo) : a(compareTo) {}
-	bool operator()(const string& p) { return NoCase ? (AirUtil::isParentOrExact(p, a) || AirUtil::isSub(p, a)) : (AirUtil::isParentOrExactCase(p, a) || AirUtil::isSubCase(p, a)); }
+	bool operator()(const string& p) { return AirUtil::isParentOrExact(p, a); }
 private:
 	IsParentOrExactOrSub& operator=(const IsParentOrExactOrSub&);
 	const string& a;
 };
 
-template<bool NoCase>
 class IsSub {
 public:
 	IsSub(const string& compareTo) : a(compareTo) {}
-	bool operator()(const string& p) { return NoCase ? AirUtil::isSub(p, a) : AirUtil::isSubCase(p, a); }
+	bool operator()(const string& p) { return AirUtil::isSub(p, a); }
 private:
 	IsSub& operator=(const IsSub&);
 	const string& a;

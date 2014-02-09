@@ -588,6 +588,8 @@ private:
 	typedef shared_ptr<RefreshInfo> RefreshInfoPtr;
 	typedef vector<RefreshInfoPtr> RefreshInfoList;
 
+	bool handleRefreshedDirectory(RefreshInfoPtr& ri, TaskType aTaskType);
+
 	template<typename T>
 	void mergeRefreshChanges(T& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) noexcept {
 		for (const auto& i: aList) {

@@ -132,6 +132,21 @@ void AirUtil::init() {
 	releaseReg.assign(getReleaseRegBasic());
 	subDirRegPlain.assign(getSubDirReg(), boost::regex::icase);
 	crcReg.assign(R"(.{5,200}\s(\w{8})$)");
+
+#ifdef _WIN32
+	dcassert(AirUtil::isParentOrExact(R"(C:\Projects\)", R"(C:\Projects\)"));
+	dcassert(AirUtil::isParentOrExact(R"(C:\Projects\)", R"(C:\Projects\test)"));
+	dcassert(AirUtil::isParentOrExact(R"(C:\Projects)", R"(C:\Projects\test)"));
+	dcassert(AirUtil::isParentOrExact(R"(C:\Projects\)", R"(C:\Projects\test)"));
+	dcassert(!AirUtil::isParentOrExact(R"(C:\Projects)", R"(C:\Projectstest)"));
+	dcassert(!AirUtil::isParentOrExact(R"(C:\Projectstest)", R"(C:\Projects)"));
+
+	dcassert(!AirUtil::isSub(R"(C:\Projects\)", R"(C:\Projects\)"));
+	dcassert(AirUtil::isSub(R"(C:\Projects\test)", R"(C:\Projects\)"));
+	dcassert(AirUtil::isSub(R"(C:\Projects\test)", R"(C:\Projects)"));
+	dcassert(!AirUtil::isSub(R"(C:\Projectstest)", R"(C:\Projects)"));
+	dcassert(!AirUtil::isSub(R"(C:\Projects)", R"(C:\Projectstest)"));
+#endif
 }
 
 void AirUtil::updateCachedSettings() {
@@ -796,6 +811,30 @@ string AirUtil::getTitle(const string& searchTerm) {
 	//trim spaces from the end
 	boost::trim_right(ret);
 	return ret;
+}
+
+/* returns true if aDir is a subdir of aParent */
+bool AirUtil::isSub(const string& aTestSub, const string& aParent) {
+	if (aTestSub.length() <= aParent.length())
+		return false;
+
+	if (Util::stricmp(aTestSub.substr(0, aParent.length()), aParent) != 0)
+		return false;
+
+	// either the parent must end with a separator or it must follow in the subdirectory
+	return aParent.empty() || aParent.back() == PATH_SEPARATOR || aTestSub[aParent.length()] == PATH_SEPARATOR;
+}
+
+/* returns true if aSub is a subdir of aDir OR both are the same dir */
+bool AirUtil::isParentOrExact(const string& aTestParent, const string& aSub) {
+	if (aSub.length() < aTestParent.length())
+		return false;
+
+	if (Util::stricmp(aSub.substr(0, aTestParent.length()), aTestParent) != 0)
+		return false;
+
+	// either the parent must end with a separator or it must follow in the subdirectory
+	return aSub.empty() || aTestParent.length() == aSub.length() || aTestParent.back() == PATH_SEPARATOR || aSub[aTestParent.length()] == PATH_SEPARATOR;
 }
 
 }
