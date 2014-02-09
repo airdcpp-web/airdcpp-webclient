@@ -2057,6 +2057,15 @@ void QueueManager::setQIAutoPriority(const string& aTarget) noexcept {
 		}
 	}
 }
+void QueueManager::updateQIsize(const string& path, int64_t newSize) {
+	
+	WLock l(cs);
+	auto q = fileQueue.findFile(path);
+	if (q)
+		q->setSize(newSize);
+	
+}
+
 
 void QueueManager::handleSlowDisconnect(const UserPtr& aUser, const string& aTarget, const BundlePtr& aBundle) noexcept {
 	switch (SETTING(DL_AUTO_DISCONNECT_MODE)) {
@@ -2655,6 +2664,12 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 					}
 				}
 			}
+		}
+		
+		//update progress for small items(filelists, temp items) in QueueFrame
+		for (auto& sQi : fileQueue.getSmallItems() | map_values) {
+			if (sQi->isRunning())
+				 fire(QueueManagerListener::StatusUpdated(), sQi);
 		}
 	}
 

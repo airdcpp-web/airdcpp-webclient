@@ -54,7 +54,6 @@ public:
 	QueueItemBase(const string& aTarget, int64_t aSize, Priority aPriority, time_t aAdded, Flags::MaskType aFlags = 0);
 
 	virtual void setTarget(const string& aTarget) = 0;
-	int64_t getSize() const { return size; }
 	const DownloadList& getDownloads() { return downloads; }
 
 	GETSET(Priority, priority, Priority);
@@ -62,10 +61,10 @@ public:
 	GETSET(time_t, added, Added);
 	GETSET(string, target, Target);
 	GETSET(DownloadList, downloads, Downloads);
+	GETSET(int64_t, size, Size);
 
 	bool isPausedPrio() const { return priority == PAUSED_FORCE || priority == PAUSED; }
-protected:
-	int64_t size;
+
 };
 
 }

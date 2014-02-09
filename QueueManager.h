@@ -202,6 +202,7 @@ public:
 	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept { RLock l(cs); bundleQueue.getDiskInfo(dirMap, volumes); }
 	void getUnfinishedPaths(StringList& bundles) noexcept;
 	void checkRefreshPaths(StringList& bundlePaths, StringList& refreshPaths) noexcept;
+	void updateQIsize(const string& path, int64_t newSize);
 	
 	IGETSET(uint64_t, lastSave, LastSave, 0);
 	IGETSET(uint64_t, lastAutoPrio, LastAutoPrio, 0);

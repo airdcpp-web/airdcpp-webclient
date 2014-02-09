@@ -354,6 +354,8 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 	if (d->getSegmentSize() == -1) {
 		if(bytes >= 0) {
 			d->setSegmentSize(bytes);
+			if ((d->getType() == Download::TYPE_PARTIAL_LIST) || (d->getType() == Download::TYPE_FULL_LIST))
+				QueueManager::getInstance()->updateQIsize(d->getPath(), bytes);
 		} else {
 			failDownload(aSource, STRING(INVALID_SIZE), true);
 			return;
