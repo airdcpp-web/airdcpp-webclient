@@ -417,7 +417,7 @@ void QueueManager::checkSource(const HintedUser& aUser) const throw(QueueExcepti
 	}
 }
 
-void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, QueueItemBase::Priority& aPrio) const throw(QueueException, FileException, DupeException) {
+void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, QueueItemBase::Priority& priority_) const throw(QueueException, FileException, DupeException) {
 
 	//check the skiplist
 	string::size_type i = 0;
@@ -470,7 +470,7 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleF
 
 	//set the prio
 	if (highPrioFiles.match(Util::getFileName(aBundleFile))) {
-		aPrio = SETTING(PRIO_LIST_HIGHEST) ? QueueItem::HIGHEST : QueueItem::HIGH;
+		priority_ = SETTING(PRIO_LIST_HIGHEST) ? QueueItem::HIGHEST : QueueItem::HIGH;
 	}
 }
 
