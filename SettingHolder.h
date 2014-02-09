@@ -58,6 +58,7 @@ public:
 	const string prevFreeSlotMatcher = SETTING(FREE_SLOTS_EXTENSIONS);
 	const string prevTranslation = SETTING(LANGUAGE_FILE);
 
+	const int prevUpdateChannel = SETTING(UPDATE_CHANNEL);
 private:
 	ErrorFunction errorF;
 	void showError(const string& aError) const noexcept;

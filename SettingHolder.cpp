@@ -38,10 +38,6 @@ SettingHolder::~SettingHolder() {
 		SettingsManager::getInstance()->set(SettingsManager::DISCONNECT_SPEED, 1);
 	}
 
-	if (prevTranslation != SETTING(LANGUAGE_FILE)) {
-		UpdateManager::getInstance()->checkLanguage();
-	}
-
 	bool v4Changed = SETTING(INCOMING_CONNECTIONS) != prevConn4 ||
 		SETTING(TCP_PORT) != prevTCP || SETTING(UDP_PORT) != prevUDP || SETTING(TLS_PORT) != prevTLS ||
 		SETTING(MAPPER) != prevMapper || SETTING(BIND_ADDRESS) != prevBind || SETTING(BIND_ADDRESS6) != prevBind6;
@@ -91,6 +87,12 @@ SettingHolder::~SettingHolder() {
 	}
 	if (rebuildGeo) {
 		GeoManager::getInstance()->rebuild();
+	}
+
+	if (prevUpdateChannel != SETTING(UPDATE_CHANNEL)) {
+		UpdateManager::getInstance()->checkVersion(false);
+	} else if (prevTranslation != SETTING(LANGUAGE_FILE)) {
+		UpdateManager::getInstance()->checkLanguage();
 	}
 }
 
