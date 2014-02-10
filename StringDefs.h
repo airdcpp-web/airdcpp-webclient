@@ -1112,7 +1112,7 @@ enum Strings { // @DontAdd
 	NOT_IN_SHARED_DIR, // "The bundle %1% isn't in a shared folder, please add it in share manually"
 	BUNDLE_HASH_FAILED, // "Failed to hash the bundle %1%, not shared"
 	BUNDLE_SHARING_FAILED, // "Failed to add the bundle %1% in share"
-	AS_USER_MATCH, // "Only from users with nick Matching:  (wildcards, | separate)"
+	AS_USER_MATCH, // "Only from users with nick matching: (wildcards, | separate)"
 	USER_MATCH, // "User match"
 	SETTINGS_ALLOW_MATCH_FULL_LIST, // "Use full file lists as last resort if adding sources fails"
 	MATCHED_FILES_BUNDLE, // "Matched %1% file(s) in the bundle %2%, of which %3% were new"
