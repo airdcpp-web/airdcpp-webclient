@@ -2118,6 +2118,8 @@ int ShareManager::addRefreshTask(TaskType aTaskType, StringList& dirs, RefreshTy
 			case(REFRESH_INCOMING) :
 				msg = STRING(INCOMING_REFRESH_QUEUED);
 				break;
+			default:
+				break;
 			};
 
 			if (!msg.empty()) {
@@ -2768,9 +2770,15 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 
 				fl->saveList();
 				fl->generationFinished(false);
-			} catch (const Exception&) {
+			} catch (const Exception& e) {
 				// No new file lists...
+				LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, fl->getFileName() % e.getError()), LogManager::LOG_ERROR);
 				fl->generationFinished(true);
+
+				// do we have anything to send?
+				if (fl->getCurrentNumber() == 0) {
+					throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
+				}
 			}
 
 			File::deleteFile(tmpName);

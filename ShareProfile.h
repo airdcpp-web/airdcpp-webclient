@@ -58,6 +58,7 @@ class FileList {
 		void generationFinished(bool failed);
 		void saveList();
 		CriticalSection cs;
+		int getCurrentNumber() const { return listN; }
 	private:
 		int listN = 0;
 };

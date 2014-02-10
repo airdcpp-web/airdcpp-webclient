@@ -1108,7 +1108,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "The bundle %1% isn't in a shared folder, please add it in share manually", 
 "Failed to hash the bundle %1%, not shared", 
 "Failed to add the bundle %1% in share", 
-"Only from users with nick Matching:  (wildcards, | separate)", 
+"Only from users with nick matching: (wildcards, | separate)", 
 "User match", 
 "Use full file lists as last resort if adding sources fails", 
 "Matched %1% file(s) in the bundle %2%, of which %3% were new", 
