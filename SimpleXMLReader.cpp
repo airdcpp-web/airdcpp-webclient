@@ -412,6 +412,28 @@ bool SimpleXMLReader::comment() {
 	return true;
 }
 
+bool SimpleXMLReader::cdata() {
+	while (bufSize() > 0) {
+		int c = charAt(0);
+
+		if (c == ']') {
+			if (!needChars(3)) {
+				return true;
+			}
+			if (charAt(1) == ']' && charAt(2) == '>') {
+				state = STATE_CONTENT;
+				advancePos(3);
+				return true;
+			}
+		}
+
+		append(value, MAX_VALUE_SIZE, c);
+		advancePos(1);
+	}
+
+	return true;
+}
+
 bool SimpleXMLReader::entref(string& d) {
 	if(d.size() + 1 >= MAX_VALUE_SIZE) {
 		error("Buffer overflow");
@@ -701,9 +723,14 @@ bool SimpleXMLReader::process() {
 			comment()
 			|| error("Error while parsing comment");
 			break;
+		case STATE_CDATA:
+			cdata()
+			|| error("Error while parsing CDATA");
+			break;
 		case STATE_CONTENT:
 			skipSpace(true)
 			|| literal(LITN("<!--"), false, STATE_COMMENT)
+			|| literal(LITN("<![CDATA["), false, STATE_CDATA)
 			|| element()
 			|| literal(LITN("</"), false, STATE_ELEMENT_END)
 			|| content()
