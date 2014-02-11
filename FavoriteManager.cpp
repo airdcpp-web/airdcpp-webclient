@@ -669,12 +669,12 @@ void FavoriteManager::load() {
 			xml.stepIn();
 			load(xml);
 			xml.stepOut();
-		}
 
-		//we have load it fine now, so make a backup of a working favorites.xml
-		auto f = Util::getPath(CONFIG_DIR) + CONFIG_FAV_NAME;
-		File::deleteFile(f + ".bak");
-		File::copyFile(f, f + ".bak");
+			//we have load it fine now, so make a backup of a working favorites.xml
+			auto f = Util::getPath(CONFIG_DIR) + CONFIG_FAV_NAME;
+			File::deleteFile(f + ".bak");
+			File::copyFile(f, f + ".bak");
+		}
 	} catch(const Exception& e) {
 		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_FAV_NAME % e.getError()), LogManager::LOG_ERROR);
 	}
