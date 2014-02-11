@@ -98,6 +98,7 @@ private:
 	boost::regex subDirReg;
 	boost::regex subReg;
 	boost::regex extraRegs[3];
+	boost::regex diskReg;
 
 	StringList rootPaths;
 	bool isCheckSFV;
@@ -136,6 +137,7 @@ private:
 		int noReleaseFiles = 0;
 		int emptyFolders = 0;
 		int dupesFound = 0;
+		int disksMissing = 0;
 
 		string scanMessage;
 

@@ -62,6 +62,7 @@ ShareScannerManager::ShareScannerManager() : stop(false) {
 	flacReg.assign(".+(-|\\()(LOSSLESS|FLAC)((-|\\)).+)?", boost::regex_constants::icase);
 	subDirReg.assign("((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))", boost::regex_constants::icase);
 	subReg.assign("(.{0,8}[Ss]ub(s|pack)?)", boost::regex_constants::icase);
+	diskReg.assign("(DVD|CD|(DIS(K|C)))(\\D)?\\d", boost::regex_constants::icase); // 1 digit only
 }
 
 ShareScannerManager::~ShareScannerManager() { 
@@ -244,6 +245,7 @@ void ShareScannerManager::ScanInfo::merge(ScanInfo& collect) const {
 	collect.noReleaseFiles += noReleaseFiles;
 	collect.emptyFolders += emptyFolders;
 	collect.dupesFound += dupesFound;
+	collect.disksMissing += disksMissing;
 
 	collect.scanMessage += scanMessage;
 }
@@ -319,7 +321,7 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 		}
 
 		if (isDir) {
-			folderList.push_back(Text::toLower(aFileName));
+			folderList.push_back(Text::toLower(aFileName.substr(0, aFileName.length()-1)));
 			return;
 		}
 
@@ -331,6 +333,19 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 
 		fileList.push_back(Text::toLower(aFileName));
 	});
+
+	if (SETTING(CHECK_DISK_COUNTS)) {
+		StringList disks;
+		copy_if(folderList.begin(), folderList.end(), back_inserter(disks), [this](const string& s) { return regex_match(s, diskReg); });
+		if (!disks.empty()) {
+			sort(disks.begin(), disks.end());
+			auto exceptedCount = disks[disks.size() - 1].back()-'0'; // handles max 10 disks (would require better sorting otherwise)
+			if (disks.size() == 1 || exceptedCount > disks.size()) {
+				reportMessage(STRING(DISKS_MISSING) + " " + aPath, aScan);
+				aScan.disksMissing++;
+			}
+		}
+	}
 
 	if (fileList.empty()) {
 		//check if there are folders
@@ -691,7 +706,7 @@ void ShareScannerManager::reportMessage(const string& aMessage, ScanInfo& aScan,
 }
 
 bool ShareScannerManager::ScanInfo::hasMissing() const {
-	return (missingFiles > 0 || missingNFO > 0 || missingSFV > 0 || noReleaseFiles > 0);
+	return (missingFiles > 0 || missingNFO > 0 || missingSFV > 0 || noReleaseFiles > 0 || disksMissing > 0);
 }
 
 bool ShareScannerManager::ScanInfo::hasExtras() const {
@@ -742,6 +757,11 @@ string ShareScannerManager::ScanInfo::getResults() const {
 	if (dupesFound > 0) {
 		checkFirst();
 		tmp += STRING_F(X_DUPE_FOLDERS, dupesFound);
+	}
+
+	if (disksMissing > 0) {
+		checkFirst();
+		tmp += STRING_F(X_MISSING_DISKS, disksMissing);
 	}
 
 	return tmp;
