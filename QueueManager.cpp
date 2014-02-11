@@ -3627,8 +3627,10 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 		aBundle->finishBundle();
 		setBundleStatus(aBundle, Bundle::STATUS_DOWNLOADED);
 	} else if (!moved) {
-		//LogManager::getInstance()->message("The Bundle " + aBundle->getName() + " has been removed");
 		DownloadManager::getInstance()->disconnectBundle(aBundle);
+		
+		fire(QueueManagerListener::BundleRemoved(), aBundle);
+
 		{
 			WLock l(cs);
 			for (auto& qi: aBundle->getFinishedFiles()) {
@@ -3648,7 +3650,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 
 				if(!qi->isFinished()) {
 					userQueue.removeQI(qi, true, false);
-					fire(QueueManagerListener::Removed(), qi, false);
+					//fire(QueueManagerListener::Removed(), qi, false);
 				}
 
 				fileQueue.remove(qi);
@@ -3657,7 +3659,6 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 			LogManager::getInstance()->message(STRING_F(BUNDLE_X_REMOVED, aBundle->getName()), LogManager::LOG_INFO);
 		}
 
-		fire(QueueManagerListener::BundleRemoved(), aBundle);
 		if (!aBundle->isFileBundle()) {
 			AirUtil::removeDirectoryIfEmpty(aBundle->getTarget(), 10, false);
 		}

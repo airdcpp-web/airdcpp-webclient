@@ -1170,6 +1170,7 @@ enum Strings { // @DontAdd
 	PATHS, // "Paths"
 	SEARCH_FILENAME, // "Search filename"
 	MOVE_DIR, // "Move directory"
+	MOVE_BUNDLE, // "Move bundle(s)"
 	MOVE_RENAME_FILE, // "Move/Rename file(s)"
 	SETTINGS_CALCULATE_PRIO_AUTO, // "Calculate bundle priorities automatically"
 	SETTINGS_AUTOPRIO_FILES, // "Calculate priorities also for individual files"
