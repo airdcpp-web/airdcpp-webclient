@@ -62,7 +62,7 @@ ShareScannerManager::ShareScannerManager() : stop(false) {
 	flacReg.assign(".+(-|\\()(LOSSLESS|FLAC)((-|\\)).+)?", boost::regex_constants::icase);
 	subDirReg.assign("((((DVD)|(CD)|(DIS(K|C))).?([0-9](0-9)?))|(Sample)|(Cover(s)?)|(.{0,5}Sub(s)?))", boost::regex_constants::icase);
 	subReg.assign("(.{0,8}[Ss]ub(s|pack)?)", boost::regex_constants::icase);
-	diskReg.assign("(DVD|CD|(DIS(K|C)))(\\D)?\\d", boost::regex_constants::icase); // 1 digit only
+	diskReg.assign(R"((DVD|CD|(DIS(K|C))).?[0-9](0-9)?((\.|-|_|\s).+)?)", boost::regex_constants::icase);
 }
 
 ShareScannerManager::~ShareScannerManager() { 
@@ -334,19 +334,6 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 		fileList.push_back(Text::toLower(aFileName));
 	});
 
-	if (SETTING(CHECK_DISK_COUNTS)) {
-		StringList disks;
-		copy_if(folderList.begin(), folderList.end(), back_inserter(disks), [this](const string& s) { return regex_match(s, diskReg); });
-		if (!disks.empty()) {
-			sort(disks.begin(), disks.end());
-			auto exceptedCount = disks[disks.size() - 1].back()-'0'; // handles max 10 disks (would require better sorting otherwise)
-			if (disks.size() == 1 || exceptedCount > disks.size()) {
-				reportMessage(STRING(DISKS_MISSING) + " " + aPath, aScan);
-				aScan.disksMissing++;
-			}
-		}
-	}
-
 	if (fileList.empty()) {
 		//check if there are folders
 		if (folderList.empty()) {
@@ -355,6 +342,28 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 				aScan.emptyFolders++;
 			}
 			return;
+		}
+	}
+
+	if (SETTING(CHECK_DISK_COUNTS)) {
+		StringList disks;
+		copy_if(folderList.begin(), folderList.end(), back_inserter(disks), [this](const string& s) { return regex_match(s, diskReg); });
+		if (!disks.empty()) {
+			int exceptedCount = 0;
+
+			// find the maximum disk number
+			for (const auto& s : disks) {
+				auto pos = s.find_first_of("0123456789");
+				if (pos != string::npos) {
+					int num = atoi(s.data() + pos);
+					exceptedCount = max(num, exceptedCount);
+				}
+			}
+
+			if (disks.size() == 1 || exceptedCount > disks.size()) {
+				reportMessage(STRING(DISKS_MISSING) + " " + aPath, aScan);
+				aScan.disksMissing++;
+			}
 		}
 	}
 

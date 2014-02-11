@@ -115,14 +115,6 @@ double SearchQuery::getRelevancyScores(const SearchQuery& aSearch, int aLevel, b
 }
 
 SearchQuery::ResultPointsList SearchQuery::toPointList(const string& aName) const {
-	auto isSeparator = [](char c) {
-		return (c >= 32 && c <= 47) ||
-			(c >= 58 && c <= 64) ||
-			(c >= 91 && c <= 96) ||
-			(c >= 91 && c <= 96) ||
-			(c >= 123 && c <= 127);
-	};
-
 	ResultPointsList ret(lastIncludePositions.size());
 	for (size_t j = 0; j < lastIncludePositions.size(); ++j) {
 		int points = 0;
@@ -130,14 +122,14 @@ SearchQuery::ResultPointsList SearchQuery::toPointList(const string& aName) cons
 		if (pos != string::npos) {
 			if (pos == 0) {
 				points += 20;
-			} else if (!isSeparator(include.getPatterns()[j].str().front()) && isSeparator(aName[pos - 1])) {
+			} else if (!Text::isSeparator(include.getPatterns()[j].str().front()) && Text::isSeparator(aName[pos - 1])) {
 				points += 10;
 			}
 
 			auto endPos = pos + include.getPatterns()[j].size();
 			if (endPos == aName.size()) {
 				points += 20;
-			} else if (!isSeparator(include.getPatterns()[j].str().back()) && isSeparator(aName[endPos])) {
+			} else if (!Text::isSeparator(include.getPatterns()[j].str().back()) && Text::isSeparator(aName[endPos])) {
 				points += 10;
 			}
 		}

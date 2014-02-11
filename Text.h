@@ -102,18 +102,13 @@ namespace Text {
 	string toDOS(string tmp);
 	wstring toDOS(wstring tmp);
 
-	template<typename T, typename F>
-	inline void tokenize(const std::basic_string<T>& str, T token, F f) {
-		string::size_type i = 0;
-		string::size_type j = 0;
-		while( (i=str.find(token, j)) != string::npos ) {
-			f(str.substr(j, i-j));
-			j = i + 1;
-		}
-		if(j < str.size())
-			f(str.substr(j));
-
-	}
+	inline bool isSeparator(char c) {
+		return (c >= 32 && c <= 47) ||
+			(c >= 58 && c <= 64) ||
+			(c >= 91 && c <= 96) ||
+			(c >= 91 && c <= 96) ||
+			(c >= 123 && c <= 127);
+	};
 }
 
 #ifdef _WIN32
