@@ -289,7 +289,7 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		}
 
 		if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE))
-			bundle = bundleQueue.findSearchBundle(aTick); //may modify the recent search queue
+			bundle = bundleQueue.findSearchItem(aTick); //may modify the recent search queue
 	}
 
 	if(bundle) {
@@ -559,36 +559,38 @@ public:
 		errors.erase(boost::remove_if(errors | map_values, [](const Error& e) { return e.isMinor; }).base(), errors.end());
 	}
 
-	void setErrorMsg(string& errorMsg_) {
-		if (!errors.empty()) {
-			StringList msg;
-
-			//get individual errors
-			StringSet errorNames;
-			for (const auto& p: errors | map_keys) {
-				errorNames.insert(p);
-			}
-
-			for (const auto& e: errorNames) {
-				auto c = errors.count(e);
-				if (c <= 3) {
-					//report each file
-					StringList paths;
-					auto k = errors.equal_range(e);
-					for (auto i = k.first; i != k.second; ++i)
-						paths.push_back(i->second.file);
-
-					string r = Util::toString(", ", paths);
-					msg.push_back(STRING_F(X_FILE_NAMES, e % r));
-				} else {
-					//too many errors, report the total failed count
-					msg.push_back(STRING_F(X_FILE_COUNT, e % c % fileCount));
-				}
-			}
-
-			//throw (long errors will crash the debug build.. fix maybe)
-			errorMsg_ = Util::toString(", ", msg);
+	string getMessage() {
+		if (errors.empty()) {
+			return Util::emptyString;
 		}
+
+		StringList msg;
+
+		//get individual errors
+		StringSet errorNames;
+		for (const auto& p: errors | map_keys) {
+			errorNames.insert(p);
+		}
+
+		for (const auto& e: errorNames) {
+			auto c = errors.count(e);
+			if (c <= 3) {
+				//report each file
+				StringList paths;
+				auto k = errors.equal_range(e);
+				for (auto i = k.first; i != k.second; ++i)
+					paths.push_back(i->second.file);
+
+				string r = Util::toString(", ", paths);
+				msg.push_back(STRING_F(X_FILE_NAMES, e % r));
+			} else {
+				//too many errors, report the total failed count
+				msg.push_back(STRING_F(X_FILE_COUNT, e % c % fileCount));
+			}
+		}
+
+		// long errors will crash the debug build.. fix maybe
+		return Util::toString(", ", msg);
 	}
 
 private:
@@ -643,12 +645,12 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 			return nullptr;
 		}
 
-		errors.setErrorMsg(errorMsg_);
+		errorMsg_ = errors.getMessage();
 		return nullptr;
 	} else if (smallDupes > 0) {
 		if (smallDupes == static_cast<int>(aFiles.size())) {
 			//no reason to continue if all remaining files are dupes
-			errors.setErrorMsg(errorMsg_);
+			errorMsg_ = errors.getMessage();
 			return nullptr;
 		} else {
 			//those will get queued, don't report
@@ -699,7 +701,7 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 	if (b)
 		errors.clearMinor();
 
-	errors.setErrorMsg(errorMsg_);
+	errorMsg_ = errors.getMessage();
 	return b;
 }
 
@@ -1401,9 +1403,8 @@ void QueueManager::hashBundle(BundlePtr& aBundle) noexcept {
 void QueueManager::removeFinishedBundle(BundlePtr& aBundle) noexcept {
 	{
 		WLock l(cs);
-		for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end();) {
-			fileQueue.remove(*i);
-			i = aBundle->getFinishedFiles().erase(i);
+		for (auto& qi: aBundle->getFinishedFiles()) {
+			fileQueue.remove(qi);
 		}
 
 		bundleQueue.removeBundle(aBundle);
@@ -1435,7 +1436,7 @@ void QueueManager::onFileHashed(const string& aPath, HashedFile& aFileInfo, bool
 				}
 
 				auto file = Util::getFileName(aPath);
-				auto p = find_if(tpi | map_values, [&](QueueItemPtr aQI) { return (!failed || size == aQI->getSize()) && aQI->getBundle() && aQI->getBundle()->getStatus() == Bundle::STATUS_HASHING && 
+				auto p = find_if(tpi | map_values, [&](const QueueItemPtr& aQI) { return (!failed || size == aQI->getSize()) && aQI->getBundle() && aQI->getBundle()->getStatus() == Bundle::STATUS_HASHING && 
 					aQI->getTargetFileName() == file && aQI->isFinished() && !aQI->isSet(QueueItem::FLAG_HASHED); });
 
 				if (p.base() != tpi.second) {
@@ -2633,7 +2634,7 @@ void QueueManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aU
 }
 
 void QueueManager::runAltSearch() noexcept {
-	auto b = bundleQueue.findSearchBundle(GET_TICK(), true);
+	auto b = bundleQueue.findSearchItem(GET_TICK(), true);
 	if (b) {
 		searchBundle(b, false);
 	} else {
@@ -3642,19 +3643,15 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 		DownloadManager::getInstance()->disconnectBundle(aBundle);
 		{
 			WLock l(cs);
-			for (auto i = aBundle->getFinishedFiles().begin(); i != aBundle->getFinishedFiles().end();) {
-				QueueItemPtr q = *i;
-				UploadManager::getInstance()->abortUpload(q->getTarget());
-				fileQueue.remove(q);
+			for (auto& qi: aBundle->getFinishedFiles()) {
+				UploadManager::getInstance()->abortUpload(qi->getTarget());
+				fileQueue.remove(qi);
 				if (removeFinished) {
-					File::deleteFile(q->getTarget());
+					File::deleteFile(qi->getTarget());
 				}
-
-				i = aBundle->getFinishedFiles().erase(i);
 			}
 
-			for (auto i = aBundle->getQueueItems().begin(); i != aBundle->getQueueItems().end();) {
-				QueueItemPtr qi = *i;
+			for (auto& qi: aBundle->getQueueItems()) {
 				UploadManager::getInstance()->abortUpload(qi->getTarget());
 
 				if(!qi->isRunning() && !qi->getTempTarget().empty() && qi->getTempTarget() != qi->getTarget()) {
@@ -3667,7 +3664,6 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 				}
 
 				fileQueue.remove(qi);
-				i = aBundle->getQueueItems().erase(i);
 			}
 
 			LogManager::getInstance()->message(STRING_F(BUNDLE_X_REMOVED, aBundle->getName()), LogManager::LOG_INFO);

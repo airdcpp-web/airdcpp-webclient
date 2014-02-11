@@ -23,13 +23,14 @@
 #include "typedefs.h"
 #include "HintedUser.h"
 #include "Bundle.h"
+#include "PrioritySearchQueue.h"
 #include "TargetUtil.h"
 
 namespace dcpp {
 
 /* Stores the queue bundle lists and the bundle search queue */
 
-class BundleQueue {
+class BundleQueue : public PrioritySearchQueue<BundlePtr> {
 public:
 	BundleQueue();
 	~BundleQueue();
@@ -48,20 +49,19 @@ public:
 	BundlePtr getMergeBundle(const string& aTarget) const noexcept;
 	void getSubBundles(const string& aTarget, BundleList& retBundles) const noexcept;
 
+	/*void addSearchPrio(BundlePtr& aBundle) noexcept;
+	void removeSearchPrio(BundlePtr& aBundle) noexcept;
 	int getRecentIntervalMs() const noexcept;
 	int getPrioSum() const noexcept;
 	BundlePtr findRecent() noexcept;
 	BundlePtr findAutoSearch() noexcept;
 	BundlePtr findSearchBundle(uint64_t aTick, bool force = false) noexcept;
-	int64_t recalculateSearchTimes(bool aRecent, bool prioChange) noexcept;
+	int64_t recalculateSearchTimes(bool aRecent, bool prioChange) noexcept;*/
 
 	void moveBundle(BundlePtr& aBundle, const string& newTarget) noexcept;
 	void removeBundle(BundlePtr& aBundle) noexcept;
 
 	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept;
-
-	void addSearchPrio(BundlePtr& aBundle) noexcept;
-	void removeSearchPrio(BundlePtr& aBundle) noexcept;
 
 	void saveQueue(bool force) noexcept;
 
@@ -76,19 +76,10 @@ public:
 	Bundle::StringBundleMap& getBundles() { return bundles; }
 	const Bundle::StringBundleMap& getBundles() const { return bundles; }
 private:
-	/** Bundles by priority (low-highest, for auto search) */
-	vector<BundlePtr> prioSearchQueue[Bundle::LAST];
-	deque<BundlePtr> recentSearchQueue;
-
 	/** Bundles by release directory */	
 	Bundle::BundleDirMap bundleDirs;
 	/** Bundles by token */
 	Bundle::StringBundleMap bundles;
-
-	/** Next bundle search */
-	uint64_t nextSearch = 0;
-	/** Next recent bundle search */
-	uint64_t nextRecentSearch = 0;
 };
 
 } // namespace dcpp

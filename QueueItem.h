@@ -256,9 +256,8 @@ public:
 	IGETSET(uint64_t, fileBegin, FileBegin, 0);
 	IGETSET(uint64_t, nextPublishingTime, NextPublishingTime, 0);
 	IGETSET(uint8_t, maxSegments, MaxSegments, 1);
-	IGETSET(BundlePtr, bundle, Bundle, nullptr);
 	
-	QueueItemBase::Priority calculateAutoPriority() const;
+	Priority calculateAutoPriority() const;
 
 	uint64_t getAverageSpeed() const;
 
@@ -266,6 +265,9 @@ public:
 
 	int64_t getBlockSize();
 	void setBlockSize(int64_t aBlockSize) { blockSize = aBlockSize; }
+
+	BundlePtr getBundle() const { return bundle; }
+	void setBundle(Bundle* aBundle) { bundle = aBundle; }
 private:
 	QueueItem& operator=(const QueueItem&);
 
@@ -282,6 +284,7 @@ private:
 	uint8_t getMaxSegments(int64_t filesize) const noexcept;
 
 	int64_t blockSize = -1;
+	Bundle* bundle = nullptr;
 };
 
 } // namespace dcpp
