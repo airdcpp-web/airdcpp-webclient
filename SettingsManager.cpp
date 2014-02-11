@@ -101,7 +101,7 @@ const string SettingsManager::settingTags[] =
 	"Nick", "UploadSpeed", "Description", "DownloadDirectory", "EMail", "ExternalIp", "ExternalIp6",
 	"Font", "TransferViewOrder", "TransferViewWidths", "HubFrameOrder", "HubFrameWidths", 
 	"LanguageFile", "SearchFrameOrder", "SearchFrameWidths", "FavoritesFrameOrder", "FavoritesFrameWidths", 
-	"HublistServers", "QueueFrameOrder", "QueueFrameWidths", "PublicHubsFrameOrder", "PublicHubsFrameWidths", 
+	"HublistServers", "QueueFrmOrder", "QueueFrmWidths", "PublicHubsFrameOrder", "PublicHubsFrameWidths", 
 	"UsersFrmOrder2", "UsersFrmWidths2", "HttpProxy", "LogDirectory", "LogFormatPostDownload", 
 	"LogFormatPostUpload", "LogFormatMainChat", "LogFormatPrivateChat", "FinishedOrder", "FinishedWidths",	 
 	"TempDownloadDirectory", "BindAddress", "BindAddress6", "SocksServer", "SocksUser", "SocksPassword", "ConfigVersion", 
