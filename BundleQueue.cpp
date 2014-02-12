@@ -19,7 +19,6 @@
 #include "stdinc.h"
 
 #include <boost/range/numeric.hpp>
-#include <boost/range/algorithm/copy.hpp>
 
 #include "AirUtil.h"
 #include "BundleQueue.h"
@@ -120,7 +119,8 @@ void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& 
 		}
 	} else {
 		// copy all found directories
-		boost::copy(directories | map_values, back_inserter(paths_));
+		for (auto s = directories.first; s != directories.second; ++s)
+			paths_.emplace_back(s->second);
 	}
 }
 

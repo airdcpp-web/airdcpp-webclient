@@ -60,144 +60,7 @@ namespace dcpp {
 
 using boost::range::for_each;
 
-void QueueManager::shutdown() {
-	saveQueue(false);
-}
-
-void QueueManager::Rechecker::add(const string& file) {
-	Lock l(cs);
-	files.push_back(file);
-	if(!active) {
-		active = true;
-		start();
-	}
-}
-
-int QueueManager::Rechecker::run() {
-	while(true) {
-		string file;
-		{
-			Lock l(cs);
-			auto i = files.begin();
-			if(i == files.end()) {
-				active = false;
-				return 0;
-			}
-			file = *i;
-			files.erase(i);
-		}
-
-		QueueItemPtr q;
-		int64_t tempSize;
-		TTHValue tth;
-
-		{
-			RLock l(qm->cs);
-
-			q = qm->fileQueue.findFile(file);
-			if(!q || q->isSet(QueueItem::FLAG_USER_LIST))
-				continue;
-
-			qm->fire(QueueManagerListener::RecheckStarted(), q->getTarget());
-			dcdebug("Rechecking %s\n", file.c_str());
-
-			tempSize = File::getSize(q->getTempTarget());
-
-			if(tempSize == -1) {
-				qm->fire(QueueManagerListener::RecheckNoFile(), q->getTarget());
-				continue;
-			}
-
-			if(tempSize < Util::convertSize(64, Util::KB)) {
-				qm->fire(QueueManagerListener::RecheckFileTooSmall(), q->getTarget());
-				continue;
-			}
-
-			if(tempSize != q->getSize()) {
-				File(q->getTempTarget(), File::WRITE, File::OPEN).setSize(q->getSize());
-			}
-
-			if(q->isRunning()) {
-				qm->fire(QueueManagerListener::RecheckDownloadsRunning(), q->getTarget());
-				continue;
-			}
-
-			tth = q->getTTH();
-		}
-
-		TigerTree tt;
-		bool gotTree = HashManager::getInstance()->getTree(tth, tt);
-
-		string tempTarget;
-
-		{
-			RLock l(qm->cs);
-
-			// get q again in case it has been (re)moved
-			q = qm->fileQueue.findFile(file);
-			if(!q)
-				continue;
-
-			if(!gotTree) {
-				qm->fire(QueueManagerListener::RecheckNoTree(), q->getTarget());
-				continue;
-			}
-
-			//Clear segments
-			q->resetDownloaded();
-
-			tempTarget = q->getTempTarget();
-		}
-
-		TigerTree ttFile(tt.getBlockSize());
-
-		try {
-			FileReader().read(tempTarget, [&](const void* x, size_t n) {
-				return ttFile.update(x, n), true;
-			});
-		} catch(const FileException & e) {
-			dcdebug("Error while reading file: %s\n", e.what());
-		}
-
-		{
-			RLock l(qm->cs);
-			// get q again in case it has been (re)moved
-			q = qm->fileQueue.findFile(file);
-		}
-
-		if(!q)
-			continue;
-
-		ttFile.finalize();
-
-		if(ttFile.getRoot() == tth) {
-			//If no bad blocks then the file probably got stuck in the temp folder for some reason
-			qm->moveStuckFile(q);
-			continue;
-		}
-
-		size_t pos = 0;
-
-		{
-			WLock l(qm->cs);
-			boost::for_each(tt.getLeaves(), ttFile.getLeaves(), [&](const TTHValue& our, const TTHValue& file) {
-				if(our == file) {
-					q->addFinishedSegment(Segment(pos, tt.getBlockSize()));
-				}
-
-				pos += tt.getBlockSize();
-			});
-		}
-
-		qm->rechecked(q);
-	}
-	return 0;
-}
-
 QueueManager::QueueManager() : 
-	lastSave(0),
-	lastAutoPrio(0),
-	rechecker(this),
 	udp(Socket::TYPE_UDP),
 	tasks(true)
 { 
@@ -224,6 +87,116 @@ QueueManager::~QueueManager() {
 		std::for_each(filelists.begin(), std::set_difference(filelists.begin(), filelists.end(),
 			protectedFileLists.begin(), protectedFileLists.end(), filelists.begin()), &File::deleteFile);
 	}
+}
+
+void QueueManager::shutdown() {
+	saveQueue(false);
+}
+
+void QueueManager::recheckFile(const string& aPath) noexcept{
+	QueueItemPtr q;
+	int64_t tempSize;
+	TTHValue tth;
+
+	{
+		RLock l(cs);
+
+		q = fileQueue.findFile(aPath);
+		if (!q || q->isSet(QueueItem::FLAG_USER_LIST))
+			return;
+
+		fire(QueueManagerListener::RecheckStarted(), q->getTarget());
+		dcdebug("Rechecking %s\n", aPath.c_str());
+
+		tempSize = File::getSize(q->getTempTarget());
+
+		if (tempSize == -1) {
+			fire(QueueManagerListener::RecheckNoFile(), q->getTarget());
+			return;
+		}
+
+		if (tempSize < Util::convertSize(64, Util::KB)) {
+			fire(QueueManagerListener::RecheckFileTooSmall(), q->getTarget());
+			return;
+		}
+
+		if (tempSize != q->getSize()) {
+			File(q->getTempTarget(), File::WRITE, File::OPEN).setSize(q->getSize());
+		}
+
+		if (q->isRunning()) {
+			fire(QueueManagerListener::RecheckDownloadsRunning(), q->getTarget());
+			return;
+		}
+
+		tth = q->getTTH();
+	}
+
+	TigerTree tt;
+	bool gotTree = HashManager::getInstance()->getTree(tth, tt);
+
+	string tempTarget;
+
+	{
+		RLock l(cs);
+
+		// get q again in case it has been (re)moved
+		q = fileQueue.findFile(aPath);
+		if (!q)
+			return;
+
+		if (!gotTree) {
+			fire(QueueManagerListener::RecheckNoTree(), q->getTarget());
+			return;
+		}
+
+		//Clear segments
+		q->resetDownloaded();
+
+		tempTarget = q->getTempTarget();
+	}
+
+	TigerTree ttFile(tt.getBlockSize());
+
+	try {
+		FileReader().read(tempTarget, [&](const void* x, size_t n) {
+			return ttFile.update(x, n), true;
+		});
+	} catch (const FileException & e) {
+		dcdebug("Error while reading file: %s\n", e.what());
+	}
+
+	{
+		RLock l(cs);
+		// get q again in case it has been (re)moved
+		q = fileQueue.findFile(aPath);
+	}
+
+	if (!q)
+		return;
+
+	ttFile.finalize();
+
+	if (ttFile.getRoot() == tth) {
+		//If no bad blocks then the file probably got stuck in the temp folder for some reason
+		moveStuckFile(q);
+		return;
+	}
+
+	size_t pos = 0;
+
+	{
+		WLock l(cs);
+		boost::for_each(tt.getLeaves(), ttFile.getLeaves(), [&](const TTHValue& our, const TTHValue& file) {
+			if (our == file) {
+				q->addFinishedSegment(Segment(pos, tt.getBlockSize()));
+			}
+
+			pos += tt.getBlockSize();
+		});
+	}
+
+	rechecked(q);
 }
 
 void QueueManager::getBloom(HashBloom& bloom) const noexcept {
@@ -1790,7 +1763,7 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 }
 
 void QueueManager::recheck(const string& aTarget) {
-	rechecker.add(aTarget);
+	tasks.addTask(new DispatcherQueue::Callback([=] { recheck(aTarget); }));
 }
 
 void QueueManager::removeFile(const string aTarget) noexcept {

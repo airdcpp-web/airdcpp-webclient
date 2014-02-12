@@ -203,48 +203,10 @@ public:
 	void getUnfinishedPaths(StringList& bundles) noexcept;
 	void checkRefreshPaths(StringList& bundlePaths, StringList& refreshPaths) noexcept;
 	
-	GETSET(uint64_t, lastSave, LastSave);
-	GETSET(uint64_t, lastAutoPrio, LastAutoPrio);
+	IGETSET(uint64_t, lastSave, LastSave, 0);
+	IGETSET(uint64_t, lastAutoPrio, LastAutoPrio, 0);
 
 	DispatcherQueue tasks;
-
-	/*class FileMover : public Thread {
-	public:
-		enum Tasks {
-			MOVE_FILE,
-			REMOVE_DIR,
-			SHUTDOWN
-		};
-
-		FileMover();
-		virtual ~FileMover();
-
-		void moveFile(const string& source, const string& target, QueueItemPtr aBundle);
-		void removeDir(const string& aDir);
-		void shutdown();
-		virtual int run();
-	private:
-
-		Semaphore s;
-		TaskQueue tasks;
-	} mover;*/
-
-	class Rechecker : public Thread {
-
-		public:
-			explicit Rechecker(QueueManager* qm_) : qm(qm_), active(false) { }
-			virtual ~Rechecker() { join(); }
-
-			void add(const string& file);
-			virtual int run();
-
-		private:
-			QueueManager* qm;
-			bool active;
-
-			StringList files;
-			CriticalSection cs;
-	} rechecker;
 
 	void shareBundle(const string& aName) noexcept;
 	void runAltSearch() noexcept;
@@ -254,6 +216,7 @@ public:
 
 	SharedMutex& getCS() { return cs; }
 	const Bundle::StringBundleMap& getBundles() const { return bundleQueue.getBundles(); }
+	void recheckFile(const string& aPath) noexcept;
 private:
 	friend class QueueLoader;
 	friend class Singleton<QueueManager>;
