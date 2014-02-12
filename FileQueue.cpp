@@ -73,7 +73,7 @@ void FileQueue::remove(QueueItemPtr& qi) noexcept {
 			dcassert(qi->getSize() >= 0);
 			queueSize -= qi->getSize();
 		} 
-		if (qi->isAnySet(QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_USER_LIST) || QueueItem::FLAG_OPEN) {
+		if (qi->isAnySet(QueueItem::FLAG_CLIENT_VIEW | QueueItem::FLAG_USER_LIST) | QueueItem::FLAG_OPEN) {
 			smallItems.erase(const_cast<string*>(&qi->getTarget()));
 		}
 	}
