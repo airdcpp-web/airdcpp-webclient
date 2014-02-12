@@ -18,10 +18,8 @@
 
 #include "stdinc.h"
 
-#include <boost/random/discrete_distribution.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/fusion/include/count_if.hpp>
 #include <boost/range/numeric.hpp>
+#include <boost/range/algorithm/copy.hpp>
 
 #include "AirUtil.h"
 #include "BundleQueue.h"
@@ -74,10 +72,7 @@ void BundleQueue::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& 
 
 BundlePtr BundleQueue::findBundle(const string& bundleToken) const noexcept {
 	auto i = bundles.find(bundleToken);
-	if (i != bundles.end()) {
-		return i->second;
-	}
-	return nullptr;
+	return i != bundles.end() ? i->second : nullptr;
 }
 
 void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& paths_) const noexcept {
@@ -86,12 +81,12 @@ void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& 
 
 	//get the last directory, we might need the position later with subdirs
 	string remoteDir = aPath;
-	if (remoteDir[remoteDir.length()-1] == '\\')
+	if (remoteDir.back() == '\\')
 		remoteDir.pop_back();
 
 	auto pos = remoteDir.rfind("\\");
 	if (pos != string::npos)
-		remoteDir = move(remoteDir.substr(pos+1));
+		remoteDir = remoteDir.substr(pos+1);
 
 	auto directories = bundleDirs.equal_range(remoteDir);
 	if (directories.first == directories.second)
@@ -124,8 +119,8 @@ void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& 
 			}
 		}
 	} else {
-		for (auto s = directories.first; s != directories.second; ++s)
-			paths_.emplace_back(s->second);
+		// copy all found directories
+		boost::copy(directories | map_values, back_inserter(paths_));
 	}
 }
 
@@ -146,7 +141,7 @@ void BundleQueue::getInfo(const string& aPath, BundleList& retBundles, int& fini
 		} else if (!b->isFileBundle() && AirUtil::isSub(aPath, b->getTarget())) {
 			//subfolder
 			retBundles.push_back(b);
-			finishedFiles = count_if(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), [&aPath](QueueItemPtr qi) { return AirUtil::isSub(qi->getTarget(), aPath); });
+			finishedFiles = count_if(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), [&aPath](const QueueItemPtr& qi) { return AirUtil::isSub(qi->getTarget(), aPath); });
 			return;
 		}
 	}
@@ -243,12 +238,12 @@ void BundleQueue::moveBundle(BundlePtr& aBundle, const string& newTarget) noexce
 
 void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept{
 	string tempVol;
-	bool useSingleTempDir = (SETTING(TEMP_DOWNLOAD_DIRECTORY).find("%[targetdrive]") == string::npos);
+	bool useSingleTempDir = !SETTING(DCTMP_STORE_DESTINATION) && SETTING(TEMP_DOWNLOAD_DIRECTORY).find("%[targetdrive]") == string::npos;
 	if (useSingleTempDir) {
 		tempVol = TargetUtil::getMountPath(SETTING(TEMP_DOWNLOAD_DIRECTORY), volumes);
 	}
 
-	for(auto& b: bundles | map_values) {
+	for(const auto& b: bundles | map_values) {
 		string mountPath = TargetUtil::getMountPath(b->getTarget(), volumes);
 		if (!mountPath.empty()) {
 			auto s = dirMap.find(mountPath);
@@ -270,7 +265,7 @@ void BundleQueue::saveQueue(bool force) noexcept {
 			try {
 				b->save();
 			} catch(FileException& e) {
-				LogManager::getInstance()->message("Failed to save the bundle " + b->getName() + ": " + e.getError(), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, b->getName() % e.getError()), LogManager::LOG_ERROR);
 			}
 		}
 	}
