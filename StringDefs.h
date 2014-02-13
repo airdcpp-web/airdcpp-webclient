@@ -1844,6 +1844,8 @@ enum Strings { // @DontAdd
 	SINGLE_CLICK_TRAY, // "Single click on tray icon to open"
 	SOURCES, // "Sources"
 	NEW_NAME, // "New name"
+	FILE_LISTS, // "File lists"
+	TEMP_ITEMS, // "Temp items"
 	SAVE_FAILED_X, // "Failed to save the file %1%: %2%"
 	LOAD_FAILED_X, // "Failed to load the file %1%: %2%"
 	LAST // @DontAdd

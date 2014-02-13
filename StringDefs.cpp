@@ -1840,6 +1840,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Single click on tray icon to open", 
 "Sources", 
 "New name", 
+"File lists", 
+"Temp items", 
 "Failed to save the file %1%: %2%", 
 "Failed to load the file %1%: %2%", 
 };
@@ -3682,6 +3684,8 @@ std::string dcpp::ResourceManager::names[] = {
 "SingleClickTray", 
 "Sources", 
 "NewName", 
+"FileLists", 
+"TempItems", 
 "SaveFailedX", 
 "LoadFailedX", 
 };
