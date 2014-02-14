@@ -111,12 +111,12 @@ void QueueManager::recheckFile(const string& aPath) noexcept{
 		tempSize = File::getSize(q->getTempTarget());
 
 		if (tempSize == -1) {
-			fire(QueueManagerListener::RecheckNoFile(), q->getTarget());
+			fire(QueueManagerListener::RecheckFailed(), q, STRING(UNFINISHED_FILE_NOT_FOUND));
 			return;
 		}
 
 		if (tempSize < Util::convertSize(64, Util::KB)) {
-			fire(QueueManagerListener::RecheckFileTooSmall(), q->getTarget());
+			fire(QueueManagerListener::RecheckFailed(), q, STRING(UNFINISHED_FILE_TOO_SMALL));
 			return;
 		}
 
@@ -125,7 +125,7 @@ void QueueManager::recheckFile(const string& aPath) noexcept{
 		}
 
 		if (q->isRunning()) {
-			fire(QueueManagerListener::RecheckDownloadsRunning(), q->getTarget());
+			fire(QueueManagerListener::RecheckFailed(), q, STRING(DOWNLOADS_RUNNING));
 			return;
 		}
 
@@ -146,7 +146,7 @@ void QueueManager::recheckFile(const string& aPath) noexcept{
 			return;
 
 		if (!gotTree) {
-			fire(QueueManagerListener::RecheckNoTree(), q->getTarget());
+			fire(QueueManagerListener::RecheckFailed(), q, STRING(NO_FULL_TREE));
 			return;
 		}
 
@@ -1275,9 +1275,9 @@ void QueueManager::checkBundleFinished(BundlePtr& aBundle, bool isPrivate) noexc
 		} else {
 			LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogManager::LOG_INFO);
 		}
-	} else {
+	} /*else {
 		removeFinishedBundle(aBundle);
-	}
+	}*/
 }
 
 bool QueueManager::scanBundle(BundlePtr& aBundle) noexcept {
@@ -1363,9 +1363,9 @@ void QueueManager::hashBundle(BundlePtr& aBundle) noexcept {
 		//} else {
 		//	LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
 		//}
-	} else {
+	} /*else {
 		removeFinishedBundle(aBundle);
-	}
+	}*/
 }
 
 void QueueManager::removeFinishedBundle(BundlePtr& aBundle) noexcept {
@@ -1477,7 +1477,7 @@ void QueueManager::checkBundleHashed(BundlePtr& b) noexcept {
 		}
 	}
 
-	removeFinishedBundle(b);
+	//removeFinishedBundle(b);
 }
 
 void QueueManager::moveStuckFile(QueueItemPtr& qi) {
@@ -1499,7 +1499,7 @@ void QueueManager::moveStuckFile(QueueItemPtr& qi) {
 		fire(QueueManagerListener::StatusUpdated(), qi);
 	}
 
-	fire(QueueManagerListener::RecheckAlreadyFinished(), target);
+	fire(QueueManagerListener::RecheckFailed(), qi, STRING(FILE_ALREADY_FINISHED));
 }
 
 void QueueManager::rechecked(QueueItemPtr& qi) {
@@ -1641,17 +1641,18 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 					q->setFlag(QueueItem::FLAG_FINISHED);
 					userQueue.removeQI(q);
 
-					if(SETTING(KEEP_FINISHED_FILES)) {
+					/*if(SETTING(KEEP_FINISHED_FILES)) {
 						fire(QueueManagerListener::StatusUpdated(), q);
 					} else {
 						fire(QueueManagerListener::Removed(), q, true);
 						if (!d->getBundle())
 							fileQueue.remove(q);
-					}
+					}*/
 				} else {
 					userQueue.removeDownload(q, d->getToken());
-					fire(QueueManagerListener::StatusUpdated(), q);
 				}
+
+				fire(QueueManagerListener::StatusUpdated(), q);
 			} else {
 				dcassert(0);
 			}
@@ -2399,11 +2400,11 @@ void QueueLoader::endTag(const string& name) {
 		} else if(name == sBundle) {
 			ScopedFunctor([this] { curBundle = nullptr; });
 			inBundle = false;
-			if (curBundle->getQueueItems().empty()) {
-				throw Exception(STRING_F(NO_FILES_WERE_LOADED, curBundle->getTarget()));
-			} else {
+			//if (curBundle->getQueueItems().empty()) {
+			//	throw Exception(STRING_F(NO_FILES_WERE_LOADED, curBundle->getTarget()));
+			//} else {
 				qm->addLoadedBundle(curBundle);
-			}
+			//}
 		} else if(name == sFile) {
 			curToken = Util::emptyString;
 			inFile = false;
@@ -3087,7 +3088,7 @@ void QueueManager::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList&
 
 void QueueManager::addLoadedBundle(BundlePtr& aBundle) noexcept {
 	WLock l(cs);
-	if (aBundle->getQueueItems().empty())
+	if (aBundle->getQueueItems().empty() && aBundle->getFinishedFiles().empty())
 		return;
 
 	if (bundleQueue.getMergeBundle(aBundle->getTarget()))

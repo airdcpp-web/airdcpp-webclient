@@ -22,7 +22,7 @@
 #include "forward.h"
 #include "noexcept.h"
 #include "QueueItem.h"
-#include "HashManager.h"
+#include "HashedFile.h"
 
 namespace dcpp {
 
@@ -41,12 +41,8 @@ public:
 	typedef X<7> SourceFilesUpdated;
 
 	typedef X<8> RecheckStarted;
-	typedef X<9> RecheckNoFile;
-	typedef X<10> RecheckFileTooSmall;
-	typedef X<11> RecheckDownloadsRunning;
-	typedef X<12> RecheckNoTree;
-	typedef X<13> RecheckAlreadyFinished;
-	typedef X<14> RecheckDone;
+	typedef X<9> RecheckFailed;
+	typedef X<10> RecheckDone;
 	
 	typedef X<15> BundleSources;
 
@@ -83,11 +79,7 @@ public:
 	virtual void on(BundleStatusChanged, const BundlePtr&) noexcept { }
 	
 	virtual void on(RecheckStarted, const string&) noexcept { }
-	virtual void on(RecheckNoFile, const string&) noexcept { }
-	virtual void on(RecheckFileTooSmall, const string&) noexcept { }
-	virtual void on(RecheckDownloadsRunning, const string&) noexcept { }
-	virtual void on(RecheckNoTree, const string&) noexcept { }
-	virtual void on(RecheckAlreadyFinished, const string&) noexcept { }
+	virtual void on(RecheckFailed, const QueueItemPtr&, const string&) noexcept{ }
 	virtual void on(RecheckDone, const string&) noexcept { }
 };
 

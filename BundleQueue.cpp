@@ -261,7 +261,7 @@ void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUti
 
 void BundleQueue::saveQueue(bool force) noexcept {
 	for(auto& b: bundles | map_values) {
-		if (!b->isFinished() && (b->getDirty() || force)) {
+		if (b->getDirty() || force) {
 			try {
 				b->save();
 			} catch(FileException& e) {
