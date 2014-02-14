@@ -1177,7 +1177,14 @@ void DirectoryListing::removedQueueImpl(const string& aDir) noexcept {
 
 void DirectoryListing::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const StringList& aPaths) noexcept{
 	if (partialList) {
-		//addAsyncTask([=] { loadPartialImpl(Util::emptyString, aVirtualPath, false, false, nullptr); });
+		string lastVirtual;
+		for (const auto& p : aPaths) {
+			auto vPath = ShareManager::getInstance()->realToVirtual(p, Util::toInt(fileName));
+			if (!vPath.empty() && lastVirtual != vPath && findDirectory(vPath)) {
+				addAsyncTask([=] { loadPartialImpl(Util::emptyString, vPath, false, false, nullptr); });
+				lastVirtual = vPath;
+			}
+		}
 	}
 }
 

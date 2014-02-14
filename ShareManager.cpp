@@ -112,13 +112,15 @@ void ShareManager::startup(function<void(const string&)> splashF, function<void(
 
 	setSkipList();
 
+	bool refreshed = false;
 	if(!loadCache(progressF)) {
 		if (splashF)
 			splashF(STRING(REFRESHING_SHARE));
 		refresh(false, TYPE_STARTUP_BLOCKING, progressF);
+		refreshed = true;
 	}
 
-	addAsyncTask([this] {
+	addAsyncTask([=] {
 		rebuildTotalExcludes();
 		monitor.addListener(this);
 
@@ -136,7 +138,7 @@ void ShareManager::startup(function<void(const string&)> splashF, function<void(
 		addMonitoring(monitorPaths);
 		TimerManager::getInstance()->addListener(this);
 
-		if (SETTING(STARTUP_REFRESH))
+		if (SETTING(STARTUP_REFRESH) && !refreshed)
 			refresh(false, TYPE_STARTUP_DELAYED);
 	});
 }
@@ -1201,6 +1203,10 @@ bool ShareManager::isRealPathShared(const string& aPath) noexcept {
 	RLock l (cs);
 	auto d = findDirectory(Util::getFilePath(aPath), false, false, true);
 	if (d) {
+		if (!aPath.empty() && aPath.back() == PATH_SEPARATOR)
+			return true;
+
+		// it's a file
 		auto it = d->files.find(Text::toLower(Util::getFileName(aPath)));
 		if(it != d->files.end()) {
 			return true;
@@ -1208,6 +1214,21 @@ bool ShareManager::isRealPathShared(const string& aPath) noexcept {
 	}
 
 	return false;
+}
+
+string ShareManager::realToVirtual(const string& aPath, ProfileToken aProfile) noexcept{
+	RLock l(cs);
+	auto d = findDirectory(Util::getFilePath(aPath), false, false, true);
+	if (d) {
+		auto vPath = d->getFullName(aProfile);
+		if (aPath.back() == PATH_SEPARATOR)
+			return vPath;
+
+		// it's a file
+		return vPath + "\\" + Util::getFileName(aPath);
+	}
+
+	return Util::emptyString;
 }
 
 string ShareManager::validateVirtual(const string& aVirt) const noexcept {
@@ -1517,8 +1538,13 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 	mergeRefreshChanges(ll, dirNameMap, newRoots, tthIndex, hashSize, sharedSize, nullptr);
 
 	//make sure that the subprofiles are added too
-	for (auto& p: newRoots)
+	for (auto& p : newRoots)
 		rootPaths[p.first] = p.second;
+
+	// needed set the bundle statuses for instance
+	fire(ShareManagerListener::ShareRefreshed(), TYPE_STARTUP_BLOCKING);
+
+
 
 	//were all parents loaded?
 	StringList refreshPaths;

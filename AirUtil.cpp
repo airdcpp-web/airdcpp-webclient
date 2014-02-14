@@ -140,12 +140,16 @@ void AirUtil::init() {
 	dcassert(AirUtil::isParentOrExact(R"(C:\Projects\)", R"(C:\Projects\test)"));
 	dcassert(!AirUtil::isParentOrExact(R"(C:\Projects)", R"(C:\Projectstest)"));
 	dcassert(!AirUtil::isParentOrExact(R"(C:\Projectstest)", R"(C:\Projects)"));
+	dcassert(!AirUtil::isParentOrExact(R"(C:\Projects\test)", ""));
+	dcassert(AirUtil::isParentOrExact("", R"(C:\Projects\test)"));
 
 	dcassert(!AirUtil::isSub(R"(C:\Projects\)", R"(C:\Projects\)"));
 	dcassert(AirUtil::isSub(R"(C:\Projects\test)", R"(C:\Projects\)"));
 	dcassert(AirUtil::isSub(R"(C:\Projects\test)", R"(C:\Projects)"));
 	dcassert(!AirUtil::isSub(R"(C:\Projectstest)", R"(C:\Projects)"));
 	dcassert(!AirUtil::isSub(R"(C:\Projects)", R"(C:\Projectstest)"));
+	dcassert(AirUtil::isSub(R"(C:\Projects\test)", ""));
+	dcassert(!AirUtil::isSub("", R"(C:\Projects\test)"));
 #endif
 }
 
@@ -834,7 +838,7 @@ bool AirUtil::isParentOrExact(const string& aTestParent, const string& aSub, con
 		return false;
 
 	// either the parent must end with a separator or it must follow in the subdirectory
-	return aSub.empty() || aTestParent.length() == aSub.length() || aTestParent.back() == separator || aSub[aTestParent.length()] == separator;
+	return aTestParent.empty() || aTestParent.length() == aSub.length() || aTestParent.back() == separator || aSub[aTestParent.length()] == separator;
 }
 
 }

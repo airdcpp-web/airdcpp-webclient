@@ -264,6 +264,8 @@ public:
 	void renameProfiles(const ShareProfileInfo::List& aProfiles) noexcept;
 
 	bool isRealPathShared(const string& aPath) noexcept;
+	string realToVirtual(const string& aPath, ProfileToken aProfile) noexcept;
+
 	ShareProfilePtr getProfile(ProfileToken aProfile) const noexcept;
 
 	/* Only for gui use purposes, no locking */

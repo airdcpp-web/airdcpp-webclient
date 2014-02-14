@@ -49,7 +49,7 @@ void BundleQueue::addBundle(BundlePtr& aBundle) noexcept {
 	}
 
 	if (aBundle->isFinished()) {
-		aBundle->setStatus(Bundle::STATUS_FINISHED); // FIX
+		aBundle->setStatus(Bundle::STATUS_FINISHED);
 		return;
 	}
 

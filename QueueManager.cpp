@@ -70,15 +70,19 @@ QueueManager::QueueManager() :
 }
 
 QueueManager::~QueueManager() { 
+
+}
+
+void QueueManager::shutdown() {
 	SearchManager::getInstance()->removeListener(this);
-	TimerManager::getInstance()->removeListener(this); 
+	TimerManager::getInstance()->removeListener(this);
 	ClientManager::getInstance()->removeListener(this);
 	HashManager::getInstance()->removeListener(this);
 	ShareManager::getInstance()->removeListener(this);
 
 	saveQueue(false);
 
-	if(!SETTING(KEEP_LISTS)) {
+	if (!SETTING(KEEP_LISTS)) {
 		string path = Util::getListPath();
 
 		std::sort(protectedFileLists.begin(), protectedFileLists.end());
@@ -88,10 +92,6 @@ QueueManager::~QueueManager() {
 		std::for_each(filelists.begin(), std::set_difference(filelists.begin(), filelists.end(),
 			protectedFileLists.begin(), protectedFileLists.end(), filelists.begin()), &File::deleteFile);
 	}
-}
-
-void QueueManager::shutdown() {
-	saveQueue(false);
 }
 
 void QueueManager::recheckFile(const string& aPath) noexcept{
@@ -3059,7 +3059,8 @@ void QueueManager::onPathRefreshed(const string& aPath) noexcept{
 	}
 
 	for (auto& b : bundles) {
-		setBundleStatus(b, Bundle::STATUS_SHARED);
+		if (ShareManager::getInstance()->isRealPathShared(b->getTarget()))
+			setBundleStatus(b, Bundle::STATUS_SHARED);
 	}
 }
 
