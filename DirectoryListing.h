@@ -25,6 +25,7 @@
 #include "DirectoryListingListener.h"
 #include "ClientManagerListener.h"
 #include "SearchManagerListener.h"
+#include "ShareManagerListener.h"
 #include "TimerManager.h"
 
 #include "AirUtil.h"
@@ -49,7 +50,8 @@ namespace dcpp {
 class ListLoader;
 STANDARD_EXCEPTION(AbortException);
 
-class DirectoryListing : public intrusive_ptr_base<DirectoryListing>, public UserInfoBase, public Thread, public Speaker<DirectoryListingListener>, private SearchManagerListener, private TimerManagerListener, private ClientManagerListener
+class DirectoryListing : public intrusive_ptr_base<DirectoryListing>, public UserInfoBase, public Thread, public Speaker<DirectoryListingListener>, 
+	private SearchManagerListener, private TimerManagerListener, private ClientManagerListener, private ShareManagerListener
 {
 public:
 	class Directory;
@@ -250,6 +252,9 @@ private:
 	void on(ClientManagerListener::DirectSearchEnd, const string& aToken, int resultCount) noexcept;
 
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
+
+	// ShareManagerListener
+	void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const StringList& aPaths) noexcept;
 
 	void endSearch(bool timedOut = false) noexcept;
 

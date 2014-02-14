@@ -41,6 +41,7 @@
 #include "HashManager.h"
 #include "MerkleTree.h"
 #include "QueueItem.h"
+#include "ShareManagerListener.h"
 #include "Singleton.h"
 #include "Socket.h"
 #include "StringMatch.h"
@@ -66,7 +67,7 @@ class ConnectionQueueItem;
 class QueueLoader;
 
 class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManagerListener>, private TimerManagerListener, 
-	private SearchManagerListener, private ClientManagerListener, private HashManagerListener
+	private SearchManagerListener, private ClientManagerListener, private HashManagerListener, private ShareManagerListener
 {
 public:
 	void getBloom(HashBloom& bloom) const noexcept;
@@ -330,6 +331,11 @@ private:
 	// ClientManagerListener
 	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
+
+	// ShareManagerListener
+	void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const StringList& aPaths) noexcept;
+	void on(ShareRefreshed, uint8_t /*tasktype*/) noexcept;
+	void onPathRefreshed(const string& aPath) noexcept;
 
 	DelayedEvents<string> delayEvents;
 

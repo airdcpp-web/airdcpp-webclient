@@ -40,19 +40,24 @@ size_t BundleQueue::getTotalFiles() const noexcept {
 }
 
 void BundleQueue::addBundle(BundlePtr& aBundle) noexcept {
-	aBundle->setStatus(Bundle::STATUS_QUEUED);
-	aBundle->setDownloadedBytes(0); //sets to downloaded segments
-	aBundle->updateSearchMode();
-
-	addSearchPrio(aBundle);
 	bundles[aBundle->getToken()] = aBundle;
-
 	//check if we need to insert the root bundle dir
 	if (!aBundle->isFileBundle()) {
 		if (findLocalDir(aBundle->getTarget()) == bundleDirs.end()) {
 			addDirectory(aBundle->getTarget(), aBundle);
 		}
 	}
+
+	if (aBundle->isFinished()) {
+		aBundle->setStatus(Bundle::STATUS_FINISHED); // FIX
+		return;
+	}
+
+	aBundle->setStatus(Bundle::STATUS_QUEUED);
+	aBundle->setDownloadedBytes(0); //sets to downloaded segments
+	aBundle->updateSearchMode();
+
+	addSearchPrio(aBundle);
 }
 
 void BundleQueue::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept {

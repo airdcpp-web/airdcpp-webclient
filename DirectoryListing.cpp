@@ -49,10 +49,13 @@ DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const
 	running.clear();
 
 	ClientManager::getInstance()->addListener(this);
+	if (isOwnList)
+		ShareManager::getInstance()->addListener(this);
 }
 
 DirectoryListing::~DirectoryListing() {
 	ClientManager::getInstance()->removeListener(this);
+	ShareManager::getInstance()->removeListener(this);
 }
 
 bool DirectoryListing::isMyCID() const noexcept {
@@ -1169,6 +1172,12 @@ void DirectoryListing::removedQueueImpl(const string& aDir) noexcept {
 	if (d) {
 		d->setLoading(false);
 		fire(DirectoryListingListener::RemovedQueue(), aDir);
+	}
+}
+
+void DirectoryListing::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const StringList& aPaths) noexcept{
+	if (partialList) {
+		//addAsyncTask([=] { loadPartialImpl(Util::emptyString, aVirtualPath, false, false, nullptr); });
 	}
 }
 

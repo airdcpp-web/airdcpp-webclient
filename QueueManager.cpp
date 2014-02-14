@@ -74,6 +74,7 @@ QueueManager::~QueueManager() {
 	TimerManager::getInstance()->removeListener(this); 
 	ClientManager::getInstance()->removeListener(this);
 	HashManager::getInstance()->removeListener(this);
+	ShareManager::getInstance()->removeListener(this);
 
 	saveQueue(false);
 
@@ -2197,6 +2198,7 @@ void QueueManager::loadQueue(function<void (float)> progressF) noexcept {
 	SearchManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);
 	HashManager::getInstance()->addListener(this);
+	ShareManager::getInstance()->addListener(this);
 }
 
 static const string sFile = "File";
@@ -2996,7 +2998,7 @@ void QueueManager::checkRefreshPaths(StringList& retBundles, StringList& sharePa
 	{
 		RLock l(cs);
 		for (auto& b: bundleQueue.getBundles() | map_values) {
-			if (b->isFileBundle())
+			if (b->isFileBundle() || b->getStatus() >= Bundle::STATUS_HASHING)
 				continue;
 
 			//check the path just to avoid hashing/scanning bundles from dirs that aren't being refreshed
@@ -3036,6 +3038,33 @@ void QueueManager::checkRefreshPaths(StringList& retBundles, StringList& sharePa
 	}
 
 	sort(retBundles.begin(), retBundles.end());
+}
+
+void QueueManager::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const StringList& aPaths) noexcept{
+	for (const auto& p : aPaths) {
+		onPathRefreshed(p);
+	}
+}
+
+void QueueManager::onPathRefreshed(const string& aPath) noexcept{
+	BundleList bundles;
+
+	{
+		RLock l(cs);
+		for (auto& b : bundleQueue.getBundles() | map_values) {
+			if (AirUtil::isParentOrExact(aPath, b->getTarget()) && (b->getStatus() == Bundle::STATUS_FINISHED || b->getStatus() == Bundle::STATUS_HASHED)) {
+				bundles.push_back(b);
+			}
+		}
+	}
+
+	for (auto& b : bundles) {
+		setBundleStatus(b, Bundle::STATUS_SHARED);
+	}
+}
+
+void QueueManager::on(ShareManagerListener::ShareRefreshed, uint8_t) noexcept{
+	onPathRefreshed(Util::emptyString);
 }
 
 void QueueManager::setBundleStatus(BundlePtr& aBundle, Bundle::Status newStatus) noexcept {
