@@ -99,7 +99,6 @@ public:
 	void setQIAutoPriority(const string& aTarget) noexcept;
 
 	StringList getTargets(const TTHValue& tth) noexcept;
-	void readLockedOperation(const function<void (const QueueItem::StringMap&)>& currentQueue);
 
 	void onSlowDisconnect(const string& aToken) noexcept;
 
@@ -217,7 +216,7 @@ public:
 
 	SharedMutex& getCS() { return cs; }
 	const Bundle::StringBundleMap& getBundles() const { return bundleQueue.getBundles(); }
-	const QueueItem::StringMap& getSmallItems() const { return fileQueue.getSmallItems(); }
+	const QueueItem::StringMap& getFileQueue() const { return fileQueue.getQueue(); }
 	void recheckFile(const string& aPath) noexcept;
 private:
 	friend class QueueLoader;

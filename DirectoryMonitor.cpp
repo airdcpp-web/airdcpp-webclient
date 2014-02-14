@@ -34,8 +34,8 @@ DirectoryMonitor::DirectoryMonitor(int numThreads, bool aUseDispatcherThread) : 
 
 }
 
-void DirectoryMonitor::callAsync(const DispatcherQueue::Callback& aF) {
-	dispatcher.addTask(new DispatcherQueue::Callback(aF));
+void DirectoryMonitor::callAsync(DispatcherQueue::Callback&& aF) {
+	dispatcher.addTask(move(aF));
 }
 
 DirectoryMonitor::~DirectoryMonitor() {

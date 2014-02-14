@@ -55,7 +55,7 @@ public:
 
 	// returns true as long as there are messages queued
 	bool dispatch();
-	void callAsync(const DispatcherQueue::Callback& aF);
+	void callAsync(DispatcherQueue::Callback&& aF);
 	string getStats() const {
 		return server->getStats();
 	}

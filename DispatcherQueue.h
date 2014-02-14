@@ -45,8 +45,8 @@ public:
 		}
 	}
 
-	void addTask(Callback* aTask) {
-		queue.push(aTask);
+	void addTask(Callback&& aTask) {
+		queue.push(new Callback(move(aTask)));
 		if (useDispatcherThread)
 			s.signal();
 	}

@@ -53,8 +53,8 @@ public:
 
 	size_t getSize() noexcept { return queue.size(); }
 	QueueItem::StringMap& getQueue() noexcept { return queue; }
+	const QueueItem::StringMap& getQueue() const noexcept{ return queue; }
 	QueueItem::TTHMap& getTTHIndex() noexcept { return tthIndex; }
-	const QueueItem::StringMap& getSmallItems() const noexcept { return smallItems; }
 
 	void move(QueueItemPtr& qi, const string& aTarget) noexcept;
 	void remove(QueueItemPtr& qi) noexcept;
@@ -65,8 +65,6 @@ public:
 private:
 	QueueItem::StringMap queue;
 	QueueItem::TTHMap tthIndex;
-
-	QueueItem::StringMap smallItems;
 
 	uint64_t queueSize;
 };

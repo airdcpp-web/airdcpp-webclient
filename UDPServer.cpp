@@ -87,7 +87,7 @@ int UDPServer::run() {
 
 			buf = new uint8_t[BUFSIZE];
 			if((len = socket->read(buf, BUFSIZE, remoteAddr)) > 0) {
-				pp.addTask(new DispatcherQueue::Callback([=] { handlePacket(buf, len, remoteAddr); }));
+				pp.addTask([=] { handlePacket(buf, len, remoteAddr); });
 				continue;
 			}
 

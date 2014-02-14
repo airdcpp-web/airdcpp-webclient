@@ -1157,13 +1157,8 @@ StringList QueueManager::getTargets(const TTHValue& tth) noexcept {
 	return sl;
 }
 
-void QueueManager::readLockedOperation(const function<void (const QueueItem::StringMap&)>& currentQueue) {
-	RLock l(cs);
-	if(currentQueue) currentQueue(fileQueue.getQueue());
-}
-
 void QueueManager::moveFile(const string& source, const string& target, const QueueItemPtr& q) {
-	tasks.addTask(new DispatcherQueue::Callback([=] { moveFileImpl(source, target, q); }));
+	tasks.addTask([=] { moveFileImpl(source, target, q); });
 }
 
 void QueueManager::moveFileImpl(const string& source, const string& target, QueueItemPtr qi) {
@@ -1763,7 +1758,7 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 }
 
 void QueueManager::recheck(const string& aTarget) {
-	tasks.addTask(new DispatcherQueue::Callback([=] { recheck(aTarget); }));
+	tasks.addTask([=] { recheck(aTarget); });
 }
 
 void QueueManager::removeFile(const string aTarget) noexcept {
@@ -2636,6 +2631,8 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 
 	{
 		RLock l(cs);
+
+		// bundles
 		for (auto& b: bundleQueue.getBundles() | map_values) {
 			if (b->isFinished()) {
 				continue;
@@ -2647,29 +2644,22 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 					bundlePriorities.emplace_back(b, p2);
 				}
 			}
-
-			if (b->isFileBundle())
-				continue;
-
-			for(auto& q: b->getQueueItems()) {
-				if(q->isRunning()) {
-					fire(QueueManagerListener::StatusUpdated(), q);
-					if (calculate && SETTING(QI_AUTOPRIO) && q->getAutoPriority() && prioType == SettingsManager::PRIO_PROGRESS) {
-						auto p1 = q->getPriority();
-						if(p1 != QueueItemBase::PAUSED && p1 != QueueItemBase::PAUSED_FORCE) {
-							auto p2 = q->calculateAutoPriority();
-							if(p1 != p2)
-								qiPriorities.emplace_back(q, p2);
-						}
-					}
-				}
-			}
 		}
 		
-		//update progress for small items(filelists, temp items) in QueueFrame
-		for (auto& sQi : fileQueue.getSmallItems() | map_values) {
-			if (sQi->isRunning())
-				 fire(QueueManagerListener::StatusUpdated(), sQi);
+		// queueitems
+		for (auto& q : fileQueue.getQueue() | map_values) {
+			if (!q->isRunning())
+				continue;
+
+			fire(QueueManagerListener::StatusUpdated(), q);
+			if (calculate && SETTING(QI_AUTOPRIO) && prioType == SettingsManager::PRIO_PROGRESS && q->getAutoPriority() && q->getBundle() && !q->getBundle()->isFileBundle()) {
+				auto p1 = q->getPriority();
+				if (p1 != QueueItemBase::PAUSED && p1 != QueueItemBase::PAUSED_FORCE) {
+					auto p2 = q->calculateAutoPriority();
+					if (p1 != p2)
+						qiPriorities.emplace_back(q, p2);
+				}
+			}
 		}
 	}
 
@@ -3109,10 +3099,10 @@ void QueueManager::addLoadedBundle(BundlePtr& aBundle) noexcept {
 bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int itemsAdded, bool moving /*false*/) noexcept {
 	if (aBundle->getQueueItems().empty() && itemsAdded > 0) {
 		// it finished already? (only 0 byte files were added)
-		tasks.addTask(new DispatcherQueue::Callback([=] {
+		tasks.addTask([=] {
 			BundlePtr b = aBundle;
 			checkBundleFinished(b, false);
-		}));
+		});
 
 		return false;
 	}
@@ -3161,14 +3151,14 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 
 	if (statusChanged) {
 		aBundle->setStatus(Bundle::STATUS_QUEUED);
-		tasks.addTask(new DispatcherQueue::Callback([=] {
+		tasks.addTask([=] {
 			auto b = aBundle;
 			fire(QueueManagerListener::BundleStatusChanged(), aBundle);
 			if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE) && !b->isPausedPrio()) {
 				b->setFlag(Bundle::FLAG_SCHEDULE_SEARCH);
 				addBundleUpdate(b);
 			}
-		}));
+		});
 	}
 
 	return true;
@@ -3546,10 +3536,10 @@ void QueueManager::moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle) noex
 
 	//check if the source is empty
 	if (sourceBundle->getQueueItems().empty()) {
-		tasks.addTask(new DispatcherQueue::Callback([=] { 
+		tasks.addTask([=] { 
 			auto b = sourceBundle;
 			removeBundle(b, false, false, false); 
-		}));
+		});
 	} else {
 		sourceBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 		addBundleUpdate(sourceBundle);
