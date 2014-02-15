@@ -1484,14 +1484,14 @@ void QueueManager::checkBundleHashed(BundlePtr& b) noexcept {
 	}
 
 	if (fireHashed) {
-		if (!b->isFileBundle()) {
-			setBundleStatus(b, Bundle::STATUS_HASHED);
-		} else {
+		setBundleStatus(b, Bundle::STATUS_HASHED);
+		if (b->isFileBundle()) {
 			try {
 				HashedFile fi;
 				HashManager::getInstance()->getFileInfo(Text::toLower(b->getFinishedFiles().front()->getTarget()), b->getFinishedFiles().front()->getTarget(), fi);
 				fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTarget(), fi);
 				LogManager::getInstance()->message(STRING_F(SHARED_FILE_ADDED, b->getTarget()), LogManager::LOG_INFO);
+				setBundleStatus(b, Bundle::STATUS_SHARED);
 			} catch (...) { dcassert(0); }
 		}
 	}
@@ -1650,6 +1650,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 				dcdebug("Finish segment for %s (" I64_FMT ", " I64_FMT ")\n", d->getToken().c_str(), d->getSegment().getStart(), d->getSegment().getEnd());
 
 				if(q->isFinished()) {
+					q->setFileFinished(GET_TIME());
 					// Disconnect all possible overlapped downloads
 					for(auto aD: q->getDownloads()) {
 						if(compare(aD->getToken(), d->getToken()) != 0)
@@ -2264,6 +2265,7 @@ QueueItemBase::Priority QueueLoader::validatePrio(const string& aPrio) {
 void QueueLoader::createFile(QueueItemPtr& aQI) {
 	if (ConnectionManager::getInstance()->tokens.addToken(curToken)) {
 		curBundle = new Bundle(aQI, bundleDate, curToken, false);
+		curBundle->setBundleFinished(aQI->getFileFinished());
 	} else {
 		qm->fileQueue.remove(aQI);
 		throw Exception("Duplicate token");
@@ -2404,6 +2406,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			int64_t size = Util::toInt64(getAttrib(attribs, sSize, 1));
 			time_t added = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sAdded, 2)));
 			const string& tth = getAttrib(attribs, sTTH, 3);
+			time_t finished = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sTimeFinished, 4)));
 
 			if(size == 0 || tth.empty() || target.empty() || added == 0)
 				return;
@@ -2418,6 +2421,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 
 			auto& qi = ret.first;
 			qi->addFinishedSegment(Segment(0, size)); //make it complete
+			qi->setFileFinished(finished);
 
 			if (curBundle && inBundle) {
 				//LogManager::getInstance()->message("itemtoken exists: " + bundleToken);
@@ -3187,12 +3191,14 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 
 
 		/* Report */
-		if (!aTarget.empty() && aTarget.back() != PATH_SEPARATOR) {
-			LogManager::getInstance()->message(STRING_F(BUNDLE_ITEM_ADDED, Util::getFileName(aTarget) % aBundle->getName()), LogManager::LOG_INFO);
-		} else if (aBundle->getTarget() == aTarget) {
-			LogManager::getInstance()->message(STRING_F(X_BUNDLE_ITEMS_ADDED, itemsAdded % aBundle->getName().c_str()), LogManager::LOG_INFO);
-		} else {
-			LogManager::getInstance()->message(STRING_F(BUNDLE_MERGED, Util::getLastDir(aTarget) % aBundle->getName() % itemsAdded), LogManager::LOG_INFO);
+		if (!aBundle->isFileBundle()) {
+			if (!aTarget.empty() && aTarget.back() != PATH_SEPARATOR) {
+				LogManager::getInstance()->message(STRING_F(BUNDLE_ITEM_ADDED, Util::getFileName(aTarget) % aBundle->getName()), LogManager::LOG_INFO);
+			} else if (aBundle->getTarget() == aTarget) {
+				LogManager::getInstance()->message(STRING_F(X_BUNDLE_ITEMS_ADDED, itemsAdded % aBundle->getName().c_str()), LogManager::LOG_INFO);
+			} else {
+				LogManager::getInstance()->message(STRING_F(BUNDLE_MERGED, Util::getLastDir(aTarget) % aBundle->getName() % itemsAdded), LogManager::LOG_INFO);
+			}
 		}
 
 		aBundle->updateSearchMode();

@@ -44,11 +44,15 @@ using boost::range::copy;
 Bundle::Bundle(QueueItemPtr& qi, time_t aFileDate, const string& aToken /*empty*/, bool aDirty /*true*/) noexcept :
 	Bundle(qi->getTarget(), qi->getAdded(), qi->getPriority(), aFileDate, aToken, aDirty, true) {
 
-	finishedSegments = qi->getDownloadedSegments();
-	currentDownloaded = qi->getDownloadedBytes();
-	setAutoPriority(qi->getAutoPriority());
 
-	addQueue(qi);
+	if (qi->isFinished()) {
+		addFinishedItem(qi, false);
+	} else {
+		finishedSegments = qi->getDownloadedSegments();
+		currentDownloaded = qi->getDownloadedBytes();
+		setAutoPriority(qi->getAutoPriority());
+		addQueue(qi);
+	}
 }
 
 Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aBundleDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/, bool isFileBundle /*false*/) noexcept :
@@ -147,7 +151,7 @@ void Bundle::removeDownloadedSegment(int64_t aSize) noexcept {
 void Bundle::finishBundle() noexcept {
 	speed = 0;
 	currentDownloaded = 0;
-	bundleFinished = GET_TICK();
+	bundleFinished = GET_TIME();
 }
 
 int64_t Bundle::getSecondsLeft() const noexcept {

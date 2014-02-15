@@ -1118,7 +1118,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Set the bundle priorities", 
 "Set the file priority", 
 "Set the file priorities", 
-"A failed bundle %1% has been re-added in queue", 
+"The bundle %1% has been re-added for downloading", 
 "Target file is missing or wrong size", 
 "The file matches the download skiplist", 
 "Automatically expand bundles in transfer view", 

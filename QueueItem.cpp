@@ -719,6 +719,8 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 	f.write(tthRoot.toBase32(b32tmp));
 
 	if (isFinished()) {
+		f.write(LIT("\" TimeFinished=\""));
+		f.write(Util::toString(fileFinished));
 		f.write(LIT("\"/>\r\n"));
 		return;
 	}

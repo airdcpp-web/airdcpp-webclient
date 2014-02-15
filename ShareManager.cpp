@@ -3433,6 +3433,9 @@ void ShareManager::on(QueueManagerListener::BundleAdded, const BundlePtr& aBundl
 }
 
 void ShareManager::on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept {
+	if (aBundle->isFileBundle())
+		return;
+
 	if (aBundle->getStatus() == Bundle::STATUS_MOVED) {
 		//we don't want any monitoring actions for this folder...
 		string path = aBundle->getTarget();

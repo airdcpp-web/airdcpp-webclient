@@ -155,7 +155,10 @@ void BundleQueue::getInfo(const string& aPath, BundleList& retBundles, int& fini
 BundlePtr BundleQueue::getMergeBundle(const string& aTarget) const noexcept {
 	/* Returns directory bundles that are in sub or parent dirs (or in the same location), in which we can merge to */
 	for(auto& compareBundle: bundles | map_values) {
-		if (!compareBundle->isFileBundle() && (AirUtil::isSub(aTarget, compareBundle->getTarget()) || AirUtil::isParentOrExact(aTarget, compareBundle->getTarget()))) {
+		if (compareBundle->isFileBundle()) {
+			if (!aTarget.empty() && aTarget.back() != PATH_SEPARATOR && aTarget == compareBundle->getTarget())
+				return compareBundle;
+		} else if (AirUtil::isSub(aTarget, compareBundle->getTarget()) || AirUtil::isParentOrExact(aTarget, compareBundle->getTarget())) {
 			return compareBundle;
 		}
 	}

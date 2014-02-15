@@ -1122,7 +1122,7 @@ enum Strings { // @DontAdd
 	SET_BUNDLE_PRIORITIES, // "Set the bundle priorities"
 	SET_FILE_PRIORITY, // "Set the file priority"
 	SET_FILE_PRIORITIES, // "Set the file priorities"
-	BUNDLE_READDED, // "A failed bundle %1% has been re-added in queue"
+	BUNDLE_READDED, // "The bundle %1% has been re-added for downloading"
 	TARGET_FILE_MISSING, // "Target file is missing or wrong size"
 	DOWNLOAD_SKIPLIST_MATCH, // "The file matches the download skiplist"
 	SETTINGS_EXPAND_BUNDLES, // "Automatically expand bundles in transfer view"
