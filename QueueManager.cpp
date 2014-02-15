@@ -1382,22 +1382,9 @@ void QueueManager::hashBundle(BundlePtr& aBundle) noexcept {
 		//} else {
 		//	LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
 		//}
-	} /*else {
-		removeFinishedBundle(aBundle);
-	}*/
-}
-
-void QueueManager::removeFinishedBundle(BundlePtr& aBundle) noexcept {
-	{
-		WLock l(cs);
-		for (auto& qi: aBundle->getFinishedFiles()) {
-			fileQueue.remove(qi);
-		}
-
-		bundleQueue.removeBundle(aBundle);
+	} else {
+		//removeFinishedBundle(aBundle);
 	}
-
-	fire(QueueManagerListener::BundleRemoved(), aBundle);
 }
 
 void QueueManager::onFileHashed(const string& aPath, HashedFile& aFileInfo, bool failed) noexcept {
@@ -1660,14 +1647,6 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 					removeFinished = true;
 					q->setFlag(QueueItem::FLAG_FINISHED);
 					userQueue.removeQI(q);
-
-					/*if(SETTING(KEEP_FINISHED_FILES)) {
-						fire(QueueManagerListener::StatusUpdated(), q);
-					} else {
-						fire(QueueManagerListener::Removed(), q, true);
-						if (!d->getBundle())
-							fileQueue.remove(q);
-					}*/
 				} else {
 					userQueue.removeDownload(q, d->getToken());
 				}
@@ -3589,16 +3568,14 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 		aBundle->finishBundle();
 		setBundleStatus(aBundle, Bundle::STATUS_DOWNLOADED);
 	} else if (!moved) {
-		DownloadManager::getInstance()->disconnectBundle(aBundle);
-		
 		fire(QueueManagerListener::BundleRemoved(), aBundle);
 
 		{
 			WLock l(cs);
 			for (auto& qi: aBundle->getFinishedFiles()) {
-				UploadManager::getInstance()->abortUpload(qi->getTarget());
 				fileQueue.remove(qi);
 				if (removeFinished) {
+					UploadManager::getInstance()->abortUpload(qi->getTarget());
 					File::deleteFile(qi->getTarget());
 				}
 			}
@@ -3612,7 +3589,6 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 
 				if(!qi->isFinished()) {
 					userQueue.removeQI(qi, true, false);
-					//fire(QueueManagerListener::Removed(), qi, false);
 				}
 
 				fileQueue.remove(qi);

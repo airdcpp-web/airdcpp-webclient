@@ -296,7 +296,6 @@ private:
 	bool scanBundle(BundlePtr& aBundle) noexcept;
 	void checkBundleHashed(BundlePtr& aBundle) noexcept;
 	void setBundleStatus(BundlePtr& aBundle, Bundle::Status newStatus) noexcept;
-	void removeFinishedBundle(BundlePtr& aBundle) noexcept;
 
 	/* Returns true if an item can be replaces */
 	bool replaceItem(QueueItemPtr& qi, int64_t aSize, const TTHValue& aTTH) throw(FileException, QueueException);
