@@ -147,6 +147,7 @@ void Bundle::removeDownloadedSegment(int64_t aSize) noexcept {
 void Bundle::finishBundle() noexcept {
 	speed = 0;
 	currentDownloaded = 0;
+	bundleFinished = GET_TICK();
 }
 
 int64_t Bundle::getSecondsLeft() const noexcept {
@@ -935,6 +936,10 @@ void Bundle::save() throw(FileException) {
 		if (!getAutoPriority()) {
 			f.write(LIT("\" Priority=\""));
 			f.write(Util::toString((int)getPriority()));
+		}
+		if (bundleFinished > 0) {
+			f.write(LIT("\" TimeFinished=\""));
+			f.write(Util::toString(bundleFinished));
 		}
 		f.write(LIT("\">\r\n"));
 

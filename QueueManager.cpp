@@ -2227,6 +2227,7 @@ static const string sMaxSegments = "MaxSegments";
 static const string sBundleToken = "BundleToken";
 static const string sFinished = "Finished";
 static const string sVersion = "Version";
+static const string sTimeFinished = "TimeFinished";
 
 QueueItemBase::Priority QueueLoader::validatePrio(const string& aPrio) {
 	int prio = Util::toInt(aPrio);
@@ -2261,17 +2262,22 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 		if(token.empty())
 			throw Exception("Missing bundle token");
 
-		time_t dirDate = static_cast<time_t>(Util::toInt(getAttrib(attribs, sDate, 2)));
-		time_t added = static_cast<time_t>(Util::toInt(getAttrib(attribs, sAdded, 3)));
+		time_t dirDate = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sDate, 2)));
+		time_t added = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sAdded, 3)));
 		const string& prio = getAttrib(attribs, sPriority, 4);
 		if(added == 0) {
 			added = GET_TIME();
 		}
 
-		if (ConnectionManager::getInstance()->tokens.addToken(token))
+		if (ConnectionManager::getInstance()->tokens.addToken(token)) {
 			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? validatePrio(prio) : Bundle::DEFAULT, dirDate, token, false);
-		else
+			time_t finished = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sTimeFinished, 5)));
+			if (finished > 0) {
+				curBundle->setBundleFinished(finished);
+			}
+		} else {
 			throw Exception("Duplicate bundle token");
+		}
 
 		inBundle = true;		
 	} else if(inDownloads || inBundle || inFile) {
@@ -2363,17 +2369,8 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				{
 					WLock l(cm->getCS());
 					cm->addOfflineUser(user, getAttrib(attribs, sNick, 1), hubHint);
-				}
-				/*if (SettingsManager::lanMode) {
-					const string& remotePath = getAttrib(attribs, sRemotePath, 2);
-					if (remotePath.empty())
-						return;
-
-					qm->addSource(curFile, hintedUser, 0, remotePath) && user->isOnline();
-				} else {*/
-					WLock l (qm->cs);
 					qm->addSource(curFile, hintedUser, 0, true, false) && user->isOnline();
-				//}
+				}
 			} catch(const Exception&) {
 				return;
 			}
@@ -2402,11 +2399,11 @@ void QueueLoader::endTag(const string& name) {
 		} else if(name == sBundle) {
 			ScopedFunctor([this] { curBundle = nullptr; });
 			inBundle = false;
-			//if (curBundle->getQueueItems().empty()) {
-			//	throw Exception(STRING_F(NO_FILES_WERE_LOADED, curBundle->getTarget()));
-			//} else {
+			if (curBundle->getQueueItems().empty() && curBundle->getFinishedFiles().empty()) {
+				throw Exception(STRING_F(NO_FILES_WERE_LOADED, curBundle->getTarget()));
+			} else {
 				qm->addLoadedBundle(curBundle);
-			//}
+			}
 		} else if(name == sFile) {
 			curToken = Util::emptyString;
 			inFile = false;
@@ -3693,11 +3690,11 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 				removed.push_back(q);
 		}
 
-		if (!finished) {
-			bundleQueue.removeBundle(aBundle);
-		} else {
-			aBundle->deleteBundleFile();
+		if (finished) {
 			bundleQueue.removeSearchPrio(aBundle);
+			aBundle->setDirty();
+		} else {
+			bundleQueue.removeBundle(aBundle);
 		}
 	}
 
