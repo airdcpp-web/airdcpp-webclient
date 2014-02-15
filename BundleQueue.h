@@ -44,7 +44,6 @@ public:
 
 	void addBundle(BundlePtr& aBundle) noexcept;
 
-	void getInfo(const string& aPath, BundleList& retBundles, int& finishedFiles, int& fileBundles) const noexcept;
 	BundlePtr findBundle(const string& bundleToken) const noexcept;
 	BundlePtr getMergeBundle(const string& aTarget) const noexcept;
 	void getSubBundles(const string& aTarget, BundleList& retBundles) const noexcept;

@@ -3282,11 +3282,6 @@ int QueueManager::changeBundleTarget(BundlePtr& aBundle, const string& newTarget
 	return (int)mBundles.size();
 }
 
-void QueueManager::getDirItems(const BundlePtr& aBundle, const string& aDir, QueueItemList& aItems) const noexcept { 
-	RLock l(cs);
-	aBundle->getDirQIs(aDir, aItems);
-}
-
 uint8_t QueueManager::isDirQueued(const string& aDir) const noexcept{
 	Bundle::StringBundleList lst;
 

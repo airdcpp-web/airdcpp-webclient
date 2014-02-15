@@ -176,13 +176,8 @@ public:
 	void searchBundle(BundlePtr& aBundle, bool manual) noexcept;
 
 	/* Info collecting */
-	void getBundleInfo(const string& aSource, BundleList& retBundles, int& finishedFiles, int& fileBundles) const noexcept {
-		RLock l (cs); 
-		bundleQueue.getInfo(aSource, retBundles, finishedFiles, fileBundles); 
-	}
 	int getBundleItemCount(const BundlePtr& aBundle) const noexcept;
 	int getFinishedItemCount(const BundlePtr& aBundle) const noexcept;
-	void getDirItems(const BundlePtr& aBundle, const string& aDir, QueueItemList& aItems) const noexcept;
 	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept;
 
 	int isFileQueued(const TTHValue& aTTH) const noexcept { RLock l(cs); return fileQueue.isFileQueued(aTTH); }

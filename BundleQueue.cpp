@@ -129,29 +129,6 @@ void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& 
 	}
 }
 
-void BundleQueue::getInfo(const string& aPath, BundleList& retBundles, int& finishedFiles, int& fileBundles) const noexcept {
-	//find the matching bundles
-	for(auto& b: bundles | map_values) {
-		if (b->isFinished()) {
-			//don't modify those
-			continue;
-		}
-
-		if (AirUtil::isParentOrExact(aPath, b->getTarget())) {
-			//parent or the same dir
-			retBundles.push_back(b);
-			finishedFiles += b->getFinishedFiles().size();
-			if (b->isFileBundle())
-				fileBundles++;
-		} else if (!b->isFileBundle() && AirUtil::isSub(aPath, b->getTarget())) {
-			//subfolder
-			retBundles.push_back(b);
-			finishedFiles = count_if(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), [&aPath](const QueueItemPtr& qi) { return AirUtil::isSub(qi->getTarget(), aPath); });
-			return;
-		}
-	}
-}
-
 BundlePtr BundleQueue::getMergeBundle(const string& aTarget) const noexcept {
 	/* Returns directory bundles that are in sub or parent dirs (or in the same location), in which we can merge to */
 	for(auto& compareBundle: bundles | map_values) {
