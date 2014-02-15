@@ -3040,6 +3040,15 @@ void QueueManager::checkRefreshPaths(StringList& retBundles, StringList& sharePa
 	sort(retBundles.begin(), retBundles.end());
 }
 
+void QueueManager::shareBundle(BundlePtr aBundle, bool skipScan) noexcept{
+	if (!skipScan && !scanBundle(aBundle)) {
+		return;
+	}
+
+	setBundleStatus(aBundle, Bundle::STATUS_FINISHED);
+	hashBundle(aBundle);
+}
+
 void QueueManager::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const StringList& aPaths) noexcept{
 	for (const auto& p : aPaths) {
 		onPathRefreshed(p);
@@ -3072,23 +3081,6 @@ void QueueManager::setBundleStatus(BundlePtr& aBundle, Bundle::Status newStatus)
 	if (aBundle->getStatus() != newStatus) {
 		aBundle->setStatus(newStatus);
 		fire(QueueManagerListener::BundleStatusChanged(), aBundle);
-	}
-}
-
-void QueueManager::shareBundle(const string& aName) noexcept {
-	Bundle::StringBundleList lst;
-	{
-		RLock l (cs);
-		bundleQueue.findRemoteDirs(aName, lst);
-	}
-
-	if (!lst.empty()) {
-		auto b = lst.front().second;
-		setBundleStatus(b, Bundle::STATUS_FINISHED);
-		hashBundle(b); 
-		LogManager::getInstance()->message("The bundle " + aName + " has been added for hashing", LogManager::LOG_INFO);
-	} else {
-		LogManager::getInstance()->message("The bundle " + aName + " wasn't found", LogManager::LOG_WARNING);
 	}
 }
 

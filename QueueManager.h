@@ -209,7 +209,7 @@ public:
 
 	DispatcherQueue tasks;
 
-	void shareBundle(const string& aName) noexcept;
+	void shareBundle(BundlePtr aBundle, bool skipScan) noexcept;
 	void runAltSearch() noexcept;
 
 	void setMatchers() noexcept;

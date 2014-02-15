@@ -1196,7 +1196,6 @@ std::string dcpp::ResourceManager::strings[] = {
 "Favorite directory (the real path will be picked when matches are found)", 
 "Shared directory (the real path will be picked when matches are found)", 
 "Location type", 
-"Refresh the directory after fixing the problem(s) to rescan the bundle (or type \"/allow %1%\" to force it to be hashed in share if the problem(s) can't be fixed)", 
 "Search string empty or too short! (min. 5 chars allowed)", 
 "Don't download directories already in queue", 
 "Don't download directories already in share", 
@@ -1844,6 +1843,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Temp items", 
 "Failed to save the file %1%: %2%", 
 "Failed to load the file %1%: %2%", 
+"Retry sharing", 
+"Force in share", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3040,7 +3041,6 @@ std::string dcpp::ResourceManager::names[] = {
 "TypeTargetFavorite", 
 "TypeTargetShare", 
 "LocationType", 
-"ForceHashNotification", 
 "LineEmptyOrTooShort", 
 "AutosearchCheckQueued", 
 "AutosearchCheckShared", 
@@ -3688,4 +3688,6 @@ std::string dcpp::ResourceManager::names[] = {
 "TempItems", 
 "SaveFailedX", 
 "LoadFailedX", 
+"RetrySharing", 
+"ForceSharing", 
 };

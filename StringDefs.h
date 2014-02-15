@@ -1200,7 +1200,6 @@ enum Strings { // @DontAdd
 	TYPE_TARGET_FAVORITE, // "Favorite directory (the real path will be picked when matches are found)"
 	TYPE_TARGET_SHARE, // "Shared directory (the real path will be picked when matches are found)"
 	LOCATION_TYPE, // "Location type"
-	FORCE_HASH_NOTIFICATION, // "Refresh the directory after fixing the problem(s) to rescan the bundle (or type \"/allow %1%\" to force it to be hashed in share if the problem(s) can't be fixed)"
 	LINE_EMPTY_OR_TOO_SHORT, // "Search string empty or too short! (min. 5 chars allowed)"
 	AUTOSEARCH_CHECK_QUEUED, // "Don't download directories already in queue"
 	AUTOSEARCH_CHECK_SHARED, // "Don't download directories already in share"
@@ -1848,5 +1847,7 @@ enum Strings { // @DontAdd
 	TEMP_ITEMS, // "Temp items"
 	SAVE_FAILED_X, // "Failed to save the file %1%: %2%"
 	LOAD_FAILED_X, // "Failed to load the file %1%: %2%"
+	RETRY_SHARING, // "Retry sharing"
+	FORCE_SHARING, // "Force in share"
 	LAST // @DontAdd
 };
