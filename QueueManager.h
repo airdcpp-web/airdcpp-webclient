@@ -145,9 +145,6 @@ public:
 	void renameBundle(BundlePtr aBundle, const string& newName);
 	void removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished, bool moved = false) noexcept;
 
-	void moveDirectoryBundle(const string& aSource, const string& aTarget, BundlePtr& sourceBundle, bool moveFinished) noexcept;
-	void moveFileBundle(const StringPairList& sourceTargetList) noexcept;
-
 
 	BundlePtr findBundle(const string& bundleToken) const noexcept { RLock l (cs); return bundleQueue.findBundle(bundleToken); }
 	BundlePtr findBundle(const TTHValue& tth) const noexcept;
@@ -243,6 +240,8 @@ private:
 	void connectBundleSources(BundlePtr& aBundle) noexcept;
 	bool allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, string& lastError_, bool mcn = false) noexcept;
 
+	// aTarget must include the bundle name in here
+	void moveBundleImpl(const string& aSource, const string& aTarget, BundlePtr& sourceBundle, bool moveFinished) noexcept;
 	int changeBundleTarget(BundlePtr& aBundle, const string& newTarget) noexcept;
 	void removeBundleItem(QueueItemPtr& qi, bool finished, bool moved = false) noexcept;
 	void moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle) noexcept; //don't use reference here!
