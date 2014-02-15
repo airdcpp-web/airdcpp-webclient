@@ -145,10 +145,8 @@ public:
 	void renameBundle(BundlePtr aBundle, const string& newName);
 	void removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished, bool moved = false) noexcept;
 
-	// TODO: Get rid of the functions below when we have a proper queue tab
-	void moveBundleDir(const string& aSource, const string& aTarget, BundlePtr sourceBundle, bool moveFinished) noexcept;
-	void moveFiles(const StringPairList& sourceTargetList) noexcept;
-	void removeDir(const string aSource, const BundleList& sourceBundles, bool removeFinished) noexcept;
+	void moveDirectoryBundle(const string& aSource, const string& aTarget, BundlePtr& sourceBundle, bool moveFinished) noexcept;
+	void moveFileBundle(const StringPairList& sourceTargetList) noexcept;
 
 
 	BundlePtr findBundle(const string& bundleToken) const noexcept { RLock l (cs); return bundleQueue.findBundle(bundleToken); }
@@ -284,12 +282,11 @@ private:
 
 	void addBundleUpdate(const BundlePtr& aBundle) noexcept;
 
-	void addFinishedItem(const TTHValue& tth, BundlePtr& aBundle, const string& aTarget, int64_t aSize, time_t aFinished) noexcept;
-
 	void load(const SimpleXML& aXml);
 
-	void moveFile(const string& source, const string& target, const QueueItemPtr& aQI);
-	void moveFileImpl(const string& source, const string& target, QueueItemPtr q);
+	void moveBundleItemsImpl(QueueItem::StringItemList aItems, BundlePtr aBundle) noexcept;
+	void moveFinishedFile(const string& source, const string& target, const QueueItemPtr& aQI);
+	void moveFinishedFileImpl(const string& source, const string& target, QueueItemPtr q);
 
 	void handleMovedBundleItem(QueueItemPtr& q) noexcept;
 	void checkBundleFinished(BundlePtr& aBundle, bool isPrivate) noexcept;

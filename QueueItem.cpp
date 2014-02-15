@@ -699,23 +699,33 @@ void QueueItem::removeDownloads(const UserPtr& aUser) {
 
 void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 	string indent = "\t";
-	//if (bundle)
-	//	indent = "\t\t";
+
+	if (isFinished()) {
+		f.write(LIT("\t<Finished"));
+	} else {
+		f.write(LIT("\t<Download"));
+	}
 
 	f.write(indent);
-	f.write(LIT("<Download Target=\""));
+	f.write(LIT(" Target=\""));
 	f.write(SimpleXML::escape(target, tmp, true));
 	f.write(LIT("\" Size=\""));
 	f.write(Util::toString(size));
-	f.write(LIT("\" Priority=\""));
-	f.write(Util::toString((int)getPriority()));
 	f.write(LIT("\" Added=\""));
-	f.write(Util::toString(getAdded()));
-	if (!SettingsManager::lanMode) {
-		b32tmp.clear();
-		f.write(LIT("\" TTH=\""));
-		f.write(tthRoot.toBase32(b32tmp));
+	f.write(Util::toString(added));
+
+	b32tmp.clear();
+	f.write(LIT("\" TTH=\""));
+	f.write(tthRoot.toBase32(b32tmp));
+
+	if (isFinished()) {
+		f.write(LIT("\"/>\r\n"));
+		return;
 	}
+
+	f.write(LIT("\" Priority=\""));
+	f.write(Util::toString((int) getPriority()));
+
 	if(!done.empty()) {
 		f.write(LIT("\" TempTarget=\""));
 		f.write(SimpleXML::escape(tempTarget, tmp, true));

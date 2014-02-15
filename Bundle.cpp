@@ -914,6 +914,16 @@ void Bundle::save() throw(FileException) {
 	string tmp;
 	string b32tmp;
 
+	auto saveFiles = [&] {
+		for (const auto& q : finishedFiles) {
+			q->save(f, tmp, b32tmp);
+		}
+
+		for (const auto& q : queueItems) {
+			q->save(f, tmp, b32tmp);
+		}
+	};
+
 	if (isFileBundle()) {
 		f.write(LIT("<File Version=\"" FILE_BUNDLE_VERSION));
 		f.write(LIT("\" Token=\""));
@@ -921,7 +931,7 @@ void Bundle::save() throw(FileException) {
 		f.write(LIT("\" Date=\""));
 		f.write(Util::toString(bundleDate));
 		f.write(LIT("\">\r\n"));
-		queueItems.front()->save(f, tmp, b32tmp);
+		saveFiles();
 		f.write(LIT("</File>\r\n"));
 	} else {
 		f.write(LIT("<Bundle Version=\"" DIR_BUNDLE_VERSION));
@@ -943,21 +953,7 @@ void Bundle::save() throw(FileException) {
 		}
 		f.write(LIT("\">\r\n"));
 
-		for (const auto& qi: finishedFiles) {
-			f.write(LIT("\t<Finished TTH=\""));
-			f.write(qi->getTTH().toBase32());
-			f.write(LIT("\" Target=\""));
-			f.write(SimpleXML::escape(qi->getTarget(), tmp, true));
-			f.write(LIT("\" Size=\""));
-			f.write(Util::toString(qi->getSize()));
-			f.write(LIT("\" Added=\""));
-			f.write(Util::toString(qi->getAdded()));
-			f.write(LIT("\"/>\r\n"));
-		}
-
-		for (const auto& q: queueItems) {
-			q->save(f, tmp, b32tmp);
-		}
+		saveFiles();
 
 		f.write(LIT("</Bundle>\r\n"));
 	}
