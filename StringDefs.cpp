@@ -1839,6 +1839,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Failed to load the file %1%: %2%", 
 "Retry sharing", 
 "Force in share", 
+"Remove and delete data", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3678,4 +3679,5 @@ std::string dcpp::ResourceManager::names[] = {
 "LoadFailedX", 
 "RetrySharing", 
 "ForceSharing", 
+"RemoveWithFiles", 
 };

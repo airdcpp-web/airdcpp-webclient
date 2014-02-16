@@ -1843,5 +1843,6 @@ enum Strings { // @DontAdd
 	LOAD_FAILED_X, // "Failed to load the file %1%: %2%"
 	RETRY_SHARING, // "Retry sharing"
 	FORCE_SHARING, // "Force in share"
+	REMOVE_WITH_FILES, // "Remove and delete data"
 	LAST // @DontAdd
 };
