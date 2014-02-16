@@ -3131,7 +3131,7 @@ void QueueManager::addLoadedBundle(BundlePtr& aBundle) noexcept {
 	bundleQueue.addBundle(aBundle);
 }
 
-bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int itemsAdded, bool moving /*false*/) noexcept {
+bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int itemsAdded) noexcept {
 	if (aBundle->getQueueItems().empty() && itemsAdded > 0) {
 		// it finished already? (only 0 byte files were added)
 		tasks.addTask([=] {
@@ -3166,9 +3166,6 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 			aBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 			addBundleUpdate(aBundle);
 			aBundle->setDirty();
-
-			if (moving)
-				fire(QueueManagerListener::BundleAdded(), aBundle);
 		}
 
 
@@ -3396,12 +3393,14 @@ void QueueManager::moveBundleImpl(const string& aSource, const string& aTarget, 
 			sourceBundle->setFlag(Bundle::FLAG_MERGING);
 
 			//we are moving the items to another bundle
-			for (auto& qi: ql)
+			for (auto& qi : ql) {
 				moveBundleItem(qi, newBundle);
+				fire(QueueManagerListener::Added(), qi);
+			}
 
 			dcassert(sourceBundle->getQueueItems().empty());
 
-			addBundle(newBundle, aTarget, ql.size(), true);
+			addBundle(newBundle, aTarget, ql.size());
 		} else {
 			int merged = changeBundleTarget(sourceBundle, aTarget);
 

@@ -241,7 +241,7 @@ private:
 	void removeBundleItem(QueueItemPtr& qi, bool finished) noexcept;
 	void moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle) noexcept; //don't use reference here!
 	void addLoadedBundle(BundlePtr& aBundle) noexcept;
-	bool addBundle(BundlePtr& aBundle, const string& aTarget, int filesAdded, bool moving = false) noexcept;
+	bool addBundle(BundlePtr& aBundle, const string& aTarget, int filesAdded) noexcept;
 	void readdBundle(BundlePtr& aBundle) noexcept;
 
 	bool changeTarget(QueueItemPtr& qs, const string& aTarget) noexcept;
