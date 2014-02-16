@@ -44,8 +44,8 @@ public:
 	void addDownload(QueueItemPtr& qi, Download* d) noexcept;
 	void removeDownload(QueueItemPtr& qi, const string& aToken) noexcept;
 
-	void removeQI(QueueItemPtr& qi, bool removeRunning = true, bool fireSources = false) noexcept;
-	void removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning = true, bool addBad = false, bool fireSources = false) noexcept;
+	void removeQI(QueueItemPtr& qi, bool removeRunning = true) noexcept;
+	void removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning = true, Flags::MaskType reason = 0) noexcept;
 	void setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p) noexcept;
 
 	void addBundle(BundlePtr& aBundle, const UserPtr& aUser) noexcept;

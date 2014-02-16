@@ -89,7 +89,7 @@ public:
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
 	void matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) noexcept;
 
-	void removeFile(const string aTarget) noexcept;
+	void removeFile(const string aTarget, bool removeData = false) noexcept;
 	void removeFileSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason, std::function<bool (const QueueItemPtr&) > excludeF = nullptr) noexcept;
 
@@ -143,7 +143,7 @@ public:
 
 	void moveBundle(BundlePtr aBundle, const string& aTarget, bool moveFinished);
 	void renameBundle(BundlePtr aBundle, const string& newName);
-	void removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished, bool moved = false) noexcept;
+	void removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished) noexcept;
 
 
 	BundlePtr findBundle(const string& bundleToken) const noexcept { RLock l (cs); return bundleQueue.findBundle(bundleToken); }
@@ -238,14 +238,14 @@ private:
 	// aTarget must include the bundle name in here
 	void moveBundleImpl(const string& aSource, const string& aTarget, BundlePtr& sourceBundle, bool moveFinished) noexcept;
 	int changeBundleTarget(BundlePtr& aBundle, const string& newTarget) noexcept;
-	void removeBundleItem(QueueItemPtr& qi, bool finished, bool moved = false) noexcept;
+	void removeBundleItem(QueueItemPtr& qi, bool finished) noexcept;
 	void moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle) noexcept; //don't use reference here!
 	void addLoadedBundle(BundlePtr& aBundle) noexcept;
 	bool addBundle(BundlePtr& aBundle, const string& aTarget, int filesAdded, bool moving = false) noexcept;
 	void readdBundle(BundlePtr& aBundle) noexcept;
 
 	bool changeTarget(QueueItemPtr& qs, const string& aTarget) noexcept;
-	void removeQI(QueueItemPtr& qi, bool noFiring = false) noexcept;
+	void removeQI(QueueItemPtr& qi, bool removeData = false) noexcept;
 
 	void handleBundleUpdate(const string& bundleToken) noexcept;
 

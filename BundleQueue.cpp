@@ -159,7 +159,9 @@ void BundleQueue::addBundleItem(QueueItemPtr& qi, BundlePtr& aBundle) noexcept {
 }
 
 void BundleQueue::removeBundleItem(QueueItemPtr& qi, bool finished) noexcept {
-	if (qi->getBundle()->removeQueue(qi, finished) && !finished && !qi->getBundle()->isFileBundle()) {
+	dcassert(qi->getBundle());
+	auto isFileBundle = qi->getBundle()->isFileBundle();
+	if (qi->getBundle()->removeQueue(qi, finished) && !finished && !isFileBundle) {
 		removeDirectory(qi->getFilePath());
 	}
 }
@@ -179,19 +181,6 @@ Bundle::BundleDirMap::iterator BundleQueue::findLocalDir(const string& aPath) no
 	auto bdr = bundleDirs.equal_range(Util::getLastDir(aPath));
 	auto s = find_if(bdr | map_values, CompareFirst<string, BundlePtr>(aPath));
 	return s.base() != bdr.second ? s.base() : bundleDirs.end();
-}
-
-void BundleQueue::addFinishedItem(QueueItemPtr& qi, BundlePtr& aBundle) noexcept {
-	dcassert(!qi->getBundle());
-	if (aBundle->addFinishedItem(qi, false) && !aBundle->isFileBundle()) {
-		addDirectory(qi->getFilePath(), aBundle);
-	}
-}
-
-void BundleQueue::removeFinishedItem(QueueItemPtr& qi) noexcept {
-	if (qi->getBundle()->removeFinishedItem(qi) && !qi->getBundle()->isFileBundle()) {
-		removeDirectory(qi->getFilePath());
-	}
 }
 
 void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{

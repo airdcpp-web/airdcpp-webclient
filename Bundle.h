@@ -51,13 +51,15 @@ struct BundleFileInfo {
 
 class Bundle : public QueueItemBase, public intrusive_ptr_base<Bundle> {
 public:
-	enum Flags {
+	enum BundleFlags {
 		/** Flags for scheduled actions */
 		FLAG_UPDATE_SIZE			= 0x01,
 		FLAG_UPDATE_NAME			= 0x02,
 		FLAG_SCHEDULE_SEARCH		= 0x04,
 		/** Autodrop slow sources is enabled for this bundle */
-		FLAG_AUTODROP				= 0x400
+		FLAG_AUTODROP				= 0x400,
+		/** Set when the bundle is being merged to another bundle */
+		FLAG_MERGING				= 0x800
 	};
 
 	enum Status {
@@ -74,12 +76,13 @@ public:
 		STATUS_SHARED
 	};
 
-	struct BundleSource {
-		BundleSource(const HintedUser& aUser, int64_t aSize) : user(aUser), size(aSize), files(1) { }
+	class BundleSource : public Flags {
+	public:
+		BundleSource(const HintedUser& aUser, int64_t aSize, Flags::MaskType aFlags = 0) : user(aUser), size(aSize), files(1), Flags(aFlags) { }
 
 		bool operator==(const UserPtr& aUser) const { return user == aUser; }
 
-		HintedUser user;
+		GETSET(HintedUser, user, User);
 		int64_t size;
 		int files;
 	};
@@ -258,7 +261,7 @@ public:
 	void getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept;
 
 	void removeUserQueue(QueueItemPtr& qi) noexcept;
-	bool removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, bool addBad) noexcept;
+	bool removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason) noexcept;
 
 	//moves the file back in userqueue for the given user (only within the same priority)
 	void rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept;

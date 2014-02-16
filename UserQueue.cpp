@@ -154,13 +154,13 @@ void UserQueue::setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p) noexc
 	addQI(qi);
 }
 
-void UserQueue::removeQI(QueueItemPtr& qi, bool removeRunning /*true*/, bool fireSources /*false*/) noexcept{
+void UserQueue::removeQI(QueueItemPtr& qi, bool removeRunning /*true*/) noexcept{
 	for(const auto& i: qi->getSources()) {
-		removeQI(qi, i.getUser(), removeRunning, false, fireSources);
+		removeQI(qi, i.getUser(), removeRunning, 0);
 	}
 }
 
-void UserQueue::removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning /*true*/, bool addBad /*false*/, bool fireSources /*false*/) noexcept {
+void UserQueue::removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning /*true*/, Flags::MaskType reason) noexcept{
 
 	if(removeRunning) {
 		qi->removeDownloads(aUser);
@@ -175,11 +175,8 @@ void UserQueue::removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunn
 		}
 
 		aUser->removeQueued(qi->getSize());
-		if (qi->getBundle()->removeUserQueue(qi, aUser, addBad)) {
+		if (qi->getBundle()->removeUserQueue(qi, aUser, reason)) {
 			removeBundle(bundle, aUser);
-			if (fireSources) {
-				QueueManager::getInstance()->fire(QueueManagerListener::BundleSources(), bundle);
-			}
 		} else {
 			dcassert(userBundleQueue.find(aUser) != userBundleQueue.end());
 		}

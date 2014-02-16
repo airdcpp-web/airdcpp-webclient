@@ -227,6 +227,7 @@ bool Bundle::removeFinishedItem(QueueItemPtr& qi) noexcept {
 	int pos = 0;
 	for (auto& fqi: finishedFiles) {
 		if (fqi == qi) {
+			qi->setBundle(nullptr);
 			decreaseSize(qi->getSize());
 			removeDownloadedSegment(qi->getSize());
 			swap(finishedFiles[pos], finishedFiles[finishedFiles.size()-1]);
@@ -246,6 +247,10 @@ bool Bundle::removeFinishedItem(QueueItemPtr& qi) noexcept {
 }
 
 bool Bundle::addQueue(QueueItemPtr& qi) noexcept {
+	if (qi->isFinished()) {
+		return addFinishedItem(qi, false);
+	}
+
 	dcassert(find(queueItems, qi) == queueItems.end());
 	qi->setBundle(this);
 	queueItems.push_back(qi);
@@ -261,6 +266,10 @@ bool Bundle::addQueue(QueueItemPtr& qi) noexcept {
 }
 
 bool Bundle::removeQueue(QueueItemPtr& qi, bool finished) noexcept {
+	if (!finished && qi->isFinished()) {
+		return removeFinishedItem(qi);
+	}
+
 	int pos = 0;
 	for (auto& cur: queueItems) {
 		if (cur == qi) {
@@ -380,8 +389,9 @@ void Bundle::removeFinishedNotify(const UserPtr& aUser) noexcept {
 }
 
 void Bundle::getSources(HintedUserList& l) const noexcept {
-	for(auto& st: sources) 
-		l.push_back(st.user);
+	for (auto& st : sources) {
+		l.push_back(st.getUser());
+	}
 }
 
 void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const noexcept {
@@ -476,10 +486,10 @@ void Bundle::rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept {
 
 void Bundle::removeUserQueue(QueueItemPtr& qi) noexcept {
 	for(auto& s: qi->getSources())
-		removeUserQueue(qi, s.getUser(), false);
+		removeUserQueue(qi, s.getUser(), 0);
 }
 
-bool Bundle::removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, bool addBad) noexcept {
+bool Bundle::removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason) noexcept{
 
 	//remove from UserQueue
 	dcassert(qi->isSource(aUser));
@@ -503,13 +513,14 @@ bool Bundle::removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, bool addBad
 	auto m = find(sources, aUser);
 	dcassert(m != sources.end());
 
-	if (addBad) {
+	if (reason > 0) {
 		auto bsi = find(badSources, aUser);
 		if (bsi == badSources.end()) {
-			badSources.emplace_back((*m).user, qi->getSize());
+			badSources.emplace_back((*m).getUser(), qi->getSize(), reason);
 		} else {
 			(*bsi).files++;
 			(*bsi).size += qi->getSize();
+			(*bsi).setFlag(reason);
 		}
 	}
 
@@ -553,8 +564,8 @@ pair<int64_t, double> Bundle::getPrioInfo() noexcept {
 	int64_t bundleSpeed = 0;
 	double bundleSources = 0;
 	for (const auto& s: sources) {
-		if (s.user.user->isOnline()) {
-			bundleSpeed += s.user.user->getSpeed();
+		if (s.getUser().user->isOnline()) {
+			bundleSpeed += s.getUser().user->getSpeed();
 		}
 
 		bundleSources += s.files;
@@ -588,7 +599,7 @@ multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcep
 int Bundle::countOnlineUsers() const noexcept {
 	int files=0, users=0;
 	for(const auto& s: sources) {
-		if(s.user.user->isOnline()) {
+		if(s.getUser().user->isOnline()) {
 			users++;
 			files += s.files;
 		}

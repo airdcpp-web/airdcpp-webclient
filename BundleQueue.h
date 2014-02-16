@@ -39,9 +39,6 @@ public:
 
 	size_t getTotalFiles() const noexcept;
 
-	void addFinishedItem(QueueItemPtr& qi, BundlePtr& aBundle) noexcept;
-	void removeFinishedItem(QueueItemPtr& qi) noexcept;
-
 	void addBundle(BundlePtr& aBundle) noexcept;
 
 	BundlePtr findBundle(const string& bundleToken) const noexcept;
