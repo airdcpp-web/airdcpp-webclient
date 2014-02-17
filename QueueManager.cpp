@@ -3576,10 +3576,9 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 		aBundle->finishBundle();
 		setBundleStatus(aBundle, Bundle::STATUS_DOWNLOADED);
 	} else {
-		fire(QueueManagerListener::BundleRemoved(), aBundle);
-
 		{
 			WLock l(cs);
+			fire(QueueManagerListener::BundleRemoved(), aBundle);
 			auto finishedItems = aBundle->getFinishedFiles();
 			for (auto& qi : finishedItems) {
 				fileQueue.remove(qi);
