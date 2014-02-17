@@ -171,13 +171,6 @@ public:
 	
 	QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, Flags::MaskType aFlag, time_t aAdded, const TTHValue& tth, const string& aTempTarget);
 
-	/*QueueItem(const QueueItem& rhs) : 
-		Flags(rhs), done(rhs.done), downloads(rhs.downloads), target(rhs.target), 
-		size(rhs.size), priority(rhs.priority), added(rhs.added), tthRoot(rhs.tthRoot),
-		autoPriority(rhs.autoPriority), maxSegments(rhs.maxSegments), fileBegin(rhs.fileBegin),
-		sources(rhs.sources), badSources(rhs.badSources), tempTarget(rhs.tempTarget), nextPublishingTime(rhs.nextPublishingTime)
-	{ }*/
-
 	~QueueItem();
 
 	bool usesSmallSlot() const;
@@ -256,6 +249,7 @@ public:
 	IGETSET(uint64_t, fileBegin, FileBegin, 0);
 	IGETSET(uint64_t, nextPublishingTime, NextPublishingTime, 0);
 	IGETSET(uint8_t, maxSegments, MaxSegments, 1);
+	IGETSET(BundlePtr, bundle, Bundle, nullptr);
 	
 	Priority calculateAutoPriority() const;
 
@@ -265,9 +259,6 @@ public:
 
 	int64_t getBlockSize();
 	void setBlockSize(int64_t aBlockSize) { blockSize = aBlockSize; }
-
-	BundlePtr getBundle() const { return bundle; }
-	void setBundle(Bundle* aBundle) { bundle = aBundle; }
 private:
 	QueueItem& operator=(const QueueItem&);
 
@@ -284,7 +275,6 @@ private:
 	uint8_t getMaxSegments(int64_t filesize) const noexcept;
 
 	int64_t blockSize = -1;
-	Bundle* bundle = nullptr;
 };
 
 } // namespace dcpp

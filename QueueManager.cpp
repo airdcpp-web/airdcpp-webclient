@@ -3580,15 +3580,18 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 
 		{
 			WLock l(cs);
-			for (auto& qi: aBundle->getFinishedFiles()) {
+			auto finishedItems = aBundle->getFinishedFiles();
+			for (auto& qi : finishedItems) {
 				fileQueue.remove(qi);
+				bundleQueue.removeBundleItem(qi, false);
 				if (removeFinished) {
 					UploadManager::getInstance()->abortUpload(qi->getTarget());
 					File::deleteFile(qi->getTarget());
 				}
 			}
 
-			for (auto& qi: aBundle->getQueueItems()) {
+			auto queueItems = aBundle->getQueueItems();
+			for (auto& qi : queueItems) {
 				UploadManager::getInstance()->abortUpload(qi->getTarget());
 
 				if(!qi->isRunning() && !qi->getTempTarget().empty() && qi->getTempTarget() != qi->getTarget()) {
@@ -3600,6 +3603,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 				}
 
 				fileQueue.remove(qi);
+				bundleQueue.removeBundleItem(qi, false);
 			}
 		}
 

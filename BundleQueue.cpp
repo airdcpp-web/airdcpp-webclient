@@ -194,6 +194,9 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 
 	removeDirectory(aBundle->getTarget());
 
+	dcassert(aBundle->getFinishedFiles().empty());
+	dcassert(aBundle->getQueueItems().empty());
+
 	removeSearchPrio(aBundle);
 	bundles.erase(aBundle->getToken());
 
