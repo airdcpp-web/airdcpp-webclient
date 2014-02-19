@@ -3576,6 +3576,8 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 		aBundle->finishBundle();
 		setBundleStatus(aBundle, Bundle::STATUS_DOWNLOADED);
 	} else {
+		DownloadManager::getInstance()->disconnectBundle(aBundle);
+
 		{
 			WLock l(cs);
 			fire(QueueManagerListener::BundleRemoved(), aBundle);
