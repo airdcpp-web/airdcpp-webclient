@@ -254,6 +254,7 @@ public:
 	Priority calculateAutoPriority() const;
 
 	uint64_t getAverageSpeed() const;
+	uint64_t getSecondsLeft() const;
 
 	void setTarget(const string& aTarget);
 

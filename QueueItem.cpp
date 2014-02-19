@@ -312,6 +312,11 @@ uint64_t QueueItem::getAverageSpeed() const {
 	return totalSpeed;
 }
 
+uint64_t QueueItem::getSecondsLeft() const {
+	auto speed = getAverageSpeed();
+	return speed > 0 ? (getSize() - getDownloadedBytes()) / static_cast<double>(speed) : 0;
+}
+
 void QueueItem::setTarget(const string& aTarget) {
 	target = aTarget;
 }
