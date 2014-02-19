@@ -1913,6 +1913,9 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 
 	{
 		WLock l(cs);
+		if (aBundle->isFinished())
+			return;
+
 		bundleQueue.removeSearchPrio(aBundle);
 		userQueue.setBundlePriority(aBundle, p);
 		bundleQueue.addSearchPrio(aBundle);
@@ -1948,6 +1951,10 @@ void QueueManager::setBundleAutoPriority(const string& bundleToken) noexcept {
 		RLock l(cs);
 		b = bundleQueue.findBundle(bundleToken);
 		if (b) {
+			if (b->isFinished()) {
+				return;
+			}
+
 			b->setAutoPriority(!b->getAutoPriority());
 			if (b->isFileBundle()) {
 				b->getQueueItems().front()->setAutoPriority(b->getAutoPriority());
