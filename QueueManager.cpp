@@ -2409,7 +2409,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				return;
 
 			WLock l(qm->cs);
-			auto ret = qm->fileQueue.add(target, size, 0, QueueItemBase::DEFAULT, Util::emptyString, added, TTHValue(tth));
+			auto ret = qm->fileQueue.add(target, size, QueueItem::FLAG_FINISHED | QueueItem::FLAG_MOVED, QueueItemBase::DEFAULT, Util::emptyString, added, TTHValue(tth));
 			if (!ret.second) {
 				return;
 			}
