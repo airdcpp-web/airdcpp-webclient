@@ -630,7 +630,7 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sf
 	}
 }
 
-Bundle::Status ShareScannerManager::onScanBundle(const BundlePtr& aBundle, string& error_) noexcept {
+Bundle::Status ShareScannerManager::onScanBundle(const BundlePtr& aBundle, bool finished, string& error_) noexcept{
 	if (SETTING(SCAN_DL_BUNDLES) && !aBundle->isFileBundle()) {
 		ScanInfo scanner(aBundle->getName(), ScanInfo::TYPE_SYSLOG, false);
 
@@ -640,16 +640,16 @@ Bundle::Status ShareScannerManager::onScanBundle(const BundlePtr& aBundle, strin
 		bool hasMissing = scanner.hasMissing();
 		bool hasExtras = scanner.hasExtras();
 
-		if (!aBundle->isFailed() || hasMissing || hasExtras) {
+		if (finished || hasMissing || hasExtras) {
 			string logMsg;
-			if (aBundle->isFailed()) {
+			if (!finished) {
 				logMsg = STRING_F(SCAN_FAILED_BUNDLE_FINISHED, aBundle->getName());
 			} else {
 				logMsg = STRING_F(SCAN_BUNDLE_FINISHED, aBundle->getName());
 			}
 
 			if (hasMissing || hasExtras) {
-				if (!aBundle->isFailed()) {
+				if (finished) {
 					logMsg += " ";
 					logMsg += CSTRING(SCAN_PROBLEMS_FOUND);
 					logMsg += ":  ";

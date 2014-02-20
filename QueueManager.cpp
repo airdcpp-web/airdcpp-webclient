@@ -1302,7 +1302,7 @@ void QueueManager::checkBundleFinished(BundlePtr& aBundle, bool isPrivate) noexc
 
 bool QueueManager::scanBundle(BundlePtr& aBundle) noexcept {
 	string error_;
-	auto newStatus = ShareScannerManager::getInstance()->onScanBundle(aBundle, error_);
+	auto newStatus = ShareScannerManager::getInstance()->onScanBundle(aBundle, aBundle->getStatus() == Bundle::STATUS_MOVED, error_);
 	if (!error_.empty())
 		aBundle->setLastError(error_);
 

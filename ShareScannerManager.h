@@ -60,7 +60,7 @@ public:
 	};
 
 	int scan(const StringList& paths = StringList(), bool sfv = false) noexcept;
-	Bundle::Status onScanBundle(const BundlePtr& aBundle, string& error_) noexcept;
+	Bundle::Status onScanBundle(const BundlePtr& aBundle, bool finished, string& error_) noexcept;
 	bool onScanSharedDir(const string& aDir, bool report) noexcept;
 
 	void checkFileSFV(const string& path, DirSFVReader& sfv, bool isDirScan) noexcept;
