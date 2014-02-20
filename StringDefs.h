@@ -1848,6 +1848,7 @@ enum Strings { // @DontAdd
 	HASH_FAILED, // "Hash failed"
 	REMOVE_FAVORITE_USER, // "Remove favorite user"
 	TIME_ADDED, // "Time added"
+	TIME_FINISHED, // "Time finished"
 	MOVING, // "Moving"
 	LAST // @DontAdd
 };
