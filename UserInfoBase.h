@@ -50,7 +50,7 @@ public:
 	void grantDay();
 	void grantWeek();
 	void ungrant();
-	void addFav();
+	void handleFav();
 	void removeAll();
 	void connectFav();
 	bool hasReservedSlot();

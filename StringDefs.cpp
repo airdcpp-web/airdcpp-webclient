@@ -1841,6 +1841,10 @@ std::string dcpp::ResourceManager::strings[] = {
 "Retry sharing", 
 "Force in share", 
 "Remove and delete data", 
+"Sharing failed", 
+"Finished", 
+"Hash failed", 
+"Remove favorite user", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3682,4 +3686,8 @@ std::string dcpp::ResourceManager::names[] = {
 "RetrySharing", 
 "ForceSharing", 
 "RemoveWithFiles", 
+"SharingFailed", 
+"Finished", 
+"HashFailed", 
+"RemoveFavoriteUser", 
 };

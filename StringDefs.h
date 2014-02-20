@@ -1845,5 +1845,9 @@ enum Strings { // @DontAdd
 	RETRY_SHARING, // "Retry sharing"
 	FORCE_SHARING, // "Force in share"
 	REMOVE_WITH_FILES, // "Remove and delete data"
+	SHARING_FAILED, // "Sharing failed"
+	FINISHED, // "Finished"
+	HASH_FAILED, // "Hash failed"
+	REMOVE_FAVORITE_USER, // "Remove favorite user"
 	LAST // @DontAdd
 };
