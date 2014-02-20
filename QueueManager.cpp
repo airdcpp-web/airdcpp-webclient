@@ -1919,9 +1919,6 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 
 	{
 		WLock l(cs);
-		if (aBundle->isFinished())
-			return;
-
 		bundleQueue.removeSearchPrio(aBundle);
 		userQueue.setBundlePriority(aBundle, p);
 		bundleQueue.addSearchPrio(aBundle);
@@ -1957,10 +1954,6 @@ void QueueManager::setBundleAutoPriority(const string& bundleToken) noexcept {
 		RLock l(cs);
 		b = bundleQueue.findBundle(bundleToken);
 		if (b) {
-			if (b->isFinished()) {
-				return;
-			}
-
 			b->setAutoPriority(!b->getAutoPriority());
 			if (b->isFileBundle()) {
 				b->getQueueItems().front()->setAutoPriority(b->getAutoPriority());
@@ -2607,16 +2600,23 @@ void QueueManager::on(ClientManagerListener::UserConnected, const OnlineUser& aU
 
 	{
 		QueueItemList ql;
+		BundleList bl;
 		{
 			RLock l(cs);
 			userQueue.getUserQIs(aUser.getUser(), ql);
+			auto i = userQueue.getBundleList().find(aUser.getUser());
+			if (i != userQueue.getBundleList().end())
+				bl = i->second;
 		}
 
 		for(auto& q: ql) {
-			fire(QueueManagerListener::StatusUpdated(), q);
+			fire(QueueManagerListener::SourcesUpdated(), q);
 			if(!hasDown && q->startDown() && !q->isHubBlocked(aUser.getUser(), aUser.getHubUrl()))
 				hasDown = true;
 		}
+
+		for (auto& b : bl) 
+			fire(QueueManagerListener::BundleSources(), b);
 	}
 
 	if(hasDown) { 
@@ -2629,13 +2629,20 @@ void QueueManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aU
 		return;
 
 	QueueItemList ql;
+	BundleList bl;
 	{
 		RLock l(cs);
 		userQueue.getUserQIs(aUser, ql);
+		auto i = userQueue.getBundleList().find(aUser);
+		if (i != userQueue.getBundleList().end())
+			bl = i->second;
 	}
 
 	for(auto& q: ql)
-		fire(QueueManagerListener::StatusUpdated(), q);
+		fire(QueueManagerListener::SourcesUpdated(), q); 
+
+	for (auto& b : bl)
+		fire(QueueManagerListener::BundleSources(), b);
 }
 
 void QueueManager::runAltSearch() noexcept {
