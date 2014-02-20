@@ -1845,6 +1845,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Finished", 
 "Hash failed", 
 "Remove favorite user", 
+"Moving", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3690,4 +3691,5 @@ std::string dcpp::ResourceManager::names[] = {
 "Finished", 
 "HashFailed", 
 "RemoveFavoriteUser", 
+"Moving", 
 };

@@ -1243,6 +1243,7 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr& qi) noexcept {
 		auto s = find_if(b->getFinishedFiles(), [&qi](const QueueItemPtr& aQI) { return aQI->getTarget() == qi->getTarget(); });
 		if (s != b->getFinishedFiles().end()) {
 			qi->setFlag(QueueItem::FLAG_MOVED);
+			fire(QueueManagerListener::StatusUpdated(), qi);
 		} else if (b->getFinishedFiles().empty() && b->getQueueItems().empty()) {
 			//the bundle was removed while the file was being moved?
 			return;
@@ -1647,6 +1648,11 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 					removeFinished = true;
 					q->setFlag(QueueItem::FLAG_FINISHED);
 					userQueue.removeQI(q);
+
+					if (!d->getBundle()) {
+						fire(QueueManagerListener::Removed(), q, true);
+						fileQueue.remove(q);
+					}
 				} else {
 					userQueue.removeDownload(q, d->getToken());
 				}
@@ -3233,6 +3239,7 @@ void QueueManager::readdBundle(BundlePtr& aBundle) noexcept {
 		}
 	}
 
+	aBundle->setBundleFinished(0);
 	bundleQueue.addSearchPrio(aBundle);
 	LogManager::getInstance()->message(STRING_F(BUNDLE_READDED, aBundle->getName().c_str()), LogManager::LOG_INFO);
 }
