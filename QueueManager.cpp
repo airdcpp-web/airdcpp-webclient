@@ -3076,11 +3076,11 @@ void QueueManager::shareBundle(BundlePtr aBundle, bool skipScan) noexcept{
 
 void QueueManager::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const StringList& aPaths) noexcept{
 	for (const auto& p : aPaths) {
-		onPathRefreshed(p);
+		onPathRefreshed(p, false);
 	}
 }
 
-void QueueManager::onPathRefreshed(const string& aPath) noexcept{
+void QueueManager::onPathRefreshed(const string& aPath, bool startup) noexcept{
 	BundleList bundles;
 
 	{
@@ -3093,13 +3093,21 @@ void QueueManager::onPathRefreshed(const string& aPath) noexcept{
 	}
 
 	for (auto& b : bundles) {
-		if (ShareManager::getInstance()->isRealPathShared(b->getTarget()))
+		if (ShareManager::getInstance()->isRealPathShared(b->getTarget())) {
 			setBundleStatus(b, Bundle::STATUS_SHARED);
+		} else if (startup) {
+			// in case it's a failed bundle
+			scanBundle(b);
+		}
 	}
 }
 
 void QueueManager::on(ShareManagerListener::ShareRefreshed, uint8_t) noexcept{
-	onPathRefreshed(Util::emptyString);
+	onPathRefreshed(Util::emptyString, false);
+}
+
+void QueueManager::on(ShareLoaded) noexcept{
+	onPathRefreshed(Util::emptyString, true);
 }
 
 void QueueManager::setBundleStatus(BundlePtr& aBundle, Bundle::Status newStatus) noexcept {

@@ -28,9 +28,11 @@ namespace dcpp {
 		virtual ~ShareManagerListener() {}
 		template<int I>	struct X { enum { TYPE = I }; };
 
-		typedef X<0> ShareRefreshed;
-		typedef X<1> DirectoriesRefreshed;
+		typedef X<0> ShareLoaded;
+		typedef X<1> ShareRefreshed;
+		typedef X<2> DirectoriesRefreshed;
 
+		virtual void on(ShareLoaded) noexcept{}
 		virtual void on(ShareRefreshed, uint8_t /*tasktype*/) noexcept{}
 		virtual void on(DirectoriesRefreshed, uint8_t /*tasktype*/, const StringList&) noexcept{}
 	};

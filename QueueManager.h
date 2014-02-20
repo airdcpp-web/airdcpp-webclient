@@ -327,7 +327,8 @@ private:
 	// ShareManagerListener
 	void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const StringList& aPaths) noexcept;
 	void on(ShareRefreshed, uint8_t /*tasktype*/) noexcept;
-	void onPathRefreshed(const string& aPath) noexcept;
+	void on(ShareLoaded) noexcept;
+	void onPathRefreshed(const string& aPath, bool startup) noexcept;
 
 	DelayedEvents<string> delayEvents;
 

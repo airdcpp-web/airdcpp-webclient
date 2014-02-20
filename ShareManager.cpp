@@ -121,6 +121,9 @@ void ShareManager::startup(function<void(const string&)> splashF, function<void(
 	}
 
 	addAsyncTask([=] {
+		if (!refreshed)
+			fire(ShareManagerListener::ShareLoaded());
+
 		rebuildTotalExcludes();
 		monitor.addListener(this);
 
@@ -1540,9 +1543,6 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 	//make sure that the subprofiles are added too
 	for (auto& p : newRoots)
 		rootPaths[p.first] = p.second;
-
-	// needed set the bundle statuses for instance
-	fire(ShareManagerListener::ShareRefreshed(), TYPE_STARTUP_BLOCKING);
 
 
 
