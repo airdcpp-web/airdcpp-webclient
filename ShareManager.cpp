@@ -3444,6 +3444,16 @@ void ShareManager::on(QueueManagerListener::BundleStatusChanged, const BundlePtr
 		StringList dirs;
 		dirs.push_back(aBundle->getTarget());
 		addRefreshTask(ADD_BUNDLE, dirs, TYPE_BUNDLE, aBundle->getTarget());
+	} else if (aBundle->getStatus() == Bundle::STATUS_QUEUED) {
+		// existing shared bundle directories will cause issues
+		ProfileTokenSet dirty;
+
+		{
+			WLock l(cs);
+			handleDeletedFile(aBundle->getTarget(), true, dirty);
+		}
+
+		setProfilesDirty(dirty);
 	}
 }
 

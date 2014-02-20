@@ -145,7 +145,7 @@ public:
 
 	void moveBundle(BundlePtr aBundle, const string& aTarget, bool moveFinished);
 	void renameBundle(BundlePtr aBundle, const string& newName);
-	void removeBundle(BundlePtr& aBundle, bool finished, bool removeFinished) noexcept;
+	void removeBundle(BundlePtr& aBundle, bool removeFinished) noexcept;
 
 
 	BundlePtr findBundle(const string& bundleToken) const noexcept { RLock l (cs); return bundleQueue.findBundle(bundleToken); }
@@ -245,6 +245,7 @@ private:
 	void addLoadedBundle(BundlePtr& aBundle) noexcept;
 	bool addBundle(BundlePtr& aBundle, const string& aTarget, int filesAdded) noexcept;
 	void readdBundle(BundlePtr& aBundle) noexcept;
+	void removeBundleLists(BundlePtr& aBundle) noexcept;
 
 	bool changeTarget(QueueItemPtr& qs, const string& aTarget) noexcept;
 	void removeQI(QueueItemPtr& qi, bool removeData = false) noexcept;
