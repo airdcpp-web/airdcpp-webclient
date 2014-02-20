@@ -161,7 +161,7 @@ private:
 class IsParentOrExactOrSub {
 public:
 	IsParentOrExactOrSub(const string& compareTo) : a(compareTo) {}
-	bool operator()(const string& p) { return AirUtil::isParentOrExact(p, a); }
+	bool operator()(const string& p) { return AirUtil::isParentOrExact(p, a) || AirUtil::isSub(p, a); }
 private:
 	IsParentOrExactOrSub& operator=(const IsParentOrExactOrSub&);
 	const string& a;

@@ -144,12 +144,10 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 		if (flags & QueueItem::FLAG_TEXT) {
 			MemoryInputStream mis(aXml);
 			dirList->loadXML(mis, true, aRemotePath);
-		}
-		else {
+		} else {
 			dirList->loadFile();
 		}
-	}
-	catch (const Exception&) {
+	} catch (const Exception&) {
 		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + aFileName, LogManager::LOG_ERROR);
 		return;
 	}

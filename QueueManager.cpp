@@ -3582,10 +3582,6 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 	}
 
 	vector<UserPtr> sources;
-	for (auto& aSource: aBundle->getSources())
-		sources.push_back(aSource.getUser().user);
-
-
 	if (finished) {
 		aBundle->finishBundle();
 		setBundleStatus(aBundle, Bundle::STATUS_DOWNLOADED);
@@ -3595,6 +3591,9 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool finished, bool removeFi
 
 		{
 			WLock l(cs);
+			for (auto& aSource : aBundle->getSources())
+				sources.push_back(aSource.getUser().user);
+
 			auto finishedItems = aBundle->getFinishedFiles();
 			for (auto& qi : finishedItems) {
 				fileQueue.remove(qi);
