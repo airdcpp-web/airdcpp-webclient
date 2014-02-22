@@ -1844,7 +1844,8 @@ enum Strings { // @DontAdd
 	STATUS_SHARED, // "Bundle status shared"
 	STATUS_HASHING, // "Bundle status hashing"
 	STATUS_FAILED, // "Bundle status sharing failed"
-
+	BLEND_COLOR, // "Blend color"
+	BAR_DEPTH, // "3d depth"
 	MOVING, // "Moving"
 	LAST // @DontAdd
 };

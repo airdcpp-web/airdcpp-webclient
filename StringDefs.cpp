@@ -1840,6 +1840,8 @@ std::string dcpp::ResourceManager::strings[] = {
 "Bundle status shared", 
 "Bundle status hashing", 
 "Bundle status sharing failed", 
+"Blend color", 
+"3d depth", 
 "Moving", 
 };
 std::string dcpp::ResourceManager::names[] = {
@@ -3681,5 +3683,7 @@ std::string dcpp::ResourceManager::names[] = {
 "StatusShared", 
 "StatusHashing", 
 "StatusFailed", 
+"BlendColor", 
+"BarDepth", 
 "Moving", 
 };
