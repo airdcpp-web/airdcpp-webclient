@@ -518,11 +518,11 @@ void ShareManager::on(DirectoryMonitorListener::FileModified, const string& aPat
 }
 
 void ShareManager::Directory::getRenameInfoList(const string& aPath, RenameList& aRename) noexcept {
-	string path = aPath + realName.getNormal() + PATH_SEPARATOR;
 	for (const auto& f: files) {
-		aRename.emplace_back(path + f->name.getNormal(), HashedFile(f->getTTH(), f->getLastWrite(), f->getSize()));
+		aRename.emplace_back(aPath + f->name.getNormal(), HashedFile(f->getTTH(), f->getLastWrite(), f->getSize()));
 	}
 
+	string path = aPath + realName.getNormal() + PATH_SEPARATOR;
 	for (const auto& d: directories) {
 		d->getRenameInfoList(path + realName.getNormal() + PATH_SEPARATOR, aRename);
 	}
@@ -1416,7 +1416,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 			try {
 				DualString name(fname);
 				HashedFile fi;
-				HashManager::getInstance()->getFileInfo(curDirPathLower + name.getLower(), curDirPath, fi);
+				HashManager::getInstance()->getFileInfo(curDirPathLower + name.getLower(), curDirPath + fname, fi);
 				auto pos = cur->files.insert_sorted(new ShareManager::Directory::File(move(name), cur, fi));
 				ShareManager::updateIndices(*cur, *pos.first, *bloom, addedSize, tthIndexNew);
 			}catch(Exception& e) {
