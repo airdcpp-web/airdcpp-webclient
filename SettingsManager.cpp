@@ -169,7 +169,7 @@ const string SettingsManager::settingTags[] =
 	"RecentBundleHours","DisconnectMinSources", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "DLAutoSelectMethod", "WinampBarIconSize", "TBProgressTextColor", "TLSMode", "UpdateMethod", 
 	"QueueSplitterPos", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
 	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", "MultithreadedRefresh", "MonitoringMode", 
-	"MonitoringDelay", "DelayCountMode", "MaxRunningBundles", "DefaultShareProfile", "UpdateChannel", "ColorStatusFailed", "ColorStatusFinished", "ColorStatusHashing", "ColorStatusShared",
+	"MonitoringDelay", "DelayCountMode", "MaxRunningBundles", "DefaultShareProfile", "UpdateChannel", "ColorStatusFailed", "ColorStatusFinished", "ColorStatusHashing", "ColorStatusShared", "ProgressLighten",
 	"SENTRY",
 
 	// Bools
@@ -865,6 +865,7 @@ SettingsManager::SettingsManager()
 	setDefault(COLOR_STATUS_FINISHED, RGB(145, 183, 4));
 	setDefault(COLOR_STATUS_HASHING, RGB(139, 137, 137));
 	setDefault(COLOR_STATUS_SHARED, RGB(102, 158, 18));
+	setDefault(PROGRESS_LIGHTEN, 25);
 
 	// not in GUI
 	setDefault(IGNORE_INDIRECT_SR, false);
