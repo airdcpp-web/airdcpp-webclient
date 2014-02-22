@@ -3663,7 +3663,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinished) noexcep
 		LogManager::getInstance()->message(STRING_F(BUNDLE_X_REMOVED, aBundle->getName()), LogManager::LOG_INFO);
 
 	if (!aBundle->isFileBundle()) {
-		AirUtil::removeDirectoryIfEmpty(aBundle->getTarget(), 10, false);
+		AirUtil::removeDirectoryIfEmpty(aBundle->getTarget(), 10, !removeFinished);
 	}
 
 	for (const auto& aUser : sources)
