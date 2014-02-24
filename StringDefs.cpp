@@ -1843,6 +1843,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Blend color", 
 "3d depth", 
 "Moving", 
+"Remove finished bundles on exit", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3686,4 +3687,5 @@ std::string dcpp::ResourceManager::names[] = {
 "BlendColor", 
 "BarDepth", 
 "Moving", 
+"BundlesRemoveExit", 
 };

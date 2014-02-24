@@ -1847,5 +1847,6 @@ enum Strings { // @DontAdd
 	BLEND_COLOR, // "Blend color"
 	BAR_DEPTH, // "3d depth"
 	MOVING, // "Moving"
+	BUNDLES_REMOVE_EXIT, // "Remove finished bundles on exit"
 	LAST // @DontAdd
 };

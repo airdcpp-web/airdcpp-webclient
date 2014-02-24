@@ -80,6 +80,16 @@ void QueueManager::shutdown() {
 	HashManager::getInstance()->removeListener(this);
 	ShareManager::getInstance()->removeListener(this);
 
+	if (SETTING(REMOVE_FINISHED_BUNDLES)){
+		WLock l(cs);
+		BundleList bl;
+		for (auto& b : bundleQueue.getBundles() | map_values) {
+			if (b->isFinished())
+				bl.push_back(b);
+		}
+		for_each(bl.begin(), bl.end(), [=](BundlePtr& b) { bundleQueue.removeBundle(b); });
+	}
+
 	saveQueue(false);
 
 	if (!SETTING(KEEP_LISTS)) {
