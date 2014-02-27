@@ -444,6 +444,7 @@ enum Strings { // @DontAdd
 	SECONDS, // "Seconds"
 	SEGMENT, // "Segment"
 	SEGMENTS, // "Segments"
+	SELECT, // "Select"
 	SELECT_ALL, // "Select all"
 	SELECT_USER_LIST, // "Select user in list"
 	SEND_PRIVATE_MESSAGE, // "Send private message"
