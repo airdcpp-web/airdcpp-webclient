@@ -27,6 +27,7 @@
 #include "AirUtil.h"
 #include "File.h"
 #include "version.h"
+#include "StringTokenizer.h"
 
 namespace dcpp {
 
@@ -64,7 +65,7 @@ const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFI
 	{ SettingsManager::SEARCH_TIME, 10, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, true, ResourceManager::SETTINGS_AUTO_FOLLOW },
-	{ SettingsManager::TOOLBAR_ORDER, (string)"0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,13,-1,14,15,-1,16,17,-1,18,19,-1,21", ResourceManager::TOOLBAR_ORDER },
+	{ SettingsManager::TOOLBAR_ORDER, (string)"0,-1,1,2,-1,3,4,5,-1,6,7,8,-1,9,10,12,-1,13,14,-1,15,16,-1,17,18,-1,20", ResourceManager::TOOLBAR_ORDER },
 }, {
 	// profile RAR
 	{ SettingsManager::MULTI_CHUNK, false, ResourceManager::SEGMENTS },
@@ -77,7 +78,7 @@ const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFI
 	{ SettingsManager::SEARCH_TIME, 5, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, false, ResourceManager::SETTINGS_AUTO_FOLLOW },
-	{ SettingsManager::TOOLBAR_ORDER, (string)"1,-1,3,4,-1,6,7,8,9,-1,10,11,13,-1,14,15,-1,16,17,-1,18,19,-1,21", ResourceManager::TOOLBAR_ORDER },
+	{ SettingsManager::TOOLBAR_ORDER, (string)"1,-1,3,4,-1,6,7,8,-1,9,10,12,-1,13,14,-1,15,16,-1,17,18,-1,20", ResourceManager::TOOLBAR_ORDER },
 }, {
 	// profile LAN
 	{ SettingsManager::MULTI_CHUNK, true, ResourceManager::SEGMENTS },
@@ -90,7 +91,7 @@ const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFI
 	{ SettingsManager::SEARCH_TIME, 5, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, true, ResourceManager::SETTINGS_AUTO_FOLLOW },
-	{ SettingsManager::TOOLBAR_ORDER, (string)"0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,13,-1,14,15,-1,16,17,-1,18,19,-1,21", ResourceManager::TOOLBAR_ORDER },
+	{ SettingsManager::TOOLBAR_ORDER, (string)"0,-1,1,2,-1,3,4,5,-1,6,7,8,-1,9,10,12,-1,13,14,-1,15,16,-1,17,18,-1,20", ResourceManager::TOOLBAR_ORDER },
 } 
 
 };
@@ -170,6 +171,7 @@ const string SettingsManager::settingTags[] =
 	"QueueSplitterPosition", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
 	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", "MultithreadedRefresh", "MonitoringMode", 
 	"MonitoringDelay", "DelayCountMode", "MaxRunningBundles", "DefaultShareProfile", "UpdateChannel", "ColorStatusFailed", "ColorStatusFinished", "ColorStatusHashing", "ColorStatusShared", "ProgressLighten",
+	"ConfigBuildNumber",
 	"SENTRY",
 
 	// Bools
@@ -197,7 +199,7 @@ const string SettingsManager::settingTags[] =
 	"AwayTimeStamp",
 
 	"PrivateMessageBeep", "PrivateMessageBeepOpen", "ShowProgressBars", "MDIMaxmimized", "SearchPassiveAlways", "RemoveForbidden", "ShowInfoTips", "MinimizeOnStratup", "ConfirmDelete", "ExpandQueue",
-	"FilterEnter", "SpyFrameIgnoreTthSearches", "OpenWaitingUsers", "BoldWaitingUsers", "GroupSearchResults", "TabsOnTop", "OpenPublic", "OpenFavoriteHubs", "OpenFavoriteUsers", "OpenQueue", "OpenFinishedDownloads",
+	"FilterEnter", "SpyFrameIgnoreTthSearches", "OpenWaitingUsers", "BoldWaitingUsers", "GroupSearchResults", "TabsOnTop", "OpenPublic", "OpenFavoriteHubs", "OpenFavoriteUsers", "OpenQueue",
 	"OpenFinishedUploads", "OpenSearchSpy", "OpenNotepad", "SuppressMainChat", "ProgressbaroDCStyle", "MultiChunk", "PopupAway", "PopupMinimized", "Away", "PopupHubConnected", "PopupHubDisconnected", "PopupFavoriteConnected", 
 	"PopupDownloadStart", "PopupDownloadFailed", "PopupDownloadFinished", "PopupUploadFinished", "PopupPm", "PopupNewPM", "UploadQueueFrameShowTree", "SegmentsManual", "SoundsDisabled", "ReportFoundAlternates",
 	"UseAutoPriorityByDefault", "UseOldSharingUI", "DefaultSearchFreeSlots", 
@@ -364,7 +366,6 @@ SettingsManager::SettingsManager()
 	setDefault(OPEN_FAVORITE_USERS, false);
 	//setDefault(OPEN_RECENT_HUBS, false);
 	setDefault(OPEN_QUEUE, false);
-	setDefault(OPEN_FINISHED_DOWNLOADS, false);
 	setDefault(OPEN_FINISHED_UPLOADS, false);
 	setDefault(OPEN_SEARCH_SPY, false);
 	setDefault(OPEN_NOTEPAD, false);
@@ -400,7 +401,7 @@ SettingsManager::SettingsManager()
 	setDefault(EXTRA_PARTIAL_SLOTS, 1);
 	setDefault(SHUTDOWN_TIMEOUT, 150);
 	setDefault(SEARCH_PASSIVE, false);
-	setDefault(TOOLBAR_ORDER, "0,-1,1,2,-1,3,4,5,-1,6,7,8,9,-1,10,11,13,-1,14,15,-1,16,17,-1,18,19,-1,21");
+	setDefault(TOOLBAR_ORDER, "0,-1,1,2,-1,3,4,5,-1,6,7,8,-1,9,10,12,-1,13,14,-1,15,16,-1,17,18,-1,20");
 	setDefault(MEDIATOOLBAR, "0,-1,1,-1,2,3,4,5,6,7,8,9,-1");
 	setDefault(AUTO_PRIORITY_DEFAULT, false);
 	setDefault(REMOVE_FORBIDDEN, true);
@@ -871,6 +872,7 @@ SettingsManager::SettingsManager()
 	// not in GUI
 	setDefault(IGNORE_INDIRECT_SR, false);
 	setDefault(USE_UPLOAD_BUNDLES, true);
+	setDefault(CONFIG_BUILD_NUMBER, 2029);
 
 #ifdef _WIN32
 	setDefault(NMDC_ENCODING, Text::systemCharset);
@@ -1003,6 +1005,7 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 			xml.resetCurrentChild();
 
 			double prevVersion = Util::toDouble(SETTING(CONFIG_VERSION));
+			int prevBuild = SETTING(CONFIG_BUILD_NUMBER);
 			if (prevVersion < 2.41) {
 				//previous versions have saved two settings in a wrong order... fix the dupe color here (queuebars don't matter)
 				if(xml.findChild("Settings")) {
@@ -1041,6 +1044,24 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 				unsetKey(SEARCHFRAME_ORDER);
 				unsetKey(SEARCHFRAME_WIDTHS);
 				unsetKey(SEARCHFRAME_VISIBLE);
+			}
+			if (prevBuild == 2029) {
+				StringTokenizer<string> t(SETTING(TOOLBAR_ORDER), ',');
+				StringList& l = t.getTokens();
+				string tmp;
+
+				bool first = true;
+				for (StringList::const_iterator k = l.begin(); k != l.end(); ++k) {
+					int i = Util::toInt(*k);
+					if (i == 7) continue;
+					if (i > 7) i -= 1;
+					
+					if (!first) tmp += ",";
+					first = false;
+					tmp += Util::toString(i);
+				}
+				set(TOOLBAR_ORDER, tmp);
+
 			}
 		
 			fire(SettingsManagerListener::Load(), xml);
@@ -1143,7 +1164,7 @@ void SettingsManager::save() {
 	
 	for(i=STR_FIRST; i<STR_LAST; i++)
 	{
-		if(i == CONFIG_VERSION) {
+		if (i == CONFIG_VERSION) {
 			xml.addTag(settingTags[i], VERSIONSTRING);
 			xml.addChildAttrib(type, curType);
 		} else if(isSet[i]) {
@@ -1155,7 +1176,11 @@ void SettingsManager::save() {
 	curType = "int";
 	for(i=INT_FIRST; i<INT_LAST; i++)
 	{
-		if(isSet[i]) {
+	
+		if (i == CONFIG_BUILD_NUMBER) {
+			xml.addTag(settingTags[i], BUILD_NUMBER);
+			xml.addChildAttrib(type, curType);
+		} else if (isSet[i]) {
 			xml.addTag(settingTags[i], get(IntSetting(i), false));
 			xml.addChildAttrib(type, curType);
 		}
