@@ -205,15 +205,18 @@ void ShareManager::addModifyInfo(const string& aPath, bool isDirectory, DirModif
 		//add a new modify info
 		fileModifications.emplace_front(aPath, isDirectory, aAction);
 	} else {
-		if (!isDirectory) {
-			//add the file
+		if (isDirectory && filePath == (*p).path) {
+			// update the directory action
+			p->dirAction = aAction;
+		} else {
+			// is this a parent ?
 			if (AirUtil::isSub((*p).path, filePath))
 				(*p).setPath(filePath);
 
-			p->addFile(aPath, aAction);
-		} else if (filePath == (*p).path) {
-			//update the dir action
-			p->dirAction = aAction;
+			if (!isDirectory) {
+				// add the file
+				p->addFile(aPath, aAction);
+			}
 		}
 	}
 }
