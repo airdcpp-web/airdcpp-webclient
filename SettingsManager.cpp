@@ -617,6 +617,7 @@ SettingsManager::SettingsManager()
 	setDefault(DIRECTORYLISTINGFRAME_VISIBLE, "1,1,0,1,1");	
 	setDefault(FINISHED_VISIBLE, "1,1,1,1,1,1,1,1");
 	setDefault(FINISHED_UL_VISIBLE, "1,1,1,1,1,1,1");
+	setDefault(QUEUEFRAME_VISIBLE, "1,1,1,1,1,1,1,0,1,1,1");
 	setDefault(EMOTICONS_FILE, "RadoX");
 	setDefault(GROUP_SEARCH_RESULTS, true);
 	setDefault(TABS_ON_TOP, false);

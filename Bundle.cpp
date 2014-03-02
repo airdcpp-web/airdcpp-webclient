@@ -141,7 +141,7 @@ void Bundle::addFinishedSegment(int64_t aSize) noexcept {
 	setDirty();
 }
 
-void Bundle::removeDownloadedSegment(int64_t aSize) noexcept {
+void Bundle::removeFinishedSegment(int64_t aSize) noexcept{
 	dcassert(finishedSegments - aSize >= 0);
 	finishedSegments -= aSize;
 	dcassert(finishedSegments <= size);
@@ -229,7 +229,7 @@ bool Bundle::removeFinishedItem(QueueItemPtr& qi) noexcept {
 		if (fqi == qi) {
 			qi->setBundle(nullptr);
 			decreaseSize(qi->getSize());
-			removeDownloadedSegment(qi->getSize());
+			removeFinishedSegment(qi->getSize());
 			swap(finishedFiles[pos], finishedFiles[finishedFiles.size()-1]);
 			finishedFiles.pop_back();
 
@@ -282,7 +282,7 @@ bool Bundle::removeQueue(QueueItemPtr& qi, bool finished) noexcept {
 
 	if (!finished) {
 		if (qi->getDownloadedSegments() > 0) {
-			removeDownloadedSegment(qi->getDownloadedSegments());
+			removeFinishedSegment(qi->getDownloadedSegments());
 		}
 		decreaseSize(qi->getSize());
 		setFlag(Bundle::FLAG_UPDATE_SIZE);

@@ -235,8 +235,6 @@ public:
 
 	static string addBrackets(const string& s);
 
-	static string formatStatus(int iStatus);
-	
 	static string formatBytes(const string& aString) { return formatBytes(toInt64(aString)); }
 	static string formatConnectionSpeed(const string& aString) { return formatConnectionSpeed(toInt64(aString)); }
 

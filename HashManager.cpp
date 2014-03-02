@@ -229,7 +229,7 @@ void HashManager::hashDone(const string& aFileName, const string& pathLower, con
 	try {
 		store.addHashedFile(pathLower, tt, aFileInfo);
 	} catch (const Exception& e) {
-		log(STRING(HASHING_FAILED) + " " + e.getError(), hasherID, true, true);
+		log(STRING_F(HASHING_FAILED_X, e.getError()), hasherID, true, true);
 	}
 	
 	if(SETTING(LOG_HASHING)) {
@@ -242,9 +242,9 @@ void HashManager::hashDone(const string& aFileName, const string& pathLower, con
 		}
 	
 		if (speed > 0) {
-			log(STRING(HASHING_FINISHED) + " " + fn + " (" + Util::formatBytes(speed) + "/s)", hasherID, false, true);
+			log(STRING_F(HASHING_FINISHED_X, fn) + " (" + Util::formatBytes(speed) + "/s)", hasherID, false, true);
 		} else {
-			log(STRING(HASHING_FINISHED) + " " + fn, hasherID, false, true);
+			log(STRING_F(HASHING_FINISHED_X, fn), hasherID, false, true);
 		}
 	}
 }
@@ -1269,7 +1269,7 @@ int HashManager::Hasher::run() {
 					}
 				} else if(!fname.empty()) {
 					//all files failed to hash?
-					getInstance()->log(STRING(HASHING_FINISHED_TOTAL_PLAIN), hasherID, false, false);
+					getInstance()->log(STRING(HASHING_FINISHED), hasherID, false, false);
 
 					//always clear the directory so that the will be a fresh start when more files are added for hashing
 					initialDir.clear();

@@ -225,7 +225,7 @@ public:
 	void setTarget(const string& aTarget) noexcept;
 
 	void addFinishedSegment(int64_t aSize) noexcept;
-	void removeDownloadedSegment(int64_t aSize) noexcept;
+	void removeFinishedSegment(int64_t aSize) noexcept;
 
 	/* DownloadManager */
 	bool addRunningUser(const UserConnection* aSource) noexcept;
