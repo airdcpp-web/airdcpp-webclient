@@ -227,7 +227,7 @@ bool Bundle::removeFinishedItem(QueueItemPtr& qi) noexcept {
 	int pos = 0;
 	for (auto& fqi: finishedFiles) {
 		if (fqi == qi) {
-			qi->setBundle(nullptr);
+			//qi->setBundle(nullptr);
 			decreaseSize(qi->getSize());
 			removeFinishedSegment(qi->getSize());
 			swap(finishedFiles[pos], finishedFiles[finishedFiles.size()-1]);
