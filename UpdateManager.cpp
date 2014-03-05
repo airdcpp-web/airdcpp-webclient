@@ -543,13 +543,18 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 
 			if(verified && xml.findChild("BadVersion")) {
 				xml.stepIn();
-				while(xml.findChild("BadVersion")) {
-					double v = Util::toDouble(xml.getChildAttrib("Version"));
+				while(xml.findChild("Version")) {
+					xml.stepIn();
+					double v = Util::toDouble(xml.getData());
+					xml.stepOut();
+
 					if(v == ownBuild) {
 						reportBadVersion();
 						return;
 					}
 				}
+
+				xml.stepOut();
 			}
 			xml.resetCurrentChild();
 
