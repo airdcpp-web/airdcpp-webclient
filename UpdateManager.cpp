@@ -541,7 +541,7 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 			}
 			xml.resetCurrentChild();
 
-			if(verified && xml.findChild("BadVersion")) {
+			if(verified && xml.findChild("BadVersions")) {
 				xml.stepIn();
 				while(xml.findChild("Version")) {
 					xml.stepIn();

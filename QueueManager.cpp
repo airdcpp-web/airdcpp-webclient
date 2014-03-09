@@ -1402,39 +1402,14 @@ void QueueManager::onFileHashed(const string& aPath, HashedFile& aFileInfo, bool
 	QueueItemPtr q;
 	{
 		RLock l(cs);
-
-		//prefer the exact path match
 		q = fileQueue.findFile(aPath);
-		if (!q) {
-			//also remove bundles that haven't been removed in a shared directories... remove this when the bundles are shown correctly in GUI
-
-			auto tpi = make_pair(fileQueue.getTTHIndex().begin(), fileQueue.getTTHIndex().end());
-			if (!failed) {
-				//we have the tth so we can limit the range
-				tpi = fileQueue.getTTHIndex().equal_range(const_cast<TTHValue*>(&aFileInfo.getRoot()));
-			}
-
-			if (tpi.first != tpi.second) {
-				int64_t size = 0;
-				if (failed) {
-					size = File::getSize(aPath);
-				}
-
-				auto file = Util::getFileName(aPath);
-				auto p = find_if(tpi | map_values, [&](const QueueItemPtr& aQI) { return (!failed || size == aQI->getSize()) && aQI->getBundle() && aQI->getBundle()->getStatus() == Bundle::STATUS_HASHING && 
-					aQI->getTargetFileName() == file && aQI->isFinished() && !aQI->isSet(QueueItem::FLAG_HASHED); });
-
-				if (p.base() != tpi.second) {
-					q = *p;
-				}
-			}
-		}
 	}
 
 	if (!q) {
 		if (!failed) {
 			fire(QueueManagerListener::FileHashed(), aPath, aFileInfo);
 		}
+
 		return;
 	}
 
