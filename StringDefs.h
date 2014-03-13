@@ -1850,6 +1850,7 @@ enum Strings { // @DontAdd
 	BAR_DEPTH, // "3d depth"
 	MOVING, // "Moving"
 	BUNDLES_REMOVE_EXIT, // "Remove finished bundles on exit"
+	FAILED, // "Failed"
 	ALL_FILES, // "All files"
 	LAST // @DontAdd
 };
