@@ -1399,7 +1399,8 @@ void QueueManager::hashBundle(BundlePtr& aBundle) noexcept {
 }
 
 void QueueManager::onFileHashed(const string& aPath, HashedFile& aFileInfo, bool failed) noexcept {
-	QueueItemPtr q;
+	QueueItemPtr q = nullptr;
+
 	{
 		RLock l(cs);
 		q = fileQueue.findFile(aPath);

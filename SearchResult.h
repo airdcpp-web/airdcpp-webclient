@@ -63,6 +63,7 @@ public:
 	size_t getSlots() const { return slots; }
 	size_t getFreeSlots() const { return freeSlots; }
 	int getFileCount() const { return files; }
+	int getFolderCount() const { return folders; }
 	const TTHValue& getTTH() const { return tth; }
 	
 	const string& getConnectionStr() const { return connection; }

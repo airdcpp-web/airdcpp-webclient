@@ -1037,6 +1037,7 @@ enum Strings { // @DontAdd
 	BUNDLE, // "Bundle"
 	X_BUNDLES, // "%1% bundles"
 	X_FILES, // "%1% files"
+	X_FOLDERS, // "%1% folders"
 	REMOVE_BUNDLE, // "Remove bundle from queue"
 	BUNDLE_REMOVED, // "Bundle removed"
 	PARTIAL_SHARING, // "Enable partial bundle/file sharing"
