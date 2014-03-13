@@ -1847,6 +1847,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "3d depth", 
 "Moving", 
 "Remove finished bundles on exit", 
+"Failed", 
 "All files", 
 };
 std::string dcpp::ResourceManager::names[] = {
@@ -3695,5 +3696,6 @@ std::string dcpp::ResourceManager::names[] = {
 "BarDepth", 
 "Moving", 
 "BundlesRemoveExit", 
+"Failed", 
 "AllFiles", 
 };
