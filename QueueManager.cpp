@@ -3635,7 +3635,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinished) noexcep
 			}
 
 			if (!qi->isFinished()) {
-				userQueue.removeQI(qi, true);
+				userQueue.removeQI(qi);
 			}
 
 			fileQueue.remove(qi);
@@ -3843,7 +3843,7 @@ void QueueManager::onUseSeqOrder(BundlePtr& b) noexcept {
 	auto ql = b->getQueueItems();
 	for (auto& q: ql) {
 		if (!q->isPausedPrio()) {
-			userQueue.removeQI(q, false, false);
+			userQueue.removeQI(q, false);
 			userQueue.addQI(q, true);
 		}
 	}
