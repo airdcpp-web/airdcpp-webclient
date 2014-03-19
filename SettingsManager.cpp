@@ -561,6 +561,11 @@ SettingsManager::SettingsManager()
 	setDefault(POPUP_BACKCOLOR, RGB(58, 122, 180));
 	setDefault(POPUP_TEXTCOLOR, RGB(0, 0, 0));
 	setDefault(POPUP_TITLE_TEXTCOLOR, RGB(0, 0, 0));
+
+	setDefault(COLOR_STATUS_FAILED, RGB(196, 85, 185));
+	setDefault(COLOR_STATUS_FINISHED, RGB(145, 183, 4));
+	setDefault(COLOR_STATUS_HASHING, RGB(139, 137, 137));
+	setDefault(COLOR_STATUS_SHARED, RGB(102, 158, 18));
 #endif
 
 	setDefault(REPORT_ALTERNATES, true);	
@@ -863,10 +868,6 @@ SettingsManager::SettingsManager()
 	setDefault(NFO_EXTERNAL, false);
 	setDefault(SINGLE_CLICK_TRAY, false);
 	setDefault(QUEUE_SHOW_FINISHED, true);
-	setDefault(COLOR_STATUS_FAILED, RGB(196, 85, 185));
-	setDefault(COLOR_STATUS_FINISHED, RGB(145, 183, 4));
-	setDefault(COLOR_STATUS_HASHING, RGB(139, 137, 137));
-	setDefault(COLOR_STATUS_SHARED, RGB(102, 158, 18));
 	setDefault(PROGRESS_LIGHTEN, 25);
 	setDefault(REMOVE_FINISHED_BUNDLES, false);
 

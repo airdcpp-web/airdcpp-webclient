@@ -192,10 +192,10 @@ void shutdown(function<void (const string&)> stepF, function<void (float)> progr
 	WebShortcuts::deleteInstance();
 	ADLSearchManager::deleteInstance();
 	FinishedManager::deleteInstance();
-	ShareManager::deleteInstance();
 	CryptoManager::deleteInstance();
 	ThrottleManager::deleteInstance();
 	DirectoryListingManager::deleteInstance();
+	ShareManager::deleteInstance();
 	QueueManager::deleteInstance();
 	DownloadManager::deleteInstance();
 	UploadManager::deleteInstance();
