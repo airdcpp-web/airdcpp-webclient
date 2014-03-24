@@ -142,6 +142,7 @@ public:
 	/* Returns the name without subdirs and possible position from where the subdir starts */
 	static pair<string, string::size_type> getDirName(const string& aName, char separator);
 	static string getTitle(const string& searchTerm);
+
 private:
 	static bool removeDirectoryIfEmptyRe(const string& tgt, int maxAttempts, int curAttempts);
 	static AwayMode away;
