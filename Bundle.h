@@ -64,7 +64,7 @@ struct BundleFileInfo : boost::noncopyable {
 		return *this;
 	}
 
-	//typedef vector<BundleFileInfo> List;
+	// use pointers so that the list can be modified faster
 	typedef boost::ptr_vector<BundleFileInfo> List;
 };
 

@@ -858,8 +858,6 @@ string QueueManager::checkTarget(const string& toValidate, const string& aParent
 	string target = Util::validatePath(toValidate);
 
 	// Check that the file doesn't already exist...
-	//int64_t size = File::getSize(aParentDir + target);
-	//if(size != -1) {
 	if (Util::fileExists(aParentDir + target)) {
 		/* TODO: add for recheck */
 		throw FileException(STRING(TARGET_FILE_EXISTS));
