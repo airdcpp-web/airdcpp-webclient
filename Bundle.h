@@ -31,19 +31,41 @@
 #include "User.h"
 
 #include "QueueItemBase.h"
+#include <boost/ptr_container/ptr_vector.hpp>
 
 namespace dcpp {
 
 using std::string;
 
-struct BundleFileInfo {
-	BundleFileInfo(const string& aFile, const TTHValue& aTTH, int64_t aSize, time_t aDate = 0, QueueItemBase::Priority aPrio = QueueItemBase::DEFAULT) : file(aFile), tth(aTTH), size(aSize), prio(aPrio), date(aDate) { }
+struct BundleFileInfo : boost::noncopyable {
+	BundleFileInfo(string aFile, const TTHValue& aTTH, int64_t aSize, time_t aDate = 0, QueueItemBase::Priority aPrio = QueueItemBase::DEFAULT) : file(move(aFile)), tth(aTTH), size(aSize), prio(aPrio), date(aDate) { }
 
 	string file;
 	TTHValue tth;
 	int64_t size;
 	QueueItemBase::Priority prio;
 	time_t date;
+
+	// TODO: = default when supported by MSVC
+	BundleFileInfo(BundleFileInfo&& rhs) noexcept {
+		swap(tth, rhs.tth);
+		file.swap(rhs.file);
+		date = rhs.date;
+		prio = rhs.prio;
+		size = rhs.size;
+	}
+
+	BundleFileInfo& BundleFileInfo::operator=(BundleFileInfo&& rhs) noexcept {
+		swap(tth, rhs.tth);
+		file.swap(rhs.file);
+		date = rhs.date;
+		prio = rhs.prio;
+		size = rhs.size;
+		return *this;
+	}
+
+	//typedef vector<BundleFileInfo> List;
+	typedef boost::ptr_vector<BundleFileInfo> List;
 };
 
 #define DIR_BUNDLE_VERSION "2"
