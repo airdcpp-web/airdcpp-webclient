@@ -1850,6 +1850,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Failed", 
 "Locations", 
 "All files", 
+"Type/Content", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3700,4 +3701,5 @@ std::string dcpp::ResourceManager::names[] = {
 "Failed", 
 "Locations", 
 "AllFiles", 
+"TypeContent", 
 };
