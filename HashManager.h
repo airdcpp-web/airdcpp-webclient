@@ -155,8 +155,8 @@ private:
 		class WorkItem {
 		public:
 			WorkItem(const string& aFilePathLower, const string& aFilePath, int64_t aSize, const string& aDevID) : filePath(aFilePath), fileSize(aSize), devID(aDevID), filePathLower(aFilePathLower) { }
-			WorkItem(WorkItem&& rhs);
-			WorkItem& operator=(WorkItem&&);
+			WorkItem(WorkItem&& rhs) noexcept;
+			WorkItem& operator=(WorkItem&&) noexcept;
 
 			string filePath;
 			int64_t fileSize;

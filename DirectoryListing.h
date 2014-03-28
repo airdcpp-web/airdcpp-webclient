@@ -146,7 +146,7 @@ public:
 		void setComplete() noexcept { type = TYPE_NORMAL; }
 		bool getAdls() const noexcept { return type == TYPE_ADLS; }
 
-		void download(const string& aTarget, BundleFileList& aFiles) noexcept;
+		void download(const string& aTarget, BundleFileInfo::List& aFiles) noexcept;
 	};
 
 	class AdlDirectory : public Directory {

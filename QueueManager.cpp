@@ -401,7 +401,7 @@ void QueueManager::checkSource(const HintedUser& aUser) const throw(QueueExcepti
 	}
 }
 
-void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, QueueItemBase::Priority& priority_) const throw(QueueException, FileException, DupeException) {
+void QueueManager::validateBundleFile(const string& aBundleDir, string& bundleFile_, const TTHValue& aTTH, QueueItemBase::Priority& priority_) const throw(QueueException, FileException, DupeException) {
 
 	//check the skiplist
 	string::size_type i = 0;
@@ -414,17 +414,17 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleF
 	};
 
 	//match the file name
-	matchSkipList(Util::getFileName(aBundleFile));
+	matchSkipList(Util::getFileName(bundleFile_));
 
 	//match all dirs (if any)
-	while((i = aBundleFile.find(PATH_SEPARATOR, j)) != string::npos) {
-		matchSkipList(aBundleFile.substr(j, i - j));
+	while ((i = bundleFile_.find(PATH_SEPARATOR, j)) != string::npos) {
+		matchSkipList(bundleFile_.substr(j, i - j));
 		j = i + 1;
 	}
 
 
 	//validate the target and check the existance
-	aBundleFile = checkTarget(aBundleFile, aBundleDir);
+	bundleFile_ = checkTarget(bundleFile_, aBundleDir);
 
 	//check share dupes
 	if (SETTING(DONT_DL_ALREADY_SHARED) && ShareManager::getInstance()->isFileShared(aTTH)) {
@@ -439,21 +439,21 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& aBundleF
 	if (SETTING(DONT_DL_ALREADY_QUEUED)) {
 		RLock l(cs);
 		auto q = fileQueue.getQueuedFile(aTTH);
-		if (q && q->getTarget() != aBundleDir + aBundleFile) {
+		if (q && q->getTarget() != aBundleDir + bundleFile_) {
 			auto path = AirUtil::subtractCommonDirs(aBundleDir, q->getFilePath(), PATH_SEPARATOR);
 			throw DupeException(STRING_F(FILE_ALREADY_QUEUED, path));
 		}
 	}
 
 	if(SETTING(USE_FTP_LOGGER)) {
-		AirUtil::fileEvent(aBundleDir + aBundleFile);
+		AirUtil::fileEvent(aBundleDir + bundleFile_);
 	}
 
 
 	//valid file
 
 	//set the prio
-	if (highPrioFiles.match(Util::getFileName(aBundleFile))) {
+	if (highPrioFiles.match(Util::getFileName(bundleFile_))) {
 		priority_ = SETTING(PRIO_LIST_HIGHEST) ? QueueItem::HIGHEST : QueueItem::HIGH;
 	}
 }
@@ -582,7 +582,7 @@ private:
 	unordered_multimap<string, Error> errors;
 };
 
-BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileList& aFiles, QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) throw(QueueException, FileException) {
+BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileInfo::List& aFiles, QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) throw(QueueException, FileException) {
 	string target = formatBundleTarget(aTarget, aDate);
 
 	int fileCount = aFiles.size();
@@ -596,6 +596,8 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 	ErrorReporter errors(fileCount);
 
 	int existingFiles = 0, smallDupes=0;
+
+	vector<BundleFileInfo*> allowedFiles;
 
 	//check the files
 	for (auto i = aFiles.begin(); i != aFiles.end(); ) {
@@ -856,8 +858,7 @@ string QueueManager::checkTarget(const string& toValidate, const string& aParent
 	string target = Util::validatePath(toValidate);
 
 	// Check that the file doesn't already exist...
-	int64_t size = File::getSize(aParentDir + target);
-	if(size != -1) {
+	if (Util::fileExists(aParentDir + target)) {
 		/* TODO: add for recheck */
 		throw FileException(STRING(TARGET_FILE_EXISTS));
 	}

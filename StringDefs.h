@@ -1854,5 +1854,6 @@ enum Strings { // @DontAdd
 	FAILED, // "Failed"
 	LOCATIONS, // "Locations"
 	ALL_FILES, // "All files"
+	TYPE_CONTENT, // "Type/Content"
 	LAST // @DontAdd
 };

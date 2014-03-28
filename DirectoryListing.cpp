@@ -410,7 +410,7 @@ bool DirectoryListing::Directory::findIncomplete() const noexcept {
 	return find_if(directories, [](const Directory::Ptr& dir) { return dir->findIncomplete(); }) != directories.end();
 }
 
-void DirectoryListing::Directory::download(const string& aTarget, BundleFileList& aFiles) noexcept {
+void DirectoryListing::Directory::download(const string& aTarget, BundleFileInfo::List& aFiles) noexcept{
 	// First, recurse over the directories
 	sort(directories.begin(), directories.end(), Directory::Sort());
 	for(auto& d: directories) {
@@ -420,12 +420,13 @@ void DirectoryListing::Directory::download(const string& aTarget, BundleFileList
 	// Then add the files
 	sort(files.begin(), files.end(), File::Sort());
 	for(const auto& f: files) {
-		aFiles.emplace_back(aTarget + f->getName(), f->getTTH(), f->getSize());
+		//aFiles.emplace_back(aTarget + f->getName(), f->getTTH(), f->getSize());
+		aFiles.push_back(new BundleFileInfo(aTarget + f->getName(), f->getTTH(), f->getSize()));
 	}
 }
 
 bool DirectoryListing::createBundle(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
-	BundleFileList aFiles;
+	BundleFileInfo::List aFiles;
 	aDir->download(Util::emptyString, aFiles);
 
 	if (aFiles.empty() || (SETTING(SKIP_ZERO_BYTE) && none_of(aFiles.begin(), aFiles.end(), [](const BundleFileInfo& aFile) { return aFile.size > 0; }))) {

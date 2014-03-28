@@ -1129,12 +1129,7 @@ bool Util::fileExists(const string &aFile) {
 		return false;
 
 #ifdef _WIN32
-	string path = aFile;
-	
-	if(path.size() > 2 && (path[1] == ':' || path[0] == '/' || path[0] == '\\')) //if its absolute path use the unc name.
-		path = Util::FormatPath(aFile);
-
-	DWORD attr = GetFileAttributes(Text::toT(path).c_str());
+	DWORD attr = GetFileAttributes(Text::toT(Util::FormatPath(aFile)).c_str());
 	return (attr != 0xFFFFFFFF);
 #else
 	return File::getSize(aFile) != -1;
