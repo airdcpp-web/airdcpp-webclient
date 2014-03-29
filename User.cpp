@@ -188,6 +188,16 @@ Identity::Identity(const Identity& rhs) : Flags(), sid(0), connectMode(rhs.getCo
 	*this = rhs;  // Use operator= since we have to lock before reading...
 }
 
+Identity& Identity::operator = (const Identity& rhs) {
+	WLock l(cs);
+	*static_cast<Flags*>(this) = rhs;
+	user = rhs.user;
+	sid = rhs.sid;
+	info = rhs.info;
+	connectMode = rhs.connectMode;
+	return *this;
+}
+
 string Identity::getApplication() const {
 	auto application = get("AP");
 	auto version = get("VE");
@@ -260,19 +270,18 @@ bool Identity::updateConnectMode(const Identity& me, const Client* aClient) {
 
 	if (meSupports6 && !getIp6().empty()) {
 		// IPv6? active / NAT-T
-		if (isTcp6Active())
+		if (isTcp6Active()) {
 			newMode = MODE_ACTIVE_V6;
-		else if (me.isTcp6Active() || supports(AdcHub::NAT0_FEATURE))
+		} else if (me.isTcp6Active() || supports(AdcHub::NAT0_FEATURE)) {
 			newMode = MODE_PASSIVE_V6;
+		}
 	}
 
-	if ((newMode == MODE_NOCONNECT_IP || newMode == MODE_PASSIVE_V6) && !me.getIp4().empty()) {
-		if (!getIp4().empty()) {
-			auto isActive = isTcp4Active();
-			if (isActive || (newMode == MODE_NOCONNECT_IP && (me.isTcp4Active() || supports(AdcHub::NAT0_FEATURE)))) {
-				//passive v4 isn't any better than passive v6
-				newMode = isActive ? MODE_ACTIVE_V4 : MODE_PASSIVE_V4;
-			}
+	if (!me.getIp4().empty() && !getIp4().empty()) {
+		if (isTcp4Active()) {
+			newMode = newMode == MODE_ACTIVE_V6 ? MODE_ACTIVE_DUAL : MODE_ACTIVE_V4;
+		} else if (newMode == MODE_NOCONNECT_IP && (me.isTcp4Active() || supports(AdcHub::NAT0_FEATURE))) { //passive v4 isn't any better than passive v6
+			newMode = MODE_PASSIVE_V4;
 		}
 	}
 
@@ -301,11 +310,11 @@ bool Identity::updateConnectMode(const Identity& me, const Client* aClient) {
 }
 
 bool Identity::allowV6Connections() const {
-	return connectMode == MODE_PASSIVE_V6 || connectMode == MODE_ACTIVE_V6 || connectMode == MODE_PASSIVE_V6_UNKNOWN;
+	return connectMode == MODE_PASSIVE_V6 || connectMode == MODE_ACTIVE_V6 || connectMode == MODE_PASSIVE_V6_UNKNOWN || connectMode == MODE_ACTIVE_DUAL;
 }
 
 bool Identity::allowV4Connections() const {
-	return connectMode == MODE_PASSIVE_V4 || connectMode == MODE_ACTIVE_V4 || connectMode == MODE_PASSIVE_V4_UNKNOWN;
+	return connectMode == MODE_PASSIVE_V4 || connectMode == MODE_ACTIVE_V4 || connectMode == MODE_PASSIVE_V4_UNKNOWN || connectMode == MODE_ACTIVE_DUAL;
 }
 
 const string& OnlineUser::getHubUrl() const { 

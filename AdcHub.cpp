@@ -262,6 +262,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		State oldState = state;
 		state = STATE_NORMAL;
 		setAutoReconnect(true);
+		u->getIdentity().setConnectMode(Identity::MODE_ME);
 		setMyIdentity(u->getIdentity());
 		updateCounts(false);
 

@@ -64,6 +64,7 @@ public:
 		MODE_ME,
 		MODE_NOCONNECT_IP,
 		MODE_NOCONNECT_PASSIVE,
+		MODE_ACTIVE_DUAL,
 		MODE_ACTIVE_V4,
 		MODE_ACTIVE_V6,
 		MODE_PASSIVE_V4,
@@ -75,15 +76,7 @@ public:
 	Identity();
 	Identity(const UserPtr& ptr, uint32_t aSID);
 	Identity(const Identity& rhs);
-
-	Identity& operator=(const Identity& rhs) {
-		WLock l(cs);
-		*static_cast<Flags*>(this) = rhs;
-		user = rhs.user;
-		sid = rhs.sid;
-		info = rhs.info;
-		return *this;
-	}
+	Identity& operator=(const Identity& rhs);
 
 
 #define GETSET_FIELD(n, x) string get##n() const { return get(x); } void set##n(const string& v) { set(x, v); }
