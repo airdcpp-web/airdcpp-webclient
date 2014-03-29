@@ -55,7 +55,7 @@ struct BundleFileInfo : boost::noncopyable {
 		size = rhs.size;
 	}
 
-	BundleFileInfo& BundleFileInfo::operator=(BundleFileInfo&& rhs) noexcept {
+	BundleFileInfo& operator=(BundleFileInfo&& rhs) noexcept {
 		swap(tth, rhs.tth);
 		file.swap(rhs.file);
 		date = rhs.date;

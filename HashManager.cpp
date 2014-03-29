@@ -1313,14 +1313,14 @@ void HashManager::removeHasher(Hasher* aHasher) {
 	hashers.erase(remove(hashers.begin(), hashers.end(), aHasher), hashers.end());
 }
 
-HashManager::Hasher::WorkItem::WorkItem(WorkItem&& rhs) {
+HashManager::Hasher::WorkItem::WorkItem(WorkItem&& rhs) noexcept {
 	devID.swap(rhs.devID);
 	filePath.swap(rhs.filePath);
 	filePathLower.swap(rhs.filePathLower);
 	fileSize = rhs.fileSize;
 }
 
-HashManager::Hasher::WorkItem& HashManager::Hasher::WorkItem::operator=(WorkItem&& rhs) { 
+HashManager::Hasher::WorkItem& HashManager::Hasher::WorkItem::operator=(WorkItem&& rhs) noexcept {
 	devID.swap(rhs.devID);
 	filePath.swap(rhs.filePath);
 	filePathLower.swap(rhs.filePathLower);
