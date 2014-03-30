@@ -43,6 +43,8 @@
 #include "UserConnection.h"
 #include "version.h"
 
+#include <future>
+
 #ifdef _WIN32
 #include <mmsystem.h>
 #include <limits>
@@ -62,7 +64,7 @@ using boost::range::for_each;
 
 QueueManager::QueueManager() : 
 	udp(Socket::TYPE_UDP),
-	tasks(true)
+	fileTasks(true)
 { 
 	//add listeners in loadQueue
 	File::ensureDirectory(Util::getListPath());
@@ -596,8 +598,6 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 	ErrorReporter errors(fileCount);
 
 	int existingFiles = 0, smallDupes=0;
-
-	vector<BundleFileInfo*> allowedFiles;
 
 	//check the files
 	for (auto i = aFiles.begin(); i != aFiles.end(); ) {
@@ -1188,7 +1188,7 @@ void QueueManager::moveBundleItemsImpl(QueueItem::StringItemList aItems, BundleP
 }
 
 void QueueManager::moveFinishedFile(const string& source, const string& target, const QueueItemPtr& q) {
-	tasks.addTask([=] { moveFinishedFileImpl(source, target, q); });
+	fileTasks.addTask([=] { moveFinishedFileImpl(source, target, q); });
 }
 
 void QueueManager::moveFinishedFileImpl(const string& source, const string& target, QueueItemPtr qi) {
@@ -1751,7 +1751,7 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 }
 
 void QueueManager::recheck(const string& aTarget) {
-	tasks.addTask([=] { recheck(aTarget); });
+	fileTasks.addTask([=] { recheck(aTarget); });
 }
 
 void QueueManager::removeFile(const string aTarget, bool removeData) noexcept {
@@ -3156,7 +3156,7 @@ void QueueManager::addLoadedBundle(BundlePtr& aBundle) noexcept {
 bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int itemsAdded) noexcept {
 	if (aBundle->getQueueItems().empty() && itemsAdded > 0) {
 		// it finished already? (only 0 byte files were added)
-		tasks.addTask([=] {
+		async(launch::async, [=] {
 			BundlePtr b = aBundle;
 			checkBundleFinished(b, false);
 		});
@@ -3207,7 +3207,7 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 
 	if (statusChanged) {
 		aBundle->setStatus(Bundle::STATUS_QUEUED);
-		tasks.addTask([=] {
+		async(launch::async, [=] {
 			auto b = aBundle;
 			fire(QueueManagerListener::BundleStatusChanged(), aBundle);
 			if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE) && !b->isPausedPrio()) {
@@ -3346,7 +3346,7 @@ void QueueManager::mergeFinishedItems(const string& aSource, const string& aTarg
 	if (!toMove.empty()) {
 		if (sourceBundle->getStatus() > Bundle::STATUS_DOWNLOADED)
 			setBundleStatus(sourceBundle, Bundle::STATUS_DOWNLOADED);
-		tasks.addTask([=] { moveBundleItemsImpl(toMove, sourceBundle); });
+		async(launch::async, [=] { moveBundleItemsImpl(toMove, sourceBundle); });
 	}
 
 	//we may not be able to remove the directory instantly if we have finished files to move (moveFile will handle this)
@@ -3516,7 +3516,7 @@ void QueueManager::moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle) noex
 
 	//check if the source is empty
 	if (sourceBundle->getQueueItems().empty()) {
-		tasks.addTask([=] { 
+		async(launch::async, [=] {
 			auto b = sourceBundle;
 			removeBundle(b, false); 
 		});

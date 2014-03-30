@@ -26,6 +26,7 @@
 
 #include "Bundle.h"
 #include "CriticalSection.h"
+#include "DispatcherQueue.h"
 #include "SFVReader.h"
 #include "Speaker.h"
 #include "Singleton.h"
@@ -59,7 +60,8 @@ public:
 		TYPE_FAILED_FINISHED,
 	};
 
-	int scan(const StringList& paths = StringList(), bool sfv = false) noexcept;
+	void scanShare(const StringList& paths = StringList()) noexcept;
+	void checkSfv(const StringList& paths) noexcept;
 	Bundle::Status onScanBundle(const BundlePtr& aBundle, bool finished, string& error_) noexcept;
 	bool onScanSharedDir(const string& aDir, bool report) noexcept;
 
@@ -75,6 +77,8 @@ private:
 	
 	int run();
 	bool matchSkipList(const string& dir);
+	void runSfvCheck(const StringList& paths);
+	void runShareScan(const StringList& paths);
 
 
 	enum extraTypes {
@@ -100,17 +104,14 @@ private:
 	boost::regex extraRegs[3];
 	boost::regex diskReg;
 
-	StringList rootPaths;
-	bool isCheckSFV;
-	bool isDirScan;
-
 	static atomic_flag scanning;
 
 	int crcOk;
 	int crcInvalid;
 	int checkFailed;
-
 	int64_t scanFolderSize;
+
+
 	volatile bool stop;
 	unordered_multimap<string, string> dupeDirs;
 	void prepareSFVScanDir(const string& path, SFVScanList& dirs) noexcept;
@@ -156,6 +157,7 @@ private:
 	void reportMessage(const string& aMessage, ScanInfo& aScan, bool warning = true) noexcept;
 
 	SharedMutex cs;
+	DispatcherQueue tasks;
 };
 
 } // namespace dcpp

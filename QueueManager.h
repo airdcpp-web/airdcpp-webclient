@@ -199,7 +199,7 @@ public:
 	IGETSET(uint64_t, lastSave, LastSave, 0);
 	IGETSET(uint64_t, lastAutoPrio, LastAutoPrio, 0);
 
-	DispatcherQueue tasks;
+	DispatcherQueue fileTasks;
 
 	void shareBundle(BundlePtr aBundle, bool skipScan) noexcept;
 	void runAltSearch() noexcept;
