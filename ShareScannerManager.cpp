@@ -553,7 +553,7 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 
 		AirUtil::listRegexSubtract(fileList, extraRegs[extrasType]);
 		if (!fileList.empty()) {
-			reportMessage(CSTRING_F(EXTRA_FILES_RLSDIR_X, aPath % Util::toString(", ", fileList)), aScan);
+			reportMessage(STRING_F(EXTRA_FILES_RLSDIR_X, aPath % Util::toString(", ", fileList)), aScan);
 			if (!extrasInFolder)
 				aScan.extrasFound++;
 		}
@@ -599,6 +599,7 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sf
 	uint64_t checkEnd = 0;
 
 	if(sfv.hasFile(aFileName)) {
+		// Perform the check
 		bool crcMatch = false;
 		try {
 			checkStart = GET_TICK();
@@ -606,34 +607,33 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sf
 			checkEnd = GET_TICK();
 		} catch(const FileException& ) {
 			// Couldn't read the file to get the CRC(!!!)
-			LogManager::getInstance()->message(STRING(CRC_FILE_ERROR) + sfv.getPath() + aFileName, LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING_F(CRC_FILE_ERROR, (sfv.getPath() + aFileName)), LogManager::LOG_ERROR);
 		}
 
+		// Update the resultd
 		int64_t size = File::getSize(sfv.getPath() + aFileName);
 		int64_t speed = 0;
 		if(checkEnd > checkStart) {
 			speed = size * 1000LL / (checkEnd - checkStart);
 		}
 
-		string message;
-
 		if(crcMatch) {
-			message = STRING(CRC_OK);
 			crcOk++;
 		} else {
-			message = STRING(CRC_FAILED);
 			crcInvalid++;
 		}
 
-		message += sfv.getPath() + aFileName + " (" + Util::formatBytes(speed) + "/s)";
-
 		scanFolderSize = scanFolderSize - size;
-		message += ", " + STRING(CRC_REMAINING) + Util::formatBytes(scanFolderSize);
-		LogManager::getInstance()->message(message, (crcMatch ? LogManager::LOG_INFO : LogManager::LOG_ERROR));
 
+		// Report
+		LogManager::getInstance()->message(STRING_F(CRC_FILE_DONE, 
+			(crcMatch ? STRING(CRC_OK) : STRING(CRC_FAILED)) % 
+			(sfv.getPath() + aFileName) % 
+			Util::formatBytes(speed) % 
+			Util::formatBytes(scanFolderSize)), (crcMatch ? LogManager::LOG_INFO : LogManager::LOG_ERROR));
 
 	} else if (!isDirScan || regex_match(aFileName, rarMp3Reg)) {
-		LogManager::getInstance()->message(STRING(NO_CRC32) + " " + sfv.getPath() + aFileName, LogManager::LOG_WARNING);
+		LogManager::getInstance()->message(STRING_F(CRC_NO_SFV, (sfv.getPath() + aFileName)), LogManager::LOG_WARNING);
 		checkFailed++;
 	}
 }
