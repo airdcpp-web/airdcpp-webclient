@@ -2617,7 +2617,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 			}
 		}
 
-		setProfilesDirty(dirtyProfiles, task->type == TYPE_MANUAL || t.first == REFRESH_ALL);
+		setProfilesDirty(dirtyProfiles, task->type == TYPE_MANUAL || t.first == REFRESH_ALL || t.first == ADD_BUNDLE);
 		reportTaskStatus(t.first, task->dirs, true, totalHash, task->displayName, task->type);
 
 		addMonitoring(monitoring);
