@@ -815,8 +815,25 @@ void AutoSearchManager::downloadList(SearchResultList& srl, AutoSearchPtr& as, i
 void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& as) noexcept {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
 		if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
-			DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getPath(), sr->getFileName(), sr->getUser(), as->getTarget(), as->getTargetType(), REPORT_SYSLOG,
-				(as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT, false, as->getToken(), as->getRemove() || as->usingIncrementation(), false);
+			auto target = as->getTarget();
+			auto targetType = as->getTargetType();
+
+			// Do we have a bundle with the same name?
+			{
+				RLock l(cs);
+				auto p = find_if(as->getBundles(), 
+					[&](const BundlePtr& b) { return b->getName() == sr->getFileName(); });
+				
+				if (p != as->getBundles().end()) {
+					// Use the same path
+					target = Util::getParentDir((*p)->getTarget());
+					targetType = TargetUtil::TARGET_PATH;
+				}
+			}
+
+			DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getPath(), sr->getFileName(), sr->getUser(), target,
+				targetType, REPORT_SYSLOG, (as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT,
+				false, as->getToken(), as->getRemove() || as->usingIncrementation(), false);
 		} else {
 			TargetUtil::TargetInfo ti;
 			bool hasSpace = TargetUtil::getVirtualTarget(as->getTarget(), as->getTargetType(), ti, sr->getSize());
@@ -824,7 +841,8 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 				TargetUtil::reportInsufficientSize(ti, sr->getSize());
 
 			try {
-				auto b = QueueManager::getInstance()->createFileBundle(ti.targetDir + sr->getFileName(), sr->getSize(), sr->getTTH(), sr->getUser(), sr->getDate(), 0, 
+				auto b = QueueManager::getInstance()->createFileBundle(ti.targetDir + sr->getFileName(), sr->getSize(), sr->getTTH(), 
+					sr->getUser(), sr->getDate(), 0, 
 					((as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT));
 
 				if (b) {
@@ -845,7 +863,8 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 				Client* client = &u->getClient();
 				if (client && client->isConnected()) {
 					//TODO: use magnet link
-					client->Message(STRING(AUTO_SEARCH) + ": " + STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::TYPE_DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)) % sr->getFileName() % u->getIdentity().getNick()));
+					client->Message(STRING(AUTO_SEARCH) + ": " + 
+						STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::TYPE_DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)) % sr->getFileName() % u->getIdentity().getNick()));
 				}
 
 				if (as->getRemove()) {
