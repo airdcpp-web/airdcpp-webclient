@@ -101,7 +101,7 @@ public:
 
 	void logMessage(const string& aMsg, bool error) const noexcept;
 
-	void onBundleCreated(const BundlePtr& aBundle, const ProfileToken aSearch) noexcept;
+	void onBundleCreated(BundlePtr& aBundle, const ProfileToken aSearch) noexcept;
 	void onBundleError(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser) noexcept;
 private:
 	mutable SharedMutex cs;

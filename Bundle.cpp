@@ -945,6 +945,8 @@ void Bundle::save() throw(FileException) {
 		f.write(token);
 		f.write(LIT("\" Date=\""));
 		f.write(Util::toString(bundleDate));
+		f.write(LIT("\" AddedByAutoSearch=\""));
+		f.write(Util::toString(getAddedByAutoSearch()));
 		f.write(LIT("\">\r\n"));
 		saveFiles();
 		f.write(LIT("</File>\r\n"));
@@ -958,6 +960,8 @@ void Bundle::save() throw(FileException) {
 		f.write(Util::toString(getAdded()));
 		f.write(LIT("\" Date=\""));
 		f.write(Util::toString(bundleDate));
+		f.write(LIT("\" AddedByAutoSearch=\""));
+		f.write(Util::toString(getAddedByAutoSearch()));
 		if (!getAutoPriority()) {
 			f.write(LIT("\" Priority=\""));
 			f.write(Util::toString((int)getPriority()));

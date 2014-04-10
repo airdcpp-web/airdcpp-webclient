@@ -254,10 +254,11 @@ void AutoSearchManager::clearError(AutoSearchPtr& as) noexcept {
 	fire(AutoSearchManagerListener::UpdateItem(), as, true);
 }
 
-void AutoSearchManager::onBundleCreated(const BundlePtr& aBundle, const ProfileToken aSearch) noexcept {
+void AutoSearchManager::onBundleCreated(BundlePtr& aBundle, const ProfileToken aSearch) noexcept {
 	WLock l(cs);
 	auto as = getSearchByToken(aSearch);
 	if (as) {
+		aBundle->setAddedByAutoSearch(true); //yes, not the best place to modify bundle information.
 		as->addBundle(aBundle);
 		updateStatus(as, true);
 	}

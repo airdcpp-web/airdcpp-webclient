@@ -173,6 +173,7 @@ public:
 
 	IGETSET(int64_t, actual, Actual, 0); 
 	IGETSET(int64_t, speed, Speed, 0);					// the speed calculated on every second in downloadmanager
+	IGETSET(bool, addedByAutoSearch, AddedByAutoSearch, false);		// the bundle was added by auto search
 
 
 	GETSET(FinishedNotifyList, finishedNotifications, FinishedNotifications);	// partial bundle sharing sources (mapped to their local tokens)

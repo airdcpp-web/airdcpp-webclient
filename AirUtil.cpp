@@ -160,7 +160,7 @@ void AirUtil::updateCachedSettings() {
 
 void AirUtil::getIpAddresses(IpList& addresses, bool v6) {
 #ifdef _WIN32
-	ULONG len =	8192; // begin with 8 kB, it should be enough in most of cases
+	ULONG len =	15360; //"The recommended method of calling the GetAdaptersAddresses function is to pre-allocate a 15KB working buffer pointed to by the AdapterAddresses parameter"
 	for(int i = 0; i < 3; ++i)
 	{
 		PIP_ADAPTER_ADDRESSES adapterInfo = (PIP_ADAPTER_ADDRESSES)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
