@@ -598,27 +598,25 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 	int existingFiles = 0, smallDupes=0;
 
 	//check the files
-	for (auto i = aFiles.begin(); i != aFiles.end(); ) {
+	aFiles.erase(boost::remove_if(aFiles, [&](BundleFileInfo& bfi) {
 		try {
-			validateBundleFile(target, (*i).file, (*i).tth, (*i).prio);
-			i++;
-			continue;
+			validateBundleFile(target, bfi.file, bfi.tth, bfi.prio);
+			return false; // valid
 		} catch(QueueException& e) {
-			errors.add(e.getError(), (*i).file, false);
+			errors.add(e.getError(), bfi.file, false);
 		} catch(FileException& /*e*/) {
 			existingFiles++;
 		} catch(DupeException& e) {
-			bool isSmall = (*i).size < Util::convertSize(SETTING(MIN_DUPE_CHECK_SIZE), Util::KB);
-			errors.add(e.getError(), (*i).file, isSmall);
+			bool isSmall = bfi.size < Util::convertSize(SETTING(MIN_DUPE_CHECK_SIZE), Util::KB);
+			errors.add(e.getError(), bfi.file, isSmall);
 			if (isSmall) {
 				smallDupes++;
-				i++;
-				continue;
+				return false;
 			}
 		}
 
-		i = aFiles.erase(i);
-	}
+		return true;
+	}), aFiles.end());
 
 
 	//check the errors
