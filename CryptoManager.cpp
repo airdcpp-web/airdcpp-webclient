@@ -197,7 +197,7 @@ void CryptoManager::generateCertificate() {
 		throw CryptoException("Error generating certificate");
 	}
 
-	int days = 10;
+	int days = 360;
 	int keylength = 2048;
 
 #define CHECK(n) if(!(n)) { throw CryptoException(#n); }
@@ -379,7 +379,7 @@ bool CryptoManager::checkCertificate() noexcept {
 
 	ASN1_TIME* t = X509_get_notAfter(x509);
 	if(t) {
-		if(X509_cmp_current_time(t) < 0) {
+		if(X509_cmp_current_time(t) < 90) {
 			return false;
 		}
 	}
