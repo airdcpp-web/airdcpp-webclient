@@ -272,11 +272,14 @@ void LevelDB::checkDbError(leveldb::Status aStatus) throw(DbException) {
 		return;
 
 	string ret = Text::toUtf8(aStatus.ToString());
+
+#ifdef _WIN32
 	if (aStatus.IsCorruption() || aStatus.IsIOError()) {
 		if (ret.back() != '.')
 			ret += ".";
-		ret += " " + STRING(DB_ERROR_HINT);
+		ret += " " + STRING_F(DB_ERROR_HINT, STRING(HASHING));
 	}
+#endif
 
 	throw DbException(ret);
 }

@@ -1624,7 +1624,7 @@ enum Strings { // @DontAdd
 	MULTITHREADED_REFRESH, // "Multithreaded file list refresh"
 	ALWAYS, // "Always"
 	MANUAL_REFRESHES, // "Manual refreshes only"
-	DB_ERROR_HINT, // "You can set the database to be verified and repaired from the \"Sharing options\" tab in Settings (if needed)"
+	DB_ERROR_HINT, // "You can set the database to be verified and repaired from the \"%1%\" tab in Settings (if needed)"
 	SETTINGS_DB_REPAIR, // "Verify and repair the hash database on next startup (use in case of fatal errors only)"
 	DB_X_REPAIRED, // "%1% has been verified and repaired successfully. Detailed information about the process has been saved in %2%"
 	EXPIRED_AS_DISABLED, // "An expired item %1% has been disabled"

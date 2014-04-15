@@ -1620,7 +1620,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Multithreaded file list refresh", 
 "Always", 
 "Manual refreshes only", 
-"You can set the database to be verified and repaired from the \"Sharing options\" tab in Settings (if needed)", 
+"You can set the database to be verified and repaired from the \"%1%\" tab in Settings (if needed)", 
 "Verify and repair the hash database on next startup (use in case of fatal errors only)", 
 "%1% has been verified and repaired successfully. Detailed information about the process has been saved in %2%", 
 "An expired item %1% has been disabled", 
