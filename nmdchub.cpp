@@ -128,7 +128,7 @@ OnlineUser& NmdcHub::getUser(const string& aNick) {
 
 	{
 		Lock l(cs);
-		u = users.insert(make_pair(aNick, new OnlineUser(p, *this, 0))).first->second;
+		u = users.emplace(aNick, new OnlineUser(p, *this, 0)).first->second;
 		u->inc();
 		u->getIdentity().setNick(aNick);
 		if(u->getUser() == getMyIdentity().getUser()) {
@@ -300,7 +300,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 	}
 
 	if(cmd == "Search") {
-		if((state != STATE_NORMAL) /*|| getShareProfile() == SP_HIDDEN*/) {
+		if (state != STATE_NORMAL) {
 			return;
 		}
 		string::size_type i = 0;
@@ -320,7 +320,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			}
 		} else {
 			// Hub:seeker
-			if(Util::stricmp(seeker.c_str() + 4, getMyNick().c_str()) == 0) {
+			if (seeker.compare(4, getMyNick().size(), getMyNick()) == 0) {
 				return;
 			}
 		}
@@ -330,7 +330,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		uint64_t tick = GET_TICK();
 		clearFlooders(tick);
 
-		seekers.push_back(make_pair(seeker, tick));
+		seekers.emplace_back(seeker, tick);
 
 		// First, check if it's a flooder
 		for(const auto& f: flooders) {
@@ -352,7 +352,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 						fire(ClientListener::SearchFlood(), this, seeker + " " + STRING(NICK_UNKNOWN));
 				}
 				
-				flooders.push_back(make_pair(seeker, tick));
+				flooders.emplace_back(seeker, tick);
 				return;
 			}
 		}
