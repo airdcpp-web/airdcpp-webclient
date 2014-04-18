@@ -310,11 +310,11 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		
 		string seeker = param.substr(i, j-i);
 
-		bool isPassive = (seeker.compare(0, 4, "Hub:") == 0);
+		bool isPassive = seeker.compare(0, 4, "Hub:") == 0;
 		bool meActive = isActive();
 
 		// Filter own searches
-		if(meActive && isPassive == false) {
+		if (!isPassive) {
 			if(seeker == (localIp + ":" + SearchManager::getInstance()->getPort())) {
 				return;
 			}
