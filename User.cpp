@@ -93,23 +93,7 @@ string Identity::getConnectionString() const {
 }
 
 int64_t Identity::getAdcConnectionSpeed(bool download) const {
-	auto us = Util::toInt64(download ? get("DS") : get("US"));
-
-	const auto& ver = get("VE");
-	if (ver.length() >= 12 && strncmp("AirDC++ ", ver.c_str(), 8) == 0) {
-		auto version = Util::toDouble(ver.substr(8, 4));
-
-		//workaround for versions older than 2.40 that use wrong units.....
-		if (version < 2.40) {
-			us = us / 8;
-		}
-
-		//convert MiBit/s to Mbit/s...
-		if (version <= 2.45 || (version >= 2.50 && version <= 2.59))
-			us = us * 0.9765625 * 0.9765625;
-	}
-
-	return us;
+	return Util::toInt64(download ? get("DS") : get("US"));
 }
 
 uint8_t Identity::getSlots() const {
