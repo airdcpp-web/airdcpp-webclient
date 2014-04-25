@@ -150,7 +150,7 @@ const string SettingsManager::settingTags[] =
 	"DisconnectSpeed", "DisconnectFileSpeed", "DisconnectTime", "RemoveSpeed", "MenubarLeftColor", 
 	"MenubarRightColor", "DisconnectFileSize", "NumberOfSegments", "MaxHashSpeed", "PMLogLines", "SearchAlternateColour", "SearchTime", "DontBeginSegmentSpeed",
 	"MagnetAction",  "PopupType", "ShutdownAction", "MinimumSearchInterval", "MaxAutoMatchSource", "ReservedSlotColor", "IgnoredColor", "FavoriteColor","NormalColour",
-	"PasiveColor", "OpColor", "ProgressBackColor", "ProgressCompressColor", "ProgressSegmentColor", "UDPPort",
+	"PasiveColor", "OpColor", "ProgressBackColor", "ProgressSegmentColor", "UDPPort",
  	"UserListDoubleClick", "TransferListDoubleClick", "ChatDoubleClick", "OutgoingConnections","SocketInBuffer", "SocketOutBuffer", 
 	"ColorDone", "AutoRefreshTime", "AutoSearchLimit",
  	"MaxCommandLength", "TLSPort", "DownConnPerSec", "HighestPrioSize", "HighPrioSize", "NormalPrioSize", "LowPrioSize",
@@ -537,7 +537,6 @@ SettingsManager::SettingsManager()
 	setDefault(UPLOAD_BAR_COLOR, RGB(205, 60, 55));
 	setDefault(DOWNLOAD_BAR_COLOR, RGB(55, 170, 85));
 	setDefault(PROGRESS_BACK_COLOR, RGB(95, 95, 95));
-	setDefault(PROGRESS_COMPRESS_COLOR, RGB(222, 160, 0));
 	setDefault(PROGRESS_SEGMENT_COLOR, RGB(49, 106, 197));
 	setDefault(COLOR_DONE, RGB(222, 160, 0));
 
