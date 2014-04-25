@@ -169,8 +169,8 @@ const string SettingsManager::settingTags[] =
 	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "MaxMCNUploads", "ListHighlightBackColor", "ListHighlightColor", "QueueColor", "TextQueueBackColor",
 	"RecentBundleHours","DisconnectMinSources", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "DLAutoSelectMethod", "WinampBarIconSize", "TBProgressTextColor", "TLSMode", "UpdateMethod", 
 	"QueueSplitterPosition", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
-	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", "MultithreadedRefresh", "MonitoringMode", 
-	"MonitoringDelay", "DelayCountMode", "MaxRunningBundles", "DefaultShareProfile", "UpdateChannel", "ColorStatusFailed", "ColorStatusFinished", "ColorStatusHashing", "ColorStatusShared", "ProgressLighten",
+	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", "MultithreadedRefresh", "MonitoringMode",
+	"MonitoringDelay", "DelayCountMode", "MaxRunningBundles", "DefaultShareProfile", "UpdateChannel", "ColorStatusFinished", "ColorStatusShared", "ProgressLighten",
 	"ConfigBuildNumber",
 	"SENTRY",
 
@@ -212,7 +212,7 @@ const string SettingsManager::settingTags[] =
 	"UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "LogHashedFiles",
 	"UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist", "ScanDLBundles", "MCNAutoDetect", "DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte", 
 	"TextDupeBold", "TextDupeItalic", "UnderlineLinks", "UnderlineDupes", "DupesInFilelists", "DupesInChat", "NoZeroByte", "CheckEmptyDirs","CheckEmptyReleases",  "CheckMissing", "CheckSfv", 
-	"CheckNfo", "CheckMp3Dir", "CheckExtraSfvNfo", "CheckExtraFiles", "CheckDupes", "CheckDiskCounts", "SortDirs", "DecreaseRam", "WizardRunNew", "FormatRelease", "TextNormBold", "TextNormItalic", "SystemShowUploads", "SystemShowDownloads", 
+	"CheckNfo", "CheckMp3Dir", "CheckExtraSfvNfo", "CheckExtraFiles", "CheckDupes", "CheckDiskCounts", "SortDirs", "WizardRunNew", "FormatRelease", "TextNormBold", "TextNormItalic", "SystemShowUploads", "SystemShowDownloads", 
 	"UseAdls", "DupeSearch", "passwd_protect", "passwd_protect_tray", "DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick",
 	"AutoAddSource", "UseExplorerTheme", "TestWrite", "OpenSystemLog", "OpenLogsInternal", "UcSubMenu", "ShowQueueBars", "ExpandDefault",
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
@@ -562,9 +562,7 @@ SettingsManager::SettingsManager()
 	setDefault(POPUP_TEXTCOLOR, RGB(0, 0, 0));
 	setDefault(POPUP_TITLE_TEXTCOLOR, RGB(0, 0, 0));
 
-	setDefault(COLOR_STATUS_FAILED, RGB(196, 85, 185));
 	setDefault(COLOR_STATUS_FINISHED, RGB(145, 183, 4));
-	setDefault(COLOR_STATUS_HASHING, RGB(139, 137, 137));
 	setDefault(COLOR_STATUS_SHARED, RGB(102, 158, 18));
 #endif
 
@@ -880,12 +878,6 @@ SettingsManager::SettingsManager()
 	setDefault(NMDC_ENCODING, Text::systemCharset);
 #else
 	setDefault(NMDC_ENCODING, "CP1250");
-#endif
-
-#ifdef _WIN64
-	setDefault(DECREASE_RAM, false);  
-#else
-	setDefault(DECREASE_RAM, true); //32 bit windows will most likely have less ram to spend (4gb max)
 #endif
 }
 
