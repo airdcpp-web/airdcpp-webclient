@@ -274,7 +274,7 @@ void CryptoManager::loadCertificates() noexcept {
 		return;
 	}
 
-	if(File::getSize(cert) == -1 || File::getSize(key) == -1 || !checkCertificate()) {
+	if(File::getSize(cert) == -1 || File::getSize(key) == -1 || !checkCertificate(90)) {
 		// Try to generate them...
 		try {
 			generateCertificate();
@@ -340,7 +340,7 @@ void CryptoManager::loadCertificates() noexcept {
 	certsLoaded = true;
 }
 
-bool CryptoManager::checkCertificate() noexcept {
+bool CryptoManager::checkCertificate(int minValidityDays) noexcept{
 	auto x509 = ssl::getX509(SETTING(TLS_CERTIFICATE_FILE).c_str());
 	if(!x509) {
 		return false;
@@ -379,7 +379,8 @@ bool CryptoManager::checkCertificate() noexcept {
 
 	ASN1_TIME* t = X509_get_notAfter(x509);
 	if(t) {
-		if(X509_cmp_current_time(t) < 90) {
+		time_t minValid = GET_TIME() + 60 * 60 * 24 * minValidityDays;
+		if (X509_cmp_time(t, &minValid) < 0) {
 			return false;
 		}
 	}

@@ -44,7 +44,7 @@ public:
 
 	void loadCertificates() noexcept;
 	void generateCertificate();
-	bool checkCertificate() noexcept;
+	bool checkCertificate(int minValidityDays) noexcept;
 	const vector<uint8_t>& getKeyprint() const noexcept;
 
 	bool TLSOk() const noexcept;
