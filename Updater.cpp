@@ -28,6 +28,7 @@
 #include "version.h"
 
 #include <boost/shared_array.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 #include <openssl/rsa.h>
 #include <openssl/objects.h>
@@ -135,9 +136,13 @@ void Updater::createUpdate() {
 					xml.stepIn();
 					xml.setData("http://builds.airdcpp.net/updater/" + updaterFile);
 
+					// Replace the line endings to use Unix format (it would be converted by the hosting provider anyway, which breaks the signature)
+					auto content = SimpleXML::utf8Header;
+					content += xml.toXML();
+					boost::replace_all(content, "\r\n", "\n");
+
 					File f(updaterFilePath + "version.xml", File::WRITE, File::CREATE | File::TRUNCATE);
-					f.write(SimpleXML::utf8Header);
-					f.write(xml.toXML());
+					f.write(content);
 					f.close();
 				}
 			}
