@@ -212,27 +212,25 @@ void AirUtil::getIpAddresses(IpList& addresses, bool v6) {
 			if ((i->ifa_flags & IFF_UP) && !(i->ifa_flags & IFF_LOOPBACK) && sa != NULL) {
 				void* src = nullptr;
 				socklen_t len;
-				uint32_t scope = 0;
 
 				if (!v6 && sa->sa_family == AF_INET) {
 					// IPv4 address
 					struct sockaddr_in* sai = (struct sockaddr_in*)sa;
 					src = (void*) &(sai->sin_addr);
 					len = INET_ADDRSTRLEN;
-					scope = 4;
 				} else if (v6 && sa->sa_family == AF_INET6) {
 					// IPv6 address
 					struct sockaddr_in6* sai6 = (struct sockaddr_in6*)sa;
 					src = (void*) &(sai6->sin6_addr);
 					len = INET6_ADDRSTRLEN;
-					scope = sai6->sin6_scope_id;
 				}
 
 				// Convert the binary address to a string and add it to the output list
 				if (src) {
 					char address[len];
 					inet_ntop(sa->sa_family, src, address, len);
-					addresses.emplace_back("Unknown", (string)address, (uint8_t)scope);
+					// TODO: get the prefix
+					addresses.emplace_back("Unknown", (string)address, 0);
 				}
 			}
 		}
