@@ -554,7 +554,7 @@ void AutoSearchManager::runSearches() noexcept {
 		
 		//we have waited for search time, and we are at the end of list. wait for recheck time. so time between searches "autosearch every" + "recheck time" 
 		if(curPos >= searchItems.size()) { 
-			LogManager::getInstance()->message("Autosearch: End of list reached. Recheck Items, next search after " + Util::toString(SETTING(AUTOSEARCH_RECHECK_TIME)) + " minutes", LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(AS_END_OF_LIST, SETTING(AUTOSEARCH_RECHECK_TIME)), LogManager::LOG_INFO);
 			curPos = 0;
 			endOfListReached = true;
 			recheckTime = 0;

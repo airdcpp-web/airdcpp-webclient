@@ -1846,5 +1846,15 @@ enum Strings { // @DontAdd
 	LOCATIONS, // "Locations"
 	ALL_FILES, // "All files"
 	TYPE_CONTENT, // "Type/Content"
+	AS_END_OF_LIST, // "Autosearch: End of list reached. Recheck Items, next search after %d minutes"
+	AS_INC_DESC, // "The number will be incremented only after the previous bundle has finished downloading, only one bundle can be queued at time. "
+	CURRENT_NUMBER, // "Current number"
+	LAST_NUMBER_TO_SEARCH, // "Last number to search for (0 = disabled)"
+	AS_MAX_NUMBER_HELP, // "The search item will expire after a bundle with this number has been downloaded"
+	MINIMUM_LEN, // "Minimum length"
+	AS_NUM_LEN_HELP, // "If the number string is shorter than this value, the length will be filled by adding zeroes in front of the current number"
+	INSERT_IN_SEARCHSTRING, // "Insert in the search string" 
+	AS_TIMEVAR_HELP, // "In addition to incrementing numbers, you may also insert time variables in the search string. Note that the parameters can also be used in the custom matcher." 
+	AS_TIMEVAR_AVAILABLE, // "Available time variables"
 	LAST // @DontAdd
 };
