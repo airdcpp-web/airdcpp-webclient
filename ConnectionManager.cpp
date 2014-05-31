@@ -535,6 +535,7 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort,
 	}
 
 	try {
+		// TODO: connect via both protocols when available
 		uc->connect(aUser.getIdentity().getIp(), aPort, localPort, natRole);
 		uc->setUser(aUser);
 	} catch(const Exception&) {

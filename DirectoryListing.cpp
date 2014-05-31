@@ -854,7 +854,7 @@ int DirectoryListing::run() {
 		try {
 			if (t.first == CLOSE) {
 				fire(DirectoryListingListener::Close());
-				return 0;
+				break;
 			} else if (t.first == ASYNC && !closing) {
 				static_cast<AsyncTask*>(t.second)->f();
 			}
