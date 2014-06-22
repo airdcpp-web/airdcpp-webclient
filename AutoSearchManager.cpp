@@ -281,8 +281,9 @@ void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const Bund
 		return;
 	}
 
+	auto items = getSearchesByBundle(aBundle);
 	bool found = false, searched = false;
-	for(auto& as: searchItems) {
+	for (auto& as : items) {
 		if (as->hasBundle(aBundle)) {
 			found = true;
 			{
