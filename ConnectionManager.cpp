@@ -47,11 +47,15 @@ bool TokenManager::addToken(const string& aToken) noexcept {
 
 void TokenManager::removeToken(const string& aToken) noexcept {
 	FastLock l(cs);
+#ifdef _DEBUG
 	auto p = tokens.find(aToken);
 	if (p != tokens.end())
 		tokens.erase(p);
 	else
 		dcassert(0);
+#else
+	tokens.erase(p);
+#endif
 }
 
 ConnectionManager::ConnectionManager() : floodCounter(0), shuttingDown(false) {
