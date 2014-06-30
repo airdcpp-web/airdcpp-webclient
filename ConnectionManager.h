@@ -39,7 +39,7 @@ public:
 	void removeToken(const string& aToken) noexcept;
 private:
 	StringSet tokens;
-	CriticalSection cs;
+	FastCriticalSection cs;
 };
 
 class ConnectionQueueItem : boost::noncopyable, public Flags {
@@ -67,7 +67,7 @@ public:
 		TYPE_MCN_NORMAL
 	};
 
-	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, string aToken) : token(aToken), type(TYPE_ANY),
+	ConnectionQueueItem(const HintedUser& aUser, bool aDownload, const string& aToken) : token(aToken), type(TYPE_ANY),
 		lastAttempt(0), errors(0), state(WAITING), download(aDownload), maxConns(0), hubUrl(aUser.hint), user(aUser.user) {
 	}
 	
