@@ -54,7 +54,7 @@ void TokenManager::removeToken(const string& aToken) noexcept {
 	else
 		dcassert(0);
 #else
-	tokens.erase(p);
+	tokens.erase(aToken);
 #endif
 }
 
