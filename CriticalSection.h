@@ -37,6 +37,7 @@ namespace dcpp {
 typedef boost::detail::spinlock	FastCriticalSection;
 typedef boost::lock_guard<boost::detail::spinlock> FastLock;
 
+
 #ifndef _WIN32
 typedef boost::shared_mutex	SharedMutex;
 typedef boost::shared_lock<boost::shared_mutex> RLock;

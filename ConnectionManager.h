@@ -39,7 +39,7 @@ public:
 	void removeToken(const string& aToken) noexcept;
 private:
 	StringSet tokens;
-	FastCriticalSection cs;
+	static FastCriticalSection cs;
 };
 
 class ConnectionQueueItem : boost::noncopyable, public Flags {

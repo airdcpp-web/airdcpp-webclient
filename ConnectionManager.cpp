@@ -31,6 +31,7 @@
 #include "UserConnection.h"
 
 namespace dcpp {
+	FastCriticalSection TokenManager::cs;
 
 	string TokenManager::getToken() noexcept {
 	FastLock l(cs);
