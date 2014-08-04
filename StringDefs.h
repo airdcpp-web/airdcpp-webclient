@@ -300,7 +300,7 @@ enum Strings { // @DontAdd
 	MENU_OPEN_FILE_LIST, // "Open file list...\tCtrl+L"
 	MENU_OPEN_MATCH_ALL, // "Match downloaded lists"
 	MENU_PUBLIC_HUBS, // "Public hubs\tCtrl+P"
-	MENU_QUICK_CONNECT, // "Quick connect ...\tCtrl+Q"
+	MENU_QUICK_CONNECT, // "Quick connect...\tCtrl+Q"
 	MENU_RECONNECT, // "Reconnect\tCtrl+R"
 	MENU_REFRESH_FILE_LIST, // "Refresh file list\tCtrl+E"
 	MENU_RESTORE_ALL, // "Restore all"
