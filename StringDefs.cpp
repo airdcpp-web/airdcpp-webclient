@@ -297,7 +297,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Open file list...\tCtrl+L", 
 "Match downloaded lists", 
 "Public hubs\tCtrl+P", 
-"Quick connect ...\tCtrl+Q", 
+"Quick connect...\tCtrl+Q", 
 "Reconnect\tCtrl+R", 
 "Refresh file list\tCtrl+E", 
 "Restore all", 
