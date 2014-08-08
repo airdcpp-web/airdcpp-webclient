@@ -1842,7 +1842,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Locations", 
 "All files", 
 "Type/Content", 
-"Auto search: End of list reached. Recheck Items, next search after %d minutes.", 
+"Auto search: End of list reached. Recheck items, next search after %d minutes.", 
 "The number will be incremented only after the previous bundle has finished downloading, only one bundle can be queued at time.", 
 "Current number", 
 "Last number to search for (0 = disabled)", 
@@ -1850,7 +1850,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Minimum length", 
 "If the number string is shorter than this value, the length will be filled by adding zeroes in front of the current number.", 
 "Insert in the search string", 
-"In addition to incrementing numbers, you may also insert time variables in the search string. Note that the parameters can also be used in the custom matcher." , 
+"In addition to incrementing numbers, you may also insert time variables in the search string. Note that the parameters can also be used in the custom matcher.", 
 "Available time variables", 
 };
 std::string dcpp::ResourceManager::names[] = {
