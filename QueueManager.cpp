@@ -1994,7 +1994,7 @@ void QueueManager::setQIPriority(QueueItemPtr& q, QueueItemBase::Priority p, boo
 	{
 		WLock l(cs);
 		if(q->getPriority() != p && !q->isFinished() ) {
-			if((q->isPausedPrio() && !b->isPausedPrio()) || (p == QueueItem::HIGHEST && b->getPriority() != QueueItemBase::PAUSED_FORCE)) {
+			if((q->isPausedPrio() && !b->isPausedPrio()) || (p == QueueItem::HIGHEST && b->getPriority() != QueueItemBase::PAUSED)) {
 				// Problem, we have to request connections to all these users...
 				q->getOnlineUsers(getConn);
 			}
@@ -2010,7 +2010,7 @@ void QueueManager::setQIPriority(QueueItemPtr& q, QueueItemBase::Priority p, boo
 	}
 
 	b->setDirty();
-	if(p == QueueItem::PAUSED_FORCE && running) {
+	if(p == QueueItem::PAUSED && running) {
 		DownloadManager::getInstance()->abortDownload(q->getTarget());
 	} else if (p != QueueItemBase::PAUSED) {
 		for(auto& u: getConn)
