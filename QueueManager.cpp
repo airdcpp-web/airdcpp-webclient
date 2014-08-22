@@ -3659,6 +3659,9 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinished) noexcep
 		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
 
 	removeBundleLists(aBundle);
+
+	if (removeFinished)
+		File::removeDirectory(aBundle->getTarget());
 }
 
 void QueueManager::removeBundleLists(BundlePtr& aBundle) noexcept{
