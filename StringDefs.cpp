@@ -1852,6 +1852,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "Insert in the search string", 
 "In addition to incrementing numbers, you may also insert time variables in the search string. Note that the parameters can also be used in the custom matcher.", 
 "Available time variables", 
+"Remove finished bundles", 
 };
 std::string dcpp::ResourceManager::names[] = {
 "Active", 
@@ -3704,4 +3705,5 @@ std::string dcpp::ResourceManager::names[] = {
 "InsertInSearchstring", 
 "AsTimevarHelp", 
 "AsTimevarAvailable", 
+"RemoveFinished", 
 };
