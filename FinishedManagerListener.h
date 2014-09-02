@@ -29,9 +29,7 @@ public:
 	template<int I>	struct X { enum { TYPE = I }; };
 
 	typedef X<0> AddedUl;
-	typedef X<1> AddedDl;
 
-	virtual void on(AddedDl, FinishedItem*) noexcept { }
 	virtual void on(AddedUl, FinishedItem*) noexcept { }
 
 };

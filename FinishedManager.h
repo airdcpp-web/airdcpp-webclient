@@ -80,15 +80,11 @@ class FinishedManager : public Singleton<FinishedManager>,
 	public Speaker<FinishedManagerListener>, private QueueManagerListener, private UploadManagerListener
 {
 public:
-	const FinishedItemList& lockList(bool upload = false) { cs.lock(); return upload ? uploads : downloads; }
+	const FinishedItemList& lockList() { cs.lock(); return uploads; }
 	void unlockList() { cs.unlock(); }
 
-	void remove(FinishedItemPtr item, bool upload = false);
-	void removeAll(bool upload = false);
-
-	/** Get file full path by tth to share */
-	bool getTarget(const string& aTTH, string& target);
-	bool handlePartialRequest(const TTHValue& tth, vector<uint16_t>& outPartialInfo);
+	void remove(FinishedItemPtr item);
+	void removeAll();
 
 private:
 	friend class Singleton<FinishedManager>;
@@ -96,11 +92,10 @@ private:
 	FinishedManager();
 	~FinishedManager();
 
-	void on(QueueManagerListener::Finished, const QueueItemPtr&, const string&, const HintedUser& aUser, int64_t aSpeed) noexcept;
 	void on(UploadManagerListener::Complete, const Upload*) noexcept;
 
 	CriticalSection cs;
-	FinishedItemList downloads, uploads;
+	FinishedItemList uploads;
 };
 
 } // namespace dcpp

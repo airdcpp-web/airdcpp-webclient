@@ -63,14 +63,13 @@ FinishedManager::~FinishedManager() {
 	UploadManager::getInstance()->removeListener(this);
 
 	Lock l(cs);
-	for_each(downloads.begin(), downloads.end(), DeleteFunction());
 	for_each(uploads.begin(), uploads.end(), DeleteFunction());
 }
 
-void FinishedManager::remove(FinishedItemPtr item, bool upload /* = false */) {
+void FinishedManager::remove(FinishedItemPtr item) {
 	{
 		Lock l(cs);
-		FinishedItemList *listptr = upload ? &uploads : &downloads;
+		FinishedItemList *listptr = &uploads;
 		FinishedItemList::iterator it = find(listptr->begin(), listptr->end(), item);
 
 		if(it != listptr->end())
@@ -80,29 +79,12 @@ void FinishedManager::remove(FinishedItemPtr item, bool upload /* = false */) {
 	}
 }
 	
-void FinishedManager::removeAll(bool upload /* = false */) {
+void FinishedManager::removeAll() {
 	{
 		Lock l(cs);
-		FinishedItemList *listptr = upload ? &uploads : &downloads;
+		FinishedItemList *listptr = &uploads;
 		for_each(listptr->begin(), listptr->end(), DeleteFunction());
 		listptr->clear();
-	}
-}
-
-void FinishedManager::on(QueueManagerListener::Finished, const QueueItemPtr& qi, const string&, const HintedUser& aUser, int64_t aSpeed) noexcept {
-		
-	if(!qi->isSet(QueueItem::FLAG_USER_LIST) || SETTING(LOG_FILELIST_TRANSFERS)) {
-		
-		FinishedItemPtr item = new FinishedItem(qi->getTarget(), aUser, qi->getSize(), static_cast<int64_t>(aSpeed), GET_TIME(), qi->getTTH().toBase32());
-		{
-			Lock l(cs);
-			downloads.push_back(item);
-		}
-			
-		fire(FinishedManagerListener::AddedDl(), item);
-		if(SETTING(SYSTEM_SHOW_DOWNLOADS)) {
-			LogManager::getInstance()->message(STRING_F(FINISHED_DOWNLOAD, qi->getTarget() % ClientManager::getInstance()->getFormatedNicks(aUser)), LogManager::LOG_INFO);
-		}
 	}
 }
 
@@ -120,41 +102,6 @@ void FinishedManager::on(UploadManagerListener::Complete, const Upload* u) noexc
 			LogManager::getInstance()->message(STRING_F(FINISHED_UPLOAD, u->getPath() % ClientManager::getInstance()->getFormatedNicks(u->getHintedUser())), LogManager::LOG_INFO);		
 		}
 	}
-}
-
-bool FinishedManager::getTarget(const string& aTTH, string& target) {
-	if(aTTH.empty()) 
-		return false;
-
-	{
-		Lock l(cs);
-		for(auto fi: downloads) {
-			if(fi->getTTH() == aTTH) {
-				target = fi->getTarget();
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-bool FinishedManager::handlePartialRequest(const TTHValue& tth, vector<uint16_t>& outPartialInfo)
-{
-	string target;
-	if(!getTarget(tth.toBase32(), target))
-		return false;
-
-	int64_t fileSize = File::getSize(target);
-
-	if(fileSize < PARTIAL_SHARE_MIN_SIZE)
-		return false;
-
-	uint16_t len = TigerTree::calcBlocks(fileSize);
-	outPartialInfo.push_back(0);
-	outPartialInfo.push_back(len);
-
-	return true;
 }
 
 } // namespace dcpp

@@ -307,6 +307,8 @@ private:
 
 	string getListPath(const HintedUser& user) const noexcept;
 
+	void fileFinished(const QueueItemPtr aQi, const HintedUser& aUser, const int64_t aSpeed, const string& aDir);
+
 	StringMatch highPrioFiles;
 	StringMatch skipList;
 
