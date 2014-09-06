@@ -233,35 +233,6 @@ void File::removeDirectory(const string& aPath) noexcept {
 	::RemoveDirectory(Text::toT(Util::FormatPath(aPath)).c_str());
 }
 
-bool File::deleteDirectory(const string& dir)
-{
-	tstring path = Text::toT(dir);
-	if (path.back() == PATH_SEPARATOR)
-		path = path.substr(0, path.size() - 1);
-
-	int len = _tcslen(path.c_str());
-	TCHAR* pszFrom = new TCHAR[len + 4]; //4 to handle wide char
-	wcscpy_s(pszFrom, len + 2, path.c_str());
-	pszFrom[len] = 0;
-	pszFrom[len + 1] = 0;
-
-	SHFILEOPSTRUCT fileop;
-	fileop.hwnd = NULL;
-	fileop.wFunc = FO_DELETE; 
-	fileop.pFrom = pszFrom;  // source file name as double null terminated string
-	fileop.pTo = NULL;
-	fileop.fFlags = FOF_NOCONFIRMATION | FOF_SILENT;  // No prompt
-	fileop.fFlags |= FOF_ALLOWUNDO; // no Recycle
-
-	fileop.fAnyOperationsAborted = FALSE;
-	fileop.lpszProgressTitle = NULL;
-	fileop.hNameMappings = NULL;
-
-	int ret = SHFileOperation(&fileop);
-	delete[] pszFrom;
-	return (0 == ret);
-}
-
 int64_t File::getSize(const string& aFileName) noexcept {
 	auto i = FileFindIter(aFileName);
 	return i != FileFindIter() ? i->getSize() : -1;

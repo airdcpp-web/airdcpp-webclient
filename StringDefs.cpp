@@ -988,7 +988,7 @@ std::string dcpp::ResourceManager::strings[] = {
 "View this artist on Spotify", 
 "View this album on Spotify", 
 "File too big, not shared:", 
-"Don't share files bigger than (0=disable)", 
+"Don't share files bigger than (0 = disable)", 
 "The directory is empty:", 
 "Disks missing :", 
 "NFO/SFV found but there are no other files in the folder:", 
