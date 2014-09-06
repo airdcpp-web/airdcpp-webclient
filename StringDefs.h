@@ -1856,5 +1856,6 @@ enum Strings { // @DontAdd
 	INSERT_IN_SEARCHSTRING, // "Insert in the search string"
 	AS_TIMEVAR_HELP, // "In addition to incrementing numbers, you may also insert time variables in the search string. Note that the parameters can also be used in the custom matcher."
 	AS_TIMEVAR_AVAILABLE, // "Available time variables"
+	REMOVE_FINISHED, // "Remove finished bundles"
 	LAST // @DontAdd
 };

@@ -1609,7 +1609,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 						| (q->isSet(QueueItem::FLAG_MATCH_QUEUE) ? QueueItem::FLAG_MATCH_QUEUE : 0);
 				}
 
-				fire(QueueManagerListener::Finished(), q, dir, d->getHintedUser(), d->getAverageSpeed());
+				fileFinished(q, d->getHintedUser(), d->getAverageSpeed(), dir);
 				userQueue.removeQI(q);
 
 				fire(QueueManagerListener::Removed(), q, true);
@@ -1669,7 +1669,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 			moveFinishedFile(d->getTempTarget(), q->getTarget(), q);
 		}
 
-		fire(QueueManagerListener::Finished(), q, Util::emptyString, d->getHintedUser(), d->getAverageSpeed());
+		fileFinished(q, d->getHintedUser(), d->getAverageSpeed(), Util::emptyString);
 	}
 
 	for(const auto& u: getConn) {
@@ -1994,7 +1994,7 @@ void QueueManager::setQIPriority(QueueItemPtr& q, QueueItemBase::Priority p, boo
 	{
 		WLock l(cs);
 		if(q->getPriority() != p && !q->isFinished() ) {
-			if((q->isPausedPrio() && !b->isPausedPrio()) || (p == QueueItem::HIGHEST && b->getPriority() != QueueItemBase::PAUSED_FORCE)) {
+			if((q->isPausedPrio() && !b->isPausedPrio()) || (p == QueueItem::HIGHEST && b->getPriority() != QueueItemBase::PAUSED)) {
 				// Problem, we have to request connections to all these users...
 				q->getOnlineUsers(getConn);
 			}
@@ -2010,7 +2010,7 @@ void QueueManager::setQIPriority(QueueItemPtr& q, QueueItemBase::Priority p, boo
 	}
 
 	b->setDirty();
-	if(p == QueueItem::PAUSED_FORCE && running) {
+	if(p == QueueItem::PAUSED && running) {
 		DownloadManager::getInstance()->abortDownload(q->getTarget());
 	} else if (p != QueueItemBase::PAUSED) {
 		for(auto& u: getConn)
@@ -3659,6 +3659,9 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinished) noexcep
 		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
 
 	removeBundleLists(aBundle);
+
+	if (removeFinished)
+		File::removeDirectory(aBundle->getTarget());
 }
 
 void QueueManager::removeBundleLists(BundlePtr& aBundle) noexcept{
@@ -3835,6 +3838,15 @@ void QueueManager::searchBundle(BundlePtr& aBundle, bool manual) noexcept {
 			}
 		}*/
 	}
+}
+
+void QueueManager::fileFinished(const QueueItemPtr aQi, const HintedUser& aUser, const int64_t aSpeed, const string& aDir) {
+	if (!aQi->isSet(QueueItem::FLAG_USER_LIST) || SETTING(LOG_FILELIST_TRANSFERS)) {
+		if (SETTING(SYSTEM_SHOW_DOWNLOADS)) {
+			LogManager::getInstance()->message(STRING_F(FINISHED_DOWNLOAD, aQi->getTarget() % ClientManager::getInstance()->getFormatedNicks(aUser)), LogManager::LOG_INFO);
+		}
+	}
+	fire(QueueManagerListener::Finished(), aQi, aDir, aUser, aSpeed);
 }
 
 void QueueManager::onUseSeqOrder(BundlePtr& b) noexcept {

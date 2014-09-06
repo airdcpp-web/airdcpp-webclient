@@ -113,6 +113,7 @@ public:
 	static void ensureDirectory(const string& aFile) noexcept;
 	static bool createDirectory(const string& aFile);
 	static void removeDirectory(const string& aPath) noexcept;
+	static bool deleteDirectory(const string& dir) noexcept;
 
 	static bool isAbsolute(const string& path) noexcept;
 	static bool isHidden(const string& path) noexcept;
