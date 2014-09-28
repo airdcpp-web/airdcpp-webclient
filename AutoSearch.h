@@ -152,7 +152,7 @@ public:
 	bool usingIncrementation() const noexcept;
 	string formatParams(bool formatMatcher) const noexcept;
 	void setUserMatcher(const string& aPattern) noexcept { userMatcher.pattern = aPattern; }
-	void prepareUserMatcher() { userMatcher.prepare(); }
+	void prepareUserMatcher() { userMatcher.setMethod(StringMatch::WILDCARD);  userMatcher.prepare(); }
 	const string& getTarget() { return target; }
 	void setTarget(const string& aTarget) noexcept;
 	bool removePostSearch() noexcept;

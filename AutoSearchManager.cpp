@@ -82,6 +82,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 
 /* List changes */
 void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) noexcept {
+	aAutoSearch->prepareUserMatcher();
 	aAutoSearch->updatePattern();
 	aAutoSearch->updateSearchTime();
 	aAutoSearch->updateStatus();
