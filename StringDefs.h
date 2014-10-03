@@ -290,7 +290,6 @@ enum Strings { // @DontAdd
 	MENU_FOLLOW_REDIRECT, // "Follow last redirect\tCtrl+T"
 	MENU_HASH_PROGRESS, // "Indexing progress"
 	MENU_HELP, // "Help"
-	MENU_HELP_GEOIPFILE, // "GeoIP database update"
 	MENU_HELP_TRANSLATIONS, // "Translations"
 	MENU_HOMEPAGE, // "AirDC++ homepage"
 	MENU_HORIZONTAL_TILE, // "Horizontal tile"
@@ -1857,5 +1856,6 @@ enum Strings { // @DontAdd
 	AS_TIMEVAR_HELP, // "In addition to incrementing numbers, you may also insert time variables in the search string. Note that the parameters can also be used in the custom matcher."
 	AS_TIMEVAR_AVAILABLE, // "Available time variables"
 	REMOVE_FINISHED, // "Remove finished bundles"
+	EMOTICONS_PACK, // "Emoticons Pack"
 	LAST // @DontAdd
 };
