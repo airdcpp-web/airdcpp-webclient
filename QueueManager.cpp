@@ -2244,7 +2244,7 @@ QueueItemBase::Priority QueueLoader::validatePrio(const string& aPrio) {
 }
 
 void QueueLoader::createFile(QueueItemPtr& aQI, bool aAddedByAutosearch) {
-	if (ConnectionManager::getInstance()->tokens.addToken(curToken)) {
+	if (ConnectionManager::getInstance()->tokens.addToken(curToken, CONNECTION_TYPE_DOWNLOAD)) {
 		curBundle = new Bundle(aQI, bundleDate, curToken, false);
 		curBundle->setBundleFinished(aQI->getFileFinished());
 		curBundle->setAddedByAutoSearch(aAddedByAutosearch);
@@ -2283,7 +2283,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			added = GET_TIME();
 		}
 
-		if (ConnectionManager::getInstance()->tokens.addToken(token)) {
+		if (ConnectionManager::getInstance()->tokens.addToken(token, CONNECTION_TYPE_DOWNLOAD)) {
 			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? validatePrio(prio) : Bundle::DEFAULT, dirDate, token, false);
 			time_t finished = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sTimeFinished, 5)));
 			if (finished > 0) {

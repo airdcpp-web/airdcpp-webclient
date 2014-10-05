@@ -33,17 +33,23 @@
 namespace dcpp {
 	FastCriticalSection TokenManager::cs;
 
-	string TokenManager::getToken() noexcept {
+	string TokenManager::getToken(ConnectionType aConnType) noexcept{
 	FastLock l(cs);
 	string token = Util::toString(Util::rand());
-	tokens.insert(token);
+	tokens.emplace(token, aConnType);
 	return token;
 }
 
-bool TokenManager::addToken(const string& aToken) noexcept {
+bool TokenManager::addToken(const string& aToken, ConnectionType aConnType) noexcept{
 	FastLock l(cs);
-	const auto res = tokens.insert(aToken);
+	const auto res = tokens.emplace(aToken, aConnType);
 	return res.second;
+}
+
+bool TokenManager::hasToken(const string& aToken, ConnectionType aConnType) noexcept{
+	FastLock l(cs);
+	const auto res = tokens.find(aToken);
+	return res != tokens.end() && res->second == aConnType;
 }
 
 void TokenManager::removeToken(const string& aToken) noexcept {
@@ -59,7 +65,7 @@ void TokenManager::removeToken(const string& aToken) noexcept {
 #endif
 }
 
-ConnectionManager::ConnectionManager() : floodCounter(0), shuttingDown(false) {
+ConnectionManager::ConnectionManager() : downloads(cqis[CONNECTION_TYPE_DOWNLOAD]), floodCounter(0), shuttingDown(false) {
 	TimerManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);
 
@@ -153,21 +159,18 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 
 			//WLock l (cs);
 			dcdebug("Get cqi");
-			cqi = getCQI(aUser, true);
+			cqi = getCQI(aUser, ConnectionType::CONNECTION_TYPE_DOWNLOAD);
 			if (smallSlot)
 				cqi->setType(supportMcn ? ConnectionQueueItem::TYPE_SMALL_CONF : ConnectionQueueItem::TYPE_SMALL);
 		}
 	}
 }
 
-ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, bool aDownload, const string& aToken) {
-	ConnectionQueueItem* cqi = new ConnectionQueueItem(aUser, aDownload, !aToken.empty() ? aToken : tokens.getToken());
-
-	if(aDownload) {
-		downloads.push_back(cqi);
-	} else {
-		uploads.push_back(cqi);
-	}
+ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, ConnectionType aConnType, const string& aToken) {
+	auto& container = cqis[aConnType];
+	dcassert(find(container.begin(), container.end(), aUser.user) == container.end());
+	auto cqi = new ConnectionQueueItem(aUser, aConnType, !aToken.empty() ? aToken : tokens.getToken(aConnType));
+	container.emplace_back(cqi);
 
 	fire(ConnectionManagerListener::Added(), cqi);
 	return cqi;
@@ -177,14 +180,13 @@ void ConnectionManager::putCQI(ConnectionQueueItem* cqi) {
 	//allways called from inside lock
 
 	fire(ConnectionManagerListener::Removed(), cqi);
-	if(cqi->getDownload()) {
-		dcassert(find(downloads.begin(), downloads.end(), cqi) != downloads.end());
-		downloads.erase(remove(downloads.begin(), downloads.end(), cqi), downloads.end());
+	
+	auto& container = cqis[cqi->getConnType()];
+	dcassert(find(container.begin(), container.end(), cqi) != container.end());
+	container.erase(remove(container.begin(), container.end(), cqi), container.end());
+
+	if (cqi->getConnType() == CONNECTION_TYPE_DOWNLOAD)
 		delayedTokens[cqi->getToken()] = GET_TICK();
-	} else {
-		dcassert(find(uploads.begin(), uploads.end(), cqi) != uploads.end());
-		uploads.erase(remove(uploads.begin(), uploads.end(), cqi), uploads.end());
-	}
 
 	tokens.removeToken(cqi->getToken());
 	delete cqi;
@@ -212,13 +214,13 @@ void ConnectionManager::putConnection(UserConnection* aConn) {
 
 void ConnectionManager::onUserUpdated(const UserPtr& aUser) {
 	RLock l(cs);
-	for(const auto& cqi: downloads) {
-		if(cqi->getUser() == aUser) {
+	for (const auto& cqi : downloads) {
+		if (cqi->getUser() == aUser) {
 			fire(ConnectionManagerListener::UserUpdated(), cqi);
 		}
 	}
 
-	for(const auto& cqi: uploads) {
+	for(const auto& cqi: cqis[CONNECTION_TYPE_UPLOAD]) {
 		if(cqi->getUser() == aUser) {
 			fire(ConnectionManagerListener::UserUpdated(), cqi);
 		}
@@ -373,7 +375,7 @@ void ConnectionManager::createNewMCN(const HintedUser& aUser) {
 		ClientManager::getInstance()->getHubSet(aUser.user->getCID()), QueueItem::TYPE_MCN_NORMAL, 0, lastError); // don't overlap...
 	if (start) {
 		WLock l (cs);
-		ConnectionQueueItem* cqiNew = getCQI(aUser, true);
+		ConnectionQueueItem* cqiNew = getCQI(aUser, CONNECTION_TYPE_DOWNLOAD);
 		cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN1);
 		cqiNew->setType(ConnectionQueueItem::TYPE_MCN_NORMAL);
 	}
@@ -534,6 +536,10 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort,
 	uc->setToken(aToken);
 	if(aUser.getIdentity().isOp()) {
 		uc->setFlag(UserConnection::FLAG_OP);
+	}
+	
+	if (tokens.hasToken(aToken, CONNECTION_TYPE_PM)) {
+		uc->setFlag(UserConnection::FLAG_PM);
 	}
 
 	try {
@@ -765,6 +771,30 @@ void ConnectionManager::on(UserConnectionListener::Direction, UserConnection* aS
 
 	aSource->setState(UserConnection::STATE_KEY);
 }
+void ConnectionManager::addNewConnection(UserConnection* uc, ConnectionType type) {
+	bool addConn = false;
+	if (type == CONNECTION_TYPE_PM /*|| SETTING(ENABLE_CCPM)*/) {
+		WLock l(cs);
+
+		auto& container = cqis[type];
+		auto i = find(container.begin(), container.end(), uc->getUser());
+		if (i == container.end()) {
+			auto cqi = getCQI(uc->getHintedUser(), type);
+
+			cqi->setState(ConnectionQueueItem::ACTIVE);
+			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
+
+			fire(ConnectionManagerListener::Connected(), cqi, uc);
+
+			dcdebug("ConnectionManager::addNewConnection, PM handler\n");
+			addConn = true;
+		}
+	}
+
+	if (!addConn)
+		putConnection(uc);
+}
+
 
 void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 	dcassert(uc->isSet(UserConnection::FLAG_DOWNLOAD));
@@ -789,7 +819,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 				uc->setToken(cqi->getToken()); // sync for NMDC users
 				uc->setHubUrl(cqi->getHubUrl()); //set the correct hint for the uc, it might not even have a hint at first.
 				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
-				fire(ConnectionManagerListener::Connected(), cqi);
+				fire(ConnectionManagerListener::Connected(), cqi, uc);
 				dcdebug("ConnectionManager::addDownloadConnection, leaving to downloadmanager\n");
 				addConn = true;
 			}
@@ -809,18 +839,19 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 
 	{
 		WLock l(cs);
+		auto &uploads = cqis[CONNECTION_TYPE_UPLOAD];
 		if (!uc->isSet(UserConnection::FLAG_MCN1) && find(uploads.begin(), uploads.end(), uc->getUser()) != uploads.end()) {
 			//one connection per CID for non-mcn users
 			allowAdd=false;
 		}
 
 		if (allowAdd) {
-			allowAdd = tokens.addToken(uc->getToken());
+			allowAdd = tokens.addToken(uc->getToken(), CONNECTION_TYPE_UPLOAD);
 			if (allowAdd) {
 				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
-				ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), false, uc->getToken());
+				ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), CONNECTION_TYPE_UPLOAD, uc->getToken());
 				cqi->setState(ConnectionQueueItem::ACTIVE);
-				fire(ConnectionManagerListener::Connected(), cqi);
+				fire(ConnectionManagerListener::Connected(), cqi, uc);
 			}
 		}
 	}
@@ -888,7 +919,11 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			return;
 		}
 
-		//http://dcpp.wordpress.com/2012/08/29/split-identify-to-support-multiple-share-profiles-in-adc/
+		// set the PM flag now in order to send a INF with PM1
+		if ((tokens.hasToken(token, CONNECTION_TYPE_PM) || cmd.hasFlag("PM", 0)) && !aSource->isSet(UserConnection::FLAG_PM)) {
+			aSource->setFlag(UserConnection::FLAG_PM);
+		}
+
 		aSource->inf(false, aSource->isSet(UserConnection::FLAG_MCN1) ? AirUtil::getSlotsPerUser(false) : 0);
 
 	} else {
@@ -903,6 +938,8 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 	}
 
 	dcassert(!token.empty());
+
+	bool delayedToken = false;
 	{
 		RLock l(cs);
 		auto i = find(downloads.begin(), downloads.end(), token);
@@ -916,14 +953,20 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			}
 			cqi->setErrors(0);
 			aSource->setFlag(UserConnection::FLAG_DOWNLOAD);
-		} else if (delayedTokens.find(token) == delayedTokens.end()) {
-			aSource->setFlag(UserConnection::FLAG_UPLOAD);
+		} else {
+			delayedToken = delayedTokens.find(token) != delayedTokens.end();
 		}
 	}
 
 	if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
 		addDownloadConnection(aSource);
-	} else if(aSource->isSet(UserConnection::FLAG_UPLOAD)) {
+	} else if ( !delayedToken && (aSource->isSet(UserConnection::FLAG_PM) || cmd.hasFlag("PM", 0))) {
+		if (!aSource->isSet(UserConnection::FLAG_PM)) 
+			aSource->setFlag(UserConnection::FLAG_PM);
+		addNewConnection(aSource, CONNECTION_TYPE_PM);
+	} else if (!delayedToken) {
+		if (!aSource->isSet(UserConnection::FLAG_UPLOAD))
+			aSource->setFlag(UserConnection::FLAG_UPLOAD);
 		addUploadConnection(aSource);
 	} else {
 		putConnection(aSource);
@@ -1037,15 +1080,20 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			} else {
 				failDownload(aSource->getToken(), aError, protocolError);
 			}
-		} else if(aSource->isSet(UserConnection::FLAG_UPLOAD)) {
-			{
-				WLock l (cs);
-				auto i = find(uploads.begin(), uploads.end(), aSource->getToken());
-				dcassert(i != uploads.end());
-				ConnectionQueueItem* cqi = *i;
-				putCQI(cqi);
+		} else {
+
+			auto type = aSource->isSet(UserConnection::FLAG_UPLOAD) ? CONNECTION_TYPE_UPLOAD :
+				aSource->isSet(UserConnection::FLAG_PM) ? CONNECTION_TYPE_PM : CONNECTION_TYPE_LAST;
+
+			if (type != CONNECTION_TYPE_LAST) {
+				WLock l(cs);
+				auto& container = cqis[type];
+				auto i = find(container.begin(), container.end(), aSource->getUser());
+				dcassert(i != container.end());
+				putCQI(*i);
 			}
-			UploadManager::getInstance()->removeDelayUpload(*aSource);
+			if (type == CONNECTION_TYPE_UPLOAD)
+				UploadManager::getInstance()->removeDelayUpload(*aSource);
 		}
 	}
 	putConnection(aSource);
@@ -1074,10 +1122,11 @@ void ConnectionManager::disconnect(const string& token) {
 		(*s)->disconnect(true);
 }
 
-void ConnectionManager::disconnect(const UserPtr& aUser, int isDownload) {
+void ConnectionManager::disconnect(const UserPtr& aUser, ConnectionType aConnType) {
 	RLock l(cs);
 	for(auto uc: userConnections) {
-		if(uc->getUser() == aUser && uc->isSet((Flags::MaskType)(isDownload ? UserConnection::FLAG_DOWNLOAD : UserConnection::FLAG_UPLOAD))) {
+		if (uc->getUser() == aUser && uc->isSet(aConnType == CONNECTION_TYPE_DOWNLOAD ? UserConnection::FLAG_DOWNLOAD :
+			aConnType == CONNECTION_TYPE_UPLOAD ? UserConnection::FLAG_UPLOAD : UserConnection::FLAG_PM)) {
 			uc->disconnect(true);
 		}
 	}

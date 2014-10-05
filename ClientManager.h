@@ -22,6 +22,7 @@
 #include "TimerManager.h"
 #include "ClientManagerListener.h"
 
+#include "ConnectionType.h"
 #include "CID.h"
 #include "Client.h"
 #include "CriticalSection.h"
@@ -162,7 +163,7 @@ public:
 	
 	bool sendUDP(AdcCommand& c, const CID& to, bool noCID = false, bool noPassive = false, const string& encryptionKey = Util::emptyString, const string& aHubUrl = Util::emptyString) noexcept;
 
-	bool connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError) noexcept;
+	bool connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError, ConnectionType type = CONNECTION_TYPE_LAST) noexcept;
 	bool privateMessage(const HintedUser& user, const string& msg, string& error_, bool thirdPerson) noexcept;
 	void userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params, bool compatibility) noexcept;
 
