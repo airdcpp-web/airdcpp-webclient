@@ -27,6 +27,8 @@
 #include "Transfer.h"
 #include "DebugManager.h"
 #include "FavoriteManager.h"
+#include "ChatMessage.h"
+
 
 #include "Download.h"
 
@@ -208,8 +210,54 @@ void UserConnection::inf(bool withToken, int mcnSlots) {
 	if(withToken) {
 		c.addParam("TO", getToken());
 	}
+	if (isSet(FLAG_PM)) {
+		c.addParam("PM", "1");
+	}
 	send(c);
 }
+
+void UserConnection::pm(const string& message, bool thirdPerson) {
+
+	AdcCommand c(AdcCommand::CMD_MSG);
+	c.addParam(message);
+	if (thirdPerson)
+		c.addParam("ME", "1");
+	send(c);
+
+	// simulate an echo message.
+	handlePM(c, true);
+}
+
+void UserConnection::handle(AdcCommand::MSG t, const AdcCommand& c) {
+	handlePM(c, false);
+
+	fire(t, this, c);
+}
+
+void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
+	auto message = c.getParam(0);
+	OnlineUserPtr peer = nullptr;
+	OnlineUserPtr me = nullptr;
+	
+	auto cm = ClientManager::getInstance();
+	{
+		RLock l(cm->getCS());
+		peer = cm->findOnlineUser(user->getCID(), hubUrl);
+		me = cm->findOnlineUser(cm->getMe()->getCID(), hubUrl);
+		// null pointers allowed here as the conn may be going on without hubs.
+	}
+	if (echo) {
+		std::swap(peer, me);
+	}
+
+	string tmp;
+
+	ChatMessage msg = { message, peer, me, peer };
+	msg.timestamp = c.getParam("TS", 1, tmp) ? Util::toInt64(tmp) : 0;
+	msg.thirdPerson = c.hasFlag("ME", 1);
+	fire(UserConnectionListener::PrivateMessage(), this, msg);
+}
+
 
 void UserConnection::sup(const StringList& features) {
 	AdcCommand c(AdcCommand::CMD_SUP);

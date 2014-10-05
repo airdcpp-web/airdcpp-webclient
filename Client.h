@@ -26,6 +26,7 @@
 #include "BufferedSocket.h"
 #include "BufferedSocketListener.h"
 #include "ClientListener.h"
+#include "ConnectionType.h"
 #include "HubSettings.h"
 #include "OnlineUser.h"
 #include "Search.h"
@@ -47,7 +48,7 @@ public:
 	virtual const string& getHubUrl() const = 0;
 	virtual string getHubName() const = 0;
 	virtual bool isOp() const = 0;
-	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) = 0;
+	virtual int connect(const OnlineUser& user, const string& token, string& lastError_, ConnectionType type) = 0;
 	virtual bool privateMessage(const OnlineUserPtr& user, const string& aMessage, string& error_, bool thirdPerson = false) = 0;
 	virtual void directSearch(const OnlineUser& /*user*/, int /*aSizeMode*/, int64_t /*aSize*/, int /*aFileType*/, const string& /*aString*/, const string& /*aToken*/, const StringList& /*aExtList*/, const string& /*aDir*/, time_t /*aDate*/, int /*aDateMode*/) { 
 		dcassert(0); 
@@ -63,7 +64,7 @@ public:
 	virtual void connect();
 	virtual void disconnect(bool graceless);
 
-	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) = 0;
+	virtual int connect(const OnlineUser& user, const string& token, string& lastError_, ConnectionType type) = 0;
 	virtual bool hubMessage(const string& aMessage, string& error_, bool thirdPerson = false) = 0;
 	virtual bool privateMessage(const OnlineUserPtr& user, const string& aMessage, string& error_, bool thirdPerson = false) = 0;
 	virtual void sendUserCmd(const UserCommand& command, const ParamMap& params) = 0;

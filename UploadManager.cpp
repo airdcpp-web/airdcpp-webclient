@@ -601,7 +601,7 @@ void UploadManager::createBundle(const AdcCommand& cmd) {
 	if (bundleToken.empty() || name.empty() || size <= 0 || token.empty()) {
 		//LogManager::getInstance()->message("INVALID UBD1", LogManager::LOG_ERROR);
 		return;
-	} else if (!ConnectionManager::getInstance()->tokens.addToken(bundleToken)) {
+	} else if (!ConnectionManager::getInstance()->tokens.addToken(bundleToken, CONNECTION_TYPE_DOWNLOAD)) {
 		return;
 	}
 
@@ -1149,7 +1149,7 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		
 	for(auto& u: disconnects) {
 		LogManager::getInstance()->message(STRING(DISCONNECTED_USER) + " " + Util::listToString(ClientManager::getInstance()->getNicks(u->getCID())), LogManager::LOG_INFO);
-		ConnectionManager::getInstance()->disconnect(u, false);
+		ConnectionManager::getInstance()->disconnect(u, CONNECTION_TYPE_UPLOAD);
 	}
 
 	int freeSlots = getFreeSlots();

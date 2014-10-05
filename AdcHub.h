@@ -37,8 +37,8 @@ public:
 	using Client::send;
 	using Client::connect;
 
-	int connect(const OnlineUser& user, const string& token, string& lastError_);
-	void connect(const OnlineUser& user, const string& token, bool secure, bool replyingRCM = false);
+	int connect(const OnlineUser& user, const string& token, string& lastError_, ConnectionType type );
+	void connect(const OnlineUser& user, const string& token, bool secure, ConnectionType type, bool replyingRCM = false);
 	
 	bool hubMessage(const string& aMessage, string& error_, bool thirdPerson = false);
 	bool privateMessage(const OnlineUserPtr& user, const string& aMessage, string& error_, bool thirdPerson = false);
@@ -79,6 +79,7 @@ public:
 	static const string SUD1_FEATURE;
 	static const string HBRI_SUPPORT;
 	static const string ASCH_FEATURE;
+	static const string CCPM_FEATURE;
 private:
 	friend class ClientManager;
 	friend class CommandHandler<AdcHub>;

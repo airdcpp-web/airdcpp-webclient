@@ -62,6 +62,7 @@ const string AdcHub::ZLIF_SUPPORT("ADZLIF");
 const string AdcHub::SUD1_FEATURE("SUD1");
 const string AdcHub::HBRI_SUPPORT("ADHBRI");
 const string AdcHub::ASCH_FEATURE("ASCH");
+const string AdcHub::CCPM_FEATURE("CCPM");
 
 const vector<StringList> AdcHub::searchExts;
 
@@ -479,7 +480,7 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 
 	if(getMyIdentity().isTcpActive()) {
 		//we are active the other guy is not
-    	connect(*u, token, secure, true);
+		connect(*u, token, secure, CONNECTION_TYPE_LAST, true);
 		return;
 	}
 
@@ -934,11 +935,11 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 		fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATION_FAILED, STRING(CONNECTION_TIMEOUT) % (v6 ? "IPv6" : "IPv4")));
 }
 
-int AdcHub::connect(const OnlineUser& user, const string& token, string& lastError_) {
+int AdcHub::connect(const OnlineUser& user, const string& token, string& lastError_, ConnectionType aConnType) {
 	bool secure = CryptoManager::getInstance()->TLSOk() && user.getUser()->isSet(User::TLS);
 	auto conn = allowConnect(user, secure, lastError_, true);
 	if (conn == AdcCommand::SUCCESS) {
-		connect(user, token, secure);
+		connect(user, token, secure, aConnType);
 	}
 
 	return conn;
@@ -1028,7 +1029,7 @@ AdcCommand::Error AdcHub::allowConnect(const OnlineUser& user, bool secure, stri
 	return AdcCommand::SUCCESS;
 }
 
-void AdcHub::connect(const OnlineUser& user, const string& token, bool secure, bool replyingRCM) {
+void AdcHub::connect(const OnlineUser& user, const string& token, bool secure, ConnectionType aConnType, bool replyingRCM) {
 	const string* proto = secure ? &SECURE_CLIENT_PROTOCOL_TEST : &CLIENT_PROTOCOL;
 
 	if (replyingRCM || (user.getIdentity().allowV6Connections() && getMyIdentity().isTcp6Active()) || (user.getIdentity().allowV4Connections() && getMyIdentity().isTcp4Active())) {
@@ -1454,6 +1455,7 @@ void AdcHub::infoImpl() {
 
 	if(CryptoManager::getInstance()->TLSOk()) {
 		su += "," + ADCS_FEATURE;
+		su += "," + CCPM_FEATURE;
 	}
 
 	if (SETTING(ENABLE_SUDP))

@@ -37,7 +37,7 @@ public:
 	typedef X<6> Forced;
 
 	virtual void on(Added, const ConnectionQueueItem*) noexcept { }
-	virtual void on(Connected, const ConnectionQueueItem*) noexcept { }
+	virtual void on(Connected, const ConnectionQueueItem*, UserConnection*) noexcept{}
 	virtual void on(Removed, const ConnectionQueueItem*) noexcept { }
 	virtual void on(Failed, const ConnectionQueueItem*, const string&) noexcept { }
 	virtual void on(StatusChanged, const ConnectionQueueItem*) noexcept { }

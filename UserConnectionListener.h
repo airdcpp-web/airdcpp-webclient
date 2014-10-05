@@ -38,6 +38,7 @@ public:
 	typedef X<5> Key;
 	typedef X<6> Direction;
 	typedef X<7> Get;
+	typedef X<8> PrivateMessage;
 	typedef X<12> Send;
 	typedef X<13> GetListLength;
 	typedef X<14> MaxedOut;
@@ -67,6 +68,7 @@ public:
 	virtual void on(Supports, UserConnection*, const StringList&) noexcept { }
 	virtual void on(FileNotAvailable, UserConnection*) noexcept { }
 	virtual void on(ListLength, UserConnection*, const string&) noexcept { }
+	virtual void on(PrivateMessage, UserConnection*, const ChatMessage&) noexcept{}
 
 	virtual void on(AdcCommand::SUP, UserConnection*, const AdcCommand&) noexcept { }
 	virtual void on(AdcCommand::INF, UserConnection*, const AdcCommand&) noexcept { }
@@ -75,6 +77,7 @@ public:
 	virtual void on(AdcCommand::STA, UserConnection*, const AdcCommand&) noexcept { }
 	virtual void on(AdcCommand::RES, UserConnection*, const AdcCommand&) noexcept { }
 	virtual void on(AdcCommand::GFI, UserConnection*, const AdcCommand&) noexcept { }
+	virtual void on(AdcCommand::MSG, UserConnection*, const AdcCommand&) noexcept { }
 };
 
 } // namespace dcpp

@@ -688,13 +688,13 @@ OnlineUser* ClientManager::findOnlineUser(const CID& cid, const string& hintUrl)
 	return p.first->second;
 }
 
-bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError) noexcept {
+bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError, ConnectionType aConnType) noexcept {
 	RLock l(cs);
 	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID()));
 
 	auto connectUser = [&] (OnlineUser* ou) -> bool {
 		isProtocolError = false;
-		auto ret = ou->getClientBase().connect(*ou, aToken, lastError_);
+		auto ret = ou->getClientBase().connect(*ou, aToken, lastError_, aConnType);
 		if (ret == AdcCommand::SUCCESS) {
 			return true;
 		}
