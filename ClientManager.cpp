@@ -671,6 +671,30 @@ void ClientManager::getUserInfoList(const UserPtr& user, User::UserInfoList& aLi
 	}
 }
 
+OnlineUserPtr ClientManager::getCCPMuser(const HintedUser& user, tstring& _error) {
+	OnlinePairC p;
+	OnlineUser* u = findOnlineUserHint(user.user->getCID(), user.hint, p);
+
+	if (u && !u->getUser()->isNMDC() && u->getClient().isSecure() && u->getIdentity().supports(AdcHub::CCPM_FEATURE))
+		return u;
+
+	for (auto i = p.first; i != p.second; ++i) {
+		u = i->second;
+		if (!u->getUser()->isNMDC() && u->getClient().isSecure() && u->getIdentity().supports(AdcHub::CCPM_FEATURE))
+			return u;
+	}
+	if (u) {
+		_error = !u->getIdentity().supports(AdcHub::CCPM_FEATURE) ? _T("The user does not support the CCPM ADC extension") :
+			!u->getClient().isSecure() ? _T("The connection to the hub used to initiate the channel must be encrypted") : _T("");
+	} else {
+		_error = _T("User is offline");
+	}
+
+	return nullptr;
+
+}
+
+
 OnlineUser* ClientManager::findOnlineUser(const HintedUser& user) const noexcept {
 	return findOnlineUser(user.user->getCID(), user.hint);
 }

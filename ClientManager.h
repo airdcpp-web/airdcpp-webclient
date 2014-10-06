@@ -102,6 +102,8 @@ public:
 	string getNick(const UserPtr& u, const string& hintUrl, bool allowFallback = true) const noexcept;
 	StringPairList getNickHubPair(const CID& cid, string& hint) const noexcept;
 
+	OnlineUserPtr getCCPMuser(const HintedUser& user, tstring& _error);
+
 	string getDLSpeed(const CID& cid) const noexcept;
 	uint8_t getSlots(const CID& cid) const noexcept;
 
