@@ -598,23 +598,14 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 		return;
 	}
 
-	int mcn = 0;
-	if(aSource->isSet(UserConnection::FLAG_MCN1)) {
-		int slots = 0;
-		slots = AirUtil::getSlotsPerUser(false);
-		if (slots != 0)
-			mcn=slots;
-	}
-
 	if(aSource->isSet(UserConnection::FLAG_INCOMING)) {
 		StringList defFeatures = adcFeatures;
 		if(SETTING(COMPRESS_TRANSFERS)) {
 			defFeatures.push_back("AD" + UserConnection::FEATURE_ZLIB_GET);
 		}
 		aSource->sup(defFeatures);
-		aSource->inf(false, mcn);
 	} else {
-		aSource->inf(true, mcn);
+		aSource->inf(true, aSource->isSet(UserConnection::FLAG_MCN1) ? AirUtil::getSlotsPerUser(false) : 0);
 	}
 	aSource->setState(UserConnection::STATE_INF);
 }
@@ -878,20 +869,16 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		aSource->setToken(token);
 
 		// Incoming connections aren't associated with any user
-		string cid;
-
-		// Are we excepting this connection? Use the saved CID
+		// Are we excepting this connection? Use the saved CID and hubUrl
 		auto i = expectedConnections.remove(token);
 		if (i.second.empty()) {
 			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "Connection not expected"));
 			putConnection(aSource);
 			return;
-		} else {
-			aSource->setHubUrl(i.second);
-			cid = i.first;
-		}
-
-		auto user = ClientManager::getInstance()->findUser(CID(cid));
+		} 
+		aSource->setHubUrl(i.second);
+	
+		auto user = ClientManager::getInstance()->findUser(CID(i.first));
 		aSource->setUser(user);
 
 		if (!aSource->getUser()) {
@@ -900,6 +887,10 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			putConnection(aSource);
 			return;
 		}
+
+		//http://dcpp.wordpress.com/2012/08/29/split-identify-to-support-multiple-share-profiles-in-adc/
+		aSource->inf(false, aSource->isSet(UserConnection::FLAG_MCN1) ? AirUtil::getSlotsPerUser(false) : 0);
+
 	} else {
 		dcassert(aSource->getUser());
 		token = aSource->getToken();

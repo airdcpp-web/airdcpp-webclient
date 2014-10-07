@@ -281,8 +281,8 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	}
 
 	/*
-	find mySID, better ways to get the correct one transferred here?
-	the hinturl of the connection is updated to the hub where the connection reguest is coming from,
+	Find mySID, better ways to get the correct one transferred here?
+	the hinturl of the connection is updated to the hub where the connection request is coming from,
 	so we should be able to find our own SID by finding the hub where the user is at (if we have a hint).
 	*/
 
