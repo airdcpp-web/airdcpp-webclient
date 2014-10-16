@@ -3610,6 +3610,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinished) noexcep
 	}
 
 	vector<UserPtr> sources;
+	StringList deleteFiles;
 
 	DownloadManager::getInstance()->disconnectBundle(aBundle);
 	fire(QueueManagerListener::BundleRemoved(), aBundle);
@@ -3625,7 +3626,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinished) noexcep
 			bundleQueue.removeBundleItem(qi, false);
 			if (removeFinished) {
 				UploadManager::getInstance()->abortUpload(qi->getTarget());
-				File::deleteFile(qi->getTarget());
+				deleteFiles.push_back(qi->getTarget());
 			}
 		}
 
@@ -3634,7 +3635,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinished) noexcep
 			UploadManager::getInstance()->abortUpload(qi->getTarget());
 
 			if (!qi->isRunning() && !qi->getTempTarget().empty() && qi->getTempTarget() != qi->getTarget()) {
-				File::deleteFile(qi->getTempTarget());
+				deleteFiles.push_back(qi->getTempTarget());
 			}
 
 			if (!qi->isFinished()) {
@@ -3647,6 +3648,9 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinished) noexcep
 
 		bundleQueue.removeBundle(aBundle);
 	}
+
+	//Delete files outside lock range, waking up disks can take a long time.
+	for_each(deleteFiles.begin(), deleteFiles.end(), &File::deleteFile);
 
 	if (!aBundle->isSet(Bundle::FLAG_MERGING))
 		LogManager::getInstance()->message(STRING_F(BUNDLE_X_REMOVED, aBundle->getName()), LogManager::LOG_INFO);
