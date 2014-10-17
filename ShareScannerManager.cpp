@@ -211,11 +211,17 @@ void ShareScannerManager::runShareScan(const StringList& aPaths) {
 
 			if (SETTING(LOG_SHARE_SCANS)) {
 				auto path = Util::validatePath(Util::formatTime(SETTING(LOG_DIRECTORY) + SETTING(LOG_SHARE_SCAN_PATH), time(nullptr)));
-				File::ensureDirectory(path);
+				try {
+					File::ensureDirectory(path);
 
-				File f(path, File::WRITE, File::OPEN | File::CREATE);
-				f.setEndPos(0);
-				f.write(total.scanMessage);
+					File f(path, File::WRITE, File::OPEN | File::CREATE);
+					f.setEndPos(0);
+					f.write(total.scanMessage);
+
+				}
+				catch (const FileException& e) {
+					LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, path % e.getError()), LogManager::LOG_ERROR);
+				}
 			}
 
 			char buf[255];
