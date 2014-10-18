@@ -2227,6 +2227,7 @@ static const string sBundleToken = "BundleToken";
 static const string sFinished = "Finished";
 static const string sVersion = "Version";
 static const string sTimeFinished = "TimeFinished";
+static const string sLastSource = "LastSource";
 static const string sAddedByAutoSearch = "AddedByAutoSearch";
 
 QueueItemBase::Priority QueueLoader::validatePrio(const string& aPrio) {
@@ -2391,6 +2392,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			time_t added = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sAdded, 2)));
 			const string& tth = getAttrib(attribs, sTTH, 3);
 			time_t finished = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sTimeFinished, 4)));
+			const string& lastsource = getAttrib(attribs, sLastSource, 5);
 
 			if(size == 0 || tth.empty() || target.empty() || added == 0)
 				return;
@@ -2406,6 +2408,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			auto& qi = ret.first;
 			qi->addFinishedSegment(Segment(0, size)); //make it complete
 			qi->setFileFinished(finished);
+			qi->setLastSource(lastsource);
 
 			if (curBundle && inBundle) {
 				//LogManager::getInstance()->message("itemtoken exists: " + bundleToken);
@@ -3850,6 +3853,7 @@ void QueueManager::fileFinished(const QueueItemPtr aQi, const HintedUser& aUser,
 			LogManager::getInstance()->message(STRING_F(FINISHED_DOWNLOAD, aQi->getTarget() % ClientManager::getInstance()->getFormatedNicks(aUser)), LogManager::LOG_INFO);
 		}
 	}
+	aQi->setLastSource(ClientManager::getInstance()->getFormatedNicks(aUser));
 	fire(QueueManagerListener::Finished(), aQi, aDir, aUser, aSpeed);
 }
 

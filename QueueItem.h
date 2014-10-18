@@ -250,6 +250,7 @@ public:
 	IGETSET(uint64_t, nextPublishingTime, NextPublishingTime, 0);
 	IGETSET(uint8_t, maxSegments, MaxSegments, 1);
 	IGETSET(BundlePtr, bundle, Bundle, nullptr);
+	IGETSET(string, lastSource, LastSource, Util::emptyString);
 	
 	Priority calculateAutoPriority() const;
 
