@@ -546,11 +546,12 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 	if (SETTING(CHECK_MISSING))
 		aScan.missingFiles += loopMissing;
 
-	for (auto p : invalidSFV) {
-		reportMessage(STRING(INVALID_SFV_FILE) + " " + p, aScan);
+	if (SETTING(CHECK_INVALID_SFV)) {
+		for (auto p : invalidSFV) {
+			reportMessage(STRING(INVALID_SFV_FILE) + " " + p, aScan);
+		}
+		aScan.invalidSFVFiles += invalidSFV.size();
 	}
-
-	aScan.invalidSFVFiles += invalidSFV.size();
 
 	/* Extras in folder? */
 	releaseFiles = releaseFiles - loopMissing;

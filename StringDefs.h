@@ -956,6 +956,7 @@ enum Strings { // @DontAdd
 	MULTIPLE_SFV, // "Multiple SFV files found: "
 	SCAN_STARTED, // "Scan for missing/extra files started..."
 	CHECK_MISSING, // "Check missing release files"
+	CHECK_INVALID_SFV, // "Check Invalid SFV files"
 	CHECK_SFV, // "Check missing SFV files"
 	CHECK_NFO, // "Check missing NFO files"
 	CHECK_MP3_DIR, // "Check missing SFV or NFO files from music directories (if enabled)"
