@@ -220,7 +220,7 @@ const string SettingsManager::settingTags[] =
 	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
 	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "DctmpStoreDestination", "FLReportDupeFiles",
 	"FilterFLShared", "FilterFLQueued", "FilterFLInversed", "FilterFLTop", "FilterFLPartialDupes", "FilterFLResetChange", "FilterSearchShared", "FilterSearchQueued", "FilterSearchInversed", "FilterSearchTop", "FilterSearchPartialDupes", "FilterSearchResetChange",
-	"SearchAschOnlyMan", "IgnoreIndirectSR", "UseUploadBundles", "CloseMinimize", "LogIgnored", "UsersFilterIgnore", "NfoExternal", "SingleClickTray", "QueueShowFinished", "RemoveFinishedBundles",
+	"SearchAschOnlyMan", "IgnoreIndirectSR", "UseUploadBundles", "CloseMinimize", "LogIgnored", "UsersFilterIgnore", "NfoExternal", "SingleClickTray", "QueueShowFinished", "RemoveFinishedBundles", "LogCRCOk",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -868,6 +868,7 @@ SettingsManager::SettingsManager()
 	setDefault(QUEUE_SHOW_FINISHED, true);
 	setDefault(PROGRESS_LIGHTEN, 25);
 	setDefault(REMOVE_FINISHED_BUNDLES, false);
+	setDefault(LOG_CRC_OK, false);
 
 	// not in GUI
 	setDefault(IGNORE_INDIRECT_SR, false);

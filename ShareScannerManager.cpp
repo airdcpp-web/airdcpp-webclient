@@ -640,11 +640,19 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sf
 		scanFolderSize = scanFolderSize - size;
 
 		// Report
-		LogManager::getInstance()->message(STRING_F(CRC_FILE_DONE, 
-			(crcMatch ? STRING(CRC_OK) : STRING(CRC_FAILED)) % 
-			(sfv.getPath() + aFileName) % 
-			Util::formatBytes(speed) % 
-			Util::formatBytes(scanFolderSize)), (crcMatch ? LogManager::LOG_INFO : LogManager::LOG_ERROR));
+		if (SETTING(LOG_CRC_OK)) {
+			LogManager::getInstance()->message(STRING_F(CRC_FILE_DONE,
+				(crcMatch ? STRING(CRC_OK) : STRING(CRC_FAILED)) %
+				(sfv.getPath() + aFileName) %
+				Util::formatBytes(speed) %
+				Util::formatBytes(scanFolderSize)), (crcMatch ? LogManager::LOG_INFO : LogManager::LOG_ERROR));
+		} else if (!crcMatch) {
+				LogManager::getInstance()->message(STRING_F(CRC_FILE_FAILED,
+				(sfv.getPath() + aFileName) %
+				Util::formatBytes(speed) %
+				Util::formatBytes(scanFolderSize)), LogManager::LOG_ERROR);
+		}
+
 
 	} else if (!isDirScan || regex_match(aFileName, rarMp3Reg)) {
 		LogManager::getInstance()->message(STRING_F(CRC_NO_SFV, (sfv.getPath() + aFileName)), LogManager::LOG_WARNING);

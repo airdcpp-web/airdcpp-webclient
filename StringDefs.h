@@ -970,6 +970,7 @@ enum Strings { // @DontAdd
 	CRC_FAILED, // "CRC mismatch"
 	CRC_OK, // "CRC OK"
 	CRC_FILE_DONE, // "%1%: %2% (%3%/s), files remaining: %4%"
+	CRC_FILE_FAILED, // "CRC mismatch: %1% (%2%/s)"
 	CRC_FINISHED, // "SFV check finished: there were %1% files with proper checksum and %2% files with invalid checksum (unable to check %3% files)"
 	CRC_STARTED, // "SFV check started, type /stop in chat to stop it"
 	CRC_STOPPED, // "SFV check stopped"
@@ -1860,5 +1861,6 @@ enum Strings { // @DontAdd
 	AS_TIMEVAR_AVAILABLE, // "Available time variables"
 	REMOVE_FINISHED, // "Remove finished bundles"
 	EMOTICONS_PACK, // "Emoticons Pack"
+	LOG_CRC_OK, // "Show SFV check progress(CRC OK) in system log"
 	LAST // @DontAdd
 };
