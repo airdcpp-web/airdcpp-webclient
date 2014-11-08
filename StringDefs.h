@@ -1058,6 +1058,8 @@ enum Strings { // @DontAdd
 	X_EMPTY_FOLDERS, // "%1% empty folders"
 	X_DUPE_FOLDERS, // "%1% duplicate folders"
 	X_MISSING_DISKS, // "%1% folders with disks missing"
+	X_MISSING_INVALID_SFV_FILES, // "%1% Invalid SFV files"
+	INVALID_SFV_FILE, // "INVALID SFV FILE: "
 	EXTRA_FILES_SAMPLEDIR_X, // "Extra files in sample folder: %1%"
 	EXTRA_FILES_RLSDIR_X, // "The following extra files have been found from a release folder %1%: %2%"
 	CONFIRM_REMOVE_DIR_MULTIPLE, // "Are you sure you want to remove %1% bundles?"

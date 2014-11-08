@@ -34,7 +34,7 @@ class DirSFVReader {
 public:
 	DirSFVReader();
 	DirSFVReader(const string& aPath);
-	DirSFVReader(const string& aPath, const StringList& aSfvFiles);
+	DirSFVReader(const string& aPath, const StringList& aSfvFiles, StringList& invalidSFV);
 
 	/**
 	 * Search for a CRC32 file in all .sfv files in the directory of fileName.
@@ -65,7 +65,7 @@ private:
 	/* File name + crc */
 	unordered_map<string, uint32_t> content;
 
-	void load() noexcept;
+	void load(StringList& invalidSFV) noexcept;
 };
 
 } // namespace dcpp

@@ -139,6 +139,7 @@ private:
 		int emptyFolders = 0;
 		int dupesFound = 0;
 		int disksMissing = 0;
+		int invalidSFVFiles = 0;
 
 		string scanMessage;
 

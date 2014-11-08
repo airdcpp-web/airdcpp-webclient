@@ -43,16 +43,17 @@ DirSFVReader::DirSFVReader(const string& aPath) : loaded(false) {
 	loadPath(aPath);
 }
 
-DirSFVReader::DirSFVReader(const string& /*aPath*/, const StringList& aSfvFiles) : loaded(false) {
+DirSFVReader::DirSFVReader(const string& /*aPath*/, const StringList& aSfvFiles, StringList& invalidSFV) : loaded(false) {
 	sfvFiles = aSfvFiles;
-	load();
+	load(invalidSFV);
 }
 
 void DirSFVReader::loadPath(const string& aPath) {
 	content.clear();
 	path = aPath;
 	sfvFiles = File::findFiles(path, "*.sfv", File::TYPE_FILE);
-	load();
+	StringList tmp;
+	load(tmp);
 }
 
 void DirSFVReader::unload() {
@@ -96,7 +97,7 @@ std::istream& getline(std::istream &is, std::string &s) {
     return is;
 }
 
-void DirSFVReader::load() noexcept {
+void DirSFVReader::load(StringList& invalidSFV) noexcept {
 	string line;
 
 	for(auto path: sfvFiles) {
@@ -118,11 +119,13 @@ void DirSFVReader::load() noexcept {
 				throw FileException(STRING(CANT_OPEN_SFV));
 			}
 		} catch(const FileException& e) {
+			invalidSFV.push_back(path);
 			LogManager::getInstance()->message(path + ": " + e.getError(), LogManager::LOG_ERROR);
 			continue;
 		}
 
 		/* Get the filename and crc */
+		bool hasValidLines = false;
 		while(getline(sfv, line) || !line.empty()) {
 			line = Text::toUtf8(line);
 			//make sure that the line is valid
@@ -146,10 +149,12 @@ void DirSFVReader::load() noexcept {
 				}
 
 				content[line] = crc32;
+				hasValidLines = true;
 			}
-
 		}
 		sfv.close();
+		if (!hasValidLines)
+			invalidSFV.push_back(path);
 	}
 
 	loaded = true;
