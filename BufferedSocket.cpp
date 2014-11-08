@@ -472,7 +472,7 @@ bool BufferedSocket::checkEvents() {
 			} else if(p.first == SEND_FILE) {
 				threadSendFile(static_cast<SendFileInfo*>(p.second.get())->stream); break;
 			} else if(p.first == DISCONNECT) {
-				fail("Disconnected");
+				fail(STRING(DISCONNECTED));
 			} else {
 				dcdebug("%d unexpected in RUNNING state\n", p.first);
 			}

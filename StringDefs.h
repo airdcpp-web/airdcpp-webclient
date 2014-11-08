@@ -611,7 +611,7 @@ enum Strings { // @DontAdd
 	SETTINGS_TOOLBAR_ADD, // "Add -->"
 	SETTINGS_TOOLBAR_IMAGE, // "Toolbar images"
 	SETTINGS_TOOLBAR_REMOVE, // "<-- Remove"
-	SETTINGS_UDP_PORT, // "UDP Port"
+	SETTINGS_UDP_PORT, // "UDP"
 	SETTINGS_UNFINISHED_DOWNLOAD_DIRECTORY, // "Unfinished downloads directory"
 	SETTINGS_UPLOAD_LINE_SPEED, // "Line speed (upload)"
 	SETTINGS_SHARINGPAGE, // "Sharing"
