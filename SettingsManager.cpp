@@ -221,6 +221,7 @@ const string SettingsManager::settingTags[] =
 	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "DctmpStoreDestination", "FLReportDupeFiles",
 	"FilterFLShared", "FilterFLQueued", "FilterFLInversed", "FilterFLTop", "FilterFLPartialDupes", "FilterFLResetChange", "FilterSearchShared", "FilterSearchQueued", "FilterSearchInversed", "FilterSearchTop", "FilterSearchPartialDupes", "FilterSearchResetChange",
 	"SearchAschOnlyMan", "IgnoreIndirectSR", "UseUploadBundles", "CloseMinimize", "LogIgnored", "UsersFilterIgnore", "NfoExternal", "SingleClickTray", "QueueShowFinished", "RemoveFinishedBundles", "LogCRCOk",
+	"FilterQueueInverse", "FilterQueueTop", "FilterQueueReset",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -858,6 +859,10 @@ SettingsManager::SettingsManager()
 	setDefault(FILTER_SEARCH_TOP, false);
 	setDefault(FILTER_SEARCH_PARTIAL_DUPES, false);
 	setDefault(FILTER_SEARCH_RESET_CHANGE, true);
+
+	setDefault(FILTER_QUEUE_INVERSED, false);
+	setDefault(FILTER_QUEUE_TOP, true);
+	setDefault(FILTER_QUEUE_RESET_CHANGE, true);
 
 	setDefault(UPDATE_CHANNEL, VERSION_STABLE);
 	setDefault(CLOSE_USE_MINIMIZE, false);
