@@ -1180,11 +1180,12 @@ int HashManager::Hasher::run() {
 						crc32(buf, n);
 
 					sizeLeft -= n;
+					uint64_t end = GET_TICK();
 
 					if(totalBytesLeft > 0)
 						totalBytesLeft -= n;
-					if(now > start)
-						lastSpeed = (size - sizeLeft)*1000 / (now -start);
+					if(end > start)
+						lastSpeed = (size - sizeLeft)*1000 / (end -start);
 
 					return !closing;
 				});
