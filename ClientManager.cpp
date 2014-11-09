@@ -254,45 +254,6 @@ string ClientManager::getFormatedHubNames(const HintedUser& user) const noexcept
 	return ret.empty() ? STRING(OFFLINE) : ret;
 }
 
-//get nick,hubname combination same with formatUserList() but updates the hint and returns both infos with one lookup.
-StringPair ClientManager::getNickHubPair(const UserPtr& user, string& hint) const noexcept {
-	OnlineUserList ouList;
-
-	RLock l(cs);
-	auto hinted = getUsers(HintedUser(user, hint), ouList);
-	if(!ouList.empty() && !hinted) { //set the hint to match the first nick
-		auto i = ouList.begin();
-		hinted = *i;
-		ouList.erase(i);
-		hint = hinted->getHubUrl();
-	}
-
-	string hubs = hinted ? OnlineUser::HubName()(hinted) + " " : Util::emptyString;
-	if (!ouList.empty())
-		hubs += Util::listToStringT<OnlineUserList, OnlineUser::HubName>(ouList, hinted ? true : false, hinted ? false : true);
-
-	ouList.erase(unique(ouList.begin(), ouList.end(), [](const OnlineUserPtr& a, const OnlineUserPtr& b) { return compare(OnlineUser::Nick()(a), OnlineUser::Nick()(b)) == 0; }), ouList.end());
-	if (hinted) {
-		//erase users with the hinted nick
-		auto p = equal_range(ouList.begin(), ouList.end(), hinted, OnlineUser::NickSort());
-		ouList.erase(p.first, p.second);
-	}
-
-	string nick = hinted ? OnlineUser::Nick()(hinted) + " " : Util::emptyString;
-	if (!ouList.empty())
-		nick += Util::listToStringT<OnlineUserList, OnlineUser::Nick>(ouList, hinted ? true : false, hinted ? false : true);
-		
-	if (nick.empty()) {
-		//offline
-		auto i = offlineUsers.find(const_cast<CID*>(&user->getCID()));
-		if(i != offlineUsers.end()) {
-			nick = i->second.getNick();
-		}
-	}
-
-	return { nick, hubs };
-}
-
 optional<OfflineUser> ClientManager::getOfflineUser(const CID& cid) {
 	RLock l(cs);
 	auto i = offlineUsers.find(const_cast<CID*>(&cid));

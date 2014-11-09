@@ -1163,8 +1163,8 @@ int HashManager::Hasher::run() {
  
                 FileReader fr(true);
 				fr.read(fname, [&](const void* buf, size_t n) -> bool {
-					uint64_t now = GET_TICK();
 					if(SETTING(MAX_HASH_SPEED)> 0) {
+						uint64_t now = GET_TICK();
 						uint64_t minTime = n * 1000LL / Util::convertSize(SETTING(MAX_HASH_SPEED), Util::MB);
  
 						if(lastRead + minTime > now) {

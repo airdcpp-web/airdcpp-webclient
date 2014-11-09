@@ -67,8 +67,6 @@ public:
 	StringList getHubNames(const HintedUser& user) const noexcept { return getHubNames(user.user->getCID()); }
 	StringList getHubUrls(const HintedUser& user) const noexcept { return getHubUrls(user.user->getCID()); }
 
-	StringPair getNickHubPair(const UserPtr& user, string& hint) const noexcept;
-
 	template<class NameOperator>
 	string formatUserList(const HintedUser& user, bool removeDuplicates) const noexcept {
 		OnlineUserList ouList;
@@ -99,7 +97,6 @@ public:
 	map<string, Identity> getIdentities(const UserPtr &u) const noexcept;
 	
 	string getNick(const UserPtr& u, const string& hintUrl, bool allowFallback = true) const noexcept;
-	StringPairList getNickHubPair(const CID& cid, string& hint) const noexcept;
 
 	string getDLSpeed(const CID& cid) const noexcept;
 	uint8_t getSlots(const CID& cid) const noexcept;
@@ -120,6 +117,7 @@ public:
 
 	// usage needs to be locked!
 	const UserMap& getUsers() const { return users; }
+	OnlineUserPtr getUsers(const HintedUser& aUser, OnlineUserList& users) const noexcept;
 
 	string findHub(const string& ipPort, bool nmdc) const noexcept;
 	const string& findHubEncoding(const string& aUrl) const noexcept;
@@ -222,8 +220,6 @@ private:
 	//Note; Lock usage
 	void updateUser(const OnlineUser& user, bool wentOffline) noexcept;
 
-	OnlineUserPtr getUsers(const HintedUser& aUser, OnlineUserList& users) const noexcept;
-		
 	/// @return OnlineUser* found by CID and hint; discard any user that doesn't match the hint.
 	OnlineUser* findOnlineUserHint(const CID& cid, const string& hintUrl) const noexcept {
 		OnlinePairC p;
