@@ -260,6 +260,7 @@ void ShareScannerManager::ScanInfo::merge(ScanInfo& collect) const {
 	collect.emptyFolders += emptyFolders;
 	collect.dupesFound += dupesFound;
 	collect.disksMissing += disksMissing;
+	collect.invalidSFVFiles += invalidSFVFiles;
 
 	collect.scanMessage += scanMessage;
 }

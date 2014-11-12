@@ -129,7 +129,11 @@ void DirSFVReader::load(StringList& invalidSFV) noexcept {
 		while(getline(sfv, line) || !line.empty()) {
 			line = Text::toUtf8(line);
 			//make sure that the line is valid
-			if(regex_search(line, AirUtil::crcReg) && (line.find("\\") == string::npos) && (line.find(";") == string::npos)) {
+			if(regex_search(line, AirUtil::crcReg) && (line.find(";") == string::npos)) {
+				//We cant handle sfv with files in subdirectories currently.
+				if (line.find("\\") != string::npos)
+					hasValidLines = true;
+
 				//only keep the filename
 				size_t pos = line.rfind(" ");
 				if (pos == string::npos) {
