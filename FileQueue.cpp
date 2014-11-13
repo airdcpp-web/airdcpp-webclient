@@ -45,7 +45,7 @@ pair<QueueItemPtr, bool> FileQueue::add(const string& aTarget, int64_t aSize, Fl
 
 	QueueItemPtr qi = new QueueItem(aTarget, aSize, p, aFlags, aAdded, root, aTempTarget);
 	auto ret = add(qi);
-	return make_pair((ret.second ? qi : ret.first->second), ret.second);
+	return { (ret.second ? qi : ret.first->second), ret.second };
 }
 
 pair<QueueItem::StringMap::const_iterator, bool> FileQueue::add(QueueItemPtr& qi) noexcept {

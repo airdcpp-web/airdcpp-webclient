@@ -32,54 +32,54 @@ public:
 	std::pair<typename ContainerT<T>::const_iterator, bool> insert_sorted(const T& aItem) {
 		if (this->empty()) {
 			this->push_back(aItem);
-			return make_pair(this->begin(), true);
+			return { this->begin(), true };
 		} else {
 			int res = SortOperator()(NameOperator()(this->back()), NameOperator()(aItem));
 			if (res < 0) {
 				this->push_back(aItem);
-				return make_pair(this->end() - 1, true);
+				return { this->end() - 1, true };
 			} else if (res == 0) {
 				//return the dupe
-				return make_pair(this->end() - 1, false);
+				return { this->end() - 1, false };
 			}
 		}
 
 		auto p = getPos(this->begin(), this->end(), NameOperator()(aItem));
 		if (p.second) {
 			//return the dupe
-			return make_pair(p.first, false);
+			return { p.first, false };
 		}
 
 		//insert
 		p.first = this->insert(p.first, aItem);
-		return make_pair(p.first, true);
+		return { p.first, true };
 	}
 
 	template<typename... ArgT>
 	std::pair<typename ContainerT<T>::const_iterator, bool> emplace_sorted(const keyType& aKey, ArgT&& ... args) {
 		if (this->empty()) {
 			this->emplace_back(aKey, std::forward<ArgT>(args)...);
-			return make_pair(this->begin(), true);
+			return { this->begin(), true };
 		} else {
 			int res = SortOperator()(NameOperator()(this->back()), aKey);
 			if (res < 0) {
 				this->emplace_back(aKey, std::forward<ArgT>(args)...);
-				return make_pair(this->end() - 1, true);
+				return { this->end() - 1, true };
 			} else if (res == 0) {
 				//return the dupe
-				return make_pair(this->end() - 1, false);
+				return { this->end() - 1, false };
 			}
 		}
 
 		auto p = getPos(this->begin(), this->end(), aKey);
 		if (p.second) {
 			//return the dupe
-			return make_pair(p.first, false);
+			return { p.first, false };
 		}
 
 		//insert
 		p.first = this->emplace(p.first, aKey, std::forward<ArgT>(args)...);
-		return make_pair(p.first, true);
+		return { p.first, true };
 	}
 
 	typename ContainerT<T>::const_iterator find(const keyType& aKey) const {
@@ -102,20 +102,6 @@ public:
 		return false;
 	}
 
-	/*int binary_search(int left, int right, const keyType& key) {
-		while (left <= right) {
-			int middle = (left + right) / 2;
-
-			auto res = SortOperator()(key, NameOperator()((*(begin() + middle))));
-			if (res == 0)
-				return middle;
-			else if (res < 0)
-				right = middle - 1;
-			else
-				left = middle + 1;
-		}
-		return -1;
-	}*/
 private:
 	template<typename IterT>
 	std::pair<IterT, bool> getPos(IterT first, IterT last, const keyType& key) const {
@@ -132,12 +118,12 @@ private:
 				first = ++it;
 				count -= step + 1;
 			} else if (res == 0) {
-				return make_pair(it, true);
+				return { it, true };
 			} else {
 				count = step;
 			}
 		}
-		return make_pair(first, false);
+		return { first, false };
 	}
 };
 

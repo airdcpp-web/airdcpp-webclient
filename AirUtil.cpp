@@ -758,7 +758,6 @@ pair<string, string::size_type> AirUtil::getDirName(const string& aPath, char se
 			break;
 		}
 
-		//auto remoteDir = dir.substr(j + 1, i - j);
 		if (!boost::regex_match(aPath.substr(j + 1, i - j), subDirRegPlain)) {
 			j++;
 			break;
@@ -768,8 +767,7 @@ pair<string, string::size_type> AirUtil::getDirName(const string& aPath, char se
 		i = j - 1;
 	}
 
-	//return { aPath.substr(j, i - j + 1), isSub };
-	return make_pair(aPath.substr(j, i - j + 1), isSub ? i + 2 : string::npos);
+	return { aPath.substr(j, i - j + 1), isSub ? i + 2 : string::npos };
 }
 
 string AirUtil::getTitle(const string& searchTerm) {
