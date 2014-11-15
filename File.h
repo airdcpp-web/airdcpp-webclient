@@ -21,6 +21,10 @@
 
 #include "Streams.h"
 
+#ifndef _WIN32
+#include <dirent.h>
+#endif
+
 namespace dcpp {
 
 class File : public IOStream {
