@@ -1060,7 +1060,7 @@ enum Strings { // @DontAdd
 	X_EMPTY_FOLDERS, // "%1% empty folders"
 	X_DUPE_FOLDERS, // "%1% duplicate folders"
 	X_MISSING_DISKS, // "%1% folders with disks missing"
-	X_MISSING_INVALID_SFV_FILES, // "%1% Invalid SFV files"
+	X_MISSING_INVALID_SFV_FILES, // "%1% invalid SFV files"
 	INVALID_SFV_FILE, // "INVALID SFV FILE: "
 	EXTRA_FILES_SAMPLEDIR_X, // "Extra files in sample folder: %1%"
 	EXTRA_FILES_RLSDIR_X, // "The following extra files have been found from a release folder %1%: %2%"
@@ -1860,7 +1860,7 @@ enum Strings { // @DontAdd
 	AS_TIMEVAR_HELP, // "In addition to incrementing numbers, you may also insert time variables in the search string. Note that the parameters can also be used in the custom matcher."
 	AS_TIMEVAR_AVAILABLE, // "Available time variables"
 	REMOVE_FINISHED, // "Remove finished bundles"
-	EMOTICONS_PACK, // "Emoticons Pack"
-	LOG_CRC_OK, // "Show SFV check progress(CRC OK) in system log"
+	EMOTICONS_PACK, // "Emoticons pack"
+	LOG_CRC_OK, // "Show SFV check progress (CRC OK) in system log"
 	LAST // @DontAdd
 };
