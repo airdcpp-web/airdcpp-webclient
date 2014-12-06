@@ -1177,7 +1177,7 @@ void DirectoryListing::removedQueueImpl(const string& aDir) noexcept {
 }
 
 void DirectoryListing::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const StringList& aPaths) noexcept{
-	if (!partialList)
+	if (!partialList || Util::toInt(fileName) == SP_HIDDEN)
 		return;
 
 	string lastVirtual;
