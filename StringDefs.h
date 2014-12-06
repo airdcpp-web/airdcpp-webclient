@@ -1862,5 +1862,6 @@ enum Strings { // @DontAdd
 	REMOVE_FINISHED, // "Remove finished bundles"
 	EMOTICONS_PACK, // "Emoticons pack"
 	LOG_CRC_OK, // "Show SFV check progress (CRC OK) in system log"
+	OPEN_SETTINGS_DIR, // "Open settings directory"
 	LAST // @DontAdd
 };

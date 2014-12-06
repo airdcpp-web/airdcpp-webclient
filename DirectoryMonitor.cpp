@@ -152,6 +152,8 @@ void Monitor::beginRead() {
 }
 
 void Monitor::queueNotificationTask(int dwSize) {
+	if (!server || !server->base)
+		return;
 	// We could just swap back and forth between the two
 	// buffers, but this code is easier to understand and debug.
 
