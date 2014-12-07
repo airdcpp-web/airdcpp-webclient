@@ -107,7 +107,7 @@ void ShareManager::startup(function<void(const string&)> splashF, function<void(
 		}
 	}
 
-	ShareProfilePtr hidden = ShareProfilePtr(new ShareProfile("Hidden", SP_HIDDEN));
+	ShareProfilePtr hidden = ShareProfilePtr(new ShareProfile(STRING(SHARE_HIDDEN), SP_HIDDEN));
 	shareProfiles.push_back(hidden);
 
 	setSkipList();
