@@ -1225,7 +1225,7 @@ bool ShareManager::isRealPathShared(const string& aPath) noexcept {
 string ShareManager::realToVirtual(const string& aPath, ProfileToken aProfile) noexcept{
 	RLock l(cs);
 	auto d = findDirectory(Util::getFilePath(aPath), false, false, true);
-	if (d) {
+	if (d && d->hasProfile(aProfile)) {
 		auto vPath = d->getFullName(aProfile);
 		if (aPath.back() == PATH_SEPARATOR)
 			return vPath;
