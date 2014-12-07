@@ -154,9 +154,9 @@ SearchQuery* SearchQuery::getSearch(const string& aSearchString, const string& a
 		}
 
 		s->itemType = (aTypeMode == SearchManager::TYPE_DIRECTORY) ? SearchQuery::TYPE_DIRECTORY : (aTypeMode == SearchManager::TYPE_FILE) ? SearchQuery::TYPE_FILE : SearchQuery::TYPE_ANY;
-		s->addParents = returnParents;
 	}
 
+	s->addParents = returnParents;
 	s->maxResults = aMaxResults;
 	return s;
 }
