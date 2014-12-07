@@ -1138,6 +1138,9 @@ void DirectoryListing::changeDir(bool reload) noexcept {
 			}
 		} else {
 			try {
+				if (path.back() != PATH_SEPARATOR)
+					path = Util::getFilePath(path);
+
 				QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, path);
 			} catch (...) { }
 		}
