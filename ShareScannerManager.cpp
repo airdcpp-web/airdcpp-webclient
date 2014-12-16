@@ -177,7 +177,7 @@ void ShareScannerManager::runShareScan(const StringList& aPaths) {
 				FileFindIter i(s.rootPath.substr(0, s.rootPath.length() - 1), Util::emptyString, false);
 				if (!i->isHidden()) {
 					scanDir(s.rootPath, s);
-					if (SETTING(CHECK_DUPES) && scanType == TYPE_PARTIAL)
+					if (SETTING(CHECK_DUPES) && (scanType == TYPE_PARTIAL || scanType == TYPE_FULL))
 						findDupes(s.rootPath, s);
 
 					find(s.rootPath, Text::toLower(s.rootPath), s);
@@ -310,8 +310,10 @@ void ShareScannerManager::findDupes(const string& path, ScanInfo& aScan) noexcep
 		return;
 	
 	{
+		auto dirNameLower = Text::toLower(dirName);
+
 		WLock l(cs);
-		auto dupes = dupeDirs.equal_range(Text::toLower(dirName));
+		auto dupes = dupeDirs.equal_range(dirNameLower);
 		if (dupes.first != dupes.second) {
 			aScan.dupesFound++;
 
@@ -321,7 +323,7 @@ void ShareScannerManager::findDupes(const string& path, ScanInfo& aScan) noexcep
 			}
 		}
 
-		dupeDirs.emplace(dirName, path);
+		dupeDirs.emplace(dirNameLower, path);
 	}
 }
 
