@@ -222,7 +222,8 @@ checkslots:
 			} else if(partialFree) {
 				slotType = UserConnection::PARTIALSLOT;
 			} else {
-				if (aSource.isSet(UserConnection::FLAG_MCN1) && isUploading(aSource.getUser())) {
+				bool isUploadingLocked = [&] { RLock l(cs); return isUploading(aSource.getUser()); }();
+				if (aSource.isSet(UserConnection::FLAG_MCN1) && isUploadingLocked) {
 					//don't queue MCN requests for existing uploaders
 					aSource.maxedOut();
 				} else {
@@ -826,7 +827,7 @@ bool UploadManager::getAutoSlot() {
 	if(AirUtil::getSpeedLimit(false) == 0)
 		return false;
 	/** Max slots */
-	if(getSlots() + AirUtil::getMaxAutoOpened() < running)
+	if(getSlots() + AirUtil::getMaxAutoOpened() <= running)
 		return false;		
 	/** Only grant one slot per 30 sec */
 	if(GET_TICK() < getLastGrant() + 30*1000)
