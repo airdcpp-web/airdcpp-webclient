@@ -101,8 +101,6 @@ public:
 
 	OnlineUserPtr getCCPMuser(const HintedUser& user, tstring& _error);
 
-	OnlineUserPtr getCCPMuser(const HintedUser& user, tstring& _error);
-
 	string getDLSpeed(const CID& cid) const noexcept;
 	uint8_t getSlots(const CID& cid) const noexcept;
 
