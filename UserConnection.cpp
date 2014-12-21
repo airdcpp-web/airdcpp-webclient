@@ -246,8 +246,10 @@ void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 		me = cm->findOnlineUser(cm->getMe()->getCID(), hubUrl);
 	}
 
-	if (!me || !peer) //ChatMessage cant be formatted without the OnlineUser!
+	if (!me || !peer){ //ChatMessage cant be formatted without the OnlineUser!
+		disconnect(true);
 		return;
+	}
 
 	if (echo) {
 		std::swap(peer, me);
