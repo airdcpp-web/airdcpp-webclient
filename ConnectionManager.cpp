@@ -437,7 +437,7 @@ void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcep
 	}
 
 	for(auto j: userConnections) {
-		if((j->getLastActivity() + 180*1000) < aTick) { //hmm 3 minutes?
+		if (!j->isSet(UserConnection::FLAG_PM) && (j->getLastActivity() + 180 * 1000) < aTick) { //hmm 3 minutes?
 			j->disconnect(true);
 		}
 	}
