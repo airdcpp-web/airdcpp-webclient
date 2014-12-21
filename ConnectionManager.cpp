@@ -828,7 +828,7 @@ void ConnectionManager::addPMConnection(UserConnection* uc, ConnectionType type)
 		auto& container = cqis[type];
 		auto i = find(container.begin(), container.end(), uc->getUser());
 		if (i == container.end()) { //incoming Connection
-			cqi = getCQI(uc->getHintedUser(), type);
+			cqi = getCQI(uc->getHintedUser(), type, uc->getToken());
 		} else { // We initiated this connection.
 			cqi = *i;
 		}

@@ -244,8 +244,11 @@ void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 		RLock l(cm->getCS());
 		peer = cm->findOnlineUser(user->getCID(), hubUrl);
 		me = cm->findOnlineUser(cm->getMe()->getCID(), hubUrl);
-		// null pointers allowed here as the conn may be going on without hubs.
 	}
+
+	if (!me || !peer) //ChatMessage cant be formatted without the OnlineUser!
+		return;
+
 	if (echo) {
 		std::swap(peer, me);
 	}
