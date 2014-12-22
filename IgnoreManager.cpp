@@ -11,6 +11,7 @@
 
 #include "Util.h"
 #include "Wildcards.h"
+#include "ChatMessage.h"
 
 namespace dcpp {
 
@@ -130,6 +131,40 @@ void IgnoreManager::removeIgnore(const UserPtr& aUser) {
 bool IgnoreManager::isIgnored(const UserPtr& aUser) {
 	auto i = ignoredUsers.find(aUser);
 	return (i != ignoredUsers.end());
+}
+
+bool IgnoreManager::isIgnoredOrFiltered(const ChatMessage& msg, Client* client, bool PM){
+	const auto& identity = msg.from->getIdentity();
+
+	auto logIgnored = [&](bool filter) -> void {
+		if (SETTING(LOG_IGNORED)) {
+			string tmp;
+			if (PM) {
+				tmp = filter ? STRING(PM_MESSAGE_FILTERED) : STRING(PM_MESSAGE_IGNORED);
+			}
+			else {
+				string hub = "[" + ((client && !client->getHubName().empty()) ?
+					(client->getHubName().size() > 50 ? (client->getHubName().substr(0, 50) + "...") : client->getHubName()) : client->getHubUrl()) + "] ";
+				tmp = (filter ? STRING(MC_MESSAGE_FILTERED) : STRING(MC_MESSAGE_IGNORED)) + hub;
+			}
+			tmp += "<" + identity.getNick() + "> " + msg.text;
+			LogManager::getInstance()->message(tmp, LogManager::LOG_INFO);
+		}
+	};
+
+
+
+	if (msg.from->getUser()->isIgnored() && ((client && client->isOp()) || !identity.isOp() || identity.isBot())) {
+		logIgnored(false);
+		return true;
+	}
+
+	if (IgnoreManager::getInstance()->isChatFiltered(identity.getNick(), msg.text, PM ? ChatFilterItem::PM : ChatFilterItem::MC)) {
+		logIgnored(true);
+		return true;
+	}
+
+	return false;
 }
 
 bool IgnoreManager::isChatFiltered(const string& aNick, const string& aText, ChatFilterItem::Context aContext) {

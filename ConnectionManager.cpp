@@ -1141,7 +1141,9 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			if (type != CONNECTION_TYPE_LAST) {
 				WLock l(cs);
 				auto& container = cqis[type];
-				auto i = find(container.begin(), container.end(), aSource->getToken());
+				auto i = type == CONNECTION_TYPE_UPLOAD ?
+					find(container.begin(), container.end(), aSource->getToken()) :
+					find(container.begin(), container.end(), aSource->getUser());
 				dcassert(i != container.end());
 				putCQI(*i);
 			}

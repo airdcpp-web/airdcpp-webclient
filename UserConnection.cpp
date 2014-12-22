@@ -242,8 +242,11 @@ void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 	auto cm = ClientManager::getInstance();
 	{
 		RLock l(cm->getCS());
-		peer = cm->findOnlineUser(user->getCID(), hubUrl);
-		me = cm->findOnlineUser(cm->getMe()->getCID(), hubUrl);
+		peer = cm->findOnlineUser(user->getCID(), getHubUrl());
+		//try to use the same hub so nicks match to a hub, not the perfect solution for CCPM, nicks keep changing when hubs go offline.
+		if(peer && peer->getHubUrl() != hubUrl) 
+			setHubUrl(peer->getHubUrl());
+		me = cm->findOnlineUser(cm->getMe()->getCID(), getHubUrl());
 	}
 
 	if (!me || !peer){ //ChatMessage cant be formatted without the OnlineUser!

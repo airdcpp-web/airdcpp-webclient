@@ -105,6 +105,7 @@ public:
 	void storeIgnore(const UserPtr& aUser);
 	void removeIgnore(const UserPtr& aUser);
 	bool isIgnored(const UserPtr& aUser);
+	bool isIgnoredOrFiltered(const ChatMessage& msg, Client* client, bool PM);
 
 	// chat filter
 	bool isChatFiltered(const string& aNick, const string& aText, ChatFilterItem::Context aContext = ChatFilterItem::ALL);
@@ -131,7 +132,6 @@ private:
 	// SettingsManagerListener
 	virtual void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept;
 	virtual void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept;
-
 	// contains the ignored nicks and patterns 
 	vector<ChatFilterItem> ChatFilterItems;
 };
