@@ -106,20 +106,21 @@ bool ConnectionQueueItem::allowNewConnections(int running) const {
 /*
 We initiate CCPM in here, DC++ has this a bit different, I want to make the cqi now to be able to track the connection for timeouts etc...
 */
-void ConnectionManager::getPMConnection(const UserPtr& aUser, string& hubHint, string& aError) {
+bool ConnectionManager::getPMConnection(const UserPtr& aUser, string& hubHint, string& aError) {
 	bool protocolError = false;
 	WLock l(cs);
 	auto& container = cqis[CONNECTION_TYPE_PM];
 	auto i = find(container.begin(), container.end(), aUser);
 	if (i != container.end()) //already exists
-		return;
+		return false;
 	auto cqi = getCQI(HintedUser(aUser, hubHint), CONNECTION_TYPE_PM);
 	bool connected = ClientManager::getInstance()->connect(aUser, cqi->getToken(), true, aError, hubHint, protocolError, CONNECTION_TYPE_PM);
 	if (!connected) {
 		putCQI(cqi);
-		return;
+		return false;
 	}
 	cqi->setState(ConnectionQueueItem::CONNECTING);
+	return true;
 }
 
 /**
@@ -1144,7 +1145,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			if (type != CONNECTION_TYPE_LAST) {
 				WLock l(cs);
 				auto& container = cqis[type];
-				auto i = find(container.begin(), container.end(), aSource->getToken())
+				auto i = find(container.begin(), container.end(), aSource->getToken());
 				dcassert(i != container.end());
 				putCQI(*i);
 			}

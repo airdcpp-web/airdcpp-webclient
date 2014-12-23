@@ -143,7 +143,7 @@ public:
 	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& aToken, bool secure);
 	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aToken, bool secure);
 
-	void getPMConnection(const UserPtr& aUser, string& hubHint, string& aError);
+	bool getPMConnection(const UserPtr& aUser, string& hubHint, string& aError);
 	void getDownloadConnection(const HintedUser& aUser, bool smallSlot=false);
 	void force(const string& token);
 	

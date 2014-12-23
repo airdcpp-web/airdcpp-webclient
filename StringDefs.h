@@ -1864,5 +1864,6 @@ enum Strings { // @DontAdd
 	LOG_CRC_OK, // "Show SFV check progress (CRC OK) in system log"
 	OPEN_SETTINGS_DIR, // "Open settings directory"
 	SHARE_HIDDEN, // "Share hidden"
+	ALWAYS_CCPM, // "Always attempt to establish direct encrypted private message channels"
 	LAST // @DontAdd
 };
