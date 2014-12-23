@@ -143,7 +143,6 @@ public:
 	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& aToken, bool secure);
 	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aToken, bool secure);
 
-	bool getPMConnection(const UserPtr& aUser, string& hubHint, string& aError);
 	void getDownloadConnection(const HintedUser& aUser, bool smallSlot=false);
 	void force(const string& token);
 	
@@ -260,7 +259,6 @@ private:
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool) noexcept { onUserUpdated(aUser); }
 
 	void onUserUpdated(const UserPtr& aUser);
-	void attemptCCPM(uint64_t aTick, StringList& removedTokens);
 	void attemptDownloads(uint64_t aTick, StringList& removedTokens);
 };
 

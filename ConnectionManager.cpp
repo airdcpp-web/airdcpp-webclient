@@ -103,25 +103,6 @@ bool ConnectionQueueItem::allowNewConnections(int running) const {
 	return (running < AirUtil::getSlotsPerUser(true) || AirUtil::getSlotsPerUser(true) == 0) && (running < maxConns || maxConns == 0);
 }
 
-/*
-We initiate CCPM in here, DC++ has this a bit different, I want to make the cqi now to be able to track the connection for timeouts etc...
-*/
-bool ConnectionManager::getPMConnection(const UserPtr& aUser, string& hubHint, string& aError) {
-	bool protocolError = false;
-	WLock l(cs);
-	auto& container = cqis[CONNECTION_TYPE_PM];
-	auto i = find(container.begin(), container.end(), aUser);
-	if (i != container.end()) //already exists
-		return false;
-	auto cqi = getCQI(HintedUser(aUser, hubHint), CONNECTION_TYPE_PM);
-	bool connected = ClientManager::getInstance()->connect(aUser, cqi->getToken(), true, aError, hubHint, protocolError, CONNECTION_TYPE_PM);
-	if (!connected) {
-		putCQI(cqi);
-		return false;
-	}
-	cqi->setState(ConnectionQueueItem::CONNECTING);
-	return true;
-}
 
 /**
  * Request a connection for downloading.
@@ -251,35 +232,12 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 	StringList removedTokens;
 
 	attemptDownloads(aTick, removedTokens);
-	attemptCCPM(aTick, removedTokens);
-
-
 	if (!removedTokens.empty()) {
-		auto& pms = cqis[CONNECTION_TYPE_PM];
 		WLock l (cs);
 		for(auto& m: removedTokens) {
 			auto s = find(downloads.begin(), downloads.end(), m);
 			if (s != downloads.end()) {
 				putCQI(*s);
-			}
-			auto p = find(pms.begin(), pms.end(), m);
-			if (p != pms.end()) {
-				putCQI(*p);
-			}
-		}
-	}
-}
-void ConnectionManager::attemptCCPM(uint64_t aTick, StringList& removedTokens) {
-	RLock l(cs);
-	for (const auto& cqi : cqis[CONNECTION_TYPE_PM]) {
-		if (cqi->getState() != ConnectionQueueItem::ACTIVE) {
-			if (cqi->getLastAttempt() == 0) {
-				cqi->setLastAttempt(aTick);
-			} else if (cqi->getState() == ConnectionQueueItem::CONNECTING && cqi->getLastAttempt() + 30 * 1000 < aTick) {
-				cqi->setErrors(cqi->getErrors() + 1);
-				fire(ConnectionManagerListener::Failed(), cqi, STRING(CONNECTION_TIMEOUT));
-				cqi->setState(ConnectionQueueItem::WAITING);
-				removedTokens.push_back(cqi->getToken());
 			}
 		}
 	}
@@ -830,14 +788,9 @@ void ConnectionManager::addPMConnection(UserConnection* uc, ConnectionType type)
 
 		WLock l(cs);
 		auto& container = cqis[type];
-		auto i = find(container.begin(), container.end(), uc->getToken());
+		auto i = find(container.begin(), container.end(), uc->getUser());
 		if (i == container.end()) { //incoming Connection
 			cqi = getCQI(uc->getHintedUser(), type, uc->getToken());
-		} else { // We initiated this connection.
-			cqi = *i;
-		}
-
-		if (cqi) {
 			cqi->setState(ConnectionQueueItem::ACTIVE);
 			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 
@@ -1145,7 +1098,8 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			if (type != CONNECTION_TYPE_LAST) {
 				WLock l(cs);
 				auto& container = cqis[type];
-				auto i = find(container.begin(), container.end(), aSource->getToken());
+				auto i = type == CONNECTION_TYPE_PM ? find(container.begin(), container.end(), aSource->getUser()) :
+					find(container.begin(), container.end(), aSource->getToken());
 				dcassert(i != container.end());
 				putCQI(*i);
 			}
