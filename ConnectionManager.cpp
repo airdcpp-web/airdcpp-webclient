@@ -103,6 +103,9 @@ bool ConnectionQueueItem::allowNewConnections(int running) const {
 	return (running < AirUtil::getSlotsPerUser(true) || AirUtil::getSlotsPerUser(true) == 0) && (running < maxConns || maxConns == 0);
 }
 
+/*
+We initiate CCPM in here, DC++ has this a bit different, I want to make the cqi now to be able to track the connection for timeouts etc...
+*/
 void ConnectionManager::getPMConnection(const UserPtr& aUser, string& hubHint, string& aError) {
 	bool protocolError = false;
 	WLock l(cs);
@@ -826,7 +829,7 @@ void ConnectionManager::addPMConnection(UserConnection* uc, ConnectionType type)
 
 		WLock l(cs);
 		auto& container = cqis[type];
-		auto i = find(container.begin(), container.end(), uc->getUser());
+		auto i = find(container.begin(), container.end(), uc->getToken());
 		if (i == container.end()) { //incoming Connection
 			cqi = getCQI(uc->getHintedUser(), type, uc->getToken());
 		} else { // We initiated this connection.
@@ -1141,9 +1144,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			if (type != CONNECTION_TYPE_LAST) {
 				WLock l(cs);
 				auto& container = cqis[type];
-				auto i = type == CONNECTION_TYPE_UPLOAD ?
-					find(container.begin(), container.end(), aSource->getToken()) :
-					find(container.begin(), container.end(), aSource->getUser());
+				auto i = find(container.begin(), container.end(), aSource->getToken())
 				dcassert(i != container.end());
 				putCQI(*i);
 			}
