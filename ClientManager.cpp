@@ -635,15 +635,19 @@ void ClientManager::getUserInfoList(const UserPtr& user, User::UserInfoList& aLi
 OnlineUserPtr ClientManager::getCCPMuser(const HintedUser& user, tstring& _error) {
 	OnlinePairC p;
 	OnlineUser* u = findOnlineUserHint(user.user->getCID(), user.hint, p);
+	auto testSupports = [&] {
+		return u && !u->getUser()->isNMDC() && u->getClient().isSecure() && u->getIdentity().supports(AdcHub::CCPM_FEATURE);
+	};
 
-	if (u && !u->getUser()->isNMDC() && u->getClient().isSecure() && u->getIdentity().supports(AdcHub::CCPM_FEATURE))
+	if (testSupports())
 		return u;
 
 	for (auto i = p.first; i != p.second; ++i) {
 		u = i->second;
-		if (!u->getUser()->isNMDC() && u->getClient().isSecure() && u->getIdentity().supports(AdcHub::CCPM_FEATURE))
+		if (testSupports())
 			return u;
 	}
+
 	if (u) {
 		_error = u->getUser()->isNMDC() ? _T("A secure ADC hub is required; this feature is not supported on NMDC hubs") : 
 			!u->getIdentity().supports(AdcHub::CCPM_FEATURE) ? _T("The user does not support the CCPM ADC extension") :
