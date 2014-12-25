@@ -1864,5 +1864,7 @@ enum Strings { // @DontAdd
 	LOG_CRC_OK, // "Show SFV check progress (CRC OK) in system log"
 	OPEN_SETTINGS_DIR, // "Open settings directory"
 	SHARE_HIDDEN, // "Share hidden"
+	MONITORING_RESTORED_X, // "Monitoring has been restored for the path %1%"
+	DEVICE_REMOVED, // "Device removed"
 	LAST // @DontAdd
 };

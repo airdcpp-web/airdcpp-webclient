@@ -18,6 +18,8 @@
 
 #include "stdinc.h"
 
+
+#include "AirUtil.h"
 #include "DirectoryMonitor.h"
 #include "ResourceManager.h"
 #include "Text.h"
@@ -87,6 +89,7 @@ void DirectoryMonitor::Server::stop() {
 	m_bTerminate = true;
 	{
 		WLock l(cs);
+		failedDirectories.clear();
 		for (auto m: monitors | map_values) {
 			// Each Request object will delete itself.
 			m->stopMonitoring();
@@ -306,15 +309,24 @@ int DirectoryMonitor::Server::read() {
 					}
 				}
 
-				//remove this
-				(*mon)->stopMonitoring();
-				(*mon)->server->base->fire(DirectoryMonitorListener::DirectoryFailed(), (*mon)->path, e.getError());
-				deleteDirectory(mon.base());
+				failDirectory((*mon)->path, e.getError());
 			}
 		}
 	}
 
 	return 1;
+}
+
+void DirectoryMonitor::Server::failDirectory(const string& aPath, const string& aReason) {
+	auto mon = monitors.find(aPath);
+	if (mon == monitors.end())
+		return;
+
+	mon->second->stopMonitoring();
+	mon->second->server->base->fire(DirectoryMonitorListener::DirectoryFailed(), mon->first, aReason);
+	failedDirectories.insert(mon->first);
+
+	deleteDirectory(mon);
 }
 
 void DirectoryMonitor::Server::deleteDirectory(DirectoryMonitor::Server::MonitorMap::iterator mon) {
@@ -348,10 +360,17 @@ bool DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorEx
 			WLock l(cs);
 			mon->beginRead();
 			monitors.emplace(aPath, mon);
+			failedDirectories.erase(aPath);
 		}
 	} catch (MonitorException& e) {
 		mon->stopMonitoring();
 		delete mon;
+
+		{
+			WLock l(cs);
+			failedDirectories.insert(aPath);
+		}
+
 		throw e;
 	}
 
@@ -411,12 +430,21 @@ bool DirectoryMonitor::removeDirectory(const string& aPath) {
 	return server->removeDirectory(aPath);
 }
 
+set<string> DirectoryMonitor::restoreFailedPaths() {
+	return server->restoreFailedPaths();
+}
+
+size_t DirectoryMonitor::getFailedCount() {
+	return server->getFailedCount();
+}
+
 size_t DirectoryMonitor::clear() {
 	return server->clear();
 }
 
 size_t DirectoryMonitor::Server::clear() {
 	WLock l(cs);
+	failedDirectories.clear();
 	for (auto& m: monitors)
 		m.second->stopMonitoring();
 	return monitors.size();
@@ -430,7 +458,84 @@ bool DirectoryMonitor::Server::removeDirectory(const string& aPath) {
 		return true;
 	}
 
-	return false;
+	auto ret = failedDirectories.erase(aPath);
+	return ret > 0;
+}
+
+set<string> DirectoryMonitor::Server::restoreFailedPaths() {
+	set<string> failedDirectoriesCopy, restoredDirectories;
+	{
+		RLock l(cs);
+		failedDirectoriesCopy = failedDirectories;
+	}
+
+	for (const auto& dir : failedDirectoriesCopy) {
+		try {
+			addDirectory(dir);
+			restoredDirectories.insert(dir);
+		} catch (...) {
+			//...
+		}
+	}
+
+	if (!restoredDirectories.empty()) {
+		WLock l(cs);
+		for (const auto& dir : restoredDirectories){
+			failedDirectories.erase(dir);
+		}
+	}
+
+	return restoredDirectories;
+}
+
+void DirectoryMonitor::Server::deviceRemoved(const string& aDrive) {
+	set<string> removedPaths;
+
+	{
+		RLock l(cs);
+		for (const auto& path : monitors | map_keys) {
+			if (AirUtil::isParentOrExact(aDrive, path)) {
+				removedPaths.insert(path);
+			}
+		}
+	}
+
+	if (!removedPaths.empty()) {
+		WLock l(cs);
+		for (const auto& path : removedPaths) {
+			failDirectory(path, STRING(DEVICE_REMOVED));
+		}
+	}
+}
+
+/*void DirectoryMonitor::Server::validatePathExistance() {
+	TargetUtil::VolumeSet volumes;
+	TargetUtil::getVolumes(volumes);
+
+	
+
+	set<string> failed;
+
+	{
+		RLock l(cs);
+		for (const auto path : monitors | map_keys) {
+			if (TargetUtil::getMountPath(path, volumes).empty()) {
+				failed.insert(path);
+			}
+		}
+	}
+
+	if (!failed.empty()) {
+		WLock l(cs);
+		for (const auto& path : failed) {
+			failDirectory(path, STRING(PATH_NOT_FOUND));
+		}
+	}
+}*/
+
+size_t DirectoryMonitor::Server::getFailedCount() {
+	RLock l(cs);
+	return failedDirectories.size();
 }
 
 string DirectoryMonitor::Server::getErrorStr(int error) {

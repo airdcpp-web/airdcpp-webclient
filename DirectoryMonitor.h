@@ -50,6 +50,11 @@ public:
 	bool removeDirectory(const string& aPath);
 	size_t clear();
 
+	// returns the paths that were restored successfully
+	set<string> restoreFailedPaths();
+	size_t getFailedCount();
+	void deviceRemoved(const string& aDrive){ server->deviceRemoved(aDrive); }
+
 	void stopMonitoring();
 	void init() throw(MonitorException);
 
@@ -81,6 +86,13 @@ private:
 		string getStats() const;
 		bool hasDirectories() const;
 		static string getErrorStr(int error);
+		set<string> restoreFailedPaths();
+		size_t getFailedCount();
+		void deviceRemoved(const string& aDrive);
+
+		// ReadDirectoryChangesW doesn't notice if the path gets removed. This function should be
+		// polled periodically in order to remove missing paths from monitoring.
+		//void validatePathExistance();  // replaced by deviceRemoved for now.. 
 	private:
 		typedef std::unordered_map<string, Monitor*, noCaseStringHash, noCaseStringEq> MonitorMap;
 		mutable SharedMutex cs;
@@ -91,8 +103,13 @@ private:
 		bool m_bTerminate;
 		atomic_flag threadRunning;
 
+		// finally removes the directory from the list (monitoring needs to be stopped first)
+		// also closes m_hIOCP if the list is empty
+		// must be called from inside WLock
 		void deleteDirectory(MonitorMap::iterator mon);
 
+		// must be called from inside WLock
+		void failDirectory(const string& path, const string& aReason);
 #ifdef WIN32
 		HANDLE m_hIOCP;
 #else
@@ -100,6 +117,7 @@ private:
 		int fd = -1;
 #endif
 		int	m_nThreads;
+		set<string> failedDirectories;
 	};
 
 	Server* server;

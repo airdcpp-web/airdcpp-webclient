@@ -734,7 +734,7 @@ void ShareManager::abortRefresh() noexcept {
 
 void ShareManager::shutdown(function<void(float)> progressF) noexcept {
 	monitor.removeListener(this);
-	saveXmlList(false, progressF);
+	saveXmlList(progressF);
 
 	try {
 		RLock l (cs);
@@ -2710,6 +2710,15 @@ void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
 	}
 
 	handleChangedFiles(tick, false);
+
+	restoreFailedMonitoredPaths();
+}
+
+void ShareManager::restoreFailedMonitoredPaths() {
+	auto restored = monitor.restoreFailedPaths();
+	for (const auto& dir : restored) {
+		LogManager::getInstance()->message(STRING_F(MONITORING_RESTORED_X, dir), LogManager::LOG_INFO);
+	}
 }
 
 void ShareManager::getShares(ShareDirInfo::Map& aDirs) const noexcept {
@@ -3028,7 +3037,7 @@ string ShareManager::ProfileDirectory::getCacheXmlPath() const noexcept {
 
 #define LITERAL(n) n, sizeof(n)-1
 
-void ShareManager::saveXmlList(bool verbose /*false*/, function<void(float)> progressF /*nullptr*/) noexcept {
+void ShareManager::saveXmlList(function<void(float)> progressF /*nullptr*/) noexcept {
 
 	if(xml_saving)
 		return;
@@ -3077,7 +3086,7 @@ void ShareManager::saveXmlList(bool verbose /*false*/, function<void(float)> pro
 					File::deleteFile(path);
 					File::renameFile(path + ".tmp", path);
 				} catch (Exception& e) {
-					LogManager::getInstance()->message("Error saving " + path + ": " + e.getError(), LogManager::LOG_WARNING);
+					LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, path % e.getError()), LogManager::LOG_WARNING);
 				}
 
 				d->getProfileDir()->setCacheDirty(false);
@@ -3093,8 +3102,6 @@ void ShareManager::saveXmlList(bool verbose /*false*/, function<void(float)> pro
 
 	xml_saving = false;
 	lastSave = GET_TICK();
-	if (verbose)
-		LogManager::getInstance()->message("Share cache saved.", LogManager::LOG_INFO);
 }
 
 void ShareManager::Directory::toXmlList(OutputStream& xmlFile, string&& path, string& indent, string& tmp) {
@@ -3770,6 +3777,10 @@ void ShareManager::setSkipList() {
 	skipList.pattern = SETTING(SKIPLIST_SHARE);
 	skipList.setMethod(SETTING(SHARE_SKIPLIST_USE_REGEXP) ? StringMatch::REGEX : StringMatch::WILDCARD);
 	skipList.prepare();
+}
+
+void ShareManager::deviceRemoved(const string& aDrive) {
+	monitor.deviceRemoved(aDrive);
 }
 
 } // namespace dcpp

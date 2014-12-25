@@ -126,6 +126,7 @@ class ShareManager : public Singleton<ShareManager>, public Speaker<ShareManager
 	private TimerManagerListener, private QueueManagerListener, private DirectoryMonitorListener
 {
 public:
+	void deviceRemoved(const string& aDrive);
 	void setSkipList();
 
 	bool matchSkipList(const string& aStr) const noexcept { return skipList.match(aStr); }
@@ -181,7 +182,7 @@ public:
 	MemoryInputStream* generateTTHList(const string& dir, bool recurse, ProfileToken aProfile) const noexcept;
 	MemoryInputStream* getTree(const string& virtualFile, ProfileToken aProfile) const noexcept;
 
-	void saveXmlList(bool verbose=false, function<void (float)> progressF = nullptr) noexcept;	//for filelist caching
+	void saveXmlList(function<void (float)> progressF = nullptr) noexcept;	//for filelist caching
 
 	AdcCommand getFileInfo(const string& aFile, ProfileToken aProfile) throw(ShareException);
 
@@ -772,6 +773,8 @@ private:
 	void handleChangedFiles(uint64_t aTick, bool forced = false) noexcept;
 	bool handleModifyInfo(DirModifyInfo& aInfo, optional<StringList>& bundlePaths_, ProfileTokenSet& dirtyProfiles_, StringList& refresh_, uint64_t aTick, bool forced) noexcept;
 	void onFileDeleted(const string& aPath);
+
+	void restoreFailedMonitoredPaths();
 }; //sharemanager end
 
 } // namespace dcpp
