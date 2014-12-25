@@ -184,6 +184,18 @@ void Util::initialize() {
 
 	sgenrand((unsigned long)time(NULL));
 
+#ifdef _WIN64
+	// VS2013's CRT only checks the existence of FMA3 instructions, not the
+	// enabled-ness of them at the OS level (this is fixed in VS2015). We force
+	// off usage of FMA3 instructions in the CRT to avoid using that path and
+	// hitting illegal instructions when running on CPUs that support FMA3, but
+	// OSs that don't.
+	// https://connect.microsoft.com/VisualStudio/feedback/details/811093/visual-studio-2013-rtm-c-x64-code-generation-bug-for-avx2-instructions
+	#if _MSC_VER == 1800
+		_set_FMA3_enable(0);
+	#endif
+#endif
+
 #if (_MSC_VER >= 1400)
 	_set_invalid_parameter_handler(reinterpret_cast<_invalid_parameter_handler>(invalidParameterHandler));
 #endif
