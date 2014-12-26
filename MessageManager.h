@@ -50,7 +50,7 @@ namespace dcpp {
 
 	private:
 		unordered_map<UserPtr, UserConnection*, User::Hash> ccpms;
-		CriticalSection ccpmMutex;
+		SharedMutex ccpmMutex;
 
 		// ConnectionManagerListener
 		void on(ConnectionManagerListener::Connected, const ConnectionQueueItem* cqi, UserConnection* uc) noexcept;

@@ -21,6 +21,7 @@
 #include "ClientManager.h"
 #include "MessageManager.h"
 #include "IgnoreManager.h"
+#include "LogManager.h"
 
 #include "ChatMessage.h"
 
@@ -36,14 +37,14 @@ namespace dcpp
 		ConnectionManager::getInstance()->removeListener(this);
 
 		{
-			Lock l(ccpmMutex);
+			WLock l(ccpmMutex);
 			ccpms.clear();
 		}
 		ConnectionManager::getInstance()->disconnect();
 	}
 
 bool MessageManager::hasCCPMConn(const UserPtr& user) {
-	Lock l(ccpmMutex);
+	RLock l(ccpmMutex);
 	return ccpms.find(user) != ccpms.end();
 }
 
@@ -51,7 +52,7 @@ bool MessageManager::sendPrivateMessage(const HintedUser& aUser, const tstring& 
 	auto msg8 = Text::fromT(msg);
 
 	{
-		Lock l(ccpmMutex);
+		RLock l(ccpmMutex);
 		auto i = ccpms.find(aUser);
 		if (i != ccpms.end()) {
 			auto uc = i->second;
@@ -71,7 +72,8 @@ bool MessageManager::StartCCPM(HintedUser& aUser, string& _err, bool& allowAuto)
 		RLock l(ClientManager::getInstance()->getCS());
 		auto ou = ClientManager::getInstance()->getCCPMuser(aUser, _err);
 		if (!ou) {
-			allowAuto = false;
+			if (aUser.user->isOnline())
+				allowAuto = false;
 			return false;
 		}
 	}
@@ -91,7 +93,7 @@ bool MessageManager::isIgnoredOrFiltered(const ChatMessage& msg, Client* client,
 }
 
 void MessageManager::DisconnectCCPM(const UserPtr& aUser) {
-	Lock l(ccpmMutex);
+	WLock l(ccpmMutex);
 	auto i = ccpms.find(aUser);
 	if (i != ccpms.end()) {
 		auto uc = i->second;
@@ -110,20 +112,24 @@ void MessageManager::on(ConnectionManagerListener::Connected, const ConnectionQu
 				uc->disconnect(true);
 				return;
 			}
+			{
+				// until a message is received, no need to open a PM window.
+				WLock l(ccpmMutex);
+				ccpms[cqi->getUser()] = uc;
+				uc->addListener(this);
+			}
 
-			// until a message is received, no need to open a PM window.
-			Lock l(ccpmMutex);
-			ccpms[cqi->getUser()] = uc;
-			uc->addListener(this);
+			fire(MessageManagerListener::StatusMessage(), cqi->getUser(),_T("A direct encrypted channel has been established"), LogManager::LOG_INFO);
 		}
 	}
 
 void MessageManager::on(ConnectionManagerListener::Removed, const ConnectionQueueItem* cqi) noexcept{
 	if (cqi->getConnType() == CONNECTION_TYPE_PM) {
 		{
-			Lock l(ccpmMutex);
+			WLock l(ccpmMutex);
 			ccpms.erase(cqi->getUser());
 		}
+		fire(MessageManagerListener::StatusMessage(), cqi->getUser(), _T("The direct encrypted channel has been disconnected"), LogManager::LOG_INFO);
 	}
 }
 
