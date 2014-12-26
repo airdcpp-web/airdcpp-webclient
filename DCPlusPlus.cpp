@@ -42,6 +42,7 @@
 #include "ThrottleManager.h"
 #include "IgnoreManager.h"
 #include "HighlightManager.h"
+#include "MessageManager.h"
 
 #include "StringTokenizer.h"
 
@@ -85,6 +86,7 @@ void startup(function<void(const string&)> stepF, function<bool(const string& /*
 	SearchManager::newInstance();
 	ClientManager::newInstance();
 	ConnectionManager::newInstance();
+	MessageManager::newInstance();
 	DownloadManager::newInstance();
 	UploadManager::newInstance();
 	ThrottleManager::newInstance();
@@ -200,6 +202,7 @@ void shutdown(function<void (const string&)> stepF, function<void (float)> progr
 	DownloadManager::deleteInstance();
 	UploadManager::deleteInstance();
 	ShareScannerManager::deleteInstance();
+	MessageManager::deleteInstance();
 	ConnectionManager::deleteInstance();
 	SearchManager::deleteInstance();
 	FavoriteManager::deleteInstance();

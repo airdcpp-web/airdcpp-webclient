@@ -632,7 +632,7 @@ void ClientManager::getUserInfoList(const UserPtr& user, User::UserInfoList& aLi
 	}
 }
 
-OnlineUserPtr ClientManager::getCCPMuser(const HintedUser& user, tstring& _error) {
+OnlineUserPtr ClientManager::getCCPMuser(const HintedUser& user, string& _error) {
 	OnlinePairC p;
 	OnlineUser* u = findOnlineUserHint(user.user->getCID(), user.hint, p);
 	auto testSupports = [&] {
@@ -649,11 +649,11 @@ OnlineUserPtr ClientManager::getCCPMuser(const HintedUser& user, tstring& _error
 	}
 
 	if (u) {
-		_error = u->getUser()->isNMDC() ? _T("A secure ADC hub is required; this feature is not supported on NMDC hubs") : 
-			!u->getIdentity().supports(AdcHub::CCPM_FEATURE) ? _T("The user does not support the CCPM ADC extension") :
-			!u->getClient().isSecure() ? _T("The connection to the hub used to initiate the channel must be encrypted") : _T("");
+		_error = u->getUser()->isNMDC() ? "A secure ADC hub is required; this feature is not supported on NMDC hubs" : 
+			!u->getIdentity().supports(AdcHub::CCPM_FEATURE) ? "The user does not support the CCPM ADC extension" :
+			!u->getClient().isSecure() ? "The connection to the hub used to initiate the channel must be encrypted" : "";
 	} else {
-		_error = _T("User is offline");
+		_error = STRING(USER_OFFLINE);
 	}
 
 	return nullptr;
