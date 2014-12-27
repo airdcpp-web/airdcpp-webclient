@@ -39,7 +39,6 @@
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 
-
 namespace dcpp {
 
 using boost::find_if;
@@ -632,32 +631,28 @@ void ClientManager::getUserInfoList(const UserPtr& user, User::UserInfoList& aLi
 	}
 }
 
-OnlineUserPtr ClientManager::getCCPMuser(const HintedUser& user, string& _error) {
-	OnlinePairC p;
-	OnlineUser* u = findOnlineUserHint(user.user->getCID(), user.hint, p);
-	auto testSupports = [&] {
-		return u && !u->getUser()->isNMDC() && u->getClient().isSecure() && u->getIdentity().supports(AdcHub::CCPM_FEATURE);
-	};
-
-	if (testSupports())
-		return u;
-
-	for (auto i = p.first; i != p.second; ++i) {
-		u = i->second;
-		if (testSupports())
-			return u;
+bool ClientManager::getSupportsCCPM(const UserPtr& aUser, tstring& _error) {
+	if (!aUser) {
+		_error = TSTRING(USER_OFFLINE);
+		return false;
+	}
+	else if (aUser->isSet(User::BOT)) {
+		_error = TSTRING(CCPM_NOT_SUPPORTED);
+		return false;
+	}
+	else if (aUser->isNMDC()) {
+		_error = TSTRING(CCPM_NOT_SUPPORTED_NMDC);
+		return false;
 	}
 
-	if (u) {
-		_error = u->getUser()->isNMDC() ? "A secure ADC hub is required; this feature is not supported on NMDC hubs" : 
-			!u->getIdentity().supports(AdcHub::CCPM_FEATURE) ? "The user does not support the CCPM ADC extension" :
-			!u->getClient().isSecure() ? "The connection to the hub used to initiate the channel must be encrypted" : "";
-	} else {
-		_error = STRING(USER_OFFLINE);
+
+	RLock l(cs);
+	OnlinePair op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID()));
+	for (auto u : op | map_values) {
+		if (u->supportsCCPM(_error))
+			return true;
 	}
-
-	return nullptr;
-
+	return false;
 }
 
 
@@ -684,6 +679,15 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 
 	auto connectUser = [&] (OnlineUser* ou) -> bool {
 		isProtocolError = false;
+		if (aConnType == CONNECTION_TYPE_PM) {
+			tstring _err;
+			if (!ou->supportsCCPM(_err)) {
+				lastError_ = Text::fromT(_err);
+				isProtocolError = true;
+				return false;
+			}
+		}
+
 		auto ret = ou->getClientBase().connect(*ou, aToken, lastError_, aConnType);
 		if (ret == AdcCommand::SUCCESS) {
 			return true;

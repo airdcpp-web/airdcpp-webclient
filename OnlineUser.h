@@ -242,6 +242,7 @@ public:
 #endif
 
 	string getLogPath();
+	bool supportsCCPM(tstring& _error) const;
 
 	bool isInList;
 	GETSET(Identity, identity, Identity);

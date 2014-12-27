@@ -29,19 +29,19 @@
 namespace dcpp 
 {
 
-	MessageManager::MessageManager() noexcept{
-		ConnectionManager::getInstance()->addListener(this);
-	}
+MessageManager::MessageManager() noexcept{
+	ConnectionManager::getInstance()->addListener(this);
+}
 
-		MessageManager::~MessageManager() noexcept {
-		ConnectionManager::getInstance()->removeListener(this);
+MessageManager::~MessageManager() noexcept {
+	ConnectionManager::getInstance()->removeListener(this);
 
-		{
-			WLock l(ccpmMutex);
-			ccpms.clear();
-		}
-		ConnectionManager::getInstance()->disconnect();
+	{
+		WLock l(ccpmMutex);
+		ccpms.clear();
 	}
+	ConnectionManager::getInstance()->disconnect();
+}
 
 bool MessageManager::hasCCPMConn(const UserPtr& user) {
 	RLock l(ccpmMutex);
@@ -68,16 +68,10 @@ bool MessageManager::sendPrivateMessage(const HintedUser& aUser, const tstring& 
 
 bool MessageManager::StartCCPM(HintedUser& aUser, string& _err, bool& allowAuto){
 
-	{
-		RLock l(ClientManager::getInstance()->getCS());
-		auto ou = ClientManager::getInstance()->getCCPMuser(aUser, _err);
-		if (!ou) {
-			if (aUser.user->isOnline())
-				allowAuto = false;
-			return false;
-		}
+	if (!aUser.user->isOnline()) {
+		allowAuto = true;
+		return false;
 	}
-
 
 	auto token = ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_PM);
 	return ClientManager::getInstance()->connect(aUser.user, token, true, _err, aUser.hint, allowAuto, CONNECTION_TYPE_PM);
@@ -114,7 +108,7 @@ void MessageManager::on(ConnectionManagerListener::Connected, const ConnectionQu
 				uc->addListener(this);
 			}
 
-			fire(MessageManagerListener::StatusMessage(), cqi->getUser(),_T("A direct encrypted channel has been established"), LogManager::LOG_INFO);
+			fire(MessageManagerListener::StatusMessage(), cqi->getUser(),TSTRING(CCPM_ESTABLISHED), LogManager::LOG_INFO);
 		}
 	}
 
@@ -124,7 +118,7 @@ void MessageManager::on(ConnectionManagerListener::Removed, const ConnectionQueu
 			WLock l(ccpmMutex);
 			ccpms.erase(cqi->getUser());
 		}
-		fire(MessageManagerListener::StatusMessage(), cqi->getUser(), _T("The direct encrypted channel has been disconnected"), LogManager::LOG_INFO);
+		fire(MessageManagerListener::StatusMessage(), cqi->getUser(), TSTRING(CCPM_DISCONNECTED), LogManager::LOG_INFO);
 	}
 }
 

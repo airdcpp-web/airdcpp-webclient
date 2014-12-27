@@ -99,7 +99,7 @@ public:
 	
 	string getNick(const UserPtr& u, const string& hintUrl, bool allowFallback = true) const noexcept;
 
-	OnlineUserPtr getCCPMuser(const HintedUser& user, string& _error);
+	bool getSupportsCCPM(const UserPtr& user, tstring& _error);
 
 	string getDLSpeed(const CID& cid) const noexcept;
 	uint8_t getSlots(const CID& cid) const noexcept;

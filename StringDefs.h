@@ -1864,5 +1864,15 @@ enum Strings { // @DontAdd
 	OPEN_SETTINGS_DIR, // "Open settings directory"
 	SHARE_HIDDEN, // "Share hidden"
 	ALWAYS_CCPM, // "Always attempt to establish direct encrypted private message channels"
+	CCPM_ESTABLISHED, // "A direct encrypted channel has been established"
+	CCPM_DISCONNECTED, // "The direct encrypted channel has been disconnected"
+	CCPM_ESTABLISHING, // "Establishing a direct encrypted channel..."
+	CCPM_DISCONNECTING, // "Disconnecting the direct encrypted channel..."
+	DIRECT_ENCRYPTED_CHANNEL, // "Direct encrypted channel"
+	CCPM_NOT_SUPPORTED, // "The user does not support the CCPM ADC extension"
+	CCPM_NOT_SUPPORTED_NMDC, // "A secure ADC hub is required; this feature is not supported on NMDC hubs"
+	CCPM_NOT_SUPPORTED_SECURE, // "The connection to the hub used to initiate the channel must be encrypted"
+	DISCONNECT_CCPM, // "Disconnect the direct encrypted channel"
+	START_CCPM, // "Start a direct encrypted channel"
 	LAST // @DontAdd
 };
