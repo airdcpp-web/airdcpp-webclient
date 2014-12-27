@@ -108,7 +108,7 @@ void MessageManager::on(ConnectionManagerListener::Connected, const ConnectionQu
 				uc->addListener(this);
 			}
 
-			fire(MessageManagerListener::StatusMessage(), cqi->getUser(),TSTRING(CCPM_ESTABLISHED), LogManager::LOG_INFO);
+			fire(MessageManagerListener::StatusMessage(), cqi->getUser(),STRING(CCPM_ESTABLISHED), LogManager::LOG_INFO);
 		}
 	}
 
@@ -118,7 +118,7 @@ void MessageManager::on(ConnectionManagerListener::Removed, const ConnectionQueu
 			WLock l(ccpmMutex);
 			ccpms.erase(cqi->getUser());
 		}
-		fire(MessageManagerListener::StatusMessage(), cqi->getUser(), TSTRING(CCPM_DISCONNECTED), LogManager::LOG_INFO);
+		fire(MessageManagerListener::StatusMessage(), cqi->getUser(), STRING(CCPM_DISCONNECTED), LogManager::LOG_INFO);
 	}
 }
 

@@ -631,17 +631,17 @@ void ClientManager::getUserInfoList(const UserPtr& user, User::UserInfoList& aLi
 	}
 }
 
-bool ClientManager::getSupportsCCPM(const UserPtr& aUser, tstring& _error) {
+bool ClientManager::getSupportsCCPM(const UserPtr& aUser, string& _error) {
 	if (!aUser) {
-		_error = TSTRING(USER_OFFLINE);
+		_error = STRING(USER_OFFLINE);
 		return false;
 	}
 	else if (aUser->isSet(User::BOT)) {
-		_error = TSTRING(CCPM_NOT_SUPPORTED);
+		_error = STRING(CCPM_NOT_SUPPORTED);
 		return false;
 	}
 	else if (aUser->isNMDC()) {
-		_error = TSTRING(CCPM_NOT_SUPPORTED_NMDC);
+		_error = STRING(CCPM_NOT_SUPPORTED_NMDC);
 		return false;
 	}
 
@@ -680,9 +680,7 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 	auto connectUser = [&] (OnlineUser* ou) -> bool {
 		isProtocolError = false;
 		if (aConnType == CONNECTION_TYPE_PM) {
-			tstring _err;
-			if (!ou->supportsCCPM(_err)) {
-				lastError_ = Text::fromT(_err);
+			if (!ou->supportsCCPM(lastError_)) {
 				isProtocolError = true;
 				return false;
 			}

@@ -333,17 +333,17 @@ string OnlineUser::getLogPath() {
 	return LogManager::getInstance()->getPath(getUser(), params);
 }
 
-bool OnlineUser::supportsCCPM(tstring& _error) const {
+bool OnlineUser::supportsCCPM(string& _error) const {
 	if (getUser()->isNMDC()) {
-		_error = TSTRING(CCPM_NOT_SUPPORTED_NMDC);
+		_error = STRING(CCPM_NOT_SUPPORTED_NMDC);
 		return false;
 	}
 	else if (!getIdentity().supports(AdcHub::CCPM_FEATURE)) {
-		_error = TSTRING(CCPM_NOT_SUPPORTED);
+		_error = STRING(CCPM_NOT_SUPPORTED);
 		return false;
 	}
 	else if (!getClient().isSecure()) {
-		_error = TSTRING(CCPM_NOT_SUPPORTED_SECURE);
+		_error = STRING(CCPM_NOT_SUPPORTED_SECURE);
 		return false;
 	}
 	return true;

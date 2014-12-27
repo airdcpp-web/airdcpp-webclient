@@ -34,7 +34,7 @@ namespace dcpp {
 		typedef X<0> StatusMessage;
 
 		virtual void on(PrivateMessage, const ChatMessage&) noexcept{}
-		virtual void on(StatusMessage, const UserPtr&, const tstring&, uint8_t) noexcept{}
+		virtual void on(StatusMessage, const UserPtr&, const string&, uint8_t) noexcept{}
 	};
 
 } // namespace dcpp
