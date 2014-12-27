@@ -1874,5 +1874,7 @@ enum Strings { // @DontAdd
 	CCPM_NOT_SUPPORTED_SECURE, // "The connection to the hub used to initiate the channel must be encrypted"
 	DISCONNECT_CCPM, // "Disconnect the direct encrypted channel"
 	START_CCPM, // "Start a direct encrypted channel"
+	MONITORING_RESTORED_X, // "Monitoring has been restored for the path %1%"
+	DEVICE_REMOVED, // "Device removed"
 	LAST // @DontAdd
 };
