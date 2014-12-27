@@ -107,11 +107,6 @@ void MessageManager::DisconnectCCPM(const UserPtr& aUser) {
 void MessageManager::on(ConnectionManagerListener::Connected, const ConnectionQueueItem* cqi, UserConnection* uc) noexcept{
 		if (cqi->getConnType() == CONNECTION_TYPE_PM) {
 
-			// C-C PMs are not supported outside of PM windows.
-			if (!SETTING(POPUP_PMS)) {
-				uc->disconnect(true);
-				return;
-			}
 			{
 				// until a message is received, no need to open a PM window.
 				WLock l(ccpmMutex);

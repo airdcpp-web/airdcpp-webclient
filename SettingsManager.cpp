@@ -188,7 +188,7 @@ const string SettingsManager::settingTags[] =
 	"LogDownloads", "LogFilelistTransfers", "LogFinishedDownloads", "LogMainChat",
 	"LogPrivateChat", "LogStatusMessages", "LogSystem", "LogUploads", "MagnetAsk",
 	"MagnetRegister", "MinimizeToTray", "NoAwayMsgToBots", "NoIpOverride",
-	"PopupBotPms", "PopupHubPms", "PopupPMs", "PopunderFilelist", "PopunderPm",
+	"PopupBotPms", "PopupHubPms", "PopunderFilelist", "PopunderPm",
 	"LowestPrio", "PromptPassword", "QueueFrameShowTree", "SearchFilterShared",
 	"SearchOnlyFreeSlots", "SendUnknownCommands",
 	"ShareHidden", "ShowJoins", "ShowMenuBar", "ShowStatusbar", "ShowToolbar",
@@ -300,7 +300,6 @@ SettingsManager::SettingsManager()
 	setDefault(PRIVATE_MESSAGE_BEEP, false);
 	setDefault(PRIVATE_MESSAGE_BEEP_OPEN, false);
 	setDefault(USE_SYSTEM_ICONS, true);
-	setDefault(POPUP_PMS, true);
 	setDefault(MIN_UPLOAD_SPEED, 0);
 	setDefault(LOG_FORMAT_POST_DOWNLOAD, "%Y-%m-%d %H:%M: %[target] " + STRING(DOWNLOADED_FROM) + " %[userNI] (%[userCID]), %[fileSI] (%[fileSIchunk]), %[speed], %[time]");
 	setDefault(LOG_FORMAT_POST_UPLOAD, "%Y-%m-%d %H:%M: %[source] " + STRING(UPLOADED_TO) + " %[userNI] (%[userCID]), %[fileSI] (%[fileSIchunk]), %[speed], %[time]");
