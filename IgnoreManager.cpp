@@ -152,6 +152,25 @@ bool IgnoreManager::isIgnoredOrFiltered(const ChatMessage& msg, Client* client, 
 		}
 	};
 
+	if (PM && client) {
+		// don't be that restrictive with the fav hub option
+		if (client->getFavNoPM() && (client->isOp() || !msg.replyTo->getIdentity().isOp()) && !msg.replyTo->getIdentity().isBot() && !msg.replyTo->getUser()->isFavorite()) {
+			string tmp;
+			client->privateMessage(msg.replyTo, "Private messages sent via this hub are ignored", tmp);
+			return true;
+		}
+	}
+
+	//These 2 settings could possibly be removed.
+	if (SETTING(IGNORE_HUB_PMS) && identity.isHub()) {
+		logIgnored(false);
+		return true;
+	}
+
+	if (SETTING(IGNORE_BOT_PMS) && identity.isBot()) {
+		logIgnored(false);
+		return true;
+	}
 
 
 	if (msg.from->getUser()->isIgnored() && ((client && client->isOp()) || !identity.isOp() || identity.isBot())) {

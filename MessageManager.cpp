@@ -69,7 +69,6 @@ bool MessageManager::sendPrivateMessage(const HintedUser& aUser, const tstring& 
 bool MessageManager::StartCCPM(HintedUser& aUser, string& _err, bool& allowAuto){
 
 	if (!aUser.user->isOnline()) {
-		allowAuto = true;
 		return false;
 	}
 
