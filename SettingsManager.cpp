@@ -184,7 +184,7 @@ const string SettingsManager::settingTags[] =
 	"ConfirmHubRemoval", "ConfirmUserRemoval", "Coral",
 	"DontDlAlreadyQueued", "DontDLAlreadyShared", "FavShowJoins", "FilterMessages",
 	"FollowLinks", "GetUserCountry", "GetUserInfo", "HubUserCommands",
-	"IgnoreBotPms", "IgnoreHubPms", "OpenNewWindow", "KeepFinishedFiles", "KeepLists",
+	"OpenNewWindow", "KeepFinishedFiles", "KeepLists",
 	"LogDownloads", "LogFilelistTransfers", "LogFinishedDownloads", "LogMainChat",
 	"LogPrivateChat", "LogStatusMessages", "LogSystem", "LogUploads", "MagnetAsk",
 	"MagnetRegister", "MinimizeToTray", "NoAwayMsgToBots", "NoIpOverride",
@@ -198,7 +198,7 @@ const string SettingsManager::settingTags[] =
 	"UsersFilterFavorite", "UsersFilterOnline", "UsersFilterQueue", "UsersFilterWaiting",
 	"AwayTimeStamp",
 
-	"PrivateMessageBeep", "PrivateMessageBeepOpen", "ShowProgressBars", "MDIMaxmimized", "SearchPassiveAlways", "RemoveForbidden", "ShowInfoTips", "MinimizeOnStratup", "ConfirmDelete", "ExpandQueue",
+	"PrivateMessageBeep", "PrivateMessageBeepOpen", "ShowProgressBars", "MDIMaxmimized", "SearchPassiveAlways", "RemoveForbidden", "ShowInfoTips", "MinimizeOnStratup", "ConfirmDelete",
 	"FilterEnter", "SpyFrameIgnoreTthSearches", "OpenWaitingUsers", "BoldWaitingUsers", "GroupSearchResults", "TabsOnTop", "OpenPublic", "OpenFavoriteHubs", "OpenFavoriteUsers", "OpenQueue",
 	"OpenFinishedUploads", "OpenSearchSpy", "OpenNotepad", "SuppressMainChat", "ProgressbaroDCStyle", "MultiChunk", "PopupAway", "PopupMinimized", "Away", "PopupHubConnected", "PopupHubDisconnected", "PopupFavoriteConnected", 
 	"PopupDownloadStart", "PopupDownloadFailed", "PopupDownloadFinished", "PopupUploadFinished", "PopupPm", "PopupNewPM", "UploadQueueFrameShowTree", "SegmentsManual", "SoundsDisabled", "ReportFoundAlternates",
@@ -283,8 +283,6 @@ SettingsManager::SettingsManager()
 	setDefault(CONFIRM_EXIT, true);
 	setDefault(POPUP_HUB_PMS, true);
 	setDefault(POPUP_BOT_PMS, true);
-	setDefault(IGNORE_HUB_PMS, false);
-	setDefault(IGNORE_BOT_PMS, false);
 	setDefault(BUFFER_SIZE, 64);
 	setDefault(HUBLIST_SERVERS, "http://dchublist.com/hublist.xml.bz2;http://hublist.eu/hublist.xml.bz2;http://www.hublista.hu/hublist.xml.bz2;");
 	setDefault(DOWNLOAD_SLOTS, 50);
@@ -514,7 +512,6 @@ SettingsManager::SettingsManager()
 	setDefault(MINIMIZE_ON_STARTUP, false);
 	setDefault(FREE_SLOTS_DEFAULT, false);
 	setDefault(ERROR_COLOR, RGB(255, 0, 0));
-	setDefault(EXPAND_QUEUE, true);
 	setDefault(TRANSFER_SPLIT_SIZE, 8000);
 	setDefault(MENUBAR_TWO_COLORS, true);
 	setDefault(MENUBAR_LEFT_COLOR, RGB(255, 64, 64));

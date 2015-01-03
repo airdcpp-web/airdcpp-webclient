@@ -161,18 +161,6 @@ bool IgnoreManager::isIgnoredOrFiltered(const ChatMessage& msg, Client* client, 
 		}
 	}
 
-	//These 2 settings could possibly be removed.
-	if (SETTING(IGNORE_HUB_PMS) && identity.isHub()) {
-		logIgnored(false);
-		return true;
-	}
-
-	if (SETTING(IGNORE_BOT_PMS) && identity.isBot()) {
-		logIgnored(false);
-		return true;
-	}
-
-
 	if (msg.from->getUser()->isIgnored() && ((client && client->isOp()) || !identity.isOp() || identity.isBot())) {
 		logIgnored(false);
 		return true;
