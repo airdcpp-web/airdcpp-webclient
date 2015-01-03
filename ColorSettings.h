@@ -48,7 +48,7 @@ public:
 	GETSET(bool, bHasBgColor, HasBgColor);
 	GETSET(bool, bHasFgColor, HasFgColor);
 	GETSET(string, strSoundFile, SoundFile);
-	GETSET(int, bContext, Context);
+	GETSET(uint8_t, bContext, Context);
 	GETSET(int, bMatchColumn, MatchColumn);
     	
 	void setMatch(const tstring& match);
