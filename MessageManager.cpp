@@ -18,7 +18,6 @@
 
 #include "stdinc.h"
 
-#include "ClientManager.h"
 #include "MessageManager.h"
 #include "IgnoreManager.h"
 #include "LogManager.h"
@@ -31,50 +30,66 @@ namespace dcpp
 
 MessageManager::MessageManager() noexcept{
 	ConnectionManager::getInstance()->addListener(this);
+	ClientManager::getInstance()->addListener(this);
 }
 
 MessageManager::~MessageManager() noexcept {
 	ConnectionManager::getInstance()->removeListener(this);
+	ClientManager::getInstance()->removeListener(this);
 
 	{
-		WLock l(ccpmMutex);
-		ccpms.clear();
+		WLock l(cs);
+		chats.clear();
 	}
 	ConnectionManager::getInstance()->disconnect();
 }
 
-bool MessageManager::hasCCPMConn(const UserPtr& user) {
-	RLock l(ccpmMutex);
-	return ccpms.find(user) != ccpms.end();
+PrivateChat* MessageManager::getChat(const HintedUser& user) {
+	WLock l(cs);
+	auto i = chats.find(user.user);
+	if (i != chats.end()) {
+		return i->second;
+	} else {
+		auto p = new PrivateChat(user);
+		chats.emplace(user.user, p).first->second;
+		p->setUc(getPMConn(user.user, p));
+		return p;
+	}
 }
 
-bool MessageManager::sendPrivateMessage(const HintedUser& aUser, const tstring& msg, string& error_, bool thirdPerson) {
-	auto msg8 = Text::fromT(msg);
-
-	{
-		RLock l(ccpmMutex);
-		auto i = ccpms.find(aUser);
-		if (i != ccpms.end()) {
-			auto uc = i->second;
-			if (uc) {
-				uc->pm(msg8, thirdPerson);
-				return true;
-			}
-		}
-	}
-	return ClientManager::getInstance()->privateMessage(aUser, msg8, error_, thirdPerson);
-
+bool MessageManager::hasWindow(const UserPtr& aUser) {
+	RLock l(cs);
+	return chats.find(aUser) != chats.end();
 }
 
-bool MessageManager::StartCCPM(HintedUser& aUser, string& _err, bool& allowAuto){
+void MessageManager::closeWindow(const UserPtr& aUser) {
+	WLock l(cs);
+	auto i = chats.find(aUser);
+	i->second->Disconnect();
+	delete i->second;
+	chats.erase(i);
+}
 
-	if (!aUser.user->isOnline()) {
-		return false;
+void MessageManager::closeAll(bool Offline) {
+
+	for (auto i : chats) {
+		if (Offline && i.first->isOnline())
+			continue;
+		i.second->Close();
 	}
+}
 
-	auto token = ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_PM);
-	return ClientManager::getInstance()->connect(aUser.user, token, true, _err, aUser.hint, allowAuto, CONNECTION_TYPE_PM);
-
+//LOCK!!
+UserConnection* MessageManager::getPMConn(const UserPtr& user, UserConnectionListener* listener) {
+	auto i = ccpms.find(user);
+	if (i != ccpms.end()) {
+		auto uc = i->second;
+		ccpms.erase(i);
+		uc->addListener(listener);
+		uc->removeListener(this);
+		return uc;
+	}
+	return nullptr;
 }
 
 bool MessageManager::isIgnoredOrFiltered(const ChatMessage& msg, Client* client, bool PM){
@@ -86,43 +101,86 @@ bool MessageManager::isIgnoredOrFiltered(const ChatMessage& msg, Client* client,
 }
 
 void MessageManager::DisconnectCCPM(const UserPtr& aUser) {
-	WLock l(ccpmMutex);
-	auto i = ccpms.find(aUser);
-	if (i != ccpms.end()) {
-		auto uc = i->second;
-		uc->removeListener(this);
-		uc->disconnect(true);
-		ccpms.erase(i);
+	
+	RLock l(cs);
+	auto i = chats.find(aUser);
+	if (i != chats.end()) {
+		i->second->Disconnect();
 	}
 }
 
+void MessageManager::onPrivateMessage(const ChatMessage& aMessage) {
+	bool myPM = aMessage.replyTo->getUser() == ClientManager::getInstance()->getMe();
+	const UserPtr& user = myPM ? aMessage.to->getUser() : aMessage.replyTo->getUser();
+	RLock l(cs);
+	auto i = chats.find(user);
+	if (i != chats.end()) {
+		i->second->setUc(getPMConn(user, i->second));
+		i->second->Message(aMessage); //We should have a listener in the frame
+	} else {
+		Client* c = &aMessage.from->getClient();
+		if (chats.size() > 200 || !myPM && isIgnoredOrFiltered(aMessage, c, true)) 
+			return;
+
+		const auto& identity = aMessage.replyTo->getIdentity();
+		if ((identity.isBot() && !SETTING(POPUP_BOT_PMS)) || (identity.isHub() && !SETTING(POPUP_HUB_PMS))) {
+			c->Message(STRING(PRIVATE_MESSAGE_FROM) + " " + identity.getNick() + ": " + aMessage.format());
+			return;
+		}
+		//This will result in creating a new window
+		fire(MessageManagerListener::PrivateMessage(), aMessage);
+	}
+}
 
 void MessageManager::on(ConnectionManagerListener::Connected, const ConnectionQueueItem* cqi, UserConnection* uc) noexcept{
-		if (cqi->getConnType() == CONNECTION_TYPE_PM) {
+	if (cqi->getConnType() == CONNECTION_TYPE_PM) {
 
-			{
+		{
+			WLock l(cs);
+			auto i = chats.find(cqi->getUser());
+			if (i != chats.end()) {
+				i->second->CCPMConnected(uc);
+			} else {
 				// until a message is received, no need to open a PM window.
-				WLock l(ccpmMutex);
 				ccpms[cqi->getUser()] = uc;
 				uc->addListener(this);
 			}
-
-			fire(MessageManagerListener::StatusMessage(), cqi->getUser(),STRING(CCPM_ESTABLISHED), LogManager::LOG_INFO);
 		}
 	}
+}
 
 void MessageManager::on(ConnectionManagerListener::Removed, const ConnectionQueueItem* cqi) noexcept{
 	if (cqi->getConnType() == CONNECTION_TYPE_PM) {
 		{
-			WLock l(ccpmMutex);
+			WLock l(cs);
+			auto i = chats.find(cqi->getUser());
+			if (i != chats.end()) {
+				i->second->CCPMDisconnected();
+			}
 			ccpms.erase(cqi->getUser());
 		}
-		fire(MessageManagerListener::StatusMessage(), cqi->getUser(), STRING(CCPM_DISCONNECTED), LogManager::LOG_INFO);
 	}
 }
 
-void MessageManager::on(UserConnectionListener::PrivateMessage, UserConnection* uc, const ChatMessage& message) noexcept{
-	fire(MessageManagerListener::PrivateMessage(), message);
+void MessageManager::on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessage& message) noexcept{
+	onPrivateMessage(message);
+
+}
+
+void MessageManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept{
+	RLock l(cs);
+	auto i = chats.find(aUser);
+	if (i != chats.end()) {
+		i->second->UserDisconnected(wentOffline);
+	}
+}
+
+void MessageManager::on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept{
+	RLock l(cs);
+	auto i = chats.find(aUser.getUser());
+	if (i != chats.end()) {
+		i->second->UserUpdated(aUser);
+	}
 }
 
 }

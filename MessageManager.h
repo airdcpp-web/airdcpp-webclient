@@ -26,38 +26,49 @@
 
 #include "Pointer.h"
 #include "Singleton.h"
-#include "TimerManager.h"
 #include "UserConnection.h"
 #include "ConnectionManager.h"
+#include "ClientManager.h"
 #include "MessageManagerListener.h"
+#include "PrivateChat.h"
 
 namespace dcpp {
 	class MessageManager : public Speaker<MessageManagerListener>,
 		public Singleton<MessageManager>,
-		private UserConnectionListener, private ConnectionManagerListener {
+		private UserConnectionListener, private ConnectionManagerListener, private ClientManagerListener {
 
 	public:
 
 		MessageManager() noexcept;
 		~MessageManager() noexcept;
 
-		bool hasCCPMConn(const UserPtr& user);
+		PrivateChat* getChat(const HintedUser& user);
 
 		bool isIgnoredOrFiltered(const ChatMessage& msg, Client* client, bool PM); //TODO: Move ignore here
 		void DisconnectCCPM(const UserPtr& aUser);
 		bool sendPrivateMessage(const HintedUser& aUser, const tstring& msg, string& _error, bool thirdPerson);
-		bool StartCCPM(HintedUser& aUser, string& _error, bool& allowAuto);
+		void onPrivateMessage(const ChatMessage& message);
+		bool hasWindow(const UserPtr& aUser);
+		void closeWindow(const UserPtr& aUser);
+		void closeAll(bool Offline);
 
 	private:
+		unordered_map<UserPtr, PrivateChat*, User::Hash> chats;
+		SharedMutex cs;
+
 		unordered_map<UserPtr, UserConnection*, User::Hash> ccpms;
-		SharedMutex ccpmMutex;
+
+		// ClientManagerListener
+		void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
+		void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
 
 		// ConnectionManagerListener
 		void on(ConnectionManagerListener::Connected, const ConnectionQueueItem* cqi, UserConnection* uc) noexcept;
 		void on(ConnectionManagerListener::Removed, const ConnectionQueueItem* cqi) noexcept;
 
 		// UserConnectionListener
-		virtual void on(UserConnectionListener::PrivateMessage, UserConnection* uc, const ChatMessage& message) noexcept;
+		virtual void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessage& message) noexcept;
+		UserConnection* getPMConn(const UserPtr& user, UserConnectionListener* listener);
 	};
 
 }
