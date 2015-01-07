@@ -40,9 +40,8 @@
 #include "DirectoryListingManager.h"
 #include "UpdateManager.h"
 #include "ThrottleManager.h"
-#include "IgnoreManager.h"
-#include "HighlightManager.h"
 #include "MessageManager.h"
+#include "HighlightManager.h"
 
 #include "StringTokenizer.h"
 
@@ -103,7 +102,6 @@ void startup(function<void(const string&)> stepF, function<bool(const string& /*
 	GeoManager::newInstance();
 	DirectoryListingManager::newInstance();
 	UpdateManager::newInstance();
-	IgnoreManager::newInstance();
 	HighlightManager::newInstance();
 
 	SettingsManager::getInstance()->load(messageF);
@@ -185,7 +183,6 @@ void shutdown(function<void (const string&)> stepF, function<void (float)> progr
 	announce(STRING(SHUTTING_DOWN));
 
 	HighlightManager::deleteInstance();
-	IgnoreManager::deleteInstance();
 	UpdateManager::deleteInstance();
 	GeoManager::deleteInstance();
 	ConnectivityManager::deleteInstance();

@@ -31,10 +31,12 @@ namespace dcpp {
 		template<int I>	struct X { enum { TYPE = I }; };
 
 		typedef X<0> PrivateMessage;
-		typedef X<0> StatusMessage;
+		typedef X<1> IgnoreAdded;
+		typedef X<2> IgnoreRemoved;
 
 		virtual void on(PrivateMessage, const ChatMessage&) noexcept{}
-		virtual void on(StatusMessage, const UserPtr&, const string&, uint8_t) noexcept{}
+		virtual void on(IgnoreAdded, const UserPtr&) noexcept{}
+		virtual void on(IgnoreRemoved, const UserPtr&) noexcept{}
 	};
 
 } // namespace dcpp

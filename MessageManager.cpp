@@ -19,21 +19,26 @@
 #include "stdinc.h"
 
 #include "MessageManager.h"
-#include "IgnoreManager.h"
 #include "LogManager.h"
 
 #include "ChatMessage.h"
+#include "Util.h"
+#include "Wildcards.h"
 
+#define CONFIG_DIR Util::PATH_USER_CONFIG
+#define CONFIG_NAME "IgnoredUsers.xml"
 
 namespace dcpp 
 {
 
-MessageManager::MessageManager() noexcept{
+	MessageManager::MessageManager() noexcept : dirty(false) {
+	SettingsManager::getInstance()->addListener(this);
 	ConnectionManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);
 }
 
 MessageManager::~MessageManager() noexcept {
+	SettingsManager::getInstance()->removeListener(this);
 	ConnectionManager::getInstance()->removeListener(this);
 	ClientManager::getInstance()->removeListener(this);
 
@@ -92,13 +97,6 @@ UserConnection* MessageManager::getPMConn(const UserPtr& user, UserConnectionLis
 	return nullptr;
 }
 
-bool MessageManager::isIgnoredOrFiltered(const ChatMessage& msg, Client* client, bool PM){
-	if (IgnoreManager::getInstance()->isIgnoredOrFiltered(msg, client, PM)) {
-		DisconnectCCPM(msg.from->getUser());
-		return true;
-	}
-	return false;
-}
 
 void MessageManager::DisconnectCCPM(const UserPtr& aUser) {
 	
@@ -180,6 +178,199 @@ void MessageManager::on(ClientManagerListener::UserUpdated, const OnlineUser& aU
 	auto i = chats.find(aUser.getUser());
 	if (i != chats.end()) {
 		i->second->UserUpdated(aUser);
+	}
+}
+
+// SettingsManagerListener
+void MessageManager::on(SettingsManagerListener::Load, SimpleXML& aXml) noexcept{
+	load(aXml);
+}
+
+void MessageManager::on(SettingsManagerListener::Save, SimpleXML& aXml) noexcept{
+	save(aXml);
+}
+
+void MessageManager::storeIgnore(const UserPtr& aUser) {
+	{
+		WLock l(Ignorecs);
+		ignoredUsers.emplace(aUser);
+	}
+	aUser->setFlag(User::IGNORED);
+	dirty = true;
+	fire(MessageManagerListener::IgnoreAdded(), aUser);
+}
+
+void MessageManager::removeIgnore(const UserPtr& aUser) {
+	{
+		WLock l(Ignorecs);
+		auto i = ignoredUsers.find(aUser);
+		if (i != ignoredUsers.end())
+			ignoredUsers.erase(i);
+	}
+	aUser->unsetFlag(User::IGNORED);
+	dirty = true;
+	fire(MessageManagerListener::IgnoreRemoved(), aUser);
+}
+
+bool MessageManager::isIgnored(const UserPtr& aUser) {
+	RLock l(Ignorecs);
+	auto i = ignoredUsers.find(aUser);
+	return (i != ignoredUsers.end());
+}
+
+bool MessageManager::isIgnoredOrFiltered(const ChatMessage& msg, Client* client, bool PM){
+	const auto& identity = msg.from->getIdentity();
+
+	auto logIgnored = [&](bool filter) -> void {
+		if (SETTING(LOG_IGNORED)) {
+			string tmp;
+			if (PM) {
+				tmp = filter ? STRING(PM_MESSAGE_FILTERED) : STRING(PM_MESSAGE_IGNORED);
+			}
+			else {
+				string hub = "[" + ((client && !client->getHubName().empty()) ?
+					(client->getHubName().size() > 50 ? (client->getHubName().substr(0, 50) + "...") : client->getHubName()) : client->getHubUrl()) + "] ";
+				tmp = (filter ? STRING(MC_MESSAGE_FILTERED) : STRING(MC_MESSAGE_IGNORED)) + hub;
+			}
+			tmp += "<" + identity.getNick() + "> " + msg.text;
+			LogManager::getInstance()->message(tmp, LogManager::LOG_INFO);
+		}
+	};
+
+	if (PM && client) {
+		// don't be that restrictive with the fav hub option
+		if (client->getFavNoPM() && (client->isOp() || !msg.replyTo->getIdentity().isOp()) && !msg.replyTo->getIdentity().isBot() && !msg.replyTo->getUser()->isFavorite()) {
+			string tmp;
+			client->privateMessage(msg.replyTo, "Private messages sent via this hub are ignored", tmp);
+			DisconnectCCPM(msg.from->getUser());
+			return true;
+		}
+	}
+
+	if (msg.from->getUser()->isIgnored() && ((client && client->isOp()) || !identity.isOp() || identity.isBot())) {
+		logIgnored(false);
+		if (PM)
+			DisconnectCCPM(msg.from->getUser());
+		return true;
+	}
+
+	if (isChatFiltered(identity.getNick(), msg.text, PM ? ChatFilterItem::PM : ChatFilterItem::MC)) {
+		logIgnored(true);
+		if (PM)
+			DisconnectCCPM(msg.from->getUser());
+		return true;
+	}
+
+	return false;
+}
+
+bool MessageManager::isChatFiltered(const string& aNick, const string& aText, ChatFilterItem::Context aContext) {
+	RLock l(Ignorecs);
+	for (auto& i : ChatFilterItems) {
+		if (i.match(aNick, aText, aContext))
+			return true;
+	}
+	return false;
+}
+void MessageManager::load(SimpleXML& aXml) {
+
+	if (aXml.findChild("ChatFilterItems")) {
+		aXml.stepIn();
+		while (aXml.findChild("ChatFilterItem")) {
+			WLock l(Ignorecs);
+			ChatFilterItems.push_back(ChatFilterItem(aXml.getChildAttrib("Nick"), aXml.getChildAttrib("Text"),
+				(StringMatch::Method)aXml.getIntChildAttrib("NickMethod"), (StringMatch::Method)aXml.getIntChildAttrib("TextMethod"),
+				aXml.getBoolChildAttrib("MC"), aXml.getBoolChildAttrib("PM"), aXml.getBoolChildAttrib("Enabled")));
+		}
+		aXml.stepOut();
+	}
+	loadUsers();
+}
+
+void MessageManager::save(SimpleXML& aXml) {
+	aXml.addTag("ChatFilterItems");
+	aXml.stepIn();
+	{
+		RLock l(Ignorecs);
+		for (const auto& i : ChatFilterItems) {
+			aXml.addTag("ChatFilterItem");
+			aXml.addChildAttrib("Nick", i.getNickPattern());
+			aXml.addChildAttrib("NickMethod", i.getNickMethod());
+			aXml.addChildAttrib("Text", i.getTextPattern());
+			aXml.addChildAttrib("TextMethod", i.getTextMethod());
+			aXml.addChildAttrib("MC", i.matchMainchat);
+			aXml.addChildAttrib("PM", i.matchPM);
+			aXml.addChildAttrib("Enabled", i.getEnabled());
+		}
+	}
+	aXml.stepOut();
+
+	if (dirty)
+		saveUsers();
+}
+
+void MessageManager::saveUsers() {
+	SimpleXML xml;
+
+	xml.addTag("Ignored");
+	xml.stepIn();
+
+	xml.addTag("Users");
+	xml.stepIn();
+
+	//TODO: cache this information?
+	{
+		RLock l(Ignorecs);
+		for (const auto& u : ignoredUsers) {
+			xml.addTag("User");
+			xml.addChildAttrib("CID", u->getCID().toBase32());
+			auto ou = ClientManager::getInstance()->findOnlineUser(u->getCID(), "");
+			if (ou) {
+				xml.addChildAttrib("Nick", ou->getIdentity().getNick());
+				xml.addChildAttrib("Hub", ou->getHubUrl());
+				xml.addChildAttrib("LastSeen", GET_TIME());
+			}
+			else {
+				auto ofu = ClientManager::getInstance()->getOfflineUser(u->getCID());
+				xml.addChildAttrib("Nick", ofu ? ofu->getNick() : "");
+				xml.addChildAttrib("Hub", ofu ? ofu->getUrl() : "");
+				xml.addChildAttrib("LastSeen", ofu ? ofu->getLastSeen() : GET_TIME());
+			}
+		}
+	}
+	xml.stepOut();
+	xml.stepOut();
+
+	SettingsManager::saveSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
+}
+
+void MessageManager::loadUsers() {
+	try {
+		SimpleXML xml;
+		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
+		auto cm = ClientManager::getInstance();
+		if (xml.findChild("Ignored")) {
+			xml.stepIn();
+			xml.resetCurrentChild();
+			if (xml.findChild("Users")) {
+				xml.stepIn();
+				while (xml.findChild("User")) {
+					UserPtr user = cm->getUser(CID(xml.getChildAttrib("CID")));
+					{
+						WLock(cm->getCS());
+						cm->addOfflineUser(user, xml.getChildAttrib("Nick"), xml.getChildAttrib("Hub"), (uint32_t)xml.getIntChildAttrib("LastSeen"));
+					}
+					WLock l(Ignorecs);
+					ignoredUsers.emplace(user);
+					user->setFlag(User::IGNORED);
+				}
+				xml.stepOut();
+			}
+			xml.stepOut();
+		}
+	}
+	catch (const Exception& e) {
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogManager::LOG_ERROR);
 	}
 }
 
