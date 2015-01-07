@@ -28,13 +28,14 @@
 #include "UserConnection.h"
 #include "ClientManager.h"
 #include "PrivateChatListener.h"
+#include "DelayedEvents.h"
 
 
 namespace dcpp {
 	class PrivateChat : public Speaker<PrivateChatListener>, public UserConnectionListener, private boost::noncopyable {
 	public:
 		
-		PrivateChat(const HintedUser& aUser) : uc(nullptr), replyTo(aUser), ccpmAttempts(0), allowAutoCCPM(true) {
+		PrivateChat(const HintedUser& aUser) : uc(nullptr), replyTo(aUser), ccpmAttempts(0), allowAutoCCPM(true), lastCCPMAttempt(0), state(DISCONNECTED) {
 			string _err = Util::emptyString;;
 			supportsCCPM = ClientManager::getInstance()->getSupportsCCPM(aUser.user, _err);
 			lastCCPMError = _err;
@@ -64,17 +65,36 @@ namespace dcpp {
 		void StartCC();
 
 		void checkAlwaysCCPM();
-
-		GETSET(UserConnection*, uc, Uc);
+		bool ccReady() const { return state == CONNECTED; };
+		void setUc(UserConnection* aUc){ uc = aUc; state = aUc ? CONNECTED : DISCONNECTED; }
+		
 		GETSET(bool, supportsCCPM, SupportsCCPM);
 		GETSET(string, lastCCPMError, LastCCPMError);
 		
 		HintedUser replyTo;
 
 	private:
+		enum EventType {
+			USER_UPDATE,
+			CCPM_TIMEOUT,
+			CCPM_AUTO
+		};
+		enum State {
+			CONNECTING,
+			CONNECTED,
+			DISCONNECTED
+		};
+
+		void checkCCPMTimeout();
+
 
 		int ccpmAttempts;
 		bool allowAutoCCPM;
+		uint64_t lastCCPMAttempt;
+		atomic<State> state;
+		UserConnection* uc;
+
+		DelayedEvents<EventType> delayEvents;
 
 		// UserConnectionListener
 		virtual void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessage& message) noexcept{

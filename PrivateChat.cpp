@@ -24,17 +24,19 @@
 namespace dcpp {
 
 void PrivateChat::CCPMConnected(UserConnection* uc) {
-		setUc(uc);
-		uc->addListener(this);
-		fire(PrivateChatListener::CCPMStatusChanged(), STRING(CCPM_ESTABLISHED));
+	state = CONNECTED;
+	setUc(uc);
+	uc->addListener(this);
+	fire(PrivateChatListener::CCPMStatusChanged(), STRING(CCPM_ESTABLISHED));
 }
 
 void PrivateChat::CCPMDisconnected() {
 	if (uc) {
+		state = DISCONNECTED;
 		uc->removeListener(this);
 		setUc(nullptr);
 		fire(PrivateChatListener::CCPMStatusChanged(), STRING(CCPM_DISCONNECTED));
-		checkAlwaysCCPM();
+		delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 1000);
 	}
 }
 
@@ -49,6 +51,7 @@ bool PrivateChat::sendPrivateMessage(const HintedUser& aUser, const string& msg,
 
 void PrivateChat::Disconnect() {
 	if (uc) {
+		state = DISCONNECTED;
 		uc->removeListener(this);
 		uc->disconnect(true);
 		setUc(nullptr);
@@ -61,14 +64,17 @@ void PrivateChat::UserDisconnected(bool wentOffline) {
 		Disconnect();
 		allowAutoCCPM = true;
 	}
-	fire(PrivateChatListener::UserUpdated(), wentOffline);
+	if (wentOffline)
+		fire(PrivateChatListener::UserUpdated(), wentOffline);
+	else 
+		delayEvents.addEvent(USER_UPDATE, [this] { fire(PrivateChatListener::UserUpdated(), false); }, 1000);
 }
 
 void PrivateChat::UserUpdated(const OnlineUser& aUser) {
 	setSupportsCCPM(getSupportsCCPM() || aUser.supportsCCPM(lastCCPMError));
 	fire(PrivateChatListener::UserUpdated(), false);
-
-	//checkAlwaysCCPM(); This needs to be called Async!! Maybe add timer for checking ccpm reconnect?
+	delayEvents.addEvent(USER_UPDATE, [this] { fire(PrivateChatListener::UserUpdated(), false); }, 1000);
+	delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 3000);
 }
 
 void PrivateChat::Message(const ChatMessage& aMessage) {
@@ -85,14 +91,16 @@ void PrivateChat::Close() {
 
 void PrivateChat::StartCCPM(HintedUser& aUser, string& _err, bool& allowAuto){
 
-	if (!aUser.user->isOnline() || getUc()) {
+	if (!aUser.user->isOnline() || state < DISCONNECTED) {
 		return;
 	}
 
 	auto token = ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_PM);
-	if (ClientManager::getInstance()->connect(aUser.user, token, true, _err, aUser.hint, allowAuto, CONNECTION_TYPE_PM))
+	if (ClientManager::getInstance()->connect(aUser.user, token, true, _err, aUser.hint, allowAuto, CONNECTION_TYPE_PM)){
 		fire(PrivateChatListener::StatusMessage(), STRING(CCPM_ESTABLISHING), LogManager::LOG_INFO);
-	else if (!_err.empty()) {
+		state = CONNECTING;
+		delayEvents.addEvent(CCPM_TIMEOUT, [this] { checkCCPMTimeout(); }, 30000); // 30 seconds, completely arbitrary amount of time.
+	}else if (!_err.empty()) {
 		fire(PrivateChatListener::StatusMessage(), _err, LogManager::LOG_ERROR);
 	}
 
@@ -108,12 +116,19 @@ void PrivateChat::checkAlwaysCCPM() {
 	if (!replyTo.user->isOnline() || !SETTING(ALWAYS_CCPM) || !getSupportsCCPM() || replyTo.user->isNMDC() || replyTo.user->isSet(User::BOT))
 		return;
 
-	if (allowAutoCCPM && !getUc()) {
+	if (allowAutoCCPM && state == DISCONNECTED) {
 		StartCC();
 		allowAutoCCPM = allowAutoCCPM && ccpmAttempts++ < 3;
-	}else if (getUc()){
+	}else if (ccReady()){
 		allowAutoCCPM = true;
 	}
+}
+
+void PrivateChat::checkCCPMTimeout() {
+	if (state == CONNECTING) {
+		fire(PrivateChatListener::StatusMessage(), "Failed to establish encrypted channel: Connection timeout", LogManager::LOG_INFO);
+		state = DISCONNECTED;
+	} 
 }
 
 
