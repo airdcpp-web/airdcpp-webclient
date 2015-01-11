@@ -63,17 +63,14 @@ void PrivateChat::UserDisconnected(bool wentOffline) {
 	if (wentOffline) {
 		Disconnect();
 		allowAutoCCPM = true;
-	}
-	if (wentOffline)
-		fire(PrivateChatListener::UserUpdated(), wentOffline);
-	else 
-		delayEvents.addEvent(USER_UPDATE, [this] { fire(PrivateChatListener::UserUpdated(), false); }, 1000);
+		fire(PrivateChatListener::UserUpdated());
+	} else
+		delayEvents.addEvent(USER_UPDATE, [this] { fire(PrivateChatListener::UserUpdated()); }, 1000);
 }
 
 void PrivateChat::UserUpdated(const OnlineUser& aUser) {
 	setSupportsCCPM(getSupportsCCPM() || aUser.supportsCCPM(lastCCPMError));
-	fire(PrivateChatListener::UserUpdated(), false);
-	delayEvents.addEvent(USER_UPDATE, [this] { fire(PrivateChatListener::UserUpdated(), false); }, 1000);
+	delayEvents.addEvent(USER_UPDATE, [this] { fire(PrivateChatListener::UserUpdated()); }, 1000);
 	delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 3000);
 }
 
@@ -81,8 +78,8 @@ void PrivateChat::Message(const ChatMessage& aMessage) {
 	fire(PrivateChatListener::PrivateMessage(), aMessage);
 }
 
-void PrivateChat::Activate(const HintedUser& replyTo, const string& msg, Client* c) {
-	fire(PrivateChatListener::Activate(), replyTo, msg, c);
+void PrivateChat::Activate(const string& msg, Client* c) {
+	fire(PrivateChatListener::Activate(), msg, c);
 }
 
 void PrivateChat::Close() {

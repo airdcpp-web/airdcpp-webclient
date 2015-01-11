@@ -40,9 +40,9 @@ namespace dcpp {
 
 		virtual void on(PrivateMessage, const ChatMessage&) noexcept{}
 		virtual void on(StatusMessage, const string&, uint8_t) noexcept{}
-		virtual void on(Activate, const HintedUser&, const string&, Client*) noexcept{}
+		virtual void on(Activate, const string&, Client*) noexcept{}
 		virtual void on(Close) noexcept{}
-		virtual void on(UserUpdated, bool) noexcept{}
+		virtual void on(UserUpdated) noexcept{}
 		virtual void on(CCPMStatusChanged, const string&) noexcept{}
 	};
 

@@ -41,7 +41,7 @@ namespace dcpp {
 			lastCCPMError = _err;
 		}
 		~PrivateChat() {}
-		
+
 		void CCPMConnected(UserConnection* uc);
 
 		void CCPMDisconnected();
@@ -56,7 +56,7 @@ namespace dcpp {
 
 		void Message(const ChatMessage& aMessage);
 
-		void Activate(const HintedUser& replyTo, const string& msg, Client* c);
+		void Activate(const string& msg, Client* c);
 		
 		void Close();
 
@@ -67,13 +67,22 @@ namespace dcpp {
 		void checkAlwaysCCPM();
 		bool ccReady() const { return state == CONNECTED; };
 		void setUc(UserConnection* aUc){ uc = aUc; state = aUc ? CONNECTED : DISCONNECTED; }
+
+		void setHubUrl(const string& hint) { replyTo.hint = hint; }
+		const UserPtr& getUser() const { return replyTo.user; }
+		const string& getHubUrl() const { return replyTo.hint; }
+		const HintedUser& getHintedUser() const { return replyTo; }
+
+		Client* getClient() {
+			return ClientManager::getInstance()->getClient(replyTo.hint);
+		}
 		
 		GETSET(bool, supportsCCPM, SupportsCCPM);
 		GETSET(string, lastCCPMError, LastCCPMError);
-		
-		HintedUser replyTo;
+	
 
 	private:
+
 		enum EventType {
 			USER_UPDATE,
 			CCPM_TIMEOUT,
@@ -87,6 +96,7 @@ namespace dcpp {
 
 		void checkCCPMTimeout();
 
+		HintedUser replyTo;
 
 		int ccpmAttempts;
 		bool allowAutoCCPM;
