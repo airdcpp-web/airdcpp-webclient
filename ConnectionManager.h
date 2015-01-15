@@ -35,6 +35,7 @@ class SocketException;
 
 class TokenManager {
 public:
+	string makeToken() const noexcept;
 	string getToken(ConnectionType aConnType) noexcept;
 	bool addToken(const string& aToken, ConnectionType aConnType) noexcept;
 	void removeToken(const string& aToken) noexcept;

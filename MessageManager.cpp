@@ -49,29 +49,26 @@ MessageManager::~MessageManager() noexcept {
 	ConnectionManager::getInstance()->disconnect();
 }
 
-PrivateChat* MessageManager::getChat(const HintedUser& user) {
+PrivateChat* MessageManager::addChat(const HintedUser& user) {
 	WLock l(cs);
-	auto i = chats.find(user.user);
-	if (i != chats.end()) {
-		return i->second;
-	} else {
-		auto p = new PrivateChat(user);
-		chats.emplace(user.user, p).first->second;
-		p->setUc(getPMConn(user.user, p));
-		return p;
-	}
+	auto p = new PrivateChat(user);
+	chats.emplace(user.user, p).first->second;
+	p->setUc(getPMConn(user.user, p));
+	return p;
+	
 }
 
-bool MessageManager::hasWindow(const UserPtr& aUser) {
+PrivateChat* MessageManager::getChat(const UserPtr& aUser) {
 	RLock l(cs);
-	return chats.find(aUser) != chats.end();
+	auto i = chats.find(aUser);
+	return i != chats.end() ? i->second : nullptr;
 }
 
-void MessageManager::closeWindow(const UserPtr& aUser) {
+void MessageManager::removeChat(const UserPtr& aUser) {
 	WLock l(cs);
 	auto i = chats.find(aUser);
 	i->second->Disconnect();
-	delete i->second;
+	delete i->second; //TODO: use smart pointers
 	chats.erase(i);
 }
 
@@ -113,7 +110,9 @@ void MessageManager::onPrivateMessage(const ChatMessage& aMessage) {
 	RLock l(cs);
 	auto i = chats.find(user);
 	if (i != chats.end()) {
-		i->second->setUc(getPMConn(user, i->second));
+		auto uc = getPMConn(user, i->second);
+		if (uc)
+			i->second->setUc(uc);
 		i->second->Message(aMessage); //We should have a listener in the frame
 	} else {
 		Client* c = &aMessage.from->getClient();

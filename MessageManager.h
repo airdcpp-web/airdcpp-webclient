@@ -111,13 +111,13 @@ namespace dcpp {
 		MessageManager() noexcept;
 		~MessageManager() noexcept;
 
-		PrivateChat* getChat(const HintedUser& user);
+		PrivateChat* addChat(const HintedUser& user);
+		PrivateChat* getChat(const UserPtr& aUser);
 
 		void DisconnectCCPM(const UserPtr& aUser);
 		bool sendPrivateMessage(const HintedUser& aUser, const tstring& msg, string& _error, bool thirdPerson);
 		void onPrivateMessage(const ChatMessage& message);
-		bool hasWindow(const UserPtr& aUser);
-		void closeWindow(const UserPtr& aUser);
+		void removeChat(const UserPtr& aUser);
 		void closeAll(bool Offline);
 
 		//IGNORE
@@ -140,6 +140,7 @@ namespace dcpp {
 		SharedMutex cs;
 
 		unordered_map<UserPtr, UserConnection*, User::Hash> ccpms;
+		UserConnection* getPMConn(const UserPtr& user, UserConnectionListener* listener);
 
 		//IGNORE
 		SharedMutex Ignorecs;
@@ -169,9 +170,6 @@ namespace dcpp {
 
 		// UserConnectionListener
 		virtual void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessage& message) noexcept;
-		UserConnection* getPMConn(const UserPtr& user, UserConnectionListener* listener);
-
-
 	};
 
 }

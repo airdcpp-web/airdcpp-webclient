@@ -1040,6 +1040,7 @@ void AdcHub::connect(const OnlineUser& user, const string& token, bool secure, C
 			return;
 		}
 
+		ConnectionManager::getInstance()->tokens.addToken(token, aConnType);
 
 		if (send(AdcCommand(AdcCommand::CMD_CTM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(port).addParam(token))) {
 			//we are expecting an incoming connection from these, map so we know where its coming from.

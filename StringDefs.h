@@ -1867,6 +1867,7 @@ enum Strings { // @DontAdd
 	CCPM_DISCONNECTED, // "The direct encrypted channel has been disconnected"
 	CCPM_ESTABLISHING, // "Establishing a direct encrypted channel..."
 	CCPM_DISCONNECTING, // "Disconnecting the direct encrypted channel..."
+	CCPM_TIMEOUT, // "Failed to establish encrypted channel : Connection timeout"
 	DIRECT_ENCRYPTED_CHANNEL, // "Direct encrypted channel"
 	CCPM_NOT_SUPPORTED, // "The user does not support the CCPM ADC extension"
 	CCPM_NOT_SUPPORTED_NMDC, // "A secure ADC hub is required; this feature is not supported on NMDC hubs"

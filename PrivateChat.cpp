@@ -91,13 +91,13 @@ void PrivateChat::StartCCPM(HintedUser& aUser, string& _err, bool& allowAuto){
 	if (!aUser.user->isOnline() || state < DISCONNECTED) {
 		return;
 	}
-
-	auto token = ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_PM);
+	state = CONNECTING;
+	auto token = ConnectionManager::getInstance()->tokens.makeToken();
 	if (ClientManager::getInstance()->connect(aUser.user, token, true, _err, aUser.hint, allowAuto, CONNECTION_TYPE_PM)){
 		fire(PrivateChatListener::StatusMessage(), STRING(CCPM_ESTABLISHING), LogManager::LOG_INFO);
-		state = CONNECTING;
 		delayEvents.addEvent(CCPM_TIMEOUT, [this] { checkCCPMTimeout(); }, 30000); // 30 seconds, completely arbitrary amount of time.
 	}else if (!_err.empty()) {
+		state = DISCONNECTED;
 		fire(PrivateChatListener::StatusMessage(), _err, LogManager::LOG_ERROR);
 	}
 
@@ -123,7 +123,7 @@ void PrivateChat::checkAlwaysCCPM() {
 
 void PrivateChat::checkCCPMTimeout() {
 	if (state == CONNECTING) {
-		fire(PrivateChatListener::StatusMessage(), "Failed to establish encrypted channel: Connection timeout", LogManager::LOG_INFO);
+		fire(PrivateChatListener::StatusMessage(), STRING(CCPM_TIMEOUT), LogManager::LOG_INFO);
 		state = DISCONNECTED;
 	} 
 }

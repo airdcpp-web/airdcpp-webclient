@@ -33,9 +33,19 @@
 namespace dcpp {
 	FastCriticalSection TokenManager::cs;
 
-	string TokenManager::getToken(ConnectionType aConnType) noexcept{
+string TokenManager::makeToken() const {
+	string token;
+
 	FastLock l(cs);
-	string token = Util::toString(Util::rand());
+	do { token = Util::toString(Util::rand()); } while (tokens.find(token) != tokens.end());
+
+	return token;
+}
+
+
+string TokenManager::getToken(ConnectionType aConnType) noexcept{
+	string token = move(makeToken());
+	FastLock l(cs);
 	tokens.emplace(token, aConnType);
 	return token;
 }
@@ -782,27 +792,22 @@ void ConnectionManager::on(UserConnectionListener::Direction, UserConnection* aS
 
 
 void ConnectionManager::addPMConnection(UserConnection* uc, ConnectionType type) {
-	bool addConn = false;
 	if (type == CONNECTION_TYPE_PM) {
-		ConnectionQueueItem* cqi = nullptr;
-
 		WLock l(cs);
 		auto& container = cqis[type];
 		auto i = find(container.begin(), container.end(), uc->getUser());
 		if (i == container.end()) { //incoming Connection
-			cqi = getCQI(uc->getHintedUser(), type, uc->getToken());
-			cqi->setState(ConnectionQueueItem::ACTIVE);
 			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
+			auto cqi = getCQI(uc->getHintedUser(), type, uc->getToken());
+			cqi->setState(ConnectionQueueItem::ACTIVE);
 
 			fire(ConnectionManagerListener::Connected(), cqi, uc);
 
 			dcdebug("ConnectionManager::addPMConnection, PM handler\n");
-			addConn = true;
+			return;
 		}
 	}
-
-	if (!addConn)
-		putConnection(uc);
+	putConnection(uc);
 }
 
 
@@ -910,7 +915,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		aSource->setToken(token);
 
 		// Incoming connections aren't associated with any user
-		// Are we excepting this connection? Use the saved CID and hubUrl
+		// Are we expecting this connection? Use the saved CID and hubUrl
 		auto i = expectedConnections.remove(token);
 		if (i.second.empty()) {
 			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "Connection not expected"));
@@ -970,7 +975,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 
 	if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
 		addDownloadConnection(aSource);
-	} else if ( !delayedToken && (aSource->isSet(UserConnection::FLAG_PM) || cmd.hasFlag("PM", 0))) {
+	} else if (aSource->isSet(UserConnection::FLAG_PM) || cmd.hasFlag("PM", 0)) {
 		if (!aSource->isSet(UserConnection::FLAG_PM)) 
 			aSource->setFlag(UserConnection::FLAG_PM);
 		addPMConnection(aSource, CONNECTION_TYPE_PM);
@@ -1098,8 +1103,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			if (type != CONNECTION_TYPE_LAST) {
 				WLock l(cs);
 				auto& container = cqis[type];
-				auto i = type == CONNECTION_TYPE_PM ? find(container.begin(), container.end(), aSource->getUser()) :
-					find(container.begin(), container.end(), aSource->getToken());
+				auto i = find(container.begin(), container.end(), aSource->getToken());
 				dcassert(i != container.end());
 				putCQI(*i);
 			}
