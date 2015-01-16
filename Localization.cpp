@@ -118,7 +118,7 @@ void Localization::init() {
 	languageList.emplace_back("Italian", "IT", "it-IT", "Italian_for_AirDC");
 	languageList.emplace_back("Norwegian", "NO", "no-NO", "Norwegian_for_AirDC");
 	languageList.emplace_back("Polish", "PL", "pl-PL", "Polish_for_AirDC");
-	languageList.emplace_back("Portuguese", "PT", "pt-PT", "Port_Br_for_AirDC");
+	languageList.emplace_back("Portuguese", "PT", "pt-BR", "Port_Br_for_AirDC");
 	languageList.emplace_back("Romanian", "RO", "ro-RO", "Romanian_for_AirDC");
 	languageList.emplace_back("Russian", "RU", "ru-RU", "Russian_for_AirDC");
 	languageList.emplace_back("Spanish", "ES", "es-ES", "Spanish_for_AirDC");
