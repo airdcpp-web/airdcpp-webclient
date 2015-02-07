@@ -317,18 +317,6 @@ int DirectoryMonitor::Server::read() {
 	return 1;
 }
 
-void DirectoryMonitor::Server::failDirectory(const string& aPath, const string& aReason) {
-	auto mon = monitors.find(aPath);
-	if (mon == monitors.end())
-		return;
-
-	mon->second->stopMonitoring();
-	mon->second->server->base->fire(DirectoryMonitorListener::DirectoryFailed(), mon->first, aReason);
-	failedDirectories.insert(mon->first);
-
-	deleteDirectory(mon);
-}
-
 void DirectoryMonitor::Server::deleteDirectory(DirectoryMonitor::Server::MonitorMap::iterator mon) {
 	delete mon->second;
 	monitors.erase(mon);
@@ -506,6 +494,18 @@ void DirectoryMonitor::Server::deviceRemoved(const string& aDrive) {
 			failDirectory(path, STRING(DEVICE_REMOVED));
 		}
 	}
+}
+
+void DirectoryMonitor::Server::failDirectory(const string& aPath, const string& aReason) {
+	auto mon = monitors.find(aPath);
+	if (mon == monitors.end())
+		return;
+
+	mon->second->stopMonitoring();
+	mon->second->server->base->fire(DirectoryMonitorListener::DirectoryFailed(), mon->first, aReason);
+	failedDirectories.insert(mon->first);
+
+	deleteDirectory(mon);
 }
 
 /*void DirectoryMonitor::Server::validatePathExistance() {
