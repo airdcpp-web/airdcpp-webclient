@@ -313,13 +313,7 @@ bool ClientManager::hasClient(const string& aUrl) const noexcept{
 string ClientManager::findHub(const string& ipPort, bool nmdc) const noexcept {
 	string ip;
 	string port = "411";
-	string::size_type i = ipPort.rfind(':');
-	if(i == string::npos) {
-		ip = ipPort;
-	} else {
-		ip = ipPort.substr(0, i);
-		port = ipPort.substr(i+1);
-	}
+	Util::parseIpPort(ipPort, ip, port);
 
 	string url;
 
@@ -860,9 +854,9 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 			
 		} else {
 			try {
-				string ip, file, proto, query, fragment, port;
+				string ip, port;
 
-				Util::decodeUrl(aSeeker, proto, ip, port, file, query, fragment);
+				Util::parseIpPort(aSeeker, ip, port);
 				ip = Socket::resolve(ip);
 				
 				if(port.empty()) 
@@ -887,8 +881,11 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 			return;
 		}
 		
-		string ip, file, proto, query, fragment, port;
-		Util::decodeUrl(aSeeker, proto, ip, port, file, query, fragment);
+		string ip, port;
+		Util::parseIpPort(aSeeker, ip, port);
+
+		if (port.empty())
+			return;
 		
 		try {
 			AdcCommand cmd = SearchManager::getInstance()->toPSR(true, aClient->getMyNick(), aClient->getIpPort(), aTTH.toBase32(), partialInfo);

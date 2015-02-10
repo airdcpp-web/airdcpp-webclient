@@ -233,6 +233,9 @@ public:
 
 	static void sanitizeUrl(string& url);
 	static void decodeUrl(const string& aUrl, string& protocol, string& host, string& port, string& path, string& query, string& fragment);
+
+	// Used to parse NMDC-style ip:port combination
+	static void parseIpPort(const string& aIpPort, string& ip, string& port);
 	static map<string, string> decodeQuery(const string& query);
 
 	static bool isPathValid(const string& sPath);
