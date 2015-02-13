@@ -179,7 +179,6 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 
 ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, ConnectionType aConnType, const string& aToken) {
 	auto& container = cqis[aConnType];
-	dcassert(find(container.begin(), container.end(), aUser.user) == container.end());
 	auto cqi = new ConnectionQueueItem(aUser, aConnType, !aToken.empty() ? aToken : tokens.getToken(aConnType));
 	container.emplace_back(cqi);
 
@@ -796,10 +795,11 @@ void ConnectionManager::addPMConnection(UserConnection* uc, ConnectionType type)
 		WLock l(cs);
 		auto& container = cqis[type];
 		auto i = find(container.begin(), container.end(), uc->getUser());
-		if (i == container.end()) { //incoming Connection
+		if (i == container.end()) {
 			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 			auto cqi = getCQI(uc->getHintedUser(), type, uc->getToken());
 			cqi->setState(ConnectionQueueItem::ACTIVE);
+			uc->setToken(cqi->getToken());
 
 			fire(ConnectionManagerListener::Connected(), cqi, uc);
 
@@ -1103,10 +1103,12 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			if (type != CONNECTION_TYPE_LAST) {
 				WLock l(cs);
 				auto& container = cqis[type];
-				auto i = find(container.begin(), container.end(), aSource->getToken());
+				auto i = type == CONNECTION_TYPE_PM ? find(container.begin(), container.end(), aSource->getUser()) :
+					find(container.begin(), container.end(), aSource->getToken());
 				dcassert(i != container.end());
 				putCQI(*i);
 			}
+
 			if (type == CONNECTION_TYPE_UPLOAD)
 				UploadManager::getInstance()->removeDelayUpload(*aSource);
 		}

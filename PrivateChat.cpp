@@ -31,17 +31,15 @@ void PrivateChat::CCPMConnected(UserConnection* uc) {
 }
 
 void PrivateChat::CCPMDisconnected() {
-	if (uc) {
-		state = DISCONNECTED;
-		uc->removeListener(this);
-		setUc(nullptr);
-		fire(PrivateChatListener::CCPMStatusChanged(), STRING(CCPM_DISCONNECTED));
-		delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 1000);
-	}
+	state = DISCONNECTED;
+	uc->removeListener(this);
+	setUc(nullptr);
+	fire(PrivateChatListener::CCPMStatusChanged(), STRING(CCPM_DISCONNECTED));
+	delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 1000);
 }
 
 bool PrivateChat::sendPrivateMessage(const HintedUser& aUser, const string& msg, string& error_, bool thirdPerson) {
-	if (uc) {
+	if (state == CONNECTED) {
 		uc->pm(msg, thirdPerson);
 		return true;
 	}
@@ -50,7 +48,7 @@ bool PrivateChat::sendPrivateMessage(const HintedUser& aUser, const string& msg,
 }
 
 void PrivateChat::Disconnect() {
-	if (uc) {
+	if (state == CONNECTED) {
 		state = DISCONNECTED;
 		uc->removeListener(this);
 		uc->disconnect(true);

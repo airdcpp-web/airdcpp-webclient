@@ -86,9 +86,9 @@ UserConnection* MessageManager::getPMConn(const UserPtr& user, UserConnectionLis
 	auto i = ccpms.find(user);
 	if (i != ccpms.end()) {
 		auto uc = i->second;
-		ccpms.erase(i);
 		uc->addListener(listener);
 		uc->removeListener(this);
+		ccpms.erase(i);
 		return uc;
 	}
 	return nullptr;
@@ -104,29 +104,37 @@ void MessageManager::DisconnectCCPM(const UserPtr& aUser) {
 	}
 }
 
-void MessageManager::onPrivateMessage(const ChatMessage& aMessage) {
+void MessageManager::onPrivateMessage(const ChatMessage& aMessage, UserConnection* aUc) {
 	bool myPM = aMessage.replyTo->getUser() == ClientManager::getInstance()->getMe();
 	const UserPtr& user = myPM ? aMessage.to->getUser() : aMessage.replyTo->getUser();
-	RLock l(cs);
-	auto i = chats.find(user);
-	if (i != chats.end()) {
-		auto uc = getPMConn(user, i->second);
-		if (uc)
-			i->second->setUc(uc);
-		i->second->Message(aMessage); //We should have a listener in the frame
-	} else {
-		Client* c = &aMessage.from->getClient();
-		if (chats.size() > 200 || !myPM && isIgnoredOrFiltered(aMessage, c, true)) 
-			return;
-
-		const auto& identity = aMessage.replyTo->getIdentity();
-		if ((identity.isBot() && !SETTING(POPUP_BOT_PMS)) || (identity.isHub() && !SETTING(POPUP_HUB_PMS))) {
-			c->Message(STRING(PRIVATE_MESSAGE_FROM) + " " + identity.getNick() + ": " + aMessage.format());
+	size_t wndCnt;
+	{
+		WLock l(cs);
+		wndCnt = chats.size();
+		auto i = chats.find(user);
+		if (i != chats.end()) {
+			if (aUc) {
+				i->second->setUc(getPMConn(user, i->second));
+			} else if (!aUc && i->second->ccReady()) { //User is sending us messages via hub but we seem connected.. Never should happen, but it does...
+				dcassert(0);
+				i->second->Disconnect();
+			}
+			i->second->Message(aMessage); //We should have a listener in the frame
 			return;
 		}
-		//This will result in creating a new window
-		fire(MessageManagerListener::PrivateMessage(), aMessage);
 	}
+
+	Client* c = &aMessage.from->getClient();
+	if (wndCnt > 200 || !myPM && isIgnoredOrFiltered(aMessage, c, true)) 
+		return;
+
+	const auto& identity = aMessage.replyTo->getIdentity();
+	if ((identity.isBot() && !SETTING(POPUP_BOT_PMS)) || (identity.isHub() && !SETTING(POPUP_HUB_PMS))) {
+		c->Message(STRING(PRIVATE_MESSAGE_FROM) + " " + identity.getNick() + ": " + aMessage.format());
+		return;
+	}
+	//This will result in creating a new window
+	fire(MessageManagerListener::PrivateMessage(), aMessage);
 }
 
 void MessageManager::on(ConnectionManagerListener::Connected, const ConnectionQueueItem* cqi, UserConnection* uc) noexcept{
@@ -159,8 +167,8 @@ void MessageManager::on(ConnectionManagerListener::Removed, const ConnectionQueu
 	}
 }
 
-void MessageManager::on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessage& message) noexcept{
-	onPrivateMessage(message);
+void MessageManager::on(UserConnectionListener::PrivateMessage, UserConnection* uc, const ChatMessage& message) noexcept{
+	onPrivateMessage(message, uc);
 
 }
 

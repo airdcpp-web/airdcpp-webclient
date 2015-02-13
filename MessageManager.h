@@ -116,7 +116,7 @@ namespace dcpp {
 
 		void DisconnectCCPM(const UserPtr& aUser);
 		bool sendPrivateMessage(const HintedUser& aUser, const tstring& msg, string& _error, bool thirdPerson);
-		void onPrivateMessage(const ChatMessage& message);
+		void onPrivateMessage(const ChatMessage& message, UserConnection* aUc = nullptr);
 		void removeChat(const UserPtr& aUser);
 		void closeAll(bool Offline);
 
@@ -169,7 +169,7 @@ namespace dcpp {
 		void on(ConnectionManagerListener::Removed, const ConnectionQueueItem* cqi) noexcept;
 
 		// UserConnectionListener
-		virtual void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessage& message) noexcept;
+		virtual void on(UserConnectionListener::PrivateMessage, UserConnection* uc, const ChatMessage& message) noexcept;
 	};
 
 }
