@@ -31,11 +31,13 @@ void PrivateChat::CCPMConnected(UserConnection* uc) {
 }
 
 void PrivateChat::CCPMDisconnected() {
-	state = DISCONNECTED;
-	uc->removeListener(this);
-	setUc(nullptr);
-	fire(PrivateChatListener::CCPMStatusChanged(), STRING(CCPM_DISCONNECTED));
-	delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 1000);
+	if (state == CONNECTED) {
+		state = DISCONNECTED;
+		uc->removeListener(this);
+		setUc(nullptr);
+		fire(PrivateChatListener::CCPMStatusChanged(), STRING(CCPM_DISCONNECTED));
+		delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 1000);
+	}
 }
 
 bool PrivateChat::sendPrivateMessage(const HintedUser& aUser, const string& msg, string& error_, bool thirdPerson) {
