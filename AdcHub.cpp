@@ -1047,6 +1047,7 @@ void AdcHub::connect(const OnlineUser& user, const string& token, bool secure, C
 			ConnectionManager::getInstance()->adcExpect(token, user.getUser()->getCID(), getHubUrl());
 		}
 	} else {
+		ConnectionManager::getInstance()->tokens.addToken(token, aConnType);
 		send(AdcCommand(AdcCommand::CMD_RCM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(token));
 	}
 }
