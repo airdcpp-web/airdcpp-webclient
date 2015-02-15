@@ -872,13 +872,11 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 		}
 
 		if (allowAdd) {
-			allowAdd = tokens.addToken(uc->getToken(), CONNECTION_TYPE_UPLOAD);
-			if (allowAdd) {
-				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
-				ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), CONNECTION_TYPE_UPLOAD, uc->getToken());
-				cqi->setState(ConnectionQueueItem::ACTIVE);
-				fire(ConnectionManagerListener::Connected(), cqi, uc);
-			}
+			tokens.addToken(uc->getToken(), CONNECTION_TYPE_UPLOAD);
+			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
+			ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), CONNECTION_TYPE_UPLOAD, uc->getToken());
+			cqi->setState(ConnectionQueueItem::ACTIVE);
+			fire(ConnectionManagerListener::Connected(), cqi, uc);
 		}
 	}
 
