@@ -686,7 +686,7 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 			}
 		}
 
-		auto ret = ou->getClientBase().connect(*ou, aToken, lastError_, aConnType);
+		auto ret = ou->getClientBase().connect(*ou, aToken, lastError_);
 		if (ret == AdcCommand::SUCCESS) {
 			return true;
 		}

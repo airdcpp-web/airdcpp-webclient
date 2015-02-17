@@ -56,17 +56,6 @@ bool TokenManager::addToken(const string& aToken, ConnectionType aConnType) noex
 	return res.second;
 }
 
-pair<bool, ConnectionType> TokenManager::checkToken(const UserConnection* uc) noexcept{
-	FastLock l(cs);
-
-	auto t = tokens.find(uc->getToken());
-	if (t != tokens.end()) {
-		return make_pair(true, t->second);
-	}
-
-	return make_pair(false, CONNECTION_TYPE_LAST);
-}
-
 bool TokenManager::hasToken(const string& aToken, ConnectionType aConnType) noexcept{
 	FastLock l(cs);
 	const auto res = tokens.find(aToken);
@@ -321,7 +310,7 @@ void ConnectionManager::attemptDownloads(uint64_t aTick, StringList& removedToke
 						cqi->setState(ConnectionQueueItem::CONNECTING);
 						bool protocolError = false;
 
-						if (!ClientManager::getInstance()->connect(cqi->getUser(), cqi->getToken(), allowUrlChange, lastError, hubHint, protocolError, CONNECTION_TYPE_DOWNLOAD)) {
+						if (!ClientManager::getInstance()->connect(cqi->getUser(), cqi->getToken(), allowUrlChange, lastError, hubHint, protocolError)) {
 							cqi->setState(ConnectionQueueItem::WAITING);
 							cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1)); // protocol error
 							dcassert(!lastError.empty());
@@ -872,11 +861,13 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 		}
 
 		if (allowAdd) {
-			tokens.addToken(uc->getToken(), CONNECTION_TYPE_UPLOAD);
-			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
-			ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), CONNECTION_TYPE_UPLOAD, uc->getToken());
-			cqi->setState(ConnectionQueueItem::ACTIVE);
-			fire(ConnectionManagerListener::Connected(), cqi, uc);
+			allowAdd = tokens.addToken(uc->getToken(), CONNECTION_TYPE_UPLOAD);
+			if (allowAdd) {
+				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
+				ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), CONNECTION_TYPE_UPLOAD, uc->getToken());
+				cqi->setState(ConnectionQueueItem::ACTIVE);
+				fire(ConnectionManagerListener::Connected(), cqi, uc);
+			}
 		}
 	}
 
@@ -914,7 +905,6 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 	}
 
 	string token;
-	auto type = CONNECTION_TYPE_LAST;
 
 	if (aSource->isSet(UserConnection::FLAG_INCOMING)) {
 		if (!cmd.getParam("TO", 0, token)) {
@@ -935,14 +925,6 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		} 
 		aSource->setHubUrl(i.second);
 
-		auto tokCheck = tokens.checkToken(aSource);
-		if (!tokCheck.first) {
-			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "INF TO: invalid token").addParam("FB", "TO"));
-			putConnection(aSource);
-			return;
-		}
-		type = tokCheck.second;
-	
 		auto user = ClientManager::getInstance()->findUser(CID(i.first));
 		aSource->setUser(user);
 
@@ -954,7 +936,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		}
 
 		// set the PM flag now in order to send a INF with PM1
-		if ((type == CONNECTION_TYPE_PM || cmd.hasFlag("PM", 0)) && !aSource->isSet(UserConnection::FLAG_PM)) {
+		if ((tokens.hasToken(token, CONNECTION_TYPE_PM) || cmd.hasFlag("PM", 0)) && !aSource->isSet(UserConnection::FLAG_PM)) {
 			aSource->setFlag(UserConnection::FLAG_PM);
 		}
 
@@ -992,12 +974,10 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		}
 	}
 
-	if (aSource->isSet(UserConnection::FLAG_DOWNLOAD) || (type == CONNECTION_TYPE_DOWNLOAD)) {
-		if (!aSource->isSet(UserConnection::FLAG_DOWNLOAD))
-			aSource->setFlag(UserConnection::FLAG_DOWNLOAD);
+	if (aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
 		addDownloadConnection(aSource);
 	}
-	else if (type == CONNECTION_TYPE_PM || (aSource->isSet(UserConnection::FLAG_PM) || cmd.hasFlag("PM", 0))) {
+	else if (aSource->isSet(UserConnection::FLAG_PM) || cmd.hasFlag("PM", 0)) {
 		if (!aSource->isSet(UserConnection::FLAG_PM)) 
 			aSource->setFlag(UserConnection::FLAG_PM);
 		addPMConnection(aSource, CONNECTION_TYPE_PM);

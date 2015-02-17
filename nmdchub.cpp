@@ -60,7 +60,7 @@ string NmdcHub::fromUtf8(const string& str) const {
 
 #define checkstate() if(state != STATE_NORMAL) return
 
-int NmdcHub::connect(const OnlineUser& aUser, const string&, string& /*lastError_*/, ConnectionType) {
+int NmdcHub::connect(const OnlineUser& aUser, const string&, string& /*lastError_*/) {
 	if(state == STATE_NORMAL) {
 		dcdebug("NmdcHub::connect %s\n", aUser.getIdentity().getNick().c_str());
 		if(isActive()) {

@@ -39,7 +39,6 @@ public:
 	string getToken(ConnectionType aConnType) noexcept;
 	bool addToken(const string& aToken, ConnectionType aConnType) noexcept;
 	void removeToken(const string& aToken) noexcept;
-	pair<bool, ConnectionType> checkToken(const UserConnection* uc) noexcept;
 	bool hasToken(const string& aToken, ConnectionType aConnType) noexcept;
 private:
 	unordered_map<string, ConnectionType> tokens;

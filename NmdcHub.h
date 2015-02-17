@@ -35,7 +35,7 @@ public:
 	using Client::send;
 	using Client::connect;
 
-	int connect(const OnlineUser& aUser, const string& token, string& lastError_, ConnectionType);
+	int connect(const OnlineUser& aUser, const string& token, string& lastError_);
 
 	bool hubMessage(const string& aMessage, string& error_, bool /*thirdPerson*/ = false);
 	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool /*thirdPerson*/ = false);

@@ -480,7 +480,7 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 
 	if(getMyIdentity().isTcpActive()) {
 		//we are active the other guy is not
-		connect(*u, token, secure, CONNECTION_TYPE_LAST, true);
+		connect(*u, token, secure, true);
 		return;
 	}
 
@@ -935,11 +935,11 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 		fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATION_FAILED, STRING(CONNECTION_TIMEOUT) % (v6 ? "IPv6" : "IPv4")));
 }
 
-int AdcHub::connect(const OnlineUser& user, const string& token, string& lastError_, ConnectionType aConnType) {
+int AdcHub::connect(const OnlineUser& user, const string& token, string& lastError_) {
 	bool secure = CryptoManager::getInstance()->TLSOk() && user.getUser()->isSet(User::TLS);
 	auto conn = allowConnect(user, secure, lastError_, true);
 	if (conn == AdcCommand::SUCCESS) {
-		connect(user, token, secure, aConnType);
+		connect(user, token, secure);
 	}
 
 	return conn;
@@ -1029,7 +1029,7 @@ AdcCommand::Error AdcHub::allowConnect(const OnlineUser& user, bool secure, stri
 	return AdcCommand::SUCCESS;
 }
 
-void AdcHub::connect(const OnlineUser& user, const string& token, bool secure, ConnectionType aConnType, bool replyingRCM) {
+void AdcHub::connect(const OnlineUser& user, const string& token, bool secure, bool replyingRCM) {
 	const string* proto = secure ? &SECURE_CLIENT_PROTOCOL_TEST : &CLIENT_PROTOCOL;
 
 	if (replyingRCM || (user.getIdentity().allowV6Connections() && getMyIdentity().isTcp6Active()) || (user.getIdentity().allowV4Connections() && getMyIdentity().isTcp4Active())) {
@@ -1040,14 +1040,11 @@ void AdcHub::connect(const OnlineUser& user, const string& token, bool secure, C
 			return;
 		}
 
-		ConnectionManager::getInstance()->tokens.addToken(token, aConnType);
-
 		if (send(AdcCommand(AdcCommand::CMD_CTM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(port).addParam(token))) {
 			//we are expecting an incoming connection from these, map so we know where its coming from.
 			ConnectionManager::getInstance()->adcExpect(token, user.getUser()->getCID(), getHubUrl());
 		}
 	} else {
-		ConnectionManager::getInstance()->tokens.addToken(token, aConnType);
 		send(AdcCommand(AdcCommand::CMD_RCM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(token));
 	}
 }

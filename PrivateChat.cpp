@@ -92,7 +92,7 @@ void PrivateChat::StartCCPM(HintedUser& aUser, string& _err, bool& allowAuto){
 		return;
 	}
 	state = CONNECTING;
-	auto token = ConnectionManager::getInstance()->tokens.makeToken();
+	auto token = ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_PM);
 	if (ClientManager::getInstance()->connect(aUser.user, token, true, _err, aUser.hint, allowAuto, CONNECTION_TYPE_PM)){
 		fire(PrivateChatListener::StatusMessage(), STRING(CCPM_ESTABLISHING), LogManager::LOG_INFO);
 		delayEvents.addEvent(CCPM_TIMEOUT, [this] { checkCCPMTimeout(); }, 30000); // 30 seconds, completely arbitrary amount of time.
