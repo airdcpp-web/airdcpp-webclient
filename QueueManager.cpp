@@ -3532,8 +3532,12 @@ void QueueManager::moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle) noex
 	}
 }
 
-void QueueManager::addBundleUpdate(const BundlePtr& aBundle) noexcept {
-	delayEvents.addEvent(aBundle->getToken(), [this, aBundle] { handleBundleUpdate(aBundle->getToken()); }, aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH) ? 10000 : 1000);
+void QueueManager::addBundleUpdate(const BundlePtr& aBundle) noexcept{
+	/*
+	Add as Task to fix Deadlock!!
+	handleBundleUpdate(..) has a Lock and this function is called inside a Lock, while delayEvents has its own locking for add/execute functions.
+	*/
+	tasks.addTask([=] { delayEvents.addEvent(aBundle->getToken(), [this, aBundle] { handleBundleUpdate(aBundle->getToken()); }, aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH) ? 10000 : 1000); });
 }
 
 void QueueManager::handleBundleUpdate(const string& bundleToken) noexcept {
