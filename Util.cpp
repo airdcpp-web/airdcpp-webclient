@@ -588,6 +588,16 @@ void Util::decodeUrl(const string& url, string& protocol, string& host, string& 
 	fragment = url.substr(fragmentStart, fragmentEnd - fragmentStart);
 }
 
+void Util::parseIpPort(const string& aIpPort, string& ip, string& port) {
+	string::size_type i = aIpPort.rfind(':');
+	if (i == string::npos) {
+		ip = aIpPort;
+	} else {
+		ip = aIpPort.substr(0, i);
+		port = aIpPort.substr(i + 1);
+	}
+}
+
 map<string, string> Util::decodeQuery(const string& query) {
 	map<string, string> ret;
 	size_t start = 0;
