@@ -49,7 +49,7 @@ DupeType ChatLink::updateDupeType(const UserPtr& aUser) {
 	} else if (type == TYPE_MAGNET) {
 		Magnet m = Magnet(url);
 		dupe = m.getDupeType();
-		if (dupe == DUPE_NONE && ShareManager::getInstance()->ShareManager::getInstance()->isTempShared(aUser ? aUser->getCID().toBase32() : Util::emptyString, m.getTTH())) {
+		if (dupe == DUPE_NONE && ShareManager::getInstance()->isTempShared(aUser ? aUser->getCID().toBase32() : Util::emptyString, m.getTTH())) {
 			dupe = DUPE_SHARE;
 		}
 	}

@@ -289,6 +289,8 @@ void ShareScannerManager::find(const string& aPath, const string& aPathLower, Sc
 		if (aScan.isManualShareScan && std::binary_search(bundleDirs.begin(), bundleDirs.end(), dirLower)) {
 			return;
 		}
+		if (aScan.isManualShareScan && !ShareManager::getInstance()->isRealPathShared(dir))
+			return;
 
 		scanDir(dir, aScan);
 		if (SETTING(CHECK_DUPES) && aScan.isManualShareScan)
