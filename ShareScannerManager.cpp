@@ -286,11 +286,13 @@ void ShareScannerManager::find(const string& aPath, const string& aPathLower, Sc
 		dir = aPath + aFileName;
 		dirLower = aPathLower + Text::toLower(aFileName);
 
-		if (aScan.isManualShareScan && std::binary_search(bundleDirs.begin(), bundleDirs.end(), dirLower)) {
-			return;
+		if (aScan.isManualShareScan) {
+			if (std::binary_search(bundleDirs.begin(), bundleDirs.end(), dirLower))
+				return;
+
+			if (SETTING(CHECK_USE_SKIPLIST) && !ShareManager::getInstance()->isDirShared(dir))
+				return;
 		}
-		if (aScan.isManualShareScan && !ShareManager::getInstance()->isRealPathShared(dir))
-			return;
 
 		scanDir(dir, aScan);
 		if (SETTING(CHECK_DUPES) && aScan.isManualShareScan)
