@@ -224,7 +224,7 @@ private:
 
 	void addUploadConnection(UserConnection* uc);
 	void addDownloadConnection(UserConnection* uc);
-	void addPMConnection(UserConnection* uc, ConnectionType aConnType);
+	void addPMConnection(UserConnection* uc);
 
 	void checkWaitingMCN() noexcept;
 
