@@ -396,6 +396,8 @@ void UpdateManager::completeLanguageDownload() {
 			auto path = Localization::getCurLanguageFilePath();
 			File::ensureDirectory(Util::getFilePath(path));
 			File(path, File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
+			if (SETTING(LANGUAGE_FILE) != path) // Set the language path to what we downloaded.
+				SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, path);
 			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATED, Localization::getLanguageStr()), LogManager::LOG_INFO);
 			fire(UpdateManagerListener::LanguageFinished());
 
