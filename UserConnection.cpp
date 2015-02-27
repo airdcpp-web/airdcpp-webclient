@@ -225,7 +225,7 @@ void UserConnection::pm(const string& message, bool thirdPerson) {
 	send(c);
 
 	// simulate an echo message.
-	handlePM(c, true);
+	callAsync([=]{ handlePM(c, true); });
 }
 
 void UserConnection::handle(AdcCommand::MSG t, const AdcCommand& c) {
@@ -233,6 +233,11 @@ void UserConnection::handle(AdcCommand::MSG t, const AdcCommand& c) {
 
 	fire(t, this, c);
 }
+
+void UserConnection::handle(AdcCommand::PMI t, const AdcCommand& c) {
+	fire(t, this, c);
+}
+
 
 void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 	auto message = c.getParam(0);
@@ -265,7 +270,6 @@ void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 	msg.thirdPerson = c.hasFlag("ME", 1);
 	fire(UserConnectionListener::PrivateMessage(), this, msg);
 }
-
 
 void UserConnection::sup(const StringList& features) {
 	AdcCommand c(AdcCommand::CMD_SUP);

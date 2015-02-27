@@ -35,6 +35,15 @@ namespace dcpp {
 	class PrivateChat : public Speaker<PrivateChatListener>, public UserConnectionListener, private boost::noncopyable {
 	public:
 		
+		enum EventType {
+			USER_UPDATE,
+			CCPM_TIMEOUT,
+			CCPM_AUTO,
+			MSG_SEEN,
+			TYPING_ON,
+			TYPING_OFF
+		};
+
 		PrivateChat(const HintedUser& aUser) : uc(nullptr), replyTo(aUser), ccpmAttempts(0), allowAutoCCPM(true), lastCCPMAttempt(0), state(DISCONNECTED) {
 			string _err = Util::emptyString;;
 			supportsCCPM = ClientManager::getInstance()->getSupportsCCPM(aUser.user, _err);
@@ -76,6 +85,9 @@ namespace dcpp {
 		Client* getClient() {
 			return ClientManager::getInstance()->getClient(replyTo.hint);
 		}
+
+		void addPMInfo(uint8_t aType);
+		void sendPMInfo(uint8_t aType);
 		
 		GETSET(bool, supportsCCPM, SupportsCCPM);
 		GETSET(string, lastCCPMError, LastCCPMError);
@@ -83,11 +95,6 @@ namespace dcpp {
 
 	private:
 
-		enum EventType {
-			USER_UPDATE,
-			CCPM_TIMEOUT,
-			CCPM_AUTO
-		};
 		enum State {
 			CONNECTING,
 			CONNECTED,
@@ -110,6 +117,7 @@ namespace dcpp {
 		virtual void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessage& message) noexcept{
 			Message(message);
 		}
+		virtual void on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) noexcept;
 	};
 }
 

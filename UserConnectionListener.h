@@ -78,6 +78,7 @@ public:
 	virtual void on(AdcCommand::RES, UserConnection*, const AdcCommand&) noexcept { }
 	virtual void on(AdcCommand::GFI, UserConnection*, const AdcCommand&) noexcept { }
 	virtual void on(AdcCommand::MSG, UserConnection*, const AdcCommand&) noexcept { }
+	virtual void on(AdcCommand::PMI, UserConnection*, const AdcCommand&) noexcept{}
 };
 
 } // namespace dcpp

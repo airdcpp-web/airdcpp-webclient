@@ -127,6 +127,44 @@ void PrivateChat::checkCCPMTimeout() {
 		state = DISCONNECTED;
 	} 
 }
+void PrivateChat::addPMInfo(uint8_t aType) {
+	delayEvents.addEvent((EventType)aType, [=] { sendPMInfo(aType); }, 1000);
+}
 
+void PrivateChat::sendPMInfo(uint8_t aType) {
+	if (state == CONNECTED && uc) {
+		AdcCommand c(AdcCommand::CMD_PMI);
+		switch (aType) {
+		case MSG_SEEN:
+			c.addParam("SN", "1");
+			break;
+		case TYPING_ON:
+			c.addParam("TP", "1");
+			break;
+		case TYPING_OFF:
+			c.addParam("TP", "0");
+			break;
+		default:
+			c.addParam("\n");
+		}
+	
+		uc->send(c);
+	}
+}
+
+
+void PrivateChat::on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) noexcept{
+	
+	if (cmd.hasFlag("SN", 0))
+		fire(PrivateChatListener::PMStatus(), MSG_SEEN);
+
+	string tmp;
+	if (cmd.getParam("TP", 0, tmp)) {
+		if (tmp == "1")
+			fire(PrivateChatListener::PMStatus(), TYPING_ON);
+		else
+			fire(PrivateChatListener::PMStatus(), TYPING_OFF);
+	}
+}
 
 }

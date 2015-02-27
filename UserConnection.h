@@ -180,6 +180,7 @@ public:
 	void handle(AdcCommand::RES t, const AdcCommand& c) { fire(t, this, c); }
 	void handle(AdcCommand::GFI t, const AdcCommand& c) { fire(t, this, c);	}
 	void handle(AdcCommand::MSG t, const AdcCommand& c);
+	void handle(AdcCommand::PMI t, const AdcCommand& c);
 
 	// Ignore any other ADC commands for now
 	template<typename T> void handle(T , const AdcCommand& ) { }
@@ -235,6 +236,7 @@ private:
 	void on(ModeChange) noexcept;
 	void on(TransmitDone) noexcept;
 	void on(Failed, const string&) noexcept;
+
 };
 
 } // namespace dcpp
