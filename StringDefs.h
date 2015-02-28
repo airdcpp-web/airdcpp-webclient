@@ -1007,7 +1007,7 @@ enum Strings { // @DontAdd
 	DOWNLOAD_LIMITS, // "Download limits"
 	SETTINGS_PROFILE, // "Settings profile"
 	SETTINGS_MCN_NOTE, // "* Lowering the upload connections from the default value will result the download connections to be set to the same value"
-	CHECK_USE_SKIPLIST, // "Ignore items matching the share skiplist"
+	CHECK_IGNORE_SHARE_EXCLUDE, // "Ignore items matching the share skiplist and directories excluded from sharing"
 	CHECK_IGNORE_ZERO_BYTE, // "Ignore zero byte files"
 	NO_FILES_AVAILABLE, // "No files to download"
 	MATCHING_FILE_LIST, // "Matching file lists, this may take a while if the lists are large."

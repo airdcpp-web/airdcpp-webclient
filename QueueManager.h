@@ -175,7 +175,7 @@ public:
 
 	void handleSlowDisconnect(const UserPtr& aUser, const string& aTarget, const BundlePtr& aBundle) noexcept;
 
-	void searchBundle(BundlePtr& aBundle, bool manual) noexcept;
+	void searchBundle(BundlePtr& aBundle, bool manual, uint64_t aTick = GET_TICK()) noexcept;
 
 	/* Info collecting */
 	int getBundleItemCount(const BundlePtr& aBundle) const noexcept;
@@ -202,7 +202,6 @@ public:
 	DispatcherQueue tasks;
 
 	void shareBundle(BundlePtr aBundle, bool skipScan) noexcept;
-	void runAltSearch() noexcept;
 
 	void setMatchers() noexcept;
 	void shutdown();

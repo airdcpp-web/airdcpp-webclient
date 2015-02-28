@@ -76,7 +76,7 @@ public:
 		return ret;
 	}
 
-	int64_t recalculateSearchTimes(bool aRecent, bool isPrioChange) noexcept{
+	int64_t recalculateSearchTimes(bool aRecent, bool isPrioChange, uint64_t aTick) noexcept{
 		if (!aRecent) {
 			int prioItems = getPrioSum();
 			int minInterval = SETTING(SEARCH_TIME);
@@ -86,16 +86,16 @@ public:
 			}
 
 			if (nextSearch > 0 && isPrioChange) {
-				nextSearch = min(nextSearch, GET_TICK() + (minInterval * 60 * 1000));
+				nextSearch = min(nextSearch, aTick + (minInterval * 60 * 1000));
 			} else {
-				nextSearch = GET_TICK() + (minInterval * 60 * 1000);
+				nextSearch = aTick + (minInterval * 60 * 1000);
 			}
 			return nextSearch;
 		} else {
 			if (nextRecentSearch > 0 && isPrioChange) {
-				nextRecentSearch = min(nextRecentSearch, GET_TICK() + getRecentIntervalMs());
+				nextRecentSearch = min(nextRecentSearch, aTick + getRecentIntervalMs());
 			} else {
-				nextRecentSearch = GET_TICK() + getRecentIntervalMs();
+				nextRecentSearch = aTick + getRecentIntervalMs();
 			}
 			return nextRecentSearch;
 		}

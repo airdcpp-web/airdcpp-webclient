@@ -277,7 +277,7 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 
 	if(bundle) {
-		searchBundle(bundle, false);
+		searchBundle(bundle, false, aTick);
 	}
 
 	// Request parts info from partial file sharing sources
@@ -1909,7 +1909,7 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 		bundleQueue.removeSearchPrio(aBundle);
 		userQueue.setBundlePriority(aBundle, p);
 		bundleQueue.addSearchPrio(aBundle);
-		bundleQueue.recalculateSearchTimes(aBundle->isRecent(), true);
+		bundleQueue.recalculateSearchTimes(aBundle->isRecent(), true, GET_TICK());
 		if (!isAuto) {
 			aBundle->setAutoPriority(false);
 		}
@@ -2644,15 +2644,6 @@ void QueueManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aU
 		fire(QueueManagerListener::BundleSources(), b);
 }
 
-void QueueManager::runAltSearch() noexcept {
-	auto b = bundleQueue.findSearchItem(GET_TICK(), true);
-	if (b) {
-		searchBundle(b, false);
-	} else {
-		LogManager::getInstance()->message("No bundles to search for!", LogManager::LOG_INFO);
-	}
-}
-
 void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	if((lastSave + 10000) < aTick) {
 		saveQueue(false);
@@ -3213,13 +3204,12 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 	if (statusChanged) {
 		aBundle->setStatus(Bundle::STATUS_QUEUED);
 		tasks.addTask([=] {
-			auto b = aBundle;
 			fire(QueueManagerListener::BundleStatusChanged(), aBundle);
-			if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE) && !b->isPausedPrio()) {
-				b->setFlag(Bundle::FLAG_SCHEDULE_SEARCH);
-				addBundleUpdate(b);
-			}
 		});
+		if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE) && !aBundle->isPausedPrio()) {
+			aBundle->setFlag(Bundle::FLAG_SCHEDULE_SEARCH);
+			addBundleUpdate(aBundle);
+		}
 	}
 
 	return true;
@@ -3601,6 +3591,7 @@ void QueueManager::removeBundleItem(QueueItemPtr& qi, bool finished) noexcept{
 			removeBundleLists(bundle);
 		}
 	} else {
+		bundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 		addBundleUpdate(bundle);
 	}
 
@@ -3789,7 +3780,7 @@ void QueueManager::updatePBD(const HintedUser& aUser, const TTHValue& aTTH) noex
 		ConnectionManager::getInstance()->getDownloadConnection(aUser);
 }
 
-void QueueManager::searchBundle(BundlePtr& aBundle, bool manual) noexcept {
+void QueueManager::searchBundle(BundlePtr& aBundle, bool manual, uint64_t aTick) noexcept {
 	map<string, QueueItemPtr> searches;
 	int64_t nextSearch = 0;
 	{
@@ -3798,7 +3789,7 @@ void QueueManager::searchBundle(BundlePtr& aBundle, bool manual) noexcept {
 
 		aBundle->unsetFlag(Bundle::FLAG_SCHEDULE_SEARCH);
 		if (!manual)
-			nextSearch = (bundleQueue.recalculateSearchTimes(aBundle->isRecent(), false) - GET_TICK()) / (60*1000);
+			nextSearch = (bundleQueue.recalculateSearchTimes(aBundle->isRecent(), false, aTick) - aTick) / (60*1000);
 
 		if (isScheduled && !aBundle->allowAutoSearch())
 			return;
@@ -3828,7 +3819,7 @@ void QueueManager::searchBundle(BundlePtr& aBundle, bool manual) noexcept {
 		}
 	}
 
-	aBundle->setLastSearch(GET_TICK());
+	aBundle->setLastSearch(aTick);
 	int searchCount = (int)searches.size() <= 4 ? (int)searches.size() : 4;
 	if (manual) {
 		LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName().c_str() % searchCount), LogManager::LOG_INFO);
