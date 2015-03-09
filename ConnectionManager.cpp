@@ -791,19 +791,21 @@ void ConnectionManager::on(UserConnectionListener::Direction, UserConnection* aS
 
 
 void ConnectionManager::addPMConnection(UserConnection* uc) {
-	WLock l(cs);
-	auto& container = cqis[CONNECTION_TYPE_PM];
-	auto i = find(container.begin(), container.end(), uc->getUser());
-	if (i == container.end()) {
-		uc->setFlag(UserConnection::FLAG_ASSOCIATED);
-		auto cqi = getCQI(uc->getHintedUser(), CONNECTION_TYPE_PM, uc->getToken());
-		cqi->setState(ConnectionQueueItem::ACTIVE);
-		uc->setToken(cqi->getToken());
+	{
+		WLock l(cs);
+		auto& container = cqis[CONNECTION_TYPE_PM];
+		auto i = find(container.begin(), container.end(), uc->getUser());
+		if (i == container.end()) {
+			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
+			auto cqi = getCQI(uc->getHintedUser(), CONNECTION_TYPE_PM, uc->getToken());
+			cqi->setState(ConnectionQueueItem::ACTIVE);
+			uc->setToken(cqi->getToken());
 
-		fire(ConnectionManagerListener::Connected(), cqi, uc);
+			fire(ConnectionManagerListener::Connected(), cqi, uc);
 
-		dcdebug("ConnectionManager::addPMConnection, PM handler\n");
-		return;
+			dcdebug("ConnectionManager::addPMConnection, PM handler\n");
+			return;
+		}
 	}
 	putConnection(uc);
 }
