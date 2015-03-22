@@ -79,7 +79,8 @@ static const char* countryCodes[] = {
 namespace dcpp {
 
 void Localization::Language::setLanguageFile() {
-	SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, getLanguageFilePath());
+	// The path isn't relevant for the user or the client and it will cause problems when the setting dir location changes
+	SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, Util::getFileName(getLanguageFilePath()));
 }
 
 string Localization::Language::getLanguageFilePath() const {

@@ -404,7 +404,6 @@ void QueueManager::checkSource(const HintedUser& aUser) const throw(QueueExcepti
 void QueueManager::validateBundleFile(const string& aBundleDir, string& bundleFile_, const TTHValue& aTTH, QueueItemBase::Priority& priority_) const throw(QueueException, FileException, DupeException) {
 
 	//check the skiplist
-	string::size_type i = 0, j = 0;
 
 	auto matchSkipList = [&] (string&& aName) -> void {
 		if(skipList.match(aName)) {
@@ -416,6 +415,7 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& bundleFi
 	matchSkipList(Util::getFileName(bundleFile_));
 
 	//match all dirs (if any)
+	string::size_type i = 0, j = 0;
 	while ((i = bundleFile_.find(PATH_SEPARATOR, j)) != string::npos) {
 		matchSkipList(bundleFile_.substr(j, i - j));
 		j = i + 1;
