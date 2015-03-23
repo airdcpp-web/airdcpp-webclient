@@ -1482,7 +1482,7 @@ enum Strings { // @DontAdd
 	AWAY_MODE, // "Away mode"
 	AWAY_IDLE_TIME_BEGIN, // "Automatically set away mode after"
 	AWAY_IDLE_TIME_END, // "minutes of inactivity (0 = disable)"
-	SETTINGS_MAX_HASHER_SPEED, // "Maximum speed per hasher (0 = unlimited)"
+	SETTINGS_MAX_HASHER_SPEED, // "Max speed per hasher (0 = unlimited)"
 	REFRESHING_SHARE, // "Refreshing share"
 	CONN_ACTIVE_FAILED, // "Active mode could not be achieved; a manual configuration is recommended for better connectivity"
 	CONN_NAT_DETECTED, // "Local network with possible NAT detected, trying to map the ports..."

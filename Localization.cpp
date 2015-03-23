@@ -136,9 +136,10 @@ void Localization::init() {
 			auto s = find_if(languageList.begin(), languageList.end(), [&langFile](const Language& aLang) { return aLang.locale == langFile || aLang.languageFile == langFile; });
 			if (s != languageList.end()) {
 				curLanguage = distance(languageList.begin(), s);
-				if (curLanguage > 0 && !Util::fileExists(SETTING(LANGUAGE_FILE))) {
-					//paths changed? reset the default path
-					SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, (*s).getLanguageFilePath());
+				if (curLanguage > 0 /*&& !Util::fileExists(SETTING(LANGUAGE_FILE))*/) {
+					// paths changed? reset the default path
+					// always convert the old paths to only use the file name for versions <= 2.91... remove at some point
+					(*s).setLanguageFile();
 				}
 			} else {
 				/* Not one of the predefined language files, add a custom list item */
