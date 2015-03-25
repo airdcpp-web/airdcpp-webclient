@@ -104,7 +104,7 @@ namespace dcpp {
 
 	class MessageManager : public Speaker<MessageManagerListener>,
 		public Singleton<MessageManager>, private SettingsManagerListener,
-		private UserConnectionListener, private ConnectionManagerListener, private ClientManagerListener {
+		private UserConnectionListener, private ConnectionManagerListener {
 
 	public:
 
@@ -140,7 +140,7 @@ namespace dcpp {
 		SharedMutex cs;
 
 		unordered_map<UserPtr, UserConnection*, User::Hash> ccpms;
-		UserConnection* getPMConn(const UserPtr& user, UserConnectionListener* listener);
+		UserConnection* getPMConn(const UserPtr& user); //LOCK usage!!
 
 		//IGNORE
 		SharedMutex Ignorecs;
@@ -159,10 +159,6 @@ namespace dcpp {
 		// SettingsManagerListener
 		virtual void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept;
 		virtual void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept;
-
-		// ClientManagerListener
-		void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
-		void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
 
 		// ConnectionManagerListener
 		void on(ConnectionManagerListener::Connected, const ConnectionQueueItem* cqi, UserConnection* uc) noexcept;

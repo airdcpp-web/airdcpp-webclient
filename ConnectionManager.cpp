@@ -408,7 +408,16 @@ void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcep
 	}
 
 	for(auto j: userConnections) {
-		if (!j->isSet(UserConnection::FLAG_PM) && (j->getLastActivity() + 180 * 1000) < aTick) { //hmm 3 minutes?
+
+		if (j->isSet(UserConnection::FLAG_PM)) {
+			//Send a write check to the socket to detect half connected state, a good interval?
+			if ((j->getLastActivity() + 180 * 1000) < aTick) {
+				AdcCommand c(AdcCommand::CMD_PMI);
+				c.addParam("\n");
+				j->send(c);
+			}
+		}
+		else if ((j->getLastActivity() + 180 * 1000) < aTick) {
 			j->disconnect(true);
 		}
 	}

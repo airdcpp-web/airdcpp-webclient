@@ -32,7 +32,8 @@
 
 
 namespace dcpp {
-	class PrivateChat : public Speaker<PrivateChatListener>, public UserConnectionListener, private boost::noncopyable {
+	class PrivateChat : public Speaker<PrivateChatListener>, public UserConnectionListener,
+		private ClientManagerListener, private boost::noncopyable {
 	public:
 		
 		enum EventType {
@@ -44,12 +45,8 @@ namespace dcpp {
 			TYPING_OFF
 		};
 
-		PrivateChat(const HintedUser& aUser) : uc(nullptr), replyTo(aUser), ccpmAttempts(0), allowAutoCCPM(true), lastCCPMAttempt(0), state(DISCONNECTED) {
-			string _err = Util::emptyString;;
-			supportsCCPM = ClientManager::getInstance()->getSupportsCCPM(aUser.user, _err);
-			lastCCPMError = _err;
-		}
-		~PrivateChat() {}
+		PrivateChat(const HintedUser& aUser, UserConnection* aUc = nullptr);
+		~PrivateChat();
 
 		void CCPMConnected(UserConnection* uc);
 
@@ -57,11 +54,7 @@ namespace dcpp {
 
 		bool sendPrivateMessage(const HintedUser& aUser, const string& msg, string& error_, bool thirdPerson);
 
-		void Disconnect();
-
-		void UserDisconnected(bool wentOffline);
-
-		void UserUpdated(const OnlineUser& aUser);
+		void Disconnect(bool manual = false);
 
 		void Message(const ChatMessage& aMessage);
 
@@ -86,7 +79,6 @@ namespace dcpp {
 			return ClientManager::getInstance()->getClient(replyTo.hint);
 		}
 
-		void addPMInfo(uint8_t aType);
 		void sendPMInfo(uint8_t aType);
 		
 		GETSET(bool, supportsCCPM, SupportsCCPM);
@@ -117,6 +109,11 @@ namespace dcpp {
 		virtual void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessage& message) noexcept{
 			Message(message);
 		}
+
+		// ClientManagerListener
+		void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
+		void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
+
 		virtual void on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) noexcept;
 	};
 }

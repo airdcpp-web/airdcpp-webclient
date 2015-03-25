@@ -34,13 +34,11 @@ namespace dcpp
 	MessageManager::MessageManager() noexcept : dirty(false) {
 	SettingsManager::getInstance()->addListener(this);
 	ConnectionManager::getInstance()->addListener(this);
-	ClientManager::getInstance()->addListener(this);
 }
 
 MessageManager::~MessageManager() noexcept {
 	SettingsManager::getInstance()->removeListener(this);
 	ConnectionManager::getInstance()->removeListener(this);
-	ClientManager::getInstance()->removeListener(this);
 
 	{
 		WLock l(cs);
@@ -51,9 +49,8 @@ MessageManager::~MessageManager() noexcept {
 
 PrivateChat* MessageManager::addChat(const HintedUser& user) {
 	WLock l(cs);
-	auto p = new PrivateChat(user);
+	auto p = new PrivateChat(user, getPMConn(user.user));
 	chats.emplace(user.user, p).first->second;
-	p->setUc(getPMConn(user.user, p));
 	return p;
 	
 }
@@ -82,11 +79,10 @@ void MessageManager::closeAll(bool Offline) {
 }
 
 //LOCK!!
-UserConnection* MessageManager::getPMConn(const UserPtr& user, UserConnectionListener* listener) {
+UserConnection* MessageManager::getPMConn(const UserPtr& user) {
 	auto i = ccpms.find(user);
 	if (i != ccpms.end()) {
 		auto uc = i->second;
-		uc->addListener(listener);
 		uc->removeListener(this);
 		ccpms.erase(i);
 		return uc;
@@ -96,12 +92,24 @@ UserConnection* MessageManager::getPMConn(const UserPtr& user, UserConnectionLis
 
 
 void MessageManager::DisconnectCCPM(const UserPtr& aUser) {
-	
-	RLock l(cs);
-	auto i = chats.find(aUser);
-	if (i != chats.end()) {
-		i->second->Disconnect();
+	{
+		RLock l(cs);
+		auto i = chats.find(aUser);
+		if (i != chats.end()) {
+			i->second->Disconnect();
+			return;
+		}
 	}
+
+	WLock l(cs);
+	auto i = ccpms.find(aUser);
+	if (i != ccpms.end()) {
+		auto uc = i->second;
+		uc->disconnect(true);
+		uc->removeListener(this);
+		ccpms.erase(i);
+	}
+
 }
 
 void MessageManager::onPrivateMessage(const ChatMessage& aMessage, UserConnection* aUc) {
@@ -113,12 +121,10 @@ void MessageManager::onPrivateMessage(const ChatMessage& aMessage, UserConnectio
 		wndCnt = chats.size();
 		auto i = chats.find(user);
 		if (i != chats.end()) {
-			if (aUc) {
-				i->second->setUc(getPMConn(user, i->second));
-			} else if (!aUc && i->second->ccReady()) { //User is sending us messages via hub but we seem connected.. Never should happen, but it does...
-				dcassert(0);
-				i->second->Disconnect();
-			}
+			//Debug purposes to see if this really ever happens!! 
+			if (aUc && !i->second->ccReady())
+				LogManager::getInstance()->message("Message received via CCPM but frame not connected state! report to Night", LogManager::LOG_ERROR);
+
 			i->second->Message(aMessage); //We should have a listener in the frame
 			return;
 		}
@@ -170,22 +176,6 @@ void MessageManager::on(ConnectionManagerListener::Removed, const ConnectionQueu
 void MessageManager::on(UserConnectionListener::PrivateMessage, UserConnection* uc, const ChatMessage& message) noexcept{
 	onPrivateMessage(message, uc);
 
-}
-
-void MessageManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept{
-	RLock l(cs);
-	auto i = chats.find(aUser);
-	if (i != chats.end()) {
-		i->second->UserDisconnected(wentOffline);
-	}
-}
-
-void MessageManager::on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept{
-	RLock l(cs);
-	auto i = chats.find(aUser.getUser());
-	if (i != chats.end()) {
-		i->second->UserUpdated(aUser);
-	}
 }
 
 // SettingsManagerListener
