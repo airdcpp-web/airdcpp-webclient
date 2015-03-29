@@ -50,6 +50,9 @@ typedef std::vector<uint16_t> PartsInfo;
 
 class Client;
 
+class MessageManager;
+class PrivateChat;
+
 class ClientManager;
 
 class ConnectionQueueItem;

@@ -39,7 +39,6 @@
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 
-
 namespace dcpp {
 
 using boost::find_if;
@@ -626,6 +625,31 @@ void ClientManager::getUserInfoList(const UserPtr& user, User::UserInfoList& aLi
 	}
 }
 
+bool ClientManager::getSupportsCCPM(const UserPtr& aUser, string& _error) {
+	if (!aUser->isOnline()) {
+		_error = STRING(USER_OFFLINE);
+		return false;
+	}
+	else if (aUser->isNMDC()) {
+		_error = STRING(CCPM_NOT_SUPPORTED_NMDC);
+		return false;
+	}
+	else if (aUser->isSet(User::BOT)) {
+		_error = STRING(CCPM_NOT_SUPPORTED);
+		return false;
+	}
+
+
+	RLock l(cs);
+	OnlinePair op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID()));
+	for (auto u : op | map_values) {
+		if (u->supportsCCPM(_error))
+			return true;
+	}
+	return false;
+}
+
+
 OnlineUser* ClientManager::findOnlineUser(const HintedUser& user) const noexcept {
 	return findOnlineUser(user.user->getCID(), user.hint);
 }
@@ -643,12 +667,19 @@ OnlineUser* ClientManager::findOnlineUser(const CID& cid, const string& hintUrl)
 	return p.first->second;
 }
 
-bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError) noexcept {
+bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError, ConnectionType aConnType) noexcept {
 	RLock l(cs);
 	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID()));
 
 	auto connectUser = [&] (OnlineUser* ou) -> bool {
 		isProtocolError = false;
+		if (aConnType == CONNECTION_TYPE_PM) {
+			if (!ou->supportsCCPM(lastError_)) {
+				isProtocolError = true;
+				return false;
+			}
+		}
+
 		auto ret = ou->getClientBase().connect(*ou, aToken, lastError_);
 		if (ret == AdcCommand::SUCCESS) {
 			return true;

@@ -57,24 +57,25 @@ public:
 		MODE_COMMAND = BufferedSocket::MODE_LINE,
 		MODE_DATA = BufferedSocket::MODE_DATA
 	};
-	
+
 	enum Flags {
 		FLAG_NMDC					= 0x01,
-		FLAG_OP						= 0x02,
-		FLAG_UPLOAD					= 0x04,
-		FLAG_DOWNLOAD				= 0x08,
-		FLAG_INCOMING				= 0x10,
-		FLAG_ASSOCIATED				= 0x20,
-		FLAG_SUPPORTS_MINISLOTS		= 0x40,
-		FLAG_SUPPORTS_XML_BZLIST	= 0x80,
-		FLAG_SUPPORTS_ADCGET		= 0x100,
-		FLAG_SUPPORTS_ZLIB_GET		= 0x200,
-		FLAG_SUPPORTS_TTHL			= 0x400,
-		FLAG_SUPPORTS_TTHF			= 0x800,
-		FLAG_RUNNING				= 0x1000,
-		FLAG_MCN1					= 0x4000,
-		FLAG_SMALL_SLOT				= 0x8000,
-		FLAG_UBN1					= 0x16000
+		FLAG_OP						= FLAG_NMDC << 1,
+		FLAG_UPLOAD					= FLAG_OP << 1,
+		FLAG_DOWNLOAD				= FLAG_UPLOAD << 1,
+		FLAG_PM						= FLAG_DOWNLOAD << 1,
+		FLAG_INCOMING				= FLAG_PM << 1,
+		FLAG_ASSOCIATED				= FLAG_INCOMING << 1,
+		FLAG_SUPPORTS_MINISLOTS		= FLAG_ASSOCIATED << 1,
+		FLAG_SUPPORTS_XML_BZLIST	= FLAG_SUPPORTS_MINISLOTS << 1,
+		FLAG_SUPPORTS_ADCGET		= FLAG_SUPPORTS_XML_BZLIST << 1,
+		FLAG_SUPPORTS_ZLIB_GET		= FLAG_SUPPORTS_ADCGET << 1,
+		FLAG_SUPPORTS_TTHL			= FLAG_SUPPORTS_ZLIB_GET <<1,
+		FLAG_SUPPORTS_TTHF			= FLAG_SUPPORTS_TTHL << 1,
+		FLAG_RUNNING				= FLAG_SUPPORTS_TTHF << 1,
+		FLAG_MCN1					= FLAG_RUNNING << 1,
+		FLAG_SMALL_SLOT				= FLAG_MCN1 << 1,
+		FLAG_UBN1					= FLAG_SMALL_SLOT << 1
 	};
 	
 	enum States {
@@ -142,6 +143,9 @@ public:
 	void connect(const string& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole);
 	void accept(const Socket& aServer);
 
+	void handlePM(const AdcCommand& c, bool echo) noexcept;
+	void pm(const string& message, bool thirdPerson = false);
+
 	template<typename F>
 	void callAsync(F f) { if(socket) socket->callAsync(f); }
 
@@ -175,6 +179,8 @@ public:
 	void handle(AdcCommand::STA t, const AdcCommand& c);
 	void handle(AdcCommand::RES t, const AdcCommand& c) { fire(t, this, c); }
 	void handle(AdcCommand::GFI t, const AdcCommand& c) { fire(t, this, c);	}
+	void handle(AdcCommand::MSG t, const AdcCommand& c);
+	void handle(AdcCommand::PMI t, const AdcCommand& c);
 
 	// Ignore any other ADC commands for now
 	template<typename T> void handle(T , const AdcCommand& ) { }
@@ -230,6 +236,7 @@ private:
 	void on(ModeChange) noexcept;
 	void on(TransmitDone) noexcept;
 	void on(Failed, const string&) noexcept;
+
 };
 
 } // namespace dcpp

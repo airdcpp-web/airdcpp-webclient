@@ -79,6 +79,7 @@ public:
 	static const string SUD1_FEATURE;
 	static const string HBRI_SUPPORT;
 	static const string ASCH_FEATURE;
+	static const string CCPM_FEATURE;
 private:
 	friend class ClientManager;
 	friend class CommandHandler<AdcHub>;

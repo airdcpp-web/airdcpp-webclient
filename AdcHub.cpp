@@ -62,6 +62,7 @@ const string AdcHub::ZLIF_SUPPORT("ADZLIF");
 const string AdcHub::SUD1_FEATURE("SUD1");
 const string AdcHub::HBRI_SUPPORT("ADHBRI");
 const string AdcHub::ASCH_FEATURE("ASCH");
+const string AdcHub::CCPM_FEATURE("CCPM");
 
 const vector<StringList> AdcHub::searchExts;
 
@@ -479,7 +480,7 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 
 	if(getMyIdentity().isTcpActive()) {
 		//we are active the other guy is not
-    	connect(*u, token, secure, true);
+		connect(*u, token, secure, true);
 		return;
 	}
 
@@ -1039,7 +1040,6 @@ void AdcHub::connect(const OnlineUser& user, const string& token, bool secure, b
 			return;
 		}
 
-
 		if (send(AdcCommand(AdcCommand::CMD_CTM, user.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(port).addParam(token))) {
 			//we are expecting an incoming connection from these, map so we know where its coming from.
 			ConnectionManager::getInstance()->adcExpect(token, user.getUser()->getCID(), getHubUrl());
@@ -1454,6 +1454,7 @@ void AdcHub::infoImpl() {
 
 	if(CryptoManager::getInstance()->TLSOk()) {
 		su += "," + ADCS_FEATURE;
+		su += "," + CCPM_FEATURE;
 	}
 
 	if (SETTING(ENABLE_SUDP))

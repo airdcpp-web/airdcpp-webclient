@@ -26,6 +26,7 @@
 #include "BufferedSocket.h"
 #include "BufferedSocketListener.h"
 #include "ClientListener.h"
+#include "ConnectionType.h"
 #include "HubSettings.h"
 #include "OnlineUser.h"
 #include "Search.h"

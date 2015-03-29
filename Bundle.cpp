@@ -59,7 +59,7 @@ Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t 
 	QueueItemBase(aTarget, 0, aPriority, aAdded), bundleDate(aBundleDate), fileBundle(isFileBundle), dirty(aDirty) {
 
 	if (aToken.empty()) {
-		token = ConnectionManager::getInstance()->tokens.getToken();
+		token = ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_DOWNLOAD);
 	} else {
 		token = aToken;
 	}
