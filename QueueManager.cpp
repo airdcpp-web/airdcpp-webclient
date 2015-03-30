@@ -3019,7 +3019,7 @@ void QueueManager::checkRefreshPaths(StringList& retBundles, StringList& sharePa
 	{
 		RLock l(cs);
 		for (auto& b: bundleQueue.getBundles() | map_values) {
-			if (b->isFileBundle() || b->getStatus() >= Bundle::STATUS_HASHING)
+			if (b->isFileBundle() || (b->getStatus() >= Bundle::STATUS_HASHING && b->getStatus() != Bundle::STATUS_HASH_FAILED))
 				continue;
 
 			//check the path just to avoid hashing/scanning bundles from dirs that aren't being refreshed

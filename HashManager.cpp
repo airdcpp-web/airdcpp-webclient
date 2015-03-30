@@ -1119,6 +1119,7 @@ int HashManager::Hasher::run() {
 			break;
 		}
 		
+		int64_t originalSize = 0;
 		bool failed = true;
 		bool dirChanged = false;
 		string curDevID, pathLower;
@@ -1130,6 +1131,7 @@ int HashManager::Hasher::run() {
 				currentFile = fname = move(wi.filePath);
 				curDevID = move(wi.devID);
 				pathLower = move(wi.filePathLower);
+				originalSize = wi.fileSize;
 				dcassert(!curDevID.empty());
 				w.pop_front();
 			} else {
@@ -1140,6 +1142,7 @@ int HashManager::Hasher::run() {
 
 		HashedFile fi;
 		if(!fname.empty()) {
+			int64_t sizeLeft = originalSize;
 			try {
 				if (initialDir.empty()) {
 					initialDir = Util::getFilePath(fname);
@@ -1149,10 +1152,14 @@ int HashManager::Hasher::run() {
 					sfv.loadPath(Util::getFilePath(fname));
 				uint64_t start = GET_TICK();
 				File f(fname, File::READ, File::OPEN);
+
+				// size changed since adding?
 				int64_t size = f.getSize();
+				sizeLeft = size;
+				totalBytesLeft += size - originalSize;
+
 				int64_t bs = max(TigerTree::calcBlockSize(size, 10), MIN_BLOCK_SIZE);
 				uint64_t timestamp = f.getLastModified();
-				int64_t sizeLeft = size;
 				TigerTree tt(bs);
 
 				CRC32Filter crc32;
@@ -1221,6 +1228,7 @@ int HashManager::Hasher::run() {
 					//tth = tt.getRoot();
 				}
 			} catch(const FileException& e) {
+				totalBytesLeft -= sizeLeft;
 				getInstance()->log(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), hasherID, true, true);
 				getInstance()->fire(HashManagerListener::HashFailed(), fname, fi);
 				failed = true;
