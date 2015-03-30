@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_VERSION_H
 #define DCPLUSPLUS_VERSION_H
 
-#define DCVERSIONSTRING "0.830"
+#define DCVERSIONSTRING "0.850"
 
 namespace dcpp {
 	enum VersionType {
