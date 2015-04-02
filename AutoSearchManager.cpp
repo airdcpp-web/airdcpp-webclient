@@ -262,6 +262,7 @@ void AutoSearchManager::onBundleCreated(BundlePtr& aBundle, const ProfileToken a
 		aBundle->setAddedByAutoSearch(true); //yes, not the best place to modify bundle information.
 		as->addBundle(aBundle);
 		updateStatus(as, true);
+		dirty = true;
 	}
 }
 
