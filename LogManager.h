@@ -28,6 +28,7 @@
 #include "Speaker.h"
 #include "LogManagerListener.h"
 #include "User.h"
+#include "DispatcherQueue.h"
 
 namespace dcpp {
 
@@ -79,6 +80,8 @@ private:
 
 	unordered_map<CID, string> pmPaths;
 	void ensureParam(const string& aParam, string& aFile);
+
+	DispatcherQueue tasks;
 };
 
 #define LOG(area, msg) LogManager::getInstance()->log(area, msg)

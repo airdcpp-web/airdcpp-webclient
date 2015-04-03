@@ -75,10 +75,10 @@ CryptoManager::CryptoManager()
 
 	SSL_library_init();
 
-	clientContext.reset(SSL_CTX_new(TLSv1_client_method()));
-	clientVerContext.reset(SSL_CTX_new(TLSv1_client_method()));
-	serverContext.reset(SSL_CTX_new(TLSv1_server_method()));
-	serverVerContext.reset(SSL_CTX_new(TLSv1_server_method()));
+	clientContext.reset(SSL_CTX_new(SSLv23_client_method()));
+	clientVerContext.reset(SSL_CTX_new(SSLv23_client_method()));
+	serverContext.reset(SSL_CTX_new(SSLv23_server_method()));
+	serverVerContext.reset(SSL_CTX_new(SSLv23_server_method()));
 
 	if(clientContext && clientVerContext && serverContext && serverVerContext) {
 		dh.reset(DH_new());
@@ -140,8 +140,8 @@ CryptoManager::CryptoManager()
 			if (!dh->p || !dh->g) {
 				dh.reset();
 			} else {
-				SSL_CTX_set_options(serverContext, SSL_OP_SINGLE_DH_USE);
-				SSL_CTX_set_options(serverVerContext, SSL_OP_SINGLE_DH_USE);
+				SSL_CTX_set_options(serverContext, SSL_OP_SINGLE_DH_USE | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
+				SSL_CTX_set_options(serverVerContext, SSL_OP_SINGLE_DH_USE | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
 				SSL_CTX_set_tmp_dh(serverContext, (DH*)dh);
 				SSL_CTX_set_tmp_dh(serverVerContext, (DH*)dh);
 			}

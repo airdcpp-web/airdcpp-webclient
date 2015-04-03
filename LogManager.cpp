@@ -130,19 +130,22 @@ void LogManager::saveSetting(int area, int sel, const string& setting) {
 }
 
 void LogManager::log(const string& area, const string& msg) noexcept {
-	Lock l(cs);
-	try {
-		string aArea = Util::validatePath(area);
-		File::ensureDirectory(aArea);
-		File f(aArea, File::WRITE, File::OPEN | File::CREATE);
-		f.setEndPos(0);
-		f.write(msg + "\r\n");
-	} catch (const FileException&) {
-		// ...
-	}
+	tasks.addTask([=] {
+		try {
+			string aArea = Util::validatePath(area);
+			File::ensureDirectory(aArea);
+			File f(aArea, File::WRITE, File::OPEN | File::CREATE);
+			f.setEndPos(0);
+			f.write(msg + "\r\n");
+		}
+		catch (const FileException&) {
+			// ...
+		}
+	});
 }
 
-LogManager::LogManager() {
+LogManager::LogManager() : tasks(true) {
+
 	options[UPLOAD][FILE]		= SettingsManager::LOG_FILE_UPLOAD;
 	options[UPLOAD][FORMAT]		= SettingsManager::LOG_FORMAT_POST_UPLOAD;
 	options[DOWNLOAD][FILE]		= SettingsManager::LOG_FILE_DOWNLOAD;
