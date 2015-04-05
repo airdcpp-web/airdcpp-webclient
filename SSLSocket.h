@@ -19,12 +19,17 @@
 #ifndef DCPLUSPLUS_DCPP_SSLSOCKET_H
 #define DCPLUSPLUS_DCPP_SSLSOCKET_H
 
+
+#include "CryptoManager.h"
 #include "Socket.h"
 #include "Singleton.h"
 
 #include "SSL.h"
 
 namespace dcpp {
+
+using std::unique_ptr;
+using std::string;
 
 class SSLSocketException : public SocketException {
 public:
@@ -38,11 +43,13 @@ public:
 	virtual ~SSLSocketException() throw() { }
 };
 
-class CryptoManager;
-
 class SSLSocket : public Socket {
 public:
-	virtual ~SSLSocket() { }
+	SSLSocket(CryptoManager::SSLContext context, bool allowUntrusted, const string& expKP);
+	/** Creates an SSL socket without any verification */
+	SSLSocket(CryptoManager::SSLContext context);
+
+	virtual ~SSLSocket() { verifyData.reset(); }
 
 	virtual uint16_t accept(const Socket& listeningSocket);
 	virtual void connect(const string& aIp, const string& aPort);
@@ -54,19 +61,19 @@ public:
 
 	virtual bool isSecure() const noexcept { return true; }
 	virtual bool isTrusted() const noexcept;
-	virtual std::string getCipherName() const noexcept;
-	virtual vector<uint8_t> getKeyprint() const noexcept;
+	virtual string getCipherName() const noexcept;
+	virtual ByteVector getKeyprint() const noexcept;
+	virtual bool verifyKeyprint(const string& expKeyp, bool allowUntrusted) noexcept;
 
 	virtual bool waitConnected(uint32_t millis);
 	virtual bool waitAccepted(uint32_t millis);
 
 private:
-	friend class CryptoManager;
-
-	SSLSocket(SSL_CTX* context);
 
 	SSL_CTX* ctx;
 	ssl::SSL ssl;
+
+	unique_ptr<CryptoManager::SSLVerifyData> verifyData;	// application data used by CryptoManager::verify_callback(...)
 
 	int checkSSL(int ret);
 	bool waitWant(int ret, uint32_t millis);

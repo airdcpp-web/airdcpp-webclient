@@ -27,6 +27,9 @@
 #include "version.h"
 
 #include <openssl/bn.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+
 #include <bzlib.h>
 
 #ifdef _MSC_VER
@@ -51,16 +54,11 @@
 
 namespace dcpp {
 
-#ifdef HEADER_OPENSSLV_H
-CriticalSection* CryptoManager::cs = NULL;
-#else
-static int mutex_init(void **priv) { *priv = new CriticalSection(); return 0; }
-static int mutex_destroy(void **priv) { delete *priv; *priv = NULL; return 0; }
-static int mutex_lock(void **priv) { ((CriticalSection*)(*priv))->enter(); return 0; }
-static int mutex_unlock(void **priv) { ((CriticalSection*)(*priv))->leave(); return 0; }
-  
-static struct gcry_thread_cbs gcry_threads_other = { 0, NULL, mutex_init, mutex_destroy, mutex_lock, mutex_unlock, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
-#endif
+	void* CryptoManager::tmpKeysMap[KEY_LAST] = { NULL, NULL, NULL };
+	CriticalSection* CryptoManager::cs = NULL;
+	int CryptoManager::idxVerifyData = 0;
+	char CryptoManager::idxVerifyDataName[] = "AirDC.VerifyData";
+	CryptoManager::SSLVerifyData CryptoManager::trustedKeyprint = { false, "trusted_keyp" };
 
 CryptoManager::CryptoManager()
 :
@@ -68,120 +66,87 @@ CryptoManager::CryptoManager()
 	lock("EXTENDEDPROTOCOLABCABCABCABCABCABC"),
 	pk("DCPLUSPLUS" + VERSIONSTRING)
 {
-#ifdef HEADER_OPENSSLV_H
+
 	cs = new CriticalSection[CRYPTO_num_locks()];
 	CRYPTO_set_locking_callback(locking_function);
-#endif
 
 	SSL_library_init();
+	SSL_load_error_strings();
 
 	clientContext.reset(SSL_CTX_new(SSLv23_client_method()));
-	clientVerContext.reset(SSL_CTX_new(SSLv23_client_method()));
 	serverContext.reset(SSL_CTX_new(SSLv23_server_method()));
-	serverVerContext.reset(SSL_CTX_new(SSLv23_server_method()));
 
-	if(clientContext && clientVerContext && serverContext && serverVerContext) {
-		dh.reset(DH_new());
+	idxVerifyData = SSL_get_ex_new_index(0, idxVerifyDataName, NULL, NULL, NULL);
 
-        static unsigned char dh4096_p[]={
-                0xCA,0x35,0xA8,0xBB,0x65,0x33,0x28,0xC6,0x3F,0xD7,0x21,0x55,
-                0x95,0xDF,0xC0,0xDC,0x11,0x10,0x23,0x2D,0x1E,0xD6,0x52,0x23,
-                0xA1,0x52,0xB8,0xDD,0x4A,0x25,0xEE,0xF4,0x78,0xB6,0x89,0x9E,
-                0xB6,0x33,0xEB,0x01,0xA6,0x46,0x31,0xD8,0x3D,0x12,0xB4,0x7B,
-                0x1F,0x64,0x0C,0x84,0x10,0x80,0xFB,0x4F,0x74,0x21,0xA3,0x9B,
-                0xF5,0x97,0xD1,0x05,0x97,0x9D,0x52,0x4F,0x91,0x3C,0xE1,0xA8,
-                0x97,0xE0,0x33,0x9D,0xCB,0x9D,0x9D,0x2A,0xB5,0x3E,0xF5,0x8D,
-                0x7F,0xEE,0x91,0xEE,0x4E,0xC5,0xA6,0xAB,0x54,0xD9,0xC2,0xA5,
-                0x0D,0x2E,0xEA,0x1A,0x39,0xFD,0x30,0x4A,0x1C,0xB7,0x34,0x2B,
-                0x7D,0x51,0xF6,0xB1,0xD1,0x8D,0xCE,0x28,0xDC,0xF9,0xDE,0x34,
-                0xAF,0x1E,0xD1,0x7C,0xC2,0xD3,0x38,0x8E,0xBD,0x35,0x01,0x53,
-                0xDD,0x2E,0xB5,0x83,0xC8,0xEF,0x08,0x15,0x59,0x6E,0xA3,0xC4,
-                0x71,0x57,0x8C,0x4D,0xFD,0xA7,0x19,0x40,0x88,0x68,0x4E,0xD6,
-                0x8F,0x5C,0xE5,0xEC,0xCF,0x5F,0xEB,0x9A,0xA4,0x66,0x40,0x8B,
-                0x02,0x87,0xA7,0x3A,0x58,0x81,0xF1,0x6A,0x14,0x16,0x75,0x7D,
-                0x33,0x01,0xEB,0x3F,0xA8,0x02,0xDC,0x09,0x32,0x12,0x00,0x20,
-                0x47,0xFF,0x01,0x14,0xFE,0x9E,0x3A,0x44,0x4D,0xED,0x85,0xD5,
-                0xDA,0x2F,0xE3,0x99,0xCE,0xDA,0x84,0x64,0xCB,0x0C,0x8C,0x00,
-                0x90,0x19,0x70,0x1C,0x00,0x1D,0x63,0x3C,0x77,0x16,0x8D,0x3D,
-                0x86,0x97,0x22,0x23,0x2F,0x7B,0xAB,0xB8,0xEB,0x94,0xA4,0x01,
-                0xAA,0x34,0xBA,0xEA,0x7D,0x7A,0x37,0xB7,0x0C,0x75,0xEB,0x00,
-                0x8D,0x52,0x7A,0xE2,0xDF,0x78,0x7C,0x4F,0x54,0x9E,0xA4,0xDD,
-                0xC9,0xFC,0x08,0x7C,0x45,0x70,0x43,0x0F,0x39,0xE3,0x7E,0x48,
-                0xB8,0xDC,0x9D,0xEC,0xB9,0x51,0x29,0x86,0x29,0x60,0xF6,0x4F,
-                0xF7,0xCA,0xDD,0x3B,0x7F,0xAE,0xE2,0x54,0x4C,0x53,0x42,0x55,
-                0xC0,0x39,0x24,0xE1,0x1A,0xAD,0x9E,0xCC,0x75,0x5E,0xF1,0xE2,
-                0xD6,0xAE,0xCD,0x9A,0x91,0xC3,0x7B,0xE5,0x29,0xAD,0xCA,0xC2,
-                0x00,0xC1,0xF9,0xF4,0x6D,0xD2,0x4B,0xD4,0x5A,0x56,0x39,0xCD,
-                0xAC,0xCA,0xE7,0xD1,0x8C,0x15,0x4D,0x2B,0x59,0x67,0x29,0x72,
-                0xE7,0x40,0x14,0x81,0x9E,0x26,0x48,0xF8,0x6C,0x51,0xF5,0xBE,
-                0x64,0xD1,0xF4,0x4D,0x98,0xE7,0xFD,0x5E,0x23,0x1E,0xDF,0xBA,
-                0xBD,0x2E,0xB1,0x81,0x26,0x98,0x9C,0x2F,0xE8,0xD5,0x32,0x6B,
-                0x94,0x91,0x8C,0x2E,0xB8,0xD9,0xC9,0x2F,0x22,0x9D,0xA6,0x52,
-                0x02,0xDF,0x99,0x63,0x64,0x7E,0xB8,0x68,0xAB,0x17,0x54,0x7E,
-                0xED,0x9E,0xD1,0x45,0x64,0x36,0x65,0xE8,0x09,0x50,0xAB,0xB0,
-                0xD4,0x8C,0x79,0x9F,0x4C,0xB8,0x26,0x45,0xBE,0x0F,0xDE,0x14,
-                0x6F,0xEC,0x70,0x21,0x1A,0xA0,0x1D,0xD0,0x7D,0xA2,0x0F,0x85,
-                0xA5,0x7C,0xC1,0x0A,0x74,0xB1,0x7B,0x5A,0xD2,0xC4,0x0F,0xD5,
-                0x90,0x24,0x3E,0xEC,0x89,0x7E,0xB8,0xED,0x6E,0x19,0x85,0xB9,
-                0x58,0x36,0xA1,0x33,0x7D,0x14,0xFE,0x4F,0x55,0xA9,0xB6,0x42,
-                0x7E,0x97,0x2A,0x96,0x50,0x14,0x0D,0xEA,0x02,0xB1,0xD2,0x22,
-                0xEB,0xE7,0xF4,0xAC,0xB6,0x37,0xCA,0xAB,0x4A,0x1E,0x4D,0x4E,
-                0xCF,0xFE,0x5D,0xEF,0x23,0x78,0xC6,0xBB,
-                };
+	if(clientContext && serverContext) {
+		// Check that openssl rng has been seeded with enough data
+		sslRandCheck();
 
-        static unsigned char dh4096_g[]={
-                0x02,
-                };
+		// Init temp data for DH keys
+		for (int i = KEY_FIRST; i != KEY_RSA_2048; ++i)
+			tmpKeysMap[i] = getTmpDH(getKeyLength(static_cast<TLSTmpKeys>(i)));
 
-		if(dh) {
-			dh->p = BN_bin2bn(dh4096_p, sizeof(dh4096_p), 0);
-			dh->g = BN_bin2bn(dh4096_g, sizeof(dh4096_g), 0);
+		// and same for RSA keys
+		for (int i = KEY_RSA_2048; i != KEY_LAST; ++i)
+			tmpKeysMap[i] = getTmpRSA(getKeyLength(static_cast<TLSTmpKeys>(i)));
 
-			if (!dh->p || !dh->g) {
-				dh.reset();
-			} else {
-				SSL_CTX_set_options(serverContext, SSL_OP_SINGLE_DH_USE | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
-				SSL_CTX_set_options(serverVerContext, SSL_OP_SINGLE_DH_USE | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
-				SSL_CTX_set_tmp_dh(serverContext, (DH*)dh);
-				SSL_CTX_set_tmp_dh(serverVerContext, (DH*)dh);
-			}
+		const char ciphersuites[] = "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA:AES128-SHA";
+		SSL_CTX_set_options(clientContext, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
+		SSL_CTX_set_cipher_list(clientContext, ciphersuites);
+		SSL_CTX_set1_curves_list(clientContext, "P-256");
+		SSL_CTX_set_options(serverContext, SSL_OP_SINGLE_DH_USE | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
+		SSL_CTX_set_cipher_list(serverContext, ciphersuites);
+		SSL_CTX_set1_curves_list(serverContext, "P-256");
+		
+	EC_KEY* tmp_ecdh;
+		if ((tmp_ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1)) != NULL) {
+			SSL_CTX_set_options(serverContext, SSL_OP_SINGLE_ECDH_USE);
+			SSL_CTX_set_tmp_ecdh(serverContext, tmp_ecdh);
+
+			EC_KEY_free(tmp_ecdh);
 		}
 
-		SSL_CTX_set_verify(serverContext, SSL_VERIFY_NONE, 0);
-		SSL_CTX_set_verify(clientContext, SSL_VERIFY_NONE, 0);
-		SSL_CTX_set_verify(clientVerContext, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, 0);
-		SSL_CTX_set_verify(serverVerContext, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, 0);
+		SSL_CTX_set_tmp_dh_callback(serverContext, CryptoManager::tmp_dh_cb);
+		SSL_CTX_set_tmp_rsa_callback(serverContext, CryptoManager::tmp_rsa_cb);
+		SSL_CTX_set_verify(clientContext, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback);
+		SSL_CTX_set_verify(serverContext, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback);
 	}
 }
 
 CryptoManager::~CryptoManager() {
-#ifdef HEADER_OPENSSLV_H
 	CRYPTO_set_locking_callback(NULL);
 	delete[] cs;
-#endif
+
+	/* thread-local cleanup */
+	ERR_remove_thread_state(NULL);
+
+	clientContext.reset();
+	serverContext.reset();
+
+	for (int i = KEY_FIRST; i != KEY_RSA_2048; ++i) {
+		if (tmpKeysMap[i]) DH_free((DH*)tmpKeysMap[i]);
+	}
+
+	for (int i = KEY_RSA_2048; i != KEY_LAST; ++i) {
+		if (tmpKeysMap[i]) RSA_free((RSA*)tmpKeysMap[i]);
+	}
+
+	/* global application exit cleanup (after all SSL activity is shutdown) */
+	ERR_free_strings();
+	EVP_cleanup();
+	CRYPTO_cleanup_all_ex_data();
 }
 
-#ifdef HEADER_OPENSSLV_H
-void CryptoManager::locking_function(int mode, int n, const char* /*file*/, int /*line*/)
-{
-    if (mode & CRYPTO_LOCK) {
-        cs[n].lock();
-    } else {
-        cs[n].unlock();
-    }
-}
-#endif
-
-bool CryptoManager::TLSOk() const noexcept {
+bool CryptoManager::TLSOk() const noexcept{
 	return SETTING(TLS_MODE) > 0 && certsLoaded && !keyprint.empty();
 }
 
 void CryptoManager::generateCertificate() {
 	// Generate certificate using OpenSSL
-	if(SETTING(TLS_PRIVATE_KEY_FILE).empty()) {
+	if (SETTING(TLS_PRIVATE_KEY_FILE).empty()) {
 		throw CryptoException("No private key file chosen");
 	}
-	if(SETTING(TLS_CERTIFICATE_FILE).empty()) {
+	if (SETTING(TLS_CERTIFICATE_FILE).empty()) {
 		throw CryptoException("No certificate file chosen");
 	}
 
@@ -189,11 +154,10 @@ void CryptoManager::generateCertificate() {
 	ssl::RSA rsa(RSA_new());
 	ssl::EVP_PKEY pkey(EVP_PKEY_new());
 	ssl::X509_NAME nm(X509_NAME_new());
-	const EVP_MD *digest = EVP_sha1();
 	ssl::X509 x509ss(X509_new());
 	ssl::ASN1_INTEGER serial(ASN1_INTEGER_new());
 
-	if(!bn || !rsa || !pkey || !nm || !x509ss || !serial) {
+	if (!bn || !rsa || !pkey || !nm || !x509ss || !serial) {
 		throw CryptoException("Error generating certificate");
 	}
 
@@ -207,13 +171,25 @@ void CryptoManager::generateCertificate() {
 	CHECK((RSA_generate_key_ex(rsa, keylength, bn, NULL)))
 	CHECK((EVP_PKEY_set1_RSA(pkey, rsa)))
 
-	// Set CID
-	CHECK((X509_NAME_add_entry_by_txt(nm, "CN", MBSTRING_ASC,
-		(const unsigned char*)ClientManager::getInstance()->getMyCID().toBase32().c_str(), -1, -1, 0)))
+	ByteVector fieldBytes;
 
+	// Add common name (use cid)
+	string name = ClientManager::getInstance()->getMyCID().toBase32().c_str();
+	fieldBytes.assign(name.begin(), name.end());
+	CHECK((X509_NAME_add_entry_by_NID(nm, NID_commonName, MBSTRING_ASC, &fieldBytes[0], fieldBytes.size(), -1, 0)))
 
+	// Add an organisation
+	string org = "DCPlusPlus (OSS/SelfSigned)";
+	fieldBytes.assign(org.begin(), org.end());
+	CHECK((X509_NAME_add_entry_by_NID(nm, NID_organizationName, MBSTRING_ASC, &fieldBytes[0], fieldBytes.size(), -1, 0)))
+
+	// Generate unique serial
+	CHECK((BN_pseudo_rand(bn, 64, 0, 0)))
+	CHECK((BN_to_ASN1_INTEGER(bn, serial)))
+		
 	// Prepare self-signed cert
-	ASN1_INTEGER_set(serial, (long)Util::rand());
+	CHECK((X509_set_version(x509ss, 0x02))) // This is actually V3
+	CHECK((X509_set_serialNumber(x509ss, serial)))
 	CHECK((X509_set_serialNumber(x509ss, serial)))
 	CHECK((X509_set_issuer_name(x509ss, nm)))
 	CHECK((X509_set_subject_name(x509ss, nm)))
@@ -222,14 +198,14 @@ void CryptoManager::generateCertificate() {
 	CHECK((X509_set_pubkey(x509ss, pkey)))
 
 	// Sign using own private key
-	CHECK((X509_sign(x509ss, pkey, digest)))
+	CHECK((X509_sign(x509ss, pkey, EVP_sha256())))
 
 #undef CHECK
-	// Write the key and cert
+		// Write the key and cert
 	{
 		File::ensureDirectory(SETTING(TLS_PRIVATE_KEY_FILE));
 		FILE* f = dcpp_fopen(SETTING(TLS_PRIVATE_KEY_FILE).c_str(), "w");
-		if(!f) {
+		if (!f) {
 			return;
 		}
 		PEM_write_RSAPrivateKey(f, rsa, NULL, NULL, 0, NULL, NULL);
@@ -238,7 +214,7 @@ void CryptoManager::generateCertificate() {
 	{
 		File::ensureDirectory(SETTING(TLS_CERTIFICATE_FILE));
 		FILE* f = dcpp_fopen(SETTING(TLS_CERTIFICATE_FILE).c_str(), "w");
-		if(!f) {
+		if (!f) {
 			File::deleteFile(SETTING(TLS_PRIVATE_KEY_FILE));
 			return;
 		}
@@ -246,6 +222,294 @@ void CryptoManager::generateCertificate() {
 		fclose(f);
 	}
 }
+
+void CryptoManager::sslRandCheck() {
+	if (!RAND_status()) {
+#ifdef _WIN32
+		RAND_screen();
+#endif
+	}
+}
+
+int CryptoManager::getKeyLength(TLSTmpKeys key) {
+	switch (key) {
+	case KEY_DH_2048:
+	case KEY_RSA_2048:
+		return 2048;
+	case KEY_DH_4096:
+		return 4096;
+	default:
+		dcassert(0); return 0;
+	}
+}
+
+DH* CryptoManager::getTmpDH(int keyLen) {
+	if (keyLen < 2048)
+		return NULL;
+
+	DH* tmpDH = DH_new();
+	if (!tmpDH) return NULL;
+
+	// From RFC 3526; checked via http://wiki.openssl.org/index.php/Diffie-Hellman_parameters#Validating_Parameters
+	switch (keyLen) {
+	case 2048: {			
+		static unsigned char dh2048_p[]={
+				0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xC9,0x0F,0xDA,0xA2,
+				0x21,0x68,0xC2,0x34,0xC4,0xC6,0x62,0x8B,0x80,0xDC,0x1C,0xD1,
+				0x29,0x02,0x4E,0x08,0x8A,0x67,0xCC,0x74,0x02,0x0B,0xBE,0xA6,
+				0x3B,0x13,0x9B,0x22,0x51,0x4A,0x08,0x79,0x8E,0x34,0x04,0xDD,
+				0xEF,0x95,0x19,0xB3,0xCD,0x3A,0x43,0x1B,0x30,0x2B,0x0A,0x6D,
+				0xF2,0x5F,0x14,0x37,0x4F,0xE1,0x35,0x6D,0x6D,0x51,0xC2,0x45,
+				0xE4,0x85,0xB5,0x76,0x62,0x5E,0x7E,0xC6,0xF4,0x4C,0x42,0xE9,
+				0xA6,0x37,0xED,0x6B,0x0B,0xFF,0x5C,0xB6,0xF4,0x06,0xB7,0xED,
+				0xEE,0x38,0x6B,0xFB,0x5A,0x89,0x9F,0xA5,0xAE,0x9F,0x24,0x11,
+				0x7C,0x4B,0x1F,0xE6,0x49,0x28,0x66,0x51,0xEC,0xE4,0x5B,0x3D,
+				0xC2,0x00,0x7C,0xB8,0xA1,0x63,0xBF,0x05,0x98,0xDA,0x48,0x36,
+				0x1C,0x55,0xD3,0x9A,0x69,0x16,0x3F,0xA8,0xFD,0x24,0xCF,0x5F,
+				0x83,0x65,0x5D,0x23,0xDC,0xA3,0xAD,0x96,0x1C,0x62,0xF3,0x56,
+				0x20,0x85,0x52,0xBB,0x9E,0xD5,0x29,0x07,0x70,0x96,0x96,0x6D,
+				0x67,0x0C,0x35,0x4E,0x4A,0xBC,0x98,0x04,0xF1,0x74,0x6C,0x08,
+				0xCA,0x18,0x21,0x7C,0x32,0x90,0x5E,0x46,0x2E,0x36,0xCE,0x3B,
+				0xE3,0x9E,0x77,0x2C,0x18,0x0E,0x86,0x03,0x9B,0x27,0x83,0xA2,
+				0xEC,0x07,0xA2,0x8F,0xB5,0xC5,0x5D,0xF0,0x6F,0x4C,0x52,0xC9,
+				0xDE,0x2B,0xCB,0xF6,0x95,0x58,0x17,0x18,0x39,0x95,0x49,0x7C,
+				0xEA,0x95,0x6A,0xE5,0x15,0xD2,0x26,0x18,0x98,0xFA,0x05,0x10,
+				0x15,0x72,0x8E,0x5A,0x8A,0xAC,0xAA,0x68,0xFF,0xFF,0xFF,0xFF,
+				0xFF,0xFF,0xFF,0xFF,
+			};
+		tmpDH->p = BN_bin2bn(dh2048_p, sizeof(dh2048_p), 0);
+		break;
+	}
+
+	case 4096: {
+			static unsigned char dh4096_p[]={
+				0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xC9,0x0F,0xDA,0xA2,
+				0x21,0x68,0xC2,0x34,0xC4,0xC6,0x62,0x8B,0x80,0xDC,0x1C,0xD1,
+				0x29,0x02,0x4E,0x08,0x8A,0x67,0xCC,0x74,0x02,0x0B,0xBE,0xA6,
+				0x3B,0x13,0x9B,0x22,0x51,0x4A,0x08,0x79,0x8E,0x34,0x04,0xDD,
+				0xEF,0x95,0x19,0xB3,0xCD,0x3A,0x43,0x1B,0x30,0x2B,0x0A,0x6D,
+				0xF2,0x5F,0x14,0x37,0x4F,0xE1,0x35,0x6D,0x6D,0x51,0xC2,0x45,
+				0xE4,0x85,0xB5,0x76,0x62,0x5E,0x7E,0xC6,0xF4,0x4C,0x42,0xE9,
+				0xA6,0x37,0xED,0x6B,0x0B,0xFF,0x5C,0xB6,0xF4,0x06,0xB7,0xED,
+				0xEE,0x38,0x6B,0xFB,0x5A,0x89,0x9F,0xA5,0xAE,0x9F,0x24,0x11,
+				0x7C,0x4B,0x1F,0xE6,0x49,0x28,0x66,0x51,0xEC,0xE4,0x5B,0x3D,
+				0xC2,0x00,0x7C,0xB8,0xA1,0x63,0xBF,0x05,0x98,0xDA,0x48,0x36,
+				0x1C,0x55,0xD3,0x9A,0x69,0x16,0x3F,0xA8,0xFD,0x24,0xCF,0x5F,
+				0x83,0x65,0x5D,0x23,0xDC,0xA3,0xAD,0x96,0x1C,0x62,0xF3,0x56,
+				0x20,0x85,0x52,0xBB,0x9E,0xD5,0x29,0x07,0x70,0x96,0x96,0x6D,
+				0x67,0x0C,0x35,0x4E,0x4A,0xBC,0x98,0x04,0xF1,0x74,0x6C,0x08,
+				0xCA,0x18,0x21,0x7C,0x32,0x90,0x5E,0x46,0x2E,0x36,0xCE,0x3B,
+				0xE3,0x9E,0x77,0x2C,0x18,0x0E,0x86,0x03,0x9B,0x27,0x83,0xA2,
+				0xEC,0x07,0xA2,0x8F,0xB5,0xC5,0x5D,0xF0,0x6F,0x4C,0x52,0xC9,
+				0xDE,0x2B,0xCB,0xF6,0x95,0x58,0x17,0x18,0x39,0x95,0x49,0x7C,
+				0xEA,0x95,0x6A,0xE5,0x15,0xD2,0x26,0x18,0x98,0xFA,0x05,0x10,
+				0x15,0x72,0x8E,0x5A,0x8A,0xAA,0xC4,0x2D,0xAD,0x33,0x17,0x0D,
+				0x04,0x50,0x7A,0x33,0xA8,0x55,0x21,0xAB,0xDF,0x1C,0xBA,0x64,
+				0xEC,0xFB,0x85,0x04,0x58,0xDB,0xEF,0x0A,0x8A,0xEA,0x71,0x57,
+				0x5D,0x06,0x0C,0x7D,0xB3,0x97,0x0F,0x85,0xA6,0xE1,0xE4,0xC7,
+				0xAB,0xF5,0xAE,0x8C,0xDB,0x09,0x33,0xD7,0x1E,0x8C,0x94,0xE0,
+				0x4A,0x25,0x61,0x9D,0xCE,0xE3,0xD2,0x26,0x1A,0xD2,0xEE,0x6B,
+				0xF1,0x2F,0xFA,0x06,0xD9,0x8A,0x08,0x64,0xD8,0x76,0x02,0x73,
+				0x3E,0xC8,0x6A,0x64,0x52,0x1F,0x2B,0x18,0x17,0x7B,0x20,0x0C,
+				0xBB,0xE1,0x17,0x57,0x7A,0x61,0x5D,0x6C,0x77,0x09,0x88,0xC0,
+				0xBA,0xD9,0x46,0xE2,0x08,0xE2,0x4F,0xA0,0x74,0xE5,0xAB,0x31,
+				0x43,0xDB,0x5B,0xFC,0xE0,0xFD,0x10,0x8E,0x4B,0x82,0xD1,0x20,
+				0xA9,0x21,0x08,0x01,0x1A,0x72,0x3C,0x12,0xA7,0x87,0xE6,0xD7,
+				0x88,0x71,0x9A,0x10,0xBD,0xBA,0x5B,0x26,0x99,0xC3,0x27,0x18,
+				0x6A,0xF4,0xE2,0x3C,0x1A,0x94,0x68,0x34,0xB6,0x15,0x0B,0xDA,
+				0x25,0x83,0xE9,0xCA,0x2A,0xD4,0x4C,0xE8,0xDB,0xBB,0xC2,0xDB,
+				0x04,0xDE,0x8E,0xF9,0x2E,0x8E,0xFC,0x14,0x1F,0xBE,0xCA,0xA6,
+				0x28,0x7C,0x59,0x47,0x4E,0x6B,0xC0,0x5D,0x99,0xB2,0x96,0x4F,
+				0xA0,0x90,0xC3,0xA2,0x23,0x3B,0xA1,0x86,0x51,0x5B,0xE7,0xED,
+				0x1F,0x61,0x29,0x70,0xCE,0xE2,0xD7,0xAF,0xB8,0x1B,0xDD,0x76,
+				0x21,0x70,0x48,0x1C,0xD0,0x06,0x91,0x27,0xD5,0xB0,0x5A,0xA9,
+				0x93,0xB4,0xEA,0x98,0x8D,0x8F,0xDD,0xC1,0x86,0xFF,0xB7,0xDC,
+				0x90,0xA6,0xC0,0x8F,0x4D,0xF4,0x35,0xC9,0x34,0x06,0x31,0x99,
+				0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+			};
+		tmpDH->p = BN_bin2bn(dh4096_p, sizeof(dh4096_p), 0);
+		break;
+	}
+	}
+
+	static unsigned char dh_g[] = {
+		0x02,
+	};
+
+	tmpDH->g = BN_bin2bn(dh_g, sizeof(dh_g), 0);
+
+	if(!tmpDH->p || !tmpDH->g) {
+		DH_free(tmpDH);
+		return NULL;
+	} else return tmpDH;
+}
+
+RSA* CryptoManager::getTmpRSA(int keyLen) {
+	if (keyLen < 2048)
+		return NULL;
+
+	RSA* tmpRSA = RSA_new();
+	BIGNUM* bn = BN_new();
+
+	if(!bn || !BN_set_word(bn, RSA_F4) || !RSA_generate_key_ex(tmpRSA, keyLen, bn, NULL)) {
+		if (bn) BN_free(bn);
+		RSA_free(tmpRSA);
+		return NULL;
+	}
+
+	BN_free(bn);
+	return tmpRSA;
+}
+
+void CryptoManager::loadCertificates() noexcept{
+	setCertPaths();
+	if (!clientContext || !serverContext)
+		return;
+
+	keyprint.clear();
+	certsLoaded = false;
+
+	const string& cert = SETTING(TLS_CERTIFICATE_FILE);
+	const string& key = SETTING(TLS_PRIVATE_KEY_FILE);
+
+	if (cert.empty() || key.empty()) {
+		LogManager::getInstance()->message(STRING(NO_CERTIFICATE_FILE_SET), LogManager::LOG_WARNING);
+		return;
+	}
+
+	if (File::getSize(cert) == -1 || File::getSize(key) == -1 || !checkCertificate(90)) {
+		// Try to generate them...
+		try {
+			generateCertificate();
+			LogManager::getInstance()->message(STRING(CERTIFICATE_GENERATED), LogManager::LOG_INFO);
+		}
+		catch (const CryptoException& e) {
+			LogManager::getInstance()->message(STRING(CERTIFICATE_GENERATION_FAILED) + " " + e.getError(), LogManager::LOG_ERROR);
+		}
+	}
+
+	if (!ssl::SSL_CTX_use_certificate_file(serverContext, cert.c_str(), SSL_FILETYPE_PEM)) {
+		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_CERTIFICATE), LogManager::LOG_WARNING);
+		return;
+	}
+	if (!ssl::SSL_CTX_use_certificate_file(clientContext, cert.c_str(), SSL_FILETYPE_PEM)) {
+		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_CERTIFICATE), LogManager::LOG_WARNING);
+		return;
+	}
+
+	if (!ssl::SSL_CTX_use_PrivateKey_file(serverContext, key.c_str(), SSL_FILETYPE_PEM)) {
+		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_PRIVATE_KEY), LogManager::LOG_WARNING);
+		return;
+	}
+	if (!ssl::SSL_CTX_use_PrivateKey_file(clientContext, key.c_str(), SSL_FILETYPE_PEM)) {
+		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_PRIVATE_KEY), LogManager::LOG_WARNING);
+		return;
+	}
+
+	auto certs = File::findFiles(SETTING(TLS_TRUSTED_CERTIFICATES_PATH), "*.pem", File::TYPE_FILE);
+	auto certs2 = File::findFiles(SETTING(TLS_TRUSTED_CERTIFICATES_PATH), "*.crt", File::TYPE_FILE);
+	certs.insert(certs.end(), certs2.begin(), certs2.end());
+
+	for (auto& i : certs) {
+		if (
+			SSL_CTX_load_verify_locations(clientContext, i.c_str(), NULL) != SSL_SUCCESS ||
+			SSL_CTX_load_verify_locations(serverContext, i.c_str(), NULL) != SSL_SUCCESS
+			) {
+			LogManager::getInstance()->message("Failed to load trusted certificate from " + Util::addBrackets(i), LogManager::LOG_WARNING);
+		}
+	}
+
+	loadKeyprint(cert.c_str());
+
+	certsLoaded = true;
+}
+
+bool CryptoManager::checkCertificate(int minValidityDays) noexcept{
+	auto x509 = ssl::getX509(SETTING(TLS_CERTIFICATE_FILE).c_str());
+	if (!x509) {
+		return false;
+	}
+
+	ASN1_INTEGER* sn = X509_get_serialNumber(x509);
+	if (!sn || !ASN1_INTEGER_get(sn)) {
+		return false;
+	}
+
+	X509_NAME* name = X509_get_subject_name(x509);
+	if (!name) {
+		return false;
+	}
+
+	string cn = getNameEntryByNID(name, NID_commonName);
+	if (cn != ClientManager::getInstance()->getMyCID().toBase32()) {
+		return false;
+	}
+
+	ASN1_TIME* t = X509_get_notAfter(x509);
+	if (t) {
+		time_t minValid = GET_TIME() + 60 * 60 * 24 * minValidityDays;
+		if (X509_cmp_time(t, &minValid) < 0) {
+			return false;
+		}
+	}
+	return true;
+}
+
+const ByteVector& CryptoManager::getKeyprint() const noexcept{
+	return keyprint;
+}
+
+void CryptoManager::loadKeyprint(const string& /*file*/) noexcept{
+	auto x509 = ssl::getX509(SETTING(TLS_CERTIFICATE_FILE).c_str());
+	if (x509) {
+		keyprint = ssl::X509_digest(x509, EVP_sha256());
+	}
+}
+
+SSL_CTX* CryptoManager::getSSLContext(SSLContext wanted) {
+	switch(wanted) {
+		case SSL_CLIENT: return clientContext;
+		case SSL_SERVER: return serverContext;
+		default: return NULL;
+	}
+}
+
+void CryptoManager::locking_function(int mode, int n, const char* /*file*/, int /*line*/) {
+	if(mode & CRYPTO_LOCK) {
+		cs[n].lock();
+	} else {
+		cs[n].unlock();
+	}
+}
+
+DH* CryptoManager::tmp_dh_cb(SSL* /*ssl*/, int /*is_export*/, int keylength) {
+	if (keylength < 2048)
+		return (DH*)tmpKeysMap[KEY_DH_2048];
+
+	void* tmpDH = NULL;
+	switch(keylength) {
+	case 2048:
+		tmpDH = tmpKeysMap[KEY_DH_2048]; break;
+	case 4096:
+		tmpDH = tmpKeysMap[KEY_DH_4096]; break;
+	}
+
+	return (DH*)(tmpDH ? tmpDH : tmpKeysMap[KEY_DH_2048]);
+}
+
+RSA* CryptoManager::tmp_rsa_cb(SSL* /*ssl*/, int /*is_export*/, int keylength) {
+	if (keylength < 2048)
+		return (RSA*)tmpKeysMap[KEY_RSA_2048];
+
+	void* tmpRSA = NULL;
+	switch(keylength) {
+	case 2048:
+		tmpRSA = tmpKeysMap[KEY_RSA_2048]; break;
+	}
+
+	return (RSA*)(tmpRSA ? tmpRSA : tmpKeysMap[KEY_RSA_2048]);
+}
+
 
 void CryptoManager::setCertPaths() {
 	if (!SETTING(USE_DEFAULT_CERT_PATHS))
@@ -258,151 +522,128 @@ void CryptoManager::setCertPaths() {
 	SettingsManager::getInstance()->set(SettingsManager::TLS_PRIVATE_KEY_FILE, privPath);
 }
 
-void CryptoManager::loadCertificates() noexcept {
-	setCertPaths();
-	if(!clientContext || !clientVerContext || !serverContext || !serverVerContext)
-		return;
+int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
+	int err = X509_STORE_CTX_get_error(ctx);
+	SSL* ssl = (SSL*)X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+	SSLVerifyData* verifyData = (SSLVerifyData*)SSL_get_ex_data(ssl, CryptoManager::idxVerifyData);
 
-	keyprint.clear();
-	certsLoaded = false;
+	// TODO: we should make sure that the trusted certificate store never overules KeyPrint, if present, because certificate pinning on an individual certificate is a stronger method of verification.
 
-	const string& cert = SETTING(TLS_CERTIFICATE_FILE);
-	const string& key = SETTING(TLS_PRIVATE_KEY_FILE);
+	// verifyData is unset only when KeyPrint has been pinned and we are not skipping errors due to incomplete chains
+	// we can fail here f.ex. if the certificate has expired but is still pinned with KeyPrint
+	if (!verifyData)
+		return preverify_ok;
 
-	if(cert.empty() || key.empty()) {
-		LogManager::getInstance()->message(STRING(NO_CERTIFICATE_FILE_SET), LogManager::LOG_WARNING);
-		return;
-	}
+	bool allowUntrusted = verifyData->first;
+	string keyp = verifyData->second;
 
-	if(File::getSize(cert) == -1 || File::getSize(key) == -1 || !checkCertificate(90)) {
-		// Try to generate them...
-		try {
-			generateCertificate();
-			LogManager::getInstance()->message(STRING(CERTIFICATE_GENERATED), LogManager::LOG_INFO);
-		} catch(const CryptoException& e) {
-			LogManager::getInstance()->message(STRING(CERTIFICATE_GENERATION_FAILED) + " " + e.getError(), LogManager::LOG_ERROR);
+	if (!keyp.empty()) {
+		X509* cert = X509_STORE_CTX_get_current_cert(ctx);
+		if (!cert)
+			return 0;
+
+		string kp2(keyp);
+		if (kp2.compare(0, 12, "trusted_keyp") == 0) {
+			// Possible follow up errors, after verification of a partial chain
+			if (err == X509_V_ERR_CERT_UNTRUSTED || err == X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE) {
+				X509_STORE_CTX_set_error(ctx, X509_V_OK);
+				return 1;
+			}
+		} else if (kp2.compare(0, 7, "SHA256/") != 0)
+			return allowUntrusted ? 1 : 0;
+
+		ByteVector kp = ssl::X509_digest(cert, EVP_sha256());
+		ByteVector kp2v(kp.size());
+
+		Encoder::fromBase32(&kp2[7], &kp2v[0], kp2v.size());
+		if (std::equal(kp.begin(), kp.end(), kp2v.begin())) {
+			// KeyPrint validated, we can get rid of it (to avoid unnecessary passes)
+			SSL_set_ex_data(ssl, CryptoManager::idxVerifyData, NULL);
+
+			if (err != X509_V_OK) {
+				// This is the right way to get the certificate store, although it is rather roundabout
+				X509_STORE* store = SSL_CTX_get_cert_store(SSL_get_SSL_CTX(ssl));
+				dcassert(store == ctx->ctx);
+
+				// Hide the potential library error about trying to add a dupe
+				ERR_set_mark();
+				if (X509_STORE_add_cert(store, cert)) {
+					X509_STORE_CTX_set_error(ctx, X509_V_OK);
+					X509_verify_cert(ctx);
+					err = X509_STORE_CTX_get_error(ctx);
+				} else ERR_pop_to_mark();
+
+				// KeyPrint was not root certificate or we don't have the issuer certificate, the best we can do is trust the pinned KeyPrint
+				if (err == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN || err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY || err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT) {
+					X509_STORE_CTX_set_error(ctx, X509_V_OK);
+					// Set this to allow ignoring any follow up errors caused by the incomplete chain
+					SSL_set_ex_data(ssl, CryptoManager::idxVerifyData, &CryptoManager::trustedKeyprint);
+					return 1;
+				}
+			}
+
+			return (err == X509_V_OK) ? 1 : 0;
+		} else {
+			if (X509_STORE_CTX_get_error_depth(ctx) > 0)
+				return 1;
 		}
 	}
 
-	if(!ssl::SSL_CTX_use_certificate_file(serverContext, cert.c_str(), SSL_FILETYPE_PEM)) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_CERTIFICATE), LogManager::LOG_WARNING);
-		return;
-	}
-	if(!ssl::SSL_CTX_use_certificate_file(clientContext, cert.c_str(), SSL_FILETYPE_PEM)) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_CERTIFICATE), LogManager::LOG_WARNING);
-		return;
-	}
+	if (allowUntrusted) {
+		// We let untrusted certificates through unconditionally, when allowed, but we like to complain
+		if (!preverify_ok && err != X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) {
+			X509* cert = NULL;
+			if ((cert = X509_STORE_CTX_get_current_cert(ctx)) != NULL) {
+				X509_NAME* subject = X509_get_subject_name(cert);
+				string tmp, line;
 
-	if(!ssl::SSL_CTX_use_certificate_file(serverVerContext, cert.c_str(), SSL_FILETYPE_PEM)) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_CERTIFICATE), LogManager::LOG_WARNING);
-		return;
-	}
-	if(!ssl::SSL_CTX_use_certificate_file(clientVerContext, cert.c_str(), SSL_FILETYPE_PEM)) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_CERTIFICATE), LogManager::LOG_WARNING);
-		return;
-	}
+				tmp = getNameEntryByNID(subject, NID_commonName);
+				if (!tmp.empty()) {
+					CID certCID(tmp);
+					if (certCID)
+						tmp = Util::listToString(ClientManager::getInstance()->getNicks(certCID));
+					line += (!line.empty() ? ", " : "") + tmp;
+				}
 
-	if(!ssl::SSL_CTX_use_PrivateKey_file(serverContext, key.c_str(), SSL_FILETYPE_PEM)) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_PRIVATE_KEY), LogManager::LOG_WARNING);
-		return;
-	}
-	if(!ssl::SSL_CTX_use_PrivateKey_file(clientContext, key.c_str(), SSL_FILETYPE_PEM)) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_PRIVATE_KEY), LogManager::LOG_WARNING);
-		return;
-	}
+				tmp = getNameEntryByNID(subject, NID_organizationName);
+				if (!tmp.empty())
+					line += (!line.empty() ? ", " : "") + tmp;
 
-	if(!ssl::SSL_CTX_use_PrivateKey_file(serverVerContext, key.c_str(), SSL_FILETYPE_PEM)) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_PRIVATE_KEY), LogManager::LOG_WARNING);
-		return;
-	}
-	if(!ssl::SSL_CTX_use_PrivateKey_file(clientVerContext, key.c_str(), SSL_FILETYPE_PEM)) {
-		LogManager::getInstance()->message(STRING(FAILED_TO_LOAD_PRIVATE_KEY), LogManager::LOG_WARNING);
-		return;
-	}
+				ByteVector kp = ssl::X509_digest(cert, EVP_sha256());
+				string keyp = "SHA256/" + Encoder::toBase32(&kp[0], kp.size());
 
-	StringList certs = File::findFiles(SETTING(TLS_TRUSTED_CERTIFICATES_PATH), "*.pem", File::TYPE_FILE);
-	StringList certs2 = File::findFiles(SETTING(TLS_TRUSTED_CERTIFICATES_PATH), "*.crt", File::TYPE_FILE);
-	certs.insert(certs.end(), certs2.begin(), certs2.end());
-
-	for(auto& i: certs) {
-		if(
-			SSL_CTX_load_verify_locations(clientContext, i.c_str(), NULL) != SSL_SUCCESS ||
-			SSL_CTX_load_verify_locations(clientVerContext, i.c_str(), NULL) != SSL_SUCCESS ||
-			SSL_CTX_load_verify_locations(serverContext, i.c_str(), NULL) != SSL_SUCCESS ||
-			SSL_CTX_load_verify_locations(serverVerContext, i.c_str(), NULL) != SSL_SUCCESS
-		) {
-			LogManager::getInstance()->message("Failed to load trusted certificate from " + Util::addBrackets(i), LogManager::LOG_WARNING);
+				//LogManager::getInstance()->message((("Certificate verification for %1% failed with error: %2% (certificate KeyPrint: %3%)") % line % X509_verify_cert_error_string(err) % keyp));
+			}
 		}
+
+		return 1;
 	}
 
-	loadKeyprint(cert.c_str());
-
-	certsLoaded = true;
+	return preverify_ok;
 }
 
-bool CryptoManager::checkCertificate(int minValidityDays) noexcept{
-	auto x509 = ssl::getX509(SETTING(TLS_CERTIFICATE_FILE).c_str());
-	if(!x509) {
-		return false;
+string CryptoManager::getNameEntryByNID(X509_NAME* name, int nid) noexcept{
+	int i = X509_NAME_get_index_by_NID(name, nid, -1);
+	if (i == -1) {
+		return Util::emptyString;
 	}
 
-	ASN1_INTEGER* sn = X509_get_serialNumber(x509);
-	if(!sn || !ASN1_INTEGER_get(sn)) {
-		return false;
-	}
-
-	X509_NAME* name = X509_get_subject_name(x509);
-	if(!name) {
-		return false;
-	}
-	int i = X509_NAME_get_index_by_NID(name, NID_commonName, -1);
-	if(i == -1) {
-		return false;
-	}
 	X509_NAME_ENTRY* entry = X509_NAME_get_entry(name, i);
 	ASN1_STRING* str = X509_NAME_ENTRY_get_data(entry);
-	if(!str) {
-		return false;
+	if (!str) {
+		return Util::emptyString;
 	}
 
 	unsigned char* buf = 0;
 	i = ASN1_STRING_to_UTF8(&buf, str);
-	if(i < 0) {
-		return false;
+	if (i < 0) {
+		return Util::emptyString;
 	}
-	std::string cn((char*)buf, i);
+
+	std::string out((char*)buf, i);
 	OPENSSL_free(buf);
 
-	if(cn != ClientManager::getInstance()->getMyCID().toBase32()) {
-		return false;
-	}
-
-	ASN1_TIME* t = X509_get_notAfter(x509);
-	if(t) {
-		time_t minValid = GET_TIME() + 60 * 60 * 24 * minValidityDays;
-		if (X509_cmp_time(t, &minValid) < 0) {
-			return false;
-		}
-	}
-	return true;
-}
-
-const vector<uint8_t>& CryptoManager::getKeyprint() const noexcept {
-	return keyprint;
-}
-
-void CryptoManager::loadKeyprint(const string& /*file*/) noexcept {
-	auto x509 = ssl::getX509(SETTING(TLS_CERTIFICATE_FILE).c_str());
-	if(x509) {
-		keyprint = ssl::X509_digest(x509, EVP_sha256());
-	}
-}
-
-SSLSocket* CryptoManager::getClientSocket(bool allowUntrusted) {
-	return new SSLSocket(allowUntrusted ? clientContext : clientVerContext);
-}
-SSLSocket* CryptoManager::getServerSocket(bool allowUntrusted) {
-	return new SSLSocket(allowUntrusted ? serverContext : serverVerContext);
+	return out;
 }
 
 void CryptoManager::decodeBZ2(const uint8_t* is, size_t sz, string& os) {

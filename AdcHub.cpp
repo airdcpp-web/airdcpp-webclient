@@ -41,6 +41,7 @@
 #include "QueueManager.h"
 #include "HashBloom.h"
 #include "DebugManager.h"
+#include "SSLSocket.h"
 
 namespace dcpp {
 
@@ -865,7 +866,7 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 	bool secure = Util::strnicmp("adcs://", getHubUrl().c_str(), 7) == 0;
 	try {
 		// Create the socket
-		unique_ptr<Socket> hbri(secure ? CryptoManager::getInstance()->getClientSocket(SETTING(ALLOW_UNTRUSTED_HUBS)) : new Socket(Socket::TYPE_TCP));
+		unique_ptr<Socket> hbri(secure ? (new SSLSocket(CryptoManager::SSL_CLIENT, SETTING(ALLOW_UNTRUSTED_HUBS), Util::emptyString)) : new Socket(Socket::TYPE_TCP));
 		if (v6) {
 			hbri->setLocalIp6(SETTING(BIND_ADDRESS6));
 			hbri->setV4only(false);

@@ -92,10 +92,10 @@ void BufferedSocket::setOptions() {
 		sock->setSocketOpt(SO_SNDBUF, SETTING(SOCKET_OUT_BUFFER));
 }
 
-void BufferedSocket::accept(const Socket& srv, bool secure, bool allowUntrusted) {
+void BufferedSocket::accept(const Socket& srv, bool secure, bool allowUntrusted, const string& expKP) {
 	//dcdebug("BufferedSocket::accept() %p\n", (void*)this);
 
-	unique_ptr<Socket> s(secure ? CryptoManager::getInstance()->getServerSocket(allowUntrusted) : new Socket(Socket::TYPE_TCP));
+	unique_ptr<Socket> s(secure ? new SSLSocket(CryptoManager::SSL_SERVER, allowUntrusted, expKP) : new Socket(Socket::TYPE_TCP));
 
 	s->accept(srv);
 
@@ -106,14 +106,13 @@ void BufferedSocket::accept(const Socket& srv, bool secure, bool allowUntrusted)
 	addTask(ACCEPTED, 0);
 }
 
-void BufferedSocket::connect(const string& aAddress, const string& aPort, bool secure, bool allowUntrusted, bool proxy) {
-	connect(aAddress, aPort, Util::emptyString, NAT_NONE, secure, allowUntrusted, proxy);
+void BufferedSocket::connect(const string& aAddress, const string& aPort, bool secure, bool allowUntrusted, bool proxy, const string& expKP) {
+	connect(aAddress, aPort, Util::emptyString, NAT_NONE, secure, allowUntrusted, proxy, expKP);
 }
 
-void BufferedSocket::connect(const string& aAddress, const string& aPort, const string& localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy) {
+void BufferedSocket::connect(const string& aAddress, const string& aPort, const string& localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy, const string& expKP) {
 	//dcdebug("BufferedSocket::connect() %p\n", (void*)this);
-	unique_ptr<Socket> s(secure ? (natRole == NAT_SERVER ? CryptoManager::getInstance()->getServerSocket(allowUntrusted) :
-		CryptoManager::getInstance()->getClientSocket(allowUntrusted)) : new Socket(Socket::TYPE_TCP));
+	unique_ptr<Socket> s(secure ? new SSLSocket(natRole == NAT_SERVER ? CryptoManager::SSL_SERVER : CryptoManager::SSL_CLIENT, allowUntrusted, expKP) : new Socket(Socket::TYPE_TCP));
 
 	s->setLocalIp4(CONNSETTING(BIND_ADDRESS));
 	s->setLocalIp6(CONNSETTING(BIND_ADDRESS6));

@@ -28,8 +28,11 @@
 
 namespace dcpp {
 
-SSLSocket::SSLSocket(SSL_CTX* context) : Socket(TYPE_TCP), ctx(context), ssl(0) {
-
+SSLSocket::SSLSocket(CryptoManager::SSLContext context, bool allowUntrusted, const string& expKP) : SSLSocket(context) {
+	verifyData.reset(new CryptoManager::SSLVerifyData(allowUntrusted, expKP));
+}
+SSLSocket::SSLSocket(CryptoManager::SSLContext context) : Socket(TYPE_TCP), ctx(NULL), ssl(NULL), verifyData(nullptr) {
+	ctx = CryptoManager::getInstance()->getSSLContext(context);
 }
 
 void SSLSocket::connect(const string& aIp, const string& aPort) {
@@ -46,6 +49,10 @@ bool SSLSocket::waitConnected(uint32_t millis) {
 		ssl.reset(SSL_new(ctx));
 		if(!ssl)
 			checkSSL(-1);
+
+		if(!verifyData) {
+			SSL_set_verify(ssl, SSL_VERIFY_NONE, NULL);
+		} else SSL_set_ex_data(ssl, CryptoManager::idxVerifyData, verifyData.get());
 
 		checkSSL(SSL_set_fd(ssl, getSock()));
 	}
@@ -82,6 +89,10 @@ bool SSLSocket::waitAccepted(uint32_t millis) {
 		ssl.reset(SSL_new(ctx));
 		if(!ssl)
 			checkSSL(-1);
+
+		if(!verifyData) {
+			SSL_set_verify(ssl, SSL_VERIFY_NONE, NULL);
+		} else SSL_set_ex_data(ssl, CryptoManager::idxVerifyData, verifyData.get());
 
 		checkSSL(SSL_set_fd(ssl, getSock()));
 	}
@@ -216,15 +227,57 @@ std::string SSLSocket::getCipherName() const noexcept {
 	return SSL_get_cipher_name(ssl);
 }
 
-vector<uint8_t> SSLSocket::getKeyprint() const noexcept {
+ByteVector SSLSocket::getKeyprint() const noexcept {
 	if(!ssl)
-		return vector<uint8_t>();
+		return ByteVector();
 	X509* x509 = SSL_get_peer_certificate(ssl);
 
 	if(!x509)
-		return vector<uint8_t>();
+		return ByteVector();
 
-	return ssl::X509_digest(x509, EVP_sha256());
+	ByteVector res = ssl::X509_digest(x509, EVP_sha256());
+
+	X509_free(x509);
+	return res;
+}
+
+bool SSLSocket::verifyKeyprint(const string& expKP, bool allowUntrusted) noexcept {
+	if(!ssl)
+		return true;
+
+	if(expKP.empty() || expKP.find("/") == string::npos)
+		return allowUntrusted; 
+
+	verifyData.reset(new CryptoManager::SSLVerifyData(allowUntrusted, expKP));
+	SSL_set_ex_data(ssl, CryptoManager::idxVerifyData, verifyData.get());
+
+	SSL_CTX* ssl_ctx = SSL_get_SSL_CTX(ssl);
+	X509_STORE* store = SSL_CTX_get_cert_store(ctx);
+
+	bool result = false;
+	int err = SSL_get_verify_result(ssl);
+	if(ssl_ctx && store) {
+		X509_STORE_CTX* vrfy_ctx = X509_STORE_CTX_new();
+		X509* cert = SSL_get_peer_certificate(ssl);
+		if(vrfy_ctx && cert && X509_STORE_CTX_init(vrfy_ctx, store, cert, NULL)) {
+			auto vrfy_cb = SSL_CTX_get_verify_callback(ssl_ctx);
+			X509_STORE_CTX_set_ex_data(vrfy_ctx, SSL_get_ex_data_X509_STORE_CTX_idx(), ssl);
+			X509_STORE_CTX_set_verify_cb(vrfy_ctx, vrfy_cb);
+			if(X509_verify_cert(vrfy_ctx) >= 0) {
+				err = X509_STORE_CTX_get_error(vrfy_ctx);
+				// This is for people who don't restart their clients and have low expiration time on their cert
+				result = (err == X509_V_OK || err == X509_V_ERR_CERT_HAS_EXPIRED);
+			}
+		}
+
+		if(cert) X509_free(cert);
+		if(vrfy_ctx) X509_STORE_CTX_free(vrfy_ctx);
+	}
+
+	// KeyPrint is a strong indicator of trust (TODO: check that this KeyPrint is mediated by a trusted hub)
+	SSL_set_verify_result(ssl, err);
+
+	return result;
 }
 
 void SSLSocket::shutdown() noexcept {
