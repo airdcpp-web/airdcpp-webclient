@@ -103,7 +103,7 @@ namespace dcpp {
 		atomic<State> state;
 		UserConnection* uc;
 
-		DelayedEvents<EventType> delayEvents;
+		DelayedEvents<uint8_t> delayEvents;
 
 		// UserConnectionListener
 		virtual void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessage& message) noexcept{

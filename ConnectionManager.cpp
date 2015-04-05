@@ -33,7 +33,7 @@
 namespace dcpp {
 	FastCriticalSection TokenManager::cs;
 
-string TokenManager::makeToken() const {
+string TokenManager::makeToken() const noexcept {
 	string token;
 
 	FastLock l(cs);
