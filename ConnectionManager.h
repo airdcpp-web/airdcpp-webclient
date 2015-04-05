@@ -70,7 +70,7 @@ public:
 		TYPE_MCN_NORMAL
 	};
 
-	ConnectionQueueItem(const HintedUser& aUser, ConnectionType aConntype, const string& aToken) : token(aToken), type(TYPE_ANY), conntype(aConntype),
+	ConnectionQueueItem(const HintedUser& aUser, ConnectionType aConntype, const string& aToken) : token(aToken), type(TYPE_ANY), connType(aConntype),
 		lastAttempt(0), errors(0), state(WAITING), maxConns(0), hubUrl(aUser.hint), user(aUser.user) {
 	}
 	
