@@ -82,7 +82,7 @@ public:
 	GETSET(State, state, State);
 	GETSET(uint8_t, maxConns, MaxConns);
 	GETSET(string, hubUrl, HubUrl);
-	GETSET(ConnectionType, conntype, ConnType);
+	GETSET(ConnectionType, connType, ConnType);
 
 	const UserPtr& getUser() const { return user; }
 	//UserPtr& getUser() { return user; }
@@ -168,6 +168,9 @@ public:
 	void failDownload(const string& aToken, const string& aError, bool fatalError);
 
 	SharedMutex& getCS() { return cs; }
+	const ConnectionQueueItem::List& getTransferConnections(bool aDownloads) const {
+		return aDownloads ? cqis[CONNECTION_TYPE_DOWNLOAD] : cqis[CONNECTION_TYPE_UPLOAD];
+	}
 private:
 	bool allowNewMCN(const ConnectionQueueItem* aCQI);
 	void createNewMCN(const HintedUser& aUser);
