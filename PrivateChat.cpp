@@ -147,7 +147,7 @@ void PrivateChat::checkAlwaysCCPM() {
 }
 
 void PrivateChat::checkCCPMTimeout() {
-	if (ccReady()) {
+	if (state == CONNECTING) {
 		fire(PrivateChatListener::PMStatus(), CCPM_CONNECTION_TIMEOUT);
 		state = DISCONNECTED;
 	} 
