@@ -31,20 +31,15 @@ namespace dcpp {
 		template<int I>	struct X { enum { TYPE = I }; };
 
 		typedef X<0> PrivateMessage;
-		typedef X<1> StatusMessage;
-		typedef X<2> Activate;
-		typedef X<3> Close;
-		typedef X<4> UserUpdated;
-		typedef X<5> CCPMStatusChanged;
-		typedef X<6> PMStatus;
-
+		typedef X<1> Activate;
+		typedef X<2> Close;
+		typedef X<3> UserUpdated;
+		typedef X<4> PMStatus;
 
 		virtual void on(PrivateMessage, const ChatMessage&) noexcept{}
-		virtual void on(StatusMessage, const string&, uint8_t) noexcept{}
 		virtual void on(Activate, const string&, Client*) noexcept{}
 		virtual void on(Close) noexcept{}
 		virtual void on(UserUpdated) noexcept{}
-		virtual void on(CCPMStatusChanged, const string&) noexcept{}
 		virtual void on(PMStatus, uint8_t) noexcept{}
 	};
 

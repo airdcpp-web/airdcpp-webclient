@@ -17,19 +17,14 @@
 */
 
 #ifndef PRIVATE_CHAT_H
-#define PRIVATE_CHAT_H_
+#define PRIVATE_CHAT_H
 
 #include "forward.h"
-
-#include "CriticalSection.h"
-#include "Exception.h"
-#include "Pointer.h"
 
 #include "UserConnection.h"
 #include "ClientManager.h"
 #include "PrivateChatListener.h"
 #include "DelayedEvents.h"
-
 
 namespace dcpp {
 	class PrivateChat : public Speaker<PrivateChatListener>, public UserConnectionListener,
@@ -37,11 +32,22 @@ namespace dcpp {
 	public:
 		
 		enum PMInfo {
-			MSG_SEEN,  //Message seen, CPMI SN1
-			TYPING_ON, //User started typing, CPMI TP1
-			TYPING_OFF, //User stopped typing, CPMI TP0
-			NO_AUTOCONNECT, //User Disconnected manually, Disable auto connect, CPMI AC0
-			QUIT // The PM window was closed, Disconnect once both sides close, CPMI QU1
+			//CPMI types
+			MSG_SEEN,		// Message seen, CPMI SN1
+			TYPING_ON,		// User started typing, CPMI TP1
+			TYPING_OFF,		// User stopped typing, CPMI TP0
+			NO_AUTOCONNECT, // User Disconnected manually, Disable auto connect, CPMI AC0
+			QUIT,			// The PM window was closed, Disconnect once both sides close, CPMI QU1
+
+			// CCPM Status updates
+			CCPM_ESTABLISHED,
+			CCPM_DISCONNECTED,
+			CCPM_ESTABLISHING,
+			CCPM_CONNECTION_TIMEOUT,
+			CCPM_ERROR,
+
+			PMINFO_LAST
+
 		};
 
 		PrivateChat(const HintedUser& aUser, UserConnection* aUc = nullptr);
@@ -56,9 +62,7 @@ namespace dcpp {
 		void CloseCC(bool now, bool noAutoConnect);
 		void StartCC();
 		void onExit();
-		void checkAlwaysCCPM();
 		bool ccReady() const { return state == CONNECTED; };
-		void setUc(UserConnection* aUc){ uc = aUc; state = aUc ? CONNECTED : DISCONNECTED; }
 		UserConnection* getUc() { return uc; }
 		void sendPMInfo(uint8_t aType);
 
@@ -91,7 +95,9 @@ namespace dcpp {
 			CCPM_AUTO
 		};
 
+		void checkAlwaysCCPM();
 		void checkCCPMTimeout();
+		void setUc(UserConnection* aUc){ uc = aUc; state = aUc ? CONNECTED : DISCONNECTED; }
 
 		HintedUser replyTo;
 
