@@ -1,3 +1,4 @@
+second
 /*
 * Copyright (C) 2011-2015 AirDC++ Project
 *
@@ -64,7 +65,13 @@ PrivateChat* MessageManager::getChat(const UserPtr& aUser) {
 void MessageManager::removeChat(const UserPtr& aUser) {
 	WLock l(cs);
 	auto i = chats.find(aUser);
-	i->second->Disconnect();
+	i->second->onExit();
+	auto uc = i->second->getUc();
+	if (uc) {
+		//Closed the window, keep listening to the connection until QUIT is received with CPMI;
+		ccpms[aUser] = uc;
+		uc->addListener(this);
+	}
 	delete i->second; //TODO: use smart pointers
 	chats.erase(i);
 }
@@ -96,7 +103,7 @@ void MessageManager::DisconnectCCPM(const UserPtr& aUser) {
 		RLock l(cs);
 		auto i = chats.find(aUser);
 		if (i != chats.end()) {
-			i->second->Disconnect();
+			i->second->CloseCC(true, true);
 			return;
 		}
 	}
@@ -131,8 +138,10 @@ void MessageManager::onPrivateMessage(const ChatMessage& aMessage, UserConnectio
 	}
 
 	Client* c = &aMessage.from->getClient();
-	if (wndCnt > 200 || !myPM && isIgnoredOrFiltered(aMessage, c, true)) 
+	if (wndCnt > 200 || !myPM && isIgnoredOrFiltered(aMessage, c, true)) {
+		DisconnectCCPM(user);
 		return;
+	}
 
 	const auto& identity = aMessage.replyTo->getIdentity();
 	if ((identity.isBot() && !SETTING(POPUP_BOT_PMS)) || (identity.isHub() && !SETTING(POPUP_HUB_PMS))) {
@@ -175,7 +184,15 @@ void MessageManager::on(ConnectionManagerListener::Removed, const ConnectionQueu
 
 void MessageManager::on(UserConnectionListener::PrivateMessage, UserConnection* uc, const ChatMessage& message) noexcept{
 	onPrivateMessage(message, uc);
+}
 
+void MessageManager::on(AdcCommand::PMI, UserConnection* uc, const AdcCommand& cmd) noexcept{
+	if (cmd.hasFlag("QU", 0)) {
+		RLock l(cs);
+		auto i = ccpms.find(uc->getUser());
+		if (i != ccpms.end())
+			uc->disconnect(true);
+	}
 }
 
 // SettingsManagerListener
@@ -239,22 +256,17 @@ bool MessageManager::isIgnoredOrFiltered(const ChatMessage& msg, Client* client,
 		if (client->getFavNoPM() && (client->isOp() || !msg.replyTo->getIdentity().isOp()) && !msg.replyTo->getIdentity().isBot() && !msg.replyTo->getUser()->isFavorite()) {
 			string tmp;
 			client->privateMessage(msg.replyTo, "Private messages sent via this hub are ignored", tmp);
-			DisconnectCCPM(msg.from->getUser());
 			return true;
 		}
 	}
 
 	if (msg.from->getUser()->isIgnored() && ((client && client->isOp()) || !identity.isOp() || identity.isBot())) {
 		logIgnored(false);
-		if (PM)
-			DisconnectCCPM(msg.from->getUser());
 		return true;
 	}
 
 	if (isChatFiltered(identity.getNick(), msg.text, PM ? ChatFilterItem::PM : ChatFilterItem::MC)) {
 		logIgnored(true);
-		if (PM)
-			DisconnectCCPM(msg.from->getUser());
 		return true;
 	}
 

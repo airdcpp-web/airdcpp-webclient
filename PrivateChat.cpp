@@ -64,7 +64,7 @@ void PrivateChat::CCPMDisconnected() {
 }
 
 bool PrivateChat::sendPrivateMessage(const HintedUser& aUser, const string& msg, string& error_, bool thirdPerson) {
-	if (state == CONNECTED) {
+	if (ccReady()) {
 		uc->pm(msg, thirdPerson);
 		return true;
 	}
@@ -72,14 +72,29 @@ bool PrivateChat::sendPrivateMessage(const HintedUser& aUser, const string& msg,
 	return ClientManager::getInstance()->privateMessage(aUser, msg, error_, thirdPerson);
 }
 
-void PrivateChat::Disconnect(bool manual) {
-	if (state == CONNECTED) {
-		uc->disconnect(true);
-		if (!manual) {
+void PrivateChat::CloseCC(bool now, bool noAutoConnect) {
+	if (ccReady()) {
+		if (noAutoConnect) {
+			sendPMInfo(NO_AUTOCONNECT);
+			allowAutoCCPM = false;
+		}
+		//Don't disconnect graceless so the last command can be transferred successfully.
+		uc->disconnect(now && !noAutoConnect);
+		if (now) {
 			state = DISCONNECTED;
 			uc->removeListener(this);
 			setUc(nullptr);
 		}
+	}
+}
+
+void PrivateChat::onExit() {
+	//PM window closed, signal it if the user supports CPMI
+	if (ccReady() && uc) {
+		if (uc->isSet(UserConnection::FLAG_CPMI))
+			sendPMInfo(QUIT);
+		else
+			CloseCC(true, false);
 	}
 }
 
@@ -95,26 +110,23 @@ void PrivateChat::Close() {
 	fire(PrivateChatListener::Close());
 }
 
-void PrivateChat::StartCCPM(HintedUser& aUser, string& _err, bool& allowAuto){
+void PrivateChat::StartCC() {
+	bool protocolError;
+	string _err;
 
-	if (!aUser.user->isOnline() || state < DISCONNECTED) {
+	if (!replyTo.user->isOnline() || state < DISCONNECTED) {
 		return;
 	}
 	state = CONNECTING;
 	auto token = ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_PM);
-	if (ClientManager::getInstance()->connect(aUser.user, token, true, _err, aUser.hint, allowAuto, CONNECTION_TYPE_PM)){
+	if (ClientManager::getInstance()->connect(replyTo.user, token, true, _err, replyTo.hint, protocolError, CONNECTION_TYPE_PM)){
 		fire(PrivateChatListener::StatusMessage(), STRING(CCPM_ESTABLISHING), LogManager::LOG_INFO);
 		delayEvents.addEvent(CCPM_TIMEOUT, [this] { checkCCPMTimeout(); }, 30000); // 30 seconds, completely arbitrary amount of time.
 	}else if (!_err.empty()) {
 		state = DISCONNECTED;
 		fire(PrivateChatListener::StatusMessage(), _err, LogManager::LOG_ERROR);
 	}
-
-}
-
-void PrivateChat::StartCC() {
-	bool protocolError;
-	StartCCPM(replyTo, lastCCPMError, protocolError);
+	lastCCPMError = _err;
 	allowAutoCCPM = !protocolError;
 }
 
@@ -131,14 +143,14 @@ void PrivateChat::checkAlwaysCCPM() {
 }
 
 void PrivateChat::checkCCPMTimeout() {
-	if (state == CONNECTING) {
+	if (ccReady()) {
 		fire(PrivateChatListener::StatusMessage(), STRING(CCPM_TIMEOUT), LogManager::LOG_INFO);
 		state = DISCONNECTED;
 	} 
 }
 
 void PrivateChat::sendPMInfo(uint8_t aType) {
-	if (state == CONNECTED && uc) {
+	if (ccReady() && uc && uc->isSet(UserConnection::FLAG_CPMI)) {
 		AdcCommand c(AdcCommand::CMD_PMI);
 		switch (aType) {
 		case MSG_SEEN:
@@ -149,6 +161,12 @@ void PrivateChat::sendPMInfo(uint8_t aType) {
 			break;
 		case TYPING_OFF:
 			c.addParam("TP", "0");
+			break;
+		case NO_AUTOCONNECT:
+			c.addParam("AC", "0");
+			break;
+		case QUIT:
+			c.addParam("QU", "1");
 			break;
 		default:
 			c.addParam("\n");
@@ -164,7 +182,7 @@ void PrivateChat::on(ClientManagerListener::UserDisconnected, const UserPtr& aUs
 
 	setSupportsCCPM(ClientManager::getInstance()->getSupportsCCPM(replyTo, lastCCPMError));
 	if (wentOffline) {
-		Disconnect(true);
+		CloseCC(false, false);
 		allowAutoCCPM = true;
 		fire(PrivateChatListener::UserUpdated());
 	} else {
@@ -192,6 +210,15 @@ void PrivateChat::on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) no
 			fire(PrivateChatListener::PMStatus(), TYPING_ON);
 		else
 			fire(PrivateChatListener::PMStatus(), TYPING_OFF);
+	}
+
+	if (cmd.getParam("AC", 0, tmp)) {
+		allowAutoCCPM = tmp == "1" ? true : false;
+		fire(PrivateChatListener::PMStatus(), NO_AUTOCONNECT);
+	}
+
+	if (cmd.hasFlag("QU", 0)) {
+		fire(PrivateChatListener::PMStatus(), QUIT);
 	}
 }
 

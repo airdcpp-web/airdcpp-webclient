@@ -49,6 +49,7 @@ public:
 	static const string FEATURE_ADC_TIGR;
 	static const string FEATURE_ADC_MCN1;
 	static const string FEATURE_ADC_UBN1;
+	static const string FEATURE_ADC_CPMI;
 
 	static const string FILE_NOT_AVAILABLE;
 	static const string FEATURE_AIRDC;
@@ -75,7 +76,8 @@ public:
 		FLAG_RUNNING				= FLAG_SUPPORTS_TTHF << 1,
 		FLAG_MCN1					= FLAG_RUNNING << 1,
 		FLAG_SMALL_SLOT				= FLAG_MCN1 << 1,
-		FLAG_UBN1					= FLAG_SMALL_SLOT << 1
+		FLAG_UBN1					= FLAG_SMALL_SLOT << 1,
+		FLAG_CPMI					= FLAG_UBN1 << 1
 	};
 	
 	enum States {

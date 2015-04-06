@@ -46,6 +46,7 @@ const string UserConnection::FEATURE_ADC_BZIP = "BZIP";
 const string UserConnection::FEATURE_ADC_TIGR = "TIGR";
 const string UserConnection::FEATURE_ADC_MCN1 = "MCN1";
 const string UserConnection::FEATURE_ADC_UBN1 = "UBN1";
+const string UserConnection::FEATURE_ADC_CPMI = "CPMI";
 
 const string UserConnection::FILE_NOT_AVAILABLE = "File Not Available";
 

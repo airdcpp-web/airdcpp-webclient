@@ -92,7 +92,7 @@ namespace dcpp {
 
 		GETSET(bool, enabled, Enabled)
 
-			bool matchPM;
+		bool matchPM;
 		bool matchMainchat;
 
 	private:
@@ -166,6 +166,7 @@ namespace dcpp {
 
 		// UserConnectionListener
 		virtual void on(UserConnectionListener::PrivateMessage, UserConnection* uc, const ChatMessage& message) noexcept;
+		virtual void on(AdcCommand::PMI, UserConnection* uc, const AdcCommand& cmd) noexcept;
 	};
 
 }

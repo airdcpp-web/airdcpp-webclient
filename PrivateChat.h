@@ -36,39 +36,34 @@ namespace dcpp {
 		private ClientManagerListener, private boost::noncopyable {
 	public:
 		
-		enum EventType {
-			USER_UPDATE,
-			CCPM_TIMEOUT,
-			CCPM_AUTO,
-			MSG_SEEN,
-			TYPING_ON,
-			TYPING_OFF
+		enum PMInfo {
+			MSG_SEEN,  //Message seen, CPMI SN1
+			TYPING_ON, //User started typing, CPMI TP1
+			TYPING_OFF, //User stopped typing, CPMI TP0
+			NO_AUTOCONNECT, //User Disconnected manually, Disable auto connect, CPMI AC0
+			QUIT // The PM window was closed, Disconnect once both sides close, CPMI QU1
 		};
 
 		PrivateChat(const HintedUser& aUser, UserConnection* aUc = nullptr);
 		~PrivateChat();
 
-		void CCPMConnected(UserConnection* uc);
-
-		void CCPMDisconnected();
-
 		bool sendPrivateMessage(const HintedUser& aUser, const string& msg, string& error_, bool thirdPerson);
-
-		void Disconnect(bool manual = false);
-
 		void Message(const ChatMessage& aMessage);
 
 		void Activate(const string& msg, Client* c);
-		
 		void Close();
 
-		void StartCCPM(HintedUser& aUser, string& _err, bool& allowAuto);
-
+		void CloseCC(bool now, bool noAutoConnect);
 		void StartCC();
-
+		void onExit();
 		void checkAlwaysCCPM();
 		bool ccReady() const { return state == CONNECTED; };
 		void setUc(UserConnection* aUc){ uc = aUc; state = aUc ? CONNECTED : DISCONNECTED; }
+		UserConnection* getUc() { return uc; }
+		void sendPMInfo(uint8_t aType);
+
+		void CCPMConnected(UserConnection* uc);
+		void CCPMDisconnected();
 
 		void setHubUrl(const string& hint) { replyTo.hint = hint; }
 		const UserPtr& getUser() const { return replyTo.user; }
@@ -78,19 +73,22 @@ namespace dcpp {
 		Client* getClient() {
 			return ClientManager::getInstance()->getClient(replyTo.hint);
 		}
-
-		void sendPMInfo(uint8_t aType);
 		
 		GETSET(bool, supportsCCPM, SupportsCCPM);
 		GETSET(string, lastCCPMError, LastCCPMError);
 	
-
 	private:
 
 		enum State {
 			CONNECTING,
 			CONNECTED,
 			DISCONNECTED
+		};
+
+		enum EventType {
+			USER_UPDATE,
+			CCPM_TIMEOUT,
+			CCPM_AUTO
 		};
 
 		void checkCCPMTimeout();
@@ -100,6 +98,7 @@ namespace dcpp {
 		int ccpmAttempts;
 		bool allowAutoCCPM;
 		uint64_t lastCCPMAttempt;
+
 		atomic<State> state;
 		UserConnection* uc;
 
@@ -109,12 +108,12 @@ namespace dcpp {
 		virtual void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessage& message) noexcept{
 			Message(message);
 		}
+		virtual void on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) noexcept;
 
 		// ClientManagerListener
 		void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
 		void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
 
-		virtual void on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) noexcept;
 	};
 }
 

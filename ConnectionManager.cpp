@@ -92,7 +92,8 @@ ConnectionManager::ConnectionManager() : downloads(cqis[CONNECTION_TYPE_DOWNLOAD
 		"AD" + UserConnection::FEATURE_ADC_BASE,
 		"AD" + UserConnection::FEATURE_ADC_BZIP,
 		"AD" + UserConnection::FEATURE_ADC_TIGR,
-		"AD" + UserConnection::FEATURE_ADC_MCN1 
+		"AD" + UserConnection::FEATURE_ADC_MCN1, 
+		"AD" + UserConnection::FEATURE_ADC_CPMI
 	};
 
 	if (SETTING(USE_UPLOAD_BUNDLES))
@@ -619,6 +620,8 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 				aSource->setFlag(UserConnection::FLAG_MCN1);
 			} else if(feat == UserConnection::FEATURE_ADC_UBN1) {
 				aSource->setFlag(UserConnection::FLAG_UBN1);
+			} else if (feat == UserConnection::FEATURE_ADC_CPMI) {
+				aSource->setFlag(UserConnection::FLAG_CPMI);
 			}
 		}
 	}
