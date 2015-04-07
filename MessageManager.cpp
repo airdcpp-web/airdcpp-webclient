@@ -1,4 +1,3 @@
-second
 /*
 * Copyright (C) 2011-2015 AirDC++ Project
 *
@@ -148,6 +147,7 @@ void MessageManager::onPrivateMessage(const ChatMessage& aMessage, UserConnectio
 		c->Message(STRING(PRIVATE_MESSAGE_FROM) + " " + identity.getNick() + ": " + aMessage.format());
 		return;
 	}
+
 	//This will result in creating a new window
 	fire(MessageManagerListener::PrivateMessage(), aMessage);
 }

@@ -81,6 +81,9 @@ namespace dcpp {
 		GETSET(bool, supportsCCPM, SupportsCCPM);
 		GETSET(string, lastCCPMError, LastCCPMError);
 	
+		void logMessage(const string& aMessage);
+		void fillLogParams(ParamMap& params) const;
+		string getLogPath() const;
 	private:
 
 		enum State {

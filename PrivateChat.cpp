@@ -19,6 +19,7 @@
 
 #include "PrivateChat.h"
 #include "ConnectionManager.h"
+#include "LogManager.h"
 
 namespace dcpp 
 {
@@ -222,6 +223,30 @@ void PrivateChat::on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) no
 
 	if (type != PMINFO_LAST)
 		fire(PrivateChatListener::PMStatus(), type);
+}
+
+void PrivateChat::logMessage(const string& aMessage) {
+	if (SETTING(LOG_PRIVATE_CHAT)) {
+		ParamMap params;
+		params["message"] = aMessage;
+		fillLogParams(params);
+		LogManager::getInstance()->log(getUser(), params);
+	}
+}
+
+void PrivateChat::fillLogParams(ParamMap& params) const {
+	const CID& cid = getUser()->getCID();;
+	params["hubNI"] = [&] { return Util::listToString(ClientManager::getInstance()->getHubNames(cid)); };
+	params["hubURL"] = [&] { return getHubUrl(); };
+	params["userCID"] = [&cid] { return cid.toBase32(); };
+	params["userNI"] = [&] { return ClientManager::getInstance()->getNick(getUser(), getHubUrl()); };
+	params["myCID"] = [] { return ClientManager::getInstance()->getMe()->getCID().toBase32(); };
+}
+
+string PrivateChat::getLogPath() const {
+	ParamMap params;
+	fillLogParams(params);
+	return LogManager::getInstance()->getPath(getUser(), params);
 }
 
 }

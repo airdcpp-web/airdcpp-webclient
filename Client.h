@@ -159,6 +159,8 @@ public:
 	};
 	CountType getCountType() { return countType; }
 
+	void logStatusMessage(const string& aMessage);
+	void logChatMessage(const string& aMessage);
 protected:
 	friend class ClientManager;
 	Client(const string& hubURL, char separator);

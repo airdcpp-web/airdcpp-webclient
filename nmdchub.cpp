@@ -37,6 +37,7 @@
 #include "ZUtils.h"
 #include "ThrottleManager.h"
 #include "UploadManager.h"
+#include "MessageManager.h"
 
 namespace dcpp {
 
@@ -885,7 +886,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			message.text = message.text.substr(4);
 		}
 
-		fire(ClientListener::Message(), this, message);
+		MessageManager::getInstance()->onPrivateMessage(message);
 	} else if(cmd == "GetPass") {
 		OnlineUser& ou = getUser(getMyNick());
 		ou.getIdentity().set("RG", "1");
@@ -1102,7 +1103,7 @@ bool NmdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage,
 	OnlineUserPtr ou = findUser(getMyNick());
 	if(ou) {
 		ChatMessage message = { aMessage, ou, aUser, ou };
-		fire(ClientListener::Message(), this, message);
+		MessageManager::getInstance()->onPrivateMessage(message);
 		return true;
 	}
 	error_ = STRING(USER_OFFLINE);
