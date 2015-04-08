@@ -86,6 +86,17 @@ public:
 		List tmp;
 		tmp = move(eventList);
 	}
+
+	bool removeEvent(const T& aKey) {
+		Lock l(cs);
+		auto i = eventList.find(aKey);
+		if (i != eventList.end()) {
+			eventList.erase(i);
+			return true;
+		}
+
+		return false;
+	}
 private:
 
 	CriticalSection cs;

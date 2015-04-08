@@ -54,13 +54,13 @@ namespace dcpp {
 		~PrivateChat();
 
 		bool sendPrivateMessage(const HintedUser& aUser, const string& msg, string& error_, bool thirdPerson);
-		void Message(const ChatMessage& aMessage);
+		void handleMessage(const ChatMessage& aMessage);
 
-		void Activate(const string& msg, Client* c);
-		void Close();
+		void activate(const string& msg, Client* c);
+		void close();
 
-		void CloseCC(bool now, bool noAutoConnect);
-		void StartCC();
+		void closeCC(bool now, bool noAutoConnect);
+		void startCC();
 		void onExit();
 		bool ccReady() const { return state == CONNECTED; };
 		UserConnection* getUc() { return uc; }
@@ -69,7 +69,7 @@ namespace dcpp {
 		void CCPMConnected(UserConnection* uc);
 		void CCPMDisconnected();
 
-		void setHubUrl(const string& hint) { replyTo.hint = hint; }
+		void setHubUrl(const string& hint);
 		const UserPtr& getUser() const { return replyTo.user; }
 		const string& getHubUrl() const { return replyTo.hint; }
 		const HintedUser& getHintedUser() const { return replyTo; }
@@ -84,6 +84,7 @@ namespace dcpp {
 		void logMessage(const string& aMessage);
 		void fillLogParams(ParamMap& params) const;
 		string getLogPath() const;
+		bool isOnline() const { return online; }
 	private:
 
 		enum State {
@@ -115,7 +116,7 @@ namespace dcpp {
 
 		// UserConnectionListener
 		virtual void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessage& message) noexcept{
-			Message(message);
+			handleMessage(message);
 		}
 		virtual void on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) noexcept;
 
@@ -123,6 +124,13 @@ namespace dcpp {
 		void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
 		void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
 
+		bool online = true;
+
+		// Last hubname (that was used for messaging)
+		string hubName;
+
+		// Checks that the user still exists in the hinted hub and changes to another hub when needed
+		void checkUserHub(bool wentOffline);
 	};
 }
 

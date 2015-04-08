@@ -80,7 +80,7 @@ void MessageManager::closeAll(bool Offline) {
 	for (auto i : chats) {
 		if (Offline && i.first->isOnline())
 			continue;
-		i.second->Close();
+		i.second->close();
 	}
 }
 
@@ -102,7 +102,7 @@ void MessageManager::DisconnectCCPM(const UserPtr& aUser) {
 		RLock l(cs);
 		auto i = chats.find(aUser);
 		if (i != chats.end()) {
-			i->second->CloseCC(true, true);
+			i->second->closeCC(true, true);
 			return;
 		}
 	}
@@ -131,7 +131,7 @@ void MessageManager::onPrivateMessage(const ChatMessage& aMessage, UserConnectio
 			if (aUc && !i->second->ccReady())
 				LogManager::getInstance()->message("Message received via CCPM but frame not connected state! report to Night", LogManager::LOG_ERROR);
 
-			i->second->Message(aMessage); //We should have a listener in the frame
+			i->second->handleMessage(aMessage); //We should have a listener in the frame
 			return;
 		}
 	}

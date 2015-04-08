@@ -158,6 +158,16 @@ StringPairList ClientManager::getHubs(const CID& cid) const noexcept {
 	return lst;
 }
 
+string ClientManager::getHubName(const string& aHubUrl) const noexcept{
+	RLock l(cs);
+	auto i = clients.find(const_cast<string*>(&aHubUrl));
+	if (i != clients.end()) {
+		return i->second->getHubName();
+	}
+
+	return Util::emptyString;
+}
+
 StringList ClientManager::getNicks(const CID& cid, bool allowCID/*true*/) const noexcept {
 	set<string> ret;
 
