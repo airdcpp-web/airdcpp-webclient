@@ -137,7 +137,7 @@ void PrivateChat::startCC() {
 
 	if (!connecting) {
 		state = DISCONNECTED;
-		if (lastCCPMError.empty())
+		if (!lastCCPMError.empty())
 			fire(PrivateChatListener::PMStatus(), CCPM_ERROR);
 	} else {
 		fire(PrivateChatListener::PMStatus(), CCPM_ESTABLISHING);
