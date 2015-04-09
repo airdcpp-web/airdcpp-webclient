@@ -105,8 +105,10 @@ void PrivateChat::onExit() {
 
 void PrivateChat::handleMessage(const ChatMessage& aMessage) {
 	if (aMessage.replyTo->getHubUrl() != replyTo.hint) {
-		fire(PrivateChatListener::StatusMessage(), STRING_F(MESSAGES_SENT_THROUGH_REMOTE, 
-			ClientManager::getInstance()->getHubName(aMessage.replyTo->getHubUrl())), LogManager::LOG_INFO);
+		if (!ccReady()) {
+			fire(PrivateChatListener::StatusMessage(), STRING_F(MESSAGES_SENT_THROUGH_REMOTE,
+				ClientManager::getInstance()->getHubName(aMessage.replyTo->getHubUrl())), LogManager::LOG_INFO);
+		}
 
 		setHubUrl(aMessage.replyTo->getHubUrl());
 		fire(PrivateChatListener::UserUpdated());
@@ -214,16 +216,15 @@ void PrivateChat::on(ClientManagerListener::UserDisconnected, const UserPtr& aUs
 
 void PrivateChat::checkUserHub(bool wentOffline) {
 	auto hubs = ClientManager::getInstance()->getHubs(replyTo.user->getCID());
-
 	dcassert(!hubs.empty());
-	if (hubs.empty())
-		return;
 
 	if (find_if(hubs.begin(), hubs.end(), CompareFirst<string, string>(replyTo.hint)) == hubs.end()) {
-		auto statusText = wentOffline ? STRING_F(USER_OFFLINE_PM_CHANGE, hubName % hubs[0].second) : 
-			STRING_F(MESSAGES_SENT_THROUGH, hubs[0].second);
+		if (!ccReady()) {
+			auto statusText = wentOffline ? STRING_F(USER_OFFLINE_PM_CHANGE, hubName % hubs[0].second) :
+				STRING_F(MESSAGES_SENT_THROUGH, hubs[0].second);
 
-		fire(PrivateChatListener::StatusMessage(), statusText, LogManager::LOG_INFO);
+			fire(PrivateChatListener::StatusMessage(), statusText, LogManager::LOG_INFO);
+		}
 
 		setHubUrl(hubs[0].first);
 		hubName = hubs[0].second;
