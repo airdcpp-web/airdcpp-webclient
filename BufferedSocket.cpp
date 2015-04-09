@@ -24,7 +24,6 @@
 #include <boost/scoped_array.hpp>
 
 #include "ConnectivityManager.h"
-#include "CryptoManager.h"
 #include "SettingsManager.h"
 #include "SSLSocket.h"
 #include "Streams.h"
