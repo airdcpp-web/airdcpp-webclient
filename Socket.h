@@ -177,7 +177,8 @@ public:
 	virtual bool isSecure() const noexcept { return false; }
 	virtual bool isTrusted() const noexcept { return false; }
 	virtual std::string getCipherName() const noexcept { return Util::emptyString; }
-	virtual vector<uint8_t> getKeyprint() const noexcept { return vector<uint8_t>(); }
+	virtual ByteVector getKeyprint() const noexcept{ return ByteVector(); }
+	virtual bool verifyKeyprint(const string&, bool) noexcept{ return true; };
 
 	/** When socks settings are updated, this has to be called... */
 	static void socksUpdated();

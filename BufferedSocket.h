@@ -92,7 +92,8 @@ public:
 	bool isSecure() const { return sock->isSecure(); }
 	bool isTrusted() const { return sock->isTrusted(); }
 	std::string getCipherName() const { return sock->getCipherName(); }
-	vector<uint8_t> getKeyprint() const { return sock->getKeyprint(); }
+	ByteVector getKeyprint() const { return sock->getKeyprint(); }
+	bool verifyKeyprint(const string& expKeyp, bool allowUntrusted) noexcept{ return sock->verifyKeyprint(expKeyp, allowUntrusted); };
 
 	void write(const string& aData) { write(aData.data(), aData.length()); }
 	void write(const char* aBuf, size_t aLen) noexcept;
