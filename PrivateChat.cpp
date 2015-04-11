@@ -172,7 +172,7 @@ void PrivateChat::sendPMInfo(uint8_t aType) {
 		AdcCommand c(AdcCommand::CMD_PMI);
 		switch (aType) {
 		case MSG_SEEN:
-			c.addParam("SN", "1");
+			c.addParam("SN", Util::emptyString);
 			break;
 		case TYPING_ON:
 			c.addParam("TP", "1");
@@ -184,7 +184,7 @@ void PrivateChat::sendPMInfo(uint8_t aType) {
 			c.addParam("AC", "0");
 			break;
 		case QUIT:
-			c.addParam("QU", "1");
+			c.addParam("QU", Util::emptyString);
 			break;
 		default:
 			c.addParam("\n");
@@ -240,7 +240,7 @@ void PrivateChat::on(ClientManagerListener::UserUpdated, const OnlineUser& aUser
 	if (aUser.getUser() != replyTo.user)
 		return;
 
-	setSupportsCCPM(getSupportsCCPM() || aUser.supportsCCPM(lastCCPMError));
+	setSupportsCCPM(ClientManager::getInstance()->getSupportsCCPM(replyTo, lastCCPMError));
 	delayEvents.addEvent(USER_UPDATE, [this] {
 		if (!online) {
 			auto hubNames = ClientManager::getInstance()->getFormatedHubNames(replyTo);
@@ -274,7 +274,7 @@ void PrivateChat::on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) no
 		type = NO_AUTOCONNECT;
 	} else if (cmd.hasFlag("QU", 0)) {
 		type = QUIT;
-	}
+	} 
 
 	if (type != PMINFO_LAST)
 		fire(PrivateChatListener::PMStatus(), type);
