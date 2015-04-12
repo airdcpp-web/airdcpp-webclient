@@ -167,33 +167,6 @@ void PrivateChat::checkCCPMTimeout() {
 	} 
 }
 
-void PrivateChat::sendPMInfo(uint8_t aType) {
-	if (ccReady() && uc && uc->isSet(UserConnection::FLAG_CPMI)) {
-		AdcCommand c(AdcCommand::CMD_PMI);
-		switch (aType) {
-		case MSG_SEEN:
-			c.addParam("SN", Util::emptyString);
-			break;
-		case TYPING_ON:
-			c.addParam("TP", "1");
-			break;
-		case TYPING_OFF:
-			c.addParam("TP", "0");
-			break;
-		case NO_AUTOCONNECT:
-			c.addParam("AC", "0");
-			break;
-		case QUIT:
-			c.addParam("QU", Util::emptyString);
-			break;
-		default:
-			c.addParam("\n");
-		}
-	
-		uc->send(c);
-	}
-}
-
 void PrivateChat::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept{
 	if (aUser != replyTo.user)
 		return;
@@ -236,6 +209,57 @@ void PrivateChat::setHubUrl(const string& hint) {
 	hubName = ClientManager::getInstance()->getHubName(replyTo.hint);
 }
 
+void PrivateChat::sendPMInfo(uint8_t aType) {
+	if (ccReady() && uc && uc->isSet(UserConnection::FLAG_CPMI)) {
+		AdcCommand c(AdcCommand::CMD_PMI);
+		switch (aType) {
+		case MSG_SEEN:
+			c.addParam("SN", "1");
+			break;
+		case TYPING_ON:
+			c.addParam("TP", "1");
+			break;
+		case TYPING_OFF:
+			c.addParam("TP", "0");
+			break;
+		case NO_AUTOCONNECT:
+			c.addParam("AC", "0");
+			break;
+		case QUIT:
+			c.addParam("QU", "1");
+			break;
+		default:
+			c.addParam("\n");
+		}
+
+		uc->send(c);
+	}
+}
+
+void PrivateChat::on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) noexcept{
+
+	auto type = PMINFO_LAST;
+	string tmp;
+
+	//We only send one flag at a time so we can do it like this.
+	if (cmd.hasFlag("SN", 0)) {
+		type = MSG_SEEN;
+	}
+	else if (cmd.getParam("TP", 0, tmp)) {
+		type = (tmp == "1") ? TYPING_ON : TYPING_OFF;
+	}
+	else if (cmd.getParam("AC", 0, tmp)) {
+		allowAutoCCPM = tmp == "1" ? true : false;
+		type = NO_AUTOCONNECT;
+	}
+	else if (cmd.hasFlag("QU", 0)) {
+		type = QUIT;
+	}
+
+	if (type != PMINFO_LAST)
+		fire(PrivateChatListener::PMStatus(), type);
+}
+
 void PrivateChat::on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept{
 	if (aUser.getUser() != replyTo.user)
 		return;
@@ -257,27 +281,6 @@ void PrivateChat::on(ClientManagerListener::UserUpdated, const OnlineUser& aUser
 	}, 1000);
 
 	delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 3000);
-}
-
-void PrivateChat::on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) noexcept{
-	
-	auto type = PMINFO_LAST;
-	string tmp;
-
-	//We only send one flag at a time so we can do it like this.
-	if (cmd.hasFlag("SN", 0)) {
-		type = MSG_SEEN;
-	} else if (cmd.getParam("TP", 0, tmp)) {
-		type = (tmp == "1") ? TYPING_ON : TYPING_OFF;
-	} else if (cmd.getParam("AC", 0, tmp)) {
-		allowAutoCCPM = tmp == "1" ? true : false;
-		type = NO_AUTOCONNECT;
-	} else if (cmd.hasFlag("QU", 0)) {
-		type = QUIT;
-	} 
-
-	if (type != PMINFO_LAST)
-		fire(PrivateChatListener::PMStatus(), type);
 }
 
 void PrivateChat::logMessage(const string& aMessage) {

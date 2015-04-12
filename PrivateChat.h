@@ -33,11 +33,11 @@ namespace dcpp {
 		
 		enum PMInfo {
 			//CPMI types
-			MSG_SEEN,		// Message seen, CPMI SN
+			MSG_SEEN,		// Message seen, CPMI SN1
 			TYPING_ON,		// User started typing, CPMI TP1
 			TYPING_OFF,		// User stopped typing, CPMI TP0
 			NO_AUTOCONNECT, // User Disconnected manually, Disable auto connect, CPMI AC0
-			QUIT,			// The PM window was closed, Disconnect once both sides close, CPMI QU
+			QUIT,			// The PM window was closed, Disconnect once both sides close, CPMI QU1
 
 			// CCPM Status updates
 			CCPM_ESTABLISHED,

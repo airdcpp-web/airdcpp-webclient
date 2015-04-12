@@ -1870,5 +1870,10 @@ enum Strings { // @DontAdd
 	START_CCPM, // "Start a direct encrypted channel"
 	MONITORING_RESTORED_X, // "Monitoring has been restored for the path %1%"
 	DEVICE_REMOVED, // "Device removed"
+	USER_TYPING, // "User is typing..."
+	MESSAGE_SEEN, // "Message seen"
+	USER_CLOSED_WINDOW, // "User closed the window"
+	LAST_MESSAGE_SENT, // "Last message sent"
+	LAST_MESSAGE_RECEIVED, // "Last message received"
 	LAST // @DontAdd
 };
