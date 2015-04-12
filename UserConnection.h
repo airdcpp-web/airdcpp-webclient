@@ -77,7 +77,9 @@ public:
 		FLAG_MCN1					= FLAG_RUNNING << 1,
 		FLAG_SMALL_SLOT				= FLAG_MCN1 << 1,
 		FLAG_UBN1					= FLAG_SMALL_SLOT << 1,
-		FLAG_CPMI					= FLAG_UBN1 << 1
+		FLAG_CPMI					= FLAG_UBN1 << 1,
+		FLAG_TRUSTED				= FLAG_CPMI << 1
+
 	};
 	
 	enum States {

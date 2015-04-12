@@ -650,11 +650,6 @@ void ConnectionManager::on(AdcCommand::STA, UserConnection*, const AdcCommand& /
 }
 
 void ConnectionManager::on(UserConnectionListener::Connected, UserConnection* aSource) noexcept {
-	if(aSource->isSecure() && !aSource->isTrusted() && !SETTING(ALLOW_UNTRUSTED_CLIENTS)) {
-		putConnection(aSource);
-		//QueueManager::getInstance()->removeSource(aSource->getUser(), QueueItem::Source::FLAG_UNTRUSTED);
-		return;
-	}
 
 	if(SETTING(TLS_MODE) == SettingsManager::TLS_FORCED && !aSource->isSet(UserConnection::FLAG_NMDC) && !aSource->isSecure()) {
 		putConnection(aSource);
@@ -964,6 +959,9 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		putConnection(aSource);
 		return;
 	}
+	//Cache the trusted state after keyprint verification
+	if (aSource->isTrusted())
+		aSource->setFlag(UserConnection::FLAG_TRUSTED);
 
 	dcassert(!token.empty());
 
