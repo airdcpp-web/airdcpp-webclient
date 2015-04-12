@@ -90,12 +90,12 @@ CryptoManager::CryptoManager()
 		for (int i = KEY_RSA_2048; i != KEY_LAST; ++i)
 			tmpKeysMap[i] = getTmpRSA(getKeyLength(static_cast<TLSTmpKeys>(i)));
 
-		const char ciphersuites[] = "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA:AES128-SHA";
+		//const char ciphersuites[] = "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA:AES128-SHA";
 		SSL_CTX_set_options(clientContext, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
-		SSL_CTX_set_cipher_list(clientContext, ciphersuites);
+		//SSL_CTX_set_cipher_list(clientContext, ciphersuites);
 		//SSL_CTX_set1_curves_list(clientContext, "P-256");
 		SSL_CTX_set_options(serverContext, SSL_OP_SINGLE_DH_USE | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
-		SSL_CTX_set_cipher_list(serverContext, ciphersuites);
+		//SSL_CTX_set_cipher_list(serverContext, ciphersuites);
 		//SSL_CTX_set1_curves_list(serverContext, "P-256");
 		
 	EC_KEY* tmp_ecdh;
