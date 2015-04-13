@@ -177,8 +177,8 @@ void PrivateChat::on(ClientManagerListener::UserDisconnected, const UserPtr& aUs
 		closeCC(false, false);
 		allowAutoCCPM = true;
 		online = false;
-		fire(PrivateChatListener::StatusMessage(), STRING(USER_WENT_OFFLINE), LogManager::LOG_INFO);
 		fire(PrivateChatListener::UserUpdated());
+		fire(PrivateChatListener::StatusMessage(), STRING(USER_WENT_OFFLINE), LogManager::LOG_INFO);
 	} else {
 		delayEvents.addEvent(USER_UPDATE, [this] {
 			checkUserHub(true);
