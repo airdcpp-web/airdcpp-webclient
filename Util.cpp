@@ -449,15 +449,22 @@ string Util::cleanPathChars(string tmp, bool isFileName) {
 	}
 
 	if (isFileName) {
-		i = 0;
-		while ((i = tmp.find(PATH_SEPARATOR, i)) != string::npos) {
-			tmp[i] = '_';
-		}
+		tmp = cleanPathSeparators(tmp);
 	}
 
 
 	return tmp;
 }
+
+string Util::cleanPathSeparators(const string& str) {
+	string ret(str);
+	string::size_type i = 0;
+	while ((i = ret.find_first_of("/\\", i)) != string::npos) {
+		ret[i] = '_';
+	}
+	return ret;
+}
+
 
 bool Util::checkExtension(const string& tmp) {
 	for(size_t i = 0, n = tmp.size(); i < n; ++i) {

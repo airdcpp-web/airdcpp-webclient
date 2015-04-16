@@ -247,6 +247,7 @@ public:
 		return path; 
 	}
 	static inline string validateFileName(const string& aFileName) { return cleanPathChars(aFileName, true); }
+	static string cleanPathSeparators(const string& str);
 	static bool checkExtension(const string& tmp);
 
 	static string addBrackets(const string& s);

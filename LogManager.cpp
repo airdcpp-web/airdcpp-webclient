@@ -25,7 +25,7 @@
 namespace dcpp {
 
 void LogManager::log(Area area, ParamMap& params) noexcept {
-	log(SETTING(LOG_DIRECTORY) + Util::formatParams(getSetting(area, FILE), params), Util::formatParams(getSetting(area, FORMAT), params));
+	log(getPath(area, params), Util::formatParams(getSetting(area, FORMAT), params));
 }
 
 void LogManager::ensureParam(const string& aParam, string& fileName) {
@@ -63,7 +63,7 @@ string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache
 	}
 
 
-	//is it cached?
+	//is it cached? NOTE: must only be called from the GUI thread (no locking)
 	auto p = pmPaths.find(aUser->getCID());
 	if (p != pmPaths.end()) {
 		//can we still use the same dir?
@@ -74,7 +74,8 @@ string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache
 	//check the directory
 	string fileName = getSetting(PM, FILE);
 	ensureParam("%[userCID]", fileName);
-	string path = SETTING(LOG_DIRECTORY) + Util::formatParams(fileName, params);
+	string path = Util::validatePath(SETTING(LOG_DIRECTORY) + 
+		Util::formatParams(fileName, params, Util::cleanPathSeparators));
 
 	auto files = File::findFiles(Util::getFilePath(path), "*" + aUser->getCID().toBase32() + "*", File::TYPE_FILE);
 	if (!files.empty()) {
@@ -113,7 +114,8 @@ void LogManager::clearLastLogs() {
 	return lastLogs.clear();
 }
 string LogManager::getPath(Area area, ParamMap& params) const {
-	return Util::validatePath(SETTING(LOG_DIRECTORY) + Util::formatParams(getSetting(area, FILE), params));
+	return Util::validatePath(SETTING(LOG_DIRECTORY) + 
+		Util::formatParams(getSetting(area, FILE), params, Util::cleanPathSeparators));
 }
 
 string LogManager::getPath(Area area) const {
