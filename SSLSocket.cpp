@@ -184,7 +184,7 @@ int SSLSocket::checkSSL(int ret) {
 			/* don't bother getting error messages from the codes because 1) there is some
 			additional management necessary (eg SSL_load_error_strings) and 2) openssl error codes
 			aren't shown to the end user; they only hit standard output in debug builds. */
-			dcdebug("TLS error: call ret = %d, SSL_get_error = %d, ERR_get_error = " U64_FMT "\n", ret, err, ERR_get_error());
+			dcdebug("TLS error: call ret = %d, SSL_get_error = %d, ERR_get_error = " U64_FMT ",ERROR string: %s \n", ret, err, ERR_get_error(), ERR_error_string(ERR_get_error(), NULL));
 			throw SSLSocketException(STRING(TLS_ERROR));
 		}
 	}
