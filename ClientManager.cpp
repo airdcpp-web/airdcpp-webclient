@@ -727,8 +727,8 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 
 	//connect via any available hub
 	for(auto i = op.first; i != op.second; ++i) {
-		if (connectUser(p->second)) {
-			hubHint_ = p->second->getHubUrl();
+		if (connectUser(i->second)) {
+			hubHint_ = i->second->getHubUrl();
 			return true;
 		}
 	}
