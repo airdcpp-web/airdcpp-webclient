@@ -55,7 +55,8 @@ void PrivateChat::CCPMConnected(UserConnection* aUc) {
 	state = CONNECTED;
 	setUc(aUc);
 	aUc->addListener(this);
-	fire(PrivateChatListener::PMStatus(), CCPM_ESTABLISHED);
+	fire(PrivateChatListener::StatusMessage(), STRING(CCPM_ESTABLISHED), LogManager::LOG_INFO);
+	fire(PrivateChatListener::CCPMStatusUpdated());
 }
 
 void PrivateChat::CCPMDisconnected() {
@@ -63,7 +64,8 @@ void PrivateChat::CCPMDisconnected() {
 		state = DISCONNECTED;
 		uc->removeListener(this);
 		setUc(nullptr);
-		fire(PrivateChatListener::PMStatus(), CCPM_DISCONNECTED);
+		fire(PrivateChatListener::StatusMessage(), STRING(CCPM_DISCONNECTED), LogManager::LOG_INFO);
+		fire(PrivateChatListener::CCPMStatusUpdated());
 		delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 1000);
 	}
 }
@@ -139,10 +141,12 @@ void PrivateChat::startCC() {
 
 	if (!connecting) {
 		state = DISCONNECTED;
-		if (!lastCCPMError.empty())
-			fire(PrivateChatListener::PMStatus(), CCPM_ERROR);
+		if (!lastCCPMError.empty()) {
+			fire(PrivateChatListener::StatusMessage(), lastCCPMError, LogManager::LOG_ERROR);
+		}
 	} else {
-		fire(PrivateChatListener::PMStatus(), CCPM_ESTABLISHING);
+		fire(PrivateChatListener::StatusMessage(), STRING(CCPM_ESTABLISHING), LogManager::LOG_INFO);
+		fire(PrivateChatListener::CCPMStatusUpdated());
 		delayEvents.addEvent(CCPM_TIMEOUT, [this] { checkCCPMTimeout(); }, 30000); // 30 seconds, completely arbitrary amount of time.
 	}
 	
@@ -162,7 +166,8 @@ void PrivateChat::checkAlwaysCCPM() {
 
 void PrivateChat::checkCCPMTimeout() {
 	if (state == CONNECTING) {
-		fire(PrivateChatListener::PMStatus(), CCPM_CONNECTION_TIMEOUT);
+		fire(PrivateChatListener::StatusMessage(), STRING(CCPM_TIMEOUT), LogManager::LOG_INFO);
+		fire(PrivateChatListener::CCPMStatusUpdated());
 		state = DISCONNECTED;
 	} 
 }

@@ -63,19 +63,20 @@ public:
 		FLAG_REMOVE				= 0x08
 	};
 
-	enum Type {
+	enum DownloadType {
 		TYPE_ANY,
 		TYPE_SMALL,
 		TYPE_SMALL_CONF,
 		TYPE_MCN_NORMAL
 	};
 
-	ConnectionQueueItem(const HintedUser& aUser, ConnectionType aConntype, const string& aToken) : token(aToken), type(TYPE_ANY), connType(aConntype),
+	ConnectionQueueItem(const HintedUser& aUser, ConnectionType aConntype, const string& aToken) : token(aToken), 
+		downloadType(TYPE_ANY), connType(aConntype),
 		lastAttempt(0), errors(0), state(WAITING), maxConns(0), hubUrl(aUser.hint), user(aUser.user) {
 	}
 	
 	GETSET(string, token, Token);
-	GETSET(Type, type, Type);
+	GETSET(DownloadType, downloadType, DownloadType);
 	GETSET(string, lastBundle, LastBundle);
 	GETSET(uint64_t, lastAttempt, LastAttempt);
 	GETSET(int, errors, Errors); // Number of connection errors, or -1 after a protocol error

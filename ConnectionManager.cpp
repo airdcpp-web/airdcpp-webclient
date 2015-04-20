@@ -148,7 +148,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 						} else {
 							running++;
 						}
-					} else if (cqi->getType() == ConnectionQueueItem::TYPE_SMALL_CONF) {
+					} else if (cqi->getDownloadType() == ConnectionQueueItem::TYPE_SMALL_CONF) {
 						supportMcn = true;
 						//no need to continue with small slot if an item with the same type exists already (no mather whether it's running or not)
 						if (smallSlot) {
@@ -173,7 +173,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 			dcdebug("Get cqi");
 			cqi = getCQI(aUser, CONNECTION_TYPE_DOWNLOAD);
 			if (smallSlot)
-				cqi->setType(supportMcn ? ConnectionQueueItem::TYPE_SMALL_CONF : ConnectionQueueItem::TYPE_SMALL);
+				cqi->setDownloadType(supportMcn ? ConnectionQueueItem::TYPE_SMALL_CONF : ConnectionQueueItem::TYPE_SMALL);
 		}
 	}
 }
@@ -279,22 +279,22 @@ void ConnectionManager::attemptDownloads(uint64_t aTick, StringList& removedToke
 				bool allowUrlChange = true;
 				bool hasDownload = false;
 
-				auto type = cqi->getType() == ConnectionQueueItem::TYPE_SMALL || cqi->getType() == ConnectionQueueItem::TYPE_SMALL_CONF ? QueueItem::TYPE_SMALL : cqi->getType() == ConnectionQueueItem::TYPE_MCN_NORMAL ? QueueItem::TYPE_MCN_NORMAL : QueueItem::TYPE_ANY;
+				auto type = cqi->getDownloadType() == ConnectionQueueItem::TYPE_SMALL || cqi->getDownloadType() == ConnectionQueueItem::TYPE_SMALL_CONF ? QueueItem::TYPE_SMALL : cqi->getDownloadType() == ConnectionQueueItem::TYPE_MCN_NORMAL ? QueueItem::TYPE_MCN_NORMAL : QueueItem::TYPE_ANY;
 
 				//we'll also validate the hubhint (and that the user is online) before making any connection attempt
 				auto startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, type, bundleToken, allowUrlChange, hasDownload, lastError);
-				if (!hasDownload && cqi->getType() == ConnectionQueueItem::TYPE_SMALL && count_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* aCQI) { return aCQI != cqi && aCQI->getUser() == cqi->getUser(); }) == 0) {
+				if (!hasDownload && cqi->getDownloadType() == ConnectionQueueItem::TYPE_SMALL && count_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* aCQI) { return aCQI != cqi && aCQI->getUser() == cqi->getUser(); }) == 0) {
 					//the small file finished already? try with any type
-					cqi->setType(ConnectionQueueItem::TYPE_ANY);
+					cqi->setDownloadType(ConnectionQueueItem::TYPE_ANY);
 					startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, QueueItem::TYPE_ANY,
 						bundleToken, allowUrlChange, hasDownload, lastError);
 				}
-				else if (cqi->getType() == ConnectionQueueItem::TYPE_ANY && startDown.first == QueueItem::TYPE_SMALL &&
+				else if (cqi->getDownloadType() == ConnectionQueueItem::TYPE_ANY && startDown.first == QueueItem::TYPE_SMALL &&
 					count_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* aCQI) {
-					return aCQI->getUser() == cqi->getUser() && (cqi->getType() == ConnectionQueueItem::TYPE_SMALL || cqi->getType() == ConnectionQueueItem::TYPE_SMALL_CONF);
+					return aCQI->getUser() == cqi->getUser() && (cqi->getDownloadType() == ConnectionQueueItem::TYPE_SMALL || cqi->getDownloadType() == ConnectionQueueItem::TYPE_SMALL_CONF);
 				}) == 0) {
 					// a small file has been added after the CQI was created
-					cqi->setType(ConnectionQueueItem::TYPE_SMALL);
+					cqi->setDownloadType(ConnectionQueueItem::TYPE_SMALL);
 				}
 
 
@@ -361,13 +361,13 @@ void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
 
 bool ConnectionManager::allowNewMCN(const ConnectionQueueItem* aCQI) {
 	//we need to check if we have queued something also while the small file connection was being established
-	if (!aCQI->isSet(ConnectionQueueItem::FLAG_MCN1) && aCQI->getType() != ConnectionQueueItem::TYPE_SMALL_CONF)
+	if (!aCQI->isSet(ConnectionQueueItem::FLAG_MCN1) && aCQI->getDownloadType() != ConnectionQueueItem::TYPE_SMALL_CONF)
 		return false;
 
 	//count the running MCN connections
 	int running = 0;
 	for(const auto& cqi: downloads) {
-		if (cqi->getUser() == aCQI->getUser() && cqi->getType() != ConnectionQueueItem::TYPE_SMALL_CONF && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
+		if (cqi->getUser() == aCQI->getUser() && cqi->getDownloadType() != ConnectionQueueItem::TYPE_SMALL_CONF && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 			if (cqi->getState() != ConnectionQueueItem::RUNNING && cqi->getState() != ConnectionQueueItem::ACTIVE) {
 				return false;
 			}
@@ -375,7 +375,7 @@ bool ConnectionManager::allowNewMCN(const ConnectionQueueItem* aCQI) {
 		}
 	}
 
-	if (running > 0 && aCQI->getType() == ConnectionQueueItem::TYPE_SMALL_CONF)
+	if (running > 0 && aCQI->getDownloadType() == ConnectionQueueItem::TYPE_SMALL_CONF)
 		return false;
 
 	if (!aCQI->allowNewConnections(running) && !aCQI->isSet(ConnectionQueueItem::FLAG_REMOVE))
@@ -395,7 +395,7 @@ void ConnectionManager::createNewMCN(const HintedUser& aUser) {
 		WLock l (cs);
 		ConnectionQueueItem* cqiNew = getCQI(aUser, CONNECTION_TYPE_DOWNLOAD);
 		cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN1);
-		cqiNew->setType(ConnectionQueueItem::TYPE_MCN_NORMAL);
+		cqiNew->setDownloadType(ConnectionQueueItem::TYPE_MCN_NORMAL);
 	}
 }
 
@@ -829,11 +829,11 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) {
 			if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
 				cqi->setState(ConnectionQueueItem::ACTIVE);
 				if (uc->isSet(UserConnection::FLAG_MCN1)) {
-					if (cqi->getType() == ConnectionQueueItem::TYPE_SMALL || cqi->getType() == ConnectionQueueItem::TYPE_SMALL_CONF) {
+					if (cqi->getDownloadType() == ConnectionQueueItem::TYPE_SMALL || cqi->getDownloadType() == ConnectionQueueItem::TYPE_SMALL_CONF) {
 						uc->setFlag(UserConnection::FLAG_SMALL_SLOT);
-						cqi->setType(ConnectionQueueItem::TYPE_SMALL_CONF);
+						cqi->setDownloadType(ConnectionQueueItem::TYPE_SMALL_CONF);
 					} else {
-						cqi->setType(ConnectionQueueItem::TYPE_MCN_NORMAL);
+						cqi->setDownloadType(ConnectionQueueItem::TYPE_MCN_NORMAL);
 						cqi->setFlag(ConnectionQueueItem::FLAG_MCN1);
 					}
 				}
@@ -1036,7 +1036,7 @@ void ConnectionManager::failDownload(const string& aToken, const string& aError,
 			if (cqi->isSet(ConnectionQueueItem::FLAG_MCN1) && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 				//remove an existing waiting item, if exists
 				auto s = find_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* c) { 
-					return c->getUser() == cqi->getUser() && c->getType() != ConnectionQueueItem::TYPE_SMALL_CONF && c->getType() != ConnectionQueueItem::TYPE_SMALL &&
+					return c->getUser() == cqi->getUser() && c->getDownloadType() != ConnectionQueueItem::TYPE_SMALL_CONF && c->getDownloadType() != ConnectionQueueItem::TYPE_SMALL &&
 						c->getState() != ConnectionQueueItem::RUNNING && c->getState() != ConnectionQueueItem::ACTIVE && c != cqi && !c->isSet(ConnectionQueueItem::FLAG_REMOVE);
 				});
 
@@ -1044,7 +1044,7 @@ void ConnectionManager::failDownload(const string& aToken, const string& aError,
 					(*s)->setFlag(ConnectionQueueItem::FLAG_REMOVE);
 			} 
 				
-			if (cqi->getType() == ConnectionQueueItem::TYPE_SMALL_CONF && cqi->getState() == ConnectionQueueItem::ACTIVE) {
+			if (cqi->getDownloadType() == ConnectionQueueItem::TYPE_SMALL_CONF && cqi->getState() == ConnectionQueueItem::ACTIVE) {
 				//small slot item that was never used for downloading anything? check if we have normal files to download
 				if (allowNewMCN(cqi))
 					mcnUser = cqi->getHintedUser();

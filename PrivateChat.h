@@ -38,14 +38,6 @@ namespace dcpp {
 			TYPING_OFF,		// User stopped typing, CPMI TP0
 			NO_AUTOCONNECT, // User Disconnected manually, Disable auto connect, CPMI AC0
 			QUIT,			// The PM window was closed, Disconnect once both sides close, CPMI QU1
-
-			// CCPM Status updates
-			CCPM_ESTABLISHED,
-			CCPM_DISCONNECTED,
-			CCPM_ESTABLISHING,
-			CCPM_CONNECTION_TIMEOUT,
-			CCPM_ERROR,
-
 			PMINFO_LAST
 
 		};
