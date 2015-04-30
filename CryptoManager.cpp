@@ -610,7 +610,8 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 	}
 
 	if (allowUntrusted) {
-		/*// We let untrusted certificates through unconditionally, when allowed, but we like to complain
+		/*
+		// We let untrusted certificates through unconditionally, when allowed, but we like to complain
 		if (!preverify_ok && err != X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) {
 			X509* cert = NULL;
 			if ((cert = X509_STORE_CTX_get_current_cert(ctx)) != NULL) {
@@ -632,7 +633,7 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 				ByteVector kp = ssl::X509_digest(cert, EVP_sha256());
 				string keyp = "SHA256/" + Encoder::toBase32(&kp[0], kp.size());
 
-				LogManager::getInstance()->message((("Certificate verification for %1% failed with error: %2% (certificate KeyPrint: %3%)") % line % X509_verify_cert_error_string(err) % keyp));
+				LogManager::getInstance()->message(STRING_F(VERIFY_CERT_FAILED, line % X509_verify_cert_error_string(err) % keyp), LogManager::LOG_INFO);
 			}
 		}*/
 

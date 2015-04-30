@@ -1875,6 +1875,7 @@ enum Strings { // @DontAdd
 	USER_CLOSED_WINDOW, // "User closed the window"
 	LAST_MESSAGE_SENT, // "Last message sent"
 	LAST_MESSAGE_RECEIVED, // "Last message received"
+	VERIFY_CERT_FAILED, // "Certificate verification for %1% failed with error: %2% (certificate KeyPrint: %3%)"
 	GENERATE_CERTS_NOTE, // "Note: you need to restart the client to load the new certificates"
 	LAST // @DontAdd
 };
