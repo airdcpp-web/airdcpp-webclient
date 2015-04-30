@@ -23,7 +23,7 @@
 namespace dcpp {
 
 QueueItemBase::QueueItemBase(const string& aTarget, int64_t aSize, Priority aPriority, time_t aAdded, Flags::MaskType aFlags) : 
-	target(aTarget), size(aSize), priority(aPriority), added(aAdded), autoPriority(false), Flags(aFlags) {
+	target(aTarget), size(aSize), priority(aPriority), timeAdded(aAdded), autoPriority(false), Flags(aFlags) {
 
 }
 

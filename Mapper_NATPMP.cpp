@@ -50,8 +50,8 @@ lifetime(0)
 {
 }
 
-bool Mapper_NATPMP::supportsProtocol(bool v6) const {
-	return !v6;
+bool Mapper_NATPMP::supportsProtocol(bool aV6) const {
+	return !aV6;
 }
 
 #ifdef HAVE_NATPMP_H

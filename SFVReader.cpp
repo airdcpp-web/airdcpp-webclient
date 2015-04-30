@@ -70,7 +70,8 @@ optional<uint32_t> DirSFVReader::hasFile(const string& fileName) const {
 			return p->second;
 		}
 	}
-	return nullptr;
+
+	return boost::none;
 }
 
 bool DirSFVReader::isCrcValid(const string& fileName) const {
@@ -100,12 +101,12 @@ std::istream& getline(std::istream &is, std::string &s) {
 void DirSFVReader::load(StringList& invalidSFV) noexcept {
 	string line;
 
-	for(auto path: sfvFiles) {
+	for(auto curPath: sfvFiles) {
 		ifstream sfv;
 		
 		/* Try to open the sfv */
 		try {
-			auto loadPath = Text::utf8ToAcp(Util::FormatPath(path));
+			auto loadPath = Text::utf8ToAcp(Util::FormatPath(curPath));
 			auto size = File::getSize(loadPath);
 			if (size > Util::convertSize(1, Util::MB)) {
 				//this isn't a proper sfv file
@@ -119,8 +120,8 @@ void DirSFVReader::load(StringList& invalidSFV) noexcept {
 				throw FileException(STRING(CANT_OPEN_SFV));
 			}
 		} catch(const FileException& e) {
-			invalidSFV.push_back(path);
-			LogManager::getInstance()->message(path + ": " + e.getError(), LogManager::LOG_ERROR);
+			invalidSFV.push_back(curPath);
+			LogManager::getInstance()->message(curPath + ": " + e.getError(), LogManager::LOG_ERROR);
 			continue;
 		}
 
@@ -160,7 +161,7 @@ void DirSFVReader::load(StringList& invalidSFV) noexcept {
 		}
 		sfv.close();
 		if (!hasValidLines)
-			invalidSFV.push_back(path);
+			invalidSFV.push_back(curPath);
 	}
 
 	loaded = true;

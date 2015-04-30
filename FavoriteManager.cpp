@@ -401,8 +401,8 @@ class XmlListLoader : public SimpleXMLReader::CallBack {
 public:
 	XmlListLoader(HubEntryList& lst) : publicHubs(lst) { }
 	~XmlListLoader() { }
-	void startTag(const string& name, StringPairList& attribs, bool) {
-		if(name == "Hub") {
+	void startTag(const string& aName, StringPairList& attribs, bool) {
+		if(aName == "Hub") {
 			const string& name = getAttrib(attribs, "Name", 0);
 			const string& server = getAttrib(attribs, "Address", 1);
 			const string& description = getAttrib(attribs, "Description", 2);
@@ -992,7 +992,7 @@ optional<string> FavoriteManager::getFailOverUrl(ProfileToken aToken, const stri
 	//removeUserCommand(hubAddress_);
 
 	if (aToken == 0)
-		return nullptr;
+		return boost::none;
 
 	RLock l (cs);
 	auto p = getFavoriteHub(aToken);
@@ -1017,7 +1017,7 @@ optional<string> FavoriteManager::getFailOverUrl(ProfileToken aToken, const stri
 		}
 	}
 
-	return nullptr;
+	return boost::none;
 }
 
 bool FavoriteManager::blockFailOverUrl(ProfileToken aToken, string& hubAddress_) {

@@ -312,10 +312,10 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			const string& date = getAttrib(attribs, sBaseDate, 3);
 
 			StringList sl = StringTokenizer<string>(base.substr(1), '/').getTokens();
-			for(const auto& name: sl) {
-				auto s = find_if(cur->directories, [&name](const DirectoryListing::Directory::Ptr& dir) { return dir->getName() == name; });
+			for(const auto& curDirName: sl) {
+				auto s = find_if(cur->directories, [&curDirName](const DirectoryListing::Directory::Ptr& dir) { return dir->getName() == curDirName; });
 				if (s == cur->directories.end()) {
-					auto d = new DirectoryListing::Directory(cur, name, DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD, listDate, true);
+					auto d = new DirectoryListing::Directory(cur, curDirName, DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD, listDate, true);
 					cur->directories.push_back(d);
 					list->baseDirs[Text::toLower(Util::toAdcFile(d->getPath()))] = make_pair(d, false);
 					cur = d;
@@ -500,8 +500,8 @@ int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {
 	return 0;
 }
 
-void DirectoryListing::openFile(const File* aFile, bool isClientView) const throw(/*QueueException,*/ FileException) {
-	QueueManager::getInstance()->addOpenedItem(aFile->getName(), aFile->getSize(), aFile->getTTH(), hintedUser, isClientView);
+void DirectoryListing::openFile(const File* aFile, bool aIsClientView) const throw(/*QueueException,*/ FileException) {
+	QueueManager::getInstance()->addOpenedItem(aFile->getName(), aFile->getSize(), aFile->getTTH(), hintedUser, aIsClientView);
 }
 
 DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& aName, const Directory::Ptr& current) const noexcept {

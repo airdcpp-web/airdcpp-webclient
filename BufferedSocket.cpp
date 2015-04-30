@@ -211,7 +211,6 @@ void BufferedSocket::threadRead() {
 			case MODE_ZPIPE: {
 					const int BUF_SIZE = 1024;
 					// Special to autodetect nmdc connections...
-					string::size_type pos = 0;
 					boost::scoped_array<char> buffer(new char[BUF_SIZE]);
 					l = line;
 					// decompress all input data and store in l.
@@ -306,7 +305,7 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 	size_t bufSize = max(sockSize, (size_t)64*1024);
 
 	ByteVector readBuf(bufSize);
-	ByteVector writeBuf(bufSize);
+	ByteVector writeBufTmp(bufSize);
 
 	size_t readPos = 0;
 
@@ -334,24 +333,24 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 			return;
 		}
 
-		readBuf.swap(writeBuf);
+		readBuf.swap(writeBufTmp);
 		readBuf.resize(bufSize);
-		writeBuf.resize(readPos);
+		writeBufTmp.resize(readPos);
 		readPos = 0;
 
 		size_t writePos = 0, writeSize = 0;
 		int written = 0;
 
-		while(writePos < writeBuf.size()) {
+		while(writePos < writeBufTmp.size()) {
 			if(disconnecting)
 				return;
 			
 			if(written == -1) {
 				// workaround for OpenSSL (crashes when previous write failed and now retrying with different writeSize)
-				written = sock->write(&writeBuf[writePos], writeSize);
+				written = sock->write(&writeBufTmp[writePos], writeSize);
 			} else {
-				writeSize = min(sockSize / 2, writeBuf.size() - writePos);	
-				written = useLimiter ? ThrottleManager::getInstance()->write(sock.get(), &writeBuf[writePos], writeSize) : sock->read(&inbuf[0], inbuf.size());
+				writeSize = min(sockSize / 2, writeBufTmp.size() - writePos);
+				written = useLimiter ? ThrottleManager::getInstance()->write(sock.get(), &writeBufTmp[writePos], writeSize) : sock->read(&inbuf[0], inbuf.size());
 			}
 			
 			if(written > 0) {

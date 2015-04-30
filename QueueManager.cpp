@@ -2131,10 +2131,10 @@ public:
 		inBundle = false;
 		inDownloads = false;
 		curToken.clear();
-		target.clear();
+		currentFileTarget.clear();
 	}
 private:
-	string target;
+	string currentFileTarget;
 
 	QueueItemPtr curFile;
 	BundlePtr curBundle;
@@ -2303,14 +2303,14 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			try {
 				const string& tgt = getAttrib(attribs, sTarget, 0);
 				// @todo do something better about existing files
-				target = QueueManager::checkTarget(tgt);
-				if(target.empty())
+				currentFileTarget = QueueManager::checkTarget(tgt);
+				if(currentFileTarget.empty())
 					return;
 			} catch(const Exception&) {
 				return;
 			}
 
-			if (curBundle && inBundle && !AirUtil::isParentOrExact(curBundle->getTarget(), target)) {
+			if (curBundle && inBundle && !AirUtil::isParentOrExact(curBundle->getTarget(), currentFileTarget)) {
 				//the file isn't inside the main bundle dir, can't add this
 				return;
 			}
@@ -2333,9 +2333,9 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			}
 
 			WLock l (qm->cs);
-			auto ret = qm->fileQueue.add(target, size, 0, p, tempTarget, added, TTHValue(tthRoot));
+			auto ret = qm->fileQueue.add(currentFileTarget, size, 0, p, tempTarget, added, TTHValue(tthRoot));
 			if(ret.second) {
-				auto& qi = ret.first;
+				auto qi = ret.first;
 				qi->setMaxSegments(max((uint8_t)1, maxSegments));
 
 				//bundles

@@ -269,7 +269,7 @@ optional<OfflineUser> ClientManager::getOfflineUser(const CID& cid) {
 	if (i != offlineUsers.end()) {
 		return i->second;
 	}
-	return nullptr;
+	return boost::none;
 }
 
 string ClientManager::getField(const CID& cid, const string& hint, const char* field) const noexcept {
@@ -544,7 +544,7 @@ optional<ProfileToken> ClientManager::findProfile(UserConnection& p, const strin
 		}
 
 		//don't accept invalid SIDs
-		return nullptr;
+		return optional<ProfileToken>();
 	}
 
 	//no SID specified, find with hint.
@@ -559,7 +559,7 @@ optional<ProfileToken> ClientManager::findProfile(UserConnection& p, const strin
 		return op.first->second->getClient().getShareProfile();
 	}
 
-	return nullptr;
+	return boost::none;
 }
 
 bool ClientManager::isActive() const noexcept {
@@ -945,9 +945,9 @@ void ClientManager::onSearch(const Client* c, const AdcCommand& adc, OnlineUser&
 	bool isUdpActive = from.getIdentity().isUdpActive();
 	if (isUdpActive) {
 		//check that we have a common IP protocol available (we don't want to send responses via wrong hubs)
-		const auto& me = c->getMyIdentity();
-		if (me.getIp4().empty() || !from.getIdentity().isUdp4Active()) {
-			if (me.getIp6().empty() || !from.getIdentity().isUdp6Active()) {
+		const auto& myIdentity = c->getMyIdentity();
+		if (myIdentity.getIp4().empty() || !from.getIdentity().isUdp4Active()) {
+			if (myIdentity.getIp6().empty() || !from.getIdentity().isUdp6Active()) {
 				return;
 			}
 		}
@@ -1229,9 +1229,9 @@ bool ClientManager::connectADCSearchResult(const CID& aCID, string& token_, stri
 	if(slash == string::npos) { return false; }
 
 	auto uniqueId = Util::toUInt32(token_.substr(0, slash));
-	auto i = find_if(clients | map_values, [uniqueId](const Client* client) { return client->getUniqueId() == uniqueId; });
-	if(i.base() == clients.end()) { return false; }
-	hubUrl_ = (*i)->getHubUrl();
+	auto client = find_if(clients | map_values, [uniqueId](const Client* client) { return client->getUniqueId() == uniqueId; });
+	if(client.base() == clients.end()) { return false; }
+	hubUrl_ = (*client)->getHubUrl();
 
 	token_.erase(0, slash + 1);
 

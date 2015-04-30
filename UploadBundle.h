@@ -51,7 +51,7 @@ public:
 	uint64_t getStart() const { return start; }
 
 	bool getSingleUser() const { return singleUser; }
-	void setSingleUser(bool aSingleUser, int64_t uploadedSegments = 0);
+	void setSingleUser(bool aSingleUser, int64_t aUploadedSegments = 0);
 
 	string getName() const;
 	string getTarget() const { return target; }

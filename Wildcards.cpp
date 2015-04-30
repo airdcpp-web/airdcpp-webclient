@@ -287,18 +287,16 @@ bool Wildcard::patternMatch(const string& text, const string& patternlist, char 
 	if (patternlist.empty())
 		return false;
 
-	bool bMatched = false;
 	try {
 		StringTokenizer<string> st(patternlist, delimiter);
-		bool bMatched = false;
 		for(StringIter i = st.getTokens().begin(); i != st.getTokens().end(); ++i) {
-			bMatched = patternMatch(text, *i, useSet);
+			auto bMatched = patternMatch(text, *i, useSet);
 			if (bMatched) {
 				return true;
 			}
 		}
 	} catch(...) { }
-	return bMatched;
+	return false;
 }
 
 bool Wildcard::patternMatch(const wstring& text, const wstring& patternlist, wchar_t delimiter, bool useSet) {

@@ -63,7 +63,7 @@ wstring Util::emptyStringW;
 tstring Util::emptyStringT;
 
 string Util::paths[Util::PATH_LAST];
-StringList Util::params;
+StringList Util::startupParams;
 
 bool Util::localMode = true;
 bool Util::wasUncleanShutdown = false;
@@ -139,34 +139,34 @@ string Util::getOpenPath(const string& aFileName) {
 	return getOpenPath() + fileName;
 }
 
-void Util::addParam(const string& aParam) {
+void Util::addStartupParam(const string& aParam) {
 	if (aParam.empty())
 		return;
 
-	if (!hasParam(aParam))
-		params.push_back(aParam);
+	if (!hasStartupParam(aParam))
+		startupParams.push_back(aParam);
 }
 
-bool Util::hasParam(const string& aParam) {
-	return find(params.begin(), params.end(), aParam) != params.end();
+bool Util::hasStartupParam(const string& aParam) {
+	return find(startupParams.begin(), startupParams.end(), aParam) != startupParams.end();
 }
 
-string Util::getParams(bool isFirst) {
-	if (params.empty()) {
+string Util::getStartupParams(bool isFirst) {
+	if (startupParams.empty()) {
 		return Util::emptyString;
 	}
 
-	return string(isFirst ? Util::emptyString : " ") + Util::toString(" ", params);
+	return string(isFirst ? Util::emptyString : " ") + Util::toString(" ", startupParams);
 }
 
-optional<string> Util::getParam(const string& aKey) {
-	for (const auto& p : params) {
+optional<string> Util::getStartupParam(const string& aKey) {
+	for (const auto& p : startupParams) {
 		auto pos = p.find("=");
 		if (pos != string::npos && pos != p.length() && Util::strnicmp(p, aKey, pos) == 0)
 			return p.substr(pos + 1, p.length() - pos - 1);
 	}
 
-	return nullptr;
+	return optional<string>();
 }
 
 string Util::getAppName() {
@@ -926,7 +926,7 @@ static wchar_t utf8ToLC(ccp& str) {
 			return 0;
 		}
 	} else {
-		wchar_t c = Text::asciiToLower((char)str[0]);
+		c = Text::asciiToLower((char)str[0]);
 		str++;
 		return c;
 	}
@@ -1101,8 +1101,8 @@ struct GetString : boost::static_visitor<string> {
  * it is removed from the string completely...
  */
 
-string Util::formatParams(const string& msg, const ParamMap& params, FilterF filter) {
-	string result = msg;
+string Util::formatParams(const string& aMsg, const ParamMap& aParams, FilterF filter) {
+	string result = aMsg;
 
 	string::size_type i, j, k;
 	i = 0;
@@ -1111,9 +1111,9 @@ string Util::formatParams(const string& msg, const ParamMap& params, FilterF fil
 			break;
 		}
 
-		auto param = params.find(result.substr(j + 2, k - j - 2));
+		auto param = aParams.find(result.substr(j + 2, k - j - 2));
 
-		if(param == params.end()) {
+		if(param == aParams.end()) {
 			result.erase(j, k - j + 1);
 			i = j;
 

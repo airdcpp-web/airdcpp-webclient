@@ -131,9 +131,9 @@ int MappingManager::run() {
 	}
 
 	// move the preferred mapper to the top of the stack.
-	const auto& setting = SETTING(MAPPER);
+	const auto& mapperName = SETTING(MAPPER);
 	for(auto i = mappers.begin(); i != mappers.end(); ++i) {
-		if(i->first == setting) {
+		if(i->first == mapperName) {
 			if(i != mappers.begin()) {
 				auto mapper = *i;
 				mappers.erase(i);
@@ -173,7 +173,7 @@ int MappingManager::run() {
 		working = move(pMapper);
 
 		if ((!v6 && !CONNSETTING(NO_IP_OVERRIDE)) || (v6 && !CONNSETTING(NO_IP_OVERRIDE6))) {
-			auto setting = v6 ? SettingsManager::EXTERNAL_IP6 : SettingsManager::EXTERNAL_IP;
+			setting = v6 ? SettingsManager::EXTERNAL_IP6 : SettingsManager::EXTERNAL_IP;
 			string externalIP = mapper.getExternalIP();
 			if(!externalIP.empty()) {
 				ConnectivityManager::getInstance()->set(setting, externalIP);

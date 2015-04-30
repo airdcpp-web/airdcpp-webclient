@@ -75,9 +75,9 @@ private:
 	size_t getBlockSize(size_t alignment);
 	void* align(void* buf, size_t alignment);
 
-	size_t readDirect(const string& file, const DataCallback& callback);
-	size_t readMapped(const string& file, const DataCallback& callback);
-	size_t readCached(const string& file, const DataCallback& callback);
+	size_t readDirect(const string& aFile, const DataCallback& callback);
+	size_t readMapped(const string& aFile, const DataCallback& callback);
+	size_t readCached(const string& aFile, const DataCallback& callback);
 };
 
 }

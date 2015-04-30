@@ -40,7 +40,7 @@ private:
 
 	bool add(const string& port, const Protocol protocol, const string& description);
 	bool remove(const string& port, const Protocol protocol);
-	bool supportsProtocol(bool v6) const;
+	bool supportsProtocol(bool aV6) const;
 
 	uint32_t renewal() const { return 0; }
 

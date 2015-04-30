@@ -44,8 +44,8 @@ public:
 	template<typename... ArgT>
 	void fire(ArgT&&... args) noexcept {
 		Lock l(listenerCS);
-		tmp = listeners;
-		for(auto listener: tmp) {
+		tmpListeners = listeners;
+		for(auto listener: tmpListeners) {
 			listener->on(forward<ArgT>(args)...);
 		}
 	}
@@ -70,7 +70,7 @@ public:
 	
 protected:
 	ListenerList listeners;
-	ListenerList tmp;
+	ListenerList tmpListeners;
 	CriticalSection listenerCS;
 };
 

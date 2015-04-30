@@ -274,8 +274,8 @@ int DirectoryMonitor::Server::read() {
 					// (and ERROR_TOO_MANY_CMDS with network drives)
 					if (dwError == ERROR_NOTIFY_ENUM_DIR || dwError == ERROR_NOT_ENOUGH_QUOTA || dwError == ERROR_ALREADY_EXISTS || dwError == ERROR_TOO_MANY_CMDS) {
 						(*mon)->beginRead();
-						auto base = (*mon)->server->base;
-						base->callAsync([=] { base->fire(DirectoryMonitorListener::Overflow(), (*mon)->path); });
+						auto monBase = (*mon)->server->base;
+						monBase->callAsync([=] { monBase->fire(DirectoryMonitorListener::Overflow(), (*mon)->path); });
 					} else {
 						throw MonitorException(getErrorStr(dwError));
 					}

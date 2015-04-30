@@ -495,10 +495,10 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 				if (fileList.empty()) {
 					found = true;
 					//check if there are multiple disks and nfo inside them
-					for(auto& dirName: folderList) {
-						if (regex_match(dirName, subDirReg)) {
+					for(auto& subDirName: folderList) {
+						if (regex_match(subDirName, subDirReg)) {
 							found = false;
-							auto filesListSub = File::findFiles(aPath + dirName + PATH_SEPARATOR, "*.nfo", File::TYPE_FILE);
+							auto filesListSub = File::findFiles(aPath + subDirName + PATH_SEPARATOR, "*.nfo", File::TYPE_FILE);
 							if (!filesListSub.empty()) {
 								found = true;
 								break;

@@ -41,8 +41,8 @@ Mapper(localIp, v6)
 {
 }
 
-bool Mapper_WinUPnP::supportsProtocol(bool v6) const {
-	return !v6;
+bool Mapper_WinUPnP::supportsProtocol(bool aV6) const {
+	return !aV6;
 }
 
 #ifdef HAVE_WINUPNP_H

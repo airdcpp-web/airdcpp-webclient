@@ -80,7 +80,7 @@ const string& ConnectivityManager::get(SettingsManager::StrSetting setting) cons
 		RLock l(cs);
 		auto i = autoSettings.find(setting);
 		if(i != autoSettings.end()) {
-			return boost::get<const string&>(i->second);
+			return boost::get<string>(i->second);
 		}
 	}
 	return SettingsManager::getInstance()->get(setting);
@@ -332,7 +332,7 @@ void ConnectivityManager::editAutoSettings() {
 	auto sm = SettingsManager::getInstance();
 	for(auto i = autoSettings.cbegin(), iend = autoSettings.cend(); i != iend; ++i) {
 		if(i->first >= SettingsManager::STR_FIRST && i->first < SettingsManager::STR_LAST) {
-			sm->set(static_cast<SettingsManager::StrSetting>(i->first), boost::get<const string&>(i->second));
+			sm->set(static_cast<SettingsManager::StrSetting>(i->first), boost::get<string>(i->second));
 		} else if(i->first >= SettingsManager::INT_FIRST && i->first < SettingsManager::INT_LAST) {
 			sm->set(static_cast<SettingsManager::IntSetting>(i->first), boost::get<int>(i->second));
 		}

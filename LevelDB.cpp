@@ -50,17 +50,17 @@ LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cach
 
 	writeoptions.sync = true;
 
-	options.env = leveldb::Env::Default();
-	options.compression = useCompression ? leveldb::kSnappyCompression : leveldb::kNoCompression;
-	options.max_open_files = maxOpenFiles;
-	options.block_size = aBlockSize;
-	options.block_cache = leveldb::NewLRUCache(cacheSize);
-	options.paranoid_checks = false;
+	defaultOptions.env = leveldb::Env::Default();
+	defaultOptions.compression = useCompression ? leveldb::kSnappyCompression : leveldb::kNoCompression;
+	defaultOptions.max_open_files = maxOpenFiles;
+	defaultOptions.block_size = aBlockSize;
+	defaultOptions.block_cache = leveldb::NewLRUCache(cacheSize);
+	defaultOptions.paranoid_checks = false;
 	//options.write_buffer_size = cacheSize / 4; // up to two write buffers may be held in memory simultaneously
-	options.create_if_missing = true;
+	defaultOptions.create_if_missing = true;
 
 #ifdef HAVE_LEVELDB_BLOOM
-	options.filter_policy = leveldb::NewBloomFilterPolicy(10);
+	defaultOptions.filter_policy = leveldb::NewBloomFilterPolicy(10);
 #endif
 }
 
@@ -73,7 +73,7 @@ void LevelDB::open(StepFunction stepF, MessageFunction messageF) throw(DbExcepti
 		File::deleteFile(getRepairFlag());
 	}
 
-	auto ret = leveldb::DB::Open(options, Text::fromUtf8(dbPath), &db);
+	auto ret = leveldb::DB::Open(defaultOptions, Text::fromUtf8(dbPath), &db);
 	if (!ret.ok()) {
 		if (ret.IsIOError()) {
 			// most likely there's another instance running or the permissions are wrong
@@ -85,7 +85,7 @@ void LevelDB::open(StepFunction stepF, MessageFunction messageF) throw(DbExcepti
 			repair(stepF, messageF);
 
 			// try it again
-			ret = leveldb::DB::Open(options, Text::fromUtf8(dbPath), &db);
+			ret = leveldb::DB::Open(defaultOptions, Text::fromUtf8(dbPath), &db);
 		}
 	}
 
@@ -106,10 +106,10 @@ void LevelDB::repair(StepFunction stepF, MessageFunction messageF) throw(DbExcep
 	// Paranoid checks is a bit cruel as it will remove the whole file when corruption is detected... 
 	// The verify function should be used instead to fix corruption 
 
-	options.env->NewLogger(Text::fromUtf8(logPath), &options.info_log);
+	defaultOptions.env->NewLogger(Text::fromUtf8(logPath), &defaultOptions.info_log);
 	//options.paranoid_checks = true;
 
-	auto ret = leveldb::RepairDB(Text::fromUtf8(dbPath), options);
+	auto ret = leveldb::RepairDB(Text::fromUtf8(dbPath), defaultOptions);
 	if (!ret.ok()) {
 		messageF(STRING_F(DB_REPAIR_FAILED, getNameLower() % Text::toUtf8(ret.ToString()) % dbPath % APPNAME % APPNAME), false, true);
 	}
@@ -117,18 +117,18 @@ void LevelDB::repair(StepFunction stepF, MessageFunction messageF) throw(DbExcep
 	LogManager::getInstance()->message(STRING_F(DB_X_REPAIRED, friendlyName % logPath), LogManager::LOG_INFO);
 
 	//reset the options
-	delete options.info_log;
+	delete defaultOptions.info_log;
 	//options.paranoid_checks = false;
-	options.info_log = nullptr;
+	defaultOptions.info_log = nullptr;
 }
 
 LevelDB::~LevelDB() {
 	if (db)
 		delete db;
 #ifdef HAVE_LEVELDB_BLOOM
-	delete options.filter_policy;
+	delete defaultOptions.filter_policy;
 #endif
-	delete options.block_cache;
+	delete defaultOptions.block_cache;
 }
 
 #define DBACTION(f) (performDbOperation([&] { return f; }))
@@ -165,7 +165,7 @@ string LevelDB::getStats() throw(DbException) {
 	ret += "\r\nTotal reads: " + Util::toString(totalReads);
 	ret += "\r\nTotal Writes: " + Util::toString(totalWrites);
 	ret += "\r\nI/O errors: " + Util::toString(ioErrors);
-	ret += "\r\nCurrent block size: " + Util::formatBytes(options.block_size);
+	ret += "\r\nCurrent block size: " + Util::formatBytes(defaultOptions.block_size);
 	ret += "\r\nCurrent size on disk: " + Util::formatBytes(getSizeOnDisk());
 	ret += "\r\n";
 	return ret;

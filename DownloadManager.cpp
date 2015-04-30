@@ -572,8 +572,8 @@ void DownloadManager::changeBundle(BundlePtr sourceBundle, BundlePtr targetBundl
 	UserConnectionList ucl;
 	{
 		WLock l(cs);
-		auto downloads = sourceBundle->getDownloads();
-		for (auto& d : downloads) {
+		auto bundleDownloads = sourceBundle->getDownloads();
+		for (auto& d: bundleDownloads) {
 			if (d->getPath() == path) {
 				targetBundle->addDownload(d);
 				d->setBundle(targetBundle);

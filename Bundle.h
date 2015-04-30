@@ -130,7 +130,7 @@ public:
 	struct SortOrder {
 		bool operator()(const BundlePtr& left, const BundlePtr& right) const {
 			if (left->getPriority() == right->getPriority()) {
-				return left->getAdded() < right->getAdded();
+				return left->getTimeAdded() < right->getTimeAdded();
 			} else {
 				return left->getPriority() > right->getPriority();
 			}

@@ -59,10 +59,13 @@
 #if defined(_MSC_VER)
 #define HAVE_LEVELDB_BLOOM
 #define strtoll _strtoi64
-#define snprintf _snprintf
 #define snwprintf _snwprintf
 #else
 #define snwprintf snprintf
+#endif
+
+#if defined(_MSC_VER) && (_MSC_VER < 1900)
+#define snprintf _snprintf
 #endif
 
 #else

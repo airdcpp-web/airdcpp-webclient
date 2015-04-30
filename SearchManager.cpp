@@ -330,13 +330,13 @@ void SearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 }
 
-void SearchManager::onPBD(const AdcCommand& cmd, const UserPtr& from) {
+void SearchManager::onPBD(const AdcCommand& aCmd, const UserPtr& from) {
 	string remoteBundle;
 	string hubIpPort;
 	string tth;
 	bool add=false, update=false, reply=false, notify = false, remove = false;
 
-	for(auto& str: cmd.getParameters()) {
+	for(auto& str: aCmd.getParameters()) {
 		if(str.compare(0, 2, "HI") == 0) {
 			hubIpPort = str.substr(2);
 		} else if(str.compare(0, 2, "BU") == 0) {
@@ -387,10 +387,10 @@ void SearchManager::onPBD(const AdcCommand& cmd, const UserPtr& from) {
 		//LogManager::getInstance()->message("PBD REQUIRE REPLY");
 
 		string localBundle;
-		bool notify = false, add = false;
-		if (QueueManager::getInstance()->checkPBDReply(u, TTHValue(tth), localBundle, notify, add, remoteBundle)) {
+		bool sendNotify = false, sendAdd = false;
+		if (QueueManager::getInstance()->checkPBDReply(u, TTHValue(tth), localBundle, sendNotify, sendAdd, remoteBundle)) {
 			//LogManager::getInstance()->message("PBD REPLY: ACCEPTED");
-			AdcCommand cmd = toPBD(hubIpPort, localBundle, tth, false, add, notify);
+			AdcCommand cmd = toPBD(hubIpPort, localBundle, tth, false, sendAdd, sendNotify);
 			ClientManager::getInstance()->sendUDP(cmd, from->getCID(), false, true);
 		} else {
 			//LogManager::getInstance()->message("PBD REPLY: QUEUEMANAGER FAIL");
@@ -404,7 +404,7 @@ void SearchManager::onPBD(const AdcCommand& cmd, const UserPtr& from) {
 	}
 }
 
-void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& remoteIp) {
+void SearchManager::onPSR(const AdcCommand& aCmd, UserPtr from, const string& remoteIp) {
 	if (!SETTING(USE_PARTIAL_SHARING)) {
 		return;
 	}
@@ -416,7 +416,7 @@ void SearchManager::onPSR(const AdcCommand& cmd, UserPtr from, const string& rem
 	string nick;
 	PartsInfo partialInfo;
 
-	for(auto& str: cmd.getParameters()) {
+	for(auto& str: aCmd.getParameters()) {
 		if(str.compare(0, 2, "U4") == 0) {
 			udpPort = str.substr(2);
 		} else if(str.compare(0, 2, "NI") == 0) {

@@ -1202,12 +1202,11 @@ void SettingsManager::save() {
 	}
 	xml.stepOut();
 
-	for(int i = 0; i < HISTORY_LAST; ++i) {
+	for(i = 0; i < HISTORY_LAST; ++i) {
 		const auto& hist = history[i];
 		if (!hist.empty() && !get(clearSettings[i])) {
 			xml.addTag(historyTags[i]);
 			xml.stepIn();
-			const auto& hist = history[i];
 			for (auto& hi: hist) {
 				xml.addTag("HistoryItem", hi);
 			}

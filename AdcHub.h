@@ -37,8 +37,8 @@ public:
 	using Client::send;
 	using Client::connect;
 
-	int connect(const OnlineUser& user, const string& token, string& lastError_);
-	void connect(const OnlineUser& user, const string& token, bool secure, bool replyingRCM = false);
+	int connect(const OnlineUser& aUser, const string& aToken, string& lastError_);
+	void connect(const OnlineUser& aUser, const string& aToken, bool aSecure, bool aReplyingRCM = false);
 	
 	bool hubMessage(const string& aMessage, string& error_, bool thirdPerson = false);
 	bool privateMessage(const OnlineUserPtr& user, const string& aMessage, string& error_, bool thirdPerson = false);
@@ -98,9 +98,9 @@ private:
 	void getUserList(OnlineUserList& list) const;
 
 	/* Checks if we are allowed to connect to the user */
-	AdcCommand::Error allowConnect(const OnlineUser& user, bool secure, string& failedProtocol_, bool checkBase) const;
+	AdcCommand::Error allowConnect(const OnlineUser& aUser, bool aSecure, string& failedProtocol_, bool checkBase) const;
 	/* Does the same thing but also sends the error to the remote user */
-	bool checkProtocol(const OnlineUser& user, bool& secure, const string& aRemoteProtocol, const string& aToken);
+	bool checkProtocol(const OnlineUser& aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken);
 
 	bool oldPassword;
 	Socket udp;
@@ -118,16 +118,16 @@ private:
 	string checkNick(const string& nick);
 
 	OnlineUser& getUser(const uint32_t aSID, const CID& aCID);
-	OnlineUser* findUser(const uint32_t sid) const;
+	OnlineUser* findUser(const uint32_t aSID) const;
 	OnlineUser* findUser(const CID& cid) const;
 	
 	OnlineUserPtr findUser(const string& aNick) const;
 
-	void putUser(const uint32_t sid, bool disconnect);
+	void putUser(const uint32_t aSID, bool disconnect);
 
 	void shutdown();
 	void clearUsers();
-	void appendConnectivity(StringMap& lastInfoMap, AdcCommand& c, bool v4, bool v6);
+	void appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6);
 
 	void handle(AdcCommand::SUP, AdcCommand& c) noexcept;
 	void handle(AdcCommand::SID, AdcCommand& c) noexcept;

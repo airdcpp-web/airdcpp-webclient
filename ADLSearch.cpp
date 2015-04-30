@@ -541,8 +541,11 @@ void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, Dire
 
 		if(isNew) {
 			// Add new destination directory
-			DestDir dir = { is.destDir, new DirectoryListing::Directory(root.get(), "<<<" + is.destDir + ">>>", DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) };
-			destDirs.push_back(std::move(dir));
+			DestDir newDir = { is.destDir, 
+				new DirectoryListing::Directory(root.get(), "<<<" + is.destDir + ">>>", 
+					DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) 
+			};
+			destDirs.push_back(std::move(newDir));
 			is.ddIndex = ddIndex;
 		}
 	}

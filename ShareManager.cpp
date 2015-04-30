@@ -181,20 +181,20 @@ optional<pair<string, bool>> ShareManager::checkModifiedPath(const string& aPath
 	FileFindIter f(aPath);
 	if (f != FileFindIter()) {
 		if (!SETTING(SHARE_HIDDEN) && f->isHidden())
-			return nullptr;
+			return boost::none;
 
 		if (!SETTING(SHARE_FOLLOW_SYMLINKS) && f->isLink())
-			return nullptr;
+			return boost::none;
 
 		bool isDir = f->isDirectory();
 		auto path = isDir ? aPath + PATH_SEPARATOR : aPath;
 		if (!checkSharedName(path, Text::toLower(path), isDir, true, f->getSize()))
-			return nullptr;
+			return boost::none;
 
 		return make_pair(path, isDir);
 	}
 
-	return nullptr;
+	return boost::none;
 }
 
 void ShareManager::addModifyInfo(const string& aPath, bool isDirectory, DirModifyInfo::ActionType aAction) noexcept {
@@ -1347,7 +1347,7 @@ optional<ProfileToken> ShareManager::getProfileByName(const string& aName) const
 
 	auto p = find_if(shareProfiles, [&](const ShareProfilePtr& aProfile) { return Util::stricmp(aProfile->getPlainName(), aName) == 0; });
 	if (p == shareProfiles.end())
-		return nullptr;
+		return boost::none;
 	return (*p)->getToken();
 }
 
@@ -1378,8 +1378,8 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 	}
 
 
-	void startTag(const string& name, StringPairList& attribs, bool simple) {
-		if(compare(name, SDIRECTORY) == 0) {
+	void startTag(const string& aName, StringPairList& attribs, bool simple) {
+		if(compare(aName, SDIRECTORY) == 0) {
 			const string& name = getAttrib(attribs, SNAME, 0);
 			const string& date = getAttrib(attribs, DATE, 1);
 
@@ -1409,7 +1409,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 					cur = cur->getParent();
 				}
 			}
-		} else if (cur && compare(name, SFILE) == 0) {
+		} else if (cur && compare(aName, SFILE) == 0) {
 			const string& fname = getAttrib(attribs, SNAME, 0);
 			if(fname.empty()) {
 				dcdebug("Invalid file found: %s\n", fname.c_str());
@@ -1426,7 +1426,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 				hashSize += File::getSize(curDirPath + fname);
 				dcdebug("Error loading file list %s \n", e.getError().c_str());
 			}
-		} else if (compare(name, SHARE) == 0) {
+		} else if (compare(aName, SHARE) == 0) {
 			int version = Util::toInt(getAttrib(attribs, SVERSION, 0));
 			if (version > Util::toInt(SHARE_CACHE_VERSION))
 				throw("Newer cache version"); //don't load those...
@@ -2734,13 +2734,13 @@ void ShareManager::getShares(ShareDirInfo::Map& aDirs) const noexcept {
 
 }
 		
-void ShareManager::getBloom(HashBloom& bloom) const noexcept {
+void ShareManager::getBloom(HashBloom& bloom_) const noexcept {
 	RLock l(cs);
 	for(const auto tth: tthIndex | map_keys)
-		bloom.add(*tth);
+		bloom_.add(*tth);
 
 	for(const auto& tth: tempShares | map_keys)
-		bloom.add(tth);
+		bloom_.add(tth);
 }
 
 string ShareManager::generateOwnList(ProfileToken aProfile) throw(ShareException) {
@@ -2765,7 +2765,7 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 
 
 	{
-		Lock l(fl->cs);
+		Lock lFl(fl->cs);
 		if (fl->allowGenerateNew(forced)) {
 			auto tmpName = fl->getFileName().substr(0, fl->getFileName().length() - 4);
 			try {
@@ -3380,8 +3380,8 @@ void ShareManager::search(SearchResultList& results, SearchQuery& srch, ProfileT
 
 
 	// pick the results to return
-	for (auto l = resultInfos.begin(); (l != resultInfos.end()) && (results.size() < srch.maxResults); ++l) {
-		auto& info = *l;
+	for (auto i = resultInfos.begin(); (i != resultInfos.end()) && (results.size() < srch.maxResults); ++i) {
+		auto& info = *i;
 		if (info.getType() == Directory::SearchResultInfo::DIRECTORY) {
 			addDirResult(info.directory->getFullName(aProfile), results, aProfile, srch);
 		} else {

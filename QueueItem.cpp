@@ -329,14 +329,14 @@ bool QueueItem::isFinished() const {
 	return done.size() == 1 && *done.begin() == Segment(0, size);
 }
 
-Segment QueueItem::getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const {
-	if(size == -1 || blockSize == 0) {
+Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t wantedSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const {
+	if(size == -1 || aBlockSize == 0) {
 		return Segment(0, -1);
 	}
 	
-	if((!SETTING(MULTI_CHUNK) || blockSize >= size) /*&& (done.size() == 0 || (done.size() == 1 && *done.begin()->getStart() == 0))*/) {
+	if((!SETTING(MULTI_CHUNK) || aBlockSize >= size) /*&& (done.size() == 0 || (done.size() == 1 && *done.begin()->getStart() == 0))*/) {
 		if(!downloads.empty()) {
-			return checkOverlaps(blockSize, lastSpeed, partialSource, allowOverlap);
+			return checkOverlaps(aBlockSize, lastSpeed, partialSource, allowOverlap);
 		}
 
 		int64_t start = 0;
@@ -346,13 +346,13 @@ Segment QueueItem::getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t
 			const Segment& first = *done.begin();
 
 			if(first.getStart() > 0) {
-				end = Util::roundUp(first.getStart(), blockSize);
+				end = Util::roundUp(first.getStart(), aBlockSize);
 			} else {
-				start = Util::roundDown(first.getEnd(), blockSize);
+				start = Util::roundDown(first.getEnd(), aBlockSize);
 
 				if(done.size() > 1) {
 					const Segment& second = *(++done.begin());
-					end = Util::roundUp(second.getStart(), blockSize);
+					end = Util::roundUp(second.getStart(), aBlockSize);
 				}
 			}
 		}
@@ -376,7 +376,7 @@ Segment QueueItem::getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t
 
 		// Convert block index to file position
 		for(auto& i: partialSource->getPartialInfo())
-			posArray.push_back(min(size, (int64_t)(i) * blockSize));
+			posArray.push_back(min(size, (int64_t)(i) * aBlockSize));
 	}
 
 	/***************************/
@@ -386,11 +386,11 @@ Segment QueueItem::getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t
 	// We want smaller blocks at the end of the transfer, squaring gives a nice curve...
 	int64_t targetSize = static_cast<int64_t>(static_cast<double>(wantedSize) * std::max(0.25, (1. - (donePart * donePart))));
 		
-	if(targetSize > blockSize) {
+	if(targetSize > aBlockSize) {
 		// Round off to nearest block size
-		targetSize = Util::roundDown(targetSize, blockSize);
+		targetSize = Util::roundDown(targetSize, aBlockSize);
 	} else {
-		targetSize = blockSize;
+		targetSize = aBlockSize;
 	}		
 
 	int64_t start = 0;
@@ -401,7 +401,7 @@ Segment QueueItem::getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t
 		Segment block(start, end - start);
 		bool overlaps = false;
 		for(auto i = done.begin(); !overlaps && i != done.end(); ++i) {
-			if(curSize <= blockSize) {
+			if(curSize <= aBlockSize) {
 				int64_t dstart = i->getStart();
 				int64_t dend = i->getEnd();
 				// We accept partial overlaps, only consider the block done if it is fully consumed by the done block
@@ -426,8 +426,8 @@ Segment QueueItem::getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t
 						int64_t e = min(end, *(j+1));
 
 						// segment must be blockSize aligned
-						dcassert(b % blockSize == 0);
-						dcassert(e % blockSize == 0 || e == size);
+						dcassert(b % aBlockSize == 0);
+						dcassert(e % aBlockSize == 0 || e == size);
 
 						neededParts.emplace_back(b, e - b);
 					}
@@ -438,8 +438,8 @@ Segment QueueItem::getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t
 			}
 		}
 		
-		if(overlaps && (curSize > blockSize)) {
-			curSize -= blockSize;
+		if(overlaps && (curSize > aBlockSize)) {
+			curSize -= aBlockSize;
 		} else {
 			start = end;
 			curSize = targetSize;
@@ -456,11 +456,11 @@ Segment QueueItem::getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t
 		return selected;
 	}
 
-	return checkOverlaps(blockSize, lastSpeed, partialSource, allowOverlap);
+	return checkOverlaps(aBlockSize, lastSpeed, partialSource, allowOverlap);
 }
 
-Segment QueueItem::checkOverlaps(int64_t blockSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const {
-	if(allowOverlap && !partialSource && bundle && SETTING(OVERLAP_SLOW_SOURCES) && lastSpeed > 0) {
+Segment QueueItem::checkOverlaps(int64_t aBlockSize, int64_t aLastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const {
+	if(allowOverlap && !partialSource && bundle && SETTING(OVERLAP_SLOW_SOURCES) && aLastSpeed > 0) {
 		// overlap slow running chunk
 		for(auto d: downloads) {
 			// current chunk mustn't be already overlapped
@@ -476,14 +476,14 @@ Segment QueueItem::checkOverlaps(int64_t blockSize, int64_t lastSpeed, const Par
 				continue;
 
 			// overlap current chunk at last block boundary
-			int64_t pos = d->getPos() - (d->getPos() % blockSize);
-			int64_t size = d->getSegmentSize() - pos;
+			int64_t pos = d->getPos() - (d->getPos() % aBlockSize);
+			int64_t chunkSize = d->getSegmentSize() - pos;
 
 			// new user should finish this chunk more than 2x faster
-			int64_t newChunkLeft = size / lastSpeed;
+			int64_t newChunkLeft = chunkSize / aLastSpeed;
 			if(2 * newChunkLeft < d->getSecondsLeft()) {
 				dcdebug("Overlapping... old user: " I64_FMT " s, new user: " I64_FMT " s\n", d->getSecondsLeft(), newChunkLeft);
-				return Segment(d->getStartPos() + pos, size, true);
+				return Segment(d->getStartPos() + pos, chunkSize, true);
 			}
 		}
 	}
@@ -555,35 +555,34 @@ void QueueItem::addFinishedSegment(const Segment& segment) {
 	}
 }
 
-bool QueueItem::isNeededPart(const PartsInfo& partsInfo, int64_t blockSize)
+bool QueueItem::isNeededPart(const PartsInfo& aPartsInfo, int64_t aBlockSize)
 {
-	dcassert(partsInfo.size() % 2 == 0);
+	dcassert(aPartsInfo.size() % 2 == 0);
 	
 	SegmentConstIter i  = done.begin();
-	for(auto j = partsInfo.begin(); j != partsInfo.end(); j+=2){
-		while(i != done.end() && (*i).getEnd() <= (*j) * blockSize)
+	for(auto j = aPartsInfo.begin(); j != aPartsInfo.end(); j+=2){
+		while(i != done.end() && (*i).getEnd() <= (*j) * aBlockSize)
 			i++;
 
-		if(i == done.end() || !((*i).getStart() <= (*j) * blockSize && (*i).getEnd() >= (*(j+1)) * blockSize))
+		if(i == done.end() || !((*i).getStart() <= (*j) * aBlockSize && (*i).getEnd() >= (*(j+1)) * aBlockSize))
 			return true;
 	}
 	
 	return false;
-
 }
 
-void QueueItem::getPartialInfo(PartsInfo& partialInfo, int64_t blockSize) const {
+void QueueItem::getPartialInfo(PartsInfo& aPartialInfo, int64_t aBlockSize) const {
 	size_t maxSize = min(done.size() * 2, (size_t)510);
-	partialInfo.reserve(maxSize);
+	aPartialInfo.reserve(maxSize);
 
 	SegmentConstIter i = done.begin();
-	for(; i != done.end() && partialInfo.size() < maxSize; i++) {
+	for(; i != done.end() && aPartialInfo.size() < maxSize; i++) {
 
-		uint16_t s = (uint16_t)((*i).getStart() / blockSize);
-		uint16_t e = (uint16_t)(((*i).getEnd() - 1) / blockSize + 1);
+		uint16_t s = (uint16_t)((*i).getStart() / aBlockSize);
+		uint16_t e = (uint16_t)(((*i).getEnd() - 1) / aBlockSize + 1);
 
-		partialInfo.push_back(s);
-		partialInfo.push_back(e);
+		aPartialInfo.push_back(s);
+		aPartialInfo.push_back(e);
 	}
 }
 
@@ -717,7 +716,7 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 	f.write(LIT("\" Size=\""));
 	f.write(Util::toString(size));
 	f.write(LIT("\" Added=\""));
-	f.write(Util::toString(added));
+	f.write(Util::toString(timeAdded));
 
 	b32tmp.clear();
 	f.write(LIT("\" TTH=\""));

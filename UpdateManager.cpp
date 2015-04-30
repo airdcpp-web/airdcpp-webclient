@@ -165,13 +165,13 @@ void UpdateManager::completeUpdateDownload(int buildID, bool manualCheck) {
 
 			string srcPath = UPDATE_TEMP_DIR + sessionToken + PATH_SEPARATOR;
 			string dstPath = Util::getFilePath(exename);
-			string updaterFile = srcPath + Util::getFileName(exename);
+			string updaterExeFile = srcPath + Util::getFileName(exename);
 
 			if(zip.GoToFirstFile()) {
 				do {
 					zip.OpenCurrentFile();
 					if(zip.GetCurrentFileName().find(Util::getFileExt(exename)) != string::npos) {
-						zip.ReadCurrentFile(updaterFile);
+						zip.ReadCurrentFile(updaterExeFile);
 					} else zip.ReadCurrentFile(srcPath);
 					zip.CloseCurrentFile();
 				} while(zip.GoToNextFile());
@@ -185,7 +185,7 @@ void UpdateManager::completeUpdateDownload(int buildID, bool manualCheck) {
 			xml.stepIn();
 			xml.addTag("DestinationPath", dstPath);
 			xml.addTag("SourcePath", srcPath);
-			xml.addTag("UpdaterFile", updaterFile);
+			xml.addTag("UpdaterFile", updaterExeFile);
 			xml.addTag("BuildID", buildID);
 			xml.stepOut();
 
@@ -198,7 +198,7 @@ void UpdateManager::completeUpdateDownload(int buildID, bool manualCheck) {
 			installedUpdate = buildID;
 
 			conn.reset(); //prevent problems when closing
-			fire(UpdateManagerListener::UpdateComplete(), updaterFile);
+			fire(UpdateManagerListener::UpdateComplete(), updaterExeFile);
 		} catch(ZipFileException& e) {
 			failUpdateDownload(e.getError(), manualCheck);
 		}

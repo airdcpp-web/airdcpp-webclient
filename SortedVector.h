@@ -27,8 +27,6 @@ template<typename T, template<class V, class = std::allocator<V> > class Contain
 class SortedVector : public ContainerT<T> {
 
 public:
-	typename ContainerT<T>::iterator it;
-
 	std::pair<typename ContainerT<T>::const_iterator, bool> insert_sorted(const T& aItem) {
 		if (this->empty()) {
 			this->push_back(aItem);

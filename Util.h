@@ -584,10 +584,10 @@ public:
 	static uint32_t rand(uint32_t low, uint32_t high) { return rand(high-low) + low; }
 	static double randd() { return ((double)rand()) / ((double)0xffffffff); }
 
-	static bool hasParam(const string& aParam);
-	static string getParams(bool isFirst);
-	static void addParam(const string& aParam);
-	static optional<string> getParam(const string& aKey);
+	static bool hasStartupParam(const string& aParam);
+	static string getStartupParams(bool isFirst);
+	static void addStartupParam(const string& aParam);
+	static optional<string> getStartupParam(const string& aKey);
 
 	static bool usingLocalMode() { return localMode; }
 	static bool wasUncleanShutdown;
@@ -599,7 +599,7 @@ private:
 
 	static string paths[PATH_LAST];
 
-	static StringList params;
+	static StringList startupParams;
 
 	static time_t startTime;
 	

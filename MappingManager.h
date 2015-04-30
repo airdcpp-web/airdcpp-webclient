@@ -44,8 +44,8 @@ public:
 	/** add an implementation derived from the base Mapper class, passed as template parameter.
 	the first added mapper will be tried first, unless the "MAPPER" setting is not empty. */
 	template<typename T> void addMapper() {
-		mappers.emplace_back(T::name, [](const string& localIp, bool v6) {
-			return new T(localIp, v6);
+		mappers.emplace_back(T::name, [](const string& localIp, bool aV6) {
+			return new T(localIp, aV6);
 		});
 	}
 	StringList getMappers() const;

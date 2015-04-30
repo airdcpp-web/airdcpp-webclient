@@ -72,7 +72,7 @@ private:
 	leveldb::DB* db;
 
 	//DB options
-	leveldb::Options options;
+	leveldb::Options defaultOptions;
 
 	// options used when reading from the database
 	leveldb::ReadOptions readoptions;

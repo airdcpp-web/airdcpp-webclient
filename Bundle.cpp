@@ -42,7 +42,7 @@ using boost::accumulate;
 using boost::range::copy;
 	
 Bundle::Bundle(QueueItemPtr& qi, time_t aFileDate, const string& aToken /*empty*/, bool aDirty /*true*/) noexcept :
-	Bundle(qi->getTarget(), qi->getAdded(), qi->getPriority(), aFileDate, aToken, aDirty, true) {
+	Bundle(qi->getTarget(), qi->getTimeAdded(), qi->getPriority(), aFileDate, aToken, aDirty, true) {
 
 
 	if (qi->isFinished()) {
@@ -353,20 +353,20 @@ bool Bundle::addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad 
 	}
 }
 
-QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept {
+QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const OrderedStringSet& aOnlineHubs, string& aLastError, Priority aMinPrio, int64_t aWantedSize, int64_t aLastSpeed, QueueItemBase::DownloadType aType, bool aAllowOverlap) noexcept {
 	int p = QueueItem::LAST - 1;
 	do {
 		auto i = userQueue[p].find(aUser);
 		if(i != userQueue[p].end()) {
 			dcassert(!i->second.empty());
 			for(auto& qi: i->second) {
-				if (qi->hasSegment(aUser, onlineHubs, aLastError, wantedSize, lastSpeed, aType, allowOverlap)) {
+				if (qi->hasSegment(aUser, aOnlineHubs, aLastError, aWantedSize, aLastSpeed, aType, aAllowOverlap)) {
 					return qi;
 				}
 			}
 		}
 		p--;
-	} while(p >= minPrio);
+	} while(p >= aMinPrio);
 
 	return nullptr;
 }
@@ -957,7 +957,7 @@ void Bundle::save() throw(FileException) {
 		f.write(LIT("\" Token=\""));
 		f.write(token);
 		f.write(LIT("\" Added=\""));
-		f.write(Util::toString(getAdded()));
+		f.write(Util::toString(getTimeAdded()));
 		f.write(LIT("\" Date=\""));
 		f.write(Util::toString(bundleDate));
 		f.write(LIT("\" AddedByAutoSearch=\""));

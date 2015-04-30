@@ -217,7 +217,7 @@ void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, 
 		tth_ = tt.getRoot();
 
 		if (addStore && !aCancel) {
-			auto fi = HashedFile(tth_, timestamp, aSize);
+			fi = HashedFile(tth_, timestamp, aSize);
 			store.addHashedFile(pathLower, tt, fi);
 		}
 	} else {
@@ -608,7 +608,6 @@ void HashManager::HashStore::optimize(bool doVerify) noexcept {
 		missingTrees = usedRoots.size() - failedTrees;
 		if (usedRoots.size() > 0) {
 			try {
-				HashedFile fi;
 				fileDb->remove_if([&](void* /*aKey*/, size_t /*key_len*/, void* aValue, size_t valueLen) {
 					loadFileInfo(aValue, valueLen, fi);
 					if (usedRoots.find(fi.getRoot()) != usedRoots.end()) {

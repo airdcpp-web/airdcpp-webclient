@@ -707,9 +707,9 @@ void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 
 		updateStatus(as, false);
 		if (as->getStatus() == AutoSearch::STATUS_FAILED_MISSING) {
-			auto p = find_if(as->getBundles(), Bundle::HasStatus(Bundle::STATUS_FAILED_MISSING));
-			dcassert(p != as->getBundles().end());
-			minWantedSize = (*p)->getSize();
+			auto bundle = find_if(as->getBundles(), Bundle::HasStatus(Bundle::STATUS_FAILED_MISSING));
+			dcassert(bundle != as->getBundles().end());
+			minWantedSize = (*bundle)->getSize();
 		}
 	}
 
