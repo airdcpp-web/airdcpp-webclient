@@ -22,7 +22,7 @@
 // for compilers that don't support noexcept, use an exception specifier
 
 
-#if defined (_MSC_VER) && _MSC_VER < 1800
+#if defined (_MSC_VER) && _MSC_VER <= 1800
 
 #ifndef noexcept
 #define noexcept throw()

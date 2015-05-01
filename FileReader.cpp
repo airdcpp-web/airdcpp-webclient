@@ -39,18 +39,18 @@ namespace {
 static const size_t READ_FAILED = static_cast<size_t>(-1);
 }
 
-size_t FileReader::read(const string& file, const DataCallback& callback) {
+size_t FileReader::read(const string& aPath, const DataCallback& callback) {
 	size_t ret = READ_FAILED;
 
 	if(direct) {
-		ret = readDirect(file, callback);
+		ret = readDirect(aPath, callback);
 	}
 
 	if(ret == READ_FAILED) {
-			ret = readMapped(file, callback);
+			ret = readMapped(aPath, callback);
 
 		if(ret == READ_FAILED) {
-			ret = readCached(file, callback);
+			ret = readCached(aPath, callback);
 		}
 	}
 
@@ -59,11 +59,11 @@ size_t FileReader::read(const string& file, const DataCallback& callback) {
 
 
 /** Read entire file, never returns READ_FAILED */
-size_t FileReader::readCached(const string& file, const DataCallback& callback) {
+size_t FileReader::readCached(const string& aPath, const DataCallback& callback) {
 	buffer.resize(getBlockSize(0));
 
 	auto buf = &buffer[0];
-	File f(file, File::READ, File::OPEN | File::SHARED_WRITE);
+	File f(aPath, File::READ, File::OPEN | File::SHARED_WRITE);
 
 	size_t total = 0;
 	size_t n = buffer.size();
@@ -102,10 +102,10 @@ struct Handle : boost::noncopyable {
 	HANDLE h;
 };
 
-size_t FileReader::readDirect(const string& file, const DataCallback& callback) {
+size_t FileReader::readDirect(const string& aPath, const DataCallback& callback) {
 	DWORD sector = 0, y;
 
-	auto tfile = Text::toT(file);
+	auto tfile = Text::toT(aPath);
 
 	if (!::GetDiskFreeSpace(Util::getFilePath(tfile).c_str(), &y, &sector, &y, &y)) {
 		dcdebug("Failed to get sector size: %s\n", Util::translateError(::GetLastError()).c_str());
@@ -160,7 +160,7 @@ size_t FileReader::readDirect(const string& file, const DataCallback& callback) 
 	for (; hn == bufSize && go;) {
 		// Start a new overlapped read
 		res = ::ReadFile(h, rbuf, bufSize, NULL, &over);
-		auto err = ::GetLastError();
+		err = ::GetLastError();
 
 		// Process the previously read data
 		go = callback(hbuf, hn);
