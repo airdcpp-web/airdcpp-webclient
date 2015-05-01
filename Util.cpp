@@ -324,7 +324,7 @@ void Util::migrate(const string& aNewDir, const string& aPattern) {
 
 void Util::loadBootConfig() {
 #ifndef _WIN32
-	auto c = getParam("-c");
+	auto c = getStartupParam("-c");
 	if (c) {
 		paths[PATH_USER_CONFIG] = *c;
 		return;
