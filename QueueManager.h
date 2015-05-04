@@ -209,7 +209,8 @@ public:
 	SharedMutex& getCS() { return cs; }
 	const Bundle::StringBundleMap& getBundles() const { return bundleQueue.getBundles(); }
 	const QueueItem::StringMap& getFileQueue() const { return fileQueue.getQueue(); }
-	void recheckFile(const string& aPath) noexcept;
+	bool recheckFile(const string& aPath) noexcept;
+	void recheckBundle(const string& aBundleToken) noexcept;
 private:
 	friend class QueueLoader;
 	friend class Singleton<QueueManager>;
@@ -291,8 +292,6 @@ private:
 	void pickMatch(QueueItemPtr qi) noexcept;
 	void matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult) noexcept;
 
-	void moveStuckFile(QueueItemPtr& qi);
-	void rechecked(QueueItemPtr& qi);
 	void onFileHashed(const string& aPath, HashedFile& aFileInfo, bool failed) noexcept;
 	void hashBundle(BundlePtr& aBundle) noexcept;
 	bool scanBundle(BundlePtr& aBundle) noexcept;

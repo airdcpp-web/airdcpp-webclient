@@ -87,6 +87,7 @@ public:
 	enum Status {
 		STATUS_NEW, // not added in queue yet
 		STATUS_QUEUED,
+		STATUS_RECHECK,
 		STATUS_DOWNLOADED, // no queued files
 		STATUS_MOVED, // all files moved
 		STATUS_FAILED_MISSING,

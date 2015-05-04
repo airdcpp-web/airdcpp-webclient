@@ -798,4 +798,12 @@ bool QueueItem::Source::updateHubUrl(const OrderedStringSet& onlineHubs, string&
 	return false;
 }
 
+void QueueItem::resetDownloaded() {
+	if (bundle) {
+		bundle->removeFinishedSegment(getDownloadedSegments());
+	}
+
+	done.clear();
+}
+
 }

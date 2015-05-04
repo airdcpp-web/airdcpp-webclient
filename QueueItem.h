@@ -226,7 +226,7 @@ public:
 	Segment checkOverlaps(int64_t blockSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const;
 	
 	void addFinishedSegment(const Segment& segment);
-	void resetDownloaded() { done.clear(); }
+	void resetDownloaded();
 	
 	bool isFinished() const;
 
