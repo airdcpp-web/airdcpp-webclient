@@ -120,7 +120,20 @@ void QueueManager::recheckBundle(const string& aBundleToken) noexcept {
 		copy(b->getQueueItems().begin(), b->getQueueItems().end(), back_inserter(ql));
 		copy(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), back_inserter(ql));
 	}
+
+	// report
+	int64_t finishedSegmentsBegin = accumulate(ql.begin(), ql.end(), (int64_t)0, [&](int64_t old, const QueueItemPtr& qi) {
+		auto size = File::getSize(qi->getTarget());
+		if (size == -1) {
+			size = File::getSize(qi->getTempTarget());
+		}
+		return old + size;
+	});
+
+	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_START_BUNDLE, b->getName() %
+		Util::formatBytes(finishedSegmentsBegin)), LogManager::LOG_INFO);
 	
+
 	// prepare for checking
 	auto oldPrio = b->getPriority();
 	auto oldStatus = b->getStatus();
@@ -130,24 +143,16 @@ void QueueManager::recheckBundle(const string& aBundleToken) noexcept {
 
 	setBundleStatus(b, Bundle::STATUS_RECHECK);
 
-	// report
-	int64_t finishedSegmentsBegin = accumulate(ql.begin(), ql.end(), (int64_t)0, [&](int64_t old, const QueueItemPtr& qi) {
-		return old + qi->getDownloadedSegments();
-	});
-	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_START_BUNDLE, b->getName() % 
-		Util::formatBytes(finishedSegmentsBegin)), LogManager::LOG_INFO);
-
-	int64_t finishedSegmentsEnd = 0;
+	// check the files
+	int64_t failedBytes = 0;
 	int itemsAdded = 0;
 	for (auto& q : ql) {
-		if (recheckFileImpl(q->getTarget(), true)) {
+		if (recheckFileImpl(q->getTarget(), true, failedBytes)) {
 			itemsAdded++;
 		}
-
-		finishedSegmentsEnd += q->getDownloadedSegments();
 	}
 
-	auto failedBytes = max(static_cast<int64_t>(0), finishedSegmentsBegin - finishedSegmentsEnd);
+	// finish
 	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_FINISHED_BUNDLE, b->getName() %
 		Util::formatBytes(failedBytes)), LogManager::LOG_INFO);
 
@@ -162,14 +167,17 @@ void QueueManager::recheckBundle(const string& aBundleToken) noexcept {
 	b->setPriority(oldPrio);
 }
 
-void QueueManager::recheckFile(const string& aPath) noexcept {
-	recheckFileImpl(aPath, false);
-	//if (q->getBundle()) {
-	//	q->getBundle()->setDirty();
-	//}
+void QueueManager::recheckFiles(QueueItemList aQL) noexcept {
+	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_START_FILES, aQL.size()), LogManager::LOG_INFO);
+
+	int64_t failedBytes = 0;
+	for (const auto& q : aQL)
+		recheckFileImpl(q->getTarget(), false, failedBytes);
+
+	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_FINISHED_FILES, Util::formatBytes(failedBytes)), LogManager::LOG_INFO);
 }
 
-bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck) noexcept{
+bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int64_t& failedBytes_) noexcept{
 	QueueItemPtr q;
 	int64_t tempSize;
 	TTHValue tth;
@@ -274,21 +282,30 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck) noex
 
 	{
 		WLock l(cs);
+		int64_t failedBytes = 0;
 		boost::for_each(tt.getLeaves(), ttFile.getLeaves(), [&](const TTHValue& our, const TTHValue& file) {
 			if (our == file) {
 				// avoid going over the file size (would happen especially with finished items)
 				q->addFinishedSegment(Segment(pos, tt.getBlockSize()));
 			} else {
 				dcdebug("Integrity check failed for the block at pos %u \n", pos);
+				failedBytes += tt.getBlockSize();
 			}
 
 			pos += tt.getBlockSize();
 		});
+
+		if (failedBytes > 0) {
+			failedBytes_ += failedBytes;
+			LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK,
+				STRING_F(FILE_CORRUPTION_FOUND, Util::formatBytes(failedBytes)) % q->getTarget()), 
+				LogManager::LOG_WARNING);
+		}
 	}
 
 	if (ttFile.getRoot() == tth && !q->isSet(QueueItem::FLAG_FINISHED)) {
 		//If no bad blocks then the file probably got stuck in the temp folder for some reason
-		if (!q->isSet(QueueItem::FLAG_FINISHED) && checkTarget != q->getTarget()) {
+		if (checkTarget != q->getTarget()) {
 			moveFinishedFile(q->getTempTarget(), q->getTarget(), q);
 		} else {
 			q->setFlag(QueueItem::FLAG_MOVED);
@@ -312,8 +329,8 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck) noex
 	if (!q->isFinished() && (q->isSet(QueueItem::FLAG_FINISHED) || q->getTarget() == checkTarget)) {
 		try {
 			File::renameFile(q->getTarget(), q->getTempTarget());
-		} catch (const FileException&) {
-			//STRING(UNABLE_TO_RENAME) + " " + source + ": " + e2.getError()
+		} catch (const FileException& e) {
+			LogManager::getInstance()->message(STRING_F(UNABLE_TO_RENAME, q->getTarget() % e.getError()), LogManager::LOG_ERROR);
 		}
 	}
 
@@ -1324,7 +1341,7 @@ void QueueManager::moveFinishedFileImpl(const string& source, const string& targ
 			File::renameFile(source, newTarget);
 			LogManager::getInstance()->message(STRING_F(MOVE_FILE_FAILED, newTarget % Util::getFilePath(target) % e1.getError()), LogManager::LOG_ERROR);
 		} catch(const FileException& e2) {
-			LogManager::getInstance()->message(STRING(UNABLE_TO_RENAME) + " " + source + ": " + e2.getError(), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING_F(UNABLE_TO_RENAME, source % e2.getError()), LogManager::LOG_ERROR);
 		}
 	}
 	if(SETTING(USE_FTP_LOGGER))
