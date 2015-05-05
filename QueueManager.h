@@ -209,7 +209,7 @@ public:
 	SharedMutex& getCS() { return cs; }
 	const Bundle::StringBundleMap& getBundles() const { return bundleQueue.getBundles(); }
 	const QueueItem::StringMap& getFileQueue() const { return fileQueue.getQueue(); }
-	bool recheckFile(const string& aPath) noexcept;
+	void recheckFile(const string& aPath) noexcept;
 	void recheckBundle(const string& aBundleToken) noexcept;
 private:
 	friend class QueueLoader;
@@ -233,6 +233,8 @@ private:
 
 	/** File lists not to delete */
 	StringList protectedFileLists;
+
+	bool recheckFileImpl(const string& aPath, bool isBundleCheck) noexcept;
 
 	void connectBundleSources(BundlePtr& aBundle) noexcept;
 	bool allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, string& lastError_, bool mcn = false) noexcept;

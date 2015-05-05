@@ -217,7 +217,7 @@ enum Strings { // @DontAdd
 	IGNORE_USER, // "Ignore user"
 	IGNORED_MESSAGE, // "Ignored message: "
 	INCOMPLETE_FAV_HUB, // "Hub address cannot be empty."
-	INTEGRITY_CHECK, // "Integrity check: %s (%s)"
+	INTEGRITY_CHECK, // "Integrity check: %1% (%2%)"
 	INVALID_LISTNAME, // "Invalid file list name"
 	INVALID_NUMBER_OF_SLOTS, // "Invalid number of slots"
 	INVALID_SIZE, // "Invalid size"
@@ -408,7 +408,7 @@ enum Strings { // @DontAdd
 	REASON, // "Reason"
 	REBOOT, // "Reboot"
 	RECENT_HUBS, // "Recent hubs"
-	RECHECK_FILE, // "Recheck integrity"
+	RECHECK_INTEGRITY, // "Recheck integrity"
 	REDIRECT_ALREADY_CONNECTED, // "Redirect request received to a hub that's already connected"
 	REDIRECT_USER, // "Redirect user(s)"
 	REFRESH, // "Refresh"
@@ -1878,5 +1878,8 @@ enum Strings { // @DontAdd
 	VERIFY_CERT_FAILED, // "Certificate verification for %1% failed with error: %2% (certificate KeyPrint: %3%)"
 	GENERATE_CERTS_NOTE, // "Note: you need to restart the client to load the new certificates"
 	RECHECKING, // "Rechecking"
+	INTEGRITY_CHECK_START_BUNDLE, // "Integrity check for the bundle %1% started (total bytes to check: %2%)"
+	INTEGRITY_CHECK_FINISHED_BUNDLE, // "Integrity check finished for the bundle %1%: %2% of failed segments were restored for downloading"
+	SIZE_MISMATCH, // "Size of the file on disk doesn't match the one in queue"
 	LAST // @DontAdd
 };

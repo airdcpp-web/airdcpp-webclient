@@ -40,9 +40,9 @@ public:
 	typedef X<6> PartialList;
 	typedef X<7> SourceFilesUpdated;
 
-	typedef X<8> RecheckStarted;
-	typedef X<9> RecheckFailed;
-	typedef X<10> RecheckDone;
+	typedef X<8> FileRecheckStarted;
+	typedef X<9> FileRecheckFailed;
+	typedef X<10> FileRecheckDone;
 	
 	typedef X<15> BundleSources;
 
@@ -78,9 +78,9 @@ public:
 	virtual void on(FileHashed, const string& /* fileName */, HashedFile& /* fileInfo */) noexcept { }
 	virtual void on(BundleStatusChanged, const BundlePtr&) noexcept { }
 	
-	virtual void on(RecheckStarted, const string&) noexcept { }
-	virtual void on(RecheckFailed, const QueueItemPtr&, const string&) noexcept{ }
-	virtual void on(RecheckDone, const string&) noexcept { }
+	virtual void on(FileRecheckStarted, const string&) noexcept { }
+	virtual void on(FileRecheckFailed, const QueueItemPtr&, const string&) noexcept{ }
+	virtual void on(FileRecheckDone, const string&) noexcept { }
 };
 
 } // namespace dcpp
