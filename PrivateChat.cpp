@@ -179,7 +179,11 @@ void PrivateChat::on(ClientManagerListener::UserDisconnected, const UserPtr& aUs
 	setSupportsCCPM(ClientManager::getInstance()->getSupportsCCPM(replyTo, lastCCPMError));
 	if (wentOffline) {
 		delayEvents.removeEvent(USER_UPDATE);
-		closeCC(false, false);
+		if (state == CONNECTING) {
+			delayEvents.removeEvent(CCPM_TIMEOUT);
+			state = DISCONNECTED;
+		}
+		closeCC(true, false);
 		allowAutoCCPM = true;
 		online = false;
 		fire(PrivateChatListener::UserUpdated());
