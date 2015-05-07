@@ -1884,5 +1884,7 @@ enum Strings { // @DontAdd
 	FILE_CORRUPTION_FOUND, // "%1% of corrupted segments were found"
 	INTEGRITY_CHECK_START_FILES, // "Integrity check for %1% files started..."
 	INTEGRITY_CHECK_FINISHED_FILES, // "Integrity check finished: %1% of failed segments were found"
+	LIST_VIEW_COLORS, // "List view colors"
+	LIST_TEXTSTYLE, // "Font used in list views (User list, Search, Queue, Transfers...)"
 	LAST // @DontAdd
 };
