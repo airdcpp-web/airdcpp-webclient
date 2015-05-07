@@ -121,13 +121,12 @@ void QueueManager::recheckBundle(const string& aBundleToken) noexcept {
 		copy(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), back_inserter(ql));
 	}
 
-	// report
 	int64_t finishedSegmentsBegin = accumulate(ql.begin(), ql.end(), (int64_t)0, [&](int64_t old, const QueueItemPtr& qi) {
 		auto size = File::getSize(qi->getTarget());
 		if (size == -1) {
 			size = File::getSize(qi->getTempTarget());
 		}
-		return old + size;
+		return size > 0 ? old + size : old;
 	});
 
 	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_START_BUNDLE, b->getName() %
@@ -145,10 +144,11 @@ void QueueManager::recheckBundle(const string& aBundleToken) noexcept {
 
 	// check the files
 	int64_t failedBytes = 0;
-	int itemsAdded = 0;
+	
+	QueueItemList failedItems;
 	for (auto& q : ql) {
 		if (recheckFileImpl(q->getTarget(), true, failedBytes)) {
-			itemsAdded++;
+			failedItems.push_back(q);
 		}
 	}
 
@@ -156,25 +156,51 @@ void QueueManager::recheckBundle(const string& aBundleToken) noexcept {
 	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_FINISHED_BUNDLE, b->getName() %
 		Util::formatBytes(failedBytes)), LogManager::LOG_INFO);
 
-	{
-		WLock l(cs);
-		if (!addBundle(b, b->getTarget(), itemsAdded)) {
-			setBundleStatus(b, oldStatus);
-			b->setDirty();
-		}
-	}
-
+	b->setStatus(oldStatus);
+	handleFailedRecheckItems(failedItems);
 	b->setPriority(oldPrio);
 }
 
 void QueueManager::recheckFiles(QueueItemList aQL) noexcept {
 	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_START_FILES, aQL.size()), LogManager::LOG_INFO);
 
+	QueueItemList failedItems;
 	int64_t failedBytes = 0;
-	for (const auto& q : aQL)
-		recheckFileImpl(q->getTarget(), false, failedBytes);
+	for (const auto& q : aQL) {
+		if (recheckFileImpl(q->getTarget(), false, failedBytes)) {
+			failedItems.push_back(q);
+		}
+	}
 
+	handleFailedRecheckItems(failedItems);
 	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_FINISHED_FILES, Util::formatBytes(failedBytes)), LogManager::LOG_INFO);
+}
+
+void QueueManager::handleFailedRecheckItems(const QueueItemList& ql) noexcept {
+	if (ql.empty())
+		return;
+
+	auto b = ql.front()->getBundle();
+	dcassert(b);
+
+	WLock l(cs);
+	for (auto q : ql) {
+		bundleQueue.removeBundleItem(q, false);
+
+		q->unsetFlag(QueueItem::FLAG_MOVED);
+		q->unsetFlag(QueueItem::FLAG_FINISHED);
+		q->unsetFlag(QueueItem::FLAG_HASHED);
+		q->setBundle(nullptr);
+		q->setFileFinished(0);
+
+		bundleQueue.addBundleItem(q, b);
+
+		userQueue.addQI(q);
+	}
+
+	if (!addBundle(b, b->getTarget(), ql.size())) {
+		b->setDirty();
+	}
 }
 
 bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int64_t& failedBytes_) noexcept{
@@ -198,7 +224,8 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 		fire(QueueManagerListener::FileRecheckStarted(), q->getTarget());
 		dcdebug("Rechecking %s\n", aPath.c_str());
 
-		checkTarget = q->isFinished() || Util::fileExists(q->getTarget()) ? q->getTarget() : q->getTempTarget();
+		// always check the final target in case of files added from other sources
+		checkTarget = Util::fileExists(q->getTarget()) ? q->getTarget() : q->getTempTarget();
 		tempSize = File::getSize(checkTarget);
 
 		if (tempSize == -1) {
@@ -326,6 +353,7 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 		return false;
 	}
 
+	// we will also resume files that are added in the destination directory from other sources
 	if (!q->isFinished() && (q->isSet(QueueItem::FLAG_FINISHED) || q->getTarget() == checkTarget)) {
 		try {
 			File::renameFile(q->getTarget(), q->getTempTarget());
@@ -335,18 +363,6 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 	}
 
 	if (q->isSet(QueueItem::FLAG_FINISHED) && !q->isFinished()) {
-		WLock l(cs);
-		q->unsetFlag(QueueItem::FLAG_MOVED);
-		q->unsetFlag(QueueItem::FLAG_FINISHED);
-
-		auto b = q->getBundle();
-		bundleQueue.removeBundleItem(q, false);
-		q->setBundle(nullptr);
-		bundleQueue.addBundleItem(q, b);
-
-		q->setFileFinished(0);
-
-		userQueue.addQI(q);
 		return true;
 	}
 

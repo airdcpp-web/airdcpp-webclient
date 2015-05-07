@@ -235,6 +235,7 @@ private:
 	StringList protectedFileLists;
 
 	bool recheckFileImpl(const string& aPath, bool isBundleCheck, int64_t& failedBytes_) noexcept;
+	void handleFailedRecheckItems(const QueueItemList& ql) noexcept;
 
 	void connectBundleSources(BundlePtr& aBundle) noexcept;
 	bool allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, string& lastError_, bool mcn = false) noexcept;

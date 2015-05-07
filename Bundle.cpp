@@ -206,6 +206,8 @@ void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
 }
 
 bool Bundle::addFinishedItem(QueueItemPtr& qi, bool finished) noexcept {
+	dcassert(qi->isSet(QueueItem::FLAG_FINISHED) && qi->getFileFinished() > 0);
+
 	finishedFiles.push_back(qi);
 	if (!finished) {
 		qi->setFlag(QueueItem::FLAG_MOVED);
@@ -251,10 +253,14 @@ bool Bundle::addQueue(QueueItemPtr& qi) noexcept {
 		return addFinishedItem(qi, false);
 	}
 
+	dcassert(qi->getFileFinished() == 0);
+	dcassert(!qi->isSet(QueueItem::FLAG_FINISHED) && !qi->isSet(QueueItem::FLAG_MOVED));
 	dcassert(find(queueItems, qi) == queueItems.end());
+
 	qi->setBundle(this);
 	queueItems.push_back(qi);
 	increaseSize(qi->getSize());
+	addFinishedSegment(qi->getDownloadedSegments());
 
 	auto& bd = bundleDirs[qi->getFilePath()];
 	bd.first++;
@@ -266,7 +272,7 @@ bool Bundle::addQueue(QueueItemPtr& qi) noexcept {
 }
 
 bool Bundle::removeQueue(QueueItemPtr& qi, bool finished) noexcept {
-	if (!finished && qi->isFinished()) {
+	if (!finished && qi->isSet(QueueItem::FLAG_FINISHED)) {
 		return removeFinishedItem(qi);
 	}
 
