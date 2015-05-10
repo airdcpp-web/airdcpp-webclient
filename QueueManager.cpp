@@ -41,6 +41,7 @@
 #include "Transfer.h"
 #include "UploadManager.h"
 #include "UserConnection.h"
+#include "ZUtils.h"
 #include "version.h"
 
 #ifdef _WIN32
@@ -300,9 +301,14 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 	}
 
 	TigerTree ttFile(tt.getBlockSize());
+	DirSFVReader sfv(q->getFilePath());
+	auto fileCRC = sfv.hasFile(q->getTargetFileName());
+	CRC32Filter crc32;
 
 	try {
 		FileReader().read(checkTarget, [&](const void* x, size_t n) {
+			if (fileCRC)
+				crc32(x, n);
 			return ttFile.update(x, n), true;
 		});
 	} catch (const FileException & e) {
@@ -322,11 +328,10 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 
 	ttFile.finalize();
 
-	int64_t pos = 0;
+	int64_t pos = 0, failedBytes = 0;
 
 	{
 		WLock l(cs);
-		int64_t failedBytes = 0;
 		boost::for_each(tt.getLeaves(), ttFile.getLeaves(), [&](const TTHValue& our, const TTHValue& file) {
 			// avoid going over the file size (would happen especially with finished items)
 			auto blockSegment = Segment(pos, min(q->getSize() - pos, tt.getBlockSize()));
@@ -345,12 +350,15 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 			pos += tt.getBlockSize();
 		});
 
-		if (failedBytes > 0) {
-			failedBytes_ += failedBytes;
-			LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK,
-				STRING_F(FILE_CORRUPTION_FOUND, Util::formatBytes(failedBytes)) % q->getTarget()), 
-				LogManager::LOG_WARNING);
-		}
+	}
+
+	if (failedBytes > 0) {
+		failedBytes_ += failedBytes;
+		LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK,
+			STRING_F(FILE_CORRUPTION_FOUND, Util::formatBytes(failedBytes)) % q->getTarget()),
+			LogManager::LOG_WARNING);
+	} else if (fileCRC && ttFile.getRoot() == tth && *fileCRC != crc32.getValue()) {
+		LogManager::getInstance()->message(q->getTarget() + ": " + STRING(ERROR_HASHING_CRC32), LogManager::LOG_ERROR);
 	}
 
 	if (ttFile.getRoot() == tth && !q->isSet(QueueItem::FLAG_FINISHED)) {

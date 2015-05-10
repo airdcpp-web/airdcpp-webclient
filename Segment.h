@@ -19,6 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_SEGMENT_H_
 #define DCPLUSPLUS_DCPP_SEGMENT_H_
 
+#include "noexcept.h"
+
 namespace dcpp {
 
 // minimum file size to be PFS : 20M
@@ -33,15 +35,15 @@ public:
 	int64_t getSize() const { return size; }
 	int64_t getEnd() const { return getStart() + getSize(); }
 	
-	void setSize(int64_t size_) { size = size_; }
+	void setSize(int64_t size_) noexcept { size = size_; }
 	
-	bool overlaps(const Segment& rhs) const {
+	bool overlaps(const Segment& rhs) const noexcept {
 		int64_t end = getEnd();
 		int64_t rend = rhs.getEnd();
 		return getStart() < rend && rhs.getStart() < end;
 	}
 	
-	void trim(const Segment& rhs) {
+	void trim(const Segment& rhs) noexcept {
 		if(!overlaps(rhs)) {
 			return;
 		}
@@ -65,14 +67,14 @@ public:
 		}) != segmentSet.end();
 	}
 	
-	bool contains(const Segment& rhs) const {
+	bool contains(const Segment& rhs) const noexcept {
 		return getStart() <= rhs.getStart() && getEnd() >= rhs.getEnd();
 	}
 
-	bool operator==(const Segment& rhs) const {
+	bool operator==(const Segment& rhs) const noexcept {
 		return getStart() == rhs.getStart() && getSize() == rhs.getSize();
 	}
-	bool operator<(const Segment& rhs) const {
+	bool operator<(const Segment& rhs) const noexcept {
 		return (getStart() < rhs.getStart()) || (getStart() == rhs.getStart() && getSize() < rhs.getSize());
 	}
 private:	
