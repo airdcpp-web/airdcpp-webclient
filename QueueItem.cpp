@@ -532,10 +532,7 @@ void QueueItem::addFinishedSegment(const Segment& segment) {
 			auto prev = i;
 			prev--;
 			if(prev->getEnd() >= i->getStart()) {
-				// avoid going over the file size (would happen with the integrity check)
-				auto bigSize = min(size - prev->getStart(), i->getEnd() - prev->getStart());
-
-				Segment big(prev->getStart(), bigSize);
+				Segment big(prev->getStart(), i->getEnd() - prev->getStart());
 				auto newBytes = big.getSize() - (*prev == segment ? i->getSize() : prev->getSize()); //minus the part that has been counted before...
 
 				done.erase(prev);

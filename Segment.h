@@ -58,9 +58,15 @@ public:
 		}
 		size = rhs.getStart() - start;
 	}
+
+	bool inSet(const set<Segment>& segmentSet) const noexcept {
+		return find_if(segmentSet.begin(), segmentSet.end(), [&](const Segment& s) {
+			return s.contains(*this);
+		}) != segmentSet.end();
+	}
 	
 	bool contains(const Segment& rhs) const {
-		return getStart() <= rhs.getStart() && getEnd() == rhs.getEnd();
+		return getStart() <= rhs.getStart() && getEnd() >= rhs.getEnd();
 	}
 
 	bool operator==(const Segment& rhs) const {

@@ -158,7 +158,7 @@ void QueueManager::recheckBundle(const string& aBundleToken) noexcept {
 
 	b->setStatus(oldStatus);
 	handleFailedRecheckItems(failedItems);
-	b->setPriority(oldPrio);
+	setBundlePriority(b, oldPrio);
 }
 
 void QueueManager::recheckFiles(QueueItemList aQL) noexcept {
@@ -166,10 +166,25 @@ void QueueManager::recheckFiles(QueueItemList aQL) noexcept {
 
 	QueueItemList failedItems;
 	int64_t failedBytes = 0;
-	for (const auto& q : aQL) {
+	for (auto& q : aQL) {
+		bool running;
+
+		{
+			RLock l(cs);
+			running = q->isRunning();
+		}
+
+		auto oldPrio = q->getPriority();
+		setQIPriority(q, QueueItemBase::PAUSED_FORCE);
+		if (running) {
+			Thread::sleep(1000);
+		}
+
 		if (recheckFileImpl(q->getTarget(), false, failedBytes)) {
 			failedItems.push_back(q);
 		}
+
+		setQIPriority(q, oldPrio);
 	}
 
 	handleFailedRecheckItems(failedItems);
@@ -264,6 +279,7 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 
 	TigerTree tt;
 	bool gotTree = HashManager::getInstance()->getTree(tth, tt);
+	QueueItem::SegmentSet done;
 
 	{
 		RLock l(cs);
@@ -279,6 +295,7 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 		}
 
 		//Clear segments
+		done = q->getDone();
 		q->resetDownloaded();
 	}
 
@@ -305,16 +322,22 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 
 	ttFile.finalize();
 
-	size_t pos = 0;
+	int64_t pos = 0;
 
 	{
 		WLock l(cs);
 		int64_t failedBytes = 0;
 		boost::for_each(tt.getLeaves(), ttFile.getLeaves(), [&](const TTHValue& our, const TTHValue& file) {
+			// avoid going over the file size (would happen especially with finished items)
+			auto blockSegment = Segment(pos, min(q->getSize() - pos, tt.getBlockSize()));
+
 			if (our == file) {
-				// avoid going over the file size (would happen especially with finished items)
-				q->addFinishedSegment(Segment(pos, tt.getBlockSize()));
+				q->addFinishedSegment(blockSegment);
 			} else {
+				// undownloaded segments aren't corrupted...
+				if (!blockSegment.inSet(done))
+					return;
+
 				dcdebug("Integrity check failed for the block at pos %u \n", pos);
 				failedBytes += tt.getBlockSize();
 			}
