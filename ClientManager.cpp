@@ -197,7 +197,7 @@ map<string, Identity> ClientManager::getIdentities(const UserPtr &u) const noexc
 	auto op = onlineUsers.equal_range(const_cast<CID*>(&u->getCID()));
 	auto ret = map<string, Identity>();
 	for(auto i = op.first; i != op.second; ++i) {
-		ret.insert(make_pair(i->second->getHubUrl(), i->second->getIdentity()));
+		ret.emplace(i->second->getHubUrl(), i->second->getIdentity());
 	}
 
 	return ret;
@@ -1014,7 +1014,7 @@ string ClientManager::getClientStats() const noexcept {
 	RLock l(cs);
 	map<CID, OnlineUser*> uniqueUserMap;
 	for(const auto& ou: onlineUsers | map_values) {
-		uniqueUserMap.insert(make_pair(ou->getUser()->getCID(), ou));
+		uniqueUserMap.emplace(ou->getUser()->getCID(), ou);
 	}
 
 	int allUsers = onlineUsers.size();

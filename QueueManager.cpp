@@ -2882,7 +2882,7 @@ static void calculateBalancedPriorities(vector<pair<T, QueueItemBase::Priority>>
 		if (finalMap.find(points) == finalMap.end()) {
 			uniqueValues++;
 		}
-		finalMap.insert(make_pair(points, i.first));
+		finalMap.emplace(points, i.first);
 	}
 
 	int prioGroup = 1;
@@ -2951,7 +2951,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) noexcept {
 		for (auto& b: bundleQueue.getBundles() | map_values) {
 			if (!b->isFinished()) {
 				if (b->getAutoPriority()) {
-					bundleSpeedSourceMap.insert(make_pair(b, b->getPrioInfo()));
+					bundleSpeedSourceMap.emplace(b, b->getPrioInfo());
 				}
 
 				if (SETTING(QI_AUTOPRIO)) {

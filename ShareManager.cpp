@@ -1017,7 +1017,7 @@ pair<int64_t, string> ShareManager::getFileListInfo(const string& virtualFile, P
 
 	if(virtualFile == Transfer::USER_LIST_NAME_BZ || virtualFile == Transfer::USER_LIST_NAME) {
 		FileList* fl = generateXmlList(aProfile);
-		return make_pair(fl->getBzXmlListLen(), fl->getFileName());
+		return { fl->getBzXmlListLen(), fl->getFileName() };
 	}
 
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);

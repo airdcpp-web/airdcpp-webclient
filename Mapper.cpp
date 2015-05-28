@@ -21,8 +21,6 @@
 
 namespace dcpp {
 
-using std::make_pair;
-
 const char* Mapper::protocols[PROTOCOL_LAST] = {
 	"TCP",
 	"UDP"
@@ -37,7 +35,7 @@ bool Mapper::open(const string& port, const Protocol protocol, const string& des
 	if(!add(port, protocol, description))
 		return false;
 
-	rules.insert(make_pair(port, protocol));
+	rules.emplace(port, protocol);
 	return true;
 }
 
