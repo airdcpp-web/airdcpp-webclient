@@ -343,7 +343,7 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 				if (!blockSegment.inSet(done))
 					return;
 
-				dcdebug("Integrity check failed for the block at pos %u \n", pos);
+				dcdebug("Integrity check failed for the block at pos " I64_FMT "\n", pos);
 				failedBytes += tt.getBlockSize();
 			}
 
@@ -2517,7 +2517,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 					curFile->setPriority(curFile->calculateAutoPriority());
 				}
 			} else {
-				dcdebug("Invalid segment: %u %u \n", start, size);
+				dcdebug("Invalid segment: " I64_FMT " " I64_FMT "\n", start, size);
 			}
 		} else if(curFile && name == sSource) {
 			const string& cid = getAttrib(attribs, sCID, 0);
