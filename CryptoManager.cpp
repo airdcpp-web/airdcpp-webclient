@@ -594,7 +594,8 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 				} else ERR_pop_to_mark();
 
 				// KeyPrint was not root certificate or we don't have the issuer certificate, the best we can do is trust the pinned KeyPrint
-				if (err == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN || err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY || err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT) {
+				if (err == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN || err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY 
+					|| err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT /*|| X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT*/) { //Don't know about zero depth self signed certs, but it seems to be a common error.
 					X509_STORE_CTX_set_error(ctx, X509_V_OK);
 					// Set this to allow ignoring any follow up errors caused by the incomplete chain
 					SSL_set_ex_data(ssl, CryptoManager::idxVerifyData, &CryptoManager::trustedKeyprint);
