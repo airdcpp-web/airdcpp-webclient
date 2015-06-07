@@ -596,7 +596,7 @@ multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcep
 					qiSources += 2;
 				}
 			}
-			speedSourceMap.insert(make_pair(q, make_pair(qiSpeed, qiSources)));
+			speedSourceMap.emplace(q, make_pair(qiSpeed, qiSources));
 		}
 	}
 	return speedSourceMap;
@@ -644,7 +644,7 @@ bool Bundle::allowAutoSearch() const noexcept {
 
 void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) const noexcept {
 	if (fileBundle || queueItems.size() == 1) {
-		searches.insert(make_pair(Util::emptyString, queueItems.front()));
+		searches.emplace(Util::emptyString, queueItems.front());
 		return;
 	}
 
@@ -684,7 +684,7 @@ void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) co
 		}
 
 		if (searchItem) {
-			searches.insert(make_pair(dir, searchItem));
+			searches.emplace(dir, searchItem);
 		}
 	}
 }

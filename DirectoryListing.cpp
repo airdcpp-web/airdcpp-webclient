@@ -285,7 +285,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 					DirectoryListing::Directory::TYPE_NORMAL, listDate, (partialList && checkDupe), size, Util::toUInt32(date));
 				cur->directories.push_back(d);
 				if (updating && !incomp)
-					list->baseDirs[baseLower + Text::toLower(n) + '/'] = make_pair(d, true); //recursive partial lists
+					list->baseDirs[baseLower + Text::toLower(n) + '/'] = { d, true }; //recursive partial lists
 			} else {
 				if(!incomp) {
 					d->setComplete();
@@ -317,7 +317,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				if (s == cur->directories.end()) {
 					auto d = new DirectoryListing::Directory(cur, curDirName, DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD, listDate, true);
 					cur->directories.push_back(d);
-					list->baseDirs[Text::toLower(Util::toAdcFile(d->getPath()))] = make_pair(d, false);
+					list->baseDirs[Text::toLower(Util::toAdcFile(d->getPath()))] = { d, false };
 					cur = d;
 				} else {
 					cur = (*s).get();
