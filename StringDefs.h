@@ -1886,5 +1886,6 @@ enum Strings { // @DontAdd
 	INTEGRITY_CHECK_FINISHED_FILES, // "Integrity check finished: %1% of failed segments were found"
 	LIST_VIEW_COLORS, // "List view colors"
 	LIST_TEXTSTYLE, // "Font used in list views (User list, Search, Queue, Transfers...)"
+	RESCAN_BUNDLE, // "Rescan bundle"
 	LAST // @DontAdd
 };

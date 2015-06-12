@@ -1439,17 +1439,21 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr& qi) noexcept {
 		}
 	}
 
-	checkBundleFinished(b, qi->isSet(QueueItem::FLAG_PRIVATE));
+	checkBundleFinished(b);
 }
 
 
-void QueueManager::checkBundleFinished(BundlePtr& aBundle, bool isPrivate) noexcept {
-	bool hasNotifications = false;
+bool QueueManager::checkBundleFinished(BundlePtr& aBundle) noexcept {
+	bool hasNotifications = false, isPrivate = false;
 	{
 		RLock l (cs);
 		//check if there are queued or non-moved files remaining
 		if (!aBundle->allowHash()) 
-			return;
+			return false;
+
+		// in order to avoid notifications about adding the file in share...
+		if (aBundle->isFileBundle() && !aBundle->getFinishedFiles().empty())
+			isPrivate = aBundle->getFinishedFiles().front()->isSet(QueueItem::FLAG_PRIVATE);
 
 		hasNotifications = !aBundle->getFinishedNotifications().empty();
 	}
@@ -1473,7 +1477,7 @@ void QueueManager::checkBundleFinished(BundlePtr& aBundle, bool isPrivate) noexc
 		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, aBundle->getName().c_str()), LogManager::LOG_INFO);
 		setBundleStatus(aBundle, Bundle::STATUS_FINISHED);
 	} else if (!scanBundle(aBundle)) {
-		return;
+		return true;
 	} 
 
 	if (SETTING(ADD_FINISHED_INSTANTLY)) {
@@ -1484,9 +1488,9 @@ void QueueManager::checkBundleFinished(BundlePtr& aBundle, bool isPrivate) noexc
 		} else {
 			LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogManager::LOG_INFO);
 		}
-	} /*else {
-		removeFinishedBundle(aBundle);
-	}*/
+	}
+
+	return true;
 }
 
 bool QueueManager::scanBundle(BundlePtr& aBundle) noexcept {
@@ -2592,7 +2596,7 @@ void QueueLoader::endTag(const string& name) {
 		} else if(name == sFile) {
 			curToken = Util::emptyString;
 			inFile = false;
-			if (!curBundle || (curBundle->getQueueItems().empty() && curBundle->getFinishedFiles().empty()))
+			if (!curBundle || (curBundle->isEmpty()))
 				throw Exception(STRING(NO_FILES_FROM_FILE));
 
 			qm->addLoadedBundle(curBundle);
@@ -3294,7 +3298,7 @@ void QueueManager::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList&
 
 void QueueManager::addLoadedBundle(BundlePtr& aBundle) noexcept {
 	WLock l(cs);
-	if (aBundle->getQueueItems().empty() && aBundle->getFinishedFiles().empty())
+	if (aBundle->isEmpty())
 		return;
 
 	if (bundleQueue.getMergeBundle(aBundle->getTarget()))
@@ -3308,7 +3312,7 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 		// it finished already? (only 0 byte files were added)
 		tasks.addTask([=] {
 			BundlePtr b = aBundle;
-			checkBundleFinished(b, false);
+			checkBundleFinished(b);
 		});
 
 		return false;
@@ -3467,7 +3471,7 @@ void QueueManager::mergeFinishedItems(const string& aSource, const string& aTarg
 
 	auto finishedFiles = sourceBundle->getFinishedFiles();
 	for (auto& qi : finishedFiles) {
-		if (AirUtil::isSub(qi->getTarget(), aSource)) {
+		if (sourceBundle->isFileBundle() || AirUtil::isSub(qi->getTarget(), aSource)) {
 			if (moveFiles) {
 				string targetPath = AirUtil::convertMovePath(qi->getTarget(), aSource, aTarget);
 				if (!fileQueue.findFile(targetPath)) {
@@ -3529,8 +3533,8 @@ void QueueManager::moveBundleImpl(const string& aSource, const string& aTarget, 
 		return;
 	}
 
-	QueueItemList ql;
 	QueueItemList remove;
+	bool sourceEmpty = false;
 
 	BundlePtr newBundle = nullptr;
 	{
@@ -3549,6 +3553,7 @@ void QueueManager::moveBundleImpl(const string& aSource, const string& aTarget, 
 		fire(QueueManagerListener::BundleMoved(), sourceBundle);
 
 		//pick the items that we need to move
+		QueueItemList ql;
 		sourceBundle->getDirQIs(aSource, ql);
 
 		//convert the QIs
@@ -3584,10 +3589,16 @@ void QueueManager::moveBundleImpl(const string& aSource, const string& aTarget, 
 
 			LogManager::getInstance()->message(tmp, LogManager::LOG_INFO);
 		}
+
+		sourceEmpty = sourceBundle->isEmpty();
 	}
 
 	for (auto& qi: remove)
 		removeQI(qi);
+
+	if (sourceEmpty) {
+		removeBundle(sourceBundle, false);
+	}
 }
 
 bool QueueManager::changeTarget(QueueItemPtr& qs, const string& aTarget) noexcept {
@@ -3663,13 +3674,7 @@ void QueueManager::moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle) noex
 	bundleQueue.addBundleItem(qi, targetBundle);
 	userQueue.addQI(qi);
 
-	//check if the source is empty
-	if (sourceBundle->getQueueItems().empty()) {
-		tasks.addTask([=] { 
-			auto b = sourceBundle;
-			removeBundle(b, false); 
-		});
-	} else {
+	if (!sourceBundle->isEmpty()) {
 		sourceBundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 		addBundleUpdate(sourceBundle);
 		sourceBundle->setDirty();
@@ -3681,7 +3686,11 @@ void QueueManager::addBundleUpdate(const BundlePtr& aBundle) noexcept{
 	Add as Task to fix Deadlock!!
 	handleBundleUpdate(..) has a Lock and this function is called inside a Lock, while delayEvents has its own locking for add/execute functions.
 	*/
-	tasks.addTask([=] { delayEvents.addEvent(aBundle->getToken(), [this, aBundle] { handleBundleUpdate(aBundle->getToken()); }, aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH) ? 10000 : 1000); });
+	tasks.addTask([=] { 
+		delayEvents.addEvent(aBundle->getToken(), [=] { 
+			handleBundleUpdate(aBundle->getToken()); 
+		}, aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH) ? 10000 : 1000); 
+	});
 }
 
 void QueueManager::handleBundleUpdate(const string& bundleToken) noexcept {
@@ -3727,7 +3736,7 @@ void QueueManager::removeBundleItem(QueueItemPtr& qi, bool finished) noexcept{
 				emptyBundle = true;
 			}
 		} else {
-			emptyBundle = bundle->getQueueItems().empty() && bundle->getFinishedFiles().empty();
+			emptyBundle = bundle->isEmpty();
 		}
 
 		// update the sources
@@ -3744,7 +3753,7 @@ void QueueManager::removeBundleItem(QueueItemPtr& qi, bool finished) noexcept{
 			setBundleStatus(bundle, Bundle::STATUS_DOWNLOADED);
 			removeBundleLists(bundle);
 		}
-	} else {
+	} else if (!finished && !checkBundleFinished(bundle)) {
 		bundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 		addBundleUpdate(bundle);
 	}

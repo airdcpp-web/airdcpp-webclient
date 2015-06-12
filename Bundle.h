@@ -289,6 +289,7 @@ public:
 
 	//moves the file back in userqueue for the given user (only within the same priority)
 	void rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept;
+	bool isEmpty() const noexcept { return queueItems.empty() && finishedFiles.empty(); }
 private:
 	int64_t lastSpeed = 0; // the speed sent on last time to UBN sources
 	double lastDownloaded = 0; // the progress percent sent on last time to UBN sources

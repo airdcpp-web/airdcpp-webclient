@@ -202,6 +202,7 @@ public:
 	DispatcherQueue tasks;
 
 	void shareBundle(BundlePtr aBundle, bool skipScan) noexcept;
+	bool scanBundle(BundlePtr& aBundle) noexcept;
 
 	void setMatchers() noexcept;
 	void shutdown();
@@ -289,7 +290,7 @@ private:
 	void moveFinishedFileImpl(const string& source, const string& target, QueueItemPtr q);
 
 	void handleMovedBundleItem(QueueItemPtr& q) noexcept;
-	void checkBundleFinished(BundlePtr& aBundle, bool isPrivate) noexcept;
+	bool checkBundleFinished(BundlePtr& aBundle) noexcept;
 
 	unordered_map<string, SearchResultList> searchResults;
 	void pickMatch(QueueItemPtr qi) noexcept;
@@ -297,7 +298,6 @@ private:
 
 	void onFileHashed(const string& aPath, HashedFile& aFileInfo, bool failed) noexcept;
 	void hashBundle(BundlePtr& aBundle) noexcept;
-	bool scanBundle(BundlePtr& aBundle) noexcept;
 	void checkBundleHashed(BundlePtr& aBundle) noexcept;
 	void setBundleStatus(BundlePtr& aBundle, Bundle::Status newStatus) noexcept;
 
