@@ -541,7 +541,7 @@ void ConnectionManager::nmdcConnect(const string& aServer, const string& aPort, 
 	uc->setState(UserConnection::STATE_CONNECT);
 	uc->setFlag(UserConnection::FLAG_NMDC);
 	try {
-		uc->connect(aServer, aPort, localPort, natRole);
+		uc->connect(Socket::AddressInfo(aServer, Socket::AddressInfo::TYPE_V4), aPort, localPort, natRole);
 	} catch(const Exception&) {
 		putConnection(uc);
 		delete uc;
@@ -570,8 +570,13 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort,
 	}
 
 	try {
-		// TODO: connect via both protocols when available
-		uc->connect(aUser.getIdentity().getIp(), aPort, localPort, natRole);
+		if (aUser.getIdentity().getConnectMode() == Identity::MODE_ACTIVE_DUAL) {
+			uc->connect(Socket::AddressInfo(aUser.getIdentity().getIp4(), aUser.getIdentity().getIp6()), aPort, localPort, natRole);
+		} else {
+			auto ai = Socket::AddressInfo(aUser.getIdentity().getIp(), aUser.getIdentity().allowV6Connections() ? Socket::AddressInfo::TYPE_V6 : Socket::AddressInfo::TYPE_V4);
+			uc->connect(move(ai), aPort, localPort, natRole);
+		}
+
 		uc->setUser(aUser);
 	} catch(const Exception&) {
 		putConnection(uc);

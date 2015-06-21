@@ -871,7 +871,7 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 		COMMAND_DEBUG(snd, DebugManager::TYPE_HUB, DebugManager::OUTGOING, aIP + ":" + aPort);
 
 		// Connect
-		hbri->connect(aIP, aPort);
+		hbri->connect(Socket::AddressInfo(aIP, v6 ? Socket::AddressInfo::TYPE_V6 : Socket::AddressInfo::TYPE_V4), aPort);
 
 		auto endTime = GET_TICK() + 10000;
 		bool connSucceeded;

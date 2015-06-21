@@ -89,6 +89,58 @@ public:
 		TYPE_UDP = IPPROTO_UDP
 	};
 
+	typedef std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> addrinfo_p;
+	typedef vector<addrinfo_p> AddrinfoList;
+
+	class AddressInfo {
+	public:
+		enum Type {
+			TYPE_V4,
+			TYPE_V6,
+			TYPE_URL,
+			TYPE_DUAL
+		};
+
+		AddressInfo(const string& aIP, Type aType) : type(aType) {
+			ip[aType] = aIP;
+		}
+
+		AddressInfo(const string& aV4, const string& aV6) {
+			ip[TYPE_V4] = aV4;
+			ip[TYPE_V6] = aV6;
+			type = TYPE_DUAL;
+		}
+
+		bool hasV6CompatibleAddress() const noexcept{
+			return type != TYPE_V4;
+		}
+
+			bool hasV4CompatibleAddress() const noexcept{
+			return type != TYPE_V6;
+		}
+
+		string getV6CompatibleAddress() const noexcept{
+			if (type == TYPE_DUAL)
+			return ip[TYPE_V6];
+
+			return ip[type];
+		}
+
+		string getV4CompatibleAddress() const noexcept{
+			if (type == TYPE_DUAL)
+			return ip[TYPE_V4];
+
+			return ip[type];
+		}
+
+		Type getType() const noexcept{
+			return type;
+		}
+	private:
+		Type type;
+		string ip[TYPE_DUAL];
+	};
+
 	explicit Socket(SocketType type) : type(type) { }
 
 	virtual ~Socket() { }
@@ -100,13 +152,13 @@ public:
 	 * @param aPort Server port.
 	 * @throw SocketException If any connection error occurs.
 	 */
-	virtual void connect(const string& aIp, const string& aPort, const string& localPort = Util::emptyString);
-	void connect(const string& aIp, uint16_t aPort, uint16_t localPort = 0) { connect(aIp, aPort == 0 ? Util::emptyString : Util::toString(aPort), localPort == 0 ? Util::emptyString : Util::toString(localPort)); }
+	virtual void connect(const AddressInfo& aAddr, const string& aPort, const string& localPort = Util::emptyString);
+	void connect(const AddressInfo& aAddr, uint16_t aPort, uint16_t localPort = 0) { connect(aAddr, aPort == 0 ? Util::emptyString : Util::toString(aPort), localPort == 0 ? Util::emptyString : Util::toString(localPort)); }
 
 	/**
 	 * Same as connect(), but through the SOCKS5 server
 	 */
-	void socksConnect(const string& aIp, const string& aPort, uint32_t timeout = 0);
+	void socksConnect(const Socket::AddressInfo& aIp, const string& aPort, uint32_t timeout = 0);
 
 	/**
 	 * Sends data, will block until all data has been sent or an exception occurs
@@ -153,9 +205,8 @@ public:
 
 	virtual std::pair<bool, bool> wait(uint32_t millis, bool checkRead, bool checkWrite);
 
-	typedef std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> addrinfo_p;
 	static string resolve(const string& aDns, int af = AF_UNSPEC) noexcept;
-	addrinfo_p resolveAddr(const string& name, const string& port, int family = AF_UNSPEC, int flags = 0);
+	addrinfo_p resolveAddr(const string& name, const string& port, int family = AF_UNSPEC, int flags = 0) const;
 
 	static uint64_t getTotalDown() { return stats.totalDown; }
 	static uint64_t getTotalUp() { return stats.totalUp; }
@@ -185,10 +236,15 @@ public:
 
 	static int getLastError();
 
-	GETSET(string, ip, Ip);
+	GETSET(string, ip4, Ip4);
+	GETSET(string, ip6, Ip6);
 	GETSET(string, localIp4, LocalIp4);
 	GETSET(string, localIp6, LocalIp6);
 	GETSET(bool, v4only, V4only);
+
+	const string& getIp() const noexcept {
+		return sock6.valid() ? ip6 : ip4;
+	}
 
 	bool isV6Valid() const noexcept;
 protected:
@@ -216,6 +272,7 @@ protected:
 	static addr udpAddr;
 	static socklen_t udpAddrLen;
 private:
+	void connect(const string& aAddr, const string& aPort, const string& localPort, string& lastError_);
 	void socksAuth(uint32_t timeout);
 	socket_t setSock(socket_t s, int af);
 

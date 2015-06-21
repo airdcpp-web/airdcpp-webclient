@@ -52,7 +52,7 @@ public:
 	virtual ~SSLSocket() { verifyData.reset(); }
 
 	virtual uint16_t accept(const Socket& listeningSocket);
-	virtual void connect(const string& aIp, const string& aPort);
+	virtual void connect(const Socket::AddressInfo& aIp, const string& aPort);
 	virtual int read(void* aBuffer, int aBufLen);
 	virtual int write(const void* aBuffer, int aLen);
 	virtual std::pair<bool, bool> wait(uint32_t millis, bool checkRead, bool checkWrite);

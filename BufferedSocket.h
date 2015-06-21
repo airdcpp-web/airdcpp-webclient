@@ -74,8 +74,8 @@ public:
 	}
 
 	void accept(const Socket& srv, bool secure, bool allowUntrusted, const string& expKP = Util::emptyString);
-	void connect(const string& aAddress, const string& aPort, bool secure, bool allowUntrusted, bool proxy, const string& expKP = Util::emptyString);
-	void connect(const string& aAddress, const string& aPort, const string& localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy, const string& expKP = Util::emptyString);
+	void connect(const Socket::AddressInfo& aAddress, const string& aPort, bool secure, bool allowUntrusted, bool proxy, const string& expKP = Util::emptyString);
+	void connect(const Socket::AddressInfo& aAddress, const string& aPort, const string& localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy, const string& expKP = Util::emptyString);
 
 	/** Sets data mode for aBytes bytes. Must be called within onLine. */
 	void setDataMode(int64_t aBytes = -1) { mode = MODE_DATA; dataBytes = aBytes; }
@@ -132,8 +132,8 @@ private:
 		virtual ~TaskData() { }
 	};
 	struct ConnectInfo : public TaskData {
-		ConnectInfo(string addr_, string port_, string localPort_, NatRoles natRole_, bool proxy_) : addr(addr_), port(port_), localPort(localPort_), natRole(natRole_), proxy(proxy_) { }
-		string addr;
+		ConnectInfo(Socket::AddressInfo addr_, string port_, string localPort_, NatRoles natRole_, bool proxy_) : addr(addr_), port(port_), localPort(localPort_), natRole(natRole_), proxy(proxy_) {}
+		Socket::AddressInfo addr;
 		string port;
 		string localPort;
 		NatRoles natRole;
@@ -173,7 +173,7 @@ private:
 
 	virtual int run();
 
-	void threadConnect(const string& aAddr, const string& aPort, const string& localPort, NatRoles natRole, bool proxy);
+	void threadConnect(const Socket::AddressInfo& aAddr, const string& aPort, const string& localPort, NatRoles natRole, bool proxy);
 	void threadAccept();
 	void threadRead();
 	void threadSendFile(InputStream* is);

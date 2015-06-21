@@ -272,15 +272,15 @@ uint16_t Socket::accept(const Socket& listeningSocket) {
 	// Make sure we disable any inherited windows message things for this socket.
 	::WSAAsyncSelect(sock, NULL, 0, 0);
 #endif
+	auto remoteIP = resolveName(&sock_addr.sa, sz);
 
-	// remote IP
-	setIp(resolveName(&sock_addr.sa, sz));
-
-	// return the remote port
+	// return the remote port and set IP
 	if(sock_addr.sa.sa_family == AF_INET) {
+		setIp4(remoteIP);
 		return ntohs(sock_addr.sai.sin_port);
 	}
 	if(sock_addr.sa.sa_family == AF_INET6) {
+		setIp6(remoteIP);
 		return ntohs(sock_addr.sai6.sin6_port);
 	}
 	return 0;
@@ -343,17 +343,31 @@ string Socket::listen(const string& port) {
 	return Util::toString(ntohs(ret));
 }
 
-void Socket::connect(const string& aAddr, const string& aPort, const string& localPort) {
+void Socket::connect(const AddressInfo& aAddr, const string& aPort, const string& localPort) {
 	disconnect();
 
 	// We try to connect to both IPv4 and IPv6 if available
-	auto addr = resolveAddr(aAddr, aPort);
-
 	string lastError;
-	for(auto ai = addr.get(); ai; ai = ai->ai_next) {
-		if((ai->ai_family == AF_INET && !sock4.valid()) ||
-			(ai->ai_family == AF_INET6 && !sock6.valid() && !v4only))
-		{
+
+	if (aAddr.hasV6CompatibleAddress()) {
+		connect(aAddr.getV6CompatibleAddress(), aPort, localPort, lastError);
+	}
+
+	if (aAddr.hasV4CompatibleAddress() && aAddr.getType() != AddressInfo::TYPE_URL) {
+		connect(aAddr.getV4CompatibleAddress(), aPort, localPort, lastError);
+	}
+
+	// IP should be set if at least one connection attempt succeed
+	if (ip4.empty() && ip6.empty())
+		throw SocketException(lastError);
+}
+
+void Socket::connect(const string& aAddr, const string& aPort, const string& localPort, string& lastError_) {
+	auto addr = resolveAddr(aAddr, aPort);
+	for (auto ai = addr.get(); ai; ai = ai->ai_next) {
+		if ((ai->ai_family == AF_INET && !sock4.valid()) ||
+			(ai->ai_family == AF_INET6 && !sock6.valid() && !v4only)) {
+
 			try {
 				auto sock = create(*ai);
 				auto &localIp = ai->ai_family == AF_INET ? getLocalIp4() : getLocalIp6();
@@ -364,17 +378,15 @@ void Socket::connect(const string& aAddr, const string& aPort, const string& loc
 				}
 
 				check([&] { return ::connect(sock, ai->ai_addr, ai->ai_addrlen); }, true);
-				setIp(resolveName(ai->ai_addr, ai->ai_addrlen));
+
+				auto ip = resolveName(ai->ai_addr, ai->ai_addrlen);
+				ai->ai_family == AF_INET ? setIp4(ip) : setIp6(ip);
 			} catch (const SocketException& e) {
 				ai->ai_family == AF_INET ? sock4.reset() : sock6.reset();
-				lastError = e.getError();
+				lastError_ = e.getError();
 			}
 		}
 	}
-
-	// IP should be set if at least one connection attempt succeed
-	if (ip.empty())
-		throw SocketException(lastError);
 }
 
 namespace {
@@ -389,14 +401,14 @@ namespace {
 	}
 }
 
-void Socket::socksConnect(const string& aAddr, const string& aPort, uint32_t timeout) {
+void Socket::socksConnect(const Socket::AddressInfo& aAddr, const string& aPort, uint32_t timeout) {
 	if(SETTING(SOCKS_SERVER).empty() || SETTING(SOCKS_PORT) == 0) {
 		throw SocketException(STRING(SOCKS_FAILED));
 	}
 
 	uint64_t start = GET_TICK();
 
-	connect(SETTING(SOCKS_SERVER), Util::toString(SETTING(SOCKS_PORT)));
+	connect(AddressInfo(SETTING(SOCKS_SERVER), AddressInfo::TYPE_URL), Util::toString(SETTING(SOCKS_PORT)));
 
 	if(!waitConnected(timeLeft(start, timeout))) {
 		throw SocketException(STRING(SOCKS_FAILED));
@@ -411,13 +423,14 @@ void Socket::socksConnect(const string& aAddr, const string& aPort, uint32_t tim
 	connStr.push_back(1);			// Connect
 	connStr.push_back(0);			// Reserved
 
+	auto v4Addr = aAddr.getV4CompatibleAddress();
 	if(SETTING(SOCKS_RESOLVE)) {
 		connStr.push_back(3);		// Address type: domain name
-		connStr.push_back((uint8_t)aAddr.size());
-		connStr.insert(connStr.end(), aAddr.begin(), aAddr.end());
+		connStr.push_back((uint8_t) v4Addr.size());
+		connStr.insert(connStr.end(), v4Addr.begin(), v4Addr.end());
 	} else {
 		connStr.push_back(1);		// Address type: IPv4;
-		unsigned long addr = inet_addr(resolve(aAddr, AF_INET).c_str());
+		unsigned long addr = inet_addr(resolve(v4Addr, AF_INET).c_str());
 		uint8_t* paddr = (uint8_t*)&addr;
 		connStr.insert(connStr.end(), paddr, paddr+4);
 	}
@@ -443,7 +456,7 @@ void Socket::socksConnect(const string& aAddr, const string& aPort, uint32_t tim
 
 	memset(&sock_addr, 0, sizeof(sock_addr));
 	sock_addr.s_addr = *((unsigned long*)&connStr[4]);
-	setIp(inet_ntoa(sock_addr));
+	setIp4(inet_ntoa(sock_addr));
 }
 
 void Socket::socksAuth(uint32_t timeout) {
@@ -787,7 +800,7 @@ string Socket::resolve(const string& aDns, int af) noexcept {
 	return ret;
 }
 
-Socket::addrinfo_p Socket::resolveAddr(const string& name, const string& port, int family, int flags) {
+Socket::addrinfo_p Socket::resolveAddr(const string& name, const string& port, int family, int flags) const {
 	addrinfo hints = { 0 };
 	hints.ai_family = family;
 	hints.ai_flags = flags;
@@ -856,7 +869,7 @@ void Socket::socksUpdated() {
 		try {
 			Socket s(TYPE_TCP);
 			s.setBlocking(false);
-			s.connect(SETTING(SOCKS_SERVER), static_cast<uint16_t>(SETTING(SOCKS_PORT)));
+			s.connect(AddressInfo(SETTING(SOCKS_SERVER), AddressInfo::TYPE_URL), static_cast<uint16_t>(SETTING(SOCKS_PORT)));
 			s.socksAuth(SOCKS_TIMEOUT);
 
 			char connStr[10];

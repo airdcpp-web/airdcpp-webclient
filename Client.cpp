@@ -200,7 +200,7 @@ void Client::connect() {
 	try {
 		sock = BufferedSocket::getSocket(separator, v4only());
 		sock->addListener(this);
-		sock->connect(address, port, secure, SETTING(ALLOW_UNTRUSTED_HUBS), true, keyprint);
+		sock->connect(Socket::AddressInfo(address, Socket::AddressInfo::TYPE_URL), port, secure, SETTING(ALLOW_UNTRUSTED_HUBS), true, keyprint);
 	} catch(const Exception& e) {
 		state = STATE_DISCONNECTED;
 		fire(ClientListener::Failed(), hubUrl, e.getError());

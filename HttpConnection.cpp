@@ -125,7 +125,7 @@ void HttpConnection::prepareRequest(RequestType type) {
 
 	socket->addListener(this);
 	try {
-		socket->connect(server, port, (proto == "https"), true, false);
+		socket->connect(Socket::AddressInfo(server, Socket::AddressInfo::TYPE_URL), port, (proto == "https"), true, false);
 	} catch(const Exception& e) {
 		fire(HttpConnectionListener::Failed(), this, e.getError() + " (" + currentUrl + ")");
 		connState = CONN_FAILED;
