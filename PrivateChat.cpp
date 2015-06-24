@@ -198,7 +198,8 @@ void PrivateChat::on(ClientManagerListener::UserDisconnected, const UserPtr& aUs
 
 void PrivateChat::checkUserHub(bool wentOffline) {
 	auto hubs = ClientManager::getInstance()->getHubs(replyTo.user->getCID());
-	dcassert(!hubs.empty());
+	if (hubs.empty())
+		return;
 
 	if (find_if(hubs.begin(), hubs.end(), CompareFirst<string, string>(replyTo.hint)) == hubs.end()) {
 		if (!ccReady()) {
