@@ -23,8 +23,6 @@
 #include "SettingsManager.h"
 #include "UserQueue.h"
 
-#include "noexcept.h"
-
 namespace dcpp {
 
 

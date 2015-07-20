@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_FAVORITEMANAGERLISTENER_H_
 
 #include "forward.h"
-#include "noexcept.h"
 
 namespace dcpp {
 

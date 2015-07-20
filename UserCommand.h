@@ -24,7 +24,6 @@
 
 #include "Flags.h"
 #include "GetSet.h"
-#include "noexcept.h"
 #include "typedefs.h"
 
 namespace dcpp {

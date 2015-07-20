@@ -21,9 +21,6 @@
 
 #include <boost/intrusive_ptr.hpp>
 
-#include "noexcept.h"
-#include "atomic.h"
-
 namespace dcpp {
 
 template<typename T>

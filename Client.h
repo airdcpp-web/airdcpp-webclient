@@ -19,7 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_CLIENT_H
 #define DCPLUSPLUS_DCPP_CLIENT_H
 
-#include "atomic.h"
 #include "compiler.h"
 #include "forward.h"
 

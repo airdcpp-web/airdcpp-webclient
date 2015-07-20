@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_STRING_SEARCH_H
 
 #include "typedefs.h"
-#include "noexcept.h"
 
 namespace dcpp {
 

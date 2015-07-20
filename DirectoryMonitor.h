@@ -19,18 +19,14 @@
 #ifndef DCPLUSPLUS_DIRECTORY_MONITOR
 #define DCPLUSPLUS_DIRECTORY_MONITOR
 
-#include "DirectoryMonitorListener.h"
-#include "Speaker.h"
-
 #include "typedefs.h"
-#include "noexcept.h"
-#include "atomic.h"
 
+#include "DirectoryMonitorListener.h"
+#include "DispatcherQueue.h"
 #include "Exception.h"
+#include "Speaker.h"
 #include "Thread.h"
 #include "Util.h"
-
-#include "DispatcherQueue.h"
 
 using std::string;
 

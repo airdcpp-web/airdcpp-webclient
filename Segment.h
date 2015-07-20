@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_SEGMENT_H_
 #define DCPLUSPLUS_DCPP_SEGMENT_H_
 
-#include "noexcept.h"
-
 namespace dcpp {
 
 // minimum file size to be PFS : 20M

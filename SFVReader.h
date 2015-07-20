@@ -23,7 +23,6 @@
 #include <string>
 
 #include "typedefs.h"
-#include "noexcept.h"
 #include "GetSet.h"
 
 namespace dcpp {

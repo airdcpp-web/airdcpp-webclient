@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_CLIENT_MANAGER_LISTENER_H
 
 #include "forward.h"
-#include "noexcept.h"
 #include "OnlineUser.h"
 
 namespace dcpp {

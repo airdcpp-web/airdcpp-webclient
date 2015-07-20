@@ -25,8 +25,6 @@
 
 #include "CriticalSection.h"
 
-#include "noexcept.h"
-
 namespace dcpp {
 
 using std::forward;

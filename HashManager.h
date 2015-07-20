@@ -32,8 +32,6 @@
 #include "Speaker.h"
 #include "Thread.h"
 
-#include "atomic.h"
-
 namespace dcpp {
 
 STANDARD_EXCEPTION(HashException);

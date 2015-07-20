@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_SIMPLE_XML_H
 
 #include "forward.h"
-#include "noexcept.h"
 #include "Exception.h"
 #include "Util.h"
 

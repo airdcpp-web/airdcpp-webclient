@@ -19,11 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_SHARE_SCANNER_MANAGER_H_
 #define DCPLUSPLUS_DCPP_SHARE_SCANNER_MANAGER_H_
 
-#include <string>
-
-#include "noexcept.h"
-#include "atomic.h"
-
 #include "Bundle.h"
 #include "CriticalSection.h"
 #include "DispatcherQueue.h"
@@ -35,9 +30,6 @@
 #include <boost/regex.hpp>
 
 namespace dcpp {
-
-using std::string;
-
 
 class ScannerManagerListener {
 public:

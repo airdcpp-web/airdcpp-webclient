@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_DIRECTORY_LISTING_H
 
 #include "forward.h"
-#include "noexcept.h"
 
 #include "DirectoryListingListener.h"
 #include "ClientManagerListener.h"

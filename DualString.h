@@ -22,7 +22,6 @@
 #include <string>
 
 #include "typedefs.h"
-#include "noexcept.h"
 
 using std::string;
 

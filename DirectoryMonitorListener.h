@@ -21,7 +21,6 @@
 #define DIRECTORY_MONITOR_LISTENER_H
 
 #include "forward.h"
-#include "noexcept.h"
 
 #include <string>
 

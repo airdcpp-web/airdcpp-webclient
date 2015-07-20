@@ -20,12 +20,8 @@
 #define DCPLUSPLUS_DCPP_HTTP_CONNECTION_LISTENER_H
 
 #include "forward.h"
-#include "noexcept.h"
-#include <string>
 
 namespace dcpp {
-
-using std::string;
 
 class HttpConnectionListener {
 public:

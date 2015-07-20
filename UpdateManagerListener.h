@@ -20,7 +20,6 @@
 #define UPDATEMANAGER_LISTENER_H
 
 #include "forward.h"
-#include "noexcept.h"
 #include "typedefs.h"
 #include <string>
 

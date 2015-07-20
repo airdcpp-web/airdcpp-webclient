@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_CONNECTIVITY_MANAGER_H
 #define DCPLUSPLUS_DCPP_CONNECTIVITY_MANAGER_H
 
-#include "noexcept.h"
-
 #include "CriticalSection.h"
 #include "SettingsManager.h"
 #include "Singleton.h"
