@@ -64,8 +64,8 @@ public:
 		};
 
 		struct Size {
-			int64_t operator()(const ThreadedCallBack& cb) const {
-				return cb.size;
+			int64_t operator()(const ThreadedCallBack& aCB) const {
+				return aCB.size;
 			}
 		};
 	};
