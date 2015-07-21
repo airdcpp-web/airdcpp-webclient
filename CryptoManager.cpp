@@ -588,6 +588,11 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 				// Hide the potential library error about trying to add a dupe
 				ERR_set_mark();
 				if (X509_STORE_add_cert(store, cert)) {
+					/*
+					Context init is only valid until the first verify_cert, this fixes filelist transfers as far as i can tell,
+					some hub keyprints still seem to have problems with X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY alltho that should be skipped as trusted, 
+					first connection attempt still fails :( Is this problem with the openssl version?? ...*/
+					X509_STORE_CTX_init(ctx, store, cert, NULL);
 					X509_STORE_CTX_set_error(ctx, X509_V_OK);
 					X509_verify_cert(ctx);
 					err = X509_STORE_CTX_get_error(ctx);

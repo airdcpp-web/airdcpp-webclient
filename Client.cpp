@@ -129,7 +129,7 @@ void Client::reloadSettings(bool updateNick) {
 	}
 
 	searchQueue.minInterval = get(HubSettings::SearchInterval);
-	if(updateNick)
+	if (updateNick)
 		checkNick(get(Nick));
 	else
 		get(Nick) = prevNick;
@@ -146,8 +146,8 @@ bool Client::changeBoolHubSetting(HubSettings::HubBoolSetting aSetting) {
 	return newValue;
 }
 
-void Client::updated(const OnlineUserPtr& aUser) { 
-	fire(ClientListener::UserUpdated(), this, aUser); 
+void Client::updated(const OnlineUserPtr& aUser) {
+	fire(ClientListener::UserUpdated(), this, aUser);
 }
 
 void Client::updated(OnlineUserList& users) {
@@ -157,14 +157,14 @@ void Client::updated(OnlineUserList& users) {
 }
 
 const string& Client::getUserIp4() const {
-	if(!get(UserIp).empty()) {
+	if (!get(UserIp).empty()) {
 		return get(UserIp);
 	}
 	return CONNSETTING(EXTERNAL_IP);
 }
 
 const string& Client::getUserIp6() const {
-	if(!get(UserIp6).empty()) {
+	if (!get(UserIp6).empty()) {
 		return get(UserIp6);
 	}
 	return CONNSETTING(EXTERNAL_IP6);
@@ -183,7 +183,7 @@ bool Client::isActiveV6() const {
 }
 
 void Client::connect() {
-	if(sock) {
+	if (sock) {
 		BufferedSocket::putSocket(sock);
 		sock = 0;
 	}
@@ -200,8 +200,9 @@ void Client::connect() {
 	try {
 		sock = BufferedSocket::getSocket(separator, v4only());
 		sock->addListener(this);
-		sock->connect(Socket::AddressInfo(address, Socket::AddressInfo::TYPE_URL), port, secure, SETTING(ALLOW_UNTRUSTED_HUBS), true, keyprint);
-	} catch(const Exception& e) {
+		sock->connect(Socket::AddressInfo(address, Socket::AddressInfo::TYPE_URL), port, secure, SETTING(ALLOW_UNTRUSTED_HUBS), true, keyprint /**/);
+	}
+	catch (const Exception& e) {
 		state = STATE_DISCONNECTED;
 		fire(ClientListener::Failed(), hubUrl, e.getError());
 	}
@@ -223,9 +224,17 @@ void Client::send(const char* aMessage, size_t aLen) {
 }
 
 void Client::on(Connected) noexcept {
-	updateActivity(); 
+	updateActivity();
 	ip = sock->getIp();
 	localIp = sock->getLocalIp();
+
+	/*
+	if(!sock->verifyKeyprint(keyprint, SETTING(ALLOW_UNTRUSTED_HUBS))) {
+		state = STATE_DISCONNECTED;
+		sock->removeListener(this);
+		fire(ClientListener::Failed(), hubUrl, "Keyprint mismatch");
+		return;
+	}*/
 	
 	fire(ClientListener::Connected(), this);
 	state = STATE_PROTOCOL;

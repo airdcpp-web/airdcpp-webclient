@@ -261,8 +261,10 @@ bool SSLSocket::verifyKeyprint(const string& expKP, bool allowUntrusted) noexcep
 		X509* cert = SSL_get_peer_certificate(ssl);
 		if(vrfy_ctx && cert && X509_STORE_CTX_init(vrfy_ctx, store, cert, NULL)) {
 			auto vrfy_cb = SSL_CTX_get_verify_callback(ssl_ctx);
+
 			X509_STORE_CTX_set_ex_data(vrfy_ctx, SSL_get_ex_data_X509_STORE_CTX_idx(), ssl);
 			X509_STORE_CTX_set_verify_cb(vrfy_ctx, vrfy_cb);
+
 			if(X509_verify_cert(vrfy_ctx) >= 0) {
 				err = X509_STORE_CTX_get_error(vrfy_ctx);
 				// This is for people who don't restart their clients and have low expiration time on their cert
