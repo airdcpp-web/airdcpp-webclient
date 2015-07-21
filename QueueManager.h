@@ -119,7 +119,7 @@ public:
 	Bundle::SourceList getBadBundleSources(const BundlePtr& b) const noexcept { RLock l(cs); return b->getBadSources(); }
 
 	size_t getSourcesCount(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->getSources().size(); }
-	void getChunksVisualisation(const QueueItemPtr& qi, vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const { RLock l(cs); qi->getChunksVisualisation(running, downloaded, done); }
+	void getChunksVisualisation(const QueueItemPtr& qi, vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const noexcept { RLock l(cs); qi->getChunksVisualisation(running, downloaded, done); }
 
 	bool getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept;
 	Download* getDownload(UserConnection& aSource, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, string& lastError_, string& newUrl, QueueItemBase::DownloadType aType) noexcept;
@@ -135,16 +135,15 @@ public:
 	void loadQueue(function<void (float)> progressF) noexcept;
 	void saveQueue(bool force) noexcept;
 
-	void noDeleteFileList(const string& path);
+	void noDeleteFileList(const string& path) noexcept;
 
-	//merging, adding, deletion
 	BundlePtr createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileInfo::List& aFiles, 
 		QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) noexcept;
 	BundlePtr createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, 
 		Flags::MaskType aFlags = 0, QueueItemBase::Priority aPrio = QueueItem::DEFAULT) throw(QueueException, FileException, DupeException);
 
-	void moveBundle(BundlePtr aBundle, const string& aTarget, bool moveFinished);
-	void renameBundle(BundlePtr aBundle, const string& newName);
+	void moveBundle(BundlePtr aBundle, const string& aTarget, bool moveFinished) noexcept;
+	void renameBundle(BundlePtr aBundle, const string& newName) noexcept;
 	void removeBundle(BundlePtr& aBundle, bool removeFinished) noexcept;
 
 
@@ -194,7 +193,9 @@ public:
 	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept { RLock l(cs); bundleQueue.getDiskInfo(dirMap, volumes); }
 	void getUnfinishedPaths(StringList& bundles) noexcept;
 	void checkRefreshPaths(StringList& bundlePaths, StringList& refreshPaths) noexcept;
-	void updateQIsize(const string& path, int64_t newSize);
+
+	// For file lists when their size is known
+	void updateQIsize(const string& path, int64_t newSize) noexcept;
 	
 	IGETSET(uint64_t, lastSave, LastSave, 0);
 	IGETSET(uint64_t, lastAutoPrio, LastAutoPrio, 0);
@@ -205,7 +206,7 @@ public:
 	bool scanBundle(BundlePtr& aBundle) noexcept;
 
 	void setMatchers() noexcept;
-	void shutdown();
+	void shutdown() noexcept;
 
 	SharedMutex& getCS() { return cs; }
 	const Bundle::StringBundleMap& getBundles() const { return bundleQueue.getBundles(); }
@@ -283,11 +284,9 @@ private:
 
 	void addBundleUpdate(const BundlePtr& aBundle) noexcept;
 
-	void load(const SimpleXML& aXml);
-
 	void moveBundleItemsImpl(QueueItem::StringItemList aItems, BundlePtr aBundle) noexcept;
-	void moveFinishedFile(const string& source, const string& target, const QueueItemPtr& aQI);
-	void moveFinishedFileImpl(const string& source, const string& target, QueueItemPtr q);
+	void moveFinishedFile(const string& source, const string& target, const QueueItemPtr& aQI) noexcept;
+	void moveFinishedFileImpl(const string& source, const string& target, QueueItemPtr q) noexcept;
 
 	void handleMovedBundleItem(QueueItemPtr& q) noexcept;
 	bool checkBundleFinished(BundlePtr& aBundle) noexcept;
@@ -308,7 +307,7 @@ private:
 
 	string getListPath(const HintedUser& user) const noexcept;
 
-	void fileFinished(const QueueItemPtr aQi, const HintedUser& aUser, const int64_t aSpeed, const string& aDir);
+	void fileFinished(const QueueItemPtr aQi, const HintedUser& aUser, const int64_t aSpeed, const string& aDir) noexcept;
 
 	StringMatch highPrioFiles;
 	StringMatch skipList;

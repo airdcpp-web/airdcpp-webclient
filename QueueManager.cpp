@@ -74,7 +74,7 @@ QueueManager::~QueueManager() {
 
 }
 
-void QueueManager::shutdown() {
+void QueueManager::shutdown() noexcept {
 	SearchManager::getInstance()->removeListener(this);
 	TimerManager::getInstance()->removeListener(this);
 	ClientManager::getInstance()->removeListener(this);
@@ -1365,11 +1365,11 @@ void QueueManager::moveBundleItemsImpl(QueueItem::StringItemList aItems, BundleP
 	}
 }
 
-void QueueManager::moveFinishedFile(const string& source, const string& target, const QueueItemPtr& q) {
+void QueueManager::moveFinishedFile(const string& source, const string& target, const QueueItemPtr& q) noexcept {
 	tasks.addTask([=] { moveFinishedFileImpl(source, target, q); });
 }
 
-void QueueManager::moveFinishedFileImpl(const string& source, const string& target, QueueItemPtr qi) {
+void QueueManager::moveFinishedFileImpl(const string& source, const string& target, QueueItemPtr qi) noexcept {
 	try {
 		File::ensureDirectory(target);
 		UploadManager::getInstance()->abortUpload(source);
@@ -2207,13 +2207,12 @@ void QueueManager::setQIAutoPriority(const string& aTarget) noexcept {
 		}
 	}
 }
-void QueueManager::updateQIsize(const string& path, int64_t newSize) {
+void QueueManager::updateQIsize(const string& path, int64_t newSize) noexcept {
 	
 	WLock l(cs);
 	auto q = fileQueue.findFile(path);
 	if (q)
 		q->setSize(newSize);
-	
 }
 
 
@@ -2615,7 +2614,7 @@ string QueueManager::getBundlePath(const string& aBundleToken) const noexcept{
 	return b ? b->getTarget() : "Unknown";
 }
 
-void QueueManager::noDeleteFileList(const string& path) {
+void QueueManager::noDeleteFileList(const string& path) noexcept {
 	if(!SETTING(KEEP_LISTS)) {
 		protectedFileLists.push_back(path);
 	}
@@ -3506,7 +3505,7 @@ void QueueManager::mergeFinishedItems(const string& aSource, const string& aTarg
 	//mover.removeDir(sourceBundle->getTarget());
 }
 
-void QueueManager::renameBundle(BundlePtr aBundle, const string& newName) {
+void QueueManager::renameBundle(BundlePtr aBundle, const string& newName) noexcept {
 	string newTarget;
 	if (aBundle->isFileBundle()) {
 		newTarget = Util::getFilePath(aBundle->getTarget()) + newName;
@@ -3517,7 +3516,7 @@ void QueueManager::renameBundle(BundlePtr aBundle, const string& newName) {
 	moveBundleImpl(aBundle->getTarget(), newTarget, aBundle, true);
 }
 
-void QueueManager::moveBundle(BundlePtr aBundle, const string& aTarget, bool moveFinished) {
+void QueueManager::moveBundle(BundlePtr aBundle, const string& aTarget, bool moveFinished) noexcept {
 	string newTarget;
 	if (aBundle->isFileBundle()) {
 		newTarget = aTarget + aBundle->getName();
@@ -4005,7 +4004,7 @@ void QueueManager::searchBundle(BundlePtr& aBundle, bool manual, uint64_t aTick)
 	}
 }
 
-void QueueManager::fileFinished(const QueueItemPtr aQi, const HintedUser& aUser, const int64_t aSpeed, const string& aDir) {
+void QueueManager::fileFinished(const QueueItemPtr aQi, const HintedUser& aUser, const int64_t aSpeed, const string& aDir) noexcept {
 	if (!aQi->isSet(QueueItem::FLAG_USER_LIST) || SETTING(LOG_FILELIST_TRANSFERS)) {
 		if (SETTING(SYSTEM_SHOW_DOWNLOADS)) {
 			LogManager::getInstance()->message(STRING_F(FINISHED_DOWNLOAD, aQi->getTarget() % ClientManager::getInstance()->getFormatedNicks(aUser)), LogManager::LOG_INFO);
