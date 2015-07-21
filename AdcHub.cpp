@@ -65,7 +65,7 @@ const string AdcHub::HBRI_SUPPORT("ADHBRI");
 const string AdcHub::ASCH_FEATURE("ASCH");
 const string AdcHub::CCPM_FEATURE("CCPM");
 
-const vector<StringList> AdcHub::searchExts;
+const vector<StringList> AdcHub::searchExtensions;
 
 AdcHub::AdcHub(const string& aHubURL) :
 	Client(aHubURL, '\n'), oldPassword(false), udp(Socket::TYPE_UDP), sid(0) {
@@ -1104,11 +1104,11 @@ void AdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {
 }
 
 const vector<StringList>& AdcHub::getSearchExts() {
-	if(!searchExts.empty())
-		return searchExts;
+	if(!searchExtensions.empty())
+		return searchExtensions;
 
 	// the list is always immutable except for this function where it is initially being filled.
-	const_cast<vector<StringList>&>(searchExts) = {
+	const_cast<vector<StringList>&>(searchExtensions) = {
 		// these extensions *must* be sorted alphabetically!
 		{ "ape", "flac", "m4a", "mid", "mp3", "mpc", "ogg", "ra", "wav", "wma" },
 		{ "7z", "ace", "arj", "bz2", "gz", "lha", "lzh", "rar", "tar", "z", "zip" },
@@ -1119,7 +1119,7 @@ const vector<StringList>& AdcHub::getSearchExts() {
 	};
 
 
-	return searchExts;
+	return searchExtensions;
 }
 
 StringList AdcHub::parseSearchExts(int flag) {

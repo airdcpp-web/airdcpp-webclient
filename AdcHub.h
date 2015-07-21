@@ -113,7 +113,7 @@ private:
 
 	std::unordered_set<uint32_t> forbiddenCommands;
 
-	static const vector<StringList> searchExts;
+	static const vector<StringList> searchExtensions;
 
 	string checkNick(const string& nick);
 

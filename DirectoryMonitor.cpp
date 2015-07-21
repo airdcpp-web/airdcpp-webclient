@@ -281,7 +281,6 @@ int DirectoryMonitor::Server::read() {
 					}
 				} else {
 					if ((*mon)->errorCount > 0) {
-						//LogManager::getInstance()->message("Monitoring was successfully restored for " + Text::fromT((*mon)->path), LogManager::LOG_ERROR);
 						(*mon)->errorCount = 0;
 					}
 
@@ -574,17 +573,7 @@ void DirectoryMonitor::processNotification(const string& aPath, const ByteVector
 
 		string notifyPath(Text::fromT(tstring(fni.FileName, fni.FileNameLength / sizeof(wchar_t) )));
 
-		// If it could be a short filename, expand it.
 		auto fileName = Util::getFileName(notifyPath);
-
-		// The maximum length of an 8.3 filename is twelve, including the dot.
-		/*if (fileName.length() <= 12 && fileName.front() == _T('~')) {
-			// Convert to the long filename form. Unfortunately, this
-			// does not work for deletions, so it's an imperfect fix.
-			wchar_t wbuf[UNC_MAX_PATH];
-			if (::GetLongPathName(Text::toT(notifyPath).c_str(), wbuf, _countof (wbuf)) > 0)
-				notifyPath = Text::fromT(wbuf);
-		}*/
 
 		notifyPath = aPath + notifyPath;
 		switch(fni.Action) {

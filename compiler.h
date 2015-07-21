@@ -58,10 +58,6 @@
 #define snwprintf snprintf
 #endif
 
-#if defined(_MSC_VER) && (_MSC_VER < 1900)
-#define snprintf _snprintf
-#endif
-
 #else
 #error No supported compiler found
 
@@ -91,7 +87,7 @@
 #define _ULL(x) x##ull
 #define I64_FMT "%I64d"
 #define U64_FMT "%I64d"
-#define SIZET_FMT "%u"
+#define SIZET_FMT "%zu"
 
 #elif defined(SIZEOF_LONG) && SIZEOF_LONG == 8
 #define _LL(x) x##l
@@ -134,10 +130,6 @@
 #endif
 
 #ifdef _MSC_VER
-# pragma warning(disable: 4307) //temp disable this annoying warning, boost::lockfree integral constant overflow
-# pragma warning(disable: 4913) //boost thread warnings (boost 1.52, remove later)
-
-//# pragma warning(disable: 4996)
 # pragma warning(disable: 4711) // function 'xxx' selected for automatic inline expansion
 # pragma warning(disable: 4786) // identifier was truncated to '255' characters in the debug information
 # pragma warning(disable: 4290) // C++ Exception Specification ignored
@@ -146,13 +138,12 @@
 # pragma warning(disable: 4503) // decorated name length exceeded, name was truncated
 # pragma warning(disable: 4428) // universal-character-name encountered in source
 # pragma warning(disable: 4201) // nonstadard extension used : nameless struct/union
-# pragma warning(disable: 4324) // structure was padded due to __declspec(align()), lockfree queue
 # pragma warning(disable: 4996) // Function call with parameters that may be unsafe - this call relies on the caller to check that the passed values are correct.
 
 
 # pragma warning(disable: 4244) // conversion from 'xxx' to 'yyy', possible loss of data
 # pragma warning(disable: 4267) // conversion from 'xxx' to 'yyy', possible loss of data
-
+# pragma warning(disable: 4706) // assignment within conditional expression
 #endif
 
 #endif // DCPLUSPLUS_DCPP_COMPILER_H
