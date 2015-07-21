@@ -130,37 +130,37 @@ public:
 
 
 	// Load/save search collection to XML file
-	void load();
-	void save(bool forced = false);
+	void load() noexcept;
+	void save(bool forced = false) noexcept;
 
 	// Settings
 	GETSET(bool, breakOnFirst, BreakOnFirst)
 	GETSET(HintedUser, user, User)
 
 	// @remarks Used to add ADLSearch directories to an existing DirectoryListing
-	void matchListing(DirectoryListing& /*aDirList*/) noexcept;
-	bool addCollection(ADLSearch& search, int index);
-	bool removeCollection(int index);
-	bool changeState(int index, bool enabled);
-	bool updateCollection(ADLSearch& search, int index);
+	void matchListing(DirectoryListing& /*aDirList*/) throw(AbortException);
+	bool addCollection(ADLSearch& search, int index) noexcept;
+	bool removeCollection(int index) noexcept;
+	bool changeState(int index, bool enabled) noexcept;
+	bool updateCollection(ADLSearch& search, int index) noexcept;
 	int8_t getRunning() { return running; }
 private:
 	ADLSearch::SourceType StringToSourceType(const string& s);
 	bool dirty;
 
 	// @internal
-	void matchRecurse(DestDirList& /*aDestList*/, const DirectoryListing::Directory::Ptr& /*aDir*/, string& /*aPath*/, DirectoryListing& /*aDirList*/);
+	void matchRecurse(DestDirList& /*aDestList*/, const DirectoryListing::Directory::Ptr& /*aDir*/, string& /*aPath*/, DirectoryListing& /*aDirList*/) throw(AbortException);
 	// Search for file match
-	void MatchesFile(DestDirList& destDirVector, const DirectoryListing::File *currentFile, string& fullPath);
+	void MatchesFile(DestDirList& destDirVector, const DirectoryListing::File *currentFile, string& fullPath) noexcept;
 	// Search for directory match
-	void MatchesDirectory(DestDirList& destDirVector, const DirectoryListing::Directory::Ptr& currentDir, string& fullPath);
+	void MatchesDirectory(DestDirList& destDirVector, const DirectoryListing::Directory::Ptr& currentDir, string& fullPath) noexcept;
 	// Step up directory
-	void stepUpDirectory(DestDirList& destDirVector);
+	void stepUpDirectory(DestDirList& destDirVector) noexcept;
 
 	// Prepare destination directory indexing
-	void PrepareDestinationDirectories(DestDirList& destDirVector, DirectoryListing::Directory::Ptr& root);
+	void PrepareDestinationDirectories(DestDirList& destDirVector, DirectoryListing::Directory::Ptr& root) noexcept;
 	// Finalize destination directories
-	void FinalizeDestinationDirectories(DestDirList& destDirVector, DirectoryListing::Directory::Ptr& root);
+	void FinalizeDestinationDirectories(DestDirList& destDirVector, DirectoryListing::Directory::Ptr& root) noexcept;
 
 	int8_t running;
 };

@@ -139,7 +139,7 @@ public:
 
 	//merging, adding, deletion
 	BundlePtr createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileInfo::List& aFiles, 
-		QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) throw(QueueException, FileException);
+		QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) noexcept;
 	BundlePtr createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, 
 		Flags::MaskType aFlags = 0, QueueItemBase::Priority aPrio = QueueItem::DEFAULT) throw(QueueException, FileException, DupeException);
 

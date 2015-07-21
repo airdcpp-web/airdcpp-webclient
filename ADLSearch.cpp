@@ -210,8 +210,7 @@ ADLSearch::SourceType ADLSearchManager::StringToSourceType(const string& s) {
 	}
 }
 
-void ADLSearchManager::load()
-{
+void ADLSearchManager::load() noexcept {
 	if (running > 0) {
 		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
 		return;
@@ -334,7 +333,7 @@ void ADLSearchManager::load()
 	}
 }
 
-bool ADLSearchManager::addCollection(ADLSearch& search, int index) {
+bool ADLSearchManager::addCollection(ADLSearch& search, int index) noexcept {
 	if (running > 0) {
 		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
 		return false;
@@ -350,7 +349,7 @@ bool ADLSearchManager::addCollection(ADLSearch& search, int index) {
 	return true;
 }
 
-bool ADLSearchManager::removeCollection(int index) {
+bool ADLSearchManager::removeCollection(int index) noexcept {
 	if (running > 0) {
 		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
 		return false;
@@ -361,7 +360,7 @@ bool ADLSearchManager::removeCollection(int index) {
 	return true;
 }
 
-bool ADLSearchManager::changeState(int index, bool aIsActive) {
+bool ADLSearchManager::changeState(int index, bool aIsActive) noexcept {
 	if (running > 0) {
 		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
 		return false;
@@ -372,7 +371,7 @@ bool ADLSearchManager::changeState(int index, bool aIsActive) {
 	return true;
 }
 
-bool ADLSearchManager::updateCollection(ADLSearch& search, int index) {
+bool ADLSearchManager::updateCollection(ADLSearch& search, int index) noexcept {
 	if (running > 0) {
 		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
 		return false;
@@ -384,7 +383,7 @@ bool ADLSearchManager::updateCollection(ADLSearch& search, int index) {
 	return true;
 }
 
-void ADLSearchManager::save(bool force /*false*/) {
+void ADLSearchManager::save(bool force /*false*/) noexcept {
 	if (!dirty && !force)
 		return;
 
@@ -426,7 +425,7 @@ void ADLSearchManager::save(bool force /*false*/) {
 	SettingsManager::saveSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
 }
 
-void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryListing::File *currentFile, string& fullPath) {
+void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryListing::File *currentFile, string& fullPath) noexcept {
 	// Add to any substructure being stored
 	for(auto& id: destDirVector) {
 		if(id.subdir != NULL) {
@@ -469,7 +468,7 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 	}
 }
 
-void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const DirectoryListing::Directory::Ptr& currentDir, string& fullPath) {
+void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const DirectoryListing::Directory::Ptr& currentDir, string& fullPath) noexcept {
 	// Add to any substructure being stored
 	for(auto& id: destDirVector) {
 		if(id.subdir) {
@@ -501,7 +500,7 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const Direct
 	}
 }
 
-void ADLSearchManager::stepUpDirectory(DestDirList& destDirVector) {
+void ADLSearchManager::stepUpDirectory(DestDirList& destDirVector) noexcept {
 	for(auto id = destDirVector.begin(); id != destDirVector.end(); ++id) {
 		if(id->subdir) {
 			id->subdir = id->subdir->getParent();
@@ -512,7 +511,7 @@ void ADLSearchManager::stepUpDirectory(DestDirList& destDirVector) {
 	}
 }
 
-void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, DirectoryListing::Directory::Ptr& root) {
+void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, DirectoryListing::Directory::Ptr& root) noexcept {
 	// Load default destination directory (index = 0)
 	destDirs.clear();
 	DestDir dir = { "ADLSearch", new DirectoryListing::Directory(root.get(), "<<<ADLSearch>>>", DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) };
@@ -551,20 +550,7 @@ void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, Dire
 	}
 }
 
-void ADLSearchManager::FinalizeDestinationDirectories(DestDirList& destDirs, DirectoryListing::Directory::Ptr& root) {
-	/*string szDiscard = "<<<" + STRING(ADLS_DISCARD) + ">>>";
-
-	// Add non-empty destination directories to the top level
-	for(auto id = destDirVector.begin(); id != destDirVector.end(); ++id) {
-		if(id->dir->files.size() == 0 && id->dir->directories.size() == 0) {
-			delete (id->dir);
-		} else if(Util::stricmp(id->dir->getName(), szDiscard) == 0) {
-			delete (id->dir);
-		} else {
-			root->directories.push_back(id->dir);
-		}
-	}*/
-
+void ADLSearchManager::FinalizeDestinationDirectories(DestDirList& destDirs, DirectoryListing::Directory::Ptr& root) noexcept {
 	string szDiscard("<<<" + string("Discard") + ">>>");
 
 	// Add non-empty destination directories to the top level
@@ -579,7 +565,7 @@ void ADLSearchManager::FinalizeDestinationDirectories(DestDirList& destDirs, Dir
 	}
 }
 
-void ADLSearchManager::matchListing(DirectoryListing& aDirList) noexcept {
+void ADLSearchManager::matchListing(DirectoryListing& aDirList) throw(AbortException) {
 	running++;
 	setUser(aDirList.getHintedUser());
 	auto root = aDirList.getRoot();
@@ -595,7 +581,7 @@ void ADLSearchManager::matchListing(DirectoryListing& aDirList) noexcept {
 	FinalizeDestinationDirectories(destDirs, root);
 }
 
-void ADLSearchManager::matchRecurse(DestDirList &aDestList, const DirectoryListing::Directory::Ptr& aDir, string &aPath, DirectoryListing& aDirList) {
+void ADLSearchManager::matchRecurse(DestDirList &aDestList, const DirectoryListing::Directory::Ptr& aDir, string &aPath, DirectoryListing& aDirList) throw(AbortException) {
 	if(aDirList.getClosing())
 		throw AbortException();
 

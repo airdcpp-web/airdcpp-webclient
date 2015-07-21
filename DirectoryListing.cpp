@@ -98,7 +98,7 @@ void DirectoryListing::setHubUrl(const string& newUrl, bool isGuiChange) noexcep
 		fire(DirectoryListingListener::HubChanged());
 }
 
-void stripExtensions(string& name) {
+void stripExtensions(string& name) noexcept {
 	if(Util::stricmp(name.c_str() + name.length() - 4, ".bz2") == 0) {
 		name.erase(name.length() - 4);
 	}
@@ -108,7 +108,7 @@ void stripExtensions(string& name) {
 	}
 }
 
-string DirectoryListing::getNickFromFilename(const string& fileName) {
+string DirectoryListing::getNickFromFilename(const string& fileName) noexcept {
 	// General file list name format: [username].[CID].[xml|xml.bz2]
 
 	string name = Util::getFileName(fileName);
@@ -125,7 +125,7 @@ string DirectoryListing::getNickFromFilename(const string& fileName) {
 	return name.substr(0, i);
 }
 
-UserPtr DirectoryListing::getUserFromFilename(const string& fileName) {
+UserPtr DirectoryListing::getUserFromFilename(const string& fileName) noexcept {
 	// General file list name format: [username].[CID].[xml|xml.bz2]
 
 	string name = Util::getFileName(fileName);
@@ -207,7 +207,7 @@ private:
 	time_t listDate;
 };
 
-int DirectoryListing::updateXML(const string& xml, const string& aBase) {
+int DirectoryListing::updateXML(const string& xml, const string& aBase) throw(AbortException) {
 	MemoryInputStream mis(xml);
 	return loadXML(mis, true, aBase);
 }
@@ -425,7 +425,7 @@ void DirectoryListing::Directory::download(const string& aTarget, BundleFileInfo
 	}
 }
 
-bool DirectoryListing::createBundle(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
+bool DirectoryListing::createBundle(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept {
 	BundleFileInfo::List aFiles;
 	aDir->download(Util::emptyString, aFiles);
 
@@ -461,7 +461,7 @@ bool DirectoryListing::createBundle(Directory::Ptr& aDir, const string& aTarget,
 	return false;
 }
 
-bool DirectoryListing::downloadDirImpl(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
+bool DirectoryListing::downloadDirImpl(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept {
 	dcassert(!aDir->findIncomplete());
 
 	/* Check if this is a root dir containing release dirs */
@@ -482,7 +482,7 @@ bool DirectoryListing::downloadDirImpl(Directory::Ptr& aDir, const string& aTarg
 	return createBundle(aDir, aTarget, prio, aAutoSearch);
 }
 
-bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) {
+bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept {
 	dcassert(aDir.size() > 2);
 	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
 	auto d = findDirectory(aDir, root);
@@ -500,7 +500,7 @@ int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {
 	return 0;
 }
 
-void DirectoryListing::openFile(const File* aFile, bool aIsClientView) const throw(/*QueueException,*/ FileException) {
+void DirectoryListing::openFile(const File* aFile, bool aIsClientView) const throw(QueueException, FileException) {
 	QueueManager::getInstance()->addOpenedItem(aFile->getName(), aFile->getSize(), aFile->getTTH(), hintedUser, aIsClientView);
 }
 
@@ -899,7 +899,7 @@ void DirectoryListing::listDiffImpl(const string& aFile, bool aOwnList) throw(Ex
 	fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true, false);
 }
 
-void DirectoryListing::matchAdlImpl() {
+void DirectoryListing::matchAdlImpl() throw(AbortException) {
 	int64_t start = GET_TICK();
 	root->clearAdls(); //not much to check even if its the first time loaded without adls...
 	ADLSearchManager::getInstance()->matchListing(*this);
@@ -933,7 +933,7 @@ void DirectoryListing::loadFileImpl(const string& aInitialDir) throw(Exception, 
 	reloading = false;
 }
 
-void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) {
+void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) noexcept {
 	lastResult = GET_TICK();
 	maxResultCount = 0;
 	curResultCount = 0;
@@ -1060,7 +1060,7 @@ void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDi
 	}
 }
 
-void DirectoryListing::matchQueueImpl() {
+void DirectoryListing::matchQueueImpl() noexcept {
 	int matches = 0, newFiles = 0;
 	BundleList bundles;
 	QueueManager::getInstance()->matchListing(*this, matches, newFiles, bundles);
@@ -1130,7 +1130,12 @@ void DirectoryListing::changeDir(bool reload) noexcept {
 		} else if (isOwnList) {
 			auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(path), false, Util::toInt(fileName));
 			if (mis) {
-				loadXML(*mis, true, Util::toAdcFile(path));
+				try {
+					loadXML(*mis, true, Util::toAdcFile(path));
+				} catch (const AbortException&) {
+					// closing down
+					return;
+				}
 				fire(DirectoryListingListener::LoadingFinished(), 0, path, false, true, true);
 			} else {
 				//might happen if have refreshed the share meanwhile

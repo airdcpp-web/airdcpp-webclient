@@ -47,6 +47,7 @@
 namespace dcpp {
 
 class ListLoader;
+class QueueException;
 STANDARD_EXCEPTION(AbortException);
 
 class DirectoryListing : public intrusive_ptr_base<DirectoryListing>, public UserInfoBase, public Thread, public Speaker<DirectoryListingListener>, 
@@ -161,35 +162,35 @@ public:
 	void loadFile() throw(Exception, AbortException);
 
 	//return the number of loaded dirs
-	int updateXML(const string& aXml, const string& aBase);
+	int updateXML(const string& aXml, const string& aBase) throw(AbortException);
 
 	//return the number of loaded dirs
 	int loadXML(InputStream& xml, bool updating, const string& aBase = "/", time_t aListDate = GET_TIME()) throw(AbortException);
 
-	bool downloadDir(const string& aRemoteDir, const string& aTarget, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0);
-	bool createBundle(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
+	bool downloadDir(const string& aRemoteDir, const string& aTarget, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0) noexcept;
+	bool createBundle(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept;
 
-	void openFile(const File* aFile, bool isClientView) const throw(/*QueueException,*/ FileException);
+	void openFile(const File* aFile, bool isClientView) const throw(QueueException, FileException);
 
 	int64_t getTotalListSize(bool adls = false) const noexcept { return root->getTotalSize(adls); }
 	int64_t getDirSize(const string& aDir) const noexcept;
 	size_t getTotalFileCount(bool adls = false) const noexcept { return root->getTotalFileCount(adls); }
 
-	const Directory::Ptr getRoot() const { return root; }
-	Directory::Ptr getRoot() { return root; }
+	const Directory::Ptr getRoot() const noexcept { return root; }
+	Directory::Ptr getRoot() noexcept { return root; }
 	void getLocalPaths(const Directory::Ptr& d, StringList& ret) const throw(ShareException);
 	void getLocalPaths(const File* f, StringList& ret) const throw(ShareException);
 
 	bool isMyCID() const noexcept;
 	string getNick(bool firstOnly) const noexcept;
-	static string getNickFromFilename(const string& fileName);
-	static UserPtr getUserFromFilename(const string& fileName);
+	static string getNickFromFilename(const string& fileName) noexcept;
+	static UserPtr getUserFromFilename(const string& fileName) noexcept;
 	void checkShareDupes() noexcept;
 	bool findNfo(const string& aPath) noexcept;
 	
-	const UserPtr& getUser() const { return hintedUser.user; }
-	const HintedUser& getHintedUser() const { return hintedUser; }
-	const string& getHubUrl() const { return hintedUser.hint; }	
+	const UserPtr& getUser() const noexcept { return hintedUser.user; }
+	const HintedUser& getHintedUser() const noexcept { return hintedUser; }
+	const string& getHubUrl() const noexcept { return hintedUser.hint; }
 	void setHubUrl(const string& newUrl, bool isGuiChange) noexcept;
 		
 	GETSET(bool, partialList, PartialList);
@@ -211,10 +212,11 @@ public:
 
 	void addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) noexcept;
 	bool nextResult(bool prev) noexcept;
+
 	unique_ptr<SearchQuery> curSearch;
 
 	bool isCurrentSearchPath(const string& path) const noexcept;
-	size_t getResultCount() const { return searchResults.size(); }
+	size_t getResultCount() const noexcept { return searchResults.size(); }
 
 	Directory::Ptr findDirectory(const string& aName) const noexcept { return findDirectory(aName, root); }
 	Directory::Ptr findDirectory(const string& aName, const Directory::Ptr& current) const noexcept;
@@ -224,7 +226,7 @@ public:
 	void onRemovedQueue(const string& aDir) noexcept;
 
 	/* only call from the file list thread*/
-	bool downloadDirImpl(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch);
+	bool downloadDirImpl(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept;
 	void setActive() noexcept;
 private:
 	friend class ListLoader;
@@ -270,10 +272,10 @@ private:
 
 	void listDiffImpl(const string& aFile, bool aOwnList) throw(Exception, AbortException);
 	void loadFileImpl(const string& aInitialDir) throw(Exception, AbortException);
-	void searchImpl(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir);
+	void searchImpl(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) noexcept;
 	void loadPartialImpl(const string& aXml, const string& aBaseDir, bool reloadAll, bool changeDir, std::function<void()> completionF) throw(Exception, AbortException);
-	void matchAdlImpl();
-	void matchQueueImpl();
+	void matchAdlImpl() throw(AbortException);
+	void matchQueueImpl() noexcept;
 	void removedQueueImpl(const string& aDir) noexcept;
 
 	void waitActionFinish() const throw(AbortException);

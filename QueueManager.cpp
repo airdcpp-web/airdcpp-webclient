@@ -773,7 +773,7 @@ private:
 	unordered_multimap<string, Error> errors;
 };
 
-BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileInfo::List& aFiles, QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) throw(QueueException, FileException) {
+BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileInfo::List& aFiles, QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) noexcept {
 	string target = formatBundleTarget(aTarget, aDate);
 
 	int fileCount = aFiles.size();
