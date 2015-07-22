@@ -37,6 +37,39 @@ void Thread::start() {
 	}
 }
 
+unsigned int WINAPI Thread::starter(void* p) {
+#ifdef _DEBUG
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+	Thread* t = (Thread*)p;
+	t->run();
+	return 0;
+}
+
+void Thread::join() {
+	if (threadHandle == INVALID_HANDLE_VALUE) {
+		return;
+	}
+
+	WaitForSingleObject(threadHandle, INFINITE);
+	CloseHandle(threadHandle);
+	threadHandle = INVALID_HANDLE_VALUE;
+}
+
+void Thread::t_suspend() {
+	if (threadHandle == INVALID_HANDLE_VALUE) {
+		return;
+	}
+	::SuspendThread(threadHandle);
+}
+
+void Thread::t_resume() {
+	if (threadHandle == INVALID_HANDLE_VALUE) {
+		return;
+	}
+	::ResumeThread(threadHandle);
+}
+
 
 #else
 void Thread::start() {

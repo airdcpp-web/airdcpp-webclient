@@ -54,31 +54,13 @@ public:
 	}
 	
 	void start();
-	void join() {
-		if(threadHandle == INVALID_HANDLE_VALUE) {
-			return;
-		}
-
-		WaitForSingleObject(threadHandle, INFINITE);
-		CloseHandle(threadHandle);
-		threadHandle = INVALID_HANDLE_VALUE;
-	}
+	void join();
 
 	void setThreadPriority(Priority p) { ::SetThreadPriority(threadHandle, p); }
 
-	void t_suspend() { //pause a worker thread, BE Careful by using this, Thread must be in sync so it wont lock up any unwanted resources. Call only from the suspended thread because of non-win implementation
-		if(threadHandle == INVALID_HANDLE_VALUE) {
-			return;
-		}
-		::SuspendThread(threadHandle);
-	}
-
-	void t_resume() {
-		if(threadHandle == INVALID_HANDLE_VALUE) {
-			return;
-		}
-		::ResumeThread(threadHandle);
-	}
+	//pause a worker thread, BE Careful by using this, Thread must be in sync so it wont lock up any unwanted resources. Call only from the suspended thread because of non-win implementation
+	void t_suspend();
+	void t_resume();
 
 
 	static void sleep(uint64_t millis) { ::Sleep(static_cast<DWORD>(millis)); }
@@ -133,14 +115,7 @@ protected:
 #ifdef _WIN32
 	HANDLE threadHandle;
 
-	static unsigned int WINAPI starter(void* p) {
-		#ifdef _DEBUG
-		_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
-		#endif
-		Thread* t = (Thread*)p;
-		t->run();
-		return 0;
-	}
+	static unsigned int WINAPI starter(void* p);
 #else
 	pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
