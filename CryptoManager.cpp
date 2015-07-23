@@ -569,6 +569,7 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 				X509_STORE_CTX_set_error(ctx, X509_V_OK);
 				return 1;
 			}
+			return preverify_ok;
 		} else if (kp2.compare(0, 7, "SHA256/") != 0)
 			return allowUntrusted ? 1 : 0;
 
@@ -589,18 +590,19 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 				ERR_set_mark();
 				if (X509_STORE_add_cert(store, cert)) {
 					/*
-					Context init is only valid until the first verify_cert, this fixes filelist transfers as far as i can tell,
-					some hub keyprints still seem to have problems with X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY alltho that should be skipped as trusted, 
-					first connection attempt still fails :( Is this problem with the openssl version?? ...*/
-					X509_STORE_CTX_init(ctx, store, cert, NULL);
+					CTX_init is only valid until the first verify_cert, this fixes file list transfers as far as i can tell,
+					some hub KeyPrints still seem to have problems with X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY, it should be skipped as trusted but 
+					first connection attempt still fails :( Is this problem with the OpenSSL version not respecting the return 1 ?? ...
+					*/
+					X509_STORE_CTX_init(ctx, store, cert, SSL_get_peer_cert_chain(ssl));
 					X509_STORE_CTX_set_error(ctx, X509_V_OK);
 					X509_verify_cert(ctx);
 					err = X509_STORE_CTX_get_error(ctx);
 				} else ERR_pop_to_mark();
 
 				// KeyPrint was not root certificate or we don't have the issuer certificate, the best we can do is trust the pinned KeyPrint
-				if (err == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN || err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY 
-					|| err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT /*|| X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT*/) { //Don't know about zero depth self signed certs, but it seems to be a common error.
+				if (err == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN || err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY || err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT 
+					|| err == X509_V_ERR_CERT_NOT_YET_VALID || err == X509_V_ERR_CERT_HAS_EXPIRED) { // Ignore certificate validity period, when KeyPrint is trusted
 					X509_STORE_CTX_set_error(ctx, X509_V_OK);
 					// Set this to allow ignoring any follow up errors caused by the incomplete chain
 					SSL_set_ex_data(ssl, CryptoManager::idxVerifyData, &CryptoManager::trustedKeyprint);
@@ -612,41 +614,16 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 		} else {
 			if (X509_STORE_CTX_get_error_depth(ctx) > 0)
 				return 1;
+
+			//KeyPrint was a mismatch, we're not happy with this
+			preverify_ok = 0;
+			err = X509_V_ERR_APPLICATION_VERIFICATION;
+			X509_STORE_CTX_set_error(ctx, err);
 		}
 	}
 
-	if (allowUntrusted) {
-		/*
-		// We let untrusted certificates through unconditionally, when allowed, but we like to complain
-		if (!preverify_ok && err != X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) {
-			X509* cert = NULL;
-			if ((cert = X509_STORE_CTX_get_current_cert(ctx)) != NULL) {
-				X509_NAME* subject = X509_get_subject_name(cert);
-				string tmp, line;
-
-				tmp = getNameEntryByNID(subject, NID_commonName);
-				if (!tmp.empty()) {
-					CID certCID(tmp);
-					if (certCID)
-						tmp = Util::listToString(ClientManager::getInstance()->getNicks(certCID));
-					line += (!line.empty() ? ", " : "") + tmp;
-				}
-
-				tmp = getNameEntryByNID(subject, NID_organizationName);
-				if (!tmp.empty())
-					line += (!line.empty() ? ", " : "") + tmp;
-
-				ByteVector kp = ssl::X509_digest(cert, EVP_sha256());
-				string keyp = "SHA256/" + Encoder::toBase32(&kp[0], kp.size());
-
-				LogManager::getInstance()->message(STRING_F(VERIFY_CERT_FAILED, line % X509_verify_cert_error_string(err) % keyp), LogManager::LOG_INFO);
-			}
-		}*/
-
-		return 1;
-	}
-
-	return preverify_ok;
+	// We allow the connection as untrusted even if KeyPrints didn't match, a way to inform in the hub during connecting? 
+	return allowUntrusted ? 1 : preverify_ok;
 }
 
 string CryptoManager::getNameEntryByNID(X509_NAME* name, int nid) noexcept{

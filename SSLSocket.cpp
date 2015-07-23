@@ -259,7 +259,7 @@ bool SSLSocket::verifyKeyprint(const string& expKP, bool allowUntrusted) noexcep
 	if(ssl_ctx && store) {
 		X509_STORE_CTX* vrfy_ctx = X509_STORE_CTX_new();
 		X509* cert = SSL_get_peer_certificate(ssl);
-		if(vrfy_ctx && cert && X509_STORE_CTX_init(vrfy_ctx, store, cert, NULL)) {
+		if(vrfy_ctx && cert && X509_STORE_CTX_init(vrfy_ctx, store, cert, SSL_get_peer_cert_chain(ssl))) {
 			auto vrfy_cb = SSL_CTX_get_verify_callback(ssl_ctx);
 
 			X509_STORE_CTX_set_ex_data(vrfy_ctx, SSL_get_ex_data_X509_STORE_CTX_idx(), ssl);
