@@ -583,21 +583,29 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 
 			if (err != X509_V_OK) {
 				// This is the right way to get the certificate store, although it is rather roundabout
-				X509_STORE* store = SSL_CTX_get_cert_store(SSL_get_SSL_CTX(ssl));
+				SSL_CTX* ssl_ctx = SSL_get_SSL_CTX(ssl);
+				X509_STORE* store = SSL_CTX_get_cert_store(ssl_ctx);
 				dcassert(store == ctx->ctx);
-
 				// Hide the potential library error about trying to add a dupe
 				ERR_set_mark();
 				if (X509_STORE_add_cert(store, cert)) {
-					/*
-					CTX_init is only valid until the first verify_cert, this fixes file list transfers as far as i can tell,
-					some hub KeyPrints still seem to have problems with X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY, it should be skipped as trusted but 
-					first connection attempt still fails :( Is this problem with the OpenSSL version not respecting the return 1 ?? ...
+			
+					/*OpenSSL 1.0.2d requires certificate chain to be NULL on each call to verify, basicly it means reinitializing the CTX each time,
+					but this means we need to fill it up with the same callback information again feels dumb, but works fine, 
+					however ctx->chain is not a private variable so we hack it :) */
+					ctx->chain = NULL;
+					/* This is the alternative ( "correct method"?? )
+					auto vrfy_cb = SSL_CTX_get_verify_callback(ssl_ctx);
+					X509_STORE_CTX_cleanup(ctx);
+					X509_STORE_CTX_init(ctx, store, cert, X509_STORE_CTX_get_chain(ctx));
+					X509_STORE_CTX_set_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx(), ssl);
+					X509_STORE_CTX_set_verify_cb(ctx, vrfy_cb);
 					*/
-					X509_STORE_CTX_init(ctx, store, cert, SSL_get_peer_cert_chain(ssl));
 					X509_STORE_CTX_set_error(ctx, X509_V_OK);
-					X509_verify_cert(ctx);
+					int res = X509_verify_cert(ctx);
 					err = X509_STORE_CTX_get_error(ctx);
+					if(res < 0)
+						return preverify_ok;
 				} else ERR_pop_to_mark();
 
 				// KeyPrint was not root certificate or we don't have the issuer certificate, the best we can do is trust the pinned KeyPrint
