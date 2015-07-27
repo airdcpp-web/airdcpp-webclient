@@ -37,11 +37,11 @@ public:
 		}
 
 		if (aItem->isRecent()) {
-			dcassert(find(recentSearchQueue, aItem) == recentSearchQueue.end());
+			dcassert(find(recentSearchQueue.begin(), recentSearchQueue.end(), aItem) == recentSearchQueue.end());
 			recentSearchQueue.push_back(aItem);
 			return;
 		} else {
-			dcassert(find(prioSearchQueue[aItem->getPriority()], aItem) == prioSearchQueue[aItem->getPriority()].end());
+			dcassert(find(prioSearchQueue[aItem->getPriority()].begin(), prioSearchQueue[aItem->getPriority()].end(), aItem) == prioSearchQueue[aItem->getPriority()].end());
 			prioSearchQueue[aItem->getPriority()].push_back(aItem);
 		}
 	}
@@ -52,12 +52,12 @@ public:
 		}
 
 		if (aItem->isRecent()) {
-			auto i = find(recentSearchQueue, aItem);
+			auto i = find(recentSearchQueue.begin(), recentSearchQueue.end(), aItem);
 			if (i != recentSearchQueue.end()) {
 				recentSearchQueue.erase(i);
 			}
 		} else {
-			auto i = find(prioSearchQueue[aItem->getPriority()], aItem);
+			auto i = find(prioSearchQueue[aItem->getPriority()].begin(), prioSearchQueue[aItem->getPriority()].end(), aItem);
 			if (i != prioSearchQueue[aItem->getPriority()].end()) {
 				prioSearchQueue[aItem->getPriority()].erase(i);
 			}
@@ -76,13 +76,12 @@ public:
 		return ret;
 	}
 
-	int64_t recalculateSearchTimes(bool aRecent, bool isPrioChange, uint64_t aTick) noexcept{
+	int64_t recalculateSearchTimes(bool aRecent, bool isPrioChange, uint64_t aTick, int minInterval = SETTING(SEARCH_TIME), int maxInterval = 60) noexcept{
 		if (!aRecent) {
 			int prioItems = getPrioSum();
-			int minInterval = SETTING(SEARCH_TIME);
 
 			if (prioItems > 0) {
-				minInterval = max(60 / prioItems, minInterval);
+				minInterval = max(maxInterval / prioItems, minInterval);
 			}
 
 			if (nextSearch > 0 && isPrioChange) {

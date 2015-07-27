@@ -90,7 +90,7 @@ void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) no
 
 	{
 		WLock l(cs);
-		searchItems.push_back(aAutoSearch);
+		searchItems.addItem(aAutoSearch);
 	}
 
 	dirty = true;
@@ -123,16 +123,18 @@ bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) noexcept
 }
 
 bool AutoSearchManager::updateAutoSearch(AutoSearchPtr& ipw) noexcept {
-	WLock l(cs);
-	ipw->prepareUserMatcher();
-	ipw->updatePattern();
-	ipw->updateSearchTime();
-	ipw->updateStatus();
-	ipw->updateExcluded();
+	{
+		WLock l(cs);
+		ipw->prepareUserMatcher();
+		ipw->updatePattern();
+		ipw->updateSearchTime();
+		ipw->updateStatus();
+		ipw->updateExcluded();
+	}
 
 	//if (find_if(searchItems, [ipw](const AutoSearchPtr as) { return as->getSearchString() == ipw->getSearchString() && compare(ipw->getToken(), as->getToken()) != 0; }) != searchItems.end())
 	//	return false;
-
+	fire(AutoSearchManagerListener::UpdateItem(), ipw, true);
 	dirty = true;
 	return true;
 }
@@ -152,37 +154,18 @@ void AutoSearchManager::changeNumber(AutoSearchPtr as, bool increase) noexcept {
 
 void AutoSearchManager::removeAutoSearch(AutoSearchPtr& aItem) noexcept {
 	WLock l(cs);
-	auto i = find_if(searchItems, [aItem](const AutoSearchPtr& as) { return compare(as->getToken(), aItem->getToken()) == 0; });
-	if(i != searchItems.end()) {
-
-		if(static_cast<uint32_t>(distance(searchItems.begin(), i)) < curPos) //dont skip a search if we remove before the last search.
-			curPos--;
-
+	if(searchItems.hasItem(aItem)){
 		fire(AutoSearchManagerListener::RemoveItem(), aItem);
-		searchItems.erase(i);
+		searchItems.removeItem(aItem);
 		dirty = true;
 	}
-}
-
-
-/* Item lookup */
-AutoSearchPtr AutoSearchManager::getSearchByIndex(unsigned int index) const noexcept {
-	RLock l(cs);
-	if(searchItems.size() > index)
-		return searchItems[index];
-	return nullptr;
-}
-
-AutoSearchPtr AutoSearchManager::getSearchByToken(ProfileToken aToken) const noexcept {
-	auto p = find_if(searchItems, [&aToken](const AutoSearchPtr& as)  { return compare(as->getToken(), aToken) == 0; });
-	return p != searchItems.end() ? *p : nullptr;
 }
 
 AutoSearchList AutoSearchManager::getSearchesByBundle(const BundlePtr& aBundle) const noexcept{
 	AutoSearchList ret;
 
 	RLock l(cs);
-	copy_if(searchItems, back_inserter(ret), [&](const AutoSearchPtr& as) { return as->hasBundle(aBundle); });
+	copy_if(searchItems.getItems() | map_values, back_inserter(ret), [&](const AutoSearchPtr& as) { return as->hasBundle(aBundle); });
 	return ret;
 }
 
@@ -190,7 +173,7 @@ AutoSearchList AutoSearchManager::getSearchesByString(const string& aSearchStrin
 	AutoSearchList ret;
 
 	RLock l(cs);
-	copy_if(searchItems, back_inserter(ret), [&](const AutoSearchPtr& as) { return as->getSearchString() == aSearchString && (!ignoredSearch || as != ignoredSearch); });
+	copy_if(searchItems.getItems() | map_values, back_inserter(ret), [&](const AutoSearchPtr& as) { return as->getSearchString() == aSearchString && (!ignoredSearch || as != ignoredSearch); });
 	return ret;
 }
 
@@ -257,7 +240,7 @@ void AutoSearchManager::clearError(AutoSearchPtr& as) noexcept {
 
 void AutoSearchManager::onBundleCreated(BundlePtr& aBundle, const ProfileToken aSearch) noexcept {
 	WLock l(cs);
-	auto as = getSearchByToken(aSearch);
+	auto as = searchItems.getItem(aSearch);
 	if (as) {
 		aBundle->setAddedByAutoSearch(true); //yes, not the best place to modify bundle information.
 		as->addBundle(aBundle);
@@ -268,7 +251,7 @@ void AutoSearchManager::onBundleCreated(BundlePtr& aBundle, const ProfileToken a
 
 void AutoSearchManager::onBundleError(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser) noexcept {
 	RLock l(cs);
-	auto as = getSearchByToken(aSearch);
+	auto as = searchItems.getItem(aSearch);
 	if (as) {
 		as->setLastError(STRING_F(AS_ERROR, Util::getLastDir(aDir) % aError % Util::getTimeString() % ClientManager::getInstance()->getFormatedNicks(aUser)));
 		fire(AutoSearchManagerListener::UpdateItem(), as, true);
@@ -368,11 +351,12 @@ string AutoSearch::getFormatedSearchString() const noexcept {
 }
 
 /* Item searching */
-void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType) noexcept {
+void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType, uint64_t aTick) noexcept {
 
 	//Get the search type
 	StringList extList;
 	int ftype = 0;
+	uint64_t nextSearch = 0;
 	try {
 		SearchManager::getInstance()->getSearchType(as->getFileType(), ftype, extList, true);
 	} catch(const SearchTypeException&) {
@@ -404,7 +388,10 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 	if ((aType == TYPE_MANUAL_BG || aType == TYPE_MANUAL_FG) && !as->getEnabled()) {
 		as->setManualSearch(true);
 		as->setStatus(AutoSearch::STATUS_MANUAL);
-	}
+	} else if(aType != TYPE_MANUAL_BG && aType != TYPE_MANUAL_FG)
+		nextSearch = (searchItems.recalculateSearchTimes(false, false, aTick, SETTING(AUTOSEARCH_EVERY)) - aTick) / (60 * 1000);
+	
+
 	fire(AutoSearchManagerListener::UpdateItem(), as, false);
 
 
@@ -438,6 +425,8 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 				msg = STRING_F(ITEM_SEARCHED_IN, searchWord % time);
 			}
 		}
+		if (nextSearch > 0)
+			msg += ", " + STRING_F(NEXT_SEARCH_IN, nextSearch);
 
 		logMessage(msg, false);
 	} else {
@@ -468,23 +457,22 @@ void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 	}
 }
 
-void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
+void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 
-	lastSearch++;
-
-	if(endOfListReached) {
-		recheckTime++;
-		if(recheckTime >= static_cast<uint32_t>(SETTING(AUTOSEARCH_RECHECK_TIME))) {
-			curPos = 0;
-			endOfListReached = false;
-		} else {
-			checkItems();
+	if (checkItems()) {
+		StringList allowedHubs;
+		ClientManager::getInstance()->getOnlineClients(allowedHubs);
+		//no hubs? no fun...
+		if (allowedHubs.empty()) {
 			return;
 		}
-	}
-
-	if(checkItems() && lastSearch >= static_cast<uint32_t>(SETTING(AUTOSEARCH_EVERY))) {
-		runSearches();
+		AutoSearchPtr searchItem = nullptr;
+		{
+			RLock l(cs);
+			searchItem = searchItems.findSearchItem(aTick);
+		}
+		if (searchItem)
+			performSearch(searchItem, allowedHubs, TYPE_NORMAL, aTick);
 	}
 }
 
@@ -496,13 +484,8 @@ bool AutoSearchManager::checkItems() noexcept {
 
 	{
 		RLock l(cs);
-		
-		if(searchItems.empty()){
-			curPos = 0; //list got empty, start from 0 with new items.
-			return false;
-		}
 
-		for(auto& as: searchItems) {
+		for(auto& as: searchItems.getItems() | map_values) {
 			bool search = true;
 			if (!as->allowNewItems())
 				search = false;
@@ -537,60 +520,13 @@ bool AutoSearchManager::checkItems() noexcept {
 
 	handleExpiredItems(expired);
 
-	if(!result) //if no enabled items, start checking from the beginning with newly enabled ones.
-		curPos = 0;
-
 	return result;
 }
-
-void AutoSearchManager::runSearches() noexcept {
-	StringList allowedHubs;
-	ClientManager::getInstance()->getOnlineClients(allowedHubs);
-	//no hubs? no fun...
-	if(allowedHubs.empty()) {
-		return;
-	}
-
-	AutoSearchPtr searchItem = nullptr;
-	{
-		RLock l (cs);
-		
-		//we have waited for search time, and we are at the end of list. wait for recheck time. so time between searches "autosearch every" + "recheck time" 
-		if(curPos >= searchItems.size()) { 
-			LogManager::getInstance()->message(STRING_F(AS_END_OF_LIST, SETTING(AUTOSEARCH_RECHECK_TIME)), LogManager::LOG_INFO);
-			curPos = 0;
-			endOfListReached = true;
-			recheckTime = 0;
-			return;
-		}
-
-		 for(auto i = searchItems.begin() + curPos; i != searchItems.end(); ++i) {
-			AutoSearchPtr as = *i;
-
-			curPos++; //move to next one, even if we skip something, dont check the same ones again until list has gone thru.
-
-			if (!as->allowNewItems())
-				continue;
-			if (as->nextAllowedSearch() > GET_TIME())
-				continue;
-
-
-			searchItem = as;
-			lastSearch = 0;
-			break;
-		}
-	}
-	
-	if(searchItem) {
-		performSearch(searchItem, allowedHubs, TYPE_NORMAL);
-	}
-}
-
 
 /* SearchManagerListener and matching */
 void AutoSearchManager::on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept {
 	RLock l(cs);
-	for(auto& as: searchItems) {
+	for(auto& as: searchItems.getItems() | map_values) {
 		if (as->getFileType() == oldName) {
 			as->setFileType(newName);
 			fire(AutoSearchManagerListener::UpdateItem(), as, false);
@@ -607,7 +543,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 
 	{
 		RLock l (cs);
-		for(auto& as: searchItems) {
+		for(auto& as: searchItems.getItems() | map_values) {
 			if (!as->allowNewItems() && !as->getManualSearch())
 				continue;
 			
@@ -894,7 +830,7 @@ void AutoSearchManager::AutoSearchSave() noexcept {
 
 	{
 		RLock l(cs);
-		for(auto& as: searchItems) {
+		for(auto& as: searchItems.getItems() | map_values) {
 			xml.addTag("Autosearch");
 			xml.addChildAttrib("Enabled", as->getEnabled());
 			xml.addChildAttrib("SearchString", as->getSearchString());
@@ -1056,13 +992,10 @@ void AutoSearchManager::AutoSearchLoad() {
 		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
 
 		if(xml.findChild("Autosearch")) {
-			curPos = xml.getIntChildAttrib("LastPosition");
 			xml.stepIn();
 			loadAutoSearch(xml);
 			xml.stepOut();
 		}
-		if(curPos >= searchItems.size())
-			curPos = 0;
 	} catch(const Exception& e) {
 		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogManager::LOG_ERROR);
 	}

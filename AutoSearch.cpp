@@ -70,6 +70,10 @@ bool AutoSearch::allowNewItems() const noexcept {
 	return !remove && !usingIncrementation();
 }
 
+bool AutoSearch::allowAutoSearch() const noexcept{
+	return allowNewItems() && (nextAllowedSearch() < GET_TIME());
+}
+
 bool AutoSearch::onBundleRemoved(const BundlePtr& aBundle, bool finished) noexcept {
 	removeBundle(aBundle);
 
@@ -283,7 +287,7 @@ bool AutoSearch::removePostSearch() noexcept {
 }
 
 
-time_t AutoSearch::nextAllowedSearch() noexcept {
+time_t AutoSearch::nextAllowedSearch() const noexcept {
 	if (nextSearchChange == 0 || nextIsDisable || status == STATUS_FAILED_MISSING)
 		return 0;
 

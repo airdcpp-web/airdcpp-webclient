@@ -28,6 +28,7 @@
 #include "StringMatch.h"
 #include "TargetUtil.h"
 #include "Util.h"
+#include "QueueItem.h"
 
 namespace dcpp {
 
@@ -136,8 +137,13 @@ public:
 	string getSearchingStatus() const noexcept;
 	string getExpiration() const noexcept;
 
-	time_t nextAllowedSearch() noexcept;
+	QueueItem::Priority getPriority() { return QueueItem::NORMAL; }
+	bool isRecent() { return false; }
+	bool checkRecent() { return false; }
+
+	time_t nextAllowedSearch() const noexcept;
 	bool allowNewItems() const noexcept;
+	bool allowAutoSearch() const noexcept;
 	void updatePattern() noexcept;
 	void changeNumber(bool increase) noexcept;
 	bool updateSearchTime() noexcept;

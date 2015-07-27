@@ -838,8 +838,6 @@ enum Strings { // @DontAdd
 	FLASH_WINDOW_ON_NEW_PM, // "Flash window on PM only if it's from a new user"
 	FLASH_WINDOW_ON_MYNICK, // "Flash window on my nick in PM/Hub"
 	SETTINGS_AIRSEARCH, // "Search"
-	AUTOSEARCH_ENABLE_TIME, // "Automatically search every"
-	AUTOSEARCH_RECHECK_TEXT,// "Recheck all items after"
 	SETTINGS_VALUE, // "Value"
 	ACTION, // "Action"
 	LINE_EMPTY, // "Line must not be empty"

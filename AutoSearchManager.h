@@ -26,6 +26,7 @@
 #include "SearchManagerListener.h"
 #include "QueueManagerListener.h"
 
+#include "AutoSearchQueue.h"
 #include "DelayedEvents.h"
 #include "GetSet.h"
 #include "Singleton.h"
@@ -34,9 +35,11 @@
 #include "TimerManager.h"
 #include "Util.h"
 
+
 namespace dcpp {
 
 class SimpleXML;
+
 
 class AutoSearchManager :  public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, private TimerManagerListener, private SearchManagerListener, private QueueManagerListener {
 public:
@@ -54,8 +57,6 @@ public:
 	bool addFailedBundle(const BundlePtr& aBundle) noexcept;
 	void addAutoSearch(AutoSearchPtr aAutoSearch, bool search) noexcept;
 	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true) noexcept;
-	AutoSearchPtr getSearchByIndex(unsigned int index) const noexcept;
-	AutoSearchPtr getSearchByToken(ProfileToken aToken) const noexcept;
 	AutoSearchList getSearchesByBundle(const BundlePtr& aBundle) const noexcept;
 	AutoSearchList getSearchesByString(const string& aSearchString, const AutoSearchPtr& ignoredSearch = nullptr) const noexcept;
 
@@ -69,32 +70,11 @@ public:
 
 	void changeNumber(AutoSearchPtr as, bool increase) noexcept;
 	
-	AutoSearchList& getSearchItems() noexcept {
-		RLock l(cs);
-		return searchItems; 
+	AutoSearchMap& getSearchItems() noexcept {
+		return searchItems.getItems(); 
 	};
 
-	void moveAutoSearchUp(unsigned int id) noexcept {
-		WLock l(cs);
-		//hack =]
-		if(searchItems.size() > id) {
-			swap(searchItems[id], searchItems[id-1]);
-			dirty = true;
-		}
-	}
-
-	void moveAutoSearchDown(unsigned int id) noexcept {
-		WLock l(cs);
-		//hack =]
-		if(searchItems.size() > id) {
-			swap(searchItems[id], searchItems[id+1]);
-			dirty = true;
-		}
-	}
-
 	bool setItemActive(AutoSearchPtr& as, bool active) noexcept;
-
-	void runSearches() noexcept;
 
 	void AutoSearchLoad();
 	void AutoSearchSave() noexcept;
@@ -103,15 +83,18 @@ public:
 
 	void onBundleCreated(BundlePtr& aBundle, const ProfileToken aSearch) noexcept;
 	void onBundleError(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser) noexcept;
+
+	SharedMutex& getCS() { return cs; }
 private:
+
 	mutable SharedMutex cs;
 
 	DelayedEvents<ProfileToken> resultCollector;
 
-	void performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType) noexcept;
+	void performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType, uint64_t aTick = GET_TICK()) noexcept;
 	//count minutes to be more accurate than comparing ticks every minute.
 	bool checkItems() noexcept;
-	AutoSearchList searchItems;
+	Searches searchItems;
 
 	void loadAutoSearch(SimpleXML& aXml);
 
