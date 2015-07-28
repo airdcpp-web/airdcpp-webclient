@@ -152,9 +152,12 @@ private:
 	private:
 		class WorkItem {
 		public:
-			WorkItem(const string& aFilePathLower, const string& aFilePath, int64_t aSize, const string& aDevID) : filePath(aFilePath), fileSize(aSize), devID(aDevID), filePathLower(aFilePathLower) { }
-			WorkItem(WorkItem&& rhs) noexcept;
-			WorkItem& operator=(WorkItem&&) noexcept;
+			WorkItem(const string& aFilePathLower, const string& aFilePath, int64_t aSize, const string& aDevID) noexcept 
+				: filePath(aFilePath), fileSize(aSize), devID(aDevID), filePathLower(aFilePathLower) { }
+			WorkItem(WorkItem&& rhs) = default;
+			WorkItem& operator=(WorkItem&&) = default;
+			WorkItem(const WorkItem&) = delete;
+			WorkItem& operator=(const WorkItem&) = delete;
 
 			string filePath;
 			int64_t fileSize;
@@ -164,9 +167,6 @@ private:
 			struct NameLower {
 				const string& operator()(const WorkItem& a) const { return a.filePathLower; }
 			};
-		private:
-			WorkItem(const WorkItem&);
-			WorkItem& operator=(const WorkItem&);
 		};
 
 		SortedVector<WorkItem, std::deque, string, Util::PathSortOrderInt, WorkItem::NameLower> w;
