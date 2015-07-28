@@ -1887,5 +1887,6 @@ enum Strings { // @DontAdd
 	LIST_VIEW_COLORS, // "List view colors"
 	LIST_TEXTSTYLE, // "Font used in list views (User list, Search, Queue, Transfers...)"
 	RESCAN_BUNDLE, // "Rescan bundle"
+	LINE_SPEED_NOTE, // "Note: You can type your line speed manually if none of the values suit you"
 	LAST // @DontAdd
 };
