@@ -102,7 +102,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 					{
 						if(aTick - d->getLastTick() > (uint32_t)SETTING(DISCONNECT_TIME) * 1000)
 						{
-							if(QueueManager::getInstance()->dropSource(d))
+							if(QueueManager::getInstance()->checkDropSlowSource(d))
 							{
 								dropTargets.emplace_back(d->getPath(), d->getBundle(), d->getUser());
 							}
@@ -355,7 +355,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 		if(bytes >= 0) {
 			d->setSegmentSize(bytes);
 			if ((d->getType() == Download::TYPE_PARTIAL_LIST) || (d->getType() == Download::TYPE_FULL_LIST))
-				QueueManager::getInstance()->updateQIsize(d->getPath(), bytes);
+				QueueManager::getInstance()->setFileListSize(d->getPath(), bytes);
 		} else {
 			failDownload(aSource, STRING(INVALID_SIZE), true);
 			return;
