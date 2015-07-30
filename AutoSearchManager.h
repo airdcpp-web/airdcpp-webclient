@@ -34,11 +34,46 @@
 #include "TargetUtil.h"
 #include "TimerManager.h"
 #include "Util.h"
+#include "SearchManager.h"
 
 
 namespace dcpp {
 
 class SimpleXML;
+
+
+//Item settings to be feed into dialog... yeah, open for cleaner methods.. at least rename some of them.
+struct ItemSettings {
+	ItemSettings(const AutoSearchPtr& aAutoSearch) :
+		as(aAutoSearch), fileTypeStr(SEARCH_TYPE_ANY), action(0), matcherType(0), remove(false),
+		targetType(TargetUtil::TARGET_PATH), curNumber(1), maxNumber(0),
+		startTime(0, 0),
+		endTime(23, 59), searchDays("1111111"), checkQueued(true), checkShared(true), matchFullPath(false),
+		numberLen(2), useParams(false) { }
+
+public:
+	bool display;
+	bool remove;
+	bool checkQueued;
+	bool checkShared;
+	bool matchFullPath;
+	bool useParams;
+
+	int numberLen, curNumber, maxNumber;
+
+	string searchString, target, fileTypeStr;
+	string comment, userMatch, matcherString, excludedWords;
+	uint8_t action;
+	TargetUtil::TargetType targetType;
+	uint8_t matcherType;
+	SearchTime startTime;
+	SearchTime endTime;
+	bitset<7> searchDays;
+	time_t expireTime;
+	int searchType;
+	AutoSearchPtr as;
+
+};
 
 
 class AutoSearchManager :  public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, private TimerManagerListener, private SearchManagerListener, private QueueManagerListener {
