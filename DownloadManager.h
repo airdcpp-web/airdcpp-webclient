@@ -76,6 +76,9 @@ public:
 	const DownloadList& getDownloads() const {
 		return downloads;
 	}
+
+	IGETSET(int64_t, lastUpSpeed, LastUpSpeed, 0);
+	IGETSET(int64_t, lastDownSpeed, LastDownSpeed, 0);
 private:
 	
 	mutable SharedMutex cs;
@@ -92,8 +95,6 @@ private:
 	void removeDownload(Download* aDown);
 	void fileNotAvailable(UserConnection* aSource, bool noAccess);
 	void noSlots(UserConnection* aSource, string param = Util::emptyString);
-	
-	int64_t getResumePos(const string& file, const TigerTree& tt, int64_t startPos);
 
 	void failDownload(UserConnection* aSource, const string& reason, bool rotateQueue);
 
@@ -127,6 +128,10 @@ private:
 
 	typedef pair< string, int64_t > StringIntPair;
 
+	// Statistics
+	uint64_t lastUpdate = 0;
+	int64_t lastUpBytes = 0;
+	int64_t lastDownBytes = 0;
 };
 
 } // namespace dcpp

@@ -122,6 +122,24 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 			}
 		}
 
+		// Statistics
+		int64_t totalDown = Socket::getTotalDown();
+		int64_t totalUp = Socket::getTotalUp();
+
+		int64_t diff = (int64_t)((lastUpdate == 0) ? aTick - 1000 : aTick - lastUpdate);
+		int64_t updiff = totalUp - lastUpBytes;
+		int64_t downdiff = totalDown - lastDownBytes;
+
+		lastDownSpeed = downdiff * 1000I64 / diff;
+		lastUpSpeed = updiff * 1000I64 / diff;
+
+		SettingsManager::getInstance()->set(SettingsManager::TOTAL_UPLOAD, SETTING(TOTAL_UPLOAD) + updiff);
+		SettingsManager::getInstance()->set(SettingsManager::TOTAL_DOWNLOAD, SETTING(TOTAL_DOWNLOAD) + downdiff);
+
+		lastUpdate = aTick;
+		lastUpBytes = totalUp;
+		lastDownBytes = totalDown;
+
 		if(!tickList.empty()) {
 			fire(DownloadManagerListener::Tick(), tickList);
 		}
