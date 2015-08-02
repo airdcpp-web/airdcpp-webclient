@@ -73,11 +73,14 @@ bool AutoSearch::allowNewItems() const noexcept {
 	return !remove && !usingIncrementation();
 }
 
-bool AutoSearch::allowAutoSearch() const noexcept{
-	return allowNewItems() && (nextAllowedSearch() < GET_TIME()) && (lastSearch + searchInterval * 60 <= GET_TIME());
+bool AutoSearch::allowAutoSearch(bool checkItemInterval) const noexcept{
+	//Don't take the items search interval in account when counting objects, avoids increasing search interval during searching.
+	return allowNewItems() && (nextAllowedSearch() < GET_TIME()) && (!checkItemInterval || (lastSearch + searchInterval * 60 <= GET_TIME()));
 }
 
 time_t AutoSearch::getNextSearchTime() const noexcept {
+	if (!allowNewItems())
+		return 0;
 	auto next_s = lastSearch + searchInterval * 60;
 
 	return max(next_s, nextAllowedSearch());

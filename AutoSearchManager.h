@@ -113,7 +113,7 @@ private:
 
 	void updateStatus(AutoSearchPtr& as, bool setTabDirty) noexcept;
 	void clearError(AutoSearchPtr& as) noexcept;
-	void resetSearchTimes(uint64_t aTick, const AutoSearchPtr& as, bool aUpdate = false) noexcept;
+	void resetSearchTimes(uint64_t aTick, bool aUpdate = false) noexcept;
 
 	/* Listeners */
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;

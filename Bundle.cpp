@@ -626,7 +626,7 @@ void Bundle::clearFinishedNotifications(FinishedNotifyList& fnl) noexcept {
 	finishedNotifications.swap(fnl);
 }
 
-bool Bundle::allowAutoSearch() const noexcept {
+bool Bundle::allowAutoSearch(bool) const noexcept {
 	if (isSet(FLAG_SCHEDULE_SEARCH))
 		return false; // handle this via bundle updates
 

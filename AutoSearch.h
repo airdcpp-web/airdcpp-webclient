@@ -149,7 +149,7 @@ public:
 	//Get the time for next possible search
 	time_t getNextSearchTime() const noexcept;
 	bool allowNewItems() const noexcept;
-	bool allowAutoSearch() const noexcept;
+	bool allowAutoSearch(bool checkItemInterval = true) const noexcept;
 	void updatePattern() noexcept;
 	void changeNumber(bool increase) noexcept;
 	bool updateSearchTime() noexcept;
