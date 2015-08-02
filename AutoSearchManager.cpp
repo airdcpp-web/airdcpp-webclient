@@ -73,7 +73,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	}
 
 	AutoSearchPtr as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_FILE, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, aTargetType, 
-		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString);
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString, AS_DEFAULT_SEARCH_INTERVAL);
 
 	addAutoSearch(as, true);
 	return as;
@@ -95,9 +95,14 @@ void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) no
 
 	dirty = true;
 	fire(AutoSearchManagerListener::AddItem(), aAutoSearch);
-	if (search && !searchItem(aAutoSearch, TYPE_NEW)) {
-		//no hubs
-		logMessage(CSTRING_F(AUTOSEARCH_ADDED, aAutoSearch->getSearchString()), false);
+	if (search) {
+		if (!searchItem(aAutoSearch, TYPE_NEW)) {
+			resetSearchTimes(GET_TICK(), aAutoSearch, true);
+			//no hubs
+			logMessage(CSTRING_F(AUTOSEARCH_ADDED, aAutoSearch->getSearchString()), false);
+		}
+	} else {
+		resetSearchTimes(GET_TICK(), aAutoSearch, true);
 	}
 }
 
@@ -132,6 +137,7 @@ bool AutoSearchManager::updateAutoSearch(AutoSearchPtr& ipw) noexcept {
 		ipw->updateExcluded();
 	}
 
+	resetSearchTimes(GET_TICK(), ipw, true);
 	//if (find_if(searchItems, [ipw](const AutoSearchPtr as) { return as->getSearchString() == ipw->getSearchString() && compare(ipw->getToken(), as->getToken()) != 0; }) != searchItems.end())
 	//	return false;
 	fire(AutoSearchManagerListener::UpdateItem(), ipw, true);
@@ -153,12 +159,16 @@ void AutoSearchManager::changeNumber(AutoSearchPtr as, bool increase) noexcept {
 }
 
 void AutoSearchManager::removeAutoSearch(AutoSearchPtr& aItem) noexcept {
-	WLock l(cs);
-	if(searchItems.hasItem(aItem)){
-		fire(AutoSearchManagerListener::RemoveItem(), aItem);
-		searchItems.removeItem(aItem);
-		dirty = true;
+	{
+		WLock l(cs);
+		if (searchItems.hasItem(aItem)) {
+			fire(AutoSearchManagerListener::RemoveItem(), aItem);
+			searchItems.removeItem(aItem);
+			dirty = true;
+		}
 	}
+	if (dirty)
+		resetSearchTimes(GET_TICK(), nullptr, true);
 }
 
 AutoSearchList AutoSearchManager::getSearchesByBundle(const BundlePtr& aBundle) const noexcept{
@@ -339,7 +349,7 @@ bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) noexcept {
 	}
 
 	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::getParentDir(aBundle->getTarget()), TargetUtil::TARGET_PATH, 
-		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString);
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString, 60);
 
 	as->addBundle(aBundle);
 	addAutoSearch(as, true);
@@ -356,7 +366,6 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 	//Get the search type
 	StringList extList;
 	int ftype = 0;
-	uint64_t nextSearch = 0;
 	try {
 		SearchManager::getInstance()->getSearchType(as->getFileType(), ftype, extList, true);
 	} catch(const SearchTypeException&) {
@@ -388,10 +397,11 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 	if ((aType == TYPE_MANUAL_BG || aType == TYPE_MANUAL_FG) && !as->getEnabled()) {
 		as->setManualSearch(true);
 		as->setStatus(AutoSearch::STATUS_MANUAL);
-	} else if(aType != TYPE_MANUAL_BG && aType != TYPE_MANUAL_FG)
-		nextSearch = (searchItems.recalculateSearchTimes(false, false, aTick, SETTING(AUTOSEARCH_EVERY)) - aTick) / (60 * 1000);
+	}
+	else if (aType != TYPE_MANUAL_BG && aType != TYPE_MANUAL_FG) {
+		resetSearchTimes(aTick, as);
+	}
 	
-
 	fire(AutoSearchManagerListener::UpdateItem(), as, false);
 
 
@@ -425,15 +435,32 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 				msg = STRING_F(ITEM_SEARCHED_IN, searchWord % time);
 			}
 		}
-		if (nextSearch > 0)
-			msg += ", " + STRING_F(NEXT_SEARCH_IN, nextSearch);
-
 		logMessage(msg, false);
 	} else {
 		fire(AutoSearchManagerListener::SearchForeground(), as, searchWord);
 	}
 }
+void AutoSearchManager::resetSearchTimes(uint64_t aTick, const AutoSearchPtr& as, bool aUpdate) noexcept {
+	auto tt = searchItems.recalculateSearchTimes(false, aUpdate, aTick, SETTING(AUTOSEARCH_EVERY));
 
+	time_t tmp = 0;
+	RLock l(cs);
+	
+	if (searchItems.getItems().empty()) {
+		nextSearch = 0;
+		return;
+	}
+
+	tmp = as ? as->getNextSearchTime() : searchItems.getItems().begin()->second->getNextSearchTime();
+	
+	//calculate which of the items has the nearest possible search time.
+	for (auto x : searchItems.getItems() | map_values) {
+		if (x->allowNewItems())
+			tmp = min(x->getNextSearchTime(), tmp);
+	}
+	time_t t = GET_TIME() + ((tt - aTick) / 1000);
+	nextSearch = max(tmp, t);
+}
 
 bool AutoSearchManager::searchItem(AutoSearchPtr& as, SearchType aType) noexcept {
 	StringList allowedHubs;
@@ -486,6 +513,7 @@ bool AutoSearchManager::checkItems() noexcept {
 		RLock l(cs);
 
 		for(auto& as: searchItems.getItems() | map_values) {
+			bool fireUpdate = false;
 			bool search = true;
 			if (!as->allowNewItems())
 				search = false;
@@ -505,13 +533,14 @@ bool AutoSearchManager::checkItems() noexcept {
 					dirty = true;
 					as->changeNumber(true);
 					as->updateStatus();
-					fire(AutoSearchManagerListener::UpdateItem(), as, false);
+					fireUpdate = true;
 				}
 			}
 
-			if (as->updateSearchTime() || as->getExpireTime() > 0)
-				fire(AutoSearchManagerListener::UpdateItem(), as, false);
+			fireUpdate = fireUpdate || as->updateSearchTime() || as->getExpireTime() > 0;
 
+			if(fireUpdate)
+				fire(AutoSearchManagerListener::UpdateItem(), as, false);
 
 			if (search && as->nextAllowedSearch() <= curTime)
 				result = true;
@@ -851,6 +880,7 @@ void AutoSearchManager::AutoSearchSave() noexcept {
 			xml.addChildAttrib("LastSearchTime", Util::toString(as->getLastSearch()));
 			xml.addChildAttrib("MatchFullPath", as->getMatchFullPath());
 			xml.addChildAttrib("ExcludedWords", as->getExcludedString());
+			xml.addChildAttrib("SearchInterval", Util::toString(as->getSearchInterval()));
 			xml.addChildAttrib("Token", Util::toString(as->getToken()));
 
 			xml.stepIn();
@@ -897,8 +927,8 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 		aXml.stepIn();
 		while(aXml.findChild("Autosearch")) {
 			auto as = new AutoSearch(aXml.getBoolChildAttrib("Enabled"),
-				aXml.getChildAttrib("SearchString"), 
-				aXml.getChildAttrib("FileType"), 
+				aXml.getChildAttrib("SearchString"),
+				aXml.getChildAttrib("FileType"),
 				(AutoSearch::ActionType)aXml.getIntChildAttrib("Action"),
 				aXml.getBoolChildAttrib("Remove"),
 				aXml.getChildAttrib("Target"),
@@ -911,6 +941,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				aXml.getBoolChildAttrib("CheckAlreadyShared"),
 				aXml.getBoolChildAttrib("MatchFullPath"),
 				aXml.getChildAttrib("ExcludedWords"),
+				aXml.getIntChildAttrib("SearchInterval"),
 				aXml.getIntChildAttrib("Token"));
 
 			as->setExpireTime(aXml.getIntChildAttrib("ExpireTime"));

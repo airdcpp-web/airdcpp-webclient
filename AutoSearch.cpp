@@ -40,13 +40,16 @@ AutoSearch::AutoSearch() noexcept : token(Util::randInt(10)) {
 
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget,
 	TargetUtil::TargetType aTargetType, StringMatch::Method aMethod, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime,
-	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, const string& aExcluded, ProfileToken aToken /*rand*/) noexcept :
+	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, const string& aExcluded, int aSearchInterval, ProfileToken aToken /*rand*/) noexcept :
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), tType(aTargetType),
-	expireTime(aExpireTime), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
+	expireTime(aExpireTime), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared), searchInterval(aSearchInterval),
 	token(aToken), matchFullPath(aMatchFullPath), matcherString(aMatcherString), excludedString(aExcluded) {
 
 		if (token == 0)
 			token = Util::randInt(10);
+
+		if (searchInterval == 0)
+			searchInterval = AS_DEFAULT_SEARCH_INTERVAL;
 
 		setTarget(aTarget);
 		setMethod(aMethod);
@@ -71,7 +74,13 @@ bool AutoSearch::allowNewItems() const noexcept {
 }
 
 bool AutoSearch::allowAutoSearch() const noexcept{
-	return allowNewItems() && (nextAllowedSearch() < GET_TIME());
+	return allowNewItems() && (nextAllowedSearch() < GET_TIME()) && (lastSearch + 2*60*60 <= GET_TIME());
+}
+
+time_t AutoSearch::getNextSearchTime() const noexcept {
+	auto next_s = lastSearch + searchInterval * 60;
+
+	return max(next_s, nextAllowedSearch());
 }
 
 bool AutoSearch::onBundleRemoved(const BundlePtr& aBundle, bool finished) noexcept {

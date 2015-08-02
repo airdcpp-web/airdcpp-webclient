@@ -75,6 +75,8 @@ public:
 
 	bool setItemActive(AutoSearchPtr& as, bool active) noexcept;
 
+	time_t getNextSearch() const noexcept { return nextSearch; }
+
 	void AutoSearchLoad();
 	void AutoSearchSave() noexcept;
 
@@ -102,6 +104,7 @@ private:
 	time_t lastSearch;
 	time_t recheckTime;
 	uint32_t curPos = 0;
+	time_t nextSearch = 0;
 
 	bool endOfListReached = false;
 
@@ -112,6 +115,7 @@ private:
 
 	void updateStatus(AutoSearchPtr& as, bool setTabDirty) noexcept;
 	void clearError(AutoSearchPtr& as) noexcept;
+	void resetSearchTimes(uint64_t aTick, const AutoSearchPtr& as, bool aUpdate = false) noexcept;
 
 	/* Listeners */
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;

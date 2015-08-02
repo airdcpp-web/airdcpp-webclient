@@ -76,12 +76,16 @@ public:
 		return ret;
 	}
 
-	int64_t recalculateSearchTimes(bool aRecent, bool isPrioChange, uint64_t aTick, int minInterval = SETTING(SEARCH_TIME), int maxInterval = 60) noexcept{
+	int64_t recalculateSearchTimes(bool aRecent, bool isPrioChange, uint64_t aTick, int minInterval = SETTING(SEARCH_TIME)) noexcept{
 		if (!aRecent) {
 			int prioItems = getPrioSum();
 
+			//start with the min interval
+			if(isPrioChange && nextSearch == 0)
+				nextSearch = aTick + (minInterval * 60 * 1000);
+
 			if (prioItems > 0) {
-				minInterval = max(maxInterval / prioItems, minInterval);
+				minInterval = max(60 / prioItems, minInterval);
 			}
 
 			if (nextSearch > 0 && isPrioChange) {

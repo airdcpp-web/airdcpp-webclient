@@ -30,6 +30,9 @@
 #include "Util.h"
 #include "QueueItem.h"
 
+//default minimum search interval for the same item to be searched again
+#define AS_DEFAULT_SEARCH_INTERVAL 180
+
 namespace dcpp {
 
 struct SearchTime {
@@ -91,7 +94,7 @@ public:
 
 	AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType,
 		StringMatch::Method aMatcherType, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime, bool aCheckAlreadyQueued,
-		bool aCheckAlreadyShared, bool matchFullPath, const string& aExcluded, ProfileToken aToken = 0) noexcept;
+		bool aCheckAlreadyShared, bool matchFullPath, const string& aExcluded, int aSearhInterval, ProfileToken aToken = 0) noexcept;
 
 	AutoSearch() noexcept;
 	~AutoSearch() noexcept;
@@ -115,6 +118,7 @@ public:
 	IGETSET(time_t, lastSearch, LastSearch, 0);
 	IGETSET(bool, checkAlreadyQueued, CheckAlreadyQueued, true);
 	IGETSET(bool, checkAlreadyShared, CheckAlreadyShared, true);
+	IGETSET(int, searchInterval, SearchInterval, 180);
 	IGETSET(bool, manualSearch, ManualSearch, false);
 	IGETSET(Status, status, Status, STATUS_SEARCHING);
 
@@ -142,6 +146,8 @@ public:
 	bool checkRecent() { return false; }
 
 	time_t nextAllowedSearch() const noexcept;
+	//Get the time for next possible search
+	time_t getNextSearchTime() const noexcept;
 	bool allowNewItems() const noexcept;
 	bool allowAutoSearch() const noexcept;
 	void updatePattern() noexcept;
