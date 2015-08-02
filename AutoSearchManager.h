@@ -54,7 +54,7 @@ public:
 
 	//AutoSearchPtr getNameDupe(const string& aName, bool report, const AutoSearchPtr& thisSearch = nullptr) const noexcept;
 	bool addFailedBundle(const BundlePtr& aBundle) noexcept;
-	void addAutoSearch(AutoSearchPtr aAutoSearch, bool search) noexcept;
+	void addAutoSearch(AutoSearchPtr aAutoSearch, bool search, bool loading = false) noexcept;
 	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true) noexcept;
 	AutoSearchList getSearchesByBundle(const BundlePtr& aBundle) const noexcept;
 	AutoSearchList getSearchesByString(const string& aSearchString, const AutoSearchPtr& ignoredSearch = nullptr) const noexcept;
@@ -101,10 +101,8 @@ private:
 
 	uint64_t lastSave = 0;
 	bool dirty = false;
-	time_t lastSearch;
-	time_t recheckTime;
-	uint32_t curPos = 0;
 	time_t nextSearch = 0;
+	uint64_t lastMinuteTick = 0;
 
 	bool endOfListReached = false;
 

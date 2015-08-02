@@ -74,7 +74,7 @@ bool AutoSearch::allowNewItems() const noexcept {
 }
 
 bool AutoSearch::allowAutoSearch() const noexcept{
-	return allowNewItems() && (nextAllowedSearch() < GET_TIME()) && (lastSearch + 2*60*60 <= GET_TIME());
+	return allowNewItems() && (nextAllowedSearch() < GET_TIME()) && (lastSearch + searchInterval * 60 <= GET_TIME());
 }
 
 time_t AutoSearch::getNextSearchTime() const noexcept {

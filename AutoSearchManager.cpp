@@ -40,9 +40,7 @@ using boost::algorithm::copy_if;
 #define CONFIG_DIR Util::PATH_USER_CONFIG
 #define CONFIG_NAME "AutoSearch.xml"
 
-AutoSearchManager::AutoSearchManager() noexcept :
-	lastSearch(SETTING(AUTOSEARCH_EVERY)-2), //start searching after 2 minutes.
-	recheckTime(SETTING(AUTOSEARCH_RECHECK_TIME)) 
+AutoSearchManager::AutoSearchManager() noexcept
 {
 	TimerManager::getInstance()->addListener(this);
 	SearchManager::getInstance()->addListener(this);
@@ -81,7 +79,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 
 
 /* List changes */
-void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) noexcept {
+void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search, bool loading) noexcept {
 	aAutoSearch->prepareUserMatcher();
 	aAutoSearch->updatePattern();
 	aAutoSearch->updateSearchTime();
@@ -101,7 +99,7 @@ void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search) no
 			//no hubs
 			logMessage(CSTRING_F(AUTOSEARCH_ADDED, aAutoSearch->getSearchString()), false);
 		}
-	} else {
+	} else if(!loading) {
 		resetSearchTimes(GET_TICK(), aAutoSearch, true);
 	}
 }
@@ -118,11 +116,12 @@ bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) noexcept
 		// increase the maximum number by one
 		as->setMaxNumber(as->getMaxNumber()+1);
 	}
-
-	RLock l(cs);
-	as->setEnabled(toActive);
-
-	updateStatus(as, true);
+	{
+		RLock l(cs);
+		as->setEnabled(toActive);
+		updateStatus(as, true);
+	}
+	resetSearchTimes(GET_TICK(), as, true);
 	dirty = true;
 	return true;
 }
@@ -441,25 +440,42 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 	}
 }
 void AutoSearchManager::resetSearchTimes(uint64_t aTick, const AutoSearchPtr& as, bool aUpdate) noexcept {
-	auto tt = searchItems.recalculateSearchTimes(false, aUpdate, aTick, SETTING(AUTOSEARCH_EVERY));
-
+	uint64_t tt = searchItems.recalculateSearchTimes(false, aUpdate, aTick, SETTING(AUTOSEARCH_EVERY));
 	time_t tmp = 0;
-	RLock l(cs);
 	
+	RLock l(cs);
 	if (searchItems.getItems().empty()) {
 		nextSearch = 0;
 		return;
 	}
-
 	tmp = as ? as->getNextSearchTime() : searchItems.getItems().begin()->second->getNextSearchTime();
 	
+	bool hasEnabledItems = false;
 	//calculate which of the items has the nearest possible search time.
 	for (auto x : searchItems.getItems() | map_values) {
-		if (x->allowNewItems())
+		if (x->allowNewItems()) {
 			tmp = min(x->getNextSearchTime(), tmp);
+			hasEnabledItems = true;
+		}
 	}
+
+	//We have nothing to search for...
+	if (!hasEnabledItems) {
+		nextSearch = 0;
+		return;
+	}
+
+	/*
+	The time might have passed already, the minute tick just has not hit yet, 
+	calculate the time until the next minute tick. 
+	This is not accurate before the fist minute tick on startup, but hopefully it will go unnoticed :)
+	*/
+	if (aTick > tt)
+		tt = aTick + (60000 - (aTick - lastMinuteTick));
+
 	time_t t = GET_TIME() + ((tt - aTick) / 1000);
 	nextSearch = max(tmp, t);
+	
 }
 
 bool AutoSearchManager::searchItem(AutoSearchPtr& as, SearchType aType) noexcept {
@@ -485,7 +501,7 @@ void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 }
 
 void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
-
+	lastMinuteTick = aTick;
 	if (checkItems()) {
 		StringList allowedHubs;
 		ClientManager::getInstance()->getOnlineClients(allowedHubs);
@@ -852,7 +868,6 @@ void AutoSearchManager::AutoSearchSave() noexcept {
 	SimpleXML xml;
 
 	xml.addTag("Autosearch");
-	xml.addChildAttrib("LastPosition", curPos);
 	xml.stepIn();
 	xml.addTag("Autosearch");
 	xml.stepIn();
@@ -1010,7 +1025,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				as->setEnabled(false);
 			}
 
-			addAutoSearch(as, false);
+			addAutoSearch(as, false, true);
 			aXml.stepOut();
 		}
 		aXml.stepOut();
@@ -1027,6 +1042,7 @@ void AutoSearchManager::AutoSearchLoad() {
 			loadAutoSearch(xml);
 			xml.stepOut();
 		}
+		resetSearchTimes(GET_TICK(), nullptr, true);
 	} catch(const Exception& e) {
 		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogManager::LOG_ERROR);
 	}
