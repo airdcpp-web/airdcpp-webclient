@@ -113,8 +113,8 @@ public:
 	public:
 		PathCompare(const string& compareTo) : a(compareTo) { }
 		bool operator()(const ShareDirInfoPtr& p) { return Util::stricmp(p->path.c_str(), a.c_str()) == 0; }
+		PathCompare& operator=(const PathCompare&) = delete;
 	private:
-		PathCompare& operator=(const PathCompare&) ;
 		const string& a;
 	};
 };
@@ -398,7 +398,7 @@ private:
 	unique_ptr<ShareBloom> bloom;
 
 	struct FileListDir;
-	class Directory : public intrusive_ptr_base<Directory>, boost::noncopyable {
+	class Directory : public intrusive_ptr_base<Directory> {
 	public:
 		typedef boost::intrusive_ptr<Directory> Ptr;
 		typedef unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> Map;
@@ -485,8 +485,8 @@ private:
 				return d->getProfileDir()->hasRootProfile(t);
 			}
 			ProfileToken t;
-		private:
-			HasRootProfile& operator=(const HasRootProfile&);
+
+			HasRootProfile& operator=(const HasRootProfile&) = delete;
 		};
 
 		struct IsParent {
@@ -513,7 +513,6 @@ private:
 		void search(SearchResultInfo::Set& aResults, SearchQuery& aStrings, ProfileToken aProfile, int level) const noexcept;
 
 		void toFileList(FileListDir* aListDir, ProfileToken aProfile, bool isFullList);
-		void toXml(SimpleXML& aXml, bool fullList, ProfileToken aProfile) const;
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive) const;
 
 		//for file list caching
@@ -542,6 +541,9 @@ private:
 		void updateModifyDate();
 		void getRenameInfoList(const string& aPath, RenameList& aRename) noexcept;
 		Directory::Ptr findDirByPath(const string& aPath, char separator) const noexcept;
+
+		Directory(Directory&) = delete;
+		Directory& operator=(Directory&) = delete;
 	private:
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 

@@ -27,11 +27,11 @@ class StringTokenizer
 private:
 	ContainerT<T> tokens;
 public:
-	StringTokenizer(const T& aString, const typename T::value_type aToken, bool skipEmptyTokens = false) {
+	StringTokenizer(const T& aString, const typename T::value_type aToken, bool allowEmptyTokens = false) {
 		string::size_type i = 0;
 		string::size_type j = 0;
 		while( (i=aString.find(aToken, j)) != string::npos ) {
-			if (!skipEmptyTokens || j != i)
+			if (allowEmptyTokens || j != i)
 				tokens.push_back(aString.substr(j, i-j));
 			j = i + 1;
 		}
@@ -39,12 +39,12 @@ public:
 			tokens.push_back(aString.substr(j, aString.size()-j));
 	}
 
-	StringTokenizer(const T& aString, const char* aToken, bool skipEmptyTokens = false) {
+	StringTokenizer(const T& aString, const char* aToken, bool allowEmptyTokens = false) {
 		string::size_type i = 0;
 		string::size_type j = 0;
 		size_t l = strlen(aToken);
 		while( (i=aString.find(aToken, j)) != string::npos ) {
-			if (!skipEmptyTokens || j != i)
+			if (allowEmptyTokens || j != i)
 				tokens.push_back(aString.substr(j, i-j));
 			j = i + l;
 		}
@@ -52,12 +52,12 @@ public:
 			tokens.push_back(aString.substr(j, aString.size()-j));
 	}
 
-	StringTokenizer(const T& aString, const wchar_t* aToken, bool skipEmptyTokens = false) {
+	StringTokenizer(const T& aString, const wchar_t* aToken, bool allowEmptyTokens = false) {
 		string::size_type i = 0;
 		string::size_type j = 0;
 		size_t l = wcslen(aToken);
 		while( (i=aString.find(aToken, j)) != string::npos ) {
-			if (!skipEmptyTokens || j != i)
+			if (allowEmptyTokens || j != i)
 				tokens.push_back(aString.substr(j, i-j));
 			j = i + l;
 		}
