@@ -82,7 +82,7 @@ public:
 	void addList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString, BundlePtr aBundle=nullptr) throw(QueueException, FileException);
 
 	/** Add an item that is opened in the client or with an external program */
-	void addOpenedItem(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUse, bool isClientView) throw(QueueException, FileException);
+	void addOpenedItem(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool isClientView) throw(QueueException, FileException);
 
 	/** Readd a source that was removed */
 	void readdQISource(const string& target, const HintedUser& aUser) throw(QueueException);
@@ -94,8 +94,24 @@ public:
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
 	void matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) noexcept;
 
+	QueueItemPtr findFile(QueueToken aToken) const noexcept { RLock l(cs); return fileQueue.findFile(aToken); }
+
 	// Removes the file from queue (and alternatively the target if the file is finished)
-	void removeFile(const string aTarget, bool removeData = false) noexcept;
+	template<typename T>
+	bool QueueManager::removeFile(const T& aID, bool removeData = false) noexcept {
+		QueueItemPtr qi = nullptr;
+		{
+			RLock l(cs);
+			qi = fileQueue.findFile(aID);
+		}
+
+		if (qi) {
+			removeQI(qi, removeData);
+			return true;
+		}
+
+		return false;
+	}
 
 	// Remove source from the specified file
 	void removeFileSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
@@ -117,7 +133,7 @@ public:
 	StringList getTargets(const TTHValue& tth) noexcept;
 
 	// Toggle the state of slow speed disconnecting for the given bundle.
-	void toggleSlowDisconnectBundle(const string& aToken) noexcept;
+	void toggleSlowDisconnectBundle(QueueToken aBundleToken) noexcept;
 
 	// Get temp path for the specified target file
 	string getTempTarget(const string& aTarget) noexcept;
@@ -150,7 +166,7 @@ public:
 	// 
 	// lastError_ will contain the last error why a file can't be started (not cleared if a download is found afterwards)
 	// TODO: FINISH
-	bool startDownload(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs,
+	bool startDownload(const UserPtr& aUser, const QueueTokenSet& runningBundles, const OrderedStringSet& onlineHubs,
 		QueueItemBase::DownloadType aType, int64_t aLastSpeed, string& lastError_) noexcept;
 
 	// The same thing but only used before any connect requests
@@ -165,7 +181,7 @@ public:
 	// This won't check various download limits so startDownload should be called first
 	// newUrl can be changed if the download is for a filelist from a different hub
 	// lastError_ will contain the last error why a file can't be started (not cleared if a download is found afterwards)
-	Download* getDownload(UserConnection& aSource, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, string& lastError_, string& newUrl, QueueItemBase::DownloadType aType) noexcept;
+	Download* getDownload(UserConnection& aSource, const QueueTokenSet& runningBundles, const OrderedStringSet& onlineHubs, string& lastError_, string& newUrl, QueueItemBase::DownloadType aType) noexcept;
 
 	// Handle an ended transfer
 	// finished should be true if the file/segment was finished successfully (false if disconnected/failed). Always false for finished trees.
@@ -187,9 +203,10 @@ public:
 	void setMatchers() noexcept;
 
 	SharedMutex& getCS() { return cs; }
-	const Bundle::StringBundleMap& getBundles() const { return bundleQueue.getBundles(); }
-	const QueueItem::StringMap& getFileQueue() const { return fileQueue.getQueue(); }
-
+	// Locking must be handled by the caller
+	const Bundle::TokenBundleMap& getBundles() const { return bundleQueue.getBundles(); }
+	// Locking must be handled by the caller
+	const QueueItem::StringMap& getFileQueue() const { return fileQueue.getPathQueue(); }
 
 	// Create a directory bundle with the supplied target path and files
 	// 
@@ -214,10 +231,12 @@ public:
 
 	// Rename a bundle (can be running)
 	void renameBundle(BundlePtr aBundle, const string& newName) noexcept;
+
+	bool removeBundle(QueueToken aBundleToken, bool removeFinished) noexcept;
 	void removeBundle(BundlePtr& aBundle, bool removeFinished) noexcept;
 
 	// Find a bundle by token
-	BundlePtr findBundle(const string& bundleToken) const noexcept { RLock l (cs); return bundleQueue.findBundle(bundleToken); }
+	BundlePtr findBundle(QueueToken aBundleToken) const noexcept { RLock l (cs); return bundleQueue.findBundle(aBundleToken); }
 
 	// Find a bundle containing the specified TTH
 	BundlePtr findBundle(const TTHValue& tth) const noexcept;
@@ -227,7 +246,10 @@ public:
 	bool checkPBDReply(HintedUser& aUser, const TTHValue& aTTH, string& _bundleToken, bool& _notify, bool& _add, const string& remoteBundle) noexcept;
 	void addFinishedNotify(HintedUser& aUser, const TTHValue& aTTH, const string& remoteBundle) noexcept;
 	void updatePBD(const HintedUser& aUser, const TTHValue& aTTH) noexcept;
-	void removeBundleNotify(const UserPtr& aUser, const string& bundleToken) noexcept;
+
+	// Remove user from a notify list of the local bundle
+	void removeBundleNotify(const UserPtr& aUser, QueueToken aBundleToken) noexcept;
+
 	void sendRemovePBD(const HintedUser& aUser, const string& aRemoteToken) noexcept;
 	bool getSearchInfo(const string& aTarget, TTHValue& tth_, int64_t size_) noexcept;
 	bool handlePartialSearch(const UserPtr& aUser, const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add) noexcept;
@@ -235,25 +257,25 @@ public:
 
 	// Queue a TTH list from the user containing the supplied TTH
 	void addBundleTTHList(const HintedUser& aUser, const string& aRemoteBundleToken, const TTHValue& tth) throw(QueueException);
-	MemoryInputStream* generateTTHList(const string& aBundleToken, bool isInSharingHub) throw(QueueException);
+	MemoryInputStream* generateTTHList(QueueToken aBundleToken, bool isInSharingHub) throw(QueueException);
 
 
 	/* Priorities */
-	void setBundlePriority(const string& bundleToken, QueueItemBase::Priority p) noexcept;
+	void setBundlePriority(QueueToken aBundleToken, QueueItemBase::Priority p) noexcept;
 
 	// Set new priority for the specified bundle
 	// keepAutoPrio should be used only when performing auto priorization.
 	void setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool aKeepAutoPrio=false) noexcept;
 
 	// Toggle autoprio state for the bundle
-	void setBundleAutoPriority(const string& bundleToken) noexcept;
+	void setBundleAutoPriority(QueueToken aBundleToken) noexcept;
 
 	// Perform autopriorization for applicable bundles
 	// verbose is only used for debugging purposes to print the points for each bundle
 	void calculateBundlePriorities(bool verbose) noexcept;
 
 
-	void removeBundleSource(const string& bundleToken, const UserPtr& aUser, Flags::MaskType reason) noexcept;
+	void removeBundleSource(QueueToken aBundleToken, const UserPtr& aUser, Flags::MaskType reason) noexcept;
 	void removeBundleSource(BundlePtr aBundle, const UserPtr& aUser, Flags::MaskType reason) noexcept;
 
 	// Get source infos for the specified user
@@ -281,7 +303,7 @@ public:
 	int isFileQueued(const TTHValue& aTTH) const noexcept { RLock l(cs); return fileQueue.isFileQueued(aTTH); }
 
 	// Get real path of the bundle
-	string getBundlePath(const string& aBundleToken) const noexcept;
+	string getBundlePath(QueueToken aBundleToken) const noexcept;
 
 	// Return dupe information about the directory
 	uint8_t isDirQueued(const string& aDir) const noexcept;
@@ -322,7 +344,7 @@ public:
 	// Performs recheck for the supplied bundle. Recheck will be done in the calling thread.
 	// The integrity of all finished segments will be verified and SFV will be validated for finished files
 	// The bundle will be paused if running
-	void recheckBundle(const string& aBundleToken) noexcept;
+	void recheckBundle(QueueToken aBundleToken) noexcept;
 private:
 	IGETSET(uint64_t, lastSave, LastSave, 0);
 	IGETSET(uint64_t, lastAutoPrio, LastAutoPrio, 0);
@@ -355,7 +377,7 @@ private:
 	void handleFailedRecheckItems(const QueueItemList& ql) noexcept;
 
 	void connectBundleSources(BundlePtr& aBundle) noexcept;
-	bool allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, string& lastError_, bool mcn = false) noexcept;
+	bool allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& runningBundles, string& lastError_, bool mcn = false) noexcept;
 
 	// aTarget must include the bundle name in here
 	void moveBundleImpl(const string& aSource, const string& aTarget, BundlePtr& sourceBundle, bool moveFinished) noexcept;
@@ -370,7 +392,7 @@ private:
 	bool changeTarget(QueueItemPtr& qs, const string& aTarget) noexcept;
 	void removeQI(QueueItemPtr& qi, bool removeData = false) noexcept;
 
-	void handleBundleUpdate(const string& bundleToken) noexcept;
+	void handleBundleUpdate(QueueToken aBundleToken) noexcept;
 
 	/** Get a bundle for adding new items in queue (a new one or existing)  */
 	BundlePtr getBundle(const string& aTarget, QueueItemBase::Priority aPrio, time_t aDate, bool isFileBundle) noexcept;
@@ -448,10 +470,10 @@ private:
 	void on(ShareLoaded) noexcept;
 	void onPathRefreshed(const string& aPath, bool startup) noexcept;
 
-	DelayedEvents<string> delayEvents;
+	DelayedEvents<QueueToken> delayEvents;
 
-	typedef boost::bimap<bimaps::unordered_multiset_of<string>, bimaps::unordered_multiset_of<string>> StringMultiBiMap;
-	StringMultiBiMap matchLists;
+	typedef boost::bimap<bimaps::unordered_multiset_of<QueueToken>, bimaps::unordered_multiset_of<string>> TokenStringMultiBiMap;
+	TokenStringMultiBiMap matchLists;
 };
 
 } // namespace dcpp

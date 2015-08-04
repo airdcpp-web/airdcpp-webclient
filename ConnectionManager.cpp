@@ -385,7 +385,7 @@ bool ConnectionManager::allowNewMCN(const ConnectionQueueItem* aCQI) {
 }
 
 void ConnectionManager::createNewMCN(const HintedUser& aUser) {
-	StringSet runningBundles;
+	QueueTokenSet runningBundles;
 	DownloadManager::getInstance()->getRunningBundles(runningBundles);
 
 	string lastError;

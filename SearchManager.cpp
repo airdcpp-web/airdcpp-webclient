@@ -360,7 +360,8 @@ void SearchManager::onPBD(const AdcCommand& aCmd, const UserPtr& from) {
 
 	if (remove && !remoteBundle.empty()) {
 		//LogManager::getInstance()->message("ONPBD REMOVE");
-		QueueManager::getInstance()->removeBundleNotify(from, remoteBundle);
+		// Local bundle really...
+		QueueManager::getInstance()->removeBundleNotify(from, Util::toUInt32(remoteBundle));
 	}
 
 	if (tth.empty()) {

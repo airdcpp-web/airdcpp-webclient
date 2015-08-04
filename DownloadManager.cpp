@@ -165,7 +165,7 @@ void DownloadManager::sendSizeNameUpdate(BundlePtr& aBundle) {
 }
 
 void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
-	if (aSource->getLastBundle().empty() || aSource->getLastBundle() != aBundle->getToken()) {
+	if (aSource->getLastBundle().empty() || aSource->getLastBundle() != Util::toString(aBundle->getToken())) {
 		if (!aSource->getLastBundle().empty()) {
 			removeRunningUser(aSource);
 		} 
@@ -224,7 +224,7 @@ void DownloadManager::addConnection(UserConnection* conn) {
 	checkDownloads(conn);
 }
 
-void DownloadManager::getRunningBundles(StringSet& bundles_) const {
+void DownloadManager::getRunningBundles(QueueTokenSet& bundles_) const {
 	RLock l(cs);
 	for (const auto& b : bundles | map_values) {
 		// we need to check this to ignore previous bundles for running connections 
@@ -259,7 +259,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	hubs.insert(aConn->getHubUrl());
 
 	string errorMessage;
-	StringSet runningBundles;
+	QueueTokenSet runningBundles;
 	getRunningBundles(runningBundles);
 
 	bool start = QueueManager::getInstance()->startDownload(aConn->getHintedUser(), runningBundles, hubs, dlType, aConn->getSpeed(), errorMessage);
@@ -608,8 +608,8 @@ void DownloadManager::changeBundle(BundlePtr sourceBundle, BundlePtr targetBundl
 	}
 }
 
-BundlePtr DownloadManager::findRunningBundle(const string& bundleToken) {
-	auto s = bundles.find(bundleToken);
+BundlePtr DownloadManager::findRunningBundle(QueueToken aBundleToken) {
+	auto s = bundles.find(aBundleToken);
 	if (s != bundles.end()) {
 		return s->second;
 	}
@@ -623,7 +623,7 @@ void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove
 
 	{
 		WLock l (cs);
-		BundlePtr bundle = findRunningBundle(aSource->getLastBundle());
+		BundlePtr bundle = findRunningBundle(Util::toUInt32(aSource->getLastBundle()));
 		if (bundle && bundle->removeRunningUser(aSource, sendRemove)) {
 			//no running users for this bundle
 			bundles.erase(bundle->getToken());

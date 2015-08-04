@@ -30,6 +30,8 @@ namespace dcpp {
 
 using std::string;
 
+typedef uint32_t QueueToken;
+typedef unordered_set<QueueToken> QueueTokenSet;
 class QueueItemBase : public Flags {
 public:
 	enum DownloadType {
@@ -51,7 +53,7 @@ public:
 		LAST
 	};
 
-	QueueItemBase(const string& aTarget, int64_t aSize, Priority aPriority, time_t aAdded, Flags::MaskType aFlags = 0);
+	QueueItemBase(const string& aTarget, int64_t aSize, Priority aPriority, time_t aAdded, QueueToken aToken, Flags::MaskType aFlags);
 
 	virtual void setTarget(const string& aTarget) = 0;
 	const DownloadList& getDownloads() { return downloads; }
@@ -66,6 +68,13 @@ public:
 
 	bool isPausedPrio() const { return priority == PAUSED_FORCE || priority == PAUSED; }
 
+	QueueToken getToken() const noexcept {
+		return token;
+	}
+
+	string getStringToken() const noexcept;
+protected:
+	QueueToken token;
 };
 
 }

@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_DOWNLOADMANAGERLISTENER_H_
 
 #include "typedefs.h"
+#include "QueueItemBase.h"
 
 namespace dcpp {
 
@@ -74,7 +75,7 @@ public:
 	virtual void on(Complete, const Download*, bool) noexcept { }
 
 	/* format: target, token, bundleToken */
-	virtual void on(TargetChanged, const string&, const string&, const string&) noexcept { }
+	virtual void on(TargetChanged, const string&, const string&, QueueToken) noexcept { }
 
 	virtual void on(BundleWaiting, const BundlePtr) noexcept { }
 	virtual void on(BundleTick, const BundleList&, uint64_t) noexcept { }

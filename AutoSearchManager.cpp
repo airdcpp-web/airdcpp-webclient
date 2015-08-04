@@ -941,7 +941,7 @@ void AutoSearchManager::AutoSearchSave() noexcept {
 				xml.addTag("Bundles");
 				xml.stepIn();
 				for (const auto& b: as->getBundles()) {
-					xml.addTag("Bundle", b->getToken());
+					xml.addTag("Bundle", Util::toString(b->getToken()));
 				}
 				xml.stepOut();
 			}
@@ -1028,7 +1028,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				aXml.stepIn();
 				while(aXml.findChild("Bundle")) {
 					aXml.stepIn();
-					auto token = aXml.getData();
+					auto token = Util::toUInt32(aXml.getData());
 					auto b = QueueManager::getInstance()->findBundle(token);
 					if (b)
 						as->addBundle(b);

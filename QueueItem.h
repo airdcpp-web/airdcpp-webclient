@@ -33,6 +33,7 @@ namespace dcpp {
 
 class QueueItem : public QueueItemBase, public intrusive_ptr_base<QueueItem> {
 public:
+	typedef unordered_map<QueueToken, QueueItemPtr> TokenMap;
 	typedef unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
 	typedef unordered_multimap<TTHValue*, QueueItemPtr> TTHMap;
 	typedef unordered_multimap<string, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMultiMap;

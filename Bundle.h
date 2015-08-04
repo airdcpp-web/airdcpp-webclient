@@ -36,6 +36,16 @@ namespace dcpp {
 
 using std::string;
 
+struct BundleAddInfo {
+	int filesAdded = 0;
+	int filesFailed = 0;
+
+	bool merged = false;
+	BundlePtr bundle = nullptr;
+
+	string errorMessage;
+};
+
 struct BundleFileInfo {
 	BundleFileInfo(BundleFileInfo&& rhs) = default;
 	BundleFileInfo& operator=(BundleFileInfo&& rhs) = default;
@@ -111,7 +121,7 @@ public:
 	};
 
 	struct Hash {
-		size_t operator()(const BundlePtr& x) const { return hash<string>()(x->getToken()); }
+		size_t operator()(const BundlePtr& x) const { return hash<QueueToken>()(x->getToken()); }
 	};
 
 	struct SortOrder {
@@ -124,7 +134,7 @@ public:
 		}
 	};
 
-	typedef unordered_map<string, BundlePtr> StringBundleMap;
+	typedef unordered_map<QueueToken, BundlePtr> TokenBundleMap;
 	typedef unordered_multimap<string, pair<string, BundlePtr>, noCaseStringHash, noCaseStringEq> BundleDirMap;
 	typedef vector<pair<string, BundlePtr>> StringBundleList;
 
@@ -140,11 +150,10 @@ public:
 	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
 
 
-	Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate=0, const string& aToken = Util::emptyString, bool aDirty = true, bool isFileBundle = false) noexcept;
-	Bundle(QueueItemPtr& qi, time_t aBundleDate, const string& aToken = Util::emptyString, bool aDirty = true) noexcept;
+	Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate=0, QueueToken aToken = 0, bool aDirty = true, bool isFileBundle = false) noexcept;
+	Bundle(QueueItemPtr& qi, time_t aBundleDate, QueueToken aToken = 0, bool aDirty = true) noexcept;
 	~Bundle() noexcept;
 
-	GETSET(string, token, Token);
 	GETSET(string, lastError, LastError);
 
 	IGETSET(Status, status, Status, STATUS_NEW);
