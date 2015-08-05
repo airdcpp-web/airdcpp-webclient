@@ -869,9 +869,14 @@ void AutoSearchManager::AutoSearchSave() noexcept {
 	xml.stepIn();
 	xml.addTag("Autosearch");
 	xml.stepIn();
-
 	{
 		RLock l(cs);
+
+		for (auto& i : groups) {
+			xml.addTag("Group");
+			xml.addChildAttrib("Name", i);
+		}
+
 		for(auto& as: searchItems.getItems() | map_values) {
 			xml.addTag("Autosearch");
 			xml.addChildAttrib("Enabled", as->getEnabled());
@@ -895,6 +900,7 @@ void AutoSearchManager::AutoSearchSave() noexcept {
 			xml.addChildAttrib("ExcludedWords", as->getExcludedString());
 			xml.addChildAttrib("SearchInterval", Util::toString(as->getSearchInterval()));
 			xml.addChildAttrib("Token", Util::toString(as->getToken()));
+			xml.addChildAttrib("Group", as->getGroup());
 
 			xml.stepIn();
 
@@ -938,6 +944,14 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 	aXml.resetCurrentChild();
 	if(aXml.findChild("Autosearch")) {
 		aXml.stepIn();
+		
+		while (aXml.findChild("Group")) {
+			string name = aXml.getChildAttrib("Name");
+			if (name.empty())
+				continue;
+			groups.push_back(name);
+		}
+		aXml.resetCurrentChild();
 		while(aXml.findChild("Autosearch")) {
 			auto as = new AutoSearch(aXml.getBoolChildAttrib("Enabled"),
 				aXml.getChildAttrib("SearchString"),
@@ -957,6 +971,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 				aXml.getIntChildAttrib("SearchInterval"),
 				aXml.getIntChildAttrib("Token"));
 
+			as->setGroup(aXml.getChildAttrib("Group"));
 			as->setExpireTime(aXml.getIntChildAttrib("ExpireTime"));
 
 			auto searchDays = aXml.getChildAttrib("SearchDays");

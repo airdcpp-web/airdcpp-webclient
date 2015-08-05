@@ -85,12 +85,27 @@ public:
 	void onBundleCreated(BundlePtr& aBundle, const ProfileToken aSearch) noexcept;
 	void onBundleError(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser) noexcept;
 
+	vector<string> getGroups() { RLock l(cs);  return groups; }
+	void setGroups(vector<string>& newGroups) { WLock l(cs);  groups = newGroups; }
+	int getGroupIndex(const AutoSearchPtr& as) {
+		RLock l(cs);
+		int index = 0;
+		if (!as->getGroup().empty()) {
+			auto groupI = find(groups.begin(), groups.end(), as->getGroup());
+			if (groupI != groups.end())
+				index = (groupI - groups.begin()) + 1;
+		}
+		return index;
+	}
+
 	SharedMutex& getCS() { return cs; }
 private:
 
 	mutable SharedMutex cs;
 
 	DelayedEvents<ProfileToken> resultCollector;
+	vector<string> groups;
+
 
 	void performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType, uint64_t aTick = GET_TICK()) noexcept;
 	//count minutes to be more accurate than comparing ticks every minute.

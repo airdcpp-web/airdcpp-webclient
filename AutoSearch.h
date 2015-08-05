@@ -127,6 +127,8 @@ public:
 	IGETSET(int, numberLen, NumberLen, 2);
 	IGETSET(bool, useParams, UseParams, false);
 	IGETSET(time_t, lastIncFinish, LastIncFinish, 0);
+	IGETSET(string, group, Group, Util::emptyString);
+
 	GETSET(string, lastError, LastError);
 
 	SearchTime startTime = SearchTime(false);
