@@ -87,16 +87,9 @@ public:
 
 	vector<string> getGroups() { RLock l(cs);  return groups; }
 	void setGroups(vector<string>& newGroups) { WLock l(cs);  groups = newGroups; }
-	int getGroupIndex(const AutoSearchPtr& as) {
-		RLock l(cs);
-		int index = 0;
-		if (!as->getGroup().empty()) {
-			auto groupI = find(groups.begin(), groups.end(), as->getGroup());
-			if (groupI != groups.end())
-				index = (groupI - groups.begin()) + 1;
-		}
-		return index;
-	}
+	void moveItemToGroup(AutoSearchPtr& as, const string& aGroupName);
+	bool hasGroup(const string& aGroup) { RLock l(cs);  return (find(groups.begin(), groups.end(), aGroup) != groups.end()); }
+	int getGroupIndex(const AutoSearchPtr& as);
 
 	SharedMutex& getCS() { return cs; }
 private:

@@ -859,6 +859,23 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 	}
 }
 
+void AutoSearchManager::moveItemToGroup(AutoSearchPtr& as, const string& aGroup) {
+	if ((aGroup.empty() && !as->getGroup().empty()) || hasGroup(aGroup)) {
+		as->setGroup(aGroup);
+		fire(AutoSearchManagerListener::UpdateItem(), as, false);
+	}
+}
+
+int AutoSearchManager::getGroupIndex(const AutoSearchPtr& as) {
+	RLock l(cs);
+	int index = 0;
+	if (!as->getGroup().empty()) {
+		auto groupI = find(groups.begin(), groups.end(), as->getGroup());
+		if (groupI != groups.end())
+			index = (groupI - groups.begin()) + 1;
+	}
+	return index;
+}
 
 /* Loading and saving */
 void AutoSearchManager::AutoSearchSave() noexcept {
