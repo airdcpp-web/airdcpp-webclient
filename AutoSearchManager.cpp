@@ -42,6 +42,7 @@ using boost::algorithm::copy_if;
 
 AutoSearchManager::AutoSearchManager() noexcept
 {
+	nextSearch = GET_TIME() + 60;
 	TimerManager::getInstance()->addListener(this);
 	SearchManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
@@ -463,14 +464,6 @@ void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aUpdate) noexcept 
 		return;
 	}
 
-	/*
-	The time might have passed already, the minute tick just has not hit yet, 
-	calculate the time until the next minute tick. 
-	This is not accurate before the fist minute tick on startup, but hopefully it will go unnoticed :)
-	*/
-	if (aTick > tt)
-		tt = aTick + (60000 - (aTick - lastMinuteTick));
-
 	time_t t = GET_TIME() + ((tt - aTick) / 1000);
 	nextSearch = max(tmp, t);
 	
@@ -496,11 +489,7 @@ void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 		dirty = false;
 		AutoSearchSave();
 	}
-}
-
-void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
-	lastMinuteTick = aTick;
-	if (checkItems()) {
+	if(GET_TIME() >= nextSearch) {
 		StringList allowedHubs;
 		ClientManager::getInstance()->getOnlineClients(allowedHubs);
 		//no hubs? no fun...
@@ -515,27 +504,26 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcep
 		if (searchItem)
 			performSearch(searchItem, allowedHubs, TYPE_NORMAL, aTick);
 	}
+
+}
+
+void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
+	checkItems();
 }
 
 /* Scheduled searching */
-bool AutoSearchManager::checkItems() noexcept {
+void AutoSearchManager::checkItems() noexcept {
 	AutoSearchList expired;
-	bool result = false;
-	auto curTime = GET_TIME();
 
 	{
 		RLock l(cs);
 
 		for(auto& as: searchItems.getItems() | map_values) {
 			bool fireUpdate = false;
-			bool search = true;
-			if (!as->allowNewItems())
-				search = false;
 			
 			//check expired, and remove them.
 			if (as->getStatus() != AutoSearch::STATUS_EXPIRED && as->expirationTimeReached() && as->getBundles().empty()) {
 				expired.push_back(as);
-				search = false;
 			}
 
 			// check post search items and whether we can change the number
@@ -555,15 +543,10 @@ bool AutoSearchManager::checkItems() noexcept {
 
 			if(fireUpdate)
 				fire(AutoSearchManagerListener::UpdateItem(), as, false);
-
-			if (search && as->nextAllowedSearch() <= curTime)
-				result = true;
 		}
 	}
 
 	handleExpiredItems(expired);
-
-	return result;
 }
 
 /* SearchManagerListener and matching */

@@ -102,7 +102,7 @@ private:
 
 	void performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType, uint64_t aTick = GET_TICK()) noexcept;
 	//count minutes to be more accurate than comparing ticks every minute.
-	bool checkItems() noexcept;
+	void checkItems() noexcept;
 	Searches searchItems;
 
 	void loadAutoSearch(SimpleXML& aXml);
@@ -110,7 +110,6 @@ private:
 	uint64_t lastSave = 0;
 	bool dirty = false;
 	time_t nextSearch = 0;
-	uint64_t lastMinuteTick = 0;
 
 	bool endOfListReached = false;
 
