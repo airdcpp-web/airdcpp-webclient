@@ -74,7 +74,7 @@ bool AutoSearch::allowNewItems() const noexcept {
 }
 
 bool AutoSearch::allowAutoSearch(bool checkItemInterval) const noexcept{
-	//Don't take the items search interval in account when counting objects, avoids increasing search interval during searching.
+	//Don't take the items search interval in count when counting objects, avoids increasing search interval during searching.
 	return allowNewItems() && (nextAllowedSearch() < GET_TIME()) && (!checkItemInterval || (lastSearch + searchInterval * 60 <= GET_TIME()));
 }
 

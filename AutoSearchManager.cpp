@@ -42,7 +42,6 @@ using boost::algorithm::copy_if;
 
 AutoSearchManager::AutoSearchManager() noexcept
 {
-	nextSearch = GET_TIME() + 60;
 	TimerManager::getInstance()->addListener(this);
 	SearchManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
@@ -96,12 +95,12 @@ void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search, bo
 	fire(AutoSearchManagerListener::AddItem(), aAutoSearch);
 	if (search) {
 		if (!searchItem(aAutoSearch, TYPE_NEW)) {
-			resetSearchTimes(GET_TICK(), true);
 			//no hubs
 			logMessage(CSTRING_F(AUTOSEARCH_ADDED, aAutoSearch->getSearchString()), false);
 		}
-	} else if(!loading) {
-		resetSearchTimes(GET_TICK(), true);
+	} 
+	if(!loading) {
+		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
 	}
 }
 
@@ -122,7 +121,7 @@ bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) noexcept
 		as->setEnabled(toActive);
 		updateStatus(as, true);
 	}
-	resetSearchTimes(GET_TICK(), true);
+	delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
 	dirty = true;
 	return true;
 }
@@ -137,7 +136,7 @@ bool AutoSearchManager::updateAutoSearch(AutoSearchPtr& ipw) noexcept {
 		ipw->updateExcluded();
 	}
 
-	resetSearchTimes(GET_TICK(), true);
+	delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
 	//if (find_if(searchItems, [ipw](const AutoSearchPtr as) { return as->getSearchString() == ipw->getSearchString() && compare(ipw->getToken(), as->getToken()) != 0; }) != searchItems.end())
 	//	return false;
 	fire(AutoSearchManagerListener::UpdateItem(), ipw, true);
@@ -159,16 +158,18 @@ void AutoSearchManager::changeNumber(AutoSearchPtr as, bool increase) noexcept {
 }
 
 void AutoSearchManager::removeAutoSearch(AutoSearchPtr& aItem) noexcept {
+	bool hasItem = false;
 	{
 		WLock l(cs);
-		if (searchItems.hasItem(aItem)) {
+		hasItem = searchItems.hasItem(aItem);
+		if(hasItem) {
 			fire(AutoSearchManagerListener::RemoveItem(), aItem);
 			searchItems.removeItem(aItem);
 			dirty = true;
 		}
 	}
-	if (dirty)
-		resetSearchTimes(GET_TICK(), true);
+	if(hasItem)
+		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
 }
 
 AutoSearchList AutoSearchManager::getSearchesByBundle(const BundlePtr& aBundle) const noexcept{
@@ -249,14 +250,21 @@ void AutoSearchManager::clearError(AutoSearchPtr& as) noexcept {
 }
 
 void AutoSearchManager::onBundleCreated(BundlePtr& aBundle, const ProfileToken aSearch) noexcept {
-	WLock l(cs);
-	auto as = searchItems.getItem(aSearch);
-	if (as) {
-		aBundle->setAddedByAutoSearch(true); //yes, not the best place to modify bundle information.
-		as->addBundle(aBundle);
-		updateStatus(as, true);
-		dirty = true;
+	bool found = false;
+	{
+		WLock l(cs);
+		auto as = searchItems.getItem(aSearch);
+		if (as) {
+			aBundle->setAddedByAutoSearch(true); //yes, not the best place to modify bundle information.
+			as->addBundle(aBundle);
+			updateStatus(as, true);
+			dirty = true;
+			found = true;
+		}
 	}
+
+	if(found)
+		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
 }
 
 void AutoSearchManager::onBundleError(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser) noexcept {
@@ -282,7 +290,7 @@ void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const Bund
 		if (as->hasBundle(aBundle)) {
 			found = true;
 			{
-				RLock l (cs);
+				RLock l(cs);
 				updateStatus(as, true);
 			}
 
@@ -295,6 +303,8 @@ void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const Bund
 
 	if (aBundle->getStatus() == Bundle::STATUS_FAILED_MISSING && !found && SETTING(AUTO_COMPLETE_BUNDLES)) {
 		AutoSearchManager::getInstance()->addFailedBundle(aBundle); 
+	}else if (found) {
+		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
 	}
 }
 
@@ -399,7 +409,7 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 		as->setStatus(AutoSearch::STATUS_MANUAL);
 	}
 	else if (aType != TYPE_MANUAL_BG && aType != TYPE_MANUAL_FG) {
-		resetSearchTimes(aTick);
+		resetSearchTimes(aTick, false);
 	}
 	
 	fire(AutoSearchManagerListener::UpdateItem(), as, false);
@@ -464,6 +474,10 @@ void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aUpdate) noexcept 
 		return;
 	}
 
+	//We already missed the search time, add 3 seconds and search then.
+	if (aTick > tt)
+		tt = aTick + 3000;
+
 	time_t t = GET_TIME() + ((tt - aTick) / 1000);
 	nextSearch = max(tmp, t);
 	
@@ -489,7 +503,8 @@ void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 		dirty = false;
 		AutoSearchSave();
 	}
-	if(GET_TIME() >= nextSearch) {
+
+	if(nextSearch != 0 && nextSearch <= GET_TIME()) {
 		StringList allowedHubs;
 		ClientManager::getInstance()->getOnlineClients(allowedHubs);
 		//no hubs? no fun...
@@ -507,7 +522,7 @@ void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 
 }
 
-void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
+void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	checkItems();
 }
 
@@ -543,6 +558,7 @@ void AutoSearchManager::checkItems() noexcept {
 
 			if(fireUpdate)
 				fire(AutoSearchManagerListener::UpdateItem(), as, false);
+
 		}
 	}
 
@@ -650,7 +666,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 			rl.push_back(sr);
 		}
 
-		resultCollector.addEvent(as->getToken(), [this, as] { pickNameMatch(as); }, 2000);
+		delayEvents.addEvent(as->getToken(), [this, as] { pickNameMatch(as); }, 2000);
 	}
 }
 

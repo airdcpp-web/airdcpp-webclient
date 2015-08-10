@@ -93,10 +93,15 @@ public:
 
 	SharedMutex& getCS() { return cs; }
 private:
+	enum {
+		RECALCULATE_SEARCH
+	};
 
 	mutable SharedMutex cs;
 
-	DelayedEvents<ProfileToken> resultCollector;
+	//Delayed events used to collect search results and calculate search times.
+	DelayedEvents<int> delayEvents;
+	
 	vector<string> groups;
 
 
