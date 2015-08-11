@@ -303,15 +303,13 @@ void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const Bund
 
 	if (aBundle->getStatus() == Bundle::STATUS_FAILED_MISSING && !found && SETTING(AUTO_COMPLETE_BUNDLES)) {
 		AutoSearchManager::getInstance()->addFailedBundle(aBundle); 
-	}else if (found) {
-		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
 	}
 }
 
 void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) noexcept {
 	AutoSearchList expired, removed;
 	auto items = getSearchesByBundle(aBundle);
-
+	bool itemsEnabled = false;
 	{
 		WLock l(cs);
 		for (auto& as : items) {
@@ -320,6 +318,7 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) 
 			} else if (as->onBundleRemoved(aBundle, finished)) {
 				expired.push_back(as);
 			} else {
+				itemsEnabled = true;
 				as->setLastError(Util::emptyString);
 				dirty = true;
 				fire(AutoSearchManagerListener::UpdateItem(), as, true);
@@ -332,6 +331,10 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) 
 		removeAutoSearch(as);
 		logMessage(STRING_F(COMPLETE_ITEM_X_REMOVED, as->getSearchString()), false);
 	}
+	//One or more items got in searching state again
+	if (itemsEnabled)
+		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true);  }, 2000);
+	
 }
 
 void AutoSearchManager::handleExpiredItems(AutoSearchList& expired) noexcept{
