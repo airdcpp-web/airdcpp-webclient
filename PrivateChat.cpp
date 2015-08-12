@@ -196,6 +196,18 @@ void PrivateChat::on(ClientManagerListener::UserDisconnected, const UserPtr& aUs
 	}
 }
 
+/*
+The hub window was closed, we might be using the client of it for messages(CCPM and status messages) and its soon to be deleted..
+This listener comes from the main thread so we should be able to pass the next speaker message before any other messages.
+*/
+void PrivateChat::on(ClientManagerListener::ClientDisconnected, const string& aHubUrl) noexcept {
+	if (aHubUrl == getHubUrl()) {
+		checkUserHub(true);
+		fire(PrivateChatListener::UserUpdated());
+	}
+}
+
+
 void PrivateChat::checkUserHub(bool wentOffline) {
 	auto hubs = ClientManager::getInstance()->getHubs(replyTo.user->getCID());
 	if (hubs.empty())
