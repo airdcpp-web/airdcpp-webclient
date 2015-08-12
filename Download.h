@@ -93,6 +93,13 @@ public:
 	IGETSET(uint64_t, lastTick, LastTick, GET_TICK());
 	IGETSET(bool, treeValid, TreeValid, false);
 	IGETSET(BundlePtr, bundle, Bundle, nullptr);
+
+	string getBundleStringToken() const noexcept {
+		if (!bundle)
+			return Util::emptyString;
+
+		return bundle->getStringToken();
+	}
 private:
 	Download(const Download&);
 	Download& operator=(const Download&);

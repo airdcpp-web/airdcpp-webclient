@@ -105,7 +105,7 @@ void QueueManager::shutdown() noexcept {
 	}
 }
 
-void QueueManager::recheckBundle(const string& aBundleToken) noexcept {
+void QueueManager::recheckBundle(QueueToken aBundleToken) noexcept {
 	QueueItemList ql;
 	BundlePtr b;
 	bool isFinished;
@@ -469,7 +469,7 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 
 	if(bundle) {
-		searchBundle(bundle, false, aTick);
+		searchBundleAlternates(bundle, false, aTick);
 	}
 
 	// Request parts info from partial file sharing sources
@@ -529,7 +529,7 @@ void QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, cons
 		addSource(q, aUser, true, false, false);
 		if (aBundle) {
 			q->setFlag(QueueItem::FLAG_MATCH_BUNDLE);
-			matchLists.insert(StringMultiBiMap::value_type(aBundle->getToken(), q->getTarget()));
+			matchLists.insert(TokenStringMultiBiMap::value_type(aBundle->getToken(), q->getTarget()));
 		}
 
 		fire(QueueManagerListener::Added(), q);
@@ -690,7 +690,7 @@ BundlePtr QueueManager::getBundle(const string& aTarget, QueueItemBase::Priority
 	auto b = bundleQueue.getMergeBundle(aTarget);
 	if (!b) {
 		// create a new bundle
-		b = BundlePtr(new Bundle(aTarget, GET_TIME(), aPrio, aDate, Util::emptyString, true, isFileBundle));
+		b = BundlePtr(new Bundle(aTarget, GET_TIME(), aPrio, aDate, 0, true, isFileBundle));
 	} else {
 		// use an existing one
 
@@ -773,7 +773,7 @@ private:
 	unordered_multimap<string, Error> errors;
 };
 
-BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileInfo::List& aFiles, QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) noexcept {
+BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileInfo::List& aFiles, QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) throw(QueueException) {
 	string target = formatBundleTarget(aTarget, aDate);
 
 	int fileCount = aFiles.size();
@@ -1098,7 +1098,7 @@ bool QueueManager::addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::M
 	
 }
 
-Download* QueueManager::getDownload(UserConnection& aSource, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, string& lastError_, string& newUrl, QueueItemBase::DownloadType aType) noexcept{
+Download* QueueManager::getDownload(UserConnection& aSource, const QueueTokenSet& runningBundles, const OrderedStringSet& onlineHubs, string& lastError_, string& newUrl, QueueItemBase::DownloadType aType) noexcept{
 	QueueItemPtr q = nullptr;
 	const UserPtr& u = aSource.getUser();
 	bool hasDownload = false;
@@ -1147,7 +1147,7 @@ Download* QueueManager::getDownload(UserConnection& aSource, const StringSet& ru
 	}
 }
 
-bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const StringSet& runningBundles, string& lastError_, bool mcn /*false*/) noexcept{
+bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& runningBundles, string& lastError_, bool mcn /*false*/) noexcept{
 	// nothing to download?
 	if (!aQI)
 		return false;
@@ -1202,7 +1202,7 @@ bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const StringSet& runnin
 	return true;
 }
 
-bool QueueManager::startDownload(const UserPtr& aUser, const StringSet& runningBundles, const OrderedStringSet& onlineHubs, 
+bool QueueManager::startDownload(const UserPtr& aUser, const QueueTokenSet& runningBundles, const OrderedStringSet& onlineHubs,
 	QueueItemBase::DownloadType aType, int64_t aLastSpeed, string& lastError_) noexcept{
 
 	bool hasDownload = false;
@@ -1218,7 +1218,7 @@ bool QueueManager::startDownload(const UserPtr& aUser, const StringSet& runningB
 pair<QueueItem::DownloadType, bool> QueueManager::startDownload(const UserPtr& aUser, string& hubHint, QueueItemBase::DownloadType aType, 
 	string& bundleToken, bool& allowUrlChange, bool& hasDownload, string& lastError_) noexcept{
 
-	StringSet runningBundles;
+	QueueTokenSet runningBundles;
 	DownloadManager::getInstance()->getRunningBundles(runningBundles);
 
 	auto hubs = ClientManager::getInstance()->getHubSet(aUser->getCID());
@@ -1295,7 +1295,7 @@ bool QueueManager::getQueueInfo(const HintedUser& aUser, string& aTarget, int64_
 	OrderedStringSet hubs;
 	hubs.insert(aUser.hint);
 
-	StringSet runningBundles;
+	QueueTokenSet runningBundles;
 	DownloadManager::getInstance()->getRunningBundles(runningBundles);
 
 	QueueItemPtr qi = nullptr;
@@ -1320,9 +1320,9 @@ bool QueueManager::getQueueInfo(const HintedUser& aUser, string& aTarget, int64_
 	return true;
 }
 
-void QueueManager::onSlowDisconnect(const string& aToken) noexcept {
+void QueueManager::toggleSlowDisconnectBundle(QueueToken aBundleToken) noexcept {
 	RLock l(cs);
-	auto b = bundleQueue.findBundle(aToken);
+	auto b = bundleQueue.findBundle(aBundleToken);
 	if(b) {
 		if(b->isSet(Bundle::FLAG_AUTODROP)) {
 			b->unsetFlag(Bundle::FLAG_AUTODROP);
@@ -1902,22 +1902,6 @@ void QueueManager::matchTTHList(const string& name, const HintedUser& user, int 
 	}
 }
 
-void QueueManager::recheck(const string& aTarget) {
-	tasks.addTask([=] { recheck(aTarget); });
-}
-
-void QueueManager::removeFile(const string aTarget, bool removeData) noexcept {
-	QueueItemPtr qi = nullptr;
-	{
-		RLock l(cs);
-		qi = fileQueue.findFile(aTarget);
-	}
-
-	if (qi) {
-		removeQI(qi, removeData);
-	}
-}
-
 void QueueManager::removeQI(QueueItemPtr& q, bool deleteData /*false*/) noexcept {
 	StringList x;
 	dcassert(q);
@@ -2037,11 +2021,11 @@ void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason, st
 	fire(QueueManagerListener::SourceFilesUpdated(), aUser);
 }
 
-void QueueManager::setBundlePriority(const string& bundleToken, QueueItemBase::Priority p) noexcept {
+void QueueManager::setBundlePriority(QueueToken aBundleToken, QueueItemBase::Priority p) noexcept {
 	BundlePtr bundle = nullptr;
 	{
 		RLock l(cs);
-		bundle = bundleQueue.findBundle(bundleToken);
+		bundle = bundleQueue.findBundle(aBundleToken);
 	}
 
 	setBundlePriority(bundle, p, false);
@@ -2091,11 +2075,11 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 	dcassert(!aBundle->isFileBundle() || aBundle->getPriority() == aBundle->getQueueItems().front()->getPriority());
 }
 
-void QueueManager::setBundleAutoPriority(const string& bundleToken) noexcept {
+void QueueManager::setBundleAutoPriority(QueueToken aBundleToken) noexcept {
 	BundlePtr b = nullptr;
 	{
 		RLock l(cs);
-		b = bundleQueue.findBundle(bundleToken);
+		b = bundleQueue.findBundle(aBundleToken);
 		if (b) {
 			if (b->isFinished())
 				return;
@@ -2207,8 +2191,7 @@ void QueueManager::setQIAutoPriority(const string& aTarget) noexcept {
 		}
 	}
 }
-void QueueManager::updateQIsize(const string& path, int64_t newSize) noexcept {
-	
+void QueueManager::setFileListSize(const string& path, int64_t newSize) noexcept {
 	WLock l(cs);
 	auto q = fileQueue.findFile(path);
 	if (q)
@@ -2224,11 +2207,11 @@ void QueueManager::handleSlowDisconnect(const UserPtr& aUser, const string& aTar
 	}
 }
 
-void QueueManager::removeBundleSource(const string& bundleToken, const UserPtr& aUser, Flags::MaskType reason) noexcept {
+void QueueManager::removeBundleSource(QueueToken aBundleToken, const UserPtr& aUser, Flags::MaskType reason) noexcept {
 	BundlePtr bundle = nullptr;
 	{
 		RLock l(cs);
-		bundle = bundleQueue.findBundle(bundleToken);
+		bundle = bundleQueue.findBundle(aBundleToken);
 	}
 	removeBundleSource(bundle, aUser, reason);
 }
@@ -2286,7 +2269,7 @@ public:
 		inFile = false;
 		inBundle = false;
 		inDownloads = false;
-		curToken.clear();
+		curToken = 0;
 		currentFileTarget.clear();
 	}
 private:
@@ -2297,7 +2280,7 @@ private:
 	bool inDownloads;
 	bool inBundle;
 	bool inFile;
-	string curToken;
+	QueueToken curToken = 0;
 	time_t bundleDate = 0;
 	bool addedByAutosearch = false;
 
@@ -2399,7 +2382,7 @@ QueueItemBase::Priority QueueLoader::validatePrio(const string& aPrio) {
 }
 
 void QueueLoader::createFile(QueueItemPtr& aQI, bool aAddedByAutosearch) {
-	if (ConnectionManager::getInstance()->tokens.addToken(curToken, CONNECTION_TYPE_DOWNLOAD)) {
+	if (ConnectionManager::getInstance()->tokens.addToken(Util::toString(curToken), CONNECTION_TYPE_DOWNLOAD)) {
 		curBundle = new Bundle(aQI, bundleDate, curToken, false);
 		curBundle->setBundleFinished(aQI->getFileFinished());
 		curBundle->setAddedByAutoSearch(aAddedByAutosearch);
@@ -2413,7 +2396,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 	if(!inDownloads && name == "Downloads") {
 		inDownloads = true;
 	} else if (!inFile && name == sFile) {
-		curToken = getAttrib(attribs, sToken, 1);
+		curToken = Util::toUInt32(getAttrib(attribs, sToken, 1));
 		bundleDate = Util::toInt64(getAttrib(attribs, sDate, 2));
 		addedByAutosearch = Util::toBool(Util::toInt(getAttrib(attribs, sAddedByAutoSearch, 3)));
 		inFile = true;
@@ -2439,7 +2422,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 		}
 
 		if (ConnectionManager::getInstance()->tokens.addToken(token, CONNECTION_TYPE_DOWNLOAD)) {
-			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? validatePrio(prio) : Bundle::DEFAULT, dirDate, token, false);
+			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? validatePrio(prio) : Bundle::DEFAULT, dirDate, Util::toUInt32(token), false);
 			time_t finished = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sTimeFinished, 5)));
 			if (finished > 0) {
 				curBundle->setBundleFinished(finished);
@@ -2501,7 +2484,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				} else if (inDownloads) {
 					//assign bundles for the items in the old queue file
 					curBundle = new Bundle(qi, 0);
-				} else if (inFile && !curToken.empty()) {
+				} else if (inFile && curToken != 0) {
 					createFile(qi, addedByAutosearch);
 				}
 			}
@@ -2570,7 +2553,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			if (curBundle && inBundle) {
 				//LogManager::getInstance()->message("itemtoken exists: " + bundleToken);
 				qm->bundleQueue.addBundleItem(qi, curBundle);
-			} else if (inFile && !curToken.empty()) {
+			} else if (inFile && curToken != 0) {
 				createFile(qi, addedByAutosearch);
 			}
 		} else {
@@ -2593,7 +2576,7 @@ void QueueLoader::endTag(const string& name) {
 				qm->addLoadedBundle(curBundle);
 			}
 		} else if(name == sFile) {
-			curToken = Util::emptyString;
+			curToken = 0;
 			inFile = false;
 			if (!curBundle || (curBundle->isEmpty()))
 				throw Exception(STRING(NO_FILES_FROM_FILE));
@@ -2609,7 +2592,7 @@ void QueueLoader::endTag(const string& name) {
 	}
 }
 
-string QueueManager::getBundlePath(const string& aBundleToken) const noexcept{
+string QueueManager::getBundlePath(QueueToken aBundleToken) const noexcept{
 	auto b = bundleQueue.findBundle(aBundleToken);
 	return b ? b->getTarget() : "Unknown";
 }
@@ -2662,7 +2645,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 			}
 			rl.push_back(sr);
 		}
-		delayEvents.addEvent(selQI->getTarget(), [=] { pickMatch(selQI); }, 2000);
+		delayEvents.addEvent(selQI->getToken(), [=] { pickMatch(selQI); }, 2000);
 	}
 }
 
@@ -2829,7 +2812,7 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 		}
 		
 		// queueitems
-		for (auto& q : fileQueue.getQueue() | map_values) {
+		for (auto& q : fileQueue.getPathQueue() | map_values) {
 			if (!q->isRunning())
 				continue;
 
@@ -2985,7 +2968,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) noexcept {
 	}
 }
 
-bool QueueManager::dropSource(Download* d) noexcept {
+bool QueueManager::checkDropSlowSource(Download* d) noexcept {
 	BundlePtr b = d->getBundle();
 	size_t onlineUsers = 0;
 
@@ -3455,7 +3438,7 @@ uint8_t QueueManager::isDirQueued(const string& aDir) const noexcept{
 
 
 
-int QueueManager::getBundleItemCount(const BundlePtr& aBundle) const noexcept {
+int QueueManager::getUnfinishedItemCount(const BundlePtr& aBundle) const noexcept {
 	RLock l(cs); 
 	return aBundle->getQueueItems().size(); 
 }
@@ -3692,12 +3675,12 @@ void QueueManager::addBundleUpdate(const BundlePtr& aBundle) noexcept{
 	});
 }
 
-void QueueManager::handleBundleUpdate(const string& bundleToken) noexcept {
+void QueueManager::handleBundleUpdate(QueueToken aBundleToken) noexcept {
 	//LogManager::getInstance()->message("QueueManager::sendBundleUpdate");
 	BundlePtr b = nullptr;
 	{
 		RLock l(cs);
-		b = bundleQueue.findBundle(bundleToken);
+		b = bundleQueue.findBundle(aBundleToken);
 	}
 
 	if (b) {
@@ -3712,7 +3695,7 @@ void QueueManager::handleBundleUpdate(const string& bundleToken) noexcept {
 		}
 		
 		if (b->isSet(Bundle::FLAG_SCHEDULE_SEARCH)) {
-			searchBundle(b, false);
+			searchBundleAlternates(b, false);
 		}
 	}
 }
@@ -3762,6 +3745,21 @@ void QueueManager::removeBundleItem(QueueItemPtr& qi, bool finished) noexcept{
 
 	fire(QueueManagerListener::BundleSources(), bundle);
 	bundle->setDirty();
+}
+
+bool QueueManager::removeBundle(QueueToken aBundleToken, bool removeFinished) noexcept {
+	BundlePtr b = nullptr;
+	{
+		RLock l(cs);
+		b = bundleQueue.findBundle(aBundleToken);
+	}
+
+	if (b) {
+		removeBundle(b, removeFinished);
+		return true;
+	}
+
+	return false;
 }
 
 void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinished) noexcept{
@@ -3845,7 +3843,7 @@ void QueueManager::removeBundleLists(BundlePtr& aBundle) noexcept{
 		removeQI(qi);
 }
 
-MemoryInputStream* QueueManager::generateTTHList(const string& bundleToken, bool isInSharingHub) throw(QueueException) {
+MemoryInputStream* QueueManager::generateTTHList(QueueToken aBundleToken, bool isInSharingHub) throw(QueueException) {
 	if(!isInSharingHub)
 		throw QueueException(UserConnection::FILE_NOT_AVAILABLE);
 
@@ -3853,7 +3851,7 @@ MemoryInputStream* QueueManager::generateTTHList(const string& bundleToken, bool
 	StringOutputStream tthList(tths);
 	{
 		RLock l(cs);
-		BundlePtr b = bundleQueue.findBundle(bundleToken);
+		BundlePtr b = bundleQueue.findBundle(aBundleToken);
 		if (b) {
 			//write finished items
 			string tmp2;
@@ -3873,11 +3871,11 @@ MemoryInputStream* QueueManager::generateTTHList(const string& bundleToken, bool
 	}
 }
 
-void QueueManager::addBundleTTHList(const HintedUser& aUser, const string& remoteBundle, const TTHValue& tth) throw(QueueException) {
+void QueueManager::addBundleTTHList(const HintedUser& aUser, const string& aRemoteBundleToken, const TTHValue& tth) throw(QueueException) {
 	//LogManager::getInstance()->message("ADD TTHLIST");
 	auto b = findBundle(tth);
 	if (b) {
-		addList(aUser, QueueItem::FLAG_TTHLIST_BUNDLE | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_MATCH_QUEUE, remoteBundle, b);
+		addList(aUser, QueueItem::FLAG_TTHLIST_BUNDLE | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_MATCH_QUEUE, aRemoteBundleToken, b);
 	}
 }
 
@@ -3911,9 +3909,9 @@ void QueueManager::addFinishedNotify(HintedUser& aUser, const TTHValue& aTTH, co
 	//LogManager::getInstance()->message("addFinishedNotify: BUNDLE NOT FOUND");
 }
 
-void QueueManager::removeBundleNotify(const UserPtr& aUser, const string& bundleToken) noexcept {
+void QueueManager::removeBundleNotify(const UserPtr& aUser, QueueToken aBundleToken) noexcept {
 	WLock l(cs);
-	BundlePtr bundle = bundleQueue.findBundle(bundleToken);
+	BundlePtr bundle = bundleQueue.findBundle(aBundleToken);
 	if (bundle) {
 		bundle->removeFinishedNotify(aUser);
 	}
@@ -3942,7 +3940,7 @@ void QueueManager::updatePBD(const HintedUser& aUser, const TTHValue& aTTH) noex
 		ConnectionManager::getInstance()->getDownloadConnection(aUser);
 }
 
-void QueueManager::searchBundle(BundlePtr& aBundle, bool manual, uint64_t aTick) noexcept {
+void QueueManager::searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSearch, uint64_t aTick) noexcept {
 	map<string, QueueItemPtr> searches;
 	int64_t nextSearch = 0;
 	{
@@ -3950,13 +3948,13 @@ void QueueManager::searchBundle(BundlePtr& aBundle, bool manual, uint64_t aTick)
 		bool isScheduled = aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH);
 
 		aBundle->unsetFlag(Bundle::FLAG_SCHEDULE_SEARCH);
-		if (!manual)
+		if (!aIsManualSearch)
 			nextSearch = (bundleQueue.recalculateSearchTimes(aBundle->isRecent(), false, aTick) - aTick) / (60*1000);
 
 		if (isScheduled && !aBundle->allowAutoSearch())
 			return;
 
-		aBundle->getSearchItems(searches, manual);
+		aBundle->getSearchItems(searches, aIsManualSearch);
 	}
 
 	if (searches.empty()) {
@@ -3983,7 +3981,7 @@ void QueueManager::searchBundle(BundlePtr& aBundle, bool manual, uint64_t aTick)
 
 	aBundle->setLastSearch(aTick);
 	int searchCount = (int)searches.size() <= 4 ? (int)searches.size() : 4;
-	if (manual) {
+	if (aIsManualSearch) {
 		LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName().c_str() % searchCount), LogManager::LOG_INFO);
 	} else if(SETTING(REPORT_ALTERNATES)) {
 		//if (aBundle->getSimpleMatching()) {

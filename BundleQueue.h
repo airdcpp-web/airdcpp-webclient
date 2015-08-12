@@ -41,7 +41,7 @@ public:
 
 	void addBundle(BundlePtr& aBundle) noexcept;
 
-	BundlePtr findBundle(const string& bundleToken) const noexcept;
+	BundlePtr findBundle(QueueToken bundleToken) const noexcept;
 	BundlePtr getMergeBundle(const string& aTarget) const noexcept;
 	void getSubBundles(const string& aTarget, BundleList& retBundles) const noexcept;
 
@@ -54,7 +54,7 @@ public:
 	BundlePtr findSearchBundle(uint64_t aTick, bool force = false) noexcept;
 	int64_t recalculateSearchTimes(bool aRecent, bool prioChange) noexcept;*/
 
-	void moveBundle(BundlePtr& aBundle, const string& newTarget) noexcept;
+	void moveBundle(BundlePtr& aBundle, const string& aNewTarget) noexcept;
 	void removeBundle(BundlePtr& aBundle) noexcept;
 
 	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept;
@@ -69,13 +69,13 @@ public:
 
 	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept;
 
-	Bundle::StringBundleMap& getBundles() { return bundles; }
-	const Bundle::StringBundleMap& getBundles() const { return bundles; }
+	Bundle::TokenBundleMap& getBundles() { return bundles; }
+	const Bundle::TokenBundleMap& getBundles() const { return bundles; }
 private:
 	/** Bundles by release directory */	
 	Bundle::BundleDirMap bundleDirs;
 	/** Bundles by token */
-	Bundle::StringBundleMap bundles;
+	Bundle::TokenBundleMap bundles;
 };
 
 } // namespace dcpp

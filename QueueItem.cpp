@@ -46,7 +46,7 @@ namespace {
 
 QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, Flags::MaskType aFlag,
 		time_t aAdded, const TTHValue& tth, const string& aTempTarget) :
-		QueueItemBase(aTarget, aSize, aPriority, aAdded, aFlag),
+		QueueItemBase(aTarget, aSize, aPriority, aAdded, Util::rand(), aFlag),
 		tthRoot(tth), tempTarget(aTempTarget)
 	{
 

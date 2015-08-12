@@ -50,22 +50,24 @@ pair<QueueItemPtr, bool> FileQueue::add(const string& aTarget, int64_t aSize, Fl
 
 pair<QueueItem::StringMap::const_iterator, bool> FileQueue::add(QueueItemPtr& qi) noexcept {
 	dcassert(queueSize >= 0);
-	auto ret = queue.emplace(const_cast<string*>(&qi->getTarget()), qi);
+	auto ret = pathQueue.emplace(const_cast<string*>(&qi->getTarget()), qi);
 	if (ret.second) {
 		tthIndex.emplace(const_cast<TTHValue*>(&qi->getTTH()), qi);
 		if (!qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW) && !qi->isSet(QueueItem::FLAG_FINISHED)) {
 			dcassert(qi->getSize() >= 0);
 			queueSize += qi->getSize();
 		}
+
+		tokenQueue.emplace(qi->getToken(), qi);
 	}
 	return ret;
 }
 
 void FileQueue::remove(QueueItemPtr& qi) noexcept {
 	//TargetMap
-	auto f = queue.find(const_cast<string*>(&qi->getTarget()));
-	if (f != queue.end()) {
-		queue.erase(f);
+	auto f = pathQueue.find(const_cast<string*>(&qi->getTarget()));
+	if (f != pathQueue.end()) {
+		pathQueue.erase(f);
 		if (!qi->isSet(QueueItem::FLAG_USER_LIST) && (!qi->isSet(QueueItem::FLAG_FINISHED) || !qi->getBundle()) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
 			dcassert(qi->getSize() >= 0);
 			queueSize -= qi->getSize();
@@ -81,19 +83,27 @@ void FileQueue::remove(QueueItemPtr& qi) noexcept {
 	if (k.base() != s.second) {
 		tthIndex.erase(k.base());
 	}
+
+	// Tokens
+	tokenQueue.erase(qi->getToken());
 }
 
 QueueItemPtr FileQueue::findFile(const string& target) const noexcept {
-	auto i = queue.find(const_cast<string*>(&target));
-	return (i == queue.end()) ? nullptr : i->second;
+	auto i = pathQueue.find(const_cast<string*>(&target));
+	return (i == pathQueue.end()) ? nullptr : i->second;
 }
 
-void FileQueue::findFiles(const TTHValue& tth, QueueItemList& ql) const noexcept {
-	copy(tthIndex.equal_range(const_cast<TTHValue*>(&tth)) | map_values, back_inserter(ql));
+QueueItemPtr FileQueue::findFile(QueueToken aToken) const noexcept {
+	auto i = tokenQueue.find(aToken);
+	return (i == tokenQueue.end()) ? nullptr : i->second;
 }
 
-void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringItemList& ql) const noexcept {
-	matchDir(dl.getRoot(), ql);
+void FileQueue::findFiles(const TTHValue& tth, QueueItemList& ql_) const noexcept {
+	copy(tthIndex.equal_range(const_cast<TTHValue*>(&tth)) | map_values, back_inserter(ql_));
+}
+
+void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringItemList& ql_) const noexcept {
+	matchDir(dl.getRoot(), ql_);
 }
 
 void FileQueue::matchDir(const DirectoryListing::Directory::Ptr& dir, QueueItem::StringItemList& ql) const noexcept{
@@ -125,9 +135,9 @@ QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH) const noexcept {
 }
 
 void FileQueue::move(QueueItemPtr& qi, const string& aTarget) noexcept {
-	queue.erase(const_cast<string*>(&qi->getTarget()));
+	pathQueue.erase(const_cast<string*>(&qi->getTarget()));
 	qi->setTarget(aTarget);
-	queue.emplace(const_cast<string*>(&qi->getTarget()), qi);
+	pathQueue.emplace(const_cast<string*>(&qi->getTarget()), qi);
 }
 
 // compare nextQueryTime, get the oldest ones
@@ -136,7 +146,7 @@ void FileQueue::findPFSSources(PFSSourceList& sl) noexcept {
 	Buffer buffer;
 	uint64_t now = GET_TICK();
 
-	for(auto& q: queue | map_values) {
+	for(auto& q: pathQueue | map_values) {
 
 		if(q->getSize() < PARTIAL_SHARE_MIN_SIZE) continue;
 

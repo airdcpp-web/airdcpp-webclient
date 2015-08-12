@@ -92,13 +92,13 @@ Client* ClientManager::getClient(const string& aHubURL) noexcept {
 }
 
 void ClientManager::putClient(Client* aClient) noexcept {
-	fire(ClientManagerListener::ClientDisconnected(), aClient->getHubUrl());
 	aClient->removeListeners();
 
 	{
 		WLock l(cs);
 		clients.erase(const_cast<string*>(&aClient->getHubUrl()));
 	}
+	fire(ClientManagerListener::ClientDisconnected(), aClient->getHubUrl());
 	aClient->shutdown();
 }
 

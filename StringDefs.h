@@ -1885,10 +1885,9 @@ enum Strings { // @DontAdd
 	LIST_VIEW_COLORS, // "List view colors"
 	LIST_TEXTSTYLE, // "Font used in list views (User list, Search, Queue, Transfers...)"
 	RESCAN_BUNDLE, // "Rescan bundle"
-	GROUP_REMOVE_ITEMS, // "Remove all items in the group as well?"
+	LINE_SPEED_NOTE, // "Note: You can type your line speed manually if none of the values suit you"	GROUP_REMOVE_ITEMS, // "Remove all items in the group as well?"
 	REMOVE_GROUP, // "Remove group"
 	AS_NEXT_SEARCH_IN, // "Next search in"
 	NO_HUBS_TO_SEARCH_FROM, // "No hubs to search from"
-	AUTOSEARCH_MINIMUM_SEARCH_INTERVAL, // "Minimum search interval for the item to be searched again"
-	LAST // @DontAdd
+	AUTOSEARCH_MINIMUM_SEARCH_INTERVAL, // "Minimum search interval for the item to be searched again"	LAST // @DontAdd
 };

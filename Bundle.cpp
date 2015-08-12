@@ -41,7 +41,7 @@ using boost::range::find_if;
 using boost::accumulate;
 using boost::range::copy;
 	
-Bundle::Bundle(QueueItemPtr& qi, time_t aFileDate, const string& aToken /*empty*/, bool aDirty /*true*/) noexcept :
+Bundle::Bundle(QueueItemPtr& qi, time_t aFileDate, QueueToken aToken /*0*/, bool aDirty /*true*/) noexcept :
 	Bundle(qi->getTarget(), qi->getTimeAdded(), qi->getPriority(), aFileDate, aToken, aDirty, true) {
 
 
@@ -55,13 +55,11 @@ Bundle::Bundle(QueueItemPtr& qi, time_t aFileDate, const string& aToken /*empty*
 	}
 }
 
-Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aBundleDate /*0*/, const string& aToken /*Util::emptyString*/, bool aDirty /*true*/, bool isFileBundle /*false*/) noexcept :
-	QueueItemBase(aTarget, 0, aPriority, aAdded), bundleDate(aBundleDate), fileBundle(isFileBundle), dirty(aDirty) {
+Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aBundleDate /*0*/, QueueToken aToken /*0*/, bool aDirty /*true*/, bool isFileBundle /*false*/) noexcept :
+	QueueItemBase(aTarget, 0, aPriority, aAdded, aToken, 0), bundleDate(aBundleDate), fileBundle(isFileBundle), dirty(aDirty) {
 
-	if (aToken.empty()) {
-		token = ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_DOWNLOAD);
-	} else {
-		token = aToken;
+	if (aToken == 0) {
+		token = Util::toUInt32(ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_DOWNLOAD));
 	}
 
 	setTarget(aTarget);
@@ -88,7 +86,7 @@ Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t 
 }
 
 Bundle::~Bundle() noexcept {
-	ConnectionManager::getInstance()->tokens.removeToken(token);
+	ConnectionManager::getInstance()->tokens.removeToken(getStringToken());
 }
 
 void Bundle::increaseSize(int64_t aSize) noexcept {
@@ -184,7 +182,7 @@ QueueItemPtr Bundle::findQI(const string& aTarget) const noexcept {
 }
 
 string Bundle::getBundleFile() const noexcept {
-	return Util::getPath(Util::PATH_BUNDLES) + "Bundle" + token + ".xml";
+	return Util::getPath(Util::PATH_BUNDLES) + "Bundle" + getStringToken() + ".xml";
 }
 
 void Bundle::deleteBundleFile() noexcept {
@@ -775,7 +773,7 @@ bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 					AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
 
 					cmd.addParam("HI", i.hint);
-					cmd.addParam("BU", token);
+					cmd.addParam("BU", getStringToken());
 					if (!speedStr.empty())
 						cmd.addParam("DS", speedStr);
 					if (percent > 0)
@@ -809,7 +807,7 @@ bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
 
 		cmd.addParam("HI", aSource->getHintedUser().hint);
 		cmd.addParam("TO", aSource->getToken());
-		cmd.addParam("BU", token);
+		cmd.addParam("BU", getStringToken());
 		if (!updateOnly) {
 			cmd.addParam("SI", Util::toString(size));
 			cmd.addParam("NA", getName());
@@ -849,7 +847,7 @@ void Bundle::setBundleMode(bool setSingleUser) noexcept {
 		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 
 		cmd.addParam("HI", u.hint);
-		cmd.addParam("BU", token);
+		cmd.addParam("BU", getStringToken());
 		cmd.addParam("UD1");
 		if (singleUser) {
 			cmd.addParam("SU1");
@@ -881,7 +879,7 @@ bool Bundle::removeRunningUser(const UserConnection* aSource, bool sendRemove) n
 
 			cmd.addParam("HI", aSource->getHintedUser().hint);
 			if (finished) {
-				cmd.addParam("BU", token);
+				cmd.addParam("BU", getStringToken());
 				cmd.addParam("FI1");
 			} else {
 				cmd.addParam("TO", aSource->getToken());
@@ -907,7 +905,7 @@ void Bundle::sendSizeNameUpdate() noexcept {
 	for(auto& u: uploadReports) {
 		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 		cmd.addParam("HI", u.hint);
-		cmd.addParam("BU", token);
+		cmd.addParam("BU", getStringToken());
 
 		if (isSet(FLAG_UPDATE_SIZE)) {
 			unsetFlag(FLAG_UPDATE_SIZE);
@@ -948,7 +946,7 @@ void Bundle::save() throw(FileException) {
 	if (isFileBundle()) {
 		f.write(LIT("<File Version=\"" FILE_BUNDLE_VERSION));
 		f.write(LIT("\" Token=\""));
-		f.write(token);
+		f.write(getStringToken());
 		f.write(LIT("\" Date=\""));
 		f.write(Util::toString(bundleDate));
 		f.write(LIT("\" AddedByAutoSearch=\""));
@@ -961,7 +959,7 @@ void Bundle::save() throw(FileException) {
 		f.write(LIT("\" Target=\""));
 		f.write(SimpleXML::escape(target, tmp, true));
 		f.write(LIT("\" Token=\""));
-		f.write(token);
+		f.write(getStringToken());
 		f.write(LIT("\" Added=\""));
 		f.write(Util::toString(getTimeAdded()));
 		f.write(LIT("\" Date=\""));

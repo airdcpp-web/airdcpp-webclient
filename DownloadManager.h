@@ -49,7 +49,7 @@ public:
 	void setTarget(const string& oldTarget, const string& newTarget);
 	void changeBundle(BundlePtr sourceBundle, BundlePtr targetBundle, const string& path);
 	void sendSizeNameUpdate(BundlePtr& aBundle);
-	BundlePtr findRunningBundle(const string& bundleToken);
+	BundlePtr findRunningBundle(QueueToken bundleToken);
 
 	/** @internal */
 	void abortDownload(const string& aTarget, const UserPtr& aUser = nullptr);
@@ -70,12 +70,15 @@ public:
 
 	// This will ignore bundles with no downloads and 
 	// bundles using highest priority
-	void getRunningBundles(StringSet& bundles_) const;
+	void getRunningBundles(QueueTokenSet& bundles_) const;
 
 	SharedMutex& getCS() { return cs; }
 	const DownloadList& getDownloads() const {
 		return downloads;
 	}
+
+	IGETSET(int64_t, lastUpSpeed, LastUpSpeed, 0);
+	IGETSET(int64_t, lastDownSpeed, LastDownSpeed, 0);
 private:
 	
 	mutable SharedMutex cs;
@@ -84,7 +87,7 @@ private:
 	// The list of bundles being download. Note that all of them may not be running
 	// as the bundle is removed from here only after the connection has been 
 	// switched to use another bundle (or no other downloads were found)
-	Bundle::StringBundleMap bundles;
+	Bundle::TokenBundleMap bundles;
 	UserConnectionList idlers;
 
 	void removeRunningUser(UserConnection* aSource, bool sendRemoved=false);
@@ -92,8 +95,6 @@ private:
 	void removeDownload(Download* aDown);
 	void fileNotAvailable(UserConnection* aSource, bool noAccess);
 	void noSlots(UserConnection* aSource, string param = Util::emptyString);
-	
-	int64_t getResumePos(const string& file, const TigerTree& tt, int64_t startPos);
 
 	void failDownload(UserConnection* aSource, const string& reason, bool rotateQueue);
 
@@ -127,6 +128,10 @@ private:
 
 	typedef pair< string, int64_t > StringIntPair;
 
+	// Statistics
+	uint64_t lastUpdate = 0;
+	int64_t lastUpBytes = 0;
+	int64_t lastDownBytes = 0;
 };
 
 } // namespace dcpp

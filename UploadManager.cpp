@@ -325,7 +325,7 @@ checkslots:
 				// Partial file list
 				if (tthList) {
 					if (aFile[0] != '/') {
-						mis.reset(QueueManager::getInstance()->generateTTHList(aFile, *profile != SP_HIDDEN));
+						mis.reset(QueueManager::getInstance()->generateTTHList(Util::toUInt32(aFile), *profile != SP_HIDDEN));
 					} else {
 						mis.reset(ShareManager::getInstance()->generateTTHList(aFile, listRecursive, *profile));
 					}

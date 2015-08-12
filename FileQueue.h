@@ -43,7 +43,9 @@ public:
 	pair<QueueItem::StringMap::const_iterator, bool> add(QueueItemPtr& qi) noexcept;
 	pair<QueueItemPtr, bool> add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItemBase::Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;
 
-	QueueItemPtr findFile(const string& target) const noexcept;
+	QueueItemPtr findFile(const string& aTarget) const noexcept;
+	QueueItemPtr findFile(QueueToken aToken) const noexcept;
+
 	void findFiles(const TTHValue& tth, QueueItemList& ql) const noexcept;
 	void matchListing(const DirectoryListing& dl, QueueItem::StringItemList& ql) const noexcept;
 	void matchDir(const DirectoryListing::Directory::Ptr& dir, QueueItem::StringItemList& ql) const noexcept;
@@ -51,20 +53,22 @@ public:
 	// find some PFS sources to exchange parts info
 	void findPFSSources(PFSSourceList&) noexcept;
 
-	size_t getSize() noexcept { return queue.size(); }
-	QueueItem::StringMap& getQueue() noexcept { return queue; }
-	const QueueItem::StringMap& getQueue() const noexcept{ return queue; }
+	size_t getSize() noexcept { return pathQueue.size(); }
+	QueueItem::StringMap& getPathQueue() noexcept { return pathQueue; }
+	const QueueItem::StringMap& getPathQueue() const noexcept{ return pathQueue; }
 	QueueItem::TTHMap& getTTHIndex() noexcept { return tthIndex; }
 
 	void move(QueueItemPtr& qi, const string& aTarget) noexcept;
 	void remove(QueueItemPtr& qi) noexcept;
+
 	int isFileQueued(const TTHValue& aTTH) const noexcept;
 	QueueItemPtr getQueuedFile(const TTHValue& aTTH) const noexcept;
 
 	uint64_t getTotalQueueSize() const noexcept { return queueSize; }
 private:
-	QueueItem::StringMap queue;
+	QueueItem::StringMap pathQueue;
 	QueueItem::TTHMap tthIndex;
+	QueueItem::TokenMap tokenQueue;
 
 	uint64_t queueSize;
 };

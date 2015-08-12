@@ -199,7 +199,7 @@ void NmdcHub::updateFromTag(Identity& id, const string& tag) {
 			continue;
 
 		if(i.compare(0, 2, "H:") == 0) {
-			StringTokenizer<string> t(i.substr(2), '/');
+			StringTokenizer<string> t(i.substr(2), '/', true);
 			if(t.getTokens().size() != 3)
 				continue;
 			id.set("HN", t.getTokens()[0]);
@@ -638,7 +638,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		
 
 	} else if(cmd == "Supports") {
-		StringTokenizer<string> st(param, ' ');
+		StringTokenizer<string> st(param, ' ', true);
 		StringList& sl = st.getTokens();
 		for(auto& i: sl) {
 			if(i == "UserCommand") {
@@ -755,7 +755,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 	} else if(cmd == "UserIP") {
 		if(!param.empty()) {
 			OnlineUserList v;
-			StringTokenizer<string> t(param, "$$");
+			StringTokenizer<string> t(param, "$$", true);
 			StringList& l = t.getTokens();
 			for(auto& it: l) {
 				string::size_type j = 0;
@@ -786,9 +786,6 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			StringList& sl = t.getTokens();
 
 			for(StringIter it = sl.begin(); it != sl.end(); ++it) {
-				if(it->empty())
-					continue;
-				
 				v.push_back(&getUser(*it));
 			}
 
@@ -815,8 +812,6 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			StringTokenizer<string> t(param, "$$");
 			StringList& sl = t.getTokens();
 			for(StringIter it = sl.begin(); it != sl.end(); ++it) {
-				if(it->empty())
-					continue;
 				OnlineUser& ou = getUser(*it);
 				ou.getIdentity().setOp(true);
 				if(ou.getUser() == getMyIdentity().getUser()) {

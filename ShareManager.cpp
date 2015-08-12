@@ -1001,16 +1001,6 @@ FileList* ShareManager::getFileList(ProfileToken aProfile) const throw(ShareExce
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 }
 
-ShareProfilePtr ShareManager::getProfile(ProfileToken aProfile) const noexcept {
-	RLock l(cs);
-	const auto i = find(shareProfiles.begin(), shareProfiles.end(), aProfile);
-	if(i != shareProfiles.end()) {
-		return *i;
-	}
-
-	return nullptr;
-}
-
 pair<int64_t, string> ShareManager::getFileListInfo(const string& virtualFile, ProfileToken aProfile) throw(ShareException) {
 	if(virtualFile == "MyList.DcLst") 
 		throw ShareException("NMDC-style lists no longer supported, please upgrade your client");
@@ -1237,7 +1227,7 @@ string ShareManager::realToVirtual(const string& aPath, ProfileToken aProfile) n
 	return Util::emptyString;
 }
 
-string ShareManager::validateVirtual(const string& aVirt) const noexcept {
+string ShareManager::validateVirtualName(const string& aVirt) const noexcept {
 	string tmp = aVirt;
 	string::size_type idx = 0;
 
@@ -1271,7 +1261,7 @@ void ShareManager::loadProfile(SimpleXML& aXml, const string& aName, ProfileToke
 		}
 
 		const string& virtualName = aXml.getChildAttrib("Virtual");
-		string vName = validateVirtual(virtualName.empty() ? Util::getLastDir(realPath) : virtualName);
+		string vName = validateVirtualName(virtualName.empty() ? Util::getLastDir(realPath) : virtualName);
 
 		ProfileDirectory::Ptr pd = nullptr;
 		auto p = profileDirs.find(realPath);
@@ -1749,16 +1739,6 @@ void ShareManager::getByVirtual(const string& virtualName, const ProfileTokenSet
 	}
 }
 
-int64_t ShareManager::getShareSize(const string& realPath, ProfileToken aProfile) const noexcept {
-	RLock l(cs);
-	const auto j = findRoot(realPath);
-	if(j != rootPaths.end()) {
-		return j->second->getSize(aProfile);
-	}
-	return -1;
-
-}
-
 void ShareManager::Directory::getProfileInfo(ProfileToken aProfile, int64_t& totalSize, size_t& filesCount) const noexcept {
 	totalSize += size;
 	filesCount += files.size();
@@ -2015,10 +1995,7 @@ void ShareManager::updateIndices(Directory& dir, const Directory::File* f, Share
 }
 
 int ShareManager::refresh(const string& aDir) noexcept {
-	string path = aDir;
-
-	if(path[ path.length() -1 ] != PATH_SEPARATOR)
-		path += PATH_SEPARATOR;
+	string path = Util::validatePath(aDir, true);
 
 	StringList refreshPaths;
 	string displayName;
@@ -2372,7 +2349,7 @@ void ShareManager::changeDirectories(const ShareDirInfo::List& changedDirs) noex
 	{
 		WLock l(cs);
 		for(const auto& cd: changedDirs) {
-			string vName = validateVirtual(cd->vname);
+			string vName = validateVirtualName(cd->vname);
 			dirtyProfiles.insert(cd->profile);
 
 			auto p = findRoot(cd->path);

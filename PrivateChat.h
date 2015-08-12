@@ -115,6 +115,7 @@ namespace dcpp {
 		// ClientManagerListener
 		void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
 		void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
+		void on(ClientManagerListener::ClientDisconnected, const string& aHubUrl) noexcept;
 
 		bool online = true;
 

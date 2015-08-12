@@ -420,8 +420,7 @@ void DirectoryListing::Directory::download(const string& aTarget, BundleFileInfo
 	// Then add the files
 	sort(files.begin(), files.end(), File::Sort());
 	for(const auto& f: files) {
-		//aFiles.emplace_back(aTarget + f->getName(), f->getTTH(), f->getSize());
-		aFiles.push_back(new BundleFileInfo(aTarget + f->getName(), f->getTTH(), f->getSize()));
+		aFiles.emplace_back(aTarget + f->getName(), f->getTTH(), f->getSize());
 	}
 }
 

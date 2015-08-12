@@ -102,7 +102,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 					{
 						if(aTick - d->getLastTick() > (uint32_t)SETTING(DISCONNECT_TIME) * 1000)
 						{
-							if(QueueManager::getInstance()->dropSource(d))
+							if(QueueManager::getInstance()->checkDropSlowSource(d))
 							{
 								dropTargets.emplace_back(d->getPath(), d->getBundle(), d->getUser());
 							}
@@ -121,6 +121,24 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 				}
 			}
 		}
+
+		// Statistics
+		int64_t totalDown = Socket::getTotalDown();
+		int64_t totalUp = Socket::getTotalUp();
+
+		int64_t diff = (int64_t)((lastUpdate == 0) ? aTick - 1000 : aTick - lastUpdate);
+		int64_t updiff = totalUp - lastUpBytes;
+		int64_t downdiff = totalDown - lastDownBytes;
+
+		lastDownSpeed = downdiff * 1000I64 / diff;
+		lastUpSpeed = updiff * 1000I64 / diff;
+
+		SettingsManager::getInstance()->set(SettingsManager::TOTAL_UPLOAD, SETTING(TOTAL_UPLOAD) + updiff);
+		SettingsManager::getInstance()->set(SettingsManager::TOTAL_DOWNLOAD, SETTING(TOTAL_DOWNLOAD) + downdiff);
+
+		lastUpdate = aTick;
+		lastUpBytes = totalUp;
+		lastDownBytes = totalDown;
 
 		if(!tickList.empty()) {
 			fire(DownloadManagerListener::Tick(), tickList);
@@ -147,7 +165,7 @@ void DownloadManager::sendSizeNameUpdate(BundlePtr& aBundle) {
 }
 
 void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
-	if (aSource->getLastBundle().empty() || aSource->getLastBundle() != aBundle->getToken()) {
+	if (aSource->getLastBundle().empty() || aSource->getLastBundle() != Util::toString(aBundle->getToken())) {
 		if (!aSource->getLastBundle().empty()) {
 			removeRunningUser(aSource);
 		} 
@@ -206,7 +224,7 @@ void DownloadManager::addConnection(UserConnection* conn) {
 	checkDownloads(conn);
 }
 
-void DownloadManager::getRunningBundles(StringSet& bundles_) const {
+void DownloadManager::getRunningBundles(QueueTokenSet& bundles_) const {
 	RLock l(cs);
 	for (const auto& b : bundles | map_values) {
 		// we need to check this to ignore previous bundles for running connections 
@@ -241,7 +259,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	hubs.insert(aConn->getHubUrl());
 
 	string errorMessage;
-	StringSet runningBundles;
+	QueueTokenSet runningBundles;
 	getRunningBundles(runningBundles);
 
 	bool start = QueueManager::getInstance()->startDownload(aConn->getHintedUser(), runningBundles, hubs, dlType, aConn->getSpeed(), errorMessage);
@@ -355,7 +373,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 		if(bytes >= 0) {
 			d->setSegmentSize(bytes);
 			if ((d->getType() == Download::TYPE_PARTIAL_LIST) || (d->getType() == Download::TYPE_FULL_LIST))
-				QueueManager::getInstance()->updateQIsize(d->getPath(), bytes);
+				QueueManager::getInstance()->setFileListSize(d->getPath(), bytes);
 		} else {
 			failDownload(aSource, STRING(INVALID_SIZE), true);
 			return;
@@ -590,8 +608,8 @@ void DownloadManager::changeBundle(BundlePtr sourceBundle, BundlePtr targetBundl
 	}
 }
 
-BundlePtr DownloadManager::findRunningBundle(const string& bundleToken) {
-	auto s = bundles.find(bundleToken);
+BundlePtr DownloadManager::findRunningBundle(QueueToken aBundleToken) {
+	auto s = bundles.find(aBundleToken);
 	if (s != bundles.end()) {
 		return s->second;
 	}
@@ -605,7 +623,7 @@ void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove
 
 	{
 		WLock l (cs);
-		BundlePtr bundle = findRunningBundle(aSource->getLastBundle());
+		BundlePtr bundle = findRunningBundle(Util::toUInt32(aSource->getLastBundle()));
 		if (bundle && bundle->removeRunningUser(aSource, sendRemove)) {
 			//no running users for this bundle
 			bundles.erase(bundle->getToken());

@@ -74,7 +74,7 @@ void BundleQueue::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& 
 	}
 }
 
-BundlePtr BundleQueue::findBundle(const string& bundleToken) const noexcept {
+BundlePtr BundleQueue::findBundle(QueueToken bundleToken) const noexcept {
 	auto i = bundles.find(bundleToken);
 	return i != bundles.end() ? i->second : nullptr;
 }

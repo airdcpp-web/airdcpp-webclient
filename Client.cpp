@@ -128,7 +128,7 @@ void Client::reloadSettings(bool updateNick) {
 			setShareProfile(shareProfile == SP_HIDDEN ? SP_HIDDEN : SETTING(DEFAULT_SP));
 	}
 
-	searchQueue.minInterval = get(HubSettings::SearchInterval);
+	searchQueue.minInterval = get(HubSettings::SearchInterval) * 1000; //convert from seconds
 	if (updateNick)
 		checkNick(get(Nick));
 	else
