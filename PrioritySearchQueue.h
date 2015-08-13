@@ -76,16 +76,17 @@ public:
 		return ret;
 	}
 
-	int64_t recalculateSearchTimes(bool aRecent, bool isPrioChange, uint64_t aTick, int minInterval = SETTING(SEARCH_TIME)) noexcept{
+	int64_t recalculateSearchTimes(bool aRecent, bool isPrioChange, uint64_t aTick, int aItemCount = 0, int minInterval = SETTING(SEARCH_TIME)) noexcept{
 		if (!aRecent) {
-			int prioItems = getPrioSum(false);
+			if(aItemCount == 0)
+				aItemCount = getPrioSum();
 
 			//start with the min interval
 			if(isPrioChange && nextSearch == 0)
 				nextSearch = aTick + (minInterval * 60 * 1000);
 
-			if (prioItems > 0) {
-				minInterval = max(60 / prioItems, minInterval);
+			if (aItemCount > 0) {
+				minInterval = max(60 / aItemCount, minInterval);
 			}
 
 			if (nextSearch > 0 && isPrioChange) {
@@ -151,7 +152,7 @@ private:
 
 	ItemT findNormal() noexcept{
 		ProbabilityList probabilities;
-		int itemCount = getPrioSum(true, &probabilities);
+		int itemCount = getPrioSum(&probabilities);
 
 		//do we have anything where to search from?
 		if (itemCount == 0) {
@@ -179,12 +180,12 @@ private:
 
 	boost::mt19937 gen;
 
-	int getPrioSum(bool checkItemInterval = true, ProbabilityList* probabilities_ = nullptr) const noexcept{
+	int getPrioSum(ProbabilityList* probabilities_ = nullptr) const noexcept{
 		int itemCount = 0;
 		int p = QueueItemBase::LOW;
 		do {
 			int dequeItems = count_if(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), [&](const ItemT& aItem) { 
-				return aItem->allowAutoSearch(checkItemInterval);
+				return aItem->allowAutoSearch();
 			});
 
 			if (probabilities_)

@@ -258,7 +258,7 @@ public:
 
 	void getSearchItems(map<string, QueueItemPtr>& searches, bool manual) const noexcept;
 	void updateSearchMode() noexcept;
-	bool allowAutoSearch(bool tmp = false) const noexcept;
+	bool allowAutoSearch() const noexcept;
 
 	bool onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept;
 

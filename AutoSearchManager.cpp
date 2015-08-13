@@ -454,20 +454,24 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 	}
 }
 void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aUpdate) noexcept {
+	int itemCount = 0;
 
 	RLock l(cs);
-	uint64_t tt = searchItems.recalculateSearchTimes(false, aUpdate, aTick, SETTING(AUTOSEARCH_EVERY));
-
 	if (searchItems.getItems().empty()) {
 		nextSearch = 0;
 		return;
 	}
+
 	time_t tmp = 0;
 	//calculate which of the items has the nearest possible search time.
 	for (auto x : searchItems.getItems() | map_values) {
 		auto next_tt = x->getNextSearchTime();
 		if (next_tt == 0)
 			continue;
+
+		if (x->nextAllowedSearch() < GET_TIME())
+			itemCount++;
+
 		tmp = tmp == 0 ? next_tt : min(next_tt, tmp);
 	}
 
@@ -476,12 +480,16 @@ void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aUpdate) noexcept 
 		nextSearch = 0;
 		return;
 	}
+	uint64_t nextSearchTick = 0;
+	
+	if(itemCount > 0)
+		nextSearchTick = searchItems.recalculateSearchTimes(false, aUpdate, aTick, itemCount, SETTING(AUTOSEARCH_EVERY));
 
 	//We already missed the search time, add 3 seconds and search then.
-	if (aTick > tt)
-		tt = aTick + 3000;
+	if (aTick > nextSearchTick)
+		nextSearchTick = aTick + 3000;
 
-	time_t t = GET_TIME() + ((tt - aTick) / 1000);
+	time_t t = GET_TIME() + ((nextSearchTick - aTick) / 1000);
 	nextSearch = max(tmp, t);
 	
 }
