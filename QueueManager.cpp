@@ -207,7 +207,7 @@ void QueueManager::handleFailedRecheckItems(const QueueItemList& ql) noexcept {
 		q->unsetFlag(QueueItem::FLAG_FINISHED);
 		q->unsetFlag(QueueItem::FLAG_HASHED);
 		q->setBundle(nullptr);
-		q->setFileFinished(0);
+		q->setTimeFinished(0);
 
 		bundleQueue.addBundleItem(q, b);
 
@@ -369,7 +369,7 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 			q->setFlag(QueueItem::FLAG_MOVED);
 		}
 
-		q->setFileFinished(GET_TIME());
+		q->setTimeFinished(GET_TIME());
 		q->setFlag(QueueItem::FLAG_FINISHED);
 
 		{
@@ -1784,7 +1784,7 @@ void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess
 					}
 
 					removeFinished = true;
-					q->setFileFinished(GET_TIME());
+					q->setTimeFinished(GET_TIME());
 					q->setFlag(QueueItem::FLAG_FINISHED);
 					userQueue.removeQI(q);
 
@@ -2384,7 +2384,7 @@ QueueItemBase::Priority QueueLoader::validatePrio(const string& aPrio) {
 void QueueLoader::createFile(QueueItemPtr& aQI, bool aAddedByAutosearch) {
 	if (ConnectionManager::getInstance()->tokens.addToken(Util::toString(curToken), CONNECTION_TYPE_DOWNLOAD)) {
 		curBundle = new Bundle(aQI, bundleDate, curToken, false);
-		curBundle->setBundleFinished(aQI->getFileFinished());
+		curBundle->setTimeFinished(aQI->getTimeFinished());
 		curBundle->setAddedByAutoSearch(aAddedByAutosearch);
 	} else {
 		qm->fileQueue.remove(aQI);
@@ -2425,7 +2425,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? validatePrio(prio) : Bundle::DEFAULT, dirDate, Util::toUInt32(token), false);
 			time_t finished = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sTimeFinished, 5)));
 			if (finished > 0) {
-				curBundle->setBundleFinished(finished);
+				curBundle->setTimeFinished(finished);
 			}
 			curBundle->setAddedByAutoSearch(b_autoSearch);
 		} else {
@@ -2547,7 +2547,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 
 			auto& qi = ret.first;
 			qi->addFinishedSegment(Segment(0, size)); //make it complete
-			qi->setFileFinished(finished);
+			qi->setTimeFinished(finished);
 			qi->setLastSource(lastsource);
 
 			if (curBundle && inBundle) {
@@ -3362,7 +3362,7 @@ void QueueManager::connectBundleSources(BundlePtr& aBundle) noexcept {
 	HintedUserList x;
 	{
 		RLock l(cs);
-		aBundle->getSources(x);
+		aBundle->getSourceUsers(x);
 	}
 
 	for(auto& u: x) { 
@@ -3383,7 +3383,7 @@ void QueueManager::readdBundle(BundlePtr& aBundle) noexcept {
 		}
 	}
 
-	aBundle->setBundleFinished(0);
+	aBundle->setTimeFinished(0);
 	bundleQueue.addSearchPrio(aBundle);
 	LogManager::getInstance()->message(STRING_F(BUNDLE_READDED, aBundle->getName().c_str()), LogManager::LOG_INFO);
 }

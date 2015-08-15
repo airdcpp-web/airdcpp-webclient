@@ -200,7 +200,7 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 	removeSearchPrio(aBundle);
 	bundles.erase(aBundle->getToken());
 
-	aBundle->deleteBundleFile();
+	aBundle->deleteXmlFile();
 }
 
 void BundleQueue::moveBundle(BundlePtr& aBundle, const string& newTarget) noexcept {

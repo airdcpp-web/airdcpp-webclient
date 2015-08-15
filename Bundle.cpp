@@ -149,7 +149,7 @@ void Bundle::removeFinishedSegment(int64_t aSize) noexcept{
 void Bundle::finishBundle() noexcept {
 	speed = 0;
 	currentDownloaded = 0;
-	bundleFinished = GET_TIME();
+	timeFinished = GET_TIME();
 }
 
 int64_t Bundle::getSecondsLeft() const noexcept {
@@ -181,14 +181,14 @@ QueueItemPtr Bundle::findQI(const string& aTarget) const noexcept {
 	return p != queueItems.end() ? *p : nullptr;
 }
 
-string Bundle::getBundleFile() const noexcept {
+string Bundle::getXmlFilePath() const noexcept {
 	return Util::getPath(Util::PATH_BUNDLES) + "Bundle" + getStringToken() + ".xml";
 }
 
-void Bundle::deleteBundleFile() noexcept {
+void Bundle::deleteXmlFile() noexcept {
 	try {
-		File::deleteFile(getBundleFile() + ".bak");
-		File::deleteFile(getBundleFile());
+		File::deleteFile(getXmlFilePath() + ".bak");
+		File::deleteFile(getXmlFilePath());
 	} catch(const FileException& /*e1*/) {
 		//..
 	}
@@ -204,7 +204,7 @@ void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
 }
 
 bool Bundle::addFinishedItem(QueueItemPtr& qi, bool finished) noexcept {
-	dcassert(qi->isSet(QueueItem::FLAG_FINISHED) && qi->getFileFinished() > 0);
+	dcassert(qi->isSet(QueueItem::FLAG_FINISHED) && qi->getTimeFinished() > 0);
 
 	finishedFiles.push_back(qi);
 	if (!finished) {
@@ -251,7 +251,7 @@ bool Bundle::addQueue(QueueItemPtr& qi) noexcept {
 		return addFinishedItem(qi, false);
 	}
 
-	dcassert(qi->getFileFinished() == 0);
+	dcassert(qi->getTimeFinished() == 0);
 	dcassert(!qi->isSet(QueueItem::FLAG_FINISHED) && !qi->isSet(QueueItem::FLAG_MOVED));
 	dcassert(find(queueItems, qi) == queueItems.end());
 
@@ -392,7 +392,7 @@ void Bundle::removeFinishedNotify(const UserPtr& aUser) noexcept {
 	}
 }
 
-void Bundle::getSources(HintedUserList& l) const noexcept {
+void Bundle::getSourceUsers(HintedUserList& l) const noexcept {
 	for (auto& st : sources) {
 		l.push_back(st.getUser());
 	}
@@ -611,15 +611,6 @@ int Bundle::countOnlineUsers() const noexcept {
 	return (queueItems.size() == 0 ? 0 : (files / queueItems.size()));
 }
 
-string Bundle::getBundleText() noexcept {
-	double percent = size <= 0 ? 0.00 : (double)((currentDownloaded+finishedSegments)*100.0)/(double)size;
-	if (fileBundle) {
-		return getName();
-	} else {
-		return getName() + " (" + Util::toString(percent) + "%, " + AirUtil::getPrioText(getPriority()) + ", " + Util::toString(sources.size()) + " sources)";
-	}
-}
-
 void Bundle::clearFinishedNotifications(FinishedNotifyList& fnl) noexcept {
 	finishedNotifications.swap(fnl);
 }
@@ -793,7 +784,7 @@ bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
 	auto y = runningUsers.find(aSource->getUser());
 	if (y == runningUsers.end()) {
 		if (runningUsers.size() == 1) {
-			setBundleMode(false);
+			setUserMode(false);
 		}
 		runningUsers[aSource->getUser()]++;
 	} else {
@@ -831,7 +822,7 @@ bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
 	return runningUsers.size() == 1;
 }
 
-void Bundle::setBundleMode(bool setSingleUser) noexcept {
+void Bundle::setUserMode(bool setSingleUser) noexcept {
 	if (setSingleUser) {
 		lastSpeed = 0;
 		lastDownloaded= 0;
@@ -869,7 +860,7 @@ bool Bundle::removeRunningUser(const UserConnection* aSource, bool sendRemove) n
 		if (y->second == 0) {
 			runningUsers.erase(aSource->getUser());
 			if (runningUsers.size() == 1) {
-				setBundleMode(true);
+				setUserMode(true);
 			}
 			finished = true;
 		}
@@ -927,7 +918,7 @@ void Bundle::sendSizeNameUpdate() noexcept {
 
 
 void Bundle::save() throw(FileException) {
-	File ff(getBundleFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
+	File ff(getXmlFilePath() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
 	BufferedOutputStream<false> f(&ff);
 	f.write(SimpleXML::utf8Header);
 	string tmp;
@@ -970,9 +961,9 @@ void Bundle::save() throw(FileException) {
 			f.write(LIT("\" Priority=\""));
 			f.write(Util::toString((int)getPriority()));
 		}
-		if (bundleFinished > 0) {
+		if (timeFinished > 0) {
 			f.write(LIT("\" TimeFinished=\""));
-			f.write(Util::toString(bundleFinished));
+			f.write(Util::toString(timeFinished));
 		}
 		f.write(LIT("\">\r\n"));
 
@@ -984,8 +975,8 @@ void Bundle::save() throw(FileException) {
 	f.flush();
 	ff.close();
 
-	File::deleteFile(getBundleFile());
-	File::renameFile(getBundleFile() + ".tmp", getBundleFile());
+	File::deleteFile(getXmlFilePath());
+	File::renameFile(getXmlFilePath() + ".tmp", getXmlFilePath());
 	
 	dirty = false;
 }

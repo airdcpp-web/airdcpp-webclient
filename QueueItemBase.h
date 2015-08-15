@@ -61,7 +61,7 @@ public:
 	GETSET(Priority, priority, Priority);
 	GETSET(bool, autoPriority, AutoPriority);
 	GETSET(time_t, timeAdded, TimeAdded);
-	IGETSET(time_t, fileFinished, FileFinished, 0);
+	IGETSET(time_t, timeFinished, TimeFinished, 0);
 	GETSET(string, target, Target);
 	GETSET(DownloadList, downloads, Downloads);
 	GETSET(int64_t, size, Size);

@@ -157,7 +157,6 @@ public:
 	GETSET(string, lastError, LastError);
 
 	IGETSET(Status, status, Status, STATUS_NEW);
-	IGETSET(time_t, bundleFinished, BundleFinished, 0);		// time when the bundle finished downloading
 	IGETSET(time_t, bundleDate, BundleDate, 0);				// the file/directory modify date picked from the remote filelist when the bundle has been queued
 	IGETSET(uint64_t, start, Start, 0);						// time that is being reset every time when a waiting the bundle gets running downloads
 	IGETSET(time_t, lastSearch, LastSearch, 0);				// last time when the bundle was searched for
@@ -186,8 +185,8 @@ public:
 	QueueItemList& getFinishedFiles() { return finishedFiles; }
 	HintedUserList& getUploadReports() { return uploadReports; }
 	QueueItemList& getQueueItems() { return queueItems; }
-	DirMap& getBundleDirs() { return bundleDirs; }
-	SourceList& getBundleSources() { return sources; }
+	DirMap& getDirectories() { return bundleDirs; }
+	SourceList& getSources() { return sources; }
 	SourceList& getBadSources() { return badSources; }
 
 	/* Misc */
@@ -199,15 +198,13 @@ public:
 	const string& getTarget() const noexcept { return target; }
 	string getName() const noexcept;
 
-	string getBundleFile() const noexcept;
-	void deleteBundleFile() noexcept;
+	string getXmlFilePath() const noexcept;
+	void deleteXmlFile() noexcept;
 
 	void setDirty() noexcept;
 	bool getDirty() const noexcept;
 	bool checkRecent() noexcept;
 	bool isRecent() const noexcept { return recent; }
-
-	string getBundleText() noexcept;
 
 	/* QueueManager */
 	bool isFailed() const noexcept;
@@ -249,7 +246,7 @@ public:
 	/* DownloadManager */
 	bool addRunningUser(const UserConnection* aSource) noexcept;
 	bool removeRunningUser(const UserConnection* aSource, bool sendRemove) noexcept;
-	void setBundleMode(bool setSingleUser) noexcept;
+	void setUserMode(bool setSingleUser) noexcept;
 
 	void sendSizeNameUpdate() noexcept;
 
@@ -268,7 +265,7 @@ public:
 	void decreaseRunning() noexcept { running--; }
 
 	/* Sources*/
-	void getSources(HintedUserList& l) const noexcept;
+	void getSourceUsers(HintedUserList& l) const noexcept;
 	bool isSource(const UserPtr& aUser) const noexcept;
 	bool isBadSource(const UserPtr& aUser) const noexcept;
 	bool isFinished() const noexcept { return queueItems.empty(); }
