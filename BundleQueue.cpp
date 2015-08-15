@@ -188,7 +188,7 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 		return;
 	}
 
-	for(const auto& d: aBundle->getBundleDirs() | map_keys) {
+	for(const auto& d: aBundle->getDirectories() | map_keys) {
 		removeDirectory(d);
 	}
 

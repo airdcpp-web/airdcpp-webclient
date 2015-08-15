@@ -163,31 +163,22 @@ public:
 	IGETSET(bool, simpleMatching, SimpleMatching, true);	// the directory structure is simple enough for matching partial lists with subdirs cut from the path
 	IGETSET(bool, seqOrder, SeqOrder, false);				// using an alphabetical downloading order for files (not enabled by default for fresh bundles)
 
-	IGETSET(uint16_t, running, Running, 0);				// number of running users
 	IGETSET(bool, singleUser, SingleUser, true);		// the bundle is downloaded from a single user (may have multiple connections)
 
 	IGETSET(int64_t, actual, Actual, 0); 
 	IGETSET(int64_t, speed, Speed, 0);					// the speed calculated on every second in downloadmanager
 	IGETSET(bool, addedByAutoSearch, AddedByAutoSearch, false);		// the bundle was added by auto search
 
-
-	GETSET(FinishedNotifyList, finishedNotifications, FinishedNotifications);	// partial bundle sharing sources (mapped to their local tokens)
-	GETSET(UserIntMap, runningUsers, RunningUsers);			// running users and their connections cached
 	GETSET(QueueItemList, queueItems, QueueItems);
 	GETSET(QueueItemList, finishedFiles, FinishedFiles);
-	GETSET(HintedUserList, uploadReports, UploadReports);	 // sources receiving UBN notifications (running only)
-	GETSET(DirMap, bundleDirs, BundleDirs);
 	GETSET(SourceList, badSources, BadSources);
 	GETSET(SourceList, sources, Sources);
 
-	UserIntMap& getRunningUsers() { return runningUsers; }
-	FinishedNotifyList& getNotifiedUsers() { return finishedNotifications; }
 	QueueItemList& getFinishedFiles() { return finishedFiles; }
-	HintedUserList& getUploadReports() { return uploadReports; }
 	QueueItemList& getQueueItems() { return queueItems; }
-	DirMap& getDirectories() { return bundleDirs; }
-	SourceList& getSources() { return sources; }
-	SourceList& getBadSources() { return badSources; }
+
+	const FinishedNotifyList& getFinishedNotifications() const noexcept  { return finishedNotifications; }
+	const DirMap& getDirectories() const noexcept { return directories; }
 
 	/* Misc */
 	bool isFileBundle() const noexcept { return fileBundle; }
@@ -244,6 +235,9 @@ public:
 	void removeFinishedSegment(int64_t aSize) noexcept;
 
 	/* DownloadManager */
+	int countConnections() const noexcept;
+	const UserIntMap& getRunningUsers() const noexcept { return runningUsers; }
+
 	bool addRunningUser(const UserConnection* aSource) noexcept;
 	bool removeRunningUser(const UserConnection* aSource, bool sendRemove) noexcept;
 	void setUserMode(bool setSingleUser) noexcept;
@@ -260,9 +254,6 @@ public:
 	bool onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept;
 
 	void setDownloadedBytes(int64_t aSize) noexcept;
-
-	void increaseRunning() noexcept { running++; }
-	void decreaseRunning() noexcept { running--; }
 
 	/* Sources*/
 	void getSourceUsers(HintedUserList& l) const noexcept;
@@ -296,6 +287,11 @@ private:
 	unordered_map<UserPtr, deque<QueueItemPtr>, User::Hash> userQueue[LAST];
 	/** Currently running downloads, a QueueItem is always either here or in the userQueue */
 	unordered_map<UserPtr, QueueItemList, User::Hash> runningItems;
+
+	DirMap directories;
+	UserIntMap runningUsers;					// running users and their connections cached
+	HintedUserList uploadReports;				// sources receiving UBN notifications (running only)
+	FinishedNotifyList finishedNotifications;	// partial bundle sharing sources (mapped to their local tokens)
 };
 
 }
