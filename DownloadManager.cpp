@@ -94,7 +94,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 				d->tick();
 			}
 
-			if (d->getBundle() && d->getBundle()->isSet(Bundle::FLAG_AUTODROP) && d->getStart() > 0)
+			if (d->getBundle() && d->getBundle()->isSet(Bundle::FLAG_AUTODROP) && d->getStart() > 0 && d->getBundle()->getRunningUsers().size() >= SETTING(DISCONNECT_MIN_SOURCES))
 			{
 				if (d->getTigerTree().getFileSize() > (SETTING(DISCONNECT_FILESIZE) * 1048576))
 				{

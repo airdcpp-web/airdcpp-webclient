@@ -188,7 +188,7 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 		return;
 	}
 
-	for(const auto& d: aBundle->getBundleDirs() | map_keys) {
+	for(const auto& d: aBundle->getDirectories() | map_keys) {
 		removeDirectory(d);
 	}
 
@@ -200,7 +200,7 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 	removeSearchPrio(aBundle);
 	bundles.erase(aBundle->getToken());
 
-	aBundle->deleteBundleFile();
+	aBundle->deleteXmlFile();
 }
 
 void BundleQueue::moveBundle(BundlePtr& aBundle, const string& newTarget) noexcept {

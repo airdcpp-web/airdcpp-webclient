@@ -157,38 +157,28 @@ public:
 	GETSET(string, lastError, LastError);
 
 	IGETSET(Status, status, Status, STATUS_NEW);
-	IGETSET(time_t, bundleFinished, BundleFinished, 0);		// time when the bundle finished downloading
 	IGETSET(time_t, bundleDate, BundleDate, 0);				// the file/directory modify date picked from the remote filelist when the bundle has been queued
 	IGETSET(uint64_t, start, Start, 0);						// time that is being reset every time when a waiting the bundle gets running downloads
 	IGETSET(time_t, lastSearch, LastSearch, 0);				// last time when the bundle was searched for
 	IGETSET(bool, simpleMatching, SimpleMatching, true);	// the directory structure is simple enough for matching partial lists with subdirs cut from the path
 	IGETSET(bool, seqOrder, SeqOrder, false);				// using an alphabetical downloading order for files (not enabled by default for fresh bundles)
 
-	IGETSET(uint16_t, running, Running, 0);				// number of running users
 	IGETSET(bool, singleUser, SingleUser, true);		// the bundle is downloaded from a single user (may have multiple connections)
 
 	IGETSET(int64_t, actual, Actual, 0); 
 	IGETSET(int64_t, speed, Speed, 0);					// the speed calculated on every second in downloadmanager
 	IGETSET(bool, addedByAutoSearch, AddedByAutoSearch, false);		// the bundle was added by auto search
 
-
-	GETSET(FinishedNotifyList, finishedNotifications, FinishedNotifications);	// partial bundle sharing sources (mapped to their local tokens)
-	GETSET(UserIntMap, runningUsers, RunningUsers);			// running users and their connections cached
 	GETSET(QueueItemList, queueItems, QueueItems);
 	GETSET(QueueItemList, finishedFiles, FinishedFiles);
-	GETSET(HintedUserList, uploadReports, UploadReports);	 // sources receiving UBN notifications (running only)
-	GETSET(DirMap, bundleDirs, BundleDirs);
 	GETSET(SourceList, badSources, BadSources);
 	GETSET(SourceList, sources, Sources);
 
-	UserIntMap& getRunningUsers() { return runningUsers; }
-	FinishedNotifyList& getNotifiedUsers() { return finishedNotifications; }
 	QueueItemList& getFinishedFiles() { return finishedFiles; }
-	HintedUserList& getUploadReports() { return uploadReports; }
 	QueueItemList& getQueueItems() { return queueItems; }
-	DirMap& getBundleDirs() { return bundleDirs; }
-	SourceList& getBundleSources() { return sources; }
-	SourceList& getBadSources() { return badSources; }
+
+	const FinishedNotifyList& getFinishedNotifications() const noexcept  { return finishedNotifications; }
+	const DirMap& getDirectories() const noexcept { return directories; }
 
 	/* Misc */
 	bool isFileBundle() const noexcept { return fileBundle; }
@@ -199,15 +189,13 @@ public:
 	const string& getTarget() const noexcept { return target; }
 	string getName() const noexcept;
 
-	string getBundleFile() const noexcept;
-	void deleteBundleFile() noexcept;
+	string getXmlFilePath() const noexcept;
+	void deleteXmlFile() noexcept;
 
 	void setDirty() noexcept;
 	bool getDirty() const noexcept;
 	bool checkRecent() noexcept;
 	bool isRecent() const noexcept { return recent; }
-
-	string getBundleText() noexcept;
 
 	/* QueueManager */
 	bool isFailed() const noexcept;
@@ -247,9 +235,12 @@ public:
 	void removeFinishedSegment(int64_t aSize) noexcept;
 
 	/* DownloadManager */
+	int countConnections() const noexcept;
+	const UserIntMap& getRunningUsers() const noexcept { return runningUsers; }
+
 	bool addRunningUser(const UserConnection* aSource) noexcept;
 	bool removeRunningUser(const UserConnection* aSource, bool sendRemove) noexcept;
-	void setBundleMode(bool setSingleUser) noexcept;
+	void setUserMode(bool setSingleUser) noexcept;
 
 	void sendSizeNameUpdate() noexcept;
 
@@ -264,11 +255,8 @@ public:
 
 	void setDownloadedBytes(int64_t aSize) noexcept;
 
-	void increaseRunning() noexcept { running++; }
-	void decreaseRunning() noexcept { running--; }
-
 	/* Sources*/
-	void getSources(HintedUserList& l) const noexcept;
+	void getSourceUsers(HintedUserList& l) const noexcept;
 	bool isSource(const UserPtr& aUser) const noexcept;
 	bool isBadSource(const UserPtr& aUser) const noexcept;
 	bool isFinished() const noexcept { return queueItems.empty(); }
@@ -299,6 +287,11 @@ private:
 	unordered_map<UserPtr, deque<QueueItemPtr>, User::Hash> userQueue[LAST];
 	/** Currently running downloads, a QueueItem is always either here or in the userQueue */
 	unordered_map<UserPtr, QueueItemList, User::Hash> runningItems;
+
+	DirMap directories;
+	UserIntMap runningUsers;					// running users and their connections cached
+	HintedUserList uploadReports;				// sources receiving UBN notifications (running only)
+	FinishedNotifyList finishedNotifications;	// partial bundle sharing sources (mapped to their local tokens)
 };
 
 }

@@ -229,7 +229,7 @@ void UserQueue::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p)
 	dcassert(!aBundle->isFinished());
 
 	HintedUserList sources;
-	aBundle->getSources(sources);
+	aBundle->getSourceUsers(sources);
 
 	for(const auto& u: sources)
 		removeBundle(aBundle, u);

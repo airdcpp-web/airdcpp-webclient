@@ -149,7 +149,7 @@ void Bundle::removeFinishedSegment(int64_t aSize) noexcept{
 void Bundle::finishBundle() noexcept {
 	speed = 0;
 	currentDownloaded = 0;
-	bundleFinished = GET_TIME();
+	timeFinished = GET_TIME();
 }
 
 int64_t Bundle::getSecondsLeft() const noexcept {
@@ -181,14 +181,14 @@ QueueItemPtr Bundle::findQI(const string& aTarget) const noexcept {
 	return p != queueItems.end() ? *p : nullptr;
 }
 
-string Bundle::getBundleFile() const noexcept {
+string Bundle::getXmlFilePath() const noexcept {
 	return Util::getPath(Util::PATH_BUNDLES) + "Bundle" + getStringToken() + ".xml";
 }
 
-void Bundle::deleteBundleFile() noexcept {
+void Bundle::deleteXmlFile() noexcept {
 	try {
-		File::deleteFile(getBundleFile() + ".bak");
-		File::deleteFile(getBundleFile());
+		File::deleteFile(getXmlFilePath() + ".bak");
+		File::deleteFile(getXmlFilePath());
 	} catch(const FileException& /*e1*/) {
 		//..
 	}
@@ -204,7 +204,7 @@ void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
 }
 
 bool Bundle::addFinishedItem(QueueItemPtr& qi, bool finished) noexcept {
-	dcassert(qi->isSet(QueueItem::FLAG_FINISHED) && qi->getFileFinished() > 0);
+	dcassert(qi->isSet(QueueItem::FLAG_FINISHED) && qi->getTimeFinished() > 0);
 
 	finishedFiles.push_back(qi);
 	if (!finished) {
@@ -215,7 +215,7 @@ bool Bundle::addFinishedItem(QueueItemPtr& qi, bool finished) noexcept {
 	}
 	qi->setFlag(QueueItem::FLAG_FINISHED);
 
-	auto& bd = bundleDirs[qi->getFilePath()];
+	auto& bd = directories[qi->getFilePath()];
 	bd.second++;
 	if (bd.first == 0 && bd.second == 1) {
 		return true;
@@ -233,10 +233,10 @@ bool Bundle::removeFinishedItem(QueueItemPtr& qi) noexcept {
 			swap(finishedFiles[pos], finishedFiles[finishedFiles.size()-1]);
 			finishedFiles.pop_back();
 
-			auto& bd = bundleDirs[qi->getFilePath()];
+			auto& bd = directories[qi->getFilePath()];
 			bd.second--;
 			if (bd.first == 0 && bd.second == 0) {
-				bundleDirs.erase(Util::getFilePath(qi->getTarget()));
+				directories.erase(Util::getFilePath(qi->getTarget()));
 				return true;
 			}
 			return false;
@@ -251,7 +251,7 @@ bool Bundle::addQueue(QueueItemPtr& qi) noexcept {
 		return addFinishedItem(qi, false);
 	}
 
-	dcassert(qi->getFileFinished() == 0);
+	dcassert(qi->getTimeFinished() == 0);
 	dcassert(!qi->isSet(QueueItem::FLAG_FINISHED) && !qi->isSet(QueueItem::FLAG_MOVED));
 	dcassert(find(queueItems, qi) == queueItems.end());
 
@@ -260,7 +260,7 @@ bool Bundle::addQueue(QueueItemPtr& qi) noexcept {
 	increaseSize(qi->getSize());
 	addFinishedSegment(qi->getDownloadedSegments());
 
-	auto& bd = bundleDirs[qi->getFilePath()];
+	auto& bd = directories[qi->getFilePath()];
 	bd.first++;
 	if (bd.first == 1 && bd.second == 0) {
 		return true;
@@ -294,10 +294,10 @@ bool Bundle::removeQueue(QueueItemPtr& qi, bool finished) noexcept {
 		addFinishedItem(qi, true);
 	}
 
-	auto& bd = bundleDirs[qi->getFilePath()];
+	auto& bd = directories[qi->getFilePath()];
 	bd.first--;
 	if (bd.first == 0 && bd.second == 0) {
-		bundleDirs.erase(qi->getFilePath());
+		directories.erase(qi->getFilePath());
 		return true;
 	}
 	return false;
@@ -392,7 +392,7 @@ void Bundle::removeFinishedNotify(const UserPtr& aUser) noexcept {
 	}
 }
 
-void Bundle::getSources(HintedUserList& l) const noexcept {
+void Bundle::getSourceUsers(HintedUserList& l) const noexcept {
 	for (auto& st : sources) {
 		l.push_back(st.getUser());
 	}
@@ -463,8 +463,8 @@ string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile,
 }
 
 pair<uint32_t, uint32_t> Bundle::getPathInfo(const string& aDir) const noexcept {
-	auto p = bundleDirs.find(aDir);
-	if (p != bundleDirs.end()) {
+	auto p = directories.find(aDir);
+	if (p != directories.end()) {
 		return p->second;
 	}
 	return { 0, 0 };
@@ -611,15 +611,6 @@ int Bundle::countOnlineUsers() const noexcept {
 	return (queueItems.size() == 0 ? 0 : (files / queueItems.size()));
 }
 
-string Bundle::getBundleText() noexcept {
-	double percent = size <= 0 ? 0.00 : (double)((currentDownloaded+finishedSegments)*100.0)/(double)size;
-	if (fileBundle) {
-		return getName();
-	} else {
-		return getName() + " (" + Util::toString(percent) + "%, " + AirUtil::getPrioText(getPriority()) + ", " + Util::toString(sources.size()) + " sources)";
-	}
-}
-
 void Bundle::clearFinishedNotifications(FinishedNotifyList& fnl) noexcept {
 	finishedNotifications.swap(fnl);
 }
@@ -647,7 +638,7 @@ void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) co
 	}
 
 	QueueItemPtr searchItem = nullptr;
-	for (auto& i: bundleDirs | map_keys) {
+	for (auto& i: directories | map_keys) {
 		string dir = AirUtil::getReleaseDir(i, false);
 		//don't add the same directory twice
 		if (searches.find(dir) != searches.end()) {
@@ -689,7 +680,7 @@ void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) co
 
 void Bundle::updateSearchMode() noexcept {
 	StringList searches;
-	for (auto& i: bundleDirs | map_keys) {
+	for (auto& i: directories | map_keys) {
 		string dir = AirUtil::getReleaseDir(i, false);
 		if (find(searches, dir) == searches.end()) {
 			searches.push_back(dir);
@@ -729,7 +720,6 @@ bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 	if (bundleSpeed > 0) {
 		setDownloadedBytes(bundlePos);
 		speed = bundleSpeed;
-		running = down;
 
 		bundleRatio = bundleRatio / down;
 		actual = ((int64_t)((double)(finishedSegments+bundlePos) * (bundleRatio == 0 ? 1.00 : bundleRatio)));
@@ -788,12 +778,16 @@ bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 	return false;
 }
 
+int Bundle::countConnections() const noexcept {
+	return accumulate(runningUsers | map_values, 0);
+}
+
 bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
 	bool updateOnly = false;
 	auto y = runningUsers.find(aSource->getUser());
 	if (y == runningUsers.end()) {
 		if (runningUsers.size() == 1) {
-			setBundleMode(false);
+			setUserMode(false);
 		}
 		runningUsers[aSource->getUser()]++;
 	} else {
@@ -831,7 +825,7 @@ bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
 	return runningUsers.size() == 1;
 }
 
-void Bundle::setBundleMode(bool setSingleUser) noexcept {
+void Bundle::setUserMode(bool setSingleUser) noexcept {
 	if (setSingleUser) {
 		lastSpeed = 0;
 		lastDownloaded= 0;
@@ -869,7 +863,7 @@ bool Bundle::removeRunningUser(const UserConnection* aSource, bool sendRemove) n
 		if (y->second == 0) {
 			runningUsers.erase(aSource->getUser());
 			if (runningUsers.size() == 1) {
-				setBundleMode(true);
+				setUserMode(true);
 			}
 			finished = true;
 		}
@@ -927,7 +921,7 @@ void Bundle::sendSizeNameUpdate() noexcept {
 
 
 void Bundle::save() throw(FileException) {
-	File ff(getBundleFile() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
+	File ff(getXmlFilePath() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
 	BufferedOutputStream<false> f(&ff);
 	f.write(SimpleXML::utf8Header);
 	string tmp;
@@ -970,9 +964,9 @@ void Bundle::save() throw(FileException) {
 			f.write(LIT("\" Priority=\""));
 			f.write(Util::toString((int)getPriority()));
 		}
-		if (bundleFinished > 0) {
+		if (timeFinished > 0) {
 			f.write(LIT("\" TimeFinished=\""));
-			f.write(Util::toString(bundleFinished));
+			f.write(Util::toString(timeFinished));
 		}
 		f.write(LIT("\">\r\n"));
 
@@ -984,8 +978,8 @@ void Bundle::save() throw(FileException) {
 	f.flush();
 	ff.close();
 
-	File::deleteFile(getBundleFile());
-	File::renameFile(getBundleFile() + ".tmp", getBundleFile());
+	File::deleteFile(getXmlFilePath());
+	File::renameFile(getXmlFilePath() + ".tmp", getXmlFilePath());
 	
 	dirty = false;
 }
