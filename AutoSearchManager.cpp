@@ -411,10 +411,8 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 		as->setManualSearch(true);
 		as->setStatus(AutoSearch::STATUS_MANUAL);
 	}
-	else if (aType != TYPE_MANUAL_BG && aType != TYPE_MANUAL_FG) {
-		resetSearchTimes(aTick, false);
-	}
 	
+	resetSearchTimes(aTick, false);
 	fire(AutoSearchManagerListener::UpdateItem(), as, false);
 
 
@@ -469,7 +467,7 @@ void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aUpdate) noexcept 
 		if (next_tt == 0)
 			continue;
 
-		if (x->nextAllowedSearch() < GET_TIME())
+		if (x->nextAllowedSearch() <= GET_TIME())
 			itemCount++;
 
 		tmp = tmp == 0 ? next_tt : min(next_tt, tmp);
@@ -540,15 +538,17 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcep
 /* Scheduled searching */
 void AutoSearchManager::checkItems() noexcept {
 	AutoSearchList expired;
+	bool hasStatusChange = false;
 
 	{
 		RLock l(cs);
 
 		for(auto& as: searchItems.getItems() | map_values) {
 			bool fireUpdate = false;
+			auto aStatus = as->getStatus();
 			
 			//check expired, and remove them.
-			if (as->getStatus() != AutoSearch::STATUS_EXPIRED && as->expirationTimeReached() && as->getBundles().empty()) {
+			if (aStatus != AutoSearch::STATUS_EXPIRED && as->expirationTimeReached() && as->getBundles().empty()) {
 				expired.push_back(as);
 			}
 
@@ -566,12 +566,18 @@ void AutoSearchManager::checkItems() noexcept {
 			}
 
 			fireUpdate = fireUpdate || as->updateSearchTime() || as->getExpireTime() > 0;
+			if (aStatus != AutoSearch::STATUS_WAITING && as->getStatus() == AutoSearch::STATUS_WAITING)
+				hasStatusChange = true;
 
 			if(fireUpdate)
 				fire(AutoSearchManagerListener::UpdateItem(), as, false);
 
 		}
 	}
+
+	//One or more items were set to waiting state due to search times
+	if(hasStatusChange)
+		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
 
 	handleExpiredItems(expired);
 }
