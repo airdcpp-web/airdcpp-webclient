@@ -125,7 +125,7 @@ bool TargetUtil::getTarget(const StringList& targets, TargetInfo& retTi_, const 
 	return retTi_.getFreeSpace() >= aSize;
 }
 
-void TargetUtil::compareMap(const TargetInfoMap& aTargetMap, TargetInfo& retTi_, const int64_t& aSize, int8_t aMethod) {
+void TargetUtil::compareMap(const TargetInfoMap& aTargetMap, TargetInfo& retTi_, const int64_t& aSize, int aMethod) {
 
 	for (auto mapTi: aTargetMap | map_values) {
 		if (aMethod == (int8_t)SettingsManager::SELECT_LEAST_SPACE) {

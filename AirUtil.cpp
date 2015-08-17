@@ -286,7 +286,7 @@ int AirUtil::getSlotsPerUser(bool download, double value, int aSlots, SettingsMa
 	} else if (speed > 25 && speed <= 50) {
 		slots=4;
 	} else if (speed > 50 && speed <= 100) {
-		slots=(speed/10)-1;
+		slots= static_cast<int>((speed/10)-1);
 	} else if (speed > 100) {
 		slots=15;
 	} else {
@@ -322,6 +322,7 @@ int AirUtil::getSlots(bool download, double value, SettingsManager::SettingProfi
 
 	int slots=3;
 
+	// Don't try to understand the formula used in here
 	bool rar = aProfile == SettingsManager::PROFILE_RAR;
 	if (speed <= 1) {
 		if (rar) {
@@ -364,7 +365,7 @@ int AirUtil::getSlots(bool download, double value, SettingsManager::SettingProfi
 		}
 	} else if(speed > 50 && speed < 100) {
 		if (rar) {
-			slots= speed / 10;
+			slots= static_cast<int>(speed / 10);
 			if (download)
 				slots=slots+4;
 		} else {
@@ -373,9 +374,9 @@ int AirUtil::getSlots(bool download, double value, SettingsManager::SettingProfi
 	} else if (speed >= 100) {
 		if (rar) {
 			if (download) {
-				slots = speed / 7;
+				slots = static_cast<int>(speed / 7.0);
 			} else {
-				slots = speed / 12;
+				slots = static_cast<int>(speed / 12.0);
 				if (slots > 15)
 					slots=15;
 			}
@@ -383,7 +384,7 @@ int AirUtil::getSlots(bool download, double value, SettingsManager::SettingProfi
 			if (download) {
 				slots=50;
 			} else {
-				slots= speed / 7;
+				slots= static_cast<int>(speed / 7.0);
 				if (slots > 30 && !download)
 					slots=30;
 			}
@@ -407,7 +408,7 @@ int AirUtil::getSpeedLimit(bool download, double value) {
 	if (value == 0)
 		value = download ? Util::toDouble(SETTING(DOWNLOAD_SPEED)) : Util::toDouble(SETTING(UPLOAD_SPEED));
 
-	return download ? value*105 : value*60;
+	return static_cast<int>(download ? value*105 : value*60);
 }
 
 int AirUtil::getMaxAutoOpened(double value) {
@@ -455,7 +456,7 @@ bool AirUtil::listRegexMatch(const StringList& l, const boost::regex& aReg) {
 }
 
 int AirUtil::listRegexCount(const StringList& l, const boost::regex& aReg) {
-	return count_if(l.begin(), l.end(), [&](const string& s) { return regex_match(s, aReg); } );
+	return static_cast<int>(count_if(l.begin(), l.end(), [&](const string& s) { return regex_match(s, aReg); } ));
 }
 
 void AirUtil::listRegexSubtract(StringList& l, const boost::regex& aReg) {

@@ -1054,7 +1054,7 @@ string ClientManager::getClientStats() const noexcept {
 		if (ou->getUser()->isNMDC()) {
 			auto speed = Util::toDouble(ou->getIdentity().getNmdcConnection());
 			if (speed > 0) {
-				nmdcConnection += (speed * 1000.0 * 1000.0) / 8.0;
+				nmdcConnection += static_cast<int64_t>((speed * 1000.0 * 1000.0) / 8.0);
 				nmdcHasConnection++;
 			}
 			nmdcUsers++;
@@ -1085,9 +1085,9 @@ string ClientManager::getClientStats() const noexcept {
 		Util::toString(bots) + " (" + Util::toString(((double) bots / (double) uniqueUsers)*100.00) + "%) / " +
 		Util::toString(hiddenUsers) + " (" + Util::toString(((double) hiddenUsers / (double) uniqueUsers)*100.00) + "%)" + lb;
 	ret += "Protocol users (ADC/NMDC): " + Util::toString(adcUsers) + "/" + Util::toString(nmdcUsers) + lb;
-	ret += "Total share: " + Util::formatBytes(totalShare) + " (" + Util::formatBytes((double)totalShare / (double)uniqueUsers) + " per user)" + lb;
-	ret += "Average ADC connection speed: " + Util::formatConnectionSpeed((double) downloadSpeed / (double) adcUsers) + " down, " + Util::formatConnectionSpeed((double) uploadSpeed / (double) adcUsers) + " up" + lb;
-	ret += "Average NMDC connection speed: " + Util::formatConnectionSpeed((double) nmdcConnection / (double) nmdcUsers) + lb;
+	ret += "Total share: " + Util::formatBytes(totalShare) + " (" + Util::formatBytes(totalShare / uniqueUsers) + " per user)" + lb;
+	ret += "Average ADC connection speed: " + Util::formatConnectionSpeed(downloadSpeed / adcUsers) + " down, " + Util::formatConnectionSpeed(uploadSpeed / adcUsers) + " up" + lb;
+	ret += "Average NMDC connection speed: " + Util::formatConnectionSpeed(nmdcConnection / nmdcUsers) + lb;
 	ret += lb;
 	ret += lb;
 	ret += "Clients (from unique users)";
@@ -1105,14 +1105,14 @@ string ClientManager::getClientStats() const noexcept {
 		}
 	}
 
-	auto countCompare = [] (const pair<string, int>& i, const pair<string, int>& j) -> bool {
+	auto countCompare = [] (const pair<string, double>& i, const pair<string, double>& j) -> bool {
 		return (i.second > j.second);
 	};
 
-	vector<pair<string, int> > print(clientNames.begin(), clientNames.end());
+	vector<pair<string, double> > print(clientNames.begin(), clientNames.end());
 	sort(print.begin(), print.end(), countCompare);
 	for(auto& p: print) {
-		ret += p.first + ":\t\t" + Util::toString(p.second) + " (" + Util::toString(((double)p.second/(double)uniqueUsers)*100.00) + "%)" + lb;
+		ret += p.first + ":\t\t" + Util::toString(p.second) + " (" + Util::toString((p.second/uniqueUsers)*100.00) + "%)" + lb;
 	}
 
 	return ret;

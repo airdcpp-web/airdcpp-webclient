@@ -38,12 +38,6 @@ public:
 	void matchQueue();
 	void pm();
 
-	void getList(const string& aUrl);
-	void browseList(const string& aUrl);
-	void getBrowseList(const string& aUrl);
-	void matchQueue(const string& aUrl);
-	void pm(const string& aUrl);
-
 	void grant();
 	void grantTimeless();
 	void grantHour();
@@ -59,7 +53,7 @@ public:
 	virtual const string& getHubUrl() const = 0;
 
 	static uint8_t getImage(const Identity& identity, const Client* c);
-	enum {
+	enum: uint8_t {
 		// base icons
 		USER_ICON,
 		USER_ICON_AWAY,

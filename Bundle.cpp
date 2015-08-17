@@ -569,7 +569,7 @@ pair<int64_t, double> Bundle::getPrioInfo() noexcept {
 	double bundleSources = 0;
 	for (const auto& s: sources) {
 		if (s.getUser().user->isOnline()) {
-			bundleSpeed += s.getUser().user->getSpeed();
+			bundleSpeed += static_cast<int64_t>(s.getUser().user->getSpeed());
 		}
 
 		bundleSources += s.files;
@@ -588,7 +588,7 @@ multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcep
 			double qiSources = 0;
 			for (const auto& s: q->getSources()) {
 				if (s.getUser().user->isOnline()) {
-					qiSpeed += s.getUser().user->getSpeed();
+					qiSpeed += static_cast<int64_t>(s.getUser().user->getSpeed());
 					qiSources++;
 				} else {
 					qiSources += 2;
@@ -704,7 +704,9 @@ void Bundle::removeDownload(Download* d) noexcept {
 }
 
 bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
-	int64_t bundleSpeed = 0, bundleRatio = 0, bundlePos = 0;
+	double bundleRatio = 0;
+	int64_t bundleSpeed = 0;
+	int64_t bundlePos = 0;
 	int down = 0;
 	for (auto d: downloads) {
 		if (d->getAverageSpeed() > 0 && d->getStart() > 0) {

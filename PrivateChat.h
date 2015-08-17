@@ -31,7 +31,7 @@ namespace dcpp {
 		private ClientManagerListener, private boost::noncopyable {
 	public:
 		
-		enum PMInfo {
+		enum PMInfo: uint8_t {
 			//CPMI types
 			MSG_SEEN,		// Message seen, CPMI SN1
 			TYPING_ON,		// User started typing, CPMI TP1

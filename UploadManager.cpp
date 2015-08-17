@@ -552,7 +552,7 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 			size_t length = speedStr.length();
 			double downloaded = Util::toDouble(speedStr.substr(0, length-1));
 			if (downloaded > 0) {
-				uint64_t speed = 0;
+				double speed = 0.0;
 				if (speedStr[length-1] == 'k') {
 					speed = downloaded*1024.0;
 				} else if (speedStr[length-1] == 'm') {
@@ -562,13 +562,13 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 				}
 
 				if (speed > 0) {
-					bundle->setTotalSpeed(speed);
+					bundle->setTotalSpeed(static_cast<int64_t>(speed));
 				}
 			}
 		}
 
 		if (percent >= 0.00 && percent <= 100.00) {
-			bundle->setUploadedSegments(bundle->getSize()*(percent / 100.00000));
+			bundle->setUploadedSegments(bundle->getSize() * static_cast<int64_t>((percent / 100.00000)));
 		}
 	}
 }

@@ -102,7 +102,7 @@ public:
 	}
 
 	int getRecentIntervalMs() const noexcept{
-		int recentItems = count_if(recentSearchQueue.begin(), recentSearchQueue.end(), [](const ItemT& aItem) { 
+		auto recentItems = count_if(recentSearchQueue.begin(), recentSearchQueue.end(), [](const ItemT& aItem) { 
 			return aItem->allowAutoSearch(); 
 		});
 
@@ -180,9 +180,9 @@ private:
 		int itemCount = 0;
 		int p = QueueItemBase::LOW;
 		do {
-			int dequeItems = count_if(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), [](const ItemT& aItem) { 
+			int dequeItems = static_cast<int>(count_if(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), [](const ItemT& aItem) { 
 				return aItem->allowAutoSearch(); 
-			});
+			}));
 
 			if (probabilities_)
 				(*probabilities_).push_back((p - 1)*dequeItems); //multiply with a priority factor to get bigger probability for items with higher priority

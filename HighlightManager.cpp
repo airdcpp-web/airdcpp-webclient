@@ -39,7 +39,7 @@ void HighlightManager::load(SimpleXML& aXml){
 		while(aXml.findChild("Highlight")) {
 			try{
 				ColorSettings cs;
-				cs.setContext(aXml.getIntChildAttrib("Context"));
+				cs.setContext(static_cast<uint8_t>(aXml.getIntChildAttrib("Context")));
 				cs.setMatch( Text::toT( aXml.getChildAttrib("Match") ) );
 				cs.setBold(	aXml.getBoolChildAttrib("Bold") );
 				cs.setItalic( aXml.getBoolChildAttrib("Italic") );

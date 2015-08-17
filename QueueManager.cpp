@@ -1216,7 +1216,7 @@ bool QueueManager::startDownload(const UserPtr& aUser, const QueueTokenSet& runn
 }
 
 pair<QueueItem::DownloadType, bool> QueueManager::startDownload(const UserPtr& aUser, string& hubHint, QueueItemBase::DownloadType aType, 
-	string& bundleToken, bool& allowUrlChange, bool& hasDownload, string& lastError_) noexcept{
+	QueueToken& bundleToken, bool& allowUrlChange, bool& hasDownload, string& lastError_) noexcept{
 
 	QueueTokenSet runningBundles;
 	DownloadManager::getInstance()->getRunningBundles(runningBundles);
@@ -1291,7 +1291,7 @@ void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& n
 		ConnectionManager::getInstance()->getDownloadConnection(dl.getHintedUser());
 }
 
-bool QueueManager::getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept {
+bool QueueManager::getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, QueueToken& bundleToken) noexcept {
 	OrderedStringSet hubs;
 	hubs.insert(aUser.hint);
 
@@ -2851,17 +2851,17 @@ static void calculateBalancedPriorities(vector<pair<T, QueueItemBase::Priority>>
 
 	//scale the priorization maps
 	double factorSpeed=0, factorSource=0;
-	double max = max_element(speedSourceMap.begin(), speedSourceMap.end())->second.first;
-	if (max > 0) {
-		factorSpeed = 100 / max;
+	double maxSpeed = static_cast<double>(max_element(speedSourceMap.begin(), speedSourceMap.end())->second.first);
+	if (maxSpeed > 0) {
+		factorSpeed = 100 / maxSpeed;
 	}
 
-	max = max_element(speedSourceMap.begin(), speedSourceMap.end())->second.second;
-	if (max > 0) {
-		factorSource = 100 / max;
+	auto maxSources = max_element(speedSourceMap.begin(), speedSourceMap.end())->second.second;
+	if (maxSources > 0) {
+		factorSource = 100 / maxSources;
 	}
 
-	multimap<int, T> finalMap;
+	multimap<double, T> finalMap;
 	int uniqueValues = 0;
 	for (auto& i: speedSourceMap) {
 		auto points = (i.second.first * factorSpeed) + (i.second.second * factorSource);
@@ -2890,7 +2890,7 @@ static void calculateBalancedPriorities(vector<pair<T, QueueItemBase::Priority>>
 	int8_t prio = QueueItemBase::HIGH;
 
 	//counters for analyzing identical points
-	int lastPoints = 999;
+	double lastPoints = 999.0;
 	int prioSet=0;
 
 	for (auto& i: finalMap) {
@@ -3105,7 +3105,7 @@ bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth
 
 		BundlePtr b = qi->getBundle();
 		if (b) {
-			_bundle = b->getToken();
+			_bundle = b->getStringToken();
 
 			//should we notify the other user about finished item?
 			_reply = !b->isFinished() && !b->isFinishedNotified(aUser);
@@ -3882,7 +3882,7 @@ bool QueueManager::checkPBDReply(HintedUser& aUser, const TTHValue& aTTH, string
 	if (bundle) {
 		WLock l(cs);
 		//LogManager::getInstance()->message("checkPBDReply: BUNDLE FOUND");
-		_bundleToken = bundle->getToken();
+		_bundleToken = bundle->getStringToken();
 		_add = !bundle->getFinishedFiles().empty();
 
 		if (!bundle->isFinished()) {
@@ -4000,7 +4000,7 @@ void QueueManager::searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSear
 	}
 }
 
-void QueueManager::fileFinished(const QueueItemPtr aQi, const HintedUser& aUser, const int64_t aSpeed, const string& aDir) noexcept {
+void QueueManager::fileFinished(const QueueItemPtr aQi, const HintedUser& aUser, int64_t aSpeed, const string& aDir) noexcept {
 	if (!aQi->isSet(QueueItem::FLAG_USER_LIST) || SETTING(LOG_FILELIST_TRANSFERS)) {
 		if (SETTING(SYSTEM_SHOW_DOWNLOADS)) {
 			LogManager::getInstance()->message(STRING_F(FINISHED_DOWNLOAD, aQi->getTarget() % ClientManager::getInstance()->getFormatedNicks(aUser)), LogManager::LOG_INFO);

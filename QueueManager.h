@@ -160,7 +160,7 @@ public:
 
 	// Get information about the next valid file in the queue
 	// Used for displaying initial information for a transfer before the connection has been established and the real download is created
-	bool getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, string& bundleToken) noexcept;
+	bool getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, QueueToken& bundleToken) noexcept;
 
 	// Check if a download can be started for the specified user
 	// 
@@ -174,7 +174,7 @@ public:
 	// lastError_ will contain the last error why a file can't be started (not cleared if a download is found afterwards)
 	// hasDownload will be set to true if there are any files queued from the user
 	// TODO: FINISH
-	pair<QueueItem::DownloadType, bool> startDownload(const UserPtr& aUser, string& hubUrl, QueueItemBase::DownloadType aType, string& bundleToken,
+	pair<QueueItem::DownloadType, bool> startDownload(const UserPtr& aUser, string& hubUrl, QueueItemBase::DownloadType aType, QueueToken& bundleToken,
 		bool& allowUrlChange, bool& hasDownload, string& lastError_) noexcept;
 
 	// Creates new download for the specified user
@@ -444,7 +444,7 @@ private:
 
 	string getListPath(const HintedUser& user) const noexcept;
 
-	void fileFinished(const QueueItemPtr aQi, const HintedUser& aUser, const int64_t aSpeed, const string& aDir) noexcept;
+	void fileFinished(const QueueItemPtr aQi, const HintedUser& aUser, int64_t aSpeed, const string& aDir) noexcept;
 
 	StringMatch highPrioFiles;
 	StringMatch skipList;

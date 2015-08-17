@@ -51,8 +51,8 @@ struct SearchTime {
 			return;
 		}
 
-		hour = Util::toUInt(aTime.substr(0, 2));
-		minute = Util::toUInt(aTime.substr(2, 2));
+		hour = static_cast<uint16_t>(Util::toUInt(aTime.substr(0, 2)));
+		minute = static_cast<uint16_t>(Util::toUInt(aTime.substr(2, 2)));
 	}
 
 	string toString() {

@@ -1426,11 +1426,11 @@ void AdcHub::infoImpl() {
 	addParam(lastInfoMap, c, "LC", Localization::getCurrentLocale());
 
 	int64_t limit = ThrottleManager::getInstance()->getDownLimit() * 1000;
-	int64_t connSpeed = (Util::toDouble(SETTING(DOWNLOAD_SPEED)) * 1000.0 * 1000.0) / 8.0;
+	int64_t connSpeed = static_cast<int64_t>((Util::toDouble(SETTING(DOWNLOAD_SPEED)) * 1000.0 * 1000.0) / 8.0);
 	addParam(lastInfoMap, c, "DS", Util::toString(limit > 0 ? min(limit, connSpeed) : connSpeed));
 
-	limit = ThrottleManager::getInstance()->getUpLimit() * 1000.0;
-	connSpeed = (Util::toDouble(SETTING(UPLOAD_SPEED)) * 1000.0 * 1000.0) / 8.0;
+	limit = ThrottleManager::getInstance()->getUpLimit() * 1000;
+	connSpeed = static_cast<int64_t>((Util::toDouble(SETTING(UPLOAD_SPEED)) * 1000.0 * 1000.0) / 8.0);
 	addParam(lastInfoMap, c, "US", Util::toString(limit > 0 ? min(limit, connSpeed) : connSpeed));
 
 	if(CryptoManager::getInstance()->TLSOk()) {

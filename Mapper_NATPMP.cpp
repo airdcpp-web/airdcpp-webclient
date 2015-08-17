@@ -117,7 +117,7 @@ bool read(natpmpresp_t& response) {
 
 bool Mapper_NATPMP::add(const string& port, const Protocol protocol, const string&) {
 	auto port_ = Util::toInt(port);
-	if(sendRequest(port_, protocol, 3600)) {
+	if(sendRequest(static_cast<uint16_t>(port_), protocol, 3600)) {
 		natpmpresp_t response;
 		if(read(response) && response.type == respType(protocol) && response.pnu.newportmapping.mappedpublicport == port_) {
 			lifetime = std::min(3600u, response.pnu.newportmapping.lifetime) / 60;
@@ -129,7 +129,7 @@ bool Mapper_NATPMP::add(const string& port, const Protocol protocol, const strin
 
 bool Mapper_NATPMP::remove(const string& port, const Protocol protocol) {
 	auto port_ = Util::toInt(port);
-	if(sendRequest(port_, protocol, 0)) {
+	if(sendRequest(static_cast<uint16_t>(port_), protocol, 0)) {
 		natpmpresp_t response;
 		return read(response) && response.type == respType(protocol) && response.pnu.newportmapping.mappedpublicport == port_;
 	}

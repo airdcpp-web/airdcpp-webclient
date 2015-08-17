@@ -159,7 +159,7 @@ public:
 	// virtualFile = name requested by the other user (Transfer::USER_LIST_NAME_BZ or Transfer::USER_LIST_NAME)
 	TTHValue getListTTH(const string& virtualFile, ProfileToken aProfile) const throw(ShareException);
 	
-	enum RefreshType {
+	enum RefreshType: uint8_t {
 		TYPE_MANUAL,
 		TYPE_SCHEDULED,
 		TYPE_STARTUP_BLOCKING,
@@ -168,7 +168,7 @@ public:
 		TYPE_BUNDLE
 	};
 
-	enum TaskType {
+	enum TaskType: uint8_t {
 		ASYNC,
 		ADD_DIR,
 		REFRESH_ALL,
@@ -456,7 +456,7 @@ private:
 			}
 
 			typedef multiset<SearchResultInfo, Sort> Set;
-			enum Type {
+			enum Type: uint8_t {
 				FILE,
 				DIRECTORY
 			};
@@ -554,7 +554,7 @@ private:
 		typedef unordered_map<string*, FileListDir*, noCaseStringHash, noCaseStringEq> ListDirectoryMap;
 		Directory::List shareDirs;
 
-		FileListDir(const string& aName, int64_t aSize, int aDate);
+		FileListDir(const string& aName, int64_t aSize, uint64_t aDate);
 		~FileListDir();
 
 		string name;
