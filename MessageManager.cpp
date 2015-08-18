@@ -137,7 +137,7 @@ void MessageManager::onPrivateMessage(const ChatMessage& aMessage, UserConnectio
 	}
 
 	Client* c = &aMessage.from->getClient();
-	if (wndCnt > 200 || !myPM && isIgnoredOrFiltered(aMessage, c, true)) {
+	if (wndCnt > 200 || (!myPM && isIgnoredOrFiltered(aMessage, c, true))) {
 		DisconnectCCPM(user);
 		return;
 	}
