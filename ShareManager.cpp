@@ -2898,7 +2898,7 @@ void ShareManager::Directory::toFileList(FileListDir* aListDir, ProfileToken aPr
 	}
 }
 
-ShareManager::FileListDir::FileListDir(const string& aName, int64_t aSize, int aDate) : name(aName), size(aSize), date(aDate) { }
+ShareManager::FileListDir::FileListDir(const string& aName, int64_t aSize, uint64_t aDate) : name(aName), size(aSize), date(aDate) { }
 
 #define LITERAL(n) n, sizeof(n)-1
 void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const {
@@ -3692,7 +3692,7 @@ bool ShareManager::checkSharedName(const string& aPath, const string& aPathLower
 	}
 
 	if (!isDir) {
-		dcassert(File::getSize(aPath) == size);
+		//dcassert(File::getSize(aPath) == size);
 		string fileExt = Util::getFileExt(aNameLower);
 		if( (strcmp(aNameLower.c_str(), "dcplusplus.xml") == 0) || 
 			(strcmp(aNameLower.c_str(), "favorites.xml") == 0) ||

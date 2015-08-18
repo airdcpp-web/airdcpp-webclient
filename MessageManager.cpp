@@ -50,7 +50,7 @@ MessageManager::~MessageManager() noexcept {
 PrivateChat* MessageManager::addChat(const HintedUser& user) {
 	WLock l(cs);
 	auto p = new PrivateChat(user, getPMConn(user.user));
-	chats.emplace(user.user, p).first->second;
+	chats.emplace(user.user, p);
 	return p;
 	
 }

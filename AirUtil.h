@@ -27,14 +27,14 @@
 namespace dcpp {
 
 //Away modes
-enum AwayMode {
+enum AwayMode : uint8_t {
 	AWAY_OFF,
 	AWAY_IDLE,
 	AWAY_MINIMIZE,
 	AWAY_MANUAL //highest value
 };
 
-enum DupeType { 
+enum DupeType: uint8_t { 
 	DUPE_NONE, 
 	DUPE_SHARE_PARTIAL, 
 	DUPE_SHARE, 
@@ -88,6 +88,8 @@ public:
 
 	static int getSlotsPerUser(bool download, double value=0, int aSlots=0, SettingsManager::SettingProfile aProfile = static_cast<SettingsManager::SettingProfile>(SETTING(SETTINGS_PROFILE)));
 	static int getSlots(bool download, double value=0, SettingsManager::SettingProfile aProfile = static_cast<SettingsManager::SettingProfile>(SETTING(SETTINGS_PROFILE)));
+
+	// Maximum wanted download/upload speed. Uses set connection values by default.
 	static int getSpeedLimit(bool download, double value=0);
 	static int getMaxAutoOpened(double value = 0);
 

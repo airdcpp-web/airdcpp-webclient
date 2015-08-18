@@ -67,7 +67,7 @@ public:
 	bool getOverlapped() const { return getSegment().getOverlapped(); }
 	void setOverlapped(bool overlap) { segment.setOverlapped(overlap); }
 
-	double getAverageSpeed() const;
+	int64_t getAverageSpeed() const;
 
 	int64_t getSecondsLeft(bool wholeFile = false) const;
 

@@ -63,7 +63,7 @@ int ThrottleManager::read(Socket* sock, void* buffer, size_t len)
 	if(readSize != -1)
 	{
 		Thread::yield(); // give a chance to other transfers to get a token
-		return readSize;
+		return static_cast<int>(readSize);
 	}
 
 	waitToken();

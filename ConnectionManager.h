@@ -211,7 +211,7 @@ private:
 	typedef delayMap::iterator delayIter;
 	delayMap delayedTokens;
 
-	uint32_t floodCounter;
+	uint64_t floodCounter;
 
 	unique_ptr<Server> server;
 	unique_ptr<Server> secureServer;

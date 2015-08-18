@@ -763,9 +763,9 @@ wstring Util::formatBytesW(int64_t aBytes) {
 
 int64_t Util::convertSize(int64_t aValue, Util::SizeUnits valueType, Util::SizeUnits to /*B*/) {
 	if (valueType > to) {
-		return aValue * pow(1024LL, static_cast<int64_t>(valueType - to));
+		return aValue * static_cast<int64_t>(pow(1024LL, static_cast<int64_t>(valueType - to)));
 	} else if (valueType < to) {
-		return aValue / pow(1024LL, static_cast<int64_t>(to - valueType));
+		return aValue / static_cast<int64_t>(pow(1024LL, static_cast<int64_t>(to - valueType)));
 	}
 	return aValue;
 }
@@ -1614,7 +1614,7 @@ string Util::base64_decode(string const& encoded_string) {
 
 bool Util::IsOSVersionOrGreater(int major, int minor) {
 #ifdef _WIN32
-	return IsWindowsVersionOrGreater(major, minor, 0);
+	return IsWindowsVersionOrGreater((WORD)major, (WORD)minor, 0);
 #else // _WIN32
 	return true;
 #endif

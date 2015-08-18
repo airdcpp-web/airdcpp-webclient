@@ -51,7 +51,7 @@ void UploadBundle::setSingleUser(bool aSingleUser, int64_t aUploadedSegments) {
 }
 
 uint64_t UploadBundle::getSecondsLeft() const {
-	double avg = totalSpeed > 0 ? totalSpeed : speed;
+	auto avg = totalSpeed > 0 ? totalSpeed : speed;
 	int64_t bytesLeft =  getSize() - getUploaded();
 	return (avg > 0) ? static_cast<int64_t>(bytesLeft / avg) : 0;
 }
@@ -89,7 +89,8 @@ bool UploadBundle::removeUpload(Upload* u) {
 }
 
 uint64_t UploadBundle::countSpeed() {
-	int64_t bundleSpeed = 0, bundleRatio = 0, bundlePos = 0;
+	double bundleRatio = 0;
+	int64_t bundleSpeed = 0, bundlePos = 0;
 	int up = 0;
 	for (auto u: uploads) {
 		if (u->getAverageSpeed() > 0 && u->getStart() > 0) {

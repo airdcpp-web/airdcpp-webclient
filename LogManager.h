@@ -38,9 +38,9 @@ using std::pair;
 class LogManager : public Singleton<LogManager>, public Speaker<LogManagerListener>
 {
 public:
-	enum Severity { LOG_INFO, LOG_WARNING, LOG_ERROR };
-	enum Area { CHAT, PM, DOWNLOAD, UPLOAD, SYSTEM, STATUS, LAST };
-	enum { FILE, FORMAT };
+	enum Severity: uint8_t { LOG_INFO, LOG_WARNING, LOG_ERROR };
+	enum Area: uint8_t { CHAT, PM, DOWNLOAD, UPLOAD, SYSTEM, STATUS, LAST };
+	enum: uint8_t { FILE, FORMAT };
 
 	struct MessageData {
 		MessageData(time_t t, Severity sev) : time(t), severity(sev) { }

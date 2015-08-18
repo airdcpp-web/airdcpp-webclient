@@ -235,7 +235,7 @@ uint8_t QueueItem::getMaxSegments(int64_t filesize) const noexcept {
 }
 
 int QueueItem::countOnlineUsers() const {
-	return count_if(sources.begin(), sources.end(), [](const Source& s) { return s.getUser().user->isOnline(); } );
+	return static_cast<int>(count_if(sources.begin(), sources.end(), [](const Source& s) { return s.getUser().user->isOnline(); } ));
 }
 
 QueueItem::~QueueItem() { }
@@ -314,7 +314,7 @@ uint64_t QueueItem::getAverageSpeed() const {
 
 uint64_t QueueItem::getSecondsLeft() const {
 	auto speed = getAverageSpeed();
-	return speed > 0 ? (getSize() - getDownloadedBytes()) / static_cast<double>(speed) : 0;
+	return speed > 0 ? (getSize() - getDownloadedBytes()) / speed : 0;
 }
 
 void QueueItem::setTarget(const string& aTarget) {

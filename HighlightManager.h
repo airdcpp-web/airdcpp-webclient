@@ -44,7 +44,7 @@ public:
 		return &colorSettings;
 	}
 
-	enum {
+	enum: uint8_t {
 		CONTEXT_CHAT,
 		CONTEXT_NICKLIST,
 		CONTEXT_FILELIST,

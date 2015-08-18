@@ -135,7 +135,7 @@ void Localization::init() {
 			langFile.erase(langFile.length()-4, 4);
 			auto s = find_if(languageList.begin(), languageList.end(), [&langFile](const Language& aLang) { return aLang.locale == langFile || aLang.languageFile == langFile; });
 			if (s != languageList.end()) {
-				curLanguage = distance(languageList.begin(), s);
+				curLanguage = static_cast<int>(distance(languageList.begin(), s));
 				if (curLanguage > 0 /*&& !Util::fileExists(SETTING(LANGUAGE_FILE))*/) {
 					// paths changed? reset the default path
 					// always convert the old paths to only use the file name for versions <= 2.91... remove at some point
@@ -212,7 +212,7 @@ uint8_t Localization::getFlagIndexByName(const char* countryName) {
 	const char** last = countryNames + (sizeof(countryNames) / sizeof(countryNames[0]));
 	const char** i = find_if(first, last, [&](const char* cn) { return Util::stricmp(countryName, cn) == 0; });
 	if(i != last)
-		return i - countryNames + 1;
+		return static_cast<uint8_t>(i - countryNames + 1);
 
 	return 0;
 }
@@ -231,7 +231,7 @@ uint8_t Localization::getFlagIndexByCode(const char* countryCode) {
 		else if(cmp < 0)
 			end = mid - 1;
 		else
-			return mid + 1;
+			return static_cast<uint8_t>(mid + 1);
 	}
 	return 0;
 }

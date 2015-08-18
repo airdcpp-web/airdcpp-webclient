@@ -140,8 +140,6 @@
 # pragma warning(disable: 4201) // nonstadard extension used : nameless struct/union
 # pragma warning(disable: 4996) // Function call with parameters that may be unsafe - this call relies on the caller to check that the passed values are correct.
 
-
-# pragma warning(disable: 4244) // conversion from 'xxx' to 'yyy', possible loss of data
 # pragma warning(disable: 4267) // conversion from 'xxx' to 'yyy', possible loss of data
 # pragma warning(disable: 4706) // assignment within conditional expression
 #endif

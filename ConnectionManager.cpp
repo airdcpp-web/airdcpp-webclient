@@ -275,7 +275,8 @@ void ConnectionManager::attemptDownloads(uint64_t aTick, StringList& removedToke
 				// TODO: no one can understand this code, fix!
 				cqi->setLastAttempt(aTick);
 
-				string bundleToken, lastError, hubHint = cqi->getHubUrl();
+				QueueToken bundleToken = 0;
+				string lastError, hubHint = cqi->getHubUrl();
 				bool allowUrlChange = true;
 				bool hasDownload = false;
 
@@ -303,7 +304,7 @@ void ConnectionManager::attemptDownloads(uint64_t aTick, StringList& removedToke
 					continue;
 				}
 
-				cqi->setLastBundle(bundleToken);
+				cqi->setLastBundle(Util::toString(bundleToken));
 				cqi->setHubUrl(hubHint);
 
 				if (cqi->getState() == ConnectionQueueItem::WAITING) {
@@ -432,8 +433,8 @@ const string& ConnectionManager::getSecurePort() const {
 	return secureServer.get() ? secureServer->getPort() : Util::emptyString;
 }
 
-static const uint32_t FLOOD_TRIGGER = 20000;
-static const uint32_t FLOOD_ADD = 2000;
+static const uint64_t FLOOD_TRIGGER = 20000;
+static const uint64_t FLOOD_ADD = 2000;
 
 ConnectionManager::Server::Server(bool secure, const string& port_, const string& ipv4, const string& ipv6) :
 sock(Socket::TYPE_TCP), secure(secure), die(false)
@@ -979,7 +980,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			if(aSource->isSet(UserConnection::FLAG_MCN1)) {
 				string slots;
 				if (cmd.getParam("CO", 0, slots)) {
-					cqi->setMaxConns(Util::toInt(slots));
+					cqi->setMaxConns(static_cast<uint8_t>(Util::toInt(slots)));
 				}
 			}
 			cqi->setErrors(0);
@@ -1074,10 +1075,11 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 				// don't remove the CQI if we are only out of downloading slots
 
 				bool allowChange = false, hasDownload = false;
-				string tmp, lastError;
-				QueueManager::getInstance()->startDownload(aSource->getHintedUser(), tmp,
+				QueueToken unusedBundleToken = 0;
+				string unusedHubUrl, lastError;
+				QueueManager::getInstance()->startDownload(aSource->getHintedUser(), unusedHubUrl,
 					aSource->isSet(UserConnection::FLAG_SMALL_SLOT) ? QueueItem::TYPE_SMALL : QueueItem::TYPE_ANY, 
-					tmp, allowChange, hasDownload, lastError);
+					unusedBundleToken, allowChange, hasDownload, lastError);
 
 				if (hasDownload) {
 					failDownload(aSource->getToken(), lastError, protocolError);

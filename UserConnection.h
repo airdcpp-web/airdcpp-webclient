@@ -107,7 +107,7 @@ public:
 
 	};
 	
-	enum SlotTypes {	
+	enum SlotTypes: uint8_t {	
 		NOSLOT		= 0,
 		STDSLOT		= 1,
 		EXTRASLOT	= 2,
@@ -229,8 +229,6 @@ private:
 	friend struct DeleteFunction;
 
 	void setUser(const UserPtr& aUser);
-
-	void onLine(const string& aLine) noexcept;
 	
 	void send(const string& aString);
 

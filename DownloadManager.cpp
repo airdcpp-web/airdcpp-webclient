@@ -86,7 +86,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		DownloadList tickList;
 		// Tick each ongoing download
 		for(auto d: downloads) {
-			double speed = d->getAverageSpeed();
+			auto speed = d->getAverageSpeed();
 
 			if(d->getPos() > 0) {
 				userSpeedMap[d->getUser()] += speed;
@@ -178,7 +178,7 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 				bundles[aBundle->getToken()] = aBundle;
 			}
 		}
-		aSource->setLastBundle(aBundle->getToken());
+		aSource->setLastBundle(aBundle->getStringToken());
 	}
 }
 

@@ -275,7 +275,7 @@ public:
 	bool isEmpty() const noexcept { return queueItems.empty() && finishedFiles.empty(); }
 private:
 	int64_t lastSpeed = 0; // the speed sent on last time to UBN sources
-	double lastDownloaded = 0; // the progress percent sent on last time to UBN sources
+	int64_t lastDownloaded = 0; // the progress percent sent on last time to UBN sources
 
 	int64_t finishedSegments = 0;
 	int64_t currentDownloaded = 0; //total downloaded for the running downloads

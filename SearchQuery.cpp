@@ -58,7 +58,7 @@ double SearchQuery::getRelevancyScores(const SearchQuery& aSearch, int aLevel, b
 
 
 	// maximum points from SearchQuery::toPointList based on the include count
-	double maxPosPoints = (aSearch.include.count() * 20) + (20 * (recursionLevel+1));
+	double maxPosPoints = (aSearch.include.count() * 20.0) + (20.0 * (recursionLevel+1));
 
 	// separators
 	double curPosPoints = 0;

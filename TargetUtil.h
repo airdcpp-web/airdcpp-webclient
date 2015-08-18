@@ -63,7 +63,7 @@ public:
 	static void getVolumes(VolumeSet& volumes);
 	static bool getDiskInfo(TargetInfo& ti_);
 
-	static void compareMap(const TargetInfoMap& targets, TargetInfo& retTi_, const int64_t& aSize, int8_t aMethod);
+	static void compareMap(const TargetInfoMap& targets, TargetInfo& retTi_, const int64_t& aSize, int aMethod);
 	static void reportInsufficientSize(const TargetInfo& ti, int64_t aSize);
 	static string getInsufficientSizeMessage(const TargetInfo& ti, int64_t aSize);
 };
