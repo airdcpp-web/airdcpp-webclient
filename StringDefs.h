@@ -1892,5 +1892,6 @@ enum Strings { // @DontAdd
 	NO_HUBS_TO_SEARCH_FROM, // "No hubs to search from"
 	AUTOSEARCH_MINIMUM_SEARCH_INTERVAL, // "Minimum search interval for the item to be searched again"	
 	AUTOSEARCH_EVERY_INTERVAL, // "Minimum search interval between items (in minutes)"	
+	AUTOSEARCH_DEFAULT_FAILED_GROUP, // "Default group for failed bundle items"	
 	LAST // @DontAdd
 };
