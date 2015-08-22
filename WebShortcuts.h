@@ -44,6 +44,7 @@ public:
 	WebShortcuts();
 	~WebShortcuts();
 
+	void loadPresets();
 	WebShortcut* getShortcutByKey(const string& key);
 	static WebShortcut* getShortcutByName(WebShortcut::List& _list, const string& name);
 	static WebShortcut* getShortcutByKey(WebShortcut::List& _list, const string& key);

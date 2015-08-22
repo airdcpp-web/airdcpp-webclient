@@ -361,8 +361,9 @@ bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) noexcept {
 		return false;
 	}
 
+	//7 days expiry
 	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::getParentDir(aBundle->getTarget()), TargetUtil::TARGET_PATH, 
-		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString, 60);
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, GET_TIME() + 7*24*60*60, false, false, false, Util::emptyString, 60);
 
 	as->addBundle(aBundle);
 	addAutoSearch(as, true);
@@ -464,7 +465,7 @@ void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aUpdate) noexcept 
 	//calculate which of the items has the nearest possible search time.
 	for (auto x : searchItems.getItems() | map_values) {
 		auto next_tt = x->getNextSearchTime();
-		if (next_tt == 0)
+		if (!x->allowNewItems())
 			continue;
 
 		if (x->nextAllowedSearch() <= GET_TIME())
@@ -507,11 +508,6 @@ bool AutoSearchManager::searchItem(AutoSearchPtr& as, SearchType aType) noexcept
 
 /* Timermanager */
 void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
-	if(dirty && (lastSave + (20*1000) < aTick)) { //20 second delay between saves.
-		lastSave = aTick;
-		dirty = false;
-		AutoSearchSave();
-	}
 
 	if(nextSearch != 0 && nextSearch <= GET_TIME()) {
 		StringList allowedHubs;
@@ -527,6 +523,12 @@ void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 		}
 		if (searchItem)
 			performSearch(searchItem, allowedHubs, TYPE_NORMAL, aTick);
+	}
+
+	if (dirty && (lastSave + (20 * 1000) < aTick)) { //20 second delay between saves.
+		lastSave = aTick;
+		dirty = false;
+		AutoSearchSave();
 	}
 
 }
@@ -888,7 +890,7 @@ int AutoSearchManager::getGroupIndex(const AutoSearchPtr& as) {
 	if (!as->getGroup().empty()) {
 		auto groupI = find(groups.begin(), groups.end(), as->getGroup());
 		if (groupI != groups.end())
-			index = (groupI - groups.begin()) + 1;
+			index = static_cast<int>(groupI - groups.begin()) + 1;
 	}
 	return index;
 }
