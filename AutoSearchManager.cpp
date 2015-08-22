@@ -39,6 +39,7 @@ using boost::algorithm::copy_if;
 
 #define CONFIG_DIR Util::PATH_USER_CONFIG
 #define CONFIG_NAME "AutoSearch.xml"
+#define XML_GROUPING_VERSION 1
 
 AutoSearchManager::AutoSearchManager() noexcept
 {
@@ -909,6 +910,7 @@ void AutoSearchManager::AutoSearchSave() noexcept {
 		RLock l(cs);
 		
 		xml.addTag("Groups");
+		xml.addChildAttrib("Version", XML_GROUPING_VERSION); //Reserve way to add preset groups when RSS is ready
 		xml.stepIn();
 		for (auto& i : groups) {
 			xml.addTag("Group");
