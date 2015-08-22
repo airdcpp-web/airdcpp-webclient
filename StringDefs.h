@@ -1891,5 +1891,6 @@ enum Strings { // @DontAdd
 	AS_NEXT_SEARCH_IN, // "Next search in"
 	NO_HUBS_TO_SEARCH_FROM, // "No hubs to search from"
 	AUTOSEARCH_MINIMUM_SEARCH_INTERVAL, // "Minimum search interval for the item to be searched again"	
+	AUTOSEARCH_EVERY_INTERVAL, // "Minimum search interval between items (in minutes)"	
 	LAST // @DontAdd
 };

@@ -533,7 +533,7 @@ void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 
 }
 
-void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
+void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
 	checkItems();
 }
 
