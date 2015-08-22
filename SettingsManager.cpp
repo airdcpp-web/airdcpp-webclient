@@ -161,7 +161,7 @@ const string SettingsManager::settingTags[] =
 
 	//AirDC
 	"tabactivebg", "TabActiveText", "TabActiveBorder", "TabInactiveBg", "TabInactiveBgDisconnected", "TabInactiveText", "TabInactiveBorder", "TabInactiveBgNotify", "TabDirtyBlend", "TabSize", "MediaPlayer",
-	"FavDownloadSpeed", "PopupTime", "MaxMsgLength", "PopupBackColor", "PopupTextColor", "PopupTitleTextColor", "AutoSearchEvery", "AutoSearchRecheckTime", "TbImageSize", "TbImageSizeHot", 
+	"FavDownloadSpeed", "PopupTime", "MaxMsgLength", "PopupBackColor", "PopupTextColor", "PopupTitleTextColor", "AutoSearchEvery", "TbImageSize", "TbImageSizeHot", 
 	"DupeColor", "TextDupeBackColor", "MinSegmentSize", "AutoSlots", "MaxResizeLines", "IncomingRefreshTime", "TextNormBackColor", "TextNormForeColor", "SettingsProfile", "LogLines",
 	"MaxFileSizeShared", "FavTop", "FavBottom", "FavLeft", "FavRight", "SyslogTop", "SyslogBottom", "SyslogLeft", "SyslogRight", "NotepadTop", "NotepadBottom",
 	"NotepadLeft", "NotepadRight", "QueueTop", "QueueBottom", "QueueLeft", "QueueRight", "SearchTop", "SearchBottom", "SearchLeft", "SearchRight", "UsersTop", "UsersBottom",
@@ -656,8 +656,7 @@ SettingsManager::SettingsManager()
 	setDefault(FLASH_WINDOW_ON_PM, false);
 	setDefault(FLASH_WINDOW_ON_NEW_PM, false);
 	setDefault(FLASH_WINDOW_ON_MYNICK, false);
-	setDefault(AUTOSEARCH_EVERY, 15);
-	setDefault(AUTOSEARCH_RECHECK_TIME, 360);
+	setDefault(AUTOSEARCH_EVERY, 5);
 	setDefault(TB_IMAGE_SIZE, 24);
 	setDefault(TB_IMAGE_SIZE_HOT, 24);
 	setDefault(USE_HIGHLIGHT, false);
@@ -819,7 +818,7 @@ SettingsManager::SettingsManager()
 	setDefault(PM_LOG_GROUP_CID, true);
 	setDefault(SHARE_FOLLOW_SYMLINKS, true);
 	setDefault(SCAN_MONITORED_FOLDERS, true);
-	setDefault(AS_FAILED_DEFAULT_GROUP, Util::emptyString);
+	setDefault(AS_FAILED_DEFAULT_GROUP, "Failed Bundles");
 
 #ifdef _WIN32
 	setDefault(MONITORING_MODE, MONITORING_ALL);

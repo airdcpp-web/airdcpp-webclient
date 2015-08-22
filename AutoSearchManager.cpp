@@ -907,11 +907,14 @@ void AutoSearchManager::AutoSearchSave() noexcept {
 	xml.stepIn();
 	{
 		RLock l(cs);
-
+		
+		xml.addTag("Groups");
+		xml.stepIn();
 		for (auto& i : groups) {
 			xml.addTag("Group");
 			xml.addChildAttrib("Name", i);
 		}
+		xml.stepOut();
 
 		for(auto& as: searchItems.getItems() | map_values) {
 			xml.addTag("Autosearch");
@@ -977,16 +980,32 @@ void AutoSearchManager::AutoSearchSave() noexcept {
 }
 
 void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
+
 	aXml.resetCurrentChild();
 	if(aXml.findChild("Autosearch")) {
 		aXml.stepIn();
 		
+		//temp convert previous, TODO: Remove soon
 		while (aXml.findChild("Group")) {
 			string name = aXml.getChildAttrib("Name");
 			if (name.empty())
 				continue;
 			groups.push_back(name);
 		}
+		aXml.resetCurrentChild();
+		if (aXml.findChild("Groups")) {
+			aXml.stepIn();
+			while (aXml.findChild("Group")) {
+				string name = aXml.getChildAttrib("Name");
+				if (name.empty())
+					continue;
+				groups.push_back(name);
+			}
+			aXml.stepOut();
+		} else {
+			groups.push_back("Failed Bundles");
+		}
+
 		aXml.resetCurrentChild();
 		while(aXml.findChild("Autosearch")) {
 			auto as = new AutoSearch(aXml.getBoolChildAttrib("Enabled"),
