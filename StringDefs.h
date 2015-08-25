@@ -859,7 +859,7 @@ enum Strings { // @DontAdd
 	MESSAGE_SEEN, // "Message seen"
 	MIDNIGHT, // "Midnight"
 	MINIMUM_LEN, // "Minimum length"
-	MINIMUM_SEARCH_INTERVAL, // "Minimum search interval"
+	MINIMUM_SEARCH_INTERVAL_MIN, // "Minimum search interval (in minutes)"
 	MINIMUM_SEARCH_INTERVAL_SEC, // "Minimum search interval (in seconds)"
 	MINSHARE, // "Min share"
 	MINSLOTS, // "Min slots"

@@ -23,6 +23,7 @@
 #include "Bundle.h"
 #include "SearchManager.h"
 #include "ResourceManager.h"
+#include "SimpleXML.h"
 
 #include <boost/range/algorithm/max_element.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -370,5 +371,61 @@ bool AutoSearch::updateSearchTime() noexcept {
 
 	return true;
 }
+
+void AutoSearch::saveToXml(SimpleXML& xml) {
+	xml.addTag("Autosearch");
+	xml.addChildAttrib("Enabled", getEnabled());
+	xml.addChildAttrib("SearchString", getSearchString());
+	xml.addChildAttrib("FileType", getFileType());
+	xml.addChildAttrib("Action", getAction());
+	xml.addChildAttrib("Remove", getRemove());
+	xml.addChildAttrib("Target", getTarget());
+	xml.addChildAttrib("TargetType", getTargetType());
+	xml.addChildAttrib("MatcherType", getMethod()),
+		xml.addChildAttrib("MatcherString", getMatcherString()),
+		xml.addChildAttrib("UserMatch", getNickPattern());
+	xml.addChildAttrib("ExpireTime", getExpireTime());
+	xml.addChildAttrib("CheckAlreadyQueued", getCheckAlreadyQueued());
+	xml.addChildAttrib("CheckAlreadyShared", getCheckAlreadyShared());
+	xml.addChildAttrib("SearchDays", searchDays.to_string());
+	xml.addChildAttrib("StartTime", startTime.toString());
+	xml.addChildAttrib("EndTime", endTime.toString());
+	xml.addChildAttrib("LastSearchTime", Util::toString(getLastSearch()));
+	xml.addChildAttrib("MatchFullPath", getMatchFullPath());
+	xml.addChildAttrib("ExcludedWords", getExcludedString());
+	xml.addChildAttrib("SearchInterval", Util::toString(getSearchInterval()));
+	xml.addChildAttrib("Token", Util::toString(getToken()));
+	xml.addChildAttrib("Group", getGroup());
+
+	xml.stepIn();
+
+	xml.addTag("Params");
+	xml.addChildAttrib("Enabled", getUseParams());
+	xml.addChildAttrib("CurNumber", getCurNumber());
+	xml.addChildAttrib("MaxNumber", getMaxNumber());
+	xml.addChildAttrib("MinNumberLen", getNumberLen());
+	xml.addChildAttrib("LastIncFinish", getLastIncFinish());
+
+	if (!getFinishedPaths().empty()) {
+		xml.addTag("FinishedPaths");
+		xml.stepIn();
+		for (auto& p : getFinishedPaths()) {
+			xml.addTag("Path", p.first);
+			xml.addChildAttrib("FinishTime", p.second);
+		}
+		xml.stepOut();
+	}
+
+	if (!getBundles().empty()) {
+		xml.addTag("Bundles");
+		xml.stepIn();
+		for (const auto& b : getBundles()) {
+			xml.addTag("Bundle", Util::toString(b->getToken()));
+		}
+		xml.stepOut();
+	}
+	xml.stepOut();
+}
+
 
 }

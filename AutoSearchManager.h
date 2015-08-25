@@ -80,6 +80,7 @@ public:
 	void AutoSearchLoad();
 	void AutoSearchSave() noexcept;
 
+	void saveItemToXml(const AutoSearchPtr& as, SimpleXML& xml);
 	void logMessage(const string& aMsg, bool error) const noexcept;
 
 	void onBundleCreated(BundlePtr& aBundle, const ProfileToken aSearch) noexcept;
@@ -112,6 +113,7 @@ private:
 
 	void loadAutoSearch(SimpleXML& aXml);
 
+	AutoSearchPtr loadItemFromXml(SimpleXML& aXml);
 	uint64_t lastSave = 0;
 	bool dirty = false;
 	time_t nextSearch = 0;

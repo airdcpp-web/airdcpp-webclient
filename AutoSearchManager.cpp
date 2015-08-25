@@ -908,7 +908,7 @@ void AutoSearchManager::AutoSearchSave() noexcept {
 	xml.stepIn();
 	{
 		RLock l(cs);
-		
+
 		xml.addTag("Groups");
 		xml.addChildAttrib("Version", XML_GROUPING_VERSION); //Reserve way to add preset groups when RSS is ready
 		xml.stepIn();
@@ -918,63 +918,10 @@ void AutoSearchManager::AutoSearchSave() noexcept {
 		}
 		xml.stepOut();
 
-		for(auto& as: searchItems.getItems() | map_values) {
-			xml.addTag("Autosearch");
-			xml.addChildAttrib("Enabled", as->getEnabled());
-			xml.addChildAttrib("SearchString", as->getSearchString());
-			xml.addChildAttrib("FileType", as->getFileType());
-			xml.addChildAttrib("Action", as->getAction());
-			xml.addChildAttrib("Remove", as->getRemove());
-			xml.addChildAttrib("Target", as->getTarget());
-			xml.addChildAttrib("TargetType", as->getTargetType());
-			xml.addChildAttrib("MatcherType", as->getMethod()),
-			xml.addChildAttrib("MatcherString", as->getMatcherString()),
-			xml.addChildAttrib("UserMatch", as->getNickPattern());
-			xml.addChildAttrib("ExpireTime", as->getExpireTime());
-			xml.addChildAttrib("CheckAlreadyQueued", as->getCheckAlreadyQueued());
-			xml.addChildAttrib("CheckAlreadyShared", as->getCheckAlreadyShared());
-			xml.addChildAttrib("SearchDays", as->searchDays.to_string());
-			xml.addChildAttrib("StartTime", as->startTime.toString());
-			xml.addChildAttrib("EndTime", as->endTime.toString());
-			xml.addChildAttrib("LastSearchTime", Util::toString(as->getLastSearch()));
-			xml.addChildAttrib("MatchFullPath", as->getMatchFullPath());
-			xml.addChildAttrib("ExcludedWords", as->getExcludedString());
-			xml.addChildAttrib("SearchInterval", Util::toString(as->getSearchInterval()));
-			xml.addChildAttrib("Token", Util::toString(as->getToken()));
-			xml.addChildAttrib("Group", as->getGroup());
-
-			xml.stepIn();
-
-			xml.addTag("Params");
-			xml.addChildAttrib("Enabled", as->getUseParams());
-			xml.addChildAttrib("CurNumber", as->getCurNumber());
-			xml.addChildAttrib("MaxNumber", as->getMaxNumber());
-			xml.addChildAttrib("MinNumberLen", as->getNumberLen());
-			xml.addChildAttrib("LastIncFinish", as->getLastIncFinish());
-
-
-			if (!as->getFinishedPaths().empty()) {
-				xml.addTag("FinishedPaths");
-				xml.stepIn();
-				for(auto& p: as->getFinishedPaths()) {
-					xml.addTag("Path", p.first);
-					xml.addChildAttrib("FinishTime", p.second);
-				}
-				xml.stepOut();
-			}
-
-			if (!as->getBundles().empty()) {
-				xml.addTag("Bundles");
-				xml.stepIn();
-				for (const auto& b: as->getBundles()) {
-					xml.addTag("Bundle", Util::toString(b->getToken()));
-				}
-				xml.stepOut();
-			}
-			xml.stepOut();
+		for (auto& as : searchItems.getItems() | map_values) {
+			as->saveToXml(xml);
 		}
 	}
-
 	xml.stepOut();
 	xml.stepOut();
 		
@@ -987,13 +934,6 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 	if(aXml.findChild("Autosearch")) {
 		aXml.stepIn();
 		
-		//temp convert previous, TODO: Remove soon
-		while (aXml.findChild("Group")) {
-			string name = aXml.getChildAttrib("Name");
-			if (name.empty())
-				continue;
-			groups.push_back(name);
-		}
 		aXml.resetCurrentChild();
 		if (aXml.findChild("Groups")) {
 			aXml.stepIn();
@@ -1010,96 +950,104 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 
 		aXml.resetCurrentChild();
 		while(aXml.findChild("Autosearch")) {
-			auto as = new AutoSearch(aXml.getBoolChildAttrib("Enabled"),
-				aXml.getChildAttrib("SearchString"),
-				aXml.getChildAttrib("FileType"),
-				(AutoSearch::ActionType)aXml.getIntChildAttrib("Action"),
-				aXml.getBoolChildAttrib("Remove"),
-				aXml.getChildAttrib("Target"),
-				(TargetUtil::TargetType)aXml.getIntChildAttrib("TargetType"),
-				(StringMatch::Method)aXml.getIntChildAttrib("MatcherType"),
-				aXml.getChildAttrib("MatcherString"),
-				aXml.getChildAttrib("UserMatch"),
-				aXml.getIntChildAttrib("ExpireTime"),
-				aXml.getBoolChildAttrib("CheckAlreadyQueued"),
-				aXml.getBoolChildAttrib("CheckAlreadyShared"),
-				aXml.getBoolChildAttrib("MatchFullPath"),
-				aXml.getChildAttrib("ExcludedWords"),
-				aXml.getIntChildAttrib("SearchInterval"),
-				aXml.getIntChildAttrib("Token"));
-
-			as->setGroup(aXml.getChildAttrib("Group"));
-			as->setExpireTime(aXml.getIntChildAttrib("ExpireTime"));
-
-			auto searchDays = aXml.getChildAttrib("SearchDays");
-			if(!searchDays.empty()) {
-				as->searchDays =  bitset<7>(searchDays);
-			} else {
-				as->searchDays = bitset<7>("1111111");
-			}
-
-			auto startTime = aXml.getChildAttrib("StartTime");
-			if(!startTime.empty()) {
-				as->startTime = SearchTime(startTime);
-			} else {
-				as->startTime = SearchTime();
-			}
-
-			auto endTime = aXml.getChildAttrib("EndTime");
-			if(!endTime.empty()) {
-				as->endTime = SearchTime(endTime);
-			} else {
-				as->endTime = SearchTime(true);
-			}
-			as->setLastSearch(aXml.getIntChildAttrib("LastSearchTime"));
-
-			aXml.stepIn();
-
-			if (aXml.findChild("Params")) {
-				as->setUseParams(aXml.getBoolChildAttrib("Enabled"));
-				as->setCurNumber(aXml.getIntChildAttrib("CurNumber"));
-				as->setMaxNumber(aXml.getIntChildAttrib("MaxNumber"));
-				as->setNumberLen(aXml.getIntChildAttrib("MinNumberLen"));
-				as->setLastIncFinish(aXml.getBoolChildAttrib("LastIncFinish"));
-			}
-			aXml.resetCurrentChild();
-
-			if (aXml.findChild("FinishedPaths")) {
-				aXml.stepIn();
-				while(aXml.findChild("Path")) {
-					auto time = aXml.getIntChildAttrib("FinishTime");
-					aXml.stepIn();
-					as->addPath(aXml.getData(), time);
-					aXml.stepOut();
-				}
-				aXml.stepOut();
-			}
-			aXml.resetCurrentChild();
-
-			if (aXml.findChild("Bundles")) {
-				aXml.stepIn();
-				while(aXml.findChild("Bundle")) {
-					aXml.stepIn();
-					auto token = Util::toUInt32(aXml.getData());
-					auto b = QueueManager::getInstance()->findBundle(token);
-					if (b)
-						as->addBundle(b);
-
-					aXml.stepOut();
-				}
-				aXml.stepOut();
-			}
-			aXml.resetCurrentChild();
-
-			if (as->getExpireTime() > 0 && as->getBundles().empty() && as->getExpireTime() < GET_TIME()) {
-				as->setEnabled(false);
-			}
-
+			auto as = loadItemFromXml(aXml);
 			addAutoSearch(as, false, true);
 			aXml.stepOut();
 		}
 		aXml.stepOut();
 	}
+}
+
+AutoSearchPtr AutoSearchManager::loadItemFromXml(SimpleXML& aXml) {
+	auto as = new AutoSearch(aXml.getBoolChildAttrib("Enabled"),
+		aXml.getChildAttrib("SearchString"),
+		aXml.getChildAttrib("FileType"),
+		(AutoSearch::ActionType)aXml.getIntChildAttrib("Action"),
+		aXml.getBoolChildAttrib("Remove"),
+		aXml.getChildAttrib("Target"),
+		(TargetUtil::TargetType)aXml.getIntChildAttrib("TargetType"),
+		(StringMatch::Method)aXml.getIntChildAttrib("MatcherType"),
+		aXml.getChildAttrib("MatcherString"),
+		aXml.getChildAttrib("UserMatch"),
+		aXml.getIntChildAttrib("ExpireTime"),
+		aXml.getBoolChildAttrib("CheckAlreadyQueued"),
+		aXml.getBoolChildAttrib("CheckAlreadyShared"),
+		aXml.getBoolChildAttrib("MatchFullPath"),
+		aXml.getChildAttrib("ExcludedWords"),
+		aXml.getIntChildAttrib("SearchInterval"),
+		aXml.getIntChildAttrib("Token"));
+
+	as->setGroup(aXml.getChildAttrib("Group"));
+	as->setExpireTime(aXml.getIntChildAttrib("ExpireTime"));
+
+	auto searchDays = aXml.getChildAttrib("SearchDays");
+	if (!searchDays.empty()) {
+		as->searchDays = bitset<7>(searchDays);
+	}
+	else {
+		as->searchDays = bitset<7>("1111111");
+	}
+
+	auto startTime = aXml.getChildAttrib("StartTime");
+	if (!startTime.empty()) {
+		as->startTime = SearchTime(startTime);
+	}
+	else {
+		as->startTime = SearchTime();
+	}
+
+	auto endTime = aXml.getChildAttrib("EndTime");
+	if (!endTime.empty()) {
+		as->endTime = SearchTime(endTime);
+	}
+	else {
+		as->endTime = SearchTime(true);
+	}
+	as->setLastSearch(aXml.getIntChildAttrib("LastSearchTime"));
+
+	aXml.stepIn();
+
+	if (aXml.findChild("Params")) {
+		as->setUseParams(aXml.getBoolChildAttrib("Enabled"));
+		as->setCurNumber(aXml.getIntChildAttrib("CurNumber"));
+		as->setMaxNumber(aXml.getIntChildAttrib("MaxNumber"));
+		as->setNumberLen(aXml.getIntChildAttrib("MinNumberLen"));
+		as->setLastIncFinish(aXml.getBoolChildAttrib("LastIncFinish"));
+	}
+	aXml.resetCurrentChild();
+
+	if (aXml.findChild("FinishedPaths")) {
+		aXml.stepIn();
+		while (aXml.findChild("Path")) {
+			auto time = aXml.getIntChildAttrib("FinishTime");
+			aXml.stepIn();
+			as->addPath(aXml.getData(), time);
+			aXml.stepOut();
+		}
+		aXml.stepOut();
+	}
+	aXml.resetCurrentChild();
+
+	if (aXml.findChild("Bundles")) {
+		aXml.stepIn();
+		while (aXml.findChild("Bundle")) {
+			aXml.stepIn();
+			auto token = Util::toUInt32(aXml.getData());
+			auto b = QueueManager::getInstance()->findBundle(token);
+			if (b)
+				as->addBundle(b);
+
+			aXml.stepOut();
+		}
+		aXml.stepOut();
+	}
+	aXml.resetCurrentChild();
+
+	if (as->getExpireTime() > 0 && as->getBundles().empty() && as->getExpireTime() < GET_TIME()) {
+		as->setEnabled(false);
+	}
+
+	return as;
 }
 
 void AutoSearchManager::AutoSearchLoad() {

@@ -155,6 +155,7 @@ public:
 	void updatePattern() noexcept;
 	void changeNumber(bool increase) noexcept;
 	bool updateSearchTime() noexcept;
+	void saveToXml(SimpleXML& xml);
 	void updateStatus() noexcept;
 
 	void removeBundle(const BundlePtr& aBundle) noexcept;
