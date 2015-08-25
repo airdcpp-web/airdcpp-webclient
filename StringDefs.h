@@ -860,7 +860,6 @@ enum Strings { // @DontAdd
 	MIDNIGHT, // "Midnight"
 	MINIMUM_LEN, // "Minimum length"
 	MINIMUM_SEARCH_INTERVAL, // "Minimum search interval"
-	MINIMUM_SEARCH_INTERVAL_SEC, // "Minimum search interval (in seconds)"
 	MINSHARE, // "Min share"
 	MINSLOTS, // "Min slots"
 	MINUTE, // "Minute"
