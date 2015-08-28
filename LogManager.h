@@ -32,8 +32,14 @@
 
 namespace dcpp {
 
-using std::deque;
-using std::pair;
+struct LogMessage {
+	LogMessage(uint32_t aId, const string& aMessage, time_t t, uint8_t sev) : id(aId), message(aMessage), time(t), severity(sev) { }
+
+	uint32_t id;
+	string message;
+	time_t time;
+	uint8_t severity;
+};
 
 class LogManager : public Singleton<LogManager>, public Speaker<LogManagerListener>
 {
@@ -42,14 +48,7 @@ public:
 	enum Area: uint8_t { CHAT, PM, DOWNLOAD, UPLOAD, SYSTEM, STATUS, LAST };
 	enum: uint8_t { FILE, FORMAT };
 
-	struct MessageData {
-		MessageData(time_t t, Severity sev) : time(t), severity(sev) { }
-
-		time_t time;
-		Severity severity;
-	};
-
-	typedef deque<pair<string, MessageData> > List;
+	typedef deque<LogMessage> List;
 
 	void log(Area area, ParamMap& params) noexcept;
 	void message(const string& msg, Severity severity);
@@ -82,6 +81,7 @@ private:
 	void ensureParam(const string& aParam, string& aFile);
 
 	DispatcherQueue tasks;
+	uint32_t idCounter = 0;
 };
 
 #define LOG(area, msg) LogManager::getInstance()->log(area, msg)

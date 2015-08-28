@@ -209,10 +209,6 @@ protected:
 	void setHubUrl(const string& url);
 	void onPassword();
 private:
-
-	Client(const Client&);
-	Client& operator=(const Client&);
-
 	string hubUrl;
 	string address;
 	string ip;

@@ -21,13 +21,14 @@
 
 namespace dcpp {
 
+struct LogMessage;
 class LogManagerListener {
 public:
 	virtual ~LogManagerListener() { }
 	template<int I>	struct X { enum { TYPE = I }; };
 
 	typedef X<0> Message;
-	virtual void on(Message, time_t, const string&, uint8_t) noexcept { }
+	virtual void on(Message, const LogMessage&) noexcept { }
 };
 
 } // namespace dcpp

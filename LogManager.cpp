@@ -93,16 +93,18 @@ void LogManager::message(const string& msg, Severity severity) {
 		params["message"] = msg;
 		log(SYSTEM, params);
 	}
-	time_t t = GET_TIME();
+
+	auto messageData = LogMessage(idCounter++, msg, GET_TIME(), severity);
 	{
 		Lock l(cs);
 		// Keep the last 100 messages (completely arbitrary number...)
 		while(lastLogs.size() > 100)
 			lastLogs.pop_front();
 
-		lastLogs.emplace_back(msg, MessageData(t, severity));
+		lastLogs.emplace_back(messageData);
 	}
-	fire(LogManagerListener::Message(), t, msg, severity);
+
+	fire(LogManagerListener::Message(), messageData);
 }
 
 LogManager::List LogManager::getLastLogs() {
