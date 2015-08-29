@@ -92,9 +92,16 @@ public:
 		STATUS_FAILED_EXTRAS
 	};
 
+	enum ItemType {
+		NORMAL,
+		FAILED_BUNDLE,
+		CHAT_DOWNLOAD,
+		RSS_DOWNLOAD
+	};
+
 	AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType,
 		StringMatch::Method aMatcherType, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime, bool aCheckAlreadyQueued,
-		bool aCheckAlreadyShared, bool matchFullPath, const string& aExcluded, int aSearhInterval, ProfileToken aToken = 0) noexcept;
+		bool aCheckAlreadyShared, bool matchFullPath, const string& aExcluded, int aSearhInterval, ItemType aType, ProfileToken aToken = 0) noexcept;
 
 	AutoSearch() noexcept;
 	~AutoSearch() noexcept;
@@ -131,6 +138,9 @@ public:
 
 	GETSET(string, lastError, LastError);
 
+	IGETSET(ItemType, asType, AsType, NORMAL);
+	IGETSET(time_t, timeAdded, TimeAdded, 0);
+
 	SearchTime startTime = SearchTime(false);
 	SearchTime endTime = SearchTime(true);
 	bitset<7> searchDays = bitset<7>("1111111");
@@ -144,8 +154,9 @@ public:
 	string getExpiration() const noexcept;
 
 	QueueItem::Priority getPriority() { return QueueItem::NORMAL; }
-	bool isRecent() { return false; }
-	bool checkRecent() { return false; }
+
+	bool isRecent() const noexcept { return recent; }
+	bool checkRecent();
 
 	time_t nextAllowedSearch() const noexcept;
 	//Get the time for next possible search
@@ -186,6 +197,8 @@ private:
 	bool nextIsDisable = false;
 	string target;
 	StringSearch excluded;
+
+	bool recent = false;
 };
 
 }

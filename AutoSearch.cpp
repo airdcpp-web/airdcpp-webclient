@@ -41,22 +41,26 @@ AutoSearch::AutoSearch() noexcept : token(Util::randInt(10)) {
 
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget,
 	TargetUtil::TargetType aTargetType, StringMatch::Method aMethod, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime,
-	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, const string& aExcluded, int aSearchInterval, ProfileToken aToken /*rand*/) noexcept :
+	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, const string& aExcluded, int aSearchInterval, ItemType aType, ProfileToken aToken /*rand*/) noexcept :
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), tType(aTargetType),
 	expireTime(aExpireTime), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared), searchInterval(aSearchInterval),
-	token(aToken), matchFullPath(aMatchFullPath), matcherString(aMatcherString), excludedString(aExcluded) {
+	token(aToken), matchFullPath(aMatchFullPath), matcherString(aMatcherString), excludedString(aExcluded), asType(aType) {
 
-		if (token == 0)
-			token = Util::randInt(10);
+	if (timeAdded == 0)
+		timeAdded = GET_TIME();
 
-		if (searchInterval == 0)
-			searchInterval = AS_DEFAULT_SEARCH_INTERVAL;
+	if (token == 0)
+		token = Util::randInt(10);
 
-		setTarget(aTarget);
-		setMethod(aMethod);
-		userMatcher.setMethod(StringMatch::WILDCARD);
-		userMatcher.pattern = aUserMatch;
-		userMatcher.prepare();
+	if (searchInterval == 0)
+		searchInterval = AS_DEFAULT_SEARCH_INTERVAL;
+
+	checkRecent();
+	setTarget(aTarget);
+	setMethod(aMethod);
+	userMatcher.setMethod(StringMatch::WILDCARD);
+	userMatcher.pattern = aUserMatch;
+	userMatcher.prepare();
 };
 
 AutoSearch::~AutoSearch() noexcept {};
@@ -75,11 +79,11 @@ bool AutoSearch::allowNewItems() const noexcept {
 }
 
 bool AutoSearch::allowAutoSearch() const noexcept{
-	return allowNewItems() && (nextAllowedSearch() < GET_TIME()) && (lastSearch + searchInterval * 60 <= GET_TIME());
+	return allowNewItems() && (nextAllowedSearch() < GET_TIME()) && (isRecent() || (lastSearch + searchInterval * 60 <= GET_TIME()));
 }
 
 time_t AutoSearch::getNextSearchTime() const noexcept {
-	auto next_s = lastSearch + searchInterval * 60;
+	auto next_s = isRecent() ? lastSearch + 1 * 60 : lastSearch + searchInterval * 60;
 	return max(next_s, nextAllowedSearch());
 }
 
@@ -104,6 +108,15 @@ bool AutoSearch::onBundleRemoved(const BundlePtr& aBundle, bool finished) noexce
 	updateStatus();
 
 	return expired;
+}
+
+bool AutoSearch::checkRecent() { 
+	if (getTimeAdded() == 0 || getAsType() == NORMAL)
+		recent = false;
+	else {
+		recent = GET_TIME() < (getTimeAdded() + 3 * 60 * 60);
+	}
+	return recent;
 }
 
 bool AutoSearch::removeOnCompleted() const noexcept{
@@ -382,8 +395,8 @@ void AutoSearch::saveToXml(SimpleXML& xml) {
 	xml.addChildAttrib("Target", getTarget());
 	xml.addChildAttrib("TargetType", getTargetType());
 	xml.addChildAttrib("MatcherType", getMethod()),
-		xml.addChildAttrib("MatcherString", getMatcherString()),
-		xml.addChildAttrib("UserMatch", getNickPattern());
+	xml.addChildAttrib("MatcherString", getMatcherString()),
+	xml.addChildAttrib("UserMatch", getNickPattern());
 	xml.addChildAttrib("ExpireTime", getExpireTime());
 	xml.addChildAttrib("CheckAlreadyQueued", getCheckAlreadyQueued());
 	xml.addChildAttrib("CheckAlreadyShared", getCheckAlreadyShared());
@@ -394,7 +407,9 @@ void AutoSearch::saveToXml(SimpleXML& xml) {
 	xml.addChildAttrib("MatchFullPath", getMatchFullPath());
 	xml.addChildAttrib("ExcludedWords", getExcludedString());
 	xml.addChildAttrib("SearchInterval", Util::toString(getSearchInterval()));
+	xml.addChildAttrib("ItemType", Util::toString(getAsType()));
 	xml.addChildAttrib("Token", Util::toString(getToken()));
+	xml.addChildAttrib("TimeAdded", Util::toString(getTimeAdded()));
 	xml.addChildAttrib("Group", getGroup());
 
 	xml.stepIn();

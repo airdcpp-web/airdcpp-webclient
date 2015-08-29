@@ -59,7 +59,7 @@ void AutoSearchManager::logMessage(const string& aMsg, bool error) const noexcep
 }
 
 /* Adding new items for external use */
-AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove/*true*/) noexcept {
+AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType, bool isDirectory, AutoSearch::ItemType asType, bool aRemove, int aInterval) noexcept {
 	if (ss.length() <= 5) {
 		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, ss % STRING(LINE_EMPTY_OR_TOO_SHORT)), true);
 		return nullptr;
@@ -72,7 +72,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	}
 
 	AutoSearchPtr as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_FILE, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, aTargetType, 
-		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString, AS_DEFAULT_SEARCH_INTERVAL);
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString, aInterval, asType);
 
 	addAutoSearch(as, true);
 	return as;
@@ -364,7 +364,7 @@ bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) noexcept {
 
 	//7 days expiry
 	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::getParentDir(aBundle->getTarget()), TargetUtil::TARGET_PATH, 
-		StringMatch::EXACT, Util::emptyString, Util::emptyString, GET_TIME() + 7*24*60*60, false, false, false, Util::emptyString, 60);
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, GET_TIME() + 7*24*60*60, false, false, false, Util::emptyString, 60, AutoSearch::FAILED_BUNDLE);
 
 	as->setGroup(SETTING(AS_FAILED_DEFAULT_GROUP));
 	as->addBundle(aBundle);
@@ -456,6 +456,7 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 }
 void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aUpdate) noexcept {
 	int itemCount = 0;
+	int recentItems = 0;
 
 	RLock l(cs);
 	if (searchItems.getItems().empty()) {
@@ -466,13 +467,15 @@ void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aUpdate) noexcept 
 	time_t tmp = 0;
 	//calculate which of the items has the nearest possible search time.
 	for (auto x : searchItems.getItems() | map_values) {
-		auto next_tt = x->getNextSearchTime();
 		if (!x->allowNewItems())
 			continue;
+		if (x->isRecent())
+			recentItems++;
 
-		if (x->nextAllowedSearch() <= GET_TIME())
+		if (!x->isRecent() && x->nextAllowedSearch() <= GET_TIME())
 			itemCount++;
 
+		auto next_tt = x->getNextSearchTime();
 		tmp = tmp == 0 ? next_tt : min(next_tt, tmp);
 	}
 
@@ -485,6 +488,13 @@ void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aUpdate) noexcept 
 	
 	if(itemCount > 0)
 		nextSearchTick = searchItems.recalculateSearchTimes(false, aUpdate, aTick, itemCount, SETTING(AUTOSEARCH_EVERY));
+
+	//Calculate interval for recent items, if any..
+	uint64_t recentSearchTick = 0;
+	if (recentItems > 0)
+		recentSearchTick = searchItems.recalculateSearchTimes(true, aUpdate, aTick, recentItems, SETTING(AUTOSEARCH_EVERY));
+
+	nextSearchTick = recentSearchTick > 0 ? nextSearchTick > 0 ? min(recentSearchTick, nextSearchTick) : recentSearchTick : nextSearchTick;
 
 	//We already missed the search time, add 3 seconds and search then.
 	if (aTick > nextSearchTick)
@@ -975,10 +985,14 @@ AutoSearchPtr AutoSearchManager::loadItemFromXml(SimpleXML& aXml) {
 		aXml.getBoolChildAttrib("MatchFullPath"),
 		aXml.getChildAttrib("ExcludedWords"),
 		aXml.getIntChildAttrib("SearchInterval"),
+		(AutoSearch::ItemType)aXml.getIntChildAttrib("ItemType"),
 		aXml.getIntChildAttrib("Token"));
 
 	as->setGroup(aXml.getChildAttrib("Group"));
 	as->setExpireTime(aXml.getIntChildAttrib("ExpireTime"));
+	as->setTimeAdded(aXml.getIntChildAttrib("TimeAdded"));
+
+	dcdebug("ItemType: %s \n", Util::toString(as->getAsType()).c_str());
 
 	auto searchDays = aXml.getChildAttrib("SearchDays");
 	if (!searchDays.empty()) {

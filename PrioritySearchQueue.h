@@ -96,19 +96,27 @@ public:
 			}
 			return nextSearch;
 		} else {
+			//start with the min interval
+			if (isPrioChange && nextRecentSearch == 0)
+				nextRecentSearch = aTick + (minInterval * 60 * 1000);
+
+			int IntervalMS = getRecentIntervalMs();
 			if (nextRecentSearch > 0 && isPrioChange) {
-				nextRecentSearch = min(nextRecentSearch, aTick + getRecentIntervalMs());
+				nextRecentSearch = min(nextRecentSearch, aTick + IntervalMS);
 			} else {
-				nextRecentSearch = aTick + getRecentIntervalMs();
+				nextRecentSearch = aTick + IntervalMS;
 			}
 			return nextRecentSearch;
 		}
 	}
 
-	int getRecentIntervalMs() const noexcept{
-		auto recentItems = count_if(recentSearchQueue.begin(), recentSearchQueue.end(), [](const ItemT& aItem) { 
+
+
+	int getRecentIntervalMs(int aItemCount = 0) const noexcept{
+
+		auto recentItems = aItemCount == 0 ? count_if(recentSearchQueue.begin(), recentSearchQueue.end(), [](const ItemT& aItem) { 
 			return aItem->allowAutoSearch(); 
-		});
+		}) : aItemCount;
 
 		if (recentItems == 1) {
 			return 15 * 60 * 1000;
