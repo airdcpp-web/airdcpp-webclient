@@ -37,7 +37,7 @@ class DbSnapshot {
 
 };
 
-class DbHandler {
+class DbHandler : boost::noncopyable {
 public:
 	virtual DbSnapshot* getSnapshot() { return nullptr; }
 
@@ -70,7 +70,6 @@ protected:
 		if (dbPath.back() != PATH_SEPARATOR)
 			dbPath += PATH_SEPARATOR;
 	}
-	DbHandler(const DbHandler& src); // no copying
 
 	string dbPath;
 	string friendlyName;

@@ -381,7 +381,7 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 				}
 			}
 
-			if (disks.size() == 1 || exceptedCount > disks.size()) {
+			if (disks.size() == 1 || exceptedCount > static_cast<int>(disks.size())) {
 				reportMessage(STRING(DISKS_MISSING) + " " + aPath, aScan);
 				aScan.disksMissing++;
 			}

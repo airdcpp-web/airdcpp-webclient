@@ -884,13 +884,13 @@ SettingsManager::SettingsManager()
 #endif
 }
 
-void SettingsManager::applyProfileDefaults() {
+void SettingsManager::applyProfileDefaults() noexcept {
 	for (const auto& newSetting: profileSettings[get(SETTINGS_PROFILE)]) {
 		newSetting.setProfileToDefault(false);
 	}
 }
 
-void SettingsManager::setProfile(int aProfile, const ProfileSettingItem::List& conflicts) {
+void SettingsManager::setProfile(int aProfile, const ProfileSettingItem::List& conflicts) noexcept {
 	set(SettingsManager::SETTINGS_PROFILE, aProfile);
 	applyProfileDefaults();
 
@@ -899,7 +899,7 @@ void SettingsManager::setProfile(int aProfile, const ProfileSettingItem::List& c
 	}
 }
 
-string SettingsManager::getProfileName(int profile) {
+string SettingsManager::getProfileName(int profile) const noexcept {
 	switch(profile) {
 		case PROFILE_NORMAL: return STRING(NORMAL);
 		case PROFILE_RAR: return STRING(RAR_HUBS);
@@ -1121,7 +1121,7 @@ const string SettingsManager::historyTags[] = {
 	"DirectoryHistory"
 };
 
-bool SettingsManager::addToHistory(const string& aString, HistoryType aType) {
+bool SettingsManager::addToHistory(const string& aString, HistoryType aType) noexcept {
 	auto& hist = history[aType];
 
 	if(aString.empty() || get(maxLimits[aType]) == 0)
@@ -1140,12 +1140,122 @@ bool SettingsManager::addToHistory(const string& aString, HistoryType aType) {
 	return true;
 }
 
-void SettingsManager::clearHistory(HistoryType aType) {
+void SettingsManager::clearHistory(HistoryType aType) noexcept {
 	history[aType].clear();
 }
 
-const SettingsManager::HistoryList& SettingsManager::getHistory(HistoryType aType) const {
+const SettingsManager::HistoryList& SettingsManager::getHistory(HistoryType aType) const noexcept {
 	return history[aType];
+}
+
+
+
+void SettingsManager::set(StrSetting key, string const& value) noexcept {
+	if ((key == NICK) && (value.size() > 35)) {
+		strSettings[key - STR_FIRST] = value.substr(0, 35);
+	}
+	else if ((key == DESCRIPTION) && (value.size() > 50)) {
+		strSettings[key - STR_FIRST] = value.substr(0, 50);
+	}
+	else if ((key == EMAIL) && (value.size() > 64)) {
+		strSettings[key - STR_FIRST] = value.substr(0, 64);
+	}
+	else if (key == UPLOAD_SPEED || key == DOWNLOAD_SPEED) {
+		boost::regex reg;
+		reg.assign("(\\d+(\\.\\d+)?)");
+		if (!regex_match(value, reg)) {
+			strSettings[key - STR_FIRST] = connectionSpeeds[0];
+		}
+		else {
+			strSettings[key - STR_FIRST] = value;
+		}
+	}
+	else {
+		strSettings[key - STR_FIRST] = value;
+	}
+	isSet[key] = !value.empty();
+}
+
+void SettingsManager::set(IntSetting key, int value) noexcept {
+	if ((key == SLOTS) && (value <= 0)) {
+		value = 1;
+	}
+	if ((key == EXTRA_SLOTS) && (value < 1)) {
+		value = 1;
+	}
+
+	if ((key == AUTOSEARCH_EVERY) && (value < 1)) {
+		value = 1;
+	}
+	if ((key == AUTOSEARCH_RECHECK_TIME) && (value < 30)) {
+		value = 30;
+	}
+
+	if ((key == SET_MINISLOT_SIZE) && (value < 64)) {
+		value = 64;
+	}
+
+	if ((key == NUMBER_OF_SEGMENTS) && (value > 10)) {
+		value = 10;
+	}
+
+	if ((key == SEARCH_TIME) && (value < 5)) {
+		value = 5;
+	}
+
+	if ((key == MINIMUM_SEARCH_INTERVAL) && (value < 5)) {
+		value = 5;
+	}
+	if ((key == MAX_RESIZE_LINES) && (value < 1)) {
+		value = 1;
+	}
+
+
+	intSettings[key - INT_FIRST] = value;
+	isSet[key] = true;
+}
+
+void SettingsManager::set(IntSetting key, const string& value) noexcept {
+	if (value.empty()) {
+		intSettings[key - INT_FIRST] = 0;
+		isSet[key] = false;
+	}
+	else {
+		intSettings[key - INT_FIRST] = Util::toInt(value);
+		isSet[key] = true;
+	}
+}
+
+void SettingsManager::set(BoolSetting key, bool value) noexcept {
+	boolSettings[key - BOOL_FIRST] = value;
+	isSet[key] = true;
+}
+
+void SettingsManager::set(BoolSetting key, const string& value) noexcept {
+	if (value.empty()) {
+		boolSettings[key - BOOL_FIRST] = 0;
+		isSet[key] = false;
+	}
+	else {
+		boolSettings[key - BOOL_FIRST] = Util::toInt(value) > 0 ? true : false;
+		isSet[key] = true;
+	}
+}
+
+void SettingsManager::set(Int64Setting key, int64_t value) noexcept {
+	int64Settings[key - INT64_FIRST] = value;
+	isSet[key] = true;
+}
+
+void SettingsManager::set(Int64Setting key, const string& value) noexcept {
+	if (value.empty()) {
+		int64Settings[key - INT64_FIRST] = 0;
+		isSet[key] = false;
+	}
+	else {
+		int64Settings[key - INT64_FIRST] = Util::toInt64(value);
+		isSet[key] = true;
+	}
 }
 
 void SettingsManager::save() {
@@ -1229,7 +1339,7 @@ void SettingsManager::save() {
 	saveSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
 }
 
-HubSettings SettingsManager::getHubSettings() const {
+HubSettings SettingsManager::getHubSettings() const noexcept {
 	HubSettings ret;
 	ret.get(HubSettings::Nick) = get(NICK);
 	ret.get(HubSettings::Description) = get(DESCRIPTION);

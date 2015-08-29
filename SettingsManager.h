@@ -236,155 +236,65 @@ public:
 	static const ResourceManager::Strings dropStrings[QUEUE_LAST];
 	static const ResourceManager::Strings updateStrings[VERSION_LAST];
 
-	const string& get(StrSetting key, bool useDefault = true) const {
+	const string& get(StrSetting key, bool useDefault = true) const noexcept {
 		return (isSet[key] || !useDefault) ? strSettings[key - STR_FIRST] : strDefaults[key - STR_FIRST];
 	}
 
-	int get(IntSetting key, bool useDefault = true) const {
+	int get(IntSetting key, bool useDefault = true) const noexcept {
 		return (isSet[key] || !useDefault) ? intSettings[key - INT_FIRST] : intDefaults[key - INT_FIRST];
 	}
-	bool get(BoolSetting key, bool useDefault = true) const {
+	bool get(BoolSetting key, bool useDefault = true) const noexcept {
 		return (isSet[key] || !useDefault) ? boolSettings[key - BOOL_FIRST] : boolDefaults[key - BOOL_FIRST];
 	}
-	int64_t get(Int64Setting key, bool useDefault = true) const {
+	int64_t get(Int64Setting key, bool useDefault = true) const noexcept {
 		return (isSet[key] || !useDefault) ? int64Settings[key - INT64_FIRST] : int64Defaults[key - INT64_FIRST];
 	}
 
-	void set(StrSetting key, string const& value) {
-		if ( (key == NICK) && (value.size() > 35) ) {
-			strSettings[key - STR_FIRST] = value.substr(0, 35);
-		} else if ( (key == DESCRIPTION) && (value.size() > 50) ) {
-			strSettings[key - STR_FIRST] = value.substr(0, 50);
-		} else if ( (key == EMAIL) && (value.size() > 64) ) {
-			strSettings[key - STR_FIRST] = value.substr(0, 64);
-		} else if (key == UPLOAD_SPEED || key == DOWNLOAD_SPEED) {
-			boost::regex reg;
-			reg.assign("(\\d+(\\.\\d+)?)");
-			if (!regex_match(value, reg)) {
-				strSettings[key - STR_FIRST] = connectionSpeeds[0];
-			} else {
-				strSettings[key - STR_FIRST] = value;
-			}
-		} else {
-			strSettings[key - STR_FIRST] = value;
-		}
-		isSet[key] = !value.empty();
-	}
+	void set(StrSetting key, string const& value) noexcept;
 
-	void set(IntSetting key, int value) {
-		if((key == SLOTS) && (value <= 0)) {
-			value = 1;
-		}
-		if((key == EXTRA_SLOTS) && (value < 1)) {
-			value = 1;
-		}
+	void set(IntSetting key, int value) noexcept;
+	void set(IntSetting key, const string& value) noexcept;
+	//void set(IntSetting key, bool value) { set(key, (int)value); }
 
-		if((key == AUTOSEARCH_EVERY) && (value < 1)) {
-			value = 1;
-		}
-		if((key == AUTOSEARCH_RECHECK_TIME) && (value < 30)) {
-			value = 30;
-		}
+	void set(BoolSetting key, bool value) noexcept;
+	void set(BoolSetting key, const string& value) noexcept;
 
-		if((key == SET_MINISLOT_SIZE) && (value < 64)) {
-			value = 64;
-		}
+	void set(Int64Setting key, int64_t value) noexcept;
+	void set(Int64Setting key, const string& value) noexcept;
 
-		if((key == NUMBER_OF_SEGMENTS) && (value > 10)) {
-			value = 10;
-		}
-
-		if((key == SEARCH_TIME) && (value < 5)) {
-			value = 5;
-		}
-
-		if((key == MINIMUM_SEARCH_INTERVAL) && (value < 5)) {
-			value = 5;
-		}
-		if((key == MAX_RESIZE_LINES) && (value < 1)) {
-			value = 1;
-		}
-
-
-		intSettings[key - INT_FIRST] = value;
-		isSet[key] = true;
-	}
-
-	void set(IntSetting key, const string& value) {
-		if(value.empty()) {
-			intSettings[key - INT_FIRST] = 0;
-			isSet[key] = false;
-		} else {
-			intSettings[key - INT_FIRST] = Util::toInt(value);
-			isSet[key] = true;
-		}
-	}
-
-	void set(BoolSetting key, bool value) {
-		boolSettings[key - BOOL_FIRST] = value;
-		isSet[key] = true;
-	}
-
-	void set(BoolSetting key, const string& value) {
-		if(value.empty()) {
-			boolSettings[key - BOOL_FIRST] = 0;
-			isSet[key] = false;
-		} else {
-			boolSettings[key - BOOL_FIRST] = Util::toInt(value) > 0 ? true : false;
-			isSet[key] = true;
-		}
-	}
-
-	void set(Int64Setting key, int64_t value) {
-		int64Settings[key - INT64_FIRST] = value;
-		isSet[key] = true;
-	}
-
-	void set(Int64Setting key, const string& value) {
-		if(value.empty()) {
-			int64Settings[key - INT64_FIRST] = 0;
-			isSet[key] = false;
-		} else {
-			int64Settings[key - INT64_FIRST] = Util::toInt64(value);
-			isSet[key] = true;
-		}
-	}
-
-	void set(IntSetting key, bool value) { set(key, (int)value); }
-
-	const string& getDefault(StrSetting key) const {
+	const string& getDefault(StrSetting key) const noexcept {
 		return strDefaults[key - STR_FIRST];
 	}
 
-	int getDefault(IntSetting key) const {
+	int getDefault(IntSetting key) const noexcept {
 		return intDefaults[key - INT_FIRST];
 	}
 
-	bool getDefault(BoolSetting key) const {
+	bool getDefault(BoolSetting key) const noexcept {
 		return boolDefaults[key - BOOL_FIRST];
 	}
 
-	int64_t getDefault(Int64Setting key) const {
+	int64_t getDefault(Int64Setting key) const noexcept {
 		return int64Defaults[key - INT64_FIRST];
 	}
 
-	void setDefault(StrSetting key, string const& value) {
+	void setDefault(StrSetting key, string const& value) noexcept {
 		strDefaults[key - STR_FIRST] = value;
 	}
 
-	void setDefault(IntSetting key, int value) {
+	void setDefault(IntSetting key, int value) noexcept {
 		intDefaults[key - INT_FIRST] = value;
 	}
 
-	void setDefault(BoolSetting key, bool value) {
+	void setDefault(BoolSetting key, bool value) noexcept {
 		boolDefaults[key - BOOL_FIRST] = value;
 	}
 
-	void setDefault(Int64Setting key, int64_t value) {
+	void setDefault(Int64Setting key, int64_t value) noexcept {
 		int64Defaults[key - INT64_FIRST] = value;
 	}
 
-	template<typename KeyT> bool isDefault(KeyT key) {
+	template<typename KeyT> bool isDefault(KeyT key) noexcept {
 		return !isSet[key] || get(key, false) == getDefault(key);
 	}
 
@@ -394,14 +304,14 @@ public:
 	void load(function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF);
 	void save();
 	
-	void reloadPages(int group = 0) {
+	void reloadPages(int group = 0) noexcept {
 		fire(SettingsManagerListener::ReloadPages(), group);
 	}
-	void Cancel() {
+	void Cancel() noexcept {
 		fire(SettingsManagerListener::Cancel(), 0);
 	}
 
-	HubSettings getHubSettings() const;
+	HubSettings getHubSettings() const noexcept;
 
 	typedef vector<string> HistoryList;
 
@@ -412,18 +322,18 @@ public:
 		HISTORY_LAST
 	};
 
-	bool addToHistory(const string& aString, HistoryType aType);
-	void clearHistory(HistoryType aType);
-	const HistoryList& getHistory(HistoryType aType) const;
+	bool addToHistory(const string& aString, HistoryType aType) noexcept;
+	void clearHistory(HistoryType aType) noexcept;
+	const HistoryList& getHistory(HistoryType aType) const noexcept;
 
-	StringPair getFileEvent(SettingsManager::FileEvents fe) {
+	StringPair getFileEvent(SettingsManager::FileEvents fe) noexcept {
 		return fileEvents[fe];
 	}
 
-	void setProfile(int aProfile, const ProfileSettingItem::List& conflicts);
+	void setProfile(int aProfile, const ProfileSettingItem::List& conflicts) noexcept;
 	static const ProfileSettingItem profileSettings[SettingsManager::PROFILE_LAST][10];
-	void applyProfileDefaults();
-	string getProfileName(int profile);
+	void applyProfileDefaults() noexcept;
+	string getProfileName(int profile) const noexcept;
 
 	static void saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName) noexcept;
 	static void loadSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, bool migrate = true) throw(Exception);

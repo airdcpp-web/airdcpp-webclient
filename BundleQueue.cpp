@@ -36,7 +36,7 @@ BundleQueue::BundleQueue() { }
 BundleQueue::~BundleQueue() { }
 
 size_t BundleQueue::getTotalFiles() const noexcept {
-	return boost::accumulate(bundles | map_values, (size_t)0, [](int64_t old, const BundlePtr& b) { return old + b->getQueueItems().size() + b->getFinishedFiles().size(); });
+	return boost::accumulate(bundles | map_values, (size_t)0, [](size_t old, const BundlePtr& b) { return old + b->getQueueItems().size() + b->getFinishedFiles().size(); });
 }
 
 void BundleQueue::addBundle(BundlePtr& aBundle) noexcept {

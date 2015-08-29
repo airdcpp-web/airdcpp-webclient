@@ -53,8 +53,8 @@ LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cach
 	defaultOptions.env = leveldb::Env::Default();
 	defaultOptions.compression = useCompression ? leveldb::kSnappyCompression : leveldb::kNoCompression;
 	defaultOptions.max_open_files = maxOpenFiles;
-	defaultOptions.block_size = aBlockSize;
-	defaultOptions.block_cache = leveldb::NewLRUCache(cacheSize);
+	defaultOptions.block_size = static_cast<size_t>(aBlockSize);
+	defaultOptions.block_cache = leveldb::NewLRUCache(static_cast<size_t>(cacheSize));
 	defaultOptions.paranoid_checks = false;
 	//options.write_buffer_size = cacheSize / 4; // up to two write buffers may be held in memory simultaneously
 	defaultOptions.create_if_missing = true;
