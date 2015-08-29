@@ -298,6 +298,13 @@ public:
 		return !isSet[key] || get(key, false) == getDefault(key);
 	}
 
+	// Update the value as set if it differs from the default value 
+	template<typename KeyT, typename ValueT> void updateValueSet(KeyT key, ValueT value) noexcept {
+		if (!isSet[key]) {
+			isSet[key] = value != getDefault(key);
+		}
+	}
+
 	void unsetKey(size_t key) { isSet[key] = false; }
 	bool isKeySet(size_t key) const { return isSet[key]; }
 

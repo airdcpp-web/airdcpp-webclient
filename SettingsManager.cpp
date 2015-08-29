@@ -1153,14 +1153,11 @@ const SettingsManager::HistoryList& SettingsManager::getHistory(HistoryType aTyp
 void SettingsManager::set(StrSetting key, string const& value) noexcept {
 	if ((key == NICK) && (value.size() > 35)) {
 		strSettings[key - STR_FIRST] = value.substr(0, 35);
-	}
-	else if ((key == DESCRIPTION) && (value.size() > 50)) {
+	} else if ((key == DESCRIPTION) && (value.size() > 50)) {
 		strSettings[key - STR_FIRST] = value.substr(0, 50);
-	}
-	else if ((key == EMAIL) && (value.size() > 64)) {
+	} else if ((key == EMAIL) && (value.size() > 64)) {
 		strSettings[key - STR_FIRST] = value.substr(0, 64);
-	}
-	else if (key == UPLOAD_SPEED || key == DOWNLOAD_SPEED) {
+	} else if (key == UPLOAD_SPEED || key == DOWNLOAD_SPEED) {
 		boost::regex reg;
 		reg.assign("(\\d+(\\.\\d+)?)");
 		if (!regex_match(value, reg)) {
@@ -1169,11 +1166,15 @@ void SettingsManager::set(StrSetting key, string const& value) noexcept {
 		else {
 			strSettings[key - STR_FIRST] = value;
 		}
-	}
-	else {
+	} else {
 		strSettings[key - STR_FIRST] = value;
 	}
-	isSet[key] = !value.empty();
+
+	if (value.empty()) {
+		isSet[key] = false;
+	} else if (!isSet[key]) {
+		isSet[key] = value != getDefault(key);
+	}
 }
 
 void SettingsManager::set(IntSetting key, int value) noexcept {
@@ -1212,49 +1213,43 @@ void SettingsManager::set(IntSetting key, int value) noexcept {
 
 
 	intSettings[key - INT_FIRST] = value;
-	isSet[key] = true;
+	updateValueSet(key, value);
 }
 
 void SettingsManager::set(IntSetting key, const string& value) noexcept {
 	if (value.empty()) {
 		intSettings[key - INT_FIRST] = 0;
 		isSet[key] = false;
-	}
-	else {
-		intSettings[key - INT_FIRST] = Util::toInt(value);
-		isSet[key] = true;
+	} else {
+		set(key, Util::toInt(value));
 	}
 }
 
 void SettingsManager::set(BoolSetting key, bool value) noexcept {
 	boolSettings[key - BOOL_FIRST] = value;
-	isSet[key] = true;
+	updateValueSet(key, value);
 }
 
 void SettingsManager::set(BoolSetting key, const string& value) noexcept {
 	if (value.empty()) {
 		boolSettings[key - BOOL_FIRST] = 0;
 		isSet[key] = false;
-	}
-	else {
-		boolSettings[key - BOOL_FIRST] = Util::toInt(value) > 0 ? true : false;
-		isSet[key] = true;
+	} else {
+		set(key, Util::toInt(value) > 0 ? true : false);
 	}
 }
 
 void SettingsManager::set(Int64Setting key, int64_t value) noexcept {
 	int64Settings[key - INT64_FIRST] = value;
-	isSet[key] = true;
+	updateValueSet(key, value);
 }
 
 void SettingsManager::set(Int64Setting key, const string& value) noexcept {
 	if (value.empty()) {
 		int64Settings[key - INT64_FIRST] = 0;
 		isSet[key] = false;
-	}
-	else {
-		int64Settings[key - INT64_FIRST] = Util::toInt64(value);
-		isSet[key] = true;
+	} else {
+		set(key, Util::toInt64(value));
 	}
 }
 
