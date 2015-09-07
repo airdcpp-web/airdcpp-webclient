@@ -41,6 +41,14 @@ struct StringMatch {
 		METHOD_LAST
 	};
 
+	static StringMatch getSearch(const string& aPattern, Method aMethod) {
+		StringMatch m;
+		m.pattern = aPattern;
+		m.setMethod(aMethod);
+		m.prepare();
+		return m;
+	}
+
 	string pattern;
 
 	//Method getMethod() const { return m; }

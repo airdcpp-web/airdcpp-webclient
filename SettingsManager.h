@@ -352,16 +352,16 @@ private:
 	static const string settingTags[SETTINGS_LAST+1];
 
 	string strSettings[STR_LAST - STR_FIRST];
-	int    intSettings[INT_LAST - INT_FIRST];
-	bool boolSettings[BOOL_LAST - BOOL_FIRST];
-	int64_t int64Settings[INT64_LAST - INT64_FIRST];
+	int    intSettings[INT_LAST - INT_FIRST]{};
+	bool boolSettings[BOOL_LAST - BOOL_FIRST]{};
+	int64_t int64Settings[INT64_LAST - INT64_FIRST]{};
 
 	string strDefaults[STR_LAST - STR_FIRST];
-	int    intDefaults[INT_LAST - INT_FIRST];
-	bool boolDefaults[BOOL_LAST - BOOL_FIRST];
-	int64_t int64Defaults[INT64_LAST - INT64_FIRST];
+	int    intDefaults[INT_LAST - INT_FIRST]{};
+	bool boolDefaults[BOOL_LAST - BOOL_FIRST]{};
+	int64_t int64Defaults[INT64_LAST - INT64_FIRST]{};
 
-	bool isSet[SETTINGS_LAST];
+	bool isSet[SETTINGS_LAST]{};
 
 	HistoryList history[HISTORY_LAST];
 	static const string historyTags[HISTORY_LAST];

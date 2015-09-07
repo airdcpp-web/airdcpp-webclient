@@ -29,7 +29,7 @@
 namespace dcpp {
 
 /** A user connected to one or more hubs. */
-class User : public FastAlloc<User>, public intrusive_ptr_base<User>, public Flags, private boost::noncopyable
+class User : public FastAlloc<User>, public intrusive_ptr_base<User>, public Flags
 {
 public:
 	/** Each flag is set if it's true in at least one hub */
@@ -79,6 +79,11 @@ public:
 	int64_t getQueued() const { return queued; }
 
 	IGETSET(int64_t, speed, Speed, 0);
+
+	User(User&& rhs) = delete;
+	User& operator=(User&& rhs) = delete;
+	User(User&) = delete;
+	User& operator=(User&) = delete;
 private:
 	int64_t queued = 0;
 	const CID cid;

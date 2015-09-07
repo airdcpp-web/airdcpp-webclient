@@ -234,18 +234,6 @@ SettingsManager::SettingsManager()
 	//that might cause them to be in the wrong position.
 	fileEvents.resize(2);
 
-	for(int i=0; i<SETTINGS_LAST; i++)
-		isSet[i] = false;
-
-	for(int i=0; i<INT_LAST-INT_FIRST; i++) {
-		intDefaults[i] = 0;
-		intSettings[i] = 0;
-	}
-	for(int i=0; i<INT64_LAST-INT64_FIRST; i++) {
-		int64Defaults[i] = 0;
-		int64Settings[i] = 0;
-	}
-
 	setDefault(MAX_UPLOAD_SPEED_MAIN, 0);
 	setDefault(MAX_DOWNLOAD_SPEED_MAIN, 0);
 	setDefault(TIME_DEPENDENT_THROTTLE, false);
