@@ -750,6 +750,22 @@ void SearchManager::getSearchType(const string& aName, int& type, StringList& ex
 	throw SearchTypeException("No such search type"); 
 }
 
+string SearchManager::getNameByExtension(const string& aExtension, bool defaultsOnly) const noexcept {
+	RLock l(cs);
+	for (const auto& type : searchTypes) {
+		if (defaultsOnly && (type.first.size() > 1 || type.first[0] < '1' || type.first[0] > '6')) {
+			continue;
+		}
+
+		auto i = boost::find(type.second, aExtension);
+		if (i != type.second.end()) {
+			return type.first;
+		}
+	}
+
+	return Util::emptyString;
+}
+
 
 void SearchManager::on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {
 	xml.addTag("SearchTypes");

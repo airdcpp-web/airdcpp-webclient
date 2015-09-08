@@ -115,12 +115,13 @@ public:
 
 	void getSearchType(int pos, int& type, StringList& extList, string& name);
 	void getSearchType(const string& aName, int& type, StringList& extList, bool lock=false);
+	string getNameByExtension(const string& aExtension, bool defaultsOnly = false) const noexcept;
 
 	bool decryptPacket(string& x, size_t aLen, uint8_t* aBuf, size_t bufLen);
 private:
 	vector<pair<uint8_t*, uint64_t>> searchKeys;
 
-	SharedMutex cs;
+	mutable SharedMutex cs;
 
 	friend class Singleton<SearchManager>;
 

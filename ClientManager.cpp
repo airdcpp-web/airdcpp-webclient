@@ -1086,8 +1086,12 @@ string ClientManager::getClientStats() const noexcept {
 		Util::toString(hiddenUsers) + " (" + Util::toString(((double) hiddenUsers / (double) uniqueUsers)*100.00) + "%)" + lb;
 	ret += "Protocol users (ADC/NMDC): " + Util::toString(adcUsers) + "/" + Util::toString(nmdcUsers) + lb;
 	ret += "Total share: " + Util::formatBytes(totalShare) + " (" + Util::formatBytes(totalShare / uniqueUsers) + " per user)" + lb;
-	ret += "Average ADC connection speed: " + Util::formatConnectionSpeed(downloadSpeed / adcUsers) + " down, " + Util::formatConnectionSpeed(uploadSpeed / adcUsers) + " up" + lb;
-	ret += "Average NMDC connection speed: " + Util::formatConnectionSpeed(nmdcConnection / nmdcUsers) + lb;
+
+	if (adcUsers > 0)
+		ret += "Average ADC connection speed: " + Util::formatConnectionSpeed(downloadSpeed / adcUsers) + " down, " + Util::formatConnectionSpeed(uploadSpeed / adcUsers) + " up" + lb;
+	if (nmdcUsers > 0)
+		ret += "Average NMDC connection speed: " + Util::formatConnectionSpeed(nmdcConnection / nmdcUsers) + lb;
+
 	ret += lb;
 	ret += lb;
 	ret += "Clients (from unique users)";
