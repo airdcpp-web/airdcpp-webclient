@@ -36,6 +36,7 @@
 #include "ResourceManager.h"
 #include "SettingsManager.h"
 #include "SimpleXML.h"
+#include "ScopedFunctor.h"
 #include "User.h"
 #include "version.h"
 
@@ -1624,12 +1625,9 @@ string Util::getOsVersion(bool http /*false*/) {
 #ifdef _WIN32
 	typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);
 	typedef BOOL(WINAPI *PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
-	string os;
 
 	SYSTEM_INFO si;
 	PGNSI pGNSI;
-	DWORD dwType;
-	PGPI pGPI;
 	ZeroMemory(&si, sizeof(SYSTEM_INFO));
 	pGNSI = (PGNSI)GetProcAddress(
 		GetModuleHandle(TEXT("kernel32.dll")), "GetNativeSystemInfo");
@@ -1637,130 +1635,54 @@ string Util::getOsVersion(bool http /*false*/) {
 		pGNSI(&si);
 	else GetSystemInfo(&si);
 
-	auto getProduct = [&](int major, int minor, string& os) -> void {
-		pGPI = (PGPI)GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "GetProductInfo");
-		pGPI(major, minor, 0, 0, &dwType);
-		switch (dwType)
-		{
-		case PRODUCT_ULTIMATE:
-			os += " Ultimate Edition";
-			break;
-		case PRODUCT_PROFESSIONAL:
-			os += " Professional";
-			break;
-		case PRODUCT_PROFESSIONAL_WMC:
-			os += " Professional with Media Center";
-			break;
-		case PRODUCT_HOME_PREMIUM:
-			os += " Home Premium Edition";
-			break;
-		case PRODUCT_HOME_BASIC:
-			os += " Home Basic Edition";
-			break;
-		case PRODUCT_ENTERPRISE:
-			os += " Enterprise Edition";
-			break;
-		case PRODUCT_BUSINESS:
-			os += " Business Edition";
-			break;
-		case PRODUCT_STARTER:
-			os += " Starter Edition";
-			break;
-		case PRODUCT_CLUSTER_SERVER:
-			os += " Cluster Server Edition";
-			break;
-		case PRODUCT_DATACENTER_SERVER:
-			os += " Datacenter Edition";
-			break;
-		case PRODUCT_DATACENTER_SERVER_CORE:
-			os += " Datacenter Edition (core installation)";
-			break;
-		case PRODUCT_ENTERPRISE_SERVER:
-			os += " Enterprise Edition";
-			break;
-		case PRODUCT_ENTERPRISE_SERVER_CORE:
-			os += " Enterprise Edition (core installation)";
-			break;
-		case PRODUCT_ENTERPRISE_SERVER_IA64:
-			os += " Enterprise Edition for Itanium-based Systems";
-			break;
-		case PRODUCT_SMALLBUSINESS_SERVER:
-			os += " Small Business Server";
-			break;
-		case PRODUCT_SMALLBUSINESS_SERVER_PREMIUM:
-			os += " Small Business Server Premium Edition";
-			break;
-		case PRODUCT_STANDARD_SERVER:
-			os += " Standard Edition";
-			break;
-		case PRODUCT_STANDARD_SERVER_CORE:
-			os += " Standard Edition (core installation)";
-			break;
-		case PRODUCT_WEB_SERVER:
-			os += " Web Server Edition";
-			break;
-		}
-
-		if (major >= 6) {
-			if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-				os += " 64-bit";
-			else if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL)
-				os += " 32-bit";
-		}
-
-		/*
-		TODO: service pack
-		tstring spver(ver.szCSDVersion);
-		if (!spver.empty()) {
-			os += " " + Text::fromT(spver);
-		}*/
-	};
-
 	auto formatHttp = [&](int major, int minor, string& os) -> string {
 		TCHAR buf[255];
 		_stprintf(buf, _T("%d.%d"),
-		(DWORD)major, (DWORD)minor);
+			(DWORD)major, (DWORD)minor);
 
 		os = "(Windows " + Text::fromT(buf);
 		if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-		os += "; WOW64)";
+			os += "; WOW64)";
 		else
-		os += ")";
+			os += ")";
 		return os;
 	};
 
-	if (IsWindows8Point1OrGreater()) {
-		if (http) return formatHttp(6, 3, os);
-		if (IsWindowsServer())
-			os = "Windows Server 2012 R2";
-		else
-			os = "Windows 8.1";
 
-		getProduct(6, 3, os);
+	HKEY hk;
+	TCHAR buf[512];
+	string os = "Windows";
+	string regkey = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion";
+	auto err = ::RegOpenKeyEx(HKEY_LOCAL_MACHINE, Text::toT(regkey).c_str(), 0, KEY_READ, &hk);
+	if (err == ERROR_SUCCESS) {
+		ScopedFunctor([&hk] { RegCloseKey(hk); });
+
+		DWORD bufLen = sizeof(buf);
+		DWORD type;
+		err = ::RegQueryValueEx(hk, _T("ProductName"), 0, &type, (LPBYTE)buf, &bufLen);
+		if (err == ERROR_SUCCESS) {
+			os = Text::fromT(buf);
+		}
+
+		ZeroMemory(&buf, sizeof(buf));
+		if (http) {
+			err = ::RegQueryValueEx(hk, _T("CurrentVersion"), 0, &type, (LPBYTE)buf, &bufLen);
+			if (err == ERROR_SUCCESS) {
+				auto osv = Text::fromT(buf);
+				boost::regex expr{ "(\\d+)\\.(\\d+)" };
+				boost::smatch osver;
+				if (boost::regex_search(osv, osver, expr)) {
+					return formatHttp(Util::toInt(osver[1]), Util::toInt(osver[2]), os);
+				}
+			}
+		}
 	}
-	else if (IsWindows8OrGreater()) {
-		if (http) return formatHttp(6, 2, os);
-		if (IsWindowsServer())
-			os = "Windows Server 2012";
-		else
-			os = "Windows 8";
-		getProduct(6, 2, os);
-	}
-	else if (IsWindows7OrGreater()) {
-		if (http) return formatHttp(6, 1, os);
-		if (IsWindowsServer())
-			os = "Windows Server 2008 R2";
-		else
-			os = "Windows 7";
-		getProduct(6, 1, os);
-	}
-	else if (IsWindowsVistaOrGreater()) {
-		if (http) return formatHttp(6, 0, os);
-		if (IsWindowsServer())
-			os = "Windows Server 2008";
-		else
-			os = "Windows Vista";
-		getProduct(6, 0, os);
+
+	if (!os.empty()) {
+		if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+			os += " 64-bit";
+		else if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL)
+			os += " 32-bit";
 	}
 
 	return os;
