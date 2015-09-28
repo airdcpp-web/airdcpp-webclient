@@ -76,13 +76,13 @@ AdcHub::~AdcHub() {
 	clearUsers();
 }
 
-void AdcHub::shutdown() {
+void AdcHub::shutdown(ClientPtr& aClient) {
 	stopValidation = true;
 	if (hbriThread && hbriThread->joinable()) {
 		hbriThread->join();
 	}
 
-	Client::shutdown();
+	Client::shutdown(aClient);
 	TimerManager::getInstance()->removeListener(this);
 }
 
