@@ -125,7 +125,7 @@ private:
 
 	void putUser(const uint32_t aSID, bool disconnect);
 
-	void shutdown();
+	void shutdown(ClientPtr& aClient);
 	void clearUsers();
 	void appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6);
 
