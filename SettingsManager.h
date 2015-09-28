@@ -256,9 +256,6 @@ public:
 	void set(IntSetting key, const string& value) noexcept;
 	//void set(IntSetting key, bool value) { set(key, (int)value); }
 
-		if((key == AUTOSEARCH_EVERY) && (value < 1)) {
-			value = 1;
-		}
 	void set(BoolSetting key, bool value) noexcept;
 	void set(BoolSetting key, const string& value) noexcept;
 

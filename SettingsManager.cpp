@@ -1181,9 +1181,6 @@ void SettingsManager::set(IntSetting key, int value) noexcept {
 	if ((key == AUTOSEARCH_EVERY) && (value < 1)) {
 		value = 1;
 	}
-	if ((key == AUTOSEARCH_RECHECK_TIME) && (value < 30)) {
-		value = 30;
-	}
 
 	if ((key == SET_MINISLOT_SIZE) && (value < 64)) {
 		value = 64;

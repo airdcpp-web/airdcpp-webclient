@@ -63,7 +63,6 @@ enum Strings { // @DontAdd
 	ASCH_SUPPORT_COUNT, // "Users with Advanced Search support: %1%/%2%"
 	AS_ADD_DUPE_CONFIRM, // "Do you want to continue with adding this item anyway?"
 	AS_END_GREATER, // "End time must be greater than the start time!"
-	AS_END_OF_LIST, // "Auto search: End of list reached. Recheck items, next search after %d minutes."
 	AS_ERROR, // "%1%: %2% (on %3% from a user %4%)"
 	AS_INC_DESC, // "The number will be incremented only after the previous bundle has finished downloading, only one bundle can be queued at time."
 	AS_MAX_NUMBER_HELP, // "The search item will expire after a bundle with this number has been downloaded."
