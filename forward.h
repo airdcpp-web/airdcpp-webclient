@@ -165,6 +165,7 @@ typedef std::vector<UserConnectionPtr> UserConnectionList;
 class AutoSearch;
 typedef boost::intrusive_ptr<AutoSearch> AutoSearchPtr;
 typedef std::vector<AutoSearchPtr> AutoSearchList;
+typedef std::unordered_map<int, AutoSearchPtr> AutoSearchMap;
 
 } // namespace dcpp
 

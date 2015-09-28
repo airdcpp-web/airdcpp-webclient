@@ -139,10 +139,12 @@ void startup(function<void(const string&)> stepF, function<bool(const string& /*
 	announce(STRING(DOWNLOAD_QUEUE));
 	QueueManager::getInstance()->loadQueue(progressF);
 
+	//Load before share, it can result in bundles changing status to failed_missing, avoids adding double items in auto search.
+	AutoSearchManager::getInstance()->AutoSearchLoad();
+
 	announce(STRING(SHARED_FILES));
 	ShareManager::getInstance()->startup(stepF, progressF); 
 
-	AutoSearchManager::getInstance()->AutoSearchLoad();
 	FavoriteManager::getInstance()->load();
 
 	if(SETTING(GET_USER_COUNTRY)) {

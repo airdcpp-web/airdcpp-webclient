@@ -37,11 +37,11 @@ public:
 		}
 
 		if (aItem->isRecent()) {
-			dcassert(find(recentSearchQueue, aItem) == recentSearchQueue.end());
+			dcassert(find(recentSearchQueue.begin(), recentSearchQueue.end(), aItem) == recentSearchQueue.end());
 			recentSearchQueue.push_back(aItem);
 			return;
 		} else {
-			dcassert(find(prioSearchQueue[aItem->getPriority()], aItem) == prioSearchQueue[aItem->getPriority()].end());
+			dcassert(find(prioSearchQueue[aItem->getPriority()].begin(), prioSearchQueue[aItem->getPriority()].end(), aItem) == prioSearchQueue[aItem->getPriority()].end());
 			prioSearchQueue[aItem->getPriority()].push_back(aItem);
 		}
 	}
@@ -52,12 +52,12 @@ public:
 		}
 
 		if (aItem->isRecent()) {
-			auto i = find(recentSearchQueue, aItem);
+			auto i = find(recentSearchQueue.begin(), recentSearchQueue.end(), aItem);
 			if (i != recentSearchQueue.end()) {
 				recentSearchQueue.erase(i);
 			}
 		} else {
-			auto i = find(prioSearchQueue[aItem->getPriority()], aItem);
+			auto i = find(prioSearchQueue[aItem->getPriority()].begin(), prioSearchQueue[aItem->getPriority()].end(), aItem);
 			if (i != prioSearchQueue[aItem->getPriority()].end()) {
 				prioSearchQueue[aItem->getPriority()].erase(i);
 			}
@@ -76,13 +76,17 @@ public:
 		return ret;
 	}
 
-	int64_t recalculateSearchTimes(bool aRecent, bool isPrioChange, uint64_t aTick) noexcept{
+	int64_t recalculateSearchTimes(bool aRecent, bool isPrioChange, uint64_t aTick, int aItemCount = 0, int minInterval = SETTING(SEARCH_TIME)) noexcept{
 		if (!aRecent) {
-			int prioItems = getPrioSum();
-			int minInterval = SETTING(SEARCH_TIME);
+			if(aItemCount == 0)
+				aItemCount = getPrioSum();
 
-			if (prioItems > 0) {
-				minInterval = max(60 / prioItems, minInterval);
+			//start with the min interval
+			if(isPrioChange && nextSearch == 0)
+				nextSearch = aTick + (minInterval * 60 * 1000);
+
+			if (aItemCount > 0) {
+				minInterval = max(60 / aItemCount, minInterval);
 			}
 
 			if (nextSearch > 0 && isPrioChange) {
@@ -92,19 +96,27 @@ public:
 			}
 			return nextSearch;
 		} else {
+			//start with the min interval
+			if (isPrioChange && nextRecentSearch == 0)
+				nextRecentSearch = aTick + (minInterval * 60 * 1000);
+
+			int IntervalMS = getRecentIntervalMs();
 			if (nextRecentSearch > 0 && isPrioChange) {
-				nextRecentSearch = min(nextRecentSearch, aTick + getRecentIntervalMs());
+				nextRecentSearch = min(nextRecentSearch, aTick + IntervalMS);
 			} else {
-				nextRecentSearch = aTick + getRecentIntervalMs();
+				nextRecentSearch = aTick + IntervalMS;
 			}
 			return nextRecentSearch;
 		}
 	}
 
-	int getRecentIntervalMs() const noexcept{
-		auto recentItems = count_if(recentSearchQueue.begin(), recentSearchQueue.end(), [](const ItemT& aItem) { 
+
+
+	int getRecentIntervalMs(int aItemCount = 0) const noexcept{
+
+		auto recentItems = aItemCount == 0 ? count_if(recentSearchQueue.begin(), recentSearchQueue.end(), [](const ItemT& aItem) { 
 			return aItem->allowAutoSearch(); 
-		});
+		}) : aItemCount;
 
 		if (recentItems == 1) {
 			return 15 * 60 * 1000;

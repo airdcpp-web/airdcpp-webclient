@@ -28,6 +28,10 @@
 #include "StringMatch.h"
 #include "TargetUtil.h"
 #include "Util.h"
+#include "QueueItem.h"
+
+//default minimum search interval for the same item to be searched again
+#define AS_DEFAULT_SEARCH_INTERVAL 180
 
 namespace dcpp {
 
@@ -88,9 +92,16 @@ public:
 		STATUS_FAILED_EXTRAS
 	};
 
+	enum ItemType {
+		NORMAL,
+		FAILED_BUNDLE,
+		CHAT_DOWNLOAD,
+		RSS_DOWNLOAD
+	};
+
 	AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType,
 		StringMatch::Method aMatcherType, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime, bool aCheckAlreadyQueued,
-		bool aCheckAlreadyShared, bool matchFullPath, const string& aExcluded, ProfileToken aToken = 0) noexcept;
+		bool aCheckAlreadyShared, bool matchFullPath, const string& aExcluded, int aSearhInterval, ItemType aType, ProfileToken aToken = 0) noexcept;
 
 	AutoSearch() noexcept;
 	~AutoSearch() noexcept;
@@ -114,6 +125,7 @@ public:
 	IGETSET(time_t, lastSearch, LastSearch, 0);
 	IGETSET(bool, checkAlreadyQueued, CheckAlreadyQueued, true);
 	IGETSET(bool, checkAlreadyShared, CheckAlreadyShared, true);
+	IGETSET(int, searchInterval, SearchInterval, 180);
 	IGETSET(bool, manualSearch, ManualSearch, false);
 	IGETSET(Status, status, Status, STATUS_SEARCHING);
 
@@ -122,7 +134,12 @@ public:
 	IGETSET(int, numberLen, NumberLen, 2);
 	IGETSET(bool, useParams, UseParams, false);
 	IGETSET(time_t, lastIncFinish, LastIncFinish, 0);
+	IGETSET(string, group, Group, Util::emptyString);
+
 	GETSET(string, lastError, LastError);
+
+	IGETSET(ItemType, asType, AsType, NORMAL);
+	IGETSET(time_t, timeAdded, TimeAdded, 0);
 
 	SearchTime startTime = SearchTime(false);
 	SearchTime endTime = SearchTime(true);
@@ -136,11 +153,20 @@ public:
 	string getSearchingStatus() const noexcept;
 	string getExpiration() const noexcept;
 
-	time_t nextAllowedSearch() noexcept;
+	QueueItem::Priority getPriority() { return QueueItem::NORMAL; }
+
+	bool isRecent() const noexcept { return recent; }
+	bool checkRecent();
+
+	time_t nextAllowedSearch() const noexcept;
+	//Get the time for next possible search
+	time_t getNextSearchTime() const noexcept;
 	bool allowNewItems() const noexcept;
+	bool allowAutoSearch() const noexcept;
 	void updatePattern() noexcept;
 	void changeNumber(bool increase) noexcept;
 	bool updateSearchTime() noexcept;
+	void saveToXml(SimpleXML& xml);
 	void updateStatus() noexcept;
 
 	void removeBundle(const BundlePtr& aBundle) noexcept;
@@ -171,6 +197,8 @@ private:
 	bool nextIsDisable = false;
 	string target;
 	StringSearch excluded;
+
+	bool recent = false;
 };
 
 }

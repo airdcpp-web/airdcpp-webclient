@@ -26,6 +26,7 @@
 #include "SearchManagerListener.h"
 #include "QueueManagerListener.h"
 
+#include "AutoSearchQueue.h"
 #include "DelayedEvents.h"
 #include "GetSet.h"
 #include "Singleton.h"
@@ -33,6 +34,7 @@
 #include "TargetUtil.h"
 #include "TimerManager.h"
 #include "Util.h"
+
 
 namespace dcpp {
 
@@ -52,10 +54,8 @@ public:
 
 	//AutoSearchPtr getNameDupe(const string& aName, bool report, const AutoSearchPtr& thisSearch = nullptr) const noexcept;
 	bool addFailedBundle(const BundlePtr& aBundle) noexcept;
-	void addAutoSearch(AutoSearchPtr aAutoSearch, bool search) noexcept;
-	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, bool aRemove = true) noexcept;
-	AutoSearchPtr getSearchByIndex(unsigned int index) const noexcept;
-	AutoSearchPtr getSearchByToken(ProfileToken aToken) const noexcept;
+	void addAutoSearch(AutoSearchPtr aAutoSearch, bool search, bool loading = false) noexcept;
+	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, AutoSearch::ItemType asType, bool aRemove = true, int aInterval = AS_DEFAULT_SEARCH_INTERVAL) noexcept;
 	AutoSearchList getSearchesByBundle(const BundlePtr& aBundle) const noexcept;
 	AutoSearchList getSearchesByString(const string& aSearchString, const AutoSearchPtr& ignoredSearch = nullptr) const noexcept;
 
@@ -69,57 +69,54 @@ public:
 
 	void changeNumber(AutoSearchPtr as, bool increase) noexcept;
 	
-	AutoSearchList& getSearchItems() noexcept {
-		RLock l(cs);
-		return searchItems; 
+	AutoSearchMap& getSearchItems() noexcept {
+		return searchItems.getItems(); 
 	};
-
-	void moveAutoSearchUp(unsigned int id) noexcept {
-		WLock l(cs);
-		//hack =]
-		if(searchItems.size() > id) {
-			swap(searchItems[id], searchItems[id-1]);
-			dirty = true;
-		}
-	}
-
-	void moveAutoSearchDown(unsigned int id) noexcept {
-		WLock l(cs);
-		//hack =]
-		if(searchItems.size() > id) {
-			swap(searchItems[id], searchItems[id+1]);
-			dirty = true;
-		}
-	}
 
 	bool setItemActive(AutoSearchPtr& as, bool active) noexcept;
 
-	void runSearches() noexcept;
+	time_t getNextSearch() const noexcept { return nextSearch; }
 
 	void AutoSearchLoad();
 	void AutoSearchSave() noexcept;
 
+	void saveItemToXml(const AutoSearchPtr& as, SimpleXML& xml);
 	void logMessage(const string& aMsg, bool error) const noexcept;
 
 	void onBundleCreated(BundlePtr& aBundle, const ProfileToken aSearch) noexcept;
 	void onBundleError(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser) noexcept;
+
+	vector<string> getGroups() { RLock l(cs);  return groups; }
+	void setGroups(vector<string>& newGroups) { WLock l(cs);  groups = newGroups; }
+	void moveItemToGroup(AutoSearchPtr& as, const string& aGroupName);
+	bool hasGroup(const string& aGroup) { RLock l(cs);  return (find(groups.begin(), groups.end(), aGroup) != groups.end()); }
+	int getGroupIndex(const AutoSearchPtr& as);
+
+	SharedMutex& getCS() { return cs; }
 private:
+	enum {
+		RECALCULATE_SEARCH
+	};
+
 	mutable SharedMutex cs;
 
-	DelayedEvents<ProfileToken> resultCollector;
+	//Delayed events used to collect search results and calculate search times.
+	DelayedEvents<int> delayEvents;
+	
+	vector<string> groups;
 
-	void performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType) noexcept;
+
+	void performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType, uint64_t aTick = GET_TICK()) noexcept;
 	//count minutes to be more accurate than comparing ticks every minute.
-	bool checkItems() noexcept;
-	AutoSearchList searchItems;
+	void checkItems() noexcept;
+	Searches searchItems;
 
 	void loadAutoSearch(SimpleXML& aXml);
 
+	AutoSearchPtr loadItemFromXml(SimpleXML& aXml);
 	uint64_t lastSave = 0;
 	bool dirty = false;
-	time_t lastSearch;
-	time_t recheckTime;
-	uint32_t curPos = 0;
+	time_t nextSearch = 0;
 
 	bool endOfListReached = false;
 
@@ -130,6 +127,7 @@ private:
 
 	void updateStatus(AutoSearchPtr& as, bool setTabDirty) noexcept;
 	void clearError(AutoSearchPtr& as) noexcept;
+	void resetSearchTimes(uint64_t aTick, bool aUpdate = false) noexcept;
 
 	/* Listeners */
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
