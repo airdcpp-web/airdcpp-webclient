@@ -52,7 +52,7 @@ public:
 	virtual const UserPtr& getUser() const = 0;
 	virtual const string& getHubUrl() const = 0;
 
-	static uint8_t getImage(const Identity& identity, const Client* c);
+	static uint8_t getImage(const Identity& identity, bool isTcpActive);
 	enum: uint8_t {
 		// base icons
 		USER_ICON,

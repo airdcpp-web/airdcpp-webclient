@@ -52,10 +52,10 @@ class FileList {
 		IGETSET(bool, forceXmlRefresh, ForceXmlRefresh, true); /// bypass the 15-minutes guard
 
 		unique_ptr<File> bzXmlRef;
-		string getFileName();
+		string getFileName() const noexcept;
 
-		bool allowGenerateNew(bool force=false);
-		void generationFinished(bool failed);
+		bool allowGenerateNew(bool force=false) noexcept;
+		void generationFinished(bool failed) noexcept;
 		void saveList();
 		CriticalSection cs;
 		int getCurrentNumber() const { return listN; }
@@ -110,11 +110,13 @@ public:
 	IGETSET(int64_t, shareSize, ShareSize, 0);
 	IGETSET(size_t, sharedFiles, SharedFiles, 0);
 
-	string getDisplayName() const;
 	ShareProfile(const string& aName, ProfileToken aToken = Util::randInt(100));
 	~ShareProfile();
 
-	FileList* getProfileList();
+	FileList* getProfileList() noexcept;
+	bool isDefault() const noexcept;
+	string getDisplayName() const noexcept;
+
 	typedef unordered_set<ShareProfilePtr, Hash> Set;
 	typedef vector<ShareProfilePtr> List;
 private:

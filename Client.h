@@ -28,6 +28,7 @@
 #include "ConnectionType.h"
 #include "HubSettings.h"
 #include "OnlineUser.h"
+#include "Pointer.h"
 #include "Search.h"
 #include "SearchQueue.h"
 #include "Speaker.h"
@@ -55,9 +56,9 @@ public:
 };
 
 /** Yes, this should probably be called a Hub */
-class Client : public ClientBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, public HubSettings, private boost::noncopyable {
+class Client : public ClientBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, public HubSettings, private boost::noncopyable, public intrusive_ptr_base<Client> {
 public:
-	typedef unordered_map<string*, Client*, noCaseStringHash, noCaseStringEq> List;
+	typedef unordered_map<string*, ClientPtr, noCaseStringHash, noCaseStringEq> List;
 	typedef List::const_iterator Iter;
 
 	virtual void connect();
@@ -111,7 +112,7 @@ public:
 	
 	void setActive();
 	void reconnect();
-	virtual void shutdown();
+	virtual void shutdown(ClientPtr& aClient);
 	bool isActive() const;
 	bool isActiveV4() const;
 	bool isActiveV6() const;
@@ -160,10 +161,11 @@ public:
 
 	void logStatusMessage(const string& aMessage);
 	void logChatMessage(const string& aMessage);
+
+	virtual ~Client();
 protected:
 	friend class ClientManager;
 	Client(const string& hubURL, char separator);
-	virtual ~Client();
 
 	static atomic<long> counts[COUNT_UNCOUNTED];
 

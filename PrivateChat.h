@@ -48,7 +48,7 @@ namespace dcpp {
 		bool sendPrivateMessage(const HintedUser& aUser, const string& msg, string& error_, bool thirdPerson);
 		void handleMessage(const ChatMessage& aMessage);
 
-		void activate(const string& msg, Client* c);
+		void activate(const string& msg, const ClientPtr& c);
 		void close();
 
 		void closeCC(bool now, bool noAutoConnect);
@@ -66,7 +66,7 @@ namespace dcpp {
 		const string& getHubUrl() const { return replyTo.hint; }
 		const HintedUser& getHintedUser() const { return replyTo; }
 
-		Client* getClient() {
+		ClientPtr getClient() {
 			return ClientManager::getInstance()->getClient(replyTo.hint);
 		}
 		

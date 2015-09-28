@@ -115,8 +115,8 @@ public:
 	bool isHidden() const { return isClientType(CT_HIDDEN) || isSet("HI"); }
 	bool isBot() const { return isClientType(CT_BOT) || isSet("BO"); }
 	bool isAway() const { return (getStatus() & AWAY) || isSet("AW"); }
-	bool isTcpActive(const Client* = NULL) const;
-	bool isTcp4Active(const Client* = NULL) const;
+	bool isTcpActive(const Client* = nullptr) const;
+	bool isTcp4Active(const Client* = nullptr) const;
 	bool isTcp6Active() const;
 	bool isUdpActive() const;
 	bool isUdp4Active() const;
@@ -232,7 +232,7 @@ public:
 	const ClientBase& getClientBase() const { return client; }
 
 	/* UserInfo */
-	uint8_t getImageIndex() const { return UserInfoBase::getImage(identity, &getClient()); }
+	uint8_t getImageIndex() const { return UserInfoBase::getImage(identity, identity.isTcpActive(&getClient())); }
 	bool isHidden() const { return identity.isHidden(); }
 
 #ifdef _WIN32

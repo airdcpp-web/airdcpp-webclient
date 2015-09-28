@@ -18,18 +18,20 @@
 
 #include "stdinc.h"
 #include "HubEntry.h"
+
 #include "AirUtil.h"
+#include "ShareManager.h"
 #include "StringTokenizer.h"
 
 #include <boost/range/algorithm/for_each.hpp>
 
 namespace dcpp {
 
-FavoriteHubEntry::FavoriteHubEntry() noexcept : connect(true), bottom(0), top(0), left(0), right(0), chatusersplit(0), favnoPM(false),
-	stealth(false), userliststate(true), token(Util::randInt())  { }
+FavoriteHubEntry::FavoriteHubEntry() noexcept : 
+	token(Util::randInt()), shareProfile(ShareManager::getInstance()->getShareProfile(SETTING(DEFAULT_SP)))  { }
 
-FavoriteHubEntry::FavoriteHubEntry(const HubEntry& rhs) noexcept : name(rhs.getName()), description(rhs.getDescription()), connect(true),
-	bottom(0), top(0), left(0), right(0), chatusersplit(0), favnoPM(false), stealth(false), userliststate(true), token(Util::randInt()) {
+FavoriteHubEntry::FavoriteHubEntry(const HubEntry& rhs) noexcept : name(rhs.getName()), description(rhs.getDescription()),
+	token(Util::randInt()) {
 
 		servers.emplace_back(rhs.getServer(), false);
 }

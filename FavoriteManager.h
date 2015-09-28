@@ -91,10 +91,12 @@ public:
 	void autoConnect();
 	FavoriteHubEntryList& getFavoriteHubs() { return favoriteHubs; }
 
-	void addFavorite(const FavoriteHubEntryPtr& aEntry);
-	void removeFavorite(const FavoriteHubEntryPtr& entry);
+	bool addFavoriteHub(const FavoriteHubEntryPtr& aEntry);
+	void onFavoriteHubUpdated(const FavoriteHubEntryPtr& aEntry);
+	bool removeFavoriteHub(ProfileToken aToken);
 	bool isUnique(const string& aUrl, ProfileToken aToken);
 	FavoriteHubEntryPtr getFavoriteHubEntry(const string& aServer) const;
+	FavoriteHubEntryPtr getFavoriteHubEntry(const ProfileToken& aToken) const;
 
 	void mergeHubSettings(const FavoriteHubEntryPtr& entry, HubSettings& settings) const;
 	void setHubSetting(const string& aUrl, HubSettings::HubBoolSetting aSetting, bool newValue);
@@ -211,8 +213,12 @@ private:
 	RecentHubEntryList::const_iterator getRecentHub(const string& aServer) const;
 
 	// ClientManagerListener
-	void on(UserConnected, const OnlineUser& user, bool wasOffline) noexcept;
-	void on(UserDisconnected, const UserPtr& user, bool wentOffline) noexcept;
+	void on(ClientManagerListener::UserConnected, const OnlineUser& user, bool wasOffline) noexcept;
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& user, bool wentOffline) noexcept;
+
+	void on(ClientManagerListener::ClientCreated, const ClientPtr& c) noexcept;
+	void on(ClientManagerListener::ClientConnected, const ClientPtr& c) noexcept;
+	void on(ClientManagerListener::ClientRemoved, const string& aHubUrl) noexcept;
 
 	// HttpConnectionListener
 	void on(Data, HttpConnection*, const uint8_t*, size_t) noexcept;
@@ -222,6 +228,8 @@ private:
 	void on(Retried, HttpConnection*, bool) noexcept; 
 
 	bool onHttpFinished(bool fromHttp) noexcept;
+
+	void onConnectStateChanged(const std::string& aHubUrl, FavoriteHubEntry::ConnectState aState) noexcept;
 
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept {

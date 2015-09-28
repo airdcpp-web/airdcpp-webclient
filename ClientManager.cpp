@@ -51,10 +51,10 @@ ClientManager::~ClientManager() {
 	TimerManager::getInstance()->removeListener(this);
 }
 
-Client* ClientManager::createClient(const RecentHubEntryPtr& aEntry, ProfileToken aProfile) noexcept {
+ClientPtr ClientManager::createClient(const RecentHubEntryPtr& aEntry, ProfileToken aProfile) noexcept {
 	auto url = aEntry->getServer();
 
-	Client* c;
+	ClientPtr c;
 	if (AirUtil::isAdcHub(url)) {
 		c = new AdcHub(url);
 	} else {
@@ -74,7 +74,7 @@ Client* ClientManager::createClient(const RecentHubEntryPtr& aEntry, ProfileToke
 	}
 
 	if (!added) {
-		c->shutdown();
+		c->shutdown(c);
 		return nullptr;
 	}
 
@@ -85,21 +85,30 @@ Client* ClientManager::createClient(const RecentHubEntryPtr& aEntry, ProfileToke
 	return c;
 }
 
-Client* ClientManager::getClient(const string& aHubURL) noexcept {
+ClientPtr ClientManager::getClient(const string& aHubURL) noexcept {
 	RLock l (cs);
 	auto p = clients.find(const_cast<string*>(&aHubURL));
 	return p != clients.end() ? p->second : nullptr;
 }
 
-void ClientManager::putClient(Client* aClient) noexcept {
-	aClient->removeListeners();
+void ClientManager::putClient(const string& aHubURL) noexcept {
+	auto c = getClient(aHubURL);
+	if (c) {
+		putClient(c);
+	}
+}
+
+void ClientManager::putClient(ClientPtr& aClient) noexcept {
+	fire(ClientManagerListener::ClientDisconnected(), aClient->getHubUrl());
+	fire(ClientManagerListener::ClientRemoved(), aClient->getHubUrl());
+
+	aClient->disconnect(true);
+	aClient->shutdown(aClient);
 
 	{
 		WLock l(cs);
 		clients.erase(const_cast<string*>(&aClient->getHubUrl()));
 	}
-	fire(ClientManagerListener::ClientDisconnected(), aClient->getHubUrl());
-	aClient->shutdown();
 }
 
 void ClientManager::setClientUrl(const string& aOldUrl, const string& aNewUrl) noexcept {
@@ -359,7 +368,7 @@ HintedUser ClientManager::findLegacyUser(const string& nick) const noexcept {
 
 	for(auto i: clients | map_values) {
 		if (!AirUtil::isAdcHub(i->getHubUrl())) {
-			auto nmdc = static_cast<NmdcHub*>(i);
+			auto nmdc = static_cast<NmdcHub*>(i.get());
 			//if(nmdc) {
 			/** @todo run the search directly on non-UTF-8 nicks when we store them. */
 			auto ou = nmdc->findUser(nmdc->toUtf8(nick));
@@ -850,7 +859,7 @@ void ClientManager::resetProfiles(const ShareProfileInfo::List& aProfiles, Profi
 
 bool ClientManager::hasAdcHubs() const noexcept {
 	RLock l(cs);
-	return find_if(clients | map_values, [](const Client* c) { return AirUtil::isAdcHub(c->getHubUrl()); }).base() != clients.end();
+	return find_if(clients | map_values, [](const ClientPtr& c) { return AirUtil::isAdcHub(c->getHubUrl()); }).base() != clients.end();
 }
 
 pair<size_t, size_t> ClientManager::countAschSupport(const OrderedStringSet& hubs) const noexcept {
@@ -935,25 +944,6 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 			dcdebug("Partial search caught error\n");		
 		}
 	}
-}
-void ClientManager::onSearch(const Client* c, const AdcCommand& adc, OnlineUser& from) noexcept {
-	// Filter own searches
-	fire(ClientManagerListener::IncomingADCSearch(), adc);
-	if(from.getUser() == me)
-		return;
-
-	bool isUdpActive = from.getIdentity().isUdpActive();
-	if (isUdpActive) {
-		//check that we have a common IP protocol available (we don't want to send responses via wrong hubs)
-		const auto& myIdentity = c->getMyIdentity();
-		if (myIdentity.getIp4().empty() || !from.getIdentity().isUdp4Active()) {
-			if (myIdentity.getIp6().empty() || !from.getIdentity().isUdp6Active()) {
-				return;
-			}
-		}
-	}
-
-	SearchManager::getInstance()->respond(adc, from, isUdpActive, c->getIpPort(), c->getShareProfile());
 }
 
 uint64_t ClientManager::search(string& who, SearchPtr aSearch) noexcept {
@@ -1175,8 +1165,11 @@ void ClientManager::cancelSearch(void* aOwner) noexcept {
 }
 
 
-void ClientManager::on(Connected, const Client* c) noexcept {
-	fire(ClientManagerListener::ClientConnected(), c);
+void ClientManager::on(Connected, const Client* aClient) noexcept {
+	auto c = getClient(aClient->getHubUrl());
+	if (c) {
+		fire(ClientManagerListener::ClientConnected(), c);
+	}
 }
 
 void ClientManager::on(UserUpdated, const Client*, const OnlineUserPtr& user) noexcept {
@@ -1190,8 +1183,11 @@ void ClientManager::on(UsersUpdated, const Client*, const OnlineUserList& l) noe
 	}
 }
 
-void ClientManager::on(HubUpdated, const Client* c) noexcept {
-	fire(ClientManagerListener::ClientUpdated(), c);
+void ClientManager::on(HubUpdated, const Client* aClient) noexcept {
+	auto c = getClient(aClient->getHubUrl());
+	if (c) {
+		fire(ClientManagerListener::ClientUpdated(), c);
+	}
 }
 
 void ClientManager::on(Failed, const string& aHubUrl, const string& /*aLine*/) noexcept {
@@ -1233,7 +1229,7 @@ bool ClientManager::connectADCSearchResult(const CID& aCID, string& token_, stri
 	if(slash == string::npos) { return false; }
 
 	auto uniqueId = Util::toUInt32(token_.substr(0, slash));
-	auto client = find_if(clients | map_values, [uniqueId](const Client* client) { return client->getUniqueId() == uniqueId; });
+	auto client = find_if(clients | map_values, [uniqueId](const ClientPtr& c) { return c->getUniqueId() == uniqueId; });
 	if(client.base() == clients.end()) { return false; }
 	hubUrl_ = (*client)->getHubUrl();
 

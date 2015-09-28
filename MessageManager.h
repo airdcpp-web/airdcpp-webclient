@@ -115,7 +115,6 @@ namespace dcpp {
 		PrivateChat* getChat(const UserPtr& aUser);
 
 		void DisconnectCCPM(const UserPtr& aUser);
-		bool sendPrivateMessage(const HintedUser& aUser, const tstring& msg, string& _error, bool thirdPerson);
 		void onPrivateMessage(const ChatMessage& message, UserConnection* aUc = nullptr);
 		void removeChat(const UserPtr& aUser);
 		void closeAll(bool Offline);
@@ -125,7 +124,7 @@ namespace dcpp {
 		void storeIgnore(const UserPtr& aUser);
 		void removeIgnore(const UserPtr& aUser);
 		bool isIgnored(const UserPtr& aUser);
-		bool isIgnoredOrFiltered(const ChatMessage& msg, Client* client, bool PM);
+		bool isIgnoredOrFiltered(const ChatMessage& msg, const ClientPtr& client, bool PM);
 
 		// chat filter
 		bool isChatFiltered(const string& aNick, const string& aText, ChatFilterItem::Context aContext = ChatFilterItem::ALL);

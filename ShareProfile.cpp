@@ -28,11 +28,11 @@ namespace dcpp {
 
 FileList::FileList(ProfileToken aProfile) : profile(aProfile) { }
 
-string FileList::getFileName() {
+string FileList::getFileName() const noexcept {
 	return Util::getPath(Util::PATH_USER_CONFIG) + "files_" + Util::toString(profile) + "_" + Util::toString(listN) + ".xml.bz2";
 }
 
-bool FileList::allowGenerateNew(bool forced) {
+bool FileList::allowGenerateNew(bool forced) noexcept {
 	bool dirty = (forced && xmlDirty) || forceXmlRefresh || (xmlDirty && (lastXmlUpdate + 15 * 60 * 1000 < GET_TICK()));
 	if (!dirty) {
 		return false;
@@ -42,7 +42,7 @@ bool FileList::allowGenerateNew(bool forced) {
 	return true;
 }
 
-void FileList::generationFinished(bool failed) {
+void FileList::generationFinished(bool failed) noexcept {
 	xmlDirty = false;
 	forceXmlRefresh = false;
 	lastXmlUpdate = GET_TICK();
@@ -78,7 +78,7 @@ ShareProfile::~ShareProfile() {
 
 }
 
-string ShareProfile::getDisplayName() const {
+string ShareProfile::getDisplayName() const noexcept {
 	string ret = plainName;
 	if (token == SETTING(DEFAULT_SP)) {
 		ret += " (" + STRING(DEFAULT) + ")";
@@ -86,8 +86,12 @@ string ShareProfile::getDisplayName() const {
 	return ret;
 }
 
-FileList* ShareProfile::getProfileList() {
+FileList* ShareProfile::getProfileList() noexcept {
 	return &fileList;
+}
+
+bool ShareProfile::isDefault() const noexcept {
+	return token == SETTING(DEFAULT_SP);
 }
 
 } //dcpp

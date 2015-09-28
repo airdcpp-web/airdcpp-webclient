@@ -232,7 +232,7 @@ bool MessageManager::isIgnored(const UserPtr& aUser) {
 	return (i != ignoredUsers.end());
 }
 
-bool MessageManager::isIgnoredOrFiltered(const ChatMessage& msg, Client* client, bool PM){
+bool MessageManager::isIgnoredOrFiltered(const ChatMessage& msg, const ClientPtr& client, bool PM){
 	const auto& identity = msg.from->getIdentity();
 
 	auto logIgnored = [&](bool filter) -> void {

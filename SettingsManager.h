@@ -325,13 +325,13 @@ public:
 	enum HistoryType {
 		HISTORY_SEARCH,
 		HISTORY_EXCLUDE,
-		HISTORY_DIR,
+		HISTORY_DOWNLOAD_DIR,
 		HISTORY_LAST
 	};
 
 	bool addToHistory(const string& aString, HistoryType aType) noexcept;
 	void clearHistory(HistoryType aType) noexcept;
-	const HistoryList& getHistory(HistoryType aType) const noexcept;
+	HistoryList getHistory(HistoryType aType) const noexcept;
 
 	StringPair getFileEvent(SettingsManager::FileEvents fe) noexcept {
 		return fileEvents[fe];
@@ -367,6 +367,8 @@ private:
 	static const string historyTags[HISTORY_LAST];
 
 	StringPairList fileEvents;
+
+	mutable SharedMutex cs;
 };
 
 // Shorthand accessor macros

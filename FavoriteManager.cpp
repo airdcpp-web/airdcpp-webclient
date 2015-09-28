@@ -272,48 +272,6 @@ void FavoriteManager::changeLimiterOverride(const UserPtr& aUser) noexcept{
 	}
 }
 
-void FavoriteManager::addFavorite(const FavoriteHubEntryPtr& aEntry) {
-	auto i = getFavoriteHub(aEntry->getServers()[0].first);
-	if(i != favoriteHubs.end()) {
-		return;
-	}
-
-	favoriteHubs.push_back(aEntry);
-	fire(FavoriteManagerListener::FavoriteAdded(), aEntry);
-	save();
-}
-
-void FavoriteManager::autoConnect() {
-	vector<pair<RecentHubEntryPtr, ProfileToken>> hubs;
-	{
-
-		RLock l(cs);
-		for (const auto& entry : favoriteHubs) {
-			if (entry->getConnect()) {
-				RecentHubEntryPtr r = new RecentHubEntry(entry->getServers()[0].first);
-				r->setName(entry->getName());
-				r->setDescription(entry->getDescription());
-				hubs.emplace_back(r, entry->getShareProfile()->getToken());
-			}
-		}
-	}
-
-	for (const auto& h : hubs) {
-		ClientManager::getInstance()->createClient(h.first, h.second);
-	}
-}
-
-void FavoriteManager::removeFavorite(const FavoriteHubEntryPtr& entry) {
-	auto i = find(favoriteHubs.begin(), favoriteHubs.end(), entry);
-	if(i == favoriteHubs.end()) {
-		return;
-	}
-
-	fire(FavoriteManagerListener::FavoriteRemoved(), entry);
-	favoriteHubs.erase(i);
-	save();
-}
-
 bool FavoriteManager::addFavoriteDir(const string& aName, StringList& aTargets){
 	auto p = find_if(favoriteDirs, CompareFirst<string, StringList>(aName));
 	if (p != favoriteDirs.end())
@@ -323,14 +281,6 @@ bool FavoriteManager::addFavoriteDir(const string& aName, StringList& aTargets){
 	favoriteDirs.emplace_back(aName, aTargets);
 	save();
 	return true;
-}
-
-bool FavoriteManager::isUnique(const string& url, ProfileToken aToken) {
-	auto i = getFavoriteHub(url);
-	if (i == favoriteHubs.end())
-		return true;
-
-	return aToken == (*i)->getToken();
 }
 
 void FavoriteManager::saveFavoriteDirs(FavDirList& dirs) {
@@ -457,24 +407,99 @@ bool FavoriteManager::onHttpFinished(bool fromHttp) noexcept {
 	return success;
 }
 
-int FavoriteManager::resetProfile(ProfileToken oldDefault, ProfileToken newDefault, bool nmdcOnly) {
-	int counter = 0;
-	auto defaultProfile = ShareManager::getInstance()->getShareProfile(newDefault);
-
+// FAVORITE HUBS START
+bool FavoriteManager::addFavoriteHub(const FavoriteHubEntryPtr& aEntry) {
 	{
 		WLock l(cs);
-		for (const auto& fh : favoriteHubs) {
-			if (fh->getShareProfile()->getToken() == oldDefault) {
-				counter++;
-				if (!nmdcOnly || !fh->isAdcHub())
-					fh->setShareProfile(defaultProfile);
+		auto i = getFavoriteHub(aEntry->getServers()[0].first);
+		if (i != favoriteHubs.end()) {
+			return false;
+		}
+
+		favoriteHubs.push_back(aEntry);
+	}
+
+	fire(FavoriteManagerListener::FavoriteHubAdded(), aEntry);
+	save();
+	return true;
+}
+
+void FavoriteManager::onFavoriteHubUpdated(const FavoriteHubEntryPtr& aEntry) {
+	fire(FavoriteManagerListener::FavoriteHubUpdated(), aEntry);
+}
+
+void FavoriteManager::autoConnect() {
+	vector<pair<RecentHubEntryPtr, ProfileToken>> hubs;
+	{
+
+		RLock l(cs);
+		for (const auto& entry : favoriteHubs) {
+			if (entry->getAutoConnect()) {
+				RecentHubEntryPtr r = new RecentHubEntry(entry->getServers()[0].first);
+				r->setName(entry->getName());
+				r->setDescription(entry->getDescription());
+				hubs.emplace_back(r, entry->getShareProfile()->getToken());
 			}
 		}
 	}
 
-	if (counter > 0)
-		fire(FavoriteManagerListener::FavoritesUpdated());
-	return counter;
+	for (const auto& h : hubs) {
+		ClientManager::getInstance()->createClient(h.first, h.second);
+	}
+}
+
+bool FavoriteManager::removeFavoriteHub(ProfileToken aToken) {
+	FavoriteHubEntryPtr entry = nullptr;
+
+	{
+		WLock l(cs);
+		auto i = getFavoriteHub(aToken);
+		if (i == favoriteHubs.end()) {
+			return false;
+		}
+
+		entry = *i;
+		favoriteHubs.erase(i);
+	}
+
+	fire(FavoriteManagerListener::FavoriteHubRemoved(), entry);
+	save();
+	return true;
+}
+
+bool FavoriteManager::isUnique(const string& url, ProfileToken aToken) {
+	auto i = getFavoriteHub(url);
+	if (i == favoriteHubs.end())
+		return true;
+
+	return aToken == (*i)->getToken();
+}
+
+int FavoriteManager::resetProfile(ProfileToken aResetToken, ProfileToken aDefaultProfile, bool nmdcOnly) {
+	auto defaultProfile = ShareManager::getInstance()->getShareProfile(aDefaultProfile);
+
+	FavoriteHubEntryList updatedHubs;
+
+	{
+		RLock l(cs);
+		for (const auto& fh : favoriteHubs) {
+			if (fh->getShareProfile()->getToken() == aResetToken) {
+				if (!nmdcOnly || !fh->isAdcHub()) {
+					fh->setShareProfile(defaultProfile);
+					updatedHubs.push_back(fh);
+				}
+			}
+		}
+	}
+
+	for (const auto& fh : updatedHubs) {
+		fire(FavoriteManagerListener::FavoriteHubUpdated(), fh);
+	}
+
+
+	// Remove later
+	fire(FavoriteManagerListener::FavoriteHubsUpdated());
+	return static_cast<int>(updatedHubs.size());
 }
 
 bool FavoriteManager::hasAdcHubs() const {
@@ -483,7 +508,14 @@ bool FavoriteManager::hasAdcHubs() const {
 }
 
 int FavoriteManager::resetProfiles(const ShareProfileInfo::List& aProfiles, ProfileToken aDefaultProfile) {
-	int counter = 0;
+	int count = 0;
+	for (const auto& sp : aProfiles) {
+		count += resetProfile(sp->token, aDefaultProfile, false);
+	}
+
+	return count;
+
+	/*int counter = 0;
 	auto defaultProfile = ShareManager::getInstance()->getShareProfile(aDefaultProfile);
 
 	{
@@ -501,16 +533,18 @@ int FavoriteManager::resetProfiles(const ShareProfileInfo::List& aProfiles, Prof
 	if (counter > 0)
 		fire(FavoriteManagerListener::FavoritesUpdated());
 
-	return counter;
+	return counter;*/
 }
 
 void FavoriteManager::onProfilesRenamed() {
-	fire(FavoriteManagerListener::FavoritesUpdated());
+	//fire(FavoriteManagerListener::FavoritesUpdated());
 }
 
 bool FavoriteManager::hasActiveHubs() const {
 	return any_of(favoriteHubs.begin(), favoriteHubs.end(), [](const FavoriteHubEntryPtr& f) { return f->get(HubSettings::Connection) == SettingsManager::INCOMING_ACTIVE || f->get(HubSettings::Connection6) == SettingsManager::INCOMING_ACTIVE; });
 }
+
+// FAVORITE HUBS END
 
 void FavoriteManager::save() {
 	if(dontSave)
@@ -537,7 +571,7 @@ void FavoriteManager::save() {
 		for(auto& i: favoriteHubs) {
 			xml.addTag("Hub");
 			xml.addChildAttrib("Name", i->getName());
-			xml.addChildAttrib("Connect", i->getConnect());
+			xml.addChildAttrib("Connect", i->getAutoConnect());
 			xml.addChildAttrib("Description", i->getDescription());
 			xml.addChildAttrib("Password", i->getPassword());
 			xml.addChildAttrib("Server", i->getServerStr());
@@ -753,7 +787,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 		while(aXml.findChild("Hub")) {
 			FavoriteHubEntryPtr e = new FavoriteHubEntry();
 			e->setName(aXml.getChildAttrib("Name"));
-			e->setConnect(aXml.getBoolChildAttrib("Connect"));
+			e->setAutoConnect(aXml.getBoolChildAttrib("Connect"));
 			e->setDescription(aXml.getChildAttrib("Description"));
 			e->setPassword(aXml.getChildAttrib("Password"));
 
@@ -962,7 +996,14 @@ StringList FavoriteManager::getHubLists() {
 }
 
 FavoriteHubEntryPtr FavoriteManager::getFavoriteHubEntry(const string& aServer) const {
+	RLock l(cs);
 	auto p = getFavoriteHub(aServer);
+	return p != favoriteHubs.end() ? *p : nullptr;
+}
+
+FavoriteHubEntryPtr FavoriteManager::getFavoriteHubEntry(const ProfileToken& aToken) const {
+	RLock l(cs);
+	auto p = getFavoriteHub(aToken);
 	return p != favoriteHubs.end() ? *p : nullptr;
 }
 
@@ -1231,6 +1272,27 @@ void FavoriteManager::on(UserConnected, const OnlineUser& aUser, bool /*wasOffli
 
 	if(user->isSet(User::FAVORITE))
 		fire(FavoriteManagerListener::StatusChanged(), user);
+}
+
+void FavoriteManager::on(ClientManagerListener::ClientCreated, const ClientPtr& aClient) noexcept {
+	onConnectStateChanged(aClient->getHubUrl(), FavoriteHubEntry::STATE_CONNECTING);
+}
+
+void FavoriteManager::on(ClientManagerListener::ClientConnected, const ClientPtr& aClient) noexcept {
+	onConnectStateChanged(aClient->getHubUrl(), FavoriteHubEntry::STATE_CONNECTED);
+}
+
+void FavoriteManager::on(ClientManagerListener::ClientRemoved, const string& aHubUrl) noexcept {
+	onConnectStateChanged(aHubUrl, FavoriteHubEntry::STATE_DISCONNECTED);
+}
+
+void FavoriteManager::onConnectStateChanged(const std::string& aHubUrl, FavoriteHubEntry::ConnectState aState) noexcept {
+	auto hub = getFavoriteHubEntry(aHubUrl);
+	if (hub) {
+		hub->setConnectState(aState);
+
+		fire(FavoriteManagerListener::FavoriteHubUpdated(), hub);
+	}
 }
 
 } // namespace dcpp

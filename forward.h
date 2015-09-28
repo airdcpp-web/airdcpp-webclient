@@ -49,6 +49,7 @@ class CID;
 typedef std::vector<uint16_t> PartsInfo;
 
 class Client;
+typedef boost::intrusive_ptr<Client> ClientPtr;
 
 class MessageManager;
 class PrivateChat;

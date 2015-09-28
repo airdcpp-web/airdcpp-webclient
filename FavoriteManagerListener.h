@@ -31,24 +31,30 @@ public:
 	typedef X<0> DownloadStarting;
 	typedef X<1> DownloadFailed;
 	typedef X<2> DownloadFinished;
-	typedef X<3> FavoriteAdded;
-	typedef X<4> FavoriteRemoved;
-	typedef X<5> UserAdded;
-	typedef X<6> UserRemoved;
-	typedef X<7> StatusChanged;
-	typedef X<8> LoadedFromCache;
-	typedef X<9> Corrupted;	
-	typedef X<10> RecentAdded;
-	typedef X<11> RecentRemoved;
-	typedef X<12> RecentUpdated;
-	typedef X<13> FavoritesUpdated;
+
+	typedef X<3> FavoriteHubAdded;
+	typedef X<4> FavoriteHubRemoved;
+	typedef X<5> FavoriteHubUpdated;
+	typedef X<6> FavoriteHubsUpdated;
+
+	typedef X<7> UserAdded;
+	typedef X<8> UserRemoved;
+	typedef X<9> StatusChanged;
+	typedef X<10> LoadedFromCache;
+	typedef X<11> Corrupted;	
+	typedef X<12> RecentAdded;
+	typedef X<13> RecentRemoved;
+	typedef X<14> RecentUpdated;
 
 	virtual void on(DownloadStarting, const string&) noexcept { }
 	virtual void on(DownloadFailed, const string&) noexcept { }
 	virtual void on(DownloadFinished, const string&, bool) noexcept { }
-	virtual void on(FavoriteAdded, const FavoriteHubEntryPtr&) noexcept { }
-	virtual void on(FavoriteRemoved, const FavoriteHubEntryPtr&) noexcept {}
-	virtual void on(FavoritesUpdated) noexcept { }
+
+	virtual void on(FavoriteHubAdded, const FavoriteHubEntryPtr&) noexcept { }
+	virtual void on(FavoriteHubRemoved, const FavoriteHubEntryPtr&) noexcept {}
+	virtual void on(FavoriteHubUpdated, const FavoriteHubEntryPtr&) noexcept { }
+	virtual void on(FavoriteHubsUpdated) noexcept { }
+
 	virtual void on(UserAdded, const FavoriteUser&) noexcept { }
 	virtual void on(UserRemoved, const FavoriteUser&) noexcept { }
 	virtual void on(StatusChanged, const UserPtr&) noexcept { }

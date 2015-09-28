@@ -119,7 +119,7 @@ void PrivateChat::handleMessage(const ChatMessage& aMessage) {
 	fire(PrivateChatListener::PrivateMessage(), aMessage);
 }
 
-void PrivateChat::activate(const string& msg, Client* c) {
+void PrivateChat::activate(const string& msg, const ClientPtr& c) {
 	fire(PrivateChatListener::Activate(), msg, c);
 }
 

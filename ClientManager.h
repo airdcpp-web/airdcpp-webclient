@@ -47,13 +47,11 @@ class ClientManager : public Speaker<ClientManagerListener>,
 	typedef UserMap::iterator UserIter;
 
 public:
-	Client* createClient(const RecentHubEntryPtr& aEntry, ProfileToken aProfile) noexcept;
-	Client* getClient(const string& aHubURL) noexcept;
-	void putClient(Client* aClient) noexcept;
+	ClientPtr createClient(const RecentHubEntryPtr& aEntry, ProfileToken aProfile) noexcept;
+	ClientPtr getClient(const string& aHubURL) noexcept;
+	void putClient(const string& aHubURL) noexcept;
+	void putClient(ClientPtr& aClient) noexcept;
 	void setClientUrl(const string& aOldUrl, const string& aNewUrl) noexcept;
-
-	size_t getUserCount() const noexcept;
-	int64_t getAvailable() const noexcept;
 
 	string getField(const CID& cid, const string& hintUrl, const char* field) const noexcept;
 
@@ -234,8 +232,6 @@ private:
 	* @return OnlineUser* found by CID and hint; discard any user that doesn't match the hint.
 	*/
 	OnlineUser* findOnlineUserHint(const CID& cid, const string& hintUrl, OnlinePairC& p) const noexcept;
-
-	void onSearch(const Client* c, const AdcCommand& adc, OnlineUser& from) noexcept;
 
 	// ClientListener
 	void on(Connected, const Client* c) noexcept;

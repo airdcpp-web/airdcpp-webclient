@@ -75,6 +75,12 @@ public:
 	typedef vector<Ptr> List;
 	typedef List::const_iterator Iter;
 
+	enum ConnectState {
+		STATE_DISCONNECTED,
+		STATE_CONNECTING,
+		STATE_CONNECTED
+	};
+
 	FavoriteHubEntry() noexcept;
 	FavoriteHubEntry(const HubEntry& rhs) noexcept;
 
@@ -91,17 +97,18 @@ public:
 	GETSET(string, headerOrder, HeaderOrder);
 	GETSET(string, headerWidths, HeaderWidths);
 	GETSET(string, headerVisible, HeaderVisible);
-	GETSET(uint16_t, bottom, Bottom);
-	GETSET(uint16_t, top, Top);
-	GETSET(uint16_t, left, Left);
-	GETSET(uint16_t, right, Right);
-	GETSET(bool, connect, Connect);
-	GETSET(int, chatusersplit, ChatUserSplit);
-	GETSET(bool, stealth, Stealth);
-	GETSET(bool, userliststate, UserListState);
-	GETSET(bool, favnoPM, FavNoPM);
+	IGETSET(uint16_t, bottom, Bottom, 0);
+	IGETSET(uint16_t, top, Top, 0);
+	IGETSET(uint16_t, left, Left, 0);
+	IGETSET(uint16_t, right, Right, 0);
+	IGETSET(ConnectState, connectState, ConnectState, STATE_DISCONNECTED);
+	IGETSET(bool, autoConnect, AutoConnect, true);
+	IGETSET(int, chatusersplit, ChatUserSplit, 0);
+	IGETSET(bool, stealth, Stealth, false);
+	IGETSET(bool, userliststate, UserListState, true);
+	IGETSET(bool, favnoPM, FavNoPM, false);
 	GETSET(string, group, Group);	
-	GETSET(ShareProfilePtr, shareProfile, ShareProfile);
+	IGETSET(ShareProfilePtr, shareProfile, ShareProfile, nullptr);
 	GETSET(ProfileToken, token, Token);
 
 	void setServerStr(const string& aServers);

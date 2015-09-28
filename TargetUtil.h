@@ -48,7 +48,8 @@ public:
 	enum TargetType {
 		TARGET_PATH,
 		TARGET_FAVORITE,
-		TARGET_SHARE
+		TARGET_SHARE,
+		TARGET_LAST
 	};
 
 	typedef unordered_map<string, TargetInfo, noCaseStringHash, noCaseStringEq> TargetInfoMap;

@@ -57,6 +57,7 @@ void Client::setHubUrl(const string& aUrl) {
 
 Client::~Client() {
 	updateCounts(true);
+	dcdebug("Client %s was deleted\n", hubUrl.c_str());
 }
 
 void Client::reconnect() {
@@ -69,14 +70,15 @@ void Client::setActive() {
 	fire(ClientListener::SetActive(), this);
 }
 
-void Client::shutdown() {
+void Client::shutdown(ClientPtr& aClient) {
 	FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
 	TimerManager::getInstance()->removeListener(this);
 
+	fire(ClientListener::Disconnecting(), this);
+	removeListeners();
+
 	if(sock) {
-		BufferedSocket::putSocket(sock, [this] { delete this; }); //delete in its own thread to allow safely using async calls
-	} else {
-		delete this;
+		BufferedSocket::putSocket(sock, [aClient] { aClient->sock = nullptr; }); // Ensure that the pointer won't be deleted too early
 	}
 }
 

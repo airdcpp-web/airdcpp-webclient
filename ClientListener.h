@@ -49,6 +49,7 @@ public:
 	typedef X<17> HubTopic;
 	typedef X<18> AddLine;
 	typedef X<19> SetActive;
+	typedef X<20> Disconnecting;
 
 	enum StatusFlags {
 		FLAG_NORMAL = 0x00,
@@ -75,6 +76,7 @@ public:
 	virtual void on(HubTopic, const Client*, const string&) noexcept { }
 	virtual void on(AddLine, const Client*, const string&) noexcept { }
 	virtual void on(SetActive, const Client*) noexcept {}
+	virtual void on(Disconnecting, const Client*) noexcept {}
 };
 
 } // namespace dcpp

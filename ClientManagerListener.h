@@ -32,23 +32,29 @@ public:
 	typedef X<0> UserConnected;
 	typedef X<1> UserUpdated;
 	typedef X<2> UserDisconnected;
-	typedef X<3> IncomingSearch;
+
+	typedef X<3> ClientCreated;
 	typedef X<4> ClientConnected;
 	typedef X<5> ClientUpdated;
 	typedef X<6> ClientDisconnected;
-	typedef X<7> IncomingADCSearch;
-	typedef X<8> DirectSearchEnd;
-	typedef X<9> ClientCreated;
+	typedef X<7> ClientRemoved;
+
+	typedef X<8> IncomingSearch;
+	typedef X<9> IncomingADCSearch;
+	typedef X<10> DirectSearchEnd;
+
 
 	virtual void on(UserConnected, const OnlineUser&, bool /*was offline*/) noexcept { }
 	virtual void on(UserDisconnected, const UserPtr&, bool /*went offline*/) noexcept { }
-
 	virtual void on(UserUpdated, const OnlineUser&) noexcept { }
-	virtual void on(IncomingSearch, const string&) noexcept { }
-	virtual void on(ClientCreated, Client*) noexcept {}
-	virtual void on(ClientConnected, const Client*) noexcept { }
-	virtual void on(ClientUpdated, const Client*) noexcept { }
+
+	virtual void on(ClientCreated, const ClientPtr&) noexcept {}
+	virtual void on(ClientConnected, const ClientPtr&) noexcept { }
+	virtual void on(ClientUpdated, const ClientPtr&) noexcept { }
 	virtual void on(ClientDisconnected, const string&) noexcept { }
+	virtual void on(ClientRemoved, const string&) noexcept { }
+
+	virtual void on(IncomingSearch, const string&) noexcept { }
 	virtual void on(IncomingADCSearch, const AdcCommand&) noexcept { }
 	virtual void on(DirectSearchEnd, const string& /*token*/, int /*resultcount*/) noexcept { }
 };

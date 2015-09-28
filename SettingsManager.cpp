@@ -1110,16 +1110,19 @@ const string SettingsManager::historyTags[] = {
 };
 
 bool SettingsManager::addToHistory(const string& aString, HistoryType aType) noexcept {
-	auto& hist = history[aType];
-
 	if(aString.empty() || get(maxLimits[aType]) == 0)
 		return false;
 
+	WLock l(cs);
+	decltype(auto) hist = history[aType];
+
+	// Remove existing matching item
 	auto s = boost::find(hist, aString);
 	if(s != hist.end()) {
 		hist.erase(s);
 	}
 
+	// Count exceed?
 	if(static_cast<int>(hist.size()) == get(maxLimits[aType])) {
 		hist.erase(hist.begin());
 	}
@@ -1129,10 +1132,12 @@ bool SettingsManager::addToHistory(const string& aString, HistoryType aType) noe
 }
 
 void SettingsManager::clearHistory(HistoryType aType) noexcept {
+	WLock l(cs);
 	history[aType].clear();
 }
 
-const SettingsManager::HistoryList& SettingsManager::getHistory(HistoryType aType) const noexcept {
+SettingsManager::HistoryList SettingsManager::getHistory(HistoryType aType) const noexcept {
+	RLock l(cs);
 	return history[aType];
 }
 
