@@ -23,11 +23,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "../client/SettingsManager.h"
-#include "../client/SimpleXML.h"
-#include "../client/Singleton.h"
+#include "SettingsManager.h"
+#include "SimpleXML.h"
+#include "Singleton.h"
 
-#include "../client/ColorSettings.h"
+#include "ColorSettings.h"
 
 
 namespace dcpp {
