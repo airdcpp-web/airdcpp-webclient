@@ -68,7 +68,7 @@ public:
 	virtual void on(Supports, UserConnection*, const StringList&) noexcept { }
 	virtual void on(FileNotAvailable, UserConnection*) noexcept { }
 	virtual void on(ListLength, UserConnection*, const string&) noexcept { }
-	virtual void on(PrivateMessage, UserConnection*, const ChatMessage&) noexcept{}
+	virtual void on(PrivateMessage, UserConnection*, const ChatMessagePtr&) noexcept{}
 
 	virtual void on(AdcCommand::SUP, UserConnection*, const AdcCommand&) noexcept { }
 	virtual void on(AdcCommand::INF, UserConnection*, const AdcCommand&) noexcept { }

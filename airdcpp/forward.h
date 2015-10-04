@@ -42,7 +42,9 @@ class Bundle;
 typedef boost::intrusive_ptr<Bundle> BundlePtr;
 typedef std::vector<BundlePtr> BundleList;
 
-struct ChatMessage;
+class ChatMessage;
+typedef std::shared_ptr<ChatMessage> ChatMessagePtr;
+typedef std::deque<ChatMessagePtr> ChatMessageList;
 
 class CID;
 
@@ -50,9 +52,6 @@ typedef std::vector<uint16_t> PartsInfo;
 
 class Client;
 typedef boost::intrusive_ptr<Client> ClientPtr;
-
-class MessageManager;
-class PrivateChat;
 
 class ClientManager;
 
@@ -106,6 +105,9 @@ typedef boost::intrusive_ptr<OnlineUser> OnlineUserPtr;
 typedef std::vector<OnlineUserPtr> OnlineUserList;
 
 class OutputStream;
+
+class PrivateChat;
+typedef std::shared_ptr<PrivateChat> PrivateChatPtr;
 
 class QueueItemBase;
 

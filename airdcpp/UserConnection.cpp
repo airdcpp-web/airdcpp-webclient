@@ -244,7 +244,7 @@ void UserConnection::handle(AdcCommand::PMI t, const AdcCommand& c) {
 
 
 void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
-	auto message = c.getParam(0);
+	decltype(auto) message = c.getParam(0);
 	OnlineUserPtr peer = nullptr;
 	OnlineUserPtr me = nullptr;
 	
@@ -269,9 +269,12 @@ void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 
 	string tmp;
 
-	ChatMessage msg = { message, peer, me, peer };
-	msg.timestamp = c.getParam("TS", 1, tmp) ? Util::toInt64(tmp) : 0;
-	msg.thirdPerson = c.hasFlag("ME", 1);
+	auto msg = make_shared<ChatMessage>(message, peer, me, peer);
+	if (c.getParam("TS", 1, tmp)) {
+		msg->setTimestamp(Util::toInt64(tmp));
+	}
+
+	msg->setThirdPerson(c.hasFlag("ME", 1));
 	fire(UserConnectionListener::PrivateMessage(), this, msg);
 }
 

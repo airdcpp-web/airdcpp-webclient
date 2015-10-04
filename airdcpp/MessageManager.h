@@ -107,24 +107,27 @@ namespace dcpp {
 		private UserConnectionListener, private ConnectionManagerListener {
 
 	public:
+		typedef unordered_map<UserPtr, PrivateChatPtr, User::Hash> ChatMap;
 
 		MessageManager() noexcept;
 		~MessageManager() noexcept;
 
-		PrivateChat* addChat(const HintedUser& user);
-		PrivateChat* getChat(const UserPtr& aUser);
+		PrivateChatPtr addChat(const HintedUser& user, bool aReceivedMessage) noexcept;
+		PrivateChatPtr getChat(const UserPtr& aUser) const noexcept;
 
 		void DisconnectCCPM(const UserPtr& aUser);
-		void onPrivateMessage(const ChatMessage& message, UserConnection* aUc = nullptr);
-		void removeChat(const UserPtr& aUser);
+		void onPrivateMessage(const ChatMessagePtr& message, UserConnection* aUc = nullptr);
+		bool removeChat(const UserPtr& aUser);
 		void closeAll(bool Offline);
+
+		ChatMap getChats() const noexcept;
 
 		//IGNORE
 		// store & remove ignores through/from hubframe
 		void storeIgnore(const UserPtr& aUser);
 		void removeIgnore(const UserPtr& aUser);
 		bool isIgnored(const UserPtr& aUser);
-		bool isIgnoredOrFiltered(const ChatMessage& msg, const ClientPtr& client, bool PM);
+		bool isIgnoredOrFiltered(const ChatMessagePtr& msg, const ClientPtr& client, bool PM);
 
 		// chat filter
 		bool isChatFiltered(const string& aNick, const string& aText, ChatFilterItem::Context aContext = ChatFilterItem::ALL);
@@ -135,8 +138,8 @@ namespace dcpp {
 		//IGNORE
 
 	private:
-		unordered_map<UserPtr, PrivateChat*, User::Hash> chats;
-		SharedMutex cs;
+		ChatMap chats;
+		mutable SharedMutex cs;
 
 		unordered_map<UserPtr, UserConnection*, User::Hash> ccpms;
 		UserConnection* getPMConn(const UserPtr& user); //LOCK usage!!
@@ -164,7 +167,7 @@ namespace dcpp {
 		void on(ConnectionManagerListener::Removed, const ConnectionQueueItem* cqi) noexcept;
 
 		// UserConnectionListener
-		virtual void on(UserConnectionListener::PrivateMessage, UserConnection* uc, const ChatMessage& message) noexcept;
+		virtual void on(UserConnectionListener::PrivateMessage, UserConnection* uc, const ChatMessagePtr& message) noexcept;
 		virtual void on(AdcCommand::PMI, UserConnection* uc, const AdcCommand& cmd) noexcept;
 	};
 

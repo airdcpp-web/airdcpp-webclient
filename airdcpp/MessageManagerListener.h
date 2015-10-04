@@ -29,11 +29,15 @@ namespace dcpp {
 		virtual ~MessageManagerListener() { }
 		template<int I>	struct X { enum { TYPE = I }; };
 
-		typedef X<0> PrivateMessage;
-		typedef X<1> IgnoreAdded;
-		typedef X<2> IgnoreRemoved;
+		typedef X<0> ChatCreated;
+		typedef X<1> ChatRemoved;
 
-		virtual void on(PrivateMessage, const ChatMessage&) noexcept{}
+		typedef X<2> IgnoreAdded;
+		typedef X<3> IgnoreRemoved;
+
+		virtual void on(ChatCreated, const PrivateChatPtr&, bool /* received message */) noexcept{}
+		virtual void on(ChatRemoved, const PrivateChatPtr&) noexcept {}
+
 		virtual void on(IgnoreAdded, const UserPtr&) noexcept{}
 		virtual void on(IgnoreRemoved, const UserPtr&) noexcept{}
 	};

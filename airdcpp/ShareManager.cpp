@@ -3313,6 +3313,7 @@ void ShareManager::search(SearchResultList& results, SearchQuery& srch, ProfileT
 	recursiveSearches++;
 	if (isAutoSearch)
 		autoSearches++;
+
 	for (const auto& p : srch.include.getPatterns()) {
 		if (!bloom->match(p.str())) {
 			filteredSearches++;

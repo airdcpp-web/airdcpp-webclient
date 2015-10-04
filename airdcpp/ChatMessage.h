@@ -22,6 +22,7 @@
 #include "forward.h"
 #include "AirUtil.h"
 #include "GetSet.h"
+#include "TimerManager.h"
 
 namespace dcpp {
 
@@ -48,17 +49,25 @@ public:
 };
 
 
-struct ChatMessage {
-	string text;
+class ChatMessage {
+public:
+	ChatMessage(const string& aText, const OnlineUserPtr& aFrom, const OnlineUserPtr& aTo = nullptr, const OnlineUserPtr& aReplyTo = nullptr) noexcept;
 
-	OnlineUserPtr from;
-	OnlineUserPtr to;
-	OnlineUserPtr replyTo;
+	GETSET(OnlineUserPtr, from, From);
+	GETSET(OnlineUserPtr, to, To);
+	GETSET(OnlineUserPtr, replyTo, ReplyTo);
 
-	bool thirdPerson;
-	time_t timestamp;
+	IGETSET(time_t, timestamp, Timestamp, GET_TIME());
+	IGETSET(bool, thirdPerson, ThirdPerson, false);
+	IGETSET(bool, read, Read, false);
 
 	string format() const;
+
+	const string& getText() const noexcept {
+		return text;
+	}
+private:
+	string text;
 };
 
 } // namespace dcpp

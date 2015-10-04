@@ -30,20 +30,20 @@ namespace dcpp {
 		template<int I>	struct X { enum { TYPE = I }; };
 
 		typedef X<0> PrivateMessage;
-		typedef X<1> Activate;
-		typedef X<2> Close;
-		typedef X<3> UserUpdated;
-		typedef X<4> PMStatus;
-		typedef X<5> StatusMessage;
-		typedef X<6> CCPMStatusUpdated;
+		typedef X<1> Close;
+		typedef X<2> UserUpdated;
+		typedef X<3> PMStatus;
+		typedef X<4> StatusMessage;
+		typedef X<5> CCPMStatusUpdated;
+		typedef X<6> MessagesRead;
 
-		virtual void on(PrivateMessage, const ChatMessage&) noexcept{}
-		virtual void on(Activate, const string&, const ClientPtr&) noexcept{}
-		virtual void on(Close) noexcept{}
-		virtual void on(UserUpdated) noexcept{}
-		virtual void on(PMStatus, uint8_t) noexcept{}
-		virtual void on(StatusMessage, const string&, uint8_t /*severity*/) noexcept{}
-		virtual void on(CCPMStatusUpdated) noexcept{}
+		virtual void on(PrivateMessage, PrivateChat*, const ChatMessagePtr&) noexcept{}
+		virtual void on(Close, PrivateChat*) noexcept{}
+		virtual void on(UserUpdated, PrivateChat*) noexcept{}
+		virtual void on(PMStatus, PrivateChat*, uint8_t) noexcept{}
+		virtual void on(StatusMessage, PrivateChat*, const string&, uint8_t /*severity*/) noexcept{}
+		virtual void on(CCPMStatusUpdated, PrivateChat*) noexcept{}
+		virtual void on(MessagesRead, PrivateChat*) noexcept {}
 	};
 
 } // namespace dcpp

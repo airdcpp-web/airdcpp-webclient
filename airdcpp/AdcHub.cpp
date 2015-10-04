@@ -334,24 +334,23 @@ void AdcHub::handle(AdcCommand::MSG, AdcCommand& c) noexcept {
 	if(c.getParameters().empty())
 		return;
 
-	ChatMessage message = { c.getParam(0), findUser(c.getFrom()) };
-
-	if(!message.from)
+	auto message = make_shared<ChatMessage>(c.getParam(0), findUser(c.getFrom()));
+	if(!message->getFrom())
 		return;
 
-	message.thirdPerson = c.hasFlag("ME", 1);
+	message->setThirdPerson(c.hasFlag("ME", 1));
 
 	string temp;
 	if (c.getParam("TS", 1, temp))
-		message.timestamp = Util::toInt64(temp);
+		message->setTimestamp(Util::toInt64(temp));
 
 	if(c.getParam("PM", 1, temp)) { // add PM<group-cid> as well
-		message.to = findUser(c.getTo());
-		if(!message.to)
+		message->setTo(findUser(c.getTo()));
+		if(!message->getTo())
 			return;
 
-		message.replyTo = findUser(AdcCommand::toSID(temp));
-		if(!message.replyTo)
+		message->setReplyTo(findUser(AdcCommand::toSID(temp)));
+		if(!message->getReplyTo())
 			return;
 
 		MessageManager::getInstance()->onPrivateMessage(message);
@@ -631,7 +630,7 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 			}
 		}
 
-		ChatMessage message = { c.getParam(1), u };
+		auto message = make_shared<ChatMessage>(c.getParam(1), u);
 		fire(ClientListener::Message(), this, message);
 	}
 }

@@ -845,7 +845,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 			}
 
 			DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getPath(), sr->getFileName(), sr->getUser(), target,
-				targetType, REPORT_SYSLOG, (as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT,
+				targetType, true, (as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT,
 				false, as->getToken(), as->getRemove() || as->usingIncrementation(), false);
 		} else {
 			TargetUtil::TargetInfo ti;

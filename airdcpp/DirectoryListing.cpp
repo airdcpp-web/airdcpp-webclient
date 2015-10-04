@@ -359,14 +359,18 @@ void ListLoader::endTag(const string& name) {
 }
 
 DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe, time_t aRemoteDate) noexcept : 
-	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(DUPE_NONE), remoteDate(aRemoteDate) {
+	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(DUPE_NONE), remoteDate(aRemoteDate), token(Util::rand()) {
 	if (checkDupe && size > 0) {
 		dupe = AirUtil::checkFileDupe(tthRoot);
 	}
 }
 
+DirectoryListing::File::File(const File& rhs, bool _adls) noexcept : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe), remoteDate(rhs.remoteDate), token(Util::rand())
+{
+}
+
 DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, Directory::DirType aType, time_t aUpdateDate, bool checkDupe, const string& aSize, time_t aRemoteDate /*0*/)
-	: name(aName), parent(aParent), type(aType), dupe(DUPE_NONE), partialSize(0), remoteDate(aRemoteDate), loading(false), updateDate(aUpdateDate) {
+	: name(aName), parent(aParent), type(aType), dupe(DUPE_NONE), partialSize(0), remoteDate(aRemoteDate), loading(false), updateDate(aUpdateDate), token(Util::rand()) {
 
 	if (!aSize.empty()) {
 		partialSize = Util::toInt64(aSize);

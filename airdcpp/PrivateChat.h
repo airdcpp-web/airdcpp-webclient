@@ -16,15 +16,16 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef PRIVATE_CHAT_H
-#define PRIVATE_CHAT_H
+#ifndef DCPP_PRIVATE_CHAT_H
+#define DCPP_PRIVATE_CHAT_H
 
 #include "forward.h"
 
-#include "UserConnection.h"
+#include "ChatMessageCache.h"
 #include "ClientManager.h"
-#include "PrivateChatListener.h"
 #include "DelayedEvents.h"
+#include "PrivateChatListener.h"
+#include "UserConnection.h"
 
 namespace dcpp {
 	class PrivateChat : public Speaker<PrivateChatListener>, public UserConnectionListener,
@@ -42,19 +43,26 @@ namespace dcpp {
 
 		};
 
+		enum CCPMState : uint8_t {
+			CONNECTING,
+			CONNECTED,
+			DISCONNECTED
+		};
+
+		static const string& ccpmStateToString(uint8_t aState) noexcept;
+
 		PrivateChat(const HintedUser& aUser, UserConnection* aUc = nullptr);
 		~PrivateChat();
 
 		bool sendPrivateMessage(const HintedUser& aUser, const string& msg, string& error_, bool thirdPerson);
-		void handleMessage(const ChatMessage& aMessage);
+		void handleMessage(const ChatMessagePtr& aMessage);
 
-		void activate(const string& msg, const ClientPtr& c);
 		void close();
 
 		void closeCC(bool now, bool noAutoConnect);
 		void startCC();
 		void onExit();
-		bool ccReady() const { return state == CONNECTED; };
+		bool ccReady() const { return ccpmState == CONNECTED; };
 		UserConnection* getUc() { return uc; }
 		void sendPMInfo(uint8_t aType);
 
@@ -77,14 +85,18 @@ namespace dcpp {
 		void fillLogParams(ParamMap& params) const;
 		string getLogPath() const;
 		bool isOnline() const { return online; }
+
+		CCPMState getCCPMState() const noexcept {
+			return ccpmState;
+		}
+
+		const ChatMessageCache& getCache() const noexcept {
+			return cache;
+		}
+
+		void setRead() noexcept;
 	private:
-
-		enum State {
-			CONNECTING,
-			CONNECTED,
-			DISCONNECTED
-		};
-
+		ChatMessageCache cache;
 		enum EventType {
 			USER_UPDATE,
 			CCPM_TIMEOUT,
@@ -93,7 +105,7 @@ namespace dcpp {
 
 		void checkAlwaysCCPM();
 		void checkCCPMTimeout();
-		void setUc(UserConnection* aUc){ uc = aUc; state = aUc ? CONNECTED : DISCONNECTED; }
+		void setUc(UserConnection* aUc){ uc = aUc; ccpmState = aUc ? CONNECTED : DISCONNECTED; }
 
 		HintedUser replyTo;
 
@@ -101,13 +113,13 @@ namespace dcpp {
 		bool allowAutoCCPM;
 		uint64_t lastCCPMAttempt;
 
-		atomic<State> state;
+		atomic<CCPMState> ccpmState;
 		UserConnection* uc;
 
 		DelayedEvents<uint8_t> delayEvents;
 
 		// UserConnectionListener
-		virtual void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessage& message) noexcept{
+		virtual void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessagePtr& message) noexcept{
 			handleMessage(message);
 		}
 		virtual void on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) noexcept;

@@ -29,6 +29,11 @@
 
 namespace dcpp {
 
+ChatMessage::ChatMessage(const string& aText, const OnlineUserPtr& aFrom, const OnlineUserPtr& aTo, const OnlineUserPtr& aReplyTo) noexcept :
+	text(aText), from(aFrom), to(aTo), replyTo(aReplyTo) {
+
+
+}
 
 ChatLink::ChatLink(const string& aUrl, LinkType aLinkType, const UserPtr& aUser) : url(Text::toUtf8(aUrl)), type(aLinkType), dupe(DUPE_NONE) {
 	updateDupeType(aUser);
@@ -93,9 +98,9 @@ string ChatLink::getDisplayText() {
 string ChatMessage::format() const {
 	string tmp;
 
-	if(timestamp) {
-		tmp += '[' + Util::getShortTimeString(timestamp) + "] ";
-	}
+	//if(timestamp) {
+	//	tmp += '[' + Util::getShortTimeString(timestamp) + "] ";
+	//}
 
 	const string& nick = from->getIdentity().getNick();
 	// let's *not* obey the spec here and add a space after the star. :P

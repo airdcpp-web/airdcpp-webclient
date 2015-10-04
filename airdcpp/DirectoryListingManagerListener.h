@@ -28,22 +28,11 @@ public:
 	virtual ~DirectoryListingManagerListener() { }
 	template<int I>	struct X { enum { TYPE = I }; };
 
-	/*typedef X<0> Loading;
-	typedef X<1> LoadingFinished;
-	typedef X<2> LoadingError;
-	typedef X<3> ScanFailed;*/
-
 	typedef X<0> OpenListing;
-	typedef X<1> PromptAction;
 
 	typedef std::function<void (bool)> completionF;
 
 	virtual void on(OpenListing, DirectoryListing*, const string& /*aDir*/, const string& /*aXML*/) noexcept { }
-	virtual void on(PromptAction, completionF aF, const string & /*msg*/) noexcept { aF(true); }
-	/*virtual void on(Loading, const string) noexcept { }
-	virtual void on(LoadingFinished, const AutoSearchPtr&) noexcept { }
-	virtual void on(LoadingError, const AutoSearchPtr&, int) noexcept { }
-	virtual void on(ScanFailed, const AutoSearchPtr&, int) noexcept { }*/
 };
 
 } // namespace dcpp
