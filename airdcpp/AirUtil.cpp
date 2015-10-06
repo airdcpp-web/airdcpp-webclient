@@ -72,7 +72,7 @@ AirUtil::TimeCounter::TimeCounter(string aMsg) : start(GET_TICK()), msg(move(aMs
 
 AirUtil::TimeCounter::~TimeCounter() {
 	auto end = GET_TICK();
-	LogManager::getInstance()->message(msg + ", took " + Util::toString(end - start) + " ms", LogManager::LOG_INFO);
+	LogManager::getInstance()->message(msg + ", took " + Util::toString(end - start) + " ms", LogMessage::SEV_INFO);
 }
 
 StringList AirUtil::getDirDupePaths(DupeType aType, const string& aPath) {
@@ -672,7 +672,7 @@ bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int maxAttempts, int
 
 void AirUtil::removeDirectoryIfEmpty(const string& tgt, int maxAttempts /*3*/, bool silent /*false*/) {
 	if (!removeDirectoryIfEmptyRe(tgt, maxAttempts, 0) && !silent) {
-		LogManager::getInstance()->message(STRING_F(DIRECTORY_NOT_REMOVED, tgt), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(DIRECTORY_NOT_REMOVED, tgt), LogMessage::SEV_INFO);
 	}
 }
 

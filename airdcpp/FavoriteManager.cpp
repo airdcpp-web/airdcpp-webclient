@@ -715,7 +715,7 @@ void FavoriteManager::loadCID() {
 			xml.stepOut();
 		}
 	} catch(const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_FAV_NAME % e.getError()), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_FAV_NAME % e.getError()), LogMessage::SEV_ERROR);
 	}
 }
 
@@ -749,7 +749,7 @@ void FavoriteManager::load() {
 			File::copyFile(f, f + ".bak");
 		}
 	} catch(const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_FAV_NAME % e.getError()), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_FAV_NAME % e.getError()), LogMessage::SEV_ERROR);
 	}
 
 	try {
@@ -761,7 +761,7 @@ void FavoriteManager::load() {
 			xml.stepOut();
 		}
 	} catch(const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_RECENTS_NAME % e.getError()), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_RECENTS_NAME % e.getError()), LogMessage::SEV_ERROR);
 	}
 }
 
@@ -793,7 +793,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 
 			auto server = aXml.getChildAttrib("Server");
 			if (server.empty()) {
-				LogManager::getInstance()->message("A favorite hub with an empty address wasn't loaded: " + e->getName(), LogManager::LOG_WARNING);
+				LogManager::getInstance()->message("A favorite hub with an empty address wasn't loaded: " + e->getName(), LogMessage::SEV_WARNING);
 				continue;
 			}
 			e->setServerStr(server);

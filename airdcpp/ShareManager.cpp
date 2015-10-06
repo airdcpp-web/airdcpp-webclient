@@ -153,12 +153,12 @@ void ShareManager::addMonitoring(const StringList& aPaths) noexcept {
 			if (monitor.addDirectory(p))
 				added++;
 		} catch (MonitorException& e) {
-			LogManager::getInstance()->message(STRING_F(FAILED_ADD_MONITORING, p % e.getError()), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING_F(FAILED_ADD_MONITORING, p % e.getError()), LogMessage::SEV_ERROR);
 		}
 	}
 
 	if (added > 0)
-		LogManager::getInstance()->message(STRING_F(X_MONITORING_ADDED, added), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(X_MONITORING_ADDED, added), LogMessage::SEV_INFO);
 }
 
 void ShareManager::removeMonitoring(const StringList& aPaths) noexcept {
@@ -168,12 +168,12 @@ void ShareManager::removeMonitoring(const StringList& aPaths) noexcept {
 			if (monitor.removeDirectory(p))
 				removed++;
 		} catch (MonitorException& e) {
-			LogManager::getInstance()->message("Error occurred when trying to remove the foldrer " + p + " from monitoring: " + e.getError(), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message("Error occurred when trying to remove the foldrer " + p + " from monitoring: " + e.getError(), LogMessage::SEV_ERROR);
 		}
 	}
 
 	if (removed > 0)
-		LogManager::getInstance()->message(STRING_F(X_MONITORING_REMOVED, removed), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(X_MONITORING_REMOVED, removed), LogMessage::SEV_INFO);
 }
 
 optional<pair<string, bool>> ShareManager::checkModifiedPath(const string& aPath) const noexcept {
@@ -284,7 +284,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 		WLock l(cs);
 		//the whole dir removed
 		handleDeletedFile(info.path, true, dirtyProfiles_);
-		LogManager::getInstance()->message(STRING_F(SHARED_DIR_REMOVED, info.path), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(SHARED_DIR_REMOVED, info.path), LogMessage::SEV_INFO);
 		return true;
 	} else {
 		// handle the files that have been deleted
@@ -313,9 +313,9 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 		// report deleted
 		if (removed > 0) {
 			if (removed == 1) {
-				LogManager::getInstance()->message((removedPath.back() == PATH_SEPARATOR ? STRING_F(SHARED_DIR_REMOVED, removedPath) : STRING_F(SHARED_FILE_DELETED, removedPath)), LogManager::LOG_INFO);
+				LogManager::getInstance()->message((removedPath.back() == PATH_SEPARATOR ? STRING_F(SHARED_DIR_REMOVED, removedPath) : STRING_F(SHARED_FILE_DELETED, removedPath)), LogMessage::SEV_INFO);
 			} else {
-				LogManager::getInstance()->message(STRING_F(X_SHARED_FILES_REMOVED, removed % info.path), LogManager::LOG_INFO);
+				LogManager::getInstance()->message(STRING_F(X_SHARED_FILES_REMOVED, removed % info.path), LogMessage::SEV_INFO);
 			}
 		}
 
@@ -457,14 +457,14 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 		//add new directories via normal refresh
 		refresh_.push_back(info.path);
 	} else if (hashedFiles > 0) {
-		LogManager::getInstance()->message(STRING_F(X_SHARED_FILES_ADDED, hashedFiles % info.path), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(X_SHARED_FILES_ADDED, hashedFiles % info.path), LogMessage::SEV_INFO);
 	}  
 	
 	if (hashSize > 0) {
 		if (filesToHash == 1)
-			LogManager::getInstance()->message(STRING_F(FILE_X_ADDED_FOR_HASH, hashFile % Util::formatBytes(hashSize)), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(FILE_X_ADDED_FOR_HASH, hashFile % Util::formatBytes(hashSize)), LogMessage::SEV_INFO);
 		else
-			LogManager::getInstance()->message(STRING_F(X_FILES_ADDED_FOR_HASH, filesToHash % Util::formatBytes(hashSize) % info.path), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(X_FILES_ADDED_FOR_HASH, filesToHash % Util::formatBytes(hashSize) % info.path), LogMessage::SEV_INFO);
 	}
 
 	return true;
@@ -493,12 +493,12 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) noe
 }
 
 void ShareManager::on(DirectoryMonitorListener::DirectoryFailed, const string& aPath, const string& aError) noexcept {
-	LogManager::getInstance()->message(STRING_F(MONITOR_DIR_FAILED, aPath % aError), LogManager::LOG_ERROR);
+	LogManager::getInstance()->message(STRING_F(MONITOR_DIR_FAILED, aPath % aError), LogMessage::SEV_ERROR);
 }
 
 void ShareManager::on(DirectoryMonitorListener::FileCreated, const string& aPath) noexcept {
 	if (monitorDebug)
-		LogManager::getInstance()->message("File added: " + aPath, LogManager::LOG_INFO);
+		LogManager::getInstance()->message("File added: " + aPath, LogMessage::SEV_INFO);
 
 	auto ret = checkModifiedPath(aPath);
 	if (ret) {
@@ -508,7 +508,7 @@ void ShareManager::on(DirectoryMonitorListener::FileCreated, const string& aPath
 
 void ShareManager::on(DirectoryMonitorListener::FileModified, const string& aPath) noexcept {
 	if (monitorDebug)
-		LogManager::getInstance()->message("File modified: " + aPath, LogManager::LOG_INFO);
+		LogManager::getInstance()->message("File modified: " + aPath, LogMessage::SEV_INFO);
 
 	auto ret = checkModifiedPath(aPath);
 	if (ret) {
@@ -533,7 +533,7 @@ void ShareManager::Directory::getRenameInfoList(const string& aPath, RenameList&
 
 void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldPath, const string& aNewPath) noexcept {
 	if (monitorDebug)
-		LogManager::getInstance()->message("File renamed, old: " + aOldPath + " new: " + aNewPath, LogManager::LOG_INFO);
+		LogManager::getInstance()->message("File renamed, old: " + aOldPath + " new: " + aNewPath, LogMessage::SEV_INFO);
 
 	ProfileTokenSet dirtyProfiles;
 	RenameList toRename;
@@ -569,7 +569,7 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 					//get files to convert in the hash database (recursive)
 					d->getRenameInfoList(Util::emptyString, toRename);
 
-					LogManager::getInstance()->message(STRING_F(SHARED_DIR_RENAMED, (aOldPath + PATH_SEPARATOR) % (aNewPath + PATH_SEPARATOR)), LogManager::LOG_INFO);
+					LogManager::getInstance()->message(STRING_F(SHARED_DIR_RENAMED, (aOldPath + PATH_SEPARATOR) % (aNewPath + PATH_SEPARATOR)), LogMessage::SEV_INFO);
 				}
 			} else {
 				auto f = parent->files.find(fileNameOldLower);
@@ -591,7 +591,7 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 						//add for renaming in file index
 						toRename.emplace_back(Util::emptyString, fi);
 
-						LogManager::getInstance()->message(STRING_F(SHARED_FILE_RENAMED, aOldPath % aNewPath), LogManager::LOG_INFO);
+						LogManager::getInstance()->message(STRING_F(SHARED_FILE_RENAMED, aOldPath % aNewPath), LogMessage::SEV_INFO);
 					}
 				} else {
 					found = false;
@@ -631,7 +631,7 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 
 void ShareManager::on(DirectoryMonitorListener::FileDeleted, const string& aPath) noexcept {
 	if (monitorDebug)
-		LogManager::getInstance()->message("File deleted: " + aPath, LogManager::LOG_INFO);
+		LogManager::getInstance()->message("File deleted: " + aPath, LogMessage::SEV_INFO);
 
 	onFileDeleted(aPath);
 }
@@ -721,7 +721,7 @@ bool ShareManager::handleDeletedFile(const string& aPath, bool isDirectory, Prof
 
 void ShareManager::on(DirectoryMonitorListener::Overflow, const string& aRootPath) noexcept {
 	if (monitorDebug)
-		LogManager::getInstance()->message("Monitoring overflow: " + aRootPath, LogManager::LOG_INFO);
+		LogManager::getInstance()->message("Monitoring overflow: " + aRootPath, LogMessage::SEV_INFO);
 
 	// refresh the dir
 	refresh(aRootPath);
@@ -1501,12 +1501,12 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 
 	try {
 		parallel_for_each(ll.begin(), ll.end(), [&](ShareLoaderPtr& i) {
-			//LogManager::getInstance()->message("Thread: " + Util::toString(::GetCurrentThreadId()) + "Size " + Util::toString(loader.size), LogManager::LOG_INFO);
+			//LogManager::getInstance()->message("Thread: " + Util::toString(::GetCurrentThreadId()) + "Size " + Util::toString(loader.size), LogMessage::SEV_INFO);
 			auto& loader = *i;
 			try {
 				SimpleXMLReader(&loader).parse(*loader.file);
 			} catch (SimpleXMLException& e) {
-				LogManager::getInstance()->message("Error loading " + loader.xmlPath + ": " + e.getError(), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message("Error loading " + loader.xmlPath + ": " + e.getError(), LogMessage::SEV_ERROR);
 				hasFailed = true;
 				File::deleteFile(loader.xmlPath);
 			} catch (...) {
@@ -1520,7 +1520,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 		});
 	} catch (std::exception& e) {
 		hasFailed = true;
-		LogManager::getInstance()->message("Loading the share cache failed: " + string(e.what()), LogManager::LOG_INFO);
+		LogManager::getInstance()->message("Loading the share cache failed: " + string(e.what()), LogMessage::SEV_INFO);
 	}
 
 	if (hasFailed)
@@ -1552,7 +1552,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 	addRefreshTask(REFRESH_DIRS, refreshPaths, TYPE_MANUAL, Util::emptyString);
 
 	if (hashSize > 0) {
-		LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(hashSize)), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(hashSize)), LogMessage::SEV_INFO);
 	}
 
 	return true;
@@ -1878,7 +1878,7 @@ void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory:
 	for(FileFindIter i(aPath, "*"); i != end && !aShutdown; ++i) {
 		string name = i->getFileName();
 		if(name.empty()) {
-			LogManager::getInstance()->message("Invalid file name found while hashing folder " + aPath + ".", LogManager::LOG_WARNING);
+			LogManager::getInstance()->message("Invalid file name found while hashing folder " + aPath + ".", LogMessage::SEV_WARNING);
 			return;
 		}
 
@@ -2129,7 +2129,7 @@ int ShareManager::addRefreshTask(TaskType aTaskType, StringList& dirs, RefreshTy
 			};
 
 			if (!msg.empty()) {
-				LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
+				LogManager::getInstance()->message(msg, LogMessage::SEV_INFO);
 			}
 		}
 		return REFRESH_IN_PROGRESS;
@@ -2142,7 +2142,7 @@ int ShareManager::addRefreshTask(TaskType aTaskType, StringList& dirs, RefreshTy
 			start();
 			setThreadPriority(aRefreshType == TYPE_MANUAL ? Thread::NORMAL : Thread::IDLE);
 		} catch(const ThreadException& e) {
-			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError(), LogManager::LOG_WARNING);
+			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError(), LogMessage::SEV_WARNING);
 			refreshing.clear();
 		}
 	}
@@ -2325,9 +2325,9 @@ void ShareManager::removeDirectories(const ShareDirInfo::List& aRemoveDirs) noex
 	}
 
 	if (stopHashing.size() == 1)
-		LogManager::getInstance()->message(STRING_F(SHARED_DIR_REMOVED, stopHashing.front()), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(SHARED_DIR_REMOVED, stopHashing.front()), LogMessage::SEV_INFO);
 	else if (!stopHashing.empty())
-		LogManager::getInstance()->message(STRING_F(X_SHARED_DIRS_REMOVED, stopHashing.size()), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(X_SHARED_DIRS_REMOVED, stopHashing.size()), LogMessage::SEV_INFO);
 
 	for(const auto& p: stopHashing) {
 		HashManager::getInstance()->stopHashing(p);
@@ -2431,7 +2431,7 @@ void ShareManager::reportTaskStatus(uint8_t aTask, const StringList& directories
 		} else if (aRefreshType == TYPE_SCHEDULED && !SETTING(LOG_SCHEDULED_REFRESHES)) {
 			return;
 		}
-		LogManager::getInstance()->message(msg, LogManager::LOG_INFO);
+		LogManager::getInstance()->message(msg, LogMessage::SEV_INFO);
 	}
 }
 
@@ -2535,10 +2535,10 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 			try {
 				buildTree(path, pathLower, ri.root, ri.subProfiles, ri.dirNameMapNew, ri.rootPathsNew, ri.hashSize, ri.addedSize, ri.tthIndexNew, *refreshBloom);
 			} catch (const std::bad_alloc&) {
-				LogManager::getInstance()->message(STRING_F(DIR_REFRESH_FAILED, path % STRING(OUT_OF_MEMORY)), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING_F(DIR_REFRESH_FAILED, path % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 				return;
 			} catch (...) {
-				LogManager::getInstance()->message(STRING_F(DIR_REFRESH_FAILED, path % STRING(UNKNOWN_ERROR)), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING_F(DIR_REFRESH_FAILED, path % STRING(UNKNOWN_ERROR)), LogMessage::SEV_ERROR);
 				return;
 			}
 
@@ -2557,7 +2557,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 				for_each(refreshDirs, doRefresh);
 			}
 		} catch (std::exception& e) {
-			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + string(e.what()), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + string(e.what()), LogMessage::SEV_INFO);
 			continue;
 		}
 
@@ -2694,7 +2694,7 @@ void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
 void ShareManager::restoreFailedMonitoredPaths() {
 	auto restored = monitor.restoreFailedPaths();
 	for (const auto& dir : restored) {
-		LogManager::getInstance()->message(STRING_F(MONITORING_RESTORED_X, dir), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(MONITORING_RESTORED_X, dir), LogMessage::SEV_INFO);
 	}
 }
 
@@ -2793,7 +2793,7 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 				fl->generationFinished(false);
 			} catch (const Exception& e) {
 				// No new file lists...
-				LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, fl->getFileName() % e.getError()), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, fl->getFileName() % e.getError()), LogMessage::SEV_ERROR);
 				fl->generationFinished(true);
 
 				// do we have anything to send?
@@ -2964,7 +2964,7 @@ void ShareManager::FileListDir::filesToXml(OutputStream& xmlFile, string& indent
 		for (const auto& d : shareDirs)
 			paths.push_back(d->getRealPath());
 
-		LogManager::getInstance()->message(STRING_F(DUPLICATE_FILES_DETECTED, dupeFiles % Util::toString(", ", paths)), LogManager::LOG_WARNING);
+		LogManager::getInstance()->message(STRING_F(DUPLICATE_FILES_DETECTED, dupeFiles % Util::toString(", ", paths)), LogMessage::SEV_WARNING);
 	}
 }
 
@@ -3063,7 +3063,7 @@ void ShareManager::saveXmlList(function<void(float)> progressF /*nullptr*/) noex
 					File::deleteFile(path);
 					File::renameFile(path + ".tmp", path);
 				} catch (Exception& e) {
-					LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, path % e.getError()), LogManager::LOG_WARNING);
+					LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, path % e.getError()), LogMessage::SEV_WARNING);
 				}
 
 				d->getProfileDir()->setCacheDirty(false);
@@ -3073,7 +3073,7 @@ void ShareManager::saveXmlList(function<void(float)> progressF /*nullptr*/) noex
 				}
 			});
 		} catch (std::exception& e) {
-			LogManager::getInstance()->message("Saving the share cache failed: " + string(e.what()), LogManager::LOG_INFO);
+			LogManager::getInstance()->message("Saving the share cache failed: " + string(e.what()), LogMessage::SEV_INFO);
 		}
 	}
 
@@ -3636,7 +3636,7 @@ void ShareManager::rebuildTotalExcludes() noexcept {
 		});
 
 		if (subDirs.base() == profileDirs.end()) {
-			//LogManager::getInstance()->message(pdPos->first + " is a total exclude", LogManager::LOG_INFO);
+			//LogManager::getInstance()->message(pdPos->first + " is a total exclude", LogMessage::SEV_INFO);
 			pdPos.second->setFlag(ProfileDirectory::FLAG_EXCLUDE_TOTAL);
 		}
 	}
@@ -3675,7 +3675,7 @@ bool ShareManager::checkSharedName(const string& aPath, const string& aPathLower
 	auto report = [&](const string& aMsg) {
 		// There may be sequential modification notifications for monitored files so don't spam the same message many times
 		if (aReport && (lastMessage != aMsg || messageTick + 3000 < GET_TICK())) {
-			LogManager::getInstance()->message(aMsg, LogManager::LOG_INFO);
+			LogManager::getInstance()->message(aMsg, LogMessage::SEV_INFO);
 			lastMessage = aMsg;
 			messageTick = GET_TICK();
 		}

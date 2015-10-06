@@ -24,36 +24,25 @@
 
 #include "typedefs.h"
 
+#include "DispatcherQueue.h"
+#include "LogManagerListener.h"
+#include "Message.h"
 #include "Singleton.h"
 #include "Speaker.h"
-#include "LogManagerListener.h"
 #include "User.h"
-#include "DispatcherQueue.h"
 
 namespace dcpp {
-
-struct LogMessage {
-	LogMessage(uint32_t aId, const string& aMessage, time_t t, uint8_t sev) : id(aId), message(aMessage), time(t), severity(sev) { }
-
-	uint32_t id;
-	string message;
-	time_t time;
-	uint8_t severity;
-};
 
 class LogManager : public Singleton<LogManager>, public Speaker<LogManagerListener>
 {
 public:
-	enum Severity: uint8_t { LOG_INFO, LOG_WARNING, LOG_ERROR };
 	enum Area: uint8_t { CHAT, PM, DOWNLOAD, UPLOAD, SYSTEM, STATUS, LAST };
 	enum: uint8_t { FILE, FORMAT };
 
-	typedef deque<LogMessage> List;
-
 	void log(Area area, ParamMap& params) noexcept;
-	void message(const string& msg, Severity severity);
+	void message(const string& msg, LogMessage::Severity severity);
 
-	List getLastLogs();
+	LogMessageList getLastLogs();
 	void clearLastLogs();
 	string getPath(Area area, ParamMap& params) const;
 	string getPath(Area area) const;
@@ -70,7 +59,7 @@ private:
 
 	friend class Singleton<LogManager>;
 	CriticalSection cs;
-	List lastLogs;
+	LogMessageList lastLogs;
 
 	int options[LAST][2];
 

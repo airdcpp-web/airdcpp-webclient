@@ -19,16 +19,16 @@
 #include "stdinc.h"
 #include "ConnectivityManager.h"
 
+#include "AirUtil.h"
 #include "ClientManager.h"
 #include "ConnectionManager.h"
 #include "format.h"
+#include "LogManager.h"
 #include "MappingManager.h"
+#include "ResourceManager.h"
 #include "SearchManager.h"
 #include "SettingsManager.h"
 #include "version.h"
-#include "AirUtil.h"
-
-#include "ResourceManager.h"
 
 namespace dcpp {
 
@@ -41,17 +41,6 @@ mapperV6(true),
 mapperV4(false)
 {
 }
-
-/*template<class T, typename SettingType>
-T get(SettingType setting) const {
-	if(SETTING(AUTO_DETECT_CONNECTION) || SETTING(AUTO_DETECT_CONNECTION6)) {
-		auto i = autoSettings.find(setting);
-		if(i != autoSettings.end()) {
-			return boost::get<T>(i->second);
-		}
-	}
-	return SettingsManager::getInstance()->get(setting);
-}*/
 
 bool ConnectivityManager::get(SettingsManager::BoolSetting setting) const {
 	if(SETTING(AUTO_DETECT_CONNECTION) || SETTING(AUTO_DETECT_CONNECTION6)) {
@@ -181,12 +170,12 @@ void ConnectivityManager::detectConnection() {
 	if (detectV4)
 		clearAutoSettings(false, true);
 
-	log(STRING(CONN_DETERMINING), LogManager::LOG_INFO, TYPE_BOTH);
+	log(STRING(CONN_DETERMINING), LogMessage::SEV_INFO, TYPE_BOTH);
 
 	/*if (runningV4)
-		log(STRING(CONN_DETERMINING), LogManager::LOG_INFO, false);
+		log(STRING(CONN_DETERMINING), LogMessage::SEV_INFO, false);
 	if (runningV6)
-		log(STRING(CONN_DETERMINING), LogManager::LOG_INFO, true);*/
+		log(STRING(CONN_DETERMINING), LogMessage::SEV_INFO, true);*/
 
 	try {
 		listen();
@@ -197,7 +186,7 @@ void ConnectivityManager::detectConnection() {
 			autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_PASSIVE;
 		}
 
-		log(STRING_F(CONN_PORT_X_FAILED, e.getError()), LogManager::LOG_ERROR, TYPE_NORMAL);
+		log(STRING_F(CONN_PORT_X_FAILED, e.getError()), LogMessage::SEV_ERROR, TYPE_NORMAL);
 		fire(ConnectivityManagerListener::Finished(), false, true);
 		fire(ConnectivityManagerListener::Finished(), true, true);
 		if (detectV4)
@@ -216,7 +205,7 @@ void ConnectivityManager::detectConnection() {
 			autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE;
 		}
 
-		log(STRING(CONN_DIRECT_DETECTED), LogManager::LOG_INFO, TYPE_V4);
+		log(STRING(CONN_DIRECT_DETECTED), LogMessage::SEV_INFO, TYPE_V4);
 		fire(ConnectivityManagerListener::Finished(), false, false);
 		runningV4 = false;
 		detectV4 = false;
@@ -229,14 +218,14 @@ void ConnectivityManager::detectConnection() {
 				autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_ACTIVE;
 			}
 
-			log(STRING(CONN_DIRECT_DETECTED), LogManager::LOG_INFO, TYPE_V6);
+			log(STRING(CONN_DIRECT_DETECTED), LogMessage::SEV_INFO, TYPE_V6);
 		} else {
 			//disable IPv6 if no public IP address is available
 			{
 				WLock l(cs);
 				autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_DISABLED;
 			}
-			log(STRING(IPV6_NO_PUBLIC_IP), LogManager::LOG_INFO, TYPE_V6);
+			log(STRING(IPV6_NO_PUBLIC_IP), LogMessage::SEV_INFO, TYPE_V6);
 		}
 
 		fire(ConnectivityManagerListener::Finished(), true, false);
@@ -257,7 +246,7 @@ void ConnectivityManager::detectConnection() {
 		autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_ACTIVE_UPNP;
 	}
 
-	log(STRING(CONN_NAT_DETECTED), LogManager::LOG_INFO, (detectV4 && detectV6 ? TYPE_BOTH : detectV4 ? TYPE_V4 : TYPE_V6));
+	log(STRING(CONN_NAT_DETECTED), LogMessage::SEV_INFO, (detectV4 && detectV6 ? TYPE_BOTH : detectV4 ? TYPE_V4 : TYPE_V6));
 
 	if (detectV6)
 		startMapping(true);
@@ -415,7 +404,7 @@ void ConnectivityManager::mappingFinished(const string& mapper, bool v6) {
 				WLock l(cs);
 				autoSettings[v6 ? SettingsManager::INCOMING_CONNECTIONS6 : SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_PASSIVE;
 			}
-			log(STRING(CONN_ACTIVE_FAILED), LogManager::LOG_WARNING, v6 ? TYPE_V6 : TYPE_V4);
+			log(STRING(CONN_ACTIVE_FAILED), LogMessage::SEV_WARNING, v6 ? TYPE_V6 : TYPE_V4);
 		} else {
 			SettingsManager::getInstance()->set(SettingsManager::MAPPER, mapper);
 		}
@@ -428,7 +417,7 @@ void ConnectivityManager::mappingFinished(const string& mapper, bool v6) {
 		runningV4 = false;
 }
 
-void ConnectivityManager::log(const string& message, LogManager::Severity sev, LogType aType) {
+void ConnectivityManager::log(const string& message, LogMessage::Severity sev, LogType aType) {
 	if (aType == TYPE_NORMAL) {
 		LogManager::getInstance()->message(message, sev);
 	} else {

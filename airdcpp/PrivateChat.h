@@ -54,14 +54,13 @@ namespace dcpp {
 		PrivateChat(const HintedUser& aUser, UserConnection* aUc = nullptr);
 		~PrivateChat();
 
-		bool sendPrivateMessage(const HintedUser& aUser, const string& msg, string& error_, bool thirdPerson);
+		bool sendPrivateMessage(const string& msg, string& error_, bool thirdPerson);
 		void handleMessage(const ChatMessagePtr& aMessage);
 
 		void close();
 
 		void closeCC(bool now, bool noAutoConnect);
 		void startCC();
-		void onExit();
 		bool ccReady() const { return ccpmState == CONNECTED; };
 		UserConnection* getUc() { return uc; }
 		void sendPMInfo(uint8_t aType);
@@ -96,6 +95,7 @@ namespace dcpp {
 
 		void setRead() noexcept;
 	private:
+		void statusMessage(const string& aMessage, LogMessage::Severity aSeverity) noexcept;
 		ChatMessageCache cache;
 		enum EventType {
 			USER_UPDATE,

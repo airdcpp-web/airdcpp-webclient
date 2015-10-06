@@ -55,7 +55,7 @@ AutoSearchManager::~AutoSearchManager() noexcept {
 }
 
 void AutoSearchManager::logMessage(const string& aMsg, bool error) const noexcept {
-	LogManager::getInstance()->message(STRING(AUTO_SEARCH) + ": " +  aMsg, error ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
+	LogManager::getInstance()->message(STRING(AUTO_SEARCH) + ": " +  aMsg, error ? LogMessage::SEV_ERROR : LogMessage::SEV_INFO);
 }
 
 /* Adding new items for external use */
@@ -1076,7 +1076,7 @@ void AutoSearchManager::AutoSearchLoad() {
 		}
 		resetSearchTimes(GET_TICK(), true);
 	} catch(const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogMessage::SEV_ERROR);
 	}
 }
 }

@@ -55,12 +55,12 @@ bool MappingManager::open() {
 		return false;
 
 	if(mappers.empty()) {
-		log(STRING(MAPPER_NO_INTERFACE), LogManager::LOG_ERROR);
+		log(STRING(MAPPER_NO_INTERFACE), LogMessage::SEV_ERROR);
 		return false;
 	}
 
 	if(busy.test_and_set()) {
-		log(STRING(MAPPER_IN_PROGRESS), LogManager::LOG_INFO);
+		log(STRING(MAPPER_IN_PROGRESS), LogMessage::SEV_INFO);
 		return false;
 	}
 
@@ -150,13 +150,13 @@ int MappingManager::run() {
 
 		ScopedFunctor([&mapper] { mapper.uninit(); });
 		if(!mapper.init()) {
-			log(STRING_F(MAPPER_INIT_FAILED, mapper.getName()), LogManager::LOG_WARNING);
+			log(STRING_F(MAPPER_INIT_FAILED, mapper.getName()), LogMessage::SEV_WARNING);
 			continue;
 		}
 
 		auto addRule = [this, &mapper](const string& port, Mapper::Protocol protocol, const string& description) -> bool {
 			if (!port.empty() && !mapper.open(port, protocol, STRING_F(MAPPER_X_PORT_X, APPNAME % description % port % Mapper::protocols[protocol]))) {
-				this->log(STRING_F(MAPPER_INTERFACE_FAILED, description % port % Mapper::protocols[protocol] % mapper.getName()), LogManager::LOG_WARNING);
+				this->log(STRING_F(MAPPER_INTERFACE_FAILED, description % port % Mapper::protocols[protocol] % mapper.getName()), LogMessage::SEV_WARNING);
 				mapper.close();
 				return false;
 			}
@@ -168,7 +168,7 @@ int MappingManager::run() {
 			addRule(search_port, Mapper::PROTOCOL_UDP, STRING(SEARCH))))
 			continue;
 
-		log(STRING_F(MAPPER_CREATING_SUCCESS_LONG, conn_port % secure_port % search_port % deviceString(mapper) % mapper.getName()), LogManager::LOG_INFO);
+		log(STRING_F(MAPPER_CREATING_SUCCESS_LONG, conn_port % secure_port % search_port % deviceString(mapper) % mapper.getName()), LogMessage::SEV_INFO);
 
 		working = move(pMapper);
 
@@ -179,7 +179,7 @@ int MappingManager::run() {
 				ConnectivityManager::getInstance()->set(setting, externalIP);
 			} else {
 				// no cleanup because the mappings work and hubs will likely provide the correct IP.
-				log(STRING(MAPPER_IP_FAILED), LogManager::LOG_WARNING);
+				log(STRING(MAPPER_IP_FAILED), LogMessage::SEV_WARNING);
 			}
 		}
 
@@ -190,7 +190,7 @@ int MappingManager::run() {
 	}
 
 	if(!getOpened()) {
-		log(STRING(MAPPER_CREATING_FAILED), LogManager::LOG_ERROR);
+		log(STRING(MAPPER_CREATING_FAILED), LogMessage::SEV_ERROR);
 		ConnectivityManager::getInstance()->mappingFinished(Util::emptyString, v6);
 	}
 
@@ -202,13 +202,13 @@ void MappingManager::close(Mapper& mapper) {
 		bool ret = mapper.init() && mapper.close();
 		mapper.uninit();
 		if (ret)
-			log(STRING_F(MAPPER_REMOVING_SUCCESS, deviceString(mapper) % mapper.getName()), LogManager::LOG_INFO);
+			log(STRING_F(MAPPER_REMOVING_SUCCESS, deviceString(mapper) % mapper.getName()), LogMessage::SEV_INFO);
 		else
-			log(STRING_F(MAPPER_REMOVING_FAILED, deviceString(mapper) % mapper.getName()), LogManager::LOG_WARNING);
+			log(STRING_F(MAPPER_REMOVING_FAILED, deviceString(mapper) % mapper.getName()), LogMessage::SEV_WARNING);
 	}
 }
 
-void MappingManager::log(const string& message, LogManager::Severity sev) {
+void MappingManager::log(const string& message, LogMessage::Severity sev) {
 	ConnectivityManager::getInstance()->log(STRING(PORT_MAPPING) + ": " + message, sev, v6 ? ConnectivityManager::TYPE_V6 : ConnectivityManager::TYPE_V4);
 }
 

@@ -85,7 +85,7 @@ void DirectoryListingManager::addDirectoryDownload(const string& aRemoteDir, con
 
 	if (aUser.user && !aUser.user->isSet(User::NMDC) && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
 		//this is the only thing that could cause queuing the filelist to fail.... remember to change if more are added
-		LogManager::getInstance()->message(ClientManager::getInstance()->getFormatedNicks(aUser) + ": " + STRING(SOURCE_NO_ENCRYPTION), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(ClientManager::getInstance()->getFormatedNicks(aUser) + ": " + STRING(SOURCE_NO_ENCRYPTION), LogMessage::SEV_ERROR);
 		return;
 	}
 
@@ -149,7 +149,7 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 			dirList->loadFile();
 		}
 	} catch (const Exception&) {
-		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + aFileName, LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + aFileName, LogMessage::SEV_ERROR);
 		return;
 	}
 
@@ -270,7 +270,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 		}
 
 		LogManager::getInstance()->message(aList->getNick(false) + ": " + 
-			AirUtil::formatMatchResults(matches, newFiles, bundles, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0), LogManager::LOG_INFO);
+			AirUtil::formatMatchResults(matches, newFiles, bundles, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0), LogMessage::SEV_INFO);
 	} else if((flags & QueueItem::FLAG_VIEW_NFO) && (flags & QueueItem::FLAG_PARTIAL_LIST)) {
 		aList->findNfo(path);
 	}

@@ -22,25 +22,23 @@
 #include "stdinc.h"
 
 #include "typedefs.h"
-#include "ChatMessage.h"
+#include "Message.h"
 #include "CriticalSection.h"
 #include "SettingsManager.h"
 
 namespace dcpp {
+	typedef deque<Message> MessageList;
+
 	class ChatMessageCache : private boost::noncopyable {
 	public:
 		ChatMessageCache(SettingsManager::IntSetting aSetting) : setting(aSetting) { }
 
-		void addMessage(const ChatMessagePtr& aMessage) noexcept {
-			WLock l(cs);
-			messages.push_back(aMessage);
-
-			if (messages.size() > SettingsManager::getInstance()->get(setting)) {
-				messages.pop_front();
-			}
+		template<class T>
+		void addMessage(const T& aMessage) noexcept {
+			add(Message(aMessage));
 		}
 
-		ChatMessageList getMessages() const noexcept {
+		MessageList getMessages() const noexcept {
 			RLock l(cs);
 			return messages;
 		}
@@ -49,9 +47,14 @@ namespace dcpp {
 			RLock l(cs);
 			int updated = 0;
 			for (auto& message : messages) {
-				if (!message->getRead()) {
+				if (message.type != Message::TYPE_CHAT) {
+					continue;
+				}
+
+				//message.
+				if (!message.chatMessage->getRead()) {
 					updated++;
-					message->setRead(true);
+					message.chatMessage->setRead(true);
 				}
 			}
 
@@ -65,17 +68,30 @@ namespace dcpp {
 
 		int countUnread() const noexcept {
 			RLock l(cs);
-			return std::accumulate(messages.begin(), messages.end(), 0, [](int aOld, const ChatMessagePtr& aMessage) {
-				if (!aMessage->getRead()) {
-					return aOld++;
+			return std::accumulate(messages.begin(), messages.end(), 0, [](int aOld, const Message& aMessage) {
+				if (aMessage.type != Message::TYPE_CHAT) {
+					return aOld;
+				}
+
+				if (!aMessage.chatMessage->getRead()) {
+					return aOld + 1;
 				}
 
 				return aOld;
 			});
 		}
 	private:
+		void add(Message&& aMessage) {
+			WLock l(cs);
+			messages.push_back(move(aMessage));
+
+			if (messages.size() > SettingsManager::getInstance()->get(setting)) {
+				messages.pop_front();
+			}
+		}
+
 		SettingsManager::IntSetting setting;
-		ChatMessageList messages;
+		MessageList messages;
 
 		mutable SharedMutex cs;
 	};

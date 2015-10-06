@@ -977,6 +977,10 @@ OnlineUserList ClientManager::searchNicks(const string& aPattern, size_t aMaxRes
 			OnlineUserList hubUsers;
 			c->getUserList(hubUsers);
 			for (const auto& ou : hubUsers) {
+				if (ou->getUser() == me) {
+					continue;
+				}
+
 				search.match(ou);
 			}
 		}

@@ -21,7 +21,7 @@
 
 #include "ConnectivityManager.h"
 #include "ResourceManager.h"
-#include "ChatMessage.h"
+#include "Message.h"
 #include "ClientManager.h"
 #include "SearchManager.h"
 #include "ShareManager.h"

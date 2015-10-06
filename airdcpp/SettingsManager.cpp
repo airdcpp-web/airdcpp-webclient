@@ -19,15 +19,16 @@
 #include "stdinc.h"
 #include "SettingsManager.h"
 
+#include "AirUtil.h"
 #include "CID.h"
 #include "ConnectivityManager.h"
+#include "File.h"
+#include "LogManager.h"
 #include "ResourceManager.h"
 #include "SimpleXML.h"
-#include "Util.h"
-#include "AirUtil.h"
-#include "File.h"
-#include "version.h"
 #include "StringTokenizer.h"
+#include "Util.h"
+#include "version.h"
 
 namespace dcpp {
 
@@ -1057,7 +1058,7 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 		}
 
 	} catch(const Exception& e) { 
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogMessage::SEV_ERROR);
 	}
 
 	setDefault(UDP_PORT, SETTING(TCP_PORT));
@@ -1370,7 +1371,7 @@ void SettingsManager::saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const 
 			File::renameFile(fname + ".tmp", fname);
 		}
 	} catch (const FileException& e) {
-		LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, fname % e.getError()), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, fname % e.getError()), LogMessage::SEV_ERROR);
 	}
 }
 

@@ -27,7 +27,7 @@
 #include "Transfer.h"
 #include "DebugManager.h"
 #include "FavoriteManager.h"
-#include "ChatMessage.h"
+#include "Message.h"
 
 
 #include "Download.h"
@@ -271,7 +271,7 @@ void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 
 	auto msg = make_shared<ChatMessage>(message, peer, me, peer);
 	if (c.getParam("TS", 1, tmp)) {
-		msg->setTimestamp(Util::toInt64(tmp));
+		msg->setTime(Util::toInt64(tmp));
 	}
 
 	msg->setThirdPerson(c.hasFlag("ME", 1));

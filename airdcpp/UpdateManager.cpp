@@ -194,7 +194,7 @@ void UpdateManager::completeUpdateDownload(int buildID, bool manualCheck) {
 			f.write(xml.toXML());
 			f.close();
 
-			LogManager::getInstance()->message(STRING(UPDATE_DOWNLOADED), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING(UPDATE_DOWNLOADED), LogMessage::SEV_INFO);
 			installedUpdate = buildID;
 
 			conn.reset(); //prevent problems when closing
@@ -244,7 +244,7 @@ bool UpdateManager::checkPendingUpdates(const string& aDstDir, string& updater_,
 
 				}
 			} catch(const Exception& e) {
-				LogManager::getInstance()->message(STRING_F(FAILED_TO_READ, uiPath % e.getError()), LogManager::LOG_WARNING);
+				LogManager::getInstance()->message(STRING_F(FAILED_TO_READ, uiPath % e.getError()), LogMessage::SEV_WARNING);
 			}
 		}
 	}
@@ -288,10 +288,10 @@ void UpdateManager::failUpdateDownload(const string& aError, bool manualCheck) {
 	}
 
 	if (manualCheck) {
-		LogManager::getInstance()->message(msg, LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(msg, LogMessage::SEV_ERROR);
 		fire(UpdateManagerListener::UpdateFailed(), msg);
 	} else {
-		LogManager::getInstance()->message(msg, LogManager::LOG_WARNING);
+		LogManager::getInstance()->message(msg, LogMessage::SEV_WARNING);
 	}
 
 	checkAdditionalUpdates(manualCheck);
@@ -365,7 +365,7 @@ void UpdateManager::updateGeo(bool v6) {
 	if(conn)
 		return;
 
-	LogManager::getInstance()->message(STRING_F(GEOIP_UPDATING, (v6 ? "IPv6" : "IPv4")), LogManager::LOG_INFO);
+	LogManager::getInstance()->message(STRING_F(GEOIP_UPDATING, (v6 ? "IPv6" : "IPv4")), LogMessage::SEV_INFO);
 	conn.reset(new HttpDownload(v6 ? links.geoip6 : links.geoip4,
 		[this, v6] { completeGeoDownload(v6); }, false));
 }
@@ -379,11 +379,11 @@ void UpdateManager::completeGeoDownload(bool v6) {
 		try {
 			File(GeoManager::getDbPath(v6) + ".gz", File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
 			GeoManager::getInstance()->update(v6);
-			LogManager::getInstance()->message(STRING_F(GEOIP_UPDATED, (v6 ? "IPv6" : "IPv4")), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(GEOIP_UPDATED, (v6 ? "IPv6" : "IPv4")), LogMessage::SEV_INFO);
 			return;
 		} catch(const FileException&) { }
 	}
-	LogManager::getInstance()->message(STRING_F(GEOIP_UPDATING_FAILED, (v6 ? "IPv6" : "IPv4")), LogManager::LOG_WARNING);
+	LogManager::getInstance()->message(STRING_F(GEOIP_UPDATING_FAILED, (v6 ? "IPv6" : "IPv4")), LogMessage::SEV_WARNING);
 }
 
 void UpdateManager::completeLanguageDownload() {
@@ -396,17 +396,17 @@ void UpdateManager::completeLanguageDownload() {
 			auto path = Localization::getCurLanguageFilePath();
 			File::ensureDirectory(Util::getFilePath(path));
 			File(path, File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
-			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATED, Localization::getLanguageStr()), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATED, Localization::getLanguageStr()), LogMessage::SEV_INFO);
 			fire(UpdateManagerListener::LanguageFinished());
 
 			return;
 		} catch(const FileException& e) { 
-			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getLanguageStr() % e.getError()), LogManager::LOG_WARNING);
+			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getLanguageStr() % e.getError()), LogMessage::SEV_WARNING);
 		}
 	}
 
 	fire(UpdateManagerListener::LanguageFailed(), conn->status);
-	LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getLanguageStr() % conn->status), LogManager::LOG_WARNING);
+	LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getLanguageStr() % conn->status), LogMessage::SEV_WARNING);
 }
 
 bool UpdateManager::getVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild) {
@@ -573,7 +573,7 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 					}
 					//fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, true);
 				} else if (updateMethod == UPDATE_AUTO) {
-					LogManager::getInstance()->message(STRING_F(BACKGROUND_UPDATER_START, versionString), LogManager::LOG_INFO);
+					LogManager::getInstance()->message(STRING_F(BACKGROUND_UPDATER_START, versionString), LogMessage::SEV_INFO);
 					downloadUpdate(updateUrl, remoteBuild, manualCheck);
 				}
 				xml.resetCurrentChild();

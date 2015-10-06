@@ -21,7 +21,7 @@
 
 #include "AdcCommand.h"
 #include "AdcHub.h"
-#include "ChatMessage.h"
+#include "Message.h"
 #include "ClientManager.h"
 #include "ConnectionManager.h"
 #include "ConnectivityManager.h"
@@ -342,7 +342,7 @@ void AdcHub::handle(AdcCommand::MSG, AdcCommand& c) noexcept {
 
 	string temp;
 	if (c.getParam("TS", 1, temp))
-		message->setTimestamp(Util::toInt64(temp));
+		message->setTime(Util::toInt64(temp));
 
 	if(c.getParam("PM", 1, temp)) { // add PM<group-cid> as well
 		message->setTo(findUser(c.getTo()));
@@ -1028,7 +1028,7 @@ void AdcHub::connect(const OnlineUser& aUser, const string& aToken, bool aSecure
 		const string& ownPort = aSecure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
 		if(ownPort.empty()) {
 			// Oops?
-			LogManager::getInstance()->message(STRING(NOT_LISTENING), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING(NOT_LISTENING), LogMessage::SEV_ERROR);
 			return;
 		}
 
@@ -1186,7 +1186,7 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 		}
 
 		if (aDate > 0) {
-			//LogManager::getInstance()->message("Age: " + Text::fromT(Util::getDateTimeW(aDate)), LogManager::LOG_INFO);
+			//LogManager::getInstance()->message("Age: " + Text::fromT(Util::getDateTimeW(aDate)), LogMessage::SEV_INFO);
 			if (aDateMode == SearchManager::DATE_NEWER) {
 				c.addParam("NT", Util::toString(aDate));
 			} else if (aDateMode == SearchManager::DATE_OLDER) {

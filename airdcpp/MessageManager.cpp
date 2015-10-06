@@ -21,7 +21,7 @@
 #include "MessageManager.h"
 #include "LogManager.h"
 
-#include "ChatMessage.h"
+#include "Message.h"
 #include "Util.h"
 #include "Wildcards.h"
 
@@ -86,8 +86,8 @@ bool MessageManager::removeChat(const UserPtr& aUser) {
 		}
 
 		chat = i->second;
-		chat->onExit();
 
+		chat->close();
 		auto uc = chat->getUc();
 		if (uc) {
 			//Closed the window, keep listening to the connection until QUIT is received with CPMI;
@@ -103,11 +103,20 @@ bool MessageManager::removeChat(const UserPtr& aUser) {
 }
 
 void MessageManager::closeAll(bool Offline) {
+	UserList toRemove;
 
-	for (auto i : chats) {
-		if (Offline && i.first->isOnline())
-			continue;
-		i.second->close();
+	{
+		RLock l(cs);
+		for (auto i : chats) {
+			if (Offline && i.first->isOnline())
+				continue;
+
+			toRemove.push_back(i.first);
+		}
+	}
+
+	for (const auto& u : toRemove) {
+		removeChat(u);
 	}
 }
 
@@ -156,7 +165,7 @@ void MessageManager::onPrivateMessage(const ChatMessagePtr& aMessage, UserConnec
 		if (i != chats.end()) {
 			//Debug purposes to see if this really ever happens!! 
 			if (aUc && !i->second->ccReady())
-				LogManager::getInstance()->message("Message received via CCPM but frame not connected state! report to Night", LogManager::LOG_ERROR);
+				LogManager::getInstance()->message("Message received via CCPM but frame not connected state! report to Night", LogMessage::SEV_ERROR);
 
 			i->second->handleMessage(aMessage); //We should have a listener in the frame
 			return;
@@ -274,7 +283,7 @@ bool MessageManager::isIgnoredOrFiltered(const ChatMessagePtr& msg, const Client
 				tmp = (filter ? STRING(MC_MESSAGE_FILTERED) : STRING(MC_MESSAGE_IGNORED)) + hub;
 			}
 			tmp += "<" + identity.getNick() + "> " + msg->getText();
-			LogManager::getInstance()->message(tmp, LogManager::LOG_INFO);
+			LogManager::getInstance()->message(tmp, LogMessage::SEV_INFO);
 		}
 	};
 
@@ -406,7 +415,7 @@ void MessageManager::loadUsers() {
 		}
 	}
 	catch (const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogMessage::SEV_ERROR);
 	}
 }
 

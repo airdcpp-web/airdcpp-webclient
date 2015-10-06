@@ -131,7 +131,7 @@ void QueueManager::recheckBundle(QueueToken aBundleToken) noexcept {
 	});
 
 	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_START_BUNDLE, b->getName() %
-		Util::formatBytes(finishedSegmentsBegin)), LogManager::LOG_INFO);
+		Util::formatBytes(finishedSegmentsBegin)), LogMessage::SEV_INFO);
 	
 
 	// prepare for checking
@@ -155,7 +155,7 @@ void QueueManager::recheckBundle(QueueToken aBundleToken) noexcept {
 
 	// finish
 	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_FINISHED_BUNDLE, b->getName() %
-		Util::formatBytes(failedBytes)), LogManager::LOG_INFO);
+		Util::formatBytes(failedBytes)), LogMessage::SEV_INFO);
 
 	b->setStatus(oldStatus);
 	handleFailedRecheckItems(failedItems);
@@ -163,7 +163,7 @@ void QueueManager::recheckBundle(QueueToken aBundleToken) noexcept {
 }
 
 void QueueManager::recheckFiles(QueueItemList aQL) noexcept {
-	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_START_FILES, aQL.size()), LogManager::LOG_INFO);
+	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_START_FILES, aQL.size()), LogMessage::SEV_INFO);
 
 	QueueItemList failedItems;
 	int64_t failedBytes = 0;
@@ -189,7 +189,7 @@ void QueueManager::recheckFiles(QueueItemList aQL) noexcept {
 	}
 
 	handleFailedRecheckItems(failedItems);
-	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_FINISHED_FILES, Util::formatBytes(failedBytes)), LogManager::LOG_INFO);
+	LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK_FINISHED_FILES, Util::formatBytes(failedBytes)), LogMessage::SEV_INFO);
 }
 
 void QueueManager::handleFailedRecheckItems(const QueueItemList& ql) noexcept {
@@ -227,7 +227,7 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 
 	auto failFile = [&](const string& aError) {
 		fire(QueueManagerListener::FileRecheckFailed(), q, aError);
-		LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK, aError % q->getTarget()), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK, aError % q->getTarget()), LogMessage::SEV_ERROR);
 	};
 
 	{
@@ -356,9 +356,9 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 		failedBytes_ += failedBytes;
 		LogManager::getInstance()->message(STRING_F(INTEGRITY_CHECK,
 			STRING_F(FILE_CORRUPTION_FOUND, Util::formatBytes(failedBytes)) % q->getTarget()),
-			LogManager::LOG_WARNING);
+			LogMessage::SEV_WARNING);
 	} else if (fileCRC && ttFile.getRoot() == tth && *fileCRC != crc32.getValue()) {
-		LogManager::getInstance()->message(q->getTarget() + ": " + STRING(ERROR_HASHING_CRC32), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(q->getTarget() + ": " + STRING(ERROR_HASHING_CRC32), LogMessage::SEV_ERROR);
 	}
 
 	if (ttFile.getRoot() == tth && !q->isSet(QueueItem::FLAG_FINISHED)) {
@@ -389,7 +389,7 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 		try {
 			File::renameFile(q->getTarget(), q->getTempTarget());
 		} catch (const FileException& e) {
-			LogManager::getInstance()->message(STRING_F(UNABLE_TO_RENAME, q->getTarget() % e.getError()), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING_F(UNABLE_TO_RENAME, q->getTarget() % e.getError()), LogMessage::SEV_ERROR);
 		}
 	}
 
@@ -660,7 +660,7 @@ void QueueManager::addOpenedItem(const string& aFileName, int64_t aSize, const T
 		throw QueueException(STRING(CANT_OPEN_EMPTY_FILE));
 	} else if (isClientView && aSize > Util::convertSize(1, Util::MB)) {
 		auto msg = STRING_F(VIEWED_FILE_TOO_BIG, aFileName % Util::formatBytes(aSize));
-		LogManager::getInstance()->message(msg, LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(msg, LogMessage::SEV_ERROR);
 		throw QueueException(msg);
 	}
 
@@ -707,7 +707,7 @@ BundlePtr QueueManager::getBundle(const string& aTarget, QueueItemBase::Priority
 			if (mergedBundles > 0)
 				tmp += ", " + STRING_F(EXISTING_BUNDLES_MERGED, mergedBundles);
 
-			LogManager::getInstance()->message(tmp, LogManager::LOG_INFO);
+			LogManager::getInstance()->message(tmp, LogMessage::SEV_INFO);
 		}
 	}
 
@@ -1005,7 +1005,7 @@ void QueueManager::readdBundleSource(BundlePtr aBundle, const HintedUser& aUser)
 						wantConnection = true;
 					}
 				} catch(...) {
-					LogManager::getInstance()->message("Failed to add the source for " + q->getTarget(), LogManager::LOG_WARNING);
+					LogManager::getInstance()->message("Failed to add the source for " + q->getTarget(), LogMessage::SEV_WARNING);
 				}
 			}
 		}
@@ -1386,9 +1386,9 @@ void QueueManager::moveFinishedFileImpl(const string& source, const string& targ
 		string newTarget = Util::getFilePath(source) + Util::getFileName(target);
 		try {
 			File::renameFile(source, newTarget);
-			LogManager::getInstance()->message(STRING_F(MOVE_FILE_FAILED, newTarget % Util::getFilePath(target) % e1.getError()), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING_F(MOVE_FILE_FAILED, newTarget % Util::getFilePath(target) % e1.getError()), LogMessage::SEV_ERROR);
 		} catch(const FileException& e2) {
-			LogManager::getInstance()->message(STRING_F(UNABLE_TO_RENAME, source % e2.getError()), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING_F(UNABLE_TO_RENAME, source % e2.getError()), LogMessage::SEV_ERROR);
 		}
 	}
 	if(SETTING(USE_FTP_LOGGER))
@@ -1474,7 +1474,7 @@ bool QueueManager::checkBundleFinished(BundlePtr& aBundle) noexcept {
 	setBundleStatus(aBundle, Bundle::STATUS_MOVED);
 
 	if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle()) {
-		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, aBundle->getName().c_str()), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, aBundle->getName().c_str()), LogMessage::SEV_INFO);
 		setBundleStatus(aBundle, Bundle::STATUS_FINISHED);
 	} else if (!scanBundle(aBundle)) {
 		return true;
@@ -1484,9 +1484,9 @@ bool QueueManager::checkBundleFinished(BundlePtr& aBundle) noexcept {
 		hashBundle(aBundle);
 	} else if (!isPrivate) {
 		if (ShareManager::getInstance()->allowAddDir(aBundle->getTarget())) {
-			LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogMessage::SEV_INFO);
 		} else {
-			LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogMessage::SEV_INFO);
 		}
 	}
 
@@ -1565,16 +1565,16 @@ void QueueManager::hashBundle(BundlePtr& aBundle) noexcept {
 		}
 
 		if (hashSize > 0) {
-			LogManager::getInstance()->message(STRING_F(BUNDLE_ADDED_FOR_HASH, aBundle->getName() % Util::formatBytes(hashSize)), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(BUNDLE_ADDED_FOR_HASH, aBundle->getName() % Util::formatBytes(hashSize)), LogMessage::SEV_INFO);
 		} else {
 			//all files have been hashed already?
 			checkBundleHashed(aBundle);
 		}
 	} else if (!aBundle->getQueueItems().empty() && !aBundle->getQueueItems().front()->isSet(QueueItem::FLAG_PRIVATE)) {
 		//if (SETTING(ADD_FINISHED_INSTANTLY)) {
-			LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogMessage::SEV_INFO);
 		//} else {
-		//	LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogManager::LOG_INFO);
+		//	LogManager::getInstance()->message(CSTRING(INSTANT_SHARING_DISABLED), LogMessage::SEV_INFO);
 		//}
 	} else {
 		//removeFinishedBundle(aBundle);
@@ -1630,7 +1630,7 @@ void QueueManager::checkBundleHashed(BundlePtr& b) noexcept {
 			}
 
 			if (b->getStatus() == Bundle::STATUS_HASH_FAILED) {
-				LogManager::getInstance()->message(STRING_F(BUNDLE_HASH_FAILED, b->getTarget().c_str()), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING_F(BUNDLE_HASH_FAILED, b->getTarget().c_str()), LogMessage::SEV_ERROR);
 				return;
 			} else if (b->getStatus() == Bundle::STATUS_HASHING) {
 				fireHashed = true;
@@ -1647,7 +1647,7 @@ void QueueManager::checkBundleHashed(BundlePtr& b) noexcept {
 				HashedFile fi;
 				HashManager::getInstance()->getFileInfo(Text::toLower(b->getFinishedFiles().front()->getTarget()), b->getFinishedFiles().front()->getTarget(), fi);
 				fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTarget(), fi);
-				LogManager::getInstance()->message(STRING_F(SHARED_FILE_ADDED, b->getTarget()), LogManager::LOG_INFO);
+				LogManager::getInstance()->message(STRING_F(SHARED_FILE_ADDED, b->getTarget()), LogMessage::SEV_INFO);
 				setBundleStatus(b, Bundle::STATUS_SHARED);
 			} catch (...) { dcassert(0); }
 		}
@@ -2305,7 +2305,7 @@ void QueueManager::loadQueue(function<void (float)> progressF) noexcept {
 					File f(path, File::READ, File::OPEN, File::BUFFER_SEQUENTIAL, false);
 					SimpleXMLReader(&loader).parse(f);
 				} catch (const Exception& e) {
-					LogManager::getInstance()->message(STRING_F(BUNDLE_LOAD_FAILED, path % e.getError().c_str()), LogManager::LOG_ERROR);
+					LogManager::getInstance()->message(STRING_F(BUNDLE_LOAD_FAILED, path % e.getError().c_str()), LogMessage::SEV_ERROR);
 					File::deleteFile(path);
 				}
 			}
@@ -2313,7 +2313,7 @@ void QueueManager::loadQueue(function<void (float)> progressF) noexcept {
 			progressF(static_cast<float>(loaded) / static_cast<float>(fileList.size()));
 		});
 	} catch (std::exception& e) {
-		LogManager::getInstance()->message("Loading the queue failed: " + string(e.what()), LogManager::LOG_INFO);
+		LogManager::getInstance()->message("Loading the queue failed: " + string(e.what()), LogMessage::SEV_INFO);
 	}
 
 	try {
@@ -2710,7 +2710,7 @@ void QueueManager::matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult
 
 				if (SETTING(REPORT_ADDED_SOURCES) && newFiles > 0) {
 					LogManager::getInstance()->message(ClientManager::getInstance()->getFormatedNicks(aResult->getUser()) + ": " + 
-						STRING_F(MATCH_SOURCE_ADDED, newFiles % aQI->getBundle()->getName().c_str()), LogManager::LOG_INFO);
+						STRING_F(MATCH_SOURCE_ADDED, newFiles % aQI->getBundle()->getName().c_str()), LogMessage::SEV_INFO);
 				}
 			} else {
 				//An ADC directory bundle, match recursive partial list
@@ -2874,7 +2874,7 @@ static void calculateBalancedPriorities(vector<pair<T, QueueItemBase::Priority>>
 	int prioGroup = 1;
 	if (uniqueValues <= 1) {
 		if (verbose) {
-			LogManager::getInstance()->message("Not enough items with unique points to perform the priotization!", LogManager::LOG_INFO);
+			LogManager::getInstance()->message("Not enough items with unique points to perform the priotization!", LogMessage::SEV_INFO);
 		}
 		return;
 	} else if (uniqueValues > 2) {
@@ -2882,7 +2882,7 @@ static void calculateBalancedPriorities(vector<pair<T, QueueItemBase::Priority>>
 	}
 
 	if (verbose) {
-		LogManager::getInstance()->message("Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup), LogManager::LOG_INFO);
+		LogManager::getInstance()->message("Unique values: " + Util::toString(uniqueValues) + " prioGroup size: " + Util::toString(prioGroup), LogMessage::SEV_INFO);
 	}
 
 
@@ -2896,7 +2896,7 @@ static void calculateBalancedPriorities(vector<pair<T, QueueItemBase::Priority>>
 	for (auto& i: finalMap) {
 		if (lastPoints==i.first) {
 			if (verbose) {
-				LogManager::getInstance()->message(i.second->getTarget() + " points: " + Util::toString(i.first) + " setting prio " + AirUtil::getPrioText(prio), LogManager::LOG_INFO);
+				LogManager::getInstance()->message(i.second->getTarget() + " points: " + Util::toString(i.first) + " setting prio " + AirUtil::getPrioText(prio), LogMessage::SEV_INFO);
 			}
 
 			if(i.second->getPriority() != prio)
@@ -2914,7 +2914,7 @@ static void calculateBalancedPriorities(vector<pair<T, QueueItemBase::Priority>>
 			} 
 
 			if (verbose) {
-				LogManager::getInstance()->message(i.second->getTarget() + " points: " + Util::toString(i.first) + " setting prio " + AirUtil::getPrioText(prio), LogManager::LOG_INFO);
+				LogManager::getInstance()->message(i.second->getTarget() + " points: " + Util::toString(i.first) + " setting prio " + AirUtil::getPrioText(prio), LogMessage::SEV_INFO);
 			}
 
 			if(i.second->getPriority() != prio)
@@ -3308,9 +3308,9 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 		statusChanged = true;
 
 		if (aBundle->isFileBundle())
-			LogManager::getInstance()->message(STRING_F(FILE_X_QUEUED, aBundle->getName() % Util::formatBytes(aBundle->getSize())), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(FILE_X_QUEUED, aBundle->getName() % Util::formatBytes(aBundle->getSize())), LogMessage::SEV_INFO);
 		else
-			LogManager::getInstance()->message(STRING_F(BUNDLE_CREATED, aBundle->getName() % aBundle->getQueueItems().size()) + " (" + CSTRING_F(TOTAL_SIZE, Util::formatBytes(aBundle->getSize())) + ")", LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(BUNDLE_CREATED, aBundle->getName() % aBundle->getQueueItems().size()) + " (" + CSTRING_F(TOTAL_SIZE, Util::formatBytes(aBundle->getSize())) + ")", LogMessage::SEV_INFO);
 	} else {
 		//finished bundle but failed hashing/scanning?
 		bool finished = static_cast<int>(aBundle->getQueueItems().size()) == itemsAdded;
@@ -3328,11 +3328,11 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 		/* Report */
 		if (!aBundle->isFileBundle()) {
 			if (!aTarget.empty() && aTarget.back() != PATH_SEPARATOR) {
-				LogManager::getInstance()->message(STRING_F(BUNDLE_ITEM_ADDED, Util::getFileName(aTarget) % aBundle->getName()), LogManager::LOG_INFO);
+				LogManager::getInstance()->message(STRING_F(BUNDLE_ITEM_ADDED, Util::getFileName(aTarget) % aBundle->getName()), LogMessage::SEV_INFO);
 			} else if (aBundle->getTarget() == aTarget) {
-				LogManager::getInstance()->message(STRING_F(X_BUNDLE_ITEMS_ADDED, itemsAdded % aBundle->getName().c_str()), LogManager::LOG_INFO);
+				LogManager::getInstance()->message(STRING_F(X_BUNDLE_ITEMS_ADDED, itemsAdded % aBundle->getName().c_str()), LogMessage::SEV_INFO);
 			} else {
-				LogManager::getInstance()->message(STRING_F(BUNDLE_MERGED, Util::getLastDir(aTarget) % aBundle->getName() % itemsAdded), LogManager::LOG_INFO);
+				LogManager::getInstance()->message(STRING_F(BUNDLE_MERGED, Util::getLastDir(aTarget) % aBundle->getName() % itemsAdded), LogMessage::SEV_INFO);
 			}
 		}
 
@@ -3383,7 +3383,7 @@ void QueueManager::readdBundle(BundlePtr& aBundle) noexcept {
 
 	aBundle->setTimeFinished(0);
 	bundleQueue.addSearchPrio(aBundle);
-	LogManager::getInstance()->message(STRING_F(BUNDLE_READDED, aBundle->getName().c_str()), LogManager::LOG_INFO);
+	LogManager::getInstance()->message(STRING_F(BUNDLE_READDED, aBundle->getName().c_str()), LogMessage::SEV_INFO);
 }
 
 int QueueManager::changeBundleTarget(BundlePtr& aBundle, const string& newTarget) noexcept{
@@ -3567,7 +3567,7 @@ void QueueManager::moveBundleImpl(const string& aSource, const string& aTarget, 
 			if (merged > 0)
 				tmp += " (" + STRING_F(EXISTING_BUNDLES_MERGED, merged) + ")";
 
-			LogManager::getInstance()->message(tmp, LogManager::LOG_INFO);
+			LogManager::getInstance()->message(tmp, LogMessage::SEV_INFO);
 		}
 
 		sourceEmpty = sourceBundle->isEmpty();
@@ -3809,7 +3809,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinished) noexcep
 	for_each(deleteFiles.begin(), deleteFiles.end(), &File::deleteFile);
 
 	if (!aBundle->isSet(Bundle::FLAG_MERGING))
-		LogManager::getInstance()->message(STRING_F(BUNDLE_X_REMOVED, aBundle->getName()), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(BUNDLE_X_REMOVED, aBundle->getName()), LogMessage::SEV_INFO);
 
 	if (!aBundle->isFileBundle()) {
 		AirUtil::removeDirectoryIfEmpty(aBundle->getTarget(), 10, !removeFinished);
@@ -3980,21 +3980,21 @@ void QueueManager::searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSear
 	aBundle->setLastSearch(aTick);
 	int searchCount = (int)searches.size() <= 4 ? (int)searches.size() : 4;
 	if (aIsManualSearch) {
-		LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName().c_str() % searchCount), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName().c_str() % searchCount), LogMessage::SEV_INFO);
 	} else if(SETTING(REPORT_ALTERNATES)) {
 		//if (aBundle->getSimpleMatching()) {
 			if (aBundle->isRecent()) {
 				LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH_RECENT, aBundle->getName() % searchCount) + 
-					" " + STRING_F(NEXT_RECENT_SEARCH_IN, nextSearch), LogManager::LOG_INFO);
+					" " + STRING_F(NEXT_RECENT_SEARCH_IN, nextSearch), LogMessage::SEV_INFO);
 			} else {
 				LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName() % searchCount) +
-					" " + STRING_F(NEXT_SEARCH_IN, nextSearch), LogManager::LOG_INFO);
+					" " + STRING_F(NEXT_SEARCH_IN, nextSearch), LogMessage::SEV_INFO);
 			}
 		/*} else {
 			if (!aBundle->isRecent()) {
-				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next search in " + Util::toString(nextSearch) + " minutes", LogManager::LOG_INFO);
+				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next search in " + Util::toString(nextSearch) + " minutes", LogMessage::SEV_INFO);
 			} else {
-				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next recent search in " + Util::toString(nextSearch) + " minutes", LogManager::LOG_INFO);
+				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next recent search in " + Util::toString(nextSearch) + " minutes", LogMessage::SEV_INFO);
 			}
 		}*/
 	}
@@ -4003,7 +4003,7 @@ void QueueManager::searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSear
 void QueueManager::fileFinished(const QueueItemPtr aQi, const HintedUser& aUser, int64_t aSpeed, const string& aDir) noexcept {
 	if (!aQi->isSet(QueueItem::FLAG_USER_LIST) || SETTING(LOG_FILELIST_TRANSFERS)) {
 		if (SETTING(SYSTEM_SHOW_DOWNLOADS)) {
-			LogManager::getInstance()->message(STRING_F(FINISHED_DOWNLOAD, aQi->getTarget() % ClientManager::getInstance()->getFormatedNicks(aUser)), LogManager::LOG_INFO);
+			LogManager::getInstance()->message(STRING_F(FINISHED_DOWNLOAD, aQi->getTarget() % ClientManager::getInstance()->getFormatedNicks(aUser)), LogMessage::SEV_INFO);
 		}
 	}
 	aQi->setLastSource(ClientManager::getInstance()->getFormatedNicks(aUser));

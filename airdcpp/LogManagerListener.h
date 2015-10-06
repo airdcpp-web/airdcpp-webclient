@@ -19,16 +19,17 @@
 #ifndef DCPLUSPLUS_DCPP_LOG_MANAGER_LISTENER_H
 #define DCPLUSPLUS_DCPP_LOG_MANAGER_LISTENER_H
 
+#include <airdcpp/forward.h>
+
 namespace dcpp {
 
-struct LogMessage;
 class LogManagerListener {
 public:
 	virtual ~LogManagerListener() { }
 	template<int I>	struct X { enum { TYPE = I }; };
 
 	typedef X<0> Message;
-	virtual void on(Message, const LogMessage&) noexcept { }
+	virtual void on(Message, const LogMessagePtr&) noexcept { }
 };
 
 } // namespace dcpp

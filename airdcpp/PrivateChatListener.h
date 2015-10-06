@@ -17,8 +17,8 @@
 */
 
 
-#ifndef PRIVATE_CHAT_LISTENER_H
-#define PRIVATE_CHAT_LISTENER_H
+#ifndef DCPP_PRIVATE_CHAT_LISTENER_H
+#define DCPP_PRIVATE_CHAT_LISTENER_H
 
 #include "forward.h"
 
@@ -41,7 +41,7 @@ namespace dcpp {
 		virtual void on(Close, PrivateChat*) noexcept{}
 		virtual void on(UserUpdated, PrivateChat*) noexcept{}
 		virtual void on(PMStatus, PrivateChat*, uint8_t) noexcept{}
-		virtual void on(StatusMessage, PrivateChat*, const string&, uint8_t /*severity*/) noexcept{}
+		virtual void on(StatusMessage, PrivateChat*, const LogMessagePtr&) noexcept{}
 		virtual void on(CCPMStatusUpdated, PrivateChat*) noexcept{}
 		virtual void on(MessagesRead, PrivateChat*) noexcept {}
 	};

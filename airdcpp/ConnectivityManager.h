@@ -23,7 +23,7 @@
 #include "SettingsManager.h"
 #include "Singleton.h"
 #include "Speaker.h"
-#include "LogManager.h"
+#include "Message.h"
 #include "MappingManager.h"
 
 #include <string>
@@ -90,7 +90,7 @@ private:
 		TYPE_BOTH
 	};
 
-	void log(const string& message, LogManager::Severity sev, LogType aType);
+	void log(const string& message, LogMessage::Severity sev, LogType aType);
 
 	void startSocket();
 	void listen();

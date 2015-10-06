@@ -242,7 +242,7 @@ void BundleQueue::saveQueue(bool force) noexcept {
 			try {
 				b->save();
 			} catch(FileException& e) {
-				LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, b->getName() % e.getError()), LogManager::LOG_ERROR);
+				LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, b->getName() % e.getError()), LogMessage::SEV_ERROR);
 			}
 		}
 	}

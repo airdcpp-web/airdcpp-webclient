@@ -121,7 +121,7 @@ void DirSFVReader::load(StringList& invalidSFV) noexcept {
 			}
 		} catch(const FileException& e) {
 			invalidSFV.push_back(curPath);
-			LogManager::getInstance()->message(curPath + ": " + e.getError(), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(curPath + ": " + e.getError(), LogMessage::SEV_ERROR);
 			continue;
 		}
 

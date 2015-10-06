@@ -102,7 +102,7 @@ int UDPServer::run() {
 				socket->disconnect();
 				port = socket->listen(Util::toString(CONNSETTING(UDP_PORT)));
 				if(failed) {
-					LogManager::getInstance()->message("Search enabled again", LogManager::LOG_INFO);
+					LogManager::getInstance()->message("Search enabled again", LogMessage::SEV_INFO);
 					failed = false;
 				}
 				break;
@@ -110,7 +110,7 @@ int UDPServer::run() {
 				dcdebug("SearchManager::run Stopped listening: %s\n", e.getError().c_str());
 
 				if(!failed) {
-					LogManager::getInstance()->message(STRING_F(SEARCH_DISABLED_X, e.getError()), LogManager::LOG_ERROR);
+					LogManager::getInstance()->message(STRING_F(SEARCH_DISABLED_X, e.getError()), LogMessage::SEV_ERROR);
 					failed = true;
 				}
 

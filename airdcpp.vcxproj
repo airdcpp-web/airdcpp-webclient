@@ -242,7 +242,7 @@
     <ClCompile Include="airdcpp\Bundle.cpp" />
     <ClCompile Include="airdcpp\BundleQueue.cpp" />
     <ClCompile Include="airdcpp\BZUtils.cpp" />
-    <ClCompile Include="airdcpp\ChatMessage.cpp" />
+    <ClCompile Include="airdcpp\Message.cpp" />
     <ClCompile Include="airdcpp\CID.cpp" />
     <ClCompile Include="airdcpp\Client.cpp" />
     <ClCompile Include="airdcpp\ClientManager.cpp" />
@@ -360,7 +360,7 @@
     <ClInclude Include="airdcpp\Bundle.h" />
     <ClInclude Include="airdcpp\BundleQueue.h" />
     <ClInclude Include="airdcpp\BZUtils.h" />
-    <ClInclude Include="airdcpp\ChatMessage.h" />
+    <ClInclude Include="airdcpp\Message.h" />
     <ClInclude Include="airdcpp\CID.h" />
     <ClInclude Include="airdcpp\Client.h" />
     <ClInclude Include="airdcpp\ClientListener.h" />
