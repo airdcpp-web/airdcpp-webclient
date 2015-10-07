@@ -470,7 +470,7 @@ int ConnectionManager::Server::run() noexcept {
 				port = sock.listen(port);
 
 				if(failed) {
-					LogManager::getInstance()->message("Connectivity restored", LogManager::LOG_INFO);
+					LogManager::getInstance()->message("Connectivity restored", LogMessage::SEV_INFO);
 					failed = false;
 				}
 				break;
@@ -478,7 +478,7 @@ int ConnectionManager::Server::run() noexcept {
 				dcdebug("ConnectionManager::Server::run Stopped listening: %s\n", e.getError().c_str());
 
 				if(!failed) {
-					LogManager::getInstance()->message(str(boost::format("Connectivity error: %1%") % e.getError()), LogManager::LOG_ERROR);
+					LogManager::getInstance()->message(str(boost::format("Connectivity error: %1%") % e.getError()), LogMessage::SEV_ERROR);
 					failed = true;
 				}
 

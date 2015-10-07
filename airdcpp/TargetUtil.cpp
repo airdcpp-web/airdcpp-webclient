@@ -211,7 +211,7 @@ void TargetUtil::reportInsufficientSize(const TargetInfo& ti, int64_t aSize) {
 			Util::formatBytes(ti.getFreeSpace()) % 
 			Util::formatBytes(aSize));
 	}
-	LogManager::getInstance()->message(tmp, LogManager::LOG_WARNING);
+	LogManager::getInstance()->message(tmp, LogMessage::SEV_WARNING);
 }
 
 string TargetUtil::getInsufficientSizeMessage(const TargetInfo& ti, int64_t aSize) {

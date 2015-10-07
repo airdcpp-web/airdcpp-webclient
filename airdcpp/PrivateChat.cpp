@@ -19,7 +19,7 @@
 
 #include "PrivateChat.h"
 
-#include "ChatMessage.h"
+#include "Message.h"
 #include "ConnectionManager.h"
 #include "LogManager.h"
 
@@ -27,15 +27,15 @@ namespace dcpp
 {
 
 PrivateChat::PrivateChat(const HintedUser& aUser, UserConnection* aUc) :
-	uc(aUc), replyTo(aUser), ccpmAttempts(0), allowAutoCCPM(true), lastCCPMAttempt(0), state(DISCONNECTED),
-	online(aUser.user->isOnline()), hubName(ClientManager::getInstance()->getHubName(aUser.hint)) {
+	uc(aUc), replyTo(aUser), ccpmAttempts(0), allowAutoCCPM(true), lastCCPMAttempt(0), ccpmState(DISCONNECTED),
+	online(aUser.user->isOnline()), hubName(ClientManager::getInstance()->getHubName(aUser.hint)), cache(SettingsManager::PM_MESSAGE_CACHE) {
 		
 	string _err = Util::emptyString;
 	supportsCCPM = ClientManager::getInstance()->getSupportsCCPM(aUser.user, _err);
 	lastCCPMError = _err;
 
 	if (aUc) {
-		state = CONNECTED;
+		ccpmState = CONNECTED;
 		aUc->addListener(this);
 	} else {
 		delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 1000);
@@ -50,33 +50,43 @@ PrivateChat::~PrivateChat() {
 		uc->removeListener(this);
 }
 
+const string& PrivateChat::ccpmStateToString(uint8_t aState) noexcept {
+	switch (aState) {
+	case CONNECTING: return STRING(CONNECTING);
+	case CONNECTED: return STRING(CONNECTED);
+	case DISCONNECTED: return STRING(DISCONNECTED);
+	}
+
+	return Util::emptyString;
+}
+
 
 void PrivateChat::CCPMConnected(UserConnection* aUc) {
-	state = CONNECTED;
+	ccpmState = CONNECTED;
 	setUc(aUc);
 	aUc->addListener(this);
-	fire(PrivateChatListener::StatusMessage(), STRING(CCPM_ESTABLISHED), LogManager::LOG_INFO);
-	fire(PrivateChatListener::CCPMStatusUpdated());
+	statusMessage(STRING(CCPM_ESTABLISHED), LogMessage::SEV_INFO);
+	fire(PrivateChatListener::CCPMStatusUpdated(), this);
 }
 
 void PrivateChat::CCPMDisconnected() {
 	if (ccReady()) {
-		state = DISCONNECTED;
+		ccpmState = DISCONNECTED;
 		uc->removeListener(this);
 		setUc(nullptr);
-		fire(PrivateChatListener::StatusMessage(), STRING(CCPM_DISCONNECTED), LogManager::LOG_INFO);
-		fire(PrivateChatListener::CCPMStatusUpdated());
+		statusMessage(STRING(CCPM_DISCONNECTED), LogMessage::SEV_INFO);
+		fire(PrivateChatListener::CCPMStatusUpdated(), this);
 		delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 1000);
 	}
 }
 
-bool PrivateChat::sendPrivateMessage(const HintedUser& aUser, const string& msg, string& error_, bool thirdPerson) {
+bool PrivateChat::sendPrivateMessage(const string& msg, string& error_, bool thirdPerson) {
 	if (ccReady()) {
 		uc->pm(msg, thirdPerson);
 		return true;
 	}
 
-	return ClientManager::getInstance()->privateMessage(aUser, msg, error_, thirdPerson);
+	return ClientManager::getInstance()->privateMessage(replyTo, msg, error_, thirdPerson);
 }
 
 void PrivateChat::closeCC(bool now, bool noAutoConnect) {
@@ -88,14 +98,45 @@ void PrivateChat::closeCC(bool now, bool noAutoConnect) {
 		//Don't disconnect graceless so the last command can be transferred successfully.
 		uc->disconnect(now && !noAutoConnect);
 		if (now) {
-			state = DISCONNECTED;
+			ccpmState = DISCONNECTED;
 			uc->removeListener(this);
 			setUc(nullptr);
 		}
 	}
 }
 
-void PrivateChat::onExit() {
+void PrivateChat::handleMessage(const ChatMessagePtr& aMessage) {
+	if (aMessage->getReplyTo()->getHubUrl() != replyTo.hint) {
+		if (!ccReady()) {
+			statusMessage(STRING_F(MESSAGES_SENT_THROUGH_REMOTE,
+				ClientManager::getInstance()->getHubName(aMessage->getReplyTo()->getHubUrl())), LogMessage::SEV_INFO);
+		}
+
+		setHubUrl(aMessage->getReplyTo()->getHubUrl());
+		fire(PrivateChatListener::UserUpdated(), this);
+	}
+
+	cache.addMessage(aMessage);
+	fire(PrivateChatListener::PrivateMessage(), this, aMessage);
+}
+
+void PrivateChat::setRead() noexcept {
+	auto updated = cache.setRead();
+	if (updated > 0) {
+		fire(PrivateChatListener::MessagesRead(), this);
+	}
+}
+
+void PrivateChat::statusMessage(const string& aMessage, LogMessage::Severity aSeverity) noexcept {
+	auto message = make_shared<LogMessage>(aMessage, aSeverity);
+
+	fire(PrivateChatListener::StatusMessage(), this, message);
+	cache.addMessage(message);
+}
+
+void PrivateChat::close() {
+	fire(PrivateChatListener::Close(), this);
+
 	//PM window closed, signal it if the user supports CPMI
 	if (ccReady() && uc) {
 		if (uc->isSet(UserConnection::FLAG_CPMI))
@@ -103,36 +144,17 @@ void PrivateChat::onExit() {
 		else
 			closeCC(true, false);
 	}
-}
 
-void PrivateChat::handleMessage(const ChatMessage& aMessage) {
-	if (aMessage.replyTo->getHubUrl() != replyTo.hint) {
-		if (!ccReady()) {
-			fire(PrivateChatListener::StatusMessage(), STRING_F(MESSAGES_SENT_THROUGH_REMOTE,
-				ClientManager::getInstance()->getHubName(aMessage.replyTo->getHubUrl())), LogManager::LOG_INFO);
-		}
-
-		setHubUrl(aMessage.replyTo->getHubUrl());
-		fire(PrivateChatListener::UserUpdated());
-	}
-
-	fire(PrivateChatListener::PrivateMessage(), aMessage);
-}
-
-void PrivateChat::activate(const string& msg, const ClientPtr& c) {
-	fire(PrivateChatListener::Activate(), msg, c);
-}
-
-void PrivateChat::close() {
-	fire(PrivateChatListener::Close());
+	LogManager::getInstance()->removePmCache(getUser());
 }
 
 void PrivateChat::startCC() {
 	bool protocolError;
-	if (!replyTo.user->isOnline() || state < DISCONNECTED) {
+	if (!replyTo.user->isOnline() || ccpmState < DISCONNECTED) {
 		return;
 	}
-	state = CONNECTING;
+
+	ccpmState = CONNECTING;
 	lastCCPMError = Util::emptyString;
 
 	auto token = ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_PM);
@@ -140,13 +162,13 @@ void PrivateChat::startCC() {
 	allowAutoCCPM = !protocolError;
 
 	if (!connecting) {
-		state = DISCONNECTED;
+		ccpmState = DISCONNECTED;
 		if (!lastCCPMError.empty()) {
-			fire(PrivateChatListener::StatusMessage(), lastCCPMError, LogManager::LOG_ERROR);
+			statusMessage(lastCCPMError, LogMessage::SEV_ERROR);
 		}
 	} else {
-		fire(PrivateChatListener::StatusMessage(), STRING(CCPM_ESTABLISHING), LogManager::LOG_INFO);
-		fire(PrivateChatListener::CCPMStatusUpdated());
+		statusMessage(STRING(CCPM_ESTABLISHING), LogMessage::SEV_INFO);
+		fire(PrivateChatListener::CCPMStatusUpdated(), this);
 		delayEvents.addEvent(CCPM_TIMEOUT, [this] { checkCCPMTimeout(); }, 30000); // 30 seconds, completely arbitrary amount of time.
 	}
 	
@@ -156,7 +178,7 @@ void PrivateChat::checkAlwaysCCPM() {
 	if (!replyTo.user->isOnline() || !SETTING(ALWAYS_CCPM) || !getSupportsCCPM() || replyTo.user->isNMDC() || replyTo.user->isSet(User::BOT))
 		return;
 
-	if (allowAutoCCPM && state == DISCONNECTED) {
+	if (allowAutoCCPM && ccpmState == DISCONNECTED) {
 		startCC();
 		allowAutoCCPM = allowAutoCCPM && ccpmAttempts++ < 3;
 	}else if (ccReady()){
@@ -165,10 +187,10 @@ void PrivateChat::checkAlwaysCCPM() {
 }
 
 void PrivateChat::checkCCPMTimeout() {
-	if (state == CONNECTING) {
-		fire(PrivateChatListener::StatusMessage(), STRING(CCPM_TIMEOUT), LogManager::LOG_INFO);
-		fire(PrivateChatListener::CCPMStatusUpdated());
-		state = DISCONNECTED;
+	if (ccpmState == CONNECTING) {
+		statusMessage(STRING(CCPM_TIMEOUT), LogMessage::SEV_INFO);
+		fire(PrivateChatListener::CCPMStatusUpdated(), this);
+		ccpmState = DISCONNECTED;
 	} 
 }
 
@@ -179,19 +201,20 @@ void PrivateChat::on(ClientManagerListener::UserDisconnected, const UserPtr& aUs
 	setSupportsCCPM(ClientManager::getInstance()->getSupportsCCPM(replyTo, lastCCPMError));
 	if (wentOffline) {
 		delayEvents.removeEvent(USER_UPDATE);
-		if (state == CONNECTING) {
+		if (ccpmState == CONNECTING) {
 			delayEvents.removeEvent(CCPM_TIMEOUT);
-			state = DISCONNECTED;
+			ccpmState = DISCONNECTED;
 		}
+
 		closeCC(true, false);
 		allowAutoCCPM = true;
 		online = false;
-		fire(PrivateChatListener::UserUpdated());
-		fire(PrivateChatListener::StatusMessage(), STRING(USER_WENT_OFFLINE), LogManager::LOG_INFO);
+		fire(PrivateChatListener::UserUpdated(), this);
+		statusMessage(STRING(USER_WENT_OFFLINE), LogMessage::SEV_INFO);
 	} else {
 		delayEvents.addEvent(USER_UPDATE, [this] {
 			checkUserHub(true);
-			fire(PrivateChatListener::UserUpdated()); 
+			fire(PrivateChatListener::UserUpdated(), this);
 		}, 1000);
 	}
 }
@@ -203,7 +226,7 @@ This listener comes from the main thread so we should be able to pass the next s
 void PrivateChat::on(ClientManagerListener::ClientDisconnected, const string& aHubUrl) noexcept {
 	if (aHubUrl == getHubUrl()) {
 		checkUserHub(true);
-		fire(PrivateChatListener::UserUpdated());
+		fire(PrivateChatListener::UserUpdated(), this);
 	}
 }
 
@@ -218,7 +241,7 @@ void PrivateChat::checkUserHub(bool wentOffline) {
 			auto statusText = wentOffline ? STRING_F(USER_OFFLINE_PM_CHANGE, hubName % hubs[0].second) :
 				STRING_F(MESSAGES_SENT_THROUGH, hubs[0].second);
 
-			fire(PrivateChatListener::StatusMessage(), statusText, LogManager::LOG_INFO);
+			statusMessage(statusText, LogMessage::SEV_INFO);
 		}
 
 		setHubUrl(hubs[0].first);
@@ -279,7 +302,7 @@ void PrivateChat::on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) no
 	}
 
 	if (type != PMINFO_LAST)
-		fire(PrivateChatListener::PMStatus(), type);
+		fire(PrivateChatListener::PMStatus(), this, type);
 }
 
 void PrivateChat::on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept{
@@ -291,15 +314,15 @@ void PrivateChat::on(ClientManagerListener::UserUpdated, const OnlineUser& aUser
 		if (!online) {
 			auto hubNames = ClientManager::getInstance()->getFormatedHubNames(replyTo);
 			auto nicks = ClientManager::getInstance()->getFormatedNicks(replyTo);
-			fire(PrivateChatListener::StatusMessage(), STRING(USER_WENT_ONLINE) + " [" + nicks + " - " + hubNames + "]", 
-				LogManager::LOG_INFO);
+			statusMessage(STRING(USER_WENT_ONLINE) + " [" + nicks + " - " + hubNames + "]",
+				LogMessage::SEV_INFO);
 
 			// online from a different hub?
 			checkUserHub(false);
 			online = true;
 		}
 
-		fire(PrivateChatListener::UserUpdated()); 
+		fire(PrivateChatListener::UserUpdated(), this);
 	}, 1000);
 
 	delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 3000);

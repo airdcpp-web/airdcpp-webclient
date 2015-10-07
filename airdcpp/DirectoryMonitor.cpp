@@ -288,7 +288,7 @@ int DirectoryMonitor::Server::read() {
 						(*mon)->changes++;
 						(*mon)->queueNotificationTask(dwBytesXFered);
 					} /*else {
-						LogManager::getInstance()->message("An empty notification was received when monitoring " + Text::fromT((*mon)->path) + " (report this)", LogManager::LOG_WARNING);
+						LogManager::getInstance()->message("An empty notification was received when monitoring " + Text::fromT((*mon)->path) + " (report this)", LogMessage::SEV_WARNING);
 					}*/
 
 					(*mon)->beginRead();

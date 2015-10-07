@@ -87,14 +87,14 @@ string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache
 	return path;
 }
 
-void LogManager::message(const string& msg, Severity severity) {
+void LogManager::message(const string& msg, LogMessage::Severity severity) {
 	if(SETTING(LOG_SYSTEM)) {
 		ParamMap params;
 		params["message"] = msg;
 		log(SYSTEM, params);
 	}
 
-	auto messageData = LogMessage(idCounter++, msg, GET_TIME(), severity);
+	auto messageData = make_shared<LogMessage>(msg, severity);
 	{
 		Lock l(cs);
 		// Keep the last 100 messages (completely arbitrary number...)
@@ -107,7 +107,7 @@ void LogManager::message(const string& msg, Severity severity) {
 	fire(LogManagerListener::Message(), messageData);
 }
 
-LogManager::List LogManager::getLastLogs() {
+LogMessageList LogManager::getLastLogs() {
 	Lock l(cs);
 	return lastLogs;
 }

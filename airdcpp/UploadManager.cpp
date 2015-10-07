@@ -353,7 +353,7 @@ checkslots:
 		return false;
 	} catch(const Exception& e) {
 		if (!e.getError().empty())
-			LogManager::getInstance()->message(STRING(UNABLE_TO_SEND_FILE) + " " + sourceFile + ": " + e.getError() + " (" + (ClientManager::getInstance()->getFormatedNicks(aSource.getHintedUser()) + ")"), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING(UNABLE_TO_SEND_FILE) + " " + sourceFile + ": " + e.getError() + " (" + (ClientManager::getInstance()->getFormatedNicks(aSource.getHintedUser()) + ")"), LogMessage::SEV_ERROR);
 		aSource.sendError();
 		return false;
 	}
@@ -600,7 +600,7 @@ void UploadManager::createBundle(const AdcCommand& cmd) {
 	}
 	
 	if (bundleToken.empty() || name.empty() || size <= 0 || token.empty()) {
-		//LogManager::getInstance()->message("INVALID UBD1", LogManager::LOG_ERROR);
+		//LogManager::getInstance()->message("INVALID UBD1", LogMessage::SEV_ERROR);
 		return;
 	} else if (!ConnectionManager::getInstance()->tokens.addToken(bundleToken, CONNECTION_TYPE_DOWNLOAD)) {
 		return;
@@ -697,7 +697,7 @@ void UploadManager::changeBundle(const AdcCommand& cmd) {
 	}
 	
 	if (bundleToken.empty() || token.empty()) {
-		//LogManager::getInstance()->message("INVALID UBD1: CHANGE", LogManager::LOG_ERROR);
+		//LogManager::getInstance()->message("INVALID UBD1: CHANGE", LogMessage::SEV_ERROR);
 		return;
 	}
 
@@ -732,7 +732,7 @@ void UploadManager::finishBundle(const AdcCommand& cmd) {
 	}
 	
 	if (bundleToken.empty()) {
-		//LogManager::getInstance()->message("INVALID UBD1: FINISH", LogManager::LOG_ERROR);
+		//LogManager::getInstance()->message("INVALID UBD1: FINISH", LogMessage::SEV_ERROR);
 		return;
 	}
 
@@ -1149,7 +1149,7 @@ void UploadManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 		
 	for(auto& u: disconnects) {
-		LogManager::getInstance()->message(STRING(DISCONNECTED_USER) + " " + Util::listToString(ClientManager::getInstance()->getNicks(u->getCID())), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(STRING(DISCONNECTED_USER) + " " + Util::listToString(ClientManager::getInstance()->getNicks(u->getCID())), LogMessage::SEV_INFO);
 		ConnectionManager::getInstance()->disconnect(u, CONNECTION_TYPE_UPLOAD);
 	}
 
@@ -1340,10 +1340,10 @@ void UploadManager::abortUpload(const string& aFile, bool waiting){
 	}
 	
 	if(fileRunning)
-		LogManager::getInstance()->message("Aborting an upload " + aFile + " timed out", LogManager::LOG_ERROR);
+		LogManager::getInstance()->message("Aborting an upload " + aFile + " timed out", LogMessage::SEV_ERROR);
 		//dcdebug("abort upload timeout %s\n", aFile.c_str());
 
-	//LogManager::getInstance()->message("Aborting an upload " + aFile + " timed out", LogManager::LOG_ERROR);
+	//LogManager::getInstance()->message("Aborting an upload " + aFile + " timed out", LogMessage::SEV_ERROR);
 }
 
 } // namespace dcpp

@@ -27,7 +27,7 @@
 #include "typedefs.h"
 #include "Mapper.h"
 #include "TimerManager.h"
-#include "LogManager.h"
+#include "Message.h"
 
 namespace dcpp {
 
@@ -71,7 +71,7 @@ private:
 	int run();
 
 	void close(Mapper& mapper);
-	void log(const string& message, LogManager::Severity sev);
+	void log(const string& message, LogMessage::Severity sev);
 	string deviceString(Mapper& mapper) const;
 	void renewLater(Mapper& mapper);
 

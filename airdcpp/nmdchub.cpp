@@ -21,7 +21,7 @@
 
 #include "ConnectivityManager.h"
 #include "ResourceManager.h"
-#include "ChatMessage.h"
+#include "Message.h"
 #include "ClientManager.h"
 #include "SearchManager.h"
 #include "ShareManager.h"
@@ -268,21 +268,24 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			return;
 		}
 
-		ChatMessage chatMessage = { unescape(message), findUser(nick) };
+		bool thirdPerson = false;
+		auto text = unescape(message);
+		if (Util::strnicmp(text, "/me ", 4) == 0) {
+			thirdPerson = true;
+			text = text.substr(4);
+		}
 
-		if(!chatMessage.from) {
+		auto chatMessage = make_shared<ChatMessage>(text, findUser(nick));
+		chatMessage->setThirdPerson(thirdPerson);
+
+		if(!chatMessage->getFrom()) {
 			OnlineUserPtr o = &getUser(nick);
 			// Assume that messages from unknown users come from the hub
 			o->getIdentity().setHub(true);
 			o->getIdentity().setHidden(true);
 			fire(ClientListener::UserUpdated(), this, o);
 
-			chatMessage.from = o;
-		}
-
-		if (Util::strnicmp(chatMessage.text, "/me ", 4) == 0) {
-			chatMessage.thirdPerson = true;
-			chatMessage.text = chatMessage.text.substr(4);
+			chatMessage->setFrom(o);
 		}
 
 		fire(ClientListener::Message(), this, chatMessage);
@@ -853,17 +856,25 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		if(fromNick.empty() || param.size() < j + 2)
 			return;
 
-       	ChatMessage message = { unescape(param.substr(j + 2)), findUser(fromNick), &getUser(getMyNick()), findUser(rtNick) };
+		bool thirdPerson = false;
+		auto text = unescape(param.substr(j + 2));
+		if (Util::strnicmp(text, "/me ", 4) == 0) {
+			thirdPerson = true;
+			text = text.substr(4);
+		}
 
-		if(!message.replyTo || !message.from) {
-			if(!message.replyTo) {
+		auto message = make_shared<ChatMessage>(text, findUser(fromNick), &getUser(getMyNick()), findUser(rtNick));
+		message->setThirdPerson(thirdPerson);
+
+		if(!message->getReplyTo() || !message->getFrom()) {
+			if(!message->getReplyTo()) {
 				// Assume it's from the hub
 				OnlineUser* replyTo = &getUser(rtNick);
 				replyTo->getIdentity().setHub(true);
 				replyTo->getIdentity().setHidden(true);
 				fire(ClientListener::UserUpdated(), this, replyTo);
 			}
-			if(!message.from) {
+			if(!message->getFrom()) {
 				// Assume it's from the hub
 				OnlineUser* from = &getUser(fromNick);
 				from->getIdentity().setHub(true);
@@ -872,13 +883,8 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			}
 
 			// Update pointers just in case they've been invalidated
-			message.replyTo = findUser(rtNick);
-			message.from = findUser(fromNick);
-		}
-
-		if (Util::strnicmp(message.text, "/me ", 4) == 0) {
-			message.thirdPerson = true;
-			message.text = message.text.substr(4);
+			message->setReplyTo(findUser(rtNick));
+			message->setFrom(findUser(fromNick));
 		}
 
 		MessageManager::getInstance()->onPrivateMessage(message);
@@ -1097,7 +1103,7 @@ bool NmdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage,
 	// Emulate a returning message...
 	OnlineUserPtr ou = findUser(getMyNick());
 	if(ou) {
-		ChatMessage message = { aMessage, ou, aUser, ou };
+		auto message = make_shared<ChatMessage>(aMessage, ou, aUser, ou);
 		MessageManager::getInstance()->onPrivateMessage(message);
 		return true;
 	}

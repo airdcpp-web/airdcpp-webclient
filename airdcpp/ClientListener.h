@@ -66,7 +66,7 @@ public:
 	virtual void on(Failed, const string&/*hubUrl*/, const string& /*aLine*/) noexcept { }
 	virtual void on(GetPassword, const Client*) noexcept { }
 	virtual void on(HubUpdated, const Client*) noexcept { }
-	virtual void on(Message, const Client*, const ChatMessage&) noexcept { }
+	virtual void on(Message, const Client*, const ChatMessagePtr&) noexcept { }
 	virtual void on(StatusMessage, const Client*, const string&, int = FLAG_NORMAL) noexcept { }
 	virtual void on(HubUserCommand, const Client*, int, int, const string&, const string&) noexcept { }
 	virtual void on(HubFull, const Client*) noexcept { }

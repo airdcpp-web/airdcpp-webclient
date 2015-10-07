@@ -120,13 +120,19 @@ namespace dcpp {
 
 		ItemType itemType = TYPE_ANY;
 
-		// Returns true if any of the include strings were matched
+		// Returns true if any of the include strings were matched. Saves positions
 		bool matchesAnyDirectoryLower(const string& aName);
 
-		// Returns true if the file is a valid result
+		// Returns true if the file is a valid result. Saves positions
 		bool matchesFileLower(const string& aName, int64_t aSize, uint64_t aDate);
 
+		// Plain string match with position storing
+		bool matchesStr(const string& aStr) noexcept;
+
+		// Simple match, no storing of positions
 		bool matchesDirectory(const string& aName);
+
+		// Simple match, no storing of positions
 		bool matchesFile(const string& aName, int64_t aSize, uint64_t aDate, const TTHValue& aTTH);
 
 		// Returns true if all include strings were matched (no other checks)

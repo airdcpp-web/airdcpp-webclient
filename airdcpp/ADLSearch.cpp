@@ -212,7 +212,7 @@ ADLSearch::SourceType ADLSearchManager::StringToSourceType(const string& s) {
 
 void ADLSearchManager::load() noexcept {
 	if (running > 0) {
-		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogMessage::SEV_ERROR);
 		return;
 	}
 
@@ -325,7 +325,7 @@ void ADLSearchManager::load() noexcept {
 			}
 		}
 	} catch(const Exception& e) { 
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogMessage::SEV_ERROR);
 	}
 
 	for(auto& s: collection) {
@@ -335,7 +335,7 @@ void ADLSearchManager::load() noexcept {
 
 bool ADLSearchManager::addCollection(ADLSearch& search, int index) noexcept {
 	if (running > 0) {
-		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogMessage::SEV_ERROR);
 		return false;
 	}
 
@@ -351,7 +351,7 @@ bool ADLSearchManager::addCollection(ADLSearch& search, int index) noexcept {
 
 bool ADLSearchManager::removeCollection(int index) noexcept {
 	if (running > 0) {
-		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogMessage::SEV_ERROR);
 		return false;
 	}
 
@@ -362,7 +362,7 @@ bool ADLSearchManager::removeCollection(int index) noexcept {
 
 bool ADLSearchManager::changeState(int index, bool aIsActive) noexcept {
 	if (running > 0) {
-		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogMessage::SEV_ERROR);
 		return false;
 	}
 
@@ -373,7 +373,7 @@ bool ADLSearchManager::changeState(int index, bool aIsActive) noexcept {
 
 bool ADLSearchManager::updateCollection(ADLSearch& search, int index) noexcept {
 	if (running > 0) {
-		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(CSTRING(ADLSEARCH_IN_PROGRESS), LogMessage::SEV_ERROR);
 		return false;
 	}
 

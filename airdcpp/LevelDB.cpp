@@ -114,7 +114,7 @@ void LevelDB::repair(StepFunction stepF, MessageFunction messageF) throw(DbExcep
 		messageF(STRING_F(DB_REPAIR_FAILED, getNameLower() % Text::toUtf8(ret.ToString()) % dbPath % APPNAME % APPNAME), false, true);
 	}
 
-	LogManager::getInstance()->message(STRING_F(DB_X_REPAIRED, friendlyName % logPath), LogManager::LOG_INFO);
+	LogManager::getInstance()->message(STRING_F(DB_X_REPAIRED, friendlyName % logPath), LogMessage::SEV_INFO);
 
 	//reset the options
 	delete defaultOptions.info_log;

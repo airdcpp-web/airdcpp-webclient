@@ -21,7 +21,7 @@
 #include "MessageManager.h"
 #include "LogManager.h"
 
-#include "ChatMessage.h"
+#include "Message.h"
 #include "Util.h"
 #include "Wildcards.h"
 
@@ -47,40 +47,76 @@ MessageManager::~MessageManager() noexcept {
 	ConnectionManager::getInstance()->disconnect();
 }
 
-PrivateChat* MessageManager::addChat(const HintedUser& user) {
-	WLock l(cs);
-	auto p = new PrivateChat(user, getPMConn(user.user));
-	chats.emplace(user.user, p);
-	return p;
-	
+PrivateChatPtr MessageManager::addChat(const HintedUser& user, bool aReceivedMessage) noexcept {
+	if (getChat(user.user)) {
+		return nullptr;
+	}
+
+	PrivateChatPtr chat;
+
+	{
+		WLock l(cs);
+		chat = make_shared<PrivateChat>(user, getPMConn(user.user));
+		chats.emplace(user.user, chat);
+	}
+
+	fire(MessageManagerListener::ChatCreated(), chat, aReceivedMessage);
+	return chat;
 }
 
-PrivateChat* MessageManager::getChat(const UserPtr& aUser) {
+PrivateChatPtr MessageManager::getChat(const UserPtr& aUser) const noexcept {
 	RLock l(cs);
 	auto i = chats.find(aUser);
 	return i != chats.end() ? i->second : nullptr;
 }
 
-void MessageManager::removeChat(const UserPtr& aUser) {
-	WLock l(cs);
-	auto i = chats.find(aUser);
-	i->second->onExit();
-	auto uc = i->second->getUc();
-	if (uc) {
-		//Closed the window, keep listening to the connection until QUIT is received with CPMI;
-		ccpms[aUser] = uc;
-		uc->addListener(this);
+MessageManager::ChatMap MessageManager::getChats() const noexcept {
+	RLock l(cs);
+	return chats;
+}
+
+bool MessageManager::removeChat(const UserPtr& aUser) {
+	PrivateChatPtr chat;
+
+	{
+		WLock l(cs);
+		auto i = chats.find(aUser);
+		if (i == chats.end()) {
+			return false;
+		}
+
+		chat = i->second;
+
+		chat->close();
+		auto uc = chat->getUc();
+		if (uc) {
+			//Closed the window, keep listening to the connection until QUIT is received with CPMI;
+			ccpms[aUser] = uc;
+			uc->addListener(this);
+		}
+
+		chats.erase(i);
 	}
-	delete i->second; //TODO: use smart pointers
-	chats.erase(i);
+
+	fire(MessageManagerListener::ChatRemoved(), chat);
+	return true;
 }
 
 void MessageManager::closeAll(bool Offline) {
+	UserList toRemove;
 
-	for (auto i : chats) {
-		if (Offline && i.first->isOnline())
-			continue;
-		i.second->close();
+	{
+		RLock l(cs);
+		for (auto i : chats) {
+			if (Offline && i.first->isOnline())
+				continue;
+
+			toRemove.push_back(i.first);
+		}
+	}
+
+	for (const auto& u : toRemove) {
+		removeChat(u);
 	}
 }
 
@@ -118,9 +154,9 @@ void MessageManager::DisconnectCCPM(const UserPtr& aUser) {
 
 }
 
-void MessageManager::onPrivateMessage(const ChatMessage& aMessage, UserConnection* aUc) {
-	bool myPM = aMessage.replyTo->getUser() == ClientManager::getInstance()->getMe();
-	const UserPtr& user = myPM ? aMessage.to->getUser() : aMessage.replyTo->getUser();
+void MessageManager::onPrivateMessage(const ChatMessagePtr& aMessage, UserConnection* aUc) {
+	bool myPM = aMessage->getReplyTo()->getUser() == ClientManager::getInstance()->getMe();
+	const UserPtr& user = myPM ? aMessage->getTo()->getUser() : aMessage->getReplyTo()->getUser();
 	size_t wndCnt;
 	{
 		WLock l(cs);
@@ -129,27 +165,27 @@ void MessageManager::onPrivateMessage(const ChatMessage& aMessage, UserConnectio
 		if (i != chats.end()) {
 			//Debug purposes to see if this really ever happens!! 
 			if (aUc && !i->second->ccReady())
-				LogManager::getInstance()->message("Message received via CCPM but frame not connected state! report to Night", LogManager::LOG_ERROR);
+				LogManager::getInstance()->message("Message received via CCPM but frame not connected state! report to Night", LogMessage::SEV_ERROR);
 
 			i->second->handleMessage(aMessage); //We should have a listener in the frame
 			return;
 		}
 	}
 
-	Client* c = &aMessage.from->getClient();
+	Client* c = &aMessage->getFrom()->getClient();
 	if (wndCnt > 200 || (!myPM && isIgnoredOrFiltered(aMessage, c, true))) {
 		DisconnectCCPM(user);
 		return;
 	}
 
-	const auto& identity = aMessage.replyTo->getIdentity();
+	const auto& identity = aMessage->getReplyTo()->getIdentity();
 	if ((identity.isBot() && !SETTING(POPUP_BOT_PMS)) || (identity.isHub() && !SETTING(POPUP_HUB_PMS))) {
-		c->Message(STRING(PRIVATE_MESSAGE_FROM) + " " + identity.getNick() + ": " + aMessage.format());
+		c->Message(STRING(PRIVATE_MESSAGE_FROM) + " " + identity.getNick() + ": " + aMessage->format());
 		return;
 	}
 
-	//This will result in creating a new window
-	fire(MessageManagerListener::PrivateMessage(), aMessage);
+	auto chat = addChat(HintedUser(user, aMessage->getReplyTo()->getClient().getHubUrl()), true);
+	chat->handleMessage(aMessage);
 }
 
 void MessageManager::on(ConnectionManagerListener::Connected, const ConnectionQueueItem* cqi, UserConnection* uc) noexcept{
@@ -182,7 +218,7 @@ void MessageManager::on(ConnectionManagerListener::Removed, const ConnectionQueu
 	}
 }
 
-void MessageManager::on(UserConnectionListener::PrivateMessage, UserConnection* uc, const ChatMessage& message) noexcept{
+void MessageManager::on(UserConnectionListener::PrivateMessage, UserConnection* uc, const ChatMessagePtr& message) noexcept{
 	onPrivateMessage(message, uc);
 }
 
@@ -232,8 +268,8 @@ bool MessageManager::isIgnored(const UserPtr& aUser) {
 	return (i != ignoredUsers.end());
 }
 
-bool MessageManager::isIgnoredOrFiltered(const ChatMessage& msg, const ClientPtr& client, bool PM){
-	const auto& identity = msg.from->getIdentity();
+bool MessageManager::isIgnoredOrFiltered(const ChatMessagePtr& msg, const ClientPtr& client, bool PM){
+	const auto& identity = msg->getFrom()->getIdentity();
 
 	auto logIgnored = [&](bool filter) -> void {
 		if (SETTING(LOG_IGNORED)) {
@@ -246,26 +282,26 @@ bool MessageManager::isIgnoredOrFiltered(const ChatMessage& msg, const ClientPtr
 					(client->getHubName().size() > 50 ? (client->getHubName().substr(0, 50) + "...") : client->getHubName()) : client->getHubUrl()) + "] ";
 				tmp = (filter ? STRING(MC_MESSAGE_FILTERED) : STRING(MC_MESSAGE_IGNORED)) + hub;
 			}
-			tmp += "<" + identity.getNick() + "> " + msg.text;
-			LogManager::getInstance()->message(tmp, LogManager::LOG_INFO);
+			tmp += "<" + identity.getNick() + "> " + msg->getText();
+			LogManager::getInstance()->message(tmp, LogMessage::SEV_INFO);
 		}
 	};
 
 	if (PM && client) {
 		// don't be that restrictive with the fav hub option
-		if (client->getFavNoPM() && (client->isOp() || !msg.replyTo->getIdentity().isOp()) && !msg.replyTo->getIdentity().isBot() && !msg.replyTo->getUser()->isFavorite()) {
+		if (client->getFavNoPM() && (client->isOp() || !msg->getReplyTo()->getIdentity().isOp()) && !msg->getReplyTo()->getIdentity().isBot() && !msg->getReplyTo()->getUser()->isFavorite()) {
 			string tmp;
-			client->privateMessage(msg.replyTo, "Private messages sent via this hub are ignored", tmp);
+			client->privateMessage(msg->getReplyTo(), "Private messages sent via this hub are ignored", tmp);
 			return true;
 		}
 	}
 
-	if (msg.from->getUser()->isIgnored() && ((client && client->isOp()) || !identity.isOp() || identity.isBot())) {
+	if (msg->getFrom()->getUser()->isIgnored() && ((client && client->isOp()) || !identity.isOp() || identity.isBot())) {
 		logIgnored(false);
 		return true;
 	}
 
-	if (isChatFiltered(identity.getNick(), msg.text, PM ? ChatFilterItem::PM : ChatFilterItem::MC)) {
+	if (isChatFiltered(identity.getNick(), msg->getText(), PM ? ChatFilterItem::PM : ChatFilterItem::MC)) {
 		logIgnored(true);
 		return true;
 	}
@@ -379,7 +415,7 @@ void MessageManager::loadUsers() {
 		}
 	}
 	catch (const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogMessage::SEV_ERROR);
 	}
 }
 

@@ -35,7 +35,6 @@
 #include "MerkleTree.h"
 #include "Pointer.h"
 #include "QueueItemBase.h"
-//#include "QueueManager.h"
 #include "TaskQueue.h"
 #include "UserInfoBase.h"
 #include "SearchResult.h"
@@ -49,6 +48,7 @@ namespace dcpp {
 class ListLoader;
 class QueueException;
 STANDARD_EXCEPTION(AbortException);
+typedef uint32_t DirectoryListingToken;
 
 class DirectoryListing : public intrusive_ptr_base<DirectoryListing>, public UserInfoBase, public Thread, public Speaker<DirectoryListingListener>, 
 	private SearchManagerListener, private TimerManagerListener, private ClientManagerListener, private ShareManagerListener
@@ -65,10 +65,7 @@ public:
 		typedef List::const_iterator Iter;
 		
 		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe, time_t aRemoteDate) noexcept;
-
-		File(const File& rhs, bool _adls = false) : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe), remoteDate(rhs.remoteDate)
-		{
-		}
+		File(const File& rhs, bool _adls = false) noexcept;
 
 		~File() { }
 
@@ -87,6 +84,12 @@ public:
 		bool isQueued() const noexcept {
 			return (dupe == DUPE_QUEUE || dupe == DUPE_FINISHED);
 		}
+
+		DirectoryListingToken getToken() const noexcept {
+			return token;
+		}
+	private:
+		const DirectoryListingToken token;
 	};
 
 	class Directory : boost::noncopyable, public intrusive_ptr_base<Directory> {
@@ -127,6 +130,7 @@ public:
 		void findFiles(const boost::regex& aReg, File::List& aResults) const noexcept;
 		
 		size_t getFileCount() const noexcept { return files.size(); }
+		size_t getFolderCount() const noexcept { return directories.size(); }
 		
 		int64_t getFilesSize() const noexcept;
 
@@ -147,6 +151,12 @@ public:
 		bool getAdls() const noexcept { return type == TYPE_ADLS; }
 
 		void download(const string& aTarget, BundleFileInfo::List& aFiles) noexcept;
+
+		DirectoryListingToken getToken() const noexcept {
+			return token;
+		}
+	private:
+		const DirectoryListingToken token;
 	};
 
 	class AdlDirectory : public Directory {

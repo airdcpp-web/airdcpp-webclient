@@ -76,7 +76,7 @@ struct Prepare : boost::static_visitor<bool> {
 			}
 			return true;
 		} catch(const std::runtime_error&) {
-			LogManager::getInstance()->message(STRING_F(INVALID_PATTERN, pattern), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING_F(INVALID_PATTERN, pattern), LogMessage::SEV_ERROR);
 			return false;
 		}
 	}

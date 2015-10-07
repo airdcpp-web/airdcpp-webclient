@@ -335,6 +335,10 @@ bool SearchQuery::matchesFile(const string& aName, int64_t aSize, uint64_t aDate
 	return matchesFileLower(Text::toLower(aName), aSize, aDate);
 }
 
+bool SearchQuery::matchesStr(const string& aStr) noexcept {
+	return matchesFileLower(Text::toLower(aStr), 0, 0);
+}
+
 bool SearchQuery::matchesFileLower(const string& aName, int64_t aSize, uint64_t aDate) {
 	if (!matchesDate(aDate) || !matchesSize(aSize)) {
 		return false;

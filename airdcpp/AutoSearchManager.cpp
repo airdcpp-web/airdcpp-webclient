@@ -55,7 +55,7 @@ AutoSearchManager::~AutoSearchManager() noexcept {
 }
 
 void AutoSearchManager::logMessage(const string& aMsg, bool error) const noexcept {
-	LogManager::getInstance()->message(STRING(AUTO_SEARCH) + ": " +  aMsg, error ? LogManager::LOG_ERROR : LogManager::LOG_INFO);
+	LogManager::getInstance()->message(STRING(AUTO_SEARCH) + ": " +  aMsg, error ? LogMessage::SEV_ERROR : LogMessage::SEV_INFO);
 }
 
 /* Adding new items for external use */
@@ -845,7 +845,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 			}
 
 			DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getPath(), sr->getFileName(), sr->getUser(), target,
-				targetType, REPORT_SYSLOG, (as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT,
+				targetType, true, (as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT,
 				false, as->getToken(), as->getRemove() || as->usingIncrementation(), false);
 		} else {
 			TargetUtil::TargetInfo ti;
@@ -1076,7 +1076,7 @@ void AutoSearchManager::AutoSearchLoad() {
 		}
 		resetSearchTimes(GET_TICK(), true);
 	} catch(const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogMessage::SEV_ERROR);
 	}
 }
 }

@@ -29,9 +29,6 @@
     <ClCompile Include="airdcpp\BZUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ChatMessage.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="airdcpp\Client.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -314,6 +311,9 @@
     <ClCompile Include="airdcpp\PrivateChat.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="airdcpp\Message.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="airdcpp\AdcCommand.h">
@@ -335,9 +335,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\BZUtils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\ChatMessage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\CID.h">
@@ -607,9 +604,6 @@
     <ClInclude Include="airdcpp\w.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="windows\ResourceLoader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="airdcpp\AirUtil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -817,14 +811,19 @@
     <ClInclude Include="airdcpp\AutoSearchQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="airdcpp\RelevancySearch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\ChatMessageCache.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\Message.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="airdcpp\StringDefs.h">
       <Filter>Header Files</Filter>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ClassDiagram.cd" />
-    <None Include="packages.config" />
   </ItemGroup>
 </Project>

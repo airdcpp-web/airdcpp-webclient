@@ -219,7 +219,7 @@ int DirectoryListing::loadXML(InputStream& is, bool updating, const string& aBas
 	} catch(SimpleXMLException& e) {
 		//Better to abort and show the error, than just leave it hanging.
 		LogManager::getInstance()->message("Error in Filelist loading: "  + e.getError() + ". User: [ " +  
-			getNick(false) + " ]", LogManager::LOG_ERROR);
+			getNick(false) + " ]", LogMessage::SEV_ERROR);
 		//dcdebug("DirectoryListing loadxml error: %s", e.getError());
 	}
 	return ll.getLoadedDirs();
@@ -359,14 +359,18 @@ void ListLoader::endTag(const string& name) {
 }
 
 DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe, time_t aRemoteDate) noexcept : 
-	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(DUPE_NONE), remoteDate(aRemoteDate) {
+	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(DUPE_NONE), remoteDate(aRemoteDate), token(Util::rand()) {
 	if (checkDupe && size > 0) {
 		dupe = AirUtil::checkFileDupe(tthRoot);
 	}
 }
 
+DirectoryListing::File::File(const File& rhs, bool _adls) noexcept : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe), remoteDate(rhs.remoteDate), token(Util::rand())
+{
+}
+
 DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, Directory::DirType aType, time_t aUpdateDate, bool checkDupe, const string& aSize, time_t aRemoteDate /*0*/)
-	: name(aName), parent(aParent), type(aType), dupe(DUPE_NONE), partialSize(0), remoteDate(aRemoteDate), loading(false), updateDate(aUpdateDate) {
+	: name(aName), parent(aParent), type(aType), dupe(DUPE_NONE), partialSize(0), remoteDate(aRemoteDate), loading(false), updateDate(aUpdateDate), token(Util::rand()) {
 
 	if (!aSize.empty()) {
 		partialSize = Util::toInt64(aSize);
@@ -439,13 +443,13 @@ bool DirectoryListing::createBundle(Directory::Ptr& aDir, const string& aTarget,
 		b = QueueManager::getInstance()->createDirectoryBundle(aTarget, hintedUser.user == ClientManager::getInstance()->getMe() && !isOwnList ? HintedUser() : hintedUser,
 			aFiles, prio, aDir->getRemoteDate(), errorMsg);
 	} catch (const std::bad_alloc&) {
-		LogManager::getInstance()->message(STRING_F(BUNDLE_CREATION_FAILED, aTarget % STRING(OUT_OF_MEMORY)), LogManager::LOG_ERROR);
+		LogManager::getInstance()->message(STRING_F(BUNDLE_CREATION_FAILED, aTarget % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		return false;
 	}
 
 	if (!errorMsg.empty()) {
 		if (aAutoSearch == 0) {
-			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, aTarget % getNick(false) % errorMsg), LogManager::LOG_WARNING);
+			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, aTarget % getNick(false) % errorMsg), LogMessage::SEV_WARNING);
 		} else {
 			AutoSearchManager::getInstance()->onBundleError(aAutoSearch, errorMsg, aTarget, hintedUser);
 		}
@@ -547,7 +551,7 @@ bool DirectoryListing::findNfo(const string& aPath) noexcept {
 	if (isClientView)
 		fire(DirectoryListingListener::UpdateStatusMessage(), CSTRING(NO_NFO_FOUND));
 	else
-		LogManager::getInstance()->message(getNick(false) + ": " + STRING(NO_NFO_FOUND), LogManager::LOG_INFO);
+		LogManager::getInstance()->message(getNick(false) + ": " + STRING(NO_NFO_FOUND), LogMessage::SEV_INFO);
 	return false;
 }
 
@@ -828,7 +832,7 @@ void DirectoryListing::runTasks() noexcept {
 		try {
 			start();
 		} catch(const ThreadException& /*e*/) {
-			LogManager::getInstance()->message("DirListThread error", LogManager::LOG_WARNING);
+			LogManager::getInstance()->message("DirListThread error", LogMessage::SEV_WARNING);
 			running.clear();
 		}
 	}
@@ -858,7 +862,7 @@ int DirectoryListing::run() {
 				static_cast<AsyncTask*>(t.second)->f();
 			}
 		} catch (const std::bad_alloc&) {
-			LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % STRING(OUT_OF_MEMORY)), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 			fire(DirectoryListingListener::LoadingFailed(), "Out of memory");
 			break;
 		} catch (const AbortException&) {
@@ -869,7 +873,7 @@ int DirectoryListing::run() {
 		} catch (const QueueException& e) {
 			fire(DirectoryListingListener::UpdateStatusMessage(), "Queueing failed:" + e.getError());
 		} catch (const Exception& e) {
-			LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % e.getError()), LogManager::LOG_ERROR);
+			LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % e.getError()), LogMessage::SEV_ERROR);
 			fire(DirectoryListingListener::LoadingFailed(), ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) + ": " + e.getError());
 		}
 	}

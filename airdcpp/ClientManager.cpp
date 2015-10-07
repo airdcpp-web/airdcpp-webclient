@@ -26,6 +26,7 @@
 #include "FavoriteManager.h"
 #include "LogManager.h"
 #include "QueueManager.h"
+#include "RelevancySearch.h"
 #include "ResourceManager.h"
 #include "SearchManager.h"
 #include "SearchResult.h"
@@ -963,6 +964,29 @@ void ClientManager::directSearch(const HintedUser& user, int aSizeMode, int64_t 
 	if (ou) {
 		ou->getClientBase().directSearch(*ou, aSizeMode, aSize, aFileType, aString, aToken, aExtList, aDir, aDate, aDateMode);
 	}
+}
+
+OnlineUserList ClientManager::searchNicks(const string& aPattern, size_t aMaxResults) const noexcept {
+	auto search = RelevancySearch<OnlineUserPtr>(aPattern, [](const OnlineUserPtr& aUser) {
+		return stripNick(aUser->getIdentity().getNick());
+	});
+
+	{
+		RLock l(cs);
+		for (const auto& c: clients | map_values) {
+			OnlineUserList hubUsers;
+			c->getUserList(hubUsers);
+			for (const auto& ou : hubUsers) {
+				if (ou->getUser() == me) {
+					continue;
+				}
+
+				search.match(ou);
+			}
+		}
+	}
+
+	return search.getResults(aMaxResults);
 }
 
 void ClientManager::getOnlineClients(StringList& onlineClients) const noexcept {
