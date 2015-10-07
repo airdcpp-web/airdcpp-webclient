@@ -919,8 +919,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 	
 FavoriteHubEntryList FavoriteManager::getFavoriteHubs(const string& group) const {
 	FavoriteHubEntryList ret;
-	ret.reserve(favoriteHubs.size());
-	copy_if(favoriteHubs.begin(), favoriteHubs.end(), ret.begin(), [&group](const FavoriteHubEntryPtr& f) { return Util::stricmp(f->getGroup(), group) == 0; });
+	copy_if(favoriteHubs.begin(), favoriteHubs.end(), back_inserter(ret), [&group](const FavoriteHubEntryPtr& f) { return Util::stricmp(f->getGroup(), group) == 0; });
 	return ret;
 }
 
