@@ -236,7 +236,8 @@ string ClientManager::getNick(const UserPtr& u, const string& hint, bool allowFa
 
 }
 
-OnlineUserPtr ClientManager::getUsers(const HintedUser& user, OnlineUserList& ouList) const noexcept {
+OnlineUserPtr ClientManager::getOnlineUsers(const HintedUser& user, OnlineUserList& ouList) const noexcept {
+	RLock l(cs);
 	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&user.user->getCID()));
 	for(auto i = op.first; i != op.second; ++i) {
 		ouList.push_back(i->second);
@@ -255,7 +256,7 @@ OnlineUserPtr ClientManager::getUsers(const HintedUser& user, OnlineUserList& ou
 }
 
 string ClientManager::getFormatedNicks(const HintedUser& user) const noexcept {
-	auto ret = formatUserList<OnlineUser::Nick>(user, true);
+	auto ret = formatUserProperty<OnlineUser::Nick>(user, true);
 	if (ret.empty()) {
 		// offline
 		RLock l(cs);
@@ -269,7 +270,7 @@ string ClientManager::getFormatedNicks(const HintedUser& user) const noexcept {
 }
 
 string ClientManager::getFormatedHubNames(const HintedUser& user) const noexcept {
-	auto ret = formatUserList<OnlineUser::HubName>(user, false);
+	auto ret = formatUserProperty<OnlineUser::HubName>(user, false);
 	return ret.empty() ? STRING(OFFLINE) : ret;
 }
 
@@ -435,7 +436,7 @@ UserPtr ClientManager::findUser(const CID& cid) const noexcept {
 	if(ui != users.end()) {
 		return ui->second;
 	}
-	return 0;
+	return nullptr;
 }
 
 UserPtr ClientManager::findUserByNick(const string& aNick, const string& aHubUrl) const noexcept {
@@ -611,7 +612,7 @@ string ClientManager::findMySID(const UserPtr& aUser, string& aHubUrl, bool allo
 OnlineUser* ClientManager::findOnlineUserHint(const CID& cid, const string& hintUrl, OnlinePairC& p) const noexcept {
 	p = onlineUsers.equal_range(const_cast<CID*>(&cid));
 	if(p.first == p.second) // no user found with the given CID.
-		return 0;
+		return nullptr;
 
 	if(!hintUrl.empty()) {
 		for(auto i = p.first; i != p.second; ++i) {
@@ -622,7 +623,7 @@ OnlineUser* ClientManager::findOnlineUserHint(const CID& cid, const string& hint
 		}
 	}
 
-	return 0;
+	return nullptr;
 }
 
 pair<int64_t, int> ClientManager::getShareInfo(const HintedUser& user) const noexcept {
@@ -681,7 +682,7 @@ OnlineUser* ClientManager::findOnlineUser(const CID& cid, const string& hintUrl)
 		return u;
 
 	if(p.first == p.second) // no user found with the given CID.
-		return 0;
+		return nullptr;
 
 	// return a random user
 	return p.first->second;

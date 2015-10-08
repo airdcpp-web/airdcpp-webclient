@@ -68,26 +68,35 @@ public:
 	StringList getHubUrls(const HintedUser& user) const noexcept { return getHubUrls(user.user->getCID()); }
 
 	template<class NameOperator>
-	string formatUserList(const HintedUser& user, bool removeDuplicates) const noexcept {
+	string formatUserProperty(const HintedUser& user, bool removeDuplicates = true) const noexcept {
 		OnlineUserList ouList;
+		auto hinted = getOnlineUsers(user, ouList);
 
-		RLock l(cs);
-		auto hinted = getUsers(user, ouList);
+		return formatUserProperty<NameOperator>(hinted, ouList, removeDuplicates);
+	}
 
-		if (removeDuplicates) {
+	template<class NameOperator>
+	string formatUserProperty(const OnlineUserPtr& aHintedUser, const OnlineUserList& aOtherUsers, bool aRemoveDuplicates = true) const noexcept {
+		auto ouList = aOtherUsers;
+
+		if (aRemoveDuplicates) {
 			ouList.erase(unique(ouList.begin(), ouList.end(), [](const OnlineUserPtr& a, const OnlineUserPtr& b) { return compare(NameOperator()(a), NameOperator()(b)) == 0; }), ouList.end());
-			if (hinted) {
+			if (aHintedUser) {
 				//erase users with the hinted nick
-				auto p = equal_range(ouList.begin(), ouList.end(), hinted, OnlineUser::NickSort());
+				auto p = equal_range(ouList.begin(), ouList.end(), aHintedUser, OnlineUser::NickSort());
 				ouList.erase(p.first, p.second);
 			}
 		}
 
-		string ret = hinted ? NameOperator()(hinted) + " " : Util::emptyString;
+		string ret = aHintedUser ? NameOperator()(aHintedUser) + " " : Util::emptyString;
 		if (!ouList.empty())
-			ret += Util::listToStringT<OnlineUserList, NameOperator>(ouList, hinted ? true : false, hinted ? false : true);
+			ret += Util::listToStringT<OnlineUserList, NameOperator>(ouList, aHintedUser ? true : false, aHintedUser ? false : true);
 		return ret;
 	}
+
+	// Gets the user matching the hinted hubs + other instances of the user from other hubs
+	// Returns null if the hinted user was not found
+	OnlineUserPtr getOnlineUsers(const HintedUser& aUser, OnlineUserList& users) const noexcept;
 
 	string getFormatedNicks(const HintedUser& user) const noexcept;
 	string getFormatedHubNames(const HintedUser& user) const noexcept;
@@ -122,7 +131,6 @@ public:
 
 	// usage needs to be locked!
 	const UserMap& getUsers() const { return users; }
-	OnlineUserPtr getUsers(const HintedUser& aUser, OnlineUserList& users) const noexcept;
 
 	string findHub(const string& ipPort, bool nmdc) const noexcept;
 	const string& findHubEncoding(const string& aUrl) const noexcept;

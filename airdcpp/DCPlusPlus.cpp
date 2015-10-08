@@ -51,8 +51,6 @@
 #include "AutoSearchManager.h"
 #include "ShareScannerManager.h"
 
-#include <web-server/WebServerManager.h>
-
 #include "format.h"
 namespace dcpp {
 
@@ -153,9 +151,6 @@ void startup(function<void(const string&)> stepF, function<bool(const string& /*
 		announce(STRING(COUNTRY_INFORMATION));
 		GeoManager::getInstance()->init();
 	}
-
-	webserver::WebServerManager::newInstance();
-	webserver::WebServerManager::getInstance()->startup();
 }
 
 void shutdown(function<void (const string&)> stepF, function<void (float)> progressF) {
@@ -165,9 +160,6 @@ void shutdown(function<void (const string&)> stepF, function<void (float)> progr
 			stepF(str);
 		}
 	};
-
-	webserver::WebServerManager::getInstance()->shutdown();
-	webserver::WebServerManager::deleteInstance();
 
 	ShareManager::getInstance()->abortRefresh();
 
