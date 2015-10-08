@@ -20,7 +20,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F8D0E5FE-BABD-4FC8-B3FE-B48978D23FEB}</ProjectGuid>
-    <RootNamespace>client</RootNamespace>
+    <RootNamespace>airdcpp</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -92,7 +92,7 @@
       <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdinc.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile>$(IntDir)client.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)airdcpp.pch</PrecompiledHeaderOutputFile>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <DisableSpecificWarnings>4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -120,7 +120,7 @@
       <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdinc.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile>$(IntDir)client.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)airdcpp.pch</PrecompiledHeaderOutputFile>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <DisableSpecificWarnings>4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -163,7 +163,7 @@
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdinc.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile>$(IntDir)client.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)airdcpp.pch</PrecompiledHeaderOutputFile>
       <AssemblerOutput>
       </AssemblerOutput>
       <WarningLevel>Level4</WarningLevel>
@@ -210,7 +210,7 @@
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdinc.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile>$(IntDir)client.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)airdcpp.pch</PrecompiledHeaderOutputFile>
       <AssemblerOutput>
       </AssemblerOutput>
       <WarningLevel>Level4</WarningLevel>
@@ -487,16 +487,16 @@
     <CustomBuild Include="airdcpp\StringDefs.h">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building StringDefs.cpp and Example.xml from StringDefs.h...</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" $(ProjectDir)airdcpp\StringDefs.h $(ProjectDir)airdcpp\StringDefs.cpp $(ProjectDir)EN_Example.xml</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\client\StringDefs.cpp;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)airdcpp\StringDefs.cpp;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building StringDefs.cpp and Example.xml from StringDefs.h...</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" $(ProjectDir)airdcpp\StringDefs.h $(ProjectDir)airdcpp\StringDefs.cpp $(ProjectDir)EN_Example.xml</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\client\StringDefs.cpp;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)airdcpp\StringDefs.cpp;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building StringDefs.cpp and Example.xml from StringDefs.h...</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" $(ProjectDir)airdcpp\StringDefs.h $(ProjectDir)airdcpp\StringDefs.cpp $(ProjectDir)EN_Example.xml</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\client\StringDefs.cpp;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)airdcpp\StringDefs.cpp;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building StringDefs.cpp and Example.xml from StringDefs.h...</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" $(ProjectDir)airdcpp\StringDefs.h $(ProjectDir)airdcpp\StringDefs.cpp $(ProjectDir)EN_Example.xml</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\client\StringDefs.cpp;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)airdcpp\StringDefs.cpp;%(Outputs)</Outputs>
     </CustomBuild>
     <ClInclude Include="airdcpp\StringSearch.h" />
     <ClInclude Include="airdcpp\StringTokenizer.h" />

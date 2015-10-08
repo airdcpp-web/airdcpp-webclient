@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_LOG_MANAGER_LISTENER_H
 #define DCPLUSPLUS_DCPP_LOG_MANAGER_LISTENER_H
 
-#include <airdcpp/forward.h>
+#include "forward.h"
 
 namespace dcpp {
 

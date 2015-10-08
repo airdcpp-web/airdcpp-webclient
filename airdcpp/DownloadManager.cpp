@@ -130,8 +130,8 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		int64_t updiff = totalUp - lastUpBytes;
 		int64_t downdiff = totalDown - lastDownBytes;
 
-		lastDownSpeed = downdiff * 1000I64 / diff;
-		lastUpSpeed = updiff * 1000I64 / diff;
+		lastDownSpeed = diff > 0 ? (downdiff * 1000I64 / diff) : 0;
+		lastUpSpeed = diff > 0 ? (updiff * 1000I64 / diff) : 0;
 
 		SettingsManager::getInstance()->set(SettingsManager::TOTAL_UPLOAD, SETTING(TOTAL_UPLOAD) + updiff);
 		SettingsManager::getInstance()->set(SettingsManager::TOTAL_DOWNLOAD, SETTING(TOTAL_DOWNLOAD) + downdiff);
