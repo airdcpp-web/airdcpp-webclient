@@ -411,7 +411,7 @@ bool FavoriteManager::onHttpFinished(bool fromHttp) noexcept {
 bool FavoriteManager::addFavoriteHub(const FavoriteHubEntryPtr& aEntry) {
 	{
 		WLock l(cs);
-		auto i = getFavoriteHub(aEntry->getServers()[0].first);
+		auto i = getFavoriteHub(aEntry->getServer());
 		if (i != favoriteHubs.end()) {
 			return false;
 		}
@@ -435,7 +435,7 @@ void FavoriteManager::autoConnect() {
 		RLock l(cs);
 		for (const auto& entry : favoriteHubs) {
 			if (entry->getAutoConnect()) {
-				RecentHubEntryPtr r = new RecentHubEntry(entry->getServers()[0].first);
+				RecentHubEntryPtr r = new RecentHubEntry(entry->getServer());
 				r->setName(entry->getName());
 				r->setDescription(entry->getDescription());
 				hubs.emplace_back(r, entry->getShareProfile()->getToken());
@@ -574,7 +574,7 @@ void FavoriteManager::save() {
 			xml.addChildAttrib("Connect", i->getAutoConnect());
 			xml.addChildAttrib("Description", i->getDescription());
 			xml.addChildAttrib("Password", i->getPassword());
-			xml.addChildAttrib("Server", i->getServerStr());
+			xml.addChildAttrib("Server", i->getServer());
 			xml.addChildAttrib("ChatUserSplit", i->getChatUserSplit());
 			xml.addChildAttrib("StealthMode", i->getStealth());
 			xml.addChildAttrib("UserListState", i->getUserListState());
@@ -796,7 +796,14 @@ void FavoriteManager::load(SimpleXML& aXml) {
 				LogManager::getInstance()->message("A favorite hub with an empty address wasn't loaded: " + e->getName(), LogMessage::SEV_WARNING);
 				continue;
 			}
-			e->setServerStr(server);
+
+			// Remove failovers
+			auto p = server.find(";");
+			if (p != string::npos) {
+				server = server.substr(0, p);
+			}
+
+			e->setServer(server);
 
 			e->setChatUserSplit(aXml.getIntChildAttrib("ChatUserSplit"));
 			e->setStealth(aXml.getBoolChildAttrib("StealthMode"));
@@ -1021,81 +1028,11 @@ void FavoriteManager::mergeHubSettings(const FavoriteHubEntryPtr& entry, HubSett
 
 FavoriteHubEntryList::const_iterator FavoriteManager::getFavoriteHub(const string& aServer) const {
 	//find by the primary address
-	return find_if(favoriteHubs, [&aServer](const FavoriteHubEntryPtr& f) { return Util::stricmp(f->getServers()[0].first, aServer) == 0; });
+	return find_if(favoriteHubs, [&aServer](const FavoriteHubEntryPtr& f) { return Util::stricmp(f->getServer(), aServer) == 0; });
 }
 
 FavoriteHubEntryList::const_iterator FavoriteManager::getFavoriteHub(ProfileToken aToken) const {
 	return find_if(favoriteHubs, [aToken](const FavoriteHubEntryPtr& f) { return f->getToken() == aToken; });
-}
-
-optional<string> FavoriteManager::getFailOverUrl(ProfileToken aToken, const string& curHubUrl) {
-	//removeUserCommand(hubAddress_);
-
-	if (aToken == 0)
-		return boost::none;
-
-	RLock l (cs);
-	auto p = getFavoriteHub(aToken);
-	if (p != favoriteHubs.end()) {
-		auto& servers = (*p)->getServers();
-		if (servers.size() > 1) {
-			auto s = find_if(servers.begin(), servers.end(), CompareFirst<string, bool>(curHubUrl));
-			if (s != servers.end()) {
-				//find the next address that hasn't been blocked
-				auto beginPos = s;
-				for (;;) {
-					s == servers.end()-1 ? s = servers.begin() : s++;
-					if (s == beginPos) {
-						break;
-					}
-
-					if (!s->second) {
-						return s->first;
-					}
-				}
-			}
-		}
-	}
-
-	return boost::none;
-}
-
-bool FavoriteManager::blockFailOverUrl(ProfileToken aToken, string& hubAddress_) {
-	if (aToken == 0)
-		return false;
-
-	WLock l (cs);
-	auto p = getFavoriteHub(aToken);
-	if (p != favoriteHubs.end() && (*p)->getServers()[0].first != hubAddress_) {
-		(*p)->blockFailOver(hubAddress_);
-		hubAddress_ = (*p)->getServers()[0].first;
-		return true;
-	}
-	return false;
-}
-
-void FavoriteManager::setFailOvers(const string& hubUrl, ProfileToken aToken, StringList&& aAddresses) {
-	bool needSave = false;
-	{
-		WLock l (cs);
-		auto p = getFavoriteHub(aToken);
-		if (p != favoriteHubs.end() && (*p)->getServers()[0].first == hubUrl) { //only update if we are connecting with the primary address
-			(*p)->addFailOvers(move(aAddresses));
-			needSave = true;
-		}
-	}
-
-	if (needSave)
-		save();
-}
-
-bool FavoriteManager::isFailOverUrl(ProfileToken aToken, const string& hubAddress_) {
-	if (aToken == 0)
-		return false;
-
-	RLock l (cs);
-	auto p = getFavoriteHub(aToken);
-	return (p != favoriteHubs.end() && (*p)->getServers()[0].first != hubAddress_);
 }
 
 RecentHubEntryList::const_iterator FavoriteManager::getRecentHub(const string& aServer) const {

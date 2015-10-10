@@ -54,7 +54,6 @@ struct HubSettings
 		FavShowJoins,
 		LogMainChat,
 		ChatNotify,
-		AcceptFailovers,
 		// don't forget to edit boolNames in HubSettings.cpp when adding a def here!
 
 		HubBoolLast

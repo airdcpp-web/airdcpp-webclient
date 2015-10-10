@@ -31,59 +31,23 @@ FavoriteHubEntry::FavoriteHubEntry() noexcept :
 	token(Util::randInt()), shareProfile(ShareManager::getInstance()->getShareProfile(SETTING(DEFAULT_SP)))  { }
 
 FavoriteHubEntry::FavoriteHubEntry(const HubEntry& rhs) noexcept : name(rhs.getName()), description(rhs.getDescription()),
-	token(Util::randInt()) {
+	token(Util::randInt()), server(rhs.getServer()) {
 
-		servers.emplace_back(rhs.getServer(), false);
 }
 
-void FavoriteHubEntry::setServerStr(const string& aServers) {
-	StringTokenizer<string> tmp(aServers, ';');
-	servers.clear();
-	for(auto& url: tmp.getTokens())
-		servers.emplace_back(move(url), false);
-	validateFailOvers();
+void FavoriteHubEntry::setServer(const string& aServer) noexcept {
+	server = aServer;
 }
 
-bool FavoriteHubEntry::isAdcHub() const {
-	if (servers.empty())
-		return false;
-	return AirUtil::isAdcHub(servers[0].first);
+bool FavoriteHubEntry::isAdcHub() const noexcept {
+	return AirUtil::isAdcHub(server);
 }
 
-void FavoriteHubEntry::addFailOvers(StringList&& addresses) {
-	ServerList tmp;
-	for(auto& url: addresses) 
-		tmp.emplace_back(move(url), false);
-
-	servers.resize(tmp.size()+1);
-	move(tmp.begin(), tmp.end(), servers.begin()+1);
-	validateFailOvers();
-}
-
-void FavoriteHubEntry::blockFailOver(const string& aServer) {
-	auto s = find_if(servers.begin(), servers.end(), CompareFirst<string, bool>(aServer));
-	if (s != servers.end()) {
-		s->second = true;
-	}
-}
-
-string FavoriteHubEntry::getServerStr() const {
-	string ret;
-	if (!servers.empty()) {
-		for(auto& sbp: servers)
-			ret += sbp.first + ";";
-		ret.pop_back();
-	}
-	return ret;
-}
-
-void FavoriteHubEntry::validateFailOvers() {
-	//don't allow mixing NMDC and ADC hubs
-	bool adc = isAdcHub();
-	servers.erase(remove_if(servers.begin(), servers.end(), [adc](const ServerBoolPair& sbp) { return AirUtil::isAdcHub(sbp.first) != adc; }), servers.end());
-
-	//no dupes
-	servers.erase(std::unique(servers.begin(), servers.end(), [](const ServerBoolPair& sbp1, const ServerBoolPair& sbp2) { return sbp1.first == sbp2.first; }), servers.end());
+string FavoriteHubEntry::getServer() const noexcept {
+	/*if (server.find(";") != string::npos) {
+		return 
+	}*/
+	return server;
 }
 
 }

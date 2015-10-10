@@ -5,8 +5,6 @@
 // @Names: std::string dcpp::ResourceManager::names[]
 
 enum Strings { // @DontAdd
-	ACCEPT_FAILOVERS_FAV, // "Accept failover addresses from the hub"
-	ACCEPT_FAILOVERS_GLOBAL, // "Accept failover addresses from favorite hubs"
 	ACTION, // "Action"
 	ACTIVE, // "Active"
 	ACTIVE_FOR, // "Active for %1%"
@@ -439,7 +437,6 @@ enum Strings { // @DontAdd
 	FAILED_TO_LOAD_PRIVATE_KEY, // "Failed to load private key"
 	FAILED_TO_READ, // "Failed to read %1%: %2%"
 	FAILED_TO_SHUTDOWN, // "Failed to shutdown!"
-	FAILOVER_AUTH, // "This hub requires authentication via a failover address; aborting connection and switching to the default address"
 	FAVDIRS_SHOW_SHARED, // "Show shared directories in the \"Download to\" menu"
 	FAVORITE, // "Favorite"
 	FAVORITE_DIR_NAME, // "Favorite name"
@@ -1130,7 +1127,6 @@ enum Strings { // @DontAdd
 	RECHECKING, // "Rechecking"
 	RECHECK_INTEGRITY, // "Recheck integrity"
 	REDIRECT_ALREADY_CONNECTED, // "Redirect request received to a hub that's already connected"
-	REDIRECT_FAILOVER, // "A redirection request was received via a failover address; press the follow redirect button to connect to %1%"
 	REDIRECT_USER, // "Redirect user(s)"
 	REFRESH, // "Refresh"
 	REFRESHING_SHARE, // "Refreshing share"

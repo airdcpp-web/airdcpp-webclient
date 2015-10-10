@@ -49,8 +49,10 @@ class ClientManager : public Speaker<ClientManagerListener>,
 public:
 	ClientPtr createClient(const RecentHubEntryPtr& aEntry, ProfileToken aProfile) noexcept;
 	ClientPtr getClient(const string& aHubURL) noexcept;
+
 	void putClient(const string& aHubURL) noexcept;
 	void putClient(ClientPtr& aClient) noexcept;
+
 	void setClientUrl(const string& aOldUrl, const string& aNewUrl) noexcept;
 
 	string getField(const CID& cid, const string& hintUrl, const char* field) const noexcept;

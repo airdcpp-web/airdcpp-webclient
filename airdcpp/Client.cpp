@@ -111,9 +111,7 @@ void Client::reloadSettings(bool updateNick) {
 		setStealth(!isAdcHub ? fav->getStealth() : false);
 		setFavNoPM(fav->getFavNoPM());
 
-		//only set the token on the initial attempt. we may have other hubs in favs with failover addresses but keep on using the initial list for now.
-		if (favToken == 0)
-			favToken = fav->getToken();
+		favToken = fav->getToken();
 
 		if (isAdcHub) {
 			setShareProfile(fav->getShareProfile()->getToken());
@@ -243,38 +241,14 @@ void Client::on(Connected) noexcept {
 }
 
 void Client::onPassword() {
-	string newUrl = hubUrl;
-	if (getPassword().empty() && FavoriteManager::getInstance()->blockFailOverUrl(favToken, newUrl)) {
-		state = STATE_DISCONNECTED;
-		sock->removeListener(this);
-		fire(ClientListener::Failed(), hubUrl, STRING(FAILOVER_AUTH));
-		ClientManager::getInstance()->setClientUrl(hubUrl, newUrl);
-		return;
-	}
 	fire(ClientListener::GetPassword(), this);
 }
 
 void Client::on(Failed, const string& aLine) noexcept {
-	string msg = aLine;
-	string oldUrl = hubUrl;
-	if (state == STATE_CONNECTING || (state != STATE_NORMAL && FavoriteManager::getInstance()->isFailOverUrl(favToken, hubUrl))) {
-		auto newUrl = FavoriteManager::getInstance()->getFailOverUrl(favToken, hubUrl);
-		if (newUrl && !ClientManager::getInstance()->hasClient(*newUrl)) {
-			ClientManager::getInstance()->setClientUrl(hubUrl, *newUrl);
-
-			if (msg.back() != '.')
-				msg += ".";
-			msg += " " + STRING_F(SWITCHING_TO_ADDRESS, hubUrl);
-		}
-	} else {
-		//don't try failover addresses right after getting disconnected...
-		FavoriteManager::getInstance()->removeUserCommand(hubUrl);
-	}
-
 	state = STATE_DISCONNECTED;
 
 	sock->removeListener(this);
-	fire(ClientListener::Failed(), oldUrl, msg);
+	fire(ClientListener::Failed(), getHubUrl(), aLine);
 }
 
 void Client::disconnect(bool graceLess) {

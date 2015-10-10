@@ -219,7 +219,7 @@ const string SettingsManager::settingTags[] =
 	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands", 
 	"PreviewPm", "IgnoreUseRegexpOrWc", "NatSort", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo", "LogAlreadyShared",
 	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
-	"AcceptFailoversFavs", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "DctmpStoreDestination", "FLReportDupeFiles",
+	"RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "DctmpStoreDestination", "FLReportDupeFiles",
 	"FilterFLShared", "FilterFLQueued", "FilterFLInversed", "FilterFLTop", "FilterFLPartialDupes", "FilterFLResetChange", "FilterSearchShared", "FilterSearchQueued", "FilterSearchInversed", "FilterSearchTop", "FilterSearchPartialDupes", "FilterSearchResetChange",
 	"SearchAschOnlyMan", "IgnoreIndirectSR", "UseUploadBundles", "CloseMinimize", "LogIgnored", "UsersFilterIgnore", "NfoExternal", "SingleClickTray", "QueueShowFinished", "RemoveFinishedBundles", "LogCRCOk",
 	"FilterQueueInverse", "FilterQueueTop", "FilterQueueReset", "AlwaysCCPM",
@@ -793,7 +793,6 @@ SettingsManager::SettingsManager()
 	setDefault(LOG_SHARE_SCAN_PATH, "Scan Results" + string(PATH_SEPARATOR_STR) + "Scan %Y-%m-%d %H:%M.log");
 
 	setDefault(LAST_FL_FILETYPE, "0");
-	setDefault(ACCEPT_FAILOVERS, true);
 
 	setDefault(DB_CACHE_SIZE, 8);
 	setDefault(CUR_REMOVED_TREES, 0);
@@ -1340,7 +1339,6 @@ HubSettings SettingsManager::getHubSettings() const noexcept {
 	ret.get(HubSettings::Connection6) = CONNSETTING(INCOMING_CONNECTIONS6);
 	ret.get(HubSettings::ChatNotify) = get(SHOW_CHAT_NOTIFY);
 	ret.get(HubSettings::AwayMsg) = get(DEFAULT_AWAY_MESSAGE);
-	ret.get(HubSettings::AcceptFailovers) = get(ACCEPT_FAILOVERS);
 	ret.get(HubSettings::NmdcEncoding) = get(NMDC_ENCODING);
 	return ret;
 }

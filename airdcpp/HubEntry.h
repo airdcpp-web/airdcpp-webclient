@@ -86,12 +86,7 @@ public:
 
 	~FavoriteHubEntry() noexcept { }
 
-	// url, is blocked
-	typedef pair<string, bool> ServerBoolPair;
-	typedef vector<ServerBoolPair> ServerList;
-
 	GETSET(string, name, Name);
-	GETSET(ServerList, servers, Servers);
 	GETSET(string, description, Description);
 	GETSET(string, password, Password);
 	GETSET(string, headerOrder, HeaderOrder);
@@ -111,12 +106,11 @@ public:
 	IGETSET(ShareProfilePtr, shareProfile, ShareProfile, nullptr);
 	GETSET(ProfileToken, token, Token);
 
-	void setServerStr(const string& aServers);
-	bool isAdcHub() const;
-	void addFailOvers(StringList&& addresses);
-	void validateFailOvers();
-	void blockFailOver(const string& aServer);
-	string getServerStr() const;
+	void setServer(const string& aServer) noexcept;
+	bool isAdcHub() const noexcept;
+	string getServer() const noexcept;
+private:
+	string server;
 };
 
 class RecentHubEntry : public intrusive_ptr_base<RecentHubEntry> {

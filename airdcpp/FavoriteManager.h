@@ -121,12 +121,6 @@ public:
 	void removeRecent(const RecentHubEntryPtr& entry);
 	void updateRecent(const RecentHubEntryPtr& entry);
 
-	// remove user commands and possibly change the address for the next attempt
-	optional<string> getFailOverUrl(ProfileToken aToken, const string& curHubUrl);
-	void setFailOvers(const string& hubUrl, ProfileToken aToken, StringList&& fo_);
-	bool blockFailOverUrl(ProfileToken aToken, string& hubAddress_);
-	bool isFailOverUrl(ProfileToken aToken, const string& hubAddress_);
-
 	RecentHubEntryPtr getRecentHubEntry(const string& aServer);
 
 	PreviewApplication* addPreviewApp(string name, string application, string arguments, string extension){
