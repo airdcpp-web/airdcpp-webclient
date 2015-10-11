@@ -67,8 +67,8 @@ const string AdcHub::CCPM_FEATURE("CCPM");
 
 const vector<StringList> AdcHub::searchExtensions;
 
-AdcHub::AdcHub(const string& aHubURL) :
-	Client(aHubURL, '\n'), oldPassword(false), udp(Socket::TYPE_UDP), sid(0) {
+AdcHub::AdcHub(const string& aHubURL, optional<ClientToken> aToken) :
+	Client(aHubURL, '\n', aToken), oldPassword(false), udp(Socket::TYPE_UDP), sid(0) {
 	TimerManager::getInstance()->addListener(this);
 }
 
@@ -76,13 +76,13 @@ AdcHub::~AdcHub() {
 	clearUsers();
 }
 
-void AdcHub::shutdown(ClientPtr& aClient) {
+void AdcHub::shutdown(ClientPtr& aClient, bool aRedirect) {
 	stopValidation = true;
 	if (hbriThread && hbriThread->joinable()) {
 		hbriThread->join();
 	}
 
-	Client::shutdown(aClient);
+	Client::shutdown(aClient, aRedirect);
 	TimerManager::getInstance()->removeListener(this);
 }
 
@@ -194,8 +194,9 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 				if(!c.getParam("NI", 0, nick)) {
 					nick = "[nick unknown]";
 				}
-				fire(ClientListener::StatusMessage(), this, u->getIdentity().getNick() + " (" + u->getIdentity().getSIDString() + 
-					") has same CID {" + cid + "} as " + nick + " (" + AdcCommand::fromSID(c.getFrom()) + "), ignoring.", ClientListener::FLAG_IS_SPAM);
+
+				statusMessage(u->getIdentity().getNick() + " (" + u->getIdentity().getSIDString() + 
+					") has same CID {" + cid + "} as " + nick + " (" + AdcCommand::fromSID(c.getFrom()) + "), ignoring.", LogMessage::SEV_INFO, ClientListener::FLAG_IS_SPAM);
 				return;
 			}
 		} else {
@@ -254,7 +255,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		updateCounts(false);
 
 		if (oldState != STATE_NORMAL && u->getIdentity().getAdcConnectionSpeed(false) == 0)
-			fire(ClientListener::StatusMessage(), this, "WARNING: This hub is not displaying the connection speed fields, which prevents the client from choosing the best sources for downloads. Please advise the hub owner to fix this.");
+			statusMessage("WARNING: This hub is not displaying the connection speed fields, which prevents the client from choosing the best sources for downloads. Please advise the hub owner to fix this.", LogMessage::SEV_WARNING);
 
 		//we have to update the modes in case our connectivity changed
 
@@ -300,13 +301,13 @@ void AdcHub::handle(AdcCommand::SUP, AdcCommand& c) noexcept {
 	}
 	
 	if(!baseOk) {
-		fire(ClientListener::StatusMessage(), this, "Failed to negotiate base protocol");
+		statusMessage("Failed to negotiate base protocol", LogMessage::SEV_ERROR);
 		disconnect(false);
 		return;
 	} else if(!tigrOk) {
 		oldPassword = true;
 		// Some hubs fake BASE support without TIGR support =/
-		fire(ClientListener::StatusMessage(), this, "Hub probably uses an old version of ADC, please encourage the owner to upgrade");
+		statusMessage("Hub probably uses an old version of ADC, please encourage the owner to upgrade", LogMessage::SEV_ERROR);
 	}
 }
 
@@ -352,7 +353,7 @@ void AdcHub::handle(AdcCommand::MSG, AdcCommand& c) noexcept {
 		return;
 	}
 
-	fire(ClientListener::Message(), this, message);
+	onChatMessage(message);
 }
 
 void AdcHub::handle(AdcCommand::GPA, AdcCommand& c) noexcept {
@@ -383,7 +384,8 @@ void AdcHub::handle(AdcCommand::QUI, AdcCommand& c) noexcept {
 			} else {
 				tmp = victim->getIdentity().getNick() + " was kicked: " + tmp;
 			}
-			fire(ClientListener::StatusMessage(), this, tmp, ClientListener::FLAG_IS_SPAM);
+
+			statusMessage(tmp, LogMessage::SEV_INFO, ClientListener::FLAG_IS_SPAM);
 		}
 	
 		putUser(s, c.getParam("DI", 1, tmp)); 
@@ -401,11 +403,13 @@ void AdcHub::handle(AdcCommand::QUI, AdcCommand& c) noexcept {
 				setReconnDelay(Util::toUInt32(tmp));
 			}
 		}
+
 		if(!victim && c.getParam("MS", 1, tmp)) {
-			fire(ClientListener::StatusMessage(), this, tmp, ClientListener::FLAG_NORMAL);
+			statusMessage(tmp, LogMessage::SEV_INFO);
 		}
+
 		if(c.getParam("RD", 1, tmp)) {
-			fire(ClientListener::Redirect(), this, tmp);
+			onRedirect(tmp);
 		}
 	}
 }
@@ -611,7 +615,7 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 			{
 				if (c.getFrom() == AdcCommand::HUB_SID && hbriThread && hbriThread->joinable()) {
 					stopValidation = true;
-					fire(ClientListener::StatusMessage(), this, c.getParam(1), ClientListener::FLAG_NORMAL);
+					statusMessage(c.getParam(1), LogMessage::SEV_ERROR);
 				}
 				return;
 			}
@@ -619,14 +623,14 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 			{
 				string tmp;
 				if (c.getParam("FC", 1, tmp) && tmp.size() == 4) {
-					fire(ClientListener::StatusMessage(), this, c.getParam(1) + " (command " + tmp + ", client state " + Util::toString(state) + ")", ClientListener::FLAG_NORMAL);
+					statusMessage(c.getParam(1) + " (command " + tmp + ", client state " + Util::toString(state) + ")", LogMessage::SEV_ERROR);
 					return;
 				}
 			}
 		}
 
 		auto message = make_shared<ChatMessage>(c.getParam(1), u);
-		fire(ClientListener::Message(), this, message);
+		onChatMessage(message);
 	}
 }
 
@@ -837,7 +841,7 @@ void AdcHub::handle(AdcCommand::TCP, AdcCommand& c) noexcept {
 		return;
 
 
-	fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATING_X, (v6 ? "IPv6" : "IPv4")));
+	statusMessage(STRING_F(HBRI_VALIDATING_X, (v6 ? "IPv6" : "IPv4")), LogMessage::SEV_INFO);
 	stopValidation = false;
 	hbriThread.reset(new std::thread([=] { sendHBRI(hbriHubUrl, hbriPort, token, v6); }));
 }
@@ -895,18 +899,18 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 
 				AdcCommand response(l);
 				if (response.getParameters().size() < 2) {
-					fire(ClientListener::StatusMessage(), this, STRING(INVALID_HUB_RESPONSE));
+					statusMessage(STRING(INVALID_HUB_RESPONSE), LogMessage::SEV_ERROR);
 					return;
 				}
 
 				int severity = Util::toInt(response.getParam(0).substr(0, 1));
 				if (response.getParam(0).size() != 3) {
-					fire(ClientListener::StatusMessage(), this, STRING(INVALID_HUB_RESPONSE));
+					statusMessage(STRING(INVALID_HUB_RESPONSE), LogMessage::SEV_ERROR);
 					return;
 				}
 
 				if (severity == AdcCommand::SUCCESS) {
-					fire(ClientListener::StatusMessage(), this, STRING(VALIDATION_SUCCEED));
+					statusMessage(STRING(VALIDATION_SUCCEED), LogMessage::SEV_INFO);
 					return;
 				} else {
 					throw Exception(response.getParam(1));
@@ -914,12 +918,12 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 			}
 		}
 	} catch (const Exception& e) {
-		fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATION_FAILED, e.getError() % (v6 ? "IPv6" : "IPv4")));
+		statusMessage(STRING_F(HBRI_VALIDATION_FAILED, e.getError() % (v6 ? "IPv6" : "IPv4")), LogMessage::SEV_ERROR);
 		return;
 	}
 
 	if (!stopValidation)
-		fire(ClientListener::StatusMessage(), this, STRING_F(HBRI_VALIDATION_FAILED, STRING(CONNECTION_TIMEOUT) % (v6 ? "IPv6" : "IPv4")));
+		statusMessage(STRING_F(HBRI_VALIDATION_FAILED, STRING(CONNECTION_TIMEOUT) % (v6 ? "IPv6" : "IPv4")), LogMessage::SEV_ERROR);
 }
 
 int AdcHub::connect(const OnlineUser& user, const string& token, string& lastError_) {
@@ -1151,7 +1155,7 @@ void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, 
 
 void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const StringList& excluded, time_t aDate, int aDateMode, bool isDirect) {
 	if(!aToken.empty())
-		c.addParam("TO", Util::toString(getUniqueId()) + "/" + aToken);
+		c.addParam("TO", Util::toString(getClientId()) + "/" + aToken);
 
 	if(aFileType == SearchManager::TYPE_TTH) {
 		c.addParam("TR", aString);

@@ -85,7 +85,7 @@ private:
 	friend class CommandHandler<AdcHub>;
 	friend class Identity;
 
-	AdcHub(const string& aHubURL);
+	AdcHub(const string& aHubURL, optional<ClientToken> aToken);
 
 	AdcHub(const AdcHub&);
 	AdcHub& operator=(const AdcHub&);
@@ -125,7 +125,7 @@ private:
 
 	void putUser(const uint32_t aSID, bool disconnect);
 
-	void shutdown(ClientPtr& aClient);
+	void shutdown(ClientPtr& aClient, bool aRedirect);
 	void clearUsers();
 	void appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6);
 
@@ -158,7 +158,6 @@ private:
 	bool secureAvail(uint32_t target, const string& protocol, const string& token);
 
 	virtual bool v4only() const { return false; }
-	void on(Connecting) noexcept { fire(ClientListener::Connecting(), this); }
 	void on(Connected) noexcept;
 	void on(Line, const string& aLine) noexcept;
 	void on(Failed, const string& aLine) noexcept;

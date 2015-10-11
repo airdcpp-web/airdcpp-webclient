@@ -212,7 +212,7 @@ private:
 
 	void on(ClientManagerListener::ClientCreated, const ClientPtr& c) noexcept;
 	void on(ClientManagerListener::ClientConnected, const ClientPtr& c) noexcept;
-	void on(ClientManagerListener::ClientRemoved, const string& aHubUrl) noexcept;
+	void on(ClientManagerListener::ClientRemoved, const ClientPtr& c) noexcept;
 
 	// HttpConnectionListener
 	void on(Data, HttpConnection*, const uint8_t*, size_t) noexcept;

@@ -26,6 +26,7 @@
 #include "DebugManager.h"
 #include "FavoriteManager.h"
 #include "LogManager.h"
+#include "MessageManager.h"
 #include "ResourceManager.h"
 #include "ThrottleManager.h"
 #include "TimerManager.h"
@@ -33,14 +34,14 @@
 namespace dcpp {
 
 atomic<long> Client::counts[COUNT_UNCOUNTED];
-uint32_t idCounter = 0;
+ClientToken idCounter = 0;
 
-Client::Client(const string& hubURL, char separator_) : 
-	myIdentity(ClientManager::getInstance()->getMe(), 0), uniqueId(++idCounter),
+Client::Client(const string& hubURL, char separator_, optional<ClientToken> aToken) :
+	myIdentity(ClientManager::getInstance()->getMe(), 0), clientId(aToken ? *aToken : ++idCounter),
 	reconnDelay(120), lastActivity(GET_TICK()), registered(false), autoReconnect(false),
 	state(STATE_DISCONNECTED), sock(0),
 	separator(separator_),
-	countType(COUNT_UNCOUNTED), availableBytes(0), favToken(0)
+	countType(COUNT_UNCOUNTED), availableBytes(0), favToken(0), cache(SettingsManager::HUB_MESSAGE_CACHE)
 {
 	setHubUrl(hubURL);
 	TimerManager::getInstance()->addListener(this);
@@ -70,12 +71,14 @@ void Client::setActive() {
 	fire(ClientListener::SetActive(), this);
 }
 
-void Client::shutdown(ClientPtr& aClient) {
+void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 	FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
 	TimerManager::getInstance()->removeListener(this);
 
-	fire(ClientListener::Disconnecting(), this);
-	removeListeners();
+	if (!aRedirect) {
+		fire(ClientListener::Disconnecting(), this);
+	}
+	//removeListeners();
 
 	if(sock) {
 		BufferedSocket::putSocket(sock, [aClient] { aClient->sock = nullptr; }); // Ensure that the pointer won't be deleted too early
@@ -188,6 +191,7 @@ void Client::connect() {
 		sock = 0;
 	}
 
+	redirectUrl = Util::emptyString;
 	setAutoReconnect(true);
 	setReconnDelay(120 + Util::rand(0, 60));
 	reloadSettings(true);
@@ -223,7 +227,9 @@ void Client::send(const char* aMessage, size_t aLen) {
 	COMMAND_DEBUG(aMessage, DebugManager::TYPE_HUB, DebugManager::OUTGOING, getIpPort());
 }
 
-void Client::on(Connected) noexcept {
+void Client::on(BufferedSocketListener::Connected) noexcept {
+	statusMessage(STRING(CONNECTED), LogMessage::SEV_INFO);
+
 	updateActivity();
 	ip = sock->getIp();
 	localIp = sock->getLocalIp();
@@ -240,8 +246,88 @@ void Client::on(Connected) noexcept {
 	state = STATE_PROTOCOL;
 }
 
+void Client::statusMessage(const string& aMessage, LogMessage::Severity aSeverity, int aFlag) noexcept {
+	auto message = make_shared<LogMessage>(aMessage, aSeverity);
+
+	if (aFlag != ClientListener::FLAG_IS_SPAM) {
+		cache.addMessage(message);
+		logStatusMessage(aMessage);
+	}
+
+	fire(ClientListener::StatusMessage(), this, message, aFlag);
+}
+
+void Client::setRead() noexcept {
+	auto updated = cache.setRead();
+	if (updated > 0) {
+		fire(ClientListener::MessagesRead(), this);
+	}
+}
+
 void Client::onPassword() {
-	fire(ClientListener::GetPassword(), this);
+	if (!defpassword.empty()) {
+		password(defpassword);
+		statusMessage(STRING(STORED_PASSWORD_SENT), LogMessage::SEV_INFO);
+	} else {
+		fire(ClientListener::GetPassword(), this);
+	}
+}
+
+void Client::onRedirect(const string& aRedirectUrl) noexcept {
+	if (ClientManager::getInstance()->hasClient(aRedirectUrl)) {
+		statusMessage(STRING(REDIRECT_ALREADY_CONNECTED), LogMessage::SEV_INFO);
+		return;
+	}
+
+	redirectUrl = aRedirectUrl;
+
+	if (SETTING(AUTO_FOLLOW)) {
+		doRedirect();
+	} else {
+		fire(ClientListener::Redirect(), this, redirectUrl);
+	}
+}
+
+void Client::onChatMessage(const ChatMessagePtr& aMessage) noexcept {
+	if (MessageManager::getInstance()->isIgnoredOrFiltered(aMessage, this, false))
+		return;
+
+	logChatMessage(aMessage->format());
+	fire(ClientListener::ChatMessage(), this, aMessage);
+	cache.addMessage(aMessage);
+}
+
+void Client::on(BufferedSocketListener::Connecting) noexcept {
+	statusMessage(STRING(CONNECTING_TO) + " " + getHubUrl() + " ...", LogMessage::SEV_INFO);
+	fire(ClientListener::Connecting(), this);
+}
+
+bool Client::saveFavorite() {
+	FavoriteHubEntryPtr e = new FavoriteHubEntry();
+	e->setServer(getHubUrl());
+	e->setName(getHubName());
+	e->setDescription(getHubDescription());
+	e->setAutoConnect(true);
+	if (!defpassword.empty()) {
+		e->setPassword(defpassword);
+	}
+
+	return FavoriteManager::getInstance()->addFavoriteHub(e);
+}
+
+void Client::doRedirect() noexcept {
+	if (redirectUrl.empty()) {
+		return;
+	}
+
+	if (ClientManager::getInstance()->hasClient(redirectUrl)) {
+		statusMessage(STRING(REDIRECT_ALREADY_CONNECTED), LogMessage::SEV_INFO);
+		return;
+	}
+
+	auto newClient = ClientManager::getInstance()->redirect(getHubUrl(), redirectUrl);
+	fire(ClientListener::Redirected(), getHubUrl(), newClient);
+	newClient->connect();
 }
 
 void Client::on(Failed, const string& aLine) noexcept {

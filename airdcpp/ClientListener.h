@@ -39,7 +39,7 @@ public:
 	typedef X<7> Failed;
 	typedef X<8> GetPassword;
 	typedef X<9> HubUpdated;
-	typedef X<10> Message;
+	typedef X<10> ChatMessage;
 	typedef X<11> StatusMessage;
 	typedef X<12> HubUserCommand;
 	typedef X<13> HubFull;
@@ -50,6 +50,8 @@ public:
 	typedef X<18> AddLine;
 	typedef X<19> SetActive;
 	typedef X<20> Disconnecting;
+	typedef X<21> MessagesRead;
+	typedef X<22> Redirected;
 
 	enum StatusFlags {
 		FLAG_NORMAL = 0x00,
@@ -66,8 +68,8 @@ public:
 	virtual void on(Failed, const string&/*hubUrl*/, const string& /*aLine*/) noexcept { }
 	virtual void on(GetPassword, const Client*) noexcept { }
 	virtual void on(HubUpdated, const Client*) noexcept { }
-	virtual void on(Message, const Client*, const ChatMessagePtr&) noexcept { }
-	virtual void on(StatusMessage, const Client*, const string&, int = FLAG_NORMAL) noexcept { }
+	virtual void on(ChatMessage, const Client*, const ChatMessagePtr&) noexcept { }
+	virtual void on(StatusMessage, const Client*, const LogMessagePtr&, int = FLAG_NORMAL) noexcept { }
 	virtual void on(HubUserCommand, const Client*, int, int, const string&, const string&) noexcept { }
 	virtual void on(HubFull, const Client*) noexcept { }
 	virtual void on(NickTaken, const Client*) noexcept { }
@@ -77,6 +79,8 @@ public:
 	virtual void on(AddLine, const Client*, const string&) noexcept { }
 	virtual void on(SetActive, const Client*) noexcept {}
 	virtual void on(Disconnecting, const Client*) noexcept {}
+	virtual void on(MessagesRead, const Client*) noexcept {}
+	virtual void on(Redirected, const string&/*old*/, const ClientPtr& /*new*/) noexcept {}
 };
 
 } // namespace dcpp

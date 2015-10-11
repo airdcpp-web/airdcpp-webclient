@@ -21,9 +21,9 @@
 
 #include "forward.h"
 
-#include "ChatMessageCache.h"
 #include "ClientManager.h"
 #include "DelayedEvents.h"
+#include "MessageCache.h"
 #include "PrivateChatListener.h"
 #include "UserConnection.h"
 
@@ -89,14 +89,14 @@ namespace dcpp {
 			return ccpmState;
 		}
 
-		const ChatMessageCache& getCache() const noexcept {
+		const MessageCache& getCache() const noexcept {
 			return cache;
 		}
 
 		void setRead() noexcept;
 	private:
 		void statusMessage(const string& aMessage, LogMessage::Severity aSeverity) noexcept;
-		ChatMessageCache cache;
+		MessageCache cache;
 		enum EventType {
 			USER_UPDATE,
 			CCPM_TIMEOUT,

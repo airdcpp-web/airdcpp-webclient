@@ -814,10 +814,10 @@
     <ClInclude Include="airdcpp\RelevancySearch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ChatMessageCache.h">
+    <ClInclude Include="airdcpp\Message.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Message.h">
+    <ClInclude Include="airdcpp\MessageCache.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

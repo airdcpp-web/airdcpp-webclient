@@ -89,6 +89,7 @@ public:
 	GETSET(string, name, Name);
 	GETSET(string, description, Description);
 	GETSET(string, password, Password);
+	GETSET(string, server, Server);
 	GETSET(string, headerOrder, HeaderOrder);
 	GETSET(string, headerWidths, HeaderWidths);
 	GETSET(string, headerVisible, HeaderVisible);
@@ -106,11 +107,7 @@ public:
 	IGETSET(ShareProfilePtr, shareProfile, ShareProfile, nullptr);
 	GETSET(ProfileToken, token, Token);
 
-	void setServer(const string& aServer) noexcept;
 	bool isAdcHub() const noexcept;
-	string getServer() const noexcept;
-private:
-	string server;
 };
 
 class RecentHubEntry : public intrusive_ptr_base<RecentHubEntry> {

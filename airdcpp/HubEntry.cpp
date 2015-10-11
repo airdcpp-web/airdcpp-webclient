@@ -35,19 +35,8 @@ FavoriteHubEntry::FavoriteHubEntry(const HubEntry& rhs) noexcept : name(rhs.getN
 
 }
 
-void FavoriteHubEntry::setServer(const string& aServer) noexcept {
-	server = aServer;
-}
-
 bool FavoriteHubEntry::isAdcHub() const noexcept {
 	return AirUtil::isAdcHub(server);
-}
-
-string FavoriteHubEntry::getServer() const noexcept {
-	/*if (server.find(";") != string::npos) {
-		return 
-	}*/
-	return server;
 }
 
 }

@@ -1218,8 +1218,8 @@ void FavoriteManager::on(ClientManagerListener::ClientConnected, const ClientPtr
 	onConnectStateChanged(aClient->getHubUrl(), FavoriteHubEntry::STATE_CONNECTED);
 }
 
-void FavoriteManager::on(ClientManagerListener::ClientRemoved, const string& aHubUrl) noexcept {
-	onConnectStateChanged(aHubUrl, FavoriteHubEntry::STATE_DISCONNECTED);
+void FavoriteManager::on(ClientManagerListener::ClientRemoved, const ClientPtr& aClient) noexcept {
+	onConnectStateChanged(aClient->getHubUrl(), FavoriteHubEntry::STATE_DISCONNECTED);
 }
 
 void FavoriteManager::onConnectStateChanged(const std::string& aHubUrl, FavoriteHubEntry::ConnectState aState) noexcept {

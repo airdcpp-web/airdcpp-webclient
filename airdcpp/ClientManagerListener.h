@@ -36,12 +36,13 @@ public:
 	typedef X<3> ClientCreated;
 	typedef X<4> ClientConnected;
 	typedef X<5> ClientUpdated;
-	typedef X<6> ClientDisconnected;
-	typedef X<7> ClientRemoved;
+	typedef X<6> ClientRedirected;
+	typedef X<7> ClientDisconnected;
+	typedef X<8> ClientRemoved;
 
-	typedef X<8> IncomingSearch;
-	typedef X<9> IncomingADCSearch;
-	typedef X<10> DirectSearchEnd;
+	typedef X<9> IncomingSearch;
+	typedef X<10> IncomingADCSearch;
+	typedef X<11> DirectSearchEnd;
 
 
 	virtual void on(UserConnected, const OnlineUser&, bool /*was offline*/) noexcept { }
@@ -51,8 +52,9 @@ public:
 	virtual void on(ClientCreated, const ClientPtr&) noexcept {}
 	virtual void on(ClientConnected, const ClientPtr&) noexcept { }
 	virtual void on(ClientUpdated, const ClientPtr&) noexcept { }
+	virtual void on(ClientRedirected, const ClientPtr& /*old*/, const ClientPtr& /*new*/) noexcept { }
 	virtual void on(ClientDisconnected, const string&) noexcept { }
-	virtual void on(ClientRemoved, const string&) noexcept { }
+	virtual void on(ClientRemoved, const ClientPtr&) noexcept { }
 
 	virtual void on(IncomingSearch, const string&) noexcept { }
 	virtual void on(IncomingADCSearch, const AdcCommand&) noexcept { }

@@ -81,7 +81,7 @@ private:
 	FloodMap seekers;
 	FloodMap flooders;
 
-	NmdcHub(const string& aHubURL);
+	NmdcHub(const string& aHubURL, optional<ClientToken> aToken);
 	~NmdcHub();
 
 	// Dummy

@@ -16,8 +16,8 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_CHATMESSAGECACHE_H
-#define DCPLUSPLUS_DCPP_CHATMESSAGECACHE_H
+#ifndef DCPLUSPLUS_DCPP_MESSAGECACHE_H
+#define DCPLUSPLUS_DCPP_MESSAGECACHE_H
 
 #include "stdinc.h"
 
@@ -29,9 +29,9 @@
 namespace dcpp {
 	typedef deque<Message> MessageList;
 
-	class ChatMessageCache : private boost::noncopyable {
+	class MessageCache : private boost::noncopyable {
 	public:
-		ChatMessageCache(SettingsManager::IntSetting aSetting) : setting(aSetting) { }
+		MessageCache(SettingsManager::IntSetting aSetting) : setting(aSetting) { }
 
 		template<class T>
 		void addMessage(const T& aMessage) noexcept {

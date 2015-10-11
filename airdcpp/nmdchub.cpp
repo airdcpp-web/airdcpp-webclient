@@ -41,7 +41,7 @@
 
 namespace dcpp {
 
-NmdcHub::NmdcHub(const string& aHubURL) : Client(aHubURL, '|'), supportFlags(0),
+NmdcHub::NmdcHub(const string& aHubURL, optional<ClientToken> aToken) : Client(aHubURL, '|', aToken), supportFlags(0),
 	lastBytesShared(0), lastUpdate(0)
 {
 }
@@ -243,12 +243,12 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		}
 		string line = toUtf8(aLine);
 		if(line[0] != '<') {
-			fire(ClientListener::StatusMessage(), this, unescape(line));
+			statusMessage(unescape(line), LogMessage::SEV_INFO);
 			return;
 		}
 		string::size_type i = line.find('>', 2);
 		if(i == string::npos) {
-			fire(ClientListener::StatusMessage(), this, unescape(line));
+			statusMessage(unescape(line), LogMessage::SEV_INFO);
 			return;
 		}
 		string nick = line.substr(1, i-1);
@@ -256,15 +256,15 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		if((line.length()-1) > i) {
 			message = line.substr(i+2);
 		} else {
-			fire(ClientListener::StatusMessage(), this, unescape(line));
+			statusMessage(unescape(line), LogMessage::SEV_INFO);
 			return;
 		}
 
 		if((line.find("Hub-Security") != string::npos) && (line.find("was kicked by") != string::npos)) {
-			fire(ClientListener::StatusMessage(), this, unescape(line), ClientListener::FLAG_IS_SPAM);
+			statusMessage(unescape(line), LogMessage::SEV_INFO, ClientListener::FLAG_IS_SPAM);
 			return;
 		} else if((line.find("is kicking") != string::npos) && (line.find("because:") != string::npos)) {
-			fire(ClientListener::StatusMessage(), this, unescape(line), ClientListener::FLAG_IS_SPAM);
+			statusMessage(unescape(line), LogMessage::SEV_INFO, ClientListener::FLAG_IS_SPAM);
 			return;
 		}
 
@@ -288,7 +288,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			chatMessage->setFrom(o);
 		}
 
-		fire(ClientListener::Message(), this, chatMessage);
+		onChatMessage(chatMessage);
 		return;
     }
 
@@ -749,7 +749,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		}
 	} else if(cmd == "ForceMove") {
 		disconnect(false);
-		fire(ClientListener::Redirect(), this, param);
+		onRedirect(param);
 	} else if(cmd == "HubIsFull") {
 		fire(ClientListener::HubFull(), this);
 	} else if(cmd == "ValidateDenide") {		// Mind the spelling...

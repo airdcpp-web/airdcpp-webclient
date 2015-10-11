@@ -27,6 +27,7 @@
 #include "ClientListener.h"
 #include "ConnectionType.h"
 #include "HubSettings.h"
+#include "MessageCache.h"
 #include "OnlineUser.h"
 #include "Pointer.h"
 #include "Search.h"
@@ -38,6 +39,8 @@
 #include <boost/noncopyable.hpp>
 
 namespace dcpp {
+
+typedef uint32_t ClientToken;
 
 class ClientBase
 {
@@ -58,8 +61,8 @@ public:
 /** Yes, this should probably be called a Hub */
 class Client : public ClientBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, public HubSettings, private boost::noncopyable, public intrusive_ptr_base<Client> {
 public:
-	typedef unordered_map<string*, ClientPtr, noCaseStringHash, noCaseStringEq> List;
-	typedef List::const_iterator Iter;
+	typedef unordered_map<string*, ClientPtr, noCaseStringHash, noCaseStringEq> UrlMap;
+	typedef unordered_map<ClientToken, ClientPtr> IdMap;
 
 	virtual void connect();
 	virtual void disconnect(bool graceless);
@@ -76,7 +79,7 @@ public:
 	void info();
 
 	virtual size_t getUserCount() const = 0;
-	int64_t getAvailable() const { return availableBytes; };
+	int64_t getTotalShare() const { return availableBytes; };
 	
 	virtual bool send(const AdcCommand& command) = 0;
 
@@ -112,7 +115,7 @@ public:
 	
 	void setActive();
 	void reconnect();
-	virtual void shutdown(ClientPtr& aClient);
+	virtual void shutdown(ClientPtr& aClient, bool aRedirect);
 	bool isActive() const;
 	bool isActiveV4() const;
 	bool isActiveV6() const;
@@ -146,7 +149,7 @@ public:
 	GETSET(bool, stealth, Stealth);
 	GETSET(ProfileToken, shareProfile, ShareProfile);
 	GETSET(ProfileToken, favToken, FavToken);
-	GETSET(uint32_t, uniqueId, UniqueId);
+	GETSET(ClientToken, clientId, ClientId);
 
 	/* Set a hub setting and return the new value */
 	bool changeBoolHubSetting(HubSettings::HubBoolSetting aSetting);
@@ -162,12 +165,21 @@ public:
 	void logStatusMessage(const string& aMessage);
 	void logChatMessage(const string& aMessage);
 
-	virtual ~Client();
-protected:
-	friend class ClientManager;
-	Client(const string& hubURL, char separator);
+	void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, int = ClientListener::FLAG_NORMAL) noexcept;
 
-	static atomic<long> counts[COUNT_UNCOUNTED];
+	virtual ~Client();
+
+	const MessageCache& getCache() const noexcept {
+		return cache;
+	}
+
+	void setRead() noexcept;
+	const string& getRedirectUrl() const noexcept {
+		return redirectUrl;
+	}
+
+	void doRedirect() noexcept;
+	bool saveFavorite();
 
 	enum State {
 		STATE_CONNECTING,	///< Waiting for socket to connect
@@ -177,6 +189,18 @@ protected:
 		STATE_NORMAL,		///< Running
 		STATE_DISCONNECTED	///< Nothing in particular
 	};
+
+	State getConnectState() const noexcept {
+		return state;
+	}
+protected:
+	MessageCache cache;
+
+	friend class ClientManager;
+	Client(const string& hubURL, char separator, optional<ClientToken> aToken);
+
+	static atomic<long> counts[COUNT_UNCOUNTED];
+
 	atomic<State> state;
 
 	SearchQueue searchQueue;
@@ -201,15 +225,21 @@ protected:
 
 	// TimerManagerListener
 	virtual void on(Second, uint64_t aTick) noexcept;
+
 	// BufferedSocketListener
-	virtual void on(Connecting) noexcept { fire(ClientListener::Connecting(), this); }
-	virtual void on(Connected) noexcept;
-	virtual void on(Line, const string& aLine) noexcept;
-	virtual void on(Failed, const string&) noexcept;
+	virtual void on(BufferedSocketListener::Connecting) noexcept;
+	virtual void on(BufferedSocketListener::Connected) noexcept;
+	virtual void on(BufferedSocketListener::Line, const string& aLine) noexcept;
+	virtual void on(BufferedSocketListener::Failed, const string&) noexcept;
 
 	virtual bool v4only() const = 0;
 	void setHubUrl(const string& url);
 	void onPassword();
+
+	void onChatMessage(const ChatMessagePtr& aMessage) noexcept;
+	void onRedirect(const string& aRedirectUrl) noexcept;
+
+	string redirectUrl;
 private:
 	string hubUrl;
 	string address;

@@ -47,13 +47,19 @@ class ClientManager : public Speaker<ClientManagerListener>,
 	typedef UserMap::iterator UserIter;
 
 public:
+	// Returns the new ClientPtr
+	// NOTE: the main app should perform connecting to the new hub
 	ClientPtr createClient(const RecentHubEntryPtr& aEntry, ProfileToken aProfile) noexcept;
 	ClientPtr getClient(const string& aHubURL) noexcept;
+	ClientPtr getClient(ClientToken aClientId) noexcept;
 
-	void putClient(const string& aHubURL) noexcept;
-	void putClient(ClientPtr& aClient) noexcept;
+	bool putClient(ClientToken aClientId) noexcept;
+	bool putClient(const string& aHubURL) noexcept;
+	bool putClient(ClientPtr& aClient) noexcept;
 
-	void setClientUrl(const string& aOldUrl, const string& aNewUrl) noexcept;
+	// Returns the new ClientPtr
+	// NOTE: the main app should perform connecting to the new hub
+	ClientPtr redirect(const string& aHubUrl, const string& aNewUrl) noexcept;
 
 	string getField(const CID& cid, const string& hintUrl, const char* field) const noexcept;
 
@@ -186,7 +192,7 @@ public:
 
 	SharedMutex& getCS() { return cs; }
 
-	const Client::List& getClients() const noexcept { return clients; }
+	const Client::UrlMap& getClients() const noexcept { return clients; }
 	void getOnlineClients(StringList& onlineClients) const noexcept;
 
 	CID getMyCID() noexcept;
@@ -211,7 +217,8 @@ private:
 	typedef pair<OnlineIter, OnlineIter> OnlinePair;
 	typedef pair<OnlineIterC, OnlineIterC> OnlinePairC;
 	
-	Client::List clients;
+	Client::UrlMap clients;
+	Client::IdMap clientsId;
 	mutable SharedMutex cs;
 	
 	UserMap users;

@@ -57,9 +57,9 @@ ClientPtr ClientManager::createClient(const RecentHubEntryPtr& aEntry, ProfileTo
 
 	ClientPtr c;
 	if (AirUtil::isAdcHub(url)) {
-		c = new AdcHub(url);
+		c = new AdcHub(url, boost::none);
 	} else {
-		c = new NmdcHub(url);
+		c = new NmdcHub(url, boost::none);
 	}
 
 	c->setShareProfile(aProfile);
@@ -72,10 +72,12 @@ ClientPtr ClientManager::createClient(const RecentHubEntryPtr& aEntry, ProfileTo
 			added = false;
 			ret.first->second->setActive();
 		}
+
+		clientsId.emplace(c->getClientId(), c);
 	}
 
 	if (!added) {
-		c->shutdown(c);
+		c->shutdown(c, false);
 		return nullptr;
 	}
 
@@ -92,35 +94,81 @@ ClientPtr ClientManager::getClient(const string& aHubURL) noexcept {
 	return p != clients.end() ? p->second : nullptr;
 }
 
-void ClientManager::putClient(const string& aHubURL) noexcept {
+ClientPtr ClientManager::getClient(ClientToken aClientId) noexcept {
+	RLock l(cs);
+	auto p = clientsId.find(aClientId);
+	return p != clientsId.end() ? p->second : nullptr;
+}
+
+bool ClientManager::putClient(ClientToken aClientId) noexcept {
+	auto c = getClient(aClientId);
+	if (c) {
+		putClient(c);
+		return true;
+	}
+
+	return false;
+}
+
+bool ClientManager::putClient(const string& aHubURL) noexcept {
 	auto c = getClient(aHubURL);
 	if (c) {
 		putClient(c);
+		return true;
 	}
+
+	return false;
 }
 
-void ClientManager::putClient(ClientPtr& aClient) noexcept {
+bool ClientManager::putClient(ClientPtr& aClient) noexcept {
 	fire(ClientManagerListener::ClientDisconnected(), aClient->getHubUrl());
-	fire(ClientManagerListener::ClientRemoved(), aClient->getHubUrl());
+	fire(ClientManagerListener::ClientRemoved(), aClient);
+
+	auto r = FavoriteManager::getInstance()->getRecentHubEntry(aClient->getHubUrl());
+	if (r) {
+		r->setName(aClient->getHubName());
+		r->setUsers(Util::toString(aClient->getUserCount()));
+		r->setShared(Util::toString(aClient->getTotalShare()));
+	}
 
 	aClient->disconnect(true);
-	aClient->shutdown(aClient);
+	aClient->shutdown(aClient, false);
 
 	{
 		WLock l(cs);
 		clients.erase(const_cast<string*>(&aClient->getHubUrl()));
 	}
+
+	return true;
 }
 
-void ClientManager::setClientUrl(const string& aOldUrl, const string& aNewUrl) noexcept {
-	WLock l (cs);
-	auto p = clients.find(const_cast<string*>(&aOldUrl));
-	if (p != clients.end()) {
-		auto c = p->second;
-		clients.erase(p);
-		c->setHubUrl(aNewUrl);
-		clients.emplace(const_cast<string*>(&c->getHubUrl()), c);
+ClientPtr ClientManager::redirect(const string& aHubUrl, const string& aNewUrl) noexcept {
+	auto oldClient = getClient(aHubUrl);
+	if (!oldClient) {
+		return nullptr;
 	}
+
+	oldClient->disconnect(true);
+	oldClient->shutdown(oldClient, true);
+
+	ClientPtr newClient;
+	if (AirUtil::isAdcHub(aNewUrl)) {
+		newClient = new AdcHub(aNewUrl, oldClient->getClientId());
+	} else {
+		newClient = new NmdcHub(aNewUrl, oldClient->getClientId());
+	}
+
+	{
+		WLock l(cs);
+		clients.erase(const_cast<string*>(&aHubUrl));
+		clients.emplace(const_cast<string*>(&aNewUrl), newClient);
+	}
+
+	RecentHubEntryPtr r = new RecentHubEntry(aNewUrl);
+	FavoriteManager::getInstance()->addRecent(r);
+	fire(ClientManagerListener::ClientRedirected(), oldClient, newClient);
+	
+	return newClient;
 }
 
 StringList ClientManager::getHubUrls(const CID& cid) const noexcept {
@@ -1254,7 +1302,7 @@ bool ClientManager::connectADCSearchResult(const CID& aCID, string& token_, stri
 	if(slash == string::npos) { return false; }
 
 	auto uniqueId = Util::toUInt32(token_.substr(0, slash));
-	auto client = find_if(clients | map_values, [uniqueId](const ClientPtr& c) { return c->getUniqueId() == uniqueId; });
+	auto client = find_if(clients | map_values, [uniqueId](const ClientPtr& c) { return c->getClientId() == uniqueId; });
 	if(client.base() == clients.end()) { return false; }
 	hubUrl_ = (*client)->getHubUrl();
 

@@ -340,7 +340,7 @@
     <ClInclude Include="airdcpp\AdcCommand.h" />
     <ClInclude Include="airdcpp\AdcHub.h" />
     <ClInclude Include="airdcpp\AutoSearchQueue.h" />
-    <ClInclude Include="airdcpp\ChatMessageCache.h" />
+    <ClInclude Include="airdcpp\MessageCache.h" />
     <ClInclude Include="airdcpp\ConnectionType.h" />
     <ClInclude Include="airdcpp\MessageManager.h" />
     <ClInclude Include="airdcpp\MessageManagerListener.h" />
