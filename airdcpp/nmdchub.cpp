@@ -41,7 +41,7 @@
 
 namespace dcpp {
 
-NmdcHub::NmdcHub(const string& aHubURL, optional<ClientToken> aToken) : Client(aHubURL, '|', aToken), supportFlags(0),
+NmdcHub::NmdcHub(const string& aHubURL, const ClientPtr& aOldClient) : Client(aHubURL, '|', aOldClient), supportFlags(0),
 	lastBytesShared(0), lastUpdate(0)
 {
 }
@@ -59,10 +59,10 @@ string NmdcHub::fromUtf8(const string& str) const {
 }
 
 
-#define checkstate() if(state != STATE_NORMAL) return
+#define checkstate() if(!stateNormal()) return
 
 int NmdcHub::connect(const OnlineUser& aUser, const string&, string& /*lastError_*/) {
-	if(state == STATE_NORMAL) {
+	if(stateNormal()) {
 		dcdebug("NmdcHub::connect %s\n", aUser.getIdentity().getNick().c_str());
 		if(isActive()) {
 			connectToMe(aUser);
@@ -236,7 +236,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		if (SETTING(SUPPRESS_MAIN_CHAT)) return;
 
 		// Check if we're being banned...
-		if(state != STATE_NORMAL) {
+		if(!stateNormal()) {
 			if(Util::findSubString(aLine, "banned") != string::npos) {
 				setAutoReconnect(false);
 			}
@@ -304,7 +304,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 	}
 
 	if(cmd == "Search") {
-		if (state != STATE_NORMAL) {
+		if (!stateNormal()) {
 			return;
 		}
 		string::size_type i = 0;
@@ -515,7 +515,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			putUser(nick);
 		}
 	} else if(cmd == "ConnectToMe") {
-		if(state != STATE_NORMAL) {
+		if(!stateNormal()) {
 			return;
 		}
 		string::size_type i = param.find(' ');
@@ -580,7 +580,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		// For simplicity, we make the assumption that users on a hub have the same character encoding
 		ConnectionManager::getInstance()->nmdcConnect(server, senderPort, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), getStealth(), connectSecure);
 	} else if(cmd == "RevConnectToMe") {
-		if(state != STATE_NORMAL) {
+		if(!stateNormal()) {
 			return;
 		}
 
@@ -681,10 +681,11 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			fire(ClientListener::HubUserCommand(), this, type, ctx, name, command);
 		}
 	} else if(cmd == "Lock") {
-		if(state != STATE_PROTOCOL || aLine.size() < 6) {
+		if(getConnectState() != STATE_PROTOCOL || aLine.size() < 6) {
 			return;
 		}
-		state = STATE_IDENTIFY;
+
+		setConnectState(STATE_IDENTIFY);
 
 		// Param must not be toUtf8'd...
 		param = aLine.substr(6);
@@ -735,8 +736,8 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 					u.getUser()->setFlag(User::PASSIVE);
 			}
 
-			if(state == STATE_IDENTIFY && u.getUser() == getMyIdentity().getUser()) {
-				state = STATE_NORMAL;
+			if(getConnectState() == STATE_IDENTIFY && u.getUser() == getMyIdentity().getUser()) {
+				setConnectState(STATE_NORMAL);
 				updateCounts(false);
 				fire(ClientListener::HubUpdated(), this);
 
@@ -937,7 +938,7 @@ void NmdcHub::revConnectToMe(const OnlineUser& aUser) {
 }
 
 bool NmdcHub::hubMessage(const string& aMessage, string& error_, bool thirdPerson) { 
-	if(state != STATE_NORMAL) {
+	if(!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
 	}
@@ -1094,7 +1095,7 @@ void NmdcHub::privateMessage(const string& nick, const string& message, bool thi
 }
 
 bool NmdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool thirdPerson) {
-	if(state != STATE_NORMAL) {
+	if(!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
 	}
@@ -1139,7 +1140,7 @@ void NmdcHub::clearFlooders(uint64_t aTick) {
 void NmdcHub::on(Connected) noexcept {
 	Client::on(Connected());
 
-	if(state != STATE_PROTOCOL) {
+	if(getConnectState() != STATE_PROTOCOL) {
 		return;
 	}
 
@@ -1164,7 +1165,7 @@ void NmdcHub::on(Failed, const string& aLine) noexcept {
 void NmdcHub::on(Second, uint64_t aTick) noexcept {
 	Client::on(Second(), aTick);
 
-	if(state == STATE_NORMAL && (aTick > (getLastActivity() + 120*1000)) ) {
+	if(stateNormal() && (aTick > (getLastActivity() + 120*1000)) ) {
 		send("|", 1);
 	}
 }

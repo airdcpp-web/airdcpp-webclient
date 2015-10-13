@@ -162,9 +162,6 @@ public:
 	};
 	CountType getCountType() { return countType; }
 
-	void logStatusMessage(const string& aMessage);
-	void logChatMessage(const string& aMessage);
-
 	void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, int = ClientListener::FLAG_NORMAL) noexcept;
 
 	virtual ~Client();
@@ -181,7 +178,7 @@ public:
 	void doRedirect() noexcept;
 	bool saveFavorite();
 
-	enum State {
+	enum State: uint8_t {
 		STATE_CONNECTING,	///< Waiting for socket to connect
 		STATE_PROTOCOL,		///< Protocol setup
 		STATE_IDENTIFY,		///< Nick setup
@@ -193,15 +190,18 @@ public:
 	State getConnectState() const noexcept {
 		return state;
 	}
+
+	bool stateNormal() const noexcept {
+		return state == STATE_NORMAL;
+	}
 protected:
+	void setConnectState(State aState) noexcept;
 	MessageCache cache;
 
 	friend class ClientManager;
-	Client(const string& hubURL, char separator, optional<ClientToken> aToken);
+	Client(const string& hubURL, char separator, const ClientPtr& aOldClient);
 
 	static atomic<long> counts[COUNT_UNCOUNTED];
-
-	atomic<State> state;
 
 	SearchQueue searchQueue;
 	BufferedSocket* sock;
@@ -241,6 +241,8 @@ protected:
 
 	string redirectUrl;
 private:
+	atomic<State> state;
+
 	string hubUrl;
 	string address;
 	string ip;

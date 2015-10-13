@@ -218,7 +218,7 @@ private:
 	typedef pair<OnlineIterC, OnlineIterC> OnlinePairC;
 	
 	Client::UrlMap clients;
-	Client::IdMap clientsId;
+	Client::IdMap clientsById;
 	mutable SharedMutex cs;
 	
 	UserMap users;

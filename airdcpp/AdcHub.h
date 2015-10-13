@@ -85,10 +85,10 @@ private:
 	friend class CommandHandler<AdcHub>;
 	friend class Identity;
 
-	AdcHub(const string& aHubURL, optional<ClientToken> aToken);
+	AdcHub(const string& aHubURL, const ClientPtr& aOldClient = nullptr);
 
-	AdcHub(const AdcHub&);
-	AdcHub& operator=(const AdcHub&);
+	AdcHub(const AdcHub&) = delete;
+	AdcHub& operator=(const AdcHub&) = delete;
 	~AdcHub();
 
 	/** Map session id to OnlineUser */

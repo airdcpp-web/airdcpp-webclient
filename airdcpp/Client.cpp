@@ -36,12 +36,12 @@ namespace dcpp {
 atomic<long> Client::counts[COUNT_UNCOUNTED];
 ClientToken idCounter = 0;
 
-Client::Client(const string& hubURL, char separator_, optional<ClientToken> aToken) :
-	myIdentity(ClientManager::getInstance()->getMe(), 0), clientId(aToken ? *aToken : ++idCounter),
+Client::Client(const string& hubURL, char separator_, const ClientPtr& aOldClient) :
+	myIdentity(ClientManager::getInstance()->getMe(), 0), clientId(aOldClient ? aOldClient->getClientId() : ++idCounter),
 	reconnDelay(120), lastActivity(GET_TICK()), registered(false), autoReconnect(false),
 	state(STATE_DISCONNECTED), sock(0),
 	separator(separator_),
-	countType(COUNT_UNCOUNTED), availableBytes(0), favToken(0), cache(SettingsManager::HUB_MESSAGE_CACHE)
+	countType(COUNT_UNCOUNTED), availableBytes(0), favToken(0), cache(aOldClient ? aOldClient->getCache() : SettingsManager::HUB_MESSAGE_CACHE)
 {
 	setHubUrl(hubURL);
 	TimerManager::getInstance()->addListener(this);
@@ -78,7 +78,6 @@ void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 	if (!aRedirect) {
 		fire(ClientListener::Disconnecting(), this);
 	}
-	//removeListeners();
 
 	if(sock) {
 		BufferedSocket::putSocket(sock, [aClient] { aClient->sock = nullptr; }); // Ensure that the pointer won't be deleted too early
@@ -205,8 +204,7 @@ void Client::connect() {
 		sock = BufferedSocket::getSocket(separator, v4only());
 		sock->addListener(this);
 		sock->connect(Socket::AddressInfo(address, Socket::AddressInfo::TYPE_URL), port, secure, SETTING(ALLOW_UNTRUSTED_HUBS), true, keyprint /**/);
-	}
-	catch (const Exception& e) {
+	} catch (const Exception& e) {
 		state = STATE_DISCONNECTED;
 		fire(ClientListener::Failed(), hubUrl, e.getError());
 	}
@@ -243,7 +241,12 @@ void Client::on(BufferedSocketListener::Connected) noexcept {
 	}*/
 	
 	fire(ClientListener::Connected(), this);
-	state = STATE_PROTOCOL;
+	setConnectState(STATE_PROTOCOL);
+}
+
+void Client::setConnectState(State aState) noexcept {
+	state = aState;
+	fire(ClientListener::ConnectStateChanged(), this, aState);
 }
 
 void Client::statusMessage(const string& aMessage, LogMessage::Severity aSeverity, int aFlag) noexcept {
@@ -251,7 +254,15 @@ void Client::statusMessage(const string& aMessage, LogMessage::Severity aSeverit
 
 	if (aFlag != ClientListener::FLAG_IS_SPAM) {
 		cache.addMessage(message);
-		logStatusMessage(aMessage);
+
+		if (SETTING(LOG_STATUS_MESSAGES)) {
+			ParamMap params;
+			getHubIdentity().getParams(params, "hub", false);
+			params["hubURL"] = getHubUrl();
+			getMyIdentity().getParams(params, "my", true);
+			params["message"] = aMessage;
+			LOG(LogManager::STATUS, params);
+		}
 	}
 
 	fire(ClientListener::StatusMessage(), this, message, aFlag);
@@ -292,7 +303,15 @@ void Client::onChatMessage(const ChatMessagePtr& aMessage) noexcept {
 	if (MessageManager::getInstance()->isIgnoredOrFiltered(aMessage, this, false))
 		return;
 
-	logChatMessage(aMessage->format());
+	if (get(HubSettings::LogMainChat)) {
+		ParamMap params;
+		params["message"] = aMessage->format();
+		getHubIdentity().getParams(params, "hub", false);
+		params["hubURL"] = getHubUrl();
+		getMyIdentity().getParams(params, "my", true);
+		LOG(LogManager::CHAT, params);
+	}
+
 	fire(ClientListener::ChatMessage(), this, aMessage);
 	cache.addMessage(aMessage);
 }
@@ -327,11 +346,11 @@ void Client::doRedirect() noexcept {
 
 	auto newClient = ClientManager::getInstance()->redirect(getHubUrl(), redirectUrl);
 	fire(ClientListener::Redirected(), getHubUrl(), newClient);
-	newClient->connect();
 }
 
 void Client::on(Failed, const string& aLine) noexcept {
 	state = STATE_DISCONNECTED;
+	statusMessage(aLine, LogMessage::SEV_WARNING); //Error?
 
 	sock->removeListener(this);
 	fire(ClientListener::Failed(), getHubUrl(), aLine);
@@ -421,28 +440,6 @@ void Client::on(Second, uint64_t aTick) noexcept{
 		if (s){
 			search(move(s));
 		}
-	}
-}
-
-void Client::logStatusMessage(const string& aMessage) {
-	if (SETTING(LOG_STATUS_MESSAGES)) {
-		ParamMap params;
-		getHubIdentity().getParams(params, "hub", false);
-		params["hubURL"] = getHubUrl();
-		getMyIdentity().getParams(params, "my", true);
-		params["message"] = aMessage;
-		LOG(LogManager::STATUS, params);
-	}
-}
-
-void Client::logChatMessage(const string& aMessage) {
-	if (get(HubSettings::LogMainChat)) {
-		ParamMap params;
-		params["message"] = aMessage;
-		getHubIdentity().getParams(params, "hub", false);
-		params["hubURL"] = getHubUrl();
-		getMyIdentity().getParams(params, "my", true);
-		LOG(LogManager::CHAT, params);
 	}
 }
 

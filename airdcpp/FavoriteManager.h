@@ -122,6 +122,7 @@ public:
 	void updateRecent(const RecentHubEntryPtr& entry);
 
 	RecentHubEntryPtr getRecentHubEntry(const string& aServer);
+	RecentHubEntryList searchRecentHubs(const string& aPattern, size_t aMaxResults) const noexcept;
 
 	PreviewApplication* addPreviewApp(string name, string application, string arguments, string extension){
 		PreviewApplication* pa = new PreviewApplication(name, application, arguments, extension);

@@ -81,12 +81,11 @@ private:
 	FloodMap seekers;
 	FloodMap flooders;
 
-	NmdcHub(const string& aHubURL, optional<ClientToken> aToken);
+	NmdcHub(const string& aHubURL, const ClientPtr& aOldClient = nullptr);
 	~NmdcHub();
 
-	// Dummy
-	NmdcHub(const NmdcHub&);
-	NmdcHub& operator=(const NmdcHub&);
+	NmdcHub(const NmdcHub&) = delete;
+	NmdcHub& operator=(const NmdcHub&) = delete;
 
 	void clearUsers();
 	void onLine(const string& aLine) noexcept;

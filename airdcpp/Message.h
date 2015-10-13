@@ -68,6 +68,8 @@ public:
 	time_t getTime() const noexcept {
 		return time;
 	}
+
+	IGETSET(bool, read, Read, false);
 private:
 	uint64_t id;
 	string text;

@@ -20,18 +20,18 @@
 #include "FavoriteManager.h"
 
 #include "AirUtil.h"
-#include "ClientManager.h"
-#include "ResourceManager.h"
-#include "CryptoManager.h"
-#include "LogManager.h"
-#include "ShareManager.h"
-
-#include "HttpConnection.h"
-#include "StringTokenizer.h"
-#include "SimpleXML.h"
-#include "UserCommand.h"
 #include "BZUtils.h"
+#include "ClientManager.h"
+#include "CryptoManager.h"
 #include "FilteredFile.h"
+#include "HttpConnection.h"
+#include "LogManager.h"
+#include "RelevancySearch.h"
+#include "ResourceManager.h"
+#include "ShareManager.h"
+#include "SimpleXML.h"
+#include "StringTokenizer.h"
+#include "UserCommand.h"
 
 namespace dcpp {
 
@@ -1048,6 +1048,21 @@ RecentHubEntryPtr FavoriteManager::getRecentHubEntry(const string& aServer) {
 	RLock l(cs);
 	auto p = getRecentHub(aServer);
 	return p == recentHubs.end() ? nullptr : *p;
+}
+
+RecentHubEntryList FavoriteManager::searchRecentHubs(const string& aPattern, size_t aMaxResults) const noexcept {
+	auto search = RelevancySearch<RecentHubEntryPtr>(aPattern, [](const RecentHubEntryPtr& aHub) {
+		return aHub->getName();
+	});
+
+	{
+		RLock l(cs);
+		for (const auto& hub : recentHubs) {
+			search.match(hub);
+		}
+	}
+
+	return search.getResults(aMaxResults);
 }
 
 void FavoriteManager::refresh(bool forceDownload /* = false */) {

@@ -57,9 +57,9 @@ ClientPtr ClientManager::createClient(const RecentHubEntryPtr& aEntry, ProfileTo
 
 	ClientPtr c;
 	if (AirUtil::isAdcHub(url)) {
-		c = new AdcHub(url, boost::none);
+		c = new AdcHub(url);
 	} else {
-		c = new NmdcHub(url, boost::none);
+		c = new NmdcHub(url);
 	}
 
 	c->setShareProfile(aProfile);
@@ -73,7 +73,7 @@ ClientPtr ClientManager::createClient(const RecentHubEntryPtr& aEntry, ProfileTo
 			ret.first->second->setActive();
 		}
 
-		clientsId.emplace(c->getClientId(), c);
+		clientsById.emplace(c->getClientId(), c);
 	}
 
 	if (!added) {
@@ -96,8 +96,8 @@ ClientPtr ClientManager::getClient(const string& aHubURL) noexcept {
 
 ClientPtr ClientManager::getClient(ClientToken aClientId) noexcept {
 	RLock l(cs);
-	auto p = clientsId.find(aClientId);
-	return p != clientsId.end() ? p->second : nullptr;
+	auto p = clientsById.find(aClientId);
+	return p != clientsById.end() ? p->second : nullptr;
 }
 
 bool ClientManager::putClient(ClientToken aClientId) noexcept {
@@ -137,6 +137,7 @@ bool ClientManager::putClient(ClientPtr& aClient) noexcept {
 	{
 		WLock l(cs);
 		clients.erase(const_cast<string*>(&aClient->getHubUrl()));
+		clientsById.erase(aClient->getClientId());
 	}
 
 	return true;
@@ -153,15 +154,16 @@ ClientPtr ClientManager::redirect(const string& aHubUrl, const string& aNewUrl) 
 
 	ClientPtr newClient;
 	if (AirUtil::isAdcHub(aNewUrl)) {
-		newClient = new AdcHub(aNewUrl, oldClient->getClientId());
+		newClient = new AdcHub(aNewUrl, oldClient);
 	} else {
-		newClient = new NmdcHub(aNewUrl, oldClient->getClientId());
+		newClient = new NmdcHub(aNewUrl, oldClient);
 	}
 
 	{
 		WLock l(cs);
 		clients.erase(const_cast<string*>(&aHubUrl));
-		clients.emplace(const_cast<string*>(&aNewUrl), newClient);
+		clients.emplace(const_cast<string*>(&newClient->getHubUrl()), newClient);
+		clientsById[newClient->getClientId()] = newClient;
 	}
 
 	RecentHubEntryPtr r = new RecentHubEntry(aNewUrl);
@@ -1026,7 +1028,7 @@ OnlineUserList ClientManager::searchNicks(const string& aPattern, size_t aMaxRes
 			OnlineUserList hubUsers;
 			c->getUserList(hubUsers);
 			for (const auto& ou : hubUsers) {
-				if (ou->getUser() == me) {
+				if (ou->getUser() == me || ou->isHidden()) {
 					continue;
 				}
 

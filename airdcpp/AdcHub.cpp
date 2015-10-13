@@ -67,8 +67,8 @@ const string AdcHub::CCPM_FEATURE("CCPM");
 
 const vector<StringList> AdcHub::searchExtensions;
 
-AdcHub::AdcHub(const string& aHubURL, optional<ClientToken> aToken) :
-	Client(aHubURL, '\n', aToken), oldPassword(false), udp(Socket::TYPE_UDP), sid(0) {
+AdcHub::AdcHub(const string& aHubURL, const ClientPtr& aOldClient) :
+	Client(aHubURL, '\n', aOldClient), oldPassword(false), udp(Socket::TYPE_UDP), sid(0) {
 	TimerManager::getInstance()->addListener(this);
 }
 
@@ -247,9 +247,12 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 	}
 
 	if(u->getUser() == getMyIdentity().getUser()) {
-		State oldState = state;
-		state = STATE_NORMAL;
-		setAutoReconnect(true);
+		State oldState = getConnectState();
+		if (oldState != STATE_NORMAL) {
+			setConnectState(STATE_NORMAL);
+			setAutoReconnect(true);
+		}
+
 		u->getIdentity().setConnectMode(Identity::MODE_ME);
 		setMyIdentity(u->getIdentity());
 		updateCounts(false);
@@ -267,15 +270,14 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 				}
 			}
 		}
-	} else {
-		if (state == STATE_NORMAL)
-			u->getIdentity().updateConnectMode(getMyIdentity(), this);
+	} else if (stateNormal()) {
+		u->getIdentity().updateConnectMode(getMyIdentity(), this);
 	}
 
 	if(u->getIdentity().isHub()) {
 		setHubIdentity(u->getIdentity());
 		fire(ClientListener::HubUpdated(), this);
-	} else if (state == STATE_NORMAL) {
+	} else if (stateNormal()) {
 		fire(ClientListener::UserUpdated(), this, u);
 	} else {
 		fire(ClientListener::UserConnected(), this, u);
@@ -283,8 +285,9 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::SUP, AdcCommand& c) noexcept {
-	if(state != STATE_PROTOCOL) /** @todo SUP changes */
+	if(getConnectState() != STATE_PROTOCOL) /** @todo SUP changes */
 		return;
+
 	bool baseOk = false;
 	bool tigrOk = false;
 	for(const auto& p: c.getParameters()) {
@@ -312,7 +315,7 @@ void AdcHub::handle(AdcCommand::SUP, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::SID, AdcCommand& c) noexcept {
-	if(state != STATE_PROTOCOL) {
+	if(getConnectState() != STATE_PROTOCOL) {
 		dcdebug("Invalid state for SID\n");
 		return;
 	}
@@ -322,7 +325,7 @@ void AdcHub::handle(AdcCommand::SID, AdcCommand& c) noexcept {
 
 	sid = AdcCommand::toSID(c.getParam(0));
 
-	state = STATE_IDENTIFY;
+	setConnectState(STATE_IDENTIFY);
 	infoImpl();
 }
 
@@ -360,7 +363,7 @@ void AdcHub::handle(AdcCommand::GPA, AdcCommand& c) noexcept {
 	if(c.getParameters().empty() || c.getFrom() != AdcCommand::HUB_SID)
 		return;
 	salt = c.getParam(0);
-	state = STATE_VERIFY;
+	setConnectState(STATE_VERIFY);
 
 	onPassword();
 }
@@ -623,7 +626,7 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 			{
 				string tmp;
 				if (c.getParam("FC", 1, tmp) && tmp.size() == 4) {
-					statusMessage(c.getParam(1) + " (command " + tmp + ", client state " + Util::toString(state) + ")", LogMessage::SEV_ERROR);
+					statusMessage(c.getParam(1) + " (command " + tmp + ", client state " + Util::toString(getConnectState()) + ")", LogMessage::SEV_ERROR);
 					return;
 				}
 			}
@@ -975,7 +978,7 @@ bool AdcHub::checkProtocol(const OnlineUser& aUser, bool& secure_, const string&
 
 AdcCommand::Error AdcHub::allowConnect(const OnlineUser& aUser, bool aSecure, string& failedProtocol_, bool checkBase) const {
 	//check the state
-	if(state != STATE_NORMAL)
+	if(!stateNormal())
 		return AdcCommand::ERROR_BAD_STATE;
 
 	if (checkBase) {
@@ -1041,7 +1044,7 @@ void AdcHub::connect(const OnlineUser& aUser, const string& aToken, bool aSecure
 }
 
 bool AdcHub::hubMessage(const string& aMessage, string& error_, bool thirdPerson) {
-	if(state != STATE_NORMAL) {
+	if(!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
 	}
@@ -1060,7 +1063,7 @@ bool AdcHub::hubMessage(const string& aMessage, string& error_, bool thirdPerson
 }
 
 bool AdcHub::privateMessage(const OnlineUserPtr& user, const string& aMessage, string& error_, bool thirdPerson) {
-	if(state != STATE_NORMAL) {
+	if(!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
 	}
@@ -1079,8 +1082,9 @@ bool AdcHub::privateMessage(const OnlineUserPtr& user, const string& aMessage, s
 }
 
 void AdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {
-	if(state != STATE_NORMAL)
+	if(!stateNormal())
 		return;
+
 	string cmd = Util::formatParams(command.getCommand(), params, escape);
 	if(command.isChat()) {
 		string error;
@@ -1132,7 +1136,7 @@ StringList AdcHub::parseSearchExts(int flag) {
 }
 
 void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir, time_t aDate, int aDateMode) {
-	if(state != STATE_NORMAL)
+	if(!stateNormal())
 		return;
 
 	AdcCommand c(AdcCommand::CMD_SCH, (user.getIdentity().getSID()), AdcCommand::TYPE_DIRECT);
@@ -1278,7 +1282,7 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 }
 
 void AdcHub::search(const SearchPtr& s) {
-	if(state != STATE_NORMAL)
+	if(!stateNormal())
 		return;
 
 	AdcCommand c(AdcCommand::CMD_SCH, AdcCommand::TYPE_BROADCAST);
@@ -1313,7 +1317,7 @@ void AdcHub::sendSearch(AdcCommand& c) {
 }
 
 void AdcHub::password(const string& pwd) {
-	if(state != STATE_VERIFY)
+	if(getConnectState() != STATE_VERIFY)
 		return;
 	if(!salt.empty()) {
 		size_t saltBytes = salt.size() * 5 / 8;
@@ -1385,14 +1389,14 @@ void AdcHub::appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4,
 }
 
 void AdcHub::infoImpl() {
-	if(state != STATE_IDENTIFY && state != STATE_NORMAL)
+	if(getConnectState() != STATE_IDENTIFY && getConnectState() != STATE_NORMAL)
 		return;
 
 	reloadSettings(false);
 
 	AdcCommand c(AdcCommand::CMD_INF, AdcCommand::TYPE_BROADCAST);
 
-	if (state == STATE_NORMAL) {
+	if (stateNormal()) {
 		if(!updateCounts(false))
 			return;
 	}
@@ -1511,7 +1515,7 @@ bool AdcHub::send(const AdcCommand& cmd) {
 void AdcHub::on(Connected c) noexcept {
 	Client::on(c);
 
-	if(state != STATE_PROTOCOL) {
+	if(getConnectState() != STATE_PROTOCOL) {
 		return;
 	}
 
@@ -1555,7 +1559,7 @@ void AdcHub::on(Failed f, const string& aLine) noexcept {
 
 void AdcHub::on(Second s, uint64_t aTick) noexcept {
 	Client::on(s, aTick);
-	if(state == STATE_NORMAL && (aTick > (getLastActivity() + 120*1000)) ) {
+	if(stateNormal() && (aTick > (getLastActivity() + 120*1000)) ) {
 		send("\n", 1);
 	}
 }

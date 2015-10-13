@@ -28,7 +28,7 @@
 #include <string>
 
 namespace dcpp {
-	static string stripNick(const string& aNick) {
+	inline static string stripNick(const string& aNick) {
 		if (aNick.empty() || aNick.substr(0, 1) != "[") return aNick;
 
 		auto x = aNick.find(']');

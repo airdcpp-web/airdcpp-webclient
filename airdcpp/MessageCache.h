@@ -29,9 +29,12 @@
 namespace dcpp {
 	typedef deque<Message> MessageList;
 
-	class MessageCache : private boost::noncopyable {
+	class MessageCache {
 	public:
 		MessageCache(SettingsManager::IntSetting aSetting) : setting(aSetting) { }
+		MessageCache(const MessageCache& aCache) : messages(aCache.messages), setting(aCache.setting) {
+
+		}
 
 		template<class T>
 		void addMessage(const T& aMessage) noexcept {
@@ -47,14 +50,14 @@ namespace dcpp {
 			RLock l(cs);
 			int updated = 0;
 			for (auto& message : messages) {
-				if (message.type != Message::TYPE_CHAT) {
-					continue;
-				}
-
-				//message.
-				if (!message.chatMessage->getRead()) {
+				if (message.type == Message::TYPE_CHAT) {
+					if (!message.chatMessage->getRead()) {
+						updated++;
+						message.chatMessage->setRead(true);
+					}
+				} else if (!message.logMessage->getRead()) {
 					updated++;
-					message.chatMessage->setRead(true);
+					message.logMessage->setRead(true);
 				}
 			}
 
@@ -66,18 +69,19 @@ namespace dcpp {
 			return static_cast<int>(messages.size());
 		}
 
-		int countUnread() const noexcept {
+		int countUnread(Message::Type aType) const noexcept {
 			RLock l(cs);
-			return std::accumulate(messages.begin(), messages.end(), 0, [](int aOld, const Message& aMessage) {
-				if (aMessage.type != Message::TYPE_CHAT) {
-					return aOld;
+			return std::accumulate(messages.begin(), messages.end(), 0, [aType](int aOld, const Message& aMessage) {
+				bool unread = false;
+				if (aMessage.type == aType) {
+					if (aMessage.type == Message::TYPE_CHAT) {
+						unread = !aMessage.chatMessage->getRead();
+					} else {
+						unread = !aMessage.logMessage->getRead();
+					}
 				}
 
-				if (!aMessage.chatMessage->getRead()) {
-					return aOld + 1;
-				}
-
-				return aOld;
+				return unread ? aOld + 1 : aOld;
 			});
 		}
 	private:
