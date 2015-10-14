@@ -231,6 +231,7 @@
   <ItemGroup>
     <ClCompile Include="airdcpp\AdcCommand.cpp" />
     <ClCompile Include="airdcpp\AdcHub.cpp" />
+    <ClCompile Include="airdcpp\MessageCache.cpp" />
     <ClCompile Include="airdcpp\MessageManager.cpp" />
     <ClCompile Include="airdcpp\PrivateChat.cpp" />
     <ClCompile Include="airdcpp\SearchQuery.cpp" />

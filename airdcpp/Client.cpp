@@ -245,6 +245,10 @@ void Client::on(BufferedSocketListener::Connected) noexcept {
 }
 
 void Client::setConnectState(State aState) noexcept {
+	if (state == aState) {
+		return;
+	}
+
 	state = aState;
 	fire(ClientListener::ConnectStateChanged(), this, aState);
 }

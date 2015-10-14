@@ -27,6 +27,7 @@
 #include "DispatcherQueue.h"
 #include "LogManagerListener.h"
 #include "Message.h"
+#include "MessageCache.h"
 #include "Singleton.h"
 #include "Speaker.h"
 #include "User.h"
@@ -42,8 +43,6 @@ public:
 	void log(Area area, ParamMap& params) noexcept;
 	void message(const string& msg, LogMessage::Severity severity);
 
-	LogMessageList getLastLogs();
-	void clearLastLogs();
 	string getPath(Area area, ParamMap& params) const;
 	string getPath(Area area) const;
 
@@ -54,12 +53,19 @@ public:
 
 	const string& getSetting(int area, int sel) const;
 	void saveSetting(int area, int sel, const string& setting);
+
+	const MessageCache& getCache() const noexcept {
+		return cache;
+	}
+
+	void clearCache() noexcept;
+	void setRead() noexcept;
 private:
+	MessageCache cache;
+
 	void log(const string& area, const string& msg) noexcept;
 
 	friend class Singleton<LogManager>;
-	CriticalSection cs;
-	LogMessageList lastLogs;
 
 	int options[LAST][2];
 
@@ -70,7 +76,6 @@ private:
 	void ensureParam(const string& aParam, string& aFile);
 
 	DispatcherQueue tasks;
-	uint32_t idCounter = 0;
 };
 
 #define LOG(area, msg) LogManager::getInstance()->log(area, msg)

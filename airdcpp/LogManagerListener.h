@@ -29,7 +29,12 @@ public:
 	template<int I>	struct X { enum { TYPE = I }; };
 
 	typedef X<0> Message;
+	typedef X<1> MessagesRead;
+	typedef X<2> Cleared;
+
 	virtual void on(Message, const LogMessagePtr&) noexcept { }
+	virtual void on(MessagesRead) noexcept {}
+	virtual void on(Cleared) noexcept {}
 };
 
 } // namespace dcpp

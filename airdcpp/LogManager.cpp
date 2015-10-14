@@ -53,6 +53,20 @@ void LogManager::log(const UserPtr& aUser, ParamMap& params) {
 	log(path, Util::formatParams(getSetting(PM, FORMAT), params));
 }
 
+void LogManager::setRead() noexcept {
+	auto updated = cache.setRead();
+	if (updated > 0) {
+		fire(LogManagerListener::MessagesRead());
+	}
+}
+
+void LogManager::clearCache() noexcept {
+	auto cleared = cache.clear();
+	if (cleared > 0) {
+		fire(LogManagerListener::Cleared());
+	}
+}
+
 void LogManager::removePmCache(const UserPtr& aUser) {
 	pmPaths.erase(aUser->getCID());
 }
@@ -95,26 +109,11 @@ void LogManager::message(const string& msg, LogMessage::Severity severity) {
 	}
 
 	auto messageData = make_shared<LogMessage>(msg, severity);
-	{
-		Lock l(cs);
-		// Keep the last 100 messages (completely arbitrary number...)
-		while(lastLogs.size() > 100)
-			lastLogs.pop_front();
-
-		lastLogs.emplace_back(messageData);
-	}
+	cache.addMessage(messageData);
 
 	fire(LogManagerListener::Message(), messageData);
 }
 
-LogMessageList LogManager::getLastLogs() {
-	Lock l(cs);
-	return lastLogs;
-}
-void LogManager::clearLastLogs() {
-	Lock l(cs);
-	return lastLogs.clear();
-}
 string LogManager::getPath(Area area, ParamMap& params) const {
 	return Util::validatePath(SETTING(LOG_DIRECTORY) + 
 		Util::formatParams(getSetting(area, FILE), params, Util::cleanPathSeparators));
@@ -148,7 +147,7 @@ void LogManager::log(const string& area, const string& msg) noexcept {
 	});
 }
 
-LogManager::LogManager() : tasks(true) {
+LogManager::LogManager() : tasks(true), cache(SettingsManager::LOG_MESSAGE_CACHE) {
 
 	options[UPLOAD][FILE]		= SettingsManager::LOG_FILE_UPLOAD;
 	options[UPLOAD][FORMAT]		= SettingsManager::LOG_FORMAT_POST_UPLOAD;

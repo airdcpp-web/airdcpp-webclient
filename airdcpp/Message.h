@@ -49,7 +49,7 @@ private:
 
 class LogMessage {
 public:
-	enum Severity : uint8_t { SEV_INFO, SEV_WARNING, SEV_ERROR };
+	enum Severity : uint8_t { SEV_INFO, SEV_WARNING, SEV_ERROR, SEV_LAST };
 
 	LogMessage(const string& aMessage, Severity sev) noexcept;
 

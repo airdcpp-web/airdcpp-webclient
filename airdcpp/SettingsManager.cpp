@@ -172,7 +172,7 @@ const string SettingsManager::settingTags[] =
 	"QueueSplitterPosition", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
 	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", "MultithreadedRefresh", "MonitoringMode",
 	"MonitoringDelay", "DelayCountMode", "MaxRunningBundles", "DefaultShareProfile", "UpdateChannel", "ColorStatusFinished", "ColorStatusShared", "ProgressLighten",
-	"ConfigBuildNumber", "PmMessageCache", "HubMessageCache",
+	"ConfigBuildNumber", "PmMessageCache", "HubMessageCache", "LogMessageCache",
 	"SENTRY",
 
 	// Bools
@@ -867,6 +867,7 @@ SettingsManager::SettingsManager()
 
 	setDefault(PM_MESSAGE_CACHE, 20); // Just so that we won't lose messages while the tab is being created
 	setDefault(HUB_MESSAGE_CACHE, 0);
+	setDefault(LOG_MESSAGE_CACHE, 100);
 #ifdef _WIN32
 	setDefault(NMDC_ENCODING, Text::systemCharset);
 #else
