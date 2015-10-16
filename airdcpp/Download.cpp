@@ -104,7 +104,7 @@ Download::~Download() {
 	getUserConnection().setDownload(0);
 }
 
-AdcCommand Download::getCommand(bool zlib, const string& mySID) const {
+AdcCommand Download::getCommand(bool zlib, const string& mySID) const noexcept {
 	AdcCommand cmd(AdcCommand::CMD_GET);
 	
 	cmd.addParam(Transfer::names[getType()]);
@@ -146,20 +146,20 @@ AdcCommand Download::getCommand(bool zlib, const string& mySID) const {
 	return cmd;
 }
 
-void Download::getParams(const UserConnection& aSource, ParamMap& params) {
+void Download::getParams(const UserConnection& aSource, ParamMap& params) const noexcept {
 	Transfer::getParams(aSource, params);
 	params["target"] = getPath();
 }
 
-bool Download::isFileList() {
+bool Download::isFileList() const noexcept {
 	return getType() == Transfer::TYPE_FULL_LIST || getType() == Transfer::TYPE_PARTIAL_LIST;
 }
 
-string Download::getTargetFileName() const {
+string Download::getTargetFileName() const noexcept {
 	return Util::getFileName(getPath());
 }
 
-const string& Download::getDownloadTarget() const {
+const string& Download::getDownloadTarget() const noexcept {
 	return (getTempTarget().empty() ? getPath() : getTempTarget());
 }
 

@@ -39,9 +39,10 @@ public:
 	typedef X<8> UpdateStatusMessage;
 	typedef X<9> RemovedQueue;
 	typedef X<10> SetActive;
-	typedef X<11> HubChanged;
+	typedef X<11> UserUpdated;
+	typedef X<12> StateChanged;
 
-	virtual void on(LoadingFinished, int64_t /*start*/, const string& /*aDir*/, bool /*reloadList*/, bool /*changeDir*/, bool /*load in gui thread*/) noexcept { }
+	virtual void on(LoadingFinished, int64_t /*start*/, const string& /*aDir*/, bool /*reloadList*/, bool /*changeDir*/) noexcept { }
 	virtual void on(LoadingFailed, const string&) noexcept { }
 	virtual void on(LoadingStarted, bool /* changeDir */) noexcept { }
 	virtual void on(QueueMatched, const string&) noexcept { }
@@ -52,7 +53,8 @@ public:
 	virtual void on(UpdateStatusMessage, const string&) noexcept { }
 	virtual void on(RemovedQueue, const string&) noexcept { }
 	virtual void on(SetActive) noexcept {}
-	virtual void on(HubChanged) noexcept {}
+	virtual void on(UserUpdated) noexcept {}
+	virtual void on(StateChanged, uint8_t) noexcept {}
 };
 
 } // namespace dcpp

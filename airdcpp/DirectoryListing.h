@@ -23,6 +23,7 @@
 
 #include "DirectoryListingListener.h"
 #include "ClientManagerListener.h"
+#include "DownloadManagerListener.h"
 #include "SearchManagerListener.h"
 #include "ShareManagerListener.h"
 #include "TimerManager.h"
@@ -41,7 +42,6 @@
 #include "ShareManager.h"
 #include "Streams.h"
 #include "TargetUtil.h"
-#include "Thread.h"
 
 namespace dcpp {
 
@@ -50,8 +50,9 @@ class QueueException;
 STANDARD_EXCEPTION(AbortException);
 typedef uint32_t DirectoryListingToken;
 
-class DirectoryListing : public intrusive_ptr_base<DirectoryListing>, public UserInfoBase, public Thread, public Speaker<DirectoryListingListener>, 
-	private SearchManagerListener, private TimerManagerListener, private ClientManagerListener, private ShareManagerListener
+class DirectoryListing : public intrusive_ptr_base<DirectoryListing>, public UserInfoBase, 
+	public Speaker<DirectoryListingListener>, private SearchManagerListener, private TimerManagerListener, 
+	private ClientManagerListener, private ShareManagerListener, private DownloadManagerListener
 {
 public:
 	class Directory;
@@ -78,9 +79,9 @@ public:
 		GETSET(int64_t, size, Size);
 		GETSET(Directory*, parent, Parent);
 		GETSET(TTHValue, tthRoot, TTH);
-		GETSET(bool, adls, Adls);
-		GETSET(DupeType, dupe, Dupe);
-		GETSET(time_t, remoteDate, RemoteDate);
+		IGETSET(bool, adls, Adls, false);
+		IGETSET(DupeType, dupe, Dupe, DUPE_NONE);
+		IGETSET(time_t, remoteDate, RemoteDate, 0);
 		bool isQueued() const noexcept {
 			return (dupe == DUPE_QUEUE || dupe == DUPE_FINISHED);
 		}
@@ -138,13 +139,13 @@ public:
 		uint8_t checkShareDupes() noexcept;
 		
 		GETSET(string, name, Name);
-		GETSET(int64_t, partialSize, PartialSize);
+		IGETSET(int64_t, partialSize, PartialSize, 0);
 		GETSET(Directory*, parent, Parent);
 		GETSET(DirType, type, Type);
-		GETSET(DupeType, dupe, Dupe);
-		GETSET(time_t, remoteDate, RemoteDate);
-		GETSET(time_t, updateDate, UpdateDate);
-		GETSET(bool, loading, Loading);
+		IGETSET(DupeType, dupe, Dupe, DUPE_NONE);
+		IGETSET(time_t, remoteDate, RemoteDate, 0);
+		IGETSET(time_t, updateDate, UpdateDate, 0);
+		IGETSET(bool, loading, Loading, false);
 
 		bool isComplete() const noexcept { return type == TYPE_ADLS || type == TYPE_NORMAL; }
 		void setComplete() noexcept { type = TYPE_NORMAL; }
@@ -195,7 +196,6 @@ public:
 	string getNick(bool firstOnly) const noexcept;
 	static string getNickFromFilename(const string& fileName) noexcept;
 	static UserPtr getUserFromFilename(const string& fileName) noexcept;
-	void checkShareDupes() noexcept;
 	bool findNfo(const string& aPath) noexcept;
 	
 	const UserPtr& getUser() const noexcept { return hintedUser.user; }
@@ -208,7 +208,6 @@ public:
 	GETSET(bool, isClientView, isClientView);
 	GETSET(string, fileName, FileName);
 	GETSET(bool, matchADL, MatchADL);
-	IGETSET(bool, waiting, Waiting, false);
 	IGETSET(bool, closing, Closing, false);
 
 	void addMatchADLTask() noexcept;
@@ -217,13 +216,13 @@ public:
 	void addFullListTask(const string& aDir) noexcept;
 	void addQueueMatchTask() noexcept;
 
-	void addAsyncTask(std::function<void()> f) noexcept;
+	void addAsyncTask(std::function<void()>&& f) noexcept;
 	void close() noexcept;
 
 	void addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) noexcept;
 	bool nextResult(bool prev) noexcept;
 
-	unique_ptr<SearchQuery> curSearch;
+	unique_ptr<SearchQuery> curSearch = nullptr;
 
 	bool isCurrentSearchPath(const string& path) const noexcept;
 	size_t getResultCount() const noexcept { return searchResults.size(); }
@@ -238,6 +237,23 @@ public:
 	/* only call from the file list thread*/
 	bool downloadDirImpl(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept;
 	void setActive() noexcept;
+
+	enum State : uint8_t {
+		STATE_DOWNLOAD_PENDING,
+		STATE_DOWNLOADING,
+		STATE_LOADING,
+		STATE_LOADED
+	};
+
+	State getState() const noexcept {
+		return state;
+	}
+
+	bool isOpen() const noexcept {
+		return open;
+	}
+
+	void changeDirectory(const string& aPath, bool aReload = false, bool aIsSearchChange = false) noexcept;
 private:
 	friend class ListLoader;
 
@@ -247,30 +263,32 @@ private:
 	typedef unordered_map<string, pair<Directory::Ptr, bool>> DirMap;
 	DirMap baseDirs;
 
-	int run();
+	void dispatch(DispatcherQueue::Callback* aCallback) noexcept;
 
-	enum Tasks {
-		ASYNC,
-		CLOSE
-	};
+	bool open = false;
+	State state = STATE_DOWNLOAD_PENDING;
+	void setState(State aState) noexcept;
 
-	void runTasks() noexcept;
 	atomic_flag running;
 
-	TaskQueue tasks;
-
 	void on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept;
+
+	// ClientManagerListener
 	void on(ClientManagerListener::DirectSearchEnd, const string& aToken, int resultCount) noexcept;
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
+	void on(ClientManagerListener::UserUpdated, const UserPtr& aUser) noexcept;
 
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 
 	// ShareManagerListener
 	void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const StringList& aPaths) noexcept;
 
+	void on(DownloadManagerListener::Failed, const Download* aDownload, const string& aReason) noexcept;
+	void on(DownloadManagerListener::Starting, const Download* aDownload) noexcept;
+
 	void endSearch(bool timedOut = false) noexcept;
 
-	void changeDir(bool reload = false) noexcept;
-
+	int loadShareDirectory(const string& aPath, bool aRecurse = false) throw(Exception, AbortException);
 
 	OrderedStringSet searchResults;
 	OrderedStringSet::iterator curResult;
@@ -288,8 +306,12 @@ private:
 	void matchQueueImpl() noexcept;
 	void removedQueueImpl(const string& aDir) noexcept;
 
-	void waitActionFinish() const throw(AbortException);
 	HintedUser hintedUser;
+
+	void checkShareDupes() noexcept;
+	void onLoadingFinished() noexcept;
+
+	DispatcherQueue tasks;
 };
 
 inline bool operator==(const DirectoryListing::Directory::Ptr& a, const string& b) { return Util::stricmp(a->getName(), b) == 0; }

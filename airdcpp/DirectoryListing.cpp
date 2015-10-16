@@ -1,4 +1,3 @@
-
 /* 
  * Copyright (C) 2001-2015 Jacek Sieka, arnetheduck on gmail point com
  *
@@ -26,6 +25,8 @@
 #include "Bundle.h"
 #include "BZUtils.h"
 #include "DirectoryListingManager.h"
+#include "Download.h"
+#include "DownloadManager.h"
 #include "FilteredFile.h"
 #include "QueueManager.h"
 #include "ResourceManager.h"
@@ -44,18 +45,23 @@ using boost::range::find_if;
 
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
 	hintedUser(aUser), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD, 0)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
-	isClientView(aIsClientView), curSearch(nullptr), lastResult(0), matchADL(SETTING(USE_ADLS) && !aPartial) 
+	isClientView(aIsClientView), matchADL(SETTING(USE_ADLS) && !aPartial), tasks(isClientView, Thread::NORMAL, std::bind(&DirectoryListing::dispatch, this, std::placeholders::_1))
 {
 	running.clear();
 
 	ClientManager::getInstance()->addListener(this);
-	if (isOwnList)
+	if (isOwnList) {
 		ShareManager::getInstance()->addListener(this);
+	} else {
+		DownloadManager::getInstance()->addListener(this);
+	}
 }
 
 DirectoryListing::~DirectoryListing() {
+	dcdebug("Filelist removed");
 	ClientManager::getInstance()->removeListener(this);
 	ShareManager::getInstance()->removeListener(this);
+	DownloadManager::getInstance()->removeListener(this);
 }
 
 bool DirectoryListing::isMyCID() const noexcept {
@@ -92,10 +98,9 @@ string DirectoryListing::getNick(bool firstOnly) const noexcept {
 	return ret;
 }
 
-void DirectoryListing::setHubUrl(const string& newUrl, bool isGuiChange) noexcept {
+void DirectoryListing::setHubUrl(const string& newUrl, bool) noexcept {
 	hintedUser.hint = newUrl;
-	if (!isGuiChange)
-		fire(DirectoryListingListener::HubChanged());
+	fire(DirectoryListingListener::UserUpdated());
 }
 
 void stripExtensions(string& name) noexcept {
@@ -155,14 +160,18 @@ bool DirectoryListing::supportsASCH() const noexcept {
 	return !partialList || isOwnList || hintedUser.user->isSet(User::ASCH);
 }
 
+void DirectoryListing::setState(State aState) noexcept {
+	if (aState == STATE_LOADED) {
+		open = true;
+	}
+
+	state = aState;
+	fire(DirectoryListingListener::StateChanged(), aState);
+}
+
 void DirectoryListing::loadFile() throw(Exception, AbortException) {
 	if (isOwnList) {
-		auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName));
-		if (mis) {
-			loadXML(*mis, true);
-		} else {
-			throw Exception(CSTRING(FILE_NOT_AVAILABLE));
-		}
+		loadShareDirectory(Util::emptyString, true);
 	} else {
 
 		// For now, we detect type by ending...
@@ -359,7 +368,8 @@ void ListLoader::endTag(const string& name) {
 }
 
 DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe, time_t aRemoteDate) noexcept : 
-	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), adls(false), dupe(DUPE_NONE), remoteDate(aRemoteDate), token(Util::rand()) {
+	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), remoteDate(aRemoteDate), token(Util::rand()) {
+
 	if (checkDupe && size > 0) {
 		dupe = AirUtil::checkFileDupe(tthRoot);
 	}
@@ -370,7 +380,7 @@ DirectoryListing::File::File(const File& rhs, bool _adls) noexcept : name(rhs.na
 }
 
 DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, Directory::DirType aType, time_t aUpdateDate, bool checkDupe, const string& aSize, time_t aRemoteDate /*0*/)
-	: name(aName), parent(aParent), type(aType), dupe(DUPE_NONE), partialSize(0), remoteDate(aRemoteDate), loading(false), updateDate(aUpdateDate), token(Util::rand()) {
+	: name(aName), parent(aParent), type(aType), remoteDate(aRemoteDate), updateDate(aUpdateDate), token(Util::rand()) {
 
 	if (!aSize.empty()) {
 		partialSize = Util::toInt64(aSize);
@@ -785,20 +795,21 @@ void DirectoryListing::checkShareDupes() noexcept {
 }
 
 void DirectoryListing::addMatchADLTask() noexcept {
-	addAsyncTask([=] { matchAdlImpl(); });
-	runTasks();
+	tasks.addTask([=] { matchAdlImpl(); });
 }
 
 void DirectoryListing::addListDiffTask(const string& aFile, bool aOwnList) noexcept {
-	addAsyncTask([=] { listDiffImpl(aFile, aOwnList); });
+	tasks.addTask([=] { listDiffImpl(aFile, aOwnList); });
 }
 
 void DirectoryListing::addPartialListTask(const string& aXml, const string& aBase, bool reloadAll /*false*/, bool changeDir /*true*/, std::function<void()> f) noexcept {
-	addAsyncTask([=] { loadPartialImpl(aXml, aBase, reloadAll, changeDir, f); });
+	setState(STATE_LOADING);
+	tasks.addTask([=] { loadPartialImpl(aXml, aBase, reloadAll, changeDir, f); });
 }
 
 void DirectoryListing::addFullListTask(const string& aDir) noexcept {
-	addAsyncTask([=] { loadFileImpl(aDir); });
+	setState(STATE_LOADING);
+	tasks.addTask([=] { loadFileImpl(aDir); });
 }
 
 void DirectoryListing::addQueueMatchTask() noexcept {
@@ -806,134 +817,94 @@ void DirectoryListing::addQueueMatchTask() noexcept {
 }
 
 void DirectoryListing::close() noexcept {
-	tasks.add(CLOSE, nullptr);
-	runTasks();
+	tasks.stop([=] {
+		fire(DirectoryListingListener::Close());
+	});
 }
 
 void DirectoryListing::addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) noexcept {
 	addAsyncTask([=] { searchImpl(aSearchString, aSize, aTypeMode, aSizeMode, aExtList, aDir); });
 }
 
-void DirectoryListing::addAsyncTask(std::function<void()> f) noexcept {
+void DirectoryListing::addAsyncTask(std::function<void()>&& f) noexcept {
 	if (closing)
 		return;
 
-	tasks.add(ASYNC, unique_ptr<AsyncTask>(new AsyncTask(f)));
-	runTasks();
+	tasks.addTask(move(f));
 }
 
 void DirectoryListing::onRemovedQueue(const string& aDir) noexcept {
 	addAsyncTask([=] { removedQueueImpl(aDir); });
 }
 
-void DirectoryListing::runTasks() noexcept {
-	if (!running.test_and_set()) {
-		join();
-		try {
-			start();
-		} catch(const ThreadException& /*e*/) {
-			LogManager::getInstance()->message("DirListThread error", LogMessage::SEV_WARNING);
-			running.clear();
-		}
+void DirectoryListing::dispatch(DispatcherQueue::Callback* aCallback) noexcept {
+	try {
+		(*aCallback)();
+	} catch (const std::bad_alloc&) {
+		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
+		fire(DirectoryListingListener::LoadingFailed(), "Out of memory");
+	} catch (const AbortException&) {
+		fire(DirectoryListingListener::LoadingFailed(), Util::emptyString);
+	} catch(const ShareException& e) {
+		fire(DirectoryListingListener::LoadingFailed(), e.getError());
+	} catch (const QueueException& e) {
+		fire(DirectoryListingListener::UpdateStatusMessage(), "Queueing failed:" + e.getError());
+	} catch (const Exception& e) {
+		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % e.getError()), LogMessage::SEV_ERROR);
+		fire(DirectoryListingListener::LoadingFailed(), ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) + ": " + e.getError());
 	}
-}
-
-void DirectoryListing::waitActionFinish() const throw(AbortException) {
-	while (waiting) {
-		if (closing)
-			throw AbortException();
-		sleep(10);
-	}
-}
-
-int DirectoryListing::run() {
-	for (;;) {
-		TaskQueue::TaskPair t;
-		if (!tasks.getFront(t))
-			break;
-
-		ScopedFunctor([this] { tasks.pop_front(); });
-
-		try {
-			if (t.first == CLOSE) {
-				fire(DirectoryListingListener::Close());
-				break;
-			} else if (t.first == ASYNC && !closing) {
-				static_cast<AsyncTask*>(t.second)->f();
-			}
-		} catch (const std::bad_alloc&) {
-			LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
-			fire(DirectoryListingListener::LoadingFailed(), "Out of memory");
-			break;
-		} catch (const AbortException&) {
-			fire(DirectoryListingListener::LoadingFailed(), Util::emptyString);
-			break;
-		} catch(const ShareException& e) {
-			fire(DirectoryListingListener::LoadingFailed(), e.getError());
-		} catch (const QueueException& e) {
-			fire(DirectoryListingListener::UpdateStatusMessage(), "Queueing failed:" + e.getError());
-		} catch (const Exception& e) {
-			LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % e.getError()), LogMessage::SEV_ERROR);
-			fire(DirectoryListingListener::LoadingFailed(), ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) + ": " + e.getError());
-		}
-	}
-
-	running.clear();
-	return 0;
 }
 
 void DirectoryListing::listDiffImpl(const string& aFile, bool aOwnList) throw(Exception, AbortException) {
 	int64_t start = GET_TICK();
 	if (isOwnList && partialList) {
 		// we need the recursive list for this
-		auto mis = ShareManager::getInstance()->generatePartialList("/", true, Util::toInt(fileName));
-		if (mis) {
-			loadXML(*mis, true);
-			partialList = false;
-		} else {
-			throw Exception(CSTRING(FILE_NOT_AVAILABLE));
-		}
+		loadShareDirectory(Util::emptyString, true);
+		partialList = false;
 	}
 
 	DirectoryListing dirList(hintedUser, false, aFile, false, aOwnList);
 	dirList.loadFile();
 
 	root->filterList(dirList);
-	fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true, false);
+	fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true);
 }
 
 void DirectoryListing::matchAdlImpl() throw(AbortException) {
 	int64_t start = GET_TICK();
 	root->clearAdls(); //not much to check even if its the first time loaded without adls...
 	ADLSearchManager::getInstance()->matchListing(*this);
-	fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true, false);
+	fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true);
 }
 
 void DirectoryListing::loadFileImpl(const string& aInitialDir) throw(Exception, AbortException) {
 	int64_t start = GET_TICK();
 	partialList = false;
 
-	waiting = true;
 	fire(DirectoryListingListener::LoadingStarted(), false);
 	bool reloading = !root->directories.empty();
 
 	if (reloading) {
-		//wait for the gui to disable the window
-		waitActionFinish();
-
 		root->clearAll();
 		baseDirs.clear();
 	}
 
 	loadFile();
 
+	fire(DirectoryListingListener::LoadingFinished(), start, aInitialDir, reloading, true);
+	onLoadingFinished();
+}
+
+void DirectoryListing::onLoadingFinished() noexcept {
 	if (matchADL) {
 		fire(DirectoryListingListener::UpdateStatusMessage(), CSTRING(MATCHING_ADL));
 		ADLSearchManager::getInstance()->matchListing(*this);
 	}
 
-	fire(DirectoryListingListener::LoadingFinished(), start, aInitialDir, reloading, true, false);
-	reloading = false;
+	if (!getIsOwnList() && SETTING(DUPES_IN_FILELIST) && isClientView)
+		checkShareDupes();
+
+	setState(STATE_LOADED);
 }
 
 void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) noexcept {
@@ -980,13 +951,6 @@ void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDi
 		return;
 
 	auto baseDir = isOwnList && reloadAll ? "/" : Util::toAdcFile(aBaseDir);
-	MemoryInputStream* mis = nullptr;
-	if (isOwnList) {
-		mis = ShareManager::getInstance()->generatePartialList(baseDir, false, Util::toInt(fileName));
-		if (!mis) {
-			throw Exception(CSTRING(FILE_NOT_AVAILABLE));
-		}
-	}
 
 	bool reloading = reloadAll;
 	if (!reloading) {
@@ -997,12 +961,7 @@ void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDi
 	}
 
 	if (reloading) {
-		waiting = true;
 		fire(DirectoryListingListener::LoadingStarted(), false);
-
-		//wait for the gui to disable the window
-		waitActionFinish();
-
 
 		if (baseDir.empty() || reloadAll) {
 			baseDirs.clear();
@@ -1030,36 +989,24 @@ void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDi
 		}
 	}
 
-	waiting = true;
 	if (!reloading) {
 		fire(DirectoryListingListener::LoadingStarted(), true);
-		waitActionFinish();
 	}
 
 	int dirsLoaded = 0;
 	if (isOwnList) {
-		dcassert(mis);
-		dirsLoaded = loadXML(*mis, true, baseDir);
-	}
-	else {
+		dirsLoaded = loadShareDirectory(Util::toNmdcFile(baseDir));
+	} else {
 		dirsLoaded = updateXML(aXml, baseDir);
 	}
 
-	waiting = true;
-	bool useGuiThread = !reloading && dirsLoaded < 5000;
-	if (!useGuiThread && !reloading) {
-		fire(DirectoryListingListener::LoadingStarted(), false);
-		waitActionFinish();
-	}
+	//fire(DirectoryListingListener::LoadingStarted(), false);
 
-	waiting = true;
-	fire(DirectoryListingListener::LoadingFinished(), 0, Util::toNmdcFile(baseDir), reloadAll || (reloading && baseDir == "/"), changeDir, useGuiThread);
+	fire(DirectoryListingListener::LoadingFinished(), 0, Util::toNmdcFile(baseDir), reloadAll || (reloading && baseDir == "/"), changeDir);
+	onLoadingFinished();
+
 	if (completionF) {
 		completionF();
-	}
-
-	if (useGuiThread) {
-		waitActionFinish();
 	}
 }
 
@@ -1070,6 +1017,32 @@ void DirectoryListing::matchQueueImpl() noexcept {
 	fire(DirectoryListingListener::QueueMatched(), AirUtil::formatMatchResults(matches, newFiles, bundles, false));
 }
 
+void DirectoryListing::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept {
+	if (aUser != hintedUser.user) {
+		return;
+	}
+
+	fire(DirectoryListingListener::UserUpdated());
+}
+void DirectoryListing::on(ClientManagerListener::UserUpdated, const UserPtr& aUser) noexcept {
+	if (aUser != hintedUser.user) {
+		return;
+	}
+
+	fire(DirectoryListingListener::UserUpdated());
+}
+
+void DirectoryListing::on(DownloadManagerListener::Failed, const Download* aDownload, const string& aReason) noexcept {
+	if (aDownload->isFileList() && aDownload->getUser() == getUser()) {
+		setState(STATE_DOWNLOAD_PENDING);
+	}
+}
+
+void DirectoryListing::on(DownloadManagerListener::Starting, const Download* aDownload) noexcept {
+	if (aDownload->isFileList() && aDownload->getUser() == getUser()) {
+		setState(STATE_DOWNLOADING);
+	}
+}
 
 void DirectoryListing::on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept {
 	if (compare(aSR->getToken(), searchToken) == 0) {
@@ -1118,40 +1091,41 @@ void DirectoryListing::endSearch(bool timedOut /*false*/) noexcept {
 		fire(DirectoryListingListener::SearchFailed(), timedOut);
 	} else {
 		curResult = searchResults.begin();
-		changeDir();
+		changeDirectory(*curResult, false, true);
 	}
 }
 
-void DirectoryListing::changeDir(bool reload) noexcept {
-	auto path = *curResult;
-	if (!partialList) {
-		fire(DirectoryListingListener::ChangeDirectory(), path, true);
-	} else {
-		const auto dir = (path == Util::emptyString) ? root : findDirectory(path, root);
-		if (dir && dir->isComplete() && !reload) {
-			fire(DirectoryListingListener::ChangeDirectory(), path, true);
-		} else if (isOwnList) {
-			auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(path), false, Util::toInt(fileName));
-			if (mis) {
-				try {
-					loadXML(*mis, true, Util::toAdcFile(path));
-				} catch (const AbortException&) {
-					// closing down
-					return;
-				}
-				fire(DirectoryListingListener::LoadingFinished(), 0, path, false, true, true);
-			} else {
-				//might happen if have refreshed the share meanwhile
-				fire(DirectoryListingListener::LoadingFailed(), CSTRING(FILE_NOT_AVAILABLE));
-			}
-		} else {
-			try {
-				if (path.back() != PATH_SEPARATOR)
-					path = Util::getFilePath(path);
+int DirectoryListing::loadShareDirectory(const string& aPath, bool aRecurse) throw(Exception, AbortException) {
+	auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(aPath), aRecurse, Util::toInt(fileName));
+	if (mis) {
+		return loadXML(*mis, true, Util::toAdcFile(aPath));
+	}
 
-				QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, path);
-			} catch (...) { }
+	//might happen if have refreshed the share meanwhile
+	throw Exception(CSTRING(FILE_NOT_AVAILABLE));
+}
+
+void DirectoryListing::changeDirectory(const string& aPath, bool aReload, bool aIsSearchChange) noexcept {
+	if (!partialList) {
+		fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
+		return;
+	}
+
+	try {
+		const auto dir = aPath.empty() ? root : findDirectory(aPath, root);
+		if (dir && dir->isComplete() && !aReload) {
+			fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
+		} else if (isOwnList) {
+			dir->setLoading(true);
+			addPartialListTask(aPath, aPath, aReload);
+		} else if (getUser()->isOnline()) {
+			dir->setLoading(true);
+			QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, aPath);
+		} else {
+			fire(DirectoryListingListener::UpdateStatusMessage(), STRING(USER_OFFLINE));
 		}
+	} catch (const Exception& e) {
+		fire(DirectoryListingListener::LoadingFailed(), e.getError());
 	}
 }
 
@@ -1168,7 +1142,7 @@ bool DirectoryListing::nextResult(bool prev) noexcept {
 		advance(curResult, 1);
 	}
 
-	changeDir();
+	changeDirectory(*curResult, false, true);
 	return true;
 }
 
@@ -1182,8 +1156,13 @@ bool DirectoryListing::isCurrentSearchPath(const string& path) const noexcept {
 void DirectoryListing::removedQueueImpl(const string& aDir) noexcept {
 	auto d = findDirectory(aDir);
 	if (d) {
-		d->setLoading(false);
 		fire(DirectoryListingListener::RemovedQueue(), aDir);
+
+		if (open) {
+			setState(STATE_LOADED);
+		} else {
+			close();
+		}
 	}
 }
 

@@ -30,32 +30,55 @@ namespace dcpp {
 class DispatcherQueue : public Thread {
 public:
 	typedef std::function<void()> Callback;
-	DispatcherQueue(bool aUseDispatcherThread, Thread::Priority aThreadPrio = Thread::NORMAL) : stop(false), useDispatcherThread(aUseDispatcherThread) {
-		if (useDispatcherThread) {
+
+	// You may pass an optional function that will handle executing the callbacks (can be used for exception handling)
+	DispatcherQueue(bool aStartThread, Thread::Priority aThreadPrio = Thread::NORMAL, std::function<void(Callback*)> aDispatchF = nullptr) : threadPriority(aThreadPrio), dispatchF(aDispatchF) {
+		if (aStartThread) {
 			start();
 			setThreadPriority(aThreadPrio);
 		}
 	}
 
 	~DispatcherQueue() {
-		stop = true;
-		if (useDispatcherThread) {
+		stopping = true;
+		if (started) {
 			s.signal();
 			join();
 		}
 	}
 
+	void start() {
+		started = true;
+		setThreadPriority(threadPriority);
+
+		Thread::start();
+	}
+
+	// The function will be executed after the thread has been stopped
+	void stop(Callback aCompletionF = nullptr) noexcept {
+		stopF = aCompletionF;
+		stopping = true;
+		s.signal();
+	}
+
 	void addTask(Callback&& aTask) {
 		queue.push(new Callback(move(aTask)));
-		if (useDispatcherThread)
+		if (started)
 			s.signal();
 	}
 
 	int run() {
 		while (true) {
 			s.wait();
-			if (stop)
+			if (stopping) {
+				stopping = false;
+				started = false;
+				if (stopF) {
+					stopF();
+				}
+
 				break;
+			}
 
 			dispatch();
 		}
@@ -67,7 +90,12 @@ public:
 			return false;
 		}
 
-		(*t)();
+		if (dispatchF) {
+			dispatchF(t);
+		} else {
+			(*t)();
+		}
+
 		delete t;
 		return true;
 	}
@@ -76,8 +104,15 @@ private:
 	concurrent_queue<Callback*> queue;
 
 	Callback* t = nullptr;
-	bool stop = false;
-	const bool useDispatcherThread;
+	bool stopping = false;
+	bool started = false;
+	const Thread::Priority threadPriority;
+
+	// Optional function that can be passed to the stop function
+	Callback stopF = nullptr;
+
+	// Function that will execute the callbacks
+	std::function<void(Callback*)> dispatchF = nullptr;
 };
 
 }

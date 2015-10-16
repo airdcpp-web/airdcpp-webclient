@@ -64,14 +64,14 @@ public:
 
 	Download(UserConnection& conn, QueueItem& qi) noexcept;
 
-	void getParams(const UserConnection& aSource, ParamMap& params);
+	void getParams(const UserConnection& aSource, ParamMap& params) const noexcept;
 
 	~Download();
 
-	bool isFileList();
+	bool isFileList() const noexcept;
 
 	/** @return Target filename without path. */
-	string getTargetFileName() const;
+	string getTargetFileName() const noexcept;
 
 	/** Open the target output for writing */
 	void open(int64_t bytes, bool z, bool hasDownloadedBytes);
@@ -84,7 +84,7 @@ public:
 	const string& getPFS() const { return pfs; }
 
 	/** @internal */
-	AdcCommand getCommand(bool zlib, const string& mySID) const;
+	AdcCommand getCommand(bool zlib, const string& mySID) const noexcept;
 	const unique_ptr<OutputStream>& getOutput() const { return output; }
 
 	GETSET(string, tempTarget, TempTarget);
@@ -104,7 +104,7 @@ private:
 	Download(const Download&);
 	Download& operator=(const Download&);
 
-	const string& getDownloadTarget() const;
+	const string& getDownloadTarget() const noexcept;
 
 	unique_ptr<OutputStream> output;
 	TigerTree tt;

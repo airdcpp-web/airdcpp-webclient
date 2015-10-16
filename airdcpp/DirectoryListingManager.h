@@ -36,10 +36,12 @@ namespace dcpp {
 	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener, 
 		public TimerManagerListener {
 	public:
+		typedef unordered_map<UserPtr, DirectoryListingPtr, User::Hash> DirectoryListingMap;
+
 		void openOwnList(ProfileToken aProfile, bool useADL=false) noexcept;
 		void openFileList(const HintedUser& aUser, const string& aFile) noexcept;
 		
-		void removeList(const UserPtr& aUser) noexcept;
+		bool removeList(const UserPtr& aUser) noexcept;
 
 		DirectoryListingManager() noexcept;
 		~DirectoryListingManager() noexcept;
@@ -51,6 +53,7 @@ namespace dcpp {
 			QueueItemBase::Priority p = QueueItem::DEFAULT, bool useFullList = false, ProfileToken aAutoSearch = 0, bool checkNameDupes = false, bool checkViewed = true) noexcept;
 
 		void removeDirectoryDownload(const UserPtr& aUser, const string& aPath, bool isPartialList) noexcept;
+		DirectoryListingMap getLists() const noexcept;
 	private:
 		class DirectoryDownloadInfo : public intrusive_ptr_base<DirectoryDownloadInfo> {
 		public:
@@ -114,8 +117,6 @@ namespace dcpp {
 		mutable SharedMutex cs;
 
 		bool hasList(const UserPtr& aUser) noexcept;
-		void createList(const HintedUser& aUser, const string& aFile, const string& aInitialDir = Util::emptyString, bool isOwnList = false) noexcept;
-		void createPartialList(const HintedUser& aUser, const string& aXml, const string& aDir = Util::emptyString, ProfileToken aProfile = SETTING(DEFAULT_SP), bool isOwnList = false) noexcept;
 
 		/** Directories queued for downloading */
 		unordered_multimap<UserPtr, DirectoryDownloadInfo::Ptr, User::Hash> dlDirectories;
@@ -125,8 +126,9 @@ namespace dcpp {
 
 
 		/** Lists open in the client **/
-		unordered_map<UserPtr, DirectoryListingPtr, User::Hash> viewedLists;
+		DirectoryListingMap viewedLists;
 
+		void on(QueueManagerListener::Added, QueueItemPtr& aQI) noexcept;
 		void on(QueueManagerListener::Finished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t aSpeed) noexcept;
 		void on(QueueManagerListener::PartialList, const HintedUser& aUser, const string& aXml, const string& aBase) noexcept;
 		void on(QueueManagerListener::Removed, const QueueItemPtr& qi, bool finished) noexcept;

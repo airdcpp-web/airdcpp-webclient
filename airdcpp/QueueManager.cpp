@@ -497,7 +497,7 @@ bool QueueManager::hasDownloadedBytes(const string& aTarget) throw(QueueExceptio
 	return q->getDownloadedBytes() > 0;
 }
 
-void QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = Util::emptyString */, BundlePtr aBundle /*nullptr*/) throw(QueueException, FileException) {
+QueueItemPtr QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = Util::emptyString */, BundlePtr aBundle /*nullptr*/) throw(QueueException, FileException) {
 	//check the source
 	checkSource(aUser);
 	//dcassert(!aUser.hint.empty());
@@ -517,6 +517,8 @@ void QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, cons
 
 
 	//add in queue
+
+	QueueItemPtr q = nullptr;
 	{
 		WLock l(cs);
 		auto ret = fileQueue.add(target, -1, (Flags::MaskType)(QueueItem::FLAG_USER_LIST | aFlags), QueueItem::HIGHEST, aInitialDir, GET_TIME(), TTHValue());
@@ -525,7 +527,7 @@ void QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, cons
 			throw QueueException(STRING(LIST_ALREADY_QUEUED));
 		}
 
-		auto q = move(ret.first);
+		q = move(ret.first);
 		addSource(q, aUser, true, false, false);
 		if (aBundle) {
 			q->setFlag(QueueItem::FLAG_MATCH_BUNDLE);
@@ -537,6 +539,7 @@ void QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, cons
 
 	//connect
 	ConnectionManager::getInstance()->getDownloadConnection(aUser, (aFlags & QueueItem::FLAG_PARTIAL_LIST) || (aFlags & QueueItem::FLAG_TTHLIST_BUNDLE));
+	return q;
 }
 
 string QueueManager::getListPath(const HintedUser& user) const noexcept {
@@ -649,7 +652,7 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& bundleFi
 	}
 }
 
-void QueueManager::addOpenedItem(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool isClientView) throw(QueueException, FileException) {
+QueueItemPtr QueueManager::addOpenedItem(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool isClientView) throw(QueueException, FileException) {
 	//check the source
 	if (aUser.user)
 		checkSource(aUser);
@@ -684,6 +687,8 @@ void QueueManager::addOpenedItem(const string& aFileName, int64_t aSize, const T
 	if(wantConnection || qi->usesSmallSlot()) {
 		ConnectionManager::getInstance()->getDownloadConnection(aUser, qi->usesSmallSlot());
 	}
+
+	return qi;
 }
 
 BundlePtr QueueManager::getBundle(const string& aTarget, QueueItemBase::Priority aPrio, time_t aDate, bool isFileBundle) noexcept {
