@@ -277,7 +277,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 		LogManager::getInstance()->message(aList->getNick(false) + ": " + 
 			AirUtil::formatMatchResults(matches, newFiles, bundles, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0), LogMessage::SEV_INFO);
 	} else if((flags & QueueItem::FLAG_VIEW_NFO) && (flags & QueueItem::FLAG_PARTIAL_LIST)) {
-		aList->findNfo(path);
+		aList->addViewNfoTask(path, false);
 	}
 }
 
@@ -297,11 +297,12 @@ void DirectoryListingManager::on(QueueManagerListener::Finished, const QueueItem
 	}
 
 	if (dl) {
+		dl->setQueueToken(boost::none);
 		dl->setFileName(qi->getListName());
 		if (dl->isOpen()) {
 			dl->addFullListTask(dir);
 		} else {
-			fire(DirectoryListingManagerListener::OpenListing(), dl, Util::emptyString, Util::emptyString);
+			fire(DirectoryListingManagerListener::OpenListing(), dl, dir, Util::emptyString);
 		}
 	}
 }
@@ -321,6 +322,7 @@ void DirectoryListingManager::on(QueueManagerListener::PartialList, const Hinted
 		}
 	}
 
+	dl->setQueueToken(boost::none);
 	dl->setHubUrl(aUser.hint, false);
 	if (dl->isOpen()) {
 		dl->addPartialListTask(aXML, aBase, false, true, [=] { dl->setActive(); });
@@ -348,7 +350,12 @@ void DirectoryListingManager::on(QueueManagerListener::Removed, const QueueItemP
 			}
 		}
 
-		dl->onRemovedQueue(qi->getTempTarget());
+		dl->setQueueToken(boost::none);
+		if (dl->isOpen()) {
+			dl->onRemovedQueue(qi->getTempTarget());
+		} else {
+			removeList(u);
+		}
 	}
 }
 
@@ -397,6 +404,8 @@ void DirectoryListingManager::on(QueueManagerListener::Added, QueueItemPtr& aQI)
 		dl = DirectoryListingPtr(new DirectoryListing(user, true, Util::emptyString, true, false));
 	}
 
+	dl->setQueueToken(aQI->getToken());
+
 	{
 		WLock l(cs);
 		viewedLists[user] = dl;
@@ -417,13 +426,32 @@ bool DirectoryListingManager::hasList(const UserPtr& aUser) noexcept {
 }
 
 bool DirectoryListingManager::removeList(const UserPtr& aUser) noexcept {
-	WLock l (cs);
-	auto p = viewedLists.find(aUser);
-	if (p == viewedLists.end()) {
-		return false;
+	DirectoryListingPtr dl;
+
+	{
+		RLock l(cs);
+		auto p = viewedLists.find(aUser);
+		if (p == viewedLists.end()) {
+			return false;
+		}
+
+		dl = p->second;
 	}
 
-	viewedLists.erase(p);
+	auto token = dl->getQueueToken();
+	if (token) {
+		// It will come back here after being removed from the queue
+		QueueManager::getInstance()->removeFile(*token);
+	} else {
+		{
+			WLock l(cs);
+			viewedLists.erase(aUser);
+		}
+
+		dl->close();
+		fire(DirectoryListingManagerListener::ListingClosed(), dl);
+	}
+
 	return true;
 }
 

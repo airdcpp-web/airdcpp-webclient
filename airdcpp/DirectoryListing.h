@@ -196,7 +196,6 @@ public:
 	string getNick(bool firstOnly) const noexcept;
 	static string getNickFromFilename(const string& fileName) noexcept;
 	static UserPtr getUserFromFilename(const string& fileName) noexcept;
-	bool findNfo(const string& aPath) noexcept;
 	
 	const UserPtr& getUser() const noexcept { return hintedUser.user; }
 	const HintedUser& getHintedUser() const noexcept { return hintedUser; }
@@ -209,7 +208,10 @@ public:
 	GETSET(string, fileName, FileName);
 	GETSET(bool, matchADL, MatchADL);
 	IGETSET(bool, closing, Closing, false);
+	IGETSET(optional<QueueToken>, queueToken, QueueToken, boost::none);
 
+	typedef std::function<void(const string& aPath)> DupeOpenF;
+	void addViewNfoTask(const string& aDir, bool aAllowQueueList, DupeOpenF aDupeF = nullptr) noexcept;
 	void addMatchADLTask() noexcept;
 	void addListDiffTask(const string& aFile, bool aOwnList) noexcept;
 	void addPartialListTask(const string& aXml, const string& aBase, bool reloadAll = false, bool changeDir = true, std::function<void()> f = nullptr) noexcept;
@@ -253,7 +255,14 @@ public:
 		return open;
 	}
 
-	void changeDirectory(const string& aPath, bool aReload = false, bool aIsSearchChange = false) noexcept;
+	enum ReloadMode {
+		RELOAD_NONE,
+		RELOAD_DIR,
+		RELOAD_ALL
+	};
+
+	// Returns false if the directory was not found from the list
+	bool changeDirectory(const string& aPath, ReloadMode aReloadMode, bool aIsSearchChange = false) noexcept;
 private:
 	friend class ListLoader;
 
@@ -305,11 +314,14 @@ private:
 	void matchAdlImpl() throw(AbortException);
 	void matchQueueImpl() noexcept;
 	void removedQueueImpl(const string& aDir) noexcept;
+	void findNfoImpl(const string& aPath, bool aAllowQueueList, DupeOpenF aDupeF) noexcept;
 
 	HintedUser hintedUser;
 
 	void checkShareDupes() noexcept;
 	void onLoadingFinished() noexcept;
+
+	void statusMessage(const string& aText, LogMessage::Severity aSeverity) noexcept;
 
 	DispatcherQueue tasks;
 };
