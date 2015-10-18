@@ -228,6 +228,7 @@ enum Strings { // @DontAdd
 	CONFIRM_REMOVE_DIR_FINISHED, // "Are you sure you want to remove the bundle %1% and its finished files?"
 	CONFIRM_REMOVE_DIR_FINISHED_MULTIPLE, // "Are you sure you want to remove %1% bundles and all their finished files?"
 	CONFIRM_REMOVE_DIR_MULTIPLE, // "Are you sure you want to remove %1% bundles?"
+	CONFIRM_REMOVE_HUBS_FAV_GROUP, // "The group %1% contains %2% hubs, remove all of the hubs as well?\n\nIf you select 'Yes', all of these hubs are going to be deleted!\n\nIf you select 'No', these hubs will simply be moved to the main default group."
 	CONFIRM_SIZE_WARNING, // "There is only %1% remaining in the directory %2% while %3% is needed. Do you want to continue?"
 	CONFIRM_SIZE_WARNING_QUEUE, // "There are already %1% of queued files for the directory %2% and only %3% of free space available. Do you really want to queue %4% more?"
 	CONNECT, // "Connect"
