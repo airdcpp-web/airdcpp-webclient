@@ -136,14 +136,6 @@ public:
 	string getSIDString() const { return string((const char*)&sid, 4); }
 	
 	bool isClientType(ClientType ct) const;
-		
-	string setCheat(const ClientBase& c, const string& aCheatDescription, bool aBadClient);
-	map<string, string> getReport() const;
-	string updateClientType(const OnlineUser& ou);
-	bool matchProfile(const string& aString, ProfileToken aProfile) const;
-
-	static string getVersion(const string& aExp, string aTag);
-	static string splitVersion(const string& aExp, string aTag, size_t part);
 	
 	void getParams(ParamMap& map, const string& prefix, bool compatibility) const;
 	const UserPtr& getUser() const { return user; }
@@ -210,8 +202,9 @@ public:
 	public:
 		UrlCompare(const string& aUrl) : url(aUrl) { }
 		bool operator()(const OnlineUserPtr& ou) { return ou->getHubUrl() == url; }
+
+		UrlCompare& operator=(const UrlCompare&) = delete;
 	private:
-		UrlCompare& operator=(const UrlCompare&);
 		const string& url;
 	};
 

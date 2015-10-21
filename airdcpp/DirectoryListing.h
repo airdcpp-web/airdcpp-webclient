@@ -263,7 +263,13 @@ public:
 
 	// Returns false if the directory was not found from the list
 	bool changeDirectory(const string& aPath, ReloadMode aReloadMode, bool aIsSearchChange = false) noexcept;
+
+	const string& getCurrentPath() const noexcept {
+		return currentPath;
+	}
 private:
+	string currentPath;
+
 	friend class ListLoader;
 
 	Directory::Ptr root;
@@ -319,7 +325,7 @@ private:
 	HintedUser hintedUser;
 
 	void checkShareDupes() noexcept;
-	void onLoadingFinished() noexcept;
+	void onLoadingFinished(int64_t aStartTime, const string& aDir, bool aReloadList, bool aChangeDir) noexcept;
 
 	void statusMessage(const string& aText, LogMessage::Severity aSeverity) noexcept;
 

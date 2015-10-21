@@ -316,8 +316,9 @@ void Client::onChatMessage(const ChatMessagePtr& aMessage) noexcept {
 		LOG(LogManager::CHAT, params);
 	}
 
-	fire(ClientListener::ChatMessage(), this, aMessage);
 	cache.addMessage(aMessage);
+
+	fire(ClientListener::ChatMessage(), this, aMessage);
 }
 
 void Client::on(BufferedSocketListener::Connecting) noexcept {

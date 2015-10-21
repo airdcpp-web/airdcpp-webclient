@@ -87,10 +87,10 @@ namespace dcpp {
 		return ret;
 	}
 
-	int MessageCache::countUnreadChatMessages() const noexcept {
+	int MessageCache::countUnreadChatMessages(ChatMessageFilterF filterF) const noexcept {
 		RLock l(cs);
-		return std::accumulate(messages.begin(), messages.end(), 0, [](int aOld, const Message& aMessage) {
-			if (aMessage.type != Message::TYPE_CHAT) {
+		return std::accumulate(messages.begin(), messages.end(), 0, [&](int aOld, const Message& aMessage) {
+			if (aMessage.type != Message::TYPE_CHAT || (filterF && !filterF(aMessage.chatMessage))) {
 				return aOld;
 			}
 
