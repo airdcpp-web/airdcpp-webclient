@@ -557,6 +557,7 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 
 	bool allowUntrusted = verifyData->first;
 	string keyp = verifyData->second;
+	string error = Util::emptyString;
 
 	if (!keyp.empty()) {
 		X509* cert = X509_STORE_CTX_get_current_cert(ctx);
@@ -627,12 +628,50 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 			//KeyPrint was a mismatch, we're not happy with this
 			preverify_ok = 0;
 			err = X509_V_ERR_APPLICATION_VERIFICATION;
+			error = "Keyprint mismatch";
+
 			X509_STORE_CTX_set_error(ctx, err);
 		}
 	}
 
-	// We allow the connection as untrusted even if KeyPrints didn't match, a way to inform in the hub during connecting? 
+	/* We allow the hub connection as untrusted even if KeyPrints didn't match, yes kind of wrong thing to do.. A way to inform in the hub during connecting? */
+	if (!preverify_ok) {
+		if (error.empty())
+			error = X509_verify_cert_error_string(err);
+
+		auto fullError = formatError(ctx, error);
+		if (!fullError.empty() && (!keyp.empty() || !allowUntrusted))
+			LogManager::getInstance()->message(fullError, LogMessage::SEV_ERROR);
+	}
+
 	return allowUntrusted ? 1 : preverify_ok;
+}
+
+string CryptoManager::formatError(X509_STORE_CTX *ctx, const string& message) {
+	X509* cert = NULL;
+	if ((cert = X509_STORE_CTX_get_current_cert(ctx)) != NULL) {
+		X509_NAME* subject = X509_get_subject_name(cert);
+		string tmp, line;
+
+		tmp = getNameEntryByNID(subject, NID_commonName);
+		if (!tmp.empty()) {
+			CID certCID(tmp);
+			if (tmp.length() == 39)
+				tmp = Util::listToString(ClientManager::getInstance()->getNicks(certCID, false));
+			line += (!line.empty() ? ", " : "") + tmp;
+		}
+
+		tmp = getNameEntryByNID(subject, NID_organizationName);
+		if (!tmp.empty())
+			line += (!line.empty() ? ", " : "") + tmp;
+
+		ByteVector kp = ssl::X509_digest(cert, EVP_sha256());
+		string keyp = "SHA256/" + Encoder::toBase32(&kp[0], kp.size());
+
+		return STRING_F(VERIFY_CERT_FAILED, line % message % keyp);
+	}
+
+	return Util::emptyString;
 }
 
 string CryptoManager::getNameEntryByNID(X509_NAME* name, int nid) noexcept{

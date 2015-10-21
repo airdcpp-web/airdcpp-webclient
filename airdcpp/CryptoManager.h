@@ -105,6 +105,7 @@ private:
 		return (b == 0 || b==5 || b==124 || b==96 || b==126 || b==36);
 	}
 
+	static string formatError(X509_STORE_CTX *ctx, const string& message);
 	static string getNameEntryByNID(X509_NAME* name, int nid) noexcept;
 
 	void loadKeyprint(const string& file) noexcept;

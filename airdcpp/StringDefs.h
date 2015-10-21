@@ -1798,7 +1798,7 @@ enum Strings { // @DontAdd
 	USE_SEQ_ORDER, // "Use sequential order"
 	USING_LATEST, // "You are already using the latest version"
 	VALIDATION_SUCCEED, // "Validation succeed"
-	VERIFY_CERT_FAILED, // "Certificate verification for %1% failed with error: %2% (certificate KeyPrint: %3%)"
+	VERIFY_CERT_FAILED, // "Certificate verification for subject: %1% failed with error: %2% (certificate KeyPrint: %3%)"
 	VERSION, // "Version"
 	VERSION_CHECK_FAILED, // "Failed to check for new version: %1%"
 	VERSION_PARSING_FAILED,  // "Could not parse the version data (%1%)"
