@@ -992,8 +992,6 @@ AutoSearchPtr AutoSearchManager::loadItemFromXml(SimpleXML& aXml) {
 	as->setExpireTime(aXml.getIntChildAttrib("ExpireTime"));
 	as->setTimeAdded(aXml.getIntChildAttrib("TimeAdded"));
 
-	dcdebug("ItemType: %s \n", Util::toString(as->getAsType()).c_str());
-
 	auto searchDays = aXml.getChildAttrib("SearchDays");
 	if (!searchDays.empty()) {
 		as->searchDays = bitset<7>(searchDays);

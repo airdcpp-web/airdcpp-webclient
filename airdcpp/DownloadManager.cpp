@@ -392,6 +392,9 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 			d->open(bytes, z, hasDownloadedBytes);
 		}
 	} catch(const FileException& e) {
+		auto b = d->getBundle();
+		QueueManager::getInstance()->bundleDownloadFailed(b, e.getError());
+	
 		failDownload(aSource, STRING(COULD_NOT_OPEN_TARGET_FILE) + " " + e.getError(), true);
 		return;
 	} catch(const Exception& e) {

@@ -259,6 +259,8 @@ public:
 	void addBundleTTHList(const HintedUser& aUser, const string& aRemoteBundleToken, const TTHValue& tth) throw(QueueException);
 	MemoryInputStream* generateTTHList(QueueToken aBundleToken, bool isInSharingHub) throw(QueueException);
 
+	//Bundle download failed due to Ex. disk full
+	void bundleDownloadFailed(BundlePtr& aBundle, const string& aError);
 
 	/* Priorities */
 	void setBundlePriority(QueueToken aBundleToken, QueueItemBase::Priority p) noexcept;

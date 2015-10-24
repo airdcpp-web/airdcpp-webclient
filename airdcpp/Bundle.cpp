@@ -412,7 +412,7 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const noexcept {
 }
 
 bool Bundle::isFailed() const noexcept {
-	return status == STATUS_SHARING_FAILED || status == STATUS_FAILED_MISSING || status == STATUS_HASH_FAILED;
+	return status == STATUS_SHARING_FAILED || status == STATUS_FAILED_MISSING || status == STATUS_HASH_FAILED || status == STATUS_DOWNLOAD_FAILED;
 }
 
 string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const noexcept {
@@ -962,7 +962,7 @@ void Bundle::save() throw(FileException) {
 		f.write(Util::toString(bundleDate));
 		f.write(LIT("\" AddedByAutoSearch=\""));
 		f.write(Util::toString(getAddedByAutoSearch()));
-		if (!getAutoPriority()) {
+		if (!getAutoPriority() && (getStatus() != STATUS_DOWNLOAD_FAILED)) { //Don't save priority for failed downloading, re attempt on next startup..
 			f.write(LIT("\" Priority=\""));
 			f.write(Util::toString((int)getPriority()));
 		}

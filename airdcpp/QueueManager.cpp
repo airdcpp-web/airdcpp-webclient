@@ -1661,6 +1661,14 @@ void QueueManager::checkBundleHashed(BundlePtr& b) noexcept {
 	//removeFinishedBundle(b);
 }
 
+void QueueManager::bundleDownloadFailed(BundlePtr& aBundle, const string& aError) {
+	if (aBundle) {
+		aBundle->setLastError(aError);
+		setBundleStatus(aBundle, Bundle::STATUS_DOWNLOAD_FAILED);
+		setBundlePriority(aBundle, QueueItemBase::PAUSED_FORCE);
+	}
+}
+
 void QueueManager::putDownload(Download* aDownload, bool finished, bool noAccess /*false*/, bool rotateQueue /*false*/) throw(HashException) {
 	HintedUserList getConn;
  	string fl_fname;
@@ -2050,6 +2058,10 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 
 		if (aBundle->isFinished())
 			return;
+		
+		if (aBundle->getStatus() == Bundle::STATUS_DOWNLOAD_FAILED && p != QueueItemBase::PAUSED_FORCE) {
+			setBundleStatus(aBundle, Bundle::STATUS_QUEUED);
+		}
 
 		bundleQueue.removeSearchPrio(aBundle);
 		userQueue.setBundlePriority(aBundle, p);
