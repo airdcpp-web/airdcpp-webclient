@@ -63,15 +63,7 @@ void UDPServer::disconnect() {
 }
 
 UDPServer::UDPServer() : stop(false), pp(true) { }
-UDPServer::~UDPServer() {
-	/*if(socket.get()) {
-		stop = true;
-		socket->disconnect();
-#ifdef _WIN32
-		join();
-#endif
-	}*/
-}
+UDPServer::~UDPServer() { }
 
 #define BUFSIZE 8192
 int UDPServer::run() {

@@ -22,7 +22,7 @@
 #include <string>
 
 #include "GetSet.h"
-#include "ShareProfile.h"
+#include "Pointer.h"
 #include "Util.h"
 
 #include "HubSettings.h"
@@ -84,8 +84,6 @@ public:
 	FavoriteHubEntry() noexcept;
 	FavoriteHubEntry(const HubEntry& rhs) noexcept;
 
-	~FavoriteHubEntry() noexcept { }
-
 	GETSET(string, name, Name);
 	GETSET(string, description, Description);
 	GETSET(string, password, Password);
@@ -115,8 +113,6 @@ public:
 	RecentHubEntry(const string& aUrl) : server(aUrl), name("*"), description("*"), shared("*"), users("*") {
 
 	}
-
-	~RecentHubEntry() noexcept { }	
 	
 	GETSET(string, server, Server);
 	GETSET(string, name, Name);

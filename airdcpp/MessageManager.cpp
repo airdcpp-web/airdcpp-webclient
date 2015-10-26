@@ -172,8 +172,8 @@ void MessageManager::onPrivateMessage(const ChatMessagePtr& aMessage, UserConnec
 		}
 	}
 
-	Client* c = &aMessage->getFrom()->getClient();
-	if (wndCnt > 200 || (!myPM && isIgnoredOrFiltered(aMessage, c, true))) {
+	auto c = aMessage->getFrom()->getClient();
+	if (wndCnt > 200 || (!myPM && isIgnoredOrFiltered(aMessage, c.get(), true))) {
 		DisconnectCCPM(user);
 		return;
 	}
@@ -184,7 +184,7 @@ void MessageManager::onPrivateMessage(const ChatMessagePtr& aMessage, UserConnec
 		return;
 	}
 
-	auto chat = addChat(HintedUser(user, aMessage->getReplyTo()->getClient().getHubUrl()), true);
+	auto chat = addChat(HintedUser(user, aMessage->getReplyTo()->getClient()->getHubUrl()), true);
 	chat->handleMessage(aMessage);
 }
 
@@ -268,7 +268,7 @@ bool MessageManager::isIgnored(const UserPtr& aUser) {
 	return (i != ignoredUsers.end());
 }
 
-bool MessageManager::isIgnoredOrFiltered(const ChatMessagePtr& msg, const ClientPtr& client, bool PM){
+bool MessageManager::isIgnoredOrFiltered(const ChatMessagePtr& msg, Client* aClient, bool PM){
 	const auto& identity = msg->getFrom()->getIdentity();
 
 	auto logIgnored = [&](bool filter) -> void {
@@ -278,8 +278,8 @@ bool MessageManager::isIgnoredOrFiltered(const ChatMessagePtr& msg, const Client
 				tmp = filter ? STRING(PM_MESSAGE_FILTERED) : STRING(PM_MESSAGE_IGNORED);
 			}
 			else {
-				string hub = "[" + ((client && !client->getHubName().empty()) ?
-					(client->getHubName().size() > 50 ? (client->getHubName().substr(0, 50) + "...") : client->getHubName()) : client->getHubUrl()) + "] ";
+				string hub = "[" + ((aClient && !aClient->getHubName().empty()) ?
+					(aClient->getHubName().size() > 50 ? (aClient->getHubName().substr(0, 50) + "...") : aClient->getHubName()) : aClient->getHubUrl()) + "] ";
 				tmp = (filter ? STRING(MC_MESSAGE_FILTERED) : STRING(MC_MESSAGE_IGNORED)) + hub;
 			}
 			tmp += "<" + identity.getNick() + "> " + msg->getText();
@@ -287,16 +287,7 @@ bool MessageManager::isIgnoredOrFiltered(const ChatMessagePtr& msg, const Client
 		}
 	};
 
-	if (PM && client) {
-		// don't be that restrictive with the fav hub option
-		if (client->getFavNoPM() && (client->isOp() || !msg->getReplyTo()->getIdentity().isOp()) && !msg->getReplyTo()->getIdentity().isBot() && !msg->getReplyTo()->getUser()->isFavorite()) {
-			string tmp;
-			client->privateMessage(msg->getReplyTo(), "Private messages sent via this hub are ignored", tmp);
-			return true;
-		}
-	}
-
-	if (msg->getFrom()->getUser()->isIgnored() && ((client && client->isOp()) || !identity.isOp() || identity.isBot())) {
+	if (msg->getFrom()->getUser()->isIgnored() && ((aClient && aClient->isOp()) || !identity.isOp() || identity.isBot())) {
 		logIgnored(false);
 		return true;
 	}

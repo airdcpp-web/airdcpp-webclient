@@ -25,7 +25,6 @@
 #include "File.h"
 #include "GetSet.h"
 #include "HashValue.h"
-#include "Pointer.h"
 #include "TigerHash.h"
 #include "Util.h"
 
@@ -64,9 +63,9 @@ class FileList {
 };
 
 class ShareProfileInfo;
-typedef boost::intrusive_ptr<ShareProfileInfo> ShareProfileInfoPtr;
+typedef std::shared_ptr<ShareProfileInfo> ShareProfileInfoPtr;
 
-class ShareProfileInfo : public FastAlloc<ShareProfileInfo>, public intrusive_ptr_base<ShareProfileInfo> {
+class ShareProfileInfo : public FastAlloc<ShareProfileInfo> {
 public:
 	enum State {
 		STATE_NORMAL,
@@ -85,20 +84,11 @@ public:
 
 	typedef vector<ShareProfileInfoPtr> List;
 	string getDisplayName() const;
-
-	/*class PathCompare {
-	public:
-		PathCompare(const string& compareTo) : a(compareTo) { }
-		bool operator()(const ShareDirInfoPtr& p) { return Util::stricmp(p->path.c_str(), a.c_str()) == 0; }
-	private:
-		PathCompare& operator=(const PathCompare&) ;
-		const string& a;
-	};*/
 };
 
 inline bool operator==(const ShareProfileInfoPtr& ptr, ProfileToken aToken) { return ptr->token == aToken; }
 
-class ShareProfile : public intrusive_ptr_base<ShareProfile> {
+class ShareProfile {
 public:
 	struct Hash {
 		size_t operator()(const ShareProfilePtr& x) const { return x->getToken(); }

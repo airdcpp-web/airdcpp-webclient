@@ -24,6 +24,25 @@
 
 namespace dcpp {
 
+LogManager::LogManager() : tasks(true), cache(SettingsManager::LOG_MESSAGE_CACHE) {
+
+	options[UPLOAD][FILE] = SettingsManager::LOG_FILE_UPLOAD;
+	options[UPLOAD][FORMAT] = SettingsManager::LOG_FORMAT_POST_UPLOAD;
+	options[DOWNLOAD][FILE] = SettingsManager::LOG_FILE_DOWNLOAD;
+	options[DOWNLOAD][FORMAT] = SettingsManager::LOG_FORMAT_POST_DOWNLOAD;
+	options[CHAT][FILE] = SettingsManager::LOG_FILE_MAIN_CHAT;
+	options[CHAT][FORMAT] = SettingsManager::LOG_FORMAT_MAIN_CHAT;
+	options[PM][FILE] = SettingsManager::LOG_FILE_PRIVATE_CHAT;
+	options[PM][FORMAT] = SettingsManager::LOG_FORMAT_PRIVATE_CHAT;
+	options[SYSTEM][FILE] = SettingsManager::LOG_FILE_SYSTEM;
+	options[SYSTEM][FORMAT] = SettingsManager::LOG_FORMAT_SYSTEM;
+	options[STATUS][FILE] = SettingsManager::LOG_FILE_STATUS;
+	options[STATUS][FORMAT] = SettingsManager::LOG_FORMAT_STATUS;
+}
+
+LogManager::~LogManager() {
+}
+
 void LogManager::log(Area area, ParamMap& params) noexcept {
 	log(getPath(area, params), Util::formatParams(getSetting(area, FORMAT), params));
 }
@@ -145,25 +164,6 @@ void LogManager::log(const string& area, const string& msg) noexcept {
 			// ...
 		}
 	});
-}
-
-LogManager::LogManager() : tasks(true), cache(SettingsManager::LOG_MESSAGE_CACHE) {
-
-	options[UPLOAD][FILE]		= SettingsManager::LOG_FILE_UPLOAD;
-	options[UPLOAD][FORMAT]		= SettingsManager::LOG_FORMAT_POST_UPLOAD;
-	options[DOWNLOAD][FILE]		= SettingsManager::LOG_FILE_DOWNLOAD;
-	options[DOWNLOAD][FORMAT]	= SettingsManager::LOG_FORMAT_POST_DOWNLOAD;
-	options[CHAT][FILE]		= SettingsManager::LOG_FILE_MAIN_CHAT;
-	options[CHAT][FORMAT]		= SettingsManager::LOG_FORMAT_MAIN_CHAT;
-	options[PM][FILE]		= SettingsManager::LOG_FILE_PRIVATE_CHAT;
-	options[PM][FORMAT]		= SettingsManager::LOG_FORMAT_PRIVATE_CHAT;
-	options[SYSTEM][FILE]		= SettingsManager::LOG_FILE_SYSTEM;
-	options[SYSTEM][FORMAT]		= SettingsManager::LOG_FORMAT_SYSTEM;
-	options[STATUS][FILE]		= SettingsManager::LOG_FILE_STATUS;
-	options[STATUS][FORMAT]		= SettingsManager::LOG_FORMAT_STATUS;
-}
-
-LogManager::~LogManager() {
 }
 
 } // namespace dcpp

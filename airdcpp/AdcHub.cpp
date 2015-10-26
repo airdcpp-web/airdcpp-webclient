@@ -73,7 +73,7 @@ AdcHub::AdcHub(const string& aHubURL, const ClientPtr& aOldClient) :
 }
 
 AdcHub::~AdcHub() {
-	clearUsers();
+
 }
 
 void AdcHub::shutdown(ClientPtr& aClient, bool aRedirect) {
@@ -104,11 +104,12 @@ OnlineUser& AdcHub::getUser(const uint32_t aSID, const CID& aCID) {
 		return *ou;
 	}
 
-	UserPtr p = ClientManager::getInstance()->getUser(aCID);
+	auto user = ClientManager::getInstance()->getUser(aCID);
+	auto client = ClientManager::getInstance()->getClient(getHubUrl());
 
 	{
 		WLock l(cs);
-		ou = users.emplace(aSID, new OnlineUser(p, *this, aSID)).first->second;
+		ou = users.emplace(aSID, new OnlineUser(user, client, aSID)).first->second;
 		ou->inc();
 	}
 
@@ -163,7 +164,7 @@ void AdcHub::putUser(const uint32_t aSID, bool disconnect) {
 	ou->dec();
 }
 
-void AdcHub::clearUsers() {
+void AdcHub::clearUsers() noexcept {
 	SIDMap tmp;
 	{
 		WLock l(cs);
@@ -1552,7 +1553,6 @@ void AdcHub::on(Line l, const string& aLine) noexcept {
 }
 
 void AdcHub::on(Failed f, const string& aLine) noexcept {
-	clearUsers();
 	Client::on(f, aLine);
 	updateCounts(true); //we are disconnected, remove the count like nmdc hubs do...
 }

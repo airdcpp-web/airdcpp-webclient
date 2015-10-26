@@ -43,9 +43,11 @@ namespace dcpp {
 using boost::range::for_each;
 using boost::range::find_if;
 
-DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
+DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, const string& aDirectory, bool aIsOwnList) :
 	hintedUser(aUser), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD, 0)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
-	isClientView(aIsClientView), matchADL(SETTING(USE_ADLS) && !aPartial), tasks(isClientView, Thread::NORMAL, std::bind(&DirectoryListing::dispatch, this, std::placeholders::_1))
+	isClientView(aIsClientView), matchADL(SETTING(USE_ADLS) && !aPartial), 
+	tasks(isClientView, Thread::NORMAL, std::bind(&DirectoryListing::dispatch, this, std::placeholders::_1)),
+	currentPath(aDirectory)
 {
 	running.clear();
 
@@ -836,25 +838,25 @@ void DirectoryListing::checkShareDupes() noexcept {
 }
 
 void DirectoryListing::addViewNfoTask(const string& aPath, bool aAllowQueueList, DupeOpenF aDupeF) noexcept {
-	tasks.addTask([=] { findNfoImpl(aPath, aAllowQueueList, aDupeF); });
+	addAsyncTask([=] { findNfoImpl(aPath, aAllowQueueList, aDupeF); });
 }
 
 void DirectoryListing::addMatchADLTask() noexcept {
-	tasks.addTask([=] { matchAdlImpl(); });
+	addAsyncTask([=] { matchAdlImpl(); });
 }
 
 void DirectoryListing::addListDiffTask(const string& aFile, bool aOwnList) noexcept {
-	tasks.addTask([=] { listDiffImpl(aFile, aOwnList); });
+	addAsyncTask([=] { listDiffImpl(aFile, aOwnList); });
 }
 
 void DirectoryListing::addPartialListTask(const string& aXml, const string& aBase, bool reloadAll /*false*/, bool changeDir /*true*/, std::function<void()> f) noexcept {
 	setState(STATE_LOADING);
-	tasks.addTask([=] { loadPartialImpl(aXml, aBase, reloadAll, changeDir, f); });
+	addAsyncTask([=] { loadPartialImpl(aXml, aBase, reloadAll, changeDir, f); });
 }
 
 void DirectoryListing::addFullListTask(const string& aDir) noexcept {
 	setState(STATE_LOADING);
-	tasks.addTask([=] { loadFileImpl(aDir); });
+	addAsyncTask([=] { loadFileImpl(aDir); });
 }
 
 void DirectoryListing::addQueueMatchTask() noexcept {
@@ -872,20 +874,21 @@ void DirectoryListing::addSearchTask(const string& aSearchString, int64_t aSize,
 	addAsyncTask([=] { searchImpl(aSearchString, aSize, aTypeMode, aSizeMode, aExtList, aDir); });
 }
 
-void DirectoryListing::addAsyncTask(std::function<void()>&& f) noexcept {
-	if (closing)
-		return;
-
-	tasks.addTask(move(f));
+void DirectoryListing::addAsyncTask(DispatcherQueue::Callback&& f) noexcept {
+	if (isClientView) {
+		tasks.addTask(move(f));
+	} else {
+		dispatch(f);
+	}
 }
 
 void DirectoryListing::onRemovedQueue(const string& aDir) noexcept {
 	addAsyncTask([=] { removedQueueImpl(aDir); });
 }
 
-void DirectoryListing::dispatch(DispatcherQueue::Callback* aCallback) noexcept {
+void DirectoryListing::dispatch(DispatcherQueue::Callback& aCallback) noexcept {
 	try {
-		(*aCallback)();
+		aCallback();
 	} catch (const std::bad_alloc&) {
 		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		fire(DirectoryListingListener::LoadingFailed(), "Out of memory");
@@ -909,7 +912,7 @@ void DirectoryListing::listDiffImpl(const string& aFile, bool aOwnList) throw(Ex
 		partialList = false;
 	}
 
-	DirectoryListing dirList(hintedUser, false, aFile, false, aOwnList);
+	DirectoryListing dirList(hintedUser, false, aFile, false, Util::emptyString, aOwnList);
 	dirList.loadFile();
 
 	root->filterList(dirList);
@@ -1161,9 +1164,11 @@ bool DirectoryListing::changeDirectory(const string& aPath, ReloadMode aReloadMo
 		try {
 			if (isOwnList) {
 				dir->setLoading(true);
+				fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
 				addPartialListTask(aPath, aPath, aReloadMode == RELOAD_ALL);
 			} else if (getUser()->isOnline()) {
 				dir->setLoading(true);
+				fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
 				QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, aPath);
 			} else {
 				fire(DirectoryListingListener::UpdateStatusMessage(), STRING(USER_OFFLINE));

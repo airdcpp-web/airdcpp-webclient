@@ -560,7 +560,7 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort,
 	UserConnection* uc = getConnection(false, secure);
 	uc->setEncoding(Text::utf8);
 	uc->setState(UserConnection::STATE_CONNECT);
-	uc->setHubUrl(aUser.getClient().getHubUrl());
+	uc->setHubUrl(aUser.getClient()->getHubUrl());
 	uc->setToken(aToken);
 	if(aUser.getIdentity().isOp()) {
 		uc->setFlag(UserConnection::FLAG_OP);

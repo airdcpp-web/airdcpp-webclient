@@ -167,7 +167,7 @@ public:
 		GETSET(string, fullPath, FullPath);
 	};
 
-	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool isClientView, bool aIsOwnList=false);
+	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool isClientView, const string& aDirectory, bool aIsOwnList=false);
 	~DirectoryListing();
 	
 	void loadFile() throw(Exception, AbortException);
@@ -218,7 +218,7 @@ public:
 	void addFullListTask(const string& aDir) noexcept;
 	void addQueueMatchTask() noexcept;
 
-	void addAsyncTask(std::function<void()>&& f) noexcept;
+	void addAsyncTask(DispatcherQueue::Callback&& f) noexcept;
 	void close() noexcept;
 
 	void addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) noexcept;
@@ -278,7 +278,7 @@ private:
 	typedef unordered_map<string, pair<Directory::Ptr, bool>> DirMap;
 	DirMap baseDirs;
 
-	void dispatch(DispatcherQueue::Callback* aCallback) noexcept;
+	void dispatch(DispatcherQueue::Callback& aCallback) noexcept;
 
 	bool open = false;
 	State state = STATE_DOWNLOAD_PENDING;

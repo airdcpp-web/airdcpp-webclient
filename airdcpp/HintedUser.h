@@ -38,7 +38,7 @@ struct HintedUser {
 	HintedUser() : user(nullptr) { }
 	HintedUser(const UserPtr& user_, const string& hint_) : user(user_), hint(hint_) { }
 
-	HintedUser(const OnlineUser& ou) : user(ou.getUser()), hint(ou.getClient().getHubUrl()) { }
+	HintedUser(const OnlineUser& ou) : user(ou.getUser()), hint(ou.getClient()->getHubUrl()) { }
 
 	bool operator==(const UserPtr& rhs) const {
 		return user == rhs;

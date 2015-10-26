@@ -47,7 +47,7 @@ class CID;
 typedef std::vector<uint16_t> PartsInfo;
 
 class Client;
-typedef boost::intrusive_ptr<Client> ClientPtr;
+typedef std::shared_ptr<Client> ClientPtr;
 
 class ClientManager;
 
@@ -135,7 +135,7 @@ typedef std::vector<SearchResultPtr> SearchResultList;
 class ServerSocket;
 
 class ShareProfile;
-typedef boost::intrusive_ptr<ShareProfile> ShareProfilePtr;
+typedef std::shared_ptr<ShareProfile> ShareProfilePtr;
 
 class Socket;
 class SocketException;

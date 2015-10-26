@@ -127,7 +127,7 @@ namespace dcpp {
 		void storeIgnore(const UserPtr& aUser);
 		void removeIgnore(const UserPtr& aUser);
 		bool isIgnored(const UserPtr& aUser);
-		bool isIgnoredOrFiltered(const ChatMessagePtr& msg, const ClientPtr& client, bool PM);
+		bool isIgnoredOrFiltered(const ChatMessagePtr& msg, Client* aClient, bool PM);
 
 		// chat filter
 		bool isChatFiltered(const string& aNick, const string& aText, ChatFilterItem::Context aContext = ChatFilterItem::ALL);

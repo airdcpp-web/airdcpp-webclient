@@ -30,9 +30,10 @@ namespace dcpp {
 class DispatcherQueue : public Thread {
 public:
 	typedef std::function<void()> Callback;
+	typedef std::function<void(Callback&)> DispatchF;
 
 	// You may pass an optional function that will handle executing the callbacks (can be used for exception handling)
-	DispatcherQueue(bool aStartThread, Thread::Priority aThreadPrio = Thread::NORMAL, std::function<void(Callback*)> aDispatchF = nullptr) : threadPriority(aThreadPrio), dispatchF(aDispatchF) {
+	DispatcherQueue(bool aStartThread, Thread::Priority aThreadPrio = Thread::NORMAL, DispatchF aDispatchF = nullptr) : threadPriority(aThreadPrio), dispatchF(aDispatchF) {
 		if (aStartThread) {
 			start();
 			setThreadPriority(aThreadPrio);
@@ -91,7 +92,7 @@ public:
 		}
 
 		if (dispatchF) {
-			dispatchF(t);
+			dispatchF(*t);
 		} else {
 			(*t)();
 		}
@@ -112,7 +113,7 @@ private:
 	Callback stopF = nullptr;
 
 	// Function that will execute the callbacks
-	std::function<void(Callback*)> dispatchF = nullptr;
+	DispatchF dispatchF = nullptr;
 };
 
 }

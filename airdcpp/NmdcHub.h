@@ -55,6 +55,12 @@ public:
 	void refreshUserList(bool);
 
 	void getUserList(OnlineUserList& list) const;
+
+	NmdcHub(const string& aHubURL, const ClientPtr& aOldClient = nullptr);
+	~NmdcHub();
+	
+	NmdcHub(const NmdcHub&) = delete;
+	NmdcHub& operator=(const NmdcHub&) = delete;
 private:
 	friend class ClientManager;
 	enum SupportFlags {
@@ -81,13 +87,7 @@ private:
 	FloodMap seekers;
 	FloodMap flooders;
 
-	NmdcHub(const string& aHubURL, const ClientPtr& aOldClient = nullptr);
-	~NmdcHub();
-
-	NmdcHub(const NmdcHub&) = delete;
-	NmdcHub& operator=(const NmdcHub&) = delete;
-
-	void clearUsers();
+	void clearUsers() noexcept;
 	void onLine(const string& aLine) noexcept;
 
 	OnlineUser& getUser(const string& aNick);

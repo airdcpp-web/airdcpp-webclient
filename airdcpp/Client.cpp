@@ -80,7 +80,12 @@ void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 	}
 
 	if(sock) {
-		BufferedSocket::putSocket(sock, [aClient] { aClient->sock = nullptr; }); // Ensure that the pointer won't be deleted too early
+		BufferedSocket::putSocket(sock, [=] { // Ensure that the pointer won't be deleted too early
+			cache.clear();
+
+			aClient->sock = nullptr;
+			aClient->clearUsers();
+		});
 	}
 }
 
@@ -354,6 +359,8 @@ void Client::doRedirect() noexcept {
 }
 
 void Client::on(Failed, const string& aLine) noexcept {
+	clearUsers();
+
 	state = STATE_DISCONNECTED;
 	statusMessage(aLine, LogMessage::SEV_WARNING); //Error?
 

@@ -59,7 +59,7 @@ public:
 };
 
 /** Yes, this should probably be called a Hub */
-class Client : public ClientBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, public HubSettings, private boost::noncopyable, public intrusive_ptr_base<Client> {
+class Client : public ClientBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, public HubSettings, private boost::noncopyable {
 public:
 	typedef unordered_map<string*, ClientPtr, noCaseStringHash, noCaseStringEq> UrlMap;
 	typedef unordered_map<ClientToken, ClientPtr> IdMap;
@@ -195,6 +195,8 @@ public:
 		return state == STATE_NORMAL;
 	}
 protected:
+	virtual void clearUsers() noexcept = 0;
+
 	void setConnectState(State aState) noexcept;
 	MessageCache cache;
 

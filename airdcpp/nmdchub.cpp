@@ -47,7 +47,7 @@ NmdcHub::NmdcHub(const string& aHubURL, const ClientPtr& aOldClient) : Client(aH
 }
 
 NmdcHub::~NmdcHub() {
-	clearUsers();
+
 }
 
 string NmdcHub::toUtf8(const string& str) const { 
@@ -127,9 +127,11 @@ OnlineUser& NmdcHub::getUser(const string& aNick) {
 		p = ClientManager::getInstance()->getUser(aNick, getHubUrl());
 	}
 
+	auto client = ClientManager::getInstance()->getClient(getHubUrl());
+
 	{
 		Lock l(cs);
-		u = users.emplace(aNick, new OnlineUser(p, *this, 0)).first->second;
+		u = users.emplace(aNick, new OnlineUser(p, client, 0)).first->second;
 		u->inc();
 		u->getIdentity().setNick(aNick);
 		if(u->getUser() == getMyIdentity().getUser()) {
@@ -172,7 +174,7 @@ void NmdcHub::putUser(const string& aNick) {
 	ou->dec();
 }
 
-void NmdcHub::clearUsers() {
+void NmdcHub::clearUsers() noexcept {
 	NickMap u2;
 
 	{
@@ -1157,7 +1159,6 @@ void NmdcHub::on(Line, const string& aLine) noexcept {
 }
 
 void NmdcHub::on(Failed, const string& aLine) noexcept {
-	clearUsers();
 	Client::on(Failed(), aLine);
 	updateCounts(true);	
 }

@@ -873,7 +873,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 			OnlineUser* u = cm->findOnlineUser(sr->getUser());
 
 			if (u) {
-				Client* client = &u->getClient();
+				auto client = u->getClient();
 				if (client && client->isConnected()) {
 					//TODO: use magnet link
 					client->Message(STRING(AUTO_SEARCH) + ": " + 

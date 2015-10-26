@@ -509,7 +509,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 			c.setTo(aUser.getIdentity().getSID());
 			c.addParam("TO", token);
 
-			aUser.getClient().send(c);
+			aUser.getClient()->send(c);
 		}
 		return;
 	}
@@ -557,7 +557,7 @@ end:
 		c.addParam("TO", token);
 		c.addParam("RC", Util::toString(results.size()));
 
-		aUser.getClient().send(c);
+		aUser.getClient()->send(c);
 	}
 }
 

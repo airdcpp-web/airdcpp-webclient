@@ -80,16 +80,16 @@ public:
 	static const string HBRI_SUPPORT;
 	static const string ASCH_FEATURE;
 	static const string CCPM_FEATURE;
+
+	AdcHub(const string& aHubURL, const ClientPtr& aOldClient = nullptr);
+	~AdcHub();
+
+	AdcHub(const AdcHub&) = delete;
+	AdcHub& operator=(const AdcHub&) = delete;
 private:
 	friend class ClientManager;
 	friend class CommandHandler<AdcHub>;
 	friend class Identity;
-
-	AdcHub(const string& aHubURL, const ClientPtr& aOldClient = nullptr);
-
-	AdcHub(const AdcHub&) = delete;
-	AdcHub& operator=(const AdcHub&) = delete;
-	~AdcHub();
 
 	/** Map session id to OnlineUser */
 	typedef unordered_map<uint32_t, OnlineUser*> SIDMap;
@@ -126,7 +126,7 @@ private:
 	void putUser(const uint32_t aSID, bool disconnect);
 
 	void shutdown(ClientPtr& aClient, bool aRedirect);
-	void clearUsers();
+	void clearUsers() noexcept;
 	void appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6);
 
 	void handle(AdcCommand::SUP, AdcCommand& c) noexcept;

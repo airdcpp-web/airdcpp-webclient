@@ -208,6 +208,7 @@ public:
 	//return users supporting the ASCH extension (and total users)
 	pair<size_t, size_t> countAschSupport(const OrderedStringSet& aHubs) const noexcept;
 private:
+	static ClientPtr createClient(const string& aHubURL, const ClientPtr& aOldClient = nullptr) noexcept;
 
 	typedef unordered_map<CID*, OfflineUser> OfflineUserMap;
 

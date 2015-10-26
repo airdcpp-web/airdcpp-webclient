@@ -36,14 +36,18 @@ namespace dcpp {
 
 SharedMutex Identity::cs;
 
-OnlineUser::OnlineUser(const UserPtr& ptr, ClientBase& client_, uint32_t sid_) : identity(ptr, sid_), client(client_), isInList(false) { 
+OnlineUser::OnlineUser(const UserPtr& ptr, const ClientPtr& client_, uint32_t sid_) : identity(ptr, sid_), client(client_), isInList(false) {
 }
 
-bool Identity::isTcpActive(const Client* c) const {
+OnlineUser::~OnlineUser() noexcept {
+
+}
+
+bool Identity::isTcpActive(const ClientPtr& c) const {
 	return isTcp4Active(c) || isTcp6Active();
 }
 
-bool Identity::isTcp4Active(const Client* c) const {
+bool Identity::isTcp4Active(const ClientPtr& c) const {
 	if (!user->isSet(User::NMDC)) {
 		return !getIp4().empty() && supports(AdcHub::TCP4_FEATURE);
 	} else {
@@ -302,7 +306,7 @@ bool Identity::allowV4Connections() const {
 }
 
 const string& OnlineUser::getHubUrl() const { 
-	return getClient().getHubUrl();
+	return getClient()->getHubUrl();
 }
 
 bool OnlineUser::NickSort::operator()(const OnlineUserPtr& left, const OnlineUserPtr& right) const {
@@ -310,7 +314,7 @@ bool OnlineUser::NickSort::operator()(const OnlineUserPtr& left, const OnlineUse
 }
 
 string OnlineUser::HubName::operator()(const OnlineUserPtr& u) { 
-	return u->getClientBase().getHubName(); 
+	return u->getClient()->getHubName(); 
 }
 
 void User::addQueued(int64_t inc) {
@@ -325,10 +329,10 @@ void User::removeQueued(int64_t rm) {
 string OnlineUser::getLogPath() {
 	ParamMap params;
 	params["userNI"] = [this] { return getIdentity().getNick(); };
-	params["hubNI"] = [this] { return getClient().getHubName(); };
-	params["myNI"] = [this] { return getClient().getMyNick(); };
+	params["hubNI"] = [this] { return getClient()->getHubName(); };
+	params["myNI"] = [this] { return getClient()->getMyNick(); };
 	params["userCID"] = [this] { return getUser()->getCID().toBase32(); };
-	params["hubURL"] = [this] { return getClient().getHubUrl(); };
+	params["hubURL"] = [this] { return getClient()->getHubUrl(); };
 
 	return LogManager::getInstance()->getPath(getUser(), params);
 }
@@ -342,13 +346,16 @@ bool OnlineUser::supportsCCPM(string& _error) const {
 		_error = STRING(CCPM_NOT_SUPPORTED);
 		return false;
 	}
-	else if (!getClient().isSecure()) {
+	else if (!getClient()->isSecure()) {
 		_error = STRING(CCPM_NOT_SUPPORTED_SECURE);
 		return false;
 	}
 	return true;
 }
 
+uint8_t OnlineUser::getImageIndex() const noexcept {
+	return UserInfoBase::getImage(identity, identity.isTcpActive(client)); 
+}
 
 uint8_t UserInfoBase::getImage(const Identity& identity, bool aIsClientTcpActive) {
 
