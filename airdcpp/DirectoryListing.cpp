@@ -1071,8 +1071,8 @@ void DirectoryListing::on(ClientManagerListener::UserDisconnected, const UserPtr
 
 	fire(DirectoryListingListener::UserUpdated());
 }
-void DirectoryListing::on(ClientManagerListener::UserUpdated, const UserPtr& aUser) noexcept {
-	if (aUser != hintedUser.user) {
+void DirectoryListing::on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept {
+	if (aUser.getUser() != hintedUser.user) {
 		return;
 	}
 
