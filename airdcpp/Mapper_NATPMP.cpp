@@ -34,7 +34,6 @@ extern "C" {
 #if defined(_WIN32) && !defined(WIN32)
 #define WIN32
 #endif
-#include <natpmp/getgateway.h>
 #include <natpmp/natpmp.h>
 }
 
@@ -59,13 +58,12 @@ bool Mapper_NATPMP::supportsProtocol(bool aV6) const {
 static natpmp_t nat;
 
 bool Mapper_NATPMP::init() {
-	// the lib normally handles this but we call it manually to store the result (IP of the router).
-	in_addr addr;
-	if(getdefaultgateway(reinterpret_cast<in_addr_t*>(&addr.s_addr)) < 0)
-		return false;
-	gateway = inet_ntoa(addr);
+	if (initnatpmp(&nat, 1, 0) >= 0) {
+		gateway = inet_ntoa(*(struct in_addr *)&nat.gateway);
+		return true;
+	}
 
-	return initnatpmp(&nat, 1, addr.s_addr) >= 0;
+	return false;
 }
 
 void Mapper_NATPMP::uninit() {
