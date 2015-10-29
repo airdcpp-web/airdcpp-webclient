@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef AUTO_SEARCH_MANAGER_H
-#define AUTO_SEARCH_MANAGER_H
+#ifndef DCPLUSPLUS_DCPP_AUTOSEARCH_MANAGER_H
+#define DCPLUSPLUS_DCPP_AUTOSEARCH_MANAGER_H
 
 #include "forward.h"
 
@@ -33,12 +33,8 @@
 #include "Speaker.h"
 #include "TargetUtil.h"
 #include "TimerManager.h"
-#include "Util.h"
-
 
 namespace dcpp {
-
-class SimpleXML;
 
 class AutoSearchManager :  public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, private TimerManagerListener, private SearchManagerListener, private QueueManagerListener {
 public:

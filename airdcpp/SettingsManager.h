@@ -30,7 +30,6 @@
 
 namespace dcpp {
 
-class SimpleXML;
 struct HubSettings;
 
 class SettingsManagerListener {

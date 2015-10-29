@@ -19,10 +19,13 @@
 #include "stdinc.h"
 #include "Updater.h"
 
-#ifdef WIN32
 #include "File.h"
 #include "HashCalc.h"
+#include "LogManager.h"
+#include "ScopedFunctor.h"
 #include "SimpleXML.h"
+#include "StringTokenizer.h"
+#include "UpdateManager.h"
 #include "Util.h"
 #include "ZipFile.h"
 #include "version.h"
@@ -33,7 +36,6 @@
 #include <openssl/rsa.h>
 #include <openssl/objects.h>
 #include <openssl/pem.h>
-#endif
 
 #ifdef _WIN64
 # define ARCH_STR "x64"
@@ -41,9 +43,14 @@
 # define ARCH_STR "x86"
 #endif
 
+#ifdef _WIN64
+# define UPGRADE_TAG "UpdateURLx64"
+#else
+# define UPGRADE_TAG "UpdateURL"
+#endif
+
 namespace dcpp {
 
-#ifdef _WIN32
 bool Updater::extractFiles(const string& curSourcePath, const string& curExtractPath, string& error) {
 	bool ret = true;
 	File::ensureDirectory(curExtractPath);
@@ -236,6 +243,283 @@ void Updater::signVersionFile(const string& file, const string& key, bool makeHe
 	}
 }
 
-#endif //WIN32
-
+Updater::Updater(const string& aExeName, UpdateManager* aUm) noexcept : um(aUm) {
+	exename = aExeName;
+	sessionToken = Util::toString(Util::rand());
 }
+
+void Updater::completeUpdateDownload(int buildID, bool manualCheck) {
+	auto& conn = clientDownload;
+	ScopedFunctor([&conn] { conn.reset(); });
+
+	if (!conn->buf.empty()) {
+		string updaterFile = UPDATE_TEMP_DIR + sessionToken + PATH_SEPARATOR + "AirDC_Update.zip";
+		ScopedFunctor([&updaterFile] { File::deleteFile(updaterFile); });
+
+		try {
+			File::removeDirectory(UPDATE_TEMP_DIR + sessionToken + PATH_SEPARATOR);
+			File::ensureDirectory(UPDATE_TEMP_DIR + sessionToken + PATH_SEPARATOR);
+			File(updaterFile, File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
+		}
+		catch (const FileException&) {
+			failUpdateDownload(STRING(UPDATER_WRITE_FAILED), manualCheck);
+			return;
+		}
+
+		// Check integrity
+		if (TTH(updaterFile) != updateTTH) {
+			failUpdateDownload(STRING(INTEGRITY_CHECK_FAILED), manualCheck);
+			return;
+		}
+
+		// Unzip the update
+		try {
+			ZipFile zip;
+			zip.Open(updaterFile);
+
+			string srcPath = UPDATE_TEMP_DIR + sessionToken + PATH_SEPARATOR;
+			string dstPath = Util::getFilePath(exename);
+			string updaterExeFile = srcPath + Util::getFileName(exename);
+
+			if (zip.GoToFirstFile()) {
+				do {
+					zip.OpenCurrentFile();
+					if (zip.GetCurrentFileName().find(Util::getFileExt(exename)) != string::npos) {
+						zip.ReadCurrentFile(updaterExeFile);
+					}
+					else zip.ReadCurrentFile(srcPath);
+					zip.CloseCurrentFile();
+				} while (zip.GoToNextFile());
+			}
+
+			zip.Close();
+
+			//Write the XML file
+			SimpleXML xml;
+			xml.addTag("UpdateInfo");
+			xml.stepIn();
+			xml.addTag("DestinationPath", dstPath);
+			xml.addTag("SourcePath", srcPath);
+			xml.addTag("UpdaterFile", updaterExeFile);
+			xml.addTag("BuildID", buildID);
+			xml.stepOut();
+
+			File f(UPDATE_TEMP_DIR + "UpdateInfo_" + sessionToken + ".xml", File::WRITE, File::CREATE | File::TRUNCATE);
+			f.write(SimpleXML::utf8Header);
+			f.write(xml.toXML());
+			f.close();
+
+			LogManager::getInstance()->message(STRING(UPDATE_DOWNLOADED), LogMessage::SEV_INFO);
+			installedUpdate = buildID;
+
+			conn.reset(); //prevent problems when closing
+			um->fire(UpdateManagerListener::UpdateComplete(), updaterExeFile);
+		}
+		catch (ZipFileException& e) {
+			failUpdateDownload(e.getError(), manualCheck);
+		}
+	} else {
+		failUpdateDownload(conn->status, manualCheck);
+	}
+}
+
+bool Updater::checkPendingUpdates(const string& aDstDir, string& updater_, bool updated) {
+	StringList fileList = File::findFiles(UPDATE_TEMP_DIR, "UpdateInfo_*");
+	for (auto& uiPath : fileList) {
+		if (Util::getFileExt(uiPath) == ".xml") {
+			try {
+				SimpleXML xml;
+				xml.fromXML(File(uiPath, File::READ, File::OPEN).read());
+				if (xml.findChild("UpdateInfo")) {
+					xml.stepIn();
+					if (xml.findChild("DestinationPath")) {
+						xml.stepIn();
+						string dstDir = xml.getData();
+						xml.stepOut();
+
+						if (dstDir != aDstDir)
+							continue;
+
+						if (xml.findChild("UpdaterFile")) {
+							xml.stepIn();
+							updater_ = xml.getData();
+							xml.stepOut();
+
+							if (xml.findChild("BuildID")) {
+								xml.stepIn();
+								if (Util::toInt(xml.getData()) <= BUILD_NUMBER || updated) {
+									//we have an old update for this instance, delete the files
+									cleanTempFiles(Util::getFilePath(updater_));
+									File::deleteFile(uiPath);
+									continue;
+								}
+								return true;
+							}
+						}
+					}
+
+				}
+			}
+			catch (const Exception& e) {
+				LogManager::getInstance()->message(STRING_F(FAILED_TO_READ, uiPath % e.getError()), LogMessage::SEV_WARNING);
+			}
+		}
+	}
+
+	return false;
+}
+
+void Updater::failUpdateDownload(const string& aError, bool manualCheck) {
+	auto msg = STRING_F(UPDATING_FAILED, aError);
+	if (manualCheck) {
+		LogManager::getInstance()->message(msg, LogMessage::SEV_ERROR);
+		um->fire(UpdateManagerListener::UpdateFailed(), msg);
+	} else {
+		LogManager::getInstance()->message(msg, LogMessage::SEV_WARNING);
+	}
+}
+
+bool Updater::onVersionDownloaded(SimpleXML& xml, bool aVerified, bool aManualCheck) {
+	int ownBuild = BUILD_NUMBER;
+	string versionString;
+	int remoteBuild = 0;
+
+	if (!getUpdateVersionInfo(xml, versionString, remoteBuild)) {
+		return false;
+	}
+
+
+	//Get the update information from the XML
+	string updateUrl;
+	bool autoUpdateEnabled = false;
+	if (xml.findChild(UPGRADE_TAG)) {
+		updateUrl = xml.getChildData();
+		updateTTH = xml.getChildAttrib("TTH");
+		autoUpdateEnabled = (aVerified && xml.getIntChildAttrib("MinUpdateRev") <= ownBuild);
+	}
+	xml.resetCurrentChild();
+
+	string url;
+	if (xml.findChild("URL"))
+		url = xml.getChildData();
+	xml.resetCurrentChild();
+
+	//Check for bad version
+	auto reportBadVersion = [&]() -> void {
+		string msg = xml.getChildAttrib("Message", "Your version of AirDC++ contains a serious bug that affects all users of the DC network or the security of your computer.");
+		um->fire(UpdateManagerListener::BadVersion(), msg, url, updateUrl, remoteBuild, autoUpdateEnabled);
+	};
+
+	if (aVerified && xml.findChild("VeryOldVersion")) {
+		if (Util::toInt(xml.getChildData()) >= ownBuild) {
+			reportBadVersion();
+			return false;
+		}
+	}
+	xml.resetCurrentChild();
+
+	if (aVerified && xml.findChild("BadVersions")) {
+		xml.stepIn();
+		while (xml.findChild("Version")) {
+			xml.stepIn();
+			double v = Util::toDouble(xml.getData());
+			xml.stepOut();
+
+			if (v == ownBuild) {
+				reportBadVersion();
+				return false;
+			}
+		}
+
+		xml.stepOut();
+	}
+	xml.resetCurrentChild();
+
+
+	//Check for updated version
+
+	if ((remoteBuild > ownBuild && remoteBuild > installedUpdate) || aManualCheck) {
+		auto updateMethod = SETTING(UPDATE_METHOD);
+		if ((!autoUpdateEnabled || updateMethod == UPDATE_PROMPT) || aManualCheck) {
+			if (xml.findChild("Title")) {
+				const string& title = xml.getChildData();
+				xml.resetCurrentChild();
+				if (xml.findChild("Message")) {
+					um->fire(UpdateManagerListener::UpdateAvailable(), title, xml.childToXML(), versionString, url, autoUpdateEnabled, remoteBuild, updateUrl);
+				}
+			}
+			//fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, true);
+		} else if (updateMethod == UPDATE_AUTO) {
+			LogManager::getInstance()->message(STRING_F(BACKGROUND_UPDATER_START, versionString), LogMessage::SEV_INFO);
+			downloadUpdate(updateUrl, remoteBuild, aManualCheck);
+		}
+		xml.resetCurrentChild();
+	}
+
+	return true;
+}
+
+bool Updater::isUpdating() {
+	return clientDownload ? true : false;
+}
+
+void Updater::downloadUpdate(const string& aUrl, int newBuildID, bool manualCheck) {
+	if (clientDownload)
+		return;
+
+	clientDownload.reset(new HttpDownload(aUrl,
+		[this, newBuildID, manualCheck] { completeUpdateDownload(newBuildID, manualCheck); }, false));
+}
+
+bool Updater::getUpdateVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild) {
+	while (xml.findChild("VersionInfo")) {
+		//the latest OS must come first
+		StringTokenizer<string> t(xml.getChildAttrib("MinOsVersion"), '.');
+		StringList& l = t.getTokens();
+
+		if (!Util::IsOSVersionOrGreater(Util::toInt(l[0]), Util::toInt(l[1])))
+			continue;
+
+		xml.stepIn();
+
+		if (xml.findChild("Version")) {
+			versionString = xml.getChildData();
+			xml.resetCurrentChild();
+			if (xml.findChild(UPGRADE_TAG)) {
+				remoteBuild = Util::toInt(xml.getChildAttrib("Build"));
+				string tmp = xml.getChildAttrib("VersionString");
+				if (!tmp.empty())
+					versionString = tmp;
+			}
+			xml.resetCurrentChild();
+			return true;
+		}
+		break;
+	}
+
+	return false;
+}
+
+void Updater::cleanTempFiles(const string& tmpPath) {
+	FileFindIter end;
+	for (FileFindIter i(tmpPath, "*"); i != end; ++i) {
+		string name = i->getFileName();
+		if (name == "." || name == "..")
+			continue;
+
+		if (i->isLink() || name.empty())
+			continue;
+
+		if (i->isDirectory()) {
+			cleanTempFiles(tmpPath + name + PATH_SEPARATOR);
+		}
+		else {
+			File::deleteFileEx(tmpPath + name, 3);
+		}
+	}
+
+	// Remove the empty dir
+	File::removeDirectory(tmpPath);
+}
+
+} // namespace dcpp

@@ -53,15 +53,11 @@ namespace dcpp {
 
 STANDARD_EXCEPTION(ShareException);
 
-class SimpleXML;
-class Client;
 class File;
 class OutputStream;
 class MemoryInputStream;
-//struct ShareLoader;
 class SearchQuery;
 class Worker;
-class TaskQueue;
 
 class ShareDirInfo;
 typedef boost::intrusive_ptr<ShareDirInfo> ShareDirInfoPtr;

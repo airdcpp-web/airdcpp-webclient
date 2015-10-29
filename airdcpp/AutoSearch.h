@@ -16,8 +16,8 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef AUTO_SEARCH_H
-#define AUTO_SEARCH_H
+#ifndef DCPLUSPLUS_DCPP_AUTOSEARCH_H
+#define DCPLUSPLUS_DCPP_AUTOSEARCH_H
 
 #include <bitset>
 

@@ -16,25 +16,76 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef UPDATER_H
-#define UPDATER_H
+#ifndef DCPLUSPLUS_DCPP_UPDATER_H
+#define DCPLUSPLUS_DCPP_UPDATER_H
+
+#include "HttpDownload.h"
 
 namespace dcpp {
 
-using std::unique_ptr;
+class UpdateManager;
+
+#ifndef NO_CLIENT_UPDATER
 
 class Updater {
 
-#ifdef _WIN32
+#define UPDATE_TEMP_DIR Util::getTempPath() + "Updater" + PATH_SEPARATOR_STR
+
 public:
+
 	static bool applyUpdate(const string& sourcePath, const string& installPath, string& error);
 	static bool extractFiles(const string& curSourcePath, const string& curExtractPath, string& error);
 	static void signVersionFile(const string& file, const string& key, bool makeHeader = false);
 	static void createUpdate();
 
-#endif
+	static bool checkPendingUpdates(const string& aDstDir, string& updater_, bool updated);
+	static void cleanTempFiles(const string& tmpPath);
+
+	static bool getUpdateVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild);
+
+	Updater(const string& aExeName, UpdateManager* aUm) noexcept;
+	int getInstalledUpdate() { return installedUpdate; }
+	bool isUpdating();
+	void downloadUpdate(const string& aUrl, int newBuildID, bool manualCheck);
+
+	bool onVersionDownloaded(SimpleXML& xml, bool aVerified, bool aManualCheck);
+
+	enum UpdateMethod {
+		UPDATE_UNDEFINED,
+		UPDATE_AUTO,
+		UPDATE_PROMPT
+	};
+private:
+	UpdateManager* um;
+	unique_ptr<HttpDownload> clientDownload;
+
+	string exename;
+	string updateTTH;
+	string sessionToken;
+	int installedUpdate = 0;
+
+	void completeUpdateDownload(int buildID, bool manualCheck);
+	void failUpdateDownload(const string& aError, bool manualCheck);
 };
 
-}
+#else
+class Updater {
+public:
+	Updater(const string&, UpdateManager*) noexcept {
 
-#endif // UPDATE_MANAGER_H
+	}
+
+	bool onVersionDownloaded(SimpleXML&, bool, bool) {
+		return false;
+	}
+
+	bool isUpdating() const noexcept {
+		return false;
+	}
+};
+
+#endif
+
+} // namespace dcpp
+
+#endif // UPDATER_H

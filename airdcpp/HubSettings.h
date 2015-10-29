@@ -21,6 +21,7 @@
 
 #include <string>
 
+#include "forward.h"
 #include "tribool.h"
 
 namespace dcpp {
@@ -29,7 +30,6 @@ using std::string;
 
 /** Stores settings to be applied to a hub. There are 3 HubSettings levels in DC++: global; per
 favorite hub group; per favorite hub entry. */
-class SimpleXML;
 struct HubSettings
 {
 	enum HubStrSetting {

@@ -16,22 +16,19 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef UPDATE_MANAGER_H
-#define UPDATE_MANAGER_H
-
-#include "Speaker.h"
-#include "Singleton.h"
-#include "UpdateManagerListener.h"
+#ifndef DCPLUSPLUS_DCPP_UPDATE_MANAGER_H
+#define DCPLUSPLUS_DCPP_UPDATE_MANAGER_H
 
 #include "HttpDownload.h"
-#include "SimpleXML.h"
+#include "Singleton.h"
+#include "Speaker.h"
 #include "TimerManager.h"
+#include "Updater.h"
+#include "UpdateManagerListener.h"
 
-#define UPDATE_TEMP_DIR Util::getTempPath() + "Updater" + PATH_SEPARATOR_STR
+#include "version.h"
 
 namespace dcpp {
-
-using std::unique_ptr;
 
 class UpdateManager : public Singleton<UpdateManager>, public Speaker<UpdateManagerListener>, private TimerManagerListener
 {
@@ -53,14 +50,7 @@ public:
 		string ipcheck6;
 	} links;
 
-	void downloadUpdate(const string& aUrl, int newBuildID, bool manualCheck);
-
 	static bool verifyVersionData(const string& data, const ByteVector& singature);
-
-	static bool checkPendingUpdates(const string& aDstDir, string& updater_, bool updated);
-
-	static bool applyUpdate(const string& sourcePath, const string& installPath);
-	static void cleanTempFiles(const string& tmpPath);
 
 	enum {
 		CONN_VERSION,
@@ -68,18 +58,11 @@ public:
 		CONN_GEO_V4,
 		CONN_LANGUAGE_FILE,
 		CONN_LANGUAGE_CHECK,
-		CONN_CLIENT,
 		CONN_SIGNATURE,
 		CONN_IP4,
 		CONN_IP6,
 
 		CONN_LAST
-	};
-
-	enum {
-		UPDATE_UNDEFINED,
-		UPDATE_AUTO,
-		UPDATE_PROMPT
 	};
 
 	unique_ptr<HttpDownload> conns[CONN_LAST];
@@ -90,26 +73,24 @@ public:
 	void checkIP(bool manual, bool v6);
 
 	void checkGeoUpdate();
-	//void updateGeo();
 
 	void init(const string& aExeName);
-	int getInstalledUpdate() { return installedUpdate; }
-	bool isUpdating();
 
-	static bool getVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild);
 	void checkAdditionalUpdates(bool manualCheck);
 	string getVersionUrl() const;
+
+	Updater& getUpdater() const noexcept {
+		return *updater.get();
+	}
 private:
+	unique_ptr<Updater> updater;
+
+	void failVersionDownload(const string& aError, bool manualCheck);
+
 	static const char* versionUrl[VERSION_LAST];
 
 	uint64_t lastIPUpdate;
 	static uint8_t publicKey[270];
-
-	string exename;
-	string updateTTH;
-	string sessionToken;
-
-	int installedUpdate;
 
 	ByteVector versionSig;
 
@@ -121,10 +102,7 @@ private:
 	void completeGeoDownload(bool v6);
 	void completeVersionDownload(bool manualCheck);
 	void completeLanguageDownload();
-	void completeUpdateDownload(int buildID, bool manualCheck);
 	void completeIPCheck(bool manualCheck, bool v6);
-
-	void failUpdateDownload(const string& aError, bool manualCheck);
 
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 };

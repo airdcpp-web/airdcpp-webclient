@@ -49,8 +49,6 @@ public:
 	GETSET(string, extension, Extension);
 };
 
-class SimpleXML;
-
 /**
  * Public hub list, favorites (hub&user). Assumed to be called only by UI thread.
  */
