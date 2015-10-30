@@ -1117,7 +1117,7 @@ bool SettingsManager::addToHistory(const string& aString, HistoryType aType) noe
 		return false;
 
 	WLock l(cs);
-	decltype(auto) hist = history[aType];
+	StringList& hist = history[aType];
 
 	// Remove existing matching item
 	auto s = boost::find(hist, aString);

@@ -58,7 +58,7 @@ bool Mapper_NATPMP::supportsProtocol(bool aV6) const {
 static natpmp_t nat;
 
 bool Mapper_NATPMP::init() {
-	if (initnatpmp(&nat, 1, 0) >= 0) {
+	if (initnatpmp(&nat, 0, 0) >= 0) {
 		gateway = inet_ntoa(*(struct in_addr *)&nat.gateway);
 		return true;
 	}
