@@ -453,7 +453,7 @@ bool FavoriteManager::removeFavoriteHub(ProfileToken aToken) {
 
 	{
 		WLock l(cs);
-		auto i = getFavoriteHub(aToken);
+		auto i = find_if(favoriteHubs, [aToken](const FavoriteHubEntryPtr& f) { return f->getToken() == aToken; });
 		if (i == favoriteHubs.end()) {
 			return false;
 		}

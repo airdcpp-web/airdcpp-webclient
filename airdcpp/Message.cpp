@@ -29,15 +29,15 @@
 
 namespace dcpp {
 
-uint64_t idCounter = 0;
+uint64_t messageIdCounter = 0;
 
 ChatMessage::ChatMessage(const string& aText, const OnlineUserPtr& aFrom, const OnlineUserPtr& aTo, const OnlineUserPtr& aReplyTo) noexcept :
-	text(aText), from(aFrom), to(aTo), replyTo(aReplyTo), id(idCounter++), time(GET_TIME()) {
+	text(aText), from(aFrom), to(aTo), replyTo(aReplyTo), id(messageIdCounter++), time(GET_TIME()) {
 
 	read = aFrom && aFrom->getUser() == ClientManager::getInstance()->getMe();
 }
 
-LogMessage::LogMessage(const string& aMessage, LogMessage::Severity sev) noexcept : id(idCounter++), text(aMessage), time(GET_TIME()), severity(sev) { }
+LogMessage::LogMessage(const string& aMessage, LogMessage::Severity sev) noexcept : id(messageIdCounter++), text(aMessage), time(GET_TIME()), severity(sev) { }
 
 string ChatMessage::format() const {
 	string tmp;

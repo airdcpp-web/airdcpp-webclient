@@ -98,7 +98,7 @@ public:
 
 	// Removes the file from queue (and alternatively the target if the file is finished)
 	template<typename T>
-	bool QueueManager::removeFile(const T& aID, bool removeData = false) noexcept {
+	bool removeFile(const T& aID, bool removeData = false) noexcept {
 		QueueItemPtr qi = nullptr;
 		{
 			RLock l(cs);

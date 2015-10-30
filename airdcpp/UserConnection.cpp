@@ -244,10 +244,10 @@ void UserConnection::handle(AdcCommand::PMI t, const AdcCommand& c) {
 
 
 void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
-	decltype(auto) message = c.getParam(0);
+	const string& message = c.getParam(0);
 	OnlineUserPtr peer = nullptr;
 	OnlineUserPtr me = nullptr;
-	
+
 	auto cm = ClientManager::getInstance();
 	{
 		RLock l(cm->getCS());
