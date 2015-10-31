@@ -360,8 +360,9 @@ void Client::doRedirect() noexcept {
 void Client::on(Failed, const string& aLine) noexcept {
 	clearUsers();
 
+	//Better ways to transfer the text in here?...
 	string aError = aLine;
-	if (SETTING(ALLOW_UNTRUSTED_HUBS) && sock && !sock->isKeyprintMatch()) {
+	if (secure && SETTING(ALLOW_UNTRUSTED_HUBS) && sock && !sock->isKeyprintMatch()) {
 		aError += ", type /allow to proceed with untrusted connection";
 		iskeypError = true;
 	}
