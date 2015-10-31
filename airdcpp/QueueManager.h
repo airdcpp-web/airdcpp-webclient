@@ -28,12 +28,10 @@
 #include "BundleQueue.h"
 #include "ClientManager.h"
 #include "DelayedEvents.h"
-#include "DirectoryListing.h"
 #include "Exception.h"
 #include "File.h"
 #include "FileQueue.h"
 #include "HashBloom.h"
-#include "HashedFile.h"
 #include "HashManager.h"
 #include "MerkleTree.h"
 #include "QueueItem.h"
@@ -43,7 +41,6 @@
 #include "StringMatch.h"
 #include "TargetUtil.h"
 #include "TaskQueue.h"
-#include "User.h"
 #include "UserQueue.h"
 
 #include <boost/bimap.hpp>
@@ -54,12 +51,8 @@ namespace dcpp {
 
 namespace bimaps = boost::bimaps;
 
-STANDARD_EXCEPTION(QueueException);
-STANDARD_EXCEPTION(DupeException);
-
+class HashedFile;
 class UserConnection;
-
-class ConnectionQueueItem;
 class QueueLoader;
 
 class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManagerListener>, private TimerManagerListener, 

@@ -238,37 +238,33 @@ int64_t File::getSize(const string& aFileName) noexcept {
 
 }
 
-void File::ensureDirectory(const string& aFile) noexcept {
+int File::ensureDirectory(const string& aFile) noexcept {
+	int result = 0;
+
+	auto file(Text::toT(aFile));
+
 	// Skip the first dir...
-	tstring file(Text::toT(aFile));
-	tstring::size_type start = file.find_first_of(_T("\\/"));
+	auto start = file.find_first_of(_T("\\/"));
 	if(start == string::npos)
-		return;
+		return ERROR_INVALID_NAME;
+
 	start++;
-	while( (start = file.find_first_of(_T("\\/"), start)) != string::npos) {
-		::CreateDirectory((Util::FormatPathT(file.substr(0, start+1))).c_str(), NULL);
+	while(result == 0 && (start = file.find_first_of(_T("\\/"), start)) != string::npos) {
+		result = ::CreateDirectory((Util::FormatPathT(file.substr(0, start+1))).c_str(), NULL);
 		start++;
 	}
+
+	return result;
 }
 
 bool File::createDirectory(const string& aFile) {
-	// Skip the first dir...
-	int result = 0;
-	tstring file(Text::toT(aFile));
-	wstring::size_type start = file.find_first_of(L"\\/");
-	if(start == string::npos)
-		return false;
-	start++;
-	while( (start = file.find_first_of(L"\\/", start)) != string::npos) {
-		result = CreateDirectory(file.substr(0, start+1).c_str(), NULL);
-		start++;
-	}
-	if(result == 0) {
+	auto result = ensureDirectory(aFile);
+	if(result != 0) {
 		result = GetLastError();
-		if(result == ERROR_ALREADY_EXISTS || result == ERROR_SUCCESS)
+		if(result == ERROR_ALREADY_EXISTS)
 			return false;
-		else if(result == ERROR_PATH_NOT_FOUND) //we can't recover from this gracefully.
-			throw FileException(Util::translateError(result));
+
+		throw FileException(Util::translateError(result));
 	}
 
 	return true;
@@ -488,13 +484,29 @@ int64_t File::getSize(const string& aFileName) noexcept {
 	return s.st_size;
 }
 
-void File::ensureDirectory(const string& aFile) noexcept {
+bool File::createDirectory(const string& aFile) {
+	auto result = ensureDirectory(aFile);
+	if (result != 0) {
+		if (result == EEXIST)
+			return false;
+
+		throw FileException(Util::translateError(result));
+	}
+
+	return true;
+}
+
+int File::ensureDirectory(const string& aFile) noexcept {
+	int result = 0;
+
 	string file = Text::fromUtf8(aFile);
 	string::size_type start = 0;
-	while( (start = file.find_first_of('/', start)) != string::npos) {
-		mkdir(file.substr(0, start+1).c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
+	while(result == 0 && (start = file.find_first_of('/', start)) != string::npos) {
+		result = mkdir(file.substr(0, start+1).c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
 		start++;
 	}
+
+	return result;
 }
 
 bool File::isAbsolute(const string& path) noexcept {

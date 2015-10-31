@@ -36,8 +36,6 @@ namespace dcpp {
 #define SEARCH_TYPE_TTH "8"
 #define SEARCH_TYPE_FILE "9"
 
-STANDARD_EXCEPTION(SearchTypeException);
-
 class SocketException;
 
 class SearchManager : public Speaker<SearchManagerListener>, public Singleton<SearchManager>, private TimerManagerListener, private SettingsManagerListener

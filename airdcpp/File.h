@@ -110,8 +110,12 @@ public:
 	static int64_t getDirSize(const string& aPath, bool recursive, const string& pattern = "*") noexcept;
 	static int64_t getFreeSpace(const string& aPath) noexcept;
 
-	static void ensureDirectory(const string& aFile) noexcept;
+	static int ensureDirectory(const string& aFile) noexcept;
+
+	// Similar to ensureDirectory but throws errors
+	// Returns false if the directory exists already
 	static bool createDirectory(const string& aFile);
+
 	static void removeDirectory(const string& aPath) noexcept;
 
 	static bool isAbsolute(const string& path) noexcept;

@@ -33,8 +33,6 @@ namespace dcpp {
 
 using std::min;
 
-STANDARD_EXCEPTION(FileException);
-
 /**
  * A simple output stream. Intended to be used for nesting streams one inside the other.
  */

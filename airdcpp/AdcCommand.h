@@ -25,8 +25,6 @@
 
 namespace dcpp {
 
-STANDARD_EXCEPTION(ParseException);
-
 class CID;
 
 class AdcCommand {

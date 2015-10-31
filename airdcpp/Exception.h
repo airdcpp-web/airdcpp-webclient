@@ -60,6 +60,20 @@ public:\
 }
 #endif
 
+STANDARD_EXCEPTION(AbortException);
+STANDARD_EXCEPTION(CryptoException);
+STANDARD_EXCEPTION(DbException);
+STANDARD_EXCEPTION(DupeException);
+STANDARD_EXCEPTION(FileException);
+STANDARD_EXCEPTION(HashException);
+STANDARD_EXCEPTION(MonitorException);
+STANDARD_EXCEPTION(ParseException);
+STANDARD_EXCEPTION(QueueException);
+STANDARD_EXCEPTION(SearchTypeException);
+STANDARD_EXCEPTION(ShareException);
+STANDARD_EXCEPTION(SimpleXMLException);
+STANDARD_EXCEPTION(ThreadException);
+
 } // namespace dcpp
 
 #endif // !defined(EXCEPTION_H)
