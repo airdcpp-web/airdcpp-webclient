@@ -629,22 +629,21 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 			preverify_ok = 0;
 			err = X509_V_ERR_APPLICATION_VERIFICATION;
 			error = "Keyprint mismatch";
-
 			X509_STORE_CTX_set_error(ctx, err);
+
+			if (error.empty())
+				error = X509_verify_cert_error_string(err);
+
+			auto fullError = formatError(ctx, error);
+			if (!fullError.empty() && (!keyp.empty() || !allowUntrusted))
+				LogManager::getInstance()->message(fullError, LogMessage::SEV_ERROR);
 		}
 	}
-
-	/* We allow the hub connection as untrusted even if KeyPrints didn't match, yes kind of wrong thing to do.. A way to inform in the hub during connecting? */
-	if (!preverify_ok) {
-		if (error.empty())
-			error = X509_verify_cert_error_string(err);
-
-		auto fullError = formatError(ctx, error);
-		if (!fullError.empty() && (!keyp.empty() || !allowUntrusted))
-			LogManager::getInstance()->message(fullError, LogMessage::SEV_ERROR);
+	else {
+		preverify_ok = 1;
 	}
 
-	return allowUntrusted ? 1 : preverify_ok;
+	return preverify_ok;
 }
 
 string CryptoManager::formatError(X509_STORE_CTX *ctx, const string& message) {

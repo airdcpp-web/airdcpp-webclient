@@ -155,13 +155,13 @@ socklen_t Socket::udpAddrLen;
 #ifdef _DEBUG
 
 SocketException::SocketException(int aError) noexcept {
-	error = "SocketException: " + errorToString(aError);
-	dcdebug("Thrown: %s\n", error.c_str());
+	errorString = "SocketException: " + errorToString(aError);
+	dcdebug("Thrown: %s\n", errorString.c_str());
 }
 
 #else // _DEBUG
 
-SocketException::SocketException(int aError) noexcept : Exception(errorToString(aError)) { }
+SocketException::SocketException(int aError) noexcept : Exception(errorToString(aError), aError) { }
 
 #endif
 

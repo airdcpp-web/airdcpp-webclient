@@ -510,13 +510,13 @@ int BufferedSocket::run() {
 }
 
 void BufferedSocket::fail(const string& aError) {
-	if(sock.get()) {
-		sock->disconnect();
-	}
-
 	if(state != FAILED) {
 		state = FAILED;
 		fire(BufferedSocketListener::Failed(), aError);
+	}
+	//fire listener before deleting socket to be able to retrieve information from it.. does it cause any problems?? 
+	if (sock.get()) {
+		sock->disconnect();
 	}
 }
 

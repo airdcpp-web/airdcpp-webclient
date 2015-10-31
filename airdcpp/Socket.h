@@ -57,7 +57,6 @@ public:
 #else //_DEBUG
 	SocketException(const string& aError) noexcept : Exception(aError) { }
 #endif // _DEBUG
-
 	SocketException(int aError) noexcept;
 	virtual ~SocketException() throw() { }
 private:
@@ -227,6 +226,7 @@ public:
 
 	virtual bool isSecure() const noexcept { return false; }
 	virtual bool isTrusted() const noexcept { return false; }
+	virtual bool isKeyprintMatch() const noexcept { return true; }
 	virtual std::string getCipherName() const noexcept { return Util::emptyString; }
 	virtual ByteVector getKeyprint() const noexcept{ return ByteVector(); }
 	virtual bool verifyKeyprint(const string&, bool) noexcept{ return true; };

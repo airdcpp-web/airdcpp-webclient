@@ -161,7 +161,7 @@ int SSLSocket::checkSSL(int ret) {
 		/* inspired by boost.asio (asio/ssl/detail/impl/engine.ipp, function engine::perform) and
 		the SSL_get_error doc at <https://www.openssl.org/docs/ssl/SSL_get_error.html>. */
 		auto err = SSL_get_error(ssl, ret);
-		switch(err) {
+		switch (err) {
 		case SSL_ERROR_NONE:		// Fallthrough - YaSSL doesn't for example return an openssl compatible error on recv fail
 		case SSL_ERROR_WANT_READ:	// Fallthrough
 		case SSL_ERROR_WANT_WRITE:
@@ -169,23 +169,32 @@ int SSLSocket::checkSSL(int ret) {
 		case SSL_ERROR_ZERO_RETURN:
 			throw SocketException(STRING(CONNECTION_CLOSED));
 		case SSL_ERROR_SYSCALL:
-			{
-				auto sys_err = ERR_get_error();
-				if(sys_err == 0) {
-					if(ret == 0) {
-						dcdebug("TLS error: call ret = %d, SSL_get_error = %d, ERR_get_error = " U64_FMT "\n", ret, err, sys_err);
-						throw SSLSocketException(STRING(CONNECTION_CLOSED));
-					}
-					sys_err = getLastError();
+		{
+			auto sys_err = ERR_get_error();
+			if (sys_err == 0) {
+				if (ret == 0) {
+					dcdebug("TLS error: call ret = %d, SSL_get_error = %d, ERR_get_error = " U64_FMT "\n", ret, err, sys_err);
+					throw SSLSocketException(STRING(CONNECTION_CLOSED));
 				}
-				throw SSLSocketException(sys_err);
+				sys_err = getLastError();
 			}
+			throw SSLSocketException(sys_err);
+		}
 		default:
-			/* don't bother getting error messages from the codes because 1) there is some
-			additional management necessary (eg SSL_load_error_strings) and 2) openssl error codes
-			aren't shown to the end user; they only hit standard output in debug builds. */
-			dcdebug("TLS error: call ret = %d, SSL_get_error = %d, ERR_get_error = " U64_FMT ",ERROR string: %s \n", ret, err, ERR_get_error(), ERR_error_string(ERR_get_error(), NULL));
-			throw SSLSocketException(STRING(TLS_ERROR));
+			//display the cert errors as first choice, if the error is not the certs display the error from the ssl.
+			auto sys_err = ERR_get_error();
+			string _error;
+			int v_err = SSL_get_verify_result(ssl);
+			if (v_err == X509_V_ERR_APPLICATION_VERIFICATION) {
+				_error = "Keyprint mismatch";
+			}
+			else if (v_err != X509_V_OK) {
+				_error = X509_verify_cert_error_string(v_err);
+			} else {
+				_error = ERR_error_string(sys_err, NULL);
+			}
+			dcdebug("TLS error: call ret = %d, SSL_get_error = %d, ERR_get_error = " U64_FMT ",ERROR string: %s \n", ret, err, sys_err, ERR_error_string(sys_err, NULL));
+			throw SSLSocketException(STRING(TLS_ERROR) + (_error.empty() ? "" : + ": " + _error));
 		}
 	}
 	return ret;
@@ -216,6 +225,13 @@ bool SSLSocket::isTrusted() const noexcept {
 	}
 
 	X509_free(cert);
+
+	return true;
+}
+
+bool SSLSocket::isKeyprintMatch() const noexcept {
+	if(ssl)
+		return SSL_get_verify_result(ssl) != X509_V_ERR_APPLICATION_VERIFICATION;
 
 	return true;
 }

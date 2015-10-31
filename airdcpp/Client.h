@@ -194,6 +194,9 @@ public:
 	bool stateNormal() const noexcept {
 		return state == STATE_NORMAL;
 	}
+
+	virtual void allowUntrustedConnect() noexcept;
+
 protected:
 	virtual void clearUsers() noexcept = 0;
 
@@ -254,6 +257,7 @@ private:
 	string port;
 	char separator;
 	bool secure;
+	bool iskeypError;
 	CountType countType;
 };
 

@@ -41,7 +41,7 @@ Client::Client(const string& hubURL, char separator_, const ClientPtr& aOldClien
 	reconnDelay(120), lastActivity(GET_TICK()), registered(false), autoReconnect(false),
 	state(STATE_DISCONNECTED), sock(0),
 	separator(separator_),
-	countType(COUNT_UNCOUNTED), availableBytes(0), favToken(0), cache(aOldClient ? aOldClient->getCache() : SettingsManager::HUB_MESSAGE_CACHE)
+	countType(COUNT_UNCOUNTED), availableBytes(0), favToken(0), iskeypError(false), cache(aOldClient ? aOldClient->getCache() : SettingsManager::HUB_MESSAGE_CACHE)
 {
 	setHubUrl(hubURL);
 	TimerManager::getInstance()->addListener(this);
@@ -236,14 +236,6 @@ void Client::on(BufferedSocketListener::Connected) noexcept {
 	updateActivity();
 	ip = sock->getIp();
 	localIp = sock->getLocalIp();
-
-	/*
-	if(!sock->verifyKeyprint(keyprint, SETTING(ALLOW_UNTRUSTED_HUBS))) {
-		state = STATE_DISCONNECTED;
-		sock->removeListener(this);
-		fire(ClientListener::Failed(), hubUrl, "Keyprint mismatch");
-		return;
-	}*/
 	
 	fire(ClientListener::Connected(), this);
 	setConnectState(STATE_PROTOCOL);
@@ -308,6 +300,13 @@ void Client::onRedirect(const string& aRedirectUrl) noexcept {
 	}
 }
 
+void Client::allowUntrustedConnect() noexcept {
+	if (isConnected() || !iskeypError)
+		return;
+	keyprint = Util::emptyString;
+	connect();
+}
+
 void Client::onChatMessage(const ChatMessagePtr& aMessage) noexcept {
 	if (MessageManager::getInstance()->isIgnoredOrFiltered(aMessage, this, false))
 		return;
@@ -361,11 +360,17 @@ void Client::doRedirect() noexcept {
 void Client::on(Failed, const string& aLine) noexcept {
 	clearUsers();
 
+	string aError = aLine;
+	if (SETTING(ALLOW_UNTRUSTED_HUBS) && sock && !sock->isKeyprintMatch()) {
+		aError += ", type /allow to proceed with untrusted connection";
+		iskeypError = true;
+	}
+
 	state = STATE_DISCONNECTED;
-	statusMessage(aLine, LogMessage::SEV_WARNING); //Error?
+	statusMessage(aError, LogMessage::SEV_WARNING); //Error?
 
 	sock->removeListener(this);
-	fire(ClientListener::Failed(), getHubUrl(), aLine);
+	fire(ClientListener::Failed(), getHubUrl(), aError);
 }
 
 void Client::disconnect(bool graceLess) {
