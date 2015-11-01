@@ -27,8 +27,6 @@
 
 namespace dcpp {
 
-STANDARD_EXCEPTION(CryptoException);
-
 class CryptoManager : public Singleton<CryptoManager>
 {
 public:

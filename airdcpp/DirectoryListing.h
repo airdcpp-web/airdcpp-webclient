@@ -46,8 +46,6 @@
 namespace dcpp {
 
 class ListLoader;
-class QueueException;
-STANDARD_EXCEPTION(AbortException);
 typedef uint32_t DirectoryListingToken;
 
 class DirectoryListing : public intrusive_ptr_base<DirectoryListing>, public UserInfoBase, 

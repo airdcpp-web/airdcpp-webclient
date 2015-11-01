@@ -34,7 +34,6 @@
 
 namespace dcpp {
 
-STANDARD_EXCEPTION(HashException);
 class File;
 
 class HashManagerListener {

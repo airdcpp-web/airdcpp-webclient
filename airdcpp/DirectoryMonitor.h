@@ -34,8 +34,6 @@ namespace dcpp {
 
 typedef std::function<void ()> AsyncF;
 
-STANDARD_EXCEPTION(MonitorException);
-
 class Monitor;
 class DirectoryMonitor : public Speaker<DirectoryMonitorListener> {
 public:

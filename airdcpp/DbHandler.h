@@ -31,8 +31,6 @@ namespace dcpp {
 
 using std::string;
 
-STANDARD_EXCEPTION(DbException);
-
 class DbSnapshot {
 
 };

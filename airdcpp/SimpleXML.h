@@ -29,8 +29,6 @@
 
 namespace dcpp {
 
-STANDARD_EXCEPTION(SimpleXMLException);
-
 /**
  * A simple XML class that loads an XML-ish structure into an internal tree
  * and allows easy access to each element through a "current location".

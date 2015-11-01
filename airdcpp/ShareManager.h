@@ -51,8 +51,6 @@
 
 namespace dcpp {
 
-STANDARD_EXCEPTION(ShareException);
-
 class File;
 class OutputStream;
 class MemoryInputStream;

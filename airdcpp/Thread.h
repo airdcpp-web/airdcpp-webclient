@@ -34,8 +34,6 @@
 
 namespace dcpp {
 
-STANDARD_EXCEPTION(ThreadException);
-
 class Thread : private boost::noncopyable
 {
 public:
