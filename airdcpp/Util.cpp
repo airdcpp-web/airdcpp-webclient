@@ -49,6 +49,7 @@
 #include <netdb.h>
 #include <sys/utsname.h>
 #include <ctype.h>
+
 #endif
 #include <locale.h>
 
@@ -65,6 +66,10 @@ tstring Util::emptyStringT;
 
 string Util::paths[Util::PATH_LAST];
 StringList Util::startupParams;
+
+#ifndef _WIN32
+string Util::appPath;
+#endif
 
 bool Util::localMode = true;
 bool Util::wasUncleanShutdown = false;
@@ -170,14 +175,32 @@ optional<string> Util::getStartupParam(const string& aKey) {
 	return optional<string>();
 }
 
-string Util::getAppName() {
 #ifdef _WIN32
+
+string Util::getAppPath() noexcept {
 	TCHAR buf[MAX_PATH+1];
 	DWORD x = GetModuleFileName(NULL, buf, MAX_PATH);
 	return Text::fromT(tstring(buf, x));
+}
+
 #else
-	return "airdcpp";
+
+void Util::setApp(const string& app) noexcept {
+	appPath = app;
+}
+
+string Util::getAppPath() noexcept {
+	return appPath;
+}
+	
 #endif
+
+string Util::getAppFilePath() noexcept {
+	return getFilePath(getAppPath());
+}
+
+string Util::getAppFileName() noexcept {
+	return getFileName(getAppPath());
 }
 
 void Util::initialize() {
@@ -185,24 +208,12 @@ void Util::initialize() {
 
 	sgenrand((unsigned long)time(NULL));
 
-#ifdef _WIN64
-	// VS2013's CRT only checks the existence of FMA3 instructions, not the
-	// enabled-ness of them at the OS level (this is fixed in VS2015). We force
-	// off usage of FMA3 instructions in the CRT to avoid using that path and
-	// hitting illegal instructions when running on CPUs that support FMA3, but
-	// OSs that don't.
-	// https://connect.microsoft.com/VisualStudio/feedback/details/811093/visual-studio-2013-rtm-c-x64-code-generation-bug-for-avx2-instructions
-	#if _MSC_VER == 1800
-		_set_FMA3_enable(0);
-	#endif
-#endif
-
 #if (_MSC_VER >= 1400)
 	_set_invalid_parameter_handler(reinterpret_cast<_invalid_parameter_handler>(invalidParameterHandler));
 #endif
 
 #ifdef _WIN32
-	string exePath = Util::getFilePath(getAppName());
+	string exePath = getAppFilePath();
 
 	// Global config path is the AirDC++ executable path...
 	paths[PATH_GLOBAL_CONFIG] = exePath;
@@ -211,7 +222,7 @@ void Util::initialize() {
 
 	loadBootConfig();
 
-	if(!File::isAbsolute(paths[PATH_USER_CONFIG])) {
+	if(!File::isAbsolutePath(paths[PATH_USER_CONFIG])) {
 		paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + paths[PATH_USER_CONFIG];
 	}
 
@@ -242,7 +253,7 @@ void Util::initialize() {
 
 	loadBootConfig();
 
-	if(!File::isAbsolute(paths[PATH_USER_CONFIG])) {
+	if(!File::isAbsolutePath(paths[PATH_USER_CONFIG])) {
 		paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + paths[PATH_USER_CONFIG];
 	}
 

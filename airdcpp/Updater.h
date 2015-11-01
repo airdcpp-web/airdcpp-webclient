@@ -43,7 +43,7 @@ public:
 
 	static bool getUpdateVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild);
 
-	Updater(const string& aExeName, UpdateManager* aUm) noexcept;
+	Updater(UpdateManager* aUm) noexcept;
 	int getInstalledUpdate() { return installedUpdate; }
 	bool isUpdating();
 	void downloadUpdate(const string& aUrl, int newBuildID, bool manualCheck);
@@ -59,7 +59,6 @@ private:
 	UpdateManager* um;
 	unique_ptr<HttpDownload> clientDownload;
 
-	string exename;
 	string updateTTH;
 	string sessionToken;
 	int installedUpdate = 0;
@@ -71,7 +70,7 @@ private:
 #else
 class Updater {
 public:
-	Updater(const string&, UpdateManager*) noexcept {
+	Updater(UpdateManager*) noexcept {
 
 	}
 

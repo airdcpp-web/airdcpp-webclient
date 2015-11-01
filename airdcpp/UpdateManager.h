@@ -74,7 +74,7 @@ public:
 
 	void checkGeoUpdate();
 
-	void init(const string& aExeName);
+	void init();
 
 	void checkAdditionalUpdates(bool manualCheck);
 	string getVersionUrl() const;

@@ -1715,7 +1715,7 @@ void ShareManager::validatePath(const string& realPath, const string& virtualNam
 	}
 #endif
 
-	if (realPath == Util::getFilePath(Util::getAppName()) || realPath == Util::getPath(Util::PATH_USER_CONFIG) || realPath == Util::getPath(Util::PATH_USER_LOCAL)) {
+	if (realPath == Util::getAppFilePath() || realPath == Util::getPath(Util::PATH_USER_CONFIG) || realPath == Util::getPath(Util::PATH_USER_LOCAL)) {
 		throw ShareException(STRING(DONT_SHARE_APP_DIRECTORY));
 	}
 }

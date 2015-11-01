@@ -270,9 +270,10 @@ bool File::createDirectory(const string& aFile) {
 	return true;
 }
 
-bool File::isAbsolute(const string& path) noexcept {
+bool File::isAbsolutePath(const string& path) noexcept {
 	return path.size() > 2 && (path[1] == ':' || path[0] == '/' || path[0] == '\\');
 }
+
 
 string File::getMountPath(const string& aPath) noexcept {
 	unique_ptr<TCHAR> buf(new TCHAR[aPath.length()]);
@@ -509,7 +510,7 @@ int File::ensureDirectory(const string& aFile) noexcept {
 	return result;
 }
 
-bool File::isAbsolute(const string& path) noexcept {
+bool File::isAbsolutePath(const string& path) noexcept {
 	return path.size() > 1 && path[0] == '/';
 }
 
@@ -572,6 +573,14 @@ TimeKeeper::~TimeKeeper() {
 }
 
 #endif // !_WIN32
+
+std::string File::makeAbsolutePath(const std::string& filename) {
+	return makeAbsolutePath(Util::getAppPath() + PATH_SEPARATOR, filename);
+}
+
+std::string File::makeAbsolutePath(const std::string& path, const std::string& filename) {
+	return isAbsolutePath(filename) ? filename : path + filename;
+}
 
 TimeKeeper* TimeKeeper::createKeeper(const string& aPath) noexcept{
 	TimeKeeper* ret = nullptr;

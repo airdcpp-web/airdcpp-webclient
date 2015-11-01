@@ -680,7 +680,7 @@ SettingsManager::SettingsManager()
 	setDefault(SYSTEM_SHOW_DOWNLOADS, false);
 	setDefault(SETTINGS_PROFILE, PROFILE_NORMAL);
 	setDefault(DOWNLOAD_SPEED, connectionSpeeds[0]);
-	setDefault(WIZARD_RUN_NEW, true); // run wizard on startup
+	setDefault(WIZARD_RUN, true); // run wizard on startup
 	setDefault(FORMAT_RELEASE, true);
 	setDefault(LOG_LINES, 500);
 
@@ -1355,7 +1355,7 @@ void SettingsManager::loadSettingFile(SimpleXML& aXML, Util::Paths aPath, const 
 	}
 }
 
-void SettingsManager::saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName) noexcept {
+bool SettingsManager::saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, CustomErrorF aCustomErrorF) noexcept {
 	string fname = Util::getPath(aPath) + aFileName;
 
 	try {
@@ -1370,8 +1370,16 @@ void SettingsManager::saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const 
 			File::renameFile(fname + ".tmp", fname);
 		}
 	} catch (const FileException& e) {
-		LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, fname % e.getError()), LogMessage::SEV_ERROR);
+		if (!aCustomErrorF) {
+			LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, fname % e.getError()), LogMessage::SEV_ERROR);
+		} else {
+			aCustomErrorF(e.getError());
+		}
+
+		return false;
 	}
+
+	return true;
 }
 
 } // namespace dcpp

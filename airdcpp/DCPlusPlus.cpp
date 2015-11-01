@@ -108,15 +108,15 @@ void startup(function<void(const string&)> stepF, function<bool(const string& /*
 
 	UploadManager::getInstance()->setFreeSlotMatcher();
 	Localization::init();
-	if(SETTING(WIZARD_RUN_NEW) && runWizard) {
+	if(SETTING(WIZARD_RUN) && runWizard) {
 		runWizard();
-		SettingsManager::getInstance()->set(SettingsManager::WIZARD_RUN_NEW, false); //wizard has run on startup
+		SettingsManager::getInstance()->set(SettingsManager::WIZARD_RUN, false); //wizard has run on startup
 	}
 
 
 	if(!SETTING(LANGUAGE_FILE).empty()) {
 		string languageFile = SETTING(LANGUAGE_FILE);
-		if(!File::isAbsolute(languageFile))
+		if(!File::isAbsolutePath(languageFile))
 			languageFile = Util::getPath(Util::PATH_LOCALE) + languageFile;
 		ResourceManager::getInstance()->loadLanguage(languageFile);
 	}

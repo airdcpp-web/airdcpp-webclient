@@ -112,11 +112,11 @@ bool Updater::applyUpdate(const string& sourcePath, const string& installPath, s
 }
 
 void Updater::createUpdate() {
-	auto updaterFilePath = Util::getParentDir(Util::getAppName());
+	auto updaterFilePath = Util::getParentDir(Util::getAppPath());
 	string updaterFile = "updater_" ARCH_STR "_" + VERSIONSTRING + ".zip";
 
 	StringPairList files;
-	ZipFile::CreateZipFileList(files, Util::getFilePath(Util::getAppName()), Util::emptyString, "^(AirDC.exe|AirDC.pdb)$");
+	ZipFile::CreateZipFileList(files, Util::getAppFilePath(), Util::emptyString, "^(AirDC.exe|AirDC.pdb)$");
 
 	//add the theme folder
 	auto installer = Util::getParentDir(updaterFilePath) + "installer" + PATH_SEPARATOR;
@@ -243,8 +243,7 @@ void Updater::signVersionFile(const string& file, const string& key, bool makeHe
 	}
 }
 
-Updater::Updater(const string& aExeName, UpdateManager* aUm) noexcept : um(aUm) {
-	exename = aExeName;
+Updater::Updater(UpdateManager* aUm) noexcept : um(aUm) {
 	sessionToken = Util::toString(Util::rand());
 }
 
@@ -278,13 +277,13 @@ void Updater::completeUpdateDownload(int buildID, bool manualCheck) {
 			zip.Open(updaterFile);
 
 			string srcPath = UPDATE_TEMP_DIR + sessionToken + PATH_SEPARATOR;
-			string dstPath = Util::getFilePath(exename);
-			string updaterExeFile = srcPath + Util::getFileName(exename);
+			string dstPath = Util::getAppFilePath();
+			string updaterExeFile = srcPath + Util::getAppFileName();
 
 			if (zip.GoToFirstFile()) {
 				do {
 					zip.OpenCurrentFile();
-					if (zip.GetCurrentFileName().find(Util::getFileExt(exename)) != string::npos) {
+					if (zip.GetCurrentFileName().find(Util::getFileExt(updaterExeFile)) != string::npos) {
 						zip.ReadCurrentFile(updaterExeFile);
 					}
 					else zip.ReadCurrentFile(srcPath);

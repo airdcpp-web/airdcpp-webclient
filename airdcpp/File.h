@@ -118,7 +118,10 @@ public:
 
 	static void removeDirectory(const string& aPath) noexcept;
 
-	static bool isAbsolute(const string& path) noexcept;
+	static std::string makeAbsolutePath(const std::string& filename);
+	static std::string makeAbsolutePath(const std::string& path, const std::string& filename);
+
+	static bool isAbsolutePath(const string& path) noexcept;
 	static bool isHidden(const string& path) noexcept;
 
 	virtual ~File() { File::close(); }

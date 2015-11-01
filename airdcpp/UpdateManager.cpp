@@ -368,8 +368,8 @@ string UpdateManager::getVersionUrl() const {
 	return versionUrl[max(SETTING(UPDATE_CHANNEL), static_cast<int>(getVersionType()))];
 }
 
-void UpdateManager::init(const string& aExeName) {
-	updater = unique_ptr<Updater>(new Updater(aExeName, this));
+void UpdateManager::init() {
+	updater = unique_ptr<Updater>(new Updater(this));
 
 	checkVersion(false);
 }

@@ -165,7 +165,15 @@ public:
 	static int64_t convertSize(int64_t aValue, SizeUnits valueType, SizeUnits to = B);
 
 	static void initialize();
-	static string getAppName();
+
+	static string getAppFilePath() noexcept;
+	static string getAppFileName() noexcept;
+	static string getAppPath() noexcept;
+
+#ifndef _WIN32 
+	static std::string appPath;
+	static void setApp(const string& app) noexcept;
+#endif
 
 	/** Path of temporary storage */
 	static string getTempPath();
@@ -507,8 +515,7 @@ public:
 		snwprintf(buf, sizeof(buf), L"%0.2f", val);
 		return buf;
 	}
-#endif
-
+#endif 
 	static bool isNumeric(wchar_t c) {
 		return (c >= '0' && c <= '9') ? true : false;
 	}
