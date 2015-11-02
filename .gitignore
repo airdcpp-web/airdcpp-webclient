@@ -1,0 +1,24 @@
+.DS_Store
+
+#vim stuff
+*~
+*.swp
+
+*.o
+*.so
+*.so.?
+*.so.?.?.?
+*.a
+*.dylib
+lib/*
+
+# CMake
+*.cmake
+*.dir
+CMakeFiles
+INSTALL.*
+ZERO_CHECK.*
+CMakeCache.txt
+install_manifest.txt
+
+node-modules
