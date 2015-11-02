@@ -15,15 +15,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
- 
+
 #include "ConfigPrompt.h"
- 
+
 #include <airdcpp/stdinc.h>
 #include <airdcpp/ScopedFunctor.h>
 #include <airdcpp/Util.h>
- 
+
 #include <web-server/WebServerManager.h>
- 
+
 namespace airdcppd {
 
 std::string ConfigPrompt::toBold(const std::string& aText) {
@@ -41,56 +41,56 @@ ConfigPrompt::ConfigF ConfigPrompt::checkArgs() {
 	} else if (Util::hasStartupParam("-list-users")) {
 		f = &listUsers;
 	}
-	
+
 	if (!f) {
 		return nullptr;
 	}
-	
+
 	auto ret = [=] {
 		webserver::WebServerManager::newInstance();
 		ScopedFunctor([=] { webserver::WebServerManager::deleteInstance(); });
-		
+
 		auto wsm = webserver::WebServerManager::getInstance();
 		wsm->load();
-		
+
 		cout << std::endl;
 		cout << std::endl;
-		
+
 		auto save = f(wsm);
-		
+
 		cout << std::endl;
 		if (save) {
 			if (wsm->save([&](const string& aError) {
 				cout << toBold("Failed to save the configuration to " + wsm->getConfigPath()) << ": " << aError << std::endl;
 			})) {
 				cout << toBold("Configuration was written to " + wsm->getConfigPath()) << std::endl;
-			}	
+			}
 		}
 	};
-	
+
 	return ret;
 }
 
 bool ConfigPrompt::runConfigure(webserver::WebServerManager* wsm) {
 	auto& plainServerConfig = wsm->getPlainServerConfig();
 	auto& tlsServerConfig = wsm->getTlsServerConfig();
-	
+
 	promptPort(plainServerConfig, "HTTP", 5334);
 	cout << std::endl;
-	
+
 	promptPort(tlsServerConfig, "HTTPS", 5336);
 	cout << std::endl;
-	
+
 	if (!wsm->getUserManager().hasUsers()) {
 		cout << toBold("No existing users were found, adding new one.") << std::endl;
-		
+
 		addUser(wsm);
 	} else {
 		cout << toBold("Configured users were found. Use the separate commands if you want to modify them (see help).") << std::endl;
 	}
-	
+
 	cout << std::endl;
-	
+
 	if (!wsm->hasValidConfig()) {
 		cout << toBold("No valid configuration was entered. Please re-run the command.") << std::endl;
 		return false;
@@ -99,17 +99,17 @@ bool ConfigPrompt::runConfigure(webserver::WebServerManager* wsm) {
 			<< std::endl
 			<< std::endl
 			<< "You may now connect to the client via "
-			<< "web browser by using the following address(es): " 
+			<< "web browser by using the following address(es): "
 			<< std::endl;
 
 		if (plainServerConfig.hasValidConfig()) {
 			cout << "http://<server address>:" << plainServerConfig.getPort() << std::endl;
 		}
-		
+
 		if (tlsServerConfig.hasValidConfig()) {
 			cout << "https://<server address>:" << tlsServerConfig.getPort() << std::endl;
 			cout << std::endl;
-			
+
 			cout << toBold("NOTE:") << std::endl;
 			cout << std::endl;
 			cout << "When connecting to the client via HTTPS, the browser will warn you about a self-signed certificate. "
@@ -135,65 +135,66 @@ void ConfigPrompt::setPasswordMode(bool enable) noexcept {
 
 bool ConfigPrompt::addUser(webserver::WebServerManager* wsm) {
 	auto& um = wsm->getUserManager();
-	
+
 	std::string username, password;
-	cout << "Enter username" << std::endl;
+	cout << "Enter username: ";
 	cin >> username;
 	cout << std::endl;
-	
+
 	if (um.hasUser(username)) {
 		string input;
-		cout << "A user with the same name exists. Do you want to change the password? (y/n)" << std::endl;
+		cout << "A user with the same name exists. Do you want to change the password? (y/n): ";
 		cin >> input;
-		
+
 		if (input != "y") {
 			return false;
 		}
 	}
-	
+
 	setPasswordMode(true);
 	ScopedFunctor([=] { setPasswordMode(false); });
-	
-	cout << "Enter password (input hidden)" << std::endl;
+
+	cout << "Enter password (input hidden): ";
 	cin >> password;
-	
+	cout << std::endl;
+
 	{
 		string passwordConfirm;
-		cout << "Retype password" << std::endl;
+		cout << "Retype password: ";
 		cin >> passwordConfirm;
-		
+
 		cout << std::endl;
 		if (passwordConfirm != password) {
 			cout << "Passwords didn't match" << std::endl;
 			return false;
 		}
 	}
-	
+
 	auto added = um.addUser(username, password);
 	if (added) {
 		cout << "The user " << username << " was added" << std::endl;
 	} else {
 		cout << "Password for the user " << username << " was updated" << std::endl;
 	}
-	
+
 	return true;
 }
 
 bool ConfigPrompt::removeUser(webserver::WebServerManager* wsm) {
 	auto& um = wsm->getUserManager();
-	
+
 	std::string username;
 	cout << "Enter username to remove" << std::endl;
 	cin >> username;
 	cout << std::endl;
-	
+
 	auto ret = um.removeUser(username);
 	if (ret) {
 		cout << "The user " << username << " was removed" << std::endl;
 	} else {
 		cout << "The user " << username << " was not found" << std::endl;
 	}
-	
+
 	return ret;
 }
 
@@ -204,7 +205,7 @@ bool ConfigPrompt::listUsers(webserver::WebServerManager* wsm) {
 	} else {
 		cout << Util::listToString(users) << std::endl;
 	}
-	
+
 	return false;
 }
 
@@ -213,12 +214,12 @@ void ConfigPrompt::promptPort(webserver::ServerConfig& config_, const std::strin
 	if (port > 0) {
 		aDefaultPort = port;
 	}
-	
-	cout << "Enter " << aProtocol << " port (empty: " << aDefaultPort << ", 0 = disabled)" << std::endl;
-	
+
+	cout << "Enter " << aProtocol << " port (empty: " << aDefaultPort << ", 0 = disabled): ";
+
 	string input;
-    std::getline(std::cin, input);
-	
+	std::getline(std::cin, input);
+
 	if (input.empty()) {
 		port = aDefaultPort;
 	} else {
@@ -228,17 +229,17 @@ void ConfigPrompt::promptPort(webserver::ServerConfig& config_, const std::strin
 			promptPort(config_, aProtocol, aDefaultPort);
 			return;
 		}
-		
+
 		cout << std::endl;
 	}
-	
+
 	config_.setPort(port);
 	if (port > 0) {
 		cout << toBold(aProtocol + " port set to: ") << port << std::endl;
 	} else {
 		cout << toBold(aProtocol + " protocol disabled") << std::endl;
 	}
-	
+
 	if (port > 0 && port < 1024) {
 		cout << toBold("NOTE: Ports under 1024 require you to run the client as root. It's recommended to use ports higher than 1024") << std::endl;
 	}

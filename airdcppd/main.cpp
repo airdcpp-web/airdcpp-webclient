@@ -116,13 +116,9 @@ static void init() {
 
 	sigfillset(&mask); /* Mask all allowed signals, the other threads should inherit
 					   this... */
-					   
-    //auto crashHandler = std::bind(&handleCrash, std::placeholders::_1);
 	
 	sigdelset(&mask, SIGCONT);
 	sigdelset(&mask, SIGFPE);
-	//sigdelset(&mask, SIGILL);
-	//sigdelset(&mask, SIGSEGV);
 	sigdelset(&mask, SIGBUS);
 	sigdelset(&mask, SIGINT);
 	sigdelset(&mask, SIGTRAP);
@@ -145,10 +141,9 @@ static void installHandler() {
 	
 	signal(SIGINT, &breakHandler);
 	
-	//signal(SIGTERM, &handleCrash);
 	signal(SIGFPE, &handleCrash);
 	signal(SIGSEGV, &handleCrash);
-	//signal(SIGTERM, &handleCrash);
+	signal(SIGILL, &handleCrash);
 	
 	std::set_terminate([] {
 		handleCrash(0);
@@ -198,13 +193,6 @@ static void runDaemon(const string& configPath) {
 		init();
 		
 		client->run();
-
-		//if (!client->startup()) {
-		//	uninit();
-		//	exit(78);
-		//}
-
-		//webserver::WebServerManager::getInstance()->join();
 		
 		client.reset();
 	} catch(const std::exception& e) {
@@ -224,14 +212,6 @@ static void runConsole(const string& configPath) {
 		init();
 		
 		client->run();
-		//if (!client->startup()) {
-		//	uninit();
-		//	exit(78);
-		//}
-
-		//printf(".\n%s running, press ctrl-c to exit...\n", shortVersionString.c_str());
-		
-		//webserver::WebServerManager::getInstance()->join();
 		
 		client.reset();
 	} catch(const std::exception& e) {
@@ -277,7 +257,12 @@ int main(int argc, char* argv[]) {
 	auto configF = airdcppd::ConfigPrompt::checkArgs();
 	if (configF) {
 		init();
-		signal(SIGINT, [](int) { uninit(); exit(0); });
+		signal(SIGINT, [](int) {
+			airdcppd::ConfigPrompt::setPasswordMode(false);
+			cout << std::endl;
+			uninit(); 
+			exit(0); 
+		});
 		
 		configF();
 		
