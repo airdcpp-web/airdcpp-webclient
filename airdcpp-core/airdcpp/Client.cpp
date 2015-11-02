@@ -57,7 +57,6 @@ void Client::setHubUrl(const string& aUrl) {
 }
 
 Client::~Client() {
-	updateCounts(true);
 	dcdebug("Client %s was deleted\n", hubUrl.c_str());
 }
 
@@ -85,6 +84,7 @@ void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 
 			aClient->sock = nullptr;
 			aClient->clearUsers();
+			updateCounts(true);
 		});
 	}
 }
