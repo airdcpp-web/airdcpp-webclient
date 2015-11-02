@@ -1,7 +1,12 @@
 var fs = require('fs');
 
-//var directoryPath = 'airdcpp-core/airdcpp/';
 var directoryPath = process.argv[2];
+
+var camelize = function (str) {
+  return str.replace (/(?:^|[-_])(\w)/g, function (_, c) {
+    return c ? c.toUpperCase () : '';
+  })
+};
 
 var textArray = fs.readFileSync(directoryPath + 'StringDefs.h', 'utf8')
   .trim()
@@ -11,24 +16,36 @@ var textArray = fs.readFileSync(directoryPath + 'StringDefs.h', 'utf8')
   })
   .reduce(function(texts, line) {
     if (line[1]) {
-      texts.push(line[1]);
+      texts.push({
+        name: '"' + camelize(line[0].toLowerCase()) + '"',
+        text: line[1]
+      });
     }
 
     return texts;
   }, []);
 
+
 var outputFilePath = directoryPath + 'StringDefs.cpp';
 
-var output = '#include "stdinc.h"\n\
-#include "ResourceManager.h"\n\
-std::string dcpp::ResourceManager::strings[] = {\n';
+var output = '#include "stdinc.h"\n';
+output += '#include "ResourceManager.h"\n';
 
-textArray.map(function(text) {
-  output += '\t' + text + ',\n'; 
+// Strings
+output += 'std::string dcpp::ResourceManager::strings[] = {\n';
+textArray.map(function(obj) {
+  output += '\t' + obj.text + ',\n'; 
 });
-
 output += '};\n';
 
+// Names
+output += 'std::string dcpp::ResourceManager::names[] = {\n';
+textArray.map(function(obj) {
+  output += '\t' + obj.name + ',\n';
+});
+output += '};\n';
+
+// Compare to old file
 if (fs.existsSync(outputFilePath)) {
   var oldFileContent = fs.readFileSync(outputFilePath, 'utf8');
   if (oldFileContent === output) {
@@ -37,6 +54,7 @@ if (fs.existsSync(outputFilePath)) {
   }
 }
 
+// Write new
 try {
   fs.writeFileSync(outputFilePath, output);
 } catch (e) {
