@@ -21,4 +21,4 @@ ZERO_CHECK.*
 CMakeCache.txt
 install_manifest.txt
 
-node-modules
+node_modules

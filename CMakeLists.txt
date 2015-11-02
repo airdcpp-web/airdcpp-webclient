@@ -2,7 +2,7 @@ project (airdcpp-webclient)
 cmake_minimum_required (VERSION 2.6.3)
 
 if (APPLE)
-  set (PROJECT_NAME_GLOBAL AirDC++)
+  set (PROJECT_NAME_GLOBAL AirDC++ Web Client)
 else (APPLE)
   set (PROJECT_NAME_GLOBAL airdcpp-webclient)
 endif (APPLE)
@@ -124,25 +124,22 @@ endif (APPLE)
 
 message (STATUS "Data directory: ${CLIENT_DATA_DIR}")
 
-if (AIRDCPP_REVISION)
-    set (airdcpp_WC_REVISION ${AIRDCPP_REVISION})
-    message (STATUS "AIRDCPP_REVISION is set to: ${airdcpp_WC_REVISION}")
-elseif (GIT_FOUND)
-    #execute_process (COMMAND ${GIT_EXECUTABLE} describe --tags
-    #            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    #            OUTPUT_VARIABLE airdcpp_WC_REVISION
-    #            OUTPUT_STRIP_TRAILING_WHITESPACE)
-    #message (STATUS "Build Git commit ID: ${airdcpp_WC_REVISION}")
-    #if (NOT airdcpp_WC_REVISION MATCHES [0-9a-z]+)
-    #    set (airdcpp_WC_REVISION "${VERSION_SUFFIX}")
-    #endif ()
-elseif (NOT AIRDCPP_REVISION)
-    set (airdcpp_WC_REVISION "${VERSION_SUFFIX}")
-endif ()
+#if (AIRDCPP_REVISION)
+#    set (airdcpp_WC_REVISION ${AIRDCPP_REVISION})
+#    message (STATUS "AIRDCPP_REVISION is set to: ${airdcpp_WC_REVISION}")
+#elseif (GIT_FOUND)
+    execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+#elseif (NOT AIRDCPP_REVISION)
+#    set (airdcpp_WC_REVISION "${VERSION_SUFFIX}")
+#endif ()
 
 message (STATUS "Downloading Web UI")
-execute_process (COMMAND sh install_webui.sh
+execute_process (COMMAND sh install_webui.sh 0.0.2
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+
+execute_process (COMMAND nodejs generate_stringdefs.js airdcpp-core/airdcpp/
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+
 
 #configure_file(${PROJECT_SOURCE_DIR}/Version.h.in ${PROJECT_BINARY_DIR}/VersionGlobal.h)
 
