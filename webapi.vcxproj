@@ -1,0 +1,256 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{DF45F1D3-1A07-4F40-99D2-BA59DAC925B1}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>webserver</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <ProjectName>webapi</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)vc14\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
+    <IntDir>$(SolutionDir)vc14\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)compiled\$(ProjectName)\</OutDir>
+    <IntDir>$(SolutionDir)vc14\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(SolutionDir)vc14\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)vc14\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)vc14\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
+    <IntDir>$(SolutionDir)vc14\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions);_SCL_SECURE_NO_WARNINGS;</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)openssl\include;$(SolutionDir)boost;$(SolutionDir)airdcpp</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_SCL_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;BOOST_ALL_NO_LIB;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)zlib;$(SolutionDir)openssl\include;$(SolutionDir)boost;$(ProjectDir);$(SolutionDir)airdcpp</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <PrecompiledHeaderFile>stdinc.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)webserver.pch</PrecompiledHeaderOutputFile>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;BOOST_ALL_NO_LIB;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions);_SCL_SECURE_NO_WARNINGS;</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)openssl\include;$(SolutionDir)boost;$(SolutionDir)airdcpp;$(AdditionalIncludeDirectories);$(ProjectDir)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;BOOST_ALL_NO_LIB;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions);_SCL_SECURE_NO_WARNINGS;</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)zlib;$(ProjectDir);$(SolutionDir)openssl\include;$(SolutionDir)boost;$(SolutionDir)airdcpp;$(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="api\common\Deserializer.h" />
+    <ClInclude Include="api\common\Format.h" />
+    <ClInclude Include="api\common\ListViewController.h" />
+    <ClInclude Include="api\common\Property.h" />
+    <ClInclude Include="api\common\PropertyFilter.h" />
+    <ClInclude Include="api\common\Serializer.h" />
+    <ClInclude Include="api\ApiModule.h" />
+    <ClInclude Include="api\FavoriteDirectoryApi.h" />
+    <ClInclude Include="api\FavoriteHubApi.h" />
+    <ClInclude Include="api\FavoriteHubUtils.h" />
+    <ClInclude Include="api\FilelistInfo.h" />
+    <ClInclude Include="api\FilelistApi.h" />
+    <ClInclude Include="api\FilelistUtils.h" />
+    <ClInclude Include="api\FilesystemApi.h" />
+    <ClInclude Include="api\HierarchicalApiModule.h" />
+    <ClInclude Include="api\HistoryApi.h" />
+    <ClInclude Include="api\HubApi.h" />
+    <ClInclude Include="api\HubInfo.h" />
+    <ClInclude Include="api\LogApi.h" />
+    <ClInclude Include="api\OnlineUserUtils.h" />
+    <ClInclude Include="api\platform\windows\Filesystem.h" />
+    <ClInclude Include="api\PrivateChatInfo.h" />
+    <ClInclude Include="api\PrivateChatApi.h" />
+    <ClInclude Include="api\QueueApi.h" />
+    <ClInclude Include="api\QueueUtils.h" />
+    <ClInclude Include="api\RecentHubApi.h" />
+    <ClInclude Include="api\SearchApi.h" />
+    <ClInclude Include="api\SearchResultInfo.h" />
+    <ClInclude Include="api\SearchUtils.h" />
+    <ClInclude Include="api\SessionApi.h" />
+    <ClInclude Include="api\ShareApi.h" />
+    <ClInclude Include="api\TransferApi.h" />
+    <ClInclude Include="web-server\ApiRequest.h" />
+    <ClInclude Include="web-server\ApiRouter.h" />
+    <ClInclude Include="web-server\Exception.h" />
+    <ClInclude Include="web-server\FileServer.h" />
+    <ClInclude Include="web-server\JsonUtil.h" />
+    <ClInclude Include="web-server\LazyInitWrapper.h" />
+    <ClInclude Include="web-server\Session.h" />
+    <ClInclude Include="web-server\SessionListener.h" />
+    <ClInclude Include="web-server\stdinc.h" />
+    <ClInclude Include="web-server\Timer.h" />
+    <ClInclude Include="web-server\WebServerManagerListener.h" />
+    <ClInclude Include="web-server\WebServerManager.h" />
+    <ClInclude Include="web-server\WebSocket.h" />
+    <ClInclude Include="web-server\WebUser.h" />
+    <ClInclude Include="web-server\WebUserManager.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="api\ApiModule.cpp" />
+    <ClCompile Include="api\common\Deserializer.cpp" />
+    <ClCompile Include="api\common\Format.cpp" />
+    <ClCompile Include="api\common\PropertyFilter.cpp" />
+    <ClCompile Include="api\common\Serializer.cpp" />
+    <ClCompile Include="api\FavoriteDirectoryApi.cpp" />
+    <ClCompile Include="api\FavoriteHubApi.cpp" />
+    <ClCompile Include="api\FavoriteHubUtils.cpp" />
+    <ClCompile Include="api\FilelistInfo.cpp" />
+    <ClCompile Include="api\FilelistApi.cpp" />
+    <ClCompile Include="api\FilelistUtils.cpp" />
+    <ClCompile Include="api\FilesystemApi.cpp" />
+    <ClCompile Include="api\HistoryApi.cpp" />
+    <ClCompile Include="api\HubApi.cpp" />
+    <ClCompile Include="api\HubInfo.cpp" />
+    <ClCompile Include="api\LogApi.cpp" />
+    <ClCompile Include="api\OnlineUserUtils.cpp" />
+    <ClCompile Include="api\PrivateChatApi.cpp" />
+    <ClCompile Include="api\PrivateChatInfo.cpp" />
+    <ClCompile Include="api\QueueApi.cpp" />
+    <ClCompile Include="api\QueueUtils.cpp" />
+    <ClCompile Include="api\RecentHubApi.cpp" />
+    <ClCompile Include="api\SearchApi.cpp" />
+    <ClCompile Include="api\SearchResultInfo.cpp" />
+    <ClCompile Include="api\SearchUtils.cpp" />
+    <ClCompile Include="api\SessionApi.cpp" />
+    <ClCompile Include="api\ShareApi.cpp" />
+    <ClCompile Include="api\TransferApi.cpp" />
+    <ClCompile Include="web-server\ApiRequest.cpp" />
+    <ClCompile Include="web-server\ApiRouter.cpp" />
+    <ClCompile Include="web-server\FileServer.cpp" />
+    <ClCompile Include="web-server\JsonUtil.cpp" />
+    <ClCompile Include="web-server\Session.cpp" />
+    <ClCompile Include="web-server\stdinc.cpp" />
+    <ClCompile Include="web-server\WebServerManager.cpp" />
+    <ClCompile Include="web-server\WebSocket.cpp" />
+    <ClCompile Include="web-server\WebUserManager.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

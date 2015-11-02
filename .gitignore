@@ -1,0 +1,12 @@
+*.sdf
+/packages
+*.user
+*.config
+*.psess
+*.vspx
+*.aps
+Thumbs.db
+*.suo
+*.opensdf
+*.exe
+websocketpp
