@@ -40,6 +40,8 @@
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 
+#include <boost/range/algorithm/copy.hpp>
+
 namespace dcpp {
 
 using boost::find_if;
@@ -98,6 +100,19 @@ ClientPtr ClientManager::getClient(ClientToken aClientId) noexcept {
 	RLock l(cs);
 	auto p = clientsById.find(aClientId);
 	return p != clientsById.end() ? p->second : nullptr;
+}
+
+void ClientManager::putClients() noexcept {
+	vector<ClientToken> tokens;
+
+	{
+		RLock l(cs);
+		boost::copy(clientsById | map_keys, back_inserter(tokens));
+	}
+
+	for (const auto& token : tokens) {
+		putClient(token);
+	}
 }
 
 bool ClientManager::putClient(ClientToken aClientId) noexcept {

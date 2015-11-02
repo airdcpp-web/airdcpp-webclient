@@ -56,6 +56,7 @@ public:
 	bool putClient(ClientToken aClientId) noexcept;
 	bool putClient(const string& aHubURL) noexcept;
 	bool putClient(ClientPtr& aClient) noexcept;
+	void putClients() noexcept;
 
 	// Returns the new ClientPtr
 	// NOTE: the main app should perform connecting to the new hub
