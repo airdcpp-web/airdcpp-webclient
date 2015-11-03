@@ -4,7 +4,7 @@ AirDC++ Web Client is a cross-platform file sharing client for Advanced Direct C
 
 **The application isn't suitable for regular usage yet as there is no interface for configuring settings.**
 
-## Compiling on Ubuntu
+## Installing packages on Ubuntu
 
 Ubuntu 14.04 or newer is required for installing the client.
 
@@ -22,7 +22,7 @@ The websocketpp package is available only on Ubuntu 15.10 or newer.
 
 `sudo apt-get libwebsocketpp-dev`
 
-If the package isn't available for you, the following steps can be used to install it manually:
+If the package isn't available for you, run the following commands to install it manually:
 
 ```
 git clone git://github.com/zaphoyd/websocketpp.git
@@ -34,15 +34,15 @@ cd..
 cd..
 ```
 
-# Downloading the client
+## Downloading the client
 
 `git clone https://github.com/maksis/airdcpp-webui.git`
 
-# Compiling
+## Compiling
 
 ```
 cd airdcpp-webui
 cmake .
 make -j4
 ```
-This will compile the client with 4 simultaneous threads.
+This will compile the client with four simultaneous threads.
