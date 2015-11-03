@@ -16,13 +16,13 @@ Ubuntu 14.04 or newer is required for installing the client.
 
 `sudo apt-get install libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.5*-dev libboost-regex1.5*-dev libboost-thread1.5*-dev libboost-system1.5*-dev libleveldb-dev`
 
-### Additional libraries
+### Install WebSocket++
 
-The websocketpp package is available only on Ubuntu 15.10 or newer.
+If you are running Ubuntu 15.10 or newer, you may use the following command to install the package:
 
 `sudo apt-get libwebsocketpp-dev`
 
-If the package isn't available for you, run the following commands to install it manually:
+If you are running an older version of Ubuntu, run the following commands to install the package manually:
 
 ```
 git clone git://github.com/zaphoyd/websocketpp.git
