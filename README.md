@@ -36,12 +36,12 @@ cd..
 
 ## Downloading the client
 
-`git clone https://github.com/maksis/airdcpp-webui.git`
+`git clone https://github.com/maksis/airdcpp-webclient.git`
 
 ## Compiling
 
 ```
-cd airdcpp-webui
+cd airdcpp-webclient
 cmake .
 make -j4
 ```
