@@ -60,6 +60,7 @@ find_package (LibNatpmp)
 find_package (Git)
 find_package (LevelDB REQUIRED)
 find_package (Backtrace)
+find_package (TBB)
 
 #option (ENABLE_STACKTRACE "Show stacktrace when program receive SIGSEGV" ON)
 option (INSTALL_RUNTIME_PATH "Install rpath" OFF)
@@ -69,6 +70,10 @@ option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
 #if (DO_NOT_USE_MUTEX OR HAIKU OR APPLE)
 #  add_definitions ( -DDO_NOT_USE_MUTEX )
 #endif ()
+
+if (TBB_FOUND)
+  add_definitions ( -DHAVE_INTEL_TBB )
+endif(TBB_FOUND)
 
 message (STATUS "Building with UPNP support (miniupnpc)")
 set (MINIUPNP_INCLUDE_DIR)
@@ -198,6 +203,7 @@ message(STATUS "CMAKE will use this libs (and headers) during build:
     geoip (headers): ${LibGeoIP_LIBRARY} (${LibGeoIP_INCLUDE_DIR})
     leveldb (headers): ${LevelDB_LIBRARY} (${LevelDB_INCLUDE_DIR})
     natpmp (headers): ${LibNatpmp_LIBRARY} (${LibNatpmp_INCLUDE_DIR})
+    tbb (headers): ${TBB_LIBRARIES} (${TBB_INCLUDE_DIRS})
     ")
 
 CONFIGURE_FILE(
