@@ -134,7 +134,7 @@ message (STATUS "Data directory: ${CLIENT_DATA_DIR}")
 #endif ()
 
 message (STATUS "Downloading Web UI")
-execute_process (COMMAND sh install_webui.sh 0.0.2
+execute_process (COMMAND sh install_webui.sh latest
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 execute_process (COMMAND nodejs generate_stringdefs.js airdcpp-core/airdcpp/

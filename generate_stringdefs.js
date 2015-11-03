@@ -12,13 +12,16 @@ var textArray = fs.readFileSync(directoryPath + 'StringDefs.h', 'utf8')
   .trim()
   .split('\n\t')
   .map(function(line) { 
-    return line.split(', // ')
+    return line.split(' // ')
   })
   .reduce(function(texts, line) {
-    if (line[1]) {
+    if (line[1] && line[0].charAt(0) !== '/' && line[0] !== 'LAST') {
       texts.push({
-        name: '"' + camelize(line[0].toLowerCase()) + '"',
-        text: line[1]
+        name: '"' + camelize(line[0]
+          .trim()
+          .slice(0, -1) // remove the trailing comma
+          .toLowerCase()) + '"',
+        text: line[1].trim()
       });
     }
 
@@ -56,7 +59,7 @@ if (fs.existsSync(outputFilePath)) {
 
 // Write new
 try {
-  fs.writeFileSync(outputFilePath, output);
+  fs.writeFileSync(outputFilePath, output, { encoding: 'utf8'});
 } catch (e) {
   console.log('Failed to write StringDefs.cpp');
   return;
