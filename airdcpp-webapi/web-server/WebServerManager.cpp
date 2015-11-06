@@ -46,11 +46,22 @@ namespace webserver {
 		return Util::getPath(CONFIG_DIR) + CONFIG_NAME;
 	}
 
-	bool WebServerManager::start(const string& aWebResourcePath, ErrorF&& errorF) {
+	bool WebServerManager::isRunning() const noexcept {
+		return ios.stopped();
+	}
+
+	bool WebServerManager::start(ErrorF&& errorF, const string& aWebResourcePath) {
 		SettingsManager::getInstance()->setDefault(SettingsManager::PM_MESSAGE_CACHE, 200);
 		SettingsManager::getInstance()->setDefault(SettingsManager::HUB_MESSAGE_CACHE, 200);
 
-		fileServer.setResourcePath(aWebResourcePath);
+		{
+			auto resourcePath = aWebResourcePath;
+			if (resourcePath.empty()) {
+				resourcePath = Util::getPath(Util::PATH_RESOURCES) + "web-resources" + PATH_SEPARATOR;
+			}
+
+			fileServer.setResourcePath(resourcePath);
+		}
 
 		// initialize asio with our external io_service rather than an internal one
 		endpoint_plain.init_asio(&ios);

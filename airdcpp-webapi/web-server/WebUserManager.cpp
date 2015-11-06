@@ -165,4 +165,19 @@ namespace webserver {
 		boost::copy(users | map_keys, back_inserter(ret));
 		return ret;
 	}
+
+	std::vector<WebUserPtr> WebUserManager::getWebUsers() const noexcept {
+		std::vector<WebUserPtr> ret;
+		RLock l(cs);
+		boost::copy(users | map_values, back_inserter(ret));
+		return ret;
+	}
+
+	void WebUserManager::replaceWebUsers(std::vector<WebUserPtr>& newUsers) noexcept {
+		WLock l(cs);
+		users.clear();
+		for (auto u : newUsers)
+			users.emplace(u->getUserName(), u);
+	}
+
 }

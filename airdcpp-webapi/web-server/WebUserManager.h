@@ -47,6 +47,10 @@ namespace webserver {
 		bool addUser(const string& aUserName, const string& aPassword) noexcept;
 
 		bool removeUser(const string& aUserName) noexcept;
+
+		std::vector<WebUserPtr> getWebUsers() const noexcept;
+		void replaceWebUsers(std::vector<WebUserPtr>& newUsers) noexcept;
+
 		StringList getUserNames() const noexcept;
 	private:
 		mutable SharedMutex cs;
