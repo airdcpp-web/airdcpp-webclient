@@ -15,12 +15,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
- 
+
 #include "Client.h"
- 
+
 #include <airdcpp/DCPlusPlus.h>
 #include <airdcpp/Util.h>
- 
+
 #include <airdcpp/ConnectivityManager.h>
 #include <airdcpp/DirectoryListingManager.h>
 #include <airdcpp/ClientManager.h>
@@ -31,24 +31,24 @@
 #include <web-server/WebServerManager.h>
  
 namespace airdcppd {
-	
+
 Client::Client(bool aAsDaemon) : asDaemon(aAsDaemon) {
-	
+
 }
 
 void Client::run() {
 	if (!startup()) {
 		return;
 	}
-	
+
 	if (!asDaemon) {
 		auto wsm = webserver::WebServerManager::getInstance();
 		printf(".\n%s running, press ctrl-c to exit...\n", shortVersionString.c_str());
 		printf("HTTP port: %d, HTTPS port: %d\n", wsm->getPlainServerConfig().getPort(), wsm->getTlsServerConfig().getPort());
 	}
-		
+
 	webserver::WebServerManager::getInstance()->join();
-	
+
 	shutdown();
 }
 
@@ -76,13 +76,13 @@ bool Client::startup() {
 
 	auto webResourcePath = File::makeAbsolutePath("node_modules/airdcpp-webui/");
 	printf("Starting web server (resource path: %s)\n", webResourcePath.c_str());
-	webserver::WebServerManager::getInstance()->start(webResourcePath, [](const string& aError) {
-		printf("%s\n", aError.c_str());		
-	});
-	
+	webserver::WebServerManager::getInstance()->start([](const string& aError) {
+		printf("%s\n", aError.c_str());
+	}, webResourcePath);
+
 	DirectoryListingManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);
-	
+
 
 	TimerManager::getInstance()->start();
 	UpdateManager::getInstance()->init();
