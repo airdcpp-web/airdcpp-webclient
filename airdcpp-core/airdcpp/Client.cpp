@@ -80,7 +80,9 @@ void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 
 	if(sock) {
 		BufferedSocket::putSocket(sock, [=] { // Ensure that the pointer won't be deleted too early
-			cache.clear();
+			if (!aRedirect) {
+				cache.clear();
+			}
 
 			aClient->sock = nullptr;
 			aClient->clearUsers();
@@ -274,6 +276,10 @@ void Client::setRead() noexcept {
 	if (updated > 0) {
 		fire(ClientListener::MessagesRead(), this);
 	}
+}
+
+int Client::clearCache() noexcept {
+	return cache.clear();
 }
 
 void Client::onPassword() {

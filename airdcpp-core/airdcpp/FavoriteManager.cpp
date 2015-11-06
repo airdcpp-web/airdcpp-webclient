@@ -425,6 +425,7 @@ bool FavoriteManager::addFavoriteHub(const FavoriteHubEntryPtr& aEntry) {
 }
 
 void FavoriteManager::onFavoriteHubUpdated(const FavoriteHubEntryPtr& aEntry) {
+	save();
 	fire(FavoriteManagerListener::FavoriteHubUpdated(), aEntry);
 }
 

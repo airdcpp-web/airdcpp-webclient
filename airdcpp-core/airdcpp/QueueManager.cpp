@@ -1161,9 +1161,20 @@ bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& ru
 	if (aQI->usesSmallSlot())
 		return true;
 
+
 	// paused?
 	if (aQI->isPausedPrio() || (aQI->getBundle() && aQI->getBundle()->isPausedPrio()))
 		return false;
+
+	//Download was failed for writing errors, check if we have enough free space to continue the downloading now...
+	if (aQI->getBundle() && aQI->getBundle()->getStatus() == Bundle::STATUS_DOWNLOAD_FAILED) {
+		if (File::getFreeSpace(aQI->getBundle()->getTarget()) >= static_cast<int64_t>(aQI->getSize() - aQI->getDownloadedBytes())) {
+			setBundleStatus(aQI->getBundle(), Bundle::STATUS_QUEUED);
+		} else {
+			lastError_ = aQI->getBundle()->getLastError();
+			return false;
+		}
+	}
 
 	size_t downloadCount = DownloadManager::getInstance()->getDownloadCount();
 	bool slotsFull = (AirUtil::getSlots(true) != 0) && (downloadCount >= static_cast<size_t>(AirUtil::getSlots(true)));
@@ -1665,7 +1676,6 @@ void QueueManager::bundleDownloadFailed(BundlePtr& aBundle, const string& aError
 	if (aBundle) {
 		aBundle->setLastError(aError);
 		setBundleStatus(aBundle, Bundle::STATUS_DOWNLOAD_FAILED);
-		setBundlePriority(aBundle, QueueItemBase::PAUSED_FORCE);
 	}
 }
 
@@ -2058,10 +2068,6 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 
 		if (aBundle->isFinished())
 			return;
-		
-		if (aBundle->getStatus() == Bundle::STATUS_DOWNLOAD_FAILED && p != QueueItemBase::PAUSED_FORCE) {
-			setBundleStatus(aBundle, Bundle::STATUS_QUEUED);
-		}
 
 		bundleQueue.removeSearchPrio(aBundle);
 		userQueue.setBundlePriority(aBundle, p);
@@ -3262,7 +3268,7 @@ void QueueManager::on(ShareLoaded) noexcept{
 	onPathRefreshed(Util::emptyString, true);
 }
 
-void QueueManager::setBundleStatus(BundlePtr& aBundle, Bundle::Status newStatus) noexcept {
+void QueueManager::setBundleStatus(BundlePtr aBundle, Bundle::Status newStatus) noexcept {
 	if (aBundle->getStatus() != newStatus) {
 		aBundle->setStatus(newStatus);
 		fire(QueueManagerListener::BundleStatusChanged(), aBundle);
