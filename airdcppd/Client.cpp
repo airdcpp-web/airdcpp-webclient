@@ -76,9 +76,13 @@ bool Client::startup() {
 
 	auto webResourcePath = File::makeAbsolutePath("node_modules/airdcpp-webui/");
 	printf("Starting web server (resource path: %s)\n", webResourcePath.c_str());
-	webserver::WebServerManager::getInstance()->start([](const string& aError) {
+	auto serverStarted = webserver::WebServerManager::getInstance()->start([](const string& aError) {
 		printf("%s\n", aError.c_str());
 	}, webResourcePath);
+	
+	if (!serverStarted) {
+		return false;
+	}
 
 	DirectoryListingManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);
