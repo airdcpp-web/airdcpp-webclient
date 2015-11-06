@@ -102,7 +102,7 @@ namespace webserver {
 				endpoint_plain.start_accept();
 				hasServer = true;
 			} catch (const websocketpp::exception& e) {
-				auto message = boost::format("Failed to set up plain server on port %1: %2 (is the port in use by another application?)") % plainServerConfig.getPort() % string(e.what());
+				auto message = boost::format("Failed to set up plain server on port %1%: %2% (is the port in use by another application?)") % plainServerConfig.getPort() % string(e.what());
 				errorF(message.str());
 			}
 		}
@@ -113,7 +113,7 @@ namespace webserver {
 				endpoint_tls.start_accept();
 				hasServer = true;
 			} catch (const websocketpp::exception& e) {
-				auto message = boost::format("Failed to set up secure server on port %1: %2 (is the port in use by another application?)") % tlsServerConfig.getPort() % string(e.what());
+				auto message = boost::format("Failed to set up secure server on port %1%: %2% (is the port in use by another application?)") % tlsServerConfig.getPort() % string(e.what());
 				errorF(message.str());
 			}
 		}
