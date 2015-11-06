@@ -157,7 +157,9 @@ namespace webserver {
 		~WebServerManager();
 
 		typedef std::function<void(const string&)> ErrorF;
-		bool start(const string& aWebResourcePath, ErrorF&& errorF);
+
+		// Leave the path empty to use the default resource path
+		bool start(ErrorF&& errorF, const string& aWebResourcePath = "");
 		void stop();
 
 		void disconnectSockets(const std::string& aMessage) noexcept;
@@ -188,6 +190,11 @@ namespace webserver {
 		}
 
 		string getConfigPath() const noexcept;
+		string getResourcePath() const noexcept {
+			return fileServer.getResourcePath();
+		}
+
+		bool isRunning() const noexcept;
 	private:
 		ServerConfig plainServerConfig;
 		ServerConfig tlsServerConfig;

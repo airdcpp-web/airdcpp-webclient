@@ -35,6 +35,10 @@ namespace webserver {
 
 	}
 
+	const string& FileServer::getResourcePath() const noexcept {
+		return resourcePath;
+	}
+
 	void FileServer::setResourcePath(const string& aPath) noexcept {
 		resourcePath = aPath;
 	}

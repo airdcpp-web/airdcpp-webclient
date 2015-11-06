@@ -61,6 +61,7 @@ namespace webserver {
 		case Bundle::STATUS_RECHECK: return STRING(RECHECKING);
 		case Bundle::STATUS_DOWNLOADED: return STRING(MOVING);
 		case Bundle::STATUS_MOVED: return STRING(DOWNLOADED);
+		case Bundle::STATUS_DOWNLOAD_FAILED:
 		case Bundle::STATUS_FAILED_MISSING:
 		case Bundle::STATUS_SHARING_FAILED: return aBundle->getLastError();
 		case Bundle::STATUS_FINISHED: return STRING(FINISHED);
