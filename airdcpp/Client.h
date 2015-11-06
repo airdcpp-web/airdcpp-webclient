@@ -170,6 +170,7 @@ public:
 		return cache;
 	}
 
+	int clearCache() noexcept;
 	void setRead() noexcept;
 	const string& getRedirectUrl() const noexcept {
 		return redirectUrl;

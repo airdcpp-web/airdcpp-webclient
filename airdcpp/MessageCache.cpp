@@ -20,7 +20,7 @@
 #include "MessageCache.h"
 
 namespace dcpp {
-	MessageCache::MessageCache(const MessageCache& aCache) noexcept : messages(aCache.messages), setting(aCache.setting) {
+	MessageCache::MessageCache(const MessageCache& aCache) noexcept : messages(aCache.getMessages()), setting(aCache.setting) {
 
 	}
 

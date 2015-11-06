@@ -962,7 +962,7 @@ void Bundle::save() throw(FileException) {
 		f.write(Util::toString(bundleDate));
 		f.write(LIT("\" AddedByAutoSearch=\""));
 		f.write(Util::toString(getAddedByAutoSearch()));
-		if (!getAutoPriority() && (getStatus() != STATUS_DOWNLOAD_FAILED)) { //Don't save priority for failed downloading, re attempt on next startup..
+		if (!getAutoPriority()) {
 			f.write(LIT("\" Priority=\""));
 			f.write(Util::toString((int)getPriority()));
 		}

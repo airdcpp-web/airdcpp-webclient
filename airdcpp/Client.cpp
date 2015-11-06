@@ -57,7 +57,6 @@ void Client::setHubUrl(const string& aUrl) {
 }
 
 Client::~Client() {
-	updateCounts(true);
 	dcdebug("Client %s was deleted\n", hubUrl.c_str());
 }
 
@@ -81,10 +80,13 @@ void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 
 	if(sock) {
 		BufferedSocket::putSocket(sock, [=] { // Ensure that the pointer won't be deleted too early
-			cache.clear();
+			if (!aRedirect) {
+				cache.clear();
+			}
 
 			aClient->sock = nullptr;
 			aClient->clearUsers();
+			updateCounts(true);
 		});
 	}
 }
@@ -274,6 +276,10 @@ void Client::setRead() noexcept {
 	if (updated > 0) {
 		fire(ClientListener::MessagesRead(), this);
 	}
+}
+
+int Client::clearCache() noexcept {
+	return cache.clear();
 }
 
 void Client::onPassword() {

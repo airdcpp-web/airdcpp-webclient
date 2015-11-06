@@ -168,6 +168,7 @@ ClientPtr ClientManager::redirect(const string& aHubUrl, const string& aNewUrl) 
 	oldClient->shutdown(oldClient, true);
 
 	auto newClient = ClientManager::createClient(aNewUrl, oldClient);
+	oldClient->clearCache();
 
 	{
 		WLock l(cs);
