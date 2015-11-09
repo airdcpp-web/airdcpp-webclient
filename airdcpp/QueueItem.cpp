@@ -360,7 +360,7 @@ Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t wantedSize, int64_
 		return Segment(start, std::min(size, end) - start);
 	}
 	
-	if(!startDown() || downloads.size() >= maxSegments ||
+	if(isPausedPrio() || downloads.size() >= maxSegments ||
 		(SETTING(DONT_BEGIN_SEGMENT) && static_cast<uint64_t>(Util::convertSize(SETTING(DONT_BEGIN_SEGMENT_SPEED), Util::KB)) < getAverageSpeed()))
 	{
 		// no other segments if we have reached the speed or segment limit
@@ -604,7 +604,7 @@ void QueueItem::getChunksVisualisation(vector<Segment>& running_, vector<Segment
 }
 
 bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, DownloadType aType, bool allowOverlap) {
-	if (!startDown())
+	if (isPausedPrio())
 		return false;
 
 	auto source = getSource(aUser);
@@ -655,13 +655,13 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineH
 	return true;
 }
 
-bool QueueItem::startDown() const {
+bool QueueItem::isPausedPrio() const noexcept {
 	if(bundle && !bundle->isPausedPrio() && priority != PAUSED) {
-		return true;
+		return false;
 	} else if ((!bundle || bundle->getPriority() != PAUSED_FORCE) && priority == HIGHEST) {
-		return true;
+		return false;
 	}
-	return false;
+	return true;
 }
 
 bool QueueItem::usesSmallSlot() const {

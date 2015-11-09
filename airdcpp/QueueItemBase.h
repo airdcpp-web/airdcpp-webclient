@@ -66,7 +66,7 @@ public:
 	GETSET(DownloadList, downloads, Downloads);
 	GETSET(int64_t, size, Size);
 
-	bool isPausedPrio() const { return priority == PAUSED_FORCE || priority == PAUSED; }
+	virtual bool isPausedPrio() const noexcept { return priority == PAUSED_FORCE || priority == PAUSED; }
 
 	QueueToken getToken() const noexcept {
 		return token;

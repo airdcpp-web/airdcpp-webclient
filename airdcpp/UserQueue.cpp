@@ -77,7 +77,7 @@ QueueItemPtr UserQueue::getNext(const UserPtr& aUser, const QueueTokenSet& runni
 	bool allowOverlap /*false*/) noexcept {
 
 	/* Using the PAUSED priority will list all files */
-	QueueItemPtr qi = getNextPrioQI(aUser, onlineHubs, 0, 0, aType, allowOverlap, lastError_);
+	auto qi = getNextPrioQI(aUser, onlineHubs, 0, 0, aType, allowOverlap, lastError_);
 	if(!qi) {
 		qi = getNextBundleQI(aUser, runningBundles, onlineHubs, (QueueItemBase::Priority)minPrio, wantedSize, lastSpeed, aType, allowOverlap, lastError_, hasDownload);
 	}
