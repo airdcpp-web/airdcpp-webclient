@@ -1069,7 +1069,7 @@ bool QueueManager::addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::M
 	if(qi->isFinished()) //no need to add source to finished item.
 		throw QueueException("Already Finished: " + Util::getFileName(qi->getTarget()));
 	
-	bool wantConnection = qi->startDown();
+	bool wantConnection = !qi->isPausedPrio();
 	dcassert(qi->getBundle() || qi->getPriority() == QueueItem::HIGHEST);
 
 	if(qi->isSource(aUser)) {
@@ -1163,7 +1163,7 @@ bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& ru
 
 
 	// paused?
-	if (aQI->isPausedPrio() || (aQI->getBundle() && aQI->getBundle()->isPausedPrio()))
+	if (aQI->isPausedPrio())
 		return false;
 
 	//Download was failed for writing errors, check if we have enough free space to continue the downloading now...
@@ -2773,7 +2773,7 @@ void QueueManager::on(ClientManagerListener::UserConnected, const OnlineUser& aU
 
 		for(auto& q: ql) {
 			fire(QueueManagerListener::SourcesUpdated(), q);
-			if(!hasDown && q->startDown() && !q->isHubBlocked(aUser.getUser(), aUser.getHubUrl()))
+			if(!hasDown && !q->isPausedPrio() && !q->isHubBlocked(aUser.getUser(), aUser.getHubUrl()))
 				hasDown = true;
 		}
 
