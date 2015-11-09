@@ -39,8 +39,8 @@
 namespace webserver {
 #define ADD_MODULE(name, type) (apiHandlers.emplace(name, LazyModuleWrapper([this] { return unique_ptr<type>(new type(this)); })))
 
-	Session::Session(WebUserPtr& aUser, const string& aToken, bool aIsSecure) : 
-		user(aUser), token(aToken), started(GET_TICK()), lastActivity(lastActivity), secure(aIsSecure) {
+	Session::Session(WebUserPtr& aUser, const string& aToken, bool aIsSecure, WebServerManager* aServer) : 
+		user(aUser), token(aToken), started(GET_TICK()), lastActivity(lastActivity), secure(aIsSecure), server(aServer) {
 
 		ADD_MODULE("favorite_directories", FavoriteDirectoryApi);
 		ADD_MODULE("favorite_hubs", FavoriteHubApi);
