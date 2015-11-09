@@ -29,7 +29,6 @@
 #include <web-server/WebUser.h>
 
 namespace webserver {
-	class WebServerManager;
 	class WebUserManager : private WebServerManagerListener {
 	public:
 		WebUserManager(WebServerManager* aServer);

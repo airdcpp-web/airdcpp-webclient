@@ -24,7 +24,6 @@
 namespace webserver {
 	class Timer : boost::noncopyable {
 	public:
-		typedef std::function<void()> CallBack;
 		Timer(CallBack&& aCallBack, boost::asio::io_service& aIO, time_t aIntervalMillis) : cb(move(aCallBack)),
 			interval(aIntervalMillis),
 			timer(aIO, interval) {

@@ -169,4 +169,17 @@ namespace webserver {
 
 		return send(j);
 	}
+
+	void ApiModule::addAsyncSubscriptionTask(CallBack&& aTask) {
+		// Ensure that the socket (and session) won't be deleted
+		auto s = socket;
+		if (!s) {
+			return;
+		}
+
+		session->getServer()->addAsyncTask([=] {
+			aTask();
+			s.get();
+		});
+	}
 }

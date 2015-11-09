@@ -299,19 +299,25 @@ namespace webserver {
 
 
 	// LISTENERS
+	// All listener events from QueueManager should be handled asynchronously
+	// This avoids deadlocks as some events are fired from inside locks
 	void QueueApi::on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept {
-		bundleView.onItemAdded(aBundle);
-		if (!subscriptionActive("bundle_added"))
-			return;
+		addAsyncSubscriptionTask([=] {
+			bundleView.onItemAdded(aBundle);
+			if (!subscriptionActive("bundle_added"))
+				return;
 
-		send("bundle_added", Serializer::serializeItem(aBundle, bundlePropertyHandler));
+			send("bundle_added", Serializer::serializeItem(aBundle, bundlePropertyHandler));
+		});
 	}
 	void QueueApi::on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept {
-		bundleView.onItemRemoved(aBundle);
-		if (!subscriptionActive("bundle_removed"))
-			return;
+		addAsyncSubscriptionTask([=] {
+			bundleView.onItemRemoved(aBundle);
+			if (!subscriptionActive("bundle_removed"))
+				return;
 
-		send("bundle_removed", Serializer::serializeItem(aBundle, bundlePropertyHandler));
+			send("bundle_removed", Serializer::serializeItem(aBundle, bundlePropertyHandler));
+		});
 	}
 
 	void QueueApi::on(QueueManagerListener::Removed, const QueueItemPtr& aQI, bool /*finished*/) noexcept {
@@ -334,25 +340,29 @@ namespace webserver {
 		//send("file_updated", QueueUtils::serializeQueueItem(aQI));
 	}
 	void QueueApi::onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription) {
-		bundleView.onItemUpdated(aBundle, aUpdatedProperties);
+		addAsyncSubscriptionTask([=] {
+			bundleView.onItemUpdated(aBundle, aUpdatedProperties);
 
-		if (!subscriptionActive(aSubscription))
-			return;
+			if (!subscriptionActive(aSubscription))
+				return;
 
-		send(aSubscription, Serializer::serializeItem(aBundle, bundlePropertyHandler));
+			send(aSubscription, Serializer::serializeItem(aBundle, bundlePropertyHandler));
+		});
 	}
 
 	void QueueApi::on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t /*aTick*/) noexcept {
-		bundleView.onItemsUpdated(tickBundles, { PROP_SPEED, PROP_SECONDS_LEFT, PROP_BYTES_DOWNLOADED, PROP_STATUS });
-		if (!subscriptionActive("bundle_tick"))
-			return;
+		addAsyncSubscriptionTask([=] {
+			bundleView.onItemsUpdated(tickBundles, { PROP_SPEED, PROP_SECONDS_LEFT, PROP_BYTES_DOWNLOADED, PROP_STATUS });
+			if (!subscriptionActive("bundle_tick"))
+				return;
 
-		json j;
-		for (auto& b : tickBundles) {
-			j.push_back(Serializer::serializeItem(b, bundlePropertyHandler));
-		}
+			json j;
+			for (auto& b : tickBundles) {
+				j.push_back(Serializer::serializeItem(b, bundlePropertyHandler));
+			}
 
-		send("bundle_tick", j);
+			send("bundle_tick", j);
+		});
 	}
 
 	void QueueApi::on(QueueManagerListener::BundleMoved, const BundlePtr& aBundle) noexcept {

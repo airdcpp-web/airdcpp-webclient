@@ -75,34 +75,12 @@ namespace webserver {
 			api.handleSocketRequest(msg->get_payload(), socket, aIsSecure);
 		}
 
-		void on_init_socket(websocketpp::connection_hdl hdl) {
-			dcdebug("on_init_socket");
-		}
-
 		template <typename EndpointType>
 		void on_open_socket(EndpointType* aServer, websocketpp::connection_hdl hdl, bool aIsSecure) {
-			if (shuttingDown) {
-				try {
-					aServer->close(hdl, websocketpp::close::status::going_away, "Shutting down");
-				} catch (std::exception& e) {
-					dcdebug("Failed to disconnect socket: %s", e.what());
-				}
-
-				return;
-			}
-
-			dcdebug("on_open_socket");
 
 			WLock l(cs);
 			auto socket = make_shared<WebSocket>(aIsSecure, hdl, aServer);
 			sockets.emplace(hdl, socket);
-		}
-
-		template <typename EndpointType>
-		void on_failed(EndpointType* aServer, websocketpp::connection_hdl hdl) {
-			auto con = aServer->get_con_from_hdl(hdl);
-			auto m_error_reason = con->get_ec().message();
-			dcdebug("Connection failed: %s\n", m_error_reason.c_str());
 		}
 
 		void on_close_socket(websocketpp::connection_hdl hdl);
@@ -151,7 +129,8 @@ namespace webserver {
 			}
 		}
 
-		TimerPtr addTimer(Timer::CallBack&& aCallBack, time_t aIntervalMillis) noexcept;
+		TimerPtr addTimer(CallBack&& aCallBack, time_t aIntervalMillis) noexcept;
+		void addAsyncTask(CallBack&& aCallBack) noexcept;
 
 		WebServerManager();
 		~WebServerManager();
@@ -159,7 +138,7 @@ namespace webserver {
 		typedef std::function<void(const string&)> ErrorF;
 
 		// Leave the path empty to use the default resource path
-		bool start(ErrorF&& errorF, const string& aWebResourcePath = "");
+		bool start(ErrorF errorF, const string& aWebResourcePath = "");
 		void stop();
 
 		void disconnectSockets(const std::string& aMessage) noexcept;
@@ -196,6 +175,10 @@ namespace webserver {
 
 		bool isRunning() const noexcept;
 	private:
+		bool listen(ErrorF& errorF);
+
+		bool InitializeIO(ErrorF& errorF);
+
 		ServerConfig plainServerConfig;
 		ServerConfig tlsServerConfig;
 
@@ -216,11 +199,11 @@ namespace webserver {
 
 		unique_ptr<WebUserManager> userManager;
 
+		bool has_io_service;
+
 		server_plain endpoint_plain;
 		server_tls endpoint_tls;
 		boost::thread_group worker_threads;
-
-		bool shuttingDown = false;
 	};
 }
 

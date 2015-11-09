@@ -90,6 +90,7 @@ namespace webserver {
 
 		virtual bool send(const json& aJson);
 		virtual bool send(const string& aSubscription, const json& aJson);
+		void addAsyncSubscriptionTask(CallBack&& aTask);
 
 		Session* getSession() const noexcept {
 			return session;

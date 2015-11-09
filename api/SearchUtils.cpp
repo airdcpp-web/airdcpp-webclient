@@ -26,8 +26,7 @@ namespace webserver {
 		json j;
 
 		switch (aPropertyName) {
-		case SearchApi::PROP_TYPE:
-		{
+		case SearchApi::PROP_TYPE: {
 			if (aResult->sr->getType() == SearchResult::TYPE_FILE) {
 				return Serializer::serializeFileType(aResult->sr->getPath());
 			} else {
@@ -38,17 +37,17 @@ namespace webserver {
 			int free = 0, total = 0;
 			aResult->getSlots(free, total);
 
-			json j;
-			j["str"] = aResult->getSlotStr();
-			j["free"] = free;
-			j["total"] = total;
-			return j;
-		}
-		case SearchApi::PROP_IP: {
-			return Serializer::serializeIp(aResult->sr->getIP(), aResult->getCountry());
+			return {
+				{ "str", aResult->getSlotStr() },
+				{ "free", free },
+				{ "total", total }
+			};
 		}
 		case SearchApi::PROP_USERS: {
-			return Serializer::serializeHintedUser(aResult->sr->getUser());
+			return {
+				{ "count", aResult->children.size() + 1 },
+				{ "user", Serializer::serializeHintedUser(aResult->sr->getUser()) }
+			};
 		}
 		}
 
@@ -111,7 +110,6 @@ namespace webserver {
 			}
 		}
 		case SearchApi::PROP_SLOTS: return aResult->getSlotStr();
-		case SearchApi::PROP_IP: return Format::formatIp(aResult->sr->getIP(), aResult->getCountry());
 		case SearchApi::PROP_TTH: return aResult->sr->getTTH().toBase32();
 		default: dcassert(0); return 0;
 		}

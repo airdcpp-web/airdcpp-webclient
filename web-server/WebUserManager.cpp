@@ -47,7 +47,7 @@ namespace webserver {
 			return nullptr;
 		}
 
-		auto session = make_shared<Session>(u->second, Util::toString(Util::rand()), aIsSecure);
+		auto session = make_shared<Session>(u->second, Util::toString(Util::rand()), aIsSecure, server);
 		sessions.emplace(session->getToken(), session);
 		return session;
 	}
