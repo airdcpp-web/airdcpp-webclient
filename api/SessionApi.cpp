@@ -26,13 +26,13 @@
 
 #include <airdcpp/AirUtil.h>
 #include <airdcpp/SettingsManager.h>
+#include <airdcpp/Socket.h>
 #include <airdcpp/TimerManager.h>
 #include <airdcpp/version.h>
 
 namespace webserver {
 	SessionApi::SessionApi() {
-		initialTotalDownloaded = SETTING(TOTAL_DOWNLOAD);
-		initialTotalUploaded = SETTING(TOTAL_UPLOAD);
+
 	}
 
 	json SessionApi::getSystemInfo(const string& aIp) const noexcept {
@@ -62,8 +62,8 @@ namespace webserver {
 		retJson["platform"] = "other";
 #endif
 
-		retJson["start_total_downloaded"] = initialTotalDownloaded;
-		retJson["start_total_uploaded"] = initialTotalUploaded;
+		retJson["start_total_downloaded"] = SETTING(TOTAL_DOWNLOAD) - Socket::getTotalDown();
+		retJson["start_total_uploaded"] = SETTING(TOTAL_UPLOAD) - Socket::getTotalUp();
 		return retJson;
 	}
 
