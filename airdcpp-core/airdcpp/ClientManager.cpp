@@ -1086,114 +1086,163 @@ void ClientManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		c->info();
 }
 
-string ClientManager::getClientStats() const noexcept {
-	RLock l(cs);
-	map<CID, OnlineUser*> uniqueUserMap;
-	for(const auto& ou: onlineUsers | map_values) {
-		uniqueUserMap.emplace(ou->getUser()->getCID(), ou);
+void ClientManager::ClientStats::finalize() noexcept {
+	uniqueUsersPercentage = ((double)uniqueUsers / (double)totalUsers)*100.00;
+
+	activeUserPercentage = ((double)activeUsers / (double)uniqueUsers)*100.00;
+	operatorPercentage = ((double)operators / (double)uniqueUsers)*100.00;
+	botPercentage = ((double)bots / (double)uniqueUsers)*100.00;
+	hiddenPercentage = ((double)hiddenUsers / (double)uniqueUsers)*100.00;
+	sharePerUser = totalShare / uniqueUsers;
+
+	if (nmdcUsers > 0) {
+		nmdcSpeedPerUser = nmdcConnection / nmdcUsers;
 	}
 
-	int allUsers = onlineUsers.size();
-	int uniqueUsers = uniqueUserMap.size();
-	if (uniqueUsers == 0) {
-		return "No users";
+	if (adcUsers > 0) {
+		downPerAdcUser = downloadSpeed / adcUsers;
+		upPerAdcUser = uploadSpeed / adcUsers;
 	}
+}
 
-	int64_t totalShare = 0;
-	int64_t uploadSpeed = 0;
-	int64_t downloadSpeed = 0;
-	int64_t nmdcConnection = 0;
-	int nmdcUsers = 0, adcUsers = 0, adcHasDownload = 0, adcHasUpload = 0, nmdcHasConnection = 0;
-	int hiddenUsers = 0, bots = 0, activeUsers = 0, operators = 0;
-	for(const auto& ou: uniqueUserMap | map_values) {
-		totalShare += Util::toInt64(ou->getIdentity().getShareSize());
-		if (ou->isHidden()) {
-			hiddenUsers++;
-			continue;
+void ClientManager::ClientStats::forEachClient(function<void(const string&, int, double)> aHandler) const noexcept {
+	for (auto& p : clients) {
+		auto percentage = ((double)p.second / (double)uniqueUsers)*100.00;
+		aHandler(p.first, p.second, percentage);
+	}
+}
+
+optional<ClientManager::ClientStats> ClientManager::getClientStats() const noexcept {
+	ClientStats stats;
+
+	map<string, int> clientNames;
+	{
+		RLock l(cs);
+		map<CID, OnlineUser*> uniqueUserMap;
+		for (const auto& ou : onlineUsers | map_values) {
+			uniqueUserMap.emplace(ou->getUser()->getCID(), ou);
 		}
 
-		if (ou->getIdentity().isBot()) {
-			bots++;
-			if (!ou->getUser()->isNMDC()) {
+		stats.totalUsers = onlineUsers.size();
+		stats.uniqueUsers = uniqueUserMap.size();
+		if (stats.uniqueUsers == 0) {
+			return boost::none;
+		}
+
+		// User counts
+		for (const auto& ou : uniqueUserMap | map_values) {
+			stats.totalShare += Util::toInt64(ou->getIdentity().getShareSize());
+			if (ou->isHidden()) {
+				stats.hiddenUsers++;
 				continue;
 			}
-		}
 
-		if (ou->getIdentity().isOp()) {
-			operators++;
-		}
-
-		if (ou->getIdentity().isTcpActive()) {
-			activeUsers++;
-		}
-
-		if (ou->getUser()->isNMDC()) {
-			auto speed = Util::toDouble(ou->getIdentity().getNmdcConnection());
-			if (speed > 0) {
-				nmdcConnection += static_cast<int64_t>((speed * 1000.0 * 1000.0) / 8.0);
-				nmdcHasConnection++;
-			}
-			nmdcUsers++;
-		} else {
-			auto up = ou->getIdentity().getAdcConnectionSpeed(false);
-			if (up > 0) {
-				uploadSpeed += up;
-				adcHasUpload++;
+			if (ou->getIdentity().isBot()) {
+				stats.bots++;
+				if (!ou->getUser()->isNMDC()) {
+					continue;
+				}
 			}
 
-			auto down = ou->getIdentity().getAdcConnectionSpeed(true);
-			if (down > 0) {
-				downloadSpeed += ou->getIdentity().getAdcConnectionSpeed(true);
-				adcHasDownload++;
+			if (ou->getIdentity().isOp()) {
+				stats.operators++;
 			}
-			adcUsers++;
+
+			if (ou->getIdentity().isTcpActive()) {
+				stats.activeUsers++;
+			}
+
+			if (ou->getUser()->isNMDC()) {
+				auto speed = Util::toDouble(ou->getIdentity().getNmdcConnection());
+				if (speed > 0) {
+					stats.nmdcConnection += static_cast<int64_t>((speed * 1000.0 * 1000.0) / 8.0);
+					//stats.nmdcHasConnection++;
+				}
+				stats.nmdcUsers++;
+			} else {
+				auto up = ou->getIdentity().getAdcConnectionSpeed(false);
+				if (up > 0) {
+					stats.uploadSpeed += up;
+					//stats.adcHasUpload++;
+				}
+
+				auto down = ou->getIdentity().getAdcConnectionSpeed(true);
+				if (down > 0) {
+					stats.downloadSpeed += ou->getIdentity().getAdcConnectionSpeed(true);
+					//stats.adcHasDownload++;
+				}
+				stats.adcUsers++;
+			}
+		}
+
+		// Client counts
+		for (const auto& ou : uniqueUserMap | map_values) {
+			auto app = ou->getIdentity().getApplication();
+			auto pos = app.find(" ");
+
+			if (pos != string::npos) {
+				clientNames[app.substr(0, pos)]++;
+			} else {
+				clientNames["Unknown"]++;
+			}
 		}
 	}
 
-	string lb = "\n";
-	string ret;
-	ret += lb;
-	ret += lb;
-	ret += "All users: " + Util::toString(allUsers) + lb;
-	ret += "Unique users: " + Util::toString(uniqueUsers) + " (" + Util::toString(((double)uniqueUsers/(double)allUsers)*100.00) + "%)" + lb;
-	ret += "Active/operators/bots/hidden: " + Util::toString(activeUsers) + " (" + Util::toString(((double) activeUsers / (double) uniqueUsers)*100.00) + "%) / " +
-		Util::toString(operators) + " (" + Util::toString(((double) operators / (double) uniqueUsers)*100.00) + "%) / " +
-		Util::toString(bots) + " (" + Util::toString(((double) bots / (double) uniqueUsers)*100.00) + "%) / " +
-		Util::toString(hiddenUsers) + " (" + Util::toString(((double) hiddenUsers / (double) uniqueUsers)*100.00) + "%)" + lb;
-	ret += "Protocol users (ADC/NMDC): " + Util::toString(adcUsers) + "/" + Util::toString(nmdcUsers) + lb;
-	ret += "Total share: " + Util::formatBytes(totalShare) + " (" + Util::formatBytes(totalShare / uniqueUsers) + " per user)" + lb;
+	auto countCompare = [](const pair<string, int>& i, const pair<string, int>& j) -> bool {
+		return (i.second > j.second);
+	};
 
-	if (adcUsers > 0)
-		ret += "Average ADC connection speed: " + Util::formatConnectionSpeed(downloadSpeed / adcUsers) + " down, " + Util::formatConnectionSpeed(uploadSpeed / adcUsers) + " up" + lb;
-	if (nmdcUsers > 0)
-		ret += "Average NMDC connection speed: " + Util::formatConnectionSpeed(nmdcConnection / nmdcUsers) + lb;
+	for (const auto& cp : clientNames) {
+		stats.clients.push_back(cp);
+	}
+
+	sort(stats.clients.begin(), stats.clients.end(), countCompare);
+
+	stats.finalize();
+
+	return stats;
+}
+
+string ClientManager::printClientStats() const noexcept {
+	auto optionalStats = getClientStats();
+	if (!optionalStats) {
+		return "No hubs";
+	}
+
+	auto stats = *optionalStats;
+
+	string lb = "\r\n";
+	string ret = boost::str(boost::format(
+		"\r\n\r\n-=[ Hub statistics ]=-\r\n\r\n\
+All users: %d\r\n\
+Unique users: %d (%d%%)\r\n\
+Active/operators/bots/hidden: %d (%d%%) / %d (%d%%) / %d (%d%%) / %d (%d%%)\r\n\
+Protocol users (ADC/NMDC): %d / %d\r\n\
+Total share: %s (%s per user)\r\n\
+Average ADC connection speed: %s down, %s up\r\n\
+Average NMDC connection speed: %s")
+
+% stats.totalUsers
+% stats.uniqueUsers % stats.uniqueUsersPercentage
+% stats.activeUsers % stats.activeUserPercentage
+% stats.operators % stats.operatorPercentage
+% stats.bots % stats.botPercentage
+% stats.hiddenUsers % stats.hiddenPercentage
+% stats.adcUsers % stats.nmdcUsers
+% Util::formatBytes(stats.totalShare) % Util::formatBytes(stats.sharePerUser)
+% Util::formatConnectionSpeed(stats.downPerAdcUser) % Util::formatConnectionSpeed(stats.upPerAdcUser)
+% Util::formatConnectionSpeed(stats.nmdcSpeedPerUser)
+
+);
 
 	ret += lb;
 	ret += lb;
 	ret += "Clients (from unique users)";
 	ret += lb;
 
-	map<string, double> clientNames;
-	for(const auto& ou: uniqueUserMap | map_values) {
-		auto app = ou->getIdentity().getApplication();
-		auto pos = app.find(" ");
-
-		if (pos != string::npos) {
-			clientNames[app.substr(0, pos)]++;
-		} else {
-			clientNames["Unknown"]++;
-		}
-	}
-
-	auto countCompare = [] (const pair<string, double>& i, const pair<string, double>& j) -> bool {
-		return (i.second > j.second);
-	};
-
-	vector<pair<string, double> > print(clientNames.begin(), clientNames.end());
-	sort(print.begin(), print.end(), countCompare);
-	for(auto& p: print) {
-		ret += p.first + ":\t\t" + Util::toString(p.second) + " (" + Util::toString((p.second/uniqueUsers)*100.00) + "%)" + lb;
-	}
+	stats.forEachClient([&](const string& aName, int aCount, double aPercentage) {
+		ret += aName + ":\t\t" + Util::toString(aCount) + " (" + Util::toString(aPercentage) + "%)" + lb;
+	});
 
 	return ret;
 }

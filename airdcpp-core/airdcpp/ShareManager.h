@@ -283,7 +283,24 @@ public:
 
 	// Get a printable version of various share-related statistics
 	string printStats() const noexcept;
-	void countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_, size_t& roots_) const noexcept;
+
+	struct ShareStats {
+		int profileCount = 0;
+		size_t profileDirectoryCount = 0;
+
+		int64_t totalSize = 0;
+		size_t totalFileCount = 0;
+		size_t totalDirectoryCount = 0;
+		size_t uniqueFileCount = 0;
+		double lowerCasePercentage = 0;
+		double uniqueFilePercentage = 0;
+		double rootDirectoryPercentage = 0;
+		double filesPerDirectory = 0;
+		double averageNameLength = 0;
+		size_t totalNameSize = 0;
+		time_t averageFileAge = 0;
+	};
+	ShareStats getShareStats() const noexcept;
 
 	void addDirectories(const ShareDirInfo::List& aNewDirs) noexcept;
 	void removeDirectories(const ShareDirInfo::List& removeDirs) noexcept;
@@ -331,6 +348,8 @@ public:
 	// Handle monitoring changes (being called regularly from TimerManager so manual calls aren't mandatory)
 	void handleChangedFiles() noexcept;
 private:
+	void countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_, size_t& roots_) const noexcept;
+
 	DirectoryMonitor monitor;
 
 	uint64_t totalSearches = 0;

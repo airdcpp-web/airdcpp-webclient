@@ -52,6 +52,57 @@ const ResourceManager::Strings SettingsManager::monitoringStrings[MONITORING_LAS
 const ResourceManager::Strings SettingsManager::dropStrings[QUEUE_LAST] { ResourceManager::FILE, ResourceManager::BUNDLE, ResourceManager::ALL };
 const ResourceManager::Strings SettingsManager::updateStrings[VERSION_LAST] { ResourceManager::CHANNEL_STABLE, ResourceManager::CHANNEL_BETA, ResourceManager::CHANNEL_NIGHTLY };
 
+SettingsManager::EnumStringMap SettingsManager::getEnumStrings(int aKey, bool aValidateCurrentValue) noexcept {
+	EnumStringMap ret;
+
+	auto insertStrings = [&](const ResourceManager::Strings* aStrings, int aMax, int aMin = 0) {
+		auto cur = SettingsManager::getInstance()->get(static_cast<SettingsManager::IntSetting>(aKey));
+		if (!aValidateCurrentValue || (cur >= aMin && cur < aMax)) {
+			for (int i = aMin; i < aMax; i++) {
+				ret.emplace(i, aStrings[i - aMin]);
+			}
+		}
+	};
+
+	if ((aKey == INCOMING_CONNECTIONS || aKey == INCOMING_CONNECTIONS6)) {
+		insertStrings(incomingStrings, INCOMING_LAST, -1);
+	}
+
+	if (aKey == MONITORING_MODE) {
+		insertStrings(monitoringStrings, MONITORING_LAST);
+	}
+
+	if (aKey == SettingsManager::TLS_MODE) {
+		insertStrings(encryptionStrings, TLS_LAST);
+	}
+
+	if (aKey == OUTGOING_CONNECTIONS) {
+		insertStrings(outgoingStrings, TLS_LAST);
+	}
+
+	if (aKey == DL_AUTO_DISCONNECT_MODE) {
+		insertStrings(dropStrings, QUEUE_LAST);
+	}
+
+	if (aKey == BLOOM_MODE) {
+		insertStrings(bloomStrings, BLOOM_LAST);
+	}
+
+	if (aKey == DELAY_COUNT_MODE) {
+		insertStrings(delayStrings, DELAY_LAST);
+	}
+
+	if (aKey == AUTOPRIO_TYPE) {
+		insertStrings(prioStrings, PRIO_LAST);
+	}
+
+	if (aKey == SETTINGS_PROFILE) {
+		insertStrings(profileStrings, PROFILE_LAST);
+	}
+
+	return ret;
+}
+
 const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFILE_LAST][10] = {
 
 { 
@@ -229,7 +280,7 @@ const string SettingsManager::settingTags[] =
 	"SENTRY"
 };
 
-SettingsManager::SettingsManager()
+SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 {
 	//make sure it can fit our events without using push_back since
 	//that might cause them to be in the wrong position.
@@ -919,7 +970,7 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 					dcassert(attr.find("SENTRY") == string::npos);
 				
 					if(xml.findChild(attr))
-						set(StrSetting(i), xml.getChildData());
+						set(StrSetting(i), xml.getChildData(), true);
 					xml.resetCurrentChild();
 				}
 				for(i=INT_FIRST; i<INT_LAST; i++)
@@ -928,7 +979,7 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 					dcassert(attr.find("SENTRY") == string::npos);
 				
 					if(xml.findChild(attr))
-						set(IntSetting(i), Util::toInt(xml.getChildData()));
+						set(IntSetting(i), Util::toInt(xml.getChildData()), true);
 					xml.resetCurrentChild();
 				}
 
@@ -940,7 +991,7 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 					if(xml.findChild(attr)) {
 						auto val = Util::toInt(xml.getChildData());
 						dcassert(val == 0 || val == 1);
-						set(BoolSetting(i), val ? true : false);
+						set(BoolSetting(i), val ? true : false, true);
 					}
 					xml.resetCurrentChild();
 				}
@@ -951,7 +1002,7 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 					dcassert(attr.find("SENTRY") == string::npos);
 				
 					if(xml.findChild(attr))
-						set(Int64Setting(i), Util::toInt64(xml.getChildData()));
+						set(Int64Setting(i), Util::toInt64(xml.getChildData()), true);
 					xml.resetCurrentChild();
 				}
 			
@@ -1146,7 +1197,7 @@ SettingsManager::HistoryList SettingsManager::getHistory(HistoryType aType) cons
 
 
 
-void SettingsManager::set(StrSetting key, string const& value) noexcept {
+void SettingsManager::set(StrSetting key, string const& value, bool aForceSet) noexcept {
 	if ((key == NICK) && (value.size() > 35)) {
 		strSettings[key - STR_FIRST] = value.substr(0, 35);
 	} else if ((key == DESCRIPTION) && (value.size() > 50)) {
@@ -1154,12 +1205,9 @@ void SettingsManager::set(StrSetting key, string const& value) noexcept {
 	} else if ((key == EMAIL) && (value.size() > 64)) {
 		strSettings[key - STR_FIRST] = value.substr(0, 64);
 	} else if (key == UPLOAD_SPEED || key == DOWNLOAD_SPEED) {
-		boost::regex reg;
-		reg.assign("(\\d+(\\.\\d+)?)");
-		if (!regex_match(value, reg)) {
+		if (!regex_match(value, connectionRegex)) {
 			strSettings[key - STR_FIRST] = connectionSpeeds[0];
-		}
-		else {
+		} else {
 			strSettings[key - STR_FIRST] = value;
 		}
 	} else {
@@ -1169,11 +1217,11 @@ void SettingsManager::set(StrSetting key, string const& value) noexcept {
 	if (value.empty()) {
 		isSet[key] = false;
 	} else if (!isSet[key]) {
-		isSet[key] = value != getDefault(key);
+		isSet[key] = aForceSet || value != getDefault(key);
 	}
 }
 
-void SettingsManager::set(IntSetting key, int value) noexcept {
+void SettingsManager::set(IntSetting key, int value, bool aForceSet) noexcept {
 	if ((key == SLOTS) && (value <= 0)) {
 		value = 1;
 	}
@@ -1206,7 +1254,17 @@ void SettingsManager::set(IntSetting key, int value) noexcept {
 
 
 	intSettings[key - INT_FIRST] = value;
-	updateValueSet(key, value);
+	updateValueSet(key, value, aForceSet);
+}
+
+void SettingsManager::set(BoolSetting key, bool value, bool aForceSet) noexcept {
+	boolSettings[key - BOOL_FIRST] = value;
+	updateValueSet(key, value, aForceSet);
+}
+
+void SettingsManager::set(Int64Setting key, int64_t value, bool aForceSet) noexcept {
+	int64Settings[key - INT64_FIRST] = value;
+	updateValueSet(key, value, aForceSet);
 }
 
 void SettingsManager::set(IntSetting key, const string& value) noexcept {
@@ -1218,11 +1276,6 @@ void SettingsManager::set(IntSetting key, const string& value) noexcept {
 	}
 }
 
-void SettingsManager::set(BoolSetting key, bool value) noexcept {
-	boolSettings[key - BOOL_FIRST] = value;
-	updateValueSet(key, value);
-}
-
 void SettingsManager::set(BoolSetting key, const string& value) noexcept {
 	if (value.empty()) {
 		boolSettings[key - BOOL_FIRST] = 0;
@@ -1230,11 +1283,6 @@ void SettingsManager::set(BoolSetting key, const string& value) noexcept {
 	} else {
 		set(key, Util::toInt(value) > 0 ? true : false);
 	}
-}
-
-void SettingsManager::set(Int64Setting key, int64_t value) noexcept {
-	int64Settings[key - INT64_FIRST] = value;
-	updateValueSet(key, value);
 }
 
 void SettingsManager::set(Int64Setting key, const string& value) noexcept {

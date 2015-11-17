@@ -59,7 +59,6 @@ namespace dcpp {
 FastCriticalSection FastAllocBase::cs;
 #endif
 
-long Util::mUptimeSeconds = 0;
 string Util::emptyString;
 wstring Util::emptyStringW;
 tstring Util::emptyStringT;

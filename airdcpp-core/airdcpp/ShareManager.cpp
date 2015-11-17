@@ -1620,18 +1620,35 @@ void ShareManager::countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& 
 	}
 }
 
+ShareManager::ShareStats ShareManager::getShareStats() const noexcept {
+	unordered_set<TTHValue*> uniqueTTHs;
+
+	{
+		RLock l(cs);
+		for (auto tth : tthIndex | map_keys) {
+			uniqueTTHs.insert(tth);
+		}
+	}
+
+	ShareStats stats;
+	stats.profileCount = shareProfiles.size() - 1; // remove hidden
+	stats.uniqueFileCount = uniqueTTHs.size();
+
+	uint64_t totalAge = 0;
+	size_t lowerCaseFiles = 0;
+	countStats(totalAge, stats.totalDirectoryCount, stats.totalSize, stats.totalFileCount, lowerCaseFiles, stats.totalNameSize, stats.profileDirectoryCount);
+
+	stats.uniqueFilePercentage = (stats.totalFileCount == 0 ? 0 : (static_cast<double>(stats.uniqueFileCount) / static_cast<double>(stats.totalFileCount))*100.00);
+	stats.lowerCasePercentage = (stats.totalFileCount == 0 ? 0 : (static_cast<double>(lowerCaseFiles) / static_cast<double>(stats.totalFileCount))*100.00);
+	stats.filesPerDirectory = (stats.totalDirectoryCount == 0 ? 0 : static_cast<double>(stats.totalFileCount) / static_cast<double>(stats.totalDirectoryCount));
+	stats.averageFileAge = GET_TIME() - (stats.totalFileCount == 0 ? 0 : totalAge / stats.totalFileCount);
+	stats.averageNameLength = (stats.totalFileCount + stats.totalDirectoryCount == 0 ? 0 : static_cast<double>(stats.totalNameSize) / static_cast<double>(stats.totalFileCount + stats.totalDirectoryCount));
+	stats.rootDirectoryPercentage = (static_cast<double>(stats.profileDirectoryCount) / static_cast<double>(rootPaths.size())) *100.00;
+	return stats;
+}
 
 string ShareManager::printStats() const noexcept {
-	uint64_t totalAge=0;
-	size_t totalFiles=0, lowerCaseFiles=0, totalDirs=0, totalStrLen=0, roots=0;
-	int64_t totalSize=0;
-
-	countStats(totalAge, totalDirs, totalSize, totalFiles, lowerCaseFiles, totalStrLen, roots);
-
-	unordered_set<TTHValue*> uniqueTTHs;
-	for(auto tth: tthIndex | map_keys) {
-		uniqueTTHs.insert(tth);
-	}
+	auto stats = getShareStats();
 
 	auto upseconds = static_cast<double>(GET_TICK()) / 1000.00;
 
@@ -1646,15 +1663,15 @@ Total shared directories: %d (%d files per directory)\r\n\
 Average age of a file: %s\r\n\
 Average name length of a shared item: %d bytes (total size %s)")
 
-		% (shareProfiles.size()-1) // remove hidden
-		% roots % ((rootPaths.size() == 0 ? 0 : static_cast<double>(roots) / static_cast<double>(rootPaths.size())) *100.00)
-		% Util::formatBytes(totalSize)
-		% totalFiles % (totalFiles == 0 ? 0 : (static_cast<double>(lowerCaseFiles) / static_cast<double>(totalFiles))*100.00)
-		% uniqueTTHs.size() % (totalFiles == 0 ? 0 : (static_cast<double>(uniqueTTHs.size()) / static_cast<double>(totalFiles))*100.00)
-		% totalDirs % (totalDirs == 0 ? 0 : static_cast<double>(totalFiles) / static_cast<double>(totalDirs))
-		% Util::formatTime(GET_TIME() - (totalFiles == 0 ? 0 : totalAge / totalFiles), false, true)
-		% (totalFiles + totalDirs == 0 ? 0 : static_cast<double>(totalStrLen) / static_cast<double>(totalFiles + totalDirs))
-		% Util::formatBytes(totalStrLen)
+		% stats.profileCount
+		% stats.profileDirectoryCount % stats.rootDirectoryPercentage
+		% Util::formatBytes(stats.totalSize)
+		% stats.totalFileCount % stats.lowerCasePercentage
+		% stats.uniqueFileCount % stats.uniqueFilePercentage
+		% stats.totalDirectoryCount % stats.filesPerDirectory
+		% Util::formatTime(stats.averageFileAge, false, true)
+		% stats.averageNameLength
+		% Util::formatBytes(stats.totalNameSize)
 	);
 
 	ret += boost::str(boost::format(

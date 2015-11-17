@@ -235,6 +235,9 @@ public:
 	static const ResourceManager::Strings dropStrings[QUEUE_LAST];
 	static const ResourceManager::Strings updateStrings[VERSION_LAST];
 
+	typedef map<int, ResourceManager::Strings> EnumStringMap;
+	static EnumStringMap getEnumStrings(int aKey, bool aValidateCurrentValue) noexcept;
+
 	const string& get(StrSetting key, bool useDefault = true) const noexcept {
 		return (isSet[key] || !useDefault) ? strSettings[key - STR_FIRST] : strDefaults[key - STR_FIRST];
 	}
@@ -249,17 +252,16 @@ public:
 		return (isSet[key] || !useDefault) ? int64Settings[key - INT64_FIRST] : int64Defaults[key - INT64_FIRST];
 	}
 
-	void set(StrSetting key, string const& value) noexcept;
+	// Use forceSet to force the value to be saved to the XML file
+	// Used during initial loading as profile defaults haven't been loaded yet (making the default value comparison unreliable) 
+	void set(StrSetting key, string const& value, bool aForceSet = false) noexcept;
+	void set(IntSetting key, int value, bool aForceSet = false) noexcept;
+	void set(BoolSetting key, bool value, bool aForceSet = false) noexcept;
+	void set(Int64Setting key, int64_t value, bool aForceSet = false) noexcept;
 
-	void set(IntSetting key, int value) noexcept;
-	void set(IntSetting key, const string& value) noexcept;
-	//void set(IntSetting key, bool value) { set(key, (int)value); }
-
-	void set(BoolSetting key, bool value) noexcept;
 	void set(BoolSetting key, const string& value) noexcept;
-
-	void set(Int64Setting key, int64_t value) noexcept;
 	void set(Int64Setting key, const string& value) noexcept;
+	void set(IntSetting key, const string& value) noexcept;
 
 	const string& getDefault(StrSetting key) const noexcept {
 		return strDefaults[key - STR_FIRST];
@@ -298,9 +300,9 @@ public:
 	}
 
 	// Update the value as set if it differs from the default value 
-	template<typename KeyT, typename ValueT> void updateValueSet(KeyT key, ValueT value) noexcept {
+	template<typename KeyT, typename ValueT> void updateValueSet(KeyT key, ValueT value, bool aForceSet) noexcept {
 		if (!isSet[key]) {
-			isSet[key] = value != getDefault(key);
+			isSet[key] = aForceSet || value != getDefault(key);
 		}
 	}
 
@@ -346,6 +348,8 @@ public:
 	static bool saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, CustomErrorF aCustomErrorF = nullptr) noexcept;
 	static void loadSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, bool migrate = true) throw(Exception);
 private:
+	boost::regex connectionRegex;
+
 	friend class Singleton<SettingsManager>;
 	SettingsManager();
 	~SettingsManager() { }

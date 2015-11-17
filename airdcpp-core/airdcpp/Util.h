@@ -199,10 +199,6 @@ public:
 
 	static string translateError(int aError);
 
-	static time_t getStartTime() { return startTime; }
-	static long getUptime() { return mUptimeSeconds; }
-	static void increaseUptime() { mUptimeSeconds++; }
-
 	static string getFilePath(const string& path, const char separator = PATH_SEPARATOR);
 	inline static string getNmdcFilePath(const string& path) { return getFilePath(path, '\\'); }
 	inline static string getAdcFilePath(const string& path) { return getFilePath(path, '/'); }
@@ -607,12 +603,9 @@ private:
 	static string paths[PATH_LAST];
 
 	static StringList startupParams;
-
-	static time_t startTime;
 	
 	static void loadBootConfig();
-	
-	static long mUptimeSeconds;
+
 	static int osMinor;
 	static int osMajor;
 };

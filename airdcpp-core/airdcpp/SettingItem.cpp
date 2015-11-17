@@ -96,36 +96,9 @@ string SettingItem::ToString::operator()(const string& s) const {
 }
 
 string SettingItem::ToString::operator()(int val) const {
-	ResourceManager::Strings s = ResourceManager::LAST;
-	if ((key == SettingsManager::INCOMING_CONNECTIONS || key == SettingsManager::INCOMING_CONNECTIONS6) && val < SettingsManager::INCOMING_LAST)
-		s = SettingsManager::incomingStrings[val+1];
-
-	if (key == SettingsManager::MONITORING_MODE && val < SettingsManager::MONITORING_LAST)
-		s = SettingsManager::monitoringStrings[val];
-
-	if (key == SettingsManager::TLS_MODE && val < SettingsManager::TLS_LAST)
-		s = SettingsManager::encryptionStrings[val];
-
-	if (key == SettingsManager::OUTGOING_CONNECTIONS && val < SettingsManager::OUTGOING_LAST)
-		s = SettingsManager::outgoingStrings[val];
-
-	if (key == SettingsManager::DL_AUTO_DISCONNECT_MODE && val < SettingsManager::QUEUE_LAST)
-		s = SettingsManager::dropStrings[val];
-
-	if (key == SettingsManager::BLOOM_MODE && val < SettingsManager::BLOOM_LAST)
-		s = SettingsManager::bloomStrings[val];
-
-	if (key == SettingsManager::DELAY_COUNT_MODE && val < SettingsManager::DELAY_LAST)
-		s = SettingsManager::delayStrings[val];
-
-	if (key == SettingsManager::AUTOPRIO_TYPE && val < SettingsManager::PRIO_LAST)
-		s = SettingsManager::prioStrings[val];
-
-	if (key == SettingsManager::SETTINGS_PROFILE && val < SettingsManager::PROFILE_LAST)
-		s = SettingsManager::profileStrings[val];
-
-	if (s != ResourceManager::LAST) {
-		return ResourceManager::getInstance()->getString(s);
+	auto enumStrings = SettingsManager::getEnumStrings(val, true);
+	if (!enumStrings.empty()) {
+		return ResourceManager::getInstance()->getString(enumStrings[val]);
 	}
 
 	return Util::toString(val);

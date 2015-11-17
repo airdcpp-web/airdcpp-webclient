@@ -50,6 +50,9 @@ public:
 
 	static time_t getTime() { return (time_t)time(NULL); }
 	static uint64_t getTick();
+
+	static time_t getStartTime() noexcept;
+	static time_t getUptime() noexcept;
 private:
 	friend class Singleton<TimerManager>;
 	boost::timed_mutex mtx;

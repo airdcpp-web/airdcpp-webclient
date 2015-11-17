@@ -77,4 +77,12 @@ uint64_t TimerManager::getTick() {
 	return (microsec_clock::universal_time() - start).total_milliseconds();
 }
 
+time_t TimerManager::getStartTime() noexcept {
+	return getTime() - getUptime();
+}
+
+time_t TimerManager::getUptime() noexcept {
+	return getTick() / 1000;
+}
+
 } // namespace dcpp
