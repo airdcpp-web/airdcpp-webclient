@@ -1361,7 +1361,7 @@ enum Strings { // @DontAdd
 	SETTINGS_DOWNCONN, // "Dwnld attempts/second"
 	SETTINGS_DOWNLOADS, // "Downloads"
 	SETTINGS_DOWNLOADS_MAX, // "Maximum simultaneous downloads (0 = infinite)"
-	SETTINGS_DOWNLOADS_SPEED_PAUSE, // "No new downloads if speed exceeds (KiB/s, 0 = disable)"
+	SETTINGS_DOWNLOADS_SPEED_PAUSE, // "No new downloads if speed exceeds (0 = disable)"
 	SETTINGS_DOWNLOAD_DIRECTORY, // "Default download directory"
 	SETTINGS_DOWNLOAD_LINE_SPEED, // "Line Speed (download)"
 	SETTINGS_DOWNLOAD_LOCATIONS, // "Download locations"

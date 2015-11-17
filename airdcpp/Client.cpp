@@ -365,6 +365,9 @@ void Client::doRedirect() noexcept {
 
 void Client::on(Failed, const string& aLine) noexcept {
 	clearUsers();
+	
+	if(stateNormal())
+		FavoriteManager::getInstance()->removeUserCommand(hubUrl);
 
 	//Better ways to transfer the text in here?...
 	string aError = aLine;

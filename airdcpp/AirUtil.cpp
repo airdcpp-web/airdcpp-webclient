@@ -158,6 +158,33 @@ void AirUtil::updateCachedSettings() {
 	tempDLDir = Text::toLower(SETTING(TEMP_DOWNLOAD_DIRECTORY));
 }
 
+AirUtil::IpList AirUtil::getDisplayAdapters(bool v6) {
+	AirUtil::IpList bindAddresses;
+
+	// Get the addresses and sort them
+	AirUtil::getIpAddresses(bindAddresses, v6);
+	sort(bindAddresses.begin(), bindAddresses.end(), [](const AirUtil::AddressInfo& lhs, const AirUtil::AddressInfo& rhs) {
+		if (lhs.adapterName.empty() && rhs.adapterName.empty()) {
+			return Util::stricmp(lhs.ip, rhs.ip) < 0;
+		}
+
+		return Util::stricmp(lhs.adapterName, rhs.adapterName) < 0;
+	});
+
+	// "Any" adapter
+	bindAddresses.emplace(bindAddresses.begin(), STRING(ANY), v6 ? "::" : "0.0.0.0", 0);
+
+	// Current address not listed?
+	const auto& setting = v6 ? SETTING(BIND_ADDRESS6) : SETTING(BIND_ADDRESS);
+	auto cur = boost::find_if(bindAddresses, [&setting](const AirUtil::AddressInfo& aInfo) { return aInfo.ip == setting; });
+	if (cur == bindAddresses.end()) {
+		bindAddresses.emplace_back(STRING(UNKNOWN), setting, 0);
+		cur = bindAddresses.end() - 1;
+	}
+
+	return bindAddresses;
+}
+
 void AirUtil::getIpAddresses(IpList& addresses, bool v6) {
 #ifdef _WIN32
 	ULONG len =	15360; //"The recommended method of calling the GetAdaptersAddresses function is to pre-allocate a 15KB working buffer pointed to by the AdapterAddresses parameter"

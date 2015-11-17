@@ -19,6 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SETTINGHOLDER_
 #define DCPLUSPLUS_DCPP_SETTINGHOLDER_
 
+#include "ConnectivityManager.h"
 #include "SettingsManager.h"
 
 namespace dcpp {

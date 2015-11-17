@@ -180,7 +180,30 @@ public:
 	void putOffline(OnlineUser* ou, bool disconnect = false) noexcept;
 
 	UserPtr& getMe() noexcept;
-	string getClientStats() const noexcept;
+
+	struct ClientStats {
+		int64_t totalShare = 0, sharePerUser = 0;
+		int64_t uploadSpeed = 0, downloadSpeed = 0, nmdcConnection = 0;
+		int64_t nmdcSpeedPerUser = 0, downPerAdcUser = 0, upPerAdcUser = 0;
+
+		int nmdcUsers = 0, adcUsers = 0, adcHasDownload = 0, adcHasUpload = 0;
+
+		int hiddenUsers = 0, bots = 0, activeUsers = 0, operators = 0;
+
+		int totalUsers = 0, uniqueUsers = 0;
+
+		double uniqueUsersPercentage = 0;
+		double activeUserPercentage = 0, operatorPercentage = 0, botPercentage = 0, hiddenPercentage = 0;
+
+		vector<pair<string, int> > clients;
+
+		void finalize() noexcept;
+		void forEachClient(function<void(const string&, int, double)> aHandler) const noexcept;
+	};
+
+	// No stats are returned if there are no hubs open (or users in them)
+	optional<ClientStats> getClientStats() const noexcept;
+	string printClientStats() const noexcept;
 	
 	bool sendUDP(AdcCommand& c, const CID& to, bool noCID = false, bool noPassive = false, const string& encryptionKey = Util::emptyString, const string& aHubUrl = Util::emptyString) noexcept;
 
