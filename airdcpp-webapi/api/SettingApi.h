@@ -16,30 +16,32 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_SHAREAPI_H
-#define DCPLUSPLUS_DCPP_SHAREAPI_H
+#ifndef DCPLUSPLUS_DCPP_SETTINGAPI_H
+#define DCPLUSPLUS_DCPP_SETTINGAPI_H
 
 #include <web-server/stdinc.h>
 
 #include <api/ApiModule.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/ShareManagerListener.h>
+//#include <airdcpp/SettingsManager.h>
 
 namespace webserver {
-	class ShareApi : public ApiModule, private ShareManagerListener {
+	struct ApiSettingItem;
+	class SettingApi : public ApiModule {
 	public:
-		ShareApi(Session* aSession);
-		~ShareApi();
+		SettingApi(Session* aSession);
+		~SettingApi();
 
 		int getVersion() const noexcept {
 			return 0;
 		}
 	private:
-		api_return handleGetStats(ApiRequest& aRequest);
-		api_return handleGetProfiles(ApiRequest& aRequest);
-		api_return handleGetRoots(ApiRequest& aRequest);
-		api_return handleFindDupePaths(ApiRequest& aRequest);
+		api_return handleGetSettings(ApiRequest& aRequest);
+		api_return handleSetSettings(ApiRequest& aRequest);
+		api_return handleResetSettings(ApiRequest& aRequest);
+
+		void parseSettingKeys(const json& aJson, function<void(const ApiSettingItem*)> aHandler);
+		const ApiSettingItem* getSettingItem(const string& aKey) const noexcept;
 	};
 }
 

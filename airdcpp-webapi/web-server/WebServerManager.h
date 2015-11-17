@@ -177,7 +177,7 @@ namespace webserver {
 	private:
 		bool listen(ErrorF& errorF);
 
-		bool InitializeIO(ErrorF& errorF);
+		bool initialize(ErrorF& errorF);
 
 		ServerConfig plainServerConfig;
 		ServerConfig tlsServerConfig;

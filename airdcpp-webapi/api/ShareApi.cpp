@@ -30,12 +30,31 @@ namespace webserver {
 
 		METHOD_HANDLER("profiles", ApiRequest::METHOD_GET, (), false, ShareApi::handleGetProfiles);
 		METHOD_HANDLER("roots", ApiRequest::METHOD_GET, (), false, ShareApi::handleGetRoots);
+		METHOD_HANDLER("stats", ApiRequest::METHOD_GET, (), false, ShareApi::handleGetStats);
 
 		METHOD_HANDLER("find_dupe_paths", ApiRequest::METHOD_POST, (), true, ShareApi::handleFindDupePaths);
 	}
 
 	ShareApi::~ShareApi() {
 		ShareManager::getInstance()->removeListener(this);
+	}
+
+	api_return ShareApi::handleGetStats(ApiRequest& aRequest) {
+		json j;
+
+		auto stats = ShareManager::getInstance()->getShareStats();
+		j["total_file_count"] = stats.totalFileCount;
+		j["total_directory_count"] = stats.totalDirectoryCount;
+		j["files_per_directory"] = stats.filesPerDirectory;
+		j["total_size"] = stats.totalSize;
+		j["unique_file_percentage"] = stats.uniqueFilePercentage;
+		j["unique_files"] = stats.uniqueFileCount;
+		j["average_file_age"] = stats.averageFileAge;
+		j["profile_count"] = stats.profileCount;
+		j["profile_root_count"] = stats.profileDirectoryCount;
+
+		aRequest.setResponseBody(j);
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return ShareApi::handleGetProfiles(ApiRequest& aRequest) {

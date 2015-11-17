@@ -25,10 +25,14 @@
 #include <web-server/WebUserManager.h>
 
 #include <airdcpp/AirUtil.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/TimerManager.h>
 #include <airdcpp/version.h>
 
 namespace webserver {
 	SessionApi::SessionApi() {
+		initialTotalDownloaded = SETTING(TOTAL_DOWNLOAD);
+		initialTotalUploaded = SETTING(TOTAL_UPLOAD);
 	}
 
 	json SessionApi::getSystemInfo(const string& aIp) const noexcept {
@@ -46,7 +50,10 @@ namespace webserver {
 		}
 
 		retJson["network_type"] = Util::isPrivateIp(ip, v6) ? "local" : "internet";
-		retJson["client_version"] = getVersionTag();
+
+		auto started = TimerManager::getStartTime();
+		retJson["client_started"] = started;
+		retJson["client_version"] = fullVersionString;
 #ifdef WIN32
 		retJson["platform"] = "windows";
 #elif APPLE
@@ -54,6 +61,9 @@ namespace webserver {
 #else
 		retJson["platform"] = "other";
 #endif
+
+		retJson["start_total_downloaded"] = initialTotalDownloaded;
+		retJson["start_total_uploaded"] = initialTotalUploaded;
 		return retJson;
 	}
 

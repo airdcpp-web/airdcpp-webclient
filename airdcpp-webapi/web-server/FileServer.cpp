@@ -102,7 +102,7 @@ namespace webserver {
 
 		// Forward all requests for non-static files to index
 		std::string request = aRequestPath;
-		if (request.find("/build") != 0) {
+		if (request.find("/build") != 0 && request != "/favicon.ico") {
 			request = "/index.html";
 		}
 

@@ -34,6 +34,9 @@ namespace webserver {
 
 		json getSystemInfo(const string& aIp) const noexcept;
 	private:
+		// Total counts when the client was started
+		int64_t initialTotalUploaded = 0;
+		int64_t initialTotalDownloaded = 0;
 	};
 }
 

@@ -16,30 +16,33 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_SHAREAPI_H
-#define DCPLUSPLUS_DCPP_SHAREAPI_H
+#ifndef DCPLUSPLUS_DCPP_CONNECTIVITYAPI_H
+#define DCPLUSPLUS_DCPP_CONNECTIVITYAPI_H
 
 #include <web-server/stdinc.h>
 
 #include <api/ApiModule.h>
 
 #include <airdcpp/typedefs.h>
-#include <airdcpp/ShareManagerListener.h>
+#include <airdcpp/ConnectivityManager.h>
 
 namespace webserver {
-	class ShareApi : public ApiModule, private ShareManagerListener {
+	class ConnectivityApi : public ApiModule, private ConnectivityManagerListener {
 	public:
-		ShareApi(Session* aSession);
-		~ShareApi();
+		ConnectivityApi(Session* aSession);
+		~ConnectivityApi();
 
 		int getVersion() const noexcept {
 			return 0;
 		}
 	private:
-		api_return handleGetStats(ApiRequest& aRequest);
-		api_return handleGetProfiles(ApiRequest& aRequest);
-		api_return handleGetRoots(ApiRequest& aRequest);
-		api_return handleFindDupePaths(ApiRequest& aRequest);
+		api_return handleDetect(ApiRequest& aRequest);
+		api_return handleGetStatus(ApiRequest& aRequest);
+
+		void on(ConnectivityManagerListener::Message, const string&) noexcept;
+		void on(ConnectivityManagerListener::Started, bool /*v6*/) noexcept;
+		void on(ConnectivityManagerListener::Finished, bool /*v6*/, bool /*failed*/) noexcept;
+		//virtual void on(SettingChanged) noexcept { }
 	};
 }
 
