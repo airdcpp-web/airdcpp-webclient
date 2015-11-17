@@ -165,6 +165,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="api\ApiSettingItem.h" />
     <ClInclude Include="api\common\Deserializer.h" />
     <ClInclude Include="api\common\Format.h" />
     <ClInclude Include="api\common\ListViewController.h" />
@@ -172,6 +173,8 @@
     <ClInclude Include="api\common\PropertyFilter.h" />
     <ClInclude Include="api\common\Serializer.h" />
     <ClInclude Include="api\ApiModule.h" />
+    <ClInclude Include="api\ConnectivityApi.h" />
+    <ClInclude Include="api\CoreSettings.h" />
     <ClInclude Include="api\FavoriteDirectoryApi.h" />
     <ClInclude Include="api\FavoriteHubApi.h" />
     <ClInclude Include="api\FavoriteHubUtils.h" />
@@ -195,6 +198,7 @@
     <ClInclude Include="api\SearchResultInfo.h" />
     <ClInclude Include="api\SearchUtils.h" />
     <ClInclude Include="api\SessionApi.h" />
+    <ClInclude Include="api\SettingApi.h" />
     <ClInclude Include="api\ShareApi.h" />
     <ClInclude Include="api\TransferApi.h" />
     <ClInclude Include="web-server\ApiRequest.h" />
@@ -219,6 +223,8 @@
     <ClCompile Include="api\common\Format.cpp" />
     <ClCompile Include="api\common\PropertyFilter.cpp" />
     <ClCompile Include="api\common\Serializer.cpp" />
+    <ClCompile Include="api\ApiSettingItem.cpp" />
+    <ClCompile Include="api\ConnectivityApi.cpp" />
     <ClCompile Include="api\FavoriteDirectoryApi.cpp" />
     <ClCompile Include="api\FavoriteHubApi.cpp" />
     <ClCompile Include="api\FavoriteHubUtils.cpp" />
@@ -240,6 +246,7 @@
     <ClCompile Include="api\SearchResultInfo.cpp" />
     <ClCompile Include="api\SearchUtils.cpp" />
     <ClCompile Include="api\SessionApi.cpp" />
+    <ClCompile Include="api\SettingApi.cpp" />
     <ClCompile Include="api\ShareApi.cpp" />
     <ClCompile Include="api\TransferApi.cpp" />
     <ClCompile Include="web-server\ApiRequest.cpp" />

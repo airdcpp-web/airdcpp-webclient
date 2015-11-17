@@ -41,6 +41,8 @@ namespace webserver {
 
 		METHOD_HANDLER("search_nicks", ApiRequest::METHOD_POST, (), true, HubApi::handleSearchNicks);
 
+		METHOD_HANDLER("stats", ApiRequest::METHOD_GET, (), false, HubApi::handleGetStats);
+
 		auto rawHubs = ClientManager::getInstance()->getClients();
 		for (const auto& c : rawHubs | map_values) {
 			addHub(c);
@@ -49,6 +51,40 @@ namespace webserver {
 
 	HubApi::~HubApi() {
 		ClientManager::getInstance()->removeListener(this);
+	}
+
+	api_return HubApi::handleGetStats(ApiRequest& aRequest) {
+		json j;
+
+		auto optionalStats = ClientManager::getInstance()->getClientStats();
+		if (!optionalStats) {
+			return websocketpp::http::status_code::no_content;
+		}
+
+		auto stats = *optionalStats;
+
+		j["total_users"] = stats.totalUsers;
+		j["unique_users"] = stats.uniqueUsers;
+		j["unique_user_percentage"] = stats.uniqueUsersPercentage;
+		j["adc_users"] = stats.adcUsers;
+		j["nmdc_users"] = stats.nmdcUsers;
+		j["total_share"] = stats.totalShare;
+		j["share_per_user"] = stats.sharePerUser;
+		j["adc_down_per_user"] = stats.downPerAdcUser;
+		j["adc_up_per_user"] = stats.upPerAdcUser;
+		j["nmdc_speed_user"] = stats.nmdcSpeedPerUser;
+		//j["profile_root_count"] = stats.;
+
+		stats.forEachClient([&](const string& aName, int aCount, double aPercentage) {
+			j["clients"].push_back({
+				{ "name", aName },
+				{ "count", aCount },
+				{ "percentage", aPercentage },
+			});
+		});
+
+		aRequest.setResponseBody(j);
+		return websocketpp::http::status_code::ok;
 	}
 
 	json HubApi::serializeClient(const ClientPtr& aClient) noexcept {

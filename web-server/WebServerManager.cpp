@@ -91,8 +91,6 @@ namespace webserver {
 	}
 
 	bool WebServerManager::start(ErrorF errorF, const string& aWebResourcePath) {
-		SettingsManager::getInstance()->setDefault(SettingsManager::PM_MESSAGE_CACHE, 200);
-		SettingsManager::getInstance()->setDefault(SettingsManager::HUB_MESSAGE_CACHE, 200);
 		{
 			auto resourcePath = aWebResourcePath;
 			if (resourcePath.empty()) {
@@ -104,16 +102,16 @@ namespace webserver {
 
 		ios.reset();
 		if (!has_io_service) {
-			has_io_service = InitializeIO(errorF);
+			has_io_service = initialize(errorF);
 		}
-		// Logging
-		setEndpointLogSettings(endpoint_plain, debugStreamPlain);
-		setEndpointLogSettings(endpoint_tls, debugStreamTls);
 
 		return listen(errorF);
 	}
 
-	bool WebServerManager::InitializeIO(ErrorF& errorF) {
+	bool WebServerManager::initialize(ErrorF& errorF) {
+		SettingsManager::getInstance()->setDefault(SettingsManager::PM_MESSAGE_CACHE, 100);
+		SettingsManager::getInstance()->setDefault(SettingsManager::HUB_MESSAGE_CACHE, 100);
+
 		try {
 			// initialize asio with our external io_service rather than an internal one
 			endpoint_plain.init_asio(&ios);
@@ -143,11 +141,15 @@ namespace webserver {
 			// TLS endpoint has an extra handler for the tls init
 			endpoint_tls.set_tls_init_handler(std::bind(&WebServerManager::on_tls_init, this, _1));
 
-		}
-		catch (const std::exception& e) {
+		} catch (const std::exception& e) {
 			errorF(e.what());
 			return false;
 		}
+
+		// Logging
+		setEndpointLogSettings(endpoint_plain, debugStreamPlain);
+		setEndpointLogSettings(endpoint_tls, debugStreamTls);
+
 		return true;
 	}
 
