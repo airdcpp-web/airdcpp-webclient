@@ -60,7 +60,7 @@ SettingsManager::EnumStringMap SettingsManager::getEnumStrings(int aKey, bool aV
 		if (!aValidateCurrentValue || (cur >= aMin && cur < aMax)) {
 			// The string array indexing always starts from 0
 			for (int i = 0; i < aMax; i++) {
-				ret.emplace(i, aStrings[i]);
+				ret.emplace(i + aMin, aStrings[i]);
 			}
 		}
 	};

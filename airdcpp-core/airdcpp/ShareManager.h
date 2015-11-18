@@ -300,7 +300,7 @@ public:
 		size_t totalNameSize = 0;
 		time_t averageFileAge = 0;
 	};
-	ShareStats getShareStats() const noexcept;
+	optional<ShareStats> getShareStats() const noexcept;
 
 	void addDirectories(const ShareDirInfo::List& aNewDirs) noexcept;
 	void removeDirectories(const ShareDirInfo::List& removeDirs) noexcept;
