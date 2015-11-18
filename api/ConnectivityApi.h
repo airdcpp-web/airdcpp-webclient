@@ -36,6 +36,8 @@ namespace webserver {
 			return 0;
 		}
 	private:
+		static json formatStatus(bool v6) noexcept;
+
 		api_return handleDetect(ApiRequest& aRequest);
 		api_return handleGetStatus(ApiRequest& aRequest);
 

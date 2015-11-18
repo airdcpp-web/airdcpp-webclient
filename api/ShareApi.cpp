@@ -42,7 +42,12 @@ namespace webserver {
 	api_return ShareApi::handleGetStats(ApiRequest& aRequest) {
 		json j;
 
-		auto stats = ShareManager::getInstance()->getShareStats();
+		auto optionalStats = ShareManager::getInstance()->getShareStats();
+		if (!optionalStats) {
+			return websocketpp::http::status_code::no_content;
+		}
+
+		auto stats = *optionalStats;
 		j["total_file_count"] = stats.totalFileCount;
 		j["total_directory_count"] = stats.totalDirectoryCount;
 		j["files_per_directory"] = stats.filesPerDirectory;
