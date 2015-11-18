@@ -1620,7 +1620,7 @@ void ShareManager::countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& 
 	}
 }
 
-ShareManager::ShareStats ShareManager::getShareStats() const noexcept {
+optional<ShareManager::ShareStats> ShareManager::getShareStats() const noexcept {
 	unordered_set<TTHValue*> uniqueTTHs;
 
 	{
@@ -1638,18 +1638,26 @@ ShareManager::ShareStats ShareManager::getShareStats() const noexcept {
 	size_t lowerCaseFiles = 0;
 	countStats(totalAge, stats.totalDirectoryCount, stats.totalSize, stats.totalFileCount, lowerCaseFiles, stats.totalNameSize, stats.profileDirectoryCount);
 
-	stats.uniqueFilePercentage = (stats.totalFileCount == 0 ? 0 : (static_cast<double>(stats.uniqueFileCount) / static_cast<double>(stats.totalFileCount))*100.00);
-	stats.lowerCasePercentage = (stats.totalFileCount == 0 ? 0 : (static_cast<double>(lowerCaseFiles) / static_cast<double>(stats.totalFileCount))*100.00);
-	stats.filesPerDirectory = (stats.totalDirectoryCount == 0 ? 0 : static_cast<double>(stats.totalFileCount) / static_cast<double>(stats.totalDirectoryCount));
+	if (stats.uniqueFileCount == 0 || stats.totalDirectoryCount == 0) {
+		return boost::none;
+	}
+
+	stats.uniqueFilePercentage = (static_cast<double>(stats.uniqueFileCount) / static_cast<double>(stats.totalFileCount))*100.00;
+	stats.lowerCasePercentage = (static_cast<double>(lowerCaseFiles) / static_cast<double>(stats.totalFileCount))*100.00;
+	stats.filesPerDirectory = static_cast<double>(stats.totalFileCount) / static_cast<double>(stats.totalDirectoryCount);
 	stats.averageFileAge = GET_TIME() - (stats.totalFileCount == 0 ? 0 : totalAge / stats.totalFileCount);
-	stats.averageNameLength = (stats.totalFileCount + stats.totalDirectoryCount == 0 ? 0 : static_cast<double>(stats.totalNameSize) / static_cast<double>(stats.totalFileCount + stats.totalDirectoryCount));
+	stats.averageNameLength = static_cast<double>(stats.totalNameSize) / static_cast<double>(stats.totalFileCount + stats.totalDirectoryCount);
 	stats.rootDirectoryPercentage = (static_cast<double>(stats.profileDirectoryCount) / static_cast<double>(rootPaths.size())) *100.00;
 	return stats;
 }
 
 string ShareManager::printStats() const noexcept {
-	auto stats = getShareStats();
+	auto optionalStats = getShareStats();
+	if (!optionalStats) {
+		return "No files shared";
+	}
 
+	auto stats = *optionalStats;
 	auto upseconds = static_cast<double>(GET_TICK()) / 1000.00;
 
 	string ret = boost::str(boost::format(
