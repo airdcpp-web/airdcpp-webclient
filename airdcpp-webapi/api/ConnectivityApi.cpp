@@ -39,10 +39,35 @@ namespace webserver {
 		ConnectivityManager::getInstance()->removeListener(this);
 	}
 
+	json ConnectivityApi::formatStatus(bool v6) noexcept {
+		auto modeKey = v6 ? SettingsManager::INCOMING_CONNECTIONS6 : SettingsManager::INCOMING_CONNECTIONS;
+		auto modeValue = v6 ? SETTING(INCOMING_CONNECTIONS6) : SETTING(INCOMING_CONNECTIONS);
+		auto protocolEnabled = modeValue != SettingsManager::INCOMING_DISABLED;
+
+		string text;
+		auto autoEnabled = v6 ? SETTING(AUTO_DETECT_CONNECTION6) : SETTING(AUTO_DETECT_CONNECTION);
+		if (!autoEnabled) {
+			auto enumStrings = SettingsManager::getEnumStrings(modeKey, true);
+			if (!enumStrings.empty()) {
+				text = ResourceManager::getInstance()->getString(enumStrings[modeValue]);
+			} else {
+				text = "Invalid configuration";
+			}
+		} else {
+			text = ConnectivityManager::getInstance()->getStatus(v6);
+		}
+
+		return {
+			{ "auto_detect", autoEnabled },
+			{ "enabled", protocolEnabled },
+			{ "text", text },
+		};
+	}
+
 	api_return ConnectivityApi::handleGetStatus(ApiRequest& aRequest) {
 		aRequest.setResponseBody({
-			{ "status_v4", ConnectivityManager::getInstance()->getStatus(false) },
-			{ "status_v6", ConnectivityManager::getInstance()->getStatus(true) }
+			{ "status_v4", formatStatus(false) },
+			{ "status_v6", formatStatus(true) }
 		});
 
 		return websocketpp::http::status_code::ok;
