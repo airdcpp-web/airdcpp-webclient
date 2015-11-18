@@ -58,8 +58,9 @@ SettingsManager::EnumStringMap SettingsManager::getEnumStrings(int aKey, bool aV
 	auto insertStrings = [&](const ResourceManager::Strings* aStrings, int aMax, int aMin = 0) {
 		auto cur = SettingsManager::getInstance()->get(static_cast<SettingsManager::IntSetting>(aKey));
 		if (!aValidateCurrentValue || (cur >= aMin && cur < aMax)) {
-			for (int i = aMin; i < aMax; i++) {
-				ret.emplace(i, aStrings[i - aMin]);
+			// The string array indexing always starts from 0
+			for (int i = 0; i < aMax; i++) {
+				ret.emplace(i, aStrings[i]);
 			}
 		}
 	};
