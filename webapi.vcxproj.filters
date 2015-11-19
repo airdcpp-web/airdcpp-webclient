@@ -192,6 +192,9 @@
     <ClInclude Include="api\ConnectivityApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
+    <ClInclude Include="api\SystemApi.h">
+      <Filter>Header Files\api</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
@@ -312,6 +315,9 @@
       <Filter>Source Files\api</Filter>
     </ClCompile>
     <ClCompile Include="api\ConnectivityApi.cpp">
+      <Filter>Source Files\api</Filter>
+    </ClCompile>
+    <ClCompile Include="api\SystemApi.cpp">
       <Filter>Source Files\api</Filter>
     </ClCompile>
   </ItemGroup>

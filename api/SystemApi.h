@@ -16,46 +16,24 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_TRANSFERAPI_H
-#define DCPLUSPLUS_DCPP_TRANSFERAPI_H
+#ifndef DCPLUSPLUS_DCPP_SYSTEMAPI_H
+#define DCPLUSPLUS_DCPP_SYSTEMAPI_H
 
 #include <web-server/stdinc.h>
-#include <web-server/Timer.h>
 
 #include <api/ApiModule.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/DownloadManagerListener.h>
-#include <airdcpp/UploadManagerListener.h>
-
 namespace webserver {
-	class TransferApi : public ApiModule, private DownloadManagerListener, private UploadManagerListener {
+	class SystemApi : public ApiModule {
 	public:
-		TransferApi(Session* aSession);
-		~TransferApi();
+		SystemApi(Session* aSession);
+		~SystemApi();
 
 		int getVersion() const noexcept {
 			return 0;
 		}
 	private:
 		api_return handleGetStats(ApiRequest& aRequest);
-		void onTimer();
-
-		void on(DownloadManagerListener::Tick, const DownloadList& aDownloads) noexcept;
-		void on(DownloadManagerListener::BundleTick, const BundleList& bundles, uint64_t aTick) noexcept;
-
-		void on(UploadManagerListener::Tick, const UploadList& aUploads) noexcept;
-		void on(UploadManagerListener::BundleTick, const UploadBundleList& bundles) noexcept;
-
-		json previousStats;
-
-		int lastUploadBundles = 0;
-		int lastDownloadBundles = 0;
-
-		int lastUploads = 0;
-		int lastDownloads = 0;
-
-		TimerPtr timer;
 	};
 }
 

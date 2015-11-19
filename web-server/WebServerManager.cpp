@@ -33,7 +33,7 @@
 
 namespace webserver {
 	using namespace dcpp;
-	WebServerManager::WebServerManager() : has_io_service(false), ios(2) {
+	WebServerManager::WebServerManager() : serverThreads(3), has_io_service(false), ios(2) {
 		userManager = unique_ptr<WebUserManager>(new WebUserManager(this));
 	}
 
@@ -62,13 +62,10 @@ namespace webserver {
 			}
 
 			int sync() {
-				//WLock l(cs);
 				OutputDebugString(Text::toT(str()).c_str());
 				str("");
 				return 0;
 			}
-
-			//SharedMutex cs;
 		};
 
 		dbgview_buffer buf;
@@ -179,7 +176,7 @@ namespace webserver {
 
 		if (hasServer) {
 			// Start the ASIO io_service run loop running both endpoints
-			for (int x = 0; x < 2; ++x) {
+			for (int x = 0; x < serverThreads; ++x) {
 				worker_threads.create_thread(boost::bind(&boost::asio::io_service::run, &ios));
 			}
 		}
@@ -317,6 +314,13 @@ namespace webserver {
 					xml.stepIn();
 					loadServer(xml, "Server", plainServerConfig);
 					loadServer(xml, "TLSServer", tlsServerConfig);
+
+					if (xml.findChild("Threads")) {
+						xml.stepIn();
+						serverThreads = min(Util::toInt(xml.getData()), 2);
+						xml.stepOut();
+					}
+
 					xml.stepOut();
 				}
 

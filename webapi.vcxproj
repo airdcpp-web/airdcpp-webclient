@@ -200,6 +200,7 @@
     <ClInclude Include="api\SessionApi.h" />
     <ClInclude Include="api\SettingApi.h" />
     <ClInclude Include="api\ShareApi.h" />
+    <ClInclude Include="api\SystemApi.h" />
     <ClInclude Include="api\TransferApi.h" />
     <ClInclude Include="web-server\ApiRequest.h" />
     <ClInclude Include="web-server\ApiRouter.h" />
@@ -248,6 +249,7 @@
     <ClCompile Include="api\SessionApi.cpp" />
     <ClCompile Include="api\SettingApi.cpp" />
     <ClCompile Include="api\ShareApi.cpp" />
+    <ClCompile Include="api\SystemApi.cpp" />
     <ClCompile Include="api\TransferApi.cpp" />
     <ClCompile Include="web-server\ApiRequest.cpp" />
     <ClCompile Include="web-server\ApiRouter.cpp" />

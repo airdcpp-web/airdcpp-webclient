@@ -31,6 +31,8 @@ namespace webserver {
 		DownloadManager::getInstance()->addListener(this);
 		UploadManager::getInstance()->addListener(this);
 
+		METHOD_HANDLER("stats", ApiRequest::METHOD_GET, (), false, TransferApi::handleGetStats);
+
 		createSubscription("statistics");
 		timer->start();
 	}
@@ -42,13 +44,23 @@ namespace webserver {
 		UploadManager::getInstance()->removeListener(this);
 	}
 
+	api_return TransferApi::handleGetStats(ApiRequest& aRequest) {
+		json j;
+
+		j["session_downloaded"] = Socket::getTotalDown();
+		j["session_uploaded"] = Socket::getTotalUp();
+		j["start_total_downloaded"] = SETTING(TOTAL_DOWNLOAD) - Socket::getTotalDown();
+		j["start_total_uploaded"] = SETTING(TOTAL_UPLOAD) - Socket::getTotalUp();
+
+		aRequest.setResponseBody(j);
+		return websocketpp::http::status_code::ok;
+	}
+
 	void TransferApi::onTimer() {
 		if (!subscriptionActive("statistics"))
 			return;
 
 		json j = {
-			{ "session_down", Socket::getTotalDown() },
-			{ "session_up", Socket::getTotalUp() },
 			{ "speed_down", DownloadManager::getInstance()->getLastDownSpeed() },
 			{ "speed_up", DownloadManager::getInstance()->getLastUpSpeed() },
 			{ "upload_bundles", lastUploadBundles },

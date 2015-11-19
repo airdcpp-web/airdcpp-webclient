@@ -63,6 +63,11 @@ namespace webserver {
 		return s->second;
 	}
 
+	size_t WebUserManager::getSessionCount() const noexcept {
+		RLock l(cs);
+		return sessions.size();
+	}
+
 	void WebUserManager::logout(const SessionPtr& aSession) {
 		WLock l(cs);
 		sessions.erase(aSession->getToken());

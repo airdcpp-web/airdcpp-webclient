@@ -25,9 +25,6 @@
 #include <web-server/WebUserManager.h>
 
 #include <airdcpp/AirUtil.h>
-#include <airdcpp/SettingsManager.h>
-#include <airdcpp/Socket.h>
-#include <airdcpp/TimerManager.h>
 #include <airdcpp/version.h>
 
 namespace webserver {
@@ -50,10 +47,6 @@ namespace webserver {
 		}
 
 		retJson["network_type"] = Util::isPrivateIp(ip, v6) ? "local" : "internet";
-
-		auto started = TimerManager::getStartTime();
-		retJson["client_started"] = started;
-		retJson["client_version"] = fullVersionString;
 #ifdef WIN32
 		retJson["platform"] = "windows";
 #elif APPLE
@@ -61,9 +54,6 @@ namespace webserver {
 #else
 		retJson["platform"] = "other";
 #endif
-
-		retJson["start_total_downloaded"] = SETTING(TOTAL_DOWNLOAD) - Socket::getTotalDown();
-		retJson["start_total_uploaded"] = SETTING(TOTAL_UPLOAD) - Socket::getTotalUp();
 		return retJson;
 	}
 
