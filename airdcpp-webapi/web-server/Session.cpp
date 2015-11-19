@@ -34,6 +34,7 @@
 #include <api/SearchApi.h>
 #include <api/SettingApi.h>
 #include <api/ShareApi.h>
+#include <api/SystemApi.h>
 #include <api/TransferApi.h>
 
 #include <airdcpp/TimerManager.h>
@@ -58,6 +59,7 @@ namespace webserver {
 		ADD_MODULE("search", SearchApi);
 		ADD_MODULE("settings", SettingApi);
 		ADD_MODULE("share", ShareApi);
+		ADD_MODULE("system", SystemApi);
 		ADD_MODULE("transfers", TransferApi);
 	}
 

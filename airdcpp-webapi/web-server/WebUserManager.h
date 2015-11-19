@@ -51,6 +51,8 @@ namespace webserver {
 		void replaceWebUsers(std::vector<WebUserPtr>& newUsers) noexcept;
 
 		StringList getUserNames() const noexcept;
+
+		size_t getSessionCount() const noexcept;
 	private:
 		mutable SharedMutex cs;
 
