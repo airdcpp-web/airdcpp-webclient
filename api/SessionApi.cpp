@@ -20,6 +20,7 @@
 
 #include <api/SessionApi.h>
 
+#include <web-server/JsonUtil.h>
 #include <web-server/WebSocket.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebUserManager.h>
@@ -59,7 +60,12 @@ namespace webserver {
 
 	websocketpp::http::status_code::value SessionApi::handleLogin(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) {
 		const auto& reqJson = aRequest.getRequestBody();
-		auto session = WebServerManager::getInstance()->getUserManager().authenticate(reqJson["username"], reqJson["password"], aIsSecure);
+
+		auto username = JsonUtil::getField<string>("username", reqJson, false);
+		auto password = JsonUtil::getField<string>("password", reqJson, false);
+		auto inactivityMinutes = JsonUtil::getOptionalField<uint64_t>("max_inactivity", reqJson);
+
+		auto session = WebServerManager::getInstance()->getUserManager().authenticate(username, password, aIsSecure, inactivityMinutes ? *inactivityMinutes : 20);
 
 		if (!session) {
 			aRequest.setResponseErrorStr("Invalid username or password");
@@ -93,7 +99,7 @@ namespace webserver {
 	}
 
 	api_return SessionApi::handleSocketConnect(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket) {
-		std::string sessionToken = aRequest.getRequestBody()["authorization"];
+		auto sessionToken = JsonUtil::getField<string>("authorization", aRequest.getRequestBody(), false);
 
 		SessionPtr session = WebServerManager::getInstance()->getUserManager().getSession(sessionToken);
 		if (!session) {

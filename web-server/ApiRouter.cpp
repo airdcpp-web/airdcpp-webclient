@@ -111,6 +111,8 @@ namespace webserver {
 			return websocketpp::http::status_code::not_acceptable;
 		}
 
+		aRequest.getSession()->updateActivity();
+
 		int code;
 		try {
 			code = aRequest.getSession()->handleRequest(aRequest);

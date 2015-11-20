@@ -35,7 +35,7 @@ namespace webserver {
 		server->removeListener(this);
 	}
 
-	SessionPtr WebUserManager::authenticate(const string& aUserName, const string& aPassword, bool aIsSecure) noexcept {
+	SessionPtr WebUserManager::authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes) noexcept {
 		WLock l(cs);
 
 		auto u = users.find(aUserName);
@@ -47,7 +47,7 @@ namespace webserver {
 			return nullptr;
 		}
 
-		auto session = make_shared<Session>(u->second, Util::toString(Util::rand()), aIsSecure, server);
+		auto session = make_shared<Session>(u->second, Util::toString(Util::rand()), aIsSecure, server, aMaxInactivityMinutes);
 		sessions.emplace(session->getToken(), session);
 		return session;
 	}
@@ -69,6 +69,8 @@ namespace webserver {
 	}
 
 	void WebUserManager::logout(const SessionPtr& aSession) {
+		aSession->onSocketDisconnected();
+
 		WLock l(cs);
 		sessions.erase(aSession->getToken());
 	}
@@ -80,14 +82,15 @@ namespace webserver {
 		{
 			RLock l(cs);
 			for (const auto& s: sessions | map_values) {
-				if (s->getLastActivity() + 1000 * 60 * 120 < tick) {
+				if (s->getLastActivity() + s->getMaxInactivity() < tick) {
 					removedTokens.push_back(s->getToken());
 				}
 			}
 		}
 
+		// Don't remove sessions with active socket
 		removedTokens.erase(remove_if(removedTokens.begin(), removedTokens.end(), [this](const string& aToken) {
-			return !server->getSocket(aToken);
+			return server->getSocket(aToken);
 		}), removedTokens.end());
 
 		if (!removedTokens.empty()) {
@@ -99,7 +102,7 @@ namespace webserver {
 	}
 
 	void WebUserManager::on(WebServerManagerListener::Started) noexcept {
-		expirationTimer = server->addTimer([this] { checkExpiredSessions(); }, 30*1000);
+		expirationTimer = server->addTimer([this] { checkExpiredSessions(); }, 60*1000);
 		expirationTimer->start(false);
 	}
 
