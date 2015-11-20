@@ -80,11 +80,11 @@ void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 
 	if(sock) {
 		BufferedSocket::putSocket(sock, [=] { // Ensure that the pointer won't be deleted too early
+			state = STATE_DISCONNECTED;
 			if (!aRedirect) {
 				cache.clear();
 			}
 
-			aClient->sock = nullptr;
 			aClient->clearUsers();
 			updateCounts(true);
 		});
