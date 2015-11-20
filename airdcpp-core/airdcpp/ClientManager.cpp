@@ -465,9 +465,8 @@ UserPtr ClientManager::getUser(const string& aNick, const string& aHubUrl) noexc
 	p->setFlag(User::NMDC);
 
 	WLock l(cs);
-	users.emplace(const_cast<CID*>(&p->getCID()), p);
-
-	return p;
+	auto u = users.emplace(const_cast<CID*>(&p->getCID()), p);
+	return u.first->second;
 }
 
 UserPtr ClientManager::getUser(const CID& cid) noexcept {
@@ -487,8 +486,8 @@ UserPtr ClientManager::getUser(const CID& cid) noexcept {
 	UserPtr p(new User(cid));
 
 	WLock l(cs);
-	users.emplace(const_cast<CID*>(&p->getCID()), p);
-	return p;
+	auto u = users.emplace(const_cast<CID*>(&p->getCID()), p);
+	return u.first->second;
 }
 
 UserPtr ClientManager::findUser(const CID& cid) const noexcept {
@@ -1249,10 +1248,11 @@ Average NMDC connection speed: %s")
 
 UserPtr& ClientManager::getMe() noexcept {
 	if(!me) {
-		me = new User(getMyCID());
+		auto newMe = new User(getMyCID());
 
 		WLock l(cs);
-		users.emplace(const_cast<CID*>(&me->getCID()), me);
+		auto u = users.emplace(const_cast<CID*>(&newMe->getCID()), newMe);
+		me = u.first->second;
 	}
 	return me;
 }
