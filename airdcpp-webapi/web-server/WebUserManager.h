@@ -34,7 +34,7 @@ namespace webserver {
 		WebUserManager(WebServerManager* aServer);
 		~WebUserManager();
 
-		SessionPtr authenticate(const string& aUserName, const string& aPassword, bool aIsSecure) noexcept;
+		SessionPtr authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes) noexcept;
 
 		SessionPtr getSession(const string& aSession) const noexcept;
 		void logout(const SessionPtr& aSession);

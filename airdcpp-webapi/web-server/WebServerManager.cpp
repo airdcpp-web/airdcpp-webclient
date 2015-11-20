@@ -256,9 +256,9 @@ namespace webserver {
 			);
 		}
 
-		for (const auto& s : sessionSockets) {
-			s->getSession()->onSocketDisconnected();
-			s->setSession(nullptr);
+		for (const auto& socket : sessionSockets) {
+			userManager->logout(socket->getSession());
+			socket->setSession(nullptr);
 		}
 	}
 
