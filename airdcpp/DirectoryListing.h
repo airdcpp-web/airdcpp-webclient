@@ -294,7 +294,7 @@ private:
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 
 	// ShareManagerListener
-	void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const StringList& aPaths) noexcept;
+	void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept;
 
 	void on(DownloadManagerListener::Failed, const Download* aDownload, const string& aReason) noexcept;
 	void on(DownloadManagerListener::Starting, const Download* aDownload) noexcept;

@@ -1064,7 +1064,7 @@ void DirectoryListing::matchQueueImpl() noexcept {
 	fire(DirectoryListingListener::QueueMatched(), AirUtil::formatMatchResults(matches, newFiles, bundles, false));
 }
 
-void DirectoryListing::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept {
+void DirectoryListing::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool /*wentOffline*/) noexcept {
 	if (aUser != hintedUser.user) {
 		return;
 	}
@@ -1212,7 +1212,7 @@ void DirectoryListing::removedQueueImpl(const string& aDir) noexcept {
 	setState(STATE_LOADED);
 }
 
-void DirectoryListing::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const StringList& aPaths) noexcept{
+void DirectoryListing::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept{
 	if (!partialList)
 		return;
 

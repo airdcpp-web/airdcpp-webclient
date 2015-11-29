@@ -1390,6 +1390,7 @@ HubSettings SettingsManager::getHubSettings() const noexcept {
 	ret.get(HubSettings::ChatNotify) = get(SHOW_CHAT_NOTIFY);
 	ret.get(HubSettings::AwayMsg) = get(DEFAULT_AWAY_MESSAGE);
 	ret.get(HubSettings::NmdcEncoding) = get(NMDC_ENCODING);
+	ret.get(HubSettings::ShareProfile) = get(DEFAULT_SP);
 	return ret;
 }
 

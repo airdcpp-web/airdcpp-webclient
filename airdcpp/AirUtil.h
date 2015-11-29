@@ -156,29 +156,34 @@ private:
 
 class IsParentOrExact {
 public:
-	IsParentOrExact(const string& compareTo) : a(compareTo) {}
-	bool operator()(const string& p) { return AirUtil::isParentOrExact(p, a); }
+	// Returns true for items matching the predicate that are parent directories of compareTo (or exact matches)
+	IsParentOrExact(const string& aCompareTo) : compareTo(aCompareTo) {}
+	bool operator()(const string& p) { return AirUtil::isParentOrExact(p, compareTo); }
+
+	IsParentOrExact& operator=(const IsParentOrExact&) = delete;
 private:
-	IsParentOrExact& operator=(const IsParentOrExact&);
-	const string& a;
+	const string& compareTo;
 };
 
 class IsParentOrExactOrSub {
 public:
-	IsParentOrExactOrSub(const string& compareTo) : a(compareTo) {}
-	bool operator()(const string& p) { return AirUtil::isParentOrExact(p, a) || AirUtil::isSub(p, a); }
+	IsParentOrExactOrSub(const string& aCompareTo) : compareTo(aCompareTo) {}
+	bool operator()(const string& p) { return AirUtil::isParentOrExact(p, compareTo) || AirUtil::isSub(p, compareTo); }
+
+	IsParentOrExactOrSub& operator=(const IsParentOrExactOrSub&) = delete;
 private:
-	IsParentOrExactOrSub& operator=(const IsParentOrExactOrSub&);
-	const string& a;
+	const string& compareTo;
 };
 
 class IsSub {
 public:
-	IsSub(const string& compareTo) : a(compareTo) {}
-	bool operator()(const string& p) { return AirUtil::isSub(p, a); }
+	// Returns true for items matching the predicate that are subdirectories of compareTo
+	IsSub(const string& aCompareTo) : compareTo(aCompareTo) {}
+	bool operator()(const string& p) { return AirUtil::isSub(p, compareTo); }
+
+	IsSub& operator=(const IsSub&) = delete;
 private:
-	IsSub& operator=(const IsSub&);
-	const string& a;
+	const string& compareTo;
 };
 
 }

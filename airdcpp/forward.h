@@ -48,6 +48,7 @@ typedef std::vector<uint16_t> PartsInfo;
 
 class Client;
 typedef std::shared_ptr<Client> ClientPtr;
+typedef uint32_t ClientToken;
 
 class ClientManager;
 
@@ -136,6 +137,8 @@ class ServerSocket;
 
 class ShareProfile;
 typedef std::shared_ptr<ShareProfile> ShareProfilePtr;
+typedef vector<ShareProfilePtr> ShareProfileList;
+typedef set<string> RefreshPathList;
 
 class SimpleXML;
 

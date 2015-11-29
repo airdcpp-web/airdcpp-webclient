@@ -40,8 +40,6 @@
 
 namespace dcpp {
 
-typedef uint32_t ClientToken;
-
 class ClientBase
 {
 public:
@@ -147,7 +145,6 @@ public:
 	GETSET(bool, registered, Registered);
 	GETSET(bool, autoReconnect, AutoReconnect);
 	GETSET(bool, stealth, Stealth);
-	GETSET(ProfileToken, shareProfile, ShareProfile);
 	GETSET(ProfileToken, favToken, FavToken);
 	GETSET(ClientToken, clientId, ClientId);
 
@@ -198,6 +195,10 @@ public:
 
 	virtual void allowUntrustedConnect() noexcept;
 
+	ProfileToken getShareProfile() const noexcept;
+	void setCustomShareProfile(ProfileToken aToken) noexcept {
+		customShareProfile = aToken;
+	}
 protected:
 	virtual void clearUsers() noexcept = 0;
 
@@ -211,6 +212,9 @@ protected:
 
 	SearchQueue searchQueue;
 	BufferedSocket* sock;
+
+	// This is valid only for hubs without favorite entry
+	ProfileToken customShareProfile;
 
 	int64_t availableBytes;
 

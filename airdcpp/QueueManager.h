@@ -316,7 +316,7 @@ public:
 
 	// Get the paths of all unfinished bundles
 	// Scans all finished bundles inside the directories being refreshed and queues succeeded for hashing
-	void checkRefreshPaths(StringList& bundlePaths, StringList& refreshPaths) noexcept;
+	void checkRefreshPaths(StringList& bundlePaths_, RefreshPathList& refreshPaths_) noexcept;
 
 	// Set size for a file list its size is known
 	void setFileListSize(const string& path, int64_t newSize) noexcept;
@@ -460,7 +460,7 @@ private:
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
 
 	// ShareManagerListener
-	void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const StringList& aPaths) noexcept;
+	void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept;
 	void on(ShareRefreshed, uint8_t /*tasktype*/) noexcept;
 	void on(ShareLoaded) noexcept;
 	void onPathRefreshed(const string& aPath, bool startup) noexcept;

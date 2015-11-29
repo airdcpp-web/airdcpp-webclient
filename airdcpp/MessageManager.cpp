@@ -309,7 +309,7 @@ bool MessageManager::isChatFiltered(const string& aNick, const string& aText, Ch
 	return false;
 }
 void MessageManager::load(SimpleXML& aXml) {
-
+	aXml.resetCurrentChild();
 	if (aXml.findChild("ChatFilterItems")) {
 		aXml.stepIn();
 		while (aXml.findChild("ChatFilterItem")) {

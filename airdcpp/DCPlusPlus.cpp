@@ -83,6 +83,7 @@ void startup(function<void(const string&)> stepF, function<bool(const string& /*
 	HashManager::newInstance();
 	CryptoManager::newInstance();
 	SearchManager::newInstance();
+	ShareManager::newInstance();
 	ClientManager::newInstance();
 	ConnectionManager::newInstance();
 	MessageManager::newInstance();
@@ -90,7 +91,6 @@ void startup(function<void(const string&)> stepF, function<bool(const string& /*
 	UploadManager::newInstance();
 	ThrottleManager::newInstance();
 	QueueManager::newInstance();
-	ShareManager::newInstance();
 	FavoriteManager::newInstance();
 	FinishedManager::newInstance();
 	ADLSearchManager::newInstance();
@@ -196,7 +196,6 @@ void shutdown(function<void (const string&)> stepF, function<void (float)> progr
 	CryptoManager::deleteInstance();
 	ThrottleManager::deleteInstance();
 	DirectoryListingManager::deleteInstance();
-	ShareManager::deleteInstance();
 	QueueManager::deleteInstance();
 	DownloadManager::deleteInstance();
 	UploadManager::deleteInstance();
@@ -206,6 +205,7 @@ void shutdown(function<void (const string&)> stepF, function<void (float)> progr
 	SearchManager::deleteInstance();
 	FavoriteManager::deleteInstance();
 	ClientManager::deleteInstance();
+	ShareManager::deleteInstance();
 	HashManager::deleteInstance();
 	LogManager::deleteInstance();
 	SettingsManager::deleteInstance();

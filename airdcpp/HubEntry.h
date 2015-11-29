@@ -95,17 +95,20 @@ public:
 	IGETSET(uint16_t, top, Top, 0);
 	IGETSET(uint16_t, left, Left, 0);
 	IGETSET(uint16_t, right, Right, 0);
+
 	IGETSET(ConnectState, connectState, ConnectState, STATE_DISCONNECTED);
+	IGETSET(ClientToken, currentHubToken, CurrentHubToken, 0);
+
 	IGETSET(bool, autoConnect, AutoConnect, true);
 	IGETSET(int, chatusersplit, ChatUserSplit, 0);
 	IGETSET(bool, stealth, Stealth, false);
 	IGETSET(bool, userliststate, UserListState, true);
 	IGETSET(bool, favnoPM, FavNoPM, false);
-	GETSET(string, group, Group);	
-	IGETSET(ShareProfilePtr, shareProfile, ShareProfile, nullptr);
+	GETSET(string, group, Group);
 	GETSET(ProfileToken, token, Token);
 
 	bool isAdcHub() const noexcept;
+	string getShareProfileName() const noexcept;
 };
 
 class RecentHubEntry : public intrusive_ptr_base<RecentHubEntry> {

@@ -3176,7 +3176,7 @@ void QueueManager::getUnfinishedPaths(StringList& retBundles) noexcept {
 	}
 }
 
-void QueueManager::checkRefreshPaths(StringList& retBundles, StringList& sharePaths) noexcept {
+void QueueManager::checkRefreshPaths(StringList& retBundles_, RefreshPathList& refreshPaths_) noexcept {
 	BundleList hash;
 	{
 		RLock l(cs);
@@ -3185,30 +3185,26 @@ void QueueManager::checkRefreshPaths(StringList& retBundles, StringList& sharePa
 				continue;
 
 			//check the path just to avoid hashing/scanning bundles from dirs that aren't being refreshed
-			bool found = false;
-			for (auto i = sharePaths.begin(); i != sharePaths.end(); ) {
-				if (AirUtil::isParentOrExact(*i, b->getTarget())) {
-					if (Util::stricmp(*i, b->getTarget()) == 0) {
-						//erase exact matches
-						i = sharePaths.erase(i);
-					}
-					found = true;
-					break;
+
+			{
+				// Find parent refresh directories of this bundle path
+				auto refreshPathIter = find_if(refreshPaths_.begin(), refreshPaths_.end(), IsParentOrExact(b->getTarget()));
+
+				if (refreshPathIter == refreshPaths_.end()) {
+					continue;
 				}
 
-				i++;
+				// No point to refresh exact bundle paths
+				if (Util::stricmp(*refreshPathIter, b->getTarget()) == 0) {
+					refreshPaths_.erase(*refreshPathIter);
+				}
 			}
-
-			//not inside the refreshed dirs
-			if (!found)
-				continue;
-
 
 			if(b->isFinished() && (b->isFailed() || b->allowHash())) {
 				hash.push_back(b);
 			}
 
-			retBundles.push_back(Text::toLower(b->getTarget()));
+			retBundles_.push_back(Text::toLower(b->getTarget()));
 		}
 	}
 
@@ -3220,7 +3216,7 @@ void QueueManager::checkRefreshPaths(StringList& retBundles, StringList& sharePa
 		hashBundle(b); 
 	}
 
-	sort(retBundles.begin(), retBundles.end());
+	sort(retBundles_.begin(), retBundles_.end());
 }
 
 void QueueManager::shareBundle(BundlePtr aBundle, bool skipScan) noexcept{
@@ -3232,7 +3228,7 @@ void QueueManager::shareBundle(BundlePtr aBundle, bool skipScan) noexcept{
 	hashBundle(aBundle);
 }
 
-void QueueManager::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const StringList& aPaths) noexcept{
+void QueueManager::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept{
 	for (const auto& p : aPaths) {
 		onPathRefreshed(p, false);
 	}
