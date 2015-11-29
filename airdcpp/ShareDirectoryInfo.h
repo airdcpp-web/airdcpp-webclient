@@ -33,7 +33,7 @@ namespace dcpp {
 	class ShareDirectoryInfo {
 	public:
 
-		ShareDirectoryInfo::ShareDirectoryInfo(const string& aPath, const string& aVname = Util::emptyString, bool aIncoming = false, const ProfileTokenSet& aProfiles = ProfileTokenSet()) :
+		ShareDirectoryInfo(const string& aPath, const string& aVname = Util::emptyString, bool aIncoming = false, const ProfileTokenSet& aProfiles = ProfileTokenSet()) :
 			virtualName(aVname), path(aPath), incoming(aIncoming), profiles(aProfiles) {
 		
 			if (virtualName.empty()) {
