@@ -34,6 +34,8 @@
 #include <api/SearchApi.h>
 #include <api/SettingApi.h>
 #include <api/ShareApi.h>
+#include <api/ShareProfileApi.h>
+#include <api/ShareRootApi.h>
 #include <api/SystemApi.h>
 #include <api/TransferApi.h>
 
@@ -59,6 +61,8 @@ namespace webserver {
 		ADD_MODULE("search", SearchApi);
 		ADD_MODULE("settings", SettingApi);
 		ADD_MODULE("share", ShareApi);
+		ADD_MODULE("share_profiles", ShareProfileApi);
+		ADD_MODULE("share_roots", ShareRootApi);
 		ADD_MODULE("system", SystemApi);
 		ADD_MODULE("transfers", TransferApi);
 	}

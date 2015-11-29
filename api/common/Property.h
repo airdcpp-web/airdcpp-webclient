@@ -20,6 +20,7 @@
 #define DCPP_PROPERTY_H
 
 #include <web-server/stdinc.h>
+#include <airdcpp/StringMatch.h>
 
 namespace webserver {
 
@@ -38,7 +39,8 @@ namespace webserver {
 		TYPE_SPEED,
 		TYPE_NUMERIC_OTHER,
 		TYPE_IMAGE,
-		TYPE_LIST
+		TYPE_LIST_NUMERIC,
+		TYPE_LIST_TEXT,
 	};
 
 	enum SortMethod {
@@ -86,6 +88,7 @@ namespace webserver {
 	struct PropertyItemHandler {
 		typedef vector<T> ItemList;
 		typedef std::function<json(const T& aItem, int aPropertyName)> CustomPropertySerializer;
+		typedef std::function<bool(const T& aItem, int aPropertyName, const StringMatch& aTextMatcher, double aNumericMatcher)> CustomFilterFunction;
 
 		typedef std::function<int(const T& t1, const T& t2, int aSortProperty)> SorterFunction;
 		typedef std::function<string(const T& aItem, int aPropertyName)> StringFunction;
@@ -94,11 +97,13 @@ namespace webserver {
 
 		PropertyItemHandler(const PropertyList& aProperties,
 			StringFunction aStringF, NumberFunction aNumberF, 
-			SorterFunction aSorterF, CustomPropertySerializer aJsonF) :
+			SorterFunction aSorterF, CustomPropertySerializer aJsonF,
+			CustomFilterFunction aFilterF = nullptr) :
 
 			properties(aProperties),
 			stringF(aStringF), numberF(aNumberF), 
-			customSorterF(aSorterF), jsonF(aJsonF) { }
+			customSorterF(aSorterF), jsonF(aJsonF),
+			customFilterF(aFilterF) { }
 
 		// Information about each property
 		const PropertyList& properties;
@@ -114,6 +119,9 @@ namespace webserver {
 
 		// Returns JSON for special properties
 		const CustomPropertySerializer jsonF;
+
+		// Returns true if the item matches filter
+		const CustomFilterFunction customFilterF;
 	};
 }
 

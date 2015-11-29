@@ -145,10 +145,10 @@ namespace webserver {
 		try {
 			b = QueueManager::getInstance()->createFileBundle(
 				targetDirectory + targetFileName,
-				JsonUtil::getField<int64_t>("size", reqJson),
+				JsonUtil::getField<int64_t>("size", reqJson, false),
 				Deserializer::deserializeTTH(reqJson),
 				Deserializer::deserializeHintedUser(reqJson["user"]),
-				JsonUtil::getField<time_t>("time", reqJson),
+				JsonUtil::getField<time_t>("time", reqJson, false),
 				0,
 				prio
 				);
@@ -375,7 +375,7 @@ namespace webserver {
 		onBundleUpdated(aBundle, { PROP_SIZE });
 	}
 	void QueueApi::on(QueueManagerListener::BundlePriority, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { PROP_PRIORITY });
+		onBundleUpdated(aBundle, { PROP_PRIORITY, PROP_STATUS });
 	}
 	void QueueApi::on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept {
 		onBundleUpdated(aBundle, { PROP_STATUS }, "bundle_status");

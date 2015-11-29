@@ -19,6 +19,8 @@
 #include <api/ShareApi.h>
 #include <api/common/Serializer.h>
 #include <api/common/Deserializer.h>
+#include <api/ShareUtils.h>
+
 #include <web-server/JsonUtil.h>
 
 #include <airdcpp/ShareManager.h>
@@ -26,17 +28,32 @@
 
 namespace webserver {
 	ShareApi::ShareApi(Session* aSession) : ApiModule(aSession) {
-		ShareManager::getInstance()->addListener(this);
 
-		METHOD_HANDLER("profiles", ApiRequest::METHOD_GET, (), false, ShareApi::handleGetProfiles);
-		METHOD_HANDLER("roots", ApiRequest::METHOD_GET, (), false, ShareApi::handleGetRoots);
+		METHOD_HANDLER("grouped_root_paths", ApiRequest::METHOD_GET, (), false, ShareApi::handleGetGroupedRootPaths);
 		METHOD_HANDLER("stats", ApiRequest::METHOD_GET, (), false, ShareApi::handleGetStats);
-
 		METHOD_HANDLER("find_dupe_paths", ApiRequest::METHOD_POST, (), true, ShareApi::handleFindDupePaths);
+
+		METHOD_HANDLER("refresh", ApiRequest::METHOD_POST, (), false, ShareApi::handleRefreshShare);
+		METHOD_HANDLER("refresh", ApiRequest::METHOD_POST, (EXACT_PARAM("paths")), true, ShareApi::handleRefreshPaths);
 	}
 
 	ShareApi::~ShareApi() {
-		ShareManager::getInstance()->removeListener(this);
+	}
+
+	api_return ShareApi::handleRefreshShare(ApiRequest& aRequest) {
+		auto incomingOptional = JsonUtil::getOptionalField<bool>("incoming", aRequest.getRequestBody());
+		auto ret = ShareManager::getInstance()->refresh(incomingOptional ? *incomingOptional : false);
+
+		//aRequest.setResponseBody(j);
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return ShareApi::handleRefreshPaths(ApiRequest& aRequest) {
+		auto paths = JsonUtil::getField<StringList>("paths", aRequest.getRequestBody(), false);
+		auto ret = ShareManager::getInstance()->refreshPaths(paths);
+
+		//aRequest.setResponseBody(j);
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return ShareApi::handleGetStats(ApiRequest& aRequest) {
@@ -62,25 +79,7 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return ShareApi::handleGetProfiles(ApiRequest& aRequest) {
-		json j;
-
-		auto profiles = ShareManager::getInstance()->getProfiles();
-
-		// Profiles can't be empty
-		for (const auto& p : profiles) {
-			j.push_back({
-				{ "id", p->getToken() },
-				{ "str", p->getDisplayName() },
-				{ "default", p->isDefault() }
-			});
-		}
-
-		aRequest.setResponseBody(j);
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return ShareApi::handleGetRoots(ApiRequest& aRequest) {
+	api_return ShareApi::handleGetGroupedRootPaths(ApiRequest& aRequest) {
 		json ret;
 
 		auto roots = ShareManager::getInstance()->getGroupedDirectories();

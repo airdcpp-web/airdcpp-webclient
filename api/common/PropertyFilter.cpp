@@ -22,6 +22,7 @@
 #include <airdcpp/Util.h>
 
 namespace webserver {
+	FilterToken lastFilterToken = 0;
 
 	PropertyFilter::PropertyFilter(const PropertyList& aPropertyTypes) :
 		propertyCount(aPropertyTypes.size()),
@@ -30,114 +31,128 @@ namespace webserver {
 		inverse(false),
 		usingTypedMethod(false),
 		numComparisonMode(LAST),
-		propertyTypes(aPropertyTypes)
+		propertyTypes(aPropertyTypes),
+		id(lastFilterToken++)
 	{
 	}
 
 	void PropertyFilter::clear() noexcept {
+		WLock l(cs);
 		if (!matcher.pattern.empty()) {
 			matcher.pattern = Util::emptyString;
 		}
 	}
 
 	void PropertyFilter::setInverse(bool aInverse) noexcept {
+		WLock l(cs);
 		inverse = aInverse;
 	}
 
-	PropertyFilter::Preparation PropertyFilter::prepare() {
-		Preparation prep = Preparation(matcher);
-		if (empty())
-			return prep;
+	void PropertyFilter::prepare(const string& aPattern, int aMethod, int aProperty) {
+		WLock l(cs);
+		setPattern(aPattern);
+		setFilterMethod(static_cast<StringMatch::Method>(aMethod));
+		setFilterProperty(aProperty);
 
-		prep.method = defMethod;
-		prep.column = currentFilterProperty;
-		prep.type = TYPE_TEXT;
-		if (prep.method < StringMatch::METHOD_LAST || prep.column >= propertyCount) {
+		type = TYPE_TEXT;
+		if (currentFilterProperty < 0 || currentFilterProperty >= propertyCount) {
 			if (numComparisonMode != LAST) {
 				// Attempt to detect the column type 
 
-				prep.type = TYPE_TIME;
+				type = TYPE_TIME;
 				auto ret = prepareTime();
 
 				if (!ret.second) {
-					prep.type = TYPE_SIZE;
+					type = TYPE_SIZE;
 					ret = prepareSize();
 				}
 
 				if (!ret.second) {
-					prep.type = TYPE_SPEED;
+					type = TYPE_SPEED;
 					ret = prepareSpeed();
 				}
 
 				if (!ret.second) {
 					// Try generic columns
-					prep.type = TYPE_NUMERIC_OTHER;
-					prep.numericMatcher = Util::toDouble(matcher.pattern);
+					type = TYPE_NUMERIC_OTHER;
+					numericMatcher = Util::toDouble(matcher.pattern);
 				} else {
 					// Set the value if parsing succeed
-					prep.numericMatcher = ret.first;
+					numericMatcher = ret.first;
 				}
 			} else {
-				prep.type = TYPE_TEXT;
-				matcher.setMethod(static_cast<StringMatch::Method>(prep.method));
+				type = TYPE_TEXT;
+				matcher.setMethod(static_cast<StringMatch::Method>(defMethod));
 				matcher.prepare();
 			}
+		} else if (propertyTypes[currentFilterProperty].filterType == TYPE_SIZE) {
+			type = TYPE_SIZE;
+			numericMatcher = prepareSize().first;
+		} else if (propertyTypes[currentFilterProperty].filterType == TYPE_TIME) {
+			type = TYPE_TIME;
+			numericMatcher = prepareTime().first;
+		} else if (propertyTypes[currentFilterProperty].filterType == TYPE_SPEED) {
+			type = TYPE_SPEED;
+			numericMatcher = prepareSpeed().first;
+		} else if (propertyTypes[currentFilterProperty].filterType == TYPE_NUMERIC_OTHER || propertyTypes[currentFilterProperty].filterType == TYPE_LIST_NUMERIC) {
+			type = TYPE_NUMERIC_OTHER;
+			numericMatcher = Util::toDouble(matcher.pattern);
 		}
-		else if (propertyTypes[prep.column].filterType == TYPE_SIZE) {
-			prep.type = TYPE_SIZE;
-			prep.numericMatcher = prepareSize().first;
-		}
-		else if (propertyTypes[prep.column].filterType == TYPE_TIME) {
-			prep.type = TYPE_TIME;
-			prep.numericMatcher = prepareTime().first;
-		}
-		else if (propertyTypes[prep.column].filterType == TYPE_SPEED) {
-			prep.type = TYPE_SPEED;
-			prep.numericMatcher = prepareSpeed().first;
-		}
-		else if (propertyTypes[prep.column].filterType == TYPE_NUMERIC_OTHER) {
-			prep.type = TYPE_NUMERIC_OTHER;
-			prep.numericMatcher = Util::toDouble(matcher.pattern);
-		}
-
-		return prep;
 	}
 
-	bool PropertyFilter::match(const Preparation& prep, const NumericFunction& numericF, const InfoFunction& infoF) const {
+	PropertyFilter::Matcher::Matcher(const PropertyFilter::Ptr& aFilter) : filter(aFilter) {
+		filter->cs.lock_shared();
+	}
+
+	PropertyFilter::Matcher::~Matcher() {
+		if (filter) {
+			filter->cs.unlock_shared();
+		}
+	}
+
+	PropertyFilter::Matcher::Matcher(Matcher&& rhs) noexcept : filter(rhs.filter) {
+		rhs.filter = nullptr;
+	}
+
+	bool PropertyFilter::match(const NumericFunction& numericF, const InfoFunction& infoF, const CustomFilterFunction& aCustomF) const {
 		if (empty())
 			return true;
 
 		bool hasMatch = false;
-		if (prep.column >= propertyCount || prep.column < propertyCount) {
+		if (currentFilterProperty < 0 || currentFilterProperty >= propertyCount) {
 			// Any column
-			if (prep.method < StringMatch::METHOD_LAST) {
+			if (defMethod < StringMatch::METHOD_LAST) {
 				for (auto i = 0; i < propertyCount; ++i) {
-					if (propertyTypes[i].filterType == prep.type && prep.matchText(i, infoF)) {
+					if (propertyTypes[i].filterType == type && matchText(i, infoF)) {
 						hasMatch = true;
 						break;
 					}
 				}
 			} else {
 				for (auto i = 0; i < propertyCount; ++i) {
-					if (prep.type == propertyTypes[i].filterType && prep.matchNumeric(i, numericF)) {
+					if (type == propertyTypes[i].filterType && matchNumeric(i, numericF)) {
 						hasMatch = true;
 						break;
 					}
 				}
 			}
-		}
-		else if (prep.method < StringMatch::METHOD_LAST || propertyTypes[prep.column].filterType == TYPE_TEXT) {
-			hasMatch = prep.matchText(prep.column, infoF);
-		}
-		else {
-			hasMatch = prep.matchNumeric(prep.column, numericF);
+		} else if (propertyTypes[currentFilterProperty].filterType == TYPE_LIST_NUMERIC || propertyTypes[currentFilterProperty].filterType == TYPE_LIST_TEXT) {
+			hasMatch = aCustomF(currentFilterProperty, matcher, numericMatcher);
+		} else if (defMethod < StringMatch::METHOD_LAST || propertyTypes[currentFilterProperty].filterType == TYPE_TEXT) {
+			hasMatch = matchText(currentFilterProperty, infoF);
+		} else {
+			hasMatch = matchNumeric(currentFilterProperty, numericF);
 		}
 		return inverse ? !hasMatch : hasMatch;
 	}
 
-	bool PropertyFilter::Preparation::matchNumeric(int aColumn, const NumericFunction& numericF) const {
-		auto toCompare = numericF(aColumn);
-		switch (method - StringMatch::METHOD_LAST) {
+	bool PropertyFilter::matchText(int aProperty, const InfoFunction& infoF) const {
+		return matcher.match(infoF(aProperty));
+	}
+
+	bool PropertyFilter::matchNumeric(int aProperty, const NumericFunction& numericF) const {
+		auto toCompare = numericF(aProperty);
+		switch (defMethod - StringMatch::METHOD_LAST) {
 			case EQUAL: return toCompare == numericMatcher;
 			case NOT_EQUAL: return toCompare != numericMatcher;
 
@@ -152,15 +167,11 @@ namespace webserver {
 		return false;
 	}
 
-	bool PropertyFilter::Preparation::matchText(int aColumn, const InfoFunction& infoF) const {
-		return stringMatcher.match(infoF(aColumn));
-	}
-
 	bool PropertyFilter::empty() const noexcept {
 		return matcher.pattern.empty();
 	}
 
-	void PropertyFilter::setText(const std::string& aFilter) noexcept {
+	void PropertyFilter::setPattern(const std::string& aFilter) noexcept {
 		numComparisonMode = LAST;
 		auto start = std::string::npos;
 		if (!aFilter.empty()) {

@@ -36,9 +36,6 @@ namespace webserver {
 		METHOD_HANDLER("hub", ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, FavoriteHubApi::handleRemoveHub);
 		METHOD_HANDLER("hub", ApiRequest::METHOD_PATCH, (TOKEN_PARAM), true, FavoriteHubApi::handleUpdateHub);
 		METHOD_HANDLER("hub", ApiRequest::METHOD_GET, (TOKEN_PARAM), false, FavoriteHubApi::handleGetHub);
-
-		METHOD_HANDLER("hub", ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("connect")), false, FavoriteHubApi::handleConnect);
-		METHOD_HANDLER("hub", ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("disconnect")), false, FavoriteHubApi::handleDisconnect);
 	}
 
 	FavoriteHubApi::~FavoriteHubApi() {
@@ -46,8 +43,6 @@ namespace webserver {
 	}
 
 	string FavoriteHubApi::updateValidatedProperties(FavoriteHubEntryPtr& aEntry, json& j, bool aNewHub) {
-		ShareProfilePtr shareProfilePtr = nullptr;
-
 		auto name = JsonUtil::getOptionalField<string>("name", j, false, aNewHub);
 
 		auto server = JsonUtil::getOptionalField<string>("hub_url", j, false, aNewHub);
@@ -57,14 +52,14 @@ namespace webserver {
 			}
 		}
 
-		{
-			auto shareProfileToken = JsonUtil::getOptionalField<ProfileToken>("share_profile", j, false, false);
-			if (shareProfileToken) {
-				if (!AirUtil::isAdcHub(!server ? aEntry->getServer() : *server) && *shareProfileToken != SETTING(DEFAULT_SP)) {
-					JsonUtil::throwError("share_profile", JsonUtil::ERROR_INVALID, "Share profiles can't be changed for NMDC hubs");
-				}
+		auto shareProfileToken = FavoriteHubUtils::deserializeIntHubSetting("share_profile", j);
+		if (shareProfileToken && *shareProfileToken != HUB_SETTING_DEFAULT_INT) {
+			if (!AirUtil::isAdcHub(!server ? aEntry->getServer() : *server) && *shareProfileToken != SETTING(DEFAULT_SP)) {
+				JsonUtil::throwError("share_profile", JsonUtil::ERROR_INVALID, "Share profiles can't be changed for NMDC hubs");
+			}
 
-				shareProfilePtr = ShareManager::getInstance()->getShareProfile(*shareProfileToken, false);
+			if (*shareProfileToken) {
+				auto shareProfilePtr = ShareManager::getInstance()->getShareProfile(*shareProfileToken, false);
 				if (!shareProfilePtr) {
 					JsonUtil::throwError("share_profile", JsonUtil::ERROR_INVALID, "Invalid share profile");
 				}
@@ -80,8 +75,8 @@ namespace webserver {
 			aEntry->setServer(*server);
 		}
 
-		if (shareProfilePtr) {
-			aEntry->setShareProfile(shareProfilePtr);
+		if (shareProfileToken) {
+			aEntry->get(HubSettings::ShareProfile) = *shareProfileToken;
 		}
 
 		return Util::emptyString;
@@ -168,31 +163,6 @@ namespace webserver {
 		FavoriteManager::getInstance()->onFavoriteHubUpdated(e);
 
 		return websocketpp::http::status_code::ok;
-	}
-
-	api_return FavoriteHubApi::handleConnect(ApiRequest& aRequest) {
-		auto entry = FavoriteManager::getInstance()->getFavoriteHubEntry(aRequest.getTokenParam(0));
-		if (!entry) {
-			aRequest.setResponseErrorStr("Hub not found");
-			return websocketpp::http::status_code::not_found;
-		}
-
-		RecentHubEntryPtr r = new RecentHubEntry(entry->getServer());
-		r->setName(entry->getName());
-		r->setDescription(entry->getDescription());
-		ClientManager::getInstance()->createClient(r, entry->getShareProfile()->getToken());
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return FavoriteHubApi::handleDisconnect(ApiRequest& aRequest) {
-		auto entry = FavoriteManager::getInstance()->getFavoriteHubEntry(aRequest.getTokenParam(0));
-		if (!entry) {
-			aRequest.setResponseErrorStr("Hub not found");
-			return websocketpp::http::status_code::not_found;
-		}
-
-		ClientManager::getInstance()->putClient(entry->getServer());
-		return websocketpp::http::status_code::no_content;
 	}
 
 	void FavoriteHubApi::on(FavoriteManagerListener::FavoriteHubAdded, const FavoriteHubEntryPtr& e)  noexcept {

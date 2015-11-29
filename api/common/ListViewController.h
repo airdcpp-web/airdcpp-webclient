@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_LISTVIEW_H
 
 #include <web-server/stdinc.h>
+#include <web-server/JsonUtil.h>
 #include <web-server/SessionListener.h>
 #include <web-server/WebServerManager.h>
 
@@ -36,9 +37,10 @@ namespace webserver {
 	public:
 		typedef typename PropertyItemHandler<T>::ItemList ItemList;
 		typedef typename PropertyItemHandler<T>::ItemListFunction ItemListF;
+		typedef std::function<void(bool aActive)> StateChangeFunction;
 
 		ListViewController(const string& aViewName, ApiModule* aModule, const PropertyItemHandler<T>& aItemHandler, ItemListF aItemListF) :
-			module(aModule), viewName(aViewName), itemHandler(aItemHandler), filter(aItemHandler.properties), itemListF(aItemListF),
+			module(aModule), viewName(aViewName), itemHandler(aItemHandler), itemListF(aItemListF),
 			timer(WebServerManager::getInstance()->addTimer([this] { runTasks(); }, 200))
 		{
 			aModule->getSession()->addListener(this);
@@ -46,8 +48,9 @@ namespace webserver {
 			// Magic for the following defines
 			auto& requestHandlers = aModule->getRequestHandlers();
 
-			METHOD_HANDLER(viewName, ApiRequest::METHOD_POST, (EXACT_PARAM("filter")), true, ListViewController::handlePostFilter);
-			METHOD_HANDLER(viewName, ApiRequest::METHOD_DELETE, (EXACT_PARAM("filter")), false, ListViewController::handleDeleteFilter);
+			METHOD_HANDLER(viewName, ApiRequest::METHOD_POST, (EXACT_PARAM("filter")), false, ListViewController::handlePostFilter);
+			METHOD_HANDLER(viewName, ApiRequest::METHOD_PUT, (EXACT_PARAM("filter"), TOKEN_PARAM), true, ListViewController::handlePutFilter);
+			METHOD_HANDLER(viewName, ApiRequest::METHOD_DELETE, (EXACT_PARAM("filter"), TOKEN_PARAM), false, ListViewController::handleDeleteFilter);
 
 			METHOD_HANDLER(viewName, ApiRequest::METHOD_POST, (), true, ListViewController::handlePostSettings);
 			METHOD_HANDLER(viewName, ApiRequest::METHOD_DELETE, (), false, ListViewController::handleReset);
@@ -61,15 +64,19 @@ namespace webserver {
 			timer->stop(true);
 		}
 
+		void setActiveStateChangeHandler(StateChangeFunction aF) {
+			stateChangeF = aF;
+		}
+
 		void stop() noexcept {
-			active = false;
+			setActive(false);
 			timer->stop(true);
 
 			clearItems();
 			currentValues.reset();
 
 			WLock l(cs);
-			filter.clear();
+			filters.clear();
 		}
 
 		void setResetItems() {
@@ -83,9 +90,8 @@ namespace webserver {
 		void onItemAdded(const T& aItem) {
 			if (!active) return;
 
-			WLock l(cs);
-			auto prep = filter.prepare();
-			if (!matchesFilter(aItem, prep)) {
+			auto matchers = getFilterMatchers();
+			if (!matchesFilter(aItem, matchers)) {
 				return;
 			}
 
@@ -111,8 +117,8 @@ namespace webserver {
 				inList = isInList(aItem, allItems);
 			}
 
-			auto prep = filter.prepare();
-			if (!matchesFilter(aItem, prep)) {
+			auto matchers = getFilterMatchers();
+			if (!matchesFilter(aItem, matchers)) {
 				if (inList) {
 					tasks.removeItem(aItem);
 				}
@@ -134,45 +140,165 @@ namespace webserver {
 			}
 		}
 
-		void resetFilter() {
+		void clearFilters() {
 			{
 				WLock l(cs);
-				filter.clear();
+				filters.clear();
 			}
 
 			onFilterUpdated();
 		}
 
-		void setFilter(const string& aPattern, int aMethod, int aProperty) {
-			{
-				WLock l(cs);
-				filter.setFilterMethod(static_cast<StringMatch::Method>(aMethod));
-				filter.setFilterProperty(aProperty);
-				filter.setText(aPattern);
-			}
-
-			onFilterUpdated();
+		bool isActive() const noexcept {
+			return active;
 		}
 	private:
+		void setActive(bool aActive) {
+			active = aActive;
+			if (stateChangeF) {
+				stateChangeF(aActive);
+			}
+		}
+
+		// FILTERS START
+		PropertyFilter::Matcher::List getFilterMatchers() {
+			PropertyFilter::Matcher::List ret;
+
+			RLock l(cs);
+			for (auto& filter : filters) {
+				if (!filter->empty()) {
+					ret.emplace_back(filter);
+				}
+			}
+
+			return ret;
+		}
+
+		PropertyFilter::List::iterator findFilter(FilterToken aToken) {
+			return find_if(filters.begin(), filters.end(), [&](const PropertyFilter::Ptr& aFilter) { return aFilter->getId() == aToken; });
+		}
+
+		bool removeFilter(FilterToken aToken) {
+			{
+				WLock l(cs);
+
+				auto filter = findFilter(aToken);
+				if (filter == filters.end()) {
+					return false;
+				}
+
+				filters.erase(filter);
+			}
+
+			onFilterUpdated();
+			return true;
+		}
+
+		PropertyFilter::Ptr addFilter() {
+			auto filter = make_shared<PropertyFilter>(itemHandler.properties);
+
+			{
+				WLock l(cs);
+				filters.push_back(filter);
+			}
+
+			return filter;
+		}
+
+		bool matchesFilter(const T& aItem, const PropertyFilter::Matcher::List& aMatchers) {
+			return PropertyFilter::Matcher::match(aMatchers,
+				[&](size_t aProperty) { return itemHandler.numberF(aItem, aProperty); },
+				[&](size_t aProperty) { return itemHandler.stringF(aItem, aProperty); },
+				[&](size_t aProperty, const StringMatch& aStringMatcher, double aNumericMatcher) { return itemHandler.customFilterF(aItem, aProperty, aStringMatcher, aNumericMatcher); }
+			);
+		}
+
+		void setFilterProperties(const json& aRequestJson, PropertyFilter::Ptr& aFilter) {
+			auto method = JsonUtil::getField<int>("method", aRequestJson);
+			auto property = JsonUtil::getField<string>("property", aRequestJson);
+
+			// Pattern can be string or numeric
+			string pattern;
+			auto patternJson = JsonUtil::getRawValue("pattern", aRequestJson);
+			if (patternJson.is_number()) {
+				pattern = Util::toString(JsonUtil::parseValue<double>("pattern", patternJson));
+			} else {
+				pattern = JsonUtil::parseValue<string>("pattern", patternJson);
+			}
+
+			aFilter->prepare(pattern, method, findPropertyByName(property, itemHandler.properties));
+			onFilterUpdated();
+		}
+
 		api_return handlePostFilter(ApiRequest& aRequest) {
 			const auto& reqJson = aRequest.getRequestBody();
 
-			std::string pattern = reqJson["pattern"];
-			if (pattern.empty()) {
-				resetFilter();
-			} else {
-				setFilter(pattern, reqJson["method"], findPropertyByName(reqJson["property"], itemHandler.properties));
+			auto filter = addFilter();
+			if (!reqJson.is_null()) {
+				setFilterProperties(reqJson, filter);
 			}
 
-			// TODO: support for multiple filters
+			aRequest.setResponseBody({ 
+				{ "id", filter->getId() }
+			});
+			return websocketpp::http::status_code::ok;
+		}
+
+		api_return handlePutFilter(ApiRequest& aRequest) {
+			const auto& reqJson = aRequest.getRequestBody();
+			PropertyFilter::Ptr filter = nullptr;
+
+			{
+				WLock l(cs);
+				auto i = findFilter(aRequest.getTokenParam(1));
+				if (i == filters.end()) {
+					aRequest.setResponseErrorStr("Filter not found");
+					return websocketpp::http::status_code::bad_request;
+				}
+
+				filter = *i;
+			}
+
+			setFilterProperties(reqJson, filter);
 			return websocketpp::http::status_code::no_content;
 		}
+
+		api_return handleDeleteFilter(ApiRequest& aRequest) {
+			const auto& reqJson = aRequest.getRequestBody();
+
+			if (!removeFilter(aRequest.getTokenParam(1))) {
+				aRequest.setResponseErrorStr("Filter not found");
+				return websocketpp::http::status_code::bad_request;
+			}
+
+			return websocketpp::http::status_code::no_content;
+		}
+
+		void onFilterUpdated() {
+			ItemList itemsNew;
+			auto matchers = getFilterMatchers();
+			{
+				for (const auto& i : itemListF()) {
+					if (matchesFilter(i, matchers)) {
+						itemsNew.push_back(i);
+					}
+				}
+			}
+
+			{
+				WLock l(cs);
+				allItems.swap(itemsNew);
+				itemListChanged = true;
+			}
+		}
+
+		// FILTERS END
 
 		api_return handlePostSettings(ApiRequest& aRequest) {
 			parseProperties(aRequest.getRequestBody());
 
 			if (!active) {
-				active = true;
+				setActive(true);
 				updateList();
 				timer->start();
 			}
@@ -230,11 +356,6 @@ namespace webserver {
 			}
 		}
 
-		api_return handleDeleteFilter(ApiRequest& aRequest) {
-			resetFilter();
-			return websocketpp::http::status_code::ok;
-		}
-
 		void on(SessionListener::SocketDisconnected) noexcept {
 			stop();
 		}
@@ -245,26 +366,6 @@ namespace webserver {
 			}
 
 			module->send(viewName + "_updated", j);
-		}
-
-		void onFilterUpdated() {
-			ItemList itemsNew;
-			auto prep = filter.prepare();
-			{
-				for (const auto& i : itemListF()) {
-					if (matchesFilter(i, prep)) {
-						itemsNew.push_back(i);
-					}
-				}
-			}
-
-			{
-				WLock l(cs);
-				allItems.swap(itemsNew);
-				itemListChanged = true;
-			}
-
-			//resetRange();
 		}
 
 		void updateList() {
@@ -505,13 +606,6 @@ namespace webserver {
 			}
 		}
 
-		bool matchesFilter(const T& aItem, const PropertyFilter::Preparation& prep) {
-			return filter.match(prep,
-				[&](size_t aProperty) { return itemHandler.numberF(aItem, aProperty); },
-				[&](size_t aProperty) { return itemHandler.stringF(aItem, aProperty); }
-				);
-		}
-
 		// JSON APPEND START
 		void appendItem(const T& aItem, json& json_, int pos) {
 			appendItem(aItem, json_, pos, toPropertyIdSet(itemHandler.properties));
@@ -526,7 +620,8 @@ namespace webserver {
 			json_["items"][pos]["id"] = aItem->getToken();
 		}
 
-		PropertyFilter filter;
+		PropertyFilter::List filters;
+
 		const PropertyItemHandler<T>& itemHandler;
 
 		ItemList currentViewItems;
@@ -695,6 +790,8 @@ namespace webserver {
 			bool changed = true;
 			ValueMap values;
 		};
+
+		StateChangeFunction stateChangeF = nullptr;
 
 		bool itemListChanged = false;
 		IntCollector currentValues;
