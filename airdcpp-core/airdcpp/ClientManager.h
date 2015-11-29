@@ -30,6 +30,7 @@
 #include "OnlineUser.h"
 #include "Search.h"
 #include "SettingsManager.h"
+#include "ShareManagerListener.h"
 #include "Singleton.h"
 #include "Socket.h"
 #include "ShareProfile.h"
@@ -41,7 +42,7 @@ class UserCommand;
 
 class ClientManager : public Speaker<ClientManagerListener>, 
 	private ClientListener, public Singleton<ClientManager>, 
-	private TimerManagerListener
+	private TimerManagerListener, private ShareManagerListener
 {
 	typedef unordered_map<CID*, UserPtr> UserMap;
 	typedef UserMap::iterator UserIter;
@@ -49,7 +50,7 @@ class ClientManager : public Speaker<ClientManagerListener>,
 public:
 	// Returns the new ClientPtr
 	// NOTE: the main app should perform connecting to the new hub
-	ClientPtr createClient(const RecentHubEntryPtr& aEntry, ProfileToken aProfile) noexcept;
+	ClientPtr createClient(const RecentHubEntryPtr& aEntry, ProfileToken aProfile = SETTING(DEFAULT_SP)) noexcept;
 	ClientPtr getClient(const string& aHubURL) noexcept;
 	ClientPtr getClient(ClientToken aClientId) noexcept;
 
@@ -222,12 +223,8 @@ public:
 	CID getMyCID() noexcept;
 	const CID& getMyPID() noexcept;
 
-	void resetProfile(ProfileToken oldProfile, ProfileToken newProfile, bool nmdcOnly) noexcept;
-	void resetProfiles(const ShareProfileInfo::List& aProfiles, ProfileToken aDefaultProfile) noexcept;
-
 	bool connectADCSearchResult(const CID& aCID, string& token_, string& hubUrl_, string& connection_, uint8_t& slots_) const noexcept;
 	bool connectNMDCSearchResult(const string& userIP, const string& hubIpPort, HintedUser& user, string& nick, string& connection_, string& file, string& hubName) noexcept;
-	bool hasAdcHubs() const noexcept;
 
 	//return users supporting the ASCH extension (and total users)
 	pair<size_t, size_t> countAschSupport(const OrderedStringSet& aHubs) const noexcept;
@@ -277,6 +274,12 @@ private:
 	* @return OnlineUser* found by CID and hint; discard any user that doesn't match the hint.
 	*/
 	OnlineUser* findOnlineUserHint(const CID& cid, const string& hintUrl, OnlinePairC& p) const noexcept;
+
+	// ShareManagerListener
+	void on(ShareManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept;
+	void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept;
+
+	void resetProfile(ProfileToken oldProfile, ProfileToken newProfile, bool nmdcOnly) noexcept;
 
 	// ClientListener
 	void on(Connected, const Client* c) noexcept;

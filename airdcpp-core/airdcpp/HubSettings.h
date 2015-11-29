@@ -28,6 +28,8 @@ namespace dcpp {
 
 using std::string;
 
+#define HUB_SETTING_DEFAULT_INT numeric_limits<int>::min()
+
 /** Stores settings to be applied to a hub. There are 3 HubSettings levels in DC++: global; per
 favorite hub group; per favorite hub entry. */
 struct HubSettings
@@ -65,14 +67,18 @@ struct HubSettings
 		SearchInterval = HubIntFirst,
 		Connection,
 		Connection6,
+		ShareProfile,
 		// don't forget to edit intNames in HubSettings.cpp when adding a def here!
 
 		HubIntLast
 	};
 
+	static bool defined(const string& s) { return !s.empty(); }
+	static bool defined(tribool b) { return !indeterminate(b); }
+	static bool defined(int b) { return b != HUB_SETTING_DEFAULT_INT; }
+
 	HubSettings();
 
-	static int getMinInt();
 	const string& get(HubStrSetting setting) const;
 	const tribool& get(HubBoolSetting setting) const;
 	const int& get(HubIntSetting setting) const;

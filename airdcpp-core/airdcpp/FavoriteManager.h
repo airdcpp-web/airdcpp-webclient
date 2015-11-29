@@ -26,6 +26,7 @@
 #include "HttpConnection.h"
 #include "HubEntry.h"
 #include "SettingsManager.h"
+#include "ShareManagerListener.h"
 #include "Singleton.h"
 #include "User.h"
 #include "UserCommand.h"
@@ -53,7 +54,7 @@ public:
  * Public hub list, favorites (hub&user). Assumed to be called only by UI thread.
  */
 class FavoriteManager : public Speaker<FavoriteManagerListener>, private HttpConnectionListener, public Singleton<FavoriteManager>,
-	private SettingsManagerListener, private ClientManagerListener
+	private SettingsManagerListener, private ClientManagerListener, private ShareManagerListener
 {
 public:
 // Public Hubs
@@ -164,12 +165,7 @@ public:
 	void save();
 	void recentsave();
 
-	int resetProfile(ProfileToken oldProfile, ProfileToken newProfile, bool nmdcOnly);
-	int resetProfiles(const ShareProfileInfo::List& aProfiles, ProfileToken defaultProfile);
-	void onProfilesRenamed();
-
 	bool hasActiveHubs() const;
-	bool hasAdcHubs() const;
 
 	mutable SharedMutex cs;
 private:
@@ -205,6 +201,12 @@ private:
 	FavoriteHubEntryList::const_iterator getFavoriteHub(ProfileToken aToken) const;
 	RecentHubEntryList::const_iterator getRecentHub(const string& aServer) const;
 
+	int resetProfile(ProfileToken oldProfile, ProfileToken newProfile, bool nmdcOnly);
+
+	// ShareManagerListener
+	void on(ShareManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept;
+	void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept;
+
 	// ClientManagerListener
 	void on(ClientManagerListener::UserConnected, const OnlineUser& user, bool wasOffline) noexcept;
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& user, bool wentOffline) noexcept;
@@ -212,6 +214,7 @@ private:
 	void on(ClientManagerListener::ClientCreated, const ClientPtr& c) noexcept;
 	void on(ClientManagerListener::ClientConnected, const ClientPtr& c) noexcept;
 	void on(ClientManagerListener::ClientRemoved, const ClientPtr& c) noexcept;
+	void on(ClientManagerListener::ClientRedirected, const ClientPtr& aOldClient, const ClientPtr& aNewClient) noexcept;
 
 	// HttpConnectionListener
 	void on(Data, HttpConnection*, const uint8_t*, size_t) noexcept;
@@ -222,7 +225,7 @@ private:
 
 	bool onHttpFinished(bool fromHttp) noexcept;
 
-	void onConnectStateChanged(const std::string& aHubUrl, FavoriteHubEntry::ConnectState aState) noexcept;
+	void onConnectStateChanged(const ClientPtr& aClient, FavoriteHubEntry::ConnectState aState) noexcept;
 
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept {

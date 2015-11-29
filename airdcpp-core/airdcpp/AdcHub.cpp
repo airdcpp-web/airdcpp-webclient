@@ -661,7 +661,7 @@ void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
 		}
 	}
 
-	SearchManager::getInstance()->respond(c, *ou, isUdpActive, getIpPort(), shareProfile);
+	SearchManager::getInstance()->respond(c, *ou, isUdpActive, getIpPort(), getShareProfile());
 }
 
 void AdcHub::handle(AdcCommand::RES, AdcCommand& c) noexcept {

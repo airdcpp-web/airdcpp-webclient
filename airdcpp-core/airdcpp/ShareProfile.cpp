@@ -78,6 +78,30 @@ ShareProfile::~ShareProfile() {
 
 }
 
+bool ShareProfile::hasCommonProfiles(const ProfileTokenSet& a, const ProfileTokenSet& b) noexcept {
+	for (auto profileToken : a) {
+		if (b.find(profileToken) != b.end()) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+StringList ShareProfile::getCommonProfileNames(const ProfileTokenSet& a, const ProfileTokenSet& b, const ShareProfileList& aProfiles) noexcept {
+	StringList ret;
+	for (auto profileToken : a) {
+		if (b.find(profileToken) != b.end()) {
+			auto p = find(aProfiles.begin(), aProfiles.end(), profileToken);
+			if (p != aProfiles.end()) {
+				ret.push_back((*p)->getPlainName());
+			}
+		}
+	}
+
+	return ret;
+}
+
 string ShareProfile::getDisplayName() const noexcept {
 	string ret = plainName;
 	if (token == SETTING(DEFAULT_SP)) {

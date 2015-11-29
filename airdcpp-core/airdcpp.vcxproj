@@ -136,6 +136,10 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Lib>
+    <PreBuildEvent>
+      <Message>Generating revision number...</Message>
+      <Command>$(SolutionDir)generate-version.bat $(SolutionDir)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
@@ -457,6 +461,7 @@
     <ClInclude Include="airdcpp\SettingsManager.h" />
     <ClInclude Include="airdcpp\SFVReader.h" />
     <ClInclude Include="airdcpp\SharedFileStream.h" />
+    <ClInclude Include="airdcpp\ShareDirectoryInfo.h" />
     <ClInclude Include="airdcpp\ShareManager.h" />
     <ClInclude Include="airdcpp\ShareManagerListener.h" />
     <ClInclude Include="airdcpp\ShareProfile.h" />

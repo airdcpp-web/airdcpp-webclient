@@ -90,6 +90,9 @@ inline bool operator==(const ShareProfileInfoPtr& ptr, ProfileToken aToken) { re
 
 class ShareProfile {
 public:
+	static bool hasCommonProfiles(const ProfileTokenSet& a, const ProfileTokenSet& b) noexcept;
+	static StringList getCommonProfileNames(const ProfileTokenSet& a, const ProfileTokenSet& b, const ShareProfileList& aProfiles) noexcept;
+
 	struct Hash {
 		size_t operator()(const ShareProfilePtr& x) const { return x->getToken(); }
 	};
@@ -97,10 +100,12 @@ public:
 	GETSET(ProfileToken, token, Token);
 	GETSET(string, plainName, PlainName);
 	IGETSET(bool, profileInfoDirty, ProfileInfoDirty, true);
+
+	// For caching the last information (these should only be accessed from ShareManager, use ShareManager::getProfileInfo for up-to-date information)
 	IGETSET(int64_t, shareSize, ShareSize, 0);
 	IGETSET(size_t, sharedFiles, SharedFiles, 0);
 
-	ShareProfile(const string& aName, ProfileToken aToken = Util::randInt(100));
+	ShareProfile(const string& aName = Util::emptyString, ProfileToken aToken = Util::randInt(100));
 	~ShareProfile();
 
 	FileList* getProfileList() noexcept;
