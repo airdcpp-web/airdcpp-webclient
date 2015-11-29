@@ -16,32 +16,39 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_SHAREAPI_H
-#define DCPLUSPLUS_DCPP_SHAREAPI_H
+#ifndef DCPLUSPLUS_DCPP_SHAREPROFILE_API_H
+#define DCPLUSPLUS_DCPP_SHAREPROFILE_API_H
 
 #include <web-server/stdinc.h>
 
 #include <api/ApiModule.h>
 
 #include <airdcpp/typedefs.h>
+#include <airdcpp/ShareManagerListener.h>
 
 namespace webserver {
-	class ShareApi : public ApiModule {
+	class ShareProfileApi : public ApiModule, private ShareManagerListener {
 	public:
-		ShareApi(Session* aSession);
-		~ShareApi();
+		ShareProfileApi(Session* aSession);
+		~ShareProfileApi();
 
 		int getVersion() const noexcept {
 			return 0;
 		}
 	private:
-		api_return handleRefreshShare(ApiRequest& aRequest);
-		api_return handleRefreshPaths(ApiRequest& aRequest);
+		static json serializeShareProfile(const ShareProfilePtr& aProfile) noexcept;
 
-		api_return handleGetStats(ApiRequest& aRequest);
+		api_return handleGetProfiles(ApiRequest& aRequest);
+		api_return handleAddProfile(ApiRequest& aRequest);
+		api_return handleUpdateProfile(ApiRequest& aRequest);
+		api_return handleRemoveProfile(ApiRequest& aRequest);
+		api_return handleDefaultProfile(ApiRequest& aRequest);
 
-		api_return handleGetGroupedRootPaths(ApiRequest& aRequest);
-		api_return handleFindDupePaths(ApiRequest& aRequest);
+		void parseProfile(ShareProfilePtr& aProfile, const json& j);
+
+		void on(ShareManagerListener::ProfileAdded, ProfileToken aProfile) noexcept;
+		void on(ShareManagerListener::ProfileUpdated, ProfileToken aProfile) noexcept;
+		void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept;
 	};
 }
 

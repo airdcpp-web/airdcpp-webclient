@@ -170,6 +170,14 @@ namespace webserver {
 		return send(j);
 	}
 
+	bool ApiModule::maybeSend(const string& aSubscription, JsonCallback aCallback) {
+		if (!subscriptionActive(aSubscription)) {
+			return false;
+		}
+
+		return send(aSubscription, aCallback());
+	}
+
 	void ApiModule::addAsyncSubscriptionTask(CallBack&& aTask) {
 		// Ensure that the socket (and session) won't be deleted
 		auto s = socket;

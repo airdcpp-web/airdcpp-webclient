@@ -20,6 +20,7 @@
 #include <api/FavoriteHubApi.h>
 
 #include <api/common/Format.h>
+#include <web-server/JsonUtil.h>
 
 #include <airdcpp/FavoriteManager.h>
 
@@ -28,56 +29,89 @@ namespace webserver {
 		return FavoriteManager::getInstance()->getFavoriteHubs();
 	}
 
-	json FavoriteHubUtils::serializeHub(const FavoriteHubEntryPtr& aEntry, int aPropertyName) noexcept {
-		json j;
-
-		switch (aPropertyName) {
-			/*case QueueApi::PROP_SOURCES:
-			{
-			RLock l(QueueManager::getInstance()->getCS());
-			int online = 0;
-			decltype(auto) sources = aBundle->getSources();
-			for (const auto& s : sources) {
-			if (s.getUser().user->isOnline())
-			online++;
-			}
-
-			j["online"] = online;
-			j["total"] = aBundle->getSources().size();
-			}
-
-			case QueueApi::PROP_TYPE:
-			{
-			RLock l(QueueManager::getInstance()->getCS());
-			j["files"] = aBundle->getQueueItems().size() + aBundle->getFinishedFiles().size();
-			j["folders"] = aBundle->getDirectories().size();
-			}*/
+	string FavoriteHubUtils::formatConnectState(const FavoriteHubEntryPtr& aEntry) noexcept {
+		switch (aEntry->getConnectState()) {
+			case FavoriteHubEntry::STATE_DISCONNECTED: return STRING(DISCONNECTED);
+			case FavoriteHubEntry::STATE_CONNECTING: return STRING(CONNECTING);
+			case FavoriteHubEntry::STATE_CONNECTED: return STRING(CONNECTED);
 		}
 
-		return j;
+		return Util::emptyString;
+	}
+
+	json FavoriteHubUtils::serializeHub(const FavoriteHubEntryPtr& aEntry, int aPropertyName) noexcept {
+		switch (aPropertyName) {
+			case FavoriteHubApi::PROP_SHARE_PROFILE:
+			{
+				json j;
+				j["id"] = serializeHubSetting(aEntry->get(HubSettings::ShareProfile));
+				j["str"] = aEntry->getShareProfileName();
+				return j;
+			}
+			case FavoriteHubApi::PROP_CONNECT_STATE:
+			{
+				json j;
+				j["id"] = aEntry->getConnectState();
+				j["str"] = formatConnectState(aEntry);
+				j["current_hub_id"] = aEntry->getCurrentHubToken();
+				return j;
+			}
+		}
+
+		return nullptr;
 	}
 
 	int FavoriteHubUtils::compareEntries(const FavoriteHubEntryPtr& a, const FavoriteHubEntryPtr& b, int aPropertyName) noexcept {
 		return 0;
 	}
+
+	optional<int> FavoriteHubUtils::deserializeIntHubSetting(const string& aFieldName, const json& aJson) {
+		auto p = aJson.find(aFieldName);
+		if (p == aJson.end()) {
+			return boost::none;
+		}
+
+		if ((*p).is_null()) {
+			return HUB_SETTING_DEFAULT_INT;
+		}
+
+		return JsonUtil::parseValue<int>(aFieldName, *p);
+	}
+
+	json FavoriteHubUtils::serializeHubSetting(tribool aSetting) noexcept {
+		if (!HubSettings::defined(aSetting)) {
+			return nullptr;
+		}
+
+		// TODO: test when we use for this
+		return aSetting.value;
+	}
+
+	json FavoriteHubUtils::serializeHubSetting(int aSetting) noexcept {
+		if (!HubSettings::defined(aSetting)) {
+			return nullptr;
+		}
+
+		return aSetting;
+	}
+
 	std::string FavoriteHubUtils::getStringInfo(const FavoriteHubEntryPtr& aEntry, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case FavoriteHubApi::PROP_NAME: return aEntry->getName();
-		case FavoriteHubApi::PROP_HUB_URL: return aEntry->getServer();
-		case FavoriteHubApi::PROP_HUB_DESCRIPTION: return aEntry->getDescription();
-		case FavoriteHubApi::PROP_NICK: return aEntry->get(HubSettings::Nick);
-		case FavoriteHubApi::PROP_USER_DESCRIPTION: return aEntry->get(HubSettings::Description);
-		case FavoriteHubApi::PROP_SHARE_PROFILE: return aEntry->getShareProfile()->getDisplayName();
-		default: dcassert(0); return 0;
+			case FavoriteHubApi::PROP_NAME: return aEntry->getName();
+			case FavoriteHubApi::PROP_HUB_URL: return aEntry->getServer();
+			case FavoriteHubApi::PROP_HUB_DESCRIPTION: return aEntry->getDescription();
+			case FavoriteHubApi::PROP_NICK: return aEntry->get(HubSettings::Nick);
+			case FavoriteHubApi::PROP_USER_DESCRIPTION: return aEntry->get(HubSettings::Description);
+			case FavoriteHubApi::PROP_SHARE_PROFILE: return aEntry->getShareProfileName();
+			default: dcassert(0); return 0;
 		}
 	}
+
 	double FavoriteHubUtils::getNumericInfo(const FavoriteHubEntryPtr& aEntry, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case FavoriteHubApi::PROP_AUTO_CONNECT: return (double)aEntry->getAutoConnect();
-		case FavoriteHubApi::PROP_SHARE_PROFILE: return (double)aEntry->getShareProfile()->getToken();
-		case FavoriteHubApi::PROP_CONNECT_STATE: return (double)aEntry->getConnectState();
-		case FavoriteHubApi::PROP_HAS_PASSWORD: return (double)!aEntry->getPassword().empty();
-		default: dcassert(0); return 0;
+			case FavoriteHubApi::PROP_AUTO_CONNECT: return (double)aEntry->getAutoConnect();
+			case FavoriteHubApi::PROP_HAS_PASSWORD: return (double)!aEntry->getPassword().empty();
+			default: dcassert(0); return 0;
 		}
 	}
 }

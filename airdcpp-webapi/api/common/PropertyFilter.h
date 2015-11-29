@@ -20,49 +20,70 @@
 #define DCPP_PROPERTYFILTER_H
 
 #include <airdcpp/stdinc.h>
-#include <airdcpp/StringMatch.h>
+#include <airdcpp/CriticalSection.h>
 
 #include <api/common/Property.h>
 
 namespace webserver {
+	class PropertyFilter;
+	typedef uint32_t FilterToken;
+
 
 	class PropertyFilter : boost::noncopyable {
 	public:
 		typedef std::function<std::string(int)> InfoFunction;
 		typedef std::function<double(int)> NumericFunction;
+		typedef std::function<bool(int, const StringMatch&, double)> CustomFilterFunction;
 
-		struct Preparation {
-			Preparation(const StringMatch& aMatch) : stringMatcher(aMatch) { }
+		typedef shared_ptr<PropertyFilter> Ptr;
+		typedef vector<Ptr> List;
 
-			int column;
-			int method;
-			FilterPropertyType type;
+		class Matcher {
+		public:
+			Matcher(const PropertyFilter::Ptr& aFilter);
+			~Matcher();
 
-			double numericMatcher;
-			const StringMatch& stringMatcher;
+			Matcher(Matcher&) = delete;
+			Matcher& operator=(Matcher&) = delete;
+			Matcher(Matcher&& rhs) noexcept;
+			Matcher& operator=(Matcher&& rhs) = delete;
 
-			bool matchNumeric(int aColumn, const NumericFunction& numericF) const;
-			bool matchText(int aColumn, const InfoFunction& infoF) const;
+			typedef vector<Matcher> List;
+			static inline bool match(const List& prep, const NumericFunction& aNumericF, const InfoFunction& aStringF, const CustomFilterFunction& aCustomF) {
+				return std::all_of(prep.begin(), prep.end(), [&](const Matcher& aMatcher) { return aMatcher.filter->match(aNumericF, aStringF, aCustomF); });
+			}
+
+		private:
+			PropertyFilter::Ptr filter;
 		};
 
 		PropertyFilter(const PropertyList& aPropertyTypes);
 
-		Preparation prepare();
-		bool match(const Preparation& prep, const NumericFunction& numericF, const InfoFunction& infoF) const;
+		void prepare(const string& aPattern, int aMethod, int aProperty);
 
 		bool empty() const noexcept;
-
-		//void SetDefaultMatchColumn(int i) { currentMatchProperty = i; } //for setting the match column without column box
 		void clear() noexcept;
 
 		void setInverse(bool aInverse) noexcept;
 		bool getInverse() const noexcept { return inverse; }
 
+		FilterToken getId() const noexcept {
+			return id;
+		}
 
-		void setText(const std::string& aText) noexcept;
+	private:
+		friend class Preparation;
+
+		mutable SharedMutex cs;
+		bool match(const NumericFunction& numericF, const InfoFunction& infoF, const CustomFilterFunction& aCustomF) const;
+		bool matchText(int aProperty, const InfoFunction& infoF) const;
+		bool matchNumeric(int aProperty, const NumericFunction& infoF) const;
+
+		void setPattern(const std::string& aText) noexcept;
 		void setFilterProperty(int aFilterProperty) noexcept;
 		void setFilterMethod(StringMatch::Method aFilterMethod) noexcept;
-	private:
+
+		const FilterToken id;
 		PropertyList propertyTypes;
 
 		pair<double, bool> prepareSize() const noexcept;
@@ -71,10 +92,12 @@ namespace webserver {
 
 		StringMatch::Method defMethod;
 		int currentFilterProperty;
+		FilterPropertyType type;
 
 		const int propertyCount;
 
 		StringMatch matcher;
+		double numericMatcher;
 
 		// Hide matching items
 		bool inverse;
@@ -94,7 +117,6 @@ namespace webserver {
 
 		FilterMode numComparisonMode;
 	};
-
 }
 
 #endif

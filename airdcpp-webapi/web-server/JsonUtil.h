@@ -53,6 +53,10 @@ namespace webserver {
 				return getField<T>(aFieldName, aJson, aAllowEmpty);
 			}
 
+			if (aJson.is_null()) {
+				return boost::none;
+			}
+
 			auto p = aJson.find(aFieldName);
 			if (p == aJson.end()) {
 				return boost::none;
@@ -61,15 +65,25 @@ namespace webserver {
 			return parseValue<T>(aFieldName, *p, aAllowEmpty);
 		}
 
-		// Find and parse the given field. Throws if not found.
-		template <typename T, typename JsonT>
-		static T getField(const string& aFieldName, const JsonT& aJson, bool aAllowEmpty = true) {
+		// Returns raw JSON value and throws if the field is missing
+		template <typename JsonT>
+		static json getRawValue(const string& aFieldName, const JsonT& aJson) {
+			if (aJson.is_null()) {
+				throwError(aFieldName, ERROR_MISSING, "JSON null");
+			}
+
 			auto p = aJson.find(aFieldName);
 			if (p == aJson.end()) {
 				throwError(aFieldName, ERROR_MISSING, "Field missing");
 			}
 
-			return parseValue<T>(aFieldName, *p, aAllowEmpty);
+			return *p;
+		}
+
+		// Find and parse the given field. Throws if not found.
+		template <typename T, typename JsonT>
+		static T getField(const string& aFieldName, const JsonT& aJson, bool aAllowEmpty = true) {
+			return parseValue<T>(aFieldName, getRawValue(aFieldName, aJson), aAllowEmpty);
 		}
 
 		// Get value from the given JSON element
@@ -84,7 +98,7 @@ namespace webserver {
 					throwError(aFieldName, ERROR_INVALID, e.what());
 				}
 
-				if (!aAllowEmpty && isEmpty<T>(ret)) {
+				if (!aAllowEmpty && (isEmpty<T>(ret) || aJson.empty())) {
 					throwError(aFieldName, ERROR_INVALID, "Field can't be empty");
 				}
 

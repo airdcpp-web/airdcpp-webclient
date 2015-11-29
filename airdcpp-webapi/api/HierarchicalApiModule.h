@@ -146,6 +146,14 @@ namespace webserver {
 			return ApiModule::send(j);
 		}
 
+		bool maybeSend(const string& aSubscription, ApiModule::JsonCallback aCallback) {
+			if (!subscriptionActive(aSubscription)) {
+				return false;
+			}
+
+			return send(aSubscription, aCallback());
+		}
+
 		bool subscriptionActive(const string& aSubscription) const noexcept {
 			if (parentModule->childSubscriptionActive(aSubscription)) {
 				return true;
