@@ -132,7 +132,8 @@ public:
 	RefreshResult refreshVirtual(const string& aDir) noexcept;
 
 	// Refresh the specific directories
-	RefreshResult refreshPaths(const StringList& aPaths, RefreshType aRefreshType = RefreshType::TYPE_MANUAL, TaskType aTaskType = REFRESH_DIRS, const string& displayName = Util::emptyString, function<void(float)> progressF = nullptr) noexcept;
+	// This validates that each path exists
+	RefreshResult refreshPaths(const StringList& aPaths, const string& displayName = Util::emptyString, function<void(float)> progressF = nullptr) noexcept;
 
 	bool isRefreshing() const noexcept { return refreshRunning; }
 	
@@ -158,7 +159,7 @@ public:
 
 	bool isFileShared(const TTHValue& aTTH) const noexcept;
 	bool isFileShared(const TTHValue& aTTH, ProfileToken aProfile) const noexcept;
-	bool isRealPathShared(const string& aPath) noexcept;
+	bool isRealPathShared(const string& aPath) const noexcept;
 
 	bool allowAddDir(const string& dir) const noexcept;
 
@@ -265,7 +266,7 @@ public:
 	bool removeProfile(ProfileToken aToken) noexcept;
 
 	// Convert real path to virtual path. Returns an empty string if not shared.
-	string realToVirtual(const string& aPath, ProfileToken aProfile) noexcept;
+	string realToVirtual(const string& aPath, ProfileToken aProfile) const noexcept;
 
 	// If allowFallback is true, the default profile will be returned if the requested one is not found
 	ShareProfilePtr getShareProfile(ProfileToken aProfile, bool allowFallback = false) const noexcept;
@@ -358,6 +359,7 @@ private:
 			unique_ptr<DualString> virtualName;
 	};
 
+	typedef vector<ProfileDirectory::Ptr> ProfileDirectoryList;
 	unique_ptr<ShareBloom> bloom;
 
 	struct FileListDir;
@@ -409,13 +411,11 @@ private:
 			explicit SearchResultInfo(const File* f, const SearchQuery& aSearch, int aLevel) :
 				file(f), type(FILE), scores(SearchQuery::getRelevancyScores(aSearch, aLevel, false, f->name.getLower())) {
 
-				//init(aSearch, aLevel);
 			}
 
 			explicit SearchResultInfo(const Directory* d, const SearchQuery& aSearch, int aLevel) :
 				directory(d), type(DIRECTORY), scores(SearchQuery::getRelevancyScores(aSearch, aLevel, true, d->realName.getLower())) {
 
-				//init(aSearch, aLevel);
 			}
 
 			typedef multiset<SearchResultInfo, Sort> Set;
@@ -429,7 +429,6 @@ private:
 				const Directory::File* file;
 			};
 
-			//void init(const SearchQuery& aSearch, int aLevel);
 			Type getType() const { return type; }
 		private:
 			Type type;
@@ -637,14 +636,14 @@ private:
 	void reportPendingRefresh(TaskType aTask, const RefreshPathList& aDirectories, const string& displayName) const noexcept;
 
 	// Add directories for refresh
-	RefreshResult addRefreshTask(TaskType aTaskType, const Directory::List& aDirs, RefreshType aRefreshType, const string& displayName = Util::emptyString, function<void(float)> progressF = nullptr) noexcept;
+	RefreshResult addRefreshTask(TaskType aTaskType, const StringList& aDirs, RefreshType aRefreshType, const string& displayName = Util::emptyString, function<void(float)> progressF = nullptr) noexcept;
 
 	// Remove directories that have already been queued for refresh
-	void validateRefreshTask(Directory::List& dirs_) noexcept;
+	void validateRefreshTask(StringList& dirs_) noexcept;
 
 	// Change the refresh status for a directory and its subroots
 	// Safe to call with non-root directories
-	void setRefreshState(Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, RefreshState aState, bool aUpdateRefreshTime) noexcept;
+	void setRefreshState(const string& aPath, RefreshState aState, bool aUpdateRefreshTime) noexcept;
 
 	// Recursive function for building a new share tree from a path
 	void buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
@@ -717,7 +716,15 @@ private:
 		}
 	}
 
-	Directory::Ptr findDirectory(const string& fname, bool allowAdd, bool report, bool aCheckExcluded = true) noexcept;
+	// Find an existing directory by real path
+	Directory::Ptr findDirectory(const string& aRealPath) const noexcept;
+
+	// Attempt to add the path in share
+	Directory::Ptr getDirectory(const string& aRealPath, bool report, bool aCheckExcluded = true) noexcept;
+
+	// Attempts to find directory from share and returns the last existing directory
+	// If the exact directory can't be found, the missing directory names are added in remainingTokens_
+	Directory::Ptr findDirectory(const string& aRealPath, StringList& remainingTokens_) const noexcept;
 
 	virtual int run();
 
