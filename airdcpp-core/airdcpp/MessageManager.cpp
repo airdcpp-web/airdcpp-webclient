@@ -21,6 +21,7 @@
 #include "MessageManager.h"
 #include "LogManager.h"
 
+#include "AirUtil.h"
 #include "Message.h"
 #include "Util.h"
 #include "Wildcards.h"
@@ -186,6 +187,14 @@ void MessageManager::onPrivateMessage(const ChatMessagePtr& aMessage, UserConnec
 
 	auto chat = addChat(HintedUser(user, aMessage->getReplyTo()->getClient()->getHubUrl()), true);
 	chat->handleMessage(aMessage);
+
+	if (AirUtil::getAway() && (!SETTING(NO_AWAYMSG_TO_BOTS) || !user->isSet(User::BOT))) {
+		ParamMap params;
+		aMessage->getFrom()->getIdentity().getParams(params, "user", false);
+
+		string error;
+		chat->sendPrivateMessage(AirUtil::getAwayMessage(c->get(HubSettings::AwayMsg), params), error, false);
+	}
 }
 
 void MessageManager::on(ConnectionManagerListener::Connected, const ConnectionQueueItem* cqi, UserConnection* uc) noexcept{
