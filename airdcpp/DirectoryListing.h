@@ -262,11 +262,21 @@ public:
 	// Returns false if the directory was not found from the list
 	bool changeDirectory(const string& aPath, ReloadMode aReloadMode, bool aIsSearchChange = false) noexcept;
 
-	const string& getCurrentPath() const noexcept {
-		return currentPath;
+	struct LocationInfo {
+		string path;
+
+		int64_t size = -1;
+		int files = -1;
+		int directories = -1;
+		bool complete = true;
+	};
+
+	const LocationInfo& getCurrentLocationInfo() const noexcept {
+		return currentLocation;
 	}
 private:
-	string currentPath;
+	LocationInfo currentLocation;
+	void updateCurrentLocation(const Directory::Ptr& aCurrentDirectory) noexcept;
 
 	friend class ListLoader;
 

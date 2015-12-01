@@ -1278,6 +1278,7 @@ ShareProfilePtr ShareManager::getShareProfile(ProfileToken aProfile, bool allowF
 }
 
 optional<ProfileToken> ShareManager::getProfileByName(const string& aName) const noexcept {
+	RLock l(cs);
 	if (aName.empty()) {
 		return SETTING(DEFAULT_SP);
 	}
@@ -3611,6 +3612,8 @@ ShareManager::Directory::Ptr ShareManager::getDirectory(const string& aRealPath,
 			curDir->addBloom(*bloom.get());
 		}
 	}
+
+	return curDir;
 }
 
 ShareManager::Directory::Ptr ShareManager::findDirectory(const string& aRealPath) const noexcept {
@@ -3650,10 +3653,17 @@ void ShareManager::addFile(const string& aName, Directory::Ptr& aDir, const Hash
 }
 
 StringSet ShareManager::getExcludedPaths() const noexcept {
+	RLock l(cs);
 	return excludedPaths;
 }
 
+ShareProfileList ShareManager::getProfiles() const noexcept {
+	RLock l(cs);
+	return shareProfiles; 
+}
+
 ShareProfileInfo::List ShareManager::getProfileInfos() const noexcept {
+	RLock l(cs);
 	ShareProfileInfo::List ret;
 	for (const auto& sp : shareProfiles) {
 		if (sp->getToken() != SP_HIDDEN) {

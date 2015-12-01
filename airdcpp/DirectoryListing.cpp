@@ -46,9 +46,9 @@ using boost::range::find_if;
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, const string& aDirectory, bool aIsOwnList) :
 	hintedUser(aUser), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD, 0)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
 	isClientView(aIsClientView), matchADL(SETTING(USE_ADLS) && !aPartial), 
-	tasks(isClientView, Thread::NORMAL, std::bind(&DirectoryListing::dispatch, this, std::placeholders::_1)),
-	currentPath(aDirectory)
+	tasks(isClientView, Thread::NORMAL, std::bind(&DirectoryListing::dispatch, this, std::placeholders::_1))
 {
+	currentLocation.path = aDirectory;
 	running.clear();
 
 	ClientManager::getInstance()->addListener(this);
@@ -952,9 +952,21 @@ void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aDir,
 	if (!getIsOwnList() && SETTING(DUPES_IN_FILELIST) && isClientView)
 		checkShareDupes();
 
-	currentPath = aDir;
+	auto dir = findDirectory(aDir);
+	if (dir) {
+		updateCurrentLocation(dir);
+	}
+	
 	setState(STATE_LOADED);
 	fire(DirectoryListingListener::LoadingFinished(), aStartTime, aDir, aReloadList, aChangeDir);
+}
+
+void DirectoryListing::updateCurrentLocation(const Directory::Ptr& aCurrentDirectory) noexcept {
+	currentLocation.path = aCurrentDirectory->getPath();
+	currentLocation.directories = aCurrentDirectory->directories.size();
+	currentLocation.files = aCurrentDirectory->files.size();
+	currentLocation.size = aCurrentDirectory->getTotalSize(false);
+	currentLocation.complete = aCurrentDirectory->isComplete();
 }
 
 void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) noexcept {
@@ -1178,7 +1190,7 @@ bool DirectoryListing::changeDirectory(const string& aPath, ReloadMode aReloadMo
 		}
 	}
 
-	currentPath = dir->getPath();
+	updateCurrentLocation(dir);
 	return true;
 }
 
