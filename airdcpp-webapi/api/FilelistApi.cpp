@@ -146,7 +146,7 @@ namespace webserver {
 			{ "id", aList->getUser()->getCID().toBase32() },
 			{ "user", Serializer::serializeHintedUser(aList->getHintedUser()) },
 			{ "state", FilelistInfo::serializeState(aList) },
-			{ "directory", Util::toAdcFile(aList->getCurrentPath()) }
+			{ "location", FilelistInfo::serializeLocation(aList) }
 			//{ "unread_count", aChat->getCache().countUnreadChatMessages() }
 		};
 	}

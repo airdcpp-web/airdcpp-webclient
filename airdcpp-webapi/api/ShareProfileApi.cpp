@@ -111,7 +111,13 @@ namespace webserver {
 	api_return ShareProfileApi::handleUpdateProfile(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		auto profile = ShareManager::getInstance()->getShareProfile(aRequest.getTokenParam(0));
+		auto token = aRequest.getTokenParam(0);
+		if (token == SP_HIDDEN) {
+			aRequest.setResponseErrorStr("Hidden profile can't be edited");
+			return websocketpp::http::status_code::not_found;
+		}
+
+		auto profile = ShareManager::getInstance()->getShareProfile(token);
 		if (!profile) {
 			aRequest.setResponseErrorStr("Profile not found");
 			return websocketpp::http::status_code::not_found;
@@ -124,6 +130,15 @@ namespace webserver {
 
 	api_return ShareProfileApi::handleRemoveProfile(ApiRequest& aRequest) {
 		auto token = aRequest.getTokenParam(0);
+		if (token == SP_HIDDEN) {
+			aRequest.setResponseErrorStr("Hidden profile can't be deleted");
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		if (token == SETTING(DEFAULT_SP)) {
+			aRequest.setResponseErrorStr("The default profile can't be deleted (set another profile as default first)");
+			return websocketpp::http::status_code::bad_request;
+		}
 
 		if (!ShareManager::getInstance()->getShareProfile(token)) {
 			aRequest.setResponseErrorStr("Profile not found");
