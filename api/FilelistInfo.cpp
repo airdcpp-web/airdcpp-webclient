@@ -53,7 +53,7 @@ namespace webserver {
 		dl->addListener(this);
 
 		if (dl->isOpen()) {
-			updateItems(dl->getCurrentPath());
+			updateItems(dl->getCurrentLocationInfo().path);
 		}
 	}
 
@@ -88,6 +88,17 @@ namespace webserver {
 		};
 	}
 
+	json FilelistInfo::serializeLocation(const DirectoryListingPtr& aListing) noexcept {
+		const auto& location = aListing->getCurrentLocationInfo();
+		return{
+			{ "path", Util::toAdcFile(location.path) },
+			{ "size", location.size },
+			{ "files", location.files },
+			{ "directories", location.directories },
+			{ "complete", location.complete },
+		};
+	}
+
 	void FilelistInfo::updateItems(const string& aPath) noexcept {
 		dl->addAsyncTask([=] {
 			auto curDir = dl->findDirectory(aPath);
@@ -109,8 +120,10 @@ namespace webserver {
 			}
 
 			directoryView.setResetItems();
+
+			json j;
 			onSessionUpdated({
-				{ "directory", Util::toAdcFile(aPath) }
+				{ "location", serializeLocation(dl) }
 			});
 		});
 	}

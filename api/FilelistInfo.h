@@ -100,6 +100,7 @@ namespace webserver {
 		DirectoryListingPtr getList() const noexcept { return dl; }
 
 		static json serializeState(const DirectoryListingPtr& aList) noexcept;
+		static json serializeLocation(const DirectoryListingPtr& aListing) noexcept;
 	private:
 		api_return handleChangeDirectory(ApiRequest& aRequest);
 
