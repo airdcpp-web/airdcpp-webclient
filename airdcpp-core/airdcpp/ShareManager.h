@@ -275,10 +275,7 @@ public:
 	ShareDirectoryInfoList getRootInfos() const noexcept;
 	ShareDirectoryInfoPtr getRootInfo(const string& aPath) const noexcept;
 
-	// Only for gui use purposes, no locking
-	const ShareProfileList& getProfiles() { return shareProfiles; }
-
-	// Only for gui use purposes, no locking
+	ShareProfileList getProfiles() const noexcept;
 	ShareProfileInfo::List getProfileInfos() const noexcept;
 
 	// Get a list of excluded real paths
@@ -287,7 +284,6 @@ public:
 	void setExcludedPaths(const StringSet& aPaths) noexcept;
 
 	// Get a profile token by its display name
-	// Only for gui use purposes, no locking
 	optional<ProfileToken> getProfileByName(const string& aName) const noexcept;
 
 
