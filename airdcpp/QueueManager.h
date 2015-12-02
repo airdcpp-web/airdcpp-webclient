@@ -106,17 +106,28 @@ public:
 		return false;
 	}
 
+	// Return all finished non-failed bundles
+	// Returns the number of bundles that were removed
+	int removeFinishedBundles() noexcept;
+
 	// Remove source from the specified file
 	void removeFileSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 
 	// Remove source from all files. excludeF can be used to filter certain files from removal.
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason, std::function<bool (const QueueItemPtr&) > excludeF = nullptr) noexcept;
 
+	// Set priority for all bundles
+	// Won't affect bundles that are added later
+	// Use DEFAULT priority to enable auto priority
+	void setPriority(QueueItemBase::Priority p) noexcept;
+
 	// Set priority for the file.
+	// Use DEFAULT priority to enable auto priority
 	void setQIPriority(const string& aTarget, QueueItemBase::Priority p) noexcept;
 
 	// Set priority for the file.
 	// keepAutoPrio should be used only when performing auto priorization.
+	// Use DEFAULT priority to enable auto priority
 	void setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p, bool keepAutoPrio=false) noexcept;
 
 	// Toggle autoprio for the file
@@ -225,8 +236,8 @@ public:
 	// Rename a bundle (can be running)
 	void renameBundle(BundlePtr aBundle, const string& newName) noexcept;
 
-	bool removeBundle(QueueToken aBundleToken, bool removeFinished) noexcept;
-	void removeBundle(BundlePtr& aBundle, bool removeFinished) noexcept;
+	bool removeBundle(QueueToken aBundleToken, bool removeFinishedFiles) noexcept;
+	void removeBundle(BundlePtr& aBundle, bool removeFinishedFiles) noexcept;
 
 	// Find a bundle by token
 	BundlePtr findBundle(QueueToken aBundleToken) const noexcept { RLock l (cs); return bundleQueue.findBundle(aBundleToken); }
@@ -256,14 +267,17 @@ public:
 	void bundleDownloadFailed(BundlePtr& aBundle, const string& aError);
 
 	/* Priorities */
+	// Use DEFAULT priority to enable auto priority
 	void setBundlePriority(QueueToken aBundleToken, QueueItemBase::Priority p) noexcept;
 
 	// Set new priority for the specified bundle
 	// keepAutoPrio should be used only when performing auto priorization.
+	// Use DEFAULT priority to enable auto priority
 	void setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool aKeepAutoPrio=false) noexcept;
 
 	// Toggle autoprio state for the bundle
 	void setBundleAutoPriority(QueueToken aBundleToken) noexcept;
+	void setBundleAutoPriority(BundlePtr& aBundle) noexcept;
 
 	// Perform autopriorization for applicable bundles
 	// verbose is only used for debugging purposes to print the points for each bundle

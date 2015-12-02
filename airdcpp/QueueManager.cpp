@@ -2063,6 +2063,14 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 		return;
 	}
 
+	if (p == QueueItem::DEFAULT) {
+		if (!aBundle->getAutoPriority()) {
+			setBundleAutoPriority(aBundle);
+		}
+
+		return;
+	}
+
 	{
 		WLock l(cs);
 
@@ -2099,33 +2107,63 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 }
 
 void QueueManager::setBundleAutoPriority(QueueToken aBundleToken) noexcept {
-	BundlePtr b = nullptr;
+	BundlePtr bundle = nullptr;
 	{
 		RLock l(cs);
-		b = bundleQueue.findBundle(aBundleToken);
-		if (b) {
-			if (b->isFinished())
-				return;
-			
-			b->setAutoPriority(!b->getAutoPriority());
-			if (b->isFileBundle()) {
-				b->getQueueItems().front()->setAutoPriority(b->getAutoPriority());
-			}
-
-			b->setDirty();
-		}
+		bundle = bundleQueue.findBundle(aBundleToken);
 	}
 
-	if (b) {
-		if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_BALANCED) {
-			calculateBundlePriorities(false);
-			if (b->isPausedPrio()) {
-				//can't count auto priorities with the current bundles, but we don't want this one to stay paused
-				setBundlePriority(b, Bundle::LOW, true);
-			}
-		} else if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
-			setBundlePriority(b, b->calculateProgressPriority(), true);
+	setBundleAutoPriority(bundle);
+}
+
+void QueueManager::setBundleAutoPriority(BundlePtr& aBundle) noexcept {
+	if (aBundle->isFinished())
+		return;
+
+	aBundle->setAutoPriority(!aBundle->getAutoPriority());
+	if (aBundle->isFileBundle()) {
+		RLock l(cs);
+		aBundle->getQueueItems().front()->setAutoPriority(aBundle->getAutoPriority());
+	}
+
+	aBundle->setDirty();
+
+	if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_BALANCED) {
+		calculateBundlePriorities(false);
+		if (aBundle->isPausedPrio()) {
+			//can't count auto priorities with the current bundles, but we don't want this one to stay paused
+			setBundlePriority(aBundle, Bundle::LOW, true);
 		}
+	} else if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
+		setBundlePriority(aBundle, aBundle->calculateProgressPriority(), true);
+	}
+}
+
+int QueueManager::removeFinishedBundles() noexcept {
+	BundleList bundles;
+	{
+		RLock l(cs);
+		boost::algorithm::copy_if(bundleQueue.getBundles() | map_values, back_inserter(bundles), [](const BundlePtr& aBundle) {
+			return aBundle->isFinished() && !aBundle->isFailed();
+		});
+	}
+
+	for (auto& bundle : bundles) {
+		removeBundle(bundle, false);
+	}
+
+	return static_cast<int>(bundles.size());
+}
+
+void QueueManager::setPriority(QueueItemBase::Priority p) noexcept {
+	Bundle::TokenBundleMap bundles;
+	{
+		RLock l(cs);
+		bundles = bundleQueue.getBundles();
+	}
+
+	for (auto& bundle : bundles | map_values) {
+		setBundlePriority(bundle, p);
 	}
 }
 
@@ -2151,6 +2189,14 @@ void QueueManager::setQIPriority(QueueItemPtr& q, QueueItemBase::Priority p, boo
 	if (b->isFileBundle()) {
 		dcassert(!isAP);
 		setBundlePriority(b, p, false);
+		return;
+	}
+
+	if (p == QueueItem::DEFAULT) {
+		if (!q->getAutoPriority()) {
+			setQIAutoPriority(q->getTarget());
+		}
+
 		return;
 	}
 
@@ -3764,7 +3810,7 @@ void QueueManager::removeBundleItem(QueueItemPtr& qi, bool finished) noexcept{
 	bundle->setDirty();
 }
 
-bool QueueManager::removeBundle(QueueToken aBundleToken, bool removeFinished) noexcept {
+bool QueueManager::removeBundle(QueueToken aBundleToken, bool removeFinishedFiles) noexcept {
 	BundlePtr b = nullptr;
 	{
 		RLock l(cs);
@@ -3772,14 +3818,14 @@ bool QueueManager::removeBundle(QueueToken aBundleToken, bool removeFinished) no
 	}
 
 	if (b) {
-		removeBundle(b, removeFinished);
+		removeBundle(b, removeFinishedFiles);
 		return true;
 	}
 
 	return false;
 }
 
-void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinished) noexcept{
+void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinishedFiles) noexcept{
 	if (aBundle->getStatus() == Bundle::STATUS_NEW) {
 		return;
 	}
@@ -3799,7 +3845,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinished) noexcep
 		for (auto& qi : finishedItems) {
 			fileQueue.remove(qi);
 			bundleQueue.removeBundleItem(qi, false);
-			if (removeFinished) {
+			if (removeFinishedFiles) {
 				UploadManager::getInstance()->abortUpload(qi->getTarget());
 				deleteFiles.push_back(qi->getTarget());
 			}
@@ -3831,7 +3877,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinished) noexcep
 		LogManager::getInstance()->message(STRING_F(BUNDLE_X_REMOVED, aBundle->getName()), LogMessage::SEV_INFO);
 
 	if (!aBundle->isFileBundle()) {
-		AirUtil::removeDirectoryIfEmpty(aBundle->getTarget(), 10, !removeFinished);
+		AirUtil::removeDirectoryIfEmpty(aBundle->getTarget(), 10, !removeFinishedFiles);
 	}
 
 	for (const auto& aUser : sources)
@@ -3839,7 +3885,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool removeFinished) noexcep
 
 	removeBundleLists(aBundle);
 
-	if (removeFinished)
+	if (removeFinishedFiles)
 		File::removeDirectory(aBundle->getTarget());
 }
 
