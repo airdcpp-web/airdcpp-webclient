@@ -93,6 +93,8 @@ namespace webserver {
 		api_return handleRemoveFile(ApiRequest& aRequest);
 
 		api_return handleGetBundles(ApiRequest& aRequest);
+		api_return handleRemoveFinishedBundles(ApiRequest& aRequest);
+		api_return handleBundlePriorities(ApiRequest& aRequest);
 
 		//api_return handleGetFilelist(ApiRequest& aRequest);
 		//api_return handleGetTempItem(ApiRequest& aRequest);
