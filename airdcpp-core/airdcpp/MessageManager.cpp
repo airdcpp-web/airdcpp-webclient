@@ -155,7 +155,7 @@ void MessageManager::DisconnectCCPM(const UserPtr& aUser) {
 
 }
 
-void MessageManager::onPrivateMessage(const ChatMessagePtr& aMessage, UserConnection* aUc) {
+void MessageManager::onPrivateMessage(const ChatMessagePtr& aMessage) {
 	bool myPM = aMessage->getReplyTo()->getUser() == ClientManager::getInstance()->getMe();
 	const UserPtr& user = myPM ? aMessage->getTo()->getUser() : aMessage->getReplyTo()->getUser();
 	size_t wndCnt;
@@ -164,10 +164,6 @@ void MessageManager::onPrivateMessage(const ChatMessagePtr& aMessage, UserConnec
 		wndCnt = chats.size();
 		auto i = chats.find(user);
 		if (i != chats.end()) {
-			//Debug purposes to see if this really ever happens!! 
-			if (aUc && !i->second->ccReady())
-				LogManager::getInstance()->message("Message received via CCPM but frame not connected state! report to Night", LogMessage::SEV_ERROR);
-
 			i->second->handleMessage(aMessage); //We should have a listener in the frame
 			return;
 		}
@@ -227,8 +223,8 @@ void MessageManager::on(ConnectionManagerListener::Removed, const ConnectionQueu
 	}
 }
 
-void MessageManager::on(UserConnectionListener::PrivateMessage, UserConnection* uc, const ChatMessagePtr& message) noexcept{
-	onPrivateMessage(message, uc);
+void MessageManager::on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessagePtr& message) noexcept{
+	onPrivateMessage(message);
 }
 
 void MessageManager::on(AdcCommand::PMI, UserConnection* uc, const AdcCommand& cmd) noexcept{
