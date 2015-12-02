@@ -50,6 +50,8 @@ namespace webserver {
 		createSubscription("file_updated");
 
 		METHOD_HANDLER("bundles", ApiRequest::METHOD_GET, (NUM_PARAM, NUM_PARAM), false, QueueApi::handleGetBundles);
+		METHOD_HANDLER("bundles", ApiRequest::METHOD_POST, (EXACT_PARAM("remove_finished")), false, QueueApi::handleRemoveFinishedBundles);
+		METHOD_HANDLER("bundles", ApiRequest::METHOD_POST, (EXACT_PARAM("priority")), true, QueueApi::handleBundlePriorities);
 
 		METHOD_HANDLER("bundle", ApiRequest::METHOD_POST, (EXACT_PARAM("file")), true, QueueApi::handleAddFileBundle);
 		METHOD_HANDLER("bundle", ApiRequest::METHOD_POST, (EXACT_PARAM("directory")), true, QueueApi::handleAddDirectoryBundle);
@@ -110,6 +112,22 @@ namespace webserver {
 
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
+	}
+
+	api_return QueueApi::handleRemoveFinishedBundles(ApiRequest& aRequest) {
+		auto removed = QueueManager::getInstance()->removeFinishedBundles();
+
+		aRequest.setResponseBody({
+			{ "count", removed }
+		});
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return QueueApi::handleBundlePriorities(ApiRequest& aRequest) {
+		auto priority = Deserializer::deserializePriority(aRequest.getRequestBody(), true);
+		QueueManager::getInstance()->setPriority(priority);
+
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return QueueApi::handleGetBundle(ApiRequest& aRequest) {
@@ -213,7 +231,8 @@ namespace webserver {
 	}
 
 	api_return QueueApi::handleRemoveBundle(ApiRequest& aRequest) {
-		auto success = QueueManager::getInstance()->removeBundle(aRequest.getTokenParam(0), false);
+		auto removeFinished = JsonUtil::getOptionalField<bool>("remove_finished", aRequest.getRequestBody());
+		auto success = QueueManager::getInstance()->removeBundle(aRequest.getTokenParam(0), removeFinished ? *removeFinished : false);
 		return success ? websocketpp::http::status_code::ok : websocketpp::http::status_code::not_found;
 	}
 
