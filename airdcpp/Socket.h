@@ -157,7 +157,7 @@ public:
 	/**
 	 * Same as connect(), but through the SOCKS5 server
 	 */
-	void socksConnect(const Socket::AddressInfo& aIp, const string& aPort, uint32_t timeout = 0);
+	void socksConnect(const Socket::AddressInfo& aIp, const string& aPort, uint64_t timeout = 0);
 
 	/**
 	 * Sends data, will block until all data has been sent or an exception occurs
@@ -165,7 +165,7 @@ public:
 	 * @param aLen Data length
 	 * @throw SocketExcpetion Send failed.
 	 */
-	void writeAll(const void* aBuffer, int aLen, uint32_t timeout = 0);
+	void writeAll(const void* aBuffer, int aLen, uint64_t timeout = 0);
 	virtual int write(const void* aBuffer, int aLen);
 	int write(const string& aData) { return write(aData.data(), (int)aData.length()); }
 	virtual void writeTo(const string& aIp, const string& aPort, const void* aBuffer, int aLen, bool proxy = true);
@@ -174,8 +174,8 @@ public:
 	virtual void close() noexcept;
 	void disconnect() noexcept;
 
-	virtual bool waitConnected(uint32_t millis);
-	virtual bool waitAccepted(uint32_t millis);
+	virtual bool waitConnected(uint64_t millis);
+	virtual bool waitAccepted(uint64_t millis);
 
 	/**
 	 * Reads zero to aBufLen characters from this socket,
@@ -200,9 +200,9 @@ public:
 	 * actually read is returned.
 	 * On exception, an unspecified amount of bytes might have already been read.
 	 */
-	int readAll(void* aBuffer, int aBufLen, uint32_t timeout = 0);
+	int readAll(void* aBuffer, int aBufLen, uint64_t timeout = 0);
 
-	virtual std::pair<bool, bool> wait(uint32_t millis, bool checkRead, bool checkWrite);
+	virtual std::pair<bool, bool> wait(uint64_t millis, bool checkRead, bool checkWrite);
 
 	static string resolve(const string& aDns, int af = AF_UNSPEC) noexcept;
 	addrinfo_p resolveAddr(const string& name, const string& port, int family = AF_UNSPEC, int flags = 0) const;
@@ -273,7 +273,7 @@ protected:
 	static socklen_t udpAddrLen;
 private:
 	void connect(const string& aAddr, const string& aPort, const string& localPort, string& lastError_);
-	void socksAuth(uint32_t timeout);
+	void socksAuth(uint64_t timeout);
 	socket_t setSock(socket_t s, int af);
 
 	// Low level interface

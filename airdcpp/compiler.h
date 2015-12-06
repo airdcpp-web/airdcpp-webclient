@@ -142,6 +142,8 @@
 
 # pragma warning(disable: 4267) // conversion from 'xxx' to 'yyy', possible loss of data
 # pragma warning(disable: 4706) // assignment within conditional expression
+
+# pragma warning(disable: 4592) // warning C4592: 'updateCommand': symbol will be dynamically initialized (implementation limitation) - added in VS2015 Update 1, recheck when a new update is released
 #endif
 
 #endif // DCPLUSPLUS_DCPP_COMPILER_H
