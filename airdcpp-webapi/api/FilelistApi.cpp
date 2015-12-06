@@ -62,7 +62,7 @@ namespace webserver {
 	api_return FilelistApi::handlePostList(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		auto user = Deserializer::deserializeHintedUser(reqJson["user"]);
+		auto user = Deserializer::deserializeHintedUser(reqJson);
 		auto optionalDirectory = JsonUtil::getOptionalField<string>("directory", reqJson, false);
 
 		auto directory = optionalDirectory ? Util::toNmdcFile(*optionalDirectory) : Util::emptyString;
@@ -160,7 +160,7 @@ namespace webserver {
 		QueueItemBase::Priority prio;
 		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), targetDirectory, targetBundleName, targetType, prio);
 
-		auto user = Deserializer::deserializeHintedUser(reqJson["user"]);
+		auto user = Deserializer::deserializeHintedUser(reqJson);
 
 		DirectoryListingManager::getInstance()->addDirectoryDownload(Util::toNmdcFile(listPath), targetBundleName, user,
 			targetDirectory, targetType, true, prio);

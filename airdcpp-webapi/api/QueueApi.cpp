@@ -165,7 +165,7 @@ namespace webserver {
 				targetDirectory + targetFileName,
 				JsonUtil::getField<int64_t>("size", reqJson, false),
 				Deserializer::deserializeTTH(reqJson),
-				Deserializer::deserializeHintedUser(reqJson["user"]),
+				Deserializer::deserializeHintedUser(reqJson),
 				JsonUtil::getField<time_t>("time", reqJson, false),
 				0,
 				prio
@@ -193,10 +193,10 @@ namespace webserver {
 		BundleFileInfo::List files;
 		for (const auto& fileJson : reqJson["files"]) {
 			files.push_back(BundleFileInfo(
-				fileJson["name"],
+				JsonUtil::getField<string>("name", reqJson),
 				Deserializer::deserializeTTH(fileJson),
-				fileJson["size"],
-				fileJson["time"],
+				JsonUtil::getField<int64_t>("size", reqJson),
+				JsonUtil::getField<time_t>("time", reqJson),
 				Deserializer::deserializePriority(fileJson, true))
 			);
 		}
@@ -205,11 +205,11 @@ namespace webserver {
 		std::string errors;
 		try {
 			b = QueueManager::getInstance()->createDirectoryBundle(
-				reqJson["target"],
-				Deserializer::deserializeHintedUser(reqJson["user"]),
+				JsonUtil::getField<string>("target", reqJson),
+				Deserializer::deserializeHintedUser(reqJson),
 				files,
 				Deserializer::deserializePriority(reqJson, true),
-				reqJson["time"],
+				JsonUtil::getField<time_t>("time", reqJson),
 				errors
 			);
 		}
@@ -250,10 +250,10 @@ namespace webserver {
 		}
 
 		// Target
-		auto target = reqJson.find("target");
-		if (target != reqJson.end()) {
-			QueueManager::getInstance()->moveBundle(b, *target, true);
-		}
+		//auto target = reqJson.find("target");
+		//if (target != reqJson.end()) {
+		//	QueueManager::getInstance()->moveBundle(b, *target, true);
+		//}
 
 		return websocketpp::http::status_code::ok;
 	}
@@ -266,9 +266,9 @@ namespace webserver {
 
 		try {
 			QueueManager::getInstance()->addOpenedItem(reqJson["filename"],
-				reqJson["size"],
+				JsonUtil::getField<int64_t>("size", reqJson),
 				Deserializer::deserializeTTH(reqJson),
-				Deserializer::deserializeHintedUser(reqJson["user"]),
+				Deserializer::deserializeHintedUser(reqJson),
 				false
 				);
 		}
@@ -294,7 +294,7 @@ namespace webserver {
 		//	flags = QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST;
 
 		try {
-			QueueManager::getInstance()->addList(Deserializer::deserializeHintedUser(reqJson["user"]), flags, directory);
+			QueueManager::getInstance()->addList(Deserializer::deserializeHintedUser(reqJson), flags, directory);
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::internal_server_error;
