@@ -31,8 +31,8 @@ namespace webserver {
 	class Deserializer {
 	public:
 		static CID deserializeCID(const string& aCID);
-		static UserPtr deserializeUser(const json& aJson);
-		static HintedUser deserializeHintedUser(const json& aJson);
+		static UserPtr deserializeUser(const json& aJson, bool aAllowMe = false);
+		static HintedUser deserializeHintedUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
 		static TTHValue deserializeTTH(const json& aJson);
 		static QueueItemBase::Priority deserializePriority(const json& aJson, bool allowDefault);
 

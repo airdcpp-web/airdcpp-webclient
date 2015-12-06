@@ -49,7 +49,8 @@ namespace webserver {
 	}
 
 	api_return PrivateChatApi::handlePostChat(ApiRequest& aRequest) {
-		auto c = MessageManager::getInstance()->addChat(Deserializer::deserializeHintedUser(aRequest.getRequestBody()), false);
+		auto user = Deserializer::deserializeHintedUser(aRequest.getRequestBody());
+		auto c = MessageManager::getInstance()->addChat(user, false);
 		if (!c) {
 			aRequest.setResponseErrorStr("Chat session exists");
 			return websocketpp::http::status_code::bad_request;
