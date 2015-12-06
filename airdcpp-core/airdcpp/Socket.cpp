@@ -123,7 +123,7 @@ inline bool isConnected(socket_t sock) {
 	FD_ZERO(&wfd);
 	FD_SET(sock, &wfd);
 
-    if(::select(sock + 1, NULL, &wfd, NULL, &tv) == 1) {
+    if(::select(static_cast<int>(sock) + 1, NULL, &wfd, NULL, &tv) == 1) {
         if (getSocketOptInt2(sock, SO_ERROR) == 0) {
             return true;
         }
@@ -132,7 +132,7 @@ inline bool isConnected(socket_t sock) {
 	return false;
 }
 
-inline int readable(socket_t sock0, socket_t sock1) {
+inline socket_t readable(socket_t sock0, socket_t sock1) {
 	fd_set rfd;
 	struct timeval tv = { 0 };
 
@@ -140,8 +140,8 @@ inline int readable(socket_t sock0, socket_t sock1) {
 	FD_SET(sock0, &rfd);
 	FD_SET(sock1, &rfd);
 
-    if(::select(std::max(sock0, sock1) + 1, &rfd, NULL, NULL, &tv) > 0) {
-        return FD_ISSET(sock0, &rfd) ? sock0 : sock1;
+    if(::select(static_cast<int>(std::max(sock0, sock1)) + 1, &rfd, NULL, NULL, &tv) > 0) {
+        return static_cast<int>(FD_ISSET(sock0, &rfd) ? sock0 : sock1);
     }
 
 	return sock0;
@@ -401,7 +401,7 @@ namespace {
 	}
 }
 
-void Socket::socksConnect(const Socket::AddressInfo& aAddr, const string& aPort, uint32_t timeout) {
+void Socket::socksConnect(const Socket::AddressInfo& aAddr, const string& aPort, uint64_t timeout) {
 	if(SETTING(SOCKS_SERVER).empty() || SETTING(SOCKS_PORT) == 0) {
 		throw SocketException(STRING(SOCKS_FAILED));
 	}
@@ -459,7 +459,7 @@ void Socket::socksConnect(const Socket::AddressInfo& aAddr, const string& aPort,
 	setIp4(inet_ntoa(sock_addr));
 }
 
-void Socket::socksAuth(uint32_t timeout) {
+void Socket::socksAuth(uint64_t timeout) {
 	vector<uint8_t> connStr;
 
 	uint64_t start = GET_TICK();
@@ -566,7 +566,7 @@ int Socket::read(void* aBuffer, int aBufLen, string &aIP) {
 	return len;
 }
 
-int Socket::readAll(void* aBuffer, int aBufLen, uint32_t timeout) {
+int Socket::readAll(void* aBuffer, int aBufLen, uint64_t timeout) {
 	uint8_t* buf = (uint8_t*)aBuffer;
 	int i = 0;
 	while(i < aBufLen) {
@@ -585,7 +585,7 @@ int Socket::readAll(void* aBuffer, int aBufLen, uint32_t timeout) {
 	return i;
 }
 
-void Socket::writeAll(const void* aBuffer, int aLen, uint32_t timeout) {
+void Socket::writeAll(const void* aBuffer, int aLen, uint64_t timeout) {
 	const uint8_t* buf = (const uint8_t*)aBuffer;
 	int pos = 0;
 	// No use sending more than this at a time...
@@ -682,9 +682,9 @@ void Socket::writeTo(const string& aAddr, const string& aPort, const void* aBuff
  * @return pair with read/write state respectively
  * @throw SocketException Select or the connection attempt failed.
  */
-std::pair<bool, bool> Socket::wait(uint32_t millis, bool checkRead, bool checkWrite) {
+std::pair<bool, bool> Socket::wait(uint64_t millis, bool checkRead, bool checkWrite) {
 	timeval tv;
-	tv.tv_sec = millis / 1000;
+	tv.tv_sec = static_cast<long>(millis / 1000);
 	tv.tv_usec = (millis % 1000) * 1000;
 	fd_set rfd, wfd;
 	fd_set *rfdp = NULL, *wfdp = NULL;
@@ -726,9 +726,9 @@ std::pair<bool, bool> Socket::wait(uint32_t millis, bool checkRead, bool checkWr
 		wfdp && ((sock4.valid() && FD_ISSET(sock4, wfdp)) || (sock6.valid() && FD_ISSET(sock6, wfdp))));
 }
 
-bool Socket::waitConnected(uint32_t millis) {
+bool Socket::waitConnected(uint64_t millis) {
 	timeval tv;
-	tv.tv_sec = millis / 1000;
+	tv.tv_sec = static_cast<long>(millis / 1000);
 	tv.tv_usec = (millis % 1000) * 1000;
 	fd_set fd;
 	FD_ZERO(&fd);
@@ -736,12 +736,12 @@ bool Socket::waitConnected(uint32_t millis) {
 	int nfds = -1;
 	if(sock4.valid()) {
 		FD_SET(sock4, &fd);
-		nfds = sock4;
+		nfds = static_cast<int>(sock4);
 	}
 
 	if(sock6.valid()) {
 		FD_SET(sock6, &fd);
-		nfds = std::max((int)sock6, nfds);
+		nfds = std::max(static_cast<int>(sock6), nfds);
 	}
 
 	check([&] { return ::select(nfds + 1, NULL, &fd, NULL, &tv); });
@@ -777,7 +777,7 @@ bool Socket::waitConnected(uint32_t millis) {
 	return false;
 }
 
-bool Socket::waitAccepted(uint32_t /*millis*/) {
+bool Socket::waitAccepted(uint64_t /*millis*/) {
 	// Normal sockets are always connected after a call to accept
 	return true;
 }
