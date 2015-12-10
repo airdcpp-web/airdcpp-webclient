@@ -91,44 +91,17 @@ namespace webserver {
 		void onItemAdded(const T& aItem) {
 			if (!active) return;
 
-			auto matchers = getFilterMatchers();
-			if (!matchesFilter(aItem, matchers)) {
-				return;
-			}
-
 			tasks.addItem(aItem);
 		}
 
 		void onItemRemoved(const T& aItem) {
 			if (!active) return;
 
-			WLock l(cs);
-			auto pos = findItem(aItem, allItems);
-			if (pos != allItems.end()) {
-				tasks.removeItem(*pos);
-			}
+			tasks.removeItem(aItem);
 		}
 
 		void onItemUpdated(const T& aItem, const PropertyIdSet& aUpdatedProperties) {
 			if (!active) return;
-
-			bool inList;
-			{
-				RLock l(cs);
-				inList = isInList(aItem, allItems);
-			}
-
-			auto matchers = getFilterMatchers();
-			if (!matchesFilter(aItem, matchers)) {
-				if (inList) {
-					tasks.removeItem(aItem);
-				}
-
-				return;
-			} else if (!inList) {
-				tasks.addItem(aItem);
-				return;
-			}
 
 			tasks.updateItem(aItem, aUpdatedProperties);
 		}
@@ -279,7 +252,8 @@ namespace webserver {
 			ItemList itemsNew;
 			auto matchers = getFilterMatchers();
 			{
-				for (const auto& i : itemListF()) {
+				RLock l(cs);
+				for (const auto& i : allItems) {
 					if (matchesFilter(i, matchers)) {
 						itemsNew.push_back(i);
 					}
@@ -288,7 +262,7 @@ namespace webserver {
 
 			{
 				WLock l(cs);
-				allItems.swap(itemsNew);
+				matchingItems.swap(itemsNew);
 				itemListChanged = true;
 			}
 		}
@@ -306,9 +280,9 @@ namespace webserver {
 			auto totalItemCount = updateList();
 			timer->start();
 
-			aRequest.setResponseBody({
-				{ "total_items", totalItemCount }
-			});
+			json j;
+			appendItemCounts(j, totalItemCount, totalItemCount);
+			aRequest.setResponseBody(j);
 
 			return websocketpp::http::status_code::ok;
 		}
@@ -388,17 +362,20 @@ namespace webserver {
 
 		int updateList() {
 			WLock l(cs);
-			allItems = itemListF();
+			matchingItems = itemListF();
+			allItems.insert(matchingItems.begin(), matchingItems.end());
 			itemListChanged = true;
-			return static_cast<int>(allItems.size());
+			return static_cast<int>(matchingItems.size());
 		}
 
 		void clearItems() {
 			WLock l(cs);
 			tasks.clear();
 			currentViewItems.clear();
+			matchingItems.clear();
 			allItems.clear();
-			prevTotalCount = -1;
+			prevTotalItemCount = -1;
+			prevMatchingItemCount = -1;
 		}
 
 		static bool itemSort(const T& t1, const T& t2, const PropertyItemHandler<T>& aItemHandler, int aSortProperty, int aSortAscending) {
@@ -424,14 +401,14 @@ namespace webserver {
 		api_return handleGetItems(ApiRequest& aRequest) {
 			auto start = aRequest.getRangeParam(1);
 			auto end = aRequest.getRangeParam(2);
-			decltype(allItems) allItemsCopy;
+			decltype(matchingItems) matchingItemsCopy;
 
 			{
 				RLock l(cs);
-				allItemsCopy = allItems;
+				matchingItemsCopy = matchingItems;
 			}
 
-			auto j = Serializer::serializeFromPosition(start, end - start, allItemsCopy, [&](const T& i) {
+			auto j = Serializer::serializeFromPosition(start, end - start, matchingItemsCopy, [&](const T& i) {
 				return Serializer::serializeItem(i, itemHandler);
 			});
 
@@ -440,11 +417,11 @@ namespace webserver {
 		}
 
 		typename ItemList::iterator findItem(const T& aItem, ItemList& aItems) noexcept {
-			return find_if(aItems.begin(), aItems.end(), [&](const T& i) { return aItem->getToken() == i->getToken(); });
+			return find(aItems.begin(), aItems.end(), aItem);
 		}
 
 		typename ItemList::const_iterator findItem(const T& aItem, const ItemList& aItems) const noexcept {
-			return find_if(aItems.begin(), aItems.end(), [&](const T& i) { return aItem->getToken() == i->getToken(); });
+			return find(aItems.begin(), aItems.end(), aItem);
 		}
 
 		bool isInList(const T& aItem, const ItemList& aItems) const noexcept {
@@ -488,7 +465,7 @@ namespace webserver {
 					itemListChanged;
 
 				if (needSort) {
-					std::sort(allItems.begin(), allItems.end(), 
+					std::sort(matchingItems.begin(), matchingItems.end(),
 						std::bind(&ListViewController::itemSort, 
 							std::placeholders::_1, 
 							std::placeholders::_2, 
@@ -519,30 +496,33 @@ namespace webserver {
 						break;
 					}
 					case UPDATE_ITEM: {
-						updatedItems.emplace(t.first, t.second.updatedProperties);
+						if (handleUpdateItem(t.first, sortProperty, sortAscending, newStart)) {
+							updatedItems.emplace(t.first, t.second.updatedProperties);
+						}
 						break;
 					}
 				}
 			}
 
-			int totalItemCount = 0;
+			int totalItemCount = 0, matchingItemCount = 0;
 
 			// Get the new visible items
 			decltype(currentViewItems) viewItemsNew, oldViewItems;
 			{
 				RLock l(cs);
 				totalItemCount = allItems.size();
+				matchingItemCount = matchingItems.size();
 				if (newStart >= totalItemCount) {
 					newStart = 0;
 				}
 
-				auto count = min(totalItemCount - newStart, updateValues[IntCollector::TYPE_MAX_COUNT]);
+				auto count = min(matchingItemCount - newStart, updateValues[IntCollector::TYPE_MAX_COUNT]);
 				if (count < 0) {
 					return;
 				}
 
 
-				auto startIter = allItems.begin();
+				auto startIter = matchingItems.begin();
 				advance(startIter, newStart);
 
 				auto endIter = startIter;
@@ -553,6 +533,7 @@ namespace webserver {
 			}
 
 			json j;
+			j["items"] = json::array();
 
 			// List items
 			int pos = 0;
@@ -572,10 +553,7 @@ namespace webserver {
 				pos++;
 			}
 
-			if (totalItemCount != prevTotalCount) {
-				prevTotalCount = totalItemCount;
-				j["total_items"] = totalItemCount;
-			}
+			appendItemCounts(j, matchingItemCount, totalItemCount);
 
 			auto startOffset = newStart - updateValues[IntCollector::TYPE_RANGE_START];
 			if (startOffset != 0) {
@@ -587,8 +565,6 @@ namespace webserver {
 
 			{
 				WLock l(cs);
-				//IntCollector::appendChanges(updateValues, prevValues, j)
-
 				currentViewItems.swap(viewItemsNew);
 				prevValues.swap(updateValues);
 			}
@@ -596,33 +572,75 @@ namespace webserver {
 			sendJson(j);
 		}
 
-		void handleAddItem(const T& aItem, int aSortProperty, int aSortAscending, int& rangeStart_) {
-			WLock l(cs);
-			auto iter = allItems.insert(std::lower_bound(
-				allItems.begin(), 
-				allItems.end(), 
-				aItem, 
-				std::bind(&ListViewController::itemSort, std::placeholders::_1, std::placeholders::_2, itemHandler, aSortProperty, aSortAscending)
-			), aItem);
+		void appendItemCounts(json& json_, int aMatchingItemCount, int aTotalItemCount) {
+			if (aMatchingItemCount != prevMatchingItemCount) {
+				prevMatchingItemCount = aMatchingItemCount;
+				json_["matching_items"] = aMatchingItemCount;
+			}
 
-			auto pos = static_cast<int>(std::distance(allItems.begin(), iter));
-			if (pos < rangeStart_) {
-				// Update the range range positions
-				rangeStart_++;
+			if (aTotalItemCount != prevTotalItemCount) {
+				prevTotalItemCount = aTotalItemCount;
+				json_["total_items"] = aTotalItemCount;
+			}
+		}
+
+		void handleAddItem(const T& aItem, int aSortProperty, int aSortAscending, int& rangeStart_) {
+			bool matches = matchesFilter(aItem, getFilterMatchers());
+
+			WLock l(cs);
+			allItems.emplace(aItem);
+			if (matches) {
+				auto iter = matchingItems.insert(std::lower_bound(
+					matchingItems.begin(),
+					matchingItems.end(),
+					aItem,
+					std::bind(&ListViewController::itemSort, std::placeholders::_1, std::placeholders::_2, itemHandler, aSortProperty, aSortAscending)
+					), aItem);
+
+				auto pos = static_cast<int>(std::distance(matchingItems.begin(), iter));
+				if (pos < rangeStart_) {
+					// Update the range range positions
+					rangeStart_++;
+				}
 			}
 		}
 
 		void handleRemoveItem(const T& aItem, int& rangeStart_) {
 			WLock l(cs);
-			auto iter = findItem(aItem, allItems);
-			auto pos = static_cast<int>(std::distance(allItems.begin(), iter));
+			auto iter = findItem(aItem, matchingItems);
+			auto pos = static_cast<int>(std::distance(matchingItems.begin(), iter));
 
-			allItems.erase(iter);
+			matchingItems.erase(iter);
+			allItems.erase(aItem);
 
 			if (pos < rangeStart_) {
 				// Update the range range positions
 				rangeStart_--;
 			}
+		}
+
+		// Returns false if the item was added/removed
+		bool handleUpdateItem(const T& aItem, int aSortProperty, int aSortAscending, int& rangeStart_) {
+			bool inList;
+
+			{
+				RLock l(cs);
+				inList = isInList(aItem, matchingItems);
+			}
+
+			auto matchers = getFilterMatchers();
+			if (!matchesFilter(aItem, matchers)) {
+				if (inList) {
+					handleRemoveItem(aItem, rangeStart_);
+				}
+
+				return false;
+			} else if (!inList) {
+				handleAddItem(aItem, aSortProperty, aSortAscending, rangeStart_);
+				return false;
+			}
+
+			return true;
 		}
 
 		// JSON APPEND START
@@ -644,7 +662,8 @@ namespace webserver {
 		const PropertyItemHandler<T>& itemHandler;
 
 		ItemList currentViewItems;
-		ItemList allItems;
+		ItemList matchingItems;
+		std::set<T, std::less<T>> allItems;
 
 		bool active = false;
 
@@ -781,15 +800,6 @@ namespace webserver {
 				values[aType] = aValue;
 			}
 
-			/*void get(ValueType aType) noexcept {
-				auto v = values.find(aType);
-				if (v != values.end()) {
-					return (*v).second;
-				}
-
-				return -1;
-			}*/
-
 			void set(const ValueMap& aMap) noexcept {
 				changed = true;
 				for (const auto& i : aMap) {
@@ -815,7 +825,8 @@ namespace webserver {
 		bool itemListChanged = false;
 		IntCollector currentValues;
 
-		int prevTotalCount = -1;
+		int prevMatchingItemCount = -1;
+		int prevTotalItemCount = -1;
 		ItemListF itemListF;
 		typename IntCollector::ValueMap prevValues;
 	};
