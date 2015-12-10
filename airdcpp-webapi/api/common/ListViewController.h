@@ -52,7 +52,8 @@ namespace webserver {
 			METHOD_HANDLER(viewName, ApiRequest::METHOD_PUT, (EXACT_PARAM("filter"), TOKEN_PARAM), true, ListViewController::handlePutFilter);
 			METHOD_HANDLER(viewName, ApiRequest::METHOD_DELETE, (EXACT_PARAM("filter"), TOKEN_PARAM), false, ListViewController::handleDeleteFilter);
 
-			METHOD_HANDLER(viewName, ApiRequest::METHOD_POST, (), true, ListViewController::handlePostSettings);
+			METHOD_HANDLER(viewName, ApiRequest::METHOD_POST, (), false, ListViewController::handleInit);
+			METHOD_HANDLER(viewName, ApiRequest::METHOD_POST, (EXACT_PARAM("settings")), true, ListViewController::handlePostSettings);
 			METHOD_HANDLER(viewName, ApiRequest::METHOD_DELETE, (), false, ListViewController::handleReset);
 
 			METHOD_HANDLER(viewName, ApiRequest::METHOD_GET, (EXACT_PARAM("items"), NUM_PARAM, NUM_PARAM), false, ListViewController::handleGetItems);
@@ -294,18 +295,35 @@ namespace webserver {
 
 		// FILTERS END
 
+
+		api_return handleInit(ApiRequest& aRequest) {
+			if (active) {
+				aRequest.setResponseErrorStr("The view is active already");
+				websocketpp::http::status_code::bad_request;
+			}
+
+			setActive(true);
+			auto totalItemCount = updateList();
+			timer->start();
+
+			aRequest.setResponseBody({
+				{ "total_items", totalItemCount }
+			});
+
+			return websocketpp::http::status_code::ok;
+		}
+
 		api_return handlePostSettings(ApiRequest& aRequest) {
 			parseProperties(aRequest.getRequestBody());
-
-			if (!active) {
-				setActive(true);
-				updateList();
-				timer->start();
-			}
 			return websocketpp::http::status_code::no_content;
 		}
 
 		api_return handleReset(ApiRequest& aRequest) {
+			if (!active) {
+				aRequest.setResponseErrorStr("The view isn't active");
+				websocketpp::http::status_code::bad_request;
+			}
+
 			stop();
 			return websocketpp::http::status_code::no_content;
 		}
@@ -368,10 +386,11 @@ namespace webserver {
 			module->send(viewName + "_updated", j);
 		}
 
-		void updateList() {
+		int updateList() {
 			WLock l(cs);
 			allItems = itemListF();
 			itemListChanged = true;
+			return static_cast<int>(allItems.size());
 		}
 
 		void clearItems() {
