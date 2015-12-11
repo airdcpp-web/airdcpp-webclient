@@ -52,7 +52,6 @@ namespace webserver {
 			METHOD_HANDLER(viewName, ApiRequest::METHOD_PUT, (EXACT_PARAM("filter"), TOKEN_PARAM), true, ListViewController::handlePutFilter);
 			METHOD_HANDLER(viewName, ApiRequest::METHOD_DELETE, (EXACT_PARAM("filter"), TOKEN_PARAM), false, ListViewController::handleDeleteFilter);
 
-			METHOD_HANDLER(viewName, ApiRequest::METHOD_POST, (), false, ListViewController::handleInit);
 			METHOD_HANDLER(viewName, ApiRequest::METHOD_POST, (EXACT_PARAM("settings")), true, ListViewController::handlePostSettings);
 			METHOD_HANDLER(viewName, ApiRequest::METHOD_DELETE, (), false, ListViewController::handleReset);
 
@@ -264,31 +263,21 @@ namespace webserver {
 				WLock l(cs);
 				matchingItems.swap(itemsNew);
 				itemListChanged = true;
+				currentValues.set(IntCollector::TYPE_RANGE_START, 0);
 			}
 		}
 
 		// FILTERS END
 
 
-		api_return handleInit(ApiRequest& aRequest) {
-			if (active) {
-				aRequest.setResponseErrorStr("The view is active already");
-				websocketpp::http::status_code::bad_request;
-			}
-
-			setActive(true);
-			auto totalItemCount = updateList();
-			timer->start();
-
-			json j;
-			appendItemCounts(j, totalItemCount, totalItemCount);
-			aRequest.setResponseBody(j);
-
-			return websocketpp::http::status_code::ok;
-		}
-
 		api_return handlePostSettings(ApiRequest& aRequest) {
 			parseProperties(aRequest.getRequestBody());
+			if (!active) {
+				setActive(true);
+				auto totalItemCount = updateList();
+				timer->start();
+			}
+
 			return websocketpp::http::status_code::no_content;
 		}
 
@@ -437,249 +426,7 @@ namespace webserver {
 			return distance(aItems.begin(), i);
 		}
 
-		void runTasks() {
-			typename ViewTasks::TaskMap tl;
-			PropertyIdSet updatedProperties;
-			tasks.get(tl, updatedProperties);
-
-			if (tl.empty() && !currentValues.hasChanged() && !itemListChanged) {
-				return;
-			}
-
-			typename IntCollector::ValueMap updateValues;
-			int sortAscending = false;
-			int sortProperty = -1;
-
-			{
-				WLock l(cs);
-				updateValues = currentValues.getAll();
-				sortAscending = updateValues[IntCollector::TYPE_SORT_ASCENDING];
-				sortProperty = updateValues[IntCollector::TYPE_SORT_PROPERTY];
-				if (sortProperty < 0) {
-					return;
-				}
-
-				bool needSort = updatedProperties.find(sortProperty) != updatedProperties.end() ||
-					prevValues[IntCollector::TYPE_SORT_ASCENDING] != sortAscending ||
-					prevValues[IntCollector::TYPE_SORT_PROPERTY] != sortProperty ||
-					itemListChanged;
-
-				if (needSort) {
-					std::sort(matchingItems.begin(), matchingItems.end(),
-						std::bind(&ListViewController::itemSort, 
-							std::placeholders::_1, 
-							std::placeholders::_2, 
-							itemHandler, 
-							sortProperty,
-							sortAscending
-							));
-				}
-			}
-
-			auto newStart = updateValues[IntCollector::TYPE_RANGE_START];
-			if (newStart < 0) {
-				return;
-			}
-
-			itemListChanged = false;
-
-			// Go through the tasks
-			std::map<T, const PropertyIdSet&> updatedItems;
-			for (auto& t : tl) {
-				switch (t.second.type) {
-					case ADD_ITEM: {
-						handleAddItem(t.first, sortProperty, sortAscending, newStart);
-						break;
-					}
-					case REMOVE_ITEM: {
-						handleRemoveItem(t.first, newStart);
-						break;
-					}
-					case UPDATE_ITEM: {
-						if (handleUpdateItem(t.first, sortProperty, sortAscending, newStart)) {
-							updatedItems.emplace(t.first, t.second.updatedProperties);
-						}
-						break;
-					}
-				}
-			}
-
-			int totalItemCount = 0, matchingItemCount = 0;
-
-			// Get the new visible items
-			decltype(currentViewItems) viewItemsNew, oldViewItems;
-			{
-				RLock l(cs);
-				totalItemCount = allItems.size();
-				matchingItemCount = matchingItems.size();
-				if (newStart >= totalItemCount) {
-					newStart = 0;
-				}
-
-				auto count = min(matchingItemCount - newStart, updateValues[IntCollector::TYPE_MAX_COUNT]);
-				if (count < 0) {
-					return;
-				}
-
-
-				auto startIter = matchingItems.begin();
-				advance(startIter, newStart);
-
-				auto endIter = startIter;
-				advance(endIter, count);
-
-				std::copy(startIter, endIter, back_inserter(viewItemsNew));
-				oldViewItems = currentViewItems;
-			}
-
-			json j;
-			j["items"] = json::array();
-
-			// List items
-			int pos = 0;
-			for (const auto& item : viewItemsNew) {
-				if (!isInList(item, oldViewItems)) {
-					appendItem(item, j, pos);
-				} else {
-					// append position
-					auto props = updatedItems.find(item);
-					if (props != updatedItems.end()) {
-						appendItem(item, j, pos, props->second);
-					} else {
-						appendItemPosition(item, j, pos);
-					}
-				}
-
-				pos++;
-			}
-
-			appendItemCounts(j, matchingItemCount, totalItemCount);
-
-			auto startOffset = newStart - updateValues[IntCollector::TYPE_RANGE_START];
-			if (startOffset != 0) {
-				j["range_offset"] = startOffset;
-			}
-
-			j["range_start"] = newStart;
-
-
-			{
-				WLock l(cs);
-				currentViewItems.swap(viewItemsNew);
-				prevValues.swap(updateValues);
-			}
-
-			sendJson(j);
-		}
-
-		void appendItemCounts(json& json_, int aMatchingItemCount, int aTotalItemCount) {
-			if (aMatchingItemCount != prevMatchingItemCount) {
-				prevMatchingItemCount = aMatchingItemCount;
-				json_["matching_items"] = aMatchingItemCount;
-			}
-
-			if (aTotalItemCount != prevTotalItemCount) {
-				prevTotalItemCount = aTotalItemCount;
-				json_["total_items"] = aTotalItemCount;
-			}
-		}
-
-		void handleAddItem(const T& aItem, int aSortProperty, int aSortAscending, int& rangeStart_) {
-			bool matches = matchesFilter(aItem, getFilterMatchers());
-
-			WLock l(cs);
-			allItems.emplace(aItem);
-			if (matches) {
-				auto iter = matchingItems.insert(std::lower_bound(
-					matchingItems.begin(),
-					matchingItems.end(),
-					aItem,
-					std::bind(&ListViewController::itemSort, std::placeholders::_1, std::placeholders::_2, itemHandler, aSortProperty, aSortAscending)
-					), aItem);
-
-				auto pos = static_cast<int>(std::distance(matchingItems.begin(), iter));
-				if (pos < rangeStart_) {
-					// Update the range range positions
-					rangeStart_++;
-				}
-			}
-		}
-
-		void handleRemoveItem(const T& aItem, int& rangeStart_) {
-			WLock l(cs);
-			auto iter = findItem(aItem, matchingItems);
-			auto pos = static_cast<int>(std::distance(matchingItems.begin(), iter));
-
-			matchingItems.erase(iter);
-			allItems.erase(aItem);
-
-			if (pos < rangeStart_) {
-				// Update the range range positions
-				rangeStart_--;
-			}
-		}
-
-		// Returns false if the item was added/removed
-		bool handleUpdateItem(const T& aItem, int aSortProperty, int aSortAscending, int& rangeStart_) {
-			bool inList;
-
-			{
-				RLock l(cs);
-				inList = isInList(aItem, matchingItems);
-			}
-
-			auto matchers = getFilterMatchers();
-			if (!matchesFilter(aItem, matchers)) {
-				if (inList) {
-					handleRemoveItem(aItem, rangeStart_);
-				}
-
-				return false;
-			} else if (!inList) {
-				handleAddItem(aItem, aSortProperty, aSortAscending, rangeStart_);
-				return false;
-			}
-
-			return true;
-		}
-
-		// JSON APPEND START
-		void appendItem(const T& aItem, json& json_, int pos) {
-			appendItem(aItem, json_, pos, toPropertyIdSet(itemHandler.properties));
-		}
-
-		void appendItem(const T& aItem, json& json_, int pos, const PropertyIdSet& aPropertyIds) {
-			appendItemPosition(aItem, json_, pos);
-			json_["items"][pos]["properties"] = Serializer::serializeItemProperties(aItem, aPropertyIds, itemHandler);
-		}
-
-		void appendItemPosition(const T& aItem, json& json_, int pos) {
-			json_["items"][pos]["id"] = aItem->getToken();
-		}
-
-		PropertyFilter::List filters;
-
-		const PropertyItemHandler<T>& itemHandler;
-
-		ItemList currentViewItems;
-		ItemList matchingItems;
-		std::set<T, std::less<T>> allItems;
-
-		bool active = false;
-
-		SharedMutex cs;
-
-		ApiModule* module = nullptr;
-		std::string viewName;
-
-		// Must be in merging order (lower ones replace other)
-		enum Tasks {
-			UPDATE_ITEM = 0,
-			ADD_ITEM,
-			REMOVE_ITEM
-		};
-
-		TimerPtr timer;
+		// TASKS START
 
 		class ItemTasks {
 		public:
@@ -770,6 +517,283 @@ namespace webserver {
 			PropertyIdSet updatedProperties;
 			ItemTasks tasks;
 		};
+
+
+		void runTasks() {
+			typename ViewTasks::TaskMap currentTasks;
+			PropertyIdSet updatedProperties;
+			tasks.get(currentTasks, updatedProperties);
+
+			// Anything to update?
+			if (currentTasks.empty() && !currentValues.hasChanged() && !itemListChanged) {
+				return;
+			}
+
+			// Get the updated values
+			typename IntCollector::ValueMap updateValues;
+
+			{
+				WLock l(cs);
+				updateValues = currentValues.getAll();
+			}
+
+			// Sorting
+			auto sortAscending = updateValues[IntCollector::TYPE_SORT_ASCENDING];
+			auto sortProperty = updateValues[IntCollector::TYPE_SORT_PROPERTY];
+			if (sortProperty < 0) {
+				return;
+			}
+
+			maybeSort(updatedProperties, sortProperty, sortAscending);
+
+			// Start position
+			auto newStart = updateValues[IntCollector::TYPE_RANGE_START];
+
+			json j;
+
+			// Go through the tasks
+			auto updatedItems = handleTasks(currentTasks, sortProperty, sortAscending, newStart);
+
+			if (newStart >= 0) {
+				// Get the new visible items
+				updateViewItems(updatedItems, j, newStart, updateValues[IntCollector::TYPE_MAX_COUNT]);
+
+				// Append other changed properties
+				auto startOffset = newStart - updateValues[IntCollector::TYPE_RANGE_START];
+				if (startOffset != 0) {
+					j["range_offset"] = startOffset;
+				}
+
+				j["range_start"] = newStart;
+			}
+
+			// Set cached values
+			{
+				WLock l(cs);
+				prevValues.swap(updateValues);
+			}
+
+			// Counts should be updated even if the list doesn't have valid settings posted
+			appendItemCounts(j);
+
+			sendJson(j);
+		}
+
+		typedef std::map<T, const PropertyIdSet&> ItemPropertyIdMap;
+		ItemPropertyIdMap handleTasks(const typename ViewTasks::TaskMap& aTaskList, int aSortProperty, int aSortAscending, int& rangeStart_) {
+			ItemPropertyIdMap updatedItems;
+			for (auto& t : aTaskList) {
+				switch (t.second.type) {
+				case ADD_ITEM: {
+					handleAddItem(t.first, aSortProperty, aSortAscending, rangeStart_);
+					break;
+				}
+				case REMOVE_ITEM: {
+					handleRemoveItem(t.first, rangeStart_);
+					break;
+				}
+				case UPDATE_ITEM: {
+					if (handleUpdateItem(t.first, aSortProperty, aSortAscending, rangeStart_)) {
+						updatedItems.emplace(t.first, t.second.updatedProperties);
+					}
+					break;
+				}
+				}
+			}
+
+			return updatedItems;
+		}
+
+		void updateViewItems(const ItemPropertyIdMap& aUpdatedItems, json& json_, int& newStart_, int aMaxCount) {
+			// Get the new visible items
+			decltype(currentViewItems) viewItemsNew, oldViewItems;
+			{
+				RLock l(cs);
+				if (newStart_ >= allItems.size()) {
+					newStart_ = 0;
+				}
+
+				auto count = min(static_cast<int>(matchingItems.size()) - newStart_, aMaxCount);
+				if (count < 0) {
+					return;
+				}
+
+
+				auto startIter = matchingItems.begin();
+				advance(startIter, newStart_);
+
+				auto endIter = startIter;
+				advance(endIter, count);
+
+				std::copy(startIter, endIter, back_inserter(viewItemsNew));
+				oldViewItems = currentViewItems;
+			}
+
+			json_["items"] = json::array();
+
+			// List items
+			int pos = 0;
+			for (const auto& item : viewItemsNew) {
+				if (!isInList(item, oldViewItems)) {
+					appendItem(item, json_, pos);
+				} else {
+					// append position
+					auto props = aUpdatedItems.find(item);
+					if (props != aUpdatedItems.end()) {
+						appendItem(item, json_, pos, props->second);
+					} else {
+						appendItemPosition(item, json_, pos);
+					}
+				}
+
+				pos++;
+			}
+
+			{
+				WLock l(cs);
+				currentViewItems.swap(viewItemsNew);
+			}
+		}
+
+		void maybeSort(const PropertyIdSet& aUpdatedProperties, int aSortProperty, int aSortAscending) {
+			bool needSort = aUpdatedProperties.find(aSortProperty) != aUpdatedProperties.end() ||
+				prevValues[IntCollector::TYPE_SORT_ASCENDING] != aSortAscending ||
+				prevValues[IntCollector::TYPE_SORT_PROPERTY] != aSortProperty ||
+				itemListChanged;
+
+			itemListChanged = false;
+
+			if (needSort) {
+				WLock l(cs);
+				std::sort(matchingItems.begin(), matchingItems.end(),
+					std::bind(&ListViewController::itemSort,
+						std::placeholders::_1,
+						std::placeholders::_2,
+						itemHandler,
+						aSortProperty,
+						aSortAscending
+						));
+			}
+		}
+
+		void appendItemCounts(json& json_) {
+			int matchingItemCount = 0, totalItemCount = 0;
+
+			{
+				RLock l(cs);
+				matchingItemCount = matchingItems.size();
+				totalItemCount = allItems.size();
+			}
+
+			if (matchingItemCount != prevMatchingItemCount) {
+				prevMatchingItemCount = matchingItemCount;
+				json_["matching_items"] = matchingItemCount;
+			}
+
+			if (totalItemCount != prevTotalItemCount) {
+				prevTotalItemCount = totalItemCount;
+				json_["total_items"] = totalItemCount;
+			}
+		}
+
+		void handleAddItem(const T& aItem, int aSortProperty, int aSortAscending, int& rangeStart_) {
+			bool matches = matchesFilter(aItem, getFilterMatchers());
+
+			WLock l(cs);
+			allItems.emplace(aItem);
+			if (matches) {
+				auto iter = matchingItems.insert(std::lower_bound(
+					matchingItems.begin(),
+					matchingItems.end(),
+					aItem,
+					std::bind(&ListViewController::itemSort, std::placeholders::_1, std::placeholders::_2, itemHandler, aSortProperty, aSortAscending)
+					), aItem);
+
+				auto pos = static_cast<int>(std::distance(matchingItems.begin(), iter));
+				if (pos < rangeStart_) {
+					// Update the range range positions
+					rangeStart_++;
+				}
+			}
+		}
+
+		void handleRemoveItem(const T& aItem, int& rangeStart_) {
+			WLock l(cs);
+			auto iter = findItem(aItem, matchingItems);
+			auto pos = static_cast<int>(std::distance(matchingItems.begin(), iter));
+
+			matchingItems.erase(iter);
+			allItems.erase(aItem);
+
+			if (pos < rangeStart_) {
+				// Update the range range positions
+				rangeStart_--;
+			}
+		}
+
+		// Returns false if the item was added/removed
+		bool handleUpdateItem(const T& aItem, int aSortProperty, int aSortAscending, int& rangeStart_) {
+			bool inList;
+
+			{
+				RLock l(cs);
+				inList = isInList(aItem, matchingItems);
+			}
+
+			auto matchers = getFilterMatchers();
+			if (!matchesFilter(aItem, matchers)) {
+				if (inList) {
+					handleRemoveItem(aItem, rangeStart_);
+				}
+
+				return false;
+			} else if (!inList) {
+				handleAddItem(aItem, aSortProperty, aSortAscending, rangeStart_);
+				return false;
+			}
+
+			return true;
+		}
+
+		// TASKS END
+
+		// JSON APPEND START
+		void appendItem(const T& aItem, json& json_, int pos) {
+			appendItem(aItem, json_, pos, toPropertyIdSet(itemHandler.properties));
+		}
+
+		void appendItem(const T& aItem, json& json_, int pos, const PropertyIdSet& aPropertyIds) {
+			appendItemPosition(aItem, json_, pos);
+			json_["items"][pos]["properties"] = Serializer::serializeItemProperties(aItem, aPropertyIds, itemHandler);
+		}
+
+		void appendItemPosition(const T& aItem, json& json_, int pos) {
+			json_["items"][pos]["id"] = aItem->getToken();
+		}
+
+		PropertyFilter::List filters;
+
+		const PropertyItemHandler<T>& itemHandler;
+
+		ItemList currentViewItems;
+		ItemList matchingItems;
+		std::set<T, std::less<T>> allItems;
+
+		bool active = false;
+
+		SharedMutex cs;
+
+		ApiModule* module = nullptr;
+		std::string viewName;
+
+		// Must be in merging order (lower ones replace other)
+		enum Tasks {
+			UPDATE_ITEM = 0,
+			ADD_ITEM,
+			REMOVE_ITEM
+		};
+
+		TimerPtr timer;
 
 		ViewTasks tasks;
 
