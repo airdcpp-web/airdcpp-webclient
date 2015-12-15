@@ -51,8 +51,9 @@ public:
 	typedef X<19> SetActive;
 	typedef X<20> Disconnecting;
 	typedef X<21> MessagesRead;
-	typedef X<22> Redirected;
-	typedef X<23> ConnectStateChanged;
+	typedef X<22> MessagesCleared;
+	typedef X<23> Redirected;
+	typedef X<24> ConnectStateChanged;
 
 	enum StatusFlags {
 		FLAG_NORMAL = 0x00,
@@ -81,6 +82,7 @@ public:
 	virtual void on(SetActive, const Client*) noexcept {}
 	virtual void on(Disconnecting, const Client*) noexcept {}
 	virtual void on(MessagesRead, const Client*) noexcept {}
+	virtual void on(MessagesCleared, const Client*) noexcept {}
 	virtual void on(Redirected, const string&/*old*/, const ClientPtr& /*new*/) noexcept {}
 	virtual void on(ConnectStateChanged, const Client*, uint8_t) noexcept {}
 };

@@ -269,7 +269,12 @@ void Client::setRead() noexcept {
 }
 
 int Client::clearCache() noexcept {
-	return cache.clear();
+	auto ret = cache.clear();
+	if (ret > 0) {
+		fire(ClientListener::MessagesCleared(), this);
+	}
+
+	return ret;
 }
 
 void Client::onPassword() {
@@ -399,8 +404,8 @@ bool Client::isTrusted() const {
 	return isConnected() && sock->isTrusted();
 }
 
-std::string Client::getCipherName() const {
-	return isConnected() ? sock->getCipherName() : Util::emptyString;
+std::string Client::getEncryptionInfo() const {
+	return isConnected() ? sock->getEncryptionInfo() : Util::emptyString;
 }
 
 vector<uint8_t> Client::getKeyprint() const {

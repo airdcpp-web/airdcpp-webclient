@@ -91,7 +91,7 @@ public:
 	bool isSecure() const { return sock->isSecure(); }
 	bool isTrusted() const { return sock->isTrusted(); }
 	bool isKeyprintMatch() const { return sock->isKeyprintMatch(); }
-	std::string getCipherName() const { return sock->getCipherName(); }
+	std::string getEncryptionInfo() const { return sock->getEncryptionInfo(); }
 	ByteVector getKeyprint() const { return sock->getKeyprint(); }
 	bool verifyKeyprint(const string& expKeyp, bool allowUntrusted) noexcept{ return sock->verifyKeyprint(expKeyp, allowUntrusted); };
 

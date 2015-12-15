@@ -189,7 +189,7 @@ void MessageManager::onPrivateMessage(const ChatMessagePtr& aMessage) {
 		aMessage->getFrom()->getIdentity().getParams(params, "user", false);
 
 		string error;
-		chat->sendPrivateMessage(AirUtil::getAwayMessage(c->get(HubSettings::AwayMsg), params), error, false);
+		chat->sendMessage(AirUtil::getAwayMessage(c->get(HubSettings::AwayMsg), params), error, false);
 	}
 }
 

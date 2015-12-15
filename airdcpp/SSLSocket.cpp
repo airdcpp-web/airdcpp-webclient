@@ -1,3 +1,5 @@
+emptyString
+emptyString
 /*
  * Copyright (C) 2001-2015 Jacek Sieka, arnetheduck on gmail point com
  *
@@ -23,6 +25,7 @@
 #include "SettingsManager.h"
 #include "ResourceManager.h"
 #include "format.h"
+#include "StringTokenizer.h"
 
 #include <openssl/err.h>
 
@@ -236,11 +239,19 @@ bool SSLSocket::isKeyprintMatch() const noexcept {
 	return true;
 }
 
-std::string SSLSocket::getCipherName() const noexcept {
-	if(!ssl)
+std::string SSLSocket::getEncryptionInfo() const noexcept {
+	if (!ssl)
 		return Util::emptyString;
 
-	return SSL_get_cipher_name(ssl);
+	const SSL_CIPHER* cipher = SSL_get_current_cipher(ssl);
+	if (!cipher)
+		return Util::emptyString;
+
+	char* buf = SSL_CIPHER_description(cipher, NULL, NULL);
+	StringTokenizer<std::string> st(buf, ' ');
+	std::string ret = st.getTokens()[1] + " / " + st.getTokens()[0];
+	delete[] buf;
+	return ret;
 }
 
 ByteVector SSLSocket::getKeyprint() const noexcept {
