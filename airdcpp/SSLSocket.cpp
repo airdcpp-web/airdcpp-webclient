@@ -1,5 +1,3 @@
-emptyString
-emptyString
 /*
  * Copyright (C) 2001-2015 Jacek Sieka, arnetheduck on gmail point com
  *
