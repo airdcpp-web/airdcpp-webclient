@@ -21,8 +21,8 @@
 
 namespace webserver {
 	HistoryApi::HistoryApi(Session* aSession) : ApiModule(aSession) {
-		METHOD_HANDLER("items", ApiRequest::METHOD_GET, (NUM_PARAM), false, HistoryApi::handleGetHistory);
-		METHOD_HANDLER("item", ApiRequest::METHOD_POST, (NUM_PARAM), true, HistoryApi::handlePostHistory);
+		METHOD_HANDLER("items", Access::ANY, ApiRequest::METHOD_GET, (NUM_PARAM), false, HistoryApi::handleGetHistory);
+		METHOD_HANDLER("item", Access::ANY, ApiRequest::METHOD_POST, (NUM_PARAM), true, HistoryApi::handlePostHistory);
 	}
 
 	HistoryApi::~HistoryApi() {

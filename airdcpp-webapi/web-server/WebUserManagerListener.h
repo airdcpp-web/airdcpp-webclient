@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2015 AirDC++ Project
+* Copyright (C) 2012-2015 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -16,27 +16,28 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_FILESERVER_H
-#define DCPLUSPLUS_DCPP_FILESERVER_H
+
+#ifndef DCPLUSPLUS_DCPP_WEBUSER_LISTENER_H
+#define DCPLUSPLUS_DCPP_WEBUSER_LISTENER_H
 
 #include <web-server/stdinc.h>
-
-#include <airdcpp/typedefs.h>
+#include <web-server/WebUser.h>
 
 namespace webserver {
-	class FileServer {
+	class WebUserManagerListener {
 	public:
-		FileServer();
-		~FileServer();
+		virtual ~WebUserManagerListener() { }
+		template<int I>	struct X { enum { TYPE = I }; };
 
-		void setResourcePath(const string& aPath) noexcept;
-		const string& getResourcePath() const noexcept;
+		typedef X<0> UserAdded;
+		typedef X<1> UserUpdated;
+		typedef X<2> UserRemoved;
 
-		websocketpp::http::status_code::value handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest, const SessionPtr& aSession, 
-			std::string& output_, StringPairList& headers_) noexcept;
-	private:
-		string resourcePath;
+		virtual void on(UserAdded, const WebUserPtr&) noexcept { }
+		virtual void on(UserUpdated, const WebUserPtr&) noexcept { }
+		virtual void on(UserRemoved, const WebUserPtr&) noexcept { }
 	};
+
 }
 
-#endif
+#endif // !defined(DCPLUSPLUS_DCPP_WEBUSER_LISTENER_H)

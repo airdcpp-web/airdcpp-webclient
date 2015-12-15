@@ -121,9 +121,15 @@ namespace webserver {
 				con->set_status(status);
 			}
 			else {
-				std::string  contentType, output;
-				status = fileServer.handleRequest(con->get_resource(), session, con->get_request_body(), output, contentType);
-				con->append_header("Content-Type", contentType);
+				StringPairList headers;
+				std::string output;
+
+				status = fileServer.handleRequest(con->get_resource(), con->get_request(), session, output, headers);
+
+				for (const auto& p : headers) {
+					con->append_header(p.first, p.second);
+				}
+
 				con->set_status(status);
 				con->set_body(output);
 			}

@@ -48,7 +48,7 @@ namespace webserver {
 		FilelistUtils::getStringInfo, FilelistUtils::getNumericInfo, FilelistUtils::compareItems, FilelistUtils::serializeItem),
 		directoryView("filelist_view", this, itemHandler, std::bind(&FilelistInfo::getCurrentViewItems, this))
 	{
-		METHOD_HANDLER("directory", ApiRequest::METHOD_POST, (), true, FilelistInfo::handleChangeDirectory);
+		METHOD_HANDLER("directory", Access::FILELISTS_VIEW, ApiRequest::METHOD_POST, (), true, FilelistInfo::handleChangeDirectory);
 
 		dl->addListener(this);
 

@@ -16,27 +16,48 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_FILESERVER_H
-#define DCPLUSPLUS_DCPP_FILESERVER_H
+#ifndef DCPLUSPLUS_DCPP_ACCESS_H
+#define DCPLUSPLUS_DCPP_ACCESS_H
 
-#include <web-server/stdinc.h>
-
-#include <airdcpp/typedefs.h>
 
 namespace webserver {
-	class FileServer {
-	public:
-		FileServer();
-		~FileServer();
+	typedef int8_t AccessType;
+	enum class Access: AccessType {
+		NONE = -2,
+		ANY = -1,
+		ADMIN = 0,
 
-		void setResourcePath(const string& aPath) noexcept;
-		const string& getResourcePath() const noexcept;
+		SEARCH,
+		DOWNLOAD,
+		EVENTS,
 
-		websocketpp::http::status_code::value handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest, const SessionPtr& aSession, 
-			std::string& output_, StringPairList& headers_) noexcept;
-	private:
-		string resourcePath;
+		QUEUE_VIEW,
+		QUEUE_EDIT,
+
+		FAVORITE_HUBS_VIEW,
+		FAVORITE_HUBS_EDIT,
+
+		SETTINGS_VIEW,
+		SETTINGS_EDIT,
+
+		FILESYSTEM_VIEW,
+		FILESYSTEM_EDIT,
+
+		HUBS_VIEW,
+		HUBS_EDIT,
+		HUBS_SEND,
+
+		PRIVATE_CHAT_VIEW,
+		PRIVATE_CHAT_EDIT,
+		PRIVATE_CHAT_SEND,
+
+		FILELISTS_VIEW,
+		FILELISTS_EDIT,
+
+		LAST,
 	};
+
+	typedef map<Access, bool> AccessMap;
 }
 
 #endif

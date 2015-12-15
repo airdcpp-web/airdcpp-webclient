@@ -35,11 +35,13 @@ namespace webserver {
 		int getVersion() const noexcept {
 			return 0;
 		}
-		//websocketpp::http::status_code::value handleRequest(ApiRequest& aRequest, const SessionPtr& aSession, const json& aJson, std::string& output_);
 	private:
-		api_return handleGetLog(ApiRequest& aRequest) ;
-		api_return handleRead(ApiRequest& aRequest) ;
-		api_return handleClear(ApiRequest& aRequest) ;
+		void onMessagesChanged() noexcept;
+
+		api_return handleGetInfo(ApiRequest& aRequest);
+		api_return handleGetLog(ApiRequest& aRequest);
+		api_return handleRead(ApiRequest& aRequest);
+		api_return handleClear(ApiRequest& aRequest);
 
 		// LogManagerListener
 		void on(LogManagerListener::Message, const LogMessagePtr& aMessageData) noexcept;

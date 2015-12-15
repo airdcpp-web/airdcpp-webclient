@@ -16,26 +16,24 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_SHARE_UTILS_H
-#define DCPLUSPLUS_DCPP_SHARE_UTILS_H
+#ifndef DCPLUSPLUS_DCPP_WEBUSER_UTILS_H
+#define DCPLUSPLUS_DCPP_WEBUSER_UTILS_H
 
 #include <web-server/stdinc.h>
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/StringMatch.h>
-#include <airdcpp/ShareDirectoryInfo.h>
+#include <web-server/WebUser.h>
 
 namespace webserver {
-	class ShareUtils {
+	class WebUserUtils {
 	public:
-		static string formatRefreshState(const ShareDirectoryInfoPtr& aItem) noexcept;
+		static json serializeItem(const WebUserPtr& aItem, int aPropertyName) noexcept;
+		static bool filterItem(const WebUserPtr& aItem, int aPropertyName, const StringMatch& aTextMatcher, double aNumericMatcher) noexcept;
 
-		static json serializeItem(const ShareDirectoryInfoPtr& aItem, int aPropertyName) noexcept;
-		static bool filterItem(const ShareDirectoryInfoPtr& aItem, int aPropertyName, const StringMatch& aTextMatcher, double aNumericMatcher) noexcept;
-
-		static int compareItems(const ShareDirectoryInfoPtr& a, const ShareDirectoryInfoPtr& b, int aPropertyName) noexcept;
-		static std::string getStringInfo(const ShareDirectoryInfoPtr& a, int aPropertyName) noexcept;
-		static double getNumericInfo(const ShareDirectoryInfoPtr& a, int aPropertyName) noexcept;
+		static int compareItems(const WebUserPtr& a, const WebUserPtr& b, int aPropertyName) noexcept;
+		static std::string getStringInfo(const WebUserPtr& a, int aPropertyName) noexcept;
+		static double getNumericInfo(const WebUserPtr& a, int aPropertyName) noexcept;
 	};
 }
 

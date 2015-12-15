@@ -26,7 +26,7 @@
 #include <airdcpp/ShareManager.h>
 
 namespace webserver {
-	ShareRootApi::ShareRootApi(Session* aSession) : ApiModule(aSession), itemHandler(properties,
+	ShareRootApi::ShareRootApi(Session* aSession) : ApiModule(aSession, Access::SETTINGS_VIEW), itemHandler(properties,
 		ShareUtils::getStringInfo, ShareUtils::getNumericInfo, ShareUtils::compareItems, ShareUtils::serializeItem, ShareUtils::filterItem),
 		rootView("share_root_view", this, itemHandler, std::bind(&ShareRootApi::getRoots, this)) {
 
@@ -42,10 +42,10 @@ namespace webserver {
 
 		ShareManager::getInstance()->addListener(this);
 
-		METHOD_HANDLER("roots", ApiRequest::METHOD_GET, (), false, ShareRootApi::handleGetRoots);
-		METHOD_HANDLER("root", ApiRequest::METHOD_POST, (EXACT_PARAM("add")), true, ShareRootApi::handleAddRoot);
-		METHOD_HANDLER("root", ApiRequest::METHOD_POST, (EXACT_PARAM("update")), true, ShareRootApi::handleUpdateRoot);
-		METHOD_HANDLER("root", ApiRequest::METHOD_POST, (EXACT_PARAM("remove")), true, ShareRootApi::handleRemoveRoot);
+		METHOD_HANDLER("roots", Access::SETTINGS_VIEW, ApiRequest::METHOD_GET, (), false, ShareRootApi::handleGetRoots);
+		METHOD_HANDLER("root", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("add")), true, ShareRootApi::handleAddRoot);
+		METHOD_HANDLER("root", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("update")), true, ShareRootApi::handleUpdateRoot);
+		METHOD_HANDLER("root", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("remove")), true, ShareRootApi::handleRemoveRoot);
 
 		createSubscription("share_root_created");
 		createSubscription("share_root_updated");

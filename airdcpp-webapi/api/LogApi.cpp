@@ -19,22 +19,21 @@
 #include <web-server/stdinc.h>
 
 #include <api/LogApi.h>
-
 #include <api/common/Serializer.h>
 
 #include <airdcpp/LogManager.h>
 
 namespace webserver {
-	LogApi::LogApi(Session* aSession) : ApiModule(aSession) {
+	LogApi::LogApi(Session* aSession) : ApiModule(aSession, Access::EVENTS) {
 		LogManager::getInstance()->addListener(this);
 
 		createSubscription("log_message");
-		createSubscription("log_cleared");
-		createSubscription("log_read");
+		createSubscription("log_info");
 
-		METHOD_HANDLER("clear", ApiRequest::METHOD_POST, (), false, LogApi::handleClear);
-		METHOD_HANDLER("read", ApiRequest::METHOD_POST, (), false, LogApi::handleRead);
-		METHOD_HANDLER("messages", ApiRequest::METHOD_GET, (NUM_PARAM), false, LogApi::handleGetLog);
+		METHOD_HANDLER("clear", Access::EVENTS, ApiRequest::METHOD_POST, (), false, LogApi::handleClear);
+		METHOD_HANDLER("read", Access::EVENTS, ApiRequest::METHOD_POST, (), false, LogApi::handleRead);
+		METHOD_HANDLER("info", Access::EVENTS, ApiRequest::METHOD_GET, (), false, LogApi::handleGetInfo);
+		METHOD_HANDLER("messages", Access::EVENTS, ApiRequest::METHOD_GET, (NUM_PARAM), false, LogApi::handleGetLog);
 	}
 
 	LogApi::~LogApi() {
@@ -61,27 +60,36 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
+	api_return LogApi::handleGetInfo(ApiRequest& aRequest) {
+		json j;
+		Serializer::serializeCacheInfo(j, LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog);
+		aRequest.setResponseBody(j);
+		return websocketpp::http::status_code::ok;
+	}
+
 	void LogApi::on(LogManagerListener::Message, const LogMessagePtr& aMessageData) noexcept {
-		if (!subscriptionActive("log_message")) {
+		if (subscriptionActive("log_message")) {
+			send("log_message", Serializer::serializeLogMessage(aMessageData));
+		}
+
+		onMessagesChanged();
+	}
+
+	void LogApi::onMessagesChanged() noexcept {
+		if (!subscriptionActive("log_info")) {
 			return;
 		}
 
-		send("log_message", Serializer::serializeLogMessage(aMessageData));
+		json j;
+		Serializer::serializeCacheInfo(j, LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog);
+		send("log_info", j);
 	}
 
 	void LogApi::on(LogManagerListener::Cleared) noexcept {
-		if (!subscriptionActive("log_cleared")) {
-			return;
-		}
-
-		send("log_cleared", nullptr);
+		onMessagesChanged();
 	}
 
 	void LogApi::on(LogManagerListener::MessagesRead) noexcept {
-		if (!subscriptionActive("log_read")) {
-			return;
-		}
-
-		send("log_read", nullptr);
+		onMessagesChanged();
 	}
 }

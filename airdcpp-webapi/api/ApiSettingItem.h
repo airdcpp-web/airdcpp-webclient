@@ -47,7 +47,10 @@ namespace webserver {
 		ApiSettingItem(const string& aName, int aKey, ResourceManager::Strings aDesc, Type aType = TYPE_GENERAL, Unit&& aUnit = { ResourceManager::Strings::LAST, false });
 		//NamedSettingItem(ResourceManager::Strings aDesc);
 
-		json toJson(bool aForceAutoValues = false) const noexcept;
+		json infoToJson(bool aForceAutoValues = false) const noexcept;
+
+		// Returns the value and bool indicating whether it's an auto detected value
+		pair<json, bool> valueToJson(bool aForceAutoValues = false) const noexcept;
 		json autoValueToJson(bool aForceAutoValues) const noexcept;
 
 		bool setCurValue(const json& aJson) const;

@@ -60,6 +60,7 @@ namespace webserver {
 
 	class Session;
 	typedef std::shared_ptr<Session> SessionPtr;
+	typedef std::vector<SessionPtr> SessionList;
 
 	class WebSocket;
 	typedef std::shared_ptr<WebSocket> WebSocketPtr;

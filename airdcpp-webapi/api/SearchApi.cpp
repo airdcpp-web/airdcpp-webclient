@@ -26,7 +26,7 @@
 const unsigned int MIN_SEARCH = 2;
 
 namespace webserver {
-	SearchApi::SearchApi(Session* aSession) : ApiModule(aSession), itemHandler(properties,
+	SearchApi::SearchApi(Session* aSession) : ApiModule(aSession, Access::SEARCH), itemHandler(properties,
 		SearchUtils::getStringInfo, SearchUtils::getNumericInfo, SearchUtils::compareResults, SearchUtils::serializeResult), 
 		searchView("search_view", this, itemHandler, std::bind(&SearchApi::getResultList, this)) {
 
@@ -34,10 +34,10 @@ namespace webserver {
 
 		//subscriptions["search_result"];
 
-		METHOD_HANDLER("query", ApiRequest::METHOD_POST, (), true, SearchApi::handlePostSearch);
-		METHOD_HANDLER("types", ApiRequest::METHOD_GET, (), false, SearchApi::handleGetTypes);
+		METHOD_HANDLER("query", Access::SEARCH, ApiRequest::METHOD_POST, (), true, SearchApi::handlePostSearch);
+		METHOD_HANDLER("types", Access::ANY, ApiRequest::METHOD_GET, (), false, SearchApi::handleGetTypes);
 
-		METHOD_HANDLER("result", ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("download")), false, SearchApi::handleDownload);
+		METHOD_HANDLER("result", Access::DOWNLOAD, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("download")), false, SearchApi::handleDownload);
 	}
 
 	SearchApi::~SearchApi() {

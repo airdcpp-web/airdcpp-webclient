@@ -36,19 +36,25 @@ namespace webserver {
 	}
 
 	SessionPtr WebUserManager::authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes) noexcept {
-		WLock l(cs);
-
-		auto u = users.find(aUserName);
-		if (u == users.end()) {
+		auto u = getUser(aUserName);
+		if (!u) {
 			return nullptr;
 		}
 
-		if (u->second->getPassword() != aPassword) {
+		if (u->getPassword() != aPassword) {
 			return nullptr;
 		}
 
-		auto session = make_shared<Session>(u->second, Util::toString(Util::rand()), aIsSecure, server, aMaxInactivityMinutes);
-		sessions.emplace(session->getToken(), session);
+		u->setLastLogin(GET_TIME());
+		u->addSession();
+		fire(WebUserManagerListener::UserUpdated(), u);
+
+		auto session = make_shared<Session>(u, Util::toString(Util::rand()), aIsSecure, server, aMaxInactivityMinutes);
+
+		{
+			WLock l(cs);
+			sessions.emplace(session->getToken(), session);
+		}
 		return session;
 	}
 
@@ -70,35 +76,35 @@ namespace webserver {
 
 	void WebUserManager::logout(const SessionPtr& aSession) {
 		aSession->onSocketDisconnected();
-
-		WLock l(cs);
-		sessions.erase(aSession->getToken());
+		
+		removeSession(aSession);
 	}
 
 	void WebUserManager::checkExpiredSessions() noexcept {
-		StringList removedTokens;
+		SessionList removedSession;
 		auto tick = GET_TICK();
 
 		{
 			RLock l(cs);
-			for (const auto& s: sessions | map_values) {
-				if (s->getLastActivity() + s->getMaxInactivity() < tick) {
-					removedTokens.push_back(s->getToken());
-				}
-			}
+			boost::algorithm::copy_if(sessions | map_values, back_inserter(removedSession), [=](const SessionPtr& s) {
+				return s->getLastActivity() + s->getMaxInactivity() < tick;
+			});
 		}
 
-		// Don't remove sessions with active socket
-		removedTokens.erase(remove_if(removedTokens.begin(), removedTokens.end(), [this](const string& aToken) {
-			return server->getSocket(aToken);
-		}), removedTokens.end());
-
-		if (!removedTokens.empty()) {
-			WLock l(cs);
-			for (const auto& token : removedTokens) {
-				sessions.erase(token);
+		for (const auto& s : removedSession) {
+			// Don't remove sessions with active socket
+			if (!server->getSocket(s->getToken())) {
+				removeSession(s);
 			}
 		}
+	}
+
+	void WebUserManager::removeSession(const SessionPtr& aSession) noexcept {
+		aSession->getUser()->removeSession();
+		fire(WebUserManagerListener::UserUpdated(), aSession->getUser());
+
+		WLock l(cs);
+		sessions.erase(aSession->getToken());
 	}
 
 	void WebUserManager::on(WebServerManagerListener::Started) noexcept {
@@ -116,14 +122,24 @@ namespace webserver {
 		if (xml_.findChild("WebUsers")) {
 			xml_.stepIn();
 			while (xml_.findChild("WebUser")) {
-				const string& username = xml_.getChildAttrib("Username");
-				const string& password = xml_.getChildAttrib("Password");
+				const auto& username = xml_.getChildAttrib("Username");
+				const auto& password = xml_.getChildAttrib("Password");
 
 				if (username.empty() || password.empty()) {
 					continue;
 				}
 
-				users.emplace(username, make_shared<WebUser>(username, password));
+				const auto& permissions = xml_.getChildAttrib("Permissions");
+
+				// Set as admin mainly for compatibility with old accounts if no permissions were found
+				auto user = make_shared<WebUser>(username, password, permissions.empty());
+
+				user->setLastLogin(xml_.getIntChildAttrib("LastLogin"));
+				if (!permissions.empty()) {
+					user->setPermissions(permissions);
+				}
+
+				users.emplace(username, user);
 
 			}
 			xml_.stepOut();
@@ -137,10 +153,12 @@ namespace webserver {
 		xml_.stepIn();
 		{
 			RLock l(cs);
-			for (auto& u : users | map_values) {
+			for (const auto& u : users | map_values) {
 				xml_.addTag("WebUser");
 				xml_.addChildAttrib("Username", u->getUserName());
 				xml_.addChildAttrib("Password", u->getPassword());
+				xml_.addChildAttrib("LastLogin", u->getLastLogin());
+				xml_.addChildAttrib("Permissions", u->getPermissionsStr());
 			}
 		}
 		xml_.stepOut();
@@ -156,14 +174,49 @@ namespace webserver {
 		return users.find(aUserName) != users.end();
 	}
 
-	bool WebUserManager::addUser(const string& aUserName, const string& aPassword) noexcept {
-		WLock l(cs);
-		return users.emplace(aUserName, make_shared<WebUser>(aUserName, aPassword)).second;
+	bool WebUserManager::addUser(const WebUserPtr& aUser) noexcept {
+		auto user = getUser(aUser->getUserName());
+		if (user) {
+			return false;
+		}
+
+		{
+			WLock l(cs);
+			users.emplace(aUser->getUserName(), aUser);
+		}
+
+		fire(WebUserManagerListener::UserAdded(), aUser);
+		return true;
+	}
+
+	WebUserPtr WebUserManager::getUser(const string& aUserName) const noexcept {
+		RLock l(cs);
+		auto user = users.find(aUserName);
+		if (user == users.end()) {
+			return nullptr;
+		}
+
+		return user->second;
+	}
+
+	bool WebUserManager::updateUser(const WebUserPtr& aUser) noexcept {
+		fire(WebUserManagerListener::UserUpdated(), aUser);
+		return true;
 	}
 
 	bool WebUserManager::removeUser(const string& aUserName) noexcept {
-		WLock l(cs);
-		return users.erase(aUserName) > 0;
+		auto user = getUser(aUserName);
+		if (!user) {
+			return false;
+		}
+
+		{
+			WLock l(cs);
+			users.erase(aUserName);
+		}
+
+		fire(WebUserManagerListener::UserRemoved(), user);
+		return true;
 	}
 
 	StringList WebUserManager::getUserNames() const noexcept {
@@ -174,14 +227,15 @@ namespace webserver {
 		return ret;
 	}
 
-	std::vector<WebUserPtr> WebUserManager::getWebUsers() const noexcept {
-		std::vector<WebUserPtr> ret;
+	WebUserList WebUserManager::getUsers() const noexcept {
+		WebUserList ret;
+
 		RLock l(cs);
 		boost::copy(users | map_values, back_inserter(ret));
 		return ret;
 	}
 
-	void WebUserManager::replaceWebUsers(std::vector<WebUserPtr>& newUsers) noexcept {
+	void WebUserManager::replaceWebUsers(const WebUserList& newUsers) noexcept {
 		WLock l(cs);
 		users.clear();
 		for (auto u : newUsers)

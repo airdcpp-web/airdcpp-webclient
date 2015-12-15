@@ -26,26 +26,22 @@
 
 namespace webserver {
 	StringList PrivateChatInfo::subscriptionList = {
-		"chat_session_updated",
+		"private_chat_updated",
 		"private_chat_message",
 		"private_chat_status"
 	};
 
 	PrivateChatInfo::PrivateChatInfo(ParentType* aParentModule, const PrivateChatPtr& aChat) :
-		SubApiModule(aParentModule, aChat->getUser()->getCID().toBase32(), subscriptionList), chat(aChat) {
+		SubApiModule(aParentModule, aChat->getUser()->getCID().toBase32(), subscriptionList), chat(aChat),
+		chatHandler(this, aChat, "private_chat") {
 
 		chat->addListener(this);
 
-		METHOD_HANDLER("messages", ApiRequest::METHOD_GET, (NUM_PARAM), false, PrivateChatInfo::handleGetMessages);
-		METHOD_HANDLER("message", ApiRequest::METHOD_POST, (), true, PrivateChatInfo::handlePostMessage);
+		METHOD_HANDLER("ccpm", Access::PRIVATE_CHAT_EDIT, ApiRequest::METHOD_POST, (), false, PrivateChatInfo::handleConnectCCPM);
+		METHOD_HANDLER("ccpm", Access::PRIVATE_CHAT_EDIT, ApiRequest::METHOD_DELETE, (), false, PrivateChatInfo::handleDisconnectCCPM);
 
-		METHOD_HANDLER("ccpm", ApiRequest::METHOD_POST, (), false, PrivateChatInfo::handlePostMessage);
-		METHOD_HANDLER("ccpm", ApiRequest::METHOD_DELETE, (), false, PrivateChatInfo::handlePostMessage);
-
-		METHOD_HANDLER("typing", ApiRequest::METHOD_POST, (), false, PrivateChatInfo::handlePostMessage);
-		METHOD_HANDLER("typing", ApiRequest::METHOD_DELETE, (), false, PrivateChatInfo::handlePostMessage);
-
-		METHOD_HANDLER("read", ApiRequest::METHOD_POST, (), false, PrivateChatInfo::handleSetRead);
+		METHOD_HANDLER("typing", Access::PRIVATE_CHAT_SEND, ApiRequest::METHOD_POST, (), false, PrivateChatInfo::handleStartTyping);
+		METHOD_HANDLER("typing", Access::PRIVATE_CHAT_SEND, ApiRequest::METHOD_DELETE, (), false, PrivateChatInfo::handleEndTyping);
 	}
 
 	PrivateChatInfo::~PrivateChatInfo() {
@@ -70,56 +66,6 @@ namespace webserver {
 	api_return PrivateChatInfo::handleConnectCCPM(ApiRequest& aRequest) {
 		chat->startCC();
 		return websocketpp::http::status_code::ok;
-	}
-
-	api_return PrivateChatInfo::handleSetRead(ApiRequest& aRequest) {
-		chat->setRead();
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return PrivateChatInfo::handleGetMessages(ApiRequest& aRequest) {
-		auto j = Serializer::serializeFromEnd(
-			aRequest.getRangeParam(0),
-			chat->getCache().getMessages(),
-			Serializer::serializeMessage);
-
-		aRequest.setResponseBody(j);
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return PrivateChatInfo::handlePostMessage(ApiRequest& aRequest) {
-		const auto& reqJson = aRequest.getRequestBody();
-
-		auto message = JsonUtil::getField<string>("message", reqJson, false);
-		auto thirdPerson = JsonUtil::getOptionalField<bool>("third_person", reqJson);
-
-		string error;
-		if (!chat->sendPrivateMessage(message, error, thirdPerson ? *thirdPerson : false)) {
-			aRequest.setResponseErrorStr(error);
-			return websocketpp::http::status_code::internal_server_error;
-		}
-
-		return websocketpp::http::status_code::ok;
-	}
-
-	void PrivateChatInfo::on(PrivateChatListener::PrivateMessage, PrivateChat* aChat, const ChatMessagePtr& aMessage) noexcept {
-		if (!aMessage->getRead()) {
-			sendUnread();
-		}
-
-		if (!subscriptionActive("private_chat_message")) {
-			return;
-		}
-
-		send("private_chat_message", Serializer::serializeChatMessage(aMessage));
-	}
-
-	void PrivateChatInfo::on(PrivateChatListener::StatusMessage, PrivateChat*, const LogMessagePtr& aMessage) noexcept {
-		if (!subscriptionActive("private_chat_status")) {
-			return;
-		}
-
-		send("private_chat_status", Serializer::serializeLogMessage(aMessage));
 	}
 
 	json PrivateChatInfo::serializeCCPMState(uint8_t aState) noexcept {
@@ -149,21 +95,11 @@ namespace webserver {
 		});
 	}
 
-	void PrivateChatInfo::on(PrivateChatListener::MessagesRead, PrivateChat*) noexcept {
-		sendUnread();
-	}
-
-	void PrivateChatInfo::sendUnread() noexcept {
-		onSessionUpdated({
-			{ "unread_messages", Serializer::serializeUnread(chat->getCache()) }
-		});
-	}
-
 	void PrivateChatInfo::onSessionUpdated(const json& aData) noexcept {
-		if (!subscriptionActive("chat_session_updated")) {
+		if (!subscriptionActive("private_chat_session_updated")) {
 			return;
 		}
 
-		send("chat_session_updated", aData);
+		send("private_chat_session_updated", aData);
 	}
 }

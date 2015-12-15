@@ -27,22 +27,35 @@
 
 namespace webserver {
 	SettingApi::SettingApi(Session* aSession) : ApiModule(aSession) {
-		METHOD_HANDLER("items", ApiRequest::METHOD_GET, (), true, SettingApi::handleGetSettings);
-		METHOD_HANDLER("items", ApiRequest::METHOD_POST, (), true, SettingApi::handleSetSettings);
-		METHOD_HANDLER("items", ApiRequest::METHOD_DELETE, (), true, SettingApi::handleResetSettings);
+		METHOD_HANDLER("items", Access::SETTINGS_VIEW, ApiRequest::METHOD_POST, (EXACT_PARAM("info")), true, SettingApi::handleGetSettingInfos);
+		METHOD_HANDLER("items", Access::ANY, ApiRequest::METHOD_POST, (EXACT_PARAM("get")), true, SettingApi::handleGetSettingValues);
+		METHOD_HANDLER("items", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("set")), true, SettingApi::handleSetSettings);
+		METHOD_HANDLER("items", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("reset")), true, SettingApi::handleResetSettings);
 	}
 
 	SettingApi::~SettingApi() {
 	}
 
-	api_return SettingApi::handleGetSettings(ApiRequest& aRequest) {
+	api_return SettingApi::handleGetSettingInfos(ApiRequest& aRequest) {
 		const auto& requestJson = aRequest.getRequestBody();
 
-		auto autoValues = JsonUtil::getOptionalField<bool>("force_auto_values", requestJson);
+		auto forceAutoValues = JsonUtil::getOptionalField<bool>("force_auto_values", requestJson);
 
 		json retJson;
 		parseSettingKeys(requestJson, [&](const ApiSettingItem* aItem) {
-			retJson[aItem->name] = aItem->toJson(autoValues ? *autoValues : false);
+			retJson[aItem->name] = aItem->infoToJson(forceAutoValues ? *forceAutoValues : false);
+		});
+
+		aRequest.setResponseBody(retJson);
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return SettingApi::handleGetSettingValues(ApiRequest& aRequest) {
+		const auto& requestJson = aRequest.getRequestBody();
+
+		json retJson;
+		parseSettingKeys(requestJson, [&](const ApiSettingItem* aItem) {
+			retJson[aItem->name] = aItem->valueToJson().first;
 		});
 
 		aRequest.setResponseBody(retJson);

@@ -36,7 +36,8 @@ namespace webserver {
 			return 0;
 		}
 	private:
-		api_return handleGetSettings(ApiRequest& aRequest);
+		api_return handleGetSettingInfos(ApiRequest& aRequest);
+		api_return handleGetSettingValues(ApiRequest& aRequest);
 		api_return handleSetSettings(ApiRequest& aRequest);
 		api_return handleResetSettings(ApiRequest& aRequest);
 

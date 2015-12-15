@@ -29,12 +29,12 @@
 namespace webserver {
 	ShareApi::ShareApi(Session* aSession) : ApiModule(aSession) {
 
-		METHOD_HANDLER("grouped_root_paths", ApiRequest::METHOD_GET, (), false, ShareApi::handleGetGroupedRootPaths);
-		METHOD_HANDLER("stats", ApiRequest::METHOD_GET, (), false, ShareApi::handleGetStats);
-		METHOD_HANDLER("find_dupe_paths", ApiRequest::METHOD_POST, (), true, ShareApi::handleFindDupePaths);
+		METHOD_HANDLER("grouped_root_paths", Access::ANY, ApiRequest::METHOD_GET, (), false, ShareApi::handleGetGroupedRootPaths);
+		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, ShareApi::handleGetStats);
+		METHOD_HANDLER("find_dupe_paths", Access::ANY, ApiRequest::METHOD_POST, (), true, ShareApi::handleFindDupePaths);
 
-		METHOD_HANDLER("refresh", ApiRequest::METHOD_POST, (), false, ShareApi::handleRefreshShare);
-		METHOD_HANDLER("refresh", ApiRequest::METHOD_POST, (EXACT_PARAM("paths")), true, ShareApi::handleRefreshPaths);
+		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (), false, ShareApi::handleRefreshShare);
+		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("paths")), true, ShareApi::handleRefreshPaths);
 	}
 
 	ShareApi::~ShareApi() {
