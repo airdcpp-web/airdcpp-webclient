@@ -23,6 +23,7 @@
 #include <airdcpp/Util.h>
 
 #include <web-server/WebServerManager.h>
+#include <web-server/WebUser.h>
 
 namespace airdcppd {
 
@@ -137,11 +138,15 @@ bool ConfigPrompt::addUser(webserver::WebServerManager* wsm) {
 	auto& um = wsm->getUserManager();
 
 	std::string username, password;
+	cout << toBold("The user wil be created with administrative permissions. Users with restricted permissions can be added from the Web UI.");
+	cout << std::endl;
+	cout << std::endl;
 	cout << "Enter username: ";
 	cin >> username;
 	cout << std::endl;
 
-	if (um.hasUser(username)) {
+	auto user = um.getUser(username);
+	if (user) {
 		string input;
 		cout << "A user with the same name exists. Do you want to change the password? (y/n): ";
 		cin >> input;
@@ -170,10 +175,12 @@ bool ConfigPrompt::addUser(webserver::WebServerManager* wsm) {
 		}
 	}
 
-	auto added = um.addUser(username, password);
-	if (added) {
+	if (!user) {
+		um.addUser(make_shared<webserver::WebUser>(username, password, true));
 		cout << "The user " << username << " was added" << std::endl;
 	} else {
+		user->setPassword(password);
+		um.updateUser(user);
 		cout << "Password for the user " << username << " was updated" << std::endl;
 	}
 
