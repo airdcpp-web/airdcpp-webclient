@@ -245,7 +245,7 @@ std::string SSLSocket::getEncryptionInfo() const noexcept {
 	if (!cipher)
 		return Util::emptyString;
 
-	char* buf = SSL_CIPHER_description(cipher, NULL, NULL);
+	char* buf = SSL_CIPHER_description(cipher, NULL, 0);
 	StringTokenizer<std::string> st(buf, ' ');
 	std::string ret = st.getTokens()[1] + " / " + st.getTokens()[0];
 	delete[] buf;
