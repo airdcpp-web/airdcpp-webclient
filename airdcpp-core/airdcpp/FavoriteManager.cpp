@@ -77,7 +77,7 @@ UserCommand FavoriteManager::addUserCommand(int type, int ctx, Flags::MaskType f
 	// which means that the user themselves can create however large user commands.
 	if (flags == UserCommand::FLAG_NOSAVE)
 	{
-		const int maximumUCs = 5000; // Completely arbitrary
+		const int maximumUCs = 2000; // Completely arbitrary
 		int externalCommands = 0; // Used to count the number of external commands
 		RLock l(cs);
 		for (auto& uc : userCommands) {

@@ -65,6 +65,11 @@ public:
 	virtual void connect();
 	virtual void disconnect(bool graceless);
 
+	// Default message method
+	bool sendMessage(const string& aMessage, string& error_, bool thirdPerson = false) {
+		return hubMessage(aMessage, error_, thirdPerson);
+	}
+
 	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) = 0;
 	virtual bool hubMessage(const string& aMessage, string& error_, bool thirdPerson = false) = 0;
 	virtual bool privateMessage(const OnlineUserPtr& user, const string& aMessage, string& error_, bool thirdPerson = false) = 0;
@@ -87,7 +92,7 @@ public:
 	bool isConnected() const;
 	bool isSecure() const;
 	bool isTrusted() const;
-	std::string getCipherName() const;
+	std::string getEncryptionInfo() const;
 	ByteVector getKeyprint() const;
 
 	bool isOp() const { return getMyIdentity().isOp(); }

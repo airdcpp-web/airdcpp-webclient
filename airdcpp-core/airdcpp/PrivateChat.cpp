@@ -80,7 +80,7 @@ void PrivateChat::CCPMDisconnected() {
 	}
 }
 
-bool PrivateChat::sendPrivateMessage(const string& msg, string& error_, bool thirdPerson) {
+bool PrivateChat::sendMessage(const string& msg, string& error_, bool thirdPerson) {
 	if (ccReady()) {
 		uc->pm(msg, thirdPerson);
 		return true;
@@ -125,6 +125,15 @@ void PrivateChat::setRead() noexcept {
 	if (updated > 0) {
 		fire(PrivateChatListener::MessagesRead(), this);
 	}
+}
+
+int PrivateChat::clearCache() noexcept {
+	auto ret = cache.clear();
+	if (ret > 0) {
+		fire(PrivateChatListener::MessagesCleared(), this);
+	}
+
+	return ret;
 }
 
 void PrivateChat::statusMessage(const string& aMessage, LogMessage::Severity aSeverity) noexcept {

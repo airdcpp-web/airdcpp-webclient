@@ -36,6 +36,7 @@ namespace dcpp {
 		typedef X<4> StatusMessage;
 		typedef X<5> CCPMStatusUpdated;
 		typedef X<6> MessagesRead;
+		typedef X<7> MessagesCleared;
 
 		virtual void on(PrivateMessage, PrivateChat*, const ChatMessagePtr&) noexcept{}
 		virtual void on(Close, PrivateChat*) noexcept{}
@@ -44,6 +45,7 @@ namespace dcpp {
 		virtual void on(StatusMessage, PrivateChat*, const LogMessagePtr&) noexcept{}
 		virtual void on(CCPMStatusUpdated, PrivateChat*) noexcept{}
 		virtual void on(MessagesRead, PrivateChat*) noexcept {}
+		virtual void on(MessagesCleared, PrivateChat*) noexcept {}
 	};
 
 } // namespace dcpp

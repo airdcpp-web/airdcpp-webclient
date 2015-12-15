@@ -167,7 +167,7 @@ public:
 
 	bool isSecure() const { return socket && socket->isSecure(); }
 	bool isTrusted() const { return socket && socket->isTrusted(); }
-	std::string getCipherName() const { return socket ? socket->getCipherName() : Util::emptyString; }
+	std::string getEncryptionInfo() const { return socket ? socket->getEncryptionInfo() : Util::emptyString; }
 	ByteVector getKeyprint() const { return socket ? socket->getKeyprint() : ByteVector(); }
 	bool verifyKeyprint(const string& expKeyp, bool allowUntrusted) noexcept{ return socket ? socket->verifyKeyprint(expKeyp, allowUntrusted) : true; }
 
