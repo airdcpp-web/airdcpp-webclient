@@ -29,16 +29,16 @@ namespace webserver {
 		"filelist_removed"
 	};
 
-	FilelistApi::FilelistApi(Session* aSession) : ParentApiModule("session", CID_PARAM, aSession, FilelistApi::subscriptionList, FilelistInfo::subscriptionList, [](const string& aId) { return Deserializer::deserializeCID(aId); }) {
+	FilelistApi::FilelistApi(Session* aSession) : ParentApiModule("session", CID_PARAM, Access::FILELISTS_VIEW, aSession, FilelistApi::subscriptionList, FilelistInfo::subscriptionList, [](const string& aId) { return Deserializer::deserializeCID(aId); }) {
 
 		DirectoryListingManager::getInstance()->addListener(this);
 
-		METHOD_HANDLER("sessions", ApiRequest::METHOD_GET, (), false, FilelistApi::handleGetLists);
+		METHOD_HANDLER("sessions", Access::FILELISTS_VIEW, ApiRequest::METHOD_GET, (), false, FilelistApi::handleGetLists);
 
-		METHOD_HANDLER("session", ApiRequest::METHOD_DELETE, (CID_PARAM), false, FilelistApi::handleDeleteList);
-		METHOD_HANDLER("session", ApiRequest::METHOD_POST, (), true, FilelistApi::handlePostList);
+		METHOD_HANDLER("session", Access::FILELISTS_EDIT, ApiRequest::METHOD_DELETE, (CID_PARAM), false, FilelistApi::handleDeleteList);
+		METHOD_HANDLER("session", Access::FILELISTS_EDIT, ApiRequest::METHOD_POST, (), true, FilelistApi::handlePostList);
 
-		METHOD_HANDLER("download_directory", ApiRequest::METHOD_POST, (), true, FilelistApi::handleDownload);
+		METHOD_HANDLER("download_directory", Access::DOWNLOAD, ApiRequest::METHOD_POST, (), true, FilelistApi::handleDownload);
 
 		auto rawLists = DirectoryListingManager::getInstance()->getLists();
 		for (const auto& list : rawLists | map_values) {

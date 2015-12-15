@@ -26,8 +26,8 @@
 namespace webserver {
 	const StringList HubInfo::subscriptionList = {
 		"hub_updated",
-		"hub_chat_message",
-		"hub_status_message"
+		"hub_message",
+		"hub_status"
 	};
 
 	const PropertyList HubInfo::properties = {
@@ -54,19 +54,15 @@ namespace webserver {
 	};
 
 	HubInfo::HubInfo(ParentType* aParentModule, const ClientPtr& aClient) :
-		SubApiModule(aParentModule, aClient->getClientId(), subscriptionList), client(aClient) {
+		SubApiModule(aParentModule, aClient->getClientId(), subscriptionList), client(aClient),
+		chatHandler(this, aClient, "hub") {
 
 		client->addListener(this);
 
-		METHOD_HANDLER("messages", ApiRequest::METHOD_GET, (NUM_PARAM), false, HubInfo::handleGetMessages);
-		METHOD_HANDLER("message", ApiRequest::METHOD_POST, (), true, HubInfo::handlePostMessage);
-
-		METHOD_HANDLER("reconnect", ApiRequest::METHOD_POST, (), false, HubInfo::handleReconnect);
-		METHOD_HANDLER("favorite", ApiRequest::METHOD_POST, (), false, HubInfo::handleFavorite);
-		METHOD_HANDLER("password", ApiRequest::METHOD_POST, (), true, HubInfo::handlePassword);
-		METHOD_HANDLER("redirect", ApiRequest::METHOD_POST, (), false, HubInfo::handleRedirect);
-
-		METHOD_HANDLER("read", ApiRequest::METHOD_POST, (), false, HubInfo::handleSetRead);
+		METHOD_HANDLER("reconnect", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, HubInfo::handleReconnect);
+		METHOD_HANDLER("favorite", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, HubInfo::handleFavorite);
+		METHOD_HANDLER("password", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), true, HubInfo::handlePassword);
+		METHOD_HANDLER("redirect", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, HubInfo::handleRedirect);
 	}
 
 	HubInfo::~HubInfo() {
@@ -131,56 +127,6 @@ namespace webserver {
 		};
 	}
 
-	api_return HubInfo::handleSetRead(ApiRequest& aRequest) {
-		client->setRead();
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return HubInfo::handleGetMessages(ApiRequest& aRequest) {
-		auto j = Serializer::serializeFromEnd(
-			aRequest.getRangeParam(0),
-			client->getCache().getMessages(),
-			Serializer::serializeMessage);
-
-		aRequest.setResponseBody(j);
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return HubInfo::handlePostMessage(ApiRequest& aRequest) {
-		const auto& reqJson = aRequest.getRequestBody();
-
-		auto message = JsonUtil::getField<string>("message", reqJson, false);
-		auto thirdPerson = JsonUtil::getOptionalField<bool>("third_person", reqJson);
-
-		string error_;
-		if (!client->hubMessage(message, error_, thirdPerson ? *thirdPerson : false)) {
-			aRequest.setResponseErrorStr(error_);
-			return websocketpp::http::status_code::internal_server_error;
-		}
-
-		return websocketpp::http::status_code::ok;
-	}
-
-	void HubInfo::on(ClientListener::ChatMessage, const Client*, const ChatMessagePtr& aMessage) noexcept {
-		if (!aMessage->getRead()) {
-			sendUnread();
-		}
-
-		if (!subscriptionActive("hub_chat_message")) {
-			return;
-		}
-
-		send("hub_chat_message", Serializer::serializeChatMessage(aMessage));
-	}
-
-	void HubInfo::on(ClientListener::StatusMessage, const Client*, const LogMessagePtr& aMessage, int aFlags) noexcept {
-		if (!subscriptionActive("hub_status_message")) {
-			return;
-		}
-
-		send("hub_status_message", Serializer::serializeLogMessage(aMessage));
-	}
-
 	void HubInfo::on(ClientListener::Disconnecting, const Client*) noexcept {
 
 	}
@@ -192,14 +138,6 @@ namespace webserver {
 
 		sendConnectState();
 	}
-
-	/*void HubInfo::on(ClientListener::Connecting, const Client*) noexcept {
-		sendConnectState();
-	}
-
-	void HubInfo::on(ClientListener::Connected, const Client*) noexcept {
-		sendConnectState();
-	}*/
 
 	void HubInfo::on(Failed, const string&, const string&) noexcept {
 		sendConnectState();
@@ -232,19 +170,9 @@ namespace webserver {
 
 	}
 
-	void HubInfo::on(ClientListener::MessagesRead, const Client*) noexcept {
-		sendUnread();
-	}
-
 	void HubInfo::sendConnectState() noexcept {
 		onHubUpdated({
 			{ "connect_state", serializeConnectState(client) }
-		});
-	}
-
-	void HubInfo::sendUnread() noexcept {
-		onHubUpdated({
-			{ "unread_messages", Serializer::serializeUnread(client->getCache()) }
 		});
 	}
 

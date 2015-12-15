@@ -90,26 +90,30 @@ namespace webserver {
 		{ NULL, NULL }
 	};
 
-	websocketpp::http::status_code::value FileServer::handleRequest(const string& aRequestPath, const SessionPtr& aSession, 
-		const string& aRequestBody, string& output_, string& contentType) noexcept {
+	websocketpp::http::status_code::value FileServer::handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest, const SessionPtr& aSession,
+		string& output_, StringPairList& headers_) noexcept {
 
 		if (resourcePath.empty()) {
 			output_ = "No resource path set";
 			return websocketpp::http::status_code::not_found;
 		}
 
-		dcdebug("Requesting file %s\n", aRequestPath.c_str());
-
-		// Forward all requests for non-static files to index
-		std::string request = aRequestPath;
-		if (request.find("/build") != 0 && request != "/favicon.ico") {
-			request = "/index.html";
-		}
+		auto request = aResource;
+		dcdebug("Requesting file %s\n", request.c_str());
 
 		auto extension = Util::getFileExt(request);
 		if (!extension.empty()) {
 			// Strip the dot
 			extension = extension.substr(1);
+
+			// We have compressed versions only for JS files
+			if (extension == "js" && aRequest.get_header("Accept-Encoding").find("gzip") != string::npos) {
+				request += ".gz";
+				headers_.emplace_back("Content-Encoding", "gzip");
+			}
+		} else if (request.find("/build") != 0 && request != "/favicon.ico") {
+			// Forward all requests for non-static files to index
+			request = "/index.html";
 		}
 
 		// For windows
@@ -126,7 +130,7 @@ namespace webserver {
 		// Get the mime type
 		for (int i = 0; mimes[i].ext != NULL; i++) {
 			if (extension == mimes[i].ext) {
-				contentType = mimes[i].type;
+				headers_.emplace_back("Content-Type", mimes[i].type);
 				break;
 			}
 		}

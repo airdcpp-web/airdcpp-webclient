@@ -23,7 +23,7 @@
 
 namespace webserver {
 	FavoriteDirectoryApi::FavoriteDirectoryApi(Session* aSession) : ApiModule(aSession) {
-		METHOD_HANDLER("directories", ApiRequest::METHOD_GET, (), false, FavoriteDirectoryApi::handleGetDirectories);
+		METHOD_HANDLER("directories", Access::ANY, ApiRequest::METHOD_GET, (), false, FavoriteDirectoryApi::handleGetDirectories);
 	}
 
 	FavoriteDirectoryApi::~FavoriteDirectoryApi() {

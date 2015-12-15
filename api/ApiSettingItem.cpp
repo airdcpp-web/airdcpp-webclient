@@ -81,31 +81,35 @@ namespace webserver {
 		return v;
 	}
 
-	json ApiSettingItem::toJson(bool aForceAutoValues) const noexcept {
-		bool autoValue = false;
-
-		// Get the current value
+	pair<json, bool> ApiSettingItem::valueToJson(bool aForceAutoValues) const noexcept {
 		auto v = autoValueToJson(aForceAutoValues);
 		if (!v.is_null()) {
-			autoValue = true;
-		} else {
-			if (key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
-				v = SettingsManager::getInstance()->get(static_cast<SettingsManager::StrSetting>(key), true);
-			} else if (key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
-				v = SettingsManager::getInstance()->get(static_cast<SettingsManager::IntSetting>(key), true);
-			} else if (key >= SettingsManager::BOOL_FIRST && key < SettingsManager::BOOL_LAST) {
-				v = SettingsManager::getInstance()->get(static_cast<SettingsManager::BoolSetting>(key), true);
-			} else {
-				dcassert(0);
-			}
+			return { v, true };
 		}
+
+		if (key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
+			v = SettingsManager::getInstance()->get(static_cast<SettingsManager::StrSetting>(key), true);
+		} else if (key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
+			v = SettingsManager::getInstance()->get(static_cast<SettingsManager::IntSetting>(key), true);
+		} else if (key >= SettingsManager::BOOL_FIRST && key < SettingsManager::BOOL_LAST) {
+			v = SettingsManager::getInstance()->get(static_cast<SettingsManager::BoolSetting>(key), true);
+		} else {
+			dcassert(0);
+		}
+
+		return { v, false };
+	}
+
+	json ApiSettingItem::infoToJson(bool aForceAutoValues) const noexcept {
+		// Get the current value
+		auto value = valueToJson(aForceAutoValues);
 
 		// Serialize the setting
 		json ret;
-		ret["value"] = v;
+		ret["value"] = value.first;
 		ret["key"] = name;
 		ret["title"] = getDescription();
-		if (autoValue) {
+		if (value.second) {
 			ret["auto"] = true;
 		}
 

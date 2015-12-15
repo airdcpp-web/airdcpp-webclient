@@ -24,15 +24,15 @@
 #include <api/common/Serializer.h>
 
 namespace webserver {
-	ConnectivityApi::ConnectivityApi(Session* aSession) : ApiModule(aSession) {
+	ConnectivityApi::ConnectivityApi(Session* aSession) : ApiModule(aSession, Access::SETTINGS_VIEW) {
 		ConnectivityManager::getInstance()->addListener(this);
 
 		createSubscription("connectivity_message");
 		createSubscription("connectivity_started");
 		createSubscription("connectivity_finished");
 
-		METHOD_HANDLER("status", ApiRequest::METHOD_GET, (), false, ConnectivityApi::handleGetStatus);
-		METHOD_HANDLER("detect", ApiRequest::METHOD_POST, (), false, ConnectivityApi::handleDetect);
+		METHOD_HANDLER("status", Access::SETTINGS_VIEW, ApiRequest::METHOD_GET, (), false, ConnectivityApi::handleGetStatus);
+		METHOD_HANDLER("detect", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (), false, ConnectivityApi::handleDetect);
 	}
 
 	ConnectivityApi::~ConnectivityApi() {

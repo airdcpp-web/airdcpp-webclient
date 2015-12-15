@@ -29,8 +29,8 @@
 
 namespace webserver {
 	FilesystemApi::FilesystemApi(Session* aSession) : ApiModule(aSession) {
-		METHOD_HANDLER("list_items", ApiRequest::METHOD_POST, (), true, FilesystemApi::handleListItems);
-		METHOD_HANDLER("directory", ApiRequest::METHOD_POST, (), true, FilesystemApi::handlePostDirectory);
+		METHOD_HANDLER("list_items", Access::FILESYSTEM_VIEW, ApiRequest::METHOD_POST, (), true, FilesystemApi::handleListItems);
+		METHOD_HANDLER("directory", Access::FILESYSTEM_EDIT, ApiRequest::METHOD_POST, (), true, FilesystemApi::handlePostDirectory);
 	}
 
 	FilesystemApi::~FilesystemApi() {

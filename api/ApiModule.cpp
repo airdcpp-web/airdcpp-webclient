@@ -23,7 +23,7 @@
 #include <api/ApiModule.h>
 
 namespace webserver {
-	ApiModule::ApiModule(Session* aSession, const StringList* aSubscriptions) : session(aSession) {
+	ApiModule::ApiModule(Session* aSession, Access aSubscriptionAccess, const StringList* aSubscriptions) : session(aSession), subscriptionAccess(aSubscriptionAccess) {
 		socket = WebServerManager::getInstance()->getSocket(aSession->getToken());
 
 		if (aSubscriptions) {
@@ -34,8 +34,8 @@ namespace webserver {
 
 		aSession->addListener(this);
 
-		METHOD_HANDLER("listener", ApiRequest::METHOD_POST, (STR_PARAM), false, ApiModule::handleSubscribe);
-		METHOD_HANDLER("listener", ApiRequest::METHOD_DELETE, (STR_PARAM), false, ApiModule::handleUnsubscribe);
+		METHOD_HANDLER("listener", aSubscriptionAccess, ApiRequest::METHOD_POST, (STR_PARAM), false, ApiModule::handleSubscribe);
+		METHOD_HANDLER("listener", aSubscriptionAccess, ApiRequest::METHOD_DELETE, (STR_PARAM), false, ApiModule::handleUnsubscribe);
 	}
 
 	ApiModule::~ApiModule() {
@@ -118,6 +118,12 @@ namespace webserver {
 		if (handler->requireJson && !aRequest.hasRequestBody()) {
 			aRequest.setResponseErrorStr("JSON body required");
 			return websocketpp::http::status_code::bad_request;
+		}
+
+		// Check permission
+		if (!session->getUser()->hasPermission(handler->access)) {
+			aRequest.setResponseErrorStr("Permission denied");
+			return websocketpp::http::status_code::forbidden;
 		}
 
 		// Exact params could be removed from the request...

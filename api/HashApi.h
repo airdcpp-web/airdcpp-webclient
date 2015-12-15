@@ -16,26 +16,36 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_SHARE_UTILS_H
-#define DCPLUSPLUS_DCPP_SHARE_UTILS_H
+#ifndef DCPLUSPLUS_DCPP_HASHAPI_H
+#define DCPLUSPLUS_DCPP_HASHAPI_H
 
 #include <web-server/stdinc.h>
 
+#include <api/ApiModule.h>
+
 #include <airdcpp/typedefs.h>
-#include <airdcpp/StringMatch.h>
-#include <airdcpp/ShareDirectoryInfo.h>
+#include <airdcpp/HashManager.h>
 
 namespace webserver {
-	class ShareUtils {
+	class HashApi : public ApiModule, private HashManagerListener {
 	public:
-		static string formatRefreshState(const ShareDirectoryInfoPtr& aItem) noexcept;
+		HashApi(Session* aSession);
+		~HashApi();
 
-		static json serializeItem(const ShareDirectoryInfoPtr& aItem, int aPropertyName) noexcept;
-		static bool filterItem(const ShareDirectoryInfoPtr& aItem, int aPropertyName, const StringMatch& aTextMatcher, double aNumericMatcher) noexcept;
+		int getVersion() const noexcept {
+			return 0;
+		}
+	private:
+		static json formatDbStatus(bool aMaintenanceRunning) noexcept;
+		void updateDbStatus(bool aMaintenanceRunning) noexcept;
 
-		static int compareItems(const ShareDirectoryInfoPtr& a, const ShareDirectoryInfoPtr& b, int aPropertyName) noexcept;
-		static std::string getStringInfo(const ShareDirectoryInfoPtr& a, int aPropertyName) noexcept;
-		static double getNumericInfo(const ShareDirectoryInfoPtr& a, int aPropertyName) noexcept;
+		api_return handleOptimize(ApiRequest& aRequest);
+		api_return handleGetDbStatus(ApiRequest& aRequest);
+
+		void on(HashManagerListener::MaintananceStarted) noexcept;
+		void on(HashManagerListener::MaintananceFinished) noexcept;
+		//void on(ConnectivityManagerListener::Finished, bool /*v6*/, bool /*failed*/) noexcept;
+		//virtual void on(SettingChanged) noexcept { }
 	};
 }
 

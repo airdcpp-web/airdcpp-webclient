@@ -165,11 +165,14 @@ namespace webserver {
 		{ "single_log_per_cid", SettingsManager::PM_LOG_GROUP_CID, ResourceManager::LOG_COMBINE_ADC_PM },
 
 		//{ ResourceManager::HISTORIES },
-		{ "history_search_max", SettingsManager::HISTORY_SEARCH_MAX, ResourceManager::SEARCH },
+		{ "history_search_max", SettingsManager::HISTORY_SEARCH_MAX, ResourceManager::SEARCH_STRINGS },
 		{ "history_search_clear_exit", SettingsManager::HISTORY_SEARCH_CLEAR, ResourceManager::CLEAR_EXIT },
-		{ "history_download_max", SettingsManager::HISTORY_DIR_MAX, ResourceManager::DIRECTORY },
+		{ "history_download_max", SettingsManager::HISTORY_DIR_MAX, ResourceManager::SETTINGS_DOWNLOAD_LOCATIONS },
 		{ "history_download_clear_exit", SettingsManager::HISTORY_DIR_CLEAR, ResourceManager::CLEAR_EXIT },
-		{ "history_last_pm_lines", SettingsManager::SHOW_LAST_LINES_LOG, ResourceManager::MAX_LOG_LINES },
+		//{ "history_last_pm_lines", SettingsManager::SHOW_LAST_LINES_LOG, ResourceManager::MAX_LOG_LINES },
+		{ "history_pm_messages", SettingsManager::PM_MESSAGE_CACHE, ResourceManager::PRIVATE_CHAT },
+		{ "history_hub_messages", SettingsManager::HUB_MESSAGE_CACHE , ResourceManager::HUBS },
+		{ "history_log_messages", SettingsManager::LOG_MESSAGE_CACHE , ResourceManager::SYSTEM_LOG },
 
 		//{ ResourceManager::SETTINGS_AIR_TABSPAGE },
 		{ "open_transfers", SettingsManager::SHOW_TRANSFERVIEW, ResourceManager::MENU_TRANSFERS },

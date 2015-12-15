@@ -147,17 +147,40 @@ namespace webserver {
 		return ret;
 	}
 
+	string Serializer::getSeverity(LogMessage::Severity aSeverity) noexcept {
+		switch (aSeverity) {
+			case LogMessage::SEV_INFO: return "info";
+			case LogMessage::SEV_WARNING: return "warning";
+			case LogMessage::SEV_ERROR: return "error";
+		}
+
+		return Util::emptyString;
+	}
+
 	json Serializer::serializeLogMessage(const LogMessagePtr& aMessageData) noexcept {
 		return{
 			{ "id", aMessageData->getId() },
 			{ "text", aMessageData->getText() },
 			{ "time", aMessageData->getTime() },
-			{ "severity", static_cast<int>(aMessageData->getSeverity()) },
+			{ "severity", getSeverity(aMessageData->getSeverity()) },
 			{ "is_read", aMessageData->getRead() }
 		};
 	}
 
-	json Serializer::serializeUnread(const MessageCache& aCache) noexcept {
+	void Serializer::serializeCacheInfo(json& json_, const MessageCache& aCache, UnreadSerializerF unreadF) noexcept {
+		json_["unread_messages"] = unreadF(aCache);
+		json_["total_messages"] = aCache.size();
+	}
+
+	json Serializer::serializeUnreadLog(const MessageCache& aCache) noexcept {
+		return{
+			{ "info", aCache.countUnreadLogMessages(LogMessage::SEV_INFO) },
+			{ "warning", aCache.countUnreadLogMessages(LogMessage::SEV_WARNING) },
+			{ "error", aCache.countUnreadLogMessages(LogMessage::SEV_ERROR) },
+		};
+	}
+
+	json Serializer::serializeUnreadChat(const MessageCache& aCache) noexcept {
 		MessageCache::ChatMessageFilterF isBot = [](const ChatMessagePtr& aMessage) {
 			if (aMessage->getFrom()->getIdentity().isBot() || aMessage->getFrom()->getIdentity().isHub()) {
 				return true;

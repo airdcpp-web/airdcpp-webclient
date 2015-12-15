@@ -22,14 +22,16 @@
 #include <web-server/stdinc.h>
 
 #include <airdcpp/CriticalSection.h>
+#include <airdcpp/Speaker.h>
 
 #include <web-server/Session.h>
 #include <web-server/Timer.h>
 #include <web-server/WebServerManagerListener.h>
+#include <web-server/WebUserManagerListener.h>
 #include <web-server/WebUser.h>
 
 namespace webserver {
-	class WebUserManager : private WebServerManagerListener {
+	class WebUserManager : private WebServerManagerListener, public Speaker<WebUserManagerListener> {
 	public:
 		WebUserManager(WebServerManager* aServer);
 		~WebUserManager();
@@ -41,14 +43,14 @@ namespace webserver {
 
 		bool hasUsers() const noexcept;
 		bool hasUser(const string& aUserName) const noexcept;
+		WebUserPtr getUser(const string& aUserName) const noexcept;
 
-		// Adds a new users or updates password for an existing one. Returns false when an existing user was found.
-		bool addUser(const string& aUserName, const string& aPassword) noexcept;
-
+		bool addUser(const WebUserPtr& aUser) noexcept;
+		bool updateUser(const WebUserPtr& aUser) noexcept;
 		bool removeUser(const string& aUserName) noexcept;
 
-		std::vector<WebUserPtr> getWebUsers() const noexcept;
-		void replaceWebUsers(std::vector<WebUserPtr>& newUsers) noexcept;
+		WebUserList getUsers() const noexcept;
+		void replaceWebUsers(const WebUserList& newUsers) noexcept;
 
 		StringList getUserNames() const noexcept;
 
@@ -60,6 +62,7 @@ namespace webserver {
 		std::map<std::string, SessionPtr> sessions;
 
 		void checkExpiredSessions() noexcept;
+		void removeSession(const SessionPtr& aSession) noexcept;
 		TimerPtr expirationTimer;
 
 		void on(WebServerManagerListener::Started) noexcept;

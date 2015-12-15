@@ -25,6 +25,7 @@
 #include <api/FavoriteHubApi.h>
 #include <api/FilelistApi.h>
 #include <api/FilesystemApi.h>
+#include <api/HashApi.h>
 #include <api/HistoryApi.h>
 #include <api/HubApi.h>
 #include <api/LogApi.h>
@@ -38,6 +39,7 @@
 #include <api/ShareRootApi.h>
 #include <api/SystemApi.h>
 #include <api/TransferApi.h>
+#include <api/WebUserApi.h>
 
 #include <airdcpp/TimerManager.h>
 
@@ -52,6 +54,7 @@ namespace webserver {
 		ADD_MODULE("favorite_hubs", FavoriteHubApi);
 		ADD_MODULE("filelists", FilelistApi);
 		ADD_MODULE("filesystem", FilesystemApi);
+		ADD_MODULE("hash", HashApi);
 		ADD_MODULE("histories", HistoryApi);
 		ADD_MODULE("hubs", HubApi);
 		ADD_MODULE("log", LogApi);
@@ -65,6 +68,7 @@ namespace webserver {
 		ADD_MODULE("share_roots", ShareRootApi);
 		ADD_MODULE("system", SystemApi);
 		ADD_MODULE("transfers", TransferApi);
+		ADD_MODULE("web_users", WebUserApi);
 	}
 
 	Session::~Session() {

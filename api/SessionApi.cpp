@@ -73,9 +73,10 @@ namespace webserver {
 		}
 
 		json retJson = {
+			{ "permissions", session->getUser()->getPermissions() },
 			{ "token", session->getToken() },
 			{ "user", session->getUser()->getUserName() },
-			{ "system", getSystemInfo(aIp) }
+			{ "system", getSystemInfo(aIp) },
 		};
 
 		if (aSocket) {

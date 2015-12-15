@@ -20,25 +20,63 @@
 #define DCPLUSPLUS_DCPP_WEBUSER_H
 
 #include <web-server/stdinc.h>
+#include <web-server/Access.h>
+
+#include <airdcpp/typedefs.h>
 #include <airdcpp/GetSet.h>
 
 namespace webserver {
 	class WebUser;
 	typedef std::shared_ptr<WebUser> WebUserPtr;
+	typedef vector<WebUserPtr> WebUserList;
 
 	class WebUser {
 	public:
-		WebUser(const std::string& aUserName, const std::string& aPassword) : userName(aUserName), password(aPassword) {
+		WebUser(const std::string& aUserName, const std::string& aPassword, bool aIsAdmin = false);
 
+		const string& getToken() const noexcept {
+			return userName;
 		}
 
 		GETSET(std::string, userName, UserName);
 		GETSET(std::string , password, Password);
+		IGETSET(time_t, lastLogin, LastLogin, 0);
 
 		WebUser(WebUser&) = delete;
 		WebUser& operator=(WebUser&) = delete;
-	private:
 
+		// Sesszions
+		int getActiveSessions() const noexcept {
+			return activeSessions;
+		}
+
+		void addSession() noexcept {
+			activeSessions++;
+		}
+
+		void removeSession() noexcept {
+			activeSessions--;
+		}
+
+		// Access
+		bool hasPermission(Access aAccess) const noexcept;
+
+		void setPermissions(const string& aStr) noexcept;
+		void setPermissions(const StringList& aPermissions) noexcept;
+
+		string getPermissionsStr() const noexcept;
+		StringList getPermissions() const noexcept;
+		bool isAdmin() const noexcept;
+
+		const static StringList accessStrings;
+		static Access toAccess(const string& aStr) noexcept;
+
+		int countPermissions() const noexcept;
+	private:
+		void clearPermissions() noexcept;
+		int activeSessions = 0;
+
+		AccessMap permissions;
 	};
 
 }

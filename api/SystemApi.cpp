@@ -28,7 +28,7 @@
 namespace webserver {
 	SystemApi::SystemApi(Session* aSession) : ApiModule(aSession) {
 
-		METHOD_HANDLER("stats", ApiRequest::METHOD_GET, (), false, SystemApi::handleGetStats);
+		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, SystemApi::handleGetStats);
 	}
 
 	SystemApi::~SystemApi() {

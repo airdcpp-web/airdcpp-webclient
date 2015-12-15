@@ -27,11 +27,11 @@
 #include <airdcpp/UploadManager.h>
 
 namespace webserver {
-	TransferApi::TransferApi(Session* aSession) : ApiModule(aSession), timer(WebServerManager::getInstance()->addTimer([this] { onTimer(); }, 1000)) {
+	TransferApi::TransferApi(Session* aSession) : ApiModule(aSession, Access::ANY), timer(WebServerManager::getInstance()->addTimer([this] { onTimer(); }, 1000)) {
 		DownloadManager::getInstance()->addListener(this);
 		UploadManager::getInstance()->addListener(this);
 
-		METHOD_HANDLER("stats", ApiRequest::METHOD_GET, (), false, TransferApi::handleGetStats);
+		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, TransferApi::handleGetStats);
 
 		createSubscription("statistics");
 		timer->start();

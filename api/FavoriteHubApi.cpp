@@ -26,16 +26,16 @@
 #include <airdcpp/ShareManager.h>
 
 namespace webserver {
-	FavoriteHubApi::FavoriteHubApi(Session* aSession) : ApiModule(aSession), itemHandler(properties,
+	FavoriteHubApi::FavoriteHubApi(Session* aSession) : ApiModule(aSession, Access::FAVORITE_HUBS_VIEW), itemHandler(properties,
 		FavoriteHubUtils::getStringInfo, FavoriteHubUtils::getNumericInfo, FavoriteHubUtils::compareEntries, FavoriteHubUtils::serializeHub),
 		view("favorite_hub_view", this, itemHandler, FavoriteHubUtils::getEntryList) {
 
 		FavoriteManager::getInstance()->addListener(this);
 
-		METHOD_HANDLER("hub", ApiRequest::METHOD_POST, (), true, FavoriteHubApi::handleAddHub);
-		METHOD_HANDLER("hub", ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, FavoriteHubApi::handleRemoveHub);
-		METHOD_HANDLER("hub", ApiRequest::METHOD_PATCH, (TOKEN_PARAM), true, FavoriteHubApi::handleUpdateHub);
-		METHOD_HANDLER("hub", ApiRequest::METHOD_GET, (TOKEN_PARAM), false, FavoriteHubApi::handleGetHub);
+		METHOD_HANDLER("hub", Access::FAVORITE_HUBS_EDIT, ApiRequest::METHOD_POST, (), true, FavoriteHubApi::handleAddHub);
+		METHOD_HANDLER("hub", Access::FAVORITE_HUBS_EDIT, ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, FavoriteHubApi::handleRemoveHub);
+		METHOD_HANDLER("hub", Access::FAVORITE_HUBS_EDIT, ApiRequest::METHOD_PATCH, (TOKEN_PARAM), true, FavoriteHubApi::handleUpdateHub);
+		METHOD_HANDLER("hub", Access::FAVORITE_HUBS_VIEW, ApiRequest::METHOD_GET, (TOKEN_PARAM), false, FavoriteHubApi::handleGetHub);
 	}
 
 	FavoriteHubApi::~FavoriteHubApi() {

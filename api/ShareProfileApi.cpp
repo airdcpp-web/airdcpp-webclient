@@ -23,15 +23,15 @@
 #include <airdcpp/ShareManager.h>
 
 namespace webserver {
-	ShareProfileApi::ShareProfileApi(Session* aSession) : ApiModule(aSession) {
+	ShareProfileApi::ShareProfileApi(Session* aSession) : ApiModule(aSession, Access::SETTINGS_VIEW) {
 
 		ShareManager::getInstance()->addListener(this);
 
-		METHOD_HANDLER("profiles", ApiRequest::METHOD_GET, (), false, ShareProfileApi::handleGetProfiles);
-		METHOD_HANDLER("profile", ApiRequest::METHOD_POST, (), true, ShareProfileApi::handleAddProfile);
-		METHOD_HANDLER("profile", ApiRequest::METHOD_PATCH, (TOKEN_PARAM), true, ShareProfileApi::handleUpdateProfile);
-		METHOD_HANDLER("profile", ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, ShareProfileApi::handleRemoveProfile);
-		METHOD_HANDLER("profile", ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("default")), false, ShareProfileApi::handleDefaultProfile);
+		METHOD_HANDLER("profiles", Access::ANY, ApiRequest::METHOD_GET, (), false, ShareProfileApi::handleGetProfiles);
+		METHOD_HANDLER("profile", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (), true, ShareProfileApi::handleAddProfile);
+		METHOD_HANDLER("profile", Access::SETTINGS_EDIT, ApiRequest::METHOD_PATCH, (TOKEN_PARAM), true, ShareProfileApi::handleUpdateProfile);
+		METHOD_HANDLER("profile", Access::SETTINGS_EDIT, ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, ShareProfileApi::handleRemoveProfile);
+		METHOD_HANDLER("profile", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("default")), false, ShareProfileApi::handleDefaultProfile);
 
 		createSubscription("share_profile_added");
 		createSubscription("share_profile_updated");

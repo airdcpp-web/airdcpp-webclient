@@ -169,6 +169,7 @@
     <ClInclude Include="api\common\Deserializer.h" />
     <ClInclude Include="api\common\Format.h" />
     <ClInclude Include="api\common\ListViewController.h" />
+    <ClInclude Include="api\common\ChatController.h" />
     <ClInclude Include="api\common\Property.h" />
     <ClInclude Include="api\common\PropertyFilter.h" />
     <ClInclude Include="api\common\Serializer.h" />
@@ -182,6 +183,7 @@
     <ClInclude Include="api\FilelistApi.h" />
     <ClInclude Include="api\FilelistUtils.h" />
     <ClInclude Include="api\FilesystemApi.h" />
+    <ClInclude Include="api\HashApi.h" />
     <ClInclude Include="api\HierarchicalApiModule.h" />
     <ClInclude Include="api\HistoryApi.h" />
     <ClInclude Include="api\HubApi.h" />
@@ -205,12 +207,15 @@
     <ClInclude Include="api\ShareUtils.h" />
     <ClInclude Include="api\SystemApi.h" />
     <ClInclude Include="api\TransferApi.h" />
+    <ClInclude Include="api\WebUserApi.h" />
+    <ClInclude Include="api\WebUserUtils.h" />
     <ClInclude Include="web-server\ApiRequest.h" />
     <ClInclude Include="web-server\ApiRouter.h" />
     <ClInclude Include="web-server\Exception.h" />
     <ClInclude Include="web-server\FileServer.h" />
     <ClInclude Include="web-server\JsonUtil.h" />
     <ClInclude Include="web-server\LazyInitWrapper.h" />
+    <ClInclude Include="web-server\Access.h" />
     <ClInclude Include="web-server\Session.h" />
     <ClInclude Include="web-server\SessionListener.h" />
     <ClInclude Include="web-server\stdinc.h" />
@@ -220,6 +225,7 @@
     <ClInclude Include="web-server\WebSocket.h" />
     <ClInclude Include="web-server\WebUser.h" />
     <ClInclude Include="web-server\WebUserManager.h" />
+    <ClInclude Include="web-server\WebUserManagerListener.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\ApiModule.cpp" />
@@ -236,6 +242,7 @@
     <ClCompile Include="api\FilelistApi.cpp" />
     <ClCompile Include="api\FilelistUtils.cpp" />
     <ClCompile Include="api\FilesystemApi.cpp" />
+    <ClCompile Include="api\HashApi.cpp" />
     <ClCompile Include="api\HistoryApi.cpp" />
     <ClCompile Include="api\HubApi.cpp" />
     <ClCompile Include="api\HubInfo.cpp" />
@@ -257,6 +264,8 @@
     <ClCompile Include="api\ShareUtils.cpp" />
     <ClCompile Include="api\SystemApi.cpp" />
     <ClCompile Include="api\TransferApi.cpp" />
+    <ClCompile Include="api\WebUserApi.cpp" />
+    <ClCompile Include="api\WebUserUtils.cpp" />
     <ClCompile Include="web-server\ApiRequest.cpp" />
     <ClCompile Include="web-server\ApiRouter.cpp" />
     <ClCompile Include="web-server\FileServer.cpp" />
@@ -265,6 +274,7 @@
     <ClCompile Include="web-server\stdinc.cpp" />
     <ClCompile Include="web-server\WebServerManager.cpp" />
     <ClCompile Include="web-server\WebSocket.cpp" />
+    <ClCompile Include="web-server\WebUser.cpp" />
     <ClCompile Include="web-server\WebUserManager.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

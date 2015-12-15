@@ -25,8 +25,8 @@
 
 namespace webserver {
 	RecentHubApi::RecentHubApi(Session* aSession) : ApiModule(aSession) {
-		METHOD_HANDLER("hubs", ApiRequest::METHOD_GET, (NUM_PARAM), false, RecentHubApi::handleGetHubs);
-		METHOD_HANDLER("search", ApiRequest::METHOD_POST, (), true, RecentHubApi::handleSearchHubs);
+		METHOD_HANDLER("hubs", Access::HUBS_VIEW, ApiRequest::METHOD_GET, (NUM_PARAM), false, RecentHubApi::handleGetHubs);
+		METHOD_HANDLER("search", Access::HUBS_VIEW, ApiRequest::METHOD_POST, (), true, RecentHubApi::handleSearchHubs);
 	}
 
 	RecentHubApi::~RecentHubApi() {

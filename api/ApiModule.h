@@ -20,6 +20,8 @@
 #define DCPLUSPLUS_DCPP_APIMODULE_H
 
 #include <web-server/stdinc.h>
+
+#include <web-server/Access.h>
 #include <web-server/ApiRequest.h>
 #include <web-server/SessionListener.h>
 
@@ -37,9 +39,9 @@ namespace webserver {
 #define EXACT_PARAM(pattern) (StringMatch::getSearch(pattern, StringMatch::EXACT))
 
 #define BRACED_INIT_LIST(...) {__VA_ARGS__}
-#define METHOD_HANDLER(section, method, params, requireJson, func) (requestHandlers[section].push_back(ApiModule::RequestHandler(method, requireJson, BRACED_INIT_LIST params, std::bind(&func, this, placeholders::_1))))
+#define METHOD_HANDLER(section, access, method, params, requireJson, func) (requestHandlers[section].push_back(ApiModule::RequestHandler(access, method, requireJson, BRACED_INIT_LIST params, std::bind(&func, this, placeholders::_1))))
 
-		ApiModule(Session* aSession, const StringList* aSubscriptions = nullptr);
+		ApiModule(Session* aSession, Access aSubscriptionAccess = Access::NONE, const StringList* aSubscriptions = nullptr);
 		virtual ~ApiModule();
 
 		typedef vector<StringMatch> ParamList;
@@ -48,17 +50,21 @@ namespace webserver {
 			typedef std::function<api_return(ApiRequest& aRequest)> HandlerFunction;
 
 			// Regular handler
-			RequestHandler(ApiRequest::Method aMethod, bool aRequireJson, ParamList&& aParams, HandlerFunction aFunction) :
-				method(aMethod), requireJson(aRequireJson), params(move(aParams)), f(aFunction) { }
+			RequestHandler(Access aAccess, ApiRequest::Method aMethod, bool aRequireJson, ParamList&& aParams, HandlerFunction aFunction) :
+				method(aMethod), requireJson(aRequireJson), params(move(aParams)), f(aFunction), access(aAccess) {
+			
+				dcassert((aMethod != ApiRequest::METHOD_DELETE && aMethod != ApiRequest::METHOD_GET) || !aRequireJson);
+			}
 
 			// Sub handler
 			RequestHandler(const StringMatch& aMatch, HandlerFunction aFunction) :
-				params({ aMatch }), f(aFunction) { }
+				params({ aMatch }), f(aFunction), access(Access::ANY) { }
 
 			const ApiRequest::Method method = ApiRequest::METHOD_LAST;
 			const bool requireJson = false;
 			const ParamList params;
 			const HandlerFunction f;
+			const Access access;
 
 			bool matchParams(const ApiRequest::RequestParamList& aParams) const noexcept;
 			bool isModuleHandler() const noexcept {
@@ -66,12 +72,6 @@ namespace webserver {
 			}
 		};
 
-		/*template<class T>
-		void sendPropertyUpdate(const T& aId, const json& aPropertyData) {
-			
-		}*/
-
-		//typedef std::map<std::string , bool> SubscriptionMap;
 		typedef std::map<const string, bool> SubscriptionMap;
 		typedef std::map<std::string, RequestHandler::List> RequestHandlerMap;
 
@@ -121,7 +121,12 @@ namespace webserver {
 		RequestHandlerMap& getRequestHandlers() noexcept {
 			return requestHandlers;
 		}
+
+		Access getSubscriptionAccess() const noexcept {
+			return subscriptionAccess;
+		}
 	protected:
+		const Access subscriptionAccess;
 		Session* session;
 
 		RequestHandlerMap requestHandlers;

@@ -26,9 +26,9 @@
 
 #include <airdcpp/Message.h>
 #include <airdcpp/Client.h>
-//#include <airdcpp/User.h>
 
 #include <api/HierarchicalApiModule.h>
+#include <api/common/ChatController.h>
 #include <api/common/Property.h>
 
 namespace webserver {
@@ -74,27 +74,11 @@ namespace webserver {
 
 		static PropertyItemHandler<OnlineUserPtr> onlineUserPropertyHandler;
 	private:
-		api_return handleGetMessages(ApiRequest& aRequest);
-		api_return handlePostMessage(ApiRequest& aRequest);
-		api_return handleSetRead(ApiRequest& aRequest);
-
 		api_return handleReconnect(ApiRequest& aRequest);
 		api_return handleFavorite(ApiRequest& aRequest);
 		api_return handlePassword(ApiRequest& aRequest);
 		api_return handleRedirect(ApiRequest& aRequest);
 
-		/*void on(UserConnected, const Client*, const OnlineUserPtr&) noexcept;
-		void on(UserUpdated, const Client*, const OnlineUserPtr&) noexcept;
-		void on(UsersUpdated, const Client*, const OnlineUserList&) noexcept;
-		void on(ClientListener::UserRemoved, const Client*, const OnlineUserPtr&) noexcept;
-		void on(NickTaken, const Client*) noexcept;
-		void on(SearchFlood, const Client*, const string&) noexcept;
-		void on(HubTopic, const Client*, const string&) noexcept;
-		void on(AddLine, const Client*, const string&) noexcept;
-		void on(SetActive, const Client*) noexcept;*/
-
-		//void on(Connecting, const Client*) noexcept;
-		//void on(Connected, const Client*) noexcept;
 		void on(Redirect, const Client*, const string&) noexcept;
 		void on(Failed, const string&, const string&) noexcept;
 		void on(GetPassword, const Client*) noexcept;
@@ -105,14 +89,23 @@ namespace webserver {
 		void on(Disconnecting, const Client*) noexcept;
 		void on(Redirected, const string&, const ClientPtr& aNewClient) noexcept;
 
-		void on(ChatMessage, const Client*, const ChatMessagePtr&) noexcept;
-		void on(StatusMessage, const Client*, const LogMessagePtr&, int = ClientListener::FLAG_NORMAL) noexcept;
-		void on(MessagesRead, const Client*) noexcept;
+		void on(ChatMessage, const Client*, const ChatMessagePtr& m) noexcept {
+			chatHandler.onChatMessage(m);
+		}
+		void on(StatusMessage, const Client*, const LogMessagePtr& m, int = ClientListener::FLAG_NORMAL) noexcept {
+			chatHandler.onStatusMessage(m);
+		}
+		void on(MessagesRead, const Client*) noexcept {
+			chatHandler.onMessagesUpdated();
+		}
+		void on(MessagesCleared, const Client*) noexcept {
+			chatHandler.onMessagesUpdated();
+		}
 
 		void onHubUpdated(const json& aData) noexcept;
-		void sendUnread() noexcept;
 		void sendConnectState() noexcept;
 
+		ChatController<ClientPtr> chatHandler;
 		ClientPtr client;
 	};
 

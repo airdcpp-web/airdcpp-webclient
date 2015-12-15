@@ -35,8 +35,8 @@ namespace webserver {
 		typedef ParentApiModule<IdType, ItemType> Type;
 		typedef std::function<IdType(const string&)> ConvertF;
 
-		ParentApiModule(const string& aSubmoduleSection, const StringMatch& aIdMatcher, Session* aSession, const StringList& aSubscriptions, const StringList& aChildSubscription, ConvertF aConvertF) : 
-			ApiModule(aSession, &aSubscriptions), convertF(aConvertF) {
+		ParentApiModule(const string& aSubmoduleSection, const StringMatch& aIdMatcher, Access aAccess, Session* aSession, const StringList& aSubscriptions, const StringList& aChildSubscription, ConvertF aConvertF) :
+			ApiModule(aSession, aAccess, &aSubscriptions), convertF(aConvertF) {
 
 			requestHandlers[aSubmoduleSection].push_back(ApiModule::RequestHandler(aIdMatcher, std::bind(&Type::handleSubModuleRequest, this, placeholders::_1)));
 
@@ -68,15 +68,16 @@ namespace webserver {
 			return ApiModule::handleUnsubscribe(aRequest);
 		}
 
+		// Forward request to a submodule
 		api_return handleSubModuleRequest(ApiRequest& aRequest) {
-			auto chat = getSubModule(aRequest.getStringParam(0));
-			if (!chat) {
+			auto sub = getSubModule(aRequest.getStringParam(0));
+			if (!sub) {
 				aRequest.setResponseErrorStr("Submodule was not found");
 				return websocketpp::http::status_code::not_found;
 			}
 
 			aRequest.popParam();
-			return chat->handleRequest(aRequest);
+			return sub->handleRequest(aRequest);
 		}
 
 		bool subscriptionExists(const string& aSubscription) const noexcept {
@@ -87,6 +88,7 @@ namespace webserver {
 			return ApiModule::subscriptionExists(aSubscription);
 		}
 
+		// Change subscription state for all submodules
 		bool setChildSubscriptionState(const string& aSubscription, bool aActive) noexcept {
 			if (childSubscriptions.find(aSubscription) != childSubscriptions.end()) {
 				RLock l(cs);
@@ -135,8 +137,9 @@ namespace webserver {
 		typedef ParentApiModule<ParentIdType, ItemType> ParentType;
 
 		// aId = ID of the entity owning this module
+		// Will inherit access from the parent module
 		SubApiModule(ParentType* aParentModule, const ItemJsonType& aId, const StringList& aSubscriptions) :
-			ApiModule(aParentModule->getSession(), &aSubscriptions), parentModule(aParentModule), id(aId) { }
+			ApiModule(aParentModule->getSession(), aParentModule->getSubscriptionAccess(), &aSubscriptions), parentModule(aParentModule), id(aId) { }
 
 		bool send(const string& aSubscription, const json& aJson) {
 			json j;
