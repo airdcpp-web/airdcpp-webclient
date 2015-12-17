@@ -73,15 +73,12 @@ namespace webserver {
 			setActive(false);
 			timer->stop(true);
 
-			clearItems();
+			clear();
 			currentValues.reset();
-
-			WLock l(cs);
-			filters.clear();
 		}
 
-		void setResetItems() {
-			clearItems();
+		void resetItems() {
+			clear();
 
 			currentValues.set(IntCollector::TYPE_RANGE_START, 0);
 
@@ -358,7 +355,7 @@ namespace webserver {
 			return static_cast<int>(matchingItems.size());
 		}
 
-		void clearItems() {
+		void clear() {
 			WLock l(cs);
 			tasks.clear();
 			currentViewItems.clear();
@@ -366,6 +363,7 @@ namespace webserver {
 			allItems.clear();
 			prevTotalItemCount = -1;
 			prevMatchingItemCount = -1;
+			filters.clear();
 		}
 
 		static bool itemSort(const T& t1, const T& t2, const PropertyItemHandler<T>& aItemHandler, int aSortProperty, int aSortAscending) {
@@ -610,7 +608,7 @@ namespace webserver {
 			decltype(currentViewItems) viewItemsNew, oldViewItems;
 			{
 				RLock l(cs);
-				if (newStart_ >= allItems.size()) {
+				if (newStart_ >= static_cast<int>(allItems.size())) {
 					newStart_ = 0;
 				}
 
@@ -726,7 +724,7 @@ namespace webserver {
 			matchingItems.erase(iter);
 			allItems.erase(aItem);
 
-			if (pos < rangeStart_) {
+			if (rangeStart_ > 0 && pos > rangeStart_) {
 				// Update the range range positions
 				rangeStart_--;
 			}

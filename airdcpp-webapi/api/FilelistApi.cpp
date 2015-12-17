@@ -142,12 +142,21 @@ namespace webserver {
 	}
 
 	json FilelistApi::serializeList(const DirectoryListingPtr& aList) noexcept {
+		int64_t shareSize = -1, totalFiles = -1;
+		auto user = ClientManager::getInstance()->findOnlineUser(aList->getHintedUser());
+		if (user) {
+			shareSize = Util::toInt64(user->getIdentity().getShareSize());
+			totalFiles = Util::toInt64(user->getIdentity().getSharedFiles());
+		}
+
 		return{
 			{ "id", aList->getUser()->getCID().toBase32() },
 			{ "user", Serializer::serializeHintedUser(aList->getHintedUser()) },
 			{ "state", FilelistInfo::serializeState(aList) },
-			{ "location", FilelistInfo::serializeLocation(aList) }
-			//{ "unread_count", aChat->getCache().countUnreadChatMessages() }
+			{ "location", FilelistInfo::serializeLocation(aList) },
+			{ "partial", aList->getPartialList() },
+			{ "total_files", totalFiles },
+			{ "total_size", shareSize },
 		};
 	}
 
