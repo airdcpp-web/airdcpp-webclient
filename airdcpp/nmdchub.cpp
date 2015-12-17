@@ -738,7 +738,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 					u.getUser()->setFlag(User::PASSIVE);
 			}
 
-			if(getConnectState() == STATE_IDENTIFY && u.getUser() == getMyIdentity().getUser()) {
+			if((getConnectState() == STATE_IDENTIFY || getConnectState() == STATE_VERIFY) && u.getUser() == getMyIdentity().getUser()) {
 				setConnectState(STATE_NORMAL);
 				updateCounts(false);
 				fire(ClientListener::HubUpdated(), this);

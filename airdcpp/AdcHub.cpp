@@ -364,7 +364,6 @@ void AdcHub::handle(AdcCommand::GPA, AdcCommand& c) noexcept {
 	if(c.getParameters().empty() || c.getFrom() != AdcCommand::HUB_SID)
 		return;
 	salt = c.getParam(0);
-	setConnectState(STATE_VERIFY);
 
 	onPassword();
 }

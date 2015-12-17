@@ -1020,9 +1020,9 @@ void ClientManager::directSearch(const HintedUser& user, int aSizeMode, int64_t 
 	}
 }
 
-OnlineUserList ClientManager::searchNicks(const string& aPattern, size_t aMaxResults) const noexcept {
-	auto search = RelevancySearch<OnlineUserPtr>(aPattern, [](const OnlineUserPtr& aUser) {
-		return stripNick(aUser->getIdentity().getNick());
+OnlineUserList ClientManager::searchNicks(const string& aPattern, size_t aMaxResults, bool aIgnorePrefix) const noexcept {
+	auto search = RelevancySearch<OnlineUserPtr>(aPattern, [aIgnorePrefix](const OnlineUserPtr& aUser) {
+		return aIgnorePrefix ? stripNick(aUser->getIdentity().getNick()) : aUser->getIdentity().getNick();
 	});
 
 	{

@@ -2197,7 +2197,9 @@ void ShareManager::renameProfiles(const ShareProfileInfo::List& aProfiles) noexc
 void ShareManager::addProfile(const ShareProfilePtr& aProfile) noexcept {
 	{
 		WLock l(cs);
-		shareProfiles.push_back(aProfile);
+
+		// Hidden profile should always be the last one
+		shareProfiles.insert(shareProfiles.end() - 1, aProfile);
 	}
 
 	fire(ShareManagerListener::ProfileAdded(), aProfile->getToken());
