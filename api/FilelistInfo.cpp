@@ -76,7 +76,7 @@ namespace webserver {
 
 	json FilelistInfo::serializeState(const DirectoryListingPtr& aList) noexcept {
 		string id;
-			switch (aList->getState()) {
+		switch (aList->getState()) {
 			case DirectoryListing::STATE_DOWNLOAD_PENDING: id = "download_pending"; break;
 			case DirectoryListing::STATE_DOWNLOADING: id = "downloading"; break;
 			case DirectoryListing::STATE_LOADING: id = "loading"; break;
@@ -119,7 +119,7 @@ namespace webserver {
 				}
 			}
 
-			directoryView.setResetItems();
+			directoryView.resetItems();
 
 			json j;
 			onSessionUpdated({

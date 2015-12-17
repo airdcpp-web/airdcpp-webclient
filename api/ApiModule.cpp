@@ -66,7 +66,7 @@ namespace webserver {
 			return false;
 		}
 
-		for (auto i = 0; i < params.size(); i++) {
+		for (auto i = 0; i < static_cast<int>(params.size()); i++) {
 			if (!params[i].match(aRequestParams[i])) {
 				return false;
 			}

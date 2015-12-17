@@ -113,7 +113,7 @@ namespace webserver {
 			results.clear();
 		}
 
-		searchView.setResetItems();
+		searchView.resetItems();
 
 		curSearch = shared_ptr<SearchQuery>(newSearch);
 
