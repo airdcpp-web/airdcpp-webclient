@@ -125,7 +125,7 @@ namespace dcpp {
 		WLock l(cs);
 		messages.push_back(move(aMessage));
 
-		if (messages.size() > SettingsManager::getInstance()->get(setting)) {
+		if (static_cast<int>(messages.size()) > SettingsManager::getInstance()->get(setting)) {
 			messages.pop_front();
 		}
 	}

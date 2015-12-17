@@ -278,6 +278,7 @@ int Client::clearCache() noexcept {
 }
 
 void Client::onPassword() {
+	setConnectState(STATE_VERIFY);
 	if (!defpassword.empty()) {
 		password(defpassword);
 		statusMessage(STRING(STORED_PASSWORD_SENT), LogMessage::SEV_INFO);
