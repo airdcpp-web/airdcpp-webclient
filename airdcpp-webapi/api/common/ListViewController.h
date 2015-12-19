@@ -272,7 +272,7 @@ namespace webserver {
 			parseProperties(aRequest.getRequestBody());
 			if (!active) {
 				setActive(true);
-				auto totalItemCount = updateList();
+				updateList();
 				timer->start();
 			}
 
