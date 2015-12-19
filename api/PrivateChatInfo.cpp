@@ -96,10 +96,10 @@ namespace webserver {
 	}
 
 	void PrivateChatInfo::onSessionUpdated(const json& aData) noexcept {
-		if (!subscriptionActive("private_chat_session_updated")) {
+		if (!subscriptionActive("private_chat_updated")) {
 			return;
 		}
 
-		send("private_chat_session_updated", aData);
+		send("private_chat_updated", aData);
 	}
 }
