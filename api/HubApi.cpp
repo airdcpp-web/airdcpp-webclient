@@ -129,27 +129,33 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
+	// Use async tasks because adding/removing HubInfos require calls to ClientListener (which is likely 
+	// to cause deadlocks if done inside ClientManagerListener)
 	void HubApi::on(ClientManagerListener::ClientCreated, const ClientPtr& aClient) noexcept {
-		addHub(aClient);
-		if (!subscriptionActive("hub_created")) {
-			return;
-		}
+		addAsyncSubscriptionTask([=] {
+			addHub(aClient);
+			if (!subscriptionActive("hub_created")) {
+				return;
+			}
 
-		send("hub_created", serializeClient(aClient));
+			send("hub_created", serializeClient(aClient));
+		});
 	}
 
 	void HubApi::on(ClientManagerListener::ClientRemoved, const ClientPtr& aClient) noexcept {
-		{
-			WLock l(cs);
-			subModules.erase(aClient->getClientId());
-		}
+		addAsyncSubscriptionTask([=] {
+			{
+				WLock l(cs);
+				subModules.erase(aClient->getClientId());
+			}
 
-		if (!subscriptionActive("hub_removed")) {
-			return;
-		}
+			if (!subscriptionActive("hub_removed")) {
+				return;
+			}
 
-		send("hub_removed", {
-			{ "id", aClient->getClientId() }
+			send("hub_removed", {
+				{ "id", aClient->getClientId() }
+			});
 		});
 	}
 
