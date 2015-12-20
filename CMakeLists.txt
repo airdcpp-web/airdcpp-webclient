@@ -129,24 +129,12 @@ endif (APPLE)
 
 message (STATUS "Data directory: ${CLIENT_DATA_DIR}")
 
-#if (AIRDCPP_REVISION)
-#    set (airdcpp_WC_REVISION ${AIRDCPP_REVISION})
-#    message (STATUS "AIRDCPP_REVISION is set to: ${airdcpp_WC_REVISION}")
-#elseif (GIT_FOUND)
-    execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-#elseif (NOT AIRDCPP_REVISION)
-#    set (airdcpp_WC_REVISION "${VERSION_SUFFIX}")
-#endif ()
-
-message (STATUS "Downloading Web UI")
-execute_process (COMMAND sh install_webui.sh latest
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-
-execute_process (COMMAND nodejs generate_stringdefs.js airdcpp-core/airdcpp/
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+execute_process (COMMAND ${GIT_EXECUTABLE} describe --tags
+                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                 OUTPUT_VARIABLE SOVERSION
+                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 
-#configure_file(${PROJECT_SOURCE_DIR}/Version.h.in ${PROJECT_BINARY_DIR}/VersionGlobal.h)
 
 if (UNIX)
 add_definitions (-D_GNU_SOURCE)
@@ -205,6 +193,18 @@ message(STATUS "CMAKE will use this libs (and headers) during build:
     natpmp (headers): ${LibNatpmp_LIBRARY} (${LibNatpmp_INCLUDE_DIR})
     tbb (headers): ${TBB_LIBRARIES} (${TBB_INCLUDE_DIRS})
     ")
+
+
+message(STATUS "Running additional scripts")
+execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+
+execute_process (COMMAND sh install_webui.sh latest
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+
+execute_process (COMMAND nodejs generate_stringdefs.js airdcpp-core/airdcpp/
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+#STATUS "Additional data prepared"
+
 
 CONFIGURE_FILE(
   "${PROJECT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"

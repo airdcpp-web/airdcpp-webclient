@@ -220,8 +220,33 @@ static void runConsole(const string& configPath) {
 	uninit();
 }
 
+#define HELP_WIDTH 20
 static void printUsage() {
-	printf("Usage: airdcppd [[-c <configdir>] [-d]] | [-v] | [-h]\n");
+	printf("Usage: airdcppd [options]\n");
+	
+	auto printHelp = [](const std::string& aCommand, const std::string& aHelp) {
+		cout << std::left << std::setw(HELP_WIDTH) << std::setfill(' ') << aCommand;
+		cout << std::left << std::setw(HELP_WIDTH) << std::setfill(' ') << aHelp << std::endl;
+	};
+	
+	cout << std::endl;
+	printHelp("-h", 								"Print help");
+	printHelp("-v", 								"Print version");
+	printHelp("-d", 								"Run as daemon");
+	printHelp("-c=PATH", 						"Use the specified config directory for client settings");
+	printHelp("-r=PATH", 						"Use the specified resource directory for web server files");
+	
+	cout << std::endl;
+	printHelp("--no-auto-connect", 	"Don't connect to any favorite hub on startup");
+	
+	cout << std::endl;
+	cout << std::endl;
+	cout << "Web server" << std::endl;
+	cout << std::endl;
+	printHelp("--configure", 				"Run initial config wizard or change server ports");
+	printHelp("--add-user", 				"Add a new web user with administrative permissions (or change password for existing users)");
+	printHelp("--remove-user", 			"Remove web user");
+	cout << std::endl;
 }
 
 static void setApp(char* argv[]) {
@@ -253,7 +278,9 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 	
-	dcpp::Util::initialize();
+	auto configDir = Util::getStartupParam("-c");
+	
+	dcpp::Util::initialize(configDir ? *configDir : "");
 	auto configF = airdcppd::ConfigPrompt::checkArgs();
 	if (configF) {
 		init();

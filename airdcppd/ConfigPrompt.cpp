@@ -33,13 +33,13 @@ std::string ConfigPrompt::toBold(const std::string& aText) {
 
 ConfigPrompt::ConfigF ConfigPrompt::checkArgs() {
 	function<bool(webserver::WebServerManager*)> f = nullptr;
-	if (Util::hasStartupParam("-configure")) {
+	if (Util::hasStartupParam("--configure")) {
 		f = &runConfigure;
-	} else if (Util::hasStartupParam("-add-user")) {
+	} else if (Util::hasStartupParam("--add-user")) {
 		f = &addUser;
-	} else if (Util::hasStartupParam("-remove-user")) {
+	} else if (Util::hasStartupParam("--remove-user")) {
 		f = &removeUser;
-	} else if (Util::hasStartupParam("-list-users")) {
+	} else if (Util::hasStartupParam("--list-users")) {
 		f = &listUsers;
 	}
 

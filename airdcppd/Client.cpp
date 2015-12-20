@@ -60,7 +60,7 @@ bool Client::startup() {
 	webserver::WebServerManager::newInstance();
 	if (!webserver::WebServerManager::getInstance()->load()) {
 		webserver::WebServerManager::deleteInstance();
-		printf("%s\n", "No valid configuration found. Run the application with -configure parameter to set up initial configuration.");
+		printf("%s\n", "No valid configuration found. Run the application with --configure parameter to set up initial configuration.");
 		return false;
 	}
 
@@ -74,11 +74,11 @@ bool Client::startup() {
 		[&](float aProgress) {}
 	);
 
-	auto webResourcePath = File::makeAbsolutePath("node_modules/airdcpp-webui/");
+	auto webResources = Util::getStartupParam("--web-resources");
 	printf("Starting web server (resource path: %s)\n", webResourcePath.c_str());
 	auto serverStarted = webserver::WebServerManager::getInstance()->start([](const string& aError) {
 		printf("%s\n", aError.c_str());
-	}, webResourcePath);
+	}, webResources ? *webResources : "");
 	
 	if (!serverStarted) {
 		return false;
@@ -97,7 +97,7 @@ bool Client::startup() {
 
 	}
 
-	if (!Util::hasStartupParam("-no-autoconnect")) {
+	if (!Util::hasStartupParam("--no-autoconnect")) {
 		FavoriteManager::getInstance()->autoConnect();
 	}
 
