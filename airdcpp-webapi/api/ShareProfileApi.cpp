@@ -75,7 +75,12 @@ namespace webserver {
 		});
 	}
 
-	void ShareProfileApi::on(ShareManagerListener::ProfileUpdated, ProfileToken aProfile) noexcept {
+	void ShareProfileApi::on(ShareManagerListener::ProfileUpdated, ProfileToken aProfile, bool aIsMajorChange) noexcept {
+		if (!aIsMajorChange) {
+			// Don't spam when files are hashed
+			return;
+		}
+
 		maybeSend("share_profile_updated", [&] {
 			return serializeShareProfile(ShareManager::getInstance()->getShareProfile(aProfile));
 		});

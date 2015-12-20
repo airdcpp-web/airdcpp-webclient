@@ -47,7 +47,7 @@ namespace webserver {
 		void parseProfile(ShareProfilePtr& aProfile, const json& j);
 
 		void on(ShareManagerListener::ProfileAdded, ProfileToken aProfile) noexcept;
-		void on(ShareManagerListener::ProfileUpdated, ProfileToken aProfile) noexcept;
+		void on(ShareManagerListener::ProfileUpdated, ProfileToken aProfile, bool aIsMajorChange) noexcept;
 		void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept;
 	};
 }

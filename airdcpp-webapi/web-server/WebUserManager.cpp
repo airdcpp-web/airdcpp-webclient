@@ -26,6 +26,15 @@
 #include <airdcpp/TimerManager.h>
 #include <airdcpp/Util.h>
 
+#ifdef _WIN32
+#include <Wincrypt.h>
+#endif
+
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
+
 namespace webserver {
 	WebUserManager::WebUserManager(WebServerManager* aServer) : server(aServer){
 		aServer->addListener(this);
@@ -49,7 +58,8 @@ namespace webserver {
 		u->addSession();
 		fire(WebUserManagerListener::UserUpdated(), u);
 
-		auto session = make_shared<Session>(u, Util::toString(Util::rand()), aIsSecure, server, aMaxInactivityMinutes);
+		auto uuid = boost::uuids::random_generator()();
+		auto session = make_shared<Session>(u, boost::uuids::to_string(uuid), aIsSecure, server, aMaxInactivityMinutes);
 
 		{
 			WLock l(cs);
