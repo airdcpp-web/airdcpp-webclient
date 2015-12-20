@@ -220,7 +220,7 @@ static void runConsole(const string& configPath) {
 	uninit();
 }
 
-#define HELP_WIDTH 20
+#define HELP_WIDTH 25
 static void printUsage() {
 	printf("Usage: airdcppd [options]\n");
 	
@@ -234,7 +234,6 @@ static void printUsage() {
 	printHelp("-v", 								"Print version");
 	printHelp("-d", 								"Run as daemon");
 	printHelp("-c=PATH", 						"Use the specified config directory for client settings");
-	printHelp("-r=PATH", 						"Use the specified resource directory for web server files");
 	
 	cout << std::endl;
 	printHelp("--no-auto-connect", 	"Don't connect to any favorite hub on startup");
@@ -243,9 +242,10 @@ static void printUsage() {
 	cout << std::endl;
 	cout << "Web server" << std::endl;
 	cout << std::endl;
-	printHelp("--configure", 				"Run initial config wizard or change server ports");
-	printHelp("--add-user", 				"Add a new web user with administrative permissions (or change password for existing users)");
-	printHelp("--remove-user", 			"Remove web user");
+	printHelp("--configure", 					"Run initial config wizard or change server ports");
+	printHelp("--add-user", 					"Add a new web user with administrative permissions (or change password for existing users)");
+	printHelp("--remove-user", 				"Remove web user");
+	printHelp("--web-resources=PATH", "Use the specified resource directory for web server files");
 	cout << std::endl;
 }
 

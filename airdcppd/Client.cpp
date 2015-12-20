@@ -75,7 +75,7 @@ bool Client::startup() {
 	);
 
 	auto webResources = Util::getStartupParam("--web-resources");
-	printf("Starting web server (resource path: %s)\n", webResourcePath.c_str());
+	printf("Starting web server");
 	auto serverStarted = webserver::WebServerManager::getInstance()->start([](const string& aError) {
 		printf("%s\n", aError.c_str());
 	}, webResources ? *webResources : "");
