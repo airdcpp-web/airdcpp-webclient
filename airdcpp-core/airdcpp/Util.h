@@ -164,7 +164,9 @@ public:
 
 	static int64_t convertSize(int64_t aValue, SizeUnits valueType, SizeUnits to = B);
 
-	static void initialize();
+	// The client uses regular config directories or boot config file to determine the config path
+	// if a custom path isn't provided
+	static void initialize(const string& aConfigPath = Util::emptyString);
 
 	static string getAppFilePath() noexcept;
 	static string getAppFileName() noexcept;
