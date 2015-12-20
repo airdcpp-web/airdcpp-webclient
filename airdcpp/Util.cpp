@@ -202,7 +202,7 @@ string Util::getAppFileName() noexcept {
 	return getFileName(getAppPath());
 }
 
-void Util::initialize() {
+void Util::initialize(const string& aConfigPath) {
 	Text::initialize();
 
 	sgenrand((unsigned long)time(NULL));
@@ -217,7 +217,7 @@ void Util::initialize() {
 	// Global config path is the AirDC++ executable path...
 	paths[PATH_GLOBAL_CONFIG] = exePath;
 
-	paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + "Settings\\";
+	paths[PATH_USER_CONFIG] = !aConfigPath.empty() ? aConfigPath : paths[PATH_GLOBAL_CONFIG] + "Settings\\";
 
 	loadBootConfig();
 
@@ -248,7 +248,7 @@ void Util::initialize() {
 	const char* home_ = getenv("HOME");
 	string home = home_ ? Text::toUtf8(home_) : "/tmp/";
 
-	paths[PATH_USER_CONFIG] = home + "/.airdc++/";
+	paths[PATH_USER_CONFIG] = !aConfigPath.empty() ? aConfigPath : home + "/.airdc++/";
 
 	loadBootConfig();
 
@@ -334,14 +334,6 @@ void Util::migrate(const string& aNewDir, const string& aPattern) {
 }
 
 void Util::loadBootConfig() {
-#ifndef _WIN32
-	auto c = getStartupParam("-c");
-	if (c) {
-		paths[PATH_USER_CONFIG] = *c;
-		return;
-	}
-#endif
-
 	// Load boot settings
 	try {
 		SimpleXML boot;

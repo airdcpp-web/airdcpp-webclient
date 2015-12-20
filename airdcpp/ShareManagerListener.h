@@ -46,7 +46,7 @@ namespace dcpp {
 		virtual void on(DirectoriesRefreshed, uint8_t /*tasktype*/, const RefreshPathList&) noexcept{}
 
 		virtual void on(ProfileAdded, ProfileToken) noexcept {}
-		virtual void on(ProfileUpdated, ProfileToken) noexcept {}
+		virtual void on(ProfileUpdated, ProfileToken, bool /*aIsMajorChange*/) noexcept {}
 		virtual void on(ProfileRemoved, ProfileToken) noexcept {}
 		virtual void on(DefaultProfileChanged, ProfileToken /*aOldDefault*/, ProfileToken /*aNewDefault*/) noexcept {}
 

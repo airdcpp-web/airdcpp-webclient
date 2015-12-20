@@ -478,7 +478,7 @@ void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) noe
 		addRefreshTask(REFRESH_DIRS, refresh, TYPE_MONITORING);
 	}
 
-	setProfilesDirty(dirtyProfiles);
+	setProfilesDirty(dirtyProfiles, false);
 }
 
 void ShareManager::on(DirectoryMonitorListener::DirectoryFailed, const string& aPath, const string& aError) noexcept {
@@ -615,7 +615,7 @@ void ShareManager::on(DirectoryMonitorListener::FileRenamed, const string& aOldP
 		}
 	}
 
-	setProfilesDirty(dirtyProfiles);
+	setProfilesDirty(dirtyProfiles, false);
 }
 
 void ShareManager::on(DirectoryMonitorListener::FileDeleted, const string& aPath) noexcept {
@@ -741,13 +741,13 @@ void ShareManager::shutdown(function<void(float)> progressF) noexcept {
 	QueueManager::getInstance()->removeListener(this);
 }
 
-void ShareManager::setProfilesDirty(ProfileTokenSet aProfiles, bool forceXmlRefresh /*false*/) noexcept {
+void ShareManager::setProfilesDirty(ProfileTokenSet aProfiles, bool aIsMajorChange /*false*/) noexcept {
 	if (!aProfiles.empty()) {
 		RLock l(cs);
 		for(const auto token: aProfiles) {
 			auto i = find(shareProfiles.begin(), shareProfiles.end(), token);
 			if(i != shareProfiles.end()) {
-				if (forceXmlRefresh)
+				if (aIsMajorChange)
 					(*i)->getProfileList()->setForceXmlRefresh(true);
 				(*i)->getProfileList()->setXmlDirty(true);
 				(*i)->setProfileInfoDirty(true);
@@ -756,7 +756,7 @@ void ShareManager::setProfilesDirty(ProfileTokenSet aProfiles, bool forceXmlRefr
 	}
 
 	for (const auto token : aProfiles) {
-		fire(ShareManagerListener::ProfileUpdated(), token);
+		fire(ShareManagerListener::ProfileUpdated(), token, aIsMajorChange);
 	}
 }
 
@@ -2168,8 +2168,8 @@ void ShareManager::setDefaultProfile(ProfileToken aNewDefault) noexcept {
 	SettingsManager::getInstance()->set(SettingsManager::DEFAULT_SP, aNewDefault);
 
 	fire(ShareManagerListener::DefaultProfileChanged(), oldDefault, aNewDefault);
-	fire(ShareManagerListener::ProfileUpdated(), aNewDefault);
-	fire(ShareManagerListener::ProfileUpdated(), oldDefault);
+	fire(ShareManagerListener::ProfileUpdated(), aNewDefault, true);
+	fire(ShareManagerListener::ProfileUpdated(), oldDefault, true);
 }
 
 void ShareManager::addProfiles(const ShareProfileInfo::List& aProfiles) noexcept {
@@ -2206,7 +2206,7 @@ void ShareManager::addProfile(const ShareProfilePtr& aProfile) noexcept {
 }
 
 void ShareManager::updateProfile(const ShareProfilePtr& aProfile) noexcept {
-	fire(ShareManagerListener::ProfileUpdated(), aProfile->getToken());
+	fire(ShareManagerListener::ProfileUpdated(), aProfile->getToken(), true);
 }
 
 bool ShareManager::removeProfile(ProfileToken aToken) noexcept {
@@ -2395,7 +2395,7 @@ bool ShareManager::changeDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo) 
 		removeMonitoring({ aDirectoryInfo->path });
 	}
 
-	setProfilesDirty(dirtyProfiles);
+	setProfilesDirty(dirtyProfiles, true);
 
 	fire(ShareManagerListener::RootUpdated(), aDirectoryInfo->path);
 	return true;
@@ -3519,7 +3519,7 @@ void ShareManager::on(QueueManagerListener::BundleStatusChanged, const BundlePtr
 			handleDeletedFile(aBundle->getTarget(), true, dirty);
 		}
 
-		setProfilesDirty(dirty);
+		setProfilesDirty(dirty, false);
 	}
 }
 
@@ -3636,7 +3636,7 @@ void ShareManager::onFileHashed(const string& fname, HashedFile& fileInfo) noexc
 		addFile(Util::getFileName(fname), d, fileInfo, dirtyProfiles);
 	}
 
-	setProfilesDirty(dirtyProfiles);
+	setProfilesDirty(dirtyProfiles, false);
 }
 
 void ShareManager::addFile(const string& aName, Directory::Ptr& aDir, const HashedFile& fi, ProfileTokenSet& dirtyProfiles_) noexcept {
