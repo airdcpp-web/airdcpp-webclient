@@ -56,10 +56,12 @@ When starting the client for the first time, you need to run the initial configu
 airdcppd --configure
 ```
 
-After this, you may start the client normally
+You may now start the client normally
 
 ```
 airdcppd
 ```
 
-Access the user interface with your web browser and log in with the user account that was created.
+Access the user interface with your web browser and log in with the user account that was created. If you accepted the default ports and the client is running on the same computer, the following address can be used:
+
+[http://localhost:5600](http://localhost:5600)
