@@ -20,12 +20,29 @@ add_executable (${PROJECT_NAME} MACOSX_BUNDLE WIN32
 #        ${ICONV_LIBRARIES}
 #        )
 
-target_link_libraries (${PROJECT_NAME} airdcpp airdcpp-webapi ${LIBS})
+#target_link_libraries (${PROJECT_NAME} airdcpp airdcpp-webapi ${LIBS})
+
+if (APPLE)
+  target_link_libraries (${PROJECT_NAME} ${LIBS} airdcpp airdcpp-webapi iconv)
+else (APPLE)
+  target_link_libraries (${PROJECT_NAME} ${LIBS} airdcpp airdcpp-webapi)
+endif (APPLE)
+
 
 if (CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(-D_DEBUG)
 endif()
 
+set_property (TARGET ${PROJECT_NAME} PROPERTY OUTPUT_NAME ${PROJECT_NAME})
 install (TARGETS ${PROJECT_NAME}
-    RUNTIME DESTINATION ../${BINDIR}
-    BUNDLE DESTINATION ../${BUNDLEDIR})
+    RUNTIME DESTINATION ${BINDIR}
+    BUNDLE DESTINATION ${BUNDLEDIR})
+	
+#if (APPLE)
+#  install (FILES ${PROJECT_NAME}.desktop DESTINATION ${PROJECT_NAME_GLOBAL}.app/applications)
+#else (APPLE)
+#  if (UNIX)
+#    install (FILES ${PROJECT_NAME}.desktop DESTINATION ${SHARE_DIR}/applications)
+#  endif (UNIX)
+#endif (APPLE)
+

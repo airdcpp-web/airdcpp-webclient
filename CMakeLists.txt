@@ -48,6 +48,7 @@ CHECK_INCLUDE_FILES ("sys/types.h;sys/statvfs.h;limits.h;stdbool.h;stdint.h" FS_
 
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
+
 find_package (GeoIP REQUIRED)
 find_package (PkgConfig)
 find_package (BZip2 REQUIRED)
@@ -119,17 +120,17 @@ if (APPLE)
     add_definitions(-DAPPLE)
 endif (APPLE)
 
-if (APPLE)
-  set (CLIENT_DATA_DIR "${PROJECT_NAME_GLOBAL}.app")
-elseif (WIN32)
+#if (APPLE)
+#  set (CLIENT_DATA_DIR "${PROJECT_NAME_GLOBAL}.app")
+if (WIN32)
   set (CLIENT_DATA_DIR "${SHARE_DIR}")
-else (APPLE)
-  set (CLIENT_DATA_DIR "${CMAKE_INSTALL_PREFIX}/${SHARE_DIR}/${PROJECT_NAME_GLOBAL}")
-endif (APPLE)
+else (WIN32)
+  set (CLIENT_DATA_DIR "${CMAKE_INSTALL_PREFIX}/${SHARE_DIR}/airdcpp")
+endif (WIN32)
 
 message (STATUS "Data directory: ${CLIENT_DATA_DIR}")
 
-execute_process (COMMAND ${GIT_EXECUTABLE} describe --tags
+execute_process (COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
                  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                  OUTPUT_VARIABLE SOVERSION
                  OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -142,7 +143,9 @@ find_program (GZIP_CMD gzip)
 mark_as_advanced(GZIP_CMD)
 endif (UNIX)
 
-#set (CLIENT_ICONS_DEST "${CLIENT_DATA_DIR}/icons")
+#set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${LIBDIR}")
 
 add_definitions (-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT
                  -D_DATADIR="${CLIENT_DATA_DIR}" -DLOCALE_DIR="${LOCALE_DIR}" -DBUILDING_AIRDCPP)
@@ -203,7 +206,6 @@ execute_process (COMMAND sh install_webui.sh latest
 
 execute_process (COMMAND nodejs generate_stringdefs.js airdcpp-core/airdcpp/
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-#STATUS "Additional data prepared"
 
 
 CONFIGURE_FILE(
@@ -212,4 +214,5 @@ CONFIGURE_FILE(
   IMMEDIATE @ONLY)
 ADD_CUSTOM_TARGET(uninstall
   "${CMAKE_COMMAND}" -P "${PROJECT_BINARY_DIR}/cmake_uninstall.cmake")
-
+  
+install (DIRECTORY node_modules/airdcpp-webui/dist/ DESTINATION /usr/share/airdcpp/web-resources)
