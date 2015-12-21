@@ -14,12 +14,7 @@ set (WEBAPI_HDRS ${webapi_hdrs} PARENT_SCOPE)
 include_directories(AIRDCPP_HDRS ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS})
 
 include_directories(${PROJECT_SOURCE_DIR}/json)
-
 include_directories(${WEBSOCKETPP_INCLUDE_DIR})
-
-#if (ENABLE_STACKTRACE)
-#    set_property(SOURCE ${PROJECT_SOURCE_DIR}/src/nasdc.cpp PROPERTY COMPILE_DEFINITIONS ENABLE_STACKTRACE)
-#endif (ENABLE_STACKTRACE)
 
 if (NOT LINK)
   set (LINK SHARED)
@@ -46,16 +41,13 @@ endif()
 target_link_libraries (airdcpp-webapi airdcpp ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES})
 set_target_properties(airdcpp-webapi PROPERTIES VERSION ${SOVERSION} OUTPUT_NAME "airdcpp-webapi")
 
+if (APPLE)
+  set (LIBDIR1 .)
+  set (LIBDIR ${PROJECT_NAME_GLOBAL}.app/Contents/MacOS)
+endif(APPLE)
 
-#install (TARGETS ${PROJECT_NAME}
-#    RUNTIME DESTINATION ${BINDIR}
-#    BUNDLE DESTINATION ${BUNDLEDIR})
-
-#if (UNIX)
-#  execute_process (
-#                OUTPUT_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.1.gz
-#                COMMAND "${GZIP_CMD}" -9
-#                INPUT_FILE ${PROJECT_NAME}.1
-#                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/)
-#  install (FILES ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.1.gz DESTINATION ${MAN_DIR})
-#endif (UNIX)
+if (LINK STREQUAL SHARED)
+install (TARGETS airdcpp-webapi
+            LIBRARY DESTINATION ${LIBDIR} NAMELINK_SKIP
+            BUNDLE DESTINATION ${LIBDIR1})
+endif (LINK STREQUAL SHARED)
