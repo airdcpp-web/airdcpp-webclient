@@ -76,10 +76,10 @@ bool ConfigPrompt::runConfigure(webserver::WebServerManager* wsm) {
 	auto& plainServerConfig = wsm->getPlainServerConfig();
 	auto& tlsServerConfig = wsm->getTlsServerConfig();
 
-	promptPort(plainServerConfig, "HTTP", 5334);
+	promptPort(plainServerConfig, "HTTP", 5600);
 	cout << std::endl;
 
-	promptPort(tlsServerConfig, "HTTPS", 5336);
+	promptPort(tlsServerConfig, "HTTPS", 5601);
 	cout << std::endl;
 
 	if (!wsm->getUserManager().hasUsers()) {

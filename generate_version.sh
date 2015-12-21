@@ -15,7 +15,7 @@ echo "#define GIT_COMMIT_COUNT `git rev-list HEAD --count`" >> $tmpFile
 echo "#define VERSION_DATE `git show --format=\"%at\" | head -n1`" >> $tmpFile
 echo "#define APPNAME_INC \"AirDC++w\"" >> $tmpFile
 
-if diff -q "$file" "$tmpFile" > /dev/null; then
+if diff -q "$file" "$tmpFile" > /dev/null 2>&1; then
     : # files are the same
     rm "$tmpFile"
     echo 'No commit changes detected, using the old version file'
