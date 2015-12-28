@@ -37,7 +37,7 @@ namespace webserver {
 
 					tstring sDrive;
 					sDrive = (wchar_t)('A' + i);
-					sDrive += _T(":\\");
+					sDrive += _T(":");
 
 					auto driveType = GetDriveType(sDrive.c_str());
 					if (aListCdrom || driveType != DRIVE_CDROM) {

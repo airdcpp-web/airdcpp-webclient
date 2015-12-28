@@ -96,6 +96,7 @@ namespace webserver {
 		case FilelistInfo::PROP_SIZE: return (double)aItem->getSize();
 		case FilelistInfo::PROP_DATE: return (double)aItem->getDate();
 		case FilelistInfo::PROP_DUPE: return (double)aItem->getDupe();
+		//case FilelistInfo::PROP_COMPLETE: return (double)aItem->isComplete();
 		default: dcassert(0); return 0;
 		}
 	}
