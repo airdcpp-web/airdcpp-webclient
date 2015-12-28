@@ -165,7 +165,7 @@ public:
 		GETSET(string, fullPath, FullPath);
 	};
 
-	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool isClientView, const string& aDirectory, bool aIsOwnList=false);
+	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool isClientView, bool aIsOwnList=false);
 	~DirectoryListing();
 	
 	void loadFile() throw(Exception, AbortException);
@@ -263,12 +263,11 @@ public:
 	bool changeDirectory(const string& aPath, ReloadMode aReloadMode, bool aIsSearchChange = false) noexcept;
 
 	struct LocationInfo {
-		string path;
-
-		int64_t size = -1;
+		int64_t totalSize = -1;
 		int files = -1;
 		int directories = -1;
-		bool complete = true;
+
+		Directory::Ptr directory = nullptr;
 	};
 
 	const LocationInfo& getCurrentLocationInfo() const noexcept {

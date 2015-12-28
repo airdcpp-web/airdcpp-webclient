@@ -145,7 +145,7 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 		}
 	}
 
-	auto dirList = DirectoryListingPtr(new DirectoryListing(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, aFileName, false, aRemotePath, false));
+	auto dirList = DirectoryListingPtr(new DirectoryListing(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, aFileName, false, false));
 	try {
 		if (flags & QueueItem::FLAG_TEXT) {
 			MemoryInputStream mis(aXml);
@@ -364,7 +364,7 @@ void DirectoryListingManager::openOwnList(ProfileToken aProfile, bool useADL /*f
 	if (hasList(me.user))
 		return;
 
-	auto dl = DirectoryListingPtr(new DirectoryListing(me, !useADL, Util::toString(aProfile), true, Util::emptyString, true));
+	auto dl = DirectoryListingPtr(new DirectoryListing(me, !useADL, Util::toString(aProfile), true, true));
 	dl->setMatchADL(useADL);
 
 	{
@@ -379,7 +379,7 @@ void DirectoryListingManager::openFileList(const HintedUser& aUser, const string
 	if (hasList(aUser.user))
 		return;
 
-	auto dl = DirectoryListingPtr(new DirectoryListing(aUser, false, aFile, true, Util::emptyString, false));
+	auto dl = DirectoryListingPtr(new DirectoryListing(aUser, false, aFile, true, false));
 
 	{
 		WLock l(cs);
@@ -399,9 +399,9 @@ void DirectoryListingManager::on(QueueManagerListener::Added, QueueItemPtr& aQI)
 
 	DirectoryListingPtr dl = nullptr;
 	if (!aQI->isSet(QueueItem::FLAG_PARTIAL_LIST)) {
-		dl = DirectoryListingPtr(new DirectoryListing(user, false, aQI->getListName(), true, aQI->getTempTarget(), false));
+		dl = DirectoryListingPtr(new DirectoryListing(user, false, aQI->getListName(), true, false));
 	} else {
-		dl = DirectoryListingPtr(new DirectoryListing(user, true, Util::emptyString, true, aQI->getTempTarget(), false));
+		dl = DirectoryListingPtr(new DirectoryListing(user, true, Util::emptyString, true, false));
 	}
 
 	dl->setQueueToken(aQI->getToken());

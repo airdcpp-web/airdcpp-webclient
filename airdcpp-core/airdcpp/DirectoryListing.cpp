@@ -43,12 +43,12 @@ namespace dcpp {
 using boost::range::for_each;
 using boost::range::find_if;
 
-DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, const string& aDirectory, bool aIsOwnList) :
+DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) :
 	hintedUser(aUser), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD, 0)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
 	isClientView(aIsClientView), matchADL(SETTING(USE_ADLS) && !aPartial), 
 	tasks(isClientView, Thread::NORMAL, std::bind(&DirectoryListing::dispatch, this, std::placeholders::_1))
 {
-	currentLocation.path = aDirectory;
+	updateCurrentLocation(root);
 	running.clear();
 
 	ClientManager::getInstance()->addListener(this);
@@ -912,7 +912,7 @@ void DirectoryListing::listDiffImpl(const string& aFile, bool aOwnList) throw(Ex
 		partialList = false;
 	}
 
-	DirectoryListing dirList(hintedUser, false, aFile, false, Util::emptyString, aOwnList);
+	DirectoryListing dirList(hintedUser, false, aFile, false, aOwnList);
 	dirList.loadFile();
 
 	root->filterList(dirList);
@@ -962,11 +962,10 @@ void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aDir,
 }
 
 void DirectoryListing::updateCurrentLocation(const Directory::Ptr& aCurrentDirectory) noexcept {
-	currentLocation.path = aCurrentDirectory->getPath();
 	currentLocation.directories = aCurrentDirectory->directories.size();
 	currentLocation.files = aCurrentDirectory->files.size();
-	currentLocation.size = aCurrentDirectory->getTotalSize(false);
-	currentLocation.complete = aCurrentDirectory->isComplete();
+	currentLocation.totalSize = aCurrentDirectory->getTotalSize(false);
+	currentLocation.directory = aCurrentDirectory;
 }
 
 void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) noexcept {
