@@ -52,6 +52,11 @@ namespace webserver {
 			retJson = Filesystem::getDriveListing(false);
 #endif
 		} else {
+			if (!Util::fileExists(path)) {
+				aRequest.setResponseErrorStr("The path doesn't exist on disk");
+				return websocketpp::http::status_code::bad_request;
+			}
+
 			try {
 				retJson = serializeDirectoryContent(path, dirsOnly ? *dirsOnly : false);
 			} catch (const FileException& e) {

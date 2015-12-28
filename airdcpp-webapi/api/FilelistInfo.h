@@ -46,14 +46,15 @@ namespace webserver {
 		const DirectoryListing::File* file;
 		const DirectoryListing::Directory::Ptr dir;
 
-		FilelistItemInfo(DirectoryListing::File* f) : type(FILE), file(f) { }
-		FilelistItemInfo(DirectoryListing::Directory::Ptr& d) : type(DIRECTORY), dir(d) {}
+		FilelistItemInfo(const DirectoryListing::File* f) : type(FILE), file(f) { }
+		FilelistItemInfo(const DirectoryListing::Directory::Ptr& d) : type(DIRECTORY), dir(d) {}
 		~FilelistItemInfo() { }
 
 		DupeType getDupe() const noexcept { return type == DIRECTORY ? dir->getDupe() : file->getDupe(); }
 		const string& getName() const noexcept { return type == DIRECTORY ? dir->getName() : file->getName(); }
 		string getPath() const noexcept { return type == DIRECTORY ? dir->getPath() : file->getPath(); }
 		bool isAdl() const noexcept { return type == DIRECTORY ? dir->getAdls() : file->getAdls(); }
+		//bool isComplete() const noexcept { return type == DIRECTORY ? dir->isComplete() : true; }
 
 		time_t getDate() const noexcept { return type == DIRECTORY ? dir->getRemoteDate() : file->getRemoteDate(); }
 		time_t getSize() const noexcept { return type == DIRECTORY ? dir->getTotalSize(false) : file->getSize(); }
@@ -91,6 +92,7 @@ namespace webserver {
 			PROP_PATH,
 			PROP_TTH,
 			PROP_DUPE,
+			PROP_COMPLETE,
 			PROP_LAST
 		};
 
@@ -121,7 +123,9 @@ namespace webserver {
 		void on(DirectoryListingListener::HubChanged) noexcept;*/
 
 		FilelistItemInfo::List getCurrentViewItems();
-		PropertyItemHandler<FilelistItemInfoPtr> itemHandler;
+
+		typedef PropertyItemHandler<FilelistItemInfoPtr> Handler;
+		static const Handler itemHandler;
 
 		typedef ListViewController<FilelistItemInfoPtr, PROP_LAST> DirectoryView;
 		DirectoryView directoryView;

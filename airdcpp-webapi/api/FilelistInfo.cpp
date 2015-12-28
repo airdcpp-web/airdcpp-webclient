@@ -35,17 +35,23 @@ namespace webserver {
 		{ PROP_PATH, "path", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 		{ PROP_TTH, "tth", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 		{ PROP_DUPE, "dupe", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		//{ PROP_COMPLETE, "complete", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
 	};
 
 	const StringList FilelistInfo::subscriptionList = {
 		"filelist_updated"
 	};
 
+	const FilelistInfo::Handler FilelistInfo::itemHandler(properties,
+		FilelistUtils::getStringInfo, 
+		FilelistUtils::getNumericInfo, 
+		FilelistUtils::compareItems, 
+		FilelistUtils::serializeItem
+	);
+
 	FilelistInfo::FilelistInfo(ParentType* aParentModule, const DirectoryListingPtr& aFilelist) : 
 		SubApiModule(aParentModule, aFilelist->getUser()->getCID().toBase32(), subscriptionList), 
-		dl(aFilelist), 
-		itemHandler(properties,
-		FilelistUtils::getStringInfo, FilelistUtils::getNumericInfo, FilelistUtils::compareItems, FilelistUtils::serializeItem),
+		dl(aFilelist),
 		directoryView("filelist_view", this, itemHandler, std::bind(&FilelistInfo::getCurrentViewItems, this))
 	{
 		METHOD_HANDLER("directory", Access::FILELISTS_VIEW, ApiRequest::METHOD_POST, (), true, FilelistInfo::handleChangeDirectory);
@@ -53,7 +59,7 @@ namespace webserver {
 		dl->addListener(this);
 
 		if (dl->isOpen()) {
-			updateItems(dl->getCurrentLocationInfo().path);
+			updateItems(dl->getCurrentLocationInfo().directory->getPath());
 		}
 	}
 
@@ -90,13 +96,13 @@ namespace webserver {
 
 	json FilelistInfo::serializeLocation(const DirectoryListingPtr& aListing) noexcept {
 		const auto& location = aListing->getCurrentLocationInfo();
-		return{
-			{ "path", Util::toAdcFile(location.path) },
-			{ "size", location.size },
-			{ "files", location.files },
-			{ "directories", location.directories },
-			{ "complete", location.complete },
-		};
+		auto ret = Serializer::serializeItem(make_shared<FilelistItemInfo>(location.directory), itemHandler);
+
+		ret["size"] = location.totalSize;
+		ret["files"] = location.files;
+		ret["directories"] = location.directories;
+		ret["complete"] = location.directory->isComplete();
+		return ret;
 	}
 
 	void FilelistInfo::updateItems(const string& aPath) noexcept {
@@ -111,11 +117,11 @@ namespace webserver {
 				currentViewItems.clear();
 
 				for (auto& d : curDir->directories) {
-					currentViewItems.emplace_back(new FilelistItemInfo(d));
+					currentViewItems.emplace_back(make_shared<FilelistItemInfo>(d));
 				}
 
 				for (auto& f : curDir->files) {
-					currentViewItems.emplace_back(new FilelistItemInfo(f));
+					currentViewItems.emplace_back(make_shared<FilelistItemInfo>(f));
 				}
 			}
 
