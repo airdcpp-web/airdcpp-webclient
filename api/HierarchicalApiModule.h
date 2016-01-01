@@ -141,14 +141,14 @@ namespace webserver {
 			return nullptr;
 		}
 
-		void forEachSubModule(std::function<void(const typename ItemType& aModule)> aAction) {
+		void forEachSubModule(std::function<void(const ItemType&)> aAction) {
 			RLock l(cs);
 			for (const auto& m : subModules | map_values) {
 				aAction(*m.get());
 			}
 		}
 
-		void addSubModule(IdType aId, typename ItemType::Ptr aModule) {
+		void addSubModule(IdType aId, typename ItemType::Ptr& aModule) {
 			WLock l(cs);
 			subModules.emplace(aId, aModule);
 		}
