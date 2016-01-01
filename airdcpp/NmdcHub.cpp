@@ -131,7 +131,7 @@ OnlineUser& NmdcHub::getUser(const string& aNick) {
 
 	{
 		Lock l(cs);
-		u = users.emplace(aNick, new OnlineUser(p, client, 0)).first->second;
+		u = users.emplace(aNick, new OnlineUser(p, client, Util::rand())).first->second;
 		u->inc();
 		u->getIdentity().setNick(aNick);
 		if(u->getUser() == getMyIdentity().getUser()) {
@@ -1175,9 +1175,13 @@ void NmdcHub::on(Minute, uint64_t /*aTick*/) noexcept {
 	refreshLocalIp();
 }
 
-void NmdcHub::getUserList(OnlineUserList& list) const {
+void NmdcHub::getUserList(OnlineUserList& list, bool aListHidden) const {
 	Lock l(cs);
 	for(auto& u: users | map_values) {
+		if (!aListHidden && u->isHidden()) {
+			continue;
+		}
+
 		list.push_back(u);
 	}
 }

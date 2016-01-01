@@ -134,12 +134,18 @@ OnlineUser* AdcHub::findUser(const CID& aCID) const {
 	return 0;
 }
 
-void AdcHub::getUserList(OnlineUserList& list) const {
+void AdcHub::getUserList(OnlineUserList& list, bool aListHidden) const {
 	RLock l(cs);
 	for(const auto& i: users) {
-		if(i.first != AdcCommand::HUB_SID) {
-			list.push_back(i.second);
+		if (i.first == AdcCommand::HUB_SID) {
+			continue;
 		}
+
+		if (!aListHidden && i.second->isHidden()) {
+			continue;
+		}
+
+		list.push_back(i.second);
 	}
 }
 
@@ -265,11 +271,13 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 
 		if (oldState != STATE_NORMAL || any_of(c.getParameters().begin(), c.getParameters().end(), [](const string& p) { return p.substr(0, 2) == "SU" || p.substr(0, 2) == "I4" || p.substr(0, 2) == "I6"; })) {
 			fire(ClientListener::HubUpdated(), this);
-			for(auto ou: users | map_values) {
-				if (ou->getIdentity().getConnectMode() != Identity::MODE_ME && ou->getIdentity().updateConnectMode(getMyIdentity(), this)) {
-					fire(ClientListener::UserUpdated(), this, ou);
-				}
-			}
+
+			OnlineUserList ouList;
+			boost::algorithm::copy_if(users | map_values, back_inserter(ouList), [this](OnlineUser* ou) { 
+				return ou->getIdentity().getConnectMode() != Identity::MODE_ME && ou->getIdentity().updateConnectMode(getMyIdentity(), this);
+			});
+
+			fire(ClientListener::UsersUpdated(), this, ouList);
 		}
 	} else if (stateNormal()) {
 		u->getIdentity().updateConnectMode(getMyIdentity(), this);

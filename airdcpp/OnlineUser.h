@@ -209,6 +209,10 @@ public:
 	OnlineUser(const UserPtr& ptr, const ClientPtr& client_, uint32_t sid_);
 	~OnlineUser() noexcept;
 
+	uint32_t getToken() const noexcept {
+		return identity.getSID();
+	}
+
 	operator UserPtr&() { return getUser(); }
 	operator const UserPtr&() const { return getUser(); }
 
@@ -234,7 +238,6 @@ public:
 	bool isInList;
 	GETSET(Identity, identity, Identity);
 private:
-
 	ClientPtr client;
 };
 

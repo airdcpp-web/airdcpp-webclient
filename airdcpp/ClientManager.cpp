@@ -1029,9 +1029,9 @@ OnlineUserList ClientManager::searchNicks(const string& aPattern, size_t aMaxRes
 		RLock l(cs);
 		for (const auto& c: clients | map_values) {
 			OnlineUserList hubUsers;
-			c->getUserList(hubUsers);
+			c->getUserList(hubUsers, false);
 			for (const auto& ou : hubUsers) {
-				if (ou->getUser() == me || ou->isHidden()) {
+				if (ou->getUser() == me) {
 					continue;
 				}
 
