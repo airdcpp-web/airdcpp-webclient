@@ -95,7 +95,7 @@ private:
 	typedef unordered_map<uint32_t, OnlineUser*> SIDMap;
 	typedef SIDMap::const_iterator SIDIter;
 
-	void getUserList(OnlineUserList& list) const;
+	void getUserList(OnlineUserList& list, bool aListHidden) const;
 
 	/* Checks if we are allowed to connect to the user */
 	AdcCommand::Error allowConnect(const OnlineUser& aUser, bool aSecure, string& failedProtocol_, bool checkBase) const;

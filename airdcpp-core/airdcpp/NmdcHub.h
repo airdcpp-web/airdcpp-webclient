@@ -54,7 +54,7 @@ public:
 	static string validateMessage(string tmp, bool reverse);
 	void refreshUserList(bool);
 
-	void getUserList(OnlineUserList& list) const;
+	void getUserList(OnlineUserList& list, bool aListHidden) const;
 
 	NmdcHub(const string& aHubURL, const ClientPtr& aOldClient = nullptr);
 	~NmdcHub();

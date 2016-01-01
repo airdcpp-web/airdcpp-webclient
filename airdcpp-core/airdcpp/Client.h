@@ -98,7 +98,7 @@ public:
 	bool isOp() const { return getMyIdentity().isOp(); }
 
 	virtual void refreshUserList(bool) = 0;
-	virtual void getUserList(OnlineUserList& list) const = 0;
+	virtual void getUserList(OnlineUserList& list, bool aListHidden) const = 0;
 	virtual OnlineUserPtr findUser(const string& aNick) const = 0;
 	
 	const string& getPort() const { return port; }
