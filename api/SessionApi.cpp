@@ -64,8 +64,10 @@ namespace webserver {
 		auto username = JsonUtil::getField<string>("username", reqJson, false);
 		auto password = JsonUtil::getField<string>("password", reqJson, false);
 		auto inactivityMinutes = JsonUtil::getOptionalField<uint64_t>("max_inactivity", reqJson);
+		auto userSession = JsonUtil::getOptionalField<bool>("user_session", reqJson);
 
-		auto session = WebServerManager::getInstance()->getUserManager().authenticate(username, password, aIsSecure, inactivityMinutes ? *inactivityMinutes : 20);
+		auto session = WebServerManager::getInstance()->getUserManager().authenticate(username, password, 
+			aIsSecure, inactivityMinutes ? *inactivityMinutes : 20, userSession ? *userSession : false);
 
 		if (!session) {
 			aRequest.setResponseErrorStr("Invalid username or password");
@@ -77,6 +79,7 @@ namespace webserver {
 			{ "token", session->getToken() },
 			{ "user", session->getUser()->getUserName() },
 			{ "system", getSystemInfo(aIp) },
+			{ "away_idle_time", SETTING(AWAY_IDLE_TIME) },
 		};
 
 		if (aSocket) {
@@ -85,6 +88,24 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(retJson);
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return SessionApi::handleAway(ApiRequest& aRequest) {
+		auto s = aRequest.getSession();
+		if (!s) {
+			aRequest.setResponseErrorStr("Not authorized");
+			return websocketpp::http::status_code::unauthorized;
+		}
+
+		if (!s->isUserSession()) {
+			aRequest.setResponseErrorStr("Away state can only be changed for user sessions");
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		auto away = JsonUtil::getField<bool>("away", aRequest.getRequestBody());
+		WebServerManager::getInstance()->getUserManager().setSessionAwayState(s->getToken(), away);
+
 		return websocketpp::http::status_code::ok;
 	}
 

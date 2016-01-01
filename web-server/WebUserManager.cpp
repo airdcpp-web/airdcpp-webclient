@@ -22,6 +22,8 @@
 #include <web-server/WebServerManager.h>
 
 #include <airdcpp/typedefs.h>
+
+#include <airdcpp/AirUtil.h>
 #include <airdcpp/SimpleXML.h>
 #include <airdcpp/TimerManager.h>
 #include <airdcpp/Util.h>
@@ -44,7 +46,7 @@ namespace webserver {
 		server->removeListener(this);
 	}
 
-	SessionPtr WebUserManager::authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes) noexcept {
+	SessionPtr WebUserManager::authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, bool aUserSession) noexcept {
 		auto u = getUser(aUserName);
 		if (!u) {
 			return nullptr;
@@ -59,13 +61,44 @@ namespace webserver {
 		fire(WebUserManagerListener::UserUpdated(), u);
 
 		auto uuid = boost::uuids::random_generator()();
-		auto session = make_shared<Session>(u, boost::uuids::to_string(uuid), aIsSecure, server, aMaxInactivityMinutes);
+		auto session = make_shared<Session>(u, boost::uuids::to_string(uuid), aIsSecure, server, aMaxInactivityMinutes, aUserSession);
 
 		{
 			WLock l(cs);
 			sessions.emplace(session->getToken(), session);
 		}
+
+		if (aUserSession) {
+			checkAwayState();
+		}
 		return session;
+	}
+
+	void WebUserManager::setSessionAwayState(const string& aSessionToken, bool aAway) noexcept {
+		auto s = getSession(aSessionToken);
+		if (!s) {
+			return;
+		}
+
+		s->setUserAway(aAway);
+		checkAwayState();
+	}
+
+	void WebUserManager::checkAwayState() noexcept {
+		bool allAway = true;
+		{
+			RLock l(cs);
+			allAway = boost::find_if(sessions | map_values, [](const SessionPtr& aSession) { 
+				return !aSession->getUserAway(); 
+			}).base() == sessions.end();
+		}
+
+		bool currentAway = AirUtil::getAwayMode() == AWAY_IDLE;
+		if (allAway && !currentAway) {
+			AirUtil::setAway(AWAY_IDLE);
+		} else if (!allAway && currentAway) {
+			AirUtil::setAway(AWAY_OFF);
+		}
 	}
 
 	SessionPtr WebUserManager::getSession(const string& aSession) const noexcept {
@@ -113,8 +146,14 @@ namespace webserver {
 		aSession->getUser()->removeSession();
 		fire(WebUserManagerListener::UserUpdated(), aSession->getUser());
 
-		WLock l(cs);
-		sessions.erase(aSession->getToken());
+		{
+			WLock l(cs);
+			sessions.erase(aSession->getToken());
+		}
+
+		if (aSession->isUserSession()) {
+			checkAwayState();
+		}
 	}
 
 	void WebUserManager::on(WebServerManagerListener::Started) noexcept {

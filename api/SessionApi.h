@@ -31,6 +31,7 @@ namespace webserver {
 		api_return handleLogin(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp);
 		api_return handleSocketConnect(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket);
 		api_return handleLogout(ApiRequest& aRequest);
+		api_return handleAway(ApiRequest& aRequest);
 
 		json getSystemInfo(const string& aIp) const noexcept;
 	private:

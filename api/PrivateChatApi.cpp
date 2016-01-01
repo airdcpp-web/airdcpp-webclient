@@ -75,28 +75,17 @@ namespace webserver {
 	}
 
 	api_return PrivateChatApi::handleGetThreads(ApiRequest& aRequest) {
-		json retJson;
-
-		{
-			RLock l(cs);
-			if (!subModules.empty()) {
-				for (const auto& c : subModules | map_values) {
-					retJson.push_back(serializeChat(c->getChat()));
-				}
-			} else {
-				retJson = json::array();
-			}
-		}
+		auto retJson = json::array();
+		forEachSubModule([&](const PrivateChatInfo& aInfo) {
+			retJson.push_back(serializeChat(aInfo.getChat()));
+		});
 
 		aRequest.setResponseBody(retJson);
 		return websocketpp::http::status_code::ok;
 	}
 
 	void PrivateChatApi::on(MessageManagerListener::ChatRemoved, const PrivateChatPtr& aChat) noexcept {
-		{
-			WLock l(cs);
-			subModules.erase(aChat->getUser()->getCID());
-		}
+		removeSubModule(aChat->getUser()->getCID());
 
 		if (!subscriptionActive("private_chat_removed")) {
 			return;
@@ -108,12 +97,7 @@ namespace webserver {
 	}
 
 	void PrivateChatApi::addChat(const PrivateChatPtr& aChat) noexcept {
-		auto chatInfo = make_shared<PrivateChatInfo>(this, aChat);
-
-		{
-			WLock l(cs);
-			subModules.emplace(aChat->getUser()->getCID(), move(chatInfo));
-		}
+		addSubModule(aChat->getUser()->getCID(), make_shared<PrivateChatInfo>(this, aChat));
 	}
 
 	void PrivateChatApi::on(MessageManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool aReceivedMessage) noexcept {
@@ -129,7 +113,7 @@ namespace webserver {
 		json j = {
 			{ "id", aChat->getUser()->getCID().toBase32() },
 			{ "user", Serializer::serializeHintedUser(aChat->getHintedUser()) },
-			{ "ccpm_state", PrivateChatInfo::serializeCCPMState(aChat->getCCPMState()) },
+			{ "ccpm_state", PrivateChatInfo::serializeCCPMState(aChat) },
 		};
 
 		Serializer::serializeCacheInfo(j, aChat->getCache(), Serializer::serializeUnreadChat);

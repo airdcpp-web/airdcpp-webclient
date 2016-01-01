@@ -51,12 +51,7 @@ namespace webserver {
 	}
 
 	void FilelistApi::addList(const DirectoryListingPtr& aList) noexcept {
-		auto chatInfo = make_shared<FilelistInfo>(this, aList);
-
-		{
-			WLock l(cs);
-			subModules.emplace(aList->getUser()->getCID(), move(chatInfo));
-		}
+		addSubModule(aList->getUser()->getCID(), make_shared<FilelistInfo>(this, aList));
 	}
 
 	api_return FilelistApi::handlePostList(ApiRequest& aRequest) {
@@ -100,18 +95,10 @@ namespace webserver {
 	}
 
 	api_return FilelistApi::handleGetLists(ApiRequest& aRequest) {
-		json retJson;
-
-		{
-			RLock l(cs);
-			if (!subModules.empty()) {
-				for (const auto& list : subModules | map_values) {
-					retJson.push_back(serializeList(list->getList()));
-				}
-			} else {
-				retJson = json::array();
-			}
-		}
+		auto retJson = json::array();
+		forEachSubModule([&](const FilelistInfo& aInfo) { 
+			retJson.push_back(serializeList(aInfo.getList()));
+		});
 
 		aRequest.setResponseBody(retJson);
 		return websocketpp::http::status_code::ok;
@@ -127,10 +114,7 @@ namespace webserver {
 	}
 
 	void FilelistApi::on(DirectoryListingManagerListener::ListingClosed, const DirectoryListingPtr& aList) noexcept {
-		{
-			WLock l(cs);
-			subModules.erase(aList->getUser()->getCID());
-		}
+		removeSubModule(aList->getUser()->getCID());
 
 		if (!subscriptionActive("filelist_removed")) {
 			return;

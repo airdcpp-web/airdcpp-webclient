@@ -68,10 +68,22 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	json PrivateChatInfo::serializeCCPMState(uint8_t aState) noexcept {
+	string PrivateChatInfo::formatCCPMState(PrivateChat::CCPMState aState) noexcept {
+		switch (aState) {
+			case PrivateChat::DISCONNECTED: return "disconnected";
+			case PrivateChat::CONNECTING: return "connecting";
+			case PrivateChat::CONNECTED: return "connected";
+		}
+
+		dcassert(0);
+		return Util::emptyString;
+	}
+
+	json PrivateChatInfo::serializeCCPMState(const PrivateChatPtr& aChat) noexcept {
 		return{
-			{ "id", aState },
-			{ "str", PrivateChat::ccpmStateToString(aState) }
+			{ "id", formatCCPMState(aChat->getCCPMState()) },
+			{ "str", PrivateChat::ccpmStateToString(aChat->getCCPMState()) },
+			{ "supported", aChat->getSupportsCCPM() }
 		};
 	}
 
@@ -91,7 +103,7 @@ namespace webserver {
 
 	void PrivateChatInfo::on(PrivateChatListener::CCPMStatusUpdated, PrivateChat*) noexcept {
 		onSessionUpdated({
-			{ serializeCCPMState(chat->getCCPMState()) }
+			{ "ccpm_state", serializeCCPMState(chat) }
 		});
 	}
 

@@ -93,7 +93,7 @@ namespace webserver {
 
 		typedef std::function<json()> JsonCallback;
 		virtual bool maybeSend(const string& aSubscription, JsonCallback aCallback);
-		void addAsyncSubscriptionTask(CallBack&& aTask);
+		void addAsyncTask(CallBack&& aTask);
 
 		Session* getSession() const noexcept {
 			return session;

@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_SYSTEMAPI_H
 
 #include <web-server/stdinc.h>
+#include <web-server/Timer.h>
 
 #include <api/ApiModule.h>
 
@@ -33,7 +34,17 @@ namespace webserver {
 			return 0;
 		}
 	private:
+		static string getAwayState() noexcept;
+		static json serializeAwayState() noexcept;
+		void onTimer() noexcept;
+
+		api_return handleGetAwayState(ApiRequest& aRequest);
+		api_return handleSetAway(ApiRequest& aRequest);
+
 		api_return handleGetStats(ApiRequest& aRequest);
+
+		json previousAway;
+		TimerPtr timer;
 	};
 }
 

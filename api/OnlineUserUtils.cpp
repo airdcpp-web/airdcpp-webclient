@@ -68,6 +68,9 @@ namespace webserver {
 		case HubInfo::PROP_TAG: return aUser->getIdentity().getTag();
 		case HubInfo::PROP_HUB_URL: return aUser->getHubUrl();
 		case HubInfo::PROP_HUB_NAME: return aUser->getClient()->getHubName();
+		case HubInfo::PROP_IP4: return aUser->getIdentity().getIp4();
+		case HubInfo::PROP_IP6: return aUser->getIdentity().getIp6();
+		case HubInfo::PROP_CID: return aUser->getUser()->getCID().toBase32();
 		default: dcassert(0); return 0;
 		}
 	}

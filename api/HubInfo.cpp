@@ -26,8 +26,13 @@
 namespace webserver {
 	const StringList HubInfo::subscriptionList = {
 		"hub_updated",
+		"hub_counts_updated",
 		"hub_message",
-		"hub_status"
+		"hub_status",
+
+		"hub_user_connected",
+		"hub_user_updated",
+		"hub_user_disconnected",
 	};
 
 	const PropertyList HubInfo::properties = {
@@ -46,6 +51,7 @@ namespace webserver {
 		{ PROP_HUB_URL, "hub_url", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 		{ PROP_HUB_NAME , "hub_name", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 		{ PROP_FLAGS, "flags", TYPE_LIST_TEXT, SERIALIZE_CUSTOM, SORT_NONE },
+		{ PROP_CID, "cid", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 	};
 
 	PropertyItemHandler<OnlineUserPtr> HubInfo::onlineUserPropertyHandler = {
@@ -55,18 +61,30 @@ namespace webserver {
 
 	HubInfo::HubInfo(ParentType* aParentModule, const ClientPtr& aClient) :
 		SubApiModule(aParentModule, aClient->getClientId(), subscriptionList), client(aClient),
-		chatHandler(this, aClient, "hub") {
+		chatHandler(this, aClient, "hub"), 
+		view("hub_user_view", this, onlineUserPropertyHandler, std::bind(&HubInfo::getUsers, this), 500), 
+		timer(aParentModule->getSession()->getServer()->addTimer([this] { onTimer(); }, 1000)) {
 
 		client->addListener(this);
+		timer->start();
 
 		METHOD_HANDLER("reconnect", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, HubInfo::handleReconnect);
 		METHOD_HANDLER("favorite", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, HubInfo::handleFavorite);
 		METHOD_HANDLER("password", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), true, HubInfo::handlePassword);
 		METHOD_HANDLER("redirect", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, HubInfo::handleRedirect);
+
+		METHOD_HANDLER("counts", Access::HUBS_VIEW, ApiRequest::METHOD_GET, (), false, HubInfo::handleGetCounts);
 	}
 
 	HubInfo::~HubInfo() {
+		timer->stop(true);
+
 		client->removeListener(this);
+	}
+
+	api_return HubInfo::handleGetCounts(ApiRequest& aRequest) {
+		aRequest.setResponseBody(serializeCounts(client));
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return HubInfo::handleReconnect(ApiRequest& aRequest) {
@@ -96,9 +114,14 @@ namespace webserver {
 	}
 
 	json HubInfo::serializeIdentity(const ClientPtr& aClient) noexcept {
-		return{
+		return {
 			{ "name", aClient->getHubName() },
 			{ "description", aClient->getHubDescription() },
+		};
+	}
+
+	json HubInfo::serializeCounts(const ClientPtr& aClient) noexcept {
+		return {
 			{ "user_count", aClient->getUserCount() },
 			{ "share_size", aClient->getTotalShare() },
 		};
@@ -141,6 +164,8 @@ namespace webserver {
 
 	void HubInfo::on(Failed, const string&, const string&) noexcept {
 		sendConnectState();
+
+		view.resetItems();
 	}
 
 	void HubInfo::on(ClientListener::Redirect, const Client*, const string&) noexcept {
@@ -176,11 +201,70 @@ namespace webserver {
 		});
 	}
 
+	void HubInfo::onTimer() noexcept {
+		if (!subscriptionActive("hub_counts_updated")) {
+			return;
+		}
+
+		auto newCounts = serializeCounts(client);
+		if (newCounts == previousCounts) {
+			return;
+		}
+
+		previousCounts = newCounts;
+		send("hub_counts_updated", newCounts);
+	}
+
 	void HubInfo::onHubUpdated(const json& aData) noexcept {
 		if (!subscriptionActive("hub_updated")) {
 			return;
 		}
 
 		send("hub_updated", aData);
+	}
+
+	OnlineUserList HubInfo::getUsers() noexcept {
+		OnlineUserList ret;
+		client->getUserList(ret, false);
+		return ret;
+	}
+
+	void HubInfo::on(ClientListener::UserConnected, const Client*, const OnlineUserPtr& aUser) noexcept {
+		if (!aUser->isHidden()) {
+			view.onItemAdded(aUser);
+		}
+
+		maybeSend("hub_user_connected", [&] { return Serializer::serializeItem(aUser, onlineUserPropertyHandler); });
+	}
+
+	void HubInfo::onUserUpdated(const OnlineUserPtr& aUser) noexcept {
+		if (!aUser->isHidden()) {
+			// Don't update all properties to avoid unneeded sorting
+			PropertyIdSet props = { PROP_SHARED, PROP_DESCRIPTION, PROP_TAG, 
+				PROP_UPLOAD_SPEED, PROP_DOWNLOAD_SPEED,
+				PROP_EMAIL, PROP_FILES, PROP_FLAGS 
+			};
+			view.onItemUpdated(aUser, props);
+		}
+
+		maybeSend("hub_user_updated", [&] { return Serializer::serializeItem(aUser, onlineUserPropertyHandler); });
+	}
+
+	void HubInfo::on(ClientListener::UserUpdated, const Client*, const OnlineUserPtr& aUser) noexcept {
+		onUserUpdated(aUser);
+	}
+
+	void HubInfo::on(ClientListener::UsersUpdated, const Client* c, const OnlineUserList& aUsers) noexcept {
+		for (auto& u : aUsers) {
+			onUserUpdated(u);
+		}
+	}
+
+	void HubInfo::on(ClientListener::UserRemoved, const Client*, const OnlineUserPtr& aUser) noexcept {
+		if (!aUser->isHidden()) {
+			view.onItemRemoved(aUser);
+		}
+
+		maybeSend("hub_user_disconnected", [&] { return Serializer::serializeItem(aUser, onlineUserPropertyHandler); });
 	}
 }

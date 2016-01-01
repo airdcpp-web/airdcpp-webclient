@@ -121,6 +121,8 @@ namespace webserver {
 			ret["type"] = "file_path";
 		} else if (type == TYPE_DIRECTORY_PATH) {
 			ret["type"] = "directory_path";
+		} else if (type == TYPE_LONG_TEXT) {
+			ret["type"] = "long_text";
 		}
 
 		// Serialize possible enum values

@@ -36,7 +36,7 @@ namespace webserver {
 		WebUserManager(WebServerManager* aServer);
 		~WebUserManager();
 
-		SessionPtr authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes) noexcept;
+		SessionPtr authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, bool aUserSession) noexcept;
 
 		SessionPtr getSession(const string& aSession) const noexcept;
 		void logout(const SessionPtr& aSession);
@@ -55,7 +55,9 @@ namespace webserver {
 		StringList getUserNames() const noexcept;
 
 		size_t getSessionCount() const noexcept;
+		void setSessionAwayState(const string& aSessionToken, bool aAway) noexcept;
 	private:
+		void checkAwayState() noexcept;
 		mutable SharedMutex cs;
 
 		std::map<std::string, WebUserPtr> users;

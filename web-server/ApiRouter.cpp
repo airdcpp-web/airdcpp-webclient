@@ -94,27 +94,27 @@ namespace webserver {
 	}
 
 	api_return ApiRouter::handleRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) noexcept {
-		// Special case because we may not have the session yet
-		if (aRequest.getApiModule() == "session") {
-			return handleSessionRequest(aRequest, aIsSecure, aSocket, aIp);
-		}
-
-		// Require auth for all other modules
-		if (!aRequest.getSession()) {
-			aRequest.setResponseErrorStr("Not authorized");
-			return websocketpp::http::status_code::unauthorized;
-		}
-
-		// Require using the same protocol that was used for logging in
-		if (aRequest.getSession()->isSecure() != aIsSecure) {
-			aRequest.setResponseErrorStr("Protocol mismatch");
-			return websocketpp::http::status_code::not_acceptable;
-		}
-
-		aRequest.getSession()->updateActivity();
-
 		int code;
 		try {
+			// Special case because we may not have the session yet
+			if (aRequest.getApiModule() == "session") {
+				return handleSessionRequest(aRequest, aIsSecure, aSocket, aIp);
+			}
+
+			// Require auth for all other modules
+			if (!aRequest.getSession()) {
+				aRequest.setResponseErrorStr("Not authorized");
+				return websocketpp::http::status_code::unauthorized;
+			}
+
+			// Require using the same protocol that was used for logging in
+			if (aRequest.getSession()->isSecure() != aIsSecure) {
+				aRequest.setResponseErrorStr("Protocol mismatch");
+				return websocketpp::http::status_code::not_acceptable;
+			}
+
+			aRequest.getSession()->updateActivity();
+
 			code = aRequest.getSession()->handleRequest(aRequest);
 		} catch (const ArgumentException& e) {
 			aRequest.setResponseErrorJson(e.getErrorJson());
@@ -141,6 +141,8 @@ namespace webserver {
 			}
 		} else if (aRequest.getStringParam(0) == "socket") {
 			return sessionApi.handleSocketConnect(aRequest, aIsSecure, aSocket);
+		} else if (aRequest.getStringParam(0) == "away") {
+			return sessionApi.handleAway(aRequest);
 		}
 
 		aRequest.setResponseErrorStr("Invalid command");

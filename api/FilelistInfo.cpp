@@ -99,8 +99,6 @@ namespace webserver {
 		auto ret = Serializer::serializeItem(make_shared<FilelistItemInfo>(location.directory), itemHandler);
 
 		ret["size"] = location.totalSize;
-		ret["files"] = location.files;
-		ret["directories"] = location.directories;
 		ret["complete"] = location.directory->isComplete();
 		return ret;
 	}

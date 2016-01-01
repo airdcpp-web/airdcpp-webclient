@@ -33,8 +33,8 @@ namespace webserver {
 		{ "email", SettingsManager::EMAIL, ResourceManager::EMAIL },
 		{ "upload_speed", SettingsManager::UPLOAD_SPEED, ResourceManager::SETCZDC_UPLOAD_SPEED, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MBITS, false } },
 		{ "download_speed", SettingsManager::DOWNLOAD_SPEED, ResourceManager::SETCZDC_DOWNLOAD_SPEED, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MBITS, false } },
-		{ "away_message", SettingsManager::DEFAULT_AWAY_MESSAGE, ResourceManager::SETTINGS_DEFAULT_AWAY_MSG },
-		{ "away_idle_time", SettingsManager::AWAY_IDLE_TIME, ResourceManager::AWAY_IDLE_TIME_BEGIN },
+		{ "away_message", SettingsManager::DEFAULT_AWAY_MESSAGE, ResourceManager::SETTINGS_DEFAULT_AWAY_MSG, ApiSettingItem::TYPE_LONG_TEXT },
+		{ "away_idle_time", SettingsManager::AWAY_IDLE_TIME, ResourceManager::AWAY_IDLE_TIME_BEGIN, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MINUTES, false } },
 		{ "away_no_bots", SettingsManager::NO_AWAYMSG_TO_BOTS, ResourceManager::SETTINGS_NO_AWAYMSG_TO_BOTS },
 		{ "nmdc_encoding", SettingsManager::NMDC_ENCODING, ResourceManager::INVALID_ENCODING },
 
@@ -43,7 +43,7 @@ namespace webserver {
 		//{ "temp_dir", SettingsManager::TEMP_DOWNLOAD_DIRECTORY, ResourceManager::SETTINGS_UNFINISHED_DOWNLOAD_DIRECTORY },
 		//{ "temp_use_dest", SettingsManager::DCTMP_STORE_DESTINATION, ResourceManager::UNFINISHED_STORE_DESTINATION },
 		{ "segmented_downloads", SettingsManager::MULTI_CHUNK, ResourceManager::SETTINGS_SEGMENTED_DOWNLOADS },
-		{ "min_segment_size", SettingsManager::MIN_SEGMENT_SIZE, ResourceManager::SETTINGS_AIRDOWNLOADS_SEGMENT_SIZE, ApiSettingItem::TYPE_GENERAL,{ ResourceManager::Strings::KiB, false } },
+		{ "min_segment_size", SettingsManager::MIN_SEGMENT_SIZE, ResourceManager::SETTINGS_AIRDOWNLOADS_SEGMENT_SIZE, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::KiB, false } },
 		{ "new_segment_min_speed", SettingsManager::DONT_BEGIN_SEGMENT_SPEED, ResourceManager::DONT_ADD_SEGMENT_TEXT, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::KiB, true } },
 		{ "allow_slow_overlap", SettingsManager::OVERLAP_SLOW_SOURCES, ResourceManager::SETTINGS_OVERLAP_SLOW_SOURCES },
 		{ "share_finished_bundles", SettingsManager::ADD_FINISHED_INSTANTLY, ResourceManager::ADD_FINISHED_INSTANTLY },
@@ -77,6 +77,7 @@ namespace webserver {
 		{ "connection_mode_v4", SettingsManager::INCOMING_CONNECTIONS, ResourceManager::CONNECTIVITY, ApiSettingItem::TYPE_CONN_V4 },
 		{ "connection_ip_v4", SettingsManager::EXTERNAL_IP, ResourceManager::SETTINGS_EXTERNAL_IP, ApiSettingItem::TYPE_CONN_V4 },
 		{ "connection_update_ip_v4", SettingsManager::IP_UPDATE, ResourceManager::UPDATE_IP, ApiSettingItem::TYPE_CONN_V4 },
+		{ "connection_ip_override_v4", SettingsManager::NO_IP_OVERRIDE, ResourceManager::SETTINGS_OVERRIDE, ApiSettingItem::TYPE_CONN_V4 },
 
 		//{ ResourceManager::IP_V6 },
 		{ "connection_auto_v6", SettingsManager::AUTO_DETECT_CONNECTION6, ResourceManager::ALLOW_AUTO_DETECT_V6 },
@@ -84,6 +85,7 @@ namespace webserver {
 		{ "connection_mode_v6", SettingsManager::INCOMING_CONNECTIONS6, ResourceManager::CONNECTIVITY, ApiSettingItem::TYPE_CONN_V6 },
 		{ "connection_ip_v6", SettingsManager::EXTERNAL_IP6, ResourceManager::SETTINGS_EXTERNAL_IP, ApiSettingItem::TYPE_CONN_V6 },
 		{ "connection_update_ip_v6", SettingsManager::IP_UPDATE6, ResourceManager::UPDATE_IP, ApiSettingItem::TYPE_CONN_V6 },
+		{ "connection_ip_override_v6", SettingsManager::NO_IP_OVERRIDE6, ResourceManager::SETTINGS_OVERRIDE, ApiSettingItem::TYPE_CONN_V6 },
 
 		//{ ResourceManager::SETTINGS_PORTS },
 		{ "tcp_port", SettingsManager::TCP_PORT, ResourceManager::SETTINGS_TCP_PORT, ApiSettingItem::TYPE_CONN_GEN },
@@ -188,10 +190,11 @@ namespace webserver {
 		{ "buffer_size", SettingsManager::BUFFER_SIZE, ResourceManager::SETTINGS_WRITE_BUFFER },
 		{ "compress_transfers", SettingsManager::COMPRESS_TRANSFERS, ResourceManager::SETTINGS_COMPRESS_TRANSFERS },
 		{ "max_compression", SettingsManager::MAX_COMPRESSION, ResourceManager::SETTINGS_MAX_COMPRESS },
-		{ "tls_mode", SettingsManager::TLS_MODE, ResourceManager::TRANSFER_ENCRYPTION },
 		{ "bloom_mode", SettingsManager::BLOOM_MODE, ResourceManager::BLOOM_MODE },
 		{ "disconnect_offline_users", SettingsManager::AUTO_KICK, ResourceManager::SETTINGS_AUTO_KICK },
+
 		{ "always_ccpm", SettingsManager::ALWAYS_CCPM, ResourceManager::ALWAYS_CCPM },
+		{ "tls_mode", SettingsManager::TLS_MODE, ResourceManager::TRANSFER_ENCRYPTION },
 	};
 }
 
