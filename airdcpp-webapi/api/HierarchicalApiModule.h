@@ -45,6 +45,21 @@ namespace webserver {
 			}
 		}
 
+		~ParentApiModule() {
+			// Child modules must always be destoyed first because they depend on the parent for subscription checking 
+			// (which can happen via listeners)
+
+			// There can't be references to shared child pointers from other threads because no other requests 
+			// can be active at this point (otherwise we wouldn't be destoying the session)
+
+			WLock l(cs);
+			dcassert(boost::find_if(subModules | map_values, [](const typename ItemType::Ptr& subModule) {  
+				return !subModule.unique();
+			}).base() == subModules.end());
+
+			subModules.clear();
+		}
+
 		api_return handleSubscribe(ApiRequest& aRequest) {
 			if (!socket) {
 				aRequest.setResponseErrorStr("Socket required");
@@ -115,8 +130,7 @@ namespace webserver {
 	protected:
 		mutable SharedMutex cs;
 
-		map<IdType, typename ItemType::Ptr> subModules;
-
+		// Submodules should NEVER be accessed outside of web server threads (e.g. API requests)
 		typename ItemType::Ptr getSubModule(const string& aId) {
 			RLock l(cs);
 			auto m = subModules.find(convertF(aId));
@@ -126,9 +140,28 @@ namespace webserver {
 
 			return nullptr;
 		}
+
+		void forEachSubModule(std::function<void(const typename ItemType& aModule)> aAction) {
+			RLock l(cs);
+			for (const auto& m : subModules | map_values) {
+				aAction(*m.get());
+			}
+		}
+
+		void addSubModule(IdType aId, typename ItemType::Ptr aModule) {
+			WLock l(cs);
+			subModules.emplace(aId, aModule);
+		}
+
+		void removeSubModule(IdType aId) {
+			WLock l(cs);
+			subModules.erase(aId);
+		}
 	private:
+		map<IdType, typename ItemType::Ptr> subModules;
+
 		ApiModule::SubscriptionMap childSubscriptions;
-		ConvertF convertF;
+		const ConvertF convertF;
 	};
 
 	template<class ParentIdType, class ItemType, class ItemJsonType>
@@ -169,10 +202,11 @@ namespace webserver {
 			ApiModule::createSubscription(aSubscription);
 			parentModule->createChildSubscription(aSubscription);
 		}
-	protected:
+
+	private:
 		ParentType* parentModule;
 
-		ItemJsonType id;
+		const ItemJsonType id;
 	};
 }
 

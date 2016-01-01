@@ -25,6 +25,7 @@
 #include <web-server/WebServerManager.h>
 
 #include <airdcpp/TaskQueue.h>
+#include <airdcpp/TimerManager.h>
 
 #include <api/ApiModule.h>
 #include <api/common/PropertyFilter.h>
@@ -39,9 +40,11 @@ namespace webserver {
 		typedef typename PropertyItemHandler<T>::ItemListFunction ItemListF;
 		typedef std::function<void(bool aActive)> StateChangeFunction;
 
-		ListViewController(const string& aViewName, ApiModule* aModule, const PropertyItemHandler<T>& aItemHandler, ItemListF aItemListF) :
+		// Use the short default update interval for lists that can be edited by the users
+		// Larger lists with lots of updates and non-critical response times should specify a longer interval
+		ListViewController(const string& aViewName, ApiModule* aModule, const PropertyItemHandler<T>& aItemHandler, ItemListF aItemListF, time_t aUpdateInterval = 200) :
 			module(aModule), viewName(aViewName), itemHandler(aItemHandler), itemListF(aItemListF),
-			timer(WebServerManager::getInstance()->addTimer([this] { runTasks(); }, 200))
+			timer(WebServerManager::getInstance()->addTimer([this] { runTasks(); }, aUpdateInterval))
 		{
 			aModule->getSession()->addListener(this);
 
@@ -71,7 +74,7 @@ namespace webserver {
 
 		void stop() noexcept {
 			setActive(false);
-			timer->stop(true);
+			timer->stop(false);
 
 			clear();
 			currentValues.reset();
@@ -663,6 +666,8 @@ namespace webserver {
 			itemListChanged = false;
 
 			if (needSort) {
+				auto start = GET_TICK();
+
 				WLock l(cs);
 				std::sort(matchingItems.begin(), matchingItems.end(),
 					std::bind(&ListViewController::itemSort,
@@ -672,6 +677,8 @@ namespace webserver {
 						aSortProperty,
 						aSortAscending
 						));
+
+				dcdebug("Table %s sorted in " U64_FMT " ms\n", viewName.c_str(), GET_TICK() - start);
 			}
 		}
 

@@ -31,6 +31,7 @@ namespace webserver {
 			TYPE_GENERAL,
 			TYPE_FILE_PATH,
 			TYPE_DIRECTORY_PATH,
+			TYPE_LONG_TEXT,
 			TYPE_CONN_V4,
 			TYPE_CONN_V6,
 			TYPE_CONN_GEN,

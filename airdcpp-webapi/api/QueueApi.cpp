@@ -321,7 +321,7 @@ namespace webserver {
 	// All listener events from QueueManager should be handled asynchronously
 	// This avoids deadlocks as some events are fired from inside locks
 	void QueueApi::on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept {
-		addAsyncSubscriptionTask([=] {
+		addAsyncTask([=] {
 			bundleView.onItemAdded(aBundle);
 			if (!subscriptionActive("bundle_added"))
 				return;
@@ -330,7 +330,7 @@ namespace webserver {
 		});
 	}
 	void QueueApi::on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept {
-		addAsyncSubscriptionTask([=] {
+		addAsyncTask([=] {
 			bundleView.onItemRemoved(aBundle);
 			if (!subscriptionActive("bundle_removed"))
 				return;
@@ -359,7 +359,7 @@ namespace webserver {
 		//send("file_updated", QueueUtils::serializeQueueItem(aQI));
 	}
 	void QueueApi::onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription) {
-		addAsyncSubscriptionTask([=] {
+		addAsyncTask([=] {
 			bundleView.onItemUpdated(aBundle, aUpdatedProperties);
 
 			if (!subscriptionActive(aSubscription))
@@ -370,7 +370,7 @@ namespace webserver {
 	}
 
 	void QueueApi::on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t /*aTick*/) noexcept {
-		addAsyncSubscriptionTask([=] {
+		addAsyncTask([=] {
 			bundleView.onItemsUpdated(tickBundles, { PROP_SPEED, PROP_SECONDS_LEFT, PROP_BYTES_DOWNLOADED, PROP_STATUS });
 			if (!subscriptionActive("bundle_tick"))
 				return;

@@ -35,7 +35,7 @@ namespace webserver {
 	// Sessions are owned by WebUserManager and WebSockets (websockets are closed when session is removed)
 	class Session : public Speaker<SessionListener> {
 	public:
-		Session(WebUserPtr& aUser, const std::string& aToken, bool aIsSecure, WebServerManager* aServer, uint64_t maxInactivityMinutes);
+		Session(WebUserPtr& aUser, const std::string& aToken, bool aIsSecure, WebServerManager* aServer, uint64_t maxInactivityMinutes, bool aIsUserSession);
 		~Session();
 
 		const std::string& getToken() const noexcept {
@@ -56,7 +56,7 @@ namespace webserver {
 
 		Session(Session&) = delete;
 		Session& operator=(Session&) = delete;
-		//IGETSET(WebSocketPtr, socket, Socket, nullptr);
+		GETSET(bool, userAway, UserAway);
 
 		void onSocketConnected(const WebSocketPtr& aSocket) noexcept;
 		void onSocketDisconnected() noexcept;
@@ -73,6 +73,10 @@ namespace webserver {
 		uint64_t getMaxInactivity() const noexcept {
 			return maxInactivity;
 		}
+
+		bool isUserSession() const noexcept {
+			return userSession;
+		}
 	private:
 		typedef LazyInitWrapper<ApiModule> LazyModuleWrapper;
 		std::map<std::string , LazyModuleWrapper> apiHandlers;
@@ -83,6 +87,7 @@ namespace webserver {
 
 		const std::string  token;
 		const bool secure;
+		const bool userSession;
 
 		WebUserPtr user;
 		WebServerManager* server;

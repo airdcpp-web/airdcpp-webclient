@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_HUBINFO_H
 
 #include <web-server/stdinc.h>
+#include <web-server/Timer.h>
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/GetSet.h>
@@ -29,7 +30,9 @@
 
 #include <api/HierarchicalApiModule.h>
 #include <api/common/ChatController.h>
+#include <api/common/ListViewController.h>
 #include <api/common/Property.h>
+
 
 namespace webserver {
 	class HubInfo;
@@ -49,6 +52,7 @@ namespace webserver {
 
 		static json serializeConnectState(const ClientPtr& aClient) noexcept;
 		static json serializeIdentity(const ClientPtr& aClient) noexcept;
+		static json serializeCounts(const ClientPtr& aClient) noexcept;
 
 		enum {
 			PROP_TOKEN = -1,
@@ -67,6 +71,7 @@ namespace webserver {
 			PROP_HUB_URL,
 			PROP_HUB_NAME,
 			PROP_FLAGS,
+			PROP_CID,
 			PROP_LAST
 		};
 
@@ -79,12 +84,19 @@ namespace webserver {
 		api_return handlePassword(ApiRequest& aRequest);
 		api_return handleRedirect(ApiRequest& aRequest);
 
+		api_return handleGetCounts(ApiRequest& aRequest);
+
 		void on(Redirect, const Client*, const string&) noexcept;
 		void on(Failed, const string&, const string&) noexcept;
 		void on(GetPassword, const Client*) noexcept;
 		void on(HubUpdated, const Client*) noexcept;
 		void on(HubTopic, const Client*, const string&) noexcept;
 		void on(ConnectStateChanged, const Client*, uint8_t) noexcept;
+
+		void on(UserConnected, const Client*, const OnlineUserPtr&) noexcept;
+		void on(UserUpdated, const Client*, const OnlineUserPtr&) noexcept;
+		void on(UsersUpdated, const Client*, const OnlineUserList&) noexcept;
+		void on(UserRemoved, const Client*, const OnlineUserPtr&) noexcept;
 
 		void on(Disconnecting, const Client*) noexcept;
 		void on(Redirected, const string&, const ClientPtr& aNewClient) noexcept;
@@ -102,11 +114,23 @@ namespace webserver {
 			chatHandler.onMessagesUpdated();
 		}
 
+		OnlineUserList getUsers() noexcept;
+		void onUserUpdated(const OnlineUserPtr& ou) noexcept;
+
+		json previousCounts;
+
 		void onHubUpdated(const json& aData) noexcept;
 		void sendConnectState() noexcept;
 
+		void onTimer() noexcept;
+
 		ChatController<ClientPtr> chatHandler;
 		ClientPtr client;
+
+		typedef ListViewController<OnlineUserPtr, PROP_LAST> UserView;
+		UserView view;
+
+		TimerPtr timer;
 	};
 
 	typedef HubInfo::Ptr HubInfoPtr;

@@ -47,7 +47,8 @@ namespace webserver {
 
 		PrivateChatPtr getChat() const noexcept { return chat; }
 
-		static json serializeCCPMState(uint8_t aState) noexcept;
+		static string formatCCPMState(PrivateChat::CCPMState aState) noexcept;
+		static json serializeCCPMState(const PrivateChatPtr& aChat) noexcept;
 	private:
 		api_return handleDisconnectCCPM(ApiRequest& aRequest);
 		api_return handleConnectCCPM(ApiRequest& aRequest);

@@ -184,14 +184,14 @@ namespace webserver {
 		return send(aSubscription, aCallback());
 	}
 
-	void ApiModule::addAsyncSubscriptionTask(CallBack&& aTask) {
-		// Ensure that the socket (and session) won't be deleted
-		auto s = socket;
+	void ApiModule::addAsyncTask(CallBack&& aTask) {
+		// Ensure that the session (and socket) won't be deleted
+		auto s = session->getServer()->getUserManager().getSession(session->getToken());
 		if (!s) {
 			return;
 		}
 
-		session->getServer()->addAsyncTask([=] {
+		s->getServer()->addAsyncTask([=] {
 			aTask();
 			s.get();
 		});
