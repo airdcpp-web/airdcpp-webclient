@@ -67,7 +67,7 @@ namespace webserver {
 			code = websocketpp::http::status_code::bad_request;
 		}
 
-		if (callbackId > 0) {
+		if (callbackId > 0 || !errorJson.is_null()) {
 			aSocket->sendApiResponse(responseJsonData, errorJson, code, callbackId);
 		}
 	}

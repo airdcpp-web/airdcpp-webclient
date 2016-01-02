@@ -43,7 +43,14 @@ namespace webserver {
 
 	void WebSocket::sendApiResponse(const json& aResponseJson, const json& aErrorJson, websocketpp::http::status_code::value aCode, int aCallbackId) {
 		json j;
-		j["callback_id"] = aCallbackId;
+
+		if (aCallbackId > 0) {
+			j["callback_id"] = aCallbackId;
+		} else {
+			// Failed to parse the request
+			dcassert(!aErrorJson.is_null());
+		}
+		
 		j["code"] = aCode;
 
 		if (aCode < 200 || aCode > 299) {

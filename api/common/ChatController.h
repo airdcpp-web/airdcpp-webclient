@@ -88,10 +88,10 @@ namespace webserver {
 			const auto& reqJson = aRequest.getRequestBody();
 
 			auto message = JsonUtil::getField<string>("message", reqJson, false);
-			auto thirdPerson = JsonUtil::getOptionalField<bool>("third_person", reqJson);
+			auto thirdPerson = JsonUtil::getOptionalFieldDefault<bool>("third_person", reqJson, false);
 
 			string error_;
-			if (!chat->sendMessage(message, error_, thirdPerson ? *thirdPerson : false)) {
+			if (!chat->sendMessage(message, error_, thirdPerson)) {
 				aRequest.setResponseErrorStr(error_);
 				return websocketpp::http::status_code::internal_server_error;
 			}

@@ -42,7 +42,7 @@ namespace webserver {
 		FavoriteManager::getInstance()->removeListener(this);
 	}
 
-	string FavoriteHubApi::updateValidatedProperties(FavoriteHubEntryPtr& aEntry, json& j, bool aNewHub) {
+	string FavoriteHubApi::updateValidatedProperties(FavoriteHubEntryPtr& aEntry, const json& j, bool aNewHub) {
 		auto name = JsonUtil::getOptionalField<string>("name", j, false, aNewHub);
 
 		auto server = JsonUtil::getOptionalField<string>("hub_url", j, false, aNewHub);
@@ -82,7 +82,7 @@ namespace webserver {
 		return Util::emptyString;
 	}
 
-	void FavoriteHubApi::updateSimpleProperties(FavoriteHubEntryPtr& aEntry, json& j) {
+	void FavoriteHubApi::updateSimpleProperties(FavoriteHubEntryPtr& aEntry, const json& j) {
 		for (auto i : json::iterator_wrapper(j)) {
 			auto key = i.key();
 			if (key == "auto_connect") {

@@ -67,13 +67,7 @@ namespace webserver {
 	}
 
 	void Deserializer::deserializeDownloadParams(const json& aJson, string& targetDirectory_, string& targetName_, TargetUtil::TargetType& targetType_, QueueItemBase::Priority& priority_) {
-		auto targetPath = JsonUtil::getOptionalField<string>("target_directory", aJson);
-		if (!targetPath) {
-			targetDirectory_ = SETTING(DOWNLOAD_DIRECTORY);
-		} else {
-			targetDirectory_ = *targetPath;
-		}
-
+		targetDirectory_ = JsonUtil::getOptionalFieldDefault<string>("target_directory", aJson, SETTING(DOWNLOAD_DIRECTORY), false);
 		targetName_ = JsonUtil::getField<string>("target_name", aJson, false);
 
 		auto targetType = JsonUtil::getEnumField<int>("target_type", aJson, false, 0, TargetUtil::TARGET_LAST-1);
