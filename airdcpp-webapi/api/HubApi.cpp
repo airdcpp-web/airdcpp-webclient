@@ -175,9 +175,9 @@ namespace webserver {
 
 		auto pattern = JsonUtil::getField<string>("pattern", reqJson);
 		auto maxResults = JsonUtil::getField<size_t>("max_results", reqJson);
-		auto ignorePrefixes = JsonUtil::getOptionalField<bool>("ignore_prefixes", reqJson);
+		auto ignorePrefixes = JsonUtil::getOptionalFieldDefault<bool>("ignore_prefixes", reqJson, true);
 
-		auto users = ClientManager::getInstance()->searchNicks(pattern, maxResults, ignorePrefixes ? *ignorePrefixes : true);
+		auto users = ClientManager::getInstance()->searchNicks(pattern, maxResults, ignorePrefixes);
 
 		json retJson;
 		for (const auto& u : users) {

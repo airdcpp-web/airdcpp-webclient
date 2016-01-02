@@ -58,9 +58,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto user = Deserializer::deserializeHintedUser(reqJson);
-		auto optionalDirectory = JsonUtil::getOptionalField<string>("directory", reqJson, false);
-
-		auto directory = optionalDirectory ? Util::toNmdcFile(*optionalDirectory) : Util::emptyString;
+		auto directory = Util::toNmdcFile(JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/", false));
 
 		QueueItem::Flags flags;
 		flags.setFlag(QueueItem::FLAG_PARTIAL_LIST);

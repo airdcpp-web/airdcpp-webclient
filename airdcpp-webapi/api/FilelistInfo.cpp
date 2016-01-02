@@ -68,10 +68,14 @@ namespace webserver {
 	}
 
 	api_return FilelistInfo::handleChangeDirectory(ApiRequest& aRequest) {
-		auto listPath = JsonUtil::getField<string>("list_path", aRequest.getRequestBody(), false);
+		const auto& j = aRequest.getRequestBody();
+		auto listPath = JsonUtil::getField<string>("list_path", j, false);
+		auto reload = JsonUtil::getOptionalFieldDefault<bool>("reload", j, false);
+
 		dl->addAsyncTask([=] {
-			dl->changeDirectory(Util::toNmdcFile(listPath), DirectoryListing::RELOAD_NONE);
+			dl->changeDirectory(Util::toNmdcFile(listPath), reload ? DirectoryListing::RELOAD_DIR : DirectoryListing::RELOAD_NONE);
 		});
+
 		return websocketpp::http::status_code::ok;
 	}
 

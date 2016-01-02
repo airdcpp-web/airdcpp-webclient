@@ -44,7 +44,7 @@ namespace webserver {
 #else
 		auto path = JsonUtil::getField<string>("path", reqJson, false);
 #endif
-		auto dirsOnly = JsonUtil::getOptionalField<bool>("directories_only", reqJson);
+		auto dirsOnly = JsonUtil::getOptionalFieldDefault<bool>("directories_only", reqJson, false);
 
 		json retJson;
 		if (path.empty()) {
@@ -58,7 +58,7 @@ namespace webserver {
 			}
 
 			try {
-				retJson = serializeDirectoryContent(path, dirsOnly ? *dirsOnly : false);
+				retJson = serializeDirectoryContent(path, dirsOnly);
 			} catch (const FileException& e) {
 				aRequest.setResponseErrorStr("Failed to get directory content: " + e.getError());
 				return websocketpp::http::status_code::internal_server_error;

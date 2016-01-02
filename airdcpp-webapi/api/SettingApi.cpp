@@ -39,11 +39,11 @@ namespace webserver {
 	api_return SettingApi::handleGetSettingInfos(ApiRequest& aRequest) {
 		const auto& requestJson = aRequest.getRequestBody();
 
-		auto forceAutoValues = JsonUtil::getOptionalField<bool>("force_auto_values", requestJson);
+		auto forceAutoValues = JsonUtil::getOptionalFieldDefault<bool>("force_auto_values", requestJson, false);
 
 		json retJson;
 		parseSettingKeys(requestJson, [&](const ApiSettingItem* aItem) {
-			retJson[aItem->name] = aItem->infoToJson(forceAutoValues ? *forceAutoValues : false);
+			retJson[aItem->name] = aItem->infoToJson(forceAutoValues);
 		});
 
 		aRequest.setResponseBody(retJson);
@@ -84,11 +84,9 @@ namespace webserver {
 	}
 
 	api_return SettingApi::handleSetSettings(ApiRequest& aRequest) {
-		auto& requestJson = aRequest.getIterableRequestBody();
-
 		SettingHolder h(nullptr);
 
-		for (auto elem : json::iterator_wrapper(requestJson)) {
+		for (auto elem : json::iterator_wrapper(aRequest.getRequestBody())) {
 			auto setting = getSettingItem(elem.key());
 			if (!setting) {
 				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");

@@ -41,8 +41,8 @@ namespace webserver {
 	}
 
 	api_return ShareApi::handleRefreshShare(ApiRequest& aRequest) {
-		auto incomingOptional = JsonUtil::getOptionalField<bool>("incoming", aRequest.getRequestBody());
-		auto ret = ShareManager::getInstance()->refresh(incomingOptional ? *incomingOptional : false);
+		auto incoming = JsonUtil::getOptionalFieldDefault<bool>("incoming", aRequest.getRequestBody(), false);
+		auto ret = ShareManager::getInstance()->refresh(incoming);
 
 		//aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;

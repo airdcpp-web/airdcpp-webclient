@@ -70,10 +70,10 @@ namespace webserver {
 		api_return handleGetHub(ApiRequest& aRequest);
 
 		// Returns error if there are invalid properties
-		string updateValidatedProperties(FavoriteHubEntryPtr& aEntry, json& j, bool aNewHub);
+		string updateValidatedProperties(FavoriteHubEntryPtr& aEntry, const json& j, bool aNewHub);
 
 		// Values that don't need to be validated
-		void updateSimpleProperties(FavoriteHubEntryPtr& aEntry, json& j);
+		void updateSimpleProperties(FavoriteHubEntryPtr& aEntry, const json& j);
 
 		void on(FavoriteManagerListener::FavoriteHubAdded, const FavoriteHubEntryPtr& /*e*/)  noexcept;
 		void on(FavoriteManagerListener::FavoriteHubRemoved, const FavoriteHubEntryPtr& e) noexcept;

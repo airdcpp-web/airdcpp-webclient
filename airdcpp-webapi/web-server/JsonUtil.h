@@ -65,6 +65,17 @@ namespace webserver {
 			return parseValue<T>(aFieldName, *p, aAllowEmpty);
 		}
 
+		// Get the field value if it exists and return the default otherwise
+		template <typename T, typename JsonT>
+		static T getOptionalFieldDefault(const string& aFieldName, const JsonT& aJson, const T& aDefault, bool aAllowEmpty = true) {
+			auto v = getOptionalField<T>(aFieldName, aJson, aAllowEmpty);
+			if (v) {
+				return *v;
+			}
+
+			return aDefault;
+		}
+
 		// Returns raw JSON value and throws if the field is missing
 		template <typename JsonT>
 		static json getRawValue(const string& aFieldName, const JsonT& aJson) {

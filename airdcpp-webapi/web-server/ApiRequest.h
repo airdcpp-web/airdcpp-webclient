@@ -79,12 +79,6 @@ namespace webserver {
 			return requestJson;
 		}
 
-		// Json doesn't support iterating a key-value map for const values
-		// https://github.com/nlohmann/json/issues/83
-		json& getIterableRequestBody() noexcept {
-			return requestJson;
-		}
-
 		void setResponseBody(const json& aResponse) {
 			responseJsonData = aResponse;
 		}

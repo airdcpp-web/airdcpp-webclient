@@ -63,11 +63,12 @@ namespace webserver {
 
 		auto username = JsonUtil::getField<string>("username", reqJson, false);
 		auto password = JsonUtil::getField<string>("password", reqJson, false);
-		auto inactivityMinutes = JsonUtil::getOptionalField<uint64_t>("max_inactivity", reqJson);
-		auto userSession = JsonUtil::getOptionalField<bool>("user_session", reqJson);
+
+		auto inactivityMinutes = JsonUtil::getOptionalFieldDefault<uint64_t>("max_inactivity", reqJson, 20ULL);
+		auto userSession = JsonUtil::getOptionalFieldDefault<bool>("user_session", reqJson, false);
 
 		auto session = WebServerManager::getInstance()->getUserManager().authenticate(username, password, 
-			aIsSecure, inactivityMinutes ? *inactivityMinutes : 20, userSession ? *userSession : false);
+			aIsSecure, inactivityMinutes, userSession);
 
 		if (!session) {
 			aRequest.setResponseErrorStr("Invalid username or password");
