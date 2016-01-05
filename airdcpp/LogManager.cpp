@@ -48,18 +48,17 @@ void LogManager::log(Area area, ParamMap& params) noexcept {
 }
 
 void LogManager::ensureParam(const string& aParam, string& fileName) {
-	if (fileName.find(aParam) == string::npos) {
-		auto slash = fileName.find_last_of("\\/");
-
-		auto ext = fileName.rfind('.');
-
-
-		//check that the dot is part of the file name (not in the directory name)
-		auto appendPos = (ext == string::npos || (slash != string::npos && ext < slash)) ? fileName.size() : ext;
-
-		fileName.insert(appendPos, "." + aParam);
-		//fileName.append("." + aParam, appendPos, string::npos);
+	if (fileName.find(aParam) != string::npos) {
+		return;
 	}
+
+	auto slash = fileName.find_last_of("\\/");
+	auto ext = fileName.rfind('.');
+
+	//check that the dot is part of the file name (not in the directory name)
+	auto appendPos = (ext == string::npos || (slash != string::npos && ext < slash)) ? fileName.size() : ext;
+
+	fileName.insert(appendPos, "." + aParam);
 }
 
 void LogManager::log(const UserPtr& aUser, ParamMap& params) {
@@ -121,14 +120,16 @@ string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache
 }
 
 void LogManager::message(const string& msg, LogMessage::Severity severity) {
-	if(SETTING(LOG_SYSTEM)) {
-		ParamMap params;
-		params["message"] = msg;
-		log(SYSTEM, params);
-	}
-
 	auto messageData = make_shared<LogMessage>(msg, severity);
-	cache.addMessage(messageData);
+	if (severity != LogMessage::SEV_NOTIFY) {
+		if (SETTING(LOG_SYSTEM)) {
+			ParamMap params;
+			params["message"] = msg;
+			log(SYSTEM, params);
+		}
+
+		cache.addMessage(messageData);
+	}
 
 	fire(LogManagerListener::Message(), messageData);
 }

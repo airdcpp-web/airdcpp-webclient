@@ -175,6 +175,10 @@ class UserConnection;
 typedef UserConnection* UserConnectionPtr;
 typedef std::vector<UserConnectionPtr> UserConnectionList;
 
+class ViewFile;
+typedef shared_ptr<ViewFile> ViewFilePtr;
+typedef vector<ViewFilePtr> ViewFileList;
+
 class AutoSearch;
 typedef boost::intrusive_ptr<AutoSearch> AutoSearchPtr;
 typedef std::vector<AutoSearchPtr> AutoSearchList;

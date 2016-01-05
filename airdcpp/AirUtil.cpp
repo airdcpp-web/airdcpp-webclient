@@ -109,6 +109,19 @@ DupeType AirUtil::checkDirDupe(const string& aDir, int64_t aSize) {
 	return DUPE_NONE;
 }
 
+string AirUtil::toOpenFileName(const string& aFileName, const TTHValue& aTTH) noexcept {
+	return aTTH.toBase32() + "_" + Util::validateFileName(aFileName);
+}
+
+string AirUtil::fromOpenFileName(const string& aFileName) noexcept {
+	if (aFileName.size() <= 40) {
+		dcassert(0);
+		return aFileName;
+	}
+
+	return aFileName.substr(40);
+}
+
 DupeType AirUtil::checkFileDupe(const TTHValue& aTTH) {
 	if (ShareManager::getInstance()->isFileShared(aTTH)) {
 		return DUPE_SHARE;

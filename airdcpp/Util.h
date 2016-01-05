@@ -179,9 +179,7 @@ public:
 
 	/** Path of temporary storage */
 	static string getTempPath();
-
 	static string getOpenPath();
-	static string getOpenPath(const string& aFileName);
 
 	/** Path of configuration files */
 	static const string& getPath(Paths path) { return paths[path]; }

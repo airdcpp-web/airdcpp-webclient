@@ -425,11 +425,11 @@ void ADLSearchManager::save(bool force /*false*/) noexcept {
 	SettingsManager::saveSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
 }
 
-void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryListing::File *currentFile, string& fullPath) noexcept {
+void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryListing::File::Ptr& currentFile, string& fullPath) noexcept {
 	// Add to any substructure being stored
 	for(auto& id: destDirVector) {
 		if(id.subdir != NULL) {
-			DirectoryListing::File *copyFile = new DirectoryListing::File(*currentFile, true);
+			auto copyFile = new DirectoryListing::File(*currentFile, true);
 			dcassert(id.subdir->getAdls());
 
 			id.subdir->files.push_back(copyFile);
@@ -449,7 +449,7 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 			continue;
 		}
 		if(is.matchesFile(currentFile->getName(), filePath, currentFile->getSize())) {
-			DirectoryListing::File *copyFile = new DirectoryListing::File(*currentFile, true);
+			auto copyFile = new DirectoryListing::File(*currentFile, true);
 			destDirVector[is.ddIndex].dir->files.push_back(copyFile);
 			destDirVector[is.ddIndex].fileAdded = true;
 

@@ -191,7 +191,7 @@ bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot, bool report
 				continue;
 			if (!reportOnly)
 				uc->callAsync([this, uc] { revive(uc); });
-			dcdebug("uc updated");
+			//dcdebug("uc updated");
 			return true;
 		}	
 	}

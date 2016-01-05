@@ -48,14 +48,11 @@ DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const
 	isClientView(aIsClientView), matchADL(SETTING(USE_ADLS) && !aPartial), 
 	tasks(isClientView, Thread::NORMAL, std::bind(&DirectoryListing::dispatch, this, std::placeholders::_1))
 {
-	updateCurrentLocation(root);
 	running.clear();
 
 	ClientManager::getInstance()->addListener(this);
 	if (isOwnList) {
 		ShareManager::getInstance()->addListener(this);
-	} else {
-		DownloadManager::getInstance()->addListener(this);
 	}
 }
 
@@ -63,7 +60,6 @@ DirectoryListing::~DirectoryListing() {
 	dcdebug("Filelist deleted\n");
 	ClientManager::getInstance()->removeListener(this);
 	ShareManager::getInstance()->removeListener(this);
-	DownloadManager::getInstance()->removeListener(this);
 }
 
 bool DirectoryListing::isMyCID() const noexcept {
@@ -162,13 +158,8 @@ bool DirectoryListing::supportsASCH() const noexcept {
 	return !partialList || isOwnList || hintedUser.user->isSet(User::ASCH);
 }
 
-void DirectoryListing::setState(State aState) noexcept {
-	if (aState == STATE_LOADED) {
-		open = true;
-	}
-
-	state = aState;
-	fire(DirectoryListingListener::StateChanged(), aState);
+void DirectoryListing::onStateChanged() noexcept {
+	fire(DirectoryListingListener::StateChanged());
 }
 
 void DirectoryListing::loadFile() throw(Exception, AbortException) {
@@ -268,7 +259,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				return;		
 			TTHValue tth(h); /// @todo verify validity?
 
-			DirectoryListing::File* f = new DirectoryListing::File(cur, n, size, tth, checkDupe, Util::toUInt32(getAttrib(attribs, sDate, 3)));
+			auto f = new DirectoryListing::File(cur, n, size, tth, checkDupe, Util::toUInt32(getAttrib(attribs, sDate, 3)));
 			cur->files.push_back(f);
 		} else if(name == sDirectory) {
 			const string& n = getAttrib(attribs, sName, 0);
@@ -370,19 +361,19 @@ void ListLoader::endTag(const string& name) {
 }
 
 DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe, time_t aRemoteDate) noexcept : 
-	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), remoteDate(aRemoteDate), token(Util::rand()) {
+	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), remoteDate(aRemoteDate) {
 
 	if (checkDupe && size > 0) {
 		dupe = AirUtil::checkFileDupe(tthRoot);
 	}
 }
 
-DirectoryListing::File::File(const File& rhs, bool _adls) noexcept : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe), remoteDate(rhs.remoteDate), token(Util::rand())
+DirectoryListing::File::File(const File& rhs, bool _adls) noexcept : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe), remoteDate(rhs.remoteDate)
 {
 }
 
 DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, Directory::DirType aType, time_t aUpdateDate, bool checkDupe, const string& aSize, time_t aRemoteDate /*0*/)
-	: name(aName), parent(aParent), type(aType), remoteDate(aRemoteDate), updateDate(aUpdateDate), token(Util::rand()) {
+	: name(aName), parent(aParent), type(aType), remoteDate(aRemoteDate), updateDate(aUpdateDate) {
 
 	if (!aSize.empty()) {
 		partialSize = Util::toInt64(aSize);
@@ -515,7 +506,7 @@ int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {
 	return 0;
 }
 
-void DirectoryListing::openFile(const File* aFile, bool aIsClientView) const throw(QueueException, FileException) {
+void DirectoryListing::openFile(const File::Ptr& aFile, bool aIsClientView) const throw(QueueException, FileException) {
 	QueueManager::getInstance()->addOpenedItem(aFile->getName(), aFile->getSize(), aFile->getTTH(), hintedUser, aIsClientView);
 }
 
@@ -538,7 +529,7 @@ DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& a
 }
 
 void DirectoryListing::Directory::findFiles(const boost::regex& aReg, File::List& aResults) const noexcept {
-	copy_if(files.begin(), files.end(), back_inserter(aResults), [&aReg](const File* df) { return boost::regex_match(df->getName(), aReg); });
+	copy_if(files.begin(), files.end(), back_inserter(aResults), [&aReg](const File::Ptr& df) { return boost::regex_match(df->getName(), aReg); });
 
 	for(auto d: directories)
 		d->findFiles(aReg, aResults); 
@@ -597,22 +588,14 @@ void DirectoryListing::findNfoImpl(const string& aPath, bool aAllowQueueList, Du
 		}
 	}
 
-	statusMessage(dir->getName() + ": " + STRING(NO_NFO_FOUND), LogMessage::SEV_INFO);
-}
-
-void DirectoryListing::statusMessage(const string& aText, LogMessage::Severity aSeverity) noexcept {
-	if (isClientView) {
-		fire(DirectoryListingListener::UpdateStatusMessage(), aText);
-	} else {
-		LogManager::getInstance()->message(getNick(false) + ": " + aText, aSeverity);
-	}
+	LogManager::getInstance()->message(dir->getName() + ": " + STRING(NO_NFO_FOUND), LogMessage::SEV_NOTIFY);
 }
 
 struct HashContained {
 	HashContained(const DirectoryListing::Directory::TTHSet& l) : tl(l) { }
 	const DirectoryListing::Directory::TTHSet& tl;
 	bool operator()(const DirectoryListing::File::Ptr& i) const {
-		return tl.count((i->getTTH())) && (DeleteFunction()(i), true);
+		return tl.count(i->getTTH()) > 0;
 	}
 };
 
@@ -630,11 +613,11 @@ struct SizeLess {
 };
 
 DirectoryListing::Directory::~Directory() {
-	for_each(files, DeleteFunction());
+	//for_each(files, DeleteFunction());
 }
 
 void DirectoryListing::Directory::clearAll() noexcept {
-	for_each(files, DeleteFunction());
+	//for_each(files, DeleteFunction());
 	directories.clear();
 	files.clear();
 }
@@ -667,7 +650,7 @@ void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSe
 		l.insert(f->getTTH());
 }
 	
-void DirectoryListing::getLocalPaths(const File* f, StringList& ret) const throw(ShareException) {
+void DirectoryListing::getLocalPaths(const File::Ptr& f, StringList& ret) const throw(ShareException) {
 	if(f->getParent()->getAdls() && (f->getParent()->getParent() == root || !isOwnList))
 		return;
 
@@ -850,12 +833,12 @@ void DirectoryListing::addListDiffTask(const string& aFile, bool aOwnList) noexc
 }
 
 void DirectoryListing::addPartialListTask(const string& aXml, const string& aBase, bool reloadAll /*false*/, bool changeDir /*true*/, std::function<void()> f) noexcept {
-	setState(STATE_LOADING);
+	//onStateChanged();
 	addAsyncTask([=] { loadPartialImpl(aXml, aBase, reloadAll, changeDir, f); });
 }
 
 void DirectoryListing::addFullListTask(const string& aDir) noexcept {
-	setState(STATE_LOADING);
+	//onStateChanged();
 	addAsyncTask([=] { loadFileImpl(aDir); });
 }
 
@@ -880,10 +863,6 @@ void DirectoryListing::addAsyncTask(DispatcherQueue::Callback&& f) noexcept {
 	} else {
 		dispatch(f);
 	}
-}
-
-void DirectoryListing::onRemovedQueue(const string& aDir) noexcept {
-	addAsyncTask([=] { removedQueueImpl(aDir); });
 }
 
 void DirectoryListing::dispatch(DispatcherQueue::Callback& aCallback) noexcept {
@@ -954,10 +933,11 @@ void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aDir,
 
 	auto dir = findDirectory(aDir);
 	if (dir) {
+		dir->setLoading(false);
 		updateCurrentLocation(dir);
+		onStateChanged();
 	}
 	
-	setState(STATE_LOADED);
 	fire(DirectoryListingListener::LoadingFinished(), aStartTime, aDir, aReloadList, aChangeDir);
 }
 
@@ -1090,18 +1070,6 @@ void DirectoryListing::on(ClientManagerListener::UserUpdated, const OnlineUser& 
 	fire(DirectoryListingListener::UserUpdated());
 }
 
-void DirectoryListing::on(DownloadManagerListener::Failed, const Download* aDownload, const string& /*aReason*/) noexcept {
-	if (aDownload->isFileList() && aDownload->getUser() == getUser()) {
-		setState(STATE_DOWNLOAD_PENDING);
-	}
-}
-
-void DirectoryListing::on(DownloadManagerListener::Starting, const Download* aDownload) noexcept {
-	if (aDownload->isFileList() && aDownload->getUser() == getUser()) {
-		setState(STATE_DOWNLOADING);
-	}
-}
-
 void DirectoryListing::on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept {
 	if (compare(aSR->getToken(), searchToken) == 0) {
 		lastResult = GET_TICK();
@@ -1169,7 +1137,7 @@ bool DirectoryListing::changeDirectory(const string& aPath, ReloadMode aReloadMo
 		return false;
 	}
 
-	if (!partialList || (dir->isComplete() && aReloadMode == RELOAD_NONE)) {
+	if (!partialList || dir->getLoading() || (dir->isComplete() && aReloadMode == RELOAD_NONE)) {
 		fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
 	} else {
 		try {
@@ -1217,10 +1185,20 @@ bool DirectoryListing::isCurrentSearchPath(const string& path) const noexcept {
 	return *curResult == path;
 }
 
-void DirectoryListing::removedQueueImpl(const string& aDir) noexcept {
-	dcassert(open);
-	fire(DirectoryListingListener::RemovedQueue(), aDir);
-	setState(STATE_LOADED);
+void DirectoryListing::onListRemovedQueue(const string& aTarget, const string& aDir, bool aFinished) noexcept {
+	if (!aFinished) {
+		addAsyncTask([=] {
+			auto dir = findDirectory(aDir);
+			if (dir) {
+				dir->setLoading(false);
+				fire(DirectoryListingListener::RemovedQueue(), aDir);
+
+				onStateChanged();
+			}
+		});
+	}
+
+	TrackableDownloadItem::onRemovedQueue(aTarget, aFinished);
 }
 
 void DirectoryListing::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept{

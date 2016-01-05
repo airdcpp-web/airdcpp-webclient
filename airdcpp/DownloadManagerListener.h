@@ -77,7 +77,7 @@ public:
 	/* format: target, token, bundleToken */
 	virtual void on(TargetChanged, const string&, const string&, QueueToken) noexcept { }
 
-	virtual void on(BundleWaiting, const BundlePtr) noexcept { }
+	virtual void on(BundleWaiting, const BundlePtr&) noexcept { }
 	virtual void on(BundleTick, const BundleList&, uint64_t) noexcept { }
 
 	/**

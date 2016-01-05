@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef AIR_UTIL_H
-#define AIR_UTIL_H
+#ifndef DCPP_AIRUTIL_H
+#define DCPP_AIRUTIL_H
 
 #include "compiler.h"
 
@@ -76,6 +76,8 @@ public:
 	static void updateCachedSettings();
 	static string getLocalIp(bool v6, bool allowPrivate = true);
 
+	static string toOpenFileName(const string& aFileName, const TTHValue& aTTH) noexcept;
+	static string fromOpenFileName(const string& aFileName) noexcept;
 
 	struct AddressInfo {
 		AddressInfo(const string& aName, const string& aIP, uint8_t aPrefix) : adapterName(aName), ip(aIP), prefix(aPrefix) { }

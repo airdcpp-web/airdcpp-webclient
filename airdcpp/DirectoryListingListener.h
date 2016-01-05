@@ -54,7 +54,7 @@ public:
 	virtual void on(RemovedQueue, const string&) noexcept { }
 	virtual void on(SetActive) noexcept {}
 	virtual void on(UserUpdated) noexcept {}
-	virtual void on(StateChanged, uint8_t) noexcept {}
+	virtual void on(StateChanged) noexcept {}
 };
 
 } // namespace dcpp

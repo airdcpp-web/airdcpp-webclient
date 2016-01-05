@@ -132,18 +132,6 @@ string Util::getOpenPath() {
 	return getTempPath() + "Opened Items" + PATH_SEPARATOR_STR;
 }
 
-string Util::getOpenPath(const string& aFileName) {
-	auto fileName = Util::getFileName(aFileName);
-	auto pos = fileName.rfind('.');
-	if (pos != string::npos) {
-		fileName.insert(pos,  "_" + Util::toString(Util::rand()));
-	} else {
-		fileName += "_" + Util::toString(Util::rand());
-	}
-
-	return getOpenPath() + fileName;
-}
-
 void Util::addStartupParam(const string& aParam) {
 	if (aParam.empty())
 		return;

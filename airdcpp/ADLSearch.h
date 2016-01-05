@@ -151,7 +151,7 @@ private:
 	// @internal
 	void matchRecurse(DestDirList& /*aDestList*/, const DirectoryListing::Directory::Ptr& /*aDir*/, string& /*aPath*/, DirectoryListing& /*aDirList*/) throw(AbortException);
 	// Search for file match
-	void MatchesFile(DestDirList& destDirVector, const DirectoryListing::File *currentFile, string& fullPath) noexcept;
+	void MatchesFile(DestDirList& destDirVector, const DirectoryListing::File::Ptr& currentFile, string& fullPath) noexcept;
 	// Search for directory match
 	void MatchesDirectory(DestDirList& destDirVector, const DirectoryListing::Directory::Ptr& currentDir, string& fullPath) noexcept;
 	// Step up directory
