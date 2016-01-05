@@ -114,7 +114,11 @@ namespace webserver {
 		string content;
 		try {
 			File f(file->getPath(), File::READ, File::OPEN);
-			content = Text::toUtf8(f.read());
+
+			content = f.read();
+			if (Util::getFileExt(file->getPath()) == ".nfo") {
+				content = Text::toUtf8(content, "cp437");
+			}
 		} catch (const FileException& e) {
 			aRequest.setResponseErrorStr("Failed to open the file: " + e.getError() + "(" + file->getPath() + ")");
 			return websocketpp::http::status_code::internal_server_error;
