@@ -43,10 +43,12 @@ namespace webserver {
 			DIRECTORY
 		};
 
-		const DirectoryListing::File* file;
-		const DirectoryListing::Directory::Ptr dir;
+		union {
+			const DirectoryListing::File::Ptr file;
+			const DirectoryListing::Directory::Ptr dir;
+		};
 
-		FilelistItemInfo(const DirectoryListing::File* f) : type(FILE), file(f) { }
+		FilelistItemInfo(const DirectoryListing::File::Ptr& f) : type(FILE), file(f) { }
 		FilelistItemInfo(const DirectoryListing::Directory::Ptr& d) : type(DIRECTORY), dir(d) {}
 		~FilelistItemInfo() { }
 
@@ -59,7 +61,7 @@ namespace webserver {
 		time_t getDate() const noexcept { return type == DIRECTORY ? dir->getRemoteDate() : file->getRemoteDate(); }
 		time_t getSize() const noexcept { return type == DIRECTORY ? dir->getTotalSize(false) : file->getSize(); }
 
-		DirectoryListingToken getToken() const noexcept { return type == DIRECTORY ? dir->getToken() : file->getToken(); }
+		DirectoryListingToken getToken() const noexcept;
 
 		ItemType getType() const noexcept {
 			return type;
@@ -101,6 +103,7 @@ namespace webserver {
 
 		DirectoryListingPtr getList() const noexcept { return dl; }
 
+		static string formatState(const DirectoryListingPtr& aList) noexcept;
 		static json serializeState(const DirectoryListingPtr& aList) noexcept;
 		static json serializeLocation(const DirectoryListingPtr& aListing) noexcept;
 	private:
@@ -112,7 +115,9 @@ namespace webserver {
 		void on(DirectoryListingListener::ChangeDirectory, const string& aDir, bool isSearchChange) noexcept;
 		void on(DirectoryListingListener::UpdateStatusMessage, const string& aMessage) noexcept;
 		void on(DirectoryListingListener::UserUpdated) noexcept;
-		void on(DirectoryListingListener::StateChanged, uint8_t aState) noexcept;
+		void on(DirectoryListingListener::StateChanged) noexcept;
+
+		void addListTask(CallBack&& aTask) noexcept;
 
 		/*void on(DirectoryListingListener::QueueMatched, const string& aMessage) noexcept;
 		void on(DirectoryListingListener::Close) noexcept;

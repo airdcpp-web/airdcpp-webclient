@@ -49,6 +49,10 @@ namespace webserver {
 		FilelistUtils::serializeItem
 	);
 
+	DirectoryListingToken FilelistItemInfo::getToken() const noexcept {
+		return hash<string>()(type == DIRECTORY ? dir->getName() : file->getName());
+	}
+
 	FilelistInfo::FilelistInfo(ParentType* aParentModule, const DirectoryListingPtr& aFilelist) : 
 		SubApiModule(aParentModule, aFilelist->getUser()->getCID().toBase32(), subscriptionList), 
 		dl(aFilelist),
@@ -58,7 +62,7 @@ namespace webserver {
 
 		dl->addListener(this);
 
-		if (dl->isOpen()) {
+		if (dl->hasCompletedDownloads()) {
 			updateItems(dl->getCurrentLocationInfo().directory->getPath());
 		}
 	}
@@ -67,12 +71,18 @@ namespace webserver {
 		dl->removeListener(this);
 	}
 
+	void FilelistInfo::addListTask(CallBack&& aTask) noexcept {
+		dl->addAsyncTask([=] {
+			asyncRunWrapper(aTask);
+		});
+	}
+
 	api_return FilelistInfo::handleChangeDirectory(ApiRequest& aRequest) {
 		const auto& j = aRequest.getRequestBody();
 		auto listPath = JsonUtil::getField<string>("list_path", j, false);
 		auto reload = JsonUtil::getOptionalFieldDefault<bool>("reload", j, false);
 
-		dl->addAsyncTask([=] {
+		addListTask([=] {
 			dl->changeDirectory(Util::toNmdcFile(listPath), reload ? DirectoryListing::RELOAD_DIR : DirectoryListing::RELOAD_NONE);
 		});
 
@@ -84,22 +94,32 @@ namespace webserver {
 		return currentViewItems;
 	}
 
-	json FilelistInfo::serializeState(const DirectoryListingPtr& aList) noexcept {
-		string id;
-		switch (aList->getState()) {
-			case DirectoryListing::STATE_DOWNLOAD_PENDING: id = "download_pending"; break;
-			case DirectoryListing::STATE_DOWNLOADING: id = "downloading"; break;
-			case DirectoryListing::STATE_LOADING: id = "loading"; break;
-			case DirectoryListing::STATE_LOADED: id = "loaded"; break;
+	string FilelistInfo::formatState(const DirectoryListingPtr& aList) noexcept {
+		if (aList->getDownloadState() == DirectoryListing::STATE_DOWNLOADED) {
+			return !aList->getCurrentLocationInfo().directory || aList->getCurrentLocationInfo().directory->getLoading() ? "loading" : "loaded";
 		}
 
-		return{
-			{ "id", id }
-		};
+		return Serializer::serializeDownloadState(aList->getDownloadState());
+	}
+
+	json FilelistInfo::serializeState(const DirectoryListingPtr& aList) noexcept {
+		if (aList->getDownloadState() == DirectoryListing::STATE_DOWNLOADED) {
+			bool loading = !aList->getCurrentLocationInfo().directory || aList->getCurrentLocationInfo().directory->getLoading();
+			return {
+				{ "id", loading ? "loading" : "loaded" },
+				{ "str", loading ? "Parsing data" : "Loaded" },
+			};
+		}
+
+		return Serializer::serializeDownloadState(aList->getDownloadState());
 	}
 
 	json FilelistInfo::serializeLocation(const DirectoryListingPtr& aListing) noexcept {
 		const auto& location = aListing->getCurrentLocationInfo();
+		if (!location.directory) {
+			return nullptr;
+		}
+
 		auto ret = Serializer::serializeItem(make_shared<FilelistItemInfo>(location.directory), itemHandler);
 
 		ret["size"] = location.totalSize;
@@ -108,7 +128,7 @@ namespace webserver {
 	}
 
 	void FilelistInfo::updateItems(const string& aPath) noexcept {
-		dl->addAsyncTask([=] {
+		addListTask([=] {
 			auto curDir = dl->findDirectory(aPath);
 			if (!curDir) {
 				return;
@@ -145,7 +165,7 @@ namespace webserver {
 	}
 
 	void FilelistInfo::on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aPath, bool reloadList, bool changeDir) noexcept {
-		if (changeDir) {
+		if (changeDir || (aPath == dl->getCurrentLocationInfo().directory->getPath())) {
 			updateItems(aPath);
 		}
 	}
@@ -158,7 +178,7 @@ namespace webserver {
 
 	}
 
-	void FilelistInfo::on(DirectoryListingListener::StateChanged, uint8_t aState) noexcept {
+	void FilelistInfo::on(DirectoryListingListener::StateChanged) noexcept {
 		onSessionUpdated({
 			{ "state", serializeState(dl) }
 		});

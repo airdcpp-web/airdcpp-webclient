@@ -29,7 +29,7 @@ namespace webserver {
 		"filelist_removed"
 	};
 
-	FilelistApi::FilelistApi(Session* aSession) : ParentApiModule("session", CID_PARAM, Access::FILELISTS_VIEW, aSession, FilelistApi::subscriptionList, FilelistInfo::subscriptionList, [](const string& aId) { return Deserializer::deserializeCID(aId); }) {
+	FilelistApi::FilelistApi(Session* aSession) : ParentApiModule("session", CID_PARAM, Access::FILELISTS_VIEW, aSession, FilelistApi::subscriptionList, FilelistInfo::subscriptionList, [](const string& aId) { return Deserializer::parseCID(aId); }) {
 
 		DirectoryListingManager::getInstance()->addListener(this);
 
@@ -62,8 +62,18 @@ namespace webserver {
 
 		QueueItem::Flags flags;
 		flags.setFlag(QueueItem::FLAG_PARTIAL_LIST);
-		if (JsonUtil::getField<bool>("client_view", reqJson)) {
+		if (JsonUtil::getOptionalFieldDefault<bool>("client_view", reqJson, false)) {
 			flags.setFlag(QueueItem::FLAG_CLIENT_VIEW);
+		}
+
+		if (JsonUtil::getOptionalFieldDefault<bool>("find_nfo", reqJson, false)) {
+			flags.setFlag(QueueItem::FLAG_VIEW_NFO);
+			flags.setFlag(QueueItem::FLAG_RECURSIVE_LIST);
+		}
+
+		if (JsonUtil::getOptionalFieldDefault<bool>("match_queue", reqJson, false)) {
+			flags.setFlag(QueueItem::FLAG_MATCH_QUEUE);
+			flags.setFlag(QueueItem::FLAG_RECURSIVE_LIST);
 		}
 
 		QueueItemPtr q = nullptr;

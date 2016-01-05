@@ -19,9 +19,13 @@
 #include <web-server/stdinc.h>
 
 #include <web-server/FileServer.h>
+#include <web-server/WebServerManager.h>
+
+#include <api/common/Deserializer.h>
 
 #include <airdcpp/File.h>
 #include <airdcpp/Util.h>
+#include <airdcpp/ViewFileManager.h>
 
 #include <sstream>
 
@@ -90,18 +94,10 @@ namespace webserver {
 		{ NULL, NULL }
 	};
 
-	websocketpp::http::status_code::value FileServer::handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest, const SessionPtr& aSession,
-		string& output_, StringPairList& headers_) noexcept {
-
-		if (resourcePath.empty()) {
-			output_ = "No resource path set";
-			return websocketpp::http::status_code::not_found;
-		}
-
+	string FileServer::parseResourcePath(const string& aResource, const websocketpp::http::parser::request& aRequest, StringPairList& headers_) const noexcept {
 		auto request = aResource;
-		dcdebug("Requesting file %s\n", request.c_str());
 
-		auto extension = Util::getFileExt(request);
+		auto extension = getExtension(request);
 		if (!extension.empty()) {
 			// Strip the dot
 			extension = extension.substr(1);
@@ -119,8 +115,63 @@ namespace webserver {
 		// For windows
 		Util::replace(request, "/", PATH_SEPARATOR_STR);
 
+		return resourcePath + request;
+	}
+
+	string FileServer::parseViewFilePath(const string& aResource) const {
+		string protocol, tth, port, path, query, fragment;
+		Util::decodeUrl(aResource, protocol, tth, port, path, query, fragment);
+
+		auto auth = Util::decodeQuery(query)["auth"];
+		if (auth.empty()) {
+			throw std::domain_error("Authorization query missing");
+		}
+
+		auto session = WebServerManager::getInstance()->getUserManager().getSession(auth);
+		if (!session || !session->getUser()->hasPermission(Access::VIEW_FILES_VIEW)) {
+			throw std::domain_error("Not authorized");
+		}
+
+		auto file = ViewFileManager::getInstance()->getFile(Deserializer::parseTTH(tth));
+		if (!file) {
+			throw std::domain_error("No files matching the TTH were found");
+		}
+
+		return file->getPath();
+	}
+
+	string FileServer::getExtension(const string& aResource) noexcept {
+		auto extension = Util::getFileExt(aResource);
+		if (!extension.empty()) {
+			// Strip the dot
+			extension = extension.substr(1);
+		}
+
+		return extension;
+	}
+
+	websocketpp::http::status_code::value FileServer::handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest,
+		string& output_, StringPairList& headers_) noexcept {
+
+		dcassert(!resourcePath.empty());
+		dcdebug("Requesting file %s\n", aResource.c_str());
+
+		// Get the disk path path
+		string request;
+		if (aResource.length() >= 6 && aResource.compare(0, 6, "/view/") == 0) {
+			try {
+				request = parseViewFilePath(aResource.substr(6));
+			} catch (const std::exception& e) {
+				output_ = e.what();
+				return websocketpp::http::status_code::bad_request;
+			}
+		} else {
+			request = parseResourcePath(aResource, aRequest, headers_);
+		}
+
+		// Read file
 		try {
-			File f(resourcePath + request, File::READ, File::OPEN);
+			File f(request, File::READ, File::OPEN);
 			output_ = f.read();
 		} catch (const FileException& e) {
 			output_ = e.getError();
@@ -128,6 +179,7 @@ namespace webserver {
 		}
 
 		// Get the mime type
+		auto extension = getExtension(request);
 		for (int i = 0; mimes[i].ext != NULL; i++) {
 			if (extension == mimes[i].ext) {
 				headers_.emplace_back("Content-Type", mimes[i].type);

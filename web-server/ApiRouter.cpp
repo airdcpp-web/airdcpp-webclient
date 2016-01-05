@@ -20,6 +20,7 @@
 #include <web-server/ApiRouter.h>
 
 #include <web-server/ApiRequest.h>
+#include <web-server/WebServerManager.h>
 #include <web-server/WebUserManager.h>
 #include <web-server/WebSocket.h>
 
@@ -73,16 +74,23 @@ namespace webserver {
 	}
 
 	websocketpp::http::status_code::value ApiRouter::handleHttpRequest(const string& aRequestPath,
-		const SessionPtr& aSession, const string& aRequestBody, json& output_, json& error_,
-		bool aIsSecure, const string& aRequestMethod, const string& aIp) noexcept {
+		const websocketpp::http::parser::request& aRequest, json& output_, json& error_,
+		bool aIsSecure, const string& aIp) noexcept {
 
-		dcdebug("Received HTTP request: %s\n", aRequestBody.c_str());
+		SessionPtr session = nullptr;
+		auto token = aRequest.get_header("Authorization");
+		if (token != websocketpp::http::empty_header) {
+			session = WebServerManager::getInstance()->getUserManager().getSession(token);
+		}
+
+		auto& requestBody = aRequest.get_body();
+		dcdebug("Received HTTP request: %s\n", aRequest.get_body().c_str());
 		try {
-			ApiRequest apiRequest(aRequestPath, aRequestMethod, output_, error_);
+			ApiRequest apiRequest(aRequestPath, aRequest.get_method(), output_, error_);
 			apiRequest.validate();
 
-			apiRequest.parseHttpRequestJson(aRequestBody);
-			apiRequest.setSession(aSession);
+			apiRequest.parseHttpRequestJson(requestBody);
+			apiRequest.setSession(session);
 
 			return handleRequest(apiRequest, aIsSecure, nullptr, aIp);
 		} catch (const std::exception& e) {

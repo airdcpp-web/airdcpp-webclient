@@ -185,15 +185,18 @@ namespace webserver {
 	}
 
 	void ApiModule::addAsyncTask(CallBack&& aTask) {
+		session->getServer()->addAsyncTask([=] {
+			asyncRunWrapper(move(aTask));
+		});
+	}
+
+	void ApiModule::asyncRunWrapper(const CallBack& aTask) {
 		// Ensure that the session (and socket) won't be deleted
 		auto s = session->getServer()->getUserManager().getSession(session->getToken());
 		if (!s) {
 			return;
 		}
 
-		s->getServer()->addAsyncTask([=] {
-			aTask();
-			s.get();
-		});
+		aTask();
 	}
 }

@@ -414,7 +414,7 @@ namespace webserver {
 		//onFileUpdated(qi);
 	}
 
-	void QueueApi::on(DownloadManagerListener::BundleWaiting, const BundlePtr aBundle) noexcept {
+	void QueueApi::on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept {
 		onBundleUpdated(aBundle, { PROP_SECONDS_LEFT, PROP_SPEED, PROP_STATUS });
 	}
 }

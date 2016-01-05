@@ -577,6 +577,7 @@ namespace webserver {
 
 			// Counts should be updated even if the list doesn't have valid settings posted
 			appendItemCounts(j);
+			dcassert((matchingItems.size() != 0 && allItems.size() != 0) || currentViewItems.empty());
 
 			sendJson(j);
 		}

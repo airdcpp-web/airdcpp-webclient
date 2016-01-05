@@ -26,6 +26,8 @@
 #include <airdcpp/typedefs.h>
 #include <airdcpp/MessageCache.h>
 #include <airdcpp/QueueItemBase.h>
+#include <airdcpp/TrackableDownloadItem.h>
+
 
 namespace webserver {
 	class Serializer {
@@ -52,6 +54,10 @@ namespace webserver {
 
 		static json serializeIp(const string& aIP) noexcept;
 		static json serializeIp(const string& aIP, const string& aCountryCode) noexcept;
+
+		static string getDownloadStateId(TrackableDownloadItem::State aState) noexcept;
+		static string getDownloadStateStr(TrackableDownloadItem::State aState) noexcept;
+		static json serializeDownloadState(TrackableDownloadItem::State aState) noexcept;
 
 
 		// Serialize n messages from end by keeping the list order
@@ -80,12 +86,12 @@ namespace webserver {
 		template <class ContainerT, class FuncT>
 		static json serializeFromPosition(int aBeginPos, int aCount, const ContainerT& aList, FuncT aF) throw(std::exception) {
 			auto listSize = static_cast<int>(std::distance(aList.begin(), aList.end()));
-			if (aBeginPos >= listSize || aCount <= 0) {
-				throw std::domain_error("Invalid range");
-			}
-
 			if (listSize == 0) {
 				return json::array();
+			}
+
+			if (aBeginPos >= listSize || aCount <= 0) {
+				throw std::domain_error("Invalid range");
 			}
 
 			auto beginIter = aList.begin();

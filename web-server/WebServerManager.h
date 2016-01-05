@@ -89,12 +89,6 @@ namespace webserver {
 		void on_http(EndpointType* s, websocketpp::connection_hdl hdl, bool aIsSecure) {
 			// Blocking HTTP Handler
 			auto con = s->get_con_from_hdl(hdl);
-			SessionPtr session = nullptr;
-			auto token = con->get_request_header("Authorization");
-			if (token != websocketpp::http::empty_header) {
-				session = userManager->getSession(token);
-			}
-
 			websocketpp::http::status_code::value status;
 
 			if (con->get_resource().length() >= 4 && con->get_resource().compare(0, 4, "/api") == 0) {
@@ -102,12 +96,10 @@ namespace webserver {
 
 				status = api.handleHttpRequest(
 					con->get_resource().substr(4),
-					session,
-					con->get_request_body(),
+					con->get_request(),
 					output,
 					error,
 					aIsSecure,
-					con->get_request().get_method(),
 					con->get_remote_endpoint()
 					);
 
@@ -124,7 +116,7 @@ namespace webserver {
 				StringPairList headers;
 				std::string output;
 
-				status = fileServer.handleRequest(con->get_resource(), con->get_request(), session, output, headers);
+				status = fileServer.handleRequest(con->get_resource(), con->get_request(), output, headers);
 
 				for (const auto& p : headers) {
 					con->append_header(p.first, p.second);
