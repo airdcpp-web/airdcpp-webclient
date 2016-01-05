@@ -11,4 +11,5 @@ if [ $? = 0 ]; then
   exit 0
 fi
 
+echo "Installing version $wantedVersion of Web UI" 
 npm install --prefix . airdcpp-webui@$1

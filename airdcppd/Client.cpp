@@ -21,6 +21,7 @@
 #include <airdcpp/DCPlusPlus.h>
 #include <airdcpp/Util.h>
 
+#include <airdcpp/AirUtil.h>
 #include <airdcpp/ConnectivityManager.h>
 #include <airdcpp/DirectoryListingManager.h>
 #include <airdcpp/ClientManager.h>
@@ -29,7 +30,7 @@
 #include <airdcpp/TimerManager.h>
 
 #include <web-server/WebServerManager.h>
- 
+
 namespace airdcppd {
 
 Client::Client(bool aAsDaemon) : asDaemon(aAsDaemon) {
@@ -79,11 +80,12 @@ bool Client::startup() {
 	auto serverStarted = webserver::WebServerManager::getInstance()->start([](const string& aError) {
 		printf("%s\n", aError.c_str());
 	}, webResources ? *webResources : "");
-	
+
 	if (!serverStarted) {
 		return false;
 	}
 
+	AirUtil::setAway(AWAY_IDLE);
 	DirectoryListingManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);
 
@@ -109,7 +111,7 @@ void Client::shutdown() {
 	if (!started) {
 		return;
 	}
-	
+
 	ClientManager::getInstance()->putClients();
 	ConnectivityManager::getInstance()->disconnect();
 
@@ -122,7 +124,7 @@ void Client::shutdown() {
 	);
 
 	webserver::WebServerManager::getInstance()->save();
-	webserver::WebServerManager::deleteInstance();	
+	webserver::WebServerManager::deleteInstance();
 }
 
 void Client::on(DirectoryListingManagerListener::OpenListing, const DirectoryListingPtr& aList, const string& aDir, const string& aXML) noexcept {
