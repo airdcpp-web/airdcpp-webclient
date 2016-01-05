@@ -324,6 +324,7 @@
     <ClCompile Include="airdcpp\ThrottleManager.cpp" />
     <ClCompile Include="airdcpp\TigerHash.cpp" />
     <ClCompile Include="airdcpp\TimerManager.cpp" />
+    <ClCompile Include="airdcpp\TrackableDownloadItem.cpp" />
     <ClCompile Include="airdcpp\Transfer.cpp" />
     <ClCompile Include="airdcpp\UDPServer.cpp" />
     <ClCompile Include="airdcpp\UpdateManager.cpp" />
@@ -337,6 +338,8 @@
     <ClCompile Include="airdcpp\UserQueue.cpp" />
     <ClCompile Include="airdcpp\Util.cpp" />
     <ClCompile Include="airdcpp\version.cpp" />
+    <ClCompile Include="airdcpp\ViewFile.cpp" />
+    <ClCompile Include="airdcpp\ViewFileManager.cpp" />
     <ClCompile Include="airdcpp\WebShortcuts.cpp" />
     <ClCompile Include="airdcpp\Wildcards.cpp" />
     <ClCompile Include="airdcpp\ZipFile.cpp" />
@@ -346,6 +349,7 @@
     <ClInclude Include="airdcpp\AdcCommand.h" />
     <ClInclude Include="airdcpp\AdcHub.h" />
     <ClInclude Include="airdcpp\AutoSearchQueue.h" />
+    <ClInclude Include="airdcpp\ViewFileManagerListener.h" />
     <ClInclude Include="airdcpp\MessageCache.h" />
     <ClInclude Include="airdcpp\ConnectionType.h" />
     <ClInclude Include="airdcpp\MessageManager.h" />
@@ -481,6 +485,7 @@
     <ClInclude Include="airdcpp\StringMatch.h" />
     <ClInclude Include="airdcpp\TargetUtil.h" />
     <ClInclude Include="airdcpp\ThrottleManager.h" />
+    <ClInclude Include="airdcpp\TrackableDownloadItem.h" />
     <ClInclude Include="airdcpp\tribool.h" />
     <ClInclude Include="airdcpp\typedefs.h" />
     <ClInclude Include="airdcpp\UDPServer.h" />
@@ -489,6 +494,8 @@
     <ClInclude Include="airdcpp\Updater.h" />
     <ClInclude Include="airdcpp\UploadBundle.h" />
     <ClInclude Include="airdcpp\UserQueue.h" />
+    <ClInclude Include="airdcpp\ViewFile.h" />
+    <ClInclude Include="airdcpp\ViewFileManager.h" />
     <ClInclude Include="airdcpp\WebShortcuts.h" />
     <ClInclude Include="airdcpp\ZipFile.h" />
     <CustomBuild Include="airdcpp\StringDefs.h">

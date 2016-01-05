@@ -32,8 +32,6 @@ public:
 	typedef X<1> OpenListing;
 	typedef X<2> ListingClosed;
 
-	typedef std::function<void (bool)> completionF;
-
 	virtual void on(ListingCreated, const DirectoryListingPtr&) noexcept { }
 	virtual void on(OpenListing, const DirectoryListingPtr&, const string& /*aDir*/, const string& /*aXML*/) noexcept { }
 	virtual void on(ListingClosed, const DirectoryListingPtr&) noexcept { }

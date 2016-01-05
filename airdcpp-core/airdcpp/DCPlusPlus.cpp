@@ -50,6 +50,7 @@
 
 #include "AutoSearchManager.h"
 #include "ShareScannerManager.h"
+#include "ViewFileManager.h"
 
 #include "format.h"
 namespace dcpp {
@@ -103,6 +104,7 @@ void startup(function<void(const string&)> stepF, function<bool(const string& /*
 	DirectoryListingManager::newInstance();
 	UpdateManager::newInstance();
 	HighlightManager::newInstance();
+	ViewFileManager::newInstance();
 
 	SettingsManager::getInstance()->load(messageF);
 
@@ -184,6 +186,7 @@ void shutdown(function<void (const string&)> stepF, function<void (float)> progr
 
 	announce(STRING(SHUTTING_DOWN));
 
+	ViewFileManager::deleteInstance();
 	HighlightManager::deleteInstance();
 	UpdateManager::deleteInstance();
 	GeoManager::deleteInstance();

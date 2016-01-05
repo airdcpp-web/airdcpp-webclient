@@ -49,7 +49,13 @@ private:
 
 class LogMessage {
 public:
-	enum Severity : uint8_t { SEV_INFO, SEV_WARNING, SEV_ERROR, SEV_LAST };
+	enum Severity : uint8_t {
+		SEV_NOTIFY, // Messages with this severity won't be saved to system log, only the event is fired
+		SEV_INFO, 
+		SEV_WARNING, 
+		SEV_ERROR, 
+		SEV_LAST 
+	};
 
 	LogMessage(const string& aMessage, Severity sev) noexcept;
 
