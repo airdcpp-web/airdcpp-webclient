@@ -222,6 +222,9 @@
     <ClInclude Include="api\common\ChatController.h">
       <Filter>Header Files\api\common</Filter>
     </ClInclude>
+    <ClInclude Include="api\ViewFileApi.h">
+      <Filter>Header Files\api</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
@@ -367,6 +370,9 @@
     </ClCompile>
     <ClCompile Include="api\HashApi.cpp">
       <Filter>Source Files\api</Filter>
+    </ClCompile>
+    <ClCompile Include="api\ViewFileApi.cpp">
+      <Filter>Header Files\api</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

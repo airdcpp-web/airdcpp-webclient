@@ -32,10 +32,15 @@ namespace webserver {
 		void setResourcePath(const string& aPath) noexcept;
 		const string& getResourcePath() const noexcept;
 
-		websocketpp::http::status_code::value handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest, const SessionPtr& aSession, 
+		websocketpp::http::status_code::value handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest, 
 			std::string& output_, StringPairList& headers_) noexcept;
 	private:
 		string resourcePath;
+
+		string parseResourcePath(const string& aResource, const websocketpp::http::parser::request& aRequest, StringPairList& headers_) const noexcept;
+		string parseViewFilePath(const string& aResource) const;
+
+		static string getExtension(const string& aResource) noexcept;
 	};
 }
 

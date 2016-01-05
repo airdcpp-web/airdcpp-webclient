@@ -23,6 +23,7 @@
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/QueueItemBase.h>
+#include <airdcpp/MerkleTree.h>
 #include <airdcpp/TargetUtil.h>
 
 namespace webserver {
@@ -30,7 +31,9 @@ namespace webserver {
 
 	class Deserializer {
 	public:
-		static CID deserializeCID(const string& aCID);
+		static CID parseCID(const string& aCID);
+		static TTHValue parseTTH(const string& aTTH);
+
 		static UserPtr deserializeUser(const json& aJson, bool aAllowMe = false);
 		static HintedUser deserializeHintedUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
 		static TTHValue deserializeTTH(const json& aJson);

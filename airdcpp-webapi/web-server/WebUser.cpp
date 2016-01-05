@@ -54,6 +54,9 @@ namespace webserver {
 
 		"filelists_view",
 		"filelists_edit",
+
+		"view_file_view",
+		"view_file_edit",
 	};
 
 	Access WebUser::toAccess(const string& aStr) noexcept {

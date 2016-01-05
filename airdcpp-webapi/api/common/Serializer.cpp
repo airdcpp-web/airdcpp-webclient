@@ -149,6 +149,7 @@ namespace webserver {
 
 	string Serializer::getSeverity(LogMessage::Severity aSeverity) noexcept {
 		switch (aSeverity) {
+			case LogMessage::SEV_NOTIFY: return "notify";
 			case LogMessage::SEV_INFO: return "info";
 			case LogMessage::SEV_WARNING: return "warning";
 			case LogMessage::SEV_ERROR: return "error";
@@ -246,6 +247,35 @@ namespace webserver {
 			{ "str", Format::formatIp(aIP, aCountryCode) },
 			{ "country_id", aCountryCode },
 			{ "ip", aIP }
+		};
+	}
+
+	string Serializer::getDownloadStateId(TrackableDownloadItem::State aState) noexcept {
+		switch (aState) {
+			case TrackableDownloadItem::STATE_DOWNLOAD_PENDING: return "download_pending";
+			case TrackableDownloadItem::STATE_DOWNLOADING: return "downloading";
+			case TrackableDownloadItem::STATE_DOWNLOADED: return "downloaded";
+		}
+
+		dcassert(0);
+		return "";
+	}
+
+	string Serializer::getDownloadStateStr(TrackableDownloadItem::State aState) noexcept {
+		switch (aState) {
+			case TrackableDownloadItem::STATE_DOWNLOAD_PENDING: return "Download pending";
+			case TrackableDownloadItem::STATE_DOWNLOADING: return "Downloading";
+			case TrackableDownloadItem::STATE_DOWNLOADED: return "Downloaded";
+		}
+
+		dcassert(0);
+		return "";
+	}
+
+	json Serializer::serializeDownloadState(TrackableDownloadItem::State aState) noexcept {
+		return {
+			{ "id", getDownloadStateId(aState) },
+			{ "str", getDownloadStateStr(aState) }
 		};
 	}
 }

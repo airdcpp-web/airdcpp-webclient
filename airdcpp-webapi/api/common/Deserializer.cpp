@@ -24,7 +24,7 @@
 #include <airdcpp/ClientManager.h>
 
 namespace webserver {
-	CID Deserializer::deserializeCID(const string& aCID) {
+	CID Deserializer::parseCID(const string& aCID) {
 		if (!Encoder::isBase32(aCID.c_str())) {
 			throw std::invalid_argument("Invalid CID");
 		}
@@ -32,8 +32,16 @@ namespace webserver {
 		return CID(aCID);
 	}
 
+	TTHValue Deserializer::parseTTH(const string& aTTH) {
+		if (!Encoder::isBase32(aTTH.c_str())) {
+			throw std::invalid_argument("Invalid TTH");
+		}
+
+		return TTHValue(aTTH);
+	}
+
 	UserPtr Deserializer::deserializeUser(const json& aJson, bool aAllowMe) {
-		auto cid = deserializeCID(JsonUtil::getField<string>("cid", aJson, false));
+		auto cid = parseCID(JsonUtil::getField<string>("cid", aJson, false));
 		if (!aAllowMe && cid == ClientManager::getInstance()->getMyCID()) {
 			throw std::invalid_argument("Own CID isn't allowed for this command");
 		}
@@ -47,12 +55,7 @@ namespace webserver {
 	}
 
 	TTHValue Deserializer::deserializeTTH(const json& aJson) {
-		auto tthStr = JsonUtil::getField<string>("tth", aJson, false);
-		if (!Encoder::isBase32(tthStr.c_str())) {
-			throw std::invalid_argument("Invalid TTH");
-		}
-
-		return TTHValue(tthStr);
+		return parseTTH(JsonUtil::getField<string>("tth", aJson, false));
 	}
 
 	QueueItemBase::Priority Deserializer::deserializePriority(const json& aJson, bool allowDefault) {

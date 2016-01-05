@@ -124,7 +124,7 @@ namespace webserver {
 		void on(FileRecheckFailed, const QueueItemPtr&, const string&) noexcept;
 
 		void on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t aTick) noexcept;
-		void on(DownloadManagerListener::BundleWaiting, const BundlePtr aBundle) noexcept;
+		void on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept;
 
 		//QueueItem update listeners
 		void on(QueueManagerListener::Removed, const QueueItemPtr& aQI, bool /*finished*/) noexcept;

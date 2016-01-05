@@ -40,8 +40,10 @@
 #include <api/SystemApi.h>
 #include <api/TransferApi.h>
 #include <api/WebUserApi.h>
+#include <api/ViewFileApi.h>
 
 #include <airdcpp/TimerManager.h>
+
 
 namespace webserver {
 #define ADD_MODULE(name, type) (apiHandlers.emplace(name, LazyModuleWrapper([this] { return unique_ptr<type>(new type(this)); })))
@@ -71,6 +73,7 @@ namespace webserver {
 		ADD_MODULE("system", SystemApi);
 		ADD_MODULE("transfers", TransferApi);
 		ADD_MODULE("web_users", WebUserApi);
+		ADD_MODULE("view_files", ViewFileApi);
 	}
 
 	Session::~Session() {

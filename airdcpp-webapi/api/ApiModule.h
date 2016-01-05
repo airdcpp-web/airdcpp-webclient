@@ -95,6 +95,10 @@ namespace webserver {
 		virtual bool maybeSend(const string& aSubscription, JsonCallback aCallback);
 		void addAsyncTask(CallBack&& aTask);
 
+		// All custom async tasks should be run inside this to
+		// ensure that the session won't get deleted
+		void asyncRunWrapper(const CallBack& aTask);
+
 		Session* getSession() const noexcept {
 			return session;
 		}

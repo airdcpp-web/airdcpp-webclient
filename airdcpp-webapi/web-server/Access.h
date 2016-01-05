@@ -54,6 +54,9 @@ namespace webserver {
 		FILELISTS_VIEW,
 		FILELISTS_EDIT,
 
+		VIEW_FILES_VIEW,
+		VIEW_FILES_EDIT,
+
 		LAST,
 	};
 

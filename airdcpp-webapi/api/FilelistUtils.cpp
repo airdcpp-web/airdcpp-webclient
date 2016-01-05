@@ -91,6 +91,7 @@ namespace webserver {
 		default: dcassert(0); return 0;
 		}
 	}
+
 	double FilelistUtils::getNumericInfo(const FilelistItemInfoPtr& aItem, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 		case FilelistInfo::PROP_SIZE: return (double)aItem->getSize();
