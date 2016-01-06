@@ -14,13 +14,13 @@ Ubuntu 14.04 or newer is required for installing the client.
 
 #### Install libraries
 
-`sudo apt-get install libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.5*-dev libboost-regex1.5*-dev libboost-thread1.5*-dev libboost-system1.5*-dev libleveldb-dev`
+`sudo apt-get install libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.5*-dev libboost-regex1.5* libboost-thread1.5* libboost-system1.5* libleveldb-dev`
 
 #### Install WebSocket++
 
 If you are running Ubuntu 15.10 or newer, you may use the following command to install the package:
 
-`sudo apt-get libwebsocketpp-dev`
+`sudo apt-get install libwebsocketpp-dev`
 
 If you are running an older version of Ubuntu, run the following commands to install the package manually:
 
@@ -36,12 +36,14 @@ cd..
 
 ### Download the client
 
-`git clone https://github.com/maksis/airdcpp-webclient.git`
+```
+git clone https://github.com/maksis/airdcpp-webclient.git
+cd airdcpp-webclient
+```
 
 ### Compile and install
 
 ```
-cd airdcpp-webclient
 cmake .
 make -j4
 sudo make install
@@ -65,3 +67,29 @@ airdcppd
 Access the user interface with your web browser and log in with the user account that was created. If you accepted the default ports and the client is running on the same computer, the following address can be used:
 
 [http://localhost:5600](http://localhost:5600)
+
+
+## Updating
+
+Fetch the latest files
+
+```
+git pull
+```
+
+Remove the old installation. Note that you won't be able to access the Web UI after this command. If you want to keep using the client while the new version is being compiled, You may also choose to perform this step just before running the 'make install' command in the installation section. 
+
+```
+sudo make uninstall
+```
+
+Follow the instuctions in the [Compile and install](#compile-and-install) section to install the new version.
+
+
+## Uninstalling
+
+```
+make uninstall
+```
+
+You may also remove the source and settings directories as well if you are not going to need them later.
