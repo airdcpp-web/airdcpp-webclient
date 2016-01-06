@@ -83,7 +83,7 @@ Remove the old installation. Note that you won't be able to access the Web UI af
 sudo make uninstall
 ```
 
-Follow the instuctions in the [Compile and install](#compile-and-install) section to install the new version.
+Follow the instructions in the [Compile and install](#compile-and-install) section to install the new version.
 
 
 ## Uninstalling
