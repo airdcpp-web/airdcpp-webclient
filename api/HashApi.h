@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_HASHAPI_H
 
 #include <web-server/stdinc.h>
+#include <web-server/Timer.h>
 
 #include <api/ApiModule.h>
 
@@ -36,16 +37,23 @@ namespace webserver {
 			return 0;
 		}
 	private:
+		json previousStats;
+		void onTimer();
+
 		static json formatDbStatus(bool aMaintenanceRunning) noexcept;
 		void updateDbStatus(bool aMaintenanceRunning) noexcept;
+
+		api_return handlePause(ApiRequest& aRequest);
+		api_return handleResume(ApiRequest& aRequest);
+		api_return handleStop(ApiRequest& aRequest);
 
 		api_return handleOptimize(ApiRequest& aRequest);
 		api_return handleGetDbStatus(ApiRequest& aRequest);
 
 		void on(HashManagerListener::MaintananceStarted) noexcept;
 		void on(HashManagerListener::MaintananceFinished) noexcept;
-		//void on(ConnectivityManagerListener::Finished, bool /*v6*/, bool /*failed*/) noexcept;
-		//virtual void on(SettingChanged) noexcept { }
+
+		TimerPtr timer;
 	};
 }
 

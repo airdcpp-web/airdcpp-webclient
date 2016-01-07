@@ -48,7 +48,7 @@ namespace webserver {
 
 		auto hubs = FavoriteManager::getInstance()->searchRecentHubs(pattern, maxResults);
 
-		json retJson;
+		auto retJson = json::array();
 		for (const auto& h : hubs) {
 			retJson.push_back(serializeHub(h));
 		}

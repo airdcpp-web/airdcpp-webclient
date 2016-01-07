@@ -18,23 +18,75 @@
 
 #include <web-server/stdinc.h>
 #include <web-server/JsonUtil.h>
+#include <web-server/WebServerManager.h>
 
 #include <api/HashApi.h>
 
 #include <api/common/Serializer.h>
 
 namespace webserver {
-	HashApi::HashApi(Session* aSession) : ApiModule(aSession, Access::SETTINGS_VIEW) {
-		HashManager::getInstance()->addListener(this);
+	HashApi::HashApi(Session* aSession) : ApiModule(aSession, Access::ANY),
+		timer(WebServerManager::getInstance()->addTimer([this] { onTimer(); }, 1000)) {
 
-		createSubscription("hash_database_status");
+		HashManager::getInstance()->addListener(this);
 
 		METHOD_HANDLER("database_status", Access::SETTINGS_VIEW, ApiRequest::METHOD_GET, (), false, HashApi::handleGetDbStatus);
 		METHOD_HANDLER("optimize_database", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (), true, HashApi::handleOptimize);
+
+		METHOD_HANDLER("pause", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (), false, HashApi::handlePause);
+		METHOD_HANDLER("resume", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (), false, HashApi::handleResume);
+		METHOD_HANDLER("stop", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (), false, HashApi::handleStop);
+
+		createSubscription("hash_database_status");
+		createSubscription("hash_statistics");
+
+		timer->start();
 	}
 
 	HashApi::~HashApi() {
+		timer->stop(true);
+
 		HashManager::getInstance()->removeListener(this);
+	}
+
+	api_return HashApi::handleResume(ApiRequest& aRequest) {
+		HashManager::getInstance()->resumeHashing();
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return HashApi::handlePause(ApiRequest& aRequest) {
+		HashManager::getInstance()->pauseHashing();
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return HashApi::handleStop(ApiRequest& aRequest) {
+		HashManager::getInstance()->stop();
+		return websocketpp::http::status_code::ok;
+	}
+
+	void HashApi::onTimer() {
+		if (!subscriptionActive("hash_statistics"))
+			return;
+
+		string curFile;
+		int64_t bytesLeft = 0, speed = 0;
+		size_t filesLeft = 0;
+		int hashers = 0;
+
+		HashManager::getInstance()->getStats(curFile, bytesLeft, filesLeft, speed, hashers);
+
+		json j = {
+			{ "hash_speed", speed },
+			{ "hash_bytes_left", bytesLeft },
+			{ "hash_files_left", filesLeft },
+			{ "hashers", hashers },
+		};
+
+		if (previousStats == j)
+			return;
+
+		previousStats = j;
+		send("hash_statistics", j);
 	}
 
 	void HashApi::on(HashManagerListener::MaintananceStarted) noexcept {
