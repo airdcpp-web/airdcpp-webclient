@@ -337,7 +337,7 @@ void DirectoryListingManager::on(QueueManagerListener::Removed, const QueueItemP
 	if (qi->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && !finished)
 		removeDirectoryDownload(u, qi->getTempTarget(), qi->isSet(QueueItem::FLAG_PARTIAL_LIST));
 
-	if (qi->isSet(QueueItem::FLAG_CLIENT_VIEW) && qi->isSet(QueueItem::FLAG_PARTIAL_LIST)) {
+	if (qi->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
 		DirectoryListingPtr dl = nullptr;
 
 		{

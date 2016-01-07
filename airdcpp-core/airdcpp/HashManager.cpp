@@ -1287,6 +1287,7 @@ int HashManager::Hasher::run() {
 				sizeHashed = 0;
 				dirsHashed = 0;
 				filesHashed = 0;
+				lastSpeed = 0;
 				deleteThis = hasherID != 0;
 				sfv.unload();
 			} else if (!AirUtil::isParentOrExact(initialDir, w.front().filePath)) {
