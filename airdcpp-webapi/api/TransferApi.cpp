@@ -33,7 +33,7 @@ namespace webserver {
 
 		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, TransferApi::handleGetStats);
 
-		createSubscription("statistics");
+		createSubscription("transfer_statistics");
 		timer->start();
 	}
 
@@ -45,24 +45,37 @@ namespace webserver {
 	}
 
 	api_return TransferApi::handleGetStats(ApiRequest& aRequest) {
-		json j;
+		aRequest.setResponseBody({
+			{ "session_downloaded", Socket::getTotalDown() },
+			{ "session_uploaded", Socket::getTotalUp() },
+			{ "start_total_downloaded", SETTING(TOTAL_DOWNLOAD) - Socket::getTotalDown() },
+			{ "start_total_uploaded", SETTING(TOTAL_UPLOAD) - Socket::getTotalUp() },
+		});
 
-		j["session_downloaded"] = Socket::getTotalDown();
-		j["session_uploaded"] = Socket::getTotalUp();
-		j["start_total_downloaded"] = SETTING(TOTAL_DOWNLOAD) - Socket::getTotalDown();
-		j["start_total_uploaded"] = SETTING(TOTAL_UPLOAD) - Socket::getTotalUp();
-
-		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
 	}
 
 	void TransferApi::onTimer() {
-		if (!subscriptionActive("statistics"))
+		if (!subscriptionActive("transfer_statistics"))
 			return;
 
+		auto resetSpeed = [](int transfers, int64_t speed) {
+			return (transfers == 0 && speed < 10 * 1024) || speed < 1024;
+		};
+
+		auto downSpeed = DownloadManager::getInstance()->getLastDownSpeed();
+		if (resetSpeed(lastDownloads, downSpeed)) {
+			downSpeed = 0;
+		}
+
+		auto upSpeed = DownloadManager::getInstance()->getLastUpSpeed();
+		if (resetSpeed(lastUploads, upSpeed)) {
+			upSpeed = 0;
+		}
+
 		json j = {
-			{ "speed_down", DownloadManager::getInstance()->getLastDownSpeed() },
-			{ "speed_up", DownloadManager::getInstance()->getLastUpSpeed() },
+			{ "speed_down", downSpeed },
+			{ "speed_up", upSpeed },
 			{ "upload_bundles", lastUploadBundles },
 			{ "download_bundles", lastDownloadBundles },
 			{ "uploads", lastUploads },
@@ -79,7 +92,7 @@ namespace webserver {
 			return;
 
 		previousStats = j;
-		send("statistics", j);
+		send("transfer_statistics", j);
 	}
 
 	void TransferApi::on(UploadManagerListener::Tick, const UploadList& aUploads) noexcept {

@@ -41,17 +41,18 @@ namespace webserver {
 
 	private:
 		void addList(const DirectoryListingPtr& aList) noexcept;
+		api_return handleQueueList(ApiRequest& aRequest, QueueItem::Flags aFlags);
 
 		api_return handlePostList(ApiRequest& aRequest);
 		api_return handleDeleteList(ApiRequest& aRequest);
 
 		api_return handleGetLists(ApiRequest& aRequest);
 		api_return handleDownload(ApiRequest& aRequest);
+		api_return handleFindNfo(ApiRequest& aRequest);
+		api_return handleMatchQueue(ApiRequest& aRequest);
 
 		void on(DirectoryListingManagerListener::ListingCreated, const DirectoryListingPtr& aList) noexcept;
-		//void on(DirectoryListingManagerListener::OpenListing, const DirectoryListingPtr& aList, const string& aDir, const string& aXML) noexcept;
 		void on(DirectoryListingManagerListener::ListingClosed, const DirectoryListingPtr&) noexcept;
-		//void on(MessageManagerListener::ChatRemoved, const PrivateChatPtr& aChat) noexcept;
 
 		static json serializeList(const DirectoryListingPtr& aList) noexcept;
 	};

@@ -179,7 +179,7 @@ namespace webserver {
 
 		auto users = ClientManager::getInstance()->searchNicks(pattern, maxResults, ignorePrefixes);
 
-		json retJson;
+		auto retJson = json::array();
 		for (const auto& u : users) {
 			retJson.push_back(Serializer::serializeOnlineUser(u));
 		}

@@ -39,6 +39,8 @@ namespace webserver {
 		METHOD_HANDLER("session", Access::FILELISTS_EDIT, ApiRequest::METHOD_POST, (), true, FilelistApi::handlePostList);
 
 		METHOD_HANDLER("download_directory", Access::DOWNLOAD, ApiRequest::METHOD_POST, (), true, FilelistApi::handleDownload);
+		METHOD_HANDLER("find_nfo", Access::VIEW_FILES_EDIT, ApiRequest::METHOD_POST, (), true, FilelistApi::handleFindNfo);
+		METHOD_HANDLER("match_queue", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (), true, FilelistApi::handleMatchQueue);
 
 		auto rawLists = DirectoryListingManager::getInstance()->getLists();
 		for (const auto& list : rawLists | map_values) {
@@ -54,27 +56,14 @@ namespace webserver {
 		addSubModule(aList->getUser()->getCID(), make_shared<FilelistInfo>(this, aList));
 	}
 
-	api_return FilelistApi::handlePostList(ApiRequest& aRequest) {
+	api_return FilelistApi::handleQueueList(ApiRequest& aRequest, QueueItem::Flags aFlags) {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto user = Deserializer::deserializeHintedUser(reqJson);
 		auto directory = Util::toNmdcFile(JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/", false));
 
-		QueueItem::Flags flags;
+		auto flags = aFlags;
 		flags.setFlag(QueueItem::FLAG_PARTIAL_LIST);
-		if (JsonUtil::getOptionalFieldDefault<bool>("client_view", reqJson, false)) {
-			flags.setFlag(QueueItem::FLAG_CLIENT_VIEW);
-		}
-
-		if (JsonUtil::getOptionalFieldDefault<bool>("find_nfo", reqJson, false)) {
-			flags.setFlag(QueueItem::FLAG_VIEW_NFO);
-			flags.setFlag(QueueItem::FLAG_RECURSIVE_LIST);
-		}
-
-		if (JsonUtil::getOptionalFieldDefault<bool>("match_queue", reqJson, false)) {
-			flags.setFlag(QueueItem::FLAG_MATCH_QUEUE);
-			flags.setFlag(QueueItem::FLAG_RECURSIVE_LIST);
-		}
 
 		QueueItemPtr q = nullptr;
 		try {
@@ -89,6 +78,18 @@ namespace webserver {
 		});
 
 		return websocketpp::http::status_code::ok;
+	}
+
+	api_return FilelistApi::handleFindNfo(ApiRequest& aRequest) {
+		return handleQueueList(aRequest, QueueItem::FLAG_VIEW_NFO | QueueItem::FLAG_RECURSIVE_LIST);
+	}
+
+	api_return FilelistApi::handleMatchQueue(ApiRequest& aRequest) {
+		return handleQueueList(aRequest, QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST);
+	}
+
+	api_return FilelistApi::handlePostList(ApiRequest& aRequest) {
+		return handleQueueList(aRequest, QueueItem::FLAG_CLIENT_VIEW);
 	}
 
 	api_return FilelistApi::handleDeleteList(ApiRequest& aRequest) {
