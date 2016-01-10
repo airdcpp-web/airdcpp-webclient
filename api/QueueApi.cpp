@@ -159,6 +159,7 @@ namespace webserver {
 	}
 
 	api_return QueueApi::handleSearchBundle(ApiRequest& aRequest) {
+		auto b = getBundle(aRequest);
 		QueueManager::getInstance()->searchBundleAlternates(getBundle(aRequest), true);
 		return websocketpp::http::status_code::ok;
 	}
@@ -257,7 +258,8 @@ namespace webserver {
 	api_return QueueApi::handleRemoveBundle(ApiRequest& aRequest) {
 		auto removeFinished = JsonUtil::getOptionalFieldDefault<bool>("remove_finished", aRequest.getRequestBody(), false);
 
-		QueueManager::getInstance()->removeBundle(getBundle(aRequest), removeFinished);
+		auto b = getBundle(aRequest);
+		QueueManager::getInstance()->removeBundle(b, removeFinished);
 		return websocketpp::http::status_code::ok;
 	}
 
