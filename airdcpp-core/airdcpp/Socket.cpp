@@ -133,6 +133,13 @@ inline bool isConnected(socket_t sock) {
 }
 
 inline socket_t readable(socket_t sock0, socket_t sock1) {
+	// FD_SET for an invalid socket can cause a buffer overflow (at least on Linux)
+	if (sock0 == INVALID_SOCKET) {
+		return sock1;
+	} else if (sock1 == INVALID_SOCKET) {
+		return sock0;
+	}
+
 	fd_set rfd;
 	struct timeval tv = { 0 };
 

@@ -41,7 +41,7 @@ public:
 	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool /*thirdPerson*/ = false);
 	void sendUserCmd(const UserCommand& command, const ParamMap& params);
 	void search(const SearchPtr& aSearch);
-	void password(const string& aPass) { send("$MyPass " + fromUtf8(aPass) + "|"); }
+	void password(const string& aPass);
 	void infoImpl() { myInfo(false); }
 
 	size_t getUserCount() const;
