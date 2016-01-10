@@ -160,7 +160,7 @@ namespace webserver {
 
 	api_return QueueApi::handleSearchBundle(ApiRequest& aRequest) {
 		auto b = getBundle(aRequest);
-		QueueManager::getInstance()->searchBundleAlternates(getBundle(aRequest), true);
+		QueueManager::getInstance()->searchBundleAlternates(b, true);
 		return websocketpp::http::status_code::ok;
 	}
 
