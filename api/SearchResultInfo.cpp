@@ -25,11 +25,14 @@
 
 #include <boost/range/numeric.hpp>
 
+
 namespace webserver {
 	FastCriticalSection SearchResultInfo::cs;
 
-	SearchResultInfo::SearchResultInfo(const SearchResultPtr& aSR, const SearchQuery& aSearch) : token(Util::rand()), sr(aSR) {
-		//check the dupe
+	SearchResultInfo::SearchResultInfo(const SearchResultPtr& aSR, RelevancyInfo&& aRelevancy) :
+		token(Util::rand()), sr(aSR), relevancyInfo(move(aRelevancy)) {
+
+		// check the dupe
 		if (SETTING(DUPE_SEARCH)) {
 			if (sr->getType() == SearchResult::TYPE_DIRECTORY)
 				dupe = AirUtil::checkDirDupe(sr->getPath(), sr->getSize());
@@ -37,25 +40,24 @@ namespace webserver {
 				dupe = AirUtil::checkFileDupe(sr->getTTH());
 		}
 
-		// don't count the levels because they can't be compared with each others...
-		matchRelevancy = SearchQuery::getRelevancyScores(aSearch, 0, aSR->getType() == SearchResult::TYPE_DIRECTORY, aSR->getFileName());
-		if (aSearch.recursion && aSearch.recursion->isComplete()) {
-			// there are subdirectories/files that have more matches than the main directory
-			// don't give too much weight for those
-			sourceScoreFactor = 0.001;
-
-			// we don't get the level scores so balance those here
-			matchRelevancy = max(0.0, matchRelevancy - (0.05*aSearch.recursion->recursionLevel));
-		}
-
 		//get the ip info
 		country = GeoManager::getInstance()->getCountry(sr->getIP());
 	}
 
-	void SearchResultInfo::addItem(const SearchResultInfoPtr& aResult) noexcept {
+	void SearchResultInfo::addChildResult(const SearchResultInfoPtr& aResult) noexcept {
 		FastLock l(cs);
 		children.push_back(aResult);
+		aResult->parent = this;
 		hits++;
+	}
+
+	bool SearchResultInfo::hasUser(const UserPtr& aUser) const noexcept {
+		if (getUser() == aUser) {
+			return true;
+		}
+
+		FastLock l(cs);
+		return boost::find_if(children, [&](const SearchResultInfoPtr& aResult) { return aResult->getUser() == aUser; }) != children.end();
 	}
 
 	double SearchResultInfo::getConnectionSpeed() const noexcept {
@@ -82,8 +84,12 @@ namespace webserver {
 		return Util::toString(free) + '/' + Util::toString(total);
 	}
 
-	double SearchResultInfo::getTotalRelevancy() const {
-		return (hits * sourceScoreFactor) + matchRelevancy;
+	double SearchResultInfo::getTotalRelevancy() const noexcept {
+		return (hits * relevancyInfo.sourceScoreFactor) + relevancyInfo.matchRelevancy;
+	}
+
+	double SearchResultInfo::getMatchRelevancy() const noexcept {
+		return relevancyInfo.matchRelevancy; 
 	}
 
 	api_return SearchResultInfo::download(const string& aTargetDirectory, const string& aTargetName, TargetUtil::TargetType aTargetType, QueueItemBase::Priority aPrio) {
@@ -98,19 +104,15 @@ namespace webserver {
 			}
 		};
 
+		SearchResultList results = { sr };
 		if (hits >= 1) {
-			//perform also for the children
-			SearchResultList results = { sr };
+			FastLock l(cs);
 			for (auto si : children)
 				results.push_back(si->sr);
-
-			SearchResult::pickResults(results, SETTING(MAX_AUTO_MATCH_SOURCES));
-
-			boost::for_each(results, download);
-		} else {
-			//perform for the parent
-			download(sr);
 		}
+
+		SearchResult::pickResults(results, SETTING(MAX_AUTO_MATCH_SOURCES));
+		boost::for_each(results, download);
 
 		return websocketpp::http::status_code::ok;
 	}

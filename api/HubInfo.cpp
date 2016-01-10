@@ -140,7 +140,13 @@ namespace webserver {
 			case Client::STATE_CONNECTING:
 			case Client::STATE_PROTOCOL:
 			case Client::STATE_IDENTIFY: id = "connecting"; break;
-			case Client::STATE_VERIFY:  id = "password"; break;
+			case Client::STATE_VERIFY: {
+				return {
+					{ "id", "password" },
+					{ "has_password", !aClient->getPassword().empty() }
+				};
+				break;
+			}
 			case Client::STATE_NORMAL: id = "connected"; break;
 			case Client::STATE_DISCONNECTED: id = "disconnected"; break;
 		}

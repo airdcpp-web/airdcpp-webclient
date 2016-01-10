@@ -738,13 +738,18 @@ namespace webserver {
 			}
 		}
 
-		// Returns false if the item was added/removed
+		// Returns false if the item was added/removed (or the item doesn't exist in any item list)
 		bool handleUpdateItem(const T& aItem, int aSortProperty, int aSortAscending, int& rangeStart_) {
 			bool inList;
 
 			{
 				RLock l(cs);
 				inList = isInList(aItem, matchingItems);
+
+				// A delayed update for a removed item?
+				if (!inList && allItems.find(aItem) == allItems.end()) {
+					return false;
+				}
 			}
 
 			auto matchers = getFilterMatchers();

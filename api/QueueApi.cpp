@@ -318,23 +318,23 @@ namespace webserver {
 
 
 	// LISTENERS
-	// All listener events from QueueManager should be handled asynchronously
+	// All subscriber events from QueueManager should be handled asynchronously
 	// This avoids deadlocks as some events are fired from inside locks
 	void QueueApi::on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept {
-		addAsyncTask([=] {
-			bundleView.onItemAdded(aBundle);
-			if (!subscriptionActive("bundle_added"))
-				return;
+		bundleView.onItemAdded(aBundle);
+		if (!subscriptionActive("bundle_added"))
+			return;
 
+		addAsyncTask([=] {
 			send("bundle_added", Serializer::serializeItem(aBundle, bundlePropertyHandler));
 		});
 	}
 	void QueueApi::on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept {
-		addAsyncTask([=] {
-			bundleView.onItemRemoved(aBundle);
-			if (!subscriptionActive("bundle_removed"))
-				return;
+		bundleView.onItemRemoved(aBundle);
+		if (!subscriptionActive("bundle_removed"))
+			return;
 
+		addAsyncTask([=] {
 			send("bundle_removed", Serializer::serializeItem(aBundle, bundlePropertyHandler));
 		});
 	}
@@ -359,22 +359,21 @@ namespace webserver {
 		//send("file_updated", QueueUtils::serializeQueueItem(aQI));
 	}
 	void QueueApi::onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription) {
+		bundleView.onItemUpdated(aBundle, aUpdatedProperties);
+		if (!subscriptionActive(aSubscription))
+			return;
+
 		addAsyncTask([=] {
-			bundleView.onItemUpdated(aBundle, aUpdatedProperties);
-
-			if (!subscriptionActive(aSubscription))
-				return;
-
 			send(aSubscription, Serializer::serializeItem(aBundle, bundlePropertyHandler));
 		});
 	}
 
 	void QueueApi::on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t /*aTick*/) noexcept {
-		addAsyncTask([=] {
-			bundleView.onItemsUpdated(tickBundles, { PROP_SPEED, PROP_SECONDS_LEFT, PROP_BYTES_DOWNLOADED, PROP_STATUS });
-			if (!subscriptionActive("bundle_tick"))
-				return;
+		bundleView.onItemsUpdated(tickBundles, { PROP_SPEED, PROP_SECONDS_LEFT, PROP_BYTES_DOWNLOADED, PROP_STATUS });
+		if (!subscriptionActive("bundle_tick"))
+			return;
 
+		addAsyncTask([=] {
 			json j;
 			for (auto& b : tickBundles) {
 				j.push_back(Serializer::serializeItem(b, bundlePropertyHandler));

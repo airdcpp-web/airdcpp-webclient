@@ -80,6 +80,9 @@ namespace webserver {
 
 		void on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept;
 
+		// Returns the relevancy score if the result matches the current search query
+		optional<RelevancyInfo> matches(const SearchResultPtr& aResult) const noexcept;
+
 		PropertyItemHandler<SearchResultInfoPtr> itemHandler;
 
 		typedef ListViewController<SearchResultInfoPtr, PROP_LAST> SearchView;
@@ -88,8 +91,8 @@ namespace webserver {
 		SearchResultInfo::Map results;
 		shared_ptr<SearchQuery> curSearch;
 
-		std::string  currentSearchToken;
-		SharedMutex cs;
+		std::string currentSearchToken;
+		mutable SharedMutex cs;
 	};
 }
 

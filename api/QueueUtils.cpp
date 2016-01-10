@@ -166,6 +166,7 @@ namespace webserver {
 	}
 
 	double QueueUtils::getNumericInfo(const BundlePtr& b, int aPropertyName) noexcept {
+		dcassert(b->getSize() != 0);
 		switch (aPropertyName) {
 		case QueueApi::PROP_SIZE: return (double)b->getSize();
 		case QueueApi::PROP_STATUS: return b->getStatus();

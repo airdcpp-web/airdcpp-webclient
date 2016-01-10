@@ -115,8 +115,18 @@ namespace webserver {
 		try {
 			File f(file->getPath(), File::READ, File::OPEN);
 
+			auto encoding = Util::emptyString;
 			bool nfo = Util::getFileExt(file->getPath()) == ".nfo";
-			content = Text::toUtf8(f.read(), nfo ? "cp437" : Util::emptyString);
+			if (nfo) {
+				// Platform-independent encoding conversion function could be added if there is more use for it
+#ifdef _WIN32
+				encoding = "CP.437";
+#else
+				encoding = "cp437";
+#endif
+			}
+
+			content = Text::toUtf8(f.read(), encoding);
 		} catch (const FileException& e) {
 			aRequest.setResponseErrorStr("Failed to open the file: " + e.getError() + "(" + file->getPath() + ")");
 			return websocketpp::http::status_code::internal_server_error;
@@ -144,7 +154,9 @@ namespace webserver {
 
 	void ViewFileApi::on(ViewFileManagerListener::FileClosed, const ViewFilePtr& aFile) noexcept {
 		maybeSend("view_file_removed", [&] { 
-			return json({ "id", aFile->getTTH().toBase32() });
+			return json({
+				{ "id", aFile->getTTH().toBase32() }
+			});
 		});
 	}
 
