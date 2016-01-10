@@ -117,7 +117,7 @@ namespace webserver {
 	double SearchUtils::getNumericInfo(const SearchResultInfoPtr& aResult, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 		case SearchApi::PROP_SIZE: return (double)aResult->sr->getSize();
-		case SearchApi::PROP_HITS: return (double)aResult->hits;
+		case SearchApi::PROP_HITS: return (double)aResult->getHits();
 		case SearchApi::PROP_CONNECTION: return aResult->getConnectionSpeed();
 		case SearchApi::PROP_RELEVANCY : return aResult->getTotalRelevancy();
 		case SearchApi::PROP_DATE: return (double)aResult->sr->getDate();

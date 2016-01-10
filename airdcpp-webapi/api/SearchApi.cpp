@@ -32,8 +32,6 @@ namespace webserver {
 
 		SearchManager::getInstance()->addListener(this);
 
-		//subscriptions["search_result"];
-
 		METHOD_HANDLER("query", Access::SEARCH, ApiRequest::METHOD_POST, (), true, SearchApi::handlePostSearch);
 		METHOD_HANDLER("types", Access::ANY, ApiRequest::METHOD_GET, (), false, SearchApi::handleGetTypes);
 
@@ -57,6 +55,7 @@ namespace webserver {
 			RLock l(cs);
 			auto i = find_if(results | map_values, [&](const SearchResultInfoPtr& aSI) { return aSI->getToken() == aRequest.getTokenParam(0); });
 			if (i.base() == results.end()) {
+				aRequest.setResponseErrorStr("Result not found");
 				return websocketpp::http::status_code::not_found;
 			}
 
@@ -124,57 +123,100 @@ namespace webserver {
 
 		aRequest.setResponseBody({
 			{ "queue_time", queueTime },
-			{ "search_token", currentSearchToken }
+			{ "search_token", currentSearchToken },
+			{ "type", type }
 		});
 		return websocketpp::http::status_code::ok;
 	}
 
-
-	void SearchApi::on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept {
+	optional<RelevancyInfo> SearchApi::matches(const SearchResultPtr& aResult) const noexcept {
 		auto search = curSearch;
 		if (!search)
-			return;
+			return boost::none;
 
 		if (!aResult->getToken().empty()) {
 			// ADC
 			if (currentSearchToken != aResult->getToken()) {
-				return;
+				return boost::none;
 			}
 		} else {
-			// NMDC
+			// NMDC results must be matched manually
 
-			// exludes
-			RLock l(cs);
+			// Exludes
 			if (curSearch->isExcluded(aResult->getPath())) {
-				return;
+				return boost::none;
 			}
 
 			if (search->root && *search->root != aResult->getTTH()) {
-				return;
+				return boost::none;
 			}
 		}
 
+		// All clients can't handle this correctly
 		if (search->itemType == SearchQuery::TYPE_FILE && aResult->getType() != SearchResult::TYPE_FILE) {
-			return;
+			return boost::none;
 		}
 
-		// path
+
+		WLock l(cs);
+
+		// Path match (always required to get the relevancy)
+		// Must be locked because the match positions are saved in SearchQuery
 		SearchQuery::Recursion recursion;
 		ScopedFunctor([&] { search->recursion = nullptr; });
 		if (!search->root && !search->matchesNmdcPath(aResult->getPath(), recursion)) {
+			return boost::none;
+		}
+
+		// Don't count the levels because they can't be compared with each others
+		auto matchRelevancy = SearchQuery::getRelevancyScores(*search.get(), 0, aResult->getType() == SearchResult::TYPE_DIRECTORY, aResult->getFileName());
+		double sourceScoreFactor = 0.01;
+		if (search->recursion && search->recursion->isComplete()) {
+			// There are subdirectories/files that have more matches than the main directory
+			// Don't give too much weight for those even if there are lots of sources
+			sourceScoreFactor = 0.001;
+
+			// We don't get the level scores so balance those here
+			matchRelevancy = max(0.0, matchRelevancy - (0.05 * search->recursion->recursionLevel));
+		}
+
+		return RelevancyInfo({ matchRelevancy, sourceScoreFactor });
+	}
+
+	void SearchApi::on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept {
+		auto relevancyInfo = matches(aResult);
+		if (!relevancyInfo) {
 			return;
 		}
 
-		auto result = make_shared<SearchResultInfo>(aResult, *curSearch.get());
-
+		// Do we have a parent?
+		SearchResultInfoPtr parent = nullptr;
 		{
 			WLock l(cs);
 			auto i = results.find(aResult->getTTH());
 			if (i != results.end()) {
-				(*i).second->addItem(result);
-			} else {
-				results.emplace(aResult->getTTH(), result);
+				parent = i->second;
 			}
+		}
+
+		// No duplicate results for the same user that are received via different hubs
+		if (parent && parent->hasUser(aResult->getUser())) {
+			return;
+		}
+
+		auto result = make_shared<SearchResultInfo>(aResult, move(*relevancyInfo));
+
+		// Add as child
+		if (parent) {
+			parent->addChildResult(result);
+			searchView.onItemUpdated(parent, { PROP_RELEVANCY, PROP_CONNECTION, PROP_HITS, PROP_SLOTS, PROP_USERS });
+			return;
+		}
+
+		// New parent
+		{
+			WLock l(cs);
+			results.emplace(aResult->getTTH(), result);
 		}
 
 		searchView.onItemAdded(result);
