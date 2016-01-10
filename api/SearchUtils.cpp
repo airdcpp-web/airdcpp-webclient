@@ -44,8 +44,9 @@ namespace webserver {
 			};
 		}
 		case SearchApi::PROP_USERS: {
+			
 			return {
-				{ "count", aResult->children.size() + 1 },
+				{ "count", aResult->getHits() + 1 },
 				{ "user", Serializer::serializeHintedUser(aResult->sr->getUser()) }
 			};
 		}
@@ -90,6 +91,13 @@ namespace webserver {
 			else
 				return compare(a->sr->getFreeSlots(), b->sr->getFreeSlots());
 		}
+		case SearchApi::PROP_USERS: {
+			if (a->getHits() != b->getHits()) {
+				return compare(a->getHits(), b->getHits());
+			}
+
+			return Util::stricmp(Format::formatNicks(a->sr->getUser()), Format::formatNicks(b->sr->getUser()));
+		}
 		default:
 			dcassert(0);
 		}
@@ -100,7 +108,6 @@ namespace webserver {
 		switch (aPropertyName) {
 		case SearchApi::PROP_NAME: return aResult->sr->getFileName();
 		case SearchApi::PROP_PATH: return Util::toAdcFile(aResult->sr->getPath());
-		case SearchApi::PROP_USERS: return Format::formatNicks(aResult->sr->getUser());
 		case SearchApi::PROP_TYPE: {
 			if (aResult->sr->getType() == SearchResult::TYPE_DIRECTORY) {
 				return Format::formatFolderContent(aResult->sr->getFileCount(), aResult->sr->getFolderCount());
