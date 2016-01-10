@@ -1327,6 +1327,8 @@ void AdcHub::sendSearch(AdcCommand& c) {
 void AdcHub::password(const string& pwd) {
 	if(getConnectState() != STATE_VERIFY)
 		return;
+
+	setPassword(pwd);
 	if(!salt.empty()) {
 		size_t saltBytes = salt.size() * 5 / 8;
 		boost::scoped_array<uint8_t> buf(new uint8_t[saltBytes]);

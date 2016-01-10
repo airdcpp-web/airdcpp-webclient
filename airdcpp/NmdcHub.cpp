@@ -912,6 +912,11 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 	} 
 }
 
+void NmdcHub::password(const string& aPass) {
+	setPassword(aPass);
+	send("$MyPass " + fromUtf8(aPass) + "|");
+}
+
 string NmdcHub::checkNick(const string& aNick) {
 	string tmp = aNick;
 	for(size_t i = 0; i < aNick.size(); ++i) {
