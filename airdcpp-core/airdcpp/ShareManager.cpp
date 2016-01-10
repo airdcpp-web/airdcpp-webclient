@@ -1899,7 +1899,7 @@ void ShareManager::buildTree(string& aPath, string& aPathLower, const Directory:
 					continue;
 				}
 
-				if (excludedPaths.find(aPath) != excludedPaths.end()) {
+				if (excludedPaths.find(curPath) != excludedPaths.end()) {
 					continue;
 				}
 			}
@@ -2515,8 +2515,18 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 
 		//get unfinished directories and erase exact matches
 		bundleDirs.clear();
-		QueueManager::getInstance()->checkRefreshPaths(bundleDirs, task->dirs);
-		if (task->dirs.empty()) {
+
+		auto dirs = task->dirs;
+		QueueManager::getInstance()->checkRefreshPaths(bundleDirs, dirs);
+
+		// Handle the removed paths
+		for (const auto& d : task->dirs) {
+			if (dirs.find(d) == dirs.end()) {
+				setRefreshState(d, RefreshState::STATE_NORMAL, true);
+			}
+		}
+
+		if (dirs.empty()) {
 			continue;
 		}
 
@@ -2526,7 +2536,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 		//find sub-roots for each directory being refreshed (they will be passed on to buildTree for matching)
 		{
 			RLock l (cs);
-			for(auto& i: task->dirs) {
+			for(auto& i: dirs) {
 				auto d = findRoot(i);
 				if (d != rootPaths.end()) {
 					refreshDirs.emplace_back(new RefreshInfo(i, d->second, File::getLastModified(i)));
@@ -2543,7 +2553,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 			}
 		}
 
-		reportTaskStatus(t.first, task->dirs, false, 0, task->displayName, task->type);
+		reportTaskStatus(t.first, dirs, false, 0, task->displayName, task->type);
 		if (t.first == REFRESH_INCOMING) {
 			lastIncomingUpdate = GET_TICK();
 		} else if (t.first == REFRESH_ALL) {
@@ -2632,14 +2642,14 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 		}
 
 		setProfilesDirty(dirtyProfiles, task->type == TYPE_MANUAL || t.first == REFRESH_ALL || t.first == ADD_BUNDLE);
-		reportTaskStatus(t.first, task->dirs, true, totalHash, task->displayName, task->type);
+		reportTaskStatus(t.first, dirs, true, totalHash, task->displayName, task->type);
 
 		addMonitoring(monitoring);
 
 		if (t.first == REFRESH_ALL) {
 			fire(ShareManagerListener::ShareRefreshed(), t.first);
 		} else {
-			fire(ShareManagerListener::DirectoriesRefreshed(), t.first, task->dirs);
+			fire(ShareManagerListener::DirectoriesRefreshed(), t.first, dirs);
 		}
 	}
 
