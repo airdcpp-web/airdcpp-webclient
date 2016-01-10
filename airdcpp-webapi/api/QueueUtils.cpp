@@ -141,7 +141,6 @@ namespace webserver {
 		case QueueApi::PROP_NAME: return b->getName();
 		case QueueApi::PROP_TARGET: return b->getTarget();
 		case QueueApi::PROP_TYPE: return formatBundleType(b);
-		case QueueApi::PROP_STATUS: return formatBundleStatus(b);
 		case QueueApi::PROP_PRIORITY: return AirUtil::getPrioText(b->getPriority());
 		case QueueApi::PROP_SOURCES: return formatBundleSources(b);
 		default: dcassert(0); return 0;
@@ -169,7 +168,6 @@ namespace webserver {
 		dcassert(b->getSize() != 0);
 		switch (aPropertyName) {
 		case QueueApi::PROP_SIZE: return (double)b->getSize();
-		case QueueApi::PROP_STATUS: return b->getStatus();
 		case QueueApi::PROP_BYTES_DOWNLOADED: return (double)b->getDownloadedBytes();
 		case QueueApi::PROP_PRIORITY: return b->getPriority();
 		case QueueApi::PROP_TIME_ADDED: return (double)b->getTimeAdded();
@@ -252,16 +250,24 @@ namespace webserver {
 		switch (aPropertyName) {
 		case QueueApi::PROP_SOURCES:
 		{
-			json j;
-
 			int total = 0, online = 0;
 			std::string str;
 			getBundleSourceInfo(aBundle, online, total, str);
 
-			j["online"] = online;
-			j["total"] = total;
-			j["str"] = str;
-			return j;
+			return {
+				{ "online", online },
+				{ "total", total },
+				{ "str", str },
+			};
+		}
+
+		case QueueApi::PROP_STATUS:
+		{
+			return{
+				{ "id", aBundle->getStatus() },
+				{ "failed", aBundle->isFailed() },
+				{ "str", formatBundleStatus(aBundle) },
+			};
 		}
 
 		case QueueApi::PROP_TYPE:

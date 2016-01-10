@@ -37,7 +37,7 @@ namespace webserver {
 			{ PROP_TARGET, "target", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 			{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
 			{ PROP_SIZE, "size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_STATUS, "status", TYPE_TEXT, SERIALIZE_TEXT_NUMERIC, SORT_CUSTOM },
+			{ PROP_STATUS, "status", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
 			{ PROP_BYTES_DOWNLOADED, "downloaded_bytes", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
 			{ PROP_PRIORITY, "priority", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
 			{ PROP_TIME_ADDED, "time_added", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
@@ -108,7 +108,13 @@ namespace webserver {
 		api_return handleAddFileBundle(ApiRequest& aRequest);
 
 		api_return handleUpdateBundle(ApiRequest& aRequest);
+
 		api_return handleSearchBundle(ApiRequest& aRequest);
+		api_return handleShareBundle(ApiRequest& aRequest);
+
+		// Throws if the bundle is not found
+		BundlePtr getBundle(ApiRequest& aRequest);
+		QueueItemPtr getFile(ApiRequest& aRequest);
 		//api_return handleUpdateTempItem(ApiRequest& aRequest);
 		//api_return handleUpdateFileList(ApiRequest& aRequest);
 

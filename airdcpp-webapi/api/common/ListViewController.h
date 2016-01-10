@@ -442,7 +442,7 @@ namespace webserver {
 
 				void merge(const MergeTask& aTask) {
 					// Ignore
-					if (type < aTask.type) {
+					if (type > aTask.type) {
 						return;
 					}
 

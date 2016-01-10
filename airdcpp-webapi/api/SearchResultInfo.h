@@ -54,9 +54,6 @@ namespace webserver {
 		void addChildResult(const SearchResultInfo::Ptr& aResult) noexcept;
 		api_return download(const string& aTargetDirectory, const string& aTargetName, TargetUtil::TargetType aTargetType, QueueItemBase::Priority p);
 
-		SearchResultInfo* parent = nullptr;
-		SearchResultInfo::List children;
-
 		bool isDupe() const noexcept { return dupe != DUPE_NONE; }
 		bool isShareDupe() const noexcept { return dupe == DUPE_SHARE || dupe == DUPE_SHARE_PARTIAL; }
 		bool isQueueDupe() const noexcept { return dupe == DUPE_QUEUE || dupe == DUPE_FINISHED; }
@@ -84,6 +81,9 @@ namespace webserver {
 		void getSlots(int& free_, int& total_) const noexcept;
 		string getSlotStr() const noexcept;
 	private:
+		SearchResultInfo* parent = nullptr;
+		SearchResultInfo::List children;
+
 		RelevancyInfo relevancyInfo;
 
 		string country;
