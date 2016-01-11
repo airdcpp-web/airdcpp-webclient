@@ -110,7 +110,8 @@ bool HashManager::hashFile(const string& filePath, const string& pathLower, int6
 	//get the volume name
 	string vol;
 	if (none_of(hashers.begin(), hashers.end(), [&](const Hasher* h) { return h->getPathVolume(pathLower, vol); })) {
-		vol = File::getMountPath(pathLower);
+		// Case-sensitive because of Linux
+		vol = Text::toLower(File::getMountPath(filePath));
 	}
 
 	//dcassert(!vol.empty());
@@ -249,9 +250,9 @@ void HashManager::hashDone(const string& aFileName, const string& pathLower, con
 	}
 }
 
-bool HashManager::addFile(const string& aFilePathLower, const HashedFile& fi_) throw(HashException) {
+bool HashManager::addFile(const string& aPath, const HashedFile& fi_) throw(HashException) {
 	//check that the file exists
-	if (File::getSize(aFilePathLower) != fi_.getSize()) {
+	if (File::getSize(aPath) != fi_.getSize()) {
 		return false;
 	}
 
@@ -263,7 +264,7 @@ bool HashManager::addFile(const string& aFilePathLower, const HashedFile& fi_) t
 		return false;
 	}
 
-	store.addFile(aFilePathLower, fi_);
+	store.addFile(Text::toLower(aPath), fi_);
 	return true;
 }
 
