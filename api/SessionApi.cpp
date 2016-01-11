@@ -81,6 +81,7 @@ namespace webserver {
 			{ "user", session->getUser()->getUserName() },
 			{ "system", getSystemInfo(aIp) },
 			{ "away_idle_time", SETTING(AWAY_IDLE_TIME) },
+			{ "wizard_run", SETTING(WIZARD_RUN) },
 		};
 
 		if (aSocket) {

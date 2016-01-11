@@ -169,7 +169,12 @@ namespace webserver {
 		}
 
 		if (key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
-			SettingsManager::getInstance()->set(static_cast<SettingsManager::StrSetting>(key), JsonUtil::parseValue<string>(name, aJson));
+			auto value = JsonUtil::parseValue<string>(name, aJson);
+			if (type == TYPE_DIRECTORY_PATH) {
+				value = Util::validatePath(value, true);
+			}
+
+			SettingsManager::getInstance()->set(static_cast<SettingsManager::StrSetting>(key), value);
 		} else if (key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
 			SettingsManager::getInstance()->set(static_cast<SettingsManager::IntSetting>(key), JsonUtil::parseValue<int>(name, aJson));
 		} else if (key >= SettingsManager::BOOL_FIRST && key < SettingsManager::BOOL_LAST) {

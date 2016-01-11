@@ -70,7 +70,7 @@ namespace webserver {
 	api_return ShareRootApi::handleAddRoot(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		auto path = JsonUtil::getField<string>("path", reqJson, false);
+		auto path = Util::validatePath(JsonUtil::getField<string>("path", reqJson, false), true);
 
 		// Validate the path
 		try {
