@@ -108,6 +108,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case SearchApi::PROP_NAME: return aResult->sr->getFileName();
 		case SearchApi::PROP_PATH: return Util::toAdcFile(aResult->sr->getPath());
+		case SearchApi::PROP_USERS: return Format::formatNicks(aResult->sr->getUser());
 		case SearchApi::PROP_TYPE: {
 			if (aResult->sr->getType() == SearchResult::TYPE_DIRECTORY) {
 				return Format::formatFolderContent(aResult->sr->getFileCount(), aResult->sr->getFolderCount());
@@ -118,7 +119,7 @@ namespace webserver {
 		}
 		case SearchApi::PROP_SLOTS: return aResult->getSlotStr();
 		case SearchApi::PROP_TTH: return aResult->sr->getTTH().toBase32();
-		default: dcassert(0); return 0;
+		default: dcassert(0); return Util::emptyString;
 		}
 	}
 	double SearchUtils::getNumericInfo(const SearchResultInfoPtr& aResult, int aPropertyName) noexcept {

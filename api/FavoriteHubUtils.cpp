@@ -103,7 +103,7 @@ namespace webserver {
 			case FavoriteHubApi::PROP_NICK: return aEntry->get(HubSettings::Nick);
 			case FavoriteHubApi::PROP_USER_DESCRIPTION: return aEntry->get(HubSettings::Description);
 			case FavoriteHubApi::PROP_SHARE_PROFILE: return aEntry->getShareProfileName();
-			default: dcassert(0); return 0;
+			default: dcassert(0); return Util::emptyString;
 		}
 	}
 
