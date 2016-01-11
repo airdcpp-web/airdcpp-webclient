@@ -867,7 +867,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(MONITORING_MODE, MONITORING_DISABLED);
 #endif
 
-	setDefault(FINISHED_NO_HASH, false);
+	setDefault(FINISHED_NO_HASH, true);
 	setDefault(MONITORING_DELAY, 30);
 	setDefault(DELAY_COUNT_MODE, DELAY_VOLUME);
 

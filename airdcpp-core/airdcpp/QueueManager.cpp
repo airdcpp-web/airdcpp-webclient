@@ -1563,7 +1563,7 @@ void QueueManager::hashBundle(BundlePtr& aBundle) noexcept {
 				HashedFile fi(q->getTTH(), File::getLastModified(q->getTarget()), q->getSize());
 				if (SETTING(FINISHED_NO_HASH)) {
 					try {
-						if (HashManager::getInstance()->addFile(Text::toLower(q->getTarget()), fi)) {
+						if (HashManager::getInstance()->addFile(q->getTarget(), fi)) {
 							q->setFlag(QueueItem::FLAG_HASHED);
 							hashSize -= q->getSize();
 							continue;
