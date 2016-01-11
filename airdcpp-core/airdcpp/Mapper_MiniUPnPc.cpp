@@ -97,10 +97,10 @@ bool Mapper_MiniUPnPc::init() {
 	if(!url.empty())
 		return true;
 
-#ifdef HAVE_OLD_MINIUPNPC
-	UPNPDev* devices = upnpDiscover(2000, localIp.empty() ? nullptr : localIp.c_str(), 0, 0);
-#else
+#if MINIUPNPC_API_VERSION < 14
 	UPNPDev* devices = upnpDiscover(2000, localIp.empty() ? nullptr : localIp.c_str(), 0, 0, v6, 0);
+#else
+  UPNPDev* devices = upnpDiscover(2000, localIp.empty() ? nullptr : localIp.c_str(), 0, 0, v6, 2, 0);
 #endif
 	if(!devices)
 		return false;
