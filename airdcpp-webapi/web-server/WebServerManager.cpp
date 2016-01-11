@@ -320,6 +320,7 @@ namespace webserver {
 						serverThreads = min(Util::toInt(xml.getData()), 2);
 						xml.stepOut();
 					}
+					xml.resetCurrentChild();
 
 					xml.stepOut();
 				}
@@ -340,6 +341,8 @@ namespace webserver {
 			config_.setPort(aXml.getIntChildAttrib("Port"));
 			aXml.resetCurrentChild();
 		}
+
+		aXml.resetCurrentChild();
 	}
 
 	bool WebServerManager::save(std::function<void(const string&)> aCustomErrorF) noexcept {

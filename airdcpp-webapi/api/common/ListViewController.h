@@ -727,6 +727,11 @@ namespace webserver {
 		void handleRemoveItem(const T& aItem, int& rangeStart_) {
 			WLock l(cs);
 			auto iter = findItem(aItem, matchingItems);
+			if (iter == matchingItems.end()) {
+				dcassert(0);
+				return;
+			}
+
 			auto pos = static_cast<int>(std::distance(matchingItems.begin(), iter));
 
 			matchingItems.erase(iter);
