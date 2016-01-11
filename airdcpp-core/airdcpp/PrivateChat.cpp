@@ -116,6 +116,10 @@ void PrivateChat::handleMessage(const ChatMessagePtr& aMessage) {
 		fire(PrivateChatListener::UserUpdated(), this);
 	}
 
+	if (SETTING(LOG_PRIVATE_CHAT)) {
+		logMessage(aMessage->format());
+	}
+
 	cache.addMessage(aMessage);
 	fire(PrivateChatListener::PrivateMessage(), this, aMessage);
 }
