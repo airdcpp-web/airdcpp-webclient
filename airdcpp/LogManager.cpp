@@ -104,9 +104,9 @@ string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache
 	}
 
 	//check the directory
-	string fileName = getSetting(PM, FILE);
+	auto fileName = getSetting(PM, FILE);
 	ensureParam("%[userCID]", fileName);
-	string path = Util::validatePath(SETTING(LOG_DIRECTORY) + 
+	auto path = Util::validatePath(SETTING(LOG_DIRECTORY) + 
 		Util::formatParams(fileName, params, Util::cleanPathSeparators));
 
 	auto files = File::findFiles(Util::getFilePath(path), "*" + aUser->getCID().toBase32() + "*", File::TYPE_FILE);
@@ -154,15 +154,15 @@ void LogManager::saveSetting(int area, int sel, const string& setting) {
 
 void LogManager::log(const string& area, const string& msg) noexcept {
 	tasks.addTask([=] {
+		auto aArea = Util::validatePath(area);
 		try {
-			string aArea = Util::validatePath(area);
 			File::ensureDirectory(aArea);
 			File f(aArea, File::WRITE, File::OPEN | File::CREATE);
 			f.setEndPos(0);
 			f.write(msg + "\r\n");
-		}
-		catch (const FileException&) {
-			// ...
+		} catch (const FileException& e) {
+			// Just don't try to write the error into a file...
+			message(STRING_F(WRITE_FAILED_X, aArea % e.what()), LogMessage::SEV_NOTIFY);
 		}
 	});
 }
