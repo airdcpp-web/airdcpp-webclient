@@ -82,7 +82,7 @@ namespace webserver {
 		case ShareRootApi::PROP_VIRTUAL_NAME: return aItem->virtualName;
 		case ShareRootApi::PROP_PATH: return aItem->path;
 		case ShareRootApi::PROP_REFRESH_STATE: return formatRefreshState(aItem);
-		default: dcassert(0); return 0;
+		default: dcassert(0); return Util::emptyString;
 		}
 	}
 	double ShareUtils::getNumericInfo(const ShareDirectoryInfoPtr& aItem, int aPropertyName) noexcept {

@@ -141,9 +141,10 @@ namespace webserver {
 		case QueueApi::PROP_NAME: return b->getName();
 		case QueueApi::PROP_TARGET: return b->getTarget();
 		case QueueApi::PROP_TYPE: return formatBundleType(b);
+		case QueueApi::PROP_STATUS: return formatBundleStatus(b);
 		case QueueApi::PROP_PRIORITY: return AirUtil::getPrioText(b->getPriority());
 		case QueueApi::PROP_SOURCES: return formatBundleSources(b);
-		default: dcassert(0); return 0;
+		default: dcassert(0); return Util::emptyString;
 		}
 	}
 
