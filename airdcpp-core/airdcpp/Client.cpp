@@ -195,14 +195,14 @@ void Client::connect() {
 	setMyIdentity(Identity(ClientManager::getInstance()->getMe(), 0));
 	setHubIdentity(Identity());
 
-	state = STATE_CONNECTING;
+	setConnectState(STATE_CONNECTING);
 
 	try {
 		sock = BufferedSocket::getSocket(separator, v4only());
 		sock->addListener(this);
 		sock->connect(Socket::AddressInfo(address, Socket::AddressInfo::TYPE_URL), port, secure, SETTING(ALLOW_UNTRUSTED_HUBS), true, keyprint /**/);
 	} catch (const Exception& e) {
-		state = STATE_DISCONNECTED;
+		setConnectState(STATE_DISCONNECTED);
 		fire(ClientListener::Failed(), hubUrl, e.getError());
 	}
 	updateActivity();
@@ -380,7 +380,7 @@ void Client::on(Failed, const string& aLine) noexcept {
 		iskeypError = true;
 	}
 
-	state = STATE_DISCONNECTED;
+	setConnectState(STATE_DISCONNECTED);
 	statusMessage(aError, LogMessage::SEV_WARNING); //Error?
 
 	sock->removeListener(this);

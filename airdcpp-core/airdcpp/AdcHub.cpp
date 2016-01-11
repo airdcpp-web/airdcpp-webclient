@@ -253,6 +253,8 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		u->getUser()->setFlag(User::ASCH);
 	}
 
+	// Cache so that we can fire the correct event for our own identity when the state changes
+	bool normal = stateNormal();
 	if(u->getUser() == getMyIdentity().getUser()) {
 		State oldState = getConnectState();
 		if (oldState != STATE_NORMAL) {
@@ -279,14 +281,14 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 
 			fire(ClientListener::UsersUpdated(), this, ouList);
 		}
-	} else if (stateNormal()) {
+	} else if (normal) {
 		u->getIdentity().updateConnectMode(getMyIdentity(), this);
 	}
 
 	if(u->getIdentity().isHub()) {
 		setHubIdentity(u->getIdentity());
 		fire(ClientListener::HubUpdated(), this);
-	} else if (stateNormal()) {
+	} else if (normal) {
 		fire(ClientListener::UserUpdated(), this, u);
 	} else {
 		fire(ClientListener::UserConnected(), this, u);
