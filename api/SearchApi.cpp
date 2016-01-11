@@ -44,6 +44,8 @@ namespace webserver {
 
 	SearchResultInfo::List SearchApi::getResultList() {
 		SearchResultInfo::List ret;
+
+		RLock l(cs);
 		boost::range::copy(results | map_values, back_inserter(ret));
 		return ret;
 	}
@@ -189,36 +191,29 @@ namespace webserver {
 			return;
 		}
 
-		// Do we have a parent?
 		SearchResultInfoPtr parent = nullptr;
+		auto result = make_shared<SearchResultInfo>(aResult, move(*relevancyInfo));
+
 		{
 			WLock l(cs);
-			auto i = results.find(aResult->getTTH());
-			if (i != results.end()) {
-				parent = i->second;
+			auto i = results.emplace(aResult->getTTH(), result);
+			if (!i.second) {
+				parent = i.first->second;
 			}
 		}
 
-		// No duplicate results for the same user that are received via different hubs
-		if (parent && parent->hasUser(aResult->getUser())) {
+		if (!parent) {
+			searchView.onItemAdded(result);
 			return;
 		}
 
-		auto result = make_shared<SearchResultInfo>(aResult, move(*relevancyInfo));
+		// No duplicate results for the same user that are received via different hubs
+		if (parent->hasUser(aResult->getUser())) {
+			return;
+		}
 
 		// Add as child
-		if (parent) {
-			parent->addChildResult(result);
-			searchView.onItemUpdated(parent, { PROP_RELEVANCY, PROP_CONNECTION, PROP_HITS, PROP_SLOTS, PROP_USERS });
-			return;
-		}
-
-		// New parent
-		{
-			WLock l(cs);
-			results.emplace(aResult->getTTH(), result);
-		}
-
-		searchView.onItemAdded(result);
+		parent->addChildResult(result);
+		searchView.onItemUpdated(parent, { PROP_RELEVANCY, PROP_CONNECTION, PROP_HITS, PROP_SLOTS, PROP_USERS });
 	}
 }

@@ -556,9 +556,10 @@ namespace webserver {
 			// Go through the tasks
 			auto updatedItems = handleTasks(currentTasks, sortProperty, sortAscending, newStart);
 
+			ItemList newViewItems;
 			if (newStart >= 0) {
 				// Get the new visible items
-				updateViewItems(updatedItems, j, newStart, updateValues[IntCollector::TYPE_MAX_COUNT]);
+				updateViewItems(updatedItems, j, newStart, updateValues[IntCollector::TYPE_MAX_COUNT], newViewItems);
 
 				// Append other changed properties
 				auto startOffset = newStart - updateValues[IntCollector::TYPE_RANGE_START];
@@ -569,15 +570,23 @@ namespace webserver {
 				j["range_start"] = newStart;
 			}
 
-			// Set cached values
 			{
 				WLock l(cs);
+
+				// All list operations should possibly be changed to be performed in this thread to avoid things getting out of sync
+				if (!active) {
+					return;
+				}
+
+				// Set cached values
 				prevValues.swap(updateValues);
+				currentViewItems.swap(newViewItems);
+
+				dcassert((matchingItems.size() != 0 && allItems.size() != 0) || currentViewItems.empty());
 			}
 
 			// Counts should be updated even if the list doesn't have valid settings posted
 			appendItemCounts(j);
-			dcassert((matchingItems.size() != 0 && allItems.size() != 0) || currentViewItems.empty());
 
 			sendJson(j);
 		}
@@ -607,9 +616,9 @@ namespace webserver {
 			return updatedItems;
 		}
 
-		void updateViewItems(const ItemPropertyIdMap& aUpdatedItems, json& json_, int& newStart_, int aMaxCount) {
+		void updateViewItems(const ItemPropertyIdMap& aUpdatedItems, json& json_, int& newStart_, int aMaxCount, ItemList& newViewItems_) {
 			// Get the new visible items
-			decltype(currentViewItems) viewItemsNew, oldViewItems;
+			ItemList currentItemsCopy;
 			{
 				RLock l(cs);
 				if (newStart_ >= static_cast<int>(allItems.size())) {
@@ -628,16 +637,16 @@ namespace webserver {
 				auto endIter = startIter;
 				advance(endIter, count);
 
-				std::copy(startIter, endIter, back_inserter(viewItemsNew));
-				oldViewItems = currentViewItems;
+				std::copy(startIter, endIter, back_inserter(newViewItems_));
+				currentItemsCopy = currentViewItems;
 			}
 
 			json_["items"] = json::array();
 
 			// List items
 			int pos = 0;
-			for (const auto& item : viewItemsNew) {
-				if (!isInList(item, oldViewItems)) {
+			for (const auto& item : newViewItems_) {
+				if (!isInList(item, currentItemsCopy)) {
 					appendItem(item, json_, pos);
 				} else {
 					// append position
@@ -650,11 +659,6 @@ namespace webserver {
 				}
 
 				pos++;
-			}
-
-			{
-				WLock l(cs);
-				currentViewItems.swap(viewItemsNew);
 			}
 		}
 
