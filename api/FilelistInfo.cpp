@@ -72,9 +72,7 @@ namespace webserver {
 	}
 
 	void FilelistInfo::addListTask(CallBack&& aTask) noexcept {
-		dl->addAsyncTask([=] {
-			getAsyncWrapper(aTask);
-		});
+		dl->addAsyncTask(getAsyncWrapper(move(aTask)));
 	}
 
 	api_return FilelistInfo::handleChangeDirectory(ApiRequest& aRequest) {
