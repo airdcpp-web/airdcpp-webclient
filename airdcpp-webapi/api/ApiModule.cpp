@@ -24,7 +24,7 @@
 
 namespace webserver {
 	ApiModule::ApiModule(Session* aSession, Access aSubscriptionAccess, const StringList* aSubscriptions) : session(aSession), subscriptionAccess(aSubscriptionAccess) {
-		socket = WebServerManager::getInstance()->getSocket(aSession->getToken());
+		socket = WebServerManager::getInstance()->getSocket(aSession->getId());
 
 		if (aSubscriptions) {
 			for (const auto& s : *aSubscriptions) {
@@ -186,19 +186,25 @@ namespace webserver {
 
 	void ApiModule::addAsyncTask(CallBack&& aTask) {
 		session->getServer()->addAsyncTask([=] {
-			asyncRunWrapper(move(aTask));
+			asyncRunWrapper(move(aTask), session->getId());
 		});
 	}
 
 	TimerPtr ApiModule::getTimer(CallBack&& aTask, time_t aIntervalMillis) {
-		return session->getServer()->addTimer([=] {
-			asyncRunWrapper(move(aTask));
-		}, aIntervalMillis);
+		return session->getServer()->addTimer(move(aTask), aIntervalMillis, 
+			std::bind(&ApiModule::asyncRunWrapper, std::placeholders::_1, session->getId())
+		);
 	}
 
-	void ApiModule::asyncRunWrapper(const CallBack& aTask) {
+	CallBack ApiModule::getAsyncWrapper(const CallBack& aTask) noexcept {
+		return [&] { 
+			return asyncRunWrapper(aTask, session->getId()); 
+		};
+	}
+
+	void ApiModule::asyncRunWrapper(const CallBack& aTask, LocalSessionId aSessionId) {
 		// Ensure that the session (and socket) won't be deleted
-		auto s = session->getServer()->getUserManager().getSession(session->getToken());
+		auto s = WebServerManager::getInstance()->getUserManager().getSession(aSessionId);
 		if (!s) {
 			return;
 		}

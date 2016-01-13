@@ -21,7 +21,6 @@
 
 #include <airdcpp/typedefs.h>
 
-#include <airdcpp/format.h>
 #include <airdcpp/LogManager.h>
 #include <airdcpp/SettingsManager.h>
 #include <airdcpp/SimpleXML.h>
@@ -232,15 +231,15 @@ namespace webserver {
 		fire(WebServerManagerListener::Stopped());
 	}
 
-	void WebServerManager::logout(const string& aSessionToken) noexcept {
+	void WebServerManager::logout(LocalSessionId aSessionId) noexcept {
 		vector<WebSocketPtr> sessionSockets;
 
 		{
 			RLock l(cs);
 			boost::algorithm::copy_if(sockets | map_values, back_inserter(sessionSockets),
 				[&](const WebSocketPtr& aSocket) {
-				return aSocket->getSession() && aSocket->getSession()->getToken() == aSessionToken;
-			}
+					return aSocket->getSession() && aSocket->getSession()->getId() == aSessionId;
+				}
 			);
 		}
 
@@ -250,17 +249,17 @@ namespace webserver {
 		}
 	}
 
-	WebSocketPtr WebServerManager::getSocket(const std::string& aSessionToken) noexcept {
+	WebSocketPtr WebServerManager::getSocket(LocalSessionId aSessionToken) noexcept {
 		RLock l(cs);
 		auto i = find_if(sockets | map_values, [&](const WebSocketPtr& s) {
-			return s->getSession() && s->getSession()->getToken() == aSessionToken;
+			return s->getSession() && s->getSession()->getId() == aSessionToken;
 		});
 
 		return i.base() == sockets.end() ? nullptr : *i;
 	}
 
-	TimerPtr WebServerManager::addTimer(CallBack&& aCallBack, time_t aIntervalMillis) noexcept {
-		return make_shared<Timer>(move(aCallBack), ios, aIntervalMillis);
+	TimerPtr WebServerManager::addTimer(CallBack&& aCallBack, time_t aIntervalMillis, const Timer::CallbackWrapper& aCallbackWrapper) noexcept {
+		return make_shared<Timer>(move(aCallBack), ios, aIntervalMillis, aCallbackWrapper);
 	}
 
 	void WebServerManager::addAsyncTask(CallBack&& aCallBack) noexcept {
@@ -305,7 +304,7 @@ namespace webserver {
 
 					if (xml.findChild("Threads")) {
 						xml.stepIn();
-						serverThreads = min(Util::toInt(xml.getData()), 2);
+						serverThreads = max(Util::toInt(xml.getData()), 2);
 						xml.stepOut();
 					}
 					xml.resetCurrentChild();

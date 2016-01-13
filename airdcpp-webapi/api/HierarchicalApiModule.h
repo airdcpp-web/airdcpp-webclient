@@ -23,6 +23,8 @@
 
 #include <web-server/stdinc.h>
 #include <web-server/ApiRequest.h>
+#include <web-server/Session.h>
+#include <web-server/WebServerManager.h>
 
 #include <airdcpp/CriticalSection.h>
 
@@ -210,31 +212,40 @@ namespace webserver {
 
 		void addAsyncTask(CallBack&& aTask) {
 			ApiModule::addAsyncTask([=] { 
-				asyncRunWrapper(aTask); 
+				moduleAsyncRunWrapper(aTask, parentModule, id, session->getId());
 			});
 		}
 
 		TimerPtr getTimer(CallBack&& aTask, time_t aIntervalMillis) {
-			return ApiModule::getTimer([=] {
-				asyncRunWrapper(aTask);
-			}, aIntervalMillis);
+			auto sessionId = session->getId();
+			return session->getServer()->addTimer(move(aTask), aIntervalMillis, [=](const CallBack& aCB) {
+				return moduleAsyncRunWrapper(aCB, parentModule, id, sessionId);
+			});
 		}
 
 		// All custom async tasks should be run inside this to
 		// ensure that the submodule (or the session) won't get deleted
-		void asyncRunWrapper(const CallBack& aTask) {
+		CallBack getAsyncWrapper(const CallBack& aTask) noexcept {
+			return [&] {
+				return moduleAsyncRunWrapper(aTask, parentModule, id, session->getId());
+			};
+		}
+	private:
+		template<class IdType, class ParentType>
+		static void moduleAsyncRunWrapper(const CallBack& aTask, ParentType* aParentModule, const IdType& aId, LocalSessionId aSessionId) {
 			// Ensure that we have a session
 			ApiModule::asyncRunWrapper([=] {
-				// Ensure that we have a submodule
-				auto m = parentModule->getSubModule(id);
+				// Ensure that we have a submodule (the parent must exist if we have a session)
+				auto m = aParentModule->getSubModule(aId);
 				if (!m) {
 					return;
 				}
 
 				aTask();
-			});
+			}, aSessionId);
 		}
-	private:
+
+
 		ParentType* parentModule;
 
 		const ItemJsonType id;

@@ -99,7 +99,6 @@ namespace webserver {
 
 		// All custom async tasks should be run inside this to
 		// ensure that the session won't get deleted
-		virtual void asyncRunWrapper(const CallBack& aTask);
 
 		Session* getSession() const noexcept {
 			return session;
@@ -131,7 +130,11 @@ namespace webserver {
 		Access getSubscriptionAccess() const noexcept {
 			return subscriptionAccess;
 		}
+
+		virtual CallBack getAsyncWrapper(const CallBack& aTask) noexcept;
 	protected:
+		static void asyncRunWrapper(const CallBack& aTask, LocalSessionId aSessionId);
+
 		const Access subscriptionAccess;
 		Session* session;
 

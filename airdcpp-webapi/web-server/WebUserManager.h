@@ -38,7 +38,8 @@ namespace webserver {
 
 		SessionPtr authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, bool aUserSession) noexcept;
 
-		SessionPtr getSession(const string& aSession) const noexcept;
+		SessionPtr getSession(const string& aAuthToken) const noexcept;
+		SessionPtr getSession(LocalSessionId aId) const noexcept;
 		void logout(const SessionPtr& aSession);
 
 		bool hasUsers() const noexcept;
@@ -55,13 +56,15 @@ namespace webserver {
 		StringList getUserNames() const noexcept;
 
 		size_t getSessionCount() const noexcept;
-		void setSessionAwayState(const string& aSessionToken, bool aAway) noexcept;
+		void setSessionAwayState(LocalSessionId aSessionId, bool aAway) noexcept;
 	private:
 		void checkAwayState() noexcept;
 		mutable SharedMutex cs;
 
 		std::map<std::string, WebUserPtr> users;
-		std::map<std::string, SessionPtr> sessions;
+
+		std::map<std::string, SessionPtr> sessionsRemoteId;
+		std::map<LocalSessionId, SessionPtr> sessionsLocalId;
 
 		void checkExpiredSessions() noexcept;
 		void removeSession(const SessionPtr& aSession) noexcept;
