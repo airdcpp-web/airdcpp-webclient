@@ -35,7 +35,7 @@
 
 using namespace std;
 
-static FILE* pidFile;
+static unique_ptr<File> pidFile;
 static string pidFileName;
 static bool asdaemon = false;
 static bool crashed = false;
@@ -47,10 +47,7 @@ static void uninit() {
 	//if(!asdaemon)
 	//	printf("Shut down\n");
 
-	if(pidFile != NULL)
-		fclose(pidFile);
-	pidFile = NULL;
-
+	pidFile.reset(nullptr);
 	if(!pidFileName.empty())
 		unlink(pidFileName.c_str());
 }
@@ -60,7 +57,7 @@ static void handleCrash(int sig) {
         abort();
 
     crashed = true;
-	
+
 	uninit();
 
     std::cerr << std::to_string(sig) << std::endl;
@@ -116,7 +113,7 @@ static void init() {
 
 	sigfillset(&mask); /* Mask all allowed signals, the other threads should inherit
 					   this... */
-	
+
 	sigdelset(&mask, SIGCONT);
 	sigdelset(&mask, SIGFPE);
 	sigdelset(&mask, SIGBUS);
@@ -125,11 +122,6 @@ static void init() {
 	//pthread_sigmask(SIG_SETMASK, &mask, NULL);
 
 	installHandler();
-
-	if(pidFile != NULL) {
-		fprintf(pidFile, "%d", (int)getpid());
-		fflush(pidFile);
-	}
 }
 
 static void installHandler() {
@@ -138,13 +130,13 @@ static void installHandler() {
 	//sa.sa_handler = breakHandler;
 
 	//sigaction(SIGINT, &sa, NULL);
-	
+
 	signal(SIGINT, &breakHandler);
-	
+
 	signal(SIGFPE, &handleCrash);
 	signal(SIGSEGV, &handleCrash);
 	signal(SIGILL, &handleCrash);
-	
+
 	std::set_terminate([] {
 		handleCrash(0);
 	});
@@ -189,11 +181,11 @@ static void runDaemon(const string& configPath) {
 
 	try {
 		client = unique_ptr<airdcppd::Client>(new airdcppd::Client(asdaemon));
-		
+
 		init();
-		
+
 		client->run();
-		
+
 		client.reset();
 	} catch(const std::exception& e) {
 		fprintf(stderr, "Failed to start: %s\n", e.what());
@@ -208,11 +200,11 @@ static void runConsole(const string& configPath) {
 	try {
 		client = unique_ptr<airdcppd::Client>(new airdcppd::Client(asdaemon));
 		printf("."); fflush(stdout);
-		
+
 		init();
-		
+
 		client->run();
-		
+
 		client.reset();
 	} catch(const std::exception& e) {
 		fprintf(stderr, "\nFATAL: Can't start AirDC++ Web Client: %s\n", e.what());
@@ -223,21 +215,21 @@ static void runConsole(const string& configPath) {
 #define HELP_WIDTH 25
 static void printUsage() {
 	printf("Usage: airdcppd [options]\n");
-	
+
 	auto printHelp = [](const std::string& aCommand, const std::string& aHelp) {
 		cout << std::left << std::setw(HELP_WIDTH) << std::setfill(' ') << aCommand;
 		cout << std::left << std::setw(HELP_WIDTH) << std::setfill(' ') << aHelp << std::endl;
 	};
-	
+
 	cout << std::endl;
 	printHelp("-h", 								"Print help");
 	printHelp("-v", 								"Print version");
 	printHelp("-d", 								"Run as daemon");
 	printHelp("-c=PATH", 						"Use the specified config directory for client settings");
-	
+
 	cout << std::endl;
 	printHelp("--no-auto-connect", 	"Don't connect to any favorite hub on startup");
-	
+
 	cout << std::endl;
 	cout << std::endl;
 	cout << "Web server" << std::endl;
@@ -261,7 +253,7 @@ static void setApp(char* argv[]) {
 
 int main(int argc, char* argv[]) {
 	setApp(argv);
-	
+
 	while (argc > 0) {
 		Util::addStartupParam(Text::fromT(*argv));
 		argc--;
@@ -277,9 +269,9 @@ int main(int argc, char* argv[]) {
 		printf("%s\n", shortVersionString.c_str());
 		return 0;
 	}
-	
+
 	auto configDir = Util::getStartupParam("-c");
-	
+
 	dcpp::Util::initialize(configDir ? *configDir : "");
 	auto configF = airdcppd::ConfigPrompt::checkArgs();
 	if (configF) {
@@ -287,42 +279,33 @@ int main(int argc, char* argv[]) {
 		signal(SIGINT, [](int) {
 			airdcppd::ConfigPrompt::setPasswordMode(false);
 			cout << std::endl;
-			uninit(); 
-			exit(0); 
+			uninit();
+			exit(0);
 		});
-		
+
 		configF();
-		
+
 		uninit();
 		return 0;
 	}
-	
+
 	if (Util::hasStartupParam("-d")) {
 		asdaemon = true;
 	}
-	
-	if (Util::hasStartupParam("-p")) {
-		auto p = Util::getStartupParam("-p");
-		if (p) {
-			pidFileName = *p;
-		} else {
-			fprintf(stderr, "-p <pid-file>\n");
-			return 1;
-		}
-	}
 
-	
+
 	setlocale(LC_ALL, "");
 
 	string configPath = Util::getPath(Util::PATH_USER_CONFIG);
 
-	if(!pidFileName.empty()) {
-		pidFileName = File::makeAbsolutePath(configPath, pidFileName);
-		pidFile = fopen(pidFileName.c_str(), "w");
-		if(pidFile == NULL) {
-			fprintf(stderr, "Can't open %s for writing\n", pidFileName.c_str());
-			return 1;
-		}
+	pidFileName = File::makeAbsolutePath(configPath, "airdcppd.pid");
+
+	try {
+		pidFile.reset(new File(pidFileName, File::WRITE, File::CREATE | File::OPEN | File::TRUNCATE));
+		pidFile->write(Util::toString(static_cast<int>(getpid())));
+	} catch(const FileException& e) {
+                fprintf(stderr, "Failed to create PID file %s: %s\n", pidFileName.c_str(), e.what());
+                return 1;
 	}
 
 	if(asdaemon) {

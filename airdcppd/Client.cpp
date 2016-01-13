@@ -22,11 +22,12 @@
 #include <airdcpp/Util.h>
 
 #include <airdcpp/AirUtil.h>
+#include <airdcpp/ClientManager.h>
 #include <airdcpp/ConnectivityManager.h>
 #include <airdcpp/DirectoryListingManager.h>
-#include <airdcpp/ClientManager.h>
 #include <airdcpp/FavoriteManager.h>
 #include <airdcpp/UpdateManager.h>
+#include <airdcpp/SettingsManager.h>
 #include <airdcpp/TimerManager.h>
 
 #include <web-server/WebServerManager.h>
@@ -86,6 +87,8 @@ bool Client::startup() {
 	}
 
 	AirUtil::setAway(AWAY_IDLE);
+	SettingsManager::getInstance()->setDefault(SettingsManager::LOG_IGNORED, false);
+
 	DirectoryListingManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);
 
