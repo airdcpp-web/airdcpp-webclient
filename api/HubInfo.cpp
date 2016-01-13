@@ -63,7 +63,7 @@ namespace webserver {
 		SubApiModule(aParentModule, aClient->getClientId(), subscriptionList), client(aClient),
 		chatHandler(this, aClient, "hub"), 
 		view("hub_user_view", this, onlineUserPropertyHandler, std::bind(&HubInfo::getUsers, this), 500), 
-		timer(aParentModule->getSession()->getServer()->addTimer([this] { onTimer(); }, 1000)) {
+		timer(getTimer([this] { onTimer(); }, 1000)) {
 
 		client->addListener(this);
 		timer->start();

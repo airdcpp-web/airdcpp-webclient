@@ -30,10 +30,11 @@
 #define CONFIG_DIR Util::PATH_USER_CONFIG
 
 #define HANDSHAKE_TIMEOUT 0 // disabled, affects HTTP downloads
+#define DEFAULT_THREADS 3
 
 namespace webserver {
 	using namespace dcpp;
-	WebServerManager::WebServerManager() : serverThreads(3), has_io_service(false), ios(2) {
+	WebServerManager::WebServerManager() : serverThreads(DEFAULT_THREADS), has_io_service(false), ios(2) {
 		userManager = unique_ptr<WebUserManager>(new WebUserManager(this));
 	}
 
@@ -152,26 +153,13 @@ namespace webserver {
 
 	bool WebServerManager::listen(ErrorF& errorF) {
 		bool hasServer = false;
-		if (plainServerConfig.hasValidConfig()) {
-			try {
-				endpoint_plain.listen(plainServerConfig.getPort());
-				endpoint_plain.start_accept();
-				hasServer = true;
-			} catch (const websocketpp::exception& e) {
-				auto message = boost::format("Failed to set up plain server on port %1%: %2% (is the port in use by another application?)") % plainServerConfig.getPort() % string(e.what());
-				errorF(message.str());
-			}
+
+		if (listenEndpoint(endpoint_plain, plainServerConfig, "HTTP", errorF)) {
+			hasServer = true;
 		}
 
-		if (tlsServerConfig.hasValidConfig()) {
-			try {
-				endpoint_tls.listen(tlsServerConfig.getPort());
-				endpoint_tls.start_accept();
-				hasServer = true;
-			} catch (const websocketpp::exception& e) {
-				auto message = boost::format("Failed to set up secure server on port %1%: %2% (is the port in use by another application?)") % tlsServerConfig.getPort() % string(e.what());
-				errorF(message.str());
-			}
+		if (listenEndpoint(endpoint_tls, tlsServerConfig, "HTTPS", errorF)) {
+			hasServer = true;
 		}
 
 		if (hasServer) {
@@ -339,6 +327,8 @@ namespace webserver {
 	void WebServerManager::loadServer(SimpleXML& aXml, const string& aTagName, ServerConfig& config_) noexcept {
 		if (aXml.findChild(aTagName)) {
 			config_.setPort(aXml.getIntChildAttrib("Port"));
+			config_.setBindAddress(aXml.getChildAttrib("BindAddress"));
+
 			aXml.resetCurrentChild();
 		}
 
@@ -354,8 +344,19 @@ namespace webserver {
 		{
 			xml.addTag("Config");
 			xml.stepIn();
+
 			plainServerConfig.save(xml, "Server");
 			tlsServerConfig.save(xml, "TLSServer");
+
+			if (serverThreads != DEFAULT_THREADS) {
+				xml.addTag("Threads");
+				xml.stepIn();
+
+				xml.setData(Util::toString(serverThreads));
+
+				xml.stepOut();
+			}
+
 			xml.stepOut();
 		}
 
@@ -383,5 +384,8 @@ namespace webserver {
 
 		xml_.addTag(aTagName);
 		xml_.addChildAttrib("Port", port);
+		if (!bindAddress.empty()) {
+			xml_.addChildAttrib("BindAddress", bindAddress);
+		}
 	}
 }

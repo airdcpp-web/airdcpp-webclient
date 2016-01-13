@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_TRANSFERAPI_H
 
 #include <web-server/stdinc.h>
-#include <web-server/Timer.h>
 
 #include <api/ApiModule.h>
 

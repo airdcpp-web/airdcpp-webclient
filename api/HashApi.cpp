@@ -18,7 +18,7 @@
 
 #include <web-server/stdinc.h>
 #include <web-server/JsonUtil.h>
-#include <web-server/WebServerManager.h>
+#include <web-server/Timer.h>
 
 #include <api/HashApi.h>
 
@@ -26,7 +26,7 @@
 
 namespace webserver {
 	HashApi::HashApi(Session* aSession) : ApiModule(aSession, Access::ANY),
-		timer(WebServerManager::getInstance()->addTimer([this] { onTimer(); }, 1000)) {
+		timer(getTimer([this] { onTimer(); }, 1000)) {
 
 		HashManager::getInstance()->addListener(this);
 

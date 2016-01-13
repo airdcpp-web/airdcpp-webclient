@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_HASHAPI_H
 
 #include <web-server/stdinc.h>
-#include <web-server/Timer.h>
 
 #include <api/ApiModule.h>
 

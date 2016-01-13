@@ -20,8 +20,10 @@
 #define DCPLUSPLUS_DCPP_LISTVIEW_H
 
 #include <web-server/stdinc.h>
+
 #include <web-server/JsonUtil.h>
 #include <web-server/SessionListener.h>
+#include <web-server/Timer.h>
 #include <web-server/WebServerManager.h>
 
 #include <airdcpp/TaskQueue.h>
@@ -44,7 +46,7 @@ namespace webserver {
 		// Larger lists with lots of updates and non-critical response times should specify a longer interval
 		ListViewController(const string& aViewName, ApiModule* aModule, const PropertyItemHandler<T>& aItemHandler, ItemListF aItemListF, time_t aUpdateInterval = 200) :
 			module(aModule), viewName(aViewName), itemHandler(aItemHandler), itemListF(aItemListF),
-			timer(WebServerManager::getInstance()->addTimer([this] { runTasks(); }, aUpdateInterval))
+			timer(aModule->getTimer([this] { runTasks(); }, aUpdateInterval))
 		{
 			aModule->getSession()->addListener(this);
 
@@ -326,8 +328,7 @@ namespace webserver {
 				bool paused = j["paused"];
 				if (paused && timer->isRunning()) {
 					timer->stop(false);
-				}
-				else if (!paused && !timer->isRunning()) {
+				} else if (!paused && !timer->isRunning()) {
 					timer->start();
 				}
 			}
