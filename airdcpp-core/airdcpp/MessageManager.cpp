@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2015 AirDC++ Project
+* Copyright (C) 2011-2016 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -184,7 +184,7 @@ void MessageManager::onPrivateMessage(const ChatMessagePtr& aMessage) {
 	auto chat = addChat(HintedUser(user, aMessage->getReplyTo()->getClient()->getHubUrl()), true);
 	chat->handleMessage(aMessage);
 
-	if (AirUtil::getAway() && (!SETTING(NO_AWAYMSG_TO_BOTS) || !user->isSet(User::BOT))) {
+	if (AirUtil::getAway() && !myPM && (!SETTING(NO_AWAYMSG_TO_BOTS) || !user->isSet(User::BOT))) {
 		ParamMap params;
 		aMessage->getFrom()->getIdentity().getParams(params, "user", false);
 
