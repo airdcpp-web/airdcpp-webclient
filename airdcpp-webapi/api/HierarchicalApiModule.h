@@ -230,8 +230,8 @@ namespace webserver {
 			};
 		}
 	private:
-		template<class ItemJsonType, class ParentType>
-		static void moduleAsyncRunWrapper(const CallBack& aTask, ParentType* aParentModule, const ItemJsonType& aId, LocalSessionId aSessionId) {
+		template<class IdType, class ParentType>
+		static void moduleAsyncRunWrapper(const CallBack& aTask, ParentType* aParentModule, const IdType& aId, LocalSessionId aSessionId) {
 			// Ensure that we have a session
 			ApiModule::asyncRunWrapper([=] {
 				// Ensure that we have a submodule (the parent must exist if we have a session)
