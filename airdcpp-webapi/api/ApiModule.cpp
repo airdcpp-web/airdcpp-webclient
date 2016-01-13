@@ -185,9 +185,7 @@ namespace webserver {
 	}
 
 	void ApiModule::addAsyncTask(CallBack&& aTask) {
-		session->getServer()->addAsyncTask([=] {
-			asyncRunWrapper(move(aTask), session->getId());
-		});
+		session->getServer()->addAsyncTask(getAsyncWrapper(move(aTask)));
 	}
 
 	TimerPtr ApiModule::getTimer(CallBack&& aTask, time_t aIntervalMillis) {
@@ -196,9 +194,10 @@ namespace webserver {
 		);
 	}
 
-	CallBack ApiModule::getAsyncWrapper(const CallBack& aTask) noexcept {
-		return [&] { 
-			return asyncRunWrapper(aTask, session->getId()); 
+	CallBack ApiModule::getAsyncWrapper(CallBack&& aTask) noexcept {
+		auto sessionId = session->getId();
+		return [aTask, sessionId] {
+			return asyncRunWrapper(aTask, sessionId);
 		};
 	}
 

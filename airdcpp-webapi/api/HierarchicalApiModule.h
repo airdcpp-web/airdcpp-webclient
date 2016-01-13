@@ -211,28 +211,27 @@ namespace webserver {
 		}
 
 		void addAsyncTask(CallBack&& aTask) {
-			ApiModule::addAsyncTask([=] { 
-				moduleAsyncRunWrapper(aTask, parentModule, id, session->getId());
-			});
+			ApiModule::addAsyncTask(getAsyncWrapper(move(aTask)));
 		}
 
 		TimerPtr getTimer(CallBack&& aTask, time_t aIntervalMillis) {
-			auto sessionId = session->getId();
-			return session->getServer()->addTimer(move(aTask), aIntervalMillis, [=](const CallBack& aCB) {
-				return moduleAsyncRunWrapper(aCB, parentModule, id, sessionId);
-			});
+			return session->getServer()->addTimer(move(aTask), aIntervalMillis, 
+				std::bind(&SubApiModule::moduleAsyncRunWrapper<ItemJsonType, ParentType>, std::placeholders::_1, parentModule, id, session->getId())
+			);
 		}
 
 		// All custom async tasks should be run inside this to
 		// ensure that the submodule (or the session) won't get deleted
-		CallBack getAsyncWrapper(const CallBack& aTask) noexcept {
-			return [&] {
-				return moduleAsyncRunWrapper(aTask, parentModule, id, session->getId());
+		CallBack getAsyncWrapper(CallBack&& aTask) noexcept {
+			auto sessionId = session->getId();
+			auto moduleId = id;
+			return [=] {
+				return moduleAsyncRunWrapper(aTask, parentModule, moduleId, sessionId);
 			};
 		}
 	private:
-		template<class IdType, class ParentType>
-		static void moduleAsyncRunWrapper(const CallBack& aTask, ParentType* aParentModule, const IdType& aId, LocalSessionId aSessionId) {
+		template<class ItemJsonType, class ParentType>
+		static void moduleAsyncRunWrapper(const CallBack& aTask, ParentType* aParentModule, const ItemJsonType& aId, LocalSessionId aSessionId) {
 			// Ensure that we have a session
 			ApiModule::asyncRunWrapper([=] {
 				// Ensure that we have a submodule (the parent must exist if we have a session)

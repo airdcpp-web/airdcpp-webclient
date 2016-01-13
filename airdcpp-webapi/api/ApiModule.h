@@ -131,7 +131,7 @@ namespace webserver {
 			return subscriptionAccess;
 		}
 
-		virtual CallBack getAsyncWrapper(const CallBack& aTask) noexcept;
+		virtual CallBack getAsyncWrapper(CallBack&& aTask) noexcept;
 	protected:
 		static void asyncRunWrapper(const CallBack& aTask, LocalSessionId aSessionId);
 
