@@ -19,6 +19,7 @@
 #include <web-server/stdinc.h>
 
 #include <web-server/JsonUtil.h>
+#include <web-server/Timer.h>
 #include <web-server/WebServerManager.h>
 
 #include <api/SystemApi.h>
@@ -28,7 +29,7 @@
 #include <airdcpp/TimerManager.h>
 
 namespace webserver {
-	SystemApi::SystemApi(Session* aSession) : ApiModule(aSession, Access::ANY), timer(aSession->getServer()->addTimer([this] { onTimer(); }, 500)) {
+	SystemApi::SystemApi(Session* aSession) : ApiModule(aSession, Access::ANY), timer(getTimer([this] { onTimer(); }, 500)) {
 
 		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, SystemApi::handleGetStats);
 

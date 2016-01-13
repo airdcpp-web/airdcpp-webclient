@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_HUBINFO_H
 
 #include <web-server/stdinc.h>
-#include <web-server/Timer.h>
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/GetSet.h>

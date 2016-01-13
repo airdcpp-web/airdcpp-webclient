@@ -17,7 +17,7 @@
 */
 
 #include <web-server/stdinc.h>
-#include <web-server/WebServerManager.h>
+#include <web-server/Timer.h>
 
 #include <api/TransferApi.h>
 
@@ -27,7 +27,7 @@
 #include <airdcpp/UploadManager.h>
 
 namespace webserver {
-	TransferApi::TransferApi(Session* aSession) : ApiModule(aSession, Access::ANY), timer(WebServerManager::getInstance()->addTimer([this] { onTimer(); }, 1000)) {
+	TransferApi::TransferApi(Session* aSession) : ApiModule(aSession, Access::ANY), timer(getTimer([this] { onTimer(); }, 1000)) {
 		DownloadManager::getInstance()->addListener(this);
 		UploadManager::getInstance()->addListener(this);
 

@@ -50,16 +50,6 @@ namespace webserver {
 		void stop(bool aShutdown) noexcept {
 			shutdown = aShutdown;
 			timer.cancel();
-
-			if (aShutdown) {
-				join();
-			}
-		}
-
-		void join() noexcept {
-			while (running && !timer.get_io_service().stopped()) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(30));
-			}
 		}
 
 		bool isRunning() const noexcept {

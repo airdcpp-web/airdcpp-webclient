@@ -190,6 +190,12 @@ namespace webserver {
 		});
 	}
 
+	TimerPtr ApiModule::getTimer(CallBack&& aTask, time_t aIntervalMillis) {
+		return session->getServer()->addTimer([=] {
+			asyncRunWrapper(move(aTask));
+		}, aIntervalMillis);
+	}
+
 	void ApiModule::asyncRunWrapper(const CallBack& aTask) {
 		// Ensure that the session (and socket) won't be deleted
 		auto s = session->getServer()->getUserManager().getSession(session->getToken());
