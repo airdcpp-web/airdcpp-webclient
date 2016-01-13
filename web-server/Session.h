@@ -38,8 +38,12 @@ namespace webserver {
 		Session(WebUserPtr& aUser, const std::string& aToken, bool aIsSecure, WebServerManager* aServer, uint64_t maxInactivityMinutes, bool aIsUserSession);
 		~Session();
 
-		const std::string& getToken() const noexcept {
+		const std::string& getAuthToken() const noexcept {
 			return token;
+		}
+
+		LocalSessionId getId() const noexcept {
+			return id;
 		}
 
 		WebUserPtr getUser() {
@@ -85,7 +89,8 @@ namespace webserver {
 		const time_t started;
 		uint64_t lastActivity;
 
-		const std::string  token;
+		const LocalSessionId id;
+		const std::string token;
 		const bool secure;
 		const bool userSession;
 

@@ -90,14 +90,15 @@ namespace webserver {
 	}
 
 	api_return SystemApi::handleGetStats(ApiRequest& aRequest) {
-		json j;
-
 		auto started = TimerManager::getStartTime();
-		j["client_started"] = started;
-		j["client_version"] = fullVersionString;
-		j["active_sessions"] = session->getServer()->getUserManager().getSessionCount();
+		auto server = session->getServer();
 
-		aRequest.setResponseBody(j);
+		aRequest.setResponseBody({
+			{ "server_threads", server->getServerThreads() },
+			{ "client_started", started },
+			{ "client_version", fullVersionString },
+			{ "active_sessions", server->getUserManager().getSessionCount() },
+		});
 		return websocketpp::http::status_code::ok;
 	}
 }

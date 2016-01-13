@@ -77,7 +77,7 @@ namespace webserver {
 
 		json retJson = {
 			{ "permissions", session->getUser()->getPermissions() },
-			{ "token", session->getToken() },
+			{ "token", session->getAuthToken() },
 			{ "user", session->getUser()->getUserName() },
 			{ "system", getSystemInfo(aIp) },
 			{ "away_idle_time", SETTING(AWAY_IDLE_TIME) },
@@ -106,7 +106,7 @@ namespace webserver {
 		}
 
 		auto away = JsonUtil::getField<bool>("away", aRequest.getRequestBody());
-		WebServerManager::getInstance()->getUserManager().setSessionAwayState(s->getToken(), away);
+		WebServerManager::getInstance()->getUserManager().setSessionAwayState(s->getId(), away);
 
 		return websocketpp::http::status_code::ok;
 	}
@@ -117,7 +117,7 @@ namespace webserver {
 			return websocketpp::http::status_code::unauthorized;
 		}
 
-		WebServerManager::getInstance()->logout(aRequest.getSession()->getToken());
+		WebServerManager::getInstance()->logout(aRequest.getSession()->getId());
 
 		return websocketpp::http::status_code::ok;
 	}

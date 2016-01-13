@@ -65,7 +65,8 @@ namespace webserver {
 
 		{
 			WLock l(cs);
-			sessions.emplace(session->getToken(), session);
+			sessionsRemoteId.emplace(session->getAuthToken(), session);
+			sessionsLocalId.emplace(session->getId(), session);
 		}
 
 		if (aUserSession) {
@@ -74,8 +75,8 @@ namespace webserver {
 		return session;
 	}
 
-	void WebUserManager::setSessionAwayState(const string& aSessionToken, bool aAway) noexcept {
-		auto s = getSession(aSessionToken);
+	void WebUserManager::setSessionAwayState(LocalSessionId aSessionId, bool aAway) noexcept {
+		auto s = getSession(aSessionId);
 		if (!s) {
 			return;
 		}
@@ -88,9 +89,9 @@ namespace webserver {
 		bool allAway = true;
 		{
 			RLock l(cs);
-			allAway = boost::find_if(sessions | map_values, [](const SessionPtr& aSession) { 
+			allAway = boost::find_if(sessionsLocalId | map_values, [](const SessionPtr& aSession) {
 				return !aSession->getUserAway(); 
-			}).base() == sessions.end();
+			}).base() == sessionsLocalId.end();
 		}
 
 		bool currentAway = AirUtil::getAwayMode() == AWAY_IDLE;
@@ -103,9 +104,19 @@ namespace webserver {
 
 	SessionPtr WebUserManager::getSession(const string& aSession) const noexcept {
 		RLock l(cs);
-		auto s = sessions.find(aSession);
+		auto s = sessionsRemoteId.find(aSession);
 
-		if (s == sessions.end()) {
+		if (s == sessionsRemoteId.end()) {
+			return nullptr;
+		}
+
+		return s->second;
+	}
+
+	SessionPtr WebUserManager::getSession(LocalSessionId aId) const noexcept {
+		RLock l(cs);
+		auto s = sessionsLocalId.find(aId);
+		if (s == sessionsLocalId.end()) {
 			return nullptr;
 		}
 
@@ -114,7 +125,7 @@ namespace webserver {
 
 	size_t WebUserManager::getSessionCount() const noexcept {
 		RLock l(cs);
-		return sessions.size();
+		return sessionsLocalId.size();
 	}
 
 	void WebUserManager::logout(const SessionPtr& aSession) {
@@ -129,14 +140,14 @@ namespace webserver {
 
 		{
 			RLock l(cs);
-			boost::algorithm::copy_if(sessions | map_values, back_inserter(removedSession), [=](const SessionPtr& s) {
+			boost::algorithm::copy_if(sessionsLocalId | map_values, back_inserter(removedSession), [=](const SessionPtr& s) {
 				return s->getLastActivity() + s->getMaxInactivity() < tick;
 			});
 		}
 
 		for (const auto& s : removedSession) {
 			// Don't remove sessions with active socket
-			if (!server->getSocket(s->getToken())) {
+			if (!server->getSocket(s->getId())) {
 				removeSession(s);
 			}
 		}
@@ -148,7 +159,8 @@ namespace webserver {
 
 		{
 			WLock l(cs);
-			sessions.erase(aSession->getToken());
+			sessionsRemoteId.erase(aSession->getAuthToken());
+			sessionsLocalId.erase(aSession->getId());
 		}
 
 		if (aSession->isUserSession()) {
@@ -164,7 +176,8 @@ namespace webserver {
 	void WebUserManager::on(WebServerManagerListener::Stopped) noexcept {
 		// Let the modules handle deletion in a clean way before we are shutting down...
 		WLock l(cs);
-		sessions.clear();
+		sessionsLocalId.clear();
+		sessionsRemoteId.clear();
 	}
 
 	void WebUserManager::on(WebServerManagerListener::LoadSettings, SimpleXML& xml_) noexcept {

@@ -73,7 +73,7 @@ namespace webserver {
 
 	void FilelistInfo::addListTask(CallBack&& aTask) noexcept {
 		dl->addAsyncTask([=] {
-			asyncRunWrapper(aTask);
+			getAsyncWrapper(aTask);
 		});
 	}
 

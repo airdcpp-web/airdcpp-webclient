@@ -30,8 +30,10 @@
 #include "WebSocket.h"
 #include "WebUserManager.h"
 
+#include <airdcpp/format.h>
 #include <airdcpp/Singleton.h>
 #include <airdcpp/Speaker.h>
+#include <airdcpp/Util.h>
 
 #include <iostream>
 
@@ -128,7 +130,7 @@ namespace webserver {
 			}
 		}
 
-		TimerPtr addTimer(CallBack&& aCallBack, time_t aIntervalMillis) noexcept;
+		TimerPtr addTimer(CallBack&& aCallBack, time_t aIntervalMillis, const Timer::CallbackWrapper& aCallbackWrapper = nullptr) noexcept;
 		void addAsyncTask(CallBack&& aCallBack) noexcept;
 
 		WebServerManager();
@@ -143,8 +145,8 @@ namespace webserver {
 		void disconnectSockets(const std::string& aMessage) noexcept;
 
 		// Reset sessions for associated sockets
-		void logout(const std::string& aSessionToken) noexcept;
-		WebSocketPtr getSocket(const std::string& aSessionToken) noexcept;
+		void logout(LocalSessionId aSessionId) noexcept;
+		WebSocketPtr getSocket(LocalSessionId aSessionToken) noexcept;
 
 		bool load() noexcept;
 		bool save(std::function<void(const string&)> aCustomErrorF = nullptr) noexcept;
@@ -173,6 +175,10 @@ namespace webserver {
 		}
 
 		bool isRunning() const noexcept;
+
+		int getServerThreads() const noexcept {
+			return serverThreads;
+		}
 	private:
 		bool listen(ErrorF& errorF);
 
