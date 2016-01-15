@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2015 AirDC++ Project
+* Copyright (C) 2011-2016 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -135,6 +135,7 @@ namespace webserver {
 		{ "refresh_time_incoming", SettingsManager::INCOMING_REFRESH_TIME, ResourceManager::SETTINGS_INCOMING_REFRESH_TIME, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MINUTES, false } },
 		{ "refresh_startup", SettingsManager::STARTUP_REFRESH, ResourceManager::SETTINGS_STARTUP_REFRESH },
 		{ "refresh_report_scheduled_refreshes", SettingsManager::LOG_SCHEDULED_REFRESHES, ResourceManager::SETTINGS_LOG_SCHEDULED_REFRESHES },
+		{ "refresh_threading", SettingsManager::REFRESH_THREADING, ResourceManager::MULTITHREADED_REFRESH },
 
 		//{ ResourceManager::SETTINGS_SHARING_OPTIONS },
 		{ "share_skiplist", SettingsManager::SKIPLIST_SHARE, ResourceManager::ST_SKIPLIST_SHARE },
@@ -194,6 +195,7 @@ namespace webserver {
 		{ "max_compression", SettingsManager::MAX_COMPRESSION, ResourceManager::SETTINGS_MAX_COMPRESS },
 		{ "bloom_mode", SettingsManager::BLOOM_MODE, ResourceManager::BLOOM_MODE },
 		{ "disconnect_offline_users", SettingsManager::AUTO_KICK, ResourceManager::SETTINGS_AUTO_KICK },
+		{ "run_wizard", SettingsManager::WIZARD_RUN, ResourceManager::WIZARD_FINISHED_TITLE },
 
 		{ "always_ccpm", SettingsManager::ALWAYS_CCPM, ResourceManager::ALWAYS_CCPM },
 		{ "tls_mode", SettingsManager::TLS_MODE, ResourceManager::TRANSFER_ENCRYPTION },

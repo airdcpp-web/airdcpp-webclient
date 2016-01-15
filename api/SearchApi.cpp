@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2015 AirDC++ Project
+* Copyright (C) 2011-2016 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -73,7 +73,7 @@ namespace webserver {
 	}
 
 	api_return SearchApi::handleGetTypes(ApiRequest& aRequest) {
-		auto getName = [](const string& aId) {
+		auto getName = [](const string& aId) -> string {
 			if (aId.size() == 1 && aId[0] >= '1' && aId[0] <= '6') {
 				return string(SearchManager::getTypeStr(aId[0] - '0'));
 			}

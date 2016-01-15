@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2015 AirDC++ Project
+* Copyright (C) 2011-2016 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -27,9 +27,8 @@ namespace webserver {
 			case ERROR_MISSING: return "missing_field";
 			case ERROR_INVALID: return "invalid";
 			case ERROR_EXISTS: return "already_exists";
+			default: dcassert(0); return "";
 			}
-
-			return "error";
 		};
 
 		/*json error = {

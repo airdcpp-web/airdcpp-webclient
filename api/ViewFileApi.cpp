@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2015 AirDC++ Project
+* Copyright (C) 2011-2016 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@ namespace webserver {
 		METHOD_HANDLER("session", Access::VIEW_FILES_EDIT, ApiRequest::METHOD_DELETE, (TTH_PARAM), false, ViewFileApi::handleRemoveFile);
 
 		METHOD_HANDLER("session", Access::VIEW_FILES_VIEW, ApiRequest::METHOD_GET, (TTH_PARAM, EXACT_PARAM("text")), false, ViewFileApi::handleGetText);
+		METHOD_HANDLER("session", Access::VIEW_FILES_VIEW, ApiRequest::METHOD_POST, (TTH_PARAM, EXACT_PARAM("read")), false, ViewFileApi::handleSetRead);
 	}
 
 	ViewFileApi::~ViewFileApi() {
@@ -56,6 +57,7 @@ namespace webserver {
 			{ "tth", aFile->getTTH().toBase32() },
 			//{ "path", aFile->getPath() },
 			{ "text", aFile->isText() },
+			{ "read", aFile->getRead() },
 			{ "name", aFile->getDisplayName() },
 			{ "state", Serializer::serializeDownloadState(aFile->getDownloadState()) },
 			{ "type", Serializer::serializeFileType(aFile->getPath()) },
@@ -148,6 +150,16 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
+	api_return ViewFileApi::handleSetRead(ApiRequest& aRequest) {
+		auto success = ViewFileManager::getInstance()->setRead(Deserializer::parseTTH(aRequest.getStringParam(0)));
+		if (!success) {
+			aRequest.setResponseErrorStr("File not found");
+			return websocketpp::http::status_code::not_found;
+		}
+
+		return websocketpp::http::status_code::ok;
+	}
+
 	void ViewFileApi::on(ViewFileManagerListener::FileAdded, const ViewFilePtr& aFile) noexcept {
 		maybeSend("view_file_added", [&] { return serializeFile(aFile); });
 	}
@@ -168,6 +180,10 @@ namespace webserver {
 		onViewFileUpdated(aFile);
 
 		maybeSend("view_file_finished", [&] { return serializeFile(aFile); });
+	}
+
+	void ViewFileApi::on(ViewFileManagerListener::FileRead, const ViewFilePtr& aFile) noexcept {
+		onViewFileUpdated(aFile);
 	}
 
 	void ViewFileApi::onViewFileUpdated(const ViewFilePtr& aFile) noexcept {
