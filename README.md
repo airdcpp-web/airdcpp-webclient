@@ -14,6 +14,12 @@ Ubuntu 14.04 or newer is required for installing the client.
 
 #### Install libraries
 
+##### Ubuntu 14.04 LTS
+
+`sudo apt-get install libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.55-dev libboost-regex1.55 libboost-thread1.55 libboost-system1.55 libleveldb-dev`
+
+##### Ubuntu 15.10 or newer
+
 `sudo apt-get install libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.5*-dev libboost-regex1.5* libboost-thread1.5* libboost-system1.5* libleveldb-dev`
 
 #### Install WebSocket++
@@ -45,10 +51,13 @@ cd airdcpp-webclient
 
 ```
 cmake .
-make -j4
+make -j2
 sudo make install
 ```
-This will compile the client with four simultaneous threads.
+`-j2` after the `make` command means that the client is compiled by using 2 threads. It's a good idea to replace the value with the number of available CPU cores. 
+
+Note that each compiler thread requires about 1 GB of free RAM. If the compiler crashes with "internal compiler error", you have run out of memory.
+
 
 ### Configure and run
 
