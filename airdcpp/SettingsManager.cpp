@@ -73,6 +73,10 @@ SettingsManager::EnumStringMap SettingsManager::getEnumStrings(int aKey, bool aV
 		insertStrings(monitoringStrings, MONITORING_LAST);
 	}
 
+	if (aKey == REFRESH_THREADING) {
+		insertStrings(refreshStrings, MULTITHREAD_LAST);
+	}
+
 	if (aKey == SettingsManager::TLS_MODE) {
 		insertStrings(encryptionStrings, TLS_LAST);
 	}

@@ -25,18 +25,6 @@
 
 
 namespace dcpp {
-	/*DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) :
-		hintedUser(aUser), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD, 0)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
-		isClientView(aIsClientView), matchADL(SETTING(USE_ADLS) && !aPartial),
-		tasks(isClientView, Thread::NORMAL, std::bind(&DirectoryListing::dispatch, this, std::placeholders::_1))
-	{
-		DownloadManager::getInstance()->addListener(this);
-	}
-
-	DirectoryListing::~DirectoryListing() {
-		DownloadManager::getInstance()->removeListener(this);
-	}*/
-
 	void TrackableDownloadItem::updateState() noexcept {
 		State newState;
 		{

@@ -46,6 +46,7 @@ namespace dcpp {
 			return tth;
 		}
 
+		IGETSET(bool, read, Read, false);
 		IGETSET(time_t, timeFinished, TimeFinished, 0);
 	protected:
 		void onStateChanged() noexcept;

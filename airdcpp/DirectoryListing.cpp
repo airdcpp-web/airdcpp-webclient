@@ -900,7 +900,13 @@ void DirectoryListing::listDiffImpl(const string& aFile, bool aOwnList) throw(Ex
 
 void DirectoryListing::matchAdlImpl() throw(AbortException) {
 	int64_t start = GET_TICK();
-	root->clearAdls(); //not much to check even if its the first time loaded without adls...
+	root->clearAdls();
+
+	if (isOwnList) {
+		// No point in matching own partial list
+		loadFileImpl(Util::emptyString);
+	}
+
 	ADLSearchManager::getInstance()->matchListing(*this);
 	fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true);
 }
@@ -919,22 +925,24 @@ void DirectoryListing::loadFileImpl(const string& aInitialDir) throw(Exception, 
 
 	loadFile();
 
-	onLoadingFinished(start, aInitialDir, reloading, true);
-}
-
-void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aDir, bool aReloadList, bool aChangeDir) noexcept {
 	if (matchADL) {
 		fire(DirectoryListingListener::UpdateStatusMessage(), CSTRING(MATCHING_ADL));
 		ADLSearchManager::getInstance()->matchListing(*this);
 	}
 
+	onLoadingFinished(start, aInitialDir, reloading, true);
+}
+
+void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aDir, bool aReloadList, bool aChangeDir) noexcept {
 	if (!getIsOwnList() && SETTING(DUPES_IN_FILELIST) && isClientView)
 		checkShareDupes();
 
 	auto dir = findDirectory(aDir);
 	if (dir) {
 		dir->setLoading(false);
-		updateCurrentLocation(dir);
+		if (aChangeDir) {
+			updateCurrentLocation(dir);
+		}
 		onStateChanged();
 	}
 	
@@ -1183,6 +1191,15 @@ bool DirectoryListing::isCurrentSearchPath(const string& path) const noexcept {
 		return false;
 
 	return *curResult == path;
+}
+
+void DirectoryListing::setRead() noexcept {
+	if (read) {
+		return;
+	}
+
+	read = true;
+	fire(DirectoryListingListener::Read());
 }
 
 void DirectoryListing::onListRemovedQueue(const string& aTarget, const string& aDir, bool aFinished) noexcept {

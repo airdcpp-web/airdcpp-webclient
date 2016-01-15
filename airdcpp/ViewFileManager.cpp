@@ -90,6 +90,20 @@ namespace dcpp {
 		}
 	}
 
+	bool ViewFileManager::setRead(const TTHValue& aTTH) noexcept {
+		auto file = getFile(aTTH);
+		if (!file) {
+			return false;
+		}
+
+		if (!file->getRead()) {
+			file->setRead(true);
+			fire(ViewFileManagerListener::FileRead(), file);
+		}
+
+		return true;
+	}
+
 	ViewFilePtr ViewFileManager::getFile(const TTHValue& aTTH) const noexcept {
 		RLock l(cs);
 		auto p = viewFiles.find(aTTH);
