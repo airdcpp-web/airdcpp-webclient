@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2015 AirDC++ Project
+* Copyright (C) 2011-2016 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -103,7 +103,7 @@ namespace webserver {
 			if (!aJson.is_null()) {
 				T ret;
 				try {
-					ret = aJson.get<T>();
+					ret = aJson.template get<T>();
 				}
 				catch (const exception& e) {
 					throwError(aFieldName, ERROR_INVALID, e.what());

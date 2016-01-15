@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2015 AirDC++ Project
+* Copyright (C) 2011-2016 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ namespace webserver {
 		static json serializeOnlineUser(const OnlineUserPtr& aUser) noexcept;
 
 		static json serializeFileType(const string& aPath) noexcept;
-		static json serializeFolderType(size_t aFiles, size_t aDirectories) noexcept;
+		static json serializeFolderType(int aFiles, int aDirectories) noexcept;
 
 		static json serializeIp(const string& aIP) noexcept;
 		static json serializeIp(const string& aIP, const string& aCountryCode) noexcept;

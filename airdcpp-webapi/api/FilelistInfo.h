@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2015 AirDC++ Project
+* Copyright (C) 2011-2016 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -108,6 +108,7 @@ namespace webserver {
 		static json serializeLocation(const DirectoryListingPtr& aListing) noexcept;
 	private:
 		api_return handleChangeDirectory(ApiRequest& aRequest);
+		api_return handleSetRead(ApiRequest& aRequest);
 
 		void on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aDir, bool reloadList, bool changeDir) noexcept;
 		void on(DirectoryListingListener::LoadingFailed, const string& aReason) noexcept;
@@ -116,6 +117,7 @@ namespace webserver {
 		void on(DirectoryListingListener::UpdateStatusMessage, const string& aMessage) noexcept;
 		void on(DirectoryListingListener::UserUpdated) noexcept;
 		void on(DirectoryListingListener::StateChanged) noexcept;
+		void on(DirectoryListingListener::Read) noexcept;
 
 		void addListTask(CallBack&& aTask) noexcept;
 

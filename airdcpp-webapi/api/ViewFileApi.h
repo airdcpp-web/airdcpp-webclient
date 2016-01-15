@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2015 AirDC++ Project
+* Copyright (C) 2011-2016 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@ namespace webserver {
 		api_return handleRemoveFile(ApiRequest& aRequest);
 
 		api_return handleGetText(ApiRequest& aRequest);
+		api_return handleSetRead(ApiRequest& aRequest);
 
 		static json serializeFile(const ViewFilePtr& aFile) noexcept;
 		void onViewFileUpdated(const ViewFilePtr& aFile) noexcept;
@@ -52,6 +53,7 @@ namespace webserver {
 		void on(ViewFileManagerListener::FileClosed, const ViewFilePtr& aFile) noexcept;
 		void on(ViewFileManagerListener::FileUpdated, const ViewFilePtr& aFile) noexcept;
 		void on(ViewFileManagerListener::FileFinished, const ViewFilePtr& aFile) noexcept;
+		void on(ViewFileManagerListener::FileRead, const ViewFilePtr& aFile) noexcept;
 	};
 }
 

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2015 AirDC++ Project
+* Copyright (C) 2011-2016 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -30,8 +30,6 @@ namespace webserver {
 
 		bool hasFileInfo = fileCount > 0;
 		bool hasFolderInfo = folderCount > 0;
-		//if (hasFileInfo || hasFolderInfo)
-		//	name += _T(" (");
 
 		if (hasFolderInfo) {
 			name += STRING_F(X_FOLDERS, folderCount);
@@ -42,9 +40,6 @@ namespace webserver {
 				name += ", ";
 			name += STRING_F(X_FILES, fileCount);
 		}
-
-		//if (hasFileInfo || hasFolderInfo)
-		//	name += _T(")");
 
 		return name;
 	}

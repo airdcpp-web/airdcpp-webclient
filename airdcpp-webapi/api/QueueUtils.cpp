@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2015 AirDC++ Project
+* Copyright (C) 2011-2016 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -285,7 +285,7 @@ namespace webserver {
 					folders = aBundle->getDirectories().size();
 				}
 
-				return Serializer::serializeFolderType(files, folders);
+				return Serializer::serializeFolderType(static_cast<int>(files), static_cast<int>(folders));
 			}
 		}
 		case QueueApi::PROP_PRIORITY: {
