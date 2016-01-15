@@ -12,32 +12,13 @@ set (VERSION "0.0.1")
 set (SOVERSION "0.0.1" )
 set (VERSION_SUFFIX "GIT")
 
+set (GNUCXX_MINIMUM_VERSION "4.8")
+
 include (CheckIncludeFile)
 include (CheckIncludeFiles)
 include (CheckFunctionExists)
 include (FindPkgConfig)
 include (CheckCXXSourceCompiles)
-
-#IF (GPTOOLS_CPU AND GPTOOLS_MEM)
-#    SET (GPTOOLS_CPU FALSE)
-#    SET (GPTOOLS_MEM FALSE)
-#    SET (GPTOOLS_CPU_AND_MEM TRUE)
-#ENDIF (GPTOOLS_CPU AND GPTOOLS_MEM)
-#IF (GPTOOLS_MEM)
-#    MESSAGE (STATUS "Enabled memory profiling via Google perftools")
-#    SET (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ltcmalloc")
-#    SET (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -ltcmalloc")
-#ENDIF (GPTOOLS_MEM)
-#IF (GPTOOLS_CPU)
-#    MESSAGE (STATUS "Enabled CPU profiling via Google perftools")
-#    SET (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lprofiler")
-#    SET (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lprofiler")
-#ENDIF (GPTOOLS_CPU)
-#IF (GPTOOLS_CPU_AND_MEM)
-#    MESSAGE (STATUS "Enabled both CPU and memory profiling via Google perftools")
-#    SET (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ltcmalloc_and_profiler")
-#    SET (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -ltcmalloc_and_profiler")
-#ENDIF (GPTOOLS_CPU_AND_MEM)
 
 CHECK_FUNCTION_EXISTS(mallinfo HAVE_MALLINFO)
 CHECK_FUNCTION_EXISTS(malloc_stats HAVE_MALLOC_STATS)
@@ -47,6 +28,14 @@ CHECK_INCLUDE_FILES ("sys/socket.h;net/if.h;ifaddrs.h;sys/types.h" HAVE_IFADDRS_
 CHECK_INCLUDE_FILES ("sys/types.h;sys/statvfs.h;limits.h;stdbool.h;stdint.h" FS_USAGE_C)
 
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
+
+if (CMAKE_COMPILER_IS_GNUCXX)
+  if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS GNUCXX_MINIMUM_VERSION)
+    message (FATAL_ERROR "GCC version must be at least ${GNUCXX_MINIMUM_VERSION}!")
+  endif()
+#else()
+#  message (FATAL_ERROR "Invalid compiler!")
+endif()
 
 
 find_package (GeoIP REQUIRED)
@@ -63,6 +52,26 @@ find_package (LevelDB REQUIRED)
 find_package (websocketpp REQUIRED)
 find_package (Backtrace)
 find_package (TBB)
+
+
+# Try the find Ubuntu's Node variant first
+find_program(NODE_EXECUTABLE nodejs PATHS /sw/bin)
+
+if(NOT NODE_EXECUTABLE)
+  find_program(NODE_EXECUTABLE node PATHS /sw/bin)
+endif(NOT NODE_EXECUTABLE)
+
+if(NOT NODE_EXECUTABLE)
+  message(FATAL_ERROR "Could not find 'node' or 'nodejs' executable. Please install Node.js.")
+endif(NOT NODE_EXECUTABLE)
+
+find_program(NPM_EXECUTABLE npm PATHS /sw/bin)
+if(NOT NPM_EXECUTABLE)
+  message(FATAL_ERROR "Could not find 'npm' executable. Please install npm")
+endif(NOT NPM_EXECUTABLE)
+
+
+message (STATUS "Found nodejs (${NODE_EXECUTABLE})")
 
 #option (ENABLE_STACKTRACE "Show stacktrace when program receive SIGSEGV" ON)
 option (INSTALL_RUNTIME_PATH "Install rpath" OFF)
@@ -121,6 +130,7 @@ if (APPLE)
     add_definitions(-DAPPLE)
 endif (APPLE)
 
+
 #if (APPLE)
 #  set (CLIENT_DATA_DIR "${PROJECT_NAME_GLOBAL}.app")
 if (WIN32)
@@ -131,11 +141,19 @@ endif (WIN32)
 
 message (STATUS "Data directory: ${CLIENT_DATA_DIR}")
 
+
+# Version number for the library naming
 execute_process (COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
                  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                  OUTPUT_VARIABLE SOVERSION
                  OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+# Version information for the client
+execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+
+# Generate StringDefs.cpp
+execute_process (COMMAND ${NODE_EXECUTABLE} generate_stringdefs.js airdcpp-core/airdcpp/
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 
 if (UNIX)
@@ -143,8 +161,6 @@ add_definitions (-D_GNU_SOURCE)
 find_program (GZIP_CMD gzip)
 mark_as_advanced(GZIP_CMD)
 endif (UNIX)
-
-#set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${LIBDIR}")
 
@@ -184,6 +200,7 @@ add_subdirectory (airdcppd)
 message(STATUS "CMAKE_SYSTEM: ${CMAKE_SYSTEM}")
 message(STATUS "CMAKE_SYSTEM_PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "CMAKE_CXX_COMPILER_ID: ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "CMAKE_CXX_COMPILER_VERSION: ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
 message(STATUS "CMAKE will use this libs (and headers) during build:
     miniupnpc (headers):${MINIUPNP_LIBRARY} (${MINIUPNP_INCLUDE_DIR})
@@ -199,14 +216,8 @@ message(STATUS "CMAKE will use this libs (and headers) during build:
     tbb (headers): ${TBB_LIBRARIES} (${TBB_INCLUDE_DIRS})
     ")
 
-
-message(STATUS "Running additional scripts")
-execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-
+message(STATUS "Installing Web UI")
 execute_process (COMMAND sh install_webui.sh latest
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-
-execute_process (COMMAND nodejs generate_stringdefs.js airdcpp-core/airdcpp/
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 

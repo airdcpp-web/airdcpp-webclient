@@ -1,5 +1,10 @@
 #!/bin/sh
 
+if [ -z "$1" ]
+  then
+    echo "Usage: generate_version.sh <output file>"
+fi
+
 #check if we have a repository
 git ls-remote > /dev/null 2>&1
 if [ $? -ne 0 ];then
@@ -18,9 +23,9 @@ echo "#define APPNAME_INC \"AirDC++w\"" >> $tmpFile
 if diff -q "$file" "$tmpFile" > /dev/null 2>&1; then
     : # files are the same
     rm "$tmpFile"
-    echo 'No commit changes detected, using the old version file'
+    echo '-- No commit changes detected, using the old version file'
 else
     : # files are different
     mv "$tmpFile" "$file"
-    echo 'Version file generated'
+    echo '-- Version file generated'
 fi

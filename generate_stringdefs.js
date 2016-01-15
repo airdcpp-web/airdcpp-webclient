@@ -1,3 +1,8 @@
+if (!process.argv[2]) {
+  console.log('Usage: generate_stringdefs.js <output file>');
+  return 1;
+}
+
 var fs = require('fs');
 
 var directoryPath = process.argv[2];
@@ -52,8 +57,8 @@ output += '};\n';
 if (fs.existsSync(outputFilePath)) {
   var oldFileContent = fs.readFileSync(outputFilePath, 'utf8');
   if (oldFileContent === output) {
-    console.log('No string changes detected, using old StringDefs.cpp');
-    return;
+    console.log('-- No string changes detected, using old StringDefs.cpp');
+    return 0;
   }
 }
 
@@ -62,7 +67,8 @@ try {
   fs.writeFileSync(outputFilePath, output, { encoding: 'utf8'});
 } catch (e) {
   console.log('Failed to write StringDefs.cpp');
-  return;
+  return 1;
 }
 
-console.log('StringDefs.cpp was generated');
+console.log('-- StringDefs.cpp was generated');
+return 0;
