@@ -2,6 +2,14 @@
 
 AirDC++ Web Client is a cross-platform file sharing client for Advanced Direct Connect network. It has a web-based user interface that can be accessed with a web browser.
 
+## Table of contents
+
+ * [Installation](#installation)
+ * [Updating](#updating)
+ * [Uninstalling](#uninstalling)
+ * [Reporting issues](#reporting-issues)
+ * [Feature requests](#feature-requests)
+
 ## Installation
 
 ### Installing packages on Ubuntu
@@ -103,7 +111,7 @@ make uninstall
 
 You may also remove the source and settings directories as well if you are not going to need them later.
 
-## Reporting bugs
+## Reporting issues
 
 Use the bug tracker of this project for all bug reports. 
 
