@@ -38,6 +38,15 @@ Client::Client(bool aAsDaemon) : asDaemon(aAsDaemon) {
 
 }
 
+std::string Client::getDefaultNick() noexcept {
+	char buf[64] = {0};
+	if (getlogin_r(buf, sizeof(buf)-1) != 0) {
+		return "airdcpp-web";
+	}
+
+	return buf;
+}
+
 void Client::run() {
 	if (!startup()) {
 		return;
@@ -88,6 +97,7 @@ bool Client::startup() {
 
 	AirUtil::setAway(AWAY_IDLE);
 	SettingsManager::getInstance()->setDefault(SettingsManager::LOG_IGNORED, false);
+	SettingsManager::getInstance()->setDefault(SettingsManager::NICK, getDefaultNick());
 
 	DirectoryListingManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);

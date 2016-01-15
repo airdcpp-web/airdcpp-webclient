@@ -37,6 +37,8 @@ private:
 	bool startup();
 	void shutdown();
 
+	static std::string getDefaultNick() noexcept;
+
 	void on(DirectoryListingManagerListener::OpenListing, const DirectoryListingPtr& aList, const string& aDir, const string& aXML) noexcept;
 	void on(ClientManagerListener::ClientCreated, const ClientPtr&) noexcept;
 
