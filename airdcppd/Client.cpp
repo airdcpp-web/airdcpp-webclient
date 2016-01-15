@@ -99,6 +99,9 @@ bool Client::startup() {
 	SettingsManager::getInstance()->setDefault(SettingsManager::LOG_IGNORED, false);
 	SettingsManager::getInstance()->setDefault(SettingsManager::NICK, getDefaultNick());
 
+	// The client is often run on slow system and this would cause high CPU usage
+	SettingsManager::getInstance()->setDefault(SettingsManager::REFRESH_THREADING, static_cast<int>(SettingsManager::MULTITHREAD_NEVER));
+
 	DirectoryListingManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);
 
