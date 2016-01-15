@@ -245,6 +245,12 @@ public:
 	}
 
 	void onListRemovedQueue(const string& aTarget, const string& aDir, bool aFinished) noexcept;
+
+	bool isRead() const noexcept {
+		return read;
+	}
+
+	void setRead() noexcept;
 protected:
 	void onStateChanged() noexcept;
 
@@ -297,6 +303,7 @@ private:
 	void findNfoImpl(const string& aPath, bool aAllowQueueList, DupeOpenF aDupeF) noexcept;
 
 	HintedUser hintedUser;
+	bool read = false;
 
 	void checkShareDupes() noexcept;
 	void onLoadingFinished(int64_t aStartTime, const string& aDir, bool aReloadList, bool aChangeDir) noexcept;

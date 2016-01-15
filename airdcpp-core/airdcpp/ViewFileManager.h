@@ -43,6 +43,7 @@ namespace dcpp {
 		bool removeFile(const TTHValue& aTTH) noexcept;
 
 		ViewFilePtr getFile(const TTHValue& aTTH) const noexcept;
+		bool setRead(const TTHValue& aTTH) noexcept;
 	private:
 		static bool isViewedItem(const QueueItemPtr& aQI) noexcept;
 
