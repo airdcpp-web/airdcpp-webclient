@@ -51,7 +51,7 @@ cd..
 ### Download the client
 
 ```
-git clone https://github.com/maksis/airdcpp-webclient.git
+git clone https://github.com/airdcpp-web/airdcpp-webclient.git
 cd airdcpp-webclient
 ```
 
