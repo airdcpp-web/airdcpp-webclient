@@ -40,8 +40,8 @@ namespace webserver {
 		createSubscription("user_updated");
 		createSubscription("user_disconnected");
 
-		createSubscription("ignore_added");
-		createSubscription("ignore_removed");
+		createSubscription("ignored_user_added");
+		createSubscription("ignored_user_removed");
 	}
 
 	UserApi::~UserApi() {
@@ -73,7 +73,7 @@ namespace webserver {
 	api_return UserApi::handleGetIgnores(ApiRequest& aRequest) {
 		auto j = json::array();
 
-		auto users = MessageManager::getInstance()->getIngnoredUsers();
+		auto users = MessageManager::getInstance()->getIgnoredUsers();
 		for (const auto& u : users) {
 			j.push_back(Serializer::serializeUser(u));
 		}
@@ -83,13 +83,13 @@ namespace webserver {
 	}
 
 	void UserApi::on(MessageManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept {
-		maybeSend("ignore_added", [&] {
+		maybeSend("ignored_user_added", [&] {
 			return Serializer::serializeUser(aUser);
 		});
 	}
 
 	void UserApi::on(MessageManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept {
-		maybeSend("ignore_removed", [&] {
+		maybeSend("ignored_user_removed", [&] {
 			return Serializer::serializeUser(aUser);
 		});
 	}
