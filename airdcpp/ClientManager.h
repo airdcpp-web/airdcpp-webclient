@@ -149,8 +149,8 @@ public:
 	* @param priv discard any user that doesn't match the hint.
 	* @return OnlineUser* found by CID and hint; might be only by CID if priv is false.
 	*/
-	OnlineUser* findOnlineUser(const HintedUser& user) const noexcept;
-	OnlineUser* findOnlineUser(const CID& cid, const string& hintUrl) const noexcept;
+	OnlineUserPtr findOnlineUser(const HintedUser& user, bool aAllowFallback = true) const noexcept;
+	OnlineUserPtr findOnlineUser(const CID& cid, const string& hintUrl, bool aAllowFallback = true) const noexcept;
 
 	UserPtr findUser(const string& aNick, const string& aHubUrl) const noexcept { return findUser(makeCid(aNick, aHubUrl)); }
 	UserPtr findUser(const CID& cid) const noexcept;

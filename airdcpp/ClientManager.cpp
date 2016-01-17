@@ -733,11 +733,11 @@ bool ClientManager::getSupportsCCPM(const UserPtr& aUser, string& _error) {
 }
 
 
-OnlineUser* ClientManager::findOnlineUser(const HintedUser& user) const noexcept {
-	return findOnlineUser(user.user->getCID(), user.hint);
+OnlineUserPtr ClientManager::findOnlineUser(const HintedUser& user, bool aAllowFallback) const noexcept {
+	return findOnlineUser(user.user->getCID(), user.hint, aAllowFallback);
 }
 
-OnlineUser* ClientManager::findOnlineUser(const CID& cid, const string& hintUrl) const noexcept {
+OnlineUserPtr ClientManager::findOnlineUser(const CID& cid, const string& hintUrl, bool aAllowFallback) const noexcept {
 	OnlinePairC p;
 	OnlineUser* u = findOnlineUserHint(cid, hintUrl, p);
 	if(u) // found an exact match (CID + hint).
@@ -747,7 +747,7 @@ OnlineUser* ClientManager::findOnlineUser(const CID& cid, const string& hintUrl)
 		return nullptr;
 
 	// return a random user
-	return p.first->second;
+	return aAllowFallback ? p.first->second : nullptr;
 }
 
 bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError, ConnectionType aConnType) noexcept {
@@ -811,11 +811,12 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 
 bool ClientManager::privateMessage(const HintedUser& user, const string& msg, string& error_, bool thirdPerson) noexcept {
 	RLock l(cs);
-	OnlineUser* u = findOnlineUser(user);
+	auto u = findOnlineUser(user);
 	
 	if(u) {
 		return u->getClient()->privateMessage(u, msg, error_, thirdPerson);
 	}
+
 	error_ = STRING(USER_OFFLINE);
 	return false;
 }
@@ -827,7 +828,7 @@ void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, P
 	 * SearchManager::onRES(const AdcCommand& cmd, ...). when that is done, and SearchResults are
 	 * switched to storing only reliable HintedUsers (found with the token of the ADC command),
 	 * change this call to findOnlineUserHint. */
-	OnlineUser* ou = findOnlineUser(user.user->getCID(), user.hint.empty() ? uc.getHub() : user.hint);
+	auto ou = findOnlineUser(user.user->getCID(), user.hint.empty() ? uc.getHub() : user.hint);
 	if(!ou)
 		return;
 

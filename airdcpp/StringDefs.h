@@ -912,6 +912,7 @@ enum Strings { // @DontAdd
 	NICK, // "Nick"
 	NICK_TAKEN, // "Your nick was already taken, please change to something else!"
 	NICK_UNKNOWN, // " (Nick unknown)"
+	NMDC_ENCODING, // "NMDC encoding"
 	NMDC_MAGNET_WARNING, // "In NMDC hubs the file will be shared so everyone can access it, continue?"
 	NO, // "No"
 	NONE, // "None"

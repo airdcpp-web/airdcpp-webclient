@@ -81,8 +81,6 @@ ShareManager::ShareManager() : bloom(new ShareBloom(1 << 20)), monitor(1, false)
 
 ShareManager::~ShareManager() {
 	SettingsManager::getInstance()->removeListener(this);
-
-	join();
 }
 
 void ShareManager::startup(function<void(const string&)> splashF, function<void(float)> progressF) noexcept {
@@ -739,6 +737,7 @@ void ShareManager::shutdown(function<void(float)> progressF) noexcept {
 
 	TimerManager::getInstance()->removeListener(this);
 	QueueManager::getInstance()->removeListener(this);
+	join();
 }
 
 void ShareManager::setProfilesDirty(ProfileTokenSet aProfiles, bool aIsMajorChange /*false*/) noexcept {

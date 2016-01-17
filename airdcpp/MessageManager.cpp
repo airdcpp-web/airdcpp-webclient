@@ -245,6 +245,11 @@ void MessageManager::on(SettingsManagerListener::Save, SimpleXML& aXml) noexcept
 	save(aXml);
 }
 
+MessageManager::UserSet MessageManager::getIngnoredUsers() const noexcept {
+	RLock l(Ignorecs);
+	return ignoredUsers;
+}
+
 void MessageManager::storeIgnore(const UserPtr& aUser) {
 	{
 		WLock l(Ignorecs);
