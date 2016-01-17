@@ -870,8 +870,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 		ClientManager* cm = ClientManager::getInstance();
 		{
 			RLock l(cm->getCS());
-			OnlineUser* u = cm->findOnlineUser(sr->getUser());
-
+			auto u = cm->findOnlineUser(sr->getUser());
 			if (u) {
 				auto client = u->getClient();
 				if (client && client->isConnected()) {

@@ -123,7 +123,9 @@ namespace dcpp {
 		ChatMap getChats() const noexcept;
 
 		//IGNORE
-		// store & remove ignores through/from hubframe
+		typedef unordered_set<UserPtr, User::Hash> UserSet;
+
+		UserSet getIngnoredUsers() const noexcept;
 		void storeIgnore(const UserPtr& aUser);
 		void removeIgnore(const UserPtr& aUser);
 		bool isIgnored(const UserPtr& aUser);
@@ -145,9 +147,9 @@ namespace dcpp {
 		UserConnection* getPMConn(const UserPtr& user); //LOCK usage!!
 
 		//IGNORE
-		SharedMutex Ignorecs;
-		typedef unordered_set<UserPtr, User::Hash> IgnoredUsersList;
-		IgnoredUsersList ignoredUsers;
+		mutable SharedMutex Ignorecs;
+		UserSet ignoredUsers;
+
 		// save & load
 		void load(SimpleXML& aXml);
 		void save(SimpleXML& aXml);
