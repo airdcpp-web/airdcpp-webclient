@@ -47,9 +47,9 @@ namespace webserver {
 		void on(MessageManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept;
 		void on(MessageManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept;
 
-		void UserApi::on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool) noexcept;
-		void UserApi::on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
-		void UserApi::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool) noexcept;
+		void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool) noexcept;
+		void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
+		void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool) noexcept;
 	};
 }
 
