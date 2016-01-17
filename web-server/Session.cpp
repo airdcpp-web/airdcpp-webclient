@@ -39,6 +39,7 @@
 #include <api/ShareRootApi.h>
 #include <api/SystemApi.h>
 #include <api/TransferApi.h>
+#include <api/UserApi.h>
 #include <api/WebUserApi.h>
 #include <api/ViewFileApi.h>
 
@@ -72,6 +73,7 @@ namespace webserver {
 		ADD_MODULE("share_roots", ShareRootApi);
 		ADD_MODULE("system", SystemApi);
 		ADD_MODULE("transfers", TransferApi);
+		ADD_MODULE("users", UserApi);
 		ADD_MODULE("web_users", WebUserApi);
 		ADD_MODULE("view_files", ViewFileApi);
 	}
