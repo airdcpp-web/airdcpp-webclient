@@ -125,7 +125,7 @@ namespace dcpp {
 		//IGNORE
 		typedef unordered_set<UserPtr, User::Hash> UserSet;
 
-		UserSet getIngnoredUsers() const noexcept;
+		UserSet getIgnoredUsers() const noexcept;
 		void storeIgnore(const UserPtr& aUser);
 		void removeIgnore(const UserPtr& aUser);
 		bool isIgnored(const UserPtr& aUser);
