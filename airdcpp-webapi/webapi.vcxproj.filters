@@ -225,6 +225,9 @@
     <ClInclude Include="api\ViewFileApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
+    <ClInclude Include="api\UserApi.h">
+      <Filter>Header Files\api</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
@@ -372,6 +375,9 @@
       <Filter>Source Files\api</Filter>
     </ClCompile>
     <ClCompile Include="api\ViewFileApi.cpp">
+      <Filter>Source Files\api</Filter>
+    </ClCompile>
+    <ClCompile Include="api\UserApi.cpp">
       <Filter>Source Files\api</Filter>
     </ClCompile>
   </ItemGroup>

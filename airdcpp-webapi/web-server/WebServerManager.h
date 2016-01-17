@@ -182,30 +182,6 @@ namespace webserver {
 	private:
 		bool listen(ErrorF& errorF);
 
-		template <typename EndpointType>
-		bool listenEndpoint(EndpointType& aEndpoint, const ServerConfig& aConfig, const string& aProtocol, ErrorF& errorF) noexcept {
-			if (!aConfig.hasValidConfig()) {
-				return false;
-			}
-
-			try {
-				//endpoint_plain.listen(aConfig.getPort());
-				if (!aConfig.getBindAddress().empty()) {
-					aEndpoint.listen(aConfig.getBindAddress(), Util::toString(aConfig.getPort()));
-				} else {
-					aEndpoint.listen(aConfig.getPort());
-				}
-
-				aEndpoint.start_accept();
-				return true;
-			} catch (const websocketpp::exception& e) {
-				auto message = boost::format("Failed to set up %1% server on port %2%: %3% (is the port in use by another application?)") % aProtocol % aConfig.getPort() % string(e.what());
-				errorF(message.str());
-			}
-
-			return false;
-		}
-
 		bool initialize(ErrorF& errorF);
 
 		ServerConfig plainServerConfig;

@@ -24,8 +24,9 @@
 #include <airdcpp/typedefs.h>
 #include <airdcpp/GetSet.h>
 
-#include <airdcpp/Message.h>
 #include <airdcpp/Client.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/MessageManagerListener.h>
 
 #include <api/HierarchicalApiModule.h>
 #include <api/common/ChatController.h>
@@ -36,7 +37,7 @@
 namespace webserver {
 	class HubInfo;
 
-	class HubInfo : public SubApiModule<ClientToken, HubInfo, ClientToken>, private ClientListener {
+	class HubInfo : public SubApiModule<ClientToken, HubInfo, ClientToken>, private ClientListener, private MessageManagerListener {
 	public:
 		static const StringList subscriptionList;
 
@@ -97,6 +98,9 @@ namespace webserver {
 		void on(UsersUpdated, const Client*, const OnlineUserList&) noexcept;
 		void on(UserRemoved, const Client*, const OnlineUserPtr&) noexcept;
 
+		void on(MessageManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept;
+		void on(MessageManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept;
+
 		void on(Disconnecting, const Client*) noexcept;
 		void on(Redirected, const string&, const ClientPtr& aNewClient) noexcept;
 
@@ -115,6 +119,8 @@ namespace webserver {
 
 		OnlineUserList getUsers() noexcept;
 		void onUserUpdated(const OnlineUserPtr& ou) noexcept;
+		void onUserUpdated(const OnlineUserPtr& ou, PropertyIdSet aUpdatedProperties) noexcept;
+		void onFlagsUpdated(const UserPtr& aUser) noexcept;
 
 		json previousCounts;
 

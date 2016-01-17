@@ -92,7 +92,8 @@ namespace webserver {
 	json Serializer::serializeUser(const UserPtr& aUser) noexcept {
 		return{
 			{ "cid", aUser->getCID().toBase32() },
-			{ "nicks", Util::listToString(ClientManager::getInstance()->getHubNames(aUser->getCID())) },
+			{ "nicks", Util::listToString(ClientManager::getInstance()->getNicks(aUser->getCID())) },
+			{ "hubs", Util::listToString(ClientManager::getInstance()->getHubNames(aUser->getCID())) },
 			{ "flags", getUserFlags(aUser) }
 		};
 	}

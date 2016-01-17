@@ -22,6 +22,7 @@
 #include <api/OnlineUserUtils.h>
 
 #include <web-server/JsonUtil.h>
+#include <airdcpp/MessageManager.h>
 
 namespace webserver {
 	const StringList HubInfo::subscriptionList = {
@@ -65,7 +66,9 @@ namespace webserver {
 		view("hub_user_view", this, onlineUserPropertyHandler, std::bind(&HubInfo::getUsers, this), 500), 
 		timer(getTimer([this] { onTimer(); }, 1000)) {
 
+		MessageManager::getInstance()->addListener(this);
 		client->addListener(this);
+
 		timer->start();
 
 		METHOD_HANDLER("reconnect", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, HubInfo::handleReconnect);
@@ -79,6 +82,7 @@ namespace webserver {
 	HubInfo::~HubInfo() {
 		timer->stop(true);
 
+		MessageManager::getInstance()->removeListener(this);
 		client->removeListener(this);
 	}
 
@@ -243,14 +247,17 @@ namespace webserver {
 		maybeSend("hub_user_connected", [&] { return Serializer::serializeItem(aUser, onlineUserPropertyHandler); });
 	}
 
-	void HubInfo::onUserUpdated(const OnlineUserPtr& aUser) noexcept {
+	void HubInfo::onUserUpdated(const OnlineUserPtr& ou) noexcept {
+		// Don't update all properties to avoid unneeded sorting
+		onUserUpdated(ou, { PROP_SHARED, PROP_DESCRIPTION, PROP_TAG,
+			PROP_UPLOAD_SPEED, PROP_DOWNLOAD_SPEED,
+			PROP_EMAIL, PROP_FILES, PROP_FLAGS
+		});
+	}
+
+	void HubInfo::onUserUpdated(const OnlineUserPtr& aUser, PropertyIdSet aUpdatedProperties) noexcept {
 		if (!aUser->isHidden()) {
-			// Don't update all properties to avoid unneeded sorting
-			PropertyIdSet props = { PROP_SHARED, PROP_DESCRIPTION, PROP_TAG, 
-				PROP_UPLOAD_SPEED, PROP_DOWNLOAD_SPEED,
-				PROP_EMAIL, PROP_FILES, PROP_FLAGS 
-			};
-			view.onItemUpdated(aUser, props);
+			view.onItemUpdated(aUser, aUpdatedProperties);
 		}
 
 		maybeSend("hub_user_updated", [&] { return Serializer::serializeItem(aUser, onlineUserPropertyHandler); });
@@ -272,5 +279,20 @@ namespace webserver {
 		}
 
 		maybeSend("hub_user_disconnected", [&] { return Serializer::serializeItem(aUser, onlineUserPropertyHandler); });
+	}
+
+	void HubInfo::onFlagsUpdated(const UserPtr& aUser) noexcept {
+		auto ou = ClientManager::getInstance()->findOnlineUser(aUser->getCID(), client->getHubUrl(), false);
+		if (ou) {
+			onUserUpdated(ou, { PROP_FLAGS });
+		}
+	}
+
+	void HubInfo::on(MessageManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept {
+		onFlagsUpdated(aUser);
+	}
+
+	void HubInfo::on(MessageManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept {
+		onFlagsUpdated(aUser);
 	}
 }

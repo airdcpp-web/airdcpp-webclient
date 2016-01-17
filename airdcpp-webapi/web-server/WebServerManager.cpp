@@ -29,7 +29,7 @@
 #define CONFIG_DIR Util::PATH_USER_CONFIG
 
 #define HANDSHAKE_TIMEOUT 0 // disabled, affects HTTP downloads
-#define DEFAULT_THREADS 3
+#define DEFAULT_THREADS 4
 
 namespace webserver {
 	using namespace dcpp;
@@ -80,10 +80,13 @@ namespace webserver {
 
 	template<class T>
 	void setEndpointLogSettings(T& aEndpoint, std::ostream& aStream) {
+		// Access
 		aEndpoint.set_access_channels(websocketpp::log::alevel::all);
-		aEndpoint.clear_access_channels(websocketpp::log::alevel::frame_payload);
+		//aEndpoint.clear_access_channels(websocketpp::log::alevel::frame_payload | websocketpp::log::alevel::message_payload);
+		aEndpoint.get_alog().set_ostream(&aStream);
 
-		aEndpoint.set_access_channels(websocketpp::log::elevel::all);
+		// Errors
+		aEndpoint.set_error_channels(websocketpp::log::elevel::all);
 		aEndpoint.get_elog().set_ostream(&aStream);
 	}
 
@@ -148,6 +151,29 @@ namespace webserver {
 		setEndpointLogSettings(endpoint_tls, debugStreamTls);
 
 		return true;
+	}
+
+	template <typename EndpointType>
+	bool listenEndpoint(EndpointType& aEndpoint, const ServerConfig& aConfig, const string& aProtocol, WebServerManager::ErrorF& errorF) noexcept {
+		if (!aConfig.hasValidConfig()) {
+			return false;
+		}
+
+		try {
+			if (!aConfig.getBindAddress().empty()) {
+				aEndpoint.listen(aConfig.getBindAddress(), Util::toString(aConfig.getPort()));
+			} else {
+				aEndpoint.listen(aConfig.getPort());
+			}
+
+			aEndpoint.start_accept();
+			return true;
+		} catch (const websocketpp::exception& e) {
+			auto message = boost::format("Failed to set up %1% server on port %2%: %3% (is the port in use by another application?)") % aProtocol % aConfig.getPort() % string(e.what());
+			errorF(message.str());
+		}
+
+		return false;
 	}
 
 	bool WebServerManager::listen(ErrorF& errorF) {
@@ -304,7 +330,7 @@ namespace webserver {
 
 					if (xml.findChild("Threads")) {
 						xml.stepIn();
-						serverThreads = max(Util::toInt(xml.getData()), 2);
+						serverThreads = max(Util::toInt(xml.getData()), 1);
 						xml.stepOut();
 					}
 					xml.resetCurrentChild();
