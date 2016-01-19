@@ -125,7 +125,7 @@ namespace dcpp {
 
 	bool ViewFileManager::addFileNotify(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) noexcept {
 		try {
-			if (ViewFileManager::getInstance()->addFileThrow(aFileName, aSize, aTTH, aUser, true)) {
+			if (ViewFileManager::getInstance()->addFileThrow(aFileName, aSize, aTTH, aUser, aIsText)) {
 				return true;
 			}
 
@@ -145,20 +145,15 @@ namespace dcpp {
 			return false;
 		}
 
-		auto downloads = file->getDownloads();
-		if (!downloads.empty()) {
-			// It will come back here after being removed from the queue
-			for (const auto& p : downloads) {
-				QueueManager::getInstance()->removeFile(p);
-			}
-		} else {
-			{
-				WLock l(cs);
-				viewFiles.erase(aTTH);
-			}
+		// In case it hasn't been removed yet
+		QueueManager::getInstance()->removeFile(file->getPath());
 
-			fire(ViewFileManagerListener::FileClosed(), file);
+		{
+			WLock l(cs);
+			viewFiles.erase(aTTH);
 		}
+
+		fire(ViewFileManagerListener::FileClosed(), file);
 
 		return true;
 	}

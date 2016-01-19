@@ -226,6 +226,7 @@ private:
 	bool onHttpFinished(bool fromHttp) noexcept;
 
 	void onConnectStateChanged(const ClientPtr& aClient, FavoriteHubEntry::ConnectState aState) noexcept;
+	void setConnectState(const FavoriteHubEntryPtr& aEntry) noexcept;
 
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept {

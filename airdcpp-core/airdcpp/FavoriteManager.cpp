@@ -422,6 +422,8 @@ bool FavoriteManager::addFavoriteHub(const FavoriteHubEntryPtr& aEntry) {
 		favoriteHubs.push_back(aEntry);
 	}
 
+	setConnectState(aEntry);
+
 	fire(FavoriteManagerListener::FavoriteHubAdded(), aEntry);
 	save();
 	return true;
@@ -429,14 +431,7 @@ bool FavoriteManager::addFavoriteHub(const FavoriteHubEntryPtr& aEntry) {
 
 void FavoriteManager::onFavoriteHubUpdated(const FavoriteHubEntryPtr& aEntry) {
 	// Update the connect state in case the address was changed
-	auto client = ClientManager::getInstance()->getClient(aEntry->getServer());
-	if (client) {
-		aEntry->setConnectState(client->isConnected() ? FavoriteHubEntry::STATE_CONNECTED : FavoriteHubEntry::STATE_CONNECTING);
-		aEntry->setCurrentHubToken(client->getClientId());
-	} else {
-		aEntry->setCurrentHubToken(0);
-		aEntry->setConnectState(FavoriteHubEntry::STATE_DISCONNECTED);
-	}
+	setConnectState(aEntry);
 
 	save();
 	fire(FavoriteManagerListener::FavoriteHubUpdated(), aEntry);
@@ -1227,6 +1222,17 @@ void FavoriteManager::on(ClientManagerListener::ClientRemoved, const ClientPtr& 
 void FavoriteManager::on(ClientManagerListener::ClientRedirected, const ClientPtr& aOldClient, const ClientPtr& aNewClient) noexcept {
 	onConnectStateChanged(aOldClient, FavoriteHubEntry::STATE_DISCONNECTED);
 	onConnectStateChanged(aNewClient, FavoriteHubEntry::STATE_CONNECTING);
+}
+
+void FavoriteManager::setConnectState(const FavoriteHubEntryPtr& aEntry) noexcept {
+	auto client = ClientManager::getInstance()->getClient(aEntry->getServer());
+	if (client) {
+		aEntry->setConnectState(client->isConnected() ? FavoriteHubEntry::STATE_CONNECTED : FavoriteHubEntry::STATE_CONNECTING);
+		aEntry->setCurrentHubToken(client->getClientId());
+	} else {
+		aEntry->setCurrentHubToken(0);
+		aEntry->setConnectState(FavoriteHubEntry::STATE_DISCONNECTED);
+	}
 }
 
 void FavoriteManager::onConnectStateChanged(const ClientPtr& aClient, FavoriteHubEntry::ConnectState aState) noexcept {

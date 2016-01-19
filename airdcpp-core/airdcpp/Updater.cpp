@@ -121,6 +121,8 @@ void Updater::createUpdate() {
 	//add the theme folder
 	auto installer = Util::getParentDir(updaterFilePath) + "installer" + PATH_SEPARATOR;
 	ZipFile::CreateZipFileList(files, installer, Util::emptyString, "^(Themes)$");
+	//Add the web-resources
+	ZipFile::CreateZipFileList(files, installer, Util::emptyString, "^(Web-resources)$");
 
 	ZipFile::CreateZipFile(updaterFilePath + updaterFile, files);
 
