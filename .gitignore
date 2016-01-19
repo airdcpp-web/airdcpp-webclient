@@ -8,6 +8,7 @@
 *.so
 *.so.?
 *.so.?.?.?
+*.so.?.??.?
 *.a
 *.dylib
 lib/*
@@ -18,7 +19,11 @@ lib/*
 CMakeFiles
 INSTALL.*
 ZERO_CHECK.*
+
+cmake_install.cmake
 CMakeCache.txt
 install_manifest.txt
+Makefile
+airdcppd/airdcppd
 
 node_modules
