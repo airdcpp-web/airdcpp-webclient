@@ -32,6 +32,8 @@ namespace dcpp {
 		virtual void onRemovedQueue(const string& aDir, bool aFinished) noexcept;
 		virtual void onAddedQueue(const string& aDir) noexcept;
 
+		~TrackableDownloadItem() noexcept;
+
 		enum State : uint8_t {
 			STATE_DOWNLOAD_PENDING,
 			STATE_DOWNLOADING,
