@@ -255,8 +255,8 @@ void ConnectivityManager::detectConnection() {
 }
 
 void ConnectivityManager::setup(bool v4SettingsChanged, bool v6SettingsChanged) {
-	bool autoDetect4 = SETTING(AUTO_DETECT_CONNECTION) &&  SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED;
-	bool autoDetect6 = SETTING(AUTO_DETECT_CONNECTION6) &&  SETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED;
+	bool autoDetect4 = SETTING(AUTO_DETECT_CONNECTION) && SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED;
+	bool autoDetect6 = SETTING(AUTO_DETECT_CONNECTION6) && SETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED;
 
 	/*{
 		if((!autoDetect4 && autoDetectedV4) || (!autoDetect6 && autoDetectedV6) || v4SettingsChanged || v6SettingsChanged) {

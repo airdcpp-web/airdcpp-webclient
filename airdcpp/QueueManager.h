@@ -75,6 +75,7 @@ public:
 	QueueItemPtr addList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString, BundlePtr aBundle=nullptr) throw(QueueException, FileException);
 
 	/** Add an item that is opened in the client or with an external program */
+	/** Files that are viewed in the client should be added from ViewFileManager */
 	QueueItemPtr addOpenedItem(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsClientView, bool aIsText = true) throw(QueueException, FileException);
 
 	/** Readd a source that was removed */
