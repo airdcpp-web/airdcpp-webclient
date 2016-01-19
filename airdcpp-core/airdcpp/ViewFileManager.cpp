@@ -113,6 +113,29 @@ namespace dcpp {
 
 		return p->second;
 	}
+	
+	bool ViewFileManager::addFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) throw(QueueException, FileException) {
+		if (getFile(aTTH)) {
+			return false;
+		}
+
+		QueueManager::getInstance()->addOpenedItem(aFileName, aSize, aTTH, aUser, true, aIsText);
+		return true;
+	}
+
+	bool ViewFileManager::addFileNotify(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) noexcept {
+		try {
+			if (ViewFileManager::getInstance()->addFileThrow(aFileName, aSize, aTTH, aUser, true)) {
+				return true;
+			}
+
+			LogManager::getInstance()->message(STRING_F(FILE_ALREADY_VIEWED, aFileName), LogMessage::SEV_NOTIFY);
+		} catch (const Exception& e) {
+			LogManager::getInstance()->message(STRING_F(ADD_FILE_ERROR, aFileName % ClientManager::getInstance()->getFormatedNicks(aUser) % e.getError()), LogMessage::SEV_NOTIFY);
+		}
+
+		return false;
+	}
 
 	bool ViewFileManager::removeFile(const TTHValue& aTTH) noexcept {
 		ViewFilePtr f;

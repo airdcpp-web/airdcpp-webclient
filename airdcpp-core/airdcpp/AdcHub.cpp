@@ -191,7 +191,8 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 
 	string cid;
 
-	OnlineUser* u = 0;
+	OnlineUser* u = nullptr;
+	bool newUser = false;
 	if(c.getParam("ID", 0, cid)) {
 		u = findUser(CID(cid));
 		if(u) {
@@ -208,6 +209,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 			}
 		} else {
 			u = &getUser(c.getFrom(), CID(cid));
+			newUser = true;
 		}
 	} else if(c.getFrom() == AdcCommand::HUB_SID) {
 		u = &getUser(c.getFrom(), CID());
@@ -253,8 +255,6 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		u->getUser()->setFlag(User::ASCH);
 	}
 
-	// Cache so that we can fire the correct event for our own identity when the state changes
-	bool normal = stateNormal();
 	if(u->getUser() == getMyIdentity().getUser()) {
 		State oldState = getConnectState();
 		if (oldState != STATE_NORMAL) {
@@ -281,14 +281,14 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 
 			fire(ClientListener::UsersUpdated(), this, ouList);
 		}
-	} else if (normal) {
+	} else if (stateNormal()) {
 		u->getIdentity().updateConnectMode(getMyIdentity(), this);
 	}
 
 	if(u->getIdentity().isHub()) {
 		setHubIdentity(u->getIdentity());
 		fire(ClientListener::HubUpdated(), this);
-	} else if (normal) {
+	} else if (!newUser) {
 		fire(ClientListener::UserUpdated(), this, u);
 	} else {
 		fire(ClientListener::UserConnected(), this, u);

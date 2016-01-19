@@ -471,6 +471,7 @@ enum Strings { // @DontAdd
 	FILE_ALREADY_FINISHED, // "File is already finished"
 	FILE_ALREADY_QUEUED, // "A file with the same hash exists in a queued directory %1%"
 	FILE_ALREADY_SHARED, // "Trying to download file already shared! File: "
+	FILE_ALREADY_VIEWED, // "The file %1% is being viewed already"
 	FILE_CORRUPTION_FOUND, // "%1% of corrupted segments were found"
 	FILE_DATE_FORMAT, // "File date format"
 	FILE_INDEX, // "File index"

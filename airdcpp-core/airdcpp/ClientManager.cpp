@@ -712,12 +712,10 @@ bool ClientManager::getSupportsCCPM(const UserPtr& aUser, string& _error) {
 	if (!aUser->isOnline()) {
 		_error = STRING(USER_OFFLINE);
 		return false;
-	}
-	else if (aUser->isNMDC()) {
+	} else if (aUser->isNMDC()) {
 		_error = STRING(CCPM_NOT_SUPPORTED_NMDC);
 		return false;
-	}
-	else if (aUser->isSet(User::BOT)) {
+	} else if (aUser->isSet(User::BOT)) {
 		_error = STRING(CCPM_NOT_SUPPORTED);
 		return false;
 	}

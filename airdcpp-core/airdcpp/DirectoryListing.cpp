@@ -24,7 +24,6 @@
 #include "AutoSearchManager.h"
 #include "Bundle.h"
 #include "BZUtils.h"
-#include "DirectoryListingManager.h"
 #include "Download.h"
 #include "DownloadManager.h"
 #include "FilteredFile.h"
@@ -35,7 +34,7 @@
 #include "SimpleXMLReader.h"
 #include "StringTokenizer.h"
 #include "User.h"
-#include "ScopedFunctor.h"
+#include "ViewFileManager.h"
 
 
 namespace dcpp {
@@ -506,8 +505,8 @@ int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {
 	return 0;
 }
 
-void DirectoryListing::openFile(const File::Ptr& aFile, bool aIsClientView) const throw(QueueException, FileException) {
-	QueueManager::getInstance()->addOpenedItem(aFile->getName(), aFile->getSize(), aFile->getTTH(), hintedUser, aIsClientView);
+bool DirectoryListing::viewAsText(const File::Ptr& aFile) const noexcept {
+	return ViewFileManager::getInstance()->addFileNotify(aFile->getName(), aFile->getSize(), aFile->getTTH(), hintedUser, true);
 }
 
 DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& aName, const Directory::Ptr& current) const noexcept {
@@ -580,7 +579,7 @@ void DirectoryListing::findNfoImpl(const string& aPath, bool aAllowQueueList, Du
 
 		if (!results.empty()) {
 			try {
-				openFile(results.front(), !SETTING(NFO_EXTERNAL));
+				viewAsText(results.front());
 			} catch (const Exception&) {
 			
 			}

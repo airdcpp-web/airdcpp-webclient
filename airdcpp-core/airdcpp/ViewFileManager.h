@@ -40,6 +40,13 @@ namespace dcpp {
 		~ViewFileManager() noexcept;
 
 		ViewFileMap getFiles() const noexcept;
+
+		// Adds the file and shows a notification in case of errors
+		bool addFileNotify(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) noexcept;
+
+		// Adds the file and throws if there are errors
+		bool addFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) throw(QueueException, FileException);
+
 		bool removeFile(const TTHValue& aTTH) noexcept;
 
 		ViewFilePtr getFile(const TTHValue& aTTH) const noexcept;

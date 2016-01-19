@@ -167,7 +167,7 @@ public:
 	bool downloadDir(const string& aRemoteDir, const string& aTarget, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0) noexcept;
 	bool createBundle(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept;
 
-	void openFile(const File::Ptr& aFile, bool isClientView) const throw(QueueException, FileException);
+	bool viewAsText(const File::Ptr& aFile) const noexcept;
 
 	int64_t getTotalListSize(bool adls = false) const noexcept { return root->getTotalSize(adls); }
 	int64_t getDirSize(const string& aDir) const noexcept;
