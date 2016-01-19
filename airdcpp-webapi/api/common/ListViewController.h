@@ -677,7 +677,7 @@ namespace webserver {
 				auto start = GET_TICK();
 
 				WLock l(cs);
-				std::sort(matchingItems.begin(), matchingItems.end(),
+				std::stable_sort(matchingItems.begin(), matchingItems.end(),
 					std::bind(&ListViewController::itemSort,
 						std::placeholders::_1,
 						std::placeholders::_2,
@@ -716,7 +716,7 @@ namespace webserver {
 			WLock l(cs);
 			allItems.emplace(aItem);
 			if (matches) {
-				auto iter = matchingItems.insert(std::lower_bound(
+				auto iter = matchingItems.insert(std::upper_bound(
 					matchingItems.begin(),
 					matchingItems.end(),
 					aItem,

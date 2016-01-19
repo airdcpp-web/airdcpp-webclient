@@ -119,7 +119,7 @@ namespace webserver {
 
 		OnlineUserList getUsers() noexcept;
 		void onUserUpdated(const OnlineUserPtr& ou) noexcept;
-		void onUserUpdated(const OnlineUserPtr& ou, PropertyIdSet aUpdatedProperties) noexcept;
+		void onUserUpdated(const OnlineUserPtr& ou, const PropertyIdSet& aUpdatedProperties) noexcept;
 		void onFlagsUpdated(const UserPtr& aUser) noexcept;
 
 		json previousCounts;

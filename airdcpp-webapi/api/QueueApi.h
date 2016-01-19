@@ -102,8 +102,8 @@ namespace webserver {
 
 		api_return handleGetBundle(ApiRequest& aRequest);
 
-		api_return handleAddFilelist(ApiRequest& aRequest);
-		api_return handleAddTempItem(ApiRequest& aRequest);
+		//api_return handleAddFilelist(ApiRequest& aRequest);
+		//api_return handleAddTempItem(ApiRequest& aRequest);
 		api_return handleAddDirectoryBundle(ApiRequest& aRequest);
 		api_return handleAddFileBundle(ApiRequest& aRequest);
 
