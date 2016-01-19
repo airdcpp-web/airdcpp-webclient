@@ -255,7 +255,7 @@ namespace webserver {
 		});
 	}
 
-	void HubInfo::onUserUpdated(const OnlineUserPtr& aUser, PropertyIdSet aUpdatedProperties) noexcept {
+	void HubInfo::onUserUpdated(const OnlineUserPtr& aUser, const PropertyIdSet& aUpdatedProperties) noexcept {
 		if (!aUser->isHidden()) {
 			view.onItemUpdated(aUser, aUpdatedProperties);
 		}

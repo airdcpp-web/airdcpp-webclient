@@ -82,7 +82,7 @@ namespace webserver {
 	void setEndpointLogSettings(T& aEndpoint, std::ostream& aStream) {
 		// Access
 		aEndpoint.set_access_channels(websocketpp::log::alevel::all);
-		//aEndpoint.clear_access_channels(websocketpp::log::alevel::frame_payload | websocketpp::log::alevel::message_payload);
+		aEndpoint.clear_access_channels(websocketpp::log::alevel::frame_payload | websocketpp::log::alevel::frame_header);
 		aEndpoint.get_alog().set_ostream(&aStream);
 
 		// Errors

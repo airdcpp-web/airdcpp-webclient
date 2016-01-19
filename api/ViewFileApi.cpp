@@ -81,21 +81,22 @@ namespace webserver {
 		const auto& j = aRequest.getRequestBody();
 		auto tth = Deserializer::deserializeTTH(j);
 
-		if (ViewFileManager::getInstance()->getFile(tth)) {
-			aRequest.setResponseErrorStr("File with the same TTH is open already");
-			return websocketpp::http::status_code::bad_request;
-		}
-
 		auto name = JsonUtil::getField<string>("name", j, false);
 		auto size = JsonUtil::getField<int64_t>("size", j);
 		auto user = Deserializer::deserializeHintedUser(j);
 		auto isText = JsonUtil::getOptionalFieldDefault<bool>("text", j, false);
 
+		bool added = false;
 		try {
-			QueueManager::getInstance()->addOpenedItem(name, size, tth, user, true, isText);
+			added = ViewFileManager::getInstance()->addFileThrow(name, size, tth, user, isText);
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::internal_server_error;
+		}
+
+		if (!added) {
+			aRequest.setResponseErrorStr("File with the same TTH is open already");
+			return websocketpp::http::status_code::bad_request;
 		}
 
 		return websocketpp::http::status_code::ok;

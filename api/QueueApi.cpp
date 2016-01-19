@@ -272,19 +272,13 @@ namespace webserver {
 			QueueManager::getInstance()->setBundlePriority(b, Deserializer::deserializePriority(reqJson, false));
 		}
 
-		// Target
-		//auto target = reqJson.find("target");
-		//if (target != reqJson.end()) {
-		//	QueueManager::getInstance()->moveBundle(b, *target, true);
-		//}
-
 		return websocketpp::http::status_code::ok;
 	}
 
 
 
 	// TEMP ITEMS
-	api_return QueueApi::handleAddTempItem(ApiRequest& aRequest) {
+	/*api_return QueueApi::handleAddTempItem(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		try {
@@ -324,7 +318,7 @@ namespace webserver {
 		}
 
 		return websocketpp::http::status_code::ok;
-	}
+	}*/
 
 
 	// FILES (COMMON)
