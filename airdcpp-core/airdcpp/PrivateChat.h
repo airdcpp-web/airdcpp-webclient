@@ -124,11 +124,12 @@ namespace dcpp {
 			handleMessage(message);
 		}
 		virtual void on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) noexcept;
+		void onUserUpdated(const OnlineUser& aUser) noexcept;
 
 		// ClientManagerListener
-		void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
+		void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;
 		void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
-		void on(ClientManagerListener::ClientDisconnected, const string& aHubUrl) noexcept;
+		void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
 
 		bool online = true;
 
