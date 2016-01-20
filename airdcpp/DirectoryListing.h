@@ -274,8 +274,12 @@ private:
 
 	// ClientManagerListener
 	void on(ClientManagerListener::DirectSearchEnd, const string& aToken, int resultCount) noexcept;
-	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
+
+	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;
 	void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
+
+	void onUserUpdated(const UserPtr& aUser) noexcept;
 
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 

@@ -442,7 +442,7 @@ enum Strings { // @DontAdd
 	FAVORITE_DIR_NAME, // "Favorite name"
 	FAVORITE_HUBS, // "Favorite hubs"
 	FAVORITE_HUB_ADDED, // "Favorite hub added"
-	FAVORITE_HUB_ALREADY_EXISTS, // "Hub already exists as a favorite"
+	FAVORITE_HUB_ALREADY_EXISTS, // "A favorite hub with the same address exists already"
 	FAVORITE_HUB_DOES_NOT_EXIST, // "This hub is not a favorite hub"
 	FAVORITE_HUB_IDENTITY, // "Identification (leave blank for defaults)"
 	FAVORITE_HUB_PROPERTIES, // "Favorite hub properties"

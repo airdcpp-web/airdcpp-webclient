@@ -207,6 +207,37 @@ void PrivateChat::checkCCPMTimeout() {
 	} 
 }
 
+void PrivateChat::onUserUpdated(const OnlineUser& aUser) noexcept {
+	if (aUser.getUser() != replyTo.user)
+		return;
+
+	setSupportsCCPM(ClientManager::getInstance()->getSupportsCCPM(replyTo, lastCCPMError));
+	delayEvents.addEvent(USER_UPDATE, [this] {
+		if (!online) {
+			auto hubNames = ClientManager::getInstance()->getFormatedHubNames(replyTo);
+			auto nicks = ClientManager::getInstance()->getFormatedNicks(replyTo);
+			statusMessage(STRING(USER_WENT_ONLINE) + " [" + nicks + " - " + hubNames + "]",
+				LogMessage::SEV_INFO);
+
+			// online from a different hub?
+			checkUserHub(false);
+			online = true;
+		}
+
+		fire(PrivateChatListener::UserUpdated(), this);
+	}, 1000);
+
+	delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 3000);
+}
+
+void PrivateChat::on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool /*wasOffline*/) noexcept {
+	onUserUpdated(aUser);
+}
+
+void PrivateChat::on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept {
+	onUserUpdated(aUser);
+}
+
 void PrivateChat::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept{
 	if (aUser != replyTo.user)
 		return;
@@ -231,18 +262,6 @@ void PrivateChat::on(ClientManagerListener::UserDisconnected, const UserPtr& aUs
 		}, 1000);
 	}
 }
-
-/*
-The hub window was closed, we might be using the client of it for messages(CCPM and status messages) and its soon to be deleted..
-This listener comes from the main thread so we should be able to pass the next speaker message before any other messages.
-*/
-void PrivateChat::on(ClientManagerListener::ClientDisconnected, const string& aHubUrl) noexcept {
-	if (aHubUrl == getHubUrl()) {
-		checkUserHub(true);
-		fire(PrivateChatListener::UserUpdated(), this);
-	}
-}
-
 
 void PrivateChat::checkUserHub(bool wentOffline) {
 	auto hubs = ClientManager::getInstance()->getHubs(replyTo.user->getCID());
@@ -316,29 +335,6 @@ void PrivateChat::on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) no
 
 	if (type != PMINFO_LAST)
 		fire(PrivateChatListener::PMStatus(), this, type);
-}
-
-void PrivateChat::on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept{
-	if (aUser.getUser() != replyTo.user)
-		return;
-
-	setSupportsCCPM(ClientManager::getInstance()->getSupportsCCPM(replyTo, lastCCPMError));
-	delayEvents.addEvent(USER_UPDATE, [this] {
-		if (!online) {
-			auto hubNames = ClientManager::getInstance()->getFormatedHubNames(replyTo);
-			auto nicks = ClientManager::getInstance()->getFormatedNicks(replyTo);
-			statusMessage(STRING(USER_WENT_ONLINE) + " [" + nicks + " - " + hubNames + "]",
-				LogMessage::SEV_INFO);
-
-			// online from a different hub?
-			checkUserHub(false);
-			online = true;
-		}
-
-		fire(PrivateChatListener::UserUpdated(), this);
-	}, 1000);
-
-	delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 3000);
 }
 
 void PrivateChat::logMessage(const string& aMessage) {

@@ -1063,14 +1063,18 @@ void DirectoryListing::matchQueueImpl() noexcept {
 }
 
 void DirectoryListing::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool /*wentOffline*/) noexcept {
-	if (aUser != hintedUser.user) {
-		return;
-	}
-
-	fire(DirectoryListingListener::UserUpdated());
+	onUserUpdated(aUser);
 }
 void DirectoryListing::on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept {
-	if (aUser.getUser() != hintedUser.user) {
+	onUserUpdated(aUser);
+}
+
+void DirectoryListing::on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool /*wasOffline*/) noexcept {
+	onUserUpdated(aUser);
+}
+
+void DirectoryListing::onUserUpdated(const UserPtr& aUser) noexcept {
+	if (aUser != hintedUser.user) {
 		return;
 	}
 
