@@ -228,7 +228,7 @@ void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUti
 				bool countAll = (useSingleTempDir && (mountPath != tempVol));
 				for(const auto& q: b->getQueueItems()) {
 					if (countAll || q->getDownloadedBytes() == 0) {
-						s->second.queued += q->getSize();
+						s->second.addQueued(q->getSize());
 					}
 				}
 			}

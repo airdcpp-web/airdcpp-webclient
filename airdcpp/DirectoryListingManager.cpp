@@ -161,7 +161,7 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 	processListAction(dirList, aRemotePath, flags);
 }
 
-bool DirectoryListingManager::download(const DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList, const string& aTarget) noexcept {
+bool DirectoryListingManager::download(const DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList, const string& aTarget, bool aHasFreeSpace) noexcept {
 	auto getList = [&] {
 		addDirectoryDownload(di->getListPath(), di->getBundleName(), aList->getHintedUser(), di->getTarget(), di->getTargetType(), di->getSizeUnknown(), di->getPriority(), di->getRecursiveListAttempted() ? true : false, di->getAutoSearch(), false, false);
 	};
@@ -182,7 +182,7 @@ bool DirectoryListingManager::download(const DirectoryDownloadInfo::Ptr& di, con
 	}
 
 	// Queue the directory
-	return aList->downloadDirImpl(dir, aTarget + di->getBundleName() + PATH_SEPARATOR, di->getPriority(), di->getAutoSearch());
+	return aList->downloadDirImpl(dir, aTarget + di->getBundleName() + PATH_SEPARATOR, aHasFreeSpace ? di->getPriority() : QueueItemBase::PAUSED_FORCE, di->getAutoSearch());
 }
 
 void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, DirectoryListingPtr& aList) noexcept {
@@ -200,29 +200,30 @@ void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, Dir
 	}
 
 	if (directDownload) {
-		download(di, aList, di->getTarget());
+		download(di, aList, di->getTarget(), true);
 		return;
 	}
 
 	//we have a new directory
 	TargetUtil::TargetInfo ti;
-	int64_t dirSize = aList->getDirSize(di->getListPath());
+	auto dirSize = aList->getDirSize(di->getListPath());
 	TargetUtil::getVirtualTarget(di->getTarget(), di->getTargetType(), ti, dirSize);
-	bool hasFreeSpace = ti.getFreeSpace() >= dirSize;
+	auto hasFreeSpace = ti.hasFreeSpace(dirSize);
 
 	if (di->getSizeUnknown()) {
-		auto queued = download(di, aList, ti.targetDir);
-		if (!hasFreeSpace && queued)
-			TargetUtil::reportInsufficientSize(ti, dirSize);
+		auto queued = download(di, aList, ti.getTarget(), hasFreeSpace);
+		if (!hasFreeSpace && queued) {
+			LogManager::getInstance()->message(TargetUtil::formatSizeNotification(ti, dirSize), LogMessage::SEV_WARNING);
+		}
 
 		if (queued) {
 			WLock l(cs);
-			finishedListings.emplace(di->getFinishedDirName(), new FinishedDirectoryItem(!hasFreeSpace, ti.targetDir));
+			finishedListings.emplace(di->getFinishedDirName(), new FinishedDirectoryItem(!hasFreeSpace, ti.getTarget()));
 		}
 	} else {
-		if (download(di, aList, ti.targetDir)) {
+		if (download(di, aList, ti.getTarget(), true)) {
 			WLock l(cs);
-			finishedListings.emplace(di->getFinishedDirName(), new FinishedDirectoryItem(false, ti.targetDir));
+			finishedListings.emplace(di->getFinishedDirName(), new FinishedDirectoryItem(false, ti.getTarget()));
 		}
 	}
 }

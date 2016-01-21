@@ -76,8 +76,7 @@ public:
 	void AutoSearchLoad();
 	void AutoSearchSave() noexcept;
 
-	void saveItemToXml(const AutoSearchPtr& as, SimpleXML& xml);
-	void logMessage(const string& aMsg, bool error) const noexcept;
+	void logMessage(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
 
 	void onBundleCreated(BundlePtr& aBundle, const ProfileToken aSearch) noexcept;
 	void onBundleError(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser) noexcept;
