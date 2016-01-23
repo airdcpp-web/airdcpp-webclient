@@ -18,6 +18,7 @@
 
 #include "stdinc.h"
 
+#include "ActivityManager.h"
 #include "MessageManager.h"
 #include "LogManager.h"
 
@@ -184,12 +185,12 @@ void MessageManager::onPrivateMessage(const ChatMessagePtr& aMessage) {
 	auto chat = addChat(HintedUser(user, aMessage->getReplyTo()->getClient()->getHubUrl()), true);
 	chat->handleMessage(aMessage);
 
-	if (AirUtil::getAway() && !myPM && (!SETTING(NO_AWAYMSG_TO_BOTS) || !user->isSet(User::BOT))) {
+	if (ActivityManager::getInstance()->isAway() && !myPM && (!SETTING(NO_AWAYMSG_TO_BOTS) || !user->isSet(User::BOT))) {
 		ParamMap params;
 		aMessage->getFrom()->getIdentity().getParams(params, "user", false);
 
 		string error;
-		chat->sendMessage(AirUtil::getAwayMessage(c->get(HubSettings::AwayMsg), params), error, false);
+		chat->sendMessage(ActivityManager::getInstance()->getAwayMessage(c->get(HubSettings::AwayMsg), params), error, false);
 	}
 }
 

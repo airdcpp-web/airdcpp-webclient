@@ -234,6 +234,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="airdcpp\ActivityManager.cpp" />
     <ClCompile Include="airdcpp\AdcCommand.cpp" />
     <ClCompile Include="airdcpp\AdcHub.cpp" />
     <ClCompile Include="airdcpp\MessageCache.cpp" />
@@ -346,6 +347,7 @@
     <ClCompile Include="airdcpp\ZUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="airdcpp\ActivityManager.h" />
     <ClInclude Include="airdcpp\AdcCommand.h" />
     <ClInclude Include="airdcpp\AdcHub.h" />
     <ClInclude Include="airdcpp\AutoSearchQueue.h" />

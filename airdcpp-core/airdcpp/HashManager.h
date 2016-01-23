@@ -45,11 +45,15 @@ public:
 	typedef X<1> HashFailed;
 	typedef X<2> MaintananceFinished;
 	typedef X<3> MaintananceStarted;
+	typedef X<4> DirectoryHashed;
+	typedef X<5> HasherFinished;
 
 	virtual void on(TTHDone, const string& /* filePath */, HashedFile& /* fileInfo */) noexcept { }
 	virtual void on(HashFailed, const string& /* filePath */, HashedFile& /*null*/) noexcept { }
 	virtual void on(MaintananceStarted) noexcept { }
 	virtual void on(MaintananceFinished) noexcept { }
+	virtual void on(DirectoryHashed, const string& /* dirPath */, int /* filesHashed */, int64_t /*sizeHashed*/, time_t /*hashDuration*/, int /*hasherId*/) noexcept { }
+	virtual void on(HasherFinished, int /* dirsHashed */, int /* filesHashed */, int64_t /*sizeHashed*/, time_t /*hashDuration*/, int /*hasherId*/) noexcept { }
 };
 
 class HashLoader;
@@ -183,13 +187,13 @@ private:
 
 		void instantPause();
 
-		int64_t sizeHashed = 0;
-		int64_t hashTime = 0;
-		int dirsHashed = 0;
-		int filesHashed = 0;
+		int64_t totalSizeHashed = 0;
+		uint64_t totalHashTime = 0;
+		int totalDirsHashed = 0;
+		int totalFilesHashed = 0;
 
 		int64_t dirSizeHashed = 0;
-		int64_t dirHashTime = 0;
+		uint64_t dirHashTime = 0;
 		int dirFilesHashed = 0;
 		string initialDir;
 

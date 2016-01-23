@@ -19,20 +19,20 @@
 #include "stdinc.h"
 
 #include "AirUtil.h"
-#include "Util.h"
-#include "ThrottleManager.h"
 
-#include "File.h"
-#include "QueueManager.h"
-#include "SettingsManager.h"
 #include "ConnectivityManager.h"
+#include "File.h"
+#include "LogManager.h"
+#include "QueueManager.h"
 #include "ResourceManager.h"
-#include "StringTokenizer.h"
+#include "SettingsManager.h"
+#include "ShareManager.h"
 #include "SimpleXML.h"
 #include "Socket.h"
-#include "LogManager.h"
-#include "Wildcards.h"
-#include "ShareManager.h"
+#include "StringTokenizer.h"
+#include "ThrottleManager.h"
+#include "Util.h"
+
 #include <locale.h>
 
 #include <boost/date_time/format_date_parser.hpp>
@@ -62,9 +62,6 @@ boost::regex AirUtil::crcReg;
 
 string AirUtil::privKeyFile;
 string AirUtil::tempDLDir;
-
-AwayMode AirUtil::away = AWAY_OFF;
-time_t AirUtil::awayTime;
 
 AirUtil::TimeCounter::TimeCounter(string aMsg) : start(GET_TICK()), msg(move(aMsg)) {
 
@@ -748,24 +745,6 @@ string AirUtil::regexEscape(const string& aStr, bool isWildcard) {
 		result = "^(" + result + ")$";
 	}
     return result;
-}
-
-void AirUtil::setAway(AwayMode aAway) {
-	if(aAway != away)
-		ClientManager::getInstance()->infoUpdated();
-
-	if((aAway == AWAY_MANUAL) || (getAwayMode() == AWAY_MANUAL && aAway == AWAY_OFF) ) //only save the state if away mode is set by user
-		SettingsManager::getInstance()->set(SettingsManager::AWAY, aAway > 0);
-
-	away = aAway;
-
-	if (away > AWAY_OFF)
-		awayTime = time(NULL);
-}
-
-string AirUtil::getAwayMessage(const string& aAwayMsg, ParamMap& params) { 
-	params["idleTI"] = Util::formatSeconds(time(NULL) - awayTime);
-	return Util::formatParams(aAwayMsg, params);
 }
 
 string AirUtil::subtractCommonDirs(const string& toCompare, const string& toSubtract, char separator) {
