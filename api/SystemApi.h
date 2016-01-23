@@ -20,11 +20,13 @@
 #define DCPLUSPLUS_DCPP_SYSTEMAPI_H
 
 #include <web-server/stdinc.h>
-
 #include <api/ApiModule.h>
 
+#include <airdcpp/ActivityManager.h>
+
+
 namespace webserver {
-	class SystemApi : public ApiModule {
+	class SystemApi : public ApiModule, private ActivityManagerListener {
 	public:
 		SystemApi(Session* aSession);
 		~SystemApi();
@@ -33,17 +35,15 @@ namespace webserver {
 			return 0;
 		}
 	private:
-		static string getAwayState() noexcept;
+		static string getAwayState(AwayMode aAwayMode) noexcept;
 		static json serializeAwayState() noexcept;
-		void onTimer() noexcept;
 
 		api_return handleGetAwayState(ApiRequest& aRequest);
 		api_return handleSetAway(ApiRequest& aRequest);
 
 		api_return handleGetStats(ApiRequest& aRequest);
 
-		json previousAway;
-		TimerPtr timer;
+		void on(ActivityManagerListener::AwayModeChanged, AwayMode aNewMode) noexcept;
 	};
 }
 

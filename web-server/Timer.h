@@ -41,21 +41,14 @@ namespace webserver {
 			stop(true);
 		}
 
-		bool start(bool aInstantStart = true) {
+		bool start(bool aInstantTick) {
 			if (shutdown) {
 				return false;
 			}
 
 			running = true;
-			timer.expires_from_now(aInstantStart ? boost::posix_time::milliseconds(0) : interval);
-			timer.async_wait([this](const boost::system::error_code& error) {
-				if (error == boost::asio::error::operation_aborted) {
-					// Timer stopped, no calls to this if the timer has been destructed
-					return;
-				}
-
-				tick();
-			});
+			timer.expires_from_now(aInstantTick ? boost::posix_time::milliseconds(0) : interval);
+			timer.async_wait(std::bind(&Timer::tick, std::placeholders::_1, cbWrapper, this));
 			return true;
 		}
 
@@ -70,12 +63,17 @@ namespace webserver {
 			return running;
 		}
 	private:
-		void tick() {
+		// Static in case the timer has been destructed
+		static void tick(const boost::system::error_code& error, const CallbackWrapper& cbWrapper, Timer* aTimer) {
+			if (error == boost::asio::error::operation_aborted) {
+				return;
+			}
+
 			if (cbWrapper) {
 				// We must ensure that the timer still exists when a new start call is performed
-				cbWrapper(bind(&Timer::runTask, this));
+				cbWrapper(bind(&Timer::runTask, aTimer));
 			} else {
-				runTask();
+				aTimer->runTask();
 			}
 		}
 

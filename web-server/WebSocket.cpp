@@ -19,12 +19,14 @@
 #include <web-server/stdinc.h>
 #include <web-server/WebSocket.h>
 
+#include <airdcpp/TimerManager.h>
 #include <airdcpp/Util.h>
 
 namespace webserver {
 	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl) :
-		secure(aIsSecure), hdl(aHdl) {
+		secure(aIsSecure), hdl(aHdl), timeCreated(GET_TICK()) {
 
+		debugMessage("Websocket created");
 	}
 
 	WebSocket::~WebSocket() {
@@ -41,7 +43,7 @@ namespace webserver {
 		}
 	}
 
-	void WebSocket::sendApiResponse(const json& aResponseJson, const json& aErrorJson, websocketpp::http::status_code::value aCode, int aCallbackId) {
+	void WebSocket::sendApiResponse(const json& aResponseJson, const json& aErrorJson, websocketpp::http::status_code::value aCode, int aCallbackId) noexcept {
 		json j;
 
 		if (aCallbackId > 0) {
@@ -63,7 +65,11 @@ namespace webserver {
 		sendPlain(j.dump(4));
 	}
 
-	void WebSocket::sendPlain(const string& aMsg) {
+	void WebSocket::debugMessage(const string& aMessage) const noexcept {
+		dcdebug(string(aMessage + " (%s)\n").c_str(), session ? session->getAuthToken().c_str() : "no session");
+	}
+
+	void WebSocket::sendPlain(const string& aMsg) noexcept {
 		//dcdebug("WebSocket::send: %s\n", aMsg.c_str());
 		try {
 			if (secure) {
@@ -73,7 +79,20 @@ namespace webserver {
 			}
 
 		} catch (const std::exception& e) {
-			dcdebug("WebSocket::send failed: %s", e.what());
+			debugMessage("WebSocket::send failed: " + string(e.what()));
+		}
+	}
+
+	void WebSocket::ping() noexcept {
+		try {
+			if (secure) {
+				tlsServer->ping(hdl, Util::emptyString);
+			} else {
+				plainServer->ping(hdl, Util::emptyString);
+			}
+
+		} catch (const std::exception& e) {
+			debugMessage("WebSocket::ping failed: " + string(e.what()));
 		}
 	}
 
@@ -85,7 +104,7 @@ namespace webserver {
 				plainServer->close(hdl, aCode, aMsg);
 			}
 		} catch (const std::exception& e) {
-			dcdebug("WebSocket::close failed: %s", e.what());
+			debugMessage("WebSocket::close failed: " + string(e.what()));
 		}
 	}
 }

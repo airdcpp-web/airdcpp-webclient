@@ -52,7 +52,7 @@ namespace webserver {
 	Session::Session(WebUserPtr& aUser, const string& aToken, bool aIsSecure, WebServerManager* aServer, uint64_t maxInactivityMinutes, bool aIsUserSession) :
 		id(Util::rand()), user(aUser), token(aToken), started(GET_TICK()), 
 		lastActivity(GET_TICK()), secure(aIsSecure), server(aServer), 
-		maxInactivity(maxInactivityMinutes*1000*60), userAway(!aIsUserSession), userSession(aIsUserSession) {
+		maxInactivity(maxInactivityMinutes*1000*60), userSession(aIsUserSession) {
 
 		ADD_MODULE("connectivity", ConnectivityApi);
 		ADD_MODULE("favorite_directories", FavoriteDirectoryApi);
@@ -103,6 +103,12 @@ namespace webserver {
 	}
 
 	void Session::onSocketConnected(const WebSocketPtr& aSocket) noexcept {
+		auto oldSocket = getServer()->getSocket(id);
+		if (oldSocket) {
+			oldSocket->debugMessage("Replace session socket");
+			oldSocket->close(websocketpp::close::status::policy_violation, "Another socket was connected to this session");
+		}
+
 		fire(SessionListener::SocketConnected(), aSocket);
 	}
 

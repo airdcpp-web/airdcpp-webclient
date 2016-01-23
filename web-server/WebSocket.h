@@ -43,13 +43,19 @@ namespace webserver {
 
 		IGETSET(SessionPtr, session, Session, nullptr);
 
-		void sendPlain(const std::string& aMsg);
-		void sendApiResponse(const json& aJsonResponse, const json& aErrorJson, websocketpp::http::status_code::value aCode, int aCallbackId);
+		void sendPlain(const std::string& aMsg) noexcept;
+		void sendApiResponse(const json& aJsonResponse, const json& aErrorJson, websocketpp::http::status_code::value aCode, int aCallbackId) noexcept;
 
 		WebSocket(WebSocket&) = delete;
 		WebSocket& operator=(WebSocket&) = delete;
 
 		string getIp() const noexcept;
+		void ping() noexcept;
+
+		void debugMessage(const string& aMessage) const noexcept;
+		time_t getTimeCreated() const noexcept {
+			return timeCreated;
+		}
 	protected:
 		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl);
 	private:
@@ -61,6 +67,7 @@ namespace webserver {
 		websocketpp::connection_hdl hdl;
 
 		bool secure;
+		time_t timeCreated;
 	};
 }
 

@@ -60,7 +60,6 @@ namespace webserver {
 
 		Session(Session&) = delete;
 		Session& operator=(Session&) = delete;
-		GETSET(bool, userAway, UserAway);
 
 		void onSocketConnected(const WebSocketPtr& aSocket) noexcept;
 		void onSocketDisconnected() noexcept;

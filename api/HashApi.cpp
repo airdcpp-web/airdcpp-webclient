@@ -39,8 +39,10 @@ namespace webserver {
 
 		createSubscription("hash_database_status");
 		createSubscription("hash_statistics");
+		createSubscription("hasher_directory_finished");
+		createSubscription("hasher_finished");
 
-		timer->start();
+		timer->start(false);
 	}
 
 	HashApi::~HashApi() {
@@ -95,6 +97,30 @@ namespace webserver {
 
 	void HashApi::on(HashManagerListener::MaintananceFinished) noexcept {
 		updateDbStatus(false);
+	}
+
+	void HashApi::on(HashManagerListener::DirectoryHashed, const string& aPath, int aFilesHashed, int64_t aSizeHashed, time_t aHashDuration, int aHasherId) noexcept {
+		maybeSend("hasher_directory_finished", [&] { 
+			return json({
+				{ "path", aPath },
+				{ "size", aSizeHashed },
+				{ "files", aFilesHashed },
+				{ "duration", aHashDuration },
+				{ "hasher_id", aHasherId },
+			});
+		});
+	}
+
+	void HashApi::on(HashManagerListener::HasherFinished, int aDirshashed, int aFilesHashed, int64_t aSizeHashed, time_t aHashDuration, int aHasherId) noexcept {
+		maybeSend("hasher_finished", [&] {
+			return json({
+				{ "size", aSizeHashed },
+				{ "files", aFilesHashed },
+				{ "directories", aDirshashed },
+				{ "duration", aHashDuration },
+				{ "hasher_id", aHasherId },
+			});
+		});
 	}
 
 	void HashApi::updateDbStatus(bool aMaintenanceRunning) noexcept {

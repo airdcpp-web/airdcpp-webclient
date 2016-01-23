@@ -25,7 +25,8 @@
 #include <web-server/WebServerManager.h>
 #include <web-server/WebUserManager.h>
 
-#include <airdcpp/AirUtil.h>
+#include <airdcpp/ActivityManager.h>
+#include <airdcpp/SettingsManager.h>
 #include <airdcpp/version.h>
 
 namespace webserver {
@@ -80,7 +81,6 @@ namespace webserver {
 			{ "token", session->getAuthToken() },
 			{ "user", session->getUser()->getUserName() },
 			{ "system", getSystemInfo(aIp) },
-			{ "away_idle_time", SETTING(AWAY_IDLE_TIME) },
 			{ "run_wizard", SETTING(WIZARD_RUN) },
 		};
 
@@ -93,7 +93,7 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return SessionApi::handleAway(ApiRequest& aRequest) {
+	api_return SessionApi::handleActivity(ApiRequest& aRequest) {
 		auto s = aRequest.getSession();
 		if (!s) {
 			aRequest.setResponseErrorStr("Not authorized");
@@ -101,13 +101,11 @@ namespace webserver {
 		}
 
 		if (!s->isUserSession()) {
-			aRequest.setResponseErrorStr("Away state can only be changed for user sessions");
+			aRequest.setResponseErrorStr("Activity can only be updated for user sessions");
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		auto away = JsonUtil::getField<bool>("away", aRequest.getRequestBody());
-		WebServerManager::getInstance()->getUserManager().setSessionAwayState(s->getId(), away);
-
+		ActivityManager::getInstance()->updateActivity();
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -125,7 +123,7 @@ namespace webserver {
 	api_return SessionApi::handleSocketConnect(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket) {
 		auto sessionToken = JsonUtil::getField<string>("authorization", aRequest.getRequestBody(), false);
 
-		SessionPtr session = WebServerManager::getInstance()->getUserManager().getSession(sessionToken);
+		auto session = WebServerManager::getInstance()->getUserManager().getSession(sessionToken);
 		if (!session) {
 			aRequest.setResponseErrorStr("Invalid session token");
 			return websocketpp::http::status_code::bad_request;

@@ -23,7 +23,7 @@
 
 #include <airdcpp/typedefs.h>
 
-#include <airdcpp/AirUtil.h>
+#include <airdcpp/ActivityManager.h>
 #include <airdcpp/SimpleXML.h>
 #include <airdcpp/TimerManager.h>
 #include <airdcpp/Util.h>
@@ -70,36 +70,10 @@ namespace webserver {
 		}
 
 		if (aUserSession) {
-			checkAwayState();
+			ActivityManager::getInstance()->updateActivity();
 		}
+
 		return session;
-	}
-
-	void WebUserManager::setSessionAwayState(LocalSessionId aSessionId, bool aAway) noexcept {
-		auto s = getSession(aSessionId);
-		if (!s) {
-			return;
-		}
-
-		s->setUserAway(aAway);
-		checkAwayState();
-	}
-
-	void WebUserManager::checkAwayState() noexcept {
-		bool allAway = true;
-		{
-			RLock l(cs);
-			allAway = boost::find_if(sessionsLocalId | map_values, [](const SessionPtr& aSession) {
-				return !aSession->getUserAway(); 
-			}).base() == sessionsLocalId.end();
-		}
-
-		bool currentAway = AirUtil::getAwayMode() == AWAY_IDLE;
-		if (allAway && !currentAway) {
-			AirUtil::setAway(AWAY_IDLE);
-		} else if (!allAway && currentAway) {
-			AirUtil::setAway(AWAY_OFF);
-		}
 	}
 
 	SessionPtr WebUserManager::getSession(const string& aSession) const noexcept {
@@ -161,10 +135,6 @@ namespace webserver {
 			WLock l(cs);
 			sessionsRemoteId.erase(aSession->getAuthToken());
 			sessionsLocalId.erase(aSession->getId());
-		}
-
-		if (aSession->isUserSession()) {
-			checkAwayState();
 		}
 	}
 

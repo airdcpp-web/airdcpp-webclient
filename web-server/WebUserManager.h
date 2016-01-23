@@ -56,9 +56,7 @@ namespace webserver {
 		StringList getUserNames() const noexcept;
 
 		size_t getSessionCount() const noexcept;
-		void setSessionAwayState(LocalSessionId aSessionId, bool aAway) noexcept;
 	private:
-		void checkAwayState() noexcept;
 		mutable SharedMutex cs;
 
 		std::map<std::string, WebUserPtr> users;

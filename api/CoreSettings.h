@@ -128,13 +128,11 @@ namespace webserver {
 		{ "max_hash_speed", SettingsManager::MAX_HASH_SPEED, ResourceManager::SETTINGS_MAX_HASHER_SPEED, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MiB, true } },
 		{ "max_total_hashers", SettingsManager::MAX_HASHING_THREADS, ResourceManager::MAX_HASHING_THREADS },
 		{ "max_volume_hashers", SettingsManager::HASHERS_PER_VOLUME, ResourceManager::MAX_VOL_HASHERS },
-		{ "report_each_hashed_file", SettingsManager::LOG_HASHING, ResourceManager::LOG_HASHING },
 
 		//{ ResourceManager::REFRESH_OPTIONS },
 		{ "refresh_time", SettingsManager::AUTO_REFRESH_TIME, ResourceManager::SETTINGS_AUTO_REFRESH_TIME, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MINUTES, false } },
 		{ "refresh_time_incoming", SettingsManager::INCOMING_REFRESH_TIME, ResourceManager::SETTINGS_INCOMING_REFRESH_TIME, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MINUTES, false } },
 		{ "refresh_startup", SettingsManager::STARTUP_REFRESH, ResourceManager::SETTINGS_STARTUP_REFRESH },
-		{ "refresh_report_scheduled_refreshes", SettingsManager::LOG_SCHEDULED_REFRESHES, ResourceManager::SETTINGS_LOG_SCHEDULED_REFRESHES },
 		{ "refresh_threading", SettingsManager::REFRESH_THREADING, ResourceManager::MULTITHREADED_REFRESH },
 
 		//{ ResourceManager::SETTINGS_SHARING_OPTIONS },
@@ -145,8 +143,6 @@ namespace webserver {
 		{ "share_no_zero_byte", SettingsManager::NO_ZERO_BYTE, ResourceManager::SETTINGS_NO_ZERO_BYTE },
 		{ "share_max_size", SettingsManager::MAX_FILE_SIZE_SHARED, ResourceManager::DONT_SHARE_BIGGER_THAN, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MiB, false } },
 		{ "share_follow_symlinks", SettingsManager::SHARE_FOLLOW_SYMLINKS, ResourceManager::FOLLOW_SYMLINKS },
-		{ "share_report_duplicates", SettingsManager::FL_REPORT_FILE_DUPES, ResourceManager::REPORT_DUPLICATE_FILES },
-		{ "share_report_skiplist", SettingsManager::REPORT_SKIPLIST, ResourceManager::REPORT_SKIPLIST },
 
 		//{ ResourceManager::SETTINGS_LOGGING },
 		{ "log_directory", SettingsManager::LOG_DIRECTORY, ResourceManager::SETTINGS_LOG_DIR, ApiSettingItem::TYPE_DIRECTORY_PATH },
@@ -170,6 +166,18 @@ namespace webserver {
 		{ "log_status_format", SettingsManager::LOG_FORMAT_STATUS, ResourceManager::SETTINGS_FORMAT },
 		{ "log_list_transfers", SettingsManager::LOG_FILELIST_TRANSFERS, ResourceManager::SETTINGS_LOG_FILELIST_TRANSFERS },
 		{ "single_log_per_cid", SettingsManager::PM_LOG_GROUP_CID, ResourceManager::LOG_COMBINE_ADC_PM },
+
+		// Events
+		{ "report_uploads", SettingsManager::SYSTEM_SHOW_UPLOADS, ResourceManager::SYSTEM_SHOW_FINISHED_UPLOADS },
+		{ "report_downloads", SettingsManager::SYSTEM_SHOW_DOWNLOADS, ResourceManager::SYSTEM_SHOW_FINISHED_DOWNLOADS },
+		{ "report_search_alternates", SettingsManager::REPORT_ALTERNATES, ResourceManager::REPORT_ALTERNATES },
+		{ "report_added_sources", SettingsManager::REPORT_ADDED_SOURCES, ResourceManager::SETTINGS_REPORT_ADDED_SOURCES },
+		{ "report_share_skiplist", SettingsManager::REPORT_SKIPLIST, ResourceManager::REPORT_SKIPLIST },
+		{ "report_hashed_files", SettingsManager::LOG_HASHING, ResourceManager::LOG_HASHING },
+		{ "report_scheduled_refreshes", SettingsManager::LOG_SCHEDULED_REFRESHES, ResourceManager::SETTINGS_LOG_SCHEDULED_REFRESHES },
+		{ "report_filelist_dupes", SettingsManager::FL_REPORT_FILE_DUPES, ResourceManager::REPORT_DUPLICATE_FILES },
+		{ "report_ignored_messages", SettingsManager::LOG_IGNORED, ResourceManager::REPORT_IGNORED },
+		{ "report_crc_ok", SettingsManager::LOG_CRC_OK, ResourceManager::LOG_CRC_OK },
 
 		//{ ResourceManager::HISTORIES },
 		{ "history_search_max", SettingsManager::HISTORY_SEARCH_MAX, ResourceManager::SEARCH_STRINGS },

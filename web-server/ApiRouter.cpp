@@ -149,8 +149,8 @@ namespace webserver {
 			}
 		} else if (aRequest.getStringParam(0) == "socket") {
 			return sessionApi.handleSocketConnect(aRequest, aIsSecure, aSocket);
-		} else if (aRequest.getStringParam(0) == "away") {
-			return sessionApi.handleAway(aRequest);
+		} else if (aRequest.getStringParam(0) == "activity") {
+			return sessionApi.handleActivity(aRequest);
 		}
 
 		aRequest.setResponseErrorStr("Invalid command");
