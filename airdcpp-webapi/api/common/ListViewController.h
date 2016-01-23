@@ -278,7 +278,7 @@ namespace webserver {
 			if (!active) {
 				setActive(true);
 				updateList();
-				timer->start();
+				timer->start(true);
 			}
 
 			return websocketpp::http::status_code::no_content;
@@ -329,7 +329,7 @@ namespace webserver {
 				if (paused && timer->isRunning()) {
 					timer->stop(false);
 				} else if (!paused && !timer->isRunning()) {
-					timer->start();
+					timer->start(true);
 				}
 			}
 

@@ -34,7 +34,7 @@ namespace webserver {
 		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, TransferApi::handleGetStats);
 
 		createSubscription("transfer_statistics");
-		timer->start();
+		timer->start(false);
 	}
 
 	TransferApi::~TransferApi() {

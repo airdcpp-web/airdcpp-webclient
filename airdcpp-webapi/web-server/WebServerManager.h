@@ -62,17 +62,10 @@ namespace webserver {
 		void on_message(EndpointType* aServer, websocketpp::connection_hdl hdl,
 			typename EndpointType::message_ptr msg, bool aIsSecure) {
 
-			WebSocketPtr socket = nullptr;
-
-			{
-				WLock l(cs);
-				auto s = sockets.find(hdl);
-				if (s != sockets.end()) {
-					socket = s->second;
-				} else {
-					dcassert(0);
-					return;
-				}
+			auto socket = getSocket(hdl);
+			if (!socket) {
+				dcassert(0);
+				return;
 			}
 
 			api.handleSocketRequest(msg->get_payload(), socket, aIsSecure);
@@ -80,13 +73,15 @@ namespace webserver {
 
 		template <typename EndpointType>
 		void on_open_socket(EndpointType* aServer, websocketpp::connection_hdl hdl, bool aIsSecure) {
-
 			WLock l(cs);
 			auto socket = make_shared<WebSocket>(aIsSecure, hdl, aServer);
 			sockets.emplace(hdl, socket);
 		}
 
 		void on_close_socket(websocketpp::connection_hdl hdl);
+
+		void onPongReceived(websocketpp::connection_hdl hdl, const string& aPayload);
+		void onPongTimeout(websocketpp::connection_hdl hdl, const string& aPayload);
 
 		template <typename EndpointType>
 		void on_http(EndpointType* s, websocketpp::connection_hdl hdl, bool aIsSecure) {
@@ -180,6 +175,7 @@ namespace webserver {
 			return serverThreads;
 		}
 	private:
+		WebSocketPtr getSocket(websocketpp::connection_hdl hdl) const noexcept;
 		bool listen(ErrorF& errorF);
 
 		bool initialize(ErrorF& errorF);
@@ -188,6 +184,7 @@ namespace webserver {
 		ServerConfig tlsServerConfig;
 
 		void loadServer(SimpleXML& xml_, const string& aTagName, ServerConfig& config_) noexcept;
+		void pingTimer() noexcept;
 
 		mutable SharedMutex cs;
 
@@ -197,6 +194,7 @@ namespace webserver {
 
 		context_ptr on_tls_init(websocketpp::connection_hdl hdl);
 
+		typedef vector<WebSocketPtr> WebSocketList;
 		std::map<websocketpp::connection_hdl, WebSocketPtr, std::owner_less<websocketpp::connection_hdl>> sockets;
 
 		ApiRouter api;
@@ -204,6 +202,7 @@ namespace webserver {
 
 		unique_ptr<WebUserManager> userManager;
 
+		TimerPtr socketTimer;
 		bool has_io_service;
 
 		server_plain endpoint_plain;
