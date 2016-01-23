@@ -237,7 +237,7 @@ namespace webserver {
 				// Ensure that we have a submodule (the parent must exist if we have a session)
 				auto m = aParentModule->getSubModule(aId);
 				if (!m) {
-					dcdebug("Trying to run an async task for a removed submodule %s\n", aId);
+					dcdebug("Trying to run an async task for a removed submodule\n");
 					return;
 				}
 
