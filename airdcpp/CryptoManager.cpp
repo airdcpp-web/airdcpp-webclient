@@ -54,11 +54,12 @@
 
 namespace dcpp {
 
-	void* CryptoManager::tmpKeysMap[KEY_LAST] = { NULL, NULL, NULL };
-	CriticalSection* CryptoManager::cs = NULL;
-	int CryptoManager::idxVerifyData = 0;
-	char CryptoManager::idxVerifyDataName[] = "AirDC.VerifyData";
-	CryptoManager::SSLVerifyData CryptoManager::trustedKeyprint = { false, "trusted_keyp" };
+void* CryptoManager::tmpKeysMap[KEY_LAST] = { NULL, NULL, NULL };
+CriticalSection* CryptoManager::cs = NULL;
+int CryptoManager::idxVerifyData = 0;
+char CryptoManager::idxVerifyDataName[] = "AirDC.VerifyData";
+CryptoManager::SSLVerifyData CryptoManager::trustedKeyprint = { false, "trusted_keyp" };
+
 
 CryptoManager::CryptoManager()
 :
@@ -90,47 +91,53 @@ CryptoManager::CryptoManager()
 		for (int i = KEY_RSA_2048; i != KEY_LAST; ++i)
 			tmpKeysMap[i] = getTmpRSA(getKeyLength(static_cast<TLSTmpKeys>(i)));
 
-		const char ciphersuites[] =
-			"ECDHE-ECDSA-AES128-GCM-SHA256:"
-			"ECDHE-RSA-AES128-GCM-SHA256:"
-			"ECDHE-ECDSA-AES128-SHA256:"
-			"ECDHE-RSA-AES128-SHA256:"
-			"ECDHE-ECDSA-AES128-SHA:"
-			"ECDHE-RSA-AES128-SHA:"
-			"DHE-RSA-AES128-SHA:"
-			"AES128-SHA:"
-			"ECDHE-ECDSA-AES256-GCM-SHA384:"
-			"ECDHE-RSA-AES256-GCM-SHA384:"
-			"ECDHE-ECDSA-AES256-SHA384:"
-			"ECDHE-RSA-AES256-SHA384:"
-			"ECDHE-ECDSA-AES256-SHA:"
-			"ECDHE-RSA-AES256-SHA:"
-			"AES256-GCM-SHA384:"
-			"AES256-SHA256:"
-			"AES256-SHA";
-
 		SSL_CTX_set_options(clientContext, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
-		SSL_CTX_set_cipher_list(clientContext, ciphersuites);
 		SSL_CTX_set_options(serverContext, SSL_OP_SINGLE_DH_USE | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
-		SSL_CTX_set_cipher_list(serverContext, ciphersuites);
 
-#if OPENSSL_VERSION_NUMBER >= 0x1000201fL
-		SSL_CTX_set1_curves_list(clientContext, "P-256");
-		SSL_CTX_set1_curves_list(serverContext, "P-256");
-#endif
-		
-		EC_KEY* tmp_ecdh;
-		if ((tmp_ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1)) != NULL) {
-			SSL_CTX_set_options(serverContext, SSL_OP_SINGLE_ECDH_USE);
-			SSL_CTX_set_tmp_ecdh(serverContext, tmp_ecdh);
-
-			EC_KEY_free(tmp_ecdh);
-		}
+		setContextOptions(clientContext, false);
+		setContextOptions(serverContext, true);
 
 		SSL_CTX_set_tmp_dh_callback(serverContext, CryptoManager::tmp_dh_cb);
 		SSL_CTX_set_tmp_rsa_callback(serverContext, CryptoManager::tmp_rsa_cb);
 		SSL_CTX_set_verify(clientContext, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback);
 		SSL_CTX_set_verify(serverContext, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback);
+	}
+}
+
+void CryptoManager::setContextOptions(SSL_CTX* aCtx, bool aServer) {
+	const char ciphersuites[] =
+		"ECDHE-ECDSA-AES128-GCM-SHA256:"
+		"ECDHE-RSA-AES128-GCM-SHA256:"
+		"ECDHE-ECDSA-AES128-SHA256:"
+		"ECDHE-RSA-AES128-SHA256:"
+		"ECDHE-ECDSA-AES128-SHA:"
+		"ECDHE-RSA-AES128-SHA:"
+		"DHE-RSA-AES128-SHA:"
+		"AES128-SHA:"
+		"ECDHE-ECDSA-AES256-GCM-SHA384:"
+		"ECDHE-RSA-AES256-GCM-SHA384:"
+		"ECDHE-ECDSA-AES256-SHA384:"
+		"ECDHE-RSA-AES256-SHA384:"
+		"ECDHE-ECDSA-AES256-SHA:"
+		"ECDHE-RSA-AES256-SHA:"
+		"AES256-GCM-SHA384:"
+		"AES256-SHA256:"
+		"AES256-SHA";
+
+	SSL_CTX_set_cipher_list(aCtx, ciphersuites);
+
+#if OPENSSL_VERSION_NUMBER >= 0x1000201fL
+	SSL_CTX_set1_curves_list(aCtx, "P-256");
+#endif
+
+	if (aServer) {
+		EC_KEY* tmp_ecdh;
+		if ((tmp_ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1)) != NULL) {
+			SSL_CTX_set_options(aCtx, SSL_OP_SINGLE_ECDH_USE);
+			SSL_CTX_set_tmp_ecdh(aCtx, tmp_ecdh);
+
+			EC_KEY_free(tmp_ecdh);
+		}
 	}
 }
 

@@ -26,14 +26,6 @@
 
 namespace dcpp {
 
-//Away modes
-enum AwayMode : uint8_t {
-	AWAY_OFF,
-	AWAY_IDLE,
-	AWAY_MINIMIZE,
-	AWAY_MANUAL //highest value
-};
-
 enum DupeType: uint8_t { 
 	DUPE_NONE, 
 	DUPE_SHARE_PARTIAL, 
@@ -137,11 +129,6 @@ public:
 	static string convertMovePath(const string& aPath, const string& aParent, const string& aTarget);
 	static string regexEscape(const string& aStr, bool isWildcard);
 
-	static bool getAway() { return away > 0; }
-	static AwayMode getAwayMode() { return away; }
-	static void setAway(AwayMode aAway);
-	static string getAwayMessage(const string& aAwayMsg, ParamMap& params);
-
 	/* Removes common dirs from the end of toSubtract */
 	static string subtractCommonDirs(const string& toCompare, const string& toSubtract, char separator);
 
@@ -151,8 +138,6 @@ public:
 
 private:
 	static bool removeDirectoryIfEmptyRe(const string& tgt, int maxAttempts, int curAttempts);
-	static AwayMode away;
-	static time_t awayTime;
 
 };
 
