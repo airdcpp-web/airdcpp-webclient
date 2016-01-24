@@ -50,8 +50,9 @@ namespace webserver {
 	}
 
 	HintedUser Deserializer::deserializeHintedUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
-		auto user = JsonUtil::getRawValue(aFieldName, aJson);
-		return HintedUser(deserializeUser(user), JsonUtil::getField<string>("hub_url", user, false));
+		auto userJson = JsonUtil::getRawValue(aFieldName, aJson);
+		auto user = deserializeUser(userJson, aAllowMe);
+		return HintedUser(user, JsonUtil::getField<string>("hub_url", userJson, aAllowMe && user == ClientManager::getInstance()->getMe()));
 	}
 
 	TTHValue Deserializer::deserializeTTH(const json& aJson) {

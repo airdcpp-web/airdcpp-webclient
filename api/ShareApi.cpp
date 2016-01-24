@@ -35,6 +35,7 @@ namespace webserver {
 
 		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (), false, ShareApi::handleRefreshShare);
 		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("paths")), true, ShareApi::handleRefreshPaths);
+		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("virtual")), true, ShareApi::handleRefreshVirtual);
 	}
 
 	ShareApi::~ShareApi() {
@@ -50,9 +51,29 @@ namespace webserver {
 
 	api_return ShareApi::handleRefreshPaths(ApiRequest& aRequest) {
 		auto paths = JsonUtil::getField<StringList>("paths", aRequest.getRequestBody(), false);
-		auto ret = ShareManager::getInstance()->refreshPaths(paths);
 
-		//aRequest.setResponseBody(j);
+		auto ret = ShareManager::getInstance()->refreshPaths(paths);
+		if (ret == ShareManager::RefreshResult::REFRESH_PATH_NOT_FOUND) {
+			aRequest.setResponseErrorStr("Invalid paths were supplied");
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return ShareApi::handleRefreshVirtual(ApiRequest& aRequest) {
+		auto path = JsonUtil::getField<string>("path", aRequest.getRequestBody(), false);
+		auto profile = JsonUtil::getField<ProfileToken>("profile", aRequest.getRequestBody());
+
+		StringList refreshPaths;
+		try {
+			ShareManager::getInstance()->getRealPaths(path, refreshPaths, profile);
+		} catch (const ShareException& e) {
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		ShareManager::getInstance()->refreshPaths(refreshPaths);
 		return websocketpp::http::status_code::ok;
 	}
 

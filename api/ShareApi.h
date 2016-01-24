@@ -37,6 +37,7 @@ namespace webserver {
 	private:
 		api_return handleRefreshShare(ApiRequest& aRequest);
 		api_return handleRefreshPaths(ApiRequest& aRequest);
+		api_return handleRefreshVirtual(ApiRequest& aRequest);
 
 		api_return handleGetStats(ApiRequest& aRequest);
 

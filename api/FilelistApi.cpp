@@ -37,6 +37,7 @@ namespace webserver {
 
 		METHOD_HANDLER("session", Access::FILELISTS_EDIT, ApiRequest::METHOD_DELETE, (CID_PARAM), false, FilelistApi::handleDeleteList);
 		METHOD_HANDLER("session", Access::FILELISTS_EDIT, ApiRequest::METHOD_POST, (), true, FilelistApi::handlePostList);
+		METHOD_HANDLER("session", Access::FILELISTS_VIEW, ApiRequest::METHOD_POST, (EXACT_PARAM("me")), true, FilelistApi::handleOwnList);
 
 		METHOD_HANDLER("download_directory", Access::DOWNLOAD, ApiRequest::METHOD_POST, (), true, FilelistApi::handleDownload);
 		METHOD_HANDLER("find_nfo", Access::VIEW_FILES_EDIT, ApiRequest::METHOD_POST, (), true, FilelistApi::handleFindNfo);
@@ -90,6 +91,13 @@ namespace webserver {
 
 	api_return FilelistApi::handlePostList(ApiRequest& aRequest) {
 		return handleQueueList(aRequest, QueueItem::FLAG_CLIENT_VIEW);
+	}
+
+	api_return FilelistApi::handleOwnList(ApiRequest& aRequest) {
+		auto profile = JsonUtil::getField<ProfileToken>("profile", aRequest.getRequestBody());
+		DirectoryListingManager::getInstance()->openOwnList(profile);
+
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return FilelistApi::handleDeleteList(ApiRequest& aRequest) {
@@ -150,7 +158,8 @@ namespace webserver {
 			{ "partial", aList->getPartialList() },
 			{ "total_files", totalFiles },
 			{ "total_size", shareSize },
-			{ "read", aList->isRead() }
+			{ "read", aList->isRead() },
+			{ "profile", aList->getShareProfile() },
 		};
 	}
 
