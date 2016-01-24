@@ -55,13 +55,13 @@ namespace webserver {
 		return{
 			{ "id", aFile->getTTH().toBase32() },
 			{ "tth", aFile->getTTH().toBase32() },
-			//{ "path", aFile->getPath() },
 			{ "text", aFile->isText() },
 			{ "read", aFile->getRead() },
 			{ "name", aFile->getDisplayName() },
 			{ "state", Serializer::serializeDownloadState(aFile->getDownloadState()) },
 			{ "type", Serializer::serializeFileType(aFile->getPath()) },
 			{ "time_finished", aFile->getTimeFinished() },
+			{ "downloaded", !aFile->isLocalFile() },
 		};
 	}
 
@@ -83,12 +83,12 @@ namespace webserver {
 
 		auto name = JsonUtil::getField<string>("name", j, false);
 		auto size = JsonUtil::getField<int64_t>("size", j);
-		auto user = Deserializer::deserializeHintedUser(j);
+		auto user = Deserializer::deserializeHintedUser(j, true);
 		auto isText = JsonUtil::getOptionalFieldDefault<bool>("text", j, false);
 
 		bool added = false;
 		try {
-			added = ViewFileManager::getInstance()->addFileThrow(name, size, tth, user, isText);
+			added = ViewFileManager::getInstance()->addUserFileThrow(name, size, tth, user, isText);
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::internal_server_error;

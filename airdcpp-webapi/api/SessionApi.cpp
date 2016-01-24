@@ -26,6 +26,7 @@
 #include <web-server/WebUserManager.h>
 
 #include <airdcpp/ActivityManager.h>
+#include <airdcpp/ClientManager.h>
 #include <airdcpp/SettingsManager.h>
 #include <airdcpp/version.h>
 
@@ -82,6 +83,7 @@ namespace webserver {
 			{ "user", session->getUser()->getUserName() },
 			{ "system", getSystemInfo(aIp) },
 			{ "run_wizard", SETTING(WIZARD_RUN) },
+			{ "cid", ClientManager::getInstance()->getMyCID().toBase32() },
 		};
 
 		if (aSocket) {

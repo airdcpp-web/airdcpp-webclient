@@ -63,7 +63,7 @@ namespace webserver {
 
 		dl->addListener(this);
 
-		if (dl->hasCompletedDownloads()) {
+		if (dl->isLoaded()) {
 			updateItems(dl->getCurrentLocationInfo().directory->getPath());
 		}
 	}
@@ -100,7 +100,7 @@ namespace webserver {
 
 	string FilelistInfo::formatState(const DirectoryListingPtr& aList) noexcept {
 		if (aList->getDownloadState() == DirectoryListing::STATE_DOWNLOADED) {
-			return !aList->getCurrentLocationInfo().directory || aList->getCurrentLocationInfo().directory->getLoading() ? "loading" : "loaded";
+			return aList->isLoaded() ? "loaded" : "loading";
 		}
 
 		return Serializer::serializeDownloadState(aList->getDownloadState());
