@@ -42,16 +42,22 @@ namespace dcpp {
 		ViewFileMap getFiles() const noexcept;
 
 		// Adds the file and shows a notification in case of errors
-		bool addFileNotify(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) noexcept;
+		// Can be used for viewing own files by TTH as well
+		bool addUserFileNotify(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) noexcept;
 
 		// Adds the file and throws if there are errors
-		bool addFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) throw(QueueException, FileException);
+		// Can be used for viewing own files by TTH as well
+		bool addUserFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) throw(QueueException, FileException);
+
+		// Add a file by real path
+		bool addLocalFile(const string& aPath, const TTHValue& aTTH, bool aIsText) noexcept;
 
 		bool removeFile(const TTHValue& aTTH) noexcept;
 
 		ViewFilePtr getFile(const TTHValue& aTTH) const noexcept;
 		bool setRead(const TTHValue& aTTH) noexcept;
 	private:
+		ViewFilePtr createFile(const string& aFileName, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile) noexcept;
 		static bool isViewedItem(const QueueItemPtr& aQI) noexcept;
 
 		void on(QueueManagerListener::Added, QueueItemPtr& aQI) noexcept;

@@ -23,18 +23,22 @@
 #include "File.h"
 
 namespace dcpp {
-	ViewFile::ViewFile(const string& aTarget, const TTHValue& aTTH, bool aIsText, UpdateF&& aUpdateFunction) noexcept :
-		path(aTarget), tth(aTTH), updateFunction(aUpdateFunction), text(aIsText) {
+	ViewFile::ViewFile(const string& aTarget, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile, UpdateF&& aUpdateFunction) noexcept :
+		TrackableDownloadItem(aIsLocalFile), path(aTarget), tth(aTTH), updateFunction(aUpdateFunction), text(aIsText), localFile(aIsLocalFile) {
 
-		onAddedQueue(path);
+		if (!aIsLocalFile) {
+			onAddedQueue(path);
+		}
 	}
 
 	ViewFile::~ViewFile() noexcept {
-		File::deleteFile(path);
+		if (!localFile) {
+			File::deleteFile(path);
+		}
 	}
 
 	string ViewFile::getDisplayName() const noexcept {
-		return AirUtil::fromOpenFileName(Util::getFileName(path));
+		return localFile ? Util::getFileName(path) : AirUtil::fromOpenFileName(Util::getFileName(path));
 	}
 
 	void ViewFile::onStateChanged() noexcept {

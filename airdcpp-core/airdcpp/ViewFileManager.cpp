@@ -48,8 +48,6 @@ namespace dcpp {
 
 		auto file = getFile(aQI->getTTH());
 		if (file) {
-			file->setTimeFinished(GET_TIME());
-
 			file->onRemovedQueue(aQI->getTarget(), true);
 			fire(ViewFileManagerListener::FileFinished(), file);
 		}
@@ -72,15 +70,20 @@ namespace dcpp {
 			return;
 		}
 
-		auto file = make_shared<ViewFile>(aQI->getTarget(), aQI->getTTH(), aQI->isSet(QueueItem::FLAG_TEXT), 
+		createFile(aQI->getTarget(), aQI->getTTH(), aQI->isSet(QueueItem::FLAG_TEXT), false);
+	}
+
+	ViewFilePtr ViewFileManager::createFile(const string& aFileName, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile) noexcept {
+		auto file = make_shared<ViewFile>(aFileName, aTTH, aIsText, aIsLocalFile,
 			std::bind(&ViewFileManager::onFileUpdated, this, std::placeholders::_1));
 
 		{
 			WLock l(cs);
-			viewFiles[aQI->getTTH()] = file;
+			viewFiles[aTTH] = file;
 		}
 
 		fire(ViewFileManagerListener::FileAdded(), file);
+		return file;
 	}
 
 	void ViewFileManager::onFileUpdated(const TTHValue& aTTH) noexcept {
@@ -113,8 +116,28 @@ namespace dcpp {
 
 		return p->second;
 	}
+
+	bool ViewFileManager::addLocalFile(const string& aPath, const TTHValue& aTTH, bool aIsText) noexcept {
+		if (getFile(aTTH)) {
+			return false;
+		}
+
+		auto file = createFile(aPath, aTTH, aIsText, true);
+
+		fire(ViewFileManagerListener::FileFinished(), file);
+		return true;
+	}
 	
-	bool ViewFileManager::addFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) throw(QueueException, FileException) {
+	bool ViewFileManager::addUserFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) throw(QueueException, FileException) {
+		if (aUser == ClientManager::getInstance()->getMe()) {
+			auto paths = ShareManager::getInstance()->getRealPaths(aTTH);
+			if (!paths.empty()) {
+				return addLocalFile(paths.front(), aTTH, aIsText);
+			}
+
+			return false;
+		}
+
 		if (getFile(aTTH)) {
 			return false;
 		}
@@ -123,9 +146,9 @@ namespace dcpp {
 		return true;
 	}
 
-	bool ViewFileManager::addFileNotify(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) noexcept {
+	bool ViewFileManager::addUserFileNotify(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) noexcept {
 		try {
-			if (ViewFileManager::getInstance()->addFileThrow(aFileName, aSize, aTTH, aUser, aIsText)) {
+			if (ViewFileManager::getInstance()->addUserFileThrow(aFileName, aSize, aTTH, aUser, aIsText)) {
 				return true;
 			}
 
