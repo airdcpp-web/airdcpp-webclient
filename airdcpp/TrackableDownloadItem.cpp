@@ -25,6 +25,12 @@
 
 
 namespace dcpp {
+	TrackableDownloadItem::TrackableDownloadItem(bool aDownloaded) noexcept : state(aDownloaded ? STATE_DOWNLOADED : STATE_DOWNLOAD_PENDING) {
+		if (aDownloaded) {
+			timeFinished = GET_TIME();
+		}
+	}
+
 	TrackableDownloadItem::~TrackableDownloadItem() {
 		if (hasDownloads()) {
 			DownloadManager::getInstance()->removeListener(this);
@@ -68,6 +74,7 @@ namespace dcpp {
 	void TrackableDownloadItem::onRemovedQueue(const string& aPath, bool aFinished) noexcept {
 		if (aFinished) {
 			completedDownloads = true;
+			timeFinished = GET_TIME();
 		}
 			
 		dcassert(completedDownloads);

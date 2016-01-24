@@ -32,6 +32,7 @@ namespace dcpp {
 		virtual void onRemovedQueue(const string& aDir, bool aFinished) noexcept;
 		virtual void onAddedQueue(const string& aDir) noexcept;
 
+		TrackableDownloadItem(bool aDownloaded) noexcept;
 		~TrackableDownloadItem() noexcept;
 
 		enum State : uint8_t {
@@ -50,6 +51,8 @@ namespace dcpp {
 
 		bool hasDownloads() const noexcept;
 		StringList getDownloads() const noexcept;
+
+		IGETSET(time_t, timeFinished, TimeFinished, 0);
 	protected:
 		virtual void onStateChanged() noexcept = 0;
 

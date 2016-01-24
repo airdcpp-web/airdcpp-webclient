@@ -42,7 +42,7 @@ namespace dcpp {
 using boost::range::for_each;
 using boost::range::find_if;
 
-DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) :
+DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : TrackableDownloadItem(aIsOwnList || (!aPartial && !aFileName.empty())),
 	hintedUser(aUser), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD, 0)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
 	isClientView(aIsClientView), matchADL(SETTING(USE_ADLS) && !aPartial), 
 	tasks(isClientView, Thread::NORMAL, std::bind(&DirectoryListing::dispatch, this, std::placeholders::_1))
@@ -108,6 +108,23 @@ void stripExtensions(string& name) noexcept {
 	if(Util::stricmp(name.c_str() + name.length() - 4, ".xml") == 0) {
 		name.erase(name.length() - 4);
 	}
+}
+
+ProfileToken DirectoryListing::getShareProfile() const noexcept {
+	return Util::toInt(fileName);
+}
+
+void DirectoryListing::setShareProfile(ProfileToken aProfile) noexcept {
+	setFileName(Util::toString(aProfile));
+	if (partialList) {
+		addAsyncTask([=] {
+			changeDirectory(Util::emptyString, RELOAD_ALL);
+		});
+	} else {
+		addFullListTask(Util::emptyString);
+	}
+
+	SettingsManager::getInstance()->set(SettingsManager::LAST_LIST_PROFILE, aProfile);
 }
 
 string DirectoryListing::getNickFromFilename(const string& fileName) noexcept {
@@ -506,7 +523,17 @@ int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {
 }
 
 bool DirectoryListing::viewAsText(const File::Ptr& aFile) const noexcept {
-	return ViewFileManager::getInstance()->addFileNotify(aFile->getName(), aFile->getSize(), aFile->getTTH(), hintedUser, true);
+	if (isOwnList) {
+		StringList paths;
+		getLocalPaths(aFile, paths);
+		if (!paths.empty()) {
+			return ViewFileManager::getInstance()->addLocalFile(paths.front(), aFile->getTTH(), true);
+		}
+
+		return false;
+	}
+
+	return ViewFileManager::getInstance()->addUserFileNotify(aFile->getName(), aFile->getSize(), aFile->getTTH(), hintedUser, true);
 }
 
 DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& aName, const Directory::Ptr& current) const noexcept {
@@ -544,7 +571,7 @@ void DirectoryListing::findNfoImpl(const string& aPath, bool aAllowQueueList, Du
 		try {
 			SearchResultList results;
 			auto s = unique_ptr<SearchQuery>(SearchQuery::getSearch(Util::emptyString, Util::emptyString, 0, SearchManager::TYPE_ANY, SearchManager::SIZE_DONTCARE, { ".nfo" }, SearchQuery::MATCH_NAME, false, 10));
-			ShareManager::getInstance()->search(results, *s.get(), Util::toInt(getFileName()), ClientManager::getInstance()->getMyCID(), Util::toAdcFile(aPath));
+			ShareManager::getInstance()->search(results, *s.get(), getShareProfile(), ClientManager::getInstance()->getMyCID(), Util::toAdcFile(aPath));
 
 			if (!results.empty()) {
 				auto paths = AirUtil::getDupePaths(DUPE_SHARE, results.front()->getTTH());
@@ -660,7 +687,7 @@ void DirectoryListing::getLocalPaths(const File::Ptr& f, StringList& ret) const 
 		else
 			path = f->getParent()->getPath();
 
-		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path + f->getName()), ret, Util::toInt(fileName));
+		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path + f->getName()), ret, getShareProfile());
 	} else {
 		ret = AirUtil::getDupePaths(f->getDupe(), f->getTTH());
 	}
@@ -677,7 +704,7 @@ void DirectoryListing::getLocalPaths(const Directory::Ptr& d, StringList& ret) c
 		path = d->getPath();
 
 	if (isOwnList) {
-		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path), ret, Util::toInt(fileName));
+		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path), ret, getShareProfile());
 	} else {
 		ret = ShareManager::getInstance()->getDirPaths(path);
 	}
@@ -967,7 +994,7 @@ void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, in
 	if (isOwnList && partialList) {
 		SearchResultList results;
 		try {
-			ShareManager::getInstance()->search(results, *curSearch, Util::toInt(fileName), CID(), aDir);
+			ShareManager::getInstance()->search(results, *curSearch, getShareProfile(), CID(), aDir);
 		} catch (...) {}
 
 		for (const auto& sr : results)
@@ -1055,6 +1082,10 @@ void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDi
 	}
 }
 
+bool DirectoryListing::isLoaded() const noexcept {
+	return currentLocation.directory && !currentLocation.directory->getLoading();
+}
+
 void DirectoryListing::matchQueueImpl() noexcept {
 	int matches = 0, newFiles = 0;
 	BundleList bundles;
@@ -1133,7 +1164,7 @@ void DirectoryListing::endSearch(bool timedOut /*false*/) noexcept {
 }
 
 int DirectoryListing::loadShareDirectory(const string& aPath, bool aRecurse) throw(Exception, AbortException) {
-	auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(aPath), aRecurse, Util::toInt(fileName));
+	auto mis = ShareManager::getInstance()->generatePartialList(Util::toAdcFile(aPath), aRecurse, getShareProfile());
 	if (mis) {
 		return loadXML(*mis, true, Util::toAdcFile(aPath));
 	}
@@ -1227,7 +1258,7 @@ void DirectoryListing::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, c
 
 	string lastVirtual;
 	for (const auto& p : aPaths) {
-		auto vPath = ShareManager::getInstance()->realToVirtual(p, Util::toInt(fileName));
+		auto vPath = ShareManager::getInstance()->realToVirtual(p, getShareProfile());
 		if (!vPath.empty() && lastVirtual != vPath && findDirectory(vPath)) {
 			addAsyncTask([=] { loadPartialImpl(Util::emptyString, vPath, false, false, nullptr); });
 			lastVirtual = vPath;

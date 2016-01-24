@@ -363,16 +363,18 @@ void DirectoryListingManager::on(QueueManagerListener::Removed, const QueueItemP
 
 void DirectoryListingManager::openOwnList(ProfileToken aProfile, bool useADL /*false*/) noexcept {
 	auto me = HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString);
-	if (hasList(me.user))
+
+	auto dl = hasList(me.user);
+	if (dl) {
+		if (dl->getShareProfile() != aProfile) {
+			dl->setShareProfile(aProfile);
+		}
+
 		return;
-
-	auto dl = DirectoryListingPtr(new DirectoryListing(me, !useADL, Util::toString(aProfile), true, true));
-	dl->setMatchADL(useADL);
-
-	{
-		WLock l(cs);
-		viewedLists[me] = dl;
 	}
+
+	dl = createList(me, !useADL, Util::toString(aProfile), true);
+	dl->setMatchADL(useADL);
 
 	fire(DirectoryListingManagerListener::OpenListing(), dl, Util::emptyString, Util::emptyString);
 }
@@ -381,14 +383,20 @@ void DirectoryListingManager::openFileList(const HintedUser& aUser, const string
 	if (hasList(aUser.user))
 		return;
 
-	auto dl = DirectoryListingPtr(new DirectoryListing(aUser, false, aFile, true, false));
+	auto dl = createList(aUser, false, aFile, false);
+	fire(DirectoryListingManagerListener::OpenListing(), dl, Util::emptyString, Util::emptyString);
+}
+
+DirectoryListingPtr DirectoryListingManager::createList(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsOwnList) noexcept {
+	auto dl = DirectoryListingPtr(new DirectoryListing(aUser, aPartial, aFileName, true, aIsOwnList));
 
 	{
 		WLock l(cs);
-		viewedLists[aUser.user] = dl;
+		viewedLists[dl->getHintedUser()] = dl;
 	}
 
-	fire(DirectoryListingManagerListener::OpenListing(), dl, Util::emptyString, Util::emptyString);
+	fire(DirectoryListingManagerListener::ListingCreated(), dl);
+	return dl;
 }
 
 void DirectoryListingManager::on(QueueManagerListener::Added, QueueItemPtr& aQI) noexcept {
@@ -403,19 +411,12 @@ void DirectoryListingManager::on(QueueManagerListener::Added, QueueItemPtr& aQI)
 	}
 
 	if (!aQI->isSet(QueueItem::FLAG_PARTIAL_LIST)) {
-		dl = DirectoryListingPtr(new DirectoryListing(user, false, aQI->getListName(), true, false));
+		dl = createList(user, false, aQI->getListName(), false);
 	} else {
-		dl = DirectoryListingPtr(new DirectoryListing(user, true, Util::emptyString, true, false));
+		dl = createList(user, true, Util::emptyString, false);
 	}
 
 	dl->onAddedQueue(aQI->getTarget());
-
-	{
-		WLock l(cs);
-		viewedLists[user] = dl;
-	}
-
-	fire(DirectoryListingManagerListener::ListingCreated(), dl);
 }
 
 DirectoryListingPtr DirectoryListingManager::hasList(const UserPtr& aUser) noexcept {

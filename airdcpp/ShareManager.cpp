@@ -1128,13 +1128,20 @@ void ShareManager::getRealPaths(const string& aPath, StringList& ret, ProfileTok
 
 	Directory::List dirs;
 
-	RLock l (cs);
-	findVirtuals<ProfileToken>(aPath, aProfile, dirs);
+	RLock l(cs);
+	if (aPath == "/") {
+		boost::algorithm::copy_if(rootPaths | map_values, back_inserter(dirs), Directory::HasRootProfile(aProfile));
+	} else {
+		findVirtuals(aPath, aProfile, dirs);
+	}
 
 	if (aPath.back() == '/') {
-		for(const auto& d: dirs)
+		// Directory
+		for (const auto& d : dirs) {
 			ret.push_back(d->getRealPath());
-	} else { //its a file
+		}
+	} else {
+		// File
 		auto fileName = Text::toLower(Util::getAdcFileName(aPath));
 		for(const auto& d: dirs) {
 			auto it = d->files.find(fileName);
@@ -1721,7 +1728,6 @@ void ShareManager::getRootsByVirtual(const string& virtualName, ProfileToken aPr
 }
 
 void ShareManager::getRootsByVirtual(const string& virtualName, const ProfileTokenSet& aProfiles, Directory::List& dirs) const noexcept {
-	RLock l(cs);
 	for(const auto& d: rootPaths | map_values) {
 		// Compare name
 		if (Util::stricmp(d->getProfileDir()->getNameLower(), virtualName) != 0) {
