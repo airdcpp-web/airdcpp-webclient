@@ -30,6 +30,10 @@ Ubuntu 14.04 or newer is required for installing the client.
 
 `sudo apt-get install libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.5*-dev libboost-regex1.5* libboost-thread1.5* libboost-system1.5* libleveldb-dev`
 
+##### Other Linux
+
+Install the packages: `boost` `miniupnpc` `leveldb` `geoip` `libnatpmp`.
+
 #### Install WebSocket++
 
 If you are running Ubuntu 15.10 or newer, you may use the following command to install the package:
@@ -55,7 +59,7 @@ git clone https://github.com/airdcpp-web/airdcpp-webclient.git
 cd airdcpp-webclient
 ```
 
-### Compile and install
+### Compile and install it
 
 ```
 cmake .
