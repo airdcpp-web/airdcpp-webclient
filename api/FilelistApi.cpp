@@ -94,7 +94,7 @@ namespace webserver {
 	}
 
 	api_return FilelistApi::handleOwnList(ApiRequest& aRequest) {
-		auto profile = JsonUtil::getField<ProfileToken>("profile", aRequest.getRequestBody());
+		auto profile = JsonUtil::getField<ProfileToken>("share_profile", aRequest.getRequestBody());
 		DirectoryListingManager::getInstance()->openOwnList(profile);
 
 		return websocketpp::http::status_code::ok;
@@ -143,12 +143,9 @@ namespace webserver {
 	}
 
 	json FilelistApi::serializeList(const DirectoryListingPtr& aList) noexcept {
-		int64_t shareSize = -1, totalFiles = -1;
-		auto user = ClientManager::getInstance()->findOnlineUser(aList->getHintedUser());
-		if (user) {
-			shareSize = Util::toInt64(user->getIdentity().getShareSize());
-			totalFiles = Util::toInt64(user->getIdentity().getSharedFiles());
-		}
+		int64_t totalSize = -1;
+		size_t totalFiles = -1;
+		aList->getPartialListInfo(totalSize, totalFiles);
 
 		return{
 			{ "id", aList->getUser()->getCID().toBase32() },
@@ -157,9 +154,9 @@ namespace webserver {
 			{ "location", FilelistInfo::serializeLocation(aList) },
 			{ "partial", aList->getPartialList() },
 			{ "total_files", totalFiles },
-			{ "total_size", shareSize },
+			{ "total_size", totalSize },
 			{ "read", aList->isRead() },
-			{ "profile", aList->getShareProfile() },
+			{ "share_profile", aList->getIsOwnList() ? Serializer::serializeShareProfileSimple(aList->getShareProfile()) : nullptr },
 		};
 	}
 
