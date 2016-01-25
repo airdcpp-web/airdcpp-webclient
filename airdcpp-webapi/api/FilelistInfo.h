@@ -118,6 +118,7 @@ namespace webserver {
 		void on(DirectoryListingListener::UserUpdated) noexcept;
 		void on(DirectoryListingListener::StateChanged) noexcept;
 		void on(DirectoryListingListener::Read) noexcept;
+		void on(DirectoryListingListener::ShareProfileChanged) noexcept;
 
 		void addListTask(CallBack&& aTask) noexcept;
 

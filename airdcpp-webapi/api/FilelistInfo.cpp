@@ -200,6 +200,12 @@ namespace webserver {
 		});
 	}
 
+	void FilelistInfo::on(DirectoryListingListener::ShareProfileChanged) noexcept {
+		onSessionUpdated({
+			{ "share_profile", Serializer::serializeShareProfileSimple(dl->getShareProfile()) }
+		});
+	}
+
 	void FilelistInfo::onSessionUpdated(const json& aData) noexcept {
 		if (!subscriptionActive("filelist_updated")) {
 			return;
