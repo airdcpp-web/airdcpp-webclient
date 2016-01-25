@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "version.h"
 
+#include "ActivityManager.h"
 #include "AdcCommand.h"
 #include "AdcHub.h"
 #include "Message.h"
@@ -1436,7 +1437,7 @@ void AdcHub::infoImpl() {
 	addParam(lastInfoMap, c, "HO", Util::toString(counts[COUNT_OP]));	
 
 	addParam(lastInfoMap, c, "VE", shortVersionString);
-	addParam(lastInfoMap, c, "AW", AirUtil::getAway() ? "1" : Util::emptyString);
+	addParam(lastInfoMap, c, "AW", ActivityManager::getInstance()->isAway() ? "1" : Util::emptyString);
 	addParam(lastInfoMap, c, "LC", Localization::getCurrentLocale());
 
 	int64_t limit = ThrottleManager::getInstance()->getDownLimit() * 1000;

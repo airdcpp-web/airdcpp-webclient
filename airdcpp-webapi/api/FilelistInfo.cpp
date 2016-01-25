@@ -63,7 +63,7 @@ namespace webserver {
 
 		dl->addListener(this);
 
-		if (dl->hasCompletedDownloads()) {
+		if (dl->isLoaded()) {
 			updateItems(dl->getCurrentLocationInfo().directory->getPath());
 		}
 	}
@@ -100,7 +100,7 @@ namespace webserver {
 
 	string FilelistInfo::formatState(const DirectoryListingPtr& aList) noexcept {
 		if (aList->getDownloadState() == DirectoryListing::STATE_DOWNLOADED) {
-			return !aList->getCurrentLocationInfo().directory || aList->getCurrentLocationInfo().directory->getLoading() ? "loading" : "loaded";
+			return aList->isLoaded() ? "loaded" : "loading";
 		}
 
 		return Serializer::serializeDownloadState(aList->getDownloadState());
@@ -197,6 +197,12 @@ namespace webserver {
 	void FilelistInfo::on(DirectoryListingListener::UserUpdated) noexcept {
 		onSessionUpdated({
 			{ "user", Serializer::serializeHintedUser(dl->getHintedUser()) }
+		});
+	}
+
+	void FilelistInfo::on(DirectoryListingListener::ShareProfileChanged) noexcept {
+		onSessionUpdated({
+			{ "share_profile", Serializer::serializeShareProfileSimple(dl->getShareProfile()) }
 		});
 	}
 

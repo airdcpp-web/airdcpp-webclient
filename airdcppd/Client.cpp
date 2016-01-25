@@ -21,7 +21,7 @@
 #include <airdcpp/DCPlusPlus.h>
 #include <airdcpp/Util.h>
 
-#include <airdcpp/AirUtil.h>
+#include <airdcpp/ActivityManager.h>
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/ConnectivityManager.h>
 #include <airdcpp/DirectoryListingManager.h>
@@ -95,7 +95,7 @@ bool Client::startup() {
 		return false;
 	}
 
-	AirUtil::setAway(AWAY_IDLE);
+	ActivityManager::getInstance()->setAway(AWAY_IDLE);
 	SettingsManager::getInstance()->setDefault(SettingsManager::LOG_IGNORED, false);
 	SettingsManager::getInstance()->setDefault(SettingsManager::NICK, getDefaultNick());
 

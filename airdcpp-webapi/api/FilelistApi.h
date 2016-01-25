@@ -45,6 +45,7 @@ namespace webserver {
 
 		api_return handlePostList(ApiRequest& aRequest);
 		api_return handleDeleteList(ApiRequest& aRequest);
+		api_return handleOwnList(ApiRequest& aRequest);
 
 		api_return handleGetLists(ApiRequest& aRequest);
 		api_return handleDownload(ApiRequest& aRequest);

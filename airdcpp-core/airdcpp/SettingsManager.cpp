@@ -233,7 +233,7 @@ const string SettingsManager::settingTags[] =
 
 	// Bools
 	"AddFinishedInstantly", "AdlsBreakOnFirst",
-	"AllowUntrustedClients", "AllowUntrustedHubs", "AutoAway",
+	"AllowUntrustedClients", "AllowUntrustedHubs",
 	"AutoDetectIncomingConnection", "AutoDetectIncomingConnection6", "AutoFollow", "AutoKick", "AutoKickNoFavs", "AutoSearch",
 	"AwayCompLock", "BoldFinishedDownloads", "BoldFinishedUploads", "BoldHub", "BoldPm",
 	"BoldQueue", "BoldSearch", "BoldSystemLog", "ClearSearch",
@@ -358,7 +358,6 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(LOG_FILE_SYSTEM, "%Y-%m-system.log");
 	setDefault(GET_USER_INFO, true);
 	setDefault(URL_HANDLER, true);
-	setDefault(AUTO_AWAY, false);
 	setDefault(SOCKS_PORT, 1080);
 	setDefault(SOCKS_RESOLVE, true);
 	setDefault(CONFIG_VERSION, "0.181");		// 0.181 is the last version missing configversion

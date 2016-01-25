@@ -54,20 +54,20 @@ AutoSearchManager::~AutoSearchManager() noexcept {
 	QueueManager::getInstance()->removeListener(this);
 }
 
-void AutoSearchManager::logMessage(const string& aMsg, bool error) const noexcept {
-	LogManager::getInstance()->message(STRING(AUTO_SEARCH) + ": " +  aMsg, error ? LogMessage::SEV_ERROR : LogMessage::SEV_INFO);
+void AutoSearchManager::logMessage(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
+	LogManager::getInstance()->message(STRING(AUTO_SEARCH) + ": " +  aMsg, aSeverity);
 }
 
 /* Adding new items for external use */
 AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, TargetUtil::TargetType aTargetType, bool isDirectory, AutoSearch::ItemType asType, bool aRemove, int aInterval) noexcept {
 	if (ss.length() <= 5) {
-		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, ss % STRING(LINE_EMPTY_OR_TOO_SHORT)), true);
+		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, ss % STRING(LINE_EMPTY_OR_TOO_SHORT)), LogMessage::SEV_ERROR);
 		return nullptr;
 	}
 
 	auto lst = getSearchesByString(ss);
 	if (!lst.empty()) {
-		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, ss % STRING(ITEM_NAME_EXISTS)), true);
+		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, ss % STRING(ITEM_NAME_EXISTS)), LogMessage::SEV_ERROR);
 		return nullptr;
 	}
 
@@ -97,7 +97,7 @@ void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search, bo
 	if (search) {
 		if (!searchItem(aAutoSearch, TYPE_NEW)) {
 			//no hubs
-			logMessage(CSTRING_F(AUTOSEARCH_ADDED, aAutoSearch->getSearchString()), false);
+			logMessage(CSTRING_F(AUTOSEARCH_ADDED, aAutoSearch->getSearchString()), LogMessage::SEV_INFO);
 		}
 	} 
 	if(!loading) {
@@ -330,7 +330,7 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) 
 	handleExpiredItems(expired);
 	for (auto& as : removed) {
 		removeAutoSearch(as);
-		logMessage(STRING_F(COMPLETE_ITEM_X_REMOVED, as->getSearchString()), false);
+		logMessage(STRING_F(COMPLETE_ITEM_X_REMOVED, as->getSearchString()), LogMessage::SEV_INFO);
 	}
 	//One or more items got in searching state again
 	if (itemsEnabled)
@@ -341,10 +341,10 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) 
 void AutoSearchManager::handleExpiredItems(AutoSearchList& expired) noexcept{
 	for (auto& as : expired) {
 		if (SETTING(REMOVE_EXPIRED_AS)) {
-			logMessage(STRING_F(EXPIRED_AS_REMOVED, as->getSearchString()), false);
+			logMessage(STRING_F(EXPIRED_AS_REMOVED, as->getSearchString()), LogMessage::SEV_INFO);
 			removeAutoSearch(as);
 		} else if (as->getEnabled()) {
-			logMessage(STRING_F(EXPIRED_AS_DISABLED, as->getSearchString()), false);
+			logMessage(STRING_F(EXPIRED_AS_DISABLED, as->getSearchString()), LogMessage::SEV_INFO);
 			setItemActive(as, false);
 		} else {
 			// disabled already
@@ -449,7 +449,7 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 				msg = STRING_F(ITEM_SEARCHED_IN, searchWord % time);
 			}
 		}
-		logMessage(msg, false);
+		logMessage(msg, LogMessage::SEV_INFO);
 	} else {
 		fire(AutoSearchManagerListener::SearchForeground(), as, searchWord);
 	}
@@ -850,11 +850,12 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 		} else {
 			TargetUtil::TargetInfo ti;
 			bool hasSpace = TargetUtil::getVirtualTarget(as->getTarget(), as->getTargetType(), ti, sr->getSize());
-			if (!hasSpace)
-				TargetUtil::reportInsufficientSize(ti, sr->getSize());
+			if (!hasSpace) {
+				logMessage(TargetUtil::formatSizeNotification(ti, sr->getSize()), LogMessage::SEV_WARNING);
+			}
 
 			try {
-				auto b = QueueManager::getInstance()->createFileBundle(ti.targetDir + sr->getFileName(), sr->getSize(), sr->getTTH(), 
+				auto b = QueueManager::getInstance()->createFileBundle(ti.getTarget() + sr->getFileName(), sr->getSize(), sr->getTTH(), 
 					sr->getUser(), sr->getDate(), 0, 
 					((as->getAction() == AutoSearch::ACTION_QUEUE) ? QueueItem::PAUSED : QueueItem::DEFAULT));
 
@@ -862,7 +863,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 					onBundleCreated(b, as->getToken());
 				}
 			} catch(const Exception& e) {
-				onBundleError(as->getToken(), e.getError(), ti.targetDir + sr->getFileName(), sr->getUser());
+				onBundleError(as->getToken(), e.getError(), ti.getTarget() + sr->getFileName(), sr->getUser());
 				return;
 			}
 		}
@@ -881,7 +882,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 
 				if (as->getRemove()) {
 					removeAutoSearch(as);
-					logMessage(STRING_F(COMPLETE_ITEM_X_REMOVED, as->getSearchString()), false);
+					logMessage(STRING_F(COMPLETE_ITEM_X_REMOVED, as->getSearchString()), LogMessage::SEV_INFO);
 				}
 			}
 		}

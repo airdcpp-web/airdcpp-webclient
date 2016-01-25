@@ -20,6 +20,8 @@
 #define DCPLUSPLUS_DCPP_TARGET_UTIL_H
 
 #include "typedefs.h"
+
+#include "GetSet.h"
 #include "Util.h"
 
 #include <string>
@@ -30,19 +32,38 @@ using std::string;
 class TargetUtil {
 
 public:
-	struct TargetInfo {
-		explicit TargetInfo() : targetDir(Util::emptyString), diskSpace(0), queued(0) { }
-		explicit TargetInfo(const string& aPath, int64_t aFreeSpace) : targetDir(aPath), diskSpace(aFreeSpace), queued(0) { }
+	class TargetInfo {
+	public:
+		explicit TargetInfo() { }
+		explicit TargetInfo(const string& aPath, int64_t aFreeSpace = 0) : target(aPath), freeDiskSpace(aFreeSpace) { }
 
-		string targetDir;
-		int64_t diskSpace, queued;
-		int64_t getFreeSpace() const { return diskSpace-queued; }
-		int64_t getDiff(int64_t aSize) const { return getFreeSpace() - aSize; }
-		bool isInitialized() { return diskSpace != 0 || queued != 0 || !targetDir.empty(); }
+		int64_t getRealFreeSpace() const { return freeDiskSpace - queued; }
+		bool isInitialized() { return freeDiskSpace != 0 || queued != 0 || !target.empty(); }
 
 		bool operator<(const TargetInfo& ti) const {
-			return (diskSpace-queued) < (ti.diskSpace-ti.queued);
+			return (freeDiskSpace - queued) < (ti.freeDiskSpace - ti.queued);
 		}
+
+		int64_t getQueued() const noexcept {
+			return queued;
+		}
+
+		bool hasTarget() const noexcept {
+			return !target.empty();
+		}
+
+		bool hasFreeSpace(int64_t aRequiredBytes) const noexcept {
+			return getRealFreeSpace() >= aRequiredBytes;
+		}
+
+		GETSET(string, target, Target);
+		IGETSET(int64_t, freeDiskSpace, FreeDiskSpace, 0);
+
+		void addQueued(int64_t aBytes) noexcept {
+			queued += aBytes;
+		}
+	private:
+		int64_t queued = 0;
 	};
 
 	enum TargetType {
@@ -65,8 +86,8 @@ public:
 	static bool getDiskInfo(TargetInfo& ti_);
 
 	static void compareMap(const TargetInfoMap& targets, TargetInfo& retTi_, const int64_t& aSize, int aMethod);
-	static void reportInsufficientSize(const TargetInfo& ti, int64_t aSize);
-	static string getInsufficientSizeMessage(const TargetInfo& ti, int64_t aSize);
+	static string formatSizeNotification(const TargetInfo& ti, int64_t aSize);
+	static string formatSizeConfirmation(const TargetInfo& ti, int64_t aSize);
 };
 
 }

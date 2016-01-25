@@ -37,6 +37,7 @@ namespace webserver {
 
 		METHOD_HANDLER("session", Access::FILELISTS_EDIT, ApiRequest::METHOD_DELETE, (CID_PARAM), false, FilelistApi::handleDeleteList);
 		METHOD_HANDLER("session", Access::FILELISTS_EDIT, ApiRequest::METHOD_POST, (), true, FilelistApi::handlePostList);
+		METHOD_HANDLER("session", Access::FILELISTS_VIEW, ApiRequest::METHOD_POST, (EXACT_PARAM("me")), true, FilelistApi::handleOwnList);
 
 		METHOD_HANDLER("download_directory", Access::DOWNLOAD, ApiRequest::METHOD_POST, (), true, FilelistApi::handleDownload);
 		METHOD_HANDLER("find_nfo", Access::VIEW_FILES_EDIT, ApiRequest::METHOD_POST, (), true, FilelistApi::handleFindNfo);
@@ -92,6 +93,13 @@ namespace webserver {
 		return handleQueueList(aRequest, QueueItem::FLAG_CLIENT_VIEW);
 	}
 
+	api_return FilelistApi::handleOwnList(ApiRequest& aRequest) {
+		auto profile = JsonUtil::getField<ProfileToken>("share_profile", aRequest.getRequestBody());
+		DirectoryListingManager::getInstance()->openOwnList(profile);
+
+		return websocketpp::http::status_code::ok;
+	}
+
 	api_return FilelistApi::handleDeleteList(ApiRequest& aRequest) {
 		auto list = getSubModule(aRequest.getStringParam(0));
 		if (!list) {
@@ -135,12 +143,9 @@ namespace webserver {
 	}
 
 	json FilelistApi::serializeList(const DirectoryListingPtr& aList) noexcept {
-		int64_t shareSize = -1, totalFiles = -1;
-		auto user = ClientManager::getInstance()->findOnlineUser(aList->getHintedUser());
-		if (user) {
-			shareSize = Util::toInt64(user->getIdentity().getShareSize());
-			totalFiles = Util::toInt64(user->getIdentity().getSharedFiles());
-		}
+		int64_t totalSize = -1;
+		size_t totalFiles = -1;
+		aList->getPartialListInfo(totalSize, totalFiles);
 
 		return{
 			{ "id", aList->getUser()->getCID().toBase32() },
@@ -149,8 +154,9 @@ namespace webserver {
 			{ "location", FilelistInfo::serializeLocation(aList) },
 			{ "partial", aList->getPartialList() },
 			{ "total_files", totalFiles },
-			{ "total_size", shareSize },
-			{ "read", aList->isRead() }
+			{ "total_size", totalSize },
+			{ "read", aList->isRead() },
+			{ "share_profile", aList->getIsOwnList() ? Serializer::serializeShareProfileSimple(aList->getShareProfile()) : json() },
 		};
 	}
 

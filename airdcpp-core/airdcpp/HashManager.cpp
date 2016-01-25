@@ -1206,15 +1206,15 @@ int HashManager::Hasher::run() {
 				int64_t averageSpeed = 0;
 
 				if (!failed) {
-					sizeHashed += size;
+					totalSizeHashed += size;
 					dirSizeHashed += size;
 
 					dirFilesHashed++;
-					filesHashed++;
+					totalFilesHashed++;
 				}
 
 				if(end > start) {
-					hashTime += (end - start);
+					totalHashTime += (end - start);
 					dirHashTime += (end - start);
 					averageSpeed = size * 1000 / (end - start);
 				}
@@ -1225,7 +1225,6 @@ int HashManager::Hasher::run() {
 				} else {
 					fi = HashedFile(tt.getRoot(), timestamp, size);
 					getInstance()->hashDone(fname, pathLower, tt, averageSpeed, fi, hasherID);
-					//tth = tt.getRoot();
 				}
 			} catch(const FileException& e) {
 				totalBytesLeft -= sizeLeft;
@@ -1238,6 +1237,7 @@ int HashManager::Hasher::run() {
 
 		auto onDirHashed = [&] () -> void {
 			if ((SETTING(HASHERS_PER_VOLUME) == 1 || w.empty()) && (dirFilesHashed > 1 || !failed)) {
+				getInstance()->fire(HashManagerListener::DirectoryHashed(), initialDir, dirFilesHashed, dirSizeHashed, dirHashTime, hasherID);
 				if (dirFilesHashed == 1) {
 					getInstance()->log(STRING_F(HASHING_FINISHED_FILE, currentFile % 
 						Util::formatBytes(dirSizeHashed) % 
@@ -1252,7 +1252,7 @@ int HashManager::Hasher::run() {
 				}
 			}
 
-			dirsHashed++;
+			totalDirsHashed++;
 			dirHashTime = 0;
 			dirSizeHashed = 0;
 			dirFilesHashed = 0;
@@ -1266,15 +1266,16 @@ int HashManager::Hasher::run() {
 				removeDevice(curDevID);
 
 			if (w.empty()) {
-				if (sizeHashed > 0) {
-					if (dirsHashed == 0) {
+				getInstance()->fire(HashManagerListener::HasherFinished(), totalDirsHashed, totalFilesHashed, totalSizeHashed, totalHashTime, hasherID);
+				if (totalSizeHashed > 0) {
+					if (totalDirsHashed == 0) {
 						onDirHashed();
 						//LogManager::getInstance()->message(STRING(HASHING_FINISHED_TOTAL_PLAIN), LogMessage::SEV_INFO);
 					} else {
 						onDirHashed();
-						getInstance()->log(STRING_F(HASHING_FINISHED_TOTAL, filesHashed % Util::formatBytes(sizeHashed) % dirsHashed % 
-							Util::formatTime(hashTime / 1000, true) % 
-							(Util::formatBytes(hashTime > 0 ? ((sizeHashed * 1000) / hashTime) : 0)  + "/s" )), hasherID, false, false);
+						getInstance()->log(STRING_F(HASHING_FINISHED_TOTAL, totalFilesHashed % Util::formatBytes(totalSizeHashed) % totalDirsHashed %
+							Util::formatTime(totalHashTime / 1000, true) %
+							(Util::formatBytes(totalHashTime > 0 ? ((totalSizeHashed * 1000) / totalHashTime) : 0)  + "/s" )), hasherID, false, false);
 					}
 				} else if(!fname.empty()) {
 					//all files failed to hash?
@@ -1284,10 +1285,10 @@ int HashManager::Hasher::run() {
 					initialDir.clear();
 				}
 
-				hashTime = 0;
-				sizeHashed = 0;
-				dirsHashed = 0;
-				filesHashed = 0;
+				totalHashTime = 0;
+				totalSizeHashed = 0;
+				totalDirsHashed = 0;
+				totalFilesHashed = 0;
 				lastSpeed = 0;
 				deleteThis = hasherID != 0;
 				sfv.unload();

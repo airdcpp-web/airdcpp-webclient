@@ -21,12 +21,18 @@
 
 #include <airdcpp/typedefs.h>
 
+#include <airdcpp/CryptoManager.h>
 #include <airdcpp/LogManager.h>
 #include <airdcpp/SettingsManager.h>
 #include <airdcpp/SimpleXML.h>
+#include <airdcpp/TimerManager.h>
 
 #define CONFIG_NAME "WebServer.xml"
 #define CONFIG_DIR Util::PATH_USER_CONFIG
+
+#define AUTHENTICATION_TIMEOUT 60 // seconds
+#define PING_INTERVAL 30 // seconds
+#define PONG_TIMEOUT 10 // seconds
 
 #define HANDSHAKE_TIMEOUT 0 // disabled, affects HTTP downloads
 #define DEFAULT_THREADS 4
@@ -82,12 +88,28 @@ namespace webserver {
 	void setEndpointLogSettings(T& aEndpoint, std::ostream& aStream) {
 		// Access
 		aEndpoint.set_access_channels(websocketpp::log::alevel::all);
-		aEndpoint.clear_access_channels(websocketpp::log::alevel::frame_payload | websocketpp::log::alevel::frame_header);
+		aEndpoint.clear_access_channels(websocketpp::log::alevel::frame_payload | websocketpp::log::alevel::frame_header | websocketpp::log::alevel::control);
 		aEndpoint.get_alog().set_ostream(&aStream);
 
 		// Errors
 		aEndpoint.set_error_channels(websocketpp::log::elevel::all);
 		aEndpoint.get_elog().set_ostream(&aStream);
+	}
+
+	template<class T>
+	void setEndpointHandlers(T& aEndpoint, bool aIsSecure, WebServerManager* aServer) {
+		aEndpoint.set_http_handler(
+			std::bind(&WebServerManager::on_http<T>, aServer, &aEndpoint, _1, aIsSecure));
+		aEndpoint.set_message_handler(
+			std::bind(&WebServerManager::on_message<T>, aServer, &aEndpoint, _1, _2, aIsSecure));
+
+		aEndpoint.set_close_handler(std::bind(&WebServerManager::on_close_socket, aServer, _1));
+		aEndpoint.set_open_handler(std::bind(&WebServerManager::on_open_socket<T>, aServer, &aEndpoint, _1, aIsSecure));
+
+		aEndpoint.set_open_handshake_timeout(HANDSHAKE_TIMEOUT);
+
+		aEndpoint.set_pong_timeout(PONG_TIMEOUT * 1000);
+		aEndpoint.set_pong_timeout_handler(std::bind(&WebServerManager::onPongTimeout, aServer, _1, _2));
 	}
 
 	bool WebServerManager::start(ErrorF errorF, const string& aWebResourcePath) {
@@ -115,36 +137,20 @@ namespace webserver {
 		try {
 			// initialize asio with our external io_service rather than an internal one
 			endpoint_plain.init_asio(&ios);
-
-			endpoint_plain.set_http_handler(
-				std::bind(&WebServerManager::on_http<server_plain>, this, &endpoint_plain, _1, false));
-			endpoint_plain.set_message_handler(
-				std::bind(&WebServerManager::on_message<server_plain>, this, &endpoint_plain, _1, _2, false));
-			endpoint_plain.set_close_handler(std::bind(&WebServerManager::on_close_socket, this, _1));
-			endpoint_plain.set_open_handler(std::bind(&WebServerManager::on_open_socket<server_plain>, this, &endpoint_plain, _1, false));
-
-			// Failures (plain)
-			endpoint_plain.set_open_handshake_timeout(HANDSHAKE_TIMEOUT);
-
-			// set up tls endpoint
 			endpoint_tls.init_asio(&ios);
-			endpoint_tls.set_message_handler(
-				std::bind(&WebServerManager::on_message<server_tls>, this, &endpoint_tls, _1, _2, true));
 
-			endpoint_tls.set_close_handler(std::bind(&WebServerManager::on_close_socket, this, _1));
-			endpoint_tls.set_open_handler(std::bind(&WebServerManager::on_open_socket<server_tls>, this, &endpoint_tls, _1, true));
-			endpoint_tls.set_http_handler(std::bind(&WebServerManager::on_http<server_tls>, this, &endpoint_tls, _1, true));
-
-			// Failures (TLS)
-			endpoint_tls.set_open_handshake_timeout(HANDSHAKE_TIMEOUT);
-
-			// TLS endpoint has an extra handler for the tls init
-			endpoint_tls.set_tls_init_handler(std::bind(&WebServerManager::on_tls_init, this, _1));
-
+			//endpoint_plain.set_pong_handler(std::bind(&WebServerManager::onPongReceived, this, _1, _2));
 		} catch (const std::exception& e) {
 			errorF(e.what());
 			return false;
 		}
+
+		// Handlers
+		setEndpointHandlers(endpoint_plain, false, this);
+		setEndpointHandlers(endpoint_tls, true, this);
+
+		// TLS endpoint has an extra handler for the tls init
+		endpoint_tls.set_tls_init_handler(std::bind(&WebServerManager::on_tls_init, this, _1));
 
 		// Logging
 		setEndpointLogSettings(endpoint_plain, debugStreamPlain);
@@ -194,8 +200,64 @@ namespace webserver {
 			}
 		}
 
+		socketTimer = addTimer([this] { pingTimer(); }, PING_INTERVAL * 1000);
+		socketTimer->start(false);
+
 		fire(WebServerManagerListener::Started());
 		return hasServer;
+	}
+
+	WebSocketPtr WebServerManager::getSocket(websocketpp::connection_hdl hdl) const noexcept {
+		RLock l(cs);
+		auto s = sockets.find(hdl);
+		if (s != sockets.end()) {
+			return s->second;
+		}
+
+		return nullptr;
+	}
+
+	// For debugging only
+	void WebServerManager::onPongReceived(websocketpp::connection_hdl hdl, const string& aPayload) {
+		auto socket = getSocket(hdl);
+		if (!socket) {
+			return;
+		}
+
+		socket->debugMessage("PONG succeed");
+	}
+
+	void WebServerManager::onPongTimeout(websocketpp::connection_hdl hdl, const string& aPayload) {
+		auto socket = getSocket(hdl);
+		if (!socket) {
+			return;
+		}
+
+		socket->debugMessage("PONG timed out");
+
+		socket->close(websocketpp::close::status::internal_endpoint_error, "PONG timed out");
+	}
+
+	void WebServerManager::pingTimer() noexcept {
+		vector<WebSocketPtr> inactiveSockets;
+		auto tick = GET_TICK();
+
+		{
+			RLock l(cs);
+			for (const auto& socket : sockets | map_values) {
+				//socket->debugMessage("PING");
+				socket->ping();
+
+				// Disconnect sockets without a session after one minute
+				if (!socket->getSession() && socket->getTimeCreated() + AUTHENTICATION_TIMEOUT * 1000ULL < tick) {
+					inactiveSockets.push_back(socket);
+				}
+			}
+		}
+
+		for (const auto& s : inactiveSockets) {
+			s->close(websocketpp::close::status::policy_violation, "Authentication timeout");
+		}
 	}
 
 	context_ptr WebServerManager::on_tls_init(websocketpp::connection_hdl hdl) {
@@ -210,8 +272,9 @@ namespace webserver {
 
 			ctx->use_certificate_file(SETTING(TLS_CERTIFICATE_FILE), boost::asio::ssl::context::pem);
 			ctx->use_private_key_file(SETTING(TLS_PRIVATE_KEY_FILE), boost::asio::ssl::context::pem);
+
+			CryptoManager::setContextOptions(ctx->native_handle(), true);
 		} catch (std::exception& e) {
-			//std::cout << e.what() << std::endl;
 			dcdebug("TLS init failed: %s", e.what());
 		}
 
@@ -226,6 +289,7 @@ namespace webserver {
 	}
 
 	void WebServerManager::stop() {
+		socketTimer->stop(true);
 		fire(WebServerManagerListener::Stopping());
 
 		if(endpoint_plain.is_listening())
@@ -307,6 +371,7 @@ namespace webserver {
 			sockets.erase(s);
 		}
 
+		dcdebug("Close socket: %s\n", socket->getSession() ? socket->getSession()->getAuthToken().c_str() : "(no session)");
 		if (socket->getSession()) {
 			socket->getSession()->onSocketDisconnected();
 		}

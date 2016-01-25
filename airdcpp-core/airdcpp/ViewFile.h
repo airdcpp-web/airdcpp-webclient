@@ -29,7 +29,7 @@ namespace dcpp {
 
 	typedef std::function<void(const TTHValue&)> UpdateF;
 	public:
-		ViewFile(const string& aTarget, const TTHValue& aTTH, bool aIsText, UpdateF&& aUpdateFunction) noexcept;
+		ViewFile(const string& aTarget, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile, UpdateF&& aUpdateFunction) noexcept;
 		~ViewFile() noexcept;
 
 		const string& getPath() const noexcept {
@@ -42,12 +42,15 @@ namespace dcpp {
 			return text;
 		}
 
+		bool isLocalFile() const noexcept {
+			return localFile;
+		}
+
 		const TTHValue& getTTH() const noexcept {
 			return tth;
 		}
 
 		IGETSET(bool, read, Read, false);
-		IGETSET(time_t, timeFinished, TimeFinished, 0);
 	protected:
 		void onStateChanged() noexcept;
 	private:
@@ -55,6 +58,7 @@ namespace dcpp {
 		const UpdateF updateFunction;
 		const TTHValue tth;
 		const bool text;
+		const bool localFile;
 	};
 
 } // namespace dcpp

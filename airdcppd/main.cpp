@@ -145,16 +145,20 @@ static void installHandler() {
 #include <fcntl.h>
 
 static void daemonize() {
+	auto reportError = [](const char* aMessage) {
+		fprintf(stderr, (string(aMessage) + ": %s\n").c_str(), strerror(errno));
+	};
+	
 	switch(fork()) {
 	case -1:
-		fprintf(stderr, "First fork failed: %s\n", strerror(errno));
+		reportError("First fork failed");
 		exit(5);
 	case 0: break;
 	default: _exit(0);
 	}
 
 	if(setsid() < 0) {
-		fprintf(stderr, "setsid failed: %s\n", strerror(errno));
+		reportError("setsid failed");
 		exit(6);
 	}
 
@@ -166,12 +170,26 @@ static void daemonize() {
 		default: exit(0);
 	}
 
-	chdir("/");
+	if (chdir("/") < 0) {
+		reportError("chdir failed");
+		exit(8);
+	}
+	
 	close(0);
 	close(1);
 	close(2);
+	
 	open("/dev/null", O_RDWR);
-	dup(0); dup(0);
+	
+	if (dup(0) < 0) {
+		reportError("dup failed for stdout");
+		exit(9);
+	}
+	
+	if (dup(0) < 0) {
+		reportError("dup failed for stderr");
+		exit(10);
+	}
 }
 
 #include <sys/wait.h>

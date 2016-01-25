@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "DCPlusPlus.h"
 
+#include "ActivityManager.h"
 #include "ConnectionManager.h"
 #include "DownloadManager.h"
 #include "GeoManager.h"
@@ -105,6 +106,7 @@ void startup(function<void(const string&)> stepF, function<bool(const string& /*
 	UpdateManager::newInstance();
 	HighlightManager::newInstance();
 	ViewFileManager::newInstance();
+	ActivityManager::newInstance();
 
 	SettingsManager::getInstance()->load(messageF);
 
@@ -186,6 +188,7 @@ void shutdown(function<void (const string&)> stepF, function<void (float)> progr
 
 	announce(STRING(SHUTTING_DOWN));
 
+	ActivityManager::deleteInstance();
 	ViewFileManager::deleteInstance();
 	HighlightManager::deleteInstance();
 	UpdateManager::deleteInstance();

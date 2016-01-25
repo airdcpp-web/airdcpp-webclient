@@ -25,11 +25,11 @@
 #include <api/SystemApi.h>
 #include <api/common/Serializer.h>
 
-#include <airdcpp/AirUtil.h>
+#include <airdcpp/ActivityManager.h>
 #include <airdcpp/TimerManager.h>
 
 namespace webserver {
-	SystemApi::SystemApi(Session* aSession) : ApiModule(aSession, Access::ANY), timer(getTimer([this] { onTimer(); }, 500)) {
+	SystemApi::SystemApi(Session* aSession) : ApiModule(aSession, Access::ANY) {
 
 		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, SystemApi::handleGetStats);
 
@@ -37,32 +37,22 @@ namespace webserver {
 		METHOD_HANDLER("away", Access::ANY, ApiRequest::METHOD_POST, (), true, SystemApi::handleSetAway);
 
 		createSubscription("away_state");
-		timer->start(true);
+
+		ActivityManager::getInstance()->addListener(this);
 	}
 
 	SystemApi::~SystemApi() {
-		timer->stop(true);
+		ActivityManager::getInstance()->removeListener(this);
 	}
 
-	void SystemApi::onTimer() noexcept {
-		if (!subscriptionActive("away_state")) {
-			return;
-		}
-
-		auto newState = serializeAwayState();
-		if (newState == previousAway) {
-			return;
-		}
-
-		previousAway = newState;
-		send("away_state", newState);
+	void SystemApi::on(ActivityManagerListener::AwayModeChanged, AwayMode /*aNewMode*/) noexcept {
+		send("away_state", serializeAwayState());
 	}
 
-	string SystemApi::getAwayState() noexcept {
-		switch (AirUtil::getAwayMode()) {
+	string SystemApi::getAwayState(AwayMode aAwayMode) noexcept {
+		switch (aAwayMode) {
 			case AWAY_OFF: return "off";
 			case AWAY_MANUAL: return "manual";
-			case AWAY_MINIMIZE:
 			case AWAY_IDLE: return "idle";
 		}
 
@@ -72,8 +62,7 @@ namespace webserver {
 
 	json SystemApi::serializeAwayState() noexcept {
 		return {
-			{ "state", getAwayState() },
-			{ "away_idle_time", SETTING(AWAY_IDLE_TIME) },
+			{ "id", getAwayState(ActivityManager::getInstance()->getAwayMode()) },
 		};
 	}
 
@@ -84,7 +73,7 @@ namespace webserver {
 
 	api_return SystemApi::handleSetAway(ApiRequest& aRequest) {
 		auto away = JsonUtil::getField<bool>("away", aRequest.getRequestBody());
-		AirUtil::setAway(away ? AWAY_MANUAL : AWAY_OFF);
+		ActivityManager::getInstance()->setAway(away ? AWAY_MANUAL : AWAY_OFF);
 
 		return websocketpp::http::status_code::ok;
 	}

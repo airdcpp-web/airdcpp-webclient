@@ -69,6 +69,9 @@ public:
 	static void setCertPaths();
 
 	static int idxVerifyData;
+
+	// Options that can also be shared with external contexts
+	static void setContextOptions(SSL_CTX* aSSL, bool aServer);
 private:
 
 	friend class Singleton<CryptoManager>;

@@ -38,6 +38,7 @@
 #include "ThrottleManager.h"
 #include "UploadManager.h"
 #include "MessageManager.h"
+#include "ActivityManager.h"
 
 namespace dcpp {
 
@@ -987,7 +988,7 @@ void NmdcHub::myInfo(bool alwaysSend) {
 
 
 		version = VERSIONSTRING;
-		if(AirUtil::getAway()) {
+		if(ActivityManager::getInstance()->isAway()) {
 			status |= Identity::AWAY;
 		}
 		if(!isActive()) {
