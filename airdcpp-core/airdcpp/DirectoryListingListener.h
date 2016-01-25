@@ -42,6 +42,7 @@ public:
 	typedef X<11> UserUpdated;
 	typedef X<12> StateChanged;
 	typedef X<13> Read;
+	typedef X<14> ShareProfileChanged;
 
 	virtual void on(LoadingFinished, int64_t /*start*/, const string& /*aDir*/, bool /*reloadList*/, bool /*changeDir*/) noexcept { }
 	virtual void on(LoadingFailed, const string&) noexcept { }
@@ -57,6 +58,7 @@ public:
 	virtual void on(UserUpdated) noexcept {}
 	virtual void on(StateChanged) noexcept {}
 	virtual void on(Read) noexcept {}
+	virtual void on(ShareProfileChanged) noexcept {}
 };
 
 } // namespace dcpp
