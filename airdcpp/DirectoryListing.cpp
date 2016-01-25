@@ -125,6 +125,17 @@ void DirectoryListing::setShareProfile(ProfileToken aProfile) noexcept {
 	}
 
 	SettingsManager::getInstance()->set(SettingsManager::LAST_LIST_PROFILE, aProfile);
+	fire(DirectoryListingListener::ShareProfileChanged());
+}
+
+void DirectoryListing::getPartialListInfo(int64_t& totalSize_, size_t& totalFiles_) const noexcept {
+	if (isOwnList) {
+		ShareManager::getInstance()->getProfileInfo(getShareProfile(), totalSize_, totalFiles_);
+	}
+
+	auto si = ClientManager::getInstance()->getShareInfo(hintedUser);
+	totalSize_ = si.first;
+	totalFiles_ = si.second;
 }
 
 string DirectoryListing::getNickFromFilename(const string& fileName) noexcept {
