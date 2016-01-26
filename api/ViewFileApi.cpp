@@ -53,6 +53,7 @@ namespace webserver {
 	}
 
 	json ViewFileApi::serializeFile(const ViewFilePtr& aFile) noexcept {
+		auto mimeType = FileServer::getMimeType(aFile->getPath());
 		return{
 			{ "id", aFile->getTTH().toBase32() },
 			{ "tth", aFile->getTTH().toBase32() },
@@ -63,7 +64,7 @@ namespace webserver {
 			{ "type", Serializer::serializeFileType(aFile->getPath()) },
 			{ "time_finished", aFile->getTimeFinished() },
 			{ "downloaded", !aFile->isLocalFile() },
-			{ "mime_type", FileServer::getMimeType(aFile->getPath()) },
+			{ "mime_type", mimeType ? mimeType : Util::emptyString },
 		};
 	}
 
