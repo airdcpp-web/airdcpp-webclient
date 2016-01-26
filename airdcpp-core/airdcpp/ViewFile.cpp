@@ -26,9 +26,6 @@ namespace dcpp {
 	ViewFile::ViewFile(const string& aTarget, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile, UpdateF&& aUpdateFunction) noexcept :
 		TrackableDownloadItem(aIsLocalFile), path(aTarget), tth(aTTH), updateFunction(aUpdateFunction), text(aIsText), localFile(aIsLocalFile) {
 
-		if (!aIsLocalFile) {
-			onAddedQueue(path);
-		}
 	}
 
 	ViewFile::~ViewFile() noexcept {

@@ -156,8 +156,12 @@ namespace webserver {
 		}
 
 		void addSubModule(IdType aId, typename ItemType::Ptr&& aModule) {
-			WLock l(cs);
-			subModules.emplace(aId, aModule);
+			{
+				WLock l(cs);
+				subModules.emplace(aId, aModule);
+			}
+
+			aModule->init();
 		}
 
 		void removeSubModule(IdType aId) {
@@ -204,6 +208,12 @@ namespace webserver {
 
 			return ApiModule::subscriptionActive(aSubscription);
 		}
+
+
+		// Init submodules in a separate call after the module has been constructed and added to the parent
+		// Otherwise async calls made in module constructor would fail because they require
+		// module exist in the parent
+		virtual void init() noexcept = 0;
 
 		void createSubscription(const string& aSubscription) noexcept {
 			ApiModule::createSubscription(aSubscription);

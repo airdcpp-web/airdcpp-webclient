@@ -34,6 +34,8 @@ namespace webserver {
 
 		websocketpp::http::status_code::value handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest, 
 			std::string& output_, StringPairList& headers_) noexcept;
+
+		static const char* getMimeType(const string& aFileName) noexcept;
 	private:
 		string resourcePath;
 

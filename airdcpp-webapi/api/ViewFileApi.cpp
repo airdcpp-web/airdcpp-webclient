@@ -17,6 +17,7 @@
 */
 
 #include <web-server/stdinc.h>
+#include <web-server/FileServer.h>
 #include <web-server/JsonUtil.h>
 
 #include <api/ViewFileApi.h>
@@ -58,10 +59,11 @@ namespace webserver {
 			{ "text", aFile->isText() },
 			{ "read", aFile->getRead() },
 			{ "name", aFile->getDisplayName() },
-			{ "state", Serializer::serializeDownloadState(aFile->getDownloadState()) },
+			{ "state", Serializer::serializeDownloadState(*aFile.get()) },
 			{ "type", Serializer::serializeFileType(aFile->getPath()) },
 			{ "time_finished", aFile->getTimeFinished() },
 			{ "downloaded", !aFile->isLocalFile() },
+			{ "mime_type", FileServer::getMimeType(aFile->getPath()) },
 		};
 	}
 
@@ -173,8 +175,13 @@ namespace webserver {
 		});
 	}
 
-	void ViewFileApi::on(ViewFileManagerListener::FileUpdated, const ViewFilePtr& aFile) noexcept {
-		onViewFileUpdated(aFile);
+	void ViewFileApi::on(ViewFileManagerListener::FileStateUpdated, const ViewFilePtr& aFile) noexcept {
+		maybeSend("view_file_updated", [&] { 
+			return json({
+				{ "id", aFile->getTTH().toBase32() },
+				{ "state", Serializer::serializeDownloadState(*aFile.get()) }
+			});
+		});
 	}
 
 	void ViewFileApi::on(ViewFileManagerListener::FileFinished, const ViewFilePtr& aFile) noexcept {

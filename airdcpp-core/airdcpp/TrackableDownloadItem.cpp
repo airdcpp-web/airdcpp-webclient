@@ -44,7 +44,7 @@ namespace dcpp {
 			if (downloads.empty()) {
 				newState = completedDownloads ? STATE_DOWNLOADED : STATE_DOWNLOAD_PENDING;
 			} else {
-				auto hasRunning = boost::find(downloads | map_values, true).base() != downloads.end();
+				auto hasRunning = boost::find_if(downloads | map_values, PathInfo::IsRunning()).base() != downloads.end();
 				newState = hasRunning ? STATE_DOWNLOADING : STATE_DOWNLOAD_PENDING;
 			}
 		}
@@ -55,13 +55,13 @@ namespace dcpp {
 		onStateChanged();
 	}
 
-	void TrackableDownloadItem::onAddedQueue(const string& aPath) noexcept {
+	void TrackableDownloadItem::onAddedQueue(const string& aPath, int64_t aSize) noexcept {
 		bool first = false;
 
 		{
 			WLock l(cs);
 			first = downloads.empty();
-			downloads.emplace(aPath, false);
+			downloads.emplace(aPath, PathInfo(aSize));
 		}
 
 		if (first) {
@@ -108,7 +108,7 @@ namespace dcpp {
 		return ret;
 	}
 
-	void TrackableDownloadItem::onDownloadStateChanged(const Download* aDownload, bool aFailed) noexcept {
+	void TrackableDownloadItem::onRunningStateChanged(const Download* aDownload, bool aFailed) noexcept {
 		{
 			RLock l(cs);
 			auto d = downloads.find(aDownload->getPath());
@@ -116,18 +116,62 @@ namespace dcpp {
 				return;
 			}
 
-			d->second = !aFailed;
+			auto& di = d->second;
+			di.running = !aFailed;
 		}
 
 		updateState();
 	}
 
+	double TrackableDownloadItem::PathInfo::getDownloadedPercentage() const noexcept {
+		return size > 0 ? (static_cast<double>(downloaded) * 100.0) / static_cast<double>(size) : 0;
+	}
+
+	string TrackableDownloadItem::formatRunningStatus() const noexcept {
+		auto p = find_if(downloads | map_values, PathInfo::IsRunning());
+
+		if (p.base() != downloads.end() && p->trackProgress()) {
+			if (p->downloaded == -1) {
+				return STRING(DOWNLOAD_STARTING);
+			}
+
+			return STRING_F(RUNNING_PCT, p->getDownloadedPercentage());
+		}
+
+		return "Downloading";
+	}
+
+	string TrackableDownloadItem::getStatusString() const noexcept {
+		switch (state) {
+			case TrackableDownloadItem::STATE_DOWNLOAD_PENDING: return "Download pending";
+			case TrackableDownloadItem::STATE_DOWNLOADING: return formatRunningStatus();
+			case TrackableDownloadItem::STATE_DOWNLOADED: return STRING(DOWNLOADED);
+		}
+
+		dcassert(0);
+		return "";
+	}
+
 	void TrackableDownloadItem::on(DownloadManagerListener::Failed, const Download* aDownload, const string& /*aReason*/) noexcept {
-		onDownloadStateChanged(aDownload, true);
+		onRunningStateChanged(aDownload, true);
 	}
 
 	void TrackableDownloadItem::on(DownloadManagerListener::Starting, const Download* aDownload) noexcept {
-		onDownloadStateChanged(aDownload, false);
+		onRunningStateChanged(aDownload, false);
+	}
+
+	void TrackableDownloadItem::onProgress(const string& aDir, int64_t aDownloadedBytes) noexcept {
+		{
+			RLock l(cs);
+			auto i = downloads.find(aDir);
+			if (i == downloads.end()) {
+				return;
+			}
+
+			i->second.downloaded = aDownloadedBytes;
+		}
+
+		updateState();
 	}
 
 } // namespace dcpp
