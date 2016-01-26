@@ -44,8 +44,8 @@ mkdir websocketpp/build && cd websocketpp/build
 cmake ..
 make
 sudo make install
-cd..
-cd..
+cd ..
+cd ..
 ```
 
 ### Download the client
