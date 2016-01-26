@@ -110,6 +110,7 @@ namespace webserver {
 		{ "bat", "text/plain" },
 		{ "vb", "text/plain" },
 		{ "cs", "text/plain" },
+		{ "nfo", "text/x-nfo" },
 		{ "pl", "text/plain" },
 		{ "py", "text/plain" },
 		{ "class", "text/plain" },
