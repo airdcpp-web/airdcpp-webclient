@@ -78,6 +78,8 @@ namespace webserver {
 		static const PropertyList properties;
 
 		static PropertyItemHandler<OnlineUserPtr> onlineUserPropertyHandler;
+
+		void init() noexcept;
 	private:
 		api_return handleReconnect(ApiRequest& aRequest);
 		api_return handleFavorite(ApiRequest& aRequest);

@@ -35,13 +35,15 @@ namespace webserver {
 		SubApiModule(aParentModule, aChat->getUser()->getCID().toBase32(), subscriptionList), chat(aChat),
 		chatHandler(this, aChat, "private_chat") {
 
-		chat->addListener(this);
-
 		METHOD_HANDLER("ccpm", Access::PRIVATE_CHAT_EDIT, ApiRequest::METHOD_POST, (), false, PrivateChatInfo::handleConnectCCPM);
 		METHOD_HANDLER("ccpm", Access::PRIVATE_CHAT_EDIT, ApiRequest::METHOD_DELETE, (), false, PrivateChatInfo::handleDisconnectCCPM);
 
 		METHOD_HANDLER("typing", Access::PRIVATE_CHAT_SEND, ApiRequest::METHOD_POST, (), false, PrivateChatInfo::handleStartTyping);
 		METHOD_HANDLER("typing", Access::PRIVATE_CHAT_SEND, ApiRequest::METHOD_DELETE, (), false, PrivateChatInfo::handleEndTyping);
+	}
+
+	void PrivateChatInfo::init() noexcept {
+		chat->addListener(this);
 	}
 
 	PrivateChatInfo::~PrivateChatInfo() {

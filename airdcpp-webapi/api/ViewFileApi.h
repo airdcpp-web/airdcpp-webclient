@@ -51,7 +51,7 @@ namespace webserver {
 
 		void on(ViewFileManagerListener::FileAdded, const ViewFilePtr& aFile) noexcept;
 		void on(ViewFileManagerListener::FileClosed, const ViewFilePtr& aFile) noexcept;
-		void on(ViewFileManagerListener::FileUpdated, const ViewFilePtr& aFile) noexcept;
+		void on(ViewFileManagerListener::FileStateUpdated, const ViewFilePtr& aFile) noexcept;
 		void on(ViewFileManagerListener::FileFinished, const ViewFilePtr& aFile) noexcept;
 		void on(ViewFileManagerListener::FileRead, const ViewFilePtr& aFile) noexcept;
 	};

@@ -66,17 +66,12 @@ namespace webserver {
 		view("hub_user_view", this, onlineUserPropertyHandler, std::bind(&HubInfo::getUsers, this), 500), 
 		timer(getTimer([this] { onTimer(); }, 1000)) {
 
-		MessageManager::getInstance()->addListener(this);
-		client->addListener(this);
-
 		METHOD_HANDLER("reconnect", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, HubInfo::handleReconnect);
 		METHOD_HANDLER("favorite", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, HubInfo::handleFavorite);
 		METHOD_HANDLER("password", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), true, HubInfo::handlePassword);
 		METHOD_HANDLER("redirect", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, HubInfo::handleRedirect);
 
 		METHOD_HANDLER("counts", Access::HUBS_VIEW, ApiRequest::METHOD_GET, (), false, HubInfo::handleGetCounts);
-
-		timer->start(false);
 	}
 
 	HubInfo::~HubInfo() {
@@ -84,6 +79,13 @@ namespace webserver {
 
 		MessageManager::getInstance()->removeListener(this);
 		client->removeListener(this);
+	}
+
+	void HubInfo::init() noexcept {
+		MessageManager::getInstance()->addListener(this);
+		client->addListener(this);
+
+		timer->start(false);
 	}
 
 	api_return HubInfo::handleGetCounts(ApiRequest& aRequest) {

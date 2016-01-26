@@ -58,8 +58,8 @@ namespace webserver {
 		static json serializeShareProfileSimple(ProfileToken aProfile) noexcept;
 
 		static string getDownloadStateId(TrackableDownloadItem::State aState) noexcept;
-		static string getDownloadStateStr(TrackableDownloadItem::State aState) noexcept;
-		static json serializeDownloadState(TrackableDownloadItem::State aState) noexcept;
+		//static string getDownloadStateStr(TrackableDownloadItem& aItem) noexcept;
+		static json serializeDownloadState(const TrackableDownloadItem& aItem) noexcept;
 
 
 		// Serialize n messages from end by keeping the list order
