@@ -54,22 +54,43 @@ namespace webserver {
 		{ "zip", "application/zip" },
 		{ "gz", "application/x-gzip" },
 		{ "js", "application/javascript; charset=utf-8" },
+
+		{ "flac", "audio/x-flac" },
+		{ "m4a", "audio/mp4" },
+		{ "mid", "audio/midi" },
 		{ "mp3", "audio/mpeg" },
+		{ "ogg", "audio/ogg" },
 		{ "wma", "audio/x-ms-wma" },
 		{ "wav", "audio/vnd.wave" },
+
+		{ "bmp", "image/bmp" },
 		{ "gif", "image/gif" },
+		{ "ico", "image/x-icon" },
 		{ "jpg", "image/jpeg" },
+		{ "jpeg", "image/jpeg" },
 		{ "png", "image/png" },
+		{ "psd", "image/vnd.adobe.photoshop" },
+		{ "tga", "image/tga" },
 		{ "tiff", "image/tiff" },
 		{ "tif", "image/tiff" },
 		{ "ico", "image/vnd.microsoft.icon" },
-		{ "css", "text/css" },
-		{ "html", "text/html; charset=utf-8" },
-		{ "txt", "text/plain" },
-		{ "xml", "text/xml" },
+		{ "webp", "image/webp" },
+
+		{ "3gp", "video/3gpp" },
+		{ "avi", "video/avi" },
+		{ "asf", "video/x-ms-asf" },
+		{ "asx", "video/x-ms-asf" },
+		{ "flv", "video/x-flv" },
+		{ "mkv", "video/x-matroska" },
+		{ "mov", "video/quicktime" },
 		{ "mpg", "video/mpeg" },
+		{ "mpeg", "video/mpeg" },
 		{ "mp4", "video/mp4" },
+		{ "qt", "video/quicktime" },
+		{ "webm", "video/webm" },
 		{ "wmv", "video/x-ms-wmv" },
+		{ "vob", "video/x-ms-vob" },
+
 		{ "odt", "application/vnd.oasis.opendocument.text" },
 		{ "ods", "application/vnd.oasis.opendocument.spreadsheet" },
 		{ "odp", "application/vnd.oasis.opendocument.presentation" },
@@ -81,6 +102,8 @@ namespace webserver {
 		{ "ttf", "application/x-font-ttf" },
 		{ "rar", "application/x-rar-compressed" },
 		{ "tar", "application/x-tar" },
+		{ "swf", "application/x-shockwave-flash" },
+
 		{ "c", "text/plain" },
 		{ "cpp", "text/plain" },
 		{ "asm", "text/plain" },
@@ -91,8 +114,33 @@ namespace webserver {
 		{ "py", "text/plain" },
 		{ "class", "text/plain" },
 		{ "vbs", "text/plain" },
+		{ "css", "text/css" },
+		{ "html", "text/html; charset=utf-8" },
+		{ "txt", "text/plain" },
+		{ "xml", "text/xml" },
 		{ NULL, NULL }
 	};
+
+	const char* FileServer::getMimeType(const string& aFileName) noexcept {
+		auto extension = getExtension(aFileName);
+		for (int i = 0; mimes[i].ext != NULL; i++) {
+			if (extension == mimes[i].ext) {
+				return mimes[i].type;
+			}
+		}
+
+		return nullptr;
+	}
+
+	string FileServer::getExtension(const string& aResource) noexcept {
+		auto extension = Util::getFileExt(aResource);
+		if (!extension.empty()) {
+			// Strip the dot
+			extension = extension.substr(1);
+		}
+
+		return extension;
+	}
 
 	string FileServer::parseResourcePath(const string& aResource, const websocketpp::http::parser::request& aRequest, StringPairList& headers_) const noexcept {
 		auto request = aResource;
@@ -140,16 +188,6 @@ namespace webserver {
 		return file->getPath();
 	}
 
-	string FileServer::getExtension(const string& aResource) noexcept {
-		auto extension = Util::getFileExt(aResource);
-		if (!extension.empty()) {
-			// Strip the dot
-			extension = extension.substr(1);
-		}
-
-		return extension;
-	}
-
 	websocketpp::http::status_code::value FileServer::handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest,
 		string& output_, StringPairList& headers_) noexcept {
 
@@ -176,15 +214,15 @@ namespace webserver {
 		} catch (const FileException& e) {
 			output_ = e.getError();
 			return websocketpp::http::status_code::not_found;
+		} catch (const std::bad_alloc&) {
+			output_ = "Not enough memory on the server to serve this request";
+			return websocketpp::http::status_code::internal_server_error;
 		}
 
 		// Get the mime type
-		auto extension = getExtension(request);
-		for (int i = 0; mimes[i].ext != NULL; i++) {
-			if (extension == mimes[i].ext) {
-				headers_.emplace_back("Content-Type", mimes[i].type);
-				break;
-			}
+		auto type = getMimeType(request);
+		if (type) {
+			headers_.emplace_back("Content-Type", type);
 		}
 
 		return websocketpp::http::status_code::ok;
