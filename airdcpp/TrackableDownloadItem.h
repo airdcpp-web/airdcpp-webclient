@@ -30,7 +30,11 @@ namespace dcpp {
 	{
 	public:
 		virtual void onRemovedQueue(const string& aDir, bool aFinished) noexcept;
-		virtual void onAddedQueue(const string& aDir) noexcept;
+
+		// Leave the size unspecified if there is no tracking for download progress
+		virtual void onAddedQueue(const string& aDir, int64_t aSize = -1) noexcept;
+
+		virtual void onProgress(const string& aDir, int64_t aDownloadedBytes) noexcept;
 
 		TrackableDownloadItem(bool aDownloaded) noexcept;
 		~TrackableDownloadItem() noexcept;
@@ -53,6 +57,8 @@ namespace dcpp {
 		StringList getDownloads() const noexcept;
 
 		IGETSET(time_t, timeFinished, TimeFinished, 0);
+
+		string getStatusString() const noexcept;
 	protected:
 		virtual void onStateChanged() noexcept = 0;
 
@@ -61,13 +67,32 @@ namespace dcpp {
 		State state = STATE_DOWNLOAD_PENDING;
 
 		void updateState() noexcept;
-		void onDownloadStateChanged(const Download* aDownload, bool aFailed) noexcept;
+		void onRunningStateChanged(const Download* aDownload, bool aFailed) noexcept;
 
 		void on(DownloadManagerListener::Failed, const Download* aDownload, const string& aReason) noexcept;
 		void on(DownloadManagerListener::Starting, const Download* aDownload) noexcept;
 
+		struct PathInfo {
+			struct IsRunning {
+				bool operator()(const PathInfo& d) const {
+					return d.running;
+				}
+			};
+
+			PathInfo(int64_t aSize) : size(aSize) { }
+
+			bool running = false;
+			int64_t size = -1;
+			int64_t downloaded = -1;
+
+			bool trackProgress() const noexcept { return size != -1; }
+			double getDownloadedPercentage() const noexcept;
+		};
+
 		mutable SharedMutex cs;
-		map<string, bool> downloads;
+		map<string, PathInfo> downloads;
+
+		string formatRunningStatus() const noexcept;
 	};
 
 } // namespace dcpp

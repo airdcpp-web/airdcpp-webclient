@@ -29,13 +29,13 @@ namespace dcpp {
 		template<int I>	struct X { enum { TYPE = I }; };
 
 		typedef X<0> FileAdded;
-		typedef X<1> FileUpdated;
+		typedef X<1> FileStateUpdated;
 		typedef X<2> FileClosed;
 		typedef X<3> FileFinished;
 		typedef X<4> FileRead;
 
 		virtual void on(FileAdded, const ViewFilePtr&) noexcept { }
-		virtual void on(FileUpdated, const ViewFilePtr&) noexcept { }
+		virtual void on(FileStateUpdated, const ViewFilePtr&) noexcept { }
 		virtual void on(FileClosed, const ViewFilePtr&) noexcept { }
 		virtual void on(FileFinished, const ViewFilePtr&) noexcept { }
 		virtual void on(FileRead, const ViewFilePtr&) noexcept { }
