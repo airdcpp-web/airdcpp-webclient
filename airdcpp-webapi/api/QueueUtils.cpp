@@ -74,41 +74,6 @@ namespace webserver {
 		}
 	}
 
-	/*json QueueUtils::serializeQueueItem(const QueueItemPtr& aQI) noexcept {
-		json j;
-		return{
-		{ "user", aQI-> },
-		{ "file_count", aSource.files },
-		{ "bytes_left", aSource.size }
-		};
-
-		return j;
-	}
-
-	json QueueUtils::serializeQueueItemBase(const QueueItemBase& aItem) noexcept {
-		return{
-			{ "target", aItem.getTarget() },
-			{ "size", aItem.getSize() },
-			{ "time_added", aItem.getTimeAdded() },
-			{ "priority", aItem.getPriority() },
-			{ "using_autopriority", aItem.getAutoPriority() }
-		};
-	}*/
-
-	/*json QueueUtils::serializeBundleSource(const Bundle::BundleSource& aSource) noexcept {
-	return{
-	{ "user", serializeUser(aSource.getUser()) },
-	{ "file_count", aSource.files },
-	{ "bytes_left", aSource.size }
-	};
-	}
-
-	json QueueUtils::serializeQueueItemSource(const QueueItem::Source& aSource) noexcept {
-	return{
-	{ "user", serializeUser(aSource.getUser()) }
-	};
-	}*/
-
 	json QueueUtils::serializePriority(const QueueItemBase& aItem) noexcept {
 		return{
 			{ "id", aItem.getPriority() },

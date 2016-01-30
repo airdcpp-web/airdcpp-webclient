@@ -126,7 +126,7 @@ namespace webserver {
 			return nullptr;
 		}
 
-		auto ret = Serializer::serializeItem(make_shared<FilelistItemInfo>(location.directory), itemHandler);
+		auto ret = Serializer::serializeItem(std::make_shared<FilelistItemInfo>(location.directory), itemHandler);
 
 		ret["size"] = location.totalSize;
 		ret["complete"] = location.directory->isComplete();
@@ -145,11 +145,11 @@ namespace webserver {
 				currentViewItems.clear();
 
 				for (auto& d : curDir->directories) {
-					currentViewItems.emplace_back(make_shared<FilelistItemInfo>(d));
+					currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(d));
 				}
 
 				for (auto& f : curDir->files) {
-					currentViewItems.emplace_back(make_shared<FilelistItemInfo>(f));
+					currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(f));
 				}
 			}
 

@@ -106,6 +106,11 @@ namespace webserver {
 		auto oldSocket = getServer()->getSocket(id);
 		if (oldSocket) {
 			oldSocket->debugMessage("Replace session socket");
+
+			// This must be called before the new socket is associated with this session
+			fire(SessionListener::SocketConnected(), oldSocket);
+			oldSocket->setSession(nullptr);
+
 			oldSocket->close(websocketpp::close::status::policy_violation, "Another socket was connected to this session");
 		}
 
