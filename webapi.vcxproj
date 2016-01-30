@@ -177,6 +177,7 @@
     <ClInclude Include="api\common\PropertyFilter.h" />
     <ClInclude Include="api\common\Serializer.h" />
     <ClInclude Include="api\ApiModule.h" />
+    <ClInclude Include="api\common\ViewTasks.h" />
     <ClInclude Include="api\ConnectivityApi.h" />
     <ClInclude Include="api\CoreSettings.h" />
     <ClInclude Include="api\FavoriteDirectoryApi.h" />
@@ -210,6 +211,8 @@
     <ClInclude Include="api\ShareUtils.h" />
     <ClInclude Include="api\SystemApi.h" />
     <ClInclude Include="api\TransferApi.h" />
+    <ClInclude Include="api\TransferInfo.h" />
+    <ClInclude Include="api\TransferUtils.h" />
     <ClInclude Include="api\UserApi.h" />
     <ClInclude Include="api\ViewFileApi.h" />
     <ClInclude Include="api\WebUserApi.h" />
@@ -269,6 +272,7 @@
     <ClCompile Include="api\ShareUtils.cpp" />
     <ClCompile Include="api\SystemApi.cpp" />
     <ClCompile Include="api\TransferApi.cpp" />
+    <ClCompile Include="api\TransferUtils.cpp" />
     <ClCompile Include="api\UserApi.cpp" />
     <ClCompile Include="api\ViewFileApi.cpp" />
     <ClCompile Include="api\WebUserApi.cpp" />

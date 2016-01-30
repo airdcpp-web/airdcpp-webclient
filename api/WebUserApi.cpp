@@ -62,7 +62,7 @@ namespace webserver {
 
 		auto userName = JsonUtil::getField<string>("username", reqJson, false);
 
-		auto user = make_shared<WebUser>(userName, Util::emptyString);
+		auto user = std::make_shared<WebUser>(userName, Util::emptyString);
 
 		parseUser(user, reqJson, true);
 

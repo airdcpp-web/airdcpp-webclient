@@ -87,6 +87,13 @@ namespace webserver {
 		if (aUser->isHidden()) {
 			flags_.insert("hidden");
 		}
+
+		auto cm = aUser->getIdentity().getConnectMode();
+		if (cm == Identity::MODE_NOCONNECT_PASSIVE || cm == Identity::MODE_NOCONNECT_IP || cm == Identity::MODE_UNDEFINED) {
+			flags_.insert("noconnect");
+		} if (!aUser->getIdentity().isTcpActive(aUser->getClient())) {
+			flags_.insert("passive");
+		}
 	}
 
 	json Serializer::serializeUser(const UserPtr& aUser) noexcept {

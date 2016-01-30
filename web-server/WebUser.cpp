@@ -31,6 +31,7 @@ namespace webserver {
 		"search",
 		"download",
 		"events",
+		"transfers",
 
 		"queue_view",
 		"queue_edit",

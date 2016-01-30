@@ -192,7 +192,7 @@ namespace webserver {
 		}
 
 		SearchResultInfoPtr parent = nullptr;
-		auto result = make_shared<SearchResultInfo>(aResult, move(*relevancyInfo));
+		auto result = std::make_shared<SearchResultInfo>(aResult, move(*relevancyInfo));
 
 		{
 			WLock l(cs);

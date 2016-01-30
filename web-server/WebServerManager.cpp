@@ -41,6 +41,7 @@ namespace webserver {
 	using namespace dcpp;
 	WebServerManager::WebServerManager() : serverThreads(DEFAULT_THREADS), has_io_service(false), ios(2) {
 		userManager = unique_ptr<WebUserManager>(new WebUserManager(this));
+		ios.stop(); //Prevent io service from running until we load
 	}
 
 	WebServerManager::~WebServerManager() {
@@ -289,7 +290,8 @@ namespace webserver {
 	}
 
 	void WebServerManager::stop() {
-		socketTimer->stop(true);
+		if(socketTimer)
+			socketTimer->stop(true);
 		fire(WebServerManagerListener::Stopping());
 
 		if(endpoint_plain.is_listening())

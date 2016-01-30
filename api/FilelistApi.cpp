@@ -54,7 +54,7 @@ namespace webserver {
 	}
 
 	void FilelistApi::addList(const DirectoryListingPtr& aList) noexcept {
-		addSubModule(aList->getUser()->getCID(), make_shared<FilelistInfo>(this, aList));
+		addSubModule(aList->getUser()->getCID(), std::make_shared<FilelistInfo>(this, aList));
 	}
 
 	api_return FilelistApi::handleQueueList(ApiRequest& aRequest, QueueItem::Flags aFlags) {

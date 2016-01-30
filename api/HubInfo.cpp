@@ -158,7 +158,8 @@ namespace webserver {
 		}
 
 		return {
-			{ "id", id }
+			{ "id", id },
+			{ "encryption", aClient->getEncryptionInfo() },
 		};
 	}
 

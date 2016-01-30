@@ -26,12 +26,12 @@
 #include <web-server/Timer.h>
 #include <web-server/WebServerManager.h>
 
-#include <airdcpp/TaskQueue.h>
 #include <airdcpp/TimerManager.h>
 
 #include <api/ApiModule.h>
 #include <api/common/PropertyFilter.h>
 #include <api/common/Serializer.h>
+#include <api/common/ViewTasks.h>
 
 namespace webserver {
 
@@ -171,7 +171,7 @@ namespace webserver {
 		}
 
 		PropertyFilter::Ptr addFilter() {
-			auto filter = make_shared<PropertyFilter>(itemHandler.properties);
+			auto filter = std::make_shared<PropertyFilter>(itemHandler.properties);
 
 			{
 				WLock l(cs);
@@ -432,100 +432,8 @@ namespace webserver {
 		}
 
 		// TASKS START
-
-		class ItemTasks {
-		public:
-			struct MergeTask {
-				int8_t type;
-				PropertyIdSet updatedProperties;
-
-				MergeTask(int8_t aType, const PropertyIdSet& aUpdatedProperties = PropertyIdSet()) : type(aType), updatedProperties(aUpdatedProperties) {
-
-				}
-
-				void merge(const MergeTask& aTask) {
-					// Ignore
-					if (type > aTask.type) {
-						return;
-					}
-
-					// Merge
-					if (type == aTask.type) {
-						updatedProperties.insert(aTask.updatedProperties.begin(), aTask.updatedProperties.end());
-						return;
-					}
-
-					// Replace the task
-					type = aTask.type;
-					updatedProperties = aTask.updatedProperties;
-				}
-			};
-
-			typedef map<T, MergeTask> TaskMap;
-
-			void add(const T& aItem, MergeTask&& aData) {
-				WLock l(cs);
-				auto j = tasks.find(aItem);
-				if (j != tasks.end()) {
-					(*j).second.merge(aData);
-					return;
-				}
-
-				tasks.emplace(aItem, move(aData));
-			}
-
-			void clear() {
-				WLock l(cs);
-				tasks.clear();
-			}
-
-			bool remove(const T& aItem) {
-				WLock l(cs);
-				return tasks.erase(aItem) > 0;
-			}
-
-			void get(TaskMap& map) {
-				WLock l(cs);
-				swap(tasks, map);
-			}
-		private:
-			TaskMap tasks;
-
-			SharedMutex cs;
-		};
-
-		class ViewTasks : public ItemTasks {
-		public:
-			void addItem(const T& aItem) {
-				tasks.add(aItem, typename ViewTasks::MergeTask(ADD_ITEM));
-			}
-
-			void removeItem(const T& aItem) {
-				tasks.add(aItem, typename ViewTasks::MergeTask(REMOVE_ITEM));
-			}
-
-			void updateItem(const T& aItem, const PropertyIdSet& aUpdatedProperties) {
-				updatedProperties.insert(aUpdatedProperties.begin(), aUpdatedProperties.end());
-				tasks.add(aItem, typename ViewTasks::MergeTask(UPDATE_ITEM, aUpdatedProperties));
-			}
-
-			void get(typename ItemTasks::TaskMap& map, PropertyIdSet& updatedProperties_) {
-				tasks.get(map);
-				updatedProperties_.swap(updatedProperties);
-			}
-
-			void clear() {
-				updatedProperties.clear();
-				tasks.clear();
-			}
-		private:
-			PropertyIdSet updatedProperties;
-			ItemTasks tasks;
-		};
-
-
 		void runTasks() {
-			typename ViewTasks::TaskMap currentTasks;
+			typename ItemTasks<T>::TaskMap currentTasks;
 			PropertyIdSet updatedProperties;
 			tasks.get(currentTasks, updatedProperties);
 
@@ -595,7 +503,7 @@ namespace webserver {
 		}
 
 		typedef std::map<T, const PropertyIdSet&> ItemPropertyIdMap;
-		ItemPropertyIdMap handleTasks(const typename ViewTasks::TaskMap& aTaskList, int aSortProperty, int aSortAscending, int& rangeStart_) {
+		ItemPropertyIdMap handleTasks(const typename ItemTasks<T>::TaskMap& aTaskList, int aSortProperty, int aSortAscending, int& rangeStart_) {
 			ItemPropertyIdMap updatedItems;
 			for (auto& t : aTaskList) {
 				switch (t.second.type) {
@@ -810,16 +718,9 @@ namespace webserver {
 		ApiModule* module = nullptr;
 		std::string viewName;
 
-		// Must be in merging order (lower ones replace other)
-		enum Tasks {
-			UPDATE_ITEM = 0,
-			ADD_ITEM,
-			REMOVE_ITEM
-		};
+		ItemTasks<T> tasks;
 
 		TimerPtr timer;
-
-		ViewTasks tasks;
 
 		class IntCollector {
 		public:

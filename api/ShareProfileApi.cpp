@@ -106,7 +106,7 @@ namespace webserver {
 	api_return ShareProfileApi::handleAddProfile(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		auto profile = make_shared<ShareProfile>();
+		auto profile = std::make_shared<ShareProfile>();
 		parseProfile(profile, reqJson);
 
 		ShareManager::getInstance()->addProfile(profile);

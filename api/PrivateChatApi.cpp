@@ -97,7 +97,7 @@ namespace webserver {
 	}
 
 	void PrivateChatApi::addChat(const PrivateChatPtr& aChat) noexcept {
-		addSubModule(aChat->getUser()->getCID(), make_shared<PrivateChatInfo>(this, aChat));
+		addSubModule(aChat->getUser()->getCID(), std::make_shared<PrivateChatInfo>(this, aChat));
 	}
 
 	void PrivateChatApi::on(MessageManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool aReceivedMessage) noexcept {

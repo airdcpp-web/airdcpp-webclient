@@ -61,7 +61,7 @@ namespace webserver {
 		fire(WebUserManagerListener::UserUpdated(), u);
 
 		auto uuid = boost::uuids::random_generator()();
-		auto session = make_shared<Session>(u, boost::uuids::to_string(uuid), aIsSecure, server, aMaxInactivityMinutes, aUserSession);
+		auto session = std::make_shared<Session>(u, boost::uuids::to_string(uuid), aIsSecure, server, aMaxInactivityMinutes, aUserSession);
 
 		{
 			WLock l(cs);
@@ -164,7 +164,7 @@ namespace webserver {
 				const auto& permissions = xml_.getChildAttrib("Permissions");
 
 				// Set as admin mainly for compatibility with old accounts if no permissions were found
-				auto user = make_shared<WebUser>(username, password, permissions.empty());
+				auto user = std::make_shared<WebUser>(username, password, permissions.empty());
 
 				user->setLastLogin(xml_.getIntChildAttrib("LastLogin"));
 				if (!permissions.empty()) {
