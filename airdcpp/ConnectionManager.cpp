@@ -317,10 +317,9 @@ void ConnectionManager::attemptDownloads(uint64_t aTick, StringList& removedToke
 							cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1)); // protocol error
 							dcassert(!lastError.empty());
 							fire(ConnectionManagerListener::Failed(), cqi, lastError);
-						}
-						else {
+						} else {
 							cqi->setHubUrl(hubHint);
-							fire(ConnectionManagerListener::StatusChanged(), cqi);
+							fire(ConnectionManagerListener::Connecting(), cqi);
 							attempts++;
 						}
 					}

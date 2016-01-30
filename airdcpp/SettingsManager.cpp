@@ -185,7 +185,7 @@ const string SettingsManager::settingTags[] =
 	"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
 	"MediaToolbar", "password", "DownloadSpeed", "HighlightList", "IconPath",
 	"AutoSearchFrame2Order", "AutoSearchFrame2Widths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs", "LastASFiletype", "LastSearchExcluded",
-	"UsersFrmVisible2", "ListViewFont", "LogShareScanPath", "LastFilelistFiletype", "NmdcEncoding", "AsDefaultFailedGroup",
+	"UsersFrmVisible2", "ListViewFont", "LogShareScanPath", "LastFilelistFiletype", "NmdcEncoding", "AsDefaultFailedGroup", "AutosearchFrmVisible",
 
 	"SENTRY", 
 	// Ints
@@ -914,6 +914,8 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(REMOVE_FINISHED_BUNDLES, false);
 	setDefault(LOG_CRC_OK, false);
 	setDefault(ALWAYS_CCPM, false);
+	setDefault(AUTOSEARCHFRAME_VISIBLE, "1,1,1,1,1,1,1,1,1,1,1");
+
 
 	// not in GUI
 	setDefault(IGNORE_INDIRECT_SR, false);

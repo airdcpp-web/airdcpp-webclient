@@ -104,6 +104,24 @@ Download::~Download() {
 	getUserConnection().setDownload(0);
 }
 
+void Download::appendFlags(OrderedStringSet& flags_) const noexcept {
+	if (isSet(Download::FLAG_PARTIAL)) {
+		flags_.insert("P");
+	}
+
+	if (isSet(Download::FLAG_TTH_CHECK)) {
+		flags_.insert("T");
+	}
+	if (isSet(Download::FLAG_ZDOWNLOAD)) {
+		flags_.insert("Z");
+	}
+	if (isSet(Download::FLAG_CHUNKED)) {
+		flags_.insert("C");
+	}
+
+	Transfer::appendFlags(flags_);
+}
+
 AdcCommand Download::getCommand(bool zlib, const string& mySID) const noexcept {
 	AdcCommand cmd(AdcCommand::CMD_GET);
 	

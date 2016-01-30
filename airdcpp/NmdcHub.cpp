@@ -280,7 +280,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			text = text.substr(4);
 		}
 
-		auto chatMessage = make_shared<ChatMessage>(text, findUser(nick));
+		auto chatMessage = std::make_shared<ChatMessage>(text, findUser(nick));
 		chatMessage->setThirdPerson(thirdPerson);
 
 		if(!chatMessage->getFrom()) {
@@ -868,7 +868,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			text = text.substr(4);
 		}
 
-		auto message = make_shared<ChatMessage>(text, findUser(fromNick), &getUser(getMyNick()), findUser(rtNick));
+		auto message = std::make_shared<ChatMessage>(text, findUser(fromNick), &getUser(getMyNick()), findUser(rtNick));
 		message->setThirdPerson(thirdPerson);
 
 		if(!message->getReplyTo() || !message->getFrom()) {
@@ -1113,7 +1113,7 @@ bool NmdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage,
 	// Emulate a returning message...
 	OnlineUserPtr ou = findUser(getMyNick());
 	if(ou) {
-		auto message = make_shared<ChatMessage>(aMessage, ou, aUser, ou);
+		auto message = std::make_shared<ChatMessage>(aMessage, ou, aUser, ou);
 		MessageManager::getInstance()->onPrivateMessage(message);
 		return true;
 	}

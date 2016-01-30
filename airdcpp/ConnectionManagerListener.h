@@ -32,7 +32,7 @@ public:
 	typedef X<1> Connected;
 	typedef X<2> Removed;
 	typedef X<3> Failed;
-	typedef X<4> StatusChanged;
+	typedef X<4> Connecting;
 	typedef X<5> UserUpdated;
 	typedef X<6> Forced;
 
@@ -40,7 +40,7 @@ public:
 	virtual void on(Connected, const ConnectionQueueItem*, UserConnection*) noexcept{}
 	virtual void on(Removed, const ConnectionQueueItem*) noexcept { }
 	virtual void on(Failed, const ConnectionQueueItem*, const string&) noexcept { }
-	virtual void on(StatusChanged, const ConnectionQueueItem*) noexcept { }
+	virtual void on(Connecting, const ConnectionQueueItem*) noexcept { }
 	virtual void on(UserUpdated, const ConnectionQueueItem*) noexcept { }
 	virtual void on(Forced, const ConnectionQueueItem*) noexcept { }
 };

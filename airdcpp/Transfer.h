@@ -88,8 +88,9 @@ public:
 	GETSET(Segment, segment, Segment);
 	GETSET(Type, type, Type);
 	GETSET(uint64_t, start, Start);
+
+	virtual void appendFlags(OrderedStringSet& flags_) const noexcept;
 private:
-	
 	typedef std::pair<uint64_t, int64_t> Sample;
 	typedef deque<Sample> SampleList;
 	

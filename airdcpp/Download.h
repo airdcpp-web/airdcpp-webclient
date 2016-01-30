@@ -100,6 +100,8 @@ public:
 
 		return bundle->getStringToken();
 	}
+
+	void appendFlags(OrderedStringSet& flags_) const noexcept;
 private:
 	Download(const Download&);
 	Download& operator=(const Download&);
