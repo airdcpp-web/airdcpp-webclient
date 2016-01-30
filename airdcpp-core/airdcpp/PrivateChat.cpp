@@ -142,7 +142,7 @@ int PrivateChat::clearCache() noexcept {
 }
 
 void PrivateChat::statusMessage(const string& aMessage, LogMessage::Severity aSeverity) noexcept {
-	auto message = make_shared<LogMessage>(aMessage, aSeverity);
+	auto message = std::make_shared<LogMessage>(aMessage, aSeverity);
 
 	fire(PrivateChatListener::StatusMessage(), this, message);
 	cache.addMessage(message);

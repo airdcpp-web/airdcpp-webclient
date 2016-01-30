@@ -88,7 +88,7 @@ namespace dcpp {
 	}
 
 	ViewFilePtr ViewFileManager::createFile(const string& aFileName, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile) noexcept {
-		auto file = make_shared<ViewFile>(aFileName, aTTH, aIsText, aIsLocalFile,
+		auto file = std::make_shared<ViewFile>(aFileName, aTTH, aIsText, aIsLocalFile,
 			std::bind(&ViewFileManager::onFileStateUpdated, this, std::placeholders::_1));
 
 		{

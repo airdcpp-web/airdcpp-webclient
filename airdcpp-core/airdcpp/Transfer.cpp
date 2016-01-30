@@ -120,6 +120,20 @@ const string& Transfer::getToken() const {
 	return getUserConnection().getToken(); 
 }
 
+void Transfer::appendFlags(OrderedStringSet& flags_) const noexcept {
+	if (getUserConnection().isSet(UserConnection::FLAG_MCN1)) {
+		flags_.insert("M");
+	}
+
+	if (getUserConnection().isSecure()) {
+		if (getUserConnection().isSet(UserConnection::FLAG_TRUSTED)) {
+			flags_.insert("S");
+		} else {
+			flags_.insert("U");
+		}
+	}
+}
+
 void Transfer::resetPos() { 
 	pos = 0; 
 	actual = 0;

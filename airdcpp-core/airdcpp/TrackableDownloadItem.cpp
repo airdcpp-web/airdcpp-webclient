@@ -77,7 +77,6 @@ namespace dcpp {
 			timeFinished = GET_TIME();
 		}
 			
-		dcassert(completedDownloads);
 		bool empty = false;
 		{
 			WLock l(cs);
