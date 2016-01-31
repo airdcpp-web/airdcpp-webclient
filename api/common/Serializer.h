@@ -56,6 +56,7 @@ namespace webserver {
 		static json serializeIp(const string& aIP, const string& aCountryCode) noexcept;
 
 		static json serializeShareProfileSimple(ProfileToken aProfile) noexcept;
+		static json serializeEncryption(const string& aInfo, bool aIsTrusted) noexcept;
 
 		static string getDownloadStateId(TrackableDownloadItem::State aState) noexcept;
 		//static string getDownloadStateStr(TrackableDownloadItem& aItem) noexcept;

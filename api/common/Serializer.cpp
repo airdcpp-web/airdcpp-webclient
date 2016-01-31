@@ -89,9 +89,9 @@ namespace webserver {
 		}
 
 		auto cm = aUser->getIdentity().getConnectMode();
-		if (cm == Identity::MODE_NOCONNECT_PASSIVE || cm == Identity::MODE_NOCONNECT_IP || cm == Identity::MODE_UNDEFINED) {
+		if (!aUser->getUser()->isNMDC() && (cm == Identity::MODE_NOCONNECT_PASSIVE || cm == Identity::MODE_NOCONNECT_IP || cm == Identity::MODE_UNDEFINED)) {
 			flags_.insert("noconnect");
-		} if (!aUser->getIdentity().isTcpActive(aUser->getClient())) {
+		} else if (!aUser->getIdentity().isTcpActive(aUser->getClient())) {
 			flags_.insert("passive");
 		}
 	}
@@ -144,6 +144,17 @@ namespace webserver {
 		return {
 			{ "id", sp->getToken() },
 			{ "str", sp->getPlainName() },
+		};
+	}
+
+	json Serializer::serializeEncryption(const string& aInfo, bool aIsTrusted) noexcept {
+		if (aInfo.empty()) {
+			return nullptr;
+		}
+
+		return {
+			{ "str", aInfo },
+			{ "trusted", aIsTrusted },
 		};
 	}
 
