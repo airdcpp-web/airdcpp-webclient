@@ -345,7 +345,7 @@ void AdcHub::handle(AdcCommand::MSG, AdcCommand& c) noexcept {
 	if(c.getParameters().empty())
 		return;
 
-	auto message = make_shared<ChatMessage>(c.getParam(0), findUser(c.getFrom()));
+	auto message = std::make_shared<ChatMessage>(c.getParam(0), findUser(c.getFrom()));
 	if(!message->getFrom())
 		return;
 
@@ -643,7 +643,7 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 			}
 		}
 
-		auto message = make_shared<ChatMessage>(c.getParam(1), u);
+		auto message = std::make_shared<ChatMessage>(c.getParam(1), u);
 		onChatMessage(message);
 	}
 }

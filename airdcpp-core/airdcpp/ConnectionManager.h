@@ -169,6 +169,8 @@ public:
 	void failDownload(const string& aToken, const string& aError, bool fatalError);
 
 	SharedMutex& getCS() { return cs; }
+
+	// Unsafe
 	const ConnectionQueueItem::List& getTransferConnections(bool aDownloads) const {
 		return aDownloads ? cqis[CONNECTION_TYPE_DOWNLOAD] : cqis[CONNECTION_TYPE_UPLOAD];
 	}

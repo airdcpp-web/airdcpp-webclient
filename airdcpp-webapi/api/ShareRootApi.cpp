@@ -79,7 +79,7 @@ namespace webserver {
 			JsonUtil::throwError("path", JsonUtil::ERROR_INVALID, e.what());
 		}
 
-		auto info = make_shared<ShareDirectoryInfo>(path);
+		auto info = std::make_shared<ShareDirectoryInfo>(path);
 
 		parseRoot(info, reqJson, true);
 

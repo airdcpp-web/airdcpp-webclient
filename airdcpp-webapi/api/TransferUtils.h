@@ -16,52 +16,28 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_ACCESS_H
-#define DCPLUSPLUS_DCPP_ACCESS_H
+#ifndef DCPLUSPLUS_DCPP_TRANSFERUTILS_H
+#define DCPLUSPLUS_DCPP_TRANSFERUTILS_H
 
+#include <web-server/stdinc.h>
+
+//#include <airdcpp/typedefs.h>
+
+#include <api/TransferInfo.h>
 
 namespace webserver {
-	typedef int8_t AccessType;
-	enum class Access: AccessType {
-		NONE = -2,
-		ANY = -1,
-		ADMIN = 0,
+	class TransferUtils {
+	public:
+		static json serializeProperty(const TransferInfoPtr& aItem, int aPropertyName) noexcept;
 
-		SEARCH,
-		DOWNLOAD,
-		EVENTS,
-		TRANSFERS,
+		static int compareItems(const TransferInfoPtr& a, const TransferInfoPtr& b, int aPropertyName) noexcept;
 
-		QUEUE_VIEW,
-		QUEUE_EDIT,
+		static std::string getStringInfo(const TransferInfoPtr& aItem, int aPropertyName) noexcept;
+		static double getNumericInfo(const TransferInfoPtr& aItem, int aPropertyName) noexcept;
 
-		FAVORITE_HUBS_VIEW,
-		FAVORITE_HUBS_EDIT,
+	private:
 
-		SETTINGS_VIEW,
-		SETTINGS_EDIT,
-
-		FILESYSTEM_VIEW,
-		FILESYSTEM_EDIT,
-
-		HUBS_VIEW,
-		HUBS_EDIT,
-		HUBS_SEND,
-
-		PRIVATE_CHAT_VIEW,
-		PRIVATE_CHAT_EDIT,
-		PRIVATE_CHAT_SEND,
-
-		FILELISTS_VIEW,
-		FILELISTS_EDIT,
-
-		VIEW_FILES_VIEW,
-		VIEW_FILES_EDIT,
-
-		LAST,
 	};
-
-	typedef map<Access, bool> AccessMap;
 }
 
 #endif

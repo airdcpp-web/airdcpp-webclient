@@ -158,7 +158,8 @@ namespace webserver {
 		}
 
 		return {
-			{ "id", id }
+			{ "id", id },
+			{ "encryption", Serializer::serializeEncryption(aClient->getEncryptionInfo(), aClient->isTrusted()) },
 		};
 	}
 

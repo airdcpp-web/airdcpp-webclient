@@ -82,10 +82,16 @@ namespace webserver {
 	}
 
 	json PrivateChatInfo::serializeCCPMState(const PrivateChatPtr& aChat) noexcept {
+		json encryption;
+		if (aChat->getUc()) {
+			encryption = Serializer::serializeEncryption(aChat->getUc()->getEncryptionInfo(), aChat->getUc()->isTrusted());
+		}
+
 		return{
 			{ "id", formatCCPMState(aChat->getCCPMState()) },
 			{ "str", PrivateChat::ccpmStateToString(aChat->getCCPMState()) },
-			{ "supported", aChat->getSupportsCCPM() }
+			{ "supported", aChat->getSupportsCCPM() },
+			{ "encryption", encryption },
 		};
 	}
 

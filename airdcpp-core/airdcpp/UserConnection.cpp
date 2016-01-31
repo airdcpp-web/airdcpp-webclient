@@ -269,7 +269,7 @@ void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 
 	string tmp;
 
-	auto msg = make_shared<ChatMessage>(message, peer, me, peer);
+	auto msg = std::make_shared<ChatMessage>(message, peer, me, peer);
 	if (c.getParam("TS", 1, tmp)) {
 		msg->setTime(Util::toInt64(tmp));
 	}

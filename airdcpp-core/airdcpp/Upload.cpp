@@ -70,5 +70,21 @@ void Upload::resume(int64_t aStart, int64_t aSize) noexcept {
 	}
 }
 
+void Upload::appendFlags(OrderedStringSet& flags_) const noexcept {
+	if (isSet(Upload::FLAG_PARTIAL)) {
+		flags_.insert("P");
+	}
+
+	if (isSet(Upload::FLAG_ZUPLOAD)) {
+		flags_.insert("Z");
+	}
+
+	if (isSet(Upload::FLAG_CHUNKED)) {
+		flags_.insert("C");
+	}
+
+	Transfer::appendFlags(flags_);
+}
+
 
 } // namespace dcpp

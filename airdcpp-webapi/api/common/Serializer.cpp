@@ -87,6 +87,13 @@ namespace webserver {
 		if (aUser->isHidden()) {
 			flags_.insert("hidden");
 		}
+
+		auto cm = aUser->getIdentity().getConnectMode();
+		if (!aUser->getUser()->isNMDC() && (cm == Identity::MODE_NOCONNECT_PASSIVE || cm == Identity::MODE_NOCONNECT_IP || cm == Identity::MODE_UNDEFINED)) {
+			flags_.insert("noconnect");
+		} else if (!aUser->getIdentity().isTcpActive(aUser->getClient())) {
+			flags_.insert("passive");
+		}
 	}
 
 	json Serializer::serializeUser(const UserPtr& aUser) noexcept {
@@ -137,6 +144,17 @@ namespace webserver {
 		return {
 			{ "id", sp->getToken() },
 			{ "str", sp->getPlainName() },
+		};
+	}
+
+	json Serializer::serializeEncryption(const string& aInfo, bool aIsTrusted) noexcept {
+		if (aInfo.empty()) {
+			return nullptr;
+		}
+
+		return {
+			{ "str", aInfo },
+			{ "trusted", aIsTrusted },
 		};
 	}
 

@@ -102,6 +102,9 @@ sudo make uninstall
 
 Follow the instructions in the [Compile and install](#compile-and-install) section to install the new version.
 
+**IMPORTANT**: if you had the Web UI open in browser during the upgrade, you should close and reopen the tabs to make sure that the latest UI files are fetched by the browser. Otherwise the UI won't function properly.
+
+Note that if you check the version numbers from the About page (Settings -> About), the last numbers in UI and client versions may differ because minor updates can be released separately for both projects. However, the major version numbers (0.**xx**.x) should always match. The latest available Web UI version can be checked from [the NPM package page](https://www.npmjs.com/package/airdcpp-webui).
 
 ## Uninstalling
 

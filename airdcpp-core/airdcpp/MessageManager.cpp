@@ -58,7 +58,7 @@ PrivateChatPtr MessageManager::addChat(const HintedUser& user, bool aReceivedMes
 
 	{
 		WLock l(cs);
-		chat = make_shared<PrivateChat>(user, getPMConn(user.user));
+		chat = std::make_shared<PrivateChat>(user, getPMConn(user.user));
 		chats.emplace(user.user, chat);
 	}
 

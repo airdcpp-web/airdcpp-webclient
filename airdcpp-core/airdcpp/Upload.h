@@ -54,6 +54,8 @@ public:
 	InputStream* getStream();
 	void setFiltered();
 	void resume(int64_t aStart, int64_t aSize) noexcept;
+
+	void appendFlags(OrderedStringSet& flags_) const noexcept;
 private:
 	unique_ptr<InputStream> stream;
 };

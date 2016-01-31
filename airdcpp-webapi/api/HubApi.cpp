@@ -102,7 +102,7 @@ namespace webserver {
 	}
 
 	void HubApi::addHub(const ClientPtr& aClient) noexcept {
-		addSubModule(aClient->getClientId(), make_shared<HubInfo>(this, aClient));
+		addSubModule(aClient->getClientId(), std::make_shared<HubInfo>(this, aClient));
 	}
 
 	api_return HubApi::handleGetHubs(ApiRequest& aRequest) {

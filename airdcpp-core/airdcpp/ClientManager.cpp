@@ -58,10 +58,10 @@ ClientManager::~ClientManager() {
 
 ClientPtr ClientManager::createClient(const string& aHubURL, const ClientPtr& aOldClient) noexcept {
 	if (AirUtil::isAdcHub(aHubURL)) {
-		return make_shared<AdcHub>(aHubURL, aOldClient);
+		return std::make_shared<AdcHub>(aHubURL, aOldClient);
 	}
 
-	return make_shared<NmdcHub>(aHubURL, aOldClient);
+	return std::make_shared<NmdcHub>(aHubURL, aOldClient);
 }
 
 ClientPtr ClientManager::createClient(const RecentHubEntryPtr& aEntry, ProfileToken aProfile) noexcept {
