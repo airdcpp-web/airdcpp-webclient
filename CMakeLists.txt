@@ -76,6 +76,7 @@ message (STATUS "Found nodejs (${NODE_EXECUTABLE})")
 #option (ENABLE_STACKTRACE "Show stacktrace when program receive SIGSEGV" ON)
 option (INSTALL_RUNTIME_PATH "Install rpath" OFF)
 option (LOCAL_BOOST "Use local boost headers" OFF)
+option (INSTALL_WEB_UI "Download and install the Web UI package" ON)
 option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
 
 #if (DO_NOT_USE_MUTEX OR HAIKU OR APPLE)
@@ -216,9 +217,13 @@ message(STATUS "CMAKE will use this libs (and headers) during build:
     tbb (headers): ${TBB_LIBRARIES} (${TBB_INCLUDE_DIRS})
     ")
 
-message(STATUS "Installing Web UI")
-execute_process (COMMAND sh install_webui.sh latest
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+if(INSTALL_WEB_UI)
+	message(STATUS "Installing Web UI")
+	execute_process (COMMAND sh install_webui.sh latest
+							WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+else(INSTALL_WEB_UI)
+	message(STATUS "Skipping Web UI installation")
+endif (INSTALL_WEB_UI)
 
 
 CONFIGURE_FILE(
@@ -227,5 +232,7 @@ CONFIGURE_FILE(
   IMMEDIATE @ONLY)
 ADD_CUSTOM_TARGET(uninstall
   "${CMAKE_COMMAND}" -P "${PROJECT_BINARY_DIR}/cmake_uninstall.cmake")
-  
-install (DIRECTORY node_modules/airdcpp-webui/dist/ DESTINATION /usr/share/airdcpp/web-resources)
+
+if(INSTALL_WEB_UI)
+	install (DIRECTORY node_modules/airdcpp-webui/dist/ DESTINATION /usr/share/airdcpp/web-resources)
+endif (INSTALL_WEB_UI)
