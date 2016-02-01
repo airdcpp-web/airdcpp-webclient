@@ -8,9 +8,9 @@ else (APPLE)
 endif (APPLE)
 
 set (PROJECT_NAME "AirDC++ Web Client")
-set (VERSION "0.0.1")
-set (SOVERSION "0.0.1" )
-set (VERSION_SUFFIX "GIT")
+set (TAG_APPLICATION "AirDC++w")
+set (VERSION "0.15.0")
+set (SOVERSION "0.15.0" )
 
 set (GNUCXX_MINIMUM_VERSION "4.8")
 
@@ -142,15 +142,18 @@ endif (WIN32)
 
 message (STATUS "Data directory: ${CLIENT_DATA_DIR}")
 
+# find_program(GIT_EXECUTABLE git PATHS /sw/bin)
 
-# Version number for the library naming
-execute_process (COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
-                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-                 OUTPUT_VARIABLE SOVERSION
-                 OUTPUT_STRIP_TRAILING_WHITESPACE)
+#if (GIT_EXECUTABLE)
+	# Version number for the library naming
+#	execute_process (COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
+#									 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+#									 OUTPUT_VARIABLE SOVERSION
+#									 OUTPUT_STRIP_TRAILING_WHITESPACE)
+#endif (GIT_EXECUTABLE)
 
 # Version information for the client
-execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc ${VERSION} ${TAG_APPLICATION} WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 # Generate StringDefs.cpp
 execute_process (COMMAND ${NODE_EXECUTABLE} generate_stringdefs.js airdcpp-core/airdcpp/
@@ -219,7 +222,7 @@ message(STATUS "CMAKE will use this libs (and headers) during build:
 
 if(INSTALL_WEB_UI)
 	message(STATUS "Installing Web UI")
-	execute_process (COMMAND sh install_webui.sh latest
+	execute_process (COMMAND sh install_webui.sh ${SOVERSION}
 							WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 else(INSTALL_WEB_UI)
 	message(STATUS "Skipping Web UI installation")
