@@ -256,7 +256,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		u->getUser()->setFlag(User::ASCH);
 	}
 
-	if(u->getUser() == getMyIdentity().getUser()) {
+	if (u->getUser() == getMyIdentity().getUser()) {
 		State oldState = getConnectState();
 		if (oldState != STATE_NORMAL) {
 			setConnectState(STATE_NORMAL);
@@ -267,8 +267,18 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		setMyIdentity(u->getIdentity());
 		updateCounts(false);
 
-		if (oldState != STATE_NORMAL && u->getIdentity().getAdcConnectionSpeed(false) == 0)
-			statusMessage("WARNING: This hub is not displaying the connection speed fields, which prevents the client from choosing the best sources for downloads. Please advise the hub owner to fix this.", LogMessage::SEV_WARNING);
+		if (oldState != STATE_NORMAL) {
+			if (u->getIdentity().getAdcConnectionSpeed(false) == 0) {
+				statusMessage("WARNING: This hub is not displaying the connection speed fields, which prevents the client from choosing the best sources for downloads. Please advise the hub owner to fix this.", LogMessage::SEV_WARNING);
+			}
+
+			if (isSecure()) {
+				auto encryption = getEncryptionInfo();
+				if (encryption.find("TLSv1.2") == string::npos) {
+					statusMessage("This hub uses an outdated cryptographic protocol that has known security issues", LogMessage::SEV_WARNING);
+				}
+			}
+		}
 
 		//we have to update the modes in case our connectivity changed
 
