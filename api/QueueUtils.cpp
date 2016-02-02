@@ -117,15 +117,8 @@ namespace webserver {
 		if (aBundle->isFileBundle()) {
 			return Format::formatFileType(aBundle->getTarget());
 		} else {
-			size_t files = 0;
-			size_t folders = 0;
-
-			{
-				RLock l(QueueManager::getInstance()->getCS());
-				files = aBundle->getQueueItems().size() + aBundle->getFinishedFiles().size();
-				folders = aBundle->getDirectories().size();
-			}
-
+			size_t files = 0, folders = 0;
+			QueueManager::getInstance()->getBundleContent(aBundle, files, folders);
 			return Format::formatFolderContent(files, folders);
 		}
 	}
@@ -241,14 +234,8 @@ namespace webserver {
 			if (aBundle->isFileBundle()) {
 				return Serializer::serializeFileType(aBundle->getTarget());
 			} else {
-				size_t files = 0;
-				size_t folders = 0;
-
-				{
-					RLock l(QueueManager::getInstance()->getCS());
-					files = aBundle->getQueueItems().size() + aBundle->getFinishedFiles().size();
-					folders = aBundle->getDirectories().size();
-				}
+				size_t files = 0, folders = 0;
+				QueueManager::getInstance()->getBundleContent(aBundle, files, folders);
 
 				return Serializer::serializeFolderType(static_cast<int>(files), static_cast<int>(folders));
 			}
