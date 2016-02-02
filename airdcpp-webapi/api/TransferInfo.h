@@ -69,8 +69,12 @@ namespace webserver {
 			return stringToken;
 		}
 
-		const bool isDownload() const noexcept {
+		bool isDownload() const noexcept {
 			return download;
+		}
+
+		bool isFilelist() const noexcept {
+			return type == Transfer::TYPE_PARTIAL_LIST || type == Transfer::TYPE_FULL_LIST;
 		}
 
 		const HintedUser& getHintedUser() const noexcept {

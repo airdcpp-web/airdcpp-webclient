@@ -37,26 +37,20 @@ namespace webserver {
 			TransferUtils::getStringInfo, TransferUtils::getNumericInfo, TransferUtils::compareItems, TransferUtils::serializeProperty),
 		view("transfer_view", this, propertyHandler, std::bind(&TransferApi::getTransfers, this))
 	{
-
-		view.setActiveStateChangeHandler([&](bool aActive) {
-			if (aActive) {
-				loadTransfers();
-			} else {
-				unloadTransfers();
-			}
-		});
-
 		DownloadManager::getInstance()->addListener(this);
 		UploadManager::getInstance()->addListener(this);
 		ConnectionManager::getInstance()->addListener(this);
 
-		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, TransferApi::handleGetStats);
+		METHOD_HANDLER("tranferred_bytes", Access::ANY, ApiRequest::METHOD_GET, (), false, TransferApi::handleGetTransferredBytes);
+		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, TransferApi::handleGetTransferStats);
 
 		METHOD_HANDLER("force", Access::TRANSFERS, ApiRequest::METHOD_POST, (TOKEN_PARAM), false, TransferApi::handleForce);
 		METHOD_HANDLER("disconnect", Access::TRANSFERS, ApiRequest::METHOD_POST, (TOKEN_PARAM), false, TransferApi::handleDisconnect);
 
 		createSubscription("transfer_statistics");
 		timer->start(false);
+
+		loadTransfers();
 	}
 
 	TransferApi::~TransferApi() {
@@ -118,7 +112,7 @@ namespace webserver {
 		return ret;
 	}
 
-	api_return TransferApi::handleGetStats(ApiRequest& aRequest) {
+	api_return TransferApi::handleGetTransferredBytes(ApiRequest& aRequest) {
 		aRequest.setResponseBody({
 			{ "session_downloaded", Socket::getTotalDown() },
 			{ "session_uploaded", Socket::getTotalUp() },
@@ -162,44 +156,53 @@ namespace webserver {
 		return *ret;
 	}
 
-	void TransferApi::onTimer() {
-		if (!subscriptionActive("transfer_statistics"))
-			return;
+	api_return TransferApi::handleGetTransferStats(ApiRequest& aRequest) {
+		aRequest.setResponseBody(serializeTransferStats());
+		return websocketpp::http::status_code::ok;
+	}
 
+	json TransferApi::serializeTransferStats() const noexcept {
 		auto resetSpeed = [](int transfers, int64_t speed) {
 			return (transfers == 0 && speed < 10 * 1024) || speed < 1024;
 		};
 
+		auto uploads = UploadManager::getInstance()->getUploadCount();
+		auto downloads = DownloadManager::getInstance()->getDownloadCount();
+
 		auto downSpeed = DownloadManager::getInstance()->getLastDownSpeed();
-		if (resetSpeed(lastDownloads, downSpeed)) {
+		if (resetSpeed(downloads, downSpeed)) {
 			downSpeed = 0;
 		}
 
 		auto upSpeed = DownloadManager::getInstance()->getLastUpSpeed();
-		if (resetSpeed(lastUploads, upSpeed)) {
+		if (resetSpeed(uploads, upSpeed)) {
 			upSpeed = 0;
 		}
 
-		json j = {
+		return {
 			{ "speed_down", downSpeed },
 			{ "speed_up", upSpeed },
 			{ "upload_bundles", lastUploadBundles },
 			{ "download_bundles", lastDownloadBundles },
-			{ "uploads", lastUploads },
-			{ "downloads", lastDownloads },
+			{ "uploads", uploads },
+			{ "downloads", downloads },
+			{ "queued_bytes", QueueManager::getInstance()->getTotalQueueSize() },
 		};
+	}
+
+	void TransferApi::onTimer() {
+		if (!subscriptionActive("transfer_statistics"))
+			return;
+
+		auto newStats = serializeTransferStats();
+		if (previousStats == newStats)
+			return;
 
 		lastUploadBundles = 0;
 		lastDownloadBundles = 0;
 
-		lastUploads = 0;
-		lastDownloads = 0;
-
-		if (previousStats == j)
-			return;
-
-		previousStats = j;
-		send("transfer_statistics", j);
+		send("transfer_statistics", newStats);
+		previousStats.swap(newStats);
 	}
 
 	void TransferApi::onTick(const Transfer* aTransfer, bool aIsDownload) noexcept {
@@ -224,8 +227,6 @@ namespace webserver {
 	}
 
 	void TransferApi::on(UploadManagerListener::Tick, const UploadList& aUploads) noexcept {
-		lastUploads = aUploads.size();
-
 		for (const auto& ul : aUploads) {
 			if (ul->getPos() == 0) continue;
 
@@ -234,8 +235,6 @@ namespace webserver {
 	}
 
 	void TransferApi::on(DownloadManagerListener::Tick, const DownloadList& aDownloads) noexcept {
-		lastDownloads = aDownloads.size();
-
 		for (const auto& dl : aDownloads) {
 			onTick(dl, true);
 		}
@@ -334,7 +333,7 @@ namespace webserver {
 
 		aInfo->setState(TransferInfo::STATE_WAITING);
 
-		view.onItemUpdated(aInfo, { PROP_STATUS, PROP_TARGET, PROP_NAME, PROP_SIZE });
+		view.onItemUpdated(aInfo, { PROP_STATUS, PROP_TARGET, PROP_TYPE, PROP_NAME, PROP_SIZE });
 	}
 
 	void TransferApi::on(ConnectionManagerListener::Connecting, const ConnectionQueueItem* aCqi) noexcept {
@@ -380,7 +379,7 @@ namespace webserver {
 		aInfo->setType(aTransfer->getType());
 		aInfo->setEncryption(aTransfer->getUserConnection().getEncryptionInfo());
 
-		view.onItemUpdated(aInfo, { PROP_STATUS, PROP_SPEED, PROP_BYTES_TRANSFERRED, PROP_TIME_STARTED, PROP_SIZE, PROP_TARGET, PROP_NAME, PROP_IP, PROP_ENCRYPTION, PROP_FLAGS });
+		view.onItemUpdated(aInfo, { PROP_STATUS, PROP_SPEED, PROP_BYTES_TRANSFERRED, PROP_TIME_STARTED, PROP_SIZE, PROP_TARGET, PROP_NAME, PROP_TYPE, PROP_IP, PROP_ENCRYPTION, PROP_FLAGS });
 	}
 
 	void TransferApi::on(DownloadManagerListener::Requesting, const Download* aDownload, bool hubChanged) noexcept {

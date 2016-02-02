@@ -32,13 +32,22 @@ namespace webserver {
 		bool hasFolderInfo = folderCount > 0;
 
 		if (hasFolderInfo) {
-			name += STRING_F(X_FOLDERS, folderCount);
+			if (folderCount == 1) {
+				name += Util::toString(folderCount) + " " + Text::toLower(STRING(FOLDER));
+			} else {
+				name += STRING_F(X_FOLDERS, folderCount);
+			}
 		}
 
 		if (hasFileInfo) {
 			if (hasFolderInfo)
 				name += ", ";
-			name += STRING_F(X_FILES, fileCount);
+
+			if (fileCount == 1) {
+				name += Util::toString(fileCount) + " " + Text::toLower(STRING(FILE));
+			} else {
+				name += STRING_F(X_FILES, fileCount);
+			}
 		}
 
 		return name;
