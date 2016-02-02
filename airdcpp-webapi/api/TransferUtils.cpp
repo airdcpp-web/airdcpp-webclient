@@ -29,6 +29,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case TransferApi::PROP_NAME: return aItem->getName();
 		case TransferApi::PROP_TARGET: return aItem->getTarget();
+		case TransferApi::PROP_TYPE: return Format::formatFileType(aItem->getTarget());
 		case TransferApi::PROP_STATUS: return aItem->getStatusString();
 		case TransferApi::PROP_IP: return aItem->getIp();
 		case TransferApi::PROP_USER: return Format::formatNicks(aItem->getHintedUser());
@@ -84,6 +85,21 @@ namespace webserver {
 					{ "id", aItem->getStateKey() },
 					{ "str", aItem->getStatusString() },
 				};
+			}
+			case TransferApi::PROP_TYPE: {
+				if (aItem->getTarget().empty()) {
+					return nullptr;
+				}
+
+				if (aItem->isFilelist()) {
+					return{
+						{ "id", "file" },
+						{ "content_type", "filelist" },
+						{ "str", aItem->getName() }
+					};
+				}
+
+				return Serializer::serializeFileType(aItem->getTarget());
 			}
 			case TransferApi::PROP_FLAGS: return aItem->getFlags();
 			case TransferApi::PROP_ENCRYPTION:

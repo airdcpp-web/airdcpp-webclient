@@ -488,6 +488,12 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 }
 
+void QueueManager::getBundleContent(const BundlePtr& aBundle, size_t& files_, size_t& directories_) const noexcept {
+	RLock l(cs);
+	files_ = aBundle->getQueueItems().size() + aBundle->getFinishedFiles().size();
+	directories_ = aBundle->isFileBundle() ? 0 : aBundle->getDirectories().size() - 1;
+}
+
 bool QueueManager::hasDownloadedBytes(const string& aTarget) throw(QueueException) {
 	RLock l(cs);
 	auto q = fileQueue.findFile(aTarget);

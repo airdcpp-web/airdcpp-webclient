@@ -8,9 +8,9 @@ else (APPLE)
 endif (APPLE)
 
 set (PROJECT_NAME "AirDC++ Web Client")
-set (VERSION "0.0.1")
-set (SOVERSION "0.0.1" )
-set (VERSION_SUFFIX "GIT")
+set (TAG_APPLICATION "AirDC++w")
+set (VERSION "0.15.0")
+set (SOVERSION "0.15.0" )
 
 set (GNUCXX_MINIMUM_VERSION "4.8")
 
@@ -76,6 +76,7 @@ message (STATUS "Found nodejs (${NODE_EXECUTABLE})")
 #option (ENABLE_STACKTRACE "Show stacktrace when program receive SIGSEGV" ON)
 option (INSTALL_RUNTIME_PATH "Install rpath" OFF)
 option (LOCAL_BOOST "Use local boost headers" OFF)
+option (INSTALL_WEB_UI "Download and install the Web UI package" ON)
 option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
 
 #if (DO_NOT_USE_MUTEX OR HAIKU OR APPLE)
@@ -141,15 +142,18 @@ endif (WIN32)
 
 message (STATUS "Data directory: ${CLIENT_DATA_DIR}")
 
+# find_program(GIT_EXECUTABLE git PATHS /sw/bin)
 
-# Version number for the library naming
-execute_process (COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
-                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-                 OUTPUT_VARIABLE SOVERSION
-                 OUTPUT_STRIP_TRAILING_WHITESPACE)
+#if (GIT_EXECUTABLE)
+	# Version number for the library naming
+#	execute_process (COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
+#									 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+#									 OUTPUT_VARIABLE SOVERSION
+#									 OUTPUT_STRIP_TRAILING_WHITESPACE)
+#endif (GIT_EXECUTABLE)
 
 # Version information for the client
-execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc ${VERSION} ${TAG_APPLICATION} WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 # Generate StringDefs.cpp
 execute_process (COMMAND ${NODE_EXECUTABLE} generate_stringdefs.js airdcpp-core/airdcpp/
@@ -216,9 +220,13 @@ message(STATUS "CMAKE will use this libs (and headers) during build:
     tbb (headers): ${TBB_LIBRARIES} (${TBB_INCLUDE_DIRS})
     ")
 
-message(STATUS "Installing Web UI")
-execute_process (COMMAND sh install_webui.sh latest
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+if(INSTALL_WEB_UI)
+	message(STATUS "Installing Web UI")
+	execute_process (COMMAND sh install_webui.sh ${SOVERSION}
+							WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+else(INSTALL_WEB_UI)
+	message(STATUS "Skipping Web UI installation")
+endif (INSTALL_WEB_UI)
 
 
 CONFIGURE_FILE(
@@ -227,5 +235,7 @@ CONFIGURE_FILE(
   IMMEDIATE @ONLY)
 ADD_CUSTOM_TARGET(uninstall
   "${CMAKE_COMMAND}" -P "${PROJECT_BINARY_DIR}/cmake_uninstall.cmake")
-  
-install (DIRECTORY node_modules/airdcpp-webui/dist/ DESTINATION /usr/share/airdcpp/web-resources)
+
+if(INSTALL_WEB_UI)
+	install (DIRECTORY node_modules/airdcpp-webui/dist/ DESTINATION /usr/share/airdcpp/web-resources)
+endif (INSTALL_WEB_UI)

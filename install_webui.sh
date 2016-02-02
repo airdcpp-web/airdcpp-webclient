@@ -3,6 +3,9 @@ mkdir -p ./node_modules
 wantedVersion=$1
 if [ "$wantedVersion" = "latest" ]; then
   wantedVersion=`npm show airdcpp-webui version`
+else
+	# Remove the patch number from the version because those may differ
+	wantedVersion="${wantedVersion%?}"
 fi
 
 npm list | grep airdcpp-webui@"$wantedVersion" > /dev/null 2>&1
