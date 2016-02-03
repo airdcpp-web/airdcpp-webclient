@@ -91,61 +91,61 @@ public:
 	GETSET_FIELD(SharedFiles, "SF")
 	GETSET_FIELD(ShareSize, "SS")
 #undef GETSET_FIELD
-	uint8_t getSlots() const;
-	void setBytesShared(const string& bs) { set("SS", bs); }
-	int64_t getBytesShared() const { return Util::toInt64(get("SS")); }
+	uint8_t getSlots() const noexcept;
+	void setBytesShared(const string& bs) noexcept { set("SS", bs); }
+	int64_t getBytesShared() const noexcept { return Util::toInt64(get("SS")); }
 	
-	void setStatus(const string& st) { set("ST", st); }
-	StatusFlags getStatus() const { return static_cast<StatusFlags>(Util::toInt(get("ST"))); }
+	void setStatus(const string& st) noexcept { set("ST", st); }
+	StatusFlags getStatus() const noexcept { return static_cast<StatusFlags>(Util::toInt(get("ST"))); }
 
-	void setOp(bool op) { set("OP", op ? "1" : Util::emptyString); }
-	void setHub(bool hub) { set("HU", hub ? "1" : Util::emptyString); }
-	void setBot(bool bot) { set("BO", bot ? "1" : Util::emptyString); }
-	void setHidden(bool hidden) { set("HI", hidden ? "1" : Util::emptyString); }
-	string getTag() const;
-	string getApplication() const;
-	int getTotalHubCount() const;
-	const string& getCountry() const;
-	bool supports(const string& name) const;
-	bool isHub() const { return isClientType(CT_HUB) || isSet("HU"); }
-	bool isOp() const { return isClientType(CT_OP) || isClientType(CT_SU) || isClientType(CT_OWNER) || isSet("OP"); }
-	bool isRegistered() const { return isClientType(CT_REGGED) || isSet("RG"); }
-	bool isHidden() const { return isClientType(CT_HIDDEN) || isSet("HI"); }
-	bool isBot() const { return isClientType(CT_BOT) || isSet("BO"); }
-	bool isAway() const { return (getStatus() & AWAY) || isSet("AW"); }
-	bool isTcpActive(const ClientPtr& = nullptr) const;
-	bool isTcp4Active(const ClientPtr& = nullptr) const;
-	bool isTcp6Active() const;
-	bool isUdpActive() const;
-	bool isUdp4Active() const;
-	bool isUdp6Active() const;
-	string getIp() const;
-	string getUdpPort() const;
-	string getV4ModeString() const;
-	string getV6ModeString() const;
+	void setOp(bool op) noexcept { set("OP", op ? "1" : Util::emptyString); }
+	void setHub(bool hub) noexcept { set("HU", hub ? "1" : Util::emptyString); }
+	void setBot(bool bot) noexcept { set("BO", bot ? "1" : Util::emptyString); }
+	void setHidden(bool hidden) noexcept { set("HI", hidden ? "1" : Util::emptyString); }
+	string getTag() const noexcept;
+	string getApplication() const noexcept;
+	int getTotalHubCount() const noexcept;
+	const string& getCountry() const noexcept;
+	bool supports(const string& name) const noexcept;
+	bool isHub() const noexcept { return isClientType(CT_HUB) || isSet("HU"); }
+	bool isOp() const noexcept { return isClientType(CT_OP) || isClientType(CT_SU) || isClientType(CT_OWNER) || isSet("OP"); }
+	bool isRegistered() const noexcept { return isClientType(CT_REGGED) || isSet("RG"); }
+	bool isHidden() const noexcept { return isClientType(CT_HIDDEN) || isSet("HI"); }
+	bool isBot() const noexcept { return isClientType(CT_BOT) || isSet("BO"); }
+	bool isAway() const noexcept { return (getStatus() & AWAY) || isSet("AW"); }
+	bool isTcpActive(const ClientPtr& = nullptr) const noexcept;
+	bool isTcp4Active(const ClientPtr& = nullptr) const noexcept;
+	bool isTcp6Active() const noexcept;
+	bool isUdpActive() const noexcept;
+	bool isUdp4Active() const noexcept;
+	bool isUdp6Active() const noexcept;
+	string getIp() const noexcept;
+	string getUdpPort() const noexcept;
+	string getV4ModeString() const noexcept;
+	string getV6ModeString() const noexcept;
 
-	string getConnectionString() const;
-	int64_t getAdcConnectionSpeed(bool download) const;
+	string getConnectionString() const noexcept;
+	int64_t getAdcConnectionSpeed(bool download) const noexcept;
 
-	std::map<string, string> getInfo() const;
-	string get(const char* name) const;
-	void set(const char* name, const string& val);
-	bool isSet(const char* name) const;
-	string getSIDString() const { return string((const char*)&sid, 4); }
+	std::map<string, string> getInfo() const noexcept;
+	string get(const char* name) const noexcept;
+	void set(const char* name, const string& val) noexcept;
+	bool isSet(const char* name) const noexcept;
+	string getSIDString() const noexcept { return string((const char*)&sid, 4); }
 	
-	bool isClientType(ClientType ct) const;
+	bool isClientType(ClientType ct) const noexcept;
 	
-	void getParams(ParamMap& map, const string& prefix, bool compatibility) const;
-	const UserPtr& getUser() const { return user; }
-	UserPtr& getUser() { return user; }
-	uint32_t getSID() const { return sid; }
+	void getParams(ParamMap& map, const string& prefix, bool compatibility) const noexcept;
+	const UserPtr& getUser() const noexcept { return user; }
+	UserPtr& getUser() noexcept { return user; }
+	uint32_t getSID() const noexcept { return sid; }
 
 	//this caches the mode, taking into account what we support too
 	GETSET(Mode, connectMode, ConnectMode);
-	bool updateConnectMode(const Identity& me, const Client* aClient);
+	bool updateConnectMode(const Identity& me, const Client* aClient) noexcept;
 
-	bool allowV4Connections() const;
-	bool allowV6Connections() const;
+	bool allowV4Connections() const noexcept;
+	bool allowV6Connections() const noexcept;
 private:
 	UserPtr user;
 	uint32_t sid;
@@ -213,27 +213,27 @@ public:
 		return identity.getSID();
 	}
 
-	operator UserPtr&() { return getUser(); }
-	operator const UserPtr&() const { return getUser(); }
+	operator UserPtr&() noexcept { return getUser(); }
+	operator const UserPtr&() const noexcept { return getUser(); }
 
-	UserPtr& getUser() { return getIdentity().getUser(); }
-	const UserPtr& getUser() const { return getIdentity().getUser(); }
-	const string& getHubUrl() const;
-	Identity& getIdentity() { return identity; }
+	UserPtr& getUser() noexcept { return getIdentity().getUser(); }
+	const UserPtr& getUser() const noexcept { return getIdentity().getUser(); }
+	const string& getHubUrl() const noexcept;
+	Identity& getIdentity() noexcept { return identity; }
 
 	/* UserInfo */
 	uint8_t getImageIndex() const noexcept;
-	bool isHidden() const { return identity.isHidden(); }
+	bool isHidden() const noexcept { return identity.isHidden(); }
 
-	const ClientPtr& getClient() const { return client; }
+	const ClientPtr& getClient() const noexcept { return client; }
 #ifdef _WIN32
-	static int compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t col);
+	static int compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t col) noexcept;
 	bool update(int sortCol, const tstring& oldText = Util::emptyStringT);
 	tstring getText(uint8_t col, bool copy = false) const;
 #endif
 
-	string getLogPath();
-	bool supportsCCPM(string& _error) const;
+	string getLogPath() const noexcept;
+	bool supportsCCPM() const noexcept;
 
 	bool isInList;
 	GETSET(Identity, identity, Identity);

@@ -41,18 +41,18 @@ public:
 	enum: uint8_t { FILE, FORMAT };
 
 	void log(Area area, ParamMap& params) noexcept;
-	void message(const string& msg, LogMessage::Severity severity);
+	void message(const string& msg, LogMessage::Severity severity) noexcept;
 
-	string getPath(Area area, ParamMap& params) const;
-	string getPath(Area area) const;
+	string getPath(Area area, ParamMap& params) const noexcept;
+	string getPath(Area area) const noexcept;
 
 	// PM functions
-	string getPath(const UserPtr& aUser, ParamMap& params, bool addCache = false);
-	void log(const UserPtr& aUser, ParamMap& params);
-	void removePmCache(const UserPtr& aUser);
+	string getPath(const UserPtr& aUser, ParamMap& params, bool addCache = false) noexcept;
+	void log(const UserPtr& aUser, ParamMap& params) noexcept;
+	void removePmCache(const UserPtr& aUser) noexcept;
 
-	const string& getSetting(int area, int sel) const;
-	void saveSetting(int area, int sel, const string& setting);
+	const string& getSetting(int area, int sel) const noexcept;
+	void saveSetting(int area, int sel, const string& setting) const noexcept;
 
 	const MessageCache& getCache() const noexcept {
 		return cache;
@@ -73,7 +73,7 @@ private:
 	virtual ~LogManager();
 
 	unordered_map<CID, string> pmPaths;
-	void ensureParam(const string& aParam, string& aFile);
+	static void ensureParam(const string& aParam, string& aFile) noexcept;
 
 	DispatcherQueue tasks;
 };
