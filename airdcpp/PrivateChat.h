@@ -106,6 +106,7 @@ namespace dcpp {
 
 		void checkAlwaysCCPM();
 		void checkCCPMTimeout();
+		void checkCCPMHubBlocked() noexcept;
 		void setUc(UserConnection* aUc){ uc = aUc; ccpmState = aUc ? CONNECTED : DISCONNECTED; }
 
 		HintedUser replyTo;

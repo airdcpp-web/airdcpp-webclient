@@ -43,11 +43,11 @@ OnlineUser::~OnlineUser() noexcept {
 
 }
 
-bool Identity::isTcpActive(const ClientPtr& c) const {
+bool Identity::isTcpActive(const ClientPtr& c) const noexcept {
 	return isTcp4Active(c) || isTcp6Active();
 }
 
-bool Identity::isTcp4Active(const ClientPtr& c) const {
+bool Identity::isTcp4Active(const ClientPtr& c) const noexcept {
 	if (!user->isSet(User::NMDC)) {
 		return !getIp4().empty() && supports(AdcHub::TCP4_FEATURE);
 	} else {
@@ -56,27 +56,27 @@ bool Identity::isTcp4Active(const ClientPtr& c) const {
 	}
 }
 
-bool Identity::isTcp6Active() const {
+bool Identity::isTcp6Active() const noexcept {
 	return !getIp6().empty() && supports(AdcHub::TCP6_FEATURE);
 }
 
-bool Identity::isUdpActive() const {
+bool Identity::isUdpActive() const noexcept {
 	return isUdp4Active() || isUdp6Active();
 }
 
-bool Identity::isUdp4Active() const {
+bool Identity::isUdp4Active() const noexcept {
 	if(getIp4().empty() || getUdp4Port().empty())
 		return false;
 	return user->isSet(User::NMDC) ? !user->isSet(User::PASSIVE) : supports(AdcHub::UDP4_FEATURE);
 }
 
-bool Identity::isUdp6Active() const {
+bool Identity::isUdp6Active() const noexcept {
 	if(getIp6().empty() || getUdp6Port().empty())
 		return false;
 	return user->isSet(User::NMDC) ? false : supports(AdcHub::UDP6_FEATURE);
 }
 
-string Identity::getUdpPort() const {
+string Identity::getUdpPort() const noexcept {
 	if(getIp6().empty() || getUdp6Port().empty()) {
 		return getUdp4Port();
 	}
@@ -84,11 +84,11 @@ string Identity::getUdpPort() const {
 	return getUdp6Port();
 }
 
-string Identity::getIp() const {
+string Identity::getIp() const noexcept {
 	return !allowV6Connections() ? getIp4() : getIp6();
 }
 
-string Identity::getConnectionString() const {
+string Identity::getConnectionString() const noexcept {
 	if (user->isNMDC()) {
 		return getNmdcConnection();
 	} else {
@@ -96,15 +96,15 @@ string Identity::getConnectionString() const {
 	}
 }
 
-int64_t Identity::getAdcConnectionSpeed(bool download) const {
+int64_t Identity::getAdcConnectionSpeed(bool download) const noexcept {
 	return Util::toInt64(download ? get("DS") : get("US"));
 }
 
-uint8_t Identity::getSlots() const {
+uint8_t Identity::getSlots() const noexcept {
 	return static_cast<uint8_t>(Util::toInt(get("SL")));
 }
 
-void Identity::getParams(ParamMap& sm, const string& prefix, bool compatibility) const {
+void Identity::getParams(ParamMap& sm, const string& prefix, bool compatibility) const noexcept {
 	{
 		RLock l(cs);
 		for(auto& i: info) {
@@ -139,12 +139,12 @@ void Identity::getParams(ParamMap& sm, const string& prefix, bool compatibility)
 	}
 }
 
-bool Identity::isClientType(ClientType ct) const {
+bool Identity::isClientType(ClientType ct) const noexcept {
 	int type = Util::toInt(get("CT"));
 	return (type & ct) == ct;
 }
 
-string Identity::getTag() const {
+string Identity::getTag() const noexcept {
 	if(!get("TA").empty())
 		return get("TA");
 	if(get("VE").empty() || get("HN").empty() || get("HR").empty() || get("HO").empty() || get("SL").empty())
@@ -154,14 +154,14 @@ string Identity::getTag() const {
 		",H:" + get("HN") + "/" + get("HR") + "/" + get("HO") + ",S:" + get("SL") + ">";
 }
 
-string Identity::getV4ModeString() const {
+string Identity::getV4ModeString() const noexcept {
 	if (!getIp4().empty())
 		return isTcp4Active() ? "A" : "P";
 	else
 		return "-";
 }
 
-string Identity::getV6ModeString() const {
+string Identity::getV6ModeString() const noexcept {
 	if (!getIp6().empty())
 		return isTcp6Active() ? "A" : "P";
 	else
@@ -186,7 +186,7 @@ Identity& Identity::operator = (const Identity& rhs) {
 	return *this;
 }
 
-string Identity::getApplication() const {
+string Identity::getApplication() const noexcept {
 	auto application = get("AP");
 	auto version = get("VE");
 
@@ -201,25 +201,25 @@ string Identity::getApplication() const {
 
 	return application + ' ' + version;
 }
-const string& Identity::getCountry() const {
+const string& Identity::getCountry() const noexcept {
 	bool v6 = !getIp6().empty();
 	return GeoManager::getInstance()->getCountry(v6 ? getIp6() : getIp4(), v6 ? GeoManager::V6 : GeoManager::V4);
 }
 
-string Identity::get(const char* name) const {
+string Identity::get(const char* name) const noexcept {
 	RLock l(cs);
 	auto i = info.find(*(short*)name);
 	return i == info.end() ? Util::emptyString : i->second;
 }
 
-bool Identity::isSet(const char* name) const {
+bool Identity::isSet(const char* name) const noexcept {
 	RLock l(cs);
 	auto i = info.find(*(short*)name);
 	return i != info.end();
 }
 
 
-void Identity::set(const char* name, const string& val) {
+void Identity::set(const char* name, const string& val) noexcept {
 	WLock l(cs);
 	if(val.empty())
 		info.erase(*(short*)name);
@@ -227,7 +227,7 @@ void Identity::set(const char* name, const string& val) {
 		info[*(short*)name] = val;
 }
 
-bool Identity::supports(const string& name) const {
+bool Identity::supports(const string& name) const noexcept {
 	string su = get("SU");
 	StringTokenizer<string> st(su, ',');
 	for(auto s: st.getTokens()) {
@@ -237,7 +237,7 @@ bool Identity::supports(const string& name) const {
 	return false;
 }
 
-std::map<string, string> Identity::getInfo() const {
+std::map<string, string> Identity::getInfo() const noexcept {
 	std::map<string, string> ret;
 
 	RLock l(cs);
@@ -248,11 +248,11 @@ std::map<string, string> Identity::getInfo() const {
 	return ret;
 }
 
-int Identity::getTotalHubCount() const {
+int Identity::getTotalHubCount() const noexcept {
 	return Util::toInt(get("HN")) + Util::toInt(get("HR")) + Util::toInt(get("HO"));
 }
 
-bool Identity::updateConnectMode(const Identity& me, const Client* aClient) {
+bool Identity::updateConnectMode(const Identity& me, const Client* aClient) noexcept {
 	Mode newMode = MODE_NOCONNECT_IP;
 	bool meSupports6 = !me.getIp6().empty();
 
@@ -297,15 +297,15 @@ bool Identity::updateConnectMode(const Identity& me, const Client* aClient) {
 	return false;
 }
 
-bool Identity::allowV6Connections() const {
+bool Identity::allowV6Connections() const noexcept {
 	return connectMode == MODE_PASSIVE_V6 || connectMode == MODE_ACTIVE_V6 || connectMode == MODE_PASSIVE_V6_UNKNOWN || connectMode == MODE_ACTIVE_DUAL;
 }
 
-bool Identity::allowV4Connections() const {
+bool Identity::allowV4Connections() const noexcept {
 	return connectMode == MODE_PASSIVE_V4 || connectMode == MODE_ACTIVE_V4 || connectMode == MODE_PASSIVE_V4_UNKNOWN || connectMode == MODE_ACTIVE_DUAL;
 }
 
-const string& OnlineUser::getHubUrl() const { 
+const string& OnlineUser::getHubUrl() const noexcept {
 	return getClient()->getHubUrl();
 }
 
@@ -317,16 +317,16 @@ string OnlineUser::HubName::operator()(const OnlineUserPtr& u) {
 	return u->getClient()->getHubName(); 
 }
 
-void User::addQueued(int64_t inc) {
-	queued += inc;
+void User::addQueued(int64_t aBytes) noexcept {
+	queued += aBytes;
 }
 
-void User::removeQueued(int64_t rm) {
-	queued -= rm;
+void User::removeQueued(int64_t aBytes) noexcept {
+	queued -= aBytes;
 	dcassert(queued >= 0);
 }
 
-string OnlineUser::getLogPath() {
+string OnlineUser::getLogPath() const noexcept {
 	ParamMap params;
 	params["userNI"] = [this] { return getIdentity().getNick(); };
 	params["hubNI"] = [this] { return getClient()->getHubName(); };
@@ -337,20 +337,8 @@ string OnlineUser::getLogPath() {
 	return LogManager::getInstance()->getPath(getUser(), params);
 }
 
-bool OnlineUser::supportsCCPM(string& _error) const {
-	if (getUser()->isNMDC()) {
-		_error = STRING(CCPM_NOT_SUPPORTED_NMDC);
-		return false;
-	}
-	else if (!getIdentity().supports(AdcHub::CCPM_FEATURE)) {
-		_error = STRING(CCPM_NOT_SUPPORTED);
-		return false;
-	}
-	else if (!getClient()->isSecure()) {
-		_error = STRING(CCPM_NOT_SUPPORTED_SECURE);
-		return false;
-	}
-	return true;
+bool OnlineUser::supportsCCPM() const noexcept {
+	return getIdentity().supports(AdcHub::CCPM_FEATURE);
 }
 
 uint8_t OnlineUser::getImageIndex() const noexcept {
@@ -394,7 +382,7 @@ uint8_t UserInfoBase::getImage(const Identity& identity, bool aIsClientTcpActive
 }
 
 #ifdef _WIN32
-int OnlineUser::compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t col) {
+int OnlineUser::compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t col) noexcept {
 	if (col == COLUMN_NICK) {
 		bool a_isOp = a->getIdentity().isOp(),
 			b_isOp = b->getIdentity().isOp();
