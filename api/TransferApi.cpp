@@ -217,7 +217,7 @@ namespace webserver {
 
 		uint64_t timeSinceStarted = GET_TICK() - t->getStarted();
 		if (timeSinceStarted < 1000) {
-			t->setStatusString(STRING(DOWNLOAD_STARTING));
+			t->setStatusString(aIsDownload ? STRING(DOWNLOAD_STARTING) : STRING(UPLOAD_STARTING));
 		} else {
 			auto pct = t->getSize() > 0 ? (double)t->getBytesTransferred() * 100.0 / (double)t->getSize() : 0;
 			t->setStatusString(STRING_F(RUNNING_PCT, pct));
@@ -374,10 +374,16 @@ namespace webserver {
 		aInfo->setBytesTransferred(aTransfer->getPos());
 		aInfo->setTarget(aTransfer->getPath());
 		aInfo->setStarted(GET_TICK());
+		aInfo->setType(aTransfer->getType());
+		aInfo->setSize(aTransfer->getSegmentSize());
+
 		aInfo->setState(TransferInfo::STATE_RUNNING);
 		aInfo->setIp(aTransfer->getUserConnection().getRemoteIp());
-		aInfo->setType(aTransfer->getType());
 		aInfo->setEncryption(aTransfer->getUserConnection().getEncryptionInfo());
+
+		OrderedStringSet flags;
+		aTransfer->appendFlags(flags);
+		aInfo->setFlags(flags);
 
 		view.onItemUpdated(aInfo, { PROP_STATUS, PROP_SPEED, PROP_BYTES_TRANSFERRED, PROP_TIME_STARTED, PROP_SIZE, PROP_TARGET, PROP_NAME, PROP_TYPE, PROP_IP, PROP_ENCRYPTION, PROP_FLAGS });
 	}
@@ -392,17 +398,20 @@ namespace webserver {
 			return;
 		}
 
-		t->setSize(aDownload->getSegmentSize());
 		t->setStatusString(aStatus);
-
-		OrderedStringSet flags;
-		aDownload->appendFlags(flags);
-		t->setFlags(flags);
 
 		if (aFullUpdate) {
 			starting(t, aDownload);
 		} else {
-			view.onItemUpdated(t, { PROP_STATUS, PROP_SIZE, PROP_FLAGS });
+			// All flags weren't known when requesting
+			OrderedStringSet flags;
+			aDownload->appendFlags(flags);
+			t->setFlags(flags);
+
+			// Size was unknown for filelists when requesting
+			t->setSize(aDownload->getSegmentSize());
+
+			view.onItemUpdated(t, { PROP_STATUS, PROP_FLAGS, PROP_SIZE });
 		}
 	}
 
@@ -417,7 +426,6 @@ namespace webserver {
 			return;
 		}
 
-		t->setSize(aUpload->getType() == Transfer::TYPE_TREE ? aUpload->getSegmentSize() : aUpload->getFileSize());
 		starting(t, aUpload);
 	}
 
