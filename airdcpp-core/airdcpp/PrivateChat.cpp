@@ -30,17 +30,15 @@ PrivateChat::PrivateChat(const HintedUser& aUser, UserConnection* aUc) :
 	uc(aUc), replyTo(aUser), ccpmAttempts(0), allowAutoCCPM(true), lastCCPMAttempt(0), ccpmState(DISCONNECTED),
 	online(aUser.user->isOnline()), hubName(ClientManager::getInstance()->getHubName(aUser.hint)), cache(SettingsManager::PM_MESSAGE_CACHE) {
 		
-	string _err = Util::emptyString;
-	supportsCCPM = ClientManager::getInstance()->getSupportsCCPM(aUser.user, _err);
-	lastCCPMError = _err;
+	supportsCCPM = ClientManager::getInstance()->getSupportsCCPM(aUser.user, lastCCPMError);
 
 	if (aUc) {
 		ccpmState = CONNECTED;
 		aUc->addListener(this);
 	} else {
 		delayEvents.addEvent(CCPM_AUTO, [this] { checkAlwaysCCPM(); }, 1000);
+		checkCCPMHubBlocked();
 	}
-
 	ClientManager::getInstance()->addListener(this);
 }
 
@@ -48,6 +46,39 @@ PrivateChat::~PrivateChat() {
 	ClientManager::getInstance()->removeListener(this);
 	if (uc)
 		uc->removeListener(this);
+}
+
+void PrivateChat::checkCCPMHubBlocked() noexcept {
+	// Auto connecting?
+	if (ccReady() || (supportsCCPM && SETTING(ALWAYS_CCPM))) {
+		return;
+	}
+
+	auto ou = ClientManager::getInstance()->findOnlineUser(replyTo, false);
+	if (!ou) {
+		return;
+	}
+
+	// We are not connecting, check the current hub only
+	if (ou->supportsCCPM()) {
+		return;
+	}
+
+	// Only report if the client is known to support CCPM
+	auto app = ou->getIdentity().getApplication();
+	if (app.find("AirDC++ 3.") == string::npos && app.find("AirDC++w") == string::npos) {
+		return;
+	}
+
+	auto msg = boost::str(boost::format(
+"%s\r\n\r\n\
+%s")
+
+% STRING_F(CCPM_BLOCKED_WARNING, hubName)
+% (getSupportsCCPM() ? STRING(OTHER_CCPM_SUPPORTED) : STRING(OTHER_MEANS_COMMUNICATION))
+);
+
+	statusMessage(msg, LogMessage::SEV_WARNING);
 }
 
 const string& PrivateChat::ccpmStateToString(uint8_t aState) noexcept {
@@ -172,7 +203,13 @@ void PrivateChat::startCC() {
 	lastCCPMError = Util::emptyString;
 
 	auto token = ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_PM);
-	bool connecting = ClientManager::getInstance()->connect(replyTo.user, token, true, lastCCPMError, replyTo.hint, protocolError, CONNECTION_TYPE_PM);
+
+	auto newUrl = replyTo.hint;
+	bool connecting = ClientManager::getInstance()->connect(replyTo.user, token, true, lastCCPMError, newUrl, protocolError, CONNECTION_TYPE_PM);
+	if (replyTo.hint != newUrl) {
+		setHubUrl(newUrl);
+	}
+
 	allowAutoCCPM = !protocolError;
 
 	if (!connecting) {
@@ -189,13 +226,13 @@ void PrivateChat::startCC() {
 }
 
 void PrivateChat::checkAlwaysCCPM() {
-	if (!replyTo.user->isOnline() || !SETTING(ALWAYS_CCPM) || !getSupportsCCPM() || replyTo.user->isNMDC() || replyTo.user->isSet(User::BOT))
+	if (!SETTING(ALWAYS_CCPM) || !supportsCCPM)
 		return;
 
 	if (allowAutoCCPM && ccpmState == DISCONNECTED) {
 		startCC();
 		allowAutoCCPM = allowAutoCCPM && ccpmAttempts++ < 3;
-	}else if (ccReady()){
+	} else if (ccReady()){
 		allowAutoCCPM = true;
 	}
 }
@@ -285,6 +322,8 @@ void PrivateChat::checkUserHub(bool wentOffline) {
 void PrivateChat::setHubUrl(const string& hint) { 
 	replyTo.hint = hint;
 	hubName = ClientManager::getInstance()->getHubName(replyTo.hint);
+
+	fire(PrivateChatListener::UserUpdated(), this);
 }
 
 void PrivateChat::sendPMInfo(uint8_t aType) {

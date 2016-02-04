@@ -101,7 +101,8 @@ namespace webserver {
 
 	void PrivateChatInfo::on(PrivateChatListener::UserUpdated, PrivateChat*) noexcept {
 		onSessionUpdated({
-			{ "user", Serializer::serializeHintedUser(chat->getHintedUser()) }
+			{ "user", Serializer::serializeHintedUser(chat->getHintedUser()) },
+			{ "ccpm_state", serializeCCPMState(chat) }
 		});
 	}
 

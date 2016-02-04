@@ -16,38 +16,26 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef AIRDCPPD_CLIENT_H
-#define AIRDCPPD_CLIENT_H
+#ifndef AIRDCPPD_CDMDEBUG_H
+#define AIRDCPPD_CDMDEBUG_H
 
 #include <airdcpp/stdinc.h>
-#include <airdcpp/ClientManagerListener.h>
-#include <airdcpp/DirectoryListingManagerListener.h>
-
-#include "CDMDebug.h"
+#include <airdcpp/DebugManager.h>
 
 namespace airdcppd {
 
 using namespace dcpp;
 
-class Client : private ClientManagerListener, private DirectoryListingManagerListener {
+class CDMDebug : private DebugManagerListener {
 
 public:
-	Client(bool aAsDaemon);
-	void run();
-	void stop();
+	CDMDebug(bool aClientCommands, bool aHubCommands);
+	~CDMDebug();
 private:
-	bool startup();
-	void shutdown();
-
-	static std::string getDefaultNick() noexcept;
-
-	void on(DirectoryListingManagerListener::OpenListing, const DirectoryListingPtr& aList, const string& aDir, const string& aXML) noexcept;
-	void on(ClientManagerListener::ClientCreated, const ClientPtr&) noexcept;
-
-	bool started = false;
-	bool asDaemon = false;
+	void on(DebugManagerListener::DebugCommand, const string& aLine, uint8_t aType, uint8_t aDirection, const string& ip) noexcept;
 	
-	unique_ptr<CDMDebug> cdmDebug;
+	bool showHubCommands = false;
+	bool showClientCommands = false;
 };
 
 } // namespace airdcppd

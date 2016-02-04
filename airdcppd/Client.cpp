@@ -118,6 +118,12 @@ bool Client::startup() {
 	if (!Util::hasStartupParam("--no-autoconnect")) {
 		FavoriteManager::getInstance()->autoConnect();
 	}
+	
+	auto cdmHub = Util::hasStartupParam("--cdm-hub");
+	auto cdmClient = Util::hasStartupParam("--cdm-client");
+	if (cdmHub || cdmClient) {
+		cdmDebug.reset(new CDMDebug(cdmClient, cdmHub));
+	}
 
 	started = true;
 	return true;
@@ -127,6 +133,8 @@ void Client::shutdown() {
 	if (!started) {
 		return;
 	}
+	
+	cdmDebug.reset(nullptr);
 
 	ClientManager::getInstance()->putClients();
 	ConnectivityManager::getInstance()->disconnect();

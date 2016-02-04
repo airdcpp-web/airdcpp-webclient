@@ -47,7 +47,7 @@ void LogManager::log(Area area, ParamMap& params) noexcept {
 	log(getPath(area, params), Util::formatParams(getSetting(area, FORMAT), params));
 }
 
-void LogManager::ensureParam(const string& aParam, string& fileName) {
+void LogManager::ensureParam(const string& aParam, string& fileName) noexcept {
 	if (fileName.find(aParam) != string::npos) {
 		return;
 	}
@@ -61,7 +61,7 @@ void LogManager::ensureParam(const string& aParam, string& fileName) {
 	fileName.insert(appendPos, "." + aParam);
 }
 
-void LogManager::log(const UserPtr& aUser, ParamMap& params) {
+void LogManager::log(const UserPtr& aUser, ParamMap& params) noexcept {
 	if (aUser->isNMDC() || !SETTING(PM_LOG_GROUP_CID)) {
 		log(PM, params);
 		return;
@@ -85,11 +85,11 @@ void LogManager::clearCache() noexcept {
 	}
 }
 
-void LogManager::removePmCache(const UserPtr& aUser) {
+void LogManager::removePmCache(const UserPtr& aUser) noexcept {
 	pmPaths.erase(aUser->getCID());
 }
 
-string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache /*false*/) {
+string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache /*false*/) noexcept {
 	if (aUser->isNMDC() || !SETTING(PM_LOG_GROUP_CID)) {
 		return getPath(PM, params);
 	}
@@ -119,7 +119,7 @@ string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache
 	return path;
 }
 
-void LogManager::message(const string& msg, LogMessage::Severity severity) {
+void LogManager::message(const string& msg, LogMessage::Severity severity) noexcept {
 	auto messageData = std::make_shared<LogMessage>(msg, severity);
 	if (severity != LogMessage::SEV_NOTIFY) {
 		if (SETTING(LOG_SYSTEM)) {
@@ -134,21 +134,21 @@ void LogManager::message(const string& msg, LogMessage::Severity severity) {
 	fire(LogManagerListener::Message(), messageData);
 }
 
-string LogManager::getPath(Area area, ParamMap& params) const {
+string LogManager::getPath(Area area, ParamMap& params) const noexcept {
 	return Util::validatePath(SETTING(LOG_DIRECTORY) + 
 		Util::formatParams(getSetting(area, FILE), params, Util::cleanPathSeparators));
 }
 
-string LogManager::getPath(Area area) const {
+string LogManager::getPath(Area area) const noexcept {
 	ParamMap params;
 	return getPath(area, params);
 }
 
-const string& LogManager::getSetting(int area, int sel) const {
+const string& LogManager::getSetting(int area, int sel) const noexcept {
 	return SettingsManager::getInstance()->get(static_cast<SettingsManager::StrSetting>(options[area][sel]), true);
 }
 
-void LogManager::saveSetting(int area, int sel, const string& setting) {
+void LogManager::saveSetting(int area, int sel, const string& setting) const noexcept {
 	SettingsManager::getInstance()->set(static_cast<SettingsManager::StrSetting>(options[area][sel]), setting);
 }
 

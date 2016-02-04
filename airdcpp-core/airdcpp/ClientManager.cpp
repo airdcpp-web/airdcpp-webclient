@@ -703,7 +703,7 @@ void ClientManager::getUserInfoList(const UserPtr& user, User::UserInfoList& aLi
 	auto p = onlineUsers.equal_range(const_cast<CID*>(&user->getCID()));
 
 	for(auto i = p.first; i != p.second; ++i) {
-		auto ou = i->second;
+		auto& ou = i->second;
 		aList_.emplace_back(ou->getHubUrl(), ou->getClient()->getHubName(), Util::toInt64(ou->getIdentity().getShareSize()));
 	}
 }
@@ -715,18 +715,17 @@ bool ClientManager::getSupportsCCPM(const UserPtr& aUser, string& _error) {
 	} else if (aUser->isNMDC()) {
 		_error = STRING(CCPM_NOT_SUPPORTED_NMDC);
 		return false;
-	} else if (aUser->isSet(User::BOT)) {
-		_error = STRING(CCPM_NOT_SUPPORTED);
-		return false;
 	}
 
 
 	RLock l(cs);
 	OnlinePair op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID()));
 	for (auto u : op | map_values) {
-		if (u->supportsCCPM(_error))
+		if (u->supportsCCPM())
 			return true;
 	}
+
+	_error = STRING(CCPM_NOT_SUPPORTED);
 	return false;
 }
 
@@ -748,17 +747,17 @@ OnlineUserPtr ClientManager::findOnlineUser(const CID& cid, const string& hintUr
 	return aAllowFallback ? p.first->second : nullptr;
 }
 
-bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError, ConnectionType aConnType) noexcept {
+bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError, ConnectionType aConnType) const noexcept {
 	RLock l(cs);
 	OnlinePairC op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID()));
 
 	auto connectUser = [&] (OnlineUser* ou) -> bool {
 		isProtocolError = false;
-		if (aConnType == CONNECTION_TYPE_PM) {
-			if (!ou->supportsCCPM(lastError_)) {
-				isProtocolError = true;
-				return false;
-			}
+
+		if (aConnType == CONNECTION_TYPE_PM && !ou->supportsCCPM()) {
+			isProtocolError = true;
+			lastError_ = STRING(CCPM_NOT_SUPPORTED);
+			return false;
 		}
 
 		auto ret = ou->getClient()->connect(*ou, aToken, lastError_);

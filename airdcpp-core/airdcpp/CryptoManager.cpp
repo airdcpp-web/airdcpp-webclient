@@ -579,7 +579,8 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 				return 1;
 			}
 			return preverify_ok;
-		} else if (kp2.compare(0, 7, "SHA256/") != 0)
+		}
+		else if (kp2.compare(0, 7, "SHA256/") != 0)
 			return allowUntrusted ? 1 : 0;
 
 		ByteVector kp = ssl::X509_digest(cert, EVP_sha256());
@@ -598,9 +599,9 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 				// Hide the potential library error about trying to add a dupe
 				ERR_set_mark();
 				if (X509_STORE_add_cert(store, cert)) {
-			
+
 					/*OpenSSL 1.0.2d requires certificate chain to be NULL on each call to verify, basicly it means reinitializing the CTX each time,
-					but this means we need to fill it up with the same callback information again feels dumb, but works fine, 
+					but this means we need to fill it up with the same callback information again feels dumb, but works fine,
 					however ctx->chain is not a private variable so we hack it :) */
 					ctx->chain = NULL;
 					/* This is the alternative ( "correct method"?? )
@@ -613,12 +614,13 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 					X509_STORE_CTX_set_error(ctx, X509_V_OK);
 					int res = X509_verify_cert(ctx);
 					err = X509_STORE_CTX_get_error(ctx);
-					if(res < 0)
+					if (res < 0)
 						return preverify_ok;
-				} else ERR_pop_to_mark();
+				}
+				else ERR_pop_to_mark();
 
 				// KeyPrint was not root certificate or we don't have the issuer certificate, the best we can do is trust the pinned KeyPrint
-				if (err == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN || err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY || err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT 
+				if (err == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN || err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY || err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT
 					|| err == X509_V_ERR_CERT_NOT_YET_VALID || err == X509_V_ERR_CERT_HAS_EXPIRED) { // Ignore certificate validity period, when KeyPrint is trusted
 					X509_STORE_CTX_set_error(ctx, X509_V_OK);
 					// Set this to allow ignoring any follow up errors caused by the incomplete chain
@@ -627,7 +629,10 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 				}
 			}
 
-			return (err == X509_V_OK) ? 1 : 0;
+			if (err == X509_V_OK)
+				return 1;
+
+			preverify_ok = 0;
 		} else {
 			if (X509_STORE_CTX_get_error_depth(ctx) > 0)
 				return 1;
@@ -637,20 +642,24 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 			err = X509_V_ERR_APPLICATION_VERIFICATION;
 			error = "Keyprint mismatch";
 			X509_STORE_CTX_set_error(ctx, err);
-
-			if (error.empty())
-				error = X509_verify_cert_error_string(err);
-
-			auto fullError = formatError(ctx, error);
-			if (!fullError.empty() && (!keyp.empty() || !allowUntrusted))
-				LogManager::getInstance()->message(fullError, LogMessage::SEV_ERROR);
 		}
 	}
-	else {
-		preverify_ok = 1;
+	// We let untrusted certificates through unconditionally, when allowed, but we like to complain
+	if (!preverify_ok && (!allowUntrusted || err != X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT)) {
+		if (error.empty())
+			error = X509_verify_cert_error_string(err);
+
+		auto fullError = formatError(ctx, error);
+		if (!fullError.empty() && (!keyp.empty() || !allowUntrusted))
+			LogManager::getInstance()->message(fullError, LogMessage::SEV_ERROR);
 	}
 
+	// Don't allow untrusted connections on keyprint mismatch
+	if (allowUntrusted && err != X509_V_ERR_APPLICATION_VERIFICATION)
+		return 1;
+
 	return preverify_ok;
+
 }
 
 string CryptoManager::formatError(X509_STORE_CTX *ctx, const string& message) {

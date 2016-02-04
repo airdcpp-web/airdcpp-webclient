@@ -247,6 +247,9 @@ static void printUsage() {
 
 	cout << std::endl;
 	printHelp("--no-auto-connect", 	"Don't connect to any favorite hub on startup");
+	printHelp("--cdm-hub", 					"Print all protocol communication with hubs in the console (debug)");
+	printHelp("--cdm-client", 			"Print all protocol communication with other clients in the console (debug)");
+
 
 	cout << std::endl;
 	cout << std::endl;
@@ -278,12 +281,12 @@ int main(int argc, char* argv[]) {
 		argv++;
 	}
 
-	if (Util::hasStartupParam("-h")) {
+	if (Util::hasStartupParam("-h") || Util::hasStartupParam("--help")) {
 		printUsage();
 		return 0;
 	}
 
-	if (Util::hasStartupParam("-v")) {
+	if (Util::hasStartupParam("-v") || Util::hasStartupParam("--version")) {
 		printf("%s\n", shortVersionString.c_str());
 		return 0;
 	}
