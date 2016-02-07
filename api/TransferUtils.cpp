@@ -68,6 +68,10 @@ namespace webserver {
 				return compare(a->getState(), b->getState());
 			}
 
+			if (a->getState() == TransferInfo::STATE_RUNNING) {
+				return compare(a->getBytesTransferred(), b->getBytesTransferred());
+			}
+
 			return Util::stricmp(a->getStatusString(), b->getStatusString());
 		}
 		default: dcassert(0); return 0;
