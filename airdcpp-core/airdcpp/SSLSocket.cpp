@@ -174,7 +174,7 @@ int SSLSocket::checkSSL(int ret) {
 			auto sys_err = ERR_get_error();
 			if (sys_err == 0) {
 				if (ret == 0) {
-					dcdebug("TLS error: call ret = %d, SSL_get_error = %d, ERR_get_error = " U64_FMT "\n", ret, err, sys_err);
+					dcdebug("TLS error: call ret = %d, SSL_get_error = %d, ERR_get_error = %lu\n", ret, err, sys_err);
 					throw SSLSocketException(STRING(CONNECTION_CLOSED));
 				}
 				sys_err = getLastError();
@@ -194,7 +194,7 @@ int SSLSocket::checkSSL(int ret) {
 			} else {
 				_error = ERR_error_string(sys_err, NULL);
 			}
-			dcdebug("TLS error: call ret = %d, SSL_get_error = %d, ERR_get_error = " U64_FMT ",ERROR string: %s \n", ret, err, sys_err, ERR_error_string(sys_err, NULL));
+			dcdebug("TLS error: call ret = %d, SSL_get_error = %d, ERR_get_error = %lu,ERROR string: %s \n", ret, err, sys_err, ERR_error_string(sys_err, NULL));
 			throw SSLSocketException(STRING(TLS_ERROR) + (_error.empty() ? "" : + ": " + _error));
 		}
 	}
@@ -273,7 +273,7 @@ bool SSLSocket::verifyKeyprint(const string& expKP, bool allowUntrusted) noexcep
 	SSL_CTX* ssl_ctx = SSL_get_SSL_CTX(ssl);
 	X509_STORE* store = SSL_CTX_get_cert_store(ctx);
 
-	bool result = allowUntrusted;
+	bool result = false;
 	int err = SSL_get_verify_result(ssl);
 	if(ssl_ctx && store) {
 		X509_STORE_CTX* vrfy_ctx = X509_STORE_CTX_new();
@@ -287,7 +287,8 @@ bool SSLSocket::verifyKeyprint(const string& expKP, bool allowUntrusted) noexcep
 			if(X509_verify_cert(vrfy_ctx) >= 0) {
 				err = X509_STORE_CTX_get_error(vrfy_ctx);
 				// This is for people who don't restart their clients and have low expiration time on their cert
-				result = (err == X509_V_OK) || (err == X509_V_ERR_CERT_HAS_EXPIRED);
+				//result = (err == X509_V_OK) || (err == X509_V_ERR_CERT_HAS_EXPIRED);
+				result = (err == X509_V_OK) || (err == X509_V_ERR_CERT_HAS_EXPIRED) || (allowUntrusted && err != X509_V_ERR_APPLICATION_VERIFICATION);
 			}
 		}
 

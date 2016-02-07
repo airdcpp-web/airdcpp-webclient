@@ -194,7 +194,7 @@ size_t FileReader::readDirect(const string& aPath, const DataCallback& callback)
 		callback(hbuf, hn);
 	}
 
-	return *((uint64_t*)&over.Offset);
+	return *((size_t*)&over.Offset);
 }
 
 size_t FileReader::readMapped(const string& /*file*/, const DataCallback& /*callback*/) {

@@ -321,11 +321,20 @@ checkslots:
 			}
 		case Transfer::TYPE_PARTIAL_LIST:
 			{
+				sourceFile = aFile;
+
 				unique_ptr<MemoryInputStream> mis = nullptr;
 				// Partial file list
 				if (tthList) {
 					if (aFile[0] != '/') {
-						mis.reset(QueueManager::getInstance()->generateTTHList(Util::toUInt32(aFile), *profile != SP_HIDDEN));
+						auto token = Util::toUInt32(aFile);
+						mis.reset(QueueManager::getInstance()->generateTTHList(token, *profile != SP_HIDDEN));
+
+						// We don't want to show the token in transfer view
+						auto bundle = QueueManager::getInstance()->findBundle(token);
+						if (bundle) {
+							sourceFile = bundle->getName();
+						}
 					} else {
 						mis.reset(ShareManager::getInstance()->generateTTHList(aFile, listRecursive, *profile));
 					}
@@ -337,6 +346,7 @@ checkslots:
 					aSource.sendError();
 					return false;
 				}
+
 				start = 0;
 				fileSize = size = mis->getSize();
 				is = move(mis);
