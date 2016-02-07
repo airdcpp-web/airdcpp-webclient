@@ -110,7 +110,7 @@ namespace dcpp {
 		};
 
 		bool download(const DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList, const string& aTarget, bool aHasFreeSpace) noexcept;
-		void handleDownload(DirectoryDownloadInfo::Ptr& di, DirectoryListingPtr& aList) noexcept;
+		void handleDownload(DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList) noexcept;
 
 		DirectoryListingPtr createList(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsOwnList) noexcept;
 

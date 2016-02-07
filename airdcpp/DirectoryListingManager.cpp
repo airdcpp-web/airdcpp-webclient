@@ -75,9 +75,10 @@ void DirectoryListingManager::addDirectoryDownload(const string& aRemoteDir, con
 		RLock l(cs);
 		auto i = viewedLists.find(aUser.user);
 		if (i != viewedLists.end()) {
-			i->second->addAsyncTask([=] {
+			auto dl = i->second;
+			dl->addAsyncTask([=] {
 				auto di = DirectoryDownloadInfo::Ptr(new DirectoryDownloadInfo(aUser, aBundleName, aRemoteDir, aTarget, aTargetType, p, aSizeUnknown, aAutoSearch, false));
-				handleDownload(di, i->second); 
+				handleDownload(di, dl);
 			});
 			return;
 		}
@@ -185,7 +186,7 @@ bool DirectoryListingManager::download(const DirectoryDownloadInfo::Ptr& di, con
 	return aList->downloadDirImpl(dir, aTarget + di->getBundleName() + PATH_SEPARATOR, aHasFreeSpace ? di->getPriority() : QueueItemBase::PAUSED_FORCE, di->getAutoSearch());
 }
 
-void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, DirectoryListingPtr& aList) noexcept {
+void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList) noexcept {
 	bool directDownload = false;
 	{
 		RLock l(cs);
