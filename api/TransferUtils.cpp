@@ -69,7 +69,7 @@ namespace webserver {
 			}
 
 			if (a->getState() == TransferInfo::STATE_RUNNING) {
-				return compare(a->getBytesTransferred(), b->getBytesTransferred());
+				return compare(a->getPercentage(), b->getPercentage());
 			}
 
 			return Util::stricmp(a->getStatusString(), b->getStatusString());

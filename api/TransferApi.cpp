@@ -219,8 +219,7 @@ namespace webserver {
 		if (timeSinceStarted < 1000) {
 			t->setStatusString(aIsDownload ? STRING(DOWNLOAD_STARTING) : STRING(UPLOAD_STARTING));
 		} else {
-			auto pct = t->getSize() > 0 ? (double)t->getBytesTransferred() * 100.0 / (double)t->getSize() : 0;
-			t->setStatusString(STRING_F(RUNNING_PCT, pct));
+			t->setStatusString(STRING_F(RUNNING_PCT, t->getPercentage()));
 		}
 
 		view.onItemUpdated(t, { PROP_STATUS, PROP_BYTES_TRANSFERRED, PROP_SPEED, PROP_SECONDS_LEFT });
