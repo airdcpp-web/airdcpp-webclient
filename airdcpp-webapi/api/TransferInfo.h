@@ -31,8 +31,8 @@ namespace webserver {
 	public:
 		enum ItemState {
 			STATE_WAITING,
-			STATE_RUNNING,
 			STATE_FAILED,
+			STATE_RUNNING,
 			STATE_FINISHED,
 			STATE_LAST,
 		};
@@ -63,6 +63,10 @@ namespace webserver {
 
 		const TransferToken getToken() const noexcept {
 			return token;
+		}
+
+		double getPercentage() const noexcept {
+			return size > 0 ? static_cast<double>(bytesTransferred) * 100.0 / static_cast<double>(size) : 0;
 		}
 
 		const string& getStringToken() const noexcept {

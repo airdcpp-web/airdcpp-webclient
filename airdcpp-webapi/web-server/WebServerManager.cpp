@@ -175,7 +175,7 @@ namespace webserver {
 
 			aEndpoint.start_accept();
 			return true;
-		} catch (const websocketpp::exception& e) {
+		} catch (const std::exception& e) {
 			auto message = boost::format("Failed to set up %1% server on port %2%: %3% (is the port in use by another application?)") % aProtocol % aConfig.getPort() % string(e.what());
 			errorF(message.str());
 		}
