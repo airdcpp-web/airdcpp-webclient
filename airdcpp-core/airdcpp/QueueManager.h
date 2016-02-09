@@ -118,7 +118,8 @@ public:
 	void removeFileSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 
 	// Remove source from all files. excludeF can be used to filter certain files from removal.
-	void removeSource(const UserPtr& aUser, Flags::MaskType reason, std::function<bool (const QueueItemPtr&) > excludeF = nullptr) noexcept;
+	// Returns the number of files from which the source was removed
+	int removeSource(const UserPtr& aUser, Flags::MaskType reason, std::function<bool (const QueueItemPtr&) > excludeF = nullptr) noexcept;
 
 	// Set priority for all bundles
 	// Won't affect bundles that are added later
@@ -265,7 +266,7 @@ public:
 
 	// Queue a TTH list from the user containing the supplied TTH
 	void addBundleTTHList(const HintedUser& aUser, const string& aRemoteBundleToken, const TTHValue& tth) throw(QueueException);
-	MemoryInputStream* generateTTHList(QueueToken aBundleToken, bool isInSharingHub) throw(QueueException);
+	MemoryInputStream* generateTTHList(QueueToken aBundleToken, bool isInSharingHub, BundlePtr& bundle_) throw(QueueException);
 
 	//Bundle download failed due to Ex. disk full
 	void bundleDownloadFailed(BundlePtr& aBundle, const string& aError);

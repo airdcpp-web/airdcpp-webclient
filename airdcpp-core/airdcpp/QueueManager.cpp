@@ -2038,7 +2038,7 @@ endCheck:
 	}
 }
 
-void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason, std::function<bool (const QueueItemPtr&) > excludeF /*nullptr*/) noexcept {
+int QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason, std::function<bool (const QueueItemPtr&) > excludeF /*nullptr*/) noexcept {
 	// @todo remove from finished items
 	QueueItemList ql;
 
@@ -2056,6 +2056,7 @@ void QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType reason, st
 	}
 
 	fire(QueueManagerListener::SourceFilesUpdated(), aUser);
+	return static_cast<int>(ql.size());
 }
 
 void QueueManager::setBundlePriority(QueueToken aBundleToken, QueueItemBase::Priority p) noexcept {
@@ -3920,7 +3921,7 @@ void QueueManager::removeBundleLists(BundlePtr& aBundle) noexcept{
 		removeQI(qi);
 }
 
-MemoryInputStream* QueueManager::generateTTHList(QueueToken aBundleToken, bool isInSharingHub) throw(QueueException) {
+MemoryInputStream* QueueManager::generateTTHList(QueueToken aBundleToken, bool isInSharingHub, BundlePtr& bundle_) throw(QueueException) {
 	if(!isInSharingHub)
 		throw QueueException(UserConnection::FILE_NOT_AVAILABLE);
 
@@ -3928,11 +3929,11 @@ MemoryInputStream* QueueManager::generateTTHList(QueueToken aBundleToken, bool i
 	StringOutputStream tthList(tths);
 	{
 		RLock l(cs);
-		BundlePtr b = bundleQueue.findBundle(aBundleToken);
-		if (b) {
+		bundle_ = bundleQueue.findBundle(aBundleToken);
+		if (bundle_) {
 			//write finished items
 			string tmp2;
-			for(auto& q: b->getFinishedFiles()) {
+			for(auto& q: bundle_->getFinishedFiles()) {
 				if (q->isSet(QueueItem::FLAG_MOVED)) {
 					tmp2.clear();
 					tthList.write(q->getTTH().toBase32(tmp2) + " ");

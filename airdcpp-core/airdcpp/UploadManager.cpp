@@ -327,13 +327,14 @@ checkslots:
 				// Partial file list
 				if (tthList) {
 					if (aFile[0] != '/') {
-						auto token = Util::toUInt32(aFile);
-						mis.reset(QueueManager::getInstance()->generateTTHList(token, *profile != SP_HIDDEN));
+						BundlePtr bundle = nullptr;
+						mis.reset(QueueManager::getInstance()->generateTTHList(Util::toUInt32(aFile), *profile != SP_HIDDEN, bundle));
 
 						// We don't want to show the token in transfer view
-						auto bundle = QueueManager::getInstance()->findBundle(token);
 						if (bundle) {
 							sourceFile = bundle->getName();
+						} else {
+							dcassert(0);
 						}
 					} else {
 						mis.reset(ShareManager::getInstance()->generateTTHList(aFile, listRecursive, *profile));
