@@ -71,6 +71,8 @@ namespace webserver {
 		METHOD_HANDLER("filelist", ApiRequest::METHOD_GET, (TOKEN_PARAM), false, QueueApi::handleGetFile);
 		METHOD_HANDLER("filelist", ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, QueueApi::handleRemoveFile);*/
 
+		METHOD_HANDLER("remove_source", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (), true, QueueApi::handleRemoveSource);
+		METHOD_HANDLER("remove_file", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (), true, QueueApi::handleRemoveFile);
 		METHOD_HANDLER("find_dupe_paths", Access::ANY, ApiRequest::METHOD_POST, (), true, QueueApi::handleFindDupePaths);
 	}
 
@@ -79,13 +81,24 @@ namespace webserver {
 		DownloadManager::getInstance()->removeListener(this);
 	}
 
+	api_return QueueApi::handleRemoveSource(ApiRequest& aRequest) {
+		auto user = Deserializer::deserializeUser(aRequest.getRequestBody());
+
+		auto removed = QueueManager::getInstance()->removeSource(user, QueueItem::Source::FLAG_REMOVED);
+		aRequest.setResponseBody({
+			{ "count", removed }
+		});
+
+		return websocketpp::http::status_code::ok;
+	}
+
 	api_return QueueApi::handleFindDupePaths(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		json ret;
 
 		StringList paths;
-		auto path = JsonUtil::getOptionalField<string>("path", reqJson, false, false);
+		auto path = JsonUtil::getOptionalField<string>("path", reqJson, false);
 		if (path) {
 			paths = QueueManager::getInstance()->getDirPaths(Util::toNmdcFile(*path));
 		} else {
@@ -329,7 +342,8 @@ namespace webserver {
 	}
 
 	api_return QueueApi::handleRemoveFile(ApiRequest& aRequest) {
-		if (QueueManager::getInstance()->removeFile(aRequest.getTokenParam(0), false)) {
+		auto path = JsonUtil::getField<string>("target", aRequest.getRequestBody(), false);
+		if (!QueueManager::getInstance()->removeFile(path, false)) {
 			aRequest.setResponseErrorStr("File not found");
 			return websocketpp::http::status_code::bad_request;
 		}

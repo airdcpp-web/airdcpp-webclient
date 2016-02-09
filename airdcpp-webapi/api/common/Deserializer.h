@@ -34,12 +34,14 @@ namespace webserver {
 		static CID parseCID(const string& aCID);
 		static TTHValue parseTTH(const string& aTTH);
 
-		static UserPtr deserializeUser(const json& aJson, bool aAllowMe = false);
+		static UserPtr deserializeUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
 		static HintedUser deserializeHintedUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
 		static TTHValue deserializeTTH(const json& aJson);
 		static QueueItemBase::Priority deserializePriority(const json& aJson, bool allowDefault);
 
 		static void deserializeDownloadParams(const json& aJson, string& targetDirectory_, string& targetName_, TargetUtil::TargetType& targetType_, QueueItemBase::Priority& priority_);
+	private:
+		static UserPtr parseUser(const json& aJson, bool aAllowMe = false);
 	};
 }
 

@@ -40,7 +40,7 @@ namespace webserver {
 		return TTHValue(aTTH);
 	}
 
-	UserPtr Deserializer::deserializeUser(const json& aJson, bool aAllowMe) {
+	UserPtr Deserializer::parseUser(const json& aJson, bool aAllowMe) {
 		auto cid = parseCID(JsonUtil::getField<string>("cid", aJson, false));
 		if (!aAllowMe && cid == ClientManager::getInstance()->getMyCID()) {
 			throw std::invalid_argument("Own CID isn't allowed for this command");
@@ -49,9 +49,14 @@ namespace webserver {
 		return ClientManager::getInstance()->findUser(cid);
 	}
 
+	UserPtr Deserializer::deserializeUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
+		auto userJson = JsonUtil::getRawValue(aFieldName, aJson);
+		return parseUser(userJson);
+	}
+
 	HintedUser Deserializer::deserializeHintedUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
 		auto userJson = JsonUtil::getRawValue(aFieldName, aJson);
-		auto user = deserializeUser(userJson, aAllowMe);
+		auto user = parseUser(userJson, aAllowMe);
 		return HintedUser(user, JsonUtil::getField<string>("hub_url", userJson, aAllowMe && user == ClientManager::getInstance()->getMe()));
 	}
 
