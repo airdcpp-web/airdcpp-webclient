@@ -86,6 +86,7 @@ namespace webserver {
 		}
 	private:
 		api_return handleFindDupePaths(ApiRequest& aRequest);
+		api_return handleRemoveSource(ApiRequest& aRequest);
 
 		api_return handleRemoveBundle(ApiRequest& aRequest);
 		//api_return handleRemoveTempItem(ApiRequest& aRequest);
