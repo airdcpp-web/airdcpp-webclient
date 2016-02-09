@@ -152,14 +152,18 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) throw
 	}
 }
 
-void UserConnection::connect(const Socket::AddressInfo& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole) {
+void UserConnection::connect(const Socket::AddressInfo& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const UserPtr& aUser /*nullptr*/) {
 	dcassert(!socket);
 
 	socket = BufferedSocket::getSocket(0);
 	socket->addListener(this);
 
-	// TODO: verify that this KeyPrint was mediated by a trusted hub?
-	string expKP = user ? ClientManager::getInstance()->getField(user->getCID(), hubUrl, "KP") : Util::emptyString;
+	string expKP;
+	if (aUser) {
+		expKP = ClientManager::getInstance()->getField(aUser->getCID(), hubUrl, "KP");
+		setUser(aUser);
+	}
+
 	socket->connect(aServer, aPort, localPort, natRole, secure, SETTING(ALLOW_UNTRUSTED_CLIENTS), true, expKP);
 }
 
@@ -203,7 +207,13 @@ void UserConnection::accept(const Socket& aServer) {
 	dcassert(!socket);
 	socket = BufferedSocket::getSocket(0);
 	socket->addListener(this);
-	socket->accept(aServer, secure, SETTING(ALLOW_UNTRUSTED_CLIENTS));
+
+	/*
+	Technically only one side needs to verify KeyPrint, 
+	also since we most likely requested to be connected to (and we have insufficient info otherwise) deal with TLS options check post handshake
+	-> SSLSocket::verifyKeyprint does full certificate verification after INF
+	*/
+	socket->accept(aServer, secure, true);
 }
 
 void UserConnection::inf(bool withToken, int mcnSlots) { 
