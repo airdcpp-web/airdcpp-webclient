@@ -143,7 +143,12 @@ namespace webserver {
 		return extension;
 	}
 
-	string FileServer::parseResourcePath(const string& aResource, const websocketpp::http::parser::request& aRequest, StringPairList& headers_) const noexcept {
+	string FileServer::parseResourcePath(const string& aResource, const websocketpp::http::parser::request& aRequest, StringPairList& headers_) const {
+		// Serve files only from the resource directory
+		if (aResource.empty() || aResource.find("..") != std::string::npos) {
+			throw std::domain_error("Invalid request");
+		}
+
 		auto request = aResource;
 
 		auto extension = getExtension(request);
@@ -192,20 +197,19 @@ namespace webserver {
 	websocketpp::http::status_code::value FileServer::handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest,
 		string& output_, StringPairList& headers_) noexcept {
 
-		dcassert(!resourcePath.empty());
 		dcdebug("Requesting file %s\n", aResource.c_str());
 
-		// Get the disk path path
+		// Get the disk path
 		string request;
-		if (aResource.length() >= 6 && aResource.compare(0, 6, "/view/") == 0) {
-			try {
+		try {
+			if (aResource.length() >= 6 && aResource.compare(0, 6, "/view/") == 0) {
 				request = parseViewFilePath(aResource.substr(6));
-			} catch (const std::exception& e) {
-				output_ = e.what();
-				return websocketpp::http::status_code::bad_request;
+			} else {
+				request = parseResourcePath(aResource, aRequest, headers_);
 			}
-		} else {
-			request = parseResourcePath(aResource, aRequest, headers_);
+		} catch (const std::exception& e) {
+			output_ = e.what();
+			return websocketpp::http::status_code::bad_request;
 		}
 
 		// Read file
