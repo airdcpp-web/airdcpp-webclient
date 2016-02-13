@@ -533,9 +533,8 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 	bool hasValidSFV = false;
 
 	int releaseFiles = 0, loopMissing = 0;
-	StringList invalidSFV;
 
-	DirSFVReader sfv(aPath, sfvFileList, invalidSFV);
+	DirSFVReader sfv(aPath, sfvFileList);
 	sfv.read([&](const string& fileName) {
 		hasValidSFV = true;
 		releaseFiles++;
@@ -554,10 +553,7 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 		aScan.missingFiles += loopMissing;
 
 	if (SETTING(CHECK_INVALID_SFV)) {
-		for (auto p : invalidSFV) {
-			reportMessage(STRING(INVALID_SFV_FILE) + " " + p, aScan);
-		}
-		aScan.invalidSFVFiles += invalidSFV.size();
+		aScan.invalidSFVFiles += sfv.getFailedFiles().size();
 	}
 
 	/* Extras in folder? */

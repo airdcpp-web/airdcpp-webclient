@@ -33,7 +33,7 @@ class DirSFVReader {
 public:
 	DirSFVReader();
 	DirSFVReader(const string& aPath);
-	DirSFVReader(const string& aPath, const StringList& aSfvFiles, StringList& invalidSFV);
+	DirSFVReader(const string& aPath, const StringList& aSfvFiles);
 
 	/**
 	 * Search for a CRC32 file in all .sfv files in the directory of fileName.
@@ -44,27 +44,33 @@ public:
 	 * considered comments, and we throw away lines with ' ' or '#' as well
 	 * (pdSFV 1.2 does this...).
 	 */
-	optional<uint32_t> hasFile(const string& fileName) const;
+	optional<uint32_t> hasFile(const string& fileName) const noexcept;
 
 	bool hasSFV() const { return !sfvFiles.empty(); }
-	bool isCrcValid(const string& file) const;
+	bool isCrcValid(const string& aFile) const;
 
 	/* Loops through the file names */
-	void read(std::function<void (const string&)> readF) const;
+	void read(std::function<void (const string&)> aReadF) const;
 
 	void loadPath(const string& aPath);
-	string getPath() const { return path; }
-	void unload();
+	string getPath() const noexcept { return path; }
+	void unload() noexcept;
+
+	const StringList& getFailedFiles() const noexcept {
+		return failedFiles;
+	}
 private:
-	bool loaded;
+	bool loaded = false;
 
 	StringList sfvFiles;
+	StringList failedFiles;
 	string path;
 
 	/* File name + crc */
 	unordered_map<string, uint32_t> content;
 
-	void load(StringList& invalidSFV) noexcept;
+	void load() noexcept;
+	bool loadFile(const string& aContent) noexcept;
 };
 
 } // namespace dcpp
