@@ -25,6 +25,7 @@
 #include "FileReader.h"
 #include "FilteredFile.h"
 #include "LogManager.h"
+#include "StringTokenizer.h"
 #include "Text.h"
 #include "ZUtils.h"
 
@@ -39,46 +40,43 @@ using boost::range::find_if;
 
 DirSFVReader::DirSFVReader() : loaded(false) { }
 
-DirSFVReader::DirSFVReader(const string& aPath) : loaded(false) {
+DirSFVReader::DirSFVReader(const string& aPath) {
 	loadPath(aPath);
 }
 
-DirSFVReader::DirSFVReader(const string& /*aPath*/, const StringList& aSfvFiles, StringList& invalidSFV) : loaded(false) {
+DirSFVReader::DirSFVReader(const string& /*aPath*/, const StringList& aSfvFiles) {
 	sfvFiles = aSfvFiles;
-	load(invalidSFV);
+	load();
 }
 
 void DirSFVReader::loadPath(const string& aPath) {
 	content.clear();
 	path = aPath;
 	sfvFiles = File::findFiles(path, "*.sfv", File::TYPE_FILE);
-	StringList tmp;
-	load(tmp);
+
+	load();
 }
 
-void DirSFVReader::unload() {
-	if (loaded) {
-		content.clear();
-		loaded = false;
-	}
+void DirSFVReader::unload() noexcept {
+	failedFiles.clear();
+	content.clear();
+	loaded = false;
 }
 
-optional<uint32_t> DirSFVReader::hasFile(const string& fileName) const {
-	if (loaded) {
-		auto p = content.find(fileName);
-		if (p != content.end()) {
-			return p->second;
-		}
+optional<uint32_t> DirSFVReader::hasFile(const string& aFileName) const noexcept {
+	auto p = content.find(aFileName);
+	if (p != content.end()) {
+		return p->second;
 	}
 
 	return boost::none;
 }
 
-bool DirSFVReader::isCrcValid(const string& fileName) const {
-	auto p = content.find(fileName);
+bool DirSFVReader::isCrcValid(const string& aFileName) const {
+	auto p = content.find(aFileName);
 	if (p != content.end()) {
 		CRC32Filter crc32;
-		FileReader(true).read(path + fileName, [&](const void* x, size_t n) {
+		FileReader(true).read(path + aFileName, [&](const void* x, size_t n) {
 			return crc32(x, n), true;
 		});
 		return crc32.getValue() == p->second;
@@ -87,89 +85,78 @@ bool DirSFVReader::isCrcValid(const string& fileName) const {
 	return true;
 }
 
-//use a custom implementation in order to detect line breaks used by other operating systems
-std::istream& getline(std::istream &is, std::string &s) { 
-    char ch;
-
-    s.clear();
-
-	while (is.get(ch) && ch != '\n' && ch != '\r')
-        s += ch;
-    return is;
-}
-
-void DirSFVReader::load(StringList& invalidSFV) noexcept {
+boost::regex lineBreakRegex(R"(\n|\r)");
+bool DirSFVReader::loadFile(const string& aContent) noexcept {
+	/* Get the filename and crc */
+	bool hasValidLines = false;
 	string line;
 
-	for(auto curPath: sfvFiles) {
-		ifstream sfv;
-		
-		/* Try to open the sfv */
-		try {
-			auto loadPath = Text::utf8ToAcp(Util::FormatPath(curPath));
-			auto size = File::getSize(loadPath);
-			if (size > Util::convertSize(1, Util::MB)) {
-				//this isn't a proper sfv file
-				throw FileException(STRING_F(SFV_TOO_LARGE, Util::formatBytes(size)));
-			}
+	StringTokenizer<string> tokenizer(aContent, lineBreakRegex);
+	for (const auto& rawLine: tokenizer.getTokens()) {
+		line = Text::toUtf8(rawLine);
 
-			//incase we have some extended characters in the path
-			sfv.open(loadPath);
-
-			if(!sfv.is_open()) {
-				throw FileException(STRING(CANT_OPEN_SFV));
-			}
-		} catch(const FileException& e) {
-			invalidSFV.push_back(curPath);
-			LogManager::getInstance()->message(curPath + ": " + e.getError(), LogMessage::SEV_ERROR);
+		// Make sure that the line is valid
+		if (!regex_search(line, AirUtil::crcReg) || line.find(";") != string::npos) {
 			continue;
 		}
 
-		/* Get the filename and crc */
-		bool hasValidLines = false;
-		while(getline(sfv, line) || !line.empty()) {
-			line = Text::toUtf8(line);
-			//make sure that the line is valid
-			if(regex_search(line, AirUtil::crcReg) && (line.find(";") == string::npos)) {
-				//We cant handle sfv with files in subdirectories currently.
-				if (line.find("\\") != string::npos) {
-					hasValidLines = true;
-					continue;
-				}
-
-				//only keep the filename
-				size_t pos = line.rfind(" ");
-				if (pos == string::npos) {
-					continue;
-				}
-
-				uint32_t crc32;
-				sscanf(line.substr(pos+1, 8).c_str(), "%x", &crc32);
-
-				line = Text::toLower(line.substr(0,pos));
-
-				boost::trim(line);
-
-				//quoted filename?
-				if (line[0] == '\"' && line[line.length()-1] == '\"') {
-					line = line.substr(1,line.length()-2);
-				}
-
-				content[line] = crc32;
-				hasValidLines = true;
-			}
+		//We cant handle sfv with files in subdirectories currently.
+		if (line.find("\\") != string::npos) {
+			hasValidLines = true;
+			continue;
 		}
-		sfv.close();
-		if (!hasValidLines)
-			invalidSFV.push_back(curPath);
+
+		//only keep the filename
+		auto pos = line.rfind(" ");
+		if (pos == string::npos) {
+			continue;
+		}
+
+		uint32_t crc32;
+		sscanf(line.substr(pos + 1, 8).c_str(), "%x", &crc32);
+
+		line = Text::toLower(line.substr(0, pos));
+		boost::trim(line);
+
+		//quoted filename?
+		if (line[0] == '\"' && line[line.length() - 1] == '\"') {
+			line = line.substr(1, line.length() - 2);
+		}
+
+		content[line] = crc32;
+		hasValidLines = true;
+	}
+
+	return hasValidLines;
+}
+
+void DirSFVReader::load() noexcept {
+	for (const auto& curPath: sfvFiles) {
+		string error;
+		try {
+			File f(curPath, File::READ, File::OPEN);
+			if (f.getSize() > Util::convertSize(1, Util::MB)) {
+				// This isn't a proper sfv file
+				error = STRING_F(SFV_TOO_LARGE, Util::formatBytes(f.getSize()));
+			} else if (!loadFile(f.read())) {
+				error = STRING(NO_VALID_LINES);
+			}
+		} catch(const FileException& e) {
+			error = e.getError();
+		}
+
+		if (!error.empty()) {
+			LogManager::getInstance()->message(curPath + ": " + error, LogMessage::SEV_ERROR);
+			failedFiles.push_back(curPath);
+		}
 	}
 
 	loaded = true;
 }
 
-void DirSFVReader::read(std::function<void (const string&)> readF) const {
-	for (auto& p: content | map_keys) {
-		readF(p);
+void DirSFVReader::read(std::function<void (const string&)> aReadF) const {
+	for (const auto& p: content | map_keys) {
+		aReadF(p);
 	}
 }
 

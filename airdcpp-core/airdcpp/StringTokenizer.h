@@ -19,6 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_STRING_TOKENIZER_H
 #define DCPLUSPLUS_DCPP_STRING_TOKENIZER_H
 
+
+#include "stdinc.h"
+
 namespace dcpp {
 
 template<class T, template<class V, class = std::allocator<V> > class ContainerT = vector>
@@ -26,43 +29,46 @@ class StringTokenizer
 {
 private:
 	ContainerT<T> tokens;
+
+	template<class SeparatorT>
+	StringTokenizer(const T& aString, const typename SeparatorT& aToken, bool aAllowEmptyTokens, size_t aSeparatorLength) {
+		string::size_type i = 0;
+		string::size_type j = 0;
+		while ((i = aString.find(aToken, j)) != string::npos) {
+			if (aAllowEmptyTokens || j != i)
+				tokens.push_back(aString.substr(j, i - j));
+			j = i + aSeparatorLength;
+		}
+
+		if (j < aString.size())
+			tokens.push_back(aString.substr(j, aString.size() - j));
+	}
 public:
-	StringTokenizer(const T& aString, const typename T::value_type aToken, bool allowEmptyTokens = false) {
-		string::size_type i = 0;
-		string::size_type j = 0;
-		while( (i=aString.find(aToken, j)) != string::npos ) {
-			if (allowEmptyTokens || j != i)
-				tokens.push_back(aString.substr(j, i-j));
-			j = i + 1;
-		}
-		if(j < aString.size())
-			tokens.push_back(aString.substr(j, aString.size()-j));
+	StringTokenizer(const T& aString, const typename T::value_type& aToken, bool aAllowEmptyTokens = false) : 
+		StringTokenizer(aString, aToken, aAllowEmptyTokens, 1) {
+		
 	}
 
-	StringTokenizer(const T& aString, const char* aToken, bool allowEmptyTokens = false) {
-		string::size_type i = 0;
-		string::size_type j = 0;
-		size_t l = strlen(aToken);
-		while( (i=aString.find(aToken, j)) != string::npos ) {
-			if (allowEmptyTokens || j != i)
-				tokens.push_back(aString.substr(j, i-j));
-			j = i + l;
-		}
-		if(j < aString.size())
-			tokens.push_back(aString.substr(j, aString.size()-j));
+	StringTokenizer(const T& aString, const char* aToken, bool aAllowEmptyTokens = false) : 
+		StringTokenizer(aString, aToken, aAllowEmptyTokens, strlen(aToken)) {
+		
 	}
 
-	StringTokenizer(const T& aString, const wchar_t* aToken, bool allowEmptyTokens = false) {
-		string::size_type i = 0;
-		string::size_type j = 0;
-		size_t l = wcslen(aToken);
-		while( (i=aString.find(aToken, j)) != string::npos ) {
-			if (allowEmptyTokens || j != i)
-				tokens.push_back(aString.substr(j, i-j));
-			j = i + l;
+	StringTokenizer(const T& aString, const wchar_t* aToken, bool aAllowEmptyTokens = false) :
+		StringTokenizer(aString, aToken, aAllowEmptyTokens, wcslen(aToken)) {
+		
+	}
+
+	StringTokenizer(const T& aString, const boost::regex& aRegex, bool aAllowEmptyTokens = false) {
+		boost::sregex_token_iterator cur{ aString.begin(), aString.end(), aRegex, -1 }, last;
+
+		while (cur != last) {
+			if (aAllowEmptyTokens || (*cur).length() != 0) {
+				tokens.push_back((*cur).str());
+			}
+
+			cur++;
 		}
-		if(j < aString.size())
-					tokens.push_back(aString.substr(j, aString.size()-j));
 	}
 
 	ContainerT<T>& getTokens() { return tokens; }

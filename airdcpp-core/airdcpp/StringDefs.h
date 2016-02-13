@@ -649,7 +649,7 @@ enum Strings { // @DontAdd
 	INVALID_PASSWORD, // "Invalid password"
 	INVALID_PATTERN, // "Invalid pattern: %1%"
 	INVALID_REGEXP, // "Invalid regexp!"
-	INVALID_SFV_FILE, // "INVALID SFV FILE: "
+	NO_VALID_LINES, // "No valid lines were found"
 	INVALID_SIZE, // "Invalid size"
 	INVALID_TARGET_FILE, // "Invalid target file (missing directory, check default download directory setting)"
 	INVALID_TREE, // "Full tree does not match TTH root"
