@@ -115,7 +115,7 @@ bool DirSFVReader::loadFile(const string& aContent) noexcept {
 		uint32_t crc32;
 		sscanf(line.substr(pos + 1, 8).c_str(), "%x", &crc32);
 
-		line = Text::toLower(line.substr(0, pos));
+		line = line.substr(0, pos);
 		boost::trim(line);
 
 		//quoted filename?
