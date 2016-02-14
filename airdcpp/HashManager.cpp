@@ -1164,7 +1164,7 @@ int HashManager::Hasher::run() {
 
 				CRC32Filter crc32;
 
-				auto fileCRC = sfv.hasFile(Util::getFileName(pathLower));
+				auto fileCRC = sfv.hasFile(Util::getFileName(fname));
 
 				uint64_t lastRead = GET_TICK();
  

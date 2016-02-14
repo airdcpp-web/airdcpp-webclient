@@ -40,23 +40,23 @@ atomic_flag ShareScannerManager::scanning;
 #endif
 
 ShareScannerManager::ShareScannerManager() : stop(false), tasks(false) {
-	// case sensitive
+	// Case sensitive
 	releaseReg.assign(AirUtil::getReleaseRegBasic());
 	simpleReleaseReg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9_]{2,}))");
 	longReleaseReg.assign(AirUtil::getReleaseRegLong(false));
 
-	// matched files are always lowercase
-	rarReg.assign("(.+\\.((r\\w{2})|(0\\d{2})))");
-	rarMp3Reg.assign("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)|(flac)))");
-	zipReg.assign("(.+\\.zip)");
-	mvidReg.assign("(.+\\.(m2v|avi|mkv|mp(e)?g))");
-	sampleExtrasReg.assign("(.*(jp(e)?g|png|vob))");
-	extraRegs[AUDIOBOOK].assign("(.+\\.(jp(e)?g|png|m3u|cue|zip|sfv|nfo))");
-	extraRegs[FLAC].assign("(.+\\.(jp(e)?g|png|m3u|cue|log|sfv|nfo))");
-	extraRegs[NORMAL].assign("(.+\\.(jp(e)?g|png|m3u|cue|diz|sfv|nfo))");
-	zipFolderReg.assign("(.+\\.(jp(e)?g|png|diz|zip|nfo|sfv))");
+	// Files
+	rarReg.assign("(.+\\.((r\\w{2})|(0\\d{2})))", boost::regex_constants::icase);
+	rarMp3Reg.assign("(.+\\.((r\\w{2})|(0\\d{2})|(mp3)|(flac)))", boost::regex_constants::icase);
+	zipReg.assign("(.+\\.zip)", boost::regex_constants::icase);
+	mvidReg.assign("(.+\\.(m2v|avi|mkv|mp(e)?g))", boost::regex_constants::icase);
+	sampleExtrasReg.assign("(.*(jp(e)?g|png|vob))", boost::regex_constants::icase);
+	extraRegs[AUDIOBOOK].assign("(.+\\.(jp(e)?g|png|m3u|cue|zip|sfv|nfo))", boost::regex_constants::icase);
+	extraRegs[FLAC].assign("(.+\\.(jp(e)?g|png|m3u|cue|log|sfv|nfo))", boost::regex_constants::icase);
+	extraRegs[NORMAL].assign("(.+\\.(jp(e)?g|png|m3u|cue|diz|sfv|nfo))", boost::regex_constants::icase);
+	zipFolderReg.assign("(.+\\.(jp(e)?g|png|diz|zip|nfo|sfv))", boost::regex_constants::icase);
 
-	// other directories
+	// Other directories
 	emptyDirReg.assign("(\\S*(((nfo|dir).?fix)|nfo.only)\\S*)", boost::regex_constants::icase);
 	audioBookReg.assign(".+(-|\\()AUDIOBOOK(-|\\)).+", boost::regex_constants::icase);
 	flacReg.assign(".+(-|\\()(LOSSLESS|FLAC)((-|\\)).+)?", boost::regex_constants::icase);
@@ -137,7 +137,7 @@ void ShareScannerManager::runSfvCheck(const StringList& rootPaths) {
 			if (stop || isDir)
 				return;
 
-			checkFileSFV(Text::toLower(aFileName), i.second, true);
+			checkFileSFV(aFileName, i.second, true);
 		});
 	}
 
@@ -279,8 +279,8 @@ void ShareScannerManager::find(const string& aPath, const string& aPathLower, Sc
 	string dir;
 	string dirLower;
 	
-	File::forEachFile(aPath, "*", [&](const string& aFileName, bool isDir, int64_t /*aSize*/) {
-		if (!isDir || stop)
+	File::forEachFile(aPath, "*", [&](const string& aFileName, bool aIsDir, int64_t /*aSize*/) {
+		if (!aIsDir || stop)
 			return;
 
 		dir = aPath + aFileName;
@@ -335,13 +335,14 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 	if(aPath.empty())
 		return;
 
+	int nfoFiles = 0;
 	StringList sfvFileList, fileList, folderList;
-	File::forEachFile(aPath, "*", [&](const string& aFileName, bool isDir, int64_t aSize) {
+	File::forEachFile(aPath, "*", [&](const string& aFileName, bool aIsDir, int64_t aSize) {
 		if (matchSkipList(aFileName)) {
 			return;
 		}
 
-		if (isDir) {
+		if (aIsDir) {
 			folderList.push_back(Text::toLower(aFileName.substr(0, aFileName.length()-1)));
 			return;
 		}
@@ -352,7 +353,13 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 			}
 		}
 
-		fileList.push_back(Text::toLower(aFileName));
+		if (Util::getFileExt(aFileName) == ".nfo") {
+			nfoFiles++;
+		} else if (Util::getFileExt(aFileName) == ".sfv") {
+			sfvFileList.push_back(aPath + aFileName);
+		}
+
+		fileList.push_back(aFileName);
 	});
 
 	if (fileList.empty()) {
@@ -370,41 +377,30 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 		StringList disks;
 		copy_if(folderList.begin(), folderList.end(), back_inserter(disks), [this](const string& s) { return regex_match(s, diskReg); });
 		if (!disks.empty()) {
-			int exceptedCount = 0;
+			int expectedCount = 0;
 
 			// find the maximum disk number
 			for (const auto& s : disks) {
 				auto pos = s.find_first_of("0123456789");
 				if (pos != string::npos) {
 					int num = atoi(s.data() + pos);
-					exceptedCount = max(num, exceptedCount);
+					expectedCount = max(num, expectedCount);
 				}
 			}
 
-			if (disks.size() == 1 || exceptedCount > static_cast<int>(disks.size())) {
+			if (disks.size() == 1 || expectedCount > static_cast<int>(disks.size())) {
 				reportMessage(STRING(DISKS_MISSING) + " " + aPath, aScan);
 				aScan.disksMissing++;
 			}
 		}
 	}
 
-	int nfoFiles=0, sfvFiles=0;
 	bool isSample=false, isRelease=false, isZipRls=false, found=false, extrasInFolder = false;
 
-	string dirName = Util::getLastDir(aPath);
-
-	// Find NFO and SFV files
-	for(auto& fileName: fileList) {
-		if (Util::getFileExt(fileName) == ".nfo") {
-			nfoFiles++;
-		} else if (Util::getFileExt(fileName) == ".sfv") {
-			sfvFileList.push_back(aPath + fileName);
-			sfvFiles++;
-		}
-	}
+	auto dirName = Util::getLastDir(aPath);
 
 	/* No release files at all? */
-	if (!fileList.empty() && ((nfoFiles + sfvFiles) == (int)fileList.size()) && (SETTING(CHECK_EMPTY_RELEASES))) {
+	if (!fileList.empty() && ((nfoFiles + sfvFileList.size()) == (int)fileList.size()) && (SETTING(CHECK_EMPTY_RELEASES))) {
 		if (!regex_match(dirName, emptyDirReg)) {
 			if (folderList.empty()) {
 				reportMessage(STRING(RELEASE_FILES_MISSING) + " " + aPath, aScan);
@@ -422,7 +418,7 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 				aScan.extrasFound++;
 				extrasInFolder = true;
 			}
-			if (sfvFiles > 1) {
+			if (sfvFileList.size() > 1) {
 				reportMessage(STRING(MULTIPLE_SFV) + " " + aPath, aScan);
 				if (!extrasInFolder) {
 					extrasInFolder = true;
@@ -434,7 +430,7 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 		//Check if it's a sample folder
 		isSample = (strcmp(Text::toLower(dirName).c_str(), "sample") == 0);
 
-		if (nfoFiles == 0 || sfvFiles == 0 || isSample || SETTING(CHECK_EXTRA_FILES)) {
+		if (nfoFiles == 0 || sfvFileList.empty() || isSample || SETTING(CHECK_EXTRA_FILES)) {
 			//Check if it's a RAR/Music release folder
 			isRelease = AirUtil::listRegexMatch(fileList, (SETTING(CHECK_MP3_DIR) ? rarMp3Reg : rarReg));
 
@@ -450,7 +446,7 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 				}
 
 				//Report extra files in a zip folder
-				if (isZipRls && SETTING(CHECK_EXTRA_FILES) && sfvFiles == 0) {
+				if (isZipRls && SETTING(CHECK_EXTRA_FILES) && sfvFileList.empty()) {
 					AirUtil::listRegexSubtract(fileList, zipFolderReg);
 					if (!fileList.empty()) {
 						reportMessage(STRING_F(EXTRA_FILES_RLSDIR_X, aPath.c_str() % Util::toString(", ", fileList)), aScan);
@@ -480,7 +476,7 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 					}
 				}
 
-				if (nfoFiles > 0 || sfvFiles > 0 || isRelease || found) {
+				if (nfoFiles > 0 || !sfvFileList.empty() || isRelease || found) {
 					reportMessage(STRING_F(EXTRA_FILES_SAMPLEDIR_X, aPath), aScan);
 					aScan.extrasFound++;
 				}
@@ -514,7 +510,7 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 			}
 
 			//Report missing SFV
-			if (sfvFiles == 0 && isRelease) {
+			if (sfvFileList.empty() && isRelease) {
 				//avoid extra matches
 				if (!regex_match(dirName,subReg) && SETTING(CHECK_SFV)) {
 					reportMessage(STRING(SFV_MISSING) + aPath, aScan);
@@ -525,7 +521,7 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 		}
 	}
 
-	if (sfvFiles == 0)
+	if (sfvFileList.empty())
 		return;
 
 
@@ -559,7 +555,7 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 	/* Extras in folder? */
 	releaseFiles = releaseFiles - loopMissing;
 
-	if(SETTING(CHECK_EXTRA_FILES) && ((int)fileList.size() > nfoFiles + sfvFiles) && hasValidSFV) {
+	if(SETTING(CHECK_EXTRA_FILES) && ((int)fileList.size() > nfoFiles + sfvFileList.size()) && hasValidSFV) {
 		//Find allowed extra files from the release folder
 		int8_t extrasType = NORMAL;
 		if (regex_match(dirName, audioBookReg)) {
@@ -603,32 +599,32 @@ void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& di
 void ShareScannerManager::prepareSFVScanFile(const string& aPath, StringList& files) noexcept {
 	if (Util::fileExists(aPath)) {
 		scanFolderSize += File::getSize(aPath);
-		files.push_back(Text::toLower(Util::getFileName(aPath)));
+		files.push_back(Util::getFileName(aPath));
 	} else {
 		LogManager::getInstance()->message(STRING(FILE_MISSING) + " " + aPath, LogMessage::SEV_WARNING);
 		checkFailed++;
 	}
 }
 
-void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sfv, bool isDirScan) noexcept {
+void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& aSfvReader, bool aIsDirScan) noexcept {
  
 	uint64_t checkStart = 0;
 	uint64_t checkEnd = 0;
 
-	if(sfv.hasFile(aFileName)) {
+	if(aSfvReader.hasFile(aFileName)) {
 		// Perform the check
 		bool crcMatch = false;
 		try {
 			checkStart = GET_TICK();
-			crcMatch = sfv.isCrcValid(aFileName);
+			crcMatch = aSfvReader.isCrcValid(aFileName);
 			checkEnd = GET_TICK();
 		} catch(const FileException& ) {
 			// Couldn't read the file to get the CRC(!!!)
-			LogManager::getInstance()->message(STRING_F(CRC_FILE_ERROR, (sfv.getPath() + aFileName)), LogMessage::SEV_ERROR);
+			LogManager::getInstance()->message(STRING_F(CRC_FILE_ERROR, (aSfvReader.getPath() + aFileName)), LogMessage::SEV_ERROR);
 		}
 
 		// Update the resultd
-		int64_t size = File::getSize(sfv.getPath() + aFileName);
+		int64_t size = File::getSize(aSfvReader.getPath() + aFileName);
 		int64_t speed = 0;
 		if(checkEnd > checkStart) {
 			speed = size * 1000LL / (checkEnd - checkStart);
@@ -646,24 +642,24 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& sf
 		if (SETTING(LOG_CRC_OK)) {
 			LogManager::getInstance()->message(STRING_F(CRC_FILE_DONE,
 				(crcMatch ? STRING(CRC_OK) : STRING(CRC_FAILED)) %
-				(sfv.getPath() + aFileName) %
+				(aSfvReader.getPath() + aFileName) %
 				Util::formatBytes(speed) %
 				Util::formatBytes(scanFolderSize)), (crcMatch ? LogMessage::SEV_INFO : LogMessage::SEV_ERROR));
 		} else if (!crcMatch) {
 				LogManager::getInstance()->message(STRING_F(CRC_FILE_FAILED,
-				(sfv.getPath() + aFileName) %
+				(aSfvReader.getPath() + aFileName) %
 				Util::formatBytes(speed) %
 				Util::formatBytes(scanFolderSize)), LogMessage::SEV_ERROR);
 		}
 
 
-	} else if (!isDirScan || regex_match(aFileName, rarMp3Reg)) {
-		LogManager::getInstance()->message(STRING_F(CRC_NO_SFV, (sfv.getPath() + aFileName)), LogMessage::SEV_WARNING);
+	} else if (!aIsDirScan || regex_match(aFileName, rarMp3Reg)) {
+		LogManager::getInstance()->message(STRING_F(CRC_NO_SFV, (aSfvReader.getPath() + aFileName)), LogMessage::SEV_WARNING);
 		checkFailed++;
 	}
 }
 
-Bundle::Status ShareScannerManager::onScanBundle(const BundlePtr& aBundle, bool finished, string& error_) noexcept{
+Bundle::Status ShareScannerManager::onScanBundle(const BundlePtr& aBundle, bool aFinished, string& error_) noexcept{
 	if (SETTING(SCAN_DL_BUNDLES) && !aBundle->isFileBundle()) {
 		ScanInfo scanner(aBundle->getName(), ScanInfo::TYPE_SYSLOG, false);
 
@@ -674,16 +670,16 @@ Bundle::Status ShareScannerManager::onScanBundle(const BundlePtr& aBundle, bool 
 		bool hasExtras = scanner.hasExtras();
 		bool hasInvalidSFV = scanner.invalidSFVFiles > 0;
 
-		if (finished || hasMissing || hasExtras || hasInvalidSFV) {
+		if (aFinished || hasMissing || hasExtras || hasInvalidSFV) {
 			string logMsg;
-			if (!finished) {
+			if (!aFinished) {
 				logMsg = STRING_F(SCAN_FAILED_BUNDLE_FINISHED, aBundle->getName());
 			} else {
 				logMsg = STRING_F(SCAN_BUNDLE_FINISHED, aBundle->getName());
 			}
 
 			if (hasMissing || hasExtras || hasInvalidSFV) {
-				if (finished) {
+				if (aFinished) {
 					logMsg += " ";
 					logMsg += CSTRING(SCAN_PROBLEMS_FOUND);
 					logMsg += ":  ";

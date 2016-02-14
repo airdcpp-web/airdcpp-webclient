@@ -611,7 +611,7 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 						err = X509_STORE_CTX_get_error(vrfy_ctx);
 						if (verify_result <= 0 && err == X509_V_OK) {
 							// Watch out for weird library errors that might not set the context error code
-								err = X509_V_ERR_UNSPECIFIED;
+							err = X509_V_ERR_UNSPECIFIED;
 						}
 					}
 					// Set the current cert error to the context being verified.
@@ -647,8 +647,9 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 	}
 	// We let untrusted certificates through unconditionally, when allowed, but we like to complain
 	if (!preverify_ok && (!allowUntrusted || err != X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT)) {
-		if (error.empty())
-			error = X509_verify_cert_error_string(err);
+		if (error.empty()) {
+			error = err != X509_V_ERR_UNSPECIFIED ? X509_verify_cert_error_string(err) : "unspecified certificate verification error";
+		}
 
 		auto fullError = formatError(ctx, error);
 		if (!fullError.empty() && (!keyp.empty() || !allowUntrusted))

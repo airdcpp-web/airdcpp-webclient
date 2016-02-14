@@ -25,6 +25,11 @@
 #include "Singleton.h"
 #include "SSL.h"
 
+//This is for earlier OpenSSL versions that don't have this error code yet..
+#ifndef X509_V_ERR_UNSPECIFIED
+#define X509_V_ERR_UNSPECIFIED 1
+#endif
+
 namespace dcpp {
 
 class CryptoManager : public Singleton<CryptoManager>

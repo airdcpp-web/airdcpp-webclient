@@ -31,7 +31,7 @@ private:
 	ContainerT<T> tokens;
 
 	template<class SeparatorT>
-	StringTokenizer(const T& aString, const typename SeparatorT& aToken, bool aAllowEmptyTokens, size_t aSeparatorLength) {
+	StringTokenizer(const T& aString, const SeparatorT& aToken, bool aAllowEmptyTokens, size_t aSeparatorLength) {
 		string::size_type i = 0;
 		string::size_type j = 0;
 		while ((i = aString.find(aToken, j)) != string::npos) {
