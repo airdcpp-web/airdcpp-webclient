@@ -4,9 +4,9 @@ AirDC++ Web Client is a cross-platform peer-to-peer file sharing client which al
 
 The client can be installed on a normal computer or file server and accessed with a responsive web-based user interface (optimized also for mobile devices).
 
-Key functionality:
+### Key functionality
 
-- Select the directories to share to other users
+- Share selected directories with other users
 - Search for files
 - Save files on disk or view them via the browser
 - Chatting capabilities (group and private chat)
@@ -14,6 +14,7 @@ Key functionality:
 
 
 ## [Try the online demo](http://webdemo.airdcpp.net)
+
 
 ## Table of contents
 
