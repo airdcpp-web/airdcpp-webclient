@@ -381,13 +381,12 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 
 	//Get the search type
 	StringList extList;
-	int ftype = 0;
+	auto ftype = Search::TYPE_ANY;
 	try {
 		SearchManager::getInstance()->getSearchType(as->getFileType(), ftype, extList, true);
 	} catch(const SearchTypeException&) {
 		//reset to default
 		as->setFileType(SEARCH_TYPE_ANY);
-		ftype = SearchManager::TYPE_ANY;
 	}
 
 	string searchWord;
@@ -421,8 +420,12 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 
 	//Run the search
 	if (aType != TYPE_MANUAL_FG) {
-		uint64_t searchTime = SearchManager::getInstance()->search(aHubs, searchWord, 0, (SearchManager::TypeModes)ftype, SearchManager::SIZE_DONTCARE,
-			"as", extList, SearchQuery::parseSearchString(as->getExcludedString()), aType == TYPE_MANUAL_BG ? Search::MANUAL : Search::AUTO_SEARCH, 0, SearchManager::DATE_DONTCARE, false);
+		auto s = make_shared<Search>(aType == TYPE_MANUAL_BG ? Search::MANUAL : Search::AUTO_SEARCH, searchWord, "as");
+		s->fileType = ftype;
+		s->exts = extList;
+		s->excluded = SearchQuery::parseSearchString(as->getExcludedString());
+
+		auto searchTime = SearchManager::getInstance()->search(aHubs, s).queueTime;
 
 		//Report
 		string msg;
@@ -671,7 +674,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 
 			//check the extension
 			try {
-				int tmp = 0;
+				Search::TypeModes tmp;
 				StringList exts;
 				SearchManager::getInstance()->getSearchType(as->getFileType(), tmp, exts, true);
 				auto name = sr->getFileName();

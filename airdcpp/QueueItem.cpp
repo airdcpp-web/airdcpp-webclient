@@ -669,10 +669,14 @@ bool QueueItem::usesSmallSlot() const {
 }
 
 void QueueItem::searchAlternates() {
-	if (SettingsManager::lanMode)
-		SearchManager::getInstance()->search(getTargetFileName(), size, SearchManager::TYPE_ANY, SearchManager::SIZE_EXACT, "qa", Search::ALT_AUTO);
-	else
-		SearchManager::getInstance()->search(tthRoot.toBase32(), 0, SearchManager::TYPE_TTH, SearchManager::SIZE_DONTCARE, "qa", Search::ALT_AUTO);
+	//if (SettingsManager::lanMode)
+	//	SearchManager::getInstance()->search(getTargetFileName(), size, Search::TYPE_ANY, Search::SIZE_EXACT, "qa", Search::ALT_AUTO);
+	//else
+
+	auto s = make_shared<Search>(Search::ALT_AUTO, tthRoot.toBase32(), "qa");
+	s->fileType = Search::TYPE_TTH;
+
+	SearchManager::getInstance()->search(s);
 }
 
 void QueueItem::addDownload(Download* d) {

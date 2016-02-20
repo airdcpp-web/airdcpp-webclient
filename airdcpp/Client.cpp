@@ -41,7 +41,7 @@ Client::Client(const string& hubURL, char separator_, const ClientPtr& aOldClien
 	reconnDelay(120), lastActivity(GET_TICK()), registered(false), autoReconnect(false),
 	state(STATE_DISCONNECTED), sock(0),
 	separator(separator_),
-	countType(COUNT_UNCOUNTED), availableBytes(0), favToken(0), iskeypError(false), cache(aOldClient ? aOldClient->getCache() : SettingsManager::HUB_MESSAGE_CACHE)
+	countType(COUNT_UNCOUNTED), availableBytes(0), favToken(0), cache(aOldClient ? aOldClient->getCache() : SettingsManager::HUB_MESSAGE_CACHE)
 {
 	setHubUrl(hubURL);
 	TimerManager::getInstance()->addListener(this);
@@ -127,7 +127,7 @@ void Client::reloadSettings(bool updateNick) {
 		setPassword(Util::emptyString);
 	}
 
-	searchQueue.minInterval = get(HubSettings::SearchInterval) * 1000; //convert from seconds
+	searchQueue.setMinInterval(get(HubSettings::SearchInterval) * 1000); //convert from seconds
 	if (updateNick)
 		checkNick(get(Nick));
 	else
@@ -181,7 +181,7 @@ bool Client::isActiveV6() const {
 	return !v4only() && get(HubSettings::Connection6) != SettingsManager::INCOMING_PASSIVE && get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED;
 }
 
-void Client::connect() {
+void Client::connect(bool withKeyprint) {
 	if (sock) {
 		BufferedSocket::putSocket(sock);
 		sock = 0;
@@ -200,7 +200,7 @@ void Client::connect() {
 	try {
 		sock = BufferedSocket::getSocket(separator, v4only());
 		sock->addListener(this);
-		sock->connect(Socket::AddressInfo(address, Socket::AddressInfo::TYPE_URL), port, secure, SETTING(ALLOW_UNTRUSTED_HUBS), true, keyprint /**/);
+		sock->connect(Socket::AddressInfo(address, Socket::AddressInfo::TYPE_URL), port, secure, SETTING(ALLOW_UNTRUSTED_HUBS), true, withKeyprint ? keyprint : Util::emptyString);
 	} catch (const Exception& e) {
 		setConnectState(STATE_DISCONNECTED);
 		fire(ClientListener::Failed(), hubUrl, e.getError());
@@ -311,10 +311,10 @@ ProfileToken Client::getShareProfile() const noexcept {
 }
 
 void Client::allowUntrustedConnect() noexcept {
-	if (isConnected() || !iskeypError)
+	if (state != STATE_DISCONNECTED || !SETTING(ALLOW_UNTRUSTED_HUBS) || !secure)
 		return;
-	keyprint = Util::emptyString;
-	connect();
+	//Connect without keyprint just this once...
+	connect(false);
 }
 
 void Client::onChatMessage(const ChatMessagePtr& aMessage) noexcept {
@@ -373,18 +373,15 @@ void Client::on(Failed, const string& aLine) noexcept {
 	if(stateNormal())
 		FavoriteManager::getInstance()->removeUserCommand(hubUrl);
 
-	//Better ways to transfer the text in here?...
-	string aError = aLine;
-	if (secure && SETTING(ALLOW_UNTRUSTED_HUBS) && sock && !sock->isKeyprintMatch()) {
-		aError += ", type /allow to proceed with untrusted connection";
-		iskeypError = true;
+	setConnectState(STATE_DISCONNECTED);
+	statusMessage(aLine, LogMessage::SEV_WARNING); //Error?
+
+	if (sock && !sock->isKeyprintMatch()) {
+		fire(ClientListener::KeyprintMismatch(), this);
 	}
 
-	setConnectState(STATE_DISCONNECTED);
-	statusMessage(aError, LogMessage::SEV_WARNING); //Error?
-
 	sock->removeListener(this);
-	fire(ClientListener::Failed(), getHubUrl(), aError);
+	fire(ClientListener::Failed(), getHubUrl(), aLine);
 }
 
 void Client::disconnect(bool graceLess) {
@@ -442,9 +439,9 @@ bool Client::updateCounts(bool aRemove) {
 	return true;
 }
 
-uint64_t Client::queueSearch(SearchPtr aSearch){
+uint64_t Client::queueSearch(const SearchPtr& aSearch){
 	dcdebug("Queue search %s\n", aSearch->query.c_str());
-	return searchQueue.add(move(aSearch));
+	return searchQueue.add(aSearch);
 }
 
 string Client::getCounts() {

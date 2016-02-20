@@ -21,8 +21,8 @@
 #include "Util.h"
 #include "AdcHub.h"
 #include "StringTokenizer.h"
-#include "SearchManager.h"
 #include "AirUtil.h"
+
 
 namespace {
 	inline uint16_t toCode(char a, char b) { return (uint16_t)a | ((uint16_t)b)<<8; }
@@ -30,7 +30,7 @@ namespace {
 
 namespace dcpp {
 
-double SearchQuery::getRelevancyScores(const SearchQuery& aSearch, int aLevel, bool aIsDirectory, const string& aName) {
+double SearchQuery::getRelevancyScores(const SearchQuery& aSearch, int aLevel, bool aIsDirectory, const string& aName) noexcept {
 	// get the level scores first
 	double scores = aLevel > 0 ? 9 / static_cast<double>(aLevel) : 10;
 	double maxPoints = 10;
@@ -114,7 +114,7 @@ double SearchQuery::getRelevancyScores(const SearchQuery& aSearch, int aLevel, b
 	return scores;
 }
 
-SearchQuery::ResultPointsList SearchQuery::toPointList(const string& aName) const {
+SearchQuery::ResultPointsList SearchQuery::toPointList(const string& aName) const noexcept {
 	ResultPointsList ret(lastIncludePositions.size());
 	for (size_t j = 0; j < lastIncludePositions.size(); ++j) {
 		int points = 0;
@@ -140,20 +140,20 @@ SearchQuery::ResultPointsList SearchQuery::toPointList(const string& aName) cons
 	return ret;
 }
 
-SearchQuery* SearchQuery::getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, MatchType aMatchType, bool returnParents, size_t aMaxResults) {
+SearchQuery* SearchQuery::getSearch(const SearchPtr& aSearch, MatchType aMatchType, bool returnParents, size_t aMaxResults) noexcept {
 	SearchQuery* s = nullptr;
 
-	if(aTypeMode == SearchManager::TYPE_TTH) {
-		s = new SearchQuery(TTHValue(aSearchString));
+	if(aSearch->fileType == Search::TYPE_TTH) {
+		s = new SearchQuery(TTHValue(aSearch->query));
 	} else {
-		s = new SearchQuery(aSearchString, aExcluded, aExtList, aMatchType);
-		if(aSizeMode == SearchManager::SIZE_ATLEAST) {
-			s->gt = aSize;
-		} else if(aSizeMode == SearchManager::SIZE_ATMOST) {
-			s->lt = aSize;
+		s = new SearchQuery(aSearch->query, aSearch->excluded, aSearch->exts, aMatchType);
+		if(aSearch->sizeType == Search::SIZE_ATLEAST) {
+			s->gt = aSearch->size;
+		} else if(aSearch->sizeType == Search::SIZE_ATMOST) {
+			s->lt = aSearch->size;
 		}
 
-		s->itemType = (aTypeMode == SearchManager::TYPE_DIRECTORY) ? SearchQuery::TYPE_DIRECTORY : (aTypeMode == SearchManager::TYPE_FILE) ? SearchQuery::TYPE_FILE : SearchQuery::TYPE_ANY;
+		s->itemType = (aSearch->fileType == Search::TYPE_DIRECTORY) ? SearchQuery::TYPE_DIRECTORY : (aSearch->fileType == Search::TYPE_FILE) ? SearchQuery::TYPE_FILE : SearchQuery::TYPE_ANY;
 	}
 
 	s->addParents = returnParents;
@@ -161,7 +161,7 @@ SearchQuery* SearchQuery::getSearch(const string& aSearchString, const string& a
 	return s;
 }
 
-StringList SearchQuery::parseSearchString(const string& aString) {
+StringList SearchQuery::parseSearchString(const string& aString) noexcept {
 	// similar to StringTokenizer but handles quotation marks (and doesn't create empty tokens)
 
 	StringList ret;
@@ -197,8 +197,8 @@ StringList SearchQuery::parseSearchString(const string& aString) {
 	return ret;
 }
 
-SearchQuery::SearchQuery(const string& nmdcString, int searchType, int64_t size, int fileType, size_t aMaxResults) : maxResults(aMaxResults) {
-	if (fileType == SearchManager::TYPE_TTH && nmdcString.compare(0, 4, "TTH:") == 0) {
+SearchQuery::SearchQuery(const string& nmdcString, Search::SizeModes aSizeMode, int64_t size, Search::TypeModes aFileType, size_t aMaxResults) noexcept : maxResults(aMaxResults) {
+	if (aFileType == Search::TYPE_TTH && nmdcString.compare(0, 4, "TTH:") == 0) {
 		root = TTHValue(nmdcString.substr(4));
 
 	} else {
@@ -209,31 +209,31 @@ SearchQuery::SearchQuery(const string& nmdcString, int searchType, int64_t size,
 			}
 		}
 
-		if (searchType == SearchManager::SIZE_ATLEAST) {
+		if (aSizeMode == Search::SIZE_ATLEAST) {
 			gt = size;
-		} else if (searchType == SearchManager::SIZE_ATMOST) {
+		} else if (aSizeMode == Search::SIZE_ATMOST) {
 			lt = size;
 		}
 
-		switch (fileType) {
-		case SearchManager::TYPE_AUDIO: ext = AdcHub::parseSearchExts(1 << 0); break;
-		case SearchManager::TYPE_COMPRESSED: ext = AdcHub::parseSearchExts(1 << 1); break;
-		case SearchManager::TYPE_DOCUMENT: ext = AdcHub::parseSearchExts(1 << 2); break;
-		case SearchManager::TYPE_EXECUTABLE: ext = AdcHub::parseSearchExts(1 << 3); break;
-		case SearchManager::TYPE_PICTURE: ext = AdcHub::parseSearchExts(1 << 4); break;
-		case SearchManager::TYPE_VIDEO: ext = AdcHub::parseSearchExts(1 << 5); break;
-		case SearchManager::TYPE_DIRECTORY: itemType = SearchQuery::TYPE_DIRECTORY; break;
+		switch (aFileType) {
+		case Search::TYPE_AUDIO: ext = AdcHub::parseSearchExts(1 << 0); break;
+		case Search::TYPE_COMPRESSED: ext = AdcHub::parseSearchExts(1 << 1); break;
+		case Search::TYPE_DOCUMENT: ext = AdcHub::parseSearchExts(1 << 2); break;
+		case Search::TYPE_EXECUTABLE: ext = AdcHub::parseSearchExts(1 << 3); break;
+		case Search::TYPE_PICTURE: ext = AdcHub::parseSearchExts(1 << 4); break;
+		case Search::TYPE_VIDEO: ext = AdcHub::parseSearchExts(1 << 5); break;
+		case Search::TYPE_DIRECTORY: itemType = SearchQuery::TYPE_DIRECTORY; break;
 		}
 	}
 
 	prepare();
 }
 
-SearchQuery::SearchQuery(const TTHValue& aRoot) : root(aRoot) {
+SearchQuery::SearchQuery(const TTHValue& aRoot) noexcept : root(aRoot) {
 
 }
 
-SearchQuery::SearchQuery(const string& aSearch, const string& aExcluded, const StringList& aExt, MatchType aMatchType) : matchType(aMatchType) {
+SearchQuery::SearchQuery(const string& aSearch, const StringList& aExcluded, const StringList& aExt, MatchType aMatchType) noexcept : matchType(aMatchType) {
 
 	//add included
 	if (matchType == MATCH_EXACT) {
@@ -246,8 +246,7 @@ SearchQuery::SearchQuery(const string& aSearch, const string& aExcluded, const S
 
 
 	//add excluded
-	auto ex = move(parseSearchString(aExcluded));
-	for(auto& i: ex)
+	for(auto& i: aExcluded)
 		exclude.addString(i);
 
 	for (auto& i : aExt)
@@ -256,7 +255,7 @@ SearchQuery::SearchQuery(const string& aSearch, const string& aExcluded, const S
 	prepare();
 }
 
-SearchQuery::SearchQuery(const StringList& params, size_t aMaxResults) : maxResults(aMaxResults) {
+SearchQuery::SearchQuery(const StringList& params, size_t aMaxResults) noexcept : maxResults(aMaxResults) {
 	for(const auto& p: params) {
 		if(p.length() <= 2)
 			continue;
@@ -298,7 +297,7 @@ SearchQuery::SearchQuery(const StringList& params, size_t aMaxResults) : maxResu
 	prepare();
 }
 
-void SearchQuery::prepare() {
+void SearchQuery::prepare() noexcept {
 	lastIncludePositions.resize(include.count());
 	fill(lastIncludePositions.begin(), lastIncludePositions.end(), string::npos);
 
@@ -307,7 +306,7 @@ void SearchQuery::prepare() {
 	}
 }
 
-bool SearchQuery::hasExt(const string& name) {
+bool SearchQuery::hasExt(const string& name) noexcept {
 	if(ext.empty())
 		return true;
 
@@ -323,7 +322,7 @@ bool SearchQuery::hasExt(const string& name) {
 	return false;
 }
 
-bool SearchQuery::matchesFile(const string& aName, int64_t aSize, uint64_t aDate, const TTHValue& aTTH) {
+bool SearchQuery::matchesFile(const string& aName, int64_t aSize, uint64_t aDate, const TTHValue& aTTH) noexcept {
 	if (itemType == SearchQuery::TYPE_DIRECTORY) {
 		return false;
 	}
@@ -339,7 +338,7 @@ bool SearchQuery::matchesStr(const string& aStr) noexcept {
 	return matchesFileLower(Text::toLower(aStr), 0, 0);
 }
 
-bool SearchQuery::matchesFileLower(const string& aName, int64_t aSize, uint64_t aDate) {
+bool SearchQuery::matchesFileLower(const string& aName, int64_t aSize, uint64_t aDate) noexcept {
 	if (!matchesDate(aDate) || !matchesSize(aSize)) {
 		return false;
 	}
@@ -366,7 +365,7 @@ bool SearchQuery::matchesFileLower(const string& aName, int64_t aSize, uint64_t 
 	return true;
 }
 
-bool SearchQuery::matchesNmdcPath(const string& aPath, Recursion& recursion_) {
+bool SearchQuery::matchesNmdcPath(const string& aPath, Recursion& recursion_) noexcept {
 	auto sl = StringTokenizer<string>(aPath, '\\').getTokens();
 
 	size_t level = 0;
@@ -394,7 +393,7 @@ bool SearchQuery::matchesNmdcPath(const string& aPath, Recursion& recursion_) {
 	return positionsComplete();
 }
 
-SearchQuery::ResultPointsList SearchQuery::getResultPositions(const string& aName) const {
+SearchQuery::ResultPointsList SearchQuery::getResultPositions(const string& aName) const noexcept {
 	// Do we need to use matches from a lower level?
 	auto ret = toPointList(aName);
 	if (recursion && find(lastIncludePositions, string::npos) != lastIncludePositions.end()) {
@@ -405,7 +404,7 @@ SearchQuery::ResultPointsList SearchQuery::getResultPositions(const string& aNam
 	return ret;
 }
 
-void SearchQuery::resetPositions() {
+void SearchQuery::resetPositions() noexcept {
 	if (lastIncludeMatches > 0) {
 		fill(lastIncludePositions.begin(), lastIncludePositions.end(), string::npos);
 		lastIncludeMatches = 0;
@@ -413,7 +412,7 @@ void SearchQuery::resetPositions() {
 	dcassert(count(lastIncludePositions.begin(), lastIncludePositions.end(), string::npos) == (int)lastIncludePositions.size());
 }
 
-bool SearchQuery::matchesDirectory(const string& aName) {
+bool SearchQuery::matchesDirectory(const string& aName) noexcept {
 	if (itemType == TYPE_FILE)
 		return false;
 
@@ -421,7 +420,7 @@ bool SearchQuery::matchesDirectory(const string& aName) {
 	return include.match_all(aName);
 }
 
-bool SearchQuery::matchesAnyDirectoryLower(const string& aName) {
+bool SearchQuery::matchesAnyDirectoryLower(const string& aName) noexcept {
 	if (matchType != MATCH_FULL_PATH && itemType == TYPE_FILE)
 		return false;
 
@@ -433,14 +432,14 @@ bool SearchQuery::matchesAnyDirectoryLower(const string& aName) {
 	return lastIncludeMatches > 0;
 }
 
-SearchQuery::Recursion::Recursion(const SearchQuery& aSearch, const string& aName) : positions(aSearch.toPointList(aName)) {
+SearchQuery::Recursion::Recursion(const SearchQuery& aSearch, const string& aName) noexcept : positions(aSearch.toPointList(aName)) {
 	if (aSearch.recursion && merge(positions, aSearch.recursion)) {
 		depthLen = aSearch.recursion->depthLen;
 		recursionLevel = aSearch.recursion->recursionLevel;
 	}
 }
 
-bool SearchQuery::Recursion::completes(const StringSearch::ResultList& compareTo) const {
+bool SearchQuery::Recursion::completes(const StringSearch::ResultList& compareTo) const noexcept {
 	for (size_t j = 0; j < positions.size(); ++j) {
 		if (positions[j].first == string::npos && compareTo[j] == string::npos)
 			return false;
@@ -448,11 +447,11 @@ bool SearchQuery::Recursion::completes(const StringSearch::ResultList& compareTo
 	return true;
 }
 
-bool SearchQuery::Recursion::isComplete() const {
+bool SearchQuery::Recursion::isComplete() const noexcept {
 	return none_of(positions.begin(), positions.end(), CompareFirst<size_t, int>(string::npos));
 }
 
-bool SearchQuery::Recursion::merge(ResultPointsList& mergeTo, const Recursion* parent) {
+bool SearchQuery::Recursion::merge(ResultPointsList& mergeTo, const Recursion* parent) noexcept {
 	auto& old = parent->positions;
 	optional<size_t> startPos;
 
@@ -479,7 +478,7 @@ bool SearchQuery::Recursion::merge(ResultPointsList& mergeTo, const Recursion* p
 	return false;
 }
 
-bool SearchQuery::positionsComplete() const {
+bool SearchQuery::positionsComplete() const noexcept {
 	if (lastIncludeMatches == static_cast<int>(include.count()))
 		return true;
 

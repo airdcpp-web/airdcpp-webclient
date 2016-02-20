@@ -1156,12 +1156,12 @@ StringList AdcHub::parseSearchExts(int flag) {
 	return ret;
 }
 
-void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const string& aDir, time_t aDate, int aDateMode) {
+void AdcHub::directSearch(const OnlineUser& user, const string& aDir, const SearchPtr& aSearch) {
 	if(!stateNormal())
 		return;
 
 	AdcCommand c(AdcCommand::CMD_SCH, (user.getIdentity().getSID()), AdcCommand::TYPE_DIRECT);
-	constructSearch(c, aSizeMode, aSize, aFileType, aString, aToken, aExtList, StringList(), aDate, aDateMode, true);
+	constructSearch(c, aSearch, true);
 
 	if (user.getUser()->isSet(User::ASCH)) {
 		if (!aDir.empty()) {
@@ -1174,52 +1174,50 @@ void AdcHub::directSearch(const OnlineUser& user, int aSizeMode, int64_t aSize, 
 		c.addParam("MR", "20"); // max results excepted
 	}
 
-	//sendSearch(c);
 	send(c);
 }
 
-void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, const StringList& aExtList, const StringList& excluded, time_t aDate, int aDateMode, bool isDirect) {
-	if(!aToken.empty())
-		c.addParam("TO", Util::toString(getClientId()) + "/" + aToken);
+void AdcHub::constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDirect) {
+	if(!aSearch->token.empty())
+		c.addParam("TO", Util::toString(getClientId()) + "/" + aSearch->token);
 
-	if(aFileType == SearchManager::TYPE_TTH) {
-		c.addParam("TR", aString);
+	if(aSearch->fileType == Search::TYPE_TTH) {
+		c.addParam("TR", aSearch->query);
 
 	} else {
-		if(aSizeMode == SearchManager::SIZE_ATLEAST) {
-			c.addParam("GE", Util::toString(aSize));
-		} else if(aSizeMode == SearchManager::SIZE_ATMOST) {
-			c.addParam("LE", Util::toString(aSize));
-		} else if (aSizeMode == SearchManager::SIZE_EXACT) {
-			c.addParam("GE", Util::toString(aSize));
-			c.addParam("LE", Util::toString(aSize));
+		if(aSearch->sizeType == Search::SIZE_ATLEAST) {
+			c.addParam("GE", Util::toString(aSearch->size));
+		} else if(aSearch->sizeType == Search::SIZE_ATMOST) {
+			c.addParam("LE", Util::toString(aSearch->size));
+		} else if (aSearch->sizeType == Search::SIZE_EXACT) {
+			c.addParam("GE", Util::toString(aSearch->size));
+			c.addParam("LE", Util::toString(aSearch->size));
 		}
 
-		auto tmp = move(SearchQuery::parseSearchString(aString));
-		for(const auto& t: tmp)
+		auto searchTokens = move(SearchQuery::parseSearchString(aSearch->query));
+		for(const auto& t: searchTokens)
 			c.addParam("AN", t);
 
-		for(const auto& e: excluded) {
+		for(const auto& e: aSearch->excluded) {
 			c.addParam("NO", e);
 		}
 
-		if(aFileType == SearchManager::TYPE_DIRECTORY) {
+		if(aSearch->fileType == Search::TYPE_DIRECTORY) {
 			c.addParam("TY", "2");
-		} else if (aFileType == SearchManager::TYPE_FILE) {
+		} else if (aSearch->fileType == Search::TYPE_FILE) {
 			c.addParam("TY", "1");
 		}
 
-		if (aDate > 0) {
-			//LogManager::getInstance()->message("Age: " + Text::fromT(Util::getDateTimeW(aDate)), LogMessage::SEV_INFO);
-			if (aDateMode == SearchManager::DATE_NEWER) {
-				c.addParam("NT", Util::toString(aDate));
-			} else if (aDateMode == SearchManager::DATE_OLDER) {
-				c.addParam("OT", Util::toString(aDate));
-			}
+		if (aSearch->minDate) {
+			c.addParam("NT", Util::toString(*aSearch->minDate));
 		}
 
-		if(aExtList.size() > 2) {
-			StringList exts = aExtList;
+		if (aSearch->maxDate) {
+			c.addParam("OT", Util::toString(*aSearch->maxDate));
+		}
+
+		if(aSearch->exts.size() > 2) {
+			StringList exts = aSearch->exts;
 			sort(exts.begin(), exts.end());
 
 			uint8_t gr = 0;
@@ -1297,7 +1295,7 @@ void AdcHub::constructSearch(AdcCommand& c, int aSizeMode, int64_t aSize, int aF
 			}
 		}
 
-		for(const auto& ex: aExtList)
+		for(const auto& ex: aSearch->exts)
 			c.addParam("EX", ex);
 	}
 }
@@ -1308,7 +1306,7 @@ void AdcHub::search(const SearchPtr& s) {
 
 	AdcCommand c(AdcCommand::CMD_SCH, AdcCommand::TYPE_BROADCAST);
 
-	constructSearch(c, s->sizeType, s->size, s->fileType, s->query, s->token, s->exts, s->excluded, s->date, s->dateMode , false);
+	constructSearch(c, s, false);
 
 	if (!s->key.empty() && Util::strnicmp("adcs://", getHubUrl().c_str(), 7) == 0) {
 		c.addParam("KY", s->key);
