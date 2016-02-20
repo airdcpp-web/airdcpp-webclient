@@ -87,4 +87,13 @@ namespace webserver {
 		priority_ = deserializePriority(aJson, true);
 		targetType_ = static_cast<TargetUtil::TargetType>(*targetType);;
 	}
+
+	StringList Deserializer::deserializeHubUrls(const json& aJson) {
+		auto hubUrls = JsonUtil::getOptionalFieldDefault<StringList>("hub_urls", aJson, StringList(), false);
+		if (hubUrls.empty()) {
+			ClientManager::getInstance()->getOnlineClients(hubUrls);
+		}
+
+		return hubUrls;
+	}
 }

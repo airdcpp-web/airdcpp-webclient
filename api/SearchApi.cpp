@@ -35,11 +35,27 @@ namespace webserver {
 		METHOD_HANDLER("query", Access::SEARCH, ApiRequest::METHOD_POST, (), true, SearchApi::handlePostSearch);
 		METHOD_HANDLER("types", Access::ANY, ApiRequest::METHOD_GET, (), false, SearchApi::handleGetTypes);
 
+		METHOD_HANDLER("results", Access::SEARCH, ApiRequest::METHOD_GET, (), false, SearchApi::handleGetResults);
 		METHOD_HANDLER("result", Access::DOWNLOAD, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("download")), false, SearchApi::handleDownload);
 	}
 
 	SearchApi::~SearchApi() {
 		SearchManager::getInstance()->removeListener(this);
+	}
+
+	api_return SearchApi::handleGetResults(ApiRequest& aRequest) {
+		// Serialize the most relevant results first
+		SearchResultInfo::Set resultSet;
+
+		{
+			RLock l(cs);
+			boost::range::copy(results | map_values, inserter(resultSet, resultSet.begin()));
+		}
+
+		auto j = Serializer::serializeItemList(aRequest.getRangeParam(0), aRequest.getRangeParam(1), itemHandler, resultSet);
+
+		aRequest.setResponseBody(j);
+		return websocketpp::http::status_code::ok;
 	}
 
 	SearchResultInfo::List SearchApi::getResultList() {
@@ -95,19 +111,83 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return SearchApi::handlePostSearch(ApiRequest& aRequest) {
-		const auto& reqJson = aRequest.getRequestBody();
-		std::string str = reqJson["pattern"];
+	map<string, string> typeMappings = {
+		{ "any", "0" },
+		{ "audio", "1" },
+		{ "compressed", "2" },
+		{ "document", "3" },
+		{ "executable", "4" },
+		{ "picture", "5" },
+		{ "video", "6" },
+		{ "directory", "7" },
+		{ "tth", "8" },
+		{ "file", "9" },
+	};
 
-		if (str.length() < MIN_SEARCH) {
-			aRequest.setResponseErrorStr("Search string too short");
-			return websocketpp::http::status_code::bad_request;
+	const string& SearchApi::parseFileType(const string& aType) noexcept {
+		auto i = typeMappings.find(aType);
+		return i != typeMappings.end() ? i->second : aType;
+	}
+
+	SearchPtr SearchApi::parseSearch(const json& aJson, const string& aToken) {
+		auto pattern = JsonUtil::getOptionalFieldDefault<string>("pattern", aJson, Util::emptyString, false);
+
+		auto s = make_shared<Search>(Search::MANUAL, pattern, aToken);
+
+		// Type
+		s->fileType = pattern.size() == 39 && Encoder::isBase32(pattern.c_str()) ? Search::TYPE_TTH : Search::TYPE_ANY;
+
+		//StringList exts;
+		auto fileTypeStr = JsonUtil::getOptionalField<string>("file_type", aJson, false);
+		if (fileTypeStr) {
+			try {
+				SearchManager::getInstance()->getSearchType(parseFileType(*fileTypeStr), s->fileType, s->exts, true);
+			} catch (...) {
+				throw std::domain_error("Invalid file type");
+			}
 		}
 
-		auto type = str.size() == 39 && Encoder::isBase32(str.c_str()) ? SearchManager::TYPE_TTH : SearchManager::TYPE_ANY;
+		// Extensions
+		auto optionalExtensions = JsonUtil::getOptionalField<StringList>("extensions", aJson);
+		if (optionalExtensions) {
+			s->exts = *optionalExtensions;
+		}
+
+		// Anything to search for?
+		//if (s->exts.empty() && pattern.empty()) {
+		//	throw std::domain_error("Please provide valid pattern or extensions");
+		//}
+
+		// Date
+		s->maxDate = JsonUtil::getOptionalField<time_t>("max_age", aJson);
+		s->minDate = JsonUtil::getOptionalField<time_t>("min_age", aJson);
+
+		// Size
+		auto minSize = JsonUtil::getOptionalField<int64_t>("min_size", aJson);
+		if (minSize) {
+			s->size = *minSize;
+			s->sizeType = Search::SIZE_ATLEAST;
+		}
+
+		auto maxSize = JsonUtil::getOptionalField<int64_t>("max_size", aJson);
+		if (maxSize) {
+			s->size = *maxSize;
+			s->sizeType = Search::SIZE_ATMOST;
+		}
+
+		return s;
+	}
+
+	api_return SearchApi::handlePostSearch(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+
+		currentSearchToken = Util::toString(Util::rand());
+
+		auto s = parseSearch(reqJson, currentSearchToken);
+		auto hubs = Deserializer::deserializeHubUrls(reqJson);
 
 		// new search
-		auto newSearch = SearchQuery::getSearch(str, Util::emptyString, 0, type, SearchManager::SIZE_DONTCARE, StringList(), SearchQuery::MATCH_FULL_PATH, false);
+		auto matcher = SearchQuery::getSearch(s, SearchQuery::MATCH_FULL_PATH, false);
 
 		{
 			WLock l(cs);
@@ -116,17 +196,17 @@ namespace webserver {
 
 		searchView.resetItems();
 
-		curSearch = shared_ptr<SearchQuery>(newSearch);
+		curSearch = shared_ptr<SearchQuery>(matcher);
 
-		SettingsManager::getInstance()->addToHistory(str, SettingsManager::HISTORY_SEARCH);
-		currentSearchToken = Util::toString(Util::rand());
+		SettingsManager::getInstance()->addToHistory(s->query, SettingsManager::HISTORY_SEARCH);
 
-		auto queueTime = SearchManager::getInstance()->search(str, 0, type, SearchManager::SIZE_DONTCARE, currentSearchToken, Search::MANUAL);
+		auto result = SearchManager::getInstance()->search(hubs, s);
 
 		aRequest.setResponseBody({
-			{ "queue_time", queueTime },
+			{ "queue_time", result.queueTime },
 			{ "search_token", currentSearchToken },
-			{ "type", type }
+			{ "sent", result.succeed },
+			//{ "type", type }
 		});
 		return websocketpp::http::status_code::ok;
 	}

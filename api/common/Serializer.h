@@ -108,8 +108,8 @@ namespace webserver {
 
 		// Serialize a list of items provider by the handler with a custom range
 		// Throws for invalid range parameters
-		template <class T>
-		static json serializeItemList(int aStart, int aCount, const PropertyItemHandler<T>& aHandler, const vector<T>& aItems) throw(std::exception) {
+		template <class T, class ContainerT>
+		static json serializeItemList(int aStart, int aCount, const PropertyItemHandler<T>& aHandler, const ContainerT& aItems) throw(std::exception) {
 			if (aItems.empty()) {
 				return json::array();
 			}
@@ -120,8 +120,8 @@ namespace webserver {
 		}
 
 		// Serialize a list of items provider by the handler
-		template <class T>
-		static json serializeItemList(const PropertyItemHandler<T>& aHandler, const vector<T>& aItems) throw(std::exception) {
+		template <class T, class ContainerT>
+		static json serializeItemList(const PropertyItemHandler<T>& aHandler, const ContainerT& aItems) throw(std::exception) {
 			if (aItems.empty()) {
 				return json::array();
 			}
