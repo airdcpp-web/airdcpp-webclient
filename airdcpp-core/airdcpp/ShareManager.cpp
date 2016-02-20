@@ -3291,7 +3291,7 @@ void ShareManager::Directory::File::addSR(SearchResultList& aResults, ProfileTok
 }
 
 void ShareManager::nmdcSearch(SearchResultList& l, const string& nmdcString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept{
-	auto query = SearchQuery(nmdcString, aSearchType, aSize, aFileType, maxResults);
+	auto query = SearchQuery(nmdcString, static_cast<Search::SizeModes>(aSearchType), aSize, static_cast<Search::TypeModes>(aFileType), maxResults);
 	search(l, query, aHideShare ? SP_HIDDEN : SETTING(DEFAULT_SP), CID(), Util::emptyString, false);
 }
 

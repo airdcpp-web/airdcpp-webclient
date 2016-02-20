@@ -35,7 +35,7 @@
 
 namespace dcpp {
 
-const char* SearchManager::types[TYPE_LAST] = {
+const char* SearchManager::types[Search::TYPE_LAST] = {
 	CSTRING(ANY),
 	CSTRING(AUDIO),
 	CSTRING(COMPRESSED),
@@ -79,14 +79,14 @@ string SearchManager::normalizeWhitespace(const string& aString){
 	return normalized;
 }
 
-uint64_t SearchManager::search(const string& aName, int64_t aSize, TypeModes aTypeMode /* = TYPE_ANY */, SizeModes aSizeMode /* = SIZE_ATLEAST */, const string& aToken /* = Util::emptyString */, Search::searchType sType) {
+SearchManager::SearchQueueInfo SearchManager::search(const SearchPtr& aSearch) noexcept {
 	StringList who;
 	ClientManager::getInstance()->getOnlineClients(who);
-	return search(who, aName, aSize, aTypeMode, aSizeMode, aToken, StringList(), StringList(), sType, 0, DATE_DONTCARE, false);
+
+	return search(who, aSearch);
 }
 
-uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSize, TypeModes aFileType, SizeModes aSizeMode, const string& aToken, const StringList& aExtList, const StringList& aExcluded,
-	Search::searchType sType, time_t aDate, DateModes aDateMode, bool aAschOnly, void* aOwner /* NULL */) {
+SearchManager::SearchQueueInfo SearchManager::search(StringList& who, const SearchPtr& aSearch, void* aOwner /* NULL */) noexcept {
 
 	string keyStr;
 	if (SETTING(ENABLE_SUDP)) {
@@ -100,29 +100,20 @@ uint64_t SearchManager::search(StringList& who, const string& aName, int64_t aSi
 		keyStr = Encoder::toBase32(key, 16);
 	}
 
-	auto s = SearchPtr(new Search);
-	s->fileType = aFileType;
-	s->size     = aSize;
-	s->query    = aName;
-	s->sizeType = aSizeMode;
-	s->token    = aToken;
-	s->exts	    = aExtList;
-	s->type		= sType;
-	s->excluded = aExcluded;
-	s->aschOnly = aAschOnly;
-	s->dateMode = aDateMode;
-	s->date =	 aDate;
+	aSearch->owners.insert(aOwner);
+	aSearch->key = keyStr;
 
-	s->owners.insert(aOwner);
-	s->key		= keyStr;
-
+	int succeed = 0;
 	uint64_t estimateSearchSpan = 0;
 	for(auto& hubUrl: who) {
-		uint64_t ret = ClientManager::getInstance()->search(hubUrl, s);
-		estimateSearchSpan = max(estimateSearchSpan, ret);			
+		auto queueTime = ClientManager::getInstance()->search(hubUrl, aSearch);
+		if (queueTime) {
+			estimateSearchSpan = max(estimateSearchSpan, *queueTime);
+			succeed++;
+		}
 	}
 
-	return estimateSearchSpan;
+	return { succeed, estimateSearchSpan };
 }
 
 bool SearchManager::decryptPacket(string& x, size_t aLen, uint8_t* buf, size_t bufLen) {
@@ -292,14 +283,14 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		}
 	}
 
-	if(!file.empty() && freeSlots != -1 && size != -1) {
+	if(freeSlots != -1 && size != -1) {
 		//connect to a correct hub
 		string hubUrl, connection;
 		uint8_t slots = 0;
 		if (!ClientManager::getInstance()->connectADCSearchResult(from->getCID(), token, hubUrl, connection, slots))
 			return;
 
-		auto type = (file[file.length() - 1] == '\\' ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE);
+		auto type = (file.empty() || file[file.length() - 1] == '\\' ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE);
 		if(type == SearchResult::TYPE_FILE && tth.empty())
 			return;
 
@@ -609,7 +600,8 @@ void SearchManager::validateSearchTypeName(const string& name) const {
 	if(name.empty() || (name.size() == 1 && name[0] >= '0' && name[0] <= '8')) {
 		throw SearchTypeException("Invalid search type name"); // TODO: localize
 	}
-	for(int type = TYPE_ANY; type != TYPE_LAST; ++type) {
+
+	for(int type = Search::TYPE_ANY; type != Search::TYPE_LAST; ++type) {
 		if(getTypeStr(type) == name) {
 			throw SearchTypeException("This search type already exists"); // TODO: localize
 		}
@@ -678,29 +670,29 @@ const StringList& SearchManager::getExtensions(const string& name) {
 	return getSearchType(name)->second;
 }
 
-SearchManager::SearchTypesIter SearchManager::getSearchType(const string& name) {
-	SearchTypesIter ret = searchTypes.find(name);
+SearchManager::SearchTypesIter SearchManager::getSearchType(const string& aName) {
+	SearchTypesIter ret = searchTypes.find(aName);
 	if(ret == searchTypes.end()) {
 		throw SearchTypeException("No such search type"); // TODO: localize
 	}
 	return ret;
 }
 
-void SearchManager::getSearchType(int pos, int& type, StringList& extList, string& name) {
+void SearchManager::getSearchType(int pos, Search::TypeModes& type_, StringList& extList_, string& name_) {
 	// Any, directory or TTH
 	if (pos < 4) {
 		if (pos == 0) {
-			name = SEARCH_TYPE_ANY;
-			type = SearchManager::TYPE_ANY;
+			name_ = SEARCH_TYPE_ANY;
+			type_ = Search::TYPE_ANY;
 		} else if (pos == 1) {
-			name = SEARCH_TYPE_DIRECTORY;
-			type = SearchManager::TYPE_DIRECTORY;
+			name_ = SEARCH_TYPE_DIRECTORY;
+			type_ = Search::TYPE_DIRECTORY;
 		} else if (pos == 2) {
-			name = SEARCH_TYPE_TTH;
-			type = SearchManager::TYPE_TTH;
+			name_ = SEARCH_TYPE_TTH;
+			type_ = Search::TYPE_TTH;
 		} else if (pos == 3) {
-			name = SEARCH_TYPE_FILE;
-			type = SearchManager::TYPE_FILE;
+			name_ = SEARCH_TYPE_FILE;
+			type_ = Search::TYPE_FILE;
 		}
 		return;
 	}
@@ -711,12 +703,13 @@ void SearchManager::getSearchType(int pos, int& type, StringList& extList, strin
 		if (counter++ == pos) {
 			if(i.first.size() > 1 || i.first[0] < '1' || i.first[0] > '6') {
 				// custom search type
-				type = SearchManager::TYPE_ANY;
+				type_ = Search::TYPE_ANY;
 			} else {
-				type = i.first[0] - '0';
+				type_ = static_cast<Search::TypeModes>(i.first[0] - '0');
 			}
-			name = i.first;
-			extList = i.second;
+
+			name_ = i.first;
+			extList_ = i.second;
 			return;
 		}
 	}
@@ -724,25 +717,25 @@ void SearchManager::getSearchType(int pos, int& type, StringList& extList, strin
 	throw SearchTypeException("No such search type"); 
 }
 
-void SearchManager::getSearchType(const string& aName, int& type, StringList& extList, bool lock) {
+void SearchManager::getSearchType(const string& aName, Search::TypeModes& type_, StringList& extList_, bool aLock) {
 	if (aName.empty())
 		throw SearchTypeException("No such search type"); 
 
 	// Any, directory or TTH
 	if (aName[0] == SEARCH_TYPE_ANY[0] || aName[0] == SEARCH_TYPE_DIRECTORY[0] || aName[0] == SEARCH_TYPE_TTH[0]  || aName[0] == SEARCH_TYPE_FILE[0]) {
-		type = aName[0] - '0';
+		type_ = static_cast<Search::TypeModes>(aName[0] - '0');
 		return;
 	}
 
-	ConditionalRLock(cs, lock);
+	ConditionalRLock(cs, aLock);
 	auto p = searchTypes.find(aName);
 	if (p != searchTypes.end()) {
-		extList = p->second;
+		extList_ = p->second;
 		if(aName[0] < '1' || aName[0] > '6') {
 			// custom search type
-			type = SearchManager::TYPE_ANY;
+			type_ = Search::TYPE_ANY;
 		} else {
-			type = aName[0] - '0';
+			type_ = static_cast<Search::TypeModes>(aName[0] - '0');
 		}
 		return;
 	}

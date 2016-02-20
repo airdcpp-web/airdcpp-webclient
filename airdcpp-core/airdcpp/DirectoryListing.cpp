@@ -581,8 +581,10 @@ void DirectoryListing::findNfoImpl(const string& aPath, bool aAllowQueueList, Du
 
 		try {
 			SearchResultList results;
-			auto s = unique_ptr<SearchQuery>(SearchQuery::getSearch(Util::emptyString, Util::emptyString, 0, SearchManager::TYPE_ANY, SearchManager::SIZE_DONTCARE, { ".nfo" }, SearchQuery::MATCH_NAME, false, 10));
-			ShareManager::getInstance()->search(results, *s.get(), getShareProfile(), ClientManager::getInstance()->getMyCID(), Util::toAdcFile(aPath));
+			auto query = SearchQuery(Util::emptyString, StringList(), { ".nfo" }, SearchQuery::MATCH_NAME);
+			query.maxResults = 1;
+
+			ShareManager::getInstance()->search(results, query, getShareProfile(), ClientManager::getInstance()->getMyCID(), Util::toAdcFile(aPath));
 
 			if (!results.empty()) {
 				auto paths = AirUtil::getDupePaths(DUPE_SHARE, results.front()->getTTH());
@@ -890,8 +892,8 @@ void DirectoryListing::close() noexcept {
 	});
 }
 
-void DirectoryListing::addSearchTask(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) noexcept {
-	addAsyncTask([=] { searchImpl(aSearchString, aSize, aTypeMode, aSizeMode, aExtList, aDir); });
+void DirectoryListing::addSearchTask(const SearchPtr& aSearch, const string& aDir) noexcept {
+	addAsyncTask([=] { searchImpl(aSearch, aDir); });
 }
 
 void DirectoryListing::addAsyncTask(DispatcherQueue::Callback&& f) noexcept {
@@ -993,7 +995,7 @@ void DirectoryListing::updateCurrentLocation(const Directory::Ptr& aCurrentDirec
 	currentLocation.directory = aCurrentDirectory;
 }
 
-void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, const string& aDir) noexcept {
+void DirectoryListing::searchImpl(const SearchPtr& aSearch, const string& aDir) noexcept {
 	lastResult = GET_TICK();
 	maxResultCount = 0;
 	curResultCount = 0;
@@ -1001,7 +1003,7 @@ void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, in
 
 	fire(DirectoryListingListener::SearchStarted());
 
-	curSearch.reset(SearchQuery::getSearch(aSearchString, Util::emptyString, aSize, aTypeMode, aSizeMode, aExtList, SearchQuery::MATCH_NAME, true, 100));
+	curSearch.reset(SearchQuery::getSearch(aSearch, SearchQuery::MATCH_NAME, true, 100));
 	if (isOwnList && partialList) {
 		SearchResultList results;
 		try {
@@ -1017,8 +1019,8 @@ void DirectoryListing::searchImpl(const string& aSearchString, int64_t aSize, in
 	} else if (partialList && !hintedUser.user->isNMDC()) {
 		SearchManager::getInstance()->addListener(this);
 
-		searchToken = Util::toString(Util::rand());
-		ClientManager::getInstance()->directSearch(hintedUser, aSizeMode, aSize, aTypeMode, aSearchString, searchToken, aExtList, aDir, 0, SearchManager::DATE_DONTCARE);
+		searchToken = aSearch->token;
+		ClientManager::getInstance()->directSearch(hintedUser, aDir, aSearch);
 
 		TimerManager::getInstance()->addListener(this);
 	} else {

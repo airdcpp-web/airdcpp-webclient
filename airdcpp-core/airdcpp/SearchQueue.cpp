@@ -27,14 +27,13 @@ namespace dcpp {
 
 using boost::range::for_each;
 	
-SearchQueue::SearchQueue() : lastSearchTime(0)
-{
-	nextInterval = 10*1000;
+SearchQueue::SearchQueue() : nextInterval(10 * 1000) {
+
 }
 
 SearchQueue::~SearchQueue() { }
 
-int SearchQueue::getInterval(const Search::searchType aSearchType) const {
+int SearchQueue::getInterval(const Search::Type aSearchType) const noexcept {
 	int ret = 0;
 	switch(aSearchType) {
 		case Search::MANUAL: ret = 5000; break;
@@ -45,8 +44,16 @@ int SearchQueue::getInterval(const Search::searchType aSearchType) const {
 	return max(ret, minInterval);
 }
 
-uint64_t SearchQueue::add(SearchPtr s)
-{
+void SearchQueue::clear() noexcept {
+	Lock l(cs);
+	searchQueue.clear();
+}
+
+uint64_t SearchQueue::getNextSearchTick() const noexcept {
+	return lastSearchTime + nextInterval; 
+}
+
+uint64_t SearchQueue::add(const SearchPtr& s) noexcept {
 	dcassert(s->owners.size() == 1);
 	uint32_t x = 0;
 	bool add = true;
@@ -106,7 +113,7 @@ uint64_t SearchQueue::add(SearchPtr s)
 	}
 }
 
-SearchPtr SearchQueue::pop() {
+SearchPtr SearchQueue::pop() noexcept {
 	uint64_t now = GET_TICK();
 	if(now <= lastSearchTime + nextInterval) 
 		return nullptr;
@@ -127,11 +134,11 @@ SearchPtr SearchQueue::pop() {
 	return nullptr;
 }
 
-bool SearchQueue::hasWaitingTime(uint64_t aTick) {
+bool SearchQueue::hasWaitingTime(uint64_t aTick) const noexcept {
 	return nextInterval < 0 || lastSearchTime + nextInterval > aTick;
 }
 
-bool SearchQueue::cancelSearch(void* aOwner){
+bool SearchQueue::cancelSearch(void* aOwner) noexcept {
 	dcassert(aOwner);
 
 	Lock l(cs);

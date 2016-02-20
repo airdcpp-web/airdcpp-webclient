@@ -19,6 +19,7 @@
 #pragma once
 
 #include "CriticalSection.h"
+#include "GetSet.h"
 #include "Search.h"
 
 namespace dcpp {
@@ -30,26 +31,23 @@ public:
 	SearchQueue();
 	~SearchQueue();
 
-	uint64_t add(SearchPtr s);
-	SearchPtr pop();
+	uint64_t add(const SearchPtr& s) noexcept;
+	SearchPtr pop() noexcept;
 	
-	void clear()
-	{
-		Lock l(cs);
-		searchQueue.clear();
-	}
+	void clear() noexcept;
+	bool cancelSearch(void* aOwner) noexcept;
 
-	bool cancelSearch(void* aOwner);
+	uint64_t getNextSearchTick() const noexcept;
+	bool hasWaitingTime(uint64_t aTick) const noexcept;
 
-	/* Interval defined by the client (settings or fav hub interval) */
-	int minInterval;
-	uint64_t getNextSearchTick() { return lastSearchTime+nextInterval; }
-	bool hasWaitingTime(uint64_t aTick);
-	uint64_t lastSearchTime;
+	uint64_t lastSearchTime = 0;
+
+	// Interval defined by the client (settings or fav hub interval)
+	IGETSET(int, minInterval, MinInterval, 5000);
 private:
-	int getInterval(const Search::searchType aSearchType) const;
+	int getInterval(Search::Type aSearchType) const noexcept;
 
-	deque<SearchPtr>	searchQueue;
+	deque<SearchPtr> searchQueue;
 	int	nextInterval;
 	CriticalSection cs;
 };

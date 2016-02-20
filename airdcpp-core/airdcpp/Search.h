@@ -16,10 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef SEARCH_H
-#define SEARCH_H
-
-#pragma once
+#ifndef DCPP_SEARCH_H
+#define DCPP_SEARCH_H
 
 #include "typedefs.h"
 
@@ -27,30 +25,55 @@ namespace dcpp {
 
 class Search {
 public:
-	Search() { }
-	~Search() { }
-
-	enum searchType {
+	enum Type : uint8_t {
 		MANUAL,
 		ALT,
 		ALT_AUTO,
 		AUTO_SEARCH,
 	};
 
-	int32_t		sizeType;
-	int64_t		size;
-	int32_t		fileType;
+	enum SizeModes : uint8_t {
+		SIZE_DONTCARE = 0x00,
+		SIZE_ATLEAST = 0x01,
+		SIZE_ATMOST = 0x02,
+		SIZE_EXACT = 0x03
+	};
+
+	enum TypeModes: uint8_t {
+		TYPE_ANY = 0,
+		TYPE_AUDIO,
+		TYPE_COMPRESSED,
+		TYPE_DOCUMENT,
+		TYPE_EXECUTABLE,
+		TYPE_PICTURE,
+		TYPE_VIDEO,
+		TYPE_DIRECTORY,
+		TYPE_TTH,
+		TYPE_FILE,
+		TYPE_LAST
+	};
+
+	Search(Type aSearchType, const string& aQuery, const string& aToken) noexcept : query(aQuery), type(aSearchType), token(aToken) { }
+	~Search() { }
+
+	SizeModes	sizeType = SIZE_DONTCARE;
+	int64_t		size = 0;
+	TypeModes	fileType = TYPE_ANY;
 	string		query;
-	string		token;
+	const string		token;
 	StringList	exts;
 	StringList	excluded;
 	set<void*>	owners;
-	searchType	type;
+	const Type	type;
 	string		key;
-	int			dateMode;
-	time_t		date;
+
 	bool		aschOnly;
 
+	optional<time_t> minDate;
+	optional<time_t> maxDate;
+
+	//optional<int64_t> minSize;
+	//optional<int64_t> maxSize;
 	
 	bool operator==(const Search& rhs) const {
 		 return this->sizeType == rhs.sizeType && 

@@ -970,7 +970,7 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 				dcdebug("Search caught error\n");
 			}
 		}
-	} else if(!isPassive && (aFileType == SearchManager::TYPE_TTH) && (aString.compare(0, 4, "TTH:") == 0)) {
+	} else if(!isPassive && (aFileType == Search::TYPE_TTH) && (aString.compare(0, 4, "TTH:") == 0)) {
 		if(SETTING(EXTRA_PARTIAL_SLOTS) == 0) //disable partial uploads by setting 0
 			return;
 
@@ -997,22 +997,22 @@ void ClientManager::on(NmdcSearch, Client* aClient, const string& aSeeker, int a
 	}
 }
 
-uint64_t ClientManager::search(string& who, SearchPtr aSearch) noexcept {
+optional<uint64_t> ClientManager::search(string& who, const SearchPtr& aSearch) noexcept {
 	RLock l(cs);
 	auto i = clients.find(const_cast<string*>(&who));
 	if(i != clients.end() && i->second->isConnected()) {
-		return i->second->queueSearch(move(aSearch));		
+		return i->second->queueSearch(aSearch);		
 	}
-	return 0;
+
+	return boost::none;
 }
 
-void ClientManager::directSearch(const HintedUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, 
-	const StringList& aExtList, const string& aDir, time_t aDate, int aDateMode) noexcept {
+void ClientManager::directSearch(const HintedUser& user, const string& aDir, const SearchPtr& aSearch) noexcept {
 
 	RLock l (cs);
 	auto ou = findOnlineUser(user);
 	if (ou) {
-		ou->getClient()->directSearch(*ou, aSizeMode, aSize, aFileType, aString, aToken, aExtList, aDir, aDate, aDateMode);
+		ou->getClient()->directSearch(*ou, aDir, aSearch);
 	}
 }
 

@@ -592,8 +592,17 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 			if (err != X509_V_OK) {
 				// This is the right way to get the certificate store, although it is rather roundabout
 				SSL_CTX* ssl_ctx = SSL_get_SSL_CTX(ssl);
-				X509_STORE* store = X509_STORE_CTX_get0_store(ctx);
 
+				/*
+				Fix compile with old OpenSSL versions (Linux), remove this at some point...
+				Note that this is rather useless since both result in the same thing, but do it anyway...
+				*/
+#if OPENSSL_VERSION_NUMBER >= 0x1000200fL
+				X509_STORE* store = X509_STORE_CTX_get0_store(ctx);
+#else
+				X509_STORE* store = ctx->ctx;
+#endif
+				
 				// Hide the potential library error about trying to add a dupe
 				ERR_set_mark();
 				if (X509_STORE_add_cert(store, cert)) {
