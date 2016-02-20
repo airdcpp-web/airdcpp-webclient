@@ -368,11 +368,11 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 		int a;
 		if(param[i] == 'F') {
-			a = SearchManager::SIZE_DONTCARE;
+			a = Search::SIZE_DONTCARE;
 		} else if(param[i+2] == 'F') {
-			a = SearchManager::SIZE_ATLEAST;
+			a = Search::SIZE_ATLEAST;
 		} else {
-			a = SearchManager::SIZE_ATMOST;
+			a = Search::SIZE_ATMOST;
 		}
 		i += 4;
 		j = param.find('?', i);
@@ -1029,10 +1029,10 @@ void NmdcHub::search(const SearchPtr& s){
 	if (s->aschOnly)
 		return;
 
-	char c1 = (s->sizeType == SearchManager::SIZE_DONTCARE || s->sizeType == SearchManager::SIZE_EXACT) ? 'F' : 'T';
-	char c2 = (s->sizeType == SearchManager::SIZE_ATLEAST) ? 'F' : 'T';
+	char c1 = (s->sizeType == Search::SIZE_DONTCARE || s->sizeType == Search::SIZE_EXACT) ? 'F' : 'T';
+	char c2 = (s->sizeType == Search::SIZE_ATLEAST) ? 'F' : 'T';
 
-	string tmp = ((s->fileType == SearchManager::TYPE_TTH) ? "TTH:" + s->query : fromUtf8(escape(s->query)));
+	string tmp = ((s->fileType == Search::TYPE_TTH) ? "TTH:" + s->query : fromUtf8(escape(s->query)));
 	Util::replace(tmp, "\"", ""); //can't use quotes in NMDC searches
 
 	string::size_type i;
@@ -1046,7 +1046,7 @@ void NmdcHub::search(const SearchPtr& s){
 		tmp2 = "Hub:" + fromUtf8(getMyNick());
 	}
 
-	string type = Util::toString((s->fileType == SearchManager::TYPE_FILE ? SearchManager::TYPE_ANY : s->fileType)+1);
+	string type = Util::toString((s->fileType == Search::TYPE_FILE ? Search::TYPE_ANY : s->fileType)+1);
 
 	send("$Search " + tmp2 + ' ' + c1 + '?' + c2 + '?' + Util::toString(s->size) + '?' + type + '?' + tmp + '|');
 }

@@ -271,29 +271,33 @@ bool SSLSocket::verifyKeyprint(const string& expKP, bool allowUntrusted) noexcep
 	SSL_set_ex_data(ssl, CryptoManager::idxVerifyData, verifyData.get());
 
 	SSL_CTX* ssl_ctx = SSL_get_SSL_CTX(ssl);
-	X509_STORE* store = SSL_CTX_get_cert_store(ctx);
-
+	X509_STORE* store = X509_STORE_new();
 	bool result = false;
 	int err = SSL_get_verify_result(ssl);
-	if(ssl_ctx && store) {
+	if (ssl_ctx && store) {
 		X509_STORE_CTX* vrfy_ctx = X509_STORE_CTX_new();
 		X509* cert = SSL_get_peer_certificate(ssl);
-		if(vrfy_ctx && cert && X509_STORE_CTX_init(vrfy_ctx, store, cert, SSL_get_peer_cert_chain(ssl))) {
-			auto vrfy_cb = SSL_CTX_get_verify_callback(ssl_ctx);
 
+		if (vrfy_ctx && cert && X509_STORE_CTX_init(vrfy_ctx, store, cert, SSL_get_peer_cert_chain(ssl))) {
 			X509_STORE_CTX_set_ex_data(vrfy_ctx, SSL_get_ex_data_X509_STORE_CTX_idx(), ssl);
-			X509_STORE_CTX_set_verify_cb(vrfy_ctx, vrfy_cb);
+			X509_STORE_CTX_set_verify_cb(vrfy_ctx, SSL_CTX_get_verify_callback(ssl_ctx));
 
-			if(X509_verify_cert(vrfy_ctx) >= 0) {
+			int verify_result = 0;
+			if ((verify_result = X509_verify_cert(vrfy_ctx)) >= 0) {
 				err = X509_STORE_CTX_get_error(vrfy_ctx);
+
+				// Watch out for weird library errors that might not set the context error code
+				if (err == X509_V_OK && verify_result <= 0)
+					err = X509_V_ERR_UNSPECIFIED;
+
 				// This is for people who don't restart their clients and have low expiration time on their cert
-				//result = (err == X509_V_OK) || (err == X509_V_ERR_CERT_HAS_EXPIRED);
-				result = (err == X509_V_OK) || (err == X509_V_ERR_CERT_HAS_EXPIRED) || (allowUntrusted && err != X509_V_ERR_APPLICATION_VERIFICATION);
+				result = (err == X509_V_OK || err == X509_V_ERR_CERT_HAS_EXPIRED) || (allowUntrusted && err != X509_V_ERR_APPLICATION_VERIFICATION);;
 			}
 		}
 
 		if(cert) X509_free(cert);
 		if(vrfy_ctx) X509_STORE_CTX_free(vrfy_ctx);
+		if(store) X509_STORE_free(store);
 	}
 
 	// KeyPrint is a strong indicator of trust (TODO: check that this KeyPrint is mediated by a trusted hub)

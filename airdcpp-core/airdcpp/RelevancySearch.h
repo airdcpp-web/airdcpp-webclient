@@ -44,7 +44,7 @@ namespace dcpp {
 	class RelevancySearch {
 	public:
 		typedef function<string(const T&)> StringF;
-		RelevancySearch(const string& aStr, StringF&& aStringF) : query(aStr, Util::emptyString, StringList(), SearchQuery::MATCH_NAME), stringF(aStringF) {
+		RelevancySearch(const string& aStr, StringF&& aStringF) : query(aStr, StringList(), StringList(), SearchQuery::MATCH_NAME), stringF(aStringF) {
 
 		}
 

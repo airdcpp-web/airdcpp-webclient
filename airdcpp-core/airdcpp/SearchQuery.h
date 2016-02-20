@@ -16,17 +16,17 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef SEARCHQUERY_H
-#define SEARCHQUERY_H
+#ifndef DCPP_SEARCHQUERY_H
+#define DCPP_SEARCHQUERY_H
 
 #include "typedefs.h"
 #include "forward.h"
 
-#include "StringSearch.h"
 #include "HashValue.h"
+#include "Search.h"
+#include "StringSearch.h"
 #include "TigerHash.h"
 
-#include <string>
 
 namespace dcpp {
 
@@ -47,24 +47,24 @@ namespace dcpp {
 		typedef vector<pair<size_t, int>> ResultPointsList;
 
 		// Gets a score (0-1) based on how well the current item matches the provided search (which must have been fully matched first)
-		static double getRelevancyScores(const SearchQuery& aSearch, int aLevel, bool aIsDirectory, const string& aName);
+		static double getRelevancyScores(const SearchQuery& aSearch, int aLevel, bool aIsDirectory, const string& aName) noexcept;
 
 		// Count points per pattern based on the matching positions (based on the surrounding separators)
-		ResultPointsList toPointList(const string& aName) const;
+		ResultPointsList toPointList(const string& aName) const noexcept;
 
 		// General initialization
-		static SearchQuery* getSearch(const string& aSearchString, const string& aExcluded, int64_t aSize, int aTypeMode, int aSizeMode, const StringList& aExtList, MatchType aMatchType, bool returnParents, size_t aMaxResults = 0);
-		static StringList parseSearchString(const string& aString);
-		SearchQuery(const string& aString, const string& aExcluded, const StringList& aExt, MatchType aMatchType);
-		SearchQuery(const TTHValue& aRoot);
+		static SearchQuery* getSearch(const SearchPtr& aSearch, MatchType aMatchType, bool returnParents, size_t aMaxResults = 0) noexcept;
+		static StringList parseSearchString(const string& aString) noexcept;
+		SearchQuery(const string& aString, const StringList& aExcluded, const StringList& aExt, MatchType aMatchType) noexcept;
+		SearchQuery(const TTHValue& aRoot) noexcept;
 
 		// Protocol-specific
-		SearchQuery(const StringList& adcParams, size_t maxResults);
-		SearchQuery(const string& nmdcString, int searchType, int64_t size, int fileType, size_t maxResults);
+		SearchQuery(const StringList& adcParams, size_t maxResults) noexcept;
+		SearchQuery(const string& nmdcString, Search::SizeModes aSizeMode, int64_t aSize, Search::TypeModes aTypeMode, size_t maxResults) noexcept;
 
-		inline bool isExcluded(const string& str) const { return exclude.match_any(str); }
-		inline bool isExcludedLower(const string& str) const { return exclude.match_any_lower(str); }
-		bool hasExt(const string& name);
+		inline bool isExcluded(const string& str) const noexcept { return exclude.match_any(str); }
+		inline bool isExcludedLower(const string& str) const noexcept { return exclude.match_any_lower(str); }
+		bool hasExt(const string& name) noexcept;
 
 		StringSearch include;
 		StringSearch exclude;
@@ -72,32 +72,32 @@ namespace dcpp {
 		StringList noExt;
 
 		// get information about the previous matching
-		const StringSearch::ResultList& getLastPositions() const { return lastIncludePositions; }
-		int getLastIncludeMatches() const { return lastIncludeMatches; }
+		const StringSearch::ResultList& getLastPositions() const noexcept { return lastIncludePositions; }
+		int getLastIncludeMatches() const noexcept { return lastIncludeMatches; }
 
 		// get the merged positions
-		ResultPointsList getResultPositions(const string& aName) const;
-		bool positionsComplete() const;
+		ResultPointsList getResultPositions(const string& aName) const noexcept;
+		bool positionsComplete() const noexcept;
 
 
 		// We count the positions from the beginning of name of the first matching item
 		// This struct will keep the positions from the upper levels
 		struct Recursion{
-			Recursion() { }
-			Recursion(const SearchQuery& aSearch, const string& aName);
+			Recursion() noexcept { }
+			Recursion(const SearchQuery& aSearch, const string& aName) noexcept;
 
-			inline void increase(string::size_type aLen) { recursionLevel++; depthLen += aLen; }
-			inline void decrease(string::size_type aLen) { recursionLevel--; depthLen -= aLen; }
+			inline void increase(string::size_type aLen) noexcept { recursionLevel++; depthLen += aLen; }
+			inline void decrease(string::size_type aLen) noexcept { recursionLevel--; depthLen -= aLen; }
 
 			// are we complete after the new results?
-			bool completes(const StringSearch::ResultList& compareTo) const;
+			bool completes(const StringSearch::ResultList& compareTo) const noexcept;
 
 			// are the positions complete already?
-			bool isComplete() const;
+			bool isComplete() const noexcept;
 
 			// merge old position to a new set of positions (new positions are preferred)
 			// returns true if something from the parent list was needed
-			static bool merge(ResultPointsList& mergeTo, const Recursion* parent);
+			static bool merge(ResultPointsList& mergeTo, const Recursion* parent) noexcept;
 
 			size_t depthLen = 0;
 			int recursionLevel = 0;
@@ -121,30 +121,30 @@ namespace dcpp {
 		ItemType itemType = TYPE_ANY;
 
 		// Returns true if any of the include strings were matched. Saves positions
-		bool matchesAnyDirectoryLower(const string& aName);
+		bool matchesAnyDirectoryLower(const string& aName) noexcept;
 
 		// Returns true if the file is a valid result. Saves positions
-		bool matchesFileLower(const string& aName, int64_t aSize, uint64_t aDate);
+		bool matchesFileLower(const string& aName, int64_t aSize, uint64_t aDate) noexcept;
 
 		// Plain string match with position storing
 		bool matchesStr(const string& aStr) noexcept;
 
 		// Simple match, no storing of positions
-		bool matchesDirectory(const string& aName);
+		bool matchesDirectory(const string& aName) noexcept;
 
 		// Simple match, no storing of positions
-		bool matchesFile(const string& aName, int64_t aSize, uint64_t aDate, const TTHValue& aTTH);
+		bool matchesFile(const string& aName, int64_t aSize, uint64_t aDate, const TTHValue& aTTH) noexcept;
 
 		// Returns true if all include strings were matched (no other checks)
 		// The caller must ensure that recursion exists as long as the matches are used
-		bool matchesNmdcPath(const string& aPath, Recursion& recursion_);
+		bool matchesNmdcPath(const string& aPath, Recursion& recursion_) noexcept;
 
-		inline bool matchesSize(int64_t aSize) { return aSize >= gt && aSize <= lt; }
-		inline bool matchesDate(time_t aDate) { return aDate == 0 || (aDate >= minDate && aDate <= maxDate); }
+		inline bool matchesSize(int64_t aSize) const noexcept { return aSize >= gt && aSize <= lt; }
+		inline bool matchesDate(time_t aDate) const noexcept { return aDate == 0 || (aDate >= minDate && aDate <= maxDate); }
 	private:
 		// Reset positions from the previous matching
-		void resetPositions();
-		void prepare();
+		void resetPositions() noexcept;
+		void prepare() noexcept;
 		StringSearch::ResultList lastIncludePositions;
 		int lastIncludeMatches = 0;
 	};

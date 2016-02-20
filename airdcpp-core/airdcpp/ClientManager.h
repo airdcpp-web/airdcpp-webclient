@@ -124,13 +124,12 @@ public:
 
 	bool hasClient(const string& aUrl) const noexcept;
 	
-	uint64_t search(string& who, SearchPtr aSearch) noexcept;
+	optional<uint64_t> search(string& who, const SearchPtr& aSearch) noexcept;
 
 	// Get users with nick matching the pattern. Uses relevancies for priorizing the results.
 	OnlineUserList searchNicks(const string& aPattern, size_t aMaxResults, bool aIgnorePrefix) const noexcept;
 
-	void directSearch(const HintedUser& user, int aSizeMode, int64_t aSize, int aFileType, const string& aString, const string& aToken, 
-		const StringList& aExtList, const string& aDir, time_t aDate, int aDateMode) noexcept;
+	void directSearch(const HintedUser& user, const string& aDir, const SearchPtr& aSearch) noexcept;
 	
 	void cancelSearch(void* aOwner) noexcept;
 		

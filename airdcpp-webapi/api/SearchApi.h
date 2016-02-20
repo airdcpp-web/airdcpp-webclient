@@ -72,8 +72,12 @@ namespace webserver {
 		};
 	private:
 		SearchResultInfo::List getResultList();
+		static SearchPtr parseSearch(const json& aJson, const string& aToken);
+		static const string& parseFileType(const string& aType) noexcept;
 
 		api_return handlePostSearch(ApiRequest& aRequest);
+
+		api_return handleGetResults(ApiRequest& aRequest);
 		api_return handleGetTypes(ApiRequest& aRequest);
 
 		api_return handleDownload(ApiRequest& aRequest);
