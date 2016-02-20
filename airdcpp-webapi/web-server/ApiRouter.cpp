@@ -50,7 +50,8 @@ namespace webserver {
 		int callbackId = -1;
 
 		try {
-			json requestJson = json::parse(aRequestBody);
+			auto requestJson = json::parse(aRequestBody);
+
 			auto cb = requestJson.find("callback_id");
 			if (cb != requestJson.end()) {
 				callbackId = cb.value();
@@ -68,6 +69,7 @@ namespace webserver {
 			code = websocketpp::http::status_code::bad_request;
 		}
 
+		// Send an error also if parsing failed (there's no callback id)
 		if (callbackId > 0 || !errorJson.is_null()) {
 			aSocket->sendApiResponse(responseJsonData, errorJson, code, callbackId);
 		}

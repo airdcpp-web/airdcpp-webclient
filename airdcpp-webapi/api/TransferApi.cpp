@@ -217,7 +217,7 @@ namespace webserver {
 
 		uint64_t timeSinceStarted = GET_TICK() - t->getStarted();
 		if (timeSinceStarted < 1000) {
-			t->setStatusString(aIsDownload ? STRING(DOWNLOAD_STARTING) : STRING(UPLOAD_STARTING));
+			t->setStatusString("Starting...");
 		} else {
 			t->setStatusString(STRING_F(RUNNING_PCT, t->getPercentage()));
 		}
@@ -416,7 +416,7 @@ namespace webserver {
 
 	void TransferApi::on(DownloadManagerListener::Starting, const Download* aDownload) noexcept {
 		// No need for full update as it's done in the requesting phase
-		starting(aDownload, STRING(DOWNLOAD_STARTING), false);
+		starting(aDownload, "Starting...", false);
 	}
 
 	void TransferApi::on(UploadManagerListener::Starting, const Upload* aUpload) noexcept {
@@ -440,7 +440,7 @@ namespace webserver {
 			return;
 		}
 
-		t->setStatusString(aIsDownload ? STRING(DOWNLOAD_FINISHED_IDLE) : STRING(UPLOAD_FINISHED_IDLE));
+		t->setStatusString("Finished, idle...");
 		t->setSpeed(-1);
 		t->setTimeLeft(-1);
 		t->setBytesTransferred(aTransfer->getSegmentSize());

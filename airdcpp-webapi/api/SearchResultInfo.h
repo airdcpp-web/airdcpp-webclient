@@ -41,8 +41,13 @@ namespace webserver {
 	class SearchResultInfo {
 	public:
 		typedef shared_ptr<SearchResultInfo> Ptr;
+		struct RelevancySort {
+			bool operator()(const Ptr& left, const Ptr& right) const noexcept { return left->getTotalRelevancy() > right->getTotalRelevancy(); }
+		};
+
 		typedef vector<Ptr> List;
 		typedef unordered_map<TTHValue, Ptr> Map;
+		typedef set<Ptr, RelevancySort> Set;
 
 		SearchResultInfo(const SearchResultPtr& aSR, RelevancyInfo&& aRelevancy);
 		~SearchResultInfo() {	}
