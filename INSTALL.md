@@ -18,13 +18,15 @@ Ubuntu 14.04 or newer is required for installing the client.
 
 ##### Ubuntu 14.04 LTS
 
-`sudo apt-get install libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.55-dev libboost-regex1.55 libboost-thread1.55 libboost-system1.55 libleveldb-dev`
+`sudo apt-get install pkg-config libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.55-dev libboost-regex1.55 libboost-thread1.55 libboost-system1.55 libleveldb-dev`
 
 ##### Ubuntu 15.10 or newer
 
-`sudo apt-get install libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.5*-dev libboost-regex1.5* libboost-thread1.5* libboost-system1.5* libleveldb-dev`
+`sudo apt-get install pkg-config libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.5*-dev libboost-regex1.5* libboost-thread1.5* libboost-system1.5* libleveldb-dev`
 
 #### Install WebSocket++
+
+**If the client is accessed via HTTPS, it's heavily recommended that you use WebSocket++ 0.7.0 or newer due to stability issues in older versions.** Ubuntu doesn't ship with version 0.7.0 yet but you may follow the manual installation steps to get it.
 
 If you are running Ubuntu 15.10 or newer, you may use the following command to install the package:
 
