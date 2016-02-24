@@ -32,20 +32,7 @@
 namespace webserver {
 	class QueueApi : public ApiModule, private QueueManagerListener, private DownloadManagerListener {
 	public:
-		const PropertyList bundleProperties = {
-			{ PROP_NAME, "name", TYPE_TEXT, SERIALIZE_TEXT, SORT_CUSTOM },
-			{ PROP_TARGET, "target", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-			{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-			{ PROP_SIZE, "size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_STATUS, "status", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-			{ PROP_BYTES_DOWNLOADED, "downloaded_bytes", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_PRIORITY, "priority", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-			{ PROP_TIME_ADDED, "time_added", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_TIME_FINISHED, "time_finished", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_SPEED, "speed", TYPE_SPEED, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_SECONDS_LEFT, "seconds_left", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_SOURCES, "sources", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-		};
+		static const PropertyList bundleProperties;
 
 		enum Properties {
 			PROP_TOKEN = -1,
@@ -63,20 +50,6 @@ namespace webserver {
 			PROP_SOURCES,
 			PROP_LAST
 		};
-
-		/*const PropertyTypeList propertyTypes = {
-			TYPE_TEXT,
-			TYPE_TEXT,
-			TYPE_TEXT,
-			TYPE_SIZE,
-			TYPE_TEXT,
-			TYPE_SIZE,
-			TYPE_TEXT,
-			TYPE_TIME,
-			TYPE_TIME,
-			TYPE_SPEED,
-			TYPE_TIME
-		};*/
 
 		QueueApi(Session* aSession);
 		~QueueApi();
@@ -142,7 +115,7 @@ namespace webserver {
 		void onFileUpdated(const QueueItemPtr& qi);
 		void onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription = "bundle_updated");
 
-		PropertyItemHandler<BundlePtr> bundlePropertyHandler;
+		static const PropertyItemHandler<BundlePtr> bundlePropertyHandler;
 
 		typedef ListViewController<BundlePtr, PROP_LAST> BundleListView;
 		BundleListView bundleView;

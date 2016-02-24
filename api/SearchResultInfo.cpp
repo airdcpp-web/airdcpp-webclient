@@ -29,7 +29,7 @@
 namespace webserver {
 	FastCriticalSection SearchResultInfo::cs;
 
-	SearchResultInfo::SearchResultInfo(const SearchResultPtr& aSR, RelevancyInfo&& aRelevancy) :
+	SearchResultInfo::SearchResultInfo(const SearchResultPtr& aSR, SearchResult::RelevancyInfo&& aRelevancy) :
 		token(Util::rand()), sr(aSR), relevancyInfo(move(aRelevancy)) {
 
 		// check the dupe

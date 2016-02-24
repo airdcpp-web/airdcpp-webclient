@@ -46,22 +46,7 @@ namespace webserver {
 			return 0;
 		}
 
-		const PropertyList properties = {
-			{ PROP_NAME, "name", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-			{ PROP_TARGET, "target", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-			{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
-			{ PROP_DOWNLOAD, "download", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
-			{ PROP_SIZE, "size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_STATUS, "status", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-			{ PROP_BYTES_TRANSFERRED, "bytes_transferred", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_USER, "user", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-			{ PROP_TIME_STARTED, "time_started", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_SPEED, "speed", TYPE_SPEED, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_SECONDS_LEFT, "seconds_left", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_IP, "ip", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
-			{ PROP_FLAGS, "flags", TYPE_LIST_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-			{ PROP_ENCRYPTION, "encryption", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
-		};
+		static const PropertyList properties;
 
 		enum Properties {
 			PROP_TOKEN = -1,
@@ -138,7 +123,7 @@ namespace webserver {
 		mutable SharedMutex cs;
 		TransferInfo::Map transfers;
 
-		PropertyItemHandler<TransferInfoPtr> propertyHandler;
+		static const PropertyItemHandler<TransferInfoPtr> propertyHandler;
 
 		typedef ListViewController<TransferInfoPtr, PROP_LAST> TransferListView;
 		TransferListView view;

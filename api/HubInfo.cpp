@@ -224,8 +224,8 @@ namespace webserver {
 			return;
 		}
 
-		previousCounts = newCounts;
 		send("hub_counts_updated", newCounts);
+		previousCounts.swap(newCounts);
 	}
 
 	void HubInfo::onHubUpdated(const json& aData) noexcept {

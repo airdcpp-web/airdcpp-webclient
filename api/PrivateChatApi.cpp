@@ -38,6 +38,8 @@ namespace webserver {
 		METHOD_HANDLER("session", Access::PRIVATE_CHAT_EDIT, ApiRequest::METHOD_DELETE, (CID_PARAM), false, PrivateChatApi::handleDeleteChat);
 		METHOD_HANDLER("session", Access::PRIVATE_CHAT_EDIT, ApiRequest::METHOD_POST, (), true, PrivateChatApi::handlePostChat);
 
+		METHOD_HANDLER("message", Access::PRIVATE_CHAT_SEND, ApiRequest::METHOD_POST, (), true, PrivateChatApi::handlePostMessage);
+
 		auto rawChats = MessageManager::getInstance()->getChats();
 		for (const auto& c : rawChats | map_values) {
 			addChat(c);
@@ -81,6 +83,22 @@ namespace webserver {
 		});
 
 		aRequest.setResponseBody(retJson);
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return PrivateChatApi::handlePostMessage(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+
+		auto user = Deserializer::deserializeHintedUser(reqJson);
+		auto message = Deserializer::deserializeChatMessage(reqJson);
+		auto echo = JsonUtil::getOptionalFieldDefault<bool>("echo", reqJson, false);
+
+		string error_;
+		if (!ClientManager::getInstance()->privateMessage(user, message.first, error_, message.second, echo)) {
+			aRequest.setResponseErrorStr(error_);
+			return websocketpp::http::status_code::internal_server_error;
+		}
+
 		return websocketpp::http::status_code::ok;
 	}
 

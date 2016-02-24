@@ -87,8 +87,8 @@ namespace webserver {
 		if (previousStats == j)
 			return;
 
-		previousStats = j;
 		send("hash_statistics", j);
+		previousStats.swap(j);
 	}
 
 	void HashApi::on(HashManagerListener::MaintananceStarted) noexcept {

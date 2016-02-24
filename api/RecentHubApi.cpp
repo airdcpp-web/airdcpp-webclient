@@ -25,7 +25,7 @@
 
 namespace webserver {
 	RecentHubApi::RecentHubApi(Session* aSession) : ApiModule(aSession) {
-		METHOD_HANDLER("hubs", Access::HUBS_VIEW, ApiRequest::METHOD_GET, (NUM_PARAM), false, RecentHubApi::handleGetHubs);
+		METHOD_HANDLER("hubs", Access::HUBS_VIEW, ApiRequest::METHOD_GET, (NUM_PARAM, NUM_PARAM), false, RecentHubApi::handleGetHubs);
 		METHOD_HANDLER("search", Access::HUBS_VIEW, ApiRequest::METHOD_POST, (), true, RecentHubApi::handleSearchHubs);
 	}
 
@@ -33,7 +33,7 @@ namespace webserver {
 	}
 
 	json RecentHubApi::serializeHub(const RecentHubEntryPtr& aHub) noexcept {
-		return{
+		return {
 			{ "name", aHub->getName()},
 			{ "description", aHub->getDescription() },
 			{ "hub_url", aHub->getServer() }
@@ -58,7 +58,11 @@ namespace webserver {
 	}
 
 	api_return RecentHubApi::handleGetHubs(ApiRequest& aRequest) {
-		
+		auto hubs = FavoriteManager::getInstance()->getRecentHubs();
+
+		auto retJson = Serializer::serializeFromPosition(aRequest.getRangeParam(0), aRequest.getRangeParam(1), hubs, serializeHub);
+		aRequest.setResponseBody(retJson);
+
 		return websocketpp::http::status_code::ok;
 	}
 }

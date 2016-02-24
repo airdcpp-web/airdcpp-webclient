@@ -58,6 +58,10 @@ namespace webserver {
 			ret.insert("nmdc");
 		}
 
+		if (aUser->isSet(User::ASCH)) {
+			ret.insert("asch");
+		}
+
 		if (!aUser->isOnline()) {
 			ret.insert("offline");
 		}
@@ -86,6 +90,10 @@ namespace webserver {
 
 		if (aUser->isHidden()) {
 			flags_.insert("hidden");
+		}
+
+		if (aUser->supportsCCPM()) {
+			flags_.insert("ccpm");
 		}
 
 		auto cm = aUser->getIdentity().getConnectMode();

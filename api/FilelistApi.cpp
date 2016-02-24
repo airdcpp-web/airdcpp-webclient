@@ -94,7 +94,7 @@ namespace webserver {
 	}
 
 	api_return FilelistApi::handleOwnList(ApiRequest& aRequest) {
-		auto profile = JsonUtil::getField<ProfileToken>("share_profile", aRequest.getRequestBody());
+		auto profile = Deserializer::deserializeShareProfile(aRequest.getRequestBody());
 		DirectoryListingManager::getInstance()->openOwnList(profile);
 
 		return websocketpp::http::status_code::ok;

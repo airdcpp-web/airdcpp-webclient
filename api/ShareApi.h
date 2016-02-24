@@ -24,9 +24,10 @@
 #include <api/ApiModule.h>
 
 #include <airdcpp/typedefs.h>
+#include <airdcpp/ShareManagerListener.h>
 
 namespace webserver {
-	class ShareApi : public ApiModule {
+	class ShareApi : public ApiModule, private ShareManagerListener {
 	public:
 		ShareApi(Session* aSession);
 		~ShareApi();
@@ -43,6 +44,12 @@ namespace webserver {
 
 		api_return handleGetGroupedRootPaths(ApiRequest& aRequest);
 		api_return handleFindDupePaths(ApiRequest& aRequest);
+
+		void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept;
+
+		void onShareRefreshed(const RefreshPathList& aRealPaths, uint8_t aTaskType) noexcept;
+
+		static string refreshTypeToString(uint8_t aTaskType) noexcept;
 	};
 }
 

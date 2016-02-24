@@ -39,14 +39,17 @@ namespace webserver {
 	api_return FilesystemApi::handleListItems(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
+		auto path = JsonUtil::getField<string>("path", reqJson, 
 #ifdef WIN32
-		auto path = JsonUtil::getField<string>("path", reqJson, true);
+			true
 #else
-		auto path = JsonUtil::getField<string>("path", reqJson, false);
+			false
 #endif
+		);
+
 		auto dirsOnly = JsonUtil::getOptionalFieldDefault<bool>("directories_only", reqJson, false);
 
-		json retJson;
+		auto retJson = json::array();
 		if (path.empty()) {
 #ifdef WIN32
 			retJson = Filesystem::getDriveListing(false);
@@ -63,10 +66,6 @@ namespace webserver {
 				aRequest.setResponseErrorStr("Failed to get directory content: " + e.getError());
 				return websocketpp::http::status_code::internal_server_error;
 			}
-		}
-
-		if (retJson.is_null()) {
-			retJson = json::array();
 		}
 
 		aRequest.setResponseBody(retJson);

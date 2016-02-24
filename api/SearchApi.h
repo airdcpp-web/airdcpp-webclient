@@ -39,20 +39,7 @@ namespace webserver {
 			return 0;
 		}
 
-		const PropertyList properties = {
-			{ PROP_NAME, "name", TYPE_TEXT, SERIALIZE_TEXT, SORT_CUSTOM },
-			{ PROP_RELEVANCY, "relevancy", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_HITS, "hits", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_USERS, "users", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-			{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-			{ PROP_SIZE, "size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_DATE, "time", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_PATH, "path", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-			{ PROP_CONNECTION, "connection", TYPE_SPEED, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_SLOTS, "slots", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-			{ PROP_TTH, "tth", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-			{ PROP_DUPE, "dupe", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		};
+		static const PropertyList properties;
 
 		enum Properties {
 			PROP_TOKEN = -1,
@@ -72,10 +59,14 @@ namespace webserver {
 		};
 	private:
 		SearchResultInfo::List getResultList();
-		static SearchPtr parseSearch(const json& aJson, const string& aToken);
+		static SearchPtr parseQuery(const json& aJson, const string& aToken);
+		static void parseDirectSearchProperties(const json& aJson, const SearchPtr& aSearch);
 		static const string& parseFileType(const string& aType) noexcept;
+		static json serializeDirectSearchResults(const SearchResultList& aResults, SearchQuery& aQuery) noexcept;
 
-		api_return handlePostSearch(ApiRequest& aRequest);
+		api_return handlePostHubSearch(ApiRequest& aRequest);
+		api_return handlePostUserSearch(ApiRequest& aRequest);
+		api_return handlePostShareSearch(ApiRequest& aRequest);
 
 		api_return handleGetResults(ApiRequest& aRequest);
 		api_return handleGetTypes(ApiRequest& aRequest);
@@ -84,10 +75,7 @@ namespace webserver {
 
 		void on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept;
 
-		// Returns the relevancy score if the result matches the current search query
-		optional<RelevancyInfo> matches(const SearchResultPtr& aResult) const noexcept;
-
-		PropertyItemHandler<SearchResultInfoPtr> itemHandler;
+		static const PropertyItemHandler<SearchResultInfoPtr> itemHandler;
 
 		typedef ListViewController<SearchResultInfoPtr, PROP_LAST> SearchView;
 		SearchView searchView;

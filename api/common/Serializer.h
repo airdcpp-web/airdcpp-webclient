@@ -59,7 +59,6 @@ namespace webserver {
 		static json serializeEncryption(const string& aInfo, bool aIsTrusted) noexcept;
 
 		static string getDownloadStateId(TrackableDownloadItem::State aState) noexcept;
-		//static string getDownloadStateStr(TrackableDownloadItem& aItem) noexcept;
 		static json serializeDownloadState(const TrackableDownloadItem& aItem) noexcept;
 
 
@@ -110,10 +109,6 @@ namespace webserver {
 		// Throws for invalid range parameters
 		template <class T, class ContainerT>
 		static json serializeItemList(int aStart, int aCount, const PropertyItemHandler<T>& aHandler, const ContainerT& aItems) throw(std::exception) {
-			if (aItems.empty()) {
-				return json::array();
-			}
-
 			return Serializer::serializeFromPosition(aStart, aCount, aItems, [&aHandler](const T& aItem) {
 				return Serializer::serializeItem(aItem, aHandler);
 			});
@@ -122,10 +117,6 @@ namespace webserver {
 		// Serialize a list of items provider by the handler
 		template <class T, class ContainerT>
 		static json serializeItemList(const PropertyItemHandler<T>& aHandler, const ContainerT& aItems) throw(std::exception) {
-			if (aItems.empty()) {
-				return json::array();
-			}
-
 			return Serializer::serializeRange(aItems.begin(), aItems.end(), [&aHandler](const T& aItem) {
 				return Serializer::serializeItem(aItem, aHandler);
 			});
@@ -175,7 +166,7 @@ namespace webserver {
 
 		template <class IterT, class FuncT>
 		static json serializeRange(IterT aBegin, IterT aEnd, FuncT aF) noexcept {
-			return std::accumulate(aBegin, aEnd, json(), [&](json& list, const typename iterator_traits<IterT>::value_type& elem) {
+			return std::accumulate(aBegin, aEnd, json::array(), [&](json& list, const typename iterator_traits<IterT>::value_type& elem) {
 				list.push_back(aF(elem));
 				return list;
 			});

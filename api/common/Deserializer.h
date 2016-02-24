@@ -24,6 +24,7 @@
 #include <airdcpp/typedefs.h>
 #include <airdcpp/QueueItemBase.h>
 #include <airdcpp/MerkleTree.h>
+#include <airdcpp/Message.h>
 #include <airdcpp/TargetUtil.h>
 
 namespace webserver {
@@ -43,7 +44,13 @@ namespace webserver {
 
 		// Returns all connected hubs if the list is not found from the JSON
 		static StringList deserializeHubUrls(const json& aJson);
+
+		static pair<string, bool> deserializeChatMessage(const json& aJson);
+		static pair<string, LogMessage::Severity> deserializeStatusMessage(const json& aJson);
+
+		static ProfileToken deserializeShareProfile(const json& aJson);
 	private:
+		static LogMessage::Severity parseSeverity(const string& aText);
 		static UserPtr parseUser(const json& aJson, bool aAllowMe = false);
 	};
 }

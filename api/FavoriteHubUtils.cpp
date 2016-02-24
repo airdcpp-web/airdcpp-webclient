@@ -111,6 +111,7 @@ namespace webserver {
 		switch (aPropertyName) {
 			case FavoriteHubApi::PROP_AUTO_CONNECT: return (double)aEntry->getAutoConnect();
 			case FavoriteHubApi::PROP_HAS_PASSWORD: return (double)!aEntry->getPassword().empty();
+			case FavoriteHubApi::PROP_IGNORE_PM: return (double)aEntry->getFavNoPM();
 			default: dcassert(0); return 0;
 		}
 	}

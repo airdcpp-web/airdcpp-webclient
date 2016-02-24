@@ -21,6 +21,7 @@
 #include <web-server/ApiRequest.h>
 
 #include <api/ConnectivityApi.h>
+#include <api/EventApi.h>
 #include <api/FavoriteDirectoryApi.h>
 #include <api/FavoriteHubApi.h>
 #include <api/FilelistApi.h>
@@ -28,7 +29,6 @@
 #include <api/HashApi.h>
 #include <api/HistoryApi.h>
 #include <api/HubApi.h>
-#include <api/LogApi.h>
 #include <api/PrivateChatApi.h>
 #include <api/QueueApi.h>
 #include <api/RecentHubApi.h>
@@ -55,6 +55,7 @@ namespace webserver {
 		maxInactivity(maxInactivityMinutes*1000*60), userSession(aIsUserSession) {
 
 		ADD_MODULE("connectivity", ConnectivityApi);
+		ADD_MODULE("events", EventApi);
 		ADD_MODULE("favorite_directories", FavoriteDirectoryApi);
 		ADD_MODULE("favorite_hubs", FavoriteHubApi);
 		ADD_MODULE("filelists", FilelistApi);
@@ -62,7 +63,6 @@ namespace webserver {
 		ADD_MODULE("hash", HashApi);
 		ADD_MODULE("histories", HistoryApi);
 		ADD_MODULE("hubs", HubApi);
-		ADD_MODULE("log", LogApi);
 		ADD_MODULE("private_chat", PrivateChatApi);
 		ADD_MODULE("queue", QueueApi);
 		ADD_MODULE("recent_hubs", RecentHubApi);

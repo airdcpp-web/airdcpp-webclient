@@ -43,6 +43,9 @@ namespace webserver {
 
 		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, HubApi::handleGetStats);
 
+		METHOD_HANDLER("message", Access::HUBS_SEND, ApiRequest::METHOD_POST, (), true, HubApi::handlePostMessage);
+		METHOD_HANDLER("status", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), true, HubApi::handlePostStatus);
+
 		auto rawHubs = ClientManager::getInstance()->getClients();
 		for (const auto& c : rawHubs | map_values) {
 			addHub(c);
@@ -51,6 +54,50 @@ namespace webserver {
 
 	HubApi::~HubApi() {
 		ClientManager::getInstance()->removeListener(this);
+	}
+
+	api_return HubApi::handlePostMessage(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+
+		auto message = Deserializer::deserializeChatMessage(reqJson);
+		auto hubs = Deserializer::deserializeHubUrls(reqJson);
+		int succeed = 0;
+
+		string lastError;
+		for (const auto& url : hubs) {
+			auto c = ClientManager::getInstance()->getClient(url);
+			if (c && c->isConnected() && c->sendMessage(message.first, lastError, message.second)) {
+				succeed++;
+			}
+		}
+
+		aRequest.setResponseBody({
+			{ "sent", succeed },
+		});
+
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return HubApi::handlePostStatus(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+
+		auto message = Deserializer::deserializeStatusMessage(reqJson);
+		auto hubs = Deserializer::deserializeHubUrls(reqJson);
+
+		int succeed = 0;
+		for (const auto& url : hubs) {
+			auto c = ClientManager::getInstance()->getClient(url);
+			if (c) {
+				c->statusMessage(message.first, message.second);
+				succeed++;
+			}
+		}
+
+		aRequest.setResponseBody({
+			{ "sent", succeed },
+		});
+
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return HubApi::handleGetStats(ApiRequest& aRequest) {
