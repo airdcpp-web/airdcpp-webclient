@@ -115,7 +115,7 @@ bool ConfigPrompt::runConfigure(webserver::WebServerManager* wsm) {
 			cout << std::endl;
 			cout << "When connecting to the client via HTTPS, the browser will warn you about a self-signed certificate. "
 				<< "If you want the error to go away, you should search for information specific to your operating system about adding the site/certificate as trusted. "
-				<< "When browsing within the local network, using HTTPS is generally not needed." 
+				<< "When browsing within the local network, using HTTPS is generally not needed."
 				<< std::endl;
 		}
 	}
@@ -138,7 +138,7 @@ bool ConfigPrompt::addUser(webserver::WebServerManager* wsm) {
 	auto& um = wsm->getUserManager();
 
 	std::string username, password;
-	cout << toBold("The user wil be created with administrative permissions. Users with restricted permissions can be added from the Web UI.");
+	cout << toBold("The user will be created with administrative permissions. Users with restricted permissions can be added from the Web UI.");
 	cout << std::endl;
 	cout << std::endl;
 	cout << "Enter username: ";

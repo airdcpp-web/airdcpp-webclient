@@ -132,11 +132,13 @@ static void installHandler() {
 	//sigaction(SIGINT, &sa, NULL);
 
 	signal(SIGINT, &breakHandler);
+	signal(SIGTERM, &breakHandler);
 
 	signal(SIGFPE, &handleCrash);
 	signal(SIGSEGV, &handleCrash);
 	signal(SIGILL, &handleCrash);
 
+	// Note: separate from SIGTERM
 	std::set_terminate([] {
 		handleCrash(0);
 	});
