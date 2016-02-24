@@ -29,7 +29,6 @@ namespace dcpp {
 		template<int I>	struct X { enum { TYPE = I }; };
 
 		typedef X<0> ShareLoaded;
-		typedef X<1> ShareRefreshed;
 		typedef X<2> DirectoriesRefreshed;
 
 		typedef X<4> ProfileAdded;
@@ -42,7 +41,6 @@ namespace dcpp {
 		typedef X<10> RootUpdated;
 
 		virtual void on(ShareLoaded) noexcept{}
-		virtual void on(ShareRefreshed, uint8_t /*tasktype*/) noexcept{}
 		virtual void on(DirectoriesRefreshed, uint8_t /*tasktype*/, const RefreshPathList&) noexcept{}
 
 		virtual void on(ProfileAdded, ProfileToken) noexcept {}

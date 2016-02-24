@@ -80,7 +80,18 @@ public:
 	struct SpeedSortOrder {
 		bool operator()(const SearchResultPtr& left, const SearchResultPtr& right) const;
 	};
+
+	struct RelevancyInfo {
+		double matchRelevancy;
+		double sourceScoreFactor;
+	};
+
+	// Matches result against the current search and returns relevancy information
+	// Non-mandatory validity checks are skipped if no search token is provided
+	bool getRelevancy(SearchQuery& aQuery, RelevancyInfo& relevancy_, const string& aSearchToken = Util::emptyString) const noexcept;
 private:
+	bool matches(SearchQuery& aQuery, const string& aSearchToken) const noexcept;
+
 	friend class SearchManager;
 
 	SearchResult();

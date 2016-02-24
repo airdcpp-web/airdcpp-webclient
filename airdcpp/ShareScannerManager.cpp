@@ -353,9 +353,10 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 			}
 		}
 
-		if (Util::getFileExt(aFileName) == ".nfo") {
+		auto ext = Text::toLower(Util::getFileExt(aFileName));
+		if (ext == ".nfo") {
 			nfoFiles++;
-		} else if (Util::getFileExt(aFileName) == ".sfv") {
+		} else if (ext == ".sfv") {
 			sfvFileList.push_back(aPath + aFileName);
 		}
 

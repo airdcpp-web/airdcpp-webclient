@@ -19,11 +19,13 @@
 #include "stdinc.h"
 #include "SearchResult.h"
 
-#include "UploadManager.h"
-#include "Text.h"
-#include "User.h"
-#include "ClientManager.h"
 #include "Client.h"
+#include "ClientManager.h"
+#include "ScopedFunctor.h"
+#include "SearchQuery.h"
+#include "Text.h"
+#include "UploadManager.h"
+#include "User.h"
 
 namespace dcpp {
 
@@ -135,6 +137,69 @@ string SearchResult::getFilePath() const {
 	if (type == TYPE_DIRECTORY)
 		return path;
 	return Util::getNmdcFilePath(path);
+}
+
+bool SearchResult::matches(SearchQuery& aQuery, const string& aSearchToken) const noexcept {
+	if (!token.empty()) {
+		// ADC
+		if (aSearchToken != token) {
+			return false;
+		}
+	} else {
+		// NMDC results must be matched manually
+
+		// Exludes
+		if (aQuery.isExcluded(path)) {
+			return false;
+		}
+
+		if (aQuery.root && *aQuery.root != tth) {
+			return false;
+		}
+	}
+
+	// All clients can't handle this correctly
+	if (aQuery.itemType == SearchQuery::TYPE_FILE && type != SearchResult::TYPE_FILE) {
+		return false;
+	}
+
+	return true;
+}
+
+bool SearchResult::getRelevancy(SearchQuery& aQuery, RelevancyInfo& relevancy_, const string& aSearchToken) const noexcept {
+	if (!aSearchToken.empty() && !matches(aQuery, aSearchToken)) {
+		return false;
+	}
+
+	// Nothing to calculate with TTH searches
+	if (aQuery.root) {
+		relevancy_.matchRelevancy = 1;
+		relevancy_.sourceScoreFactor = 0.01;
+		return true;
+	}
+
+	// Match path
+	SearchQuery::Recursion recursion;
+	ScopedFunctor([&] { aQuery.recursion = nullptr; });
+	if (!aQuery.matchesNmdcPath(path, recursion)) {
+		return false;
+	}
+
+	// Don't count the levels because they can't be compared with each others
+	auto matchRelevancy = SearchQuery::getRelevancyScores(aQuery, 0, type == SearchResult::TYPE_DIRECTORY, getFileName());
+	double sourceScoreFactor = 0.01;
+	if (aQuery.recursion && aQuery.recursion->isComplete()) {
+		// There are subdirectories/files that have more matches than the main directory
+		// Don't give too much weight for those even if there are lots of sources
+		sourceScoreFactor = 0.001;
+
+		// We don't get the level scores so balance those here
+		matchRelevancy = max(0.0, matchRelevancy - (0.05 * aQuery.recursion->recursionLevel));
+	}
+
+	relevancy_.matchRelevancy = matchRelevancy;
+	relevancy_.sourceScoreFactor = sourceScoreFactor;
+	return true;
 }
 
 }

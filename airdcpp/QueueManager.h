@@ -483,7 +483,6 @@ private:
 
 	// ShareManagerListener
 	void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept;
-	void on(ShareRefreshed, uint8_t /*tasktype*/) noexcept;
 	void on(ShareLoaded) noexcept;
 	void onPathRefreshed(const string& aPath, bool startup) noexcept;
 

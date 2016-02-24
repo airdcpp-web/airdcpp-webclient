@@ -237,6 +237,7 @@
     <ClCompile Include="airdcpp\ActivityManager.cpp" />
     <ClCompile Include="airdcpp\AdcCommand.cpp" />
     <ClCompile Include="airdcpp\AdcHub.cpp" />
+    <ClCompile Include="airdcpp\DirectSearch.cpp" />
     <ClCompile Include="airdcpp\MessageCache.cpp" />
     <ClCompile Include="airdcpp\MessageManager.cpp" />
     <ClCompile Include="airdcpp\PrivateChat.cpp" />
@@ -351,6 +352,7 @@
     <ClInclude Include="airdcpp\AdcCommand.h" />
     <ClInclude Include="airdcpp\AdcHub.h" />
     <ClInclude Include="airdcpp\AutoSearchQueue.h" />
+    <ClInclude Include="airdcpp\DirectSearch.h" />
     <ClInclude Include="airdcpp\ViewFileManagerListener.h" />
     <ClInclude Include="airdcpp\MessageCache.h" />
     <ClInclude Include="airdcpp\ConnectionType.h" />

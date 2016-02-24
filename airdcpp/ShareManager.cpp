@@ -2651,11 +2651,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 
 		addMonitoring(monitoring);
 
-		if (t.first == REFRESH_ALL) {
-			fire(ShareManagerListener::ShareRefreshed(), t.first);
-		} else {
-			fire(ShareManagerListener::DirectoriesRefreshed(), t.first, dirs);
-		}
+		fire(ShareManagerListener::DirectoriesRefreshed(), t.first, dirs);
 	}
 
 	{

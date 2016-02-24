@@ -1099,26 +1099,31 @@ string NmdcHub::validateMessage(string tmp, bool reverse) {
 	return tmp;
 }
 
-void NmdcHub::privateMessage(const string& nick, const string& message, bool thirdPerson) {
-	send("$To: " + fromUtf8(nick) + " From: " + fromUtf8(getMyNick()) + " $" + fromUtf8(escape("<" + getMyNick() + "> " + (thirdPerson ? "/me " + message : message))) + "|");
+void NmdcHub::privateMessage(const string& aNick, const string& aMessage, bool aThirdPerson) {
+	send("$To: " + fromUtf8(aNick) + " From: " + fromUtf8(getMyNick()) + " $" + fromUtf8(escape("<" + getMyNick() + "> " + (aThirdPerson ? "/me " + aMessage : aMessage))) + "|");
 }
 
-bool NmdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool thirdPerson) {
+bool NmdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) {
 	if(!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
 	}
 
-	privateMessage(aUser->getIdentity().getNick(), aMessage, thirdPerson);
-	// Emulate a returning message...
-	OnlineUserPtr ou = findUser(getMyNick());
-	if(ou) {
+	privateMessage(aUser->getIdentity().getNick(), aMessage, aThirdPerson);
+
+	auto ou = findUser(getMyNick());
+	if (!ou) {
+		error_ = STRING(USER_OFFLINE);
+		return false;
+	}
+
+	if (aEcho) {
+		// Emulate a returning message...
 		auto message = std::make_shared<ChatMessage>(aMessage, ou, aUser, ou);
 		MessageManager::getInstance()->onPrivateMessage(message);
-		return true;
 	}
-	error_ = STRING(USER_OFFLINE);
-	return false;
+
+	return true;
 }
 
 void NmdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {

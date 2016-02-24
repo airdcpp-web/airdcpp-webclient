@@ -1083,15 +1083,15 @@ bool AdcHub::hubMessage(const string& aMessage, string& error_, bool thirdPerson
 	return true;
 }
 
-bool AdcHub::privateMessage(const OnlineUserPtr& user, const string& aMessage, string& error_, bool thirdPerson) {
+bool AdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) {
 	if(!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
 	}
 
-	AdcCommand c(AdcCommand::CMD_MSG, user->getIdentity().getSID(), AdcCommand::TYPE_ECHO);
+	AdcCommand c(AdcCommand::CMD_MSG, aUser->getIdentity().getSID(), aEcho ? AdcCommand::TYPE_ECHO : AdcCommand::TYPE_DIRECT);
 	c.addParam(aMessage);
-	if(thirdPerson)
+	if(aThirdPerson)
 		c.addParam("ME", "1");
 	c.addParam("PM", getMySID());
 	if (!send(c)) {
@@ -1112,13 +1112,9 @@ void AdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {
 		if(command.getTo().empty()) {
 			hubMessage(cmd, error);
 		} else {
-			const string& to = command.getTo();
-			RLock l(cs);
-			for(const auto& ou: users | map_values) {
-				if(ou->getIdentity().getNick() == to) {
-					privateMessage(ou, cmd, error);
-					return;
-				}
+			auto ou = findUser(command.getTo());
+			if (ou) {
+				privateMessage(ou, cmd, error, false, false);
 			}
 		}
 	} else {
@@ -1156,7 +1152,7 @@ StringList AdcHub::parseSearchExts(int flag) {
 	return ret;
 }
 
-void AdcHub::directSearch(const OnlineUser& user, const string& aDir, const SearchPtr& aSearch) {
+void AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch) {
 	if(!stateNormal())
 		return;
 
@@ -1164,14 +1160,23 @@ void AdcHub::directSearch(const OnlineUser& user, const string& aDir, const Sear
 	constructSearch(c, aSearch, true);
 
 	if (user.getUser()->isSet(User::ASCH)) {
-		if (!aDir.empty()) {
-			c.addParam("PA", aDir);
+		if (!aSearch->path.empty()) {
+			c.addParam("PA", aSearch->path);
 		}
 
-		c.addParam("RE", "1"); // require a reply
-		c.addParam("PP", "1"); // parent paths
-		c.addParam("MT", "1"); // name matches only
-		c.addParam("MR", "20"); // max results excepted
+		if (aSearch->requireReply) {
+			c.addParam("RE", "1");
+		}
+
+		if (aSearch->returnParents) {
+			c.addParam("PP", "1");
+		}
+
+		if (aSearch->namesOnly) {
+			c.addParam("MT", "1"); // name matches only
+		}
+
+		c.addParam("MR", Util::toString(aSearch->maxResults));
 	}
 
 	send(c);
