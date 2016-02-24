@@ -3289,9 +3289,13 @@ void QueueManager::shareBundle(BundlePtr aBundle, bool skipScan) noexcept{
 	hashBundle(aBundle);
 }
 
-void QueueManager::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept{
-	for (const auto& p : aPaths) {
-		onPathRefreshed(p, false);
+void QueueManager::on(ShareManagerListener::DirectoriesRefreshed, uint8_t aType, const RefreshPathList& aPaths) noexcept {
+	if (aType == ShareManager::REFRESH_ALL) {
+		onPathRefreshed(Util::emptyString, false);
+	} else {
+		for (const auto& p : aPaths) {
+			onPathRefreshed(p, false);
+		}
 	}
 }
 
@@ -3315,10 +3319,6 @@ void QueueManager::onPathRefreshed(const string& aPath, bool startup) noexcept{
 			scanBundle(b);
 		}
 	}
-}
-
-void QueueManager::on(ShareManagerListener::ShareRefreshed, uint8_t) noexcept{
-	onPathRefreshed(Util::emptyString, false);
 }
 
 void QueueManager::on(ShareLoaded) noexcept{

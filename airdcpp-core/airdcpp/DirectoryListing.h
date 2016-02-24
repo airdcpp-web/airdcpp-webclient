@@ -23,12 +23,12 @@
 
 #include "DirectoryListingListener.h"
 #include "ClientManagerListener.h"
-#include "SearchManagerListener.h"
 #include "ShareManagerListener.h"
 #include "TimerManager.h"
 
 #include "AirUtil.h"
 #include "Bundle.h"
+#include "DirectSearch.h"
 #include "FastAlloc.h"
 #include "GetSet.h"
 #include "HintedUser.h"
@@ -37,7 +37,6 @@
 #include "QueueItemBase.h"
 #include "TaskQueue.h"
 #include "UserInfoBase.h"
-#include "SearchResult.h"
 #include "ShareManager.h"
 #include "Streams.h"
 #include "TargetUtil.h"
@@ -49,7 +48,7 @@ class ListLoader;
 typedef uint32_t DirectoryListingToken;
 
 class DirectoryListing : public intrusive_ptr_base<DirectoryListing>, public UserInfoBase, public TrackableDownloadItem,
-	public Speaker<DirectoryListingListener>, private SearchManagerListener, private TimerManagerListener, 
+	public Speaker<DirectoryListingListener>, private TimerManagerListener, 
 	private ClientManagerListener, private ShareManagerListener
 {
 public:
@@ -211,7 +210,8 @@ public:
 	void addAsyncTask(DispatcherQueue::Callback&& f) noexcept;
 	void close() noexcept;
 
-	void addSearchTask(const SearchPtr& aSearch, const string& aDir) noexcept;
+	void addSearchTask(const SearchPtr& aSearch) noexcept;
+
 	bool nextResult(bool prev) noexcept;
 
 	unique_ptr<SearchQuery> curSearch = nullptr;
@@ -275,11 +275,7 @@ private:
 
 	atomic_flag running;
 
-	void on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept;
-
 	// ClientManagerListener
-	void on(ClientManagerListener::DirectSearchEnd, const string& aToken, int resultCount) noexcept;
-
 	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;
 	void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
@@ -298,14 +294,9 @@ private:
 	OrderedStringSet searchResults;
 	OrderedStringSet::iterator curResult;
 
-	int curResultCount = 0;
-	int maxResultCount = 0;
-	uint64_t lastResult = 0;
-	string searchToken;
-
 	void listDiffImpl(const string& aFile, bool aOwnList) throw(Exception, AbortException);
 	void loadFileImpl(const string& aInitialDir) throw(Exception, AbortException);
-	void searchImpl(const SearchPtr& aSearch, const string& aDir) noexcept;
+	void searchImpl(const SearchPtr& aSearch) noexcept;
 	void loadPartialImpl(const string& aXml, const string& aBaseDir, bool reloadAll, bool changeDir, std::function<void()> completionF) throw(Exception, AbortException);
 	void matchAdlImpl() throw(AbortException);
 	void matchQueueImpl() noexcept;
@@ -317,6 +308,7 @@ private:
 	void checkShareDupes() noexcept;
 	void onLoadingFinished(int64_t aStartTime, const string& aDir, bool aReloadList, bool aChangeDir) noexcept;
 
+	unique_ptr<DirectSearch> directSearch;
 	DispatcherQueue tasks;
 };
 

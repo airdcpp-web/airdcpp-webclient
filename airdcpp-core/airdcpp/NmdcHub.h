@@ -38,7 +38,7 @@ public:
 	int connect(const OnlineUser& aUser, const string& token, string& lastError_);
 
 	bool hubMessage(const string& aMessage, string& error_, bool /*thirdPerson*/ = false);
-	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool /*thirdPerson*/ = false);
+	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho);
 	void sendUserCmd(const UserCommand& command, const ParamMap& params);
 	void search(const SearchPtr& aSearch);
 	void password(const string& aPass);

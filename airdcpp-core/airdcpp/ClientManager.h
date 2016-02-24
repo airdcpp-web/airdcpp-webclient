@@ -129,7 +129,7 @@ public:
 	// Get users with nick matching the pattern. Uses relevancies for priorizing the results.
 	OnlineUserList searchNicks(const string& aPattern, size_t aMaxResults, bool aIgnorePrefix) const noexcept;
 
-	void directSearch(const HintedUser& user, const string& aDir, const SearchPtr& aSearch) noexcept;
+	void directSearch(const HintedUser& user, const SearchPtr& aSearch) noexcept;
 	
 	void cancelSearch(void* aOwner) noexcept;
 		
@@ -208,8 +208,8 @@ public:
 	bool sendUDP(AdcCommand& c, const CID& to, bool noCID = false, bool noPassive = false, const string& encryptionKey = Util::emptyString, const string& aHubUrl = Util::emptyString) noexcept;
 
 	bool connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError, ConnectionType type = CONNECTION_TYPE_LAST) const noexcept;
-	bool privateMessage(const HintedUser& user, const string& msg, string& error_, bool thirdPerson) noexcept;
-	void userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params, bool compatibility) noexcept;
+	bool privateMessage(const HintedUser& aUser, const string& aMsg, string& error_, bool aThirdPerson, bool aEcho = true) noexcept;
+	void userCommand(const HintedUser& aUser, const UserCommand& uc, ParamMap& params, bool compatibility) noexcept;
 
 	bool isActive() const noexcept;
 	bool isActive(const string& aHubUrl) const noexcept;

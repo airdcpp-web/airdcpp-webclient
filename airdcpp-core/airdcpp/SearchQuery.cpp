@@ -140,13 +140,13 @@ SearchQuery::ResultPointsList SearchQuery::toPointList(const string& aName) cons
 	return ret;
 }
 
-SearchQuery* SearchQuery::getSearch(const SearchPtr& aSearch, MatchType aMatchType, bool returnParents, size_t aMaxResults) noexcept {
+SearchQuery* SearchQuery::getSearch(const SearchPtr& aSearch) noexcept {
 	SearchQuery* s = nullptr;
 
 	if(aSearch->fileType == Search::TYPE_TTH) {
 		s = new SearchQuery(TTHValue(aSearch->query));
 	} else {
-		s = new SearchQuery(aSearch->query, aSearch->excluded, aSearch->exts, aMatchType);
+		s = new SearchQuery(aSearch->query, aSearch->excluded, aSearch->exts, aSearch->namesOnly ? MATCH_NAME : MATCH_FULL_PATH);
 		if(aSearch->sizeType == Search::SIZE_ATLEAST) {
 			s->gt = aSearch->size;
 		} else if(aSearch->sizeType == Search::SIZE_ATMOST) {
@@ -156,8 +156,8 @@ SearchQuery* SearchQuery::getSearch(const SearchPtr& aSearch, MatchType aMatchTy
 		s->itemType = (aSearch->fileType == Search::TYPE_DIRECTORY) ? SearchQuery::TYPE_DIRECTORY : (aSearch->fileType == Search::TYPE_FILE) ? SearchQuery::TYPE_FILE : SearchQuery::TYPE_ANY;
 	}
 
-	s->addParents = returnParents;
-	s->maxResults = aMaxResults;
+	s->addParents = aSearch->returnParents;
+	s->maxResults = aSearch->maxResults;
 	return s;
 }
 
