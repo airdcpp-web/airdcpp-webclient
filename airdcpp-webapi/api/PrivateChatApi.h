@@ -46,6 +46,8 @@ namespace webserver {
 
 		api_return handleGetThreads(ApiRequest& aRequest);
 
+		api_return handlePostMessage(ApiRequest& aRequest);
+
 		void on(MessageManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool aReceivedMessage) noexcept;
 		void on(MessageManagerListener::ChatRemoved, const PrivateChatPtr& aChat) noexcept;
 

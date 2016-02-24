@@ -22,6 +22,8 @@
 
 namespace webserver {
 	typedef int8_t AccessType;
+
+	// Remember to edit WebUser::accessStrings as well
 	enum class Access: AccessType {
 		NONE = -2,
 		ANY = -1,
@@ -29,8 +31,10 @@ namespace webserver {
 
 		SEARCH,
 		DOWNLOAD,
-		EVENTS,
 		TRANSFERS,
+
+		EVENTS_VIEW,
+		EVENTS_EDIT,
 
 		QUEUE_VIEW,
 		QUEUE_EDIT,

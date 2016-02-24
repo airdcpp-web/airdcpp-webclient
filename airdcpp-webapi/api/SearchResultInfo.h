@@ -33,11 +33,6 @@
 namespace webserver {
 	typedef uint32_t ResultToken;
 
-	struct RelevancyInfo {
-		const double matchRelevancy;
-		const double sourceScoreFactor;
-	};
-
 	class SearchResultInfo {
 	public:
 		typedef shared_ptr<SearchResultInfo> Ptr;
@@ -49,7 +44,7 @@ namespace webserver {
 		typedef unordered_map<TTHValue, Ptr> Map;
 		typedef set<Ptr, RelevancySort> Set;
 
-		SearchResultInfo(const SearchResultPtr& aSR, RelevancyInfo&& aRelevancy);
+		SearchResultInfo(const SearchResultPtr& aSR, SearchResult::RelevancyInfo&& aRelevancy);
 		~SearchResultInfo() {	}
 
 		const UserPtr& getUser() const noexcept { return sr->getUser().user; }
@@ -89,7 +84,7 @@ namespace webserver {
 		SearchResultInfo* parent = nullptr;
 		SearchResultInfo::List children;
 
-		RelevancyInfo relevancyInfo;
+		SearchResult::RelevancyInfo relevancyInfo;
 
 		string country;
 		ResultToken token;

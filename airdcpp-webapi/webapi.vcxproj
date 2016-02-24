@@ -192,7 +192,7 @@
     <ClInclude Include="api\HistoryApi.h" />
     <ClInclude Include="api\HubApi.h" />
     <ClInclude Include="api\HubInfo.h" />
-    <ClInclude Include="api\LogApi.h" />
+    <ClInclude Include="api\EventApi.h" />
     <ClInclude Include="api\OnlineUserUtils.h" />
     <ClInclude Include="api\platform\windows\Filesystem.h" />
     <ClInclude Include="api\PrivateChatInfo.h" />
@@ -254,7 +254,7 @@
     <ClCompile Include="api\HistoryApi.cpp" />
     <ClCompile Include="api\HubApi.cpp" />
     <ClCompile Include="api\HubInfo.cpp" />
-    <ClCompile Include="api\LogApi.cpp" />
+    <ClCompile Include="api\EventApi.cpp" />
     <ClCompile Include="api\OnlineUserUtils.cpp" />
     <ClCompile Include="api\PrivateChatApi.cpp" />
     <ClCompile Include="api\PrivateChatInfo.cpp" />

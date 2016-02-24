@@ -17,6 +17,9 @@
 */
 
 #include <api/HistoryApi.h>
+
+#include <web-server/JsonUtil.h>
+
 #include <api/common/Serializer.h>
 
 namespace webserver {
@@ -29,15 +32,11 @@ namespace webserver {
 	}
 
 	api_return HistoryApi::handleGetHistory(ApiRequest& aRequest) {
-		json j;
+		auto j = json::array();
 
 		auto history = SettingsManager::getInstance()->getHistory(toHistoryType(aRequest.getStringParam(0)));
-		if (!history.empty()) {
-			for (const auto& s : history) {
-				j.push_back(s);
-			}
-		} else {
-			j = json::array();
+		for (const auto& s : history) {
+			j.push_back(s);
 		}
 
 		aRequest.setResponseBody(j);
@@ -46,7 +45,7 @@ namespace webserver {
 
 	api_return HistoryApi::handlePostHistory(ApiRequest& aRequest) {
 		auto type = toHistoryType(aRequest.getStringParam(0));
-		const string item = aRequest.getRequestBody()["item"];
+		auto item = JsonUtil::getField<string>("item", aRequest.getRequestBody(), false);
 
 		SettingsManager::getInstance()->addToHistory(item, type);
 		return websocketpp::http::status_code::no_content;
