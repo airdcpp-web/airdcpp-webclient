@@ -54,25 +54,6 @@ find_package (Backtrace)
 find_package (TBB)
 
 
-# Try the find Ubuntu's Node variant first
-find_program(NODE_EXECUTABLE nodejs PATHS /sw/bin)
-
-if(NOT NODE_EXECUTABLE)
-  find_program(NODE_EXECUTABLE node PATHS /sw/bin)
-endif(NOT NODE_EXECUTABLE)
-
-if(NOT NODE_EXECUTABLE)
-  message(FATAL_ERROR "Could not find 'node' or 'nodejs' executable. Please install Node.js.")
-endif(NOT NODE_EXECUTABLE)
-
-find_program(NPM_EXECUTABLE npm PATHS /sw/bin)
-if(NOT NPM_EXECUTABLE)
-  message(FATAL_ERROR "Could not find 'npm' executable. Please install npm")
-endif(NOT NPM_EXECUTABLE)
-
-
-message (STATUS "Found nodejs (${NODE_EXECUTABLE})")
-
 #option (ENABLE_STACKTRACE "Show stacktrace when program receive SIGSEGV" ON)
 option (INSTALL_RUNTIME_PATH "Install rpath" OFF)
 option (LOCAL_BOOST "Use local boost headers" OFF)
@@ -221,6 +202,23 @@ message(STATUS "CMAKE will use this libs (and headers) during build:
     ")
 
 if(INSTALL_WEB_UI)
+  # Try the find Ubuntu's Node variant first
+  find_program(NODE_EXECUTABLE nodejs PATHS /sw/bin)
+
+  if(NOT NODE_EXECUTABLE)
+    find_program(NODE_EXECUTABLE node PATHS /sw/bin)
+  endif(NOT NODE_EXECUTABLE)
+
+  if(NOT NODE_EXECUTABLE)
+    message(FATAL_ERROR "Could not find 'node' or 'nodejs' executable. Please install Node.js.")
+  endif(NOT NODE_EXECUTABLE)
+
+  find_program(NPM_EXECUTABLE npm PATHS /sw/bin)
+  if(NOT NPM_EXECUTABLE)
+    message(FATAL_ERROR "Could not find 'npm' executable. Please install npm")
+  endif(NOT NPM_EXECUTABLE)
+
+  message (STATUS "Found nodejs (${NODE_EXECUTABLE})")
 	message(STATUS "Installing Web UI")
 	execute_process (COMMAND sh install_webui.sh ${SOVERSION}
 							WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
