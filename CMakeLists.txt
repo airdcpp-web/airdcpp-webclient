@@ -156,7 +156,7 @@ message (STATUS "Data directory: ${CLIENT_DATA_DIR}")
 execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc ${VERSION} ${TAG_APPLICATION} WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 # Generate StringDefs.cpp
-execute_process (COMMAND ${NODE_EXECUTABLE} generate_stringdefs.js airdcpp-core/airdcpp/
+execute_process (COMMAND python generate_stringdefs.py airdcpp-core/airdcpp/
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 
