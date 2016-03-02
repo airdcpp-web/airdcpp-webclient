@@ -51,12 +51,12 @@ namespace webserver {
 	}
 
 	UserPtr Deserializer::deserializeUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
-		auto userJson = JsonUtil::getRawValue(aFieldName, aJson);
+		auto userJson = JsonUtil::getRawValue(aFieldName, aJson, false);
 		return parseUser(userJson);
 	}
 
 	HintedUser Deserializer::deserializeHintedUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
-		auto userJson = JsonUtil::getRawValue(aFieldName, aJson);
+		auto userJson = JsonUtil::getRawValue(aFieldName, aJson, false);
 		auto user = parseUser(userJson, aAllowMe);
 		return HintedUser(user, JsonUtil::getField<string>("hub_url", userJson, aAllowMe && user == ClientManager::getInstance()->getMe()));
 	}

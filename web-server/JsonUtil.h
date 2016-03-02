@@ -78,13 +78,21 @@ namespace webserver {
 
 		// Returns raw JSON value and throws if the field is missing
 		template <typename JsonT>
-		static json getRawValue(const string& aFieldName, const JsonT& aJson) {
+		static json getRawValue(const string& aFieldName, const JsonT& aJson, bool aAllowEmpty) {
 			if (aJson.is_null()) {
+				if (aAllowEmpty) {
+					return json();
+				}
+
 				throwError(aFieldName, ERROR_MISSING, "JSON null");
 			}
 
 			auto p = aJson.find(aFieldName);
 			if (p == aJson.end()) {
+				if (aAllowEmpty) {
+					return json();
+				}
+
 				throwError(aFieldName, ERROR_MISSING, "Field missing");
 			}
 
@@ -94,7 +102,7 @@ namespace webserver {
 		// Find and parse the given field. Throws if not found.
 		template <typename T, typename JsonT>
 		static T getField(const string& aFieldName, const JsonT& aJson, bool aAllowEmpty = true) {
-			return parseValue<T>(aFieldName, getRawValue(aFieldName, aJson), aAllowEmpty);
+			return parseValue<T>(aFieldName, getRawValue(aFieldName, aJson, aAllowEmpty), aAllowEmpty);
 		}
 
 		// Get value from the given JSON element
@@ -104,8 +112,7 @@ namespace webserver {
 				T ret;
 				try {
 					ret = aJson.template get<T>();
-				}
-				catch (const exception& e) {
+				} catch (const exception& e) {
 					throwError(aFieldName, ERROR_INVALID, e.what());
 				}
 

@@ -44,7 +44,7 @@ namespace webserver {
 		enum Properties {
 			PROP_TOKEN = -1,
 			PROP_NAME,
-			PROP_RELEVANCY,
+			PROP_RELEVANCE,
 			PROP_HITS,
 			PROP_USERS,
 			PROP_TYPE,
@@ -59,9 +59,7 @@ namespace webserver {
 		};
 	private:
 		SearchResultInfo::List getResultList();
-		static SearchPtr parseQuery(const json& aJson, const string& aToken);
-		static void parseDirectSearchProperties(const json& aJson, const SearchPtr& aSearch);
-		static const string& parseFileType(const string& aType) noexcept;
+
 		static json serializeDirectSearchResults(const SearchResultList& aResults, SearchQuery& aQuery) noexcept;
 
 		api_return handlePostHubSearch(ApiRequest& aRequest);

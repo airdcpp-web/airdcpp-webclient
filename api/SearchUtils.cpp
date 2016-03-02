@@ -127,7 +127,7 @@ namespace webserver {
 		case SearchApi::PROP_SIZE: return (double)aResult->sr->getSize();
 		case SearchApi::PROP_HITS: return (double)aResult->getHits();
 		case SearchApi::PROP_CONNECTION: return aResult->getConnectionSpeed();
-		case SearchApi::PROP_RELEVANCY : return aResult->getTotalRelevancy();
+		case SearchApi::PROP_RELEVANCE : return aResult->getTotalRelevance();
 		case SearchApi::PROP_DATE: return (double)aResult->sr->getDate();
 		case SearchApi::PROP_DUPE: return (double)aResult->getDupe();
 		default: dcassert(0); return 0;

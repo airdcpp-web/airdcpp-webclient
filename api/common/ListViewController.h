@@ -195,7 +195,7 @@ namespace webserver {
 
 			// Pattern can be string or numeric
 			string pattern;
-			auto patternJson = JsonUtil::getRawValue("pattern", aRequestJson);
+			auto patternJson = JsonUtil::getRawValue("pattern", aRequestJson, false);
 			if (patternJson.is_number()) {
 				pattern = Util::toString(JsonUtil::parseValue<double>("pattern", patternJson));
 			} else {

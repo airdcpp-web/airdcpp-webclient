@@ -237,6 +237,9 @@
     <ClInclude Include="api\EventApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
+    <ClInclude Include="api\common\FileSearchParser.h">
+      <Filter>Header Files\api\common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
@@ -391,6 +394,9 @@
     </ClCompile>
     <ClCompile Include="api\EventApi.cpp">
       <Filter>Source Files\api</Filter>
+    </ClCompile>
+    <ClCompile Include="api\common\FileSearchParser.cpp">
+      <Filter>Source Files\api\common</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
