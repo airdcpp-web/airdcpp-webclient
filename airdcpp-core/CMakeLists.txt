@@ -35,9 +35,6 @@ endif (APPLE)
 
 add_library (airdcpp ${LINK} ${airdcpp_srcs})
 
-#if (USE_MINIUPNP)
-#    set_property(SOURCE ${PROJECT_SOURCE_DIR}/DCPlusPlus.cpp ${PROJECT_SOURCE_DIR}/UPnPManager.cpp  PROPERTY COMPILE_DEFINITIONS USE_MINIUPNP )
-#endif()
 
 
 set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/StringDefs.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -fno-var-tracking ")
@@ -52,6 +49,10 @@ endif (ICONV_SECOND_ARGUMENT_IS_CONST)
 if (HAVE_IFADDRS_H)
   set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/AirUtil.cpp PROPERTY COMPILE_DEFINITIONS HAVE_IFADDRS_H APPEND)
 endif (HAVE_IFADDRS_H)
+
+if (HAVE_MNTENT_H)
+	set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/TargetUtil.cpp PROPERTY COMPILE_DEFINITIONS HAVE_MNTENT_H APPEND)
+endif (HAVE_MNTENT_H)
 
 if (WIN32)
    set_property(TARGET airdcpp PROPERTY COMPILE_FLAGS)

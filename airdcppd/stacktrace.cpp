@@ -31,6 +31,10 @@
 #include "stacktrace.h"
 
 namespace cow {
+	
+StackTrace::StackTrace(const std::string& aAppPath) : appPath(aAppPath) {
+	
+}
 
 void StackTrace::generate_frames()
 {
@@ -117,10 +121,6 @@ StackFrame StackTrace::parse_line(const std::string &line)
 }
 
 #if USE_ADDR2LINE
-
-StackTrace::StackTrace(const std::string& aAppPath) : appPath(aAppPath) {
-	
-}
 
 
 void StackTrace::run_addr2line(const std::string &object, const std::string &address,

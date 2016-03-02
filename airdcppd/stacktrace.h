@@ -28,14 +28,6 @@
 #include <ostream>
 #include <string>
 
-#ifndef USE_ADDR2LINE
-    #if defined(__linux__)
-        #define USE_ADDR2LINE 1
-    #else
-        #define USE_ADDR2LINE 0
-    #endif
-#endif
-
 
 namespace cow {
 
