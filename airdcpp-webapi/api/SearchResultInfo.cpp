@@ -29,8 +29,8 @@
 namespace webserver {
 	FastCriticalSection SearchResultInfo::cs;
 
-	SearchResultInfo::SearchResultInfo(const SearchResultPtr& aSR, SearchResult::RelevancyInfo&& aRelevancy) :
-		token(Util::rand()), sr(aSR), relevancyInfo(move(aRelevancy)) {
+	SearchResultInfo::SearchResultInfo(const SearchResultPtr& aSR, SearchResult::RelevanceInfo&& aRelevance) :
+		token(Util::rand()), sr(aSR), relevanceInfo(move(aRelevance)) {
 
 		// check the dupe
 		if (SETTING(DUPE_SEARCH)) {
@@ -84,12 +84,12 @@ namespace webserver {
 		return Util::toString(free) + '/' + Util::toString(total);
 	}
 
-	double SearchResultInfo::getTotalRelevancy() const noexcept {
-		return (hits * relevancyInfo.sourceScoreFactor) + relevancyInfo.matchRelevancy;
+	double SearchResultInfo::getTotalRelevance() const noexcept {
+		return (hits * relevanceInfo.sourceScoreFactor) + relevanceInfo.matchRelevance;
 	}
 
-	double SearchResultInfo::getMatchRelevancy() const noexcept {
-		return relevancyInfo.matchRelevancy; 
+	double SearchResultInfo::getMatchRelevance() const noexcept {
+		return relevanceInfo.matchRelevance; 
 	}
 
 	api_return SearchResultInfo::download(const string& aTargetDirectory, const string& aTargetName, TargetUtil::TargetType aTargetType, QueueItemBase::Priority aPrio) {

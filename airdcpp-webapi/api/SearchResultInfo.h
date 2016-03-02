@@ -36,15 +36,15 @@ namespace webserver {
 	class SearchResultInfo {
 	public:
 		typedef shared_ptr<SearchResultInfo> Ptr;
-		struct RelevancySort {
-			bool operator()(const Ptr& left, const Ptr& right) const noexcept { return left->getTotalRelevancy() > right->getTotalRelevancy(); }
+		struct RelevanceSort {
+			bool operator()(const Ptr& left, const Ptr& right) const noexcept { return left->getTotalRelevance() > right->getTotalRelevance(); }
 		};
 
 		typedef vector<Ptr> List;
 		typedef unordered_map<TTHValue, Ptr> Map;
-		typedef set<Ptr, RelevancySort> Set;
+		typedef set<Ptr, RelevanceSort> Set;
 
-		SearchResultInfo(const SearchResultPtr& aSR, SearchResult::RelevancyInfo&& aRelevancy);
+		SearchResultInfo(const SearchResultPtr& aSR, SearchResult::RelevanceInfo&& aRelevance);
 		~SearchResultInfo() {	}
 
 		const UserPtr& getUser() const noexcept { return sr->getUser().user; }
@@ -62,8 +62,8 @@ namespace webserver {
 		SearchResultPtr sr;
 		IGETSET(DupeType, dupe, Dupe, DUPE_NONE);
 
-		double getTotalRelevancy() const noexcept;
-		double getMatchRelevancy() const noexcept;
+		double getTotalRelevance() const noexcept;
+		double getMatchRelevance() const noexcept;
 
 		ResultToken getToken() const noexcept {
 			return token;
@@ -84,7 +84,7 @@ namespace webserver {
 		SearchResultInfo* parent = nullptr;
 		SearchResultInfo::List children;
 
-		SearchResult::RelevancyInfo relevancyInfo;
+		SearchResult::RelevanceInfo relevanceInfo;
 
 		string country;
 		ResultToken token;
