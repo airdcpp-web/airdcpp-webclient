@@ -13,12 +13,13 @@ commitCount=0
 #check if we have a repository
 git ls-remote > /dev/null 2>&1
 if [ $? -ne 0 ];then
-  echo 'Not using a Git version'
+  echo '-- Not using a Git version'
 elif [ `git rev-parse --abbrev-ref HEAD` != "master" ];then
-	echo 'Git version detected'
-	version=`git describe --abbrev=4 --dirty=-d`
+	version=`git describe --tags --abbrev=4 --dirty=-d`
 	commitCount=`git rev-list HEAD --count`
 	versionDate=`git show --format=%at | head -n1`
+
+	echo "-- Git version detected ($version)"
 fi
 
 file=$1

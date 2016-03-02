@@ -9,8 +9,8 @@ endif (APPLE)
 
 set (PROJECT_NAME "AirDC++ Web Client")
 set (TAG_APPLICATION "AirDC++w")
-set (VERSION "0.16.5")
-set (SOVERSION "0.16.5" )
+set (VERSION "1.0.0b")
+set (SOVERSION "1.0.0b" )
 
 set (GNUCXX_MINIMUM_VERSION "4.8")
 
@@ -124,14 +124,19 @@ endif (WIN32)
 
 message (STATUS "Data directory: ${CLIENT_DATA_DIR}")
 
-# find_program(GIT_EXECUTABLE git PATHS /sw/bin)
+#find_program(GIT_EXECUTABLE git PATHS /sw/bin)
 
 #if (GIT_EXECUTABLE)
-	# Version number for the library naming
+#	# Version number for the library naming and UI installation
 #	execute_process (COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
 #									 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-#									 OUTPUT_VARIABLE SOVERSION
+#									 OUTPUT_VARIABLE GIT_TAG
+#									 ERROR_VARIABLE DUMMYERROR
 #									 OUTPUT_STRIP_TRAILING_WHITESPACE)
+#	if (GIT_TAG)
+#		message (STATUS "-- Git tag: ${GIT_TAG}")
+#		set (SOVERSION ${GIT_TAG})
+#	endif(GIT_TAG)
 #endif (GIT_EXECUTABLE)
 
 # Version information for the client
@@ -207,6 +212,7 @@ if(INSTALL_WEB_UI)
 	if(NOT NPM_EXECUTABLE)
 		message(FATAL_ERROR "Could not find 'npm' executable. Please install npm")
 	endif(NOT NPM_EXECUTABLE)
+
 	message(STATUS "Installing Web UI")
 	execute_process (COMMAND sh install_webui.sh ${SOVERSION}
 							WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
