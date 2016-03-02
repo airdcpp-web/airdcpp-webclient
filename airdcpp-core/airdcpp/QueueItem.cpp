@@ -673,7 +673,8 @@ void QueueItem::searchAlternates() {
 	//	SearchManager::getInstance()->search(getTargetFileName(), size, Search::TYPE_ANY, Search::SIZE_EXACT, "qa", Search::ALT_AUTO);
 	//else
 
-	auto s = make_shared<Search>(Search::ALT_AUTO, tthRoot.toBase32(), "qa");
+	auto s = make_shared<Search>(Search::ALT_AUTO, "qa");
+	s->query = tthRoot.toBase32();
 	s->fileType = Search::TYPE_TTH;
 
 	SearchManager::getInstance()->search(s);

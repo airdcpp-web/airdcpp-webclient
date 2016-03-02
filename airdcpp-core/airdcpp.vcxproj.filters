@@ -829,9 +829,6 @@
     <ClInclude Include="airdcpp\AutoSearchQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\RelevancySearch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="airdcpp\Message.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -857,6 +854,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\DirectSearch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\RelevanceSearch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

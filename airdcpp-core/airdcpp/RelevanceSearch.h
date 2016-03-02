@@ -16,8 +16,8 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef RELEVANCYSEARCH_H
-#define RELEVANCYSEARCH_H
+#ifndef DCPP_RELEVANCESEARCH_H
+#define DCPP_RELEVANCESEARCH_H
 
 #include "typedefs.h"
 #include "forward.h"
@@ -41,17 +41,17 @@ namespace dcpp {
 	}
 
 	template<class T>
-	class RelevancySearch {
+	class RelevanceSearch {
 	public:
 		typedef function<string(const T&)> StringF;
-		RelevancySearch(const string& aStr, StringF&& aStringF) : query(aStr, StringList(), StringList(), SearchQuery::MATCH_NAME), stringF(aStringF) {
+		RelevanceSearch(const string& aStr, StringF&& aStringF) : query(aStr, StringList(), StringList(), Search::MATCH_NAME_PARTIAL), stringF(aStringF) {
 
 		}
 
 		void match(const T& aItem) noexcept {
 			auto name = stringF(aItem);
 			if (query.matchesStr(name)) {
-				results.insert({ aItem, SearchQuery::getRelevancyScores(query, 0, false, name) });
+				results.insert({ aItem, SearchQuery::getRelevanceScore(query, 0, false, name) });
 			}
 		}
 

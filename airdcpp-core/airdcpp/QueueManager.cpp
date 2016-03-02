@@ -302,7 +302,7 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 
 	TigerTree ttFile(tt.getBlockSize());
 	DirSFVReader sfv(q->getFilePath());
-	auto fileCRC = sfv.hasFile(q->getTargetFileName());
+	auto fileCRC = sfv.hasFile(Text::toLower(q->getTargetFileName()));
 	CRC32Filter crc32;
 
 	try {

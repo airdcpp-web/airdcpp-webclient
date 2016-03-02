@@ -361,7 +361,7 @@
     <ClInclude Include="airdcpp\PrioritySearchQueue.h" />
     <ClInclude Include="airdcpp\PrivateChat.h" />
     <ClInclude Include="airdcpp\PrivateChatListener.h" />
-    <ClInclude Include="airdcpp\RelevancySearch.h" />
+    <ClInclude Include="airdcpp\RelevanceSearch.h" />
     <ClInclude Include="airdcpp\SearchQuery.h" />
     <ClInclude Include="airdcpp\ADLSearch.h" />
     <ClInclude Include="airdcpp\AirUtil.h" />
