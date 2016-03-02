@@ -166,15 +166,15 @@ bool SearchResult::matches(SearchQuery& aQuery, const string& aSearchToken) cons
 	return true;
 }
 
-bool SearchResult::getRelevancy(SearchQuery& aQuery, RelevancyInfo& relevancy_, const string& aSearchToken) const noexcept {
+bool SearchResult::getRelevance(SearchQuery& aQuery, RelevanceInfo& relevance_, const string& aSearchToken) const noexcept {
 	if (!aSearchToken.empty() && !matches(aQuery, aSearchToken)) {
 		return false;
 	}
 
 	// Nothing to calculate with TTH searches
 	if (aQuery.root) {
-		relevancy_.matchRelevancy = 1;
-		relevancy_.sourceScoreFactor = 0.01;
+		relevance_.matchRelevance = 1;
+		relevance_.sourceScoreFactor = 0.01;
 		return true;
 	}
 
@@ -186,7 +186,7 @@ bool SearchResult::getRelevancy(SearchQuery& aQuery, RelevancyInfo& relevancy_, 
 	}
 
 	// Don't count the levels because they can't be compared with each others
-	auto matchRelevancy = SearchQuery::getRelevancyScores(aQuery, 0, type == SearchResult::TYPE_DIRECTORY, getFileName());
+	auto matchRelevance = SearchQuery::getRelevanceScore(aQuery, 0, type == SearchResult::TYPE_DIRECTORY, getFileName());
 	double sourceScoreFactor = 0.01;
 	if (aQuery.recursion && aQuery.recursion->isComplete()) {
 		// There are subdirectories/files that have more matches than the main directory
@@ -194,11 +194,11 @@ bool SearchResult::getRelevancy(SearchQuery& aQuery, RelevancyInfo& relevancy_, 
 		sourceScoreFactor = 0.001;
 
 		// We don't get the level scores so balance those here
-		matchRelevancy = max(0.0, matchRelevancy - (0.05 * aQuery.recursion->recursionLevel));
+		matchRelevance = max(0.0, matchRelevance - (0.05 * aQuery.recursion->recursionLevel));
 	}
 
-	relevancy_.matchRelevancy = matchRelevancy;
-	relevancy_.sourceScoreFactor = sourceScoreFactor;
+	relevance_.matchRelevance = matchRelevance;
+	relevance_.sourceScoreFactor = sourceScoreFactor;
 	return true;
 }
 

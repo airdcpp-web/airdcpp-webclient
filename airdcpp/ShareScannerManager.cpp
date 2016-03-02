@@ -353,14 +353,15 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 			}
 		}
 
-		auto ext = Text::toLower(Util::getFileExt(aFileName));
+		auto fileNameLower = Text::toLower(aFileName);
+		auto ext = Util::getFileExt(fileNameLower);
 		if (ext == ".nfo") {
 			nfoFiles++;
 		} else if (ext == ".sfv") {
-			sfvFileList.push_back(aPath + aFileName);
+			sfvFileList.push_back(aPath + fileNameLower);
 		}
 
-		fileList.push_back(aFileName);
+		fileList.push_back(fileNameLower);
 	});
 
 	if (fileList.empty()) {
@@ -532,15 +533,15 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 	int releaseFiles = 0, loopMissing = 0;
 
 	DirSFVReader sfv(aPath, sfvFileList);
-	sfv.read([&](const string& fileName) {
+	sfv.read([&](const string& aFileName) {
 		hasValidSFV = true;
 		releaseFiles++;
 
-		auto s = std::find(fileList.begin(), fileList.end(), fileName);
+		auto s = std::find(fileList.begin(), fileList.end(), aFileName);
 		if(s == fileList.end()) { 
 			loopMissing++;
 			if (SETTING(CHECK_MISSING))
-				reportMessage(STRING(FILE_MISSING) + " " + aPath + fileName, aScan);
+				reportMessage(STRING(FILE_MISSING) + " " + aPath + aFileName, aScan);
 		} else {
 			fileList.erase(s);
 		}
@@ -577,7 +578,9 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& dirs) noexcept {
 	DirSFVReader sfv(aPath);
 
-	/* Get the size and see if all files in the sfv exists */
+	/* Get the size and see if all files in the sfv exists 
+	   TODO: FIX LINUX
+	*/
 	if (sfv.hasSFV()) {
 		sfv.read([&](const string& fileName) {
 			if (Util::fileExists(aPath + fileName)) {
@@ -612,19 +615,20 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& aS
 	uint64_t checkStart = 0;
 	uint64_t checkEnd = 0;
 
-	if(aSfvReader.hasFile(aFileName)) {
+	const auto fileNameLower = Text::toLower(aFileName);
+	if(aSfvReader.hasFile(fileNameLower)) {
 		// Perform the check
 		bool crcMatch = false;
 		try {
 			checkStart = GET_TICK();
-			crcMatch = aSfvReader.isCrcValid(aFileName);
+			crcMatch = aSfvReader.isCrcValid(fileNameLower);
 			checkEnd = GET_TICK();
 		} catch(const FileException& ) {
 			// Couldn't read the file to get the CRC(!!!)
 			LogManager::getInstance()->message(STRING_F(CRC_FILE_ERROR, (aSfvReader.getPath() + aFileName)), LogMessage::SEV_ERROR);
 		}
 
-		// Update the resultd
+		// Update the results
 		int64_t size = File::getSize(aSfvReader.getPath() + aFileName);
 		int64_t speed = 0;
 		if(checkEnd > checkStart) {

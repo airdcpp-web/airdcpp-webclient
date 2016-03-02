@@ -1145,7 +1145,7 @@ enum Strings { // @DontAdd
 	REGULAR_EXPRESSION, // "RegEx"
 	RELEASE, // "Release"
 	RELEASE_FILES_MISSING, // "NFO/SFV found but there are no other files in the folder:"
-	RELEVANCY, // "Relevancy"
+	RELEVANCE, // "Relevance"
 	RELIABILITY, // "Reliability"
 	RELOAD, // "Reload"
 	REMOTE_PROTOCOL_UNSUPPORTED, // "The remote user doesn't support %1% protocol"

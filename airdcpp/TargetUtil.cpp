@@ -26,7 +26,9 @@
 #ifdef _WIN32
 #include <ShlObj.h>
 #include <direct.h>
-#else
+#endif
+
+#ifdef HAVE_MNTENT_H
 #include <mntent.h>
 #endif
 
@@ -204,7 +206,7 @@ void TargetUtil::getVolumes(VolumeSet& volumes) {
 		++drive[0];
 		drives = (drives >> 1);
 	}
-#else
+#elif HAVE_MNTENT_H
 	struct mntent *ent;
 	FILE *aFile;
 

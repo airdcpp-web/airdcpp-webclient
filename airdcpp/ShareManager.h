@@ -405,12 +405,12 @@ private:
 			};
 
 			explicit SearchResultInfo(const File* f, const SearchQuery& aSearch, int aLevel) :
-				file(f), type(FILE), scores(SearchQuery::getRelevancyScores(aSearch, aLevel, false, f->name.getLower())) {
+				file(f), type(FILE), scores(SearchQuery::getRelevanceScore(aSearch, aLevel, false, f->name.getLower())) {
 
 			}
 
 			explicit SearchResultInfo(const Directory* d, const SearchQuery& aSearch, int aLevel) :
-				directory(d), type(DIRECTORY), scores(SearchQuery::getRelevancyScores(aSearch, aLevel, true, d->realName.getLower())) {
+				directory(d), type(DIRECTORY), scores(SearchQuery::getRelevanceScore(aSearch, aLevel, true, d->realName.getLower())) {
 
 			}
 
@@ -488,7 +488,7 @@ private:
 		bool isRootLevel(ProfileToken aProfile) const noexcept;
 		int64_t size;
 
-		void addBloom(ShareBloom& aBloom) const noexcept;
+		//void addBloom(ShareBloom& aBloom) const noexcept;
 
 		void countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_) const noexcept;
 		DualString realName;
@@ -552,7 +552,7 @@ private:
 		int refreshOptions;
 	};
 
-	bool addDirResult(const string& aPath, SearchResultList& aResults, ProfileToken aProfile, SearchQuery& srch) const noexcept;
+	bool addDirResult(const Directory* aDir, SearchResultList& aResults, ProfileToken aProfile, SearchQuery& srch) const noexcept;
 
 	typedef unordered_map<string, ProfileDirectory::Ptr, noCaseStringHash, noCaseStringEq> ProfileDirMap;
 	ProfileDirMap profileDirs;
@@ -642,16 +642,26 @@ private:
 	void setRefreshState(const string& aPath, RefreshState aState, bool aUpdateRefreshTime) noexcept;
 
 	// Recursive function for building a new share tree from a path
-	void buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
+	void buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
 
 	void addFile(const string& aName, Directory::Ptr& aDir, const HashedFile& fi, ProfileTokenSet& dirtyProfiles_) noexcept;
 
 	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex, DirMultiMap& aDirNames) noexcept;
 	static void updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex) noexcept;
+
 	void cleanIndices(Directory& dir) noexcept;
-	void addDirName(Directory::Ptr& dir) noexcept;
-	void removeDirName(Directory& dir) noexcept;
 	void cleanIndices(Directory& dir, const Directory::File* f) noexcept;
+
+	/*inline void addDirName(Directory::Ptr& aDir) noexcept {
+		addDirName(aDir, dirNameMap);
+	}
+
+	inline void removeDirName(Directory& aDir) noexcept {
+		removeDirName(aDir, dirNameMap);
+	}*/
+
+	static void addDirName(const Directory::Ptr& dir, DirMultiMap& aDirNames, ShareBloom& aBloom) noexcept;
+	static void removeDirName(const Directory& dir, DirMultiMap& aDirNames) noexcept;
 
 	void onFileHashed(const string& fname, HashedFile& fileInfo) noexcept;
 	

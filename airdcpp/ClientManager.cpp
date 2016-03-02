@@ -26,7 +26,7 @@
 #include "FavoriteManager.h"
 #include "LogManager.h"
 #include "QueueManager.h"
-#include "RelevancySearch.h"
+#include "RelevanceSearch.h"
 #include "ResourceManager.h"
 #include "SearchManager.h"
 #include "SearchResult.h"
@@ -1017,7 +1017,7 @@ void ClientManager::directSearch(const HintedUser& user, const SearchPtr& aSearc
 }
 
 OnlineUserList ClientManager::searchNicks(const string& aPattern, size_t aMaxResults, bool aIgnorePrefix) const noexcept {
-	auto search = RelevancySearch<OnlineUserPtr>(aPattern, [aIgnorePrefix](const OnlineUserPtr& aUser) {
+	auto search = RelevanceSearch<OnlineUserPtr>(aPattern, [aIgnorePrefix](const OnlineUserPtr& aUser) {
 		return aIgnorePrefix ? stripNick(aUser->getIdentity().getNick()) : aUser->getIdentity().getNick();
 	});
 

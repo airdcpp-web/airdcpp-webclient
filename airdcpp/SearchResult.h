@@ -81,14 +81,14 @@ public:
 		bool operator()(const SearchResultPtr& left, const SearchResultPtr& right) const;
 	};
 
-	struct RelevancyInfo {
-		double matchRelevancy;
+	struct RelevanceInfo {
+		double matchRelevance;
 		double sourceScoreFactor;
 	};
 
-	// Matches result against the current search and returns relevancy information
+	// Matches result against the current search and returns relevance information
 	// Non-mandatory validity checks are skipped if no search token is provided
-	bool getRelevancy(SearchQuery& aQuery, RelevancyInfo& relevancy_, const string& aSearchToken = Util::emptyString) const noexcept;
+	bool getRelevance(SearchQuery& aQuery, RelevanceInfo& relevance_, const string& aSearchToken = Util::emptyString) const noexcept;
 private:
 	bool matches(SearchQuery& aQuery, const string& aSearchToken) const noexcept;
 

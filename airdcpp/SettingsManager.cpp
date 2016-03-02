@@ -24,6 +24,7 @@
 #include "ConnectivityManager.h"
 #include "File.h"
 #include "LogManager.h"
+#include "Mapper_MiniUPnPc.h"
 #include "ResourceManager.h"
 #include "SimpleXML.h"
 #include "StringTokenizer.h"
@@ -304,11 +305,15 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(TEMP_DOWNLOAD_DIRECTORY, Util::getPath(Util::PATH_USER_CONFIG) + "Incomplete" PATH_SEPARATOR_STR);
 	setDefault(SLOTS, 2);
 	setDefault(MAX_COMMAND_LENGTH, 512*1024); // 512 KiB
+
 	setDefault(BIND_ADDRESS, "0.0.0.0");
 	setDefault(BIND_ADDRESS6, "::");
-	setDefault(TCP_PORT, 0);
-	setDefault(UDP_PORT, 0);
-	setDefault(TLS_PORT, 0);
+
+	setDefault(TCP_PORT, Util::rand(10000, 32000));
+	setDefault(UDP_PORT, Util::rand(10000, 32000));
+	setDefault(TLS_PORT, Util::rand(10000, 32000));
+
+	setDefault(MAPPER, Mapper_MiniUPnPc::name);
 	setDefault(INCOMING_CONNECTIONS, INCOMING_ACTIVE);
 
 	//TODO: check whether we have ipv6 available
@@ -1124,13 +1129,6 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 
 	if(SETTING(PRIVATE_ID).length() != 39 || !CID(SETTING(PRIVATE_ID))) {
 		set(SettingsManager::PRIVATE_ID, CID::generate().toBase32());
-	}
-
-	//lanMode = SETTING(SETTINGS_PROFILE) == PROFILE_LAN;
-	if(SETTING(INCOMING_CONNECTIONS) == INCOMING_ACTIVE || INCOMING_ACTIVE_UPNP) {
-		if(SETTING(TLS_PORT) == 0) {
-			set(TLS_PORT, (int)Util::rand(10000, 32000));
-		}
 	}
 
 	//check the bind address

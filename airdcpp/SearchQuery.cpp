@@ -30,7 +30,7 @@ namespace {
 
 namespace dcpp {
 
-double SearchQuery::getRelevancyScores(const SearchQuery& aSearch, int aLevel, bool aIsDirectory, const string& aName) noexcept {
+double SearchQuery::getRelevanceScore(const SearchQuery& aSearch, int aLevel, bool aIsDirectory, const string& aName) noexcept {
 	// get the level scores first
 	double scores = aLevel > 0 ? 9 / static_cast<double>(aLevel) : 10;
 	double maxPoints = 10;
@@ -146,7 +146,7 @@ SearchQuery* SearchQuery::getSearch(const SearchPtr& aSearch) noexcept {
 	if(aSearch->fileType == Search::TYPE_TTH) {
 		s = new SearchQuery(TTHValue(aSearch->query));
 	} else {
-		s = new SearchQuery(aSearch->query, aSearch->excluded, aSearch->exts, aSearch->namesOnly ? MATCH_NAME : MATCH_FULL_PATH);
+		s = new SearchQuery(aSearch->query, aSearch->excluded, aSearch->exts, aSearch->matchType);
 		if(aSearch->sizeType == Search::SIZE_ATLEAST) {
 			s->gt = aSearch->size;
 		} else if(aSearch->sizeType == Search::SIZE_ATMOST) {
@@ -233,10 +233,10 @@ SearchQuery::SearchQuery(const TTHValue& aRoot) noexcept : root(aRoot) {
 
 }
 
-SearchQuery::SearchQuery(const string& aSearch, const StringList& aExcluded, const StringList& aExt, MatchType aMatchType) noexcept : matchType(aMatchType) {
+SearchQuery::SearchQuery(const string& aSearch, const StringList& aExcluded, const StringList& aExt, Search::MatchType aMatchType) noexcept : matchType(aMatchType) {
 
 	//add included
-	if (matchType == MATCH_EXACT) {
+	if (matchType == Search::MATCH_NAME_EXACT) {
 		include.addString(aSearch);
 	} else {
 		auto inc = move(parseSearchString(aSearch));
@@ -284,7 +284,7 @@ SearchQuery::SearchQuery(const StringList& params, size_t aMaxResults) noexcept 
 		} else if(toCode('T', 'Y') == cmd) {
 			itemType = static_cast<ItemType>(Util::toInt(p.substr(2)));
 		} else if(toCode('M', 'T') == cmd) {
-			matchType = static_cast<MatchType>(Util::toInt(p.substr(2)));
+			matchType = static_cast<Search::MatchType>(Util::toInt(p.substr(2)));
 		} else if(toCode('O', 'T') == cmd) {
 			maxDate = Util::toInt64(p.substr(2));
 		} else if(toCode('N', 'T') == cmd) {
@@ -343,7 +343,7 @@ bool SearchQuery::matchesFileLower(const string& aName, int64_t aSize, uint64_t 
 		return false;
 	}
 
-	if (matchType == MATCH_EXACT) {
+	if (matchType == Search::MATCH_NAME_EXACT) {
 		if (compare(include.getPatterns().front().str(), aName) != 0)
 			return false;
 	} else {
@@ -421,7 +421,7 @@ bool SearchQuery::matchesDirectory(const string& aName) noexcept {
 }
 
 bool SearchQuery::matchesAnyDirectoryLower(const string& aName) noexcept {
-	if (matchType != MATCH_FULL_PATH && itemType == TYPE_FILE)
+	if (matchType != Search::MATCH_PATH_PARTIAL && itemType == TYPE_FILE)
 		return false;
 
 	// no additional checks at this point to allow recursion to work

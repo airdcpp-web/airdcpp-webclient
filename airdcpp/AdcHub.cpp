@@ -1172,8 +1172,8 @@ void AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch) {
 			c.addParam("PP", "1");
 		}
 
-		if (aSearch->namesOnly) {
-			c.addParam("MT", "1"); // name matches only
+		if (aSearch->matchType != Search::MATCH_PATH_PARTIAL) {
+			c.addParam("MT", Util::toString(aSearch->matchType)); // name matches only
 		}
 
 		c.addParam("MR", Util::toString(aSearch->maxResults));

@@ -581,7 +581,7 @@ void DirectoryListing::findNfoImpl(const string& aPath, bool aAllowQueueList, Du
 
 		try {
 			SearchResultList results;
-			auto query = SearchQuery(Util::emptyString, StringList(), { ".nfo" }, SearchQuery::MATCH_NAME);
+			auto query = SearchQuery(Util::emptyString, StringList(), { ".nfo" }, Search::MATCH_NAME_PARTIAL);
 			query.maxResults = 1;
 
 			ShareManager::getInstance()->search(results, query, getShareProfile(), ClientManager::getInstance()->getMyCID(), Util::toAdcFile(aPath));

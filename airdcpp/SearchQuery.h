@@ -32,11 +32,11 @@ namespace dcpp {
 
 	class SearchQuery {
 	public:
-		enum MatchType {
+		/*enum MatchType {
 			MATCH_FULL_PATH,
 			MATCH_NAME,
 			MATCH_EXACT
-		};
+		};*/
 
 		enum ItemType {
 			TYPE_ANY,
@@ -47,7 +47,7 @@ namespace dcpp {
 		typedef vector<pair<size_t, int>> ResultPointsList;
 
 		// Gets a score (0-1) based on how well the current item matches the provided search (which must have been fully matched first)
-		static double getRelevancyScores(const SearchQuery& aSearch, int aLevel, bool aIsDirectory, const string& aName) noexcept;
+		static double getRelevanceScore(const SearchQuery& aSearch, int aLevel, bool aIsDirectory, const string& aName) noexcept;
 
 		// Count points per pattern based on the matching positions (based on the surrounding separators)
 		ResultPointsList toPointList(const string& aName) const noexcept;
@@ -55,7 +55,7 @@ namespace dcpp {
 		// General initialization
 		static SearchQuery* getSearch(const SearchPtr& aSearch) noexcept;
 		static StringList parseSearchString(const string& aString) noexcept;
-		SearchQuery(const string& aString, const StringList& aExcluded, const StringList& aExt, MatchType aMatchType) noexcept;
+		SearchQuery(const string& aString, const StringList& aExcluded, const StringList& aExt, Search::MatchType aMatchType) noexcept;
 		SearchQuery(const TTHValue& aRoot) noexcept;
 
 		// Protocol-specific
@@ -115,7 +115,7 @@ namespace dcpp {
 		optional<TTHValue> root;
 		size_t maxResults = 0;
 
-		MatchType matchType = MATCH_FULL_PATH;
+		Search::MatchType matchType = Search::MATCH_PATH_PARTIAL;
 		bool addParents = false;
 
 		ItemType itemType = TYPE_ANY;
