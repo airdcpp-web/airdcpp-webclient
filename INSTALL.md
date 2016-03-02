@@ -12,7 +12,7 @@ Ubuntu 14.04 or newer is required for installing the client.
 
 #### Install tools
 
-`sudo apt-get install gcc g++ git cmake npm nodejs`
+`sudo apt-get install gcc g++ git cmake npm python`
 
 #### Install libraries
 
