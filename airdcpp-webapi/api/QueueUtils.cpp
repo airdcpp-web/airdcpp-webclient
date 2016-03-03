@@ -210,8 +210,8 @@ namespace webserver {
 			case Bundle::STATUS_NEW: return "new";
 			case Bundle::STATUS_QUEUED: return "queued";
 			case Bundle::STATUS_RECHECK: return "recheck";
-			case Bundle::STATUS_DOWNLOADED: return "moving";
-			case Bundle::STATUS_MOVED: return "downloaded";
+			case Bundle::STATUS_DOWNLOADED: return "downloaded";
+			case Bundle::STATUS_MOVED: return "moved";
 			case Bundle::STATUS_DOWNLOAD_FAILED: return "download_failed";
 			case Bundle::STATUS_FAILED_MISSING: return "scan_failed_files_missing";
 			case Bundle::STATUS_SHARING_FAILED: return "scan_failed";
