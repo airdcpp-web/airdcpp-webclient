@@ -119,6 +119,8 @@ namespace webserver {
 				aEntry->get(HubSettings::Description) = JsonUtil::parseValue<string>("user_description", i.value());
 			} else if (key == "ignore_private_messages") {
 				aEntry->setFavNoPM(JsonUtil::parseValue<bool>("ignore_private_messages", i.value()));
+			} else if (key == "nmdc_encoding") {
+				aEntry->get(HubSettings::NmdcEncoding) = JsonUtil::parseValue<string>("nmdc_encoding", i.value());
 			}
 		}
 	}
