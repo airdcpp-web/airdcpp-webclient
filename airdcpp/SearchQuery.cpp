@@ -223,6 +223,7 @@ SearchQuery::SearchQuery(const string& nmdcString, Search::SizeModes aSizeMode, 
 		case Search::TYPE_PICTURE: ext = AdcHub::parseSearchExts(1 << 4); break;
 		case Search::TYPE_VIDEO: ext = AdcHub::parseSearchExts(1 << 5); break;
 		case Search::TYPE_DIRECTORY: itemType = SearchQuery::TYPE_DIRECTORY; break;
+		default: break;
 		}
 	}
 
