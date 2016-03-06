@@ -4,12 +4,12 @@ wantedVersion=$1
 if [ "$wantedVersion" = "latest" ]; then
   wantedVersion=$(npm show airdcpp-webui version)
 else
-  if [ $(echo -n $wantedVersion | tail -c 1) = "b" ]; then
+  if [ $(echo $wantedVersion | grep b) ]; then
     # Convert to ^1.0.0-beta
-    wantedVersion="^${wantedVersion%??}0-beta"
+    wantedVersion="~${wantedVersion%??}0-beta"
   else
     # Convert to ^1.0.0
-    wantedVersion="^${wantedVersion%?}0"
+    wantedVersion="~${wantedVersion%?}0"
   fi
 fi
 
