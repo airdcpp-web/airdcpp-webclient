@@ -501,7 +501,7 @@ void ConnectionManager::accept(const Socket& sock, bool secure) noexcept {
 	if(now > floodCounter) {
 		floodCounter = now + FLOOD_ADD;
 	} else {
-		if(false && now + FLOOD_TRIGGER < floodCounter) {
+		/*if(now + FLOOD_TRIGGER < floodCounter) {
 			Socket s(Socket::TYPE_TCP);
 			try {
 				s.accept(sock);
@@ -510,9 +510,9 @@ void ConnectionManager::accept(const Socket& sock, bool secure) noexcept {
 			}
 			dcdebug("Connection flood detected!\n");
 			return;
-		} else {
+		} else {*/
 			floodCounter += FLOOD_ADD;
-		}
+		//}
 	}
 	UserConnection* uc = getConnection(false, secure);
 	uc->setFlag(UserConnection::FLAG_INCOMING);

@@ -52,12 +52,11 @@
 #include <sys/types.h>
 #include <time.h>
 #include <locale.h>
-#ifndef _MSC_VER
 #include <stdint.h>
-#endif
 
 #include <algorithm>
 #include <atomic>
+#include <cinttypes>
 #include <deque>
 #include <functional>
 #include <list>
@@ -98,9 +97,5 @@ namespace dcpp {
 	inline int strnicmp(const wstring& a, const wstring& b, size_t n) { return _wcsnicmp(a.c_str(), b.c_str(), n); }
 #endif
 }
-
-// always include
-#include <utility>
-using std::move;
 
 #endif // !defined(STDINC_H)

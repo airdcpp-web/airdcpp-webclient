@@ -30,10 +30,7 @@
 #include <leveldb/cache.h>
 #include <leveldb/slice.h>
 #include <leveldb/write_batch.h>
-
-#ifdef HAVE_LEVELDB_BLOOM
 #include <leveldb/filter_policy.h>
-#endif
 
 #define MAX_DB_RETRIES 10
 
@@ -58,10 +55,7 @@ LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cach
 	defaultOptions.paranoid_checks = false;
 	//options.write_buffer_size = cacheSize / 4; // up to two write buffers may be held in memory simultaneously
 	defaultOptions.create_if_missing = true;
-
-#ifdef HAVE_LEVELDB_BLOOM
 	defaultOptions.filter_policy = leveldb::NewBloomFilterPolicy(10);
-#endif
 }
 
 string LevelDB::getRepairFlag() const { return dbPath + "REPAIR"; }
@@ -125,9 +119,7 @@ void LevelDB::repair(StepFunction stepF, MessageFunction messageF) throw(DbExcep
 LevelDB::~LevelDB() {
 	if (db)
 		delete db;
-#ifdef HAVE_LEVELDB_BLOOM
 	delete defaultOptions.filter_policy;
-#endif
 	delete defaultOptions.block_cache;
 }
 
