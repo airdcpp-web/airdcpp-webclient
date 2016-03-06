@@ -1123,8 +1123,10 @@ void DirectoryListing::on(TimerManagerListener::Second, uint64_t /*aTick*/) noex
 void DirectoryListing::endSearch(bool timedOut /*false*/) noexcept {
 	TimerManager::getInstance()->removeListener(this);
 
-	directSearch->getPaths(searchResults, true);
-	directSearch.reset(nullptr);
+	if (directSearch) {
+		directSearch->getPaths(searchResults, true);
+		directSearch.reset(nullptr);
+	}
 
 	if (searchResults.size() == 0) {
 		curSearch = nullptr;

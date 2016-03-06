@@ -27,7 +27,6 @@
 
 namespace dcpp {
 
-using std::forward;
 using std::vector;
 using boost::range::find;
 
@@ -44,7 +43,7 @@ public:
 		Lock l(listenerCS);
 		tmpListeners = listeners;
 		for(auto listener: tmpListeners) {
-			listener->on(forward<ArgT>(args)...);
+			listener->on(std::forward<ArgT>(args)...);
 		}
 	}
 

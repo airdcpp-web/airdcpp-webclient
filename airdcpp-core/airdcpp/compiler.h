@@ -123,7 +123,8 @@
 #define BOOST_USE_WINDOWS_H
 #endif
 
-#define BOOST_MOVE_USE_STANDARD_LIBRARY_MOVE
+// https://github.com/airdcpp-web/airdcpp-webclient/issues/60
+//#define BOOST_MOVE_USE_STANDARD_LIBRARY_MOVE
 
 #ifndef _REENTRANT
 # define _REENTRANT 1

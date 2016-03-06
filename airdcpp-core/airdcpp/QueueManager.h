@@ -43,8 +43,16 @@
 #include "TaskQueue.h"
 #include "UserQueue.h"
 
+// For Boost 1.60
+#if defined (__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wredeclared-class-member"
+#endif
 #include <boost/bimap.hpp>
 #include <boost/bimap/unordered_multiset_of.hpp>
+#if defined (__clang__)
+#pragma clang diagnostic pop
+#endif
 
 
 namespace dcpp {
