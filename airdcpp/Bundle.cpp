@@ -632,6 +632,9 @@ bool Bundle::allowAutoSearch() const noexcept {
 }
 
 void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) const noexcept {
+	if (queueItems.empty())
+		return;
+	
 	if (fileBundle || queueItems.size() == 1) {
 		searches.emplace(Util::emptyString, queueItems.front());
 		return;

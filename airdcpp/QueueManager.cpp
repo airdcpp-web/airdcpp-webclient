@@ -533,7 +533,7 @@ QueueItemPtr QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFla
 			throw QueueException(STRING(LIST_ALREADY_QUEUED));
 		}
 
-		q = move(ret.first);
+		q = std::move(ret.first);
 		addSource(q, aUser, true, false, false);
 		if (aBundle) {
 			q->setFlag(QueueItem::FLAG_MATCH_BUNDLE);
@@ -690,7 +690,7 @@ QueueItemPtr QueueManager::addOpenedItem(const string& aFileName, int64_t aSize,
 	{
 		WLock l(cs);
 		auto ret = fileQueue.add(target, aSize, flags, QueueItem::HIGHEST, Util::emptyString, GET_TIME(), aTTH);
-		qi = move(ret.first);
+		qi = std::move(ret.first);
 		wantConnection = addSource(qi, aUser, true, false, false);
 
 		if (ret.second)
@@ -963,7 +963,7 @@ bool QueueManager::addFile(const string& aTarget, int64_t aSize, const TTHValue&
 	if(!ret.second) {
 		// exists already
 		if (replaceItem(ret.first, aSize, root)) {
-			ret = move(fileQueue.add(aTarget, aSize, aFlags, aPrio, Util::emptyString, GET_TIME(), root));
+			ret = std::move(fileQueue.add(aTarget, aSize, aFlags, aPrio, Util::emptyString, GET_TIME(), root));
 		}
 	}
 	
