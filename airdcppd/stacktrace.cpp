@@ -23,10 +23,8 @@
 
 #include <iostream>
 #include <cxxabi.h> // __cxxabiv1::__cxa_demangle
-#if USE_STACKTRACE
 #include <unistd.h>
 #include <execinfo.h> // backtrace_symbols
-#endif
 
 #include "stacktrace.h"
 
@@ -38,7 +36,6 @@ StackTrace::StackTrace(const std::string& aAppPath) : appPath(aAppPath) {
 
 void StackTrace::generate_frames()
 {
-#if USE_STACKTRACE
     this->clear();
 
     const int size = 200;
@@ -52,7 +49,6 @@ void StackTrace::generate_frames()
         this->push_back(parse_line(symbols[i]));
 
     free(symbols);
-#endif // USE_STACKTRACE
 }
 
 /* Example lines
@@ -67,7 +63,6 @@ void StackTrace::generate_frames()
 
 StackFrame StackTrace::parse_line(const std::string &line)
 {
-#if USE_STACKTRACE
   std::string object;
     std::string function;
     std::string address;
@@ -117,7 +112,6 @@ StackFrame StackTrace::parse_line(const std::string &line)
 #endif // USE_ADDR2LINE
 
     return StackFrame(object, function, address, file, linenum);
-#endif // USE_STACKTRACE
 }
 
 #if USE_ADDR2LINE
