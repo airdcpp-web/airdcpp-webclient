@@ -139,12 +139,29 @@ message (STATUS "Data directory: ${CLIENT_DATA_DIR}")
 #	endif(GIT_TAG)
 #endif (GIT_EXECUTABLE)
 
+
 # Version information for the client
-execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc ${VERSION} ${TAG_APPLICATION} WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc ${VERSION} ${TAG_APPLICATION} 
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            RESULT_VARIABLE SCRIPT_RESULT)
+
+if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
+    message(FATAL_ERROR "Failed to generate version file")
+endif()
 
 # Generate StringDefs.cpp
+find_program(PYTHON_EXECUTABLE npm PATHS /sw/bin)
+if(NOT PYTHON_EXECUTABLE)
+  message(FATAL_ERROR "Could not find 'python' executable. Please install python")
+endif(NOT PYTHON_EXECUTABLE)
+
 execute_process (COMMAND python generate_stringdefs.py airdcpp-core/airdcpp/
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            RESULT_VARIABLE SCRIPT_RESULT)
+
+if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
+    message(FATAL_ERROR "Failed to generate string definitions")
+endif()
 
 
 if (UNIX)
@@ -214,8 +231,14 @@ if(INSTALL_WEB_UI)
 	endif(NOT NPM_EXECUTABLE)
 
 	message(STATUS "Installing Web UI")
-	execute_process (COMMAND sh install_webui.sh ${SOVERSION}
-							WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+        execute_process (COMMAND sh install_webui.sh ${SOVERSION}
+                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                 RESULT_VARIABLE SCRIPT_RESULT)
+
+	if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
+            message(FATAL_ERROR "Failed to install Web UI")
+        endif()
+
 else(INSTALL_WEB_UI)
 	message(STATUS "Skipping Web UI installation")
 endif (INSTALL_WEB_UI)

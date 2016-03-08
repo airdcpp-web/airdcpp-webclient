@@ -15,3 +15,11 @@ fi
 
 echo "Installing Web UI ($wantedVersion)"
 npm install --prefix . airdcpp-webui@$wantedVersion
+
+if [ $? -eq 0 ]; then
+  echo "Web UI was installed successfully"
+  exit 0
+fi
+
+exit 1
+
