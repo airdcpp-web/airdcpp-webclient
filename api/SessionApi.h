@@ -35,7 +35,7 @@ namespace webserver {
 
 		json getSystemInfo(const string& aIp) const noexcept;
 	private:
-
+		static string getHostname() noexcept;
 	};
 }
 
