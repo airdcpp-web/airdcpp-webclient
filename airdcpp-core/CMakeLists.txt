@@ -9,7 +9,9 @@ set (AIRDCPP_SRCS ${airdcpp_srcs} PARENT_SCOPE)
 set (AIRDCPP_HDRS ${airdcpp_hdrs} PARENT_SCOPE)
 
 include_directories (${Boost_INCLUDE_DIR} ${BZIP2_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} 
-			${LevelDB_INCLUDE_DIR} ${LibNatpmp_INCLUDE_DIR})
+			${LevelDB_INCLUDE_DIR})
+
+# ${LibNatpmp_INCLUDE_DIR}
 
 if (WIN32)
   set (LINK STATIC)
@@ -17,6 +19,7 @@ else (WIN32)
   list (REMOVE_ITEM airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/ZipFile.h)
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/ZipFile.cpp)
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/Updater.cpp)  
+  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/Mapper_WinUPnP.cpp)
 
   if (NOT CMAKE_CROSSCOMPILING)
     set (PTHREADS "pthread")
@@ -24,16 +27,13 @@ else (WIN32)
 endif (WIN32)
 
 if (NOT LINK)
-  set (LINK SHARED)
+    set (LINK SHARED)
 endif (NOT LINK)
 
 if (APPLE)
-  set (APPLE_LIBS "iconv")
+    list (APPEND airdcpp_extra_libs "iconv")
+    #set (EXTRA_LIBS "iconv")
 endif (APPLE)
-
-#set (UPNP "extra")
-
-add_library (airdcpp ${LINK} ${airdcpp_srcs})
 
 
 
@@ -42,17 +42,40 @@ set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/Updater.h PROPERTY COMPILE_DEF
 
 add_definitions (-DNO_CLIENT_UPDATER)
 
+if (TBB_FOUND)
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/concurrency.h PROPERTY COMPILE_DEFINITIONS HAVE_INTEL_TBB)
+  #target_link_libraries (airdcpp ${TBB_LIBRARIES})
+  list (APPEND airdcpp_extra_libs ${TBB_LIBRARIES})
+endif (TBB_FOUND)
+
+if (LibNatpmp_FOUND )
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/MappingManager.cpp PROPERTY COMPILE_DEFINITIONS HAVE_NATPMP_H)
+  #target_link_libraries (airdcpp ${LibNatpmp_LIBRARY})
+  list (APPEND airdcpp_extra_libs ${LibNatpmp_LIBRARY})
+else (LibNatpmp_FOUND )
+  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/Mapper_NATPMP.cpp)
+endif (LibNatpmp_FOUND )
+
+
 if (ICONV_SECOND_ARGUMENT_IS_CONST)
     set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/Text.cpp PROPERTY COMPILE_DEFINITIONS ICONV_CONST=const)
 endif (ICONV_SECOND_ARGUMENT_IS_CONST)
 
 if (HAVE_IFADDRS_H)
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/AirUtil.cpp PROPERTY COMPILE_DEFINITIONS HAVE_IFADDRS_H APPEND)
+    set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/AirUtil.cpp PROPERTY COMPILE_DEFINITIONS HAVE_IFADDRS_H APPEND)
 endif (HAVE_IFADDRS_H)
 
 if (HAVE_MNTENT_H)
-	set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/TargetUtil.cpp PROPERTY COMPILE_DEFINITIONS HAVE_MNTENT_H APPEND)
+    set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/TargetUtil.cpp PROPERTY COMPILE_DEFINITIONS HAVE_MNTENT_H APPEND)
 endif (HAVE_MNTENT_H)
+
+
+add_library (airdcpp ${LINK} ${airdcpp_srcs})
+
+target_link_libraries (airdcpp ${PTHREADS} ${BZIP2_LIBRARIES} ${ZLIB_LIBRARIES} ${MINIUPNP_LIBRARY}
+${OPENSSL_LIBRARIES} ${ICONV_LIBRARIES} ${airdcpp_extra_libs} ${UPNP} ${Boost_LIBRARIES} ${LevelDB_LIBRARY} ${LibGeoIP_LIBRARY} )
+
+set_target_properties(airdcpp PROPERTIES VERSION ${SOVERSION} OUTPUT_NAME "airdcpp")
 
 if (WIN32)
    set_property(TARGET airdcpp PROPERTY COMPILE_FLAGS)
@@ -60,11 +83,7 @@ else(WIN32)
    set_property(TARGET airdcpp PROPERTY COMPILE_FLAGS -fPIC)
 endif (WIN32)
 
-target_link_libraries (airdcpp ${PTHREADS} ${BZIP2_LIBRARIES} ${ZLIB_LIBRARIES} ${MINIUPNP_LIBRARY}
-${OPENSSL_LIBRARIES} ${ICONV_LIBRARIES} ${APPLE_LIBS} ${UPNP} ${Boost_LIBRARIES} ${LevelDB_LIBRARY} ${LibGeoIP_LIBRARY}
-${TBB_LIBRARIES} )
 
-set_target_properties(airdcpp PROPERTIES VERSION ${SOVERSION} OUTPUT_NAME "airdcpp")
 
 if (APPLE)
   set (LIBDIR1 .)

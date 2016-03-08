@@ -15,6 +15,8 @@ if(LibNatpmp_FOUND)
 else(LibNatpmp_FOUND)
   if(LibNatpmp_FIND_REQUIRED)
     message(FATAL_ERROR "Could not find natpmp library.")
+  else (LibNatpmp_FIND_REQUIRED)
+    message(STATUS "Could not find natpmp library.")
   endif(LibNatpmp_FIND_REQUIRED)
 endif(LibNatpmp_FOUND)
 
