@@ -25,8 +25,15 @@
 #include "format.h"
 #include "LogManager.h"
 #include "Mapper_MiniUPnPc.h"
+
+#ifdef HAVE_NATPMP_H
 #include "Mapper_NATPMP.h"
+#endif
+
+#ifdef HAVE_WINUPNP_H
 #include "Mapper_WinUPnP.h"
+#endif
+
 #include "ScopedFunctor.h"
 #include "SearchManager.h"
 #include "ResourceManager.h"
@@ -38,8 +45,13 @@ MappingManager::MappingManager(bool v6) : renewal(0), v6(v6) {
 	busy.clear();
 	addMapper<Mapper_MiniUPnPc>();
 	if (!v6) {
+#ifdef HAVE_NATPMP_H
 		addMapper<Mapper_NATPMP>();
+#endif
+
+#ifdef HAVE_WINUPNP_H
 		addMapper<Mapper_WinUPnP>();
+#endif
 	}
 }
 

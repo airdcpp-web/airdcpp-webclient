@@ -53,8 +53,6 @@ bool Mapper_NATPMP::supportsProtocol(bool aV6) const {
 	return !aV6;
 }
 
-#ifdef HAVE_NATPMP_H
-
 static natpmp_t nat;
 
 bool Mapper_NATPMP::init() {
@@ -147,34 +145,5 @@ string Mapper_NATPMP::getExternalIP() {
 	}
 	return Util::emptyString;
 }
-
-#else
-
-bool Mapper_NATPMP::init() {
-	return false;
-}
-
-void Mapper_NATPMP::uninit() {
-}
-
-bool Mapper_NATPMP::add(const string& /*port*/, const Protocol /*protocol*/, const string& /*description*/) {
-	return false;
-}
-
-bool Mapper_NATPMP::remove(const string& /*port*/, const Protocol /*protocol*/) {
-	return false;
-}
-
-string Mapper_NATPMP::getDeviceName() {
-	return Util::emptyString;
-}
-
-string Mapper_NATPMP::getExternalIP() {
-	return Util::emptyString;
-}
-
-#endif
-
-
 
 } // dcpp namespace
