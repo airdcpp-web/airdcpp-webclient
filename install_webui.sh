@@ -13,11 +13,11 @@ else
   fi
 fi
 
-echo "Installing Web UI ($wantedVersion)"
+echo "\033[1mInstalling Web UI ($wantedVersion)\033[0m"
 npm install --prefix . airdcpp-webui@$wantedVersion
 
 if [ $? -eq 0 ]; then
-  echo "Web UI was installed successfully"
+  echo "\033[1mWeb UI was installed successfully\033[0m"
   exit 0
 fi
 
