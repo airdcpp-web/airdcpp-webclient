@@ -24,13 +24,8 @@
 #include "w.h"
 #include "AirUtil.h"
 
-#ifdef HAVE_WINUPNP_H
 #include <ole2.h>
 #include <natupnp.h>
-#else // HAVE_WINUPNP_H
-struct IUPnPNAT { };
-struct IStaticPortMappingCollection { };
-#endif // HAVE_WINUPNP_H
 
 namespace dcpp {
 
@@ -44,8 +39,6 @@ Mapper(localIp, v6)
 bool Mapper_WinUPnP::supportsProtocol(bool aV6) const {
 	return !aV6;
 }
-
-#ifdef HAVE_WINUPNP_H
 
 bool Mapper_WinUPnP::init() {
 	HRESULT hr = ::CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
@@ -192,36 +185,5 @@ IStaticPortMappingCollection* Mapper_WinUPnP::getStaticPortMappingCollection() {
 		return 0;
 	return ret;
 }
-
-#else // HAVE_WINUPNP_H
-
-bool Mapper_WinUPnP::init() {
-	return false;
-}
-
-void Mapper_WinUPnP::uninit() {
-}
-
-bool Mapper_WinUPnP::add(const string& /*port*/, const Protocol /*protocol*/, const string& /*description*/) {
-	return false;
-}
-
-bool Mapper_WinUPnP::remove(const string& /*port*/, const Protocol /*protocol*/) {
-	return false;
-}
-
-string Mapper_WinUPnP::getDeviceName() {
-	return Util::emptyString;
-}
-
-string Mapper_WinUPnP::getExternalIP() {
-	return Util::emptyString;
-}
-
-IStaticPortMappingCollection* Mapper_WinUPnP::getStaticPortMappingCollection() {
-	return 0;
-}
-
-#endif // HAVE_WINUPNP_H
 
 } // dcpp namespace
