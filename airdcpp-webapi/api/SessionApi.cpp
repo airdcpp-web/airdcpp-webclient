@@ -35,6 +35,19 @@ namespace webserver {
 
 	}
 
+	string SessionApi::getHostname() noexcept {
+#ifdef _WIN32
+		TCHAR computerName[1024];
+		DWORD size = 1024;
+		GetComputerName(computerName, &size);
+		return Text::fromT(computerName);
+#else
+		char hostname[128];
+		gethostname(hostname, sizeof hostname);
+		return hostname;
+#endif
+	}
+
 	json SessionApi::getSystemInfo(const string& aIp) const noexcept {
 		json retJson;
 		retJson["path_separator"] = PATH_SEPARATOR_STR;
@@ -50,13 +63,14 @@ namespace webserver {
 		}
 
 		retJson["network_type"] = Util::isPrivateIp(ip, v6) ? "local" : "internet";
-#ifdef WIN32
+#ifdef _WIN32
 		retJson["platform"] = "windows";
 #elif APPLE
 		retJson["platform"] = "osx";
 #else
 		retJson["platform"] = "other";
 #endif
+		retJson["hostname"] = getHostname();
 		return retJson;
 	}
 
