@@ -72,12 +72,9 @@ public:
 	enum BundleFlags {
 		/** Flags for scheduled actions */
 		FLAG_UPDATE_SIZE			= 0x01,
-		FLAG_UPDATE_NAME			= 0x02,
 		FLAG_SCHEDULE_SEARCH		= 0x04,
 		/** Autodrop slow sources is enabled for this bundle */
 		FLAG_AUTODROP				= 0x400,
-		/** Set when the bundle is being merged to another bundle */
-		FLAG_MERGING				= 0x800
 	};
 
 	enum Status {
@@ -145,7 +142,6 @@ public:
 
 	typedef pair<HintedUser, string> UserBundlePair;
 	typedef vector<UserBundlePair> FinishedNotifyList;
-	typedef unordered_map<string, pair<uint32_t, uint32_t>> DirMap;
 
 	typedef multimap<double, BundlePtr> SourceSpeedMapB;
 	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
@@ -179,7 +175,6 @@ public:
 	QueueItemList& getQueueItems() { return queueItems; }
 
 	const FinishedNotifyList& getFinishedNotifications() const noexcept  { return finishedNotifications; }
-	const DirMap& getDirectories() const noexcept { return directories; }
 
 	/* Misc */
 	bool isFileBundle() const noexcept { return fileBundle; }
@@ -201,13 +196,13 @@ public:
 	/* QueueManager */
 	bool isFailed() const noexcept;
 	void save() throw(FileException);
-	bool removeQueue(QueueItemPtr& qi, bool finished) noexcept;
-	bool addQueue(QueueItemPtr& qi) noexcept;
+	void removeQueue(QueueItemPtr& qi, bool aFinished) noexcept;
+	void addQueue(QueueItemPtr& qi) noexcept;
 
 	void getDirQIs(const string& aDir, QueueItemList& ql) const noexcept;
 
-	bool addFinishedItem(QueueItemPtr& qi, bool finished) noexcept;
-	bool removeFinishedItem(QueueItemPtr& qi) noexcept;
+	void addFinishedItem(QueueItemPtr& qi, bool finished) noexcept;
+	void removeFinishedItem(QueueItemPtr& qi) noexcept;
 	void finishBundle() noexcept;
 	bool allowHash() const noexcept;
 
@@ -216,10 +211,9 @@ public:
 	void addFinishedNotify(HintedUser& aUser, const string& remoteBundle) noexcept;
 	void removeFinishedNotify(const UserPtr& aUser) noexcept;
 
-	pair<uint32_t, uint32_t> getPathInfo(const string& aDir) const noexcept;
-
-	/* Get the path for matching a file list (remote file must be in NMDC format) */
-	string getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const noexcept;
+	// Get the path for matching a file list (remote file must be in NMDC format)
+	// Returns the local path for NMDC and the remote path for ADC
+	string getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool aNmdc) const noexcept;
 	QueueItemPtr findQI(const string& aTarget) const noexcept;
 	int countOnlineUsers() const noexcept;
 
@@ -229,8 +223,6 @@ public:
 
 	void increaseSize(int64_t aSize) noexcept;
 	void decreaseSize(int64_t aSize) noexcept;
-
-	void setTarget(const string& aTarget) noexcept;
 
 	void addFinishedSegment(int64_t aSize) noexcept;
 	void removeFinishedSegment(int64_t aSize) noexcept;
@@ -243,13 +235,11 @@ public:
 	bool removeRunningUser(const UserConnection* aSource, bool sendRemove) noexcept;
 	void setUserMode(bool setSingleUser) noexcept;
 
-	void sendSizeNameUpdate() noexcept;
+	void sendSizeUpdate() noexcept;
 
 	void addDownload(Download* d) noexcept;
 	void removeDownload(Download* d) noexcept;
 
-	void getSearchItems(map<string, QueueItemPtr>& searches, bool manual) const noexcept;
-	void updateSearchMode() noexcept;
 	bool allowAutoSearch() const noexcept;
 
 	bool onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept;
@@ -289,7 +279,6 @@ private:
 	/** Currently running downloads, a QueueItem is always either here or in the userQueue */
 	unordered_map<UserPtr, QueueItemList, User::Hash> runningItems;
 
-	DirMap directories;
 	UserIntMap runningUsers;					// running users and their connections cached
 	HintedUserList uploadReports;				// sources receiving UBN notifications (running only)
 	FinishedNotifyList finishedNotifications;	// partial bundle sharing sources (mapped to their local tokens)

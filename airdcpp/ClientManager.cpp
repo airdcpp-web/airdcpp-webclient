@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "ClientManager.h"
 
+#include "AirUtil.h"
 #include "ConnectivityManager.h"
 #include "ConnectionManager.h"
 #include "CryptoManager.h"

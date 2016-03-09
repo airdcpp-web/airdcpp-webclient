@@ -251,7 +251,7 @@ void Util::initialize(const string& aConfigPath) {
 	}
 
 	paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
-	paths[PATH_RESOURCES] = "/usr/share/airdcpp/";
+	paths[PATH_RESOURCES] = RESOURCE_DIRECTORY;
 	paths[PATH_LOCALE] = paths[PATH_RESOURCES] + "locale/";
 	paths[PATH_DOWNLOADS] = home + "/Downloads/";
 #endif

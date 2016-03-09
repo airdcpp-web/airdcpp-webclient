@@ -41,12 +41,6 @@ size_t BundleQueue::getTotalFiles() const noexcept {
 
 void BundleQueue::addBundle(BundlePtr& aBundle) noexcept {
 	bundles[aBundle->getToken()] = aBundle;
-	//check if we need to insert the root bundle dir
-	if (!aBundle->isFileBundle()) {
-		if (findLocalDir(aBundle->getTarget()) == bundleDirs.end()) {
-			addDirectory(aBundle->getTarget(), aBundle);
-		}
-	}
 
 	if (aBundle->isFinished()) {
 		aBundle->setStatus(Bundle::STATUS_FINISHED);
@@ -55,8 +49,8 @@ void BundleQueue::addBundle(BundlePtr& aBundle) noexcept {
 
 	aBundle->setStatus(Bundle::STATUS_QUEUED);
 	aBundle->setDownloadedBytes(0); //sets to downloaded segments
-	aBundle->updateSearchMode();
 
+	updateSearchMode(aBundle);
 	addSearchPrio(aBundle);
 }
 
@@ -79,63 +73,91 @@ BundlePtr BundleQueue::findBundle(QueueToken bundleToken) const noexcept {
 	return i != bundles.end() ? i->second : nullptr;
 }
 
-void BundleQueue::findRemoteDirs(const string& aPath, Bundle::StringBundleList& paths_) const noexcept {
-	if (aPath.size() < 3)
-		return;
+DupeType BundleQueue::isDirQueued(const string& aPath, int64_t aSize) const noexcept {
+	PathInfoList infos;
+	findRemoteDirs(aPath, infos);
 
-	//get the last directory, we might need the position later with subdirs
-	string remoteDir = aPath;
-	if (remoteDir.back() == '\\')
-		remoteDir.pop_back();
+	if (infos.empty())
+		return DUPE_NONE;
 
-	auto pos = remoteDir.rfind("\\");
-	if (pos != string::npos)
-		remoteDir = remoteDir.substr(pos+1);
+	const auto& pathInfo = *infos.front();
 
-	auto directories = bundleDirs.equal_range(remoteDir);
+	auto fullDupe = pathInfo.size == aSize;
+	if (pathInfo.queuedFiles == 0) {
+		return fullDupe ? DUPE_FINISHED_FULL : DUPE_FINISHED_PARTIAL;
+	}
+
+	return fullDupe ? DUPE_QUEUE_FULL : DUPE_QUEUE_PARTIAL;
+}
+
+size_t BundleQueue::getDirectoryCount(const BundlePtr& aBundle) const noexcept {
+	auto i = bundlePaths.find(aBundle);
+	if (i == bundlePaths.end()) {
+		return 0;
+	}
+
+	return i->second.size();
+}
+
+StringList BundleQueue::getDirPaths(const string& aPath) const noexcept {
+	PathInfoList infos;
+	findRemoteDirs(aPath, infos);
+
+	StringList ret;
+	for (const auto& p : infos) {
+		ret.push_back(p->path);
+	}
+
+	return ret;
+}
+
+void BundleQueue::findRemoteDirs(const string& aPath, PathInfoList& pathInfos_) const noexcept {
+	// Get the last meaningful directory to look up
+	auto dirNameInfo = AirUtil::getDirName(aPath, '\\');
+	auto directories = dirNameMap.equal_range(dirNameInfo.first);
 	if (directories.first == directories.second)
 		return;
 
-	//check the parents for dirs like CD1 to prevent false matches
-	if (boost::regex_match(remoteDir, AirUtil::subDirRegPlain) && pos != string::npos) {
-		string::size_type i, j;
-		remoteDir = "\\" + aPath;
+	// Go through all directories with this name
+	for (auto s = directories.first; s != directories.second; ++s) {
+		if (dirNameInfo.second != string::npos) {
+			// Confirm that we have the subdirectory as well
+			auto subDir = getSubDirectoryInfo(aPath.substr(dirNameInfo.second), s->second.bundle);
+			if (subDir) {
+				pathInfos_.push_back(subDir);
+			}
+		} else {
+			pathInfos_.push_back(&s->second);
+		}
+	}
+}
 
-		for(auto s = directories.first; s != directories.second; ++s) {
-			//start matching from the parent dir, as we know the last one already
-			i = pos;
-			string curDir = s->second.first;
+const BundleQueue::PathInfo* BundleQueue::getSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept {
+	auto paths = bundlePaths.find(aBundle);
+	if (paths != bundlePaths.end()) {
+		for (const auto& p : paths->second) {
+			auto fullPath = Util::toNmdcFile(p->path);
+			if (aSubPath.length() >= fullPath.length()) {
+				continue;
+			}
 
-			for(;;) {
-				j = remoteDir.find_last_of("\\", i);
-				if(j == string::npos || (int)(curDir.length() - (remoteDir.length() - j)) < 0) //also check if it goes out of scope for the local dir
-					break;
-				if(Util::stricmp(remoteDir.substr(j+1, i-j), curDir.substr(curDir.length() - (remoteDir.length()-j)+1, i-j)) == 0) {
-					if (!boost::regex_match(remoteDir.substr(j+1, i-j), AirUtil::subDirRegPlain)) { //another subdir? don't break in that case
-						paths_.emplace_back(s->second);
-						break;
-					}
-				} else {
-					//this is something different... continue to next match
-					break;
-				}
-				i = j - 1;
+			if (fullPath.substr(fullPath.length() - aSubPath.length()) == aSubPath) {
+				return p;
 			}
 		}
-	} else {
-		// copy all found directories
-		for (auto s = directories.first; s != directories.second; ++s)
-			paths_.emplace_back(s->second);
 	}
+
+	return nullptr;
 }
 
 BundlePtr BundleQueue::getMergeBundle(const string& aTarget) const noexcept {
 	/* Returns directory bundles that are in sub or parent dirs (or in the same location), in which we can merge to */
 	for(auto& compareBundle: bundles | map_values) {
+		dcassert(!AirUtil::isSub(aTarget, compareBundle->getTarget()));
 		if (compareBundle->isFileBundle()) {
 			if (!aTarget.empty() && aTarget.back() != PATH_SEPARATOR && aTarget == compareBundle->getTarget())
 				return compareBundle;
-		} else if (AirUtil::isSub(aTarget, compareBundle->getTarget()) || AirUtil::isParentOrExact(aTarget, compareBundle->getTarget())) {
+		} else if (AirUtil::isParentOrExact(aTarget, compareBundle->getTarget())) {
 			return compareBundle;
 		}
 	}
@@ -151,36 +173,156 @@ void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) c
 	}
 }
 
-void BundleQueue::addBundleItem(QueueItemPtr& qi, BundlePtr& aBundle) noexcept {
-	dcassert(!qi->getBundle());
-	if (aBundle->addQueue(qi) && !aBundle->isFileBundle()) {
-		addDirectory(qi->getFilePath(), aBundle);
+void BundleQueue::getSearchItems(const BundlePtr& aBundle, map<string, QueueItemPtr>& searchItems_, bool aManualSearch) const noexcept {
+	if (aBundle->getQueueItems().empty())
+		return;
+
+	if (aBundle->isFileBundle() || aBundle->getQueueItems().size() == 1) {
+		searchItems_.emplace(Util::emptyString, aBundle->getQueueItems().front());
+		return;
+	}
+
+	auto paths = bundlePaths.find(aBundle);
+	if (paths == bundlePaths.end()) {
+		return;
+	}
+
+	QueueItemPtr searchItem = nullptr;
+	for (const auto& i : paths->second) {
+		auto dir = AirUtil::getReleaseDir(i->path, false);
+
+		// Don't add the same directory twice
+		if (searchItems_.find(dir) != searchItems_.end()) {
+			continue;
+		}
+
+		// Get all queued files inside this directory
+		QueueItemList ql;
+		aBundle->getDirQIs(dir, ql);
+
+		if (ql.empty()) {
+			continue;
+		}
+
+		size_t s = 0;
+		searchItem = nullptr;
+
+		//do a few guesses to get a random item
+		while (s <= ql.size()) {
+			const auto& q = ql[ql.size() == 1 ? 0 : Util::rand(ql.size() - 1)];
+			if (q->isPausedPrio() && !aManualSearch) {
+				s++;
+				continue;
+			}
+			if (q->isRunning() || (q->isPausedPrio())) {
+				//it's ok but see if we can find better one
+				searchItem = q;
+			} else {
+				searchItem = q;
+				break;
+			}
+			s++;
+		}
+
+		if (searchItem) {
+			searchItems_.emplace(dir, searchItem);
+		}
 	}
 }
 
-void BundleQueue::removeBundleItem(QueueItemPtr& qi, bool finished) noexcept {
-	dcassert(qi->getBundle());
-	auto isFileBundle = qi->getBundle()->isFileBundle();
-	if (qi->getBundle()->removeQueue(qi, finished) && !finished && !isFileBundle) {
-		removeDirectory(qi->getFilePath());
+void BundleQueue::updateSearchMode(const BundlePtr& aBundle) const noexcept {
+	auto paths = bundlePaths.find(aBundle);
+	if (paths == bundlePaths.end()) {
+		return;
+	}
+
+	StringSet mainDirectories;
+	for (const auto& i : paths->second) {
+		mainDirectories.insert(AirUtil::getReleaseDir(i->path, false));
+	}
+
+	aBundle->setSimpleMatching(mainDirectories.size() <= 4);
+}
+
+void BundleQueue::removePathInfo(const PathInfo* aPathInfo) noexcept {
+	auto& pathInfos = bundlePaths[aPathInfo->bundle];
+	pathInfos.erase(find(pathInfos, aPathInfo));
+	if (pathInfos.empty()) {
+		bundlePaths.erase(aPathInfo->bundle);
+	}
+
+	auto nameRange = dirNameMap.equal_range(Util::getLastDir(aPathInfo->path));
+	auto i = boost::find(nameRange | map_values, aPathInfo).base();
+	if (i != nameRange.second) {
+		dirNameMap.erase(i);
 	}
 }
 
-void BundleQueue::addDirectory(const string& aPath, BundlePtr& aBundle) noexcept {
-	bundleDirs.emplace(Util::getLastDir(aPath), make_pair(aPath, aBundle));
-}
+void BundleQueue::forEachPath(const BundlePtr& aBundle, const string& aPath, PathInfoHandler&& aHandler) noexcept {
+	auto currentPath = Util::getFilePath(aPath);
+	while (true) {
+		dcassert(currentPath.find(aBundle->getTarget()) != string::npos);
 
-void BundleQueue::removeDirectory(const string& aPath) noexcept {
-	auto p = findLocalDir(aPath);
-	if (p != bundleDirs.end()) {
-		bundleDirs.erase(p);
+		auto& pathInfos = bundlePaths[aBundle];
+		auto infoIter = find_if(pathInfos, [&](const PathInfo* aInfo) { return aInfo->path == currentPath; });
+
+		PathInfo* info;
+
+		// New pathinfo?
+		if (infoIter == pathInfos.end()) {
+			info = &dirNameMap.emplace(Util::getLastDir(currentPath), PathInfo(currentPath, aBundle))->second;
+			pathInfos.push_back(info);
+		} else {
+			info = *infoIter;
+		}
+
+		aHandler(*info);
+
+		// Empty pathinfo?
+		if (info->finishedFiles == 0 && info->queuedFiles == 0) {
+			dcassert(info->size == 0);
+			removePathInfo(info);
+		}
+
+		if (currentPath == aBundle->getTarget()) {
+			break;
+		}
+
+		currentPath = Util::getParentDir(currentPath);
 	}
 }
 
-Bundle::BundleDirMap::iterator BundleQueue::findLocalDir(const string& aPath) noexcept {
-	auto bdr = bundleDirs.equal_range(Util::getLastDir(aPath));
-	auto s = find_if(bdr | map_values, CompareFirst<string, BundlePtr>(aPath));
-	return s.base() != bdr.second ? s.base() : bundleDirs.end();
+void BundleQueue::addBundleItem(QueueItemPtr& aQI, BundlePtr& aBundle) noexcept {
+	dcassert(!aQI->getBundle());
+	aBundle->addQueue(aQI);
+
+	if (!aBundle->isFileBundle()) {
+		forEachPath(aBundle, aQI->getTarget(), [&](PathInfo& aInfo) {
+			if (aQI->isFinished()) {
+				aInfo.finishedFiles++;
+			} else {
+				aInfo.queuedFiles++;
+			}
+
+			aInfo.size += aQI->getSize();
+		});
+	}
+}
+
+void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool finished) noexcept {
+	dcassert(aQI->getBundle());
+	aQI->getBundle()->removeQueue(aQI, finished);
+
+	if (!aQI->getBundle()->isFileBundle()) {
+		forEachPath(aQI->getBundle(), aQI->getTarget(), [&](PathInfo& aInfo) {
+			if (aQI->isFinished()) {
+				aInfo.finishedFiles--;
+			} else {
+				aInfo.queuedFiles--;
+			}
+			aInfo.size -= aQI->getSize();
+		});
+	}
 }
 
 void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
@@ -188,11 +330,13 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 		return;
 	}
 
-	for(const auto& d: aBundle->getDirectories() | map_keys) {
-		removeDirectory(d);
+	auto paths = bundlePaths.find(aBundle);
+	if (paths != bundlePaths.end()) {
+		auto pathInfos = paths->second;
+		for (const auto& p : pathInfos) {
+			removePathInfo(p);
+		}
 	}
-
-	removeDirectory(aBundle->getTarget());
 
 	dcassert(aBundle->getFinishedFiles().empty());
 	dcassert(aBundle->getQueueItems().empty());
@@ -203,31 +347,14 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 	aBundle->deleteXmlFile();
 }
 
-void BundleQueue::moveBundle(BundlePtr& aBundle, const string& newTarget) noexcept {
-	//remove the old release dir
-	removeDirectory(aBundle->getTarget());
-
-	aBundle->setTarget(newTarget);
-
-	//add new
-	addDirectory(newTarget, aBundle);
-}
-
 void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept{
-	string tempVol;
-	bool useSingleTempDir = !SETTING(DCTMP_STORE_DESTINATION) && SETTING(TEMP_DOWNLOAD_DIRECTORY).find("%[targetdrive]") == string::npos;
-	if (useSingleTempDir) {
-		tempVol = TargetUtil::getMountPath(SETTING(TEMP_DOWNLOAD_DIRECTORY), volumes);
-	}
-
 	for(const auto& b: bundles | map_values) {
 		string mountPath = TargetUtil::getMountPath(b->getTarget(), volumes);
 		if (!mountPath.empty()) {
 			auto s = dirMap.find(mountPath);
 			if (s != dirMap.end()) {
-				bool countAll = (useSingleTempDir && (mountPath != tempVol));
 				for(const auto& q: b->getQueueItems()) {
-					if (countAll || q->getDownloadedBytes() == 0) {
+					if (q->getDownloadedBytes() == 0) {
 						s->second.addQueued(q->getSize());
 					}
 				}

@@ -48,7 +48,6 @@ public:
 	typedef X<3> Tick;
 	typedef X<4> Requesting;
 	typedef X<5> Status;
-	typedef X<7> TargetChanged;
 	typedef X<8> BundleWaiting;
 	typedef X<9> BundleTick;
 
@@ -73,9 +72,6 @@ public:
 	 * No more messages will be sent after it.
 	 */
 	virtual void on(Complete, const Download*, bool) noexcept { }
-
-	/* format: target, token, bundleToken */
-	virtual void on(TargetChanged, const string&, const string&, QueueToken) noexcept { }
 
 	virtual void on(BundleWaiting, const BundlePtr&) noexcept { }
 	virtual void on(BundleTick, const BundleList&, uint64_t) noexcept { }

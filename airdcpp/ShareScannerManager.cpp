@@ -20,6 +20,7 @@
 
 #include "ShareScannerManager.h"
 
+#include "AirUtil.h"
 #include "FilteredFile.h"
 #include "File.h"
 #include "HashManager.h"

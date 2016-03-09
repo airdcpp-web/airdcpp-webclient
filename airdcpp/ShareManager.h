@@ -28,6 +28,7 @@
 #include "SearchQuery.h"
 #include "BloomFilter.h"
 #include "CriticalSection.h"
+#include "DupeType.h"
 #include "Exception.h"
 #include "Flags.h"
 #include "HashBloom.h"
@@ -155,7 +156,7 @@ public:
 	bool isDirShared(const string& aDir) const noexcept;
 
 	// Mostly for dupe check with size comparison (partial/exact dupe)
-	uint8_t isDirShared(const string& aPath, int64_t aSize) const noexcept;
+	DupeType isDirShared(const string& aPath, int64_t aSize) const noexcept;
 
 	bool isFileShared(const TTHValue& aTTH) const noexcept;
 	bool isFileShared(const TTHValue& aTTH, ProfileToken aProfile) const noexcept;

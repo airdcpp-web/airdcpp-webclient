@@ -1695,11 +1695,6 @@ void ShareManager::validateRootPath(const string& realPath) const throw(ShareExc
 	if (!SETTING(SHARE_HIDDEN) && File::isHidden(realPath)) {
 		throw ShareException(STRING(DIRECTORY_IS_HIDDEN));
 	}
-
-	if(Util::stricmp(SETTING(TEMP_DOWNLOAD_DIRECTORY), realPath) == 0) {
-		throw ShareException(STRING(DONT_SHARE_TEMP_DIRECTORY));
-	}
-
 #ifdef _WIN32
 	//need to throw here, so throw the error and dont use airutil
 	TCHAR path[MAX_PATH];
@@ -1791,15 +1786,15 @@ bool ShareManager::isDirShared(const string& aDir) const noexcept{
 	return !dirs.empty();
 }
 
-uint8_t ShareManager::isDirShared(const string& aDir, int64_t aSize) const noexcept{
+DupeType ShareManager::isDirShared(const string& aDir, int64_t aSize) const noexcept{
 	Directory::List dirs;
 
 	RLock l (cs);
 	getDirsByName(aDir, dirs);
 	if (dirs.empty())
-		return 0;
+		return DUPE_NONE;
 
-	return dirs.front()->getTotalSize() == aSize ? 2 : 1;
+	return dirs.front()->getTotalSize() == aSize ? DUPE_SHARE_FULL : DUPE_SHARE_PARTIAL;
 }
 
 StringList ShareManager::getDirPaths(const string& aDir) const noexcept{
@@ -3480,13 +3475,15 @@ void ShareManager::addDirName(const Directory::Ptr& aDir, DirMultiMap& aDirNames
 	auto p = find(directories | map_values, aDir);
 	dcassert(p.base() == directories.second);
 #endif
-	const auto& name = aDir->getProfileDir() ? aDir->getProfileDir()->getNameLower() : aDir->realName.getLower();
+	//const auto& name = aDir->getProfileDir() ? aDir->getProfileDir()->getNameLower() : aDir->realName.getLower();
+	const auto& name = aDir->realName.getLower();
 	aDirNames.emplace(const_cast<string*>(&name), aDir);
 	aBloom.add(aDir->realName.getLower());
 }
 
 void ShareManager::removeDirName(const Directory& aDir, DirMultiMap& aDirNames) noexcept {
-	const auto& name = aDir.getProfileDir() ? aDir.getProfileDir()->getNameLower() : aDir.realName.getLower();
+	//const auto& name = aDir.getProfileDir() ? aDir.getProfileDir()->getNameLower() : aDir.realName.getLower();
+	const auto& name = aDir.realName.getLower();
 
 	auto directories = aDirNames.equal_range(const_cast<string*>(&name));
 	auto p = find_if(directories | map_values, [&aDir](const Directory::Ptr& d) { return d.get() == &aDir; });
@@ -3802,9 +3799,6 @@ bool ShareManager::checkSharedName(const string& aPath, const string& aPathLower
 		if(aPathLower.length() >= winDir.length() && strcmp(aPathLower.substr(0, winDir.length()).c_str(), winDir.c_str()) == 0)
 			return false;
 #endif
-		if((strcmp(aPathLower.c_str(), AirUtil::tempDLDir.c_str()) == 0)) {
-			return false;
-		}
 	}
 	return true;
 }

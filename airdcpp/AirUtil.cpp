@@ -61,7 +61,6 @@ boost::regex AirUtil::subDirRegPlain;
 boost::regex AirUtil::crcReg;
 
 string AirUtil::privKeyFile;
-string AirUtil::tempDLDir;
 
 AirUtil::TimeCounter::TimeCounter(string aMsg) : start(GET_TICK()), msg(move(aMsg)) {
 
@@ -74,7 +73,7 @@ AirUtil::TimeCounter::~TimeCounter() {
 
 StringList AirUtil::getDirDupePaths(DupeType aType, const string& aPath) {
 	StringList ret;
-	if (aType == DUPE_SHARE || aType == DUPE_SHARE_PARTIAL) {
+	if (isShareDupe(aType)) {
 		ret = ShareManager::getInstance()->getDirPaths(aPath);
 	} else {
 		ret = QueueManager::getInstance()->getDirPaths(aPath);
@@ -83,9 +82,9 @@ StringList AirUtil::getDirDupePaths(DupeType aType, const string& aPath) {
 	return ret;
 }
 
-StringList AirUtil::getDupePaths(DupeType aType, const TTHValue& aTTH) {
+StringList AirUtil::getFileDupePaths(DupeType aType, const TTHValue& aTTH) {
 	StringList ret;
-	if (aType == DUPE_SHARE) {
+	if (isShareDupe(aType)) {
 		ret = ShareManager::getInstance()->getRealPaths(aTTH);
 	} else {
 		ret = QueueManager::getInstance()->getTargets(aTTH);
@@ -94,16 +93,25 @@ StringList AirUtil::getDupePaths(DupeType aType, const TTHValue& aTTH) {
 	return ret;
 }
 
+bool AirUtil::isShareDupe(DupeType aType) noexcept { 
+	return aType == DUPE_SHARE_FULL || aType == DUPE_SHARE_PARTIAL; 
+}
+
+bool AirUtil::isQueueDupe(DupeType aType) noexcept {
+	return aType == DUPE_QUEUE_FULL || aType == DUPE_QUEUE_PARTIAL;
+}
+
+bool AirUtil::isFinishedDupe(DupeType aType) noexcept {
+	return aType == DUPE_FINISHED_FULL || aType == DUPE_FINISHED_PARTIAL;
+}
+
 DupeType AirUtil::checkDirDupe(const string& aDir, int64_t aSize) {
-	const auto sd = ShareManager::getInstance()->isDirShared(aDir, aSize);
-	if (sd > 0) {
-		return sd == 2 ? DUPE_SHARE : DUPE_SHARE_PARTIAL;
-	} else {
-		const auto qd = QueueManager::getInstance()->isDirQueued(aDir);
-		if (qd > 0)
-			return qd == 1 ? DUPE_QUEUE : DUPE_FINISHED;
+	auto dupe = ShareManager::getInstance()->isDirShared(aDir, aSize);
+	if (dupe != DUPE_NONE) {
+		return dupe;
 	}
-	return DUPE_NONE;
+
+	return QueueManager::getInstance()->isDirQueued(aDir, aSize);
 }
 
 string AirUtil::toOpenFileName(const string& aFileName, const TTHValue& aTTH) noexcept {
@@ -121,17 +129,17 @@ string AirUtil::fromOpenFileName(const string& aFileName) noexcept {
 
 DupeType AirUtil::checkFileDupe(const TTHValue& aTTH) {
 	if (ShareManager::getInstance()->isFileShared(aTTH)) {
-		return DUPE_SHARE;
-	} else {
-		const int qd = QueueManager::getInstance()->isFileQueued(aTTH);
-		if (qd > 0) {
-			return qd == 1 ? DUPE_QUEUE : DUPE_FINISHED; 
-		}
+		return DUPE_SHARE_FULL;
 	}
-	return DUPE_NONE;
+
+	return QueueManager::getInstance()->isFileQueued(aTTH);
 }
 
-TTHValue AirUtil::getTTH(const string& aFileName, int64_t aSize) {
+bool AirUtil::allowOpenDupe(DupeType aType) noexcept {
+	return aType != DUPE_NONE;
+}
+
+TTHValue AirUtil::getTTH(const string& aFileName, int64_t aSize) noexcept {
 	TigerHash tmp;
 	string str = Text::toLower(aFileName) + Util::toString(aSize);
 	tmp.update(str.c_str(), str.length());
@@ -165,7 +173,6 @@ void AirUtil::init() {
 
 void AirUtil::updateCachedSettings() {
 	privKeyFile = Text::toLower(SETTING(TLS_PRIVATE_KEY_FILE));
-	tempDLDir = Text::toLower(SETTING(TEMP_DOWNLOAD_DIRECTORY));
 }
 
 AirUtil::IpList AirUtil::getDisplayAdapters(bool v6) {
@@ -475,7 +482,7 @@ int AirUtil::getMaxAutoOpened(double value) {
 	return slots;
 }
 
-string AirUtil::getPrioText(int prio) {
+string AirUtil::getPrioText(int prio) noexcept {
 	switch(prio) {
 		case QueueItemBase::PAUSED_FORCE: return STRING(PAUSED_FORCED);
 		case QueueItemBase::PAUSED: return STRING(PAUSED);
@@ -500,7 +507,7 @@ void AirUtil::listRegexSubtract(StringList& l, const boost::regex& aReg) {
 	l.erase(remove_if(l.begin(), l.end(), [&](const string& s) { return regex_match(s, aReg); }), l.end());
 }
 
-string AirUtil::formatMatchResults(int matches, int newFiles, const BundleList& bundles, bool partial) {
+string AirUtil::formatMatchResults(int matches, int newFiles, const BundleList& bundles, bool partial) noexcept {
 	string tmp;
 	if(partial) {
 		//partial lists
@@ -650,26 +657,26 @@ void AirUtil::getRegexMatches(const string& aString, StringList& l, const boost:
 	}
 }
 
-const string AirUtil::getLinkUrl() {
+const string AirUtil::getLinkUrl() noexcept {
 	return R"(((?:[a-z][\w-]{0,10})?:/{1,3}|www\d{0,3}[.]|magnet:\?[^\s=]+=|spotify:|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`()\[\]{};:'\".,<>?«»“”‘’]))";
 }
 
-const string AirUtil::getReleaseRegLong(bool chat) {
+const string AirUtil::getReleaseRegLong(bool chat) noexcept {
 	if (chat)
 		return R"(((?<=\s)|^)(?=\S*[A-Z]\S*)(([A-Z0-9]|\w[A-Z0-9])[A-Za-z0-9-]*)(\.|_|(-(?=\S*\d{4}\S+)))(\S+)-(\w{2,})(?=(\W)?\s|$))";
 	else
 		return R"((?=\S*[A-Z]\S*)(([A-Z0-9]|\w[A-Z0-9])[A-Za-z0-9-]*)(\.|_|(-(?=\S*\d{4}\S+)))(\S+)-(\w{2,}))";
 }
 
-const string AirUtil::getReleaseRegBasic() {
+const string AirUtil::getReleaseRegBasic() noexcept {
 	return R"(((?=\S*[A-Za-z]\S*)[A-Z0-9]\S{3,})-([A-Za-z0-9_]{2,}))";
 }
 
-const string AirUtil::getSubDirReg() {
+const string AirUtil::getSubDirReg() noexcept {
 	return R"((((S(eason)?)|DVD|CD|(D|DIS(K|C))).?([0-9](0-9)?))|Sample.?|Proof.?|Cover.?|.{0,5}Sub(s|pack)?)";
 }
 
-string AirUtil::getReleaseDir(const string& aDir, bool cut, const char separator) {
+string AirUtil::getReleaseDir(const string& aDir, bool cut, const char separator) noexcept {
 	auto p = getDirName(Util::getFilePath(aDir, separator), separator);
 	if (cut) {
 		return p.first;
@@ -713,7 +720,7 @@ void AirUtil::removeDirectoryIfEmpty(const string& tgt, int maxAttempts /*3*/, b
 	}
 }
 
-bool AirUtil::isAdcHub(const string& hubUrl) {
+bool AirUtil::isAdcHub(const string& hubUrl) noexcept {
 	if(Util::strnicmp("adc://", hubUrl.c_str(), 6) == 0) {
 		return true;
 	} else if(Util::strnicmp("adcs://", hubUrl.c_str(), 7) == 0) {
@@ -722,15 +729,11 @@ bool AirUtil::isAdcHub(const string& hubUrl) {
 	return false;
 }
 
-bool AirUtil::isHubLink(const string& hubUrl) {
+bool AirUtil::isHubLink(const string& hubUrl) noexcept {
 	return isAdcHub(hubUrl) || Util::strnicmp("dchub://", hubUrl.c_str(), 8) == 0;
 }
 
-string AirUtil::convertMovePath(const string& aPath, const string& aParent, const string& aTarget) {
-	return aTarget + aPath.substr(aParent.length(), aPath.length() - aParent.length());
-}
-
-string AirUtil::regexEscape(const string& aStr, bool isWildcard) {
+string AirUtil::regexEscape(const string& aStr, bool isWildcard) noexcept {
 	if (aStr.empty())
 		return Util::emptyString;
 
@@ -747,24 +750,38 @@ string AirUtil::regexEscape(const string& aStr, bool isWildcard) {
     return result;
 }
 
-string AirUtil::subtractCommonDirs(const string& toCompare, const string& toSubtract, char separator) {
-	if (toSubtract.length() > 3) {
-		string::size_type i = toSubtract.length()-2;
+string AirUtil::subtractCommonDirs(const string& aToCompare, const string& aToSubtract, char aSeparator) noexcept {
+	if (aToSubtract.length() > 3) {
+		string::size_type i = aToSubtract.length()-2;
 		string::size_type j;
 		for(;;) {
-			j = toSubtract.find_last_of(separator, i);
-			if(j == string::npos || (int)(toCompare.length() - (toSubtract.length() - j)) < 0) //also check if it goes out of scope for toCompare
+			j = aToSubtract.find_last_of(aSeparator, i);
+			if(j == string::npos || (int)(aToCompare.length() - (aToSubtract.length() - j)) < 0) //also check if it goes out of scope for toCompare
 				break;
-			if(Util::stricmp(toSubtract.substr(j), toCompare.substr(toCompare.length() - (toSubtract.length()-j))) != 0)
+
+			auto tmp1 = aToSubtract.substr(j);
+			auto tmp2 = aToCompare.substr(aToCompare.length() - (aToSubtract.length() - j));
+			if(Util::stricmp(aToSubtract.substr(j), aToCompare.substr(aToCompare.length() - (aToSubtract.length() - j))) != 0)
 				break;
 			i = j - 1;
 		}
-		return toSubtract.substr(0, i+2);
+		return aToSubtract.substr(0, i+2);
 	}
-	return toSubtract;
+	return aToSubtract;
 }
 
-pair<string, string::size_type> AirUtil::getDirName(const string& aPath, char separator) {
+string AirUtil::subtractCommonParents(const string& aToCompare, const StringList& aToSubtract) noexcept {
+	StringList converted;
+	for (const auto& p : aToSubtract) {
+		if (p.length() > aToCompare.length()) {
+			converted.push_back(p.substr(aToCompare.length()));
+		}
+	}
+
+	return Util::listToString(converted);
+}
+
+pair<string, string::size_type> AirUtil::getDirName(const string& aPath, char separator) noexcept {
 	if (aPath.size() < 3)
 		return { aPath, false };
 
@@ -790,7 +807,7 @@ pair<string, string::size_type> AirUtil::getDirName(const string& aPath, char se
 	return { aPath.substr(j, i - j + 1), isSub ? i + 2 : string::npos };
 }
 
-string AirUtil::getTitle(const string& searchTerm) {
+string AirUtil::getTitle(const string& searchTerm) noexcept {
 	auto ret = Text::toLower(searchTerm);
 
 	//Remove group name
@@ -834,7 +851,7 @@ string AirUtil::getTitle(const string& searchTerm) {
 }
 
 /* returns true if aDir is a subdir of aParent */
-bool AirUtil::isSub(const string& aTestSub, const string& aParent, const char separator) {
+bool AirUtil::isSub(const string& aTestSub, const string& aParent, const char separator) noexcept {
 	if (aTestSub.length() <= aParent.length())
 		return false;
 
@@ -846,7 +863,7 @@ bool AirUtil::isSub(const string& aTestSub, const string& aParent, const char se
 }
 
 /* returns true if aSub is a subdir of aDir OR both are the same dir */
-bool AirUtil::isParentOrExact(const string& aTestParent, const string& aSub, const char separator) {
+bool AirUtil::isParentOrExact(const string& aTestParent, const string& aSub, const char separator) noexcept {
 	if (aSub.length() < aTestParent.length())
 		return false;
 
