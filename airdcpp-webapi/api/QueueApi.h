@@ -95,8 +95,6 @@ namespace webserver {
 		//bundle update listeners
 		void on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept;
 		void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept;
-		void on(QueueManagerListener::BundleMoved, const BundlePtr& aBundle) noexcept;
-		void on(QueueManagerListener::BundleMerged, const BundlePtr& aBundle, const string&) noexcept;
 		void on(QueueManagerListener::BundleSize, const BundlePtr& aBundle) noexcept;
 		void on(QueueManagerListener::BundlePriority, const BundlePtr& aBundle) noexcept;
 		void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept;

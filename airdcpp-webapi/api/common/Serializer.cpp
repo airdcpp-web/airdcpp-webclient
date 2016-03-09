@@ -296,13 +296,51 @@ namespace webserver {
 		}
 
 		dcassert(0);
-		return "";
+		return Util::emptyString;
 	}
 
 	json Serializer::serializeDownloadState(const TrackableDownloadItem& aItem) noexcept {
 		return {
 			{ "id", getDownloadStateId(aItem.getDownloadState()) },
 			{ "str", aItem.getStatusString() }
+		};
+	}
+
+	string Serializer::getDupeId(DupeType aDupeType) noexcept {
+		switch (aDupeType) {
+			case DUPE_SHARE_PARTIAL: return "share_partial";
+			case DUPE_SHARE_FULL: return "share_full";
+			case DUPE_QUEUE_PARTIAL: return "queue_partial";
+			case DUPE_QUEUE_FULL: return "queue_full";
+			case DUPE_FINISHED_PARTIAL: return "finished_partial";
+			case DUPE_FINISHED_FULL: return "finished_full";
+			case DUPE_SHARE_QUEUE: return "share_queue";
+		}
+
+		dcassert(0);
+		return Util::emptyString;
+	}
+
+	json Serializer::serializeFileDupe(DupeType aDupeType, const TTHValue& aTTH) noexcept {
+		if (aDupeType == DUPE_NONE) {
+			return nullptr;
+		}
+
+		return serializeDupe(aDupeType, AirUtil::getFileDupePaths(aDupeType, aTTH));
+	}
+
+	json Serializer::serializeDirectoryDupe(DupeType aDupeType, const string& aPath) noexcept {
+		if (aDupeType == DUPE_NONE) {
+			return nullptr;
+		}
+
+		return serializeDupe(aDupeType, AirUtil::getDirDupePaths(aDupeType, aPath));
+	}
+
+	json Serializer::serializeDupe(DupeType aDupeType, StringList&& aPaths) noexcept {
+		return{
+			{ "id", getDupeId(aDupeType) },
+			{ "paths", aPaths },
 		};
 	}
 }

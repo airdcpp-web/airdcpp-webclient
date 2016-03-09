@@ -19,6 +19,7 @@
 #include <api/SearchApi.h>
 #include <api/SearchUtils.h>
 
+#include <airdcpp/AirUtil.h>
 #include <airdcpp/GeoManager.h>
 #include <airdcpp/DirectoryListingManager.h>
 #include <airdcpp/QueueManager.h>

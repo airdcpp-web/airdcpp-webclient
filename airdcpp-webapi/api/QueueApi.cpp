@@ -259,8 +259,7 @@ namespace webserver {
 				JsonUtil::getField<time_t>("time", reqJson),
 				errors
 			);
-		}
-		catch (const QueueException& e) {
+		} catch (const QueueException& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::internal_server_error;
 		}
@@ -428,21 +427,18 @@ namespace webserver {
 		});
 	}
 
-	void QueueApi::on(QueueManagerListener::BundleMoved, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { PROP_TARGET, PROP_NAME, PROP_SIZE });
-	}
-	void QueueApi::on(QueueManagerListener::BundleMerged, const BundlePtr& aBundle, const string&) noexcept {
-		onBundleUpdated(aBundle, { PROP_TARGET, PROP_NAME, PROP_SIZE });
-	}
 	void QueueApi::on(QueueManagerListener::BundleSize, const BundlePtr& aBundle) noexcept {
 		onBundleUpdated(aBundle, { PROP_SIZE });
 	}
+
 	void QueueApi::on(QueueManagerListener::BundlePriority, const BundlePtr& aBundle) noexcept {
 		onBundleUpdated(aBundle, { PROP_PRIORITY, PROP_STATUS });
 	}
+
 	void QueueApi::on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept {
 		onBundleUpdated(aBundle, { PROP_STATUS }, "bundle_status");
 	}
+
 	void QueueApi::on(QueueManagerListener::BundleSources, const BundlePtr& aBundle) noexcept {
 		onBundleUpdated(aBundle, { PROP_SOURCES });
 	}

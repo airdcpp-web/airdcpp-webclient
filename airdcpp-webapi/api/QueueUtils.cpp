@@ -154,8 +154,9 @@ namespace webserver {
 			if (!a->isFileBundle() && !b->isFileBundle()) {
 				// Directory bundles
 				RLock l(QueueManager::getInstance()->getCS());
-				auto dirsA = a->getDirectories().size();
-				auto dirsB = a->getDirectories().size();
+				auto dirsA = QueueManager::getInstance()->bundleQueue.getDirectoryCount(a);
+				auto dirsB = QueueManager::getInstance()->bundleQueue.getDirectoryCount(b);
+
 				if (dirsA != dirsB) {
 					return compare(dirsA, dirsB);
 				}
@@ -268,6 +269,6 @@ namespace webserver {
 		}
 
 		dcassert(0);
-		return json();
+		return nullptr;
 	}
 }

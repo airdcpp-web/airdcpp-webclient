@@ -58,6 +58,7 @@ namespace webserver {
 			}
 		}
 
+		dcassert(0);
 		return nullptr;
 	}
 
