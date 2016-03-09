@@ -20,7 +20,8 @@
 #define DCPLUSPLUS_DCPP_MAGNET_H
 
 #include "forward.h"
-#include "AirUtil.h"
+
+#include "DupeType.h"
 #include "User.h"
 
 #include <string>

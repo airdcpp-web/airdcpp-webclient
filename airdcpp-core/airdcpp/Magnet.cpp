@@ -19,11 +19,12 @@
 #include "stdinc.h"
 #include "Magnet.h"
 
+#include "AirUtil.h"
+#include "QueueManager.h"
+#include "ShareManager.h"
 #include "StringTokenizer.h"
 #include "Text.h"
 #include "Util.h"
-#include "QueueManager.h"
-#include "ShareManager.h"
 
 namespace dcpp {
 

@@ -22,6 +22,7 @@
 #include <cmath>
 
 #include "AdcCommand.h"
+#include "AirUtil.h"
 #include "BZUtils.h"
 #include "ClientManager.h"
 #include "ConnectionManager.h"

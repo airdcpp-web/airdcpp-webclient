@@ -26,9 +26,9 @@
 #include "ShareManagerListener.h"
 #include "TimerManager.h"
 
-#include "AirUtil.h"
 #include "Bundle.h"
 #include "DirectSearch.h"
+#include "DupeType.h"
 #include "FastAlloc.h"
 #include "GetSet.h"
 #include "HintedUser.h"
@@ -80,9 +80,8 @@ public:
 		IGETSET(bool, adls, Adls, false);
 		IGETSET(DupeType, dupe, Dupe, DUPE_NONE);
 		IGETSET(time_t, remoteDate, RemoteDate, 0);
-		bool isQueued() const noexcept {
-			return (dupe == DUPE_QUEUE || dupe == DUPE_FINISHED);
-		}
+
+		bool isInQueue() const noexcept;
 	};
 
 	class Directory : boost::noncopyable, public intrusive_ptr_base<Directory> {

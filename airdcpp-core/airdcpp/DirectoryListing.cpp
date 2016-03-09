@@ -21,6 +21,7 @@
 #include "DirectoryListing.h"
 
 #include "ADLSearch.h"
+#include "AirUtil.h"
 #include "AutoSearchManager.h"
 #include "Bundle.h"
 #include "BZUtils.h"
@@ -475,6 +476,9 @@ bool DirectoryListing::createBundle(Directory::Ptr& aDir, const string& aTarget,
 	} catch (const std::bad_alloc&) {
 		LogManager::getInstance()->message(STRING_F(BUNDLE_CREATION_FAILED, aTarget % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		return false;
+	} catch (const Exception& e) {
+		LogManager::getInstance()->message(STRING_F(BUNDLE_CREATION_FAILED, aTarget % e.getError()), LogMessage::SEV_ERROR);
+		return false;
 	}
 
 	if (!errorMsg.empty()) {
@@ -491,6 +495,7 @@ bool DirectoryListing::createBundle(Directory::Ptr& aDir, const string& aTarget,
 		}
 		return true;
 	}
+
 	return false;
 }
 
@@ -587,7 +592,7 @@ void DirectoryListing::findNfoImpl(const string& aPath, bool aAllowQueueList, Du
 			ShareManager::getInstance()->search(results, query, getShareProfile(), ClientManager::getInstance()->getMyCID(), Util::toAdcFile(aPath));
 
 			if (!results.empty()) {
-				auto paths = AirUtil::getDupePaths(DUPE_SHARE, results.front()->getTTH());
+				auto paths = AirUtil::getFileDupePaths(DUPE_SHARE_FULL, results.front()->getTTH());
 				if (!paths.empty()) {
 					aDupeF(paths.front());
 				}
@@ -702,7 +707,7 @@ void DirectoryListing::getLocalPaths(const File::Ptr& f, StringList& ret) const 
 
 		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path + f->getName()), ret, getShareProfile());
 	} else {
-		ret = AirUtil::getDupePaths(f->getDupe(), f->getTTH());
+		ret = AirUtil::getFileDupePaths(f->getDupe(), f->getTTH());
 	}
 }
 
@@ -783,6 +788,10 @@ int64_t DirectoryListing::Directory::getFilesSize() const noexcept {
 	return x;
 }
 
+bool DirectoryListing::File::isInQueue() const noexcept {
+	return AirUtil::isQueueDupe(dupe) || AirUtil::isFinishedDupe(dupe);
+}
+
 uint8_t DirectoryListing::Directory::checkShareDupes() noexcept {
 	uint8_t result = DUPE_NONE;
 	bool first = true;
@@ -792,19 +801,19 @@ uint8_t DirectoryListing::Directory::checkShareDupes() noexcept {
 			setDupe((DupeType)result);
 
 		//full dupe with same type for non-dupe dir, change to partial (or pass partial dupes to upper level folder)
-		else if (result == DUPE_SHARE && dupe == DUPE_NONE && !first)
+		else if (result == DUPE_SHARE_FULL && dupe == DUPE_NONE && !first)
 			setDupe(DUPE_SHARE_PARTIAL);
-		else if(result == DUPE_SHARE_PARTIAL && (dupe == DUPE_NONE || dupe == DUPE_SHARE) && !first)
+		else if(result == DUPE_SHARE_PARTIAL && (dupe == DUPE_NONE || dupe == DUPE_SHARE_FULL) && !first)
 			setDupe(DUPE_SHARE_PARTIAL);
-		else if (result == DUPE_QUEUE && dupe == DUPE_NONE && !first)
+		else if (result == DUPE_QUEUE_FULL && dupe == DUPE_NONE && !first)
 			setDupe(DUPE_QUEUE_PARTIAL);
-		else if( result == DUPE_QUEUE_PARTIAL && (dupe == DUPE_NONE || dupe == DUPE_QUEUE) && !first)
+		else if( result == DUPE_QUEUE_PARTIAL && (dupe == DUPE_NONE || dupe == DUPE_QUEUE_FULL) && !first)
 			setDupe(DUPE_QUEUE_PARTIAL);
 
 		//change to mixed dupe type
-		else if((dupe == DUPE_SHARE || dupe == DUPE_SHARE_PARTIAL) && (result == DUPE_QUEUE || result == DUPE_QUEUE_PARTIAL))
+		else if((dupe == DUPE_SHARE_FULL || dupe == DUPE_SHARE_PARTIAL) && (result == DUPE_QUEUE_FULL || result == DUPE_QUEUE_PARTIAL))
 			setDupe(DUPE_SHARE_QUEUE);
-		else if ((dupe == DUPE_QUEUE || dupe == DUPE_QUEUE_PARTIAL) && (result == DUPE_SHARE || result == DUPE_SHARE_PARTIAL))
+		else if ((dupe == DUPE_QUEUE_FULL || dupe == DUPE_QUEUE_PARTIAL) && (result == DUPE_SHARE_FULL || result == DUPE_SHARE_PARTIAL))
 			setDupe(DUPE_SHARE_QUEUE);
 
 		else if (result == DUPE_SHARE_QUEUE)
@@ -819,33 +828,33 @@ uint8_t DirectoryListing::Directory::checkShareDupes() noexcept {
 		//of no interest
 		if(f->getSize() > 0) {			
 			//if it's the first file in the dir and no sub-folders exist mark it as a dupe.
-			if (dupe == DUPE_NONE && f->getDupe() == DUPE_SHARE && directories.empty() && first)
-				setDupe(DUPE_SHARE);
-			else if (dupe == DUPE_NONE && f->isQueued() && directories.empty() && first)
-				setDupe(DUPE_QUEUE);
+			if (dupe == DUPE_NONE && f->getDupe() == DUPE_SHARE_FULL && directories.empty() && first)
+				setDupe(DUPE_SHARE_FULL);
+			else if (dupe == DUPE_NONE && f->isInQueue() && directories.empty() && first)
+				setDupe(DUPE_QUEUE_FULL);
 
 			//if it's the first file in the dir and we do have sub-folders but no dupes, mark as partial.
-			else if (dupe == DUPE_NONE && f->getDupe() == DUPE_SHARE && !directories.empty() && first)
+			else if (dupe == DUPE_NONE && f->getDupe() == DUPE_SHARE_FULL && !directories.empty() && first)
 				setDupe(DUPE_SHARE_PARTIAL);
-			else if (dupe == DUPE_NONE && f->isQueued() && !directories.empty() && first)
+			else if (dupe == DUPE_NONE && f->isInQueue() && !directories.empty() && first)
 				setDupe(DUPE_QUEUE_PARTIAL);
 			
 			//if it's not the first file in the dir and we still don't have a dupe, mark it as partial.
-			else if (dupe == DUPE_NONE && f->getDupe() == DUPE_SHARE && !first)
+			else if (dupe == DUPE_NONE && f->getDupe() == DUPE_SHARE_FULL && !first)
 				setDupe(DUPE_SHARE_PARTIAL);
-			else if (dupe == DUPE_NONE && f->isQueued() && !first)
+			else if (dupe == DUPE_NONE && f->isInQueue() && !first)
 				setDupe(DUPE_QUEUE_PARTIAL);
 			
 			//if it's a dupe and we find a non-dupe, mark as partial.
-			else if (dupe == DUPE_SHARE && f->getDupe() != DUPE_SHARE)
+			else if (dupe == DUPE_SHARE_FULL && f->getDupe() != DUPE_SHARE_FULL)
 				setDupe(DUPE_SHARE_PARTIAL);
-			else if (dupe == DUPE_QUEUE && !f->isQueued())
+			else if (dupe == DUPE_QUEUE_FULL && !f->isInQueue())
 				setDupe(DUPE_QUEUE_PARTIAL);
 
 			//if we find different type of dupe, change to mixed
-			else if ((dupe == DUPE_SHARE || dupe == DUPE_SHARE_PARTIAL) && f->isQueued())
+			else if (AirUtil::isShareDupe(dupe) && f->isInQueue())
 				setDupe(DUPE_SHARE_QUEUE);
-			else if ((dupe == DUPE_QUEUE || dupe == DUPE_QUEUE_PARTIAL) && f->getDupe() == DUPE_SHARE)
+			else if (AirUtil::isQueueDupe(dupe) && f->getDupe() == DUPE_SHARE_FULL)
 				setDupe(DUPE_SHARE_QUEUE);
 
 			first = false;

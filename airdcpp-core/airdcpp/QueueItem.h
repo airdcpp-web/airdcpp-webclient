@@ -258,13 +258,11 @@ public:
 	uint64_t getAverageSpeed() const;
 	uint64_t getSecondsLeft() const;
 
-	void setTarget(const string& aTarget);
-
 	int64_t getBlockSize();
 	void setBlockSize(int64_t aBlockSize) { blockSize = aBlockSize; }
-private:
-	QueueItem& operator=(const QueueItem&);
 
+	QueueItem& operator=(const QueueItem&) = delete;
+private:
 	friend class QueueManager;
 	friend class UserQueue;
 	SourceList sources;

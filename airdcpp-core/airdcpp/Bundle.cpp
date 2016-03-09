@@ -56,13 +56,12 @@ Bundle::Bundle(QueueItemPtr& qi, time_t aFileDate, QueueToken aToken /*0*/, bool
 }
 
 Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aBundleDate /*0*/, QueueToken aToken /*0*/, bool aDirty /*true*/, bool isFileBundle /*false*/) noexcept :
-	QueueItemBase(aTarget, 0, aPriority, aAdded, aToken, 0), bundleDate(aBundleDate), fileBundle(isFileBundle), dirty(aDirty) {
+	QueueItemBase(Util::validatePath(aTarget, !fileBundle), 0, aPriority, aAdded, aToken, 0), bundleDate(aBundleDate), fileBundle(isFileBundle), dirty(aDirty) {
 
 	if (aToken == 0) {
 		token = Util::toUInt32(ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_DOWNLOAD));
 	}
 
-	setTarget(aTarget);
 	auto time = GET_TIME();
 	if (bundleDate > 0) {
 		checkRecent();
@@ -95,10 +94,6 @@ void Bundle::increaseSize(int64_t aSize) noexcept {
 
 void Bundle::decreaseSize(int64_t aSize) noexcept {
 	size -= aSize; 
-}
-
-void Bundle::setTarget(const string& aTarget) noexcept {
-	target = Util::validatePath(aTarget, !fileBundle);
 }
 
 bool Bundle::checkRecent() noexcept {
@@ -203,27 +198,20 @@ void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
 	}
 }
 
-bool Bundle::addFinishedItem(QueueItemPtr& qi, bool finished) noexcept {
+void Bundle::addFinishedItem(QueueItemPtr& qi, bool aFinished) noexcept {
 	dcassert(qi->isSet(QueueItem::FLAG_FINISHED) && qi->getTimeFinished() > 0);
 
 	finishedFiles.push_back(qi);
-	if (!finished) {
+	if (!aFinished) {
 		qi->setFlag(QueueItem::FLAG_MOVED);
 		qi->setBundle(this);
 		increaseSize(qi->getSize());
 		addFinishedSegment(qi->getSize());
 	}
 	qi->setFlag(QueueItem::FLAG_FINISHED);
-
-	auto& bd = directories[qi->getFilePath()];
-	bd.second++;
-	if (bd.first == 0 && bd.second == 1) {
-		return true;
-	}
-	return false;
 }
 
-bool Bundle::removeFinishedItem(QueueItemPtr& qi) noexcept {
+void Bundle::removeFinishedItem(QueueItemPtr& qi) noexcept {
 	int pos = 0;
 	for (auto& fqi: finishedFiles) {
 		if (fqi == qi) {
@@ -232,23 +220,15 @@ bool Bundle::removeFinishedItem(QueueItemPtr& qi) noexcept {
 			removeFinishedSegment(qi->getDownloadedSegments());
 			swap(finishedFiles[pos], finishedFiles[finishedFiles.size()-1]);
 			finishedFiles.pop_back();
-
-			auto& bd = directories[qi->getFilePath()];
-			bd.second--;
-			if (bd.first == 0 && bd.second == 0) {
-				directories.erase(Util::getFilePath(qi->getTarget()));
-				return true;
-			}
-			return false;
 		}
 		pos++;
 	}
-	return false;
 }
 
-bool Bundle::addQueue(QueueItemPtr& qi) noexcept {
+void Bundle::addQueue(QueueItemPtr& qi) noexcept {
 	if (qi->isFinished()) {
-		return addFinishedItem(qi, false);
+		addFinishedItem(qi, false);
+		return;
 	}
 
 	dcassert(qi->getTimeFinished() == 0);
@@ -259,19 +239,12 @@ bool Bundle::addQueue(QueueItemPtr& qi) noexcept {
 	queueItems.push_back(qi);
 	increaseSize(qi->getSize());
 	addFinishedSegment(qi->getDownloadedSegments());
-
-	auto& bd = directories[qi->getFilePath()];
-	bd.first++;
-	if (bd.first == 1 && bd.second == 0) {
-		return true;
-	}
-
-	return false;
 }
 
-bool Bundle::removeQueue(QueueItemPtr& qi, bool finished) noexcept {
+void Bundle::removeQueue(QueueItemPtr& qi, bool finished) noexcept {
 	if (!finished && qi->isSet(QueueItem::FLAG_FINISHED)) {
-		return removeFinishedItem(qi);
+		removeFinishedItem(qi);
+		return;
 	}
 
 	int pos = 0;
@@ -293,14 +266,6 @@ bool Bundle::removeQueue(QueueItemPtr& qi, bool finished) noexcept {
 	} else {
 		addFinishedItem(qi, true);
 	}
-
-	auto& bd = directories[qi->getFilePath()];
-	bd.first--;
-	if (bd.first == 0 && bd.second == 0) {
-		directories.erase(qi->getFilePath());
-		return true;
-	}
-	return false;
 }
 
 bool Bundle::isSource(const UserPtr& aUser) const noexcept {
@@ -312,7 +277,7 @@ bool Bundle::isBadSource(const UserPtr& aUser) const noexcept  {
 }
 
 void Bundle::addUserQueue(QueueItemPtr& qi) noexcept {
-	for(auto& s: qi->getSources())
+	for(const auto& s: qi->getSources())
 		addUserQueue(qi, s.getUser());
 }
 
@@ -393,7 +358,7 @@ void Bundle::removeFinishedNotify(const UserPtr& aUser) noexcept {
 }
 
 void Bundle::getSourceUsers(HintedUserList& l) const noexcept {
-	for (auto& st : sources) {
+	for (const auto& st : sources) {
 		l.push_back(st.getUser());
 	}
 }
@@ -415,59 +380,50 @@ bool Bundle::isFailed() const noexcept {
 	return status == STATUS_SHARING_FAILED || status == STATUS_FAILED_MISSING || status == STATUS_HASH_FAILED || status == STATUS_DOWNLOAD_FAILED;
 }
 
-string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool nmdc) const noexcept {
-	/* returns the local path for nmdc and the remote path for adc */
+string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool aNmdc) const noexcept {
 	string remoteDir = Util::getNmdcFilePath(aRemoteFile);
 	string bundleDir = Util::getFilePath(aLocalFile);
 #ifndef _WIN32
 	bundleDir = Util::toNmdcFile(bundleDir);
 #endif
 
-	string path;
 	if (simpleMatching) {
-		if (nmdc) {
+		if (aNmdc) {
 			if (Text::toLower(remoteDir).find(Text::toLower(getName())) != string::npos)
-				path = target;
+				return target;
 		} else {
-			path = AirUtil::getNmdcReleaseDir(remoteDir, false);
+			return AirUtil::getNmdcReleaseDir(remoteDir, false);
 		}
 	} else {
 		/* try to find the bundle name from the path */
 		size_t pos = Text::toLower(remoteDir).find(Text::toLower(getName()) + "\\");
 		if (pos != string::npos) {
-			path = nmdc ? target : remoteDir.substr(0, pos+getName().length()+1);
+			return aNmdc ? target : remoteDir.substr(0, pos + getName().length() + 1);
 		}
 	}
-		
-	if (path.empty() && remoteDir.length() > 3) {
+
+	if (remoteDir.length() > 3) {
 		/* failed, cut the common dirs from the end of the remote path */
-		string::size_type i = remoteDir.length()-2;
+		string::size_type i = remoteDir.length() - 2;
 		string::size_type j;
-		for(;;) {
+		for (;;) {
 			j = remoteDir.find_last_of("\\", i);
-			if(j == string::npos || (int)(bundleDir.length() - (remoteDir.length() - j)) < 0) //also check if it goes out of scope for the local dir
+			if (j == string::npos || (int)(bundleDir.length() - (remoteDir.length() - j)) < 0) //also check if it goes out of scope for the local dir
 				break;
-			if(Util::stricmp(remoteDir.substr(j), bundleDir.substr(bundleDir.length() - (remoteDir.length()-j))) != 0)
+			if (Util::stricmp(remoteDir.substr(j), bundleDir.substr(bundleDir.length() - (remoteDir.length() - j))) != 0)
 				break;
 			i = j - 1;
 		}
-		if ((remoteDir.length() - j)-1 > bundleDir.length() - target.length()) {
+		if ((remoteDir.length() - j) - 1 > bundleDir.length() - target.length()) {
 			/* The next dir to compare would be the bundle dir but it doesn't really exist in the path (which is why we are here) */
 			/* There's a risk that the other user has different directory structure and all subdirs inside a big list directory */
 			/* In those cases the recursive partial list can be huge, or in NMDC there's a bigger risk of adding the sources for files that they don't really have */
 			/* TODO: do something with those */
 		}
-		path = nmdc ? bundleDir.substr(0, bundleDir.length() - (remoteDir.length()-i-2)) : remoteDir.substr(0, i+2);
+		return aNmdc ? bundleDir.substr(0, bundleDir.length() - (remoteDir.length() - i - 2)) : remoteDir.substr(0, i + 2);
 	}
-	return path;
-}
 
-pair<uint32_t, uint32_t> Bundle::getPathInfo(const string& aDir) const noexcept {
-	auto p = directories.find(aDir);
-	if (p != directories.end()) {
-		return p->second;
-	}
-	return { 0, 0 };
+	return Util::emptyString;
 }
 
 void Bundle::rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept {
@@ -582,7 +538,7 @@ pair<int64_t, double> Bundle::getPrioInfo() noexcept {
 multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcept {
 	multimap<QueueItemPtr, pair<int64_t, double>> speedSourceMap;
 
-	for (auto& q: queueItems) {
+	for (const auto& q: queueItems) {
 		if(q->getAutoPriority()) {
 			int64_t qiSpeed = 0;
 			double qiSources = 0;
@@ -631,67 +587,6 @@ bool Bundle::allowAutoSearch() const noexcept {
 	return true;
 }
 
-void Bundle::getSearchItems(map<string, QueueItemPtr>& searches, bool manual) const noexcept {
-	if (queueItems.empty())
-		return;
-	
-	if (fileBundle || queueItems.size() == 1) {
-		searches.emplace(Util::emptyString, queueItems.front());
-		return;
-	}
-
-	QueueItemPtr searchItem = nullptr;
-	for (auto& i: directories | map_keys) {
-		string dir = AirUtil::getReleaseDir(i, false);
-		//don't add the same directory twice
-		if (searches.find(dir) != searches.end()) {
-			continue;
-		}
-
-		QueueItemList ql;
-		getDirQIs(dir, ql);
-
-		if (ql.empty()) {
-			continue;
-		}
-
-		size_t s = 0;
-		searchItem = nullptr;
-
-		//do a few guesses to get a random item
-		while (s <= ql.size()) {
-			QueueItemPtr q = ql[ql.size() == 1 ? 0 : Util::rand(ql.size()-1)];
-			if(q->isPausedPrio() && !manual) {
-				s++;
-				continue;
-			}
-			if(q->isRunning() || (q->isPausedPrio())) {
-				//it's ok but see if we can find better one
-				searchItem = q;
-			} else {
-				searchItem = q;
-				break;
-			}
-			s++;
-		}
-
-		if (searchItem) {
-			searches.emplace(dir, searchItem);
-		}
-	}
-}
-
-void Bundle::updateSearchMode() noexcept {
-	StringList searches;
-	for (auto& i: directories | map_keys) {
-		string dir = AirUtil::getReleaseDir(i, false);
-		if (find(searches, dir) == searches.end()) {
-			searches.push_back(dir);
-		}
-	}
-	simpleMatching = searches.size() <= 4 ? true : false;
-}
-
 /* ONLY CALLED FROM DOWNLOADMANAGER BEGIN */
 
 void Bundle::addDownload(Download* d) noexcept {
@@ -711,7 +606,8 @@ bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 	int64_t bundleSpeed = 0;
 	int64_t bundlePos = 0;
 	int down = 0;
-	for (auto d: downloads) {
+
+	for (const auto& d: downloads) {
 		if (d->getAverageSpeed() > 0 && d->getStart() > 0) {
 			down++;
 			int64_t pos = d->getPos();
@@ -900,8 +796,8 @@ bool Bundle::removeRunningUser(const UserConnection* aSource, bool sendRemove) n
 	return false;
 }
 
-void Bundle::sendSizeNameUpdate() noexcept {
-	for(auto& u: uploadReports) {
+void Bundle::sendSizeUpdate() noexcept {
+	for(const auto& u: uploadReports) {
 		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
 		cmd.addParam("HI", u.hint);
 		cmd.addParam("BU", getStringToken());
@@ -909,11 +805,6 @@ void Bundle::sendSizeNameUpdate() noexcept {
 		if (isSet(FLAG_UPDATE_SIZE)) {
 			unsetFlag(FLAG_UPDATE_SIZE);
 			cmd.addParam("SI", Util::toString(size));
-		}
-
-		if (isSet(FLAG_UPDATE_NAME)) {
-			unsetFlag(FLAG_UPDATE_NAME);
-			cmd.addParam("NA", getName());
 		}
 
 		cmd.addParam("UD1");

@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "NmdcHub.h"
 
+#include "AirUtil.h"
 #include "ConnectivityManager.h"
 #include "ResourceManager.h"
 #include "Message.h"

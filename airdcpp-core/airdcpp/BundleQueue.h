@@ -21,8 +21,10 @@
 
 #include "forward.h"
 #include "typedefs.h"
-#include "HintedUser.h"
+
 #include "Bundle.h"
+#include "DupeType.h"
+#include "HintedUser.h"
 #include "PrioritySearchQueue.h"
 #include "TargetUtil.h"
 
@@ -32,6 +34,24 @@ namespace dcpp {
 
 class BundleQueue : public PrioritySearchQueue<BundlePtr> {
 public:
+	struct PathInfo {
+		PathInfo(const string& aPath, const BundlePtr& aBundle) noexcept : path(aPath), bundle(aBundle) {  }
+
+		bool operator==(const PathInfo* aInfo) const noexcept { return this == aInfo; }
+
+		size_t queuedFiles = 0;
+		size_t finishedFiles = 0;
+
+		int64_t size = 0;
+
+		const string path;
+		const BundlePtr bundle;
+	};
+
+	typedef vector<const PathInfo*> PathInfoList;
+	typedef unordered_multimap<string, PathInfo, noCaseStringHash, noCaseStringEq> DirectoryNameMap;
+	typedef unordered_map<BundlePtr, vector<PathInfo*>, Bundle::Hash> BundlePathMap;
+
 	BundleQueue();
 	~BundleQueue();
 	void addBundleItem(QueueItemPtr& qi, BundlePtr& aBundle) noexcept;
@@ -45,35 +65,38 @@ public:
 	BundlePtr getMergeBundle(const string& aTarget) const noexcept;
 	void getSubBundles(const string& aTarget, BundleList& retBundles) const noexcept;
 
-	/*void addSearchPrio(BundlePtr& aBundle) noexcept;
-	void removeSearchPrio(BundlePtr& aBundle) noexcept;
-	int getRecentIntervalMs() const noexcept;
-	int getPrioSum() const noexcept;
-	BundlePtr findRecent() noexcept;
-	BundlePtr findAutoSearch() noexcept;
-	BundlePtr findSearchBundle(uint64_t aTick, bool force = false) noexcept;
-	int64_t recalculateSearchTimes(bool aRecent, bool prioChange) noexcept;*/
-
-	void moveBundle(BundlePtr& aBundle, const string& aNewTarget) noexcept;
 	void removeBundle(BundlePtr& aBundle) noexcept;
 
 	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept;
 
 	void saveQueue(bool force) noexcept;
+	void getSearchItems(const BundlePtr& aBundle, map<string, QueueItemPtr>& searchItems_, bool aManualSearch) const noexcept;
+	void updateSearchMode(const BundlePtr& aBundle) const noexcept;
 
-
-	void addDirectory(const string& aPath, BundlePtr& aBundle) noexcept;
-	void removeDirectory(const string& aPath) noexcept;
-	Bundle::BundleDirMap::iterator findLocalDir(const string& aPath) noexcept;
-	void findRemoteDirs(const string& aPath, Bundle::StringBundleList& paths_) const noexcept;
+	DupeType isDirQueued(const string& aPath, int64_t aSize) const noexcept;
+	StringList getDirPaths(const string& aPath) const noexcept;
+	size_t getDirectoryCount(const BundlePtr& aBundle) const noexcept;
 
 	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept;
 
 	Bundle::TokenBundleMap& getBundles() { return bundles; }
 	const Bundle::TokenBundleMap& getBundles() const { return bundles; }
 private:
-	/** Bundles by release directory */	
-	Bundle::BundleDirMap bundleDirs;
+	void findRemoteDirs(const string& aPath, PathInfoList& paths_) const noexcept;
+	const PathInfo* getSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept;
+
+	typedef function<void(PathInfo&)> PathInfoHandler;
+
+	// Goes through each directory and stops after the bundle target was handled
+	void forEachPath(const BundlePtr& aBundle, const string& aPath, PathInfoHandler&& aHandler) noexcept;
+	void removePathInfo(const PathInfo* aPathInfo) noexcept;
+
+	// PathInfos by directory name
+	DirectoryNameMap dirNameMap;
+
+	// PathInfos by bundle
+	BundlePathMap bundlePaths;
+
 	/** Bundles by token */
 	Bundle::TokenBundleMap bundles;
 };

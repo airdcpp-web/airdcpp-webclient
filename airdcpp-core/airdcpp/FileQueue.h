@@ -24,6 +24,7 @@
 #include "typedefs.h"
 
 #include "DirectoryListing.h"
+#include "DupeType.h"
 #include "HashBloom.h"
 #include "HintedUser.h"
 #include "QueueItem.h"
@@ -58,10 +59,9 @@ public:
 	const QueueItem::StringMap& getPathQueue() const noexcept{ return pathQueue; }
 	QueueItem::TTHMap& getTTHIndex() noexcept { return tthIndex; }
 
-	void move(QueueItemPtr& qi, const string& aTarget) noexcept;
 	void remove(QueueItemPtr& qi) noexcept;
 
-	int isFileQueued(const TTHValue& aTTH) const noexcept;
+	DupeType isFileQueued(const TTHValue& aTTH) const noexcept;
 	QueueItemPtr getQueuedFile(const TTHValue& aTTH) const noexcept;
 
 	uint64_t getTotalQueueSize() const noexcept { return queueSize; }

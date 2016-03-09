@@ -859,6 +859,9 @@
     <ClInclude Include="airdcpp\RelevanceSearch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="airdcpp\DupeType.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="airdcpp\StringDefs.h">

@@ -259,7 +259,7 @@ int File::ensureDirectory(const string& aFile) noexcept {
 
 bool File::createDirectory(const string& aFile) {
 	auto result = ensureDirectory(aFile);
-	if(result != 0) {
+	if(result == 0) {
 		result = GetLastError();
 		if(result == ERROR_ALREADY_EXISTS)
 			return false;

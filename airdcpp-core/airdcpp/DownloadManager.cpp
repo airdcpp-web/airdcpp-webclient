@@ -159,9 +159,9 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		QueueManager::getInstance()->handleSlowDisconnect(dtp.user, dtp.target, dtp.bundle);
 }
 
-void DownloadManager::sendSizeNameUpdate(BundlePtr& aBundle) {
+void DownloadManager::sendSizeUpdate(BundlePtr& aBundle) const noexcept {
 	RLock l (cs);
-	aBundle->sendSizeNameUpdate();
+	aBundle->sendSizeUpdate();
 }
 
 void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
@@ -577,41 +577,7 @@ void DownloadManager::removeDownload(Download* d) {
 	}
 }
 
-void DownloadManager::setTarget(const string& oldTarget, const string& newTarget) {
-	RLock l (cs);
-	for(auto d: downloads) {
-		if (d->getPath() == oldTarget) {
-			d->setPath(newTarget);
-			dcassert(d->getBundle());
-			//update the target in transferview
-			fire(DownloadManagerListener::TargetChanged(), d->getPath(), d->getToken(), d->getBundle()->getToken());
-		}
-	}
-}
-
-void DownloadManager::changeBundle(BundlePtr sourceBundle, BundlePtr targetBundle, const string& path) {
-	UserConnectionList ucl;
-	{
-		WLock l(cs);
-		auto bundleDownloads = sourceBundle->getDownloads();
-		for (auto& d: bundleDownloads) {
-			if (d->getPath() == path) {
-				targetBundle->addDownload(d);
-				d->setBundle(targetBundle);
-				//update the bundle in transferview
-				fire(DownloadManagerListener::TargetChanged(), d->getPath(), d->getToken(), d->getBundle()->getToken());
-				ucl.push_back(&d->getUserConnection());
-				sourceBundle->removeDownload(d);
-			}
-		}
-	}
-
-	for(auto uc: ucl) {
-		startBundle(uc, targetBundle);
-	}
-}
-
-BundlePtr DownloadManager::findRunningBundle(QueueToken aBundleToken) {
+BundlePtr DownloadManager::findRunningBundle(QueueToken aBundleToken) const noexcept {
 	auto s = bundles.find(aBundleToken);
 	if (s != bundles.end()) {
 		return s->second;
@@ -619,7 +585,7 @@ BundlePtr DownloadManager::findRunningBundle(QueueToken aBundleToken) {
 	return nullptr;
 }
 
-void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove /*false*/) {
+void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove /*false*/) noexcept {
 	if (aSource->getLastBundle().empty()) {
 		return;
 	}

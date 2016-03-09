@@ -18,6 +18,7 @@
 
 #include "stdinc.h"
 
+#include "AirUtil.h"
 #include "ClientManager.h"
 #include "DirectoryListingManager.h"
 #include "QueueManager.h"

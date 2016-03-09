@@ -284,20 +284,7 @@ const string& QueueItem::getTempTarget() {
 	if (isSet(FLAG_OPEN) || (isSet(FLAG_CLIENT_VIEW) && isSet(FLAG_TEXT))) {
 		setTempTarget(target);
 	} else if(!isSet(QueueItem::FLAG_USER_LIST) && tempTarget.empty()) {
-		if (SETTING(DCTMP_STORE_DESTINATION)) {
-			setTempTarget(target + TEMP_EXTENSION);
-		} else if(!SETTING(TEMP_DOWNLOAD_DIRECTORY).empty() && (File::getSize(getTarget()) == -1)) {
-#ifdef _WIN32
-			ParamMap sm;
-			if(target.length() >= 3 && target[1] == ':' && target[2] == '\\')
-				sm["targetdrive"] = target.substr(0, 3);
-			else
-				sm["targetdrive"] = Util::getPath(Util::PATH_USER_CONFIG).substr(0, 3);
-			setTempTarget(Util::formatParams(SETTING(TEMP_DOWNLOAD_DIRECTORY), sm, false) + getTempName(getTargetFileName(), getTTH()));
-#else //_WIN32
-			setTempTarget(SETTING(TEMP_DOWNLOAD_DIRECTORY) + getTempName(getTargetFileName(), getTTH()));
-#endif //_WIN32
-		}
+		setTempTarget(target + TEMP_EXTENSION);
 	}
 	return tempTarget;
 }
@@ -315,10 +302,6 @@ uint64_t QueueItem::getAverageSpeed() const {
 uint64_t QueueItem::getSecondsLeft() const {
 	auto speed = getAverageSpeed();
 	return speed > 0 ? (getSize() - getDownloadedBytes()) / speed : 0;
-}
-
-void QueueItem::setTarget(const string& aTarget) {
-	target = aTarget;
 }
 
 double QueueItem::getDownloadedFraction() const { 
