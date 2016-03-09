@@ -24,8 +24,7 @@
 #include <airdcpp/typedefs.h>
 #include <airdcpp/GetSet.h>
 
-#include <airdcpp/AirUtil.h>
-//#include <airdcpp/UserInfoBase.h>
+#include <airdcpp/DupeType.h>
 #include <airdcpp/SearchResult.h>
 #include <airdcpp/QueueItemBase.h>
 #include <airdcpp/TargetUtil.h>
@@ -54,10 +53,9 @@ namespace webserver {
 		void addChildResult(const SearchResultInfo::Ptr& aResult) noexcept;
 		api_return download(const string& aTargetDirectory, const string& aTargetName, TargetUtil::TargetType aTargetType, QueueItemBase::Priority p);
 
-		bool isDupe() const noexcept { return dupe != DUPE_NONE; }
-		bool isShareDupe() const noexcept { return dupe == DUPE_SHARE || dupe == DUPE_SHARE_PARTIAL; }
-		bool isQueueDupe() const noexcept { return dupe == DUPE_QUEUE || dupe == DUPE_FINISHED; }
-		//StringList getDupePaths() const;
+		bool isDirectory() const noexcept {
+			return sr->getType() == SearchResult::TYPE_DIRECTORY;
+		}
 
 		SearchResultPtr sr;
 		IGETSET(DupeType, dupe, Dupe, DUPE_NONE);

@@ -73,7 +73,7 @@ namespace webserver {
 	}
 
 	json FilesystemApi::serializeDirectoryContent(const string& aPath, bool aDirectoriesOnly) {
-		json retJson;
+		auto retJson = json::array();
 
 		FileFindIter end;
 		for (FileFindIter i(aPath, "*"); i != end; ++i) {

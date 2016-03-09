@@ -66,6 +66,10 @@ namespace webserver {
 		ItemType getType() const noexcept {
 			return type;
 		}
+
+		bool isDirectory() const noexcept {
+			return type == DIRECTORY;
+		}
 	private:
 		const ItemType type;
 	};

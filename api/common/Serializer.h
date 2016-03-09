@@ -24,6 +24,8 @@
 #include <api/common/Property.h>
 
 #include <airdcpp/typedefs.h>
+
+#include <airdcpp/DupeType.h>
 #include <airdcpp/MessageCache.h>
 #include <airdcpp/QueueItemBase.h>
 #include <airdcpp/TrackableDownloadItem.h>
@@ -60,6 +62,11 @@ namespace webserver {
 
 		static string getDownloadStateId(TrackableDownloadItem::State aState) noexcept;
 		static json serializeDownloadState(const TrackableDownloadItem& aItem) noexcept;
+
+		static string getDupeId(DupeType aDupeType) noexcept;
+		static json serializeDupe(DupeType aDupeType, StringList&& aPaths) noexcept;
+		static json serializeFileDupe(DupeType aDupeType, const TTHValue& aTTH) noexcept;
+		static json serializeDirectoryDupe(DupeType aDupeType, const string& aPath) noexcept;
 
 
 		// Serialize n messages from end by keeping the list order

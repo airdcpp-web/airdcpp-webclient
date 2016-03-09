@@ -64,6 +64,7 @@ namespace webserver {
 		{ "alt_search_auto", SettingsManager::AUTO_SEARCH, ResourceManager::SETTINGS_AUTO_BUNDLE_SEARCH },
 		{ "alt_search_max_sources", SettingsManager::AUTO_SEARCH_LIMIT, ResourceManager::SETTINGS_AUTO_SEARCH_LIMIT },
 		{ "max_sources_match_queue", SettingsManager::MAX_AUTO_MATCH_SOURCES, ResourceManager::SETTINGS_SB_MAX_SOURCES },
+		{ "allow_match_full_list", SettingsManager::ALLOW_MATCH_FULL_LIST, ResourceManager::SETTINGS_ALLOW_MATCH_FULL_LIST },
 
 		//{ ResourceManager::PROXIES },
 		{ "http_proxy", SettingsManager::HTTP_PROXY, ResourceManager::SETTINGS_HTTP_PROXY },
