@@ -116,13 +116,13 @@ endif (APPLE)
 
 #if (APPLE)
 #  set (CLIENT_DATA_DIR "${PROJECT_NAME_GLOBAL}.app")
-if (WIN32)
-  set (CLIENT_DATA_DIR "${SHARE_DIR}")
-else (WIN32)
-  set (CLIENT_DATA_DIR "${CMAKE_INSTALL_PREFIX}/${SHARE_DIR}/airdcpp")
-endif (WIN32)
+#if (WIN32)
+#  set (CLIENT_DATA_DIR "${SHARE_DIR}")
+#else (WIN32)
+  set (RESOURCE_DIRECTORY "${CMAKE_INSTALL_PREFIX}/${SHARE_DIR}/airdcpp/")
+#endif (WIN32)
 
-message (STATUS "Data directory: ${CLIENT_DATA_DIR}")
+message (STATUS "Resource directory: ${RESOURCE_DIRECTORY}")
 
 #find_program(GIT_EXECUTABLE git PATHS /sw/bin)
 
@@ -252,5 +252,5 @@ ADD_CUSTOM_TARGET(uninstall
   "${CMAKE_COMMAND}" -P "${PROJECT_BINARY_DIR}/cmake_uninstall.cmake")
 
 if(INSTALL_WEB_UI)
-	install (DIRECTORY node_modules/airdcpp-webui/dist/ DESTINATION /usr/share/airdcpp/web-resources)
+	install (DIRECTORY node_modules/airdcpp-webui/dist/ DESTINATION ${RESOURCE_DIRECTORY}web-resources)
 endif (INSTALL_WEB_UI)
