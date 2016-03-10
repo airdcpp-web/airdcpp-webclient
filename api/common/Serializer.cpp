@@ -315,10 +315,8 @@ namespace webserver {
 			case DUPE_FINISHED_PARTIAL: return "finished_partial";
 			case DUPE_FINISHED_FULL: return "finished_full";
 			case DUPE_SHARE_QUEUE: return "share_queue";
+			default: dcassert(0); return Util::emptyString;
 		}
-
-		dcassert(0);
-		return Util::emptyString;
 	}
 
 	json Serializer::serializeFileDupe(DupeType aDupeType, const TTHValue& aTTH) noexcept {
