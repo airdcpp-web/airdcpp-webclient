@@ -260,10 +260,11 @@ void BundleQueue::removePathInfo(const PathInfo* aPathInfo) noexcept {
 
 void BundleQueue::forEachPath(const BundlePtr& aBundle, const string& aPath, PathInfoHandler&& aHandler) noexcept {
 	auto currentPath = Util::getFilePath(aPath);
+	auto& pathInfos = bundlePaths[aBundle];
+
 	while (true) {
 		dcassert(currentPath.find(aBundle->getTarget()) != string::npos);
 
-		auto& pathInfos = bundlePaths[aBundle];
 		auto infoIter = find_if(pathInfos, [&](const PathInfo* aInfo) { return aInfo->path == currentPath; });
 
 		PathInfo* info;
@@ -343,6 +344,8 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 
 	removeSearchPrio(aBundle);
 	bundles.erase(aBundle->getToken());
+
+	dcassert(bundlePaths.size() == bundles.size());
 
 	aBundle->deleteXmlFile();
 }

@@ -211,18 +211,17 @@ void Bundle::addFinishedItem(QueueItemPtr& qi, bool aFinished) noexcept {
 	qi->setFlag(QueueItem::FLAG_FINISHED);
 }
 
-void Bundle::removeFinishedItem(QueueItemPtr& qi) noexcept {
-	int pos = 0;
-	for (auto& fqi: finishedFiles) {
-		if (fqi == qi) {
-			//qi->setBundle(nullptr);
-			decreaseSize(qi->getSize());
-			removeFinishedSegment(qi->getDownloadedSegments());
-			swap(finishedFiles[pos], finishedFiles[finishedFiles.size()-1]);
-			finishedFiles.pop_back();
-		}
-		pos++;
+void Bundle::removeFinishedItem(QueueItemPtr& aQI) noexcept {
+	auto f = find(finishedFiles, aQI);
+	if (f != finishedFiles.end()) {
+		decreaseSize(aQI->getSize());
+		removeFinishedSegment(aQI->getDownloadedSegments());
+		iter_swap(f, finishedFiles.end()-1);
+		finishedFiles.pop_back();
+		return;
 	}
+
+	dcassert(0);
 }
 
 void Bundle::addQueue(QueueItemPtr& qi) noexcept {
@@ -241,30 +240,29 @@ void Bundle::addQueue(QueueItemPtr& qi) noexcept {
 	addFinishedSegment(qi->getDownloadedSegments());
 }
 
-void Bundle::removeQueue(QueueItemPtr& qi, bool finished) noexcept {
-	if (!finished && qi->isSet(QueueItem::FLAG_FINISHED)) {
-		removeFinishedItem(qi);
+void Bundle::removeQueue(QueueItemPtr& aQI, bool aFileCompleted) noexcept {
+	if (!aFileCompleted && aQI->isSet(QueueItem::FLAG_FINISHED)) {
+		removeFinishedItem(aQI);
 		return;
 	}
 
-	int pos = 0;
-	for (auto& cur: queueItems) {
-		if (cur == qi) {
-			swap(queueItems[pos], queueItems[queueItems.size()-1]);
-			queueItems.pop_back();
-			break;
-		}
-		pos++;
+	auto f = find(queueItems, aQI);
+	if (f != queueItems.end()) {
+		iter_swap(f, queueItems.end() - 1);
+		queueItems.pop_back();
+	} else {
+		dcassert(0);
 	}
 
-	if (!finished) {
-		if (qi->getDownloadedSegments() > 0) {
-			removeFinishedSegment(qi->getDownloadedSegments());
+	if (!aFileCompleted) {
+		if (aQI->getDownloadedSegments() > 0) {
+			removeFinishedSegment(aQI->getDownloadedSegments());
 		}
-		decreaseSize(qi->getSize());
+
+		decreaseSize(aQI->getSize());
 		setFlag(Bundle::FLAG_UPDATE_SIZE);
 	} else {
-		addFinishedItem(qi, true);
+		addFinishedItem(aQI, true);
 	}
 }
 
