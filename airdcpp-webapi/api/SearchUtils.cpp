@@ -75,7 +75,7 @@ namespace webserver {
 			}
 
 			if (a->sr->getType() != SearchResult::TYPE_FILE && b->sr->getType() != SearchResult::TYPE_FILE) {
-				// Directory bundles
+				// Directories
 				auto dirsA = a->sr->getFolderCount();
 				auto dirsB = b->sr->getFolderCount();
 				if (dirsA != dirsB) {

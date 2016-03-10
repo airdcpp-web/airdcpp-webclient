@@ -34,6 +34,7 @@ namespace webserver {
 		{ PROP_INCOMING, "incoming", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
 		{ PROP_LAST_REFRESH_TIME, "last_refresh_time", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
 		{ PROP_REFRESH_STATE, "refresh_state", TYPE_NUMERIC_OTHER, SERIALIZE_TEXT_NUMERIC, SORT_NUMERIC },
+		{ PROP_CONTENT, "content", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
 	};
 
 	const PropertyItemHandler<ShareDirectoryInfoPtr> ShareRootApi::itemHandler = {

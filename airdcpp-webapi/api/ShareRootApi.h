@@ -49,6 +49,7 @@ namespace webserver {
 			PROP_INCOMING,
 			PROP_LAST_REFRESH_TIME,
 			PROP_REFRESH_STATE,
+			PROP_CONTENT,
 			PROP_LAST
 		};
 	private:

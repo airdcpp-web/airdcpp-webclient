@@ -90,6 +90,11 @@ namespace webserver {
 			return serializeRange(beginIter, aList.end(), aF);
 		}
 
+		template <class ContainerT, class FuncT>
+		static json serializeList(const ContainerT& aList, FuncT aF) noexcept {
+			return serializeRange(aList.begin(), aList.end(), aF);
+		}
+
 		// Serialize n messages from position
 		// Throws for invalid parameters
 		template <class ContainerT, class FuncT>
