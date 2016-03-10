@@ -55,8 +55,8 @@ Bundle::Bundle(QueueItemPtr& qi, time_t aFileDate, QueueToken aToken /*0*/, bool
 	}
 }
 
-Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aBundleDate /*0*/, QueueToken aToken /*0*/, bool aDirty /*true*/, bool isFileBundle /*false*/) noexcept :
-	QueueItemBase(Util::validatePath(aTarget, !fileBundle), 0, aPriority, aAdded, aToken, 0), bundleDate(aBundleDate), fileBundle(isFileBundle), dirty(aDirty) {
+Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aBundleDate /*0*/, QueueToken aToken /*0*/, bool aDirty /*true*/, bool aIsFileBundle /*false*/) noexcept :
+	QueueItemBase(Util::validatePath(aTarget, !aIsFileBundle), 0, aPriority, aAdded, aToken, 0), bundleDate(aBundleDate), fileBundle(aIsFileBundle), dirty(aDirty) {
 
 	if (aToken == 0) {
 		token = Util::toUInt32(ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_DOWNLOAD));
