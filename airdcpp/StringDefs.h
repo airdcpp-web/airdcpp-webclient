@@ -1298,7 +1298,7 @@ enum Strings { // @DontAdd
 	SETTINGS_AIRSEARCH, // "Search"
 	SETTINGS_AIR_HIGHLIGHTPAGE, // "Highlight"
 	SETTINGS_AIR_TABSPAGE, // "Tabs"
-	SETTINGS_ALLOW_MATCH_FULL_LIST, // "Use full file lists as last resort if adding sources fails"
+	SETTINGS_ALLOW_MATCH_FULL_LIST, // "Allow matching full file lists for large bundles"
 	SETTINGS_ALLOW_UNTRUSTED_CLIENTS, // "Allow TLS connections to clients without trusted certificate"
 	SETTINGS_ALLOW_UNTRUSTED_HUBS, // "Allow TLS connections to hubs without trusted certificate"
 	SETTINGS_APPEARANCE, // "Appearance"

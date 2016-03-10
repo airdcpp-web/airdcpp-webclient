@@ -775,9 +775,9 @@ void ShareManager::Directory::updateModifyDate() {
 	lastWrite = dcpp::File::getLastModified(getRealPath());
 }
 
-void ShareManager::Directory::getResultInfo(int64_t& size_, size_t& files_, size_t& folders_) const noexcept {
+void ShareManager::Directory::getContentInfo(int64_t& size_, size_t& files_, size_t& folders_) const noexcept {
 	for(const auto& d: directories) {
-		d->getResultInfo(size_, files_, folders_);
+		d->getContentInfo(size_, files_, folders_);
 	}
 
 	folders_ += directories.size();
@@ -2749,10 +2749,16 @@ void ShareManager::restoreFailedMonitoredPaths() {
 ShareDirectoryInfoPtr ShareManager::getRootInfo(const Directory::Ptr& aDir) const noexcept {
 	auto& pd = aDir->getProfileDir();
 
+	size_t fileCount = 0, folderCount = 0;
+	int64_t size = 0;
+	aDir->getContentInfo(size, fileCount, folderCount);
+
 	auto info = std::make_shared<ShareDirectoryInfo>(aDir->getRealPath());
 	info->profiles = pd->getRootProfiles();
 	info->incoming = pd->getIncoming();
-	info->size = aDir->getSize();
+	info->size = size;
+	info->fileCount = fileCount;
+	info->folderCount = folderCount;
 	info->virtualName = pd->getName();
 	info->refreshState = static_cast<uint8_t>(pd->getRefreshState());
 	info->lastRefreshTime = pd->getLastRefreshTime();
@@ -3242,7 +3248,7 @@ bool ShareManager::addDirResult(const Directory* aDir, SearchResultList& aResult
 	int64_t size = 0;
 	size_t files = 0, folders = 0;
 	for(const auto& d: result) {
-		d->getResultInfo(size, files, folders);
+		d->getContentInfo(size, files, folders);
 		date = max(date, d->getLastWrite());
 	}
 
