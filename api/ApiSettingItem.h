@@ -46,7 +46,6 @@ namespace webserver {
 		};
 
 		ApiSettingItem(const string& aName, int aKey, ResourceManager::Strings aDesc, Type aType = TYPE_GENERAL, Unit&& aUnit = { ResourceManager::Strings::LAST, false });
-		//NamedSettingItem(ResourceManager::Strings aDesc);
 
 		json infoToJson(bool aForceAutoValues = false) const noexcept;
 
@@ -56,7 +55,6 @@ namespace webserver {
 
 		bool setCurValue(const json& aJson) const;
 
-		bool isTitle = false;
 		const string name;
 		const Type type;
 

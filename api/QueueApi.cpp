@@ -293,6 +293,13 @@ namespace webserver {
 			QueueManager::getInstance()->setBundlePriority(b, Deserializer::deserializePriority(reqJson, false));
 		}
 
+		if (reqJson.find("auto_priority") != reqJson.end()) {
+			auto autoPrio = JsonUtil::getField<bool>("auto_priority", reqJson);
+			if (autoPrio != b->getAutoPriority()) {
+				QueueManager::getInstance()->toggleBundleAutoPriority(b);
+			}
+		}
+
 		return websocketpp::http::status_code::ok;
 	}
 

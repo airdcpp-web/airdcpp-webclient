@@ -25,11 +25,12 @@
 #include <api/common/ListViewController.h>
 
 #include <airdcpp/typedefs.h>
+#include <airdcpp/HashManagerListener.h>
 #include <airdcpp/ShareDirectoryInfo.h>
 #include <airdcpp/ShareManagerListener.h>
 
 namespace webserver {
-	class ShareRootApi : public ApiModule, private ShareManagerListener {
+	class ShareRootApi : public ApiModule, private ShareManagerListener, private HashManagerListener {
 	public:
 		ShareRootApi(Session* aSession);
 		~ShareRootApi();
@@ -49,7 +50,7 @@ namespace webserver {
 			PROP_INCOMING,
 			PROP_LAST_REFRESH_TIME,
 			PROP_REFRESH_STATE,
-			PROP_CONTENT,
+			PROP_TYPE,
 			PROP_LAST
 		};
 	private:
@@ -62,6 +63,7 @@ namespace webserver {
 		void on(ShareManagerListener::RootCreated, const string& aPath) noexcept;
 		void on(ShareManagerListener::RootRemoved, const string& aPath) noexcept;
 		void on(ShareManagerListener::RootUpdated, const string& aPath) noexcept;
+		void onRootUpdated(const ShareDirectoryInfoPtr& aInfo, PropertyIdSet&& aUpdatedProperties) noexcept;
 
 		static const PropertyItemHandler<ShareDirectoryInfoPtr> itemHandler;
 
@@ -73,6 +75,12 @@ namespace webserver {
 		// ListViewController compares items by memory address so we need to store the list here 
 		ShareDirectoryInfoList roots;
 		mutable SharedMutex cs;
+
+		void on(HashManagerListener::FileHashed, const string& aFilePath, HashedFile& aFileInfo) noexcept;
+
+		TimerPtr timer;
+		void onTimer() noexcept;
+		StringSet hashedPaths;
 	};
 }
 

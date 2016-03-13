@@ -37,7 +37,7 @@ namespace webserver {
 		}
 	private:
 		json previousStats;
-		void onTimer();
+		void onTimer() noexcept;
 
 		static json formatDbStatus(bool aMaintenanceRunning) noexcept;
 		void updateDbStatus(bool aMaintenanceRunning) noexcept;
