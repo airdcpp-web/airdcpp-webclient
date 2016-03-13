@@ -378,52 +378,6 @@ bool Bundle::isFailed() const noexcept {
 	return status == STATUS_SHARING_FAILED || status == STATUS_FAILED_MISSING || status == STATUS_HASH_FAILED || status == STATUS_DOWNLOAD_FAILED;
 }
 
-string Bundle::getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool aNmdc) const noexcept {
-	string remoteDir = Util::getNmdcFilePath(aRemoteFile);
-	string bundleDir = Util::getFilePath(aLocalFile);
-#ifndef _WIN32
-	bundleDir = Util::toNmdcFile(bundleDir);
-#endif
-
-	if (simpleMatching) {
-		if (aNmdc) {
-			if (Text::toLower(remoteDir).find(Text::toLower(getName())) != string::npos)
-				return target;
-		} else {
-			return AirUtil::getNmdcReleaseDir(remoteDir, false);
-		}
-	} else {
-		/* try to find the bundle name from the path */
-		size_t pos = Text::toLower(remoteDir).find(Text::toLower(getName()) + "\\");
-		if (pos != string::npos) {
-			return aNmdc ? target : remoteDir.substr(0, pos + getName().length() + 1);
-		}
-	}
-
-	if (remoteDir.length() > 3) {
-		/* failed, cut the common dirs from the end of the remote path */
-		string::size_type i = remoteDir.length() - 2;
-		string::size_type j;
-		for (;;) {
-			j = remoteDir.find_last_of("\\", i);
-			if (j == string::npos || (int)(bundleDir.length() - (remoteDir.length() - j)) < 0) //also check if it goes out of scope for the local dir
-				break;
-			if (Util::stricmp(remoteDir.substr(j), bundleDir.substr(bundleDir.length() - (remoteDir.length() - j))) != 0)
-				break;
-			i = j - 1;
-		}
-		if ((remoteDir.length() - j) - 1 > bundleDir.length() - target.length()) {
-			/* The next dir to compare would be the bundle dir but it doesn't really exist in the path (which is why we are here) */
-			/* There's a risk that the other user has different directory structure and all subdirs inside a big list directory */
-			/* In those cases the recursive partial list can be huge, or in NMDC there's a bigger risk of adding the sources for files that they don't really have */
-			/* TODO: do something with those */
-		}
-		return aNmdc ? bundleDir.substr(0, bundleDir.length() - (remoteDir.length() - i - 2)) : remoteDir.substr(0, i + 2);
-	}
-
-	return Util::emptyString;
-}
-
 void Bundle::rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept {
 	dcassert(qi->isSource(aUser));
 	auto& ulm = userQueue[qi->getPriority()];

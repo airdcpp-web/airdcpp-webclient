@@ -112,6 +112,8 @@ private:
 	uint64_t lastSave = 0;
 	bool dirty = false;
 	time_t nextSearch = 0;
+	uint64_t lastSearchQueueTime = 0;
+	bool checkSearchQueueLimit() { return lastSearchQueueTime < (5 * 60 * 1000); }
 
 	bool endOfListReached = false;
 

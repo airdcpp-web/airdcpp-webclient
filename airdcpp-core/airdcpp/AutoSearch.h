@@ -153,7 +153,18 @@ public:
 	string getSearchingStatus() const noexcept;
 	string getExpiration() const noexcept;
 
-	QueueItem::Priority getPriority() { return QueueItem::NORMAL; }
+	QueueItem::Priority getPriority() { 
+		auto prio = QueueItem::LOW;
+
+		if ((status == STATUS_FAILED_MISSING) && getLastSearch() == 0) 
+			prio = QueueItem::HIGHEST;
+		else if (status == STATUS_FAILED_MISSING)
+			prio = QueueItem::HIGH;
+		else if( getLastSearch() == 0)
+			prio = QueueItem::NORMAL;
+
+		return prio;
+	}
 
 	bool isRecent() const noexcept { return recent; }
 	bool checkRecent();

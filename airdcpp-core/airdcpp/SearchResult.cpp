@@ -139,10 +139,10 @@ string SearchResult::getFilePath() const {
 	return Util::getNmdcFilePath(path);
 }
 
-bool SearchResult::matches(SearchQuery& aQuery, const string& aSearchToken) const noexcept {
-	if (!token.empty()) {
+bool SearchResult::matches(SearchQuery& aQuery, const string& aLocalSearchToken) const noexcept {
+	if (!user.user->isNMDC()) {
 		// ADC
-		if (aSearchToken != token) {
+		if (aLocalSearchToken != token) {
 			return false;
 		}
 	} else {
@@ -166,8 +166,13 @@ bool SearchResult::matches(SearchQuery& aQuery, const string& aSearchToken) cons
 	return true;
 }
 
-bool SearchResult::getRelevance(SearchQuery& aQuery, RelevanceInfo& relevance_, const string& aSearchToken) const noexcept {
-	if (!aSearchToken.empty() && !matches(aQuery, aSearchToken)) {
+bool SearchResult::getRelevance(SearchQuery& aQuery, RelevanceInfo& relevance_, const string& aLocalSearchToken) const noexcept {
+	// No running search?
+	if (aLocalSearchToken.empty()) {
+		return false;
+	}
+
+	if (!matches(aQuery, aLocalSearchToken)) {
 		return false;
 	}
 

@@ -29,6 +29,7 @@ namespace dcpp {
 	class ShareDirectoryInfo;
 	typedef std::shared_ptr<ShareDirectoryInfo> ShareDirectoryInfoPtr;
 	typedef vector<ShareDirectoryInfoPtr> ShareDirectoryInfoList;
+	typedef std::set<ShareDirectoryInfoPtr, std::owner_less<ShareDirectoryInfoPtr>> ShareDirectoryInfoSet;
 
 	class ShareDirectoryInfo {
 	public:

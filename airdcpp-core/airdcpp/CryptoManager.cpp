@@ -683,7 +683,7 @@ string CryptoManager::formatError(X509_STORE_CTX *ctx, const string& message) {
 		if (!tmp.empty()) {
 			CID certCID(tmp);
 			if (tmp.length() == 39)
-				tmp = Util::listToString(ClientManager::getInstance()->getNicks(certCID, false));
+				tmp = Util::listToString(ClientManager::getInstance()->getNicks(certCID, true));
 			line += (!line.empty() ? ", " : "") + tmp;
 		}
 

@@ -24,6 +24,7 @@
 
 #include "DbHandler.h"
 #include "HashedFile.h"
+#include "HashManagerListener.h"
 #include "MerkleTree.h"
 #include "Semaphore.h"
 #include "SFVReader.h"
@@ -35,27 +36,6 @@
 namespace dcpp {
 
 class File;
-
-class HashManagerListener {
-public:
-	virtual ~HashManagerListener() { }
-	template<int I>	struct X { enum { TYPE = I };  };
-
-	typedef X<0> TTHDone;
-	typedef X<1> HashFailed;
-	typedef X<2> MaintananceFinished;
-	typedef X<3> MaintananceStarted;
-	typedef X<4> DirectoryHashed;
-	typedef X<5> HasherFinished;
-
-	virtual void on(TTHDone, const string& /* filePath */, HashedFile& /* fileInfo */) noexcept { }
-	virtual void on(HashFailed, const string& /* filePath */, HashedFile& /*null*/) noexcept { }
-	virtual void on(MaintananceStarted) noexcept { }
-	virtual void on(MaintananceFinished) noexcept { }
-	virtual void on(DirectoryHashed, const string& /* dirPath */, int /* filesHashed */, int64_t /*sizeHashed*/, time_t /*hashDuration*/, int /*hasherId*/) noexcept { }
-	virtual void on(HasherFinished, int /* dirsHashed */, int /* filesHashed */, int64_t /*sizeHashed*/, time_t /*hashDuration*/, int /*hasherId*/) noexcept { }
-};
-
 class HashLoader;
 class FileException;
 
