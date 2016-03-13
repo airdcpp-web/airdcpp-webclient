@@ -16,6 +16,8 @@ Ubuntu 14.04 or newer is required for installing the client.
 
 #### Install libraries
 
+Note that `libtbb-dev` is an optional dependency as it's not available for all processor architectures (such as armv6).
+
 ##### Ubuntu 14.04 LTS
 
 `sudo apt-get install pkg-config libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.55-dev libboost-regex1.55 libboost-thread1.55 libboost-system1.55 libleveldb-dev`
