@@ -294,8 +294,8 @@ void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const Bund
 				RLock l(cs);
 				updateStatus(as, true);
 			}
-
-			if (!searched && aBundle->getStatus() == Bundle::STATUS_FAILED_MISSING) {
+			// if we already have a waiting time over 5 minutes in search queue don't pile up more...
+			if (!searched && aBundle->getStatus() == Bundle::STATUS_FAILED_MISSING && checkSearchQueueLimit()) {
 				searchItem(as, TYPE_NORMAL);
 				searched = true;
 			}
@@ -368,7 +368,7 @@ bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) noexcept {
 
 	as->setGroup(SETTING(AS_FAILED_DEFAULT_GROUP));
 	as->addBundle(aBundle);
-	addAutoSearch(as, true);
+	addAutoSearch(as, aBundle->isRecent() && checkSearchQueueLimit());
 	return true;
 }
 
@@ -414,10 +414,6 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 		as->setStatus(AutoSearch::STATUS_MANUAL);
 	}
 	
-	resetSearchTimes(aTick, false);
-	fire(AutoSearchManagerListener::UpdateItem(), as, false);
-
-
 	//Run the search
 	if (aType != TYPE_MANUAL_FG) {
 		auto s = make_shared<Search>(aType == TYPE_MANUAL_BG ? Search::MANUAL : Search::AUTO_SEARCH, "as");
@@ -426,11 +422,11 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 		s->exts = extList;
 		s->excluded = SearchQuery::parseSearchString(as->getExcludedString());
 
-		auto searchTime = SearchManager::getInstance()->search(aHubs, s).queueTime;
+		lastSearchQueueTime = SearchManager::getInstance()->search(aHubs, s).queueTime;
 
 		//Report
 		string msg;
-		if (searchTime == 0) {
+		if (lastSearchQueueTime == 0) {
 			if (failedBundle) {
 				msg = STRING_F(FAILED_BUNDLE_SEARCHED, searchWord);
 			}
@@ -442,7 +438,7 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 			}
 		}
 		else {
-			auto time = searchTime / 1000;
+			auto time = lastSearchQueueTime / 1000;
 			if (failedBundle) {
 				msg = STRING_F(FAILED_BUNDLE_SEARCHED_IN, searchWord % time);
 			}
@@ -457,6 +453,9 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 	} else {
 		fire(AutoSearchManagerListener::SearchForeground(), as, searchWord);
 	}
+	resetSearchTimes(aTick, false);
+	nextSearch += lastSearchQueueTime / 1000; //add the waiting time from search queue to avoid pile up...
+	fire(AutoSearchManagerListener::UpdateItem(), as, false);
 }
 void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aUpdate) noexcept {
 	int itemCount = 0;

@@ -585,7 +585,7 @@ private:
 	/*
 	multimap to allow multiple same key values, needed to return from some functions.
 	*/
-	typedef unordered_multimap<string*, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMultiMap; 
+	typedef unordered_multimap<string*, Directory::Ptr> DirMultiMap; 
 
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
 	DirMap rootPaths;
@@ -606,28 +606,15 @@ private:
 		DirMap rootPathsNew;
 
 		string path;
+
+		void mergeRefreshChanges(DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) noexcept;
 	};
 
 	typedef shared_ptr<RefreshInfo> RefreshInfoPtr;
 	typedef vector<RefreshInfoPtr> RefreshInfoList;
+	typedef set<RefreshInfoPtr, std::less<RefreshInfoPtr>> RefreshInfoSet;
 
-	bool handleRefreshedDirectory(RefreshInfoPtr& ri, TaskType aTaskType);
-
-	template<typename T>
-	void mergeRefreshChanges(T& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) noexcept {
-		for (const auto& i: aList) {
-			auto& ri = *i;
-			aDirNameMap.insert(ri.dirNameMapNew.begin(), ri.dirNameMapNew.end());
-			aRootPaths.insert(ri.rootPathsNew.begin(), ri.rootPathsNew.end());
-			aTTHIndex.insert(ri.tthIndexNew.begin(), ri.tthIndexNew.end());
-
-			totalHash += ri.hashSize;
-			totalAdded += ri.addedSize;
-
-			if (dirtyProfiles)
-				ri.root->copyRootProfiles(*dirtyProfiles, true);
-		}
-	}
+	bool handleRefreshedDirectory(const RefreshInfo& ri, TaskType aTaskType);
 
 	// Display a log message if the refresh can't be started immediately
 	void reportPendingRefresh(TaskType aTask, const RefreshPathList& aDirectories, const string& displayName) const noexcept;

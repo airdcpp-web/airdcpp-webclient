@@ -151,7 +151,7 @@ void AirUtil::init() {
 	subDirRegPlain.assign(getSubDirReg(), boost::regex::icase);
 	crcReg.assign(R"(.{5,200}\s(\w{8})$)");
 
-#ifdef _WIN32
+#if defined _WIN32 && defined _DEBUG
 	dcassert(AirUtil::isParentOrExact(R"(C:\Projects\)", R"(C:\Projects\)"));
 	dcassert(AirUtil::isParentOrExact(R"(C:\Projects\)", R"(C:\Projects\test)"));
 	dcassert(AirUtil::isParentOrExact(R"(C:\Projects)", R"(C:\Projects\test)"));
@@ -168,6 +168,44 @@ void AirUtil::init() {
 	dcassert(!AirUtil::isSub(R"(C:\Projects)", R"(C:\Projectstest)"));
 	dcassert(AirUtil::isSub(R"(C:\Projects\test)", ""));
 	dcassert(!AirUtil::isSub("", R"(C:\Projects\test)"));
+
+	dcassert(AirUtil::compareFromEnd(R"(/Downloads/1/)", R"(Downloads\1\)", '\\') == 0);
+	dcassert(AirUtil::compareFromEnd(R"(/Downloads/1/)", R"(Download\1\)", '\\') == 9);
+
+	dcassert(AirUtil::compareFromEnd(R"(E:\Downloads\Projects\CD1\)", R"(CD1\)", '\\') == 0);
+	dcassert(AirUtil::compareFromEnd(R"(E:\Downloads\1\)", R"(1\)", '\\') == 0);
+	dcassert(AirUtil::compareFromEnd(R"(/Downloads/Projects/CD1/)", R"(cd1\)", '\\') == 0);
+	dcassert(AirUtil::compareFromEnd(R"(/Downloads/1/)", R"(1\)", '\\') == 0);
+
+
+	// MATCH PATHS (NMDC)
+	auto tmp = AirUtil::getMatchPath(R"(SHARE\Random\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\)", true);
+	dcassert(AirUtil::getMatchPath(R"(SHARE\Random\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\)", true) == Util::emptyString);
+	dcassert(AirUtil::getMatchPath(R"(SHARE\Bundle\Bundle\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\)", true) == R"(E:\Downloads\Bundle\)");
+
+	// MATCH PATHS (ADC)
+
+	// Different remote bundle path
+	dcassert(AirUtil::getMatchPath(R"(SHARE\Bundle\RandomRemoteDir\File1.zip)", R"(E:\Downloads\Bundle\RandomLocalDir\File1.zip)", R"(E:\Downloads\Bundle\)", false) == R"(SHARE\Bundle\RandomRemoteDir\)");
+	dcassert(AirUtil::getMatchPath(R"(SHARE\RandomRemoteBundle\File1.zip)", R"(E:\Downloads\Bundle\File1.zip)", R"(E:\Downloads\Bundle\)", false) == R"(SHARE\RandomRemoteBundle\)");
+
+	// Common directory name for file parent
+	dcassert(AirUtil::getMatchPath(R"(SHARE\Bundle\RandomRemoteDir\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\RandomLocalDir\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\)", false) == R"(SHARE\Bundle\RandomRemoteDir\CommonSub\)");
+
+	// Subpath is shorter than subdir in main
+	dcassert(AirUtil::getMatchPath(R"(CommonSub\File1.zip)", R"(E:\Downloads\Bundle\RandomLocalDir\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\)", false) == R"(CommonSub\)");
+
+	// Exact match
+	dcassert(AirUtil::getMatchPath(R"(CommonParent\Bundle\Common\File1.zip)", R"(E:\CommonParent\Bundle\Common\File1.zip)", R"(E:\CommonParent\Bundle\)", false) == R"(CommonParent\Bundle\)");
+
+	// Short parent
+	dcassert(AirUtil::getMatchPath(R"(1\File1.zip)", R"(E:\Bundle\File1.zip)", R"(E:\Bundle\)", false) == R"(1\)");
+
+	// Invalid path 1 (the result won't matter, just don't crash here)
+	dcassert(AirUtil::getMatchPath(R"(File1.zip)", R"(E:\Bundle\File1.zip)", R"(E:\Bundle\)", false) == R"(File1.zip)");
+
+	// Invalid path 2 (the result won't matter, just don't crash here)
+	dcassert(AirUtil::getMatchPath(R"(\File1.zip)", R"(E:\Bundle\File1.zip)", R"(E:\Bundle\)", false) == R"(\)");
 #endif
 }
 
@@ -750,26 +788,6 @@ string AirUtil::regexEscape(const string& aStr, bool isWildcard) noexcept {
     return result;
 }
 
-string AirUtil::subtractCommonDirs(const string& aToCompare, const string& aToSubtract, char aSeparator) noexcept {
-	if (aToSubtract.length() > 3) {
-		string::size_type i = aToSubtract.length()-2;
-		string::size_type j;
-		for(;;) {
-			j = aToSubtract.find_last_of(aSeparator, i);
-			if(j == string::npos || (int)(aToCompare.length() - (aToSubtract.length() - j)) < 0) //also check if it goes out of scope for toCompare
-				break;
-
-			auto tmp1 = aToSubtract.substr(j);
-			auto tmp2 = aToCompare.substr(aToCompare.length() - (aToSubtract.length() - j));
-			if(Util::stricmp(aToSubtract.substr(j), aToCompare.substr(aToCompare.length() - (aToSubtract.length() - j))) != 0)
-				break;
-			i = j - 1;
-		}
-		return aToSubtract.substr(0, i+2);
-	}
-	return aToSubtract;
-}
-
 string AirUtil::subtractCommonParents(const string& aToCompare, const StringList& aToSubtract) noexcept {
 	StringList converted;
 	for (const auto& p : aToSubtract) {
@@ -781,15 +799,88 @@ string AirUtil::subtractCommonParents(const string& aToCompare, const StringList
 	return Util::listToString(converted);
 }
 
-pair<string, string::size_type> AirUtil::getDirName(const string& aPath, char separator) noexcept {
+string AirUtil::subtractCommonDirs(const string& toCompare, const string& toSubtract, char separator) noexcept {
+	auto res = compareFromEnd(toCompare, toSubtract, separator);
+	if (res == string::npos) {
+		return toSubtract;
+	}
+
+	return toSubtract.substr(0, res);
+}
+
+string AirUtil::getLastCommonDirectoryPathFromSub(const string& aMainPath, const string& aSubPath, char aSubSeparator, size_t aMainBaseLength) noexcept {
+	auto pos = AirUtil::compareFromEnd(aMainPath, aSubPath, aSubSeparator);
+
+	// Get the next directory
+	if (pos < aSubPath.length()) {
+		auto pos2 = aSubPath.find('\\', pos);
+		if (pos2 != string::npos) {
+			pos = pos2 + 1;
+		}
+	}
+
+	auto mainSubSectionLength = aMainPath.length() - aMainBaseLength;
+	return aSubPath.substr(0, max(pos, aSubPath.length() > mainSubSectionLength ? aSubPath.length() - mainSubSectionLength : 0));
+}
+
+size_t AirUtil::compareFromEnd(const string& aMainPath, const string& aSubPath, char aSubSeparator) noexcept {
+	if (aSubPath.length() > 1) {
+		string::size_type i = aSubPath.length() - 2;
+		string::size_type j;
+		for (;;) {
+			j = aSubPath.find_last_of(aSubSeparator, i);
+			if (j == string::npos) {
+				j = 0; // compare from beginning
+			} else {
+				j++;
+			}
+
+			if (static_cast<int>(aMainPath.length() - (aSubPath.length() - j)) < 0)
+				break; // out of scope for aMainPath
+
+			if (Util::stricmp(aSubPath.substr(j, i - j + 1), aMainPath.substr(aMainPath.length() - (aSubPath.length() - j), i - j + 1)) != 0)
+				break;
+
+			if (j <= 1) {
+				// Fully matched
+				return 0;
+			}
+
+			i = j - 2;
+		}
+
+		return i + 2;
+	}
+
+	return aSubPath.length();
+}
+
+
+string AirUtil::getMatchPath(const string& aRemoteFile, const string& aLocalFile, const string& aBundlePath, bool aNmdc) noexcept {
+	if (aNmdc) {
+		// For simplicity, only perform the path comparison for ADC results
+		if (Text::toLower(aRemoteFile).find(Text::toLower(Util::getLastDir(aBundlePath))) != string::npos) {
+			return aBundlePath;
+		}
+
+		return Util::emptyString;
+	}
+
+	// Get last matching directory for matching recursive filelist from the user
+	auto remoteFileDir = Util::getNmdcFilePath(aRemoteFile);
+	auto localBundleFileDir = Util::getFilePath(aLocalFile);
+	return AirUtil::getLastCommonDirectoryPathFromSub(localBundleFileDir, remoteFileDir, '\\', aBundlePath.length());
+}
+
+pair<string, string::size_type> AirUtil::getDirName(const string& aPath, char aSeparator) noexcept {
 	if (aPath.size() < 3)
 		return { aPath, false };
 
 	//get the directory to search for
 	bool isSub = false;
-	string::size_type i = aPath.back() == separator ? aPath.size() - 2 : aPath.size() - 1, j;
+	string::size_type i = aPath.back() == aSeparator ? aPath.size() - 2 : aPath.size() - 1, j;
 	for (;;) {
-		j = aPath.find_last_of(separator, i);
+		j = aPath.find_last_of(aSeparator, i);
 		if (j == string::npos) {
 			j = 0;
 			break;

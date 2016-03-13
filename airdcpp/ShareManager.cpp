@@ -1482,7 +1482,9 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 
 	DirMap newRoots;
 
-	mergeRefreshChanges(ll, dirNameMap, newRoots, tthIndex, hashSize, sharedSize, nullptr);
+	for (const auto& l : ll) {
+		l->mergeRefreshChanges(dirNameMap, newRoots, tthIndex, hashSize, sharedSize, nullptr);
+	}
 
 	//make sure that the subprofiles are added too
 	for (auto& p : newRoots)
@@ -1816,7 +1818,9 @@ void ShareManager::getDirsByName(const string& aPath, Directory::List& dirs_) co
 
 	// get the last meaningful directory to look up
 	auto p = AirUtil::getDirName(aPath, '\\');
-	const auto directories = dirNameMap.equal_range(&p.first);
+
+	auto nameLower = Text::toLower(p.first);
+	const auto directories = dirNameMap.equal_range(&nameLower);
 	if (directories.first == directories.second)
 		return;
 
@@ -2296,7 +2300,6 @@ bool ShareManager::removeDirectory(const string& aPath) noexcept {
 		if (sd->getParent()) {
 			// Subroot and the content still stays shared.. just null the profile
 			sd->setProfileDir(nullptr);
-			removed = true;
 		} else {
 			// Remove the root
 			cleanIndices(*sd);
@@ -2324,6 +2327,8 @@ bool ShareManager::removeDirectory(const string& aPath) noexcept {
 					updateIndices(d, *bloom.get(), sharedSize, tthIndex, dirNameMap);
 				}
 			}
+
+			removed = true;
 		}
 	}
 
@@ -2518,7 +2523,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 		}
 
 		StringList monitoring;
-		vector<shared_ptr<RefreshInfo>> refreshDirs;
+		RefreshInfoSet refreshDirs;
 
 		//find sub-roots for each directory being refreshed (they will be passed on to buildTree for matching)
 		{
@@ -2526,7 +2531,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 			for(auto& i: dirs) {
 				auto d = findRoot(i);
 				if (d != rootPaths.end()) {
-					refreshDirs.emplace_back(new RefreshInfo(i, d->second, File::getLastModified(i)));
+					refreshDirs.insert(std::make_shared<RefreshInfo>(i, d->second, File::getLastModified(i)));
 					
 					//a monitored dir?
 					if (t.first == ADD_DIR && (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_ALL || (SETTING(MONITORING_MODE) == SettingsManager::MONITORING_INCOMING && d->second->getProfileDir()->getIncoming())))
@@ -2535,7 +2540,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 					auto curDir = findDirectory(i);
 
 					//curDir may also be nullptr
-					refreshDirs.emplace_back(new RefreshInfo(i, curDir, File::getLastModified(i)));
+					refreshDirs.insert(std::make_shared<RefreshInfo>(i, curDir, File::getLastModified(i)));
 				}
 			}
 		}
@@ -2548,21 +2553,22 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 			lastIncomingUpdate = GET_TICK();
 		}
 
-		//build the new tree
+		// Refresh
 		atomic<long> progressCounter(0);
-		const size_t dirCount = refreshDirs.size();
 
+		int64_t totalHash = 0;
+		ProfileTokenSet dirtyProfiles;
 
-		//bloom
 		ShareBloom* refreshBloom = t.first == REFRESH_ALL ? new ShareBloom(1<<20) : bloom.get();
 
-		auto doRefresh = [&](RefreshInfoPtr& i) {
+		auto doRefresh = [&](const RefreshInfoPtr& i) {
 			auto& ri = *i.get();
-			auto path = ri.path;
+			const auto& path = ri.path;
 
 			addDirName(ri.root, ri.dirNameMapNew, *refreshBloom);
 			setRefreshState(ri.path, RefreshState::STATE_RUNNING, false);
 
+			// Build the tree
 			bool succeed = false;
 			try {
 				buildTree(path, Text::toLower(ri.path), ri.root, ri.subProfiles, ri.dirNameMapNew, ri.rootPathsNew, ri.hashSize, ri.addedSize, ri.tthIndexNew, *refreshBloom);
@@ -2573,13 +2579,23 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 				LogManager::getInstance()->message(STRING_F(DIR_REFRESH_FAILED, path % STRING(UNKNOWN_ERROR)), LogMessage::SEV_ERROR);
 			}
 
-			dcassert(ri.path == path);
+			// Don't save cache with an incomplete tree
+			if (aShutdown)
+				return;
 
-			if(progressF) {
-				progressF(static_cast<float>(progressCounter++) / static_cast<float>(dirCount));
+			// Apply the changes
+			{
+				WLock l(cs);
+				if (handleRefreshedDirectory(ri, static_cast<TaskType>(t.first))) {
+					ri.mergeRefreshChanges(dirNameMap, rootPaths, tthIndex, totalHash, sharedSize, &dirtyProfiles);
+				}
 			}
 
+			// Finish up
 			setRefreshState(ri.path, RefreshState::STATE_NORMAL, succeed);
+			if (progressF) {
+				progressF(static_cast<float>(progressCounter++) / static_cast<float>(refreshDirs.size()));
+			}
 		};
 
 		try {
@@ -2597,34 +2613,11 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 		if (aShutdown)
 			break;
 
-		int64_t totalHash=0;
-		ProfileTokenSet dirtyProfiles;
+		if(t.first == REFRESH_ALL) {
+			// Reset the bloom so that removed files are nulled (which won't happen with partial refreshes)
 
-		//append the changes
-		{		
 			WLock l(cs);
-			if(t.first != REFRESH_ALL) {
-				refreshDirs.erase(boost::remove_if(refreshDirs, [&](RefreshInfoPtr& ri) {
-					return !handleRefreshedDirectory(ri, static_cast<TaskType>(t.first)); 
-				}), refreshDirs.end());
-
-				bloom->merge(*refreshBloom);
-				mergeRefreshChanges(refreshDirs, dirNameMap, rootPaths, tthIndex, totalHash, sharedSize, &dirtyProfiles);
-			} else {
-				int64_t totalAdded=0;
-				DirMultiMap newDirNames;
-				DirMap newRoots;
-				HashFileMap newTTHs;
-
-				mergeRefreshChanges(refreshDirs, newDirNames, newRoots, newTTHs, totalHash, totalAdded, &dirtyProfiles);
-
-				rootPaths.swap(newRoots);
-				dirNameMap.swap(newDirNames);
-				tthIndex.swap(newTTHs);
-
-				sharedSize = totalAdded;
-				bloom.reset(refreshBloom);
-			}
+			bloom.reset(refreshBloom);
 		}
 
 		setProfilesDirty(dirtyProfiles, task->type == TYPE_MANUAL || t.first == REFRESH_ALL || t.first == ADD_BUNDLE);
@@ -2643,12 +2636,32 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 	refreshing.clear();
 }
 
-void ShareManager::setRefreshState(const string& aPath, RefreshState aState, bool aUpdateRefreshTime) noexcept {
+void ShareManager::RefreshInfo::mergeRefreshChanges(DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) noexcept {
+	aDirNameMap.insert(dirNameMapNew.begin(), dirNameMapNew.end());
+	aRootPaths.insert(rootPathsNew.begin(), rootPathsNew.end());
+	aTTHIndex.insert(tthIndexNew.begin(), tthIndexNew.end());
+
+	totalHash += hashSize;
+	totalAdded += addedSize;
+
+	if (dirtyProfiles) {
+		root->copyRootProfiles(*dirtyProfiles, true);
+	}
+
+	// Save some memory
+	dirNameMapNew.clear();
+	rootPathsNew.clear();
+	tthIndexNew.clear();
+	oldRoot = nullptr;
+	root = nullptr;
+}
+
+void ShareManager::setRefreshState(const string& aRefreshPath, RefreshState aState, bool aUpdateRefreshTime) noexcept {
 	ProfileDirectoryList directories;
 	{
 		RLock l(cs);
 		copy_if(profileDirs | map_values, back_inserter(directories), [&](const ProfileDirectory::Ptr& aDir) {
-			return AirUtil::isParentOrExact(aPath, aDir->getPath());
+			return AirUtil::isParentOrExact(aDir->getPath(), aRefreshPath);
 		});
 	}
 
@@ -2662,15 +2675,15 @@ void ShareManager::setRefreshState(const string& aPath, RefreshState aState, boo
 	}
 }
 
-bool ShareManager::handleRefreshedDirectory(RefreshInfoPtr& ri, TaskType aTaskType) {
+bool ShareManager::handleRefreshedDirectory(const RefreshInfo& ri, TaskType aTaskType) {
 	//recursively remove the content of this dir from TTHIndex and dir name list
-	if (ri->oldRoot)
-		cleanIndices(*ri->oldRoot);
+	if (ri.oldRoot)
+		cleanIndices(*ri.oldRoot);
 
 	//clear this path and its children from root paths
 	for (auto i = rootPaths.begin(); i != rootPaths.end();) {
-		if (AirUtil::isParentOrExact(ri->path, i->first)) {
-			if (aTaskType == ADD_DIR && AirUtil::isSub(i->first, ri->root->getProfileDir()->getPath()) && !i->second->getParent()) {
+		if (AirUtil::isParentOrExact(ri.path, i->first)) {
+			if (aTaskType == ADD_DIR && AirUtil::isSub(i->first, ri.root->getProfileDir()->getPath()) && !i->second->getParent()) {
 				//in case we are adding a new parent
 				File::deleteFile(i->second->getProfileDir()->getCacheXmlPath());
 				cleanIndices(*i->second);
@@ -2683,31 +2696,31 @@ bool ShareManager::handleRefreshedDirectory(RefreshInfoPtr& ri, TaskType aTaskTy
 	}
 
 	//set the parent for refreshed subdirectories
-	if (!ri->oldRoot || ri->oldRoot->getParent()) {
-		if (SETTING(SKIP_EMPTY_DIRS_SHARE) && ri->root->directories.empty() && ri->root->files.empty()) {
-			if (ri->oldRoot) {
-				cleanIndices(*ri->oldRoot);
-				ri->oldRoot->directories.erase_key(ri->root->realName.getLower());
+	if (!ri.oldRoot || ri.oldRoot->getParent()) {
+		if (SETTING(SKIP_EMPTY_DIRS_SHARE) && ri.root->directories.empty() && ri.root->files.empty()) {
+			if (ri.oldRoot) {
+				cleanIndices(*ri.oldRoot);
+				ri.oldRoot->directories.erase_key(ri.root->realName.getLower());
 			}
 
 			return false;
 		}
 
 		Directory::Ptr parent = nullptr;
-		if (!ri->oldRoot) {
+		if (!ri.oldRoot) {
 			//get the parent
-			parent = getDirectory(Util::getParentDir(ri->path), true);
+			parent = getDirectory(Util::getParentDir(ri.path), true);
 			if (!parent) {
 				return false;
 			}
 		} else {
-			parent = ri->oldRoot->getParent();
+			parent = ri.oldRoot->getParent();
 		}
 
 		//set the parent
-		ri->root->setParent(parent.get());
-		parent->directories.erase_key(ri->root->realName.getLower());
-		parent->directories.insert_sorted(ri->root);
+		ri.root->setParent(parent.get());
+		parent->directories.erase_key(ri.root->realName.getLower());
+		parent->directories.insert_sorted(ri.root);
 		parent->updateModifyDate();
 	}
 

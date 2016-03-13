@@ -354,6 +354,7 @@
     <ClInclude Include="airdcpp\AutoSearchQueue.h" />
     <ClInclude Include="airdcpp\DirectSearch.h" />
     <ClInclude Include="airdcpp\DupeType.h" />
+    <ClInclude Include="airdcpp\HashManagerListener.h" />
     <ClInclude Include="airdcpp\ViewFileManagerListener.h" />
     <ClInclude Include="airdcpp\MessageCache.h" />
     <ClInclude Include="airdcpp\ConnectionType.h" />

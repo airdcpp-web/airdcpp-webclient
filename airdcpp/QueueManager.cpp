@@ -2068,14 +2068,6 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 		return;
 	}
 
-	if (p == QueueItem::DEFAULT) {
-		if (!aBundle->getAutoPriority()) {
-			setBundleAutoPriority(aBundle);
-		}
-
-		return;
-	}
-
 	{
 		WLock l(cs);
 
@@ -2111,17 +2103,17 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 	dcassert(!aBundle->isFileBundle() || aBundle->getPriority() == aBundle->getQueueItems().front()->getPriority());
 }
 
-void QueueManager::setBundleAutoPriority(QueueToken aBundleToken) noexcept {
+void QueueManager::toggleBundleAutoPriority(QueueToken aBundleToken) noexcept {
 	BundlePtr bundle = nullptr;
 	{
 		RLock l(cs);
 		bundle = bundleQueue.findBundle(aBundleToken);
 	}
 
-	setBundleAutoPriority(bundle);
+	toggleBundleAutoPriority(bundle);
 }
 
-void QueueManager::setBundleAutoPriority(BundlePtr& aBundle) noexcept {
+void QueueManager::toggleBundleAutoPriority(BundlePtr& aBundle) noexcept {
 	if (aBundle->isFinished())
 		return;
 
@@ -2131,17 +2123,18 @@ void QueueManager::setBundleAutoPriority(BundlePtr& aBundle) noexcept {
 		aBundle->getQueueItems().front()->setAutoPriority(aBundle->getAutoPriority());
 	}
 
-	aBundle->setDirty();
-
-	if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_BALANCED) {
-		calculateBundlePriorities(false);
-		if (aBundle->isPausedPrio()) {
-			//can't count auto priorities with the current bundles, but we don't want this one to stay paused
-			setBundlePriority(aBundle, Bundle::LOW, true);
-		}
-	} else if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
-		setBundlePriority(aBundle, aBundle->calculateProgressPriority(), true);
+	if (aBundle->isPausedPrio()) {
+		// We don't want this one to stay paused if the auto priorities can't be counted
+		setBundlePriority(aBundle, Bundle::LOW, true);
+	} else {
+		// Auto priority state may not be fired if the old priority is kept
+		fire(QueueManagerListener::BundlePriority(), aBundle);
 	}
+
+	// Recount priorities as soon as possible
+	setLastAutoPrio(0);
+
+	aBundle->setDirty();
 }
 
 int QueueManager::removeFinishedBundles() noexcept {
@@ -2197,14 +2190,6 @@ void QueueManager::setQIPriority(QueueItemPtr& q, QueueItemBase::Priority p, boo
 		return;
 	}
 
-	if (p == QueueItem::DEFAULT) {
-		if (!q->getAutoPriority()) {
-			setQIAutoPriority(q->getTarget());
-		}
-
-		return;
-	}
-
 	{
 		WLock l(cs);
 		if(q->getPriority() != p && !q->isFinished() ) {
@@ -2248,7 +2233,7 @@ void QueueManager::setQIAutoPriority(const string& aTarget) noexcept {
 		return;
 
 	if (q->getBundle()->isFileBundle()) {
-		setBundleAutoPriority(q->getBundle()->getToken());
+		toggleBundleAutoPriority(q->getBundle()->getToken());
 		return;
 	}
 
@@ -2759,9 +2744,10 @@ void QueueManager::matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult
 			// Ignore...
 		}
 	} else {
-		auto path = aQI->getBundle()->getMatchPath(aResult->getPath(), aQI->getTarget(), aResult->getUser().user->isSet(User::NMDC));
+		bool nmdc = aResult->getUser().user->isNMDC();
+		auto path = AirUtil::getMatchPath(aResult->getPath(), aQI->getTarget(), aQI->getBundle()->getTarget(), nmdc);
 		if (!path.empty()) {
-			if (aResult->getUser().user->isSet(User::NMDC)) {
+			if (nmdc) {
 				// A NMDC directory bundle, just add the sources without matching
 				QueueItemList ql;
 				int newFiles = 0;
@@ -2794,12 +2780,14 @@ void QueueManager::matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult
 			}
 		} else if (SETTING(ALLOW_MATCH_FULL_LIST)) {
 			// No path to match, use full filelist
+			dcassert(nmdc);
 			try {
 				addList(aResult->getUser(), QueueItem::FLAG_MATCH_QUEUE, Util::emptyString, aQI->getBundle());
 			} catch(const Exception&) {
 				// ...
 			}
 		} else {
+			dcassert(nmdc);
 			// Add for the single file
 			try {
 				wantConnection = addSource(aQI, aResult->getUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);

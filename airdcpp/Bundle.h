@@ -211,9 +211,6 @@ public:
 	void addFinishedNotify(HintedUser& aUser, const string& remoteBundle) noexcept;
 	void removeFinishedNotify(const UserPtr& aUser) noexcept;
 
-	// Get the path for matching a file list (remote file must be in NMDC format)
-	// Returns the local path for NMDC and the remote path for ADC
-	string getMatchPath(const string& aRemoteFile, const string& aLocalFile, bool aNmdc) const noexcept;
 	QueueItemPtr findQI(const string& aTarget) const noexcept;
 	int countOnlineUsers() const noexcept;
 

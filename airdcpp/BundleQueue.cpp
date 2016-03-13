@@ -136,12 +136,8 @@ const BundleQueue::PathInfo* BundleQueue::getSubDirectoryInfo(const string& aSub
 	auto paths = bundlePaths.find(aBundle);
 	if (paths != bundlePaths.end()) {
 		for (const auto& p : paths->second) {
-			auto fullPath = Util::toNmdcFile(p->path);
-			if (aSubPath.length() >= fullPath.length()) {
-				continue;
-			}
-
-			if (fullPath.substr(fullPath.length() - aSubPath.length()) == aSubPath) {
+			auto pos = AirUtil::compareFromEnd(p->path, aSubPath, '\\');
+			if (pos == 0) {
 				return p;
 			}
 		}

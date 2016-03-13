@@ -782,7 +782,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(ICON_PATH, "");
 	setDefault(QI_AUTOPRIO, true);
 	setDefault(SHOW_SHARED_DIRS_FAV, true);
-	setDefault(ALLOW_MATCH_FULL_LIST, false);
+	setDefault(ALLOW_MATCH_FULL_LIST, true);
 	setDefault(REPORT_ADDED_SOURCES, false);
 	setDefault(EXPAND_BUNDLES, false);
 	setDefault(COUNTRY_FORMAT, "%[2code] - %[name]");

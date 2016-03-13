@@ -127,12 +127,25 @@ public:
 	static string subtractCommonDirs(const string& toCompare, const string& toSubtract, char separator) noexcept;
 
 	// Removes common path section from the beginning of toSubtract
+	// Path separators are ignored when comparing
 	static string subtractCommonParents(const string& toCompare, const StringList& toSubtract) noexcept;
+
+	// Returns the position from the end of aSubPath from where the paths start to differ
+	// Path separators are ignored when comparing
+	static size_t compareFromEnd(const string& aMainPath, const string& aSubPath, char aSubSeparator) noexcept;
+
+	// Get the path for matching a file list (remote file must be in NMDC format)
+	// Returns the local path for NMDC and the remote path for ADC (or empty for NMDC results that have nothing in common)
+	static string getMatchPath(const string& aRemoteFile, const string& aLocalFile, const string& aBundlePath, bool aNmdc) noexcept;
+
+	// Remove common subdirectories (except the last one) from the end of aSubPath
+	// Non-subtractable length of aMainPath may also be specified
+	// Path separators are ignored when comparing
+	static string getLastCommonDirectoryPathFromSub(const string& aMainPath, const string& aSubPath, char aSubSeparator, size_t aMainBaseLength = 0) noexcept;
 
 	/* Returns the name without subdirs and possible position from where the subdir starts */
 	static pair<string, string::size_type> getDirName(const string& aName, char separator) noexcept;
 	static string getTitle(const string& searchTerm) noexcept;
-
 private:
 	static bool removeDirectoryIfEmptyRe(const string& tgt, int maxAttempts, int curAttempts);
 

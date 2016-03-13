@@ -1221,7 +1221,7 @@ int HashManager::Hasher::run() {
 
 				if(failed) {
 					getInstance()->log(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), hasherID, true, true);
-					getInstance()->fire(HashManagerListener::HashFailed(), fname, fi);
+					getInstance()->fire(HashManagerListener::FileFailed(), fname, fi);
 				} else {
 					fi = HashedFile(tt.getRoot(), timestamp, size);
 					getInstance()->hashDone(fname, pathLower, tt, averageSpeed, fi, hasherID);
@@ -1229,7 +1229,7 @@ int HashManager::Hasher::run() {
 			} catch(const FileException& e) {
 				totalBytesLeft -= sizeLeft;
 				getInstance()->log(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), hasherID, true, true);
-				getInstance()->fire(HashManagerListener::HashFailed(), fname, fi);
+				getInstance()->fire(HashManagerListener::FileFailed(), fname, fi);
 				failed = true;
 			}
 		
@@ -1300,7 +1300,7 @@ int HashManager::Hasher::run() {
 		}
 
 		if (!failed && !fname.empty())
-			getInstance()->fire(HashManagerListener::TTHDone(), fname, fi);
+			getInstance()->fire(HashManagerListener::FileHashed(), fname, fi);
 
 		if (deleteThis) {
 			//check again if we have added new items while this was unlocked
