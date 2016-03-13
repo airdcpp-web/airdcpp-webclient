@@ -186,11 +186,11 @@ namespace webserver {
 			ApiModule(aParentModule->getSession(), aParentModule->getSubscriptionAccess(), &aSubscriptions), parentModule(aParentModule), id(aId) { }
 
 		bool send(const string& aSubscription, const json& aJson) {
-			json j;
-			j["event"] = aSubscription;
-			j["data"] = aJson;
-			j["id"] = id;
-			return ApiModule::send(j);
+			return ApiModule::send({
+				{ "event", aSubscription },
+				{ "data", aJson },
+				{ "id", id }
+			});
 		}
 
 		bool maybeSend(const string& aSubscription, ApiModule::JsonCallback aCallback) {

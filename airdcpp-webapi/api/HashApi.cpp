@@ -66,7 +66,7 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	void HashApi::onTimer() {
+	void HashApi::onTimer() noexcept {
 		if (!subscriptionActive("hash_statistics"))
 			return;
 

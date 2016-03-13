@@ -48,7 +48,7 @@ namespace webserver {
 
 	api_return ShareApi::handleRefreshShare(ApiRequest& aRequest) {
 		auto incoming = JsonUtil::getOptionalFieldDefault<bool>("incoming", aRequest.getRequestBody(), false);
-		auto ret = ShareManager::getInstance()->refresh(incoming);
+		ShareManager::getInstance()->refresh(incoming);
 
 		//aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
@@ -83,23 +83,24 @@ namespace webserver {
 	}
 
 	api_return ShareApi::handleGetStats(ApiRequest& aRequest) {
-		json j;
-
 		auto optionalStats = ShareManager::getInstance()->getShareStats();
 		if (!optionalStats) {
 			return websocketpp::http::status_code::no_content;
 		}
 
 		auto stats = *optionalStats;
-		j["total_file_count"] = stats.totalFileCount;
-		j["total_directory_count"] = stats.totalDirectoryCount;
-		j["files_per_directory"] = stats.filesPerDirectory;
-		j["total_size"] = stats.totalSize;
-		j["unique_file_percentage"] = stats.uniqueFilePercentage;
-		j["unique_files"] = stats.uniqueFileCount;
-		j["average_file_age"] = stats.averageFileAge;
-		j["profile_count"] = stats.profileCount;
-		j["profile_root_count"] = stats.profileDirectoryCount;
+
+		json j = {
+			{ "total_file_count", stats.totalFileCount },
+			{ "total_directory_count", stats.totalDirectoryCount },
+			{ "files_per_directory", stats.filesPerDirectory },
+			{ "total_size", stats.totalSize },
+			{ "unique_file_percentage", stats.uniqueFilePercentage },
+			{ "unique_files", stats.uniqueFileCount },
+			{ "average_file_age", stats.averageFileAge },
+			{ "profile_count", stats.profileCount },
+			{ "profile_root_count", stats.profileDirectoryCount},
+		};
 
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;

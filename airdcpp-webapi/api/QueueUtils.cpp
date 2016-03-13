@@ -78,7 +78,7 @@ namespace webserver {
 		return{
 			{ "id", aItem.getPriority() },
 			{ "str", AirUtil::getPrioText(aItem.getPriority()) },
-			{ "auto_prio", aItem.getAutoPriority() }
+			{ "auto", aItem.getAutoPriority() }
 		};
 	}
 

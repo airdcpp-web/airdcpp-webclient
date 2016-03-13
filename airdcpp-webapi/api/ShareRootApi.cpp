@@ -23,6 +23,8 @@
 
 #include <web-server/JsonUtil.h>
 
+#include <airdcpp/AirUtil.h>
+#include <airdcpp/HashManager.h>
 #include <airdcpp/ShareManager.h>
 
 namespace webserver {
@@ -34,7 +36,7 @@ namespace webserver {
 		{ PROP_INCOMING, "incoming", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
 		{ PROP_LAST_REFRESH_TIME, "last_refresh_time", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
 		{ PROP_REFRESH_STATE, "refresh_state", TYPE_NUMERIC_OTHER, SERIALIZE_TEXT_NUMERIC, SORT_NUMERIC },
-		{ PROP_CONTENT, "content", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
 	};
 
 	const PropertyItemHandler<ShareDirectoryInfoPtr> ShareRootApi::itemHandler = {
@@ -43,7 +45,8 @@ namespace webserver {
 	};
 
 	ShareRootApi::ShareRootApi(Session* aSession) : ApiModule(aSession, Access::SETTINGS_VIEW),
-		rootView("share_root_view", this, itemHandler, std::bind(&ShareRootApi::getRoots, this)) {
+		rootView("share_root_view", this, itemHandler, std::bind(&ShareRootApi::getRoots, this)),
+		timer(getTimer([this] { onTimer(); }, 5000)) {
 
 		// Maintain the view item listing only when it's needed
 		rootView.setActiveStateChangeHandler([&](bool aActive) {
@@ -55,8 +58,6 @@ namespace webserver {
 			}
 		});
 
-		ShareManager::getInstance()->addListener(this);
-
 		METHOD_HANDLER("roots", Access::SETTINGS_VIEW, ApiRequest::METHOD_GET, (), false, ShareRootApi::handleGetRoots);
 		METHOD_HANDLER("root", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("add")), true, ShareRootApi::handleAddRoot);
 		METHOD_HANDLER("root", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("update")), true, ShareRootApi::handleUpdateRoot);
@@ -65,9 +66,15 @@ namespace webserver {
 		createSubscription("share_root_created");
 		createSubscription("share_root_updated");
 		createSubscription("share_root_removed");
+
+		ShareManager::getInstance()->addListener(this);
+		HashManager::getInstance()->addListener(this);
+		timer->start(false);
 	}
 
 	ShareRootApi::~ShareRootApi() {
+		timer->stop(true);
+		HashManager::getInstance()->removeListener(this);
 		ShareManager::getInstance()->removeListener(this);
 	}
 
@@ -77,7 +84,7 @@ namespace webserver {
 	}
 
 	api_return ShareRootApi::handleGetRoots(ApiRequest& aRequest) {
-		auto j = Serializer::serializeItemList(itemHandler, getRoots());
+		auto j = Serializer::serializeItemList(itemHandler, ShareManager::getInstance()->getRootInfos());
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
 	}
@@ -155,16 +162,29 @@ namespace webserver {
 		}
 
 		auto info = ShareManager::getInstance()->getRootInfo(aPath);
+		if (!info) {
+			dcassert(0);
+			return;
+		}
+
 		if (rootView.isActive()) {
 			RLock l(cs);
 			auto i = find_if(roots.begin(), roots.end(), ShareDirectoryInfo::PathCompare(aPath));
-			if (i != roots.end()) {
-				(*i)->merge(info);
-				rootView.onItemUpdated(*i, toPropertyIdSet(properties));
+			if (i == roots.end()) {
+				return;
 			}
+
+			// We need to use the same pointer because of listview
+			(*i)->merge(info);
+			info = *i;
 		}
 
-		maybeSend("share_root_updated", [&] { return Serializer::serializeItem(info, itemHandler); });
+		onRootUpdated(info, toPropertyIdSet(properties));
+	}
+
+	void ShareRootApi::onRootUpdated(const ShareDirectoryInfoPtr& aInfo, PropertyIdSet&& aUpdatedProperties) noexcept {
+		maybeSend("share_root_updated", [&] { return Serializer::serializeItemProperties(aInfo, aUpdatedProperties, itemHandler); });
+		rootView.onItemUpdated(aInfo, aUpdatedProperties);
 	}
 
 	void ShareRootApi::on(ShareManagerListener::RootRemoved, const string& aPath) noexcept {
@@ -174,6 +194,8 @@ namespace webserver {
 			if (i != roots.end()) {
 				rootView.onItemRemoved(*i);
 				roots.erase(i);
+			} else {
+				dcassert(0);
 			}
 		}
 
@@ -212,5 +234,51 @@ namespace webserver {
 		if (incoming) {
 			aInfo->incoming = *incoming;
 		}
+	}
+
+	// Show updates for roots that are being hashed regularly
+	void ShareRootApi::onTimer() noexcept {
+		ShareDirectoryInfoSet updatedRoots;
+
+		{
+			RLock l(cs);
+			if (hashedPaths.empty()) {
+				return;
+			}
+
+			for (const auto& p : hashedPaths) {
+				auto i = find_if(roots.begin(), roots.end(), [&](const ShareDirectoryInfoPtr& aInfo) {
+					return AirUtil::isParentOrExact(aInfo->path, p);
+				});
+
+				if (i != roots.end()) {
+					updatedRoots.insert(*i);
+				}
+			} 
+		}
+
+		{
+			WLock l(cs);
+			hashedPaths.clear();
+		}
+
+		for (const auto& root : updatedRoots) {
+			// Update with the new information
+			auto newInfo = ShareManager::getInstance()->getRootInfo(root->path);
+			if (newInfo) {
+				WLock l(cs);
+				root->merge(newInfo);
+				onRootUpdated(root, { PROP_SIZE, PROP_TYPE });
+			}
+		}
+	}
+
+	void ShareRootApi::on(HashManagerListener::FileHashed, const string& aFilePath, HashedFile& aFileInfo) noexcept {
+		if (!rootView.isActive() && !subscriptionActive("share_root_updated")) {
+			return;
+		}
+
+		WLock l(cs);
+		hashedPaths.insert(Util::getFilePath(aFilePath));
 	}
 }
