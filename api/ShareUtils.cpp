@@ -74,6 +74,13 @@ namespace webserver {
 		case ShareRootApi::PROP_PROFILES: {
 			return compare(a->profiles.size(), b->profiles.size());
 		}
+		case ShareRootApi::PROP_VIRTUAL_NAME: {
+			if (a->virtualName != b->virtualName) {
+				return compare(a->virtualName, b->virtualName);
+			}
+
+			return compare(a->path, b->path);
+		}
 		default:
 			dcassert(0);
 		}
