@@ -2666,9 +2666,12 @@ void ShareManager::setRefreshState(const string& aRefreshPath, RefreshState aSta
 	}
 
 	for (auto& pd : directories) {
-		pd->setRefreshState(aState);
-		if (aUpdateRefreshTime) {
-			pd->setLastRefreshTime(GET_TIME());
+		// Only fire the update for refreshed subdirectories (as the size/content may have changed)
+		if (aRefreshPath == pd->getPath()) {
+			pd->setRefreshState(aState);
+			if (aUpdateRefreshTime) {
+				pd->setLastRefreshTime(GET_TIME());
+			}
 		}
 
 		fire(ShareManagerListener::RootUpdated(), pd->getPath());
