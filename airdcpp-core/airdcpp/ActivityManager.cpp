@@ -59,6 +59,10 @@ void ActivityManager::setAway(AwayMode aNewMode) {
 		return;
 	}
 
+	if (aNewMode == AWAY_IDLE && !SETTING(AWAY_IDLE_TIME)) {
+		return;
+	}
+
 	if (aNewMode == AWAY_MANUAL || (awayMode == AWAY_MANUAL && aNewMode == AWAY_OFF)) {
 		//only save the state if away mode is set by user
 		SettingsManager::getInstance()->set(SettingsManager::AWAY, aNewMode != AWAY_OFF);
