@@ -66,7 +66,7 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	void HashApi::onTimer() {
+	void HashApi::onTimer() noexcept {
 		if (!subscriptionActive("hash_statistics"))
 			return;
 
@@ -87,8 +87,8 @@ namespace webserver {
 		if (previousStats == j)
 			return;
 
-		previousStats = j;
 		send("hash_statistics", j);
+		previousStats.swap(j);
 	}
 
 	void HashApi::on(HashManagerListener::MaintananceStarted) noexcept {

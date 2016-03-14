@@ -16,26 +16,38 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_SESSIONAPI_H
-#define DCPLUSPLUS_DCPP_SESSIONAPI_H
+#ifndef DCPLUSPLUS_DCPP_LOGAPI_H
+#define DCPLUSPLUS_DCPP_LOGAPI_H
 
 #include <web-server/stdinc.h>
 
+#include <api/ApiModule.h>
+
 #include <airdcpp/typedefs.h>
+#include <airdcpp/LogManagerListener.h>
 
 namespace webserver {
-	class SessionApi {
+	class EventApi : public ApiModule, private LogManagerListener {
 	public:
-		SessionApi();
+		EventApi(Session* aSession);
+		~EventApi();
 
-		api_return handleLogin(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp);
-		api_return handleSocketConnect(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket);
-		api_return handleLogout(ApiRequest& aRequest);
-		api_return handleActivity(ApiRequest& aRequest);
-
-		json getSystemInfo(const string& aIp) const noexcept;
+		int getVersion() const noexcept {
+			return 0;
+		}
 	private:
-		static string getHostname() noexcept;
+		void onMessagesChanged() noexcept;
+
+		api_return handleGetInfo(ApiRequest& aRequest);
+		api_return handleGetLog(ApiRequest& aRequest);
+		api_return handleRead(ApiRequest& aRequest);
+		api_return handleClear(ApiRequest& aRequest);
+		api_return handlePostMessage(ApiRequest& aRequest);
+
+		// LogManagerListener
+		void on(LogManagerListener::Message, const LogMessagePtr& aMessageData) noexcept;
+		void on(LogManagerListener::Cleared) noexcept;
+		void on(LogManagerListener::MessagesRead) noexcept;
 	};
 }
 

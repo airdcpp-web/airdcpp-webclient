@@ -27,7 +27,7 @@
 #include <airdcpp/HubEntry.h>
 
 namespace webserver {
-	ShareApi::ShareApi(Session* aSession) : ApiModule(aSession) {
+	ShareApi::ShareApi(Session* aSession) : ApiModule(aSession, Access::SETTINGS_VIEW) {
 
 		METHOD_HANDLER("grouped_root_paths", Access::ANY, ApiRequest::METHOD_GET, (), false, ShareApi::handleGetGroupedRootPaths);
 		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, ShareApi::handleGetStats);
@@ -36,14 +36,19 @@ namespace webserver {
 		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (), false, ShareApi::handleRefreshShare);
 		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("paths")), true, ShareApi::handleRefreshPaths);
 		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("virtual")), true, ShareApi::handleRefreshVirtual);
+
+		createSubscription("share_refreshed");
+
+		ShareManager::getInstance()->addListener(this);
 	}
 
 	ShareApi::~ShareApi() {
+		ShareManager::getInstance()->removeListener(this);
 	}
 
 	api_return ShareApi::handleRefreshShare(ApiRequest& aRequest) {
 		auto incoming = JsonUtil::getOptionalFieldDefault<bool>("incoming", aRequest.getRequestBody(), false);
-		auto ret = ShareManager::getInstance()->refresh(incoming);
+		ShareManager::getInstance()->refresh(incoming);
 
 		//aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
@@ -78,44 +83,38 @@ namespace webserver {
 	}
 
 	api_return ShareApi::handleGetStats(ApiRequest& aRequest) {
-		json j;
-
 		auto optionalStats = ShareManager::getInstance()->getShareStats();
 		if (!optionalStats) {
 			return websocketpp::http::status_code::no_content;
 		}
 
 		auto stats = *optionalStats;
-		j["total_file_count"] = stats.totalFileCount;
-		j["total_directory_count"] = stats.totalDirectoryCount;
-		j["files_per_directory"] = stats.filesPerDirectory;
-		j["total_size"] = stats.totalSize;
-		j["unique_file_percentage"] = stats.uniqueFilePercentage;
-		j["unique_files"] = stats.uniqueFileCount;
-		j["average_file_age"] = stats.averageFileAge;
-		j["profile_count"] = stats.profileCount;
-		j["profile_root_count"] = stats.profileDirectoryCount;
+
+		json j = {
+			{ "total_file_count", stats.totalFileCount },
+			{ "total_directory_count", stats.totalDirectoryCount },
+			{ "files_per_directory", stats.filesPerDirectory },
+			{ "total_size", stats.totalSize },
+			{ "unique_file_percentage", stats.uniqueFilePercentage },
+			{ "unique_files", stats.uniqueFileCount },
+			{ "average_file_age", stats.averageFileAge },
+			{ "profile_count", stats.profileCount },
+			{ "profile_root_count", stats.profileDirectoryCount},
+		};
 
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return ShareApi::handleGetGroupedRootPaths(ApiRequest& aRequest) {
-		json ret;
+		auto ret = json::array();
 
 		auto roots = ShareManager::getInstance()->getGroupedDirectories();
-		if (!roots.empty()) {
-			for (const auto& vPath : roots) {
-				json parentJson;
-				parentJson["name"] = vPath.first;
-				for (const auto& realPath : vPath.second) {
-					parentJson["paths"].push_back(realPath);
-				}
-
-				ret.push_back(parentJson);
-			}
-		} else {
-			ret = json::array();
+		for (const auto& vPath : roots) {
+			ret.push_back({
+				{ "name", vPath.first },
+				{ "paths", vPath.second }
+			});
 		}
 
 		aRequest.setResponseBody(ret);
@@ -125,26 +124,45 @@ namespace webserver {
 	api_return ShareApi::handleFindDupePaths(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		json ret;
+		auto ret = json::array();
 
-		StringList paths;
 		auto path = JsonUtil::getOptionalField<string>("path", reqJson, false, false);
 		if (path) {
-			paths = ShareManager::getInstance()->getDirPaths(Util::toNmdcFile(*path));
+			ret = ShareManager::getInstance()->getDirPaths(Util::toNmdcFile(*path));
 		} else {
 			auto tth = Deserializer::deserializeTTH(reqJson);
-			paths = ShareManager::getInstance()->getRealPaths(tth);
-		}
-
-		if (!paths.empty()) {
-			for (const auto& p : paths) {
-				ret.push_back(p);
-			}
-		} else {
-			ret = json::array();
+			ret = ShareManager::getInstance()->getRealPaths(tth);
 		}
 
 		aRequest.setResponseBody(ret);
 		return websocketpp::http::status_code::ok;
+	}
+
+	string ShareApi::refreshTypeToString(uint8_t aTaskType) noexcept {
+		switch (aTaskType) {
+			case ShareManager::ADD_DIR: return "add_directory";
+			case ShareManager::REFRESH_ALL: return "refresh_all";
+			case ShareManager::REFRESH_DIRS: return "refresh_directories";
+			case ShareManager::REFRESH_INCOMING: return "refresh_incoming";
+			case ShareManager::ADD_BUNDLE: return "add_bundle";
+		}
+
+		dcassert(0);
+		return Util::emptyString;
+	}
+
+	void ShareApi::onShareRefreshed(const RefreshPathList& aRealPaths, uint8_t aTaskType) noexcept {
+		if (!subscriptionActive("share_refreshed")) {
+			return;
+		}
+
+		send("share_refreshed", {
+			{ "real_paths", aRealPaths },
+			{ "type", refreshTypeToString(aTaskType) }
+		});
+	}
+
+	void ShareApi::on(ShareManagerListener::DirectoriesRefreshed, uint8_t aTaskType, const RefreshPathList& aPaths) noexcept {
+		onShareRefreshed(aPaths, aTaskType);
 	}
 }

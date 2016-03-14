@@ -53,27 +53,57 @@ public:
 		TYPE_LAST
 	};
 
-	Search(Type aSearchType, const string& aQuery, const string& aToken) noexcept : query(aQuery), type(aSearchType), token(aToken) { }
+	enum MatchType : uint8_t {
+		MATCH_PATH_PARTIAL = 0,
+		MATCH_NAME_PARTIAL,
+		MATCH_NAME_EXACT
+	};
+
+	Search(Type aSearchType, const string& aToken) noexcept : type(aSearchType), token(aToken) { }
 	~Search() { }
 
 	SizeModes	sizeType = SIZE_DONTCARE;
 	int64_t		size = 0;
 	TypeModes	fileType = TYPE_ANY;
 	string		query;
-	const string		token;
 	StringList	exts;
 	StringList	excluded;
 	set<void*>	owners;
-	const Type	type;
 	string		key;
 
-	bool		aschOnly;
+	bool		aschOnly = false;
 
 	optional<time_t> minDate;
 	optional<time_t> maxDate;
 
-	//optional<int64_t> minSize;
-	//optional<int64_t> maxSize;
+	// Direct searches
+	bool returnParents = false;
+	MatchType matchType = MATCH_PATH_PARTIAL;
+	int maxResults = 10;
+	bool requireReply = false;
+	string path;
+
+	/*optional<int64_t> minSize;
+	optional<int64_t> maxSize;
+
+	pair<int64_t, SizeModes> parseNmdcSize() const noexcept {
+		if (minSize && maxSize && *minSize == *maxSize) {
+			return { *minSize, SIZE_EXACT };
+		}
+
+		if (minSize) {
+			return { *minSize, SIZE_ATLEAST };
+		}
+
+		if (maxSize) {
+			return { *maxSize, SIZE_ATMOST };
+		}
+
+		return { 0, SIZE_DONTCARE };
+	}*/
+
+	const string token;
+	const Type type;
 	
 	bool operator==(const Search& rhs) const {
 		 return this->sizeType == rhs.sizeType && 

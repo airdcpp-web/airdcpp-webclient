@@ -2,30 +2,31 @@ project(airdcppd)
 cmake_minimum_required(VERSION 2.6)
 
 aux_source_directory(${PROJECT_SOURCE_DIR} airdcppd_SRCS)
+include_directories(${Boost_INCLUDE_DIRS})
 
 if (Backtrace_FOUND)
-    set_property(SOURCE ${PROJECT_SOURCE_DIR}/main.cpp ${PROJECT_SOURCE_DIR}/stacktrace.cpp PROPERTY COMPILE_DEFINITIONS USE_STACKTRACE)
+	set_property(SOURCE ${PROJECT_SOURCE_DIR}/main.cpp PROPERTY COMPILE_DEFINITIONS USE_STACKTRACE)
 	message (STATUS "Stacktrace enabled")
+	
+	find_program(ADDR2LINE_EXECUTABLE addr2line)
+	if(ADDR2LINE_EXECUTABLE)
+		set_property(SOURCE ${PROJECT_SOURCE_DIR}/stacktrace.cpp PROPERTY COMPILE_DEFINITIONS USE_ADDR2LINE)
+		message (STATUS "addr2line enabled")
+	endif(ADDR2LINE_EXECUTABLE)
+else (Backtrace_FOUND)
+  list (REMOVE_ITEM airdcppd_SRCS ${PROJECT_SOURCE_DIR}/stacktrace.cpp)
 endif (Backtrace_FOUND)
 
 # actual target:
 add_executable (${PROJECT_NAME} MACOSX_BUNDLE WIN32
                 ${airdcppd_SRCS}
                 )
-
-#list(APPEND LIBS
-#        ${XMLRPCLIBS}
-#        ${JSONRPCLIBS}
-#        ${Boost_LIBRARIES}
-#        ${ICONV_LIBRARIES}
-#        )
-
-#target_link_libraries (${PROJECT_NAME} airdcpp airdcpp-webapi ${LIBS})
+								
 
 if (APPLE)
-  target_link_libraries (${PROJECT_NAME} ${LIBS} airdcpp airdcpp-webapi iconv)
+  target_link_libraries (${PROJECT_NAME} ${LIBS} airdcpp airdcpp-webapi iconv ${Backtrace_LIBRARIES})
 else (APPLE)
-  target_link_libraries (${PROJECT_NAME} ${LIBS} airdcpp airdcpp-webapi)
+  target_link_libraries (${PROJECT_NAME} ${LIBS} airdcpp airdcpp-webapi ${Backtrace_LIBRARIES})
 endif (APPLE)
 
 

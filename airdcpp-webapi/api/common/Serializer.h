@@ -24,6 +24,8 @@
 #include <api/common/Property.h>
 
 #include <airdcpp/typedefs.h>
+
+#include <airdcpp/DupeType.h>
 #include <airdcpp/MessageCache.h>
 #include <airdcpp/QueueItemBase.h>
 #include <airdcpp/TrackableDownloadItem.h>
@@ -59,8 +61,12 @@ namespace webserver {
 		static json serializeEncryption(const string& aInfo, bool aIsTrusted) noexcept;
 
 		static string getDownloadStateId(TrackableDownloadItem::State aState) noexcept;
-		//static string getDownloadStateStr(TrackableDownloadItem& aItem) noexcept;
 		static json serializeDownloadState(const TrackableDownloadItem& aItem) noexcept;
+
+		static string getDupeId(DupeType aDupeType) noexcept;
+		static json serializeDupe(DupeType aDupeType, StringList&& aPaths) noexcept;
+		static json serializeFileDupe(DupeType aDupeType, const TTHValue& aTTH) noexcept;
+		static json serializeDirectoryDupe(DupeType aDupeType, const string& aPath) noexcept;
 
 
 		// Serialize n messages from end by keeping the list order
@@ -82,6 +88,11 @@ namespace webserver {
 			}
 
 			return serializeRange(beginIter, aList.end(), aF);
+		}
+
+		template <class ContainerT, class FuncT>
+		static json serializeList(const ContainerT& aList, FuncT aF) noexcept {
+			return serializeRange(aList.begin(), aList.end(), aF);
 		}
 
 		// Serialize n messages from position
@@ -110,10 +121,6 @@ namespace webserver {
 		// Throws for invalid range parameters
 		template <class T, class ContainerT>
 		static json serializeItemList(int aStart, int aCount, const PropertyItemHandler<T>& aHandler, const ContainerT& aItems) throw(std::exception) {
-			if (aItems.empty()) {
-				return json::array();
-			}
-
 			return Serializer::serializeFromPosition(aStart, aCount, aItems, [&aHandler](const T& aItem) {
 				return Serializer::serializeItem(aItem, aHandler);
 			});
@@ -122,10 +129,6 @@ namespace webserver {
 		// Serialize a list of items provider by the handler
 		template <class T, class ContainerT>
 		static json serializeItemList(const PropertyItemHandler<T>& aHandler, const ContainerT& aItems) throw(std::exception) {
-			if (aItems.empty()) {
-				return json::array();
-			}
-
 			return Serializer::serializeRange(aItems.begin(), aItems.end(), [&aHandler](const T& aItem) {
 				return Serializer::serializeItem(aItem, aHandler);
 			});
@@ -175,7 +178,7 @@ namespace webserver {
 
 		template <class IterT, class FuncT>
 		static json serializeRange(IterT aBegin, IterT aEnd, FuncT aF) noexcept {
-			return std::accumulate(aBegin, aEnd, json(), [&](json& list, const typename iterator_traits<IterT>::value_type& elem) {
+			return std::accumulate(aBegin, aEnd, json::array(), [&](json& list, const typename iterator_traits<IterT>::value_type& elem) {
 				list.push_back(aF(elem));
 				return list;
 			});

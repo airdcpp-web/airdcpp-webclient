@@ -30,8 +30,10 @@ namespace webserver {
 
 		"search",
 		"download",
-		"events",
 		"transfers",
+
+		"events_view",
+		"events_edit",
 
 		"queue_view",
 		"queue_edit",

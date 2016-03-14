@@ -16,56 +16,22 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_ACCESS_H
-#define DCPLUSPLUS_DCPP_ACCESS_H
+#ifndef DCPP_DUPETYPE_H
+#define DCPP_DUPETYPE_H
 
+namespace dcpp {
 
-namespace webserver {
-	typedef int8_t AccessType;
+enum DupeType : uint8_t {
+	DUPE_NONE,
+	DUPE_SHARE_PARTIAL,
+	DUPE_SHARE_FULL,
+	DUPE_QUEUE_PARTIAL,
+	DUPE_QUEUE_FULL,
+	DUPE_FINISHED_PARTIAL,
+	DUPE_FINISHED_FULL,
+	DUPE_SHARE_QUEUE
+};
 
-	// Remember to edit WebUser::accessStrings as well
-	enum class Access: AccessType {
-		NONE = -2,
-		ANY = -1,
-		ADMIN = 0,
-
-		SEARCH,
-		DOWNLOAD,
-		TRANSFERS,
-
-		EVENTS_VIEW,
-		EVENTS_EDIT,
-
-		QUEUE_VIEW,
-		QUEUE_EDIT,
-
-		FAVORITE_HUBS_VIEW,
-		FAVORITE_HUBS_EDIT,
-
-		SETTINGS_VIEW,
-		SETTINGS_EDIT,
-
-		FILESYSTEM_VIEW,
-		FILESYSTEM_EDIT,
-
-		HUBS_VIEW,
-		HUBS_EDIT,
-		HUBS_SEND,
-
-		PRIVATE_CHAT_VIEW,
-		PRIVATE_CHAT_EDIT,
-		PRIVATE_CHAT_SEND,
-
-		FILELISTS_VIEW,
-		FILELISTS_EDIT,
-
-		VIEW_FILES_VIEW,
-		VIEW_FILES_EDIT,
-
-		LAST,
-	};
-
-	typedef map<Access, bool> AccessMap;
 }
 
 #endif

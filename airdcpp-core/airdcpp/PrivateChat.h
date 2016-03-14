@@ -56,6 +56,7 @@ namespace dcpp {
 
 		bool sendMessage(const string& msg, string& error_, bool thirdPerson);
 		void handleMessage(const ChatMessagePtr& aMessage);
+		void statusMessage(const string& aMessage, LogMessage::Severity aSeverity) noexcept;
 
 		void close();
 
@@ -96,7 +97,6 @@ namespace dcpp {
 		void setRead() noexcept;
 		int clearCache() noexcept;
 	private:
-		void statusMessage(const string& aMessage, LogMessage::Severity aSeverity) noexcept;
 		MessageCache cache;
 		enum EventType {
 			USER_UPDATE,

@@ -46,10 +46,9 @@ public:
 	/** @internal */
 	void addConnection(UserConnection* conn);
 	bool checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly = false);
-	void setTarget(const string& oldTarget, const string& newTarget);
-	void changeBundle(BundlePtr sourceBundle, BundlePtr targetBundle, const string& path);
-	void sendSizeNameUpdate(BundlePtr& aBundle);
-	BundlePtr findRunningBundle(QueueToken bundleToken);
+
+	void sendSizeUpdate(BundlePtr& aBundle) const noexcept;
+	BundlePtr findRunningBundle(QueueToken bundleToken) const noexcept;
 
 	/** @internal */
 	void abortDownload(const string& aTarget, const UserPtr& aUser = nullptr);
@@ -90,7 +89,7 @@ private:
 	Bundle::TokenBundleMap bundles;
 	UserConnectionList idlers;
 
-	void removeRunningUser(UserConnection* aSource, bool sendRemoved=false);
+	void removeRunningUser(UserConnection* aSource, bool sendRemoved=false) noexcept;
 	void removeConnection(UserConnectionPtr aConn);
 	void removeDownload(Download* aDown);
 	void fileNotAvailable(UserConnection* aSource, bool noAccess);

@@ -18,39 +18,48 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/LogApi.h>
+#include <api/EventApi.h>
+#include <api/common/Deserializer.h>
 #include <api/common/Serializer.h>
 
 #include <airdcpp/LogManager.h>
 
 namespace webserver {
-	LogApi::LogApi(Session* aSession) : ApiModule(aSession, Access::EVENTS) {
+	EventApi::EventApi(Session* aSession) : ApiModule(aSession, Access::EVENTS_VIEW) {
 		LogManager::getInstance()->addListener(this);
 
-		createSubscription("log_message");
-		createSubscription("log_info");
+		createSubscription("event_message");
+		createSubscription("event_counts");
 
-		METHOD_HANDLER("clear", Access::EVENTS, ApiRequest::METHOD_POST, (), false, LogApi::handleClear);
-		METHOD_HANDLER("read", Access::EVENTS, ApiRequest::METHOD_POST, (), false, LogApi::handleRead);
-		METHOD_HANDLER("info", Access::EVENTS, ApiRequest::METHOD_GET, (), false, LogApi::handleGetInfo);
-		METHOD_HANDLER("messages", Access::EVENTS, ApiRequest::METHOD_GET, (NUM_PARAM), false, LogApi::handleGetLog);
+		METHOD_HANDLER("read", Access::EVENTS_VIEW, ApiRequest::METHOD_POST, (), false, EventApi::handleRead);
+		METHOD_HANDLER("counts", Access::EVENTS_VIEW, ApiRequest::METHOD_GET, (), false, EventApi::handleGetInfo);
+		METHOD_HANDLER("messages", Access::EVENTS_VIEW, ApiRequest::METHOD_GET, (NUM_PARAM), false, EventApi::handleGetLog);
+
+		METHOD_HANDLER("clear", Access::EVENTS_EDIT, ApiRequest::METHOD_POST, (), false, EventApi::handleClear);
+		METHOD_HANDLER("message", Access::EVENTS_EDIT, ApiRequest::METHOD_POST, (), true, EventApi::handlePostMessage);
 	}
 
-	LogApi::~LogApi() {
+	EventApi::~EventApi() {
 		LogManager::getInstance()->removeListener(this);
 	}
 
-	api_return LogApi::handleRead(ApiRequest& aRequest) {
+	api_return EventApi::handlePostMessage(ApiRequest& aRequest) {
+		auto message = Deserializer::deserializeStatusMessage(aRequest.getRequestBody());
+		LogManager::getInstance()->message(message.first, message.second);
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return EventApi::handleRead(ApiRequest& aRequest) {
 		LogManager::getInstance()->setRead();
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return LogApi::handleClear(ApiRequest& aRequest) {
+	api_return EventApi::handleClear(ApiRequest& aRequest) {
 		LogManager::getInstance()->clearCache();
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return LogApi::handleGetLog(ApiRequest& aRequest) {
+	api_return EventApi::handleGetLog(ApiRequest& aRequest) {
 		auto j = Serializer::serializeFromEnd(
 			aRequest.getRangeParam(0),
 			LogManager::getInstance()->getCache().getLogMessages(),
@@ -60,36 +69,36 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return LogApi::handleGetInfo(ApiRequest& aRequest) {
+	api_return EventApi::handleGetInfo(ApiRequest& aRequest) {
 		json j;
 		Serializer::serializeCacheInfo(j, LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog);
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
 	}
 
-	void LogApi::on(LogManagerListener::Message, const LogMessagePtr& aMessageData) noexcept {
-		if (subscriptionActive("log_message")) {
-			send("log_message", Serializer::serializeLogMessage(aMessageData));
+	void EventApi::on(LogManagerListener::Message, const LogMessagePtr& aMessageData) noexcept {
+		if (subscriptionActive("event_message")) {
+			send("event_message", Serializer::serializeLogMessage(aMessageData));
 		}
 
 		onMessagesChanged();
 	}
 
-	void LogApi::onMessagesChanged() noexcept {
-		if (!subscriptionActive("log_info")) {
+	void EventApi::onMessagesChanged() noexcept {
+		if (!subscriptionActive("event_counts")) {
 			return;
 		}
 
 		json j;
 		Serializer::serializeCacheInfo(j, LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog);
-		send("log_info", j);
+		send("event_counts", j);
 	}
 
-	void LogApi::on(LogManagerListener::Cleared) noexcept {
+	void EventApi::on(LogManagerListener::Cleared) noexcept {
 		onMessagesChanged();
 	}
 
-	void LogApi::on(LogManagerListener::MessagesRead) noexcept {
+	void EventApi::on(LogManagerListener::MessagesRead) noexcept {
 		onMessagesChanged();
 	}
 }

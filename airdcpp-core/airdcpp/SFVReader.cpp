@@ -31,8 +31,8 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
-//#include <iostream>
 #include <fstream>
+
 
 namespace dcpp {
 
@@ -64,6 +64,7 @@ void DirSFVReader::unload() noexcept {
 }
 
 optional<uint32_t> DirSFVReader::hasFile(const string& aFileName) const noexcept {
+	dcassert(Text::isLower(aFileName));
 	auto p = content.find(aFileName);
 	if (p != content.end()) {
 		return p->second;
@@ -73,6 +74,7 @@ optional<uint32_t> DirSFVReader::hasFile(const string& aFileName) const noexcept
 }
 
 bool DirSFVReader::isCrcValid(const string& aFileName) const {
+	dcassert(Text::isLower(aFileName));
 	auto p = content.find(aFileName);
 	if (p != content.end()) {
 		CRC32Filter crc32;
@@ -115,7 +117,7 @@ bool DirSFVReader::loadFile(const string& aContent) noexcept {
 		uint32_t crc32;
 		sscanf(line.substr(pos + 1, 8).c_str(), "%x", &crc32);
 
-		line = line.substr(0, pos);
+		line = Text::toLower(line.substr(0, pos));
 		boost::trim(line);
 
 		//quoted filename?

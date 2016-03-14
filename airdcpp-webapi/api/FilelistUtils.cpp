@@ -22,31 +22,35 @@
 
 namespace webserver {
 	json FilelistUtils::serializeItem(const FilelistItemInfoPtr& aItem, int aPropertyName) noexcept {
-		json j;
-
 		switch (aPropertyName) {
 			case FilelistInfo::PROP_TYPE:
 			{
-				if (aItem->getType() == FilelistItemInfo::FILE) {
+				if (!aItem->isDirectory()) {
 					return Serializer::serializeFileType(aItem->getPath());
 				}
-				else {
-					return Serializer::serializeFolderType(static_cast<int>(aItem->dir->getFileCount()), static_cast<int>(aItem->dir->getFolderCount()));
-				}
+
+				return Serializer::serializeFolderType(static_cast<int>(aItem->dir->getFileCount()), static_cast<int>(aItem->dir->getFolderCount()));
 			}
+			case FilelistInfo::PROP_DUPE:
+			{
+				if (aItem->isDirectory()) {
+					return Serializer::serializeDirectoryDupe(aItem->getDupe(), aItem->getPath());
+				}
+
+				return Serializer::serializeFileDupe(aItem->getDupe(), aItem->file->getTTH());
+			}
+			default: dcassert(0); return nullptr;
 		}
-
-
-		return j;
 	}
 
 	int FilelistUtils::compareItems(const FilelistItemInfoPtr& a, const FilelistItemInfoPtr& b, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 		case FilelistInfo::PROP_NAME: {
-			if (a->getType() == b->getType())
+			if (a->getType() == b->getType()) {
 				return Util::stricmp(a->getName(), b->getName());
-			else
-				return (a->getType() == FilelistItemInfo::DIRECTORY) ? -1 : 1;
+			}
+
+			return a->isDirectory() ? -1 : 1;
 		}
 		case FilelistInfo::PROP_TYPE: {
 			if (a->getType() != b->getType()) {
@@ -54,7 +58,7 @@ namespace webserver {
 				return a->getType() == FilelistItemInfo::FILE ? 1 : -1;
 			}
 
-			if (a->getType() != FilelistItemInfo::FILE && b->getType() != FilelistItemInfo::FILE) {
+			if (!a->isDirectory() && !b->isDirectory()) {
 				auto dirsA = a->dir->getFolderCount();
 				auto dirsB = b->dir->getFolderCount();
 				if (dirsA != dirsB) {
@@ -69,11 +73,8 @@ namespace webserver {
 
 			return Util::stricmp(Util::getFileExt(a->getName()), Util::getFileExt(b->getName()));
 		}
-		default:
-			dcassert(0);
+		default: dcassert(0); return 0;
 		}
-
-		return 0;
 	}
 
 	std::string FilelistUtils::getStringInfo(const FilelistItemInfoPtr& aItem, int aPropertyName) noexcept {
@@ -81,7 +82,7 @@ namespace webserver {
 		case FilelistInfo::PROP_NAME: return aItem->getName();
 		case FilelistInfo::PROP_PATH: return Util::toAdcFile(aItem->getPath());
 		case FilelistInfo::PROP_TYPE: {
-			if (aItem->getType() == FilelistItemInfo::DIRECTORY) {
+			if (aItem->isDirectory()) {
 				return Format::formatFolderContent(aItem->dir->getFileCount(), aItem->dir->getFolderCount());
 			} else {
 				return Format::formatFileType(aItem->getPath());
@@ -97,7 +98,6 @@ namespace webserver {
 		case FilelistInfo::PROP_SIZE: return (double)aItem->getSize();
 		case FilelistInfo::PROP_DATE: return (double)aItem->getDate();
 		case FilelistInfo::PROP_DUPE: return (double)aItem->getDupe();
-		//case FilelistInfo::PROP_COMPLETE: return (double)aItem->isComplete();
 		default: dcassert(0); return 0;
 		}
 	}

@@ -31,17 +31,16 @@ namespace webserver {
 		{ "nick", SettingsManager::NICK, ResourceManager::NICK },
 		{ "description", SettingsManager::DESCRIPTION, ResourceManager::DESCRIPTION },
 		{ "email", SettingsManager::EMAIL, ResourceManager::EMAIL },
+
 		{ "upload_speed", SettingsManager::UPLOAD_SPEED, ResourceManager::SETCZDC_UPLOAD_SPEED, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MBITS, false } },
 		{ "download_speed", SettingsManager::DOWNLOAD_SPEED, ResourceManager::SETCZDC_DOWNLOAD_SPEED, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MBITS, false } },
+
 		{ "away_message", SettingsManager::DEFAULT_AWAY_MESSAGE, ResourceManager::SETTINGS_DEFAULT_AWAY_MSG, ApiSettingItem::TYPE_LONG_TEXT },
 		{ "away_idle_time", SettingsManager::AWAY_IDLE_TIME, ResourceManager::AWAY_IDLE_TIME_BEGIN, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MINUTES, false } },
 		{ "away_no_bots", SettingsManager::NO_AWAYMSG_TO_BOTS, ResourceManager::SETTINGS_NO_AWAYMSG_TO_BOTS },
-		{ "nmdc_encoding", SettingsManager::NMDC_ENCODING, ResourceManager::NMDC_ENCODING },
 
 		//{ ResourceManager::SETTINGS_DOWNLOADS },
 		{ "download_directory", SettingsManager::DOWNLOAD_DIRECTORY, ResourceManager::SETTINGS_DOWNLOAD_DIRECTORY, ApiSettingItem::TYPE_DIRECTORY_PATH },
-		//{ "temp_dir", SettingsManager::TEMP_DOWNLOAD_DIRECTORY, ResourceManager::SETTINGS_UNFINISHED_DOWNLOAD_DIRECTORY },
-		//{ "temp_use_dest", SettingsManager::DCTMP_STORE_DESTINATION, ResourceManager::UNFINISHED_STORE_DESTINATION },
 		{ "segmented_downloads", SettingsManager::MULTI_CHUNK, ResourceManager::SETTINGS_SEGMENTED_DOWNLOADS },
 		{ "min_segment_size", SettingsManager::MIN_SEGMENT_SIZE, ResourceManager::SETTINGS_AIRDOWNLOADS_SEGMENT_SIZE, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::KiB, false } },
 		{ "new_segment_min_speed", SettingsManager::DONT_BEGIN_SEGMENT_SPEED, ResourceManager::DONT_ADD_SEGMENT_TEXT, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::KiB, true } },
@@ -63,6 +62,7 @@ namespace webserver {
 		{ "alt_search_auto", SettingsManager::AUTO_SEARCH, ResourceManager::SETTINGS_AUTO_BUNDLE_SEARCH },
 		{ "alt_search_max_sources", SettingsManager::AUTO_SEARCH_LIMIT, ResourceManager::SETTINGS_AUTO_SEARCH_LIMIT },
 		{ "max_sources_match_queue", SettingsManager::MAX_AUTO_MATCH_SOURCES, ResourceManager::SETTINGS_SB_MAX_SOURCES },
+		{ "allow_match_full_list", SettingsManager::ALLOW_MATCH_FULL_LIST, ResourceManager::SETTINGS_ALLOW_MATCH_FULL_LIST },
 
 		//{ ResourceManager::PROXIES },
 		{ "http_proxy", SettingsManager::HTTP_PROXY, ResourceManager::SETTINGS_HTTP_PROXY },
@@ -202,9 +202,17 @@ namespace webserver {
 		{ "compress_transfers", SettingsManager::COMPRESS_TRANSFERS, ResourceManager::SETTINGS_COMPRESS_TRANSFERS },
 		{ "max_compression", SettingsManager::MAX_COMPRESSION, ResourceManager::SETTINGS_MAX_COMPRESS },
 		{ "bloom_mode", SettingsManager::BLOOM_MODE, ResourceManager::BLOOM_MODE },
+
 		{ "disconnect_offline_users", SettingsManager::AUTO_KICK, ResourceManager::SETTINGS_AUTO_KICK },
+		{ "nmdc_encoding", SettingsManager::NMDC_ENCODING, ResourceManager::NMDC_ENCODING },
+		{ "auto_follow_redirects", SettingsManager::AUTO_FOLLOW, ResourceManager::SETTINGS_AUTO_FOLLOW },
+		{ "disconnect_hubs_noreg", SettingsManager::DISALLOW_CONNECTION_TO_PASSED_HUBS, ResourceManager::DISALLOW_CONNECTION_TO_PASSED_HUBS },
+
 		{ "run_wizard", SettingsManager::WIZARD_RUN, ResourceManager::WIZARD_FINISHED_TITLE },
 
+		{ "use_default_cert_paths", SettingsManager::USE_DEFAULT_CERT_PATHS, ResourceManager::USE_DEFAULT_CERT_PATHS },
+		{ "tls_certificate_file", SettingsManager::TLS_CERTIFICATE_FILE, ResourceManager::OWN_CERTIFICATE, ApiSettingItem::TYPE_FILE_PATH },
+		{ "tls_private_key_file", SettingsManager::TLS_PRIVATE_KEY_FILE, ResourceManager::PRIVATE_KEY_FILE, ApiSettingItem::TYPE_FILE_PATH },
 		{ "always_ccpm", SettingsManager::ALWAYS_CCPM, ResourceManager::ALWAYS_CCPM },
 		{ "tls_mode", SettingsManager::TLS_MODE, ResourceManager::TRANSFER_ENCRYPTION },
 	};

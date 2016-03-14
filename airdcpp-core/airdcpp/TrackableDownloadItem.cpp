@@ -31,7 +31,7 @@ namespace dcpp {
 		}
 	}
 
-	TrackableDownloadItem::~TrackableDownloadItem() {
+	TrackableDownloadItem::~TrackableDownloadItem() noexcept {
 		if (hasDownloads()) {
 			DownloadManager::getInstance()->removeListener(this);
 		}

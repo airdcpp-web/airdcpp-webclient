@@ -166,6 +166,7 @@ namespace webserver {
 			return false;
 		}
 
+		aEndpoint.set_reuse_addr(true);
 		try {
 			if (!aConfig.getBindAddress().empty()) {
 				aEndpoint.listen(aConfig.getBindAddress(), Util::toString(aConfig.getPort()));

@@ -20,6 +20,7 @@
 #include "DCPlusPlus.h"
 
 #include "ActivityManager.h"
+#include "AirUtil.h"
 #include "ConnectionManager.h"
 #include "DownloadManager.h"
 #include "GeoManager.h"

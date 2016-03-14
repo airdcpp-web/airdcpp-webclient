@@ -23,6 +23,7 @@
 #include <web-server/JsonUtil.h>
 
 #include <api/ApiModule.h>
+#include <api/common/Deserializer.h>
 #include <api/common/Serializer.h>
 
 namespace webserver {
@@ -36,7 +37,8 @@ namespace webserver {
 
 			auto access = aModule->getSubscriptionAccess();
 			METHOD_HANDLER("messages", Access::HUBS_VIEW, ApiRequest::METHOD_GET, (NUM_PARAM), false, ChatController::handleGetMessages);
-			METHOD_HANDLER("message", Access::HUBS_SEND, ApiRequest::METHOD_POST, (), true, ChatController::handlePostMessage);
+			METHOD_HANDLER("message", Access::HUBS_SEND, ApiRequest::METHOD_POST, (), true, ChatController::handlePostChatMessage);
+			METHOD_HANDLER("status", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), true, ChatController::handleStatusMessage);
 
 			METHOD_HANDLER("read", Access::HUBS_VIEW, ApiRequest::METHOD_POST, (), false, ChatController::handleSetRead);
 			METHOD_HANDLER("clear", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, ChatController::handleClear);
@@ -84,18 +86,24 @@ namespace webserver {
 			module->send(s, j);
 		}
 
-		api_return handlePostMessage(ApiRequest& aRequest) {
+		api_return handlePostChatMessage(ApiRequest& aRequest) {
 			const auto& reqJson = aRequest.getRequestBody();
-
-			auto message = JsonUtil::getField<string>("message", reqJson, false);
-			auto thirdPerson = JsonUtil::getOptionalFieldDefault<bool>("third_person", reqJson, false);
+			auto message = Deserializer::deserializeChatMessage(reqJson);
 
 			string error_;
-			if (!chat->sendMessage(message, error_, thirdPerson)) {
+			if (!chat->sendMessage(message.first, error_, message.second)) {
 				aRequest.setResponseErrorStr(error_);
 				return websocketpp::http::status_code::internal_server_error;
 			}
 
+			return websocketpp::http::status_code::ok;
+		}
+
+		api_return handleStatusMessage(ApiRequest& aRequest) {
+			const auto& reqJson = aRequest.getRequestBody();
+
+			auto message = Deserializer::deserializeStatusMessage(reqJson);
+			chat->statusMessage(message.first, message.second);
 			return websocketpp::http::status_code::ok;
 		}
 

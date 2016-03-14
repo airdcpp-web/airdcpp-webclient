@@ -28,14 +28,6 @@
 #include <ostream>
 #include <string>
 
-#ifndef USE_ADDR2LINE
-    #if defined(__linux__)
-        #define USE_ADDR2LINE 1
-    #else
-        #define USE_ADDR2LINE 0
-    #endif
-#endif
-
 
 namespace cow {
 
@@ -116,8 +108,8 @@ public:
     using Frames::rbegin;
     using Frames::rend;
     using Frames::size;
-	
-	StackTrace(const std::string& aAppPath);
+
+    StackTrace(const std::string& aAppPath);
 
     /** Generate the stack frames of the function calls in the currently active thread. */
     void generate_frames();
@@ -135,10 +127,10 @@ public:
     static std::string demangle(const std::string &name);
 private:
     StackFrame parse_line(const std::string &line);
-    #if USE_ADDR2LINE
-    void run_addr2line(const std::string &object, const std::string &location, std::string &function, std::string &file, int &linenum);
     std::string appPath;
-    #endif
+#if USE_ADDR2LINE
+    void run_addr2line(const std::string &object, const std::string &location, std::string &function, std::string &file, int &linenum);
+#endif
 };
 
 }

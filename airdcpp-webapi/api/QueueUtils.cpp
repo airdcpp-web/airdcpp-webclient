@@ -40,7 +40,7 @@ namespace webserver {
 		return bundles;
 	}
 
-	std::string QueueUtils::formatBundleStatus(const BundlePtr& aBundle) noexcept {
+	std::string QueueUtils::formatDisplayStatus(const BundlePtr& aBundle) noexcept {
 		auto getPercentage = [&] {
 			return aBundle->getSize() > 0 ? (double)aBundle->getDownloadedBytes() *100.0 / (double)aBundle->getSize() : 0;
 		};
@@ -78,7 +78,7 @@ namespace webserver {
 		return{
 			{ "id", aItem.getPriority() },
 			{ "str", AirUtil::getPrioText(aItem.getPriority()) },
-			{ "auto_prio", aItem.getAutoPriority() }
+			{ "auto", aItem.getAutoPriority() }
 		};
 	}
 
@@ -106,7 +106,7 @@ namespace webserver {
 		case QueueApi::PROP_NAME: return b->getName();
 		case QueueApi::PROP_TARGET: return b->getTarget();
 		case QueueApi::PROP_TYPE: return formatBundleType(b);
-		case QueueApi::PROP_STATUS: return formatBundleStatus(b);
+		case QueueApi::PROP_STATUS: return formatDisplayStatus(b);
 		case QueueApi::PROP_PRIORITY: return AirUtil::getPrioText(b->getPriority());
 		case QueueApi::PROP_SOURCES: return formatBundleSources(b);
 		default: dcassert(0); return Util::emptyString;
@@ -154,8 +154,9 @@ namespace webserver {
 			if (!a->isFileBundle() && !b->isFileBundle()) {
 				// Directory bundles
 				RLock l(QueueManager::getInstance()->getCS());
-				auto dirsA = a->getDirectories().size();
-				auto dirsB = a->getDirectories().size();
+				auto dirsA = QueueManager::getInstance()->bundleQueue.getDirectoryCount(a);
+				auto dirsB = QueueManager::getInstance()->bundleQueue.getDirectoryCount(b);
+
 				if (dirsA != dirsB) {
 					return compare(dirsA, dirsB);
 				}
@@ -205,6 +206,27 @@ namespace webserver {
 		return 0;
 	}
 
+	string QueueUtils::formatStatusId(const BundlePtr& aBundle) noexcept {
+		switch (aBundle->getStatus()) {
+			case Bundle::STATUS_NEW: return "new";
+			case Bundle::STATUS_QUEUED: return "queued";
+			case Bundle::STATUS_RECHECK: return "recheck";
+			case Bundle::STATUS_DOWNLOADED: return "downloaded";
+			case Bundle::STATUS_MOVED: return "moved";
+			case Bundle::STATUS_DOWNLOAD_FAILED: return "download_failed";
+			case Bundle::STATUS_FAILED_MISSING: return "scan_failed_files_missing";
+			case Bundle::STATUS_SHARING_FAILED: return "scan_failed";
+			case Bundle::STATUS_FINISHED: return "finished";
+			case Bundle::STATUS_HASHING: return "hashing";
+			case Bundle::STATUS_HASH_FAILED: return "hash_failed";
+			case Bundle::STATUS_HASHED: return "hashed";
+			case Bundle::STATUS_SHARED: return "shared";
+		}
+
+		dcassert(0);
+		return Util::emptyString;
+	}
+
 	json QueueUtils::serializeBundleProperty(const BundlePtr& aBundle, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 		case QueueApi::PROP_SOURCES:
@@ -223,9 +245,10 @@ namespace webserver {
 		case QueueApi::PROP_STATUS:
 		{
 			return{
-				{ "id", aBundle->getStatus() },
+				{ "id", formatStatusId(aBundle) },
 				{ "failed", aBundle->isFailed() },
-				{ "str", formatBundleStatus(aBundle) },
+				{ "finished", aBundle->getStatus() >= Bundle::STATUS_FINISHED },
+				{ "str", formatDisplayStatus(aBundle) },
 			};
 		}
 
@@ -246,6 +269,6 @@ namespace webserver {
 		}
 
 		dcassert(0);
-		return json();
+		return nullptr;
 	}
 }

@@ -114,6 +114,6 @@ namespace webserver {
 		}
 
 		dcassert(0);
-		return json();
+		return nullptr;
 	}
 }

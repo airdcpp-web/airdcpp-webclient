@@ -44,6 +44,9 @@ namespace webserver {
 	private:
 		void addHub(const ClientPtr& aClient) noexcept;
 
+		api_return handlePostMessage(ApiRequest& aRequest);
+		api_return handlePostStatus(ApiRequest& aRequest);
+
 		api_return handleGetHubs(ApiRequest& aRequest);
 
 		api_return handleConnect(ApiRequest& aRequest);

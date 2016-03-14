@@ -168,12 +168,11 @@ namespace webserver {
 		return true;
 	}
 
-	bool ApiModule::send(const string& aSubscription, const json& aJson) {
-		json j;
-		j["event"] = aSubscription;
-		j["data"] = aJson;
-
-		return send(j);
+	bool ApiModule::send(const string& aSubscription, const json& aData) {
+		return send({
+			{ "event", aSubscription },
+			{ "data", aData },
+		});
 	}
 
 	bool ApiModule::maybeSend(const string& aSubscription, JsonCallback aCallback) {

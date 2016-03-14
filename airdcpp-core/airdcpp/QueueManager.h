@@ -28,11 +28,12 @@
 #include "BundleQueue.h"
 #include "ClientManager.h"
 #include "DelayedEvents.h"
+#include "DupeType.h"
 #include "Exception.h"
 #include "File.h"
 #include "FileQueue.h"
 #include "HashBloom.h"
-#include "HashManager.h"
+#include "HashManagerListener.h"
 #include "MerkleTree.h"
 #include "QueueItem.h"
 #include "ShareManagerListener.h"
@@ -43,8 +44,16 @@
 #include "TaskQueue.h"
 #include "UserQueue.h"
 
+// For Boost 1.60
+#if defined (__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wredeclared-class-member"
+#endif
 #include <boost/bimap.hpp>
 #include <boost/bimap/unordered_multiset_of.hpp>
+#if defined (__clang__)
+#pragma clang diagnostic pop
+#endif
 
 
 namespace dcpp {
@@ -235,12 +244,6 @@ public:
 	BundlePtr createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, 
 		Flags::MaskType aFlags = 0, QueueItemBase::Priority aPrio = QueueItem::DEFAULT) throw(QueueException, FileException, DupeException);
 
-	// Move bundle to a new destination (can be running)
-	void moveBundle(BundlePtr aBundle, const string& aTarget, bool moveFinished) noexcept;
-
-	// Rename a bundle (can be running)
-	void renameBundle(BundlePtr aBundle, const string& newName) noexcept;
-
 	bool removeBundle(QueueToken aBundleToken, bool removeFinishedFiles) noexcept;
 	void removeBundle(BundlePtr& aBundle, bool removeFinishedFiles) noexcept;
 
@@ -281,8 +284,8 @@ public:
 	void setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool aKeepAutoPrio=false) noexcept;
 
 	// Toggle autoprio state for the bundle
-	void setBundleAutoPriority(QueueToken aBundleToken) noexcept;
-	void setBundleAutoPriority(BundlePtr& aBundle) noexcept;
+	void toggleBundleAutoPriority(QueueToken aBundleToken) noexcept;
+	void toggleBundleAutoPriority(BundlePtr& aBundle) noexcept;
 
 	// Perform autopriorization for applicable bundles
 	// verbose is only used for debugging purposes to print the points for each bundle
@@ -314,13 +317,13 @@ public:
 	// Used for partial file sharing checks
 	bool isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, int64_t& fileSize_, string& tempTarget) noexcept;
 
-	int isFileQueued(const TTHValue& aTTH) const noexcept { RLock l(cs); return fileQueue.isFileQueued(aTTH); }
+	DupeType isFileQueued(const TTHValue& aTTH) const noexcept { RLock l(cs); return fileQueue.isFileQueued(aTTH); }
 
 	// Get real path of the bundle
 	string getBundlePath(QueueToken aBundleToken) const noexcept;
 
 	// Return dupe information about the directory
-	uint8_t isDirQueued(const string& aDir) const noexcept;
+	DupeType isDirQueued(const string& aDir, int64_t aSize) const noexcept;
 
 	// Get all real paths of the directory
 	// You may also give a path in NMDC format and the relevant 
@@ -396,17 +399,12 @@ private:
 	void connectBundleSources(BundlePtr& aBundle) noexcept;
 	bool allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& runningBundles, string& lastError_, bool mcn = false) noexcept;
 
-	// aTarget must include the bundle name in here
-	void moveBundleImpl(const string& aSource, const string& aTarget, BundlePtr& sourceBundle, bool moveFinished) noexcept;
-	int changeBundleTarget(BundlePtr& aBundle, const string& newTarget) noexcept;
 	void removeBundleItem(QueueItemPtr& qi, bool finished) noexcept;
-	void moveBundleItem(QueueItemPtr qi, BundlePtr& targetBundle) noexcept; //don't use reference here!
 	void addLoadedBundle(BundlePtr& aBundle) noexcept;
 	bool addBundle(BundlePtr& aBundle, const string& aTarget, int filesAdded) noexcept;
 	void readdBundle(BundlePtr& aBundle) noexcept;
 	void removeBundleLists(BundlePtr& aBundle) noexcept;
 
-	bool changeTarget(QueueItemPtr& qs, const string& aTarget) noexcept;
 	void removeQI(QueueItemPtr& qi, bool removeData = false) noexcept;
 
 	void handleBundleUpdate(QueueToken aBundleToken) noexcept;
@@ -430,15 +428,11 @@ private:
 
 	/** Add a source to an existing queue item */
 	bool addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, bool newBundle=false, bool checkTLS=true) throw(QueueException, FileException);
-
-	/** Add a source to an existing queue item */
-	void mergeFinishedItems(const string& aSource, const string& aTarget, BundlePtr& aSourceBundle, BundlePtr& aTargetBundle, bool moveFiles) noexcept;
 	 
 	void matchTTHList(const string& name, const HintedUser& user, int flags) noexcept;
 
 	void addBundleUpdate(const BundlePtr& aBundle) noexcept;
 
-	void moveBundleItemsImpl(QueueItem::StringItemList aItems, BundlePtr aBundle) noexcept;
 	void moveFinishedFile(const string& source, const string& target, const QueueItemPtr& aQI) noexcept;
 	void moveFinishedFileImpl(const string& source, const string& target, QueueItemPtr q) noexcept;
 
@@ -474,8 +468,8 @@ private:
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
 	
 	// HashManagerListener
-	void on(HashManagerListener::TTHDone, const string& aPath, HashedFile& fi) noexcept { onFileHashed(aPath, fi, false); }
-	void on(HashManagerListener::HashFailed, const string& aPath, HashedFile& fi) noexcept { onFileHashed(aPath, fi, true); }
+	void on(HashManagerListener::FileHashed, const string& aPath, HashedFile& fi) noexcept { onFileHashed(aPath, fi, false); }
+	void on(HashManagerListener::FileFailed, const string& aPath, HashedFile& fi) noexcept { onFileHashed(aPath, fi, true); }
 
 	// ClientManagerListener
 	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;
@@ -483,7 +477,6 @@ private:
 
 	// ShareManagerListener
 	void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept;
-	void on(ShareRefreshed, uint8_t /*tasktype*/) noexcept;
 	void on(ShareLoaded) noexcept;
 	void onPathRefreshed(const string& aPath, bool startup) noexcept;
 

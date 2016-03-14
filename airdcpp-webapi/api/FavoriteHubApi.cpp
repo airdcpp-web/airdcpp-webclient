@@ -26,12 +26,30 @@
 #include <airdcpp/ShareManager.h>
 
 namespace webserver {
-	FavoriteHubApi::FavoriteHubApi(Session* aSession) : ApiModule(aSession, Access::FAVORITE_HUBS_VIEW), itemHandler(properties,
-		FavoriteHubUtils::getStringInfo, FavoriteHubUtils::getNumericInfo, FavoriteHubUtils::compareEntries, FavoriteHubUtils::serializeHub),
+	const PropertyList FavoriteHubApi::properties = {
+		{ PROP_NAME, "name", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_HUB_URL, "hub_url", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_HUB_DESCRIPTION, "hub_description", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_AUTO_CONNECT, "auto_connect", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
+		{ PROP_SHARE_PROFILE, "share_profile", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
+		{ PROP_CONNECT_STATE, "connect_state", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
+		{ PROP_NICK, "nick", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_HAS_PASSWORD, "has_password", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
+		{ PROP_USER_DESCRIPTION, "user_description", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_IGNORE_PM, "ignore_private_messages", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
+	};
+
+	const PropertyItemHandler<FavoriteHubEntryPtr> FavoriteHubApi::itemHandler = {
+		properties,
+		FavoriteHubUtils::getStringInfo, FavoriteHubUtils::getNumericInfo, FavoriteHubUtils::compareEntries, FavoriteHubUtils::serializeHub
+	};
+
+	FavoriteHubApi::FavoriteHubApi(Session* aSession) : ApiModule(aSession, Access::FAVORITE_HUBS_VIEW),
 		view("favorite_hub_view", this, itemHandler, FavoriteHubUtils::getEntryList) {
 
 		FavoriteManager::getInstance()->addListener(this);
 
+		METHOD_HANDLER("hubs", Access::FAVORITE_HUBS_VIEW, ApiRequest::METHOD_GET, (NUM_PARAM, NUM_PARAM), false, FavoriteHubApi::handleGetHubs);
 		METHOD_HANDLER("hub", Access::FAVORITE_HUBS_EDIT, ApiRequest::METHOD_POST, (), true, FavoriteHubApi::handleAddHub);
 		METHOD_HANDLER("hub", Access::FAVORITE_HUBS_EDIT, ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, FavoriteHubApi::handleRemoveHub);
 		METHOD_HANDLER("hub", Access::FAVORITE_HUBS_EDIT, ApiRequest::METHOD_PATCH, (TOKEN_PARAM), true, FavoriteHubApi::handleUpdateHub);
@@ -42,7 +60,14 @@ namespace webserver {
 		FavoriteManager::getInstance()->removeListener(this);
 	}
 
-	string FavoriteHubApi::updateValidatedProperties(FavoriteHubEntryPtr& aEntry, const json& j, bool aNewHub) {
+	api_return FavoriteHubApi::handleGetHubs(ApiRequest& aRequest) {
+		auto j = Serializer::serializeItemList(aRequest.getRangeParam(0), aRequest.getRangeParam(1), itemHandler, FavoriteHubUtils::getEntryList());
+		aRequest.setResponseBody(j);
+
+		return websocketpp::http::status_code::ok;
+	}
+
+	void FavoriteHubApi::updateProperties(FavoriteHubEntryPtr& aEntry, const json& j, bool aNewHub) {
 		auto name = JsonUtil::getOptionalField<string>("name", j, false, aNewHub);
 
 		auto server = JsonUtil::getOptionalField<string>("hub_url", j, false, aNewHub);
@@ -79,11 +104,8 @@ namespace webserver {
 			aEntry->get(HubSettings::ShareProfile) = *shareProfileToken;
 		}
 
-		return Util::emptyString;
-	}
-
-	void FavoriteHubApi::updateSimpleProperties(FavoriteHubEntryPtr& aEntry, const json& j) {
-		for (auto i : json::iterator_wrapper(j)) {
+		// Values that don't need to be validated
+		for (const auto& i : json::iterator_wrapper(j)) {
 			auto key = i.key();
 			if (key == "auto_connect") {
 				aEntry->setAutoConnect(JsonUtil::parseValue<bool>("auto_connect", i.value()));
@@ -95,29 +117,25 @@ namespace webserver {
 				aEntry->get(HubSettings::Nick) = JsonUtil::parseValue<string>("nick", i.value());
 			} else if (key == "user_description") {
 				aEntry->get(HubSettings::Description) = JsonUtil::parseValue<string>("user_description", i.value());
+			} else if (key == "ignore_private_messages") {
+				aEntry->setFavNoPM(JsonUtil::parseValue<bool>("ignore_private_messages", i.value()));
+			} else if (key == "nmdc_encoding") {
+				aEntry->get(HubSettings::NmdcEncoding) = JsonUtil::parseValue<string>("nmdc_encoding", i.value());
 			}
 		}
 	}
 
 	api_return FavoriteHubApi::handleAddHub(ApiRequest& aRequest) {
-		auto j = aRequest.getRequestBody();
+		const auto& reqJson = aRequest.getRequestBody();
 
 		FavoriteHubEntryPtr e = new FavoriteHubEntry();
-
-		auto err = updateValidatedProperties(e, j, true);
-		if (!err.empty()) {
-			aRequest.setResponseErrorStr(err);
-			return websocketpp::http::status_code::bad_request;
-		}
-
-		updateSimpleProperties(e, j);
+		updateProperties(e, reqJson, true);
 
 		FavoriteManager::getInstance()->addFavoriteHub(e);
 
-		json response;
-		response["id"] = e->getToken();
-		aRequest.setResponseBody(response);
-
+		aRequest.setResponseBody({
+			{ "id", e->getToken() }
+		});
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -149,17 +167,7 @@ namespace webserver {
 			return websocketpp::http::status_code::not_found;
 		}
 
-		// Check existing address
-		auto j = aRequest.getRequestBody();
-
-		auto err = updateValidatedProperties(e, j, false);
-		if (!err.empty()) {
-			aRequest.setResponseErrorStr(err);
-			return websocketpp::http::status_code::bad_request;
-		}
-
-		updateSimpleProperties(e, j);
-
+		updateProperties(e, aRequest.getRequestBody(), false);
 		FavoriteManager::getInstance()->onFavoriteHubUpdated(e);
 
 		return websocketpp::http::status_code::ok;

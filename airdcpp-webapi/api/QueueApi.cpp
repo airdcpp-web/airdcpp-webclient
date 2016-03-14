@@ -31,9 +31,27 @@
 #include <boost/range/algorithm/copy.hpp>
 
 namespace webserver {
+	const PropertyList QueueApi::bundleProperties = {
+		{ PROP_NAME, "name", TYPE_TEXT, SERIALIZE_TEXT, SORT_CUSTOM },
+		{ PROP_TARGET, "target", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_SIZE, "size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_STATUS, "status", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_BYTES_DOWNLOADED, "downloaded_bytes", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_PRIORITY, "priority", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_TIME_ADDED, "time_added", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_TIME_FINISHED, "time_finished", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_SPEED, "speed", TYPE_SPEED, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_SECONDS_LEFT, "seconds_left", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_SOURCES, "sources", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+	};
+
+	const PropertyItemHandler<BundlePtr> QueueApi::bundlePropertyHandler = {
+		bundleProperties,
+		QueueUtils::getStringInfo, QueueUtils::getNumericInfo, QueueUtils::compareBundles, QueueUtils::serializeBundleProperty
+	};
+
 	QueueApi::QueueApi(Session* aSession) : ApiModule(aSession, Access::QUEUE_VIEW),
-			bundlePropertyHandler(bundleProperties, 
-				QueueUtils::getStringInfo, QueueUtils::getNumericInfo, QueueUtils::compareBundles, QueueUtils::serializeBundleProperty),
 			bundleView("bundle_view", this, bundlePropertyHandler, QueueUtils::getBundleList) {
 
 		QueueManager::getInstance()->addListener(this);
@@ -95,23 +113,14 @@ namespace webserver {
 	api_return QueueApi::handleFindDupePaths(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		json ret;
+		auto ret = json::array();
 
-		StringList paths;
 		auto path = JsonUtil::getOptionalField<string>("path", reqJson, false);
 		if (path) {
-			paths = QueueManager::getInstance()->getDirPaths(Util::toNmdcFile(*path));
+			ret = QueueManager::getInstance()->getDirPaths(Util::toNmdcFile(*path));
 		} else {
 			auto tth = Deserializer::deserializeTTH(reqJson);
-			paths = QueueManager::getInstance()->getTargets(tth);
-		}
-
-		if (!paths.empty()) {
-			for (const auto& p : paths) {
-				ret.push_back(p);
-			}
-		} else {
-			ret = json::array();
+			ret = QueueManager::getInstance()->getTargets(tth);
 		}
 
 		aRequest.setResponseBody(ret);
@@ -250,8 +259,7 @@ namespace webserver {
 				JsonUtil::getField<time_t>("time", reqJson),
 				errors
 			);
-		}
-		catch (const QueueException& e) {
+		} catch (const QueueException& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::internal_server_error;
 		}
@@ -283,6 +291,13 @@ namespace webserver {
 		// Priority
 		if (reqJson.find("priority") != reqJson.end()) {
 			QueueManager::getInstance()->setBundlePriority(b, Deserializer::deserializePriority(reqJson, false));
+		}
+
+		if (reqJson.find("auto_priority") != reqJson.end()) {
+			auto autoPrio = JsonUtil::getField<bool>("auto_priority", reqJson);
+			if (autoPrio != b->getAutoPriority()) {
+				QueueManager::getInstance()->toggleBundleAutoPriority(b);
+			}
 		}
 
 		return websocketpp::http::status_code::ok;
@@ -419,21 +434,18 @@ namespace webserver {
 		});
 	}
 
-	void QueueApi::on(QueueManagerListener::BundleMoved, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { PROP_TARGET, PROP_NAME, PROP_SIZE });
-	}
-	void QueueApi::on(QueueManagerListener::BundleMerged, const BundlePtr& aBundle, const string&) noexcept {
-		onBundleUpdated(aBundle, { PROP_TARGET, PROP_NAME, PROP_SIZE });
-	}
 	void QueueApi::on(QueueManagerListener::BundleSize, const BundlePtr& aBundle) noexcept {
 		onBundleUpdated(aBundle, { PROP_SIZE });
 	}
+
 	void QueueApi::on(QueueManagerListener::BundlePriority, const BundlePtr& aBundle) noexcept {
 		onBundleUpdated(aBundle, { PROP_PRIORITY, PROP_STATUS });
 	}
+
 	void QueueApi::on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { PROP_STATUS }, "bundle_status");
+		onBundleUpdated(aBundle, { PROP_STATUS, PROP_TIME_FINISHED }, "bundle_status");
 	}
+
 	void QueueApi::on(QueueManagerListener::BundleSources, const BundlePtr& aBundle) noexcept {
 		onBundleUpdated(aBundle, { PROP_SOURCES });
 	}
@@ -450,6 +462,6 @@ namespace webserver {
 	}
 
 	void QueueApi::on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { PROP_SECONDS_LEFT, PROP_SPEED, PROP_STATUS });
+		onBundleUpdated(aBundle, { PROP_SECONDS_LEFT, PROP_SPEED, PROP_STATUS, PROP_BYTES_DOWNLOADED });
 	}
 }

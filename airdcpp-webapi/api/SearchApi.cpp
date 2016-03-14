@@ -20,23 +20,49 @@
 #include <api/SearchUtils.h>
 
 #include <api/common/Deserializer.h>
+#include <api/common/FileSearchParser.h>
 
+#include <airdcpp/DirectSearch.h>
 #include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/ShareManager.h>
 
-const unsigned int MIN_SEARCH = 2;
 
 namespace webserver {
-	SearchApi::SearchApi(Session* aSession) : ApiModule(aSession, Access::SEARCH), itemHandler(properties,
-		SearchUtils::getStringInfo, SearchUtils::getNumericInfo, SearchUtils::compareResults, SearchUtils::serializeResult), 
+	const PropertyList SearchApi::properties = {
+		{ PROP_NAME, "name", TYPE_TEXT, SERIALIZE_TEXT, SORT_CUSTOM },
+		{ PROP_RELEVANCE, "relevance", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_HITS, "hits", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_USERS, "users", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_SIZE, "size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_DATE, "time", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_PATH, "path", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_CONNECTION, "connection", TYPE_SPEED, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_SLOTS, "slots", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_TTH, "tth", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_DUPE, "dupe", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
+	};
+
+	const PropertyItemHandler<SearchResultInfoPtr> SearchApi::itemHandler = {
+		properties,
+		SearchUtils::getStringInfo, SearchUtils::getNumericInfo, SearchUtils::compareResults, SearchUtils::serializeResult
+	};
+
+	SearchApi::SearchApi(Session* aSession) : ApiModule(aSession, Access::SEARCH), 
 		searchView("search_view", this, itemHandler, std::bind(&SearchApi::getResultList, this)) {
 
 		SearchManager::getInstance()->addListener(this);
 
-		METHOD_HANDLER("query", Access::SEARCH, ApiRequest::METHOD_POST, (), true, SearchApi::handlePostSearch);
+		METHOD_HANDLER("query", Access::SEARCH, ApiRequest::METHOD_POST, (), true, SearchApi::handlePostHubSearch);
+		METHOD_HANDLER("query", Access::SEARCH, ApiRequest::METHOD_POST, (EXACT_PARAM("user")), true, SearchApi::handlePostUserSearch);
+		METHOD_HANDLER("query", Access::SEARCH, ApiRequest::METHOD_POST, (EXACT_PARAM("share")), true, SearchApi::handlePostShareSearch);
+
 		METHOD_HANDLER("types", Access::ANY, ApiRequest::METHOD_GET, (), false, SearchApi::handleGetTypes);
 
-		METHOD_HANDLER("results", Access::SEARCH, ApiRequest::METHOD_GET, (), false, SearchApi::handleGetResults);
+		METHOD_HANDLER("results", Access::SEARCH, ApiRequest::METHOD_GET, (NUM_PARAM, NUM_PARAM), false, SearchApi::handleGetResults);
 		METHOD_HANDLER("result", Access::DOWNLOAD, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("download")), false, SearchApi::handleDownload);
+
+		createSubscription("search_result");
 	}
 
 	SearchApi::~SearchApi() {
@@ -80,7 +106,7 @@ namespace webserver {
 			result = *i;
 		}
 
-		string targetDirectory, targetName;
+		string targetDirectory, targetName = result->sr->getFileName();
 		TargetUtil::TargetType targetType;
 		QueueItemBase::Priority prio;
 		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), targetDirectory, targetName, targetType, prio);
@@ -111,168 +137,115 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	map<string, string> typeMappings = {
-		{ "any", "0" },
-		{ "audio", "1" },
-		{ "compressed", "2" },
-		{ "document", "3" },
-		{ "executable", "4" },
-		{ "picture", "5" },
-		{ "video", "6" },
-		{ "directory", "7" },
-		{ "tth", "8" },
-		{ "file", "9" },
-	};
-
-	const string& SearchApi::parseFileType(const string& aType) noexcept {
-		auto i = typeMappings.find(aType);
-		return i != typeMappings.end() ? i->second : aType;
-	}
-
-	SearchPtr SearchApi::parseSearch(const json& aJson, const string& aToken) {
-		auto pattern = JsonUtil::getOptionalFieldDefault<string>("pattern", aJson, Util::emptyString, false);
-
-		auto s = make_shared<Search>(Search::MANUAL, pattern, aToken);
-
-		// Type
-		s->fileType = pattern.size() == 39 && Encoder::isBase32(pattern.c_str()) ? Search::TYPE_TTH : Search::TYPE_ANY;
-
-		//StringList exts;
-		auto fileTypeStr = JsonUtil::getOptionalField<string>("file_type", aJson, false);
-		if (fileTypeStr) {
-			try {
-				SearchManager::getInstance()->getSearchType(parseFileType(*fileTypeStr), s->fileType, s->exts, true);
-			} catch (...) {
-				throw std::domain_error("Invalid file type");
-			}
-		}
-
-		// Extensions
-		auto optionalExtensions = JsonUtil::getOptionalField<StringList>("extensions", aJson);
-		if (optionalExtensions) {
-			s->exts = *optionalExtensions;
-		}
-
-		// Anything to search for?
-		//if (s->exts.empty() && pattern.empty()) {
-		//	throw std::domain_error("Please provide valid pattern or extensions");
-		//}
-
-		// Date
-		s->maxDate = JsonUtil::getOptionalField<time_t>("max_age", aJson);
-		s->minDate = JsonUtil::getOptionalField<time_t>("min_age", aJson);
-
-		// Size
-		auto minSize = JsonUtil::getOptionalField<int64_t>("min_size", aJson);
-		if (minSize) {
-			s->size = *minSize;
-			s->sizeType = Search::SIZE_ATLEAST;
-		}
-
-		auto maxSize = JsonUtil::getOptionalField<int64_t>("max_size", aJson);
-		if (maxSize) {
-			s->size = *maxSize;
-			s->sizeType = Search::SIZE_ATMOST;
-		}
-
-		return s;
-	}
-
-	api_return SearchApi::handlePostSearch(ApiRequest& aRequest) {
+	api_return SearchApi::handlePostHubSearch(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
+		// Parse request
 		currentSearchToken = Util::toString(Util::rand());
+		auto s = FileSearchParser::parseSearch(reqJson, false, currentSearchToken);
 
-		auto s = parseSearch(reqJson, currentSearchToken);
 		auto hubs = Deserializer::deserializeHubUrls(reqJson);
 
-		// new search
-		auto matcher = SearchQuery::getSearch(s, SearchQuery::MATCH_FULL_PATH, false);
+		// Result matching
+		curSearch = shared_ptr<SearchQuery>(SearchQuery::getSearch(s));
 
+		// Reset old data
 		{
 			WLock l(cs);
 			results.clear();
 		}
-
 		searchView.resetItems();
 
-		curSearch = shared_ptr<SearchQuery>(matcher);
-
-		SettingsManager::getInstance()->addToHistory(s->query, SettingsManager::HISTORY_SEARCH);
-
+		// Send
 		auto result = SearchManager::getInstance()->search(hubs, s);
-
 		aRequest.setResponseBody({
 			{ "queue_time", result.queueTime },
-			{ "search_token", currentSearchToken },
+			{ "search_id", currentSearchToken },
 			{ "sent", result.succeed },
-			//{ "type", type }
 		});
+
 		return websocketpp::http::status_code::ok;
 	}
 
-	optional<RelevancyInfo> SearchApi::matches(const SearchResultPtr& aResult) const noexcept {
-		auto search = curSearch;
-		if (!search)
-			return boost::none;
+	api_return SearchApi::handlePostShareSearch(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
 
-		if (!aResult->getToken().empty()) {
-			// ADC
-			if (currentSearchToken != aResult->getToken()) {
-				return boost::none;
+		// Parse share profile and query
+		auto profile = Deserializer::deserializeShareProfile(reqJson);
+		auto s = FileSearchParser::parseSearch(reqJson, true, Util::toString(Util::rand()));
+
+		// Search
+		unique_ptr<SearchQuery> matcher(SearchQuery::getSearch(s));
+		SearchResultList results;
+
+		try {
+			ShareManager::getInstance()->search(results, *matcher, profile, CID(), s->path);
+		} catch (...) {}
+
+		// Serialize results
+		aRequest.setResponseBody(serializeDirectSearchResults(results, *matcher.get()));
+		return websocketpp::http::status_code::ok;
+	}
+
+	json SearchApi::serializeDirectSearchResults(const SearchResultList& aResults, SearchQuery& aQuery) noexcept {
+		// Construct SearchResultInfos
+		SearchResultInfo::Set resultSet;
+		for (const auto& sr : aResults) {
+			SearchResult::RelevanceInfo relevanceInfo;
+			if (sr->getRelevance(aQuery, relevanceInfo)) {
+				resultSet.emplace(std::make_shared<SearchResultInfo>(sr, move(relevanceInfo)));
 			}
-		} else {
-			// NMDC results must be matched manually
+		}
 
-			// Exludes
-			if (curSearch->isExcluded(aResult->getPath())) {
-				return boost::none;
+		// Serialize results
+		return Serializer::serializeItemList(itemHandler, resultSet);
+	}
+
+	api_return SearchApi::handlePostUserSearch(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+
+		// Parse user and query
+		auto user = Deserializer::deserializeHintedUser(reqJson, false);
+		auto s = FileSearchParser::parseSearch(reqJson, true, Util::toString(Util::rand()));
+
+		// Search
+		auto ds = DirectSearch(user, s);
+
+		// Wait for the search to finish
+		while (true) {
+			Thread::sleep(50);
+			if (ds.finished()) {
+				break;
 			}
-
-			if (search->root && *search->root != aResult->getTTH()) {
-				return boost::none;
-			}
 		}
 
-		// All clients can't handle this correctly
-		if (search->itemType == SearchQuery::TYPE_FILE && aResult->getType() != SearchResult::TYPE_FILE) {
-			return boost::none;
+		if (ds.hasTimedOut()) {
+			aRequest.setResponseErrorStr("Search timed out");
+			return websocketpp::http::status_code::service_unavailable;
 		}
 
-
-		WLock l(cs);
-
-		// Path match (always required to get the relevancy)
-		// Must be locked because the match positions are saved in SearchQuery
-		SearchQuery::Recursion recursion;
-		ScopedFunctor([&] { search->recursion = nullptr; });
-		if (!search->root && !search->matchesNmdcPath(aResult->getPath(), recursion)) {
-			return boost::none;
-		}
-
-		// Don't count the levels because they can't be compared with each others
-		auto matchRelevancy = SearchQuery::getRelevancyScores(*search.get(), 0, aResult->getType() == SearchResult::TYPE_DIRECTORY, aResult->getFileName());
-		double sourceScoreFactor = 0.01;
-		if (search->recursion && search->recursion->isComplete()) {
-			// There are subdirectories/files that have more matches than the main directory
-			// Don't give too much weight for those even if there are lots of sources
-			sourceScoreFactor = 0.001;
-
-			// We don't get the level scores so balance those here
-			matchRelevancy = max(0.0, matchRelevancy - (0.05 * search->recursion->recursionLevel));
-		}
-
-		return RelevancyInfo({ matchRelevancy, sourceScoreFactor });
+		// Serialize results
+		unique_ptr<SearchQuery> matcher(SearchQuery::getSearch(s));
+		aRequest.setResponseBody(serializeDirectSearchResults(ds.getResults(), *matcher.get()));
+		return websocketpp::http::status_code::ok;
 	}
 
 	void SearchApi::on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept {
-		auto relevancyInfo = matches(aResult);
-		if (!relevancyInfo) {
+		auto search = curSearch; // Increase the refs
+		if (!search) {
 			return;
 		}
 
+		SearchResult::RelevanceInfo relevanceInfo;
+		{
+			WLock l(cs);
+			if (!aResult->getRelevance(*search.get(), relevanceInfo, currentSearchToken)) {
+				return;
+			}
+		}
+
 		SearchResultInfoPtr parent = nullptr;
-		auto result = std::make_shared<SearchResultInfo>(aResult, move(*relevancyInfo));
+		auto result = std::make_shared<SearchResultInfo>(aResult, move(relevanceInfo));
 
 		{
 			WLock l(cs);
@@ -294,6 +267,13 @@ namespace webserver {
 
 		// Add as child
 		parent->addChildResult(result);
-		searchView.onItemUpdated(parent, { PROP_RELEVANCY, PROP_CONNECTION, PROP_HITS, PROP_SLOTS, PROP_USERS });
+		searchView.onItemUpdated(parent, { PROP_RELEVANCE, PROP_CONNECTION, PROP_HITS, PROP_SLOTS, PROP_USERS });
+
+		if (subscriptionActive("search_result")) {
+			send("search_result", {
+				{ "search_id", currentSearchToken },
+				{ "result", Serializer::serializeItem(result, itemHandler) }
+			});
+		}
 	}
 }

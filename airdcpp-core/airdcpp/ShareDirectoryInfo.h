@@ -29,6 +29,7 @@ namespace dcpp {
 	class ShareDirectoryInfo;
 	typedef std::shared_ptr<ShareDirectoryInfo> ShareDirectoryInfoPtr;
 	typedef vector<ShareDirectoryInfoPtr> ShareDirectoryInfoList;
+	typedef std::set<ShareDirectoryInfoPtr, std::owner_less<ShareDirectoryInfoPtr>> ShareDirectoryInfoSet;
 
 	class ShareDirectoryInfo {
 	public:
@@ -54,16 +55,20 @@ namespace dcpp {
 			size = aInfo->size;
 			lastRefreshTime = aInfo->lastRefreshTime;
 			refreshState = aInfo->refreshState;
+			fileCount = aInfo->fileCount;
+			folderCount = aInfo->folderCount;
 		}
 
 		string virtualName;
 
 		ProfileTokenSet profiles;
 
-		string path;
+		const string path;
 		bool incoming = false;
 
 		int64_t size = 0;
+		size_t fileCount = 0;
+		size_t folderCount = 0;
 
 		uint8_t refreshState = 0;
 		time_t lastRefreshTime = 0;

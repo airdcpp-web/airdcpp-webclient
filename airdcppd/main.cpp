@@ -144,34 +144,49 @@ static void installHandler() {
 	});
 }
 
+static void savePid(int aPid, const string& aConfigPath) noexcept {
+	pidFileName = File::makeAbsolutePath(aConfigPath, "airdcppd.pid");
+
+	try {
+		pidFile.reset(new File(pidFileName, File::WRITE, File::CREATE | File::OPEN | File::TRUNCATE));
+		pidFile->write(Util::toString(aPid));
+	} catch(const FileException& e) {
+		fprintf(stderr, "Failed to create PID file %s: %s\n", pidFileName.c_str(), e.what());
+		exit(1);
+	}
+}
+
+static void reportError(const char* aMessage) noexcept {
+	fprintf(stderr, (string(aMessage) + ": %s\n").c_str(), strerror(errno));
+}
+
 #include <fcntl.h>
 
-static void daemonize() {
-	auto reportError = [](const char* aMessage) {
-		fprintf(stderr, (string(aMessage) + ": %s\n").c_str(), strerror(errno));
+static void daemonize(const string& aConfigPath) noexcept {
+	auto doFork = [&aConfigPath](const char* aErrorMessage) {
+		auto ret = fork();
+		
+		switch(ret) {
+		case -1:
+			reportError(aErrorMessage);
+			exit(5);
+		case 0: break;
+		default:
+			savePid(ret, aConfigPath);
+			//printf("%d\n", ret); fflush(stdout);
+			_exit(0);
+		}
 	};
 	
-	switch(fork()) {
-	case -1:
-		reportError("First fork failed");
-		exit(5);
-	case 0: break;
-	default: _exit(0);
-	}
+	doFork("First fork failed");
 
 	if(setsid() < 0) {
 		reportError("setsid failed");
 		exit(6);
 	}
-
-	switch(fork()) {
-		case -1:
-			fprintf(stderr, "Second fork failed: %s\n", strerror(errno));
-			exit(7);
-		case 0: break;
-		default: exit(0);
-	}
-
+	
+	doFork("Second fork failed");
+	
 	if (chdir("/") < 0) {
 		reportError("chdir failed");
 		exit(8);
@@ -196,8 +211,8 @@ static void daemonize() {
 
 #include <sys/wait.h>
 
-static void runDaemon(const string& configPath) {
-	daemonize();
+static void runDaemon(const string& aConfigPath) {
+	daemonize(aConfigPath);
 
 	try {
 		client = unique_ptr<airdcppd::Client>(new airdcppd::Client(asdaemon));
@@ -214,8 +229,10 @@ static void runDaemon(const string& configPath) {
 	uninit();
 }
 
-static void runConsole(const string& configPath) {
+static void runConsole(const string& aConfigPath) {
 	printf("Starting.\n"); fflush(stdout);
+	
+	savePid(static_cast<int>(getpid()), aConfigPath);
 
 	try {
 		client = unique_ptr<airdcppd::Client>(new airdcppd::Client(asdaemon));
@@ -320,17 +337,6 @@ int main(int argc, char* argv[]) {
 	setlocale(LC_ALL, "");
 
 	string configPath = Util::getPath(Util::PATH_USER_CONFIG);
-
-	pidFileName = File::makeAbsolutePath(configPath, "airdcppd.pid");
-
-	try {
-		pidFile.reset(new File(pidFileName, File::WRITE, File::CREATE | File::OPEN | File::TRUNCATE));
-		pidFile->write(Util::toString(static_cast<int>(getpid())));
-	} catch(const FileException& e) {
-                fprintf(stderr, "Failed to create PID file %s: %s\n", pidFileName.c_str(), e.what());
-                return 1;
-	}
-
 	if(asdaemon) {
 		runDaemon(configPath);
 	} else {

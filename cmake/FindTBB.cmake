@@ -139,7 +139,7 @@ if (TBB_OBVIOUS_PLACE)
   mark_as_advanced(TBB_INCLUDE_DIRS TBB_LIBRARIES)
   message(STATUS "Found Intel TBB")
 elseif (NOT _TBB_INSTALL_DIR)
-  message ("ERROR: Unable to find Intel TBB install directory. ${_TBB_INSTALL_DIR}")
+  message (STATUS "Unable to find Intel TBB install directory. ${_TBB_INSTALL_DIR}")
 else (TBB_OBVIOUS_PLACE)
   # finally: set the cached CMake variable TBB_INSTALL_DIR
   if (NOT TBB_INSTALL_DIR)
@@ -194,7 +194,7 @@ else (TBB_OBVIOUS_PLACE)
   endif (TBB_INCLUDE_DIR)
 
   if (NOT TBB_FOUND)
-    message("ERROR: Intel TBB NOT found!")
+    message(STATUS "Intel TBB not found")
     message(STATUS "Looked for Threading Building Blocks in ${_TBB_INSTALL_DIR}")
     # do only throw fatal, if this pkg is REQUIRED
     if (TBB_FIND_REQUIRED)

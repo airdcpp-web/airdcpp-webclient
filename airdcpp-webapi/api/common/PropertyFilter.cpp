@@ -121,7 +121,7 @@ namespace webserver {
 		bool hasMatch = false;
 		if (currentFilterProperty < 0 || currentFilterProperty >= propertyCount) {
 			// Any column
-			if (defMethod < StringMatch::METHOD_LAST) {
+			if (defMethod < StringMatch::METHOD_LAST && numComparisonMode == LAST) {
 				for (auto i = 0; i < propertyCount; ++i) {
 					if (propertyTypes[i].filterType == type && matchText(i, infoF)) {
 						hasMatch = true;
@@ -152,7 +152,7 @@ namespace webserver {
 
 	bool PropertyFilter::matchNumeric(int aProperty, const NumericFunction& numericF) const {
 		auto toCompare = numericF(aProperty);
-		switch (defMethod - StringMatch::METHOD_LAST) {
+		switch (numComparisonMode) {
 			case EQUAL: return toCompare == numericMatcher;
 			case NOT_EQUAL: return toCompare != numericMatcher;
 

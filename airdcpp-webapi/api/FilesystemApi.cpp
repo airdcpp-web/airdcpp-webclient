@@ -39,14 +39,17 @@ namespace webserver {
 	api_return FilesystemApi::handleListItems(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
+		auto path = JsonUtil::getField<string>("path", reqJson, 
 #ifdef WIN32
-		auto path = JsonUtil::getField<string>("path", reqJson, true);
+			true
 #else
-		auto path = JsonUtil::getField<string>("path", reqJson, false);
+			false
 #endif
+		);
+
 		auto dirsOnly = JsonUtil::getOptionalFieldDefault<bool>("directories_only", reqJson, false);
 
-		json retJson;
+		auto retJson = json::array();
 		if (path.empty()) {
 #ifdef WIN32
 			retJson = Filesystem::getDriveListing(false);
@@ -65,16 +68,12 @@ namespace webserver {
 			}
 		}
 
-		if (retJson.is_null()) {
-			retJson = json::array();
-		}
-
 		aRequest.setResponseBody(retJson);
 		return websocketpp::http::status_code::ok;
 	}
 
 	json FilesystemApi::serializeDirectoryContent(const string& aPath, bool aDirectoriesOnly) {
-		json retJson;
+		auto retJson = json::array();
 
 		FileFindIter end;
 		for (FileFindIter i(aPath, "*"); i != end; ++i) {

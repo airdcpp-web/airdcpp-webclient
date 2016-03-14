@@ -16,37 +16,24 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_LOGAPI_H
-#define DCPLUSPLUS_DCPP_LOGAPI_H
+#ifndef DCPLUSPLUS_DCPP_FILESEARCH_PARSER_H
+#define DCPLUSPLUS_DCPP_FILESEARCH_PARSER_H
 
 #include <web-server/stdinc.h>
 
-#include <api/ApiModule.h>
-
 #include <airdcpp/typedefs.h>
-#include <airdcpp/LogManagerListener.h>
+#include <airdcpp/Search.h>
 
 namespace webserver {
-	class LogApi : public ApiModule, private LogManagerListener {
+	class FileSearchParser {
 	public:
-		LogApi(Session* aSession);
-		~LogApi();
-
-		int getVersion() const noexcept {
-			return 0;
-		}
+		static SearchPtr parseSearch(const json& aJson, bool aIsDirectSearch, const string& aToken);
 	private:
-		void onMessagesChanged() noexcept;
+		static void parseMatcher(const json& aJson, const SearchPtr& aSearch);
+		static void parseOptions(const json& aJson, const SearchPtr& aSearch);
 
-		api_return handleGetInfo(ApiRequest& aRequest);
-		api_return handleGetLog(ApiRequest& aRequest);
-		api_return handleRead(ApiRequest& aRequest);
-		api_return handleClear(ApiRequest& aRequest);
-
-		// LogManagerListener
-		void on(LogManagerListener::Message, const LogMessagePtr& aMessageData) noexcept;
-		void on(LogManagerListener::Cleared) noexcept;
-		void on(LogManagerListener::MessagesRead) noexcept;
+		static Search::MatchType parseMatchType(const string& aTypeStr);
+		static const string& parseFileType(const string& aType) noexcept;
 	};
 }
 

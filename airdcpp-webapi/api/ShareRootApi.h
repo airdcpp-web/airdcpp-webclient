@@ -25,11 +25,12 @@
 #include <api/common/ListViewController.h>
 
 #include <airdcpp/typedefs.h>
+#include <airdcpp/HashManagerListener.h>
 #include <airdcpp/ShareDirectoryInfo.h>
 #include <airdcpp/ShareManagerListener.h>
 
 namespace webserver {
-	class ShareRootApi : public ApiModule, private ShareManagerListener {
+	class ShareRootApi : public ApiModule, private ShareManagerListener, private HashManagerListener {
 	public:
 		ShareRootApi(Session* aSession);
 		~ShareRootApi();
@@ -38,15 +39,7 @@ namespace webserver {
 			return 0;
 		}
 
-		const PropertyList properties = {
-			{ PROP_PATH, "path", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-			{ PROP_VIRTUAL_NAME, "virtual_name", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-			{ PROP_SIZE, "size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_PROFILES, "profiles", TYPE_LIST_NUMERIC, SERIALIZE_CUSTOM, SORT_CUSTOM },
-			{ PROP_INCOMING, "incoming", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
-			{ PROP_LAST_REFRESH_TIME, "last_refresh_time", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_REFRESH_STATE, "refresh_state", TYPE_NUMERIC_OTHER, SERIALIZE_TEXT_NUMERIC, SORT_NUMERIC },
-		};
+		static const PropertyList properties;
 
 		enum Properties {
 			PROP_TOKEN = -1,
@@ -57,6 +50,7 @@ namespace webserver {
 			PROP_INCOMING,
 			PROP_LAST_REFRESH_TIME,
 			PROP_REFRESH_STATE,
+			PROP_TYPE,
 			PROP_LAST
 		};
 	private:
@@ -69,8 +63,9 @@ namespace webserver {
 		void on(ShareManagerListener::RootCreated, const string& aPath) noexcept;
 		void on(ShareManagerListener::RootRemoved, const string& aPath) noexcept;
 		void on(ShareManagerListener::RootUpdated, const string& aPath) noexcept;
+		void onRootUpdated(const ShareDirectoryInfoPtr& aInfo, PropertyIdSet&& aUpdatedProperties) noexcept;
 
-		PropertyItemHandler<ShareDirectoryInfoPtr> itemHandler;
+		static const PropertyItemHandler<ShareDirectoryInfoPtr> itemHandler;
 
 		typedef ListViewController<ShareDirectoryInfoPtr, PROP_LAST> RootView;
 		RootView rootView;
@@ -80,6 +75,12 @@ namespace webserver {
 		// ListViewController compares items by memory address so we need to store the list here 
 		ShareDirectoryInfoList roots;
 		mutable SharedMutex cs;
+
+		void on(HashManagerListener::FileHashed, const string& aFilePath, HashedFile& aFileInfo) noexcept;
+
+		TimerPtr timer;
+		void onTimer() noexcept;
+		StringSet hashedPaths;
 	};
 }
 

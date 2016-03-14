@@ -55,14 +55,12 @@ public:
 
 	QueueItemBase(const string& aTarget, int64_t aSize, Priority aPriority, time_t aAdded, QueueToken aToken, Flags::MaskType aFlags);
 
-	virtual void setTarget(const string& aTarget) = 0;
 	const DownloadList& getDownloads() { return downloads; }
 
 	GETSET(Priority, priority, Priority);
 	GETSET(bool, autoPriority, AutoPriority);
 	GETSET(time_t, timeAdded, TimeAdded);
 	IGETSET(time_t, timeFinished, TimeFinished, 0);
-	GETSET(string, target, Target);
 	GETSET(DownloadList, downloads, Downloads);
 	GETSET(int64_t, size, Size);
 
@@ -73,8 +71,13 @@ public:
 	}
 
 	string getStringToken() const noexcept;
+
+	const string& getTarget() const noexcept {
+		return target;
+	}
 protected:
 	QueueToken token;
+	const string target;
 };
 
 }

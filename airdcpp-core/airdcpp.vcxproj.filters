@@ -329,6 +329,9 @@
     <ClCompile Include="airdcpp\ActivityManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="airdcpp\DirectSearch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="airdcpp\AdcCommand.h">
@@ -826,9 +829,6 @@
     <ClInclude Include="airdcpp\AutoSearchQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\RelevancySearch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="airdcpp\Message.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -851,6 +851,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\ActivityManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\DirectSearch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\RelevanceSearch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\DupeType.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\HashManagerListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

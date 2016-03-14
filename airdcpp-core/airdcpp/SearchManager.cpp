@@ -20,6 +20,7 @@
 #include "SearchManager.h"
 
 #include "AdcHub.h"
+#include "AirUtil.h"
 #include "ClientManager.h"
 #include "FinishedManager.h"
 #include "QueueManager.h"

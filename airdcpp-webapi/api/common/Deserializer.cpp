@@ -22,6 +22,7 @@
 #include <api/common/Deserializer.h>
 
 #include <airdcpp/ClientManager.h>
+#include <airdcpp/ShareManager.h>
 
 namespace webserver {
 	CID Deserializer::parseCID(const string& aCID) {
@@ -50,12 +51,12 @@ namespace webserver {
 	}
 
 	UserPtr Deserializer::deserializeUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
-		auto userJson = JsonUtil::getRawValue(aFieldName, aJson);
+		auto userJson = JsonUtil::getRawValue(aFieldName, aJson, false);
 		return parseUser(userJson);
 	}
 
 	HintedUser Deserializer::deserializeHintedUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
-		auto userJson = JsonUtil::getRawValue(aFieldName, aJson);
+		auto userJson = JsonUtil::getRawValue(aFieldName, aJson, false);
 		auto user = parseUser(userJson, aAllowMe);
 		return HintedUser(user, JsonUtil::getField<string>("hub_url", userJson, aAllowMe && user == ClientManager::getInstance()->getMe()));
 	}
@@ -77,7 +78,12 @@ namespace webserver {
 
 	void Deserializer::deserializeDownloadParams(const json& aJson, string& targetDirectory_, string& targetName_, TargetUtil::TargetType& targetType_, QueueItemBase::Priority& priority_) {
 		targetDirectory_ = JsonUtil::getOptionalFieldDefault<string>("target_directory", aJson, SETTING(DOWNLOAD_DIRECTORY), false);
-		targetName_ = JsonUtil::getField<string>("target_name", aJson, false);
+
+		// A default target name can be provided
+		auto name = JsonUtil::getOptionalField<string>("target_name", aJson, false, targetName_.empty());
+		if (name) {
+			targetName_ = *name;
+		}
 
 		auto targetType = JsonUtil::getEnumField<int>("target_type", aJson, false, 0, TargetUtil::TARGET_LAST-1);
 		if (!targetType) {
@@ -95,5 +101,48 @@ namespace webserver {
 		}
 
 		return hubUrls;
+	}
+
+	pair<string, bool> Deserializer::deserializeChatMessage(const json& aJson) {
+		return { 
+			JsonUtil::getField<string>("text", aJson, false),
+			JsonUtil::getOptionalFieldDefault<bool>("third_person", aJson, false)
+		};
+	}
+
+	map<string, LogMessage::Severity> severityMappings = {
+		{ "notify", LogMessage::SEV_NOTIFY },
+		{ "info", LogMessage::SEV_INFO },
+		{ "warning", LogMessage::SEV_WARNING },
+		{ "error", LogMessage::SEV_ERROR },
+	};
+
+	LogMessage::Severity Deserializer::parseSeverity(const string& aText) {
+		auto i = severityMappings.find(aText);
+		if (i != severityMappings.end()) {
+			return i->second;
+		}
+
+		throw std::invalid_argument("Invalid severity: " + aText);
+	}
+
+	pair<string, LogMessage::Severity> Deserializer::deserializeStatusMessage(const json& aJson) {
+		return {
+			JsonUtil::getField<string>("text", aJson, false),
+			parseSeverity(JsonUtil::getField<string>("severity", aJson, false))
+		};
+	}
+
+	ProfileToken Deserializer::deserializeShareProfile(const json& aJson) {
+		auto profile = JsonUtil::getOptionalField<ProfileToken>("share_profile", aJson);
+		if (!profile) {
+			return SETTING(DEFAULT_SP);
+		}
+
+		if (!ShareManager::getInstance()->getShareProfile(*profile)) {
+			throw std::invalid_argument("Invalid share profile: " + Util::toString(*profile));
+		}
+
+		return *profile;
 	}
 }

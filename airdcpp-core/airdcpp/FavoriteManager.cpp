@@ -26,7 +26,7 @@
 #include "FilteredFile.h"
 #include "HttpConnection.h"
 #include "LogManager.h"
-#include "RelevancySearch.h"
+#include "RelevanceSearch.h"
 #include "ResourceManager.h"
 #include "ShareManager.h"
 #include "SimpleXML.h"
@@ -1033,7 +1033,7 @@ RecentHubEntryPtr FavoriteManager::getRecentHubEntry(const string& aServer) {
 }
 
 RecentHubEntryList FavoriteManager::searchRecentHubs(const string& aPattern, size_t aMaxResults) const noexcept {
-	auto search = RelevancySearch<RecentHubEntryPtr>(aPattern, [](const RecentHubEntryPtr& aHub) {
+	auto search = RelevanceSearch<RecentHubEntryPtr>(aPattern, [](const RecentHubEntryPtr& aHub) {
 		return aHub->getName();
 	});
 

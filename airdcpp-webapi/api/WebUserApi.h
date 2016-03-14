@@ -36,12 +36,7 @@ namespace webserver {
 			return 0;
 		}
 
-		const PropertyList properties = {
-			{ PROP_NAME, "username", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-			{ PROP_PERMISSIONS, "permissions", TYPE_LIST_NUMERIC, SERIALIZE_CUSTOM, SORT_CUSTOM },
-			{ PROP_ACTIVE_SESSIONS, "active_sessions", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
-			{ PROP_LAST_LOGIN, "last_login", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		};
+		static const PropertyList properties;
 
 		enum Properties {
 			PROP_TOKEN = -1,
@@ -62,7 +57,7 @@ namespace webserver {
 		void on(WebUserManagerListener::UserUpdated, const WebUserPtr& aUser) noexcept;
 		void on(WebUserManagerListener::UserRemoved, const WebUserPtr& aUser) noexcept;
 
-		PropertyItemHandler<WebUserPtr> itemHandler;
+		static const PropertyItemHandler<WebUserPtr> itemHandler;
 
 		typedef ListViewController<WebUserPtr, PROP_LAST> RootView;
 		RootView view;

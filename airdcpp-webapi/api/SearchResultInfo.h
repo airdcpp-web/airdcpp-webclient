@@ -24,8 +24,7 @@
 #include <airdcpp/typedefs.h>
 #include <airdcpp/GetSet.h>
 
-#include <airdcpp/AirUtil.h>
-//#include <airdcpp/UserInfoBase.h>
+#include <airdcpp/DupeType.h>
 #include <airdcpp/SearchResult.h>
 #include <airdcpp/QueueItemBase.h>
 #include <airdcpp/TargetUtil.h>
@@ -33,23 +32,18 @@
 namespace webserver {
 	typedef uint32_t ResultToken;
 
-	struct RelevancyInfo {
-		const double matchRelevancy;
-		const double sourceScoreFactor;
-	};
-
 	class SearchResultInfo {
 	public:
 		typedef shared_ptr<SearchResultInfo> Ptr;
-		struct RelevancySort {
-			bool operator()(const Ptr& left, const Ptr& right) const noexcept { return left->getTotalRelevancy() > right->getTotalRelevancy(); }
+		struct RelevanceSort {
+			bool operator()(const Ptr& left, const Ptr& right) const noexcept { return left->getTotalRelevance() > right->getTotalRelevance(); }
 		};
 
 		typedef vector<Ptr> List;
 		typedef unordered_map<TTHValue, Ptr> Map;
-		typedef set<Ptr, RelevancySort> Set;
+		typedef set<Ptr, RelevanceSort> Set;
 
-		SearchResultInfo(const SearchResultPtr& aSR, RelevancyInfo&& aRelevancy);
+		SearchResultInfo(const SearchResultPtr& aSR, SearchResult::RelevanceInfo&& aRelevance);
 		~SearchResultInfo() {	}
 
 		const UserPtr& getUser() const noexcept { return sr->getUser().user; }
@@ -59,16 +53,15 @@ namespace webserver {
 		void addChildResult(const SearchResultInfo::Ptr& aResult) noexcept;
 		api_return download(const string& aTargetDirectory, const string& aTargetName, TargetUtil::TargetType aTargetType, QueueItemBase::Priority p);
 
-		bool isDupe() const noexcept { return dupe != DUPE_NONE; }
-		bool isShareDupe() const noexcept { return dupe == DUPE_SHARE || dupe == DUPE_SHARE_PARTIAL; }
-		bool isQueueDupe() const noexcept { return dupe == DUPE_QUEUE || dupe == DUPE_FINISHED; }
-		//StringList getDupePaths() const;
+		bool isDirectory() const noexcept {
+			return sr->getType() == SearchResult::TYPE_DIRECTORY;
+		}
 
 		SearchResultPtr sr;
 		IGETSET(DupeType, dupe, Dupe, DUPE_NONE);
 
-		double getTotalRelevancy() const noexcept;
-		double getMatchRelevancy() const noexcept;
+		double getTotalRelevance() const noexcept;
+		double getMatchRelevance() const noexcept;
 
 		ResultToken getToken() const noexcept {
 			return token;
@@ -89,7 +82,7 @@ namespace webserver {
 		SearchResultInfo* parent = nullptr;
 		SearchResultInfo::List children;
 
-		RelevancyInfo relevancyInfo;
+		SearchResult::RelevanceInfo relevanceInfo;
 
 		string country;
 		ResultToken token;

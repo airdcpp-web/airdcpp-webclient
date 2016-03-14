@@ -12,9 +12,11 @@ Ubuntu 14.04 or newer is required for installing the client.
 
 #### Install tools
 
-`sudo apt-get install gcc g++ git cmake npm nodejs`
+`sudo apt-get install gcc g++ git cmake npm python`
 
 #### Install libraries
+
+Note that `libtbb-dev` is an optional dependency as it's not available for all processor architectures (such as armv6).
 
 ##### Ubuntu 14.04 LTS
 
@@ -26,7 +28,7 @@ Ubuntu 14.04 or newer is required for installing the client.
 
 #### Install WebSocket++
 
-**If the client is accessed via HTTPS, it's heavily recommended that you use WebSocket++ 0.7.0 or newer due to stability issues in older versions.** Ubuntu doesn't ship with version 0.7.0 yet but you may follow the manual installation steps to get it.
+**If the client is accessed via HTTPS, it's heavily recommended that you use WebSocket++ 0.7.0 or newer due to stability issues in older versions.** The first release of Ubuntu shipping with Websocket++ 0.7.0 is 16.04.
 
 If you are running Ubuntu 15.10 or newer, you may use the following command to install the package:
 

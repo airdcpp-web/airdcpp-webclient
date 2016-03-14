@@ -28,6 +28,7 @@
 #include "SearchQuery.h"
 #include "BloomFilter.h"
 #include "CriticalSection.h"
+#include "DupeType.h"
 #include "Exception.h"
 #include "Flags.h"
 #include "HashBloom.h"
@@ -155,7 +156,7 @@ public:
 	bool isDirShared(const string& aDir) const noexcept;
 
 	// Mostly for dupe check with size comparison (partial/exact dupe)
-	uint8_t isDirShared(const string& aPath, int64_t aSize) const noexcept;
+	DupeType isDirShared(const string& aPath, int64_t aSize) const noexcept;
 
 	bool isFileShared(const TTHValue& aTTH) const noexcept;
 	bool isFileShared(const TTHValue& aTTH, ProfileToken aProfile) const noexcept;
@@ -405,12 +406,12 @@ private:
 			};
 
 			explicit SearchResultInfo(const File* f, const SearchQuery& aSearch, int aLevel) :
-				file(f), type(FILE), scores(SearchQuery::getRelevancyScores(aSearch, aLevel, false, f->name.getLower())) {
+				file(f), type(FILE), scores(SearchQuery::getRelevanceScore(aSearch, aLevel, false, f->name.getLower())) {
 
 			}
 
 			explicit SearchResultInfo(const Directory* d, const SearchQuery& aSearch, int aLevel) :
-				directory(d), type(DIRECTORY), scores(SearchQuery::getRelevancyScores(aSearch, aLevel, true, d->realName.getLower())) {
+				directory(d), type(DIRECTORY), scores(SearchQuery::getRelevanceScore(aSearch, aLevel, true, d->realName.getLower())) {
 
 			}
 
@@ -463,7 +464,7 @@ private:
 		bool hasProfile(ProfileTokenSet& aProfiles) const noexcept;
 		bool hasProfile(ProfileToken aProfiles) const noexcept;
 
-		void getResultInfo(int64_t& size_, size_t& files_, size_t& folders_) const noexcept;
+		void getContentInfo(int64_t& size_, size_t& files_, size_t& folders_) const noexcept;
 		int64_t getSize() const noexcept;
 		int64_t getTotalSize() const noexcept;
 		void getProfileInfo(ProfileToken aProfile, int64_t& totalSize, size_t& filesCount) const noexcept;
@@ -488,7 +489,7 @@ private:
 		bool isRootLevel(ProfileToken aProfile) const noexcept;
 		int64_t size;
 
-		void addBloom(ShareBloom& aBloom) const noexcept;
+		//void addBloom(ShareBloom& aBloom) const noexcept;
 
 		void countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_) const noexcept;
 		DualString realName;
@@ -552,7 +553,7 @@ private:
 		int refreshOptions;
 	};
 
-	bool addDirResult(const string& aPath, SearchResultList& aResults, ProfileToken aProfile, SearchQuery& srch) const noexcept;
+	bool addDirResult(const Directory* aDir, SearchResultList& aResults, ProfileToken aProfile, SearchQuery& srch) const noexcept;
 
 	typedef unordered_map<string, ProfileDirectory::Ptr, noCaseStringHash, noCaseStringEq> ProfileDirMap;
 	ProfileDirMap profileDirs;
@@ -584,7 +585,7 @@ private:
 	/*
 	multimap to allow multiple same key values, needed to return from some functions.
 	*/
-	typedef unordered_multimap<string*, Directory::Ptr, noCaseStringHash, noCaseStringEq> DirMultiMap; 
+	typedef unordered_multimap<string*, Directory::Ptr> DirMultiMap; 
 
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
 	DirMap rootPaths;
@@ -605,28 +606,15 @@ private:
 		DirMap rootPathsNew;
 
 		string path;
+
+		void mergeRefreshChanges(DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) noexcept;
 	};
 
 	typedef shared_ptr<RefreshInfo> RefreshInfoPtr;
 	typedef vector<RefreshInfoPtr> RefreshInfoList;
+	typedef set<RefreshInfoPtr, std::less<RefreshInfoPtr>> RefreshInfoSet;
 
-	bool handleRefreshedDirectory(RefreshInfoPtr& ri, TaskType aTaskType);
-
-	template<typename T>
-	void mergeRefreshChanges(T& aList, DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) noexcept {
-		for (const auto& i: aList) {
-			auto& ri = *i;
-			aDirNameMap.insert(ri.dirNameMapNew.begin(), ri.dirNameMapNew.end());
-			aRootPaths.insert(ri.rootPathsNew.begin(), ri.rootPathsNew.end());
-			aTTHIndex.insert(ri.tthIndexNew.begin(), ri.tthIndexNew.end());
-
-			totalHash += ri.hashSize;
-			totalAdded += ri.addedSize;
-
-			if (dirtyProfiles)
-				ri.root->copyRootProfiles(*dirtyProfiles, true);
-		}
-	}
+	bool handleRefreshedDirectory(const RefreshInfo& ri, TaskType aTaskType);
 
 	// Display a log message if the refresh can't be started immediately
 	void reportPendingRefresh(TaskType aTask, const RefreshPathList& aDirectories, const string& displayName) const noexcept;
@@ -642,16 +630,26 @@ private:
 	void setRefreshState(const string& aPath, RefreshState aState, bool aUpdateRefreshTime) noexcept;
 
 	// Recursive function for building a new share tree from a path
-	void buildTree(string& aPath, string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
+	void buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
 
 	void addFile(const string& aName, Directory::Ptr& aDir, const HashedFile& fi, ProfileTokenSet& dirtyProfiles_) noexcept;
 
 	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex, DirMultiMap& aDirNames) noexcept;
 	static void updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex) noexcept;
+
 	void cleanIndices(Directory& dir) noexcept;
-	void addDirName(Directory::Ptr& dir) noexcept;
-	void removeDirName(Directory& dir) noexcept;
 	void cleanIndices(Directory& dir, const Directory::File* f) noexcept;
+
+	/*inline void addDirName(Directory::Ptr& aDir) noexcept {
+		addDirName(aDir, dirNameMap);
+	}
+
+	inline void removeDirName(Directory& aDir) noexcept {
+		removeDirName(aDir, dirNameMap);
+	}*/
+
+	static void addDirName(const Directory::Ptr& dir, DirMultiMap& aDirNames, ShareBloom& aBloom) noexcept;
+	static void removeDirName(const Directory& dir, DirMultiMap& aDirNames) noexcept;
 
 	void onFileHashed(const string& fname, HashedFile& fileInfo) noexcept;
 	

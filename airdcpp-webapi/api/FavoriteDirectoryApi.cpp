@@ -30,21 +30,14 @@ namespace webserver {
 	}
 
 	api_return FavoriteDirectoryApi::handleGetDirectories(ApiRequest& aRequest) {
-		json ret;
+		auto ret = json::array();
 
 		auto directories = FavoriteManager::getInstance()->getFavoriteDirs();
-		if (!directories.empty()) {
-			for (const auto& vPath : directories) {
-				json parentJson;
-				parentJson["name"] = vPath.first;
-				for (const auto& realPath : vPath.second) {
-					parentJson["paths"].push_back(realPath);
-				}
-
-				ret.push_back(parentJson);
-			}
-		} else {
-			ret = json::array();
+		for (const auto& vPath : directories) {
+			ret.push_back({
+				{ "name", vPath.first },
+				{ "paths", vPath.second }
+			});
 		}
 
 		aRequest.setResponseBody(ret);

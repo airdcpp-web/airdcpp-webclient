@@ -9,8 +9,8 @@ endif (APPLE)
 
 set (PROJECT_NAME "AirDC++ Web Client")
 set (TAG_APPLICATION "AirDC++w")
-set (VERSION "0.16.5")
-set (SOVERSION "0.16.5" )
+set (VERSION "1.0.0")
+set (SOVERSION "1.0.0" )
 
 set (GNUCXX_MINIMUM_VERSION "4.8")
 
@@ -23,6 +23,7 @@ include (CheckCXXSourceCompiles)
 CHECK_FUNCTION_EXISTS(mallinfo HAVE_MALLINFO)
 CHECK_FUNCTION_EXISTS(malloc_stats HAVE_MALLOC_STATS)
 CHECK_FUNCTION_EXISTS(malloc_trim HAVE_MALLOC_TRIM)
+CHECK_INCLUDE_FILES ("mntent.h" HAVE_MNTENT_H)
 CHECK_INCLUDE_FILES ("malloc.h;dlfcn.h;inttypes.h;memory.h;stdlib.h;strings.h;sys/stat.h;limits.h;unistd.h;" FUNCTION_H)
 CHECK_INCLUDE_FILES ("sys/socket.h;net/if.h;ifaddrs.h;sys/types.h" HAVE_IFADDRS_H)
 CHECK_INCLUDE_FILES ("sys/types.h;sys/statvfs.h;limits.h;stdbool.h;stdint.h" FS_USAGE_C)
@@ -53,25 +54,6 @@ find_package (websocketpp REQUIRED)
 find_package (Backtrace)
 find_package (TBB)
 
-
-# Try the find Ubuntu's Node variant first
-find_program(NODE_EXECUTABLE nodejs PATHS /sw/bin)
-
-if(NOT NODE_EXECUTABLE)
-  find_program(NODE_EXECUTABLE node PATHS /sw/bin)
-endif(NOT NODE_EXECUTABLE)
-
-if(NOT NODE_EXECUTABLE)
-  message(FATAL_ERROR "Could not find 'node' or 'nodejs' executable. Please install Node.js.")
-endif(NOT NODE_EXECUTABLE)
-
-find_program(NPM_EXECUTABLE npm PATHS /sw/bin)
-if(NOT NPM_EXECUTABLE)
-  message(FATAL_ERROR "Could not find 'npm' executable. Please install npm")
-endif(NOT NPM_EXECUTABLE)
-
-
-message (STATUS "Found nodejs (${NODE_EXECUTABLE})")
 
 #option (ENABLE_STACKTRACE "Show stacktrace when program receive SIGSEGV" ON)
 option (INSTALL_RUNTIME_PATH "Install rpath" OFF)
@@ -134,30 +116,52 @@ endif (APPLE)
 
 #if (APPLE)
 #  set (CLIENT_DATA_DIR "${PROJECT_NAME_GLOBAL}.app")
-if (WIN32)
-  set (CLIENT_DATA_DIR "${SHARE_DIR}")
-else (WIN32)
-  set (CLIENT_DATA_DIR "${CMAKE_INSTALL_PREFIX}/${SHARE_DIR}/airdcpp")
-endif (WIN32)
+#if (WIN32)
+#  set (CLIENT_DATA_DIR "${SHARE_DIR}")
+#else (WIN32)
+  set (RESOURCE_DIRECTORY "${CMAKE_INSTALL_PREFIX}/${SHARE_DIR}/airdcpp/")
+#endif (WIN32)
 
-message (STATUS "Data directory: ${CLIENT_DATA_DIR}")
+message (STATUS "Resource directory: ${RESOURCE_DIRECTORY}")
 
-# find_program(GIT_EXECUTABLE git PATHS /sw/bin)
+#find_program(GIT_EXECUTABLE git PATHS /sw/bin)
 
 #if (GIT_EXECUTABLE)
-	# Version number for the library naming
+#	# Version number for the library naming and UI installation
 #	execute_process (COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
 #									 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-#									 OUTPUT_VARIABLE SOVERSION
+#									 OUTPUT_VARIABLE GIT_TAG
+#									 ERROR_VARIABLE DUMMYERROR
 #									 OUTPUT_STRIP_TRAILING_WHITESPACE)
+#	if (GIT_TAG)
+#		message (STATUS "-- Git tag: ${GIT_TAG}")
+#		set (SOVERSION ${GIT_TAG})
+#	endif(GIT_TAG)
 #endif (GIT_EXECUTABLE)
 
+
 # Version information for the client
-execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc ${VERSION} ${TAG_APPLICATION} WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc ${VERSION} ${TAG_APPLICATION} 
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            RESULT_VARIABLE SCRIPT_RESULT)
+
+if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
+    message(FATAL_ERROR "Failed to generate version file")
+endif()
 
 # Generate StringDefs.cpp
-execute_process (COMMAND ${NODE_EXECUTABLE} generate_stringdefs.js airdcpp-core/airdcpp/
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+find_program(PYTHON_EXECUTABLE npm PATHS /sw/bin)
+if(NOT PYTHON_EXECUTABLE)
+  message(FATAL_ERROR "Could not find 'python' executable. Please install python")
+endif(NOT PYTHON_EXECUTABLE)
+
+execute_process (COMMAND python generate_stringdefs.py airdcpp-core/airdcpp/
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            RESULT_VARIABLE SCRIPT_RESULT)
+
+if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
+    message(FATAL_ERROR "Failed to generate string definitions")
+endif()
 
 
 if (UNIX)
@@ -221,9 +225,20 @@ message(STATUS "CMAKE will use this libs (and headers) during build:
     ")
 
 if(INSTALL_WEB_UI)
+	find_program(NPM_EXECUTABLE npm PATHS /sw/bin)
+	if(NOT NPM_EXECUTABLE)
+		message(FATAL_ERROR "Could not find 'npm' executable. Please install npm")
+	endif(NOT NPM_EXECUTABLE)
+
 	message(STATUS "Installing Web UI")
-	execute_process (COMMAND sh install_webui.sh ${SOVERSION}
-							WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+        execute_process (COMMAND sh install_webui.sh ${SOVERSION}
+                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                 RESULT_VARIABLE SCRIPT_RESULT)
+
+	if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
+            message(FATAL_ERROR "Failed to install Web UI")
+        endif()
+
 else(INSTALL_WEB_UI)
 	message(STATUS "Skipping Web UI installation")
 endif (INSTALL_WEB_UI)
@@ -237,5 +252,5 @@ ADD_CUSTOM_TARGET(uninstall
   "${CMAKE_COMMAND}" -P "${PROJECT_BINARY_DIR}/cmake_uninstall.cmake")
 
 if(INSTALL_WEB_UI)
-	install (DIRECTORY node_modules/airdcpp-webui/dist/ DESTINATION /usr/share/airdcpp/web-resources)
+	install (DIRECTORY node_modules/airdcpp-webui/dist/ DESTINATION ${RESOURCE_DIRECTORY}web-resources)
 endif (INSTALL_WEB_UI)

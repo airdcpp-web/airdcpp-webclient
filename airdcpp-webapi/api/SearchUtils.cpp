@@ -23,11 +23,9 @@
 
 namespace webserver {
 	json SearchUtils::serializeResult(const SearchResultInfoPtr& aResult, int aPropertyName) noexcept {
-		json j;
-
 		switch (aPropertyName) {
 		case SearchApi::PROP_TYPE: {
-			if (aResult->sr->getType() == SearchResult::TYPE_FILE) {
+			if (!aResult->isDirectory()) {
 				return Serializer::serializeFileType(aResult->sr->getPath());
 			} else {
 				return Serializer::serializeFolderType(aResult->sr->getFileCount(), aResult->sr->getFolderCount());
@@ -50,9 +48,16 @@ namespace webserver {
 				{ "user", Serializer::serializeHintedUser(aResult->sr->getUser()) }
 			};
 		}
-		}
+		case SearchApi::PROP_DUPE:
+		{
+			if (aResult->isDirectory()) {
+				return Serializer::serializeDirectoryDupe(aResult->getDupe(), aResult->sr->getPath());
+			}
 
-		return j;
+			return Serializer::serializeFileDupe(aResult->getDupe(), aResult->sr->getTTH());
+		}
+		default: dcassert(0); return nullptr;
+		}
 	}
 
 	int SearchUtils::compareResults(const SearchResultInfoPtr& a, const SearchResultInfoPtr& b, int aPropertyName) noexcept {
@@ -70,7 +75,7 @@ namespace webserver {
 			}
 
 			if (a->sr->getType() != SearchResult::TYPE_FILE && b->sr->getType() != SearchResult::TYPE_FILE) {
-				// Directory bundles
+				// Directories
 				auto dirsA = a->sr->getFolderCount();
 				auto dirsB = b->sr->getFolderCount();
 				if (dirsA != dirsB) {
@@ -98,11 +103,8 @@ namespace webserver {
 
 			return Util::stricmp(Format::formatNicks(a->sr->getUser()), Format::formatNicks(b->sr->getUser()));
 		}
-		default:
-			dcassert(0);
+		default: dcassert(0); return 0;
 		}
-
-		return 0;
 	}
 	std::string SearchUtils::getStringInfo(const SearchResultInfoPtr& aResult, int aPropertyName) noexcept {
 		switch (aPropertyName) {
@@ -127,7 +129,7 @@ namespace webserver {
 		case SearchApi::PROP_SIZE: return (double)aResult->sr->getSize();
 		case SearchApi::PROP_HITS: return (double)aResult->getHits();
 		case SearchApi::PROP_CONNECTION: return aResult->getConnectionSpeed();
-		case SearchApi::PROP_RELEVANCY : return aResult->getTotalRelevancy();
+		case SearchApi::PROP_RELEVANCE : return aResult->getTotalRelevance();
 		case SearchApi::PROP_DATE: return (double)aResult->sr->getDate();
 		case SearchApi::PROP_DUPE: return (double)aResult->getDupe();
 		default: dcassert(0); return 0;

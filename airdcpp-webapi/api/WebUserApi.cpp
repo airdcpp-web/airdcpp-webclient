@@ -27,8 +27,19 @@
 #include <web-server/WebUserManager.h>
 
 namespace webserver {
-	WebUserApi::WebUserApi(Session* aSession) : ApiModule(aSession, Access::ADMIN), um(aSession->getServer()->getUserManager()), itemHandler(properties,
-		WebUserUtils::getStringInfo, WebUserUtils::getNumericInfo, WebUserUtils::compareItems, WebUserUtils::serializeItem, WebUserUtils::filterItem),
+	const PropertyList WebUserApi::properties = {
+		{ PROP_NAME, "username", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_PERMISSIONS, "permissions", TYPE_LIST_NUMERIC, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_ACTIVE_SESSIONS, "active_sessions", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_LAST_LOGIN, "last_login", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
+	};
+
+	const PropertyItemHandler<WebUserPtr> WebUserApi::itemHandler = {
+		properties,
+		WebUserUtils::getStringInfo, WebUserUtils::getNumericInfo, WebUserUtils::compareItems, WebUserUtils::serializeItem, WebUserUtils::filterItem
+	};
+
+	WebUserApi::WebUserApi(Session* aSession) : ApiModule(aSession, Access::ADMIN), um(aSession->getServer()->getUserManager()),
 		view("web_user_view", this, itemHandler, std::bind(&WebUserApi::getUsers, this)) {
 
 		um.addListener(this);
