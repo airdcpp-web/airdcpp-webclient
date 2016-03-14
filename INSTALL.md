@@ -12,7 +12,7 @@ Ubuntu 14.04 or newer is required for installing the client.
 
 #### Install tools
 
-`sudo apt-get install gcc g++ git cmake npm python`
+`sudo apt-get install gcc g++ git cmake npm python pkg-config`
 
 #### Install libraries
 
@@ -20,7 +20,7 @@ Note that `libtbb-dev` is an optional dependency as it's not available for all p
 
 ##### Ubuntu 14.04 LTS
 
-`sudo apt-get install pkg-config libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.55-dev libboost-regex1.55 libboost-thread1.55 libboost-system1.55 libleveldb-dev`
+`sudo apt-get install libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.55-dev libboost-regex1.55 libboost-thread1.55 libboost-system1.55 libleveldb-dev`
 
 ##### Ubuntu 15.10 or newer
 
