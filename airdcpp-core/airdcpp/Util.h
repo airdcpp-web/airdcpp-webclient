@@ -624,7 +624,7 @@ public:
 class StringPtrEq {
 public:
 	size_t operator()(const string* a, const string* b) const noexcept {
-		return compare(*a, *b);
+		return *a == *b;
 	}
 };
 
