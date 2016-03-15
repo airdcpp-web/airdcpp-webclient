@@ -161,10 +161,8 @@ namespace webserver {
 			case LESS_EQUAL: return type == TYPE_TIME ? toCompare >= numericMatcher : toCompare <= numericMatcher;
 			case GREATER: return type == TYPE_TIME ? toCompare < numericMatcher : toCompare > numericMatcher; break;
 			case LESS: return type == TYPE_TIME ? toCompare > numericMatcher : toCompare < numericMatcher; break;
+			default: dcassert(0); return false;
 		}
-
-		dcassert(0);
-		return false;
 	}
 
 	bool PropertyFilter::empty() const noexcept {

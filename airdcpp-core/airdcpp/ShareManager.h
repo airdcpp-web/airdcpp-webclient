@@ -585,7 +585,7 @@ private:
 	/*
 	multimap to allow multiple same key values, needed to return from some functions.
 	*/
-	typedef unordered_multimap<string*, Directory::Ptr> DirMultiMap; 
+	typedef unordered_multimap<string*, Directory::Ptr, StringPtrHash, StringPtrEq> DirMultiMap;
 
 	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
 	DirMap rootPaths;

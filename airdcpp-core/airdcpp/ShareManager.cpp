@@ -3492,13 +3492,14 @@ void ShareManager::cleanIndices(Directory& dir, const Directory::File* f) noexce
 }
 
 void ShareManager::addDirName(const Directory::Ptr& aDir, DirMultiMap& aDirNames, ShareBloom& aBloom) noexcept {
+	//const auto& name = aDir->getProfileDir() ? aDir->getProfileDir()->getNameLower() : aDir->realName.getLower();
+	const auto& name = aDir->realName.getLower();
+
 #ifdef _DEBUG
-	auto directories = aDirNames.equal_range(const_cast<string*>(&aDir->realName.getLower()));
+	auto directories = aDirNames.equal_range(const_cast<string*>(&name));
 	auto p = find(directories | map_values, aDir);
 	dcassert(p.base() == directories.second);
 #endif
-	//const auto& name = aDir->getProfileDir() ? aDir->getProfileDir()->getNameLower() : aDir->realName.getLower();
-	const auto& name = aDir->realName.getLower();
 	aDirNames.emplace(const_cast<string*>(&name), aDir);
 	aBloom.add(aDir->realName.getLower());
 }
