@@ -43,6 +43,13 @@ namespace webserver {
 		string parseViewFilePath(const string& aResource) const;
 
 		static string getExtension(const string& aResource) noexcept;
+
+		// Parses start and end position from a range HTTP request field
+		// Initial value of end_ should be the file size
+		// Returns true if the partial range was parsed successfully
+		static bool parsePartialRange(const string& aHeaderData, int64_t& start_, int64_t& end_) noexcept;
+
+		static string formatPartialRange(int64_t aStart, int64_t aEnd, int64_t aFileSize) noexcept;
 	};
 }
 
