@@ -194,6 +194,52 @@ namespace webserver {
 		return file->getPath();
 	}
 
+	string FileServer::formatPartialRange(int64_t aStartPos, int64_t aEndPos, int64_t aFileSize) noexcept {
+		dcassert(aEndPos < aFileSize);
+		return "bytes " + Util::toString(aStartPos) + "-" + Util::toString(aEndPos) + "/" + Util::toString(aFileSize);
+	}
+
+	// Support partial requests will enhance media file playback
+	// This will only support simple range values (unsupported range types will be ignored)
+	bool FileServer::parsePartialRange(const string& aHeaderData, int64_t& start_, int64_t& end_) noexcept {
+		if (aHeaderData.find("bytes=") != 0) {
+			return false;
+		}
+
+		dcdebug("Partial HTTP request: %s)\n", aHeaderData.c_str());
+
+		auto tokenizer = StringTokenizer<string>(aHeaderData.substr(6), '-', true);
+		if (tokenizer.getTokens().size() != 2) {
+			dcdebug("Partial HTTP request: unsupported range\n");
+			return false;
+		}
+
+		auto parsedStart = Util::toInt64(tokenizer.getTokens().at(0));
+
+		// Not "parsedStart >= end_" because Safari seems to request one byte past the end (shouldn't be an issue when reading the file)
+		if (parsedStart > end_ || parsedStart < 0) {
+			dcdebug("Partial HTTP request: start position not accepted (" I64_FMT ")\n", parsedStart);
+			return false;
+		}
+
+		const auto& endToken = tokenizer.getTokens().at(1);
+		if (endToken.empty()) {
+			end_ = end_ - start_;
+		} else {
+			auto parsedEnd = Util::toInt64(endToken);
+			if (parsedEnd > end_ || parsedEnd <= parsedStart) {
+				dcdebug("Partial HTTP request: end position not accepted (parsed start: " I64_FMT ", parsed end: " I64_FMT ", file size: " I64_FMT ")\n", parsedStart, parsedEnd, end_);
+				return false;
+			}
+
+			end_ = parsedEnd;
+		}
+
+		// Both values were passed successfully
+		start_ = parsedStart;
+		return true;
+	}
+
 	websocketpp::http::status_code::value FileServer::handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest,
 		string& output_, StringPairList& headers_) noexcept {
 
@@ -212,10 +258,16 @@ namespace webserver {
 			return websocketpp::http::status_code::bad_request;
 		}
 
+		auto fileSize = File::getSize(request);
+		int64_t startPos = 0, endPos = fileSize - 1;
+
+		auto partialContent = parsePartialRange(aRequest.get_header("Range"), startPos, endPos);
+
 		// Read file
 		try {
 			File f(request, File::READ, File::OPEN);
-			output_ = f.read();
+			f.setPos(startPos);
+			output_ = f.read(endPos + 1);
 		} catch (const FileException& e) {
 			output_ = e.getError();
 			return websocketpp::http::status_code::not_found;
@@ -230,6 +282,12 @@ namespace webserver {
 			headers_.emplace_back("Content-Type", type);
 		}
 
-		return websocketpp::http::status_code::ok;
+		if (partialContent) {
+			headers_.emplace_back("Content-Range", formatPartialRange(startPos, endPos, fileSize));
+			headers_.emplace_back("Accept-Ranges", "bytes");
+			return websocketpp::http::status_code::partial_content;
+		}
+
+		return partialContent ? websocketpp::http::status_code::partial_content : websocketpp::http::status_code::ok;
 	}
 }
