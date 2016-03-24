@@ -71,7 +71,6 @@ public:
 
 	void saveQueue(bool force) noexcept;
 	void getSearchItems(const BundlePtr& aBundle, map<string, QueueItemPtr>& searchItems_, bool aManualSearch) const noexcept;
-	void updateSearchMode(const BundlePtr& aBundle) const noexcept;
 
 	DupeType isDirQueued(const string& aPath, int64_t aSize) const noexcept;
 	StringList getDirPaths(const string& aPath) const noexcept;
