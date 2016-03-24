@@ -150,12 +150,12 @@ if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
 endif()
 
 # Generate StringDefs.cpp
-find_program(PYTHON_EXECUTABLE npm PATHS /sw/bin)
+find_program(PYTHON_EXECUTABLE python PATHS /sw/bin)
 if(NOT PYTHON_EXECUTABLE)
   message(FATAL_ERROR "Could not find 'python' executable. Please install python")
 endif(NOT PYTHON_EXECUTABLE)
 
-execute_process (COMMAND python generate_stringdefs.py airdcpp-core/airdcpp/
+execute_process (COMMAND ${PYTHON_EXECUTABLE} generate_stringdefs.py airdcpp-core/airdcpp/
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             RESULT_VARIABLE SCRIPT_RESULT)
 
