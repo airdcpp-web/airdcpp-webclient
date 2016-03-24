@@ -40,8 +40,9 @@ private:
 			j = i + aSeparatorLength;
 		}
 
-		if (j < aString.size())
+		if (j < aString.size() || (aAllowEmptyTokens && j == aString.size())) {
 			tokens.push_back(aString.substr(j, aString.size() - j));
+		}
 	}
 public:
 	StringTokenizer(const T& aString, const typename T::value_type& aToken, bool aAllowEmptyTokens = false) : 
