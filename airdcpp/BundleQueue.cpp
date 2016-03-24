@@ -50,7 +50,6 @@ void BundleQueue::addBundle(BundlePtr& aBundle) noexcept {
 	aBundle->setStatus(Bundle::STATUS_QUEUED);
 	aBundle->setDownloadedBytes(0); //sets to downloaded segments
 
-	updateSearchMode(aBundle);
 	addSearchPrio(aBundle);
 }
 
@@ -224,20 +223,6 @@ void BundleQueue::getSearchItems(const BundlePtr& aBundle, map<string, QueueItem
 			searchItems_.emplace(dir, searchItem);
 		}
 	}
-}
-
-void BundleQueue::updateSearchMode(const BundlePtr& aBundle) const noexcept {
-	auto paths = bundlePaths.find(aBundle);
-	if (paths == bundlePaths.end()) {
-		return;
-	}
-
-	StringSet mainDirectories;
-	for (const auto& i : paths->second) {
-		mainDirectories.insert(AirUtil::getReleaseDir(i->path, false));
-	}
-
-	aBundle->setSimpleMatching(mainDirectories.size() <= 4);
 }
 
 void BundleQueue::removePathInfo(const PathInfo* aPathInfo) noexcept {

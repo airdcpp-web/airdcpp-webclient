@@ -3392,8 +3392,6 @@ bool QueueManager::addBundle(BundlePtr& aBundle, const string& aTarget, int item
 				LogManager::getInstance()->message(STRING_F(BUNDLE_MERGED, Util::getLastDir(aTarget) % aBundle->getName() % itemsAdded), LogMessage::SEV_INFO);
 			}
 		}
-
-		bundleQueue.updateSearchMode(aBundle);
 	}
 
 	if (statusChanged) {
@@ -3735,6 +3733,8 @@ void QueueManager::updatePBD(const HintedUser& aUser, const TTHValue& aTTH) noex
 void QueueManager::searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSearch, uint64_t aTick) noexcept {
 	map<string, QueueItemPtr> searches;
 	int64_t nextSearch = 0;
+
+	// Get the possible items to search for
 	{
 		RLock l(cs);
 		bool isScheduled = aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH);
@@ -3753,44 +3753,30 @@ void QueueManager::searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSear
 		return;
 	}
 
-	if (searches.size() <= 5) {
-		aBundle->setSimpleMatching(true);
-		for(auto& sqp: searches)
-			sqp.second->searchAlternates();
-	} else {
-		//use an alternative matching, choose random items to search for
-		aBundle->setSimpleMatching(false);
-		int k = 0;
-		while (k < 5) {
-			auto pos = searches.begin();
-			auto rand = Util::rand(searches.size());
-			advance(pos, rand);
-			pos->second->searchAlternates();
-			searches.erase(pos);
-			k++;
-		}
+	// Choose at most 5 random items to search for
+	int postedSearches = 0;
+	while (postedSearches < 5 && !searches.empty()) {
+		auto pos = searches.begin();
+		auto rand = Util::rand(searches.size());
+		advance(pos, rand);
+		pos->second->searchAlternates();
+		searches.erase(pos);
+		postedSearches++;
 	}
 
 	aBundle->setLastSearch(aTick);
-	int searchCount = (int)searches.size() <= 4 ? (int)searches.size() : 4;
+
+	// Report
 	if (aIsManualSearch) {
-		LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName().c_str() % searchCount), LogMessage::SEV_INFO);
+		LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName().c_str() % postedSearches), LogMessage::SEV_INFO);
 	} else if(SETTING(REPORT_ALTERNATES)) {
-		//if (aBundle->getSimpleMatching()) {
-			if (aBundle->isRecent()) {
-				LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH_RECENT, aBundle->getName() % searchCount) + 
-					" " + STRING_F(NEXT_RECENT_SEARCH_IN, nextSearch), LogMessage::SEV_INFO);
-			} else {
-				LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName() % searchCount) +
-					" " + STRING_F(NEXT_SEARCH_IN, nextSearch), LogMessage::SEV_INFO);
-			}
-		/*} else {
-			if (!aBundle->isRecent()) {
-				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next search in " + Util::toString(nextSearch) + " minutes", LogMessage::SEV_INFO);
-			} else {
-				LogManager::getInstance()->message(STRING(ALTERNATES_SEND) + " " + aBundle->getName() + ", not using partial lists, next recent search in " + Util::toString(nextSearch) + " minutes", LogMessage::SEV_INFO);
-			}
-		}*/
+		if (aBundle->isRecent()) {
+			LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH_RECENT, aBundle->getName() % postedSearches) +
+				" " + STRING_F(NEXT_RECENT_SEARCH_IN, nextSearch), LogMessage::SEV_INFO);
+		} else {
+			LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName() % postedSearches) +
+				" " + STRING_F(NEXT_SEARCH_IN, nextSearch), LogMessage::SEV_INFO);
+		}
 	}
 }
 
