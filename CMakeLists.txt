@@ -150,6 +150,10 @@ if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
 endif()
 
 # Generate StringDefs.cpp
+
+# 1.0.0 and 1.0.1 searched for a wrong command
+unset(PYTHON_EXECUTABLE CACHE)
+
 find_program(PYTHON_EXECUTABLE python PATHS /sw/bin)
 if(NOT PYTHON_EXECUTABLE)
   message(FATAL_ERROR "Could not find 'python' executable. Please install python")
