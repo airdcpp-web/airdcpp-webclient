@@ -14,7 +14,7 @@ else
 fi
 
 echo "\033[1mInstalling Web UI ($wantedVersion)\033[0m"
-npm install --prefix . airdcpp-webui@$wantedVersion
+npm install --silent --ignore-scripts --prefix . airdcpp-webui@$wantedVersion
 
 if [ $? -eq 0 ]; then
   echo "\033[1mWeb UI was installed successfully\033[0m"
