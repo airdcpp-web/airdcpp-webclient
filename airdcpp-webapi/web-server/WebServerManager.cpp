@@ -119,11 +119,10 @@ namespace webserver {
 	}
 
 	bool WebServerManager::start(ErrorF errorF, const string& aWebResourcePath) {
-		fileServer.setResourcePath(aWebResourcePath);
-		return start(errorF);
-	}
+		if (!aWebResourcePath.empty()) {
+			fileServer.setResourcePath(aWebResourcePath);
+		}
 
-	bool WebServerManager::start(ErrorF errorF) {
 		if (!hasValidConfig()) {
 			return false;
 		}
