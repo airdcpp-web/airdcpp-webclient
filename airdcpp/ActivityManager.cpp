@@ -27,6 +27,8 @@ namespace dcpp {
 
 ActivityManager::ActivityManager() {
 	TimerManager::getInstance()->addListener(this);
+
+	awayMode = SETTING(AWAY) ? AWAY_MANUAL : AWAY_OFF;
 }
 
 ActivityManager::~ActivityManager() {

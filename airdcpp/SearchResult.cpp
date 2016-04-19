@@ -167,12 +167,7 @@ bool SearchResult::matches(SearchQuery& aQuery, const string& aLocalSearchToken)
 }
 
 bool SearchResult::getRelevance(SearchQuery& aQuery, RelevanceInfo& relevance_, const string& aLocalSearchToken) const noexcept {
-	// No running search?
-	if (aLocalSearchToken.empty()) {
-		return false;
-	}
-
-	if (!matches(aQuery, aLocalSearchToken)) {
+	if (!aLocalSearchToken.empty() && !matches(aQuery, aLocalSearchToken)) {
 		return false;
 	}
 

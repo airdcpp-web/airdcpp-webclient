@@ -765,7 +765,7 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 		
 		// Ideal size for m is n * k / ln(2), but we allow some slack
 		// When h >= 32, m can't go above 2^h anyway since it's stored in a size_t.
-		if(m > static_cast<size_t>((5 * Util::roundUp((int64_t)(n * k / log(2.)), (int64_t)64))) || (h < 32 && m > static_cast<size_t>(1U << h))) {
+		if(m > static_cast<size_t>((5 * Util::roundUp((int64_t)(n * k / log(2.)), (int64_t)64))) || (h < 32 && m > static_cast<size_t>(1ULL << h))) {
 			send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_TRANSFER_GENERIC,
 				"Unsupported m", AdcCommand::TYPE_HUB));
 			return;

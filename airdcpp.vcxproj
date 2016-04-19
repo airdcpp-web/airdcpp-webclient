@@ -122,7 +122,7 @@
       <PrecompiledHeaderFile>stdinc.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)airdcpp.pch</PrecompiledHeaderOutputFile>
       <WarningLevel>Level4</WarningLevel>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <DisableSpecificWarnings>4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PreprocessorDefinitions>WIN32;WIN64;HAVE_NATPMP_H;HAVE_WINUPNP_H;_UNICODE;UNICODE;HAS_PCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -138,13 +138,13 @@
     </Lib>
     <PreBuildEvent>
       <Message>Generating revision number...</Message>
-      <Command>$(SolutionDir)generate-version.bat $(SolutionDir)</Command>
+      <Command>$(SolutionDir)\scripts\generate-version.bat $(SolutionDir)</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
       <Message>Generating revision number...</Message>
-      <Command>$(SolutionDir)generate-version.bat $(SolutionDir)</Command>
+      <Command>$(SolutionDir)scripts\generate-version.bat $(SolutionDir)</Command>
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Full</Optimization>
@@ -188,7 +188,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
       <Message>Generating revision number...</Message>
-      <Command>$(SolutionDir)generate-version.bat $(SolutionDir)</Command>
+      <Command>$(SolutionDir)scripts\generate-version.bat $(SolutionDir)</Command>
     </PreBuildEvent>
     <Midl>
       <TargetEnvironment>X64</TargetEnvironment>

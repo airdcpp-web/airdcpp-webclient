@@ -68,6 +68,7 @@ typedef WStringMap::iterator WStringMapIter;
 typedef vector<uint8_t> ByteVector;
 
 typedef int ProfileToken;
+typedef optional<ProfileToken> OptionalProfileToken;
 typedef vector<ProfileToken> ProfileTokenList;
 typedef vector<pair<ProfileToken, string>> ProfileTokenStringList;
 

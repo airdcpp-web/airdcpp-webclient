@@ -41,8 +41,8 @@
 #endif // _WIN32
 
 #elif defined(_MSC_VER)
-#if _MSC_VER < 1900
-#error Visual Studio 2015 is required
+#if _MSC_FULL_VER < 190023918
+#error Visual Studio 2015 Update 2 is required
 #endif
 
 //disable the deprecated warnings for the CRT functions.
@@ -138,7 +138,10 @@
 # pragma warning(disable: 4267) // conversion from 'xxx' to 'yyy', possible loss of data
 # pragma warning(disable: 4706) // assignment within conditional expression
 
-# pragma warning(disable: 4592) // warning C4592: 'updateCommand': symbol will be dynamically initialized (implementation limitation) - added in VS2015 Update 1, recheck when a new update is released
+# pragma warning(disable: 4592) // warning C4592: 'updateCommand': symbol will be dynamically initialized (implementation limitation) - exists in VS2015 Update 1 and 2, recheck when a new update is released
+
+// Enable a bugfix in VS2015 update 2, remove in the next version of VS2015
+#define _ENABLE_ATOMIC_ALIGNMENT_FIX
 #endif
 
 #endif // DCPLUSPLUS_DCPP_COMPILER_H

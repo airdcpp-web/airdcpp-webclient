@@ -35,8 +35,7 @@ namespace dcpp {
 	}
 
 	DirectSearch::~DirectSearch() {
-		//ClientManager::getInstance()->removeListener(this);
-		//SearchManager::getInstance()->removeListener(this);
+		removeListeners();
 	}
 
 	void DirectSearch::on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept {
@@ -59,7 +58,7 @@ namespace dcpp {
 		maxResultCount = aResultCount;
 
 		if (aResultCount == curResultCount)
-			endSearch();
+			removeListeners();
 	}
 
 	bool DirectSearch::finished() noexcept {
@@ -68,7 +67,7 @@ namespace dcpp {
 		// No results and timeout reached?
 		if (curResultCount == 0 && started + noResultTimeout < tick) {
 			timedOut = true;
-			endSearch();
+			removeListeners();
 			return true;
 		} 
 			
@@ -76,7 +75,7 @@ namespace dcpp {
 		// in case the client doesn't support sending a reply message
 		// This will also finish if all results are received
 		if ((lastResult > 0 && lastResult + 1000 < tick) || maxResultCount == curResultCount) {
-			endSearch();
+			removeListeners();
 			return true;
 		}
 
@@ -95,7 +94,7 @@ namespace dcpp {
 		}
 	}
 
-	void DirectSearch::endSearch() noexcept {
+	void DirectSearch::removeListeners() noexcept {
 		ClientManager::getInstance()->removeListener(this);
 		SearchManager::getInstance()->removeListener(this);
 	}

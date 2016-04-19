@@ -54,12 +54,16 @@ DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const
 	if (isOwnList) {
 		ShareManager::getInstance()->addListener(this);
 	}
+
+	TimerManager::getInstance()->addListener(this);
 }
 
 DirectoryListing::~DirectoryListing() {
 	dcdebug("Filelist deleted\n");
 	ClientManager::getInstance()->removeListener(this);
 	ShareManager::getInstance()->removeListener(this);
+
+	TimerManager::getInstance()->removeListener(this);
 }
 
 bool DirectoryListing::isMyCID() const noexcept {
@@ -947,6 +951,8 @@ void DirectoryListing::listDiffImpl(const string& aFile, bool aOwnList) throw(Ex
 }
 
 void DirectoryListing::matchAdlImpl() throw(AbortException) {
+	fire(DirectoryListingListener::LoadingStarted(), false);
+
 	int64_t start = GET_TICK();
 	root->clearAdls();
 
@@ -1022,7 +1028,6 @@ void DirectoryListing::searchImpl(const SearchPtr& aSearch) noexcept {
 		endSearch(false);
 	} else if (partialList && !hintedUser.user->isNMDC()) {
 		directSearch.reset(new DirectSearch(hintedUser, aSearch));
-		TimerManager::getInstance()->addListener(this);
 	} else {
 		const auto dir = findDirectory(Util::toNmdcFile(aSearch->path), root);
 		if (dir)
@@ -1124,14 +1129,12 @@ void DirectoryListing::onUserUpdated(const UserPtr& aUser) noexcept {
 }
 
 void DirectoryListing::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcept {
-	if (directSearch->finished()) {
+	if (directSearch && directSearch->finished()) {
 		endSearch(directSearch->hasTimedOut());
 	}
 }
 
 void DirectoryListing::endSearch(bool timedOut /*false*/) noexcept {
-	TimerManager::getInstance()->removeListener(this);
-
 	if (directSearch) {
 		directSearch->getPaths(searchResults, true);
 		directSearch.reset(nullptr);
@@ -1157,32 +1160,38 @@ int DirectoryListing::loadShareDirectory(const string& aPath, bool aRecurse) thr
 }
 
 bool DirectoryListing::changeDirectory(const string& aPath, ReloadMode aReloadMode, bool aIsSearchChange) noexcept {
-	const auto dir = aPath.empty() ? root : findDirectory(aPath, root);
-	if (!dir) {
+	// Cases when the directory can't be found must be handled when searching in partial lists 
+	const auto dir = findDirectory(aPath, root);
+
+	if (dir && (!partialList || dir->getLoading() || (dir->isComplete() && aReloadMode == RELOAD_NONE))) {
+		fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
+	} else if (partialList) {
+		if (isOwnList || getUser()->isOnline()) {
+			if (dir) {
+				dir->setLoading(true);
+				fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
+			}
+
+			try {
+				if (isOwnList) {
+					addPartialListTask(aPath, aPath, aReloadMode == RELOAD_ALL);
+				} else {
+					QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, aPath);
+				}
+			} catch (const Exception& e) {
+				fire(DirectoryListingListener::LoadingFailed(), e.getError());
+			}
+		} else {
+			fire(DirectoryListingListener::UpdateStatusMessage(), STRING(USER_OFFLINE));
+		}
+	} else {
 		return false;
 	}
 
-	if (!partialList || dir->getLoading() || (dir->isComplete() && aReloadMode == RELOAD_NONE)) {
-		fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
-	} else {
-		try {
-			if (isOwnList) {
-				dir->setLoading(true);
-				fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
-				addPartialListTask(aPath, aPath, aReloadMode == RELOAD_ALL);
-			} else if (getUser()->isOnline()) {
-				dir->setLoading(true);
-				fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
-				QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, aPath);
-			} else {
-				fire(DirectoryListingListener::UpdateStatusMessage(), STRING(USER_OFFLINE));
-			}
-		} catch (const Exception& e) {
-			fire(DirectoryListingListener::LoadingFailed(), e.getError());
-		}
+	if (dir) {
+		updateCurrentLocation(dir);
 	}
 
-	updateCurrentLocation(dir);
 	return true;
 }
 
@@ -1199,7 +1208,10 @@ bool DirectoryListing::nextResult(bool prev) noexcept {
 		advance(curResult, 1);
 	}
 
-	changeDirectory(*curResult, RELOAD_NONE, true);
+	addAsyncTask([this] {
+		changeDirectory(*curResult, RELOAD_NONE, true);
+	});
+
 	return true;
 }
 
