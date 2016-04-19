@@ -269,7 +269,7 @@ namespace webserver {
 			f.setPos(startPos);
 			output_ = f.read(static_cast<size_t>(endPos) + 1);
 		} catch (const FileException& e) {
-			dcdebug("Failed to serve the file %s: %s\n", filePath.c_str(), e.getError());
+			dcdebug("Failed to serve the file %s: %s\n", filePath.c_str(), e.getError().c_str());
 			output_ = e.getError();
 			return websocketpp::http::status_code::not_found;
 		} catch (const std::bad_alloc&) {
