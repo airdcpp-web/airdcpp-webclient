@@ -148,7 +148,7 @@ public:
 	void abortRefresh() noexcept;
 
 	void nmdcSearch(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept;
-	void search(SearchResultList& l, SearchQuery& aSearch, ProfileToken aProfile, const CID& cid, const string& aDir, bool isAutoSearch = false) throw(ShareException);
+	void search(SearchResultList& l, SearchQuery& aSearch, OptionalProfileToken aProfile, const CID& cid, const string& aDir, bool isAutoSearch = false) throw(ShareException);
 
 	// Check if a directory is shared
 	// You may also give a path in NMDC format and the relevant 
@@ -168,7 +168,7 @@ public:
 	StringList getDirPaths(const string& aDir) const noexcept;
 
 	vector<pair<string, StringList>> getGroupedDirectories() const noexcept;
-	MemoryInputStream* generatePartialList(const string& dir, bool recurse, ProfileToken aProfile) const noexcept;
+	MemoryInputStream* generatePartialList(const string& dir, bool recurse, OptionalProfileToken aProfile) const noexcept;
 	MemoryInputStream* generateTTHList(const string& dir, bool recurse, ProfileToken aProfile) const noexcept;
 	MemoryInputStream* getTree(const string& virtualFile, ProfileToken aProfile) const noexcept;
 
@@ -226,7 +226,7 @@ public:
 	//tempShares end
 
 	// Get real paths of all shared root directories
-	void getParentPaths(StringList& aDirs) const noexcept;
+	void getRootPaths(StringList& aDirs) const noexcept;
 
 	// Get a printable version of various share-related statistics
 	string printStats() const noexcept;
@@ -249,14 +249,16 @@ public:
 	};
 	optional<ShareStats> getShareStats() const noexcept;
 
-	void addDirectories(const ShareDirectoryInfoList& aNewDirs) noexcept;
-	void changeDirectories(const ShareDirectoryInfoList& renameDirs) noexcept;
+	void addRootDirectories(const ShareDirectoryInfoList& aNewDirs) noexcept;
+	void updateRootDirectories(const ShareDirectoryInfoList& renameDirs) noexcept;
 	//void removeDirectories(const ShareDirectoryInfoList& removeDirs) noexcept;
-	void removeDirectories(const StringList& removeDirs) noexcept;
+	void removeRootDirectories(const StringList& removeDirs) noexcept;
 
-	bool addDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo) noexcept;
-	bool changeDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo) noexcept;
-	bool removeDirectory(const string& aPath) noexcept;
+	bool addRootDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo) noexcept;
+	bool updateRootDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo) noexcept;
+
+	// Removes the root path entirely share (from all profiles)
+	bool removeRootDirectory(const string& aPath) noexcept;
 
 	void addProfiles(const ShareProfileInfo::List& aProfiles) noexcept;
 	void removeProfiles(const ShareProfileInfo::List& aProfiles) noexcept;
@@ -267,7 +269,7 @@ public:
 	bool removeProfile(ProfileToken aToken) noexcept;
 
 	// Convert real path to virtual path. Returns an empty string if not shared.
-	string realToVirtual(const string& aPath, ProfileToken aProfile) const noexcept;
+	string realToVirtual(const string& aPath, const OptionalProfileToken& aToken = boost::none) const noexcept;
 
 	// If allowFallback is true, the default profile will be returned if the requested one is not found
 	ShareProfilePtr getShareProfile(ProfileToken aProfile, bool allowFallback = false) const noexcept;
@@ -285,7 +287,7 @@ public:
 	void setExcludedPaths(const StringSet& aPaths) noexcept;
 
 	// Get a profile token by its display name
-	optional<ProfileToken> getProfileByName(const string& aName) const noexcept;
+	OptionalProfileToken getProfileByName(const string& aName) const noexcept;
 
 
 	mutable SharedMutex cs;
@@ -324,8 +326,9 @@ private:
 	class ProfileDirectory : public intrusive_ptr_base<ProfileDirectory>, boost::noncopyable {
 		public:
 			typedef boost::intrusive_ptr<ProfileDirectory> Ptr;
+			typedef unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> Map;
 
-			ProfileDirectory(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool incoming = false);
+			static Ptr create(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, Map& profileDirectories_) noexcept;
 
 			GETSET(string, path, Path);
 
@@ -353,6 +356,8 @@ private:
 			void setName(const string& aName) noexcept;
 			string getCacheXmlPath() const noexcept;
 		private:
+			ProfileDirectory(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming) noexcept;
+
 			unique_ptr<DualString> virtualName;
 	};
 
@@ -364,6 +369,7 @@ private:
 	public:
 		typedef boost::intrusive_ptr<Directory> Ptr;
 		typedef unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> Map;
+		typedef unordered_multimap<string*, Directory::Ptr, StringPtrHash, StringPtrEq> MultiMap;
 		typedef Map::iterator MapIter;
 		typedef std::vector<Directory::Ptr> List;
 
@@ -383,13 +389,13 @@ private:
 			File(DualString&& aName, const Directory::Ptr& aParent, const HashedFile& aFileInfo);
 			~File();
 		
-			inline string getADCPath(ProfileToken aProfile) const noexcept{ return parent->getADCPath(aProfile) + name.getNormal(); }
-			inline string getFullName(ProfileToken aProfile) const noexcept{ return parent->getFullName(aProfile) + name.getNormal(); }
+			inline string getADCPath() const noexcept{ return parent->getADCPath() + name.getNormal(); }
+			inline string getFullName() const noexcept{ return parent->getFullName() + name.getNormal(); }
 			inline string getRealPath() const noexcept { return parent->getRealPath(name.getNormal()); }
-			inline bool hasProfile(ProfileToken aProfile) const noexcept { return parent->hasProfile(aProfile); }
+			inline bool hasProfile(OptionalProfileToken aProfile) const noexcept { return parent->hasProfile(aProfile); }
 
 			void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
-			void addSR(SearchResultList& aResults, ProfileToken aProfile, bool addParent) const noexcept;
+			void addSR(SearchResultList& aResults, bool addParent) const noexcept;
 
 			GETSET(int64_t, size, Size);
 			GETSET(Directory*, parent, Parent);
@@ -436,14 +442,15 @@ private:
 		Set directories;
 		File::Set files;
 
-		static Ptr create(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, ProfileDirectory::Ptr aRoot = nullptr);
+		static Ptr createNormal(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, Directory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept;
+		static Ptr createRoot(DualString&& aRealName, uint64_t aLastWrite, const ProfileDirectory::Ptr& aProfileDir, Map& rootPaths_, Directory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept;
 
 		struct HasRootProfile {
-			HasRootProfile(ProfileToken aT) : t(aT) { }
-			bool operator()(const Ptr& d) const {
-				return d->getProfileDir()->hasRootProfile(t);
+			HasRootProfile(const OptionalProfileToken& aT) : t(aT) { }
+			bool operator()(const Ptr& d) const noexcept {
+				return d->hasProfile(t);
 			}
-			ProfileToken t;
+			const OptionalProfileToken& t;
 
 			HasRootProfile& operator=(const HasRootProfile&) = delete;
 		};
@@ -454,24 +461,24 @@ private:
 			}
 		};
 
-		string getADCPath(ProfileToken aProfile) const noexcept;
-		string getVirtualName(ProfileToken aProfile) const noexcept;
-		const string& getVirtualNameLower(ProfileToken aProfile) const noexcept;
-		string getFullName(ProfileToken aProfile) const noexcept; 
+		string getADCPath() const noexcept;
+		string getVirtualName() const noexcept;
+		const string& getVirtualNameLower() const noexcept;
+		string getFullName() const noexcept; 
 
 		inline string getRealPath() const noexcept{ return getRealPath(Util::emptyString); };
 
 		bool hasProfile(ProfileTokenSet& aProfiles) const noexcept;
-		bool hasProfile(ProfileToken aProfiles) const noexcept;
+		bool hasProfile(OptionalProfileToken aProfile) const noexcept;
 
 		void getContentInfo(int64_t& size_, size_t& files_, size_t& folders_) const noexcept;
 		int64_t getSize() const noexcept;
 		int64_t getTotalSize() const noexcept;
 		void getProfileInfo(ProfileToken aProfile, int64_t& totalSize, size_t& filesCount) const noexcept;
 
-		void search(SearchResultInfo::Set& aResults, SearchQuery& aStrings, ProfileToken aProfile, int level) const noexcept;
+		void search(SearchResultInfo::Set& aResults, SearchQuery& aStrings, int aLevel) const noexcept;
 
-		void toFileList(FileListDir* aListDir, ProfileToken aProfile, bool isFullList);
+		void toFileList(FileListDir* aListDir, bool isFullList);
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive) const;
 
 		//for file list caching
@@ -482,11 +489,10 @@ private:
 		GETSET(Directory*, parent, Parent);
 		GETSET(ProfileDirectory::Ptr, profileDir, ProfileDir);
 
-		Directory(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, ProfileDirectory::Ptr root = nullptr);
 		~Directory();
 
 		void copyRootProfiles(ProfileTokenSet& aProfiles, bool setCacheDirty) const noexcept;
-		bool isRootLevel(ProfileToken aProfile) const noexcept;
+		bool isRoot() const noexcept;
 		int64_t size;
 
 		//void addBloom(ShareBloom& aBloom) const noexcept;
@@ -502,6 +508,7 @@ private:
 		Directory(Directory&) = delete;
 		Directory& operator=(Directory&) = delete;
 	private:
+		Directory(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, ProfileDirectory::Ptr root = nullptr);
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 
 		string getRealPath(const string& path) const noexcept;
@@ -530,12 +537,6 @@ private:
 	// Returns the dupe directories by directory name/NMDC path
 	void getDirsByName(const string& aPath, Directory::List& dirs_) const noexcept;
 
-	/* Directory items mapped to realpath*/
-	typedef map<string, Directory::Ptr> DirMap;
-
-	void addRoot(const string& aPath, Directory::Ptr& aDir) noexcept;
-	DirMap::const_iterator findRoot(const string& aPath) const noexcept;
-
 	friend class Singleton<ShareManager>;
 
 	typedef unordered_multimap<TTHValue*, const Directory::File*> HashFileMap;
@@ -553,12 +554,9 @@ private:
 		int refreshOptions;
 	};
 
-	bool addDirResult(const Directory* aDir, SearchResultList& aResults, ProfileToken aProfile, SearchQuery& srch) const noexcept;
+	bool addDirResult(const Directory* aDir, SearchResultList& aResults, OptionalProfileToken aProfile, SearchQuery& srch) const noexcept;
 
-	typedef unordered_map<string, ProfileDirectory::Ptr, noCaseStringHash, noCaseStringEq> ProfileDirMap;
-	ProfileDirMap profileDirs;
-
-	ProfileDirMap getSubProfileDirs(const string& aPath) const noexcept;
+	ProfileDirectory::Map profileDirs;
 
 	TaskQueue tasks;
 
@@ -582,39 +580,35 @@ private:
 
 	StringSet excludedPaths;
 
-	/*
-	multimap to allow multiple same key values, needed to return from some functions.
-	*/
-	typedef unordered_multimap<string*, Directory::Ptr, StringPtrHash, StringPtrEq> DirMultiMap;
+	// Map real name to virtual name - multiple real names may be mapped to a single virtual one
+	Directory::Map rootPaths;
 
-	/** Map real name to virtual name - multiple real names may be mapped to a single virtual one */
-	DirMap rootPaths;
-	DirMultiMap dirNameMap;
+	// All directory names cached for easy lookups
+	Directory::MultiMap dirNameMap;
 
 	class RefreshInfo : boost::noncopyable {
 	public:
-		RefreshInfo(const string& aPath, const Directory::Ptr& aOldRoot, uint64_t aLastWrite);
+		RefreshInfo(const string& aPath, const Directory::Ptr& aOldRoot, uint64_t aLastWrite, ShareBloom& bloom_);
 		~RefreshInfo();
 
-		Directory::Ptr oldRoot;
-		Directory::Ptr root;
-		int64_t hashSize;
-		int64_t addedSize;
-		ProfileDirMap subProfiles;
-		DirMultiMap dirNameMapNew;
+		Directory::Ptr oldShareDirectory;
+		Directory::Ptr newShareDirectory;
+		int64_t hashSize = 0;
+		int64_t addedSize = 0;
+		Directory::Map rootPathsNew;
+		Directory::MultiMap dirNameMapNew;
 		HashFileMap tthIndexNew;
-		DirMap rootPathsNew;
 
 		string path;
 
-		void mergeRefreshChanges(DirMultiMap& aDirNameMap, DirMap& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) noexcept;
+		void mergeRefreshChanges(Directory::MultiMap& aDirNameMap, Directory::Map& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) noexcept;
 	};
 
 	typedef shared_ptr<RefreshInfo> RefreshInfoPtr;
 	typedef vector<RefreshInfoPtr> RefreshInfoList;
 	typedef set<RefreshInfoPtr, std::less<RefreshInfoPtr>> RefreshInfoSet;
 
-	bool handleRefreshedDirectory(const RefreshInfo& ri, TaskType aTaskType);
+	bool handleRefreshedDirectory(const RefreshInfo& ri);
 
 	// Display a log message if the refresh can't be started immediately
 	void reportPendingRefresh(TaskType aTask, const RefreshPathList& aDirectories, const string& displayName) const noexcept;
@@ -630,11 +624,11 @@ private:
 	void setRefreshState(const string& aPath, RefreshState aState, bool aUpdateRefreshTime) noexcept;
 
 	// Recursive function for building a new share tree from a path
-	void buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aDir, const ProfileDirMap& aSubRoots, DirMultiMap& aDirs, DirMap& newShares, int64_t& hashSize, int64_t& addedSize, HashFileMap& tthIndexNew, ShareBloom& aBloom);
+	void buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aDir, Directory::MultiMap& directoryNameMapNew_, int64_t& hashSize_, int64_t& addedSize_, HashFileMap& tthIndexNew_, ShareBloom& bloomNew_);
 
 	void addFile(const string& aName, Directory::Ptr& aDir, const HashedFile& fi, ProfileTokenSet& dirtyProfiles_) noexcept;
 
-	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex, DirMultiMap& aDirNames) noexcept;
+	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex, Directory::MultiMap& aDirNames) noexcept;
 	static void updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex) noexcept;
 
 	void cleanIndices(Directory& dir) noexcept;
@@ -648,8 +642,8 @@ private:
 		removeDirName(aDir, dirNameMap);
 	}*/
 
-	static void addDirName(const Directory::Ptr& dir, DirMultiMap& aDirNames, ShareBloom& aBloom) noexcept;
-	static void removeDirName(const Directory& dir, DirMultiMap& aDirNames) noexcept;
+	static void addDirName(const Directory::Ptr& dir, Directory::MultiMap& aDirNames, ShareBloom& aBloom) noexcept;
+	static void removeDirName(const Directory& dir, Directory::MultiMap& aDirNames) noexcept;
 
 	void onFileHashed(const string& fname, HashedFile& fileInfo) noexcept;
 	
@@ -657,11 +651,11 @@ private:
 
 	// Get root directories matching the provided token
 	// Unsafe
-	void getRootsByVirtual(const string& virtualName, ProfileToken aProfiles, Directory::List& dirs) const noexcept;
+	void getRootsByVirtual(const string& aVirtualName, OptionalProfileToken aProfile, Directory::List& dirs_) const noexcept;
 
 	// Get root directories matching any of the provided tokens
 	// Unsafe
-	void getRootsByVirtual(const string& virtualName, const ProfileTokenSet& aProfiles, Directory::List& dirs) const noexcept;
+	void getRootsByVirtual(const string& aVirtualName, const ProfileTokenSet& aProfiles, Directory::List& dirs_) const noexcept;
 
 	// Get directories matching the virtual path
 	// Can be used with a single profile token or a set of them

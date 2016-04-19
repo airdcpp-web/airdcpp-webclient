@@ -56,7 +56,7 @@ namespace dcpp {
 		// ClientManagerListener
 		void on(ClientManagerListener::DirectSearchEnd, const string& aToken, int resultCount) noexcept;
 
-		void endSearch() noexcept;
+		void removeListeners() noexcept;
 
 		SearchResultList results;
 

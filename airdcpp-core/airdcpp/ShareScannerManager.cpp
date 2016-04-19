@@ -156,7 +156,7 @@ void ShareScannerManager::runShareScan(const StringList& aPaths) {
 	auto rootPaths = aPaths;
 
 	if (rootPaths.empty()) {
-		ShareManager::getInstance()->getParentPaths(rootPaths);
+		ShareManager::getInstance()->getRootPaths(rootPaths);
 		scanType = TYPE_FULL;
 	}
 
