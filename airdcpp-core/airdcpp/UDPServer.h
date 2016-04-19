@@ -40,7 +40,7 @@ private:
 	bool stop;
 
 	DispatcherQueue pp;
-	void handlePacket(uint8_t* aBuf, size_t aLen, const string& aRemoteIp);
+	void handlePacket(const ByteVector& aBuf, size_t aLen, const string& aRemoteIp);
 };
 
 }

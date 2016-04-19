@@ -92,7 +92,7 @@ public:
 	void getSearchType(const string& aName, Search::TypeModes& type_, StringList& extList_, bool aLock = false);
 	string getNameByExtension(const string& aExtension, bool defaultsOnly = false) const noexcept;
 
-	bool decryptPacket(string& x, size_t aLen, uint8_t* aBuf, size_t bufLen);
+	bool decryptPacket(string& x, size_t aLen, const ByteVector& aBuf);
 private:
 	vector<pair<uint8_t*, uint64_t>> searchKeys;
 
