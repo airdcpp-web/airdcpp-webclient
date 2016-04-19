@@ -48,7 +48,10 @@ namespace webserver {
 		static pair<string, bool> deserializeChatMessage(const json& aJson);
 		static pair<string, LogMessage::Severity> deserializeStatusMessage(const json& aJson);
 
+		// Returns the default profile in case no profile was specified
 		static ProfileToken deserializeShareProfile(const json& aJson);
+
+		static OptionalProfileToken deserializeOptionalShareProfile(const json& aJson);
 	private:
 		static LogMessage::Severity parseSeverity(const string& aText);
 		static UserPtr parseUser(const json& aJson, bool aAllowMe = false);

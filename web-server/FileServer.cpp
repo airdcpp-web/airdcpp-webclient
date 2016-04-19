@@ -267,7 +267,7 @@ namespace webserver {
 		try {
 			File f(request, File::READ, File::OPEN);
 			f.setPos(startPos);
-			output_ = f.read(endPos + 1);
+			output_ = f.read(static_cast<size_t>(endPos) + 1);
 		} catch (const FileException& e) {
 			output_ = e.getError();
 			return websocketpp::http::status_code::not_found;

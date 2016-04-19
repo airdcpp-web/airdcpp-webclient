@@ -31,7 +31,7 @@ namespace webserver {
 		Timer(CallBack&& aCallBack, boost::asio::io_service& aIO, time_t aIntervalMillis, const CallbackWrapper& aWrapper) : 
 			cb(move(aCallBack)),
 			interval(aIntervalMillis),
-			timer(aIO, interval),
+			timer(aIO),
 			cbWrapper(aWrapper)
 		{
 

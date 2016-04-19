@@ -70,7 +70,7 @@ namespace webserver {
 		{ "socks_server", SettingsManager::SOCKS_SERVER, ResourceManager::SETTINGS_SOCKS5_IP },
 		{ "socks_user", SettingsManager::SOCKS_USER, ResourceManager::SETTINGS_SOCKS5_RESOLVE },
 		{ "socks_password", SettingsManager::SOCKS_PASSWORD, ResourceManager::PASSWORD },
-		{ "socks_port", SettingsManager::SOCKS_PORT, ResourceManager::SETTINGS_SOCKS5_PORT },
+		{ "socks_port", SettingsManager::SOCKS_PORT, ResourceManager::PORT },
 		{ "socks_resolve", SettingsManager::SOCKS_RESOLVE, ResourceManager::SETTINGS_SOCKS5_RESOLVE },
 
 		//{ ResourceManager::IP_V4 },

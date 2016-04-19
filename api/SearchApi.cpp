@@ -22,6 +22,7 @@
 #include <api/common/Deserializer.h>
 #include <api/common/FileSearchParser.h>
 
+#include <airdcpp/ClientManager.h>
 #include <airdcpp/DirectSearch.h>
 #include <airdcpp/ScopedFunctor.h>
 #include <airdcpp/ShareManager.h>
@@ -171,7 +172,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		// Parse share profile and query
-		auto profile = Deserializer::deserializeShareProfile(reqJson);
+		auto profile = Deserializer::deserializeOptionalShareProfile(reqJson);
 		auto s = FileSearchParser::parseSearch(reqJson, true, Util::toString(Util::rand()));
 
 		// Search
@@ -179,7 +180,7 @@ namespace webserver {
 		SearchResultList results;
 
 		try {
-			ShareManager::getInstance()->search(results, *matcher, profile, CID(), s->path);
+			ShareManager::getInstance()->search(results, *matcher, profile, ClientManager::getInstance()->getMyCID(), s->path);
 		} catch (...) {}
 
 		// Serialize results
@@ -194,6 +195,8 @@ namespace webserver {
 			SearchResult::RelevanceInfo relevanceInfo;
 			if (sr->getRelevance(aQuery, relevanceInfo)) {
 				resultSet.emplace(std::make_shared<SearchResultInfo>(sr, move(relevanceInfo)));
+			} else {
+				dcassert(0);
 			}
 		}
 
@@ -212,6 +215,7 @@ namespace webserver {
 		auto ds = DirectSearch(user, s);
 
 		// Wait for the search to finish
+		// TODO: use timer to avoid large number of searches to consume all threads
 		while (true) {
 			Thread::sleep(50);
 			if (ds.finished()) {
