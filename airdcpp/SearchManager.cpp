@@ -117,10 +117,10 @@ SearchManager::SearchQueueInfo SearchManager::search(StringList& who, const Sear
 	return { succeed, estimateSearchSpan };
 }
 
-bool SearchManager::decryptPacket(string& x, size_t aLen, uint8_t* buf, size_t bufLen) {
+bool SearchManager::decryptPacket(string& x, size_t aLen, const ByteVector& aBuf) {
 	RLock l (cs);
 	for(auto& i: searchKeys | reversed) {
-		boost::scoped_array<uint8_t> out(new uint8_t[bufLen]);
+		boost::scoped_array<uint8_t> out(new uint8_t[aBuf.size()]);
 
 		uint8_t ivd[16] = { };
 
@@ -129,7 +129,7 @@ bool SearchManager::decryptPacket(string& x, size_t aLen, uint8_t* buf, size_t b
 
 		int len = 0, tmpLen=0;
 		EVP_DecryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, i.first, ivd);
-		EVP_DecryptUpdate(&ctx, &out[0], &len, buf, aLen);
+		EVP_DecryptUpdate(&ctx, &out[0], &len, aBuf.data(), aLen);
 		EVP_DecryptFinal_ex(&ctx, &out[0] + aLen, &tmpLen);
 		EVP_CIPHER_CTX_cleanup(&ctx);
 

@@ -67,7 +67,6 @@ UDPServer::~UDPServer() { }
 
 #define BUFSIZE 8192
 int UDPServer::run() {
-	uint8_t* buf = nullptr;
 	int len;
 	string remoteAddr;
 
@@ -77,13 +76,11 @@ int UDPServer::run() {
 				continue;
 			}
 
-			buf = new uint8_t[BUFSIZE];
-			if((len = socket->read(buf, BUFSIZE, remoteAddr)) > 0) {
+			auto buf = vector<uint8_t>(BUFSIZE);
+			if((len = socket->read(buf.data(), BUFSIZE, remoteAddr)) > 0) {
 				pp.addTask([=] { handlePacket(buf, len, remoteAddr); });
 				continue;
 			}
-
-			delete buf;
 		} catch(const SocketException& e) {
 			dcdebug("SearchManager::run Error: %s\n", e.getError().c_str());
 		}
@@ -117,15 +114,14 @@ int UDPServer::run() {
 	return 0;
 }
 
-void UDPServer::handlePacket(uint8_t* aBuf, size_t aLen, const string& aRemoteIp) {
-	string x((char*) aBuf, aLen);
+void UDPServer::handlePacket(const ByteVector& aBuf, size_t aLen, const string& aRemoteIp) {
+	string x(aBuf.begin(), aBuf.begin() + aLen);
 
 	//check if this packet has been encrypted
 	if (SETTING(ENABLE_SUDP) && aLen >= 32 && ((aLen & 15) == 0)) {
-		SearchManager::getInstance()->decryptPacket(x, aLen, aBuf, BUFSIZE);
+		SearchManager::getInstance()->decryptPacket(x, aLen, aBuf);
 	}
-			
-	delete aBuf;
+
 	if (x.empty())
 		return;
 
