@@ -105,7 +105,7 @@ namespace webserver {
 
 		parseRoot(info, reqJson, true);
 
-		ShareManager::getInstance()->addDirectory(info);
+		ShareManager::getInstance()->addRootDirectory(info);
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -122,7 +122,7 @@ namespace webserver {
 
 		parseRoot(info, reqJson, false);
 
-		ShareManager::getInstance()->changeDirectory(info);
+		ShareManager::getInstance()->updateRootDirectory(info);
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -130,7 +130,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto path = JsonUtil::getField<string>("path", reqJson, false);
-		if (!ShareManager::getInstance()->removeDirectory(path)) {
+		if (!ShareManager::getInstance()->removeRootDirectory(path)) {
 			aRequest.setResponseErrorStr("Path not found");
 			return websocketpp::http::status_code::not_found;
 		}
