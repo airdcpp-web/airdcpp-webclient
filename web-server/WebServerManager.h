@@ -134,8 +134,7 @@ namespace webserver {
 		typedef std::function<void(const string&)> ErrorF;
 
 		// Leave the path empty to use the default resource path
-		bool start(ErrorF errorF);
-		bool start(ErrorF errorF, const string& aWebResourcePath);
+		bool start(ErrorF errorF, const string& aWebResourcePath = Util::emptyString);
 		void stop();
 
 		void disconnectSockets(const std::string& aMessage) noexcept;

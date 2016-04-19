@@ -44,7 +44,7 @@ namespace webserver {
 	}
 
 	void FileServer::setResourcePath(const string& aPath) noexcept {
-		resourcePath = aPath;
+		resourcePath = Util::validatePath(aPath, true);
 	}
 
 	struct mime { const char* ext; const char* type; };
@@ -246,29 +246,30 @@ namespace webserver {
 		dcdebug("Requesting file %s\n", aResource.c_str());
 
 		// Get the disk path
-		string request;
+		string filePath;
 		try {
 			if (aResource.length() >= 6 && aResource.compare(0, 6, "/view/") == 0) {
-				request = parseViewFilePath(aResource.substr(6));
+				filePath = parseViewFilePath(aResource.substr(6));
 			} else {
-				request = parseResourcePath(aResource, aRequest, headers_);
+				filePath = parseResourcePath(aResource, aRequest, headers_);
 			}
 		} catch (const std::exception& e) {
 			output_ = e.what();
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		auto fileSize = File::getSize(request);
+		auto fileSize = File::getSize(filePath);
 		int64_t startPos = 0, endPos = fileSize - 1;
 
 		auto partialContent = parsePartialRange(aRequest.get_header("Range"), startPos, endPos);
 
 		// Read file
 		try {
-			File f(request, File::READ, File::OPEN);
+			File f(filePath, File::READ, File::OPEN);
 			f.setPos(startPos);
 			output_ = f.read(static_cast<size_t>(endPos) + 1);
 		} catch (const FileException& e) {
+			dcdebug("Failed to serve the file %s: %s\n", filePath.c_str(), e.getError());
 			output_ = e.getError();
 			return websocketpp::http::status_code::not_found;
 		} catch (const std::bad_alloc&) {
@@ -277,7 +278,7 @@ namespace webserver {
 		}
 
 		// Get the mime type
-		auto type = getMimeType(request);
+		auto type = getMimeType(filePath);
 		if (type) {
 			headers_.emplace_back("Content-Type", type);
 		}
