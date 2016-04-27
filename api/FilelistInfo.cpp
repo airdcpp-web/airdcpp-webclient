@@ -80,13 +80,11 @@ namespace webserver {
 
 	api_return FilelistInfo::handleChangeDirectory(ApiRequest& aRequest) {
 		const auto& j = aRequest.getRequestBody();
+
 		auto listPath = JsonUtil::getField<string>("list_path", j, false);
 		auto reload = JsonUtil::getOptionalFieldDefault<bool>("reload", j, false);
 
-		addListTask([=] {
-			dl->changeDirectory(Util::toNmdcFile(listPath), reload ? DirectoryListing::RELOAD_DIR : DirectoryListing::RELOAD_NONE);
-		});
-
+		dl->addDirectoryChangeTask(Util::toNmdcFile(listPath), reload ? DirectoryListing::RELOAD_DIR : DirectoryListing::RELOAD_NONE);
 		return websocketpp::http::status_code::ok;
 	}
 

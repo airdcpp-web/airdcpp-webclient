@@ -34,6 +34,7 @@
 #include <airdcpp/QueueItem.h>
 #include <airdcpp/QueueManager.h>
 #include <airdcpp/SearchManager.h>
+#include <airdcpp/ShareManager.h>
 
 namespace webserver {
 	StringSet Serializer::getUserFlags(const UserPtr& aUser) noexcept {
