@@ -85,6 +85,10 @@ bool Client::startup() {
 		[&](float aProgress) {}
 	);
 
+	if (Text::systemCharset.empty() || Text::systemCharset == "ANSI_X3.4-1968") {
+		LogManager::getInstance()->message("System encoding is not set. This will cause issues with non-ASCII characters.", LogMessage::SEV_ERROR);
+	}
+
 	auto webResources = Util::getStartupParam("--web-resources");
 	printf("Starting web server");
 	auto serverStarted = webserver::WebServerManager::getInstance()->start([](const string& aError) {
@@ -118,7 +122,7 @@ bool Client::startup() {
 	if (!Util::hasStartupParam("--no-autoconnect")) {
 		FavoriteManager::getInstance()->autoConnect();
 	}
-	
+
 	auto cdmHub = Util::hasStartupParam("--cdm-hub");
 	auto cdmClient = Util::hasStartupParam("--cdm-client");
 	if (cdmHub || cdmClient) {
@@ -133,7 +137,7 @@ void Client::shutdown() {
 	if (!started) {
 		return;
 	}
-	
+
 	cdmDebug.reset(nullptr);
 
 	ClientManager::getInstance()->putClients();
