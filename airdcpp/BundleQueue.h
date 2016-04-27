@@ -48,7 +48,7 @@ public:
 		const BundlePtr bundle;
 	};
 
-	typedef vector<const PathInfo*> PathInfoList;
+	typedef vector<const PathInfo*> PathInfoPtrList;
 	typedef unordered_multimap<string, PathInfo, noCaseStringHash, noCaseStringEq> DirectoryNameMap;
 	typedef unordered_map<BundlePtr, vector<PathInfo*>, Bundle::Hash> BundlePathMap;
 
@@ -81,13 +81,15 @@ public:
 	Bundle::TokenBundleMap& getBundles() { return bundles; }
 	const Bundle::TokenBundleMap& getBundles() const { return bundles; }
 private:
-	void findRemoteDirs(const string& aPath, PathInfoList& paths_) const noexcept;
+	void findRemoteDirs(const string& aPath, PathInfoPtrList& paths_) const noexcept;
 	const PathInfo* getSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept;
 
 	typedef function<void(PathInfo&)> PathInfoHandler;
 
 	// Goes through each directory and stops after the bundle target was handled
 	void forEachPath(const BundlePtr& aBundle, const string& aPath, PathInfoHandler&& aHandler) noexcept;
+
+	PathInfo* addPathInfo(const string& aPath, const BundlePtr& aBundle) noexcept;
 	void removePathInfo(const PathInfo* aPathInfo) noexcept;
 
 	// PathInfos by directory name
