@@ -21,30 +21,20 @@
 #include <web-server/JsonUtil.h>
 
 namespace webserver {
-	json JsonUtil::getError(const string& fieldName, ErrorType aType, const string& aMessage) noexcept {
-		auto errorTypeToString = [](ErrorType aType) {
-			switch (aType) {
+	string JsonUtil::errorTypeToString(ErrorType aType) noexcept {
+		switch (aType) {
 			case ERROR_MISSING: return "missing_field";
 			case ERROR_INVALID: return "invalid";
 			case ERROR_EXISTS: return "already_exists";
 			default: dcassert(0); return "";
-			}
+		}
+	}
+
+	json JsonUtil::getError(const string& aFieldName, ErrorType aType, const string& aMessage) noexcept {
+		return {
+			{ "message", aMessage },
+			{ "field", aFieldName },
+			{ "code", errorTypeToString(aType) }
 		};
-
-		/*json error = {
-			{ "message",  aMessage },
-			{ "errors",{
-				{ "field", fieldName },
-				{ "code", errorTypeToString(aType) }
-			}
-			}
-		};*/
-
-		json error;
-		error["message"] = aMessage;
-		error["field"] = fieldName;
-		error["code"] = errorTypeToString(aType);
-
-		return error;
 	}
 }

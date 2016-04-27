@@ -53,10 +53,12 @@ namespace webserver {
 
 	private:
 		static json serializeDrive(const tstring& aDrive, UINT aDriveType) {
-			json retJson;
-			retJson["name"] = Text::fromT(aDrive);
-			retJson["type"]["id"] = driveTypeToString(aDriveType);
-			return retJson;
+			return {
+				{ "name", Text::fromT(aDrive) },
+				{ "type", {
+					{ "id", driveTypeToString(aDriveType) }
+				} }
+			};
 		}
 
 		static string driveTypeToString(UINT aDriveType) {
