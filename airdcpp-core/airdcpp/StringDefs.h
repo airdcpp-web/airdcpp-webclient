@@ -1342,7 +1342,7 @@ enum Strings { // @DontAdd
 	SETTINGS_CONFIRM_HUB_REMOVAL, // "Confirm favorite hub removal"
 	SETTINGS_CONFIRM_ITEM_REMOVAL, // "Confirm item removal in download queue"
 	SETTINGS_CONTEXT_FILELIST, // "Highlight for directories in file list (wildcards or $Re: for regexp)"
-	SETTINGS_CONTEXT_SEARCH, // "Highlight for results in search window(wildcards or $Re: for regexp)"
+	SETTINGS_CONTEXT_SEARCH, // "Highlight for results in search window (wildcards or $Re: for regexp)"
 	SETTINGS_COUNTRY_FORMAT, // "Country format"
 	SETTINGS_COUNTRY_FORMAT_HELP, // "This box allows customization of the way user country information is displayed throughout the interface. Default: %[2code] - %[name]\r\n\r\n  Available variables: \r\n  %[2code] gets replaced by a 2-letters country code (eg DE, FR). \r\n  %[3code] gets replaced by a 3-letters country code (eg DEU, FRA). \r\n  %[continent] gets replaced by a continent code (AF, AS, EU, NA, OC, SA for Africa, Asia, Europe, North America, Oceania and South America). \r\n  %[engname] gets replaced by the English country friendly name (eg Germany, France). \r\n  %[name] gets replaced by the localized country friendly name (eg Germany, France on an English operating system). \r\n  %[officialname] gets replaced by the localized country official name (eg Federal Republic of Germany, French Republic on an English operating system)."
 	SETTINGS_COUNTRY_FORMAT_HELP_DESC, // "Country format help"

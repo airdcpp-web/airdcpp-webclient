@@ -37,29 +37,29 @@ public:
 	using Client::send;
 	using Client::connect;
 
-	int connect(const OnlineUser& aUser, const string& aToken, string& lastError_);
-	void connect(const OnlineUser& aUser, const string& aToken, bool aSecure, bool aReplyingRCM = false);
+	int connect(const OnlineUser& aUser, const string& aToken, string& lastError_) noexcept;
+	void connect(const OnlineUser& aUser, const string& aToken, bool aSecure, bool aReplyingRCM = false) noexcept;
 	
-	bool hubMessage(const string& aMessage, string& error_, bool thirdPerson = false);
-	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho);
+	bool hubMessage(const string& aMessage, string& error_, bool thirdPerson = false) noexcept;
+	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept;
 	void sendUserCmd(const UserCommand& command, const ParamMap& params);
-	void search(const SearchPtr& aSearch);
-	void directSearch(const OnlineUser& user, const SearchPtr& aSearch);
-	void password(const string& pwd);
-	void infoImpl();
-	void refreshUserList(bool);	
+	void search(const SearchPtr& aSearch) noexcept;
+	void directSearch(const OnlineUser& user, const SearchPtr& aSearch) noexcept;
+	void password(const string& pwd) noexcept;
+	void infoImpl() noexcept;
+	void refreshUserList(bool) noexcept;
 
-	void constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDirect);
+	void constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDirect) noexcept;
 
-	size_t getUserCount() const;
+	size_t getUserCount() const noexcept;
 
-	static string escape(const string& str) { return AdcCommand::escape(str, false); }
+	static string escape(const string& str) noexcept { return AdcCommand::escape(str, false); }
 	bool send(const AdcCommand& cmd);
 
 	string getMySID() { return AdcCommand::fromSID(sid); }
 
-	static const vector<StringList>& getSearchExts();
-	static StringList parseSearchExts(int flag);
+	static const vector<StringList>& getSearchExts() noexcept;
+	static StringList parseSearchExts(int flag) noexcept;
 
 	static const string CLIENT_PROTOCOL;
 	static const string SECURE_CLIENT_PROTOCOL_TEST;
@@ -95,12 +95,12 @@ private:
 	typedef unordered_map<uint32_t, OnlineUser*> SIDMap;
 	typedef SIDMap::const_iterator SIDIter;
 
-	void getUserList(OnlineUserList& list, bool aListHidden) const;
+	void getUserList(OnlineUserList& list, bool aListHidden) const noexcept;
 
 	/* Checks if we are allowed to connect to the user */
-	AdcCommand::Error allowConnect(const OnlineUser& aUser, bool aSecure, string& failedProtocol_, bool checkBase) const;
+	AdcCommand::Error allowConnect(const OnlineUser& aUser, bool aSecure, string& failedProtocol_, bool checkBase) const noexcept;
 	/* Does the same thing but also sends the error to the remote user */
-	bool checkProtocol(const OnlineUser& aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken);
+	bool checkProtocol(const OnlineUser& aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken) noexcept;
 
 	bool oldPassword;
 	Socket udp;
@@ -115,19 +115,19 @@ private:
 
 	static const vector<StringList> searchExtensions;
 
-	string checkNick(const string& nick);
+	string checkNick(const string& nick) noexcept;
 
-	OnlineUser& getUser(const uint32_t aSID, const CID& aCID);
-	OnlineUser* findUser(const uint32_t aSID) const;
-	OnlineUser* findUser(const CID& cid) const;
+	OnlineUser& getUser(const uint32_t aSID, const CID& aCID) noexcept;
+	OnlineUser* findUser(const uint32_t aSID) const noexcept;
+	OnlineUser* findUser(const CID& cid) const noexcept;
 	
-	OnlineUserPtr findUser(const string& aNick) const;
+	OnlineUserPtr findUser(const string& aNick) const noexcept;
 
-	void putUser(const uint32_t aSID, bool disconnect);
+	void putUser(const uint32_t aSID, bool disconnect) noexcept;
 
 	void shutdown(ClientPtr& aClient, bool aRedirect);
 	void clearUsers() noexcept;
-	void appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6);
+	void appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6) noexcept;
 
 	void handle(AdcCommand::SUP, AdcCommand& c) noexcept;
 	void handle(AdcCommand::SID, AdcCommand& c) noexcept;
@@ -155,9 +155,8 @@ private:
 
 	void sendSearch(AdcCommand& c);
 	void sendUDP(const AdcCommand& cmd) noexcept;
-	bool secureAvail(uint32_t target, const string& protocol, const string& token);
 
-	virtual bool v4only() const { return false; }
+	virtual bool v4only() const noexcept { return false; }
 	void on(Connected) noexcept;
 	void on(Line, const string& aLine) noexcept;
 	void on(Failed, const string& aLine) noexcept;

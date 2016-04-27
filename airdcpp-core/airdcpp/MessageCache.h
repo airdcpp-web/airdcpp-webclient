@@ -42,6 +42,10 @@ namespace dcpp {
 		}
 
 		MessageList getMessages() const noexcept;
+		const MessageList& getMessagesUnsafe() const noexcept {
+			return messages;
+		}
+
 		LogMessageList getLogMessages() const noexcept;
 		ChatMessageList getChatMessages() const noexcept;
 
@@ -52,6 +56,8 @@ namespace dcpp {
 		int countUnreadLogMessages(LogMessage::Severity aSeverity) const noexcept;
 		int countUnreadChatMessages(ChatMessageFilterF filterF = nullptr) const noexcept;
 		int setRead() noexcept;
+
+		SharedMutex& getCS() const noexcept { return cs; }
 	private:
 		void add(Message&& aMessage) noexcept;
 

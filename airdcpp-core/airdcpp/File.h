@@ -124,8 +124,9 @@ public:
 	static bool isAbsolutePath(const string& path) noexcept;
 	static bool isHidden(const string& path) noexcept;
 
-	virtual ~File() { File::close(); }
+	virtual ~File();
 
+	string readFromEnd(size_t len);
 	string read(size_t len);
 	string read();
 	void write(string&& aString) { write((void*)aString.data(), aString.size()); }

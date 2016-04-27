@@ -3005,8 +3005,7 @@ ShareManager::Directory::File::File(DualString&& aName, const Directory::Ptr& aP
 }
 
 ShareManager::Directory::File::~File() {
-	//if (name)
-	//	delete name;
+
 }
 
 void ShareManager::Directory::File::toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const {

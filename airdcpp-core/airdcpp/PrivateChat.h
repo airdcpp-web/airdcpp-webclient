@@ -21,7 +21,7 @@
 
 #include "forward.h"
 
-#include "ClientManager.h"
+#include "ClientManagerListener.h"
 #include "DelayedEvents.h"
 #include "MessageCache.h"
 #include "PrivateChatListener.h"
@@ -55,7 +55,7 @@ namespace dcpp {
 		~PrivateChat();
 
 		bool sendMessage(const string& msg, string& error_, bool thirdPerson);
-		void handleMessage(const ChatMessagePtr& aMessage);
+		void handleMessage(const ChatMessagePtr& aMessage) noexcept;
 		void statusMessage(const string& aMessage, LogMessage::Severity aSeverity) noexcept;
 
 		void close();
@@ -69,22 +69,20 @@ namespace dcpp {
 		void CCPMConnected(UserConnection* uc);
 		void CCPMDisconnected();
 
-		void setHubUrl(const string& hint);
-		const UserPtr& getUser() const { return replyTo.user; }
-		const string& getHubUrl() const { return replyTo.hint; }
-		const HintedUser& getHintedUser() const { return replyTo; }
+		void setHubUrl(const string& hint) noexcept;
+		const UserPtr& getUser() const noexcept { return replyTo.user; }
+		const string& getHubUrl() const noexcept { return replyTo.hint; }
+		const HintedUser& getHintedUser() const noexcept { return replyTo; }
 
-		ClientPtr getClient() {
-			return ClientManager::getInstance()->getClient(replyTo.hint);
-		}
+		ClientPtr getClient() const noexcept;
 		
 		GETSET(bool, supportsCCPM, SupportsCCPM);
 		GETSET(string, lastCCPMError, LastCCPMError);
 	
-		void logMessage(const string& aMessage);
-		void fillLogParams(ParamMap& params) const;
-		string getLogPath() const;
-		bool isOnline() const { return online; }
+		void logMessage(const string& aMessage) const noexcept;
+		void fillLogParams(ParamMap& params) const noexcept;
+		string getLogPath() const noexcept;
+		bool isOnline() const noexcept { return online; }
 
 		CCPMState getCCPMState() const noexcept {
 			return ccpmState;
@@ -96,6 +94,10 @@ namespace dcpp {
 
 		void setRead() noexcept;
 		int clearCache() noexcept;
+
+		const string& getLastLogLines() const noexcept {
+			return lastLogLines;
+		}
 	private:
 		MessageCache cache;
 		enum EventType {
@@ -107,7 +109,7 @@ namespace dcpp {
 		void checkAlwaysCCPM();
 		void checkCCPMTimeout();
 		void checkCCPMHubBlocked() noexcept;
-		void setUc(UserConnection* aUc){ uc = aUc; ccpmState = aUc ? CONNECTED : DISCONNECTED; }
+		void setUc(UserConnection* aUc) noexcept { uc = aUc; ccpmState = aUc ? CONNECTED : DISCONNECTED; }
 
 		HintedUser replyTo;
 
@@ -128,9 +130,9 @@ namespace dcpp {
 		void onUserUpdated(const OnlineUser& aUser) noexcept;
 
 		// ClientManagerListener
-		void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;
+		void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool aWasOffline) noexcept;
 		void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
-		void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
+		void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool aWentOffline) noexcept;
 
 		bool online = true;
 
@@ -138,7 +140,9 @@ namespace dcpp {
 		string hubName;
 
 		// Checks that the user still exists in the hinted hub and changes to another hub when needed
-		void checkUserHub(bool wentOffline);
+		void checkUserHub(bool aWentOffline) noexcept;
+
+		string lastLogLines;
 	};
 }
 

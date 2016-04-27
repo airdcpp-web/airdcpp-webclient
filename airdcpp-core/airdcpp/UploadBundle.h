@@ -26,6 +26,7 @@
 #include "forward.h"
 #include "GetSet.h"
 #include "Upload.h"
+#include "TimerManager.h"
 
 namespace dcpp {
 

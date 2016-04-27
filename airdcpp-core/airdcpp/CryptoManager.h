@@ -19,8 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_CRYPTO_MANAGER_H
 #define DCPLUSPLUS_DCPP_CRYPTO_MANAGER_H
 
-#include "SettingsManager.h"
-
+#include "CriticalSection.h"
 #include "Exception.h"
 #include "Singleton.h"
 #include "SSL.h"

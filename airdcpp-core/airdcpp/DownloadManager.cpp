@@ -17,19 +17,18 @@
  */
 
 #include "stdinc.h"
-#include "ConnectionManager.h"
-#include "DownloadManager.h"
 
-#include "ResourceManager.h"
-#include "QueueManager.h"
-#include "HashManager.h"
+#include "ClientManager.h"
+#include "ConnectionManager.h"
 #include "Download.h"
+#include "DownloadManager.h"
+#include "FavoriteManager.h"
+#include "HashManager.h"
 #include "LogManager.h"
+#include "QueueManager.h"
+#include "ResourceManager.h"
 #include "User.h"
 #include "UserConnection.h"
-
-#include "UploadManager.h"
-#include "FavoriteManager.h"
 
 #include <limits>
 #include <cmath>

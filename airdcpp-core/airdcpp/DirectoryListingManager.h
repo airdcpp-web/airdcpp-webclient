@@ -25,12 +25,11 @@
 #include "DirectoryListingManagerListener.h"
 
 #include "CriticalSection.h"
-#include "Exception.h"
 #include "DirectoryListing.h"
 #include "Pointer.h"
 #include "Singleton.h"
 #include "TargetUtil.h"
-#include "TimerManager.h"
+#include "TimerManagerListener.h"
 
 namespace dcpp {
 	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener, 

@@ -30,6 +30,7 @@
 #include "ShareManager.h"
 #include "SimpleXML.h"
 #include "StringTokenizer.h"
+#include "TimerManager.h"
 
 #include <openssl/evp.h>
 #include <openssl/rand.h>

@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_CONNECTION_MANAGER_H
 #define DCPLUSPLUS_DCPP_CONNECTION_MANAGER_H
 
-#include "TimerManager.h"
 #include "ClientManagerListener.h"
 #include "ConnectionManagerListener.h"
+#include "TimerManagerListener.h"
 
 #include "ConnectionType.h"
 #include "CriticalSection.h"
@@ -231,8 +231,6 @@ private:
 	void addUploadConnection(UserConnection* uc);
 	void addDownloadConnection(UserConnection* uc);
 	void addPMConnection(UserConnection* uc);
-
-	void checkWaitingMCN() noexcept;
 
 	ConnectionQueueItem* getCQI(const HintedUser& aUser, ConnectionType aConnType, const string& aToken = Util::emptyString);
 	void putCQI(ConnectionQueueItem* cqi);

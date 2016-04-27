@@ -71,6 +71,10 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 	}
 }
 
+File::~File() {
+	File::close(); 
+}
+
 uint64_t File::getLastModified() const noexcept {
 	FILETIME f = {0};
 	::GetFileTime(h, NULL, NULL, &f);
@@ -617,12 +621,22 @@ bool File::createFile(const string& aPath, const string& aContent) noexcept {
 	}
 }
 
-string File::read(size_t len) {
-	string s(len, 0);
-	size_t x = read(&s[0], len);
+string File::read(size_t aLen) {
+	string s(aLen, 0);
+	size_t x = read(&s[0], aLen);
 	if(x != s.size())
 		s.resize(x);
 	return s;
+}
+
+string File::readFromEnd(size_t aLen) {
+	auto size = getSize();
+
+	if (size > static_cast<int64_t>(aLen)) {
+		setPos(size - aLen);
+	}
+
+	return read(aLen);
 }
 
 string File::read() {
