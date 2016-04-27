@@ -91,7 +91,7 @@ inline bool operator==(const ShareProfileInfoPtr& ptr, ProfileToken aToken) { re
 class ShareProfile {
 public:
 	static bool hasCommonProfiles(const ProfileTokenSet& a, const ProfileTokenSet& b) noexcept;
-	static StringList getCommonProfileNames(const ProfileTokenSet& a, const ProfileTokenSet& b, const ShareProfileList& aProfiles) noexcept;
+	static StringList getProfileNames(const ProfileTokenSet& aTokens, const ShareProfileList& aProfiles) noexcept;
 
 	struct Hash {
 		size_t operator()(const ShareProfilePtr& x) const { return x->getToken(); }

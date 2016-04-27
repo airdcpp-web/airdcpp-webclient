@@ -111,7 +111,7 @@ DualString::DualString(const DualString& rhs) {
 
 DualString& DualString::operator= (const DualString& rhs) {
 	if (charSizes) {
-		delete charSizes;
+		delete[] charSizes;
 		charSizes = nullptr;
 	}
 
@@ -127,7 +127,7 @@ DualString& DualString::operator= (const DualString& rhs) {
 
 DualString::~DualString() { 
 	if (charSizes)
-		delete charSizes; 
+		delete[] charSizes; 
 }
 
 string DualString::getNormal() const {

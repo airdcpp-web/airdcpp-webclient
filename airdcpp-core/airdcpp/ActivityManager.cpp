@@ -27,6 +27,8 @@ namespace dcpp {
 
 ActivityManager::ActivityManager() {
 	TimerManager::getInstance()->addListener(this);
+
+	awayMode = SETTING(AWAY) ? AWAY_MANUAL : AWAY_OFF;
 }
 
 ActivityManager::~ActivityManager() {
@@ -77,7 +79,7 @@ void ActivityManager::setAway(AwayMode aNewMode) {
 }
 
 string ActivityManager::getAwayMessage(const string& aAwayMsg, ParamMap& params) const noexcept {
-	params["idleTI"] = Util::formatSeconds(GET_TICK() - lastActivity);
+	params["idleTI"] = Util::formatSeconds((GET_TICK() - lastActivity) / 1000);
 	return Util::formatParams(aAwayMsg, params);
 }
 

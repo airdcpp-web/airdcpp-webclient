@@ -36,6 +36,7 @@ namespace webserver {
 			case FavoriteHubEntry::STATE_CONNECTED: return STRING(CONNECTED);
 		}
 
+		dcassert(0);
 		return Util::emptyString;
 	}
 
@@ -43,18 +44,18 @@ namespace webserver {
 		switch (aPropertyName) {
 			case FavoriteHubApi::PROP_SHARE_PROFILE:
 			{
-				json j;
-				j["id"] = serializeHubSetting(aEntry->get(HubSettings::ShareProfile));
-				j["str"] = aEntry->getShareProfileName();
-				return j;
+				return {
+					{ "id", serializeHubSetting(aEntry->get(HubSettings::ShareProfile)) },
+					{ "str", aEntry->getShareProfileName() }
+				};
 			}
 			case FavoriteHubApi::PROP_CONNECT_STATE:
 			{
-				json j;
-				j["id"] = aEntry->getConnectState();
-				j["str"] = formatConnectState(aEntry);
-				j["current_hub_id"] = aEntry->getCurrentHubToken();
-				return j;
+				return {
+					{ "id", aEntry->getConnectState() },
+					{ "str", formatConnectState(aEntry) },
+					{ "current_hub_id", aEntry->getCurrentHubToken() }
+				};
 			}
 		}
 

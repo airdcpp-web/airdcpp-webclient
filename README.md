@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/airdcpp-web/airdcpp-webclient.svg)](https://travis-ci.org/airdcpp-web/airdcpp-webclient)
+
 # AirDC++ Web Client
 
 AirDC++ Web Client is a cross-platform peer-to-peer file sharing client which allows sharing files with groups of people. 
@@ -24,3 +26,7 @@ The client can be installed on a normal computer or file server and accessed wit
 ### Feature requests or questions?
 
 The issue tracker can be used for feature requests and questions as well.
+
+### Contributing
+
+Pull requests should be submitted to the `develop` branch. 

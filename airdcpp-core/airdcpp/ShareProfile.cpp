@@ -88,14 +88,12 @@ bool ShareProfile::hasCommonProfiles(const ProfileTokenSet& a, const ProfileToke
 	return false;
 }
 
-StringList ShareProfile::getCommonProfileNames(const ProfileTokenSet& a, const ProfileTokenSet& b, const ShareProfileList& aProfiles) noexcept {
+StringList ShareProfile::getProfileNames(const ProfileTokenSet& aTokens, const ShareProfileList& aProfiles) noexcept {
 	StringList ret;
-	for (auto profileToken : a) {
-		if (b.find(profileToken) != b.end()) {
-			auto p = find(aProfiles.begin(), aProfiles.end(), profileToken);
-			if (p != aProfiles.end()) {
-				ret.push_back((*p)->getPlainName());
-			}
+	for (auto profileToken : aTokens) {
+		auto p = find(aProfiles.begin(), aProfiles.end(), profileToken);
+		if (p != aProfiles.end()) {
+			ret.push_back((*p)->getPlainName());
 		}
 	}
 

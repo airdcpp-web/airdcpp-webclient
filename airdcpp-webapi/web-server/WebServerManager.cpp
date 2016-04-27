@@ -39,7 +39,12 @@
 
 namespace webserver {
 	using namespace dcpp;
-	WebServerManager::WebServerManager() : serverThreads(DEFAULT_THREADS), has_io_service(false), ios(2) {
+	WebServerManager::WebServerManager() : serverThreads(DEFAULT_THREADS), has_io_service(false), ios(DEFAULT_THREADS) {
+		// Set defaults
+		plainServerConfig.setPort(5600);
+		tlsServerConfig.setPort(5601);
+		fileServer.setResourcePath(Util::getPath(Util::PATH_RESOURCES) + "web-resources" + PATH_SEPARATOR);
+
 		userManager = unique_ptr<WebUserManager>(new WebUserManager(this));
 		ios.stop(); //Prevent io service from running until we load
 	}
@@ -114,13 +119,12 @@ namespace webserver {
 	}
 
 	bool WebServerManager::start(ErrorF errorF, const string& aWebResourcePath) {
-		{
-			auto resourcePath = aWebResourcePath;
-			if (resourcePath.empty()) {
-				resourcePath = Util::getPath(Util::PATH_RESOURCES) + "web-resources" + PATH_SEPARATOR;
-			}
+		if (!aWebResourcePath.empty()) {
+			fileServer.setResourcePath(aWebResourcePath);
+		}
 
-			fileServer.setResourcePath(resourcePath);
+		if (!hasValidConfig()) {
+			return false;
 		}
 
 		ios.reset();
@@ -195,18 +199,20 @@ namespace webserver {
 			hasServer = true;
 		}
 
-		if (hasServer) {
-			// Start the ASIO io_service run loop running both endpoints
-			for (int x = 0; x < serverThreads; ++x) {
-				worker_threads.create_thread(boost::bind(&boost::asio::io_service::run, &ios));
-			}
+		if (!hasServer) {
+			return false;
+		}
+
+		// Start the ASIO io_service run loop running both endpoints
+		for (int x = 0; x < serverThreads; ++x) {
+			worker_threads.create_thread(boost::bind(&boost::asio::io_service::run, &ios));
 		}
 
 		socketTimer = addTimer([this] { pingTimer(); }, PING_INTERVAL * 1000);
 		socketTimer->start(false);
 
 		fire(WebServerManagerListener::Started());
-		return hasServer;
+		return true;
 	}
 
 	WebSocketPtr WebServerManager::getSocket(websocketpp::connection_hdl hdl) const noexcept {
@@ -471,10 +477,6 @@ namespace webserver {
 	}
 
 	void ServerConfig::save(SimpleXML& xml_, const string& aTagName) noexcept {
-		if (!hasValidConfig()) {
-			return;
-		}
-
 		xml_.addTag(aTagName);
 		xml_.addChildAttrib("Port", port);
 		if (!bindAddress.empty()) {
