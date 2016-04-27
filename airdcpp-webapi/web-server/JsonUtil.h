@@ -157,6 +157,8 @@ namespace webserver {
 		static typename std::enable_if<!std::is_same<std::string, T>::value, T>::type convertNullValue(const string& aFieldName) {
 			throw ArgumentException(getError(aFieldName, ERROR_INVALID, "Field can't be empty"));
 		}
+
+		static string errorTypeToString(ErrorType aType) noexcept;
 	};
 }
 

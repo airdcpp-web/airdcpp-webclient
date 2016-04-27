@@ -65,7 +65,10 @@ namespace webserver {
 
 			code = handleRequest(apiRequest, aIsSecure, aSocket, aSocket->getIp());
 		} catch (const std::exception& e) {
-			errorJson = { "message", "Parsing failed: " + string(e.what()) };
+			errorJson = { 
+				{ "message", "Parsing failed: " + string(e.what()) }
+			};
+
 			code = websocketpp::http::status_code::bad_request;
 		}
 
@@ -96,7 +99,10 @@ namespace webserver {
 
 			return handleRequest(apiRequest, aIsSecure, nullptr, aIp);
 		} catch (const std::exception& e) {
-			error_ = { "message", "Parsing failed: " + string(e.what()) };
+			error_ = { 
+				{ "message", "Parsing failed: " + string(e.what()) }
+			};
+
 			return websocketpp::http::status_code::bad_request;
 		}
 

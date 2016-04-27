@@ -1,163 +1,34 @@
-# airdcpp-webapi
-Websocket/REST JSON API for AirDC++ core
+# AirDC++ Web API
 
-## Dependencies:
+A Websocket/REST API for applications using the [AirDC++ core](https://github.com/airdcpp/airdcpp-core), such as [AirDC++ (Windows)](https://github.com/airdcpp/airgit) and [AirDC++ Web Client](https://github.com/airdcpp-web/airdcpp-webclient/).
 
-* https://github.com/nlohmann/json (included in the repository)
-* https://github.com/zaphoyd/websocketpp (unpack the source folder to root when compiling with Visual Studio)
-* AirDC++ core
+Consult the documentation of the respective project for more information about setting up API access.
 
-## General information
+## Communicating with the API
 
-### Encoding
+There are two different protocols that can be used to communicate with the API: HTTP and Websockets.
 
-All messages are encoded in UTF-8.
-
-### Protocols
-
-The API can be accessed through http:// and https://. For Websockets the respective protocols are ws:// and wss://.
-You may not switch between encrypted and unencrypted requests during a single session: if the session was authenticated through
+You may not switch between encrypted and unencrypted requests within a single session: if the session was authenticated through
 an encrypted protocol, all subsequential traffic must be encrypted (and vice versa).
+
+
+### HTTP
+
+You may use a [RESTful HTTP(S)](https://en.wikipedia.org/wiki/Representational_state_transfer) access for fetching and modifying data with the common HTTP methods (GET, POST, PUT, DELETE, PATCH). Adding event listeners isn't supported.
+
+### Websockets
+
+Websockets enable two-way (bi-directional) communication that allows you to receive notifications about various different client events (such as new messages, share changes and session updates). Additionally all functionality provided via HTTP access is supported as well.
+
+The best way to access the API with Websockets is to use a connector library that will abstract away low level protocol communication. 
+Websocket API connectors are currently available for the following programming languages:
+
+* [Javascript](https://github.com/airdcpp-web/airdcpp-apisocket-js)
+
+If you prefer using other programming languages, you may write your own connector or use the raw Websocket API for communication. See the [Websocket API documentation](#) for details.
 
 ### Path format
 
-The following parameters are common in all requests.
+The following base path format is common for all API requests.
 
-`<api_module>/v<module_version>/<module_section>>`
-
-
-## Websockets
-
-Websockets use a HTTP-like JSON messaging protocol for communication. You may send a `callback_id` parameter in the request that the server will append to its response.
-If no callback id is set, there will be no response.
-
-### Simple requests
-
-Request:
-
-```json
-{
-"callback_id": 1,
-"path": "session/v0/auth",
-"method": "POST",
-"data": {
-	"username": "user1",
-	"password": "example_password"
-}
-}
-```
-
-Response:
-
-```json
-{
-"callback_id":1,
-"code":200,
-"data": {
-  "token":"1623935396",
-  "user":"test"
-}
-}
-```
-
-### Subscription
-
-You may subscibe to specific events by sending a POST request with the subscription path. The path uses the following format:
-
-`<api_module>/v<module_version>/listener/<event_name>`
-
-The following example demonstrates how to subscribe for new system log messages.
-
-```json
-{
-"callback_id": 1,
-"path": "log/v0/listener/log_message",
-"method": "POST"
-}
-```
-
-The response for the subscription call will be a HTTP response code without data. In order to remove a subscription, send 
-a DELETE request containing the subscription path without data.
-
-Unsubscribing from system log messages:
-
-```json
-{
-"callback_id": 1,
-"path": "log/v0/listener/log_message",
-"method": "DELETE"
-}
-```
-
-Subscription events sent by the socket will contain a `event` parameter specifying the subscription name and `data` parameter containing 
-the event-specific data.
-
-Log message event example:
-
-```json
-"event": "log_message",
-"data": {
-    "id": 66,
-    "severity": 0,
-    "text": "File list refresh finished",
-    "time": 1441964384
-}
-}
-```
-
-## Authenticating
-
-**Request**
-
-```
-POST /session/v0/auth
-```
-
-**Data**
-
-```json
-{
-	"username": "user1",
-	"password": "example_password"
-}
-```
-
-### Response
-
-**Success**
-
-```
-Status: 200 OK
-```
-
-```json
-{
-  "token":"1623935396",
-  "user":"test"
-}
-```
-
-**Error**
-
-```
-Status: 401 Unauthorized
-Invalid username or password
-```
-
-
-### Associating Websocket to an existing session:
-
-You may associate a Websocket to an existing session by sending the session token.
-
-```json
-{
-"callback_id": 1,
-"path": "session/v0/socket",
-"method": "POST",
-"data": {
-	"authorization": "84353272432645"
-}
-}
-```
-
-Response will be code 200 or error 400 if the session wasn't found.
+`<api_module>/v<module_version>/<module_section>`
