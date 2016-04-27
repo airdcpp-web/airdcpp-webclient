@@ -32,7 +32,7 @@
 #include "Singleton.h"
 #include "Speaker.h"
 #include "TargetUtil.h"
-#include "TimerManager.h"
+#include "TimerManagerListener.h"
 
 namespace dcpp {
 

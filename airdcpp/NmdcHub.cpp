@@ -63,7 +63,7 @@ string NmdcHub::fromUtf8(const string& str) const {
 
 #define checkstate() if(!stateNormal()) return
 
-int NmdcHub::connect(const OnlineUser& aUser, const string&, string& /*lastError_*/) {
+int NmdcHub::connect(const OnlineUser& aUser, const string&, string& /*lastError_*/) noexcept {
 	if(stateNormal()) {
 		dcdebug("NmdcHub::connect %s\n", aUser.getIdentity().getNick().c_str());
 		if(isActive()) {
@@ -97,7 +97,7 @@ void NmdcHub::refreshLocalIp() noexcept {
 	}
 }
 
-void NmdcHub::refreshUserList(bool refreshOnly) {
+void NmdcHub::refreshUserList(bool refreshOnly) noexcept {
 	if(refreshOnly) {
 		Lock l(cs);
 
@@ -112,7 +112,7 @@ void NmdcHub::refreshUserList(bool refreshOnly) {
 	}
 }
 
-OnlineUser& NmdcHub::getUser(const string& aNick) {
+OnlineUser& NmdcHub::getUser(const string& aNick) noexcept {
 	OnlineUser* u = NULL;
 	{
 		Lock l(cs);
@@ -156,13 +156,13 @@ void NmdcHub::supports(const StringList& feat) {
 	send("$Supports " + x + '|');
 }
 
-OnlineUserPtr NmdcHub::findUser(const string& aNick) const {
+OnlineUserPtr NmdcHub::findUser(const string& aNick) const noexcept {
 	Lock l(cs);
 	NickIter i = users.find(aNick);
 	return i == users.end() ? NULL : i->second;
 }
 
-void NmdcHub::putUser(const string& aNick) {
+void NmdcHub::putUser(const string& aNick) noexcept {
 	OnlineUser* ou = NULL;
 	{
 		Lock l(cs);
@@ -915,12 +915,12 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 	} 
 }
 
-void NmdcHub::password(const string& aPass) {
+void NmdcHub::password(const string& aPass) noexcept {
 	setPassword(aPass);
 	send("$MyPass " + fromUtf8(aPass) + "|");
 }
 
-string NmdcHub::checkNick(const string& aNick) {
+string NmdcHub::checkNick(const string& aNick) noexcept {
 	string tmp = aNick;
 	for(size_t i = 0; i < aNick.size(); ++i) {
 		if(static_cast<uint8_t>(tmp[i]) <= 32 || tmp[i] == '|' || tmp[i] == '$' || tmp[i] == '<' || tmp[i] == '>') {
@@ -947,7 +947,7 @@ void NmdcHub::revConnectToMe(const OnlineUser& aUser) {
 	send("$RevConnectToMe " + fromUtf8(getMyNick()) + " " + fromUtf8(aUser.getIdentity().getNick()) + "|");
 }
 
-bool NmdcHub::hubMessage(const string& aMessage, string& error_, bool thirdPerson) { 
+bool NmdcHub::hubMessage(const string& aMessage, string& error_, bool thirdPerson) noexcept { 
 	if(!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
@@ -1025,7 +1025,7 @@ void NmdcHub::myInfo(bool alwaysSend) {
 	}
 }
 
-void NmdcHub::search(const SearchPtr& s){
+void NmdcHub::search(const SearchPtr& s) noexcept {
 	checkstate();
 	if (s->aschOnly)
 		return;
@@ -1104,7 +1104,7 @@ void NmdcHub::privateMessage(const string& aNick, const string& aMessage, bool a
 	send("$To: " + fromUtf8(aNick) + " From: " + fromUtf8(getMyNick()) + " $" + fromUtf8(escape("<" + getMyNick() + "> " + (aThirdPerson ? "/me " + aMessage : aMessage))) + "|");
 }
 
-bool NmdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) {
+bool NmdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept {
 	if(!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
@@ -1188,7 +1188,7 @@ void NmdcHub::on(Minute, uint64_t /*aTick*/) noexcept {
 	refreshLocalIp();
 }
 
-void NmdcHub::getUserList(OnlineUserList& list, bool aListHidden) const {
+void NmdcHub::getUserList(OnlineUserList& list, bool aListHidden) const noexcept {
 	Lock l(cs);
 	for(auto& u: users | map_values) {
 		if (!aListHidden && u->isHidden()) {

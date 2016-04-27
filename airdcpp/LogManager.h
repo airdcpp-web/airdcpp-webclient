@@ -60,6 +60,8 @@ public:
 
 	void clearCache() noexcept;
 	void setRead() noexcept;
+
+	static string readFromEnd(const string& aPath, int aMaxLines, int64_t aBufferSize) noexcept;
 private:
 	MessageCache cache;
 

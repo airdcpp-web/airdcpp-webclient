@@ -6,7 +6,6 @@
 #endif // _MSC_VER > 1000
 
 #include "Singleton.h"
-#include "TimerManager.h"
 
 namespace dcpp {
 

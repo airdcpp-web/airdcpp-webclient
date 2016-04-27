@@ -242,6 +242,18 @@ string ClientManager::getHubName(const string& aHubUrl) const noexcept{
 	return Util::emptyString;
 }
 
+StringList ClientManager::getNicks(const HintedUser& user) const noexcept {
+	return getNicks(user.user->getCID()); 
+}
+
+StringList ClientManager::getHubNames(const HintedUser& user) const noexcept {
+	return getHubNames(user.user->getCID()); 
+}
+
+StringList ClientManager::getHubUrls(const HintedUser& user) const noexcept {
+	return getHubUrls(user.user->getCID()); 
+}
+
 StringList ClientManager::getNicks(const CID& cid, bool allowCID/*true*/) const noexcept {
 	set<string> ret;
 

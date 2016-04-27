@@ -27,12 +27,18 @@ namespace dcpp {
 
 ActivityManager::ActivityManager() {
 	TimerManager::getInstance()->addListener(this);
-
-	awayMode = SETTING(AWAY) ? AWAY_MANUAL : AWAY_OFF;
+	SettingsManager::getInstance()->addListener(this);
 }
 
 ActivityManager::~ActivityManager() {
 	TimerManager::getInstance()->removeListener(this);
+	SettingsManager::getInstance()->removeListener(this);
+}
+
+void ActivityManager::on(SettingsManagerListener::Load, SimpleXML&) noexcept {
+	if (SETTING(AWAY)) {
+		setAway(AWAY_MANUAL);
+	}
 }
 
 void ActivityManager::updateActivity(time_t aLastActivity) noexcept {
@@ -54,6 +60,10 @@ void ActivityManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 	if ((lastActivity + SETTING(AWAY_IDLE_TIME) * 60 * 1000ULL) < aTick) {
 		setAway(AWAY_IDLE); 
 	}
+}
+
+bool ActivityManager::isAway() const noexcept {
+	return awayMode != AWAY_OFF; 
 }
 
 void ActivityManager::setAway(AwayMode aNewMode) {

@@ -21,6 +21,9 @@
 
 #include "typedefs.h"
 
+#include "SettingsManagerListener.h"
+#include "TimerManagerListener.h"
+
 #include "Speaker.h"
 #include "TimerManager.h"
 
@@ -43,7 +46,7 @@ namespace dcpp {
 		virtual void on(AwayModeChanged, AwayMode) noexcept { }
 	};
 
-	class ActivityManager : public Speaker<ActivityManagerListener>, public Singleton<ActivityManager>, public TimerManagerListener
+	class ActivityManager : public Speaker<ActivityManagerListener>, public Singleton<ActivityManager>, public TimerManagerListener, private SettingsManagerListener
 	{
 	public:
 		ActivityManager();
@@ -51,15 +54,16 @@ namespace dcpp {
 
 		void updateActivity(time_t aLastActivity = GET_TICK()) noexcept;
 
-		bool isAway() const noexcept { return awayMode != AWAY_OFF; }
+		bool isAway() const noexcept;
 		AwayMode getAwayMode() const noexcept { return awayMode; }
 		void setAway(AwayMode aAway);
 
 		string getAwayMessage(const string& aAwayMsg, ParamMap& params) const noexcept;
 	private:
+		void on(SettingsManagerListener::Load, SimpleXML& aXml) noexcept;
 		void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 
-		AwayMode awayMode;
+		AwayMode awayMode = AWAY_OFF;
 		time_t lastActivity = GET_TICK();
 	};
 

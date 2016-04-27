@@ -23,6 +23,7 @@
 #include "Exception.h"
 #include "HubSettings.h"
 #include "SettingItem.h"
+#include "SettingsManagerListener.h"
 #include "Singleton.h"
 #include "Speaker.h"
 #include "Util.h"
@@ -31,22 +32,6 @@
 namespace dcpp {
 
 struct HubSettings;
-
-class SettingsManagerListener {
-public:
-	virtual ~SettingsManagerListener() { }
-	template<int I>	struct X { enum { TYPE = I };  };
-
-	typedef X<0> Load;
-	typedef X<1> Save;
-	typedef X<2> ReloadPages; // if a settingspage modifies properties in another page, fire this to update the pages.
-	typedef X<3> Cancel; // PropertiesDialog fires this when CANCEL is hit
- 
-	virtual void on(Load, SimpleXML&) noexcept { }
-	virtual void on(Save, SimpleXML&) noexcept { }
-	virtual void on(ReloadPages, int) noexcept { }
-	virtual void on(Cancel, int) noexcept { }
-};
 
 class SettingsManager : public Singleton<SettingsManager>, public Speaker<SettingsManagerListener>
 {

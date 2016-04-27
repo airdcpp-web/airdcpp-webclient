@@ -20,6 +20,7 @@
 #include "LogManager.h"
 
 #include "File.h"
+#include "StringTokenizer.h"
 #include "TimerManager.h"
 
 namespace dcpp {
@@ -150,6 +151,37 @@ const string& LogManager::getSetting(int area, int sel) const noexcept {
 
 void LogManager::saveSetting(int area, int sel, const string& setting) const noexcept {
 	SettingsManager::getInstance()->set(static_cast<SettingsManager::StrSetting>(options[area][sel]), setting);
+}
+
+string LogManager::readFromEnd(const string& aPath, int aMaxLines, int64_t aBufferSize) noexcept {
+	if (aMaxLines == 0) {
+		return Util::emptyString;
+	}
+
+	string ret;
+	try {
+		File f(aPath, File::READ, File::OPEN);
+
+		auto buf = f.readFromEnd(aBufferSize);
+
+		StringList lines;
+		if (strnicmp(buf.c_str(), "\xef\xbb\xbf", 3) == 0) {
+			// Remove UTF-8 BOM
+			lines = StringTokenizer<string>(buf.substr(3), "\r\n", true).getTokens();
+		} else {
+			lines = StringTokenizer<string>(buf, "\r\n", true).getTokens();
+		}
+
+		int linesCount = lines.size();
+
+		int i = max(linesCount - aMaxLines - 1, 0); // The last line will always be empty
+		for (; i < linesCount; ++i) {
+			ret += lines[i] + "\r\n";
+		}
+	} catch (const FileException&) {
+	}
+
+	return ret;
 }
 
 void LogManager::log(const string& area, const string& msg) noexcept {

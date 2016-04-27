@@ -23,12 +23,12 @@
 
 #include "DownloadManagerListener.h"
 #include "UserConnectionListener.h"
-#include "TimerManager.h"
+#include "TimerManagerListener.h"
 #include "Singleton.h"
 #include "Speaker.h"
 
-#include "Bundle.h"
 #include "CriticalSection.h"
+#include "Bundle.h"
 #include "MerkleTree.h"
 
 namespace dcpp {

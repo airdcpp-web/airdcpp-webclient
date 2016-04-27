@@ -19,37 +19,34 @@
 #ifndef DCPLUSPLUS_DCPP_SHARE_MANAGER_H
 #define DCPLUSPLUS_DCPP_SHARE_MANAGER_H
 
-#include <string>
-#include "TimerManager.h"
-#include "SettingsManager.h"
-#include "QueueManagerListener.h"
-#include "ShareManagerListener.h"
 
-#include "SearchQuery.h"
+#include "DirectoryMonitorListener.h"
+#include "QueueManagerListener.h"
+#include "SettingsManagerListener.h"
+#include "ShareManagerListener.h"
+#include "TimerManagerListener.h"
+
 #include "BloomFilter.h"
 #include "CriticalSection.h"
+#include "DirectoryMonitor.h"
+#include "DualString.h"
 #include "DupeType.h"
 #include "Exception.h"
-#include "Flags.h"
 #include "HashBloom.h"
 #include "HashedFile.h"
-#include "LogManager.h"
 #include "MerkleTree.h"
 #include "Pointer.h"
-#include "SearchManager.h"
-#include "Singleton.h"
+#include "SearchQuery.h"
+#include "ShareDirectoryInfo.h"
 #include "ShareProfile.h"
+#include "Singleton.h"
 #include "SortedVector.h"
 #include "StringMatch.h"
 #include "StringSearch.h"
 #include "TaskQueue.h"
 #include "Thread.h"
+#include "TimerManager.h"
 #include "UserConnection.h"
-
-#include "DirectoryMonitor.h"
-#include "DirectoryMonitorListener.h"
-#include "DualString.h"
-#include "ShareDirectoryInfo.h"
 
 namespace dcpp {
 

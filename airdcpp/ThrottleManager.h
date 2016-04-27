@@ -16,12 +16,11 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef _THROTTLEMANAGER_H
-#define _THROTTLEMANAGER_H
+#ifndef DCPLUSPLUS_DCPP_THROTTLEMANAGER_H
+#define DCPLUSPLUS_DCPP_THROTTLEMANAGER_H
 
 #include "Singleton.h"
-#include "Socket.h"
-#include "TimerManager.h"
+#include "TimerManagerListener.h"
 #include "SettingsManager.h"
 
 namespace dcpp
@@ -61,23 +60,19 @@ namespace dcpp
 		// stack up throttled read & write threads
 		CriticalSection stateCS;
 		CriticalSection waitCS[2];
-		long activeWaiter;
+		long activeWaiter = -1;
 
 		// download limiter
 		CriticalSection	downCS;
-		int64_t			downTokens;
+		int64_t			downTokens = 0;
 
 		// upload limiter
 		CriticalSection	upCS;
-		int64_t			upTokens;
+		int64_t			upTokens = 0;
 
 		friend class Singleton<ThrottleManager>;
 
-		ThrottleManager() : activeWaiter(-1), downTokens(0), upTokens(0)
-		{
-			TimerManager::getInstance()->addListener(this);
-		}
-
+		ThrottleManager();
 		virtual ~ThrottleManager();
 
 		bool getCurThrottling();

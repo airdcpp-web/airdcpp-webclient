@@ -37,6 +37,7 @@
 #include "ScopedFunctor.h"
 #include "SearchManager.h"
 #include "ResourceManager.h"
+#include "TimerManager.h"
 #include "version.h"
 
 namespace dcpp {

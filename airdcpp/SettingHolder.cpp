@@ -18,6 +18,7 @@
 
 #include "stdinc.h"
 
+#include "ClientManager.h"
 #include "ConnectivityManager.h"
 #include "GeoManager.h"
 #include "QueueManager.h"

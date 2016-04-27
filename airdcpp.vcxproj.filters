@@ -865,6 +865,12 @@
     <ClInclude Include="airdcpp\HashManagerListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="airdcpp\TimerManagerListener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\SettingsManagerListener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="airdcpp\StringDefs.h">

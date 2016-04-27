@@ -36,6 +36,7 @@
 #include "QueueManager.h"
 #include "ResourceManager.h"
 #include "ScopedFunctor.h"
+#include "SearchManager.h"
 #include "ShareManager.h"
 #include "SSLSocket.h"
 #include "StringTokenizer.h"
@@ -87,7 +88,7 @@ void AdcHub::shutdown(ClientPtr& aClient, bool aRedirect) {
 	TimerManager::getInstance()->removeListener(this);
 }
 
-size_t AdcHub::getUserCount() const { 
+size_t AdcHub::getUserCount() const noexcept { 
 	RLock l(cs); 
 	//return users.size();
 	size_t userCount = 0;
@@ -99,7 +100,7 @@ size_t AdcHub::getUserCount() const {
 	return userCount;
 }
 
-OnlineUser& AdcHub::getUser(const uint32_t aSID, const CID& aCID) {
+OnlineUser& AdcHub::getUser(const uint32_t aSID, const CID& aCID) noexcept {
 	OnlineUser* ou = findUser(aSID);
 	if(ou) {
 		return *ou;
@@ -119,13 +120,13 @@ OnlineUser& AdcHub::getUser(const uint32_t aSID, const CID& aCID) {
 	return *ou;
 }
 
-OnlineUser* AdcHub::findUser(const uint32_t aSID) const {
+OnlineUser* AdcHub::findUser(const uint32_t aSID) const noexcept {
 	RLock l(cs);
 	auto i = users.find(aSID);
 	return i == users.end() ? nullptr : i->second;
 }
 
-OnlineUser* AdcHub::findUser(const CID& aCID) const {
+OnlineUser* AdcHub::findUser(const CID& aCID) const noexcept {
 	RLock l(cs);
 	for(const auto& ou: users | map_values) {
 		if(ou->getUser()->getCID() == aCID) {
@@ -135,7 +136,7 @@ OnlineUser* AdcHub::findUser(const CID& aCID) const {
 	return 0;
 }
 
-void AdcHub::getUserList(OnlineUserList& list, bool aListHidden) const {
+void AdcHub::getUserList(OnlineUserList& list, bool aListHidden) const noexcept {
 	RLock l(cs);
 	for(const auto& i: users) {
 		if (i.first == AdcCommand::HUB_SID) {
@@ -150,7 +151,7 @@ void AdcHub::getUserList(OnlineUserList& list, bool aListHidden) const {
 	}
 }
 
-void AdcHub::putUser(const uint32_t aSID, bool disconnect) {
+void AdcHub::putUser(const uint32_t aSID, bool disconnect) noexcept {
 	OnlineUser* ou = nullptr;
 	{
 		WLock l(cs);
@@ -950,7 +951,7 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 		statusMessage(STRING_F(HBRI_VALIDATION_FAILED, STRING(CONNECTION_TIMEOUT) % (v6 ? "IPv6" : "IPv4")), LogMessage::SEV_ERROR);
 }
 
-int AdcHub::connect(const OnlineUser& user, const string& token, string& lastError_) {
+int AdcHub::connect(const OnlineUser& user, const string& token, string& lastError_) noexcept {
 	bool allowSecure = CryptoManager::getInstance()->TLSOk() && user.getUser()->isSet(User::TLS);
 	auto conn = allowConnect(user, allowSecure, lastError_, true);
 	if (conn == AdcCommand::SUCCESS) {
@@ -960,7 +961,7 @@ int AdcHub::connect(const OnlineUser& user, const string& token, string& lastErr
 	return conn;
 }
 
-bool AdcHub::checkProtocol(const OnlineUser& aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken) {
+bool AdcHub::checkProtocol(const OnlineUser& aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken) noexcept {
 	string failedProtocol;
 	AdcCommand::Error errCode = AdcCommand::SUCCESS;
 
@@ -997,7 +998,7 @@ bool AdcHub::checkProtocol(const OnlineUser& aUser, bool& secure_, const string&
 	return true;
 }
 
-AdcCommand::Error AdcHub::allowConnect(const OnlineUser& aUser, bool aSecure, string& failedProtocol_, bool checkBase) const {
+AdcCommand::Error AdcHub::allowConnect(const OnlineUser& aUser, bool aSecure, string& failedProtocol_, bool checkBase) const noexcept {
 	//check the state
 	if(!stateNormal())
 		return AdcCommand::ERROR_BAD_STATE;
@@ -1044,7 +1045,7 @@ AdcCommand::Error AdcHub::allowConnect(const OnlineUser& aUser, bool aSecure, st
 	return AdcCommand::SUCCESS;
 }
 
-void AdcHub::connect(const OnlineUser& aUser, const string& aToken, bool aSecure, bool aReplyingRCM) {
+void AdcHub::connect(const OnlineUser& aUser, const string& aToken, bool aSecure, bool aReplyingRCM) noexcept {
 	const string* proto = aSecure ? &SECURE_CLIENT_PROTOCOL_TEST : &CLIENT_PROTOCOL;
 
 	if (aReplyingRCM || (aUser.getIdentity().allowV6Connections() && getMyIdentity().isTcp6Active()) || (aUser.getIdentity().allowV4Connections() && getMyIdentity().isTcp4Active())) {
@@ -1064,7 +1065,7 @@ void AdcHub::connect(const OnlineUser& aUser, const string& aToken, bool aSecure
 	}
 }
 
-bool AdcHub::hubMessage(const string& aMessage, string& error_, bool thirdPerson) {
+bool AdcHub::hubMessage(const string& aMessage, string& error_, bool thirdPerson) noexcept {
 	if(!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
@@ -1083,7 +1084,7 @@ bool AdcHub::hubMessage(const string& aMessage, string& error_, bool thirdPerson
 	return true;
 }
 
-bool AdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) {
+bool AdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept {
 	if(!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
@@ -1122,7 +1123,7 @@ void AdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {
 	}
 }
 
-const vector<StringList>& AdcHub::getSearchExts() {
+const vector<StringList>& AdcHub::getSearchExts() noexcept {
 	if(!searchExtensions.empty())
 		return searchExtensions;
 
@@ -1141,7 +1142,7 @@ const vector<StringList>& AdcHub::getSearchExts() {
 	return searchExtensions;
 }
 
-StringList AdcHub::parseSearchExts(int flag) {
+StringList AdcHub::parseSearchExts(int flag) noexcept {
 	StringList ret;
 	const auto& searchExts = getSearchExts();
 	for(auto i = searchExts.cbegin(), iend = searchExts.cend(); i != iend; ++i) {
@@ -1152,7 +1153,7 @@ StringList AdcHub::parseSearchExts(int flag) {
 	return ret;
 }
 
-void AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch) {
+void AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch) noexcept {
 	if(!stateNormal())
 		return;
 
@@ -1182,7 +1183,7 @@ void AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch) {
 	send(c);
 }
 
-void AdcHub::constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDirect) {
+void AdcHub::constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDirect) noexcept {
 	if(!aSearch->token.empty())
 		c.addParam("TO", Util::toString(getClientId()) + "/" + aSearch->token);
 
@@ -1305,7 +1306,7 @@ void AdcHub::constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDir
 	}
 }
 
-void AdcHub::search(const SearchPtr& s) {
+void AdcHub::search(const SearchPtr& s) noexcept {
 	if(!stateNormal())
 		return;
 
@@ -1340,7 +1341,7 @@ void AdcHub::sendSearch(AdcCommand& c) {
 	}
 }
 
-void AdcHub::password(const string& pwd) {
+void AdcHub::password(const string& pwd) noexcept {
 	if(getConnectState() != STATE_VERIFY)
 		return;
 
@@ -1361,7 +1362,7 @@ void AdcHub::password(const string& pwd) {
 	}
 }
 
-static void addParam(StringMap& lastInfoMap, AdcCommand& c, const string& var, const string& value) {
+static void addParam(StringMap& lastInfoMap, AdcCommand& c, const string& var, const string& value) noexcept {
 	auto i = lastInfoMap.find(var);
 	if(i != lastInfoMap.end()) {
 		if(i->second != value) {
@@ -1378,7 +1379,7 @@ static void addParam(StringMap& lastInfoMap, AdcCommand& c, const string& var, c
 	}
 }
 
-void AdcHub::appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6) {
+void AdcHub::appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6) noexcept {
 	if (v4) {
 		if(CONNSETTING(NO_IP_OVERRIDE) && !getUserIp4().empty()) {
 			addParam(aLastInfoMap, c, "I4", Socket::resolve(getUserIp4(), AF_INET));
@@ -1414,7 +1415,7 @@ void AdcHub::appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4,
 	}
 }
 
-void AdcHub::infoImpl() {
+void AdcHub::infoImpl() noexcept {
 	if(getConnectState() != STATE_IDENTIFY && getConnectState() != STATE_NORMAL)
 		return;
 
@@ -1506,7 +1507,7 @@ void AdcHub::infoImpl() {
 	}
 }
 
-void AdcHub::refreshUserList(bool) {
+void AdcHub::refreshUserList(bool) noexcept {
 	OnlineUserList v;
 
 	RLock l(cs);
@@ -1518,7 +1519,7 @@ void AdcHub::refreshUserList(bool) {
 	fire(ClientListener::UsersUpdated(), this, v);
 }
 
-string AdcHub::checkNick(const string& aNick) {
+string AdcHub::checkNick(const string& aNick) noexcept {
 	string tmp = aNick;
 	for(size_t i = 0; i < aNick.size(); ++i) {
 		if(static_cast<uint8_t>(tmp[i]) <= 32) {
@@ -1589,7 +1590,7 @@ void AdcHub::on(Second s, uint64_t aTick) noexcept {
 	}
 }
 
-OnlineUserPtr AdcHub::findUser(const string& aNick) const { 
+OnlineUserPtr AdcHub::findUser(const string& aNick) const noexcept {
 	RLock l(cs); 
 	for(auto ou: users | map_values) { 
 		if(ou->getIdentity().getNick() == aNick) { 

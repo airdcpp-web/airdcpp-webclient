@@ -19,7 +19,11 @@
 #include "stdinc.h"
 
 #include "ViewFileManager.h"
+
+#include "ClientManager.h"
+#include "LogManager.h"
 #include "QueueManager.h"
+#include "ShareManager.h"
 
 #include <boost/range/algorithm/copy.hpp>
 
