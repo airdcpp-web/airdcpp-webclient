@@ -1161,6 +1161,7 @@ int DirectoryListing::loadShareDirectory(const string& aPath, bool aRecurse) thr
 
 bool DirectoryListing::changeDirectory(const string& aPath, ReloadMode aReloadMode, bool aIsSearchChange) noexcept {
 	// Cases when the directory can't be found must be handled when searching in partial lists 
+	// or when opening directories from search (or via the API) for existing filelists
 	const auto dir = findDirectory(aPath, root);
 
 	if (dir && (!partialList || dir->getLoading() || (dir->isComplete() && aReloadMode == RELOAD_NONE))) {

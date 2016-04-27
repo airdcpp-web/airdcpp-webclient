@@ -19,6 +19,7 @@
 #include "stdinc.h"
 
 #include <boost/range/numeric.hpp>
+#include <boost/range/algorithm/count_if.hpp>
 
 #include "AirUtil.h"
 #include "BundleQueue.h"
@@ -73,7 +74,7 @@ BundlePtr BundleQueue::findBundle(QueueToken bundleToken) const noexcept {
 }
 
 DupeType BundleQueue::isDirQueued(const string& aPath, int64_t aSize) const noexcept {
-	PathInfoList infos;
+	PathInfoPtrList infos;
 	findRemoteDirs(aPath, infos);
 
 	if (infos.empty())
@@ -99,7 +100,7 @@ size_t BundleQueue::getDirectoryCount(const BundlePtr& aBundle) const noexcept {
 }
 
 StringList BundleQueue::getDirPaths(const string& aPath) const noexcept {
-	PathInfoList infos;
+	PathInfoPtrList infos;
 	findRemoteDirs(aPath, infos);
 
 	StringList ret;
@@ -110,7 +111,7 @@ StringList BundleQueue::getDirPaths(const string& aPath) const noexcept {
 	return ret;
 }
 
-void BundleQueue::findRemoteDirs(const string& aPath, PathInfoList& pathInfos_) const noexcept {
+void BundleQueue::findRemoteDirs(const string& aPath, PathInfoPtrList& pathInfos_) const noexcept {
 	// Get the last meaningful directory to look up
 	auto dirNameInfo = AirUtil::getDirName(aPath, '\\');
 	auto directories = dirNameMap.equal_range(dirNameInfo.first);
@@ -225,6 +226,12 @@ void BundleQueue::getSearchItems(const BundlePtr& aBundle, map<string, QueueItem
 	}
 }
 
+BundleQueue::PathInfo* BundleQueue::addPathInfo(const string& aPath, const BundlePtr& aBundle) noexcept {
+	auto info = &dirNameMap.emplace(Util::getLastDir(aPath), PathInfo(aPath, aBundle))->second;
+	bundlePaths[aBundle].push_back(info);
+	return info;
+}
+
 void BundleQueue::removePathInfo(const PathInfo* aPathInfo) noexcept {
 	auto& pathInfos = bundlePaths[aPathInfo->bundle];
 	pathInfos.erase(find(pathInfos, aPathInfo));
@@ -239,21 +246,21 @@ void BundleQueue::removePathInfo(const PathInfo* aPathInfo) noexcept {
 	}
 }
 
-void BundleQueue::forEachPath(const BundlePtr& aBundle, const string& aPath, PathInfoHandler&& aHandler) noexcept {
-	auto currentPath = Util::getFilePath(aPath);
+void BundleQueue::forEachPath(const BundlePtr& aBundle, const string& aFilePath, PathInfoHandler&& aHandler) noexcept {
+	auto currentPath = Util::getFilePath(aFilePath);
 	auto& pathInfos = bundlePaths[aBundle];
 
 	while (true) {
 		dcassert(currentPath.find(aBundle->getTarget()) != string::npos);
 
+		// TODO: make this case insensitive
 		auto infoIter = find_if(pathInfos, [&](const PathInfo* aInfo) { return aInfo->path == currentPath; });
 
 		PathInfo* info;
 
 		// New pathinfo?
 		if (infoIter == pathInfos.end()) {
-			info = &dirNameMap.emplace(Util::getLastDir(currentPath), PathInfo(currentPath, aBundle))->second;
-			pathInfos.push_back(info);
+			info = addPathInfo(currentPath, aBundle);
 		} else {
 			info = *infoIter;
 		}
@@ -266,7 +273,7 @@ void BundleQueue::forEachPath(const BundlePtr& aBundle, const string& aPath, Pat
 			removePathInfo(info);
 		}
 
-		if (currentPath == aBundle->getTarget()) {
+		if (Util::stricmp(currentPath, aBundle->getTarget()) == 0) {
 			break;
 		}
 
@@ -302,6 +309,7 @@ void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool finished) noexcept {
 			} else {
 				aInfo.queuedFiles--;
 			}
+
 			aInfo.size -= aQI->getSize();
 		});
 	}
@@ -326,7 +334,7 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 	removeSearchPrio(aBundle);
 	bundles.erase(aBundle->getToken());
 
-	dcassert(bundlePaths.size() == bundles.size());
+	dcassert(bundlePaths.size() == static_cast<size_t>(boost::count_if(bundles | map_values, [](const BundlePtr& b) { return !b->isFileBundle(); })));
 
 	aBundle->deleteXmlFile();
 }
