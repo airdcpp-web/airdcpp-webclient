@@ -21,6 +21,7 @@
 #include <api/common/Deserializer.h>
 #include <api/common/Serializer.h>
 
+#include <airdcpp/ClientManager.h>
 #include <airdcpp/ScopedFunctor.h>
 
 namespace webserver {
