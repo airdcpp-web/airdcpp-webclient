@@ -2,7 +2,7 @@
 
 # AirDC++ Web Client
 
-AirDC++ Web Client is a locally installed application, which is designed for frequent sharing of large files or directories within a group of people in a local network or over internet.
+AirDC++ Web Client is a locally installed application, which is designed for frequent sharing of files or directories within groups of people in a local network or over internet.
 
 The application can be installed on different types of systems, such as on file servers/NAS devices or normal computers. It's managed via a web browser with a responsive user interface.
 
