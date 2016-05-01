@@ -2,9 +2,9 @@
 
 # AirDC++ Web Client
 
-AirDC++ Web Client is a cross-platform peer-to-peer file sharing client which allows sharing files with groups of people. 
+AirDC++ Web Client is a locally installed application, which is designed for frequent sharing of large files or directories within a group of people in a local network or over internet.
 
-The client can be installed on a normal computer or file server and accessed with a responsive web-based user interface (optimized also for mobile devices).
+The application can be installed on different types of systems, such as on file servers/NAS devices or normal computers. It's managed via a web browser with a responsive user interface.
 
 ### Key functionality
 
@@ -17,16 +17,22 @@ The client can be installed on a normal computer or file server and accessed wit
 
 ## [Try the online demo](http://webdemo.airdcpp.net)
 
+AirDC++ Web Client wraps the following subprojects:
+
+* [AirDC++ Core](https://github.com/airdcpp/airdcpp-core)
+* [AirDC++ Web API](https://github.com/airdcpp/airdcpp-webapi)
+* [AirDC++ Web UI](https://github.com/airdcpp-web/airdcpp-webui)
 
 ## Resources
 
-* [Installation guide](/INSTALL.md)
-* [Reporting issues](/ISSUES.md)
+* [Home page](https://airdcpp-web.github.io)
+* [Installation guide](https://airdcpp-web.github.io/docs/installation/installation.html)
+* [Reporting issues](https://airdcpp-web.github.io/docs/general/reporting-issues.html)
 
-### Feature requests or questions?
+## Feature requests or questions?
 
 The issue tracker can be used for feature requests and questions as well.
 
-### Contributing
+## Contributing
 
 Pull requests should be submitted to the `develop` branch. 
