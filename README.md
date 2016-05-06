@@ -31,7 +31,7 @@ AirDC++ Web Client wraps the following subprojects:
 
 ## Feature requests or questions?
 
-The issue tracker can be used for feature requests and questions as well.
+The issue tracker can be used for feature requests and questions as well. You may also upvote existing feature requests to increase  their likelihood for being implemented.
 
 ## Contributing
 
