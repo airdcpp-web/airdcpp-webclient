@@ -26,9 +26,11 @@
 #include <airdcpp/ConnectivityManager.h>
 #include <airdcpp/DirectoryListingManager.h>
 #include <airdcpp/FavoriteManager.h>
-#include <airdcpp/UpdateManager.h>
+#include <airdcpp/LogManager.h>
 #include <airdcpp/SettingsManager.h>
 #include <airdcpp/TimerManager.h>
+#include <airdcpp/UpdateManager.h>
+
 
 #include <web-server/WebServerManager.h>
 
