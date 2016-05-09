@@ -20,6 +20,8 @@
 #define DCPLUSPLUS_DCPP_QUEUE_ITEM_H
 
 #include "QueueItemBase.h"
+
+#include "Bundle.h"
 #include "FastAlloc.h"
 #include "HintedUser.h"
 #include "MerkleTree.h"

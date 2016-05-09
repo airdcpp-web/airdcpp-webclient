@@ -384,6 +384,12 @@ void Client::on(Failed, const string& aLine) noexcept {
 	fire(ClientListener::Failed(), getHubUrl(), aLine);
 }
 
+void Client::callAsync(AsyncF f) noexcept {
+	if (sock) {
+		sock->callAsync(move(f));
+	}
+}
+
 void Client::disconnect(bool graceLess) noexcept {
 	if(sock) 
 		sock->disconnect(graceLess);
