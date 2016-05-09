@@ -36,6 +36,7 @@
 #include "MerkleTree.h"
 #include "Pointer.h"
 #include "QueueItemBase.h"
+#include "SearchQuery.h"
 #include "TaskQueue.h"
 #include "UserInfoBase.h"
 #include "Streams.h"

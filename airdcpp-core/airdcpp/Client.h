@@ -83,8 +83,7 @@ public:
 	
 	virtual bool send(const AdcCommand& command) = 0;
 
-	template<typename F>
-	void callAsync(F f) { if(sock) sock->callAsync(f); }
+	void callAsync(AsyncF f) noexcept;
 
 	bool isConnected() const noexcept;
 	bool isSecure() const noexcept;

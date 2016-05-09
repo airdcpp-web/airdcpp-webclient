@@ -165,7 +165,7 @@ string LogManager::readFromEnd(const string& aPath, int aMaxLines, int64_t aBuff
 		auto buf = f.readFromEnd(aBufferSize);
 
 		StringList lines;
-		if (strnicmp(buf.c_str(), "\xef\xbb\xbf", 3) == 0) {
+		if (Util::strnicmp(buf.c_str(), "\xef\xbb\xbf", 3) == 0) {
 			// Remove UTF-8 BOM
 			lines = StringTokenizer<string>(buf.substr(3), "\r\n", true).getTokens();
 		} else {
