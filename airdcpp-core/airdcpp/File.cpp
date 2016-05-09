@@ -71,10 +71,6 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 	}
 }
 
-File::~File() {
-	File::close(); 
-}
-
 uint64_t File::getLastModified() const noexcept {
 	FILETIME f = {0};
 	::GetFileTime(h, NULL, NULL, &f);
