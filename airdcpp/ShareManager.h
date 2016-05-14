@@ -126,8 +126,8 @@ public:
 	// Refresh the whole share or in
 	RefreshResult refresh(bool incoming, RefreshType aType = RefreshType::TYPE_MANUAL, function<void(float)> progressF = nullptr) noexcept;
 
-	// Refresh a single single path or all paths under a virtual name
-	RefreshResult refreshVirtual(const string& aDir) noexcept;
+	// Refresh a single single path or all paths under a virtual name (roots only)
+	RefreshResult refreshVirtualName(const string& aDir) noexcept;
 
 	// Refresh the specific directories
 	// This validates that each path exists
@@ -159,7 +159,8 @@ public:
 	bool isFileShared(const TTHValue& aTTH, ProfileToken aProfile) const noexcept;
 	bool isRealPathShared(const string& aPath) const noexcept;
 
-	bool allowAddDir(const string& dir) const noexcept;
+	// Returns true if the real path can be added in share
+	bool allowAddDir(const string& aPath) const noexcept;
 
 	// Returns the dupe paths by directory name/NMDC path
 	StringList getDirPaths(const string& aDir) const noexcept;
@@ -190,7 +191,7 @@ public:
 	bool isTTHShared(const TTHValue& tth) const noexcept;
 
 	// Get real paths for an ADC virtual path
-	void getRealPaths(const string& path, StringList& ret, ProfileToken aProfile) const throw(ShareException);
+	void getRealPaths(const string& path, StringList& ret, const OptionalProfileToken& aProfile = boost::none) const throw(ShareException);
 
 	StringList getRealPaths(const TTHValue& root) const noexcept;
 
