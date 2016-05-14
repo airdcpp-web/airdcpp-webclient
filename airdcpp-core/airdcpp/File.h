@@ -80,6 +80,7 @@ public:
 #endif // !_WIN32
 
 	File(const string& aFileName, int access, int mode, BufferMode aBufferMode = BUFFER_SEQUENTIAL, bool isAbsolute = true, bool isDirectory = false);
+	~File();
 
 	bool isOpen() const noexcept;
 	void close() noexcept;
@@ -102,7 +103,7 @@ public:
 	static void copyFile(const string& src, const string& target);
 	static void renameFile(const string& source, const string& target);
 	static bool deleteFile(const string& aFileName) noexcept;
-	static bool deleteFileEx(const string& aFileName, int maxAttempts = 3, bool keepDirDate = false) noexcept;
+	static bool deleteFileEx(const string& aFileName, int maxAttempts = 3) noexcept;
 
 	static uint64_t getLastModified(const string& path) noexcept;
 	static int64_t getSize(const string& aFileName) noexcept;
@@ -123,8 +124,6 @@ public:
 
 	static bool isAbsolutePath(const string& path) noexcept;
 	static bool isHidden(const string& path) noexcept;
-
-	virtual ~File() { File::close(); }
 
 	string readFromEnd(size_t len);
 	string read(size_t len);
@@ -147,27 +146,6 @@ protected:
 #else
 	int h;
 #endif
-};
-
-class TimeKeeper 
-#ifdef _WIN32
-	: private File 
-#endif
-{
-public:
-	static TimeKeeper* createKeeper(const string& aPath) noexcept;
-	TimeKeeper(const string& aPath);
-	~TimeKeeper();
-private:
-
-#ifdef _WIN32
-	bool initialized;
-	FILETIME time;
-#else
-	time_t time;
-	string path;
-#endif
-
 };
 
 class FileFindIter {

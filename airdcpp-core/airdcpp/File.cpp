@@ -216,18 +216,6 @@ bool File::deleteFile(const string& aFileName) noexcept {
 	return ::DeleteFile(Text::toT(Util::FormatPath(aFileName)).c_str()) > 0 ? true : false;
 }
 
-TimeKeeper::TimeKeeper(const string& aPath) : initialized(false), File(aPath, File::RW, File::OPEN | File::SHARED_WRITE, File::BUFFER_NONE, true, true) {
-	if (::GetFileTime(h, NULL, NULL, &time) > 0)
-		initialized = true;
-}
-
-TimeKeeper::~TimeKeeper() {
-	if (!initialized)
-		return;
-
-	::SetFileTime(h, NULL, NULL, &time);
-}
-
 void File::removeDirectory(const string& aPath) noexcept {
 	::RemoveDirectory(Text::toT(Util::FormatPath(aPath)).c_str());
 }
@@ -558,20 +546,11 @@ bool File::isHidden(const string& aPath) noexcept {
 	return aPath.find("/.") != string::npos;
 }
 
-TimeKeeper::TimeKeeper(const string& aPath) : path(Text::fromUtf8(aPath)), time(File::getLastModified(path)) {
-}
-
-TimeKeeper::~TimeKeeper() {
-	if (time == 0)
-		return;
-
-	struct utimbuf ubuf;
-	ubuf.modtime = time;
-	::time(&ubuf.actime); 
-	utime(path.c_str(), &ubuf);
-}
-
 #endif // !_WIN32
+
+File::~File() {
+	File::close();
+}
 
 std::string File::makeAbsolutePath(const std::string& filename) {
 	return makeAbsolutePath(Util::getAppFilePath() + PATH_SEPARATOR, filename);
@@ -581,23 +560,7 @@ std::string File::makeAbsolutePath(const std::string& path, const std::string& f
 	return isAbsolutePath(filename) ? filename : path + filename;
 }
 
-TimeKeeper* TimeKeeper::createKeeper(const string& aPath) noexcept{
-	TimeKeeper* ret = nullptr;
-	try {
-		ret = new TimeKeeper(aPath);
-		return ret;
-	} catch (FileException & /*e*/) {
-		delete ret;
-		return nullptr;
-	}
-}
-
-bool File::deleteFileEx(const string& aFileName, int maxAttempts, bool keepFolderDate /*false*/) noexcept {
-	unique_ptr<TimeKeeper> keeper;
-	if (keepFolderDate) {
-		keeper.reset(TimeKeeper::createKeeper(Util::getFilePath(aFileName)));
-	}
-
+bool File::deleteFileEx(const string& aFileName, int maxAttempts) noexcept {
 	bool success = false;
 	for (int i = 0; i < maxAttempts && (success = deleteFile(aFileName)) == false; ++i)
 		Thread::sleep(1000);
