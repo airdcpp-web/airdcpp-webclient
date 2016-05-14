@@ -68,11 +68,10 @@ namespace webserver {
 
 	api_return ShareApi::handleRefreshVirtual(ApiRequest& aRequest) {
 		auto path = JsonUtil::getField<string>("path", aRequest.getRequestBody(), false);
-		auto profile = JsonUtil::getField<ProfileToken>("profile", aRequest.getRequestBody());
 
 		StringList refreshPaths;
 		try {
-			ShareManager::getInstance()->getRealPaths(path, refreshPaths, profile);
+			ShareManager::getInstance()->getRealPaths(path, refreshPaths);
 		} catch (const ShareException& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::bad_request;
