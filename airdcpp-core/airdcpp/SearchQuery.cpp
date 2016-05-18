@@ -237,13 +237,9 @@ SearchQuery::SearchQuery(const TTHValue& aRoot) noexcept : root(aRoot) {
 SearchQuery::SearchQuery(const string& aSearch, const StringList& aExcluded, const StringList& aExt, Search::MatchType aMatchType) noexcept : matchType(aMatchType) {
 
 	//add included
-	if (matchType == Search::MATCH_NAME_EXACT) {
-		include.addString(aSearch);
-	} else {
-		auto inc = move(parseSearchString(aSearch));
-		for(auto& i: inc)
-			include.addString(i);
-	}
+	auto inc = move(parseSearchString(aSearch));
+	for(auto& i: inc)
+		include.addString(i);
 
 
 	//add excluded
@@ -344,16 +340,17 @@ bool SearchQuery::matchesFileLower(const string& aName, int64_t aSize, uint64_t 
 		return false;
 	}
 
-	if (matchType == Search::MATCH_NAME_EXACT) {
-		if (compare(include.getPatterns().front().str(), aName) != 0)
-			return false;
-	} else {
-		resetPositions();
-		lastIncludeMatches = include.matchLower(aName, recursion ? true : false, &lastIncludePositions);
-		dcassert(count(lastIncludePositions.begin(), lastIncludePositions.end(), string::npos) == (int)include.count() - lastIncludeMatches);
-		if (!positionsComplete())
-			return false;
+	// Validate exact matches first
+	if (matchType == Search::MATCH_NAME_EXACT && compare(include.getPatterns().front().str(), aName) != 0) {
+		return false;
 	}
+
+	// Matching and positions
+	resetPositions();
+	lastIncludeMatches = include.matchLower(aName, recursion ? true : false, &lastIncludePositions);
+	dcassert(count(lastIncludePositions.begin(), lastIncludePositions.end(), string::npos) == (int)include.count() - lastIncludeMatches);
+	if (!positionsComplete())
+		return false;
 
 	// Check file type...
 	if (!hasExt(aName))

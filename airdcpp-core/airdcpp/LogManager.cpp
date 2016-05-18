@@ -162,7 +162,7 @@ string LogManager::readFromEnd(const string& aPath, int aMaxLines, int64_t aBuff
 	try {
 		File f(aPath, File::READ, File::OPEN);
 
-		auto buf = f.readFromEnd(aBufferSize);
+		auto buf = f.readFromEnd(static_cast<size_t>(aBufferSize));
 
 		StringList lines;
 		if (Util::strnicmp(buf.c_str(), "\xef\xbb\xbf", 3) == 0) {
