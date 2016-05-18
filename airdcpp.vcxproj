@@ -585,6 +585,15 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
     </ProjectReference>
+    <ProjectReference Include="..\miniupnpc\miniupnpc.vcxproj">
+      <Project>{51015502-c27c-43cf-9fa4-12ab9db5d36e}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\natpmp\natpmp.vcxproj">
+      <Project>{6bd1d0b7-ec0c-4473-533b-5ec961138415}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\snappy\Snappy.vcxproj">
+      <Project>{b60e6ad9-779d-4cb4-8dab-f86d7dae0752}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

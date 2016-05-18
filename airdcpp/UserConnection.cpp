@@ -158,13 +158,14 @@ void UserConnection::connect(const Socket::AddressInfo& aServer, const string& a
 	socket = BufferedSocket::getSocket(0);
 	socket->addListener(this);
 
-	string expKP;
+	//string expKP;
 	if (aUser) {
-		expKP = ClientManager::getInstance()->getField(aUser->getCID(), hubUrl, "KP");
+		// @see UserConnection::accept, additionally opt to treat connections in both directions identically to avoid unforseen issues
+		//expKP = ClientManager::getInstance()->getField(aUser->getCID(), hubUrl, "KP");
 		setUser(aUser);
 	}
 
-	socket->connect(aServer, aPort, localPort, natRole, secure, SETTING(ALLOW_UNTRUSTED_CLIENTS), true, expKP);
+	socket->connect(aServer, aPort, localPort, natRole, secure, /*SETTING(ALLOW_UNTRUSTED_CLIENTS)*/ true, true);
 }
 
 int64_t UserConnection::getChunkSize() const {
