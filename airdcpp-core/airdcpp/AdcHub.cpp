@@ -1431,7 +1431,7 @@ void AdcHub::infoImpl() noexcept {
 	addParam(lastInfoMap, c, "ID", ClientManager::getInstance()->getMyCID().toBase32());
 	addParam(lastInfoMap, c, "PD", ClientManager::getInstance()->getMyPID().toBase32());
 	addParam(lastInfoMap, c, "NI", get(Nick));
-	addParam(lastInfoMap, c, "DE", getDescription());
+	addParam(lastInfoMap, c, "DE", get(Description));
 	addParam(lastInfoMap, c, "SL", Util::toString(UploadManager::getInstance()->getSlots()));
 	addParam(lastInfoMap, c, "FS", Util::toString(UploadManager::getInstance()->getFreeSlots()));
 
