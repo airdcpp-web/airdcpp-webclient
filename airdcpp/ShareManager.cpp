@@ -1719,17 +1719,8 @@ void ShareManager::validateRootPath(const string& realPath) const throw(ShareExc
 	}
 }
 
-void ShareManager::getChildrenByVirtual(const string& aVirtualPath, const OptionalProfileToken& aProfile, Directory::List& dirs_) const throw(ShareException) {
-	if (aVirtualPath == "/") {
-		copy(rootPaths | map_values | filtered(Directory::HasRootProfile(aProfile)), back_inserter(dirs_));
-		return;
-	}
-
-	Directory::List result;
-	findVirtuals<OptionalProfileToken>(aVirtualPath, aProfile, result);
-	for (const auto& it : result) {
-		copy(it->directories, back_inserter(dirs_));
-	}
+void ShareManager::getRoots(const OptionalProfileToken& aProfile, Directory::List& dirs_) const noexcept {
+	copy(rootPaths | map_values | filtered(Directory::HasRootProfile(aProfile)), back_inserter(dirs_));
 }
 
 void ShareManager::getRootsByVirtual(const string& aVirtualName, const OptionalProfileToken& aProfile, Directory::List& dirs_) const noexcept {
@@ -2844,37 +2835,49 @@ MemoryInputStream* ShareManager::generatePartialList(const string& aVirtualPath,
 }
 
 void ShareManager::toFilelist(OutputStream& os_, const string& aVirtualPath, const OptionalProfileToken& aProfile, bool aRecursive) const {
-	FileListDir root(Util::emptyString, 0, 0);
-
-	Directory::List directories;
+	FileListDir listRoot(Util::emptyString, 0, 0);
+	Directory::List childDirectories;
 
 	RLock l(cs);
 	dcdebug("Generating filelist for %s \n", aVirtualPath.c_str());
-	try {
-		getChildrenByVirtual(aVirtualPath, aProfile, directories);
-	} catch (...) {
-		return;
+
+	// Get the directories
+	if (aVirtualPath == "/") {
+		getRoots(aProfile, childDirectories);
+	} else {
+		try {
+			// We need to save the root directories as well for listing the files directly inside them
+			findVirtuals<OptionalProfileToken>(aVirtualPath, aProfile, listRoot.shareDirs);
+		} catch (...) {
+			return;
+		}
+
+		for (const auto& d : listRoot.shareDirs) {
+			copy(d->directories, back_inserter(childDirectories));
+			listRoot.date = max(listRoot.date, d->getLastWrite());
+		}
 	}
 
-	string tmp;
+	// Prepare the data
+	for (const auto& d : childDirectories) {
+		d->toFileList(listRoot, aRecursive);
+		listRoot.date = max(listRoot.date, d->getLastWrite()); // In case the date is not set yet
+	}
+
+	// Write the XML
+	string tmp, indent = "\t";
+
 	os_.write(SimpleXML::utf8Header);
 	os_.write("<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() +
 		"\" Base=\"" + SimpleXML::escape(aVirtualPath, tmp, false) +
-		"\" BaseDate=\"" + Util::toString(root.date) +
+		"\" BaseDate=\"" + Util::toString(listRoot.date) +
 		"\" Generator=\"DC++ " DCVERSIONSTRING "\">\r\n");
 
-	string indent = "\t";
-
-	for (const auto& d : directories) {
-		d->toFileList(root, aRecursive);
-		root.date = max(root.date, d->getLastWrite());
-	}
-
-	for (const auto ld : root.listDirs | map_values) {
+	for (const auto ld : listRoot.listDirs | map_values) {
 		ld->toXml(os_, indent, tmp, aRecursive);
 	}
+	listRoot.filesToXml(os_, indent, tmp, !aRecursive);
 
-	root.filesToXml(os_, indent, tmp, !aRecursive);
 	os_.write("</FileListing>");
 }
 
@@ -2905,26 +2908,26 @@ void ShareManager::Directory::toFileList(FileListDir& aListDir, bool aRecursive)
 ShareManager::FileListDir::FileListDir(const string& aName, int64_t aSize, uint64_t aDate) : name(aName), size(aSize), date(aDate) { }
 
 #define LITERAL(n) n, sizeof(n)-1
-void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const {
+void ShareManager::FileListDir::toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool aRecursive) const {
 	xmlFile.write(indent);
 	xmlFile.write(LITERAL("<Directory Name=\""));
 	xmlFile.write(SimpleXML::escape(name, tmp2, true));
-	if (!fullList) {
+	if (!aRecursive) {
 		xmlFile.write(LITERAL("\" Size=\""));
 		xmlFile.write(Util::toString(size));
 	}
 	xmlFile.write(LITERAL("\" Date=\""));
 	xmlFile.write(Util::toString(date));
 
-	if(fullList) {
+	if(aRecursive) {
 		xmlFile.write(LITERAL("\">\r\n"));
 
 		indent += '\t';
 		for(const auto& d: listDirs | map_values) {
-			d->toXml(xmlFile, indent, tmp2, fullList);
+			d->toXml(xmlFile, indent, tmp2, aRecursive);
 		}
 
-		filesToXml(xmlFile, indent, tmp2, !fullList);
+		filesToXml(xmlFile, indent, tmp2, !aRecursive);
 
 		indent.erase(indent.length()-1);
 		xmlFile.write(indent);
@@ -3357,7 +3360,11 @@ void ShareManager::adcSearch(SearchResultList& results, SearchQuery& srch, const
 
 	// get the search roots
 	Directory::List roots;
-	getChildrenByVirtual(aDir, aProfile, roots);
+	if (aDir == "/") {
+		getRoots(aProfile, roots);
+	} else {
+		findVirtuals<OptionalProfileToken>(aDir, aProfile, roots);
+	}
 
 	auto start = GET_TICK();
 

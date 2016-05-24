@@ -656,9 +656,9 @@ private:
 	// Unsafe
 	void getRootsByVirtual(const string& aVirtualName, const ProfileTokenSet& aProfiles, Directory::List& dirs_) const noexcept;
 
-	// Get children of the provided virtual path
+	// Get root directories by profile
 	// Unsafe
-	void getChildrenByVirtual(const string& aVirtualPath, const OptionalProfileToken& aProfile, Directory::List& dirs_) const throw(ShareException);
+	void getRoots(const OptionalProfileToken& aProfile, Directory::List& dirs_) const noexcept;
 
 	// Get directories matching the virtual path (root path is not accepted here)
 	// Can be used with a single profile token or a set of them
