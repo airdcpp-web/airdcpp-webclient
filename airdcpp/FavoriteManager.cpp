@@ -535,86 +535,14 @@ void FavoriteManager::save() {
 		xml.addTag("Favorites");
 		xml.stepIn();
 
-		xml.addTag("CID", SETTING(PRIVATE_ID));
+		{
+			xml.addTag("CID", SETTING(PRIVATE_ID));
 
-		xml.addTag("Hubs");
-		xml.stepIn();
-
-		for(auto& i: favHubGroups) {
-			xml.addTag("Group");
-			xml.addChildAttrib("Name", i.first);
-			i.second.save(xml);
+			saveFavoriteHubs(xml);
+			saveFavoriteUsers(xml);
+			saveUserCommands(xml);
+			saveFavoriteDirectories(xml);
 		}
-
-		for(auto& i: favoriteHubs) {
-			xml.addTag("Hub");
-			xml.addChildAttrib("Name", i->getName());
-			xml.addChildAttrib("Connect", i->getAutoConnect());
-			xml.addChildAttrib("Description", i->getDescription());
-			xml.addChildAttrib("Password", i->getPassword());
-			xml.addChildAttrib("Server", i->getServer());
-			xml.addChildAttrib("ChatUserSplit", i->getChatUserSplit());
-			xml.addChildAttrib("StealthMode", i->getStealth());
-			xml.addChildAttrib("UserListState", i->getUserListState());
-			xml.addChildAttrib("HubFrameOrder",	i->getHeaderOrder());
-			xml.addChildAttrib("HubFrameWidths", i->getHeaderWidths());
-			xml.addChildAttrib("HubFrameVisible", i->getHeaderVisible());
-			xml.addChildAttrib("FavNoPM", i->getFavNoPM());	
-			xml.addChildAttrib("Group", i->getGroup());
-			xml.addChildAttrib("Bottom", Util::toString(i->getBottom()));
-			xml.addChildAttrib("Top", Util::toString(i->getTop()));
-			xml.addChildAttrib("Right",	Util::toString(i->getRight()));
-			xml.addChildAttrib("Left", Util::toString(i->getLeft()));
-			xml.addChildAttrib("ShareProfile", i->get(HubSettings::ShareProfile));
-			i->save(xml);
-		}
-
-		xml.stepOut();
-
-		xml.addTag("Users");
-		xml.stepIn();
-		for(auto& i: users) {
-			xml.addTag("User");
-			xml.addChildAttrib("LastSeen", i.second.getLastSeen());
-			xml.addChildAttrib("GrantSlot", i.second.isSet(FavoriteUser::FLAG_GRANTSLOT));
-			xml.addChildAttrib("SuperUser", i.second.isSet(FavoriteUser::FLAG_SUPERUSER));
-			xml.addChildAttrib("UserDescription", i.second.getDescription());
-			xml.addChildAttrib("Nick", i.second.getNick());
-			xml.addChildAttrib("URL", i.second.getUrl());
-			xml.addChildAttrib("CID", i.first.toBase32());
-		}
-		xml.stepOut();
-
-		xml.addTag("UserCommands");
-		xml.stepIn();
-		for(auto& i: userCommands) {
-			if(!i.isSet(UserCommand::FLAG_NOSAVE)) {
-				xml.addTag("UserCommand");
-				xml.addChildAttrib("Type", i.getType());
-				xml.addChildAttrib("Context", i.getCtx());
-				xml.addChildAttrib("Name", i.getName());
-				xml.addChildAttrib("Command", i.getCommand());
-				xml.addChildAttrib("To", i.getTo());
-				xml.addChildAttrib("Hub", i.getHub());
-			}
-		}
-		xml.stepOut();
-
-		//Favorite download to dirs
-		xml.addTag("FavoriteDirs");
-		xml.addChildAttrib("Version", 2);
-		xml.stepIn();
-
-		for(const auto& fde: favoriteDirs) {
-			xml.addTag("Directory", fde.first);
-			xml.addChildAttrib("Name", fde.first);
-			xml.stepIn();
-			for (const auto& t: fde.second) {
-				xml.addTag("Target", t);
-			}
-			xml.stepOut();
-		}
-		xml.stepOut();
 
 		xml.stepOut();
 
@@ -623,6 +551,93 @@ void FavoriteManager::save() {
 	} catch(const Exception& e) {
 		dcdebug("FavoriteManager::save: %s\n", e.getError().c_str());
 	}
+}
+
+void FavoriteManager::saveUserCommands(SimpleXML& aXml) const {
+	aXml.addTag("UserCommands");
+	aXml.stepIn();
+	for (auto& i : userCommands) {
+		if (!i.isSet(UserCommand::FLAG_NOSAVE)) {
+			aXml.addTag("UserCommand");
+			aXml.addChildAttrib("Type", i.getType());
+			aXml.addChildAttrib("Context", i.getCtx());
+			aXml.addChildAttrib("Name", i.getName());
+			aXml.addChildAttrib("Command", i.getCommand());
+			aXml.addChildAttrib("To", i.getTo());
+			aXml.addChildAttrib("Hub", i.getHub());
+		}
+	}
+	aXml.stepOut();
+}
+
+void FavoriteManager::saveFavoriteUsers(SimpleXML& aXml) const {
+	aXml.addTag("Users");
+	aXml.stepIn();
+	for (auto& i : users) {
+		aXml.addTag("User");
+		aXml.addChildAttrib("LastSeen", i.second.getLastSeen());
+		aXml.addChildAttrib("GrantSlot", i.second.isSet(FavoriteUser::FLAG_GRANTSLOT));
+		aXml.addChildAttrib("SuperUser", i.second.isSet(FavoriteUser::FLAG_SUPERUSER));
+		aXml.addChildAttrib("UserDescription", i.second.getDescription());
+		aXml.addChildAttrib("Nick", i.second.getNick());
+		aXml.addChildAttrib("URL", i.second.getUrl());
+		aXml.addChildAttrib("CID", i.first.toBase32());
+	}
+
+	aXml.stepOut();
+}
+
+void FavoriteManager::saveFavoriteDirectories(SimpleXML& aXml) const {
+	aXml.addTag("FavoriteDirs");
+	aXml.addChildAttrib("Version", 2);
+	aXml.stepIn();
+
+	for (const auto& fde : favoriteDirs) {
+		aXml.addTag("Directory", fde.first);
+		aXml.addChildAttrib("Name", fde.first);
+		aXml.stepIn();
+		for (const auto& t : fde.second) {
+			aXml.addTag("Target", t);
+		}
+		aXml.stepOut();
+	}
+
+	aXml.stepOut();
+}
+
+void FavoriteManager::saveFavoriteHubs(SimpleXML& aXml) const {
+	aXml.addTag("Hubs");
+	aXml.stepIn();
+
+	for (auto& i : favHubGroups) {
+		aXml.addTag("Group");
+		aXml.addChildAttrib("Name", i.first);
+		i.second.save(aXml);
+	}
+
+	for (auto& i : favoriteHubs) {
+		aXml.addTag("Hub");
+		aXml.addChildAttrib("Name", i->getName());
+		aXml.addChildAttrib("Connect", i->getAutoConnect());
+		aXml.addChildAttrib("Description", i->getDescription());
+		aXml.addChildAttrib("Password", i->getPassword());
+		aXml.addChildAttrib("Server", i->getServer());
+		aXml.addChildAttrib("ChatUserSplit", i->getChatUserSplit());
+		aXml.addChildAttrib("StealthMode", i->getStealth());
+		aXml.addChildAttrib("UserListState", i->getUserListState());
+		aXml.addChildAttrib("HubFrameOrder", i->getHeaderOrder());
+		aXml.addChildAttrib("HubFrameWidths", i->getHeaderWidths());
+		aXml.addChildAttrib("HubFrameVisible", i->getHeaderVisible());
+		aXml.addChildAttrib("FavNoPM", i->getFavNoPM());
+		aXml.addChildAttrib("Group", i->getGroup());
+		aXml.addChildAttrib("Bottom", Util::toString(i->getBottom()));
+		aXml.addChildAttrib("Top", Util::toString(i->getTop()));
+		aXml.addChildAttrib("Right", Util::toString(i->getRight()));
+		aXml.addChildAttrib("Left", Util::toString(i->getLeft()));
+		i->save(aXml);
+	}
+
+	aXml.stepOut();
 }
 
 void FavoriteManager::previewload(SimpleXML& aXml){

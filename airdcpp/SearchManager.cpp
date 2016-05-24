@@ -474,7 +474,7 @@ void SearchManager::onPSR(const AdcCommand& aCmd, UserPtr from, const string& re
 
 void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile) {
 	auto isDirect = adc.getType() == 'D';
-	string path, key;
+	string path = "/", key;
 	int maxResults = isUdpActive ? 10 : 5;
 
 	bool replyDirect = false;
@@ -494,7 +494,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 	adc.getParam("TO", 0, token);
 
 	try {
-		ShareManager::getInstance()->search(results, srch, aProfile, aUser.getUser()->getCID(), path, token.find("/as") != string::npos);
+		ShareManager::getInstance()->adcSearch(results, srch, aProfile, aUser.getUser()->getCID(), path, token.find("/as") != string::npos);
 	} catch(const ShareException& e) {
 		if (replyDirect) {
 			//path not found (direct search)

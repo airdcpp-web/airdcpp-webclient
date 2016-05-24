@@ -1448,45 +1448,88 @@ string Util::translateError(int aError) noexcept {
 }
 
 /* natural sorting */
-int Util::DefaultSort(const wchar_t *a, const wchar_t *b, bool noCase /*=  true*/) noexcept {
-	if(SETTING(NAT_SORT)) {
-		int v1, v2;
-		while(*a != 0 && *b != 0) {
-			v1 = 0; v2 = 0;
-			bool t1 = isNumeric(*a);
-			bool t2 = isNumeric(*b);
-			if(t1 != t2) return (t1) ? -1 : 1;
+int Util::DefaultSort(const wchar_t *a, const wchar_t *b) noexcept {
+	int v1, v2;
+	while(*a != 0 && *b != 0) {
+		v1 = 0; v2 = 0;
+		auto t1 = iswdigit(*a);
+		auto t2 = iswdigit(*b);
+		if(t1 != t2) return (t1) ? -1 : 1;
 
-			if(!t1 && noCase) {
-				if(Text::toLower(*a) != Text::toLower(*b))
-					return ((int)Text::toLower(*a)) - ((int)Text::toLower(*b));
-				a++; b++;
-			} else if(!t1) {
-				if(*a != *b)
-					return ((int)*a) - ((int)*b);
-				a++; b++;
-			} else {
-			    while(isNumeric(*a)) {
-			       v1 *= 10;
-			       v1 += *a - '0';
-			       a++;
-			    }
+		if(!t1) {
+			if(Text::toLower(*a) != Text::toLower(*b))
+				return ((int)Text::toLower(*a)) - ((int)Text::toLower(*b));
+			a++; b++;
+		} else if(!t1) {
+			if(*a != *b)
+				return ((int)*a) - ((int)*b);
+			a++; b++;
+		} else {
+			while(iswdigit(*a)) {
+			    v1 *= 10;
+			    v1 += *a - '0';
+			    a++;
+			}
 
-	            while(isNumeric(*b)) {
-		           v2 *= 10;
-		           v2 += *b - '0';
-		           b++;
-		        }
+	        while(iswdigit(*b)) {
+		        v2 *= 10;
+		        v2 += *b - '0';
+		        b++;
+		    }
 
-				if(v1 != v2)
-					return (v1 < v2) ? -1 : 1;
-			}			
-		}
-
-		return noCase ? (((int)Text::toLower(*a)) - ((int)Text::toLower(*b))) : (((int)*a) - ((int)*b));
-	} else {
-		return noCase ? Util::stricmp(a, b) : Util::stricmp(a, b);
+			if(v1 != v2)
+				return (v1 < v2) ? -1 : 1;
+		}			
 	}
+
+	return (int)Text::toLower(*a) - (int)Text::toLower(*b);
+}
+
+int Util::DefaultSort(const char* a, const char* b) noexcept {
+	//return Util::DefaultSort(Text::acpToWide(a).c_str(), Text::acpToWide(b).c_str(), noCase);
+
+	int v1, v2;
+	while (*a != 0 && *b != 0) {
+		v1 = 0; v2 = 0;
+
+		wchar_t ca = 0, cb = 0;
+		int na = abs(Text::utf8ToWc(a, ca));
+		int nb = abs(Text::utf8ToWc(b, cb));
+
+		auto t1 = iswdigit(ca);
+		auto t2 = iswdigit(cb);
+		if (t1 != t2) return (t1) ? -1 : 1;
+
+		if (!t1) {
+			auto aIsLower = Text::toLower(ca);
+			auto bIsLower = Text::toLower(cb);
+			if (aIsLower != bIsLower)
+				return ((int)aIsLower) - ((int)bIsLower);
+
+			a += na; b += nb;
+		} else {
+			while (iswdigit(ca)) {
+				v1 *= 10;
+				v1 += *a - '0';
+
+				a += na;
+				na = Text::utf8ToWc(a, ca);
+			}
+
+			while (iswdigit(cb)) {
+				v2 *= 10;
+				v2 += *b - '0';
+
+				b += nb;
+				nb = Text::utf8ToWc(b, cb);
+			}
+
+			if (v1 != v2)
+				return (v1 < v2) ? -1 : 1;
+		}
+	}
+
+	return Util::stricmp(a, b);
 }
 
 void Util::replace(string& aString, const string& findStr, const string& replaceStr) noexcept {

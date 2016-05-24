@@ -613,7 +613,7 @@ void DirectoryListing::findNfoImpl(const string& aPath, bool aAllowQueueList, Du
 			auto query = SearchQuery(Util::emptyString, StringList(), { ".nfo" }, Search::MATCH_NAME_PARTIAL);
 			query.maxResults = 1;
 
-			ShareManager::getInstance()->search(results, query, getShareProfile(), ClientManager::getInstance()->getMyCID(), Util::toAdcFile(aPath));
+			ShareManager::getInstance()->adcSearch(results, query, getShareProfile(), ClientManager::getInstance()->getMyCID(), Util::toAdcFile(aPath));
 
 			if (!results.empty()) {
 				auto paths = AirUtil::getFileDupePaths(DUPE_SHARE_FULL, results.front()->getTTH());
@@ -1039,7 +1039,7 @@ void DirectoryListing::searchImpl(const SearchPtr& aSearch) noexcept {
 	if (isOwnList && partialList) {
 		SearchResultList results;
 		try {
-			ShareManager::getInstance()->search(results, *curSearch, getShareProfile(), CID(), aSearch->path);
+			ShareManager::getInstance()->adcSearch(results, *curSearch, getShareProfile(), CID(), aSearch->path);
 		} catch (...) {}
 
 		for (const auto& sr : results)
