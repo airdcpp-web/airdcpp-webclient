@@ -145,7 +145,7 @@ public:
 	void abortRefresh() noexcept;
 
 	void nmdcSearch(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept;
-	void search(SearchResultList& l, SearchQuery& aSearch, OptionalProfileToken aProfile, const CID& cid, const string& aDir, bool isAutoSearch = false) throw(ShareException);
+	void adcSearch(SearchResultList& l, SearchQuery& aSearch, const OptionalProfileToken& aProfile, const CID& cid, const string& aDir, bool isAutoSearch = false) throw(ShareException);
 
 	// Check if a directory is shared
 	// You may also give a path in NMDC format and the relevant 
@@ -166,9 +166,10 @@ public:
 	StringList getDirPaths(const string& aDir) const noexcept;
 
 	vector<pair<string, StringList>> getGroupedDirectories() const noexcept;
-	MemoryInputStream* generatePartialList(const string& dir, bool recurse, OptionalProfileToken aProfile) const noexcept;
-	MemoryInputStream* generateTTHList(const string& dir, bool recurse, ProfileToken aProfile) const noexcept;
+	MemoryInputStream* generatePartialList(const string& dir, bool aRecursive, const OptionalProfileToken& aProfile) const noexcept;
+	MemoryInputStream* generateTTHList(const string& dir, bool aRecursive, ProfileToken aProfile) const noexcept;
 	MemoryInputStream* getTree(const string& virtualFile, ProfileToken aProfile) const noexcept;
+	void toFilelist(OutputStream& os_, const string& aVirtualPath, const OptionalProfileToken& aProfile, bool aRecursive) const;
 
 	void saveXmlList(function<void (float)> progressF = nullptr) noexcept;	//for filelist caching
 
@@ -390,7 +391,7 @@ private:
 			inline string getADCPath() const noexcept{ return parent->getADCPath() + name.getNormal(); }
 			inline string getFullName() const noexcept{ return parent->getFullName() + name.getNormal(); }
 			inline string getRealPath() const noexcept { return parent->getRealPath(name.getNormal()); }
-			inline bool hasProfile(OptionalProfileToken aProfile) const noexcept { return parent->hasProfile(aProfile); }
+			inline bool hasProfile(const OptionalProfileToken& aProfile) const noexcept { return parent->hasProfile(aProfile); }
 
 			void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
 			void addSR(SearchResultList& aResults, bool addParent) const noexcept;
@@ -444,11 +445,11 @@ private:
 		static Ptr createRoot(DualString&& aRealName, uint64_t aLastWrite, const ProfileDirectory::Ptr& aProfileDir, Map& rootPaths_, Directory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept;
 
 		struct HasRootProfile {
-			HasRootProfile(const OptionalProfileToken& aT) : t(aT) { }
+			HasRootProfile(const OptionalProfileToken& aProfile) : profile(aProfile) { }
 			bool operator()(const Ptr& d) const noexcept {
-				return d->hasProfile(t);
+				return d->hasProfile(profile);
 			}
-			const OptionalProfileToken& t;
+			const OptionalProfileToken& profile;
 
 			HasRootProfile& operator=(const HasRootProfile&) = delete;
 		};
@@ -466,8 +467,8 @@ private:
 
 		inline string getRealPath() const noexcept{ return getRealPath(Util::emptyString); };
 
-		bool hasProfile(ProfileTokenSet& aProfiles) const noexcept;
-		bool hasProfile(OptionalProfileToken aProfile) const noexcept;
+		bool hasProfile(const ProfileTokenSet& aProfiles) const noexcept;
+		bool hasProfile(const OptionalProfileToken& aProfile) const noexcept;
 
 		void getContentInfo(int64_t& size_, size_t& files_, size_t& folders_) const noexcept;
 		int64_t getSize() const noexcept;
@@ -476,11 +477,11 @@ private:
 
 		void search(SearchResultInfo::Set& aResults, SearchQuery& aStrings, int aLevel) const noexcept;
 
-		void toFileList(FileListDir* aListDir, bool isFullList);
+		void toFileList(FileListDir& aListDir, bool aRecursive);
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive) const;
 
 		//for file list caching
-		void toXmlList(OutputStream& xmlFile, string&& path, string& indent, string& tmp);
+		void toXmlList(OutputStream& xmlFile, string& indent, string& tmp);
 		void filesToXmlList(OutputStream& xmlFile, string& indent, string& tmp2) const;
 
 		GETSET(uint64_t, lastWrite, LastWrite);
@@ -489,7 +490,7 @@ private:
 
 		~Directory();
 
-		void copyRootProfiles(ProfileTokenSet& aProfiles, bool setCacheDirty) const noexcept;
+		void copyRootProfiles(ProfileTokenSet& profiles_, bool setCacheDirty) const noexcept;
 		bool isRoot() const noexcept;
 		int64_t size;
 
@@ -552,7 +553,7 @@ private:
 		int refreshOptions;
 	};
 
-	bool addDirResult(const Directory* aDir, SearchResultList& aResults, OptionalProfileToken aProfile, SearchQuery& srch) const noexcept;
+	bool addDirResult(const Directory* aDir, SearchResultList& aResults, const OptionalProfileToken& aProfile, SearchQuery& srch) const noexcept;
 
 	ProfileDirectory::Map profileDirs;
 
@@ -649,28 +650,32 @@ private:
 
 	// Get root directories matching the provided token
 	// Unsafe
-	void getRootsByVirtual(const string& aVirtualName, OptionalProfileToken aProfile, Directory::List& dirs_) const noexcept;
+	void getRootsByVirtual(const string& aVirtualName, const OptionalProfileToken& aProfile, Directory::List& dirs_) const noexcept;
 
 	// Get root directories matching any of the provided tokens
 	// Unsafe
 	void getRootsByVirtual(const string& aVirtualName, const ProfileTokenSet& aProfiles, Directory::List& dirs_) const noexcept;
 
-	// Get directories matching the virtual path
-	// Can be used with a single profile token or a set of them
-	template<class T>
-	void findVirtuals(const string& virtualPath, const T& aProfile, Directory::List& dirs) const throw(ShareException) {
+	// Get children of the provided virtual path
+	// Unsafe
+	void getChildrenByVirtual(const string& aVirtualPath, const OptionalProfileToken& aProfile, Directory::List& dirs_) const throw(ShareException);
 
+	// Get directories matching the virtual path (root path is not accepted here)
+	// Can be used with a single profile token or a set of them
+	// Unsafe
+	template<class T>
+	void findVirtuals(const string& aVirtualPath, const T& aProfile, Directory::List& dirs_) const throw(ShareException) {
 		Directory::List virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
-		if(virtualPath.empty() || virtualPath[0] != '/') {
+		if(aVirtualPath.empty() || aVirtualPath[0] != '/') {
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}
 
-		string::size_type start = virtualPath.find('/', 1);
+		string::size_type start = aVirtualPath.find('/', 1);
 		if(start == string::npos || start == 1) {
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}
 
-		getRootsByVirtual( virtualPath.substr(1, start-1), aProfile, virtuals);
+		getRootsByVirtual(aVirtualPath.substr(1, start-1), aProfile, virtuals);
 		if(virtuals.empty()) {
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}
@@ -681,8 +686,8 @@ private:
 			string::size_type j = i + 1;
 			d = *k;
 
-			while((i = virtualPath.find('/', j)) != string::npos) {
-				auto mi = d->directories.find(Text::toLower(virtualPath.substr(j, i - j)));
+			while((i = aVirtualPath.find('/', j)) != string::npos) {
+				auto mi = d->directories.find(Text::toLower(aVirtualPath.substr(j, i - j)));
 				j = i + 1;
 				if (mi != d->directories.end()) {   //if we found something, look for more.
 					d = *mi;
@@ -692,11 +697,12 @@ private:
 				}
 			}
 
-			if(d) 
-				dirs.push_back(d);
+			if (d) {
+				dirs_.push_back(d);
+			}
 		}
 
-		if(dirs.empty()) {
+		if(dirs_.empty()) {
 			//if we are here it means we didnt find anything, throw.
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}

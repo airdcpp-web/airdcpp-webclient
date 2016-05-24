@@ -168,6 +168,11 @@ public:
 
 	mutable SharedMutex cs;
 private:
+	void saveFavoriteHubs(SimpleXML& aXml) const;
+	void saveFavoriteUsers(SimpleXML& aXml) const;
+	void saveFavoriteDirectories(SimpleXML& aXml) const;
+	void saveUserCommands(SimpleXML& aXml) const;
+
 	FavoriteHubEntryList favoriteHubs;
 	FavHubGroups favHubGroups;
 	FavDirList favoriteDirs;
