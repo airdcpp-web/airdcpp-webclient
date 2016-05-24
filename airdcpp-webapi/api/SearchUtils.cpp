@@ -64,7 +64,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case SearchApi::PROP_NAME: {
 			if (a->sr->getType() == b->sr->getType())
-				return Util::stricmp(a->sr->getFileName(), b->sr->getFileName());
+				return Util::DefaultSort(a->sr->getFileName(), b->sr->getFileName());
 			else
 				return (a->sr->getType() == SearchResult::TYPE_DIRECTORY) ? -1 : 1;
 		}
@@ -88,7 +88,7 @@ namespace webserver {
 				return compare(filesA, filesB);
 			}
 
-			return Util::stricmp(Util::getFileExt(a->sr->getPath()), Util::getFileExt(b->sr->getPath()));
+			return Util::DefaultSort(Util::getFileExt(a->sr->getPath()), Util::getFileExt(b->sr->getPath()));
 		}
 		case SearchApi::PROP_SLOTS: {
 			if (a->sr->getFreeSlots() == b->sr->getFreeSlots())
@@ -101,7 +101,7 @@ namespace webserver {
 				return compare(a->getHits(), b->getHits());
 			}
 
-			return Util::stricmp(Format::formatNicks(a->sr->getUser()), Format::formatNicks(b->sr->getUser()));
+			return Util::DefaultSort(Format::formatNicks(a->sr->getUser()), Format::formatNicks(b->sr->getUser()));
 		}
 		default: dcassert(0); return 0;
 		}

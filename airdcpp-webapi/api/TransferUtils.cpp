@@ -61,7 +61,7 @@ namespace webserver {
 				return a->isDownload() ? -1 : 1;
 			}
 
-			return Util::stricmp(Format::formatNicks(a->getHintedUser()), Format::formatNicks(b->getHintedUser()));
+			return Util::DefaultSort(Format::formatNicks(a->getHintedUser()), Format::formatNicks(b->getHintedUser()));
 		}
 		case TransferApi::PROP_STATUS: {
 			if (a->getState() != b->getState()) {
@@ -72,7 +72,7 @@ namespace webserver {
 				return compare(a->getPercentage(), b->getPercentage());
 			}
 
-			return Util::stricmp(a->getStatusString(), b->getStatusString());
+			return Util::DefaultSort(a->getStatusString(), b->getStatusString());
 		}
 		default: dcassert(0); return 0;
 		}
