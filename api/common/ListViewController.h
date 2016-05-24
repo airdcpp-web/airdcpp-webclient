@@ -378,7 +378,7 @@ namespace webserver {
 				break;
 			}
 			case SORT_TEXT: {
-				res = Util::stricmp(aItemHandler.stringF(t1, aSortProperty).c_str(), aItemHandler.stringF(t2, aSortProperty).c_str());
+				res = Util::DefaultSort(aItemHandler.stringF(t1, aSortProperty).c_str(), aItemHandler.stringF(t2, aSortProperty).c_str());
 				break;
 			}
 			case SORT_CUSTOM: {
@@ -643,7 +643,7 @@ namespace webserver {
 			WLock l(cs);
 			auto iter = findItem(aItem, matchingItems);
 			if (iter == matchingItems.end()) {
-				dcassert(0);
+				//dcassert(0);
 				return;
 			}
 

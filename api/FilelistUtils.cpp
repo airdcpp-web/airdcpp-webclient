@@ -47,7 +47,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case FilelistInfo::PROP_NAME: {
 			if (a->getType() == b->getType()) {
-				return Util::stricmp(a->getName(), b->getName());
+				return Util::DefaultSort(a->getName(), b->getName());
 			}
 
 			return a->isDirectory() ? -1 : 1;
@@ -71,7 +71,7 @@ namespace webserver {
 				return compare(filesA, filesB);
 			}
 
-			return Util::stricmp(Util::getFileExt(a->getName()), Util::getFileExt(b->getName()));
+			return Util::DefaultSort(Util::getFileExt(a->getName()), Util::getFileExt(b->getName()));
 		}
 		default: dcassert(0); return 0;
 		}

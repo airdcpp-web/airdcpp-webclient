@@ -180,7 +180,7 @@ namespace webserver {
 		SearchResultList results;
 
 		try {
-			ShareManager::getInstance()->search(results, *matcher, profile, ClientManager::getInstance()->getMyCID(), s->path);
+			ShareManager::getInstance()->adcSearch(results, *matcher, profile, ClientManager::getInstance()->getMyCID(), s->path);
 		} catch (...) {}
 
 		// Serialize results
