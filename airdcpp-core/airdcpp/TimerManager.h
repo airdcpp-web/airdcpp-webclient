@@ -19,9 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_TIMER_MANAGER_H
 #define DCPLUSPLUS_DCPP_TIMER_MANAGER_H
 
-#include "Thread.h"
-#include "Speaker.h"
 #include "Singleton.h"
+#include "Speaker.h"
+#include "TimerManagerListener.h"
+#include "Thread.h"
 
 #include <boost/thread/mutex.hpp>
 
@@ -30,18 +31,6 @@
 #endif
 
 namespace dcpp {
-
-class TimerManagerListener {
-public:
-	virtual ~TimerManagerListener() { }
-	template<int I>	struct X { enum { TYPE = I };  };
-
-	typedef X<0> Second;
-	typedef X<1> Minute;
-
-	virtual void on(Second, uint64_t) noexcept { }
-	virtual void on(Minute, uint64_t) noexcept { }
-};
 
 class TimerManager : public Speaker<TimerManagerListener>, public Singleton<TimerManager>, public Thread
 {

@@ -557,7 +557,7 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 
 	// verifyData is unset only when KeyPrint has been pinned and we are not skipping errors due to incomplete chains
 	// we can fail here f.ex. if the certificate has expired but is still pinned with KeyPrint
-	if (!verifyData)
+	if (!verifyData || SSL_get_shutdown(ssl) != 0)
 		return preverify_ok;
 
 	bool allowUntrusted = verifyData->first;
@@ -569,8 +569,7 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 		if (!cert)
 			return 0;
 
-		string kp2(keyp);
-		if (kp2.compare(0, 12, "trusted_keyp") == 0) {
+		if (keyp.compare(0, 12, "trusted_keyp") == 0) {
 			// Possible follow up errors, after verification of a partial chain
 			if (err == X509_V_ERR_CERT_UNTRUSTED || err == X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE) {
 				X509_STORE_CTX_set_error(ctx, X509_V_OK);
@@ -578,14 +577,14 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 			}
 			return preverify_ok;
 		}
-		else if (kp2.compare(0, 7, "SHA256/") != 0)
+		else if (keyp.compare(0, 7, "SHA256/") != 0)
 			return allowUntrusted ? 1 : 0;
 
 		ByteVector kp = ssl::X509_digest(cert, EVP_sha256());
-		ByteVector kp2v(kp.size());
+		string expected_keyp = "SHA256/" + Encoder::toBase32(&kp[0], kp.size());
 
-		Encoder::fromBase32(&kp2[7], &kp2v[0], kp2v.size());
-		if (std::equal(kp.begin(), kp.end(), kp2v.begin())) {
+		// Do a full string comparison to avoid potential false positives caused by invalid inputs
+		if (keyp.compare(expected_keyp) == 0) {
 			// KeyPrint validated, we can get rid of it (to avoid unnecessary passes)
 			SSL_set_ex_data(ssl, CryptoManager::idxVerifyData, NULL);
 

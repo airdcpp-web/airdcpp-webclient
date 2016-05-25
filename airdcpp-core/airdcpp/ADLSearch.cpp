@@ -26,6 +26,7 @@
 
 #include "ClientManager.h"
 #include "File.h"
+#include "LogManager.h"
 #include "QueueManager.h"
 #include "SimpleXML.h"
 

@@ -20,17 +20,16 @@
 #define DCPLUSPLUS_DCPP_FAVORITE_MANAGER_H
 
 #include "ClientManagerListener.h"
-#include "FavHubGroup.h"
 #include "FavoriteManagerListener.h"
+#include "SettingsManagerListener.h"
+#include "ShareManagerListener.h"
+
+#include "FavHubGroup.h"
 #include "FavoriteUser.h"
 #include "HttpConnection.h"
 #include "HubEntry.h"
-#include "SettingsManager.h"
-#include "ShareManagerListener.h"
 #include "Singleton.h"
-#include "User.h"
 #include "UserCommand.h"
-#include "ShareProfile.h"
 
 namespace dcpp {
 	
@@ -169,6 +168,11 @@ public:
 
 	mutable SharedMutex cs;
 private:
+	void saveFavoriteHubs(SimpleXML& aXml) const;
+	void saveFavoriteUsers(SimpleXML& aXml) const;
+	void saveFavoriteDirectories(SimpleXML& aXml) const;
+	void saveUserCommands(SimpleXML& aXml) const;
+
 	FavoriteHubEntryList favoriteHubs;
 	FavHubGroups favHubGroups;
 	FavDirList favoriteDirs;

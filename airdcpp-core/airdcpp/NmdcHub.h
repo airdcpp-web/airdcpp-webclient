@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_NMDC_HUB_H
 #define DCPLUSPLUS_DCPP_NMDC_HUB_H
 
-#include "TimerManager.h"
-
 #include "forward.h"
 #include "Client.h"
 #include "Search.h"
@@ -35,14 +33,14 @@ public:
 	using Client::send;
 	using Client::connect;
 
-	int connect(const OnlineUser& aUser, const string& token, string& lastError_);
+	int connect(const OnlineUser& aUser, const string& token, string& lastError_) noexcept;
 
-	bool hubMessage(const string& aMessage, string& error_, bool /*thirdPerson*/ = false);
-	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho);
+	bool hubMessage(const string& aMessage, string& error_, bool /*thirdPerson*/ = false) noexcept;
+	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept;
 	void sendUserCmd(const UserCommand& command, const ParamMap& params);
-	void search(const SearchPtr& aSearch);
-	void password(const string& aPass);
-	void infoImpl() { myInfo(false); }
+	void search(const SearchPtr& aSearch) noexcept;
+	void password(const string& aPass) noexcept;
+	void infoImpl() noexcept { myInfo(false); }
 
 	size_t getUserCount() const;
 	
@@ -52,9 +50,9 @@ public:
 	bool send(const AdcCommand&) { dcassert(0); return false; }
 
 	static string validateMessage(string tmp, bool reverse);
-	void refreshUserList(bool);
+	void refreshUserList(bool) noexcept;
 
-	void getUserList(OnlineUserList& list, bool aListHidden) const;
+	void getUserList(OnlineUserList& list, bool aListHidden) const noexcept;
 
 	NmdcHub(const string& aHubURL, const ClientPtr& aOldClient = nullptr);
 	~NmdcHub();
@@ -90,9 +88,9 @@ private:
 	void clearUsers() noexcept;
 	void onLine(const string& aLine) noexcept;
 
-	OnlineUser& getUser(const string& aNick);
-	OnlineUserPtr findUser(const string& aNick) const;
-	void putUser(const string& aNick);
+	OnlineUser& getUser(const string& aNick) noexcept;
+	OnlineUserPtr findUser(const string& aNick) const noexcept;
+	void putUser(const string& aNick) noexcept;
 	
 	// don't convert to UTF-8 if string is already in this encoding
 	string toUtf8(const string& str) const;
@@ -112,8 +110,8 @@ private:
 	void updateFromTag(Identity& id, const string& tag);
 	void refreshLocalIp() noexcept;
 
-	string checkNick(const string& aNick);
-	virtual bool v4only() const { return true; }
+	string checkNick(const string& aNick) noexcept;
+	virtual bool v4only() const noexcept { return true; }
 
 	// TimerManagerListener
 	virtual void on(Second, uint64_t aTick) noexcept;

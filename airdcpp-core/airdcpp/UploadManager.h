@@ -29,7 +29,7 @@
 #include "Pointer.h"
 #include "Singleton.h"
 #include "StringMatch.h"
-#include "TimerManager.h"
+#include "TimerManagerListener.h"
 #include "UploadManagerListener.h"
 #include "UserConnectionListener.h"
 #include "UserInfoBase.h"
@@ -38,18 +38,9 @@ namespace dcpp {
 
 class UploadQueueItem : public FastAlloc<UploadQueueItem>, public intrusive_ptr_base<UploadQueueItem>, public UserInfoBase {
 public:
-	UploadQueueItem(const HintedUser& _user, const string& _file, int64_t _pos, int64_t _size) :
-		user(_user), file(_file), pos(_pos), size(_size), time(GET_TIME()) { inc(); }
+	UploadQueueItem(const HintedUser& _user, const string& _file, int64_t _pos, int64_t _size);
 
-	static int compareItems(const UploadQueueItem* a, const UploadQueueItem* b, uint8_t col) {
-		switch(col) {
-			case COLUMN_TRANSFERRED: return compare(a->pos, b->pos);
-			case COLUMN_SIZE: return compare(a->size, b->size);
-			case COLUMN_ADDED:
-			case COLUMN_WAITING: return compare(a->time, b->time);
-			default: return Util::stricmp(a->getText(col).c_str(), b->getText(col).c_str());
-		}
-	}
+	static int compareItems(const UploadQueueItem* a, const UploadQueueItem* b, uint8_t col);
 
 	enum {
 		COLUMN_FIRST,

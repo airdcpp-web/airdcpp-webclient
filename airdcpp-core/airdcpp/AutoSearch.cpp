@@ -24,6 +24,7 @@
 #include "SearchManager.h"
 #include "ResourceManager.h"
 #include "SimpleXML.h"
+#include "TimerManager.h"
 
 #include <boost/range/algorithm/max_element.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>

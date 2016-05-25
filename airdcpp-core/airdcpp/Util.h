@@ -346,7 +346,13 @@ public:
 
 	static string formatTime(int64_t aSec, bool translate, bool perMinute = false) noexcept;
 
-	static int DefaultSort(const wchar_t* a, const wchar_t* b, bool noCase = true) noexcept;
+	static int DefaultSort(const wchar_t* a, const wchar_t* b) noexcept;
+
+	inline static int DefaultSort(const string& a, const string& b) noexcept {
+		return DefaultSort(a.c_str(), b.c_str());
+	}
+
+	static int DefaultSort(const char* a, const char* b) noexcept;
 
 	static int64_t toInt64(const string& aString) noexcept {
 #ifdef _WIN32
@@ -515,11 +521,7 @@ public:
 		snwprintf(buf, sizeof(buf), L"%0.2f", val);
 		return buf;
 	}
-#endif 
-	static bool isNumeric(wchar_t c) noexcept {
-		return (c >= '0' && c <= '9') ? true : false;
-	}
-
+#endif
 	static string toHexEscape(char val) noexcept {
 		char buf[sizeof(int)*2+1+1];
 		snprintf(buf, sizeof(buf), "%%%X", val&0x0FF);

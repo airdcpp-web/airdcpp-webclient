@@ -443,7 +443,7 @@ string convert(const string& str, const string& fromCharset, const string& toCha
 }
 }
 
-string Text::toDOS(string tmp) {
+string Text::toDOS(string tmp) noexcept {
 	if(tmp.empty())
 		return Util::emptyString;
 
@@ -464,7 +464,7 @@ string Text::toDOS(string tmp) {
 	return tmp;
 }
 
-wstring Text::toDOS(wstring tmp) {
+wstring Text::toDOS(wstring tmp) noexcept {
 	if(tmp.empty())
 		return Util::emptyStringW;
 
@@ -483,6 +483,14 @@ wstring Text::toDOS(wstring tmp) {
 		}
 	}
 	return tmp;
+}
+
+bool Text::isSeparator(wchar_t c) noexcept {
+	if (c > 127) {
+		return false;
+	}
+
+	return isSeparator(static_cast<char>(c));
 }
 
 } // namespace dcpp

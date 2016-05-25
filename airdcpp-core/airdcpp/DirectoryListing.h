@@ -24,10 +24,11 @@
 #include "DirectoryListingListener.h"
 #include "ClientManagerListener.h"
 #include "ShareManagerListener.h"
-#include "TimerManager.h"
+#include "TimerManagerListener.h"
 
 #include "Bundle.h"
 #include "DirectSearch.h"
+#include "DispatcherQueue.h"
 #include "DupeType.h"
 #include "FastAlloc.h"
 #include "GetSet.h"
@@ -35,9 +36,9 @@
 #include "MerkleTree.h"
 #include "Pointer.h"
 #include "QueueItemBase.h"
+#include "SearchQuery.h"
 #include "TaskQueue.h"
 #include "UserInfoBase.h"
-#include "ShareManager.h"
 #include "Streams.h"
 #include "TargetUtil.h"
 #include "TrackableDownloadItem.h"
@@ -183,13 +184,15 @@ public:
 	static UserPtr getUserFromFilename(const string& fileName) noexcept;
 
 	ProfileToken getShareProfile() const noexcept;
-	void setShareProfile(ProfileToken aProfile) noexcept;
+
+	void addShareProfileChangeTask(ProfileToken aProfile) noexcept;
+	void addHubUrlChangeTask(const string& aHubUrl) noexcept;
+
 	void getPartialListInfo(int64_t& totalSize_, size_t& totalFiles_) const noexcept;
 	
 	const UserPtr& getUser() const noexcept { return hintedUser.user; }
 	const HintedUser& getHintedUser() const noexcept { return hintedUser; }
 	const string& getHubUrl() const noexcept { return hintedUser.hint; }
-	void setHubUrl(const string& newUrl, bool isGuiChange) noexcept;
 		
 	GETSET(bool, partialList, PartialList);
 	GETSET(bool, isOwnList, IsOwnList);
@@ -233,9 +236,6 @@ public:
 		RELOAD_ALL
 	};
 
-	// Returns false if the directory was not found from the list
-	bool changeDirectory(const string& aPath, ReloadMode aReloadMode, bool aIsSearchChange = false) noexcept;
-
 	struct LocationInfo {
 		int64_t totalSize = -1;
 		int files = -1;
@@ -255,10 +255,18 @@ public:
 	}
 
 	void setRead() noexcept;
+
+	void addDirectoryChangeTask(const string& aPath, ReloadMode aReloadMode, bool aIsSearchChange = false) noexcept;
 protected:
 	void onStateChanged() noexcept;
 
 private:
+	// Returns false if the directory was not found from the list
+	bool changeDirectory(const string& aPath, ReloadMode aReloadMode, bool aIsSearchChange = false) noexcept;
+
+	void setShareProfile(ProfileToken aProfile) noexcept;
+	void setHubUrl(const string& aHubUrl) noexcept;
+
 	LocationInfo currentLocation;
 	void updateCurrentLocation(const Directory::Ptr& aCurrentDirectory) noexcept;
 

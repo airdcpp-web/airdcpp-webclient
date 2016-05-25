@@ -19,22 +19,22 @@
 #ifndef DCPLUSPLUS_DCPP_CLIENT_MANAGER_H
 #define DCPLUSPLUS_DCPP_CLIENT_MANAGER_H
 
-#include "TimerManager.h"
+#include "forward.h"
+
 #include "ClientManagerListener.h"
+#include "TimerManagerListener.h"
 
 #include "ConnectionType.h"
-#include "CID.h"
 #include "Client.h"
 #include "CriticalSection.h"
-#include "HintedUser.h"
-#include "OnlineUser.h"
-#include "Search.h"
+#include "OfflineUser.h"
 #include "SettingsManager.h"
 #include "ShareManagerListener.h"
 #include "Singleton.h"
 #include "Socket.h"
 #include "ShareProfile.h"
-#include "OfflineUser.h"
+#include "TimerManager.h"
+
 
 namespace dcpp {
 
@@ -73,9 +73,9 @@ public:
 	pair<int64_t, int> getShareInfo(const HintedUser& user) const noexcept;
 	void getUserInfoList(const UserPtr& user, User::UserInfoList& aList_) const noexcept;
 
-	StringList getNicks(const HintedUser& user) const noexcept { return getNicks(user.user->getCID()); }
-	StringList getHubNames(const HintedUser& user) const noexcept { return getHubNames(user.user->getCID()); }
-	StringList getHubUrls(const HintedUser& user) const noexcept { return getHubUrls(user.user->getCID()); }
+	StringList getNicks(const HintedUser& user) const noexcept;
+	StringList getHubNames(const HintedUser& user) const noexcept;
+	StringList getHubUrls(const HintedUser& user) const noexcept;
 
 	template<class NameOperator>
 	string formatUserProperty(const HintedUser& user, bool removeDuplicates = true) const noexcept {

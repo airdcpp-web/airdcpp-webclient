@@ -22,6 +22,8 @@
 #include <api/OnlineUserUtils.h>
 
 #include <web-server/JsonUtil.h>
+
+#include <airdcpp/ClientManager.h>
 #include <airdcpp/MessageManager.h>
 
 namespace webserver {

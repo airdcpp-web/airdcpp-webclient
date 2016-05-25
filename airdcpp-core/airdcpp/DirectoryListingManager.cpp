@@ -21,6 +21,7 @@
 #include "AirUtil.h"
 #include "ClientManager.h"
 #include "DirectoryListingManager.h"
+#include "LogManager.h"
 #include "QueueManager.h"
 
 #include <boost/range/algorithm/copy.hpp>
@@ -324,8 +325,8 @@ void DirectoryListingManager::on(QueueManagerListener::PartialList, const Hinted
 		}
 	}
 
-	dl->setHubUrl(aUser.hint, false);
 	if (dl->hasCompletedDownloads()) {
+		dl->addHubUrlChangeTask(aUser.hint);
 		dl->addPartialListTask(aXML, aBase, false, true, [=] { dl->setActive(); });
 	} else {
 		fire(DirectoryListingManagerListener::OpenListing(), dl, aBase, aXML);
@@ -368,10 +369,7 @@ void DirectoryListingManager::openOwnList(ProfileToken aProfile, bool useADL /*f
 
 	auto dl = hasList(me.user);
 	if (dl) {
-		if (dl->getShareProfile() != aProfile) {
-			dl->setShareProfile(aProfile);
-		}
-
+		dl->addShareProfileChangeTask(aProfile);
 		return;
 	}
 

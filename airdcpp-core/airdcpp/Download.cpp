@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "Download.h"
 
+#include "Bundle.h"
 #include "File.h"
 #include "FilteredFile.h"
 #include "HashManager.h"
@@ -102,6 +103,17 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 
 Download::~Download() {
 	getUserConnection().setDownload(0);
+}
+
+string Download::getBundleStringToken() const noexcept {
+	if (!bundle)
+		return Util::emptyString;
+
+	return bundle->getStringToken();
+}
+
+bool Download::operator==(const Download* d) const {
+	return compare(getToken(), d->getToken()) == 0;
 }
 
 void Download::appendFlags(OrderedStringSet& flags_) const noexcept {

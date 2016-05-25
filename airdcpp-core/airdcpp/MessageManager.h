@@ -16,24 +16,23 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef MESSAGE_MANAGER_H_
-#define MESSAGE_MANAGER_H_
+#ifndef DCPLUSPLUS_DCPP_MESSAGE_MANAGER_H_
+#define DCPLUSPLUS_DCPP_MESSAGE_MANAGER_H_
 
 #include "forward.h"
 
-#include "CriticalSection.h"
-#include "Exception.h"
-
-#include "Pointer.h"
-#include "Singleton.h"
-#include "UserConnection.h"
-#include "ConnectionManager.h"
-#include "ClientManager.h"
+#include "ClientManagerListener.h"
+#include "ConnectionManagerListener.h"
 #include "MessageManagerListener.h"
+#include "SettingsManagerListener.h"
+#include "UserConnectionListener.h"
+
+#include "CriticalSection.h"
 #include "PrivateChat.h"
-#include "SettingsManager.h"
 #include "SimpleXML.h"
+#include "Singleton.h"
 #include "StringMatch.h"
+
 
 namespace dcpp {
 

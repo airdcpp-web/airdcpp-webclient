@@ -176,6 +176,10 @@ void ThrottleManager::waitToken() {
 		Lock l(*curCS);
 }
 
+ThrottleManager::ThrottleManager() {
+	TimerManager::getInstance()->addListener(this);
+}
+
 ThrottleManager::~ThrottleManager(void)
 {
 	shutdown();

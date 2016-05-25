@@ -19,15 +19,17 @@
 #ifndef DCPLUSPLUS_DCPP_SEARCH_MANAGER_H
 #define DCPLUSPLUS_DCPP_SEARCH_MANAGER_H
 
+#include "SearchManagerListener.h"
+#include "SettingsManagerListener.h"
+#include "TimerManagerListener.h"
+
 #include "AdcCommand.h"
 #include "CriticalSection.h"
 #include "Search.h"
-#include "SearchManagerListener.h"
-#include "SettingsManager.h"
 #include "Singleton.h"
-#include "TimerManager.h"
+#include "Speaker.h"
 #include "UDPServer.h"
-#include "User.h"
+
 
 namespace dcpp {
 

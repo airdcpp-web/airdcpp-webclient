@@ -25,7 +25,6 @@
 #include "GetSet.h"
 #include "MerkleTree.h"
 #include "Segment.h"
-#include "TimerManager.h"
 
 namespace dcpp {
 

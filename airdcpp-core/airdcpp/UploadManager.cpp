@@ -68,6 +68,12 @@ UploadManager::~UploadManager() {
 	}
 }
 
+UploadQueueItem::UploadQueueItem(const HintedUser& _user, const string& _file, int64_t _pos, int64_t _size) :
+	user(_user), file(_file), pos(_pos), size(_size), time(GET_TIME()) {
+
+	inc();
+}
+
 void UploadManager::setFreeSlotMatcher() {
 	freeSlotMatcher.pattern = SETTING(FREE_SLOTS_EXTENSIONS);
 	freeSlotMatcher.setMethod(StringMatch::WILDCARD);

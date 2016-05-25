@@ -22,7 +22,6 @@
 #include "compiler.h"
 #include "forward.h"
 
-#include "BufferedSocket.h"
 #include "BufferedSocketListener.h"
 #include "ClientListener.h"
 #include "ConnectionType.h"
@@ -30,11 +29,9 @@
 #include "MessageCache.h"
 #include "OnlineUser.h"
 #include "Pointer.h"
-#include "Search.h"
 #include "SearchQueue.h"
 #include "Speaker.h"
-#include "TimerManager.h"
-#include "User.h"
+#include "TimerManagerListener.h"
 
 #include <boost/noncopyable.hpp>
 
@@ -46,12 +43,12 @@ public:
 	
 	ClientBase() { }
 	
-	virtual const string& getHubUrl() const = 0;
-	virtual string getHubName() const = 0;
-	virtual bool isOp() const = 0;
-	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) = 0;
-	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) = 0;
-	virtual void directSearch(const OnlineUser&, const SearchPtr&) { 
+	virtual const string& getHubUrl() const noexcept = 0;
+	virtual string getHubName() const noexcept = 0;
+	virtual bool isOp() const noexcept = 0;
+	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) noexcept = 0;
+	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept = 0;
+	virtual void directSearch(const OnlineUser&, const SearchPtr&) noexcept {
 		dcassert(0); 
 	}
 };
@@ -62,17 +59,17 @@ public:
 	typedef unordered_map<string*, ClientPtr, noCaseStringHash, noCaseStringEq> UrlMap;
 	typedef unordered_map<ClientToken, ClientPtr> IdMap;
 
-	virtual void connect(bool withKeyprint = true);
-	virtual void disconnect(bool graceless);
+	virtual void connect(bool withKeyprint = true) noexcept;
+	virtual void disconnect(bool graceless) noexcept;
 
 	// Default message method
-	bool sendMessage(const string& aMessage, string& error_, bool thirdPerson = false) {
+	bool sendMessage(const string& aMessage, string& error_, bool thirdPerson = false) noexcept {
 		return hubMessage(aMessage, error_, thirdPerson);
 	}
 
-	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) = 0;
-	virtual bool hubMessage(const string& aMessage, string& error_, bool thirdPerson = false) = 0;
-	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) = 0;
+	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) noexcept = 0;
+	virtual bool hubMessage(const string& aMessage, string& error_, bool thirdPerson = false) noexcept = 0;
+	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept = 0;
 	virtual void sendUserCmd(const UserCommand& command, const ParamMap& params) = 0;
 
 	uint64_t queueSearch(const SearchPtr& aSearch);
@@ -86,20 +83,19 @@ public:
 	
 	virtual bool send(const AdcCommand& command) = 0;
 
-	template<typename F>
-	void callAsync(F f) { if(sock) sock->callAsync(f); }
+	void callAsync(AsyncF f) noexcept;
 
-	bool isConnected() const;
-	bool isSecure() const;
-	bool isTrusted() const;
-	std::string getEncryptionInfo() const;
-	ByteVector getKeyprint() const;
+	bool isConnected() const noexcept;
+	bool isSecure() const noexcept;
+	bool isTrusted() const noexcept;
+	std::string getEncryptionInfo() const noexcept;
+	ByteVector getKeyprint() const noexcept;
 
-	bool isOp() const { return getMyIdentity().isOp(); }
+	bool isOp() const noexcept { return getMyIdentity().isOp(); }
 
-	virtual void refreshUserList(bool) = 0;
-	virtual void getUserList(OnlineUserList& list, bool aListHidden) const = 0;
-	virtual OnlineUserPtr findUser(const string& aNick) const = 0;
+	virtual void refreshUserList(bool) noexcept = 0;
+	virtual void getUserList(OnlineUserList& list, bool aListHidden) const noexcept = 0;
+	virtual OnlineUserPtr findUser(const string& aNick) const noexcept = 0;
 	
 	const string& getPort() const { return port; }
 	const string& getAddress() const { return address; }
@@ -119,24 +115,24 @@ public:
 	void setActive();
 	void reconnect();
 	virtual void shutdown(ClientPtr& aClient, bool aRedirect);
-	bool isActive() const;
-	bool isActiveV4() const;
-	bool isActiveV6() const;
+	bool isActive() const noexcept;
+	bool isActiveV4() const noexcept;
+	bool isActiveV6() const noexcept;
 
 	void send(const string& aMessage) { send(aMessage.c_str(), aMessage.length()); }
 	void send(const char* aMessage, size_t aLen);
 
-	string getMyNick() const { return getMyIdentity().getNick(); }
-	string getHubName() const { return getHubIdentity().getNick().empty() ? getHubUrl() : getHubIdentity().getNick(); }
-	string getHubDescription() const { return getHubIdentity().getDescription(); }
+	string getMyNick() const noexcept { return getMyIdentity().getNick(); }
+	string getHubName() const noexcept { return getHubIdentity().getNick().empty() ? getHubUrl() : getHubIdentity().getNick(); }
+	string getHubDescription() const noexcept { return getHubIdentity().getDescription(); }
 	
 	void Message(const string& msg) {
 		fire(ClientListener::AddLine(), this, msg);
 	}
 
-	Identity& getHubIdentity() { return hubIdentity; }
+	Identity& getHubIdentity() noexcept { return hubIdentity; }
 
-	const string& getHubUrl() const { return hubUrl; }
+	const string& getHubUrl() const noexcept { return hubUrl; }
 
 	GETSET(Identity, myIdentity, MyIdentity);
 	GETSET(Identity, hubIdentity, HubIdentity);
@@ -223,20 +219,20 @@ protected:
 
 	int64_t availableBytes;
 
-	bool updateCounts(bool aRemove);
-	void updateActivity() { lastActivity = GET_TICK(); }
+	bool updateCounts(bool aRemove) noexcept;
+	void updateActivity() noexcept;
 
 	/** Reload details from favmanager or settings */
-	void reloadSettings(bool updateNick);
+	void reloadSettings(bool updateNick) noexcept;
 	/// Get the external IP the user has defined for this hub, if any.
-	const string& getUserIp4() const;
-	const string& getUserIp6() const;
+	const string& getUserIp4() const noexcept;
+	const string& getUserIp6() const noexcept;
 
-	string getDescription() const;
+	string getDescription() const noexcept;
 
-	virtual string checkNick(const string& nick) = 0;
-	virtual void search(const SearchPtr& aSearch) = 0;
-	virtual void infoImpl() = 0;
+	virtual string checkNick(const string& nick) noexcept = 0;
+	virtual void search(const SearchPtr& aSearch) noexcept = 0;
+	virtual void infoImpl() noexcept = 0;
 
 	// TimerManagerListener
 	virtual void on(Second, uint64_t aTick) noexcept;
@@ -247,9 +243,9 @@ protected:
 	virtual void on(BufferedSocketListener::Line, const string& aLine) noexcept;
 	virtual void on(BufferedSocketListener::Failed, const string&) noexcept;
 
-	virtual bool v4only() const = 0;
-	void setHubUrl(const string& url);
-	void onPassword();
+	virtual bool v4only() const noexcept = 0;
+	void setHubUrl(const string& url) noexcept;
+	void onPassword() noexcept;
 
 	void onChatMessage(const ChatMessagePtr& aMessage) noexcept;
 	void onRedirect(const string& aRedirectUrl) noexcept;

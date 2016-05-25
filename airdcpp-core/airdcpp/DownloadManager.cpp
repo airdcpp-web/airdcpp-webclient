@@ -17,19 +17,18 @@
  */
 
 #include "stdinc.h"
-#include "ConnectionManager.h"
-#include "DownloadManager.h"
 
-#include "ResourceManager.h"
-#include "QueueManager.h"
-#include "HashManager.h"
+#include "ClientManager.h"
+#include "ConnectionManager.h"
 #include "Download.h"
+#include "DownloadManager.h"
+#include "FavoriteManager.h"
+#include "HashManager.h"
 #include "LogManager.h"
+#include "QueueManager.h"
+#include "ResourceManager.h"
 #include "User.h"
 #include "UserConnection.h"
-
-#include "UploadManager.h"
-#include "FavoriteManager.h"
 
 #include <limits>
 #include <cmath>
@@ -475,15 +474,6 @@ void DownloadManager::endData(UserConnection* aSource) {
 		}
 		d->setTreeValid(true);
 	} else {
-		// First, finish writing the file (flushing the buffers and closing the file...)
-		try {
-			d->getOutput()->flush();
-		} catch(const Exception& e) {
-			d->resetPos();
-			failDownload(aSource, e.getError(), true);
-			return;
-		}
-
 		aSource->setSpeed(static_cast<int64_t>(d->getAverageSpeed()));
 		aSource->updateChunkSize(d->getTigerTree().getBlockSize(), d->getSegmentSize(), GET_TICK() - d->getStart());
 		

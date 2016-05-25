@@ -25,9 +25,11 @@
 #include "AutoSearchManager.h"
 #include "Bundle.h"
 #include "BZUtils.h"
+#include "ClientManager.h"
 #include "Download.h"
 #include "DownloadManager.h"
 #include "FilteredFile.h"
+#include "LogManager.h"
 #include "QueueManager.h"
 #include "ResourceManager.h"
 #include "ShareManager.h"
@@ -100,11 +102,6 @@ string DirectoryListing::getNick(bool firstOnly) const noexcept {
 	return ret;
 }
 
-void DirectoryListing::setHubUrl(const string& newUrl, bool) noexcept {
-	hintedUser.hint = newUrl;
-	fire(DirectoryListingListener::UserUpdated());
-}
-
 void stripExtensions(string& name) noexcept {
 	if(Util::stricmp(name.c_str() + name.length() - 4, ".bz2") == 0) {
 		name.erase(name.length() - 4);
@@ -119,12 +116,35 @@ ProfileToken DirectoryListing::getShareProfile() const noexcept {
 	return Util::toInt(fileName);
 }
 
+void DirectoryListing::addHubUrlChangeTask(const string& aHubUrl) noexcept {
+	addAsyncTask([=] {
+		setHubUrl(aHubUrl);
+	});
+}
+
+void DirectoryListing::addShareProfileChangeTask(ProfileToken aProfile) noexcept {
+	addAsyncTask([=] {
+		setShareProfile(aProfile);
+	});
+}
+
+void DirectoryListing::setHubUrl(const string& aHubUrl) noexcept {
+	if (aHubUrl == hintedUser.hint) {
+		return;
+	}
+
+	hintedUser.hint = aHubUrl;
+	fire(DirectoryListingListener::UserUpdated());
+}
+
 void DirectoryListing::setShareProfile(ProfileToken aProfile) noexcept {
+	if (getShareProfile() == aProfile) {
+		return;
+	}
+
 	setFileName(Util::toString(aProfile));
 	if (partialList) {
-		addAsyncTask([=] {
-			changeDirectory(Util::emptyString, RELOAD_ALL);
-		});
+		addDirectoryChangeTask(Util::emptyString, RELOAD_ALL);
 	} else {
 		addFullListTask(Util::emptyString);
 	}
@@ -593,7 +613,7 @@ void DirectoryListing::findNfoImpl(const string& aPath, bool aAllowQueueList, Du
 			auto query = SearchQuery(Util::emptyString, StringList(), { ".nfo" }, Search::MATCH_NAME_PARTIAL);
 			query.maxResults = 1;
 
-			ShareManager::getInstance()->search(results, query, getShareProfile(), ClientManager::getInstance()->getMyCID(), Util::toAdcFile(aPath));
+			ShareManager::getInstance()->adcSearch(results, query, getShareProfile(), ClientManager::getInstance()->getMyCID(), Util::toAdcFile(aPath));
 
 			if (!results.empty()) {
 				auto paths = AirUtil::getFileDupePaths(DUPE_SHARE_FULL, results.front()->getTTH());
@@ -1019,7 +1039,7 @@ void DirectoryListing::searchImpl(const SearchPtr& aSearch) noexcept {
 	if (isOwnList && partialList) {
 		SearchResultList results;
 		try {
-			ShareManager::getInstance()->search(results, *curSearch, getShareProfile(), CID(), aSearch->path);
+			ShareManager::getInstance()->adcSearch(results, *curSearch, getShareProfile(), CID(), aSearch->path);
 		} catch (...) {}
 
 		for (const auto& sr : results)
@@ -1145,7 +1165,7 @@ void DirectoryListing::endSearch(bool timedOut /*false*/) noexcept {
 		fire(DirectoryListingListener::SearchFailed(), timedOut);
 	} else {
 		curResult = searchResults.begin();
-		changeDirectory(*curResult, RELOAD_NONE, true);
+		addDirectoryChangeTask(*curResult, RELOAD_NONE, true);
 	}
 }
 
@@ -1209,11 +1229,14 @@ bool DirectoryListing::nextResult(bool prev) noexcept {
 		advance(curResult, 1);
 	}
 
-	addAsyncTask([this] {
-		changeDirectory(*curResult, RELOAD_NONE, true);
-	});
-
+	addDirectoryChangeTask(*curResult, RELOAD_NONE, true);
 	return true;
+}
+
+void DirectoryListing::addDirectoryChangeTask(const string& aPath, ReloadMode aReloadMode, bool aIsSearchChange) noexcept {
+	addAsyncTask([=] {
+		changeDirectory(aPath, aReloadMode, aIsSearchChange);
+	});
 }
 
 bool DirectoryListing::isCurrentSearchPath(const string& path) const noexcept {
@@ -1252,11 +1275,12 @@ void DirectoryListing::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, c
 	if (!partialList)
 		return;
 
+	// Reload all locations by virtual path
 	string lastVirtual;
 	for (const auto& p : aPaths) {
 		auto vPath = ShareManager::getInstance()->realToVirtual(p, getShareProfile());
 		if (!vPath.empty() && lastVirtual != vPath && findDirectory(vPath)) {
-			addAsyncTask([=] { loadPartialImpl(Util::emptyString, vPath, false, false, nullptr); });
+			addPartialListTask(Util::emptyString, vPath, false, false, nullptr);
 			lastVirtual = vPath;
 		}
 	}

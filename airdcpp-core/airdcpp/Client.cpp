@@ -47,7 +47,7 @@ Client::Client(const string& hubURL, char separator_, const ClientPtr& aOldClien
 	TimerManager::getInstance()->addListener(this);
 }
 
-void Client::setHubUrl(const string& aUrl) {
+void Client::setHubUrl(const string& aUrl) noexcept {
 	hubUrl = aUrl;
 	secure = Util::strnicmp("adcs://", aUrl.c_str(), 7) == 0 || Util::strnicmp("nmdcs://", aUrl.c_str(), 8) == 0;
 
@@ -91,7 +91,7 @@ void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 	}
 }
 
-string Client::getDescription() const {
+string Client::getDescription() const noexcept {
 	string ret = get(HubSettings::Description);
 
 	int upLimit = ThrottleManager::getInstance()->getUpLimit();
@@ -100,7 +100,7 @@ string Client::getDescription() const {
 	return ret;
 }
 
-void Client::reloadSettings(bool updateNick) {
+void Client::reloadSettings(bool updateNick) noexcept {
 	/// @todo update the nick in ADC hubs?
 	string prevNick;
 	if(!updateNick)
@@ -155,33 +155,33 @@ void Client::updated(OnlineUserList& users) {
 	fire(ClientListener::UsersUpdated(), this, users);
 }
 
-const string& Client::getUserIp4() const {
+const string& Client::getUserIp4() const noexcept {
 	if (!get(UserIp).empty()) {
 		return get(UserIp);
 	}
 	return CONNSETTING(EXTERNAL_IP);
 }
 
-const string& Client::getUserIp6() const {
+const string& Client::getUserIp6() const noexcept {
 	if (!get(UserIp6).empty()) {
 		return get(UserIp6);
 	}
 	return CONNSETTING(EXTERNAL_IP6);
 }
 
-bool Client::isActive() const {
+bool Client::isActive() const noexcept {
 	return isActiveV4() || isActiveV6();
 }
 
-bool Client::isActiveV4() const {
+bool Client::isActiveV4() const noexcept {
 	return get(HubSettings::Connection) != SettingsManager::INCOMING_PASSIVE && get(HubSettings::Connection) != SettingsManager::INCOMING_DISABLED;
 }
 
-bool Client::isActiveV6() const {
+bool Client::isActiveV6() const noexcept {
 	return !v4only() && get(HubSettings::Connection6) != SettingsManager::INCOMING_PASSIVE && get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED;
 }
 
-void Client::connect(bool withKeyprint) {
+void Client::connect(bool withKeyprint) noexcept {
 	if (sock) {
 		BufferedSocket::putSocket(sock);
 		sock = 0;
@@ -277,7 +277,7 @@ int Client::clearCache() noexcept {
 	return ret;
 }
 
-void Client::onPassword() {
+void Client::onPassword() noexcept {
 	setConnectState(STATE_VERIFY);
 	if (!defpassword.empty()) {
 		password(defpassword);
@@ -384,33 +384,43 @@ void Client::on(Failed, const string& aLine) noexcept {
 	fire(ClientListener::Failed(), getHubUrl(), aLine);
 }
 
-void Client::disconnect(bool graceLess) {
+void Client::callAsync(AsyncF f) noexcept {
+	if (sock) {
+		sock->callAsync(move(f));
+	}
+}
+
+void Client::disconnect(bool graceLess) noexcept {
 	if(sock) 
 		sock->disconnect(graceLess);
 }
 
-bool Client::isConnected() const {
+bool Client::isConnected() const noexcept {
 	State s = state;
 	return s != STATE_CONNECTING && s != STATE_DISCONNECTED; 
 }
 
-bool Client::isSecure() const {
+bool Client::isSecure() const noexcept {
 	return isConnected() && sock->isSecure();
 }
 
-bool Client::isTrusted() const {
+bool Client::isTrusted() const noexcept {
 	return isConnected() && sock->isTrusted();
 }
 
-std::string Client::getEncryptionInfo() const {
+std::string Client::getEncryptionInfo() const noexcept {
 	return isConnected() ? sock->getEncryptionInfo() : Util::emptyString;
 }
 
-vector<uint8_t> Client::getKeyprint() const {
+vector<uint8_t> Client::getKeyprint() const noexcept {
 	return isConnected() ? sock->getKeyprint() : vector<uint8_t>();
 }
 
-bool Client::updateCounts(bool aRemove) {
+void Client::updateActivity() noexcept {
+	lastActivity = GET_TICK(); 
+}
+
+bool Client::updateCounts(bool aRemove) noexcept {
 	// We always remove the count and then add the correct one if requested...
 	if(countType != COUNT_UNCOUNTED) {
 		counts[countType]--;

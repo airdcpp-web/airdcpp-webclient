@@ -19,11 +19,14 @@
 #include "stdinc.h"
 
 #include "ActivityManager.h"
+#include "ClientManager.h"
+#include "ConnectionManager.h"
 #include "MessageManager.h"
 #include "LogManager.h"
 
 #include "AirUtil.h"
 #include "Message.h"
+#include "PrivateChat.h"
 #include "Util.h"
 #include "Wildcards.h"
 

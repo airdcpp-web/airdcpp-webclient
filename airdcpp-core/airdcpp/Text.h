@@ -98,16 +98,18 @@ namespace Text {
 
 	string fromUtf8(const string& str, const string& toCharset = "") noexcept;
 
-	string toDOS(string tmp);
-	wstring toDOS(wstring tmp);
+	string toDOS(string tmp) noexcept;
+	wstring toDOS(wstring tmp) noexcept;
 
-	inline bool isSeparator(char c) {
+	inline bool isSeparator(char c) noexcept {
 		return (c >= 32 && c <= 47) ||
 			(c >= 58 && c <= 64) ||
 			(c >= 91 && c <= 96) ||
 			(c >= 91 && c <= 96) ||
 			(c >= 123 && c <= 127);
 	};
+
+	bool isSeparator(wchar_t c) noexcept;
 }
 
 #ifdef _WIN32

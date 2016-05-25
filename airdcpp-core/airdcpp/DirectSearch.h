@@ -26,6 +26,7 @@
 
 #include "GetSet.h"
 #include "SearchResult.h"
+#include "TimerManager.h"
 
 namespace dcpp {
 

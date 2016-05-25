@@ -25,9 +25,11 @@
 
 #include "forward.h"
 #include "typedefs.h"
+
 #include "Mapper.h"
-#include "TimerManager.h"
 #include "Message.h"
+#include "Thread.h"
+#include "TimerManagerListener.h"
 
 namespace dcpp {
 

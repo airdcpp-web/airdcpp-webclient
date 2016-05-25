@@ -33,6 +33,7 @@
 #include "SettingsManager.h"
 #include "SimpleXML.h"
 #include "Text.h"
+#include "TimerManager.h"
 #include "version.h"
 
 #include "pubkey.h"

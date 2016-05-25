@@ -52,7 +52,7 @@ namespace webserver {
 					return 1;
 			}
 
-			return Util::stricmp(a->getIdentity().getNick(), b->getIdentity().getNick());
+			return Util::DefaultSort(a->getIdentity().getNick(), b->getIdentity().getNick());
 		}
 		default:
 			dcassert(0);
