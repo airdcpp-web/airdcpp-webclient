@@ -1486,8 +1486,6 @@ int Util::DefaultSort(const wchar_t *a, const wchar_t *b) noexcept {
 }
 
 int Util::DefaultSort(const char* a, const char* b) noexcept {
-	//return Util::DefaultSort(Text::acpToWide(a).c_str(), Text::acpToWide(b).c_str(), noCase);
-
 	int v1, v2;
 	while (*a != 0 && *b != 0) {
 		v1 = 0; v2 = 0;
@@ -1501,10 +1499,10 @@ int Util::DefaultSort(const char* a, const char* b) noexcept {
 		if (t1 != t2) return (t1) ? -1 : 1;
 
 		if (!t1) {
-			auto aIsLower = Text::toLower(ca);
-			auto bIsLower = Text::toLower(cb);
-			if (aIsLower != bIsLower)
-				return ((int)aIsLower) - ((int)bIsLower);
+			auto caLower = Text::toLower(ca);
+			auto cbLower = Text::toLower(cb);
+			if (caLower != cbLower)
+				return ((int)caLower) - ((int)cbLower);
 
 			a += na; b += nb;
 		} else {

@@ -3358,9 +3358,9 @@ void ShareManager::adcSearch(SearchResultList& results, SearchQuery& srch, const
 		return;
 	}
 
-	// get the search roots
+	// Get the search roots
 	Directory::List roots;
-	if (aDir == "/") {
+	if (aDir == "/" || aDir.empty()) {
 		getRoots(aProfile, roots);
 	} else {
 		findVirtuals<OptionalProfileToken>(aDir, aProfile, roots);
