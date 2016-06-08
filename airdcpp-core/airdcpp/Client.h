@@ -24,6 +24,9 @@
 
 #include "BufferedSocketListener.h"
 #include "ClientListener.h"
+#include "ShareManagerListener.h"
+#include "TimerManagerListener.h"
+
 #include "ConnectionType.h"
 #include "HubSettings.h"
 #include "MessageCache.h"
@@ -31,7 +34,6 @@
 #include "Pointer.h"
 #include "SearchQueue.h"
 #include "Speaker.h"
-#include "TimerManagerListener.h"
 
 #include <boost/noncopyable.hpp>
 
@@ -54,7 +56,7 @@ public:
 };
 
 /** Yes, this should probably be called a Hub */
-class Client : public ClientBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, public HubSettings, private boost::noncopyable {
+class Client : public ClientBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, private ShareManagerListener, public HubSettings, private boost::noncopyable {
 public:
 	typedef unordered_map<string*, ClientPtr, noCaseStringHash, noCaseStringEq> UrlMap;
 	typedef unordered_map<ClientToken, ClientPtr> IdMap;
@@ -195,11 +197,7 @@ public:
 	}
 
 	virtual void allowUntrustedConnect() noexcept;
-
-	ProfileToken getShareProfile() const noexcept;
-	void setCustomShareProfile(ProfileToken aToken) noexcept {
-		customShareProfile = aToken;
-	}
+	bool isKeyprintMismatch() const noexcept;
 protected:
 	virtual void clearUsers() noexcept = 0;
 
@@ -213,9 +211,6 @@ protected:
 
 	SearchQueue searchQueue;
 	BufferedSocket* sock;
-
-	// This is valid only for hubs without favorite entry
-	ProfileToken customShareProfile;
 
 	int64_t availableBytes;
 
@@ -242,6 +237,10 @@ protected:
 	virtual void on(BufferedSocketListener::Connected) noexcept;
 	virtual void on(BufferedSocketListener::Line, const string& aLine) noexcept;
 	virtual void on(BufferedSocketListener::Failed, const string&) noexcept;
+
+	// ShareManagerListener
+	void on(ShareManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept;
+	void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept;
 
 	virtual bool v4only() const noexcept = 0;
 	void setHubUrl(const string& url) noexcept;

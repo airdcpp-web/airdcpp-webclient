@@ -165,6 +165,10 @@ CryptoManager::~CryptoManager() {
 	CRYPTO_cleanup_all_ex_data();
 }
 
+string CryptoManager::keyprintToString(const ByteVector& aKP) noexcept {
+	return "SHA256/" + Encoder::toBase32(&aKP[0], aKP.size());
+}
+
 bool CryptoManager::TLSOk() const noexcept{
 	return SETTING(TLS_MODE) > 0 && certsLoaded && !keyprint.empty();
 }
@@ -649,7 +653,7 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 			//KeyPrint was a mismatch, we're not happy with this
 			preverify_ok = 0;
 			err = X509_V_ERR_APPLICATION_VERIFICATION;
-			error = "Keyprint mismatch";
+			error = STRING(KEYPRINT_MISMATCH);
 			X509_STORE_CTX_set_error(ctx, err);
 		}
 	}
@@ -691,7 +695,7 @@ string CryptoManager::formatError(X509_STORE_CTX *ctx, const string& message) {
 			line += (!line.empty() ? ", " : "") + tmp;
 
 		ByteVector kp = ssl::X509_digest(cert, EVP_sha256());
-		string keyp = "SHA256/" + Encoder::toBase32(&kp[0], kp.size());
+		string keyp = keyprintToString(kp);
 
 		return STRING_F(VERIFY_CERT_FAILED, line % message % keyp);
 	}

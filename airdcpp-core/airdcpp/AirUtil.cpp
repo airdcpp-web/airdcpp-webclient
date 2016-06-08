@@ -724,7 +724,7 @@ string AirUtil::getReleaseDir(const string& aDir, bool cut, const char separator
 	return p.second == string::npos ? aDir : aDir.substr(0, p.second);
 }
 
-bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int maxAttempts, int attempts) {
+bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int aMaxAttempts, int aAttempts) {
 	/* recursive check for empty dirs */
 	for(FileFindIter i(aPath, "*"); i != FileFindIter(); ++i) {
 		try {
@@ -733,53 +733,53 @@ bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int maxAttempts, int
 					continue;
 
 				string dir = aPath + i->getFileName() + PATH_SEPARATOR;
-				if (!removeDirectoryIfEmptyRe(dir, maxAttempts, 0))
+				if (!removeDirectoryIfEmptyRe(dir, aMaxAttempts, 0))
 					return false;
 			} else if (Util::getFileExt(i->getFileName()) == ".dctmp") {
-				if (attempts == maxAttempts) {
+				if (aAttempts == aMaxAttempts) {
 					return false;
 				}
 
 				Thread::sleep(500);
-				attempts++;
-				return removeDirectoryIfEmptyRe(aPath, maxAttempts, attempts);
+				return removeDirectoryIfEmptyRe(aPath, aMaxAttempts, aAttempts + 1);
 			} else {
 				return false;
 			}
 		} catch(const FileException&) { } 
 	}
+
 	File::removeDirectory(aPath);
 	return true;
 }
 
-void AirUtil::removeDirectoryIfEmpty(const string& tgt, int maxAttempts /*3*/, bool silent /*false*/) {
-	if (!removeDirectoryIfEmptyRe(tgt, maxAttempts, 0) && !silent) {
-		LogManager::getInstance()->message(STRING_F(DIRECTORY_NOT_REMOVED, tgt), LogMessage::SEV_INFO);
+void AirUtil::removeDirectoryIfEmpty(const string& aPath, int aMaxAttempts /*3*/, bool aSilent /*false*/) {
+	if (!removeDirectoryIfEmptyRe(aPath, aMaxAttempts, 0) && !aSilent) {
+		LogManager::getInstance()->message(STRING_F(DIRECTORY_NOT_REMOVED, aPath), LogMessage::SEV_INFO);
 	}
 }
 
-bool AirUtil::isAdcHub(const string& hubUrl) noexcept {
-	if(Util::strnicmp("adc://", hubUrl.c_str(), 6) == 0) {
+bool AirUtil::isAdcHub(const string& aHubUrl) noexcept {
+	if(Util::strnicmp("adc://", aHubUrl.c_str(), 6) == 0) {
 		return true;
-	} else if(Util::strnicmp("adcs://", hubUrl.c_str(), 7) == 0) {
+	} else if(Util::strnicmp("adcs://", aHubUrl.c_str(), 7) == 0) {
 		return true;
 	}
 	return false;
 }
 
-bool AirUtil::isHubLink(const string& hubUrl) noexcept {
-	return isAdcHub(hubUrl) || Util::strnicmp("dchub://", hubUrl.c_str(), 8) == 0;
+bool AirUtil::isHubLink(const string& aHubUrl) noexcept {
+	return isAdcHub(aHubUrl) || Util::strnicmp("dchub://", aHubUrl.c_str(), 8) == 0;
 }
 
-string AirUtil::regexEscape(const string& aStr, bool isWildcard) noexcept {
+string AirUtil::regexEscape(const string& aStr, bool aIsWildcard) noexcept {
 	if (aStr.empty())
 		return Util::emptyString;
 
 	//don't replace | and ? if it's wildcard
-	static const boost::regex re_boostRegexEscape(isWildcard ? R"([\^\.\$\(\)\[\]\*\+\?\/\\])" : R"([\^\.\$\|\(\)\[\]\*\+\?\/\\])");
+	static const boost::regex re_boostRegexEscape(aIsWildcard ? R"([\^\.\$\(\)\[\]\*\+\?\/\\])" : R"([\^\.\$\|\(\)\[\]\*\+\?\/\\])");
     const string rep("\\\\\\1&");
     string result = regex_replace(aStr, re_boostRegexEscape, rep, boost::match_default | boost::format_sed);
-	if (isWildcard) {
+	if (aIsWildcard) {
 		//convert * and ?
 		boost::replace_all(result, "\\*", ".*");
 		boost::replace_all(result, "\\?", ".");

@@ -73,7 +73,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 	}
 
 	AutoSearchPtr as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_FILE, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, aTargetType, 
-		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString, aInterval, asType);
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString, aInterval, asType, false);
 
 	addAutoSearch(as, true);
 	return as;
@@ -365,7 +365,7 @@ bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) noexcept {
 
 	//7 days expiry
 	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::getParentDir(aBundle->getTarget()), TargetUtil::TARGET_PATH, 
-		StringMatch::EXACT, Util::emptyString, Util::emptyString, GET_TIME() + 7*24*60*60, false, false, false, Util::emptyString, 60, AutoSearch::FAILED_BUNDLE);
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, GET_TIME() + 7*24*60*60, false, false, false, Util::emptyString, 60, AutoSearch::FAILED_BUNDLE, false);
 
 	as->setGroup(SETTING(AS_FAILED_DEFAULT_GROUP));
 	as->addBundle(aBundle);
@@ -658,7 +658,8 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 			//check the nick
 			if(!as->getNickPattern().empty()) {
 				StringList nicks = ClientManager::getInstance()->getNicks(sr->getUser());
-				if (find_if(nicks, [&](const string& aNick) { return as->matchNick(aNick); }) == nicks.end())
+				bool hasMatch = find_if(nicks, [&](const string& aNick) { return as->matchNick(aNick); }) != nicks.end();
+				if((!as->getUserMatcherExclude() && !hasMatch) || (as->getUserMatcherExclude() && hasMatch))
 					continue;
 			}
 
@@ -990,6 +991,7 @@ AutoSearchPtr AutoSearchManager::loadItemFromXml(SimpleXML& aXml) {
 		aXml.getChildAttrib("ExcludedWords"),
 		aXml.getIntChildAttrib("SearchInterval"),
 		(AutoSearch::ItemType)aXml.getIntChildAttrib("ItemType"),
+		aXml.getBoolChildAttrib("UserMatcherExclude"),
 		aXml.getIntChildAttrib("Token"));
 
 	as->setGroup(aXml.getChildAttrib("Group"));

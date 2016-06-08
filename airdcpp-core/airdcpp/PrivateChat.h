@@ -75,9 +75,8 @@ namespace dcpp {
 		const HintedUser& getHintedUser() const noexcept { return replyTo; }
 
 		ClientPtr getClient() const noexcept;
-		
-		GETSET(bool, supportsCCPM, SupportsCCPM);
-		GETSET(string, lastCCPMError, LastCCPMError);
+
+		string getLastCCPMError();
 	
 		void logMessage(const string& aMessage) const noexcept;
 		void fillLogParams(ParamMap& params) const noexcept;

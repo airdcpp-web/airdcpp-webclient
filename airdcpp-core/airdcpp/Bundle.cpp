@@ -793,6 +793,11 @@ void Bundle::save() throw(FileException) {
 		f.write(Util::toString(bundleDate));
 		f.write(LIT("\" AddedByAutoSearch=\""));
 		f.write(Util::toString(getAddedByAutoSearch()));
+		
+		if (resumeTime > 0) {
+			f.write(LIT("\" ResumeTime=\""));
+			f.write(Util::toString(resumeTime));
+		}
 		f.write(LIT("\">\r\n"));
 		saveFiles();
 		f.write(LIT("</File>\r\n"));
@@ -816,6 +821,11 @@ void Bundle::save() throw(FileException) {
 			f.write(LIT("\" TimeFinished=\""));
 			f.write(Util::toString(timeFinished));
 		}
+		if (resumeTime > 0) {
+			f.write(LIT("\" ResumeTime=\""));
+			f.write(Util::toString(resumeTime));
+		}
+
 		f.write(LIT("\">\r\n"));
 
 		saveFiles();

@@ -42,10 +42,10 @@ AutoSearch::AutoSearch() noexcept : token(Util::randInt(10)) {
 
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget,
 	TargetUtil::TargetType aTargetType, StringMatch::Method aMethod, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime,
-	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, const string& aExcluded, int aSearchInterval, ItemType aType, ProfileToken aToken /*rand*/) noexcept :
+	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, const string& aExcluded, int aSearchInterval, ItemType aType, bool aUserMetcherExclude, ProfileToken aToken /*rand*/) noexcept :
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), tType(aTargetType),
 	expireTime(aExpireTime), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared), searchInterval(aSearchInterval),
-	token(aToken), matchFullPath(aMatchFullPath), matcherString(aMatcherString), excludedString(aExcluded), asType(aType) {
+	token(aToken), matchFullPath(aMatchFullPath), matcherString(aMatcherString), excludedString(aExcluded), asType(aType), userMatcherExclude(aUserMetcherExclude) {
 
 	if (timeAdded == 0)
 		timeAdded = GET_TIME();
@@ -412,6 +412,7 @@ void AutoSearch::saveToXml(SimpleXML& xml) {
 	xml.addChildAttrib("Token", Util::toString(getToken()));
 	xml.addChildAttrib("TimeAdded", Util::toString(getTimeAdded()));
 	xml.addChildAttrib("Group", getGroup());
+	xml.addChildAttrib("UserMatcherExclude", getUserMatcherExclude());
 
 	xml.stepIn();
 

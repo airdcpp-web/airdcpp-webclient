@@ -28,6 +28,7 @@
 #include "LogManager.h"
 #include "MessageManager.h"
 #include "ResourceManager.h"
+#include "ShareManager.h"
 #include "ThrottleManager.h"
 #include "TimerManager.h"
 
@@ -45,6 +46,7 @@ Client::Client(const string& hubURL, char separator_, const ClientPtr& aOldClien
 {
 	setHubUrl(hubURL);
 	TimerManager::getInstance()->addListener(this);
+	ShareManager::getInstance()->addListener(this);
 }
 
 void Client::setHubUrl(const string& aUrl) noexcept {
@@ -73,6 +75,7 @@ void Client::setActive() {
 void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 	FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
 	TimerManager::getInstance()->removeListener(this);
+	ShareManager::getInstance()->removeListener(this);
 
 	if (!aRedirect) {
 		fire(ClientListener::Disconnecting(), this);
@@ -100,10 +103,22 @@ string Client::getDescription() const noexcept {
 	return ret;
 }
 
-void Client::reloadSettings(bool updateNick) noexcept {
+void Client::on(ShareManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken /*aNewDefault*/) noexcept {
+	if (get(HubSettings::ShareProfile) == aOldDefault) {
+		reloadSettings(false);
+	}
+}
+
+void Client::on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept {
+	if (get(HubSettings::ShareProfile) == aProfile) {
+		reloadSettings(false);
+	}
+}
+
+void Client::reloadSettings(bool aUpdateNick) noexcept {
 	/// @todo update the nick in ADC hubs?
 	string prevNick;
-	if(!updateNick)
+	if(!aUpdateNick)
 		prevNick = get(Nick);
 
 	auto fav = FavoriteManager::getInstance()->getFavoriteHubEntry(getHubUrl());
@@ -128,10 +143,11 @@ void Client::reloadSettings(bool updateNick) noexcept {
 	}
 
 	searchQueue.setMinInterval(get(HubSettings::SearchInterval) * 1000); //convert from seconds
-	if (updateNick)
+	if (aUpdateNick) {
 		checkNick(get(Nick));
-	else
+	} else {
 		get(Nick) = prevNick;
+	}
 }
 
 bool Client::changeBoolHubSetting(HubSettings::HubBoolSetting aSetting) {
@@ -262,8 +278,8 @@ void Client::statusMessage(const string& aMessage, LogMessage::Severity aSeverit
 }
 
 void Client::setRead() noexcept {
-	auto updated = cache.setRead();
-	if (updated > 0) {
+	auto unreadInfo = cache.setRead();
+	if (unreadInfo.hasMessages()) {
 		fire(ClientListener::MessagesRead(), this);
 	}
 }
@@ -300,14 +316,6 @@ void Client::onRedirect(const string& aRedirectUrl) noexcept {
 	} else {
 		fire(ClientListener::Redirect(), this, redirectUrl);
 	}
-}
-
-ProfileToken Client::getShareProfile() const noexcept {
-	if (favToken > 0) {
-		return get(HubSettings::ShareProfile);
-	}
-
-	return customShareProfile;
 }
 
 void Client::allowUntrustedConnect() noexcept {
@@ -376,12 +384,16 @@ void Client::on(Failed, const string& aLine) noexcept {
 	setConnectState(STATE_DISCONNECTED);
 	statusMessage(aLine, LogMessage::SEV_WARNING); //Error?
 
-	if (sock && !sock->isKeyprintMatch()) {
+	if (isKeyprintMismatch()) {
 		fire(ClientListener::KeyprintMismatch(), this);
 	}
 
 	sock->removeListener(this);
 	fire(ClientListener::Failed(), getHubUrl(), aLine);
+}
+
+bool Client::isKeyprintMismatch() const noexcept {
+	return sock && !sock->isKeyprintMatch();
 }
 
 void Client::callAsync(AsyncF f) noexcept {
@@ -412,8 +424,8 @@ std::string Client::getEncryptionInfo() const noexcept {
 	return isConnected() ? sock->getEncryptionInfo() : Util::emptyString;
 }
 
-vector<uint8_t> Client::getKeyprint() const noexcept {
-	return isConnected() ? sock->getKeyprint() : vector<uint8_t>();
+ByteVector Client::getKeyprint() const noexcept {
+	return isConnected() ? sock->getKeyprint() : ByteVector();
 }
 
 void Client::updateActivity() noexcept {

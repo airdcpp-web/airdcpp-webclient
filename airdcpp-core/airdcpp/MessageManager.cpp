@@ -149,13 +149,9 @@ void MessageManager::DisconnectCCPM(const UserPtr& aUser) {
 	}
 
 	WLock l(cs);
-	auto i = ccpms.find(aUser);
-	if (i != ccpms.end()) {
-		auto uc = i->second;
+	auto uc = getPMConn(aUser);
+	if (uc)
 		uc->disconnect(true);
-		uc->removeListener(this);
-		ccpms.erase(i);
-	}
 
 }
 
@@ -222,7 +218,7 @@ void MessageManager::on(ConnectionManagerListener::Removed, const ConnectionQueu
 			if (i != chats.end()) {
 				i->second->CCPMDisconnected();
 			}
-			ccpms.erase(cqi->getUser());
+			getPMConn(cqi->getUser());
 		}
 	}
 }

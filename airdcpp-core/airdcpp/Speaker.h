@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "CriticalSection.h"
+#include "debug.h"
 
 namespace dcpp {
 
@@ -36,7 +37,9 @@ class Speaker {
 
 public:
 	Speaker() noexcept { }
-	virtual ~Speaker() { }
+	virtual ~Speaker() { 
+		dcassert(listeners.empty());
+	}
 
 	template<typename... ArgT>
 	void fire(ArgT&&... args) noexcept {
