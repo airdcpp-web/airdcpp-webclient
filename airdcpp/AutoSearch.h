@@ -101,7 +101,7 @@ public:
 
 	AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget, TargetUtil::TargetType aTargetType,
 		StringMatch::Method aMatcherType, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime, bool aCheckAlreadyQueued,
-		bool aCheckAlreadyShared, bool matchFullPath, const string& aExcluded, int aSearhInterval, ItemType aType, ProfileToken aToken = 0) noexcept;
+		bool aCheckAlreadyShared, bool matchFullPath, const string& aExcluded, int aSearhInterval, ItemType aType, bool aUserMatcherExclude, ProfileToken aToken = 0) noexcept;
 
 	AutoSearch() noexcept;
 	~AutoSearch() noexcept;
@@ -125,6 +125,8 @@ public:
 	IGETSET(time_t, lastSearch, LastSearch, 0);
 	IGETSET(bool, checkAlreadyQueued, CheckAlreadyQueued, true);
 	IGETSET(bool, checkAlreadyShared, CheckAlreadyShared, true);
+	IGETSET(bool, userMatcherExclude, UserMatcherExclude, false);
+
 	IGETSET(int, searchInterval, SearchInterval, 180);
 	IGETSET(bool, manualSearch, ManualSearch, false);
 	IGETSET(Status, status, Status, STATUS_SEARCHING);

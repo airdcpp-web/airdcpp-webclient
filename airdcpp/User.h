@@ -46,7 +46,8 @@ public:
 		NAT_TRAVERSAL			= 0x200,	//< Client supports NAT Traversal
 		FAVORITE				= 0x400,
 		ASCH					= 0x800,
-		IGNORED					= 0x1000
+		IGNORED					= 0x1000,
+		CCPM					= 0x2000 // User supports CCPM
 	};
 
 	struct Hash {

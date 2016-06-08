@@ -73,8 +73,8 @@ void LogManager::log(const UserPtr& aUser, ParamMap& params) noexcept {
 }
 
 void LogManager::setRead() noexcept {
-	auto updated = cache.setRead();
-	if (updated > 0) {
+	auto unreadInfo = cache.setRead();
+	if (unreadInfo.hasMessages()) {
 		fire(LogManagerListener::MessagesRead());
 	}
 }

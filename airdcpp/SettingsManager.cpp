@@ -1135,7 +1135,7 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 			AirUtil::getIpAddresses(addresses, v6);
 			auto p = boost::find_if(addresses, [this, aSetting](const AirUtil::AddressInfo& aInfo) { return aInfo.ip == get(aSetting); });
 			if (p == addresses.end() && messageF(STRING_F(BIND_ADDRESS_MISSING, (v6 ? "IPv6" : "IPv4") % get(aSetting)), true, false)) {
-				set(aSetting, Util::emptyString);
+				unsetKey(aSetting);
 			}
 		}
 	};
