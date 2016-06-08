@@ -90,7 +90,7 @@ namespace webserver {
 		return{
 			{ "id", formatCCPMState(aChat->getCCPMState()) },
 			{ "str", PrivateChat::ccpmStateToString(aChat->getCCPMState()) },
-			{ "supported", aChat->getSupportsCCPM() },
+			{ "supported", aChat->getUser()->isSet(User::CCPM) },
 			{ "encryption", encryption },
 		};
 	}
