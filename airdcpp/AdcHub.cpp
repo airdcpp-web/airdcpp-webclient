@@ -760,7 +760,7 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 
 		size_t n = 0;
 		
-		if (get(HubSettings::ShareProfile) != SP_HIDDEN) {
+		if (isSharingHub()) {
 			if (SETTING(USE_PARTIAL_SHARING))
 				n = QueueManager::getInstance()->getQueuedBundleFiles();
 
@@ -1441,7 +1441,7 @@ void AdcHub::infoImpl() noexcept {
 
 	size_t fileCount = 0;
 	int64_t size = 0;
-	if (get(HubSettings::ShareProfile) != SP_HIDDEN) {
+	if (isSharingHub()) {
 		fileCount = SETTING(USE_PARTIAL_SHARING) ? QueueManager::getInstance()->getQueuedBundleFiles() : 0;
 		ShareManager::getInstance()->getProfileInfo(get(HubSettings::ShareProfile), size, fileCount);
 	}
@@ -1450,9 +1450,9 @@ void AdcHub::infoImpl() noexcept {
 	addParam(lastInfoMap, c, "SF", Util::toString(fileCount));
 
 	addParam(lastInfoMap, c, "EM", get(Email));
-	addParam(lastInfoMap, c, "HN", Util::toString(counts[COUNT_NORMAL]));
-	addParam(lastInfoMap, c, "HR", Util::toString(counts[COUNT_REGISTERED]));
-	addParam(lastInfoMap, c, "HO", Util::toString(counts[COUNT_OP]));	
+	addParam(lastInfoMap, c, "HN", Util::toString(getDisplayCount(COUNT_NORMAL)));
+	addParam(lastInfoMap, c, "HR", Util::toString(getDisplayCount(COUNT_REGISTERED)));
+	addParam(lastInfoMap, c, "HO", Util::toString(getDisplayCount(COUNT_OP)));
 
 	addParam(lastInfoMap, c, "VE", shortVersionString);
 	addParam(lastInfoMap, c, "AW", ActivityManager::getInstance()->isAway() ? "1" : Util::emptyString);

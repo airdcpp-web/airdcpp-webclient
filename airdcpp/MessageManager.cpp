@@ -177,7 +177,7 @@ void MessageManager::onPrivateMessage(const ChatMessagePtr& aMessage) {
 
 	const auto& identity = aMessage->getReplyTo()->getIdentity();
 	if ((identity.isBot() && !SETTING(POPUP_BOT_PMS)) || (identity.isHub() && !SETTING(POPUP_HUB_PMS))) {
-		c->Message(STRING(PRIVATE_MESSAGE_FROM) + " " + identity.getNick() + ": " + aMessage->format());
+		c->addLine(STRING(PRIVATE_MESSAGE_FROM) + " " + identity.getNick() + ": " + aMessage->format());
 		return;
 	}
 

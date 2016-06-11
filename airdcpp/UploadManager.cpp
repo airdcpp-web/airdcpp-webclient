@@ -81,7 +81,7 @@ void UploadManager::setFreeSlotMatcher() {
 }
 
 uint8_t UploadManager::getSlots() const { 
-	return (uint8_t)(max(AirUtil::getSlots(false), max(SETTING(HUB_SLOTS),0) * Client::getTotalCounts())); 
+	return static_cast<uint8_t>(AirUtil::getSlots(false)); 
 }
 
 uint8_t UploadManager::getFreeSlots() const { 

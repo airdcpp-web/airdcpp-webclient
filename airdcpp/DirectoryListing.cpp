@@ -81,7 +81,7 @@ bool DirectoryListing::File::Sort::operator()(const Ptr& a, const Ptr& b) const 
 	return compare(a->getName(), b->getName()) < 0;
 }
 
-string DirectoryListing::getNick(bool firstOnly) const noexcept {
+string DirectoryListing::getNick(bool aFirstOnly) const noexcept {
 	string ret;
 	if (!hintedUser.user->isOnline()) {
 		if (isOwnList) {
@@ -92,7 +92,7 @@ string DirectoryListing::getNick(bool firstOnly) const noexcept {
 	}
 
 	if (ret.empty()) {
-		if (firstOnly) {
+		if (aFirstOnly) {
 			ret = ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint, true);
 		} else {
 			ret = ClientManager::getInstance()->getFormatedNicks(hintedUser);
@@ -102,13 +102,13 @@ string DirectoryListing::getNick(bool firstOnly) const noexcept {
 	return ret;
 }
 
-void stripExtensions(string& name) noexcept {
-	if(Util::stricmp(name.c_str() + name.length() - 4, ".bz2") == 0) {
-		name.erase(name.length() - 4);
+void stripExtensions(string& aName) noexcept {
+	if(Util::stricmp(aName.c_str() + aName.length() - 4, ".bz2") == 0) {
+		aName.erase(aName.length() - 4);
 	}
 
-	if(Util::stricmp(name.c_str() + name.length() - 4, ".xml") == 0) {
-		name.erase(name.length() - 4);
+	if(Util::stricmp(aName.c_str() + aName.length() - 4, ".xml") == 0) {
+		aName.erase(aName.length() - 4);
 	}
 }
 
@@ -311,7 +311,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				return;		
 			TTHValue tth(h); /// @todo verify validity?
 
-			auto f = new DirectoryListing::File(cur, n, size, tth, checkDupe, Util::toUInt32(getAttrib(attribs, sDate, 3)));
+			auto f = make_shared<DirectoryListing::File>(cur, n, size, tth, checkDupe, Util::toUInt32(getAttrib(attribs, sDate, 3)));
 			cur->files.push_back(f);
 		} else if(name == sDirectory) {
 			const string& n = getAttrib(attribs, sName, 0);
@@ -335,7 +335,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 
 			if(!d) {
-				d = new DirectoryListing::Directory(cur, n, incomp ? (children ? DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD : DirectoryListing::Directory::TYPE_INCOMPLETE_NOCHILD) : 
+				d = make_shared<DirectoryListing::Directory>(cur, n, incomp ? (children ? DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD : DirectoryListing::Directory::TYPE_INCOMPLETE_NOCHILD) : 
 					DirectoryListing::Directory::TYPE_NORMAL, listDate, (partialList && checkDupe), size, Util::toUInt32(date));
 				cur->directories.push_back(d);
 				if (updating && !incomp)
@@ -369,10 +369,10 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			for(const auto& curDirName: sl) {
 				auto s = find_if(cur->directories, [&curDirName](const DirectoryListing::Directory::Ptr& dir) { return dir->getName() == curDirName; });
 				if (s == cur->directories.end()) {
-					auto d = new DirectoryListing::Directory(cur, curDirName, DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD, listDate, true);
+					auto d = make_shared<DirectoryListing::Directory>(cur, curDirName, DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD, listDate, true);
 					cur->directories.push_back(d);
 					list->baseDirs[Text::toLower(Util::toAdcFile(d->getPath()))] = { d, false };
-					cur = d;
+					cur = d.get();
 				} else {
 					cur = (*s).get();
 				}
@@ -418,10 +418,13 @@ DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize
 	if (checkDupe && size > 0) {
 		dupe = AirUtil::checkFileDupe(tthRoot);
 	}
+
+	//dcdebug("DirectoryListing::File (copy) %s was created\n", aName.c_str());
 }
 
 DirectoryListing::File::File(const File& rhs, bool _adls) noexcept : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe), remoteDate(rhs.remoteDate)
 {
+	//dcdebug("DirectoryListing::File (copy) %s was created\n", rhs.getName().c_str());
 }
 
 DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, Directory::DirType aType, time_t aUpdateDate, bool checkDupe, const string& aSize, time_t aRemoteDate /*0*/)
@@ -434,6 +437,8 @@ DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, 
 	if (checkDupe) {
 		dupe = AirUtil::checkDirDupe(getPath(), partialSize);
 	}
+
+	//dcdebug("DirectoryListing::Directory %s was created\n", aName.c_str());
 }
 
 void DirectoryListing::Directory::search(OrderedStringSet& aResults, SearchQuery& aStrings) const noexcept {
@@ -597,7 +602,7 @@ DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& a
 void DirectoryListing::Directory::findFiles(const boost::regex& aReg, File::List& aResults) const noexcept {
 	copy_if(files.begin(), files.end(), back_inserter(aResults), [&aReg](const File::Ptr& df) { return boost::regex_match(df->getName(), aReg); });
 
-	for(auto d: directories)
+	for(const auto& d: directories)
 		d->findFiles(aReg, aResults); 
 }
 
@@ -681,7 +686,7 @@ struct SizeLess {
 };
 
 DirectoryListing::Directory::~Directory() {
-	//for_each(files, DeleteFunction());
+	//dcdebug("DirectoryListing::Directory %s deleted\n", name.c_str());
 }
 
 void DirectoryListing::Directory::clearAll() noexcept {
@@ -719,7 +724,7 @@ void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSe
 }
 	
 void DirectoryListing::getLocalPaths(const File::Ptr& f, StringList& ret) const throw(ShareException) {
-	if(f->getParent()->getAdls() && (f->getParent()->getParent() == root || !isOwnList))
+	if(f->getParent()->getAdls() && (f->getParent()->getParent() == root.get() || !isOwnList))
 		return;
 
 	if (isOwnList) {
@@ -736,7 +741,7 @@ void DirectoryListing::getLocalPaths(const File::Ptr& f, StringList& ret) const 
 }
 
 void DirectoryListing::getLocalPaths(const Directory::Ptr& d, StringList& ret) const throw(ShareException) {
-	if(d->getAdls() && (d->getParent() == root || !isOwnList))
+	if(d->getAdls() && (d->getParent() == root.get() || !isOwnList))
 		return;
 
 	string path;
@@ -978,11 +983,13 @@ void DirectoryListing::matchAdlImpl() throw(AbortException) {
 
 	if (isOwnList) {
 		// No point in matching own partial list
+		setMatchADL(true);
 		loadFileImpl(Util::emptyString);
+	} else {
+		fire(DirectoryListingListener::UpdateStatusMessage(), CSTRING(MATCHING_ADL));
+		ADLSearchManager::getInstance()->matchListing(*this);
+		fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true);
 	}
-
-	ADLSearchManager::getInstance()->matchListing(*this);
-	fire(DirectoryListingListener::LoadingFinished(), start, Util::emptyString, false, true);
 }
 
 void DirectoryListing::loadFileImpl(const string& aInitialDir) throw(Exception, AbortException) {
@@ -1057,13 +1064,13 @@ void DirectoryListing::searchImpl(const SearchPtr& aSearch) noexcept {
 	}
 }
 
-void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDir, bool reloadAll, bool changeDir, std::function<void()> completionF) throw(Exception, AbortException) {
+void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDir, bool aReloadAll, bool aChangeDir, std::function<void()> aCompletionF) throw(Exception, AbortException) {
 	if (!partialList)
 		return;
 
-	auto baseDir = isOwnList && reloadAll ? "/" : Util::toAdcFile(aBaseDir);
+	auto baseDir = isOwnList && aReloadAll ? "/" : Util::toAdcFile(aBaseDir);
 
-	bool reloading = reloadAll;
+	bool reloading = aReloadAll;
 	if (!reloading) {
 		auto bd = baseDirs.find(Text::toLower(baseDir));
 		if (bd != baseDirs.end()) {
@@ -1074,7 +1081,7 @@ void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDi
 	if (reloading) {
 		fire(DirectoryListingListener::LoadingStarted(), false);
 
-		if (baseDir.empty() || reloadAll) {
+		if (baseDir.empty() || aReloadAll) {
 			baseDirs.clear();
 			root->clearAll();
 			if (baseDir.empty())
@@ -1111,10 +1118,10 @@ void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDi
 		dirsLoaded = updateXML(aXml, baseDir);
 	}
 
-	onLoadingFinished(0, Util::toNmdcFile(baseDir), reloadAll || (reloading && baseDir == "/"), changeDir);
+	onLoadingFinished(0, Util::toNmdcFile(baseDir), aReloadAll || (reloading && baseDir == "/"), aChangeDir);
 
-	if (completionF) {
-		completionF();
+	if (aCompletionF) {
+		aCompletionF();
 	}
 }
 

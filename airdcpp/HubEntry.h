@@ -113,9 +113,7 @@ public:
 
 class RecentHubEntry : public intrusive_ptr_base<RecentHubEntry> {
 public:
-	RecentHubEntry(const string& aUrl) : server(aUrl), name("*"), description("*"), shared("*"), users("*") {
-
-	}
+	RecentHubEntry(const string& aUrl);
 	
 	GETSET(string, server, Server);
 	GETSET(string, name, Name);

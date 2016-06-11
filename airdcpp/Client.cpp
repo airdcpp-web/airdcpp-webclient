@@ -34,7 +34,8 @@
 
 namespace dcpp {
 
-atomic<long> Client::counts[COUNT_UNCOUNTED];
+atomic<long> Client::allCounts[COUNT_UNCOUNTED];
+atomic<long> Client::sharingCounts[COUNT_UNCOUNTED];
 ClientToken idCounter = 0;
 
 Client::Client(const string& hubURL, char separator_, const ClientPtr& aOldClient) :
@@ -62,13 +63,13 @@ Client::~Client() {
 	dcdebug("Client %s was deleted\n", hubUrl.c_str());
 }
 
-void Client::reconnect() {
+void Client::reconnect() noexcept {
 	disconnect(true);
 	setAutoReconnect(true);
 	setReconnDelay(0);
 }
 
-void Client::setActive() {
+void Client::setActive() noexcept {
 	fire(ClientListener::SetActive(), this);
 }
 
@@ -150,7 +151,7 @@ void Client::reloadSettings(bool aUpdateNick) noexcept {
 	}
 }
 
-bool Client::changeBoolHubSetting(HubSettings::HubBoolSetting aSetting) {
+bool Client::changeBoolHubSetting(HubSettings::HubBoolSetting aSetting) noexcept {
 	auto newValue = !get(aSetting);
 	get(aSetting) = newValue;
 
@@ -161,11 +162,11 @@ bool Client::changeBoolHubSetting(HubSettings::HubBoolSetting aSetting) {
 	return newValue;
 }
 
-void Client::updated(const OnlineUserPtr& aUser) {
+void Client::updated(const OnlineUserPtr& aUser) noexcept {
 	fire(ClientListener::UserUpdated(), this, aUser);
 }
 
-void Client::updated(OnlineUserList& users) {
+void Client::updated(OnlineUserList& users) noexcept {
 	//std::for_each(users.begin(), users.end(), [](OnlineUser* user) { UserMatchManager::getInstance()->match(*user); });
 
 	fire(ClientListener::UsersUpdated(), this, users);
@@ -432,10 +433,18 @@ void Client::updateActivity() noexcept {
 	lastActivity = GET_TICK(); 
 }
 
+bool Client::isSharingHub() const noexcept {
+	return get(HubSettings::ShareProfile) != SP_HIDDEN;
+}
+
 bool Client::updateCounts(bool aRemove) noexcept {
 	// We always remove the count and then add the correct one if requested...
 	if(countType != COUNT_UNCOUNTED) {
-		counts[countType]--;
+		allCounts[countType]--;
+		if (countIsSharing) {
+			sharingCounts[countType]--;
+		}
+
 		countType = COUNT_UNCOUNTED;
 	}
 
@@ -445,9 +454,9 @@ bool Client::updateCounts(bool aRemove) noexcept {
 		} else if(getMyIdentity().isRegistered()) {
 			countType = COUNT_REGISTERED;
 		} else {
-				//disconnect before the hubcount is updated.
+			//disconnect before the hubcount is updated.
 			if(SETTING(DISALLOW_CONNECTION_TO_PASSED_HUBS)) {
-				fire(ClientListener::AddLine(), this, STRING(HUB_NOT_PROTECTED));
+				addLine(STRING(HUB_NOT_PROTECTED));
 				disconnect(true);
 				setAutoReconnect(false);
 				return false;
@@ -456,7 +465,12 @@ bool Client::updateCounts(bool aRemove) noexcept {
 			countType = COUNT_NORMAL;
 		}
 
-		counts[countType]++;
+		countIsSharing = isSharingHub();
+
+		allCounts[countType]++;
+		if (countIsSharing) {
+			sharingCounts[countType]++;
+		}
 	}
 	return true;
 }
@@ -466,10 +480,18 @@ uint64_t Client::queueSearch(const SearchPtr& aSearch){
 	return searchQueue.add(aSearch);
 }
 
-string Client::getCounts() {
+string Client::getAllCountsStr() noexcept {
 	char buf[128];
 	return string(buf, snprintf(buf, sizeof(buf), "%ld/%ld/%ld",
-		counts[COUNT_NORMAL].load(), counts[COUNT_REGISTERED].load(), counts[COUNT_OP].load()));
+		allCounts[COUNT_NORMAL].load(), allCounts[COUNT_REGISTERED].load(), allCounts[COUNT_OP].load()));
+}
+
+long Client::getDisplayCount(CountType aCountType) const noexcept {
+	return SETTING(SEPARATE_NOSHARE_HUBS) && isSharingHub() ? sharingCounts[aCountType] : allCounts[aCountType];
+}
+
+void Client::addLine(const string& msg) noexcept {
+	fire(ClientListener::AddLine(), this, msg);
 }
  
 void Client::on(Line, const string& aLine) noexcept {

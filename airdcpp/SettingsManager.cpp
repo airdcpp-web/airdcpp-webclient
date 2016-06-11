@@ -204,7 +204,7 @@ const string SettingsManager::settingTags[] =
 	"TextOPBackColor", "TextOPForeColor",
 	"TextURLBackColor", "TextURLForeColor",
 	"Progress3DDepth", 
-	"HubSlots",	"ProgressTextDown", "ProgressTextUp", "ExtraDownloadSlots", "ErrorColor", "TransferSplitSize",
+	"ProgressTextDown", "ProgressTextUp", "ExtraDownloadSlots", "ErrorColor", "TransferSplitSize",
 	"DisconnectSpeed", "DisconnectFileSpeed", "DisconnectTime", "RemoveSpeed", "MenubarLeftColor", 
 	"MenubarRightColor", "DisconnectFileSize", "NumberOfSegments", "MaxHashSpeed", "PMLogLines", "SearchAlternateColour", "SearchTime", "DontBeginSegmentSpeed",
 	"MagnetAction",  "PopupType", "ShutdownAction", "MinimumSearchInterval", "MaxAutoMatchSource", "ReservedSlotColor", "IgnoredColor", "FavoriteColor","NormalColour",
@@ -279,7 +279,7 @@ const string SettingsManager::settingTags[] =
 	"RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "FLReportDupeFiles",
 	"FilterFLShared", "FilterFLQueued", "FilterFLInversed", "FilterFLTop", "FilterFLPartialDupes", "FilterFLResetChange", "FilterSearchShared", "FilterSearchQueued", "FilterSearchInversed", "FilterSearchTop", "FilterSearchPartialDupes", "FilterSearchResetChange",
 	"SearchAschOnlyMan", "IgnoreIndirectSR", "UseUploadBundles", "CloseMinimize", "LogIgnored", "UsersFilterIgnore", "NfoExternal", "SingleClickTray", "QueueShowFinished", "RemoveFinishedBundles", "LogCRCOk",
-	"FilterQueueInverse", "FilterQueueTop", "FilterQueueReset", "AlwaysCCPM",
+	"FilterQueueInverse", "FilterQueueTop", "FilterQueueReset", "AlwaysCCPM", "SeparateNoshareHubs",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -441,7 +441,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(CORAL, true);	
 	setDefault(NUMBER_OF_SEGMENTS, 3);
 	setDefault(SEGMENTS_MANUAL, false);
-	setDefault(HUB_SLOTS, 0);
+	setDefault(SEPARATE_NOSHARE_HUBS, false);
 	setDefault(TEXT_FONT, "Tahoma,-11,400,0");
 	setDefault(EXTRA_SLOTS, 3);
 	setDefault(EXTRA_PARTIAL_SLOTS, 1);
