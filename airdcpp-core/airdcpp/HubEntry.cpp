@@ -23,6 +23,7 @@
 #include "ShareManager.h"
 #include "StringTokenizer.h"
 
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/range/algorithm/for_each.hpp>
 
 namespace dcpp {
@@ -46,6 +47,10 @@ string FavoriteHubEntry::getShareProfileName() const noexcept {
 	}
 
 	return ShareManager::getInstance()->getShareProfile(SETTING(DEFAULT_SP))->getDisplayName();
+}
+
+RecentHubEntry::RecentHubEntry(const string& aUrl) : server(boost::trim_copy(aUrl)), name("*"), description("*"), shared("*"), users("*") {
+
 }
 
 }

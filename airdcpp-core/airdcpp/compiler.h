@@ -140,7 +140,7 @@
 
 # pragma warning(disable: 4592) // warning C4592: 'updateCommand': symbol will be dynamically initialized (implementation limitation) - exists in VS2015 Update 1 and 2, recheck when a new update is released
 
-// Enable a bugfix in VS2015 update 2, remove in the next version of VS2015
+// Enable a bugfix in VS2015 update 2, remove in the next major version of Visual Studio
 #define _ENABLE_ATOMIC_ALIGNMENT_FIX
 #endif
 
