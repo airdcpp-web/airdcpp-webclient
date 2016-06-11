@@ -53,6 +53,25 @@ namespace webserver {
 		return hash<string>()(type == DIRECTORY ? dir->getName() : file->getName());
 	}
 
+	FilelistItemInfo::FilelistItemInfo(const DirectoryListing::File::Ptr& f) : type(FILE), file(f) { 
+		//dcdebug("FilelistItemInfo (file) %s was created\n", f->getName().c_str());
+	}
+
+	FilelistItemInfo::FilelistItemInfo(const DirectoryListing::Directory::Ptr& d) : type(DIRECTORY), dir(d) {
+		//dcdebug("FilelistItemInfo (directory) %s was created\n", d->getName().c_str());
+	}
+
+	FilelistItemInfo::~FilelistItemInfo() { 
+		//dcdebug("FilelistItemInfo %s was deleted\n", getName().c_str());
+
+		// The member destructor is not called automatically in an union
+		if (type == FILE) {
+			file.~shared_ptr();
+		} else {
+			dir.~shared_ptr();
+		}
+	}
+
 	FilelistInfo::FilelistInfo(ParentType* aParentModule, const DirectoryListingPtr& aFilelist) : 
 		SubApiModule(aParentModule, aFilelist->getUser()->getCID().toBase32(), subscriptionList), 
 		dl(aFilelist),
