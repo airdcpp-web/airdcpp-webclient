@@ -207,6 +207,7 @@ namespace webserver {
 		{ "nmdc_encoding", SettingsManager::NMDC_ENCODING, ResourceManager::NMDC_ENCODING },
 		{ "auto_follow_redirects", SettingsManager::AUTO_FOLLOW, ResourceManager::SETTINGS_AUTO_FOLLOW },
 		{ "disconnect_hubs_noreg", SettingsManager::DISALLOW_CONNECTION_TO_PASSED_HUBS, ResourceManager::DISALLOW_CONNECTION_TO_PASSED_HUBS },
+		{ "separate_noshare_hubs", SettingsManager::SEPARATE_NOSHARE_HUBS, ResourceManager::SEPARATE_NOSHARE_HUBS },
 
 		{ "run_wizard", SettingsManager::WIZARD_RUN, ResourceManager::WIZARD_FINISHED_TITLE },
 
