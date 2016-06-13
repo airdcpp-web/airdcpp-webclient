@@ -46,7 +46,7 @@ namespace dcpp {
 		return viewFiles;
 	}
 
-	void ViewFileManager::on(QueueManagerListener::Finished, const QueueItemPtr& aQI, const string&, const HintedUser&, int64_t /*aSpeed*/) noexcept {
+	void ViewFileManager::on(QueueManagerListener::ItemFinished, const QueueItemPtr& aQI, const string&, const HintedUser&, int64_t /*aSpeed*/) noexcept {
 		if (!isViewedItem(aQI))
 			return;
 
@@ -61,7 +61,7 @@ namespace dcpp {
 		return aQI->isSet(QueueItem::FLAG_CLIENT_VIEW) && !aQI->isSet(QueueItem::FLAG_USER_LIST) && !aQI->isSet(QueueItem::FLAG_OPEN);
 	}
 
-	void ViewFileManager::on(QueueManagerListener::StatusUpdated, const QueueItemPtr& aQI) noexcept {
+	void ViewFileManager::on(QueueManagerListener::ItemStatusUpdated, const QueueItemPtr& aQI) noexcept {
 		if (!isViewedItem(aQI)) {
 			return;
 		}
@@ -72,7 +72,7 @@ namespace dcpp {
 		}
 	}
 
-	void ViewFileManager::on(QueueManagerListener::Removed, const QueueItemPtr& aQI, bool finished) noexcept {
+	void ViewFileManager::on(QueueManagerListener::ItemRemoved, const QueueItemPtr& aQI, bool finished) noexcept {
 		if (finished || !isViewedItem(aQI)) {
 			return;
 		}
@@ -80,7 +80,7 @@ namespace dcpp {
 		removeFile(aQI->getTTH());
 	}
 
-	void ViewFileManager::on(QueueManagerListener::Added, QueueItemPtr& aQI) noexcept {
+	void ViewFileManager::on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept {
 		if (!isViewedItem(aQI)) {
 			return;
 		}

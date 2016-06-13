@@ -30,12 +30,13 @@ public:
 	virtual ~QueueManagerListener() { }
 	template<int I>	struct X { enum { TYPE = I };  };
 
-	typedef X<0> Added;
-	typedef X<1> Finished;
-	typedef X<2> Removed;
-	typedef X<3> SourcesUpdated;
-	typedef X<4> StatusUpdated;
-	typedef X<5> PartialList;
+	typedef X<0> ItemAdded;
+	typedef X<1> ItemFinished;
+	typedef X<2> ItemRemoved;
+	typedef X<3> ItemSourcesUpdated;
+	typedef X<4> ItemStatusUpdated;
+
+	typedef X<5> PartialListFinished;
 	typedef X<6> SourceFilesUpdated;
 
 	typedef X<7> FileRecheckStarted;
@@ -53,12 +54,12 @@ public:
 	typedef X<21> FileHashed;
 	typedef X<22> BundleStatusChanged;
 
-	virtual void on(Added, QueueItemPtr&) noexcept { }
-	virtual void on(Finished, const QueueItemPtr&, const string&, const HintedUser&, int64_t) noexcept { }
-	virtual void on(Removed, const QueueItemPtr&, bool) noexcept { }
-	virtual void on(SourcesUpdated, const QueueItemPtr&) noexcept { }
-	virtual void on(StatusUpdated, const QueueItemPtr&) noexcept { }
-	virtual void on(PartialList, const HintedUser&, const string&, const string&) noexcept { }
+	virtual void on(ItemAdded, const QueueItemPtr&) noexcept { }
+	virtual void on(ItemFinished, const QueueItemPtr&, const string&, const HintedUser&, int64_t) noexcept { }
+	virtual void on(ItemRemoved, const QueueItemPtr&, bool) noexcept { }
+	virtual void on(ItemSourcesUpdated, const QueueItemPtr&) noexcept { }
+	virtual void on(ItemStatusUpdated, const QueueItemPtr&) noexcept { }
+	virtual void on(PartialListFinished, const HintedUser&, const string&, const string&) noexcept { }
 	virtual void on(SourceFilesUpdated, const UserPtr&) noexcept { }
 
 	virtual void on(BundleSources, const BundlePtr&) noexcept { }

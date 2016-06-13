@@ -285,7 +285,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 	}
 }
 
-void DirectoryListingManager::on(QueueManagerListener::Finished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t /*aSpeed*/) noexcept {
+void DirectoryListingManager::on(QueueManagerListener::ItemFinished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t /*aSpeed*/) noexcept {
 	if (!qi->isSet(QueueItem::FLAG_CLIENT_VIEW) || !qi->isSet(QueueItem::FLAG_USER_LIST))
 		return;
 
@@ -310,7 +310,7 @@ void DirectoryListingManager::on(QueueManagerListener::Finished, const QueueItem
 	}
 }
 
-void DirectoryListingManager::on(QueueManagerListener::PartialList, const HintedUser& aUser, const string& aXML, const string& aBase) noexcept {
+void DirectoryListingManager::on(QueueManagerListener::PartialListFinished, const HintedUser& aUser, const string& aXML, const string& aBase) noexcept {
 	if (aXML.empty())
 		return;
 
@@ -333,7 +333,7 @@ void DirectoryListingManager::on(QueueManagerListener::PartialList, const Hinted
 	}
 }
 
-void DirectoryListingManager::on(QueueManagerListener::Removed, const QueueItemPtr& qi, bool finished) noexcept {
+void DirectoryListingManager::on(QueueManagerListener::ItemRemoved, const QueueItemPtr& qi, bool finished) noexcept {
 	if (!qi->isSet(QueueItem::FLAG_USER_LIST))
 		return;
 
@@ -399,7 +399,7 @@ DirectoryListingPtr DirectoryListingManager::createList(const HintedUser& aUser,
 	return dl;
 }
 
-void DirectoryListingManager::on(QueueManagerListener::Added, QueueItemPtr& aQI) noexcept {
+void DirectoryListingManager::on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept {
 	if (!aQI->isSet(QueueItem::FLAG_CLIENT_VIEW) || !aQI->isSet(QueueItem::FLAG_USER_LIST))
 		return;
 
