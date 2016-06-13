@@ -1129,6 +1129,12 @@ void ShareManager::removeTempShare(const string& aKey, const TTHValue& tth) {
 		}
 	}
 }
+
+void ShareManager::removeTempShare(const string& aPath) {
+	WLock l(cs);
+	tempShares.erase(boost::remove_if(tempShares | map_values, [&](const TempShareInfo& ti) { return Util::stricmp(aPath, ti.path) == 0; }).base(), tempShares.end());
+}
+
 void ShareManager::clearTempShares() {
 	WLock l(cs);
 	tempShares.clear();

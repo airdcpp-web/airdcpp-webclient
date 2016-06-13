@@ -220,6 +220,7 @@ public:
 	TempShareMap& getTempShares() { return tempShares; }
 
 	void removeTempShare(const string& aKey, const TTHValue& tth);
+	void removeTempShare(const string& aPath);
 	void clearTempShares();
 	bool isTempShared(const string& aKey, const TTHValue& tth);
 	//tempShares end

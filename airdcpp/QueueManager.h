@@ -409,8 +409,10 @@ private:
 	/** Get a bundle for adding new items in queue (a new one or existing)  */
 	BundlePtr getBundle(const string& aTarget, QueueItemBase::Priority aPrio, time_t aDate, bool isFileBundle) noexcept;
 
-	/** Add a file to the queue (returns the item and whether it didn't exist before) */
-	bool addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, QueueItemBase::Priority aPrio, bool& wantConnection, BundlePtr& aBundle) throw(QueueException, FileException);
+	// Add a file to the queue
+	// Returns the possibly added queue item and bool whether it's a newly created item
+	pair<QueueItemPtr, bool> addBundleFile(const string& aTarget, int64_t aSize, const TTHValue& aRoot, 
+		const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, QueueItemBase::Priority aPrio, bool& wantConnection_, BundlePtr& aBundle_) throw(QueueException, FileException);
 
 	/** Check that we can download from this user */
 	void checkSource(const HintedUser& aUser) const throw(QueueException);
