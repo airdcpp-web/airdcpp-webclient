@@ -139,7 +139,6 @@ public:
 	
 	GETSET(bool, registered, Registered);
 	GETSET(bool, autoReconnect, AutoReconnect);
-	GETSET(bool, stealth, Stealth);
 	GETSET(ProfileToken, favToken, FavToken);
 	GETSET(ClientToken, clientId, ClientId);
 

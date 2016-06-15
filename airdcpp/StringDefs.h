@@ -1629,7 +1629,6 @@ enum Strings { // @DontAdd
 	START_CCPM, // "Start a direct encrypted channel"
 	START_TIME, // "Start time"
 	STATUS, // "Status"
-	STEALTH_MODE, // "Emulate DC++ in this hub"
 	STOP, // "Stop"
 	STOP_SHARING, // "Stop sharing"
 	STORED_PASSWORD_SENT, // "Stored password sent..."

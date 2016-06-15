@@ -101,7 +101,6 @@ public:
 
 	IGETSET(bool, autoConnect, AutoConnect, true);
 	IGETSET(int, chatusersplit, ChatUserSplit, 0);
-	IGETSET(bool, stealth, Stealth, false);
 	IGETSET(bool, userliststate, UserListState, true);
 	IGETSET(bool, favnoPM, FavNoPM, false);
 	GETSET(string, group, Group);

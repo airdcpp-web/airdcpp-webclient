@@ -623,7 +623,6 @@ void FavoriteManager::saveFavoriteHubs(SimpleXML& aXml) const {
 		aXml.addChildAttrib("Password", i->getPassword());
 		aXml.addChildAttrib("Server", i->getServer());
 		aXml.addChildAttrib("ChatUserSplit", i->getChatUserSplit());
-		aXml.addChildAttrib("StealthMode", i->getStealth());
 		aXml.addChildAttrib("UserListState", i->getUserListState());
 		aXml.addChildAttrib("HubFrameOrder", i->getHeaderOrder());
 		aXml.addChildAttrib("HubFrameWidths", i->getHeaderWidths());
@@ -799,7 +798,6 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			e->setServer(server);
 
 			e->setChatUserSplit(aXml.getIntChildAttrib("ChatUserSplit"));
-			e->setStealth(aXml.getBoolChildAttrib("StealthMode"));
 			e->setUserListState(aXml.getBoolChildAttrib("UserListState"));
 			e->setHeaderOrder(aXml.getChildAttrib("HubFrameOrder", SETTING(HUBFRAME_ORDER)));
 			e->setHeaderWidths(aXml.getChildAttrib("HubFrameWidths", SETTING(HUBFRAME_WIDTHS)));

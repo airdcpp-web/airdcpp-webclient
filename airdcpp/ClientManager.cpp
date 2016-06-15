@@ -534,15 +534,6 @@ bool ClientManager::isOp(const UserPtr& user, const string& aHubUrl) const noexc
 	return false;
 }
 
-bool ClientManager::isStealth(const string& aHubUrl) const noexcept {
-	RLock l(cs);
-	auto i = clients.find(const_cast<string*>(&aHubUrl));
-	if(i != clients.end()) {
-		return i->second->getStealth();
-	}
-	return false;
-}
-
 CID ClientManager::makeCid(const string& aNick, const string& aHubUrl) const noexcept {
 	string n = Text::toLower(aNick);
 	TigerHash th;

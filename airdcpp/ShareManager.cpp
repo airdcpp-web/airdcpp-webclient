@@ -2877,7 +2877,7 @@ void ShareManager::toFilelist(OutputStream& os_, const string& aVirtualPath, con
 	os_.write("<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() +
 		"\" Base=\"" + SimpleXML::escape(aVirtualPath, tmp, false) +
 		"\" BaseDate=\"" + Util::toString(listRoot.date) +
-		"\" Generator=\"DC++ " DCVERSIONSTRING "\">\r\n");
+		"\" Generator=\"" + shortVersionString + "\">\r\n");
 
 	for (const auto ld : listRoot.listDirs | map_values) {
 		ld->toXml(os_, indent, tmp, aRecursive);

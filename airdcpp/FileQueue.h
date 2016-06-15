@@ -59,7 +59,7 @@ public:
 	const QueueItem::StringMap& getPathQueue() const noexcept{ return pathQueue; }
 	QueueItem::TTHMap& getTTHIndex() noexcept { return tthIndex; }
 
-	void remove(QueueItemPtr& qi) noexcept;
+	void remove(const QueueItemPtr& qi) noexcept;
 
 	DupeType isFileQueued(const TTHValue& aTTH) const noexcept;
 	QueueItemPtr getQueuedFile(const TTHValue& aTTH) const noexcept;
