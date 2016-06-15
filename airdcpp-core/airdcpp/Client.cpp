@@ -126,19 +126,14 @@ void Client::reloadSettings(bool aUpdateNick) noexcept {
 
 	*static_cast<HubSettings*>(this) = SettingsManager::getInstance()->getHubSettings();
 
-	bool isAdcHub = AirUtil::isAdcHub(hubUrl);
-
 	if(fav) {
 		FavoriteManager::getInstance()->mergeHubSettings(fav, *this);
 		if(!fav->getPassword().empty())
 			setPassword(fav->getPassword());
 
-		setStealth(!isAdcHub ? fav->getStealth() : false);
 		setFavNoPM(fav->getFavNoPM());
-
 		favToken = fav->getToken();
 	} else {
-		setStealth(false);
 		setFavNoPM(false);
 		setPassword(Util::emptyString);
 	}

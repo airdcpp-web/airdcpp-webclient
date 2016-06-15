@@ -565,7 +565,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 			// Trigger connection attempt sequence locally ...
 			ConnectionManager::getInstance()->nmdcConnect(server, senderPort, Util::toString(sock->getLocalPort()),
-				BufferedSocket::NAT_CLIENT, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), getStealth(), connectSecure && !getStealth());
+				BufferedSocket::NAT_CLIENT, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), connectSecure);
 
 			// ... and signal other client to do likewise.
 			send("$ConnectToMe " + senderNick + " " + localIp + ":" + Util::toString(sock->getLocalPort()) + (connectSecure ? "RS" : "R") + "|");
@@ -575,7 +575,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 				
 			// Trigger connection attempt sequence locally
 			ConnectionManager::getInstance()->nmdcConnect(server, senderPort, Util::toString(sock->getLocalPort()),
-				BufferedSocket::NAT_SERVER, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), getStealth(), connectSecure);
+				BufferedSocket::NAT_SERVER, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), connectSecure);
 			return;
 		}
 		
@@ -583,7 +583,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			return;
 			
 		// For simplicity, we make the assumption that users on a hub have the same character encoding
-		ConnectionManager::getInstance()->nmdcConnect(server, senderPort, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), getStealth(), connectSecure);
+		ConnectionManager::getInstance()->nmdcConnect(server, senderPort, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), connectSecure);
 	} else if(cmd == "RevConnectToMe") {
 		if(!stateNormal()) {
 			return;
@@ -601,7 +601,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		if(isActive()) {
 			connectToMe(*u);
 		} else if(u->getIdentity().getStatus() & Identity::NAT) {
-			bool connectSecure = CryptoManager::getInstance()->TLSOk() && u->getUser()->isSet(User::TLS) && !getStealth();
+			bool connectSecure = CryptoManager::getInstance()->TLSOk() && u->getUser()->isSet(User::TLS);
 			// NMDC v2.205 supports "$ConnectToMe sender_nick remote_nick ip:port", but many NMDC hubsofts block it
 			// sender_nick at the end should work at least in most used hubsofts
 			send("$ConnectToMe " + fromUtf8(u->getIdentity().getNick()) + " " + localIp + ":" + Util::toString(sock->getLocalPort()) + (connectSecure ? "NS " : "N ") + fromUtf8(getMyNick()) + "|");
@@ -719,7 +719,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 				feat.push_back("TTHSearch");
 				feat.push_back("ZPipe0");
 					
-				if(CryptoManager::getInstance()->TLSOk() && !getStealth())
+				if(CryptoManager::getInstance()->TLSOk())
 					feat.push_back("TLS");
 					
 				supports(feat);
@@ -936,7 +936,7 @@ void NmdcHub::connectToMe(const OnlineUser& aUser) {
 	string nick = fromUtf8(aUser.getIdentity().getNick());
 	ConnectionManager::getInstance()->nmdcExpect(nick, getMyNick(), getHubUrl());
 	
-	bool connectSecure = CryptoManager::getInstance()->TLSOk() && aUser.getUser()->isSet(User::TLS) && !getStealth();
+	bool connectSecure = CryptoManager::getInstance()->TLSOk() && aUser.getUser()->isSet(User::TLS);
 	string ownPort = connectSecure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
 	send("$ConnectToMe " + nick + " " + localIp + ":" + ownPort + (connectSecure ? "S" : "") + "|");
 }
@@ -976,26 +976,14 @@ void NmdcHub::myInfo(bool alwaysSend) {
 	
 
 
-	string dc;
-	string version;
-
-	if (getStealth()) {
-		dc = "++";
-		version = DCVERSIONSTRING;
-	} else {
-		dc = APPNAME;
-
-		status |= Identity::AIRDC;
-
-
-		version = VERSIONSTRING;
-		if(ActivityManager::getInstance()->isAway()) {
-			status |= Identity::AWAY;
-		}
-		if(!isActive()) {
-			status |= Identity::NAT;
-		}
+	status |= Identity::AIRDC;
+	if (ActivityManager::getInstance()->isAway()) {
+		status |= Identity::AWAY;
 	}
+	if (!isActive()) {
+		status |= Identity::NAT;
+	}
+
 	
 	if (CryptoManager::getInstance()->TLSOk()) {
 		status |= Identity::TLS;
@@ -1011,7 +999,7 @@ void NmdcHub::myInfo(bool alwaysSend) {
 
 	char myInfo[256];
 	snprintf(myInfo, sizeof(myInfo), "$MyINFO $ALL %s %s<%s V:%s,M:%c,H:%ld/%ld/%ld,S:%d>$ $%s%c$%s$", fromUtf8(getMyNick()).c_str(),
-		fromUtf8(escape(get(Description))).c_str(), dc.c_str(), version.c_str(), modeChar, 
+		fromUtf8(escape(get(Description))).c_str(), APPNAME, VERSIONSTRING.c_str(), modeChar,
 		getDisplayCount(COUNT_NORMAL), getDisplayCount(COUNT_REGISTERED), getDisplayCount(COUNT_OP),
 		UploadManager::getInstance()->getSlots(), fromUtf8(uploadSpeed).c_str(), status, fromUtf8(escape(get(Email))).c_str());
 

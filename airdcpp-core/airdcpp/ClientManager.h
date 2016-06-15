@@ -168,7 +168,6 @@ public:
 	string findMySID(const UserPtr& aUser, string& aHubUrl, bool allowFallback) const noexcept;
 
 	bool isOp(const UserPtr& aUser, const string& aHubUrl) const noexcept;
-	bool isStealth(const string& aHubUrl) const noexcept;
 
 	/** Constructs a synthetic, hopefully unique CID */
 	CID makeCid(const string& nick, const string& hubUrl) const noexcept;

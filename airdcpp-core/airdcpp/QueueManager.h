@@ -454,7 +454,10 @@ private:
 
 	string getListPath(const HintedUser& user) const noexcept;
 
-	void fileFinished(const QueueItemPtr aQi, const HintedUser& aUser, int64_t aSpeed, const string& aDir) noexcept;
+	void onFileFinished(const QueueItemPtr& aQI, Download* aDownload, const string& aListDirectory) noexcept;
+	void onDownloadFailed(QueueItemPtr& aQI, Download* aDownload, bool aNoAccess, bool aRotateQueue) noexcept;
+	void onFileDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept;
+	void onFilelistDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept;
 
 	StringMatch highPrioFiles;
 	StringMatch skipList;

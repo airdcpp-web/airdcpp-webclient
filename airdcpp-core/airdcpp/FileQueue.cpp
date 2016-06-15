@@ -63,7 +63,7 @@ pair<QueueItem::StringMap::const_iterator, bool> FileQueue::add(QueueItemPtr& qi
 	return ret;
 }
 
-void FileQueue::remove(QueueItemPtr& qi) noexcept {
+void FileQueue::remove(const QueueItemPtr& qi) noexcept {
 	//TargetMap
 	auto f = pathQueue.find(const_cast<string*>(&qi->getTarget()));
 	if (f != pathQueue.end()) {
