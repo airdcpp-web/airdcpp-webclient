@@ -362,13 +362,6 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 	}
 
 	if (ttFile.getRoot() == tth && !q->isSet(QueueItem::FLAG_FINISHED)) {
-		//If no bad blocks then the file probably got stuck in the temp folder for some reason
-		if (checkTarget != q->getTarget()) {
-			moveFinishedFile(q->getTempTarget(), q->getTarget(), q);
-		} else {
-			q->setFlag(QueueItem::FLAG_MOVED);
-		}
-
 		q->setTimeFinished(GET_TIME());
 		q->setFlag(QueueItem::FLAG_FINISHED);
 
@@ -378,6 +371,14 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 		}
 
 		removeBundleItem(q, true);
+
+		//If no bad blocks then the file probably got stuck in the temp folder for some reason
+		if (checkTarget != q->getTarget()) {
+			renameDownloadedFile(q->getTempTarget(), q->getTarget(), q);
+		} else {
+			q->setFlag(QueueItem::FLAG_MOVED);
+		}
+
 		//fire(QueueManagerListener::ItemStatusUpdated(), q);
 
 		//failFile(STRING(FILE_ALREADY_FINISHED));
@@ -1398,22 +1399,11 @@ StringList QueueManager::getTargets(const TTHValue& tth) noexcept {
 	return sl;
 }
 
-void QueueManager::moveFinishedFile(const string& source, const string& target, const QueueItemPtr& q) noexcept {
-	tasks.addTask([=] { moveFinishedFileImpl(source, target, q); });
-}
-
-void QueueManager::moveFinishedFileImpl(const string& source, const string& target, QueueItemPtr qi) noexcept {
+void QueueManager::renameDownloadedFile(const string& source, const string& target, QueueItemPtr& aQI) noexcept {
 	try {
 		File::ensureDirectory(target);
 		UploadManager::getInstance()->abortUpload(source);
 		File::renameFile(source, target);
-		
-		if (qi->getBundle() && !qi->getBundle()->isFileBundle() && compare(Util::getFilePath(source), Util::getFilePath(target)) != 0) {
-			// the bundle was moved? try to remove the old main bundle dir
-			auto p = source.find(qi->getBundle()->getName()); //was the bundle dir renamed?
-			auto dir = p != string::npos ? source.substr(0, p + qi->getBundle()->getName().length() + 1) : AirUtil::subtractCommonDirs(Util::getFilePath(target), Util::getFilePath(source), PATH_SEPARATOR);
-			AirUtil::removeDirectoryIfEmpty(dir, 3, true);
-		}
 	} catch(const FileException& e1) {
 		// Try to just rename it to the correct name at least
 		string newTarget = Util::getFilePath(source) + Util::getFileName(target);
@@ -1427,8 +1417,8 @@ void QueueManager::moveFinishedFileImpl(const string& source, const string& targ
 	if(SETTING(USE_FTP_LOGGER))
 		AirUtil::fileEvent(target, true);
 
-	if (qi && qi->getBundle()) {
-		getInstance()->handleMovedBundleItem(qi);
+	if (aQI && aQI->getBundle()) {
+		handleMovedBundleItem(aQI);
 	}
 }
 
@@ -1891,13 +1881,14 @@ void QueueManager::onFileDownloadCompleted(QueueItemPtr& aQI, Download* aDownloa
 	}
 
 	if (wholeFileCompleted) {
-		// Check if we need to move the file
-		if (!aDownload->getTempTarget().empty() && (Util::stricmp(aDownload->getPath().c_str(), aDownload->getTempTarget().c_str()) != 0)) {
-			moveFinishedFile(aDownload->getTempTarget(), aQI->getTarget(), aQI);
-		}
-
+		// Remove from queued files
 		if (aQI->getBundle()) {
 			removeBundleItem(aQI, true);
+		}
+
+		// Check if we need to move the file
+		if (!aDownload->getTempTarget().empty() && (Util::stricmp(aDownload->getPath().c_str(), aDownload->getTempTarget().c_str()) != 0)) {
+			renameDownloadedFile(aDownload->getTempTarget(), aQI->getTarget(), aQI);
 		}
 
 		onFileFinished(aQI, aDownload, Util::emptyString);
@@ -2884,13 +2875,13 @@ void QueueManager::on(ClientManagerListener::UserConnected, const OnlineUser& aU
 				bl = i->second;
 		}
 
-		for(auto& q: ql) {
+		for(const auto& q: ql) {
 			fire(QueueManagerListener::ItemSourcesUpdated(), q);
 			if(!hasDown && !q->isPausedPrio() && !q->isHubBlocked(aUser.getUser(), aUser.getHubUrl()))
 				hasDown = true;
 		}
 
-		for (auto& b : bl) 
+		for (const auto& b : bl) 
 			fire(QueueManagerListener::BundleSources(), b);
 	}
 
@@ -2913,10 +2904,10 @@ void QueueManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aU
 			bl = i->second;
 	}
 
-	for(auto& q: ql)
+	for (const auto& q: ql)
 		fire(QueueManagerListener::ItemSourcesUpdated(), q); 
 
-	for (auto& b : bl)
+	for (const auto& b : bl)
 		fire(QueueManagerListener::BundleSources(), b);
 }
 
@@ -2935,7 +2926,7 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 		RLock l(cs);
 
 		// bundles
-		for (auto& b: bundleQueue.getBundles() | map_values) {
+		for (const auto& b: bundleQueue.getBundles() | map_values) {
 			if (b->isFinished()) {
 				continue;
 			}
@@ -2952,7 +2943,7 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 		}
 		
 		// queueitems
-		for (auto& q : fileQueue.getPathQueue() | map_values) {
+		for (const auto& q : fileQueue.getPathQueue() | map_values) {
 			if (!q->isRunning())
 				continue;
 
@@ -3566,7 +3557,7 @@ void QueueManager::handleBundleUpdate(QueueToken aBundleToken) noexcept {
 		}
 	}
 }
-void QueueManager::removeBundleItem(QueueItemPtr& qi, bool finished) noexcept{
+void QueueManager::removeBundleItem(QueueItemPtr& qi, bool aFinished) noexcept{
 	BundlePtr bundle = qi->getBundle();
 	if (!bundle) {
 		return;
@@ -3577,8 +3568,8 @@ void QueueManager::removeBundleItem(QueueItemPtr& qi, bool finished) noexcept{
 
 	{
 		WLock l(cs);
-		bundleQueue.removeBundleItem(qi, finished);
-		if (finished) {
+		bundleQueue.removeBundleItem(qi, aFinished);
+		if (aFinished) {
 			fileQueue.decreaseSize(qi->getSize());
 			if (bundle->getQueueItems().empty()) {
 				bundleQueue.removeSearchPrio(bundle);
@@ -3594,7 +3585,7 @@ void QueueManager::removeBundleItem(QueueItemPtr& qi, bool finished) noexcept{
 	}
 
 	if (emptyBundle) {
-		if (!finished) {
+		if (!aFinished) {
 			removeBundle(bundle, false);
 			return;
 		} else {
@@ -3602,7 +3593,7 @@ void QueueManager::removeBundleItem(QueueItemPtr& qi, bool finished) noexcept{
 			setBundleStatus(bundle, Bundle::STATUS_DOWNLOADED);
 			removeBundleLists(bundle);
 		}
-	} else if (!finished && !checkBundleFinished(bundle)) {
+	} else if (!aFinished && !checkBundleFinished(bundle)) {
 		bundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 		addBundleUpdate(bundle);
 	}

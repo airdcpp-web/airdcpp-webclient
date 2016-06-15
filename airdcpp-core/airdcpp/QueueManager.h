@@ -432,8 +432,7 @@ private:
 
 	void addBundleUpdate(const BundlePtr& aBundle) noexcept;
 
-	void moveFinishedFile(const string& source, const string& target, const QueueItemPtr& aQI) noexcept;
-	void moveFinishedFileImpl(const string& source, const string& target, QueueItemPtr q) noexcept;
+	void renameDownloadedFile(const string& aSource, const string& aTarget, QueueItemPtr& q) noexcept;
 
 	void handleMovedBundleItem(QueueItemPtr& q) noexcept;
 	bool checkBundleFinished(BundlePtr& aBundle) noexcept;
