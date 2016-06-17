@@ -116,6 +116,8 @@ namespace webserver {
 
 		aEndpoint.set_pong_timeout(PONG_TIMEOUT * 1000);
 		aEndpoint.set_pong_timeout_handler(std::bind(&WebServerManager::onPongTimeout, aServer, _1, _2));
+
+		aEndpoint.set_listen_backlog(boost::asio::socket_base::max_connections);
 	}
 
 	bool WebServerManager::start(ErrorF errorF, const string& aWebResourcePath) {
