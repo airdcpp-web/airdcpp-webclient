@@ -3460,27 +3460,14 @@ void ShareManager::on(QueueManagerListener::BundleAdded, const BundlePtr& aBundl
 	bundleDirs.insert(upper_bound(bundleDirs.begin(), bundleDirs.end(), aBundle->getTarget()), aBundle->getTarget());
 }
 
-void ShareManager::on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept {
+void ShareManager::shareBundle(const BundlePtr& aBundle) noexcept {
 	if (aBundle->isFileBundle())
 		return;
 
-	if (aBundle->getStatus() == Bundle::STATUS_MOVED) {
-		//we don't want any monitoring actions for this folder...
-		string path = aBundle->getTarget();
-		monitor.callAsync([=] { removeNotifications(path); });
-	} else if (aBundle->getStatus() == Bundle::STATUS_HASHED) {
-		addRefreshTask(ADD_BUNDLE, { aBundle->getTarget() }, RefreshType::TYPE_BUNDLE, aBundle->getTarget());
-	} else if (aBundle->getStatus() == Bundle::STATUS_QUEUED) {
-		// existing shared bundle directories will cause issues
-		ProfileTokenSet dirty;
+	auto path = aBundle->getTarget();
+	monitor.callAsync([=] { removeNotifications(path); });
 
-		{
-			WLock l(cs);
-			handleDeletedFile(aBundle->getTarget(), true, dirty);
-		}
-
-		setProfilesDirty(dirty, false);
-	}
+	addRefreshTask(ADD_BUNDLE, { aBundle->getTarget() }, RefreshType::TYPE_BUNDLE, aBundle->getTarget());
 }
 
 void ShareManager::removeNotifications(const string& aPath) noexcept {
