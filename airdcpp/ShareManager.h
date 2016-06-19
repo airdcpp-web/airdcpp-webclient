@@ -307,6 +307,8 @@ public:
 		STATE_PENDING,
 		STATE_RUNNING,
 	};
+
+	void shareBundle(const BundlePtr& aBundle) noexcept;
 private:
 	void countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_, size_t& roots_) const noexcept;
 
@@ -725,7 +727,6 @@ private:
 
 	// QueueManagerListener
 	virtual void on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept;
-	virtual void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept;
 	virtual void on(QueueManagerListener::FileHashed, const string& aPath, HashedFile& aFileInfo) noexcept { onFileHashed(aPath, aFileInfo); }
 
 	// SettingsManagerListener

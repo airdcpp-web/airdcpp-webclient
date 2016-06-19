@@ -1664,6 +1664,7 @@ void QueueManager::checkBundleHashed(BundlePtr& b) noexcept {
 	}
 
 	if (fireHashed) {
+		ShareManager::getInstance()->shareBundle(b);
 		setBundleStatus(b, Bundle::STATUS_HASHED);
 		if (b->isFileBundle()) {
 			try {
@@ -3364,7 +3365,7 @@ void QueueManager::onPathRefreshed(const string& aPath, bool startup) noexcept{
 	}
 }
 
-void QueueManager::on(ShareLoaded) noexcept{
+void QueueManager::on(ShareManagerListener::ShareLoaded) noexcept{
 	onPathRefreshed(Util::emptyString, true);
 }
 
