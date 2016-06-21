@@ -367,7 +367,7 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const noexcept {
 		return;
 	}
 
-	for(auto& q: queueItems) {
+	for (const auto& q: queueItems) {
 		if (AirUtil::isSub(q->getTarget(), aDir)) {
 			ql.push_back(q);
 		}
@@ -612,7 +612,7 @@ bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 			}
 
 			if (!speedStr.empty() || percent > 0) {
-				for(auto& i: uploadReports) {
+				for (const auto& i: uploadReports) {
 					AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
 
 					cmd.addParam("HI", i.hint);
