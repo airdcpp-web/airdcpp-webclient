@@ -117,6 +117,7 @@ namespace webserver {
 		aEndpoint.set_pong_timeout(PONG_TIMEOUT * 1000);
 		aEndpoint.set_pong_timeout_handler(std::bind(&WebServerManager::onPongTimeout, aServer, _1, _2));
 
+		// Workaround for https://github.com/zaphoyd/websocketpp/issues/549
 		aEndpoint.set_listen_backlog(boost::asio::socket_base::max_connections);
 	}
 
