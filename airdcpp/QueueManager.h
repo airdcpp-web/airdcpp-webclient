@@ -333,8 +333,8 @@ public:
 		bundleQueue.getDiskInfo(dirMap, volumes); 
 	}
 
-	// Get the paths of all unfinished bundles
-	void getUnfinishedPaths(StringList& bundles) noexcept;
+	// Get the paths of all bundles
+	void getBundlePathsLower(StringList& bundles) const noexcept;
 
 	// Get the paths of all unfinished bundles
 	// Scans all finished bundles inside the directories being refreshed and queues succeeded for hashing

@@ -161,7 +161,7 @@ void ShareScannerManager::runShareScan(const StringList& aPaths) {
 	}
 
 	/* Scan for missing files */
-	QueueManager::getInstance()->getUnfinishedPaths(bundleDirs);
+	QueueManager::getInstance()->getBundlePathsLower(bundleDirs);
 	sort(bundleDirs.begin(), bundleDirs.end());
 
 	ScanInfoList scanners;

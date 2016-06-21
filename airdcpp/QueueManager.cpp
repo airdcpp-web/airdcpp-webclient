@@ -44,6 +44,8 @@
 #include "ZUtils.h"
 #include "version.h"
 
+#include <boost/range/algorithm/copy.hpp>
+
 #ifdef _WIN32
 #include <mmsystem.h>
 #include <limits>
@@ -3325,11 +3327,10 @@ StringList QueueManager::getDirPaths(const string& aDirName) const noexcept {
 	return bundleQueue.getDirPaths(aDirName);
 }
 
-void QueueManager::getUnfinishedPaths(StringList& retBundles) noexcept {
+void QueueManager::getBundlePathsLower(StringList& retBundles) const noexcept {
 	RLock l(cs);
-	for(auto& b: bundleQueue.getBundles() | map_values) {
-		if (!b->isFinished())
-			retBundles.push_back(Text::toLower(b->getTarget()));
+	for (const auto& b : bundleQueue.getBundles() | map_values) {
+		retBundles.push_back(b->getTarget());
 	}
 }
 

@@ -331,7 +331,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 	// fetch the queued bundles
 	if (!bundlePaths_) {
 		bundlePaths_ = StringList();
-		QueueManager::getInstance()->getUnfinishedPaths(*bundlePaths_);
+		QueueManager::getInstance()->getBundlePathsLower(*bundlePaths_);
 	}
 
 	// don't handle queued bundles in here (parent directories for bundles shouldn't be totally ignored really...)
