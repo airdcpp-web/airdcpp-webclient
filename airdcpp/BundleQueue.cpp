@@ -298,9 +298,9 @@ void BundleQueue::addBundleItem(QueueItemPtr& aQI, BundlePtr& aBundle) noexcept 
 	}
 }
 
-void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool finished) noexcept {
+void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool aFinished) noexcept {
 	dcassert(aQI->getBundle());
-	aQI->getBundle()->removeQueue(aQI, finished);
+	aQI->getBundle()->removeQueue(aQI, aFinished);
 
 	if (!aQI->getBundle()->isFileBundle()) {
 		forEachPath(aQI->getBundle(), aQI->getTarget(), [&](PathInfo& aInfo) {
@@ -339,9 +339,9 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 	aBundle->deleteXmlFile();
 }
 
-void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept{
+void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& aVolumes) const noexcept{
 	for(const auto& b: bundles | map_values) {
-		string mountPath = TargetUtil::getMountPath(b->getTarget(), volumes);
+		string mountPath = TargetUtil::getMountPath(b->getTarget(), aVolumes);
 		if (!mountPath.empty()) {
 			auto s = dirMap.find(mountPath);
 			if (s != dirMap.end()) {
@@ -355,9 +355,9 @@ void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUti
 	}
 }
 
-void BundleQueue::saveQueue(bool force) noexcept {
+void BundleQueue::saveQueue(bool aForce) noexcept {
 	for(auto& b: bundles | map_values) {
-		if (b->getDirty() || force) {
+		if (b->getDirty() || aForce) {
 			try {
 				b->save();
 			} catch(FileException& e) {

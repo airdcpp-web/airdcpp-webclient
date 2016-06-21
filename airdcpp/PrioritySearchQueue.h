@@ -64,13 +64,13 @@ public:
 		}
 	}
 
-	ItemT findSearchItem(uint64_t aTick, bool force = false) noexcept{
+	ItemT findSearchItem(uint64_t aTick, bool aForce = false) noexcept{
 		ItemT ret = nullptr;
-		if (aTick >= nextSearch || force) {
+		if (aTick >= nextSearch || aForce) {
 			ret = findNormal();
 		}
 
-		if (!ret && (aTick >= nextRecentSearch || force)) {
+		if (!ret && (aTick >= nextRecentSearch || aForce)) {
 			ret = findRecent();
 		}
 		return ret;

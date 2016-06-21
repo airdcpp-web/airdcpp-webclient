@@ -433,7 +433,7 @@ struct PartsInfoReqParam{
 	string		udpPort;
 };
 
-void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
+void QueueManager::requestPartialSourceInfo(uint64_t aTick) noexcept {
 	BundlePtr bundle;
 	vector<const PartsInfoReqParam*> params;
 
@@ -445,16 +445,16 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		FileQueue::PFSSourceList sl;
 		fileQueue.findPFSSources(sl);
 
-		for(auto& i: sl) {
+		for (auto& i : sl) {
 			auto source = i.first->getPartialSource();
 			const QueueItemPtr qi = i.second;
 
 			PartsInfoReqParam* param = new PartsInfoReqParam;
-				
+
 			qi->getPartialInfo(param->parts, qi->getBlockSize());
-			
+
 			param->tth = qi->getTTH().toBase32();
-			param->ip  = source->getIp();
+			param->ip = source->getIp();
 			param->udpPort = source->getUdpPort();
 			param->myNick = source->getMyNick();
 			param->hubIpPort = source->getHubIpPort();
@@ -464,28 +464,39 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 			source->setPendingQueryCount((uint8_t)(source->getPendingQueryCount() + 1));
 			source->setNextQueryTime(aTick + 300000);		// 5 minutes
 		}
-
-		if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE))
-			bundle = bundleQueue.findSearchItem(aTick); //may modify the recent search queue
-	}
-
-	if(bundle) {
-		searchBundleAlternates(bundle, false, aTick);
 	}
 
 	// Request parts info from partial file sharing sources
-	for(auto& param: params){
+	for (auto& param : params) {
 		//dcassert(param->udpPort > 0);
-		
+
 		try {
 			AdcCommand cmd = SearchManager::getInstance()->toPSR(true, param->myNick, param->hubIpPort, param->tth, param->parts);
 			COMMAND_DEBUG(cmd.toString(), DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, param->ip);
 			udp.writeTo(param->ip, param->udpPort, cmd.toString(ClientManager::getInstance()->getMyCID()));
-		} catch(...) {
-			dcdebug("Partial search caught error\n");		
+		} catch (...) {
+			dcdebug("Partial search caught error\n");
 		}
-		
+
 		delete param;
+	}
+}
+
+void QueueManager::searchAlternates(uint64_t aTick) noexcept {
+	if (!SETTING(AUTO_SEARCH) || !SETTING(AUTO_ADD_SOURCE)) {
+		return;
+	}
+
+	BundlePtr bundle;
+
+	{
+		RLock l(cs);
+		if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE))
+			bundle = bundleQueue.findSearchItem(aTick); //may modify the recent search queue
+	}
+
+	if (bundle) {
+		searchBundleAlternates(bundle, false, aTick);
 	}
 }
 
@@ -2357,12 +2368,9 @@ void QueueManager::sendRemovePBD(const HintedUser& aUser, const string& aRemoteT
 	ClientManager::getInstance()->sendUDP(cmd, aUser.user->getCID(), false, true);
 }
 
-void QueueManager::saveQueue(bool force) noexcept {
+void QueueManager::saveQueue(bool aForce) noexcept {
 	RLock l(cs);	
-	bundleQueue.saveQueue(force);
-
-	// Put this here to avoid very many saves tries when disk is full...
-	lastSave = GET_TICK();
+	bundleQueue.saveQueue(aForce);
 }
 
 class QueueLoader : public SimpleXMLReader::CallBack {
@@ -2912,44 +2920,42 @@ void QueueManager::on(ClientManagerListener::UserDisconnected, const UserPtr& aU
 		fire(QueueManagerListener::BundleSources(), b);
 }
 
-void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
-	if((lastSave + 10000) < aTick) {
-		saveQueue(false);
+void QueueManager::calculatePriorities(uint64_t aTick) noexcept {
+	auto prioType = SETTING(AUTOPRIO_TYPE);
+	if (prioType == SettingsManager::PRIO_DISABLED) {
+		return;
+	}
+
+	if (lastAutoPrio != 0 && lastAutoPrio + (SETTING(AUTOPRIO_INTERVAL) * 1000) > aTick) {
+		return;
 	}
 
 	vector<pair<QueueItemPtr, QueueItemBase::Priority>> qiPriorities;
 	vector<pair<BundlePtr, QueueItemBase::Priority>> bundlePriorities;
-	BundleList resumeBundles;
-	auto prioType = SETTING(AUTOPRIO_TYPE);
-	bool calculate = lastAutoPrio == 0 || (aTick >= lastAutoPrio + (SETTING(AUTOPRIO_INTERVAL)*1000));
 
 	{
 		RLock l(cs);
 
 		// bundles
-		for (const auto& b: bundleQueue.getBundles() | map_values) {
+		for (const auto& b : bundleQueue.getBundles() | map_values) {
 			if (b->isFinished()) {
 				continue;
 			}
 
-			if (calculate && prioType == SettingsManager::PRIO_PROGRESS && b->getAutoPriority()) {
+			if (prioType == SettingsManager::PRIO_PROGRESS && b->getAutoPriority()) {
 				auto p2 = b->calculateProgressPriority();
-				if(b->getPriority() != p2) {
+				if (b->getPriority() != p2) {
 					bundlePriorities.emplace_back(b, p2);
 				}
 			}
-
-			if (b->getResumeTime() > 0 && GET_TIME() > b->getResumeTime())
-				resumeBundles.push_back(b);
 		}
-		
+
 		// queueitems
 		for (const auto& q : fileQueue.getPathQueue() | map_values) {
 			if (!q->isRunning())
 				continue;
 
-			fire(QueueManagerListener::ItemStatusUpdated(), q);
-			if (calculate && SETTING(QI_AUTOPRIO) && prioType == SettingsManager::PRIO_PROGRESS && q->getAutoPriority() && q->getBundle() && !q->getBundle()->isFileBundle()) {
+			if (SETTING(QI_AUTOPRIO) && prioType == SettingsManager::PRIO_PROGRESS && q->getAutoPriority() && q->getBundle() && !q->getBundle()->isFileBundle()) {
 				auto p1 = q->getPriority();
 				if (p1 != QueueItemBase::PAUSED && p1 != QueueItemBase::PAUSED_FORCE) {
 					auto p2 = q->calculateAutoPriority();
@@ -2960,24 +2966,70 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 		}
 	}
 
-	if (calculate && prioType != SettingsManager::PRIO_DISABLED) {
-		if (prioType == SettingsManager::PRIO_BALANCED) {
-			//LogManager::getInstance()->message("Calculate autoprio (balanced)");
-			calculateBundlePriorities(false);
-			setLastAutoPrio(aTick);
-		} else {
-			//LogManager::getInstance()->message("Calculate autoprio (progress)");
-			for(auto& bp: bundlePriorities)
-				setBundlePriority(bp.first, bp.second, true);
+	if (prioType == SettingsManager::PRIO_BALANCED) {
+		//LogManager::getInstance()->message("Calculate autoprio (balanced)");
+		calculateBundlePriorities(false);
+		setLastAutoPrio(aTick);
+	} else {
+		//LogManager::getInstance()->message("Calculate autoprio (progress)");
+		for (auto& bp : bundlePriorities)
+			setBundlePriority(bp.first, bp.second, true);
 
-			for(auto& qp: qiPriorities)
-				setQIPriority(qp.first, qp.second);
+		for (auto& qp : qiPriorities)
+			setQIPriority(qp.first, qp.second);
+	}
+
+	lastAutoPrio = aTick;
+}
+
+void QueueManager::checkResumeBundles() noexcept {
+	BundleList resumeBundles;
+
+	{
+		RLock l(cs);
+		for (const auto& b : bundleQueue.getBundles() | map_values) {
+			if (b->isFinished()) {
+				continue;
+			}
+
+			if (b->getResumeTime() > 0 && GET_TIME() > b->getResumeTime()) {
+				resumeBundles.push_back(b);
+			}
 		}
 	}
 
 	for (auto& b : resumeBundles) {
 		setBundlePriority(b, QueueItemBase::DEFAULT, false);
 	}
+}
+
+void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
+	tasks.addTask([=] {
+		if ((lastXmlSave + 10000) < aTick) {
+			saveQueue(false);
+			lastXmlSave = aTick;
+		}
+
+		{
+			RLock l(cs);
+			for (const auto& q : fileQueue.getPathQueue() | map_values) {
+				if (!q->isRunning())
+					continue;
+
+				fire(QueueManagerListener::ItemStatusUpdated(), q);
+			}
+		}
+
+		calculatePriorities(aTick);
+	});
+}
+
+void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
+	tasks.addTask([=] {
+		requestPartialSourceInfo(aTick);
+		searchAlternates(aTick);
+		checkResumeBundles();
+	});
 }
 
 template<class T>
