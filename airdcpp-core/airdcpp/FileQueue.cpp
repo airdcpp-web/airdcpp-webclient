@@ -135,7 +135,7 @@ QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH) const noexcept {
 }
 
 // compare nextQueryTime, get the oldest ones
-void FileQueue::findPFSSources(PFSSourceList& sl) noexcept {
+void FileQueue::findPFSSources(PFSSourceList& sl) const noexcept {
 	typedef multimap<time_t, pair<QueueItem::SourceConstIter, const QueueItemPtr> > Buffer;
 	Buffer buffer;
 	uint64_t now = GET_TICK();

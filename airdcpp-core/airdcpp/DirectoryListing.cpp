@@ -56,8 +56,6 @@ DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const
 	if (isOwnList) {
 		ShareManager::getInstance()->addListener(this);
 	}
-
-	TimerManager::getInstance()->addListener(this);
 }
 
 DirectoryListing::~DirectoryListing() {
@@ -1054,6 +1052,8 @@ void DirectoryListing::searchImpl(const SearchPtr& aSearch) noexcept {
 
 		endSearch(false);
 	} else if (partialList && !hintedUser.user->isNMDC()) {
+		TimerManager::getInstance()->addListener(this);
+
 		directSearch.reset(new DirectSearch(hintedUser, aSearch));
 	} else {
 		const auto dir = findDirectory(Util::toNmdcFile(aSearch->path), root);

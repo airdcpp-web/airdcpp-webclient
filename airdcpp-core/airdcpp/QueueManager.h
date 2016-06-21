@@ -363,7 +363,7 @@ public:
 	// The bundle will be paused if running
 	void recheckBundle(QueueToken aBundleToken) noexcept;
 private:
-	IGETSET(uint64_t, lastSave, LastSave, 0);
+	IGETSET(uint64_t, lastXmlSave, LastXmlSave, 0);
 	IGETSET(uint64_t, lastAutoPrio, LastAutoPrio, 0);
 
 	DispatcherQueue tasks;
@@ -464,6 +464,18 @@ private:
 	// TimerManagerListener
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
+
+	// Request information about finished segments from all partial sources
+	void requestPartialSourceInfo(uint64_t aTick) noexcept;
+
+	// Perform automatic search for alternate sources
+	void searchAlternates(uint64_t aTick) noexcept;
+
+	// Resume bundles that were paused for a specific interval
+	void checkResumeBundles() noexcept;
+
+	// Calculate auto priorities for bundles and files
+	void calculatePriorities(uint64_t aTick) noexcept;
 	
 	// SearchManagerListener
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;

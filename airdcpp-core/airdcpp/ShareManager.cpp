@@ -2677,21 +2677,21 @@ void ShareManager::on(TimerManagerListener::Second, uint64_t /*tick*/) noexcept 
 	}
 }
 
-void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
-	if(lastSave == 0 || lastSave + 15*60*1000 <= tick) {
+void ShareManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
+	if(lastSave == 0 || lastSave + 15*60*1000 <= aTick) {
 		saveXmlList();
 	}
 
-	if(SETTING(AUTO_REFRESH_TIME) > 0 && lastFullUpdate + SETTING(AUTO_REFRESH_TIME) * 60 * 1000 <= tick) {
-		lastIncomingUpdate = tick;
-		lastFullUpdate = tick;
+	if(SETTING(AUTO_REFRESH_TIME) > 0 && lastFullUpdate + SETTING(AUTO_REFRESH_TIME) * 60 * 1000 <= aTick) {
+		lastIncomingUpdate = aTick;
+		lastFullUpdate = aTick;
 		refresh(false, TYPE_SCHEDULED);
-	} else if(SETTING(INCOMING_REFRESH_TIME) > 0 && lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= tick) {
-		lastIncomingUpdate = tick;
+	} else if(SETTING(INCOMING_REFRESH_TIME) > 0 && lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= aTick) {
+		lastIncomingUpdate = aTick;
 		refresh(true, TYPE_SCHEDULED);
 	}
 
-	handleChangedFiles(tick, false);
+	handleChangedFiles(aTick, false);
 
 	restoreFailedMonitoredPaths();
 }
