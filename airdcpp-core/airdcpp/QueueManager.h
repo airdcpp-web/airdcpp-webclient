@@ -320,12 +320,15 @@ public:
 	string getBundlePath(QueueToken aBundleToken) const noexcept;
 
 	// Return dupe information about the directory
-	DupeType isDirQueued(const string& aDir, int64_t aSize) const noexcept;
+	DupeType isNmdcDirQueued(const string& aDir, int64_t aSize) const noexcept;
 
-	// Get all real paths of the directory
+	// Get bundle by (exact) real path
+	BundlePtr findDirectoryBundle(const string& aPath) const noexcept;
+
+	// Get all real paths of the directory name
 	// You may also give a path in NMDC format and the relevant 
 	// directory (+ possible subdirectories) are detected automatically
-	StringList getDirPaths(const string& aDir) const noexcept;
+	StringList getNmdcDirPaths(const string& aDir) const noexcept;
 
 	// Get the amount of queued bytes for each mountpoint (takes reserved space into account as well)
 	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept { 
@@ -334,11 +337,11 @@ public:
 	}
 
 	// Get the paths of all bundles
-	void getBundlePathsLower(StringList& bundles) const noexcept;
+	void getBundlePaths(OrderedStringSet& bundles) const noexcept;
 
 	// Get the paths of all unfinished bundles
 	// Scans all finished bundles inside the directories being refreshed and queues succeeded for hashing
-	void checkRefreshPaths(StringList& bundlePaths_, RefreshPathList& refreshPaths_) noexcept;
+	void checkRefreshPaths(OrderedStringSet& bundlePaths_, RefreshPathList& refreshPaths_) noexcept;
 
 	// Set size for a file list its size is known
 	void setFileListSize(const string& path, int64_t newSize) noexcept;

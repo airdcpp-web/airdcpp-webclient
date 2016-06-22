@@ -751,7 +751,7 @@ void DirectoryListing::getLocalPaths(const Directory::Ptr& d, StringList& ret) c
 	if (isOwnList) {
 		ShareManager::getInstance()->getRealPaths(Util::toAdcFile(path), ret, getShareProfile());
 	} else {
-		ret = ShareManager::getInstance()->getDirPaths(path);
+		ret = ShareManager::getInstance()->getNmdcDirPaths(path);
 	}
 }
 

@@ -126,7 +126,6 @@ void ShareManager::startup(function<void(const string&)> splashF, function<void(
 
 		addMonitoring(monitorPaths);
 		TimerManager::getInstance()->addListener(this);
-		QueueManager::getInstance()->addListener(this);
 
 		if (SETTING(STARTUP_REFRESH) && !refreshed)
 			refresh(false, TYPE_STARTUP_DELAYED);
@@ -248,7 +247,7 @@ void ShareManager::handleChangedFiles() noexcept {
 	monitor.callAsync([this] { handleChangedFiles(GET_TICK(), true); });
 }
 
-bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& bundlePaths_, ProfileTokenSet& dirtyProfiles_, StringList& refresh_, uint64_t aTick, bool forced) noexcept{
+bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<OrderedStringSet>& bundlePaths_, ProfileTokenSet& dirtyProfiles_, StringList& refresh_, uint64_t aTick, bool forced) noexcept{
 	//not enough delay from the last change?
 	if (!forced) {
 		if (SETTING(DELAY_COUNT_MODE) == SettingsManager::DELAY_DIR) {
@@ -330,8 +329,8 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 
 	// fetch the queued bundles
 	if (!bundlePaths_) {
-		bundlePaths_ = StringList();
-		QueueManager::getInstance()->getBundlePathsLower(*bundlePaths_);
+		bundlePaths_ = OrderedStringSet();
+		QueueManager::getInstance()->getBundlePaths(*bundlePaths_);
 	}
 
 	// don't handle queued bundles in here (parent directories for bundles shouldn't be totally ignored really...)
@@ -396,7 +395,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 	// Check that the file can be accessed, FileFindIter won't show it (also files being copied will come here)
 	for (const auto& fi : info.files | map_keys) {
 		//check for file bundles
-		if (binary_search((*bundlePaths_).begin(), (*bundlePaths_).end(), Text::toLower(fi))) {
+		if ((*bundlePaths_).find(fi) != (*bundlePaths_).end()) {
 			return false;
 		}
 
@@ -459,7 +458,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 
 void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) noexcept {
 	ProfileTokenSet dirtyProfiles;
-	optional<StringList> bundlePaths;
+	optional<OrderedStringSet> bundlePaths;
 	StringList refresh;
 
 	for (auto k = fileModifications.begin(); k != fileModifications.end();) {
@@ -735,7 +734,6 @@ void ShareManager::shutdown(function<void(float)> progressF) noexcept {
 	} catch(...) { }
 
 	TimerManager::getInstance()->removeListener(this);
-	QueueManager::getInstance()->removeListener(this);
 	join();
 }
 
@@ -1796,7 +1794,7 @@ int64_t ShareManager::getTotalShareSize(ProfileToken aProfile) const noexcept {
 	return ret;
 }
 
-bool ShareManager::isDirShared(const string& aDir) const noexcept{
+bool ShareManager::isNmdcDirShared(const string& aDir) const noexcept{
 	Directory::List dirs;
 
 	RLock l (cs);
@@ -1804,7 +1802,7 @@ bool ShareManager::isDirShared(const string& aDir) const noexcept{
 	return !dirs.empty();
 }
 
-DupeType ShareManager::isDirShared(const string& aDir, int64_t aSize) const noexcept{
+DupeType ShareManager::isNmdcDirShared(const string& aDir, int64_t aSize) const noexcept{
 	Directory::List dirs;
 
 	RLock l (cs);
@@ -1815,7 +1813,7 @@ DupeType ShareManager::isDirShared(const string& aDir, int64_t aSize) const noex
 	return dirs.front()->getTotalSize() == aSize ? DUPE_SHARE_FULL : DUPE_SHARE_PARTIAL;
 }
 
-StringList ShareManager::getDirPaths(const string& aDir) const noexcept{
+StringList ShareManager::getNmdcDirPaths(const string& aDir) const noexcept{
 	StringList ret;
 	Directory::List dirs;
 
@@ -1911,8 +1909,15 @@ void ShareManager::buildTree(const string& aPath, const string& aPathLower, cons
 					continue;
 				}
 
-				//check queue so we dont add incomplete stuff to share.
-				if(binary_search(bundleDirs.begin(), bundleDirs.end(), curPathLower)) {
+				// Check the queue so we dont add incomplete directories to share
+
+				// TODO
+				//auto bundle = QueueManager::getInstance()->findDirectoryBundle(curPath);
+				//if (bundle && bundle->getStatus() < Bundle::STATUS_HASHED) {
+				//	return;
+				//}
+
+				if (bundleDirs.find(curPathLower) != bundleDirs.end()) {
 					continue;
 				}
 
@@ -3455,14 +3460,18 @@ void ShareManager::cleanIndices(Directory& dir) noexcept {
 	}
 }
 
-void ShareManager::on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept {
-	WLock l (dirNames);
-	bundleDirs.insert(upper_bound(bundleDirs.begin(), bundleDirs.end(), aBundle->getTarget()), aBundle->getTarget());
-}
-
 void ShareManager::shareBundle(const BundlePtr& aBundle) noexcept {
-	if (aBundle->isFileBundle())
+	if (aBundle->isFileBundle()) {
+		try {
+			HashedFile fi;
+			HashManager::getInstance()->getFileInfo(Text::toLower(aBundle->getTarget()), aBundle->getTarget(), fi);
+			onFileHashed(aBundle->getTarget(), fi);
+
+			LogManager::getInstance()->message(STRING_F(SHARED_FILE_ADDED, aBundle->getTarget()), LogMessage::SEV_INFO);
+		} catch (...) { dcassert(0); }
+
 		return;
+	}
 
 	auto path = aBundle->getTarget();
 	monitor.callAsync([=] { removeNotifications(path); });

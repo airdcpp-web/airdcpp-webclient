@@ -161,13 +161,14 @@ void ShareScannerManager::runShareScan(const StringList& aPaths) {
 	}
 
 	/* Scan for missing files */
-	QueueManager::getInstance()->getBundlePathsLower(bundleDirs);
-	sort(bundleDirs.begin(), bundleDirs.end());
 
 	ScanInfoList scanners;
-	for (auto& dir : rootPaths) {
-		if (!matchSkipList(Util::getLastDir(dir)) && !std::binary_search(bundleDirs.begin(), bundleDirs.end(), dir))
-			scanners.emplace_back(dir, ScanInfo::TYPE_COLLECT_LOG, true);
+	for (auto& rootPath : rootPaths) {
+		if (matchSkipList(Util::getLastDir(rootPath)) || QueueManager::getInstance()->findDirectoryBundle(rootPath)) {
+			continue;
+		}
+
+		scanners.emplace_back(rootPath, ScanInfo::TYPE_COLLECT_LOG, true);
 	}
 
 	try {
@@ -181,7 +182,7 @@ void ShareScannerManager::runShareScan(const StringList& aPaths) {
 					if (SETTING(CHECK_DUPES) && (scanType == TYPE_PARTIAL || scanType == TYPE_FULL))
 						findDupes(s.rootPath, s);
 
-					find(s.rootPath, Text::toLower(s.rootPath), s);
+					find(s.rootPath, s);
 				}
 			}
 		});
@@ -239,7 +240,6 @@ void ShareScannerManager::runShareScan(const StringList& aPaths) {
 		LogManager::getInstance()->message(report, LogMessage::SEV_INFO);
 	}
 
-	bundleDirs.clear();
 	dupeDirs.clear();
 }
 
@@ -273,33 +273,30 @@ bool ShareScannerManager::matchSkipList(const string& dir) {
 	return false;
 }
 
-void ShareScannerManager::find(const string& aPath, const string& aPathLower, ScanInfo& aScan) noexcept {
+void ShareScannerManager::find(const string& aPath, ScanInfo& aScanInfo) noexcept {
 	if(stop)
 		return;
-
-	string dir;
-	string dirLower;
 	
 	File::forEachFile(aPath, "*", [&](const string& aFileName, bool aIsDir, int64_t /*aSize*/) {
 		if (!aIsDir || stop)
 			return;
 
-		dir = aPath + aFileName;
-		dirLower = aPathLower + Text::toLower(aFileName);
+		auto currentDir = aPath + aFileName;
 
-		if (aScan.isManualShareScan) {
-			if (std::binary_search(bundleDirs.begin(), bundleDirs.end(), dirLower))
+		if (aScanInfo.isManualShareScan) {
+			if (QueueManager::getInstance()->findDirectoryBundle(currentDir)) {
 				return;
+			}
 
-			if (SETTING(CHECK_USE_SKIPLIST) && !ShareManager::getInstance()->isDirShared(dir))
+			if (SETTING(CHECK_USE_SKIPLIST) && !ShareManager::getInstance()->isRealPathShared(currentDir))
 				return;
 		}
 
-		scanDir(dir, aScan);
-		if (SETTING(CHECK_DUPES) && aScan.isManualShareScan)
-			findDupes(dir, aScan);
+		scanDir(currentDir, aScanInfo);
+		if (SETTING(CHECK_DUPES) && aScanInfo.isManualShareScan)
+			findDupes(currentDir, aScanInfo);
 
-		find(dir, dirLower, aScan);
+		find(currentDir, aScanInfo);
 	});
 }
 
@@ -670,7 +667,7 @@ Bundle::Status ShareScannerManager::onScanBundle(const BundlePtr& aBundle, bool 
 		ScanInfo scanner(aBundle->getName(), ScanInfo::TYPE_SYSLOG, false);
 
 		scanDir(aBundle->getTarget(), scanner);
-		find(aBundle->getTarget(), Text::toLower(aBundle->getTarget()), scanner);
+		find(aBundle->getTarget(), scanner);
 
 		bool hasMissing = scanner.hasMissing();
 		bool hasExtras = scanner.hasExtras();
@@ -717,7 +714,7 @@ bool ShareScannerManager::onScanSharedDir(const string& aDir, bool report) noexc
 	ScanInfo scanner(aDir, report ? ScanInfo::TYPE_SYSLOG : ScanInfo::TYPE_NOREPORT, false);
 
 	scanDir(aDir, scanner);
-	find(aDir, Text::toLower(aDir), scanner);
+	find(aDir, scanner);
 
 	if (scanner.hasMissing() || scanner.hasExtras()) {
 		if (report) {

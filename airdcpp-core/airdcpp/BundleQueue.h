@@ -36,6 +36,7 @@ class BundleQueue : public PrioritySearchQueue<BundlePtr> {
 public:
 	struct PathInfo {
 		PathInfo(const string& aPath, const BundlePtr& aBundle) noexcept : path(aPath), bundle(aBundle) {  }
+		typedef vector<PathInfo*> List;
 
 		bool operator==(const PathInfo* aInfo) const noexcept { return this == aInfo; }
 
@@ -46,11 +47,13 @@ public:
 
 		const string path;
 		const BundlePtr bundle;
+
+		DupeType toDupeType(int64_t aSize) const noexcept;
 	};
 
 	typedef vector<const PathInfo*> PathInfoPtrList;
 	typedef unordered_multimap<string, PathInfo, noCaseStringHash, noCaseStringEq> DirectoryNameMap;
-	typedef unordered_map<BundlePtr, vector<PathInfo*>, Bundle::Hash> BundlePathMap;
+	typedef unordered_map<string*, PathInfo::List, noCaseStringHash, noCaseStringEq> PathInfoMap;
 
 	BundleQueue();
 	~BundleQueue();
@@ -62,6 +65,8 @@ public:
 	void addBundle(BundlePtr& aBundle) noexcept;
 
 	BundlePtr findBundle(QueueToken bundleToken) const noexcept;
+	BundlePtr findBundle(const string& aPath) const noexcept;
+
 	BundlePtr getMergeBundle(const string& aTarget) const noexcept;
 	void getSubBundles(const string& aTarget, BundleList& retBundles) const noexcept;
 
@@ -72,8 +77,9 @@ public:
 	void saveQueue(bool force) noexcept;
 	void getSearchItems(const BundlePtr& aBundle, map<string, QueueItemPtr>& searchItems_, bool aManualSearch) const noexcept;
 
-	DupeType isDirQueued(const string& aPath, int64_t aSize) const noexcept;
-	StringList getDirPaths(const string& aPath) const noexcept;
+	DupeType isNmdcDirQueued(const string& aPath, int64_t aSize) const noexcept;
+
+	StringList getNmdcDirPaths(const string& aDirName) const noexcept;
 	size_t getDirectoryCount(const BundlePtr& aBundle) const noexcept;
 
 	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept;
@@ -81,8 +87,11 @@ public:
 	Bundle::TokenBundleMap& getBundles() { return bundles; }
 	const Bundle::TokenBundleMap& getBundles() const { return bundles; }
 private:
-	void findRemoteDirs(const string& aPath, PathInfoPtrList& paths_) const noexcept;
-	const PathInfo* getSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept;
+	void findNmdcDirs(const string& aPath, PathInfoPtrList& paths_) const noexcept;
+	const PathInfo* getNmdcSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept;
+
+	// Get path infos by bundle path
+	const PathInfo::List* getPathInfos(const string& aBundlePath) const noexcept;
 
 	typedef function<void(PathInfo&)> PathInfoHandler;
 
@@ -95,10 +104,10 @@ private:
 	// PathInfos by directory name
 	DirectoryNameMap dirNameMap;
 
-	// PathInfos by bundle
-	BundlePathMap bundlePaths;
+	// PathInfos by bundle path
+	PathInfoMap bundlePaths;
 
-	/** Bundles by token */
+	// Bundles by token
 	Bundle::TokenBundleMap bundles;
 };
 
