@@ -117,7 +117,7 @@ namespace webserver {
 
 		auto path = JsonUtil::getOptionalField<string>("path", reqJson, false);
 		if (path) {
-			ret = QueueManager::getInstance()->getDirPaths(Util::toNmdcFile(*path));
+			ret = QueueManager::getInstance()->getNmdcDirPaths(Util::toNmdcFile(*path));
 		} else {
 			auto tth = Deserializer::deserializeTTH(reqJson);
 			ret = QueueManager::getInstance()->getTargets(tth);
