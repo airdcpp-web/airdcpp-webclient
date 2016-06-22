@@ -763,7 +763,7 @@ void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 
 			//check shared
 			if (as->getCheckAlreadyShared()) {
-				auto paths = ShareManager::getInstance()->getDirPaths(dir);
+				auto paths = ShareManager::getInstance()->getNmdcDirPaths(dir);
 				if (!paths.empty()) {
 					as->setLastError(STRING_F(DIR_SHARED_ALREADY, paths.front()));
 					fire(AutoSearchManagerListener::UpdateItem(), as, true);
@@ -773,7 +773,7 @@ void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 
 			//check queued
 			if (as->getCheckAlreadyQueued() && as->getStatus() != AutoSearch::STATUS_FAILED_MISSING) {
-				auto paths = QueueManager::getInstance()->getDirPaths(dir);
+				auto paths = QueueManager::getInstance()->getNmdcDirPaths(dir);
 				if (!paths.empty()) {
 					as->setLastError(STRING_F(DIR_QUEUED_ALREADY, dir));
 					fire(AutoSearchManagerListener::UpdateItem(), as, true);

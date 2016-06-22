@@ -58,7 +58,7 @@ class SearchQuery;
 class FileList;
 
 class ShareManager : public Singleton<ShareManager>, public Speaker<ShareManagerListener>, private Thread, private SettingsManagerListener, 
-	private TimerManagerListener, private QueueManagerListener, private DirectoryMonitorListener
+	private TimerManagerListener, private DirectoryMonitorListener
 {
 public:
 	// Call when a drive has been removed and it should be removed from monitoring
@@ -150,10 +150,10 @@ public:
 	// Check if a directory is shared
 	// You may also give a path in NMDC format and the relevant 
 	// directory (+ possible subdirectories) are detected automatically
-	bool isDirShared(const string& aDir) const noexcept;
+	bool isNmdcDirShared(const string& aDir) const noexcept;
 
 	// Mostly for dupe check with size comparison (partial/exact dupe)
-	DupeType isDirShared(const string& aPath, int64_t aSize) const noexcept;
+	DupeType isNmdcDirShared(const string& aPath, int64_t aSize) const noexcept;
 
 	bool isFileShared(const TTHValue& aTTH) const noexcept;
 	bool isFileShared(const TTHValue& aTTH, ProfileToken aProfile) const noexcept;
@@ -163,7 +163,7 @@ public:
 	bool allowAddDir(const string& aPath) const noexcept;
 
 	// Returns the dupe paths by directory name/NMDC path
-	StringList getDirPaths(const string& aDir) const noexcept;
+	StringList getNmdcDirPaths(const string& aDir) const noexcept;
 
 	vector<pair<string, StringList>> getGroupedDirectories() const noexcept;
 	MemoryInputStream* generatePartialList(const string& dir, bool aRecursive, const OptionalProfileToken& aProfile) const noexcept;
@@ -309,6 +309,7 @@ public:
 	};
 
 	void shareBundle(const BundlePtr& aBundle) noexcept;
+	void onFileHashed(const string& fname, HashedFile& fileInfo) noexcept;
 private:
 	void countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_, size_t& roots_) const noexcept;
 
@@ -647,10 +648,6 @@ private:
 	static void addDirName(const Directory::Ptr& dir, Directory::MultiMap& aDirNames, ShareBloom& aBloom) noexcept;
 	static void removeDirName(const Directory& dir, Directory::MultiMap& aDirNames) noexcept;
 
-	void onFileHashed(const string& fname, HashedFile& fileInfo) noexcept;
-	
-	StringList bundleDirs;
-
 	// Get root directories matching the provided token
 	// Unsafe
 	void getRootsByVirtual(const string& aVirtualName, const OptionalProfileToken& aProfile, Directory::List& dirs_) const noexcept;
@@ -725,10 +722,6 @@ private:
 
 	void runTasks(function<void (float)> progressF = nullptr) noexcept;
 
-	// QueueManagerListener
-	virtual void on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept;
-	virtual void on(QueueManagerListener::FileHashed, const string& aPath, HashedFile& aFileInfo) noexcept { onFileHashed(aPath, aFileInfo); }
-
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {
 		save(xml);
@@ -760,6 +753,8 @@ private:
 
 	StringMatch skipList;
 	string winDir;
+
+	OrderedStringSet bundleDirs;
 
 	void addMonitoring(const StringList& aPaths) noexcept;
 	void removeMonitoring(const StringList& aPaths) noexcept;
@@ -815,7 +810,7 @@ private:
 
 	DirModifyInfo::List::iterator findModifyInfo(const string& aFile) noexcept;
 	void handleChangedFiles(uint64_t aTick, bool forced = false) noexcept;
-	bool handleModifyInfo(DirModifyInfo& aInfo, optional<StringList>& bundlePaths_, ProfileTokenSet& dirtyProfiles_, StringList& refresh_, uint64_t aTick, bool forced) noexcept;
+	bool handleModifyInfo(DirModifyInfo& aInfo, optional<OrderedStringSet>& bundlePaths_, ProfileTokenSet& dirtyProfiles_, StringList& refresh_, uint64_t aTick, bool forced) noexcept;
 	void onFileDeleted(const string& aPath);
 
 	void restoreFailedMonitoredPaths();

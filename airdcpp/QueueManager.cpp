@@ -1627,7 +1627,7 @@ void QueueManager::onFileHashed(const string& aPath, HashedFile& aFileInfo, bool
 
 	if (!q) {
 		if (!aFailed) {
-			fire(QueueManagerListener::FileHashed(), aPath, aFileInfo);
+			ShareManager::getInstance()->onFileHashed(aPath, aFileInfo);
 		}
 
 		return;
@@ -1642,15 +1642,16 @@ void QueueManager::onFileHashed(const string& aPath, HashedFile& aFileInfo, bool
 	if (aFailed) {
 		setBundleStatus(b, Bundle::STATUS_HASH_FAILED);
 	} else if (b->getStatus() != Bundle::STATUS_HASHING && b->getStatus() != Bundle::STATUS_HASH_FAILED) {
-		//instant sharing disabled/the folder wasn't shared when the bundle finished
-		fire(QueueManagerListener::FileHashed(), aPath, aFileInfo);
+		// instant sharing disabled/the folder wasn't shared when the bundle finished
+		ShareManager::getInstance()->onFileHashed(aPath, aFileInfo);
 	}
 
 	checkBundleHashed(b);
 }
 
 void QueueManager::checkBundleHashed(BundlePtr& b) noexcept {
-	bool fireHashed = false;
+	bool addToShare = false;
+
 	{
 		RLock l(cs);
 		if (!b->getQueueItems().empty() || !all_of(b->getFinishedFiles().begin(), b->getFinishedFiles().end(), Flags::IsSet(QueueItem::FLAG_HASHED)))
@@ -1669,28 +1670,22 @@ void QueueManager::checkBundleHashed(BundlePtr& b) noexcept {
 				LogManager::getInstance()->message(STRING_F(BUNDLE_HASH_FAILED, b->getTarget().c_str()), LogMessage::SEV_ERROR);
 				return;
 			} else if (b->getStatus() == Bundle::STATUS_HASHING) {
-				fireHashed = true;
+				addToShare = true;
 			} else {
 				//instant sharing disabled/the folder wasn't shared when the bundle finished
 			}
 		}
 	}
 
-	if (fireHashed) {
-		ShareManager::getInstance()->shareBundle(b);
+	if (addToShare) {
 		setBundleStatus(b, Bundle::STATUS_HASHED);
+
+		ShareManager::getInstance()->shareBundle(b);
+
 		if (b->isFileBundle()) {
-			try {
-				HashedFile fi;
-				HashManager::getInstance()->getFileInfo(Text::toLower(b->getFinishedFiles().front()->getTarget()), b->getFinishedFiles().front()->getTarget(), fi);
-				fire(QueueManagerListener::FileHashed(), b->getFinishedFiles().front()->getTarget(), fi);
-				LogManager::getInstance()->message(STRING_F(SHARED_FILE_ADDED, b->getTarget()), LogMessage::SEV_INFO);
-				setBundleStatus(b, Bundle::STATUS_SHARED);
-			} catch (...) { dcassert(0); }
+			setBundleStatus(b, Bundle::STATUS_SHARED);
 		}
 	}
-
-	//removeFinishedBundle(b);
 }
 
 void QueueManager::bundleDownloadFailed(BundlePtr& aBundle, const string& aError) {
@@ -3322,19 +3317,19 @@ bool QueueManager::handlePartialSearch(const UserPtr& aUser, const TTHValue& tth
 	return !_outPartsInfo.empty();
 }
 
-StringList QueueManager::getDirPaths(const string& aDirName) const noexcept {
+StringList QueueManager::getNmdcDirPaths(const string& aDirName) const noexcept {
 	RLock l(cs);
-	return bundleQueue.getDirPaths(aDirName);
+	return bundleQueue.getNmdcDirPaths(aDirName);
 }
 
-void QueueManager::getBundlePathsLower(StringList& retBundles) const noexcept {
+void QueueManager::getBundlePaths(OrderedStringSet& retBundles) const noexcept {
 	RLock l(cs);
 	for (const auto& b : bundleQueue.getBundles() | map_values) {
-		retBundles.push_back(b->getTarget());
+		retBundles.insert(b->getTarget());
 	}
 }
 
-void QueueManager::checkRefreshPaths(StringList& retBundles_, RefreshPathList& refreshPaths_) noexcept {
+void QueueManager::checkRefreshPaths(OrderedStringSet& retBundles_, RefreshPathList& refreshPaths_) noexcept {
 	BundleList hash;
 	{
 		RLock l(cs);
@@ -3362,7 +3357,7 @@ void QueueManager::checkRefreshPaths(StringList& retBundles_, RefreshPathList& r
 				hash.push_back(b);
 			}
 
-			retBundles_.push_back(Text::toLower(b->getTarget()));
+			retBundles_.insert(Text::toLower(b->getTarget()));
 		}
 	}
 
@@ -3373,8 +3368,6 @@ void QueueManager::checkRefreshPaths(StringList& retBundles_, RefreshPathList& r
 
 		hashBundle(b); 
 	}
-
-	sort(retBundles_.begin(), retBundles_.end());
 }
 
 void QueueManager::shareBundle(BundlePtr aBundle, bool skipScan) noexcept{
@@ -3562,9 +3555,14 @@ void QueueManager::readdBundle(BundlePtr& aBundle) noexcept {
 	LogManager::getInstance()->message(STRING_F(BUNDLE_READDED, aBundle->getName().c_str()), LogMessage::SEV_INFO);
 }
 
-DupeType QueueManager::isDirQueued(const string& aDir, int64_t aSize) const noexcept{
+DupeType QueueManager::isNmdcDirQueued(const string& aDir, int64_t aSize) const noexcept{
 	RLock l(cs);
-	return bundleQueue.isDirQueued(aDir, aSize);
+	return bundleQueue.isNmdcDirQueued(aDir, aSize);
+}
+
+BundlePtr QueueManager::findDirectoryBundle(const string& aPath) const noexcept {
+	RLock l(cs);
+	return bundleQueue.findBundle(aPath);
 }
 
 int QueueManager::getUnfinishedItemCount(const BundlePtr& aBundle) const noexcept {

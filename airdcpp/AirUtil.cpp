@@ -74,9 +74,9 @@ AirUtil::TimeCounter::~TimeCounter() {
 StringList AirUtil::getDirDupePaths(DupeType aType, const string& aPath) {
 	StringList ret;
 	if (isShareDupe(aType)) {
-		ret = ShareManager::getInstance()->getDirPaths(aPath);
+		ret = ShareManager::getInstance()->getNmdcDirPaths(aPath);
 	} else {
-		ret = QueueManager::getInstance()->getDirPaths(aPath);
+		ret = QueueManager::getInstance()->getNmdcDirPaths(aPath);
 	}
 
 	return ret;
@@ -106,12 +106,12 @@ bool AirUtil::isFinishedDupe(DupeType aType) noexcept {
 }
 
 DupeType AirUtil::checkDirDupe(const string& aDir, int64_t aSize) {
-	auto dupe = ShareManager::getInstance()->isDirShared(aDir, aSize);
+	auto dupe = ShareManager::getInstance()->isNmdcDirShared(aDir, aSize);
 	if (dupe != DUPE_NONE) {
 		return dupe;
 	}
 
-	return QueueManager::getInstance()->isDirQueued(aDir, aSize);
+	return QueueManager::getInstance()->isNmdcDirQueued(aDir, aSize);
 }
 
 string AirUtil::toOpenFileName(const string& aFileName, const TTHValue& aTTH) noexcept {

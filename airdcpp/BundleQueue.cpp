@@ -73,35 +73,57 @@ BundlePtr BundleQueue::findBundle(QueueToken bundleToken) const noexcept {
 	return i != bundles.end() ? i->second : nullptr;
 }
 
-DupeType BundleQueue::isDirQueued(const string& aPath, int64_t aSize) const noexcept {
+DupeType BundleQueue::isNmdcDirQueued(const string& aPath, int64_t aSize) const noexcept {
 	PathInfoPtrList infos;
-	findRemoteDirs(aPath, infos);
+	findNmdcDirs(aPath, infos);
 
 	if (infos.empty())
 		return DUPE_NONE;
 
 	const auto& pathInfo = *infos.front();
 
-	auto fullDupe = pathInfo.size == aSize;
-	if (pathInfo.queuedFiles == 0) {
+	return pathInfo.toDupeType(aSize);
+}
+
+DupeType BundleQueue::PathInfo::toDupeType(int64_t aSize) const noexcept {
+	auto fullDupe = size == aSize;
+	if (queuedFiles == 0) {
 		return fullDupe ? DUPE_FINISHED_FULL : DUPE_FINISHED_PARTIAL;
 	}
 
 	return fullDupe ? DUPE_QUEUE_FULL : DUPE_QUEUE_PARTIAL;
 }
 
-size_t BundleQueue::getDirectoryCount(const BundlePtr& aBundle) const noexcept {
-	auto i = bundlePaths.find(aBundle);
+BundlePtr BundleQueue::findBundle(const string& aPath) const noexcept {
+	auto pathInfos = getPathInfos(aPath);
+	if (!pathInfos || (*pathInfos).empty()) {
+		return nullptr;
+	}
+
+	return (*pathInfos).front()->bundle;
+}
+
+const BundleQueue::PathInfo::List* BundleQueue::getPathInfos(const string& aBundlePath) const noexcept {
+	auto i = bundlePaths.find(const_cast<string*>(&aBundlePath));
 	if (i == bundlePaths.end()) {
+		return nullptr;
+	}
+
+	return &i->second;
+}
+
+size_t BundleQueue::getDirectoryCount(const BundlePtr& aBundle) const noexcept {
+	auto pathInfos = getPathInfos(aBundle->getTarget());
+	if (!pathInfos) {
 		return 0;
 	}
 
-	return i->second.size();
+	return (*pathInfos).size();
 }
 
-StringList BundleQueue::getDirPaths(const string& aPath) const noexcept {
+StringList BundleQueue::getNmdcDirPaths(const string& aPath) const noexcept {
 	PathInfoPtrList infos;
-	findRemoteDirs(aPath, infos);
+	findNmdcDirs(aPath, infos);
 
 	StringList ret;
 	for (const auto& p : infos) {
@@ -111,7 +133,7 @@ StringList BundleQueue::getDirPaths(const string& aPath) const noexcept {
 	return ret;
 }
 
-void BundleQueue::findRemoteDirs(const string& aPath, PathInfoPtrList& pathInfos_) const noexcept {
+void BundleQueue::findNmdcDirs(const string& aPath, PathInfoPtrList& pathInfos_) const noexcept {
 	// Get the last meaningful directory to look up
 	auto dirNameInfo = AirUtil::getDirName(aPath, '\\');
 	auto directories = dirNameMap.equal_range(dirNameInfo.first);
@@ -122,7 +144,7 @@ void BundleQueue::findRemoteDirs(const string& aPath, PathInfoPtrList& pathInfos
 	for (auto s = directories.first; s != directories.second; ++s) {
 		if (dirNameInfo.second != string::npos) {
 			// Confirm that we have the subdirectory as well
-			auto subDir = getSubDirectoryInfo(aPath.substr(dirNameInfo.second), s->second.bundle);
+			auto subDir = getNmdcSubDirectoryInfo(aPath.substr(dirNameInfo.second), s->second.bundle);
 			if (subDir) {
 				pathInfos_.push_back(subDir);
 			}
@@ -132,10 +154,10 @@ void BundleQueue::findRemoteDirs(const string& aPath, PathInfoPtrList& pathInfos
 	}
 }
 
-const BundleQueue::PathInfo* BundleQueue::getSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept {
-	auto paths = bundlePaths.find(aBundle);
-	if (paths != bundlePaths.end()) {
-		for (const auto& p : paths->second) {
+const BundleQueue::PathInfo* BundleQueue::getNmdcSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept {
+	auto pathInfos = getPathInfos(aBundle->getTarget());
+	if (pathInfos) {
+		for (const auto& p : *pathInfos) {
 			auto pos = AirUtil::compareFromEnd(p->path, aSubPath, '\\');
 			if (pos == 0) {
 				return p;
@@ -178,13 +200,13 @@ void BundleQueue::getSearchItems(const BundlePtr& aBundle, map<string, QueueItem
 		return;
 	}
 
-	auto paths = bundlePaths.find(aBundle);
-	if (paths == bundlePaths.end()) {
+	auto pathInfos = getPathInfos(aBundle->getTarget());
+	if (!pathInfos) {
 		return;
 	}
 
 	QueueItemPtr searchItem = nullptr;
-	for (const auto& i : paths->second) {
+	for (const auto& i : *pathInfos) {
 		auto dir = AirUtil::getReleaseDir(i->path, false);
 
 		// Don't add the same directory twice
@@ -228,15 +250,17 @@ void BundleQueue::getSearchItems(const BundlePtr& aBundle, map<string, QueueItem
 
 BundleQueue::PathInfo* BundleQueue::addPathInfo(const string& aPath, const BundlePtr& aBundle) noexcept {
 	auto info = &dirNameMap.emplace(Util::getLastDir(aPath), PathInfo(aPath, aBundle))->second;
-	bundlePaths[aBundle].push_back(info);
+	bundlePaths[const_cast<string*>(&aBundle->getTarget())].push_back(info);
 	return info;
 }
 
 void BundleQueue::removePathInfo(const PathInfo* aPathInfo) noexcept {
-	auto& pathInfos = bundlePaths[aPathInfo->bundle];
+	auto bundleTarget = const_cast<string*>(&aPathInfo->bundle->getTarget());
+
+	auto& pathInfos = bundlePaths[bundleTarget];
 	pathInfos.erase(find(pathInfos, aPathInfo));
 	if (pathInfos.empty()) {
-		bundlePaths.erase(aPathInfo->bundle);
+		bundlePaths.erase(bundleTarget);
 	}
 
 	auto nameRange = dirNameMap.equal_range(Util::getLastDir(aPathInfo->path));
@@ -248,7 +272,7 @@ void BundleQueue::removePathInfo(const PathInfo* aPathInfo) noexcept {
 
 void BundleQueue::forEachPath(const BundlePtr& aBundle, const string& aFilePath, PathInfoHandler&& aHandler) noexcept {
 	auto currentPath = Util::getFilePath(aFilePath);
-	auto& pathInfos = bundlePaths[aBundle];
+	auto& pathInfos = bundlePaths[const_cast<string*>(&aBundle->getTarget())];
 
 	while (true) {
 		dcassert(currentPath.find(aBundle->getTarget()) != string::npos);
@@ -320,11 +344,12 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 		return;
 	}
 
-	auto paths = bundlePaths.find(aBundle);
-	if (paths != bundlePaths.end()) {
-		auto pathInfos = paths->second;
-		for (const auto& p : pathInfos) {
-			removePathInfo(p);
+	{
+		auto pathInfos = getPathInfos(aBundle->getTarget());
+		if (pathInfos) {
+			for (const auto& p : *pathInfos) {
+				removePathInfo(p);
+			}
 		}
 	}
 
