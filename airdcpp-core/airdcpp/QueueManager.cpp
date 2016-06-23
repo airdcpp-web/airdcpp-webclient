@@ -3370,8 +3370,8 @@ void QueueManager::checkRefreshPaths(OrderedStringSet& retBundles_, RefreshPathL
 	}
 }
 
-void QueueManager::shareBundle(BundlePtr aBundle, bool skipScan) noexcept{
-	if (!skipScan && !scanBundle(aBundle)) {
+void QueueManager::shareBundle(BundlePtr aBundle, bool aSkipScan) noexcept{
+	if (!aSkipScan && !scanBundle(aBundle)) {
 		return;
 	}
 
@@ -3389,7 +3389,7 @@ void QueueManager::on(ShareManagerListener::DirectoriesRefreshed, uint8_t aType,
 	}
 }
 
-void QueueManager::onPathRefreshed(const string& aPath, bool startup) noexcept{
+void QueueManager::onPathRefreshed(const string& aPath, bool aStartup) noexcept{
 	BundleList bundles;
 
 	{
@@ -3404,15 +3404,15 @@ void QueueManager::onPathRefreshed(const string& aPath, bool startup) noexcept{
 	for (auto& b : bundles) {
 		if (ShareManager::getInstance()->isRealPathShared(b->getTarget())) {
 			setBundleStatus(b, Bundle::STATUS_SHARED);
-		} else if (startup) {
-			// in case it's a failed bundle
-			scanBundle(b);
+		} else if (aStartup) {
+			// In case it's a failed bundle
+			shareBundle(b, false);
 		}
 	}
 }
 
-void QueueManager::on(ShareManagerListener::ShareLoaded) noexcept{
-	onPathRefreshed(Util::emptyString, true);
+void QueueManager::on(ShareManagerListener::ShareLoaded) noexcept {
+	tasks.addTask([=] { onPathRefreshed(Util::emptyString, true); });
 }
 
 void QueueManager::setBundleStatus(BundlePtr aBundle, Bundle::Status newStatus) noexcept {

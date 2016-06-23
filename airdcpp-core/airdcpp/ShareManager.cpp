@@ -1433,7 +1433,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 		return rootPaths.empty();
 	}
 
-	LoaderList ll;
+	LoaderList cacheLoaders;
 
 	// Create loaders
 	for (const auto& p : fileList) {
@@ -1446,7 +1446,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 			if (rp.base() != rootPaths.end()) {
 				try {
 					auto loader = std::make_shared<ShareLoader>(rp.base()->first, *rp, *bloom.get());
-					ll.emplace_back(loader);
+					cacheLoaders.emplace_back(loader);
 					continue;
 				} catch (...) {}
 			}
@@ -1457,7 +1457,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 	}
 
 	{
-		const auto dirCount = ll.size();
+		const auto dirCount = cacheLoaders.size();
 
 		//ll.sort(SimpleXMLReader::ThreadedCallBack::SizeSort());
 
@@ -1466,7 +1466,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 		bool hasFailedCaches = false;
 
 		try {
-			parallel_for_each(ll.begin(), ll.end(), [&](ShareLoaderPtr& i) {
+			parallel_for_each(cacheLoaders.begin(), cacheLoaders.end(), [&](ShareLoaderPtr& i) {
 				//LogManager::getInstance()->message("Thread: " + Util::toString(::GetCurrentThreadId()) + "Size " + Util::toString(loader.size), LogMessage::SEV_INFO);
 				auto& loader = *i;
 				try {
@@ -1497,23 +1497,10 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 
 	// Apply the changes
 	int64_t hashSize = 0;
-	//Directory::Map newRoots;
 
-	for (const auto& l : ll) {
+	for (const auto& l : cacheLoaders) {
 		l->mergeRefreshChanges(dirNameMap, rootPaths, tthIndex, hashSize, sharedSize, nullptr);
 	}
-
-	// Were all roots loaded?
-	/*StringList refreshDirs;
-	for (auto& i: rootPaths) {
-		auto p = newRoots.find(i.first);
-		if (p == newRoots.end()) {
-			//add for refresh
-			refreshDirs.push_back(i.first);
-		}
-	}
-
-	addRefreshTask(REFRESH_DIRS, refreshDirs, TYPE_MANUAL, Util::emptyString);*/
 
 	if (hashSize > 0) {
 		LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(hashSize)), LogMessage::SEV_INFO);
