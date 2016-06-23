@@ -334,7 +334,17 @@ void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool aFinished) noexcept {
 				aInfo.queuedFiles--;
 			}
 
-			aInfo.size -= aQI->getSize();
+			if (!aFinished) {
+				aInfo.size -= aQI->getSize();
+			}
+
+#ifdef _DEBUG
+			if (aInfo.queuedFiles == 0 && aInfo.finishedFiles == 0) {
+				dcassert(aInfo.size == 0);
+			}
+
+			dcassert(aInfo.size >= 0 && aInfo.finishedFiles >= 0 && aInfo.queuedFiles >= 0);
+#endif
 		});
 	}
 }
@@ -345,9 +355,10 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 	}
 
 	{
-		auto pathInfos = getPathInfos(aBundle->getTarget());
-		if (pathInfos) {
-			for (const auto& p : *pathInfos) {
+		auto infoPtr = getPathInfos(aBundle->getTarget());
+		if (infoPtr) {
+			auto pathInfos = *infoPtr;
+			for (const auto& p : pathInfos) {
 				removePathInfo(p);
 			}
 		}
