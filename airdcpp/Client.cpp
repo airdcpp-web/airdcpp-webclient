@@ -371,7 +371,7 @@ void Client::doRedirect() noexcept {
 	fire(ClientListener::Redirected(), getHubUrl(), newClient);
 }
 
-void Client::on(Failed, const string& aLine) noexcept {
+void Client::on(BufferedSocketListener::Failed, const string& aLine) noexcept {
 	clearUsers();
 	
 	if(stateNormal())
@@ -482,19 +482,20 @@ string Client::getAllCountsStr() noexcept {
 }
 
 long Client::getDisplayCount(CountType aCountType) const noexcept {
-	return SETTING(SEPARATE_NOSHARE_HUBS) && isSharingHub() ? sharingCounts[aCountType] : allCounts[aCountType];
+	//return SETTING(SEPARATE_NOSHARE_HUBS) && isSharingHub() ? sharingCounts[aCountType] : allCounts[aCountType];
+	return allCounts[aCountType];
 }
 
 void Client::addLine(const string& msg) noexcept {
 	fire(ClientListener::AddLine(), this, msg);
 }
  
-void Client::on(Line, const string& aLine) noexcept {
+void Client::on(BufferedSocketListener::Line, const string& aLine) noexcept {
 	updateActivity();
 	COMMAND_DEBUG(aLine, DebugManager::TYPE_HUB, DebugManager::INCOMING, getIpPort());
 }
 
-void Client::on(Second, uint64_t aTick) noexcept{
+void Client::on(TimerManagerListener::Second, uint64_t aTick) noexcept{
 	if (state == STATE_DISCONNECTED && getAutoReconnect() && (aTick > (getLastActivity() + getReconnDelay() * 1000))) {
 		// Try to reconnect...
 		connect();

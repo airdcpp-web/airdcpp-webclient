@@ -239,8 +239,6 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		return;
 
 	if(aLine[0] != '$') {
-		if (SETTING(SUPPRESS_MAIN_CHAT)) return;
-
 		// Check if we're being banned...
 		if(!stateNormal()) {
 			if(Util::findSubString(aLine, "banned") != string::npos) {
