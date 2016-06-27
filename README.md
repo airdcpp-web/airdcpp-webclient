@@ -27,12 +27,8 @@ AirDC++ Web Client wraps the following subprojects:
 
 * [Home page](https://airdcpp-web.github.io)
 * [Installation guide](https://airdcpp-web.github.io/docs/installation/installation.html)
-* [Reporting issues](https://airdcpp-web.github.io/docs/general/reporting-issues.html)
+* [Contributing information](https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md)
 
 ## Feature requests or questions?
 
 The issue tracker can be used for feature requests and questions as well. You may also upvote existing feature requests to increase  their likelihood for being implemented.
-
-## Contributing
-
-Pull requests should be submitted to the `develop` branch. 
