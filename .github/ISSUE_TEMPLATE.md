@@ -10,4 +10,4 @@ Copy from *Settings* -> *About*
 
 ### Steps to reproduce the issue:
 
-If you are unable to reproduce the issue, you can explain that what was happening before the crash/issue occurred. If it is a recurring issue, please mention how often does it occurr.
+If you are unable to reproduce the issue, you can explain that what was happening before the crash/issue occurred. If it is a recurring issue, please mention how often does it occur.
