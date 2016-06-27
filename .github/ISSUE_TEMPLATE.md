@@ -1,5 +1,5 @@
 <!--
-If you are posting a feature requests, you can remove all prefilled information. If you are reporting a bug, you should first read https://airdcpp-web.github.io/docs/general/reporting-issues.html
+If you are posting a feature requests, you can remove all prefilled information. Please read the contributing information first.
 -->
 
 <!-- BUG TEMPLATE -->
