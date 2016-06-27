@@ -38,4 +38,4 @@ attach [number]
 thread apply all bt full
 ```
 
-Save the full output to a file and attach it to your bug report.
+*Don't press `q` after the first page of text is shown as there is a lot more to come*. Save the full output to a file and attach it to your bug report.
