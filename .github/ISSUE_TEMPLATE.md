@@ -6,5 +6,8 @@ If you are posting a question/feature requests, all prefilled information can be
 
 ### Current UI and client versions:
 
+Copy from *Settings* -> *About*
 
-### How to reproduce the issue (or what was happening before the crash/issue occurred):
+### Steps to reproduce the issue:
+
+If you are unable to reproduce the issue, you can explain that what was happening before the crash/issue occurred
