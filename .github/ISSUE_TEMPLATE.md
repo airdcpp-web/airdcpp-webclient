@@ -1,5 +1,5 @@
 <!--
-If you are posting a feature requests, you can remove all prefilled information. Please read the contributing information first.
+If you are posting a question/feature requests, all prefilled information can be removed. Please read the guidelines for contributing first.
 -->
 
 <!-- BUG TEMPLATE -->
