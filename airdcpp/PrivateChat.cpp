@@ -51,6 +51,10 @@ PrivateChat::~PrivateChat() {
 }
 
 void PrivateChat::checkCCPMHubBlocked() noexcept {
+	if (replyTo.user->isSet(User::NMDC)) {
+		return;
+	}
+
 	// Auto connecting?
 	if (ccReady() || (getUser()->isSet(User::CCPM) && SETTING(ALWAYS_CCPM))) {
 		return;

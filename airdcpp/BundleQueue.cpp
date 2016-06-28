@@ -191,61 +191,94 @@ void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) c
 	}
 }
 
-void BundleQueue::getSearchItems(const BundlePtr& aBundle, map<string, QueueItemPtr>& searchItems_, bool aManualSearch) const noexcept {
-	if (aBundle->getQueueItems().empty())
-		return;
+// Select a random item from the list to search for
+QueueItemPtr pickSearchItem(const QueueItemList& aItems) noexcept {
+	QueueItemPtr searchItem = nullptr;
 
-	if (aBundle->isFileBundle() || aBundle->getQueueItems().size() == 1) {
-		searchItems_.emplace(Util::emptyString, aBundle->getQueueItems().front());
-		return;
+	for (auto s = 0; s < aItems.size(); s++) {
+		searchItem = aItems[Util::rand(aItems.size() - 1)];
+
+		if (!searchItem->isRunning() && !searchItem->isPausedPrio()) {
+			break;
+		}
+
+		// See if we can find a better one
 	}
 
+	return searchItem;
+}
+
+template<class ContainerT>
+ContainerT pickRandomItems(const ContainerT& aItems, int aMaxCount) noexcept {
+	ContainerT ret, selectableItems = aItems;
+
+	while (ret.size() < aMaxCount && !selectableItems.empty()) {
+		auto pos = selectableItems.begin();
+		auto rand = Util::rand(selectableItems.size());
+		advance(pos, rand);
+
+		ret.insert(*pos);
+
+		selectableItems.erase(pos);
+	}
+
+	return ret;
+}
+
+QueueItemList BundleQueue::getSearchItems(const BundlePtr& aBundle) const noexcept {
+	if (aBundle->getQueueItems().size() <= 1) {
+		return aBundle->getQueueItems();
+	}
+
+	// File bundles shouldn't come here
+	QueueItemList searchItems;
 	auto pathInfos = getPathInfos(aBundle->getTarget());
 	if (!pathInfos) {
-		return;
+		return searchItems;
 	}
 
-	QueueItemPtr searchItem = nullptr;
-	for (const auto& i : *pathInfos) {
-		auto dir = AirUtil::getReleaseDir(i->path, false);
+	{
+		// Get the main directories inside this bundle
+		// We'll choose a single search item from each main directory later
+		// This helps with getting best coverage for complex bundles that aren't
+		// shared with same structure by most users
 
-		// Don't add the same directory twice
-		if (searchItems_.find(dir) != searchItems_.end()) {
-			continue;
-		}
-
-		// Get all queued files inside this directory
-		QueueItemList ql;
-		aBundle->getDirQIs(dir, ql);
-
-		if (ql.empty()) {
-			continue;
-		}
-
-		size_t s = 0;
-		searchItem = nullptr;
-
-		//do a few guesses to get a random item
-		while (s <= ql.size()) {
-			const auto& q = ql[ql.size() == 1 ? 0 : Util::rand(ql.size() - 1)];
-			if (q->isPausedPrio() && !aManualSearch) {
-				s++;
+		StringSet mainBundlePaths;
+		for (const auto& pathInfo : *pathInfos) {
+			if (pathInfo->queuedFiles == 0) {
 				continue;
 			}
-			if (q->isRunning() || (q->isPausedPrio())) {
-				//it's ok but see if we can find better one
-				searchItem = q;
-			} else {
-				searchItem = q;
-				break;
-			}
-			s++;
+
+			mainBundlePaths.insert(AirUtil::getReleaseDir(pathInfo->path, false));
 		}
 
-		if (searchItem) {
-			searchItems_.emplace(dir, searchItem);
+
+		auto searchPaths = pickRandomItems(mainBundlePaths, 5);
+
+		for (const auto& path : searchPaths) {
+			QueueItemList ql;
+
+			// Get all queued files inside this directory
+			// This doesn't scale so well for large bundles but shouldn't cause issues with maximum of 5 paths
+			aBundle->getDirQIs(path, ql);
+
+			auto searchItem = pickSearchItem(ql);
+			if (searchItem) {
+				searchItems.push_back(searchItem);
+			}
 		}
 	}
+
+#ifdef 0
+	StringSet targets;
+	for (const auto& qi : searchItems) {
+		targets.insert(qi->getTarget());
+	}
+
+	LogManager::getInstance()->message("Search items from bundle " + aBundle->getName() + ": " + Util::listToString(targets), LogMessage::SEV_INFO);
+#endif
+
+	return searchItems;
 }
 
 BundleQueue::PathInfo* BundleQueue::addPathInfo(const string& aPath, const BundlePtr& aBundle) noexcept {
@@ -278,7 +311,7 @@ void BundleQueue::forEachPath(const BundlePtr& aBundle, const string& aFilePath,
 		dcassert(currentPath.find(aBundle->getTarget()) != string::npos);
 
 		// TODO: make this case insensitive
-		auto infoIter = find_if(pathInfos, [&](const PathInfo* aInfo) { return aInfo->path == currentPath; });
+		auto infoIter = pathInfos.find(currentPath);
 
 		PathInfo* info;
 
@@ -297,7 +330,7 @@ void BundleQueue::forEachPath(const BundlePtr& aBundle, const string& aFilePath,
 			removePathInfo(info);
 		}
 
-		if (Util::stricmp(currentPath, aBundle->getTarget()) == 0) {
+		if (currentPath.length() == aBundle->getTarget().length()) {
 			break;
 		}
 

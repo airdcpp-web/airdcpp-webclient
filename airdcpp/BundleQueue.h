@@ -26,6 +26,7 @@
 #include "DupeType.h"
 #include "HintedUser.h"
 #include "PrioritySearchQueue.h"
+#include "SortedVector.h"
 #include "TargetUtil.h"
 
 namespace dcpp {
@@ -36,7 +37,11 @@ class BundleQueue : public PrioritySearchQueue<BundlePtr> {
 public:
 	struct PathInfo {
 		PathInfo(const string& aPath, const BundlePtr& aBundle) noexcept : path(aPath), bundle(aBundle) {  }
-		typedef vector<PathInfo*> List;
+		struct Path {
+			const string& operator()(const PathInfo* a) const { return a->path; }
+		};
+
+		typedef SortedVector<PathInfo*, std::vector, string, Compare, Path> List;
 
 		bool operator==(const PathInfo* aInfo) const noexcept { return this == aInfo; }
 
@@ -75,7 +80,7 @@ public:
 	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept;
 
 	void saveQueue(bool force) noexcept;
-	void getSearchItems(const BundlePtr& aBundle, map<string, QueueItemPtr>& searchItems_, bool aManualSearch) const noexcept;
+	QueueItemList getSearchItems(const BundlePtr& aBundle) const noexcept;
 
 	DupeType isNmdcDirQueued(const string& aPath, int64_t aSize) const noexcept;
 
