@@ -3854,7 +3854,7 @@ void QueueManager::updatePBD(const HintedUser& aUser, const TTHValue& aTTH) noex
 }
 
 void QueueManager::searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSearch, uint64_t aTick) noexcept {
-	map<string, QueueItemPtr> searches;
+	QueueItemList searchItems;
 	int64_t nextSearch = 0;
 
 	// Get the possible items to search for
@@ -3869,35 +3869,28 @@ void QueueManager::searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSear
 		if (isScheduled && !aBundle->allowAutoSearch())
 			return;
 
-		bundleQueue.getSearchItems(aBundle, searches, aIsManualSearch);
+		searchItems = bundleQueue.getSearchItems(aBundle);
 	}
 
-	if (searches.empty()) {
+	if (searchItems.empty()) {
 		return;
 	}
 
-	// Choose at most 5 random items to search for
-	int postedSearches = 0;
-	while (postedSearches < 5 && !searches.empty()) {
-		auto pos = searches.begin();
-		auto rand = Util::rand(searches.size());
-		advance(pos, rand);
-		pos->second->searchAlternates();
-		searches.erase(pos);
-		postedSearches++;
+	for (const auto& q : searchItems) {
+		q->searchAlternates();
 	}
 
 	aBundle->setLastSearch(aTick);
 
 	// Report
 	if (aIsManualSearch) {
-		LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName().c_str() % postedSearches), LogMessage::SEV_INFO);
+		LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName().c_str() % searchItems.size()), LogMessage::SEV_INFO);
 	} else if(SETTING(REPORT_ALTERNATES)) {
 		if (aBundle->isRecent()) {
-			LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH_RECENT, aBundle->getName() % postedSearches) +
+			LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH_RECENT, aBundle->getName() % searchItems.size()) +
 				" " + STRING_F(NEXT_RECENT_SEARCH_IN, nextSearch), LogMessage::SEV_INFO);
 		} else {
-			LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName() % postedSearches) +
+			LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName() % searchItems.size()) +
 				" " + STRING_F(NEXT_SEARCH_IN, nextSearch), LogMessage::SEV_INFO);
 		}
 	}
