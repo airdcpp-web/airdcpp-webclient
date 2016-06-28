@@ -269,7 +269,7 @@ QueueItemList BundleQueue::getSearchItems(const BundlePtr& aBundle) const noexce
 		}
 	}
 
-#ifdef 0
+#if 0
 	StringSet targets;
 	for (const auto& qi : searchItems) {
 		targets.insert(qi->getTarget());
