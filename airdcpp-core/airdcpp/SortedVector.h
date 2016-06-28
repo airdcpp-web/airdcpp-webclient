@@ -28,78 +28,83 @@ class SortedVector : public ContainerT<T> {
 
 public:
 	std::pair<typename ContainerT<T>::const_iterator, bool> insert_sorted(const T& aItem) {
-		if (this->empty()) {
-			this->push_back(aItem);
-			return { this->begin(), true };
+		if (ContainerT<T>::empty()) {
+			ContainerT<T>::push_back(aItem);
+			return { ContainerT<T>::begin(), true };
 		} else {
-			int res = SortOperator()(NameOperator()(this->back()), NameOperator()(aItem));
+			int res = SortOperator()(NameOperator()(ContainerT<T>::back()), NameOperator()(aItem));
 			if (res < 0) {
-				this->push_back(aItem);
-				return { this->end() - 1, true };
+				ContainerT<T>::push_back(aItem);
+				return { ContainerT<T>::end() - 1, true };
 			} else if (res == 0) {
 				//return the dupe
-				return { this->end() - 1, false };
+				return { ContainerT<T>::end() - 1, false };
 			}
 		}
 
-		auto p = getPos(this->begin(), this->end(), NameOperator()(aItem));
+		auto p = getPos(ContainerT<T>::begin(), ContainerT<T>::end(), NameOperator()(aItem));
 		if (p.second) {
 			//return the dupe
 			return { p.first, false };
 		}
 
 		//insert
-		p.first = this->insert(p.first, aItem);
+		p.first = ContainerT<T>::insert(p.first, aItem);
 		return { p.first, true };
 	}
 
 	template<typename... ArgT>
 	std::pair<typename ContainerT<T>::const_iterator, bool> emplace_sorted(const keyType& aKey, ArgT&& ... args) {
-		if (this->empty()) {
-			this->emplace_back(aKey, std::forward<ArgT>(args)...);
-			return { this->begin(), true };
+		if (ContainerT<T>::empty()) {
+			ContainerT<T>::emplace_back(aKey, std::forward<ArgT>(args)...);
+			return { ContainerT<T>::begin(), true };
 		} else {
-			int res = SortOperator()(NameOperator()(this->back()), aKey);
+			int res = SortOperator()(NameOperator()(ContainerT<T>::back()), aKey);
 			if (res < 0) {
-				this->emplace_back(aKey, std::forward<ArgT>(args)...);
-				return { this->end() - 1, true };
+				ContainerT<T>::emplace_back(aKey, std::forward<ArgT>(args)...);
+				return { ContainerT<T>::end() - 1, true };
 			} else if (res == 0) {
 				//return the dupe
-				return { this->end() - 1, false };
+				return { ContainerT<T>::end() - 1, false };
 			}
 		}
 
-		auto p = getPos(this->begin(), this->end(), aKey);
+		auto p = getPos(ContainerT<T>::begin(), ContainerT<T>::end(), aKey);
 		if (p.second) {
 			//return the dupe
 			return { p.first, false };
 		}
 
 		//insert
-		p.first = this->emplace(p.first, aKey, std::forward<ArgT>(args)...);
+		p.first = ContainerT<T>::emplace(p.first, aKey, std::forward<ArgT>(args)...);
 		return { p.first, true };
 	}
 
 	typename ContainerT<T>::const_iterator find(const keyType& aKey) const {
-		auto pos = getPos(this->cbegin(), this->cend(), aKey);
-		return pos.second ? pos.first : this->cend();
+		auto pos = getPos(ContainerT<T>::cbegin(), ContainerT<T>::cend(), aKey);
+		return pos.second ? pos.first : ContainerT<T>::cend();
 	}
 
 	typename ContainerT<T>::iterator find(const keyType& aKey) {
-		auto pos = getPos(this->begin(), this->end(), aKey);
-		return pos.second ? pos.first : this->end();
+		auto pos = getPos(ContainerT<T>::begin(), ContainerT<T>::end(), aKey);
+		return pos.second ? pos.first : ContainerT<T>::end();
 	}
 
 	bool erase_key(const keyType& aKey) {
-		auto pos = getPos(this->begin(), this->end(), aKey);
+		auto pos = getPos(ContainerT<T>::begin(), ContainerT<T>::end(), aKey);
 		if (pos.second) {
-			this->erase(pos.first);
+			ContainerT<T>::erase(pos.first);
 			return true;
 		}
 
 		return false;
 	}
 
+	void push_back(typename ContainerT<T>::value_type&& _Val) = delete;
+	void push_back(const typename ContainerT<T>::value_type& _Val) = delete;
+
+	template<class... _Valty>
+	void emplace_back(_Valty&&... _Val) = delete;
 private:
 	template<typename IterT>
 	std::pair<IterT, bool> getPos(IterT first, IterT last, const keyType& key) const {

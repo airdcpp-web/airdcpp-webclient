@@ -108,7 +108,6 @@ private:
 	unordered_multimap<string, string> dupeDirs;
 	void prepareSFVScanDir(const string& path, SFVScanList& dirs) noexcept;
 	void prepareSFVScanFile(const string& path, StringList& files) noexcept;
-	StringList bundleDirs;
 
 	struct ScanInfo {
 		enum ReportType {
@@ -143,9 +142,9 @@ private:
 
 	typedef vector<ScanInfo> ScanInfoList;
 
-	void find(const string& path, const string& aPathLower, ScanInfo& aScan) noexcept;
-	void scanDir(const string& path, ScanInfo& aScan) noexcept;
-	void findDupes(const string& path, ScanInfo& aScan) noexcept;
+	void find(const string& aPath, ScanInfo& aScan) noexcept;
+	void scanDir(const string& aPath, ScanInfo& aScan) noexcept;
+	void findDupes(const string& aPath, ScanInfo& aScan) noexcept;
 
 	void reportMessage(const string& aMessage, ScanInfo& aScan, bool warning = true) noexcept;
 

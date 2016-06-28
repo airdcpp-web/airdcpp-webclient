@@ -117,7 +117,7 @@ namespace webserver {
 
 		auto path = JsonUtil::getOptionalField<string>("path", reqJson, false);
 		if (path) {
-			ret = QueueManager::getInstance()->getDirPaths(Util::toNmdcFile(*path));
+			ret = QueueManager::getInstance()->getNmdcDirPaths(Util::toNmdcFile(*path));
 		} else {
 			auto tth = Deserializer::deserializeTTH(reqJson);
 			ret = QueueManager::getInstance()->getTargets(tth);
@@ -390,17 +390,25 @@ namespace webserver {
 		});
 	}
 
-	void QueueApi::on(QueueManagerListener::Removed, const QueueItemPtr& aQI, bool /*finished*/) noexcept {
+	void QueueApi::on(QueueManagerListener::ItemRemoved, const QueueItemPtr& aQI, bool /*finished*/) noexcept {
 		if (!subscriptionActive("file_removed"))
 			return;
 
 		//send("file_removed", QueueUtils::serializeQueueItem(aQI));
 	}
-	void QueueApi::on(QueueManagerListener::Added, QueueItemPtr& aQI) noexcept {
+	void QueueApi::on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept {
 		if (!subscriptionActive("file_added"))
 			return;
 
 		//send("file_added", QueueUtils::serializeQueueItem(aQI));
+	}
+
+	void QueueApi::on(QueueManagerListener::ItemSourcesUpdated, const QueueItemPtr& aQI) noexcept {
+		onFileUpdated(aQI);
+	}
+
+	void QueueApi::on(QueueManagerListener::ItemStatusUpdated, const QueueItemPtr& aQI) noexcept {
+		onFileUpdated(aQI);
 	}
 
 	void QueueApi::onFileUpdated(const QueueItemPtr& aQI) {
@@ -448,13 +456,6 @@ namespace webserver {
 
 	void QueueApi::on(QueueManagerListener::BundleSources, const BundlePtr& aBundle) noexcept {
 		onBundleUpdated(aBundle, { PROP_SOURCES });
-	}
-
-	void QueueApi::on(QueueManagerListener::SourcesUpdated, const QueueItemPtr& aQI) noexcept {
-		onFileUpdated(aQI);
-	}
-	void QueueApi::on(QueueManagerListener::StatusUpdated, const QueueItemPtr& aQI) noexcept {
-		onFileUpdated(aQI);
 	}
 
 	void QueueApi::on(FileRecheckFailed, const QueueItemPtr& aQI, const string& aError) noexcept {

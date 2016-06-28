@@ -187,7 +187,7 @@ int SSLSocket::checkSSL(int ret) {
 			string _error;
 			int v_err = SSL_get_verify_result(ssl);
 			if (v_err == X509_V_ERR_APPLICATION_VERIFICATION) {
-				_error = "Keyprint mismatch";
+				_error = STRING(KEYPRINT_MISMATCH);
 			}
 			else if (v_err != X509_V_OK) {
 				_error = X509_verify_cert_error_string(v_err);

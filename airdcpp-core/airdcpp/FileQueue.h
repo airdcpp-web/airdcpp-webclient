@@ -52,14 +52,14 @@ public:
 	void matchDir(const DirectoryListing::Directory::Ptr& dir, QueueItem::StringItemList& ql) const noexcept;
 
 	// find some PFS sources to exchange parts info
-	void findPFSSources(PFSSourceList&) noexcept;
+	void findPFSSources(PFSSourceList&) const noexcept;
 
 	size_t getSize() noexcept { return pathQueue.size(); }
 	QueueItem::StringMap& getPathQueue() noexcept { return pathQueue; }
 	const QueueItem::StringMap& getPathQueue() const noexcept{ return pathQueue; }
 	QueueItem::TTHMap& getTTHIndex() noexcept { return tthIndex; }
 
-	void remove(QueueItemPtr& qi) noexcept;
+	void remove(const QueueItemPtr& qi) noexcept;
 
 	DupeType isFileQueued(const TTHValue& aTTH) const noexcept;
 	QueueItemPtr getQueuedFile(const TTHValue& aTTH) const noexcept;

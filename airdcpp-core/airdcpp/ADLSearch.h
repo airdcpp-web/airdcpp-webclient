@@ -114,7 +114,7 @@ public:
 	// Destination directory indexing
 	struct DestDir {
 		string name;
-		DirectoryListing::Directory* dir;
+		DirectoryListing::Directory::Ptr dir;
 		DirectoryListing::Directory* subdir;
 		bool fileAdded;
 	};

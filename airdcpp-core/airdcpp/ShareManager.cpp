@@ -126,7 +126,6 @@ void ShareManager::startup(function<void(const string&)> splashF, function<void(
 
 		addMonitoring(monitorPaths);
 		TimerManager::getInstance()->addListener(this);
-		QueueManager::getInstance()->addListener(this);
 
 		if (SETTING(STARTUP_REFRESH) && !refreshed)
 			refresh(false, TYPE_STARTUP_DELAYED);
@@ -248,7 +247,7 @@ void ShareManager::handleChangedFiles() noexcept {
 	monitor.callAsync([this] { handleChangedFiles(GET_TICK(), true); });
 }
 
-bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& bundlePaths_, ProfileTokenSet& dirtyProfiles_, StringList& refresh_, uint64_t aTick, bool forced) noexcept{
+bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<OrderedStringSet>& bundlePaths_, ProfileTokenSet& dirtyProfiles_, StringList& refresh_, uint64_t aTick, bool forced) noexcept{
 	//not enough delay from the last change?
 	if (!forced) {
 		if (SETTING(DELAY_COUNT_MODE) == SettingsManager::DELAY_DIR) {
@@ -330,8 +329,8 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 
 	// fetch the queued bundles
 	if (!bundlePaths_) {
-		bundlePaths_ = StringList();
-		QueueManager::getInstance()->getUnfinishedPaths(*bundlePaths_);
+		bundlePaths_ = OrderedStringSet();
+		QueueManager::getInstance()->getBundlePaths(*bundlePaths_);
 	}
 
 	// don't handle queued bundles in here (parent directories for bundles shouldn't be totally ignored really...)
@@ -396,7 +395,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 	// Check that the file can be accessed, FileFindIter won't show it (also files being copied will come here)
 	for (const auto& fi : info.files | map_keys) {
 		//check for file bundles
-		if (binary_search((*bundlePaths_).begin(), (*bundlePaths_).end(), Text::toLower(fi))) {
+		if ((*bundlePaths_).find(fi) != (*bundlePaths_).end()) {
 			return false;
 		}
 
@@ -459,7 +458,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<StringList>& b
 
 void ShareManager::handleChangedFiles(uint64_t aTick, bool forced /*false*/) noexcept {
 	ProfileTokenSet dirtyProfiles;
-	optional<StringList> bundlePaths;
+	optional<OrderedStringSet> bundlePaths;
 	StringList refresh;
 
 	for (auto k = fileModifications.begin(); k != fileModifications.end();) {
@@ -735,7 +734,6 @@ void ShareManager::shutdown(function<void(float)> progressF) noexcept {
 	} catch(...) { }
 
 	TimerManager::getInstance()->removeListener(this);
-	QueueManager::getInstance()->removeListener(this);
 	join();
 }
 
@@ -1129,6 +1127,12 @@ void ShareManager::removeTempShare(const string& aKey, const TTHValue& tth) {
 		}
 	}
 }
+
+void ShareManager::removeTempShare(const string& aPath) {
+	WLock l(cs);
+	tempShares.erase(boost::remove_if(tempShares | map_values, [&](const TempShareInfo& ti) { return Util::stricmp(aPath, ti.path) == 0; }).base(), tempShares.end());
+}
+
 void ShareManager::clearTempShares() {
 	WLock l(cs);
 	tempShares.clear();
@@ -1429,7 +1433,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 		return rootPaths.empty();
 	}
 
-	LoaderList ll;
+	LoaderList cacheLoaders;
 
 	// Create loaders
 	for (const auto& p : fileList) {
@@ -1442,7 +1446,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 			if (rp.base() != rootPaths.end()) {
 				try {
 					auto loader = std::make_shared<ShareLoader>(rp.base()->first, *rp, *bloom.get());
-					ll.emplace_back(loader);
+					cacheLoaders.emplace_back(loader);
 					continue;
 				} catch (...) {}
 			}
@@ -1453,7 +1457,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 	}
 
 	{
-		const auto dirCount = ll.size();
+		const auto dirCount = cacheLoaders.size();
 
 		//ll.sort(SimpleXMLReader::ThreadedCallBack::SizeSort());
 
@@ -1462,7 +1466,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 		bool hasFailedCaches = false;
 
 		try {
-			parallel_for_each(ll.begin(), ll.end(), [&](ShareLoaderPtr& i) {
+			parallel_for_each(cacheLoaders.begin(), cacheLoaders.end(), [&](ShareLoaderPtr& i) {
 				//LogManager::getInstance()->message("Thread: " + Util::toString(::GetCurrentThreadId()) + "Size " + Util::toString(loader.size), LogMessage::SEV_INFO);
 				auto& loader = *i;
 				try {
@@ -1493,23 +1497,10 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 
 	// Apply the changes
 	int64_t hashSize = 0;
-	//Directory::Map newRoots;
 
-	for (const auto& l : ll) {
+	for (const auto& l : cacheLoaders) {
 		l->mergeRefreshChanges(dirNameMap, rootPaths, tthIndex, hashSize, sharedSize, nullptr);
 	}
-
-	// Were all roots loaded?
-	/*StringList refreshDirs;
-	for (auto& i: rootPaths) {
-		auto p = newRoots.find(i.first);
-		if (p == newRoots.end()) {
-			//add for refresh
-			refreshDirs.push_back(i.first);
-		}
-	}
-
-	addRefreshTask(REFRESH_DIRS, refreshDirs, TYPE_MANUAL, Util::emptyString);*/
 
 	if (hashSize > 0) {
 		LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(hashSize)), LogMessage::SEV_INFO);
@@ -1790,7 +1781,7 @@ int64_t ShareManager::getTotalShareSize(ProfileToken aProfile) const noexcept {
 	return ret;
 }
 
-bool ShareManager::isDirShared(const string& aDir) const noexcept{
+bool ShareManager::isNmdcDirShared(const string& aDir) const noexcept{
 	Directory::List dirs;
 
 	RLock l (cs);
@@ -1798,7 +1789,7 @@ bool ShareManager::isDirShared(const string& aDir) const noexcept{
 	return !dirs.empty();
 }
 
-DupeType ShareManager::isDirShared(const string& aDir, int64_t aSize) const noexcept{
+DupeType ShareManager::isNmdcDirShared(const string& aDir, int64_t aSize) const noexcept{
 	Directory::List dirs;
 
 	RLock l (cs);
@@ -1809,7 +1800,7 @@ DupeType ShareManager::isDirShared(const string& aDir, int64_t aSize) const noex
 	return dirs.front()->getTotalSize() == aSize ? DUPE_SHARE_FULL : DUPE_SHARE_PARTIAL;
 }
 
-StringList ShareManager::getDirPaths(const string& aDir) const noexcept{
+StringList ShareManager::getNmdcDirPaths(const string& aDir) const noexcept{
 	StringList ret;
 	Directory::List dirs;
 
@@ -1905,8 +1896,15 @@ void ShareManager::buildTree(const string& aPath, const string& aPathLower, cons
 					continue;
 				}
 
-				//check queue so we dont add incomplete stuff to share.
-				if(binary_search(bundleDirs.begin(), bundleDirs.end(), curPathLower)) {
+				// Check the queue so we dont add incomplete directories to share
+
+				// TODO
+				//auto bundle = QueueManager::getInstance()->findDirectoryBundle(curPath);
+				//if (bundle && bundle->getStatus() < Bundle::STATUS_HASHED) {
+				//	return;
+				//}
+
+				if (bundleDirs.find(curPathLower) != bundleDirs.end()) {
 					continue;
 				}
 
@@ -2671,21 +2669,21 @@ void ShareManager::on(TimerManagerListener::Second, uint64_t /*tick*/) noexcept 
 	}
 }
 
-void ShareManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
-	if(lastSave == 0 || lastSave + 15*60*1000 <= tick) {
+void ShareManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
+	if(lastSave == 0 || lastSave + 15*60*1000 <= aTick) {
 		saveXmlList();
 	}
 
-	if(SETTING(AUTO_REFRESH_TIME) > 0 && lastFullUpdate + SETTING(AUTO_REFRESH_TIME) * 60 * 1000 <= tick) {
-		lastIncomingUpdate = tick;
-		lastFullUpdate = tick;
+	if(SETTING(AUTO_REFRESH_TIME) > 0 && lastFullUpdate + SETTING(AUTO_REFRESH_TIME) * 60 * 1000 <= aTick) {
+		lastIncomingUpdate = aTick;
+		lastFullUpdate = aTick;
 		refresh(false, TYPE_SCHEDULED);
-	} else if(SETTING(INCOMING_REFRESH_TIME) > 0 && lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= tick) {
-		lastIncomingUpdate = tick;
+	} else if(SETTING(INCOMING_REFRESH_TIME) > 0 && lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= aTick) {
+		lastIncomingUpdate = aTick;
 		refresh(true, TYPE_SCHEDULED);
 	}
 
-	handleChangedFiles(tick, false);
+	handleChangedFiles(aTick, false);
 
 	restoreFailedMonitoredPaths();
 }
@@ -2829,7 +2827,7 @@ MemoryInputStream* ShareManager::generatePartialList(const string& aVirtualPath,
 		dcdebug("Partial NULL");
 		return nullptr;
 	} else {
-		dcdebug("Partial list Generated.");
+		dcdebug("Partial list generated (%s)\n", aVirtualPath.c_str());
 		return new MemoryInputStream(xml);
 	}
 }
@@ -2871,7 +2869,7 @@ void ShareManager::toFilelist(OutputStream& os_, const string& aVirtualPath, con
 	os_.write("<FileListing Version=\"1\" CID=\"" + ClientManager::getInstance()->getMe()->getCID().toBase32() +
 		"\" Base=\"" + SimpleXML::escape(aVirtualPath, tmp, false) +
 		"\" BaseDate=\"" + Util::toString(listRoot.date) +
-		"\" Generator=\"DC++ " DCVERSIONSTRING "\">\r\n");
+		"\" Generator=\"" + shortVersionString + "\">\r\n");
 
 	for (const auto ld : listRoot.listDirs | map_values) {
 		ld->toXml(os_, indent, tmp, aRecursive);
@@ -3449,32 +3447,23 @@ void ShareManager::cleanIndices(Directory& dir) noexcept {
 	}
 }
 
-void ShareManager::on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept {
-	WLock l (dirNames);
-	bundleDirs.insert(upper_bound(bundleDirs.begin(), bundleDirs.end(), aBundle->getTarget()), aBundle->getTarget());
-}
+void ShareManager::shareBundle(const BundlePtr& aBundle) noexcept {
+	if (aBundle->isFileBundle()) {
+		try {
+			HashedFile fi;
+			HashManager::getInstance()->getFileInfo(Text::toLower(aBundle->getTarget()), aBundle->getTarget(), fi);
+			onFileHashed(aBundle->getTarget(), fi);
 
-void ShareManager::on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept {
-	if (aBundle->isFileBundle())
+			LogManager::getInstance()->message(STRING_F(SHARED_FILE_ADDED, aBundle->getTarget()), LogMessage::SEV_INFO);
+		} catch (...) { dcassert(0); }
+
 		return;
-
-	if (aBundle->getStatus() == Bundle::STATUS_MOVED) {
-		//we don't want any monitoring actions for this folder...
-		string path = aBundle->getTarget();
-		monitor.callAsync([=] { removeNotifications(path); });
-	} else if (aBundle->getStatus() == Bundle::STATUS_HASHED) {
-		addRefreshTask(ADD_BUNDLE, { aBundle->getTarget() }, RefreshType::TYPE_BUNDLE, aBundle->getTarget());
-	} else if (aBundle->getStatus() == Bundle::STATUS_QUEUED) {
-		// existing shared bundle directories will cause issues
-		ProfileTokenSet dirty;
-
-		{
-			WLock l(cs);
-			handleDeletedFile(aBundle->getTarget(), true, dirty);
-		}
-
-		setProfilesDirty(dirty, false);
 	}
+
+	auto path = aBundle->getTarget();
+	monitor.callAsync([=] { removeNotifications(path); });
+
+	addRefreshTask(ADD_BUNDLE, { aBundle->getTarget() }, RefreshType::TYPE_BUNDLE, aBundle->getTarget());
 }
 
 void ShareManager::removeNotifications(const string& aPath) noexcept {

@@ -105,10 +105,10 @@ namespace webserver {
 		void on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept;
 
 		//QueueItem update listeners
-		void on(QueueManagerListener::Removed, const QueueItemPtr& aQI, bool /*finished*/) noexcept;
-		void on(QueueManagerListener::Added, QueueItemPtr& aQI) noexcept;
-		void on(QueueManagerListener::SourcesUpdated, const QueueItemPtr& aQI) noexcept;
-		void on(QueueManagerListener::StatusUpdated, const QueueItemPtr& aQI) noexcept;
+		void on(QueueManagerListener::ItemRemoved, const QueueItemPtr& aQI, bool /*finished*/) noexcept;
+		void on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept;
+		void on(QueueManagerListener::ItemSourcesUpdated, const QueueItemPtr& aQI) noexcept;
+		void on(QueueManagerListener::ItemStatusUpdated, const QueueItemPtr& aQI) noexcept;
 
 		void onFileUpdated(const QueueItemPtr& qi);
 		void onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription = "bundle_updated");

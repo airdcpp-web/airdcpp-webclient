@@ -101,7 +101,6 @@ public:
 
 	IGETSET(bool, autoConnect, AutoConnect, true);
 	IGETSET(int, chatusersplit, ChatUserSplit, 0);
-	IGETSET(bool, stealth, Stealth, false);
 	IGETSET(bool, userliststate, UserListState, true);
 	IGETSET(bool, favnoPM, FavNoPM, false);
 	GETSET(string, group, Group);
@@ -113,9 +112,7 @@ public:
 
 class RecentHubEntry : public intrusive_ptr_base<RecentHubEntry> {
 public:
-	RecentHubEntry(const string& aUrl) : server(aUrl), name("*"), description("*"), shared("*"), users("*") {
-
-	}
+	RecentHubEntry(const string& aUrl);
 	
 	GETSET(string, server, Server);
 	GETSET(string, name, Name);

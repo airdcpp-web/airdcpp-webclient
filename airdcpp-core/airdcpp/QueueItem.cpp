@@ -193,7 +193,9 @@ bool QueueItem::isChunkDownloaded(int64_t startPos, int64_t& len) const {
 
 string QueueItem::getListName() const {
 	dcassert(isSet(QueueItem::FLAG_USER_LIST));
-	if(isSet(QueueItem::FLAG_XML_BZLIST)) {
+	if (isSet(QueueItem::FLAG_PARTIAL_LIST)) {
+		return target;
+	} else if(isSet(QueueItem::FLAG_XML_BZLIST)) {
 		return target + ".xml.bz2";
 	} else {
 		return target + ".xml";

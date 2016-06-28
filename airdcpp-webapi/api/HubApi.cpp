@@ -141,7 +141,7 @@ namespace webserver {
 			{ "hub_url", aClient->getHubUrl() },
 			{ "id", aClient->getClientId() },
 			{ "favorite_hub", aClient->getFavToken() },
-			{ "share_profile", Serializer::serializeShareProfileSimple(aClient->getShareProfile()) }
+			{ "share_profile", Serializer::serializeShareProfileSimple(aClient->get(HubSettings::ShareProfile)) }
 		};
 
 		Serializer::serializeCacheInfo(j, aClient->getCache(), Serializer::serializeUnreadChat);
@@ -195,7 +195,7 @@ namespace webserver {
 		auto address = JsonUtil::getField<string>("hub_url", reqJson, false);
 
 		RecentHubEntryPtr r = new RecentHubEntry(address);
-		auto client = ClientManager::getInstance()->createClient(r, SETTING(DEFAULT_SP));
+		auto client = ClientManager::getInstance()->createClient(r);
 		if (!client) {
 			aRequest.setResponseErrorStr("Hub exists");
 			return websocketpp::http::status_code::bad_request;

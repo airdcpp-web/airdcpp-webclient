@@ -48,9 +48,9 @@ namespace webserver {
 			const DirectoryListing::Directory::Ptr dir;
 		};
 
-		FilelistItemInfo(const DirectoryListing::File::Ptr& f) : type(FILE), file(f) { }
-		FilelistItemInfo(const DirectoryListing::Directory::Ptr& d) : type(DIRECTORY), dir(d) {}
-		~FilelistItemInfo() { }
+		FilelistItemInfo(const DirectoryListing::File::Ptr& f);
+		FilelistItemInfo(const DirectoryListing::Directory::Ptr& d);
+		~FilelistItemInfo();
 
 		DupeType getDupe() const noexcept { return type == DIRECTORY ? dir->getDupe() : file->getDupe(); }
 		const string& getName() const noexcept { return type == DIRECTORY ? dir->getName() : file->getName(); }

@@ -133,24 +133,26 @@ DirectoryListingManager::DirectoryListingMap DirectoryListingManager::getLists()
 	return viewedLists;
 }
 
-void DirectoryListingManager::processList(const string& aFileName, const string& aXml, const HintedUser& user, const string& aRemotePath, int flags) noexcept {
+void DirectoryListingManager::processList(const string& aFileName, const string& aXml, const HintedUser& aUser, const string& aRemotePath, int aFlags) noexcept {
+	auto isPartialList = (aFlags & QueueItem::FLAG_PARTIAL_LIST) > 0;
+
 	{
 		RLock l(cs);
-		auto p = viewedLists.find(user.user);
+		auto p = viewedLists.find(aUser.user);
 		if (p != viewedLists.end()) {
 			if (p->second->getPartialList()) {
-				if(flags & QueueItem::FLAG_TEXT) {
+				if (isPartialList) {
 					//we don't want multiple threads to load those simultaneously. load in the list thread and return here after that
-					p->second->addPartialListTask(aXml, aRemotePath, false, false, [=] { processListAction(p->second, aRemotePath, flags); });
+					p->second->addPartialListTask(aXml, aRemotePath, false, false, [=] { processListAction(p->second, aRemotePath, aFlags); });
 					return;
 				}
 			}
 		}
 	}
 
-	auto dirList = DirectoryListingPtr(new DirectoryListing(user, (flags & QueueItem::FLAG_PARTIAL_LIST) > 0, aFileName, false, false));
+	auto dirList = DirectoryListingPtr(new DirectoryListing(aUser, isPartialList, aFileName, false, false));
 	try {
-		if (flags & QueueItem::FLAG_TEXT) {
+		if (isPartialList) {
 			MemoryInputStream mis(aXml);
 			dirList->loadXML(mis, true, aRemotePath);
 		} else {
@@ -161,7 +163,7 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 		return;
 	}
 
-	processListAction(dirList, aRemotePath, flags);
+	processListAction(dirList, aRemotePath, aFlags);
 }
 
 bool DirectoryListingManager::download(const DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList, const string& aTarget, bool aHasFreeSpace) noexcept {
@@ -285,7 +287,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 	}
 }
 
-void DirectoryListingManager::on(QueueManagerListener::Finished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t /*aSpeed*/) noexcept {
+void DirectoryListingManager::on(QueueManagerListener::ItemFinished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t /*aSpeed*/) noexcept {
 	if (!qi->isSet(QueueItem::FLAG_CLIENT_VIEW) || !qi->isSet(QueueItem::FLAG_USER_LIST))
 		return;
 
@@ -310,7 +312,7 @@ void DirectoryListingManager::on(QueueManagerListener::Finished, const QueueItem
 	}
 }
 
-void DirectoryListingManager::on(QueueManagerListener::PartialList, const HintedUser& aUser, const string& aXML, const string& aBase) noexcept {
+void DirectoryListingManager::on(QueueManagerListener::PartialListFinished, const HintedUser& aUser, const string& aXML, const string& aBase) noexcept {
 	if (aXML.empty())
 		return;
 
@@ -333,12 +335,12 @@ void DirectoryListingManager::on(QueueManagerListener::PartialList, const Hinted
 	}
 }
 
-void DirectoryListingManager::on(QueueManagerListener::Removed, const QueueItemPtr& qi, bool finished) noexcept {
+void DirectoryListingManager::on(QueueManagerListener::ItemRemoved, const QueueItemPtr& qi, bool aFinished) noexcept {
 	if (!qi->isSet(QueueItem::FLAG_USER_LIST))
 		return;
 
 	auto u = qi->getSources()[0].getUser();
-	if (qi->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && !finished)
+	if (qi->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && !aFinished)
 		removeDirectoryDownload(u, qi->getTempTarget(), qi->isSet(QueueItem::FLAG_PARTIAL_LIST));
 
 	if (qi->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
@@ -355,10 +357,10 @@ void DirectoryListingManager::on(QueueManagerListener::Removed, const QueueItemP
 			dl = p->second;
 		}
 
-		dl->onListRemovedQueue(qi->getTarget(), qi->getTempTarget(), finished);
+		dl->onListRemovedQueue(qi->getTarget(), qi->getTempTarget(), aFinished);
 
 		bool closing = (dl->getClosing() || !dl->hasCompletedDownloads());
-		if (!finished && !dl->hasDownloads() && closing) {
+		if (!aFinished && !dl->hasDownloads() && closing) {
 			removeList(u);
 		}
 	}
@@ -399,7 +401,7 @@ DirectoryListingPtr DirectoryListingManager::createList(const HintedUser& aUser,
 	return dl;
 }
 
-void DirectoryListingManager::on(QueueManagerListener::Added, QueueItemPtr& aQI) noexcept {
+void DirectoryListingManager::on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept {
 	if (!aQI->isSet(QueueItem::FLAG_CLIENT_VIEW) || !aQI->isSet(QueueItem::FLAG_USER_LIST))
 		return;
 

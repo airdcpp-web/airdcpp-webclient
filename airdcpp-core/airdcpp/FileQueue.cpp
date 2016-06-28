@@ -63,7 +63,7 @@ pair<QueueItem::StringMap::const_iterator, bool> FileQueue::add(QueueItemPtr& qi
 	return ret;
 }
 
-void FileQueue::remove(QueueItemPtr& qi) noexcept {
+void FileQueue::remove(const QueueItemPtr& qi) noexcept {
 	//TargetMap
 	auto f = pathQueue.find(const_cast<string*>(&qi->getTarget()));
 	if (f != pathQueue.end()) {
@@ -135,7 +135,7 @@ QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH) const noexcept {
 }
 
 // compare nextQueryTime, get the oldest ones
-void FileQueue::findPFSSources(PFSSourceList& sl) noexcept {
+void FileQueue::findPFSSources(PFSSourceList& sl) const noexcept {
 	typedef multimap<time_t, pair<QueueItem::SourceConstIter, const QueueItemPtr> > Buffer;
 	Buffer buffer;
 	uint64_t now = GET_TICK();

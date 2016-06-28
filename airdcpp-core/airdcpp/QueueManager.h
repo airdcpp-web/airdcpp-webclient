@@ -139,7 +139,7 @@ public:
 	// Set priority for the file.
 	// keepAutoPrio should be used only when performing auto priorization.
 	// Use DEFAULT priority to enable auto priority
-	void setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p, bool keepAutoPrio=false) noexcept;
+	void setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p, bool aKeepAutoPrio = false) noexcept;
 
 	// Toggle autoprio for the file
 	void setQIAutoPriority(const string& aTarget) noexcept;
@@ -278,7 +278,7 @@ public:
 	// Set new priority for the specified bundle
 	// keepAutoPrio should be used only when performing auto priorization.
 	// Use DEFAULT priority to enable auto priority
-	void setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool aKeepAutoPrio=false) noexcept;
+	void setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool aKeepAutoPrio=false, time_t aResumeTime = 0) noexcept;
 
 	// Toggle autoprio state for the bundle
 	void toggleBundleAutoPriority(QueueToken aBundleToken) noexcept;
@@ -320,12 +320,15 @@ public:
 	string getBundlePath(QueueToken aBundleToken) const noexcept;
 
 	// Return dupe information about the directory
-	DupeType isDirQueued(const string& aDir, int64_t aSize) const noexcept;
+	DupeType isNmdcDirQueued(const string& aDir, int64_t aSize) const noexcept;
 
-	// Get all real paths of the directory
+	// Get bundle by (exact) real path
+	BundlePtr findDirectoryBundle(const string& aPath) const noexcept;
+
+	// Get all real paths of the directory name
 	// You may also give a path in NMDC format and the relevant 
 	// directory (+ possible subdirectories) are detected automatically
-	StringList getDirPaths(const string& aDir) const noexcept;
+	StringList getNmdcDirPaths(const string& aDir) const noexcept;
 
 	// Get the amount of queued bytes for each mountpoint (takes reserved space into account as well)
 	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept { 
@@ -333,12 +336,12 @@ public:
 		bundleQueue.getDiskInfo(dirMap, volumes); 
 	}
 
-	// Get the paths of all unfinished bundles
-	void getUnfinishedPaths(StringList& bundles) noexcept;
+	// Get the paths of all bundles
+	void getBundlePaths(OrderedStringSet& bundles) const noexcept;
 
 	// Get the paths of all unfinished bundles
 	// Scans all finished bundles inside the directories being refreshed and queues succeeded for hashing
-	void checkRefreshPaths(StringList& bundlePaths_, RefreshPathList& refreshPaths_) noexcept;
+	void checkRefreshPaths(OrderedStringSet& bundlePaths_, RefreshPathList& refreshPaths_) noexcept;
 
 	// Set size for a file list its size is known
 	void setFileListSize(const string& path, int64_t newSize) noexcept;
@@ -363,7 +366,7 @@ public:
 	// The bundle will be paused if running
 	void recheckBundle(QueueToken aBundleToken) noexcept;
 private:
-	IGETSET(uint64_t, lastSave, LastSave, 0);
+	IGETSET(uint64_t, lastXmlSave, LastXmlSave, 0);
 	IGETSET(uint64_t, lastAutoPrio, LastAutoPrio, 0);
 
 	DispatcherQueue tasks;
@@ -409,8 +412,10 @@ private:
 	/** Get a bundle for adding new items in queue (a new one or existing)  */
 	BundlePtr getBundle(const string& aTarget, QueueItemBase::Priority aPrio, time_t aDate, bool isFileBundle) noexcept;
 
-	/** Add a file to the queue (returns the item and whether it didn't exist before) */
-	bool addFile(const string& aTarget, int64_t aSize, const TTHValue& root, const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, QueueItemBase::Priority aPrio, bool& wantConnection, BundlePtr& aBundle) throw(QueueException, FileException);
+	// Add a file to the queue
+	// Returns the possibly added queue item and bool whether it's a newly created item
+	pair<QueueItemPtr, bool> addBundleFile(const string& aTarget, int64_t aSize, const TTHValue& aRoot, 
+		const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, QueueItemBase::Priority aPrio, bool& wantConnection_, BundlePtr& aBundle_) throw(QueueException, FileException);
 
 	/** Check that we can download from this user */
 	void checkSource(const HintedUser& aUser) const throw(QueueException);
@@ -430,8 +435,7 @@ private:
 
 	void addBundleUpdate(const BundlePtr& aBundle) noexcept;
 
-	void moveFinishedFile(const string& source, const string& target, const QueueItemPtr& aQI) noexcept;
-	void moveFinishedFileImpl(const string& source, const string& target, QueueItemPtr q) noexcept;
+	void renameDownloadedFile(const string& aSource, const string& aTarget, QueueItemPtr& q) noexcept;
 
 	void handleMovedBundleItem(QueueItemPtr& q) noexcept;
 	bool checkBundleFinished(BundlePtr& aBundle) noexcept;
@@ -452,7 +456,10 @@ private:
 
 	string getListPath(const HintedUser& user) const noexcept;
 
-	void fileFinished(const QueueItemPtr aQi, const HintedUser& aUser, int64_t aSpeed, const string& aDir) noexcept;
+	void onFileFinished(const QueueItemPtr& aQI, Download* aDownload, const string& aListDirectory) noexcept;
+	void onDownloadFailed(QueueItemPtr& aQI, Download* aDownload, bool aNoAccess, bool aRotateQueue) noexcept;
+	void onFileDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept;
+	void onFilelistDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept;
 
 	StringMatch highPrioFiles;
 	StringMatch skipList;
@@ -460,6 +467,18 @@ private:
 	// TimerManagerListener
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
+
+	// Request information about finished segments from all partial sources
+	void requestPartialSourceInfo(uint64_t aTick) noexcept;
+
+	// Perform automatic search for alternate sources
+	void searchAlternates(uint64_t aTick) noexcept;
+
+	// Resume bundles that were paused for a specific interval
+	void checkResumeBundles() noexcept;
+
+	// Calculate auto priorities for bundles and files
+	void calculatePriorities(uint64_t aTick) noexcept;
 	
 	// SearchManagerListener
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;

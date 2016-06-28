@@ -247,7 +247,7 @@ namespace webserver {
 			return{
 				{ "id", formatStatusId(aBundle) },
 				{ "failed", aBundle->isFailed() },
-				{ "finished", aBundle->getStatus() >= Bundle::STATUS_FINISHED },
+				{ "finished", aBundle->getStatus() >= Bundle::STATUS_MOVED },
 				{ "str", formatDisplayStatus(aBundle) },
 			};
 		}

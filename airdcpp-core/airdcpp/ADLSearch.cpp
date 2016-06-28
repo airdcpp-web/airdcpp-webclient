@@ -430,7 +430,7 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 	// Add to any substructure being stored
 	for(auto& id: destDirVector) {
 		if(id.subdir != NULL) {
-			auto copyFile = new DirectoryListing::File(*currentFile, true);
+			auto copyFile = make_shared<DirectoryListing::File>(*currentFile, true);
 			dcassert(id.subdir->getAdls());
 
 			id.subdir->files.push_back(copyFile);
@@ -450,7 +450,7 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 			continue;
 		}
 		if(is.matchesFile(currentFile->getName(), filePath, currentFile->getSize())) {
-			auto copyFile = new DirectoryListing::File(*currentFile, true);
+			auto copyFile = make_shared<DirectoryListing::File>(*currentFile, true);
 			destDirVector[is.ddIndex].dir->files.push_back(copyFile);
 			destDirVector[is.ddIndex].fileAdded = true;
 
@@ -473,10 +473,9 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const Direct
 	// Add to any substructure being stored
 	for(auto& id: destDirVector) {
 		if(id.subdir) {
-			DirectoryListing::Directory* newDir =
-				new DirectoryListing::AdlDirectory(fullPath.substr(1) + "\\", id.subdir, currentDir->getName());
+			auto newDir = make_shared<DirectoryListing::AdlDirectory>(fullPath.substr(1) + "\\", id.subdir, currentDir->getName());
 			id.subdir->directories.push_back(newDir);
-			id.subdir = newDir;
+			id.subdir = newDir.get();
 		}
 	}
 
@@ -490,9 +489,10 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const Direct
 			continue;
 		}
 		if(is.matchesDirectory(currentDir->getName())) {
-			destDirVector[is.ddIndex].subdir =
-				new DirectoryListing::AdlDirectory(fullPath.substr(1) + "\\", destDirVector[is.ddIndex].dir, currentDir->getName());
-			destDirVector[is.ddIndex].dir->directories.push_back(destDirVector[is.ddIndex].subdir);
+			auto newDir = make_shared<DirectoryListing::AdlDirectory>(fullPath.substr(1) + "\\", destDirVector[is.ddIndex].dir.get(), currentDir->getName());;
+			destDirVector[is.ddIndex].dir->directories.push_back(newDir);
+
+			destDirVector[is.ddIndex].subdir = newDir.get();
 			if(breakOnFirst) {
 				// Found a match, search no more
 				break;
@@ -505,7 +505,7 @@ void ADLSearchManager::stepUpDirectory(DestDirList& destDirVector) noexcept {
 	for(auto id = destDirVector.begin(); id != destDirVector.end(); ++id) {
 		if(id->subdir) {
 			id->subdir = id->subdir->getParent();
-			if(id->subdir == id->dir) {
+			if(id->subdir == id->dir.get()) {
 				id->subdir = nullptr;
 			}
 		}
@@ -515,7 +515,7 @@ void ADLSearchManager::stepUpDirectory(DestDirList& destDirVector) noexcept {
 void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, DirectoryListing::Directory::Ptr& root) noexcept {
 	// Load default destination directory (index = 0)
 	destDirs.clear();
-	DestDir dir = { "ADLSearch", new DirectoryListing::Directory(root.get(), "<<<ADLSearch>>>", DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) };
+	DestDir dir = { "ADLSearch", make_shared<DirectoryListing::Directory>(root.get(), "<<<ADLSearch>>>", DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) };
 	destDirs.push_back(std::move(dir));
 
 	// Scan all loaded searches
@@ -542,7 +542,7 @@ void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, Dire
 		if(isNew) {
 			// Add new destination directory
 			DestDir newDir = { is.destDir, 
-				new DirectoryListing::Directory(root.get(), "<<<" + is.destDir + ">>>", 
+				make_shared<DirectoryListing::Directory>(root.get(), "<<<" + is.destDir + ">>>", 
 					DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) 
 			};
 			destDirs.push_back(std::move(newDir));
@@ -557,12 +557,14 @@ void ADLSearchManager::FinalizeDestinationDirectories(DestDirList& destDirs, Dir
 	// Add non-empty destination directories to the top level
 	for(auto& i: destDirs) {
 		if(i.dir->files.empty() && i.dir->directories.empty()) {
-			delete i.dir;
-		} else if(Util::stricmp(i.dir->getName(), szDiscard) == 0) {
-			delete i.dir;
-		} else {
-			root->directories.push_back(i.dir);
+			continue;;
+		} 
+		
+		if(Util::stricmp(i.dir->getName(), szDiscard) == 0) {
+			continue;
 		}
+
+		root->directories.push_back(i.dir);
 	}
 }
 

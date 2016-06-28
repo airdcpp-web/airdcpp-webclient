@@ -24,6 +24,9 @@
 
 #include "BufferedSocketListener.h"
 #include "ClientListener.h"
+#include "ShareManagerListener.h"
+#include "TimerManagerListener.h"
+
 #include "ConnectionType.h"
 #include "HubSettings.h"
 #include "MessageCache.h"
@@ -31,7 +34,6 @@
 #include "Pointer.h"
 #include "SearchQueue.h"
 #include "Speaker.h"
-#include "TimerManagerListener.h"
 
 #include <boost/noncopyable.hpp>
 
@@ -54,7 +56,7 @@ public:
 };
 
 /** Yes, this should probably be called a Hub */
-class Client : public ClientBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, public HubSettings, private boost::noncopyable {
+class Client : public ClientBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, private ShareManagerListener, public HubSettings, private boost::noncopyable {
 public:
 	typedef unordered_map<string*, ClientPtr, noCaseStringHash, noCaseStringEq> UrlMap;
 	typedef unordered_map<ClientToken, ClientPtr> IdMap;
@@ -97,23 +99,17 @@ public:
 	virtual void getUserList(OnlineUserList& list, bool aListHidden) const noexcept = 0;
 	virtual OnlineUserPtr findUser(const string& aNick) const noexcept = 0;
 	
-	const string& getPort() const { return port; }
-	const string& getAddress() const { return address; }
+	const string& getPort() const noexcept { return port; }
+	const string& getAddress() const noexcept { return address; }
 
-	const string& getIp() const { return ip; }
-	string getIpPort() const { return getIp() + ':' + port; }
+	const string& getIp() const noexcept { return ip; }
+	string getIpPort() const noexcept { return getIp() + ':' + port; }
 
-	void updated(const OnlineUserPtr& aUser);
-	void updated(OnlineUserList& users);
-
-	static int getTotalCounts() {
-		return counts[COUNT_NORMAL] + counts[COUNT_REGISTERED] + counts[COUNT_OP];
-	}
-
-	static string getCounts();
+	void updated(const OnlineUserPtr& aUser) noexcept;
+	void updated(OnlineUserList& users) noexcept;
 	
-	void setActive();
-	void reconnect();
+	void setActive() noexcept;
+	void reconnect() noexcept;
 	virtual void shutdown(ClientPtr& aClient, bool aRedirect);
 	bool isActive() const noexcept;
 	bool isActiveV4() const noexcept;
@@ -126,9 +122,7 @@ public:
 	string getHubName() const noexcept { return getHubIdentity().getNick().empty() ? getHubUrl() : getHubIdentity().getNick(); }
 	string getHubDescription() const noexcept { return getHubIdentity().getDescription(); }
 	
-	void Message(const string& msg) {
-		fire(ClientListener::AddLine(), this, msg);
-	}
+	void addLine(const string& msg) noexcept;
 
 	Identity& getHubIdentity() noexcept { return hubIdentity; }
 
@@ -145,20 +139,24 @@ public:
 	
 	GETSET(bool, registered, Registered);
 	GETSET(bool, autoReconnect, AutoReconnect);
-	GETSET(bool, stealth, Stealth);
 	GETSET(ProfileToken, favToken, FavToken);
 	GETSET(ClientToken, clientId, ClientId);
 
 	/* Set a hub setting and return the new value */
-	bool changeBoolHubSetting(HubSettings::HubBoolSetting aSetting);
+	bool changeBoolHubSetting(HubSettings::HubBoolSetting aSetting) noexcept;
 
-	enum CountType {
+	enum CountType: uint8_t {
 		COUNT_NORMAL = 0x00,
 		COUNT_REGISTERED = 0x01,
 		COUNT_OP = 0x04,
 		COUNT_UNCOUNTED = 0x08
 	};
-	CountType getCountType() { return countType; }
+
+	CountType getCountType() const noexcept { return countType; }
+	long getDisplayCount(CountType aCountType) const noexcept;
+	static string getAllCountsStr() noexcept;
+
+	bool isSharingHub() const noexcept;
 
 	void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, int = ClientListener::FLAG_NORMAL) noexcept;
 
@@ -195,11 +193,7 @@ public:
 	}
 
 	virtual void allowUntrustedConnect() noexcept;
-
-	ProfileToken getShareProfile() const noexcept;
-	void setCustomShareProfile(ProfileToken aToken) noexcept {
-		customShareProfile = aToken;
-	}
+	bool isKeyprintMismatch() const noexcept;
 protected:
 	virtual void clearUsers() noexcept = 0;
 
@@ -209,13 +203,8 @@ protected:
 	friend class ClientManager;
 	Client(const string& hubURL, char separator, const ClientPtr& aOldClient);
 
-	static atomic<long> counts[COUNT_UNCOUNTED];
-
 	SearchQueue searchQueue;
 	BufferedSocket* sock;
-
-	// This is valid only for hubs without favorite entry
-	ProfileToken customShareProfile;
 
 	int64_t availableBytes;
 
@@ -243,6 +232,10 @@ protected:
 	virtual void on(BufferedSocketListener::Line, const string& aLine) noexcept;
 	virtual void on(BufferedSocketListener::Failed, const string&) noexcept;
 
+	// ShareManagerListener
+	void on(ShareManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept;
+	void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept;
+
 	virtual bool v4only() const noexcept = 0;
 	void setHubUrl(const string& url) noexcept;
 	void onPassword() noexcept;
@@ -252,6 +245,9 @@ protected:
 
 	string redirectUrl;
 private:
+	static atomic<long> allCounts[COUNT_UNCOUNTED];
+	static atomic<long> sharingCounts[COUNT_UNCOUNTED];
+
 	atomic<State> state;
 
 	string hubUrl;
@@ -263,7 +259,10 @@ private:
 	string port;
 	char separator;
 	bool secure;
+
+	// Last used count type information for this hub
 	CountType countType;
+	bool countIsSharing = false;
 };
 
 } // namespace dcpp

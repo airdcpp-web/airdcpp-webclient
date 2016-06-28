@@ -60,10 +60,10 @@ namespace dcpp {
 		ViewFilePtr createFile(const string& aFileName, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile) noexcept;
 		static bool isViewedItem(const QueueItemPtr& aQI) noexcept;
 
-		void on(QueueManagerListener::Added, QueueItemPtr& aQI) noexcept;
-		void on(QueueManagerListener::Finished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t aSpeed) noexcept;
-		void on(QueueManagerListener::Removed, const QueueItemPtr& qi, bool finished) noexcept;
-		void on(QueueManagerListener::StatusUpdated, const QueueItemPtr& aQI) noexcept;
+		void on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept;
+		void on(QueueManagerListener::ItemFinished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t aSpeed) noexcept;
+		void on(QueueManagerListener::ItemRemoved, const QueueItemPtr& qi, bool finished) noexcept;
+		void on(QueueManagerListener::ItemStatusUpdated, const QueueItemPtr& aQI) noexcept;
 
 		void onFileStateUpdated(const TTHValue& aTTH) noexcept;
 

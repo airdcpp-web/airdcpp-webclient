@@ -54,10 +54,10 @@ class DirectoryListing : public intrusive_ptr_base<DirectoryListing>, public Use
 {
 public:
 	class Directory;
-	class File : boost::noncopyable, public intrusive_ptr_base<File> {
+	class File : boost::noncopyable {
 
 	public:
-		typedef boost::intrusive_ptr<File> Ptr;
+		typedef std::shared_ptr<File> Ptr;
 
 		struct Sort { bool operator()(const Ptr& a, const Ptr& b) const; };
 
@@ -85,7 +85,7 @@ public:
 		bool isInQueue() const noexcept;
 	};
 
-	class Directory : boost::noncopyable, public intrusive_ptr_base<Directory> {
+	class Directory : boost::noncopyable {
 	public:
 		enum DirType {
 			TYPE_NORMAL,
@@ -94,7 +94,7 @@ public:
 			TYPE_ADLS,
 		};
 
-		typedef boost::intrusive_ptr<Directory> Ptr;
+		typedef std::shared_ptr<Directory> Ptr;
 
 		struct Sort { bool operator()(const Ptr& a, const Ptr& b) const; };
 

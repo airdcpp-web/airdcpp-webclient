@@ -29,8 +29,18 @@
 namespace dcpp {
 	typedef deque<Message> MessageList;
 
+	struct MessageCount {
+		int logMessages = 0;
+		int chatMessages = 0;
+
+		bool hasMessages() const noexcept {
+			return logMessages > 0 || chatMessages > 0;
+		}
+	};
+
 	class MessageCache {
 	public:
+
 		typedef std::function<bool(const ChatMessagePtr& aMessage)> ChatMessageFilterF;
 
 		MessageCache(SettingsManager::IntSetting aSetting) noexcept : setting(aSetting) { }
@@ -55,7 +65,7 @@ namespace dcpp {
 		// Use the severity SEV_LAST to count all messages
 		int countUnreadLogMessages(LogMessage::Severity aSeverity) const noexcept;
 		int countUnreadChatMessages(ChatMessageFilterF filterF = nullptr) const noexcept;
-		int setRead() noexcept;
+		MessageCount setRead() noexcept;
 
 		SharedMutex& getCS() const noexcept { return cs; }
 	private:

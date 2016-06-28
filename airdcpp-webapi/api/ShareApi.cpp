@@ -127,7 +127,7 @@ namespace webserver {
 
 		auto path = JsonUtil::getOptionalField<string>("path", reqJson, false, false);
 		if (path) {
-			ret = ShareManager::getInstance()->getDirPaths(Util::toNmdcFile(*path));
+			ret = ShareManager::getInstance()->getNmdcDirPaths(Util::toNmdcFile(*path));
 		} else {
 			auto tth = Deserializer::deserializeTTH(reqJson);
 			ret = ShareManager::getInstance()->getRealPaths(tth);
