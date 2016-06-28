@@ -283,7 +283,7 @@ QueueItemList BundleQueue::getSearchItems(const BundlePtr& aBundle) const noexce
 
 BundleQueue::PathInfo* BundleQueue::addPathInfo(const string& aPath, const BundlePtr& aBundle) noexcept {
 	auto info = &dirNameMap.emplace(Util::getLastDir(aPath), PathInfo(aPath, aBundle))->second;
-	bundlePaths[const_cast<string*>(&aBundle->getTarget())].push_back(info);
+	bundlePaths[const_cast<string*>(&aBundle->getTarget())].insert_sorted(info);
 	return info;
 }
 
@@ -291,7 +291,7 @@ void BundleQueue::removePathInfo(const PathInfo* aPathInfo) noexcept {
 	auto bundleTarget = const_cast<string*>(&aPathInfo->bundle->getTarget());
 
 	auto& pathInfos = bundlePaths[bundleTarget];
-	pathInfos.erase(find(pathInfos, aPathInfo));
+	pathInfos.erase_key(aPathInfo->path);
 	if (pathInfos.empty()) {
 		bundlePaths.erase(bundleTarget);
 	}
