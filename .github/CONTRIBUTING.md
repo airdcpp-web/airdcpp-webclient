@@ -11,6 +11,8 @@ All pull requests should be submitted to the `develop` branch.
 
 If the issue can't be reproduced, try to describe that what happened before the crash/issue occurred.
 
+If the issue can be reproduced, you may also want to try the [development version]( https://airdcpp-web.github.io/docs/installation/compiling.html#installing-a-development-version) to see if it has been fixed already.
+
 ### UI-related issues
 
 If the UI behaves incorrectly, you should open the console of your browser and check if there are any errors. It's even better if you manage to reproduce the issue while the console is open, as it will give more specific error messages. Include the errors in your bug report.
