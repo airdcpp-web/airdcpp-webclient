@@ -191,23 +191,6 @@ void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) c
 	}
 }
 
-// Select a random item from the list to search for
-QueueItemPtr pickSearchItem(const QueueItemList& aItems) noexcept {
-	QueueItemPtr searchItem = nullptr;
-
-	for (auto s = 0; s < aItems.size(); s++) {
-		searchItem = aItems[Util::rand(aItems.size() - 1)];
-
-		if (!searchItem->isRunning() && !searchItem->isPausedPrio()) {
-			break;
-		}
-
-		// See if we can find a better one
-	}
-
-	return searchItem;
-}
-
 template<class ContainerT>
 ContainerT pickRandomItems(const ContainerT& aItems, int aMaxCount) noexcept {
 	ContainerT ret, selectableItems = aItems;
@@ -262,17 +245,20 @@ QueueItemList BundleQueue::getSearchItems(const BundlePtr& aBundle) const noexce
 			// This doesn't scale so well for large bundles but shouldn't cause issues with maximum of 5 paths
 			aBundle->getDirQIs(path, ql);
 
-			auto searchItem = pickSearchItem(ql);
-			if (searchItem) {
+			auto searchItem = QueueItem::pickSearchItem(ql);
+
+			// We'll also get search items for parent directories that have no files directly inside them
+			// so we need to filter duplicate items as well
+			if (searchItem && find_if(searchItems, QueueItem::HashComp(searchItem->getTTH())) == searchItems.end()) {
 				searchItems.push_back(searchItem);
 			}
 		}
 	}
 
 #if 0
-	StringSet targets;
+	StringList targets;
 	for (const auto& qi : searchItems) {
-		targets.insert(qi->getTarget());
+		targets.push_back(qi->getTarget());
 	}
 
 	LogManager::getInstance()->message("Search items from bundle " + aBundle->getName() + ": " + Util::listToString(targets), LogMessage::SEV_INFO);
