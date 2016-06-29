@@ -654,6 +654,22 @@ bool QueueItem::usesSmallSlot() const {
 	return (isSet(FLAG_PARTIAL_LIST) || (size <= 65792 && !isSet(FLAG_USER_LIST) && isSet(FLAG_CLIENT_VIEW)));
 }
 
+QueueItemPtr QueueItem::pickSearchItem(const QueueItemList& aItems) noexcept {
+	QueueItemPtr searchItem = nullptr;
+
+	for (auto s = 0; s < aItems.size(); s++) {
+		searchItem = aItems[Util::rand(aItems.size() - 1)];
+
+		if (!searchItem->isRunning() && !searchItem->isPausedPrio()) {
+			break;
+		}
+
+		// See if we can find a better one
+	}
+
+	return searchItem;
+}
+
 void QueueItem::searchAlternates() {
 	//if (SettingsManager::lanMode)
 	//	SearchManager::getInstance()->search(getTargetFileName(), size, Search::TYPE_ANY, Search::SIZE_EXACT, "qa", Search::ALT_AUTO);

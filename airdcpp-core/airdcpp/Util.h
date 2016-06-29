@@ -589,7 +589,7 @@ public:
 
 	static int randInt(int min=0, int max=std::numeric_limits<int>::max()) noexcept;
 	static uint32_t rand() noexcept;
-	static uint32_t rand(uint32_t high) noexcept { return rand() % high; }
+	static uint32_t rand(uint32_t high) noexcept { return high == 0 ? 0 : rand() % high; }
 	static uint32_t rand(uint32_t low, uint32_t high) noexcept { return rand(high-low) + low; }
 	static double randd() noexcept { return ((double)rand()) / ((double)0xffffffff); }
 

@@ -28,11 +28,6 @@
 #include <boost/range/algorithm/copy.hpp>
 
 namespace dcpp {
-
-	//using boost::range::for_each;
-	//using boost::range::find_if;
-
-
 	ViewFileManager::ViewFileManager() noexcept {
 		QueueManager::getInstance()->addListener(this);
 	}

@@ -1310,39 +1310,42 @@ pair<QueueItem::DownloadType, bool> QueueManager::startDownload(const UserPtr& a
 	return { QueueItem::TYPE_NONE, false };
 }
 
-void QueueManager::matchListing(const DirectoryListing& dl, int& matches, int& newFiles, BundleList& bundles) noexcept {
+void QueueManager::matchListing(const DirectoryListing& dl, int& matchingFiles_, int& newFiles_, BundleList& bundles_) noexcept {
 	if (dl.getUser() == ClientManager::getInstance()->getMe())
 		return;
 
 	bool wantConnection = false;
-	QueueItem::StringItemList ql;
+	QueueItemList matchingItems;
 
 	{
 		RLock l(cs);
-		fileQueue.matchListing(dl, ql);
+		fileQueue.matchListing(dl, matchingItems);
 	}
 
 	{
 		WLock l(cs);
-		for(auto& sqp: ql) {
+		for(auto& qi: matchingItems) {
 			try {
-				if (addSource(sqp.second, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
+				if (addSource(qi, dl.getHintedUser(), QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
 					wantConnection = true;
 				}
-				newFiles++;
+
+				newFiles_++;
 			} catch(const Exception&) {
 				//...
 			}
-			if (sqp.second->getBundle() && find(bundles.begin(), bundles.end(), sqp.second->getBundle()) == bundles.end()) {
-				bundles.push_back(sqp.second->getBundle());
+
+			if (qi->getBundle() && find(bundles_, qi->getBundle()) == bundles_.end()) {
+				bundles_.push_back(qi->getBundle());
 			}
 		}
 	}
 
-	if (newFiles > 0)
+	if (newFiles_ > 0) {
 		fire(QueueManagerListener::SourceFilesUpdated(), dl.getUser());
+	}
 
-	matches = (int)ql.size();
+	matchingFiles_ = static_cast<int>(matchingItems.size());
 	if(wantConnection)
 		ConnectionManager::getInstance()->getDownloadConnection(dl.getHintedUser());
 }
