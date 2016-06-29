@@ -32,10 +32,10 @@ using boost::range::copy;
 
 FileQueue::~FileQueue() { }
 
-void FileQueue::getBloom(HashBloom& bloom) const noexcept {
+void FileQueue::getBloom(HashBloom& bloom_) const noexcept {
 	for(auto& i: tthIndex) {
 		if (i.second->getBundle()) {
-			bloom.add(*i.first);
+			bloom_.add(*i.first);
 		}
 	}
 }
@@ -102,21 +102,24 @@ void FileQueue::findFiles(const TTHValue& tth, QueueItemList& ql_) const noexcep
 	copy(tthIndex.equal_range(const_cast<TTHValue*>(&tth)) | map_values, back_inserter(ql_));
 }
 
-void FileQueue::matchListing(const DirectoryListing& dl, QueueItem::StringItemList& ql_) const noexcept {
+void FileQueue::matchListing(const DirectoryListing& dl, QueueItemList& ql_) const noexcept {
 	matchDir(dl.getRoot(), ql_);
 }
 
-void FileQueue::matchDir(const DirectoryListing::Directory::Ptr& dir, QueueItem::StringItemList& ql) const noexcept{
-	for(const auto& d: dir->directories) {
-		if(!d->getAdls())
-			matchDir(d, ql);
+void FileQueue::matchDir(const DirectoryListing::Directory::Ptr& aDir, QueueItemList& ql_) const noexcept{
+	for(const auto& d: aDir->directories) {
+		if (!d->getAdls()) {
+			matchDir(d, ql_);
+		}
 	}
 
-	for(const auto& f: dir->files) {
-		auto tp = tthIndex.equal_range(const_cast<TTHValue*>(&f->getTTH()));
-		for_each(tp, [f, &ql](const pair<TTHValue*, QueueItemPtr>& tqp) {
-			if (!tqp.second->isFinished() && tqp.second->getSize() == f->getSize() && find_if(ql, CompareSecond<string, QueueItemPtr>(tqp.second)) == ql.end())
-				ql.emplace_back(Util::emptyString, tqp.second);
+	for(const auto& f: aDir->files) {
+		auto tthRange = tthIndex.equal_range(const_cast<TTHValue*>(&f->getTTH()));
+
+		for_each(tthRange, [&](const pair<TTHValue*, QueueItemPtr>& tqp) {
+			if (!tqp.second->isFinished() && tqp.second->getSize() == f->getSize() && find(ql_, tqp.second) == ql_.end()) {
+				ql_.push_back(tqp.second);
+			}
 		});
 	}
 }

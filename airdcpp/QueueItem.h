@@ -35,28 +35,19 @@ public:
 	typedef unordered_map<QueueToken, QueueItemPtr> TokenMap;
 	typedef unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
 	typedef unordered_multimap<TTHValue*, QueueItemPtr> TTHMap;
-	typedef unordered_multimap<string, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMultiMap;
-	typedef vector<pair<string, QueueItemPtr>> StringItemList;
 
 	struct Hash {
 		size_t operator()(const QueueItemPtr& x) const { return hash<string>()(x->getTarget()); }
 	};
 
-	/*struct TargetComp {
-		TargetComp(const string& s) : a(s) { }
-		bool operator()(const QueueItemPtr q) const { return Util::stricmp(a, q->getTarget()) == 0; }
-		const string& a;
-	private:
-		TargetComp& operator=(const TargetComp&);
-	};
-
 	struct HashComp {
 		HashComp(const TTHValue& s) : a(s) { }
-		bool operator()(const QueueItemPtr q) const { return a == q->getTTH(); }
-		const TTHValue& a;
+		bool operator()(const QueueItemPtr& q) const noexcept { return a == q->getTTH(); }
+
+		HashComp& operator=(const HashComp&) = delete;
 	private:
-		HashComp& operator=(const HashComp&);
-	};*/
+		const TTHValue& a;
+	};
 
 	struct AlphaSortOrder {
 		bool operator()(const QueueItemPtr& left, const QueueItemPtr& right) const;
@@ -175,6 +166,9 @@ public:
 
 	bool usesSmallSlot() const;
 	void searchAlternates();
+
+	// Select a random item from the list to search for alternates
+	static QueueItemPtr pickSearchItem(const QueueItemList& aItems) noexcept;
 
 	void save(OutputStream &save, string tmp, string b32tmp);
 	int countOnlineUsers() const;
