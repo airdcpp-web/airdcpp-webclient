@@ -62,20 +62,23 @@ namespace webserver {
 			j["data"] = aResponseJson;
 		}
 
-		sendPlain(j.dump(4));
+		sendPlain(j);
 	}
 
 	void WebSocket::debugMessage(const string& aMessage) const noexcept {
 		dcdebug(string(aMessage + " (%s)\n").c_str(), session ? session->getAuthToken().c_str() : "no session");
 	}
 
-	void WebSocket::sendPlain(const string& aMsg) noexcept {
-		//dcdebug("WebSocket::send: %s\n", aMsg.c_str());
+	void WebSocket::sendPlain(const json& aJson) noexcept {
+		auto str = aJson.dump();
+
+		//debugMessage("WebSocket::sendPlain:" + (str.length() <= 500 ? str : str.substr(0, 500) + " (truncated)"));
+
 		try {
 			if (secure) {
-				tlsServer->send(hdl, aMsg, websocketpp::frame::opcode::text);
+				tlsServer->send(hdl, str, websocketpp::frame::opcode::text);
 			} else {
-				plainServer->send(hdl, aMsg, websocketpp::frame::opcode::text);
+				plainServer->send(hdl, str, websocketpp::frame::opcode::text);
 			}
 
 		} catch (const std::exception& e) {

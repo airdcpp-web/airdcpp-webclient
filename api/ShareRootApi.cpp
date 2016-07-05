@@ -248,7 +248,7 @@ namespace webserver {
 
 			for (const auto& p : hashedPaths) {
 				auto i = find_if(roots.begin(), roots.end(), [&](const ShareDirectoryInfoPtr& aInfo) {
-					return AirUtil::isParentOrExact(aInfo->path, p);
+					return AirUtil::isParentOrExactLocal(aInfo->path, p);
 				});
 
 				if (i != roots.end()) {

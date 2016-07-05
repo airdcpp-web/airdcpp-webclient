@@ -164,7 +164,7 @@ namespace webserver {
 			return false;
 		}
 
-		s->sendPlain(aJson.dump(4));
+		s->sendPlain(aJson);
 		return true;
 	}
 

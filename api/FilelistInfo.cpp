@@ -85,7 +85,9 @@ namespace webserver {
 		dl->addListener(this);
 
 		if (dl->isLoaded()) {
-			updateItems(dl->getCurrentLocationInfo().directory->getPath());
+			addListTask([=] {
+				updateItems(dl->getCurrentLocationInfo().directory->getPath());
+			});
 		}
 	}
 
@@ -150,32 +152,30 @@ namespace webserver {
 		return ret;
 	}
 
+	// This should be called only from the filelist thread
 	void FilelistInfo::updateItems(const string& aPath) noexcept {
-		addListTask([=] {
-			auto curDir = dl->findDirectory(aPath);
-			if (!curDir) {
-				return;
+		auto curDir = dl->findDirectory(aPath);
+		if (!curDir) {
+			return;
+		}
+
+		{
+			WLock l(cs);
+			currentViewItems.clear();
+
+			for (auto& d : curDir->directories) {
+				currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(d));
 			}
 
-			{
-				WLock l(cs);
-				currentViewItems.clear();
-
-				for (auto& d : curDir->directories) {
-					currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(d));
-				}
-
-				for (auto& f : curDir->files) {
-					currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(f));
-				}
+			for (auto& f : curDir->files) {
+				currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(f));
 			}
+		}
 
-			directoryView.resetItems();
+		directoryView.resetItems();
 
-			json j;
-			onSessionUpdated({
-				{ "location", serializeLocation(dl) }
-			});
+		onSessionUpdated({
+			{ "location", serializeLocation(dl) }
 		});
 	}
 
@@ -183,17 +183,17 @@ namespace webserver {
 
 	}
 
-	void FilelistInfo::on(DirectoryListingListener::LoadingStarted, bool changeDir) noexcept {
+	void FilelistInfo::on(DirectoryListingListener::LoadingStarted, bool aChangeDir) noexcept {
 
 	}
 
-	void FilelistInfo::on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aPath, bool reloadList, bool changeDir) noexcept {
-		if (changeDir || (aPath == dl->getCurrentLocationInfo().directory->getPath())) {
+	void FilelistInfo::on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aPath, bool aReloadList, bool aChangeDir) noexcept {
+		if (aChangeDir || (aPath == dl->getCurrentLocationInfo().directory->getPath())) {
 			updateItems(aPath);
 		}
 	}
 
-	void FilelistInfo::on(DirectoryListingListener::ChangeDirectory, const string& aPath, bool isSearchChange) noexcept {
+	void FilelistInfo::on(DirectoryListingListener::ChangeDirectory, const string& aPath, bool aIsSearchChange) noexcept {
 		updateItems(aPath);
 	}
 

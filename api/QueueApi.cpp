@@ -81,14 +81,6 @@ namespace webserver {
 		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("search")), false, QueueApi::handleSearchBundle);
 		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("share")), false, QueueApi::handleShareBundle);
 
-		/*METHOD_HANDLER("temp_item", ApiRequest::METHOD_POST, (), true, QueueApi::handleAddTempItem);
-		METHOD_HANDLER("temp_item", ApiRequest::METHOD_GET, (TOKEN_PARAM), false, QueueApi::handleGetFile);
-		METHOD_HANDLER("temp_item", ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, QueueApi::handleRemoveFile);
-
-		METHOD_HANDLER("filelist", ApiRequest::METHOD_POST, (), true, QueueApi::handleAddFilelist);
-		METHOD_HANDLER("filelist", ApiRequest::METHOD_GET, (TOKEN_PARAM), false, QueueApi::handleGetFile);
-		METHOD_HANDLER("filelist", ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, QueueApi::handleRemoveFile);*/
-
 		METHOD_HANDLER("remove_source", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (), true, QueueApi::handleRemoveSource);
 		METHOD_HANDLER("remove_file", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (), true, QueueApi::handleRemoveFile);
 		METHOD_HANDLER("find_dupe_paths", Access::ANY, ApiRequest::METHOD_POST, (), true, QueueApi::handleFindDupePaths);
@@ -303,52 +295,6 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-
-
-	// TEMP ITEMS
-	/*api_return QueueApi::handleAddTempItem(ApiRequest& aRequest) {
-		const auto& reqJson = aRequest.getRequestBody();
-
-		try {
-			QueueManager::getInstance()->addOpenedItem(reqJson["filename"],
-				JsonUtil::getField<int64_t>("size", reqJson),
-				Deserializer::deserializeTTH(reqJson),
-				Deserializer::deserializeHintedUser(reqJson),
-				false
-				);
-		}
-		catch (const Exception& e) {
-			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::internal_server_error;
-		}
-
-		return websocketpp::http::status_code::ok;
-	}
-
-
-
-	// FILELISTS
-	api_return QueueApi::handleAddFilelist(ApiRequest& aRequest) {
-		const auto& reqJson = aRequest.getRequestBody();
-
-		auto i = reqJson.find("directory");
-		auto directory = i != reqJson.end() ? Util::toNmdcFile(*i) : Util::emptyString;
-
-		auto flags = QueueItem::FLAG_PARTIAL_LIST;
-		//if (j["match"])
-		//	flags = QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST;
-
-		try {
-			QueueManager::getInstance()->addList(Deserializer::deserializeHintedUser(reqJson), flags, directory);
-		} catch (const Exception& e) {
-			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::internal_server_error;
-		}
-
-		return websocketpp::http::status_code::ok;
-	}*/
-
-
 	// FILES (COMMON)
 	api_return QueueApi::handleGetFile(ApiRequest& aRequest) {
 		//auto success = QueueManager::getInstance()->findFile(aRequest.getTokenParam(0));
@@ -369,25 +315,19 @@ namespace webserver {
 
 
 	// LISTENERS
-	// All subscriber events from QueueManager should be handled asynchronously
-	// This avoids deadlocks as some events are fired from inside locks
 	void QueueApi::on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept {
 		bundleView.onItemAdded(aBundle);
 		if (!subscriptionActive("bundle_added"))
 			return;
 
-		addAsyncTask([=] {
-			send("bundle_added", Serializer::serializeItem(aBundle, bundlePropertyHandler));
-		});
+		send("bundle_added", Serializer::serializeItem(aBundle, bundlePropertyHandler));
 	}
 	void QueueApi::on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept {
 		bundleView.onItemRemoved(aBundle);
 		if (!subscriptionActive("bundle_removed"))
 			return;
 
-		addAsyncTask([=] {
-			send("bundle_removed", Serializer::serializeItem(aBundle, bundlePropertyHandler));
-		});
+		send("bundle_removed", Serializer::serializeItem(aBundle, bundlePropertyHandler));
 	}
 
 	void QueueApi::on(QueueManagerListener::ItemRemoved, const QueueItemPtr& aQI, bool /*finished*/) noexcept {
@@ -422,9 +362,7 @@ namespace webserver {
 		if (!subscriptionActive(aSubscription))
 			return;
 
-		addAsyncTask([=] {
-			send(aSubscription, Serializer::serializeItem(aBundle, bundlePropertyHandler));
-		});
+		send(aSubscription, Serializer::serializeItem(aBundle, bundlePropertyHandler));
 	}
 
 	void QueueApi::on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t /*aTick*/) noexcept {
