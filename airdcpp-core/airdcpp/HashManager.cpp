@@ -1292,7 +1292,7 @@ int HashManager::Hasher::run() {
 				lastSpeed = 0;
 				deleteThis = hasherID != 0;
 				sfv.unload();
-			} else if (!AirUtil::isParentOrExact(initialDir, w.front().filePath)) {
+			} else if (!AirUtil::isParentOrExactLocal(initialDir, w.front().filePath)) {
 				onDirHashed();
 			}
 

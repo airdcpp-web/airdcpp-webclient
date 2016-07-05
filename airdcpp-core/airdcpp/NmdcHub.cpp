@@ -1172,7 +1172,7 @@ void NmdcHub::on(Second, uint64_t aTick) noexcept {
 }
 
 void NmdcHub::on(Minute, uint64_t /*aTick*/) noexcept {
-	refreshLocalIp();
+	callAsync([this] { refreshLocalIp(); });
 }
 
 void NmdcHub::getUserList(OnlineUserList& list, bool aListHidden) const noexcept {

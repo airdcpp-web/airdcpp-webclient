@@ -89,8 +89,8 @@ public:
 
 	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept;
 
-	Bundle::TokenBundleMap& getBundles() { return bundles; }
-	const Bundle::TokenBundleMap& getBundles() const { return bundles; }
+	Bundle::TokenMap& getBundles() { return bundles; }
+	const Bundle::TokenMap& getBundles() const { return bundles; }
 private:
 	void findNmdcDirs(const string& aPath, PathInfoPtrList& paths_) const noexcept;
 	const PathInfo* getNmdcSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept;
@@ -113,7 +113,7 @@ private:
 	PathInfoMap bundlePaths;
 
 	// Bundles by token
-	Bundle::TokenBundleMap bundles;
+	Bundle::TokenMap bundles;
 };
 
 } // namespace dcpp

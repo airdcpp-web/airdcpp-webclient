@@ -368,7 +368,7 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const noexcept {
 	}
 
 	for (const auto& q: queueItems) {
-		if (AirUtil::isSub(q->getTarget(), aDir)) {
+		if (AirUtil::isSubLocal(q->getTarget(), aDir)) {
 			ql.push_back(q);
 		}
 	}
