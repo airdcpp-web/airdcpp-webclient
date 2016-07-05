@@ -196,7 +196,7 @@ void ShareManager::addModifyInfo(const string& aPath, bool isDirectory, DirModif
 			p->dirAction = aAction;
 		} else {
 			// is this a parent ?
-			if (AirUtil::isSub((*p).path, filePath))
+			if (AirUtil::isSubLocal((*p).path, filePath))
 				(*p).setPath(filePath);
 
 			if (!isDirectory) {
@@ -240,7 +240,7 @@ ShareManager::DirModifyInfo::DirModifyInfo(const string& aFile, bool isDirectory
 }
 
 ShareManager::DirModifyInfo::List::iterator ShareManager::findModifyInfo(const string& aFile) noexcept {
-	return find_if(fileModifications, [&aFile](const DirModifyInfo& dmi) { return AirUtil::isParentOrExact(dmi.path, aFile) || AirUtil::isSub(dmi.path, aFile); });
+	return find_if(fileModifications, [&aFile](const DirModifyInfo& dmi) { return AirUtil::isParentOrExactLocal(dmi.path, aFile) || AirUtil::isSubLocal(dmi.path, aFile); });
 }
 
 void ShareManager::handleChangedFiles() noexcept {
@@ -334,7 +334,7 @@ bool ShareManager::handleModifyInfo(DirModifyInfo& info, optional<OrderedStringS
 	}
 
 	// don't handle queued bundles in here (parent directories for bundles shouldn't be totally ignored really...)
-	if (find_if(*bundlePaths_, IsParentOrExactOrSub(info.path)) != (*bundlePaths_).end()) {
+	if (find_if(*bundlePaths_, IsParentOrExactOrSub(info.path, PATH_SEPARATOR)) != (*bundlePaths_).end()) {
 		return true;
 	} /*else {
 		// remove files inside bundle directories if this is a parent directory
@@ -656,7 +656,7 @@ void ShareManager::removeNotifications(DirModifyInfo::List::iterator p, const st
 	} else {
 		// remove subitems
 		for (auto i = p->files.begin(); i != p->files.end();) {
-			if (AirUtil::isParentOrExact(aPath, i->first)) {
+			if (AirUtil::isParentOrExactLocal(aPath, i->first)) {
 				i = p->files.erase(i);
 			} else {
 				i++;
@@ -1283,7 +1283,7 @@ void ShareManager::load(SimpleXML& aXml) {
 		auto rootPathsCopy = rootPaths;
 		for (const auto& dp : rootPathsCopy) {
 			if (find_if(rootPathsCopy | map_keys, [&dp](const string& aPath) { 
-				return AirUtil::isSub(dp.first, aPath); 
+				return AirUtil::isSubLocal(dp.first, aPath); 
 			}).base() != rootPathsCopy.end()) {
 				removeDirName(*dp.second.get(), dirNameMap);
 				rootPaths.erase(dp.first);
@@ -1668,7 +1668,7 @@ void ShareManager::validateNewRootProfiles(const string& realPath, const Profile
 	RLock l(cs);
 	for (const auto& p : rootPaths) {
 		auto rootProfileNames = ShareProfile::getProfileNames(p.second->getProfileDir()->getRootProfiles(), shareProfiles);
-		if (AirUtil::isParentOrExact(p.first, realPath)) {
+		if (AirUtil::isParentOrExactLocal(p.first, realPath)) {
 			if (Util::stricmp(p.first, realPath) != 0) {
 				// Subdirectory of an existing directory is not allowed
 				throw ShareException(STRING_F(DIRECTORY_PARENT_SHARED, Util::listToString(rootProfileNames)));
@@ -1680,7 +1680,7 @@ void ShareManager::validateNewRootProfiles(const string& realPath, const Profile
 			}
 		}
 
-		if (AirUtil::isSub(p.first, realPath)) {
+		if (AirUtil::isSubLocal(p.first, realPath)) {
 			throw ShareException(STRING_F(DIRECTORY_SUBDIRS_SHARED, Util::listToString(rootProfileNames)));
 		}
 	}
@@ -2220,7 +2220,7 @@ bool ShareManager::addRootDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo)
 		if (i != rootPaths.end()) {
 			return false;
 		} else {
-			dcassert(find_if(rootPaths | map_keys, IsParentOrExact(path)).base() == rootPaths.end());
+			dcassert(find_if(rootPaths | map_keys, IsParentOrExact(path, PATH_SEPARATOR)).base() == rootPaths.end());
 
 			// It's a new parent, will be handled in the task thread
 			auto profileDir = ProfileDirectory::create(path, aDirectoryInfo->virtualName, aDirectoryInfo->profiles, aDirectoryInfo->incoming, profileDirs);
@@ -2595,7 +2595,7 @@ void ShareManager::setRefreshState(const string& aRefreshPath, RefreshState aSta
 	{
 		RLock l(cs);
 		auto p = find_if(profileDirs | map_values, [&](const ProfileDirectory::Ptr& aDir) {
-			return AirUtil::isParentOrExact(aDir->getPath(), aRefreshPath);
+			return AirUtil::isParentOrExactLocal(aDir->getPath(), aRefreshPath);
 		});
 
 		if (p.base() == profileDirs.end()) {
@@ -3302,7 +3302,7 @@ void ShareManager::adcSearch(SearchResultList& results, SearchQuery& srch, const
 		tthSearches++;
 		const auto i = tthIndex.equal_range(const_cast<TTHValue*>(&(*srch.root)));
 		for(auto& f: i | map_values) {
-			if (f->hasProfile(aProfile) && AirUtil::isParentOrExact(aDir, f->getADCPath())) {
+			if (f->hasProfile(aProfile) && AirUtil::isParentOrExactAdc(aDir, f->getADCPath())) {
 				f->addSR(results, srch.addParents);
 				return;
 			}
@@ -3343,7 +3343,7 @@ void ShareManager::adcSearch(SearchResultList& results, SearchQuery& srch, const
 				continue;
 			}
 
-			if (!AirUtil::isParentOrExact(aDir, d->getADCPath())) {
+			if (!AirUtil::isParentOrExactAdc(aDir, d->getADCPath())) {
 				continue;
 			}
 
@@ -3475,7 +3475,7 @@ void ShareManager::removeNotifications(const string& aPath) noexcept {
 bool ShareManager::allowAddDir(const string& aPath) const noexcept {
 	{
 		RLock l(cs);
-		const auto mi = find_if(rootPaths | map_keys, IsParentOrExact(aPath));
+		const auto mi = find_if(rootPaths | map_keys, IsParentOrExact(aPath, PATH_SEPARATOR));
 		if (mi.base() != rootPaths.end()) {
 			string fullPathLower = *mi;
 			int pathPos = mi->length();
@@ -3501,7 +3501,7 @@ bool ShareManager::allowAddDir(const string& aPath) const noexcept {
 }
 
 ShareManager::Directory::Ptr ShareManager::findDirectory(const string& aRealPath, StringList& remainingTokens_) const noexcept {
-	auto mi = find_if(rootPaths | map_keys, IsParentOrExact(aRealPath)).base();
+	auto mi = find_if(rootPaths | map_keys, IsParentOrExact(aRealPath, PATH_SEPARATOR)).base();
 	if (mi == rootPaths.end()) {
 		return nullptr;
 	}

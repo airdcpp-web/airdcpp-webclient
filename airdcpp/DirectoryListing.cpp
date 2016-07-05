@@ -1096,7 +1096,7 @@ void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDi
 
 				//also clean the visited dirs
 				for (auto i = baseDirs.begin(); i != baseDirs.end();) {
-					if (AirUtil::isSub(i->first, baseDir, '/')) {
+					if (AirUtil::isSubAdc(i->first, baseDir)) {
 						i = baseDirs.erase(i);
 					}
 					else {
@@ -1133,7 +1133,7 @@ void DirectoryListing::matchQueueImpl() noexcept {
 	int matches = 0, newFiles = 0;
 	BundleList bundles;
 	QueueManager::getInstance()->matchListing(*this, matches, newFiles, bundles);
-	fire(DirectoryListingListener::QueueMatched(), AirUtil::formatMatchResults(matches, newFiles, bundles, false));
+	fire(DirectoryListingListener::QueueMatched(), AirUtil::formatMatchResults(matches, newFiles, bundles));
 }
 
 void DirectoryListing::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool /*wentOffline*/) noexcept {
@@ -1190,6 +1190,9 @@ bool DirectoryListing::changeDirectory(const string& aPath, ReloadMode aReloadMo
 	// Cases when the directory can't be found must be handled when searching in partial lists 
 	// or when opening directories from search (or via the API) for existing filelists
 	const auto dir = findDirectory(aPath, root);
+	if (dir) {
+		updateCurrentLocation(dir);
+	}
 
 	if (dir && (!partialList || dir->getLoading() || (dir->isComplete() && aReloadMode == RELOAD_NONE))) {
 		fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
@@ -1214,10 +1217,6 @@ bool DirectoryListing::changeDirectory(const string& aPath, ReloadMode aReloadMo
 		}
 	} else {
 		return false;
-	}
-
-	if (dir) {
-		updateCurrentLocation(dir);
 	}
 
 	return true;

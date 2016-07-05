@@ -132,9 +132,8 @@ public:
 		}
 	};
 
-	typedef unordered_map<QueueToken, BundlePtr> TokenBundleMap;
-	typedef unordered_multimap<string, BundlePtr> StringBundleMap;
-	typedef vector<pair<string, BundlePtr>> StringBundleList;
+	typedef unordered_map<QueueToken, BundlePtr> TokenMap;
+	typedef unordered_set<BundlePtr, Bundle::Hash> Set;
 
 	typedef unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;
 	typedef vector<BundleSource> SourceList;

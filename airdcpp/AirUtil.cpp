@@ -152,22 +152,22 @@ void AirUtil::init() {
 	crcReg.assign(R"(.{5,200}\s(\w{8})$)");
 
 #if defined _WIN32 && defined _DEBUG
-	dcassert(AirUtil::isParentOrExact(R"(C:\Projects\)", R"(C:\Projects\)"));
-	dcassert(AirUtil::isParentOrExact(R"(C:\Projects\)", R"(C:\Projects\test)"));
-	dcassert(AirUtil::isParentOrExact(R"(C:\Projects)", R"(C:\Projects\test)"));
-	dcassert(AirUtil::isParentOrExact(R"(C:\Projects\)", R"(C:\Projects\test)"));
-	dcassert(!AirUtil::isParentOrExact(R"(C:\Projects)", R"(C:\Projectstest)"));
-	dcassert(!AirUtil::isParentOrExact(R"(C:\Projectstest)", R"(C:\Projects)"));
-	dcassert(!AirUtil::isParentOrExact(R"(C:\Projects\test)", ""));
-	dcassert(AirUtil::isParentOrExact("", R"(C:\Projects\test)"));
+	dcassert(AirUtil::isParentOrExactLocal(R"(C:\Projects\)", R"(C:\Projects\)"));
+	dcassert(AirUtil::isParentOrExactLocal(R"(C:\Projects\)", R"(C:\Projects\test)"));
+	dcassert(AirUtil::isParentOrExactLocal(R"(C:\Projects)", R"(C:\Projects\test)"));
+	dcassert(AirUtil::isParentOrExactLocal(R"(C:\Projects\)", R"(C:\Projects\test)"));
+	dcassert(!AirUtil::isParentOrExactLocal(R"(C:\Projects)", R"(C:\Projectstest)"));
+	dcassert(!AirUtil::isParentOrExactLocal(R"(C:\Projectstest)", R"(C:\Projects)"));
+	dcassert(!AirUtil::isParentOrExactLocal(R"(C:\Projects\test)", ""));
+	dcassert(AirUtil::isParentOrExactLocal("", R"(C:\Projects\test)"));
 
-	dcassert(!AirUtil::isSub(R"(C:\Projects\)", R"(C:\Projects\)"));
-	dcassert(AirUtil::isSub(R"(C:\Projects\test)", R"(C:\Projects\)"));
-	dcassert(AirUtil::isSub(R"(C:\Projects\test)", R"(C:\Projects)"));
-	dcassert(!AirUtil::isSub(R"(C:\Projectstest)", R"(C:\Projects)"));
-	dcassert(!AirUtil::isSub(R"(C:\Projects)", R"(C:\Projectstest)"));
-	dcassert(AirUtil::isSub(R"(C:\Projects\test)", ""));
-	dcassert(!AirUtil::isSub("", R"(C:\Projects\test)"));
+	dcassert(!AirUtil::isSubLocal(R"(C:\Projects\)", R"(C:\Projects\)"));
+	dcassert(AirUtil::isSubLocal(R"(C:\Projects\test)", R"(C:\Projects\)"));
+	dcassert(AirUtil::isSubLocal(R"(C:\Projects\test)", R"(C:\Projects)"));
+	dcassert(!AirUtil::isSubLocal(R"(C:\Projectstest)", R"(C:\Projects)"));
+	dcassert(!AirUtil::isSubLocal(R"(C:\Projects)", R"(C:\Projectstest)"));
+	dcassert(AirUtil::isSubLocal(R"(C:\Projects\test)", ""));
+	dcassert(!AirUtil::isSubLocal("", R"(C:\Projects\test)"));
 
 	dcassert(AirUtil::compareFromEnd(R"(/Downloads/1/)", R"(Downloads\1\)", '\\') == 0);
 	dcassert(AirUtil::compareFromEnd(R"(/Downloads/1/)", R"(Download\1\)", '\\') == 9);
@@ -545,28 +545,16 @@ void AirUtil::listRegexSubtract(StringList& l, const boost::regex& aReg) {
 	l.erase(remove_if(l.begin(), l.end(), [&](const string& s) { return regex_match(s, aReg); }), l.end());
 }
 
-string AirUtil::formatMatchResults(int matches, int newFiles, const BundleList& bundles, bool partial) noexcept {
-	string tmp;
-	if(partial) {
-		//partial lists
-		if (bundles.size() == 1) {
-			tmp = STRING_F(MATCH_SOURCE_ADDED, newFiles % bundles.front()->getName().c_str());
+string AirUtil::formatMatchResults(int aMatchingFiles, int aNewFiles, const BundleList& aBundles) noexcept {
+	if (aMatchingFiles > 0) {
+		if (aBundles.size() == 1) {
+			return STRING_F(MATCHED_FILES_BUNDLE, aMatchingFiles % aBundles.front()->getName().c_str() % aNewFiles);
 		} else {
-			tmp = STRING_F(MATCH_SOURCE_ADDED_X_BUNDLES, newFiles % (int)bundles.size());
-		}
-	} else {
-		//full lists
-		if (matches > 0) {
-			if (bundles.size() == 1) {
-				tmp = STRING_F(MATCHED_FILES_BUNDLE, matches % bundles.front()->getName().c_str() % newFiles);
-			} else {
-				tmp = STRING_F(MATCHED_FILES_X_BUNDLES, matches % (int)bundles.size() % newFiles);
-			}
-		} else {
-			tmp = STRING(NO_MATCHED_FILES);
+			return STRING_F(MATCHED_FILES_X_BUNDLES, aMatchingFiles % (int)aBundles.size() % aNewFiles);
 		}
 	}
-	return tmp;
+
+	return STRING(NO_MATCHED_FILES);;
 }
 
 //fuldc ftp logger support
@@ -954,7 +942,7 @@ bool AirUtil::isSub(const string& aTestSub, const string& aParent, const char se
 }
 
 /* returns true if aSub is a subdir of aDir OR both are the same dir */
-bool AirUtil::isParentOrExact(const string& aTestParent, const string& aSub, const char separator) noexcept {
+bool AirUtil::isParentOrExact(const string& aTestParent, const string& aSub, const char aSeparator) noexcept {
 	if (aSub.length() < aTestParent.length())
 		return false;
 
@@ -962,7 +950,7 @@ bool AirUtil::isParentOrExact(const string& aTestParent, const string& aSub, con
 		return false;
 
 	// either the parent must end with a separator or it must follow in the subdirectory
-	return aTestParent.empty() || aTestParent.length() == aSub.length() || aTestParent.back() == separator || aSub[aTestParent.length()] == separator;
+	return aTestParent.empty() || aTestParent.length() == aSub.length() || aTestParent.back() == aSeparator || aSub[aTestParent.length()] == aSeparator;
 }
 
 }

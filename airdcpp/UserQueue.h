@@ -29,8 +29,8 @@ namespace dcpp {
 /** All queue items indexed by user (this is a cache for the FileQueue really...) */
 class UserQueue {
 public:
-	void addQI(QueueItemPtr& qi, bool newBundle = false) noexcept;
-	void addQI(QueueItemPtr& qi, const HintedUser& aUser, bool newBundle = false, bool isBadSource = false) noexcept;
+	void addQI(QueueItemPtr& qi) noexcept;
+	void addQI(QueueItemPtr& qi, const HintedUser& aUser, bool aIsBadSource = false) noexcept;
 	void getUserQIs(const UserPtr& aUser, QueueItemList& ql) noexcept;
 
 	QueueItemPtr getNext(const UserPtr& aUser, const QueueTokenSet& runningBundles, const OrderedStringSet& onlineHubs, string& lastError_, bool& hasDownload,

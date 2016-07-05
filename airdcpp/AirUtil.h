@@ -94,25 +94,32 @@ public:
 	static void getRegexMatchesT(const tstring& aString, TStringList& l, const boost::wregex& aReg);
 	static void getRegexMatches(const string& aString, StringList& l, const boost::regex& aReg);
 
-	static string formatMatchResults(int matches, int newFiles, const BundleList& bundles, bool partial) noexcept;
+	static string formatMatchResults(int aMatchingFiles, int aNewFiles, const BundleList& aBundles) noexcept;
 
 	static void fileEvent(const string& tgt, bool file=false);
 
 	// Returns true if aDir is a sub directory of aParent
 	// Note: matching is always case insensitive. This will also handle directory paths in aParent without the trailing slash to work with Windows limitations (share monitoring)
-	static bool isSub(const string& aDir, const string& aParent, const char separator = PATH_SEPARATOR) noexcept;
+	inline static bool isSubAdc(const string& aDir, const string& aParent) noexcept { return isSub(aDir, aParent, '/');	}
+	inline static bool isSubNmdc(const string& aDir, const string& aParent) noexcept { return isSub(aDir, aParent, '\\'); }
+	inline static bool isSubLocal(const string& aDir, const string& aParent) noexcept { return isSub(aDir, aParent, PATH_SEPARATOR); }
+	static bool isSub(const string& aDir, const string& aParent, const char separator) noexcept;
 
 	// Returns true if aSub is a subdir of aDir OR both are the same directory
 	// Note: matching is always case insensitive. This will also handle directory paths in aSub without the trailing slash to work with Windows limitations (share monitoring)
-	static bool isParentOrExact(const string& aDir, const string& aSub, const char separator = PATH_SEPARATOR) noexcept;
+	inline static bool isParentOrExactAdc(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, '/'); }
+	inline static bool isParentOrExactNmdc(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, '\\'); }
+	inline static bool isParentOrExactLocal(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, PATH_SEPARATOR); }
+	static bool isParentOrExact(const string& aDir, const string& aSub, const char separator) noexcept;
 
 	static const string getReleaseRegLong(bool chat) noexcept;
 	static const string getReleaseRegBasic() noexcept;
 	static const string getSubDirReg() noexcept;
 
-	static string getReleaseDir(const string& dir, bool cut, const char separator = PATH_SEPARATOR) noexcept;
-	inline static string getNmdcReleaseDir(const string& path, bool cut) noexcept { return getReleaseDir(path, cut, '\\'); };
-	inline static string getAdcReleaseDir(const string& path, bool cut) noexcept { return getReleaseDir(path, cut, '/'); };
+	inline static string getReleaseDirLocal(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, PATH_SEPARATOR); };
+	inline static string getNmdcReleaseDir(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, '\\'); };
+	inline static string getAdcReleaseDir(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, '/'); };
+	static string getReleaseDir(const string& dir, bool cut, const char separator) noexcept;
 
 	static const string getLinkUrl() noexcept;
 
@@ -148,39 +155,41 @@ public:
 	static string getTitle(const string& searchTerm) noexcept;
 private:
 	static bool removeDirectoryIfEmptyRe(const string& tgt, int maxAttempts, int curAttempts);
-
 };
 
 class IsParentOrExact {
 public:
 	// Returns true for items matching the predicate that are parent directories of compareTo (or exact matches)
-	IsParentOrExact(const string& aCompareTo) : compareTo(aCompareTo) {}
-	bool operator()(const string& p) noexcept { return AirUtil::isParentOrExact(p, compareTo); }
+	IsParentOrExact(const string& aCompareTo, const char aSeparator) : compareTo(aCompareTo), separator(aSeparator) {}
+	bool operator()(const string& p) noexcept { return AirUtil::isParentOrExact(p, compareTo, separator); }
 
 	IsParentOrExact& operator=(const IsParentOrExact&) = delete;
 private:
 	const string& compareTo;
+	const char separator;
 };
 
 class IsParentOrExactOrSub {
 public:
-	IsParentOrExactOrSub(const string& aCompareTo) : compareTo(aCompareTo) {}
-	bool operator()(const string& p) noexcept { return AirUtil::isParentOrExact(p, compareTo) || AirUtil::isSub(p, compareTo); }
+	IsParentOrExactOrSub(const string& aCompareTo, const char aSeparator) : compareTo(aCompareTo), separator(aSeparator) {}
+	bool operator()(const string& p) noexcept { return AirUtil::isParentOrExact(p, compareTo, separator) || AirUtil::isSub(p, compareTo, separator); }
 
 	IsParentOrExactOrSub& operator=(const IsParentOrExactOrSub&) = delete;
 private:
 	const string& compareTo;
+	const char separator;
 };
 
 class IsSub {
 public:
 	// Returns true for items matching the predicate that are subdirectories of compareTo
-	IsSub(const string& aCompareTo) : compareTo(aCompareTo) {}
-	bool operator()(const string& p) noexcept { return AirUtil::isSub(p, compareTo); }
+	IsSub(const string& aCompareTo, const char aSeparator) : compareTo(aCompareTo), separator(aSeparator) {}
+	bool operator()(const string& p) noexcept { return AirUtil::isSub(p, compareTo, separator); }
 
 	IsSub& operator=(const IsSub&) = delete;
 private:
 	const string& compareTo;
+	const char separator;
 };
 
 }

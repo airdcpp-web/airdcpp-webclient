@@ -39,15 +39,22 @@ const tstring FinishedItem::getText(uint8_t col) const {
 		case COLUMN_DONE: return Text::toT(Util::formatTime("%Y-%m-%d %H:%M:%S", getTime()));
 		case COLUMN_PATH: return Text::toT(Util::getFilePath(getTarget()));
 		case COLUMN_NICK: return Text::toT(ClientManager::getInstance()->getFormatedNicks(getUser()));
-		case COLUMN_HUB: return Text::toT(ClientManager::getInstance()->getFormatedHubNames(getUser()));
+		case COLUMN_HUB: {
+			if (getUser().user->isOnline()) {
+				return Text::toT(ClientManager::getInstance()->getFormatedHubNames(getUser()));
+			} else {
+				auto ofu = ClientManager::getInstance()->getOfflineUser(getUser().user->getCID());
+				return TSTRING(OFFLINE) + (ofu ? _T(" ( ") + Text::toT(ofu->getUrl()) + _T(" ) ") : _T(""));
+			}
+		}
 		case COLUMN_SIZE: return Util::formatBytesW(getSize());
 		case COLUMN_SPEED: return Util::formatBytesW(getAvgSpeed()) + _T("/s");
 		case COLUMN_TYPE: {
-		tstring filetype = Text::toT(Util::getFileExt(Text::fromT(getText(COLUMN_FILE))));
-					if(!filetype.empty() && filetype[0] == _T('.'))
-						filetype.erase(0, 1);
-					return filetype;
-							}
+			tstring filetype = Text::toT(Util::getFileExt(Text::fromT(getText(COLUMN_FILE))));
+			if(!filetype.empty() && filetype[0] == _T('.'))
+				filetype.erase(0, 1);
+			return filetype;
+		}
 		default: return Util::emptyStringT;
 	}
 }
