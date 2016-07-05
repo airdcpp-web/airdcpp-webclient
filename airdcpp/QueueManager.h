@@ -408,7 +408,7 @@ private:
 	bool addBundle(BundlePtr& aBundle, int aFilesAdded) noexcept;
 
 	// Fire events and perform other secondary actions for added bundles (don't lock)
-	void onBundleAdded(const BundlePtr& aBundle, bool aIsNew, const QueueItem::ItemBoolList& aItemsAdded, const HintedUser& aUser, bool aWantConnection) noexcept;
+	void onBundleAdded(const BundlePtr& aBundle, Bundle::Status aOldStatus, const QueueItem::ItemBoolList& aItemsAdded, const HintedUser& aUser, bool aWantConnection) noexcept;
 
 	// Called after new items have been added to a finished bundled (addBundle will handle this automatically)
 	void readdBundle(BundlePtr& aBundle) noexcept;
