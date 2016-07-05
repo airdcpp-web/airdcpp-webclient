@@ -879,13 +879,13 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 	BundlePtr b = nullptr;
 	bool wantConnection = false;
 	int newItems = 0;
-	bool isNewBundle = false;
+	Bundle::Status oldStatus;
 
 	QueueItem::ItemBoolList items;
 	{
 		WLock l(cs);
 		b = getBundle(target, aPrio, aDate, false);
-		isNewBundle = b->getStatus() == Bundle::STATUS_NEW;
+		oldStatus = b->getStatus();
 
 		//add the files
 		for (auto& bfi: aFiles) {
@@ -918,11 +918,11 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 		// Those don't need to be reported to the user
 		errors.clearMinor();
 
-		onBundleAdded(b, isNewBundle, items, aUser, wantConnection);
+		onBundleAdded(b, oldStatus, items, aUser, wantConnection);
 
 		if (newItems > 0) {
 			// Report
-			if (isNewBundle) {
+			if (oldStatus == Bundle::STATUS_NEW) {
 				LogManager::getInstance()->message(STRING_F(BUNDLE_CREATED, b->getName() % newItems) + " (" + CSTRING_F(TOTAL_SIZE, Util::formatBytes(b->getSize())) + ")", LogMessage::SEV_INFO);
 			} else if (b->getTarget() == target) {
 				LogManager::getInstance()->message(STRING_F(X_BUNDLE_ITEMS_ADDED, newItems % b->getName().c_str()), LogMessage::SEV_INFO);
@@ -977,8 +977,8 @@ bool QueueManager::addBundle(BundlePtr& aBundle, int aItemsAdded) noexcept {
 	return true;
 }
 
-void QueueManager::onBundleAdded(const BundlePtr& aBundle, bool aIsNew, const QueueItem::ItemBoolList& aItemsAdded, const HintedUser& aUser, bool aWantConnection) noexcept {
-	if (aIsNew) {
+void QueueManager::onBundleAdded(const BundlePtr& aBundle, Bundle::Status aOldStatus, const QueueItem::ItemBoolList& aItemsAdded, const HintedUser& aUser, bool aWantConnection) noexcept {
+	if (aOldStatus == Bundle::STATUS_NEW) {
 		fire(QueueManagerListener::BundleAdded(), aBundle);
 
 		if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE) && !aBundle->isPausedPrio()) {
@@ -986,7 +986,10 @@ void QueueManager::onBundleAdded(const BundlePtr& aBundle, bool aIsNew, const Qu
 			addBundleUpdate(aBundle);
 		}
 	} else {
-		fire(QueueManagerListener::BundleStatusChanged(), aBundle);
+		if (aOldStatus > Bundle::STATUS_DOWNLOADED) {
+			fire(QueueManagerListener::BundleStatusChanged(), aBundle);
+		}
+
 		fire(QueueManagerListener::BundleSources(), aBundle);
 
 		for (const auto& itemInfo : aItemsAdded) {
@@ -1028,14 +1031,14 @@ BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, c
 
 	auto target = filePath + fileName;
 
-	bool isNewBundle = false;
+	Bundle::Status oldStatus;
 	pair<QueueItemPtr, bool> addInfo;
 
 	{
 		WLock l(cs);
 		//get the bundle
 		b = getBundle(target, aPrio, aDate, true);
-		isNewBundle = b->getStatus() == Bundle::STATUS_NEW;
+		oldStatus = b->getStatus();
 
 		//add the file
 		addInfo = addBundleFile(target, aSize, aTTH, aUser, aFlags, true, aPrio, wantConnection, b);
@@ -1046,10 +1049,10 @@ BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, c
 	}
 
 	if (b) {
-		onBundleAdded(b, isNewBundle, { addInfo }, aUser, wantConnection);
+		onBundleAdded(b, oldStatus, { addInfo }, aUser, wantConnection);
 
 		if (addInfo.second) {
-			if (isNewBundle) {
+			if (oldStatus == Bundle::STATUS_NEW) {
 				LogManager::getInstance()->message(STRING_F(FILE_X_QUEUED, b->getName() % Util::formatBytes(b->getSize())), LogMessage::SEV_INFO);
 			} else {
 				LogManager::getInstance()->message(STRING_F(BUNDLE_ITEM_ADDED, Util::getFileName(target) % b->getName()), LogMessage::SEV_INFO);
