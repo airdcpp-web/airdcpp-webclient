@@ -50,14 +50,14 @@ namespace webserver {
 		int callbackId = -1;
 
 		try {
-			auto requestJson = json::parse(aRequestBody);
+			const auto requestJson = json::parse(aRequestBody);
 
 			auto cb = requestJson.find("callback_id");
 			if (cb != requestJson.end()) {
 				callbackId = cb.value();
 			}
 
-			ApiRequest apiRequest(requestJson["path"], requestJson["method"], responseJsonData, errorJson);
+			ApiRequest apiRequest(requestJson.at("path"), requestJson.at("method"), responseJsonData, errorJson);
 			apiRequest.parseSocketRequestJson(requestJson);
 			apiRequest.setSession(aSocket->getSession());
 
