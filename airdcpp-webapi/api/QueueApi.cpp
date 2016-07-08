@@ -227,15 +227,15 @@ namespace webserver {
 	}
 
 	api_return QueueApi::handleAddDirectoryBundle(ApiRequest& aRequest) {
-		const auto& reqJson = aRequest.getRequestBody();
+		const auto& bundleJson = aRequest.getRequestBody();
 
 		BundleFileInfo::List files;
-		for (const auto& fileJson : reqJson["files"]) {
+		for (const auto& fileJson : JsonUtil::getRawValue("files", bundleJson, false)) {
 			files.push_back(BundleFileInfo(
-				JsonUtil::getField<string>("name", reqJson),
+				JsonUtil::getField<string>("name", fileJson),
 				Deserializer::deserializeTTH(fileJson),
-				JsonUtil::getField<int64_t>("size", reqJson),
-				JsonUtil::getField<time_t>("time", reqJson),
+				JsonUtil::getField<int64_t>("size", fileJson),
+				JsonUtil::getField<time_t>("time", fileJson),
 				Deserializer::deserializePriority(fileJson, true))
 			);
 		}
@@ -244,11 +244,11 @@ namespace webserver {
 		std::string errors;
 		try {
 			b = QueueManager::getInstance()->createDirectoryBundle(
-				JsonUtil::getField<string>("target", reqJson),
-				Deserializer::deserializeHintedUser(reqJson),
+				JsonUtil::getField<string>("target", bundleJson),
+				Deserializer::deserializeHintedUser(bundleJson),
 				files,
-				Deserializer::deserializePriority(reqJson, true),
-				JsonUtil::getField<time_t>("time", reqJson),
+				Deserializer::deserializePriority(bundleJson, true),
+				JsonUtil::getField<time_t>("time", bundleJson),
 				errors
 			);
 		} catch (const QueueException& e) {
