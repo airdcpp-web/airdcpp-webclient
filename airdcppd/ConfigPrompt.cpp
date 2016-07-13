@@ -46,13 +46,17 @@ ConfigPrompt::ConfigF ConfigPrompt::checkArgs() {
 	if (!f) {
 		return nullptr;
 	}
+	
+	const auto errorF = [&](const string& aError) {
+		std::cout << aError << std::endl;
+	};
 
 	auto ret = [=] {
 		webserver::WebServerManager::newInstance();
 		ScopedFunctor([=] { webserver::WebServerManager::deleteInstance(); });
 
 		auto wsm = webserver::WebServerManager::getInstance();
-		wsm->load();
+		wsm->load(errorF);
 
 		cout << std::endl;
 		cout << std::endl;
@@ -61,9 +65,7 @@ ConfigPrompt::ConfigF ConfigPrompt::checkArgs() {
 
 		cout << std::endl;
 		if (save) {
-			if (wsm->save([&](const string& aError) {
-				cout << toBold("Failed to save the configuration to " + wsm->getConfigPath()) << ": " << aError << std::endl;
-			})) {
+			if (wsm->save(errorF)) {
 				cout << toBold("Configuration was written to " + wsm->getConfigPath()) << std::endl;
 			}
 		}
