@@ -134,7 +134,7 @@ namespace webserver {
 		typedef std::function<void(const string&)> ErrorF;
 
 		// Leave the path empty to use the default resource path
-		bool start(ErrorF errorF, const string& aWebResourcePath = Util::emptyString);
+		bool start(const ErrorF& errorF, const string& aWebResourcePath = Util::emptyString);
 		void stop();
 
 		void disconnectSockets(const std::string& aMessage) noexcept;
@@ -143,8 +143,8 @@ namespace webserver {
 		void logout(LocalSessionId aSessionId) noexcept;
 		WebSocketPtr getSocket(LocalSessionId aSessionToken) noexcept;
 
-		bool load() noexcept;
-		bool save(std::function<void(const string&)> aCustomErrorF = nullptr) noexcept;
+		bool load(const ErrorF& aErrorF) noexcept;
+		bool save(const ErrorF& aErrorF) noexcept;
 
 		WebUserManager& getUserManager() noexcept {
 			return *userManager.get();
@@ -176,9 +176,9 @@ namespace webserver {
 		}
 	private:
 		WebSocketPtr getSocket(websocketpp::connection_hdl hdl) const noexcept;
-		bool listen(ErrorF& errorF);
+		bool listen(const ErrorF& errorF);
 
-		bool initialize(ErrorF& errorF);
+		bool initialize(const ErrorF& errorF);
 
 		ServerConfig plainServerConfig;
 		ServerConfig tlsServerConfig;
