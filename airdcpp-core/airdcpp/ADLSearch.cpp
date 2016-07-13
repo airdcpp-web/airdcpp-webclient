@@ -28,6 +28,7 @@
 #include "File.h"
 #include "LogManager.h"
 #include "QueueManager.h"
+#include "ScopedFunctor.h"
 #include "SimpleXML.h"
 
 #define CONFIG_NAME "ADLSearch.xml"
@@ -570,6 +571,8 @@ void ADLSearchManager::FinalizeDestinationDirectories(DestDirList& destDirs, Dir
 
 void ADLSearchManager::matchListing(DirectoryListing& aDirList) throw(AbortException) {
 	running++;
+	ScopedFunctor([&] { running--; });
+
 	setUser(aDirList.getHintedUser());
 	auto root = aDirList.getRoot();
 
@@ -580,22 +583,24 @@ void ADLSearchManager::matchListing(DirectoryListing& aDirList) throw(AbortExcep
 	string path(aDirList.getRoot()->getName());
 	matchRecurse(destDirs, aDirList.getRoot(), path, aDirList);
 
-	running--;
 	FinalizeDestinationDirectories(destDirs, root);
 }
 
 void ADLSearchManager::matchRecurse(DestDirList &aDestList, const DirectoryListing::Directory::Ptr& aDir, string &aPath, DirectoryListing& aDirList) throw(AbortException) {
-	if(aDirList.getClosing())
+	if (aDirList.getClosing()) {
 		throw AbortException();
+	}
 
-	for(auto dirIt = aDir->directories.begin(); dirIt != aDir->directories.end(); ++dirIt) {
-		string tmpPath = aPath + "\\" + (*dirIt)->getName();
-		MatchesDirectory(aDestList, *dirIt, tmpPath);
-		matchRecurse(aDestList, *dirIt, tmpPath, aDirList);
+	for(const auto& dir: aDir->directories) {
+		string tmpPath = aPath + "\\" + dir->getName();
+		MatchesDirectory(aDestList, dir, tmpPath);
+		matchRecurse(aDestList, dir, tmpPath, aDirList);
 	}
-	for(auto fileIt = aDir->files.begin(); fileIt != aDir->files.end(); ++fileIt) {
-		MatchesFile(aDestList, *fileIt, aPath);
+
+	for(const auto& file: aDir->files) {
+		MatchesFile(aDestList, file, aPath);
 	}
+
 	stepUpDirectory(aDestList);
 }
 

@@ -1412,10 +1412,11 @@ bool SettingsManager::saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const 
 			File::renameFile(fname + ".tmp", fname);
 		}
 	} catch (const FileException& e) {
+		auto msg = STRING_F(SAVE_FAILED_X, fname % e.getError());
 		if (!aCustomErrorF) {
-			LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, fname % e.getError()), LogMessage::SEV_ERROR);
+			LogManager::getInstance()->message(msg, LogMessage::SEV_ERROR);
 		} else {
-			aCustomErrorF(e.getError());
+			aCustomErrorF(msg);
 		}
 
 		return false;

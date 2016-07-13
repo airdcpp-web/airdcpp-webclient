@@ -63,7 +63,7 @@ size_t FileReader::readCached(const string& aPath, const DataCallback& callback)
 	buffer.resize(getBlockSize(0));
 
 	auto buf = &buffer[0];
-	File f(aPath, File::READ, File::OPEN | File::SHARED_WRITE);
+	File f(aPath, File::READ, File::OPEN | File::SHARED_WRITE, File::BUFFER_SEQUENTIAL);
 
 	size_t total = 0;
 	size_t n = buffer.size();

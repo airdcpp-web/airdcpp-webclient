@@ -23,6 +23,7 @@
 
 #ifndef _WIN32
 #include <dirent.h>
+#include <fcntl.h>
 #endif
 
 namespace dcpp {
@@ -65,12 +66,11 @@ public:
 		RW = READ | WRITE
 	};
 
-	// not used here...
 	enum BufferMode {
-		BUFFER_SEQUENTIAL,
-		BUFFER_RANDOM,
-		BUFFER_AUTO,
-		BUFFER_NONE
+		BUFFER_SEQUENTIAL = POSIX_FADV_SEQUENTIAL,
+		BUFFER_RANDOM = POSIX_FADV_RANDOM,
+		BUFFER_AUTO = POSIX_FADV_NORMAL,
+		BUFFER_NONE = POSIX_FADV_DONTNEED
 	};
 
 	// some ftruncate implementations can't extend files like SetEndOfFile,
@@ -79,7 +79,7 @@ public:
 
 #endif // !_WIN32
 
-	File(const string& aFileName, int access, int mode, BufferMode aBufferMode = BUFFER_SEQUENTIAL, bool isAbsolute = true, bool isDirectory = false);
+	File(const string& aFileName, int aAccess, int aMode, BufferMode aBufferMode = BUFFER_AUTO, bool aIsAbsolute = true, bool aIsDirectory = false);
 	~File();
 
 	bool isOpen() const noexcept;

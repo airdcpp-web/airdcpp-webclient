@@ -823,7 +823,7 @@ void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF
 		try {
 			int migratedFiles, migratedTrees, failedTrees;
 			{
-				File f(indexFile, File::READ, File::OPEN);
+				File f(indexFile, File::READ, File::OPEN, File::BUFFER_SEQUENTIAL);
 				CountedInputStream<false> countedStream(&f);
 				HashLoader l(*this, countedStream, hashDataSize + hashIndexSize, progressF);
 				SimpleXMLReader(&l).parse(countedStream);
