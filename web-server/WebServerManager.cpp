@@ -22,7 +22,6 @@
 #include <airdcpp/typedefs.h>
 
 #include <airdcpp/CryptoManager.h>
-#include <airdcpp/LogManager.h>
 #include <airdcpp/SettingsManager.h>
 #include <airdcpp/SimpleXML.h>
 #include <airdcpp/TimerManager.h>
@@ -121,7 +120,7 @@ namespace webserver {
 		aEndpoint.set_listen_backlog(boost::asio::socket_base::max_connections);
 	}
 
-	bool WebServerManager::start(ErrorF errorF, const string& aWebResourcePath) {
+	bool WebServerManager::start(const ErrorF& errorF, const string& aWebResourcePath) {
 		if (!aWebResourcePath.empty()) {
 			fileServer.setResourcePath(aWebResourcePath);
 		}
@@ -138,7 +137,7 @@ namespace webserver {
 		return listen(errorF);
 	}
 
-	bool WebServerManager::initialize(ErrorF& errorF) {
+	bool WebServerManager::initialize(const ErrorF& errorF) {
 		SettingsManager::getInstance()->setDefault(SettingsManager::PM_MESSAGE_CACHE, 100);
 		SettingsManager::getInstance()->setDefault(SettingsManager::HUB_MESSAGE_CACHE, 100);
 
@@ -168,7 +167,7 @@ namespace webserver {
 	}
 
 	template <typename EndpointType>
-	bool listenEndpoint(EndpointType& aEndpoint, const ServerConfig& aConfig, const string& aProtocol, WebServerManager::ErrorF& errorF) noexcept {
+	bool listenEndpoint(EndpointType& aEndpoint, const ServerConfig& aConfig, const string& aProtocol, const WebServerManager::ErrorF& errorF) noexcept {
 		if (!aConfig.hasValidConfig()) {
 			return false;
 		}
@@ -191,7 +190,7 @@ namespace webserver {
 		return false;
 	}
 
-	bool WebServerManager::listen(ErrorF& errorF) {
+	bool WebServerManager::listen(const ErrorF& errorF) {
 		bool hasServer = false;
 
 		if (listenEndpoint(endpoint_plain, plainServerConfig, "HTTP", errorF)) {
@@ -393,7 +392,7 @@ namespace webserver {
 		return (plainServerConfig.hasValidConfig() || tlsServerConfig.hasValidConfig()) && userManager->hasUsers();
 	}
 
-	bool WebServerManager::load() noexcept {
+	bool WebServerManager::load(const ErrorF& aErrorF) noexcept {
 		try {
 			SimpleXML xml;
 			SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME, true);
@@ -420,7 +419,7 @@ namespace webserver {
 				xml.stepOut();
 			}
 		} catch (const Exception& e) {
-			LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogMessage::SEV_ERROR);
+			aErrorF(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()));
 		}
 
 		return hasValidConfig();
@@ -437,7 +436,7 @@ namespace webserver {
 		aXml.resetCurrentChild();
 	}
 
-	bool WebServerManager::save(std::function<void(const string&)> aCustomErrorF) noexcept {
+	bool WebServerManager::save(const ErrorF& aCustomErrorF) noexcept {
 		SimpleXML xml;
 
 		xml.addTag("WebServer");
