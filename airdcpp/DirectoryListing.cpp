@@ -220,7 +220,7 @@ void DirectoryListing::loadFile() throw(Exception, AbortException) {
 		// For now, we detect type by ending...
 		string ext = Util::getFileExt(fileName);
 
-		dcpp::File ff(fileName, dcpp::File::READ, dcpp::File::OPEN);
+		dcpp::File ff(fileName, dcpp::File::READ, dcpp::File::OPEN, dcpp::File::BUFFER_AUTO);
 		root->setUpdateDate(ff.getLastModified());
 		if(Util::stricmp(ext, ".bz2") == 0) {
 			FilteredInputStream<UnBZFilter, false> f(&ff);

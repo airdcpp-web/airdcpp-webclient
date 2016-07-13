@@ -93,7 +93,7 @@ double Localization::Language::getLanguageVersion() {
 
 	try {
 		SimpleXML xml;
-		xml.fromXML(File(getLanguageFilePath(), File::READ, File::OPEN).read());
+		xml.fromXML(File(getLanguageFilePath(), File::READ, File::OPEN, File::BUFFER_SEQUENTIAL).read());
 		if (xml.findChild("Language")) {
 			//xml.stepIn();
 			auto version = xml.getIntChildAttrib(LANGVER_TAG);
