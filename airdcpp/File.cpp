@@ -300,9 +300,11 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 		m |= O_TRUNC;
 	}
 
+#ifdef O_DIRECT
 	if (aBufferMode == BUFFER_NONE) {
 		m |= O_DIRECT;
 	}
+#endif
 
 	string filename = Text::fromUtf8(aFileName);
 	
