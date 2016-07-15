@@ -1330,6 +1330,8 @@ ShareManager::Directory::Ptr ShareManager::Directory::createNormal(DualString&& 
 }
 
 ShareManager::Directory::Ptr ShareManager::Directory::createRoot(DualString&& aRealName, uint64_t aLastWrite, const ProfileDirectory::Ptr& aProfileDir, Map& rootPaths_, Directory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept {
+	dcassert(rootPaths_.find(aProfileDir->getPath()) == rootPaths_.end());
+
 	auto dir = Ptr(new Directory(move(aRealName), nullptr, aLastWrite, aProfileDir));
 	rootPaths_[aProfileDir->getPath()] = dir;
 	addDirName(dir, dirNameMap_, bloom);
@@ -1499,7 +1501,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 	int64_t hashSize = 0;
 
 	for (const auto& l : cacheLoaders) {
-		l->mergeRefreshChanges(dirNameMap, rootPaths, tthIndex, hashSize, sharedSize, nullptr);
+		applyRefreshChanges(*l, hashSize, nullptr);
 	}
 
 	if (hashSize > 0) {
@@ -1820,8 +1822,7 @@ void ShareManager::getDirsByName(const string& aPath, Directory::List& dirs_) co
 	// get the last meaningful directory to look up
 	auto p = AirUtil::getDirName(aPath, '\\');
 
-	auto nameLower = Text::toLower(p.first);
-	const auto directories = dirNameMap.equal_range(&nameLower);
+	const auto directories = dirNameMap.equal_range(&p.first);
 	if (directories.first == directories.second)
 		return;
 
@@ -1958,18 +1959,34 @@ void ShareManager::updateIndices(Directory::Ptr& dir, ShareBloom& aBloom, int64_
 	}
 }
 
-void ShareManager::updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex) noexcept {
-	dir.size += f->getSize();
-	sharedSize += f->getSize();
-
 #ifdef _DEBUG
-	auto flst = tthIndex.equal_range(const_cast<TTHValue*>(&f->getTTH()));
-	auto p = find(flst | map_values, f);
+void ShareManager::checkAddedDirNameDebug(const Directory::Ptr& aDir, Directory::MultiMap& aDirNames) noexcept {
+	auto directories = aDirNames.equal_range(const_cast<string*>(&aDir->realName.getLower()));
+	auto findByPtr = find(directories | map_values, aDir);
+	auto findByPath = find_if(directories | map_values, [&](const Directory::Ptr& d) {
+		return d->getRealPath() == aDir->getRealPath();
+	});
+
+	dcassert(findByPtr.base() == directories.second);
+	dcassert(findByPath.base() == directories.second);
+}
+
+void ShareManager::checkAddedTTHDebug(const Directory::File* aFile, HashFileMap& aTTHIndex) noexcept {
+	auto flst = aTTHIndex.equal_range(const_cast<TTHValue*>(&aFile->getTTH()));
+	auto p = find(flst | map_values, aFile);
 	dcassert(p.base() == flst.second);
+}
 #endif
 
-	tthIndex.emplace(const_cast<TTHValue*>(&f->getTTH()), f);
-	aBloom.add(f->name.getLower());
+void ShareManager::updateIndices(Directory& dir, const Directory::File* aFile, ShareBloom& bloom_, int64_t& sharedSize_, HashFileMap& tthIndex_) noexcept {
+	dir.size += aFile->getSize();
+	sharedSize_ += aFile->getSize();
+#ifdef _DEBUG
+	checkAddedTTHDebug(aFile, tthIndex_);
+#endif
+
+	tthIndex_.emplace(const_cast<TTHValue*>(&aFile->getTTH()), aFile);
+	bloom_.add(aFile->name.getLower());
 }
 
 ShareManager::RefreshResult ShareManager::refreshVirtualName(const string& aVirtualName) noexcept {
@@ -2517,9 +2534,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 			// Apply the changes
 			{
 				WLock l(cs);
-				if (handleRefreshedDirectory(ri)) {
-					ri.mergeRefreshChanges(dirNameMap, rootPaths, tthIndex, totalHash, sharedSize, &dirtyProfiles);
-				}
+				applyRefreshChanges(ri, totalHash, &dirtyProfiles);
 			}
 
 			// Finish up
@@ -2567,19 +2582,29 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 	refreshing.clear();
 }
 
-void ShareManager::RefreshInfo::mergeRefreshChanges(Directory::MultiMap& aDirNameMap, Directory::Map& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) noexcept {
-	aDirNameMap.insert(dirNameMapNew.begin(), dirNameMapNew.end());
-	aTTHIndex.insert(tthIndexNew.begin(), tthIndexNew.end());
-
-	for (const auto& rp : rootPathsNew) {
-		aRootPaths[rp.first] = rp.second;
+void ShareManager::RefreshInfo::mergeRefreshChanges(Directory::MultiMap& dirNameMap_, Directory::Map& rootPaths_, HashFileMap& tthIndex_, int64_t& totalHash_, int64_t& totalAdded_, ProfileTokenSet* dirtyProfiles_) noexcept {
+#ifdef _DEBUG
+	for (const auto& d: dirNameMapNew | map_values) {
+		checkAddedDirNameDebug(d, dirNameMap_);
 	}
 
-	totalHash += hashSize;
-	totalAdded += addedSize;
+	for (const auto& f : tthIndexNew | map_values) {
+		checkAddedTTHDebug(f, tthIndex_);
+	}
+#endif
 
-	if (dirtyProfiles) {
-		newShareDirectory->copyRootProfiles(*dirtyProfiles, true);
+	dirNameMap_.insert(dirNameMapNew.begin(), dirNameMapNew.end());
+	tthIndex_.insert(tthIndexNew.begin(), tthIndexNew.end());
+
+	for (const auto& rp : rootPathsNew) {
+		rootPaths_[rp.first] = rp.second;
+	}
+
+	totalHash_ += hashSize;
+	totalAdded_ += addedSize;
+
+	if (dirtyProfiles_) {
+		newShareDirectory->copyRootProfiles(*dirtyProfiles_, true);
 	}
 
 	// Save some memory
@@ -2617,7 +2642,7 @@ void ShareManager::setRefreshState(const string& aRefreshPath, RefreshState aSta
 	fire(ShareManagerListener::RootUpdated(), pd->getPath());
 }
 
-bool ShareManager::handleRefreshedDirectory(const RefreshInfo& ri) {
+bool ShareManager::applyRefreshChanges(RefreshInfo& ri, int64_t& totalHash_, ProfileTokenSet* aDirtyProfiles) {
 	// Recursively remove the content of this dir from TTHIndex and directory name map
 	if (ri.oldShareDirectory) {
 		cleanIndices(*ri.oldShareDirectory);
@@ -2660,6 +2685,7 @@ bool ShareManager::handleRefreshedDirectory(const RefreshInfo& ri) {
 		parent->updateModifyDate();
 	}
 
+	ri.mergeRefreshChanges(dirNameMap, rootPaths, tthIndex, totalHash_, sharedSize, aDirtyProfiles);
 	return true;
 }
 
@@ -3408,14 +3434,10 @@ void ShareManager::cleanIndices(Directory& dir, const Directory::File* f) noexce
 
 void ShareManager::addDirName(const Directory::Ptr& aDir, Directory::MultiMap& aDirNames, ShareBloom& aBloom) noexcept {
 	//const auto& name = aDir->getProfileDir() ? aDir->getProfileDir()->getNameLower() : aDir->realName.getLower();
-	const auto& name = aDir->realName.getLower();
-
 #ifdef _DEBUG
-	auto directories = aDirNames.equal_range(const_cast<string*>(&name));
-	auto p = find(directories | map_values, aDir);
-	dcassert(p.base() == directories.second);
+	checkAddedDirNameDebug(aDir, aDirNames);
 #endif
-	aDirNames.emplace(const_cast<string*>(&name), aDir);
+	aDirNames.emplace(const_cast<string*>(&aDir->realName.getLower()), aDir);
 	aBloom.add(aDir->realName.getLower());
 }
 

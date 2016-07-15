@@ -316,11 +316,13 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 	if(h == -1)
 		throw FileException(Util::translateError(errno));
 
+#ifdef HAVE_POSIX_FADVISE
 	if (aBufferMode != BUFFER_NONE) {
 		if (posix_fadvise(h, 0, 0, aBufferMode) != 0) {
 			throw FileException(Util::translateError(errno));
 		}
 	}
+#endif
 }
 
 uint64_t File::getLastModified() const noexcept {
