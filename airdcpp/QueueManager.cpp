@@ -891,11 +891,15 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 		for (auto& bfi: aFiles) {
 			try {
 				auto addInfo = addBundleFile(target + bfi.file, bfi.size, bfi.tth, aUser, 0, true, bfi.prio, wantConnection, b);
-				if (addInfo.second) {
+				if (!addInfo) {
+					continue;
+				}
+
+				if ((*addInfo).second) {
 					newItems++;
 				}
 
-				items.push_back(addInfo);
+				items.push_back(*addInfo);
 			} catch(QueueException& e) {
 				errors.add(e.getError(), bfi.file, false);
 			} catch(FileException& /*e*/) {
@@ -1032,26 +1036,24 @@ BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, c
 	auto target = filePath + fileName;
 
 	Bundle::Status oldStatus;
-	pair<QueueItemPtr, bool> addInfo;
+	FileAddInfo fileAddInfo;
 
 	{
 		WLock l(cs);
-		//get the bundle
 		b = getBundle(target, aPrio, aDate, true);
 		oldStatus = b->getStatus();
 
-		//add the file
-		addInfo = addBundleFile(target, aSize, aTTH, aUser, aFlags, true, aPrio, wantConnection, b);
+		fileAddInfo = addBundleFile(target, aSize, aTTH, aUser, aFlags, true, aPrio, wantConnection, b);
 
-		if (!addBundle(b, addInfo.second ? 1 : 0)) {
+		if (!addBundle(b, fileAddInfo && (*fileAddInfo).second ? 1 : 0)) {
 			b = nullptr;
 		}
 	}
 
-	if (b) {
-		onBundleAdded(b, oldStatus, { addInfo }, aUser, wantConnection);
+	if (fileAddInfo && b) {
+		onBundleAdded(b, oldStatus, { *fileAddInfo }, aUser, wantConnection);
 
-		if (addInfo.second) {
+		if ((*fileAddInfo).second) {
 			if (oldStatus == Bundle::STATUS_NEW) {
 				LogManager::getInstance()->message(STRING_F(FILE_X_QUEUED, b->getName() % Util::formatBytes(b->getSize())), LogMessage::SEV_INFO);
 			} else {
@@ -1063,7 +1065,7 @@ BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, c
 	return b;
 }
 
-pair<QueueItemPtr, bool> QueueManager::addBundleFile(const string& aTarget, int64_t aSize, const TTHValue& aRoot, const HintedUser& aUser, Flags::MaskType aFlags /* = 0 */,
+QueueManager::FileAddInfo QueueManager::addBundleFile(const string& aTarget, int64_t aSize, const TTHValue& aRoot, const HintedUser& aUser, Flags::MaskType aFlags /* = 0 */,
 								   bool addBad /* = true */, QueueItemBase::Priority aPrio, bool& wantConnection_, BundlePtr& aBundle) throw(QueueException, FileException)
 {
 	// Handle zero byte items
@@ -1071,14 +1073,9 @@ pair<QueueItemPtr, bool> QueueManager::addBundleFile(const string& aTarget, int6
 		if(!SETTING(SKIP_ZERO_BYTE)) {
 			File::ensureDirectory(aTarget);
 			File f(aTarget, File::WRITE, File::CREATE);
-
-			auto qi = QueueItemPtr(new QueueItem(aTarget, aSize, aPrio, aFlags, GET_TIME(), aRoot, aTarget));
-			aBundle->addFinishedItem(qi, false);
-
-			return { nullptr, true };
 		}
 
-		return { nullptr, false };
+		return boost::none;
 	}
 
 	// Add the file

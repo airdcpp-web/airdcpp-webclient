@@ -611,7 +611,7 @@ private:
 	typedef vector<RefreshInfoPtr> RefreshInfoList;
 	typedef set<RefreshInfoPtr, std::less<RefreshInfoPtr>> RefreshInfoSet;
 
-	bool handleRefreshedDirectory(const RefreshInfo& ri);
+	bool applyRefreshChanges(RefreshInfo& ri, int64_t& totalHash_, ProfileTokenSet* aDirtyProfiles);
 
 	// Display a log message if the refresh can't be started immediately
 	void reportPendingRefresh(TaskType aTask, const RefreshPathList& aDirectories, const string& displayName) const noexcept;
@@ -631,8 +631,8 @@ private:
 
 	void addFile(const string& aName, Directory::Ptr& aDir, const HashedFile& fi, ProfileTokenSet& dirtyProfiles_) noexcept;
 
-	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex, Directory::MultiMap& aDirNames) noexcept;
-	static void updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex) noexcept;
+	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom_, int64_t& sharedSize_, HashFileMap& tthIndex_, Directory::MultiMap& aDirNames_) noexcept;
+	static void updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom_, int64_t& sharedSize_, HashFileMap& tthIndex_) noexcept;
 
 	void cleanIndices(Directory& dir) noexcept;
 	void cleanIndices(Directory& dir, const Directory::File* f) noexcept;
@@ -647,6 +647,12 @@ private:
 
 	static void addDirName(const Directory::Ptr& dir, Directory::MultiMap& aDirNames, ShareBloom& aBloom) noexcept;
 	static void removeDirName(const Directory& dir, Directory::MultiMap& aDirNames) noexcept;
+
+#ifdef _DEBUG
+	// Checks that duplicate/incorrect directories/files won't get through
+	static void checkAddedDirNameDebug(const Directory::Ptr& dir, Directory::MultiMap& aDirNames) noexcept;
+	static void checkAddedTTHDebug(const Directory::File* f, HashFileMap& aTTHIndex) noexcept;
+#endif
 
 	// Get root directories matching the provided token
 	// Unsafe

@@ -67,10 +67,17 @@ public:
 	};
 
 	enum BufferMode {
+#ifdef HAVE_POSIX_FADVISE
 		BUFFER_SEQUENTIAL = POSIX_FADV_SEQUENTIAL,
 		BUFFER_RANDOM = POSIX_FADV_RANDOM,
 		BUFFER_AUTO = POSIX_FADV_NORMAL,
 		BUFFER_NONE = POSIX_FADV_DONTNEED
+#else
+		BUFFER_SEQUENTIAL,
+		BUFFER_RANDOM,
+		BUFFER_AUTO,
+		BUFFER_NONE
+#endif
 	};
 
 	// some ftruncate implementations can't extend files like SetEndOfFile,
