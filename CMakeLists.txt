@@ -20,6 +20,7 @@ include (CheckFunctionExists)
 include (FindPkgConfig)
 include (CheckCXXSourceCompiles)
 
+CHECK_FUNCTION_EXISTS(posix_fadvise HAVE_POSIX_FADVISE)
 CHECK_FUNCTION_EXISTS(mallinfo HAVE_MALLINFO)
 CHECK_FUNCTION_EXISTS(malloc_stats HAVE_MALLOC_STATS)
 CHECK_FUNCTION_EXISTS(malloc_trim HAVE_MALLOC_TRIM)
