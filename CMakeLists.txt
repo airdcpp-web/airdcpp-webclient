@@ -61,6 +61,7 @@ option (INSTALL_RUNTIME_PATH "Install rpath" OFF)
 option (LOCAL_BOOST "Use local boost headers" OFF)
 option (INSTALL_WEB_UI "Download and install the Web UI package" ON)
 option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
+option (WITH_ASAN "Enable address sanitizer" OFF) # With clang: http://clang.llvm.org/docs/AddressSanitizer.html
 
 #if (DO_NOT_USE_MUTEX OR HAIKU OR APPLE)
 #  add_definitions ( -DDO_NOT_USE_MUTEX )
@@ -190,6 +191,16 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID STREQUAL Clang)
         set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--as-needed")
     endif ()
 endif ()
+
+if (WITH_ASAN)
+    # llvm-symbolizer must be on the path.
+    # Ubuntu: ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-3.8/bin/llvm-symbolizer ASAN_OPTIONS=suppressions=MyASan.supp
+    # MyASan.supp: interceptor_via_lib:libminiupnpc.so
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-optimize-sibling-calls -fno-omit-frame-pointer")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address")
+    message(STATUS "Address sanitizer is enabled")
+endif()
 
 include_directories(${airdcpp_BINARY_DIR}
    ${CMAKE_CURRENT_SOURCE_DIR}/airdcpp-core
