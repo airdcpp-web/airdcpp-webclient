@@ -579,7 +579,8 @@ private:
 	
 	bool xml_saving = false;
 
-	mutable SharedMutex dirNames; // Bundledirs, releasedirs and excluded dirs
+	// Bundle paths, skiplist, excluded dirs
+	mutable SharedMutex refreshMatcherCS;
 
 	StringSet excludedPaths;
 
@@ -587,7 +588,7 @@ private:
 	Directory::Map rootPaths;
 
 	// All directory names cached for easy lookups
-	Directory::MultiMap dirNameMap;
+	Directory::MultiMap lowerDirNameMap;
 
 	class RefreshInfo : boost::noncopyable {
 	public:
@@ -599,7 +600,7 @@ private:
 		int64_t hashSize = 0;
 		int64_t addedSize = 0;
 		Directory::Map rootPathsNew;
-		Directory::MultiMap dirNameMapNew;
+		Directory::MultiMap lowerDirNameMapNew;
 		HashFileMap tthIndexNew;
 
 		string path;
@@ -637,14 +638,6 @@ private:
 	void cleanIndices(Directory& dir) noexcept;
 	void cleanIndices(Directory& dir, const Directory::File* f) noexcept;
 
-	/*inline void addDirName(Directory::Ptr& aDir) noexcept {
-		addDirName(aDir, dirNameMap);
-	}
-
-	inline void removeDirName(Directory& aDir) noexcept {
-		removeDirName(aDir, dirNameMap);
-	}*/
-
 	static void addDirName(const Directory::Ptr& dir, Directory::MultiMap& aDirNames, ShareBloom& aBloom) noexcept;
 	static void removeDirName(const Directory& dir, Directory::MultiMap& aDirNames) noexcept;
 
@@ -652,6 +645,10 @@ private:
 	// Checks that duplicate/incorrect directories/files won't get through
 	static void checkAddedDirNameDebug(const Directory::Ptr& dir, Directory::MultiMap& aDirNames) noexcept;
 	static void checkAddedTTHDebug(const Directory::File* f, HashFileMap& aTTHIndex) noexcept;
+
+	// Go through the whole tree and check that the global maps have been filled properly
+	void validateDirectoryTreeDebug() noexcept;
+	void validateDirectoryRecursiveDebug(const Directory::Ptr& dir, size_t& dirCount, size_t& fileCount_) noexcept;
 #endif
 
 	// Get root directories matching the provided token
