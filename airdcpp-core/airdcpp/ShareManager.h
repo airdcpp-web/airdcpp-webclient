@@ -579,7 +579,8 @@ private:
 	
 	bool xml_saving = false;
 
-	mutable SharedMutex dirNames; // Bundledirs, releasedirs and excluded dirs
+	// Bundle paths, skiplist, excluded dirs
+	mutable SharedMutex refreshMatcherCS;
 
 	StringSet excludedPaths;
 
@@ -587,7 +588,7 @@ private:
 	Directory::Map rootPaths;
 
 	// All directory names cached for easy lookups
-	Directory::MultiMap dirNameMap;
+	Directory::MultiMap lowerDirNameMap;
 
 	class RefreshInfo : boost::noncopyable {
 	public:
@@ -599,7 +600,7 @@ private:
 		int64_t hashSize = 0;
 		int64_t addedSize = 0;
 		Directory::Map rootPathsNew;
-		Directory::MultiMap dirNameMapNew;
+		Directory::MultiMap lowerDirNameMapNew;
 		HashFileMap tthIndexNew;
 
 		string path;
@@ -611,7 +612,7 @@ private:
 	typedef vector<RefreshInfoPtr> RefreshInfoList;
 	typedef set<RefreshInfoPtr, std::less<RefreshInfoPtr>> RefreshInfoSet;
 
-	bool handleRefreshedDirectory(const RefreshInfo& ri);
+	bool applyRefreshChanges(RefreshInfo& ri, int64_t& totalHash_, ProfileTokenSet* aDirtyProfiles);
 
 	// Display a log message if the refresh can't be started immediately
 	void reportPendingRefresh(TaskType aTask, const RefreshPathList& aDirectories, const string& displayName) const noexcept;
@@ -631,22 +632,24 @@ private:
 
 	void addFile(const string& aName, Directory::Ptr& aDir, const HashedFile& fi, ProfileTokenSet& dirtyProfiles_) noexcept;
 
-	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex, Directory::MultiMap& aDirNames) noexcept;
-	static void updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom, int64_t& sharedSize, HashFileMap& tthIndex) noexcept;
+	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom_, int64_t& sharedSize_, HashFileMap& tthIndex_, Directory::MultiMap& aDirNames_) noexcept;
+	static void updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom_, int64_t& sharedSize_, HashFileMap& tthIndex_) noexcept;
 
 	void cleanIndices(Directory& dir) noexcept;
 	void cleanIndices(Directory& dir, const Directory::File* f) noexcept;
 
-	/*inline void addDirName(Directory::Ptr& aDir) noexcept {
-		addDirName(aDir, dirNameMap);
-	}
-
-	inline void removeDirName(Directory& aDir) noexcept {
-		removeDirName(aDir, dirNameMap);
-	}*/
-
 	static void addDirName(const Directory::Ptr& dir, Directory::MultiMap& aDirNames, ShareBloom& aBloom) noexcept;
 	static void removeDirName(const Directory& dir, Directory::MultiMap& aDirNames) noexcept;
+
+#ifdef _DEBUG
+	// Checks that duplicate/incorrect directories/files won't get through
+	static void checkAddedDirNameDebug(const Directory::Ptr& dir, Directory::MultiMap& aDirNames) noexcept;
+	static void checkAddedTTHDebug(const Directory::File* f, HashFileMap& aTTHIndex) noexcept;
+
+	// Go through the whole tree and check that the global maps have been filled properly
+	void validateDirectoryTreeDebug() noexcept;
+	void validateDirectoryRecursiveDebug(const Directory::Ptr& dir, size_t& dirCount, size_t& fileCount_) noexcept;
+#endif
 
 	// Get root directories matching the provided token
 	// Unsafe

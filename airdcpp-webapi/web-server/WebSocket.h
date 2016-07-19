@@ -43,7 +43,7 @@ namespace webserver {
 
 		IGETSET(SessionPtr, session, Session, nullptr);
 
-		void sendPlain(const std::string& aMsg) noexcept;
+		void sendPlain(const json& aJson) noexcept;
 		void sendApiResponse(const json& aJsonResponse, const json& aErrorJson, websocketpp::http::status_code::value aCode, int aCallbackId) noexcept;
 
 		WebSocket(WebSocket&) = delete;

@@ -86,7 +86,7 @@ private:
 	// The list of bundles being download. Note that all of them may not be running
 	// as the bundle is removed from here only after the connection has been 
 	// switched to use another bundle (or no other downloads were found)
-	Bundle::TokenBundleMap bundles;
+	Bundle::TokenMap bundles;
 	UserConnectionList idlers;
 
 	void removeRunningUser(UserConnection* aSource, bool sendRemoved=false) noexcept;

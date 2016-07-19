@@ -481,7 +481,7 @@ void DirectoryMonitor::Server::deviceRemoved(const string& aDrive) {
 	{
 		RLock l(cs);
 		for (const auto& path : monitors | map_keys) {
-			if (AirUtil::isParentOrExact(aDrive, path)) {
+			if (AirUtil::isParentOrExactLocal(aDrive, path)) {
 				removedPaths.insert(path);
 			}
 		}

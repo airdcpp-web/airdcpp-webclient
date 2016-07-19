@@ -9,8 +9,8 @@ endif (APPLE)
 
 set (PROJECT_NAME "AirDC++ Web Client")
 set (TAG_APPLICATION "AirDC++w")
-set (VERSION "1.0.6")
-set (SOVERSION "1.0.6" )
+set (VERSION "1.0.7")
+set (SOVERSION "1.0.7" )
 
 set (GNUCXX_MINIMUM_VERSION "4.8")
 
@@ -20,6 +20,7 @@ include (CheckFunctionExists)
 include (FindPkgConfig)
 include (CheckCXXSourceCompiles)
 
+CHECK_FUNCTION_EXISTS(posix_fadvise HAVE_POSIX_FADVISE)
 CHECK_FUNCTION_EXISTS(mallinfo HAVE_MALLINFO)
 CHECK_FUNCTION_EXISTS(malloc_stats HAVE_MALLOC_STATS)
 CHECK_FUNCTION_EXISTS(malloc_trim HAVE_MALLOC_TRIM)
@@ -60,6 +61,7 @@ option (INSTALL_RUNTIME_PATH "Install rpath" OFF)
 option (LOCAL_BOOST "Use local boost headers" OFF)
 option (INSTALL_WEB_UI "Download and install the Web UI package" ON)
 option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
+option (WITH_ASAN "Enable address sanitizer" OFF) # With clang: http://clang.llvm.org/docs/AddressSanitizer.html
 
 #if (DO_NOT_USE_MUTEX OR HAIKU OR APPLE)
 #  add_definitions ( -DDO_NOT_USE_MUTEX )
@@ -190,6 +192,16 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID STREQUAL Clang)
     endif ()
 endif ()
 
+if (WITH_ASAN)
+    # llvm-symbolizer must be on the path.
+    # Ubuntu: ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-3.8/bin/llvm-symbolizer ASAN_OPTIONS=suppressions=MyASan.supp
+    # MyASan.supp: interceptor_via_lib:libminiupnpc.so
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-optimize-sibling-calls -fno-omit-frame-pointer")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address")
+    message(STATUS "Address sanitizer is enabled")
+endif()
+
 include_directories(${airdcpp_BINARY_DIR}
    ${CMAKE_CURRENT_SOURCE_DIR}/airdcpp-core
    ${CMAKE_CURRENT_SOURCE_DIR}/airdcpp-webapi
@@ -204,6 +216,20 @@ elseif (UNIX)
         set (BUNDLEDIR .)
     endif (APPLE)
 endif (WIN32 OR HAIKU)
+
+if (NOT CMAKE_BUILD_TYPE MATCHES "Debug" AND NOT ARM_OPTIMIZE_FULL)
+  if (CMAKE_SYSTEM_PROCESSOR STREQUAL "arm" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "armv6l")
+    set (CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Os")
+    set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-DNDEBUG -Os -g")
+
+    message (STATUS "---------------------------------------------------------------------------------------------------------")
+    message (STATUS "IMPORTANT")
+    message (STATUS "Certain code optimizations are disabled by default on ARM architectures due to possible stability issues")
+    message (STATUS "If you want to compile the client with full optimizations enabled, run cmake with the option -DARM_OPTIMIZE_FULL=1 (please report back your findings if there are no issues)")
+    message (STATUS "More information: https://github.com/airdcpp-web/airdcpp-webclient/issues/141#issuecomment-233186424")
+    message (STATUS "---------------------------------------------------------------------------------------------------------")
+  endif()
+endif()
 
 add_subdirectory (airdcpp-core)
 add_subdirectory (airdcpp-webapi)

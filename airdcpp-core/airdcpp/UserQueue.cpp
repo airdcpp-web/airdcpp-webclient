@@ -26,13 +26,13 @@
 namespace dcpp {
 
 
-void UserQueue::addQI(QueueItemPtr& qi, bool newBundle /*false*/) noexcept {
+void UserQueue::addQI(QueueItemPtr& qi) noexcept {
 	for(const auto& i: qi->getSources()) {
-		addQI(qi, i.getUser(), newBundle);
+		addQI(qi, i.getUser());
 	}
 }
 
-void UserQueue::addQI(QueueItemPtr& qi, const HintedUser& aUser, bool newBundle /*false*/, bool isBadSource /*false*/) noexcept{
+void UserQueue::addQI(QueueItemPtr& qi, const HintedUser& aUser, bool aIsBadSource /*false*/) noexcept{
 
 	if (qi->getPriority() == QueueItem::HIGHEST) {
 		auto& l = userPrioQueue[aUser.user];
@@ -42,11 +42,8 @@ void UserQueue::addQI(QueueItemPtr& qi, const HintedUser& aUser, bool newBundle 
 	BundlePtr bundle = qi->getBundle();
 	if (bundle) {
 		aUser.user->addQueued(qi->getSize());
-		if (bundle->addUserQueue(qi, aUser, isBadSource)) {
+		if (bundle->addUserQueue(qi, aUser, aIsBadSource)) {
 			addBundle(bundle, aUser);
-			if (!newBundle) {
-				QueueManager::getInstance()->fire(QueueManagerListener::BundleSources(), bundle);
-			}
 		} else {
 			dcassert(userBundleQueue.find(aUser.user) != userBundleQueue.end());
 		}

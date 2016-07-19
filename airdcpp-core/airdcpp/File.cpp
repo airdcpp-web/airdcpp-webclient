@@ -25,7 +25,6 @@
 #else
 #include <sys/stat.h>
 #include <sys/statvfs.h>
-#include <fcntl.h>
 #include <errno.h>
 #include <dirent.h>
 #include <fnmatch.h>
@@ -283,7 +282,7 @@ int64_t File::getBlockSize(const string& aFileName) noexcept {
 
 #else // !_WIN32
 
-File::File(const string& aFileName, int access, int mode, BufferMode /*aBufferMode*/, bool /*isAbsolute*/, bool /*isDirectory*/) {
+File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode, bool /*isAbsolute*/, bool /*isDirectory*/) {
 	dcassert(access == WRITE || access == READ || access == (READ | WRITE));
 
 	int m = 0;
@@ -301,6 +300,12 @@ File::File(const string& aFileName, int access, int mode, BufferMode /*aBufferMo
 		m |= O_TRUNC;
 	}
 
+#ifdef O_DIRECT
+	if (aBufferMode == BUFFER_NONE) {
+		m |= O_DIRECT;
+	}
+#endif
+
 	string filename = Text::fromUtf8(aFileName);
 	
 	struct stat s;
@@ -312,6 +317,14 @@ File::File(const string& aFileName, int access, int mode, BufferMode /*aBufferMo
 	h = open(filename.c_str(), m, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 	if(h == -1)
 		throw FileException(Util::translateError(errno));
+
+#ifdef HAVE_POSIX_FADVISE
+	if (aBufferMode != BUFFER_NONE) {
+		if (posix_fadvise(h, 0, 0, aBufferMode) != 0) {
+			throw FileException(Util::translateError(errno));
+		}
+	}
+#endif
 }
 
 uint64_t File::getLastModified() const noexcept {

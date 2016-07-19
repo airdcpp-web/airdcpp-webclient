@@ -69,9 +69,13 @@ void Client::stop() {
 	webserver::WebServerManager::getInstance()->stop();
 }
 
+void webErrorF(const string& aError) {
+	printf("%s\n", aError.c_str());
+};
+
 bool Client::startup() {
 	webserver::WebServerManager::newInstance();
-	if (!webserver::WebServerManager::getInstance()->load()) {
+	if (!webserver::WebServerManager::getInstance()->load(webErrorF)) {
 		webserver::WebServerManager::deleteInstance();
 		printf("%s\n", "No valid configuration found. Run the application with --configure parameter to set up initial configuration.");
 		return false;
@@ -93,9 +97,7 @@ bool Client::startup() {
 
 	auto webResources = Util::getStartupParam("--web-resources");
 	printf("Starting web server");
-	auto serverStarted = webserver::WebServerManager::getInstance()->start([](const string& aError) {
-		printf("%s\n", aError.c_str());
-	}, webResources ? *webResources : "");
+	auto serverStarted = webserver::WebServerManager::getInstance()->start(webErrorF, webResources ? *webResources : "");
 
 	if (!serverStarted) {
 		return false;
@@ -153,7 +155,7 @@ void Client::shutdown() {
 			[](float aProgress) {}
 	);
 
-	webserver::WebServerManager::getInstance()->save();
+	webserver::WebServerManager::getInstance()->save(webErrorF);
 	webserver::WebServerManager::deleteInstance();
 }
 

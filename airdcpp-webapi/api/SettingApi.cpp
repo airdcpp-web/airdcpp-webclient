@@ -63,7 +63,8 @@ namespace webserver {
 	}
 
 	void SettingApi::parseSettingKeys(const json& aJson, function<void(const ApiSettingItem*)> aHandler) {
-		for (const auto& key : aJson["keys"]) {
+		auto keys = JsonUtil::getField<StringList>("keys", aJson, true);
+		for (const auto& key : keys) {
 			auto setting = getSettingItem(key);
 			if (!setting) {
 				JsonUtil::throwError(key, JsonUtil::ERROR_INVALID, "Setting not found");

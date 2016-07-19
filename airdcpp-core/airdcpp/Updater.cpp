@@ -123,6 +123,7 @@ void Updater::createUpdate() {
 	ZipFile::CreateZipFileList(files, installer, Util::emptyString, "^(Themes)$");
 	//Add the web-resources
 	ZipFile::CreateZipFileList(files, installer, Util::emptyString, "^(Web-resources)$");
+	ZipFile::CreateZipFileList(files, installer, Util::emptyString, "^(EmoPacks)$");
 
 	ZipFile::CreateZipFile(updaterFilePath + updaterFile, files);
 
@@ -177,6 +178,13 @@ void Updater::signVersionFile(const string& file, const string& key, bool makeHe
 		PEM_read_RSAPrivateKey(f, &rsa, NULL, NULL);
 		fclose(f);
 	} catch(const FileException&) { return; }
+
+#ifdef _WIN32
+	if (versionData.find("\r\n") != string::npos) {
+		::MessageBox(NULL, _T("The version file contains Windows line endings. UNIX endings should be used instead."), _T(""), MB_OK | MB_ICONERROR);
+		return;
+	}
+#endif
 
 	// Make SHA hash
 	int res = -1;

@@ -823,7 +823,7 @@ void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF
 		try {
 			int migratedFiles, migratedTrees, failedTrees;
 			{
-				File f(indexFile, File::READ, File::OPEN);
+				File f(indexFile, File::READ, File::OPEN, File::BUFFER_SEQUENTIAL);
 				CountedInputStream<false> countedStream(&f);
 				HashLoader l(*this, countedStream, hashDataSize + hashIndexSize, progressF);
 				SimpleXMLReader(&l).parse(countedStream);
@@ -1292,7 +1292,7 @@ int HashManager::Hasher::run() {
 				lastSpeed = 0;
 				deleteThis = hasherID != 0;
 				sfv.unload();
-			} else if (!AirUtil::isParentOrExact(initialDir, w.front().filePath)) {
+			} else if (!AirUtil::isParentOrExactLocal(initialDir, w.front().filePath)) {
 				onDirHashed();
 			}
 
