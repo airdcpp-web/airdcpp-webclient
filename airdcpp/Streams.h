@@ -52,8 +52,12 @@ public:
 	 * is properly written (we don't want destructors that throw exceptions
 	 * and the last flush might actually throw). Note that some implementations
 	 * might not need it...
+	 * 
+	 * If aForce is false, only data that is subject to be deleted otherwise will be flushed.
+	 * This applies especially for files for which the operating system should generally decide
+	 * when the buffered data is flushed on disk.
 	 */
-	virtual size_t flush() = 0;
+	virtual size_t flushBuffers(bool aForce) = 0;
 
 	/* This only works for file streams */
 	virtual void setPos(int64_t /*pos*/) noexcept { }
@@ -194,8 +198,8 @@ public:
 		return s->write(buf, len);
 	}
 	
-	virtual size_t flush() {
-		return s->flush();
+	virtual size_t flushBuffers(bool aForce) override {
+		return s->flushBuffers(aForce);
 	}
 	
 	virtual bool eof() { return maxBytes == 0; }
@@ -221,18 +225,18 @@ public:
 		try {
 			// We must do this in order not to lose bytes when a download
 			// is disconnected prematurely
-			flush();
+			flushBuffers(false);
 		} catch(const Exception&) { }
 
 		if (!managed)
 			s.release();
 	}
 
-	size_t flush() {
+	size_t flushBuffers(bool aForce) override {
 		if(pos > 0)
 			s->write(&buf[0], pos);
 		pos = 0;
-		s->flush();
+		s->flushBuffers(aForce);
 		return 0;
 	}
 
@@ -275,7 +279,7 @@ public:
 	~StringOutputStream() { }
 	using OutputStream::write;
 
-	size_t flush() { return 0; }
+	size_t flushBuffers(bool) override { return 0; }
 	size_t write(const void* buf, size_t len) {
 		str.append((char*)buf, len);
 		return len;

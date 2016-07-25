@@ -183,7 +183,11 @@ string File::getRealPath() const {
 	return Text::fromT(buf);
 }
 
-size_t File::flush() {
+size_t File::flushBuffers(bool aForce) {
+	if (!aForce) {
+		return 0;
+	}
+
 #ifdef _DEBUG
 	auto start = boost::posix_time::microsec_clock::universal_time();;
 #endif
@@ -473,7 +477,11 @@ void File::setSize(int64_t newSize) {
 	setPos(pos);
 }
 
-size_t File::flush() {
+size_t File::flushBuffers(bool aForce) override {
+	if (!aForce) {
+		return 0;
+	}
+
 	if(isOpen() && fsync(h) == -1)
 		throw FileException(Util::translateError(errno));
 	return 0;

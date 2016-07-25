@@ -2878,7 +2878,6 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 					CalcOutputStream<TTFilter<1024 * 1024 * 1024>, false> newXmlFile(&bzipper);
 
 					newXmlFile.write(f.read());
-					newXmlFile.flush();
 
 					newXmlFile.getFilter().getTree().finalize();
 					bzTree.getFilter().getTree().finalize();
@@ -3163,7 +3162,6 @@ void ShareManager::saveXmlList(function<void(float)> progressF /*nullptr*/) noex
 					d->filesToXmlList(xmlFile, indent, tmp);
 
 					xmlFile.write(LITERAL("</Share>"));
-					xmlFile.flush();
 					ff.close();
 
 					File::deleteFile(path);

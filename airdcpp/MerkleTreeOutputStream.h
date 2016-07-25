@@ -51,7 +51,7 @@ public:
 		return len;
 	}
 
-	virtual size_t flush() {
+	virtual size_t flushBuffers(bool) override {
 		return 0;
 	}
 private:
