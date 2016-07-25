@@ -25,7 +25,7 @@
 
 namespace dcpp {
 
-LogManager::LogManager() : tasks(true), cache(SettingsManager::LOG_MESSAGE_CACHE) {
+LogManager::LogManager() : tasks(true, Thread::IDLE), cache(SettingsManager::LOG_MESSAGE_CACHE) {
 
 	options[UPLOAD][FILE] = SettingsManager::LOG_FILE_UPLOAD;
 	options[UPLOAD][FORMAT] = SettingsManager::LOG_FORMAT_POST_UPLOAD;

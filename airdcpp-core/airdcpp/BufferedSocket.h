@@ -37,7 +37,7 @@ using std::function;
 using std::pair;
 using std::unique_ptr;
 
-class BufferedSocket : public Speaker<BufferedSocketListener>, private Thread {
+class BufferedSocket : public Speaker<BufferedSocketListener>, public Thread {
 public:
 	enum Modes {
 		MODE_LINE,

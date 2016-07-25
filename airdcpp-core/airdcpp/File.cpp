@@ -31,6 +31,10 @@
 #include <utime.h>
 #endif
 
+#ifdef _DEBUG
+#include <boost/date_time/posix_time/ptime.hpp>
+#endif
+
 namespace dcpp {
 
 #ifdef _WIN32
@@ -169,9 +173,28 @@ void File::setEOF() {
 	}
 }
 
+string File::getRealPath() const {
+	TCHAR buf[MAX_PATH];
+	auto ret = GetFinalPathNameByHandle(h, buf, MAX_PATH, FILE_NAME_OPENED);
+	if (!ret) {
+		throw FileException(Util::translateError(GetLastError()));
+	}
+
+	return Text::fromT(buf);
+}
+
 size_t File::flush() {
+#ifdef _DEBUG
+	auto start = boost::posix_time::microsec_clock::universal_time();;
+#endif
+
 	if(isOpen() && !FlushFileBuffers(h))
 		throw FileException(Util::translateError(GetLastError()));
+
+#ifdef _DEBUG
+	dcdebug("File %s was flushed in " I64_FMT " ms\n", getRealPath().c_str(), (boost::posix_time::microsec_clock::universal_time() - start).total_milliseconds());
+#endif
+
 	return 0;
 }
 
@@ -333,6 +356,24 @@ uint64_t File::getLastModified() const noexcept {
 		return 0;
 
 	return (uint32_t)s.st_mtime;
+}
+
+string File::getRealPath() const {
+	char buf[PATH_MAX + 1];
+
+	int ret;
+#ifdef F_GETPATH
+	ret = fcntl(h, F_GETPATH, buf);
+#else
+	auto procPath = "/proc/self/fd/" + Util::toString(h);
+	ret = ::readlink(procPath.c_str(), buf, sizeof(buf));
+#endif
+
+	if (ret == -1) {
+		throw FileException(Util::translateError(errno));
+	}
+
+	return string(buf);
 }
 
 bool File::isOpen() const noexcept {
@@ -575,8 +616,9 @@ std::string File::makeAbsolutePath(const std::string& path, const std::string& f
 
 bool File::deleteFileEx(const string& aFileName, int maxAttempts) noexcept {
 	bool success = false;
-	for (int i = 0; i < maxAttempts && (success = deleteFile(aFileName)) == false; ++i)
+	for (int i = 0; i < maxAttempts && (success = deleteFile(aFileName)) == false; ++i) {
 		Thread::sleep(1000);
+	}
 
 	return success;
 }

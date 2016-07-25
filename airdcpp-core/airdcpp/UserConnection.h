@@ -206,6 +206,7 @@ public:
 	
 	BufferedSocket const* getSocket() { return socket; } 
 
+	void setThreadPriority(Thread::Priority aPriority);
 private:
 	int64_t chunkSize;
 	BufferedSocket* socket;
