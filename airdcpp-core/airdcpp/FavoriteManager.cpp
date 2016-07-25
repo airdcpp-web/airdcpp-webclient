@@ -401,7 +401,6 @@ bool FavoriteManager::onHttpFinished(bool fromHttp) noexcept {
 		try {
 			File f(Util::getHubListsPath() + Util::validateFileName(publicListServer), File::WRITE, File::CREATE | File::TRUNCATE);
 			f.write(downloadBuf);
-			f.close();
 		} catch(const FileException&) { }
 	}
 

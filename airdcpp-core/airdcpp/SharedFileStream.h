@@ -45,11 +45,11 @@ public:
     SharedFileStream(const string& aFileName, int access, int mode);
     ~SharedFileStream();
 
-	size_t write(const void* buf, size_t len) throw(Exception);
-	size_t read(void* buf, size_t& len) throw(Exception);
+	size_t write(const void* buf, size_t len);
+	size_t read(void* buf, size_t& len);
 
 	int64_t getSize() const noexcept;
-	void setSize(int64_t newSize) throw(FileException);
+	void setSize(int64_t newSize);
 
 	size_t flushBuffers(bool aForce) override;
 

@@ -2878,6 +2878,7 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 					CalcOutputStream<TTFilter<1024 * 1024 * 1024>, false> newXmlFile(&bzipper);
 
 					newXmlFile.write(f.read());
+					newXmlFile.flushBuffers(false);
 
 					newXmlFile.getFilter().getTree().finalize();
 					bzTree.getFilter().getTree().finalize();
@@ -3140,29 +3141,30 @@ void ShareManager::saveXmlList(function<void(float)> progressF /*nullptr*/) noex
 			parallel_for_each(dirtyDirs.begin(), dirtyDirs.end(), [&](const Directory::Ptr& d) {
 				string path = d->getProfileDir()->getCacheXmlPath();
 				try {
-					string indent, tmp;
+					{
+						string indent, tmp;
 
-					//create a backup first in case we get interrupted on creation.
-					File ff(path + ".tmp", File::WRITE, File::TRUNCATE | File::CREATE);
-					BufferedOutputStream<false> xmlFile(&ff);
+						//create a backup first in case we get interrupted on creation.
+						File ff(path + ".tmp", File::WRITE, File::TRUNCATE | File::CREATE);
+						BufferedOutputStream<false> xmlFile(&ff);
 
-					xmlFile.write(SimpleXML::utf8Header);
-					xmlFile.write(LITERAL("<Share Version=\"" SHARE_CACHE_VERSION));
-					xmlFile.write(LITERAL("\" Path=\""));
-					xmlFile.write(SimpleXML::escape(d->getProfileDir()->getPath(), tmp, true));
+						xmlFile.write(SimpleXML::utf8Header);
+						xmlFile.write(LITERAL("<Share Version=\"" SHARE_CACHE_VERSION));
+						xmlFile.write(LITERAL("\" Path=\""));
+						xmlFile.write(SimpleXML::escape(d->getProfileDir()->getPath(), tmp, true));
 
-					xmlFile.write(LITERAL("\" Date=\""));
-					xmlFile.write(SimpleXML::escape(Util::toString(d->getLastWrite()), tmp, true));
-					xmlFile.write(LITERAL("\">\r\n"));
-					indent += '\t';
+						xmlFile.write(LITERAL("\" Date=\""));
+						xmlFile.write(SimpleXML::escape(Util::toString(d->getLastWrite()), tmp, true));
+						xmlFile.write(LITERAL("\">\r\n"));
+						indent += '\t';
 
-					for (const auto& child : d->directories) {
-						child->toXmlList(xmlFile, indent, tmp);
+						for (const auto& child : d->directories) {
+							child->toXmlList(xmlFile, indent, tmp);
+						}
+						d->filesToXmlList(xmlFile, indent, tmp);
+
+						xmlFile.write(LITERAL("</Share>"));
 					}
-					d->filesToXmlList(xmlFile, indent, tmp);
-
-					xmlFile.write(LITERAL("</Share>"));
-					ff.close();
 
 					File::deleteFile(path);
 					File::renameFile(path + ".tmp", path);
