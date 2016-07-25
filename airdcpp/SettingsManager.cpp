@@ -1402,10 +1402,11 @@ bool SettingsManager::saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const 
 	string fname = Util::getPath(aPath) + aFileName;
 
 	try {
-		File f(fname + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
-		f.write(SimpleXML::utf8Header);
-		f.write(aXML.toXML());
-		f.close();
+		{
+			File f(fname + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
+			f.write(SimpleXML::utf8Header);
+			f.write(aXML.toXML());
+		}
 
 		//dont overWrite with empty file.
 		if (File::getSize(fname + ".tmp") > 0) {

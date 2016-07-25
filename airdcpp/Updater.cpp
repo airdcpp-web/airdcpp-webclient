@@ -153,7 +153,6 @@ void Updater::createUpdate() {
 
 					File f(updaterFilePath + "version.xml", File::WRITE, File::CREATE | File::TRUNCATE);
 					f.write(content);
-					f.close();
 				}
 			}
 		}
@@ -170,9 +169,10 @@ void Updater::signVersionFile(const string& file, const string& key, bool makeHe
 
 	try {
 		// Read All Data from files
-		File versionFile(file, File::READ,  File::OPEN);
-		versionData = versionFile.read();
-		versionFile.close();
+		{
+			File versionFile(file, File::READ, File::OPEN);
+			versionData = versionFile.read();
+		}
 
 		FILE* f = fopen(key.c_str(), "r");
 		PEM_read_RSAPrivateKey(f, &rsa, NULL, NULL);
@@ -234,15 +234,15 @@ void Updater::signVersionFile(const string& file, const string& key, bool makeHe
 
 		try {
 			// Write signature file
-			File outSig(file + ".sign", File::WRITE, File::TRUNCATE | File::CREATE);
-			outSig.write(sig.get(), sig_len);
-			outSig.close();
+			{
+				File outSig(file + ".sign", File::WRITE, File::TRUNCATE | File::CREATE);
+				outSig.write(sig.get(), sig_len);
+			}
 
 			if(!c_key.empty()) {
 				// Write the public key header (openssl probably has something to generate similar file, but couldn't locate it)
 				File pubKey(Util::getFilePath(file) + "pubkey.h", File::WRITE, File::TRUNCATE | File::CREATE);
 				pubKey.write(c_key);
-				pubKey.close();
 			}
 		} catch(const FileException&) { }
 	}
@@ -313,10 +313,11 @@ void Updater::completeUpdateDownload(int buildID, bool manualCheck) {
 			xml.addTag("BuildID", buildID);
 			xml.stepOut();
 
-			File f(UPDATE_TEMP_DIR + "UpdateInfo_" + sessionToken + ".xml", File::WRITE, File::CREATE | File::TRUNCATE);
-			f.write(SimpleXML::utf8Header);
-			f.write(xml.toXML());
-			f.close();
+			{
+				File f(UPDATE_TEMP_DIR + "UpdateInfo_" + sessionToken + ".xml", File::WRITE, File::CREATE | File::TRUNCATE);
+				f.write(SimpleXML::utf8Header);
+				f.write(xml.toXML());
+			}
 
 			LogManager::getInstance()->message(STRING(UPDATE_DOWNLOADED), LogMessage::SEV_INFO);
 			installedUpdate = buildID;

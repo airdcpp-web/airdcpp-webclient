@@ -32,7 +32,7 @@ public:
 	~CountOutputStream() { if(managed) delete s; }
 
 	size_t flushBuffers(bool aForce) {
-		size_t n = s->flushBuffers();
+		size_t n = s->flushBuffers(aForce);
 		count += n;
 		return n;
 	}

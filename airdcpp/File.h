@@ -90,7 +90,6 @@ public:
 	~File();
 
 	bool isOpen() const noexcept;
-	void close() noexcept;
 	int64_t getSize() const noexcept;
 	void setSize(int64_t newSize);
 
@@ -154,6 +153,8 @@ public:
 	static void forEachFile(const string& path, const string& pattern, std::function<void (const string& /*name*/, bool /*isDir*/, int64_t /*size*/)> aF, bool skipHidden = true);
 	static string getMountPath(const string& aPath) noexcept;
 protected:
+	void close() noexcept;
+
 #ifdef _WIN32
 	HANDLE h;
 #else

@@ -477,7 +477,7 @@ void File::setSize(int64_t newSize) {
 	setPos(pos);
 }
 
-size_t File::flushBuffers(bool aForce) override {
+size_t File::flushBuffers(bool aForce) {
 	if (!aForce) {
 		return 0;
 	}

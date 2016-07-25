@@ -59,7 +59,7 @@ SharedFileStream::~SharedFileStream() {
     }
 }
 
-size_t SharedFileStream::write(const void* buf, size_t len) throw(Exception) {
+size_t SharedFileStream::write(const void* buf, size_t len) {
 	Lock l(sfh->cs);
 
 	sfh->setPos(pos);
@@ -69,7 +69,7 @@ size_t SharedFileStream::write(const void* buf, size_t len) throw(Exception) {
 	return len;
 }
 
-size_t SharedFileStream::read(void* buf, size_t& len) throw(Exception) {
+size_t SharedFileStream::read(void* buf, size_t& len) {
 	Lock l(sfh->cs);
 
 	sfh->setPos(pos);
@@ -84,12 +84,12 @@ int64_t SharedFileStream::getSize() const noexcept {
 	return sfh->getSize();
 }
 
-void SharedFileStream::setSize(int64_t newSize) throw(FileException) {
+void SharedFileStream::setSize(int64_t newSize) {
 	Lock l(sfh->cs);
 	sfh->setSize(newSize);
 }
 
-size_t SharedFileStream::flushBuffers(bool aForce) throw(Exception) {
+size_t SharedFileStream::flushBuffers(bool aForce) {
 	Lock l(sfh->cs);
 	return sfh->flushBuffers(aForce);
 }

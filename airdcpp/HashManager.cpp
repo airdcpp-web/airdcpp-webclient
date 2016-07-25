@@ -213,7 +213,6 @@ void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, 
 			return !aCancel;
 		});
 
-		f.close();
 		tt.finalize();
 		tth_ = tt.getRoot();
 
@@ -1151,6 +1150,7 @@ int HashManager::Hasher::run() {
 				if (dirChanged)
 					sfv.loadPath(Util::getFilePath(fname));
 				uint64_t start = GET_TICK();
+
 				File f(fname, File::READ, File::OPEN);
 
 				// size changed since adding?
@@ -1197,7 +1197,6 @@ int HashManager::Hasher::run() {
 					return !closing;
 				});
 
-				f.close();
 				tt.finalize();
 
 				failed = fileCRC && crc32.getValue() != *fileCRC;
