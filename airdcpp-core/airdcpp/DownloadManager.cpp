@@ -453,7 +453,7 @@ void DownloadManager::endData(UserConnection* aSource) {
 	dcassert(d);
 
 	if(d->getType() == Transfer::TYPE_TREE) {
-		d->getOutput()->flush();
+		d->getOutput()->flushBuffers(false);
 
 		int64_t bl = 1024;
 		while(bl * (int64_t)d->getTigerTree().getLeaves().size() < d->getTigerTree().getFileSize())
@@ -546,11 +546,10 @@ void DownloadManager::removeConnection(UserConnectionPtr aConn) {
 
 void DownloadManager::removeDownload(Download* d) {
 	// Write the leftover bytes into file
-	// TODO: https://bugs.launchpad.net/airdcpp/+bug/1486851
 	if(d->getOutput()) {
 		if(d->getActual() > 0) {
 			try {
-				d->getOutput()->flush();
+				d->getOutput()->flushBuffers(false);
 			} catch(const Exception&) {
 			}
 		}

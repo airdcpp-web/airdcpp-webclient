@@ -46,7 +46,7 @@ public:
 			s.release(); 
 	}
 
-	size_t flush() {
+	size_t flushBuffers(bool aForce) {
 		if (bufPos != 0)
 			cur.update(buf, bufPos);
 		bufPos = 0;
@@ -58,7 +58,7 @@ public:
 		} else {
 			checkTrees();
 		}
-		return s->flush();
+		return s->flushBuffers(aForce);
 	}
 
 	void commitBytes(const void* b, size_t len) {

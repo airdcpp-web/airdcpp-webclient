@@ -31,8 +31,8 @@ public:
 	CountOutputStream(OutputStream* aStream) : s(aStream), count(0) { }
 	~CountOutputStream() { if(managed) delete s; }
 
-	size_t flush() {
-		size_t n = s->flush();
+	size_t flushBuffers(bool aForce) {
+		size_t n = s->flushBuffers();
 		count += n;
 		return n;
 	}
@@ -56,8 +56,8 @@ public:
 	CalcOutputStream(OutputStream* aStream) : s(aStream) { }
 	~CalcOutputStream() { if(managed) delete s; }
 
-	size_t flush() {
-		return s->flush();
+	size_t flushBuffers(bool aForce) override {
+		return s->flushBuffers(aForce);
 	}
 
 	size_t write(const void* buf, size_t len) {
@@ -95,7 +95,7 @@ class FilteredOutputStream : public OutputStream {
 public:
 	using OutputStream::write;
 
-	FilteredOutputStream(OutputStream* aFile) : buf(new uint8_t[BUF_SIZE]), flushed(false), more(true) { 
+	FilteredOutputStream(OutputStream* aFile) : buf(new uint8_t[BUF_SIZE]) { 
 		f.reset(aFile);
 	}
 
@@ -104,7 +104,7 @@ public:
 			f.release(); 
 	}
 
-	size_t flush() {
+	size_t flushBuffers(bool aForce) override {
 		if(flushed)
 			return 0;
 
@@ -121,7 +121,7 @@ public:
 			if(!more)
 				break;
 		}
-		return written + f->flush();
+		return written + f->flushBuffers(aForce);
 	}
 
 	size_t write(const void* wbuf, size_t len) {
@@ -163,14 +163,14 @@ private:
 	Filter filter;
 
 	boost::scoped_array<uint8_t> buf;
-	bool flushed;
-	bool more;
+	bool flushed = false;
+	bool more = true;
 };
 
 template<class Filter, bool managed>
 class FilteredInputStream : public InputStream {
 public:
-	FilteredInputStream(InputStream* aFile) : buf(new uint8_t[BUF_SIZE]), pos(0), valid(0), more(true) { 
+	FilteredInputStream(InputStream* aFile) : buf(new uint8_t[BUF_SIZE]) { 
 		f.reset(aFile);
 	}
 
@@ -223,9 +223,9 @@ private:
 	unique_ptr<InputStream> f;
 	Filter filter;
 	boost::scoped_array<uint8_t> buf;
-	size_t pos;
-	size_t valid;
-	bool more;
+	size_t pos = 0;
+	size_t valid = 0;
+	bool more = true;
 };
 
 } // namespace dcpp

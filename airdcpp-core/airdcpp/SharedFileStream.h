@@ -51,7 +51,7 @@ public:
 	int64_t getSize() const noexcept;
 	void setSize(int64_t newSize) throw(FileException);
 
-	size_t flush() throw(Exception);
+	size_t flushBuffers(bool aForce) override;
 
     static CriticalSection cs;
 	static SharedFileHandleMap readpool;

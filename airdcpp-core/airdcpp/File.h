@@ -105,7 +105,10 @@ public:
 
 	size_t read(void* buf, size_t& len);
 	size_t write(const void* buf, size_t len);
-	size_t flush();
+
+	// This has no effect if aForce is false
+	// Generally the operating system should decide when the buffered data is written on disk
+	size_t flushBuffers(bool aForce = true) override;
 
 	uint64_t getLastModified() const noexcept;
 

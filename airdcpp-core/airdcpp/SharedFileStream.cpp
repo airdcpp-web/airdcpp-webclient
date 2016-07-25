@@ -89,9 +89,9 @@ void SharedFileStream::setSize(int64_t newSize) throw(FileException) {
 	sfh->setSize(newSize);
 }
 
-size_t SharedFileStream::flush() throw(Exception) {
+size_t SharedFileStream::flushBuffers(bool aForce) throw(Exception) {
 	Lock l(sfh->cs);
-	return sfh->flush();
+	return sfh->flushBuffers(aForce);
 }
 
 void SharedFileStream::setPos(int64_t aPos) noexcept {
