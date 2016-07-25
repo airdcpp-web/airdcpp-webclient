@@ -100,6 +100,9 @@ public:
 	void movePos(int64_t pos) noexcept;
 	void setEOF();
 
+	// Get the path as it appears on disk
+	string getRealPath() const;
+
 	size_t read(void* buf, size_t& len);
 	size_t write(const void* buf, size_t len);
 	size_t flush();

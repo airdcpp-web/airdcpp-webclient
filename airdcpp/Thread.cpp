@@ -19,10 +19,14 @@
 #include "stdinc.h"
 #include "Thread.h"
 
+#include "Exception.h"
 #include "ResourceManager.h"
+#include "Util.h"
 
 #ifdef _WIN32
 #include <process.h>
+#else
+#include <sched.h>
 #endif
 
 namespace dcpp {
@@ -35,6 +39,15 @@ void Thread::start() {
 	if ((threadHandle = reinterpret_cast<HANDLE>(_beginthreadex(NULL, 0, &starter, this, 0, reinterpret_cast<unsigned int*>(&threadId)))) == NULL) {
 		throw ThreadException(STRING(UNABLE_TO_CREATE_THREAD));
 	}
+}
+
+Thread::Thread() : threadHandle(INVALID_HANDLE_VALUE) { 
+
+}
+
+Thread::~Thread() {
+	if (threadHandle != INVALID_HANDLE_VALUE)
+		CloseHandle(threadHandle);
 }
 
 unsigned int WINAPI Thread::starter(void* p) {
@@ -70,6 +83,16 @@ void Thread::t_resume() {
 	::ResumeThread(threadHandle);
 }
 
+void Thread::setThreadPriority(Priority p) {
+	if (!::SetThreadPriority(threadHandle, p)) {
+		dcassert(0);
+		//throw ThreadException("Unable to set thread priority: " + Util::translateError(GetLastError()));
+	}
+}
+
+void Thread::yield() { 
+	::Sleep(0);
+}
 
 #else
 void Thread::start() {
@@ -78,6 +101,54 @@ void Thread::start() {
 		throw ThreadException(STRING(UNABLE_TO_CREATE_THREAD));
 	}
 }
+
+void* Thread::starter(void* p) {
+	Thread* t = (Thread*)p;
+	t->run();
+	return NULL;
+}
+
+Thread::Thread() : threadHandle(0) { }
+
+Thread::~Thread() {
+	if (threadHandle != 0) {
+		pthread_detach(threadHandle);
+	}
+}
+
+void Thread::t_suspend() {
+	pthread_mutex_lock(&lock);
+	suspended = true;
+	while (suspended)
+		pthread_cond_wait(&cond, &lock);
+	pthread_mutex_unlock(&lock);
+}
+
+void Thread::t_resume() {
+	pthread_mutex_lock(&lock);
+	suspended = false;
+	pthread_cond_signal(&cond);
+	pthread_mutex_unlock(&lock);
+}
+
+void Thread::join() {
+	if (threadHandle) {
+		pthread_join(threadHandle, 0);
+		threadHandle = 0;
+	}
+}
+
+void Thread::setThreadPriority(Priority p) {
+	if (setpriority(PRIO_PROCESS, 0, p) != 0) {
+		dcassert(0);
+		//throw ThreadException("Unable to set thread priority: " + Util::translateError(errno));
+	}
+}
+
+void Thread::yield() {
+	::sched_yield();
+}
+
 #endif
 
 } // namespace dcpp

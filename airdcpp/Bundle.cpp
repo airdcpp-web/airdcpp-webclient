@@ -769,72 +769,71 @@ void Bundle::sendSizeUpdate() noexcept {
 
 
 void Bundle::save() throw(FileException) {
-	File ff(getXmlFilePath() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
-	BufferedOutputStream<false> f(&ff);
-	f.write(SimpleXML::utf8Header);
-	string tmp;
-	string b32tmp;
+	{
+		File ff(getXmlFilePath() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
+		BufferedOutputStream<false> f(&ff);
+		f.write(SimpleXML::utf8Header);
+		string tmp;
+		string b32tmp;
 
-	auto saveFiles = [&] {
-		for (const auto& q : finishedFiles) {
-			q->save(f, tmp, b32tmp);
-		}
+		auto saveFiles = [&] {
+			for (const auto& q : finishedFiles) {
+				q->save(f, tmp, b32tmp);
+			}
 
-		for (const auto& q : queueItems) {
-			q->save(f, tmp, b32tmp);
-		}
-	};
+			for (const auto& q : queueItems) {
+				q->save(f, tmp, b32tmp);
+			}
+		};
 
-	if (isFileBundle()) {
-		f.write(LIT("<File Version=\"" FILE_BUNDLE_VERSION));
-		f.write(LIT("\" Token=\""));
-		f.write(getStringToken());
-		f.write(LIT("\" Date=\""));
-		f.write(Util::toString(bundleDate));
-		f.write(LIT("\" AddedByAutoSearch=\""));
-		f.write(Util::toString(getAddedByAutoSearch()));
-		
-		if (resumeTime > 0) {
-			f.write(LIT("\" ResumeTime=\""));
-			f.write(Util::toString(resumeTime));
-		}
-		f.write(LIT("\">\r\n"));
-		saveFiles();
-		f.write(LIT("</File>\r\n"));
-	} else {
-		f.write(LIT("<Bundle Version=\"" DIR_BUNDLE_VERSION));
-		f.write(LIT("\" Target=\""));
-		f.write(SimpleXML::escape(target, tmp, true));
-		f.write(LIT("\" Token=\""));
-		f.write(getStringToken());
-		f.write(LIT("\" Added=\""));
-		f.write(Util::toString(getTimeAdded()));
-		f.write(LIT("\" Date=\""));
-		f.write(Util::toString(bundleDate));
-		f.write(LIT("\" AddedByAutoSearch=\""));
-		f.write(Util::toString(getAddedByAutoSearch()));
-		if (!getAutoPriority()) {
-			f.write(LIT("\" Priority=\""));
-			f.write(Util::toString((int)getPriority()));
-		}
-		if (timeFinished > 0) {
-			f.write(LIT("\" TimeFinished=\""));
-			f.write(Util::toString(timeFinished));
-		}
-		if (resumeTime > 0) {
-			f.write(LIT("\" ResumeTime=\""));
-			f.write(Util::toString(resumeTime));
-		}
+		if (isFileBundle()) {
+			f.write(LIT("<File Version=\"" FILE_BUNDLE_VERSION));
+			f.write(LIT("\" Token=\""));
+			f.write(getStringToken());
+			f.write(LIT("\" Date=\""));
+			f.write(Util::toString(bundleDate));
+			f.write(LIT("\" AddedByAutoSearch=\""));
+			f.write(Util::toString(getAddedByAutoSearch()));
 
-		f.write(LIT("\">\r\n"));
+			if (resumeTime > 0) {
+				f.write(LIT("\" ResumeTime=\""));
+				f.write(Util::toString(resumeTime));
+			}
+			f.write(LIT("\">\r\n"));
+			saveFiles();
+			f.write(LIT("</File>\r\n"));
+		} else {
+			f.write(LIT("<Bundle Version=\"" DIR_BUNDLE_VERSION));
+			f.write(LIT("\" Target=\""));
+			f.write(SimpleXML::escape(target, tmp, true));
+			f.write(LIT("\" Token=\""));
+			f.write(getStringToken());
+			f.write(LIT("\" Added=\""));
+			f.write(Util::toString(getTimeAdded()));
+			f.write(LIT("\" Date=\""));
+			f.write(Util::toString(bundleDate));
+			f.write(LIT("\" AddedByAutoSearch=\""));
+			f.write(Util::toString(getAddedByAutoSearch()));
+			if (!getAutoPriority()) {
+				f.write(LIT("\" Priority=\""));
+				f.write(Util::toString((int)getPriority()));
+			}
+			if (timeFinished > 0) {
+				f.write(LIT("\" TimeFinished=\""));
+				f.write(Util::toString(timeFinished));
+			}
+			if (resumeTime > 0) {
+				f.write(LIT("\" ResumeTime=\""));
+				f.write(Util::toString(resumeTime));
+			}
 
-		saveFiles();
+			f.write(LIT("\">\r\n"));
 
-		f.write(LIT("</Bundle>\r\n"));
+			saveFiles();
+
+			f.write(LIT("</Bundle>\r\n"));
+		}
 	}
-
-	f.flush();
-	ff.close();
 
 	File::deleteFile(getXmlFilePath());
 	File::renameFile(getXmlFilePath() + ".tmp", getXmlFilePath());

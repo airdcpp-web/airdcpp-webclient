@@ -717,7 +717,6 @@ enum Strings { // @DontAdd
 	LOG_CRC_OK, // "Show SFV check progress (CRC OK)"
 	LOG_HASHING, // "Show each hashed file"
 	LOG_OFF, // "Log off"
-	LOG_REMOVED_BUNDLES, // "Show bundles removed from queue"
 	LOG_SHARE_SCAN, // "Save the results to a log file when scanning the share"
 	LOG_SHARE_SCAN_PATH, // "Log filename (relative to the global log directory)"
 	LOW, // "Low"

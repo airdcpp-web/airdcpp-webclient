@@ -815,8 +815,9 @@ void FavoriteManager::load(SimpleXML& aXml) {
 
 			e->load(aXml);
 
-			// Unset share profile for old NMDC hubs
-			if (!e->isAdcHub() && e->get(HubSettings::ShareProfile) != SP_HIDDEN) {
+			// Unset share profile for old NMDC hubs and check for profiles that no longer exist.
+			if (e->get(HubSettings::ShareProfile) != SP_HIDDEN && 
+				(!e->isAdcHub() || !ShareManager::getInstance()->getShareProfile(e->get(HubSettings::ShareProfile)))) {
 				e->get(HubSettings::ShareProfile) = HUB_SETTING_DEFAULT_INT;
 			}
 

@@ -477,7 +477,7 @@ void DownloadManager::endData(UserConnection* aSource) {
 		aSource->setSpeed(static_cast<int64_t>(d->getAverageSpeed()));
 		aSource->updateChunkSize(d->getTigerTree().getBlockSize(), d->getSegmentSize(), GET_TICK() - d->getStart());
 		
-		dcdebug("Download finished: %s, size " I64_FMT ", downloaded " I64_FMT "\n", d->getPath().c_str(), d->getSegmentSize(), d->getPos());
+		dcdebug("Download finished: %s, size " I64_FMT ", downloaded " I64_FMT " in " U64_FMT " ms\n", d->getPath().c_str(), d->getSegmentSize(), d->getPos(), GET_TICK() - d->getStart());
 	}
 
 	removeDownload(d);
@@ -545,6 +545,8 @@ void DownloadManager::removeConnection(UserConnectionPtr aConn) {
 }
 
 void DownloadManager::removeDownload(Download* d) {
+	// Write the leftover bytes into file
+	// TODO: https://bugs.launchpad.net/airdcpp/+bug/1486851
 	if(d->getOutput()) {
 		if(d->getActual() > 0) {
 			try {

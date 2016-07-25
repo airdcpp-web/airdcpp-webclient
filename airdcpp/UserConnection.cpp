@@ -177,6 +177,10 @@ int64_t UserConnection::getChunkSize() const {
 	}
 }
 
+void UserConnection::setThreadPriority(Thread::Priority aPriority) {
+	socket->setThreadPriority(aPriority);
+}
+
 void UserConnection::setUser(const UserPtr& aUser) {
 	user = aUser;
 	if (aUser && socket) {

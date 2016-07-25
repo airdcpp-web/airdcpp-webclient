@@ -36,7 +36,6 @@ public:
 	DispatcherQueue(bool aStartThread, Thread::Priority aThreadPrio = Thread::NORMAL, DispatchF aDispatchF = nullptr) : threadPriority(aThreadPrio), dispatchF(aDispatchF) {
 		if (aStartThread) {
 			start();
-			setThreadPriority(aThreadPrio);
 		}
 	}
 
@@ -50,7 +49,6 @@ public:
 
 	void start() {
 		started = true;
-		setThreadPriority(threadPriority);
 
 		Thread::start();
 	}
@@ -69,6 +67,7 @@ public:
 	}
 
 	int run() {
+		setThreadPriority(threadPriority);
 		while (true) {
 			s.wait();
 			if (stopping) {
