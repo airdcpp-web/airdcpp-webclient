@@ -47,7 +47,7 @@ before_install:
   - sudo make install
   - cd ..
 script:
-  - cmake -DCMAKE_CXX_COMPILER=$COMPILER . && make -j2 && sudo make install
+  - CXXFLAGS=-Werror cmake -DCMAKE_CXX_COMPILER=$COMPILER . && make -j2 && sudo make install
 branches:
   only:
     - master
