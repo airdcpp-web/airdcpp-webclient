@@ -200,7 +200,7 @@ void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) c
 }
 
 template<class ContainerT>
-ContainerT pickRandomItems(const ContainerT& aItems, int aMaxCount) noexcept {
+ContainerT pickRandomItems(const ContainerT& aItems, size_t aMaxCount) noexcept {
 	ContainerT ret, selectableItems = aItems;
 
 	while (ret.size() < aMaxCount && !selectableItems.empty()) {
