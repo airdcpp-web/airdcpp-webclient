@@ -29,7 +29,7 @@ class MerkleTreeOutputStream : public OutputStream {
 public:
 	MerkleTreeOutputStream(TreeType& aTree) : tree(aTree), bufPos(0) { }
 
-	virtual size_t write(const void* xbuf, size_t len) {
+	virtual size_t write(const void* xbuf, size_t len) override {
 		size_t pos = 0;
 		uint8_t* b = (uint8_t*)xbuf;
 		while(pos < len) {

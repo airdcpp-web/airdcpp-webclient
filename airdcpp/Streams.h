@@ -101,7 +101,7 @@ public:
 		delete[] buf;
 	}
 
-	size_t read(void* tgt, size_t& len) {
+	size_t read(void* tgt, size_t& len) override {
 		len = min(len, size - pos);
 		memcpy(tgt, buf+pos, len);
 		pos += len;
@@ -132,14 +132,14 @@ public:
 			s.release(); 
 	}
 
-	size_t read(void* buf, size_t& len) {
+	size_t read(void* buf, size_t& len) override {
 		auto ret = s->read(buf, len);
 		readBytes += len;
 		return ret;
 	}
 
 	uint64_t getReadBytes() const { return readBytes; }
-	InputStream* releaseRootStream() { 
+	InputStream* releaseRootStream() override {
 		auto as = s.release();
 		return as->releaseRootStream();
 	}
@@ -160,7 +160,7 @@ public:
 			s.release();
 	}
 
-	size_t read(void* buf, size_t& len) {
+	size_t read(void* buf, size_t& len) override {
 		dcassert(maxBytes >= 0);
 		len = (size_t)min(maxBytes, (int64_t)len);
 		if(len == 0)
@@ -169,7 +169,7 @@ public:
 		maxBytes -= x;
 		return x;
 	}
-	InputStream* releaseRootStream() { 
+	InputStream* releaseRootStream() override { 
 		auto as = s.release();
 		return as->releaseRootStream();
 	}
@@ -190,7 +190,7 @@ public:
 			s.release();
 	}
 
-	virtual size_t write(const void* buf, size_t len) {
+	virtual size_t write(const void* buf, size_t len) override {
 		if(maxBytes < len) {
 			throw FileException(STRING(TOO_MUCH_DATA));
 		}
@@ -202,8 +202,8 @@ public:
 		return s->flushBuffers(aForce);
 	}
 	
-	virtual bool eof() { return maxBytes == 0; }
-	OutputStream* releaseRootStream() { 
+	virtual bool eof() override { return maxBytes == 0; }
+	OutputStream* releaseRootStream() override { 
 		auto as = s.release();
 		return as->releaseRootStream();
 	}
@@ -240,7 +240,7 @@ public:
 		return 0;
 	}
 
-	size_t write(const void* wbuf, size_t len) {
+	size_t write(const void* wbuf, size_t len) override {
 		uint8_t* b = (uint8_t*)wbuf;
 		size_t l2 = len;
 		size_t bufSize = buf.size();
@@ -263,7 +263,7 @@ public:
 		return l2;
 	}
 
-	OutputStream* releaseRootStream() { 
+	OutputStream* releaseRootStream() override {
 		auto as = s.release();
 		return as->releaseRootStream();
 	}
@@ -280,7 +280,7 @@ public:
 	using OutputStream::write;
 
 	size_t flushBuffers(bool) override { return 0; }
-	size_t write(const void* buf, size_t len) {
+	size_t write(const void* buf, size_t len) override {
 		str.append((char*)buf, len);
 		return len;
 	}

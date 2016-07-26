@@ -94,7 +94,7 @@ public:
 	void setSize(int64_t newSize);
 
 	int64_t getPos() const noexcept;
-	void setPos(int64_t pos) noexcept;
+	void setPos(int64_t pos) noexcept override;
 	void setEndPos(int64_t pos) noexcept;
 	void movePos(int64_t pos) noexcept;
 	void setEOF();
@@ -102,8 +102,8 @@ public:
 	// Get the path as it appears on disk
 	string getRealPath() const;
 
-	size_t read(void* buf, size_t& len);
-	size_t write(const void* buf, size_t len);
+	size_t read(void* buf, size_t& len) override;
+	size_t write(const void* buf, size_t len) override;
 
 	// This has no effect if aForce is false
 	// Generally the operating system should decide when the buffered data is written on disk

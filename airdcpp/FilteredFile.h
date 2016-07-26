@@ -31,12 +31,12 @@ public:
 	CountOutputStream(OutputStream* aStream) : s(aStream), count(0) { }
 	~CountOutputStream() { if(managed) delete s; }
 
-	size_t flushBuffers(bool aForce) {
+	size_t flushBuffers(bool aForce) override {
 		size_t n = s->flushBuffers(aForce);
 		count += n;
 		return n;
 	}
-	size_t write(const void* buf, size_t len) {
+	size_t write(const void* buf, size_t len) override {
 		size_t n = s->write(buf, len);
 		count += n;
 		return n;
@@ -60,7 +60,7 @@ public:
 		return s->flushBuffers(aForce);
 	}
 
-	size_t write(const void* buf, size_t len) {
+	size_t write(const void* buf, size_t len) override {
 		filter(buf, len);
 		return s->write(buf, len);
 	}
@@ -78,7 +78,7 @@ public:
 	CalcInputStream(InputStream* aStream) : s(aStream) { }
 	~CalcInputStream() { if(managed) delete s; }
 
-	size_t read(void* buf, size_t& len) {
+	size_t read(void* buf, size_t& len) override {
 		size_t x = s->read(buf, len);
 		filter(buf, x);
 		return x;
@@ -124,7 +124,7 @@ public:
 		return written + f->flushBuffers(aForce);
 	}
 
-	size_t write(const void* wbuf, size_t len) {
+	size_t write(const void* wbuf, size_t len) override {
 		if(flushed)
 			throw Exception("No filtered writes after flush");
 
@@ -150,12 +150,12 @@ public:
 		return written;
 	}
 
-	OutputStream* releaseRootStream() { 
+	OutputStream* releaseRootStream() override {
 		auto as = f.release();
 		return as->releaseRootStream();
 	}
 
-	virtual bool eof() { return !more; }
+	virtual bool eof() noexcept override { return !more; }
 private:
 	static const size_t BUF_SIZE = 128*1024; //increase buffer from 64, test
 
@@ -185,7 +185,7 @@ public:
 	* @param len Buffer size on entry, bytes actually read on exit
 	* @return Length of data in buffer
 	*/
-	size_t read(void* rbuf, size_t& len) {
+	size_t read(void* rbuf, size_t& len) override {
 		uint8_t* rb = (uint8_t*)rbuf;
 
 		size_t totalRead = 0;
@@ -213,7 +213,7 @@ public:
 		return totalProduced;
 	}
 
-	InputStream* releaseRootStream() { 
+	InputStream* releaseRootStream() override {
 		auto as = f.release();
 		return as->releaseRootStream();
 	}
