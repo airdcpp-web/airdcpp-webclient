@@ -21,7 +21,13 @@
 
 #include "compiler.h"
 
-# define SP_HIDDEN 1
+#define SP_HIDDEN 1
+
+#define ADC_SEPARATOR '/'
+#define ADC_SEPARATOR_STR "/"
+
+#define NMDC_SEPARATOR '\\'
+#define NMDC_SEPARATOR_STR "\\"
 
 #ifdef _WIN32
 
@@ -247,6 +253,8 @@ public:
 	static map<string, string> decodeQuery(const string& query) noexcept;
 
 	static bool isPathValid(const string& sPath) noexcept;
+	static bool isAdcPath(const string& aPath) noexcept;
+
 	static inline string validatePath(const string& aPath, bool requireEndSeparator = false) noexcept {
 		auto path = cleanPathChars(aPath, false);
 		if (requireEndSeparator && !path.empty() && path.back() != PATH_SEPARATOR) {
