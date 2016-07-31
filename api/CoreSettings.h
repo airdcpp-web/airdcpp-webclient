@@ -101,6 +101,14 @@ namespace webserver {
 		{ "download_max_start_speed", SettingsManager::MAX_DOWNLOAD_SPEED, ResourceManager::SETTINGS_DOWNLOADS_SPEED_PAUSE, ApiSettingItem::TYPE_LIMITS_DL, { ResourceManager::Strings::KiB, true } },
 		{ "download_highest_prio_slots", SettingsManager::EXTRA_DOWNLOAD_SLOTS, ResourceManager::SETTINGS_CZDC_EXTRA_DOWNLOADS },
 
+		{ "prio_high_files", SettingsManager::HIGH_PRIO_FILES, ResourceManager::SETTINGS_HIGH_PRIO_FILES },
+		{ "prio_high_files_regex", SettingsManager::HIGHEST_PRIORITY_USE_REGEXP, ResourceManager::USE_REGEXP },
+		{ "prio_highest_size", SettingsManager::PRIO_HIGHEST_SIZE, ResourceManager::SETTINGS_PRIO_HIGHEST, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::KiB, false } },
+		{ "prio_high_size", SettingsManager::PRIO_HIGH_SIZE, ResourceManager::SETTINGS_PRIO_HIGH, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::KiB, false } },
+		{ "prio_normal_size", SettingsManager::PRIO_NORMAL_SIZE, ResourceManager::SETTINGS_PRIO_NORMAL, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::KiB, false } },
+		{ "prio_high_files_to_highest", SettingsManager::PRIO_LIST_HIGHEST, ResourceManager::SETTINGS_USE_HIGHEST_LIST },
+		{ "prio_auto_default", SettingsManager::AUTO_PRIORITY_DEFAULT, ResourceManager::SETTINGS_AUTO_PRIORITY_DEFAULT },
+
 		//{ ResourceManager::UPLOAD_LIMITS },
 		{ "upload_auto_limits", SettingsManager::UL_AUTODETECT, ResourceManager::AUTODETECT },
 		{ "upload_auto_grant_speed", SettingsManager::MIN_UPLOAD_SPEED, ResourceManager::SETTINGS_UPLOADS_MIN_SPEED, ApiSettingItem::TYPE_LIMITS_UL, { ResourceManager::Strings::KiB, true } },
