@@ -216,9 +216,9 @@ DirectoryListing::Directory::Ptr DirectoryListing::createBaseDirectory(const str
 	dcassert(Util::isAdcPath(aBasePath));
 	auto cur = root;
 
-	StringList sl = StringTokenizer<string>(aBasePath.substr(1), '/').getTokens();
+	StringList sl = StringTokenizer<string>(aBasePath, '/').getTokens();
 	for (const auto& curDirName : sl) {
-		auto s = find_if(cur->directories, [&curDirName](const DirectoryListing::Directory::Ptr& dir) { return dir->getName() == curDirName; });
+		auto s = find(cur->directories, curDirName);
 		if (s == cur->directories.end()) {
 			auto d = make_shared<DirectoryListing::Directory>(cur.get(), curDirName, DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD, aDownloadDate, true);
 			cur->directories.push_back(d);
@@ -392,6 +392,8 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 
 			cur = list->createBaseDirectory(base, listDownloadDate).get();
+
+			dcassert(list->findDirectory(Util::toNmdcFile(base)));
 
 			const string& baseDate = getAttrib(attribs, sBaseDate, 3);
 			cur->setRemoteDate(Util::toUInt32(baseDate));
@@ -602,13 +604,14 @@ DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& a
 	dcassert(end != string::npos);
 	string name = aName.substr(0, end);
 
-	auto i = find(current->directories.begin(), current->directories.end(), name);
+	auto i = find(current->directories, name);
 	if(i != current->directories.end()) {
 		if(end == (aName.size() - 1))
 			return *i;
 		else
 			return findDirectory(aName.substr(end + 1), *i);
 	}
+
 	return nullptr;
 }
 
@@ -1032,6 +1035,7 @@ void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aDir,
 		checkShareDupes();
 
 	auto dir = findDirectory(aDir);
+	dcassert(dir);
 	if (dir) {
 		dir->setLoading(false);
 		if (aChangeDir) {
@@ -1214,6 +1218,8 @@ bool DirectoryListing::changeDirectory(const string& aPath, ReloadMode aReloadMo
 			return false;
 		}
 	}
+
+	dcassert(findDirectory(aPath, root) != nullptr);
 
 	updateCurrentLocation(dir);
 	fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
