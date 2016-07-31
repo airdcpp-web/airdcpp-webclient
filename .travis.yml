@@ -38,7 +38,7 @@ before_install:
   # OSX
   - if [ $TRAVIS_OS_NAME == osx ]; then brew update;
         brew install boost geoip leveldb libnatpmp miniupnpc openssl pkg-config tbb;
-        brew link --force openssl;
+        export OPENSSL_ROOT_DIR=/usr/local/opt/openssl/;
     fi
 
   - git clone git://github.com/zaphoyd/websocketpp.git
