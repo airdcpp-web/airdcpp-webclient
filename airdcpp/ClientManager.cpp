@@ -136,6 +136,8 @@ bool ClientManager::putClient(const string& aHubURL) noexcept {
 }
 
 bool ClientManager::putClient(ClientPtr& aClient) noexcept {
+	dcassert(aClient->hasListener(this));
+
 	fire(ClientManagerListener::ClientDisconnected(), aClient->getHubUrl());
 	fire(ClientManagerListener::ClientRemoved(), aClient);
 
@@ -167,6 +169,7 @@ ClientPtr ClientManager::redirect(const string& aHubUrl, const string& aNewUrl) 
 
 	oldClient->disconnect(true);
 	oldClient->shutdown(oldClient, true);
+	oldClient->removeListener(this);
 
 	auto newClient = ClientManager::createClient(aNewUrl, oldClient);
 	oldClient->clearCache();
@@ -177,6 +180,8 @@ ClientPtr ClientManager::redirect(const string& aHubUrl, const string& aNewUrl) 
 		clients.emplace(const_cast<string*>(&newClient->getHubUrl()), newClient);
 		clientsById[newClient->getClientId()] = newClient;
 	}
+
+	newClient->addListener(this);
 
 	RecentHubEntryPtr r = new RecentHubEntry(aNewUrl);
 	FavoriteManager::getInstance()->addRecent(r);

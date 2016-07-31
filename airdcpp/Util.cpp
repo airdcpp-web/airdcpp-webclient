@@ -1128,6 +1128,10 @@ string Util::formatParams(const string& aMsg, const ParamMap& aParams, FilterF f
 	return result;
 }
 
+bool Util::isAdcPath(const string& aPath) noexcept {
+	return !aPath.empty() && aPath.front() == '/' && aPath.back() == '/';
+}
+
 bool Util::isPathValid(const string &sPath) noexcept {
 	if(sPath.empty())
 		return false;

@@ -50,20 +50,25 @@ public:
 		}
 	}
 
-	void addListener(Listener* aListener) {
+	void addListener(Listener* aListener) noexcept {
 		Lock l(listenerCS);
 		if(find(listeners, aListener) == listeners.end())
 			listeners.push_back(aListener);
 	}
 
-	void removeListener(Listener* aListener) {
+	void removeListener(Listener* aListener) noexcept {
 		Lock l(listenerCS);
 		auto it = find(listeners, aListener);
 		if(it != listeners.end())
 			listeners.erase(it);
 	}
 
-	void removeListeners() {
+	bool hasListener(Listener* aListener) const noexcept {
+		Lock l(listenerCS);
+		return find(listeners, aListener) != listeners.end();
+	}
+
+	void removeListeners() noexcept {
 		Lock l(listenerCS);
 		listeners.clear();
 	}
@@ -71,7 +76,7 @@ public:
 protected:
 	ListenerList listeners;
 	ListenerList tmpListeners;
-	CriticalSection listenerCS;
+	mutable CriticalSection listenerCS;
 };
 
 } // namespace dcpp
