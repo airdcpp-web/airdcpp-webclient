@@ -384,7 +384,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			// Validate the parsed base path
 			{
-				if (b != base) {
+				if (Util::stricmp(b, base) != 0) {
 					throw AbortException("The base directory specified in the file list (" + b + ") doesn't match with the expected base (" + base + ")");
 				}
 
@@ -1221,6 +1221,7 @@ bool DirectoryListing::changeDirectory(const string& aPath, ReloadMode aReloadMo
 
 	dcassert(findDirectory(aPath, root) != nullptr);
 
+	clearLastError();
 	updateCurrentLocation(dir);
 	fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
 

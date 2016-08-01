@@ -252,7 +252,6 @@ public:
 	static void parseIpPort(const string& aIpPort, string& ip, string& port) noexcept;
 	static map<string, string> decodeQuery(const string& query) noexcept;
 
-	static bool isPathValid(const string& sPath) noexcept;
 	static bool isAdcPath(const string& aPath) noexcept;
 
 	static inline string validatePath(const string& aPath, bool requireEndSeparator = false) noexcept {
@@ -314,42 +313,6 @@ public:
 
 	static inline int roundUp(int size, int blockSize) noexcept {
 		return ((size + blockSize - 1) / blockSize) * blockSize;
-	}
-
-	inline static string FormatPath(const string& path) noexcept {
-#ifdef _WIN32
-		//dont format unless its needed, xp works slower with these so.
-		//also we want to limit the unc path lower, no point on endless paths.
-		if(path.size() < 250 || path.size() > UNC_MAX_PATH) 
-			return path;
-
-		string temp;
-		if ((path[0] == '\\') & (path[1] == '\\'))
-			temp = "\\\\?\\UNC\\" + path.substr(2);
-		else
-			temp = "\\\\?\\" + path;
-		return temp;
-#else
-		return path;
-#endif
-	}
-		
-	inline static tstring FormatPathT(const tstring& path) noexcept {
-#ifdef _WIN32
-		//dont format unless its needed, xp works slower with these so.
-		//also we want to limit the unc path lower, no point on endless paths. 
-		if(path.size() < 250 || path.size() > UNC_MAX_PATH) 
-			return path;
-
-		tstring temp;
-		if ((path[0] == '\\') & (path[1] == '\\'))
-			temp = _T("\\\\?\\UNC\\") + path.substr(2);
-		else
-			temp = _T("\\\\?\\") + path;
-		return temp;
-#else
-		return path;
-#endif
 	}
 
 	static string formatTime(int64_t aSec, bool translate, bool perMinute = false) noexcept;
@@ -494,6 +457,34 @@ public:
 	static string listToString(const ListT& lst) noexcept { return listToStringT<ListT, StrChar>(lst, false, true); }
 
 #ifdef WIN32
+	inline static string formatPath(const string& aPath) noexcept {
+		//dont format unless its needed
+		//also we want to limit the unc path lower, no point on endless paths.
+		if (aPath.size() < 250 || aPath.size() > UNC_MAX_PATH) {
+			return aPath;
+		}
+
+		if (aPath[0] == '\\' && aPath[1] == '\\') {
+			return "\\\\?\\UNC\\" + aPath.substr(2);
+		}
+
+		return "\\\\?\\" + aPath;
+	}
+
+	inline static wstring formatPathW(const tstring& aPath) noexcept {
+		//dont format unless its needed
+		//also we want to limit the unc path lower, no point on endless paths. 
+		if (aPath.size() < 250 || aPath.size() > UNC_MAX_PATH) {
+			return aPath;
+		}
+
+		if (aPath[0] == '\\' && aPath[1] == '\\') {
+			return _T("\\\\?\\UNC\\") + aPath.substr(2);
+		}
+
+		return _T("\\\\?\\") + aPath;
+	}
+
 	static wstring toStringW( int32_t val ) noexcept {
 		wchar_t buf[32];
 		snwprintf(buf, sizeof(buf), L"%ld", val);

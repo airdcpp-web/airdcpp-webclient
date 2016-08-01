@@ -158,8 +158,8 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 		} else {
 			dirList->loadFile();
 		}
-	} catch (const Exception&) {
-		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + aFileName, LogMessage::SEV_ERROR);
+	} catch (const Exception& e) {
+		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, aFileName % e.getError()), LogMessage::SEV_ERROR);
 		return;
 	}
 

@@ -25,9 +25,9 @@
 
 
 namespace dcpp {
-	TrackableDownloadItem::TrackableDownloadItem(bool aDownloaded) noexcept : state(aDownloaded ? STATE_DOWNLOADED : STATE_DOWNLOAD_PENDING) {
+	TrackableDownloadItem::TrackableDownloadItem(bool aDownloaded) noexcept {
 		if (aDownloaded) {
-			timeFinished = GET_TIME();
+			lastTimeFinished = GET_TIME();
 		}
 	}
 
@@ -37,22 +37,28 @@ namespace dcpp {
 		}
 	}
 
-	void TrackableDownloadItem::updateState() noexcept {
-		State newState;
+	TrackableDownloadItem::State TrackableDownloadItem::getDownloadState() const noexcept {
+		if (!lastError.empty()) {
+			return STATE_DOWNLOAD_FAILED;
+		}
+
+		State state;
 		{
 			RLock l(cs);
 			if (downloads.empty()) {
-				newState = completedDownloads ? STATE_DOWNLOADED : STATE_DOWNLOAD_PENDING;
+				if (!lastError.empty()) {
+					state = STATE_DOWNLOAD_FAILED;
+				} else {
+					state = hasCompletedDownloads() ? STATE_DOWNLOADED : STATE_DOWNLOAD_PENDING;
+				}
 			} else {
 				auto hasRunning = boost::find_if(downloads | map_values, PathInfo::IsRunning()).base() != downloads.end();
-				newState = hasRunning ? STATE_DOWNLOADING : STATE_DOWNLOAD_PENDING;
+				state = hasRunning ? STATE_DOWNLOADING : STATE_DOWNLOAD_PENDING;
 			}
 		}
 
-		dcdebug("download state: %d\n", newState);
-
-		state = newState;
-		onStateChanged();
+		dcdebug("download state: %d\n", state);
+		return state;
 	}
 
 	void TrackableDownloadItem::onAddedQueue(const string& aPath, int64_t aSize) noexcept {
@@ -68,13 +74,20 @@ namespace dcpp {
 			DownloadManager::getInstance()->addListener(this);
 		}
 
-		updateState();
+		onStateChanged();
+	}
+
+	time_t TrackableDownloadItem::getLastTimeFinished() const noexcept {
+		return lastTimeFinished;
+	}
+
+	bool TrackableDownloadItem::hasCompletedDownloads() const noexcept {
+		return lastTimeFinished > 0;
 	}
 
 	void TrackableDownloadItem::onRemovedQueue(const string& aPath, bool aFinished) noexcept {
 		if (aFinished) {
-			completedDownloads = true;
-			timeFinished = GET_TIME();
+			lastTimeFinished = GET_TIME();
 		}
 			
 		bool empty = false;
@@ -88,7 +101,7 @@ namespace dcpp {
 			DownloadManager::getInstance()->removeListener(this);
 		}
 
-		updateState();
+		onStateChanged();
 	}
 
 	bool TrackableDownloadItem::hasDownloads() const noexcept {
@@ -119,7 +132,7 @@ namespace dcpp {
 			di.running = !aFailed;
 		}
 
-		updateState();
+		onStateChanged();
 	}
 
 	double TrackableDownloadItem::PathInfo::getDownloadedPercentage() const noexcept {
@@ -140,22 +153,37 @@ namespace dcpp {
 		return "Downloading";
 	}
 
-	string TrackableDownloadItem::getStatusString() const noexcept {
+	TrackableDownloadItem::StatusInfo TrackableDownloadItem::getStatusInfo() const noexcept {
+		auto state = getDownloadState();
+		string str;
+
 		switch (state) {
-			case TrackableDownloadItem::STATE_DOWNLOAD_PENDING: return "Download pending";
-			case TrackableDownloadItem::STATE_DOWNLOADING: return formatRunningStatus();
-			case TrackableDownloadItem::STATE_DOWNLOADED: return STRING(DOWNLOADED);
+			case TrackableDownloadItem::STATE_DOWNLOAD_PENDING: str = "Download pending"; break;
+			case TrackableDownloadItem::STATE_DOWNLOADING: str = formatRunningStatus(); break;
+			case TrackableDownloadItem::STATE_DOWNLOADED: str = STRING(DOWNLOADED); break;
+			case TrackableDownloadItem::STATE_DOWNLOAD_FAILED: str = lastError; break;
+			default: dcassert(0);
 		}
 
-		dcassert(0);
-		return "";
+		return { state, str };
 	}
 
-	void TrackableDownloadItem::on(DownloadManagerListener::Failed, const Download* aDownload, const string& /*aReason*/) noexcept {
+	void TrackableDownloadItem::clearLastError() noexcept {
+		if (lastError.empty()) {
+			return;
+		}
+
+		lastError = Util::emptyString;
+		onStateChanged();
+	}
+
+	void TrackableDownloadItem::on(DownloadManagerListener::Failed, const Download* aDownload, const string& aReason) noexcept {
+		lastError = aReason;
 		onRunningStateChanged(aDownload, true);
 	}
 
 	void TrackableDownloadItem::on(DownloadManagerListener::Starting, const Download* aDownload) noexcept {
+		lastError = Util::emptyString;
 		onRunningStateChanged(aDownload, false);
 	}
 
@@ -170,7 +198,7 @@ namespace dcpp {
 			i->second.downloaded = aDownloadedBytes;
 		}
 
-		updateState();
+		onStateChanged();
 	}
 
 } // namespace dcpp

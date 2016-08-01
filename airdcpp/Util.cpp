@@ -1132,28 +1132,12 @@ bool Util::isAdcPath(const string& aPath) noexcept {
 	return !aPath.empty() && aPath.front() == '/' && aPath.back() == '/';
 }
 
-bool Util::isPathValid(const string &sPath) noexcept {
-	if(sPath.empty())
-		return false;
-
-#ifdef _WIN32
-	if((sPath.substr(1, 2) == ":\\") || (sPath.substr(0, 2) == "\\\\")) {
-		if(GetFileAttributes(Text::toT(sPath).c_str()) & FILE_ATTRIBUTE_DIRECTORY)
-			return true;
-	}
-
-	return false;
-#else
-	return true;
-#endif
-}
-
 bool Util::fileExists(const string &aFile) noexcept {
 	if(aFile.empty())
 		return false;
 
 #ifdef _WIN32
-	DWORD attr = GetFileAttributes(Text::toT(Util::FormatPath(aFile)).c_str());
+	DWORD attr = GetFileAttributes(Text::toT(Util::formatPath(aFile)).c_str());
 	return (attr != 0xFFFFFFFF);
 #else
 	return File::getSize(aFile) != -1;
