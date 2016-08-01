@@ -156,7 +156,11 @@ namespace webserver {
 				break;
 			}
 			case Client::STATE_NORMAL: id = "connected"; break;
-			case Client::STATE_DISCONNECTED: id = "disconnected"; break;
+			case Client::STATE_DISCONNECTED: 
+			{
+				id = aClient->isKeyprintMismatch() ? "keyprint_mismatch" : "disconnected";
+				break;
+			}
 		}
 
 		return {

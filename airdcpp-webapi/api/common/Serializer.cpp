@@ -291,6 +291,7 @@ namespace webserver {
 
 	string Serializer::getDownloadStateId(TrackableDownloadItem::State aState) noexcept {
 		switch (aState) {
+			case TrackableDownloadItem::STATE_DOWNLOAD_FAILED: return "download_failed";
 			case TrackableDownloadItem::STATE_DOWNLOAD_PENDING: return "download_pending";
 			case TrackableDownloadItem::STATE_DOWNLOADING: return "downloading";
 			case TrackableDownloadItem::STATE_DOWNLOADED: return "downloaded";
@@ -301,9 +302,10 @@ namespace webserver {
 	}
 
 	json Serializer::serializeDownloadState(const TrackableDownloadItem& aItem) noexcept {
+		auto info = aItem.getStatusInfo();
 		return {
-			{ "id", getDownloadStateId(aItem.getDownloadState()) },
-			{ "str", aItem.getStatusString() }
+			{ "id", getDownloadStateId(info.state) },
+			{ "str", info.str }
 		};
 	}
 
