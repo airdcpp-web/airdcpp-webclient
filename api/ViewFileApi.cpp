@@ -62,7 +62,7 @@ namespace webserver {
 			{ "name", aFile->getDisplayName() },
 			{ "state", Serializer::serializeDownloadState(*aFile.get()) },
 			{ "type", Serializer::serializeFileType(aFile->getPath()) },
-			{ "time_finished", aFile->getTimeFinished() },
+			{ "time_finished", aFile->getLastTimeFinished() },
 			{ "downloaded", !aFile->isLocalFile() },
 			{ "mime_type", mimeType ? mimeType : Util::emptyString },
 		};
