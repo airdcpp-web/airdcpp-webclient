@@ -283,21 +283,19 @@ private:
 	time_t listDownloadDate;
 };
 
-int DirectoryListing::updateXML(const string& xml, const string& aBase) throw(AbortException) {
-	MemoryInputStream mis(xml);
+int DirectoryListing::loadPartialXml(const string& aXml, const string& aBase) throw(AbortException) {
+	MemoryInputStream mis(aXml);
 	return loadXML(mis, true, aBase);
 }
 
-int DirectoryListing::loadXML(InputStream& is, bool updating, const string& aBase, time_t aListDate) throw(AbortException) {
-	ListLoader ll(this, root.get(), aBase, updating, getUser(), !isOwnList && isClientView && SETTING(DUPES_IN_FILELIST), partialList, aListDate);
+int DirectoryListing::loadXML(InputStream& is, bool aUpdating, const string& aBase, time_t aListDate) throw(AbortException) {
+	ListLoader ll(this, root.get(), aBase, aUpdating, getUser(), !isOwnList && isClientView && SETTING(DUPES_IN_FILELIST), partialList, aListDate);
 	try {
 		dcpp::SimpleXMLReader(&ll).parse(is);
 	} catch(SimpleXMLException& e) {
-		//Better to abort and show the error, than just leave it hanging.
-		LogManager::getInstance()->message("Error in Filelist loading: "  + e.getError() + ". User: [ " +  
-			getNick(false) + " ]", LogMessage::SEV_ERROR);
-		//dcdebug("DirectoryListing loadxml error: %s", e.getError());
+		throw AbortException(e.getError());
 	}
+
 	return ll.getLoadedDirs();
 }
 
@@ -381,14 +379,13 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 	} else if(name == sFileListing) {
 		if (updating) {
 			const string& b = getAttrib(attribs, sBase, 2);
+			dcassert(Util::isAdcPath(base));
 
 			// Validate the parsed base path
 			{
 				if (Util::stricmp(b, base) != 0) {
 					throw AbortException("The base directory specified in the file list (" + b + ") doesn't match with the expected base (" + base + ")");
 				}
-
-				base = b;
 			}
 
 			cur = list->createBaseDirectory(base, listDownloadDate).get();
@@ -962,7 +959,7 @@ void DirectoryListing::dispatch(DispatcherQueue::Callback& aCallback) noexcept {
 	try {
 		aCallback();
 	} catch (const std::bad_alloc&) {
-		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
+		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, getNick(false) % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		fire(DirectoryListingListener::LoadingFailed(), "Out of memory");
 	} catch (const AbortException&) {
 		fire(DirectoryListingListener::LoadingFailed(), Util::emptyString);
@@ -971,8 +968,8 @@ void DirectoryListing::dispatch(DispatcherQueue::Callback& aCallback) noexcept {
 	} catch (const QueueException& e) {
 		fire(DirectoryListingListener::UpdateStatusMessage(), "Queueing failed:" + e.getError());
 	} catch (const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % e.getError()), LogMessage::SEV_ERROR);
-		fire(DirectoryListingListener::LoadingFailed(), ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) + ": " + e.getError());
+		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, getNick(false) % e.getError()), LogMessage::SEV_ERROR);
+		fire(DirectoryListingListener::LoadingFailed(), getNick(false) + ": " + e.getError());
 	}
 }
 
@@ -1134,7 +1131,7 @@ void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDi
 	if (isOwnList) {
 		dirsLoaded = loadShareDirectory(Util::toNmdcFile(baseDir));
 	} else {
-		dirsLoaded = updateXML(aXml, baseDir);
+		dirsLoaded = loadPartialXml(aXml, baseDir);
 	}
 
 	onLoadingFinished(0, Util::toNmdcFile(baseDir), aReloadAll || (reloading && baseDir == "/"), aChangeDir);
