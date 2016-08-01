@@ -158,11 +158,9 @@ public:
 	void loadFile() throw(Exception, AbortException);
 	bool isLoaded() const noexcept;
 
-	//return the number of loaded dirs
-	int updateXML(const string& aXml, const string& aBase) throw(AbortException);
 
-	//return the number of loaded dirs
-	int loadXML(InputStream& xml, bool updating, const string& aBase = "/", time_t aListDate = GET_TIME()) throw(AbortException);
+	// Returns the number of loaded dirs
+	int loadPartialXml(const string& aXml, const string& aAdcBase) throw(AbortException);
 
 	bool downloadDir(const string& aRemoteDir, const string& aTarget, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0) noexcept;
 	bool createBundle(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept;
@@ -261,6 +259,9 @@ protected:
 	void onStateChanged() noexcept;
 
 private:
+	// Returns the number of loaded dirs
+	int loadXML(InputStream& aXml, bool aUpdating, const string& aBase, time_t aListDate = GET_TIME()) throw(AbortException);
+
 	// Create and insert a base directory with the given path (or return an existing one)
 	Directory::Ptr createBaseDirectory(const string& aPath, time_t aDownloadDate = GET_TIME()) noexcept;
 

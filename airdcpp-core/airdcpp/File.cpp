@@ -73,10 +73,8 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 		throw FileException(Util::translateError(GetLastError()));
 	}
 
-#ifdef _WIN32
 	// Avoid issues on Linux...
 	dcassert(compare(aFileName, getRealPath()) == 0);
-#endif
 }
 
 uint64_t File::getLastModified() const noexcept {
