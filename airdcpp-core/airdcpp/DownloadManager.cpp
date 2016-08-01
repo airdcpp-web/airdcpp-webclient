@@ -677,7 +677,7 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 	aSource->disconnect();
 }
 
-void DownloadManager::fileNotAvailable(UserConnection* aSource, bool noAccess) {
+void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess) {
 	if(aSource->getState() != UserConnection::STATE_SND) {
 		dcdebug("DM::fileNotAvailable Invalid state, disconnecting");
 		aSource->disconnect();
@@ -706,15 +706,16 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool noAccess) {
 	string error = d->getType() == Transfer::TYPE_TREE ? STRING(NO_FULL_TREE) : STRING(FILE_NOT_AVAILABLE);
 	if (d->isSet(Download::FLAG_NFO) && isNmdc) {
 		error = STRING(NO_PARTIAL_SUPPORT);
-	} else if (noAccess) {
+	} else if (aNoAccess) {
 		error = STRING(NO_FILE_ACCESS);
 	}
 
 	fire(DownloadManagerListener::Failed(), d, error);
-	if (!noAccess)
+	if (!aNoAccess) {
 		QueueManager::getInstance()->removeFileSource(d->getPath(), aSource->getUser(), (Flags::MaskType)(d->getType() == Transfer::TYPE_TREE ? QueueItem::Source::FLAG_NO_TREE : QueueItem::Source::FLAG_FILE_NOT_AVAILABLE), false);
+	}
 
-	QueueManager::getInstance()->putDownload(d, false, noAccess);
+	QueueManager::getInstance()->putDownload(d, false, aNoAccess);
 	checkDownloads(aSource);
 }
 

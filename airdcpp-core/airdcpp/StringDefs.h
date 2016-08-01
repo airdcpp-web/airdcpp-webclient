@@ -1703,8 +1703,6 @@ enum Strings { // @DontAdd
 	UL_STATUS_POPUP, // "Upload speed - click to adjust limiter value"
 	UNABLE_CONNECT_USER, // "Unable to download from this user"
 	UNABLE_TO_CREATE_THREAD, // "Unable to create thread"
-	UNABLE_TO_MOVE, // "Could not move finished file"
-	UNABLE_TO_OPEN_FILELIST, // "Unable to open file list: "
 	UNABLE_TO_RENAME, // "Unable to rename %1%: %2%"
 	UNABLE_TO_SEND_FILE, // "Unable to send file "
 	UNDERLINE, // "Underline"
