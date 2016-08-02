@@ -293,6 +293,8 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	//that might cause them to be in the wrong position.
 	fileEvents.resize(2);
 
+	setDefault(NICK, Util::getSystemUsername());
+
 	setDefault(MAX_UPLOAD_SPEED_MAIN, 0);
 	setDefault(MAX_DOWNLOAD_SPEED_MAIN, 0);
 	setDefault(TIME_DEPENDENT_THROTTLE, false);

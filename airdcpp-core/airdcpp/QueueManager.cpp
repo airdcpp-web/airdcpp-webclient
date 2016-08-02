@@ -1014,7 +1014,12 @@ void QueueManager::onBundleAdded(const BundlePtr& aBundle, Bundle::Status aOldSt
 }
 
 string QueueManager::formatBundleTarget(const string& aPath, time_t aRemoteDate) noexcept {
-	return Util::validatePath(Util::formatTime(aPath, (SETTING(FORMAT_DIR_REMOTE_TIME) && aRemoteDate > 0) ? aRemoteDate : GET_TIME()));
+	ParamMap params;
+	params["username"] = [] { return Util::getSystemUsername(); };
+	
+	auto time = (SETTING(FORMAT_DIR_REMOTE_TIME) && aRemoteDate > 0) ? aRemoteDate : GET_TIME();
+	auto formatedPath = Util::formatParams(aPath, params, nullptr, time);
+	return Util::validatePath(formatedPath);
 }
 
 BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, 

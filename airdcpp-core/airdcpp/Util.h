@@ -182,6 +182,7 @@ public:
 	static string getAppFileName() noexcept;
 	static string getAppPath() noexcept;
 
+	static string getSystemUsername() noexcept;
 #ifndef _WIN32 
 	static std::string appPath;
 	static void setApp(const string& app) noexcept;
@@ -295,7 +296,9 @@ public:
 	static string formatSeconds(int64_t aSec, bool supressHours = false) noexcept;
 
 	typedef string (*FilterF)(const string&);
-	static string formatParams(const string& msg, const ParamMap& params, FilterF filter = 0) noexcept;
+
+	// Set aTime to 0 to avoid formating of time variable
+	static string formatParams(const string& msg, const ParamMap& params, FilterF filter = nullptr, time_t aTime = time(NULL)) noexcept;
 
 	static string formatTime(const string &msg, const time_t t) noexcept;
 
