@@ -45,7 +45,7 @@ namespace dcpp {
 using boost::range::for_each;
 using boost::range::find_if;
 
-DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : TrackableDownloadItem(aIsOwnList || (!aPartial && !aFileName.empty())),
+DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : TrackableDownloadItem(false),
 	hintedUser(aUser), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD, 0)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
 	isClientView(aIsClientView), matchADL(SETTING(USE_ADLS) && !aPartial), 
 	tasks(isClientView, Thread::NORMAL, std::bind(&DirectoryListing::dispatch, this, std::placeholders::_1))
