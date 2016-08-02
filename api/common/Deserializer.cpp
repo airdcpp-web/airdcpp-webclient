@@ -18,6 +18,7 @@
 
 #include <web-server/stdinc.h>
 #include <web-server/JsonUtil.h>
+#include <web-server/Session.h>
 
 #include <api/common/Deserializer.h>
 
@@ -76,8 +77,13 @@ namespace webserver {
 		return static_cast<QueueItemBase::Priority>(*priority);
 	}
 
-	void Deserializer::deserializeDownloadParams(const json& aJson, string& targetDirectory_, string& targetName_, TargetUtil::TargetType& targetType_, QueueItemBase::Priority& priority_) {
+	void Deserializer::deserializeDownloadParams(const json& aJson, const SessionPtr& aSession, string& targetDirectory_, string& targetName_, TargetUtil::TargetType& targetType_, QueueItemBase::Priority& priority_) {
+		// Target path
 		targetDirectory_ = JsonUtil::getOptionalFieldDefault<string>("target_directory", aJson, SETTING(DOWNLOAD_DIRECTORY), false);
+
+		ParamMap params;
+		params["username"] = aSession->getUser()->getUserName();
+		targetDirectory_ = Util::formatParams(targetDirectory_, params, nullptr, 0);
 
 		// A default target name can be provided
 		auto name = JsonUtil::getOptionalField<string>("target_name", aJson, false, targetName_.empty());

@@ -167,7 +167,7 @@ namespace webserver {
 		string targetDirectory, targetBundleName;
 		TargetUtil::TargetType targetType;
 		QueueItemBase::Priority prio;
-		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), targetDirectory, targetBundleName, targetType, prio);
+		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetBundleName, targetType, prio);
 
 		auto user = Deserializer::deserializeHintedUser(reqJson);
 
