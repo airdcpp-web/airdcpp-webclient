@@ -40,7 +40,7 @@ namespace webserver {
 		static TTHValue deserializeTTH(const json& aJson);
 		static QueueItemBase::Priority deserializePriority(const json& aJson, bool allowDefault);
 
-		static void deserializeDownloadParams(const json& aJson, string& targetDirectory_, string& targetName_, TargetUtil::TargetType& targetType_, QueueItemBase::Priority& priority_);
+		static void deserializeDownloadParams(const json& aJson, const SessionPtr& aSession, string& targetDirectory_, string& targetName_, TargetUtil::TargetType& targetType_, QueueItemBase::Priority& priority_);
 
 		// Returns all connected hubs if the list is not found from the JSON
 		static StringList deserializeHubUrls(const json& aJson);

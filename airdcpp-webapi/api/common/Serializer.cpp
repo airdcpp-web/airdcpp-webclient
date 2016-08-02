@@ -173,7 +173,8 @@ namespace webserver {
 			{ "text", aMessage->getText() },
 			{ "from", serializeOnlineUser(aMessage->getFrom()) },
 			{ "time", aMessage->getTime() },
-			{ "is_read", aMessage->getRead() }
+			{ "is_read", aMessage->getRead() },
+			{ "third_person", aMessage->getThirdPerson() },
 		};
 
 		if (aMessage->getTo()) {
