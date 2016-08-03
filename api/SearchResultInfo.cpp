@@ -45,7 +45,7 @@ namespace webserver {
 		country = GeoManager::getInstance()->getCountry(sr->getIP());
 	}
 
-	void SearchResultInfo::addChildResult(const SearchResultInfoPtr& aResult) noexcept {
+	void SearchResultInfo::addChildResult(const SearchResultInfo::Ptr& aResult) noexcept {
 		FastLock l(cs);
 		children.push_back(aResult);
 		aResult->parent = this;

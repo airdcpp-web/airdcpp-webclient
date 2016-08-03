@@ -56,6 +56,7 @@ namespace webserver {
 
 			return Serializer::serializeFileDupe(aResult->getDupe(), aResult->sr->getTTH());
 		}
+		case SearchApi::PROP_IP: return Serializer::serializeIp(aResult->sr->getIP(), aResult->getCountry());
 		default: dcassert(0); return nullptr;
 		}
 	}
@@ -121,6 +122,7 @@ namespace webserver {
 		}
 		case SearchApi::PROP_SLOTS: return aResult->getSlotStr();
 		case SearchApi::PROP_TTH: return aResult->sr->getTTH().toBase32();
+		case SearchApi::PROP_IP: return aResult->sr->getIP();
 		default: dcassert(0); return Util::emptyString;
 		}
 	}

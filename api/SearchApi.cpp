@@ -42,6 +42,7 @@ namespace webserver {
 		{ PROP_SLOTS, "slots", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
 		{ PROP_TTH, "tth", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 		{ PROP_DUPE, "dupe", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
+		{ PROP_IP, "ip", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
 	};
 
 	const PropertyItemHandler<SearchResultInfoPtr> SearchApi::itemHandler = {
@@ -62,6 +63,7 @@ namespace webserver {
 
 		METHOD_HANDLER("results", Access::SEARCH, ApiRequest::METHOD_GET, (NUM_PARAM, NUM_PARAM), false, SearchApi::handleGetResults);
 		METHOD_HANDLER("result", Access::DOWNLOAD, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("download")), false, SearchApi::handleDownload);
+		METHOD_HANDLER("result", Access::SEARCH, ApiRequest::METHOD_GET, (TOKEN_PARAM, EXACT_PARAM("children")), false, SearchApi::handleGetChildren);
 
 		createSubscription("search_result");
 	}
@@ -85,6 +87,36 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
+	api_return SearchApi::handleGetChildren(ApiRequest& aRequest) {
+		auto result = getResult(aRequest.getTokenParam(0));
+		if (!result) {
+			aRequest.setResponseErrorStr("Result not found");
+			return websocketpp::http::status_code::not_found;
+		}
+
+		SearchResultInfo::List children;
+		{
+			RLock l(cs);
+			children = result->getChildren();
+		}
+		children.push_back(result);
+
+		auto j = Serializer::serializeItemList(itemHandler, children);
+
+		aRequest.setResponseBody(j);
+		return websocketpp::http::status_code::ok;
+	}
+
+	SearchResultInfo::Ptr SearchApi::getResult(ResultToken aToken) {
+		RLock l(cs);
+		auto i = find_if(results | map_values, [&](const SearchResultInfoPtr& aSI) { return aSI->getToken() == aToken; });
+		if (i.base() == results.end()) {
+			return nullptr;
+		}
+
+		return *i;
+	}
+
 	SearchResultInfo::List SearchApi::getResultList() {
 		SearchResultInfo::List ret;
 
@@ -94,17 +126,10 @@ namespace webserver {
 	}
 
 	api_return SearchApi::handleDownload(ApiRequest& aRequest) {
-		SearchResultInfoPtr result = nullptr;
-
-		{
-			RLock l(cs);
-			auto i = find_if(results | map_values, [&](const SearchResultInfoPtr& aSI) { return aSI->getToken() == aRequest.getTokenParam(0); });
-			if (i.base() == results.end()) {
-				aRequest.setResponseErrorStr("Result not found");
-				return websocketpp::http::status_code::not_found;
-			}
-
-			result = *i;
+		SearchResultInfoPtr result = getResult(aRequest.getTokenParam(0));
+		if (!result) {
+			aRequest.setResponseErrorStr("Result not found");
+			return websocketpp::http::status_code::not_found;
 		}
 
 		string targetDirectory, targetName = result->sr->getFileName();

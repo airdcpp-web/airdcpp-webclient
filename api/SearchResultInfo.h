@@ -78,6 +78,10 @@ namespace webserver {
 		double getConnectionSpeed() const noexcept;
 		void getSlots(int& free_, int& total_) const noexcept;
 		string getSlotStr() const noexcept;
+
+		const SearchResultInfo::List& getChildren() const noexcept {
+			return children;
+		}
 	private:
 		SearchResultInfo* parent = nullptr;
 		SearchResultInfo::List children;
