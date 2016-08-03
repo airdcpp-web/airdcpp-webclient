@@ -55,6 +55,7 @@ namespace webserver {
 			PROP_SLOTS,
 			PROP_TTH,
 			PROP_DUPE,
+			PROP_IP,
 			PROP_LAST
 		};
 	private:
@@ -70,6 +71,9 @@ namespace webserver {
 		api_return handleGetTypes(ApiRequest& aRequest);
 
 		api_return handleDownload(ApiRequest& aRequest);
+		api_return handleGetChildren(ApiRequest& aRequest);
+
+		SearchResultInfo::Ptr getResult(ResultToken aToken);
 
 		void on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept;
 
