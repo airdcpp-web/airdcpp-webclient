@@ -1459,6 +1459,15 @@ string Util::translateError(int aError) noexcept {
 #endif // _WIN32
 }
 
+int Util::pathSort(const string& a, const string& b) noexcept {
+	auto comp = compare(Util::getFilePath(a), Util::getFilePath(b));
+	if (comp == 0) {
+		return compare(a, b);
+	}
+
+	return comp;
+}
+
 /* natural sorting */
 int Util::DefaultSort(const wchar_t *a, const wchar_t *b) noexcept {
 	int v1, v2;

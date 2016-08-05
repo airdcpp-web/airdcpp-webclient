@@ -604,7 +604,7 @@ bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 
 			if (abs(lastDownloaded-getDownloadedBytes()) > (size / 200)) {
 				//LogManager::getInstance()->message("SEND PERCENT: " + Util::toString(abs(lastDownloaded-getDownloadedBytes())) + " is more than " + Util::toString(size / 200));
-				percent = (static_cast<float>(getDownloadedBytes()) / static_cast<float>(size)) * 100.;
+				percent = getPercentage(getDownloadedBytes());
 				dcassert(percent <= 100.00);
 				lastDownloaded = getDownloadedBytes();
 			} else {
