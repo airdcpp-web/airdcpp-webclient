@@ -38,24 +38,46 @@ namespace webserver {
 		typedef shared_ptr<PropertyFilter> Ptr;
 		typedef vector<Ptr> List;
 
+
+		// Helper class that will keep a reference to the filter
+		// and prevent making changes to it during during matching (= lifetime of this object)
+		template<typename FilterT>
 		class Matcher {
 		public:
-			Matcher(const PropertyFilter::Ptr& aFilter);
-			~Matcher();
+			Matcher(const FilterT& aFilter) : filter(aFilter) {
+				filter->cs.lock_shared();
+			}
+
+			~Matcher() {
+				if (filter) {
+					filter->cs.unlock_shared();
+				}
+			}
+
+			Matcher(Matcher&& rhs) noexcept : filter(rhs.filter) {
+				rhs.filter = nullptr;
+			}
 
 			Matcher(Matcher&) = delete;
 			Matcher& operator=(Matcher&) = delete;
-			Matcher(Matcher&& rhs) noexcept;
 			Matcher& operator=(Matcher&& rhs) = delete;
 
-			typedef vector<Matcher> List;
+			typedef Matcher<FilterT> MatcherT;
+			typedef vector<MatcherT> List;
 			static inline bool match(const List& prep, const NumericFunction& aNumericF, const InfoFunction& aStringF, const CustomFilterFunction& aCustomF) {
-				return std::all_of(prep.begin(), prep.end(), [&](const Matcher& aMatcher) { return aMatcher.filter->match(aNumericF, aStringF, aCustomF); });
+				return std::all_of(prep.begin(), prep.end(), [&](const Matcher& aMatcher) { 
+					return aMatcher.filter->match(aNumericF, aStringF, aCustomF); 
+				});
 			}
 
+			static inline bool match(const MatcherT& prep, const NumericFunction& aNumericF, const InfoFunction& aStringF, const CustomFilterFunction& aCustomF) {
+				return prep.filter->match(aNumericF, aStringF, aCustomF);
+			}
 		private:
-			PropertyFilter::Ptr filter;
+			FilterT filter;
 		};
+
+		typedef vector<Matcher<PropertyFilter::Ptr>> MatcherList;
 
 		PropertyFilter(const PropertyList& aPropertyTypes);
 

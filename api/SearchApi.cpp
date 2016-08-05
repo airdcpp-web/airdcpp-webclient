@@ -42,7 +42,6 @@ namespace webserver {
 		{ PROP_SLOTS, "slots", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
 		{ PROP_TTH, "tth", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 		{ PROP_DUPE, "dupe", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
-		{ PROP_IP, "ip", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
 	};
 
 	const PropertyItemHandler<SearchResultInfoPtr> SearchApi::itemHandler = {
@@ -94,17 +93,30 @@ namespace webserver {
 			return websocketpp::http::status_code::not_found;
 		}
 
-		SearchResultInfo::List children;
+		SearchResultList results;
 		{
 			RLock l(cs);
-			children = result->getChildren();
+			results = result->getChildren();
 		}
-		children.push_back(result);
 
-		auto j = Serializer::serializeItemList(itemHandler, children);
+		auto j = json::array();
+		for (const auto& sr : results) {
+			j.push_back(serializeSearchResult(sr));
+		}
 
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
+	}
+
+	json SearchApi::serializeSearchResult(const SearchResultPtr& aSR) noexcept {
+		return {
+			{ "path", Util::toAdcFile(aSR->getPath()) },
+			{ "ip", Serializer::serializeIp(aSR->getIP()) },
+			{ "user", Serializer::serializeHintedUser(aSR->getUser()) },
+			{ "connection", aSR->getConnectionInt() },
+			{ "time", aSR->getDate() },
+			{ "slots", Serializer::serializeSlots(aSR->getFreeSlots(), aSR->getTotalSlots()) }
+		};
 	}
 
 	SearchResultInfo::Ptr SearchApi::getResult(ResultToken aToken) {
@@ -274,34 +286,36 @@ namespace webserver {
 		}
 
 		SearchResultInfoPtr parent = nullptr;
-		auto result = std::make_shared<SearchResultInfo>(aResult, move(relevanceInfo));
+		bool created = false;
 
 		{
 			WLock l(cs);
-			auto i = results.emplace(aResult->getTTH(), result);
-			if (!i.second) {
-				parent = i.first->second;
+			auto i = results.find(aResult->getTTH());
+			if (i == results.end()) {
+				parent = std::make_shared<SearchResultInfo>(aResult, move(relevanceInfo));
+				results.emplace(aResult->getTTH(), parent);
+				created = true;
+			} else {
+				parent = i->second;
 			}
 		}
 
-		if (!parent) {
-			searchView.onItemAdded(result);
-			return;
-		}
+		if (created) {
+			// New parent
+			searchView.onItemAdded(parent);
+		} else {
+			// Existing parent from now on
+			if (!parent->addChildResult(aResult)) {
+				return;
+			}
 
-		// No duplicate results for the same user that are received via different hubs
-		if (parent->hasUser(aResult->getUser())) {
-			return;
+			searchView.onItemUpdated(parent, { PROP_RELEVANCE, PROP_CONNECTION, PROP_HITS, PROP_SLOTS, PROP_USERS });
 		}
-
-		// Add as child
-		parent->addChildResult(result);
-		searchView.onItemUpdated(parent, { PROP_RELEVANCE, PROP_CONNECTION, PROP_HITS, PROP_SLOTS, PROP_USERS });
 
 		if (subscriptionActive("search_result")) {
 			send("search_result", {
 				{ "search_id", currentSearchToken },
-				{ "result", Serializer::serializeItem(result, itemHandler) }
+				{ "result", serializeSearchResult(aResult) }
 			});
 		}
 	}

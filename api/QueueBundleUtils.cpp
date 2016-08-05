@@ -18,7 +18,7 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/QueueUtils.h>
+#include <api/QueueBundleUtils.h>
 
 #include <api/QueueApi.h>
 #include <api/common/Format.h>
@@ -31,7 +31,27 @@
 #include <boost/range/algorithm/copy.hpp>
 
 namespace webserver {
-	BundleList QueueUtils::getBundleList() noexcept {
+	const PropertyList QueueBundleUtils::properties = {
+		{ PROP_NAME, "name", TYPE_TEXT, SERIALIZE_TEXT, SORT_CUSTOM },
+		{ PROP_TARGET, "target", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_SIZE, "size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_STATUS, "status", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_BYTES_DOWNLOADED, "downloaded_bytes", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_PRIORITY, "priority", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_TIME_ADDED, "time_added", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_TIME_FINISHED, "time_finished", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_SPEED, "speed", TYPE_SPEED, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_SECONDS_LEFT, "seconds_left", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_SOURCES, "sources", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+	};
+
+	const PropertyItemHandler<BundlePtr> QueueBundleUtils::propertyHandler = {
+		properties,
+		QueueBundleUtils::getStringInfo, QueueBundleUtils::getNumericInfo, QueueBundleUtils::compareBundles, QueueBundleUtils::serializeBundleProperty
+	};
+
+	BundleList QueueBundleUtils::getBundleList() noexcept {
 		BundleList bundles;
 		auto qm = QueueManager::getInstance();
 
@@ -40,22 +60,19 @@ namespace webserver {
 		return bundles;
 	}
 
-	std::string QueueUtils::formatDisplayStatus(const BundlePtr& aBundle) noexcept {
-		auto getPercentage = [&] {
-			return aBundle->getSize() > 0 ? (double)aBundle->getDownloadedBytes() *100.0 / (double)aBundle->getSize() : 0;
-		};
-
+	std::string QueueBundleUtils::formatDisplayStatus(const BundlePtr& aBundle) noexcept {
 		switch (aBundle->getStatus()) {
 		case Bundle::STATUS_NEW:
 		case Bundle::STATUS_QUEUED: {
+			auto percentage = aBundle->getPercentage(aBundle->getDownloadedBytes());
 			if (aBundle->isPausedPrio())
-				return STRING_F(PAUSED_PCT, getPercentage());
+				return STRING_F(PAUSED_PCT, percentage);
 
 			if (aBundle->getSpeed() > 0) { // Bundle->isRunning() ?
-				return STRING_F(RUNNING_PCT, getPercentage());
+				return STRING_F(RUNNING_PCT, percentage);
 			}
 			else {
-				return STRING_F(WAITING_PCT, getPercentage());
+				return STRING_F(WAITING_PCT, percentage);
 			}
 		}
 		case Bundle::STATUS_RECHECK: return STRING(RECHECKING);
@@ -74,46 +91,23 @@ namespace webserver {
 		}
 	}
 
-	json QueueUtils::serializePriority(const QueueItemBase& aItem) noexcept {
-		return{
-			{ "id", aItem.getPriority() },
-			{ "str", AirUtil::getPrioText(aItem.getPriority()) },
-			{ "auto", aItem.getAutoPriority() }
-		};
+	std::string QueueBundleUtils::formatBundleSources(const BundlePtr& aBundle) noexcept {
+		return QueueManager::getInstance()->getSourceCount(aBundle).format();
 	}
 
-	void QueueUtils::getBundleSourceInfo(const BundlePtr& aBundle, int& online_, int& total_, string& str_) noexcept {
-		auto sources = QueueManager::getInstance()->getBundleSources(aBundle);
-		for (const auto& s : sources) {
-			if (s.getUser().user->isOnline())
-				online_++;
-		}
-
-		total_ = sources.size();
-
-		str_ = sources.size() == 0 ? STRING(NONE) : STRING_F(USERS_ONLINE, online_ % sources.size());
-	}
-
-	std::string QueueUtils::formatBundleSources(const BundlePtr& aBundle) noexcept {
-		int total = 0, online = 0;
-		std::string str;
-		getBundleSourceInfo(aBundle, online, total, str);
-		return str;
-	}
-
-	std::string QueueUtils::getStringInfo(const BundlePtr& b, int aPropertyName) noexcept {
+	std::string QueueBundleUtils::getStringInfo(const BundlePtr& b, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case QueueApi::PROP_NAME: return b->getName();
-		case QueueApi::PROP_TARGET: return b->getTarget();
-		case QueueApi::PROP_TYPE: return formatBundleType(b);
-		case QueueApi::PROP_STATUS: return formatDisplayStatus(b);
-		case QueueApi::PROP_PRIORITY: return AirUtil::getPrioText(b->getPriority());
-		case QueueApi::PROP_SOURCES: return formatBundleSources(b);
+		case PROP_NAME: return b->getName();
+		case PROP_TARGET: return b->getTarget();
+		case PROP_TYPE: return formatBundleType(b);
+		case PROP_STATUS: return formatDisplayStatus(b);
+		case PROP_PRIORITY: return AirUtil::getPrioText(b->getPriority());
+		case PROP_SOURCES: return formatBundleSources(b);
 		default: dcassert(0); return Util::emptyString;
 		}
 	}
 
-	std::string QueueUtils::formatBundleType(const BundlePtr& aBundle) noexcept {
+	std::string QueueBundleUtils::formatBundleType(const BundlePtr& aBundle) noexcept {
 		if (aBundle->isFileBundle()) {
 			return Format::formatFileType(aBundle->getTarget());
 		} else {
@@ -123,33 +117,32 @@ namespace webserver {
 		}
 	}
 
-	double QueueUtils::getNumericInfo(const BundlePtr& b, int aPropertyName) noexcept {
+	double QueueBundleUtils::getNumericInfo(const BundlePtr& b, int aPropertyName) noexcept {
 		dcassert(b->getSize() != 0);
 		switch (aPropertyName) {
-		case QueueApi::PROP_SIZE: return (double)b->getSize();
-		case QueueApi::PROP_BYTES_DOWNLOADED: return (double)b->getDownloadedBytes();
-		case QueueApi::PROP_PRIORITY: return b->getPriority();
-		case QueueApi::PROP_TIME_ADDED: return (double)b->getTimeAdded();
-		case QueueApi::PROP_TIME_FINISHED: return (double)b->getTimeFinished();
-		case QueueApi::PROP_SPEED: return (double)b->getSpeed();
-		case QueueApi::PROP_SECONDS_LEFT: return (double)b->getSecondsLeft();
+		case PROP_SIZE: return (double)b->getSize();
+		case PROP_BYTES_DOWNLOADED: return (double)b->getDownloadedBytes();
+		case PROP_PRIORITY: return b->getPriority();
+		case PROP_TIME_ADDED: return (double)b->getTimeAdded();
+		case PROP_TIME_FINISHED: return (double)b->getTimeFinished();
+		case PROP_SPEED: return (double)b->getSpeed();
+		case PROP_SECONDS_LEFT: return (double)b->getSecondsLeft();
 		default: dcassert(0); return 0;
 		}
 	}
 
-	int QueueUtils::compareBundles(const BundlePtr& a, const BundlePtr& b, int aPropertyName) noexcept {
+#define COMPARE_FINISHED(a, b) if (a->getStatus() >= Bundle::STATUS_FINISHED != b->getStatus() >= Bundle::STATUS_FINISHED) return a->getStatus() >= Bundle::STATUS_FINISHED ? 1 : -1;
+#define COMPARE_TYPE(a, b) if (a->isFileBundle() != b->isFileBundle()) return a->isFileBundle() ? 1 : -1;
+
+	int QueueBundleUtils::compareBundles(const BundlePtr& a, const BundlePtr& b, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case QueueApi::PROP_NAME: {
-			if (a->isFileBundle() && !b->isFileBundle()) return 1;
-			if (!a->isFileBundle() && b->isFileBundle()) return -1;
+		case PROP_NAME: {
+			COMPARE_TYPE(a, b);
 
 			return Util::stricmp(a->getName(), b->getName());
 		}
-		case QueueApi::PROP_TYPE: {
-			if (a->isFileBundle() != b->isFileBundle()) {
-				// Directories go first
-				return a->isFileBundle() ? 1 : -1;
-			} 
+		case PROP_TYPE: {
+			COMPARE_TYPE(a, b);
 			
 			if (!a->isFileBundle() && !b->isFileBundle()) {
 				// Directory bundles
@@ -169,35 +162,31 @@ namespace webserver {
 
 			return Util::stricmp(Util::getFileExt(a->getTarget()), Util::getFileExt(b->getTarget()));
 		}
-		case QueueApi::PROP_PRIORITY: {
+		case PROP_PRIORITY: {
+			COMPARE_FINISHED(a, b);
 			if (a->isFinished() != b->isFinished()) {
 				return a->isFinished() ? 1 : -1;
 			}
 
 			return compare(static_cast<int>(a->getPriority()), static_cast<int>(b->getPriority()));
 		}
-		case QueueApi::PROP_STATUS: {
+		case PROP_STATUS: {
 			if (a->getStatus() != b->getStatus()) {
 				return compare(a->getStatus(),  b->getStatus());
 			}
 
-			return compare(a->getDownloadedBytes(), b->getDownloadedBytes());
+			return compare(
+				a->getPercentage(a->getDownloadedBytes()), 
+				b->getPercentage(b->getDownloadedBytes())
+			);
 		}
-		case QueueApi::PROP_SOURCES: {
-			if (a->isFinished() != b->isFinished()) {
-				return a->isFinished() ? 1 : -1;
-			}
+		case PROP_SOURCES: {
+			COMPARE_FINISHED(a, b);
 
-			int onlineA = 0, totalA = 0, onlineB = 0, totalB = 0;
-			std::string str;
-			getBundleSourceInfo(a, onlineA, totalA, str);
-			getBundleSourceInfo(b, onlineB, totalB, str);
+			auto countsA = QueueManager::getInstance()->getSourceCount(a);
+			auto countsB = QueueManager::getInstance()->getSourceCount(b);
 
-			if (onlineA != onlineB) {
-				return compare(onlineA, onlineB);
-			}
-
-			return compare(totalA, totalB);
+			return QueueItemBase::SourceCount::compare(countsA, countsB);
 		}
 		default:
 			dcassert(0);
@@ -206,7 +195,7 @@ namespace webserver {
 		return 0;
 	}
 
-	string QueueUtils::formatStatusId(const BundlePtr& aBundle) noexcept {
+	string QueueBundleUtils::formatStatusId(const BundlePtr& aBundle) noexcept {
 		switch (aBundle->getStatus()) {
 			case Bundle::STATUS_NEW: return "new";
 			case Bundle::STATUS_QUEUED: return "queued";
@@ -227,22 +216,15 @@ namespace webserver {
 		return Util::emptyString;
 	}
 
-	json QueueUtils::serializeBundleProperty(const BundlePtr& aBundle, int aPropertyName) noexcept {
+	json QueueBundleUtils::serializeBundleProperty(const BundlePtr& aBundle, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case QueueApi::PROP_SOURCES:
+		case PROP_SOURCES:
 		{
-			int total = 0, online = 0;
-			std::string str;
-			getBundleSourceInfo(aBundle, online, total, str);
-
-			return {
-				{ "online", online },
-				{ "total", total },
-				{ "str", str },
-			};
+			auto c = QueueManager::getInstance()->getSourceCount(aBundle);
+			return Serializer::serializeSourceCount(c);
 		}
 
-		case QueueApi::PROP_STATUS:
+		case PROP_STATUS:
 		{
 			return{
 				{ "id", formatStatusId(aBundle) },
@@ -252,7 +234,7 @@ namespace webserver {
 			};
 		}
 
-		case QueueApi::PROP_TYPE:
+		case PROP_TYPE:
 		{
 			if (aBundle->isFileBundle()) {
 				return Serializer::serializeFileType(aBundle->getTarget());
@@ -263,8 +245,8 @@ namespace webserver {
 				return Serializer::serializeFolderType(static_cast<int>(files), static_cast<int>(folders));
 			}
 		}
-		case QueueApi::PROP_PRIORITY: {
-			return serializePriority(*aBundle.get());
+		case PROP_PRIORITY: {
+			return Serializer::serializePriority(*aBundle.get());
 		}
 		}
 
