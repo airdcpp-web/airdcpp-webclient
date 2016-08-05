@@ -50,15 +50,14 @@ namespace webserver {
 		const string& getHubUrl() const noexcept { return sr->getUser().hint; }
 
 		bool hasUser(const UserPtr& aUser) const noexcept;
-		void addChildResult(const SearchResultInfo::Ptr& aResult) noexcept;
+		bool addChildResult(const SearchResultPtr& aResult) noexcept;
 		api_return download(const string& aTargetDirectory, const string& aTargetName, TargetUtil::TargetType aTargetType, QueueItemBase::Priority p);
 
 		bool isDirectory() const noexcept {
 			return sr->getType() == SearchResult::TYPE_DIRECTORY;
 		}
 
-		SearchResultPtr sr;
-		IGETSET(DupeType, dupe, Dupe, DUPE_NONE);
+		const SearchResultPtr sr;
 
 		double getTotalRelevance() const noexcept;
 		double getMatchRelevance() const noexcept;
@@ -67,29 +66,25 @@ namespace webserver {
 			return token;
 		}
 
+		DupeType getDupe() const noexcept {
+			return dupe;
+		}
+
 		int getHits() const noexcept {
 			return hits;
 		}
 
-		const string& getCountry() const noexcept {
-			return country;
-		}
-
 		double getConnectionSpeed() const noexcept;
 		void getSlots(int& free_, int& total_) const noexcept;
-		string getSlotStr() const noexcept;
 
-		const SearchResultInfo::List& getChildren() const noexcept {
-			return children;
-		}
+		SearchResultList getChildren() const noexcept;
 	private:
-		SearchResultInfo* parent = nullptr;
-		SearchResultInfo::List children;
+		DupeType dupe;
+		SearchResultList children;
 
-		SearchResult::RelevanceInfo relevanceInfo;
+		const SearchResult::RelevanceInfo relevanceInfo;
 
-		string country;
-		ResultToken token;
+		const ResultToken token;
 		int hits = 0;
 
 		static FastCriticalSection cs;

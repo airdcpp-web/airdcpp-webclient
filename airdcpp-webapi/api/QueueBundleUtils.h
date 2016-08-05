@@ -16,24 +16,42 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_QUEUEUTILS_H
-#define DCPLUSPLUS_DCPP_QUEUEUTILS_H
+#ifndef DCPLUSPLUS_DCPP_QUEUE_BUNDLE_UTILS_H
+#define DCPLUSPLUS_DCPP_QUEUE_BUNDLE_UTILS_H
 
 #include <web-server/stdinc.h>
+
+#include <api/common/Property.h>
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/QueueItemBase.h>
 
 namespace webserver {
-	class QueueUtils {
+	class QueueBundleUtils {
 	public:
+		static const PropertyList properties;
+		static const PropertyItemHandler<BundlePtr> propertyHandler;
+
+		enum Properties {
+			PROP_TOKEN = -1,
+			PROP_NAME,
+			PROP_TARGET,
+			PROP_TYPE,
+			PROP_SIZE,
+			PROP_STATUS,
+			PROP_BYTES_DOWNLOADED,
+			PROP_PRIORITY,
+			PROP_TIME_ADDED,
+			PROP_TIME_FINISHED,
+			PROP_SPEED,
+			PROP_SECONDS_LEFT,
+			PROP_SOURCES,
+			PROP_LAST
+		};
+
 		static BundleList getBundleList() noexcept;
 
 		static json serializeBundleProperty(const BundlePtr& aBundle, int aPropertyName) noexcept;
-		//static json serializeBundle(const BundlePtr& aBundle) noexcept;
-		//static json serializeQueueItem(const QueueItemPtr& aQI) noexcept;
-		//static json serializeQueueItemBase(const QueueItemBase& aItem) noexcept;
-		static json serializePriority(const QueueItemBase& aItem) noexcept;
 
 		static int compareBundles(const BundlePtr& a, const BundlePtr& b, int aPropertyName) noexcept;
 
@@ -41,8 +59,6 @@ namespace webserver {
 		static double getNumericInfo(const BundlePtr& a, int aPropertyName) noexcept;
 
 	private:
-		static void getBundleSourceInfo(const BundlePtr& aBundle, int& online_, int& total_, string& str_) noexcept;
-
 		static std::string formatStatusId(const BundlePtr& aBundle) noexcept;
 		static std::string formatDisplayStatus(const BundlePtr& aBundle) noexcept;
 		static std::string formatBundleSources(const BundlePtr& aBundle) noexcept;

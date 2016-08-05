@@ -33,6 +33,11 @@ namespace webserver {
 	class Deserializer {
 	public:
 		static CID parseCID(const string& aCID);
+
+		// Get user with the provided CID
+		// Throws if the user is not found
+		static UserPtr getUser(const string& aCID, bool aAllowMe);
+
 		static TTHValue parseTTH(const string& aTTH);
 
 		static UserPtr deserializeUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
@@ -54,7 +59,7 @@ namespace webserver {
 		static OptionalProfileToken deserializeOptionalShareProfile(const json& aJson);
 	private:
 		static LogMessage::Severity parseSeverity(const string& aText);
-		static UserPtr parseUser(const json& aJson, bool aAllowMe = false);
+		static UserPtr parseUser(const json& aJson, bool aAllowMe);
 	};
 }
 

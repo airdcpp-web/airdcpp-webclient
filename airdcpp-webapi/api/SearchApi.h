@@ -55,10 +55,10 @@ namespace webserver {
 			PROP_SLOTS,
 			PROP_TTH,
 			PROP_DUPE,
-			PROP_IP,
 			PROP_LAST
 		};
 	private:
+		static json serializeSearchResult(const SearchResultPtr& aSR) noexcept;
 		SearchResultInfo::List getResultList();
 
 		static json serializeDirectSearchResults(const SearchResultList& aResults, SearchQuery& aQuery) noexcept;

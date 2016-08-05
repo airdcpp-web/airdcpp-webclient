@@ -50,12 +50,7 @@ namespace webserver {
 	}
 
 	UserPtr UserApi::getUser(ApiRequest& aRequest) {
-		auto u = ClientManager::getInstance()->findUser(Deserializer::parseCID(aRequest.getStringParam(0)));
-		if (!u) {
-			throw std::invalid_argument("User not found");
-		}
-
-		return u;
+		return Deserializer::getUser(aRequest.getStringParam(0), true);
 	}
 
 	api_return UserApi::handleIgnore(ApiRequest& aRequest) {

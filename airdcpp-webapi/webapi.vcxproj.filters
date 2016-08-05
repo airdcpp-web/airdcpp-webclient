@@ -48,9 +48,6 @@
     <ClInclude Include="api\SessionApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
-    <ClInclude Include="api\QueueUtils.h">
-      <Filter>Header Files\api</Filter>
-    </ClInclude>
     <ClInclude Include="api\SearchApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
@@ -240,6 +237,12 @@
     <ClInclude Include="api\common\FileSearchParser.h">
       <Filter>Header Files\api\common</Filter>
     </ClInclude>
+    <ClInclude Include="api\QueueFileUtils.h">
+      <Filter>Header Files\api</Filter>
+    </ClInclude>
+    <ClInclude Include="api\QueueBundleUtils.h">
+      <Filter>Header Files\api</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
@@ -249,9 +252,6 @@
       <Filter>Source Files\api</Filter>
     </ClCompile>
     <ClCompile Include="api\SessionApi.cpp">
-      <Filter>Source Files\api</Filter>
-    </ClCompile>
-    <ClCompile Include="api\QueueUtils.cpp">
       <Filter>Source Files\api</Filter>
     </ClCompile>
     <ClCompile Include="api\SearchApi.cpp">
@@ -397,6 +397,12 @@
     </ClCompile>
     <ClCompile Include="api\common\FileSearchParser.cpp">
       <Filter>Source Files\api\common</Filter>
+    </ClCompile>
+    <ClCompile Include="api\QueueFileUtils.cpp">
+      <Filter>Source Files\api</Filter>
+    </ClCompile>
+    <ClCompile Include="api\QueueBundleUtils.cpp">
+      <Filter>Source Files\api</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -35,21 +35,31 @@ namespace webserver {
 
 		// check the dupe
 		if (SETTING(DUPE_SEARCH)) {
-			if (sr->getType() == SearchResult::TYPE_DIRECTORY)
+			if (sr->getType() == SearchResult::TYPE_DIRECTORY) {
 				dupe = AirUtil::checkDirDupe(sr->getPath(), sr->getSize());
-			else
+			} else {
 				dupe = AirUtil::checkFileDupe(sr->getTTH());
+			}
 		}
 
-		//get the ip info
-		country = GeoManager::getInstance()->getCountry(sr->getIP());
+		children.push_back(aSR);
 	}
 
-	void SearchResultInfo::addChildResult(const SearchResultInfo::Ptr& aResult) noexcept {
+	bool SearchResultInfo::addChildResult(const SearchResultPtr& aResult) noexcept {
+		// No duplicate results for the same user that are received via different hubs
+		if (hasUser(aResult->getUser())) {
+			return false;
+		}
+
 		FastLock l(cs);
 		children.push_back(aResult);
-		aResult->parent = this;
 		hits++;
+		return true;
+	}
+
+	SearchResultList SearchResultInfo::getChildren() const noexcept {
+		FastLock l(cs);
+		return children;
 	}
 
 	bool SearchResultInfo::hasUser(const UserPtr& aUser) const noexcept {
@@ -58,31 +68,22 @@ namespace webserver {
 		}
 
 		FastLock l(cs);
-		return boost::find_if(children, [&](const SearchResultInfoPtr& aResult) { return aResult->getUser() == aUser; }) != children.end();
+		return boost::find_if(children, [&](const SearchResultPtr& aResult) { return aResult->getUser() == aUser; }) != children.end();
 	}
 
 	double SearchResultInfo::getConnectionSpeed() const noexcept {
 		FastLock l(cs);
-		return static_cast<double>(boost::accumulate(children, sr->getConnectionInt(), [](int64_t total, const SearchResultInfo::Ptr& aSI) {
-			return total + aSI->sr->getConnectionInt();
+		return static_cast<double>(boost::accumulate(children, sr->getConnectionInt(), [](int64_t total, const SearchResultPtr& aSR) {
+			return total + aSR->getConnectionInt();
 		}));
 	}
 
 	void SearchResultInfo::getSlots(int& free_, int& total_) const noexcept {
-		free_ += sr->getFreeSlots();
-		total_ += sr->getSlots();
-
 		FastLock l(cs);
-		for (const auto& si : children) {
-			free_ += si->sr->getFreeSlots();
-			total_ += si->sr->getSlots();
+		for (const auto& sr : children) {
+			free_ += sr->getFreeSlots();
+			total_ += sr->getTotalSlots();
 		}
-	}
-
-	string SearchResultInfo::getSlotStr() const noexcept {
-		int free = 0, total = 0;
-		getSlots(free, total);
-		return Util::toString(free) + '/' + Util::toString(total);
 	}
 
 	double SearchResultInfo::getTotalRelevance() const noexcept {
@@ -105,11 +106,10 @@ namespace webserver {
 			}
 		};
 
-		SearchResultList results = { sr };
-		if (hits >= 1) {
+		SearchResultList results;
+		{
 			FastLock l(cs);
-			for (auto si : children)
-				results.push_back(si->sr);
+			results = children;
 		}
 
 		SearchResult::pickResults(results, SETTING(MAX_AUTO_MATCH_SOURCES));
