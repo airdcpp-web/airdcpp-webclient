@@ -102,7 +102,7 @@ namespace webserver {
 		void on(QueueManagerListener::ItemStatusUpdated, const QueueItemPtr& aQI) noexcept;
 
 		void onFileUpdated(const QueueItemPtr& aQI, const PropertyIdSet& aUpdatedProperties);
-		void onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription = "bundle_updated");
+		void onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription);
 
 		typedef ListViewController<BundlePtr, QueueBundleUtils::PROP_LAST> BundleListView;
 		BundleListView bundleView;

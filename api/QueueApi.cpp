@@ -39,8 +39,13 @@ namespace webserver {
 		createSubscription("bundle_added");
 		createSubscription("bundle_removed");
 		createSubscription("bundle_updated");
-		createSubscription("bundle_status");
 		createSubscription("bundle_tick");
+
+		// These are included in bundle_updated events as well
+		createSubscription("bundle_content");
+		createSubscription("bundle_priority");
+		createSubscription("bundle_status");
+		createSubscription("bundle_sources");
 
 		createSubscription("file_added");
 		createSubscription("file_removed");
@@ -53,7 +58,7 @@ namespace webserver {
 		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("file")), true, QueueApi::handleAddFileBundle);
 		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("directory")), true, QueueApi::handleAddDirectoryBundle);
 
-		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_GET, (TOKEN_PARAM, EXACT_PARAM("sources")), false, QueueApi::handleGetBundleSources);
+		METHOD_HANDLER("bundle", Access::QUEUE_VIEW, ApiRequest::METHOD_GET, (TOKEN_PARAM, EXACT_PARAM("sources")), false, QueueApi::handleGetBundleSources);
 		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_DELETE, (TOKEN_PARAM, EXACT_PARAM("source"), CID_PARAM), false, QueueApi::handleRemoveBundleSource);
 
 		METHOD_HANDLER("bundle", Access::QUEUE_VIEW, ApiRequest::METHOD_GET, (TOKEN_PARAM), false, QueueApi::handleGetBundle);
@@ -413,10 +418,13 @@ namespace webserver {
 
 	void QueueApi::onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription) {
 		bundleView.onItemUpdated(aBundle, aUpdatedProperties);
-		if (!subscriptionActive(aSubscription))
-			return;
+		if (subscriptionActive(aSubscription)) {
+			send(aSubscription, Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));;
+		}
 
-		send(aSubscription, Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));
+		if (subscriptionActive("bundle_updated")) {
+			send(aSubscription, Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));
+		}
 	}
 
 	void QueueApi::on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t /*aTick*/) noexcept {
@@ -438,11 +446,11 @@ namespace webserver {
 	}
 
 	void QueueApi::on(QueueManagerListener::BundleSize, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SIZE, QueueBundleUtils::PROP_TYPE });
+		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SIZE, QueueBundleUtils::PROP_TYPE }, "bundle_content");
 	}
 
 	void QueueApi::on(QueueManagerListener::BundlePriority, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_PRIORITY, QueueBundleUtils::PROP_STATUS });
+		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_PRIORITY, QueueBundleUtils::PROP_STATUS }, "bundle_priority");
 	}
 
 	void QueueApi::on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept {
@@ -450,10 +458,13 @@ namespace webserver {
 	}
 
 	void QueueApi::on(QueueManagerListener::BundleSources, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SOURCES });
+		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SOURCES }, "bundle_sources");
 	}
 
 	void QueueApi::on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SECONDS_LEFT, QueueBundleUtils::PROP_SPEED, QueueBundleUtils::PROP_STATUS, QueueBundleUtils::PROP_BYTES_DOWNLOADED });
+		onBundleUpdated(aBundle, { 
+			QueueBundleUtils::PROP_SECONDS_LEFT, QueueBundleUtils::PROP_SPEED, 
+			QueueBundleUtils::PROP_STATUS, QueueBundleUtils::PROP_BYTES_DOWNLOADED 
+		}, "bundle_status");
 	}
 }
