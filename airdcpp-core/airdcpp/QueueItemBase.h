@@ -75,6 +75,16 @@ public:
 	const string& getTarget() const noexcept {
 		return target;
 	}
+
+	double getPercentage(int64_t aDownloadedBytes) const noexcept;
+
+	struct SourceCount {
+		const size_t online;
+		const size_t total;
+
+		string format() const noexcept;
+		static int compare(const SourceCount& a, const SourceCount& b) noexcept;
+	};
 protected:
 	QueueToken token;
 	const string target;

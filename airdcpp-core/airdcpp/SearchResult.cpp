@@ -29,21 +29,21 @@
 
 namespace dcpp {
 
-SearchResult::SearchResult(const string& aPath) : path(aPath), size(0), date(0), slots(0), type(TYPE_DIRECTORY), freeSlots(0), files(0) { }
+SearchResult::SearchResult(const string& aPath) : path(aPath), type(TYPE_DIRECTORY) { }
 
-SearchResult::SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
+SearchResult::SearchResult(const HintedUser& aUser, Types aType, uint8_t aTotalSlots, uint8_t aFreeSlots,
 	int64_t aSize, const string& aPath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& aConnection, int aFiles, int dirCount) :
 
 	path(aPath), user(aUser), files(aFiles), folders(dirCount),
-	size(aSize), type(aType), slots(aSlots), freeSlots(aFreeSlots), IP(ip),
+	size(aSize), type(aType), totalSlots(aTotalSlots), freeSlots(aFreeSlots), IP(ip),
 	tth(aTTH), token(aToken), date(aDate), connection(aConnection) { }
 
-SearchResult::SearchResult(Types aType, int64_t aSize, const string& aPath, const TTHValue& aTTH, time_t aDate, int aFiles, int dirCount) :
-	path(aPath), user(HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString)), size(aSize), type(aType), slots(UploadManager::getInstance()->getSlots()),
-	freeSlots(UploadManager::getInstance()->getFreeSlots()), files(aFiles), folders(dirCount),
+SearchResult::SearchResult(Types aType, int64_t aSize, const string& aPath, const TTHValue& aTTH, time_t aDate, int aFiles, int aDirCount) :
+	path(aPath), user(HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString)), size(aSize), type(aType), totalSlots(UploadManager::getInstance()->getSlots()),
+	freeSlots(UploadManager::getInstance()->getFreeSlots()), files(aFiles), folders(aDirCount),
 	tth(aTTH), date(aDate) { }
 
-string SearchResult::toSR(const Client& c) const {
+string SearchResult::toSR(const Client& c) const noexcept {
 	// File:		"$SR %s %s%c%s %d/%d%c%s (%s)|"
 	// Directory:	"$SR %s %s %d/%d%c%s (%s)|"
 	string tmp;
@@ -62,7 +62,7 @@ string SearchResult::toSR(const Client& c) const {
 	tmp.append(1, ' ');
 	tmp.append(Util::toString(freeSlots));
 	tmp.append(1, '/');
-	tmp.append(Util::toString(slots));
+	tmp.append(Util::toString(totalSlots));
 	tmp.append(1, '\x05');
 	tmp.append("TTH:" + getTTH().toBase32());
 	tmp.append(" (", 2);
@@ -71,7 +71,7 @@ string SearchResult::toSR(const Client& c) const {
 	return tmp;
 }
 
-AdcCommand SearchResult::toRES(char aType) const {
+AdcCommand SearchResult::toRES(char aType) const noexcept {
 	AdcCommand cmd(AdcCommand::CMD_RES, aType);
 	cmd.addParam("SI", Util::toString(size));
 	cmd.addParam("SL", Util::toString(freeSlots));
@@ -87,26 +87,26 @@ AdcCommand SearchResult::toRES(char aType) const {
 	return cmd;
 }
 
-string SearchResult::getFileName() const { 
+string SearchResult::getFileName() const noexcept {
 	if(getType() == TYPE_FILE) 
 		return Util::getNmdcFileName(path); 
 
 	return Util::getNmdcLastDir(path);
 }
 
-string SearchResult::getSlotString() const { 
-	return Util::toString(getFreeSlots()) + '/' + Util::toString(getSlots()); 
+string SearchResult::getSlotString() const noexcept {
+	return formatSlots(getFreeSlots(), getTotalSlots());
 }
 
-int64_t SearchResult::getConnectionInt() const {
+int64_t SearchResult::getConnectionInt() const noexcept {
 	return isNMDC() ? static_cast<int64_t>(Util::toDouble(connection)*1024.0*1024.0/8.0) : Util::toInt64(connection);
 }
 
-int64_t SearchResult::getSpeedPerSlot() const {
-	return slots > 0 ? getConnectionInt() / slots : 0;
+int64_t SearchResult::getSpeedPerSlot() const noexcept {
+	return totalSlots > 0 ? getConnectionInt() / totalSlots : 0;
 }
 
-bool SearchResult::SpeedSortOrder::operator()(const SearchResultPtr& lhs, const SearchResultPtr& rhs) const {
+bool SearchResult::SpeedSortOrder::operator()(const SearchResultPtr& lhs, const SearchResultPtr& rhs) const noexcept {
 	//prefer the one that has free slots
 	if (lhs->getFreeSlots() > 0 && rhs->getFreeSlots() == 0)
 		return true;
@@ -123,17 +123,21 @@ bool SearchResult::SpeedSortOrder::operator()(const SearchResultPtr& lhs, const 
 	return lhs->getConnectionInt() > lhs->getConnectionInt();
 }
 
-void SearchResult::pickResults(SearchResultList& aResults, int pickedNum) {
-	if (static_cast<int>(aResults.size()) <= pickedNum) {
-		//we can pick all matches
+string SearchResult::formatSlots(size_t aFree, size_t aTotal) noexcept {
+	return Util::toString(aFree) + '/' + Util::toString(aTotal);
+}
+
+void SearchResult::pickResults(SearchResultList& aResults, int aMaxCount) noexcept {
+	if (static_cast<int>(aResults.size()) <= aMaxCount) {
+		// we can pick all matches
 	} else {
-		//pick the best matches
+		// pick the best matches
 		sort(aResults.begin(), aResults.end(), SearchResult::SpeedSortOrder());
-		aResults.erase(aResults.begin()+pickedNum, aResults.end());
+		aResults.erase(aResults.begin() + aMaxCount, aResults.end());
 	}
 }
 
-string SearchResult::getFilePath() const {
+string SearchResult::getFilePath() const noexcept {
 	if (type == TYPE_DIRECTORY)
 		return path;
 	return Util::getNmdcFilePath(path);

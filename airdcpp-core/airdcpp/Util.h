@@ -105,22 +105,14 @@ class Util
 {
 public:
 	struct PathSortOrderInt {
-		int operator()(const string& left, const string& right) const noexcept {
-			auto comp = compare(Util::getFilePath(left), Util::getFilePath(right));
-			if (comp == 0) {
-				return compare(left, right);
-			}
-			return comp;
+		int operator()(const string& a, const string& b) const noexcept {
+			return pathSort(a, b);
 		}
 	};
 
 	struct PathSortOrderBool {
-		bool operator()(const string& left, const string& right) const noexcept {
-			auto comp = compare(Util::getFilePath(left), Util::getFilePath(right));
-			if (comp == 0) {
-				return compare(left, right) < 0;
-			}
-			return comp < 0;
+		bool operator()(const string& a, const string& b) const noexcept {
+			return pathSort(a, b) < 0;
 		}
 	};
 
@@ -320,13 +312,13 @@ public:
 
 	static string formatTime(int64_t aSec, bool translate, bool perMinute = false) noexcept;
 
+	static int DefaultSort(const char* a, const char* b) noexcept;
 	static int DefaultSort(const wchar_t* a, const wchar_t* b) noexcept;
-
 	inline static int DefaultSort(const string& a, const string& b) noexcept {
 		return DefaultSort(a.c_str(), b.c_str());
 	}
 
-	static int DefaultSort(const char* a, const char* b) noexcept;
+	static int pathSort(const string& a, const string& b) noexcept;
 
 	static int64_t toInt64(const string& aString) noexcept {
 #ifdef _WIN32

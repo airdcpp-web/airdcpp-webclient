@@ -46,39 +46,41 @@ public:
 	SearchResult(Types aType, int64_t aSize, const string& name, const TTHValue& aTTH, time_t aDate, int fileCount=0, int dirCount=0);
 
 	//incoming results
-	SearchResult(const HintedUser& aUser, Types aType, uint8_t aSlots, uint8_t aFreeSlots, 
+	SearchResult(const HintedUser& aUser, Types aType, uint8_t aTotalSlots, uint8_t aFreeSlots, 
 		int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& connection, int fileCount, int dirCount);
 
-	string getFileName() const;
-	string toSR(const Client& client) const;
-	AdcCommand toRES(char type) const;
+	string getFileName() const noexcept;
+	string toSR(const Client& client) const noexcept;
+	AdcCommand toRES(char type) const noexcept;
 
-	HintedUser& getUser() { return user; }
-	string getSlotString() const;
+	const HintedUser& getUser() const noexcept { return user; }
 
-	string getFilePath() const;
-	const string& getPath() const { return path; }
-	int64_t getSize() const { return size; }
-	Types getType() const { return type; }
-	size_t getSlots() const { return slots; }
-	size_t getFreeSlots() const { return freeSlots; }
-	int getFileCount() const { return files; }
-	int getFolderCount() const { return folders; }
-	const TTHValue& getTTH() const { return tth; }
+	static string formatSlots(size_t aFree, size_t aTotal) noexcept;
+	string getSlotString() const noexcept;
+
+	string getFilePath() const noexcept;
+	const string& getPath() const noexcept { return path; }
+	int64_t getSize() const noexcept { return size; }
+	Types getType() const noexcept { return type; }
+	size_t getTotalSlots() const noexcept { return totalSlots; }
+	size_t getFreeSlots() const noexcept { return freeSlots; }
+	int getFileCount() const noexcept { return files; }
+	int getFolderCount() const noexcept { return folders; }
+	const TTHValue& getTTH() const noexcept { return tth; }
 	
-	const string& getConnectionStr() const { return connection; }
-	int64_t getConnectionInt() const;
-	int64_t getSpeedPerSlot() const;
+	const string& getConnectionStr() const noexcept { return connection; }
+	int64_t getConnectionInt() const noexcept;
+	int64_t getSpeedPerSlot() const noexcept;
 
-	const string& getIP() const { return IP; }
-	const string& getToken() const { return token; }
-	time_t getDate() const { return date; }
-	const CID& getCID() const { return user.user->getCID(); }
-	bool isNMDC() const { return user.user->isNMDC(); }
+	const string& getIP() const noexcept { return IP; }
+	const string& getToken() const noexcept { return token; }
+	time_t getDate() const noexcept { return date; }
+	const CID& getCID() const noexcept { return user.user->getCID(); }
+	bool isNMDC() const noexcept { return user.user->isNMDC(); }
 
-	static void pickResults(SearchResultList& aResults, int pickedNum);
+	static void pickResults(SearchResultList& aResults, int aMaxCount) noexcept;
 	struct SpeedSortOrder {
-		bool operator()(const SearchResultPtr& left, const SearchResultPtr& right) const;
+		bool operator()(const SearchResultPtr& left, const SearchResultPtr& right) const noexcept;
 	};
 
 	struct RelevanceInfo {
@@ -96,25 +98,25 @@ private:
 
 	SearchResult();
 
-	TTHValue tth;
+	const TTHValue tth;
 	
-	string path;
-	string IP;
-	string token;
+	const string path;
+	const string IP;
+	const string token;
 	
-	int64_t size;
+	const int64_t size = 0;
 	
-	size_t slots;
-	size_t freeSlots;
+	const size_t totalSlots = 0;
+	const size_t freeSlots = 0;
 
-	int folders;
-	int files;
+	const int folders = 0;
+	const int files = 0;
 	
-	HintedUser user;
-	Types type;
+	const HintedUser user;
+	const Types type;
 
-	time_t date;
-	string connection;
+	const time_t date = 0;
+	const string connection;
 };
 
 }

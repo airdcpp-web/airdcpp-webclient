@@ -2379,18 +2379,19 @@ void QueueManager::handleSlowDisconnect(const UserPtr& aUser, const string& aTar
 	}
 }
 
-void QueueManager::removeBundleSource(QueueToken aBundleToken, const UserPtr& aUser, Flags::MaskType aReason) noexcept {
+size_t QueueManager::removeBundleSource(QueueToken aBundleToken, const UserPtr& aUser, Flags::MaskType aReason) noexcept {
 	BundlePtr bundle = nullptr;
 	{
 		RLock l(cs);
 		bundle = bundleQueue.findBundle(aBundleToken);
 	}
-	removeBundleSource(bundle, aUser, aReason);
+
+	return removeBundleSource(bundle, aUser, aReason);
 }
 
-void QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser, Flags::MaskType aReason) noexcept {
+size_t QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser, Flags::MaskType aReason) noexcept {
 	if (!aBundle) {
-		return;
+		return 0;
 	}
 
 	QueueItemList ql;
@@ -2411,6 +2412,7 @@ void QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser, F
 	}
 
 	fire(QueueManagerListener::SourceFilesUpdated(), aUser);
+	return ql.size();
 }
 
 void QueueManager::sendRemovePBD(const HintedUser& aUser, const string& aRemoteToken) noexcept {
