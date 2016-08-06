@@ -1596,7 +1596,7 @@ void AdcHub::on(Second s, uint64_t aTick) noexcept {
 
 OnlineUserPtr AdcHub::findUser(const string& aNick) const noexcept {
 	RLock l(cs); 
-	for(auto ou: users | map_values) { 
+	for(const auto& ou: users | map_values) { 
 		if(ou->getIdentity().getNick() == aNick) { 
 			return ou; 
 		} 

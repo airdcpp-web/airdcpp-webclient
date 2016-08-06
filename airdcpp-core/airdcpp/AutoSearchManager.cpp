@@ -470,7 +470,7 @@ void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aUpdate) noexcept 
 
 	time_t tmp = 0;
 	//calculate which of the items has the nearest possible search time.
-	for (auto x : searchItems.getItems() | map_values) {
+	for (const auto& x : searchItems.getItems() | map_values) {
 		if (!x->allowNewItems())
 			continue;
 		if (x->isRecent())

@@ -93,10 +93,6 @@ namespace dcpp {
 
 		void setRead() noexcept;
 		int clearCache() noexcept;
-
-		const string& getLastLogLines() const noexcept {
-			return lastLogLines;
-		}
 	private:
 		MessageCache cache;
 		enum EventType {
@@ -140,8 +136,6 @@ namespace dcpp {
 
 		// Checks that the user still exists in the hinted hub and changes to another hub when needed
 		void checkUserHub(bool aWentOffline) noexcept;
-
-		string lastLogLines;
 	};
 }
 
