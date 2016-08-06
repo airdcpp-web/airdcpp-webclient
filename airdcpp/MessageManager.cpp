@@ -107,13 +107,13 @@ bool MessageManager::removeChat(const UserPtr& aUser) {
 	return true;
 }
 
-void MessageManager::closeAll(bool Offline) {
+void MessageManager::closeAll(bool aOfflineOnly) {
 	UserList toRemove;
 
 	{
 		RLock l(cs);
-		for (auto i : chats) {
-			if (Offline && i.first->isOnline())
+		for (const auto& i : chats) {
+			if (aOfflineOnly && i.first->isOnline())
 				continue;
 
 			toRemove.push_back(i.first);

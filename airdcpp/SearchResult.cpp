@@ -123,6 +123,10 @@ bool SearchResult::SpeedSortOrder::operator()(const SearchResultPtr& lhs, const 
 	return lhs->getConnectionInt() > lhs->getConnectionInt();
 }
 
+bool SearchResult::DateOrder::operator()(const SearchResultPtr& a, const SearchResultPtr& b) const noexcept {
+	return a->getDate() > 0 && a->getDate() < b->getDate();
+}
+
 string SearchResult::formatSlots(size_t aFree, size_t aTotal) noexcept {
 	return Util::toString(aFree) + '/' + Util::toString(aTotal);
 }

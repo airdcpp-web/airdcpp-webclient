@@ -83,6 +83,12 @@ public:
 		bool operator()(const SearchResultPtr& left, const SearchResultPtr& right) const noexcept;
 	};
 
+	// The oldest date will go first (min element)
+	// Results without a date will go last
+	struct DateOrder {
+		bool operator()(const SearchResultPtr& a, const SearchResultPtr& b) const noexcept;
+	};
+
 	struct RelevanceInfo {
 		double matchRelevance;
 		double sourceScoreFactor;

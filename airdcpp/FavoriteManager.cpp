@@ -653,7 +653,7 @@ void FavoriteManager::previewload(SimpleXML& aXml){
 void FavoriteManager::previewsave(SimpleXML& aXml){
 	aXml.addTag("PreviewApps");
 	aXml.stepIn();
-	for(const auto pa: previewApplications) {
+	for(const auto& pa: previewApplications) {
 		aXml.addTag("Application");
 		aXml.addChildAttrib("Name", pa->getName());
 		aXml.addChildAttrib("Application", pa->getApplication());
@@ -674,7 +674,7 @@ void FavoriteManager::recentsave() {
 
 	{
 		RLock l(cs);
-		for (const auto rhe : recentHubs) {
+		for (const auto& rhe : recentHubs) {
 			xml.addTag("Hub");
 			xml.addChildAttrib("Name", rhe->getName());
 			xml.addChildAttrib("Description", rhe->getDescription());

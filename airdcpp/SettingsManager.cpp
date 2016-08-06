@@ -399,7 +399,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(DONT_DL_ALREADY_SHARED, false);
 	setDefault(CONFIRM_HUB_REMOVAL, true);
 	setDefault(USE_CTRL_FOR_LINE_HISTORY, true);
-	setDefault(SHOW_LAST_LINES_LOG, 10);
+	setDefault(MAX_PM_HISTORY_LINES, 10);
 	setDefault(CONFIRM_QUEUE_REMOVAL, true);
 	setDefault(TOGGLE_ACTIVE_WINDOW, true);
 	setDefault(SET_MINISLOT_SIZE, 512);

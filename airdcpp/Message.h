@@ -36,15 +36,19 @@ public:
 	IGETSET(bool, thirdPerson, ThirdPerson, false);
 
 	GETSET(bool, read, Read);
-	GETSET(uint64_t, id, Id);
 
-	string format() const;
+	string format() const noexcept;
 
 	const string& getText() const noexcept {
 		return text;
 	}
+
+	uint64_t getId() const noexcept {
+		return id;
+	}
 private:
 	string text;
+	const uint64_t id;
 };
 
 class LogMessage {
@@ -57,7 +61,7 @@ public:
 		SEV_LAST 
 	};
 
-	LogMessage(const string& aMessage, Severity sev) noexcept;
+	LogMessage(const string& aMessage, Severity sev, bool aHistory = false) noexcept;
 
 	uint64_t getId() const noexcept {
 		return id;
@@ -75,12 +79,16 @@ public:
 		return time;
 	}
 
+	bool isHistory() const noexcept {
+		return time == 0;
+	}
+
 	IGETSET(bool, read, Read, false);
 private:
-	uint64_t id;
+	const uint64_t id;
 	string text;
-	time_t time;
-	Severity severity;
+	const time_t time;
+	const Severity severity;
 };
 
 struct Message {

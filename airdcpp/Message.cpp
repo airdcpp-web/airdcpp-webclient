@@ -37,9 +37,12 @@ ChatMessage::ChatMessage(const string& aText, const OnlineUserPtr& aFrom, const 
 	read = aFrom && aFrom->getUser() == ClientManager::getInstance()->getMe();
 }
 
-LogMessage::LogMessage(const string& aMessage, LogMessage::Severity sev) noexcept : id(messageIdCounter++), text(aMessage), time(GET_TIME()), severity(sev) { }
+LogMessage::LogMessage(const string& aMessage, LogMessage::Severity sev, bool aHistory) noexcept : 
+	id(messageIdCounter++), text(aMessage), time(aHistory ? 0 : GET_TIME()), severity(sev) {
 
-string ChatMessage::format() const {
+}
+
+string ChatMessage::format() const noexcept {
 	string tmp;
 
 	//if(timestamp) {
