@@ -109,7 +109,7 @@ namespace webserver {
 #define COMPARE_FINISHED(a, b) if (a->isSet(QueueItem::FLAG_FINISHED) != b->isSet(QueueItem::FLAG_FINISHED)) return a->isSet(QueueItem::FLAG_FINISHED) ? 1 : -1;
 
 	string QueueFileUtils::getDisplayName(const QueueItemPtr& aItem) noexcept {
-		if (aItem->getBundle()) {
+		if (aItem->getBundle() && !aItem->getBundle()->isFileBundle()) {
 			return aItem->getTarget().substr(aItem->getBundle()->getTarget().size(), aItem->getTarget().size());
 		}
 

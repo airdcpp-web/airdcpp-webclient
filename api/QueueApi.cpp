@@ -39,9 +39,9 @@ namespace webserver {
 		createSubscription("bundle_added");
 		createSubscription("bundle_removed");
 		createSubscription("bundle_updated");
-		createSubscription("bundle_tick");
 
 		// These are included in bundle_updated events as well
+		createSubscription("bundle_tick");
 		createSubscription("bundle_content");
 		createSubscription("bundle_priority");
 		createSubscription("bundle_status");
@@ -427,24 +427,6 @@ namespace webserver {
 		}
 	}
 
-	void QueueApi::on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t /*aTick*/) noexcept {
-		bundleView.onItemsUpdated(tickBundles, { 
-			QueueBundleUtils::PROP_SPEED, QueueBundleUtils::PROP_SECONDS_LEFT, QueueBundleUtils::PROP_BYTES_DOWNLOADED, QueueBundleUtils::PROP_STATUS 
-		});
-
-		if (!subscriptionActive("bundle_tick"))
-			return;
-
-		addAsyncTask([=] {
-			json j;
-			for (const auto& b : tickBundles) {
-				j.push_back(Serializer::serializeItem(b, QueueBundleUtils::propertyHandler));
-			}
-
-			send("bundle_tick", j);
-		});
-	}
-
 	void QueueApi::on(QueueManagerListener::BundleSize, const BundlePtr& aBundle) noexcept {
 		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SIZE, QueueBundleUtils::PROP_TYPE }, "bundle_content");
 	}
@@ -461,10 +443,15 @@ namespace webserver {
 		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SOURCES }, "bundle_sources");
 	}
 
+#define TICK_PROPS { QueueBundleUtils::PROP_SECONDS_LEFT, QueueBundleUtils::PROP_SPEED, QueueBundleUtils::PROP_STATUS, QueueBundleUtils::PROP_BYTES_DOWNLOADED }
+	void QueueApi::on(DownloadManagerListener::BundleTick, const BundleList& aTickBundles, uint64_t /*aTick*/) noexcept {
+		for (const auto& b : aTickBundles) {
+			onBundleUpdated(b, TICK_PROPS, "bundle_tick");
+		}
+	}
+
 	void QueueApi::on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { 
-			QueueBundleUtils::PROP_SECONDS_LEFT, QueueBundleUtils::PROP_SPEED, 
-			QueueBundleUtils::PROP_STATUS, QueueBundleUtils::PROP_BYTES_DOWNLOADED 
-		}, "bundle_status");
+		// "Waiting" isn't really a status (it's just meant to clear the props for running bundles...)
+		onBundleUpdated(aBundle, TICK_PROPS, "bundle_tick");
 	}
 }

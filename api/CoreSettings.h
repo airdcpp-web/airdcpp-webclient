@@ -192,7 +192,7 @@ namespace webserver {
 		{ "history_search_clear_exit", SettingsManager::HISTORY_SEARCH_CLEAR, ResourceManager::CLEAR_EXIT },
 		{ "history_download_max", SettingsManager::HISTORY_DIR_MAX, ResourceManager::SETTINGS_DOWNLOAD_LOCATIONS },
 		{ "history_download_clear_exit", SettingsManager::HISTORY_DIR_CLEAR, ResourceManager::CLEAR_EXIT },
-		//{ "history_last_pm_lines", SettingsManager::SHOW_LAST_LINES_LOG, ResourceManager::MAX_LOG_LINES },
+		{ "history_chat_log_lines", SettingsManager::MAX_PM_HISTORY_LINES, ResourceManager::MAX_PM_HISTORY_LINES },
 		{ "history_pm_messages", SettingsManager::PM_MESSAGE_CACHE, ResourceManager::PRIVATE_CHAT },
 		{ "history_hub_messages", SettingsManager::HUB_MESSAGE_CACHE , ResourceManager::HUBS },
 		{ "history_log_messages", SettingsManager::LOG_MESSAGE_CACHE , ResourceManager::SYSTEM_LOG },

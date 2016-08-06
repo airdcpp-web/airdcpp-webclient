@@ -86,6 +86,12 @@ namespace webserver {
 		}
 	}
 
+	time_t SearchResultInfo::getOldestDate() const noexcept {
+		FastLock l(cs);
+		auto min = min_element(children.begin(), children.end(), SearchResult::DateOrder());
+		return (*min)->getDate();
+	}
+
 	double SearchResultInfo::getTotalRelevance() const noexcept {
 		return (hits * relevanceInfo.sourceScoreFactor) + relevanceInfo.matchRelevance;
 	}

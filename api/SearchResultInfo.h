@@ -76,6 +76,7 @@ namespace webserver {
 
 		double getConnectionSpeed() const noexcept;
 		void getSlots(int& free_, int& total_) const noexcept;
+		time_t getOldestDate() const noexcept;
 
 		SearchResultList getChildren() const noexcept;
 	private:
