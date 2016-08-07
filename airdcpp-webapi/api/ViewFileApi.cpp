@@ -31,7 +31,7 @@
 #include <boost/range/algorithm/copy.hpp>
 
 namespace webserver {
-	ViewFileApi::ViewFileApi(Session* aSession) : ApiModule(aSession, Access::VIEW_FILES_VIEW) {
+	ViewFileApi::ViewFileApi(Session* aSession) : SubscribableApiModule(aSession, Access::VIEW_FILES_VIEW) {
 
 		ViewFileManager::getInstance()->addListener(this);
 

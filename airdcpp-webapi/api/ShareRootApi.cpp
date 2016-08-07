@@ -44,7 +44,7 @@ namespace webserver {
 		ShareUtils::getStringInfo, ShareUtils::getNumericInfo, ShareUtils::compareItems, ShareUtils::serializeItem, ShareUtils::filterItem
 	};
 
-	ShareRootApi::ShareRootApi(Session* aSession) : ApiModule(aSession, Access::SETTINGS_VIEW),
+	ShareRootApi::ShareRootApi(Session* aSession) : SubscribableApiModule(aSession, Access::SETTINGS_VIEW),
 		rootView("share_root_view", this, itemHandler, std::bind(&ShareRootApi::getRoots, this)),
 		timer(getTimer([this] { onTimer(); }, 5000)) {
 

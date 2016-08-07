@@ -26,7 +26,7 @@
 
 
 namespace webserver {
-	class SystemApi : public ApiModule, private ActivityManagerListener {
+	class SystemApi : public SubscribableApiModule, private ActivityManagerListener {
 	public:
 		SystemApi(Session* aSession);
 		~SystemApi();

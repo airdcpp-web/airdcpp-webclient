@@ -37,7 +37,7 @@
 #include <airdcpp/UploadManagerListener.h>
 
 namespace webserver {
-	class TransferApi : public ApiModule, private ConnectionManagerListener, private DownloadManagerListener, private UploadManagerListener {
+	class TransferApi : public SubscribableApiModule, private ConnectionManagerListener, private DownloadManagerListener, private UploadManagerListener {
 	public:
 		TransferApi(Session* aSession);
 		~TransferApi();

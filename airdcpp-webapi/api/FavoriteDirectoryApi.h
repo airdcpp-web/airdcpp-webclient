@@ -27,7 +27,7 @@
 #include <airdcpp/FavoriteManagerListener.h>
 
 namespace webserver {
-	class FavoriteDirectoryApi : public ApiModule, private FavoriteManagerListener {
+	class FavoriteDirectoryApi : public SubscribableApiModule, private FavoriteManagerListener {
 	public:
 		FavoriteDirectoryApi(Session* aSession);
 		~FavoriteDirectoryApi();

@@ -30,7 +30,7 @@
 #include <boost/range/algorithm/copy.hpp>
 
 namespace webserver {
-	QueueApi::QueueApi(Session* aSession) : ApiModule(aSession, Access::QUEUE_VIEW),
+	QueueApi::QueueApi(Session* aSession) : SubscribableApiModule(aSession, Access::QUEUE_VIEW),
 			bundleView("bundle_view", this, QueueBundleUtils::propertyHandler, QueueBundleUtils::getBundleList), fileView("queue_file_view", this, QueueFileUtils::propertyHandler, QueueFileUtils::getFileList) {
 
 		QueueManager::getInstance()->addListener(this);

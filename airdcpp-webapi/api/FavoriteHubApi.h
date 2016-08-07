@@ -29,7 +29,7 @@
 #include <airdcpp/HubEntry.h>
 
 namespace webserver {
-	class FavoriteHubApi : public ApiModule, private FavoriteManagerListener {
+	class FavoriteHubApi : public SubscribableApiModule, private FavoriteManagerListener {
 	public:
 		FavoriteHubApi(Session* aSession);
 		~FavoriteHubApi();

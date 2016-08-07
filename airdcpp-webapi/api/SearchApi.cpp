@@ -49,7 +49,7 @@ namespace webserver {
 		SearchUtils::getStringInfo, SearchUtils::getNumericInfo, SearchUtils::compareResults, SearchUtils::serializeResult
 	};
 
-	SearchApi::SearchApi(Session* aSession) : ApiModule(aSession, Access::SEARCH), 
+	SearchApi::SearchApi(Session* aSession) : SubscribableApiModule(aSession, Access::SEARCH),
 		searchView("search_view", this, itemHandler, std::bind(&SearchApi::getResultList, this)) {
 
 		SearchManager::getInstance()->addListener(this);

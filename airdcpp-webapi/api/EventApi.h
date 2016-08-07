@@ -27,7 +27,7 @@
 #include <airdcpp/LogManagerListener.h>
 
 namespace webserver {
-	class EventApi : public ApiModule, private LogManagerListener {
+	class EventApi : public SubscribableApiModule, private LogManagerListener {
 	public:
 		EventApi(Session* aSession);
 		~EventApi();

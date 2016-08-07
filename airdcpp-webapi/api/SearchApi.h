@@ -30,7 +30,7 @@
 #include <airdcpp/SearchQuery.h>
 
 namespace webserver {
-	class SearchApi : public ApiModule, private SearchManagerListener {
+	class SearchApi : public SubscribableApiModule, private SearchManagerListener {
 	public:
 		SearchApi(Session* aSession);
 		~SearchApi();

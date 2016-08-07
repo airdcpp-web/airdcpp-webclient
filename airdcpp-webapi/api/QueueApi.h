@@ -34,7 +34,7 @@
 
 
 namespace webserver {
-	class QueueApi : public ApiModule, private QueueManagerListener, private DownloadManagerListener {
+	class QueueApi : public SubscribableApiModule, private QueueManagerListener, private DownloadManagerListener {
 	public:
 		QueueApi(Session* aSession);
 		~QueueApi();

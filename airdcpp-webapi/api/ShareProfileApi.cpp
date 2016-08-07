@@ -23,7 +23,7 @@
 #include <airdcpp/ShareManager.h>
 
 namespace webserver {
-	ShareProfileApi::ShareProfileApi(Session* aSession) : ApiModule(aSession, Access::SETTINGS_VIEW) {
+	ShareProfileApi::ShareProfileApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY) {
 
 		ShareManager::getInstance()->addListener(this);
 

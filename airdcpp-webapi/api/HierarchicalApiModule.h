@@ -32,13 +32,13 @@ namespace webserver {
 	class WebSocket;
 
 	template<class IdType, class ItemType>
-	class ParentApiModule : public ApiModule {
+	class ParentApiModule : public SubscribableApiModule {
 	public:
 		typedef ParentApiModule<IdType, ItemType> Type;
 		typedef std::function<IdType(const string&)> ConvertF;
 
 		ParentApiModule(const string& aSubmoduleSection, const StringMatch& aIdMatcher, Access aAccess, Session* aSession, const StringList& aSubscriptions, const StringList& aChildSubscription, ConvertF aConvertF) :
-			ApiModule(aSession, aAccess, &aSubscriptions), convertF(aConvertF) {
+			SubscribableApiModule(aSession, aAccess, &aSubscriptions), convertF(aConvertF) {
 
 			requestHandlers[aSubmoduleSection].push_back(ApiModule::RequestHandler(aIdMatcher, std::bind(&Type::handleSubModuleRequest, this, placeholders::_1)));
 
@@ -62,7 +62,7 @@ namespace webserver {
 			subModules.clear();
 		}
 
-		api_return handleSubscribe(ApiRequest& aRequest) {
+		api_return handleSubscribe(ApiRequest& aRequest) override {
 			if (!socket) {
 				aRequest.setResponseErrorStr("Socket required");
 				return websocketpp::http::status_code::precondition_required;
@@ -73,16 +73,16 @@ namespace webserver {
 				return websocketpp::http::status_code::ok;
 			}
 
-			return ApiModule::handleSubscribe(aRequest);
+			return SubscribableApiModule::handleSubscribe(aRequest);
 		}
 
-		api_return handleUnsubscribe(ApiRequest& aRequest) {
+		api_return handleUnsubscribe(ApiRequest& aRequest) override {
 			const auto& subscription = aRequest.getStringParam(0);
 			if (setChildSubscriptionState(subscription, false)) {
 				return websocketpp::http::status_code::ok;
 			}
 
-			return ApiModule::handleUnsubscribe(aRequest);
+			return SubscribableApiModule::handleUnsubscribe(aRequest);
 		}
 
 		// Forward request to a submodule
@@ -97,12 +97,12 @@ namespace webserver {
 			return sub->handleRequest(aRequest);
 		}
 
-		bool subscriptionExists(const string& aSubscription) const noexcept {
+		bool subscriptionExists(const string& aSubscription) const noexcept override {
 			if (childSubscriptions.find(aSubscription) != childSubscriptions.end()) {
 				return true;
 			}
 
-			return ApiModule::subscriptionExists(aSubscription);
+			return SubscribableApiModule::subscriptionExists(aSubscription);
 		}
 
 		// Change subscription state for all submodules
@@ -171,29 +171,29 @@ namespace webserver {
 	private:
 		map<IdType, typename ItemType::Ptr> subModules;
 
-		ApiModule::SubscriptionMap childSubscriptions;
+		SubscribableApiModule::SubscriptionMap childSubscriptions;
 		const ConvertF convertF;
 	};
 
 	template<class ParentIdType, class ItemType, class ItemJsonType>
-	class SubApiModule : public ApiModule {
+	class SubApiModule : public SubscribableApiModule {
 	public:
 		typedef ParentApiModule<ParentIdType, ItemType> ParentType;
 
 		// aId = ID of the entity owning this module
 		// Will inherit access from the parent module
 		SubApiModule(ParentType* aParentModule, const ItemJsonType& aId, const StringList& aSubscriptions) :
-			ApiModule(aParentModule->getSession(), aParentModule->getSubscriptionAccess(), &aSubscriptions), parentModule(aParentModule), id(aId) { }
+			SubscribableApiModule(aParentModule->getSession(), aParentModule->getSubscriptionAccess(), &aSubscriptions), parentModule(aParentModule), id(aId) { }
 
-		bool send(const string& aSubscription, const json& aJson) {
-			return ApiModule::send({
+		bool send(const string& aSubscription, const json& aJson) override {
+			return SubscribableApiModule::send({
 				{ "event", aSubscription },
 				{ "data", aJson },
 				{ "id", id }
 			});
 		}
 
-		bool maybeSend(const string& aSubscription, ApiModule::JsonCallback aCallback) {
+		bool maybeSend(const string& aSubscription, SubscribableApiModule::JsonCallback aCallback) override {
 			if (!subscriptionActive(aSubscription)) {
 				return false;
 			}
@@ -201,12 +201,12 @@ namespace webserver {
 			return send(aSubscription, aCallback());
 		}
 
-		bool subscriptionActive(const string& aSubscription) const noexcept {
+		bool subscriptionActive(const string& aSubscription) const noexcept override {
 			if (parentModule->childSubscriptionActive(aSubscription)) {
 				return true;
 			}
 
-			return ApiModule::subscriptionActive(aSubscription);
+			return SubscribableApiModule::subscriptionActive(aSubscription);
 		}
 
 
@@ -215,16 +215,16 @@ namespace webserver {
 		// module exist in the parent
 		virtual void init() noexcept = 0;
 
-		void createSubscription(const string& aSubscription) noexcept {
-			ApiModule::createSubscription(aSubscription);
+		void createSubscription(const string& aSubscription) noexcept override {
+			SubscribableApiModule::createSubscription(aSubscription);
 			parentModule->createChildSubscription(aSubscription);
 		}
 
-		void addAsyncTask(CallBack&& aTask) {
-			ApiModule::addAsyncTask(getAsyncWrapper(move(aTask)));
+		void addAsyncTask(CallBack&& aTask) override {
+			SubscribableApiModule::addAsyncTask(getAsyncWrapper(move(aTask)));
 		}
 
-		TimerPtr getTimer(CallBack&& aTask, time_t aIntervalMillis) {
+		TimerPtr getTimer(CallBack&& aTask, time_t aIntervalMillis) override {
 			return session->getServer()->addTimer(move(aTask), aIntervalMillis, 
 				std::bind(&SubApiModule::moduleAsyncRunWrapper<ItemJsonType, ParentType>, std::placeholders::_1, parentModule, id, session->getId())
 			);
@@ -232,7 +232,7 @@ namespace webserver {
 
 		// All custom async tasks should be run inside this to
 		// ensure that the submodule (or the session) won't get deleted
-		CallBack getAsyncWrapper(CallBack&& aTask) noexcept {
+		CallBack getAsyncWrapper(CallBack&& aTask) noexcept override {
 			auto sessionId = session->getId();
 			auto moduleId = id;
 			return [=] {
@@ -243,7 +243,7 @@ namespace webserver {
 		template<class IdType, class ParentType>
 		static void moduleAsyncRunWrapper(const CallBack& aTask, ParentType* aParentModule, const IdType& aId, LocalSessionId aSessionId) {
 			// Ensure that we have a session
-			ApiModule::asyncRunWrapper([=] {
+			SubscribableApiModule::asyncRunWrapper([=] {
 				// Ensure that we have a submodule (the parent must exist if we have a session)
 				auto m = aParentModule->getSubModule(aId);
 				if (!m) {

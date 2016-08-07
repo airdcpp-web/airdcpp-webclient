@@ -27,7 +27,7 @@
 #include <airdcpp/ConnectivityManager.h>
 
 namespace webserver {
-	class ConnectivityApi : public ApiModule, private ConnectivityManagerListener {
+	class ConnectivityApi : public SubscribableApiModule, private ConnectivityManagerListener {
 	public:
 		ConnectivityApi(Session* aSession);
 		~ConnectivityApi();

@@ -27,7 +27,7 @@
 
 
 namespace webserver {
-	UserApi::UserApi(Session* aSession) : ApiModule(aSession, Access::ANY) {
+	UserApi::UserApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY) {
 
 		ClientManager::getInstance()->addListener(this);
 		MessageManager::getInstance()->addListener(this);

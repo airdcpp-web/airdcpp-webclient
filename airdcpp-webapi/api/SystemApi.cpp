@@ -29,7 +29,7 @@
 #include <airdcpp/TimerManager.h>
 
 namespace webserver {
-	SystemApi::SystemApi(Session* aSession) : ApiModule(aSession, Access::ANY) {
+	SystemApi::SystemApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY) {
 
 		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, SystemApi::handleGetStats);
 

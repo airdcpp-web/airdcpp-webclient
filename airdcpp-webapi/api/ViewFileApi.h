@@ -28,7 +28,7 @@
 #include <api/ApiModule.h>
 
 namespace webserver {
-	class ViewFileApi : public ApiModule, private ViewFileManagerListener {
+	class ViewFileApi : public SubscribableApiModule, private ViewFileManagerListener {
 	public:
 
 		ViewFileApi(Session* aSession);
