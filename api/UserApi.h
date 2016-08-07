@@ -29,7 +29,7 @@
 #include <airdcpp/MessageManagerListener.h>
 
 namespace webserver {
-	class UserApi : public ApiModule, private MessageManagerListener, private ClientManagerListener {
+	class UserApi : public SubscribableApiModule, private MessageManagerListener, private ClientManagerListener {
 	public:
 		UserApi(Session* aSession);
 		~UserApi();

@@ -27,7 +27,7 @@
 #include <airdcpp/HashManager.h>
 
 namespace webserver {
-	class HashApi : public ApiModule, private HashManagerListener {
+	class HashApi : public SubscribableApiModule, private HashManagerListener {
 	public:
 		HashApi(Session* aSession);
 		~HashApi();

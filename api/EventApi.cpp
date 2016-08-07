@@ -25,7 +25,7 @@
 #include <airdcpp/LogManager.h>
 
 namespace webserver {
-	EventApi::EventApi(Session* aSession) : ApiModule(aSession, Access::EVENTS_VIEW) {
+	EventApi::EventApi(Session* aSession) : SubscribableApiModule(aSession, Access::EVENTS_VIEW) {
 		LogManager::getInstance()->addListener(this);
 
 		createSubscription("event_message");

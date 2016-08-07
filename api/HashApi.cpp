@@ -25,7 +25,7 @@
 #include <api/common/Serializer.h>
 
 namespace webserver {
-	HashApi::HashApi(Session* aSession) : ApiModule(aSession, Access::ANY),
+	HashApi::HashApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY),
 		timer(getTimer([this] { onTimer(); }, 1000)) {
 
 		HashManager::getInstance()->addListener(this);

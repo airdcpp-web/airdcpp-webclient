@@ -30,7 +30,7 @@
 #include <airdcpp/ShareManagerListener.h>
 
 namespace webserver {
-	class ShareRootApi : public ApiModule, private ShareManagerListener, private HashManagerListener {
+	class ShareRootApi : public SubscribableApiModule, private ShareManagerListener, private HashManagerListener {
 	public:
 		ShareRootApi(Session* aSession);
 		~ShareRootApi();

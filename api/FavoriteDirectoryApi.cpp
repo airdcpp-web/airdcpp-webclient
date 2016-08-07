@@ -22,7 +22,7 @@
 #include <airdcpp/FavoriteManager.h>
 
 namespace webserver {
-	FavoriteDirectoryApi::FavoriteDirectoryApi(Session* aSession) : ApiModule(aSession, Access::ANY) {
+	FavoriteDirectoryApi::FavoriteDirectoryApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY) {
 		// TODO: fix method naming in the next major version
 		METHOD_HANDLER("directories", Access::ANY, ApiRequest::METHOD_GET, (), false, FavoriteDirectoryApi::handleGetGroupedDirectories);
 		METHOD_HANDLER("directories_flat", Access::ANY, ApiRequest::METHOD_GET, (), false, FavoriteDirectoryApi::handleGetDirectories);

@@ -30,7 +30,7 @@ namespace webserver {
 	template<class T>
 	class ChatController {
 	public:
-		ChatController(ApiModule* aModule, const T& aChat, const string& aSubscriptionId) :
+		ChatController(SubscribableApiModule* aModule, const T& aChat, const string& aSubscriptionId) :
 			module(aModule), subscriptionId(aSubscriptionId), chat(aChat)
 		{
 			auto& requestHandlers = aModule->getRequestHandlers();
@@ -133,7 +133,7 @@ namespace webserver {
 
 		T chat;
 		string subscriptionId;
-		ApiModule* module;
+		SubscribableApiModule* module;
 	};
 }
 

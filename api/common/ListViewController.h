@@ -44,7 +44,7 @@ namespace webserver {
 
 		// Use the short default update interval for lists that can be edited by the users
 		// Larger lists with lots of updates and non-critical response times should specify a longer interval
-		ListViewController(const string& aViewName, ApiModule* aModule, const PropertyItemHandler<T>& aItemHandler, ItemListF aItemListF, time_t aUpdateInterval = 200) :
+		ListViewController(const string& aViewName, SubscribableApiModule* aModule, const PropertyItemHandler<T>& aItemHandler, ItemListF aItemListF, time_t aUpdateInterval = 200) :
 			module(aModule), viewName(aViewName), itemHandler(aItemHandler), itemListF(aItemListF),
 			timer(aModule->getTimer([this] { runTasks(); }, aUpdateInterval))
 		{
@@ -752,10 +752,10 @@ namespace webserver {
 
 		bool active = false;
 
-		SharedMutex cs;
+		mutable SharedMutex cs;
 
-		ApiModule* module = nullptr;
-		std::string viewName;
+		SubscribableApiModule* module = nullptr;
+		const std::string viewName;
 
 		ItemTasks<T> tasks;
 

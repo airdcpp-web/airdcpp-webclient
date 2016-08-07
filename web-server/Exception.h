@@ -32,8 +32,8 @@ namespace webserver {
 		JsonException(const json& aError) : error(aError) { }
 		JsonException(json&& aError) : error(move(aError)) { }
 
-		virtual ~JsonException() throw() { }
-		virtual const json& getErrorJson() const { return error; }
+		virtual ~JsonException() noexcept { }
+		const json& getErrorJson() const { return error; }
 	protected:
 		json error;
 	};

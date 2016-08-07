@@ -29,7 +29,7 @@
 
 namespace webserver {
 	class WebSocket;
-	class ApiModule : private SessionListener {
+	class ApiModule {
 	public:
 #define NUM_PARAM (StringMatch::getSearch(R"(\d+)", StringMatch::REGEX))
 #define TOKEN_PARAM NUM_PARAM
@@ -41,7 +41,7 @@ namespace webserver {
 #define BRACED_INIT_LIST(...) {__VA_ARGS__}
 #define METHOD_HANDLER(section, access, method, params, requireJson, func) (requestHandlers[section].push_back(ApiModule::RequestHandler(access, method, requireJson, BRACED_INIT_LIST params, std::bind(&func, this, placeholders::_1))))
 
-		ApiModule(Session* aSession, Access aSubscriptionAccess = Access::NONE, const StringList* aSubscriptions = nullptr);
+		ApiModule(Session* aSession);
 		virtual ~ApiModule();
 
 		typedef vector<StringMatch> ParamList;
@@ -72,13 +72,9 @@ namespace webserver {
 			}
 		};
 
-		typedef std::map<const string, bool> SubscriptionMap;
 		typedef std::map<std::string, RequestHandler::List> RequestHandlerMap;
 
 		api_return handleRequest(ApiRequest& aRequest);
-
-		virtual void on(SessionListener::SocketConnected, const WebSocketPtr&) noexcept;
-		virtual void on(SessionListener::SocketDisconnected) noexcept;
 
 		virtual int getVersion() const noexcept {
 			dcdebug("Root module should always have version specified");
@@ -88,21 +84,47 @@ namespace webserver {
 		ApiModule(ApiModule&) = delete;
 		ApiModule& operator=(ApiModule&) = delete;
 
+		virtual void addAsyncTask(CallBack&& aTask);
+		virtual TimerPtr getTimer(CallBack&& aTask, time_t aIntervalMillis);
+
+		Session* getSession() const noexcept {
+			return session;
+		}
+
+		RequestHandlerMap& getRequestHandlers() noexcept {
+			return requestHandlers;
+		}
+
+		// All custom async tasks should be run inside this to
+		// ensure that the session won't get deleted
+		virtual CallBack getAsyncWrapper(CallBack&& aTask) noexcept;
+	protected:
+		static void asyncRunWrapper(const CallBack& aTask, LocalSessionId aSessionId);
+
+		Session* session;
+
+		RequestHandlerMap requestHandlers;
+	};
+
+	
+	class SubscribableApiModule : public ApiModule, private SessionListener {
+	public:
+		SubscribableApiModule(Session* aSession, Access aSubscriptionAccess, const StringList* aSubscriptions = nullptr);
+		virtual ~SubscribableApiModule();
+
+		typedef std::map<const string, bool> SubscriptionMap;
+
+		virtual void on(SessionListener::SocketConnected, const WebSocketPtr&) noexcept;
+		virtual void on(SessionListener::SocketDisconnected) noexcept;
+
 		virtual bool send(const json& aJson);
 		virtual bool send(const string& aSubscription, const json& aJson);
 
 		typedef std::function<json()> JsonCallback;
 		virtual bool maybeSend(const string& aSubscription, JsonCallback aCallback);
 
-		virtual void addAsyncTask(CallBack&& aTask);
-		virtual TimerPtr getTimer(CallBack&& aTask, time_t aIntervalMillis);
-
 		// All custom async tasks should be run inside this to
 		// ensure that the session won't get deleted
-
-		Session* getSession() const noexcept {
-			return session;
-		}
 
 		virtual void setSubscriptionState(const string& aSubscription, bool active) noexcept {
 			subscriptions[aSubscription] = active;
@@ -123,22 +145,11 @@ namespace webserver {
 			subscriptions[aSubscription];
 		}
 
-		RequestHandlerMap& getRequestHandlers() noexcept {
-			return requestHandlers;
-		}
-
 		Access getSubscriptionAccess() const noexcept {
 			return subscriptionAccess;
 		}
-
-		virtual CallBack getAsyncWrapper(CallBack&& aTask) noexcept;
 	protected:
-		static void asyncRunWrapper(const CallBack& aTask, LocalSessionId aSessionId);
-
 		const Access subscriptionAccess;
-		Session* session;
-
-		RequestHandlerMap requestHandlers;
 
 		WebSocketPtr socket = nullptr;
 
