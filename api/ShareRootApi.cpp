@@ -101,6 +101,10 @@ namespace webserver {
 			JsonUtil::throwError("path", JsonUtil::ERROR_INVALID, e.what());
 		}
 
+		if (ShareManager::getInstance()->isRealPathShared(path)) {
+			JsonUtil::throwError("path", JsonUtil::ERROR_INVALID, "Path is shared already");
+		}
+
 		auto info = std::make_shared<ShareDirectoryInfo>(path);
 
 		parseRoot(info, reqJson, true);
