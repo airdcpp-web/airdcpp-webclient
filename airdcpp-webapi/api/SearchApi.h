@@ -30,7 +30,7 @@
 #include <airdcpp/SearchQuery.h>
 
 namespace webserver {
-	class SearchApi : public ApiModule, private SearchManagerListener {
+	class SearchApi : public SubscribableApiModule, private SearchManagerListener {
 	public:
 		SearchApi(Session* aSession);
 		~SearchApi();
@@ -58,6 +58,7 @@ namespace webserver {
 			PROP_LAST
 		};
 	private:
+		static json serializeSearchResult(const SearchResultPtr& aSR) noexcept;
 		SearchResultInfo::List getResultList();
 
 		static json serializeDirectSearchResults(const SearchResultList& aResults, SearchQuery& aQuery) noexcept;
@@ -70,6 +71,9 @@ namespace webserver {
 		api_return handleGetTypes(ApiRequest& aRequest);
 
 		api_return handleDownload(ApiRequest& aRequest);
+		api_return handleGetChildren(ApiRequest& aRequest);
+
+		SearchResultInfo::Ptr getResult(ResultToken aToken);
 
 		void on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept;
 

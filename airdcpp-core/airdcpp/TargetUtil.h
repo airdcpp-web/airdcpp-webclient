@@ -78,7 +78,7 @@ public:
 
 	static string getMountPath(const string& aPath, const VolumeSet& aVolumes);
 
-	static bool getTarget(const StringList& targets, TargetInfo& ti_, const int64_t& size);
+	static bool getTarget(const OrderedStringSet& aTargets, TargetInfo& ti_, const int64_t& size);
 
 	static bool getVirtualTarget(const string& aTarget, TargetType targetType, TargetInfo& ti_, const int64_t& size);
 

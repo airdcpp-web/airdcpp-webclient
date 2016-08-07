@@ -41,7 +41,10 @@ PrivateChat::PrivateChat(const HintedUser& aUser, UserConnection* aUc) :
 
 	ClientManager::getInstance()->addListener(this);
 
-	lastLogLines = LogManager::readFromEnd(getLogPath(), SETTING(SHOW_LAST_LINES_LOG), Util::convertSize(16, Util::KB));
+	auto lastLogLines = LogManager::readFromEnd(getLogPath(), SETTING(MAX_PM_HISTORY_LINES), Util::convertSize(16, Util::KB));
+	if (!lastLogLines.empty()) {
+		cache.addMessage(std::make_shared<LogMessage>(lastLogLines, LogMessage::SEV_INFO, true));
+	}
 }
 
 PrivateChat::~PrivateChat() {

@@ -33,6 +33,11 @@ namespace webserver {
 	class Deserializer {
 	public:
 		static CID parseCID(const string& aCID);
+
+		// Get user with the provided CID
+		// Throws if the user is not found
+		static UserPtr getUser(const string& aCID, bool aAllowMe);
+
 		static TTHValue parseTTH(const string& aTTH);
 
 		static UserPtr deserializeUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
@@ -40,7 +45,7 @@ namespace webserver {
 		static TTHValue deserializeTTH(const json& aJson);
 		static QueueItemBase::Priority deserializePriority(const json& aJson, bool allowDefault);
 
-		static void deserializeDownloadParams(const json& aJson, string& targetDirectory_, string& targetName_, TargetUtil::TargetType& targetType_, QueueItemBase::Priority& priority_);
+		static void deserializeDownloadParams(const json& aJson, const SessionPtr& aSession, string& targetDirectory_, string& targetName_, TargetUtil::TargetType& targetType_, QueueItemBase::Priority& priority_);
 
 		// Returns all connected hubs if the list is not found from the JSON
 		static StringList deserializeHubUrls(const json& aJson);
@@ -54,7 +59,7 @@ namespace webserver {
 		static OptionalProfileToken deserializeOptionalShareProfile(const json& aJson);
 	private:
 		static LogMessage::Severity parseSeverity(const string& aText);
-		static UserPtr parseUser(const json& aJson, bool aAllowMe = false);
+		static UserPtr parseUser(const json& aJson, bool aAllowMe);
 	};
 }
 

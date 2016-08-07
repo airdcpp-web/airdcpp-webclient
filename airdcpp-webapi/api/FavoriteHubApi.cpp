@@ -44,7 +44,7 @@ namespace webserver {
 		FavoriteHubUtils::getStringInfo, FavoriteHubUtils::getNumericInfo, FavoriteHubUtils::compareEntries, FavoriteHubUtils::serializeHub
 	};
 
-	FavoriteHubApi::FavoriteHubApi(Session* aSession) : ApiModule(aSession, Access::FAVORITE_HUBS_VIEW),
+	FavoriteHubApi::FavoriteHubApi(Session* aSession) : SubscribableApiModule(aSession, Access::FAVORITE_HUBS_VIEW),
 		view("favorite_hub_view", this, itemHandler, FavoriteHubUtils::getEntryList) {
 
 		FavoriteManager::getInstance()->addListener(this);

@@ -164,6 +164,19 @@ optional<string> Util::getStartupParam(const string& aKey) noexcept {
 
 #ifdef _WIN32
 
+string Util::getSystemUsername() noexcept {
+	DWORD size = 0;
+	::GetUserName(0, &size);
+	if (size > 1) {
+		tstring str(size - 1, 0);
+		if (::GetUserName(&str[0], &size)) {
+			return Text::fromT(str);
+		}
+	}
+
+	return "airdcpp";
+}
+
 string Util::getAppPath() noexcept {
 	TCHAR buf[MAX_PATH+1];
 	DWORD x = GetModuleFileName(NULL, buf, MAX_PATH);
@@ -178,6 +191,15 @@ void Util::setApp(const string& app) noexcept {
 
 string Util::getAppPath() noexcept {
 	return appPath;
+}
+
+string Util::getSystemUsername() noexcept {
+	char buf[64] = { 0 };
+	if (getlogin_r(buf, sizeof(buf) - 1) != 0) {
+		return "airdcpp";
+	}
+
+	return buf;
 }
 	
 #endif
@@ -1092,7 +1114,7 @@ struct GetString : boost::static_visitor<string> {
  * it is removed from the string completely...
  */
 
-string Util::formatParams(const string& aMsg, const ParamMap& aParams, FilterF filter) noexcept {
+string Util::formatParams(const string& aMsg, const ParamMap& aParams, FilterF aFilter, time_t aTime) noexcept {
 	string result = aMsg;
 
 	string::size_type i, j, k;
@@ -1114,8 +1136,8 @@ string Util::formatParams(const string& aMsg, const ParamMap& aParams, FilterF f
 			// replace all % in params with %% for strftime
 			replace("%", "%%", replacement);
 
-			if(filter) {
-				replacement = filter(replacement);
+			if(aFilter) {
+				replacement = aFilter(replacement);
 			}
 
 			result.replace(j, k - j + 1, replacement);
@@ -1123,25 +1145,15 @@ string Util::formatParams(const string& aMsg, const ParamMap& aParams, FilterF f
 		}
 	}
 
-	result = formatTime(result, time(NULL));
+	if (aTime > 0) {
+		result = formatTime(result, aTime);
+	}
 
 	return result;
 }
 
-bool Util::isPathValid(const string &sPath) noexcept {
-	if(sPath.empty())
-		return false;
-
-#ifdef _WIN32
-	if((sPath.substr(1, 2) == ":\\") || (sPath.substr(0, 2) == "\\\\")) {
-		if(GetFileAttributes(Text::toT(sPath).c_str()) & FILE_ATTRIBUTE_DIRECTORY)
-			return true;
-	}
-
-	return false;
-#else
-	return true;
-#endif
+bool Util::isAdcPath(const string& aPath) noexcept {
+	return !aPath.empty() && aPath.front() == '/' && aPath.back() == '/';
 }
 
 bool Util::fileExists(const string &aFile) noexcept {
@@ -1149,7 +1161,7 @@ bool Util::fileExists(const string &aFile) noexcept {
 		return false;
 
 #ifdef _WIN32
-	DWORD attr = GetFileAttributes(Text::toT(Util::FormatPath(aFile)).c_str());
+	DWORD attr = GetFileAttributes(Text::toT(Util::formatPath(aFile)).c_str());
 	return (attr != 0xFFFFFFFF);
 #else
 	return File::getSize(aFile) != -1;
@@ -1445,6 +1457,15 @@ string Util::translateError(int aError) noexcept {
 #else // _WIN32
 	return Text::toUtf8(strerror(aError));
 #endif // _WIN32
+}
+
+int Util::pathSort(const string& a, const string& b) noexcept {
+	auto comp = compare(Util::getFilePath(a), Util::getFilePath(b));
+	if (comp == 0) {
+		return compare(a, b);
+	}
+
+	return comp;
 }
 
 /* natural sorting */

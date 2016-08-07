@@ -90,19 +90,24 @@ public:
 	~File();
 
 	bool isOpen() const noexcept;
-	void close() noexcept;
 	int64_t getSize() const noexcept;
 	void setSize(int64_t newSize);
 
 	int64_t getPos() const noexcept;
-	void setPos(int64_t pos) noexcept;
+	void setPos(int64_t pos) noexcept override;
 	void setEndPos(int64_t pos) noexcept;
 	void movePos(int64_t pos) noexcept;
 	void setEOF();
 
-	size_t read(void* buf, size_t& len);
-	size_t write(const void* buf, size_t len);
-	size_t flush();
+	// Get the path as it appears on disk
+	string getRealPath() const;
+
+	size_t read(void* buf, size_t& len) override;
+	size_t write(const void* buf, size_t len) override;
+
+	// This has no effect if aForce is false
+	// Generally the operating system should decide when the buffered data is written on disk
+	size_t flushBuffers(bool aForce = true) override;
 
 	uint64_t getLastModified() const noexcept;
 
@@ -148,6 +153,8 @@ public:
 	static void forEachFile(const string& path, const string& pattern, std::function<void (const string& /*name*/, bool /*isDir*/, int64_t /*size*/)> aF, bool skipHidden = true);
 	static string getMountPath(const string& aPath) noexcept;
 protected:
+	void close() noexcept;
+
 #ifdef _WIN32
 	HANDLE h;
 #else

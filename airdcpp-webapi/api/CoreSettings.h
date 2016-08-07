@@ -101,6 +101,14 @@ namespace webserver {
 		{ "download_max_start_speed", SettingsManager::MAX_DOWNLOAD_SPEED, ResourceManager::SETTINGS_DOWNLOADS_SPEED_PAUSE, ApiSettingItem::TYPE_LIMITS_DL, { ResourceManager::Strings::KiB, true } },
 		{ "download_highest_prio_slots", SettingsManager::EXTRA_DOWNLOAD_SLOTS, ResourceManager::SETTINGS_CZDC_EXTRA_DOWNLOADS },
 
+		{ "prio_high_files", SettingsManager::HIGH_PRIO_FILES, ResourceManager::SETTINGS_HIGH_PRIO_FILES },
+		{ "prio_high_files_regex", SettingsManager::HIGHEST_PRIORITY_USE_REGEXP, ResourceManager::USE_REGEXP },
+		{ "prio_highest_size", SettingsManager::PRIO_HIGHEST_SIZE, ResourceManager::SETTINGS_PRIO_HIGHEST, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::KiB, false } },
+		{ "prio_high_size", SettingsManager::PRIO_HIGH_SIZE, ResourceManager::SETTINGS_PRIO_HIGH, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::KiB, false } },
+		{ "prio_normal_size", SettingsManager::PRIO_NORMAL_SIZE, ResourceManager::SETTINGS_PRIO_NORMAL, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::KiB, false } },
+		{ "prio_high_files_to_highest", SettingsManager::PRIO_LIST_HIGHEST, ResourceManager::SETTINGS_USE_HIGHEST_LIST },
+		{ "prio_auto_default", SettingsManager::AUTO_PRIORITY_DEFAULT, ResourceManager::SETTINGS_AUTO_PRIORITY_DEFAULT },
+
 		//{ ResourceManager::UPLOAD_LIMITS },
 		{ "upload_auto_limits", SettingsManager::UL_AUTODETECT, ResourceManager::AUTODETECT },
 		{ "upload_auto_grant_speed", SettingsManager::MIN_UPLOAD_SPEED, ResourceManager::SETTINGS_UPLOADS_MIN_SPEED, ApiSettingItem::TYPE_LIMITS_UL, { ResourceManager::Strings::KiB, true } },
@@ -184,7 +192,7 @@ namespace webserver {
 		{ "history_search_clear_exit", SettingsManager::HISTORY_SEARCH_CLEAR, ResourceManager::CLEAR_EXIT },
 		{ "history_download_max", SettingsManager::HISTORY_DIR_MAX, ResourceManager::SETTINGS_DOWNLOAD_LOCATIONS },
 		{ "history_download_clear_exit", SettingsManager::HISTORY_DIR_CLEAR, ResourceManager::CLEAR_EXIT },
-		//{ "history_last_pm_lines", SettingsManager::SHOW_LAST_LINES_LOG, ResourceManager::MAX_LOG_LINES },
+		{ "history_chat_log_lines", SettingsManager::MAX_PM_HISTORY_LINES, ResourceManager::MAX_PM_HISTORY_LINES },
 		{ "history_pm_messages", SettingsManager::PM_MESSAGE_CACHE, ResourceManager::PRIVATE_CHAT },
 		{ "history_hub_messages", SettingsManager::HUB_MESSAGE_CACHE , ResourceManager::HUBS },
 		{ "history_log_messages", SettingsManager::LOG_MESSAGE_CACHE , ResourceManager::SYSTEM_LOG },

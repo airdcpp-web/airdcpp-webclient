@@ -657,7 +657,7 @@ bool QueueItem::usesSmallSlot() const {
 QueueItemPtr QueueItem::pickSearchItem(const QueueItemList& aItems) noexcept {
 	QueueItemPtr searchItem = nullptr;
 
-	for (auto s = 0; s < aItems.size(); s++) {
+	for (size_t s = 0; s < aItems.size(); s++) {
 		searchItem = aItems[Util::rand(aItems.size() - 1)];
 
 		if (!searchItem->isRunning() && !searchItem->isPausedPrio()) {

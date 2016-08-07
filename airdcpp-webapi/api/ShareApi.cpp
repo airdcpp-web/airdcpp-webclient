@@ -27,7 +27,7 @@
 #include <airdcpp/HubEntry.h>
 
 namespace webserver {
-	ShareApi::ShareApi(Session* aSession) : ApiModule(aSession, Access::SETTINGS_VIEW) {
+	ShareApi::ShareApi(Session* aSession) : SubscribableApiModule(aSession, Access::SETTINGS_VIEW) {
 
 		METHOD_HANDLER("grouped_root_paths", Access::ANY, ApiRequest::METHOD_GET, (), false, ShareApi::handleGetGroupedRootPaths);
 		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, ShareApi::handleGetStats);

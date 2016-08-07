@@ -45,7 +45,8 @@ namespace dcpp {
 using boost::range::for_each;
 using boost::range::find_if;
 
-DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : TrackableDownloadItem(aIsOwnList || (!aPartial && !aFileName.empty())),
+DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
+	TrackableDownloadItem(aIsOwnList || (!aPartial && Util::fileExists(aFileName))), // API requires the download state to be set correctly
 	hintedUser(aUser), root(new Directory(nullptr, Util::emptyString, Directory::TYPE_INCOMPLETE_NOCHILD, 0)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
 	isClientView(aIsClientView), matchADL(SETTING(USE_ADLS) && !aPartial), 
 	tasks(isClientView, Thread::NORMAL, std::bind(&DirectoryListing::dispatch, this, std::placeholders::_1))
@@ -212,6 +213,30 @@ void DirectoryListing::onStateChanged() noexcept {
 	fire(DirectoryListingListener::StateChanged());
 }
 
+DirectoryListing::Directory::Ptr DirectoryListing::createBaseDirectory(const string& aBasePath, time_t aDownloadDate) noexcept {
+	dcassert(Util::isAdcPath(aBasePath));
+	auto cur = root;
+
+	StringList sl = StringTokenizer<string>(aBasePath, '/').getTokens();
+	for (const auto& curDirName : sl) {
+		auto s = find(cur->directories, curDirName);
+		if (s == cur->directories.end()) {
+			auto d = make_shared<DirectoryListing::Directory>(cur.get(), curDirName, DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD, aDownloadDate, true);
+			cur->directories.push_back(d);
+			baseDirs[Text::toLower(Util::toAdcFile(d->getPath()))] = { d, false };
+			cur = d;
+		} else {
+			cur = *s;
+		}
+	}
+
+	// Mark the directory as visited
+	auto& p = baseDirs[Text::toLower(aBasePath)];
+	p.second = true;
+
+	return cur;
+}
+
 void DirectoryListing::loadFile() throw(Exception, AbortException) {
 	if (isOwnList) {
 		loadShareDirectory(Util::emptyString, true);
@@ -221,7 +246,7 @@ void DirectoryListing::loadFile() throw(Exception, AbortException) {
 		string ext = Util::getFileExt(fileName);
 
 		dcpp::File ff(fileName, dcpp::File::READ, dcpp::File::OPEN, dcpp::File::BUFFER_AUTO);
-		root->setUpdateDate(ff.getLastModified());
+		root->setLastUpdateDate(ff.getLastModified());
 		if(Util::stricmp(ext, ".bz2") == 0) {
 			FilteredInputStream<UnBZFilter, false> f(&ff);
 			loadXML(f, false, "/", ff.getLastModified());
@@ -233,8 +258,8 @@ void DirectoryListing::loadFile() throw(Exception, AbortException) {
 
 class ListLoader : public SimpleXMLReader::CallBack {
 public:
-	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, const string& aBase, bool aUpdating, const UserPtr& aUser, bool aCheckDupe, bool aPartialList, time_t aListDate) : 
-	  list(aList), cur(root), base(aBase), inListing(false), updating(aUpdating), user(aUser), checkDupe(aCheckDupe), partialList(aPartialList), dirsLoaded(0), listDate(aListDate) { 
+	ListLoader(DirectoryListing* aList, DirectoryListing::Directory* root, const string& aBase, bool aUpdating, const UserPtr& aUser, bool aCheckDupe, bool aPartialList, time_t aListDownloadDate) : 
+	  list(aList), cur(root), base(aBase), inListing(false), updating(aUpdating), user(aUser), checkDupe(aCheckDupe), partialList(aPartialList), dirsLoaded(0), listDownloadDate(aListDownloadDate) {
 	}
 
 	virtual ~ListLoader() { }
@@ -256,24 +281,22 @@ private:
 	bool checkDupe;
 	bool partialList;
 	int dirsLoaded;
-	time_t listDate;
+	time_t listDownloadDate;
 };
 
-int DirectoryListing::updateXML(const string& xml, const string& aBase) throw(AbortException) {
-	MemoryInputStream mis(xml);
+int DirectoryListing::loadPartialXml(const string& aXml, const string& aBase) throw(AbortException) {
+	MemoryInputStream mis(aXml);
 	return loadXML(mis, true, aBase);
 }
 
-int DirectoryListing::loadXML(InputStream& is, bool updating, const string& aBase, time_t aListDate) throw(AbortException) {
-	ListLoader ll(this, root.get(), aBase, updating, getUser(), !isOwnList && isClientView && SETTING(DUPES_IN_FILELIST), partialList, aListDate);
+int DirectoryListing::loadXML(InputStream& is, bool aUpdating, const string& aBase, time_t aListDate) throw(AbortException) {
+	ListLoader ll(this, root.get(), aBase, aUpdating, getUser(), !isOwnList && isClientView && SETTING(DUPES_IN_FILELIST), partialList, aListDate);
 	try {
 		dcpp::SimpleXMLReader(&ll).parse(is);
 	} catch(SimpleXMLException& e) {
-		//Better to abort and show the error, than just leave it hanging.
-		LogManager::getInstance()->message("Error in Filelist loading: "  + e.getError() + ". User: [ " +  
-			getNick(false) + " ]", LogMessage::SEV_ERROR);
-		//dcdebug("DirectoryListing loadxml error: %s", e.getError());
+		throw AbortException(e.getError());
 	}
+
 	return ll.getLoadedDirs();
 }
 
@@ -334,10 +357,11 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			if(!d) {
 				d = make_shared<DirectoryListing::Directory>(cur, n, incomp ? (children ? DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD : DirectoryListing::Directory::TYPE_INCOMPLETE_NOCHILD) : 
-					DirectoryListing::Directory::TYPE_NORMAL, listDate, (partialList && checkDupe), size, Util::toUInt32(date));
+					DirectoryListing::Directory::TYPE_NORMAL, listDownloadDate, (partialList && checkDupe), size, Util::toUInt32(date));
 				cur->directories.push_back(d);
-				if (updating && !incomp)
+				if (updating && !incomp) {
 					list->baseDirs[baseLower + Text::toLower(n) + '/'] = { d, true }; //recursive partial lists
+				}
 			} else {
 				if(!incomp) {
 					d->setComplete();
@@ -356,37 +380,28 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 	} else if(name == sFileListing) {
 		if (updating) {
 			const string& b = getAttrib(attribs, sBase, 2);
-			if(b.size() >= 1 && b[0] == '/' && b[b.size()-1] == '/') {
-				base = b;
-				if (b != base) 
-					throw AbortException("The base directory specified in the file list (" + b + ") doesn't match with the excepted base (" + base + ")");
-			}
-			const string& date = getAttrib(attribs, sBaseDate, 3);
+			dcassert(Util::isAdcPath(base));
 
-			StringList sl = StringTokenizer<string>(base.substr(1), '/').getTokens();
-			for(const auto& curDirName: sl) {
-				auto s = find_if(cur->directories, [&curDirName](const DirectoryListing::Directory::Ptr& dir) { return dir->getName() == curDirName; });
-				if (s == cur->directories.end()) {
-					auto d = make_shared<DirectoryListing::Directory>(cur, curDirName, DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD, listDate, true);
-					cur->directories.push_back(d);
-					list->baseDirs[Text::toLower(Util::toAdcFile(d->getPath()))] = { d, false };
-					cur = d.get();
-				} else {
-					cur = (*s).get();
+			// Validate the parsed base path
+			{
+				if (Util::stricmp(b, base) != 0) {
+					throw AbortException("The base directory specified in the file list (" + b + ") doesn't match with the expected base (" + base + ")");
 				}
 			}
 
+			cur = list->createBaseDirectory(base, listDownloadDate).get();
+
+			dcassert(list->findDirectory(Util::toNmdcFile(base)));
+
+			const string& baseDate = getAttrib(attribs, sBaseDate, 3);
+			cur->setRemoteDate(Util::toUInt32(baseDate));
+
 			baseLower = Text::toLower(base);
-			auto& p = list->baseDirs[baseLower];
-
-			//set the dir as visited
-			p.second = true;
-
-			cur->setUpdateDate(listDate);
-			cur->setRemoteDate(Util::toUInt32(date));
 		}
 
-		//set the root complete only after we have finished loading (will prevent possible problems like the GUI counting the size for this folder)
+		// Set the root complete only after we have finished loading 
+		// This will prevent possible problems, such as GUI counting the size of this folder
+
 		inListing = true;
 
 		if(simple) {
@@ -426,7 +441,7 @@ DirectoryListing::File::File(const File& rhs, bool _adls) noexcept : name(rhs.na
 }
 
 DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, Directory::DirType aType, time_t aUpdateDate, bool checkDupe, const string& aSize, time_t aRemoteDate /*0*/)
-	: name(aName), parent(aParent), type(aType), remoteDate(aRemoteDate), updateDate(aUpdateDate) {
+	: name(aName), parent(aParent), type(aType), remoteDate(aRemoteDate), lastUpdateDate(aUpdateDate) {
 
 	if (!aSize.empty()) {
 		partialSize = Util::toInt64(aSize);
@@ -587,13 +602,14 @@ DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& a
 	dcassert(end != string::npos);
 	string name = aName.substr(0, end);
 
-	auto i = find(current->directories.begin(), current->directories.end(), name);
+	auto i = find(current->directories, name);
 	if(i != current->directories.end()) {
 		if(end == (aName.size() - 1))
 			return *i;
 		else
 			return findDirectory(aName.substr(end + 1), *i);
 	}
+
 	return nullptr;
 }
 
@@ -944,7 +960,7 @@ void DirectoryListing::dispatch(DispatcherQueue::Callback& aCallback) noexcept {
 	try {
 		aCallback();
 	} catch (const std::bad_alloc&) {
-		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
+		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, getNick(false) % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		fire(DirectoryListingListener::LoadingFailed(), "Out of memory");
 	} catch (const AbortException&) {
 		fire(DirectoryListingListener::LoadingFailed(), Util::emptyString);
@@ -953,8 +969,8 @@ void DirectoryListing::dispatch(DispatcherQueue::Callback& aCallback) noexcept {
 	} catch (const QueueException& e) {
 		fire(DirectoryListingListener::UpdateStatusMessage(), "Queueing failed:" + e.getError());
 	} catch (const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) % e.getError()), LogMessage::SEV_ERROR);
-		fire(DirectoryListingListener::LoadingFailed(), ClientManager::getInstance()->getNick(hintedUser.user, hintedUser.hint) + ": " + e.getError());
+		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, getNick(false) % e.getError()), LogMessage::SEV_ERROR);
+		fire(DirectoryListingListener::LoadingFailed(), getNick(false) + ": " + e.getError());
 	}
 }
 
@@ -1017,6 +1033,7 @@ void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aDir,
 		checkShareDupes();
 
 	auto dir = findDirectory(aDir);
+	dcassert(dir);
 	if (dir) {
 		dir->setLoading(false);
 		if (aChangeDir) {
@@ -1115,7 +1132,7 @@ void DirectoryListing::loadPartialImpl(const string& aXml, const string& aBaseDi
 	if (isOwnList) {
 		dirsLoaded = loadShareDirectory(Util::toNmdcFile(baseDir));
 	} else {
-		dirsLoaded = updateXML(aXml, baseDir);
+		dirsLoaded = loadPartialXml(aXml, baseDir);
 	}
 
 	onLoadingFinished(0, Util::toNmdcFile(baseDir), aReloadAll || (reloading && baseDir == "/"), aChangeDir);
@@ -1187,21 +1204,30 @@ int DirectoryListing::loadShareDirectory(const string& aPath, bool aRecurse) thr
 }
 
 bool DirectoryListing::changeDirectory(const string& aPath, ReloadMode aReloadMode, bool aIsSearchChange) noexcept {
-	// Cases when the directory can't be found must be handled when searching in partial lists 
-	// or when opening directories from search (or via the API) for existing filelists
-	const auto dir = findDirectory(aPath, root);
-	if (dir) {
-		updateCurrentLocation(dir);
+	Directory::Ptr dir;
+	if (partialList) {
+		// Directory may not exist when searching in partial lists 
+		// or when opening directories from search (or via the API) for existing filelists
+		dir = createBaseDirectory(Util::toAdcFile(aPath));
+	} else {
+		dir = findDirectory(aPath, root);
+		if (!dir) {
+			dcassert(0);
+			return false;
+		}
 	}
 
-	if (dir && (!partialList || dir->getLoading() || (dir->isComplete() && aReloadMode == RELOAD_NONE))) {
-		fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
+	dcassert(findDirectory(aPath, root) != nullptr);
+
+	clearLastError();
+	updateCurrentLocation(dir);
+	fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
+
+	if (!partialList || dir->getLoading() || (dir->isComplete() && aReloadMode == RELOAD_NONE)) {
+		// No need to load anything
 	} else if (partialList) {
 		if (isOwnList || getUser()->isOnline()) {
-			if (dir) {
-				dir->setLoading(true);
-				fire(DirectoryListingListener::ChangeDirectory(), aPath, aIsSearchChange);
-			}
+			dir->setLoading(true);
 
 			try {
 				if (isOwnList) {

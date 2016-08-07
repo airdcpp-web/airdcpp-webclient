@@ -31,6 +31,10 @@
 #include <utime.h>
 #endif
 
+#ifdef _DEBUG
+#include <boost/date_time/posix_time/ptime.hpp>
+#endif
+
 namespace dcpp {
 
 #ifdef _WIN32
@@ -59,7 +63,7 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 	DWORD dwFlags = aBufferMode;
 	string path = aFileName;
 	if (isAbsolute)
-		path = Util::FormatPath(aFileName);
+		path = Util::formatPath(aFileName);
 
 	if (isDirectory)
 		dwFlags |= FILE_FLAG_BACKUP_SEMANTICS;
@@ -68,6 +72,9 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 	if(h == INVALID_HANDLE_VALUE) {
 		throw FileException(Util::translateError(GetLastError()));
 	}
+
+	// Avoid issues on Linux...
+	dcassert(compare(aFileName, getRealPath()) == 0);
 }
 
 uint64_t File::getLastModified() const noexcept {
@@ -169,20 +176,53 @@ void File::setEOF() {
 	}
 }
 
-size_t File::flush() {
+string File::getRealPath() const {
+	TCHAR buf[UNC_MAX_PATH];
+	auto ret = GetFinalPathNameByHandle(h, buf, UNC_MAX_PATH, FILE_NAME_OPENED);
+	if (!ret) {
+		throw FileException(Util::translateError(GetLastError()));
+	}
+
+	auto path = Text::fromT(buf);
+
+	// Extended-length path prefix is always added
+	// Remove for consistency
+	if (path.size() > 8 && path.compare(0, 8, "\\\\?\\UNC\\") == 0) {
+		return path.substr(8);
+	} else if (path.size() > 4 && path.compare(0, 4, "\\\\?\\") == 0) {
+		return path.substr(4);
+	}
+
+	return path;
+}
+
+size_t File::flushBuffers(bool aForce) {
+	if (!aForce) {
+		return 0;
+	}
+
+#ifdef _DEBUG
+	auto start = boost::posix_time::microsec_clock::universal_time();;
+#endif
+
 	if(isOpen() && !FlushFileBuffers(h))
 		throw FileException(Util::translateError(GetLastError()));
+
+#ifdef _DEBUG
+	dcdebug("File %s was flushed in " I64_FMT " ms\n", getRealPath().c_str(), (boost::posix_time::microsec_clock::universal_time() - start).total_milliseconds());
+#endif
+
 	return 0;
 }
 
 void File::renameFile(const string& source, const string& target) {
-	if(!::MoveFileEx(Text::toT(Util::FormatPath(source)).c_str(), Text::toT(Util::FormatPath(target)).c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED | MOVEFILE_WRITE_THROUGH)) {
+	if(!::MoveFileEx(Text::toT(Util::formatPath(source)).c_str(), Text::toT(Util::formatPath(target)).c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED | MOVEFILE_WRITE_THROUGH)) {
 		throw FileException(Util::translateError(GetLastError()));
 	}
 }
 
 void File::copyFile(const string& src, const string& target) {
-	if(!::CopyFile(Text::toT(Util::FormatPath(src)).c_str(), Text::toT(Util::FormatPath(target)).c_str(), FALSE)) {
+	if(!::CopyFile(Text::toT(Util::formatPath(src)).c_str(), Text::toT(Util::formatPath(target)).c_str(), FALSE)) {
 		throw FileException(Util::translateError(GetLastError()));
 	}
 }
@@ -212,11 +252,11 @@ bool File::isHidden(const string& aPath) noexcept {
 }
 
 bool File::deleteFile(const string& aFileName) noexcept {
-	return ::DeleteFile(Text::toT(Util::FormatPath(aFileName)).c_str()) > 0 ? true : false;
+	return ::DeleteFile(Text::toT(Util::formatPath(aFileName)).c_str()) > 0 ? true : false;
 }
 
 void File::removeDirectory(const string& aPath) noexcept {
-	::RemoveDirectory(Text::toT(Util::FormatPath(aPath)).c_str());
+	::RemoveDirectory(Text::toT(Util::formatPath(aPath)).c_str());
 }
 
 int64_t File::getSize(const string& aFileName) noexcept {
@@ -237,7 +277,7 @@ int File::ensureDirectory(const string& aFile) noexcept {
 
 	start++;
 	while((start = file.find_first_of(_T("\\/"), start)) != string::npos) {
-		result = ::CreateDirectory((Util::FormatPathT(file.substr(0, start+1))).c_str(), NULL);
+		result = ::CreateDirectory((Util::formatPathW(file.substr(0, start+1))).c_str(), NULL);
 		start++;
 	}
 
@@ -264,19 +304,19 @@ bool File::isAbsolutePath(const string& path) noexcept {
 
 string File::getMountPath(const string& aPath) noexcept {
 	unique_ptr<TCHAR> buf(new TCHAR[aPath.length()]);
-	GetVolumePathName(Text::toT(aPath).c_str(), buf.get(), aPath.length());
+	GetVolumePathName(Text::toT(Util::formatPath(aPath)).c_str(), buf.get(), aPath.length());
 	return Text::fromT(buf.get());
 }
 
 int64_t File::getFreeSpace(const string& aPath) noexcept {
 	int64_t freeSpace = 0, tmp = 0;
-	auto ret = GetDiskFreeSpaceEx(Text::toT(aPath).c_str(), NULL, (PULARGE_INTEGER)&tmp, (PULARGE_INTEGER)&freeSpace);
+	auto ret = GetDiskFreeSpaceEx(Text::toT(Util::formatPath(aPath)).c_str(), NULL, (PULARGE_INTEGER)&tmp, (PULARGE_INTEGER)&freeSpace);
 	return ret > 0 ? freeSpace : -1;
 }
 
 int64_t File::getBlockSize(const string& aFileName) noexcept {
 	DWORD sectorBytes, clusterSectors, tmp2, tmp3;
-	auto ret = GetDiskFreeSpace(Text::toT(aFileName).c_str(), &clusterSectors, &sectorBytes, &tmp2, &tmp3);
+	auto ret = GetDiskFreeSpace(Text::toT(Util::formatPath(aFileName)).c_str(), &clusterSectors, &sectorBytes, &tmp2, &tmp3);
 	return ret > 0 ? static_cast<int64_t>(sectorBytes)*static_cast<int64_t>(clusterSectors) : 4096;
 }
 
@@ -333,6 +373,24 @@ uint64_t File::getLastModified() const noexcept {
 		return 0;
 
 	return (uint32_t)s.st_mtime;
+}
+
+string File::getRealPath() const {
+	char buf[PATH_MAX + 1];
+
+	int ret;
+#ifdef F_GETPATH
+	ret = fcntl(h, F_GETPATH, buf);
+#else
+	auto procPath = "/proc/self/fd/" + Util::toString(h);
+	ret = ::readlink(procPath.c_str(), buf, sizeof(buf));
+#endif
+
+	if (ret == -1) {
+		throw FileException(Util::translateError(errno));
+	}
+
+	return string(buf);
 }
 
 bool File::isOpen() const noexcept {
@@ -432,7 +490,11 @@ void File::setSize(int64_t newSize) {
 	setPos(pos);
 }
 
-size_t File::flush() {
+size_t File::flushBuffers(bool aForce) {
+	if (!aForce) {
+		return 0;
+	}
+
 	if(isOpen() && fsync(h) == -1)
 		throw FileException(Util::translateError(errno));
 	return 0;
@@ -575,8 +637,9 @@ std::string File::makeAbsolutePath(const std::string& path, const std::string& f
 
 bool File::deleteFileEx(const string& aFileName, int maxAttempts) noexcept {
 	bool success = false;
-	for (int i = 0; i < maxAttempts && (success = deleteFile(aFileName)) == false; ++i)
+	for (int i = 0; i < maxAttempts && (success = deleteFile(aFileName)) == false; ++i) {
 		Thread::sleep(1000);
+	}
 
 	return success;
 }
@@ -661,10 +724,10 @@ int64_t File::getDirSize(const string& aPath, bool recursive, const string& patt
 FileFindIter::FileFindIter() : handle(INVALID_HANDLE_VALUE) { }
 
 FileFindIter::FileFindIter(const string& aPath, const string& aPattern, bool dirsOnly /*false*/) : handle(INVALID_HANDLE_VALUE) {
-	if (Util::IsOSVersionOrGreater(6, 1)) { //TODO: check is this not available in Vista??
-		handle = ::FindFirstFileEx(Text::toT(Util::FormatPath(aPath) + aPattern).c_str(), FindExInfoBasic, &data, dirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
+	if (Util::IsOSVersionOrGreater(6, 1)) {
+		handle = ::FindFirstFileEx(Text::toT(Util::formatPath(aPath) + aPattern).c_str(), FindExInfoBasic, &data, dirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
 	} else {
-		handle = ::FindFirstFile(Text::toT(Util::FormatPath(aPath) + aPattern).c_str(), &data);
+		handle = ::FindFirstFile(Text::toT(Util::formatPath(aPath) + aPattern).c_str(), &data);
 	}
 }
 

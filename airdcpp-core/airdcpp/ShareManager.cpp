@@ -1576,7 +1576,7 @@ void ShareManager::countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& 
 }
 
 optional<ShareManager::ShareStats> ShareManager::getShareStats() const noexcept {
-	unordered_set<TTHValue*> uniqueTTHs;
+	unordered_set<decltype(tthIndex)::key_type> uniqueTTHs;
 
 	{
 		RLock l(cs);
@@ -2178,7 +2178,6 @@ ShareManager::RefreshResult ShareManager::addRefreshTask(TaskType aTaskType, con
 	} else {
 		try {
 			start();
-			setThreadPriority(aRefreshType == TYPE_MANUAL ? Thread::NORMAL : Thread::IDLE);
 		} catch(const ThreadException& e) {
 			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError(), LogMessage::SEV_WARNING);
 			refreshing.clear();
@@ -2271,10 +2270,9 @@ bool ShareManager::removeProfile(ProfileToken aToken) noexcept {
 
 		shareProfiles.erase(remove(shareProfiles.begin(), shareProfiles.end(), aToken), shareProfiles.end());
 	}
-
+	
+	fire(ShareManagerListener::ProfileRemoved(), aToken); //removeRootDirectories() might take a while so fire listener first.
 	removeRootDirectories(removedPaths);
-
-	fire(ShareManagerListener::ProfileRemoved(), aToken);
 	return true;
 }
 
@@ -2499,7 +2497,6 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 		ScopedFunctor([this] { tasks.pop_front(); });
 
 		if (t.first == ASYNC) {
-			refreshRunning = false;
 			auto task = static_cast<AsyncTask*>(t.second);
 			task->f();
 			continue;
@@ -2509,7 +2506,11 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 		if (task->type == TYPE_STARTUP_DELAYED)
 			Thread::sleep(5000); // let the client start first
 
+		setThreadPriority(task->type == TYPE_MANUAL ? Thread::NORMAL : Thread::IDLE);
+
 		refreshRunning = true;
+		ScopedFunctor([this] { refreshRunning = false; });
+
 		if (!pauser) {
 			pauser.reset(new HashManager::HashPauser());
 		}
@@ -2644,8 +2645,6 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 #ifdef _DEBUG
 	validateDirectoryTreeDebug();
 #endif
-
-	refreshRunning = false;
 	refreshing.clear();
 }
 
@@ -2879,7 +2878,7 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 					CalcOutputStream<TTFilter<1024 * 1024 * 1024>, false> newXmlFile(&bzipper);
 
 					newXmlFile.write(f.read());
-					newXmlFile.flush();
+					newXmlFile.flushBuffers(false);
 
 					newXmlFile.getFilter().getTree().finalize();
 					bzTree.getFilter().getTree().finalize();
@@ -3142,30 +3141,30 @@ void ShareManager::saveXmlList(function<void(float)> progressF /*nullptr*/) noex
 			parallel_for_each(dirtyDirs.begin(), dirtyDirs.end(), [&](const Directory::Ptr& d) {
 				string path = d->getProfileDir()->getCacheXmlPath();
 				try {
-					string indent, tmp;
+					{
+						string indent, tmp;
 
-					//create a backup first in case we get interrupted on creation.
-					File ff(path + ".tmp", File::WRITE, File::TRUNCATE | File::CREATE);
-					BufferedOutputStream<false> xmlFile(&ff);
+						//create a backup first in case we get interrupted on creation.
+						File ff(path + ".tmp", File::WRITE, File::TRUNCATE | File::CREATE);
+						BufferedOutputStream<false> xmlFile(&ff);
 
-					xmlFile.write(SimpleXML::utf8Header);
-					xmlFile.write(LITERAL("<Share Version=\"" SHARE_CACHE_VERSION));
-					xmlFile.write(LITERAL("\" Path=\""));
-					xmlFile.write(SimpleXML::escape(d->getProfileDir()->getPath(), tmp, true));
+						xmlFile.write(SimpleXML::utf8Header);
+						xmlFile.write(LITERAL("<Share Version=\"" SHARE_CACHE_VERSION));
+						xmlFile.write(LITERAL("\" Path=\""));
+						xmlFile.write(SimpleXML::escape(d->getProfileDir()->getPath(), tmp, true));
 
-					xmlFile.write(LITERAL("\" Date=\""));
-					xmlFile.write(SimpleXML::escape(Util::toString(d->getLastWrite()), tmp, true));
-					xmlFile.write(LITERAL("\">\r\n"));
-					indent += '\t';
+						xmlFile.write(LITERAL("\" Date=\""));
+						xmlFile.write(SimpleXML::escape(Util::toString(d->getLastWrite()), tmp, true));
+						xmlFile.write(LITERAL("\">\r\n"));
+						indent += '\t';
 
-					for (const auto& child : d->directories) {
-						child->toXmlList(xmlFile, indent, tmp);
+						for (const auto& child : d->directories) {
+							child->toXmlList(xmlFile, indent, tmp);
+						}
+						d->filesToXmlList(xmlFile, indent, tmp);
+
+						xmlFile.write(LITERAL("</Share>"));
 					}
-					d->filesToXmlList(xmlFile, indent, tmp);
-
-					xmlFile.write(LITERAL("</Share>"));
-					xmlFile.flush();
-					ff.close();
 
 					File::deleteFile(path);
 					File::renameFile(path + ".tmp", path);
@@ -3716,28 +3715,19 @@ void ShareManager::setExcludedPaths(const StringSet& aPaths) noexcept {
 	excludedPaths = aPaths;
 }
 
-vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noexcept {
-	vector<pair<string, StringList>> ret;
+GroupedDirectoryMap ShareManager::getGroupedDirectories() const noexcept {
+	GroupedDirectoryMap ret;
 	
 	{
 		RLock l (cs);
 		for(const auto& d: rootPaths | map_values | filtered(Directory::IsParent())) {
 			const auto& currentPath = d->getProfileDir()->getPath();
-
 			auto virtualName = d->getProfileDir()->getName();
-			auto retVirtualPos = find_if(ret, CompareFirst<string, StringList>(virtualName));
-			if (retVirtualPos != ret.end()) {
-				//insert under an old virtual node if the real path doesn't exist there already
-				if (find(retVirtualPos->second, currentPath) == retVirtualPos->second.end()) {
-					retVirtualPos->second.push_back(currentPath); //sorted
-				}
-			} else {
-				ret.emplace_back(virtualName, StringList{ currentPath });
-			}
+
+			ret[virtualName].insert(currentPath);
 		}
 	}
 
-	sort(ret.begin(), ret.end());
 	return ret;
 }
 

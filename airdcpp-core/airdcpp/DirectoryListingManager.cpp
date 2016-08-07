@@ -153,13 +153,12 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 	auto dirList = DirectoryListingPtr(new DirectoryListing(aUser, isPartialList, aFileName, false, false));
 	try {
 		if (isPartialList) {
-			MemoryInputStream mis(aXml);
-			dirList->loadXML(mis, true, aRemotePath);
+			dirList->loadPartialXml(aXml, Util::toAdcFile(aRemotePath));
 		} else {
 			dirList->loadFile();
 		}
-	} catch (const Exception&) {
-		LogManager::getInstance()->message(STRING(UNABLE_TO_OPEN_FILELIST) + " " + aFileName, LogMessage::SEV_ERROR);
+	} catch (const Exception& e) {
+		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, aFileName % e.getError()), LogMessage::SEV_ERROR);
 		return;
 	}
 
@@ -233,15 +232,15 @@ void DirectoryListingManager::handleDownload(DirectoryDownloadInfo::Ptr& di, con
 	}
 }
 
-void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const string& path, int flags) noexcept {
-	if(flags & QueueItem::FLAG_DIRECTORY_DOWNLOAD) {
+void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const string& aPath, int aFlags) noexcept {
+	if(aFlags & QueueItem::FLAG_DIRECTORY_DOWNLOAD) {
 		DirectoryDownloadInfo::List dl;
 		{
 			WLock l(cs);
 			auto dp = dlDirectories.equal_range(aList->getHintedUser().user) | map_values;
-			if ((flags & QueueItem::FLAG_PARTIAL_LIST) && !path.empty()) {
+			if ((aFlags & QueueItem::FLAG_PARTIAL_LIST) && !aPath.empty()) {
 				//partial list
-				auto udp = find_if(dp, [&path](const DirectoryDownloadInfo::Ptr& ddi) { return Util::stricmp(path.c_str(), ddi->getListPath().c_str()) == 0; });
+				auto udp = find_if(dp, [&aPath](const DirectoryDownloadInfo::Ptr& ddi) { return Util::stricmp(aPath.c_str(), ddi->getListPath().c_str()) == 0; });
 				if (udp != dp.end()) {
 					dl.push_back(*udp);
 				}
@@ -260,7 +259,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 
 		{
 			WLock l(cs);
-			if (flags & QueueItem::FLAG_PARTIAL_LIST) {
+			if (aFlags & QueueItem::FLAG_PARTIAL_LIST) {
 				auto dp = dlDirectories.equal_range(aList->getHintedUser().user);
 				auto p = find(dp | map_values, dl.front());
 				if (p.base() != dp.second) {
@@ -272,18 +271,18 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 		}
 	}
 
-	if(flags & QueueItem::FLAG_MATCH_QUEUE) {
+	if(aFlags & QueueItem::FLAG_MATCH_QUEUE) {
 		int matches=0, newFiles=0;
 		BundleList bundles;
 		QueueManager::getInstance()->matchListing(*aList, matches, newFiles, bundles);
-		if ((flags & QueueItem::FLAG_PARTIAL_LIST) && (!SETTING(REPORT_ADDED_SOURCES) || newFiles == 0 || bundles.empty())) {
+		if ((aFlags & QueueItem::FLAG_PARTIAL_LIST) && (!SETTING(REPORT_ADDED_SOURCES) || newFiles == 0 || bundles.empty())) {
 			return;
 		}
 
 		LogManager::getInstance()->message(aList->getNick(false) + ": " + 
 			AirUtil::formatMatchResults(matches, newFiles, bundles), LogMessage::SEV_INFO);
-	} else if((flags & QueueItem::FLAG_VIEW_NFO) && (flags & QueueItem::FLAG_PARTIAL_LIST)) {
-		aList->addViewNfoTask(path, false);
+	} else if((aFlags & QueueItem::FLAG_VIEW_NFO) && (aFlags & QueueItem::FLAG_PARTIAL_LIST)) {
+		aList->addViewNfoTask(aPath, false);
 	}
 }
 

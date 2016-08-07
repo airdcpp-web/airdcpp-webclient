@@ -886,6 +886,7 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) {
 		return;
 	}
 
+	uc->setThreadPriority(Thread::IDLE);
 	dcdebug("ConnectionManager::addUploadConnection, leaving to uploadmanager\n");
 	UploadManager::getInstance()->addConnection(uc);
 }

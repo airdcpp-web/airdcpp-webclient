@@ -44,7 +44,7 @@ namespace webserver {
 
 		// Use the short default update interval for lists that can be edited by the users
 		// Larger lists with lots of updates and non-critical response times should specify a longer interval
-		ListViewController(const string& aViewName, ApiModule* aModule, const PropertyItemHandler<T>& aItemHandler, ItemListF aItemListF, time_t aUpdateInterval = 200) :
+		ListViewController(const string& aViewName, SubscribableApiModule* aModule, const PropertyItemHandler<T>& aItemHandler, ItemListF aItemListF, time_t aUpdateInterval = 200) :
 			module(aModule), viewName(aViewName), itemHandler(aItemHandler), itemListF(aItemListF),
 			timer(aModule->getTimer([this] { runTasks(); }, aUpdateInterval))
 		{
@@ -87,7 +87,7 @@ namespace webserver {
 
 			currentValues.set(IntCollector::TYPE_RANGE_START, 0);
 
-			updateList();
+			initItems();
 		}
 
 		void onItemAdded(const T& aItem) {
@@ -137,8 +137,8 @@ namespace webserver {
 		}
 
 		// FILTERS START
-		PropertyFilter::Matcher::List getFilterMatchers() {
-			PropertyFilter::Matcher::List ret;
+		PropertyFilter::MatcherList getFilterMatcherList() {
+			PropertyFilter::MatcherList ret;
 
 			RLock l(cs);
 			for (auto& filter : filters) {
@@ -181,15 +181,16 @@ namespace webserver {
 			return filter;
 		}
 
-		bool matchesFilter(const T& aItem, const PropertyFilter::Matcher::List& aMatchers) {
-			return PropertyFilter::Matcher::match(aMatchers,
+		template<typename FilterT = PropertyFilter::Ptr, typename MatcherT>
+		bool matchesFilter(const T& aItem, const MatcherT& aMatcher) {
+			return PropertyFilter::Matcher<FilterT>::match(aMatcher,
 				[&](size_t aProperty) { return itemHandler.numberF(aItem, aProperty); },
 				[&](size_t aProperty) { return itemHandler.stringF(aItem, aProperty); },
 				[&](size_t aProperty, const StringMatch& aStringMatcher, double aNumericMatcher) { return itemHandler.customFilterF(aItem, aProperty, aStringMatcher, aNumericMatcher); }
 			);
 		}
 
-		void setFilterProperties(const json& aRequestJson, PropertyFilter::Ptr& aFilter) {
+		void setFilterProperties(const json& aRequestJson, PropertyFilter& aFilter) {
 			auto method = JsonUtil::getField<int>("method", aRequestJson);
 			auto property = JsonUtil::getField<string>("property", aRequestJson);
 
@@ -202,7 +203,7 @@ namespace webserver {
 				pattern = JsonUtil::parseValue<string>("pattern", patternJson);
 			}
 
-			aFilter->prepare(pattern, method, findPropertyByName(property, itemHandler.properties));
+			aFilter.prepare(pattern, method, findPropertyByName(property, itemHandler.properties));
 			onFilterUpdated();
 		}
 
@@ -211,7 +212,7 @@ namespace webserver {
 
 			auto filter = addFilter();
 			if (!reqJson.is_null()) {
-				setFilterProperties(reqJson, filter);
+				setFilterProperties(reqJson, *filter.get());
 			}
 
 			aRequest.setResponseBody({ 
@@ -235,7 +236,7 @@ namespace webserver {
 				filter = *i;
 			}
 
-			setFilterProperties(reqJson, filter);
+			setFilterProperties(reqJson, *filter.get());
 			return websocketpp::http::status_code::no_content;
 		}
 
@@ -252,10 +253,10 @@ namespace webserver {
 
 		void onFilterUpdated() {
 			ItemList itemsNew;
-			auto matchers = getFilterMatchers();
+			auto matchers = getFilterMatcherList();
 			{
 				RLock l(cs);
-				for (const auto& i : allItems) {
+				for (const auto& i : sourceItems) {
 					if (matchesFilter(i, matchers)) {
 						itemsNew.push_back(i);
 					}
@@ -277,7 +278,7 @@ namespace webserver {
 			parseProperties(aRequest.getRequestBody());
 			if (!active) {
 				setActive(true);
-				updateList();
+				initItems();
 				timer->start(true);
 			}
 
@@ -333,6 +334,14 @@ namespace webserver {
 				}
 			}
 
+			if (j.find("source_filter") != j.end()) {
+				sourceFilter.reset(new PropertyFilter(itemHandler.properties));
+				const auto& filterProps = j["source_filter"];
+				if (!filterProps.is_null()) {
+					setFilterProperties(filterProps, *sourceFilter.get());
+				}
+			}
+
 			if (!updatedValues.empty()) {
 				WLock l(cs);
 				currentValues.set(updatedValues);
@@ -351,10 +360,19 @@ namespace webserver {
 			module->send(viewName + "_updated", j);
 		}
 
-		int updateList() {
+		int initItems() {
 			WLock l(cs);
 			matchingItems = itemListF();
-			allItems.insert(matchingItems.begin(), matchingItems.end());
+
+			if (sourceFilter) {
+				auto matcher = PropertyFilter::Matcher<PropertyFilter*>(sourceFilter.get());
+				matchingItems.erase(remove_if(matchingItems.begin(), matchingItems.end(), [&](const T& aItem) {
+					return !matchesFilter<PropertyFilter*>(aItem, matcher);
+				}), matchingItems.end());
+			}
+
+			sourceItems.insert(matchingItems.begin(), matchingItems.end());
+
 			itemListChanged = true;
 			return static_cast<int>(matchingItems.size());
 		}
@@ -362,9 +380,9 @@ namespace webserver {
 		void clear() {
 			WLock l(cs);
 			tasks.clear();
-			currentViewItems.clear();
+			currentViewportItems.clear();
 			matchingItems.clear();
-			allItems.clear();
+			sourceItems.clear();
 			prevTotalItemCount = -1;
 			prevMatchingItemCount = -1;
 			filters.clear();
@@ -491,9 +509,9 @@ namespace webserver {
 
 				// Set cached values
 				prevValues.swap(updateValues);
-				currentViewItems.swap(newViewItems);
+				currentViewportItems.swap(newViewItems);
 
-				dcassert((matchingItems.size() != 0 && allItems.size() != 0) || currentViewItems.empty());
+				dcassert((matchingItems.size() != 0 && sourceItems.size() != 0) || currentViewportItems.empty());
 			}
 
 			// Counts should be updated even if the list doesn't have valid settings posted
@@ -532,7 +550,7 @@ namespace webserver {
 			ItemList currentItemsCopy;
 			{
 				RLock l(cs);
-				if (newStart_ >= static_cast<int>(allItems.size())) {
+				if (newStart_ >= static_cast<int>(sourceItems.size())) {
 					newStart_ = 0;
 				}
 
@@ -549,7 +567,7 @@ namespace webserver {
 				advance(endIter, count);
 
 				std::copy(startIter, endIter, back_inserter(newViewItems_));
-				currentItemsCopy = currentViewItems;
+				currentItemsCopy = currentViewportItems;
 			}
 
 			json_["items"] = json::array();
@@ -604,7 +622,7 @@ namespace webserver {
 			{
 				RLock l(cs);
 				matchingItemCount = matchingItems.size();
-				totalItemCount = allItems.size();
+				totalItemCount = sourceItems.size();
 			}
 
 			if (matchingItemCount != prevMatchingItemCount) {
@@ -619,22 +637,33 @@ namespace webserver {
 		}
 
 		void handleAddItem(const T& aItem, int aSortProperty, int aSortAscending, int& rangeStart_) {
-			bool matches = matchesFilter(aItem, getFilterMatchers());
+			if (sourceFilter) {
+				RLock l(cs);
+				PropertyFilter::Matcher<PropertyFilter*> matcher(sourceFilter.get());
+				if (!matchesFilter<PropertyFilter*>(aItem, matcher)) {
+					return;
+				}
+			}
 
-			WLock l(cs);
-			allItems.emplace(aItem);
-			if (matches) {
-				auto iter = matchingItems.insert(std::upper_bound(
-					matchingItems.begin(),
-					matchingItems.end(),
-					aItem,
-					std::bind(&ListViewController::itemSort, std::placeholders::_1, std::placeholders::_2, itemHandler, aSortProperty, aSortAscending)
+			auto matches = matchesFilter(aItem, getFilterMatcherList());
+
+			{
+				WLock l(cs);
+				sourceItems.emplace(aItem);
+
+				if (matches) {
+					auto iter = matchingItems.insert(std::upper_bound(
+						matchingItems.begin(),
+						matchingItems.end(),
+						aItem,
+						std::bind(&ListViewController::itemSort, std::placeholders::_1, std::placeholders::_2, itemHandler, aSortProperty, aSortAscending)
 					), aItem);
 
-				auto pos = static_cast<int>(std::distance(matchingItems.begin(), iter));
-				if (pos < rangeStart_) {
-					// Update the range range positions
-					rangeStart_++;
+					auto pos = static_cast<int>(std::distance(matchingItems.begin(), iter));
+					if (pos < rangeStart_) {
+						// Update the range range positions
+						rangeStart_++;
+					}
 				}
 			}
 		}
@@ -650,7 +679,7 @@ namespace webserver {
 			auto pos = static_cast<int>(std::distance(matchingItems.begin(), iter));
 
 			matchingItems.erase(iter);
-			allItems.erase(aItem);
+			sourceItems.erase(aItem);
 
 			if (rangeStart_ > 0 && pos > rangeStart_) {
 				// Update the range range positions
@@ -667,12 +696,12 @@ namespace webserver {
 				inList = isInList(aItem, matchingItems);
 
 				// A delayed update for a removed item?
-				if (!inList && allItems.find(aItem) == allItems.end()) {
+				if (!inList && sourceItems.find(aItem) == sourceItems.end()) {
 					return false;
 				}
 			}
 
-			auto matchers = getFilterMatchers();
+			auto matchers = getFilterMatcherList();
 			if (!matchesFilter(aItem, matchers)) {
 				if (inList) {
 					handleRemoveItem(aItem, rangeStart_);
@@ -703,20 +732,30 @@ namespace webserver {
 			json_["items"][pos]["id"] = aItem->getToken();
 		}
 
+		// List of dynamically set filters
 		PropertyFilter::List filters;
+
+		// This one should be provided when initiating the view
+		// Items that don't match the filter won't be added in source items or included in total item count
+		unique_ptr<PropertyFilter> sourceFilter;
+
+		// Contains all possible items of this type (excluding ones matching the source item filter)
+		std::set<T, std::less<T>> sourceItems;
 
 		const PropertyItemHandler<T>& itemHandler;
 
-		ItemList currentViewItems;
+		// Items visible in the current viewport
+		ItemList currentViewportItems;
+
+		// All items matching the list of dynamic filters
 		ItemList matchingItems;
-		std::set<T, std::less<T>> allItems;
 
 		bool active = false;
 
-		SharedMutex cs;
+		mutable SharedMutex cs;
 
-		ApiModule* module = nullptr;
-		std::string viewName;
+		SubscribableApiModule* module = nullptr;
+		const std::string viewName;
 
 		ItemTasks<T> tasks;
 

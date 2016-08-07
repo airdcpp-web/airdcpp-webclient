@@ -23,90 +23,63 @@
 #include "w.h"
 #else
 #include <pthread.h>
-#include <sched.h>
 #include <sys/resource.h>
 #endif
 
-#include <boost/noncopyable.hpp>
-#include "Exception.h"
 #include <stdint.h>
-#include <thread>
 
 namespace dcpp {
 
-class Thread : private boost::noncopyable
+class Thread
 {
 public:
 #ifdef _WIN32
 	enum Priority {
 		IDLE = THREAD_PRIORITY_IDLE,
+		LOWEST = THREAD_PRIORITY_LOWEST,
 		LOW = THREAD_PRIORITY_BELOW_NORMAL,
 		NORMAL = THREAD_PRIORITY_NORMAL,
-		HIGH = THREAD_PRIORITY_ABOVE_NORMAL
+		HIGH = THREAD_PRIORITY_ABOVE_NORMAL,
+		HIGHEST = THREAD_PRIORITY_HIGHEST
 	};
 
-	Thread() : threadHandle(INVALID_HANDLE_VALUE) { }
-	virtual ~Thread() { 
-		if(threadHandle != INVALID_HANDLE_VALUE)
-			CloseHandle(threadHandle);
+	static void sleep(uint64_t millis) {
+		::Sleep(static_cast<DWORD>(millis));
 	}
-	
+#else
+	enum Priority {
+		IDLE = 19,
+		LOWEST = 14,
+		LOW = 7,
+		NORMAL = 0,
+		// Priorities above normal ( <0 ) can't be used without root permissions
+		HIGH = 0,
+		HIGHEST = 0
+	};
+
+	static void sleep(uint32_t millis) {
+		::usleep(millis * 1000);
+	}
+#endif
+
+	Thread();
+	virtual ~Thread();
+
+	Thread(const Thread&) = delete;
+	Thread& operator=(const Thread&) = delete;
+
+
 	void start();
 	void join();
 
-	void setThreadPriority(Priority p) { ::SetThreadPriority(threadHandle, p); }
+	void setThreadPriority(Priority p);
 
-	//pause a worker thread, BE Careful by using this, Thread must be in sync so it wont lock up any unwanted resources. Call only from the suspended thread because of non-win implementation
+	// Pause a worker thread, BE Careful by using this, thread must be in sync so it wont lock up any unwanted resources. 
+	// Call only from the suspended thread because of non-win implementation
 	void t_suspend();
 	void t_resume();
 
-
-	static void sleep(uint64_t millis) { ::Sleep(static_cast<DWORD>(millis)); }
-	static void yield() { ::Sleep(0); }
-	
-
-#else
-
-	enum Priority {
-		IDLE = 1,
-		LOW = 1,
-		NORMAL = 0,
-		HIGH = -1
-	};
-	Thread() : threadHandle(0) { }
-	virtual ~Thread() { 
-		if(threadHandle != 0) {
-			pthread_detach(threadHandle);
-		}
-	}
-	void start();
-	void join() { 
-		if (threadHandle) {
-			pthread_join(threadHandle, 0);
-			threadHandle = 0;
-		}
-	}
-
-	void t_suspend() { //pause a worker thread, BE Careful by using this, Thread must be in sync so it wont lock up any unwanted resources. Call only from the suspended thread
-		pthread_mutex_lock(&lock);
-		suspended = true;
-		while (suspended)
-			pthread_cond_wait(&cond, &lock);
-		pthread_mutex_unlock(&lock);
-	}
-
-	void t_resume() {
-		pthread_mutex_lock(&lock);
-		suspended = false;
-		pthread_cond_signal(&cond);
-		pthread_mutex_unlock(&lock);
-	}
-
-	void setThreadPriority(Priority p) { setpriority(PRIO_PROCESS, 0, p); }
-	static void sleep(uint32_t millis) { ::usleep(millis*1000); }
-	static void yield() { ::sched_yield(); }
-#endif
-
+	static void yield();
 protected:
 	virtual int run() = 0;
 	
@@ -120,11 +93,7 @@ protected:
 	bool suspended = false;
 
 	pthread_t threadHandle;
-	static void* starter(void* p) {
-		Thread* t = (Thread*)p;
-		t->run();
-		return NULL;
-	}
+	static void* starter(void* p);
 #endif
 };
 

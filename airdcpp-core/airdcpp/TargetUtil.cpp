@@ -73,15 +73,15 @@ bool TargetUtil::getVirtualTarget(const string& aTarget, TargetUtil::TargetType 
 	if (targetType == TARGET_PATH) {
 		ti_.setTarget(aTarget);
 	} else {
-		vector<pair<string, StringList>> dirList;
+		GroupedDirectoryMap directoryMap;
 		if (targetType == TARGET_FAVORITE) {
-			dirList = FavoriteManager::getInstance()->getFavoriteDirs();
+			directoryMap = FavoriteManager::getInstance()->getGroupedFavoriteDirs();
 		} else {
-			dirList = ShareManager::getInstance()->getGroupedDirectories();
+			directoryMap = ShareManager::getInstance()->getGroupedDirectories();
 		}
 
-		auto s = find_if(dirList.begin(), dirList.end(), CompareFirst<string, StringList>(aTarget));
-		if (s != dirList.end()) {
+		auto s = directoryMap.find(aTarget);
+		if (s != directoryMap.end()) {
 			const auto& targets = s->second;
 			bool tmp = getTarget(targets, ti_, aSize);
 			if (ti_.hasTarget()) {
@@ -97,13 +97,13 @@ bool TargetUtil::getVirtualTarget(const string& aTarget, TargetUtil::TargetType 
 	return getDiskInfo(ti_);
 }
 
-bool TargetUtil::getTarget(const StringList& targets, TargetInfo& retTi_, const int64_t& aSize) {
+bool TargetUtil::getTarget(const OrderedStringSet& aTargets, TargetInfo& retTi_, const int64_t& aSize) {
 	VolumeSet volumes;
 	getVolumes(volumes);
 	TargetInfoMap targetMap;
 
-	for(auto& i: targets) {
-		string target = getMountPath(i, volumes);
+	for(const auto& i: aTargets) {
+		auto target = getMountPath(i, volumes);
 		if (!target.empty() && targetMap.find(target) == targetMap.end()) {
 			auto free = File::getFreeSpace(target);
 			if (free > 0) {
@@ -114,8 +114,8 @@ bool TargetUtil::getTarget(const StringList& targets, TargetInfo& retTi_, const 
 
 	if (targetMap.empty()) {
 		//failed to get the volumes
-		if (!targets.empty()) {
-			retTi_.setTarget(targets.front());
+		if (!aTargets.empty()) {
+			retTi_.setTarget(*aTargets.begin());
 		} else {
 			retTi_.setTarget(SETTING(DOWNLOAD_DIRECTORY));
 		}

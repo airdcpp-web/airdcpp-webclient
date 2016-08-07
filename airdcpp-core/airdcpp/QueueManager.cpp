@@ -1014,7 +1014,12 @@ void QueueManager::onBundleAdded(const BundlePtr& aBundle, Bundle::Status aOldSt
 }
 
 string QueueManager::formatBundleTarget(const string& aPath, time_t aRemoteDate) noexcept {
-	return Util::validatePath(Util::formatTime(aPath, (SETTING(FORMAT_DIR_REMOTE_TIME) && aRemoteDate > 0) ? aRemoteDate : GET_TIME()));
+	ParamMap params;
+	params["username"] = [] { return Util::getSystemUsername(); };
+	
+	auto time = (SETTING(FORMAT_DIR_REMOTE_TIME) && aRemoteDate > 0) ? aRemoteDate : GET_TIME();
+	auto formatedPath = Util::formatParams(aPath, params, nullptr, time);
+	return Util::validatePath(formatedPath);
 }
 
 BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, 
@@ -2374,18 +2379,19 @@ void QueueManager::handleSlowDisconnect(const UserPtr& aUser, const string& aTar
 	}
 }
 
-void QueueManager::removeBundleSource(QueueToken aBundleToken, const UserPtr& aUser, Flags::MaskType aReason) noexcept {
+size_t QueueManager::removeBundleSource(QueueToken aBundleToken, const UserPtr& aUser, Flags::MaskType aReason) noexcept {
 	BundlePtr bundle = nullptr;
 	{
 		RLock l(cs);
 		bundle = bundleQueue.findBundle(aBundleToken);
 	}
-	removeBundleSource(bundle, aUser, aReason);
+
+	return removeBundleSource(bundle, aUser, aReason);
 }
 
-void QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser, Flags::MaskType aReason) noexcept {
+size_t QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser, Flags::MaskType aReason) noexcept {
 	if (!aBundle) {
-		return;
+		return 0;
 	}
 
 	QueueItemList ql;
@@ -2406,6 +2412,7 @@ void QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser, F
 	}
 
 	fire(QueueManagerListener::SourceFilesUpdated(), aUser);
+	return ql.size();
 }
 
 void QueueManager::sendRemovePBD(const HintedUser& aUser, const string& aRemoteToken) noexcept {
@@ -2489,10 +2496,12 @@ void QueueManager::loadQueue(function<void (float)> progressF) noexcept {
 		auto path = Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml";
 		Util::migrate(path);
 
-		File f(path, File::READ, File::OPEN, File::BUFFER_SEQUENTIAL);
-		QueueLoader loader;
-		SimpleXMLReader(&loader).parse(f);
-		f.close();
+		{
+			File f(path, File::READ, File::OPEN, File::BUFFER_SEQUENTIAL);
+			QueueLoader loader;
+			SimpleXMLReader(&loader).parse(f);
+		}
+
 		File::copyFile(Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml", Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml.bak");
 		File::deleteFile(Util::getPath(Util::PATH_USER_CONFIG) + "Queue.xml");
 	} catch(const Exception&) {
@@ -3758,8 +3767,9 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool aRemoveFinishedFiles) n
 		AirUtil::removeDirectoryIfEmpty(aBundle->getTarget(), 10, !aRemoveFinishedFiles);
 	}
 
-	if(SETTING(LOG_REMOVED_BUNDLES))
+	if (!isFinished) {
 		LogManager::getInstance()->message(STRING_F(BUNDLE_X_REMOVED, aBundle->getName()), LogMessage::SEV_INFO);
+	}
 
 	for (const auto& aUser : sources)
 		fire(QueueManagerListener::SourceFilesUpdated(), aUser);

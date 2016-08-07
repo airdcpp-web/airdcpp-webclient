@@ -45,19 +45,19 @@ public:
     SharedFileStream(const string& aFileName, int access, int mode);
     ~SharedFileStream();
 
-	size_t write(const void* buf, size_t len) throw(Exception);
-	size_t read(void* buf, size_t& len) throw(Exception);
+	size_t write(const void* buf, size_t len) override;
+	size_t read(void* buf, size_t& len) override;
 
 	int64_t getSize() const noexcept;
-	void setSize(int64_t newSize) throw(FileException);
+	void setSize(int64_t newSize);
 
-	size_t flush() throw(Exception);
+	size_t flushBuffers(bool aForce) override;
 
     static CriticalSection cs;
 	static SharedFileHandleMap readpool;
 	static SharedFileHandleMap writepool;
 
-	void setPos(int64_t aPos) noexcept;
+	void setPos(int64_t aPos) noexcept override;
 private:
 	SharedFileHandle* sfh;
 	int64_t pos;

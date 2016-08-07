@@ -136,6 +136,8 @@ bool ClientManager::putClient(const string& aHubURL) noexcept {
 }
 
 bool ClientManager::putClient(ClientPtr& aClient) noexcept {
+	dcassert(aClient->hasListener(this));
+
 	fire(ClientManagerListener::ClientDisconnected(), aClient->getHubUrl());
 	fire(ClientManagerListener::ClientRemoved(), aClient);
 
@@ -167,6 +169,7 @@ ClientPtr ClientManager::redirect(const string& aHubUrl, const string& aNewUrl) 
 
 	oldClient->disconnect(true);
 	oldClient->shutdown(oldClient, true);
+	oldClient->removeListener(this);
 
 	auto newClient = ClientManager::createClient(aNewUrl, oldClient);
 	oldClient->clearCache();
@@ -177,6 +180,8 @@ ClientPtr ClientManager::redirect(const string& aHubUrl, const string& aNewUrl) 
 		clients.emplace(const_cast<string*>(&newClient->getHubUrl()), newClient);
 		clientsById[newClient->getClientId()] = newClient;
 	}
+
+	newClient->addListener(this);
 
 	RecentHubEntryPtr r = new RecentHubEntry(aNewUrl);
 	FavoriteManager::getInstance()->addRecent(r);
@@ -412,7 +417,7 @@ string ClientManager::findHub(const string& ipPort, bool nmdc) const noexcept {
 	string url;
 
 	RLock l(cs);
-	for(const auto c: clients | map_values) {
+	for(const auto& c: clients | map_values) {
 		if(c->getIp() == ip && AirUtil::isAdcHub(c->getHubUrl()) == !nmdc) {
 			// If exact match is found, return it
 			if(c->getPort() == port)
@@ -514,7 +519,7 @@ UserPtr ClientManager::findUser(const CID& cid) const noexcept {
 
 UserPtr ClientManager::findUserByNick(const string& aNick, const string& aHubUrl) const noexcept {
 	RLock l(cs);
-	for(const auto c: clients | map_values) {
+	for(const auto& c: clients | map_values) {
 		if(c->getHubUrl() == aHubUrl) {
 			return c->findUser(aNick)->getUser();
 		}
@@ -1003,7 +1008,7 @@ OnlineUserList ClientManager::searchNicks(const string& aPattern, size_t aMaxRes
 
 void ClientManager::getOnlineClients(StringList& onlineClients) const noexcept {
 	RLock l (cs);
-	for (auto c: clients | map_values) {
+	for (const auto& c: clients | map_values) {
 		if (c->isConnected())
 			onlineClients.push_back(c->getHubUrl());
 	}

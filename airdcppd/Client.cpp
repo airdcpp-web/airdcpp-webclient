@@ -40,15 +40,6 @@ Client::Client(bool aAsDaemon) : asDaemon(aAsDaemon) {
 
 }
 
-std::string Client::getDefaultNick() noexcept {
-	char buf[64] = {0};
-	if (getlogin_r(buf, sizeof(buf)-1) != 0) {
-		return "airdcpp-web";
-	}
-
-	return buf;
-}
-
 void Client::run() {
 	if (!startup()) {
 		return;
@@ -105,7 +96,6 @@ bool Client::startup() {
 
 	ActivityManager::getInstance()->setAway(AWAY_IDLE);
 	SettingsManager::getInstance()->setDefault(SettingsManager::LOG_IGNORED, false);
-	SettingsManager::getInstance()->setDefault(SettingsManager::NICK, getDefaultNick());
 
 	// The client is often run on slow system and this would cause high CPU usage
 	SettingsManager::getInstance()->setDefault(SettingsManager::REFRESH_THREADING, static_cast<int>(SettingsManager::MULTITHREAD_NEVER));

@@ -21,7 +21,13 @@
 
 #include "compiler.h"
 
-# define SP_HIDDEN 1
+#define SP_HIDDEN 1
+
+#define ADC_SEPARATOR '/'
+#define ADC_SEPARATOR_STR "/"
+
+#define NMDC_SEPARATOR '\\'
+#define NMDC_SEPARATOR_STR "\\"
 
 #ifdef _WIN32
 
@@ -99,22 +105,14 @@ class Util
 {
 public:
 	struct PathSortOrderInt {
-		int operator()(const string& left, const string& right) const noexcept {
-			auto comp = compare(Util::getFilePath(left), Util::getFilePath(right));
-			if (comp == 0) {
-				return compare(left, right);
-			}
-			return comp;
+		int operator()(const string& a, const string& b) const noexcept {
+			return pathSort(a, b);
 		}
 	};
 
 	struct PathSortOrderBool {
-		bool operator()(const string& left, const string& right) const noexcept {
-			auto comp = compare(Util::getFilePath(left), Util::getFilePath(right));
-			if (comp == 0) {
-				return compare(left, right) < 0;
-			}
-			return comp < 0;
+		bool operator()(const string& a, const string& b) const noexcept {
+			return pathSort(a, b) < 0;
 		}
 	};
 
@@ -176,6 +174,7 @@ public:
 	static string getAppFileName() noexcept;
 	static string getAppPath() noexcept;
 
+	static string getSystemUsername() noexcept;
 #ifndef _WIN32 
 	static std::string appPath;
 	static void setApp(const string& app) noexcept;
@@ -246,7 +245,8 @@ public:
 	static void parseIpPort(const string& aIpPort, string& ip, string& port) noexcept;
 	static map<string, string> decodeQuery(const string& query) noexcept;
 
-	static bool isPathValid(const string& sPath) noexcept;
+	static bool isAdcPath(const string& aPath) noexcept;
+
 	static inline string validatePath(const string& aPath, bool requireEndSeparator = false) noexcept {
 		auto path = cleanPathChars(aPath, false);
 		if (requireEndSeparator && !path.empty() && path.back() != PATH_SEPARATOR) {
@@ -288,7 +288,9 @@ public:
 	static string formatSeconds(int64_t aSec, bool supressHours = false) noexcept;
 
 	typedef string (*FilterF)(const string&);
-	static string formatParams(const string& msg, const ParamMap& params, FilterF filter = 0) noexcept;
+
+	// Set aTime to 0 to avoid formating of time variable
+	static string formatParams(const string& msg, const ParamMap& params, FilterF filter = nullptr, time_t aTime = time(NULL)) noexcept;
 
 	static string formatTime(const string &msg, const time_t t) noexcept;
 
@@ -308,51 +310,15 @@ public:
 		return ((size + blockSize - 1) / blockSize) * blockSize;
 	}
 
-	inline static string FormatPath(const string& path) noexcept {
-#ifdef _WIN32
-		//dont format unless its needed, xp works slower with these so.
-		//also we want to limit the unc path lower, no point on endless paths.
-		if(path.size() < 250 || path.size() > UNC_MAX_PATH) 
-			return path;
-
-		string temp;
-		if ((path[0] == '\\') & (path[1] == '\\'))
-			temp = "\\\\?\\UNC\\" + path.substr(2);
-		else
-			temp = "\\\\?\\" + path;
-		return temp;
-#else
-		return path;
-#endif
-	}
-		
-	inline static tstring FormatPathT(const tstring& path) noexcept {
-#ifdef _WIN32
-		//dont format unless its needed, xp works slower with these so.
-		//also we want to limit the unc path lower, no point on endless paths. 
-		if(path.size() < 250 || path.size() > UNC_MAX_PATH) 
-			return path;
-
-		tstring temp;
-		if ((path[0] == '\\') & (path[1] == '\\'))
-			temp = _T("\\\\?\\UNC\\") + path.substr(2);
-		else
-			temp = _T("\\\\?\\") + path;
-		return temp;
-#else
-		return path;
-#endif
-	}
-
 	static string formatTime(int64_t aSec, bool translate, bool perMinute = false) noexcept;
 
+	static int DefaultSort(const char* a, const char* b) noexcept;
 	static int DefaultSort(const wchar_t* a, const wchar_t* b) noexcept;
-
 	inline static int DefaultSort(const string& a, const string& b) noexcept {
 		return DefaultSort(a.c_str(), b.c_str());
 	}
 
-	static int DefaultSort(const char* a, const char* b) noexcept;
+	static int pathSort(const string& a, const string& b) noexcept;
 
 	static int64_t toInt64(const string& aString) noexcept {
 #ifdef _WIN32
@@ -486,6 +452,34 @@ public:
 	static string listToString(const ListT& lst) noexcept { return listToStringT<ListT, StrChar>(lst, false, true); }
 
 #ifdef WIN32
+	inline static string formatPath(const string& aPath) noexcept {
+		//dont format unless its needed
+		//also we want to limit the unc path lower, no point on endless paths.
+		if (aPath.size() < 250 || aPath.size() > UNC_MAX_PATH) {
+			return aPath;
+		}
+
+		if (aPath[0] == '\\' && aPath[1] == '\\') {
+			return "\\\\?\\UNC\\" + aPath.substr(2);
+		}
+
+		return "\\\\?\\" + aPath;
+	}
+
+	inline static wstring formatPathW(const tstring& aPath) noexcept {
+		//dont format unless its needed
+		//also we want to limit the unc path lower, no point on endless paths. 
+		if (aPath.size() < 250 || aPath.size() > UNC_MAX_PATH) {
+			return aPath;
+		}
+
+		if (aPath[0] == '\\' && aPath[1] == '\\') {
+			return _T("\\\\?\\UNC\\") + aPath.substr(2);
+		}
+
+		return _T("\\\\?\\") + aPath;
+	}
+
 	static wstring toStringW( int32_t val ) noexcept {
 		wchar_t buf[32];
 		snwprintf(buf, sizeof(buf), L"%ld", val);

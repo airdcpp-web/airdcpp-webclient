@@ -135,7 +135,7 @@ public:
 		GETSET(DirType, type, Type);
 		IGETSET(DupeType, dupe, Dupe, DUPE_NONE);
 		IGETSET(time_t, remoteDate, RemoteDate, 0);
-		IGETSET(time_t, updateDate, UpdateDate, 0);
+		IGETSET(time_t, lastUpdateDate, LastUpdateDate, 0);
 		IGETSET(bool, loading, Loading, false);
 
 		bool isComplete() const noexcept { return type == TYPE_ADLS || type == TYPE_NORMAL; }
@@ -158,11 +158,9 @@ public:
 	void loadFile() throw(Exception, AbortException);
 	bool isLoaded() const noexcept;
 
-	//return the number of loaded dirs
-	int updateXML(const string& aXml, const string& aBase) throw(AbortException);
 
-	//return the number of loaded dirs
-	int loadXML(InputStream& xml, bool updating, const string& aBase = "/", time_t aListDate = GET_TIME()) throw(AbortException);
+	// Returns the number of loaded dirs
+	int loadPartialXml(const string& aXml, const string& aAdcBase) throw(AbortException);
 
 	bool downloadDir(const string& aRemoteDir, const string& aTarget, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0) noexcept;
 	bool createBundle(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept;
@@ -261,6 +259,12 @@ protected:
 	void onStateChanged() noexcept;
 
 private:
+	// Returns the number of loaded dirs
+	int loadXML(InputStream& aXml, bool aUpdating, const string& aBase, time_t aListDate = GET_TIME()) throw(AbortException);
+
+	// Create and insert a base directory with the given path (or return an existing one)
+	Directory::Ptr createBaseDirectory(const string& aPath, time_t aDownloadDate = GET_TIME()) noexcept;
+
 	// Returns false if the directory was not found from the list
 	bool changeDirectory(const string& aPath, ReloadMode aReloadMode, bool aIsSearchChange = false) noexcept;
 
@@ -274,9 +278,11 @@ private:
 
 	Directory::Ptr root;
 
-	//maps loaded base dirs with their full lowercase paths and whether they've been visited or not
-	typedef unordered_map<string, pair<Directory::Ptr, bool>> DirMap;
-	DirMap baseDirs;
+	typedef unordered_map<string, pair<Directory::Ptr, bool>> DirBoolMap;
+
+	// Maps loaded base directories (exact visited paths and their parents) with their full lowercase 
+	// paths and whether they've been visited or not
+	DirBoolMap baseDirs;
 
 	void dispatch(DispatcherQueue::Callback& aCallback) noexcept;
 

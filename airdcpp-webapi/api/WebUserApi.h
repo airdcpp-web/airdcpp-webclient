@@ -27,7 +27,7 @@
 #include <web-server/WebUserManagerListener.h>
 
 namespace webserver {
-	class WebUserApi : public ApiModule, private WebUserManagerListener {
+	class WebUserApi : public SubscribableApiModule, private WebUserManagerListener {
 	public:
 		WebUserApi(Session* aSession);
 		~WebUserApi();

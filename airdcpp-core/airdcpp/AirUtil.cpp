@@ -382,19 +382,19 @@ int AirUtil::getSlotsPerUser(bool download, double value, int aSlots, SettingsMa
 }
 
 
-int AirUtil::getSlots(bool download, double value, SettingsManager::SettingProfile aProfile) {
-	if (!SETTING(DL_AUTODETECT) && value == 0 && download) {
+int AirUtil::getSlots(bool aIsDownload, double aValue, SettingsManager::SettingProfile aProfile) {
+	if (!SETTING(DL_AUTODETECT) && aValue == 0 && aIsDownload) {
 		//LogManager::getInstance()->message("Slots1");
 		return SETTING(DOWNLOAD_SLOTS);
-	} else if (!SETTING(UL_AUTODETECT) && value == 0 && !download) {
+	} else if (!SETTING(UL_AUTODETECT) && aValue == 0 && !aIsDownload) {
 		//LogManager::getInstance()->message("Slots2");
 		return SETTING(SLOTS);
 	}
 
 	double speed;
-	if (value != 0) {
-		speed=value;
-	} else if (download) {
+	if (aValue != 0) {
+		speed = aValue;
+	} else if (aIsDownload) {
 		int limit = SETTING(AUTO_DETECTION_USE_LIMITED) ? ThrottleManager::getInstance()->getDownLimit() : 0;
 		speed = limit > 0 ? (limit * 8.00) / 1024.00 : Util::toDouble(SETTING(DOWNLOAD_SPEED));
 	} else {
@@ -402,7 +402,7 @@ int AirUtil::getSlots(bool download, double value, SettingsManager::SettingProfi
 		speed = limit > 0 ? (limit * 8.00) / 1024.00 : Util::toDouble(SETTING(UPLOAD_SPEED));
 	}
 
-	int slots=3;
+	int slots = 3;
 
 	// Don't try to understand the formula used in here
 	bool rar = aProfile == SettingsManager::PROFILE_RAR;
@@ -410,69 +410,66 @@ int AirUtil::getSlots(bool download, double value, SettingsManager::SettingProfi
 		if (rar) {
 			slots=1;
 		} else {
-			download ? slots=6 : slots=2;
+			aIsDownload ? slots=6 : slots=2;
 		}
 	} else if (speed > 1 && speed <= 2.5) {
 		if (rar) {
 			slots=2;
 		} else {
-			download ? slots=15 : slots=3;
+			aIsDownload ? slots=15 : slots=3;
 		}
 	} else if (speed > 2.5 && speed <= 4) {
 		if (rar) {
-			download ? slots=3 : slots=2;
+			aIsDownload ? slots=3 : slots=2;
 		} else {
-			download ? slots=15 : slots=4;
+			aIsDownload ? slots=15 : slots=4;
 		}
 	} else if (speed > 4 && speed <= 6) {
 		if (rar) {
-			download ? slots=3 : slots=3;
+			aIsDownload ? slots=3 : slots=3;
 		} else {
-			download ? slots=20 : slots=5;
+			aIsDownload ? slots=20 : slots=5;
 		}
 	} else if (speed > 6 && speed < 10) {
 		if (rar) {
-			download ? slots=5 : slots=3;
+			aIsDownload ? slots=5 : slots=3;
 		} else {
-			download ? slots=20 : slots=6;
+			aIsDownload ? slots=20 : slots=6;
 		}
 	} else if (speed >= 10 && speed <= 50) {
 		if (rar) {
 			speed <= 20 ?  slots=4 : slots=5;
-			if (download) {
+			if (aIsDownload) {
 				slots=slots+3;
 			}
 		} else {
-			download ? slots=30 : slots=8;
+			aIsDownload ? slots=30 : slots=8;
 		}
 	} else if(speed > 50 && speed < 100) {
 		if (rar) {
 			slots= static_cast<int>(speed / 10);
-			if (download)
+			if (aIsDownload)
 				slots=slots+4;
 		} else {
-			download ? slots=40 : slots=12;
+			aIsDownload ? slots=40 : slots=12;
 		}
 	} else if (speed >= 100) {
+		// Curves: https://www.desmos.com/calculator/vfywkguiej
 		if (rar) {
-			if (download) {
-				slots = static_cast<int>(speed / 7.0);
+			if (aIsDownload) {
+				slots = static_cast<int>(ceil((log(speed + 750) - 6.61) * 100));
 			} else {
-				slots = static_cast<int>(speed / 12.0);
-				if (slots > 15)
-					slots=15;
+				slots = static_cast<int>(ceil((log(speed + 70.0) - 4.4) * 10));
 			}
 		} else {
-			if (download) {
-				slots=50;
+			if (aIsDownload) {
+				slots = static_cast<int>((speed * 0.10) + 40);
 			} else {
-				slots= static_cast<int>(speed / 7.0);
-				if (slots > 30 && !download)
-					slots=30;
+				slots = static_cast<int>((speed * 0.04) + 15);
 			}
 		}
 	}
-	//LogManager::getInstance()->message("Slots3: " + Util::toString(slots));
+
 	return slots;
 
 }

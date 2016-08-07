@@ -67,18 +67,19 @@ public:
 		boost::scoped_array<char> buf(new char[512 * 1024]);
 
 		try {
-			File f(path, File::READ, File::OPEN);
-			updateBlockSize(f.getSize());
+			{
+				File f(path, File::READ, File::OPEN);
+				updateBlockSize(f.getSize());
 
-			if(f.getSize() > 0) {
-				size_t read = 512*1024;
-				while((read = f.read(&buf[0], read)) > 0) {
-					hash.update(&buf[0], read);
-					read = 512*1024;
+				if (f.getSize() > 0) {
+					size_t read = 512 * 1024;
+					while ((read = f.read(&buf[0], read)) > 0) {
+						hash.update(&buf[0], read);
+						read = 512 * 1024;
+					}
 				}
 			}
 
-			f.close();
 			hash.finalize();
 		} catch(const FileException&) {
 			return Util::emptyString;

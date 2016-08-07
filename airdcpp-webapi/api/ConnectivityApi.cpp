@@ -24,7 +24,7 @@
 #include <api/common/Serializer.h>
 
 namespace webserver {
-	ConnectivityApi::ConnectivityApi(Session* aSession) : ApiModule(aSession, Access::SETTINGS_VIEW) {
+	ConnectivityApi::ConnectivityApi(Session* aSession) : SubscribableApiModule(aSession, Access::SETTINGS_VIEW) {
 		ConnectivityManager::getInstance()->addListener(this);
 
 		createSubscription("connectivity_message");

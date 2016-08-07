@@ -37,14 +37,18 @@ public:
 	typedef X<5> FavoriteHubUpdated;
 	typedef X<6> FavoriteHubsUpdated;
 
-	typedef X<7> UserAdded;
-	typedef X<8> UserRemoved;
-	typedef X<9> StatusChanged;
+	typedef X<7> FavoriteUserAdded;
+	typedef X<8> FavoriteUserRemoved;
+	typedef X<9> FavoriteUserUpdated;
+
 	typedef X<10> LoadedFromCache;
 	typedef X<11> Corrupted;	
+
 	typedef X<12> RecentAdded;
 	typedef X<13> RecentRemoved;
 	typedef X<14> RecentUpdated;
+
+	typedef X<15> FavoriteDirectoriesUpdated;
 
 	virtual void on(DownloadStarting, const string&) noexcept { }
 	virtual void on(DownloadFailed, const string&) noexcept { }
@@ -55,14 +59,18 @@ public:
 	virtual void on(FavoriteHubUpdated, const FavoriteHubEntryPtr&) noexcept { }
 	virtual void on(FavoriteHubsUpdated) noexcept { }
 
-	virtual void on(UserAdded, const FavoriteUser&) noexcept { }
-	virtual void on(UserRemoved, const FavoriteUser&) noexcept { }
-	virtual void on(StatusChanged, const UserPtr&) noexcept { }
+	virtual void on(FavoriteUserAdded, const FavoriteUser&) noexcept { }
+	virtual void on(FavoriteUserRemoved, const FavoriteUser&) noexcept { }
+	virtual void on(FavoriteUserUpdated, const UserPtr&) noexcept { }
+
 	virtual void on(LoadedFromCache, const string&, const string&) noexcept { }
 	virtual void on(Corrupted, const string&) noexcept { }
+
 	virtual void on(RecentAdded, const RecentHubEntryPtr&) noexcept {}
 	virtual void on(RecentRemoved, const RecentHubEntryPtr&) noexcept {}
 	virtual void on(RecentUpdated, const RecentHubEntryPtr&) noexcept {}
+
+	virtual void on(FavoriteDirectoriesUpdated) noexcept { }
 };
 
 } // namespace dcpp

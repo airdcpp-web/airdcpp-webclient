@@ -149,10 +149,11 @@ void ZipFile::ReadCurrentFile(const string &path) {
 			const string& fullPath = (path[path.size()-1] == PATH_SEPARATOR) ? path + nameInZip : path;
 			File::ensureDirectory(fullPath);
 
-			File f(fullPath, File::WRITE, File::OPEN | File::CREATE | File::TRUNCATE, File::BUFFER_SEQUENTIAL);
-			f.setEndPos(0);
-			f.write(file.first, file.second);
-			f.close();
+			{
+				File f(fullPath, File::WRITE, File::OPEN | File::CREATE | File::TRUNCATE, File::BUFFER_SEQUENTIAL);
+				f.setEndPos(0);
+				f.write(file.first, file.second);
+			}
 
 			delete[] file.first;
 		}
@@ -245,8 +246,6 @@ void ZipFile::CreateZipFile(const string& dstPath, const StringPairList& files) 
 					if(err != ZIP_OK)
 						throw ZipFileException("zipCloseFileInZip", err);
 				}
-
-				f.close();
 			} catch(const FileException& e) {
 				throw ZipFileException(e.getError());
 			}

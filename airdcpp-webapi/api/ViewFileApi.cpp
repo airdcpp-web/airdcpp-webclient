@@ -31,7 +31,7 @@
 #include <boost/range/algorithm/copy.hpp>
 
 namespace webserver {
-	ViewFileApi::ViewFileApi(Session* aSession) : ApiModule(aSession, Access::VIEW_FILES_VIEW) {
+	ViewFileApi::ViewFileApi(Session* aSession) : SubscribableApiModule(aSession, Access::VIEW_FILES_VIEW) {
 
 		ViewFileManager::getInstance()->addListener(this);
 
@@ -62,7 +62,7 @@ namespace webserver {
 			{ "name", aFile->getDisplayName() },
 			{ "state", Serializer::serializeDownloadState(*aFile.get()) },
 			{ "type", Serializer::serializeFileType(aFile->getPath()) },
-			{ "time_finished", aFile->getTimeFinished() },
+			{ "time_finished", aFile->getLastTimeFinished() },
 			{ "downloaded", !aFile->isLocalFile() },
 			{ "mime_type", mimeType ? mimeType : Util::emptyString },
 		};

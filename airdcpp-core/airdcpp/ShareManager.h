@@ -165,7 +165,7 @@ public:
 	// Returns the dupe paths by directory name/NMDC path
 	StringList getNmdcDirPaths(const string& aDir) const noexcept;
 
-	vector<pair<string, StringList>> getGroupedDirectories() const noexcept;
+	GroupedDirectoryMap getGroupedDirectories() const noexcept;
 	MemoryInputStream* generatePartialList(const string& dir, bool aRecursive, const OptionalProfileToken& aProfile) const noexcept;
 	MemoryInputStream* generateTTHList(const string& dir, bool aRecursive, ProfileToken aProfile) const noexcept;
 	MemoryInputStream* getTree(const string& virtualFile, ProfileToken aProfile) const noexcept;

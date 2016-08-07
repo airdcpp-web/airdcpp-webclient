@@ -453,7 +453,7 @@ void DownloadManager::endData(UserConnection* aSource) {
 	dcassert(d);
 
 	if(d->getType() == Transfer::TYPE_TREE) {
-		d->getOutput()->flush();
+		d->getOutput()->flushBuffers(false);
 
 		int64_t bl = 1024;
 		while(bl * (int64_t)d->getTigerTree().getLeaves().size() < d->getTigerTree().getFileSize())
@@ -477,7 +477,7 @@ void DownloadManager::endData(UserConnection* aSource) {
 		aSource->setSpeed(static_cast<int64_t>(d->getAverageSpeed()));
 		aSource->updateChunkSize(d->getTigerTree().getBlockSize(), d->getSegmentSize(), GET_TICK() - d->getStart());
 		
-		dcdebug("Download finished: %s, size " I64_FMT ", downloaded " I64_FMT "\n", d->getPath().c_str(), d->getSegmentSize(), d->getPos());
+		dcdebug("Download finished: %s, size " I64_FMT ", downloaded " I64_FMT " in " U64_FMT " ms\n", d->getPath().c_str(), d->getSegmentSize(), d->getPos(), GET_TICK() - d->getStart());
 	}
 
 	removeDownload(d);
@@ -545,10 +545,11 @@ void DownloadManager::removeConnection(UserConnectionPtr aConn) {
 }
 
 void DownloadManager::removeDownload(Download* d) {
+	// Write the leftover bytes into file
 	if(d->getOutput()) {
 		if(d->getActual() > 0) {
 			try {
-				d->getOutput()->flush();
+				d->getOutput()->flushBuffers(false);
 			} catch(const Exception&) {
 			}
 		}
@@ -676,7 +677,7 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 	aSource->disconnect();
 }
 
-void DownloadManager::fileNotAvailable(UserConnection* aSource, bool noAccess) {
+void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess) {
 	if(aSource->getState() != UserConnection::STATE_SND) {
 		dcdebug("DM::fileNotAvailable Invalid state, disconnecting");
 		aSource->disconnect();
@@ -705,15 +706,16 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool noAccess) {
 	string error = d->getType() == Transfer::TYPE_TREE ? STRING(NO_FULL_TREE) : STRING(FILE_NOT_AVAILABLE);
 	if (d->isSet(Download::FLAG_NFO) && isNmdc) {
 		error = STRING(NO_PARTIAL_SUPPORT);
-	} else if (noAccess) {
+	} else if (aNoAccess) {
 		error = STRING(NO_FILE_ACCESS);
 	}
 
 	fire(DownloadManagerListener::Failed(), d, error);
-	if (!noAccess)
+	if (!aNoAccess) {
 		QueueManager::getInstance()->removeFileSource(d->getPath(), aSource->getUser(), (Flags::MaskType)(d->getType() == Transfer::TYPE_TREE ? QueueItem::Source::FLAG_NO_TREE : QueueItem::Source::FLAG_FILE_NOT_AVAILABLE), false);
+	}
 
-	QueueManager::getInstance()->putDownload(d, false, noAccess);
+	QueueManager::getInstance()->putDownload(d, false, aNoAccess);
 	checkDownloads(aSource);
 }
 

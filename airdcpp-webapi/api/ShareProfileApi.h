@@ -27,7 +27,7 @@
 #include <airdcpp/ShareManagerListener.h>
 
 namespace webserver {
-	class ShareProfileApi : public ApiModule, private ShareManagerListener {
+	class ShareProfileApi : public SubscribableApiModule, private ShareManagerListener {
 	public:
 		ShareProfileApi(Session* aSession);
 		~ShareProfileApi();

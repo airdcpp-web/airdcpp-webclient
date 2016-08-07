@@ -39,7 +39,7 @@ namespace webserver {
 		WebUserUtils::getStringInfo, WebUserUtils::getNumericInfo, WebUserUtils::compareItems, WebUserUtils::serializeItem, WebUserUtils::filterItem
 	};
 
-	WebUserApi::WebUserApi(Session* aSession) : ApiModule(aSession, Access::ADMIN), um(aSession->getServer()->getUserManager()),
+	WebUserApi::WebUserApi(Session* aSession) : SubscribableApiModule(aSession, Access::ADMIN), um(aSession->getServer()->getUserManager()),
 		view("web_user_view", this, itemHandler, std::bind(&WebUserApi::getUsers, this)) {
 
 		um.addListener(this);

@@ -200,7 +200,8 @@
     <ClInclude Include="api\PrivateChatInfo.h" />
     <ClInclude Include="api\PrivateChatApi.h" />
     <ClInclude Include="api\QueueApi.h" />
-    <ClInclude Include="api\QueueUtils.h" />
+    <ClInclude Include="api\QueueFileUtils.h" />
+    <ClInclude Include="api\QueueBundleUtils.h" />
     <ClInclude Include="api\RecentHubApi.h" />
     <ClInclude Include="api\SearchApi.h" />
     <ClInclude Include="api\SearchResultInfo.h" />
@@ -262,7 +263,8 @@
     <ClCompile Include="api\PrivateChatApi.cpp" />
     <ClCompile Include="api\PrivateChatInfo.cpp" />
     <ClCompile Include="api\QueueApi.cpp" />
-    <ClCompile Include="api\QueueUtils.cpp" />
+    <ClCompile Include="api\QueueFileUtils.cpp" />
+    <ClCompile Include="api\QueueBundleUtils.cpp" />
     <ClCompile Include="api\RecentHubApi.cpp" />
     <ClCompile Include="api\SearchApi.cpp" />
     <ClCompile Include="api\SearchResultInfo.cpp" />

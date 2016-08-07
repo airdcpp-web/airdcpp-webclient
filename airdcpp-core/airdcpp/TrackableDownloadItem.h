@@ -43,30 +43,32 @@ namespace dcpp {
 			STATE_DOWNLOAD_PENDING,
 			STATE_DOWNLOADING,
 			STATE_DOWNLOADED,
+			STATE_DOWNLOAD_FAILED,
 		};
 
-		State getDownloadState() const noexcept {
-			return state;
-		}
+		State getDownloadState() const noexcept;
+		time_t getLastTimeFinished() const noexcept;
 
-		bool hasCompletedDownloads() const noexcept {
-			return completedDownloads;
-		}
-
+		bool hasCompletedDownloads() const noexcept;
 		bool hasDownloads() const noexcept;
 		StringList getDownloads() const noexcept;
 
-		IGETSET(time_t, timeFinished, TimeFinished, 0);
+		struct StatusInfo{
+			const State state;
+			const string str;
+		};
 
-		string getStatusString() const noexcept;
+		StatusInfo getStatusInfo() const noexcept;
+
+		const string& getLastError() const noexcept {
+			return lastError;
+		}
+
+		void clearLastError() noexcept;
 	protected:
 		virtual void onStateChanged() noexcept = 0;
 
 	private:
-		bool completedDownloads = false;
-		State state = STATE_DOWNLOAD_PENDING;
-
-		void updateState() noexcept;
 		void onRunningStateChanged(const Download* aDownload, bool aFailed) noexcept;
 
 		void on(DownloadManagerListener::Failed, const Download* aDownload, const string& aReason) noexcept;
@@ -91,6 +93,9 @@ namespace dcpp {
 
 		mutable SharedMutex cs;
 		map<string, PathInfo> downloads;
+
+		string lastError;
+		time_t lastTimeFinished = 0;
 
 		string formatRunningStatus() const noexcept;
 	};

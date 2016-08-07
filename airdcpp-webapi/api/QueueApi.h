@@ -29,28 +29,13 @@
 #include <api/ApiModule.h>
 #include <api/common/ListViewController.h>
 
+#include <api/QueueBundleUtils.h>
+#include <api/QueueFileUtils.h>
+
+
 namespace webserver {
-	class QueueApi : public ApiModule, private QueueManagerListener, private DownloadManagerListener {
+	class QueueApi : public SubscribableApiModule, private QueueManagerListener, private DownloadManagerListener {
 	public:
-		static const PropertyList bundleProperties;
-
-		enum Properties {
-			PROP_TOKEN = -1,
-			PROP_NAME,
-			PROP_TARGET,
-			PROP_TYPE,
-			PROP_SIZE,
-			PROP_STATUS,
-			PROP_BYTES_DOWNLOADED,
-			PROP_PRIORITY,
-			PROP_TIME_ADDED,
-			PROP_TIME_FINISHED,
-			PROP_SPEED,
-			PROP_SECONDS_LEFT,
-			PROP_SOURCES,
-			PROP_LAST
-		};
-
 		QueueApi(Session* aSession);
 		~QueueApi();
 
@@ -64,7 +49,7 @@ namespace webserver {
 		api_return handleRemoveBundle(ApiRequest& aRequest);
 		//api_return handleRemoveTempItem(ApiRequest& aRequest);
 		//api_return handleRemoveFileList(ApiRequest& aRequest);
-		api_return handleRemoveFile(ApiRequest& aRequest);
+		api_return handleRemoveTarget(ApiRequest& aRequest);
 
 		api_return handleGetBundles(ApiRequest& aRequest);
 		api_return handleRemoveFinishedBundles(ApiRequest& aRequest);
@@ -81,10 +66,16 @@ namespace webserver {
 		api_return handleAddDirectoryBundle(ApiRequest& aRequest);
 		api_return handleAddFileBundle(ApiRequest& aRequest);
 
+		api_return handleGetBundleSources(ApiRequest& aRequest);
+		api_return handleRemoveBundleSource(ApiRequest& aRequest);
+
 		api_return handleUpdateBundle(ApiRequest& aRequest);
 
 		api_return handleSearchBundle(ApiRequest& aRequest);
 		api_return handleShareBundle(ApiRequest& aRequest);
+
+		api_return handleUpdateFile(ApiRequest& aRequest);
+		api_return handleSearchFile(ApiRequest& aRequest);
 
 		// Throws if the bundle is not found
 		BundlePtr getBundle(ApiRequest& aRequest);
@@ -110,13 +101,14 @@ namespace webserver {
 		void on(QueueManagerListener::ItemSourcesUpdated, const QueueItemPtr& aQI) noexcept;
 		void on(QueueManagerListener::ItemStatusUpdated, const QueueItemPtr& aQI) noexcept;
 
-		void onFileUpdated(const QueueItemPtr& qi);
-		void onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription = "bundle_updated");
+		void onFileUpdated(const QueueItemPtr& aQI, const PropertyIdSet& aUpdatedProperties);
+		void onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription);
 
-		static const PropertyItemHandler<BundlePtr> bundlePropertyHandler;
-
-		typedef ListViewController<BundlePtr, PROP_LAST> BundleListView;
+		typedef ListViewController<BundlePtr, QueueBundleUtils::PROP_LAST> BundleListView;
 		BundleListView bundleView;
+
+		typedef ListViewController<QueueItemPtr, QueueFileUtils::PROP_LAST> FileListView;
+		FileListView fileView;
 	};
 }
 

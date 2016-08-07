@@ -18,6 +18,7 @@
 
 #include <web-server/stdinc.h>
 #include <web-server/JsonUtil.h>
+#include <web-server/Session.h>
 
 #include <api/common/Deserializer.h>
 
@@ -33,6 +34,20 @@ namespace webserver {
 		return CID(aCID);
 	}
 
+	UserPtr Deserializer::getUser(const string& aCID, bool aAllowMe) {
+		auto cid = parseCID(aCID);
+		if (!aAllowMe && cid == ClientManager::getInstance()->getMyCID()) {
+			throw std::invalid_argument("Own CID isn't allowed for this command");
+		}
+
+		auto u = ClientManager::getInstance()->findUser(cid);
+		if (!u) {
+			throw std::invalid_argument("User not found");
+		}
+
+		return u;
+	}
+
 	TTHValue Deserializer::parseTTH(const string& aTTH) {
 		if (!Encoder::isBase32(aTTH.c_str())) {
 			throw std::invalid_argument("Invalid TTH");
@@ -42,17 +57,12 @@ namespace webserver {
 	}
 
 	UserPtr Deserializer::parseUser(const json& aJson, bool aAllowMe) {
-		auto cid = parseCID(JsonUtil::getField<string>("cid", aJson, false));
-		if (!aAllowMe && cid == ClientManager::getInstance()->getMyCID()) {
-			throw std::invalid_argument("Own CID isn't allowed for this command");
-		}
-
-		return ClientManager::getInstance()->findUser(cid);
+		return getUser(JsonUtil::getField<string>("cid", aJson, false), aAllowMe);
 	}
 
 	UserPtr Deserializer::deserializeUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
 		auto userJson = JsonUtil::getRawValue(aFieldName, aJson, false);
-		return parseUser(userJson);
+		return parseUser(userJson, aAllowMe);
 	}
 
 	HintedUser Deserializer::deserializeHintedUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
@@ -76,8 +86,13 @@ namespace webserver {
 		return static_cast<QueueItemBase::Priority>(*priority);
 	}
 
-	void Deserializer::deserializeDownloadParams(const json& aJson, string& targetDirectory_, string& targetName_, TargetUtil::TargetType& targetType_, QueueItemBase::Priority& priority_) {
+	void Deserializer::deserializeDownloadParams(const json& aJson, const SessionPtr& aSession, string& targetDirectory_, string& targetName_, TargetUtil::TargetType& targetType_, QueueItemBase::Priority& priority_) {
+		// Target path
 		targetDirectory_ = JsonUtil::getOptionalFieldDefault<string>("target_directory", aJson, SETTING(DOWNLOAD_DIRECTORY), false);
+
+		ParamMap params;
+		params["username"] = aSession->getUser()->getUserName();
+		targetDirectory_ = Util::formatParams(targetDirectory_, params, nullptr, 0);
 
 		// A default target name can be provided
 		auto name = JsonUtil::getOptionalField<string>("target_name", aJson, false, targetName_.empty());

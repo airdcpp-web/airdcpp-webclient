@@ -173,7 +173,8 @@ namespace webserver {
 			{ "text", aMessage->getText() },
 			{ "from", serializeOnlineUser(aMessage->getFrom()) },
 			{ "time", aMessage->getTime() },
-			{ "is_read", aMessage->getRead() }
+			{ "is_read", aMessage->getRead() },
+			{ "third_person", aMessage->getThirdPerson() },
 		};
 
 		if (aMessage->getTo()) {
@@ -291,6 +292,7 @@ namespace webserver {
 
 	string Serializer::getDownloadStateId(TrackableDownloadItem::State aState) noexcept {
 		switch (aState) {
+			case TrackableDownloadItem::STATE_DOWNLOAD_FAILED: return "download_failed";
 			case TrackableDownloadItem::STATE_DOWNLOAD_PENDING: return "download_pending";
 			case TrackableDownloadItem::STATE_DOWNLOADING: return "downloading";
 			case TrackableDownloadItem::STATE_DOWNLOADED: return "downloaded";
@@ -301,9 +303,10 @@ namespace webserver {
 	}
 
 	json Serializer::serializeDownloadState(const TrackableDownloadItem& aItem) noexcept {
+		auto info = aItem.getStatusInfo();
 		return {
-			{ "id", getDownloadStateId(aItem.getDownloadState()) },
-			{ "str", aItem.getStatusString() }
+			{ "id", getDownloadStateId(info.state) },
+			{ "str", info.str }
 		};
 	}
 
@@ -337,9 +340,33 @@ namespace webserver {
 	}
 
 	json Serializer::serializeDupe(DupeType aDupeType, StringList&& aPaths) noexcept {
-		return{
+		return {
 			{ "id", getDupeId(aDupeType) },
 			{ "paths", aPaths },
+		};
+	}
+
+	json Serializer::serializeSlots(int aFree, int aTotal) noexcept {
+		return{
+			{ "str", SearchResult::formatSlots(aFree, aTotal) },
+			{ "free", aFree },
+			{ "total", aTotal }
+		};
+	}
+
+	json Serializer::serializePriority(const QueueItemBase& aItem) noexcept {
+		return{
+			{ "id", aItem.getPriority() },
+			{ "str", AirUtil::getPrioText(aItem.getPriority()) },
+			{ "auto", aItem.getAutoPriority() }
+		};
+	}
+
+	json Serializer::serializeSourceCount(const QueueItemBase::SourceCount& aCount) noexcept {
+		return{
+			{ "online", aCount.online },
+			{ "total", aCount.total },
+			{ "str", aCount.format() },
 		};
 	}
 }

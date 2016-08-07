@@ -49,7 +49,7 @@ namespace webserver {
 		SearchUtils::getStringInfo, SearchUtils::getNumericInfo, SearchUtils::compareResults, SearchUtils::serializeResult
 	};
 
-	SearchApi::SearchApi(Session* aSession) : ApiModule(aSession, Access::SEARCH), 
+	SearchApi::SearchApi(Session* aSession) : SubscribableApiModule(aSession, Access::SEARCH),
 		searchView("search_view", this, itemHandler, std::bind(&SearchApi::getResultList, this)) {
 
 		SearchManager::getInstance()->addListener(this);
@@ -62,6 +62,7 @@ namespace webserver {
 
 		METHOD_HANDLER("results", Access::SEARCH, ApiRequest::METHOD_GET, (NUM_PARAM, NUM_PARAM), false, SearchApi::handleGetResults);
 		METHOD_HANDLER("result", Access::DOWNLOAD, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("download")), false, SearchApi::handleDownload);
+		METHOD_HANDLER("result", Access::SEARCH, ApiRequest::METHOD_GET, (TOKEN_PARAM, EXACT_PARAM("children")), false, SearchApi::handleGetChildren);
 
 		createSubscription("search_result");
 	}
@@ -85,6 +86,49 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
+	api_return SearchApi::handleGetChildren(ApiRequest& aRequest) {
+		auto result = getResult(aRequest.getTokenParam(0));
+		if (!result) {
+			aRequest.setResponseErrorStr("Result not found");
+			return websocketpp::http::status_code::not_found;
+		}
+
+		SearchResultList results;
+		{
+			RLock l(cs);
+			results = result->getChildren();
+		}
+
+		auto j = json::array();
+		for (const auto& sr : results) {
+			j.push_back(serializeSearchResult(sr));
+		}
+
+		aRequest.setResponseBody(j);
+		return websocketpp::http::status_code::ok;
+	}
+
+	json SearchApi::serializeSearchResult(const SearchResultPtr& aSR) noexcept {
+		return {
+			{ "path", Util::toAdcFile(aSR->getPath()) },
+			{ "ip", Serializer::serializeIp(aSR->getIP()) },
+			{ "user", Serializer::serializeHintedUser(aSR->getUser()) },
+			{ "connection", aSR->getConnectionInt() },
+			{ "time", aSR->getDate() },
+			{ "slots", Serializer::serializeSlots(aSR->getFreeSlots(), aSR->getTotalSlots()) }
+		};
+	}
+
+	SearchResultInfo::Ptr SearchApi::getResult(ResultToken aToken) {
+		RLock l(cs);
+		auto i = find_if(results | map_values, [&](const SearchResultInfoPtr& aSI) { return aSI->getToken() == aToken; });
+		if (i.base() == results.end()) {
+			return nullptr;
+		}
+
+		return *i;
+	}
+
 	SearchResultInfo::List SearchApi::getResultList() {
 		SearchResultInfo::List ret;
 
@@ -94,23 +138,16 @@ namespace webserver {
 	}
 
 	api_return SearchApi::handleDownload(ApiRequest& aRequest) {
-		SearchResultInfoPtr result = nullptr;
-
-		{
-			RLock l(cs);
-			auto i = find_if(results | map_values, [&](const SearchResultInfoPtr& aSI) { return aSI->getToken() == aRequest.getTokenParam(0); });
-			if (i.base() == results.end()) {
-				aRequest.setResponseErrorStr("Result not found");
-				return websocketpp::http::status_code::not_found;
-			}
-
-			result = *i;
+		SearchResultInfoPtr result = getResult(aRequest.getTokenParam(0));
+		if (!result) {
+			aRequest.setResponseErrorStr("Result not found");
+			return websocketpp::http::status_code::not_found;
 		}
 
 		string targetDirectory, targetName = result->sr->getFileName();
 		TargetUtil::TargetType targetType;
 		QueueItemBase::Priority prio;
-		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), targetDirectory, targetName, targetType, prio);
+		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetName, targetType, prio);
 
 		return result->download(targetDirectory, targetName, targetType, prio);
 	}
@@ -249,34 +286,36 @@ namespace webserver {
 		}
 
 		SearchResultInfoPtr parent = nullptr;
-		auto result = std::make_shared<SearchResultInfo>(aResult, move(relevanceInfo));
+		bool created = false;
 
 		{
 			WLock l(cs);
-			auto i = results.emplace(aResult->getTTH(), result);
-			if (!i.second) {
-				parent = i.first->second;
+			auto i = results.find(aResult->getTTH());
+			if (i == results.end()) {
+				parent = std::make_shared<SearchResultInfo>(aResult, move(relevanceInfo));
+				results.emplace(aResult->getTTH(), parent);
+				created = true;
+			} else {
+				parent = i->second;
 			}
 		}
 
-		if (!parent) {
-			searchView.onItemAdded(result);
-			return;
-		}
+		if (created) {
+			// New parent
+			searchView.onItemAdded(parent);
+		} else {
+			// Existing parent from now on
+			if (!parent->addChildResult(aResult)) {
+				return;
+			}
 
-		// No duplicate results for the same user that are received via different hubs
-		if (parent->hasUser(aResult->getUser())) {
-			return;
+			searchView.onItemUpdated(parent, { PROP_RELEVANCE, PROP_CONNECTION, PROP_HITS, PROP_SLOTS, PROP_USERS });
 		}
-
-		// Add as child
-		parent->addChildResult(result);
-		searchView.onItemUpdated(parent, { PROP_RELEVANCE, PROP_CONNECTION, PROP_HITS, PROP_SLOTS, PROP_USERS });
 
 		if (subscriptionActive("search_result")) {
 			send("search_result", {
 				{ "search_id", currentSearchToken },
-				{ "result", Serializer::serializeItem(result, itemHandler) }
+				{ "result", serializeSearchResult(aResult) }
 			});
 		}
 	}

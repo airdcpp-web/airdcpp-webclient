@@ -72,6 +72,8 @@ typedef optional<ProfileToken> OptionalProfileToken;
 typedef vector<ProfileToken> ProfileTokenList;
 typedef vector<pair<ProfileToken, string>> ProfileTokenStringList;
 
+typedef map<string, OrderedStringSet> GroupedDirectoryMap;
+
 #ifdef UNICODE
 
 typedef wstring tstring;
