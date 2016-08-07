@@ -104,14 +104,17 @@ public:
 
 	FavoriteHubEntryList getFavoriteHubs(const string& group) const;
 
-// Favorite Directories
-	typedef pair<string, StringList> FavDirPair;
-	typedef vector<FavDirPair> FavDirList;
+	// Favorite Directories (path -> grouped name)
+	typedef map<string, string> FavoriteDirectoryMap;
 
-	bool addFavoriteDir(const string& aName, StringList& aTargets);
-	void saveFavoriteDirs(FavDirList& dirs);
-	FavDirList getFavoriteDirs() { return favoriteDirs; }
+	// For adding or renaming of favorite directories
+	bool setFavoriteDir(const string& aPath, const string& aGroupName) noexcept;
+	bool removeFavoriteDir(const string& aPath) noexcept;
+	bool hasFavoriteDir(const string& aPath) noexcept;
+	void setFavoriteDirs(const FavoriteDirectoryMap& dirs);
 
+	GroupedDirectoryMap getGroupedFavoriteDirs() const noexcept;
+	FavoriteDirectoryMap getFavoriteDirs() const noexcept;
 // Recent Hubs
 	RecentHubEntryList& getRecentHubs() { return recentHubs; };
 
@@ -175,7 +178,7 @@ private:
 
 	FavoriteHubEntryList favoriteHubs;
 	FavHubGroups favHubGroups;
-	FavDirList favoriteDirs;
+	FavoriteDirectoryMap favoriteDirectories;
 	RecentHubEntryList recentHubs;
 	PreviewApplication::List previewApplications;
 	UserCommand::List userCommands;
