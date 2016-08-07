@@ -24,9 +24,10 @@
 #include <api/ApiModule.h>
 
 #include <airdcpp/typedefs.h>
+#include <airdcpp/FavoriteManagerListener.h>
 
 namespace webserver {
-	class FavoriteDirectoryApi : public ApiModule {
+	class FavoriteDirectoryApi : public ApiModule, private FavoriteManagerListener {
 	public:
 		FavoriteDirectoryApi(Session* aSession);
 		~FavoriteDirectoryApi();
@@ -35,7 +36,18 @@ namespace webserver {
 			return 0;
 		}
 	private:
+		static json serializeDirectories() noexcept;
+		
+		api_return handleGetGroupedDirectories(ApiRequest& aRequest);
 		api_return handleGetDirectories(ApiRequest& aRequest);
+
+		api_return handleAddDirectory(ApiRequest& aRequest);
+		api_return handleUpdateDirectory(ApiRequest& aRequest);
+		api_return handleRemoveDirectory(ApiRequest& aRequest);
+
+		api_return handleSetDirectory(ApiRequest& aRequest, bool aExisting);
+
+		void on(FavoriteManagerListener::FavoriteDirectoriesUpdated) noexcept;
 	};
 }
 
