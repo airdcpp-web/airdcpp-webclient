@@ -240,7 +240,7 @@ void FavoriteManager::addFavoriteUser(const HintedUser& aUser) {
 	}
 
 	aUser.user->setFlag(User::FAVORITE);
-	fire(FavoriteManagerListener::UserAdded(), fu);
+	fire(FavoriteManagerListener::FavoriteUserAdded(), fu);
 }
 
 void FavoriteManager::removeFavoriteUser(const UserPtr& aUser) {
@@ -249,7 +249,7 @@ void FavoriteManager::removeFavoriteUser(const UserPtr& aUser) {
 		auto i = users.find(aUser->getCID());
 		if(i != users.end()) {
 			aUser->unsetFlag(User::FAVORITE);
-			fire(FavoriteManagerListener::UserRemoved(), i->second);
+			fire(FavoriteManagerListener::FavoriteUserRemoved(), i->second);
 			users.erase(i);
 		}
 	}
@@ -275,21 +275,65 @@ void FavoriteManager::changeLimiterOverride(const UserPtr& aUser) noexcept{
 	}
 }
 
-bool FavoriteManager::addFavoriteDir(const string& aName, StringList& aTargets){
-	auto p = find_if(favoriteDirs, CompareFirst<string, StringList>(aName));
-	if (p != favoriteDirs.end())
-		return false;
+bool FavoriteManager::hasFavoriteDir(const string& aPath) noexcept {
+	RLock l(cs);
+	return favoriteDirectories.find(aPath) != favoriteDirectories.end();
+}
 
-	sort(aTargets.begin(), aTargets.end());
-	favoriteDirs.emplace_back(aName, aTargets);
+bool FavoriteManager::setFavoriteDir(const string& aPath, const string& aGroupName) noexcept {
+	{
+		WLock l(cs);
+		favoriteDirectories[aPath] = aGroupName;
+	}
+
 	save();
+
+	fire(FavoriteManagerListener::FavoriteDirectoriesUpdated());
 	return true;
 }
 
-void FavoriteManager::saveFavoriteDirs(FavDirList& dirs) {
-	favoriteDirs.clear();
-	favoriteDirs = dirs;
+bool FavoriteManager::removeFavoriteDir(const string& aPath) noexcept {
+	if (!hasFavoriteDir(aPath)) {
+		return false;
+	}
+
+	{
+		WLock l(cs);
+		favoriteDirectories.erase(aPath);
+	}
+
 	save();
+
+	fire(FavoriteManagerListener::FavoriteDirectoriesUpdated());
+	return true;
+}
+
+void FavoriteManager::setFavoriteDirs(const FavoriteDirectoryMap& dirs) {
+	{
+		WLock l(cs);
+		favoriteDirectories = dirs;
+	}
+
+	fire(FavoriteManagerListener::FavoriteDirectoriesUpdated());
+	save();
+}
+
+GroupedDirectoryMap FavoriteManager::getGroupedFavoriteDirs() const noexcept {
+	GroupedDirectoryMap ret;
+
+	{
+		RLock l(cs);
+		for (const auto& fd : favoriteDirectories) {
+			ret[fd.second].insert(fd.first);
+		}
+	}
+
+	return ret;
+}
+
+FavoriteManager::FavoriteDirectoryMap FavoriteManager::getFavoriteDirs() const noexcept {
+	RLock l(cs);
+	return favoriteDirectories;
 }
 
 HubEntryList FavoriteManager::getPublicHubs() {
@@ -527,7 +571,6 @@ void FavoriteManager::save() {
 	if(dontSave)
 		return;
 
-	RLock l(cs);
 	try {
 		SimpleXML xml;
 
@@ -555,32 +598,41 @@ void FavoriteManager::save() {
 void FavoriteManager::saveUserCommands(SimpleXML& aXml) const {
 	aXml.addTag("UserCommands");
 	aXml.stepIn();
-	for (auto& i : userCommands) {
-		if (!i.isSet(UserCommand::FLAG_NOSAVE)) {
-			aXml.addTag("UserCommand");
-			aXml.addChildAttrib("Type", i.getType());
-			aXml.addChildAttrib("Context", i.getCtx());
-			aXml.addChildAttrib("Name", i.getName());
-			aXml.addChildAttrib("Command", i.getCommand());
-			aXml.addChildAttrib("To", i.getTo());
-			aXml.addChildAttrib("Hub", i.getHub());
+
+	{
+		RLock l(cs);
+		for (const auto& i : userCommands) {
+			if (!i.isSet(UserCommand::FLAG_NOSAVE)) {
+				aXml.addTag("UserCommand");
+				aXml.addChildAttrib("Type", i.getType());
+				aXml.addChildAttrib("Context", i.getCtx());
+				aXml.addChildAttrib("Name", i.getName());
+				aXml.addChildAttrib("Command", i.getCommand());
+				aXml.addChildAttrib("To", i.getTo());
+				aXml.addChildAttrib("Hub", i.getHub());
+			}
 		}
 	}
+
 	aXml.stepOut();
 }
 
 void FavoriteManager::saveFavoriteUsers(SimpleXML& aXml) const {
 	aXml.addTag("Users");
 	aXml.stepIn();
-	for (auto& i : users) {
-		aXml.addTag("User");
-		aXml.addChildAttrib("LastSeen", i.second.getLastSeen());
-		aXml.addChildAttrib("GrantSlot", i.second.isSet(FavoriteUser::FLAG_GRANTSLOT));
-		aXml.addChildAttrib("SuperUser", i.second.isSet(FavoriteUser::FLAG_SUPERUSER));
-		aXml.addChildAttrib("UserDescription", i.second.getDescription());
-		aXml.addChildAttrib("Nick", i.second.getNick());
-		aXml.addChildAttrib("URL", i.second.getUrl());
-		aXml.addChildAttrib("CID", i.first.toBase32());
+
+	{
+		RLock l(cs);
+		for (const auto& i : users) {
+			aXml.addTag("User");
+			aXml.addChildAttrib("LastSeen", i.second.getLastSeen());
+			aXml.addChildAttrib("GrantSlot", i.second.isSet(FavoriteUser::FLAG_GRANTSLOT));
+			aXml.addChildAttrib("SuperUser", i.second.isSet(FavoriteUser::FLAG_SUPERUSER));
+			aXml.addChildAttrib("UserDescription", i.second.getDescription());
+			aXml.addChildAttrib("Nick", i.second.getNick());
+			aXml.addChildAttrib("URL", i.second.getUrl());
+			aXml.addChildAttrib("CID", i.first.toBase32());
+		}
 	}
 
 	aXml.stepOut();
@@ -591,7 +643,8 @@ void FavoriteManager::saveFavoriteDirectories(SimpleXML& aXml) const {
 	aXml.addChildAttrib("Version", 2);
 	aXml.stepIn();
 
-	for (const auto& fde : favoriteDirs) {
+	const auto groupedDirs = getGroupedFavoriteDirs();
+	for (const auto& fde : groupedDirs) {
 		aXml.addTag("Directory", fde.first);
 		aXml.addChildAttrib("Name", fde.first);
 		aXml.stepIn();
@@ -608,31 +661,34 @@ void FavoriteManager::saveFavoriteHubs(SimpleXML& aXml) const {
 	aXml.addTag("Hubs");
 	aXml.stepIn();
 
-	for (auto& i : favHubGroups) {
-		aXml.addTag("Group");
-		aXml.addChildAttrib("Name", i.first);
-		i.second.save(aXml);
-	}
+	{
+		RLock l(cs);
+		for (const auto& i : favHubGroups) {
+			aXml.addTag("Group");
+			aXml.addChildAttrib("Name", i.first);
+			i.second.save(aXml);
+		}
 
-	for (auto& i : favoriteHubs) {
-		aXml.addTag("Hub");
-		aXml.addChildAttrib("Name", i->getName());
-		aXml.addChildAttrib("Connect", i->getAutoConnect());
-		aXml.addChildAttrib("Description", i->getDescription());
-		aXml.addChildAttrib("Password", i->getPassword());
-		aXml.addChildAttrib("Server", i->getServer());
-		aXml.addChildAttrib("ChatUserSplit", i->getChatUserSplit());
-		aXml.addChildAttrib("UserListState", i->getUserListState());
-		aXml.addChildAttrib("HubFrameOrder", i->getHeaderOrder());
-		aXml.addChildAttrib("HubFrameWidths", i->getHeaderWidths());
-		aXml.addChildAttrib("HubFrameVisible", i->getHeaderVisible());
-		aXml.addChildAttrib("FavNoPM", i->getFavNoPM());
-		aXml.addChildAttrib("Group", i->getGroup());
-		aXml.addChildAttrib("Bottom", Util::toString(i->getBottom()));
-		aXml.addChildAttrib("Top", Util::toString(i->getTop()));
-		aXml.addChildAttrib("Right", Util::toString(i->getRight()));
-		aXml.addChildAttrib("Left", Util::toString(i->getLeft()));
-		i->save(aXml);
+		for (const auto& i : favoriteHubs) {
+			aXml.addTag("Hub");
+			aXml.addChildAttrib("Name", i->getName());
+			aXml.addChildAttrib("Connect", i->getAutoConnect());
+			aXml.addChildAttrib("Description", i->getDescription());
+			aXml.addChildAttrib("Password", i->getPassword());
+			aXml.addChildAttrib("Server", i->getServer());
+			aXml.addChildAttrib("ChatUserSplit", i->getChatUserSplit());
+			aXml.addChildAttrib("UserListState", i->getUserListState());
+			aXml.addChildAttrib("HubFrameOrder", i->getHeaderOrder());
+			aXml.addChildAttrib("HubFrameWidths", i->getHeaderWidths());
+			aXml.addChildAttrib("HubFrameVisible", i->getHeaderVisible());
+			aXml.addChildAttrib("FavNoPM", i->getFavNoPM());
+			aXml.addChildAttrib("Group", i->getGroup());
+			aXml.addChildAttrib("Bottom", Util::toString(i->getBottom()));
+			aXml.addChildAttrib("Top", Util::toString(i->getTop()));
+			aXml.addChildAttrib("Right", Util::toString(i->getRight()));
+			aXml.addChildAttrib("Left", Util::toString(i->getLeft()));
+			i->save(aXml);
+		}
 	}
 
 	aXml.stepOut();
@@ -878,35 +934,27 @@ void FavoriteManager::load(SimpleXML& aXml) {
 		string version = aXml.getChildAttrib("Version");
 		aXml.stepIn();
 		if (version.empty() || Util::toInt(version) < 2) {
-			//convert old directories
+			// Convert old directories
 			while(aXml.findChild("Directory")) {
-				string virt = aXml.getChildAttrib("Name");
+				auto groupName = aXml.getChildAttrib("Name");
 
-				StringList targets;
-				targets.push_back(aXml.getChildData());
-				FavoriteManager::getInstance()->addFavoriteDir(virt, targets);
+				favoriteDirectories[aXml.getChildData()] = groupName;
 			}
 			needSave = true;
 		} else {
 			while(aXml.findChild("Directory")) {
-				string name = aXml.getChildAttrib("Name");
-				if (!name.empty()) {
+				auto groupName = aXml.getChildAttrib("Name");
+				if (!groupName.empty()) {
 					aXml.stepIn();
-					StringList targets;
 					while(aXml.findChild("Target")) {
 						aXml.stepIn();
-						string path = aXml.getData();
-						if( path[ path.length() -1 ] != PATH_SEPARATOR ) {
-							path += PATH_SEPARATOR;
-						}
-						if (find(targets.begin(), targets.end(), path) == targets.end()) {
-							targets.push_back(path);
-						}
+
+						auto path = aXml.getData();
+						favoriteDirectories[path] = groupName;
+
 						aXml.stepOut();
 					}
-					if (!targets.empty()) {
-						FavoriteManager::getInstance()->addFavoriteDir(name, targets);
-					}
+
 					aXml.stepOut();
 				}
 			}
@@ -1210,14 +1258,14 @@ void FavoriteManager::on(UserDisconnected, const UserPtr& user, bool wentOffline
 	}
 
 	if(isFav)
-		fire(FavoriteManagerListener::StatusChanged(), user);
+		fire(FavoriteManagerListener::FavoriteUserUpdated(), user);
 }
 
 void FavoriteManager::on(UserConnected, const OnlineUser& aUser, bool /*wasOffline*/) noexcept {
 	UserPtr user = aUser.getUser();
 
 	if(user->isSet(User::FAVORITE))
-		fire(FavoriteManagerListener::StatusChanged(), user);
+		fire(FavoriteManagerListener::FavoriteUserUpdated(), user);
 }
 
 void FavoriteManager::on(ClientManagerListener::ClientCreated, const ClientPtr& aClient) noexcept {

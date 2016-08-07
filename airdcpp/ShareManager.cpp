@@ -3715,28 +3715,19 @@ void ShareManager::setExcludedPaths(const StringSet& aPaths) noexcept {
 	excludedPaths = aPaths;
 }
 
-vector<pair<string, StringList>> ShareManager::getGroupedDirectories() const noexcept {
-	vector<pair<string, StringList>> ret;
+GroupedDirectoryMap ShareManager::getGroupedDirectories() const noexcept {
+	GroupedDirectoryMap ret;
 	
 	{
 		RLock l (cs);
 		for(const auto& d: rootPaths | map_values | filtered(Directory::IsParent())) {
 			const auto& currentPath = d->getProfileDir()->getPath();
-
 			auto virtualName = d->getProfileDir()->getName();
-			auto retVirtualPos = find_if(ret, CompareFirst<string, StringList>(virtualName));
-			if (retVirtualPos != ret.end()) {
-				//insert under an old virtual node if the real path doesn't exist there already
-				if (find(retVirtualPos->second, currentPath) == retVirtualPos->second.end()) {
-					retVirtualPos->second.push_back(currentPath); //sorted
-				}
-			} else {
-				ret.emplace_back(virtualName, StringList{ currentPath });
-			}
+
+			ret[virtualName].insert(currentPath);
 		}
 	}
 
-	sort(ret.begin(), ret.end());
 	return ret;
 }
 
