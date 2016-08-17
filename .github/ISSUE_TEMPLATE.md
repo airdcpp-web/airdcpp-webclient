@@ -1,5 +1,7 @@
 <!--
-If you are posting a question/feature requests, all prefilled information can be removed. Please read the guidelines for contributing first.
+If you are posting a question/feature requests, all prefilled information can be removed.
+
+By submitting this report, I thereby confirm that I have read the guidelines for contributing (https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md) and I've done my best to provide the requested information for this report type.
 -->
 
 <!-- BUG TEMPLATE -->
@@ -7,6 +9,8 @@ If you are posting a question/feature requests, all prefilled information can be
 ### Current UI and client versions:
 
 Copy from *Settings* -> *About*
+
+UI related issues should also include the browser version.
 
 ### Steps to reproduce the issue:
 
