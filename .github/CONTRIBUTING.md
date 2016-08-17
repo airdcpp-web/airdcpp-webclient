@@ -15,7 +15,7 @@ If the issue can be reproduced, you may also want to try the [development versio
 
 ### UI-related issues
 
-If the UI behaves incorrectly, you should open the console of your browser and check if there are any errors. It's even better if you manage to reproduce the issue while the console is open, as it will give more specific error messages. Include the errors in your bug report.
+If the UI behaves incorrectly, you should open the console of your _web browser_ (`Ctrl+Shift+J` in Chrome and Firefox) and check if there are any errors. It's even better if you manage to reproduce the issue while the console is open, as it will give more specific error messages. Include the errors in your bug report.
 
 Other useful information:
 
