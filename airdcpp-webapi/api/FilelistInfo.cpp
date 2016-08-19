@@ -175,7 +175,8 @@ namespace webserver {
 		directoryView.resetItems();
 
 		onSessionUpdated({
-			{ "location", serializeLocation(dl) }
+			{ "location", serializeLocation(dl) },
+			{ "read", dl->isRead() },
 		});
 	}
 

@@ -102,6 +102,10 @@ namespace webserver {
 			return websocketpp::http::status_code::bad_request;
 		}
 
+		aRequest.setResponseBody({
+			{ "id", tth.toBase32() }
+		});
+
 		return websocketpp::http::status_code::ok;
 	}
 
