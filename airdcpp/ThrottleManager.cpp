@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2009-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2009-2011 Big Muscle
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,218 +20,174 @@
 #include "ThrottleManager.h"
 
 #include "DownloadManager.h"
-#include "Singleton.h"
 #include "Socket.h"
-#include "Thread.h"
 #include "TimerManager.h"
 #include "UploadManager.h"
-#include "ClientManager.h"
+
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread/condition_variable.hpp>
+#include <boost/thread.hpp>
+#include <boost/detail/lightweight_mutex.hpp>
 
 namespace dcpp {
-/**
- * Manager for throttling traffic flow.
- * Inspired by Token Bucket algorithm: http://en.wikipedia.org/wiki/Token_bucket
- */
+	// The actual limiting code is from StrongDC++
+	// Bandwidth limiting in DC++ is broken: http://www.airdcpp.net/forum/viewtopic.php?f=7&t=4485&p=8856#p8856
 
-/*
- * Throttles traffic and reads a packet from the network
- */
-int ThrottleManager::read(Socket* sock, void* buffer, size_t len)
-{
-	int64_t readSize = -1;
-	size_t downs = DownloadManager::getInstance()->getDownloadCount();
-	auto downLimit = getDownLimit(); // avoid even intra-function races
-	if(!getCurThrottling() || downLimit == 0 || downs == 0)
-		return sock->read(buffer, len);
+	#define CONDWAIT_TIMEOUT		250
 
+	// constructor
+	ThrottleManager::ThrottleManager(void)
 	{
-		Lock l(downCS);
+		TimerManager::getInstance()->addListener(this);
+	}
+
+	// destructor
+	ThrottleManager::~ThrottleManager()
+	{
+		TimerManager::getInstance()->removeListener(this);
+
+		// release conditional variables on exit
+		downCond.notify_all();
+		upCond.notify_all();
+	}
+
+	/*
+	 * Limits a traffic and reads a packet from the network
+	 */
+	int ThrottleManager::read(Socket* sock, void* buffer, size_t len)
+	{
+		size_t downs = DownloadManager::getInstance()->getDownloadCount();
+		if(getDownLimit() == 0 || downs == 0)
+			return sock->read(buffer, len);
+
+		boost::unique_lock<boost::mutex> lock(downMutex);
+
 
 		if(downTokens > 0)
 		{
-			int64_t slice = (downLimit * 1024) / downs;
-			readSize = min(slice, min(static_cast<int64_t>(len), downTokens));
-
+			size_t slice = (getDownLimit() * 1024) / downs;
+			size_t readSize = min(slice, min(len, downTokens));
+				
 			// read from socket
-			readSize = sock->read(buffer, static_cast<size_t>(readSize));
-
+			readSize = sock->read(buffer, readSize);
+				
 			if(readSize > 0)
 				downTokens -= readSize;
+
+			// next code can't be in critical section, so we must unlock here
+			lock.unlock();
+
+			// give a chance to other transfers to get a token
+			boost::thread::yield();
+			return readSize;
 		}
+
+		// no tokens, wait for them
+		downCond.timed_wait(lock, boost::posix_time::millisec(CONDWAIT_TIMEOUT));
+		return -1;	// from BufferedSocket: -1 = retry, 0 = connection close
 	}
-
-	if(readSize != -1)
+	
+	/*
+	 * Limits a traffic and writes a packet to the network
+	 * We must handle this a little bit differently than downloads, because of that stupidity in OpenSSL
+	 */		
+	int ThrottleManager::write(Socket* sock, void* buffer, size_t& len)
 	{
-		Thread::yield(); // give a chance to other transfers to get a token
-		return static_cast<int>(readSize);
-	}
-
-	waitToken();
-	return -1;	// from BufferedSocket: -1 = retry, 0 = connection close
-}
-
-/*
- * Throttles traffic and writes a packet to the network
- * Handle this a little bit differently than downloads due to OpenSSL stupidity 
- */
-int ThrottleManager::write(Socket* sock, void* buffer, size_t& len)
-{
-	bool gotToken = false;
-	size_t ups = UploadManager::getInstance()->getUploadCount();
-	auto upLimit = getUpLimit(); // avoid even intra-function races
-	if(!getCurThrottling() || upLimit == 0 || ups == 0)
-		return sock->write(buffer, len);
-
-	{
-		Lock l(upCS);
-
+		size_t ups = UploadManager::getInstance()->getUploadCount();
+		if(getUpLimit() == 0 || ups == 0)
+			return sock->write(buffer, len);
+		
+		boost::unique_lock<boost::mutex> lock(upMutex);
+		
 		if(upTokens > 0)
 		{
-			size_t slice = (upLimit * 1024) / ups;
-			len = min(slice, min(len, static_cast<size_t>(upTokens)));
+			size_t slice = (getUpLimit() * 1024) / ups;
+			len = min(slice, min(len, upTokens));
 			upTokens -= len;
 
-			gotToken = true; // token successfuly assigned
+			// next code can't be in critical section, so we must unlock here
+			lock.unlock();
+
+			// write to socket			
+			int sent = sock->write(buffer, len);
+
+			// give a chance to other transfers to get a token
+			boost::thread::yield();
+			return sent;
 		}
+		
+		// no tokens, wait for them
+		upCond.timed_wait(lock, boost::posix_time::millisec(CONDWAIT_TIMEOUT));
+		return 0;	// from BufferedSocket: -1 = failed, 0 = retry
 	}
 
-	if(gotToken)
-	{
-		// write to socket			
-		int sent = sock->write(buffer, len);
-
-		Thread::yield(); // give a chance to other transfers get a token
-		return sent;
+	void ThrottleManager::setSetting(SettingsManager::IntSetting setting, int value) noexcept {
+		if (value < 0 || value > MAX_LIMIT)
+			value = 0;
+		SettingsManager::getInstance()->set(setting, value);
+	}
+	
+	int ThrottleManager::getUpLimit() noexcept {
+		return SettingsManager::getInstance()->get(getCurSetting(SettingsManager::MAX_UPLOAD_SPEED_MAIN));
 	}
 
-	waitToken();
-	return 0;	// from BufferedSocket: -1 = failed, 0 = retry
-}
+	int ThrottleManager::getDownLimit() noexcept {
+		return SettingsManager::getInstance()->get(getCurSetting(SettingsManager::MAX_DOWNLOAD_SPEED_MAIN));
+	}
 
-SettingsManager::IntSetting ThrottleManager::getCurSetting(SettingsManager::IntSetting setting) {
-	SettingsManager::IntSetting upLimit   = SettingsManager::MAX_UPLOAD_SPEED_MAIN;
-	SettingsManager::IntSetting downLimit = SettingsManager::MAX_DOWNLOAD_SPEED_MAIN;
-	//SettingsManager::IntSetting slots     = SettingsManager::SLOTS_PRIMARY;
 
-	if(SETTING(TIME_DEPENDENT_THROTTLE)) {
-		time_t currentTime;
-		time(&currentTime);
-		int currentHour = localtime(&currentTime)->tm_hour;
-		if((SETTING(BANDWIDTH_LIMIT_START) < SETTING(BANDWIDTH_LIMIT_END) &&
-			currentHour >= SETTING(BANDWIDTH_LIMIT_START) && currentHour < SETTING(BANDWIDTH_LIMIT_END)) ||
-			(SETTING(BANDWIDTH_LIMIT_START) > SETTING(BANDWIDTH_LIMIT_END) &&
-			(currentHour >= SETTING(BANDWIDTH_LIMIT_START) || currentHour < SETTING(BANDWIDTH_LIMIT_END))))
-		{
-			upLimit   = SettingsManager::MAX_UPLOAD_SPEED_ALTERNATE;
-			downLimit = SettingsManager::MAX_DOWNLOAD_SPEED_ALTERNATE;
-			//slots     = SettingsManager::SLOTS_ALTERNATE_LIMITING;
+	SettingsManager::IntSetting ThrottleManager::getCurSetting(SettingsManager::IntSetting setting) noexcept {
+		SettingsManager::IntSetting upLimit = SettingsManager::MAX_UPLOAD_SPEED_MAIN;
+		SettingsManager::IntSetting downLimit = SettingsManager::MAX_DOWNLOAD_SPEED_MAIN;
+		//SettingsManager::IntSetting slots     = SettingsManager::SLOTS_PRIMARY;
+
+		if (SETTING(TIME_DEPENDENT_THROTTLE)) {
+			time_t currentTime;
+			time(&currentTime);
+			int currentHour = localtime(&currentTime)->tm_hour;
+			if ((SETTING(BANDWIDTH_LIMIT_START) < SETTING(BANDWIDTH_LIMIT_END) &&
+				currentHour >= SETTING(BANDWIDTH_LIMIT_START) && currentHour < SETTING(BANDWIDTH_LIMIT_END)) ||
+				(SETTING(BANDWIDTH_LIMIT_START) > SETTING(BANDWIDTH_LIMIT_END) &&
+				(currentHour >= SETTING(BANDWIDTH_LIMIT_START) || currentHour < SETTING(BANDWIDTH_LIMIT_END))))
+			{
+				upLimit = SettingsManager::MAX_UPLOAD_SPEED_ALTERNATE;
+				downLimit = SettingsManager::MAX_DOWNLOAD_SPEED_ALTERNATE;
+				//slots     = SettingsManager::SLOTS_ALTERNATE_LIMITING;
+			}
 		}
-	}
 
-	switch (setting) {
+		switch (setting) {
 		case SettingsManager::MAX_UPLOAD_SPEED_MAIN:
 			return upLimit;
 		case SettingsManager::MAX_DOWNLOAD_SPEED_MAIN:
 			return downLimit;
-		//case SettingsManager::SLOTS:
-		//	return slots;
+			//case SettingsManager::SLOTS:
+			//	return slots;
 		default:
 			return setting;
-	}
-}
-
-int ThrottleManager::getUpLimit() {
-	return SettingsManager::getInstance()->get(getCurSetting(SettingsManager::MAX_UPLOAD_SPEED_MAIN));
-}
-
-int ThrottleManager::getDownLimit() {
-	return SettingsManager::getInstance()->get(getCurSetting(SettingsManager::MAX_DOWNLOAD_SPEED_MAIN));
-}
-
-void ThrottleManager::setSetting(SettingsManager::IntSetting setting, int value) {
-	if(value < 0 || value > MAX_LIMIT)
-		value = 0;
-	SettingsManager::getInstance()->set(setting, value);
-	ClientManager::getInstance()->infoUpdated();
-}
-
-bool ThrottleManager::getCurThrottling() {
-	Lock l(stateCS);
-	return activeWaiter != -1;
-}
-
-void ThrottleManager::waitToken() {
-	// no tokens, wait for them, so long as throttling still active
-	// avoid keeping stateCS lock on whole function
-	CriticalSection *curCS = 0;
-	{
-		Lock l(stateCS);
-		if (activeWaiter != -1)
-			curCS = &waitCS[activeWaiter];
-	}
-	// possible post-CS aW shifts: 0->1/1->0: lock lands in wrong place, will
-	// either fall through immediately or wait depending on whether in
-	// stateCS-protected transition elsewhere; 0/1-> -1: falls through. Both harmless.
-	if (curCS)
-		Lock l(*curCS);
-}
-
-ThrottleManager::ThrottleManager() {
-	TimerManager::getInstance()->addListener(this);
-}
-
-ThrottleManager::~ThrottleManager(void)
-{
-	shutdown();
-	TimerManager::getInstance()->removeListener(this);
-}
-
-void ThrottleManager::shutdown() {
-	Lock l(stateCS);
-	if (activeWaiter != -1) {
-		waitCS[activeWaiter].unlock();
-		activeWaiter = -1;
-	}
-}
-
-// TimerManagerListener
-void ThrottleManager::on(TimerManagerListener::Second, uint64_t /* aTick */) noexcept
-{
-	//int newSlots = SettingsManager::getInstance()->get(getCurSetting(SettingsManager::SLOTS));
-	//if(newSlots != SETTING(SLOTS)) {
-	//	setSetting(SettingsManager::SLOTS, newSlots);
-	//}
-
-	{
-		Lock l(stateCS);
-		if (activeWaiter == -1)
-			// This will create slight weirdness for the read/write calls between
-			// here and the first activeWaiter-toggle below.
-			waitCS[activeWaiter = 0].lock();
+		}
 	}
 
-	// readd tokens
-	{
-		Lock l(downCS);
-		downTokens = getDownLimit() * 1024;
+	// TimerManagerListener
+	void ThrottleManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcept {
+		auto downLimit = getDownLimit() * 1024;
+		auto upLimit = getUpLimit() * 1024;
+		
+		// readd tokens
+		if(downLimit > 0)
+		{
+			boost::lock_guard<boost::mutex> lock(downMutex);
+			downTokens = downLimit;
+			downCond.notify_all();
+		}
+			
+		if(upLimit > 0)
+		{
+			boost::lock_guard<boost::mutex> lock(upMutex);
+			upTokens = upLimit;
+			upCond.notify_all();
+		}
 	}
 
-	{
-		Lock l(upCS);
-		upTokens = getUpLimit() * 1024;
-	}
-
-	// let existing events drain out (fairness).
-	// www.cse.wustl.edu/~schmidt/win32-cv-1.html documents various
-	// fairer strategies, but when only broadcasting, irrelevant
-	{
-		Lock l(stateCS);
-
-		dcassert(activeWaiter == 0 || activeWaiter == 1);
-		waitCS[1-activeWaiter].lock();
-		activeWaiter = 1-activeWaiter;
-		waitCS[1-activeWaiter].unlock();
-	}
-}
 
 }	// namespace dcpp

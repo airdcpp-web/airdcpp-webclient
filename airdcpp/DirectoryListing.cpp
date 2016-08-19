@@ -1042,6 +1042,7 @@ void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aDir,
 		onStateChanged();
 	}
 	
+	read = false;
 	fire(DirectoryListingListener::LoadingFinished(), aStartTime, aDir, aReloadList, aChangeDir);
 }
 
