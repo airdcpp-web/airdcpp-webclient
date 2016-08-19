@@ -163,7 +163,12 @@ namespace webserver {
 			}
 		} else if (request.find("/build") != 0 && request != "/favicon.ico") {
 			// Forward all requests for non-static files to index
-			request = "/index.html";
+			request = "index.html";
+		}
+
+		// Avoid double separators because of assertions
+		if (!request.empty() && request.front() == '/') {
+			request = request.substr(1);
 		}
 
 		// For windows
