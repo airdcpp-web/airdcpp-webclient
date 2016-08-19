@@ -171,8 +171,6 @@ void shutdown(function<void (const string&)> stepF, function<void (float)> progr
 	announce(STRING(SAVING_HASH_DATA));
 	HashManager::getInstance()->shutdown(progressF);
 
-	ThrottleManager::getInstance()->shutdown();
-
 	announce(STRING(SAVING_SHARE));
 	ShareManager::getInstance()->shutdown(progressF);
 
