@@ -32,41 +32,41 @@ struct SettingItem {
 	typedef boost::variant<string, bool, int, double> SettingValue;
 	typedef vector<SettingItem> List;
 
-	int key;
-	ResourceManager::Strings desc;
+	const int key;
+	const ResourceManager::Strings desc;
 
-	SettingValue getCurValue(bool useDefault = true) const;
-	SettingValue getDefaultValue() const;
+	SettingValue getCurValue(bool useDefault = true) const noexcept;
+	SettingValue getDefaultValue() const noexcept;
 
-	void unset() const;
-	bool isSet() const;
-	bool isDefault() const;
+	void unset() const noexcept;
+	bool isSet() const noexcept;
+	bool isDefault() const noexcept;
 
-	const string& getDescription() const;
-	string currentToString() const;
+	const string& getDescription() const noexcept;
+	string currentToString() const noexcept;
 
 	struct ToString : boost::static_visitor<string> {
 		ToString(int aKey) : key(aKey) { }
 
-		string operator()(const string& s) const;
-		string operator()(int s) const;
-		string operator()(double d) const;
-		string operator()(bool b) const;
+		string operator()(const string& s) const noexcept;
+		string operator()(int s) const noexcept;
+		string operator()(double d) const noexcept;
+		string operator()(bool b) const noexcept;
 	private:
-		int key;
+		const int key;
 	};
 
 	class CompareKey {
 	public:
 		CompareKey(int aKey) : key(aKey) { }
-		bool operator()(const SettingItem& s) { return s.key == key; }
+		bool operator()(const SettingItem& s) const noexcept { return s.key == key; }
 	private:
-		int key;
+		const int key;
 	};
 
-	bool operator==(const SettingItem& aSetting) const { return aSetting.key == key; }
+	bool operator==(const SettingItem& aSetting) const noexcept { return aSetting.key == key; }
 	struct Hash {
-		size_t operator()(const SettingItem& x) const { return hash<int>()(x.key); }
+		size_t operator()(const SettingItem& x) const noexcept { return hash<int>()(x.key); }
 	};
 };
 
@@ -75,11 +75,11 @@ struct ProfileSettingItem : public SettingItem {
 
 	typedef vector<ProfileSettingItem> List;
 
-	SettingValue profileValue;
+	const SettingValue profileValue;
 
-	void setProfileToDefault(bool reset) const;
-	bool isProfileCurrent() const;
-	string profileToString() const;
+	void setProfileToDefault(bool reset) const noexcept;
+	bool isProfileCurrent() const noexcept;
+	string profileToString() const noexcept;
 };
 
 }
