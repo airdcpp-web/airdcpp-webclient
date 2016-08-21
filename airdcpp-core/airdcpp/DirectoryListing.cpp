@@ -1284,8 +1284,10 @@ void DirectoryListing::setRead() noexcept {
 		return;
 	}
 
-	read = true;
-	fire(DirectoryListingListener::Read());
+	addAsyncTask([=] {
+		read = true;
+		fire(DirectoryListingListener::Read());
+	});
 }
 
 void DirectoryListing::onListRemovedQueue(const string& aTarget, const string& aDir, bool aFinished) noexcept {
