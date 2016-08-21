@@ -42,6 +42,7 @@ namespace webserver {
 		api_return handleSetAway(ApiRequest& aRequest);
 
 		api_return handleGetStats(ApiRequest& aRequest);
+		api_return handleRestartWeb(ApiRequest& aRequest);
 
 		void on(ActivityManagerListener::AwayModeChanged, AwayMode aNewMode) noexcept;
 	};

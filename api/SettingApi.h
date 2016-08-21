@@ -26,7 +26,7 @@
 //#include <airdcpp/SettingsManager.h>
 
 namespace webserver {
-	struct ApiSettingItem;
+	class ApiSettingItem;
 	class SettingApi : public ApiModule {
 	public:
 		SettingApi(Session* aSession);
@@ -41,8 +41,9 @@ namespace webserver {
 		api_return handleSetSettings(ApiRequest& aRequest);
 		api_return handleResetSettings(ApiRequest& aRequest);
 
-		void parseSettingKeys(const json& aJson, function<void(const ApiSettingItem*)> aHandler);
-		const ApiSettingItem* getSettingItem(const string& aKey) const noexcept;
+		typedef function<void(ApiSettingItem*)> ParserF;
+		void parseSettingKeys(const json& aJson, ParserF aHandler);
+		static ApiSettingItem* getSettingItem(const string& aKey) noexcept;
 	};
 }
 

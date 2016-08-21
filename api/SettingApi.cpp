@@ -18,7 +18,10 @@
 
 #include <api/SettingApi.h>
 #include <api/ApiSettingItem.h>
+
 #include <api/CoreSettings.h>
+#include <web-server/WebServerManager.h>
+#include <web-server/WebServerSettings.h>
 
 #include <web-server/JsonUtil.h>
 #include <api/common/Serializer.h>
@@ -42,7 +45,7 @@ namespace webserver {
 		auto forceAutoValues = JsonUtil::getOptionalFieldDefault<bool>("force_auto_values", requestJson, false);
 
 		json retJson;
-		parseSettingKeys(requestJson, [&](const ApiSettingItem* aItem) {
+		parseSettingKeys(requestJson, [&](ApiSettingItem* aItem) {
 			retJson[aItem->name] = aItem->infoToJson(forceAutoValues);
 		});
 
@@ -54,7 +57,7 @@ namespace webserver {
 		const auto& requestJson = aRequest.getRequestBody();
 
 		json retJson;
-		parseSettingKeys(requestJson, [&](const ApiSettingItem* aItem) {
+		parseSettingKeys(requestJson, [&](ApiSettingItem* aItem) {
 			retJson[aItem->name] = aItem->valueToJson().first;
 		});
 
@@ -62,7 +65,7 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	void SettingApi::parseSettingKeys(const json& aJson, function<void(const ApiSettingItem*)> aHandler) {
+	void SettingApi::parseSettingKeys(const json& aJson, ParserF aHandler) {
 		auto keys = JsonUtil::getField<StringList>("keys", aJson, true);
 		for (const auto& key : keys) {
 			auto setting = getSettingItem(key);
@@ -77,7 +80,7 @@ namespace webserver {
 	api_return SettingApi::handleResetSettings(ApiRequest& aRequest) {
 		const auto& requestJson = aRequest.getRequestBody();
 
-		parseSettingKeys(requestJson, [&](const ApiSettingItem* aItem) {
+		parseSettingKeys(requestJson, [&](ApiSettingItem* aItem) {
 			aItem->unset();
 		});
 
@@ -87,7 +90,7 @@ namespace webserver {
 	api_return SettingApi::handleSetSettings(ApiRequest& aRequest) {
 		SettingHolder h(nullptr);
 
-		for (auto elem : json::iterator_wrapper(aRequest.getRequestBody())) {
+		for (const auto& elem : json::iterator_wrapper(aRequest.getRequestBody())) {
 			auto setting = getSettingItem(elem.key());
 			if (!setting) {
 				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");
@@ -97,15 +100,17 @@ namespace webserver {
 		}
 
 		SettingsManager::getInstance()->save();
+		WebServerManager::getInstance()->save(nullptr);
+
 		return websocketpp::http::status_code::ok;
 	}
 
-	const ApiSettingItem* SettingApi::getSettingItem(const string& aKey) const noexcept {
-		auto p = boost::find_if(coreSettings, [&](const ApiSettingItem& aItem) { return aItem.name == aKey; });
+	ApiSettingItem* SettingApi::getSettingItem(const string& aKey) noexcept {
+		auto p = boost::find_if(coreSettings, [&](ApiSettingItem& aItem) { return aItem.name == aKey; });
 		if (p != coreSettings.end()) {
 			return &(*p);
 		}
 
-		return nullptr;
+		return WebServerSettings::getSettingItem(aKey);
 	}
 }

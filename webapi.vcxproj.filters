@@ -243,6 +243,9 @@
     <ClInclude Include="api\QueueBundleUtils.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
+    <ClInclude Include="web-server\WebServerSettings.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
