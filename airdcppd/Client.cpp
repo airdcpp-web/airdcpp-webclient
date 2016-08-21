@@ -31,8 +31,8 @@
 #include <airdcpp/TimerManager.h>
 #include <airdcpp/UpdateManager.h>
 
-
 #include <web-server/WebServerManager.h>
+#include <web-server/WebServerSettings.h>
 
 namespace airdcppd {
 
@@ -48,7 +48,7 @@ void Client::run() {
 	if (!asDaemon) {
 		auto wsm = webserver::WebServerManager::getInstance();
 		printf(".\n%s running, press ctrl-c to exit...\n", shortVersionString.c_str());
-		printf("HTTP port: %d, HTTPS port: %d\n", wsm->getPlainServerConfig().getPort(), wsm->getTlsServerConfig().getPort());
+		printf("HTTP port: %d, HTTPS port: %d\n", WEBCFG(PLAIN_PORT).num(), WEBCFG(TLS_PORT).num());
 	}
 
 	webserver::WebServerManager::getInstance()->join();

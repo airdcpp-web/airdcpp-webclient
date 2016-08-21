@@ -44,7 +44,7 @@ private:
 	static bool listUsers(webserver::WebServerManager* wsm);
 
 	static std::string toBold(const std::string& aText);
-	static void promptPort(webserver::ServerConfig& config_, const std::string& aText, int aDefaultPort);
+	static void promptPort(webserver::ServerConfig& config_, const std::string& aText);
 };
 
 } // namespace airdcppd
