@@ -37,4 +37,27 @@ namespace webserver {
 			{ "code", errorTypeToString(aType) }
 		};
 	}
+
+	json JsonUtil::filterExactValues(const json& aNew, const json& aCompareTo) noexcept {
+		json ret = aNew;
+		for (const auto& v: json::iterator_wrapper(aCompareTo)) {
+			auto key = v.key();
+			auto i = aNew.find(key);
+			if (i != aNew.end() && aNew.at(key) == aCompareTo.at(key)) {
+				ret.erase(key);
+			}
+		}
+
+		return ret;
+	}
+
+	void JsonUtil::ensureType(const string& aFieldName, const json& aNew, const json& aExisting) {
+		if (aExisting.is_number()) {
+			if (!aNew.is_number()) {
+				throwError(aFieldName, ERROR_INVALID, "The new value must be a number");
+			}
+		} else if (aNew.type() != aExisting.type()) {
+			throwError(aFieldName, ERROR_INVALID, "Type of the new value doesn't match with the existing type");
+		}
+	}
 }

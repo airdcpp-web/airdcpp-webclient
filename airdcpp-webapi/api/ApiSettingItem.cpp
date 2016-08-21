@@ -31,14 +31,91 @@
 #include <airdcpp/StringTokenizer.h>
 
 namespace webserver {
-	ApiSettingItem::ApiSettingItem(const string& aName, int aKey, ResourceManager::Strings aDesc, Type aType, Unit&& aUnit) :
-		name(aName), type(aType), unit(move(aUnit)), SettingItem({ aKey, aDesc }) {
+	ApiSettingItem::ApiSettingItem(const string& aName, Type aType, Unit&& aUnit) : 
+		name(aName), type(aType), unit(move(aUnit)) {
+
+	}
+
+	json ApiSettingItem::infoToJson(bool aForceAutoValues) const noexcept {
+		auto value = valueToJson(aForceAutoValues);
+
+		// Serialize the setting
+		json ret;
+		ret["value"] = value.first;
+		ret["key"] = name;
+		ret["title"] = getTitle();
+		if (value.second) {
+			ret["auto"] = true;
+		}
+
+		if (unit.str != ResourceManager::LAST) {
+			ret["unit"] = ResourceManager::getInstance()->getString(unit.str) + (unit.isSpeed ? "/s" : "");
+		}
+
+		if (type == TYPE_FILE_PATH) {
+			ret["type"] = "file_path";
+		} else if (type == TYPE_DIRECTORY_PATH) {
+			ret["type"] = "directory_path";
+		} else if (type == TYPE_LONG_TEXT) {
+			ret["type"] = "long_text";
+		}
+
+		return ret;
+	}
+
+	ServerSettingItem::ServerSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType, Unit&& aUnit) :
+		ApiSettingItem(aKey, aType, move(aUnit)), desc(aTitle), defaultValue(aDefaultValue), value(aDefaultValue) {
+
+	}
+
+	json ServerSettingItem::infoToJson(bool aForceAutoValues) const noexcept {
+		return ApiSettingItem::infoToJson(aForceAutoValues);
+	}
+
+	// Returns the value and bool indicating whether it's an auto detected value
+	pair<json, bool> ServerSettingItem::valueToJson(bool aForceAutoValues) const noexcept {
+		return { value, false };
+	}
+
+	void ServerSettingItem::unset() noexcept {
+		value = defaultValue;
+	}
+
+	bool ServerSettingItem::setCurValue(const json& aJson) {
+		if (aJson.is_null()) {
+			unset();
+		} else {
+			JsonUtil::ensureType(name, aJson, defaultValue);
+			value = aJson;
+		}
+
+		return true;
+	}
+
+	int ServerSettingItem::num() {
+		return value.get<int>();
+	}
+
+	string ServerSettingItem::str() {
+		if (value.is_number()) {
+			return Util::toString(num());
+		}
+
+		return value.get<string>();
+	}
+
+	bool ServerSettingItem::isDefault() const noexcept {
+		return value == defaultValue;
+	}
+
+	CoreSettingItem::CoreSettingItem(const string& aName, int aKey, ResourceManager::Strings aDesc, Type aType, Unit&& aUnit) :
+		ApiSettingItem(aName, aType, move(aUnit)), SettingItem({ aKey, aDesc }) {
 
 	}
 
 
 	#define USE_AUTO(aType, aSetting) (type == aType && (aForceAutoValues || SETTING(aSetting)))
-	json ApiSettingItem::autoValueToJson(bool aForceAutoValues) const noexcept {
+	json CoreSettingItem::autoValueToJson(bool aForceAutoValues) const noexcept {
 		json v;
 		if (USE_AUTO(TYPE_CONN_V4, AUTO_DETECT_CONNECTION) || USE_AUTO(TYPE_CONN_V6, AUTO_DETECT_CONNECTION6) ||
 			(type == TYPE_CONN_GEN && (SETTING(AUTO_DETECT_CONNECTION) || SETTING(AUTO_DETECT_CONNECTION6)))) {
@@ -81,7 +158,7 @@ namespace webserver {
 		return v;
 	}
 
-	pair<json, bool> ApiSettingItem::valueToJson(bool aForceAutoValues) const noexcept {
+	pair<json, bool> CoreSettingItem::valueToJson(bool aForceAutoValues) const noexcept {
 		auto v = autoValueToJson(aForceAutoValues);
 		if (!v.is_null()) {
 			return { v, true };
@@ -100,13 +177,13 @@ namespace webserver {
 		return { v, false };
 	}
 
-	json ApiSettingItem::infoToJson(bool aForceAutoValues) const noexcept {
+	json CoreSettingItem::infoToJson(bool aForceAutoValues) const noexcept {
 		// Get the current value
 		auto value = valueToJson(aForceAutoValues);
 
 		// Serialize the setting
-		json ret;
-		ret["value"] = value.first;
+		json ret = ApiSettingItem::infoToJson(aForceAutoValues);
+		/*ret["value"] = value.first;
 		ret["key"] = name;
 		ret["title"] = getDescription();
 		if (value.second) {
@@ -123,7 +200,7 @@ namespace webserver {
 			ret["type"] = "directory_path";
 		} else if (type == TYPE_LONG_TEXT) {
 			ret["type"] = "long_text";
-		}
+		}*/
 
 		// Serialize possible enum values
 		auto enumStrings = SettingsManager::getEnumStrings(key, false);
@@ -155,7 +232,11 @@ namespace webserver {
 		return ret;
 	}
 
-	bool ApiSettingItem::setCurValue(const json& aJson) const {
+	void CoreSettingItem::unset() noexcept {
+		SettingItem::unset();
+	}
+
+	bool CoreSettingItem::setCurValue(const json& aJson) {
 		if ((type == TYPE_CONN_V4 && SETTING(AUTO_DETECT_CONNECTION)) ||
 			(type == TYPE_CONN_V6 && SETTING(AUTO_DETECT_CONNECTION6))) {
 			//display::Manager::get()->cmdMessage("Note: Connection autodetection is enabled for the edited protocol. The changed setting won't take effect before auto detection has been disabled.");
