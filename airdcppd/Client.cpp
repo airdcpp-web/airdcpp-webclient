@@ -89,7 +89,11 @@ bool Client::startup() {
 
 	auto webResources = Util::getStartupParam("--web-resources");
 	printf("Starting web server");
-	auto serverStarted = webserver::WebServerManager::getInstance()->start(webErrorF, webResources ? *webResources : "");
+	auto serverStarted = webserver::WebServerManager::getInstance()->startup(
+		webErrorF, 
+		webResources ? *webResources : "",
+		[this]() { stop(); }
+	);
 
 	if (!serverStarted) {
 		return false;
