@@ -135,11 +135,16 @@ namespace webserver {
 		aEndpoint.set_listen_backlog(boost::asio::socket_base::max_connections);
 	}
 
-	bool WebServerManager::start(const ErrorF& errorF, const string& aWebResourcePath) {
+	bool WebServerManager::startup(const ErrorF& errorF, const string& aWebResourcePath, const CallBack& aShutdownF) {
 		if (!aWebResourcePath.empty()) {
 			fileServer.setResourcePath(aWebResourcePath);
 		}
 
+		shutdownF = aShutdownF;
+		return start(errorF);
+	}
+
+	bool WebServerManager::start(const ErrorF& errorF) {
 		if (!hasValidConfig()) {
 			return false;
 		}

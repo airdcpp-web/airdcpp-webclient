@@ -39,6 +39,7 @@ namespace webserver {
 		METHOD_HANDLER("away", Access::ANY, ApiRequest::METHOD_POST, (), true, SystemApi::handleSetAway);
 
 		METHOD_HANDLER("restart_web", Access::ADMIN, ApiRequest::METHOD_POST, (), false, SystemApi::handleRestartWeb);
+		METHOD_HANDLER("shutdown", Access::ADMIN, ApiRequest::METHOD_POST, (), false, SystemApi::handleShutdown);
 
 		createSubscription("away_state");
 
@@ -47,6 +48,11 @@ namespace webserver {
 
 	SystemApi::~SystemApi() {
 		ActivityManager::getInstance()->removeListener(this);
+	}
+
+	api_return SystemApi::handleShutdown(ApiRequest& aRequest) {
+		WebServerManager::getInstance()->getShutdownF()();
+		return websocketpp::http::status_code::ok;
 	}
 
 	class RestartThread : public Thread {
