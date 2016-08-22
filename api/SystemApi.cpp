@@ -50,33 +50,39 @@ namespace webserver {
 		ActivityManager::getInstance()->removeListener(this);
 	}
 
-	api_return SystemApi::handleShutdown(ApiRequest& aRequest) {
-		WebServerManager::getInstance()->getShutdownF()();
-		return websocketpp::http::status_code::ok;
-	}
-
-	class RestartThread : public Thread {
+	// We can't stop the server from a server pool thread...
+	class SystemActionThread : public Thread {
 	public:
-		typedef shared_ptr<RestartThread> Ptr;
-		RestartThread(Ptr& aPtr) : thisPtr(aPtr) {
+		typedef shared_ptr<SystemActionThread> Ptr;
+		SystemActionThread(Ptr& aPtr, bool aShutDown) : thisPtr(aPtr), shutdown(aShutDown) {
 			start();
 		}
 
 		int run() override {
 			sleep(500);
-			WebServerManager::getInstance()->stop();
-			WebServerManager::getInstance()->start(nullptr);
+			if (shutdown) {
+				WebServerManager::getInstance()->getShutdownF()();
+			} else {
+				WebServerManager::getInstance()->stop();
+				WebServerManager::getInstance()->start(nullptr);
+			}
+
 			thisPtr.reset();
 			return 0;
 		}
 	private:
 		Ptr& thisPtr;
+		const bool shutdown;
 	};
-	static RestartThread::Ptr restartThread;
+	static SystemActionThread::Ptr systemActionThread;
 
 	api_return SystemApi::handleRestartWeb(ApiRequest& aRequest) {
-		// We can't use the server thread for restarting...
-		restartThread = make_shared<RestartThread>(restartThread);
+		systemActionThread = make_shared<SystemActionThread>(systemActionThread, false);
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return SystemApi::handleShutdown(ApiRequest& aRequest) {
+		systemActionThread = make_shared<SystemActionThread>(systemActionThread, true);
 		return websocketpp::http::status_code::ok;
 	}
 
