@@ -51,13 +51,14 @@ void Client::run() {
 		printf("HTTP port: %d, HTTPS port: %d\n", WEBCFG(PLAIN_PORT).num(), WEBCFG(TLS_PORT).num());
 	}
 
-	webserver::WebServerManager::getInstance()->join();
+	shutdownSemaphore.wait();
 
 	shutdown();
 }
 
 void Client::stop() {
 	webserver::WebServerManager::getInstance()->stop();
+	shutdownSemaphore.signal();
 }
 
 void webErrorF(const string& aError) {
