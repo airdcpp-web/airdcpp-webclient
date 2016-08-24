@@ -23,6 +23,7 @@
 #include <airdcpp/Util.h>
 
 #include <web-server/WebServerManager.h>
+#include <web-server/WebServerSettings.h>
 #include <web-server/WebUser.h>
 
 namespace airdcppd {
@@ -78,10 +79,10 @@ bool ConfigPrompt::runConfigure(webserver::WebServerManager* wsm) {
 	auto& plainServerConfig = wsm->getPlainServerConfig();
 	auto& tlsServerConfig = wsm->getTlsServerConfig();
 
-	promptPort(plainServerConfig, "HTTP", 5600);
+	promptPort(plainServerConfig, "HTTP");
 	cout << std::endl;
 
-	promptPort(tlsServerConfig, "HTTPS", 5601);
+	promptPort(tlsServerConfig, "HTTPS");
 	cout << std::endl;
 
 	if (!wsm->getUserManager().hasUsers()) {
@@ -106,11 +107,11 @@ bool ConfigPrompt::runConfigure(webserver::WebServerManager* wsm) {
 			<< std::endl;
 
 		if (plainServerConfig.hasValidConfig()) {
-			cout << "http://<server address>:" << plainServerConfig.getPort() << std::endl;
+			cout << "http://<server address>:" << plainServerConfig.port.num() << std::endl;
 		}
 
 		if (tlsServerConfig.hasValidConfig()) {
-			cout << "https://<server address>:" << tlsServerConfig.getPort() << std::endl;
+			cout << "https://<server address>:" << tlsServerConfig.port.num() << std::endl;
 			cout << std::endl;
 
 			cout << toBold("NOTE:") << std::endl;
@@ -218,31 +219,26 @@ bool ConfigPrompt::listUsers(webserver::WebServerManager* wsm) {
 	return false;
 }
 
-void ConfigPrompt::promptPort(webserver::ServerConfig& config_, const std::string& aProtocol, int aDefaultPort) {
-	auto port = config_.getPort();
-	if (port > 0) {
-		aDefaultPort = port;
-	}
+void ConfigPrompt::promptPort(webserver::ServerConfig& config_, const std::string& aProtocol) {
+	auto port = config_.port.num();
 
-	cout << "Enter " << aProtocol << " port (empty: " << aDefaultPort << ", 0 = disabled): ";
+	cout << "Enter " << aProtocol << " port (empty: " << port << ", 0 = disabled): ";
 
 	string input;
 	std::getline(std::cin, input);
 
-	if (input.empty()) {
-		port = aDefaultPort;
-	} else {
+	if (!input.empty()) {
 		port = atoi(input.c_str());
 		if (port < 0 || port > 65535) {
 			cout << "Invalid port number\n";
-			promptPort(config_, aProtocol, aDefaultPort);
+			promptPort(config_, aProtocol);
 			return;
 		}
 
 		cout << std::endl;
 	}
 
-	config_.setPort(port);
+	config_.port.setCurValue(port);
 	if (port > 0) {
 		cout << toBold(aProtocol + " port set to: ") << port << std::endl;
 	} else {

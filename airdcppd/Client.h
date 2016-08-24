@@ -22,6 +22,7 @@
 #include <airdcpp/stdinc.h>
 #include <airdcpp/ClientManagerListener.h>
 #include <airdcpp/DirectoryListingManagerListener.h>
+#include <airdcpp/Semaphore.h>
 
 #include "CDMDebug.h"
 
@@ -46,6 +47,7 @@ private:
 	bool asDaemon = false;
 	
 	unique_ptr<CDMDebug> cdmDebug;
+	Semaphore shutdownSemaphore;
 };
 
 } // namespace airdcppd

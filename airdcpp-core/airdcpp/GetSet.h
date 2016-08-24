@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_GET_SET_H
 #define DCPLUSPLUS_DCPP_GET_SET_H
 
-//#pragma warning(disable:4100)
-
 /* adds a protected member variable to a class and provides public get & set member functions to
 access it. */
 
@@ -30,12 +28,12 @@ access it. */
 
 #define GETSET(t, name, name2) \
 protected: t name; \
-public: std::conditional<std::is_class<t>::value, const t&, t>::type get##name2() const { return name; } \
+public: std::conditional<std::is_class<t>::value, const t&, t>::type get##name2() const noexcept { return name; } \
 	template<typename GetSetT> void set##name2(GetSetT&& name) { this->name = std::forward<GetSetT>(name); }
 
 #define IGETSET(t, name, name2, init) \
 protected: t name = init; \
-public: std::conditional<std::is_class<t>::value, const t&, t>::type get##name2() const { return name; } \
+public: std::conditional<std::is_class<t>::value, const t&, t>::type get##name2() const noexcept { return name; } \
 	template<typename GetSetT> void set##name2(GetSetT&& name) { this->name = std::forward<GetSetT>(name); }
 
 #else

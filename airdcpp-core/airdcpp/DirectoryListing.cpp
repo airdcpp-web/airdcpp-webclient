@@ -1042,6 +1042,7 @@ void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aDir,
 		onStateChanged();
 	}
 	
+	read = false;
 	fire(DirectoryListingListener::LoadingFinished(), aStartTime, aDir, aReloadList, aChangeDir);
 }
 
@@ -1283,8 +1284,10 @@ void DirectoryListing::setRead() noexcept {
 		return;
 	}
 
-	read = true;
-	fire(DirectoryListingListener::Read());
+	addAsyncTask([=] {
+		read = true;
+		fire(DirectoryListingListener::Read());
+	});
 }
 
 void DirectoryListing::onListRemovedQueue(const string& aTarget, const string& aDir, bool aFinished) noexcept {

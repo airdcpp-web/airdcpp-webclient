@@ -17,6 +17,8 @@
 */
 
 #include <web-server/stdinc.h>
+#include <api/ApiSettingItem.h>
+#include <web-server/WebServerSettings.h>
 #include <web-server/WebServerManager.h>
 
 #include <airdcpp/typedefs.h>
@@ -34,14 +36,27 @@
 #define PONG_TIMEOUT 10 // seconds
 
 #define HANDSHAKE_TIMEOUT 0 // disabled, affects HTTP downloads
-#define DEFAULT_THREADS 4
 
 namespace webserver {
+	vector<ServerSettingItem> WebServerSettings::settings = {
+		{ "web_plain_port", "Port", 5600 },
+		{ "web_plain_bind_address", "Bind address", "" },
+
+		{ "web_tls_port", "Port", 5601 },
+		{ "web_tls_bind_address", "Bind address", "" },
+
+		{ "web_tls_certificate_path", "Certificate path", "", ApiSettingItem::TYPE_FILE_PATH },
+		{ "web_tls_certificate_key_path", "Certificate key path", "", ApiSettingItem::TYPE_FILE_PATH },
+
+		{ "web_server_threads", "Server threads", 4 },
+	};
+
 	using namespace dcpp;
-	WebServerManager::WebServerManager() : serverThreads(DEFAULT_THREADS), has_io_service(false), ios(DEFAULT_THREADS) {
-		// Set defaults
-		plainServerConfig.setPort(5600);
-		tlsServerConfig.setPort(5601);
+	WebServerManager::WebServerManager() : has_io_service(false), 
+		ios(WEBCFG(SERVER_THREADS).num()), 
+		plainServerConfig(WEBCFG(PLAIN_PORT), WEBCFG(PLAIN_BIND)),
+		tlsServerConfig(WEBCFG(TLS_PORT), WEBCFG(TLS_BIND)) {
+
 		fileServer.setResourcePath(Util::getPath(Util::PATH_RESOURCES) + "web-resources" + PATH_SEPARATOR);
 
 		userManager = unique_ptr<WebUserManager>(new WebUserManager(this));
@@ -120,11 +135,16 @@ namespace webserver {
 		aEndpoint.set_listen_backlog(boost::asio::socket_base::max_connections);
 	}
 
-	bool WebServerManager::start(const ErrorF& errorF, const string& aWebResourcePath) {
+	bool WebServerManager::startup(const ErrorF& errorF, const string& aWebResourcePath, const CallBack& aShutdownF) {
 		if (!aWebResourcePath.empty()) {
 			fileServer.setResourcePath(aWebResourcePath);
 		}
 
+		shutdownF = aShutdownF;
+		return start(errorF);
+	}
+
+	bool WebServerManager::start(const ErrorF& errorF) {
 		if (!hasValidConfig()) {
 			return false;
 		}
@@ -148,7 +168,10 @@ namespace webserver {
 
 			//endpoint_plain.set_pong_handler(std::bind(&WebServerManager::onPongReceived, this, _1, _2));
 		} catch (const std::exception& e) {
-			errorF(e.what());
+			if (errorF) {
+				errorF(e.what());
+			}
+
 			return false;
 		}
 
@@ -174,17 +197,20 @@ namespace webserver {
 
 		aEndpoint.set_reuse_addr(true);
 		try {
-			if (!aConfig.getBindAddress().empty()) {
-				aEndpoint.listen(aConfig.getBindAddress(), Util::toString(aConfig.getPort()));
+			const string bind = aConfig.bindAddress.str();
+			if (!bind.empty()) {
+				aEndpoint.listen(bind, Util::toString(aConfig.port.num()));
 			} else {
-				aEndpoint.listen(aConfig.getPort());
+				aEndpoint.listen(aConfig.port.num());
 			}
 
 			aEndpoint.start_accept();
 			return true;
 		} catch (const std::exception& e) {
-			auto message = boost::format("Failed to set up %1% server on port %2%: %3% (is the port in use by another application?)") % aProtocol % aConfig.getPort() % string(e.what());
-			errorF(message.str());
+			auto message = boost::format("Failed to set up %1% server on port %2%: %3% (is the port in use by another application?)") % aProtocol % aConfig.port.num() % string(e.what());
+			if (errorF) {
+				errorF(message.str());
+			}
 		}
 
 		return false;
@@ -206,7 +232,7 @@ namespace webserver {
 		}
 
 		// Start the ASIO io_service run loop running both endpoints
-		for (int x = 0; x < serverThreads; ++x) {
+		for (int x = 0; x < WEBCFG(SERVER_THREADS).num(); ++x) {
 			worker_threads.create_thread(boost::bind(&boost::asio::io_service::run, &ios));
 		}
 
@@ -280,8 +306,13 @@ namespace webserver {
 				boost::asio::ssl::context::no_sslv3 |
 				boost::asio::ssl::context::single_dh_use);
 
-			ctx->use_certificate_file(SETTING(TLS_CERTIFICATE_FILE), boost::asio::ssl::context::pem);
-			ctx->use_private_key_file(SETTING(TLS_PRIVATE_KEY_FILE), boost::asio::ssl::context::pem);
+			const auto customCert = WEBCFG(TLS_CERT_PATH).str();
+			const auto customKey = WEBCFG(TLS_CERT_KEY_PATH).str();
+
+			bool useCustom = !customCert.empty() && !customKey.empty();
+
+			ctx->use_certificate_file(useCustom ? customCert : SETTING(TLS_CERTIFICATE_FILE), boost::asio::ssl::context::pem);
+			ctx->use_private_key_file(useCustom ? customKey : SETTING(TLS_PRIVATE_KEY_FILE), boost::asio::ssl::context::pem);
 
 			CryptoManager::setContextOptions(ctx->native_handle(), true);
 		} catch (std::exception& e) {
@@ -401,12 +432,12 @@ namespace webserver {
 
 				if (xml.findChild("Config")) {
 					xml.stepIn();
-					loadServer(xml, "Server", plainServerConfig);
-					loadServer(xml, "TLSServer", tlsServerConfig);
+					loadServer(xml, "Server", plainServerConfig, false);
+					loadServer(xml, "TLSServer", tlsServerConfig, true);
 
 					if (xml.findChild("Threads")) {
 						xml.stepIn();
-						serverThreads = max(Util::toInt(xml.getData()), 1);
+						WEBCFG(SERVER_THREADS).setCurValue(max(Util::toInt(xml.getData()), 1));
 						xml.stepOut();
 					}
 					xml.resetCurrentChild();
@@ -419,18 +450,23 @@ namespace webserver {
 				xml.stepOut();
 			}
 		} catch (const Exception& e) {
-			aErrorF(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()));
+			if (aErrorF) {
+				aErrorF(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()));
+			}
 		}
 
 		return hasValidConfig();
 	}
 
-	void WebServerManager::loadServer(SimpleXML& aXml, const string& aTagName, ServerConfig& config_) noexcept {
+	void WebServerManager::loadServer(SimpleXML& aXml, const string& aTagName, ServerConfig& config_, bool aTls) noexcept {
 		if (aXml.findChild(aTagName)) {
-			config_.setPort(aXml.getIntChildAttrib("Port"));
-			config_.setBindAddress(aXml.getChildAttrib("BindAddress"));
+			config_.port.setCurValue(aXml.getIntChildAttrib("Port"));
+			config_.bindAddress.setCurValue(aXml.getChildAttrib("BindAddress"));
 
-			aXml.resetCurrentChild();
+			if (aTls) {
+				WEBCFG(TLS_CERT_PATH).setCurValue(aXml.getChildAttrib("Certificate"));
+				WEBCFG(TLS_CERT_KEY_PATH).setCurValue(aXml.getChildAttrib("CertificateKey"));
+			}
 		}
 
 		aXml.resetCurrentChild();
@@ -447,13 +483,16 @@ namespace webserver {
 			xml.stepIn();
 
 			plainServerConfig.save(xml, "Server");
-			tlsServerConfig.save(xml, "TLSServer");
 
-			if (serverThreads != DEFAULT_THREADS) {
+			tlsServerConfig.save(xml, "TLSServer");
+			xml.addChildAttrib("Certificate", WEBCFG(TLS_CERT_PATH).str());
+			xml.addChildAttrib("CertificateKey", WEBCFG(TLS_CERT_KEY_PATH).str());
+
+			if (!WEBCFG(SERVER_THREADS).isDefault()) {
 				xml.addTag("Threads");
 				xml.stepIn();
 
-				xml.setData(Util::toString(serverThreads));
+				xml.setData(Util::toString(WEBCFG(SERVER_THREADS).num()));
 
 				xml.stepOut();
 			}
@@ -475,14 +514,15 @@ namespace webserver {
 	}
 
 	bool ServerConfig::hasValidConfig() const noexcept {
-		return port > 0;
+		return port.num() > 0;
 	}
 
 	void ServerConfig::save(SimpleXML& xml_, const string& aTagName) noexcept {
 		xml_.addTag(aTagName);
-		xml_.addChildAttrib("Port", port);
-		if (!bindAddress.empty()) {
-			xml_.addChildAttrib("BindAddress", bindAddress);
+		xml_.addChildAttrib("Port", port.num());
+
+		if (!bindAddress.str().empty()) {
+			xml_.addChildAttrib("BindAddress", bindAddress.str());
 		}
 	}
 }

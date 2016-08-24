@@ -23,7 +23,7 @@
 
 namespace dcpp {
 
-SettingItem::SettingValue SettingItem::getCurValue(bool useDefault) const {
+SettingItem::SettingValue SettingItem::getCurValue(bool useDefault) const noexcept {
 	if(key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
 		return SettingsManager::getInstance()->get(static_cast<SettingsManager::StrSetting>(key), useDefault);
 	} else if(key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
@@ -36,15 +36,15 @@ SettingItem::SettingValue SettingItem::getCurValue(bool useDefault) const {
 	return 0;
 }
 
-bool SettingItem::isSet() const {
+bool SettingItem::isSet() const noexcept {
 	return SettingsManager::getInstance()->isKeySet(key);
 }
 
-void SettingItem::unset() const {
+void SettingItem::unset() const noexcept {
 	SettingsManager::getInstance()->unsetKey(key);
 }
 
-bool SettingItem::isDefault() const {
+bool SettingItem::isDefault() const noexcept {
 	if(key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
 		return SettingsManager::getInstance()->isDefault(static_cast<SettingsManager::StrSetting>(key));
 	} else if(key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
@@ -57,7 +57,7 @@ bool SettingItem::isDefault() const {
 	return true;
 }
 
-SettingItem::SettingValue SettingItem::getDefaultValue() const {
+SettingItem::SettingValue SettingItem::getDefaultValue() const noexcept {
 	if (key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
 		return SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::StrSetting>(key));
 	} else if (key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
@@ -82,20 +82,20 @@ SettingItem::SettingValue SettingItem::getDefaultValue() const {
 	}
 }*/
 
-const string& SettingItem::getDescription() const {
+const string& SettingItem::getDescription() const noexcept {
 	return ResourceManager::getInstance()->getString(desc);
 }
 
-string SettingItem::currentToString() const {
+string SettingItem::currentToString() const noexcept {
 	auto cur = getCurValue(true);
 	return boost::apply_visitor(ToString(key), cur);
 }
 
-string SettingItem::ToString::operator()(const string& s) const {
+string SettingItem::ToString::operator()(const string& s) const noexcept {
 	return s;
 }
 
-string SettingItem::ToString::operator()(int val) const {
+string SettingItem::ToString::operator()(int val) const noexcept {
 	auto enumStrings = SettingsManager::getEnumStrings(val, true);
 	if (!enumStrings.empty()) {
 		return ResourceManager::getInstance()->getString(enumStrings[val]);
@@ -104,11 +104,11 @@ string SettingItem::ToString::operator()(int val) const {
 	return Util::toString(val);
 }
 
-string SettingItem::ToString::operator()(double d) const {
+string SettingItem::ToString::operator()(double d) const noexcept {
 	return Util::toString(d);
 }
 
-string SettingItem::ToString::operator()(bool b) const {
+string SettingItem::ToString::operator()(bool b) const noexcept {
 	return b ? STRING(ENABLED) : STRING(DISABLED);
 }
 
@@ -118,15 +118,15 @@ profileValue(aProfileValue), SettingItem({ aKey, aName }) {
 }
 
 
-bool ProfileSettingItem::isProfileCurrent() const {
+bool ProfileSettingItem::isProfileCurrent() const noexcept {
 	return profileValue == getCurValue(false);
 }
 
-string ProfileSettingItem::profileToString() const {
+string ProfileSettingItem::profileToString() const noexcept {
 	return boost::apply_visitor(ToString(key), profileValue);
 }
 
-void ProfileSettingItem::setProfileToDefault(bool reset) const {
+void ProfileSettingItem::setProfileToDefault(bool reset) const noexcept {
 	if (reset)
 		SettingsManager::getInstance()->unsetKey(key);
 

@@ -144,6 +144,8 @@ namespace webserver {
 	}
 
 	void WebUserManager::on(WebServerManagerListener::Stopped) noexcept {
+		expirationTimer = nullptr;
+
 		// Let the modules handle deletion in a clean way before we are shutting down...
 		WLock l(cs);
 		sessionsLocalId.clear();

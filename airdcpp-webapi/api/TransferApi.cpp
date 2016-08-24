@@ -27,6 +27,7 @@
 #include <airdcpp/DownloadManager.h>
 #include <airdcpp/ConnectionManager.h>
 #include <airdcpp/QueueManager.h>
+#include <airdcpp/ThrottleManager.h>
 #include <airdcpp/UploadManager.h>
 
 namespace webserver {
@@ -202,11 +203,15 @@ namespace webserver {
 		return {
 			{ "speed_down", downSpeed },
 			{ "speed_up", upSpeed },
+			{ "limit_down", ThrottleManager::getDownLimit() },
+			{ "limit_up", ThrottleManager::getUpLimit() },
 			{ "upload_bundles", lastUploadBundles },
 			{ "download_bundles", lastDownloadBundles },
 			{ "uploads", uploads },
 			{ "downloads", downloads },
 			{ "queued_bytes", QueueManager::getInstance()->getTotalQueueSize() },
+			{ "session_downloaded", Socket::getTotalDown() },
+			{ "session_uploaded", Socket::getTotalUp() },
 		};
 	}
 
@@ -221,7 +226,7 @@ namespace webserver {
 		lastUploadBundles = 0;
 		lastDownloadBundles = 0;
 
-		send("transfer_statistics", newStats);
+		send("transfer_statistics", JsonUtil::filterExactValues(newStats, previousStats));
 		previousStats.swap(newStats);
 	}
 

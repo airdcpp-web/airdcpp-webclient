@@ -31,8 +31,8 @@
 #include <airdcpp/TimerManager.h>
 #include <airdcpp/UpdateManager.h>
 
-
 #include <web-server/WebServerManager.h>
+#include <web-server/WebServerSettings.h>
 
 namespace airdcppd {
 
@@ -48,16 +48,17 @@ void Client::run() {
 	if (!asDaemon) {
 		auto wsm = webserver::WebServerManager::getInstance();
 		printf(".\n%s running, press ctrl-c to exit...\n", shortVersionString.c_str());
-		printf("HTTP port: %d, HTTPS port: %d\n", wsm->getPlainServerConfig().getPort(), wsm->getTlsServerConfig().getPort());
+		printf("HTTP port: %d, HTTPS port: %d\n", WEBCFG(PLAIN_PORT).num(), WEBCFG(TLS_PORT).num());
 	}
 
-	webserver::WebServerManager::getInstance()->join();
+	shutdownSemaphore.wait();
 
 	shutdown();
 }
 
 void Client::stop() {
 	webserver::WebServerManager::getInstance()->stop();
+	shutdownSemaphore.signal();
 }
 
 void webErrorF(const string& aError) {
@@ -88,7 +89,11 @@ bool Client::startup() {
 
 	auto webResources = Util::getStartupParam("--web-resources");
 	printf("Starting web server");
-	auto serverStarted = webserver::WebServerManager::getInstance()->start(webErrorF, webResources ? *webResources : "");
+	auto serverStarted = webserver::WebServerManager::getInstance()->startup(
+		webErrorF, 
+		webResources ? *webResources : "",
+		[this]() { stop(); }
+	);
 
 	if (!serverStarted) {
 		return false;

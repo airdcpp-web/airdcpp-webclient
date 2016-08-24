@@ -27,6 +27,7 @@
 
 #include "Timer.h"
 #include "WebServerManagerListener.h"
+//#include "WebServerSettings.h"
 #include "WebSocket.h"
 #include "WebUserManager.h"
 
@@ -38,9 +39,14 @@
 #include <iostream>
 
 namespace webserver {
+	class ServerSettingItem;
 	struct ServerConfig {
-		IGETSET(int, port, Port, 0);
-		GETSET(string, bindAddress, BindAddress);
+		ServerConfig(ServerSettingItem& aPort, ServerSettingItem& aBindAddress) : port(aPort), bindAddress(aBindAddress) {
+
+		}
+
+		ServerSettingItem& port;
+		ServerSettingItem& bindAddress;
 
 		bool hasValidConfig() const noexcept;
 		void save(SimpleXML& aXml, const string& aTagName) noexcept;
@@ -134,7 +140,9 @@ namespace webserver {
 		typedef std::function<void(const string&)> ErrorF;
 
 		// Leave the path empty to use the default resource path
-		bool start(const ErrorF& errorF, const string& aWebResourcePath = Util::emptyString);
+		bool startup(const ErrorF& errorF, const string& aWebResourcePath, const CallBack& aShutdownF);
+
+		bool start(const ErrorF& errorF);
 		void stop();
 
 		void disconnectSockets(const std::string& aMessage) noexcept;
@@ -152,10 +160,6 @@ namespace webserver {
 
 		bool hasValidConfig() const noexcept;
 
-		void join() {
-			worker_threads.join_all();
-		}
-
 		ServerConfig& getPlainServerConfig() noexcept {
 			return plainServerConfig;
 		}
@@ -171,8 +175,8 @@ namespace webserver {
 
 		bool isRunning() const noexcept;
 
-		int getServerThreads() const noexcept {
-			return serverThreads;
+		const CallBack getShutdownF() const noexcept {
+			return shutdownF;
 		}
 	private:
 		WebSocketPtr getSocket(websocketpp::connection_hdl hdl) const noexcept;
@@ -183,7 +187,7 @@ namespace webserver {
 		ServerConfig plainServerConfig;
 		ServerConfig tlsServerConfig;
 
-		void loadServer(SimpleXML& xml_, const string& aTagName, ServerConfig& config_) noexcept;
+		void loadServer(SimpleXML& xml_, const string& aTagName, ServerConfig& config_, bool aTls) noexcept;
 		void pingTimer() noexcept;
 
 		mutable SharedMutex cs;
@@ -191,6 +195,7 @@ namespace webserver {
 		// set up an external io_service to run both endpoints on. This is not
 		// strictly necessary, but simplifies thread management a bit.
 		boost::asio::io_service ios;
+		bool has_io_service = false;
 
 		context_ptr on_tls_init(websocketpp::connection_hdl hdl);
 
@@ -203,13 +208,14 @@ namespace webserver {
 		unique_ptr<WebUserManager> userManager;
 
 		TimerPtr socketTimer;
-		bool has_io_service;
 
 		server_plain endpoint_plain;
 		server_tls endpoint_tls;
 
-		int serverThreads;
+		//int serverThreads;
 		boost::thread_group worker_threads;
+
+		CallBack shutdownF;
 	};
 }
 

@@ -25,7 +25,7 @@
 #include <airdcpp/SettingsManager.h>
 
 namespace webserver {
-	static const vector<ApiSettingItem> coreSettings = {
+	static vector<CoreSettingItem> coreSettings = {
 		//{ ResourceManager::SETTINGS_GENERAL },
 		{ "setting_profile", SettingsManager::SETTINGS_PROFILE, ResourceManager::SETTINGS_PROFILE },
 		{ "nick", SettingsManager::NICK, ResourceManager::NICK },

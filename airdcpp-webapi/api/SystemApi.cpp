@@ -21,11 +21,13 @@
 #include <web-server/JsonUtil.h>
 #include <web-server/Timer.h>
 #include <web-server/WebServerManager.h>
+#include <web-server/WebServerSettings.h>
 
 #include <api/SystemApi.h>
 #include <api/common/Serializer.h>
 
 #include <airdcpp/ActivityManager.h>
+#include <airdcpp/Thread.h>
 #include <airdcpp/TimerManager.h>
 
 namespace webserver {
@@ -36,6 +38,9 @@ namespace webserver {
 		METHOD_HANDLER("away", Access::ANY, ApiRequest::METHOD_GET, (), false, SystemApi::handleGetAwayState);
 		METHOD_HANDLER("away", Access::ANY, ApiRequest::METHOD_POST, (), true, SystemApi::handleSetAway);
 
+		METHOD_HANDLER("restart_web", Access::ADMIN, ApiRequest::METHOD_POST, (), false, SystemApi::handleRestartWeb);
+		METHOD_HANDLER("shutdown", Access::ADMIN, ApiRequest::METHOD_POST, (), false, SystemApi::handleShutdown);
+
 		createSubscription("away_state");
 
 		ActivityManager::getInstance()->addListener(this);
@@ -43,6 +48,42 @@ namespace webserver {
 
 	SystemApi::~SystemApi() {
 		ActivityManager::getInstance()->removeListener(this);
+	}
+
+	// We can't stop the server from a server pool thread...
+	class SystemActionThread : public Thread {
+	public:
+		typedef shared_ptr<SystemActionThread> Ptr;
+		SystemActionThread(Ptr& aPtr, bool aShutDown) : thisPtr(aPtr), shutdown(aShutDown) {
+			start();
+		}
+
+		int run() override {
+			sleep(500);
+			if (shutdown) {
+				WebServerManager::getInstance()->getShutdownF()();
+			} else {
+				WebServerManager::getInstance()->stop();
+				WebServerManager::getInstance()->start(nullptr);
+			}
+
+			thisPtr.reset();
+			return 0;
+		}
+	private:
+		Ptr& thisPtr;
+		const bool shutdown;
+	};
+	static SystemActionThread::Ptr systemActionThread;
+
+	api_return SystemApi::handleRestartWeb(ApiRequest& aRequest) {
+		systemActionThread = make_shared<SystemActionThread>(systemActionThread, false);
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return SystemApi::handleShutdown(ApiRequest& aRequest) {
+		systemActionThread = make_shared<SystemActionThread>(systemActionThread, true);
+		return websocketpp::http::status_code::ok;
 	}
 
 	void SystemApi::on(ActivityManagerListener::AwayModeChanged, AwayMode /*aNewMode*/) noexcept {
@@ -83,7 +124,7 @@ namespace webserver {
 		auto server = session->getServer();
 
 		aRequest.setResponseBody({
-			{ "server_threads", server->getServerThreads() },
+			{ "server_threads", WEBCFG(SERVER_THREADS).num() },
 			{ "client_started", started },
 			{ "client_version", fullVersionString },
 			{ "active_sessions", server->getUserManager().getSessionCount() },
