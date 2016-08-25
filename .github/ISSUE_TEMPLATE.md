@@ -1,7 +1,7 @@
 <!--
 If you are posting a question/feature requests, all prefilled information can be removed.
 
-By submitting this report, I thereby confirm that I have read the guidelines for contributing (https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md) and I've done my best to provide the requested information for this report type.
+By submitting this report, I thereby confirm that I have read the guidelines for contributing (https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md) for this report type.
 -->
 
 <!-- BUG TEMPLATE -->
