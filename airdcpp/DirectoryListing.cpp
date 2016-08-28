@@ -1038,11 +1038,12 @@ void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aDir,
 		dir->setLoading(false);
 		if (aChangeDir) {
 			updateCurrentLocation(dir);
+			read = false;
 		}
+
 		onStateChanged();
 	}
 	
-	read = false;
 	fire(DirectoryListingListener::LoadingFinished(), aStartTime, aDir, aReloadList, aChangeDir);
 }
 

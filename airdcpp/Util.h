@@ -540,7 +540,20 @@ public:
 
 	static string encodeURI(const string& /*aString*/, bool reverse = false) noexcept;
 	
+	// Return whether the IP is localhost or a link-local address (169.254.0.0/16 or fe80)
+	static bool isLocalIp(const string& ip, bool v6) noexcept;
+
+	// Returns whether the IP is a private one (non-local)
+	//
+	// Private ranges:
+	// IPv4: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+	// IPv6: fd prefix
 	static bool isPrivateIp(const string& ip, bool v6) noexcept;
+
+	static bool isPublicIp(const string& ip, bool v6) noexcept {
+		return !isLocalIp(ip, v6) && !isPrivateIp(ip, v6);
+	}
+
 	/**
 	 * Case insensitive substring search.
 	 * @return First position found or string::npos

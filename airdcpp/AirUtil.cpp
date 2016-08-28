@@ -213,12 +213,10 @@ void AirUtil::updateCachedSettings() {
 	privKeyFile = Text::toLower(SETTING(TLS_PRIVATE_KEY_FILE));
 }
 
-AirUtil::IpList AirUtil::getDisplayAdapters(bool v6) {
-	AirUtil::IpList bindAddresses;
-
+AirUtil::AdapterInfoList AirUtil::getBindAdapters(bool v6) {
 	// Get the addresses and sort them
-	AirUtil::getIpAddresses(bindAddresses, v6);
-	sort(bindAddresses.begin(), bindAddresses.end(), [](const AirUtil::AddressInfo& lhs, const AirUtil::AddressInfo& rhs) {
+	auto bindAddresses = getNetworkAdapters(v6);
+	sort(bindAddresses.begin(), bindAddresses.end(), [](const AdapterInfo& lhs, const AdapterInfo& rhs) {
 		if (lhs.adapterName.empty() && rhs.adapterName.empty()) {
 			return Util::stricmp(lhs.ip, rhs.ip) < 0;
 		}
@@ -231,7 +229,7 @@ AirUtil::IpList AirUtil::getDisplayAdapters(bool v6) {
 
 	// Current address not listed?
 	const auto& setting = v6 ? SETTING(BIND_ADDRESS6) : SETTING(BIND_ADDRESS);
-	auto cur = boost::find_if(bindAddresses, [&setting](const AirUtil::AddressInfo& aInfo) { return aInfo.ip == setting; });
+	auto cur = boost::find_if(bindAddresses, [&setting](const AirUtil::AdapterInfo& aInfo) { return aInfo.ip == setting; });
 	if (cur == bindAddresses.end()) {
 		bindAddresses.emplace_back(STRING(UNKNOWN), setting, 0);
 		cur = bindAddresses.end() - 1;
@@ -240,7 +238,9 @@ AirUtil::IpList AirUtil::getDisplayAdapters(bool v6) {
 	return bindAddresses;
 }
 
-void AirUtil::getIpAddresses(IpList& addresses, bool v6) {
+AirUtil::AdapterInfoList AirUtil::getNetworkAdapters(bool v6) {
+	AdapterInfoList adapterInfos;
+
 #ifdef _WIN32
 	ULONG len =	15360; //"The recommended method of calling the GetAdaptersAddresses function is to pre-allocate a 15KB working buffer pointed to by the AdapterAddresses parameter"
 	for(int i = 0; i < 3; ++i)
@@ -268,7 +268,7 @@ void AirUtil::getIpAddresses(IpList& addresses, bool v6) {
 						BYTE prefix[8] = { 0xFE, 0x80 };
 						auto fLinkLocal = (memcmp(pAddr->sin6_addr.u.Byte, prefix, sizeof(prefix)) == 0);*/
 
-						addresses.emplace_back(Text::fromT(tstring(pAdapterInfo->FriendlyName)), buf, ua->OnLinkPrefixLength);
+						adapterInfos.emplace_back(Text::fromT(tstring(pAdapterInfo->FriendlyName)), buf, ua->OnLinkPrefixLength);
 					}
 					freeObject = false;
 				}
@@ -312,7 +312,7 @@ void AirUtil::getIpAddresses(IpList& addresses, bool v6) {
 					char address[len];
 					inet_ntop(sa->sa_family, src, address, len);
 					// TODO: get the prefix
-					addresses.emplace_back("Unknown", (string)address, 0);
+					adapterInfos.emplace_back("Unknown", (string)address, 0);
 				}
 			}
 		}
@@ -321,24 +321,28 @@ void AirUtil::getIpAddresses(IpList& addresses, bool v6) {
 #endif
 
 #endif
+
+	return adapterInfos;
 }
 
-string AirUtil::getLocalIp(bool v6, bool allowPrivate /*true*/) {
+string AirUtil::getLocalIp(bool v6) noexcept {
 	const auto& bindAddr = v6 ? CONNSETTING(BIND_ADDRESS6) : CONNSETTING(BIND_ADDRESS);
-	if(!bindAddr.empty() && bindAddr != SettingsManager::getInstance()->getDefault(v6 ? SettingsManager::BIND_ADDRESS6 : SettingsManager::BIND_ADDRESS)) {
+	if (!bindAddr.empty() && bindAddr != SettingsManager::getInstance()->getDefault(v6 ? SettingsManager::BIND_ADDRESS6 : SettingsManager::BIND_ADDRESS)) {
 		return bindAddr;
 	}
 
-	IpList addresses;
-	getIpAddresses(addresses, v6);
-	if (addresses.empty())
+	// No bind address configured, try to find a public address
+	auto adapters = getNetworkAdapters(v6);
+	if (adapters.empty()) {
 		return Util::emptyString;
+	}
 
-	auto p = boost::find_if(addresses, [v6](const AddressInfo& aAddress) { return !Util::isPrivateIp(aAddress.ip, v6); });
-	if (p != addresses.end())
+	auto p = boost::find_if(adapters, [v6](const AdapterInfo& aAdapterInfo) { return Util::isPublicIp(aAdapterInfo.ip, v6); });
+	if (p != adapters.end()) {
 		return p->ip;
+	}
 
-	return allowPrivate ? addresses.front().ip : Util::emptyString;
+	return adapters.front().ip;
 }
 
 int AirUtil::getSlotsPerUser(bool download, double value, int aSlots, SettingsManager::SettingProfile aProfile) {

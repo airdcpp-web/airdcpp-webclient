@@ -172,11 +172,6 @@ void ConnectivityManager::detectConnection() {
 
 	log(STRING(CONN_DETERMINING), LogMessage::SEV_INFO, TYPE_BOTH);
 
-	/*if (runningV4)
-		log(STRING(CONN_DETERMINING), LogMessage::SEV_INFO, false);
-	if (runningV6)
-		log(STRING(CONN_DETERMINING), LogMessage::SEV_INFO, true);*/
-
 	try {
 		listen();
 	} catch(const Exception& e) {
@@ -199,7 +194,7 @@ void ConnectivityManager::detectConnection() {
 	autoDetectedV4 = detectV4;
 	autoDetectedV6 = detectV6;
 
-	if(detectV4 && !AirUtil::getLocalIp(false, false).empty()) {
+	if (detectV4 && Util::isPublicIp(AirUtil::getLocalIp(false), false)) {
 		{
 			WLock l(cs);
 			autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE;
@@ -211,8 +206,8 @@ void ConnectivityManager::detectConnection() {
 		detectV4 = false;
 	}
 
-	if(detectV6) {
-		if (!AirUtil::getLocalIp(true, false).empty()) {
+	if (detectV6) {
+		if (Util::isPublicIp(AirUtil::getLocalIp(true), true)) {
 			{
 				WLock l(cs);
 				autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_ACTIVE;
@@ -220,11 +215,12 @@ void ConnectivityManager::detectConnection() {
 
 			log(STRING(CONN_DIRECT_DETECTED), LogMessage::SEV_INFO, TYPE_V6);
 		} else {
-			//disable IPv6 if no public IP address is available
+			// Disable IPv6 connectivity if no public IP address is available
 			{
 				WLock l(cs);
 				autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_DISABLED;
 			}
+
 			log(STRING(IPV6_NO_PUBLIC_IP), LogMessage::SEV_INFO, TYPE_V6);
 		}
 
@@ -255,23 +251,16 @@ void ConnectivityManager::detectConnection() {
 }
 
 void ConnectivityManager::setup(bool v4SettingsChanged, bool v6SettingsChanged) {
+	auto settingsChanged = v4SettingsChanged || v6SettingsChanged;
+
 	bool autoDetect4 = SETTING(AUTO_DETECT_CONNECTION) && SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED;
 	bool autoDetect6 = SETTING(AUTO_DETECT_CONNECTION6) && SETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED;
 
-	/*{
-		if((!autoDetect4 && autoDetectedV4) || (!autoDetect6 && autoDetectedV6) || v4SettingsChanged || v6SettingsChanged) {
-			if(v4SettingsChanged || (SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_ACTIVE_UPNP)) {
-				mapperV4.close();
-			}
-			if((SETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_ACTIVE_UPNP) || v6SettingsChanged) {
-				mapperV6.close();
-			}
-			startSocket();
-		} else if(SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_ACTIVE_UPNP && !runningV4) {
-			// previous mappings had failed; try again
-			startMapping();
-		}
-	}*/
+	// whether automatic detection is enabled.
+	auto autoDetect = autoDetect4 || autoDetect6;
+
+	// whether automatic detection has run before.
+	auto autoDetected = autoDetectedV4 || autoDetectedV6;
 
 	if (v4SettingsChanged || (autoDetectedV4 && !autoDetect4)) {
 		mapperV4.close();
@@ -284,29 +273,31 @@ void ConnectivityManager::setup(bool v4SettingsChanged, bool v6SettingsChanged) 
 	}
 
 
-	if(!autoDetect6)
+	if (!autoDetect6)
 		clearAutoSettings(true, false);
 		
 	if (!autoDetect4) {
 		clearAutoSettings(false, false);
 	}
 
-	bool autoDetect = false;
-	if(autoDetect4  || autoDetect6) {
+	if (autoDetect) {
 		if ((!autoDetectedV4 && autoDetect4) || (!autoDetectedV6 && autoDetect6) || autoSettings.empty()) {
 			detectConnection();
 			autoDetect = true;
 		}
 	}
 
-	if (!autoDetect && (v4SettingsChanged || v6SettingsChanged)) {
+	// reset listening connections when:
+	// - auto-detection is disabled.
+	// - settings have changed.
+	if (!autoDetect && (autoDetected || settingsChanged)) {
 		startSocket();
 	}
 
 	if(!autoDetect4 && SETTING(INCOMING_CONNECTIONS) == SettingsManager::INCOMING_ACTIVE_UPNP && !runningV4) // previous mappings had failed; try again
 		startMapping(false);
 
-	if(!autoDetect6 && SETTING(INCOMING_CONNECTIONS6) == SettingsManager::INCOMING_ACTIVE_UPNP && !runningV4) // previous mappings had failed; try again
+	if(!autoDetect6 && SETTING(INCOMING_CONNECTIONS6) == SettingsManager::INCOMING_ACTIVE_UPNP && !runningV6) // previous mappings had failed; try again
 		startMapping(true);
 }
 
@@ -417,37 +408,26 @@ void ConnectivityManager::mappingFinished(const string& mapper, bool v6) {
 		runningV4 = false;
 }
 
-void ConnectivityManager::log(const string& message, LogMessage::Severity sev, LogType aType) {
+void ConnectivityManager::log(const string& aMessage, LogMessage::Severity sev, LogType aType) {
 	if (aType == TYPE_NORMAL) {
-		LogManager::getInstance()->message(message, sev);
+		LogManager::getInstance()->message(aMessage, sev);
 	} else {
 		string proto;
-		//auto addTime = [this, &nextSearch] (bool toEnabled) -> void {
-		//auto getMessage = [&](const string& proto) { return STRING_F(CONNECTIVITY_X, "IPv4 & IPv6") + ": " + message; }
-
 		if (aType == TYPE_BOTH && runningV4 && runningV6) {
-			statusV6 = message;
-			statusV4 = message;
+			statusV6 = aMessage;
+			statusV4 = aMessage;
 			proto = "IPv4 & IPv6";
 		} else if (aType == TYPE_V4 || (aType == TYPE_BOTH && runningV4)) {
 			proto = "IPv4";
-			statusV4 = message;
+			statusV4 = aMessage;
 		} else if (aType == TYPE_V6 || (aType == TYPE_BOTH && runningV6)) {
 			proto = "IPv6";
-			statusV6 = message;
+			statusV6 = aMessage;
 		}
 
-		LogManager::getInstance()->message(STRING(CONNECTIVITY) + " (" + proto + "): " + message, sev);
-		fire(ConnectivityManagerListener::Message(), proto + ": " + message);
+		LogManager::getInstance()->message(STRING(CONNECTIVITY) + " (" + proto + "): " + aMessage, sev);
+		fire(ConnectivityManagerListener::Message(), proto + ": " + aMessage);
 	}
-
-	/*if((SETTING(AUTO_DETECT_CONNECTION) && !v6) || (SETTING(AUTO_DETECT_CONNECTION6) && v6)) {
-		status = move(message);
-		LogManager::getInstance()->message(STRING(CONNECTIVITY) + ": " + status, sev);
-		fire(ConnectivityManagerListener::Message(), status);
-	} else {
-		LogManager::getInstance()->message(message, sev);
-	}*/
 }
 
 const string& ConnectivityManager::getStatus(bool v6) const { 
