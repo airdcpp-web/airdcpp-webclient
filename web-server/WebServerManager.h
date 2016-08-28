@@ -212,7 +212,6 @@ namespace webserver {
 		server_plain endpoint_plain;
 		server_tls endpoint_tls;
 
-		//int serverThreads;
 		boost::thread_group worker_threads;
 
 		CallBack shutdownF;

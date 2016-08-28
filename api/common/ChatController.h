@@ -45,9 +45,7 @@ namespace webserver {
 		}
 
 		void onChatMessage(const ChatMessagePtr& aMessage) noexcept {
-			if (!aMessage->getRead()) {
-				sendUnread();
-			}
+			onMessagesUpdated();
 
 			auto s = toListenerName("message");
 			if (!module->subscriptionActive(s)) {
@@ -58,9 +56,7 @@ namespace webserver {
 		}
 
 		void onStatusMessage(const LogMessagePtr& aMessage) noexcept {
-			if (!aMessage->getRead()) {
-				sendUnread();
-			}
+			onMessagesUpdated();
 
 			auto s = toListenerName("status");
 			if (!module->subscriptionActive(s)) {
