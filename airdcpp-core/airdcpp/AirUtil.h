@@ -61,21 +61,30 @@ public:
 
 	static void init();
 	static void updateCachedSettings();
-	static string getLocalIp(bool v6, bool allowPrivate = true);
 
 	static string toOpenFileName(const string& aFileName, const TTHValue& aTTH) noexcept;
 	static string fromOpenFileName(const string& aFileName) noexcept;
 
-	struct AddressInfo {
-		AddressInfo(const string& aName, const string& aIP, uint8_t aPrefix) : adapterName(aName), ip(aIP), prefix(aPrefix) { }
+	struct AdapterInfo {
+		AdapterInfo(const string& aName, const string& aIP, uint8_t aPrefix) : adapterName(aName), ip(aIP), prefix(aPrefix) { }
+
 		string adapterName;
 		string ip;
 		uint8_t prefix;
 	};
-	typedef vector<AddressInfo> IpList;
-	static void getIpAddresses(IpList& addresses, bool v6);
+	typedef vector<AdapterInfo> AdapterInfoList;
 
-	static IpList getDisplayAdapters(bool v6);
+	// Get a list of network adapters for the wanted protocol
+	static AdapterInfoList getNetworkAdapters(bool v6);
+
+	// Get a sorted list of available bind adapters for the wanted protocol
+	// Ensures that the current bind address is listed as well
+	static AdapterInfoList getBindAdapters(bool v6);
+
+	// Get current bind address
+	// The best adapter address is returned if no bind address is configured
+	// (public addresses are preferred over local/private ones)
+	static string getLocalIp(bool v6) noexcept;
 
 	static int getSlotsPerUser(bool download, double value=0, int aSlots=0, SettingsManager::SettingProfile aProfile = static_cast<SettingsManager::SettingProfile>(SETTING(SETTINGS_PROFILE)));
 	static int getSlots(bool download, double value=0, SettingsManager::SettingProfile aProfile = static_cast<SettingsManager::SettingProfile>(SETTING(SETTINGS_PROFILE)));
