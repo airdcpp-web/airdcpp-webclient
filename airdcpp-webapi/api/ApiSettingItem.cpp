@@ -212,7 +212,7 @@ namespace webserver {
 				});
 			}
 		} else if (key == SettingsManager::BIND_ADDRESS || key == SettingsManager::BIND_ADDRESS6) {
-			auto bindAddresses = AirUtil::getDisplayAdapters(key == SettingsManager::BIND_ADDRESS6);
+			auto bindAddresses = AirUtil::getBindAdapters(key == SettingsManager::BIND_ADDRESS6);
 			for (const auto& adapter : bindAddresses) {
 				ret["values"].push_back({
 					{ "text", adapter.ip + (!adapter.adapterName.empty() ? " (" + adapter.adapterName + ")" : Util::emptyString) },

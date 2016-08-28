@@ -35,6 +35,26 @@ namespace webserver {
 
 	}
 
+	string SessionApi::getNetworkType(const string& aIp) noexcept {
+		auto ip = aIp;
+
+		// websocketpp will map IPv4 addresses to IPv6
+		auto v6 = aIp.find(":") != string::npos;
+		if (aIp.find("[::ffff:") == 0) {
+			auto end = aIp.rfind("]");
+			ip = aIp.substr(8, end - 8);
+			v6 = false;
+		}
+
+		if (Util::isPrivateIp(ip, v6)) {
+			return "private";
+		} else if (Util::isLocalIp(ip, v6)) {
+			return "local";
+		}
+
+		return "internet";
+	}
+
 	string SessionApi::getHostname() noexcept {
 #ifdef _WIN32
 		TCHAR computerName[1024];
@@ -51,18 +71,7 @@ namespace webserver {
 	json SessionApi::getSystemInfo(const string& aIp) const noexcept {
 		json retJson;
 		retJson["path_separator"] = PATH_SEPARATOR_STR;
-
-		
-		// IPv4 addresses will be mapped to IPv6
-		auto ip = aIp;
-		auto v6 = aIp.find(":") != string::npos;
-		if (aIp.find("[::ffff:") == 0) {
-			auto end = aIp.rfind("]");
-			ip = aIp.substr(8, end-8);
-			v6 = false;
-		}
-
-		retJson["network_type"] = Util::isPrivateIp(ip, v6) ? "local" : "internet";
+		retJson["network_type"] = getNetworkType(aIp);
 #ifdef _WIN32
 		retJson["platform"] = "windows";
 #elif APPLE
