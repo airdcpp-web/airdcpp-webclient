@@ -19,16 +19,37 @@
 #ifndef DCPLUSPLUS_DCPP_SEARCHUTILS_H
 #define DCPLUSPLUS_DCPP_SEARCHUTILS_H
 
-#include <api/SearchApi.h>
 #include <api/SearchResultInfo.h>
+#include <api/common/Property.h>
 
 #include <web-server/stdinc.h>
 
 #include <airdcpp/typedefs.h>
 
+
 namespace webserver {
 	class SearchUtils {
 	public:
+		static const PropertyList properties;
+		static const PropertyItemHandler<SearchResultInfoPtr> propertyHandler;
+
+		enum Properties {
+			PROP_TOKEN = -1,
+			PROP_NAME,
+			PROP_RELEVANCE,
+			PROP_HITS,
+			PROP_USERS,
+			PROP_TYPE,
+			PROP_SIZE,
+			PROP_DATE,
+			PROP_PATH,
+			PROP_CONNECTION,
+			PROP_SLOTS,
+			PROP_TTH,
+			PROP_DUPE,
+			PROP_LAST
+		};
+
 		static json serializeResult(const SearchResultInfoPtr& aResult, int aPropertyName) noexcept;
 
 		static int compareResults(const SearchResultInfoPtr& a, const SearchResultInfoPtr& b, int aPropertyName) noexcept;

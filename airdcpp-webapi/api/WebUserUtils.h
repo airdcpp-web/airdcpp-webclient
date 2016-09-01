@@ -20,14 +20,29 @@
 #define DCPLUSPLUS_DCPP_WEBUSER_UTILS_H
 
 #include <web-server/stdinc.h>
+#include <api/common/Property.h>
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/StringMatch.h>
+
 #include <web-server/WebUser.h>
+
 
 namespace webserver {
 	class WebUserUtils {
 	public:
+		static const PropertyList properties;
+		static const PropertyItemHandler<WebUserPtr> propertyHandler;
+
+		enum Properties {
+			PROP_TOKEN = -1,
+			PROP_NAME,
+			PROP_PERMISSIONS,
+			PROP_ACTIVE_SESSIONS,
+			PROP_LAST_LOGIN,
+			PROP_LAST
+		};
+
 		static json serializeItem(const WebUserPtr& aItem, int aPropertyName) noexcept;
 		static bool filterItem(const WebUserPtr& aItem, int aPropertyName, const StringMatch& aTextMatcher, double aNumericMatcher) noexcept;
 

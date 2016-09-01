@@ -23,11 +23,23 @@
 
 
 namespace webserver {
+	const PropertyList WebUserUtils::properties = {
+		{ PROP_NAME, "username", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_PERMISSIONS, "permissions", TYPE_LIST_NUMERIC, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_ACTIVE_SESSIONS, "active_sessions", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_LAST_LOGIN, "last_login", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
+	};
+
+	const PropertyItemHandler<WebUserPtr> WebUserUtils::propertyHandler = {
+		properties,
+		WebUserUtils::getStringInfo, WebUserUtils::getNumericInfo, WebUserUtils::compareItems, WebUserUtils::serializeItem, WebUserUtils::filterItem
+	};
+
 	json WebUserUtils::serializeItem(const WebUserPtr& aItem, int aPropertyName) noexcept {
 		json j;
 
 		switch (aPropertyName) {
-		case WebUserApi::PROP_PERMISSIONS:
+		case PROP_PERMISSIONS:
 		{
 			return aItem->getPermissions();
 		}
@@ -39,7 +51,7 @@ namespace webserver {
 
 	bool WebUserUtils::filterItem(const WebUserPtr& aItem, int aPropertyName, const StringMatch& aStringMatch, double aNumericMatcher) noexcept {
 		switch (aPropertyName) {
-		case WebUserApi::PROP_PERMISSIONS:
+		case PROP_PERMISSIONS:
 		{
 			auto i = WebUser::toAccess(aStringMatch.pattern);
 			if (i != Access::LAST) {
@@ -53,7 +65,7 @@ namespace webserver {
 
 	int WebUserUtils::compareItems(const WebUserPtr& a, const WebUserPtr& b, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case WebUserApi::PROP_PERMISSIONS: {
+		case PROP_PERMISSIONS: {
 			if (a->isAdmin() != b->isAdmin()) {
 				return a->isAdmin() ? 1 : -1;
 			}
@@ -69,14 +81,14 @@ namespace webserver {
 
 	std::string WebUserUtils::getStringInfo(const WebUserPtr& aItem, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case WebUserApi::PROP_NAME: return aItem->getUserName();
+		case PROP_NAME: return aItem->getUserName();
 		default: dcassert(0); return 0;
 		}
 	}
 	double WebUserUtils::getNumericInfo(const WebUserPtr& aItem, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case WebUserApi::PROP_LAST_LOGIN: return (double)aItem->getLastLogin();
-		case WebUserApi::PROP_ACTIVE_SESSIONS: return (double)aItem->getActiveSessions();
+		case PROP_LAST_LOGIN: return (double)aItem->getLastLogin();
+		case PROP_ACTIVE_SESSIONS: return (double)aItem->getActiveSessions();
 		default: dcassert(0); return 0;
 		}
 	}

@@ -19,23 +19,40 @@
 #ifndef DCPLUSPLUS_DCPP_FAVORITEHUBUTILS_H
 #define DCPLUSPLUS_DCPP_FAVORITEHUBUTILS_H
 
-#include <api/FavoriteHubApi.h>
+#include <api/common/Property.h>
 
 #include <web-server/stdinc.h>
 
 #include <airdcpp/typedefs.h>
+#include <airdcpp/HubEntry.h>
+
 
 namespace webserver {
 	class FavoriteHubUtils {
 	public:
-		static FavoriteHubEntryList getEntryList() noexcept;
+		static const PropertyList properties;
+		static const PropertyItemHandler<FavoriteHubEntryPtr> propertyHandler;
+
+		enum Properties {
+			PROP_TOKEN = -1,
+			PROP_NAME,
+			PROP_HUB_URL,
+			PROP_HUB_DESCRIPTION,
+			PROP_AUTO_CONNECT,
+			PROP_SHARE_PROFILE,
+			PROP_CONNECT_STATE,
+			PROP_NICK,
+			PROP_HAS_PASSWORD,
+			PROP_USER_DESCRIPTION,
+			PROP_IGNORE_PM,
+			PROP_LAST
+		};
+
 		static json serializeHub(const FavoriteHubEntryPtr& aEntry, int aPropertyName) noexcept;
 
 		static int compareEntries(const FavoriteHubEntryPtr& a, const FavoriteHubEntryPtr& b, int aPropertyName) noexcept;
 		static std::string getStringInfo(const FavoriteHubEntryPtr& a, int aPropertyName) noexcept;
 		static double getNumericInfo(const FavoriteHubEntryPtr& a, int aPropertyName) noexcept;
-
-		static optional<int> deserializeIntHubSetting(const string& aFieldName, const json& aJson);
 	private:
 		static string formatConnectState(const FavoriteHubEntryPtr& aEntry) noexcept;
 		static json serializeHubSetting(tribool aSetting) noexcept;

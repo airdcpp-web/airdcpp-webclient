@@ -21,12 +21,14 @@
 
 #include <web-server/stdinc.h>
 
+#include <api/FavoriteHubUtils.h>
+
 #include <api/ApiModule.h>
 #include <api/common/ListViewController.h>
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/FavoriteManagerListener.h>
-#include <airdcpp/HubEntry.h>
+
 
 namespace webserver {
 	class FavoriteHubApi : public SubscribableApiModule, private FavoriteManagerListener {
@@ -37,23 +39,6 @@ namespace webserver {
 		int getVersion() const noexcept {
 			return 0;
 		}
-
-		static const PropertyList properties;
-
-		enum Properties {
-			PROP_TOKEN = -1,
-			PROP_NAME,
-			PROP_HUB_URL,
-			PROP_HUB_DESCRIPTION,
-			PROP_AUTO_CONNECT,
-			PROP_SHARE_PROFILE,
-			PROP_CONNECT_STATE,
-			PROP_NICK,
-			PROP_HAS_PASSWORD,
-			PROP_USER_DESCRIPTION,
-			PROP_IGNORE_PM,
-			PROP_LAST
-		};
 	private:
 		api_return handleAddHub(ApiRequest& aRequest);
 		api_return handleRemoveHub(ApiRequest& aRequest);
@@ -68,10 +53,11 @@ namespace webserver {
 		void on(FavoriteManagerListener::FavoriteHubRemoved, const FavoriteHubEntryPtr& e) noexcept;
 		void on(FavoriteManagerListener::FavoriteHubUpdated, const FavoriteHubEntryPtr& e) noexcept;
 
-		static const PropertyItemHandler<FavoriteHubEntryPtr> itemHandler;
-
-		typedef ListViewController<FavoriteHubEntryPtr, PROP_LAST> HubView;
+		typedef ListViewController<FavoriteHubEntryPtr, FavoriteHubUtils::PROP_LAST> HubView;
 		HubView view;
+
+		static FavoriteHubEntryList getEntryList() noexcept;
+		static optional<int> deserializeIntHubSetting(const string& aFieldName, const json& aJson);
 	};
 }
 

@@ -26,18 +26,18 @@
 
 #include <airdcpp/Client.h>
 #include <airdcpp/Message.h>
-#include <airdcpp/MessageManagerListener.h>
 
 #include <api/HierarchicalApiModule.h>
+#include <api/OnlineUserUtils.h>
+
 #include <api/common/ChatController.h>
 #include <api/common/ListViewController.h>
-#include <api/common/Property.h>
 
 
 namespace webserver {
 	class HubInfo;
 
-	class HubInfo : public SubApiModule<ClientToken, HubInfo, ClientToken>, private ClientListener, private MessageManagerListener {
+	class HubInfo : public SubApiModule<ClientToken, HubInfo, ClientToken>, private ClientListener {
 	public:
 		static const StringList subscriptionList;
 
@@ -53,31 +53,6 @@ namespace webserver {
 		static json serializeConnectState(const ClientPtr& aClient) noexcept;
 		static json serializeIdentity(const ClientPtr& aClient) noexcept;
 		static json serializeCounts(const ClientPtr& aClient) noexcept;
-
-		enum {
-			PROP_TOKEN = -1,
-			PROP_NICK,
-			PROP_SHARED,
-			PROP_DESCRIPTION,
-			PROP_TAG,
-			PROP_UPLOAD_SPEED,
-			PROP_DOWNLOAD_SPEED,
-			PROP_IP4,
-			PROP_IP6,
-			PROP_EMAIL,
-			//PROP_ACTIVE4,
-			//PROP_ACTIVE6,
-			PROP_FILES,
-			PROP_HUB_URL,
-			PROP_HUB_NAME,
-			PROP_FLAGS,
-			PROP_CID,
-			PROP_LAST
-		};
-
-		static const PropertyList properties;
-
-		static PropertyItemHandler<OnlineUserPtr> onlineUserPropertyHandler;
 
 		void init() noexcept;
 	private:
@@ -100,9 +75,6 @@ namespace webserver {
 		void on(UsersUpdated, const Client*, const OnlineUserList&) noexcept;
 		void on(UserRemoved, const Client*, const OnlineUserPtr&) noexcept;
 
-		void on(MessageManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept;
-		void on(MessageManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept;
-
 		void on(Disconnecting, const Client*) noexcept;
 		void on(Redirected, const string&, const ClientPtr& aNewClient) noexcept;
 
@@ -122,7 +94,6 @@ namespace webserver {
 		OnlineUserList getUsers() noexcept;
 		void onUserUpdated(const OnlineUserPtr& ou) noexcept;
 		void onUserUpdated(const OnlineUserPtr& ou, const PropertyIdSet& aUpdatedProperties) noexcept;
-		void onFlagsUpdated(const UserPtr& aUser) noexcept;
 
 		json previousCounts;
 
@@ -134,7 +105,7 @@ namespace webserver {
 		ChatController<ClientPtr> chatHandler;
 		ClientPtr client;
 
-		typedef ListViewController<OnlineUserPtr, PROP_LAST> UserView;
+		typedef ListViewController<OnlineUserPtr, OnlineUserUtils::PROP_LAST> UserView;
 		UserView view;
 
 		TimerPtr timer;

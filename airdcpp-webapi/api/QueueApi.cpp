@@ -31,7 +31,7 @@
 
 namespace webserver {
 	QueueApi::QueueApi(Session* aSession) : SubscribableApiModule(aSession, Access::QUEUE_VIEW),
-			bundleView("bundle_view", this, QueueBundleUtils::propertyHandler, QueueBundleUtils::getBundleList), fileView("queue_file_view", this, QueueFileUtils::propertyHandler, QueueFileUtils::getFileList) {
+			bundleView("bundle_view", this, QueueBundleUtils::propertyHandler, getBundleList), fileView("queue_file_view", this, QueueFileUtils::propertyHandler, getFileList) {
 
 		QueueManager::getInstance()->addListener(this);
 		DownloadManager::getInstance()->addListener(this);
@@ -81,6 +81,24 @@ namespace webserver {
 		DownloadManager::getInstance()->removeListener(this);
 	}
 
+	BundleList QueueApi::getBundleList() noexcept {
+		BundleList bundles;
+		auto qm = QueueManager::getInstance();
+
+		RLock l(qm->getCS());
+		boost::range::copy(qm->getBundles() | map_values, back_inserter(bundles));
+		return bundles;
+	}
+
+	QueueItemList QueueApi::getFileList() noexcept {
+		QueueItemList items;
+		auto qm = QueueManager::getInstance();
+
+		RLock l(qm->getCS());
+		boost::range::copy(qm->getFileQueue() | map_values, back_inserter(items));
+		return items;
+	}
+
 	api_return QueueApi::handleRemoveSource(ApiRequest& aRequest) {
 		auto user = Deserializer::deserializeUser(aRequest.getRequestBody());
 
@@ -114,7 +132,7 @@ namespace webserver {
 		int start = aRequest.getRangeParam(0);
 		int count = aRequest.getRangeParam(1);
 
-		auto j = Serializer::serializeItemList(start, count, QueueBundleUtils::propertyHandler, QueueBundleUtils::getBundleList());
+		auto j = Serializer::serializeItemList(start, count, QueueBundleUtils::propertyHandler, getBundleList());
 
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
