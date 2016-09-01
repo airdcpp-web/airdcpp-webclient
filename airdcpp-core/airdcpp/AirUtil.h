@@ -134,8 +134,9 @@ public:
 
 	static void removeDirectoryIfEmpty(const string& tgt, int maxAttempts, bool silent);
 
-	static bool isAdcHub(const string& hubUrl) noexcept;
-	static bool isHubLink(const string& hubUrl) noexcept;
+	static bool isAdcHub(const string& aHubUrl) noexcept;
+	static bool isSecure(const string& aHubUrl) noexcept;
+	static bool isHubLink(const string& aHubUrl) noexcept;
 
 	static string regexEscape(const string& aStr, bool isWildcard) noexcept;
 

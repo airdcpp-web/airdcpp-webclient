@@ -168,7 +168,7 @@ void UserConnection::connect(const Socket::AddressInfo& aServer, const string& a
 	socket->connect(aServer, aPort, localPort, natRole, secure, /*SETTING(ALLOW_UNTRUSTED_CLIENTS)*/ true, true);
 }
 
-int64_t UserConnection::getChunkSize() const {
+int64_t UserConnection::getChunkSize() const noexcept {
 	int64_t min_seg_size = (SETTING(MIN_SEGMENT_SIZE)*1024);
 	if(chunkSize < min_seg_size) {
 		return min_seg_size;
@@ -181,7 +181,7 @@ void UserConnection::setThreadPriority(Thread::Priority aPriority) {
 	socket->setThreadPriority(aPriority);
 }
 
-void UserConnection::setUser(const UserPtr& aUser) {
+void UserConnection::setUser(const UserPtr& aUser) noexcept {
 	user = aUser;
 	if (aUser && socket) {
 		socket->setUseLimiter(true);
@@ -295,7 +295,7 @@ void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 
 void UserConnection::sup(const StringList& features) {
 	AdcCommand c(AdcCommand::CMD_SUP);
-	for(auto& f: features)
+	for(const auto& f: features)
 		c.addParam(f);
 	send(c);
 }
@@ -310,7 +310,7 @@ void UserConnection::sendError(const std::string& msg /*FILE_NOT_AVAILABLE*/, Ad
 
 void UserConnection::supports(const StringList& feat) {
 	string x;
-	for(auto f: feat)
+	for(const auto& f: feat)
 		x += f + ' ';
 
 	send("$Supports " + x + '|');
@@ -363,7 +363,7 @@ void UserConnection::on(Failed, const string& aLine) noexcept {
 static const int64_t SEGMENT_TIME = 120*1000;
 static const int64_t MIN_CHUNK_SIZE = 64*1024;
 
-void UserConnection::updateChunkSize(int64_t leafSize, int64_t lastChunk, uint64_t ticks) {
+void UserConnection::updateChunkSize(int64_t leafSize, int64_t lastChunk, uint64_t ticks) noexcept {
 	
 	if(chunkSize == 0) {
 		chunkSize = std::max((int64_t)64*1024, std::min(lastChunk, (int64_t)1024*1024));
@@ -404,7 +404,7 @@ void UserConnection::send(const string& aString) {
 	socket->write(aString);
 }
 
-UserConnection::UserConnection(bool secure_) noexcept : encoding(SETTING(NMDC_ENCODING)), state(STATE_UNCONNECTED),
-	lastActivity(0), speed(0), chunkSize(0), secure(secure_), socket(0), slotType(NOSLOT), lastBundle(Util::emptyString), download(nullptr) {
+UserConnection::UserConnection(bool secure_) noexcept : encoding(SETTING(NMDC_ENCODING)),
+	secure(secure_), download(nullptr) {
 }
 } // namespace dcpp

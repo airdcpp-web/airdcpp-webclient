@@ -36,8 +36,7 @@ public:
 	typedef vector<HubEntry> List;
 	
 	HubEntry(const string& aName, const string& aServer, const string& aDescription, const string& aUsers) noexcept : 
-	name(aName), server(aServer), description(aDescription), country(Util::emptyString), 
-	rating(Util::emptyString), reliability(0.0), shared(0), minShare(0), users(Util::toInt(aUsers)), minSlots(0), maxHubs(0), maxUsers(0) { }
+		name(aName), server(aServer), description(aDescription), users(Util::toInt(aUsers)) { }
 
 	HubEntry(const string& aName, const string& aServer, const string& aDescription, const string& aUsers, const string& aCountry,
 		const string& aShared, const string& aMinShare, const string& aMinSlots, const string& aMaxHubs, const string& aMaxUsers,
@@ -59,13 +58,13 @@ public:
 	GETSET(string, description, Description);
 	GETSET(string, country, Country);
 	GETSET(string, rating, Rating);
-	GETSET(float, reliability, Reliability);
-	GETSET(int64_t, shared, Shared);
-	GETSET(int64_t, minShare, MinShare);
-	GETSET(int, users, Users);
-	GETSET(int, minSlots, MinSlots);
-	GETSET(int, maxHubs, MaxHubs);
-	GETSET(int, maxUsers, MaxUsers);
+	IGETSET(float, reliability, Reliability, 0.0);
+	IGETSET(int64_t, shared, Shared, 0);
+	IGETSET(int64_t, minShare, MinShare, 0);
+	IGETSET(int, users, Users, 0);
+	IGETSET(int, minSlots, MinSlots, 0);
+	IGETSET(int, maxHubs, MaxHubs, 0);
+	IGETSET(int, maxUsers, MaxUsers, 0);
 };
 
 class ShareProfile;
@@ -73,7 +72,6 @@ class FavoriteHubEntry : public HubSettings, public intrusive_ptr_base<FavoriteH
 public:
 	typedef FavoriteHubEntry* Ptr;
 	typedef vector<Ptr> List;
-	typedef List::const_iterator Iter;
 
 	enum ConnectState {
 		STATE_DISCONNECTED,
@@ -102,7 +100,7 @@ public:
 	IGETSET(bool, autoConnect, AutoConnect, true);
 	IGETSET(int, chatusersplit, ChatUserSplit, 0);
 	IGETSET(bool, userliststate, UserListState, true);
-	IGETSET(bool, favnoPM, FavNoPM, false);
+	IGETSET(bool, ignorePM, IgnorePM, false);
 	GETSET(string, group, Group);
 	GETSET(ProfileToken, token, Token);
 

@@ -756,6 +756,10 @@ bool AirUtil::isAdcHub(const string& aHubUrl) noexcept {
 	return false;
 }
 
+bool AirUtil::isSecure(const string& aHubUrl) noexcept {
+	return Util::strnicmp("adcs://", aHubUrl.c_str(), 7) == 0 || Util::strnicmp("nmdcs://", aHubUrl.c_str(), 8) == 0;
+}
+
 bool AirUtil::isHubLink(const string& aHubUrl) noexcept {
 	return isAdcHub(aHubUrl) || Util::strnicmp("dchub://", aHubUrl.c_str(), 8) == 0;
 }

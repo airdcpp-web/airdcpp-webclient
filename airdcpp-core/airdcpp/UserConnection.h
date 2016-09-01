@@ -141,8 +141,8 @@ public:
 	void snd(const string& aType, const string& aName, const int64_t aStart, const int64_t aBytes) {  send(AdcCommand(AdcCommand::CMD_SND).addParam(aType).addParam(aName).addParam(Util::toString(aStart)).addParam(Util::toString(aBytes))); }
 	void send(const AdcCommand& c) { send(c.toString(0, isSet(FLAG_NMDC))); }
 
-	void setDataMode(int64_t aBytes = -1) { dcassert(socket); socket->setDataMode(aBytes); }
-	void setLineMode(size_t rollback) { dcassert(socket); socket->setLineMode(rollback); }
+	void setDataMode(int64_t aBytes = -1) noexcept { dcassert(socket); socket->setDataMode(aBytes); }
+	void setLineMode(size_t rollback) noexcept { dcassert(socket); socket->setLineMode(rollback); }
 
 	void connect(const Socket::AddressInfo& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const UserPtr& aUser = nullptr);
 	void accept(const Socket& aServer);
@@ -156,7 +156,7 @@ public:
 	void disconnect(bool graceless = false) { if(socket) socket->disconnect(graceless); }
 	void transmitFile(InputStream* f) { socket->transmitFile(f); }
 
-	const string& getDirectionString() const {
+	const string& getDirectionString() const noexcept {
 		dcassert(isSet(FLAG_UPLOAD) ^ isSet(FLAG_DOWNLOAD));
 		return isSet(FLAG_UPLOAD) ? UPLOAD : DOWNLOAD;
 	}
@@ -165,17 +165,17 @@ public:
 	UserPtr& getUser() { return user; }
 	HintedUser getHintedUser() const { return HintedUser(user, hubUrl); }
 
-	bool isSecure() const { return socket && socket->isSecure(); }
-	bool isTrusted() const { return socket && socket->isTrusted(); }
-	std::string getEncryptionInfo() const { return socket ? socket->getEncryptionInfo() : Util::emptyString; }
-	ByteVector getKeyprint() const { return socket ? socket->getKeyprint() : ByteVector(); }
-	bool verifyKeyprint(const string& expKeyp, bool allowUntrusted) noexcept{ return socket ? socket->verifyKeyprint(expKeyp, allowUntrusted) : true; }
+	bool isSecure() const noexcept { return socket && socket->isSecure(); }
+	bool isTrusted() const noexcept { return socket && socket->isTrusted(); }
+	std::string getEncryptionInfo() const noexcept { return socket ? socket->getEncryptionInfo() : Util::emptyString; }
+	ByteVector getKeyprint() const noexcept { return socket ? socket->getKeyprint() : ByteVector(); }
+	bool verifyKeyprint(const string& expKeyp, bool allowUntrusted) noexcept { return socket ? socket->verifyKeyprint(expKeyp, allowUntrusted) : true; }
 
-	const string& getRemoteIp() const { if(socket) return socket->getIp(); else return Util::emptyString; }
-	Download* getDownload() { dcassert(isSet(FLAG_DOWNLOAD)); return download; }
-	void setDownload(Download* d) { dcassert(isSet(FLAG_DOWNLOAD)); download = d; }
-	Upload* getUpload() { dcassert(isSet(FLAG_UPLOAD)); return upload; }
-	void setUpload(Upload* u) { dcassert(isSet(FLAG_UPLOAD)); upload = u; }
+	const string& getRemoteIp() const noexcept { if(socket) return socket->getIp(); else return Util::emptyString; }
+	Download* getDownload() noexcept { dcassert(isSet(FLAG_DOWNLOAD)); return download; }
+	void setDownload(Download* d) noexcept { dcassert(isSet(FLAG_DOWNLOAD)); download = d; }
+	Upload* getUpload() noexcept { dcassert(isSet(FLAG_UPLOAD)); return upload; }
+	void setUpload(Upload* u) noexcept { dcassert(isSet(FLAG_UPLOAD)); upload = u; }
 	
 	void handle(AdcCommand::SUP t, const AdcCommand& c) { fire(t, this, c); }
 	void handle(AdcCommand::INF t, const AdcCommand& c) { fire(t, this, c); }
@@ -190,27 +190,27 @@ public:
 	// Ignore any other ADC commands for now
 	template<typename T> void handle(T , const AdcCommand& ) { }
 
-	int64_t getChunkSize() const;
+	int64_t getChunkSize() const noexcept;
 
-	void updateChunkSize(int64_t leafSize, int64_t lastChunk, uint64_t ticks);
-	bool supportsTrees() const { return isSet(FLAG_SUPPORTS_TTHL); }
+	void updateChunkSize(int64_t leafSize, int64_t lastChunk, uint64_t ticks) noexcept;
+	bool supportsTrees() const noexcept { return isSet(FLAG_SUPPORTS_TTHL); }
 	
 	GETSET(string, hubUrl, HubUrl);
 	GETSET(string, token, Token);
 	GETSET(string, lastBundle, LastBundle);
-	GETSET(int64_t, speed, Speed);
-	GETSET(uint64_t, lastActivity, LastActivity);
+	IGETSET(int64_t, speed, Speed, 0);
+	IGETSET(uint64_t, lastActivity, LastActivity, 0);
 	GETSET(string, encoding, Encoding);
-	GETSET(States, state, State);
-	GETSET(uint8_t, slotType, SlotType);
+	IGETSET(States, state, State, STATE_UNCONNECTED);
+	IGETSET(uint8_t, slotType, SlotType, NOSLOT);
 	
-	BufferedSocket const* getSocket() { return socket; } 
+	const BufferedSocket* getSocket() const noexcept { return socket; }
 
-	void setThreadPriority(Thread::Priority aPriority);
+	void setThreadPriority(Thread::Priority aPriority) ;
 private:
-	int64_t chunkSize;
-	BufferedSocket* socket;
-	bool secure;
+	int64_t chunkSize = 0;
+	BufferedSocket* socket = nullptr;
+	const bool secure;
 	UserPtr user;
 
 	static const string UPLOAD, DOWNLOAD;
@@ -229,7 +229,7 @@ private:
 
 	friend struct DeleteFunction;
 
-	void setUser(const UserPtr& aUser);
+	void setUser(const UserPtr& aUser) noexcept;
 	
 	void send(const string& aString);
 

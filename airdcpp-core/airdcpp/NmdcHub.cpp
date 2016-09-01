@@ -629,15 +629,15 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		if(i == string::npos) {
 			i = param.find(' ');
 			if(i == string::npos) {
-				getHubIdentity().setNick(unescape(param));
-				getHubIdentity().setDescription(Util::emptyString);			
+				hubIdentity.setNick(unescape(param));
+				hubIdentity.setDescription(Util::emptyString);
 			} else {
-				getHubIdentity().setNick(unescape(param.substr(0, i)));
-				getHubIdentity().setDescription(unescape(param.substr(i+1)));
+				hubIdentity.setNick(unescape(param.substr(0, i)));
+				hubIdentity.setDescription(unescape(param.substr(i+1)));
 			}
 		} else {
-			getHubIdentity().setNick(unescape(param.substr(0, i)));
-			getHubIdentity().setDescription(unescape(param.substr(i+3)));
+			hubIdentity.setNick(unescape(param.substr(0, i)));
+			hubIdentity.setDescription(unescape(param.substr(i+3)));
 		}
 		fire(ClientListener::HubUpdated(), this);
 
@@ -1186,7 +1186,7 @@ void NmdcHub::getUserList(OnlineUserList& list, bool aListHidden) const noexcept
 	}
 }
 
-size_t NmdcHub::getUserCount() const { 
+size_t NmdcHub::getUserCount() const noexcept { 
 	Lock l(cs); 
 	size_t userCount = 0;
 	for(auto& i: users) {

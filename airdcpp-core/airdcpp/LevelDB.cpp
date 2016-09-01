@@ -36,8 +36,8 @@
 
 namespace dcpp {
 
-LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, bool useCompression, uint64_t aBlockSize /*4096*/) : DbHandler(aPath, aFriendlyName, cacheSize), 
-	totalWrites(0), totalReads(0), ioErrors(0), db(nullptr), lastSize(0) {
+LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cacheSize, int maxOpenFiles, bool useCompression, uint64_t aBlockSize /*4096*/) : 
+	DbHandler(aPath, aFriendlyName, cacheSize) {
 
 	readoptions.verify_checksums = false;
 	iteroptions.verify_checksums = false;
