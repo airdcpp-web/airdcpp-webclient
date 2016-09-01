@@ -17,20 +17,37 @@
 */
 
 #include <api/ShareUtils.h>
-#include <api/ShareRootApi.h>
 
 #include <api/common/Format.h>
+#include <api/common/Serializer.h>
 
 #include <airdcpp/ShareManager.h>
 
+
 namespace webserver {
+	const PropertyList ShareUtils::properties = {
+		{ PROP_PATH, "path", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_VIRTUAL_NAME, "virtual_name", TYPE_TEXT, SERIALIZE_TEXT, SORT_CUSTOM },
+		{ PROP_SIZE, "size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_PROFILES, "profiles", TYPE_LIST_NUMERIC, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_INCOMING, "incoming", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
+		{ PROP_LAST_REFRESH_TIME, "last_refresh_time", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_REFRESH_STATE, "refresh_state", TYPE_NUMERIC_OTHER, SERIALIZE_TEXT_NUMERIC, SORT_NUMERIC },
+		{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+	};
+
+	const PropertyItemHandler<ShareDirectoryInfoPtr> ShareUtils::propertyHandler = {
+		properties,
+		ShareUtils::getStringInfo, ShareUtils::getNumericInfo, ShareUtils::compareItems, ShareUtils::serializeItem, ShareUtils::filterItem
+	};
+
 	json ShareUtils::serializeItem(const ShareDirectoryInfoPtr& aItem, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case ShareRootApi::PROP_PROFILES:
+		case PROP_PROFILES:
 		{
 			return Serializer::serializeList(aItem->profiles, Serializer::serializeShareProfileSimple);
 		}
-		case ShareRootApi::PROP_TYPE: {
+		case PROP_TYPE: {
 			return Serializer::serializeFolderType(aItem->fileCount, aItem->folderCount);
 		}
 		}
@@ -51,7 +68,7 @@ namespace webserver {
 
 	bool ShareUtils::filterItem(const ShareDirectoryInfoPtr& aItem, int aPropertyName, const StringMatch&, double aNumericMatcher) noexcept {
 		switch (aPropertyName) {
-		case ShareRootApi::PROP_PROFILES:
+		case PROP_PROFILES:
 		{
 			return aItem->profiles.find(static_cast<int>(aNumericMatcher)) != aItem->profiles.end();
 		}
@@ -62,7 +79,7 @@ namespace webserver {
 
 	int ShareUtils::compareItems(const ShareDirectoryInfoPtr& a, const ShareDirectoryInfoPtr& b, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case ShareRootApi::PROP_TYPE: {
+		case PROP_TYPE: {
 			auto dirsA = a->folderCount;
 			auto dirsB = b->folderCount;
 			if (dirsA != dirsB) {
@@ -71,10 +88,10 @@ namespace webserver {
 
 			return compare(a->fileCount, b->fileCount);
 		}
-		case ShareRootApi::PROP_PROFILES: {
+		case PROP_PROFILES: {
 			return compare(a->profiles.size(), b->profiles.size());
 		}
-		case ShareRootApi::PROP_VIRTUAL_NAME: {
+		case PROP_VIRTUAL_NAME: {
 			if (a->virtualName != b->virtualName) {
 				return compare(a->virtualName, b->virtualName);
 			}
@@ -90,19 +107,19 @@ namespace webserver {
 
 	std::string ShareUtils::getStringInfo(const ShareDirectoryInfoPtr& aItem, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case ShareRootApi::PROP_VIRTUAL_NAME: return aItem->virtualName;
-		case ShareRootApi::PROP_PATH: return aItem->path;
-		case ShareRootApi::PROP_REFRESH_STATE: return formatRefreshState(aItem);
-		case ShareRootApi::PROP_TYPE: return Format::formatFolderContent(aItem->fileCount, aItem->folderCount);
+		case PROP_VIRTUAL_NAME: return aItem->virtualName;
+		case PROP_PATH: return aItem->path;
+		case PROP_REFRESH_STATE: return formatRefreshState(aItem);
+		case PROP_TYPE: return Format::formatFolderContent(aItem->fileCount, aItem->folderCount);
 		default: dcassert(0); return Util::emptyString;
 		}
 	}
 	double ShareUtils::getNumericInfo(const ShareDirectoryInfoPtr& aItem, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case ShareRootApi::PROP_SIZE: return (double)aItem->size;
-		case ShareRootApi::PROP_INCOMING: return (double)aItem->incoming;
-		case ShareRootApi::PROP_LAST_REFRESH_TIME: return (double)aItem->lastRefreshTime;
-		case ShareRootApi::PROP_REFRESH_STATE: return (double)aItem->refreshState;
+		case PROP_SIZE: return (double)aItem->size;
+		case PROP_INCOMING: return (double)aItem->incoming;
+		case PROP_LAST_REFRESH_TIME: return (double)aItem->lastRefreshTime;
+		case PROP_REFRESH_STATE: return (double)aItem->refreshState;
 		default: dcassert(0); return 0;
 		}
 	}

@@ -19,16 +19,14 @@
 #include <web-server/stdinc.h>
 
 #include <api/QueueBundleUtils.h>
-
-#include <api/QueueApi.h>
 #include <api/common/Format.h>
+#include <api/common/Serializer.h>
 
 #include <airdcpp/AirUtil.h>
 #include <airdcpp/Bundle.h>
 #include <airdcpp/QueueItem.h>
 #include <airdcpp/QueueManager.h>
 
-#include <boost/range/algorithm/copy.hpp>
 
 namespace webserver {
 	const PropertyList QueueBundleUtils::properties = {
@@ -50,15 +48,6 @@ namespace webserver {
 		properties,
 		QueueBundleUtils::getStringInfo, QueueBundleUtils::getNumericInfo, QueueBundleUtils::compareBundles, QueueBundleUtils::serializeBundleProperty
 	};
-
-	BundleList QueueBundleUtils::getBundleList() noexcept {
-		BundleList bundles;
-		auto qm = QueueManager::getInstance();
-
-		RLock l(qm->getCS());
-		boost::range::copy(qm->getBundles() | map_values, back_inserter(bundles));
-		return bundles;
-	}
 
 	std::string QueueBundleUtils::formatDisplayStatus(const BundlePtr& aBundle) noexcept {
 		switch (aBundle->getStatus()) {

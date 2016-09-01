@@ -19,12 +19,11 @@
 #include <api/HubInfo.h>
 #include <api/ApiModule.h>
 #include <api/common/Serializer.h>
-#include <api/OnlineUserUtils.h>
 
 #include <web-server/JsonUtil.h>
 
 #include <airdcpp/ClientManager.h>
-#include <airdcpp/MessageManager.h>
+
 
 namespace webserver {
 	const StringList HubInfo::subscriptionList = {
@@ -38,34 +37,10 @@ namespace webserver {
 		"hub_user_disconnected",
 	};
 
-	const PropertyList HubInfo::properties = {
-		{ PROP_NICK, "nick", TYPE_TEXT, SERIALIZE_TEXT, SORT_CUSTOM },
-		{ PROP_SHARED, "share_size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_DESCRIPTION, "description", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_TAG, "tag", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_UPLOAD_SPEED, "upload_speed", TYPE_SPEED, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_DOWNLOAD_SPEED, "download_speed", TYPE_SPEED, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_IP4, "ip4", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
-		{ PROP_IP6, "ip6", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
-		{ PROP_EMAIL, "email", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		//{ PROP_ACTIVE4, "active4", TYPE_NUMERIC_OTHER , SERIALIZE_BOOL, SORT_NUMERIC },
-		//{ PROP_ACTIVE6, "active6", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
-		{ PROP_FILES, "file_count", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_HUB_URL, "hub_url", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_HUB_NAME , "hub_name", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_FLAGS, "flags", TYPE_LIST_TEXT, SERIALIZE_CUSTOM, SORT_NONE },
-		{ PROP_CID, "cid", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-	};
-
-	PropertyItemHandler<OnlineUserPtr> HubInfo::onlineUserPropertyHandler = {
-		HubInfo::properties,
-		OnlineUserUtils::getStringInfo, OnlineUserUtils::getNumericInfo, OnlineUserUtils::compareUsers, OnlineUserUtils::serializeUser
-	};
-
 	HubInfo::HubInfo(ParentType* aParentModule, const ClientPtr& aClient) :
 		SubApiModule(aParentModule, aClient->getClientId(), subscriptionList), client(aClient),
 		chatHandler(this, aClient, "hub"), 
-		view("hub_user_view", this, onlineUserPropertyHandler, std::bind(&HubInfo::getUsers, this), 500), 
+		view("hub_user_view", this, OnlineUserUtils::propertyHandler, std::bind(&HubInfo::getUsers, this), 500), 
 		timer(getTimer([this] { onTimer(); }, 1000)) {
 
 		METHOD_HANDLER("reconnect", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, HubInfo::handleReconnect);
@@ -79,12 +54,10 @@ namespace webserver {
 	HubInfo::~HubInfo() {
 		timer->stop(true);
 
-		MessageManager::getInstance()->removeListener(this);
 		client->removeListener(this);
 	}
 
 	void HubInfo::init() noexcept {
-		MessageManager::getInstance()->addListener(this);
 		client->addListener(this);
 
 		timer->start(false);
@@ -253,14 +226,16 @@ namespace webserver {
 			view.onItemAdded(aUser);
 		}
 
-		maybeSend("hub_user_connected", [&] { return Serializer::serializeItem(aUser, onlineUserPropertyHandler); });
+		maybeSend("hub_user_connected", [&] { return Serializer::serializeItem(aUser, OnlineUserUtils::propertyHandler); });
 	}
 
 	void HubInfo::onUserUpdated(const OnlineUserPtr& ou) noexcept {
 		// Don't update all properties to avoid unneeded sorting
-		onUserUpdated(ou, { PROP_SHARED, PROP_DESCRIPTION, PROP_TAG,
-			PROP_UPLOAD_SPEED, PROP_DOWNLOAD_SPEED,
-			PROP_EMAIL, PROP_FILES, PROP_FLAGS
+		onUserUpdated(ou, { OnlineUserUtils::PROP_SHARED, OnlineUserUtils::PROP_DESCRIPTION, 
+			OnlineUserUtils::PROP_TAG, OnlineUserUtils::PROP_UPLOAD_SPEED, 
+			OnlineUserUtils::PROP_DOWNLOAD_SPEED, OnlineUserUtils::PROP_EMAIL, 
+			OnlineUserUtils::PROP_FILES, OnlineUserUtils::PROP_FLAGS,
+			OnlineUserUtils::PROP_UPLOAD_SLOTS
 		});
 	}
 
@@ -269,7 +244,7 @@ namespace webserver {
 			view.onItemUpdated(aUser, aUpdatedProperties);
 		}
 
-		maybeSend("hub_user_updated", [&] { return Serializer::serializeItem(aUser, onlineUserPropertyHandler); });
+		maybeSend("hub_user_updated", [&] { return Serializer::serializeItem(aUser, OnlineUserUtils::propertyHandler); });
 	}
 
 	void HubInfo::on(ClientListener::UserUpdated, const Client*, const OnlineUserPtr& aUser) noexcept {
@@ -287,21 +262,6 @@ namespace webserver {
 			view.onItemRemoved(aUser);
 		}
 
-		maybeSend("hub_user_disconnected", [&] { return Serializer::serializeItem(aUser, onlineUserPropertyHandler); });
-	}
-
-	void HubInfo::onFlagsUpdated(const UserPtr& aUser) noexcept {
-		auto ou = ClientManager::getInstance()->findOnlineUser(aUser->getCID(), client->getHubUrl(), false);
-		if (ou) {
-			onUserUpdated(ou, { PROP_FLAGS });
-		}
-	}
-
-	void HubInfo::on(MessageManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept {
-		onFlagsUpdated(aUser);
-	}
-
-	void HubInfo::on(MessageManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept {
-		onFlagsUpdated(aUser);
+		maybeSend("hub_user_disconnected", [&] { return Serializer::serializeItem(aUser, OnlineUserUtils::propertyHandler); });
 	}
 }

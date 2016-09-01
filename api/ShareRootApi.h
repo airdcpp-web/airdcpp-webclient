@@ -22,6 +22,7 @@
 #include <web-server/stdinc.h>
 
 #include <api/ApiModule.h>
+#include <api/ShareUtils.h>
 #include <api/common/ListViewController.h>
 
 #include <airdcpp/typedefs.h>
@@ -38,21 +39,6 @@ namespace webserver {
 		int getVersion() const noexcept {
 			return 0;
 		}
-
-		static const PropertyList properties;
-
-		enum Properties {
-			PROP_TOKEN = -1,
-			PROP_PATH,
-			PROP_VIRTUAL_NAME,
-			PROP_SIZE,
-			PROP_PROFILES,
-			PROP_INCOMING,
-			PROP_LAST_REFRESH_TIME,
-			PROP_REFRESH_STATE,
-			PROP_TYPE,
-			PROP_LAST
-		};
 	private:
 		api_return handleGetRoots(ApiRequest& aRequest);
 		api_return handleAddRoot(ApiRequest& aRequest);
@@ -65,9 +51,7 @@ namespace webserver {
 		void on(ShareManagerListener::RootUpdated, const string& aPath) noexcept;
 		void onRootUpdated(const ShareDirectoryInfoPtr& aInfo, PropertyIdSet&& aUpdatedProperties) noexcept;
 
-		static const PropertyItemHandler<ShareDirectoryInfoPtr> itemHandler;
-
-		typedef ListViewController<ShareDirectoryInfoPtr, PROP_LAST> RootView;
+		typedef ListViewController<ShareDirectoryInfoPtr, ShareUtils::PROP_LAST> RootView;
 		RootView rootView;
 
 		ShareDirectoryInfoList getRoots() const noexcept;

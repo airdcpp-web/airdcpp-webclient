@@ -19,16 +19,14 @@
 #include <web-server/stdinc.h>
 
 #include <api/QueueFileUtils.h>
-
-#include <api/QueueApi.h>
 #include <api/common/Format.h>
+#include <api/common/Serializer.h>
 
 #include <airdcpp/AirUtil.h>
 #include <airdcpp/Bundle.h>
 #include <airdcpp/QueueItem.h>
 #include <airdcpp/QueueManager.h>
 
-#include <boost/range/algorithm/copy.hpp>
 
 namespace webserver {
 	const PropertyList QueueFileUtils::properties = {
@@ -51,15 +49,6 @@ namespace webserver {
 		properties,
 		QueueFileUtils::getStringInfo, QueueFileUtils::getNumericInfo, QueueFileUtils::compareFiles, QueueFileUtils::serializeFileProperty
 	};
-
-	QueueItemList QueueFileUtils::getFileList() noexcept {
-		QueueItemList items;
-		auto qm = QueueManager::getInstance();
-
-		RLock l(qm->getCS());
-		boost::range::copy(qm->getFileQueue() | map_values, back_inserter(items));
-		return items;
-	}
 
 	std::string QueueFileUtils::formatDisplayStatus(const QueueItemPtr& aItem) noexcept {
 		if (aItem->isSet(QueueItem::FLAG_FINISHED)) {

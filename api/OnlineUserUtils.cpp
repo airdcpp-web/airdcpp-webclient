@@ -23,11 +23,34 @@
 #include <api/common/Format.h>
 
 namespace webserver {
+	const PropertyList OnlineUserUtils::properties = {
+		{ PROP_NICK, "nick", TYPE_TEXT, SERIALIZE_TEXT, SORT_CUSTOM },
+		{ PROP_SHARED, "share_size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_DESCRIPTION, "description", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_TAG, "tag", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_UPLOAD_SPEED, "upload_speed", TYPE_SPEED, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_DOWNLOAD_SPEED, "download_speed", TYPE_SPEED, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_IP4, "ip4", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
+		{ PROP_IP6, "ip6", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
+		{ PROP_EMAIL, "email", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_FILES, "file_count", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_HUB_URL, "hub_url", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_HUB_NAME , "hub_name", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_FLAGS, "flags", TYPE_LIST_TEXT, SERIALIZE_CUSTOM, SORT_NONE },
+		{ PROP_CID, "cid", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_UPLOAD_SLOTS, "upload_slots", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
+	};
+
+	const PropertyItemHandler<OnlineUserPtr> OnlineUserUtils::propertyHandler = {
+		OnlineUserUtils::properties,
+		OnlineUserUtils::getStringInfo, OnlineUserUtils::getNumericInfo, OnlineUserUtils::compareUsers, OnlineUserUtils::serializeUser
+	};
+
 	json OnlineUserUtils::serializeUser(const OnlineUserPtr& aUser, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-			case HubInfo::PROP_IP4: return Serializer::serializeIp(aUser->getIdentity().getIp4());
-			case HubInfo::PROP_IP6: return Serializer::serializeIp(aUser->getIdentity().getIp6());
-			case HubInfo::PROP_FLAGS: return Serializer::getOnlineUserFlags(aUser);
+			case PROP_IP4: return Serializer::serializeIp(aUser->getIdentity().getIp4());
+			case PROP_IP6: return Serializer::serializeIp(aUser->getIdentity().getIp6());
+			case PROP_FLAGS: return Serializer::getOnlineUserFlags(aUser);
 		}
 
 		return nullptr;
@@ -35,7 +58,7 @@ namespace webserver {
 
 	int OnlineUserUtils::compareUsers(const OnlineUserPtr& a, const OnlineUserPtr& b, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case HubInfo::PROP_NICK: {
+		case PROP_NICK: {
 			bool a_isOp = a->getIdentity().isOp(),
 				b_isOp = b->getIdentity().isOp();
 			if (a_isOp && !b_isOp)
@@ -62,26 +85,25 @@ namespace webserver {
 	}
 	std::string OnlineUserUtils::getStringInfo(const OnlineUserPtr& aUser, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case HubInfo::PROP_NICK: return aUser->getIdentity().getNick();
-		case HubInfo::PROP_DESCRIPTION: return aUser->getIdentity().getDescription();
-		case HubInfo::PROP_EMAIL: return aUser->getIdentity().getEmail();
-		case HubInfo::PROP_TAG: return aUser->getIdentity().getTag();
-		case HubInfo::PROP_HUB_URL: return aUser->getHubUrl();
-		case HubInfo::PROP_HUB_NAME: return aUser->getClient()->getHubName();
-		case HubInfo::PROP_IP4: return aUser->getIdentity().getIp4();
-		case HubInfo::PROP_IP6: return aUser->getIdentity().getIp6();
-		case HubInfo::PROP_CID: return aUser->getUser()->getCID().toBase32();
+		case PROP_NICK: return aUser->getIdentity().getNick();
+		case PROP_DESCRIPTION: return aUser->getIdentity().getDescription();
+		case PROP_EMAIL: return aUser->getIdentity().getEmail();
+		case PROP_TAG: return aUser->getIdentity().getTag();
+		case PROP_HUB_URL: return aUser->getHubUrl();
+		case PROP_HUB_NAME: return aUser->getClient()->getHubName();
+		case PROP_IP4: return Format::formatIp(aUser->getIdentity().getIp4());
+		case PROP_IP6: return Format::formatIp(aUser->getIdentity().getIp6());
+		case PROP_CID: return aUser->getUser()->getCID().toBase32();
 		default: dcassert(0); return 0;
 		}
 	}
 	double OnlineUserUtils::getNumericInfo(const OnlineUserPtr& aUser, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case HubInfo::PROP_SHARED: return Util::toDouble(aUser->getIdentity().getShareSize());
-		case HubInfo::PROP_UPLOAD_SPEED: return (double)aUser->getIdentity().getAdcConnectionSpeed(false);
-		case HubInfo::PROP_DOWNLOAD_SPEED: return (double)aUser->getIdentity().getAdcConnectionSpeed(true);
-		//case HubInfo::PROP_ACTIVE4: return aUser->getIdentity().;
-		//case HubInfo::PROP_ACTIVE6: return (double)aResult->sr->getDate();
-		case HubInfo::PROP_FILES: return Util::toDouble(aUser->getIdentity().getSharedFiles());
+		case PROP_SHARED: return Util::toDouble(aUser->getIdentity().getShareSize());
+		case PROP_UPLOAD_SPEED: return (double)aUser->getIdentity().getAdcConnectionSpeed(false);
+		case PROP_DOWNLOAD_SPEED: return (double)aUser->getIdentity().getAdcConnectionSpeed(true);
+		case PROP_FILES: return Util::toDouble(aUser->getIdentity().getSharedFiles());
+		case PROP_UPLOAD_SLOTS: return aUser->getIdentity().getSlots();
 		default: dcassert(0); return 0;
 		}
 	}

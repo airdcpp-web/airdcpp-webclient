@@ -21,61 +21,17 @@
 
 #include <web-server/stdinc.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/GetSet.h>
-
-#include <airdcpp/DirectoryListing.h>
-#include <airdcpp/QueueItemBase.h>
-#include <airdcpp/TargetUtil.h>
+#include <api/FilelistUtils.h>
+#include <api/FilelistItemInfo.h>
 
 #include <api/HierarchicalApiModule.h>
 #include <api/common/ListViewController.h>
 
+#include <airdcpp/typedefs.h>
+#include <airdcpp/DirectoryListingListener.h>
+
+
 namespace webserver {
-	//typedef uint32_t ResultToken;
-	class FilelistItemInfo : public FastAlloc<FilelistItemInfo> {
-	public:
-		typedef shared_ptr<FilelistItemInfo> Ptr;
-		typedef vector<Ptr> List;
-
-		enum ItemType {
-			FILE,
-			DIRECTORY
-		};
-
-		union {
-			const DirectoryListing::File::Ptr file;
-			const DirectoryListing::Directory::Ptr dir;
-		};
-
-		FilelistItemInfo(const DirectoryListing::File::Ptr& f);
-		FilelistItemInfo(const DirectoryListing::Directory::Ptr& d);
-		~FilelistItemInfo();
-
-		DupeType getDupe() const noexcept { return type == DIRECTORY ? dir->getDupe() : file->getDupe(); }
-		const string& getName() const noexcept { return type == DIRECTORY ? dir->getName() : file->getName(); }
-		string getPath() const noexcept { return type == DIRECTORY ? dir->getPath() : file->getPath(); }
-		bool isAdl() const noexcept { return type == DIRECTORY ? dir->getAdls() : file->getAdls(); }
-		//bool isComplete() const noexcept { return type == DIRECTORY ? dir->isComplete() : true; }
-
-		time_t getDate() const noexcept { return type == DIRECTORY ? dir->getRemoteDate() : file->getRemoteDate(); }
-		time_t getSize() const noexcept { return type == DIRECTORY ? dir->getTotalSize(false) : file->getSize(); }
-
-		DirectoryListingToken getToken() const noexcept;
-
-		ItemType getType() const noexcept {
-			return type;
-		}
-
-		bool isDirectory() const noexcept {
-			return type == DIRECTORY;
-		}
-	private:
-		const ItemType type;
-	};
-
-	typedef FilelistItemInfo::Ptr FilelistItemInfoPtr;
-
 
 	class FilelistInfo : public SubApiModule<CID, FilelistInfo, std::string>, private DirectoryListingListener {
 	public:
@@ -83,24 +39,6 @@ namespace webserver {
 		typedef shared_ptr<FilelistInfo> Ptr;
 
 		static const StringList subscriptionList;
-
-		//typedef vector<Ptr> List;
-		//typedef unordered_map<TTHValue, Ptr> Map;
-
-		static const PropertyList properties;
-
-		enum Properties {
-			PROP_TOKEN = -1,
-			PROP_NAME,
-			PROP_TYPE,
-			PROP_SIZE,
-			PROP_DATE,
-			PROP_PATH,
-			PROP_TTH,
-			PROP_DUPE,
-			PROP_COMPLETE,
-			PROP_LAST
-		};
 
 		FilelistInfo(ParentType* aParentModule, const DirectoryListingPtr& aFilelist);
 		~FilelistInfo();
@@ -116,7 +54,7 @@ namespace webserver {
 		api_return handleChangeDirectory(ApiRequest& aRequest);
 		api_return handleSetRead(ApiRequest& aRequest);
 
-		void on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aDir, bool reloadList, bool changeDir) noexcept;
+		void on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aDir, bool aBackgroundTask) noexcept;
 		void on(DirectoryListingListener::LoadingFailed, const string& aReason) noexcept;
 		void on(DirectoryListingListener::LoadingStarted, bool changeDir) noexcept;
 		void on(DirectoryListingListener::ChangeDirectory, const string& aDir, bool isSearchChange) noexcept;
@@ -138,10 +76,7 @@ namespace webserver {
 
 		FilelistItemInfo::List getCurrentViewItems();
 
-		typedef PropertyItemHandler<FilelistItemInfoPtr> Handler;
-		static const Handler itemHandler;
-
-		typedef ListViewController<FilelistItemInfoPtr, PROP_LAST> DirectoryView;
+		typedef ListViewController<FilelistItemInfoPtr, FilelistUtils::PROP_LAST> DirectoryView;
 		DirectoryView directoryView;
 
 		DirectoryListingPtr dl;
@@ -151,7 +86,6 @@ namespace webserver {
 		FilelistItemInfo::List currentViewItems;
 
 		void updateItems(const string& aPath) noexcept;
-		DirectoryListing::Directory::Ptr currentDirectory = nullptr;
 
 		SharedMutex cs;
 	};

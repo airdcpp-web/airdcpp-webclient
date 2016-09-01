@@ -21,13 +21,34 @@
 
 #include <web-server/stdinc.h>
 
-//#include <airdcpp/typedefs.h>
-
 #include <api/TransferInfo.h>
+#include <api/common/Property.h>
 
 namespace webserver {
 	class TransferUtils {
 	public:
+		static const PropertyList properties;
+		static const PropertyItemHandler<TransferInfoPtr> propertyHandler;
+
+		enum Properties {
+			PROP_TOKEN = -1,
+			PROP_NAME,
+			PROP_TARGET,
+			PROP_TYPE,
+			PROP_DOWNLOAD,
+			PROP_SIZE,
+			PROP_STATUS,
+			PROP_BYTES_TRANSFERRED,
+			PROP_USER,
+			PROP_TIME_STARTED,
+			PROP_SPEED,
+			PROP_SECONDS_LEFT,
+			PROP_IP,
+			PROP_FLAGS,
+			PROP_ENCRYPTION,
+			PROP_LAST
+		};
+
 		static json serializeProperty(const TransferInfoPtr& aItem, int aPropertyName) noexcept;
 
 		static int compareItems(const TransferInfoPtr& a, const TransferInfoPtr& b, int aPropertyName) noexcept;

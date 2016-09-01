@@ -27,20 +27,8 @@
 #include <web-server/WebUserManager.h>
 
 namespace webserver {
-	const PropertyList WebUserApi::properties = {
-		{ PROP_NAME, "username", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_PERMISSIONS, "permissions", TYPE_LIST_NUMERIC, SERIALIZE_CUSTOM, SORT_CUSTOM },
-		{ PROP_ACTIVE_SESSIONS, "active_sessions", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_LAST_LOGIN, "last_login", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-	};
-
-	const PropertyItemHandler<WebUserPtr> WebUserApi::itemHandler = {
-		properties,
-		WebUserUtils::getStringInfo, WebUserUtils::getNumericInfo, WebUserUtils::compareItems, WebUserUtils::serializeItem, WebUserUtils::filterItem
-	};
-
 	WebUserApi::WebUserApi(Session* aSession) : SubscribableApiModule(aSession, Access::ADMIN), um(aSession->getServer()->getUserManager()),
-		view("web_user_view", this, itemHandler, std::bind(&WebUserApi::getUsers, this)) {
+		view("web_user_view", this, WebUserUtils::propertyHandler, std::bind(&WebUserApi::getUsers, this)) {
 
 		um.addListener(this);
 
@@ -63,7 +51,7 @@ namespace webserver {
 	}
 
 	api_return WebUserApi::handleGetUsers(ApiRequest& aRequest) {
-		auto j = Serializer::serializeItemList(itemHandler, getUsers());
+		auto j = Serializer::serializeItemList(WebUserUtils::propertyHandler, getUsers());
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
 	}
@@ -118,19 +106,25 @@ namespace webserver {
 	void WebUserApi::on(WebUserManagerListener::UserAdded, const WebUserPtr& aUser) noexcept {
 		view.onItemAdded(aUser);
 
-		maybeSend("web_user_added", [&] { return Serializer::serializeItem(aUser, itemHandler); });
+		maybeSend("web_user_added", [&] { 
+			return Serializer::serializeItem(aUser, WebUserUtils::propertyHandler); 
+		});
 	}
 
 	void WebUserApi::on(WebUserManagerListener::UserUpdated, const WebUserPtr& aUser) noexcept {
-		view.onItemUpdated(aUser, toPropertyIdSet(properties));
+		view.onItemUpdated(aUser, toPropertyIdSet(WebUserUtils::properties));
 
-		maybeSend("web_user_updated", [&] { return Serializer::serializeItem(aUser, itemHandler); });
+		maybeSend("web_user_updated", [&] { 
+			return Serializer::serializeItem(aUser, WebUserUtils::propertyHandler); 
+		});
 	}
 
 	void WebUserApi::on(WebUserManagerListener::UserRemoved, const WebUserPtr& aUser) noexcept {
 		view.onItemRemoved(aUser);
 
-		maybeSend("web_user_removed", [&] { return Serializer::serializeItem(aUser, itemHandler); });
+		maybeSend("web_user_removed", [&] { 
+			return Serializer::serializeItem(aUser, WebUserUtils::propertyHandler); 
+		});
 	}
 
 	void WebUserApi::parseUser(WebUserPtr& aUser, const json& j, bool aIsNew) {

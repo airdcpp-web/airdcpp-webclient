@@ -25,45 +25,67 @@
 
 
 namespace webserver {
+	const PropertyList TransferUtils::properties = {
+		{ PROP_NAME, "name", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_TARGET, "target", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
+		{ PROP_DOWNLOAD, "download", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
+		{ PROP_SIZE, "size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_STATUS, "status", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_BYTES_TRANSFERRED, "bytes_transferred", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_USER, "user", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_TIME_STARTED, "time_started", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_SPEED, "speed", TYPE_SPEED, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_SECONDS_LEFT, "seconds_left", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_IP, "ip", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
+		{ PROP_FLAGS, "flags", TYPE_LIST_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_ENCRYPTION, "encryption", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
+	};
+
+	const PropertyItemHandler<TransferInfoPtr> TransferUtils::propertyHandler = {
+		properties,
+		TransferUtils::getStringInfo, TransferUtils::getNumericInfo, TransferUtils::compareItems, TransferUtils::serializeProperty
+	};
+
 	std::string TransferUtils::getStringInfo(const TransferInfoPtr& aItem, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case TransferApi::PROP_NAME: return aItem->getName();
-		case TransferApi::PROP_TARGET: return aItem->getTarget();
-		case TransferApi::PROP_TYPE: return Format::formatFileType(aItem->getTarget());
-		case TransferApi::PROP_STATUS: return aItem->getStatusString();
-		case TransferApi::PROP_IP: return aItem->getIp();
-		case TransferApi::PROP_USER: return Format::formatNicks(aItem->getHintedUser());
-		case TransferApi::PROP_ENCRYPTION: return aItem->getEncryption();
+		case PROP_NAME: return aItem->getName();
+		case PROP_TARGET: return aItem->getTarget();
+		case PROP_TYPE: return Format::formatFileType(aItem->getTarget());
+		case PROP_STATUS: return aItem->getStatusString();
+		case PROP_IP: return aItem->getIp();
+		case PROP_USER: return Format::formatNicks(aItem->getHintedUser());
+		case PROP_ENCRYPTION: return aItem->getEncryption();
 		default: dcassert(0); return Util::emptyString;
 		}
 	}
 
 	double TransferUtils::getNumericInfo(const TransferInfoPtr& aItem, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case TransferApi::PROP_SIZE: return (double)aItem->getSize();
-		case TransferApi::PROP_DOWNLOAD: return (double)aItem->isDownload();
-		case TransferApi::PROP_STATUS: return (double)aItem->getState();
-		case TransferApi::PROP_BYTES_TRANSFERRED: return (double)aItem->getBytesTransferred();
-		case TransferApi::PROP_TIME_STARTED: return (double)aItem->getStarted();
-		case TransferApi::PROP_SPEED: return (double)aItem->getSpeed();
-		case TransferApi::PROP_SECONDS_LEFT: return (double)aItem->getTimeLeft();
+		case PROP_SIZE: return (double)aItem->getSize();
+		case PROP_DOWNLOAD: return (double)aItem->isDownload();
+		case PROP_STATUS: return (double)aItem->getState();
+		case PROP_BYTES_TRANSFERRED: return (double)aItem->getBytesTransferred();
+		case PROP_TIME_STARTED: return (double)aItem->getStarted();
+		case PROP_SPEED: return (double)aItem->getSpeed();
+		case PROP_SECONDS_LEFT: return (double)aItem->getTimeLeft();
 		default: dcassert(0); return 0;
 		}
 	}
 
 	int TransferUtils::compareItems(const TransferInfoPtr& a, const TransferInfoPtr& b, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case TransferApi::PROP_FLAGS: {
+		case PROP_FLAGS: {
 			return compare(Util::listToString(a->getFlags()), Util::listToString(b->getFlags()));
 		}
-		case TransferApi::PROP_USER: {
+		case PROP_USER: {
 			if (a->isDownload() != b->isDownload()) {
 				return a->isDownload() ? -1 : 1;
 			}
 
 			return Util::DefaultSort(Format::formatNicks(a->getHintedUser()), Format::formatNicks(b->getHintedUser()));
 		}
-		case TransferApi::PROP_STATUS: {
+		case PROP_STATUS: {
 			if (a->getState() != b->getState()) {
 				return compare(a->getState(), b->getState());
 			}
@@ -81,16 +103,16 @@ namespace webserver {
 
 	json TransferUtils::serializeProperty(const TransferInfoPtr& aItem, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-			case TransferApi::PROP_IP: return Serializer::serializeIp(aItem->getIp());
-			case TransferApi::PROP_USER: return Serializer::serializeHintedUser(aItem->getHintedUser());
-			case TransferApi::PROP_STATUS:
+			case PROP_IP: return Serializer::serializeIp(aItem->getIp());
+			case PROP_USER: return Serializer::serializeHintedUser(aItem->getHintedUser());
+			case PROP_STATUS:
 			{
 				return {
 					{ "id", aItem->getStateKey() },
 					{ "str", aItem->getStatusString() },
 				};
 			}
-			case TransferApi::PROP_TYPE: {
+			case PROP_TYPE: {
 				if (aItem->getTarget().empty()) {
 					return nullptr;
 				}
@@ -105,8 +127,8 @@ namespace webserver {
 
 				return Serializer::serializeFileType(aItem->getTarget());
 			}
-			case TransferApi::PROP_FLAGS: return aItem->getFlags();
-			case TransferApi::PROP_ENCRYPTION:
+			case PROP_FLAGS: return aItem->getFlags();
+			case PROP_ENCRYPTION:
 			{
 				auto trusted = aItem->getFlags().find("S") != aItem->getFlags().end();
 				return Serializer::serializeEncryption(aItem->getEncryption(), trusted);

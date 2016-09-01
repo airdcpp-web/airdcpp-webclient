@@ -24,7 +24,7 @@
 #include <api/common/Property.h>
 
 #include <airdcpp/typedefs.h>
-#include <airdcpp/QueueItemBase.h>
+
 
 namespace webserver {
 	class QueueBundleUtils {
@@ -48,8 +48,6 @@ namespace webserver {
 			PROP_SOURCES,
 			PROP_LAST
 		};
-
-		static BundleList getBundleList() noexcept;
 
 		static json serializeBundleProperty(const BundlePtr& aBundle, int aPropertyName) noexcept;
 

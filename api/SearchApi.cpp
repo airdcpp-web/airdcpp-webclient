@@ -17,40 +17,19 @@
 */
 
 #include <api/SearchApi.h>
-#include <api/SearchUtils.h>
 
 #include <api/common/Deserializer.h>
 #include <api/common/FileSearchParser.h>
 
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/DirectSearch.h>
-#include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/SearchManager.h>
 #include <airdcpp/ShareManager.h>
 
 
 namespace webserver {
-	const PropertyList SearchApi::properties = {
-		{ PROP_NAME, "name", TYPE_TEXT, SERIALIZE_TEXT, SORT_CUSTOM },
-		{ PROP_RELEVANCE, "relevance", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_HITS, "hits", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_USERS, "users", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-		{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-		{ PROP_SIZE, "size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_DATE, "time", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_PATH, "path", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_CONNECTION, "connection", TYPE_SPEED, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_SLOTS, "slots", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-		{ PROP_TTH, "tth", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_DUPE, "dupe", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
-	};
-
-	const PropertyItemHandler<SearchResultInfoPtr> SearchApi::itemHandler = {
-		properties,
-		SearchUtils::getStringInfo, SearchUtils::getNumericInfo, SearchUtils::compareResults, SearchUtils::serializeResult
-	};
-
 	SearchApi::SearchApi(Session* aSession) : SubscribableApiModule(aSession, Access::SEARCH),
-		searchView("search_view", this, itemHandler, std::bind(&SearchApi::getResultList, this)) {
+		searchView("search_view", this, SearchUtils::propertyHandler, std::bind(&SearchApi::getResultList, this)) {
 
 		SearchManager::getInstance()->addListener(this);
 
@@ -80,7 +59,7 @@ namespace webserver {
 			boost::range::copy(results | map_values, inserter(resultSet, resultSet.begin()));
 		}
 
-		auto j = Serializer::serializeItemList(aRequest.getRangeParam(0), aRequest.getRangeParam(1), itemHandler, resultSet);
+		auto j = Serializer::serializeItemList(aRequest.getRangeParam(0), aRequest.getRangeParam(1), SearchUtils::propertyHandler, resultSet);
 
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
@@ -238,7 +217,7 @@ namespace webserver {
 		}
 
 		// Serialize results
-		return Serializer::serializeItemList(itemHandler, resultSet);
+		return Serializer::serializeItemList(SearchUtils::propertyHandler, resultSet);
 	}
 
 	api_return SearchApi::handlePostUserSearch(ApiRequest& aRequest) {
@@ -309,7 +288,11 @@ namespace webserver {
 				return;
 			}
 
-			searchView.onItemUpdated(parent, { PROP_RELEVANCE, PROP_CONNECTION, PROP_HITS, PROP_SLOTS, PROP_USERS });
+			searchView.onItemUpdated(parent, { 
+				SearchUtils::PROP_RELEVANCE, SearchUtils::PROP_CONNECTION, 
+				SearchUtils::PROP_HITS, SearchUtils::PROP_SLOTS, 
+				SearchUtils::PROP_USERS 
+			});
 		}
 
 		if (subscriptionActive("search_result")) {

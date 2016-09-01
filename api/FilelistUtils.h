@@ -19,16 +19,33 @@
 #ifndef DCPLUSPLUS_DCPP_FILELISTUTILS_H
 #define DCPLUSPLUS_DCPP_FILELISTUTILS_H
 
-#include <api/FilelistInfo.h>
-//#include <api/SearchResultInfo.h>
+#include <api/FilelistItemInfo.h>
+#include <api/common/Property.h>
 
 #include <web-server/stdinc.h>
 
 #include <airdcpp/typedefs.h>
 
+
 namespace webserver {
 	class FilelistUtils {
 	public:
+		static const PropertyList properties;
+		static const PropertyItemHandler<FilelistItemInfoPtr> propertyHandler;
+
+		enum Properties {
+			PROP_TOKEN = -1,
+			PROP_NAME,
+			PROP_TYPE,
+			PROP_SIZE,
+			PROP_DATE,
+			PROP_PATH,
+			PROP_TTH,
+			PROP_DUPE,
+			PROP_COMPLETE,
+			PROP_LAST
+		};
+
 		static json serializeItem(const FilelistItemInfoPtr& aResult, int aPropertyName) noexcept;
 
 		static int compareItems(const FilelistItemInfoPtr& a, const FilelistItemInfoPtr& b, int aPropertyName) noexcept;

@@ -20,9 +20,9 @@
 #include <web-server/Timer.h>
 
 #include <api/TransferApi.h>
-#include <api/TransferUtils.h>
 
-#include <api/common/Serializer.h>
+#include <airdcpp/Download.h>
+#include <airdcpp/Upload.h>
 
 #include <airdcpp/DownloadManager.h>
 #include <airdcpp/ConnectionManager.h>
@@ -30,33 +30,12 @@
 #include <airdcpp/ThrottleManager.h>
 #include <airdcpp/UploadManager.h>
 
+
 namespace webserver {
-	const PropertyList TransferApi::properties = {
-		{ PROP_NAME, "name", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_TARGET, "target", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
-		{ PROP_DOWNLOAD, "download", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
-		{ PROP_SIZE, "size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_STATUS, "status", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-		{ PROP_BYTES_TRANSFERRED, "bytes_transferred", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_USER, "user", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-		{ PROP_TIME_STARTED, "time_started", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_SPEED, "speed", TYPE_SPEED, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_SECONDS_LEFT, "seconds_left", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_IP, "ip", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
-		{ PROP_FLAGS, "flags", TYPE_LIST_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-		{ PROP_ENCRYPTION, "encryption", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
-	};
-
-	const PropertyItemHandler<TransferInfoPtr> TransferApi::propertyHandler = {
-		properties,
-		TransferUtils::getStringInfo, TransferUtils::getNumericInfo, TransferUtils::compareItems, TransferUtils::serializeProperty
-	};
-
 	TransferApi::TransferApi(Session* aSession) : 
 		SubscribableApiModule(aSession, Access::ANY),
 		timer(getTimer([this] { onTimer(); }, 1000)),
-		view("transfer_view", this, propertyHandler, std::bind(&TransferApi::getTransfers, this))
+		view("transfer_view", this, TransferUtils::propertyHandler, std::bind(&TransferApi::getTransfers, this))
 	{
 		DownloadManager::getInstance()->addListener(this);
 		UploadManager::getInstance()->addListener(this);
@@ -247,7 +226,10 @@ namespace webserver {
 			t->setStatusString(STRING_F(RUNNING_PCT, t->getPercentage()));
 		}
 
-		view.onItemUpdated(t, { PROP_STATUS, PROP_BYTES_TRANSFERRED, PROP_SPEED, PROP_SECONDS_LEFT });
+		view.onItemUpdated(t, { 
+			TransferUtils::PROP_STATUS, TransferUtils::PROP_BYTES_TRANSFERRED, 
+			TransferUtils::PROP_SPEED, TransferUtils::PROP_SECONDS_LEFT
+		});
 	}
 
 	void TransferApi::on(UploadManagerListener::Tick, const UploadList& aUploads) noexcept {
@@ -322,7 +304,10 @@ namespace webserver {
 		aInfo->setTimeLeft(-1);
 		aInfo->setState(TransferInfo::STATE_FAILED);
 
-		view.onItemUpdated(aInfo, { PROP_STATUS, PROP_SPEED, PROP_BYTES_TRANSFERRED, PROP_SECONDS_LEFT });
+		view.onItemUpdated(aInfo, { 
+			TransferUtils::PROP_STATUS, TransferUtils::PROP_SPEED,
+			TransferUtils::PROP_BYTES_TRANSFERRED, TransferUtils::PROP_SECONDS_LEFT
+		});
 	}
 
 	void TransferApi::on(ConnectionManagerListener::Failed, const ConnectionQueueItem* aCqi, const string& aReason) noexcept {
@@ -357,7 +342,11 @@ namespace webserver {
 
 		aInfo->setState(TransferInfo::STATE_WAITING);
 
-		view.onItemUpdated(aInfo, { PROP_STATUS, PROP_TARGET, PROP_TYPE, PROP_NAME, PROP_SIZE });
+		view.onItemUpdated(aInfo, { 
+			TransferUtils::PROP_STATUS, TransferUtils::PROP_TARGET, 
+			TransferUtils::PROP_TYPE, TransferUtils::PROP_NAME, 
+			TransferUtils::PROP_SIZE 
+		});
 	}
 
 	void TransferApi::on(ConnectionManagerListener::Connecting, const ConnectionQueueItem* aCqi) noexcept {
@@ -375,7 +364,7 @@ namespace webserver {
 			return;
 		}
 
-		view.onItemUpdated(t, { PROP_USER });
+		view.onItemUpdated(t, { TransferUtils::PROP_USER });
 	}
 
 	void TransferApi::on(DownloadManagerListener::Failed, const Download* aDownload, const string& aReason) noexcept {
@@ -409,7 +398,13 @@ namespace webserver {
 		aTransfer->appendFlags(flags);
 		aInfo->setFlags(flags);
 
-		view.onItemUpdated(aInfo, { PROP_STATUS, PROP_SPEED, PROP_BYTES_TRANSFERRED, PROP_TIME_STARTED, PROP_SIZE, PROP_TARGET, PROP_NAME, PROP_TYPE, PROP_IP, PROP_ENCRYPTION, PROP_FLAGS });
+		view.onItemUpdated(aInfo, { 
+			TransferUtils::PROP_STATUS, TransferUtils::PROP_SPEED, 
+			TransferUtils::PROP_BYTES_TRANSFERRED, TransferUtils::PROP_TIME_STARTED, 
+			TransferUtils::PROP_SIZE, TransferUtils::PROP_TARGET, 
+			TransferUtils::PROP_NAME, TransferUtils::PROP_TYPE,
+			TransferUtils::PROP_IP, TransferUtils::PROP_ENCRYPTION, TransferUtils::PROP_FLAGS 
+		});
 	}
 
 	void TransferApi::on(DownloadManagerListener::Requesting, const Download* aDownload, bool hubChanged) noexcept {
@@ -435,7 +430,10 @@ namespace webserver {
 			// Size was unknown for filelists when requesting
 			t->setSize(aDownload->getSegmentSize());
 
-			view.onItemUpdated(t, { PROP_STATUS, PROP_FLAGS, PROP_SIZE });
+			view.onItemUpdated(t, { 
+				TransferUtils::PROP_STATUS, TransferUtils::PROP_FLAGS, 
+				TransferUtils::PROP_SIZE 
+			});
 		}
 	}
 
@@ -459,6 +457,14 @@ namespace webserver {
 		return i != transfers.end() ? i->second : nullptr;
 	}
 
+	void TransferApi::on(DownloadManagerListener::Complete, const Download* aDownload, bool) noexcept {
+		onTransferCompleted(aDownload, true); 
+	}
+
+	void TransferApi::on(UploadManagerListener::Complete, const Upload* aUpload) noexcept {
+		onTransferCompleted(aUpload, false); 
+	}
+
 	void TransferApi::onTransferCompleted(const Transfer* aTransfer, bool aIsDownload) noexcept {
 		auto t = getTransfer(aTransfer->getToken());
 		if (!t) {
@@ -471,6 +477,10 @@ namespace webserver {
 		t->setBytesTransferred(aTransfer->getSegmentSize());
 		t->setState(TransferInfo::STATE_FINISHED);
 
-		view.onItemUpdated(t, { PROP_STATUS, PROP_SPEED, PROP_SECONDS_LEFT, PROP_TIME_STARTED, PROP_BYTES_TRANSFERRED });
+		view.onItemUpdated(t, { 
+			TransferUtils::PROP_STATUS, TransferUtils::PROP_SPEED,
+			TransferUtils::PROP_SECONDS_LEFT, TransferUtils::PROP_TIME_STARTED,
+			TransferUtils::PROP_BYTES_TRANSFERRED
+		});
 	}
 }

@@ -20,14 +20,32 @@
 #define DCPLUSPLUS_DCPP_SHARE_UTILS_H
 
 #include <web-server/stdinc.h>
+#include <api/common/Property.h>
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/StringMatch.h>
 #include <airdcpp/ShareDirectoryInfo.h>
 
+
 namespace webserver {
 	class ShareUtils {
 	public:
+		static const PropertyList properties;
+		static const PropertyItemHandler<ShareDirectoryInfoPtr> propertyHandler;
+
+		enum Properties {
+			PROP_TOKEN = -1,
+			PROP_PATH,
+			PROP_VIRTUAL_NAME,
+			PROP_SIZE,
+			PROP_PROFILES,
+			PROP_INCOMING,
+			PROP_LAST_REFRESH_TIME,
+			PROP_REFRESH_STATE,
+			PROP_TYPE,
+			PROP_LAST
+		};
+
 		static string formatRefreshState(const ShareDirectoryInfoPtr& aItem) noexcept;
 
 		static json serializeItem(const ShareDirectoryInfoPtr& aItem, int aPropertyName) noexcept;

@@ -21,7 +21,7 @@
 #include <api/common/Serializer.h>
 #include <api/common/Format.h>
 
-#include <api/HubInfo.h>
+#include <api/OnlineUserUtils.h>
 
 #include <airdcpp/AirUtil.h>
 #include <airdcpp/Bundle.h>
@@ -238,7 +238,7 @@ namespace webserver {
 	}
 
 	json Serializer::serializeOnlineUser(const OnlineUserPtr& aUser) noexcept {
-		return serializeItemProperties(aUser, toPropertyIdSet(HubInfo::onlineUserPropertyHandler.properties), HubInfo::onlineUserPropertyHandler);
+		return serializeItemProperties(aUser, toPropertyIdSet(OnlineUserUtils::propertyHandler.properties), OnlineUserUtils::propertyHandler);
 	}
 
 	std::string typeNameToString(const string& aName) {
