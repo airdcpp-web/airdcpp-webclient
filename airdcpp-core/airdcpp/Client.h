@@ -248,7 +248,7 @@ private:
 	static atomic<long> allCounts[COUNT_UNCOUNTED];
 	static atomic<long> sharingCounts[COUNT_UNCOUNTED];
 
-	atomic<State> state = STATE_DISCONNECTED;
+	atomic<State> state { STATE_DISCONNECTED };
 
 	const string hubUrl;
 	string address;
