@@ -156,7 +156,7 @@ void Client::shutdown() {
 
 void Client::on(DirectoryListingManagerListener::OpenListing, const DirectoryListingPtr& aList, const string& aDir, const string& aXML) noexcept {
 	if (aList->getPartialList()) {
-		aList->addPartialListTask(aXML, aDir, false);
+		aList->addPartialListTask(aXML, aDir);
 	} else {
 		aList->addFullListTask(aDir);
 	}
