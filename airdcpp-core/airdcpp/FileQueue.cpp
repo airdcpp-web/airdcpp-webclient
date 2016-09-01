@@ -107,7 +107,7 @@ void FileQueue::matchListing(const DirectoryListing& dl, QueueItemList& ql_) con
 }
 
 void FileQueue::matchDir(const DirectoryListing::Directory::Ptr& aDir, QueueItemList& ql_) const noexcept{
-	for(const auto& d: aDir->directories) {
+	for(const auto& d: aDir->directories | map_values) {
 		if (!d->getAdls()) {
 			matchDir(d, ql_);
 		}

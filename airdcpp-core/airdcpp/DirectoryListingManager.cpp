@@ -140,12 +140,10 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 		RLock l(cs);
 		auto p = viewedLists.find(aUser.user);
 		if (p != viewedLists.end()) {
-			if (p->second->getPartialList()) {
-				if (isPartialList) {
-					//we don't want multiple threads to load those simultaneously. load in the list thread and return here after that
-					p->second->addPartialListTask(aXml, aRemotePath, false, false, [=] { processListAction(p->second, aRemotePath, aFlags); });
-					return;
-				}
+			if (p->second->getPartialList() && isPartialList) {
+				//we don't want multiple threads to load those simultaneously. load in the list thread and return here after that
+				p->second->addPartialListTask(aXml, aRemotePath, true, [=] { processListAction(p->second, aRemotePath, aFlags); });
+				return;
 			}
 		}
 	}
@@ -328,7 +326,7 @@ void DirectoryListingManager::on(QueueManagerListener::PartialListFinished, cons
 
 	if (dl->hasCompletedDownloads()) {
 		dl->addHubUrlChangeTask(aUser.hint);
-		dl->addPartialListTask(aXML, aBase, false, true, [=] { dl->setActive(); });
+		dl->addPartialListTask(aXML, aBase);
 	} else {
 		fire(DirectoryListingManagerListener::OpenListing(), dl, aBase, aXML);
 	}
