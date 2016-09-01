@@ -268,7 +268,7 @@ namespace webserver {
 		const auto& bundleJson = aRequest.getRequestBody();
 
 		BundleFileInfo::List files;
-		for (const auto& fileJson : JsonUtil::getRawValue("files", bundleJson, false)) {
+		for (const auto& fileJson : JsonUtil::getRawField("files", bundleJson)) {
 			files.push_back(BundleFileInfo(
 				JsonUtil::getField<string>("name", fileJson),
 				Deserializer::deserializeTTH(fileJson),
@@ -276,6 +276,10 @@ namespace webserver {
 				JsonUtil::getField<time_t>("time", fileJson),
 				Deserializer::deserializePriority(fileJson, true))
 			);
+		}
+
+		if (files.empty()) {
+			JsonUtil::throwError("files", JsonUtil::ERROR_INVALID, "No files were supplied");
 		}
 
 		BundlePtr b = nullptr;
