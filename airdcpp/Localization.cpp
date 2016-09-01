@@ -78,16 +78,16 @@ static const char* countryCodes[] = {
 
 namespace dcpp {
 
-void Localization::Language::setLanguageFile() {
+void Localization::Language::setLanguageFile() noexcept {
 	// The path isn't relevant for the user or the client and it will cause problems when the setting dir location changes
 	SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, Util::getFileName(getLanguageFilePath()));
 }
 
-string Localization::Language::getLanguageFilePath() const {
+string Localization::Language::getLanguageFilePath() const noexcept {
 	return isDefault() ? Util::emptyString : Util::getPath(Util::PATH_LOCALE) + locale + ".xml";
 }
 
-double Localization::Language::getLanguageVersion() {
+double Localization::Language::getLanguageVersion() const noexcept {
 	if (!Util::fileExists(getLanguageFilePath()))
 		return 0;
 
@@ -107,7 +107,7 @@ double Localization::Language::getLanguageVersion() {
 vector<Localization::Language> Localization::languageList;
 int Localization::curLanguage; //position of the current language in the list
 
-void Localization::init() {
+void Localization::init() noexcept {
 	// remove the file names at some point
 	languageList.emplace_back("English", "GB", "en-US", Util::emptyString);
 	languageList.emplace_back("Danish", "DK", "da-DK", "Danish_for_AirDC");
@@ -152,7 +152,7 @@ void Localization::init() {
 	languageList.shrink_to_fit();
 }
 
-string Localization::getSystemLocale() {
+string Localization::getSystemLocale() noexcept {
 #ifdef _WIN32
 	TCHAR buf[512];
 	GetUserDefaultLocaleName(buf, 512);
@@ -162,51 +162,51 @@ string Localization::getSystemLocale() {
 #endif
 }
 
-bool Localization::Language::isDefault() const {
+bool Localization::Language::isDefault() const noexcept {
 	return locale == "en-US";
 }
 
-bool Localization::usingDefaultLanguage() {
+bool Localization::usingDefaultLanguage() noexcept {
 	return languageList[curLanguage].isDefault();
 }
 
-double Localization::getCurLanguageVersion() {
+double Localization::getCurLanguageVersion() noexcept {
 	return languageList[curLanguage].getLanguageVersion();
 }
 
-string Localization::getCurLanguageFilePath() {
+string Localization::getCurLanguageFilePath() noexcept {
 	return languageList[curLanguage].getLanguageFilePath();
 }
 
-string Localization::getCurLanguageFileName() {
+string Localization::getCurLanguageFileName() noexcept {
 	return languageList[curLanguage].locale + ".xml";
 }
 
-void Localization::setLanguage(int languageIndex) {
+void Localization::setLanguage(int languageIndex) noexcept {
 	if (languageIndex >= 0 && languageIndex < (int)languageList.size() && languageList[languageIndex].languageName != languageList[curLanguage].languageName) {
 		curLanguage = languageIndex;
 		languageList[curLanguage].setLanguageFile(); //update the language file in the settings
 	}
 }
 
-void Localization::loadLanguage(int languageIndex) {
+void Localization::loadLanguage(int languageIndex) noexcept {
 	if (languageIndex >= 0 && languageIndex < (int)languageList.size()) {
 		ResourceManager::getInstance()->loadLanguage(languageList[languageIndex].getLanguageFilePath());
 	}
 }
 
-string Localization::getCurrentLocale() {
+string Localization::getCurrentLocale() noexcept {
 	if (curLanguage > 0)
 		return languageList[curLanguage].locale;
 	else
 		return getSystemLocale();
 }
 
-string Localization::getLanguageStr() {
+string Localization::getLanguageStr() noexcept {
 	return languageList[curLanguage].languageName;
 }
 
-uint8_t Localization::getFlagIndexByName(const char* countryName) {
+uint8_t Localization::getFlagIndexByName(const char* countryName) noexcept {
 	// country codes are not sorted, use linear searching (it is not used so often)
 	const char** first = countryNames;
 	const char** last = countryNames + (sizeof(countryNames) / sizeof(countryNames[0]));
@@ -217,7 +217,7 @@ uint8_t Localization::getFlagIndexByName(const char* countryName) {
 	return 0;
 }
 
-uint8_t Localization::getFlagIndexByCode(const char* countryCode) {
+uint8_t Localization::getFlagIndexByCode(const char* countryCode) noexcept {
 	// country codes are sorted, use binary search for better performance
 	int begin = 0;
 	int end = (sizeof(countryCodes) / sizeof(countryCodes[0])) - 1;

@@ -26,12 +26,12 @@ namespace dcpp {
 
 class Segment {
 public:
-	Segment() : start(0), size(-1), overlapped(false) { }
+	Segment() { }
 	Segment(int64_t start_, int64_t size_, bool overlapped_ = false) : start(start_), size(size_), overlapped(overlapped_) { }
 	
-	int64_t getStart() const { return start; }
-	int64_t getSize() const { return size; }
-	int64_t getEnd() const { return getStart() + getSize(); }
+	int64_t getStart() const noexcept { return start; }
+	int64_t getSize() const noexcept { return size; }
+	int64_t getEnd() const noexcept { return getStart() + getSize(); }
 	
 	void setSize(int64_t size_) noexcept { size = size_; }
 	
@@ -56,6 +56,7 @@ public:
 			}
 			return;
 		}
+
 		size = rhs.getStart() - start;
 	}
 
@@ -76,10 +77,10 @@ public:
 		return (getStart() < rhs.getStart()) || (getStart() == rhs.getStart() && getSize() < rhs.getSize());
 	}
 private:	
-	int64_t start;
-	int64_t size;
+	int64_t start = 0;
+	int64_t size = -1;
 
-	GETSET(bool, overlapped, Overlapped);
+	IGETSET(bool, overlapped, Overlapped, false);
 };
 
 } // namespace dcpp

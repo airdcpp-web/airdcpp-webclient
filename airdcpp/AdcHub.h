@@ -93,7 +93,6 @@ private:
 
 	/** Map session id to OnlineUser */
 	typedef unordered_map<uint32_t, OnlineUser*> SIDMap;
-	typedef SIDMap::const_iterator SIDIter;
 
 	void getUserList(OnlineUserList& list, bool aListHidden) const noexcept;
 
@@ -102,14 +101,14 @@ private:
 	/* Does the same thing but also sends the error to the remote user */
 	bool checkProtocol(const OnlineUser& aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken) noexcept;
 
-	bool oldPassword;
+	bool oldPassword = false;
 	Socket udp;
 	SIDMap users;
 	StringMap lastInfoMap;
 	mutable SharedMutex cs;
 
 	string salt;
-	uint32_t sid;
+	uint32_t sid = 0;
 
 	std::unordered_set<uint32_t> forbiddenCommands;
 
@@ -127,7 +126,7 @@ private:
 
 	void shutdown(ClientPtr& aClient, bool aRedirect);
 	void clearUsers() noexcept;
-	void appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6) noexcept;
+	void appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6) const noexcept;
 
 	void handle(AdcCommand::SUP, AdcCommand& c) noexcept;
 	void handle(AdcCommand::SID, AdcCommand& c) noexcept;

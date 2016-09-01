@@ -53,15 +53,15 @@ public:
 private:
 	class LevelSnapshot : public DbSnapshot {
 	public:
-		LevelSnapshot(leveldb::DB* aDb) : snapshot(aDb->GetSnapshot()), db(aDb) {
+		LevelSnapshot(leveldb::DB* aDb) : snapshot(aDb->GetSnapshot()), db(*aDb) {
 
 		}
 
 		~LevelSnapshot() { 
-			db->ReleaseSnapshot(snapshot);
+			db.ReleaseSnapshot(snapshot);
 		}
 
-		leveldb::DB* db;
+		leveldb::DB& db;
 		const leveldb::Snapshot* snapshot;
 	};
 
@@ -69,7 +69,7 @@ private:
 	leveldb::Status performDbOperation(function<leveldb::Status()> f) throw(DbException);
 	void checkDbError(leveldb::Status aStatus) throw(DbException);
 
-	leveldb::DB* db;
+	leveldb::DB* db = nullptr;
 
 	//DB options
 	leveldb::Options defaultOptions;
@@ -83,10 +83,10 @@ private:
 	// options used when writing to the database
 	leveldb::WriteOptions writeoptions;
 
-	uint64_t totalReads;
-	uint64_t totalWrites;
-	uint64_t ioErrors;
-	size_t lastSize;
+	uint64_t totalReads = 0;
+	uint64_t totalWrites = 0;
+	uint64_t ioErrors = 0;
+	size_t lastSize = 0;
 };
 
 } //dcpp

@@ -27,7 +27,6 @@
 #include "ShareManagerListener.h"
 #include "TimerManagerListener.h"
 
-#include "ConnectionType.h"
 #include "HubSettings.h"
 #include "MessageCache.h"
 #include "OnlineUser.h"
@@ -74,21 +73,21 @@ public:
 	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept = 0;
 	virtual void sendUserCmd(const UserCommand& command, const ParamMap& params) = 0;
 
-	uint64_t queueSearch(const SearchPtr& aSearch);
-	void cancelSearch(void* aOwner) { searchQueue.cancelSearch(aOwner); }
+	uint64_t queueSearch(const SearchPtr& aSearch) noexcept;
+	void cancelSearch(void* aOwner) noexcept { searchQueue.cancelSearch(aOwner); }
 	
-	virtual void password(const string& pwd) = 0;
+	virtual void password(const string& pwd) noexcept = 0;
 	void info();
 
-	virtual size_t getUserCount() const = 0;
-	int64_t getTotalShare() const { return availableBytes; };
+	virtual size_t getUserCount() const noexcept = 0;
+	int64_t getTotalShare() const noexcept { return availableBytes; };
 	
 	virtual bool send(const AdcCommand& command) = 0;
 
 	void callAsync(AsyncF f) noexcept;
 
 	bool isConnected() const noexcept;
-	bool isSecure() const noexcept;
+	bool isSocketSecure() const noexcept;
 	bool isTrusted() const noexcept;
 	std::string getEncryptionInfo() const noexcept;
 	ByteVector getKeyprint() const noexcept;
@@ -118,29 +117,30 @@ public:
 	void send(const string& aMessage) { send(aMessage.c_str(), aMessage.length()); }
 	void send(const char* aMessage, size_t aLen);
 
-	string getMyNick() const noexcept { return getMyIdentity().getNick(); }
-	string getHubName() const noexcept { return getHubIdentity().getNick().empty() ? getHubUrl() : getHubIdentity().getNick(); }
-	string getHubDescription() const noexcept { return getHubIdentity().getDescription(); }
+	string getMyNick() const noexcept { return myIdentity.getNick(); }
+	string getHubName() const noexcept { return hubIdentity.getNick().empty() ? getHubUrl() : hubIdentity.getNick(); }
+	string getHubDescription() const noexcept { return hubIdentity.getDescription(); }
 	
 	void addLine(const string& msg) noexcept;
-
-	Identity& getHubIdentity() noexcept { return hubIdentity; }
-
-	const string& getHubUrl() const noexcept { return hubUrl; }
 
 	GETSET(Identity, myIdentity, MyIdentity);
 	GETSET(Identity, hubIdentity, HubIdentity);
 
+	const string& getHubUrl() const noexcept { return hubUrl; }
+
 	GETSET(string, defpassword, Password);
-	GETSET(bool, favnoPM, FavNoPM);
+	IGETSET(bool, ignorePM, IgnorePM, false);
 
 	GETSET(uint64_t, lastActivity, LastActivity);
-	GETSET(uint32_t, reconnDelay, ReconnDelay);
+	IGETSET(uint32_t, reconnDelay, ReconnDelay, 120);
 	
-	GETSET(bool, registered, Registered);
-	GETSET(bool, autoReconnect, AutoReconnect);
-	GETSET(ProfileToken, favToken, FavToken);
-	GETSET(ClientToken, clientId, ClientId);
+	IGETSET(bool, registered, Registered, false);
+	IGETSET(bool, autoReconnect, AutoReconnect, false);
+	IGETSET(ProfileToken, favToken, FavToken, 0);
+
+	ClientToken getClientId() const noexcept {
+		return clientId;
+	}
 
 	/* Set a hub setting and return the new value */
 	bool changeBoolHubSetting(HubSettings::HubBoolSetting aSetting) noexcept;
@@ -192,7 +192,7 @@ public:
 		return state == STATE_NORMAL;
 	}
 
-	virtual void allowUntrustedConnect() noexcept;
+	void allowUntrustedConnect() noexcept;
 	bool isKeyprintMismatch() const noexcept;
 protected:
 	virtual void clearUsers() noexcept = 0;
@@ -204,9 +204,9 @@ protected:
 	Client(const string& hubURL, char separator, const ClientPtr& aOldClient);
 
 	SearchQueue searchQueue;
-	BufferedSocket* sock;
+	BufferedSocket* sock = nullptr;
 
-	int64_t availableBytes;
+	int64_t availableBytes = 0;
 
 	bool updateCounts(bool aRemove) noexcept;
 	void updateActivity() noexcept;
@@ -237,7 +237,6 @@ protected:
 	void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept;
 
 	virtual bool v4only() const noexcept = 0;
-	void setHubUrl(const string& url) noexcept;
 	void onPassword() noexcept;
 
 	void onChatMessage(const ChatMessagePtr& aMessage) noexcept;
@@ -245,23 +244,23 @@ protected:
 
 	string redirectUrl;
 private:
+	const ClientToken clientId;
 	static atomic<long> allCounts[COUNT_UNCOUNTED];
 	static atomic<long> sharingCounts[COUNT_UNCOUNTED];
 
-	atomic<State> state;
+	atomic<State> state = STATE_DISCONNECTED;
 
-	string hubUrl;
+	const string hubUrl;
 	string address;
 	string ip;
 	string localIp;
 	string keyprint;
 
 	string port;
-	char separator;
-	bool secure;
+	const char separator;
 
 	// Last used count type information for this hub
-	CountType countType;
+	CountType countType = COUNT_UNCOUNTED;
 	bool countIsSharing = false;
 };
 

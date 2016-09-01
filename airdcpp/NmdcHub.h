@@ -21,7 +21,6 @@
 
 #include "forward.h"
 #include "Client.h"
-#include "Search.h"
 
 namespace dcpp {
 
@@ -42,7 +41,7 @@ public:
 	void password(const string& aPass) noexcept;
 	void infoImpl() noexcept { myInfo(false); }
 
-	size_t getUserCount() const;
+	size_t getUserCount() const noexcept;
 	
 	string escape(string const& str) const { return validateMessage(str, false); }
 	static string unescape(const string& str) { return validateMessage(str, true); }
