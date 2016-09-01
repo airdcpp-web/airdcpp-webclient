@@ -472,10 +472,9 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 
 void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const DirectoryListing::Directory::Ptr& currentDir, string& fullPath) noexcept {
 	// Add to any substructure being stored
-	for(auto& id: destDirVector) {
+	for (auto& id: destDirVector) {
 		if(id.subdir) {
-			auto newDir = make_shared<DirectoryListing::AdlDirectory>(fullPath.substr(1) + "\\", id.subdir, currentDir->getName());
-			id.subdir->directories.push_back(newDir);
+			auto newDir = DirectoryListing::AdlDirectory::create(fullPath.substr(1) + "\\", id.subdir, currentDir->getName());
 			id.subdir = newDir.get();
 		}
 	}
@@ -485,14 +484,13 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const Direct
 		return;
 	}
 
-	for(auto& is: collection) {
+	for (auto& is: collection) {
 		if(destDirVector[is.ddIndex].subdir) {
 			continue;
 		}
-		if(is.matchesDirectory(currentDir->getName())) {
-			auto newDir = make_shared<DirectoryListing::AdlDirectory>(fullPath.substr(1) + "\\", destDirVector[is.ddIndex].dir.get(), currentDir->getName());;
-			destDirVector[is.ddIndex].dir->directories.push_back(newDir);
 
+		if(is.matchesDirectory(currentDir->getName())) {
+			auto newDir = DirectoryListing::AdlDirectory::create(fullPath.substr(1) + "\\", destDirVector[is.ddIndex].dir.get(), currentDir->getName());;
 			destDirVector[is.ddIndex].subdir = newDir.get();
 			if(breakOnFirst) {
 				// Found a match, search no more
@@ -516,7 +514,7 @@ void ADLSearchManager::stepUpDirectory(DestDirList& destDirVector) noexcept {
 void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, DirectoryListing::Directory::Ptr& root) noexcept {
 	// Load default destination directory (index = 0)
 	destDirs.clear();
-	DestDir dir = { "ADLSearch", make_shared<DirectoryListing::Directory>(root.get(), "<<<ADLSearch>>>", DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) };
+	DestDir dir = { "ADLSearch", DirectoryListing::Directory::create(root.get(), "<<<ADLSearch>>>", DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) };
 	destDirs.push_back(std::move(dir));
 
 	// Scan all loaded searches
@@ -543,9 +541,10 @@ void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, Dire
 		if(isNew) {
 			// Add new destination directory
 			DestDir newDir = { is.destDir, 
-				make_shared<DirectoryListing::Directory>(root.get(), "<<<" + is.destDir + ">>>", 
+				DirectoryListing::Directory::create(root.get(), "<<<" + is.destDir + ">>>", 
 					DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) 
 			};
+
 			destDirs.push_back(std::move(newDir));
 			is.ddIndex = ddIndex;
 		}
@@ -558,14 +557,14 @@ void ADLSearchManager::FinalizeDestinationDirectories(DestDirList& destDirs, Dir
 	// Add non-empty destination directories to the top level
 	for(auto& i: destDirs) {
 		if(i.dir->files.empty() && i.dir->directories.empty()) {
+			root->directories.erase(&i.dir->getName());
 			continue;;
 		} 
 		
 		if(Util::stricmp(i.dir->getName(), szDiscard) == 0) {
+			root->directories.erase(&i.dir->getName());
 			continue;
 		}
-
-		root->directories.push_back(i.dir);
 	}
 }
 
@@ -591,7 +590,7 @@ void ADLSearchManager::matchRecurse(DestDirList &aDestList, const DirectoryListi
 		throw AbortException();
 	}
 
-	for(const auto& dir: aDir->directories) {
+	for (const auto& dir: aDir->directories | map_values) {
 		string tmpPath = aPath + "\\" + dir->getName();
 		MatchesDirectory(aDestList, dir, tmpPath);
 		matchRecurse(aDestList, dir, tmpPath, aDirList);

@@ -132,6 +132,9 @@ public:
 		
 	void infoUpdated() noexcept;
 
+	// Fire UserUpdated via each connected hub
+	void userUpdated(const UserPtr& aUser) const noexcept;
+
 	UserPtr getUser(const string& aNick, const string& aHubUrl) noexcept;
 	UserPtr getUser(const CID& cid) noexcept;
 
@@ -141,10 +144,8 @@ public:
 	string findHub(const string& ipPort, bool nmdc) const noexcept;
 	const string& findHubEncoding(const string& aUrl) const noexcept;
 
-	/**
-	* @param priv discard any user that doesn't match the hint.
-	* @return OnlineUser* found by CID and hint; might be only by CID if priv is false.
-	*/
+	// Return OnlineUser found by CID and hint
+	// aAllowFallback: return OnlineUserPtr from any hub if the hinted one is not found
 	OnlineUserPtr findOnlineUser(const HintedUser& user, bool aAllowFallback = true) const noexcept;
 	OnlineUserPtr findOnlineUser(const CID& cid, const string& hintUrl, bool aAllowFallback = true) const noexcept;
 
@@ -255,9 +256,6 @@ private:
 	ClientManager();
 
 	virtual ~ClientManager();
-
-	//Note; Lock usage
-	void updateUser(const OnlineUser& user, bool wentOffline) noexcept;
 
 	/// @return OnlineUser* found by CID and hint; discard any user that doesn't match the hint.
 	OnlineUser* findOnlineUserHint(const CID& cid, const string& hintUrl) const noexcept {

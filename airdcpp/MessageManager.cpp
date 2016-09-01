@@ -255,9 +255,12 @@ void MessageManager::storeIgnore(const UserPtr& aUser) {
 		WLock l(Ignorecs);
 		ignoredUsers.emplace(aUser);
 	}
+
 	aUser->setFlag(User::IGNORED);
 	dirty = true;
+
 	fire(MessageManagerListener::IgnoreAdded(), aUser);
+	ClientManager::getInstance()->userUpdated(aUser);
 }
 
 void MessageManager::removeIgnore(const UserPtr& aUser) {
@@ -267,9 +270,12 @@ void MessageManager::removeIgnore(const UserPtr& aUser) {
 		if (i != ignoredUsers.end())
 			ignoredUsers.erase(i);
 	}
+
 	aUser->unsetFlag(User::IGNORED);
 	dirty = true;
+
 	fire(MessageManagerListener::IgnoreRemoved(), aUser);
+	ClientManager::getInstance()->userUpdated(aUser);
 }
 
 bool MessageManager::isIgnored(const UserPtr& aUser) {

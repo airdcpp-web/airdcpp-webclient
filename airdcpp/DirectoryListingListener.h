@@ -44,7 +44,7 @@ public:
 	typedef X<13> Read;
 	typedef X<14> ShareProfileChanged;
 
-	virtual void on(LoadingFinished, int64_t /*start*/, const string& /*aDir*/, bool /*reloadList*/, bool /*changeDir*/) noexcept { }
+	virtual void on(LoadingFinished, int64_t /*start*/, const string& /*aDir*/, bool /*aBackgroundTask*/) noexcept { }
 	virtual void on(LoadingFailed, const string&) noexcept { }
 	virtual void on(LoadingStarted, bool /* changeDir */) noexcept { }
 	virtual void on(QueueMatched, const string&) noexcept { }
