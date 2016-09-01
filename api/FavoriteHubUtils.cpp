@@ -115,7 +115,7 @@ namespace webserver {
 		switch (aPropertyName) {
 			case PROP_AUTO_CONNECT: return (double)aEntry->getAutoConnect();
 			case PROP_HAS_PASSWORD: return (double)!aEntry->getPassword().empty();
-			case PROP_IGNORE_PM: return (double)aEntry->getFavNoPM();
+			case PROP_IGNORE_PM: return (double)aEntry->getIgnorePM();
 			default: dcassert(0); return 0;
 		}
 	}

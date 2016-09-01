@@ -27,9 +27,9 @@
 namespace webserver {
 	SearchPtr FileSearchParser::parseSearch(const json& aJson, bool aIsDirectSearch, const string& aToken) {
 		auto s = make_shared<Search>(Search::MANUAL, aToken);
-		parseMatcher(JsonUtil::getRawValue("query", aJson, false), s);
+		parseMatcher(JsonUtil::getRawField("query", aJson), s);
 		if (aIsDirectSearch) {
-			parseOptions(JsonUtil::getRawValue("options", aJson, true), s);
+			parseOptions(JsonUtil::getOptionalRawField("options", aJson), s);
 		}
 		
 		return s;
