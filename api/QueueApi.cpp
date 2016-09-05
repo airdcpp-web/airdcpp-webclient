@@ -182,7 +182,17 @@ namespace webserver {
 
 	api_return QueueApi::handleSearchBundle(ApiRequest& aRequest) {
 		auto b = getBundle(aRequest);
-		QueueManager::getInstance()->searchBundleAlternates(b, true);
+		auto searches = QueueManager::getInstance()->searchBundleAlternates(b, true);
+
+		if (searches == 0) {
+			aRequest.setResponseErrorStr("No files to search for");
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		aRequest.setResponseBody({
+			{ "sent", searches },
+		});
+
 		return websocketpp::http::status_code::ok;
 	}
 

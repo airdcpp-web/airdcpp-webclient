@@ -31,8 +31,45 @@
 #include <airdcpp/version.h>
 
 namespace webserver {
-	SessionApi::SessionApi() {
+	SessionApi::SessionApi(Session* aSession) : ApiModule(aSession) {
+		METHOD_HANDLER("activity", Access::ANY, ApiRequest::METHOD_POST, (), false, SessionApi::handleActivity);
+		METHOD_HANDLER("auth", Access::ANY, ApiRequest::METHOD_DELETE, (), false, SessionApi::handleLogout);
 
+		// Just fail these...
+		METHOD_HANDLER("auth", Access::ANY, ApiRequest::METHOD_POST, (), false, SessionApi::failAuthenticatedRequest);
+		METHOD_HANDLER("socket", Access::ANY, ApiRequest::METHOD_POST, (), false, SessionApi::failAuthenticatedRequest);
+	}
+
+	api_return SessionApi::failAuthenticatedRequest(ApiRequest& aRequest) {
+		aRequest.setResponseErrorStr("This method can't be used after authentication");
+		return websocketpp::http::status_code::precondition_failed;
+	}
+
+	api_return SessionApi::handleActivity(ApiRequest& aRequest) {
+		auto s = aRequest.getSession();
+		if (!s) {
+			aRequest.setResponseErrorStr("Not authorized");
+			return websocketpp::http::status_code::unauthorized;
+		}
+
+		if (!s->isUserSession()) {
+			aRequest.setResponseErrorStr("Activity can only be updated for user sessions");
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		ActivityManager::getInstance()->updateActivity();
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return SessionApi::handleLogout(ApiRequest& aRequest) {
+		if (!aRequest.getSession()) {
+			aRequest.setResponseErrorStr("Not authorized");
+			return websocketpp::http::status_code::unauthorized;
+		}
+
+		WebServerManager::getInstance()->logout(aRequest.getSession()->getId());
+
+		return websocketpp::http::status_code::ok;
 	}
 
 	string SessionApi::getNetworkType(const string& aIp) noexcept {
@@ -68,19 +105,23 @@ namespace webserver {
 #endif
 	}
 
-	json SessionApi::getSystemInfo(const string& aIp) const noexcept {
-		json retJson;
-		retJson["path_separator"] = PATH_SEPARATOR_STR;
-		retJson["network_type"] = getNetworkType(aIp);
+	string SessionApi::getPlatform() noexcept {
 #ifdef _WIN32
-		retJson["platform"] = "windows";
+		return "windows";
 #elif APPLE
-		retJson["platform"] = "osx";
+		return "osx";
 #else
-		retJson["platform"] = "other";
+		return "other";
 #endif
-		retJson["hostname"] = getHostname();
-		return retJson;
+	}
+
+	json SessionApi::getSystemInfo(const string& aIp) noexcept {
+		return {
+			{ "path_separator", PATH_SEPARATOR_STR },
+			{ "network_type", getNetworkType(aIp) },
+			{ "platform", getPlatform() },
+			{ "hostname", getHostname() },
+		};
 	}
 
 	websocketpp::http::status_code::value SessionApi::handleLogin(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) {
@@ -115,33 +156,6 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(retJson);
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return SessionApi::handleActivity(ApiRequest& aRequest) {
-		auto s = aRequest.getSession();
-		if (!s) {
-			aRequest.setResponseErrorStr("Not authorized");
-			return websocketpp::http::status_code::unauthorized;
-		}
-
-		if (!s->isUserSession()) {
-			aRequest.setResponseErrorStr("Activity can only be updated for user sessions");
-			return websocketpp::http::status_code::bad_request;
-		}
-
-		ActivityManager::getInstance()->updateActivity();
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return SessionApi::handleLogout(ApiRequest& aRequest) {
-		if (!aRequest.getSession()) {
-			aRequest.setResponseErrorStr("Not authorized");
-			return websocketpp::http::status_code::unauthorized;
-		}
-
-		WebServerManager::getInstance()->logout(aRequest.getSession()->getId());
-
 		return websocketpp::http::status_code::ok;
 	}
 

@@ -33,6 +33,7 @@
 #include <api/QueueApi.h>
 #include <api/RecentHubApi.h>
 #include <api/SearchApi.h>
+#include <api/SessionApi.h>
 #include <api/SettingApi.h>
 #include <api/ShareApi.h>
 #include <api/ShareProfileApi.h>
@@ -67,6 +68,7 @@ namespace webserver {
 		ADD_MODULE("queue", QueueApi);
 		ADD_MODULE("recent_hubs", RecentHubApi);
 		ADD_MODULE("search", SearchApi);
+		ADD_MODULE("session", SessionApi);
 		ADD_MODULE("settings", SettingApi);
 		ADD_MODULE("share", ShareApi);
 		ADD_MODULE("share_profiles", ShareProfileApi);

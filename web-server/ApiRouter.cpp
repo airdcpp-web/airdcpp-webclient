@@ -24,6 +24,8 @@
 #include <web-server/WebUserManager.h>
 #include <web-server/WebSocket.h>
 
+#include <api/SessionApi.h>
+
 #include <airdcpp/File.h>
 #include <airdcpp/Util.h>
 #include <airdcpp/StringTokenizer.h>
@@ -31,8 +33,6 @@
 #include <sstream>
 
 namespace webserver {
-	using namespace dcpp;
-
 	ApiRouter::ApiRouter() {
 	}
 
@@ -113,8 +113,8 @@ namespace webserver {
 		int code;
 		try {
 			// Special case because we may not have the session yet
-			if (aRequest.getApiModule() == "session") {
-				return handleSessionRequest(aRequest, aIsSecure, aSocket, aIp);
+			if (aRequest.getApiModule() == "session" && !aRequest.getSession()) {
+				return routeAuthRequest(aRequest, aIsSecure, aSocket, aIp);
 			}
 
 			// Require auth for all other modules
@@ -143,25 +143,19 @@ namespace webserver {
 		return static_cast<api_return>(code);
 	}
 
-	api_return ApiRouter::handleSessionRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) {
+	api_return ApiRouter::routeAuthRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) {
 		if (aRequest.getApiVersion() != 0) {
 			aRequest.setResponseErrorStr("Invalid API version");
 			return websocketpp::http::status_code::precondition_failed;
 		}
 
-		if (aRequest.getStringParam(0) == "auth") {
-			if (aRequest.getMethod() == ApiRequest::METHOD_POST) {
-				return sessionApi.handleLogin(aRequest, aIsSecure, aSocket, aIp);
-			} else if (aRequest.getMethod() == ApiRequest::METHOD_DELETE) {
-				return sessionApi.handleLogout(aRequest);
-			}
-		} else if (aRequest.getStringParam(0) == "socket") {
-			return sessionApi.handleSocketConnect(aRequest, aIsSecure, aSocket);
-		} else if (aRequest.getStringParam(0) == "activity") {
-			return sessionApi.handleActivity(aRequest);
+		if (aRequest.getStringParam(0) == "auth" && aRequest.getMethod() == ApiRequest::METHOD_POST) {
+			return SessionApi::handleLogin(aRequest, aIsSecure, aSocket, aIp);
+		} else if (aRequest.getStringParam(0) == "socket" && aRequest.getMethod() == ApiRequest::METHOD_POST) {
+			return SessionApi::handleSocketConnect(aRequest, aIsSecure, aSocket);
 		}
 
-		aRequest.setResponseErrorStr("Invalid command");
+		aRequest.setResponseErrorStr("Invalid command/method (not authenticated)");
 		return websocketpp::http::status_code::bad_request;
 	}
 }

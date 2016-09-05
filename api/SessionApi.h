@@ -21,22 +21,33 @@
 
 #include <web-server/stdinc.h>
 
+#include <api/ApiModule.h>
+
 #include <airdcpp/typedefs.h>
 
 namespace webserver {
-	class SessionApi {
+	class SessionApi : public ApiModule {
 	public:
-		SessionApi();
+		SessionApi(Session* aSession);
 
-		api_return handleLogin(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp);
-		api_return handleSocketConnect(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket);
+		// Session isn't associated yet when these get called...
+		static api_return handleLogin(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp);
+		static api_return handleSocketConnect(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket);
+
+		int getVersion() const noexcept override {
+			return 0;
+		}
+	private:
+		api_return failAuthenticatedRequest(ApiRequest& aRequest);
+
 		api_return handleLogout(ApiRequest& aRequest);
 		api_return handleActivity(ApiRequest& aRequest);
 
-		json getSystemInfo(const string& aIp) const noexcept;
-	private:
+		static json getSystemInfo(const string& aIp) noexcept;
+
 		static string getHostname() noexcept;
 		static string getNetworkType(const string& aIp) noexcept;
+		static string getPlatform() noexcept;
 	};
 }
 
