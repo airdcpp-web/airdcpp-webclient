@@ -46,6 +46,7 @@ namespace webserver {
 			PROP_SECONDS_LEFT,
 			PROP_SOURCES,
 			PROP_BUNDLE,
+			PROP_TTH,
 			PROP_LAST
 		};
 

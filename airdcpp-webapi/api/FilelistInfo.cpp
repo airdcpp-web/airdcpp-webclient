@@ -146,7 +146,9 @@ namespace webserver {
 	}
 
 	void FilelistInfo::on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aPath, bool aBackgroundTask) noexcept {
-		updateItems(aPath);
+		if (aPath == dl->getCurrentLocationInfo().directory->getPath()) {
+			updateItems(aPath);
+		}
 	}
 
 	void FilelistInfo::on(DirectoryListingListener::ChangeDirectory, const string& aPath, bool aIsSearchChange) noexcept {

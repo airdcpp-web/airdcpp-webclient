@@ -43,6 +43,7 @@ namespace webserver {
 		{ PROP_SECONDS_LEFT, "seconds_left", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
 		{ PROP_SOURCES, "sources", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
 		{ PROP_BUNDLE, "bundle", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
+		{ PROP_TTH, "tth", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 	};
 
 	const PropertyItemHandler<QueueItemPtr> QueueFileUtils::propertyHandler = {
@@ -77,6 +78,7 @@ namespace webserver {
 		case PROP_STATUS: return formatDisplayStatus(aItem);
 		case PROP_PRIORITY: return AirUtil::getPrioText(aItem->getPriority());
 		case PROP_SOURCES: return formatFileSources(aItem);
+		case PROP_TTH: return aItem->getTTH().toBase32();
 		default: dcassert(0); return Util::emptyString;
 		}
 	}
