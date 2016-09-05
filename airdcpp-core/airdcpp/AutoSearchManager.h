@@ -21,7 +21,6 @@
 
 #include "forward.h"
 
-#include "AutoSearch.h"
 #include "AutoSearchManagerListener.h"
 #include "SearchManagerListener.h"
 #include "QueueManagerListener.h"
@@ -29,10 +28,12 @@
 #include "AutoSearchQueue.h"
 #include "DelayedEvents.h"
 #include "GetSet.h"
+#include "Message.h"
 #include "Singleton.h"
 #include "Speaker.h"
 #include "TargetUtil.h"
 #include "TimerManagerListener.h"
+
 
 namespace dcpp {
 

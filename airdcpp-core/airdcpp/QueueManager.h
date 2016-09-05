@@ -321,7 +321,8 @@ public:
 	void handleSlowDisconnect(const UserPtr& aUser, const string& aTarget, const BundlePtr& aBundle) noexcept;
 
 	// Search bundle for alternatives on the background
-	void searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSearch, uint64_t aTick = GET_TICK()) noexcept;
+	// Returns the number of searches that were sent
+	int searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSearch, uint64_t aTick = GET_TICK()) noexcept;
 
 	int getUnfinishedItemCount(const BundlePtr& aBundle) const noexcept;
 	int getFinishedItemCount(const BundlePtr& aBundle) const noexcept;

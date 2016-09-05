@@ -473,7 +473,7 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const DirectoryListing::Directory::Ptr& currentDir, string& fullPath) noexcept {
 	// Add to any substructure being stored
 	for (auto& id: destDirVector) {
-		if(id.subdir) {
+		if (id.subdir) {
 			auto newDir = DirectoryListing::AdlDirectory::create(fullPath.substr(1) + "\\", id.subdir, currentDir->getName());
 			id.subdir = newDir.get();
 		}
@@ -557,14 +557,14 @@ void ADLSearchManager::FinalizeDestinationDirectories(DestDirList& destDirs, Dir
 	// Add non-empty destination directories to the top level
 	for(auto& i: destDirs) {
 		if(i.dir->files.empty() && i.dir->directories.empty()) {
-			root->directories.erase(&i.dir->getName());
 			continue;;
 		} 
 		
 		if(Util::stricmp(i.dir->getName(), szDiscard) == 0) {
-			root->directories.erase(&i.dir->getName());
 			continue;
 		}
+
+		root->directories.emplace(&i.dir->getName(), i.dir);
 	}
 }
 
@@ -596,7 +596,7 @@ void ADLSearchManager::matchRecurse(DestDirList &aDestList, const DirectoryListi
 		matchRecurse(aDestList, dir, tmpPath, aDirList);
 	}
 
-	for(const auto& file: aDir->files) {
+	for (const auto& file: aDir->files) {
 		MatchesFile(aDestList, file, aPath);
 	}
 

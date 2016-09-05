@@ -113,10 +113,13 @@ class ADLSearchManager : public Singleton<ADLSearchManager>
 public:
 	// Destination directory indexing
 	struct DestDir {
-		string name;
-		DirectoryListing::Directory::Ptr dir;
-		DirectoryListing::Directory* subdir;
-		bool fileAdded;
+		DestDir(const string& aName, const DirectoryListing::Directory::Ptr& aDir) :
+			name(aName), dir(aDir) { }
+
+		const string name;
+		DirectoryListing::Directory::Ptr dir = nullptr;
+		DirectoryListing::Directory* subdir = nullptr;
+		bool fileAdded = false;
 	};
 	typedef vector<DestDir> DestDirList;
 

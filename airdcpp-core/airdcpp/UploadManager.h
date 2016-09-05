@@ -28,6 +28,7 @@
 #include "MerkleTree.h"
 #include "Pointer.h"
 #include "Singleton.h"
+#include "Speaker.h"
 #include "StringMatch.h"
 #include "TimerManagerListener.h"
 #include "UploadManagerListener.h"
