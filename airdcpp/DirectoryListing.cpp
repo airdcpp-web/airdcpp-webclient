@@ -429,7 +429,8 @@ DirectoryListing::File::File(const File& rhs, bool _adls) noexcept : name(rhs.na
 
 DirectoryListing::Directory::Ptr DirectoryListing::Directory::create(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool aCheckDupe, const string& aSize, time_t aRemoteDate) {
 	auto dir = Ptr(new Directory(aParent, aName, aType, aUpdateDate, aCheckDupe, aSize, aRemoteDate));
-	if (aParent) {
+	if (aParent && aType != TYPE_ADLS) { // This would cause an infinite recursion in ADL search
+		dcassert(aParent->directories.find(&dir->getName()) == aParent->directories.end());
 		aParent->directories.emplace(&dir->getName(), dir);
 	}
 
@@ -437,10 +438,24 @@ DirectoryListing::Directory::Ptr DirectoryListing::Directory::create(Directory* 
 }
 
 DirectoryListing::AdlDirectory::Ptr DirectoryListing::AdlDirectory::create(const string& aFullPath, Directory* aParent, const string& aName) {
-	auto dir = Ptr(new AdlDirectory(aFullPath, aParent, aName));
-	if (aParent) {
-		aParent->directories.emplace(&dir->getName(), dir);
+	dcassert(aParent);
+
+	auto name = aName;
+	if (aParent->directories.find(&name) != aParent->directories.end()) {
+		// No duplicate file names
+		int num = 0;
+		for (;;) {
+			name = aName + " (" + Util::toString(num++) + ")";
+			if (aParent->directories.find(&name) == aParent->directories.end()) {
+				break;
+			}
+		}
 	}
+
+	auto dir = Ptr(new AdlDirectory(aFullPath, aParent, name));
+
+	dcassert(aParent->directories.find(&dir->getName()) == aParent->directories.end());
+	aParent->directories.emplace(&dir->getName(), dir);
 
 	return dir;
 }

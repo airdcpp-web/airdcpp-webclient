@@ -3879,7 +3879,7 @@ void QueueManager::updatePBD(const HintedUser& aUser, const TTHValue& aTTH) noex
 	addSources(aUser, qiList, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);
 }
 
-void QueueManager::searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSearch, uint64_t aTick) noexcept {
+int QueueManager::searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSearch, uint64_t aTick) noexcept {
 	QueueItemList searchItems;
 	int64_t nextSearch = 0;
 
@@ -3893,13 +3893,13 @@ void QueueManager::searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSear
 			nextSearch = (bundleQueue.recalculateSearchTimes(aBundle->isRecent(), false, aTick) - aTick) / (60*1000);
 
 		if (isScheduled && !aBundle->allowAutoSearch())
-			return;
+			return 0;
 
 		searchItems = bundleQueue.getSearchItems(aBundle);
 	}
 
 	if (searchItems.empty()) {
-		return;
+		return 0;
 	}
 
 	for (const auto& q : searchItems) {
@@ -3920,6 +3920,8 @@ void QueueManager::searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSear
 				" " + STRING_F(NEXT_SEARCH_IN, nextSearch), LogMessage::SEV_INFO);
 		}
 	}
+
+	return static_cast<int>(searchItems.size());
 }
 
 void QueueManager::onUseSeqOrder(BundlePtr& b) noexcept {
