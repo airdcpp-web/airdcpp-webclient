@@ -70,7 +70,10 @@ namespace webserver {
 
 		auto users = MessageManager::getInstance()->getIgnoredUsers();
 		for (const auto& u : users) {
-			j.push_back(Serializer::serializeUser(u));
+			j.push_back({
+				{ "user", Serializer::serializeUser(u.first) },
+				{ "ignored_messages", u.second }
+			});
 		}
 
 		aRequest.setResponseBody(j);
