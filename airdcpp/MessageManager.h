@@ -107,6 +107,7 @@ namespace dcpp {
 
 	public:
 		typedef unordered_map<UserPtr, PrivateChatPtr, User::Hash> ChatMap;
+		typedef unordered_map<UserPtr, int, User::Hash> IgnoreMap;
 
 		MessageManager() noexcept;
 		~MessageManager() noexcept;
@@ -124,10 +125,9 @@ namespace dcpp {
 		//IGNORE
 		typedef unordered_set<UserPtr, User::Hash> UserSet;
 
-		UserSet getIgnoredUsers() const noexcept;
-		void storeIgnore(const UserPtr& aUser);
-		void removeIgnore(const UserPtr& aUser);
-		bool isIgnored(const UserPtr& aUser);
+		IgnoreMap getIgnoredUsers() const noexcept;
+		bool storeIgnore(const UserPtr& aUser) noexcept;
+		bool removeIgnore(const UserPtr& aUser) noexcept;
 		bool isIgnoredOrFiltered(const ChatMessagePtr& msg, Client* aClient, bool PM);
 
 		// chat filter
@@ -146,8 +146,8 @@ namespace dcpp {
 		UserConnection* getPMConn(const UserPtr& user); //LOCK usage!!
 
 		//IGNORE
-		mutable SharedMutex Ignorecs;
-		UserSet ignoredUsers;
+		IgnoreMap ignoredUsers;
+		bool checkIgnored(const OnlineUserPtr& aUser) noexcept;
 
 		// save & load
 		void load(SimpleXML& aXml);

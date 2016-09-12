@@ -1013,6 +1013,7 @@ enum Strings { // @DontAdd
 	PLAIN_TEXT, // "Plain text"
 	PLAY, // "Play"
 	PM, // " PM"
+	PM_IGNORE_INFO, // "Note: you will continue receiving messages from this ignored user as long as there is an open chat session"
 	PM_MAGNET_SHARED_WARNING, // "The download destination %1% is a shared directory. Files sent in private chat may contain sensitive information that you or the sender don't want to be made available for other user.\r\n\r\nDo you want to use this destination anyway?"
 	PM_MESSAGE_FILTERED, // "Private chat message filtered from user: "
 	PM_MESSAGE_IGNORED, // "Private chat message from ignored user: "
