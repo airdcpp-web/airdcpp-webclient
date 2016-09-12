@@ -45,12 +45,20 @@ PrivateChat::PrivateChat(const HintedUser& aUser, UserConnection* aUc) :
 	if (!lastLogLines.empty()) {
 		cache.addMessage(std::make_shared<LogMessage>(lastLogLines, LogMessage::SEV_INFO, true));
 	}
+
+	checkIgnored();
 }
 
 PrivateChat::~PrivateChat() {
 	ClientManager::getInstance()->removeListener(this);
 	if (uc)
 		uc->removeListener(this);
+}
+
+void PrivateChat::checkIgnored() noexcept {
+	if (replyTo.user->isIgnored()) {
+		statusMessage(STRING(PM_IGNORE_INFO), LogMessage::SEV_INFO);
+	}
 }
 
 void PrivateChat::checkCCPMHubBlocked() noexcept {
