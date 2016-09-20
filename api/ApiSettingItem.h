@@ -103,6 +103,7 @@ namespace webserver {
 		void unset() noexcept override;
 
 		int num();
+		uint64_t uint64();
 		string str();
 
 		bool isDefault() const noexcept;
