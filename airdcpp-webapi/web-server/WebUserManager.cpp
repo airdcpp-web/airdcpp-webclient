@@ -115,7 +115,7 @@ namespace webserver {
 		{
 			RLock l(cs);
 			boost::algorithm::copy_if(sessionsLocalId | map_values, back_inserter(removedSession), [=](const SessionPtr& s) {
-				return s->getLastActivity() + s->getMaxInactivity() < tick;
+				return s->getMaxInactivity() > 0 && s->getLastActivity() + s->getMaxInactivity() < tick;
 			});
 		}
 

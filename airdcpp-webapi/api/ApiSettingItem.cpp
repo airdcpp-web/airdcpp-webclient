@@ -96,6 +96,10 @@ namespace webserver {
 		return value.get<int>();
 	}
 
+	uint64_t ServerSettingItem::uint64() {
+		return value.get<uint64_t>();
+	}
+
 	string ServerSettingItem::str() {
 		if (value.is_number()) {
 			return Util::toString(num());
