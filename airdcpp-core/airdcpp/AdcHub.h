@@ -37,26 +37,23 @@ public:
 	using Client::send;
 	using Client::connect;
 
-	int connect(const OnlineUser& aUser, const string& aToken, string& lastError_) noexcept;
-	void connect(const OnlineUser& aUser, const string& aToken, bool aSecure, bool aReplyingRCM = false) noexcept;
+	int connect(const OnlineUser& aUser, const string& aToken, string& lastError_) noexcept override;
 	
-	bool hubMessage(const string& aMessage, string& error_, bool thirdPerson = false) noexcept;
-	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept;
-	void sendUserCmd(const UserCommand& command, const ParamMap& params);
-	void search(const SearchPtr& aSearch) noexcept;
-	void directSearch(const OnlineUser& user, const SearchPtr& aSearch) noexcept;
-	void password(const string& pwd) noexcept;
-	void infoImpl() noexcept;
-	void refreshUserList(bool) noexcept;
+	bool hubMessage(const string& aMessage, string& error_, bool thirdPerson = false) noexcept override;
+	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept override;
+	void sendUserCmd(const UserCommand& command, const ParamMap& params) override;
+	void search(const SearchPtr& aSearch) noexcept override;
+	void directSearch(const OnlineUser& user, const SearchPtr& aSearch) noexcept override;
+	void password(const string& pwd) noexcept override;
+	void infoImpl() noexcept override;
+	void refreshUserList(bool) noexcept override;
 
-	void constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDirect) noexcept;
-
-	size_t getUserCount() const noexcept;
+	size_t getUserCount() const noexcept override;
 
 	static string escape(const string& str) noexcept { return AdcCommand::escape(str, false); }
-	bool send(const AdcCommand& cmd);
+	bool send(const AdcCommand& cmd) override;
 
-	string getMySID() { return AdcCommand::fromSID(sid); }
+	string getMySID() const noexcept { return AdcCommand::fromSID(sid); }
 
 	static const vector<StringList>& getSearchExts() noexcept;
 	static StringList parseSearchExts(int flag) noexcept;
@@ -94,7 +91,9 @@ private:
 	/** Map session id to OnlineUser */
 	typedef unordered_map<uint32_t, OnlineUser*> SIDMap;
 
-	void getUserList(OnlineUserList& list, bool aListHidden) const noexcept;
+	void getUserList(OnlineUserList& list, bool aListHidden) const noexcept override;
+
+	void connect(const OnlineUser& aUser, const string& aToken, bool aSecure, bool aReplyingRCM = false) noexcept;
 
 	/* Checks if we are allowed to connect to the user */
 	AdcCommand::Error allowConnect(const OnlineUser& aUser, bool aSecure, string& failedProtocol_, bool checkBase) const noexcept;
@@ -114,18 +113,18 @@ private:
 
 	static const vector<StringList> searchExtensions;
 
-	string checkNick(const string& nick) noexcept;
+	string checkNick(const string& nick) noexcept override;
 
 	OnlineUser& getUser(const uint32_t aSID, const CID& aCID) noexcept;
 	OnlineUser* findUser(const uint32_t aSID) const noexcept;
 	OnlineUser* findUser(const CID& cid) const noexcept;
 	
-	OnlineUserPtr findUser(const string& aNick) const noexcept;
+	OnlineUserPtr findUser(const string& aNick) const noexcept override;
 
 	void putUser(const uint32_t aSID, bool disconnect) noexcept;
 
-	void shutdown(ClientPtr& aClient, bool aRedirect);
-	void clearUsers() noexcept;
+	void shutdown(ClientPtr& aClient, bool aRedirect) override;
+	void clearUsers() noexcept override;
 	void appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6) const noexcept;
 
 	void handle(AdcCommand::SUP, AdcCommand& c) noexcept;
@@ -152,15 +151,16 @@ private:
 
 	template<typename T> void handle(T, AdcCommand&) { }
 
+	void constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDirect) noexcept;
 	void sendSearch(AdcCommand& c);
 	void sendUDP(const AdcCommand& cmd) noexcept;
 
-	virtual bool v4only() const noexcept { return false; }
-	void on(Connected) noexcept;
-	void on(Line, const string& aLine) noexcept;
-	void on(Failed, const string& aLine) noexcept;
+	bool v4only() const noexcept override { return false; }
+	void on(BufferedSocketListener::Connected) noexcept;
+	void on(BufferedSocketListener::Line, const string& aLine) noexcept;
+	void on(BufferedSocketListener::Failed, const string& aLine) noexcept;
 
-	void on(Second, uint64_t aTick) noexcept;
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 
 	bool supportsHBRI = false;
 	unique_ptr<std::thread> hbriThread;

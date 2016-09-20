@@ -50,23 +50,21 @@ public:
 
 	virtual ~SSLSocket() { verifyData.reset(); }
 
-	virtual uint16_t accept(const Socket& listeningSocket);
-	virtual void connect(const Socket::AddressInfo& aIp, const string& aPort);
-	virtual int read(void* aBuffer, int aBufLen);
-	virtual int write(const void* aBuffer, int aLen);
-	virtual std::pair<bool, bool> wait(uint64_t millis, bool checkRead, bool checkWrite);
-	virtual void shutdown() noexcept;
-	virtual void close() noexcept;
+	virtual int read(void* aBuffer, int aBufLen) override;
+	virtual int write(const void* aBuffer, int aLen) override;
+	virtual std::pair<bool, bool> wait(uint64_t millis, bool checkRead, bool checkWrite) override;
+	virtual void shutdown() noexcept override;
+	virtual void close() noexcept override;
 
-	virtual bool isSecure() const noexcept { return true; }
-	virtual bool isTrusted() const noexcept;
-	virtual bool isKeyprintMatch() const noexcept;
-	virtual string getEncryptionInfo() const noexcept;
-	virtual ByteVector getKeyprint() const noexcept;
-	virtual bool verifyKeyprint(const string& expKeyp, bool allowUntrusted) noexcept;
+	virtual bool isSecure() const noexcept override { return true; }
+	virtual bool isTrusted() const noexcept override;
+	virtual bool isKeyprintMatch() const noexcept override;
+	virtual string getEncryptionInfo() const noexcept override;
+	virtual ByteVector getKeyprint() const noexcept override;
+	virtual bool verifyKeyprint(const string& expKeyp, bool allowUntrusted) noexcept override;
 
-	virtual bool waitConnected(uint64_t millis);
-	virtual bool waitAccepted(uint64_t millis);
+	virtual bool waitConnected(uint64_t millis) override;
+	virtual bool waitAccepted(uint64_t millis) override;
 
 private:
 

@@ -151,7 +151,7 @@ public:
 	 * @param aPort Server port.
 	 * @throw SocketException If any connection error occurs.
 	 */
-	virtual void connect(const AddressInfo& aAddr, const string& aPort, const string& localPort = Util::emptyString);
+	virtual void connect(const AddressInfo& aAddr, const string& aPort, const string& aLocalPort = Util::emptyString);
 	void connect(const AddressInfo& aAddr, uint16_t aPort, uint16_t localPort = 0) { connect(aAddr, aPort == 0 ? Util::emptyString : Util::toString(aPort), localPort == 0 ? Util::emptyString : Util::toString(localPort)); }
 
 	/**

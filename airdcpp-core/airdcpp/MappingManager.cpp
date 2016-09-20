@@ -30,7 +30,7 @@
 #include "Mapper_NATPMP.h"
 #endif
 
-#ifdef HAVE_WINUPNP_H
+#ifdef WIN32
 #include "Mapper_WinUPnP.h"
 #endif
 
@@ -50,7 +50,7 @@ MappingManager::MappingManager(bool v6) : renewal(0), v6(v6) {
 		addMapper<Mapper_NATPMP>();
 #endif
 
-#ifdef HAVE_WINUPNP_H
+#ifdef WIN32
 		addMapper<Mapper_WinUPnP>();
 #endif
 	}
