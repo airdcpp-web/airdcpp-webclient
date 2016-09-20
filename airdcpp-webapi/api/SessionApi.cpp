@@ -47,15 +47,9 @@ namespace webserver {
 	}
 
 	api_return SessionApi::handleActivity(ApiRequest& aRequest) {
-		auto s = aRequest.getSession();
-		if (!s) {
-			aRequest.setResponseErrorStr("Not authorized");
-			return websocketpp::http::status_code::unauthorized;
-		}
-
-		if (!s->isUserSession()) {
-			aRequest.setResponseErrorStr("Activity can only be updated for user sessions");
-			return websocketpp::http::status_code::bad_request;
+		if (!aRequest.getSession()->isUserSession()) {
+			// This can be used to prevent the session from expiring
+			return websocketpp::http::status_code::ok;
 		}
 
 		ActivityManager::getInstance()->updateActivity();
@@ -63,13 +57,7 @@ namespace webserver {
 	}
 
 	api_return SessionApi::handleLogout(ApiRequest& aRequest) {
-		if (!aRequest.getSession()) {
-			aRequest.setResponseErrorStr("Not authorized");
-			return websocketpp::http::status_code::unauthorized;
-		}
-
 		WebServerManager::getInstance()->logout(aRequest.getSession()->getId());
-
 		return websocketpp::http::status_code::ok;
 	}
 
