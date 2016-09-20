@@ -156,11 +156,11 @@ private:
 	void sendUDP(const AdcCommand& cmd) noexcept;
 
 	bool v4only() const noexcept override { return false; }
-	void on(BufferedSocketListener::Connected) noexcept;
-	void on(BufferedSocketListener::Line, const string& aLine) noexcept;
-	void on(BufferedSocketListener::Failed, const string& aLine) noexcept;
+	void on(BufferedSocketListener::Connected) noexcept override;
+	void on(BufferedSocketListener::Line, const string& aLine) noexcept override;
+	void on(BufferedSocketListener::Failed, const string& aLine) noexcept override;
 
-	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
 
 	bool supportsHBRI = false;
 	unique_ptr<std::thread> hbriThread;

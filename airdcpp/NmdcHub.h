@@ -113,12 +113,12 @@ private:
 	virtual bool v4only() const noexcept override { return true; }
 
 	// TimerManagerListener
-	virtual void on(Second, uint64_t aTick) noexcept;
-	virtual void on(Minute, uint64_t aTick) noexcept;
+	virtual void on(Second, uint64_t aTick) noexcept override;
+	virtual void on(Minute, uint64_t aTick) noexcept override;
 
-	void on(Connected) noexcept;
-	void on(Line, const string& l) noexcept;
-	void on(Failed, const string&) noexcept;
+	void on(Connected) noexcept override;
+	void on(Line, const string& l) noexcept override;
+	void on(Failed, const string&) noexcept override;
 };
 
 } // namespace dcpp
