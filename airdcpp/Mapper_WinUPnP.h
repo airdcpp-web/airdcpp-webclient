@@ -51,7 +51,7 @@ private:
 
 	// this one can become invalid so we can't cache it
 	IStaticPortMappingCollection* getStaticPortMappingCollection();
-#ifdef HAVE_WINUPNP_H
+#ifdef WIN32
 	IUPnPNAT* pUN = 0;
 
 	// need to save these to get the external IP...

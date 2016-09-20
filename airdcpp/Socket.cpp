@@ -350,18 +350,18 @@ string Socket::listen(const string& port) {
 	return Util::toString(ntohs(ret));
 }
 
-void Socket::connect(const AddressInfo& aAddr, const string& aPort, const string& localPort) {
+void Socket::connect(const AddressInfo& aAddr, const string& aPort, const string& aLocalPort) {
 	disconnect();
 
 	// We try to connect to both IPv4 and IPv6 if available
 	string lastError;
 
 	if (aAddr.hasV6CompatibleAddress()) {
-		connect(aAddr.getV6CompatibleAddress(), aPort, localPort, lastError);
+		connect(aAddr.getV6CompatibleAddress(), aPort, aLocalPort, lastError);
 	}
 
 	if (aAddr.hasV4CompatibleAddress() && aAddr.getType() != AddressInfo::TYPE_URL) {
-		connect(aAddr.getV4CompatibleAddress(), aPort, localPort, lastError);
+		connect(aAddr.getV4CompatibleAddress(), aPort, aLocalPort, lastError);
 	}
 
 	// IP should be set if at least one connection attempt succeed
@@ -369,7 +369,7 @@ void Socket::connect(const AddressInfo& aAddr, const string& aPort, const string
 		throw SocketException(lastError);
 }
 
-void Socket::connect(const string& aAddr, const string& aPort, const string& localPort, string& lastError_) {
+void Socket::connect(const string& aAddr, const string& aPort, const string& aLocalPort, string& lastError_) {
 	auto addr = resolveAddr(aAddr, aPort);
 	for (auto ai = addr.get(); ai; ai = ai->ai_next) {
 		if ((ai->ai_family == AF_INET && !sock4.valid()) ||
@@ -379,8 +379,8 @@ void Socket::connect(const string& aAddr, const string& aPort, const string& loc
 				auto sock = create(*ai);
 				auto &localIp = ai->ai_family == AF_INET ? getLocalIp4() : getLocalIp6();
 
-				if (!localPort.empty() || !localIp.empty()) {
-					auto local = resolveAddr(localIp, localPort, ai->ai_family);
+				if (!aLocalPort.empty() || !localIp.empty()) {
+					auto local = resolveAddr(localIp, aLocalPort, ai->ai_family);
 					check([&] { return ::bind(sock, local->ai_addr, local->ai_addrlen); });
 				}
 

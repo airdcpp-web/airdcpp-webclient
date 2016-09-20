@@ -717,12 +717,12 @@ string Util::formatTime(int64_t aSec, bool translate, bool perMinute) noexcept {
 	n = aSec / (60);
 	aSec %= (60);
 	if(n || perMinute) {
-		appendTime(STRING(MINUTE), "min", STRING(MINUTES), "min");
+		appendTime(STRING(MINUTE), "min", STRING(MINUTES_LOWER), "min");
 	}
 
 	n = aSec;
 	if(++i <= 3 && !perMinute) {
-		appendTime(STRING(SECOND), "sec", STRING(SECONDS), "sec");
+		appendTime(STRING(SECOND), "sec", STRING(SECONDS_LOWER), "sec");
 	}
 
 	return (!formatedTime.empty() ? formatedTime.erase(formatedTime.size()-1) : formatedTime);
