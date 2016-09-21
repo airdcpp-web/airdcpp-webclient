@@ -86,6 +86,14 @@ namespace webserver {
 		auto token = aRequest.get_header("Authorization");
 		if (token != websocketpp::http::empty_header) {
 			session = WebServerManager::getInstance()->getUserManager().getSession(token);
+			if (!session) {
+				// Don't let invalid Authorization tokens through
+				error_ = {
+					{ "message", "Invalid Authorization token (session expired?)" }
+				};
+
+				return websocketpp::http::status_code::unauthorized;
+			}
 		}
 
 		auto& requestBody = aRequest.get_body();
