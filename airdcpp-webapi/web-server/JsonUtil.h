@@ -78,31 +78,20 @@ namespace webserver {
 
 		// Returns raw JSON value and throws if the field is missing
 		template <typename JsonT>
-		static json getRawValue(const string& aFieldName, const JsonT& aJson, bool aAllowEmpty) {
-			if (aJson.is_null()) {
-				if (aAllowEmpty) {
-					return json();
-				}
+		static json getRawField(const string& aFieldName, const JsonT& aJson) {
+			return getRawValue<JsonT>(aFieldName, aJson, true);
+		}
 
-				throwError(aFieldName, ERROR_MISSING, "JSON null");
-			}
-
-			auto p = aJson.find(aFieldName);
-			if (p == aJson.end()) {
-				if (aAllowEmpty) {
-					return json();
-				}
-
-				throwError(aFieldName, ERROR_MISSING, "Field missing");
-			}
-
-			return *p;
+		// Returns raw JSON value and returns null JSON if the field is missing
+		template <typename JsonT>
+		static json getOptionalRawField(const string& aFieldName, const JsonT& aJson) {
+			return getRawValue<JsonT>(aFieldName, aJson, false);
 		}
 
 		// Find and parse the given field. Throws if not found.
 		template <typename T, typename JsonT>
 		static T getField(const string& aFieldName, const JsonT& aJson, bool aAllowEmpty = true) {
-			return parseValue<T>(aFieldName, getRawValue(aFieldName, aJson, aAllowEmpty), aAllowEmpty);
+			return parseValue<T>(aFieldName, getRawValue(aFieldName, aJson, true), aAllowEmpty);
 		}
 
 		// Get value from the given JSON element
@@ -143,6 +132,29 @@ namespace webserver {
 		// Throws if the value types of the supplied JSON objects don't match
 		static void ensureType(const string& aFieldName, const json& aNew, const json& aExisting);
 	private:
+		// Returns raw JSON value and optionally throws
+		template <typename JsonT>
+		static json getRawValue(const string& aFieldName, const JsonT& aJson, bool aThrowIfMissing) {
+			if (aJson.is_null()) {
+				if (!aThrowIfMissing) {
+					return json();
+				}
+
+				throwError(aFieldName, ERROR_MISSING, "JSON null");
+			}
+
+			auto p = aJson.find(aFieldName);
+			if (p == aJson.end()) {
+				if (!aThrowIfMissing) {
+					return json();
+				}
+
+				throwError(aFieldName, ERROR_MISSING, "Field missing");
+			}
+
+			return *p;
+		}
+
 		template <class T>
 		static bool isEmpty(const typename std::enable_if<std::is_same<std::string, T>::value, T>::type& aStr) {
 			return aStr.empty();

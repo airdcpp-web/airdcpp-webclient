@@ -447,16 +447,15 @@ HintedUser ClientManager::findLegacyUser(const string& nick) const noexcept {
 
 	RLock l(cs);
 
-	for(auto i: clients | map_values) {
+	for (const auto& i: clients | map_values) {
 		if (!AirUtil::isAdcHub(i->getHubUrl())) {
-			auto nmdc = static_cast<NmdcHub*>(i.get());
-			//if(nmdc) {
+			auto nmdcHub = static_cast<NmdcHub*>(i.get());
+
 			/** @todo run the search directly on non-UTF-8 nicks when we store them. */
-			auto ou = nmdc->findUser(nmdc->toUtf8(nick));
+			auto ou = nmdcHub->findUser(nmdcHub->toUtf8(nick));
 			if(ou) {
-				return HintedUser(*ou);
+				return HintedUser(ou->getUser(), ou->getHubUrl());
 			}
-			//}
 		}
 	}
 
@@ -556,12 +555,16 @@ void ClientManager::putOnline(OnlineUser* ou) noexcept {
 	}
 	
 	if(!ou->getUser()->isOnline()) {
+		// User came online
 		ou->getUser()->setFlag(User::ONLINE);
+
 		{
 			WLock l(cs);
-			//user came online, remove him from offlineUsers list.
-			updateUser(*ou, false);
+			auto i = offlineUsers.find(const_cast<CID*>(&ou->getUser()->getCID()));
+			if (i != offlineUsers.end())
+				offlineUsers.erase(i);
 		}
+
 		fire(ClientManagerListener::UserConnected(), *ou, true);
 	} else {
 		fire(ClientManagerListener::UserConnected(), *ou, false);
@@ -582,10 +585,12 @@ void ClientManager::putOffline(OnlineUser* ou, bool disconnect) noexcept {
 				/*
 				User went offline, cache his information in offlineUsers map.
 				This needs to be done inside the same WLock that removes the onlineUser, 
-				so we ensure that we should allways find the user in atleast one of the lists.
+				so we ensure that we should always find the user in atleast one of the lists.
 				*/
-				if (diff == 1) 
-					updateUser(*ou, true);
+				if (diff == 1) {
+					addOfflineUser(ou->getUser(), ou->getIdentity().getNick(), ou->getHubUrl());
+				}
+
 				onlineUsers.erase(i);
 				break;
 			}
@@ -877,6 +882,16 @@ void ClientManager::infoUpdated() noexcept {
 		if(c->isConnected()) {
 			c->info();
 		}
+	}
+}
+
+void ClientManager::userUpdated(const UserPtr& aUser) const noexcept {
+	RLock l(cs);
+	auto op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID())) | map_values;
+	for (const auto& ou : op) {
+		ou->getClient()->callAsync([=] {
+			ou->getClient()->updated(ou);
+		});
 	}
 }
 
@@ -1225,17 +1240,6 @@ CID ClientManager::getMyCID() noexcept {
 	return CID(tiger.finalize());
 }
 
-void ClientManager::updateUser(const OnlineUser& user, bool wentOffline) noexcept {
-	if (wentOffline)
-		addOfflineUser(user.getUser(), user.getIdentity().getNick(), user.getHubUrl());
-	else {
-		//user came online
-		auto i = offlineUsers.find(const_cast<CID*>(&user.getUser()->getCID()));
-		if (i != offlineUsers.end())
-			offlineUsers.erase(i);
-	}
-}
-
 void ClientManager::addOfflineUser(const UserPtr& user, const string& nick, const string& url, uint32_t lastSeen/*GET_TIME()*/) noexcept{
 	offlineUsers.emplace(const_cast<CID*>(&user->getCID()), OfflineUser(nick, url, lastSeen));
 }
@@ -1268,9 +1272,8 @@ void ClientManager::on(UserUpdated, const Client*, const OnlineUserPtr& user) no
 }
 
 void ClientManager::on(UsersUpdated, const Client*, const OnlineUserList& l) noexcept {
-	for(auto i = l.begin(), iend = l.end(); i != iend; ++i) {
-		//updateUser(**i);
-		fire(ClientManagerListener::UserUpdated(), *(*i)); 
+	for (const auto& ou: l) {
+		fire(ClientManagerListener::UserUpdated(), *ou); 
 	}
 }
 

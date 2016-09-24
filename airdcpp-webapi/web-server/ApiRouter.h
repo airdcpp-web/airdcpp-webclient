@@ -21,8 +21,6 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/SessionApi.h>
-
 #include <airdcpp/typedefs.h>
 
 namespace webserver {
@@ -37,9 +35,7 @@ namespace webserver {
 	private:
 		api_return handleRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) noexcept;
 
-		api_return handleSessionRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp);
-
-		SessionApi sessionApi;
+		api_return routeAuthRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp);
 	};
 }
 

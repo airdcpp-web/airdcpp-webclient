@@ -38,6 +38,9 @@ namespace webserver {
 			TLS_CERT_KEY_PATH,
 
 			SERVER_THREADS,
+			DEFAULT_SESSION_IDLE_TIMEOUT,
+			PING_INTERVAL,
+			PING_TIMEOUT,
 		};
 
 		// Initialized in WebServerManager

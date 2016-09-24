@@ -47,22 +47,15 @@ namespace webserver {
 		api_return handleRemoveSource(ApiRequest& aRequest);
 
 		api_return handleRemoveBundle(ApiRequest& aRequest);
-		//api_return handleRemoveTempItem(ApiRequest& aRequest);
-		//api_return handleRemoveFileList(ApiRequest& aRequest);
 		api_return handleRemoveTarget(ApiRequest& aRequest);
 
 		api_return handleGetBundles(ApiRequest& aRequest);
 		api_return handleRemoveFinishedBundles(ApiRequest& aRequest);
 		api_return handleBundlePriorities(ApiRequest& aRequest);
 
-		//api_return handleGetFilelist(ApiRequest& aRequest);
-		//api_return handleGetTempItem(ApiRequest& aRequest);
 		api_return handleGetFile(ApiRequest& aRequest);
-
 		api_return handleGetBundle(ApiRequest& aRequest);
 
-		//api_return handleAddFilelist(ApiRequest& aRequest);
-		//api_return handleAddTempItem(ApiRequest& aRequest);
 		api_return handleAddDirectoryBundle(ApiRequest& aRequest);
 		api_return handleAddFileBundle(ApiRequest& aRequest);
 
@@ -80,8 +73,6 @@ namespace webserver {
 		// Throws if the bundle is not found
 		BundlePtr getBundle(ApiRequest& aRequest);
 		QueueItemPtr getFile(ApiRequest& aRequest);
-		//api_return handleUpdateTempItem(ApiRequest& aRequest);
-		//api_return handleUpdateFileList(ApiRequest& aRequest);
 
 		//bundle update listeners
 		void on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept;
@@ -109,6 +100,9 @@ namespace webserver {
 
 		typedef ListViewController<QueueItemPtr, QueueFileUtils::PROP_LAST> FileListView;
 		FileListView fileView;
+
+		static BundleList getBundleList() noexcept;
+		static QueueItemList getFileList() noexcept;
 	};
 }
 

@@ -36,7 +36,7 @@ namespace webserver {
 		{ "download_speed", SettingsManager::DOWNLOAD_SPEED, ResourceManager::SETCZDC_DOWNLOAD_SPEED, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MBITS, false } },
 
 		{ "away_message", SettingsManager::DEFAULT_AWAY_MESSAGE, ResourceManager::SETTINGS_DEFAULT_AWAY_MSG, ApiSettingItem::TYPE_LONG_TEXT },
-		{ "away_idle_time", SettingsManager::AWAY_IDLE_TIME, ResourceManager::AWAY_IDLE_TIME_BEGIN, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MINUTES, false } },
+		{ "away_idle_time", SettingsManager::AWAY_IDLE_TIME, ResourceManager::AWAY_IDLE_TIME_BEGIN, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MINUTES_LOWER, false } },
 		{ "away_no_bots", SettingsManager::NO_AWAYMSG_TO_BOTS, ResourceManager::SETTINGS_NO_AWAYMSG_TO_BOTS },
 
 		//{ ResourceManager::SETTINGS_DOWNLOADS },
@@ -138,8 +138,8 @@ namespace webserver {
 		{ "max_volume_hashers", SettingsManager::HASHERS_PER_VOLUME, ResourceManager::MAX_VOL_HASHERS },
 
 		//{ ResourceManager::REFRESH_OPTIONS },
-		{ "refresh_time", SettingsManager::AUTO_REFRESH_TIME, ResourceManager::SETTINGS_AUTO_REFRESH_TIME, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MINUTES, false } },
-		{ "refresh_time_incoming", SettingsManager::INCOMING_REFRESH_TIME, ResourceManager::SETTINGS_INCOMING_REFRESH_TIME, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MINUTES, false } },
+		{ "refresh_time", SettingsManager::AUTO_REFRESH_TIME, ResourceManager::SETTINGS_AUTO_REFRESH_TIME, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MINUTES_LOWER, false } },
+		{ "refresh_time_incoming", SettingsManager::INCOMING_REFRESH_TIME, ResourceManager::SETTINGS_INCOMING_REFRESH_TIME, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MINUTES_LOWER, false } },
 		{ "refresh_startup", SettingsManager::STARTUP_REFRESH, ResourceManager::SETTINGS_STARTUP_REFRESH },
 		{ "refresh_threading", SettingsManager::REFRESH_THREADING, ResourceManager::MULTITHREADED_REFRESH },
 

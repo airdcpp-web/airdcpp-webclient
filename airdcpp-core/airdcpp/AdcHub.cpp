@@ -70,7 +70,8 @@ const string AdcHub::CCPM_FEATURE("CCPM");
 const vector<StringList> AdcHub::searchExtensions;
 
 AdcHub::AdcHub(const string& aHubURL, const ClientPtr& aOldClient) :
-	Client(aHubURL, '\n', aOldClient), oldPassword(false), udp(Socket::TYPE_UDP), sid(0) {
+	Client(aHubURL, '\n', aOldClient), udp(Socket::TYPE_UDP) {
+
 	TimerManager::getInstance()->addListener(this);
 }
 
@@ -89,8 +90,7 @@ void AdcHub::shutdown(ClientPtr& aClient, bool aRedirect) {
 }
 
 size_t AdcHub::getUserCount() const noexcept { 
-	RLock l(cs); 
-	//return users.size();
+	RLock l(cs);
 	size_t userCount = 0;
 	for(const auto& u: users | map_values) {
 		if(!u->isHidden()) {
@@ -101,7 +101,7 @@ size_t AdcHub::getUserCount() const noexcept {
 }
 
 OnlineUser& AdcHub::getUser(const uint32_t aSID, const CID& aCID) noexcept {
-	OnlineUser* ou = findUser(aSID);
+	auto ou = findUser(aSID);
 	if(ou) {
 		return *ou;
 	}
@@ -115,8 +115,10 @@ OnlineUser& AdcHub::getUser(const uint32_t aSID, const CID& aCID) noexcept {
 		ou->inc();
 	}
 
-	if(aSID != AdcCommand::HUB_SID)
+	if (aSID != AdcCommand::HUB_SID) {
 		ClientManager::getInstance()->putOnline(ou);
+	}
+
 	return *ou;
 }
 
@@ -180,7 +182,7 @@ void AdcHub::clearUsers() noexcept {
 		availableBytes = 0;
 	}
 
-	for(auto& i: tmp) {
+	for (const auto& i: tmp) {
 		if(i.first != AdcCommand::HUB_SID)
 			ClientManager::getInstance()->putOffline(i.second, false);
 		i.second->dec();
@@ -277,7 +279,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 				statusMessage("WARNING: This hub is not displaying the connection speed fields, which prevents the client from choosing the best sources for downloads. Please advise the hub owner to fix this.", LogMessage::SEV_WARNING);
 			}
 
-			if (isSecure()) {
+			if (isSocketSecure()) {
 				auto encryption = getEncryptionInfo();
 				if (encryption.find("TLSv1.2") == string::npos) {
 					statusMessage("This hub uses an outdated cryptographic protocol that has known security issues", LogMessage::SEV_WARNING);
@@ -291,9 +293,13 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 			fire(ClientListener::HubUpdated(), this);
 
 			OnlineUserList ouList;
-			boost::algorithm::copy_if(users | map_values, back_inserter(ouList), [this](OnlineUser* ou) { 
-				return ou->getIdentity().getConnectMode() != Identity::MODE_ME && ou->getIdentity().updateConnectMode(getMyIdentity(), this);
-			});
+
+			{
+				RLock l(cs);
+				boost::algorithm::copy_if(users | map_values, back_inserter(ouList), [this](OnlineUser* ou) {
+					return ou->getIdentity().getConnectMode() != Identity::MODE_ME && ou->getIdentity().updateConnectMode(getMyIdentity(), this);
+				});
+			}
 
 			fire(ClientListener::UsersUpdated(), this, ouList);
 		}
@@ -885,7 +891,7 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 	hbriCmd.addParam("TO", aToken);
 	try {
 		// Create the socket
-		unique_ptr<Socket> hbri(isSecure() ? (new SSLSocket(CryptoManager::SSL_CLIENT, SETTING(ALLOW_UNTRUSTED_HUBS), Util::emptyString)) : new Socket(Socket::TYPE_TCP));
+		unique_ptr<Socket> hbri(isSocketSecure() ? (new SSLSocket(CryptoManager::SSL_CLIENT, SETTING(ALLOW_UNTRUSTED_HUBS), Util::emptyString)) : new Socket(Socket::TYPE_TCP));
 		if (v6) {
 			hbri->setLocalIp6(SETTING(BIND_ADDRESS6));
 			hbri->setV4only(false);
@@ -1383,7 +1389,7 @@ static void addParam(StringMap& lastInfoMap, AdcCommand& c, const string& var, c
 	}
 }
 
-void AdcHub::appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6) noexcept {
+void AdcHub::appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6) const noexcept {
 	if (v4) {
 		if(CONNSETTING(NO_IP_OVERRIDE) && !getUserIp4().empty()) {
 			addParam(aLastInfoMap, c, "I4", Socket::resolve(getUserIp4(), AF_INET));
@@ -1514,12 +1520,15 @@ void AdcHub::infoImpl() noexcept {
 void AdcHub::refreshUserList(bool) noexcept {
 	OnlineUserList v;
 
-	RLock l(cs);
-	for(const auto& i: users) {
-		if(i.first != AdcCommand::HUB_SID) {
-			v.push_back(i.second);
+	{
+		RLock l(cs);
+		for (const auto& i : users) {
+			if (i.first != AdcCommand::HUB_SID) {
+				v.push_back(i.second);
+			}
 		}
 	}
+
 	fire(ClientListener::UsersUpdated(), this, v);
 }
 

@@ -163,6 +163,16 @@ namespace webserver {
 			}
 		} else if (request.find("/build") != 0 && request != "/favicon.ico") {
 			// Forward all requests for non-static files to index
+			// (but try to report API requests or other downloads with an invalid path)
+
+			if (aRequest.get_header("Accept").find("text/html") == string::npos) {
+				if (aRequest.get_header("Content-Type") == "application/json") {
+					throw std::domain_error("File server won't serve JSON files. Did you mean \"/api" + aResource + "\" instead?");
+				}
+
+				throw std::domain_error("Invalid file path (or use \"Accept: text/html\" if you want index.html)");
+			}
+
 			request = "index.html";
 		}
 

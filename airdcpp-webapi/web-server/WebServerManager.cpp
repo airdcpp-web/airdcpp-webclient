@@ -32,8 +32,6 @@
 #define CONFIG_DIR Util::PATH_USER_CONFIG
 
 #define AUTHENTICATION_TIMEOUT 60 // seconds
-#define PING_INTERVAL 30 // seconds
-#define PONG_TIMEOUT 10 // seconds
 
 #define HANDSHAKE_TIMEOUT 0 // disabled, affects HTTP downloads
 
@@ -49,6 +47,10 @@ namespace webserver {
 		{ "web_tls_certificate_key_path", "Certificate key path", "", ApiSettingItem::TYPE_FILE_PATH },
 
 		{ "web_server_threads", "Server threads", 4 },
+
+		{ "default_idle_timeout", "Default session inactivity timeout", 20, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MINUTES_LOWER, false } },
+		{ "ping_interval", "Socket ping interval", 30, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::SECONDS_LOWER, false } },
+		{ "ping_timeout", "Socket ping timeout", 10, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::SECONDS_LOWER, false } },
 	};
 
 	using namespace dcpp;
@@ -128,7 +130,7 @@ namespace webserver {
 
 		aEndpoint.set_open_handshake_timeout(HANDSHAKE_TIMEOUT);
 
-		aEndpoint.set_pong_timeout(PONG_TIMEOUT * 1000);
+		aEndpoint.set_pong_timeout(WEBCFG(PING_TIMEOUT).num() * 1000);
 		aEndpoint.set_pong_timeout_handler(std::bind(&WebServerManager::onPongTimeout, aServer, _1, _2));
 
 		// Workaround for https://github.com/zaphoyd/websocketpp/issues/549
@@ -236,7 +238,7 @@ namespace webserver {
 			worker_threads.create_thread(boost::bind(&boost::asio::io_service::run, &ios));
 		}
 
-		socketTimer = addTimer([this] { pingTimer(); }, PING_INTERVAL * 1000);
+		socketTimer = addTimer([this] { pingTimer(); }, WEBCFG(PING_INTERVAL).num() * 1000);
 		socketTimer->start(false);
 
 		fire(WebServerManagerListener::Started());

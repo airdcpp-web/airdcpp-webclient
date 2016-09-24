@@ -19,7 +19,6 @@
 #include <api/ShareRootApi.h>
 #include <api/common/Serializer.h>
 #include <api/common/Deserializer.h>
-#include <api/ShareUtils.h>
 
 #include <web-server/JsonUtil.h>
 
@@ -28,24 +27,8 @@
 #include <airdcpp/ShareManager.h>
 
 namespace webserver {
-	const PropertyList ShareRootApi::properties = {
-		{ PROP_PATH, "path", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_VIRTUAL_NAME, "virtual_name", TYPE_TEXT, SERIALIZE_TEXT, SORT_CUSTOM },
-		{ PROP_SIZE, "size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_PROFILES, "profiles", TYPE_LIST_NUMERIC, SERIALIZE_CUSTOM, SORT_CUSTOM },
-		{ PROP_INCOMING, "incoming", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
-		{ PROP_LAST_REFRESH_TIME, "last_refresh_time", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_REFRESH_STATE, "refresh_state", TYPE_NUMERIC_OTHER, SERIALIZE_TEXT_NUMERIC, SORT_NUMERIC },
-		{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-	};
-
-	const PropertyItemHandler<ShareDirectoryInfoPtr> ShareRootApi::itemHandler = {
-		properties,
-		ShareUtils::getStringInfo, ShareUtils::getNumericInfo, ShareUtils::compareItems, ShareUtils::serializeItem, ShareUtils::filterItem
-	};
-
 	ShareRootApi::ShareRootApi(Session* aSession) : SubscribableApiModule(aSession, Access::SETTINGS_VIEW),
-		rootView("share_root_view", this, itemHandler, std::bind(&ShareRootApi::getRoots, this)),
+		rootView("share_root_view", this, ShareUtils::propertyHandler, std::bind(&ShareRootApi::getRoots, this)),
 		timer(getTimer([this] { onTimer(); }, 5000)) {
 
 		// Maintain the view item listing only when it's needed
@@ -84,7 +67,7 @@ namespace webserver {
 	}
 
 	api_return ShareRootApi::handleGetRoots(ApiRequest& aRequest) {
-		auto j = Serializer::serializeItemList(itemHandler, ShareManager::getInstance()->getRootInfos());
+		auto j = Serializer::serializeItemList(ShareUtils::propertyHandler, ShareManager::getInstance()->getRootInfos());
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
 	}
@@ -157,7 +140,9 @@ namespace webserver {
 
 		rootView.onItemAdded(info);
 
-		maybeSend("share_root_created", [&] { return Serializer::serializeItem(info, itemHandler); });
+		maybeSend("share_root_created", [&] { 
+			return Serializer::serializeItem(info, ShareUtils::propertyHandler); 
+		});
 	}
 
 	void ShareRootApi::on(ShareManagerListener::RootUpdated, const string& aPath) noexcept {
@@ -183,11 +168,14 @@ namespace webserver {
 			info = *i;
 		}
 
-		onRootUpdated(info, toPropertyIdSet(properties));
+		onRootUpdated(info, toPropertyIdSet(ShareUtils::properties));
 	}
 
 	void ShareRootApi::onRootUpdated(const ShareDirectoryInfoPtr& aInfo, PropertyIdSet&& aUpdatedProperties) noexcept {
-		maybeSend("share_root_updated", [&] { return Serializer::serializeItemProperties(aInfo, aUpdatedProperties, itemHandler); });
+		maybeSend("share_root_updated", [&] { 
+			return Serializer::serializeItemProperties(aInfo, aUpdatedProperties, ShareUtils::propertyHandler);
+		});
+
 		rootView.onItemUpdated(aInfo, aUpdatedProperties);
 	}
 
@@ -272,7 +260,7 @@ namespace webserver {
 			if (newInfo) {
 				WLock l(cs);
 				root->merge(newInfo);
-				onRootUpdated(root, { PROP_SIZE, PROP_TYPE });
+				onRootUpdated(root, { ShareUtils::PROP_SIZE, ShareUtils::PROP_TYPE });
 			}
 		}
 	}

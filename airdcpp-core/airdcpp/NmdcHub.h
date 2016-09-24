@@ -21,7 +21,6 @@
 
 #include "forward.h"
 #include "Client.h"
-#include "Search.h"
 
 namespace dcpp {
 
@@ -33,26 +32,26 @@ public:
 	using Client::send;
 	using Client::connect;
 
-	int connect(const OnlineUser& aUser, const string& token, string& lastError_) noexcept;
+	int connect(const OnlineUser& aUser, const string& token, string& lastError_) noexcept override;
 
-	bool hubMessage(const string& aMessage, string& error_, bool /*thirdPerson*/ = false) noexcept;
-	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept;
-	void sendUserCmd(const UserCommand& command, const ParamMap& params);
-	void search(const SearchPtr& aSearch) noexcept;
-	void password(const string& aPass) noexcept;
-	void infoImpl() noexcept { myInfo(false); }
+	bool hubMessage(const string& aMessage, string& error_, bool /*thirdPerson*/ = false) noexcept override;
+	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept override;
+	void sendUserCmd(const UserCommand& command, const ParamMap& params) override;
+	void search(const SearchPtr& aSearch) noexcept override;
+	void password(const string& aPass) noexcept override;
+	void infoImpl() noexcept override { myInfo(false); }
 
-	size_t getUserCount() const;
+	size_t getUserCount() const noexcept override;
 	
-	string escape(string const& str) const { return validateMessage(str, false); }
+	static string escape(string const& str) { return validateMessage(str, false); }
 	static string unescape(const string& str) { return validateMessage(str, true); }
 
-	bool send(const AdcCommand&) { dcassert(0); return false; }
+	bool send(const AdcCommand&) override { dcassert(0); return false; }
 
 	static string validateMessage(string tmp, bool reverse);
-	void refreshUserList(bool) noexcept;
+	void refreshUserList(bool) noexcept override;
 
-	void getUserList(OnlineUserList& list, bool aListHidden) const noexcept;
+	void getUserList(OnlineUserList& list, bool aListHidden) const noexcept override;
 
 	NmdcHub(const string& aHubURL, const ClientPtr& aOldClient = nullptr);
 	~NmdcHub();
@@ -85,11 +84,11 @@ private:
 	FloodMap seekers;
 	FloodMap flooders;
 
-	void clearUsers() noexcept;
+	void clearUsers() noexcept override;
 	void onLine(const string& aLine) noexcept;
 
 	OnlineUser& getUser(const string& aNick) noexcept;
-	OnlineUserPtr findUser(const string& aNick) const noexcept;
+	OnlineUserPtr findUser(const string& aNick) const noexcept override;
 	void putUser(const string& aNick) noexcept;
 	
 	// don't convert to UTF-8 if string is already in this encoding
@@ -110,16 +109,16 @@ private:
 	void updateFromTag(Identity& id, const string& tag);
 	void refreshLocalIp() noexcept;
 
-	string checkNick(const string& aNick) noexcept;
-	virtual bool v4only() const noexcept { return true; }
+	string checkNick(const string& aNick) noexcept override;
+	virtual bool v4only() const noexcept override { return true; }
 
 	// TimerManagerListener
-	virtual void on(Second, uint64_t aTick) noexcept;
-	virtual void on(Minute, uint64_t aTick) noexcept;
+	virtual void on(Second, uint64_t aTick) noexcept override;
+	virtual void on(Minute, uint64_t aTick) noexcept override;
 
-	void on(Connected) noexcept;
-	void on(Line, const string& l) noexcept;
-	void on(Failed, const string&) noexcept;
+	void on(Connected) noexcept override;
+	void on(Line, const string& l) noexcept override;
+	void on(Failed, const string&) noexcept override;
 };
 
 } // namespace dcpp

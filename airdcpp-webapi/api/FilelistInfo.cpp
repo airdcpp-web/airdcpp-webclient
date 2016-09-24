@@ -17,65 +17,22 @@
 */
 
 #include <api/FilelistInfo.h>
-#include <api/FilelistUtils.h>
 
 #include <api/common/Deserializer.h>
 #include <web-server/JsonUtil.h>
 
 #include <airdcpp/DirectoryListingManager.h>
-#include <airdcpp/Download.h>
-#include <airdcpp/DownloadManager.h>
+
 
 namespace webserver {
-	const PropertyList FilelistInfo::properties = {
-		{ PROP_NAME, "name", TYPE_TEXT, SERIALIZE_TEXT, SORT_CUSTOM },
-		{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
-		{ PROP_SIZE, "size", TYPE_SIZE, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_DATE, "time", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_PATH, "path", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_TTH, "tth", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_DUPE, "dupe", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
-		//{ PROP_COMPLETE, "complete", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
-	};
-
 	const StringList FilelistInfo::subscriptionList = {
 		"filelist_updated"
 	};
 
-	const FilelistInfo::Handler FilelistInfo::itemHandler(properties,
-		FilelistUtils::getStringInfo, 
-		FilelistUtils::getNumericInfo, 
-		FilelistUtils::compareItems, 
-		FilelistUtils::serializeItem
-	);
-
-	DirectoryListingToken FilelistItemInfo::getToken() const noexcept {
-		return hash<string>()(type == DIRECTORY ? dir->getName() : file->getName());
-	}
-
-	FilelistItemInfo::FilelistItemInfo(const DirectoryListing::File::Ptr& f) : type(FILE), file(f) { 
-		//dcdebug("FilelistItemInfo (file) %s was created\n", f->getName().c_str());
-	}
-
-	FilelistItemInfo::FilelistItemInfo(const DirectoryListing::Directory::Ptr& d) : type(DIRECTORY), dir(d) {
-		//dcdebug("FilelistItemInfo (directory) %s was created\n", d->getName().c_str());
-	}
-
-	FilelistItemInfo::~FilelistItemInfo() { 
-		//dcdebug("FilelistItemInfo %s was deleted\n", getName().c_str());
-
-		// The member destructor is not called automatically in an union
-		if (type == FILE) {
-			file.~shared_ptr();
-		} else {
-			dir.~shared_ptr();
-		}
-	}
-
 	FilelistInfo::FilelistInfo(ParentType* aParentModule, const DirectoryListingPtr& aFilelist) : 
 		SubApiModule(aParentModule, aFilelist->getUser()->getCID().toBase32(), subscriptionList), 
 		dl(aFilelist),
-		directoryView("filelist_view", this, itemHandler, std::bind(&FilelistInfo::getCurrentViewItems, this))
+		directoryView("filelist_view", this, FilelistUtils::propertyHandler, std::bind(&FilelistInfo::getCurrentViewItems, this))
 	{
 		METHOD_HANDLER("directory", Access::FILELISTS_VIEW, ApiRequest::METHOD_POST, (), true, FilelistInfo::handleChangeDirectory);
 		METHOD_HANDLER("read", Access::VIEW_FILES_VIEW, ApiRequest::METHOD_POST, (), false, FilelistInfo::handleSetRead);
@@ -105,7 +62,7 @@ namespace webserver {
 		auto listPath = JsonUtil::getField<string>("list_path", j, false);
 		auto reload = JsonUtil::getOptionalFieldDefault<bool>("reload", j, false);
 
-		dl->addDirectoryChangeTask(Util::toNmdcFile(listPath), reload ? DirectoryListing::RELOAD_DIR : DirectoryListing::RELOAD_NONE);
+		dl->addDirectoryChangeTask(Util::toNmdcFile(listPath), reload);
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -145,7 +102,7 @@ namespace webserver {
 			return nullptr;
 		}
 
-		auto ret = Serializer::serializeItem(std::make_shared<FilelistItemInfo>(location.directory), itemHandler);
+		auto ret = Serializer::serializeItem(std::make_shared<FilelistItemInfo>(location.directory), FilelistUtils::propertyHandler);
 
 		ret["size"] = location.totalSize;
 		ret["complete"] = location.directory->isComplete();
@@ -163,7 +120,7 @@ namespace webserver {
 			WLock l(cs);
 			currentViewItems.clear();
 
-			for (auto& d : curDir->directories) {
+			for (auto& d : curDir->directories | map_values) {
 				currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(d));
 			}
 
@@ -188,8 +145,8 @@ namespace webserver {
 
 	}
 
-	void FilelistInfo::on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aPath, bool aReloadList, bool aChangeDir) noexcept {
-		if (aChangeDir || (aPath == dl->getCurrentLocationInfo().directory->getPath())) {
+	void FilelistInfo::on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aPath, bool aBackgroundTask) noexcept {
+		if (aPath == dl->getCurrentLocationInfo().directory->getPath()) {
 			updateItems(aPath);
 		}
 	}

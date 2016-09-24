@@ -196,7 +196,7 @@ namespace webserver {
 
 			// Pattern can be string or numeric
 			string pattern;
-			auto patternJson = JsonUtil::getRawValue("pattern", aRequestJson, false);
+			auto patternJson = JsonUtil::getRawField("pattern", aRequestJson);
 			if (patternJson.is_number()) {
 				pattern = Util::toString(JsonUtil::parseValue<double>("pattern", patternJson));
 			} else {
@@ -297,48 +297,65 @@ namespace webserver {
 
 		void parseProperties(const json& j) {
 			typename IntCollector::ValueMap updatedValues;
-			if (j.find("range_start") != j.end()) {
-				int start = j["range_start"];
-				if (start < 0) {
-					throw std::invalid_argument("Negative range start not allowed");
-				}
 
-				updatedValues[IntCollector::TYPE_RANGE_START] = start;
-			}
+			{
+				auto start = JsonUtil::getOptionalField<int>("range_start", j);
+				if (start) {
+					if (*start < 0) {
+						throw std::invalid_argument("Negative range start not allowed");
+					}
 
-			if (j.find("max_count") != j.end()) {
-				int end = j["max_count"];
-				updatedValues[IntCollector::TYPE_MAX_COUNT] = end;
-			}
-
-			if (j.find("sort_property") != j.end()) {
-				auto prop = findPropertyByName(j["sort_property"], itemHandler.properties);
-				if (prop == -1) {
-					throw std::invalid_argument("Invalid sort property");
-				}
-
-				updatedValues[IntCollector::TYPE_SORT_PROPERTY] = prop;
-			}
-
-			if (j.find("sort_ascending") != j.end()) {
-				bool sortAscending = j["sort_ascending"];
-				updatedValues[IntCollector::TYPE_SORT_ASCENDING] = sortAscending;
-			}
-
-			if (j.find("paused") != j.end()) {
-				bool paused = j["paused"];
-				if (paused && timer->isRunning()) {
-					timer->stop(false);
-				} else if (!paused && !timer->isRunning()) {
-					timer->start(true);
+					updatedValues[IntCollector::TYPE_RANGE_START] = *start;
 				}
 			}
 
-			if (j.find("source_filter") != j.end()) {
-				sourceFilter.reset(new PropertyFilter(itemHandler.properties));
-				const auto& filterProps = j["source_filter"];
-				if (!filterProps.is_null()) {
-					setFilterProperties(filterProps, *sourceFilter.get());
+			{
+				auto end = JsonUtil::getOptionalField<int>("max_count", j);
+				if (end) {
+					updatedValues[IntCollector::TYPE_MAX_COUNT] = *end;
+				}
+			}
+
+			{
+				auto propName = JsonUtil::getOptionalField<string>("sort_property", j);
+				if (propName) {
+					auto propId = findPropertyByName(*propName, itemHandler.properties);
+					if (propId == -1) {
+						throw std::invalid_argument("Invalid sort property");
+					}
+
+					updatedValues[IntCollector::TYPE_SORT_PROPERTY] = propId;
+				}
+			}
+
+			{
+				auto sortAscending = JsonUtil::getOptionalField<bool>("sort_ascending", j);
+				if (sortAscending) {
+					updatedValues[IntCollector::TYPE_SORT_ASCENDING] = *sortAscending;
+				}
+			}
+
+			{
+				auto paused = JsonUtil::getOptionalField<bool>("paused", j);
+				if (paused) {
+					if (*paused && timer->isRunning()) {
+						timer->stop(false);
+					} else if (!(*paused) && !timer->isRunning()) {
+						timer->start(true);
+					}
+				}
+			}
+
+			{
+				auto iter = j.find("source_filter");
+				if (iter != j.end()) {
+					// Reset old filter regardless of the props
+					sourceFilter.reset(new PropertyFilter(itemHandler.properties));
+
+					auto filterProps = iter.value();
+					if (!filterProps.is_null()) {
+						setFilterProperties(filterProps, *sourceFilter.get());
+					}
 				}
 			}
 

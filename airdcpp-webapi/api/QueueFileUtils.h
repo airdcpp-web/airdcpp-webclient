@@ -24,7 +24,7 @@
 #include <api/common/Property.h>
 
 #include <airdcpp/typedefs.h>
-#include <airdcpp/QueueItemBase.h>
+
 
 namespace webserver {
 	class QueueFileUtils {
@@ -46,12 +46,11 @@ namespace webserver {
 			PROP_SECONDS_LEFT,
 			PROP_SOURCES,
 			PROP_BUNDLE,
+			PROP_TTH,
 			PROP_LAST
 		};
 
 		static const PropertyItemHandler<QueueItemPtr> propertyHandler;
-
-		static QueueItemList getFileList() noexcept;
 
 		static json serializeFileProperty(const QueueItemPtr& aItem, int aPropertyName) noexcept;
 

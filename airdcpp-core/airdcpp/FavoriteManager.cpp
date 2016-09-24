@@ -681,7 +681,7 @@ void FavoriteManager::saveFavoriteHubs(SimpleXML& aXml) const {
 			aXml.addChildAttrib("HubFrameOrder", i->getHeaderOrder());
 			aXml.addChildAttrib("HubFrameWidths", i->getHeaderWidths());
 			aXml.addChildAttrib("HubFrameVisible", i->getHeaderVisible());
-			aXml.addChildAttrib("FavNoPM", i->getFavNoPM());
+			aXml.addChildAttrib("FavNoPM", i->getIgnorePM());
 			aXml.addChildAttrib("Group", i->getGroup());
 			aXml.addChildAttrib("Bottom", Util::toString(i->getBottom()));
 			aXml.addChildAttrib("Top", Util::toString(i->getTop()));
@@ -861,7 +861,7 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			e->setTop((uint16_t)	aXml.getIntChildAttrib("Top"));
 			e->setRight((uint16_t)	aXml.getIntChildAttrib("Right"));
 			e->setLeft((uint16_t)	aXml.getIntChildAttrib("Left"));
-			e->setFavNoPM(aXml.getBoolChildAttrib("FavNoPM"));
+			e->setIgnorePM(aXml.getBoolChildAttrib("FavNoPM"));
 			e->setGroup(aXml.getChildAttrib("Group"));
 			if (aXml.getBoolChildAttrib("HideShare")) {
 				// For compatibility with very old favorites

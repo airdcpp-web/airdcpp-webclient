@@ -21,13 +21,16 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/ApiModule.h>
 #include <api/SearchResultInfo.h>
+#include <api/SearchUtils.h>
+
+#include <api/ApiModule.h>
 #include <api/common/ListViewController.h>
 
 #include <airdcpp/typedefs.h>
-#include <airdcpp/SearchManager.h>
+#include <airdcpp/SearchManagerListener.h>
 #include <airdcpp/SearchQuery.h>
+
 
 namespace webserver {
 	class SearchApi : public SubscribableApiModule, private SearchManagerListener {
@@ -38,25 +41,6 @@ namespace webserver {
 		int getVersion() const noexcept {
 			return 0;
 		}
-
-		static const PropertyList properties;
-
-		enum Properties {
-			PROP_TOKEN = -1,
-			PROP_NAME,
-			PROP_RELEVANCE,
-			PROP_HITS,
-			PROP_USERS,
-			PROP_TYPE,
-			PROP_SIZE,
-			PROP_DATE,
-			PROP_PATH,
-			PROP_CONNECTION,
-			PROP_SLOTS,
-			PROP_TTH,
-			PROP_DUPE,
-			PROP_LAST
-		};
 	private:
 		static json serializeSearchResult(const SearchResultPtr& aSR) noexcept;
 		SearchResultInfo::List getResultList();
@@ -77,9 +61,7 @@ namespace webserver {
 
 		void on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept;
 
-		static const PropertyItemHandler<SearchResultInfoPtr> itemHandler;
-
-		typedef ListViewController<SearchResultInfoPtr, PROP_LAST> SearchView;
+		typedef ListViewController<SearchResultInfoPtr, SearchUtils::PROP_LAST> SearchView;
 		SearchView searchView;
 
 		SearchResultInfo::Map results;

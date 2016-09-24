@@ -22,6 +22,7 @@
 #include <web-server/stdinc.h>
 
 #include <api/ApiModule.h>
+#include <api/WebUserUtils.h>
 #include <api/common/ListViewController.h>
 
 #include <web-server/WebUserManagerListener.h>
@@ -35,17 +36,6 @@ namespace webserver {
 		int getVersion() const noexcept {
 			return 0;
 		}
-
-		static const PropertyList properties;
-
-		enum Properties {
-			PROP_TOKEN = -1,
-			PROP_NAME,
-			PROP_PERMISSIONS,
-			PROP_ACTIVE_SESSIONS,
-			PROP_LAST_LOGIN,
-			PROP_LAST
-		};
 	private:
 		api_return handleGetUsers(ApiRequest& aRequest);
 		api_return handleAddUser(ApiRequest& aRequest);
@@ -57,9 +47,7 @@ namespace webserver {
 		void on(WebUserManagerListener::UserUpdated, const WebUserPtr& aUser) noexcept;
 		void on(WebUserManagerListener::UserRemoved, const WebUserPtr& aUser) noexcept;
 
-		static const PropertyItemHandler<WebUserPtr> itemHandler;
-
-		typedef ListViewController<WebUserPtr, PROP_LAST> RootView;
+		typedef ListViewController<WebUserPtr, WebUserUtils::PROP_LAST> RootView;
 		RootView view;
 
 		WebUserManager& um;

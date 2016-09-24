@@ -21,11 +21,37 @@
 
 #include <web-server/stdinc.h>
 
+#include <api/common/Property.h>
+
 #include <airdcpp/typedefs.h>
+
 
 namespace webserver {
 	class OnlineUserUtils {
 	public:
+		static const PropertyList properties;
+		static const PropertyItemHandler<OnlineUserPtr> propertyHandler;
+
+		enum Properties {
+			PROP_TOKEN = -1,
+			PROP_NICK,
+			PROP_SHARED,
+			PROP_DESCRIPTION,
+			PROP_TAG,
+			PROP_UPLOAD_SPEED,
+			PROP_DOWNLOAD_SPEED,
+			PROP_IP4,
+			PROP_IP6,
+			PROP_EMAIL,
+			PROP_FILES,
+			PROP_HUB_URL,
+			PROP_HUB_NAME,
+			PROP_FLAGS,
+			PROP_CID,
+			PROP_UPLOAD_SLOTS,
+			PROP_LAST
+		};
+
 		static json serializeUser(const OnlineUserPtr& aUser, int aPropertyName) noexcept;
 
 		static int compareUsers(const OnlineUserPtr& a, const OnlineUserPtr& b, int aPropertyName) noexcept;

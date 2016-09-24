@@ -17,35 +17,17 @@
 */
 
 #include <api/FavoriteHubApi.h>
-#include <api/FavoriteHubUtils.h>
+
 #include <web-server/JsonUtil.h>
 
 #include <airdcpp/AirUtil.h>
-#include <airdcpp/ClientManager.h>
 #include <airdcpp/FavoriteManager.h>
 #include <airdcpp/ShareManager.h>
 
+
 namespace webserver {
-	const PropertyList FavoriteHubApi::properties = {
-		{ PROP_NAME, "name", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_HUB_URL, "hub_url", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_HUB_DESCRIPTION, "hub_description", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_AUTO_CONNECT, "auto_connect", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
-		{ PROP_SHARE_PROFILE, "share_profile", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
-		{ PROP_CONNECT_STATE, "connect_state", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
-		{ PROP_NICK, "nick", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_HAS_PASSWORD, "has_password", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
-		{ PROP_USER_DESCRIPTION, "user_description", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_IGNORE_PM, "ignore_private_messages", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
-	};
-
-	const PropertyItemHandler<FavoriteHubEntryPtr> FavoriteHubApi::itemHandler = {
-		properties,
-		FavoriteHubUtils::getStringInfo, FavoriteHubUtils::getNumericInfo, FavoriteHubUtils::compareEntries, FavoriteHubUtils::serializeHub
-	};
-
 	FavoriteHubApi::FavoriteHubApi(Session* aSession) : SubscribableApiModule(aSession, Access::FAVORITE_HUBS_VIEW),
-		view("favorite_hub_view", this, itemHandler, FavoriteHubUtils::getEntryList) {
+		view("favorite_hub_view", this, FavoriteHubUtils::propertyHandler, getEntryList) {
 
 		FavoriteManager::getInstance()->addListener(this);
 
@@ -60,8 +42,25 @@ namespace webserver {
 		FavoriteManager::getInstance()->removeListener(this);
 	}
 
+	FavoriteHubEntryList FavoriteHubApi::getEntryList() noexcept {
+		return FavoriteManager::getInstance()->getFavoriteHubs();
+	}
+
+	optional<int> FavoriteHubApi::deserializeIntHubSetting(const string& aFieldName, const json& aJson) {
+		auto p = aJson.find(aFieldName);
+		if (p == aJson.end()) {
+			return boost::none;
+		}
+
+		if ((*p).is_null()) {
+			return HUB_SETTING_DEFAULT_INT;
+		}
+
+		return JsonUtil::parseValue<int>(aFieldName, *p);
+	}
+
 	api_return FavoriteHubApi::handleGetHubs(ApiRequest& aRequest) {
-		auto j = Serializer::serializeItemList(aRequest.getRangeParam(0), aRequest.getRangeParam(1), itemHandler, FavoriteHubUtils::getEntryList());
+		auto j = Serializer::serializeItemList(aRequest.getRangeParam(0), aRequest.getRangeParam(1), FavoriteHubUtils::propertyHandler, getEntryList());
 		aRequest.setResponseBody(j);
 
 		return websocketpp::http::status_code::ok;
@@ -77,7 +76,7 @@ namespace webserver {
 			}
 		}
 
-		auto shareProfileToken = FavoriteHubUtils::deserializeIntHubSetting("share_profile", j);
+		auto shareProfileToken = deserializeIntHubSetting("share_profile", j);
 		if (shareProfileToken && *shareProfileToken != HUB_SETTING_DEFAULT_INT) {
 			if (!AirUtil::isAdcHub(!server ? aEntry->getServer() : *server) && *shareProfileToken != SETTING(DEFAULT_SP)) {
 				JsonUtil::throwError("share_profile", JsonUtil::ERROR_INVALID, "Share profiles can't be changed for NMDC hubs");
@@ -118,7 +117,7 @@ namespace webserver {
 			} else if (key == "user_description") {
 				aEntry->get(HubSettings::Description) = JsonUtil::parseValue<string>("user_description", i.value());
 			} else if (key == "ignore_private_messages") {
-				aEntry->setFavNoPM(JsonUtil::parseValue<bool>("ignore_private_messages", i.value()));
+				aEntry->setIgnorePM(JsonUtil::parseValue<bool>("ignore_private_messages", i.value()));
 			} else if (key == "nmdc_encoding") {
 				aEntry->get(HubSettings::NmdcEncoding) = JsonUtil::parseValue<string>("nmdc_encoding", i.value());
 			}
@@ -156,7 +155,7 @@ namespace webserver {
 			return websocketpp::http::status_code::not_found;
 		}
 
-		aRequest.setResponseBody(Serializer::serializeItem(entry, itemHandler));
+		aRequest.setResponseBody(Serializer::serializeItem(entry, FavoriteHubUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -180,6 +179,6 @@ namespace webserver {
 		view.onItemRemoved(e);
 	}
 	void FavoriteHubApi::on(FavoriteManagerListener::FavoriteHubUpdated, const FavoriteHubEntryPtr& e) noexcept {
-		view.onItemUpdated(e, toPropertyIdSet(properties));
+		view.onItemUpdated(e, toPropertyIdSet(FavoriteHubUtils::properties));
 	}
 }

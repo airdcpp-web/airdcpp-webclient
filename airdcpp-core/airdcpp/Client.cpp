@@ -38,24 +38,19 @@ atomic<long> Client::allCounts[COUNT_UNCOUNTED];
 atomic<long> Client::sharingCounts[COUNT_UNCOUNTED];
 ClientToken idCounter = 0;
 
-Client::Client(const string& hubURL, char separator_, const ClientPtr& aOldClient) :
-	myIdentity(ClientManager::getInstance()->getMe(), 0), clientId(aOldClient ? aOldClient->getClientId() : ++idCounter),
-	reconnDelay(120), lastActivity(GET_TICK()), registered(false), autoReconnect(false),
-	state(STATE_DISCONNECTED), sock(0),
-	separator(separator_),
-	countType(COUNT_UNCOUNTED), availableBytes(0), favToken(0), cache(aOldClient ? aOldClient->getCache() : SettingsManager::HUB_MESSAGE_CACHE)
+Client::Client(const string& aHubUrl, char aSeparator, const ClientPtr& aOldClient) :
+	hubUrl(aHubUrl), separator(aSeparator), 
+	myIdentity(ClientManager::getInstance()->getMe(), 0),
+	clientId(aOldClient ? aOldClient->getClientId() : ++idCounter),
+	lastActivity(GET_TICK()),
+	cache(aOldClient ? aOldClient->getCache() : SettingsManager::HUB_MESSAGE_CACHE)
 {
-	setHubUrl(hubURL);
 	TimerManager::getInstance()->addListener(this);
 	ShareManager::getInstance()->addListener(this);
-}
-
-void Client::setHubUrl(const string& aUrl) noexcept {
-	hubUrl = aUrl;
-	secure = Util::strnicmp("adcs://", aUrl.c_str(), 7) == 0 || Util::strnicmp("nmdcs://", aUrl.c_str(), 8) == 0;
 
 	string file, proto, query, fragment;
 	Util::decodeUrl(hubUrl, proto, address, port, file, query, fragment);
+
 	keyprint = Util::decodeQuery(query)["kp"];
 }
 
@@ -128,13 +123,14 @@ void Client::reloadSettings(bool aUpdateNick) noexcept {
 
 	if(fav) {
 		FavoriteManager::getInstance()->mergeHubSettings(fav, *this);
-		if(!fav->getPassword().empty())
+		if (!fav->getPassword().empty()) {
 			setPassword(fav->getPassword());
+		}
 
-		setFavNoPM(fav->getFavNoPM());
+		ignorePM = fav->getIgnorePM();
 		favToken = fav->getToken();
 	} else {
-		setFavNoPM(false);
+		ignorePM = false;
 		setPassword(Util::emptyString);
 	}
 
@@ -212,7 +208,14 @@ void Client::connect(bool withKeyprint) noexcept {
 	try {
 		sock = BufferedSocket::getSocket(separator, v4only());
 		sock->addListener(this);
-		sock->connect(Socket::AddressInfo(address, Socket::AddressInfo::TYPE_URL), port, secure, SETTING(ALLOW_UNTRUSTED_HUBS), true, withKeyprint ? keyprint : Util::emptyString);
+		sock->connect(
+			Socket::AddressInfo(address, Socket::AddressInfo::TYPE_URL), 
+			port, 
+			AirUtil::isSecure(hubUrl), 
+			SETTING(ALLOW_UNTRUSTED_HUBS), 
+			true, 
+			withKeyprint ? keyprint : Util::emptyString
+		);
 	} catch (const Exception& e) {
 		setConnectState(STATE_DISCONNECTED);
 		fire(ClientListener::Failed(), hubUrl, e.getError());
@@ -315,7 +318,7 @@ void Client::onRedirect(const string& aRedirectUrl) noexcept {
 }
 
 void Client::allowUntrustedConnect() noexcept {
-	if (state != STATE_DISCONNECTED || !SETTING(ALLOW_UNTRUSTED_HUBS) || !secure)
+	if (state != STATE_DISCONNECTED || !SETTING(ALLOW_UNTRUSTED_HUBS) || !AirUtil::isSecure(hubUrl))
 		return;
 	//Connect without keyprint just this once...
 	connect(false);
@@ -408,7 +411,7 @@ bool Client::isConnected() const noexcept {
 	return s != STATE_CONNECTING && s != STATE_DISCONNECTED; 
 }
 
-bool Client::isSecure() const noexcept {
+bool Client::isSocketSecure() const noexcept {
 	return isConnected() && sock->isSecure();
 }
 
@@ -470,7 +473,7 @@ bool Client::updateCounts(bool aRemove) noexcept {
 	return true;
 }
 
-uint64_t Client::queueSearch(const SearchPtr& aSearch){
+uint64_t Client::queueSearch(const SearchPtr& aSearch) noexcept {
 	dcdebug("Queue search %s\n", aSearch->query.c_str());
 	return searchQueue.add(aSearch);
 }

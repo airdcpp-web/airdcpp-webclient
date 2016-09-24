@@ -23,7 +23,9 @@
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/HintedUser.h>
+#include <airdcpp/ResourceManager.h>
 #include <airdcpp/Transfer.h>
+
 
 namespace webserver {
 	typedef uint32_t TransferToken;

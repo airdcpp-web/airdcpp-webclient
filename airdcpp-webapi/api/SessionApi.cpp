@@ -23,6 +23,7 @@
 #include <web-server/JsonUtil.h>
 #include <web-server/WebSocket.h>
 #include <web-server/WebServerManager.h>
+#include <web-server/WebServerSettings.h>
 #include <web-server/WebUserManager.h>
 
 #include <airdcpp/ActivityManager.h>
@@ -31,8 +32,57 @@
 #include <airdcpp/version.h>
 
 namespace webserver {
-	SessionApi::SessionApi() {
+	SessionApi::SessionApi(Session* aSession) : ApiModule(aSession) {
+		METHOD_HANDLER("activity", Access::ANY, ApiRequest::METHOD_POST, (), false, SessionApi::handleActivity);
+		METHOD_HANDLER("auth", Access::ANY, ApiRequest::METHOD_DELETE, (), false, SessionApi::handleLogout);
 
+		// Just fail these...
+		METHOD_HANDLER("auth", Access::ANY, ApiRequest::METHOD_POST, (), false, SessionApi::failAuthenticatedRequest);
+		METHOD_HANDLER("socket", Access::ANY, ApiRequest::METHOD_POST, (), false, SessionApi::failAuthenticatedRequest);
+	}
+
+	api_return SessionApi::failAuthenticatedRequest(ApiRequest& aRequest) {
+		aRequest.setResponseErrorStr("This method can't be used after authentication");
+		return websocketpp::http::status_code::precondition_failed;
+	}
+
+	api_return SessionApi::handleActivity(ApiRequest& aRequest) {
+		if (!aRequest.getSession()->isUserSession()) {
+			// This can be used to prevent the session from expiring
+			return websocketpp::http::status_code::ok;
+		}
+
+		ActivityManager::getInstance()->updateActivity();
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return SessionApi::handleLogout(ApiRequest& aRequest) {
+		WebServerManager::getInstance()->logout(aRequest.getSession()->getId());
+		return websocketpp::http::status_code::ok;
+	}
+
+	string SessionApi::getNetworkType(const string& aIp) noexcept {
+		auto ip = aIp;
+
+		// websocketpp will map IPv4 addresses to IPv6
+		auto v6 = aIp.find(":") != string::npos;
+		if (aIp.find("[::ffff:") == 0) {
+			auto end = aIp.rfind("]");
+			ip = aIp.substr(8, end - 8);
+			v6 = false;
+		} else if (aIp[0] == '[') {
+			// Remove brackets
+			auto end = aIp.rfind("]");
+			ip = aIp.substr(1, end - 1);
+		}
+
+		if (Util::isPrivateIp(ip, v6)) {
+			return "private";
+		} else if (Util::isLocalIp(ip, v6)) {
+			return "local";
+		}
+
+		return "internet";
 	}
 
 	string SessionApi::getHostname() noexcept {
@@ -48,30 +98,23 @@ namespace webserver {
 #endif
 	}
 
-	json SessionApi::getSystemInfo(const string& aIp) const noexcept {
-		json retJson;
-		retJson["path_separator"] = PATH_SEPARATOR_STR;
-
-		
-		// IPv4 addresses will be mapped to IPv6
-		auto ip = aIp;
-		auto v6 = aIp.find(":") != string::npos;
-		if (aIp.find("[::ffff:") == 0) {
-			auto end = aIp.rfind("]");
-			ip = aIp.substr(8, end-8);
-			v6 = false;
-		}
-
-		retJson["network_type"] = Util::isPrivateIp(ip, v6) ? "local" : "internet";
+	string SessionApi::getPlatform() noexcept {
 #ifdef _WIN32
-		retJson["platform"] = "windows";
+		return "windows";
 #elif APPLE
-		retJson["platform"] = "osx";
+		return "osx";
 #else
-		retJson["platform"] = "other";
+		return "other";
 #endif
-		retJson["hostname"] = getHostname();
-		return retJson;
+	}
+
+	json SessionApi::getSystemInfo(const string& aIp) noexcept {
+		return {
+			{ "path_separator", PATH_SEPARATOR_STR },
+			{ "network_type", getNetworkType(aIp) },
+			{ "platform", getPlatform() },
+			{ "hostname", getHostname() },
+		};
 	}
 
 	websocketpp::http::status_code::value SessionApi::handleLogin(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) {
@@ -80,7 +123,7 @@ namespace webserver {
 		auto username = JsonUtil::getField<string>("username", reqJson, false);
 		auto password = JsonUtil::getField<string>("password", reqJson, false);
 
-		auto inactivityMinutes = JsonUtil::getOptionalFieldDefault<uint64_t>("max_inactivity", reqJson, 20ULL);
+		auto inactivityMinutes = JsonUtil::getOptionalFieldDefault<uint64_t>("max_inactivity", reqJson, WEBCFG(DEFAULT_SESSION_IDLE_TIMEOUT).uint64());
 		auto userSession = JsonUtil::getOptionalFieldDefault<bool>("user_session", reqJson, false);
 
 		auto session = WebServerManager::getInstance()->getUserManager().authenticate(username, password, 
@@ -106,33 +149,6 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(retJson);
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return SessionApi::handleActivity(ApiRequest& aRequest) {
-		auto s = aRequest.getSession();
-		if (!s) {
-			aRequest.setResponseErrorStr("Not authorized");
-			return websocketpp::http::status_code::unauthorized;
-		}
-
-		if (!s->isUserSession()) {
-			aRequest.setResponseErrorStr("Activity can only be updated for user sessions");
-			return websocketpp::http::status_code::bad_request;
-		}
-
-		ActivityManager::getInstance()->updateActivity();
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return SessionApi::handleLogout(ApiRequest& aRequest) {
-		if (!aRequest.getSession()) {
-			aRequest.setResponseErrorStr("Not authorized");
-			return websocketpp::http::status_code::unauthorized;
-		}
-
-		WebServerManager::getInstance()->logout(aRequest.getSession()->getId());
-
 		return websocketpp::http::status_code::ok;
 	}
 

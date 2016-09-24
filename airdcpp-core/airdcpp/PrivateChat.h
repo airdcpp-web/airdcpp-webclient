@@ -93,6 +93,9 @@ namespace dcpp {
 
 		void setRead() noexcept;
 		int clearCache() noexcept;
+
+		// Posts an info status message of the user is ignored
+		void checkIgnored() noexcept;
 	private:
 		MessageCache cache;
 		enum EventType {

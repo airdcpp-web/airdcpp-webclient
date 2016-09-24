@@ -36,12 +36,6 @@ SSLSocket::SSLSocket(CryptoManager::SSLContext context) : Socket(TYPE_TCP), ctx(
 	ctx = CryptoManager::getInstance()->getSSLContext(context);
 }
 
-void SSLSocket::connect(const Socket::AddressInfo& aIp, const string& aPort) {
-	Socket::connect(aIp, aPort);
-
-	waitConnected(0);
-}
-
 bool SSLSocket::waitConnected(uint64_t millis) {
 	if(!ssl) {
 		if(!Socket::waitConnected(millis)) {
@@ -72,14 +66,6 @@ bool SSLSocket::waitConnected(uint64_t millis) {
 			return false;
 		}
 	}
-}
-
-uint16_t SSLSocket::accept(const Socket& listeningSocket) {
-	auto ret = Socket::accept(listeningSocket);
-
-	waitAccepted(0);
-
-	return ret;
 }
 
 bool SSLSocket::waitAccepted(uint64_t millis) {

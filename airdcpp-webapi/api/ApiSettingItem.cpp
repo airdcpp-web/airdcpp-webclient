@@ -96,6 +96,10 @@ namespace webserver {
 		return value.get<int>();
 	}
 
+	uint64_t ServerSettingItem::uint64() {
+		return value.get<uint64_t>();
+	}
+
 	string ServerSettingItem::str() {
 		if (value.is_number()) {
 			return Util::toString(num());
@@ -212,7 +216,7 @@ namespace webserver {
 				});
 			}
 		} else if (key == SettingsManager::BIND_ADDRESS || key == SettingsManager::BIND_ADDRESS6) {
-			auto bindAddresses = AirUtil::getDisplayAdapters(key == SettingsManager::BIND_ADDRESS6);
+			auto bindAddresses = AirUtil::getBindAdapters(key == SettingsManager::BIND_ADDRESS6);
 			for (const auto& adapter : bindAddresses) {
 				ret["values"].push_back({
 					{ "text", adapter.ip + (!adapter.adapterName.empty() ? " (" + adapter.adapterName + ")" : Util::emptyString) },

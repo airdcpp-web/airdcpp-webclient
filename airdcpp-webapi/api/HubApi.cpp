@@ -216,6 +216,7 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
+	// TODO: move to user API
 	api_return HubApi::handleSearchNicks(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 

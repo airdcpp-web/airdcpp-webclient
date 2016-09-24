@@ -42,7 +42,7 @@ public:
 	static const size_t BITS = 192;
 	static const size_t BYTES = BITS / 8;
 
-	TigerHash() : pos(0) {
+	TigerHash() {
 		res[0]=_ULL(0x0123456789ABCDEF);
 		res[1]=_ULL(0xFEDCBA9876543210);
 		res[2]=_ULL(0xF096A5B4C3B2E187);
@@ -56,7 +56,7 @@ public:
 	/** Call once all data has been processed. */
 	uint8_t* finalize();
 
-	uint8_t* getResult() { return (uint8_t*) res; }
+	uint8_t* getResult() const noexcept { return (uint8_t*) res; }
 private:
 	enum { BLOCK_SIZE = 512/8 };
 	/** 512 bit blocks for the compress function */
@@ -64,7 +64,7 @@ private:
 	/** State / final hash value */
 	uint64_t res[3];
 	/** Total number of bytes compressed */
-	uint64_t pos;
+	uint64_t pos = 0;
 	/** S boxes */
 	static uint64_t table[];
 

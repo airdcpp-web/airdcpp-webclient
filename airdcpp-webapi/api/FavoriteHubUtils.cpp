@@ -17,17 +17,32 @@
 */
 
 #include <api/FavoriteHubUtils.h>
-#include <api/FavoriteHubApi.h>
 
 #include <api/common/Format.h>
+
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/FavoriteManager.h>
+#include <airdcpp/ResourceManager.h>
+
 
 namespace webserver {
-	FavoriteHubEntryList FavoriteHubUtils::getEntryList() noexcept {
-		return FavoriteManager::getInstance()->getFavoriteHubs();
-	}
+	const PropertyList FavoriteHubUtils::properties = {
+		{ PROP_NAME, "name", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_HUB_URL, "hub_url", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_HUB_DESCRIPTION, "hub_description", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_AUTO_CONNECT, "auto_connect", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
+		{ PROP_SHARE_PROFILE, "share_profile", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
+		{ PROP_CONNECT_STATE, "connect_state", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
+		{ PROP_NICK, "nick", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_HAS_PASSWORD, "has_password", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
+		{ PROP_USER_DESCRIPTION, "user_description", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_IGNORE_PM, "ignore_private_messages", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
+	};
+
+	const PropertyItemHandler<FavoriteHubEntryPtr> FavoriteHubUtils::propertyHandler = {
+		properties,
+		FavoriteHubUtils::getStringInfo, FavoriteHubUtils::getNumericInfo, FavoriteHubUtils::compareEntries, FavoriteHubUtils::serializeHub
+	};
 
 	string FavoriteHubUtils::formatConnectState(const FavoriteHubEntryPtr& aEntry) noexcept {
 		switch (aEntry->getConnectState()) {
@@ -42,14 +57,14 @@ namespace webserver {
 
 	json FavoriteHubUtils::serializeHub(const FavoriteHubEntryPtr& aEntry, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-			case FavoriteHubApi::PROP_SHARE_PROFILE:
+			case PROP_SHARE_PROFILE:
 			{
 				return {
 					{ "id", serializeHubSetting(aEntry->get(HubSettings::ShareProfile)) },
 					{ "str", aEntry->getShareProfileName() }
 				};
 			}
-			case FavoriteHubApi::PROP_CONNECT_STATE:
+			case PROP_CONNECT_STATE:
 			{
 				return {
 					{ "id", aEntry->getConnectState() },
@@ -65,19 +80,6 @@ namespace webserver {
 
 	int FavoriteHubUtils::compareEntries(const FavoriteHubEntryPtr& a, const FavoriteHubEntryPtr& b, int aPropertyName) noexcept {
 		return 0;
-	}
-
-	optional<int> FavoriteHubUtils::deserializeIntHubSetting(const string& aFieldName, const json& aJson) {
-		auto p = aJson.find(aFieldName);
-		if (p == aJson.end()) {
-			return boost::none;
-		}
-
-		if ((*p).is_null()) {
-			return HUB_SETTING_DEFAULT_INT;
-		}
-
-		return JsonUtil::parseValue<int>(aFieldName, *p);
 	}
 
 	json FavoriteHubUtils::serializeHubSetting(tribool aSetting) noexcept {
@@ -99,21 +101,21 @@ namespace webserver {
 
 	std::string FavoriteHubUtils::getStringInfo(const FavoriteHubEntryPtr& aEntry, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-			case FavoriteHubApi::PROP_NAME: return aEntry->getName();
-			case FavoriteHubApi::PROP_HUB_URL: return aEntry->getServer();
-			case FavoriteHubApi::PROP_HUB_DESCRIPTION: return aEntry->getDescription();
-			case FavoriteHubApi::PROP_NICK: return aEntry->get(HubSettings::Nick);
-			case FavoriteHubApi::PROP_USER_DESCRIPTION: return aEntry->get(HubSettings::Description);
-			case FavoriteHubApi::PROP_SHARE_PROFILE: return aEntry->getShareProfileName();
+			case PROP_NAME: return aEntry->getName();
+			case PROP_HUB_URL: return aEntry->getServer();
+			case PROP_HUB_DESCRIPTION: return aEntry->getDescription();
+			case PROP_NICK: return aEntry->get(HubSettings::Nick);
+			case PROP_USER_DESCRIPTION: return aEntry->get(HubSettings::Description);
+			case PROP_SHARE_PROFILE: return aEntry->getShareProfileName();
 			default: dcassert(0); return Util::emptyString;
 		}
 	}
 
 	double FavoriteHubUtils::getNumericInfo(const FavoriteHubEntryPtr& aEntry, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-			case FavoriteHubApi::PROP_AUTO_CONNECT: return (double)aEntry->getAutoConnect();
-			case FavoriteHubApi::PROP_HAS_PASSWORD: return (double)!aEntry->getPassword().empty();
-			case FavoriteHubApi::PROP_IGNORE_PM: return (double)aEntry->getFavNoPM();
+			case PROP_AUTO_CONNECT: return (double)aEntry->getAutoConnect();
+			case PROP_HAS_PASSWORD: return (double)!aEntry->getPassword().empty();
+			case PROP_IGNORE_PM: return (double)aEntry->getIgnorePM();
 			default: dcassert(0); return 0;
 		}
 	}

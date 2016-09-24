@@ -33,10 +33,10 @@ const string Transfer::names[] = {
 const string Transfer::USER_LIST_NAME = "files.xml";
 const string Transfer::USER_LIST_NAME_BZ = "files.xml.bz2";
 
-Transfer::Transfer(UserConnection& conn, const string& path_, const TTHValue& tth_) : segment(0, -1), type(TYPE_FILE), start(0),
-	path(path_), tth(tth_), actual(0), pos(0), userConnection(conn) { }
+Transfer::Transfer(UserConnection& conn, const string& path_, const TTHValue& tth_) : segment(0, -1),
+	path(path_), tth(tth_), userConnection(conn) { }
 
-void Transfer::tick() {
+void Transfer::tick() noexcept {
 	WLock l(cs);
 	
 	uint64_t t = GET_TICK();
@@ -62,7 +62,7 @@ void Transfer::tick() {
 	samples.emplace_back(t, pos);
 }
 
-int64_t Transfer::getAverageSpeed() const {
+int64_t Transfer::getAverageSpeed() const noexcept {
 	RLock l(cs);
 	if(samples.size() < 2) {
 		return 0;
@@ -73,13 +73,13 @@ int64_t Transfer::getAverageSpeed() const {
 	return ticks > 0 ? static_cast<int64_t>((static_cast<double>(bytes) / ticks) * 1000.0) : 0;
 }
 
-int64_t Transfer::getSecondsLeft(bool wholeFile) const {
+int64_t Transfer::getSecondsLeft(bool wholeFile) const noexcept {
 	auto avg = getAverageSpeed();
 	int64_t bytesLeft =  (wholeFile ? ((Upload*)this)->getFileSize() : getSegmentSize()) - getPos();
 	return (avg > 0) ? bytesLeft / avg : 0;
 }
 
-void Transfer::getParams(const UserConnection& aSource, ParamMap& params) const {
+void Transfer::getParams(const UserConnection& aSource, ParamMap& params) const noexcept {
 	params["userCID"] = [&] { return  aSource.getUser()->getCID().toBase32(); };
 	params["userNI"] = [&] { return ClientManager::getInstance()->getFormatedNicks(aSource.getHintedUser());  };
 	params["userI4"] = [&] { return aSource.getRemoteIp(); };
@@ -104,19 +104,19 @@ void Transfer::getParams(const UserConnection& aSource, ParamMap& params) const 
 	params["fileTR"] = [&] { return getTTH().toBase32(); };
 }
 
-UserPtr Transfer::getUser() {
+UserPtr Transfer::getUser() noexcept {
 	return getUserConnection().getUser();
 }
 
-const UserPtr Transfer::getUser() const {
+const UserPtr Transfer::getUser() const noexcept {
 	return getUserConnection().getUser();
 }
 
-HintedUser Transfer::getHintedUser() const {
+HintedUser Transfer::getHintedUser() const noexcept {
 	return getUserConnection().getHintedUser();
 }
 
-const string& Transfer::getToken() const { 
+const string& Transfer::getToken() const noexcept {
 	return getUserConnection().getToken(); 
 }
 
@@ -134,13 +134,13 @@ void Transfer::appendFlags(OrderedStringSet& flags_) const noexcept {
 	}
 }
 
-void Transfer::resetPos() { 
+void Transfer::resetPos() noexcept {
 	pos = 0; 
 	actual = 0;
 	samples.clear();
 };
 
-void Transfer::addPos(int64_t aBytes, int64_t aActual) { 
+void Transfer::addPos(int64_t aBytes, int64_t aActual) noexcept {
 	pos += aBytes; 
 	actual+= aActual; 
 }

@@ -23,18 +23,18 @@
 
 #include <api/ApiModule.h>
 #include <api/TransferInfo.h>
+#include <api/TransferUtils.h>
+
 #include <api/common/ListViewController.h>
 
 #include <airdcpp/typedefs.h>
 
-#include <airdcpp/Download.h>
-#include <airdcpp/HintedUser.h>
 #include <airdcpp/Transfer.h>
-#include <airdcpp/Upload.h>
 
 #include <airdcpp/ConnectionManagerListener.h>
 #include <airdcpp/DownloadManagerListener.h>
 #include <airdcpp/UploadManagerListener.h>
+
 
 namespace webserver {
 	class TransferApi : public SubscribableApiModule, private ConnectionManagerListener, private DownloadManagerListener, private UploadManagerListener {
@@ -45,28 +45,6 @@ namespace webserver {
 		int getVersion() const noexcept {
 			return 0;
 		}
-
-		static const PropertyList properties;
-
-		enum Properties {
-			PROP_TOKEN = -1,
-			PROP_NAME,
-			PROP_TARGET,
-			PROP_TYPE,
-			PROP_DOWNLOAD,
-			PROP_SIZE,
-			PROP_STATUS,
-			//PROP_STATE,
-			PROP_BYTES_TRANSFERRED,
-			PROP_USER,
-			PROP_TIME_STARTED,
-			PROP_SPEED,
-			PROP_SECONDS_LEFT,
-			PROP_IP,
-			PROP_FLAGS,
-			PROP_ENCRYPTION,
-			PROP_LAST
-		};
 	private:
 		void loadTransfers() noexcept;
 		void unloadTransfers() noexcept;
@@ -105,12 +83,12 @@ namespace webserver {
 		void on(ConnectionManagerListener::UserUpdated, const ConnectionQueueItem* aCqi) noexcept;
 
 		void on(DownloadManagerListener::Starting, const Download* aDownload) noexcept;
-		void on(DownloadManagerListener::Complete, const Download* aDownload, bool) noexcept { onTransferCompleted(aDownload, true); }
+		void on(DownloadManagerListener::Complete, const Download* aDownload, bool) noexcept;
 		void on(DownloadManagerListener::Failed, const Download* aDownload, const string &reason) noexcept;
 		void on(DownloadManagerListener::Requesting, const Download* aDownload, bool hubChanged) noexcept;
 
 		void on(UploadManagerListener::Starting, const Upload* aUpload) noexcept;
-		void on(UploadManagerListener::Complete, const Upload* aUpload) noexcept { onTransferCompleted(aUpload, false); }
+		void on(UploadManagerListener::Complete, const Upload* aUpload) noexcept;
 
 
 		json previousStats;
@@ -123,9 +101,7 @@ namespace webserver {
 		mutable SharedMutex cs;
 		TransferInfo::Map transfers;
 
-		static const PropertyItemHandler<TransferInfoPtr> propertyHandler;
-
-		typedef ListViewController<TransferInfoPtr, PROP_LAST> TransferListView;
+		typedef ListViewController<TransferInfoPtr, TransferUtils::PROP_LAST> TransferListView;
 		TransferListView view;
 	};
 }

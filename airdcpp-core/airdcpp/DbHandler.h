@@ -64,14 +64,13 @@ public:
 	const string& getPath() const noexcept { return dbPath; }
 	uint64_t getCacheSize() const noexcept { return cacheSize; }
 protected:
-	DbHandler(const string& aPath, const string& aFriendlyName, uint64_t aCacheSize) noexcept : dbPath(aPath), friendlyName(aFriendlyName), cacheSize(aCacheSize) {
-		if (dbPath.back() != PATH_SEPARATOR)
-			dbPath += PATH_SEPARATOR;
+	DbHandler(const string& aPath, const string& aFriendlyName, uint64_t aCacheSize) noexcept : dbPath(Util::validatePath(aPath, true)), friendlyName(aFriendlyName), cacheSize(aCacheSize) {
+
 	}
 
-	string dbPath;
-	string friendlyName;
-	uint64_t cacheSize;
+	const string dbPath;
+	const string friendlyName;
+	const uint64_t cacheSize;
 };
 
 } //dcpp

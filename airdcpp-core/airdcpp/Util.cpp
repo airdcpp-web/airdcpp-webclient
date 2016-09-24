@@ -717,12 +717,12 @@ string Util::formatTime(int64_t aSec, bool translate, bool perMinute) noexcept {
 	n = aSec / (60);
 	aSec %= (60);
 	if(n || perMinute) {
-		appendTime(STRING(MINUTE), "min", STRING(MINUTES), "min");
+		appendTime(STRING(MINUTE), "min", STRING(MINUTES_LOWER), "min");
 	}
 
 	n = aSec;
 	if(++i <= 3 && !perMinute) {
-		appendTime(STRING(SECOND), "sec", STRING(SECONDS), "sec");
+		appendTime(STRING(SECOND), "sec", STRING(SECONDS_LOWER), "sec");
 	}
 
 	return (!formatedTime.empty() ? formatedTime.erase(formatedTime.size()-1) : formatedTime);
@@ -886,9 +886,18 @@ string Util::formatExactSize(int64_t aBytes) noexcept {
 #endif
 }
 
+bool Util::isLocalIp(const string& ip, bool v6) noexcept {
+	if (v6) {
+		return (ip.length() > 4 && ip.substr(0, 4) == "fe80") || ip == "::1";
+	}
+
+	return (ip.length() > 3 && strncmp(ip.c_str(), "169", 3) == 0) || ip == "127.0.0.1";
+}
+
 bool Util::isPrivateIp(const string& ip, bool v6) noexcept {
 	if (v6) {
-		return ip.length() > 5 && ip.substr(0, 4) == "fe80";
+		// https://en.wikipedia.org/wiki/Unique_local_address
+		return ip.length() > 2 && ip.substr(0, 2) == "fd";
 	} else {
 		struct in_addr addr;
 
@@ -897,8 +906,6 @@ bool Util::isPrivateIp(const string& ip, bool v6) noexcept {
 		if (addr.s_addr  != INADDR_NONE) {
 			unsigned long haddr = ntohl(addr.s_addr);
 			return ((haddr & 0xff000000) == 0x0a000000 || // 10.0.0.0/8
-					(haddr & 0xff000000) == 0x7f000000 || // 127.0.0.0/8
-					(haddr & 0xffff0000) == 0xa9fe0000 || // 169.254.0.0/16
 					(haddr & 0xfff00000) == 0xac100000 || // 172.16.0.0/12
 					(haddr & 0xffff0000) == 0xc0a80000);  // 192.168.0.0/16
 		}
