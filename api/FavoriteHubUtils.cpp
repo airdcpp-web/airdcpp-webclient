@@ -36,7 +36,6 @@ namespace webserver {
 		{ PROP_NICK, "nick", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 		{ PROP_HAS_PASSWORD, "has_password", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
 		{ PROP_USER_DESCRIPTION, "user_description", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
-		{ PROP_IGNORE_PM, "ignore_private_messages", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
 	};
 
 	const PropertyItemHandler<FavoriteHubEntryPtr> FavoriteHubUtils::propertyHandler = {
@@ -115,7 +114,6 @@ namespace webserver {
 		switch (aPropertyName) {
 			case PROP_AUTO_CONNECT: return (double)aEntry->getAutoConnect();
 			case PROP_HAS_PASSWORD: return (double)!aEntry->getPassword().empty();
-			case PROP_IGNORE_PM: return (double)aEntry->getIgnorePM();
 			default: dcassert(0); return 0;
 		}
 	}

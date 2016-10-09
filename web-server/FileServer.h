@@ -40,7 +40,7 @@ namespace webserver {
 		string resourcePath;
 
 		string parseResourcePath(const string& aResource, const websocketpp::http::parser::request& aRequest, StringPairList& headers_) const;
-		string parseViewFilePath(const string& aResource) const;
+		string parseViewFilePath(const string& aResource, StringPairList& headers_) const;
 
 		static string getExtension(const string& aResource) noexcept;
 
@@ -50,6 +50,8 @@ namespace webserver {
 		static bool parsePartialRange(const string& aHeaderData, int64_t& start_, int64_t& end_) noexcept;
 
 		static string formatPartialRange(int64_t aStart, int64_t aEnd, int64_t aFileSize) noexcept;
+
+		static void addCacheControlHeader(StringPairList& headers_, int aDaysValid) noexcept;
 	};
 }
 
