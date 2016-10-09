@@ -656,6 +656,16 @@ bool AirUtil::stringRegexMatch(const string& aReg, const string& aString) {
 	return false;
 }
 
+bool AirUtil::isRelease(const string& aString) {
+
+	try {
+		return boost::regex_match(aString, releaseReg);
+	}
+	catch (...) {}
+
+	return false;
+}
+
 void AirUtil::getRegexMatchesT(const tstring& aString, TStringList& l, const boost::wregex& aReg) {
 	auto start = aString.begin();
 	auto end = aString.end();

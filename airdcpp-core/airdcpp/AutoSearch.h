@@ -113,7 +113,7 @@ public:
 	GETSET(ActionType, action, Action);
 	GETSET(string, fileType, FileType);
 	GETSET(TargetUtil::TargetType, tType, TargetType);
-	GETSET(time_t, expireTime, ExpireTime);
+	IGETSET(time_t, expireTime, ExpireTime, 0);
 
 	GETSET(ProfileToken, token, Token);
 	GETSET(BundleList, bundles, Bundles);
@@ -143,6 +143,8 @@ public:
 	IGETSET(ItemType, asType, AsType, NORMAL);
 	IGETSET(time_t, timeAdded, TimeAdded, 0);
 
+	IGETSET(QueueItem::Priority, priority, Priority, QueueItemBase::LOW);
+
 	SearchTime startTime = SearchTime(false);
 	SearchTime endTime = SearchTime(true);
 	bitset<7> searchDays = bitset<7>("1111111");
@@ -155,9 +157,8 @@ public:
 	string getSearchingStatus() const noexcept;
 	string getExpiration() const noexcept;
 
-	QueueItem::Priority getPriority() { 
+	QueueItem::Priority calculatePriority() const noexcept {
 		auto prio = QueueItem::LOW;
-
 		if ((status == STATUS_FAILED_MISSING) && getLastSearch() == 0) 
 			prio = QueueItem::HIGHEST;
 		else if (status == STATUS_FAILED_MISSING)

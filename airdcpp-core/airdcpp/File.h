@@ -120,7 +120,10 @@ public:
 	static uint64_t getLastModified(const string& path) noexcept;
 	static int64_t getSize(const string& aFileName) noexcept;
 	static int64_t getBlockSize(const string& aFileName) noexcept;
+
+	// Count size of a directory recursively
 	static int64_t getDirSize(const string& aPath, bool recursive, const string& pattern = "*") noexcept;
+
 	static int64_t getFreeSpace(const string& aPath) noexcept;
 
 	static int ensureDirectory(const string& aFile) noexcept;
@@ -149,8 +152,14 @@ public:
 		FLAG_HIDDEN = 0x04
 	};
 
-	static StringList findFiles(const string& path, const string& pattern, int flags = TYPE_FILE | TYPE_DIRECTORY);
-	static void forEachFile(const string& path, const string& pattern, std::function<void (const string& /*name*/, bool /*isDir*/, int64_t /*size*/)> aF, bool skipHidden = true);
+	static StringList findFiles(const string& path, const string& aNamePattern, int aFindFlags = TYPE_FILE | TYPE_DIRECTORY);
+
+	typedef std::function<void(const string& /*name*/, bool /*isDir*/, int64_t /*size*/)> FileIterF;
+
+	// Iterate through content of aPath and handle files matching aNamePattern (use * to match all files)
+	// Stops if the handler returns false
+	static void forEachFile(const string& aPath, const string& aNamePattern, FileIterF aHandlerF, bool aSkipHidden = true);
+
 	static string getMountPath(const string& aPath) noexcept;
 protected:
 	void close() noexcept;

@@ -682,50 +682,52 @@ string File::read() {
 	return read((uint32_t)sz);
 }
 
-StringList File::findFiles(const string& aPath, const string& pattern, int flags) {
+StringList File::findFiles(const string& aPath, const string& aNamePattern, int aFindFlags) {
 	StringList ret;
-	forEachFile(aPath, pattern, [&](const string& aFileName, bool isDir, int64_t /*size*/) { 
-		if ((flags & TYPE_FILE && !isDir) || (flags & TYPE_DIRECTORY && isDir))
-			ret.push_back(aPath + aFileName); 
-	}, !(flags & FLAG_HIDDEN));
+
+	{
+		forEachFile(aPath, aNamePattern, [&](const string& aFileName, bool isDir, int64_t /*size*/) {
+			if ((aFindFlags & TYPE_FILE && !isDir) || (aFindFlags & TYPE_DIRECTORY && isDir)) {
+				ret.push_back(aPath + aFileName);
+			}
+		}, !(aFindFlags & FLAG_HIDDEN));
+	}
+
 	return ret;
 }
 
-void File::forEachFile(const string& aPath, const string& pattern, std::function<void (const string & /*name*/, bool /*isDir*/, int64_t /*size*/)> aF, bool skipHidden) {
-	for (FileFindIter i(aPath, pattern); i != FileFindIter(); ++i) {
-		if ((!skipHidden || !i->isHidden())) {
+void File::forEachFile(const string& aPath, const string& aNamePattern, FileIterF aHandlerF, bool aSkipHidden) {
+	for (FileFindIter i(aPath, aNamePattern); i != FileFindIter(); ++i) {
+		if ((!aSkipHidden || !i->isHidden())) {
 			auto name = i->getFileName();
 			if (name.compare(".") != 0 && (name.length() < 2 || name.compare("..") != 0)) {
 				bool isDir = i->isDirectory();
-				aF(name + (isDir ? PATH_SEPARATOR_STR : Util::emptyString), isDir, i->getSize());
+				aHandlerF(name + (isDir ? PATH_SEPARATOR_STR : Util::emptyString), isDir, i->getSize());
 			}
 		}
 	}
 }
 
-static void getDirSizeInternal(const string& aPath, int64_t& size_, bool recursive, const string& pattern) {
-	File::forEachFile(aPath, pattern, [&](const string& aFileName, bool isDir, int64_t aSize) { 
-		if (isDir && recursive) {
-			getDirSizeInternal(aPath + aFileName, size_, true, pattern);
+int64_t File::getDirSize(const string& aPath, bool aRecursive, const string& aNamePattern) noexcept {
+	int64_t size = 0;
+	File::forEachFile(aPath, aNamePattern, [&](const string& aFileName, bool isDir, int64_t aSize) {
+		if (isDir && aRecursive) {
+			size += getDirSize(aPath + aFileName, true, aNamePattern);
 		} else {
-			size_ += aSize;
+			size += aSize;
 		}
 	});
-}
 
-int64_t File::getDirSize(const string& aPath, bool recursive, const string& pattern) noexcept {
-	int64_t ret = 0;
-	getDirSizeInternal(aPath, ret, recursive, pattern);
-	return ret;
+	return size;
 }
 
 #ifdef _WIN32
 
 FileFindIter::FileFindIter() : handle(INVALID_HANDLE_VALUE) { }
 
-FileFindIter::FileFindIter(const string& aPath, const string& aPattern, bool dirsOnly /*false*/) : handle(INVALID_HANDLE_VALUE) {
+FileFindIter::FileFindIter(const string& aPath, const string& aPattern, bool aDirsOnly /*false*/) : handle(INVALID_HANDLE_VALUE) {
 	if (Util::IsOSVersionOrGreater(6, 1)) {
-		handle = ::FindFirstFileEx(Text::toT(Util::formatPath(aPath) + aPattern).c_str(), FindExInfoBasic, &data, dirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
+		handle = ::FindFirstFileEx(Text::toT(Util::formatPath(aPath) + aPattern).c_str(), FindExInfoBasic, &data, aDirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
 	} else {
 		handle = ::FindFirstFile(Text::toT(Util::formatPath(aPath) + aPattern).c_str(), &data);
 	}

@@ -31,7 +31,7 @@
 
 namespace dcpp {
 	// The actual limiting code is from StrongDC++
-	// Bandwidth limiting in DC++ is broken: http://www.airdcpp.net/forum/viewtopic.php?f=7&t=4485&p=8856#p8856
+	// Bandwidth limiting in DC++ is broken: https://www.airdcpp.net/forum/viewtopic.php?f=7&t=4485&p=8856#p8856
 
 	#define CONDWAIT_TIMEOUT		250
 

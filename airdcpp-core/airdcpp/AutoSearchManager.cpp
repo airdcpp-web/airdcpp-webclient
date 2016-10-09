@@ -557,13 +557,23 @@ void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noe
 void AutoSearchManager::checkItems() noexcept {
 	AutoSearchList expired;
 	bool hasStatusChange = false;
+	AutoSearchList updateitems;
 
 	{
-		RLock l(cs);
+		WLock l(cs);
 
 		for(auto& as: searchItems.getItems() | map_values) {
 			bool fireUpdate = false;
 			auto aStatus = as->getStatus();
+
+			//update possible priority change
+			auto newPrio = as->calculatePriority();
+			if(!as->isRecent() && newPrio != as->getPriority()) {
+				searchItems.removeSearchPrio(as);
+				as->setPriority(newPrio);
+				searchItems.addSearchPrio(as);
+			}
+
 			
 			//check expired, and remove them.
 			if (aStatus != AutoSearch::STATUS_EXPIRED && as->expirationTimeReached() && as->getBundles().empty()) {
@@ -583,15 +593,16 @@ void AutoSearchManager::checkItems() noexcept {
 				}
 			}
 
-			fireUpdate = fireUpdate || as->updateSearchTime() || as->getExpireTime() > 0;
+			if (fireUpdate || as->updateSearchTime() || as->getExpireTime() > 0)
+				updateitems.push_back(as);
+
 			if (aStatus != AutoSearch::STATUS_WAITING && as->getStatus() == AutoSearch::STATUS_WAITING)
 				hasStatusChange = true;
 
-			if(fireUpdate)
-				fire(AutoSearchManagerListener::UpdateItem(), as, false);
-
 		}
 	}
+
+	for_each(updateitems, [=](AutoSearchPtr as) { fire(AutoSearchManagerListener::UpdateItem(), as, false); });
 
 	//One or more items were set to waiting state due to search times
 	if(hasStatusChange)
