@@ -37,6 +37,7 @@ public:
 	void downloadFile(const string& aUrl);
 	void postData(const string& aUrl, const StringMap& aData);
 
+	const string& getCurrentUrl() const { return currentUrl; }
 	const string& getMimeType() const { return mimeType; }
 
 	int64_t getSize() const { return size; }

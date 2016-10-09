@@ -37,6 +37,10 @@
 #include <minizip/zip.h>
 #include <sys/stat.h>
 
+#ifdef WIN32
+#include <boost/algorithm/string/replace.hpp>
+#endif
+
 namespace dcpp {
 
 using std::make_pair;
@@ -143,7 +147,13 @@ pair<uint8_t*,size_t> ZipFile::ReadCurrentFile() {
 void ZipFile::ReadCurrentFile(const string &path) {
 	try {
 		string nameInZip = this->GetCurrentFileName();
-		if(nameInZip[nameInZip.size()-1] != '/' &&  nameInZip[nameInZip.size()-1] != '\\') {
+
+#ifdef WIN32
+		// Wrong path separators would hit assertions...
+		boost::replace_all(nameInZip, "/", PATH_SEPARATOR_STR);
+#endif
+
+		if (nameInZip[nameInZip.size()-1] != '/' &&  nameInZip[nameInZip.size()-1] != '\\') {
 			pair<uint8_t*,size_t> file = this->ReadCurrentFile();
 
 			const string& fullPath = (path[path.size()-1] == PATH_SEPARATOR) ? path + nameInZip : path;

@@ -218,22 +218,29 @@ void FavoriteManager::addFavoriteUser(const HintedUser& aUser) {
 	}
 
 	string nick;
+	int64_t seen = 0;
+	string hubUrl = aUser.hint;
 
 	//prefer to use the add nick
 	ClientManager* cm = ClientManager::getInstance();
 	{
 		RLock l(cm->getCS());
-		auto ou = cm->findOnlineUser(aUser.user->getCID(), aUser.hint);
+		auto ou = cm->findOnlineUser(aUser.user->getCID(), hubUrl);
 		if (!ou) {
-			auto nicks = move(ClientManager::getInstance()->getNicks(aUser.user->getCID(), false));
-			if (!nicks.empty())
-				nick = nicks[0];
+			//offline
+			auto ofu = ClientManager::getInstance()->getOfflineUser(aUser.user->getCID());
+			if (ofu) {
+				nick = ofu->getNick();
+				seen = ofu->getLastSeen();
+				hubUrl = ofu->getUrl();
+			}
 		} else {
 			nick = ou->getIdentity().getNick();
 		}
 	}
 
-	auto fu = FavoriteUser(aUser, nick, aUser.hint, aUser.user->getCID().toBase32());
+	auto fu = FavoriteUser(aUser, nick, hubUrl, aUser.user->getCID().toBase32());
+	fu.setLastSeen(seen);
 	{
 		WLock l (cs);
 		users.emplace(aUser.user->getCID(), fu);
@@ -681,7 +688,6 @@ void FavoriteManager::saveFavoriteHubs(SimpleXML& aXml) const {
 			aXml.addChildAttrib("HubFrameOrder", i->getHeaderOrder());
 			aXml.addChildAttrib("HubFrameWidths", i->getHeaderWidths());
 			aXml.addChildAttrib("HubFrameVisible", i->getHeaderVisible());
-			aXml.addChildAttrib("FavNoPM", i->getIgnorePM());
 			aXml.addChildAttrib("Group", i->getGroup());
 			aXml.addChildAttrib("Bottom", Util::toString(i->getBottom()));
 			aXml.addChildAttrib("Top", Util::toString(i->getTop()));
@@ -861,7 +867,6 @@ void FavoriteManager::load(SimpleXML& aXml) {
 			e->setTop((uint16_t)	aXml.getIntChildAttrib("Top"));
 			e->setRight((uint16_t)	aXml.getIntChildAttrib("Right"));
 			e->setLeft((uint16_t)	aXml.getIntChildAttrib("Left"));
-			e->setIgnorePM(aXml.getBoolChildAttrib("FavNoPM"));
 			e->setGroup(aXml.getChildAttrib("Group"));
 			if (aXml.getBoolChildAttrib("HideShare")) {
 				// For compatibility with very old favorites

@@ -155,7 +155,7 @@ void ShareManager::removeMonitoring(const StringList& aPaths) noexcept {
 			if (monitor.removeDirectory(p))
 				removed++;
 		} catch (MonitorException& e) {
-			LogManager::getInstance()->message("Error occurred when trying to remove the foldrer " + p + " from monitoring: " + e.getError(), LogMessage::SEV_ERROR);
+			LogManager::getInstance()->message("Error occurred when trying to remove the folder " + p + " from monitoring: " + e.getError(), LogMessage::SEV_ERROR);
 		}
 	}
 
@@ -1506,7 +1506,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 	}
 
 #ifdef _DEBUG
-	validateDirectoryTreeDebug();
+	//validateDirectoryTreeDebug();
 #endif
 
 	if (hashSize > 0) {

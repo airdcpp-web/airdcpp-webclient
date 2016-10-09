@@ -56,6 +56,8 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	if (searchInterval == 0)
 		searchInterval = AS_DEFAULT_SEARCH_INTERVAL;
 
+	setPriority(calculatePriority());
+
 	checkRecent();
 	setTarget(aTarget);
 	setMethod(aMethod);

@@ -40,15 +40,15 @@
 
 namespace dcpp {
 
-const char* UpdateManager::versionUrl[VERSION_LAST] = { "http://version.airdcpp.net/version.xml",
-	"http://beta.airdcpp.net/version/version.xml",
-	"http://builds.airdcpp.net/version/version.xml"
+const char* UpdateManager::versionUrl[VERSION_LAST] = { "https://version.airdcpp.net/version.xml",
+	"https://beta.airdcpp.net/version/version.xml",
+	"https://builds.airdcpp.net/version/version.xml"
 };
 
 UpdateManager::UpdateManager() : lastIPUpdate(GET_TICK()) {
 	TimerManager::getInstance()->addListener(this);
 
-	links.homepage = "http://www.airdcpp.net/";
+	links.homepage = "https://www.airdcpp.net/";
 	links.downloads = links.homepage + "download/";
 	links.geoip6 = "http://geoip6.airdcpp.net";
 	links.geoip4 = "http://geoip4.airdcpp.net";
