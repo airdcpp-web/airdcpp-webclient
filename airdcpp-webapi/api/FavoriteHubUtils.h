@@ -44,7 +44,6 @@ namespace webserver {
 			PROP_NICK,
 			PROP_HAS_PASSWORD,
 			PROP_USER_DESCRIPTION,
-			PROP_IGNORE_PM,
 			PROP_LAST
 		};
 
