@@ -309,8 +309,9 @@ namespace webserver {
 			return websocketpp::http::status_code::internal_server_error;
 		}
 
-		// Get the mime type
-		auto type = getMimeType(filePath);
+		// Get the mime type (but get it from the original request with gzipped content)
+		auto usingEncoding = find_if(headers_.begin(), headers_.end(), CompareFirst<string, string>("Content-Encoding")) != headers_.end();
+		auto type = getMimeType(usingEncoding ? aResource : filePath);
 		if (type) {
 			headers_.emplace_back("Content-Type", type);
 		}
