@@ -542,9 +542,7 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 	string speedStr;
 
 	for(const auto& str: cmd.getParameters()) {
-		if(str.compare(0, 2, "HI") == 0) {
-			hubIpPort = str.substr(2);
-		} else if(str.compare(0, 2, "BU") == 0) {
+		if(str.compare(0, 2, "BU") == 0) {
 			bundleToken = str.substr(2);
 		} else if(str.compare(0, 2, "DS") == 0) {
 			speedStr = str.substr(2);

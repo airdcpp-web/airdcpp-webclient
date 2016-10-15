@@ -454,6 +454,7 @@ enum Strings { // @DontAdd
 	FAV_JOIN_SHOWING_ON, // "Join/part of favorite users showing on"
 	FAV_LOG_CHAT, // "Log main chat"
 	FAV_SHOW_JOIN, // "Show user joins / parts"
+	FEEDS, // "Feed(s)"
 	FEED_NAME, // "Feed name"
 	FILE, // "File"
 	FILELIST_LOADED_IN, // "File list has been loaded in %1%"

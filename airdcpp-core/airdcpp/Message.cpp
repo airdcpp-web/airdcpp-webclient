@@ -38,7 +38,7 @@ ChatMessage::ChatMessage(const string& aText, const OnlineUserPtr& aFrom, const 
 }
 
 LogMessage::LogMessage(const string& aMessage, LogMessage::Severity sev, bool aHistory) noexcept : 
-	id(messageIdCounter++), text(aMessage), time(aHistory ? 0 : GET_TIME()), severity(sev) {
+	id(messageIdCounter++), text(aMessage), time(aHistory ? 0 : GET_TIME()), severity(sev), read(aHistory) {
 
 }
 
