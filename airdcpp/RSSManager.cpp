@@ -185,7 +185,7 @@ bool RSSManager::checkTitle(const RSSPtr& aFeed, string& aTitle) {
 
 void RSSManager::addData(const string& aTitle, const string& aLink, const string& aDate, RSSPtr& aFeed) {
 	RSSDataPtr data = new RSSData(aTitle, aLink, aDate, aFeed);
-	matchFilters(data);
+	matchFilters(aFeed, data);
 	{
 		Lock l(cs);
 		aFeed->getFeedData().emplace(aTitle, data);
@@ -198,14 +198,14 @@ void RSSManager::matchFilters(const RSSPtr& aFeed) const {
 	if (aFeed) {
 		Lock l(cs);
 		for (auto data : aFeed->getFeedData() | map_values) {
-				matchFilters(data);
+				matchFilters(aFeed, data);
 		}
 	}
 }
 
-void RSSManager::matchFilters(const RSSDataPtr& aData) const {
+void RSSManager::matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) const {
 	
-	for (auto& aF : rssFilterList) {
+	for (auto& aF : aFeed->getRssFilterList()) {
 		if (aF.match(aData->getTitle())) {
 
 			auto targetType = TargetUtil::TargetType::TARGET_PATH;
@@ -218,30 +218,32 @@ void RSSManager::matchFilters(const RSSDataPtr& aData) const {
 }
 
 void RSSManager::updateFeedItem(RSSPtr& aFeed, const string& aUrl, const string& aName, int aUpdateInterval, bool aEnable) {
-	auto r = rssList.find(aFeed);
-	if (r != rssList.end())
+	bool added = false;
 	{
-		{
-			Lock l(cs);
-			aFeed->setUrl(aUrl);
-			aFeed->setFeedName(aName);
-			aFeed->setUpdateInterval(aUpdateInterval);
-			aFeed->setEnable(aEnable);
-		}
-		fire(RSSManagerListener::RSSFeedChanged(), aFeed);
-	} else {
-		{
-			Lock l(cs);
+		Lock l(cs);
+		aFeed->setUrl(aUrl);
+		aFeed->setFeedName(aName);
+		aFeed->setUpdateInterval(aUpdateInterval);
+		aFeed->setEnable(aEnable);
+
+		auto i = rssList.find(aFeed);
+		if (i == rssList.end()) {
+			added = true;
 			rssList.emplace(aFeed);
 		}
-		fire(RSSManagerListener::RSSFeedAdded(), aFeed);
 	}
+
+	if(!added)
+		fire(RSSManagerListener::RSSFeedChanged(), aFeed);
+	else
+		fire(RSSManagerListener::RSSFeedAdded(), aFeed);
+
 }
 
-void RSSManager::updateFilterList(vector<RSSFilter>& aNewList) {
+void RSSManager::updateFilterList(const RSSPtr& aFeed, vector<RSSFilter>& aNewList) {
 	Lock l(cs);
-	rssFilterList = aNewList;
-	for_each(rssFilterList.begin(), rssFilterList.end(), [&](RSSFilter& i) { i.prepare(); });
+	aFeed->rssFilterList = aNewList;
+	for_each(aFeed->rssFilterList.begin(), aFeed->rssFilterList.end(), [&](RSSFilter& i) { i.prepare(); });
 }
 
 void RSSManager::enableFeedUpdate(const RSSPtr& aFeed, bool enable) {
@@ -338,24 +340,33 @@ void RSSManager::load() {
 	if (xml.findChild("RSS")) {
 		xml.stepIn();
 
-		while (xml.findChild("Settings")) {
+		while (xml.findChild("Settings")) 
+		{
 			auto feed = std::make_shared<RSS>(xml.getChildAttrib("Url"),
 				xml.getChildAttrib("Name"),
 				xml.getBoolChildAttrib("Enable"),
 				Util::toInt64(xml.getChildAttrib("LastUpdate")),
 				xml.getIntChildAttrib("UpdateInterval"),
 				xml.getIntChildAttrib("Token"));
+			xml.stepIn();
+			if (xml.findChild("Filters")) {
+				xml.stepIn();
+				while (xml.findChild("Filter")) {
+					feed->rssFilterList.emplace_back(
+						xml.getChildAttrib("FilterPattern"),
+						xml.getChildAttrib("DownloadTarget"),
+						Util::toInt(xml.getChildAttrib("Method", "1")));
+				}
+				xml.stepOut();
+			}
+
+			xml.resetCurrentChild();
+			xml.stepOut();
+
+			for_each(feed->rssFilterList.begin(), feed->rssFilterList.end(), [&](RSSFilter& i) { i.prepare(); });
 			rssList.emplace(feed);
 		}
 		xml.resetCurrentChild();
-		while (xml.findChild("Filter")) {
-			rssFilterList.emplace_back(
-				xml.getChildAttrib("FilterPattern"),
-				xml.getChildAttrib("DownloadTarget"),
-				Util::toInt(xml.getChildAttrib("Method", "1")));
-		}
-
-		for_each(rssFilterList.begin(), rssFilterList.end(), [&](RSSFilter& i) { i.prepare(); });
 		xml.stepOut();
 	}
 
@@ -398,16 +409,22 @@ void RSSManager::saveConfig(bool saveDatabase) {
 		xml.addChildAttrib("LastUpdate", Util::toString(r->getLastUpdate()));
 		xml.addChildAttrib("UpdateInterval", Util::toString(r->getUpdateInterval()));
 		xml.addChildAttrib("Token", Util::toString(r->getToken()));
+		if (!r->getRssFilterList().empty()) {
+			xml.stepIn();
+			xml.addTag("Filters");
+			xml.stepIn();
+			for (auto f : r->rssFilterList) {
+				xml.addTag("Filter");
+				xml.addChildAttrib("FilterPattern", f.getFilterPattern());
+				xml.addChildAttrib("DownloadTarget", f.getDownloadTarget());
+				xml.addChildAttrib("Method", f.getMethod());
+			}
+			xml.stepOut();
+			xml.stepOut();
+		}
 
 		if (saveDatabase && r->getDirty())
 			savedatabase(r);
-	}
-
-	for (auto f : rssFilterList) {
-		xml.addTag("Filter");
-		xml.addChildAttrib("FilterPattern", f.getFilterPattern());
-		xml.addChildAttrib("DownloadTarget", f.getDownloadTarget());
-		xml.addChildAttrib("Method", f.getMethod());
 	}
 
 	xml.stepOut();

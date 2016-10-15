@@ -15,6 +15,23 @@
 
 namespace dcpp {
 
+class RSSFilter : public StringMatch {
+public:
+
+	RSSFilter(const string& aFilterPattern, const string& aDownloadTarget, int aMethod) noexcept :
+		filterPattern(aFilterPattern), downloadTarget(aDownloadTarget)
+	{
+		pattern = aFilterPattern;
+		setMethod((StringMatch::Method)aMethod);
+	}
+
+	~RSSFilter() noexcept {};
+
+	GETSET(string, filterPattern, FilterPattern);
+	GETSET(string, downloadTarget, DownloadTarget);
+
+};
+
 class RSS : private boost::noncopyable {
 public:
 
@@ -30,12 +47,22 @@ public:
 		rssDownload.reset();
 	}
 
+	RSS() noexcept
+	{
+		updateInterval = 60;
+
+		if (token == 0)
+			token = Util::randInt(10);
+
+		rssDownload.reset();
+	}
+
 	~RSS() noexcept {};
 
 	GETSET(string, url, Url);
 	GETSET(string, feedName, FeedName);
 	GETSET(time_t, lastUpdate, LastUpdate);
-	GETSET(int, updateInterval, UpdateInterval);
+	IGETSET(int, updateInterval, UpdateInterval, 60);
 	GETSET(int, token, Token);
 	IGETSET(bool, dirty, Dirty, false);
 	IGETSET(bool, enable, Enable, true);
@@ -43,8 +70,10 @@ public:
 	//bool operator==(const RSSPtr& rhs) const { return url == rhs->getUrl(); }
 
 	unordered_map<string, RSSDataPtr>& getFeedData() { return rssData; }
+	vector<RSSFilter>& getRssFilterList() { return rssFilterList; }
 
 	unique_ptr<HttpDownload> rssDownload;
+	vector<RSSFilter> rssFilterList;
 
 	bool allowUpdate() {
 		return enable && (getLastUpdate() + getUpdateInterval() * 60) < GET_TIME();
@@ -68,24 +97,6 @@ public:
 	GETSET(string, pubDate, PubDate);
 	GETSET(RSSPtr, feed, Feed);
 	GETSET(time_t, dateAdded, DateAdded); //For prune old entries in database...
-
-};
-
-
-class RSSFilter : public StringMatch {
-public:
-
-	RSSFilter(const string& aFilterPattern, const string& aDownloadTarget, int aMethod) noexcept :
-		filterPattern(aFilterPattern), downloadTarget(aDownloadTarget)
-	{
-		pattern = aFilterPattern;
-		setMethod((StringMatch::Method)aMethod);
-	}
-
-	~RSSFilter() noexcept {};
-
-	GETSET(string, filterPattern, FilterPattern);
-	GETSET(string, downloadTarget, DownloadTarget);
 
 };
 
@@ -134,15 +145,11 @@ public:
 		return rssList;
 	}
 
-	vector<RSSFilter>& getRssFilterList() {
-		return rssFilterList;
-	}
-
 	void downloadFeed(const RSSPtr& aFeed, bool verbose = false);
 
 	void updateFeedItem(RSSPtr& aFeed, const string& aUrl, const string& aName, int aUpdateInterval, bool aEnable);
 	
-	void updateFilterList(vector<RSSFilter>& aNewList);
+	void updateFilterList(const RSSPtr& aFeed, vector<RSSFilter>& aNewList);
 
 	void removeFeedItem(const RSSPtr& aFeed);
 
@@ -157,11 +164,10 @@ private:
 
 	RSSPtr getUpdateItem() const;
 	
-	void matchFilters(const RSSDataPtr& aData) const;
+	void matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) const;
 
 	unordered_set<RSSPtr> rssList;
 
-	vector<RSSFilter> rssFilterList;
 	void parseRSSFeed(SimpleXML& xml, RSSPtr& aFeed);
 	void parseAtomFeed(SimpleXML& xml, RSSPtr& aFeed);
 	void addData(const string& aTitle, const string& aLink, const string& aDate, RSSPtr& aFeed);
