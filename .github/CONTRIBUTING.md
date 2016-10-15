@@ -15,7 +15,7 @@ If the issue can be reproduced, you may also want to try the [development versio
 
 ### Compiling issues
 
-Attact the full *console* output cmake and make (no cmake log files). Mention the currently used operating system (with version included).
+Attach the full *console* output cmake and make (no cmake log files). Mention the currently used operating system (with version included).
 
 ### UI-related issues
 
