@@ -33,6 +33,7 @@
 
 #ifdef _DEBUG
 #include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #endif
 
 namespace dcpp {
@@ -726,11 +727,7 @@ int64_t File::getDirSize(const string& aPath, bool aRecursive, const string& aNa
 FileFindIter::FileFindIter() : handle(INVALID_HANDLE_VALUE) { }
 
 FileFindIter::FileFindIter(const string& aPath, const string& aPattern, bool aDirsOnly /*false*/) : handle(INVALID_HANDLE_VALUE) {
-	if (Util::IsOSVersionOrGreater(6, 1)) {
-		handle = ::FindFirstFileEx(Text::toT(Util::formatPath(aPath) + aPattern).c_str(), FindExInfoBasic, &data, aDirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
-	} else {
-		handle = ::FindFirstFile(Text::toT(Util::formatPath(aPath) + aPattern).c_str(), &data);
-	}
+	handle = ::FindFirstFileEx(Text::toT(Util::formatPath(aPath) + aPattern).c_str(), FindExInfoBasic, &data, aDirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
 }
 
 FileFindIter::~FileFindIter() {

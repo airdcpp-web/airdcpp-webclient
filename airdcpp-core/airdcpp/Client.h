@@ -241,6 +241,9 @@ protected:
 	void onChatMessage(const ChatMessagePtr& aMessage) noexcept;
 	void onRedirect(const string& aRedirectUrl) noexcept;
 
+	void onUserConnected(const OnlineUserPtr& aUser) noexcept;
+	void onUserDisconnected(const OnlineUserPtr& aUser, bool aDisconnectTransfers) noexcept;
+
 	string redirectUrl;
 private:
 	const ClientToken clientId;
