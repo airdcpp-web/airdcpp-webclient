@@ -1522,7 +1522,7 @@ void QueueManager::handleMovedBundleItem(QueueItemPtr& qi) noexcept {
 		AdcCommand cmd(AdcCommand::CMD_PBD, AdcCommand::TYPE_UDP);
 
 		cmd.addParam("UP1");
-		cmd.addParam("HI", u.hint);
+		//cmd.addParam("HI", u.hint); update adds sources, so ip port needed here...
 		cmd.addParam("TH", qi->getTTH().toBase32());
 		ClientManager::getInstance()->sendUDP(cmd, u.user->getCID(), false, true);
 	}
@@ -2418,7 +2418,6 @@ size_t QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser,
 void QueueManager::sendRemovePBD(const HintedUser& aUser, const string& aRemoteToken) noexcept {
 	AdcCommand cmd(AdcCommand::CMD_PBD, AdcCommand::TYPE_UDP);
 
-	cmd.addParam("HI", aUser.hint);
 	cmd.addParam("BU", aRemoteToken);
 	cmd.addParam("RM1");
 	ClientManager::getInstance()->sendUDP(cmd, aUser.user->getCID(), false, true);

@@ -142,9 +142,7 @@ OnlineUser& NmdcHub::getUser(const string& aNick) noexcept {
 		}
 	}
 	
-	ClientManager::getInstance()->putOnline(u);
-
-	fire(ClientListener::UserConnected(), this, u);
+	onUserConnected(u);
 	return *u;
 }
 
@@ -174,7 +172,8 @@ void NmdcHub::putUser(const string& aNick) noexcept {
 
 		availableBytes -= ou->getIdentity().getBytesShared();
 	}
-	ClientManager::getInstance()->putOffline(ou);
+
+	onUserDisconnected(ou, false);
 	ou->dec();
 }
 

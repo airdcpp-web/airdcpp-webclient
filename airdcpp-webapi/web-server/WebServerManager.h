@@ -37,6 +37,8 @@
 #include <airdcpp/Util.h>
 
 #include <iostream>
+#include <boost/thread/thread.hpp>
+
 
 namespace webserver {
 	class ServerSettingItem;

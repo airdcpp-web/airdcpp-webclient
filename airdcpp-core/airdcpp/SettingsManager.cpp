@@ -189,6 +189,7 @@ const string SettingsManager::settingTags[] =
 "MediaToolbar", "password", "DownloadSpeed", "HighlightList", "IconPath",
 "AutoSearchFrame2Order", "AutoSearchFrame2Widths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs", "LastASFiletype", "LastSearchExcluded",
 "UsersFrmVisible2", "ListViewFont", "LogShareScanPath", "LastFilelistFiletype", "NmdcEncoding", "AsDefaultFailedGroup", "AutosearchFrmVisible",
+"RssFrameOrder", "RssFrameWidths", "RssFrameVisible",
 
 "SENTRY",
 // Ints

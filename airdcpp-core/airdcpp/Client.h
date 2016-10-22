@@ -129,7 +129,6 @@ public:
 	const string& getHubUrl() const noexcept { return hubUrl; }
 
 	GETSET(string, defpassword, Password);
-	IGETSET(bool, ignorePM, IgnorePM, false);
 
 	GETSET(uint64_t, lastActivity, LastActivity);
 	IGETSET(uint32_t, reconnDelay, ReconnDelay, 120);
@@ -241,6 +240,9 @@ protected:
 
 	void onChatMessage(const ChatMessagePtr& aMessage) noexcept;
 	void onRedirect(const string& aRedirectUrl) noexcept;
+
+	void onUserConnected(const OnlineUserPtr& aUser) noexcept;
+	void onUserDisconnected(const OnlineUserPtr& aUser, bool aDisconnectTransfers) noexcept;
 
 	string redirectUrl;
 private:

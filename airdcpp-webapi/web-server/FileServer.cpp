@@ -143,6 +143,10 @@ namespace webserver {
 		return extension;
 	}
 
+	void FileServer::addCacheControlHeader(StringPairList& headers_, int aDaysValid) noexcept {
+		headers_.emplace_back("Cache-Control", aDaysValid == 0 ? "no-store" : "max-age=" + Util::toString(aDaysValid * 24 * 60 * 60));
+	}
+
 	string FileServer::parseResourcePath(const string& aResource, const websocketpp::http::parser::request& aRequest, StringPairList& headers_) const {
 		// Serve files only from the resource directory
 		if (aResource.empty() || aResource.find("..") != std::string::npos) {
@@ -153,15 +157,22 @@ namespace webserver {
 
 		auto extension = getExtension(request);
 		if (!extension.empty()) {
-			// Strip the dot
-			extension = extension.substr(1);
+			dcassert(extension[0] != '.');
 
 			// We have compressed versions only for JS files
 			if (extension == "js" && aRequest.get_header("Accept-Encoding").find("gzip") != string::npos) {
 				request += ".gz";
 				headers_.emplace_back("Content-Encoding", "gzip");
 			}
-		} else if (request.find("/build") != 0 && request != "/favicon.ico") {
+
+			if (extension != "ico") {
+				// There's no hash with favicon.ico...
+				addCacheControlHeader(headers_, 30);
+			} else if (extension != "html") {
+				// One year (file versioning is done with hashes in filenames)
+				addCacheControlHeader(headers_, 365);
+			}
+		} else {
 			// Forward all requests for non-static files to index
 			// (but try to report API requests or other downloads with an invalid path)
 
@@ -174,6 +185,9 @@ namespace webserver {
 			}
 
 			request = "index.html";
+
+			// The main chunk name may change and it's stored in the HTML file
+			addCacheControlHeader(headers_, 0);
 		}
 
 		// Avoid double separators because of assertions
@@ -187,7 +201,7 @@ namespace webserver {
 		return resourcePath + request;
 	}
 
-	string FileServer::parseViewFilePath(const string& aResource) const {
+	string FileServer::parseViewFilePath(const string& aResource, StringPairList& headers_) const {
 		string protocol, tth, port, path, query, fragment;
 		Util::decodeUrl(aResource, protocol, tth, port, path, query, fragment);
 
@@ -206,6 +220,9 @@ namespace webserver {
 			throw std::domain_error("No files matching the TTH were found");
 		}
 
+		// One day 
+		// Files are identified by their TTH so the content won't change (but they are usually open only for a short time)
+		addCacheControlHeader(headers_, 1);
 		return file->getPath();
 	}
 
@@ -264,7 +281,7 @@ namespace webserver {
 		string filePath;
 		try {
 			if (aResource.length() >= 6 && aResource.compare(0, 6, "/view/") == 0) {
-				filePath = parseViewFilePath(aResource.substr(6));
+				filePath = parseViewFilePath(aResource.substr(6), headers_);
 			} else {
 				filePath = parseResourcePath(aResource, aRequest, headers_);
 			}
@@ -292,8 +309,9 @@ namespace webserver {
 			return websocketpp::http::status_code::internal_server_error;
 		}
 
-		// Get the mime type
-		auto type = getMimeType(filePath);
+		// Get the mime type (but get it from the original request with gzipped content)
+		auto usingEncoding = find_if(headers_.begin(), headers_.end(), CompareFirst<string, string>("Content-Encoding")) != headers_.end();
+		auto type = getMimeType(usingEncoding ? aResource : filePath);
 		if (type) {
 			headers_.emplace_back("Content-Type", type);
 		}

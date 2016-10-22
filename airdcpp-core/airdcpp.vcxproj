@@ -241,6 +241,7 @@
     <ClCompile Include="airdcpp\MessageCache.cpp" />
     <ClCompile Include="airdcpp\MessageManager.cpp" />
     <ClCompile Include="airdcpp\PrivateChat.cpp" />
+    <ClCompile Include="airdcpp\RSSManager.cpp" />
     <ClCompile Include="airdcpp\SearchQuery.cpp" />
     <ClCompile Include="airdcpp\ADLSearch.cpp" />
     <ClCompile Include="airdcpp\AirUtil.cpp" />
@@ -355,6 +356,7 @@
     <ClInclude Include="airdcpp\DirectSearch.h" />
     <ClInclude Include="airdcpp\DupeType.h" />
     <ClInclude Include="airdcpp\HashManagerListener.h" />
+    <ClInclude Include="airdcpp\RSSManager.h" />
     <ClInclude Include="airdcpp\SettingsManagerListener.h" />
     <ClInclude Include="airdcpp\TimerManagerListener.h" />
     <ClInclude Include="airdcpp\ViewFileManagerListener.h" />

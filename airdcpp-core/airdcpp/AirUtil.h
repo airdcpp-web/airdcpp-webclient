@@ -99,6 +99,8 @@ public:
 	static int listRegexCount(const StringList& l, const boost::regex& aReg);
 	static void listRegexSubtract(StringList& l, const boost::regex& aReg);
 	static bool stringRegexMatch(const string& aReg, const string& aString);
+	
+	static bool isRelease(const string& aString);
 
 	static void getRegexMatchesT(const tstring& aString, TStringList& l, const boost::wregex& aReg);
 	static void getRegexMatches(const string& aString, StringList& l, const boost::regex& aReg);

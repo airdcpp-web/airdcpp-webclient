@@ -548,13 +548,13 @@ CID ClientManager::makeCid(const string& aNick, const string& aHubUrl) const noe
 	return CID(th.finalize());
 }
 
-void ClientManager::putOnline(OnlineUser* ou) noexcept {
+void ClientManager::putOnline(const OnlineUserPtr& ou) noexcept {
 	{
 		WLock l(cs);
-		onlineUsers.emplace(const_cast<CID*>(&ou->getUser()->getCID()), ou);
+		onlineUsers.emplace(const_cast<CID*>(&ou->getUser()->getCID()), ou.get());
 	}
 	
-	if(!ou->getUser()->isOnline()) {
+	if (!ou->getUser()->isOnline()) {
 		// User came online
 		ou->getUser()->setFlag(User::ONLINE);
 
@@ -571,7 +571,7 @@ void ClientManager::putOnline(OnlineUser* ou) noexcept {
 	}
 }
 
-void ClientManager::putOffline(OnlineUser* ou, bool disconnect) noexcept {
+void ClientManager::putOffline(const OnlineUserPtr& ou, bool aDisconnectTransfers) noexcept {
 	OnlineIter::difference_type diff = 0;
 	{
 		WLock l(cs);
@@ -601,8 +601,10 @@ void ClientManager::putOffline(OnlineUser* ou, bool disconnect) noexcept {
 		UserPtr& u = ou->getUser();
 		u->unsetFlag(User::ONLINE);
 		//updateUser(*ou);
-		if(disconnect)
+		if (aDisconnectTransfers) {
 			ConnectionManager::getInstance()->disconnect(u);
+		}
+
 		fire(ClientManagerListener::UserDisconnected(), u, true);
 	} else if(diff > 1) {
 		fire(ClientManagerListener::UserDisconnected(), *ou, false);

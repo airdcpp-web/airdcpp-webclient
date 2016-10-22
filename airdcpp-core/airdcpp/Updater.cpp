@@ -51,67 +51,169 @@
 
 namespace dcpp {
 
-bool Updater::extractFiles(const string& curSourcePath, const string& curExtractPath, string& error) {
-	bool ret = true;
-	File::ensureDirectory(curExtractPath);
-	FileFindIter end;
-	for(FileFindIter i(curSourcePath, "*"); i != end; ++i) {
-		string name = i->getFileName();
-		if(name == "." || name == "..")
-			continue;
-
-		if(i->isLink() || name.empty())
-			continue;
-
-		if(!i->isDirectory()) {
-			try {
-				if(Util::fileExists(curExtractPath + name))
-					File::deleteFile(curExtractPath + name);
-				File::copyFile(curSourcePath + name, curExtractPath + name);
-			} catch(Exception& e) {
-				error = e.getError() + " (" + curExtractPath + name + ")";
-				return false; 
+int Updater::cleanExtraFiles(const string& aCurPath, const optional<StringSet>& aProtectedFiles) noexcept {
+	int deletedFiles = 0;
+	File::forEachFile(aCurPath, "*", [&](const string& aFileName, bool isDir, int64_t /*aSize*/) {
+		if (!isDir) {
+			auto fullPath = aCurPath + aFileName;
+			if ((!aProtectedFiles || (*aProtectedFiles).find(fullPath) == (*aProtectedFiles).end()) && File::deleteFile(fullPath)) {
+				deletedFiles++;
 			}
 		} else {
-			ret = extractFiles(curSourcePath + name + PATH_SEPARATOR, curExtractPath + name + PATH_SEPARATOR, error);
-			if(!ret) break;
+			deletedFiles += cleanExtraFiles(aCurPath + aFileName, aProtectedFiles);
 		}
-	}
-	return ret;
+	});
+
+	File::removeDirectory(aCurPath);
+	return deletedFiles;
 }
 
-bool Updater::applyUpdate(const string& sourcePath, const string& installPath, string& error) {
-	bool ret = extractFiles(sourcePath, installPath, error);
-	if (ret) {
-		//update the version in the registry
-		HKEY hk;
-		TCHAR Buf[512];
-		Buf[0] = 0;
+int Updater::destroyDirectory(const string& aPath) {
+	int removed = 0;
 
-	#ifdef _WIN64
-		string regkey = "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AirDC++\\";
-		int flags = KEY_WRITE | KEY_QUERY_VALUE | KEY_WOW64_64KEY;
-	#else
-		string regkey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AirDC++\\";
-		int flags = KEY_WRITE | KEY_QUERY_VALUE;
-	#endif
+	// The updater exe may not shut down instantly
+	for (int i = 0; i < 3; i++) {
+		removed += cleanExtraFiles(aPath, boost::none);
+		if (Util::fileExists(aPath)) {
+			Sleep(1000);
+		} else {
+			break;
+		}
+	}
 
-		auto err = ::RegOpenKeyEx(HKEY_LOCAL_MACHINE, Text::toT(regkey).c_str(), 0, flags, &hk);
-		if(err == ERROR_SUCCESS) {
-			DWORD bufLen = sizeof(Buf);
-			DWORD type;
-			::RegQueryValueEx(hk, _T("InstallLocation"), 0, &type, (LPBYTE)Buf, &bufLen);
-			if(Util::stricmp(Text::toT(installPath).c_str(), Buf) == 0) {
-				::RegSetValueEx(hk, _T("DisplayVersion"), 0, REG_SZ, (LPBYTE) Text::toT(shortVersionString).c_str(), sizeof(TCHAR) * (shortVersionString.length() + 1));
+	return removed;
+}
+
+bool Updater::applyUpdaterFiles(const string& aCurTempPath, const string& aCurDestinationPath, string& error_, StringSet& updatedFiles_, FileLogger& aLogger) noexcept {
+	File::ensureDirectory(aCurDestinationPath);
+
+	try {
+		File::forEachFile(aCurTempPath, "*", [&](const string& aFileName, bool isDir, int64_t /*aSize*/) {
+			if (!isDir) {
+				auto destFile = aCurDestinationPath + aFileName;
+
+				try {
+					if (Util::fileExists(destFile)) {
+						File::deleteFile(destFile);
+					}
+
+					File::copyFile(aCurTempPath + aFileName, destFile);
+					updatedFiles_.insert(destFile);
+
+					aLogger.log("Installed file " + destFile);
+				} catch (const Exception& e) {
+					throw FileException("Failed to copy the file " + destFile + " (" + e.getError() + ")");
+				}
+			} else {
+				applyUpdaterFiles(aCurTempPath + aFileName, aCurDestinationPath + aFileName, error_, updatedFiles_, aLogger);
 			}
-			::RegCloseKey(hk);
-		}
+		});
+	} catch (const FileException& e) {
+		error_ = e.getError();
+		aLogger.log(e.getError());
+		return false;
 	}
 
-	return ret;
+	return true;
 }
 
-void Updater::createUpdate() {
+Updater::FileLogger::FileLogger(const string& aPath, bool aResetFile) {
+	if (aResetFile) {
+		File::deleteFile(aPath);
+	}
+
+	try {
+		f.reset(new File(aPath, File::WRITE, File::OPEN | File::CREATE));
+		f->setEndPos(0);
+	} catch (...) {
+		f = nullptr;
+	}
+}
+
+void Updater::FileLogger::log(const string& aLine, bool aAddDate) noexcept {
+	if (f && f->isOpen()) {
+		string date;
+		if (aAddDate) {
+			time_t _tt;
+			time(&_tt);
+			date = Util::formatTime("[%Y-%m-%d %H:%M:%S]  ", _tt);
+		}
+
+		try {
+			f->write(date + aLine + "\r\n");
+		} catch (const FileException&) {
+
+		}
+	}
+}
+
+void Updater::FileLogger::separator() noexcept {
+	log("\r\n", false);
+}
+
+bool Updater::applyUpdate(const string& aSourcePath, const string& aApplicationPath, string& error_, int aMaxRetries) noexcept {
+	FileLogger updaterLog(UPDATE_TEMP_LOG, true);
+	updaterLog.log("Starting to install build " + BUILD_NUMBER_STR);
+
+	{
+		// Copy new files
+		StringSet updatedFiles;
+
+		bool success = false;
+		for (int i = 0; i < aMaxRetries && (success = Updater::applyUpdaterFiles(aSourcePath, aApplicationPath, error_, updatedFiles, updaterLog)) == false; ++i) {
+			updaterLog.log("Updating failed, retrying after one second...");
+			Thread::sleep(1000);
+		}
+
+		if (!success) {
+			return false;
+		}
+
+		updaterLog.log(Util::toString(updatedFiles.size()) + " files were updated successfully");
+
+		// Clean up files from old directories
+
+		// Web UI filenames contain unique hashes that will change in each version
+		auto removed = cleanExtraFiles(aApplicationPath + "Web-resources" + PATH_SEPARATOR, updatedFiles);
+		updaterLog.log("Web-resources: " + Util::toString(removed) + " obsolete files were removed");
+	}
+
+
+	// Update the version in the registry
+	HKEY hk;
+	TCHAR Buf[512];
+	Buf[0] = 0;
+
+#ifdef _WIN64
+	string regkey = "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AirDC++\\";
+	int flags = KEY_WRITE | KEY_QUERY_VALUE | KEY_WOW64_64KEY;
+#else
+	string regkey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AirDC++\\";
+	int flags = KEY_WRITE | KEY_QUERY_VALUE;
+#endif
+
+	auto err = ::RegOpenKeyEx(HKEY_LOCAL_MACHINE, Text::toT(regkey).c_str(), 0, flags, &hk);
+	if(err == ERROR_SUCCESS) {
+		DWORD bufLen = sizeof(Buf);
+		DWORD type;
+		::RegQueryValueEx(hk, _T("InstallLocation"), 0, &type, (LPBYTE)Buf, &bufLen);
+
+		if(Util::stricmp(Text::toT(aApplicationPath).c_str(), Buf) == 0) {
+			::RegSetValueEx(hk, _T("DisplayVersion"), 0, REG_SZ, (LPBYTE) Text::toT(shortVersionString).c_str(), sizeof(TCHAR) * (shortVersionString.length() + 1));
+			updaterLog.log("Registry key was updated successfully");
+		} else {
+			updaterLog.log("Skipping updating of registry key (existing key is for a different installation)");
+		}
+
+		::RegCloseKey(hk);
+	} else {
+		updaterLog.log("Failed to update registry key: " + Util::translateError(err));
+	}
+
+	return true;
+}
+
+string Updater::createUpdate() noexcept {
 	auto updaterFilePath = Util::getParentDir(Util::getAppPath());
 	string updaterFile = "updater_" ARCH_STR "_" + VERSIONSTRING + ".zip";
 
@@ -159,6 +261,7 @@ void Updater::createUpdate() {
 	} catch(const Exception& /*e*/) { }
 
 	signVersionFile(updaterFilePath + "version.xml", updaterFilePath + "air_rsa", false);
+	return updaterFilePath + updaterFile;
 }
 
 void Updater::signVersionFile(const string& file, const string& key, bool makeHeader) {
@@ -257,7 +360,7 @@ Updater::Updater(UpdateManager* aUm) noexcept : um(aUm) {
 	sessionToken = Util::toString(Util::rand());
 }
 
-void Updater::completeUpdateDownload(int buildID, bool manualCheck) {
+void Updater::completeUpdateDownload(int aBuildID, bool aManualCheck) {
 	auto& conn = clientDownload;
 	ScopedFunctor([&conn] { conn.reset(); });
 
@@ -269,110 +372,135 @@ void Updater::completeUpdateDownload(int buildID, bool manualCheck) {
 			File::removeDirectory(UPDATE_TEMP_DIR + sessionToken + PATH_SEPARATOR);
 			File::ensureDirectory(UPDATE_TEMP_DIR + sessionToken + PATH_SEPARATOR);
 			File(updaterFile, File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
-		}
-		catch (const FileException&) {
-			failUpdateDownload(STRING(UPDATER_WRITE_FAILED), manualCheck);
+		} catch (const FileException&) {
+			failUpdateDownload(STRING(UPDATER_WRITE_FAILED), aManualCheck);
 			return;
 		}
 
 		// Check integrity
 		if (TTH(updaterFile) != updateTTH) {
-			failUpdateDownload(STRING(INTEGRITY_CHECK_FAILED), manualCheck);
+			failUpdateDownload(STRING(INTEGRITY_CHECK_FAILED), aManualCheck);
 			return;
 		}
 
 		// Unzip the update
 		try {
-			ZipFile zip;
-			zip.Open(updaterFile);
-
-			string srcPath = UPDATE_TEMP_DIR + sessionToken + PATH_SEPARATOR;
-			string dstPath = Util::getAppFilePath();
-			string updaterExeFile = srcPath + Util::getAppFileName();
-
-			if (zip.GoToFirstFile()) {
-				do {
-					zip.OpenCurrentFile();
-					if (zip.GetCurrentFileName().find(Util::getFileExt(updaterExeFile)) != string::npos) {
-						zip.ReadCurrentFile(updaterExeFile);
-					}
-					else zip.ReadCurrentFile(srcPath);
-					zip.CloseCurrentFile();
-				} while (zip.GoToNextFile());
-			}
-
-			zip.Close();
-
-			//Write the XML file
-			SimpleXML xml;
-			xml.addTag("UpdateInfo");
-			xml.stepIn();
-			xml.addTag("DestinationPath", dstPath);
-			xml.addTag("SourcePath", srcPath);
-			xml.addTag("UpdaterFile", updaterExeFile);
-			xml.addTag("BuildID", buildID);
-			xml.stepOut();
-
-			{
-				File f(UPDATE_TEMP_DIR + "UpdateInfo_" + sessionToken + ".xml", File::WRITE, File::CREATE | File::TRUNCATE);
-				f.write(SimpleXML::utf8Header);
-				f.write(xml.toXML());
-			}
+			auto updaterExeFile = extractUpdater(updaterFile, aBuildID, sessionToken);
 
 			LogManager::getInstance()->message(STRING(UPDATE_DOWNLOADED), LogMessage::SEV_INFO);
-			installedUpdate = buildID;
+			installedUpdate = aBuildID;
 
 			conn.reset(); //prevent problems when closing
 			um->fire(UpdateManagerListener::UpdateComplete(), updaterExeFile);
-		}
-		catch (ZipFileException& e) {
-			failUpdateDownload(e.getError(), manualCheck);
+		} catch (const Exception& e) {
+			failUpdateDownload(e.getError(), aManualCheck);
 		}
 	} else {
-		failUpdateDownload(conn->status, manualCheck);
+		failUpdateDownload(conn->status, aManualCheck);
 	}
 }
 
-bool Updater::checkPendingUpdates(const string& aDstDir, string& updater_, bool updated) {
-	StringList fileList = File::findFiles(UPDATE_TEMP_DIR, "UpdateInfo_*");
-	for (auto& uiPath : fileList) {
-		if (Util::getFileExt(uiPath) == ".xml") {
-			try {
-				SimpleXML xml;
-				xml.fromXML(File(uiPath, File::READ, File::OPEN).read());
-				if (xml.findChild("UpdateInfo")) {
+string Updater::extractUpdater(const string& aUpdaterPath, int aBuildID, const string& aSessionToken) {
+	ZipFile zip;
+	zip.Open(aUpdaterPath);
+
+	string srcPath = UPDATE_TEMP_DIR + aSessionToken + PATH_SEPARATOR;
+	string dstPath = Util::getAppFilePath();
+	string updaterExeFile = srcPath + Util::getAppFileName();
+
+	if (zip.GoToFirstFile()) {
+		do {
+			zip.OpenCurrentFile();
+			if (zip.GetCurrentFileName().find(Util::getFileExt(updaterExeFile)) != string::npos) {
+				zip.ReadCurrentFile(updaterExeFile);
+			} else zip.ReadCurrentFile(srcPath);
+			zip.CloseCurrentFile();
+		} while (zip.GoToNextFile());
+	}
+
+	zip.Close();
+
+	//Write the XML file
+	SimpleXML xml;
+	xml.addTag("UpdateInfo");
+	xml.stepIn();
+	xml.addTag("DestinationPath", dstPath);
+	xml.addTag("SourcePath", srcPath);
+	xml.addTag("ConfigPath", Util::getPath(Util::PATH_GLOBAL_CONFIG));
+	xml.addTag("UpdaterFile", updaterExeFile);
+	xml.addTag("BuildID", aBuildID);
+	xml.stepOut();
+
+	{
+		File f(UPDATE_TEMP_DIR + "UpdateInfo_" + aSessionToken + ".xml", File::WRITE, File::CREATE | File::TRUNCATE);
+		f.write(SimpleXML::utf8Header);
+		f.write(xml.toXML());
+	}
+
+	return updaterExeFile;
+}
+
+bool Updater::checkPendingUpdates(const string& aAppPath, string& updaterFile_, bool aUpdateAttempted) {
+	const auto infoFileList = File::findFiles(UPDATE_TEMP_DIR, "UpdateInfo_*");
+	if (infoFileList.empty()) {
+		return false;
+	}
+
+	FileLogger logger(UPDATE_TEMP_LOG, false);
+	if (aUpdateAttempted) {
+		logger.log("New instance was started, cleaning up files...");
+	}
+
+	for (auto& infoFilePath : infoFileList) {
+		if (Util::getFileExt(infoFilePath) != ".xml") {
+			continue;
+		}
+
+		try {
+			SimpleXML xml;
+			xml.fromXML(File(infoFilePath, File::READ, File::OPEN).read());
+			if (xml.findChild("UpdateInfo")) {
+				xml.stepIn();
+				if (xml.findChild("DestinationPath")) {
 					xml.stepIn();
-					if (xml.findChild("DestinationPath")) {
+					auto infoAppPath = xml.getData();
+					xml.stepOut();
+
+					if (infoAppPath != aAppPath)
+						continue;
+
+					if (xml.findChild("UpdaterFile")) {
 						xml.stepIn();
-						string dstDir = xml.getData();
+						updaterFile_ = xml.getData();
 						xml.stepOut();
 
-						if (dstDir != aDstDir)
-							continue;
-
-						if (xml.findChild("UpdaterFile")) {
+						if (xml.findChild("BuildID")) {
 							xml.stepIn();
-							updater_ = xml.getData();
-							xml.stepOut();
-
-							if (xml.findChild("BuildID")) {
-								xml.stepIn();
-								if (Util::toInt(xml.getData()) <= BUILD_NUMBER || updated) {
-									//we have an old update for this instance, delete the files
-									cleanTempFiles(Util::getFilePath(updater_));
-									File::deleteFile(uiPath);
-									continue;
+							if (Util::toInt(xml.getData()) <= BUILD_NUMBER || aUpdateAttempted) {
+								// We have an old update for this instance, delete the files
+								auto updateDirectory = Util::getFilePath(updaterFile_);
+								auto removed = destroyDirectory(updateDirectory);
+								logger.log(Util::toString(removed) + " files were removed from the updater directory " + updateDirectory);
+								if (Util::fileExists(updateDirectory)) {
+									//AirUtil::removeD
+									logger.log("WARNING: update directory " + updateDirectory + " could not be removed");
 								}
-								return true;
+
+								if (File::deleteFile(infoFilePath)) {
+									logger.log("Update info XML " + infoFilePath + " was removed");
+								}
+								
+								continue;
 							}
+
+							return true;
 						}
 					}
-
 				}
+
 			}
-			catch (const Exception& e) {
-				LogManager::getInstance()->message(STRING_F(FAILED_TO_READ, uiPath % e.getError()), LogMessage::SEV_WARNING);
-			}
+		} catch (const Exception& e) {
+			LogManager::getInstance()->message(STRING_F(FAILED_TO_READ, infoFilePath % e.getError()), LogMessage::SEV_WARNING);
 		}
 	}
 
@@ -508,28 +636,6 @@ bool Updater::getUpdateVersionInfo(SimpleXML& xml, string& versionString, int& r
 	}
 
 	return false;
-}
-
-void Updater::cleanTempFiles(const string& tmpPath) {
-	FileFindIter end;
-	for (FileFindIter i(tmpPath, "*"); i != end; ++i) {
-		string name = i->getFileName();
-		if (name == "." || name == "..")
-			continue;
-
-		if (i->isLink() || name.empty())
-			continue;
-
-		if (i->isDirectory()) {
-			cleanTempFiles(tmpPath + name + PATH_SEPARATOR);
-		}
-		else {
-			File::deleteFileEx(tmpPath + name, 3);
-		}
-	}
-
-	// Remove the empty dir
-	File::removeDirectory(tmpPath);
 }
 
 } // namespace dcpp

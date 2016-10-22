@@ -19,23 +19,19 @@
 #ifndef DCPLUSPLUS_DCPP_CRITICALSECTION_H
 #define DCPLUSPLUS_DCPP_CRITICALSECTION_H
 
+#include <mutex>
+
 #ifdef _WIN32
-#include "w.h"
+#include <shared_mutex>
 #else
 #include <pthread.h>
-//#include <sched.h>
-//#include <sys/resource.h>
-#endif
-
-#include <boost/noncopyable.hpp>
-#include <stdint.h>
-
 #include <boost/thread.hpp>
+#endif
 
 namespace dcpp {
 
 typedef boost::detail::spinlock	FastCriticalSection;
-typedef boost::lock_guard<boost::detail::spinlock> FastLock;
+typedef std::lock_guard<boost::detail::spinlock> FastLock;
 
 
 #ifndef _WIN32
@@ -43,6 +39,7 @@ typedef boost::shared_mutex	SharedMutex;
 typedef boost::shared_lock<boost::shared_mutex> RLock;
 typedef boost::unique_lock<boost::shared_mutex> WLock;
 
+// A custom implementation is required for Semaphore
 class CriticalSection {
 public:
 	CriticalSection() noexcept{
@@ -79,50 +76,12 @@ typedef LockBase<CriticalSection> Lock;
 
 #else
 
-typedef boost::recursive_mutex	CriticalSection;
-typedef boost::lock_guard<boost::recursive_mutex> Lock;
-typedef boost::shared_mutex FLock;
+typedef std::recursive_mutex	CriticalSection;
+typedef std::lock_guard<std::recursive_mutex> Lock;
 
-// A custom Slim Reader/Writer (SRW) solution, only works on Windows Vista or newer
-
-class SharedMutex {
-public:
-	SharedMutex();
-	~SharedMutex();
-
-	void lock_shared();
-	void unlock_shared();
-
-	void lock();
-	void unlock();
-
-	SharedMutex(const SharedMutex&) = delete;
-	SharedMutex& operator=(const SharedMutex&) = delete;
-private:
-	SRWLOCK psrw;
-};
-
-class RLock {
-public:
-	RLock(SharedMutex& cs);
-	~RLock();
-
-	RLock(const RLock&) = delete;
-	RLock& operator=(const RLock&) = delete;
-private:
-	SharedMutex* cs;
-};
-
-struct WLock {
-public:
-	WLock(SharedMutex& cs);
-	~WLock();
-
-	WLock(const WLock&) = delete;
-	WLock& operator=(const WLock&) = delete;
-private:
-	SharedMutex* cs;
-};
+typedef std::shared_mutex	SharedMutex;
+typedef std::shared_lock<std::shared_mutex> RLock;
+typedef std::unique_lock<std::shared_mutex> WLock;
 
 #endif
 

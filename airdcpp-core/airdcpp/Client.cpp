@@ -127,10 +127,8 @@ void Client::reloadSettings(bool aUpdateNick) noexcept {
 			setPassword(fav->getPassword());
 		}
 
-		ignorePM = fav->getIgnorePM();
 		favToken = fav->getToken();
 	} else {
-		ignorePM = false;
 		setPassword(Util::emptyString);
 	}
 
@@ -315,6 +313,34 @@ void Client::onRedirect(const string& aRedirectUrl) noexcept {
 	} else {
 		fire(ClientListener::Redirect(), this, redirectUrl);
 	}
+}
+
+void Client::onUserConnected(const OnlineUserPtr& aUser) noexcept {
+	if (!aUser->getIdentity().isHub()) {
+		ClientManager::getInstance()->putOnline(aUser);
+
+		if (aUser->getUser() != ClientManager::getInstance()->getMe()) {
+			if (!aUser->isHidden() && get(HubSettings::ShowJoins) || (get(HubSettings::FavShowJoins) && aUser->getUser()->isFavorite())) {
+				statusMessage("*** " + STRING(JOINS) + ": " + aUser->getIdentity().getNick(), LogMessage::SEV_INFO, ClientListener::FLAG_IS_SYSTEM);
+			}
+		}
+	}
+
+	fire(ClientListener::UserConnected(), this, aUser);
+}
+
+void Client::onUserDisconnected(const OnlineUserPtr& aUser, bool aDisconnectTransfers) noexcept {
+	if (!aUser->getIdentity().isHub()) {
+		ClientManager::getInstance()->putOffline(aUser, aDisconnectTransfers);
+
+		if (aUser->getUser() != ClientManager::getInstance()->getMe()) {
+			if (!aUser->isHidden() && get(HubSettings::ShowJoins) || (get(HubSettings::FavShowJoins) && aUser->getUser()->isFavorite())) {
+				statusMessage("*** " + STRING(PARTS) + ": " + aUser->getIdentity().getNick(), LogMessage::SEV_INFO, ClientListener::FLAG_IS_SYSTEM);
+			}
+		}
+	}
+
+	fire(ClientListener::UserRemoved(), this, aUser);
 }
 
 void Client::allowUntrustedConnect() noexcept {

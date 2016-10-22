@@ -121,7 +121,7 @@ private:
 	
 	OnlineUserPtr findUser(const string& aNick) const noexcept override;
 
-	void putUser(const uint32_t aSID, bool disconnect) noexcept;
+	void putUser(const uint32_t aSID, bool aDisconnectTransfers) noexcept;
 
 	void shutdown(ClientPtr& aClient, bool aRedirect) override;
 	void clearUsers() noexcept override;

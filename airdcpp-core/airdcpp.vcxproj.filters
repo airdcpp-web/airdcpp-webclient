@@ -332,6 +332,9 @@
     <ClCompile Include="airdcpp\DirectSearch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="airdcpp\RSSManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="airdcpp\AdcCommand.h">
@@ -869,6 +872,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\SettingsManagerListener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\RSSManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
