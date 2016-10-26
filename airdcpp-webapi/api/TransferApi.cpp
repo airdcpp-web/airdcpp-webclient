@@ -255,7 +255,7 @@ namespace webserver {
 	}
 
 	TransferInfoPtr TransferApi::addTransfer(const ConnectionQueueItem* aCqi, const string& aStatus) noexcept {
-		auto t = std::make_shared<TransferInfo>(aCqi->getHintedUser(), aCqi->getConnType() == ConnectionType::CONNECTION_TYPE_DOWNLOAD, aCqi->getToken());
+		auto t = std::make_shared<TransferInfo>(aCqi->getUser(), aCqi->getConnType() == ConnectionType::CONNECTION_TYPE_DOWNLOAD, aCqi->getToken());
 
 		{
 			WLock l(cs);
@@ -316,7 +316,7 @@ namespace webserver {
 			return;
 		}
 
-		onFailed(t, aCqi->getUser()->isSet(User::OLD_CLIENT) ? STRING(SOURCE_TOO_OLD) : aReason);
+		onFailed(t, aCqi->getUser().user->isSet(User::OLD_CLIENT) ? STRING(SOURCE_TOO_OLD) : aReason);
 	}
 
 	void TransferApi::updateQueueInfo(TransferInfoPtr& aInfo) noexcept {
