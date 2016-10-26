@@ -32,7 +32,7 @@
 #define ADC_ROOT ADC_SEPARATOR
 #define ADC_ROOT_STR ADC_SEPARATOR_STR
 
-#define NMDC_ROOT ''
+// Empty char defines would cause issues with clang
 #define NMDC_ROOT_STR ""
 
 #ifdef _WIN32
