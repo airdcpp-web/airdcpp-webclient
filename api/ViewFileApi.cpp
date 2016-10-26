@@ -25,6 +25,7 @@
 #include <api/common/Serializer.h>
 #include <api/common/Deserializer.h>
 
+#include <airdcpp/File.h>
 #include <airdcpp/QueueManager.h>
 #include <airdcpp/ViewFileManager.h>
 

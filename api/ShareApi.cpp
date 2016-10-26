@@ -37,13 +37,60 @@ namespace webserver {
 		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("paths")), true, ShareApi::handleRefreshPaths);
 		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("virtual")), true, ShareApi::handleRefreshVirtual);
 
+		METHOD_HANDLER("excludes", Access::SETTINGS_EDIT, ApiRequest::METHOD_GET, (), false, ShareApi::handleGetExcludes);
+		METHOD_HANDLER("exclude", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("add")), true, ShareApi::handleAddExclude);
+		METHOD_HANDLER("exclude", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("remove")), true, ShareApi::handleRemoveExclude);
+
 		createSubscription("share_refreshed");
+
+		createSubscription("share_exclude_added");
+		createSubscription("share_exclude_removed");
 
 		ShareManager::getInstance()->addListener(this);
 	}
 
 	ShareApi::~ShareApi() {
 		ShareManager::getInstance()->removeListener(this);
+	}
+
+	api_return ShareApi::handleGetExcludes(ApiRequest& aRequest) {
+		aRequest.setResponseBody(ShareManager::getInstance()->getExcludedPaths());
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return ShareApi::handleAddExclude(ApiRequest& aRequest) {
+		auto path = JsonUtil::getField<string>("path", aRequest.getRequestBody(), false);
+
+		try {
+			ShareManager::getInstance()->addExcludedPath(path);
+		} catch (const ShareException& e) {
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return ShareApi::handleRemoveExclude(ApiRequest& aRequest) {
+		auto path = JsonUtil::getField<string>("path", aRequest.getRequestBody(), false);
+		if (!ShareManager::getInstance()->removeExcludedPath(path)) {
+			aRequest.setResponseErrorStr("Excluded path was not found");
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		return websocketpp::http::status_code::ok;
+	}
+
+	void ShareApi::on(ShareManagerListener::ExcludeAdded, const string& aPath) noexcept {
+		send("share_exclude_added", {
+			{ "path", aPath }
+		});
+	}
+
+	void ShareApi::on(ShareManagerListener::ExcludeRemoved, const string& aPath) noexcept {
+		send("share_exclude_removed", {
+			{ "path", aPath }
+		});
 	}
 
 	api_return ShareApi::handleRefreshShare(ApiRequest& aRequest) {
