@@ -21,6 +21,8 @@
 
 #include "stdinc.h"
 
+#include "SettingsManager.h"
+
 // TODO: replace with STD when MSVC can initialize the distribution correctly
 #include <boost/random/discrete_distribution.hpp>
 #include <boost/random/mersenne_twister.hpp>

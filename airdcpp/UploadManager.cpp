@@ -333,7 +333,7 @@ checkslots:
 				unique_ptr<MemoryInputStream> mis = nullptr;
 				// Partial file list
 				if (tthList) {
-					if (aFile[0] != '/') {
+					if (aFile[0] != ADC_ROOT) {
 						BundlePtr bundle = nullptr;
 						mis.reset(QueueManager::getInstance()->generateTTHList(Util::toUInt32(aFile), *profile != SP_HIDDEN, bundle));
 

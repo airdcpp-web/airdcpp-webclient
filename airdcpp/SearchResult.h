@@ -19,7 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_SEARCHRESULT_H
 #define DCPLUSPLUS_DCPP_SEARCHRESULT_H
 
-#include "AdcCommand.h"
 #include "GetSet.h"
 #include "forward.h"
 #include "FastAlloc.h"
@@ -27,8 +26,6 @@
 #include "MerkleTree.h"
 #include "Pointer.h"
 #include "Util.h"
-
-#include <boost/noncopyable.hpp>
 
 namespace dcpp {
 
@@ -75,8 +72,8 @@ public:
 	const string& getIP() const noexcept { return IP; }
 	const string& getToken() const noexcept { return token; }
 	time_t getDate() const noexcept { return date; }
-	const CID& getCID() const noexcept { return user.user->getCID(); }
-	bool isNMDC() const noexcept { return user.user->isNMDC(); }
+	const CID& getCID() const noexcept;
+	bool isNMDC() const noexcept;
 
 	static void pickResults(SearchResultList& aResults, int aMaxCount) noexcept;
 	struct SpeedSortOrder {

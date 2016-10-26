@@ -135,7 +135,7 @@ StringList BundleQueue::getNmdcDirPaths(const string& aPath) const noexcept {
 
 void BundleQueue::findNmdcDirs(const string& aPath, PathInfoPtrList& pathInfos_) const noexcept {
 	// Get the last meaningful directory to look up
-	auto dirNameInfo = AirUtil::getDirName(aPath, '\\');
+	auto dirNameInfo = AirUtil::getDirName(aPath, NMDC_SEPARATOR);
 	auto directories = dirNameMap.equal_range(dirNameInfo.first);
 	if (directories.first == directories.second)
 		return;
@@ -158,7 +158,7 @@ const BundleQueue::PathInfo* BundleQueue::getNmdcSubDirectoryInfo(const string& 
 	auto pathInfos = getPathInfos(aBundle->getTarget());
 	if (pathInfos) {
 		for (const auto& p : *pathInfos) {
-			auto pos = AirUtil::compareFromEnd(p->path, aSubPath, '\\');
+			auto pos = AirUtil::compareFromEnd(p->path, aSubPath, NMDC_SEPARATOR);
 			if (pos == 0) {
 				return p;
 			}

@@ -29,16 +29,20 @@ namespace dcpp {
 		template<int I>	struct X { enum { TYPE = I }; };
 
 		typedef X<0> ShareLoaded;
-		typedef X<2> DirectoriesRefreshed;
+		typedef X<1> DirectoriesRefreshed;
 
-		typedef X<4> ProfileAdded;
-		typedef X<5> ProfileUpdated;
-		typedef X<6> ProfileRemoved;
-		typedef X<7> DefaultProfileChanged;
+		typedef X<2> ProfileAdded;
+		typedef X<3> ProfileUpdated;
+		typedef X<4> ProfileRemoved;
+		typedef X<5> DefaultProfileChanged;
 
-		typedef X<8> RootCreated;
-		typedef X<9> RootRemoved;
-		typedef X<10> RootUpdated;
+		typedef X<6> RootCreated;
+		typedef X<7> RootRemoved;
+		typedef X<8> RootUpdated;
+
+		typedef X<9> ExcludeAdded;
+		typedef X<10> ExcludeRemoved;
+
 
 		virtual void on(ShareLoaded) noexcept{}
 		virtual void on(DirectoriesRefreshed, uint8_t /*tasktype*/, const RefreshPathList&) noexcept{}
@@ -51,6 +55,9 @@ namespace dcpp {
 		virtual void on(RootCreated, const string&) noexcept {}
 		virtual void on(RootRemoved, const string&) noexcept {}
 		virtual void on(RootUpdated, const string&) noexcept {}
+
+		virtual void on(ExcludeAdded, const string&) noexcept {}
+		virtual void on(ExcludeRemoved, const string&) noexcept {}
 	};
 
 } // namespace dcpp

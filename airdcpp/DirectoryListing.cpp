@@ -220,7 +220,7 @@ DirectoryListing::Directory::Ptr DirectoryListing::createBaseDirectory(const str
 	dcassert(Util::isAdcPath(aBasePath));
 	auto cur = root;
 
-	const auto sl = StringTokenizer<string>(aBasePath, '/').getTokens();
+	const auto sl = StringTokenizer<string>(aBasePath, ADC_SEPARATOR).getTokens();
 	for (const auto& curDirName : sl) {
 		auto s = cur->directories.find(&curDirName);
 		if (s == cur->directories.end()) {
@@ -246,9 +246,9 @@ void DirectoryListing::loadFile() throw(Exception, AbortException) {
 		root->setLastUpdateDate(ff.getLastModified());
 		if(Util::stricmp(ext, ".bz2") == 0) {
 			FilteredInputStream<UnBZFilter, false> f(&ff);
-			loadXML(f, false, "/", ff.getLastModified());
+			loadXML(f, false, ADC_ROOT_STR, ff.getLastModified());
 		} else if(Util::stricmp(ext, ".xml") == 0) {
-			loadXML(ff, false, "/", ff.getLastModified());
+			loadXML(ff, false, ADC_ROOT_STR, ff.getLastModified());
 		}
 	}
 }
@@ -594,7 +594,7 @@ bool DirectoryListing::downloadDirImpl(Directory::Ptr& aDir, const string& aTarg
 
 bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept {
 	dcassert(aDir.size() > 2);
-	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
+	dcassert(aDir[aDir.size() - 1] == NMDC_SEPARATOR);
 
 	auto d = findDirectory(aDir);
 	if (d) {
@@ -606,7 +606,7 @@ bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, Qu
 
 int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {
 	dcassert(aDir.size() > 2);
-	dcassert(aDir.empty() || aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
+	dcassert(aDir == NMDC_ROOT_STR || aDir[aDir.size() - 1] == NMDC_SEPARATOR);
 
 	auto d = findDirectory(aDir);
 	if (d) {
@@ -631,10 +631,10 @@ bool DirectoryListing::viewAsText(const File::Ptr& aFile) const noexcept {
 }
 
 DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& aName, const Directory* aCurrent) const noexcept {
-	if (aName.empty())
+	if (aName == NMDC_ROOT_STR)
 		return root;
 
-	string::size_type end = aName.find('\\');
+	string::size_type end = aName.find(NMDC_SEPARATOR);
 	dcassert(end != string::npos);
 	string name = aName.substr(0, end);
 
@@ -859,7 +859,7 @@ void DirectoryListing::Directory::clearAdls() noexcept {
 string DirectoryListing::Directory::getPath() const noexcept {
 	//make sure to not try and get the name of the root dir
 	if (parent) {
-		return parent->getPath() + name + '\\';
+		return parent->getPath() + name + NMDC_SEPARATOR;
 	}
 
 	// root

@@ -283,8 +283,13 @@ public:
 
 	// Get a list of excluded real paths
 	StringSet getExcludedPaths() const noexcept;
-
 	void setExcludedPaths(const StringSet& aPaths) noexcept;
+
+	// Add an excluded path
+	// Throws ShareException if validation fails
+	void addExcludedPath(const string& aPath);
+
+	bool removeExcludedPath(const string& aPath) noexcept;
 
 	// Get a profile token by its display name
 	OptionalProfileToken getProfileByName(const string& aName) const noexcept;
@@ -377,13 +382,13 @@ private:
 		typedef std::vector<Directory::Ptr> List;
 
 		struct NameLower {
-			const string& operator()(const Ptr& a) const { return a->realName.getLower(); }
+			const string& operator()(const Ptr& a) const noexcept { return a->realName.getLower(); }
 		};
 
 		class File {
 		public:
 			struct NameLower {
-				const string& operator()(const File* a) const { return a->name.getLower(); }
+				const string& operator()(const File* a) const noexcept { return a->name.getLower(); }
 			};
 
 			//typedef set<File, FileLess> Set;
@@ -393,7 +398,7 @@ private:
 			~File();
 		
 			inline string getADCPath() const noexcept{ return parent->getADCPath() + name.getNormal(); }
-			inline string getFullName() const noexcept{ return parent->getFullName() + name.getNormal(); }
+			inline string getNmdcPath() const noexcept{ return parent->getNmdcPath() + name.getNormal(); }
 			inline string getRealPath() const noexcept { return parent->getRealPath(name.getNormal()); }
 			inline bool hasProfile(const OptionalProfileToken& aProfile) const noexcept { return parent->hasProfile(aProfile); }
 
@@ -411,7 +416,7 @@ private:
 		class SearchResultInfo {
 		public:
 			struct Sort {
-				bool operator()(const SearchResultInfo& left, const SearchResultInfo& right) const { return left.scores > right.scores; }
+				bool operator()(const SearchResultInfo& left, const SearchResultInfo& right) const noexcept { return left.scores > right.scores; }
 			};
 
 			explicit SearchResultInfo(const File* f, const SearchQuery& aSearch, int aLevel) :
@@ -435,9 +440,9 @@ private:
 				const Directory::File* file;
 			};
 
-			Type getType() const { return type; }
+			Type getType() const noexcept { return type; }
 		private:
-			Type type;
+			const Type type;
 			double scores;
 		};
 
@@ -458,16 +463,10 @@ private:
 			HasRootProfile& operator=(const HasRootProfile&) = delete;
 		};
 
-		struct IsParent {
-			bool operator()(const Ptr& d) const {
-				return !d->getParent();
-			}
-		};
-
 		string getADCPath() const noexcept;
 		string getVirtualName() const noexcept;
 		const string& getVirtualNameLower() const noexcept;
-		string getFullName() const noexcept; 
+		string getNmdcPath() const noexcept; 
 
 		inline string getRealPath() const noexcept{ return getRealPath(Util::emptyString); };
 
@@ -582,6 +581,8 @@ private:
 	// Bundle paths, skiplist, excluded dirs
 	mutable SharedMutex refreshMatcherCS;
 
+	// Excluded paths with exact casing
+	// Use refreshMatcherCS for locking
 	StringSet excludedPaths;
 
 	// Map real name to virtual name - multiple real names may be mapped to a single virtual one
@@ -669,11 +670,11 @@ private:
 	template<class T>
 	void findVirtuals(const string& aVirtualPath, const T& aProfile, Directory::List& dirs_) const throw(ShareException) {
 		Directory::List virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
-		if(aVirtualPath.empty() || aVirtualPath[0] != '/') {
+		if(aVirtualPath.empty() || aVirtualPath[0] != ADC_SEPARATOR) {
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}
 
-		string::size_type start = aVirtualPath.find('/', 1);
+		string::size_type start = aVirtualPath.find(ADC_SEPARATOR, 1);
 		if(start == string::npos || start == 1) {
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}
@@ -689,7 +690,7 @@ private:
 			string::size_type j = i + 1;
 			d = *k;
 
-			while((i = aVirtualPath.find('/', j)) != string::npos) {
+			while((i = aVirtualPath.find(ADC_SEPARATOR, j)) != string::npos) {
 				auto mi = d->directories.find(Text::toLower(aVirtualPath.substr(j, i - j)));
 				j = i + 1;
 				if (mi != d->directories.end()) {   //if we found something, look for more.

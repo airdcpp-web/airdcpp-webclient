@@ -29,6 +29,12 @@
 #define NMDC_SEPARATOR '\\'
 #define NMDC_SEPARATOR_STR "\\"
 
+#define ADC_ROOT ADC_SEPARATOR
+#define ADC_ROOT_STR ADC_SEPARATOR_STR
+
+#define NMDC_ROOT ''
+#define NMDC_ROOT_STR ""
+
 #ifdef _WIN32
 
 # define PATH_SEPARATOR '\\'
@@ -203,20 +209,20 @@ public:
 	static string translateError(int aError) noexcept;
 
 	static string getFilePath(const string& path, const char separator = PATH_SEPARATOR) noexcept;
-	inline static string getNmdcFilePath(const string& path) noexcept { return getFilePath(path, '\\'); }
-	inline static string getAdcFilePath(const string& path) noexcept { return getFilePath(path, '/'); }
+	inline static string getNmdcFilePath(const string& path) noexcept { return getFilePath(path, NMDC_SEPARATOR); }
+	inline static string getAdcFilePath(const string& path) noexcept { return getFilePath(path, ADC_SEPARATOR); }
 
 	static string getFileName(const string& path, const char separator = PATH_SEPARATOR) noexcept;
-	inline static string getNmdcFileName(const string& path) noexcept { return getFileName(path, '\\'); };
-	inline static string getAdcFileName(const string& path) noexcept { return getFileName(path, '/'); };
+	inline static string getNmdcFileName(const string& path) noexcept { return getFileName(path, NMDC_SEPARATOR); };
+	inline static string getAdcFileName(const string& path) noexcept { return getFileName(path, ADC_SEPARATOR); };
 
 	static string getLastDir(const string& path, const char separator = PATH_SEPARATOR) noexcept;
-	inline static string getNmdcLastDir(const string& path) noexcept { return getLastDir(path, '\\'); };
-	inline static string getAdcLastDir(const string& path) noexcept { return getLastDir(path, '/'); };
+	inline static string getNmdcLastDir(const string& path) noexcept { return getLastDir(path, NMDC_SEPARATOR); };
+	inline static string getAdcLastDir(const string& path) noexcept { return getLastDir(path, ADC_SEPARATOR); };
 
 	static string getParentDir(const string& path, const char separator = PATH_SEPARATOR, bool allowEmpty = false) noexcept;
-	inline static string getNmdcParentDir(const string& path) noexcept { return getParentDir(path, '\\', true); };
-	inline static string getAdcParentDir(const string& path) noexcept { return getParentDir(path, '/', false); };
+	inline static string getNmdcParentDir(const string& path) noexcept { return getParentDir(path, NMDC_SEPARATOR, true); };
+	inline static string getAdcParentDir(const string& path) noexcept { return getParentDir(path, ADC_SEPARATOR, false); };
 
 	static string getFileExt(const string& path) noexcept;
 

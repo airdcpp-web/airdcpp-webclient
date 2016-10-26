@@ -22,7 +22,6 @@
 #include "compiler.h"
 
 #include "DupeType.h"
-#include "Text.h"
 #include "SettingsManager.h"
 
 namespace dcpp {
@@ -111,15 +110,15 @@ public:
 
 	// Returns true if aDir is a sub directory of aParent
 	// Note: matching is always case insensitive. This will also handle directory paths in aParent without the trailing slash to work with Windows limitations (share monitoring)
-	inline static bool isSubAdc(const string& aDir, const string& aParent) noexcept { return isSub(aDir, aParent, '/');	}
-	inline static bool isSubNmdc(const string& aDir, const string& aParent) noexcept { return isSub(aDir, aParent, '\\'); }
+	inline static bool isSubAdc(const string& aDir, const string& aParent) noexcept { return isSub(aDir, aParent, ADC_SEPARATOR);	}
+	inline static bool isSubNmdc(const string& aDir, const string& aParent) noexcept { return isSub(aDir, aParent, NMDC_SEPARATOR); }
 	inline static bool isSubLocal(const string& aDir, const string& aParent) noexcept { return isSub(aDir, aParent, PATH_SEPARATOR); }
 	static bool isSub(const string& aDir, const string& aParent, const char separator) noexcept;
 
 	// Returns true if aSub is a subdir of aDir OR both are the same directory
 	// Note: matching is always case insensitive. This will also handle directory paths in aSub without the trailing slash to work with Windows limitations (share monitoring)
-	inline static bool isParentOrExactAdc(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, '/'); }
-	inline static bool isParentOrExactNmdc(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, '\\'); }
+	inline static bool isParentOrExactAdc(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, ADC_SEPARATOR); }
+	inline static bool isParentOrExactNmdc(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, NMDC_SEPARATOR); }
 	inline static bool isParentOrExactLocal(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, PATH_SEPARATOR); }
 	static bool isParentOrExact(const string& aDir, const string& aSub, const char separator) noexcept;
 
@@ -128,8 +127,8 @@ public:
 	static const string getSubDirReg() noexcept;
 
 	inline static string getReleaseDirLocal(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, PATH_SEPARATOR); };
-	inline static string getNmdcReleaseDir(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, '\\'); };
-	inline static string getAdcReleaseDir(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, '/'); };
+	inline static string getNmdcReleaseDir(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, NMDC_SEPARATOR); };
+	inline static string getAdcReleaseDir(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, ADC_SEPARATOR); };
 	static string getReleaseDir(const string& dir, bool cut, const char separator) noexcept;
 
 	static const string getLinkUrl() noexcept;

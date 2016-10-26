@@ -364,7 +364,7 @@ bool SearchQuery::matchesFileLower(const string& aName, int64_t aSize, uint64_t 
 }
 
 bool SearchQuery::matchesNmdcPath(const string& aPath, Recursion& recursion_) noexcept {
-	auto sl = StringTokenizer<string>(aPath, '\\').getTokens();
+	auto sl = StringTokenizer<string>(aPath, NMDC_SEPARATOR).getTokens();
 
 	size_t level = 0;
 	for (;;) {

@@ -18,8 +18,8 @@ namespace dcpp {
 class RSSFilter : public StringMatch {
 public:
 
-	RSSFilter(const string& aFilterPattern, const string& aDownloadTarget, int aMethod) noexcept :
-		filterPattern(aFilterPattern), downloadTarget(aDownloadTarget)
+	RSSFilter(const string& aFilterPattern, const string& aDownloadTarget, int aMethod, const string& aGroup) noexcept :
+		filterPattern(aFilterPattern), downloadTarget(aDownloadTarget), autosearchGroup(aGroup)
 	{
 		pattern = aFilterPattern;
 		setMethod((StringMatch::Method)aMethod);
@@ -29,6 +29,7 @@ public:
 
 	GETSET(string, filterPattern, FilterPattern);
 	GETSET(string, downloadTarget, DownloadTarget);
+	IGETSET(string, autosearchGroup, AutosearchGroup, Util::emptyString);
 
 };
 

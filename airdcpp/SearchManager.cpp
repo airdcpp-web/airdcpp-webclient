@@ -292,7 +292,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		if (!ClientManager::getInstance()->connectADCSearchResult(from->getCID(), token, hubUrl, connection, slots))
 			return;
 
-		auto type = (file.empty() || file[file.length() - 1] == '\\' ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE);
+		auto type = (file.empty() || file.back() == NMDC_SEPARATOR ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE);
 		if(type == SearchResult::TYPE_FILE && tth.empty())
 			return;
 
@@ -474,7 +474,7 @@ void SearchManager::onPSR(const AdcCommand& aCmd, UserPtr from, const string& re
 
 void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile) {
 	auto isDirect = adc.getType() == 'D';
-	string path = "/", key;
+	string path = ADC_ROOT_STR, key;
 	int maxResults = isUdpActive ? 10 : 5;
 
 	bool replyDirect = false;
