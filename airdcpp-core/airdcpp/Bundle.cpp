@@ -59,7 +59,7 @@ Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t 
 	QueueItemBase(Util::validatePath(aTarget, !aIsFileBundle), 0, aPriority, aAdded, aToken, 0), bundleDate(aBundleDate), fileBundle(aIsFileBundle), dirty(aDirty) {
 
 	if (aToken == 0) {
-		token = Util::toUInt32(ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_DOWNLOAD));
+		token = Util::toUInt32(ConnectionManager::getInstance()->tokens.createToken(CONNECTION_TYPE_DOWNLOAD));
 	}
 
 	auto time = GET_TIME();
@@ -763,7 +763,7 @@ void Bundle::sendSizeUpdate() noexcept {
 /* ONLY CALLED FROM DOWNLOADMANAGER END */
 
 
-void Bundle::save() throw(FileException) {
+void Bundle::save() {
 	{
 		File ff(getXmlFilePath() + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
 		BufferedOutputStream<false> f(&ff);

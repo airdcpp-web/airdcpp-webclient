@@ -47,7 +47,8 @@ namespace dcpp {
 
 		// Adds the file and throws if there are errors
 		// Can be used for viewing own files by TTH as well
-		bool addUserFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) throw(QueueException, FileException);
+		// Throws on errors (QueueException, FileException)
+		bool addUserFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText);
 
 		// Add a file by real path
 		bool addLocalFile(const string& aPath, const TTHValue& aTTH, bool aIsText) noexcept;

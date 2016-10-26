@@ -53,11 +53,11 @@ class FileList {
 		unique_ptr<File> bzXmlRef;
 		string getFileName() const noexcept;
 
-		bool allowGenerateNew(bool force=false) noexcept;
-		void generationFinished(bool failed) noexcept;
+		bool allowGenerateNew(bool aForce = false) noexcept;
+		void generationFinished(bool aFailed) noexcept;
 		void saveList();
 		CriticalSection cs;
-		int getCurrentNumber() const { return listN; }
+		int getCurrentNumber() const noexcept { return listN; }
 	private:
 		int listN = 0;
 };
@@ -78,7 +78,7 @@ public:
 	~ShareProfileInfo() {}
 
 	string name;
-	ProfileToken token;
+	const ProfileToken token;
 	bool isDefault = false;
 	State state;
 
@@ -110,10 +110,17 @@ public:
 
 	FileList* getProfileList() noexcept;
 	bool isDefault() const noexcept;
+	bool isHidden() const noexcept;
 	string getDisplayName() const noexcept;
 
 	typedef unordered_set<ShareProfilePtr, Hash> Set;
 	typedef vector<ShareProfilePtr> List;
+
+	struct NotHidden {
+		bool operator()(const ShareProfilePtr& aProfile) const {
+			return !aProfile->isHidden();
+		}
+	};
 private:
 	FileList fileList;
 };

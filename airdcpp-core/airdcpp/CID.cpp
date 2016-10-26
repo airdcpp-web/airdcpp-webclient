@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "CID.h"
 
+#include "Encoder.h"
 #include "Util.h"
 
 namespace dcpp {
@@ -31,5 +32,16 @@ CID CID::generate() {
 	return CID(data);
 }
 
+CID::CID(const string& base32) {
+	Encoder::fromBase32(base32.c_str(), cid, sizeof(cid)); 
+}
+
+string CID::toBase32() const {
+	return Encoder::toBase32(cid, sizeof(cid)); 
+}
+
+string& CID::toBase32(string& tmp) const {
+	return Encoder::toBase32(cid, sizeof(cid), tmp); 
+}
 
 }

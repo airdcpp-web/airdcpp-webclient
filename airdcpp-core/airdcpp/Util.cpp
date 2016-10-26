@@ -1160,7 +1160,7 @@ string Util::formatParams(const string& aMsg, const ParamMap& aParams, FilterF a
 }
 
 bool Util::isAdcPath(const string& aPath) noexcept {
-	return !aPath.empty() && aPath.front() == '/' && aPath.back() == '/';
+	return !aPath.empty() && aPath.front() == ADC_ROOT && aPath.back() == ADC_SEPARATOR;
 }
 
 bool Util::fileExists(const string &aFile) noexcept {
@@ -1353,11 +1353,11 @@ string Util::toAdcFile(const string& file) noexcept {
 
 	string ret;
 	ret.reserve(file.length() + 1);
-	ret += '/';
+	ret += ADC_ROOT;
 	ret += file;
 	for(string::size_type i = 0; i < ret.length(); ++i) {
-		if(ret[i] == '\\') {
-			ret[i] = '/';
+		if(ret[i] == NMDC_SEPARATOR) {
+			ret[i] = ADC_SEPARATOR;
 		}
 	}
 	return ret;
@@ -1368,8 +1368,8 @@ string Util::toNmdcFile(const string& file) noexcept {
 
 	string ret(file.substr(1));
 	for(string::size_type i = 0; i < ret.length(); ++i) {
-		if(ret[i] == '/') {
-			ret[i] = '\\';
+		if(ret[i] == ADC_SEPARATOR) {
+			ret[i] = NMDC_SEPARATOR;
 		}
 	}
 	return ret;

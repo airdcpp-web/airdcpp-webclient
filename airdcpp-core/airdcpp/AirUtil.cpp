@@ -816,7 +816,7 @@ string AirUtil::getLastCommonDirectoryPathFromSub(const string& aMainPath, const
 
 	// Get the next directory
 	if (pos < aSubPath.length()) {
-		auto pos2 = aSubPath.find('\\', pos);
+		auto pos2 = aSubPath.find(aSubSeparator, pos);
 		if (pos2 != string::npos) {
 			pos = pos2 + 1;
 		}
@@ -872,7 +872,7 @@ string AirUtil::getMatchPath(const string& aRemoteFile, const string& aLocalFile
 	// Get last matching directory for matching recursive filelist from the user
 	auto remoteFileDir = Util::getNmdcFilePath(aRemoteFile);
 	auto localBundleFileDir = Util::getFilePath(aLocalFile);
-	return AirUtil::getLastCommonDirectoryPathFromSub(localBundleFileDir, remoteFileDir, '\\', aBundlePath.length());
+	return AirUtil::getLastCommonDirectoryPathFromSub(localBundleFileDir, remoteFileDir, NMDC_SEPARATOR, aBundlePath.length());
 }
 
 pair<string, string::size_type> AirUtil::getDirName(const string& aPath, char aSeparator) noexcept {

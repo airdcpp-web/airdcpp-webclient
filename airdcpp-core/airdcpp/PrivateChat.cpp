@@ -223,7 +223,7 @@ void PrivateChat::startCC() {
 	ccpmState = CONNECTING;
 	string lastError;
 
-	auto token = ConnectionManager::getInstance()->tokens.getToken(CONNECTION_TYPE_PM);
+	auto token = ConnectionManager::getInstance()->tokens.createToken(CONNECTION_TYPE_PM);
 
 	auto newUrl = replyTo.hint;
 	bool connecting = ClientManager::getInstance()->connect(replyTo.user, token, true, lastError, newUrl, protocolError, CONNECTION_TYPE_PM);

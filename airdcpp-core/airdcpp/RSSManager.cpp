@@ -209,8 +209,11 @@ void RSSManager::matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) cons
 		if (aF.match(aData->getTitle())) {
 
 			auto targetType = TargetUtil::TargetType::TARGET_PATH;
-			AutoSearchManager::getInstance()->addAutoSearch(aData->getTitle(),
+			auto as = AutoSearchManager::getInstance()->addAutoSearch(aData->getTitle(),
 				aF.getDownloadTarget(), targetType, true, AutoSearch::RSS_DOWNLOAD, true);
+			if (as) {
+				AutoSearchManager::getInstance()->moveItemToGroup(as, aF.getAutosearchGroup());
+			}
 
 			break; //One match is enough
 		}
@@ -233,10 +236,10 @@ void RSSManager::updateFeedItem(RSSPtr& aFeed, const string& aUrl, const string&
 		}
 	}
 
-	if(!added)
-		fire(RSSManagerListener::RSSFeedChanged(), aFeed);
-	else
+	if(added)
 		fire(RSSManagerListener::RSSFeedAdded(), aFeed);
+	else
+		fire(RSSManagerListener::RSSFeedChanged(), aFeed);
 
 }
 
@@ -355,7 +358,8 @@ void RSSManager::load() {
 					feed->rssFilterList.emplace_back(
 						xml.getChildAttrib("FilterPattern"),
 						xml.getChildAttrib("DownloadTarget"),
-						Util::toInt(xml.getChildAttrib("Method", "1")));
+						Util::toInt(xml.getChildAttrib("Method", "1")),
+						xml.getChildAttrib("AutoSearchGroup"));
 				}
 				xml.stepOut();
 			}
@@ -418,6 +422,7 @@ void RSSManager::saveConfig(bool saveDatabase) {
 				xml.addChildAttrib("FilterPattern", f.getFilterPattern());
 				xml.addChildAttrib("DownloadTarget", f.getDownloadTarget());
 				xml.addChildAttrib("Method", f.getMethod());
+				xml.addChildAttrib("AutoSearchGroup", f.getAutosearchGroup());
 			}
 			xml.stepOut();
 			xml.stepOut();

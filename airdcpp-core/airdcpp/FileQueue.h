@@ -26,8 +26,8 @@
 #include "DirectoryListing.h"
 #include "DupeType.h"
 #include "HashBloom.h"
-#include "HintedUser.h"
 #include "QueueItem.h"
+#include "Util.h"
 
 namespace dcpp {
 

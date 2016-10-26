@@ -22,7 +22,7 @@
 
 #include "Download.h"
 #include "DownloadManager.h"
-
+#include "ResourceManager.h"
 
 namespace dcpp {
 	TrackableDownloadItem::TrackableDownloadItem(bool aDownloaded) noexcept {

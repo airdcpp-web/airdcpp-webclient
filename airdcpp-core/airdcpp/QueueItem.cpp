@@ -36,7 +36,7 @@ namespace dcpp {
 namespace {
 	const string TEMP_EXTENSION = ".dctmp";
 
-	string getTempName(const string& aFileName, const TTHValue& aRoot) {
+	string getTempName(const string& aFileName, const TTHValue& aRoot) noexcept {
 		string tmp(aFileName);
 		tmp += "_" + Util::toString(Util::rand());
 		tmp += "." + aRoot.toBase32();
@@ -79,7 +79,7 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 	}
 }
 
-int64_t QueueItem::getBlockSize() {
+int64_t QueueItem::getBlockSize() noexcept {
 	if (blockSize == -1) {
 		blockSize = HashManager::getInstance()->getBlockSize(tthRoot);
 		if (blockSize == 0)
@@ -88,7 +88,7 @@ int64_t QueueItem::getBlockSize() {
 	return blockSize;
 }
 
-bool QueueItem::AlphaSortOrder::operator()(const QueueItemPtr& left, const QueueItemPtr& right) const {
+bool QueueItem::AlphaSortOrder::operator()(const QueueItemPtr& left, const QueueItemPtr& right) const noexcept {
 	auto extLeft = left->getTarget().rfind('.');
 	auto extRight = right->getTarget().rfind('.');
 	if (extLeft != string::npos && extRight != string::npos && 
@@ -112,7 +112,7 @@ bool QueueItem::AlphaSortOrder::operator()(const QueueItemPtr& left, const Queue
 }
 
 /* This has a few extra checks because the size is unknown for filelists */
-bool QueueItem::SizeSortOrder::operator()(const QueueItemPtr& left, const QueueItemPtr& right) const {
+bool QueueItem::SizeSortOrder::operator()(const QueueItemPtr& left, const QueueItemPtr& right) const noexcept {
 	//partial lists always go first
 	if (left->isSet(QueueItem::FLAG_PARTIAL_LIST)) return true;
 	if (right->isSet(QueueItem::FLAG_PARTIAL_LIST)) return false;
@@ -124,11 +124,11 @@ bool QueueItem::SizeSortOrder::operator()(const QueueItemPtr& left, const QueueI
 	return left->getSize() < right->getSize();
 }
 
-bool QueueItem::PrioSortOrder::operator()(const QueueItemPtr& left, const QueueItemPtr& right) const {
+bool QueueItem::PrioSortOrder::operator()(const QueueItemPtr& left, const QueueItemPtr& right) const noexcept {
 	return left->getPriority() > right->getPriority();
 }
 
-QueueItemBase::Priority QueueItem::calculateAutoPriority() const {
+QueueItemBase::Priority QueueItem::calculateAutoPriority() const noexcept {
 	if(getAutoPriority()) {
 		QueueItemBase::Priority p;
 		int percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
@@ -154,7 +154,7 @@ QueueItemBase::Priority QueueItem::calculateAutoPriority() const {
 	return getPriority();
 }
 
-bool QueueItem::hasPartialSharingTarget() {
+bool QueueItem::hasPartialSharingTarget() noexcept {
 	// don't share items that are being moved
 	if (isFinished() && !isSet(QueueItem::FLAG_MOVED))
 		return false;
@@ -166,7 +166,7 @@ bool QueueItem::hasPartialSharingTarget() {
 	return true;
 }
 
-bool QueueItem::isBadSourceExcept(const UserPtr& aUser, Flags::MaskType exceptions, bool& isBad_) const {
+bool QueueItem::isBadSourceExcept(const UserPtr& aUser, Flags::MaskType exceptions, bool& isBad_) const noexcept {
 	const auto i = getBadSource(aUser);
 	if(i != badSources.end()) {
 		isBad_ = true;
@@ -175,7 +175,7 @@ bool QueueItem::isBadSourceExcept(const UserPtr& aUser, Flags::MaskType exceptio
 	return false;
 }
 
-bool QueueItem::isChunkDownloaded(int64_t startPos, int64_t& len) const {
+bool QueueItem::isChunkDownloaded(int64_t startPos, int64_t& len) const noexcept {
 	if(len <= 0) return false;
 
 	for(auto& i: done) {
@@ -191,7 +191,7 @@ bool QueueItem::isChunkDownloaded(int64_t startPos, int64_t& len) const {
 	return false;
 }
 
-string QueueItem::getListName() const {
+string QueueItem::getListName() const noexcept {
 	dcassert(isSet(QueueItem::FLAG_USER_LIST));
 	if (isSet(QueueItem::FLAG_PARTIAL_LIST)) {
 		return target;
@@ -237,20 +237,20 @@ uint8_t QueueItem::getMaxSegments(int64_t filesize) const noexcept {
 #endif
 }
 
-int QueueItem::countOnlineUsers() const {
+int QueueItem::countOnlineUsers() const noexcept {
 	return static_cast<int>(count_if(sources.begin(), sources.end(), [](const Source& s) { return s.getUser().user->isOnline(); } ));
 }
 
 QueueItem::~QueueItem() { }
 
-void QueueItem::getOnlineUsers(HintedUserList& l) const {
+void QueueItem::getOnlineUsers(HintedUserList& l) const noexcept {
 	for(auto& i: sources) {
 		if(i.getUser().user->isOnline())
 			l.push_back(i.getUser());
 	}
 }
 
-void QueueItem::addSource(const HintedUser& aUser) {
+void QueueItem::addSource(const HintedUser& aUser) noexcept {
 	dcassert(!isSource(aUser.user));
 	auto i = getBadSource(aUser);
 	if(i != badSources.end()) {
@@ -261,18 +261,18 @@ void QueueItem::addSource(const HintedUser& aUser) {
 	}
 }
 
-void QueueItem::blockSourceHub(const HintedUser& aUser) {
+void QueueItem::blockSourceHub(const HintedUser& aUser) noexcept {
 	dcassert(isSource(aUser.user));
 	auto s = getSource(aUser.user);
 	s->blockedHubs.insert(aUser.hint);
 }
 
-bool QueueItem::isHubBlocked(const UserPtr& aUser, const string& aUrl) {
+bool QueueItem::isHubBlocked(const UserPtr& aUser, const string& aUrl) const noexcept {
 	auto s = getSource(aUser);
 	return !s->blockedHubs.empty() && s->blockedHubs.find(aUrl) != s->blockedHubs.end();
 }
 
-void QueueItem::removeSource(const UserPtr& aUser, Flags::MaskType reason) {
+void QueueItem::removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept {
 	SourceIter i = getSource(aUser);
 	dcassert(i != sources.end());
 	if(i == sources.end())
@@ -283,7 +283,7 @@ void QueueItem::removeSource(const UserPtr& aUser, Flags::MaskType reason) {
 	sources.erase(i);
 }
 
-const string& QueueItem::getTempTarget() {
+const string& QueueItem::getTempTarget() noexcept {
 	if (isSet(FLAG_OPEN) || (isSet(FLAG_CLIENT_VIEW) && isSet(FLAG_TEXT))) {
 		setTempTarget(target);
 	} else if(!isSet(QueueItem::FLAG_USER_LIST) && tempTarget.empty()) {
@@ -292,7 +292,7 @@ const string& QueueItem::getTempTarget() {
 	return tempTarget;
 }
 
-uint64_t QueueItem::getAverageSpeed() const {
+uint64_t QueueItem::getAverageSpeed() const noexcept {
 	uint64_t totalSpeed = 0;
 	
 	for(auto d: downloads) {
@@ -302,27 +302,27 @@ uint64_t QueueItem::getAverageSpeed() const {
 	return totalSpeed;
 }
 
-uint64_t QueueItem::getSecondsLeft() const {
+uint64_t QueueItem::getSecondsLeft() const noexcept {
 	auto speed = getAverageSpeed();
 	return speed > 0 ? (getSize() - getDownloadedBytes()) / speed : 0;
 }
 
-double QueueItem::getDownloadedFraction() const { 
+double QueueItem::getDownloadedFraction() const noexcept { 
 	return static_cast<double>(getDownloadedBytes()) / size; 
 }
 
-bool QueueItem::isFinished() const {
+bool QueueItem::isFinished() const noexcept {
 	return done.size() == 1 && *done.begin() == Segment(0, size);
 }
 
-Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t wantedSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const {
+Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t aWantedSize, int64_t aLastSpeed, const PartialSource::Ptr& aPartialSource, bool aAllowOverlap) const noexcept {
 	if(size == -1 || aBlockSize == 0) {
 		return Segment(0, -1);
 	}
 	
 	if((!SETTING(MULTI_CHUNK) || aBlockSize >= size) /*&& (done.size() == 0 || (done.size() == 1 && *done.begin()->getStart() == 0))*/) {
 		if(!downloads.empty()) {
-			return checkOverlaps(aBlockSize, lastSpeed, partialSource, allowOverlap);
+			return checkOverlaps(aBlockSize, aLastSpeed, aPartialSource, aAllowOverlap);
 		}
 
 		int64_t start = 0;
@@ -357,12 +357,12 @@ Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t wantedSize, int64_
 	vector<int64_t> posArray;
 	vector<Segment> neededParts;
 
-	if(partialSource) {
-		posArray.reserve(partialSource->getPartialInfo().size());
+	if(aPartialSource) {
+		posArray.reserve(aPartialSource->getPartialInfo().size());
 
 		// Convert block index to file position
-		for(auto& i: partialSource->getPartialInfo())
-			posArray.push_back(min(size, (int64_t)(i) * aBlockSize));
+		for(auto index: aPartialSource->getPartialInfo())
+			posArray.push_back(min(size, (int64_t)(index) * aBlockSize));
 	}
 
 	/***************************/
@@ -370,7 +370,7 @@ Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t wantedSize, int64_
 	double donePart = static_cast<double>(getDownloadedBytes()) / size;
 		
 	// We want smaller blocks at the end of the transfer, squaring gives a nice curve...
-	int64_t targetSize = static_cast<int64_t>(static_cast<double>(wantedSize) * std::max(0.25, (1. - (donePart * donePart))));
+	int64_t targetSize = static_cast<int64_t>(static_cast<double>(aWantedSize) * std::max(0.25, (1. - (donePart * donePart))));
 		
 	if(targetSize > aBlockSize) {
 		// Round off to nearest block size
@@ -404,7 +404,7 @@ Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t wantedSize, int64_
 		}
 		
 		if(!overlaps) {
-			if(partialSource) {
+			if(aPartialSource) {
 				// store all chunks we could need
 				for(auto j = posArray.begin(); j < posArray.end(); j += 2){
 					if( (*j <= start && start < *(j+1)) || (start <= *j && *j < end) ) {
@@ -442,11 +442,11 @@ Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t wantedSize, int64_
 		return selected;
 	}
 
-	return checkOverlaps(aBlockSize, lastSpeed, partialSource, allowOverlap);
+	return checkOverlaps(aBlockSize, aLastSpeed, aPartialSource, aAllowOverlap);
 }
 
-Segment QueueItem::checkOverlaps(int64_t aBlockSize, int64_t aLastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const {
-	if(allowOverlap && !partialSource && bundle && SETTING(OVERLAP_SLOW_SOURCES) && aLastSpeed > 0) {
+Segment QueueItem::checkOverlaps(int64_t aBlockSize, int64_t aLastSpeed, const PartialSource::Ptr& aPartialSource, bool aAllowOverlap) const noexcept {
+	if(aAllowOverlap && !aPartialSource && bundle && SETTING(OVERLAP_SLOW_SOURCES) && aLastSpeed > 0) {
 		// overlap slow running chunk
 		for(auto d: downloads) {
 			// current chunk mustn't be already overlapped
@@ -476,7 +476,7 @@ Segment QueueItem::checkOverlaps(int64_t aBlockSize, int64_t aLastSpeed, const P
 	return Segment(0, 0);
 }
 
-uint64_t QueueItem::getDownloadedSegments() const {
+uint64_t QueueItem::getDownloadedSegments() const noexcept {
 	uint64_t total = 0;
 	// count done segments
 	for(auto& i: done) {
@@ -485,7 +485,7 @@ uint64_t QueueItem::getDownloadedSegments() const {
 	return total;
 }
 
-uint64_t QueueItem::getDownloadedBytes() const {
+uint64_t QueueItem::getDownloadedBytes() const noexcept {
 	uint64_t total = 0;
 
 	// count done segments
@@ -501,7 +501,7 @@ uint64_t QueueItem::getDownloadedBytes() const {
 	return total;
 }
 
-void QueueItem::addFinishedSegment(const Segment& segment) {
+void QueueItem::addFinishedSegment(const Segment& segment) noexcept {
 #ifdef _DEBUG
 	if (bundle)
 		dcdebug("adding segment segment of size %u (%u, %u)...", segment.getSize(), segment.getStart(), segment.getEnd());
@@ -541,8 +541,7 @@ void QueueItem::addFinishedSegment(const Segment& segment) {
 	}
 }
 
-bool QueueItem::isNeededPart(const PartsInfo& aPartsInfo, int64_t aBlockSize)
-{
+bool QueueItem::isNeededPart(const PartsInfo& aPartsInfo, int64_t aBlockSize) const noexcept {
 	dcassert(aPartsInfo.size() % 2 == 0);
 	
 	SegmentConstIter i  = done.begin();
@@ -557,7 +556,7 @@ bool QueueItem::isNeededPart(const PartsInfo& aPartsInfo, int64_t aBlockSize)
 	return false;
 }
 
-void QueueItem::getPartialInfo(PartsInfo& aPartialInfo, int64_t aBlockSize) const {
+void QueueItem::getPartialInfo(PartsInfo& aPartialInfo, int64_t aBlockSize) const noexcept {
 	size_t maxSize = min(done.size() * 2, (size_t)510);
 	aPartialInfo.reserve(maxSize);
 
@@ -572,7 +571,7 @@ void QueueItem::getPartialInfo(PartsInfo& aPartialInfo, int64_t aBlockSize) cons
 	}
 }
 
-void QueueItem::getChunksVisualisation(vector<Segment>& running_, vector<Segment>& downloaded_, vector<Segment>& done_) const {  // type: 0 - downloaded bytes, 1 - running chunks, 2 - done chunks
+void QueueItem::getChunksVisualisation(vector<Segment>& running_, vector<Segment>& downloaded_, vector<Segment>& done_) const noexcept {  // type: 0 - downloaded bytes, 1 - running chunks, 2 - done chunks
 	running_.reserve(downloads.size());
 	for(auto d: downloads) {
 		running_.push_back(d->getSegment());
@@ -589,19 +588,19 @@ void QueueItem::getChunksVisualisation(vector<Segment>& running_, vector<Segment
 	}
 }
 
-bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, DownloadType aType, bool allowOverlap) {
+bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& aOnlineHubs, string& lastError_, int64_t aWantedSize, int64_t aLastSpeed, DownloadType aType, bool aAllowOverlap) noexcept {
 	if (isPausedPrio())
 		return false;
 
 	auto source = getSource(aUser);
-	if (!source->blockedHubs.empty() && includes(source->blockedHubs.begin(), source->blockedHubs.end(), onlineHubs.begin(), onlineHubs.end())) {
-		lastError = STRING(NO_ACCESS_ONLINE_HUBS);
+	if (!source->blockedHubs.empty() && includes(source->blockedHubs.begin(), source->blockedHubs.end(), aOnlineHubs.begin(), aOnlineHubs.end())) {
+		lastError_ = STRING(NO_ACCESS_ONLINE_HUBS);
 		return false;
 	}
 
 	//can't download a filelist if the hub is offline... don't be too strict with NMDC hubs
-	if (!aUser->isSet(User::NMDC) && (isSet(FLAG_USER_LIST) && !isSet(FLAG_TTHLIST_BUNDLE)) && onlineHubs.find(source->getUser().hint) == onlineHubs.end()) {
-		lastError = STRING(USER_OFFLINE);
+	if (!aUser->isSet(User::NMDC) && (isSet(FLAG_USER_LIST) && !isSet(FLAG_TTHLIST_BUNDLE)) && aOnlineHubs.find(source->getUser().hint) == aOnlineHubs.end()) {
+		lastError_ = STRING(USER_OFFLINE);
 		return false;
 	}
 
@@ -627,11 +626,11 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineH
 	}
 
 	if(!isSet(QueueItem::FLAG_USER_LIST) && !isSet(QueueItem::FLAG_CLIENT_VIEW)) {
-		Segment segment = getNextSegment(getBlockSize(), wantedSize, lastSpeed, source->getPartialSource(), allowOverlap);
+		Segment segment = getNextSegment(getBlockSize(), aWantedSize, aLastSpeed, source->getPartialSource(), aAllowOverlap);
 		if(segment.getSize() == 0) {
-			lastError = (segment.getStart() == -1 || getSize() < Util::convertSize(SETTING(MIN_SEGMENT_SIZE), Util::KB)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
+			lastError_ = (segment.getStart() == -1 || getSize() < Util::convertSize(SETTING(MIN_SEGMENT_SIZE), Util::KB)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
 			//LogManager::getInstance()->message("NO SEGMENT: " + aUser->getCID().toBase32());
-			dcdebug("No segment for %s (%s) in %s, block " I64_FMT "\n", aUser->getCID().toBase32().c_str(), Util::listToString(onlineHubs).c_str(), getTarget().c_str(), blockSize);
+			dcdebug("No segment for %s (%s) in %s, block " I64_FMT "\n", aUser->getCID().toBase32().c_str(), Util::listToString(aOnlineHubs).c_str(), getTarget().c_str(), blockSize);
 			return false;
 		}
 	} else if (!isWaiting()) {
@@ -642,7 +641,7 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineH
 }
 
 bool QueueItem::isPausedPrio() const noexcept {
-	if(bundle && !bundle->isPausedPrio() && priority != PAUSED) {
+	if (bundle && !bundle->isPausedPrio() && priority != PAUSED) {
 		return false;
 	} else if ((!bundle || bundle->getPriority() != PAUSED_FORCE) && priority == HIGHEST) {
 		return false;
@@ -650,7 +649,7 @@ bool QueueItem::isPausedPrio() const noexcept {
 	return true;
 }
 
-bool QueueItem::usesSmallSlot() const {
+bool QueueItem::usesSmallSlot() const noexcept {
 	return (isSet(FLAG_PARTIAL_LIST) || (size <= 65792 && !isSet(FLAG_USER_LIST) && isSet(FLAG_CLIENT_VIEW)));
 }
 
@@ -670,11 +669,7 @@ QueueItemPtr QueueItem::pickSearchItem(const QueueItemList& aItems) noexcept {
 	return searchItem;
 }
 
-void QueueItem::searchAlternates() {
-	//if (SettingsManager::lanMode)
-	//	SearchManager::getInstance()->search(getTargetFileName(), size, Search::TYPE_ANY, Search::SIZE_EXACT, "qa", Search::ALT_AUTO);
-	//else
-
+void QueueItem::searchAlternates() noexcept {
 	auto s = make_shared<Search>(Search::ALT_AUTO, "qa");
 	s->query = tthRoot.toBase32();
 	s->fileType = Search::TYPE_TTH;
@@ -682,11 +677,11 @@ void QueueItem::searchAlternates() {
 	SearchManager::getInstance()->search(s);
 }
 
-void QueueItem::addDownload(Download* d) {
+void QueueItem::addDownload(Download* d) noexcept {
 	downloads.push_back(d);
 }
 
-void QueueItem::removeDownload(const string& aToken) {
+void QueueItem::removeDownload(const string& aToken) noexcept {
 	auto m = find_if(downloads.begin(), downloads.end(), [&](const Download* d) { return compare(d->getToken(), aToken) == 0; });
 	dcassert(m != downloads.end());
 	if (m != downloads.end()) {
@@ -696,8 +691,7 @@ void QueueItem::removeDownload(const string& aToken) {
 	}
 }
 
-void QueueItem::removeDownloads(const UserPtr& aUser) {
-	//erase all downloads from this user
+void QueueItem::removeDownloads(const UserPtr& aUser) noexcept {
 	for(auto i = downloads.begin(); i != downloads.end();) {
 		if((*i)->getUser() == aUser) {
 			i = downloads.erase(i);
@@ -788,24 +782,24 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 	f.write(LIT("</Download>\r\n"));
 }
 
-bool QueueItem::Source::updateHubUrl(const OrderedStringSet& onlineHubs, string& hubUrl, bool isFileList) {
-	if (isFileList) {
+bool QueueItem::Source::updateHubUrl(const OrderedStringSet& aOnlineHubs, string& hubUrl_, bool aIsFileList) noexcept {
+	if (aIsFileList) {
 		//we already know that the hub is online
-		dcassert(onlineHubs.find(user.hint) != onlineHubs.end());
-		hubUrl = user.hint;
+		dcassert(aOnlineHubs.find(user.hint) != aOnlineHubs.end());
+		hubUrl_ = user.hint;
 		return true;
-	} else if (blockedHubs.find(hubUrl) != blockedHubs.end()) {
+	} else if (blockedHubs.find(hubUrl_) != blockedHubs.end()) {
 		//we can't connect via a blocked hub
 		StringList availableHubs;
-		set_difference(onlineHubs.begin(), onlineHubs.end(), blockedHubs.begin(), blockedHubs.end(), back_inserter(availableHubs));
-		hubUrl = availableHubs[0];
+		set_difference(aOnlineHubs.begin(), aOnlineHubs.end(), blockedHubs.begin(), blockedHubs.end(), back_inserter(availableHubs));
+		hubUrl_ = availableHubs[0];
 		return true;
 	}
 
 	return false;
 }
 
-void QueueItem::resetDownloaded() {
+void QueueItem::resetDownloaded() noexcept {
 	if (bundle) {
 		bundle->removeFinishedSegment(getDownloadedSegments());
 	}

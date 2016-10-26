@@ -475,7 +475,7 @@ void HashManager::HashStore::loadLegacyTree(File& f, int64_t aSize, int64_t aInd
 	}
 }
 
-int64_t HashManager::HashStore::getRootInfo(const TTHValue& root, InfoType aType) {
+int64_t HashManager::HashStore::getRootInfo(const TTHValue& root, InfoType aType) noexcept {
 	int64_t ret = 0;
 	try {
 		hashDb->get((void*)root.data, sizeof(TTHValue), 100*1024, [&](void* aValue, size_t /*valueLen*/) {

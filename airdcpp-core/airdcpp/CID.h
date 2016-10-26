@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_CID_H
 #define DCPLUSPLUS_DCPP_CID_H
 
-#include "Encoder.h"
-#include "Util.h"
 
 namespace dcpp {
 
@@ -30,13 +28,13 @@ public:
 
 	CID() { memzero(cid, sizeof(cid)); }
 	explicit CID(const uint8_t* data) { memcpy(cid, data, sizeof(cid)); }
-	explicit CID(const string& base32) { Encoder::fromBase32(base32.c_str(), cid, sizeof(cid)); }
+	explicit CID(const string& base32);
 
-	bool operator==(const CID& rhs) const { return memcmp(cid, rhs.cid, sizeof(cid)) == 0; }
-	bool operator<(const CID& rhs) const { return memcmp(cid, rhs.cid, sizeof(cid)) < 0; }
+	bool operator==(const CID& rhs) const noexcept { return memcmp(cid, rhs.cid, sizeof(cid)) == 0; }
+	bool operator<(const CID& rhs) const noexcept { return memcmp(cid, rhs.cid, sizeof(cid)) < 0; }
 
-	string toBase32() const { return Encoder::toBase32(cid, sizeof(cid)); }
-	string& toBase32(string& tmp) const { return Encoder::toBase32(cid, sizeof(cid), tmp); }
+	string toBase32() const;
+	string& toBase32(string& tmp) const;
 
 	size_t toHash() const {
 		// RVO should handle this as efficiently as reinterpret_cast version
@@ -44,9 +42,9 @@ public:
 		memcpy(&cidHash, cid, sizeof(size_t));
 		return cidHash;
 	}
-	const uint8_t* data() const { return cid; }
+	const uint8_t* data() const noexcept { return cid; }
 	
-	explicit operator bool() const { return find_if(cid, cid + SIZE, [](uint8_t c) { return c != 0; }) != cid + SIZE; }
+	explicit operator bool() const noexcept { return find_if(cid, cid + SIZE, [](uint8_t c) { return c != 0; }) != cid + SIZE; }
 
 	static CID generate();
 

@@ -27,6 +27,7 @@
 #include "MerkleTree.h"
 #include "Pointer.h"
 #include "Segment.h"
+#include "Util.h"
 
 namespace dcpp {
 
@@ -38,7 +39,7 @@ public:
 	typedef vector<pair<QueueItemPtr, bool>> ItemBoolList;
 
 	struct Hash {
-		size_t operator()(const QueueItemPtr& x) const { return hash<string>()(x->getTarget()); }
+		size_t operator()(const QueueItemPtr& x) const noexcept { return hash<string>()(x->getTarget()); }
 	};
 
 	struct HashComp {
@@ -51,15 +52,15 @@ public:
 	};
 
 	struct AlphaSortOrder {
-		bool operator()(const QueueItemPtr& left, const QueueItemPtr& right) const;
+		bool operator()(const QueueItemPtr& left, const QueueItemPtr& right) const noexcept;
 	};
 
 	struct SizeSortOrder {
-		bool operator()(const QueueItemPtr& left, const QueueItemPtr& right) const;
+		bool operator()(const QueueItemPtr& left, const QueueItemPtr& right) const noexcept;
 	};
 
 	struct PrioSortOrder {
-		bool operator()(const QueueItemPtr& left, const QueueItemPtr& right) const;
+		bool operator()(const QueueItemPtr& left, const QueueItemPtr& right) const noexcept;
 	};
 
 	enum FileFlags {
@@ -150,7 +151,7 @@ public:
 		IGETSET(PartialSource::Ptr, partialSource, PartialSource, nullptr);
 		//GETSET(string, remotePath, RemotePath);
 		OrderedStringSet blockedHubs;
-		bool updateHubUrl(const OrderedStringSet& onlineHubs, string& hubUrl, bool isFileList);
+		bool updateHubUrl(const OrderedStringSet& aOnlineHubs, string& hubUrl_, bool aIsFileList) noexcept;
 	};
 
 	typedef vector<Source> SourceList;
@@ -165,79 +166,83 @@ public:
 
 	~QueueItem();
 
-	bool usesSmallSlot() const;
-	void searchAlternates();
+	bool usesSmallSlot() const noexcept;
+	void searchAlternates() noexcept;
 
 	// Select a random item from the list to search for alternates
 	static QueueItemPtr pickSearchItem(const QueueItemList& aItems) noexcept;
 
 	void save(OutputStream &save, string tmp, string b32tmp);
-	int countOnlineUsers() const;
-	void getOnlineUsers(HintedUserList& l) const;
-	bool hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, DownloadType aType, bool allowOverlap);
+	int countOnlineUsers() const noexcept;
+	void getOnlineUsers(HintedUserList& l) const noexcept;
+	bool hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, DownloadType aType, bool allowOverlap) noexcept;
 	bool isPausedPrio() const noexcept;
 
-	SourceList& getSources() { return sources; }
-	const SourceList& getSources() const { return sources; }
-	SourceList& getBadSources() { return badSources; }
-	const SourceList& getBadSources() const { return badSources; }
+	SourceList& getSources() noexcept { return sources; }
+	const SourceList& getSources() const noexcept { return sources; }
+	SourceList& getBadSources() noexcept { return badSources; }
+	const SourceList& getBadSources() const noexcept { return badSources; }
 
-	string getTargetFileName() const { return Util::getFileName(target); }
-	string getFilePath() const { return Util::getFilePath(target); }
+	string getTargetFileName() const noexcept { return Util::getFileName(target); }
+	string getFilePath() const noexcept { return Util::getFilePath(target); }
 
-	SourceIter getSource(const UserPtr& aUser) { return find(sources.begin(), sources.end(), aUser); }
-	SourceIter getBadSource(const UserPtr& aUser) { return find(badSources.begin(), badSources.end(), aUser); }
-	SourceConstIter getSource(const UserPtr& aUser) const { return find(sources.begin(), sources.end(), aUser); }
-	SourceConstIter getBadSource(const UserPtr& aUser) const { return find(badSources.begin(), badSources.end(), aUser); }
+	SourceIter getSource(const UserPtr& aUser) noexcept { return find(sources.begin(), sources.end(), aUser); }
+	SourceIter getBadSource(const UserPtr& aUser) noexcept { return find(badSources.begin(), badSources.end(), aUser); }
+	SourceConstIter getSource(const UserPtr& aUser) const noexcept { return find(sources.begin(), sources.end(), aUser); }
+	SourceConstIter getBadSource(const UserPtr& aUser) const noexcept { return find(badSources.begin(), badSources.end(), aUser); }
 
-	bool isSource(const UserPtr& aUser) const { return getSource(aUser) != sources.end(); }
-	bool isBadSource(const UserPtr& aUser) const { return getBadSource(aUser) != badSources.end(); }
-	bool isBadSourceExcept(const UserPtr& aUser, Flags::MaskType exceptions, bool& isBad_) const;
+	bool isSource(const UserPtr& aUser) const noexcept { return getSource(aUser) != sources.end(); }
+	bool isBadSource(const UserPtr& aUser) const noexcept { return getBadSource(aUser) != badSources.end(); }
+	bool isBadSourceExcept(const UserPtr& aUser, Flags::MaskType exceptions, bool& isBad_) const noexcept;
 	
-	void getChunksVisualisation(vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const;
+	void getChunksVisualisation(vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const noexcept;
 
-	bool isChunkDownloaded(int64_t startPos, int64_t& len) const;
+	bool isChunkDownloaded(int64_t startPos, int64_t& len) const noexcept;
 
 	/**
 	 * Is specified parts needed by this download?
 	 */
-	bool isNeededPart(const PartsInfo& partsInfo, int64_t blockSize);
+	bool isNeededPart(const PartsInfo& partsInfo, int64_t blockSize) const noexcept;
 
 	/**
 	 * Get shared parts info, max 255 parts range pairs
 	 */
-	void getPartialInfo(PartsInfo& partialInfo, int64_t blockSize) const;
+	void getPartialInfo(PartsInfo& partialInfo, int64_t blockSize) const noexcept;
 
-	uint64_t getDownloadedBytes() const;
-	uint64_t getDownloadedSegments() const;
-	double getDownloadedFraction() const;
+	uint64_t getDownloadedBytes() const noexcept;
+	uint64_t getDownloadedSegments() const noexcept;
+	double getDownloadedFraction() const noexcept;
 	
-	void addDownload(Download* d);
-	void removeDownload(const string& aToken);
-	void removeDownloads(const UserPtr& aUser);
+	void addDownload(Download* d) noexcept;
+
+	// Erase a single download
+	void removeDownload(const string& aToken) noexcept;
+
+	// Erase all downloads from this user
+	void removeDownloads(const UserPtr& aUser) noexcept;
 	
 	/** Next segment that is not done and not being downloaded, zero-sized segment returned if there is none is found */
-	Segment getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const;
-	Segment checkOverlaps(int64_t blockSize, int64_t lastSpeed, const PartialSource::Ptr partialSource, bool allowOverlap) const;
+	Segment getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t aLastSpeed, const PartialSource::Ptr& aPartialSource, bool allowOverlap) const noexcept;
+	Segment checkOverlaps(int64_t blockSize, int64_t aLastSpeed, const PartialSource::Ptr& aPartialSource, bool allowOverlap) const noexcept;
 	
-	void addFinishedSegment(const Segment& segment);
-	void resetDownloaded();
+	void addFinishedSegment(const Segment& segment) noexcept;
+	void resetDownloaded() noexcept;
 	
-	bool isFinished() const;
+	bool isFinished() const noexcept;
 
-	bool isRunning() const {
+	bool isRunning() const noexcept {
 		return !isWaiting();
 	}
-	bool isWaiting() const {
+	bool isWaiting() const noexcept {
 		return downloads.empty();
 	}
 
-	bool hasPartialSharingTarget();
+	bool hasPartialSharingTarget() noexcept;
 
-	string getListName() const;
+	string getListName() const noexcept;
 
-	const string& getTempTarget();
-	void setTempTarget(const string& aTempTarget) { tempTarget = aTempTarget; }
+	const string& getTempTarget() noexcept;
+	void setTempTarget(const string& aTempTarget) noexcept { tempTarget = aTempTarget; }
 
 	GETSET(TTHValue, tthRoot, TTH);
 	GETSET(SegmentSet, done, Done);	
@@ -247,13 +252,13 @@ public:
 	IGETSET(BundlePtr, bundle, Bundle, nullptr);
 	IGETSET(string, lastSource, LastSource, Util::emptyString);
 	
-	Priority calculateAutoPriority() const;
+	Priority calculateAutoPriority() const noexcept;
 
-	uint64_t getAverageSpeed() const;
-	uint64_t getSecondsLeft() const;
+	uint64_t getAverageSpeed() const noexcept;
+	uint64_t getSecondsLeft() const noexcept;
 
-	int64_t getBlockSize();
-	void setBlockSize(int64_t aBlockSize) { blockSize = aBlockSize; }
+	int64_t getBlockSize() noexcept;
+	void setBlockSize(int64_t aBlockSize) noexcept { blockSize = aBlockSize; }
 
 	QueueItem& operator=(const QueueItem&) = delete;
 private:
@@ -263,10 +268,10 @@ private:
 	SourceList badSources;
 	string tempTarget;
 
-	void addSource(const HintedUser& aUser);
-	void blockSourceHub(const HintedUser& aUser);
-	bool isHubBlocked(const UserPtr& aUser, const string& aUrl);
-	void removeSource(const UserPtr& aUser, Flags::MaskType reason);
+	void addSource(const HintedUser& aUser) noexcept;
+	void blockSourceHub(const HintedUser& aUser) noexcept;
+	bool isHubBlocked(const UserPtr& aUser, const string& aUrl) const noexcept;
+	void removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept;
 	uint8_t getMaxSegments(int64_t filesize) const noexcept;
 
 	int64_t blockSize = -1;
