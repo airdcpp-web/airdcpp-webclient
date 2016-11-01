@@ -44,7 +44,6 @@
 #include "ThrottleManager.h"
 #include "MessageManager.h"
 #include "HighlightManager.h"
-#include "RSSManager.h"
 
 #include "StringTokenizer.h"
 
@@ -54,6 +53,7 @@
 #include "AutoSearchManager.h"
 #include "ShareScannerManager.h"
 #include "ViewFileManager.h"
+#include "RSSManager.h"
 
 #include "format.h"
 namespace dcpp {

@@ -458,7 +458,7 @@ private:
 			bool operator()(const Ptr& d) const noexcept {
 				return d->hasProfile(profile);
 			}
-			const OptionalProfileToken& profile;
+			OptionalProfileToken profile; // Never use a reference here as this predicate may also be initilized with ProfileToken without warnings
 
 			HasRootProfile& operator=(const HasRootProfile&) = delete;
 		};

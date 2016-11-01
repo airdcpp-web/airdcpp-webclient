@@ -1,13 +1,36 @@
 
+/*
+* Copyright (C) 2012-2016 AirDC++ Project
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+*/
+
 #include "stdinc.h"
 #include "DCPlusPlus.h"
 
 #include "HttpConnection.h"
 #include "RSSManager.h"
 #include "LogManager.h"
+#include "AutoSearchManager.h"
+#include "ShareManager.h"
+#include "QueueManager.h"
 #include "SearchManager.h"
+
 #include "ScopedFunctor.h"
 #include "AirUtil.h"
+#include "SimpleXML.h"
 #include "SimpleXMLReader.h"
 #include <boost/algorithm/string/trim.hpp>
 
@@ -34,6 +57,7 @@ void RSSManager::clearRSSData(const RSSPtr& aFeed) {
 		aFeed->getFeedData().clear(); 
 		aFeed->setDirty(true);
 	}
+	tasks.addTask([=] {savedatabase(aFeed); });
 	fire(RSSManagerListener::RSSDataCleared(), aFeed);
 
 }
@@ -207,6 +231,12 @@ void RSSManager::matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) cons
 	
 	for (auto& aF : aFeed->getRssFilterList()) {
 		if (aF.match(aData->getTitle())) {
+			if (aF.skipDupes) {
+				if(ShareManager::getInstance()->isNmdcDirShared(aData->getTitle()))
+					break; //Need to match other filters?
+				if (QueueManager::getInstance()->isNmdcDirQueued(aData->getTitle(), 0) != DUPE_NONE)
+					break; //Need to match other filters?
+			}
 
 			auto targetType = TargetUtil::TargetType::TARGET_PATH;
 			auto as = AutoSearchManager::getInstance()->addAutoSearch(aData->getTitle(),
@@ -295,13 +325,12 @@ void RSSManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 		Lock l(cs);
 		downloadFeed(getUpdateItem());
 		nextUpdate = GET_TICK() + 1 * 60 * 1000; //Minute between item updates for now, TODO: handle intervals smartly :)
-	} else if ((lastXmlSave + 30000) < aTick) {
+	} else if ((lastXmlSave + 15000) < aTick) {
+		Lock l(cs);
+		vector<RSSPtr> saveList;
+		for_each(rssList.begin(), rssList.end(), [&](RSSPtr r) { if (r->getDirty()) saveList.push_back(r); });
 		tasks.addTask([=] {
-			Lock l(cs);
-			for (auto r : rssList) {
-				if (r->getDirty())
-					savedatabase(r);
-			}
+			for_each(saveList.begin(), saveList.end(), [&](const RSSPtr& r) { savedatabase(r); });
 		});
 		lastXmlSave = aTick;
 	}
@@ -359,7 +388,8 @@ void RSSManager::load() {
 						xml.getChildAttrib("FilterPattern"),
 						xml.getChildAttrib("DownloadTarget"),
 						Util::toInt(xml.getChildAttrib("Method", "1")),
-						xml.getChildAttrib("AutoSearchGroup"));
+						xml.getChildAttrib("AutoSearchGroup"),
+						xml.getBoolChildAttrib("SkipDupes"));
 				}
 				xml.stepOut();
 			}
@@ -423,6 +453,7 @@ void RSSManager::saveConfig(bool saveDatabase) {
 				xml.addChildAttrib("DownloadTarget", f.getDownloadTarget());
 				xml.addChildAttrib("Method", f.getMethod());
 				xml.addChildAttrib("AutoSearchGroup", f.getAutosearchGroup());
+				xml.addChildAttrib("SkipDupes", f.skipDupes);
 			}
 			xml.stepOut();
 			xml.stepOut();
