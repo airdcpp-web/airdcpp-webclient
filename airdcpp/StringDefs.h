@@ -1599,6 +1599,7 @@ enum Strings { // @DontAdd
 	SIZE_MIN, // "Min Size"
 	SIZE_MISMATCH, // "Size of the file on disk doesn't match the one in queue"
 	SKIPLIST_HIT, // "Share skiplist blocked file, not shared: "
+	SKIP_DUPES, // "Skip dupes (already shared/queued)"
 	SKIP_RENAME, // "New virtual name matches old name, skipping..."
 	SKIP_SUBTRACT_TEXT, // "Subtract list: Skip dirs with ONLY 2 or less files smaller than"
 	SLOTS, // "Slots"
