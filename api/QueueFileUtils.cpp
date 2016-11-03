@@ -87,7 +87,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case PROP_SIZE: return (double)aItem->getSize();
 		case PROP_BYTES_DOWNLOADED: return (double)QueueManager::getInstance()->getDownloadedBytes(aItem);
-		case PROP_PRIORITY: return aItem->getPriority();
+		case PROP_PRIORITY: return (double)aItem->getPriority();
 		case PROP_TIME_ADDED: return (double)aItem->getTimeAdded();
 		case PROP_TIME_FINISHED: return (double)aItem->getTimeFinished();
 		case PROP_SPEED: return (double)QueueManager::getInstance()->getAverageSpeed(aItem);

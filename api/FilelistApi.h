@@ -26,6 +26,7 @@
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/DirectoryListingManager.h>
+#include <airdcpp/QueueItem.h>
 
 namespace webserver {
 	class FilelistApi : public ParentApiModule<CID, FilelistInfo>, private DirectoryListingManagerListener {

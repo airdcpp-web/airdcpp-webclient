@@ -75,18 +75,18 @@ namespace webserver {
 		return parseTTH(JsonUtil::getField<string>("tth", aJson, false));
 	}
 
-	QueueItemBase::Priority Deserializer::deserializePriority(const json& aJson, bool allowDefault) {
-		int minAllowed = allowDefault ? QueueItemBase::DEFAULT : QueueItemBase::PAUSED_FORCE;
+	Priority Deserializer::deserializePriority(const json& aJson, bool allowDefault) {
+		auto minAllowed = allowDefault ? Priority::DEFAULT : Priority::PAUSED_FORCE;
 
-		auto priority = JsonUtil::getEnumField<int>("priority", aJson, !allowDefault, minAllowed, QueueItemBase::HIGHEST);
+		auto priority = JsonUtil::getEnumField<int>("priority", aJson, !allowDefault, static_cast<int>(minAllowed), static_cast<int>(Priority::HIGHEST));
 		if (!priority) {
-			return QueueItemBase::Priority::DEFAULT;
+			return Priority::DEFAULT;
 		}
 
-		return static_cast<QueueItemBase::Priority>(*priority);
+		return static_cast<Priority>(*priority);
 	}
 
-	void Deserializer::deserializeDownloadParams(const json& aJson, const SessionPtr& aSession, string& targetDirectory_, string& targetName_, TargetUtil::TargetType& targetType_, QueueItemBase::Priority& priority_) {
+	void Deserializer::deserializeDownloadParams(const json& aJson, const SessionPtr& aSession, string& targetDirectory_, string& targetName_, Priority& priority_) {
 		// Target path
 		targetDirectory_ = JsonUtil::getOptionalFieldDefault<string>("target_directory", aJson, SETTING(DOWNLOAD_DIRECTORY), false);
 
@@ -106,7 +106,6 @@ namespace webserver {
 		}
 
 		priority_ = deserializePriority(aJson, true);
-		targetType_ = static_cast<TargetUtil::TargetType>(*targetType);;
 	}
 
 	StringList Deserializer::deserializeHubUrls(const json& aJson) {

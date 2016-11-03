@@ -22,13 +22,13 @@
 #include <web-server/stdinc.h>
 
 #include <airdcpp/typedefs.h>
-#include <airdcpp/QueueItemBase.h>
 #include <airdcpp/MerkleTree.h>
 #include <airdcpp/Message.h>
+#include <airdcpp/Priority.h>
 #include <airdcpp/TargetUtil.h>
 
 namespace webserver {
-	typedef std::function<api_return(const string& aTarget, TargetUtil::TargetType aTargetType, QueueItemBase::Priority aPriority)> DownloadHandler;
+	typedef std::function<api_return(const string& aTarget, Priority aPriority)> DownloadHandler;
 
 	class Deserializer {
 	public:
@@ -43,9 +43,9 @@ namespace webserver {
 		static UserPtr deserializeUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
 		static HintedUser deserializeHintedUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
 		static TTHValue deserializeTTH(const json& aJson);
-		static QueueItemBase::Priority deserializePriority(const json& aJson, bool allowDefault);
+		static Priority deserializePriority(const json& aJson, bool allowDefault);
 
-		static void deserializeDownloadParams(const json& aJson, const SessionPtr& aSession, string& targetDirectory_, string& targetName_, TargetUtil::TargetType& targetType_, QueueItemBase::Priority& priority_);
+		static void deserializeDownloadParams(const json& aJson, const SessionPtr& aSession, string& targetDirectory_, string& targetName_, Priority& priority_);
 
 		// Returns all connected hubs if the list is not found from the JSON
 		static StringList deserializeHubUrls(const json& aJson);

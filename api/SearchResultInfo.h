@@ -25,8 +25,8 @@
 #include <airdcpp/GetSet.h>
 
 #include <airdcpp/DupeType.h>
+#include <airdcpp/Priority.h>
 #include <airdcpp/SearchResult.h>
-#include <airdcpp/QueueItemBase.h>
 #include <airdcpp/TargetUtil.h>
 
 namespace webserver {
@@ -51,7 +51,7 @@ namespace webserver {
 
 		bool hasUser(const UserPtr& aUser) const noexcept;
 		bool addChildResult(const SearchResultPtr& aResult) noexcept;
-		api_return download(const string& aTargetDirectory, const string& aTargetName, TargetUtil::TargetType aTargetType, QueueItemBase::Priority p);
+		api_return download(const string& aTargetDirectory, const string& aTargetName, Priority p);
 
 		bool isDirectory() const noexcept {
 			return sr->getType() == SearchResult::TYPE_DIRECTORY;
