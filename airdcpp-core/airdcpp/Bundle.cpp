@@ -73,10 +73,10 @@ Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t 
 	/* Randomize the downloading order for each user if the bundle dir date is newer than 5 days to boost partial bundle sharing */
 	seqOrder = (bundleDate + (5 * 24 * 60 * 60)) < time;
 
-	if (aPriority != DEFAULT) {
+	if (aPriority != Priority::DEFAULT) {
 		setAutoPriority(false);
 	} else {
-		setPriority(LOW);
+		setPriority(Priority::LOW);
 		setAutoPriority(true);
 	}
 
@@ -190,7 +190,7 @@ void Bundle::deleteXmlFile() noexcept {
 }
 
 void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
-	for(int i = QueueItemBase::PAUSED_FORCE; i < QueueItemBase::LAST; ++i) {
+	for(int i = static_cast<int>(Priority::PAUSED_FORCE); i < static_cast<int>(Priority::LAST); ++i) {
 		auto j = userQueue[i].find(aUser);
 		if(j != userQueue[i].end()) {
 			copy(j->second, back_inserter(ql));
@@ -280,7 +280,7 @@ void Bundle::addUserQueue(QueueItemPtr& qi) noexcept {
 }
 
 bool Bundle::addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad /*false*/) noexcept {
-	auto& l = userQueue[qi->getPriority()][aUser.user];
+	auto& l = userQueue[static_cast<int>(qi->getPriority())][aUser.user];
 	dcassert(find(l, qi) == l.end());
 
 	if (l.size() > 1) {
@@ -321,7 +321,7 @@ bool Bundle::addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad 
 }
 
 QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const OrderedStringSet& aOnlineHubs, string& aLastError, Priority aMinPrio, int64_t aWantedSize, int64_t aLastSpeed, QueueItemBase::DownloadType aType, bool aAllowOverlap) noexcept {
-	int p = QueueItem::LAST - 1;
+	int p = static_cast<int>(Priority::LAST) - 1;
 	do {
 		auto i = userQueue[p].find(aUser);
 		if(i != userQueue[p].end()) {
@@ -333,7 +333,7 @@ QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const OrderedStringSet& aOn
 			}
 		}
 		p--;
-	} while(p >= aMinPrio);
+	} while(p >= static_cast<int>(aMinPrio));
 
 	return nullptr;
 }
@@ -380,7 +380,7 @@ bool Bundle::isFailed() const noexcept {
 
 void Bundle::rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept {
 	dcassert(qi->isSource(aUser));
-	auto& ulm = userQueue[qi->getPriority()];
+	auto& ulm = userQueue[static_cast<int>(qi->getPriority())];
 	auto j = ulm.find(aUser);
 	dcassert(j != ulm.end());
 	if (j == ulm.end()) {
@@ -405,7 +405,7 @@ bool Bundle::removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, Flags::Mask
 
 	//remove from UserQueue
 	dcassert(qi->isSource(aUser));
-	auto& ulm = userQueue[qi->getPriority()];
+	auto& ulm = userQueue[static_cast<int>(qi->getPriority())];
 	auto j = ulm.find(aUser);
 	dcassert(j != ulm.end());
 	if (j == ulm.end()) {
@@ -446,25 +446,25 @@ bool Bundle::removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, Flags::Mask
 	return false;
 }
 	
-QueueItemBase::Priority Bundle::calculateProgressPriority() const noexcept {
+Priority Bundle::calculateProgressPriority() const noexcept {
 	if(getAutoPriority()) {
-		QueueItemBase::Priority p;
+		Priority p;
 		int percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
 		switch(percent){
 			case 0:
 			case 1:
 			case 2:
-				p = Bundle::LOW;
+				p = Priority::LOW;
 				break;
 			case 3:
 			case 4:
 			case 5:	
-				p = Bundle::NORMAL;
+				p = Priority::NORMAL;
 				break;
 			case 6:
 			case 7:
 			default:
-				p = Bundle::HIGH;
+				p = Priority::HIGH;
 				break;
 		}
 		return p;			

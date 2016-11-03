@@ -160,12 +160,12 @@ public:
 	void load();
 	void saveConfig(bool saveDatabase = true);
 
-	void clearRSSData(const RSSPtr& aFeed);
+	void clearRSSData(const RSSPtr& aFeed) noexcept;
 	void matchFilters(const RSSPtr& aFeed) const;
 	
-	RSSPtr getFeedByName(const string& aName) const;
-	RSSPtr getFeedByUrl(const string& aUrl) const;
-	RSSPtr getFeedByToken(int aToken) const;
+	RSSPtr getFeedByName(const string& aName) const noexcept;
+	RSSPtr getFeedByUrl(const string& aUrl) const noexcept;
+	RSSPtr getFeedByToken(int aToken) const noexcept;
 
 	CriticalSection& getCS() { return cs; }
 
@@ -173,15 +173,15 @@ public:
 		return rssList;
 	}
 
-	void downloadFeed(const RSSPtr& aFeed, bool verbose = false);
+	void downloadFeed(const RSSPtr& aFeed, bool verbose = false) noexcept;
 
-	void updateFeedItem(RSSPtr& aFeed, const string& aUrl, const string& aName, int aUpdateInterval, bool aEnable);
+	void updateFeedItem(RSSPtr& aFeed, const string& aUrl, const string& aName, int aUpdateInterval, bool aEnable) noexcept;
 	
 	void updateFilterList(const RSSPtr& aFeed, vector<RSSFilter>& aNewList);
 
-	void removeFeedItem(const RSSPtr& aFeed);
+	void removeFeedItem(const RSSPtr& aFeed) noexcept;
 
-	void enableFeedUpdate(const RSSPtr& aFeed, bool enable);
+	void enableFeedUpdate(const RSSPtr& aFeed, bool enable) noexcept;
 
 private:
 
@@ -190,7 +190,7 @@ private:
 	uint64_t nextUpdate;
 	uint64_t lastXmlSave = GET_TICK();
 
-	RSSPtr getUpdateItem() const;
+	RSSPtr getUpdateItem() const noexcept;
 	
 	void matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) const;
 

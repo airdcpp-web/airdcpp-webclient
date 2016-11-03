@@ -521,15 +521,15 @@ int AirUtil::getMaxAutoOpened(double value) {
 	return slots;
 }
 
-string AirUtil::getPrioText(int prio) noexcept {
-	switch(prio) {
-		case QueueItemBase::PAUSED_FORCE: return STRING(PAUSED_FORCED);
-		case QueueItemBase::PAUSED: return STRING(PAUSED);
-		case QueueItemBase::LOWEST: return STRING(LOWEST);
-		case QueueItemBase::LOW: return STRING(LOW);
-		case QueueItemBase::NORMAL: return STRING(NORMAL);
-		case QueueItemBase::HIGH: return STRING(HIGH);
-		case QueueItemBase::HIGHEST: return STRING(HIGHEST);
+string AirUtil::getPrioText(Priority aPriority) noexcept {
+	switch(aPriority) {
+		case Priority::PAUSED_FORCE: return STRING(PAUSED_FORCED);
+		case Priority::PAUSED: return STRING(PAUSED);
+		case Priority::LOWEST: return STRING(LOWEST);
+		case Priority::LOW: return STRING(LOW);
+		case Priority::NORMAL: return STRING(NORMAL);
+		case Priority::HIGH: return STRING(HIGH);
+		case Priority::HIGHEST: return STRING(HIGHEST);
 		default: return STRING(PAUSED);
 	}
 }

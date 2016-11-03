@@ -33,6 +33,7 @@
 
 namespace dcpp {
 
+// This should throw on fatal errors only (such as hash database initialization errors)
 extern void startup(function<void (const string&)> stepF, function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF, function<void ()> runWizard, function<void (float)> progressF) throw(Exception);
 extern void shutdown(function<void (const string&)> stepf, function<void (float)> progressF);
 

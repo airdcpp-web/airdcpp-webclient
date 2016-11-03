@@ -115,7 +115,7 @@ public:
 		NOTEPAD_LEFT, NOTEPAD_RIGHT, QUEUE_TOP, QUEUE_BOTTOM, QUEUE_LEFT, QUEUE_RIGHT, SEARCH_TOP, SEARCH_BOTTOM, SEARCH_LEFT, SEARCH_RIGHT, USERS_TOP, USERS_BOTTOM,
 		USERS_LEFT, USERS_RIGHT, FINISHED_TOP, FINISHED_BOTTOM, FINISHED_LEFT, FINISHED_RIGHT, TEXT_TOP, TEXT_BOTTOM, TEXT_LEFT, TEXT_RIGHT, DIRLIST_TOP, DIRLIST_BOTTOM,
 		DIRLIST_LEFT, DIRLIST_RIGHT, STATS_TOP, STATS_BOTTOM, STATS_LEFT, STATS_RIGHT, MAX_MCN_DOWNLOADS, MAX_MCN_UPLOADS, LIST_HL_BG_COLOR, LIST_HL_COLOR, QUEUE_COLOR, TEXT_QUEUE_BACK_COLOR,
-		RECENT_BUNDLE_HOURS, DISCONNECT_MIN_SOURCES, AUTOPRIO_TYPE, AUTOPRIO_INTERVAL, AUTOSEARCH_EXPIRE_DAYS, DL_AUTOSELECT_METHOD, WTB_IMAGE_SIZE, TB_PROGRESS_TEXT_COLOR, TLS_MODE, UPDATE_METHOD, 
+		RECENT_BUNDLE_HOURS, DISCONNECT_MIN_SOURCES, AUTOPRIO_TYPE, AUTOPRIO_INTERVAL, AUTOSEARCH_EXPIRE_DAYS, WTB_IMAGE_SIZE, TB_PROGRESS_TEXT_COLOR, TLS_MODE, UPDATE_METHOD, 
 		QUEUE_SPLITTER_POS, FULL_LIST_DL_LIMIT, AS_DELAY_HOURS, LAST_LIST_PROFILE, MAX_HASHING_THREADS, HASHERS_PER_VOLUME, SKIP_SUBTRACT, BLOOM_MODE, FAV_USERS_SPLITTER_POS, AWAY_IDLE_TIME, 
 		HISTORY_SEARCH_MAX, HISTORY_DIR_MAX, HISTORY_EXCLUDE_MAX, MIN_DUPE_CHECK_SIZE, DB_CACHE_SIZE, DL_AUTO_DISCONNECT_MODE, CUR_REMOVED_TREES, CUR_REMOVED_FILES, REFRESH_THREADING, MONITORING_MODE,
 		MONITORING_DELAY, DELAY_COUNT_MODE, MAX_RUNNING_BUNDLES, DEFAULT_SP, UPDATE_CHANNEL, COLOR_STATUS_FINISHED, COLOR_STATUS_SHARED, PROGRESS_LIGHTEN,
@@ -203,8 +203,6 @@ public:
 
 	enum {  DELAY_DIR, DELAY_VOLUME, DELAY_ANY, DELAY_LAST };
 
-	enum AutoSelectMethod { SELECT_MOST_SPACE, SELECT_LEAST_SPACE };
-
 	enum FileEvents { ON_FILE_COMPLETE, ON_DIR_CREATED};
 
 	static const ResourceManager::Strings encryptionStrings[TLS_LAST];
@@ -290,11 +288,11 @@ public:
 		}
 	}
 
-	void unsetKey(size_t key) { isSet[key] = false; }
-	bool isKeySet(size_t key) const { return isSet[key]; }
+	void unsetKey(size_t key) noexcept { isSet[key] = false; }
+	bool isKeySet(size_t key) const noexcept { return isSet[key]; }
 
-	void load(function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF);
-	void save();
+	void load(function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF) noexcept;
+	void save() noexcept;
 	
 	void reloadPages(int group = 0) noexcept {
 		fire(SettingsManagerListener::ReloadPages(), group);
@@ -330,7 +328,8 @@ public:
 	// Reports errors to system log if no custom error function is supplied
 	typedef std::function<void(const string&)> CustomErrorF;
 	static bool saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, CustomErrorF aCustomErrorF = nullptr) noexcept;
-	static void loadSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, bool migrate = true) throw(Exception);
+	// Throws on XML parsing errors
+	static void loadSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, bool migrate = true);
 private:
 	boost::regex connectionRegex;
 

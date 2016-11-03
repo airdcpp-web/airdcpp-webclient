@@ -507,31 +507,6 @@ void DirectoryMonitor::Server::failDirectory(const string& aPath, const string& 
 	deleteDirectory(mon);
 }
 
-/*void DirectoryMonitor::Server::validatePathExistance() {
-	TargetUtil::VolumeSet volumes;
-	TargetUtil::getVolumes(volumes);
-
-	
-
-	set<string> failed;
-
-	{
-		RLock l(cs);
-		for (const auto path : monitors | map_keys) {
-			if (TargetUtil::getMountPath(path, volumes).empty()) {
-				failed.insert(path);
-			}
-		}
-	}
-
-	if (!failed.empty()) {
-		WLock l(cs);
-		for (const auto& path : failed) {
-			failDirectory(path, STRING(PATH_NOT_FOUND));
-		}
-	}
-}*/
-
 size_t DirectoryMonitor::Server::getFailedCount() {
 	RLock l(cs);
 	return failedDirectories.size();

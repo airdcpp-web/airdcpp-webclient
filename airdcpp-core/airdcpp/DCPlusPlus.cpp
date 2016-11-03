@@ -147,7 +147,7 @@ void startup(function<void(const string&)> stepF, function<bool(const string& /*
 	QueueManager::getInstance()->loadQueue(progressF);
 
 	//Load before share, it can result in bundles changing status to failed_missing, avoids adding double items in auto search.
-	AutoSearchManager::getInstance()->AutoSearchLoad();
+	AutoSearchManager::getInstance()->load();
 
 	announce(STRING(SHARED_FILES));
 	ShareManager::getInstance()->startup(stepF, progressF); 
@@ -184,7 +184,7 @@ void shutdown(function<void (const string&)> stepF, function<void (float)> progr
 	BufferedSocket::waitShutdown();
 	
 	announce(STRING(SAVING_SETTINGS));
-	AutoSearchManager::getInstance()->AutoSearchSave();
+	AutoSearchManager::getInstance()->save();
 	QueueManager::getInstance()->shutdown();
 	SettingsManager::getInstance()->save();
 	RSSManager::getInstance()->saveConfig();

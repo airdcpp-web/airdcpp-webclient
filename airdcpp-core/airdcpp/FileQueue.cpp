@@ -40,7 +40,7 @@ void FileQueue::getBloom(HashBloom& bloom_) const noexcept {
 	}
 }
 
-pair<QueueItemPtr, bool> FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItemBase::Priority p, 
+pair<QueueItemPtr, bool> FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, Priority p, 
 	const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept {
 
 	QueueItemPtr qi = new QueueItem(aTarget, aSize, p, aFlags, aAdded, root, aTempTarget);

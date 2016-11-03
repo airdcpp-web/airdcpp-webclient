@@ -232,7 +232,7 @@ void DownloadManager::getRunningBundles(QueueTokenSet& bundles_) const {
 			continue;
 		
 		// these won't be included in the running bundle limit
-		if (b->getPriority() == QueueItemBase::HIGHEST)
+		if (b->getPriority() == Priority::HIGHEST)
 			continue;
 		if (all_of(b->getDownloads().begin(), b->getDownloads().end(), Flags::IsSet(Download::FLAG_HIGHEST_PRIO)))
 			continue;

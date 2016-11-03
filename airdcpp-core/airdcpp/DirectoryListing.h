@@ -26,7 +26,7 @@
 #include "ShareManagerListener.h"
 #include "TimerManagerListener.h"
 
-#include "Bundle.h"
+#include "BundleInfo.h"
 #include "DirectSearch.h"
 #include "DispatcherQueue.h"
 #include "DupeType.h"
@@ -34,7 +34,7 @@
 #include "HintedUser.h"
 #include "MerkleTree.h"
 #include "Pointer.h"
-#include "QueueItemBase.h"
+#include "Priority.h"
 #include "SearchQuery.h"
 #include "TaskQueue.h"
 #include "UserInfoBase.h"
@@ -169,8 +169,7 @@ public:
 	// Returns the number of loaded dirs
 	int loadPartialXml(const string& aXml, const string& aAdcBase) throw(AbortException);
 
-	bool downloadDir(const string& aRemoteDir, const string& aTarget, QueueItemBase::Priority prio = QueueItem::DEFAULT, ProfileToken aAutoSearch = 0) noexcept;
-	bool createBundle(const Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept;
+	bool createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPrio, void* aOwner) noexcept;
 
 	bool viewAsText(const File::Ptr& aFile) const noexcept;
 
@@ -233,7 +232,7 @@ public:
 	bool supportsASCH() const noexcept;
 
 	/* only call from the file list thread*/
-	bool downloadDirImpl(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept;
+	bool downloadDirImpl(Directory::Ptr& aDir, const string& aTarget, Priority prio, void* aOwner) noexcept;
 	void setActive() noexcept;
 
 	struct LocationInfo {

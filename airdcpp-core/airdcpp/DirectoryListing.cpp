@@ -529,7 +529,7 @@ void DirectoryListing::Directory::download(const string& aTarget, BundleFileInfo
 	}
 }
 
-bool DirectoryListing::createBundle(const Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept {
+bool DirectoryListing::createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority prio, void* aOwner) noexcept {
 	BundleFileInfo::List aFiles;
 	aDir->download(Util::emptyString, aFiles);
 
@@ -552,16 +552,16 @@ bool DirectoryListing::createBundle(const Directory::Ptr& aDir, const string& aT
 	}
 
 	if (!errorMsg.empty()) {
-		if (aAutoSearch == 0) {
+		if (!aOwner) {
 			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, aTarget % getNick(false) % errorMsg), LogMessage::SEV_WARNING);
 		} else {
-			AutoSearchManager::getInstance()->onBundleError(aAutoSearch, errorMsg, aTarget, hintedUser);
+			AutoSearchManager::getInstance()->onBundleError(aOwner, errorMsg, aTarget, hintedUser);
 		}
 	}
 
 	if (b) {
-		if (aAutoSearch > 0) {
-			AutoSearchManager::getInstance()->onBundleCreated(b, aAutoSearch);
+		if (aOwner) {
+			AutoSearchManager::getInstance()->onBundleCreated(b, aOwner);
 		}
 		return true;
 	}
@@ -569,7 +569,7 @@ bool DirectoryListing::createBundle(const Directory::Ptr& aDir, const string& aT
 	return false;
 }
 
-bool DirectoryListing::downloadDirImpl(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept {
+bool DirectoryListing::downloadDirImpl(Directory::Ptr& aDir, const string& aTarget, Priority prio, void* aOwner) noexcept {
 	dcassert(!aDir->findIncomplete());
 
 	/* Check if this is a root dir containing release dirs */
@@ -581,7 +581,7 @@ bool DirectoryListing::downloadDirImpl(Directory::Ptr& aDir, const string& aTarg
 		/* Create bundles from each subfolder */
 		bool queued = false;
 		for (const auto& d: aDir->directories | map_values) {
-			if (createBundle(d, aTarget + d->getName() + PATH_SEPARATOR, prio, aAutoSearch)) {
+			if (createBundle(d, aTarget + d->getName() + PATH_SEPARATOR, prio, aOwner)) {
 				queued = true;
 			}
 		}
@@ -589,19 +589,7 @@ bool DirectoryListing::downloadDirImpl(Directory::Ptr& aDir, const string& aTarg
 		return queued;
 	}
 
-	return createBundle(aDir, aTarget, prio, aAutoSearch);
-}
-
-bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept {
-	dcassert(aDir.size() > 2);
-	dcassert(aDir[aDir.size() - 1] == NMDC_SEPARATOR);
-
-	auto d = findDirectory(aDir);
-	if (d) {
-		return downloadDirImpl(d, aTarget, prio, aAutoSearch);
-	}
-
-	return false;
+	return createBundle(aDir, aTarget, prio, aOwner);
 }
 
 int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {

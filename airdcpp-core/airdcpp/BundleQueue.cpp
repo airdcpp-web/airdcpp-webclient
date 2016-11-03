@@ -402,22 +402,6 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 	aBundle->deleteXmlFile();
 }
 
-void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& aVolumes) const noexcept{
-	for(const auto& b: bundles | map_values) {
-		string mountPath = TargetUtil::getMountPath(b->getTarget(), aVolumes);
-		if (!mountPath.empty()) {
-			auto s = dirMap.find(mountPath);
-			if (s != dirMap.end()) {
-				for(const auto& q: b->getQueueItems()) {
-					if (q->getDownloadedBytes() == 0) {
-						s->second.addQueued(q->getSize());
-					}
-				}
-			}
-		}
-	}
-}
-
 void BundleQueue::saveQueue(bool aForce) noexcept {
 	for(auto& b: bundles | map_values) {
 		if (b->getDirty() || aForce) {

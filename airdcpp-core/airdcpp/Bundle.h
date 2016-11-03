@@ -34,34 +34,6 @@ namespace dcpp {
 
 using std::string;
 
-struct BundleAddInfo {
-	int filesAdded = 0;
-	int filesFailed = 0;
-
-	bool merged = false;
-	BundlePtr bundle = nullptr;
-
-	string errorMessage;
-};
-
-struct BundleFileInfo {
-	BundleFileInfo(BundleFileInfo&& rhs) = default;
-	BundleFileInfo& operator=(BundleFileInfo&& rhs) = default;
-	BundleFileInfo(BundleFileInfo&) = delete;
-	BundleFileInfo& operator=(BundleFileInfo&) = delete;
-
-	BundleFileInfo(string aFile, const TTHValue& aTTH, int64_t aSize, time_t aDate = 0, QueueItemBase::Priority aPrio = QueueItemBase::DEFAULT) noexcept : 
-		file(move(aFile)), tth(aTTH), size(aSize), prio(aPrio), date(aDate) { }
-
-	string file;
-	TTHValue tth;
-	int64_t size;
-	QueueItemBase::Priority prio;
-	time_t date;
-
-	typedef vector<BundleFileInfo> List;
-};
-
 #define DIR_BUNDLE_VERSION "2"
 #define FILE_BUNDLE_VERSION "2"
 
@@ -272,7 +244,7 @@ private:
 	bool recent = false;
 
 	/** QueueItems by priority and user (this is where the download order is determined) */
-	unordered_map<UserPtr, deque<QueueItemPtr>, User::Hash> userQueue[LAST];
+	unordered_map<UserPtr, deque<QueueItemPtr>, User::Hash> userQueue[static_cast<int>(Priority::LAST)];
 	/** Currently running downloads, a QueueItem is always either here or in the userQueue */
 	unordered_map<UserPtr, QueueItemList, User::Hash> runningItems;
 

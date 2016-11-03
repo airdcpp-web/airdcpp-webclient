@@ -67,7 +67,7 @@ public:
 		}
 	}
 
-	static void waitShutdown() {
+	static void waitShutdown() noexcept {
 		while(sockets > 0)
 			Thread::sleep(100);
 	}

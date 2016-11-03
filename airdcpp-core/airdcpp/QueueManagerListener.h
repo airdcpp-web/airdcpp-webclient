@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_QUEUE_MANAGER_LISTENER_H
 
 #include "forward.h"
-#include "QueueItem.h"
 #include "HashedFile.h"
 
 namespace dcpp {

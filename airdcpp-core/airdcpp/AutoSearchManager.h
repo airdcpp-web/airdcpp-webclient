@@ -52,7 +52,7 @@ public:
 	//AutoSearchPtr getNameDupe(const string& aName, bool report, const AutoSearchPtr& thisSearch = nullptr) const noexcept;
 	bool addFailedBundle(const BundlePtr& aBundle) noexcept;
 	void addAutoSearch(AutoSearchPtr aAutoSearch, bool search, bool loading = false) noexcept;
-	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, TargetUtil::TargetType aTargetType, bool isDirectory, AutoSearch::ItemType asType, bool aRemove = true, int aInterval = AS_DEFAULT_SEARCH_INTERVAL) noexcept;
+	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, bool isDirectory, AutoSearch::ItemType asType, bool aRemove = true, int aInterval = AS_DEFAULT_SEARCH_INTERVAL) noexcept;
 	AutoSearchList getSearchesByBundle(const BundlePtr& aBundle) const noexcept;
 	AutoSearchList getSearchesByString(const string& aSearchString, const AutoSearchPtr& ignoredSearch = nullptr) const noexcept;
 
@@ -74,13 +74,13 @@ public:
 
 	time_t getNextSearch() const noexcept { return nextSearch; }
 
-	void AutoSearchLoad();
-	void AutoSearchSave() noexcept;
+	void load() noexcept;
+	void save() noexcept;
 
 	void logMessage(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
 
-	void onBundleCreated(BundlePtr& aBundle, const ProfileToken aSearch) noexcept;
-	void onBundleError(const ProfileToken aSearch, const string& aError, const string& aDir, const HintedUser& aUser) noexcept;
+	void onBundleCreated(BundlePtr& aBundle, void* aSearch) noexcept;
+	void onBundleError(void* aSearch, const string& aError, const string& aDir, const HintedUser& aUser) noexcept;
 
 	vector<string> getGroups() { RLock l(cs);  return groups; }
 	void setGroups(vector<string>& newGroups) { WLock l(cs);  groups = newGroups; }
