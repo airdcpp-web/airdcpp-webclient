@@ -34,7 +34,7 @@ class PrioritySearchQueue {
 	typedef vector<double> ProbabilityList;
 public:
 	void addSearchPrio(ItemT& aItem) noexcept{
-		if (aItem->getPriority() < QueueItemBase::LOW) {
+		if (aItem->getPriority() < Priority::LOW) {
 			return;
 		}
 
@@ -43,13 +43,14 @@ public:
 			recentSearchQueue.push_back(aItem);
 			return;
 		} else {
-			dcassert(find(prioSearchQueue[aItem->getPriority()].begin(), prioSearchQueue[aItem->getPriority()].end(), aItem) == prioSearchQueue[aItem->getPriority()].end());
-			prioSearchQueue[aItem->getPriority()].push_back(aItem);
+			auto& queue = prioSearchQueue[static_cast<int>(aItem->getPriority())];
+			dcassert(find(queue.begin(), queue.end(), aItem) == queue.end());
+			queue.push_back(aItem);
 		}
 	}
 
 	void removeSearchPrio(ItemT& aItem) noexcept{
-		if (aItem->getPriority() < QueueItemBase::LOW) {
+		if (aItem->getPriority() < Priority::LOW) {
 			return;
 		}
 
@@ -59,9 +60,10 @@ public:
 				recentSearchQueue.erase(i);
 			}
 		} else {
-			auto i = find(prioSearchQueue[aItem->getPriority()].begin(), prioSearchQueue[aItem->getPriority()].end(), aItem);
-			if (i != prioSearchQueue[aItem->getPriority()].end()) {
-				prioSearchQueue[aItem->getPriority()].erase(i);
+			auto& queue = prioSearchQueue[static_cast<int>(aItem->getPriority())];
+			auto i = find(queue.begin(), queue.end(), aItem);
+			if (i != queue.end()) {
+				queue.erase(i);
 			}
 		}
 	}
@@ -172,7 +174,7 @@ private:
 		auto dist = boost::random::discrete_distribution<>(probabilities);
 
 		//choose the search queue, can't be paused or lowest
-		auto& sbq = prioSearchQueue[dist(gen) + QueueItemBase::LOW];
+		auto& sbq = prioSearchQueue[dist(gen) + static_cast<int>(Priority::LOW)];
 		dcassert(!sbq.empty());
 
 		//find the first item from the search queue that can be searched for
@@ -192,7 +194,7 @@ private:
 
 	int getPrioSum(ProbabilityList* probabilities_ = nullptr) const noexcept{
 		int itemCount = 0;
-		int p = QueueItemBase::LOW;
+		int p = static_cast<int>(Priority::LOW);
 		do {
 			int dequeItems = static_cast<int>(count_if(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), [](const ItemT& aItem) { 
 				return aItem->allowAutoSearch(); 
@@ -202,13 +204,13 @@ private:
 				(*probabilities_).push_back((p - 1)*dequeItems); //multiply with a priority factor to get bigger probability for items with higher priority
 			itemCount += dequeItems;
 			p++;
-		} while (p < QueueItemBase::LAST);
+		} while (p < static_cast<int>(Priority::LAST));
 
 		return itemCount;
 	}
 
 	/** Search items by priority (low-highest) */
-	vector<ItemT> prioSearchQueue[QueueItemBase::LAST];
+	vector<ItemT> prioSearchQueue[static_cast<int>(Priority::LAST)];
 	deque<ItemT> recentSearchQueue;
 
 	/** Next normal search */

@@ -54,24 +54,24 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 	
 	if(isSet(FLAG_USER_LIST) || isSet(FLAG_CLIENT_VIEW)) {
 		/* Always use highest for the items without bundle */
-		setPriority(HIGHEST);
+		setPriority(Priority::HIGHEST);
 	} else {
-		if (getPriority() == DEFAULT) {
+		if (priority == Priority::DEFAULT) {
 			if(aSize <= Util::convertSize(SETTING(PRIO_HIGHEST_SIZE), Util::KB)) {
-				setPriority(HIGHEST);
+				setPriority(Priority::HIGHEST);
 			} else if (aSize <= Util::convertSize(SETTING(PRIO_HIGH_SIZE), Util::KB)) {
-				setPriority(HIGH);
+				setPriority(Priority::HIGH);
 			} else if (aSize <= Util::convertSize(SETTING(PRIO_NORMAL_SIZE), Util::KB)) {
-				setPriority(NORMAL);
+				setPriority(Priority::NORMAL);
 			} else if (aSize <= Util::convertSize(SETTING(PRIO_LOW_SIZE), Util::KB)) {
-				setPriority(LOW);
+				setPriority(Priority::LOW);
 			} else if(SETTING(PRIO_LOWEST)) {
-				setPriority(LOWEST);
+				setPriority(Priority::LOWEST);
 			} else if(SETTING(AUTO_PRIORITY_DEFAULT)) {
 				setAutoPriority(true);
-				setPriority(LOW);
+				setPriority(Priority::LOW);
 			} else {
-				setPriority(NORMAL);
+				setPriority(Priority::NORMAL);
 			}
 		}
 
@@ -128,25 +128,25 @@ bool QueueItem::PrioSortOrder::operator()(const QueueItemPtr& left, const QueueI
 	return left->getPriority() > right->getPriority();
 }
 
-QueueItemBase::Priority QueueItem::calculateAutoPriority() const noexcept {
+Priority QueueItem::calculateAutoPriority() const noexcept {
 	if(getAutoPriority()) {
-		QueueItemBase::Priority p;
+		Priority p;
 		int percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
 		switch(percent){
 				case 0:
 				case 1:
 				case 2:
-					p = QueueItem::LOW;
+					p = Priority::LOW;
 					break;
 				case 3:
 				case 4:
 				case 5:			
-					p = QueueItem::NORMAL;
+					p = Priority::NORMAL;
 					break;
 				case 6:
 				case 7:
 				default:
-					p = QueueItem::HIGH;
+					p = Priority::HIGH;
 					break;
 		}
 		return p;			
@@ -641,9 +641,9 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& aOnline
 }
 
 bool QueueItem::isPausedPrio() const noexcept {
-	if (bundle && !bundle->isPausedPrio() && priority != PAUSED) {
+	if (bundle && !bundle->isPausedPrio() && priority != Priority::PAUSED) {
 		return false;
-	} else if ((!bundle || bundle->getPriority() != PAUSED_FORCE) && priority == HIGHEST) {
+	} else if ((!bundle || bundle->getPriority() != Priority::PAUSED_FORCE) && priority == Priority::HIGHEST) {
 		return false;
 	}
 	return true;

@@ -19,16 +19,17 @@
 #ifndef DCPLUSPLUS_DCPP_FINISHED_MANAGER_H
 #define DCPLUSPLUS_DCPP_FINISHED_MANAGER_H
 
+#include "FinishedManagerListener.h"
 #include "QueueManagerListener.h"
 #include "UploadManagerListener.h"
 
+#include "ClientManager.h"
+#include "HintedUser.h"
+#include "MerkleTree.h"
 #include "Speaker.h"
 #include "Singleton.h"
-#include "FinishedManagerListener.h"
 #include "Util.h"
 #include "User.h"
-#include "MerkleTree.h"
-#include "ClientManager.h"
 
 namespace dcpp {
 

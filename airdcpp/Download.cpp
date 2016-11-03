@@ -57,7 +57,7 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 		setFlag(FLAG_RECURSIVE);
 	if(qi.isSet(QueueItem::FLAG_TTHLIST_BUNDLE))
 		setFlag(FLAG_TTHLIST_BUNDLE);
-	if (qi.getPriority() == QueueItemBase::HIGHEST)
+	if (qi.getPriority() == Priority::HIGHEST)
 		setFlag(FLAG_HIGHEST_PRIO);
 
 	if (qi.getBundle()) {

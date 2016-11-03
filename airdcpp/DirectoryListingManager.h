@@ -32,8 +32,7 @@
 #include "TimerManagerListener.h"
 
 namespace dcpp {
-	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener, 
-		public TimerManagerListener {
+	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener {
 	public:
 		typedef unordered_map<UserPtr, DirectoryListingPtr, User::Hash> DirectoryListingMap;
 
@@ -48,68 +47,51 @@ namespace dcpp {
 		void processList(const string& aFileName, const string& aXml, const HintedUser& user, const string& aRemotePath, int flags) noexcept;
 		void processListAction(DirectoryListingPtr aList, const string& path, int flags) noexcept;
 
-		void addDirectoryDownload(const string& aRemoteDir, const string& aBundleName, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType, bool aSizeUnknown,
-			QueueItemBase::Priority p = QueueItem::DEFAULT, bool useFullList = false, ProfileToken aAutoSearch = 0, bool checkNameDupes = false, bool checkViewed = true) noexcept;
+		void addDirectoryDownload(const string& aRemoteDir, const string& aBundleName, const HintedUser& aUser, const string& aTarget,
+			Priority p = Priority::DEFAULT, bool useFullList = false, void* aOwner = nullptr, bool checkNameDupes = false, bool checkViewed = true) noexcept;
 
 		void removeDirectoryDownload(const UserPtr& aUser, const string& aPath, bool isPartialList) noexcept;
 		DirectoryListingMap getLists() const noexcept;
 	private:
-		class DirectoryDownloadInfo : public intrusive_ptr_base<DirectoryDownloadInfo> {
+		class DirectoryDownloadInfo {
 		public:
-			DirectoryDownloadInfo() : priority(QueueItemBase::DEFAULT) { }
-			DirectoryDownloadInfo(const UserPtr& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, TargetUtil::TargetType aTargetType, QueueItemBase::Priority p,
-				bool aSizeUnknown, ProfileToken aAutoSearch, bool aRecursiveListAttempted) :
-				listPath(aListPath), target(aTarget), priority(p), targetType(aTargetType), sizeUnknown(aSizeUnknown), listing(nullptr), autoSearch(aAutoSearch), bundleName(aBundleName),
+			DirectoryDownloadInfo() : priority(Priority::DEFAULT) { }
+			DirectoryDownloadInfo(const UserPtr& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p,
+				void* aOwner, bool aRecursiveListAttempted) :
+				listPath(aListPath), target(aTarget), priority(p), listing(nullptr), owner(aOwner), bundleName(aBundleName),
 				recursiveListAttempted(aRecursiveListAttempted), user(aUser) {
 			}
 			~DirectoryDownloadInfo() { }
 
-			typedef boost::intrusive_ptr<DirectoryDownloadInfo> Ptr;
+			typedef std::shared_ptr<DirectoryDownloadInfo> Ptr;
 			typedef vector<DirectoryDownloadInfo::Ptr> List;
 
 			UserPtr& getUser() { return user; }
 
 			GETSET(string, listPath, ListPath);
 			GETSET(string, target, Target);
-			GETSET(QueueItemBase::Priority, priority, Priority);
-			GETSET(TargetUtil::TargetType, targetType, TargetType);
-			GETSET(bool, sizeUnknown, SizeUnknown);
+			GETSET(Priority, priority, Priority);
 			GETSET(DirectoryListingPtr, listing, Listing);
-			GETSET(ProfileToken, autoSearch, AutoSearch);
+			GETSET(void*, owner, Owner);
 			GETSET(string, bundleName, BundleName);
 			GETSET(bool, recursiveListAttempted, RecursiveListAttempted);
 
-			string getFinishedDirName() const noexcept { return target + bundleName + Util::toString(targetType); }
+			string getFinishedDirName() const noexcept { return target + bundleName; }
 
-			struct HasASItem {
-				HasASItem(ProfileToken aToken, const string& s) : a(s), t(aToken) { }
-				bool operator()(const DirectoryDownloadInfo::Ptr& ddi) const noexcept{ return t == ddi->getAutoSearch() && Util::stricmp(a, ddi->getBundleName()) != 0; }
+			struct HasOwner {
+				HasOwner(void* aOwner, const string& s) : a(s), owner(aOwner) { }
+				bool operator()(const DirectoryDownloadInfo::Ptr& ddi) const noexcept;
+
 				const string& a;
-				ProfileToken t;
+				void* owner;
 
-				HasASItem& operator=(const HasASItem&) = delete;
+				HasOwner& operator=(const HasOwner&) = delete;
 			};
 		private:
 			UserPtr user;
 		};
 
-		// Stores information about finished items for a while so that consecutive downloads of the same directory don't get different targets
-		class FinishedDirectoryItem : public intrusive_ptr_base<FinishedDirectoryItem> {
-		public:
-			typedef boost::intrusive_ptr<FinishedDirectoryItem> Ptr;
-			typedef vector<FinishedDirectoryItem::Ptr> List;
-
-			FinishedDirectoryItem(bool aUsePausedPrio, const string& aTargetPath) : usePausedPrio(aUsePausedPrio), targetPath(aTargetPath), timeDownloaded(GET_TICK()) { }
-
-			GETSET(bool, usePausedPrio, UsePausedPrio);
-			GETSET(string, targetPath, TargetPath); // real path to the location
-			GETSET(uint64_t, timeDownloaded, TimeDownloaded); // time when this item was created
-		private:
-
-		};
-
-		bool download(const DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList, const string& aTarget, bool aHasFreeSpace) noexcept;
-		void handleDownload(DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList) noexcept;
+		bool handleDownload(const DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList) noexcept;
 
 		DirectoryListingPtr createList(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsOwnList) noexcept;
 
@@ -122,9 +104,6 @@ namespace dcpp {
 		/** Directories queued for downloading */
 		unordered_multimap<UserPtr, DirectoryDownloadInfo::Ptr, User::Hash> dlDirectories;
 
-		/** Directories asking for size confirmation (later also directories added for scanning etc. ) **/
-		unordered_map<string, FinishedDirectoryItem::Ptr> finishedListings;
-
 
 		/** Lists open in the client **/
 		DirectoryListingMap viewedLists;
@@ -134,8 +113,6 @@ namespace dcpp {
 		void on(QueueManagerListener::ItemRemoved, const QueueItemPtr& qi, bool finished) noexcept;
 
 		void on(QueueManagerListener::PartialListFinished, const HintedUser& aUser, const string& aXml, const string& aBase) noexcept;
-
-		void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 	};
 
 }

@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_DOWNLOADMANAGERLISTENER_H_
 
 #include "typedefs.h"
-#include "QueueItemBase.h"
 
 namespace dcpp {
 

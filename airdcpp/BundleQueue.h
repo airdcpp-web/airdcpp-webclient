@@ -77,8 +77,6 @@ public:
 
 	void removeBundle(BundlePtr& aBundle) noexcept;
 
-	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept;
-
 	void saveQueue(bool force) noexcept;
 	QueueItemList getSearchItems(const BundlePtr& aBundle) const noexcept;
 

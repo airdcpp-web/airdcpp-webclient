@@ -22,6 +22,7 @@
 #include "compiler.h"
 
 #include "DupeType.h"
+#include "Priority.h"
 #include "SettingsManager.h"
 
 namespace dcpp {
@@ -92,7 +93,7 @@ public:
 	static int getSpeedLimit(bool download, double value=0);
 	static int getMaxAutoOpened(double value = 0);
 
-	static string getPrioText(int prio) noexcept;
+	static string getPrioText(Priority aPriority) noexcept;
 
 	static bool listRegexMatch(const StringList& l, const boost::regex& aReg);
 	static int listRegexCount(const StringList& l, const boost::regex& aReg);

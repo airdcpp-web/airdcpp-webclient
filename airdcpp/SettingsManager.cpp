@@ -228,7 +228,7 @@ const string SettingsManager::settingTags[] =
 "NotepadLeft", "NotepadRight", "QueueTop", "QueueBottom", "QueueLeft", "QueueRight", "SearchTop", "SearchBottom", "SearchLeft", "SearchRight", "UsersTop", "UsersBottom",
 "UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
 "DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "MaxMCNUploads", "ListHighlightBackColor", "ListHighlightColor", "QueueColor", "TextQueueBackColor",
-"RecentBundleHours", "DisconnectMinSources", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "DLAutoSelectMethod", "WinampBarIconSize", "TBProgressTextColor", "TLSMode", "UpdateMethod",
+"RecentBundleHours", "DisconnectMinSources", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "WinampBarIconSize", "TBProgressTextColor", "TLSMode", "UpdateMethod",
 "QueueSplitterPosition", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
 "SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", "MultithreadedRefresh", "MonitoringMode",
 "MonitoringDelay", "DelayCountMode", "MaxRunningBundles", "DefaultShareProfile", "UpdateChannel", "ColorStatusFinished", "ColorStatusShared", "ProgressLighten",
@@ -788,7 +788,6 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(AUTOPRIO_TYPE, PRIO_BALANCED);
 	setDefault(AUTOPRIO_INTERVAL, 10);
 	setDefault(AUTOSEARCH_EXPIRE_DAYS, 5);
-	setDefault(DL_AUTOSELECT_METHOD, 0);
 	setDefault(WTB_IMAGE_SIZE, 16);
 	setDefault(SHOW_TBSTATUS, true);
 
@@ -954,7 +953,7 @@ string SettingsManager::getProfileName(int profile) const noexcept {
 	}
 }
 
-void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF) {
+void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF) noexcept {
 	try {
 		SimpleXML xml;
 		loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
@@ -1047,31 +1046,8 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 			}
 			xml.resetCurrentChild();
 
-			double prevVersion = Util::toDouble(SETTING(CONFIG_VERSION));
-			int prevBuild = SETTING(CONFIG_BUILD_NUMBER);
-			if (prevVersion < 2.41) {
-				//previous versions have saved two settings in a wrong order... fix the dupe color here (queuebars don't matter)
-				if(xml.findChild("Settings")) {
-					xml.stepIn();
-					const string& attr = settingTags[SHOW_QUEUE_BARS];
-					if(xml.findChild(attr)) {
-						set(IntSetting(DUPE_COLOR), Util::toInt(xml.getChildData()));
-					}
-					xml.resetCurrentChild();
-					xml.stepOut();
-				}
-
-				// port previous conn settings
-				enum { OLD_INCOMING_DIRECT, OLD_INCOMING_UPNP, OLD_INCOMING_NAT, OLD_INCOMING_PASSIVE };
-				switch(SETTING(INCOMING_CONNECTIONS)) {
-					case OLD_INCOMING_UPNP: set(INCOMING_CONNECTIONS, INCOMING_ACTIVE_UPNP); break;
-					case OLD_INCOMING_PASSIVE: set(INCOMING_CONNECTIONS, INCOMING_PASSIVE); break;
-					default: set(INCOMING_CONNECTIONS, INCOMING_ACTIVE); break;
-				}
-			}
-
-			if(prevVersion <= 2.30 && SETTING(POPUP_TYPE) == 1)
-				set(POPUP_TYPE, 0);
+			auto prevVersion = Util::toDouble(SETTING(CONFIG_VERSION));
+			//auto prevBuild = SETTING(CONFIG_BUILD_NUMBER);
 
 			//reset the old private hub profile to normal
 			if(prevVersion < 2.50 && SETTING(SETTINGS_PROFILE) == PROFILE_LAN)
@@ -1087,24 +1063,6 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 				unsetKey(SEARCHFRAME_ORDER);
 				unsetKey(SEARCHFRAME_WIDTHS);
 				unsetKey(SEARCHFRAME_VISIBLE);
-			}
-			if (prevBuild == 2029) {
-				StringTokenizer<string> t(SETTING(TOOLBAR_ORDER), ',');
-				StringList& l = t.getTokens();
-				string tmp;
-
-				bool first = true;
-				for (StringList::const_iterator k = l.begin(); k != l.end(); ++k) {
-					int i = Util::toInt(*k);
-					if (i == 7) continue;
-					if (i > 7) i -= 1;
-					
-					if (!first) tmp += ",";
-					first = false;
-					tmp += Util::toString(i);
-				}
-				set(TOOLBAR_ORDER, tmp);
-
 			}
 		
 			fire(SettingsManagerListener::Load(), xml);
@@ -1290,7 +1248,7 @@ void SettingsManager::set(Int64Setting key, const string& value) noexcept {
 	}
 }
 
-void SettingsManager::save() {
+void SettingsManager::save() noexcept {
 
 	SimpleXML xml;
 	xml.addTag("DCPlusPlus");
@@ -1389,11 +1347,12 @@ HubSettings SettingsManager::getHubSettings() const noexcept {
 	return ret;
 }
 
-void SettingsManager::loadSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, bool migrate /*true*/) throw(Exception) {
-	string fname = Util::getPath(aPath) + aFileName;
+void SettingsManager::loadSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, bool aMigrate /*true*/) {
+	auto fname = Util::getPath(aPath) + aFileName;
 
-	if (migrate)
+	if (aMigrate) {
 		Util::migrate(fname);
+	}
 
 	if (Util::fileExists(fname)) {
 		aXML.fromXML(File(fname, File::READ, File::OPEN).read());

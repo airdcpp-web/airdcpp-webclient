@@ -42,7 +42,7 @@ public:
 	typedef vector<pair<QueueItem::SourceConstIter, const QueueItemPtr> > PFSSourceList;
 
 	pair<QueueItem::StringMap::const_iterator, bool> add(QueueItemPtr& qi) noexcept;
-	pair<QueueItemPtr, bool> add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, QueueItemBase::Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;
+	pair<QueueItemPtr, bool> add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;
 
 	QueueItemPtr findFile(const string& aTarget) const noexcept;
 	QueueItemPtr findFile(QueueToken aToken) const noexcept;
