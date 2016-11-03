@@ -124,11 +124,10 @@ namespace webserver {
 		}
 
 		string targetDirectory, targetName = result->sr->getFileName();
-		TargetUtil::TargetType targetType;
-		QueueItemBase::Priority prio;
-		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetName, targetType, prio);
+		Priority prio;
+		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetName, prio);
 
-		return result->download(targetDirectory, targetName, targetType, prio);
+		return result->download(targetDirectory, targetName, prio);
 	}
 
 	api_return SearchApi::handleGetTypes(ApiRequest& aRequest) {

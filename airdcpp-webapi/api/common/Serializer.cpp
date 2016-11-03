@@ -356,7 +356,7 @@ namespace webserver {
 
 	json Serializer::serializePriority(const QueueItemBase& aItem) noexcept {
 		return{
-			{ "id", aItem.getPriority() },
+			{ "id", static_cast<int>(aItem.getPriority()) },
 			{ "str", AirUtil::getPrioText(aItem.getPriority()) },
 			{ "auto", aItem.getAutoPriority() }
 		};

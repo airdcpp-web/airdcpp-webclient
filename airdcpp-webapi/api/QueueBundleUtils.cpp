@@ -111,7 +111,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case PROP_SIZE: return (double)b->getSize();
 		case PROP_BYTES_DOWNLOADED: return (double)b->getDownloadedBytes();
-		case PROP_PRIORITY: return b->getPriority();
+		case PROP_PRIORITY: return (double)b->getPriority();
 		case PROP_TIME_ADDED: return (double)b->getTimeAdded();
 		case PROP_TIME_FINISHED: return (double)b->getTimeFinished();
 		case PROP_SPEED: return (double)b->getSpeed();

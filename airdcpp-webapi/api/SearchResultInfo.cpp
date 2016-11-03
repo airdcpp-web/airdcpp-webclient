@@ -100,15 +100,15 @@ namespace webserver {
 		return relevanceInfo.matchRelevance; 
 	}
 
-	api_return SearchResultInfo::download(const string& aTargetDirectory, const string& aTargetName, TargetUtil::TargetType aTargetType, QueueItemBase::Priority aPrio) {
+	api_return SearchResultInfo::download(const string& aTargetDirectory, const string& aTargetName, Priority aPrio) {
 		bool fileDownload = sr->getType() == SearchResult::TYPE_FILE;
 
 		auto download = [&](const SearchResultPtr& aSR) {
 			if (fileDownload) {
 				QueueManager::getInstance()->createFileBundle(aTargetDirectory + aTargetName, sr->getSize(), sr->getTTH(), sr->getUser(), sr->getDate(), 0, aPrio);
 			} else {
-				DirectoryListingManager::getInstance()->addDirectoryDownload(aSR->getFilePath(), aTargetName, aSR->getUser(), aTargetDirectory, aTargetType,
-					false, aPrio, false, 0, false, false);
+				DirectoryListingManager::getInstance()->addDirectoryDownload(aSR->getFilePath(), aTargetName, aSR->getUser(), aTargetDirectory,
+					aPrio, false, nullptr, false, false);
 			}
 		};
 

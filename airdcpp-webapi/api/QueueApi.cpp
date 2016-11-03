@@ -242,9 +242,8 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		string targetDirectory, targetFileName;
-		TargetUtil::TargetType targetType;
-		QueueItemBase::Priority prio;
-		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetFileName, targetType, prio);
+		Priority prio;
+		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetFileName, prio);
 
 		BundlePtr b = nullptr;
 		try {
@@ -256,7 +255,7 @@ namespace webserver {
 				JsonUtil::getField<time_t>("time", reqJson, false),
 				0,
 				prio
-				);
+			);
 		}
 		catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());

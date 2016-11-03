@@ -165,14 +165,13 @@ namespace webserver {
 		auto listPath = JsonUtil::getField<string>("list_path", aRequest.getRequestBody(), false);
 
 		string targetDirectory, targetBundleName;
-		TargetUtil::TargetType targetType;
-		QueueItemBase::Priority prio;
-		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetBundleName, targetType, prio);
+		Priority prio;
+		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetBundleName, prio);
 
 		auto user = Deserializer::deserializeHintedUser(reqJson);
 
 		DirectoryListingManager::getInstance()->addDirectoryDownload(Util::toNmdcFile(listPath), targetBundleName, user,
-			targetDirectory, targetType, true, prio);
+			targetDirectory, prio);
 
 		return websocketpp::http::status_code::ok;
 	}
