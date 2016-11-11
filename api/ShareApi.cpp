@@ -37,7 +37,7 @@ namespace webserver {
 		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("paths")), true, ShareApi::handleRefreshPaths);
 		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("virtual")), true, ShareApi::handleRefreshVirtual);
 
-		METHOD_HANDLER("excludes", Access::SETTINGS_EDIT, ApiRequest::METHOD_GET, (), false, ShareApi::handleGetExcludes);
+		METHOD_HANDLER("excludes", Access::SETTINGS_VIEW, ApiRequest::METHOD_GET, (), false, ShareApi::handleGetExcludes);
 		METHOD_HANDLER("exclude", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("add")), true, ShareApi::handleAddExclude);
 		METHOD_HANDLER("exclude", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("remove")), true, ShareApi::handleRemoveExclude);
 
