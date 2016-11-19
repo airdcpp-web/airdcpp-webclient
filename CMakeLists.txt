@@ -19,6 +19,7 @@ include (CheckIncludeFiles)
 include (CheckFunctionExists)
 include (FindPkgConfig)
 include (CheckCXXSourceCompiles)
+include (cmake/CheckAtomic.cmake)
 
 CHECK_FUNCTION_EXISTS(posix_fadvise HAVE_POSIX_FADVISE)
 CHECK_FUNCTION_EXISTS(mallinfo HAVE_MALLINFO)
