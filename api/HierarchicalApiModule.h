@@ -37,7 +37,7 @@ namespace webserver {
 		typedef ParentApiModule<IdType, ItemType> Type;
 		typedef std::function<IdType(const string&)> ConvertF;
 
-		ParentApiModule(const string& aSubmoduleSection, const StringMatch& aIdMatcher, Access aAccess, Session* aSession, const StringList& aSubscriptions, const StringList& aChildSubscription, ConvertF aConvertF) :
+		ParentApiModule(const string& aSubmoduleSection, const regex& aIdMatcher, Access aAccess, Session* aSession, const StringList& aSubscriptions, const StringList& aChildSubscription, ConvertF aConvertF) :
 			SubscribableApiModule(aSession, aAccess, &aSubscriptions), convertF(aConvertF) {
 
 			requestHandlers[aSubmoduleSection].push_back(ApiModule::RequestHandler(aIdMatcher, std::bind(&Type::handleSubModuleRequest, this, placeholders::_1)));

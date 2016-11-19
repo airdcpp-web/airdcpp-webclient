@@ -34,6 +34,7 @@ namespace webserver {
 			METHOD_PUT,
 			METHOD_DELETE,
 			METHOD_PATCH,
+			METHOD_FORWARD, // Special 'any' method for internal API handlers
 			METHOD_LAST
 		};
 

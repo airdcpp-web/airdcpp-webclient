@@ -23,6 +23,7 @@
 
 #include <airdcpp/typedefs.h>
 
+#include <airdcpp/AirUtil.h>
 #include <airdcpp/CryptoManager.h>
 #include <airdcpp/SettingsManager.h>
 #include <airdcpp/SimpleXML.h>
@@ -199,11 +200,13 @@ namespace webserver {
 
 		aEndpoint.set_reuse_addr(true);
 		try {
-			const string bind = aConfig.bindAddress.str();
-			if (!bind.empty()) {
-				aEndpoint.listen(bind, Util::toString(aConfig.port.num()));
+			const auto bindAddress = aConfig.bindAddress.str();
+			if (!bindAddress.empty()) {
+				aEndpoint.listen(bindAddress, Util::toString(aConfig.port.num()));
 			} else {
-				aEndpoint.listen(aConfig.port.num());
+				// IPv6 and IPv4-mapped IPv6 addresses are used by default (given that IPv6 is supported by the OS)
+				auto v6Supported = !AirUtil::getLocalIp(true).empty();
+				aEndpoint.listen(v6Supported ? boost::asio::ip::tcp::v6() : boost::asio::ip::tcp::v4(), aConfig.port.num());
 			}
 
 			aEndpoint.start_accept();

@@ -32,8 +32,9 @@ namespace webserver {
 	}
 
 	bool ApiModule::RequestHandler::matchParams(const ApiRequest::RequestParamList& aRequestParams) const noexcept {
-		if (isModuleHandler()) {
-			// The request needs to contain more params than the handler has (submodule section is required)
+		if (method == ApiRequest::METHOD_FORWARD) {
+			// The request must contain more params than the forwarder has
+			// (there must be at least one parameter left for the next handler)
 			if (aRequestParams.size() <= params.size()) {
 				return false;
 			}
@@ -42,7 +43,11 @@ namespace webserver {
 		}
 
 		for (auto i = 0; i < static_cast<int>(params.size()); i++) {
-			if (!params[i].match(aRequestParams[i])) {
+			try {
+				if (!boost::regex_search(aRequestParams[i], params[i])) {
+					return false;
+				}
+			} catch (const std::runtime_error&) {
 				return false;
 			}
 		}
@@ -71,7 +76,7 @@ namespace webserver {
 				return false;
 			}
 
-			if (aHandler.method == aRequest.getMethod() || aHandler.isModuleHandler()) {
+			if (aHandler.method == aRequest.getMethod() || aHandler.method == ApiRequest::METHOD_FORWARD) {
 				return true;
 			}
 
