@@ -913,6 +913,10 @@ bool Util::isPrivateIp(const string& ip, bool v6) noexcept {
 	return false;
 }
 
+bool Util::isPublicIp(const string& ip, bool v6) noexcept {
+	return !ip.empty() && !isLocalIp(ip, v6) && !isPrivateIp(ip, v6);
+}
+
 typedef const uint8_t* ccp;
 static wchar_t utf8ToLC(ccp& str) noexcept {
 	wchar_t c = 0;

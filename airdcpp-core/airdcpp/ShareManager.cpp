@@ -3436,32 +3436,6 @@ void ShareManager::adcSearch(SearchResultList& results, SearchQuery& srch, const
 		}
 	}
 
-	if (srch.itemType == SearchQuery::TYPE_DIRECTORY && srch.matchType == Search::MATCH_NAME_EXACT) {
-		if (srch.include.getPatterns().empty()) {
-			// Invalid query
-			return;
-		}
-
-		// Optimized version for exact directory matches
-		const auto i = lowerDirNameMap.equal_range(const_cast<string*>(&srch.include.getPatterns().front().str()));
-		for(const auto& d: i | map_values) {
-			if (!d->hasProfile(aProfile) || !srch.matchesDate(d->getLastWrite())) {
-				continue;
-			}
-
-			if (!AirUtil::isParentOrExactAdc(aDir, d->getADCPath())) {
-				continue;
-			}
-
-			addDirResult(d.get(), results, aProfile, srch);
-			if (results.size() >= srch.maxResults) {
-				break;
-			}
-		}
-
-		return;
-	}
-
 	// Get the search roots
 	Directory::List roots;
 	if (aDir == ADC_ROOT_STR) {

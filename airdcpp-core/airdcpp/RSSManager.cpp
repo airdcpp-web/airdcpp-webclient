@@ -420,12 +420,13 @@ void RSSManager::load() {
 			}
 		});
 	}
-	catch (std::exception& e) {
-		LogManager::getInstance()->message("Loading the RSS failed: " + string(e.what()), LogMessage::SEV_INFO);
+	catch (const Exception& e) {
+		LogManager::getInstance()->message("Loading the RSS failed: " + e.getError(), LogMessage::SEV_INFO);
 	}
 
-	TimerManager::getInstance()->addListener(this);
 	nextUpdate = GET_TICK() + 10 * 1000; //start after 10 seconds
+	TimerManager::getInstance()->addListener(this);
+
 }
 
 void RSSManager::saveConfig(bool saveDatabase) {

@@ -556,9 +556,7 @@ public:
 	// IPv6: fd prefix
 	static bool isPrivateIp(const string& ip, bool v6) noexcept;
 
-	static bool isPublicIp(const string& ip, bool v6) noexcept {
-		return !isLocalIp(ip, v6) && !isPrivateIp(ip, v6);
-	}
+	static bool isPublicIp(const string& ip, bool v6) noexcept;
 
 	/**
 	 * Case insensitive substring search.
