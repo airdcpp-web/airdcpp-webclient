@@ -99,7 +99,7 @@ struct Match : boost::static_visitor<bool> {
 	}
 
 	bool operator()(const string& s) const {
-		return str == s;
+		return Util::stricmp(str, s) == 0;
 	}
 
 	bool operator()(const boost::regex& r) const {

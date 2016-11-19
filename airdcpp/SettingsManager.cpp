@@ -776,7 +776,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(USE_FTP_LOGGER, false);
 	setDefault(ICON_PATH, "");
 	setDefault(QI_AUTOPRIO, true);
-	setDefault(SHOW_SHARED_DIRS_FAV, true);
+	setDefault(SHOW_SHARED_DIRS_DL, true);
 	setDefault(ALLOW_MATCH_FULL_LIST, true);
 	setDefault(REPORT_ADDED_SOURCES, false);
 	setDefault(EXPAND_BUNDLES, false);

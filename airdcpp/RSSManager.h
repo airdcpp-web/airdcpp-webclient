@@ -187,7 +187,7 @@ private:
 
 	void savedatabase(const RSSPtr& aFeed);
 
-	uint64_t nextUpdate;
+	uint64_t nextUpdate = 0;
 	uint64_t lastXmlSave = GET_TICK();
 
 	RSSPtr getUpdateItem() const noexcept;
