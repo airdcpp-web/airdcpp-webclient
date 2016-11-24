@@ -745,14 +745,16 @@ void SearchManager::getSearchType(const string& aName, Search::TypeModes& type_,
 	throw SearchTypeException("No such search type"); 
 }
 
-string SearchManager::getNameByExtension(const string& aExtension, bool defaultsOnly) const noexcept {
+string SearchManager::getNameByExtension(const string& aExtension, bool aDefaultsOnly) const noexcept {
+	auto extensionLower = Text::toLower(aExtension);
+
 	RLock l(cs);
 	for (const auto& type : searchTypes) {
-		if (defaultsOnly && (type.first.size() > 1 || type.first[0] < '1' || type.first[0] > '6')) {
+		if (aDefaultsOnly && (type.first.size() > 1 || type.first[0] < '1' || type.first[0] > '6')) {
 			continue;
 		}
 
-		auto i = boost::find(type.second, aExtension);
+		auto i = boost::find(type.second, extensionLower);
 		if (i != type.second.end()) {
 			return type.first;
 		}
