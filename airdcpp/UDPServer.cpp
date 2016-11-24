@@ -141,6 +141,7 @@ void UDPServer::handlePacket(const ByteVector& aBuf, size_t aLen, const string& 
 		if(!user)
 			return;
 
+		// Remove the CID
 		// This should be handled by AdcCommand really...
 		c.getParameters().erase(c.getParameters().begin());
 
@@ -156,6 +157,7 @@ void UDPServer::handlePacket(const ByteVector& aBuf, size_t aLen, const string& 
 		UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
 		// when user == NULL then it is probably NMDC user, check it later
 			
+		// Remove the CID
 		c.getParameters().erase(c.getParameters().begin());			
 			
 		SearchManager::getInstance()->onPSR(c, user, aRemoteIp);
@@ -174,6 +176,7 @@ void UDPServer::handlePacket(const ByteVector& aBuf, size_t aLen, const string& 
 
 		UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
 			
+		// Remove the CID
 		c.getParameters().erase(c.getParameters().begin());			
 			
 		if (user)
@@ -184,7 +187,7 @@ void UDPServer::handlePacket(const ByteVector& aBuf, size_t aLen, const string& 
 		if(c.getParameters().empty())
 			return;
 			
-		c.getParameters().erase(c.getParameters().begin());			
+		// No CID in UBD/UBN commands
 			
 		if (x.compare(1, 4, "UBN ") == 0) {
 			//LogManager::getInstance()->message("GOT UBN UDP: " + x);

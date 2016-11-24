@@ -431,7 +431,10 @@ DirectoryListing::Directory::Ptr DirectoryListing::Directory::create(Directory* 
 	auto dir = Ptr(new Directory(aParent, aName, aType, aUpdateDate, aCheckDupe, aSize, aRemoteDate));
 	if (aParent && aType != TYPE_ADLS) { // This would cause an infinite recursion in ADL search
 		dcassert(aParent->directories.find(&dir->getName()) == aParent->directories.end());
-		aParent->directories.emplace(&dir->getName(), dir);
+		auto res = aParent->directories.emplace(&dir->getName(), dir);
+		if (!res.second) {
+			throw AbortException("The directory " + dir->getPath() + " contains items with duplicate names (" + dir->getName() + ", " + *(*res.first).first + ")");
+		}
 	}
 
 	return dir;
@@ -995,8 +998,13 @@ void DirectoryListing::dispatch(DispatcherQueue::Callback& aCallback) noexcept {
 	} catch (const std::bad_alloc&) {
 		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, getNick(false) % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		fire(DirectoryListingListener::LoadingFailed(), "Out of memory");
-	} catch (const AbortException&) {
-		fire(DirectoryListingListener::LoadingFailed(), Util::emptyString);
+	} catch (const AbortException& e) {
+		// The error is empty on user cancellations
+		if (!e.getError().empty()) {
+			LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, getNick(false) % e.getError()), LogMessage::SEV_ERROR);
+		}
+
+		fire(DirectoryListingListener::LoadingFailed(), e.getError());
 	} catch(const ShareException& e) {
 		fire(DirectoryListingListener::LoadingFailed(), e.getError());
 	} catch (const QueueException& e) {
