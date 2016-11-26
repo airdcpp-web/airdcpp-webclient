@@ -52,7 +52,9 @@ namespace webserver {
 		string getIp() const noexcept;
 		void ping() noexcept;
 
+		void logError(const string& aMessage, websocketpp::log::level aErrorLevel) const noexcept;
 		void debugMessage(const string& aMessage) const noexcept;
+
 		time_t getTimeCreated() const noexcept {
 			return timeCreated;
 		}

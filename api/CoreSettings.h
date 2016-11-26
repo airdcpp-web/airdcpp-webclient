@@ -53,7 +53,7 @@ namespace webserver {
 		{ "dont_download_shared", SettingsManager::DONT_DL_ALREADY_SHARED, ResourceManager::SETTINGS_DONT_DL_ALREADY_SHARED },
 		{ "dont_download_queued", SettingsManager::DONT_DL_ALREADY_QUEUED, ResourceManager::SETTING_DONT_DL_ALREADY_QUEUED },
 		{ "download_dupe_min_size", SettingsManager::MIN_DUPE_CHECK_SIZE, ResourceManager::MIN_DUPE_CHECK_SIZE, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::KiB, false } },
-		{ "download_skip_zero_byte", SettingsManager::SKIP_ZERO_BYTE, ResourceManager::SETTINGS_SKIP_ZERO_BYTE },
+		{ "download_skip_zero_byte", SettingsManager::SKIP_ZERO_BYTE, ResourceManager::CHECK_IGNORE_ZERO_BYTE }, // DEPRECEATED, REMOVE LATER
 		{ "download_skiplist", SettingsManager::SKIPLIST_DOWNLOAD, ResourceManager::SETTINGS_SKIPLIST_DOWNLOAD },
 		{ "download_skiplist_regex", SettingsManager::DOWNLOAD_SKIPLIST_USE_REGEXP, ResourceManager::USE_REGEXP },
 

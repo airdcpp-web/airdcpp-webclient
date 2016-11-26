@@ -51,7 +51,10 @@ namespace webserver {
 
 		bool hasUser(const UserPtr& aUser) const noexcept;
 		bool addChildResult(const SearchResultPtr& aResult) noexcept;
-		api_return download(const string& aTargetDirectory, const string& aTargetName, Priority p);
+
+		// Selects the best individual to download and queues them
+		// Throws if none of the children could not be queued
+		json download(const string& aTargetDirectory, const string& aTargetName, Priority p);
 
 		bool isDirectory() const noexcept {
 			return sr->getType() == SearchResult::TYPE_DIRECTORY;

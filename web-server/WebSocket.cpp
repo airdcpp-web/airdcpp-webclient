@@ -19,8 +19,10 @@
 #include <web-server/stdinc.h>
 #include <web-server/WebSocket.h>
 
+#include <airdcpp/format.h>
 #include <airdcpp/TimerManager.h>
 #include <airdcpp/Util.h>
+
 
 namespace webserver {
 	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl) :
@@ -65,6 +67,15 @@ namespace webserver {
 		sendPlain(j);
 	}
 
+	void WebSocket::logError(const string& aMessage, websocketpp::log::level aErrorLevel) const noexcept {
+		auto message = (dcpp_fmt("Websocket: " + aMessage + " (%s)") % (session ? session->getAuthToken().c_str() : "no session")).str();
+		if (secure) {
+			tlsServer->get_elog().write(aErrorLevel, message);
+		} else {
+			plainServer->get_elog().write(aErrorLevel, message);
+		}
+	}
+
 	void WebSocket::debugMessage(const string& aMessage) const noexcept {
 		dcdebug(string(aMessage + " (%s)\n").c_str(), session ? session->getAuthToken().c_str() : "no session");
 	}
@@ -80,9 +91,8 @@ namespace webserver {
 			} else {
 				plainServer->send(hdl, str, websocketpp::frame::opcode::text);
 			}
-
 		} catch (const std::exception& e) {
-			debugMessage("WebSocket::send failed: " + string(e.what()));
+			logError("Failed to send data: " + string(e.what()), websocketpp::log::elevel::fatal);
 		}
 	}
 
@@ -95,7 +105,7 @@ namespace webserver {
 			}
 
 		} catch (const std::exception& e) {
-			debugMessage("WebSocket::ping failed: " + string(e.what()));
+			debugMessage("Ping failed: " + string(e.what()));
 		}
 	}
 
