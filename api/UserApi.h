@@ -44,8 +44,8 @@ namespace webserver {
 		api_return handleUnignore(ApiRequest& aRequest);
 		api_return handleGetIgnores(ApiRequest& aRequest);
 
-		void on(MessageManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept;
-		void on(MessageManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept;
+		void on(MessageManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept override;
+		void on(MessageManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept override;
 
 		void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool) noexcept override;
 		void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept override;

@@ -58,11 +58,11 @@ namespace webserver {
 		api_return handleStartTyping(ApiRequest& aRequest);
 		api_return handleEndTyping(ApiRequest& aRequest);
 
-		void on(PrivateChatListener::PrivateMessage, PrivateChat*, const ChatMessagePtr& m) noexcept {
+		void on(PrivateChatListener::PrivateMessage, PrivateChat*, const ChatMessagePtr& m) noexcept override {
 			chatHandler.onChatMessage(m);
 		}
 
-		void on(PrivateChatListener::StatusMessage, PrivateChat*, const LogMessagePtr& m) noexcept {
+		void on(PrivateChatListener::StatusMessage, PrivateChat*, const LogMessagePtr& m) noexcept override {
 			chatHandler.onStatusMessage(m);
 		}
 
