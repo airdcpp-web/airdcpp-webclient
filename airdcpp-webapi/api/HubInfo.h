@@ -75,7 +75,7 @@ namespace webserver {
 		void on(UsersUpdated, const Client*, const OnlineUserList&) noexcept override;
 		void on(UserRemoved, const Client*, const OnlineUserPtr&) noexcept override;
 
-		void on(Disconnecting, const Client*) noexcept;
+		void on(Disconnecting, const Client*) noexcept override;
 		void on(Redirected, const string&, const ClientPtr& aNewClient) noexcept override;
 
 		void on(ChatMessage, const Client*, const ChatMessagePtr& m) noexcept override {
