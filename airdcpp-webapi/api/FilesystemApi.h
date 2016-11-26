@@ -32,7 +32,7 @@ namespace webserver {
 		FilesystemApi(Session* aSession);
 		~FilesystemApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:

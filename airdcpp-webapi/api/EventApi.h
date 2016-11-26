@@ -32,7 +32,7 @@ namespace webserver {
 		EventApi(Session* aSession);
 		~EventApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -45,9 +45,9 @@ namespace webserver {
 		api_return handlePostMessage(ApiRequest& aRequest);
 
 		// LogManagerListener
-		void on(LogManagerListener::Message, const LogMessagePtr& aMessageData) noexcept;
-		void on(LogManagerListener::Cleared) noexcept;
-		void on(LogManagerListener::MessagesRead) noexcept;
+		void on(LogManagerListener::Message, const LogMessagePtr& aMessageData) noexcept override;
+		void on(LogManagerListener::Cleared) noexcept override;
+		void on(LogManagerListener::MessagesRead) noexcept override;
 	};
 }
 

@@ -32,7 +32,7 @@ namespace webserver {
 		ShareApi(Session* aSession);
 		~ShareApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -49,10 +49,10 @@ namespace webserver {
 		api_return handleGetGroupedRootPaths(ApiRequest& aRequest);
 		api_return handleFindDupePaths(ApiRequest& aRequest);
 
-		void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept;
+		void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept override;
 
-		void on(ShareManagerListener::ExcludeAdded, const string& aPath) noexcept;
-		void on(ShareManagerListener::ExcludeRemoved, const string& aPath) noexcept;
+		void on(ShareManagerListener::ExcludeAdded, const string& aPath) noexcept override;
+		void on(ShareManagerListener::ExcludeRemoved, const string& aPath) noexcept override;
 
 		void onShareRefreshed(const RefreshPathList& aRealPaths, uint8_t aTaskType) noexcept;
 

@@ -32,7 +32,7 @@ namespace webserver {
 		SettingApi(Session* aSession);
 		~SettingApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:

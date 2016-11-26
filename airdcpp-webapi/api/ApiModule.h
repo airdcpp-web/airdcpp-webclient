@@ -114,8 +114,8 @@ namespace webserver {
 
 		typedef std::map<const string, bool> SubscriptionMap;
 
-		virtual void on(SessionListener::SocketConnected, const WebSocketPtr&) noexcept;
-		virtual void on(SessionListener::SocketDisconnected) noexcept;
+		virtual void on(SessionListener::SocketConnected, const WebSocketPtr&) noexcept override;
+		virtual void on(SessionListener::SocketDisconnected) noexcept override;
 
 		virtual bool send(const json& aJson);
 		virtual bool send(const string& aSubscription, const json& aJson);

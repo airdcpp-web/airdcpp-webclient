@@ -32,7 +32,7 @@ namespace webserver {
 		HistoryApi(Session* aSession);
 		~HistoryApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:

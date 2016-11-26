@@ -36,7 +36,7 @@ namespace webserver {
 		HubApi(Session* aSession);
 		~HubApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 
@@ -54,8 +54,8 @@ namespace webserver {
 		api_return handleSearchNicks(ApiRequest& aRequest);
 		api_return handleGetStats(ApiRequest& aRequest);
 
-		void on(ClientManagerListener::ClientCreated, const ClientPtr&) noexcept;
-		void on(ClientManagerListener::ClientRemoved, const ClientPtr&) noexcept;
+		void on(ClientManagerListener::ClientCreated, const ClientPtr&) noexcept override;
+		void on(ClientManagerListener::ClientRemoved, const ClientPtr&) noexcept override;
 	};
 }
 

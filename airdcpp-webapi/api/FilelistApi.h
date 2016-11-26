@@ -36,7 +36,7 @@ namespace webserver {
 		FilelistApi(Session* aSession);
 		~FilelistApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 
