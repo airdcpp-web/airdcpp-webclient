@@ -18,13 +18,14 @@
 
 #include "stdinc.h"
 
-#include "SearchQuery.h"
 #include "AutoSearch.h"
-#include "Bundle.h"
-#include "SearchManager.h"
-#include "ResourceManager.h"
-#include "SimpleXML.h"
-#include "TimerManager.h"
+
+#include <airdcpp/SearchQuery.h>
+#include <airdcpp/Bundle.h>
+#include <airdcpp/SearchManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/TimerManager.h>
 
 #include <boost/range/algorithm/max_element.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>

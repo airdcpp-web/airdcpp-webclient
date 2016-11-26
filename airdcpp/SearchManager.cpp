@@ -22,7 +22,6 @@
 #include "AdcHub.h"
 #include "AirUtil.h"
 #include "ClientManager.h"
-#include "FinishedManager.h"
 #include "QueueManager.h"
 #include "ResourceManager.h"
 #include "ScopedFunctor.h"

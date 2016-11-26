@@ -22,7 +22,6 @@
 
 #include "ADLSearch.h"
 #include "AirUtil.h"
-#include "AutoSearchManager.h"
 #include "Bundle.h"
 #include "BZUtils.h"
 #include "ClientManager.h"
@@ -39,12 +38,10 @@
 #include "User.h"
 #include "ViewFileManager.h"
 
-#include <boost/algorithm/cxx11/all_of.hpp>
-
 
 namespace dcpp {
 
-using boost::algorithm::all_of;
+//using boost::algorithm::all_of;
 using boost::range::for_each;
 using boost::range::find_if;
 
@@ -518,10 +515,10 @@ bool DirectoryListing::Directory::findIncomplete() const noexcept {
 	}).base() != directories.end();
 }
 
-void DirectoryListing::Directory::download(const string& aTarget, BundleFileInfo::List& aFiles) const noexcept {
+void DirectoryListing::Directory::toBundleInfoList(const string& aTarget, BundleDirectoryItemInfo::List& aFiles) const noexcept {
 	// First, recurse over the directories
 	for (const auto& d: directories | map_values) {
-		d->download(aTarget + d->getName() + PATH_SEPARATOR, aFiles);
+		d->toBundleInfoList(aTarget + d->getName() + PATH_SEPARATOR, aFiles);
 	}
 
 	// Then add the files
@@ -532,67 +529,21 @@ void DirectoryListing::Directory::download(const string& aTarget, BundleFileInfo
 	}
 }
 
-bool DirectoryListing::createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority prio, void* aOwner) noexcept {
-	BundleFileInfo::List aFiles;
-	aDir->download(Util::emptyString, aFiles);
+optional<DirectoryBundleAddInfo> DirectoryListing::createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPriority, string& errorMsg_) noexcept {
+	BundleDirectoryItemInfo::List aFiles;
+	aDir->toBundleInfoList(Util::emptyString, aFiles);
 
-	if (aFiles.empty() || (SETTING(SKIP_ZERO_BYTE) && none_of(aFiles.begin(), aFiles.end(), [](const BundleFileInfo& aFile) { return aFile.size > 0; }))) {
-		fire(DirectoryListingListener::UpdateStatusMessage(), STRING(DIR_EMPTY) + " " + aDir->getName());
-		return false;
-	}
-
-	string errorMsg;
-	BundlePtr b = nullptr;
 	try {
-		b = QueueManager::getInstance()->createDirectoryBundle(aTarget, hintedUser.user == ClientManager::getInstance()->getMe() && !isOwnList ? HintedUser() : hintedUser,
-			aFiles, prio, aDir->getRemoteDate(), errorMsg);
+		auto info = QueueManager::getInstance()->createDirectoryBundle(aTarget, hintedUser.user == ClientManager::getInstance()->getMe() && !isOwnList ? HintedUser() : hintedUser,
+			aFiles, aPriority, aDir->getRemoteDate(), errorMsg_);
+
+		return info;
 	} catch (const std::bad_alloc&) {
+		errorMsg_ = STRING(OUT_OF_MEMORY);
 		LogManager::getInstance()->message(STRING_F(BUNDLE_CREATION_FAILED, aTarget % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
-		return false;
-	} catch (const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(BUNDLE_CREATION_FAILED, aTarget % e.getError()), LogMessage::SEV_ERROR);
-		return false;
 	}
 
-	if (!errorMsg.empty()) {
-		if (!aOwner) {
-			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, aTarget % getNick(false) % errorMsg), LogMessage::SEV_WARNING);
-		} else {
-			AutoSearchManager::getInstance()->onBundleError(aOwner, errorMsg, aTarget, hintedUser);
-		}
-	}
-
-	if (b) {
-		if (aOwner) {
-			AutoSearchManager::getInstance()->onBundleCreated(b, aOwner);
-		}
-		return true;
-	}
-
-	return false;
-}
-
-bool DirectoryListing::downloadDirImpl(Directory::Ptr& aDir, const string& aTarget, Priority prio, void* aOwner) noexcept {
-	dcassert(!aDir->findIncomplete());
-
-	/* Check if this is a root dir containing release dirs */
-	boost::regex reg;
-	reg.assign(AirUtil::getReleaseRegBasic());
-	if (!boost::regex_match(aDir->getName(), reg) && aDir->files.empty() && !aDir->directories.empty() &&
-		all_of(aDir->directories | map_keys, [&reg](const string* aName) { return boost::regex_match(*aName, reg); })) {
-			
-		/* Create bundles from each subfolder */
-		bool queued = false;
-		for (const auto& d: aDir->directories | map_values) {
-			if (createBundle(d, aTarget + d->getName() + PATH_SEPARATOR, prio, aOwner)) {
-				queued = true;
-			}
-		}
-
-		return queued;
-	}
-
-	return createBundle(aDir, aTarget, prio, aOwner);
+	return boost::none;
 }
 
 int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {

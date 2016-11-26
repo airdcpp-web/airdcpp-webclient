@@ -617,14 +617,17 @@ void UploadManager::createBundle(const AdcCommand& cmd) {
 	
 	if (bundleToken.empty() || name.empty() || size <= 0 || token.empty()) {
 		//LogManager::getInstance()->message("INVALID UBD1", LogMessage::SEV_ERROR);
+		dcassert(0);
 		return;
 	} else if (!ConnectionManager::getInstance()->tokens.addToken(bundleToken, CONNECTION_TYPE_DOWNLOAD)) {
+		dcassert(0);
 		return;
 	}
 
 	//dcassert(!findBundle(bundleToken));
 	if (findBundle(bundleToken)) {
 		//LogManager::getInstance()->message("ADDBUNDLE, BUNDLE FOUND!");
+		dcassert(0);
 		changeBundle(cmd);
 		return;
 	}

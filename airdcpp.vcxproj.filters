@@ -9,6 +9,12 @@
       <UniqueIdentifier>{f99f14c5-0c4b-4660-86f4-9495d819089b}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl</Extensions>
     </Filter>
+    <Filter Include="Source Files\modules">
+      <UniqueIdentifier>{391d5b63-e372-486d-9fd7-8976f665666c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\modules">
+      <UniqueIdentifier>{06fdbb05-0647-49b4-b967-aa6eb0a2b68a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="airdcpp\AdcCommand.cpp">
@@ -18,9 +24,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="airdcpp\ADLSearch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="airdcpp\AutoSearchManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="airdcpp\BufferedSocket.cpp">
@@ -60,9 +63,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="airdcpp\File.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="airdcpp\FinishedManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="airdcpp\HashBloom.cpp">
@@ -200,9 +200,6 @@
     <ClCompile Include="airdcpp\FileQueue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\WebShortcuts.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="airdcpp\Mapper_MiniUPnPc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -284,15 +281,6 @@
     <ClCompile Include="airdcpp\DirectoryMonitor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\HighlightManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="airdcpp\ColorSettings.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="airdcpp\AutoSearch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="airdcpp\SettingHolder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -332,8 +320,26 @@
     <ClCompile Include="airdcpp\DirectSearch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\RSSManager.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="airdcpp\modules\AutoSearch.cpp">
+      <Filter>Source Files\modules</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\modules\AutoSearchManager.cpp">
+      <Filter>Source Files\modules</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\modules\HighlightManager.cpp">
+      <Filter>Source Files\modules</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\modules\RSSManager.cpp">
+      <Filter>Source Files\modules</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\modules\WebShortcuts.cpp">
+      <Filter>Source Files\modules</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\modules\FinishedManager.cpp">
+      <Filter>Source Files\modules</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\modules\ColorSettings.cpp">
+      <Filter>Source Files\modules</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -425,12 +431,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\FilteredFile.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\FinishedManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\FinishedManagerListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\Flags.h">
@@ -637,12 +637,6 @@
     <ClInclude Include="airdcpp\ShareScannerManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\AutosearchManagerListener.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\AutoSearchManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="airdcpp\GetSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -659,9 +653,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\FileQueue.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\WebShortcuts.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\Mapper_NATPMP.h">
@@ -784,15 +775,6 @@
     <ClInclude Include="airdcpp\DirectoryMonitorListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HighlightManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\ColorSettings.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\AutoSearch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="airdcpp\SettingHolder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -827,9 +809,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\PrivateChatListener.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\AutoSearchQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\Message.h">
@@ -874,14 +853,41 @@
     <ClInclude Include="airdcpp\SettingsManagerListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\RSSManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="airdcpp\BundleInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\Priority.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\AutoSearch.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\AutoSearchManager.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\AutoSearchManagerListener.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\HighlightManager.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\RSSManager.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\WebShortcuts.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\AutoSearchQueue.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\FinishedManager.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\FinishedManagerListener.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\ColorSettings.h">
+      <Filter>Header Files\modules</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

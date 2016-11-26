@@ -20,15 +20,15 @@
 
 #include "AutoSearchManager.h"
 
-#include "ClientManager.h"
-#include "LogManager.h"
-#include "QueueManager.h"
-#include "SearchManager.h"
-#include "SearchResult.h"
-#include "ShareManager.h"
-#include "SimpleXML.h"
-#include "User.h"
-#include "DirectoryListingManager.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/SearchManager.h>
+#include <airdcpp/SearchResult.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/User.h>
+#include <airdcpp/DirectoryListingManager.h>
 
 #include <boost/range/algorithm/max_element.hpp>
 
@@ -47,12 +47,14 @@ AutoSearchManager::AutoSearchManager() noexcept
 	TimerManager::getInstance()->addListener(this);
 	SearchManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
+	DirectoryListingManager::getInstance()->addListener(this);
 }
 
 AutoSearchManager::~AutoSearchManager() noexcept {
 	SearchManager::getInstance()->removeListener(this);
 	TimerManager::getInstance()->removeListener(this);
 	QueueManager::getInstance()->removeListener(this);
+	DirectoryListingManager::getInstance()->removeListener(this);
 }
 
 void AutoSearchManager::logMessage(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
@@ -251,7 +253,20 @@ void AutoSearchManager::clearError(AutoSearchPtr& as) noexcept {
 	fire(AutoSearchManagerListener::UpdateItem(), as, true);
 }
 
-void AutoSearchManager::onBundleCreated(BundlePtr& aBundle, void* aSearch) noexcept {
+void AutoSearchManager::on(DirectoryListingManagerListener::DirectoryDownloadProcessed, const DirectoryDownloadPtr& aDirectoryInfo, const DirectoryBundleAddInfo& aQueueInfo, const string& /*aError*/) noexcept {
+	onBundleCreated(aQueueInfo.bundleInfo.bundle, aDirectoryInfo->getOwner());
+
+	//if (aQueueInfo.bundle) {
+	/*} else if (!aError.empty()) {
+		onBundleError(aDirectoryInfo->getOwner(), aError, aDirectoryInfo->getBundleName(), aDirectoryInfo->getUser());
+	}*/
+}
+
+void AutoSearchManager::on(DirectoryDownloadFailed, const DirectoryDownloadPtr& aDirectoryInfo, const string& aError) noexcept {
+	onBundleError(aDirectoryInfo->getOwner(), aError, aDirectoryInfo->getBundleName(), aDirectoryInfo->getUser());
+}
+
+void AutoSearchManager::onBundleCreated(const BundlePtr& aBundle, const void* aSearch) noexcept {
 	bool found = false;
 	{
 		WLock l(cs);
@@ -269,11 +284,11 @@ void AutoSearchManager::onBundleCreated(BundlePtr& aBundle, void* aSearch) noexc
 		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
 }
 
-void AutoSearchManager::onBundleError(void* aSearch, const string& aError, const string& aDir, const HintedUser& aUser) noexcept {
+void AutoSearchManager::onBundleError(const void* aSearch, const string& aError, const string& aBundleName, const HintedUser& aUser) noexcept {
 	RLock l(cs);
 	auto as = searchItems.getItem(aSearch);
 	if (as) {
-		as->setLastError(STRING_F(AS_ERROR, Util::getLastDir(aDir) % aError % Util::getTimeString() % ClientManager::getInstance()->getFormatedNicks(aUser)));
+		as->setLastError(STRING_F(AS_ERROR, aBundleName % aError % Util::getTimeString() % ClientManager::getInstance()->getFormatedNicks(aUser)));
 		fire(AutoSearchManagerListener::UpdateItem(), as, true);
 	}
 
@@ -843,37 +858,24 @@ void AutoSearchManager::downloadList(SearchResultList& srl, AutoSearchPtr& as, i
 
 void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& as) noexcept {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
-		if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
-			auto target = as->getTarget();
-
-			// Do we have a bundle with the same name?
-			{
-				RLock l(cs);
-				auto p = find_if(as->getBundles(), 
-					[&](const BundlePtr& b) { return b->getName() == sr->getFileName(); });
-				
-				if (p != as->getBundles().end()) {
-					// Use the same path
-					target = Util::getParentDir((*p)->getTarget());
+		try {
+			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
+				if ((as->getRemove() || as->usingIncrementation()) && DirectoryListingManager::getInstance()->hasDirectoryDownload(sr->getFileName(), as.get())) {
+					return;
 				}
-			}
 
-			DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getPath(), sr->getFileName(), sr->getUser(), target,
-				(as->getAction() == AutoSearch::ACTION_QUEUE) ? Priority::PAUSED : Priority::DEFAULT,
-				false, as.get(), as->getRemove() || as->usingIncrementation(), false);
-		} else {
-			try {
-				auto b = QueueManager::getInstance()->createFileBundle(as->getTarget() + sr->getFileName(), sr->getSize(), sr->getTTH(), 
+				auto priority = as->getAction() == AutoSearch::ACTION_QUEUE ? Priority::PAUSED : Priority::DEFAULT;
+				DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getUser(), sr->getFileName(), sr->getFilePath(), as->getTarget(), priority, as.get());
+			} else {
+				auto info = QueueManager::getInstance()->createFileBundle(as->getTarget() + sr->getFileName(), sr->getSize(), sr->getTTH(), 
 					sr->getUser(), sr->getDate(), 0, 
 					((as->getAction() == AutoSearch::ACTION_QUEUE) ? Priority::PAUSED : Priority::DEFAULT));
 
-				if (b) {
-					onBundleCreated(b, as.get());
-				}
-			} catch(const Exception& e) {
-				onBundleError(as.get(), e.getError(), as->getTarget() + sr->getFileName(), sr->getUser());
-				return;
+				onBundleCreated(info.bundle, as.get());
 			}
+		} catch (const Exception& e) {
+			onBundleError(as.get(), e.getError(), sr->getFileName(), sr->getUser());
+			return;
 		}
 	} else if (as->getAction() == AutoSearch::ACTION_REPORT) {
 		ClientManager* cm = ClientManager::getInstance();
@@ -1031,6 +1033,8 @@ AutoSearchPtr AutoSearchManager::loadItemFromXml(SimpleXML& aXml) {
 
 		as->setTarget(ti.getTarget());
 		logMessage("The target path of item " + as->getDisplayName() + " was changed to " + ti.getTarget() + " (auto selecting of paths isn't supported in this client version)", LogMessage::SEV_INFO);
+	} else if (as->getTarget().empty()) {
+		as->setTarget(SETTING(DOWNLOAD_DIRECTORY));
 	}
 
 	aXml.stepIn();

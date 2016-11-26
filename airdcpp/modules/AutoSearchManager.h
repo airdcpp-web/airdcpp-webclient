@@ -19,25 +19,28 @@
 #ifndef DCPLUSPLUS_DCPP_AUTOSEARCH_MANAGER_H
 #define DCPLUSPLUS_DCPP_AUTOSEARCH_MANAGER_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
 #include "AutoSearchManagerListener.h"
-#include "SearchManagerListener.h"
-#include "QueueManagerListener.h"
-
 #include "AutoSearchQueue.h"
-#include "DelayedEvents.h"
-#include "GetSet.h"
-#include "Message.h"
-#include "Singleton.h"
-#include "Speaker.h"
-#include "TargetUtil.h"
-#include "TimerManagerListener.h"
+
+#include <airdcpp/DirectoryListingManagerListener.h>
+#include <airdcpp/SearchManagerListener.h>
+#include <airdcpp/QueueManagerListener.h>
+
+#include <airdcpp/DelayedEvents.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/TargetUtil.h>
+#include <airdcpp/TimerManagerListener.h>
 
 
 namespace dcpp {
 
-class AutoSearchManager :  public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, private TimerManagerListener, private SearchManagerListener, private QueueManagerListener {
+class AutoSearchManager : public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, 
+	private TimerManagerListener, private SearchManagerListener, private QueueManagerListener, private DirectoryListingManagerListener {
 public:
 	enum SearchType {
 		TYPE_MANUAL_FG,
@@ -79,8 +82,8 @@ public:
 
 	void logMessage(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
 
-	void onBundleCreated(BundlePtr& aBundle, void* aSearch) noexcept;
-	void onBundleError(void* aSearch, const string& aError, const string& aDir, const HintedUser& aUser) noexcept;
+	void onBundleCreated(const BundlePtr& aBundle, const void* aSearch) noexcept;
+	void onBundleError(const void* aSearch, const string& aError, const string& aBundleName, const HintedUser& aUser) noexcept;
 
 	vector<string> getGroups() { RLock l(cs);  return groups; }
 	void setGroups(vector<string>& newGroups) { WLock l(cs);  groups = newGroups; }
@@ -128,15 +131,18 @@ private:
 	void resetSearchTimes(uint64_t aTick, bool aUpdate = false) noexcept;
 
 	/* Listeners */
-	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
+	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept override;
 
-	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
-	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
 
-	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept;
+	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept override;
 
-	void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept { onRemoveBundle(aBundle, false); }
-	void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept;
+	void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept override { onRemoveBundle(aBundle, false); }
+	void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept override;
+
+	void on(DirectoryListingManagerListener::DirectoryDownloadProcessed, const DirectoryDownloadPtr& aDirectoryInfo, const DirectoryBundleAddInfo& aQueueInfo, const string& aError) noexcept override;
+	void on(DirectoryDownloadFailed, const DirectoryDownloadPtr&, const string&) noexcept override;
 
 	//bool onBundleStatus(BundlePtr& aBundle, const ProfileTokenSet& aSearches);
 	void onRemoveBundle(const BundlePtr& aBundle, bool finished) noexcept;

@@ -18,7 +18,6 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
 
 #include "SharedFileStream.h"
 

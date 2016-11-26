@@ -366,7 +366,7 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 		//check if there are folders
 		if (folderList.empty()) {
 			if (SETTING(CHECK_EMPTY_DIRS)) {
-				reportMessage(STRING(DIR_EMPTY) + " " + aPath, aScan);
+				reportMessage(STRING(DIR_EMPTY) + ": " + aPath, aScan);
 				aScan.emptyFolders++;
 			}
 			return;

@@ -21,19 +21,24 @@
 
 #include <bitset>
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "GetSet.h"
-#include "Priority.h"
-#include "Pointer.h"
-#include "StringMatch.h"
-#include "TargetUtil.h"
-#include "Util.h"
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Priority.h>
+#include <airdcpp/Pointer.h>
+#include <airdcpp/StringMatch.h>
+#include <airdcpp/TargetUtil.h>
+#include <airdcpp/Util.h>
 
 //default minimum search interval for the same item to be searched again
 #define AS_DEFAULT_SEARCH_INTERVAL 180
 
 namespace dcpp {
+
+class AutoSearch;
+typedef boost::intrusive_ptr<AutoSearch> AutoSearchPtr;
+typedef std::vector<AutoSearchPtr> AutoSearchList;
+typedef std::unordered_map<int, AutoSearchPtr> AutoSearchMap;
 
 struct SearchTime {
 	uint16_t hour;
