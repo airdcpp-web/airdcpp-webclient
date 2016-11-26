@@ -31,7 +31,7 @@ namespace webserver {
 		SystemApi(Session* aSession);
 		~SystemApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -45,7 +45,7 @@ namespace webserver {
 		api_return handleRestartWeb(ApiRequest& aRequest);
 		api_return handleShutdown(ApiRequest& aRequest);
 
-		void on(ActivityManagerListener::AwayModeChanged, AwayMode aNewMode) noexcept;
+		void on(ActivityManagerListener::AwayModeChanged, AwayMode aNewMode) noexcept override;
 	};
 }
 

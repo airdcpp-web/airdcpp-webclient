@@ -49,20 +49,20 @@ namespace webserver {
 		static json serializeState(const DirectoryListingPtr& aList) noexcept;
 		static json serializeLocation(const DirectoryListingPtr& aListing) noexcept;
 
-		void init() noexcept;
+		void init() noexcept override;
 	private:
 		api_return handleChangeDirectory(ApiRequest& aRequest);
 		api_return handleSetRead(ApiRequest& aRequest);
 
-		void on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aDir, bool aBackgroundTask) noexcept;
-		void on(DirectoryListingListener::LoadingFailed, const string& aReason) noexcept;
-		void on(DirectoryListingListener::LoadingStarted, bool changeDir) noexcept;
-		void on(DirectoryListingListener::ChangeDirectory, const string& aDir, bool isSearchChange) noexcept;
-		void on(DirectoryListingListener::UpdateStatusMessage, const string& aMessage) noexcept;
-		void on(DirectoryListingListener::UserUpdated) noexcept;
-		void on(DirectoryListingListener::StateChanged) noexcept;
-		void on(DirectoryListingListener::Read) noexcept;
-		void on(DirectoryListingListener::ShareProfileChanged) noexcept;
+		void on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aDir, bool aBackgroundTask) noexcept override;
+		void on(DirectoryListingListener::LoadingFailed, const string& aReason) noexcept override;
+		void on(DirectoryListingListener::LoadingStarted, bool changeDir) noexcept override;
+		void on(DirectoryListingListener::ChangeDirectory, const string& aDir, bool isSearchChange) noexcept override;
+		void on(DirectoryListingListener::UpdateStatusMessage, const string& aMessage) noexcept override;
+		void on(DirectoryListingListener::UserUpdated) noexcept override;
+		void on(DirectoryListingListener::StateChanged) noexcept override;
+		void on(DirectoryListingListener::Read) noexcept override;
+		void on(DirectoryListingListener::ShareProfileChanged) noexcept override;
 
 		void addListTask(CallBack&& aTask) noexcept;
 

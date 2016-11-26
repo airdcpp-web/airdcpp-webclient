@@ -32,7 +32,7 @@ namespace webserver {
 		ShareProfileApi(Session* aSession);
 		~ShareProfileApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -46,9 +46,9 @@ namespace webserver {
 
 		void parseProfile(ShareProfilePtr& aProfile, const json& j);
 
-		void on(ShareManagerListener::ProfileAdded, ProfileToken aProfile) noexcept;
-		void on(ShareManagerListener::ProfileUpdated, ProfileToken aProfile, bool aIsMajorChange) noexcept;
-		void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept;
+		void on(ShareManagerListener::ProfileAdded, ProfileToken aProfile) noexcept override;
+		void on(ShareManagerListener::ProfileUpdated, ProfileToken aProfile, bool aIsMajorChange) noexcept override;
+		void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept override;
 	};
 }
 

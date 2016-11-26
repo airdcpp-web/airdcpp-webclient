@@ -32,7 +32,7 @@ namespace webserver {
 		HashApi(Session* aSession);
 		~HashApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -49,11 +49,11 @@ namespace webserver {
 		api_return handleOptimize(ApiRequest& aRequest);
 		api_return handleGetDbStatus(ApiRequest& aRequest);
 
-		void on(HashManagerListener::DirectoryHashed, const string& aPath, int aFilesHashed, int64_t aSizeHashed, time_t aHashDuration, int aHasherId) noexcept;
-		void on(HashManagerListener::HasherFinished, int aDirshashed, int aFilesHashed, int64_t aSizeHashed, time_t aHashDuration, int aHasherId) noexcept;
+		void on(HashManagerListener::DirectoryHashed, const string& aPath, int aFilesHashed, int64_t aSizeHashed, time_t aHashDuration, int aHasherId) noexcept override;
+		void on(HashManagerListener::HasherFinished, int aDirshashed, int aFilesHashed, int64_t aSizeHashed, time_t aHashDuration, int aHasherId) noexcept override;
 
-		void on(HashManagerListener::MaintananceStarted) noexcept;
-		void on(HashManagerListener::MaintananceFinished) noexcept;
+		void on(HashManagerListener::MaintananceStarted) noexcept override;
+		void on(HashManagerListener::MaintananceFinished) noexcept override;
 
 		TimerPtr timer;
 	};

@@ -36,7 +36,7 @@ namespace webserver {
 		ShareRootApi(Session* aSession);
 		~ShareRootApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -46,9 +46,9 @@ namespace webserver {
 		api_return handleRemoveRoot(ApiRequest& aRequest);
 		void parseRoot(ShareDirectoryInfoPtr& aInfo, const json& j, bool aIsNew);
 
-		void on(ShareManagerListener::RootCreated, const string& aPath) noexcept;
-		void on(ShareManagerListener::RootRemoved, const string& aPath) noexcept;
-		void on(ShareManagerListener::RootUpdated, const string& aPath) noexcept;
+		void on(ShareManagerListener::RootCreated, const string& aPath) noexcept override;
+		void on(ShareManagerListener::RootRemoved, const string& aPath) noexcept override;
+		void on(ShareManagerListener::RootUpdated, const string& aPath) noexcept override;
 		void onRootUpdated(const ShareDirectoryInfoPtr& aInfo, PropertyIdSet&& aUpdatedProperties) noexcept;
 
 		typedef ListViewController<ShareDirectoryInfoPtr, ShareUtils::PROP_LAST> RootView;

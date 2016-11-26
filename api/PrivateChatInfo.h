@@ -50,7 +50,7 @@ namespace webserver {
 		static string formatCCPMState(PrivateChat::CCPMState aState) noexcept;
 		static json serializeCCPMState(const PrivateChatPtr& aChat) noexcept;
 
-		void init() noexcept;
+		void init() noexcept override;
 	private:
 		api_return handleDisconnectCCPM(ApiRequest& aRequest);
 		api_return handleConnectCCPM(ApiRequest& aRequest);
@@ -66,16 +66,16 @@ namespace webserver {
 			chatHandler.onStatusMessage(m);
 		}
 
-		void on(PrivateChatListener::Close, PrivateChat*) noexcept;
-		void on(PrivateChatListener::UserUpdated, PrivateChat*) noexcept;
-		void on(PrivateChatListener::PMStatus, PrivateChat*, uint8_t) noexcept;
-		void on(PrivateChatListener::CCPMStatusUpdated, PrivateChat*) noexcept;
+		void on(PrivateChatListener::Close, PrivateChat*) noexcept override;
+		void on(PrivateChatListener::UserUpdated, PrivateChat*) noexcept override;
+		void on(PrivateChatListener::PMStatus, PrivateChat*, uint8_t) noexcept override;
+		void on(PrivateChatListener::CCPMStatusUpdated, PrivateChat*) noexcept override;
 
-		void on(PrivateChatListener::MessagesRead, PrivateChat*) noexcept {
+		void on(PrivateChatListener::MessagesRead, PrivateChat*) noexcept override {
 			chatHandler.onMessagesUpdated();
 		}
 
-		void on(PrivateChatListener::MessagesCleared, PrivateChat*) noexcept {
+		void on(PrivateChatListener::MessagesCleared, PrivateChat*) noexcept override {
 			chatHandler.onMessagesUpdated();
 		}
 

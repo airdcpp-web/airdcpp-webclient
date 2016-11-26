@@ -33,7 +33,7 @@ namespace webserver {
 		WebUserApi(Session* aSession);
 		~WebUserApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -43,9 +43,9 @@ namespace webserver {
 		api_return handleRemoveUser(ApiRequest& aRequest);
 		void parseUser(WebUserPtr& aUser, const json& j, bool aIsNew);
 
-		void on(WebUserManagerListener::UserAdded, const WebUserPtr& aUser) noexcept;
-		void on(WebUserManagerListener::UserUpdated, const WebUserPtr& aUser) noexcept;
-		void on(WebUserManagerListener::UserRemoved, const WebUserPtr& aUser) noexcept;
+		void on(WebUserManagerListener::UserAdded, const WebUserPtr& aUser) noexcept override;
+		void on(WebUserManagerListener::UserUpdated, const WebUserPtr& aUser) noexcept override;
+		void on(WebUserManagerListener::UserRemoved, const WebUserPtr& aUser) noexcept override;
 
 		typedef ListViewController<WebUserPtr, WebUserUtils::PROP_LAST> RootView;
 		RootView view;

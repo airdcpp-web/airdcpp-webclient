@@ -32,7 +32,7 @@ namespace webserver {
 		ConnectivityApi(Session* aSession);
 		~ConnectivityApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -41,9 +41,9 @@ namespace webserver {
 		api_return handleDetect(ApiRequest& aRequest);
 		api_return handleGetStatus(ApiRequest& aRequest);
 
-		void on(ConnectivityManagerListener::Message, const string&) noexcept;
-		void on(ConnectivityManagerListener::Started, bool /*v6*/) noexcept;
-		void on(ConnectivityManagerListener::Finished, bool /*v6*/, bool /*failed*/) noexcept;
+		void on(ConnectivityManagerListener::Message, const string&) noexcept override;
+		void on(ConnectivityManagerListener::Started, bool /*v6*/) noexcept override;
+		void on(ConnectivityManagerListener::Finished, bool /*v6*/, bool /*failed*/) noexcept override;
 		//virtual void on(SettingChanged) noexcept { }
 	};
 }

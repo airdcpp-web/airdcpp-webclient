@@ -38,7 +38,7 @@ namespace webserver {
 		SearchApi(Session* aSession);
 		~SearchApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -59,7 +59,7 @@ namespace webserver {
 
 		SearchResultInfo::Ptr getResult(ResultToken aToken);
 
-		void on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept;
+		void on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept override;
 
 		typedef ListViewController<SearchResultInfoPtr, SearchUtils::PROP_LAST> SearchView;
 		SearchView searchView;
