@@ -23,19 +23,11 @@
 #include "typedefs.h"
 #include "Exception.h"
 
-// Make sure we're using the templates from algorithm...
-#ifdef min
-#undef min
-#endif
-#ifdef max
-#undef max
-#endif
-
 namespace dcpp {
 
 // This should throw on fatal errors only (such as hash database initialization errors)
-extern void startup(function<void (const string&)> stepF, function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF, function<void ()> runWizard, function<void (float)> progressF) throw(Exception);
-extern void shutdown(function<void (const string&)> stepf, function<void (float)> progressF);
+extern void startup(function<void (const string&)> stepF, function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF, function<void ()> runWizard, function<void (float)> progressF, function<void()> moduleInitF = nullptr) throw(Exception);
+extern void shutdown(function<void (const string&)> stepf, function<void (float)> progressF, function<void()> moduleDestroyF = nullptr);
 
 } // namespace dcpp
 

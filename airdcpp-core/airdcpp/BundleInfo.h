@@ -21,7 +21,7 @@
 
 #include "typedefs.h"
 
-//#include "Bundle.h"
+#include "Bundle.h"
 #include "HintedUser.h"
 #include "MerkleTree.h"
 #include "Priority.h"
@@ -29,32 +29,33 @@
 namespace dcpp {
 
 
-/*struct BundleDownloadInfo {
-	string directoryName;
-	string targetPath;
+struct BundleAddInfo {
+	BundleAddInfo(const BundlePtr& aBundle, bool aMerged) : bundle(aBundle), merged(aMerged) {}
+	BundleAddInfo() {}
 
-	Priority priority;
-	void* owner;
+	BundlePtr bundle = nullptr;
+	bool merged = false;
 };
 
-struct BundleAddInfo {
-	int filesAdded = 0;
-	int filesFailed = 0;
+struct DirectoryBundleAddInfo {
+	int filesAdded = 0; // New files
+	int filesUpdated = 0; // Source added
+	int filesFailed = 0; // Adding failed
+	//int filesExist = 0; // Files existing on disk already
 
-	bool merged = false;
-	BundlePtr bundle = nullptr;
+	BundleAddInfo bundleInfo;
 
-	string errorMessage;
-};*/
+	typedef vector<DirectoryBundleAddInfo> List;
+};
 
-struct BundleFileInfo {
-	BundleFileInfo(BundleFileInfo&& rhs) = default;
-	BundleFileInfo& operator=(BundleFileInfo&& rhs) = default;
-	BundleFileInfo(BundleFileInfo&) = delete;
-	BundleFileInfo& operator=(BundleFileInfo&) = delete;
+struct BundleDirectoryItemInfo {
+	BundleDirectoryItemInfo(BundleDirectoryItemInfo&& rhs) = default;
+	BundleDirectoryItemInfo& operator=(BundleDirectoryItemInfo&& rhs) = default;
+	BundleDirectoryItemInfo(BundleDirectoryItemInfo&) = delete;
+	BundleDirectoryItemInfo& operator=(BundleDirectoryItemInfo&) = delete;
 
-	BundleFileInfo(string aFile, const TTHValue& aTTH, int64_t aSize, time_t aDate = 0, Priority aPrio = Priority::DEFAULT) noexcept :
-	file(move(aFile)), tth(aTTH), size(aSize), prio(aPrio), date(aDate) { }
+	BundleDirectoryItemInfo(string aFile, const TTHValue& aTTH, int64_t aSize, time_t aDate = 0, Priority aPrio = Priority::DEFAULT) noexcept :
+		file(move(aFile)), tth(aTTH), size(aSize), prio(aPrio), date(aDate) { }
 
 	string file;
 	TTHValue tth;
@@ -62,7 +63,7 @@ struct BundleFileInfo {
 	Priority prio;
 	time_t date;
 
-	typedef vector<BundleFileInfo> List;
+	typedef vector<BundleDirectoryItemInfo> List;
 };
 
 }

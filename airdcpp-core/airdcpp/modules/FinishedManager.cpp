@@ -17,17 +17,17 @@
  */
 
 #include "stdinc.h"
+
 #include "FinishedManager.h"
 
-#include "ClientManager.h"
-#include "FinishedManagerListener.h"
-#include "Download.h"
-#include "Upload.h"
-#include "QueueManager.h"
-#include "UploadManager.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/Download.h>
+#include <airdcpp/Upload.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/UploadManager.h>
 
-#include "LogManager.h"
-#include "ResourceManager.h"
+#include <airdcpp/LogManager.h>
+#include <airdcpp/ResourceManager.h>
 
 namespace dcpp {
 

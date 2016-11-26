@@ -20,6 +20,7 @@
 #define DIRECTORYLISTING_MANAGER_LISTENER_H
 
 #include "forward.h"
+#include "BundleInfo.h"
 
 namespace dcpp {
 
@@ -32,9 +33,15 @@ public:
 	typedef X<1> OpenListing;
 	typedef X<2> ListingClosed;
 
+	typedef X<3> DirectoryDownloadProcessed;
+	typedef X<4> DirectoryDownloadFailed;
+
 	virtual void on(ListingCreated, const DirectoryListingPtr&) noexcept { }
 	virtual void on(OpenListing, const DirectoryListingPtr&, const string& /*aDir*/, const string& /*aXML*/) noexcept { }
 	virtual void on(ListingClosed, const DirectoryListingPtr&) noexcept { }
+
+	virtual void on(DirectoryDownloadProcessed, const DirectoryDownloadPtr&, const DirectoryBundleAddInfo&, const string&) noexcept { }
+	virtual void on(DirectoryDownloadFailed, const DirectoryDownloadPtr&, const string&) noexcept { }
 };
 
 } // namespace dcpp

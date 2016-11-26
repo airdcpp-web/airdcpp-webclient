@@ -23,23 +23,28 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "forward.h"
-#include "stdinc.h"
+#include <airdcpp/forward.h>
 
-#include "GetSet.h"
-#include "Util.h"
-#include "CriticalSection.h"
-#include "Singleton.h"
-#include "Speaker.h"
-#include "Pointer.h"
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/Pointer.h>
 
-#include "DispatcherQueue.h"
-#include "HttpDownload.h"
-#include "StringMatch.h"
+#include <airdcpp/DispatcherQueue.h>
+#include <airdcpp/HttpDownload.h>
+#include <airdcpp/StringMatch.h>
 
-#include "TimerManager.h"
+#include <airdcpp/TimerManager.h>
 
 namespace dcpp {
+
+class RSS;
+typedef std::shared_ptr<RSS> RSSPtr;
+class RSSData;
+typedef boost::intrusive_ptr<RSSData> RSSDataPtr;
+
 
 class RSSFilter : public StringMatch {
 public:

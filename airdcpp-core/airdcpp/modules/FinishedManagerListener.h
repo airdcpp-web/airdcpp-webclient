@@ -19,9 +19,13 @@
 #ifndef DCPLUSPLUS_DCPP_FINISHED_MANAGER_LISTENER_H
 #define DCPLUSPLUS_DCPP_FINISHED_MANAGER_LISTENER_H
 
-#include "forward.h"
+#include "FinishedManager.h"
 
 namespace dcpp {
+
+class FinishedItem;
+typedef FinishedItem* FinishedItemPtr;
+typedef std::vector<FinishedItemPtr> FinishedItemList;
 
 class FinishedManagerListener {
 public:

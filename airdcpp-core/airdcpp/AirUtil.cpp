@@ -225,7 +225,7 @@ AirUtil::AdapterInfoList AirUtil::getBindAdapters(bool v6) {
 	});
 
 	// "Any" adapter
-	bindAddresses.emplace(bindAddresses.begin(), STRING(ANY), v6 ? "::" : "0.0.0.0", 0);
+	bindAddresses.emplace(bindAddresses.begin(), STRING(ANY), v6 ? "::" : "0.0.0.0", static_cast<uint8_t>(0));
 
 	// Current address not listed?
 	const auto& setting = v6 ? SETTING(BIND_ADDRESS6) : SETTING(BIND_ADDRESS);

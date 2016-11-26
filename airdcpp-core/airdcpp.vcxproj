@@ -85,7 +85,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)\natpmp;$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\bzip2;$(SolutionDir)\zlib;$(SolutionDir)\boost;$(SolutionDir)\openssl\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\bzip2;$(SolutionDir)\zlib;$(SolutionDir)\boost;$(SolutionDir)\openssl\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
@@ -113,7 +113,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\minizip;$(SolutionDir)\geoip;$(SolutionDir)\boost;$(SolutionDir)\bzip2;$(SolutionDir)\openssl\include;$(SolutionDir)\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\airdcpp;$(SolutionDir)\minizip;$(SolutionDir)\geoip;$(SolutionDir)\boost;$(SolutionDir)\bzip2;$(SolutionDir)\openssl\include;$(SolutionDir)\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
@@ -153,7 +153,7 @@
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\geoip;$(SolutionDir)\bzip2;$(SolutionDir)\boost;$(SolutionDir)\zlib;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\geoip;$(SolutionDir)\bzip2;$(SolutionDir)\boost;$(SolutionDir)\zlib;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -200,7 +200,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)\natpmp;$(SolutionDir)\geoip;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\bzip2;$(SolutionDir)\zlib;$(SolutionDir)\boost;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir)\geoip;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\bzip2;$(SolutionDir)\zlib;$(SolutionDir)\boost;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -240,13 +240,17 @@
     <ClCompile Include="airdcpp\DirectSearch.cpp" />
     <ClCompile Include="airdcpp\MessageCache.cpp" />
     <ClCompile Include="airdcpp\MessageManager.cpp" />
+    <ClCompile Include="airdcpp\modules\AutoSearch.cpp" />
+    <ClCompile Include="airdcpp\modules\AutoSearchManager.cpp" />
+    <ClCompile Include="airdcpp\modules\ColorSettings.cpp" />
+    <ClCompile Include="airdcpp\modules\FinishedManager.cpp" />
+    <ClCompile Include="airdcpp\modules\HighlightManager.cpp" />
+    <ClCompile Include="airdcpp\modules\RSSManager.cpp" />
+    <ClCompile Include="airdcpp\modules\WebShortcuts.cpp" />
     <ClCompile Include="airdcpp\PrivateChat.cpp" />
-    <ClCompile Include="airdcpp\RSSManager.cpp" />
     <ClCompile Include="airdcpp\SearchQuery.cpp" />
     <ClCompile Include="airdcpp\ADLSearch.cpp" />
     <ClCompile Include="airdcpp\AirUtil.cpp" />
-    <ClCompile Include="airdcpp\AutoSearch.cpp" />
-    <ClCompile Include="airdcpp\AutoSearchManager.cpp" />
     <ClCompile Include="airdcpp\BufferedSocket.cpp" />
     <ClCompile Include="airdcpp\Bundle.cpp" />
     <ClCompile Include="airdcpp\BundleQueue.cpp" />
@@ -255,7 +259,6 @@
     <ClCompile Include="airdcpp\CID.cpp" />
     <ClCompile Include="airdcpp\Client.cpp" />
     <ClCompile Include="airdcpp\ClientManager.cpp" />
-    <ClCompile Include="airdcpp\ColorSettings.cpp" />
     <ClCompile Include="airdcpp\ConnectionManager.cpp" />
     <ClCompile Include="airdcpp\ConnectivityManager.cpp" />
     <ClCompile Include="airdcpp\CriticalSection.cpp" />
@@ -272,12 +275,10 @@
     <ClCompile Include="airdcpp\File.cpp" />
     <ClCompile Include="airdcpp\FileQueue.cpp" />
     <ClCompile Include="airdcpp\FileReader.cpp" />
-    <ClCompile Include="airdcpp\FinishedManager.cpp" />
     <ClCompile Include="airdcpp\GeoIP.cpp" />
     <ClCompile Include="airdcpp\GeoManager.cpp" />
     <ClCompile Include="airdcpp\HashBloom.cpp" />
     <ClCompile Include="airdcpp\HashManager.cpp" />
-    <ClCompile Include="airdcpp\HighlightManager.cpp" />
     <ClCompile Include="airdcpp\HttpConnection.cpp" />
     <ClCompile Include="airdcpp\HttpDownload.cpp" />
     <ClCompile Include="airdcpp\HubEntry.cpp" />
@@ -343,7 +344,6 @@
     <ClCompile Include="airdcpp\version.cpp" />
     <ClCompile Include="airdcpp\ViewFile.cpp" />
     <ClCompile Include="airdcpp\ViewFileManager.cpp" />
-    <ClCompile Include="airdcpp\WebShortcuts.cpp" />
     <ClCompile Include="airdcpp\Wildcards.cpp" />
     <ClCompile Include="airdcpp\ZipFile.cpp" />
     <ClCompile Include="airdcpp\ZUtils.cpp" />
@@ -352,13 +352,21 @@
     <ClInclude Include="airdcpp\ActivityManager.h" />
     <ClInclude Include="airdcpp\AdcCommand.h" />
     <ClInclude Include="airdcpp\AdcHub.h" />
-    <ClInclude Include="airdcpp\AutoSearchQueue.h" />
     <ClInclude Include="airdcpp\BundleInfo.h" />
     <ClInclude Include="airdcpp\DirectSearch.h" />
     <ClInclude Include="airdcpp\DupeType.h" />
     <ClInclude Include="airdcpp\HashManagerListener.h" />
+    <ClInclude Include="airdcpp\modules\AutoSearch.h" />
+    <ClInclude Include="airdcpp\modules\AutoSearchManager.h" />
+    <ClInclude Include="airdcpp\modules\AutoSearchManagerListener.h" />
+    <ClInclude Include="airdcpp\modules\AutoSearchQueue.h" />
+    <ClInclude Include="airdcpp\modules\ColorSettings.h" />
+    <ClInclude Include="airdcpp\modules\FinishedManager.h" />
+    <ClInclude Include="airdcpp\modules\FinishedManagerListener.h" />
+    <ClInclude Include="airdcpp\modules\HighlightManager.h" />
+    <ClInclude Include="airdcpp\modules\RSSManager.h" />
+    <ClInclude Include="airdcpp\modules\WebShortcuts.h" />
     <ClInclude Include="airdcpp\Priority.h" />
-    <ClInclude Include="airdcpp\RSSManager.h" />
     <ClInclude Include="airdcpp\SettingsManagerListener.h" />
     <ClInclude Include="airdcpp\TimerManagerListener.h" />
     <ClInclude Include="airdcpp\ViewFileManagerListener.h" />
@@ -373,9 +381,6 @@
     <ClInclude Include="airdcpp\SearchQuery.h" />
     <ClInclude Include="airdcpp\ADLSearch.h" />
     <ClInclude Include="airdcpp\AirUtil.h" />
-    <ClInclude Include="airdcpp\AutoSearch.h" />
-    <ClInclude Include="airdcpp\AutoSearchManager.h" />
-    <ClInclude Include="airdcpp\AutosearchManagerListener.h" />
     <ClInclude Include="airdcpp\BloomFilter.h" />
     <ClInclude Include="airdcpp\BufferedSocket.h" />
     <ClInclude Include="airdcpp\BufferedSocketListener.h" />
@@ -388,7 +393,6 @@
     <ClInclude Include="airdcpp\ClientListener.h" />
     <ClInclude Include="airdcpp\ClientManager.h" />
     <ClInclude Include="airdcpp\ClientManagerListener.h" />
-    <ClInclude Include="airdcpp\ColorSettings.h" />
     <ClInclude Include="airdcpp\compiler.h" />
     <ClInclude Include="airdcpp\concurrency.h" />
     <ClInclude Include="airdcpp\ConnectionManager.h" />
@@ -422,8 +426,6 @@
     <ClInclude Include="airdcpp\FileQueue.h" />
     <ClInclude Include="airdcpp\FileReader.h" />
     <ClInclude Include="airdcpp\FilteredFile.h" />
-    <ClInclude Include="airdcpp\FinishedManager.h" />
-    <ClInclude Include="airdcpp\FinishedManagerListener.h" />
     <ClInclude Include="airdcpp\Flags.h" />
     <ClInclude Include="airdcpp\format.h" />
     <ClInclude Include="airdcpp\forward.h" />
@@ -435,7 +437,6 @@
     <ClInclude Include="airdcpp\HashedFile.h" />
     <ClInclude Include="airdcpp\HashManager.h" />
     <ClInclude Include="airdcpp\HashValue.h" />
-    <ClInclude Include="airdcpp\HighlightManager.h" />
     <ClInclude Include="airdcpp\HintedUser.h" />
     <ClInclude Include="airdcpp\HttpConnection.h" />
     <ClInclude Include="airdcpp\HttpConnectionListener.h" />
@@ -508,7 +509,6 @@
     <ClInclude Include="airdcpp\UserQueue.h" />
     <ClInclude Include="airdcpp\ViewFile.h" />
     <ClInclude Include="airdcpp\ViewFileManager.h" />
-    <ClInclude Include="airdcpp\WebShortcuts.h" />
     <ClInclude Include="airdcpp\ZipFile.h" />
     <CustomBuild Include="airdcpp\StringDefs.h">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building StringDefs.cpp and Example.xml from StringDefs.h...</Message>

@@ -138,7 +138,7 @@ public:
 		void setComplete() noexcept { type = TYPE_NORMAL; }
 		bool getAdls() const noexcept { return type == TYPE_ADLS; }
 
-		void download(const string& aTarget, BundleFileInfo::List& aFiles) const noexcept;
+		void toBundleInfoList(const string& aTarget, BundleDirectoryItemInfo::List& aFiles) const noexcept;
 
 		const string& getName() const noexcept {
 			return name;
@@ -169,7 +169,7 @@ public:
 	// Returns the number of loaded dirs
 	int loadPartialXml(const string& aXml, const string& aAdcBase) throw(AbortException);
 
-	bool createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPrio, void* aOwner) noexcept;
+	optional<DirectoryBundleAddInfo> createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPrio, string& errorMsg_) noexcept;
 
 	bool viewAsText(const File::Ptr& aFile) const noexcept;
 
@@ -200,7 +200,7 @@ public:
 		
 	GETSET(bool, partialList, PartialList);
 	GETSET(bool, isOwnList, IsOwnList);
-	GETSET(bool, isClientView, isClientView);
+	GETSET(bool, isClientView, IsClientView);
 	GETSET(string, fileName, FileName);
 	GETSET(bool, matchADL, MatchADL);
 	IGETSET(bool, closing, Closing, false);
@@ -231,8 +231,6 @@ public:
 	
 	bool supportsASCH() const noexcept;
 
-	/* only call from the file list thread*/
-	bool downloadDirImpl(Directory::Ptr& aDir, const string& aTarget, Priority prio, void* aOwner) noexcept;
 	void setActive() noexcept;
 
 	struct LocationInfo {

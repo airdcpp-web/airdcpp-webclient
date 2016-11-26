@@ -18,20 +18,21 @@
 */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
 
-#include "HttpConnection.h"
-#include "RSSManager.h"
-#include "LogManager.h"
 #include "AutoSearchManager.h"
-#include "ShareManager.h"
-#include "QueueManager.h"
-#include "SearchManager.h"
+#include "RSSManager.h"
 
-#include "ScopedFunctor.h"
-#include "AirUtil.h"
-#include "SimpleXML.h"
-#include "SimpleXMLReader.h"
+#include <airdcpp/HttpConnection.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/SearchManager.h>
+
+#include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/AirUtil.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/SimpleXMLReader.h>
+
 #include <boost/algorithm/string/trim.hpp>
 
 namespace dcpp {
