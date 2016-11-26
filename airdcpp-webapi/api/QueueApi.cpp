@@ -245,9 +245,9 @@ namespace webserver {
 		Priority prio;
 		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetFileName, prio);
 
-		BundlePtr b = nullptr;
+		BundleAddInfo bundleAddInfo;
 		try {
-			b = QueueManager::getInstance()->createFileBundle(
+			bundleAddInfo = QueueManager::getInstance()->createFileBundle(
 				targetDirectory + targetFileName,
 				JsonUtil::getField<int64_t>("size", reqJson, false),
 				Deserializer::deserializeTTH(reqJson),
@@ -256,29 +256,21 @@ namespace webserver {
 				0,
 				prio
 			);
-		}
-		catch (const Exception& e) {
+		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::internal_server_error;
 		}
 
-		if (b) {
-			json retJson = {
-				{ "id", b->getToken() }
-			};
-
-			aRequest.setResponseBody(retJson);
-		}
-
+		aRequest.setResponseBody(Serializer::serializeBundleAddInfo(bundleAddInfo));
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return QueueApi::handleAddDirectoryBundle(ApiRequest& aRequest) {
 		const auto& bundleJson = aRequest.getRequestBody();
 
-		BundleFileInfo::List files;
+		BundleDirectoryItemInfo::List files;
 		for (const auto& fileJson : JsonUtil::getRawField("files", bundleJson)) {
-			files.push_back(BundleFileInfo(
+			files.push_back(BundleDirectoryItemInfo(
 				JsonUtil::getField<string>("name", fileJson),
 				Deserializer::deserializeTTH(fileJson),
 				JsonUtil::getField<int64_t>("size", fileJson),
@@ -291,31 +283,22 @@ namespace webserver {
 			JsonUtil::throwError("files", JsonUtil::ERROR_INVALID, "No files were supplied");
 		}
 
-		BundlePtr b = nullptr;
-		std::string errors;
-		try {
-			b = QueueManager::getInstance()->createDirectoryBundle(
-				JsonUtil::getField<string>("target", bundleJson),
-				Deserializer::deserializeHintedUser(bundleJson),
-				files,
-				Deserializer::deserializePriority(bundleJson, true),
-				JsonUtil::getField<time_t>("time", bundleJson),
-				errors
-			);
-		} catch (const QueueException& e) {
-			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::internal_server_error;
+		string errorMsg;
+		auto info = QueueManager::getInstance()->createDirectoryBundle(
+			JsonUtil::getField<string>("target", bundleJson),
+			Deserializer::deserializeHintedUser(bundleJson),
+			files,
+			Deserializer::deserializePriority(bundleJson, true),
+			JsonUtil::getField<time_t>("time", bundleJson),
+			errorMsg
+		);
+
+		if (!info) {
+			aRequest.setResponseErrorStr(errorMsg);
+			return websocketpp::http::status_code::bad_request;
 		}
 
-		if (b) {
-			json retJson = {
-				{ "id", b->getToken() },
-				{ "errors", errors }
-			};
-
-			aRequest.setResponseBody(retJson);
-		}
-
+		aRequest.setResponseBody(Serializer::serializeDirectoryBundleAddInfo(*info, errorMsg));
 		return websocketpp::http::status_code::ok;
 	}
 

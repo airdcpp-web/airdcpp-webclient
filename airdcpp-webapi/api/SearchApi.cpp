@@ -127,7 +127,15 @@ namespace webserver {
 		Priority prio;
 		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetName, prio);
 
-		return result->download(targetDirectory, targetName, prio);
+		try {
+			auto ret = result->download(targetDirectory, targetName, prio);
+			aRequest.setResponseBody(ret);
+		} catch (const Exception& e) {
+			aRequest.setResponseErrorStr(e.what());
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return SearchApi::handleGetTypes(ApiRequest& aRequest) {
