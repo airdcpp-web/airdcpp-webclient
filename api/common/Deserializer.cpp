@@ -100,11 +100,6 @@ namespace webserver {
 			targetName_ = *name;
 		}
 
-		auto targetType = JsonUtil::getEnumField<int>("target_type", aJson, false, 0, TargetUtil::TARGET_LAST-1);
-		if (!targetType) {
-			targetType = TargetUtil::TARGET_PATH;
-		}
-
 		priority_ = deserializePriority(aJson, true);
 	}
 

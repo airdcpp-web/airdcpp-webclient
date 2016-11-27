@@ -27,6 +27,8 @@ namespace webserver {
 	StringList FilelistApi::subscriptionList = {
 		"filelist_created",
 		"filelist_removed",
+		"filelist_directory_download_added",
+		"filelist_directory_download_removed",
 		"filelist_directory_download_processed",
 		"filelist_directory_download_failed",
 	};
@@ -43,6 +45,7 @@ namespace webserver {
 
 		METHOD_HANDLER("download_directory", Access::DOWNLOAD, ApiRequest::METHOD_POST, (), true, FilelistApi::handlePostDirectoryDownload); // DEPRECEATED
 
+		METHOD_HANDLER("directory_downloads", Access::DOWNLOAD, ApiRequest::METHOD_GET, (), false, FilelistApi::handleGetDirectoryDownloads);
 		METHOD_HANDLER("directory_download", Access::DOWNLOAD, ApiRequest::METHOD_POST, (), true, FilelistApi::handlePostDirectoryDownload);
 		METHOD_HANDLER("directory_download", Access::DOWNLOAD, ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, FilelistApi::handleDeleteDirectoryDownload);
 
@@ -148,24 +151,40 @@ namespace webserver {
 		});
 	}
 
+	void FilelistApi::on(DirectoryListingManagerListener::DirectoryDownloadAdded, const DirectoryDownloadPtr& aDownload) noexcept {
+		if (!subscriptionActive("filelist_directory_download_added")) {
+			return;
+		}
+
+		send("filelist_directory_download_added", serializeDirectoryDownload(aDownload));
+	}
+
+	void FilelistApi::on(DirectoryListingManagerListener::DirectoryDownloadRemoved, const DirectoryDownloadPtr& aDownload) noexcept {
+		if (!subscriptionActive("filelist_directory_download_removed")) {
+			return;
+		}
+
+		send("filelist_directory_download_removed", serializeDirectoryDownload(aDownload));
+	}
+
 	void FilelistApi::on(DirectoryListingManagerListener::DirectoryDownloadProcessed, const DirectoryDownloadPtr& aDirectoryInfo, const DirectoryBundleAddInfo& aQueueInfo, const string& aError) noexcept {
 		if (!subscriptionActive("filelist_directory_download_processed")) {
 			return;
 		}
 
 		send("filelist_directory_download_processed", {
-			{ "id", aDirectoryInfo->getId() },
+			{ "directory_download", serializeDirectoryDownload(aDirectoryInfo) },
 			{ "result", Serializer::serializeDirectoryBundleAddInfo(aQueueInfo, aError) }
 		});
 	}
 
-	void FilelistApi::on(DirectoryDownloadFailed, const DirectoryDownloadPtr& aDirectoryInfo, const string& aError) noexcept {
+	void FilelistApi::on(DirectoryListingManagerListener::DirectoryDownloadFailed, const DirectoryDownloadPtr& aDirectoryInfo, const string& aError) noexcept {
 		if (!subscriptionActive("filelist_directory_download_failed")) {
 			return;
 		}
 
 		send("filelist_directory_download_failed", {
-			{ "id", aDirectoryInfo->getId() },
+			{ "directory_download", serializeDirectoryDownload(aDirectoryInfo) },
 			{ "error", aError }
 		});
 	}
@@ -186,6 +205,28 @@ namespace webserver {
 			{ "read", aList->isRead() },
 			{ "share_profile", aList->getIsOwnList() ? Serializer::serializeShareProfileSimple(aList->getShareProfile()) : json() },
 		};
+	}
+
+	json FilelistApi::serializeDirectoryDownload(const DirectoryDownloadPtr& aDownload) noexcept {
+		return {
+			{ "id", aDownload->getId() },
+			{ "user", Serializer::serializeHintedUser(aDownload->getUser()) },
+			{ "target_name", aDownload->getBundleName() },
+			{ "target_directory", aDownload->getTarget() },
+			{ "list_path", aDownload->getListPath() },
+		};
+	}
+
+	api_return FilelistApi::handleGetDirectoryDownloads(ApiRequest& aRequest) {
+		auto downloads = DirectoryListingManager::getInstance()->getDirectoryDownloads();
+
+		auto ret = json::array();
+		for (const auto& d : downloads) {
+			ret.push_back(serializeDirectoryDownload(d));
+		}
+
+		aRequest.setResponseBody(ret);
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return FilelistApi::handlePostDirectoryDownload(ApiRequest& aRequest) {

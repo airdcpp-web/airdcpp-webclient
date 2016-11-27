@@ -25,7 +25,6 @@
 #include <airdcpp/MerkleTree.h>
 #include <airdcpp/Message.h>
 #include <airdcpp/Priority.h>
-#include <airdcpp/TargetUtil.h>
 
 namespace webserver {
 	typedef std::function<api_return(const string& aTarget, Priority aPriority)> DownloadHandler;
