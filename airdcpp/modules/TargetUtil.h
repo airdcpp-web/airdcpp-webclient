@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_TARGET_UTIL_H
 #define DCPLUSPLUS_DCPP_TARGET_UTIL_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "GetSet.h"
-#include "Util.h"
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Util.h>
 
 #include <string>
 
@@ -31,6 +31,7 @@ using std::string;
 
 class TargetUtil {
 
+// DEPRECEATED
 public:
 	class TargetInfo {
 	public:
@@ -52,21 +53,7 @@ public:
 	};
 
 	typedef map<string, TargetInfo, noCaseStringLess> TargetInfoMap;
-	typedef set<string, noCaseStringLess> VolumeSet;
 
-	// Get a set of all mount points
-	static VolumeSet getVolumes() noexcept;
-	//static TargetInfoMap getVolumeInfos() noexcept;
-
-	static string getMountPath(const string& aPath, const VolumeSet& aVolumes) noexcept;
-
-	static TargetInfo getTargetInfo(const string& aTarget, const VolumeSet& aVolumes) noexcept;
-	//static TargetInfoMap toTargetInfoMap(const OrderedStringSet& aTargets, const TargetInfoMap& aVolumeInfos) noexcept;
-
-	static string formatSizeConfirmation(const TargetInfo& ti, int64_t aSize);
-
-
-	// LEGACY
 	enum TargetType {
 		TARGET_PATH,
 		TARGET_FAVORITE,
@@ -74,7 +61,6 @@ public:
 		TARGET_LAST
 	};
 
-	// LEGACY
 	static void getVirtualTarget(const string& aTarget, TargetType targetType, TargetInfo& ti_);
 private:
 	static void getTarget(const OrderedStringSet& aTargets, TargetInfo& ti_);

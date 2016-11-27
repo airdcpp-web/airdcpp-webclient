@@ -33,7 +33,6 @@
 #include <airdcpp/Message.h>
 #include <airdcpp/Singleton.h>
 #include <airdcpp/Speaker.h>
-#include <airdcpp/TargetUtil.h>
 #include <airdcpp/TimerManagerListener.h>
 
 

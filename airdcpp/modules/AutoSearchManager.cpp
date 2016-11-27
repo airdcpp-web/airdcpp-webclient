@@ -19,6 +19,7 @@
 #include "stdinc.h"
 
 #include "AutoSearchManager.h"
+#include "TargetUtil.h"
 
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/LogManager.h>

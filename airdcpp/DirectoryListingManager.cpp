@@ -51,16 +51,23 @@ DirectoryListingManager::~DirectoryListingManager() noexcept {
 }
 
 bool DirectoryListingManager::removeDirectoryDownload(const UserPtr& aUser, const string& aPath) noexcept {
-	WLock l(cs);
-	auto dp = dlDirectories.equal_range(aUser) | map_values;
-	auto udp = find_if(dp, [&aPath](const DirectoryDownloadPtr& ddi) { return Util::stricmp(aPath.c_str(), ddi->getListPath().c_str()) == 0; });
-	if (udp != dp.end()) {
+	DirectoryDownloadPtr download = nullptr;
+
+	{
+		WLock l(cs);
+		auto dp = dlDirectories.equal_range(aUser) | map_values;
+		auto udp = find_if(dp, [&aPath](const DirectoryDownloadPtr& ddi) { return Util::stricmp(aPath.c_str(), ddi->getListPath().c_str()) == 0; });
+		if (udp == dp.end()) {
+			dcassert(0);
+			return false;
+		}
+
+		download = *udp;
 		dlDirectories.erase(udp.base());
-		return true;
 	}
 
-	dcassert(0);
-	return false;
+	fire(DirectoryListingManagerListener::DirectoryDownloadRemoved(), download);
+	return true;
 }
 
 bool DirectoryListingManager::removeDirectoryDownload(DirectoryDownloadId aId) noexcept {
@@ -76,9 +83,9 @@ bool DirectoryListingManager::removeDirectoryDownload(DirectoryDownloadId aId) n
 		}
 
 		qi = i->second->getQueueItem();
-		dlDirectories.erase(i);
 	}
 
+	// Directory download removal will be handled through QueueManagerListener::ItemRemoved
 	if (qi) {
 		QueueManager::getInstance()->removeQI(qi);
 	}
@@ -89,6 +96,15 @@ bool DirectoryListingManager::removeDirectoryDownload(DirectoryDownloadId aId) n
 bool DirectoryListingManager::hasDirectoryDownload(const string& aBundleName, void* aOwner) const noexcept {
 	RLock l(cs);
 	return find_if(dlDirectories | map_values, DirectoryDownload::HasOwner(aOwner, aBundleName)).base() != dlDirectories.end();
+}
+
+DirectoryDownload::List DirectoryListingManager::getDirectoryDownloads() const noexcept {
+	DirectoryDownload::List ret;
+
+	RLock l(cs);
+	boost::range::copy(dlDirectories | map_values, back_inserter(ret));
+
+	return ret;
 }
 
 DirectoryDownloadId DirectoryListingManager::addDirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner) {
@@ -112,6 +128,7 @@ DirectoryDownloadId DirectoryListingManager::addDirectoryDownload(const HintedUs
 		needList = aUser.user->isSet(User::NMDC) ? (dp.first == dp.second) : true;
 	}
 
+	fire(DirectoryListingManagerListener::DirectoryDownloadAdded(), downloadInfo);
 	if (needList) {
 		queueList(downloadInfo);
 	}

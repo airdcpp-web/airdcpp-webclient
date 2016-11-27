@@ -27,7 +27,6 @@
 #include "HintedUser.h"
 #include "PrioritySearchQueue.h"
 #include "SortedVector.h"
-#include "TargetUtil.h"
 
 namespace dcpp {
 

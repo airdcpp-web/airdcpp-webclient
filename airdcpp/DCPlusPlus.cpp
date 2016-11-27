@@ -53,7 +53,7 @@ namespace dcpp {
 
 #define RUNNING_FLAG Util::getPath(Util::PATH_USER_LOCAL) + "RUNNING"
 
-void startup(function<void(const string&)> stepF, function<bool(const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF, function<void()> runWizard, function<void(float)> progressF, function<void()> moduleInitF) throw(Exception) {
+void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progressF, Callback moduleInitF /*nullptr*/, Callback moduleLoadF /*nullptr*/) throw(Exception) {
 	// "Dedicated to the near-memory of Nev. Let's start remembering people while they're still alive."
 	// Nev's great contribution to dc++
 	while(1) break;
@@ -147,9 +147,15 @@ void startup(function<void(const string&)> stepF, function<bool(const string& /*
 		announce(STRING(COUNTRY_INFORMATION));
 		GeoManager::getInstance()->init();
 	}
+
+	// Modules may depend on data loaded in other sections
+	// Initialization should still be performed before loading SettingsManager as some modules save their config there
+	if (moduleLoadF) {
+		moduleLoadF();
+	}
 }
 
-void shutdown(function<void (const string&)> stepF, function<void (float)> progressF, function<void()> moduleDestroyF) {
+void shutdown(StepF stepF, ProgressF progressF, Callback moduleDestroyF) {
 	TimerManager::getInstance()->shutdown();
 	auto announce = [&stepF](const string& str) {
 		if(stepF) {
