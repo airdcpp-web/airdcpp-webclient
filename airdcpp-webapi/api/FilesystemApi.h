@@ -38,6 +38,7 @@ namespace webserver {
 	private:
 		api_return handleListItems(ApiRequest& aRequest);
 		api_return handlePostDirectory(ApiRequest& aRequest);
+		api_return handleGetDiskInfo(ApiRequest& aRequest);
 
 		json serializeDirectoryContent(const string& aPath, bool aDirectoriesOnly);
 	};

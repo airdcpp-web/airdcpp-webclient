@@ -27,7 +27,6 @@
 #include <airdcpp/DupeType.h>
 #include <airdcpp/Priority.h>
 #include <airdcpp/SearchResult.h>
-#include <airdcpp/TargetUtil.h>
 
 namespace webserver {
 	typedef uint32_t ResultToken;

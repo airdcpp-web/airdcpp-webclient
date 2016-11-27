@@ -29,6 +29,7 @@
 
 namespace webserver {
 	FilesystemApi::FilesystemApi(Session* aSession) : ApiModule(aSession) {
+		METHOD_HANDLER("disk_info", Access::ANY, ApiRequest::METHOD_POST, (), true, FilesystemApi::handleGetDiskInfo);
 		METHOD_HANDLER("list_items", Access::FILESYSTEM_VIEW, ApiRequest::METHOD_POST, (), true, FilesystemApi::handleListItems);
 		METHOD_HANDLER("directory", Access::FILESYSTEM_EDIT, ApiRequest::METHOD_POST, (), true, FilesystemApi::handlePostDirectory);
 	}
@@ -115,6 +116,27 @@ namespace webserver {
 			return websocketpp::http::status_code::internal_server_error;
 		}
 
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return FilesystemApi::handleGetDiskInfo(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+		auto paths = JsonUtil::getField<StringList>("paths", reqJson, false);
+
+		auto volumes = File::getVolumes();
+
+		json retJson;
+		for (const auto& path : paths) {
+			auto targetInfo = File::getDiskInfo(path, volumes);
+
+			retJson.push_back({
+				{ "path", path },
+				{ "free_space", targetInfo.freeSpace },
+				{ "total_space", targetInfo.totalSpace },
+			});
+		}
+
+		aRequest.setResponseBody(retJson);
 		return websocketpp::http::status_code::ok;
 	}
 }
