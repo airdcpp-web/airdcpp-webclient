@@ -246,6 +246,7 @@
     <ClCompile Include="airdcpp\modules\FinishedManager.cpp" />
     <ClCompile Include="airdcpp\modules\HighlightManager.cpp" />
     <ClCompile Include="airdcpp\modules\RSSManager.cpp" />
+    <ClCompile Include="airdcpp\modules\TargetUtil.cpp" />
     <ClCompile Include="airdcpp\modules\WebShortcuts.cpp" />
     <ClCompile Include="airdcpp\PrivateChat.cpp" />
     <ClCompile Include="airdcpp\SearchQuery.cpp" />
@@ -322,7 +323,6 @@
     <ClCompile Include="airdcpp\StringDefs.cpp" />
     <ClCompile Include="airdcpp\StringMatch.cpp" />
     <ClCompile Include="airdcpp\StringSearch.cpp" />
-    <ClCompile Include="airdcpp\TargetUtil.cpp" />
     <ClCompile Include="airdcpp\Text.cpp" />
     <ClCompile Include="airdcpp\Thread.cpp" />
     <ClCompile Include="airdcpp\ThrottleManager.cpp" />
@@ -365,6 +365,7 @@
     <ClInclude Include="airdcpp\modules\FinishedManagerListener.h" />
     <ClInclude Include="airdcpp\modules\HighlightManager.h" />
     <ClInclude Include="airdcpp\modules\RSSManager.h" />
+    <ClInclude Include="airdcpp\modules\TargetUtil.h" />
     <ClInclude Include="airdcpp\modules\WebShortcuts.h" />
     <ClInclude Include="airdcpp\Priority.h" />
     <ClInclude Include="airdcpp\SettingsManagerListener.h" />
@@ -496,7 +497,6 @@
     <ClInclude Include="airdcpp\Streams.h" />
     <ClInclude Include="airdcpp\DualString.h" />
     <ClInclude Include="airdcpp\StringMatch.h" />
-    <ClInclude Include="airdcpp\TargetUtil.h" />
     <ClInclude Include="airdcpp\ThrottleManager.h" />
     <ClInclude Include="airdcpp\TrackableDownloadItem.h" />
     <ClInclude Include="airdcpp\tribool.h" />

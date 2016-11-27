@@ -227,9 +227,6 @@
     <ClCompile Include="airdcpp\Magnet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\TargetUtil.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="airdcpp\Localization.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -339,6 +336,9 @@
       <Filter>Source Files\modules</Filter>
     </ClCompile>
     <ClCompile Include="airdcpp\modules\ColorSettings.cpp">
+      <Filter>Source Files\modules</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\modules\TargetUtil.cpp">
       <Filter>Source Files\modules</Filter>
     </ClCompile>
   </ItemGroup>
@@ -688,9 +688,6 @@
     <ClInclude Include="airdcpp\Magnet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\TargetUtil.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="airdcpp\Localization.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -887,6 +884,9 @@
       <Filter>Header Files\modules</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\modules\ColorSettings.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\TargetUtil.h">
       <Filter>Header Files\modules</Filter>
     </ClInclude>
   </ItemGroup>

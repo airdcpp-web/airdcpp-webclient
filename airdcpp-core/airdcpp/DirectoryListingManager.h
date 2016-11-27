@@ -28,7 +28,6 @@
 #include "DirectoryListing.h"
 #include "Pointer.h"
 #include "Singleton.h"
-#include "TargetUtil.h"
 #include "TimerManagerListener.h"
 
 namespace dcpp {
@@ -88,6 +87,7 @@ namespace dcpp {
 		// Throws on queueing errors (such as invalid source)
 		// If owner is specified, no errors are logged if queueing of the directory fails
 		DirectoryDownloadId addDirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner = nullptr);
+		DirectoryDownload::List getDirectoryDownloads() const noexcept;
 
 		bool hasDirectoryDownload(const string& aBundleName, void* aOwner) const noexcept;
 		bool removeDirectoryDownload(DirectoryDownloadId aId) noexcept;

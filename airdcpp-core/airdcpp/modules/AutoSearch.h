@@ -27,7 +27,6 @@
 #include <airdcpp/Priority.h>
 #include <airdcpp/Pointer.h>
 #include <airdcpp/StringMatch.h>
-#include <airdcpp/TargetUtil.h>
 #include <airdcpp/Util.h>
 
 //default minimum search interval for the same item to be searched again

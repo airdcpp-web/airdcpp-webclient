@@ -22,6 +22,7 @@
 
 #ifdef _WIN32
 #include "w.h"
+#include <direct.h>
 #else
 #include <sys/stat.h>
 #include <sys/statvfs.h>
@@ -29,6 +30,10 @@
 #include <dirent.h>
 #include <fnmatch.h>
 #include <utime.h>
+#endif
+
+#ifdef HAVE_MNTENT_H
+#include <mntent.h>
 #endif
 
 #ifdef _DEBUG
@@ -302,17 +307,16 @@ bool File::isAbsolutePath(const string& path) noexcept {
 	return path.size() > 2 && (path[1] == ':' || path[0] == '/' || path[0] == '\\');
 }
 
-
 string File::getMountPath(const string& aPath) noexcept {
 	unique_ptr<TCHAR> buf(new TCHAR[aPath.length()]);
 	GetVolumePathName(Text::toT(Util::formatPath(aPath)).c_str(), buf.get(), aPath.length());
 	return Text::fromT(buf.get());
 }
 
-int64_t File::getFreeSpace(const string& aPath) noexcept {
-	int64_t freeSpace = 0, tmp = 0;
-	auto ret = GetDiskFreeSpaceEx(Text::toT(Util::formatPath(aPath)).c_str(), NULL, (PULARGE_INTEGER)&tmp, (PULARGE_INTEGER)&freeSpace);
-	return ret > 0 ? freeSpace : -1;
+File::DiskInfo File::getDiskInfo(const string& aPath) noexcept {
+	int64_t freeSpace = -1, totalSpace = -1;
+	GetDiskFreeSpaceEx(Text::toT(Util::formatPath(aPath)).c_str(), NULL, (PULARGE_INTEGER)&totalSpace, (PULARGE_INTEGER)&freeSpace);
+	return { freeSpace, totalSpace };
 }
 
 int64_t File::getBlockSize(const string& aFileName) noexcept {
@@ -577,14 +581,15 @@ bool File::isAbsolutePath(const string& path) noexcept {
 	return path.size() > 1 && path[0] == '/';
 }
 
-int64_t File::getFreeSpace(const string& aFileName) noexcept {
+File::DiskInfo File::getDiskInfo(const string& aFileName) noexcept {
 	struct statvfs sfs;
 	if (statvfs(Text::fromUtf8(aFileName).c_str(), &sfs) == -1) {
-		return -1;
+		return { -1LL, -1LL };
 	}
 
-	int64_t ret = (int64_t)sfs.f_bsize * (int64_t)sfs.f_bfree;
-	return ret;
+	int64_t freeSpace = (int64_t)sfs.f_bsize * (int64_t)sfs.f_bfree;
+	int64_t totalSpace = (int64_t)sfs.f_bsize * (int64_t)sfs.f_blocks;
+	return { freeSpace, totalSpace };
 }
 
 int64_t File::getBlockSize(const string& aFileName) noexcept {
@@ -720,6 +725,110 @@ int64_t File::getDirSize(const string& aPath, bool aRecursive, const string& aNa
 	});
 
 	return size;
+}
+
+int64_t File::getFreeSpace(const string& aPath) noexcept {
+	auto info = getDiskInfo(aPath);
+	return info.freeSpace;
+}
+
+string File::getMountPath(const string& aPath, const VolumeSet& aVolumes) noexcept {
+	if (aVolumes.find(aPath) != aVolumes.end()) {
+		return aPath;
+	}
+
+	auto l = aPath.length();
+	for (;;) {
+		l = aPath.rfind(PATH_SEPARATOR, l - 2);
+		if (l == string::npos || l <= 1)
+			break;
+
+		if (aVolumes.find(aPath.substr(0, l + 1)) != aVolumes.end()) {
+			return aPath.substr(0, l + 1);
+		}
+	}
+
+#ifdef WIN32
+	// Not found from volumes... network path? This won't work with mounted dirs
+	if (aPath.length() > 2 && aPath.substr(0, 2) == "\\\\") {
+		l = aPath.find("\\", 2);
+		if (l != string::npos) {
+			//get the drive letter
+			l = aPath.find("\\", l + 1);
+			if (l != string::npos) {
+				return aPath.substr(0, l + 1);
+			}
+		}
+	}
+#else
+	// Return the root
+	return PATH_SEPARATOR_STR;
+#endif
+	return Util::emptyString;
+}
+
+File::DiskInfo File::getDiskInfo(const string& aTarget, const VolumeSet& aVolumes) noexcept {
+	auto mountPoint = getMountPath(aTarget, aVolumes);
+	if (!mountPoint.empty()) {
+		return File::getDiskInfo(mountPoint);
+	}
+
+	return{ -1LL, -1LL };
+}
+
+File::VolumeSet File::getVolumes() noexcept {
+	VolumeSet volumes;
+#ifdef WIN32
+	TCHAR   buf[MAX_PATH];
+	HANDLE  hVol;
+	BOOL    found;
+	TCHAR   buf2[MAX_PATH];
+
+	// lookup drive volumes.
+	hVol = FindFirstVolume(buf, MAX_PATH);
+	if (hVol != INVALID_HANDLE_VALUE) {
+		found = true;
+		//while we find drive volumes.
+		while (found) {
+			if (GetDriveType(buf) != DRIVE_CDROM && GetVolumePathNamesForVolumeName(buf, buf2, MAX_PATH, NULL)) {
+				volumes.insert(Text::fromT(buf2));
+			}
+			found = FindNextVolume(hVol, buf, MAX_PATH);
+		}
+		found = FindVolumeClose(hVol);
+	}
+
+	// and a check for mounted Network drives, todo fix a better way for network space
+	ULONG drives = _getdrives();
+	TCHAR drive[3] = { _T('A'), _T(':'), _T('\0') };
+
+	while (drives != 0) {
+		if (drives & 1 && (GetDriveType(drive) != DRIVE_CDROM && GetDriveType(drive) == DRIVE_REMOTE)) {
+			string path = Text::fromT(drive);
+			if (path[path.length() - 1] != PATH_SEPARATOR) {
+				path += PATH_SEPARATOR;
+			}
+			volumes.insert(path);
+		}
+
+		++drive[0];
+		drives = (drives >> 1);
+	}
+#elif HAVE_MNTENT_H
+	struct mntent *ent;
+	FILE *aFile;
+
+	aFile = setmntent("/proc/mounts", "r");
+	if (aFile == NULL) {
+		return volumes;
+	}
+
+	while ((ent = getmntent(aFile)) != NULL) {
+		volumes.insert(Util::validatePath(ent->mnt_dir, true));
+	}
+	endmntent(aFile);
+#endif
+	return volumes;
 }
 
 #ifdef _WIN32
