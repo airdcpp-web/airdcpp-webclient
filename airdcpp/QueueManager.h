@@ -417,10 +417,9 @@ private:
 	void removeBundleItem(QueueItemPtr& qi, bool finished) noexcept;
 	void addLoadedBundle(BundlePtr& aBundle) noexcept;
 
-	// Add a new bundle in queue or  (called from inside a WLock)
+	// Add a new bundle in queue or (called from inside a WLock)
 	// onBundleAdded must be called separately from outside the lock afterwards
-	// Returns false if the bundle couldn't be queued (most likely because of 0-byte content)
-	bool addBundle(BundlePtr& aBundle, int aFilesAdded) noexcept;
+	void addBundle(BundlePtr& aBundle, int aFilesAdded) noexcept;
 
 	// Fire events and perform other secondary actions for added bundles (don't lock)
 	void onBundleAdded(const BundlePtr& aBundle, Bundle::Status aOldStatus, const QueueItem::ItemBoolList& aItemsAdded, const HintedUser& aUser, bool aWantConnection) noexcept;

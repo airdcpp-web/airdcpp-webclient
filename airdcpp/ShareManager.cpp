@@ -1585,7 +1585,7 @@ void ShareManager::countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& 
 	}
 }
 
-optional<ShareManager::ShareStats> ShareManager::getShareStats() const noexcept {
+optional<ShareManager::ShareItemStats> ShareManager::getShareItemStats() const noexcept {
 	unordered_set<decltype(tthIndex)::key_type> uniqueTTHs;
 
 	{
@@ -1595,7 +1595,7 @@ optional<ShareManager::ShareStats> ShareManager::getShareStats() const noexcept 
 		}
 	}
 
-	ShareStats stats;
+	ShareItemStats stats;
 	stats.profileCount = shareProfiles.size() - 1; // remove hidden
 	stats.uniqueFileCount = uniqueTTHs.size();
 
@@ -1616,14 +1616,33 @@ optional<ShareManager::ShareStats> ShareManager::getShareStats() const noexcept 
 	return stats;
 }
 
+ShareManager::ShareSearchStats ShareManager::getSearchMatchingStats() const noexcept {
+	auto upseconds = static_cast<double>(GET_TICK()) / 1000.00;
+
+	ShareSearchStats stats;
+
+	stats.totalSearches = totalSearches;
+	stats.totalSearchesPerSecond = static_cast<double>(totalSearches) / static_cast<double>(upseconds);
+	stats.recursiveSearches = recursiveSearches;
+	stats.unfilteredRecursiveSearchesPerSecond = (recursiveSearches - filteredSearches) / upseconds;
+	stats.filteredSearchPercentage = (recursiveSearches == 0 ? 0 : (static_cast<double>(filteredSearches) / static_cast<double>(recursiveSearches)) * 100.00);
+	stats.averageSearchMatchMs = (recursiveSearches - filteredSearches == 0 ? 0 : recursiveSearchTime / (recursiveSearches - filteredSearches));
+	stats.unfilteredRecursiveMatchPercentage = (recursiveSearches - filteredSearches == 0 ? 0 : (static_cast<double>(recursiveSearchesResponded) / static_cast<double>(recursiveSearches - filteredSearches))*100.00);
+	stats.averageSearchTokenCount = (recursiveSearches - filteredSearches == 0 ? 0 : static_cast<double>(searchTokenCount) / static_cast<double>(recursiveSearches - filteredSearches));
+	stats.averageSearchTokenLength = (searchTokenCount == 0 ? 0 : static_cast<double>(searchTokenLength) / static_cast<double>(searchTokenCount));
+	stats.autoSearchPercentage = (recursiveSearches == 0 ? 0 : (static_cast<double>(autoSearches) / static_cast<double>(recursiveSearches))*100.00);
+	stats.tthSearchPercentage = (totalSearches == 0 ? 0 : (static_cast<double>(tthSearches) / static_cast<double>(totalSearches))*100.00);
+
+	return stats;
+}
+
 string ShareManager::printStats() const noexcept {
-	auto optionalStats = getShareStats();
-	if (!optionalStats) {
+	auto optionalItemStats = getShareItemStats();
+	if (!optionalItemStats) {
 		return "No files shared";
 	}
 
-	auto stats = *optionalStats;
-	auto upseconds = static_cast<double>(GET_TICK()) / 1000.00;
+	auto itemStats = *optionalItemStats;
 
 	string ret = boost::str(boost::format(
 "\r\n\r\n-=[ Share statistics ]=-\r\n\r\n\
@@ -1636,17 +1655,18 @@ Total shared directories: %d (%d files per directory)\r\n\
 Average age of a file: %s\r\n\
 Average name length of a shared item: %d bytes (total size %s)")
 
-		% stats.profileCount
-		% stats.profileDirectoryCount % stats.rootDirectoryPercentage
-		% Util::formatBytes(stats.totalSize)
-		% stats.totalFileCount % stats.lowerCasePercentage
-		% stats.uniqueFileCount % stats.uniqueFilePercentage
-		% stats.totalDirectoryCount % stats.filesPerDirectory
-		% Util::formatTime(stats.averageFileAge, false, true)
-		% stats.averageNameLength
-		% Util::formatBytes(stats.totalNameSize)
+		% itemStats.profileCount
+		% itemStats.profileDirectoryCount % itemStats.rootDirectoryPercentage
+		% Util::formatBytes(itemStats.totalSize)
+		% itemStats.totalFileCount % itemStats.lowerCasePercentage
+		% itemStats.uniqueFileCount % itemStats.uniqueFilePercentage
+		% itemStats.totalDirectoryCount % itemStats.filesPerDirectory
+		% Util::formatTime(itemStats.averageFileAge, false, true)
+		% itemStats.averageNameLength
+		% Util::formatBytes(itemStats.totalNameSize)
 	);
 
+	auto searchStats = getSearchMatchingStats();
 	ret += boost::str(boost::format(
 "\r\n\r\n-=[ Search statistics ]=-\r\n\r\n\
 Total incoming searches: %d (%d per second)\r\n\
@@ -1657,15 +1677,13 @@ Auto searches (text, ADC only): %d%%\r\n\
 Average time for matching a recursive search: %d ms\r\n\
 TTH searches: %d%% (hash bloom mode: %s)")
 
-		% totalSearches % (totalSearches / upseconds)
-		% recursiveSearches % ((recursiveSearches - filteredSearches) / upseconds)
-		% (recursiveSearches == 0 ? 0 : (static_cast<double>(filteredSearches) / static_cast<double>(recursiveSearches))*100.00) // filtered
-		% (recursiveSearches - filteredSearches == 0 ? 0 : (static_cast<double>(recursiveSearchesResponded) / static_cast<double>(recursiveSearches - filteredSearches))*100.00) // recursive searches with results
-		% (recursiveSearches - filteredSearches == 0 ? 0 : static_cast<double>(searchTokenCount) / static_cast<double>(recursiveSearches - filteredSearches)) // search token count
-		% (searchTokenCount == 0 ? 0 : static_cast<double>(searchTokenLength) / static_cast<double>(searchTokenCount)) // search token length
-		% (recursiveSearches == 0 ? 0 : (static_cast<double>(autoSearches) / static_cast<double>(recursiveSearches))*100.00) // auto searches
-		% (recursiveSearches - filteredSearches == 0 ? 0 : recursiveSearchTime / (recursiveSearches - filteredSearches)) // search matching time
-		% (totalSearches == 0 ? 0 : (static_cast<double>(tthSearches) / static_cast<double>(totalSearches))*100.00) // TTH searches
+		% searchStats.totalSearches % searchStats.totalSearchesPerSecond
+		% searchStats.recursiveSearches % searchStats.unfilteredRecursiveSearchesPerSecond
+		% searchStats.filteredSearchPercentage % searchStats.unfilteredRecursiveMatchPercentage
+		% searchStats.averageSearchTokenCount  % searchStats.averageSearchTokenLength
+		% searchStats.autoSearchPercentage
+		% searchStats.averageSearchMatchMs
+		% searchStats.tthSearchPercentage
 		% (SETTING(BLOOM_MODE) != SettingsManager::BLOOM_DISABLED ? "Enabled" : "Disabled") // bloom mode
 	);
 
