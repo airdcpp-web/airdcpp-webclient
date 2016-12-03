@@ -231,7 +231,7 @@ public:
 	// Get a printable version of various share-related statistics
 	string printStats() const noexcept;
 
-	struct ShareStats {
+	struct ShareItemStats {
 		int profileCount = 0;
 		size_t profileDirectoryCount = 0;
 
@@ -247,11 +247,28 @@ public:
 		size_t totalNameSize = 0;
 		time_t averageFileAge = 0;
 	};
-	optional<ShareStats> getShareStats() const noexcept;
+	optional<ShareItemStats> getShareItemStats() const noexcept;
+
+	struct ShareSearchStats {
+		uint64_t totalSearches = 0;
+		double totalSearchesPerSecond = 0;
+		uint64_t recursiveSearches = 0;
+		uint64_t averageSearchMatchMs = 0;
+
+		double filteredSearchPercentage = 0;
+		double unfilteredRecursiveSearchesPerSecond = 0;
+		double unfilteredRecursiveMatchPercentage = 0;
+
+		double averageSearchTokenCount = 0;
+		double averageSearchTokenLength = 0;
+
+		double autoSearchPercentage = 0;
+		double tthSearchPercentage = 0;
+	};
+	ShareSearchStats getSearchMatchingStats() const noexcept;
 
 	void addRootDirectories(const ShareDirectoryInfoList& aNewDirs) noexcept;
 	void updateRootDirectories(const ShareDirectoryInfoList& renameDirs) noexcept;
-	//void removeDirectories(const ShareDirectoryInfoList& removeDirs) noexcept;
 	void removeRootDirectories(const StringList& removeDirs) noexcept;
 
 	bool addRootDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo) noexcept;

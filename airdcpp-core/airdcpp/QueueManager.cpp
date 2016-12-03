@@ -912,9 +912,7 @@ optional<DirectoryBundleAddInfo> QueueManager::createDirectoryBundle(const strin
 			}
 		}
 
-		if (!addBundle(b, info.filesAdded)) {
-			b = nullptr;
-		}
+		addBundle(b, info.filesAdded);
 	}
 
 	if (queueItems.empty()) {
@@ -956,19 +954,10 @@ void QueueManager::addLoadedBundle(BundlePtr& aBundle) noexcept {
 	bundleQueue.addBundle(aBundle);
 }
 
-bool QueueManager::addBundle(BundlePtr& aBundle, int aItemsAdded) noexcept {
-	if (aBundle->getQueueItems().empty() && aItemsAdded > 0) {
-		// it finished already? (only 0 byte files were added)
-		tasks.addTask([=] {
-			BundlePtr b = aBundle;
-			checkBundleFinished(b);
-		});
-
-		return false;
+void QueueManager::addBundle(BundlePtr& aBundle, int aItemsAdded) noexcept {
+	if (aItemsAdded == 0) {
+		return;
 	}
-
-	if (aItemsAdded == 0)
-		return true;
 
 	if (aBundle->getStatus() == Bundle::STATUS_NEW) {
 		bundleQueue.addBundle(aBundle);
@@ -982,8 +971,6 @@ bool QueueManager::addBundle(BundlePtr& aBundle, int aItemsAdded) noexcept {
 			aBundle->setDirty();
 		}
 	}
-
-	return true;
 }
 
 void QueueManager::onBundleAdded(const BundlePtr& aBundle, Bundle::Status aOldStatus, const QueueItem::ItemBoolList& aItemsAdded, const HintedUser& aUser, bool aWantConnection) noexcept {
@@ -1180,15 +1167,16 @@ string QueueManager::checkTarget(const string& toValidate, const string& aParent
 
 /** Add a source to an existing queue item */
 bool QueueManager::addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, bool checkTLS /*true*/) throw(QueueException, FileException) {
-	if (!aUser.user) //atleast magnet links can cause this to happen.
-		throw QueueException("Can't find Source user to add For Target: " + qi->getTargetFileName());
+	if (!aUser.user) { //atleast magnet links can cause this to happen.
+		throw QueueException(STRING(UNKNOWN_USER));
+	}
 
 	if (checkTLS && !aUser.user->isSet(User::NMDC) && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
 		throw QueueException(STRING(SOURCE_NO_ENCRYPTION));
 	}
 
 	if(qi->isFinished()) //no need to add source to finished item.
-		throw QueueException("Already Finished: " + Util::getFileName(qi->getTarget()));
+		throw QueueException(STRING(FILE_ALREADY_FINISHED) + ": " + Util::getFileName(qi->getTarget()));
 	
 	bool wantConnection = !qi->isPausedPrio();
 	dcassert(qi->getBundle() || qi->getPriority() == Priority::HIGHEST);
