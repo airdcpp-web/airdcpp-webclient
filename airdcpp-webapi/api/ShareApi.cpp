@@ -129,23 +129,36 @@ namespace webserver {
 	}
 
 	api_return ShareApi::handleGetStats(ApiRequest& aRequest) {
-		auto optionalStats = ShareManager::getInstance()->getShareStats();
-		if (!optionalStats) {
+		auto optionalItemStats = ShareManager::getInstance()->getShareItemStats();
+		if (!optionalItemStats) {
 			return websocketpp::http::status_code::no_content;
 		}
 
-		auto stats = *optionalStats;
+		auto itemStats = *optionalItemStats;
+		auto searchStats = ShareManager::getInstance()->getSearchMatchingStats();
 
 		json j = {
-			{ "total_file_count", stats.totalFileCount },
-			{ "total_directory_count", stats.totalDirectoryCount },
-			{ "files_per_directory", stats.filesPerDirectory },
-			{ "total_size", stats.totalSize },
-			{ "unique_file_percentage", stats.uniqueFilePercentage },
-			{ "unique_files", stats.uniqueFileCount },
-			{ "average_file_age", stats.averageFileAge },
-			{ "profile_count", stats.profileCount },
-			{ "profile_root_count", stats.profileDirectoryCount},
+			{ "total_file_count", itemStats.totalFileCount },
+			{ "total_directory_count", itemStats.totalDirectoryCount },
+			{ "files_per_directory", itemStats.filesPerDirectory },
+			{ "total_size", itemStats.totalSize },
+			{ "unique_file_percentage", itemStats.uniqueFilePercentage },
+			{ "unique_files", itemStats.uniqueFileCount },
+			{ "average_file_age", itemStats.averageFileAge },
+			{ "profile_count", itemStats.profileCount },
+			{ "profile_root_count", itemStats.profileDirectoryCount},
+
+			{ "total_searches", searchStats.totalSearches },
+			{ "total_searches_per_second", searchStats.totalSearchesPerSecond },
+			{ "total_recursive_searches", searchStats.recursiveSearches },
+			{ "unfiltered_recursive_searches_per_second", searchStats.unfilteredRecursiveSearchesPerSecond },
+			{ "filtered_search_percentage", searchStats.filteredSearchPercentage },
+			{ "unfiltered_recursive_match_percentage", searchStats.unfilteredRecursiveMatchPercentage },
+			{ "average_search_token_count", searchStats.averageSearchTokenCount },
+			{ "average_search_token_length", searchStats.averageSearchTokenLength },
+			{ "auto_search_percentage", searchStats.autoSearchPercentage },
+			{ "tth_search_percentage", searchStats.tthSearchPercentage },
+			{ "average_match_ms", searchStats.averageSearchMatchMs },
 		};
 
 		aRequest.setResponseBody(j);
