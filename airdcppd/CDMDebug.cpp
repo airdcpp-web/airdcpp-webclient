@@ -18,38 +18,78 @@
 
 #include "CDMDebug.h"
 
+#include <web-server/WebServerManager.h>
+
 namespace airdcppd {
 
-CDMDebug::CDMDebug(bool aClientCommands, bool aHubCommands) : showHubCommands(aHubCommands), showClientCommands(aClientCommands) {
+CDMDebug::CDMDebug(bool aClientCommands, bool aHubCommands, bool aWebCommands) : showHubCommands(aHubCommands), showClientCommands(aClientCommands), showWebCommands(aWebCommands) {
 	DebugManager::getInstance()->addListener(this);
+	WebServerManager::getInstance()->addListener(this);
 }
 
 CDMDebug::~CDMDebug() {
 	DebugManager::getInstance()->removeListener(this);
+	WebServerManager::getInstance()->removeListener(this);
 }
 
-void CDMDebug::on(DebugManagerListener::DebugCommand, const string& aLine, uint8_t aType, uint8_t aDirection, const string& ip) noexcept{
-	string cmd;
+void CDMDebug::printMessage(const string& aType, bool aIncoming, const string& aData, const string& aIP) noexcept {
+	string cmd(aType + ":\t");
+
+	if (aIncoming) {
+		cmd += "[Incoming]";
+	} else {
+		cmd += "[Outgoing]";
+	}
+
+	cmd += "[" + aIP + "]\t" + aData;
+	
+	printf("%s\n", cmd.c_str());
+}
+
+void CDMDebug::on(WebServerManagerListener::Data, const string& aData, TransportType aType, Direction aDirection, const string& aIP) noexcept {
+	if (!showWebCommands) {
+		return;
+	}
+
+	string type;
+	switch (aType) {
+		case TransportType::TYPE_HTTP_API:
+			type = "API (HTTP)";
+			break;
+		case TransportType::TYPE_SOCKET:
+			type = "API (socket)";
+			break;
+		case TransportType::TYPE_HTTP_FILE:
+			type = "HTTP file request";
+			break;
+		default: dcassert(0);
+	}
+
+	printMessage(type, aDirection == Direction::INCOMING, aData, aIP);
+}
+
+void CDMDebug::on(DebugManagerListener::DebugCommand, const string& aLine, uint8_t aType, uint8_t aDirection, const string& aIP) noexcept{
+	string type;
 	switch (aType) {
 	case DebugManager::TYPE_HUB:
 		if (!showHubCommands)
 			return;
-		cmd = "Hub:";
+		type = "Hub";
 		break;
 	case DebugManager::TYPE_CLIENT:
 		if (!showClientCommands)
 			return;
-		cmd = "Client (TCP):";
+		type = "Client (TCP)";
 		break;
 	case DebugManager::TYPE_CLIENT_UDP:
 		if (!showClientCommands)
 			return;
-		cmd = "Client (UDP):";
+		type = "Client (UDP)";
 		break;
 	default: dcassert(0);
 	}
 
-	cmd += "\t";
+	/*cmd += "\t";
 
 	if (aDirection == DebugManager::INCOMING) {
 		cmd += "[Incoming]";
@@ -57,9 +97,9 @@ void CDMDebug::on(DebugManagerListener::DebugCommand, const string& aLine, uint8
 		cmd += "[Outgoing]";
 	}
 
-	cmd += "[" + ip + "]\t" + aLine;
+	cmd += "[" + ip + "]\t" + aLine;*/
 
-	printf("%s\n", cmd.c_str());
+	printMessage(type, aDirection == DebugManager::INCOMING, aLine, aIP);
 }
 
 }
