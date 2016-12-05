@@ -89,16 +89,6 @@ void CDMDebug::on(DebugManagerListener::DebugCommand, const string& aLine, uint8
 	default: dcassert(0);
 	}
 
-	/*cmd += "\t";
-
-	if (aDirection == DebugManager::INCOMING) {
-		cmd += "[Incoming]";
-	} else {
-		cmd += "[Outgoing]";
-	}
-
-	cmd += "[" + ip + "]\t" + aLine;*/
-
 	printMessage(type, aDirection == DebugManager::INCOMING, aLine, aIP);
 }
 
