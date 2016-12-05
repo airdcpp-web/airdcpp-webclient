@@ -1578,7 +1578,7 @@ void AdcHub::on(Line l, const string& aLine) noexcept {
 	Client::on(l, aLine);
 
 	if(!Text::validateUtf8(aLine)) {
-		// @todo report to user?
+		statusMessage(STRING(UTF_VALIDATION_ERROR), LogMessage::SEV_ERROR);
 		return;
 	}
 
