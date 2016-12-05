@@ -31,10 +31,10 @@ namespace webserver {
 
 	class WebSocket {
 	public:
-		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, server_plain* aServer) : WebSocket(aIsSecure, aHdl) {
+		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, server_plain* aServer, WebServerManager* aWsm) : WebSocket(aIsSecure, aHdl, aWsm) {
 			plainServer = aServer;
 		}
-		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, server_tls* aServer) : WebSocket(aIsSecure, aHdl) {
+		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, server_tls* aServer, WebServerManager* aWsm) : WebSocket(aIsSecure, aHdl, aWsm) {
 			tlsServer = aServer;
 		}
 		~WebSocket();
@@ -49,7 +49,9 @@ namespace webserver {
 		WebSocket(WebSocket&) = delete;
 		WebSocket& operator=(WebSocket&) = delete;
 
-		string getIp() const noexcept;
+		string getIp() const noexcept {
+			return ip;
+		}
 		void ping() noexcept;
 
 		void logError(const string& aMessage, websocketpp::log::level aErrorLevel) const noexcept;
@@ -59,17 +61,18 @@ namespace webserver {
 			return timeCreated;
 		}
 	protected:
-		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl);
+		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, WebServerManager* aWsm);
 	private:
 		union {
 			server_plain* plainServer;
 			server_tls* tlsServer;
 		};
 
-		websocketpp::connection_hdl hdl;
-
-		bool secure;
-		time_t timeCreated;
+		string ip;
+		const websocketpp::connection_hdl hdl;
+		WebServerManager* wsm;
+		const bool secure;
+		const time_t timeCreated;
 	};
 }
 

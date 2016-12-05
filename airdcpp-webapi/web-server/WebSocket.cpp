@@ -17,6 +17,7 @@
 */
 
 #include <web-server/stdinc.h>
+#include <web-server/WebServerManager.h>
 #include <web-server/WebSocket.h>
 
 #include <airdcpp/format.h>
@@ -25,24 +26,23 @@
 
 
 namespace webserver {
-	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl) :
-		secure(aIsSecure), hdl(aHdl), timeCreated(GET_TICK()) {
+	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, WebServerManager* aWsm) :
+		secure(aIsSecure), hdl(aHdl), timeCreated(GET_TICK()), wsm(aWsm) {
 
 		debugMessage("Websocket created");
+
+		if (secure) {
+			auto conn = tlsServer->get_con_from_hdl(hdl);
+			ip = conn->get_remote_endpoint();
+		}
+		else {
+			auto conn = plainServer->get_con_from_hdl(hdl);
+			ip = conn->get_remote_endpoint();
+		}
 	}
 
 	WebSocket::~WebSocket() {
 		dcdebug("Websocket was deleted\n");
-	}
-
-	string WebSocket::getIp() const noexcept {
-		if (secure) {
-			auto conn = tlsServer->get_con_from_hdl(hdl);
-			return conn->get_remote_endpoint();
-		} else {
-			auto conn = plainServer->get_con_from_hdl(hdl);
-			return conn->get_remote_endpoint();
-		}
 	}
 
 	void WebSocket::sendApiResponse(const json& aResponseJson, const json& aErrorJson, websocketpp::http::status_code::value aCode, int aCallbackId) noexcept {
@@ -83,7 +83,7 @@ namespace webserver {
 	void WebSocket::sendPlain(const json& aJson) noexcept {
 		auto str = aJson.dump();
 
-		//debugMessage("WebSocket::sendPlain:" + (str.length() <= 500 ? str : str.substr(0, 500) + " (truncated)"));
+		wsm->onData(str, TransportType::TYPE_SOCKET, Direction::OUTGOING, ip);
 
 		try {
 			if (secure) {

@@ -268,6 +268,10 @@ namespace webserver {
 		socket->debugMessage("PONG succeed");
 	}
 
+	void WebServerManager::onData(const string& aData, TransportType aType, Direction aDirection, const string& aIP) noexcept {
+		fire(WebServerManagerListener::Data(), aData, aType, aDirection, aIP);
+	}
+
 	void WebServerManager::onPongTimeout(websocketpp::connection_hdl hdl, const string& aPayload) {
 		auto socket = getSocket(hdl);
 		if (!socket) {

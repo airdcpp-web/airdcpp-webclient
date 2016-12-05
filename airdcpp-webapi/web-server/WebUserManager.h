@@ -36,8 +36,9 @@ namespace webserver {
 		WebUserManager(WebServerManager* aServer);
 		~WebUserManager();
 
-		SessionPtr authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, bool aUserSession) noexcept;
+		SessionPtr authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, bool aUserSession, const string& aIP) noexcept;
 
+		SessionList getSessions() const noexcept;
 		SessionPtr getSession(const string& aAuthToken) const noexcept;
 		SessionPtr getSession(LocalSessionId aId) const noexcept;
 		void logout(const SessionPtr& aSession);
@@ -65,7 +66,7 @@ namespace webserver {
 		std::map<LocalSessionId, SessionPtr> sessionsLocalId;
 
 		void checkExpiredSessions() noexcept;
-		void removeSession(const SessionPtr& aSession) noexcept;
+		void removeSession(const SessionPtr& aSession, bool aTimedOut) noexcept;
 		TimerPtr expirationTimer;
 
 		void on(WebServerManagerListener::Started) noexcept;

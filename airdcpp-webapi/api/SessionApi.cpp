@@ -32,13 +32,24 @@
 #include <airdcpp/version.h>
 
 namespace webserver {
-	SessionApi::SessionApi(Session* aSession) : ApiModule(aSession) {
+	SessionApi::SessionApi(Session* aSession) : SubscribableApiModule(aSession, Access::ADMIN) {
 		METHOD_HANDLER("activity", Access::ANY, ApiRequest::METHOD_POST, (), false, SessionApi::handleActivity);
 		METHOD_HANDLER("auth", Access::ANY, ApiRequest::METHOD_DELETE, (), false, SessionApi::handleLogout);
 
 		// Just fail these...
 		METHOD_HANDLER("auth", Access::ANY, ApiRequest::METHOD_POST, (), false, SessionApi::failAuthenticatedRequest);
 		METHOD_HANDLER("socket", Access::ANY, ApiRequest::METHOD_POST, (), false, SessionApi::failAuthenticatedRequest);
+
+		METHOD_HANDLER("sessions", Access::ADMIN, ApiRequest::METHOD_GET, (), false, SessionApi::handleGetSessions);
+
+		aSession->getServer()->getUserManager().addListener(this);
+
+		createSubscription("session_created");
+		createSubscription("session_removed");
+	}
+
+	SessionApi::~SessionApi() {
+		session->getServer()->getUserManager().removeListener(this);
 	}
 
 	api_return SessionApi::failAuthenticatedRequest(ApiRequest& aRequest) {
@@ -117,7 +128,7 @@ namespace webserver {
 		};
 	}
 
-	websocketpp::http::status_code::value SessionApi::handleLogin(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) {
+	websocketpp::http::status_code::value SessionApi::handleLogin(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIP) {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto username = JsonUtil::getField<string>("username", reqJson, false);
@@ -127,7 +138,7 @@ namespace webserver {
 		auto userSession = JsonUtil::getOptionalFieldDefault<bool>("user_session", reqJson, false);
 
 		auto session = WebServerManager::getInstance()->getUserManager().authenticate(username, password, 
-			aIsSecure, inactivityMinutes, userSession);
+			aIsSecure, inactivityMinutes, userSession, aIP);
 
 		if (!session) {
 			aRequest.setResponseErrorStr("Invalid username or password");
@@ -138,7 +149,7 @@ namespace webserver {
 			{ "permissions", session->getUser()->getPermissions() },
 			{ "token", session->getAuthToken() },
 			{ "user", session->getUser()->getUserName() },
-			{ "system", getSystemInfo(aIp) },
+			{ "system", getSystemInfo(aIP) },
 			{ "run_wizard", SETTING(WIZARD_RUN) },
 			{ "cid", ClientManager::getInstance()->getMyCID().toBase32() },
 		};
@@ -170,5 +181,47 @@ namespace webserver {
 		aSocket->setSession(session);
 
 		return websocketpp::http::status_code::ok;
+	}
+
+	api_return SessionApi::handleGetSessions(ApiRequest& aRequest) {
+		auto sessions = session->getServer()->getUserManager().getSessions();
+
+		auto ret = json::array();
+		for (const auto& s : sessions) {
+			ret.push_back(serializeSession(s));
+		}
+
+		aRequest.setResponseBody(ret);
+		return websocketpp::http::status_code::ok;
+	}
+
+	json SessionApi::serializeSession(const SessionPtr& aSession) noexcept {
+		return{
+			{ "id", aSession->getId() },
+			{ "secure", aSession->isSecure() },
+			{ "last_activity", aSession->getLastActivity() },
+			{ "ip", aSession->getIp() },
+			{ "user", {
+				{ "id",  aSession->getUser()->getToken() },
+				{ "username", aSession->getUser()->getUserName() },
+			} }
+		};
+	}
+
+	void SessionApi::on(WebUserManagerListener::SessionCreated, const SessionPtr& aSession) noexcept {
+		maybeSend("session_created", [&] {
+			return json({
+				{ "session", serializeSession(aSession) },
+			});
+		});
+	}
+
+	void SessionApi::on(WebUserManagerListener::SessionRemoved, const SessionPtr& aSession, bool aTimedOut) noexcept {
+		maybeSend("session_removed", [&] {
+			return json({
+				{ "session", serializeSession(aSession) },
+				{ "timed_out", aTimedOut },
+			});
+		});
 	}
 }
