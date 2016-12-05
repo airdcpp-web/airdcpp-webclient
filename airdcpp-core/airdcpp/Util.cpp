@@ -1348,7 +1348,7 @@ string Util::getTimeStamp(time_t t) noexcept {
 	} else {
 		strftime(buf, 254, SETTING(TIME_STAMPS_FORMAT).c_str(), _tm);
 	}
-	return Text::acpToUtf8(buf);
+	return buf;
 }
 
 string Util::toAdcFile(const string& file) noexcept {

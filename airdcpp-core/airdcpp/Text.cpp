@@ -383,27 +383,16 @@ string fromUtf8(const string& str, const string& toCharset) noexcept {
 #endif
 }
 
+#ifndef _WIN32
 string convert(const string& str, const string& fromCharset, const string& toCharset) noexcept {
 	if(str.empty())
 		return str;
-
-#ifdef _WIN32
-	if (Util::stricmp(fromCharset, toCharset) == 0)
-		return str;
-	if(toCharset == utf8)
-		return acpToUtf8(str);
-	if(fromCharset == utf8)
-		return utf8ToAcp(str);
-
-	// We don't know how to convert arbitrary charsets
-	dcdebug("Unknown conversion from %s to %s\n", fromCharset.c_str(), toCharset.c_str());
-	return str;
-#else
-
 	// Initialize the converter
 	iconv_t cd = iconv_open(toCharset.c_str(), fromCharset.c_str());
-	if(cd == (iconv_t)-1)
-		return str;
+	if (cd == (iconv_t)-1) {
+		dcdebug("Unknown conversion from %s to %s\n", fromCharset.c_str(), toCharset.c_str());
+		return Util::emptyString;
+	}
 
 	size_t rv;
 	size_t len = str.length() * 2; // optimization
@@ -434,13 +423,15 @@ string convert(const string& str, const string& fromCharset, const string& toCha
 			}
 		}
 	}
+
 	iconv_close(cd);
 	if(outleft > 0) {
 		tmp.resize(len - outleft);
 	}
+
 	return tmp;
-#endif
 }
+#endif
 }
 
 string Text::toDOS(string tmp) noexcept {

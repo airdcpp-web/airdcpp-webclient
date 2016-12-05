@@ -60,13 +60,13 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) throw
 	COMMAND_DEBUG(aLine, DebugManager::TYPE_CLIENT, DebugManager::INCOMING, getRemoteIp());
 	
 	if(aLine.length() < 2) {
-		fire(UserConnectionListener::ProtocolError(), this, "Invalid data"); // TODO: translate
+		fire(UserConnectionListener::ProtocolError(), this, STRING(MALFORMED_DATA));
 		return;
 	}
 
 	if(aLine[0] == 'C' && !isSet(FLAG_NMDC)) {
 		if(!Text::validateUtf8(aLine)) {
-			fire(UserConnectionListener::ProtocolError(), this, "Non-UTF-8 data in an ADC connection");  // TODO: translate
+			fire(UserConnectionListener::ProtocolError(), this, STRING(UTF_VALIDATION_ERROR));
 			return;
 		}
 		dispatch(aLine);
@@ -75,7 +75,7 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) throw
 		setFlag(FLAG_NMDC);
 	} else {
 		// We shouldn't be here?
-		fire(UserConnectionListener::ProtocolError(), this, "Invalid data");  // TODO: translate
+		fire(UserConnectionListener::ProtocolError(), this, STRING(MALFORMED_DATA));
 		return;
 	}
 
@@ -100,8 +100,7 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) throw
 			fire(UserConnectionListener::Direction(), this, param.substr(0, x), param.substr(x+1));
 		}
 	} else if(cmd == "Error") {
-		if(Util::stricmp(param.c_str(), FILE_NOT_AVAILABLE) == 0 ||
-			param.rfind(/*path/file*/" no more exists") != string::npos) { 
+		if(Util::stricmp(param.c_str(), FILE_NOT_AVAILABLE)) { 
     		fire(UserConnectionListener::FileNotAvailable(), this);
     	} else {
 			fire(UserConnectionListener::ProtocolError(), this, param);
@@ -146,9 +145,7 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) throw
 			fire(UserConnectionListener::ListLength(), this, param);
 		}
 	} else {
-
-		
-		fire(UserConnectionListener::ProtocolError(), this, "Invalid data"); // TODO: translate
+		fire(UserConnectionListener::ProtocolError(), this, STRING(MALFORMED_DATA));
 	}
 }
 

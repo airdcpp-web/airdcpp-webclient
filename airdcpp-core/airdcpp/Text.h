@@ -91,9 +91,9 @@ namespace Text {
 	bool isLower(const string& str) noexcept;
 
 	string toLower(const string& str) noexcept;
-
+#ifndef _WIN32
 	string convert(const string& str, const string& fromCharset, const string& toCharset = "") noexcept;
-
+#endif
 	string toUtf8(const string& str, const string& fromCharset = "") noexcept;
 
 	string fromUtf8(const string& str, const string& toCharset = "") noexcept;

@@ -26,7 +26,7 @@ namespace dcpp {
 
 const string SimpleXML::utf8Header = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>\r\n";
 
-string& SimpleXML::escape(string& aString, bool aAttrib, bool aLoading /* = false */, const string &encoding /* = "UTF-8" */) {
+string& SimpleXML::escape(string& aString, bool aAttrib, bool aLoading /* = false */) {
 	string::size_type i = 0;
 	const char* chars = aAttrib ? "<&>'\"" : "<&>";
 	
@@ -60,7 +60,6 @@ string& SimpleXML::escape(string& aString, bool aAttrib, bool aLoading /* = fals
 				}
 			}
 		}
-		aString = Text::toUtf8(aString, encoding);
 	} else {
 		while( (i = aString.find_first_of(chars, i)) != string::npos) {
 			switch(aString[i]) {
