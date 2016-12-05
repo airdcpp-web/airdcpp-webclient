@@ -76,13 +76,14 @@ namespace webserver {
 				return;
 			}
 
+			onData(msg->get_payload(), TransportType::TYPE_SOCKET, Direction::INCOMING, socket->getIp());
 			api.handleSocketRequest(msg->get_payload(), socket, aIsSecure);
 		}
 
 		template <typename EndpointType>
 		void on_open_socket(EndpointType* aServer, websocketpp::connection_hdl hdl, bool aIsSecure) {
 			WLock l(cs);
-			auto socket = make_shared<WebSocket>(aIsSecure, hdl, aServer);
+			auto socket = make_shared<WebSocket>(aIsSecure, hdl, aServer, this);
 			sockets.emplace(hdl, socket);
 		}
 
@@ -91,42 +92,53 @@ namespace webserver {
 		void onPongReceived(websocketpp::connection_hdl hdl, const string& aPayload);
 		void onPongTimeout(websocketpp::connection_hdl hdl, const string& aPayload);
 
+		void onData(const string& aData, TransportType aType, Direction aDirection, const string& aIP) noexcept;
+
 		template <typename EndpointType>
 		void on_http(EndpointType* s, websocketpp::connection_hdl hdl, bool aIsSecure) {
 			// Blocking HTTP Handler
 			auto con = s->get_con_from_hdl(hdl);
 			websocketpp::http::status_code::value status;
+			auto ip = con->get_remote_endpoint();
 
 			if (con->get_resource().length() >= 4 && con->get_resource().compare(0, 4, "/api") == 0) {
-				json output, error;
+				auto path = con->get_resource().substr(4);
 
+				onData(path + ": " + con->get_request().get_body(), TransportType::TYPE_HTTP_API, Direction::INCOMING, ip);
+
+				json output, error;
 				status = api.handleHttpRequest(
-					con->get_resource().substr(4),
+					path,
 					con->get_request(),
 					output,
 					error,
 					aIsSecure,
-					con->get_remote_endpoint()
+					ip
 					);
 
-				if (status != websocketpp::http::status_code::ok) {
-					con->set_body(error.dump(4));
-				} else {
-					con->set_body(output.dump());
-				}
+				auto data = status != websocketpp::http::status_code::ok ? error.dump() : output.dump();
+				onData(path + " (" + Util::toString(status) + "): " + data, TransportType::TYPE_HTTP_API, Direction::OUTGOING, ip);
 
+				con->set_body(data);
 				con->append_header("Content-Type", "application/json");
 				con->set_status(status);
-			}
-			else {
+			} else {
+				onData(con->get_request().get_method() + " " + con->get_resource(), TransportType::TYPE_HTTP_FILE, Direction::INCOMING, ip);
+
 				StringPairList headers;
 				std::string output;
-
 				status = fileServer.handleRequest(con->get_resource(), con->get_request(), output, headers);
 
 				for (const auto& p : headers) {
 					con->append_header(p.first, p.second);
 				}
+
+				onData(
+					con->get_request().get_method() + " " + con->get_resource() + ": " + Util::toString(status) + " (" + Util::formatBytes(output.length()) + ")", 
+					TransportType::TYPE_HTTP_FILE, 
+					Direction::OUTGOING, 
+					ip
+				);
 
 				con->set_status(status);
 				con->set_body(output);

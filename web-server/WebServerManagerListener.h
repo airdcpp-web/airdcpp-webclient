@@ -23,6 +23,14 @@
 #include <web-server/stdinc.h>
 
 namespace webserver {
+	enum class TransportType {
+		TYPE_SOCKET, TYPE_HTTP_API, TYPE_HTTP_FILE
+	};
+
+	enum class Direction {
+		INCOMING, OUTGOING
+	};
+
 	class WebServerManagerListener {
 	public:
 		virtual ~WebServerManagerListener() { }
@@ -34,11 +42,15 @@ namespace webserver {
 		typedef X<3> LoadSettings;
 		typedef X<4> SaveSettings;
 
+		typedef X<5> Data;
+
 		virtual void on(Started) noexcept { }
 		virtual void on(Stopping) noexcept { }
 		virtual void on(Stopped) noexcept { }
 		virtual void on(LoadSettings, SimpleXML&) noexcept { }
 		virtual void on(SaveSettings, SimpleXML&) noexcept { }
+
+		virtual void on(Data, const string& /*aData*/, TransportType, Direction, const string& /*aIP*/) noexcept { }
 	};
 
 }

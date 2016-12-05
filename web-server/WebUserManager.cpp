@@ -46,7 +46,7 @@ namespace webserver {
 		server->removeListener(this);
 	}
 
-	SessionPtr WebUserManager::authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, bool aUserSession) noexcept {
+	SessionPtr WebUserManager::authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, bool aUserSession, const string& aIP) noexcept {
 		auto u = getUser(aUserName);
 		if (!u) {
 			return nullptr;
@@ -61,7 +61,7 @@ namespace webserver {
 		fire(WebUserManagerListener::UserUpdated(), u);
 
 		auto uuid = boost::uuids::random_generator()();
-		auto session = std::make_shared<Session>(u, boost::uuids::to_string(uuid), aIsSecure, server, aMaxInactivityMinutes, aUserSession);
+		auto session = std::make_shared<Session>(u, boost::uuids::to_string(uuid), aIsSecure, server, aMaxInactivityMinutes, aUserSession, aIP);
 
 		{
 			WLock l(cs);
@@ -69,11 +69,22 @@ namespace webserver {
 			sessionsLocalId.emplace(session->getId(), session);
 		}
 
+		fire(WebUserManagerListener::SessionCreated(), session);
+
 		if (aUserSession) {
 			ActivityManager::getInstance()->updateActivity();
 		}
 
 		return session;
+	}
+
+	SessionList WebUserManager::getSessions() const noexcept {
+		SessionList ret;
+
+		RLock l(cs);
+		boost::range::copy(sessionsLocalId | map_values, back_inserter(ret));
+
+		return ret;
 	}
 
 	SessionPtr WebUserManager::getSession(const string& aSession) const noexcept {
@@ -105,7 +116,7 @@ namespace webserver {
 	void WebUserManager::logout(const SessionPtr& aSession) {
 		aSession->onSocketDisconnected();
 		
-		removeSession(aSession);
+		removeSession(aSession, false);
 	}
 
 	void WebUserManager::checkExpiredSessions() noexcept {
@@ -122,12 +133,12 @@ namespace webserver {
 		for (const auto& s : removedSession) {
 			// Don't remove sessions with active socket
 			if (!server->getSocket(s->getId())) {
-				removeSession(s);
+				removeSession(s, true);
 			}
 		}
 	}
 
-	void WebUserManager::removeSession(const SessionPtr& aSession) noexcept {
+	void WebUserManager::removeSession(const SessionPtr& aSession, bool aTimedOut) noexcept {
 		aSession->getUser()->removeSession();
 		fire(WebUserManagerListener::UserUpdated(), aSession->getUser());
 
@@ -136,6 +147,8 @@ namespace webserver {
 			sessionsRemoteId.erase(aSession->getAuthToken());
 			sessionsLocalId.erase(aSession->getId());
 		}
+
+		fire(WebUserManagerListener::SessionRemoved(), aSession, aTimedOut);
 	}
 
 	void WebUserManager::on(WebServerManagerListener::Started) noexcept {

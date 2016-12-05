@@ -20,15 +20,17 @@
 #define DCPLUSPLUS_DCPP_SESSIONAPI_H
 
 #include <web-server/stdinc.h>
+#include <web-server/WebUserManagerListener.h>
 
 #include <api/ApiModule.h>
 
 #include <airdcpp/typedefs.h>
 
 namespace webserver {
-	class SessionApi : public ApiModule {
+	class SessionApi : public SubscribableApiModule, private WebUserManagerListener {
 	public:
 		SessionApi(Session* aSession);
+		~SessionApi();
 
 		// Session isn't associated yet when these get called...
 		static api_return handleLogin(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp);
@@ -37,17 +39,25 @@ namespace webserver {
 		int getVersion() const noexcept override {
 			return 0;
 		}
+
+
 	private:
 		api_return failAuthenticatedRequest(ApiRequest& aRequest);
 
 		api_return handleLogout(ApiRequest& aRequest);
 		api_return handleActivity(ApiRequest& aRequest);
 
+		api_return handleGetSessions(ApiRequest& aRequest);
+
 		static json getSystemInfo(const string& aIp) noexcept;
+		static json serializeSession(const SessionPtr& aSession) noexcept;
 
 		static string getHostname() noexcept;
 		static string getNetworkType(const string& aIp) noexcept;
 		static string getPlatform() noexcept;
+
+		void on(WebUserManagerListener::SessionCreated, const SessionPtr& aSession) noexcept override;
+		void on(WebUserManagerListener::SessionRemoved, const SessionPtr& aSession, bool aTimedOut) noexcept override;
 	};
 }
 
