@@ -31,12 +31,8 @@ namespace webserver {
 
 	class WebSocket {
 	public:
-		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, server_plain* aServer, WebServerManager* aWsm) : WebSocket(aIsSecure, aHdl, aWsm) {
-			plainServer = aServer;
-		}
-		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, server_tls* aServer, WebServerManager* aWsm) : WebSocket(aIsSecure, aHdl, aWsm) {
-			tlsServer = aServer;
-		}
+		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, server_plain* aServer, WebServerManager* aWsm);
+		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, server_tls* aServer, WebServerManager* aWsm);
 		~WebSocket();
 
 		void close(websocketpp::close::status::value aCode, const std::string& aMsg);
@@ -49,9 +45,7 @@ namespace webserver {
 		WebSocket(WebSocket&) = delete;
 		WebSocket& operator=(WebSocket&) = delete;
 
-		string getIp() const noexcept {
-			return ip;
-		}
+		string getIp() const noexcept;
 		void ping() noexcept;
 
 		void logError(const string& aMessage, websocketpp::log::level aErrorLevel) const noexcept;
@@ -63,12 +57,11 @@ namespace webserver {
 	protected:
 		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, WebServerManager* aWsm);
 	private:
-		union {
+		const union {
 			server_plain* plainServer;
 			server_tls* tlsServer;
 		};
 
-		string ip;
 		const websocketpp::connection_hdl hdl;
 		WebServerManager* wsm;
 		const bool secure;
