@@ -23,7 +23,8 @@ Note that this section doesn't apply to communication issues causes by [applicat
 
 Information to post:
 
-* [Console log from the browser](https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md#ui-related-issues)
+* Console log from the browser ([see the next section](https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md#ui-related-issues))
+* Tested web browsers and their versions
 * Possible errors from the daemon console window. You may also start the daemon with `--cdm-web` option to get full web access logs.
 
 ### UI-related issues
