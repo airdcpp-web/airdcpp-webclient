@@ -17,6 +17,15 @@ If the issue can be reproduced, you may also want to try the [development versio
 
 Attach the full *console* output cmake and make (no cmake log files). Mention the currently used operating system (with version included).
 
+### Communication issues between the UI and the application
+
+Note that this section doesn't apply to communication issues causes by [application crashes](https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md#application-crashes) or [freezes](https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md#application-freezesdeadlocks).
+
+Information to post:
+
+* [Console log from the browser](https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md#ui-related-issues)
+* Possible errors from the daemon console window. You may also start the daemon with `--cdm-web` option to get full web access logs.
+
 ### UI-related issues
 
 If the UI behaves incorrectly, you should open the console of your _web browser_ (`Ctrl+Shift+J` in Chrome and Firefox) and check if there are any errors. It's even better if you manage to reproduce the issue while the console is open, as it will give more specific error messages. Include the errors in your bug report.
@@ -26,11 +35,11 @@ Other useful information:
 * Browser version and information whether the issue happens with other browser as well
 * Screenshots or video about the issue
 
-### Client crash
+### Application crashes
 
 Include all text from the generated crash log to your bug report. The log is located at ``/home/<username>/.airdc++/exceptioninfo.txt``.
 
-### Client freeze/deadlock
+### Application freezes/deadlocks
 
 Note that you should first confirm whether the client has frozen and the issue isn't in the UI (try opening the UI in a new tab).
 
