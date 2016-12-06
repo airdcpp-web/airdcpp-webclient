@@ -26,23 +26,38 @@
 
 
 namespace webserver {
+	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, server_plain* aServer, WebServerManager* aWsm) : WebSocket(aIsSecure, aHdl, aWsm) {
+		plainServer = aServer;
+	}
+
+	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, server_tls* aServer, WebServerManager* aWsm) : WebSocket(aIsSecure, aHdl, aWsm) {
+		tlsServer = aServer;
+	}
+
 	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, WebServerManager* aWsm) :
 		secure(aIsSecure), hdl(aHdl), timeCreated(GET_TICK()), wsm(aWsm) {
 
 		debugMessage("Websocket created");
-
-		if (secure) {
-			auto conn = tlsServer->get_con_from_hdl(hdl);
-			ip = conn->get_remote_endpoint();
-		}
-		else {
-			auto conn = plainServer->get_con_from_hdl(hdl);
-			ip = conn->get_remote_endpoint();
-		}
 	}
 
 	WebSocket::~WebSocket() {
 		dcdebug("Websocket was deleted\n");
+	}
+
+	string WebSocket::getIp() const noexcept {
+		try {
+			if (secure) {
+				auto conn = tlsServer->get_con_from_hdl(hdl);
+				return conn->get_remote_endpoint();
+			} else {
+				auto conn = plainServer->get_con_from_hdl(hdl);
+				return conn->get_remote_endpoint();
+			}
+		} catch (const std::exception& e) {
+			dcdebug("WebSocket::getIp failed: %s\n", e.what());
+		}
+
+		return Util::emptyString;
 	}
 
 	void WebSocket::sendApiResponse(const json& aResponseJson, const json& aErrorJson, websocketpp::http::status_code::value aCode, int aCallbackId) noexcept {
@@ -83,7 +98,7 @@ namespace webserver {
 	void WebSocket::sendPlain(const json& aJson) noexcept {
 		auto str = aJson.dump();
 
-		wsm->onData(str, TransportType::TYPE_SOCKET, Direction::OUTGOING, ip);
+		wsm->onData(str, TransportType::TYPE_SOCKET, Direction::OUTGOING, getIp());
 
 		try {
 			if (secure) {
@@ -105,7 +120,7 @@ namespace webserver {
 			}
 
 		} catch (const std::exception& e) {
-			debugMessage("Ping failed: " + string(e.what()));
+			debugMessage("WebSocket::ping failed: " + string(e.what()));
 		}
 	}
 
