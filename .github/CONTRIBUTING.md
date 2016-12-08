@@ -19,13 +19,11 @@ Attach the full *console* output cmake and make (no cmake log files). Mention th
 
 ### Communication issues between the UI and the application
 
-Note that this section doesn't apply to communication issues causes by [application crashes](https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md#application-crashes) or [freezes](https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md#application-freezesdeadlocks).
+You should first check that the application daemon hasn't [crashed](https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md#application-crashes) or [freezed](https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md#application-freezesdeadlocks), and if yes, follow the respective instructions instead.
 
 Information to post:
 
 * Console log from the browser ([see the next section](https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md#ui-related-issues))
-* Tested web browsers and their versions
-* Does the issue happen with both HTTP and HTTPS?
 * Possible errors from the daemon console window. You may also start the daemon with `--cdm-web` option to get full web access logs.
 
 ### UI-related issues
