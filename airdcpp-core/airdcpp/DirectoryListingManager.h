@@ -28,12 +28,48 @@
 #include "DirectoryListing.h"
 #include "Pointer.h"
 #include "Singleton.h"
-#include "TargetUtil.h"
 #include "TimerManagerListener.h"
 
 namespace dcpp {
-	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener, 
-		public TimerManagerListener {
+	typedef uint32_t DirectoryDownloadId;
+	class DirectoryDownload {
+	public:
+		DirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner = nullptr);
+
+		typedef vector<DirectoryDownloadPtr> List;
+
+		// All clients don't support sending of recursive partial lists
+		IGETSET(bool, partialListFailed, PartialListFailed, false);
+		IGETSET(QueueItemPtr, queueItem, QueueItem, nullptr);
+
+		struct HasOwner {
+			HasOwner(void* aOwner, const string& s) : a(s), owner(aOwner) { }
+			bool operator()(const DirectoryDownloadPtr& ddi) const noexcept;
+
+			const string& a;
+			void* owner;
+
+			HasOwner& operator=(const HasOwner&) = delete;
+		};
+
+		const HintedUser& getUser() const noexcept { return user; }
+		const string& getBundleName() const noexcept { return bundleName; }
+		const string& getTarget() const noexcept { return target; }
+		const string& getListPath() const noexcept { return listPath; }
+		Priority getPriority() const noexcept { return priority; }
+		const void* getOwner() const noexcept { return owner; }
+		DirectoryDownloadId getId() const noexcept { return id; }
+	private:
+		const DirectoryDownloadId id;
+		const Priority priority;
+		const HintedUser user;
+		const string target;
+		const string bundleName;
+		const string listPath;
+		const void* owner;
+	};
+
+	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener {
 	public:
 		typedef unordered_map<UserPtr, DirectoryListingPtr, User::Hash> DirectoryListingMap;
 
@@ -48,68 +84,22 @@ namespace dcpp {
 		void processList(const string& aFileName, const string& aXml, const HintedUser& user, const string& aRemotePath, int flags) noexcept;
 		void processListAction(DirectoryListingPtr aList, const string& path, int flags) noexcept;
 
-		void addDirectoryDownload(const string& aRemoteDir, const string& aBundleName, const HintedUser& aUser, const string& aTarget, TargetUtil::TargetType aTargetType, bool aSizeUnknown,
-			QueueItemBase::Priority p = QueueItem::DEFAULT, bool useFullList = false, ProfileToken aAutoSearch = 0, bool checkNameDupes = false, bool checkViewed = true) noexcept;
+		// Throws on queueing errors (such as invalid source)
+		// If owner is specified, no errors are logged if queueing of the directory fails
+		DirectoryDownloadId addDirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner = nullptr);
+		DirectoryDownload::List getDirectoryDownloads() const noexcept;
 
-		void removeDirectoryDownload(const UserPtr& aUser, const string& aPath, bool isPartialList) noexcept;
+		bool hasDirectoryDownload(const string& aBundleName, void* aOwner) const noexcept;
+		bool removeDirectoryDownload(DirectoryDownloadId aId) noexcept;
+
 		DirectoryListingMap getLists() const noexcept;
 	private:
-		class DirectoryDownloadInfo : public intrusive_ptr_base<DirectoryDownloadInfo> {
-		public:
-			DirectoryDownloadInfo() : priority(QueueItemBase::DEFAULT) { }
-			DirectoryDownloadInfo(const UserPtr& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, TargetUtil::TargetType aTargetType, QueueItemBase::Priority p,
-				bool aSizeUnknown, ProfileToken aAutoSearch, bool aRecursiveListAttempted) :
-				listPath(aListPath), target(aTarget), priority(p), targetType(aTargetType), sizeUnknown(aSizeUnknown), listing(nullptr), autoSearch(aAutoSearch), bundleName(aBundleName),
-				recursiveListAttempted(aRecursiveListAttempted), user(aUser) {
-			}
-			~DirectoryDownloadInfo() { }
+		bool removeDirectoryDownload(const UserPtr& aUser, const string& aPath) noexcept;
 
-			typedef boost::intrusive_ptr<DirectoryDownloadInfo> Ptr;
-			typedef vector<DirectoryDownloadInfo::Ptr> List;
+		// Throws on errors
+		void queueList(const DirectoryDownloadPtr& aDownloadInfo);
 
-			UserPtr& getUser() { return user; }
-
-			GETSET(string, listPath, ListPath);
-			GETSET(string, target, Target);
-			GETSET(QueueItemBase::Priority, priority, Priority);
-			GETSET(TargetUtil::TargetType, targetType, TargetType);
-			GETSET(bool, sizeUnknown, SizeUnknown);
-			GETSET(DirectoryListingPtr, listing, Listing);
-			GETSET(ProfileToken, autoSearch, AutoSearch);
-			GETSET(string, bundleName, BundleName);
-			GETSET(bool, recursiveListAttempted, RecursiveListAttempted);
-
-			string getFinishedDirName() const noexcept { return target + bundleName + Util::toString(targetType); }
-
-			struct HasASItem {
-				HasASItem(ProfileToken aToken, const string& s) : a(s), t(aToken) { }
-				bool operator()(const DirectoryDownloadInfo::Ptr& ddi) const noexcept{ return t == ddi->getAutoSearch() && Util::stricmp(a, ddi->getBundleName()) != 0; }
-				const string& a;
-				ProfileToken t;
-
-				HasASItem& operator=(const HasASItem&) = delete;
-			};
-		private:
-			UserPtr user;
-		};
-
-		// Stores information about finished items for a while so that consecutive downloads of the same directory don't get different targets
-		class FinishedDirectoryItem : public intrusive_ptr_base<FinishedDirectoryItem> {
-		public:
-			typedef boost::intrusive_ptr<FinishedDirectoryItem> Ptr;
-			typedef vector<FinishedDirectoryItem::Ptr> List;
-
-			FinishedDirectoryItem(bool aUsePausedPrio, const string& aTargetPath) : usePausedPrio(aUsePausedPrio), targetPath(aTargetPath), timeDownloaded(GET_TICK()) { }
-
-			GETSET(bool, usePausedPrio, UsePausedPrio);
-			GETSET(string, targetPath, TargetPath); // real path to the location
-			GETSET(uint64_t, timeDownloaded, TimeDownloaded); // time when this item was created
-		private:
-
-		};
-
-		bool download(const DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList, const string& aTarget, bool aHasFreeSpace) noexcept;
-		void handleDownload(DirectoryDownloadInfo::Ptr& di, const DirectoryListingPtr& aList) noexcept;
+		void handleDownload(const DirectoryDownloadPtr& aDownloadInfo, const DirectoryListingPtr& aList) noexcept;
 
 		DirectoryListingPtr createList(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsOwnList) noexcept;
 
@@ -120,10 +110,7 @@ namespace dcpp {
 		DirectoryListingPtr hasList(const UserPtr& aUser) noexcept;
 
 		/** Directories queued for downloading */
-		unordered_multimap<UserPtr, DirectoryDownloadInfo::Ptr, User::Hash> dlDirectories;
-
-		/** Directories asking for size confirmation (later also directories added for scanning etc. ) **/
-		unordered_map<string, FinishedDirectoryItem::Ptr> finishedListings;
+		unordered_multimap<UserPtr, DirectoryDownloadPtr, User::Hash> dlDirectories;
 
 
 		/** Lists open in the client **/
@@ -134,8 +121,6 @@ namespace dcpp {
 		void on(QueueManagerListener::ItemRemoved, const QueueItemPtr& qi, bool finished) noexcept;
 
 		void on(QueueManagerListener::PartialListFinished, const HintedUser& aUser, const string& aXml, const string& aBase) noexcept;
-
-		void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 	};
 
 }

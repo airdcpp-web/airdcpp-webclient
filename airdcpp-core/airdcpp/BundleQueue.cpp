@@ -135,7 +135,7 @@ StringList BundleQueue::getNmdcDirPaths(const string& aPath) const noexcept {
 
 void BundleQueue::findNmdcDirs(const string& aPath, PathInfoPtrList& pathInfos_) const noexcept {
 	// Get the last meaningful directory to look up
-	auto dirNameInfo = AirUtil::getDirName(aPath, '\\');
+	auto dirNameInfo = AirUtil::getDirName(aPath, NMDC_SEPARATOR);
 	auto directories = dirNameMap.equal_range(dirNameInfo.first);
 	if (directories.first == directories.second)
 		return;
@@ -158,7 +158,7 @@ const BundleQueue::PathInfo* BundleQueue::getNmdcSubDirectoryInfo(const string& 
 	auto pathInfos = getPathInfos(aBundle->getTarget());
 	if (pathInfos) {
 		for (const auto& p : *pathInfos) {
-			auto pos = AirUtil::compareFromEnd(p->path, aSubPath, '\\');
+			auto pos = AirUtil::compareFromEnd(p->path, aSubPath, NMDC_SEPARATOR);
 			if (pos == 0) {
 				return p;
 			}
@@ -400,22 +400,6 @@ void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
 	dcassert(bundlePaths.size() == static_cast<size_t>(boost::count_if(bundles | map_values, [](const BundlePtr& b) { return !b->isFileBundle(); })));
 
 	aBundle->deleteXmlFile();
-}
-
-void BundleQueue::getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& aVolumes) const noexcept{
-	for(const auto& b: bundles | map_values) {
-		string mountPath = TargetUtil::getMountPath(b->getTarget(), aVolumes);
-		if (!mountPath.empty()) {
-			auto s = dirMap.find(mountPath);
-			if (s != dirMap.end()) {
-				for(const auto& q: b->getQueueItems()) {
-					if (q->getDownloadedBytes() == 0) {
-						s->second.addQueued(q->getSize());
-					}
-				}
-			}
-		}
-	}
 }
 
 void BundleQueue::saveQueue(bool aForce) noexcept {

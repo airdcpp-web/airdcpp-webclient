@@ -27,7 +27,6 @@
 #include "HintedUser.h"
 #include "PrioritySearchQueue.h"
 #include "SortedVector.h"
-#include "TargetUtil.h"
 
 namespace dcpp {
 
@@ -76,8 +75,6 @@ public:
 	void getSubBundles(const string& aTarget, BundleList& retBundles) const noexcept;
 
 	void removeBundle(BundlePtr& aBundle) noexcept;
-
-	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept;
 
 	void saveQueue(bool force) noexcept;
 	QueueItemList getSearchItems(const BundlePtr& aBundle) const noexcept;

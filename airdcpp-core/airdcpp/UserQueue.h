@@ -34,11 +34,11 @@ public:
 	void getUserQIs(const UserPtr& aUser, QueueItemList& ql) noexcept;
 
 	QueueItemPtr getNext(const UserPtr& aUser, const QueueTokenSet& runningBundles, const OrderedStringSet& onlineHubs, string& lastError_, bool& hasDownload,
-		QueueItemBase::Priority minPrio = QueueItem::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, QueueItemBase::DownloadType aType = QueueItem::TYPE_ANY, bool allowOverlap = false) noexcept;
+		Priority minPrio = Priority::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, QueueItemBase::DownloadType aType = QueueItem::TYPE_ANY, bool allowOverlap = false) noexcept;
 	QueueItemPtr getNextPrioQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, 
 		QueueItemBase::DownloadType aType, bool allowOverlap, string& lastError_) noexcept;
 	QueueItemPtr getNextBundleQI(const UserPtr& aUser, const QueueTokenSet& runningBundles, const OrderedStringSet& onlineHubs,
-		QueueItemBase::Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, 
+		Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, 
 		bool allowOverlap, string& lastError_, bool& hasDownload) noexcept;
 
 	void addDownload(QueueItemPtr& qi, Download* d) noexcept;
@@ -46,11 +46,11 @@ public:
 
 	void removeQI(QueueItemPtr& qi, bool removeRunning = true) noexcept;
 	void removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning = true, Flags::MaskType reason = 0) noexcept;
-	void setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p) noexcept;
+	void setQIPriority(QueueItemPtr& qi, Priority p) noexcept;
 
 	void addBundle(BundlePtr& aBundle, const UserPtr& aUser) noexcept;
 	void removeBundle(BundlePtr& aBundle, const UserPtr& aUser) noexcept;
-	void setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p) noexcept;
+	void setBundlePriority(BundlePtr& aBundle, Priority p) noexcept;
 
 	unordered_map<UserPtr, BundleList, User::Hash>& getBundleList()  { return userBundleQueue; }
 	unordered_map<UserPtr, QueueItemList, User::Hash>& getPrioList()  { return userPrioQueue; }

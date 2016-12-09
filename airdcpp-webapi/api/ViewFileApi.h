@@ -34,7 +34,7 @@ namespace webserver {
 		ViewFileApi(Session* aSession);
 		~ViewFileApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -49,11 +49,11 @@ namespace webserver {
 		static json serializeFile(const ViewFilePtr& aFile) noexcept;
 		void onViewFileUpdated(const ViewFilePtr& aFile) noexcept;
 
-		void on(ViewFileManagerListener::FileAdded, const ViewFilePtr& aFile) noexcept;
-		void on(ViewFileManagerListener::FileClosed, const ViewFilePtr& aFile) noexcept;
-		void on(ViewFileManagerListener::FileStateUpdated, const ViewFilePtr& aFile) noexcept;
-		void on(ViewFileManagerListener::FileFinished, const ViewFilePtr& aFile) noexcept;
-		void on(ViewFileManagerListener::FileRead, const ViewFilePtr& aFile) noexcept;
+		void on(ViewFileManagerListener::FileAdded, const ViewFilePtr& aFile) noexcept override;
+		void on(ViewFileManagerListener::FileClosed, const ViewFilePtr& aFile) noexcept override;
+		void on(ViewFileManagerListener::FileStateUpdated, const ViewFilePtr& aFile) noexcept override;
+		void on(ViewFileManagerListener::FileFinished, const ViewFilePtr& aFile) noexcept override;
+		void on(ViewFileManagerListener::FileRead, const ViewFilePtr& aFile) noexcept override;
 	};
 }
 

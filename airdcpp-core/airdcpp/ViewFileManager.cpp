@@ -141,7 +141,7 @@ namespace dcpp {
 		return true;
 	}
 	
-	bool ViewFileManager::addUserFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) throw(QueueException, FileException) {
+	bool ViewFileManager::addUserFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) {
 		if (aUser == ClientManager::getInstance()->getMe()) {
 			auto paths = ShareManager::getInstance()->getRealPaths(aTTH);
 			if (!paths.empty()) {

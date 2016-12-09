@@ -31,7 +31,7 @@ namespace webserver {
 		RecentHubApi(Session* aSession);
 		~RecentHubApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 

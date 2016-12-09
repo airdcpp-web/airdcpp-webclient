@@ -502,10 +502,10 @@ namespace webserver {
 			// Go through the tasks
 			auto updatedItems = handleTasks(currentTasks, sortProperty, sortAscending, newStart);
 
-			ItemList newViewItems;
+			ItemList nextViewportItems;
 			if (newStart >= 0) {
 				// Get the new visible items
-				updateViewItems(updatedItems, j, newStart, updateValues[IntCollector::TYPE_MAX_COUNT], newViewItems);
+				updateViewItems(updatedItems, j, newStart, updateValues[IntCollector::TYPE_MAX_COUNT], nextViewportItems);
 
 				// Append other changed properties
 				auto startOffset = newStart - updateValues[IntCollector::TYPE_RANGE_START];
@@ -526,7 +526,7 @@ namespace webserver {
 
 				// Set cached values
 				prevValues.swap(updateValues);
-				currentViewportItems.swap(newViewItems);
+				currentViewportItems.swap(nextViewportItems);
 
 				dcassert((matchingItems.size() != 0 && sourceItems.size() != 0) || currentViewportItems.empty());
 			}
@@ -562,7 +562,7 @@ namespace webserver {
 			return updatedItems;
 		}
 
-		void updateViewItems(const ItemPropertyIdMap& aUpdatedItems, json& json_, int& newStart_, int aMaxCount, ItemList& newViewItems_) {
+		void updateViewItems(const ItemPropertyIdMap& aUpdatedItems, json& json_, int& newStart_, int aMaxCount, ItemList& nextViewportItems_) {
 			// Get the new visible items
 			ItemList currentItemsCopy;
 			{
@@ -583,7 +583,7 @@ namespace webserver {
 				auto endIter = startIter;
 				advance(endIter, count);
 
-				std::copy(startIter, endIter, back_inserter(newViewItems_));
+				std::copy(startIter, endIter, back_inserter(nextViewportItems_));
 				currentItemsCopy = currentViewportItems;
 			}
 
@@ -591,14 +591,14 @@ namespace webserver {
 
 			// List items
 			int pos = 0;
-			for (const auto& item : newViewItems_) {
+			for (const auto& item : nextViewportItems_) {
 				if (!isInList(item, currentItemsCopy)) {
-					appendItem(item, json_, pos);
+					appendItemFull(item, json_, pos);
 				} else {
 					// append position
 					auto props = aUpdatedItems.find(item);
 					if (props != aUpdatedItems.end()) {
-						appendItem(item, json_, pos, props->second);
+						appendItemPartial(item, json_, pos, props->second);
 					} else {
 						appendItemPosition(item, json_, pos);
 					}
@@ -736,15 +736,19 @@ namespace webserver {
 		// TASKS END
 
 		// JSON APPEND START
-		void appendItem(const T& aItem, json& json_, int pos) {
-			appendItem(aItem, json_, pos, toPropertyIdSet(itemHandler.properties));
+
+		// Append item with all property values
+		void appendItemFull(const T& aItem, json& json_, int pos) {
+			appendItemPartial(aItem, json_, pos, toPropertyIdSet(itemHandler.properties));
 		}
 
-		void appendItem(const T& aItem, json& json_, int pos, const PropertyIdSet& aPropertyIds) {
+		// Append item with supplied property values
+		void appendItemPartial(const T& aItem, json& json_, int pos, const PropertyIdSet& aPropertyIds) {
 			appendItemPosition(aItem, json_, pos);
 			json_["items"][pos]["properties"] = Serializer::serializeItemProperties(aItem, aPropertyIds, itemHandler);
 		}
 
+		// Append item without property values
 		void appendItemPosition(const T& aItem, json& json_, int pos) {
 			json_["items"][pos]["id"] = aItem->getToken();
 		}

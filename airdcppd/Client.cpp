@@ -83,7 +83,10 @@ bool Client::startup() {
 		[&](float aProgress) {}
 	);
 
-	if (Text::systemCharset.empty() || Text::systemCharset == "ANSI_X3.4-1968") {
+	// https://github.com/airdcpp-web/airdcpp-webclient/issues/137
+	// https://github.com/airdcpp-web/airdcpp-webclient/issues/206
+	if (Text::systemCharset.empty() || Text::systemCharset == "ANSI_X3.4-1968" || Text::systemCharset == "US-ASCII") {
+		printf("%s\n", "System encoding is not set. This will cause issues with non-ASCII characters.");
 		LogManager::getInstance()->message("System encoding is not set. This will cause issues with non-ASCII characters.", LogMessage::SEV_ERROR);
 	}
 
@@ -124,8 +127,9 @@ bool Client::startup() {
 
 	auto cdmHub = Util::hasStartupParam("--cdm-hub");
 	auto cdmClient = Util::hasStartupParam("--cdm-client");
-	if (cdmHub || cdmClient) {
-		cdmDebug.reset(new CDMDebug(cdmClient, cdmHub));
+	auto cdmWeb = Util::hasStartupParam("--cdm-web");
+	if (cdmHub || cdmClient || cdmWeb) {
+		cdmDebug.reset(new CDMDebug(cdmClient, cdmHub, cdmWeb));
 	}
 
 	started = true;

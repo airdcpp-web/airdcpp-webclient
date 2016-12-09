@@ -30,22 +30,22 @@ using std::string;
 
 /** User pointer associated to a hub url */
 struct HintedUser {
-	UserPtr user;
+	UserPtr user = nullptr;
 	string hint;
 
-	HintedUser() : user(nullptr) { }
+	HintedUser() { }
 	HintedUser(const UserPtr& user_, const string& hint_) : user(user_), hint(hint_) { }
 
-	bool operator==(const UserPtr& rhs) const {
+	bool operator==(const UserPtr& rhs) const noexcept {
 		return user == rhs;
 	}
-	bool operator==(const HintedUser& rhs) const {
+	bool operator==(const HintedUser& rhs) const noexcept {
 		return user == rhs.user;
 		// ignore the hint, we don't want lists with multiple instances of the same user...
 	}
 
-	operator UserPtr() const { return user; }
-	explicit operator bool() const { return user ? true : false; }
+	operator UserPtr() const noexcept { return user; }
+	explicit operator bool() const noexcept { return user ? true : false; }
 };
 
 }

@@ -913,6 +913,10 @@ bool Util::isPrivateIp(const string& ip, bool v6) noexcept {
 	return false;
 }
 
+bool Util::isPublicIp(const string& ip, bool v6) noexcept {
+	return !ip.empty() && !isLocalIp(ip, v6) && !isPrivateIp(ip, v6);
+}
+
 typedef const uint8_t* ccp;
 static wchar_t utf8ToLC(ccp& str) noexcept {
 	wchar_t c = 0;
@@ -1160,7 +1164,7 @@ string Util::formatParams(const string& aMsg, const ParamMap& aParams, FilterF a
 }
 
 bool Util::isAdcPath(const string& aPath) noexcept {
-	return !aPath.empty() && aPath.front() == '/' && aPath.back() == '/';
+	return !aPath.empty() && aPath.front() == ADC_ROOT && aPath.back() == ADC_SEPARATOR;
 }
 
 bool Util::fileExists(const string &aFile) noexcept {
@@ -1344,7 +1348,7 @@ string Util::getTimeStamp(time_t t) noexcept {
 	} else {
 		strftime(buf, 254, SETTING(TIME_STAMPS_FORMAT).c_str(), _tm);
 	}
-	return Text::acpToUtf8(buf);
+	return buf;
 }
 
 string Util::toAdcFile(const string& file) noexcept {
@@ -1353,11 +1357,11 @@ string Util::toAdcFile(const string& file) noexcept {
 
 	string ret;
 	ret.reserve(file.length() + 1);
-	ret += '/';
+	ret += ADC_ROOT;
 	ret += file;
 	for(string::size_type i = 0; i < ret.length(); ++i) {
-		if(ret[i] == '\\') {
-			ret[i] = '/';
+		if(ret[i] == NMDC_SEPARATOR) {
+			ret[i] = ADC_SEPARATOR;
 		}
 	}
 	return ret;
@@ -1368,8 +1372,8 @@ string Util::toNmdcFile(const string& file) noexcept {
 
 	string ret(file.substr(1));
 	for(string::size_type i = 0; i < ret.length(); ++i) {
-		if(ret[i] == '/') {
-			ret[i] = '\\';
+		if(ret[i] == ADC_SEPARATOR) {
+			ret[i] = NMDC_SEPARATOR;
 		}
 	}
 	return ret;

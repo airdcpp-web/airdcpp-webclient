@@ -35,7 +35,7 @@ namespace webserver {
 		PrivateChatApi(Session* aSession);
 		~PrivateChatApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -48,8 +48,8 @@ namespace webserver {
 
 		api_return handlePostMessage(ApiRequest& aRequest);
 
-		void on(MessageManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool aReceivedMessage) noexcept;
-		void on(MessageManagerListener::ChatRemoved, const PrivateChatPtr& aChat) noexcept;
+		void on(MessageManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool aReceivedMessage) noexcept override;
+		void on(MessageManagerListener::ChatRemoved, const PrivateChatPtr& aChat) noexcept override;
 
 		static json serializeChat(const PrivateChatPtr& aChat) noexcept;
 	};

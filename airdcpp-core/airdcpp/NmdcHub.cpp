@@ -52,12 +52,36 @@ NmdcHub::~NmdcHub() {
 
 }
 
-string NmdcHub::toUtf8(const string& str) const { 
-	return Text::validateUtf8(str) ? str : Text::toUtf8(str, get(HubSettings::NmdcEncoding)); 
+string NmdcHub::toUtf8(const string& str) noexcept {
+	if (str.empty() || Text::validateUtf8(str)) {
+		return str;
+	}
+
+	if (Util::stricmp(get(HubSettings::NmdcEncoding), Text::utf8) == 0) {
+		// Validation failed earlier
+		statusMessage(STRING(UTF_VALIDATION_ERROR), LogMessage::SEV_ERROR);
+		return Util::emptyString;
+	}
+
+	auto ret = Text::toUtf8(str, get(HubSettings::NmdcEncoding));
+	if (ret.empty()) {
+		statusMessage(STRING_F(DECODING_ERROR, get(HubSettings::NmdcEncoding)), LogMessage::SEV_ERROR);
+	}
+
+	return ret;
 }
 
-string NmdcHub::fromUtf8(const string& str) const { 
-	return Text::fromUtf8(str, get(HubSettings::NmdcEncoding));
+string NmdcHub::fromUtf8(const string& str) noexcept {
+	if (str.empty()) {
+		return str;
+	}
+
+	auto ret = Text::fromUtf8(str, get(HubSettings::NmdcEncoding));
+	if (ret.empty()) {
+		statusMessage(STRING_F(INVALID_ENCODING, get(HubSettings::NmdcEncoding)), LogMessage::SEV_ERROR);
+	}
+
+	return ret;
 }
 
 
@@ -234,7 +258,7 @@ void NmdcHub::updateFromTag(Identity& id, const string& tag) {
 }
 
 void NmdcHub::onLine(const string& aLine) noexcept {
-	if(aLine.length() == 0)
+	if(aLine.empty())
 		return;
 
 	if(aLine[0] != '$') {
@@ -245,6 +269,10 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			}
 		}
 		string line = toUtf8(aLine);
+		if (line.empty()) {
+			return;
+		}
+
 		if(line[0] != '<') {
 			statusMessage(unescape(line), LogMessage::SEV_INFO);
 			return;

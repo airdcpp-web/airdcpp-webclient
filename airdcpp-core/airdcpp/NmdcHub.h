@@ -92,8 +92,8 @@ private:
 	void putUser(const string& aNick) noexcept;
 	
 	// don't convert to UTF-8 if string is already in this encoding
-	string toUtf8(const string& str) const;
-	string fromUtf8(const string& str) const;
+	string toUtf8(const string& str) noexcept;
+	string fromUtf8(const string& str) noexcept;
 
 	void privateMessage(const string& nick, const string& aMessage, bool thirdPerson);
 	void validateNick(const string& aNick) { send("$ValidateNick " + fromUtf8(aNick) + "|"); }

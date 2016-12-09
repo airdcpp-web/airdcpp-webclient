@@ -40,7 +40,8 @@
 
 namespace dcpp {
 
-const char* UpdateManager::versionUrl[VERSION_LAST] = { "https://version.airdcpp.net/version.xml",
+const char* UpdateManager::versionUrl[VERSION_LAST] = { 
+	"https://version.airdcpp.net/version.xml",
 	"https://beta.airdcpp.net/version/version.xml",
 	"https://builds.airdcpp.net/version/version.xml"
 };

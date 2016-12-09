@@ -22,9 +22,11 @@
 #include <web-server/stdinc.h>
 
 #include <airdcpp/typedefs.h>
+
 #include <airdcpp/HintedUser.h>
 #include <airdcpp/ResourceManager.h>
 #include <airdcpp/Transfer.h>
+#include <airdcpp/Util.h>
 
 
 namespace webserver {

@@ -126,6 +126,27 @@ public:
 
 	static int64_t getFreeSpace(const string& aPath) noexcept;
 
+	typedef set<string, noCaseStringLess> VolumeSet;
+	struct DiskInfo {
+		const int64_t freeSpace;
+		const int64_t totalSpace;
+	};
+
+	// Get disk space information (requires disk access)
+	static DiskInfo getDiskInfo(const string& aPath) noexcept;
+
+	// Get disk space information from the supplied volumes (avoids disk access)
+	static DiskInfo getDiskInfo(const string& aTarget, const VolumeSet& aVolumes) noexcept;
+
+	// Get a set of all mount points
+	static VolumeSet getVolumes() noexcept;
+
+	// Parse mount point (requires disk access)
+	static string getMountPath(const string& aPath) noexcept;
+
+	// Parse mount point from the supplied volumes (avoids disk access)
+	static string getMountPath(const string& aPath, const VolumeSet& aVolumes) noexcept;
+
 	static int ensureDirectory(const string& aFile) noexcept;
 
 	// Similar to ensureDirectory but throws errors
@@ -159,8 +180,6 @@ public:
 	// Iterate through content of aPath and handle files matching aNamePattern (use * to match all files)
 	// Stops if the handler returns false
 	static void forEachFile(const string& aPath, const string& aNamePattern, FileIterF aHandlerF, bool aSkipHidden = true);
-
-	static string getMountPath(const string& aPath) noexcept;
 protected:
 	void close() noexcept;
 

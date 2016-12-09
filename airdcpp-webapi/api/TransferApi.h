@@ -42,7 +42,7 @@ namespace webserver {
 		TransferApi(Session* aSession);
 		~TransferApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -70,25 +70,25 @@ namespace webserver {
 		void onTick(const Transfer* aTransfer, bool aIsDownload) noexcept;
 		void updateQueueInfo(TransferInfoPtr& aInfo) noexcept;
 
-		void on(DownloadManagerListener::Tick, const DownloadList& aDownloads) noexcept;
-		void on(DownloadManagerListener::BundleTick, const BundleList& bundles, uint64_t aTick) noexcept;
+		void on(DownloadManagerListener::Tick, const DownloadList& aDownloads) noexcept override;
+		void on(DownloadManagerListener::BundleTick, const BundleList& bundles, uint64_t aTick) noexcept override;
 
-		void on(UploadManagerListener::Tick, const UploadList& aUploads) noexcept;
-		void on(UploadManagerListener::BundleTick, const UploadBundleList& bundles) noexcept;
+		void on(UploadManagerListener::Tick, const UploadList& aUploads) noexcept override;
+		void on(UploadManagerListener::BundleTick, const UploadBundleList& bundles) noexcept override;
 
-		void on(ConnectionManagerListener::Added, const ConnectionQueueItem* aCqi) noexcept;
-		void on(ConnectionManagerListener::Removed, const ConnectionQueueItem* aCqi) noexcept;
-		void on(ConnectionManagerListener::Failed, const ConnectionQueueItem* aCqi, const string &reason) noexcept;
-		void on(ConnectionManagerListener::Connecting, const ConnectionQueueItem* aCqi) noexcept;
-		void on(ConnectionManagerListener::UserUpdated, const ConnectionQueueItem* aCqi) noexcept;
+		void on(ConnectionManagerListener::Added, const ConnectionQueueItem* aCqi) noexcept override;
+		void on(ConnectionManagerListener::Removed, const ConnectionQueueItem* aCqi) noexcept override;
+		void on(ConnectionManagerListener::Failed, const ConnectionQueueItem* aCqi, const string &reason) noexcept override;
+		void on(ConnectionManagerListener::Connecting, const ConnectionQueueItem* aCqi) noexcept override;
+		void on(ConnectionManagerListener::UserUpdated, const ConnectionQueueItem* aCqi) noexcept override;
 
-		void on(DownloadManagerListener::Starting, const Download* aDownload) noexcept;
-		void on(DownloadManagerListener::Complete, const Download* aDownload, bool) noexcept;
-		void on(DownloadManagerListener::Failed, const Download* aDownload, const string &reason) noexcept;
-		void on(DownloadManagerListener::Requesting, const Download* aDownload, bool hubChanged) noexcept;
+		void on(DownloadManagerListener::Starting, const Download* aDownload) noexcept override;
+		void on(DownloadManagerListener::Complete, const Download* aDownload, bool) noexcept override;
+		void on(DownloadManagerListener::Failed, const Download* aDownload, const string &reason) noexcept override;
+		void on(DownloadManagerListener::Requesting, const Download* aDownload, bool hubChanged) noexcept override;
 
-		void on(UploadManagerListener::Starting, const Upload* aUpload) noexcept;
-		void on(UploadManagerListener::Complete, const Upload* aUpload) noexcept;
+		void on(UploadManagerListener::Starting, const Upload* aUpload) noexcept override;
+		void on(UploadManagerListener::Complete, const Upload* aUpload) noexcept override;
 
 
 		json previousStats;

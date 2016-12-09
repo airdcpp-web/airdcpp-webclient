@@ -9,8 +9,8 @@ endif (APPLE)
 
 set (PROJECT_NAME "AirDC++ Web Client")
 set (TAG_APPLICATION "AirDC++w")
-set (VERSION "1.3.1")
-set (SOVERSION "1.3.1" )
+set (VERSION "1.4.0")
+set (SOVERSION "1.4.0" )
 
 set (GNUCXX_MINIMUM_VERSION "4.8")
 
@@ -19,6 +19,7 @@ include (CheckIncludeFiles)
 include (CheckFunctionExists)
 include (FindPkgConfig)
 include (CheckCXXSourceCompiles)
+include (cmake/CheckAtomic.cmake)
 
 CHECK_FUNCTION_EXISTS(posix_fadvise HAVE_POSIX_FADVISE)
 CHECK_FUNCTION_EXISTS(mallinfo HAVE_MALLINFO)

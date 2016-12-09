@@ -26,6 +26,7 @@
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/DirectoryListingManager.h>
+#include <airdcpp/QueueItem.h>
 
 namespace webserver {
 	class FilelistApi : public ParentApiModule<CID, FilelistInfo>, private DirectoryListingManagerListener {
@@ -35,7 +36,7 @@ namespace webserver {
 		FilelistApi(Session* aSession);
 		~FilelistApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 
@@ -48,14 +49,24 @@ namespace webserver {
 		api_return handleOwnList(ApiRequest& aRequest);
 
 		api_return handleGetLists(ApiRequest& aRequest);
-		api_return handleDownload(ApiRequest& aRequest);
+
+		api_return handlePostDirectoryDownload(ApiRequest& aRequest);
+		api_return handleDeleteDirectoryDownload(ApiRequest& aRequest);
+		api_return handleGetDirectoryDownloads(ApiRequest& aRequest);
+
 		api_return handleFindNfo(ApiRequest& aRequest);
 		api_return handleMatchQueue(ApiRequest& aRequest);
 
-		void on(DirectoryListingManagerListener::ListingCreated, const DirectoryListingPtr& aList) noexcept;
-		void on(DirectoryListingManagerListener::ListingClosed, const DirectoryListingPtr&) noexcept;
+		void on(DirectoryListingManagerListener::ListingCreated, const DirectoryListingPtr& aList) noexcept override;
+		void on(DirectoryListingManagerListener::ListingClosed, const DirectoryListingPtr&) noexcept override;
+
+		void on(DirectoryListingManagerListener::DirectoryDownloadAdded, const DirectoryDownloadPtr&) noexcept override;
+		void on(DirectoryListingManagerListener::DirectoryDownloadRemoved, const DirectoryDownloadPtr&) noexcept override;
+		void on(DirectoryListingManagerListener::DirectoryDownloadProcessed, const DirectoryDownloadPtr& aDirectoryInfo, const DirectoryBundleAddInfo& aQueueInfo, const string& aError) noexcept override;
+		void on(DirectoryListingManagerListener::DirectoryDownloadFailed, const DirectoryDownloadPtr& aDirectoryInfo, const string& aError) noexcept override;
 
 		static json serializeList(const DirectoryListingPtr& aList) noexcept;
+		static json serializeDirectoryDownload(const DirectoryDownloadPtr& aDownload) noexcept;
 	};
 }
 

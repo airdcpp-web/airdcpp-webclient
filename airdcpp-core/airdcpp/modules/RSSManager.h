@@ -1,25 +1,56 @@
+/*
+* Copyright (C) 2012-2016 AirDC++ Project
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+*/
+
+#ifndef RSS_MANAGER_H
+#define RSS_MANAGER_H
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "Util.h"
-#include "Singleton.h"
-#include "Speaker.h"
-#include "SimpleXML.h"
-#include "HttpDownload.h"
-#include "TimerManager.h"
-#include "ShareManager.h"
-#include "AutoSearchManager.h"
-#include "TargetUtil.h"
+#include <airdcpp/forward.h>
+
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/Pointer.h>
+
+#include <airdcpp/DispatcherQueue.h>
+#include <airdcpp/HttpDownload.h>
+#include <airdcpp/StringMatch.h>
+
+#include <airdcpp/TimerManager.h>
 
 namespace dcpp {
+
+class RSS;
+typedef std::shared_ptr<RSS> RSSPtr;
+class RSSData;
+typedef boost::intrusive_ptr<RSSData> RSSDataPtr;
+
 
 class RSSFilter : public StringMatch {
 public:
 
-	RSSFilter(const string& aFilterPattern, const string& aDownloadTarget, int aMethod) noexcept :
-		filterPattern(aFilterPattern), downloadTarget(aDownloadTarget)
+	RSSFilter(const string& aFilterPattern, const string& aDownloadTarget, int aMethod, const string& aGroup, bool aSkipDupes) noexcept :
+		filterPattern(aFilterPattern), downloadTarget(aDownloadTarget), autosearchGroup(aGroup), skipDupes(aSkipDupes)
 	{
 		pattern = aFilterPattern;
 		setMethod((StringMatch::Method)aMethod);
@@ -29,6 +60,8 @@ public:
 
 	GETSET(string, filterPattern, FilterPattern);
 	GETSET(string, downloadTarget, DownloadTarget);
+	IGETSET(string, autosearchGroup, AutosearchGroup, Util::emptyString);
+	bool skipDupes = true;
 
 };
 
@@ -132,12 +165,12 @@ public:
 	void load();
 	void saveConfig(bool saveDatabase = true);
 
-	void clearRSSData(const RSSPtr& aFeed);
+	void clearRSSData(const RSSPtr& aFeed) noexcept;
 	void matchFilters(const RSSPtr& aFeed) const;
 	
-	RSSPtr getFeedByName(const string& aName) const;
-	RSSPtr getFeedByUrl(const string& aUrl) const;
-	RSSPtr getFeedByToken(int aToken) const;
+	RSSPtr getFeedByName(const string& aName) const noexcept;
+	RSSPtr getFeedByUrl(const string& aUrl) const noexcept;
+	RSSPtr getFeedByToken(int aToken) const noexcept;
 
 	CriticalSection& getCS() { return cs; }
 
@@ -145,24 +178,24 @@ public:
 		return rssList;
 	}
 
-	void downloadFeed(const RSSPtr& aFeed, bool verbose = false);
+	void downloadFeed(const RSSPtr& aFeed, bool verbose = false) noexcept;
 
-	void updateFeedItem(RSSPtr& aFeed, const string& aUrl, const string& aName, int aUpdateInterval, bool aEnable);
+	void updateFeedItem(RSSPtr& aFeed, const string& aUrl, const string& aName, int aUpdateInterval, bool aEnable) noexcept;
 	
 	void updateFilterList(const RSSPtr& aFeed, vector<RSSFilter>& aNewList);
 
-	void removeFeedItem(const RSSPtr& aFeed);
+	void removeFeedItem(const RSSPtr& aFeed) noexcept;
 
-	void enableFeedUpdate(const RSSPtr& aFeed, bool enable);
+	void enableFeedUpdate(const RSSPtr& aFeed, bool enable) noexcept;
 
 private:
 
 	void savedatabase(const RSSPtr& aFeed);
 
-	uint64_t nextUpdate;
+	uint64_t nextUpdate = 0;
 	uint64_t lastXmlSave = GET_TICK();
 
-	RSSPtr getUpdateItem() const;
+	RSSPtr getUpdateItem() const noexcept;
 	
 	void matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) const;
 
@@ -186,3 +219,4 @@ private:
 };
 
 }
+#endif

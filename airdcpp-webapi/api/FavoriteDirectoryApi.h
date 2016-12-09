@@ -32,7 +32,7 @@ namespace webserver {
 		FavoriteDirectoryApi(Session* aSession);
 		~FavoriteDirectoryApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -47,7 +47,7 @@ namespace webserver {
 
 		api_return handleSetDirectory(ApiRequest& aRequest, bool aExisting);
 
-		void on(FavoriteManagerListener::FavoriteDirectoriesUpdated) noexcept;
+		void on(FavoriteManagerListener::FavoriteDirectoriesUpdated) noexcept override;
 	};
 }
 

@@ -37,13 +37,60 @@ namespace webserver {
 		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("paths")), true, ShareApi::handleRefreshPaths);
 		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("virtual")), true, ShareApi::handleRefreshVirtual);
 
+		METHOD_HANDLER("excludes", Access::SETTINGS_VIEW, ApiRequest::METHOD_GET, (), false, ShareApi::handleGetExcludes);
+		METHOD_HANDLER("exclude", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("add")), true, ShareApi::handleAddExclude);
+		METHOD_HANDLER("exclude", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("remove")), true, ShareApi::handleRemoveExclude);
+
 		createSubscription("share_refreshed");
+
+		createSubscription("share_exclude_added");
+		createSubscription("share_exclude_removed");
 
 		ShareManager::getInstance()->addListener(this);
 	}
 
 	ShareApi::~ShareApi() {
 		ShareManager::getInstance()->removeListener(this);
+	}
+
+	api_return ShareApi::handleGetExcludes(ApiRequest& aRequest) {
+		aRequest.setResponseBody(ShareManager::getInstance()->getExcludedPaths());
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return ShareApi::handleAddExclude(ApiRequest& aRequest) {
+		auto path = JsonUtil::getField<string>("path", aRequest.getRequestBody(), false);
+
+		try {
+			ShareManager::getInstance()->addExcludedPath(path);
+		} catch (const ShareException& e) {
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return ShareApi::handleRemoveExclude(ApiRequest& aRequest) {
+		auto path = JsonUtil::getField<string>("path", aRequest.getRequestBody(), false);
+		if (!ShareManager::getInstance()->removeExcludedPath(path)) {
+			aRequest.setResponseErrorStr("Excluded path was not found");
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		return websocketpp::http::status_code::ok;
+	}
+
+	void ShareApi::on(ShareManagerListener::ExcludeAdded, const string& aPath) noexcept {
+		send("share_exclude_added", {
+			{ "path", aPath }
+		});
+	}
+
+	void ShareApi::on(ShareManagerListener::ExcludeRemoved, const string& aPath) noexcept {
+		send("share_exclude_removed", {
+			{ "path", aPath }
+		});
 	}
 
 	api_return ShareApi::handleRefreshShare(ApiRequest& aRequest) {
@@ -82,23 +129,36 @@ namespace webserver {
 	}
 
 	api_return ShareApi::handleGetStats(ApiRequest& aRequest) {
-		auto optionalStats = ShareManager::getInstance()->getShareStats();
-		if (!optionalStats) {
+		auto optionalItemStats = ShareManager::getInstance()->getShareItemStats();
+		if (!optionalItemStats) {
 			return websocketpp::http::status_code::no_content;
 		}
 
-		auto stats = *optionalStats;
+		auto itemStats = *optionalItemStats;
+		auto searchStats = ShareManager::getInstance()->getSearchMatchingStats();
 
 		json j = {
-			{ "total_file_count", stats.totalFileCount },
-			{ "total_directory_count", stats.totalDirectoryCount },
-			{ "files_per_directory", stats.filesPerDirectory },
-			{ "total_size", stats.totalSize },
-			{ "unique_file_percentage", stats.uniqueFilePercentage },
-			{ "unique_files", stats.uniqueFileCount },
-			{ "average_file_age", stats.averageFileAge },
-			{ "profile_count", stats.profileCount },
-			{ "profile_root_count", stats.profileDirectoryCount},
+			{ "total_file_count", itemStats.totalFileCount },
+			{ "total_directory_count", itemStats.totalDirectoryCount },
+			{ "files_per_directory", itemStats.filesPerDirectory },
+			{ "total_size", itemStats.totalSize },
+			{ "unique_file_percentage", itemStats.uniqueFilePercentage },
+			{ "unique_files", itemStats.uniqueFileCount },
+			{ "average_file_age", itemStats.averageFileAge },
+			{ "profile_count", itemStats.profileCount },
+			{ "profile_root_count", itemStats.profileDirectoryCount},
+
+			{ "total_searches", searchStats.totalSearches },
+			{ "total_searches_per_second", searchStats.totalSearchesPerSecond },
+			{ "total_recursive_searches", searchStats.recursiveSearches },
+			{ "unfiltered_recursive_searches_per_second", searchStats.unfilteredRecursiveSearchesPerSecond },
+			{ "filtered_search_percentage", searchStats.filteredSearchPercentage },
+			{ "unfiltered_recursive_match_percentage", searchStats.unfilteredRecursiveMatchPercentage },
+			{ "average_search_token_count", searchStats.averageSearchTokenCount },
+			{ "average_search_token_length", searchStats.averageSearchTokenLength },
+			{ "auto_search_percentage", searchStats.autoSearchPercentage },
+			{ "tth_search_percentage", searchStats.tthSearchPercentage },
+			{ "average_match_ms", searchStats.averageSearchMatchMs },
 		};
 
 		aRequest.setResponseBody(j);

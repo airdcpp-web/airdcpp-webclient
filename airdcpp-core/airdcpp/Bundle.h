@@ -22,10 +22,8 @@
 #include <string>
 #include <set>
 
-#include "File.h"
-#include "HashValue.h"
-#include "TigerHash.h"
 #include "HintedUser.h"
+#include "MerkleTree.h"
 #include "Pointer.h"
 #include "QueueItem.h"
 #include "User.h"
@@ -35,34 +33,6 @@
 namespace dcpp {
 
 using std::string;
-
-struct BundleAddInfo {
-	int filesAdded = 0;
-	int filesFailed = 0;
-
-	bool merged = false;
-	BundlePtr bundle = nullptr;
-
-	string errorMessage;
-};
-
-struct BundleFileInfo {
-	BundleFileInfo(BundleFileInfo&& rhs) = default;
-	BundleFileInfo& operator=(BundleFileInfo&& rhs) = default;
-	BundleFileInfo(BundleFileInfo&) = delete;
-	BundleFileInfo& operator=(BundleFileInfo&) = delete;
-
-	BundleFileInfo(string aFile, const TTHValue& aTTH, int64_t aSize, time_t aDate = 0, QueueItemBase::Priority aPrio = QueueItemBase::DEFAULT) noexcept : 
-		file(move(aFile)), tth(aTTH), size(aSize), prio(aPrio), date(aDate) { }
-
-	string file;
-	TTHValue tth;
-	int64_t size;
-	QueueItemBase::Priority prio;
-	time_t date;
-
-	typedef vector<BundleFileInfo> List;
-};
 
 #define DIR_BUNDLE_VERSION "2"
 #define FILE_BUNDLE_VERSION "2"
@@ -95,35 +65,35 @@ public:
 
 	class BundleSource : public Flags {
 	public:
-		BundleSource(const HintedUser& aUser, int64_t aSize, Flags::MaskType aFlags = 0) : user(aUser), size(aSize), files(1), Flags(aFlags) { }
+		BundleSource(const HintedUser& aUser, int64_t aSize, Flags::MaskType aFlags = 0) : user(aUser), size(aSize), Flags(aFlags) { }
 
-		bool operator==(const UserPtr& aUser) const { return user == aUser; }
+		bool operator==(const UserPtr& aUser) const noexcept { return user == aUser; }
 
 		GETSET(HintedUser, user, User);
 		int64_t size;
-		int files;
+		int files = 1;
 	};
 
 	class HasStatus {
 	public:
 		HasStatus(Status aStatus) : status(aStatus) { }
-		bool operator()(const BundlePtr& aBundle) { return aBundle->getStatus() == status; }
+		bool operator()(const BundlePtr& aBundle) const noexcept { return aBundle->getStatus() == status; }
 	private:
 		Status status;
 	};
 
 	struct StatusOrder {
-		bool operator()(const BundlePtr& left, const BundlePtr& right) const {
+		bool operator()(const BundlePtr& left, const BundlePtr& right) const noexcept {
 			return left->getStatus() > right->getStatus();
 		}
 	};
 
 	struct Hash {
-		size_t operator()(const BundlePtr& x) const { return hash<QueueToken>()(x->getToken()); }
+		size_t operator()(const BundlePtr& x) const noexcept { return hash<QueueToken>()(x->getToken()); }
 	};
 
 	struct SortOrder {
-		bool operator()(const BundlePtr& left, const BundlePtr& right) const {
+		bool operator()(const BundlePtr& left, const BundlePtr& right) const noexcept {
 			if (left->getPriority() == right->getPriority()) {
 				return left->getTimeAdded() < right->getTimeAdded();
 			} else {
@@ -194,9 +164,12 @@ public:
 
 	/* QueueManager */
 	bool isFailed() const noexcept;
-	void save() throw(FileException);
-	void removeQueue(QueueItemPtr& qi, bool aFinished) noexcept;
+
+	// Throws on errors
+	void save();
+
 	void addQueue(QueueItemPtr& qi) noexcept;
+	void removeQueue(QueueItemPtr& qi, bool aFinished) noexcept;
 
 	void getDirQIs(const string& aDir, QueueItemList& ql) const noexcept;
 
@@ -271,7 +244,7 @@ private:
 	bool recent = false;
 
 	/** QueueItems by priority and user (this is where the download order is determined) */
-	unordered_map<UserPtr, deque<QueueItemPtr>, User::Hash> userQueue[LAST];
+	unordered_map<UserPtr, deque<QueueItemPtr>, User::Hash> userQueue[static_cast<int>(Priority::LAST)];
 	/** Currently running downloads, a QueueItem is always either here or in the userQueue */
 	unordered_map<UserPtr, QueueItemList, User::Hash> runningItems;
 

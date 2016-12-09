@@ -356,9 +356,26 @@ namespace webserver {
 
 	json Serializer::serializePriority(const QueueItemBase& aItem) noexcept {
 		return{
-			{ "id", aItem.getPriority() },
+			{ "id", static_cast<int>(aItem.getPriority()) },
 			{ "str", AirUtil::getPrioText(aItem.getPriority()) },
 			{ "auto", aItem.getAutoPriority() }
+		};
+	}
+
+	json Serializer::serializeDirectoryBundleAddInfo(const DirectoryBundleAddInfo& aInfo, const string& aError) noexcept {
+		return {
+			{ "files_queued", aInfo.filesAdded },
+			{ "files_updated", aInfo.filesUpdated },
+			{ "files_failed", aInfo.filesFailed },
+			{ "error", aError },
+			{ "bundle", serializeBundleAddInfo(aInfo.bundleInfo) }
+		};
+	}
+
+	json Serializer::serializeBundleAddInfo(const BundleAddInfo& aInfo) noexcept {
+		return {
+			{ "id", aInfo.bundle->getToken() },
+			{ "merged", aInfo.merged },
 		};
 	}
 

@@ -18,13 +18,14 @@
 
 #include "stdinc.h"
 
-#include "SearchQuery.h"
 #include "AutoSearch.h"
-#include "Bundle.h"
-#include "SearchManager.h"
-#include "ResourceManager.h"
-#include "SimpleXML.h"
-#include "TimerManager.h"
+
+#include <airdcpp/SearchQuery.h>
+#include <airdcpp/Bundle.h>
+#include <airdcpp/SearchManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/TimerManager.h>
 
 #include <boost/range/algorithm/max_element.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -41,9 +42,9 @@ AutoSearch::AutoSearch() noexcept : token(Util::randInt(10)) {
 }
 
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget,
-	TargetUtil::TargetType aTargetType, StringMatch::Method aMethod, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime,
+	StringMatch::Method aMethod, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime,
 	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, const string& aExcluded, int aSearchInterval, ItemType aType, bool aUserMetcherExclude, ProfileToken aToken /*rand*/) noexcept :
-	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove), tType(aTargetType),
+	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove),
 	expireTime(aExpireTime), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared), searchInterval(aSearchInterval),
 	token(aToken), matchFullPath(aMatchFullPath), matcherString(aMatcherString), excludedString(aExcluded), asType(aType), userMatcherExclude(aUserMetcherExclude) {
 
@@ -179,7 +180,7 @@ string AutoSearch::getDisplayName() noexcept {
 }
 
 void AutoSearch::setTarget(const string& aTarget) noexcept {
-	target = Util::validatePath(aTarget, tType == TargetUtil::TARGET_PATH);
+	target = Util::validatePath(aTarget, true);
 }
 
 void AutoSearch::updatePattern() noexcept {
@@ -396,7 +397,6 @@ void AutoSearch::saveToXml(SimpleXML& xml) {
 	xml.addChildAttrib("Action", getAction());
 	xml.addChildAttrib("Remove", getRemove());
 	xml.addChildAttrib("Target", getTarget());
-	xml.addChildAttrib("TargetType", getTargetType());
 	xml.addChildAttrib("MatcherType", getMethod()),
 	xml.addChildAttrib("MatcherString", getMatcherString()),
 	xml.addChildAttrib("UserMatch", getNickPattern());

@@ -54,7 +54,7 @@ namespace webserver {
 		static json serializeIdentity(const ClientPtr& aClient) noexcept;
 		static json serializeCounts(const ClientPtr& aClient) noexcept;
 
-		void init() noexcept;
+		void init() noexcept override;
 	private:
 		api_return handleReconnect(ApiRequest& aRequest);
 		api_return handleFavorite(ApiRequest& aRequest);
@@ -63,31 +63,31 @@ namespace webserver {
 
 		api_return handleGetCounts(ApiRequest& aRequest);
 
-		void on(Redirect, const Client*, const string&) noexcept;
-		void on(Failed, const string&, const string&) noexcept;
-		void on(GetPassword, const Client*) noexcept;
-		void on(HubUpdated, const Client*) noexcept;
-		void on(HubTopic, const Client*, const string&) noexcept;
-		void on(ConnectStateChanged, const Client*, uint8_t) noexcept;
+		void on(Redirect, const Client*, const string&) noexcept override;
+		void on(Failed, const string&, const string&) noexcept override;
+		void on(GetPassword, const Client*) noexcept override;
+		void on(HubUpdated, const Client*) noexcept override;
+		void on(HubTopic, const Client*, const string&) noexcept override;
+		void on(ConnectStateChanged, const Client*, uint8_t) noexcept override;
 
-		void on(UserConnected, const Client*, const OnlineUserPtr&) noexcept;
-		void on(UserUpdated, const Client*, const OnlineUserPtr&) noexcept;
-		void on(UsersUpdated, const Client*, const OnlineUserList&) noexcept;
-		void on(UserRemoved, const Client*, const OnlineUserPtr&) noexcept;
+		void on(UserConnected, const Client*, const OnlineUserPtr&) noexcept override;
+		void on(UserUpdated, const Client*, const OnlineUserPtr&) noexcept override;
+		void on(UsersUpdated, const Client*, const OnlineUserList&) noexcept override;
+		void on(UserRemoved, const Client*, const OnlineUserPtr&) noexcept override;
 
-		void on(Disconnecting, const Client*) noexcept;
-		void on(Redirected, const string&, const ClientPtr& aNewClient) noexcept;
+		void on(Disconnecting, const Client*) noexcept override;
+		void on(Redirected, const string&, const ClientPtr& aNewClient) noexcept override;
 
-		void on(ChatMessage, const Client*, const ChatMessagePtr& m) noexcept {
+		void on(ChatMessage, const Client*, const ChatMessagePtr& m) noexcept override {
 			chatHandler.onChatMessage(m);
 		}
-		void on(StatusMessage, const Client*, const LogMessagePtr& m, int = ClientListener::FLAG_NORMAL) noexcept {
+		void on(StatusMessage, const Client*, const LogMessagePtr& m, int = ClientListener::FLAG_NORMAL) noexcept override {
 			chatHandler.onStatusMessage(m);
 		}
-		void on(MessagesRead, const Client*) noexcept {
+		void on(MessagesRead, const Client*) noexcept override {
 			chatHandler.onMessagesUpdated();
 		}
-		void on(MessagesCleared, const Client*) noexcept {
+		void on(MessagesCleared, const Client*) noexcept override {
 			chatHandler.onMessagesUpdated();
 		}
 

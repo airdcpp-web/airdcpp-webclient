@@ -22,20 +22,31 @@
 #include <airdcpp/stdinc.h>
 #include <airdcpp/DebugManager.h>
 
+namespace dcpp {
+	class SimpleXML;
+}
+
+#include <web-server/WebServerManagerListener.h>
+
 namespace airdcppd {
 
 using namespace dcpp;
+using namespace webserver;
 
-class CDMDebug : private DebugManagerListener {
+class CDMDebug : private DebugManagerListener, private WebServerManagerListener {
 
 public:
-	CDMDebug(bool aClientCommands, bool aHubCommands);
+	CDMDebug(bool aClientCommands, bool aHubCommands, bool aWebCommands);
 	~CDMDebug();
 private:
-	void on(DebugManagerListener::DebugCommand, const string& aLine, uint8_t aType, uint8_t aDirection, const string& ip) noexcept;
+	void on(DebugManagerListener::DebugCommand, const string& aLine, uint8_t aType, uint8_t aDirection, const string& ip) noexcept override;
+	void on(WebServerManagerListener::Data, const string& aData, TransportType aType, Direction aDirection, const string& aIP) noexcept override;
 	
 	bool showHubCommands = false;
 	bool showClientCommands = false;
+	bool showWebCommands = false;
+	
+	static void printMessage(const string& aType, bool aIncoming, const string& aData, const string& aIP) noexcept;
 };
 
 } // namespace airdcppd

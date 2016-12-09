@@ -20,7 +20,7 @@
 #ifndef DCPLUSPLUS_DCPP_AUTOSEARCH_MANAGER_LISTENER_H
 #define DCPLUSPLUS_DCPP_AUTOSEARCH_MANAGER_LISTENER_H
 
-#include "forward.h"
+#include "AutoSearch.h"
 
 namespace dcpp {
 

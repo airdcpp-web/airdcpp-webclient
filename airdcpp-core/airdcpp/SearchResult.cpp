@@ -131,6 +131,14 @@ string SearchResult::formatSlots(size_t aFree, size_t aTotal) noexcept {
 	return Util::toString(aFree) + '/' + Util::toString(aTotal);
 }
 
+const CID& SearchResult::getCID() const noexcept {
+	return user.user->getCID(); 
+}
+
+bool SearchResult::isNMDC() const noexcept {
+	return user.user->isNMDC(); 
+}
+
 void SearchResult::pickResults(SearchResultList& aResults, int aMaxCount) noexcept {
 	if (static_cast<int>(aResults.size()) <= aMaxCount) {
 		// we can pick all matches

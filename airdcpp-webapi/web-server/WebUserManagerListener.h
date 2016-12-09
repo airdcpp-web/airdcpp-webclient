@@ -33,9 +33,15 @@ namespace webserver {
 		typedef X<1> UserUpdated;
 		typedef X<2> UserRemoved;
 
+		typedef X<3> SessionCreated;
+		typedef X<4> SessionRemoved;
+
 		virtual void on(UserAdded, const WebUserPtr&) noexcept { }
 		virtual void on(UserUpdated, const WebUserPtr&) noexcept { }
 		virtual void on(UserRemoved, const WebUserPtr&) noexcept { }
+
+		virtual void on(SessionCreated, const SessionPtr&) noexcept { }
+		virtual void on(SessionRemoved, const SessionPtr&, bool /*aTimedOut*/) noexcept { }
 	};
 
 }

@@ -213,7 +213,7 @@ private:
 			TYPE_FILESIZE,
 			TYPE_BLOCKSIZE
 		};
-		int64_t getRootInfo(const TTHValue& root, InfoType aType);
+		int64_t getRootInfo(const TTHValue& root, InfoType aType) noexcept;
 
 		string getDbStats() noexcept;
 

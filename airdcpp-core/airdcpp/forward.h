@@ -36,7 +36,10 @@ class ADLSearch;
 
 class BufferedSocket;
 
-struct BundleFileInfo;
+struct BundleDirectoryItemInfo;
+
+struct BundleAddInfo;
+struct DirectoryBundleAddInfo;
 
 class Bundle;
 typedef boost::intrusive_ptr<Bundle> BundlePtr;
@@ -58,6 +61,9 @@ class DirectoryListing;
 typedef boost::intrusive_ptr<DirectoryListing> DirectoryListingPtr;
 typedef std::vector<DirectoryListingPtr> DirectoryListingList;
 
+class DirectoryDownload;
+typedef std::shared_ptr<DirectoryDownload> DirectoryDownloadPtr;
+
 class Download;
 typedef Download* DownloadPtr;
 typedef std::vector<DownloadPtr> DownloadList;
@@ -69,10 +75,6 @@ typedef std::vector<FavoriteHubEntryPtr> FavoriteHubEntryList;
 class FavoriteUser;
 
 class File;
-
-class FinishedItem;
-typedef FinishedItem* FinishedItemPtr;
-typedef std::vector<FinishedItemPtr> FinishedItemList;
 
 class FinishedManager;
 
@@ -178,16 +180,6 @@ typedef std::vector<UserConnectionPtr> UserConnectionList;
 class ViewFile;
 typedef shared_ptr<ViewFile> ViewFilePtr;
 typedef vector<ViewFilePtr> ViewFileList;
-
-class AutoSearch;
-typedef boost::intrusive_ptr<AutoSearch> AutoSearchPtr;
-typedef std::vector<AutoSearchPtr> AutoSearchList;
-typedef std::unordered_map<int, AutoSearchPtr> AutoSearchMap;
-
-class RSS;
-typedef std::shared_ptr<RSS> RSSPtr;
-class RSSData;
-typedef boost::intrusive_ptr<RSSData> RSSDataPtr;
 
 } // namespace dcpp
 

@@ -39,7 +39,7 @@ namespace webserver {
 		QueueApi(Session* aSession);
 		~QueueApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -75,22 +75,22 @@ namespace webserver {
 		QueueItemPtr getFile(ApiRequest& aRequest);
 
 		//bundle update listeners
-		void on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept;
-		void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept;
-		void on(QueueManagerListener::BundleSize, const BundlePtr& aBundle) noexcept;
-		void on(QueueManagerListener::BundlePriority, const BundlePtr& aBundle) noexcept;
-		void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept;
-		void on(QueueManagerListener::BundleSources, const BundlePtr& aBundle) noexcept;
-		void on(FileRecheckFailed, const QueueItemPtr&, const string&) noexcept;
+		void on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept override;
+		void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept override;
+		void on(QueueManagerListener::BundleSize, const BundlePtr& aBundle) noexcept override;
+		void on(QueueManagerListener::BundlePriority, const BundlePtr& aBundle) noexcept override;
+		void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept override;
+		void on(QueueManagerListener::BundleSources, const BundlePtr& aBundle) noexcept override;
+		void on(FileRecheckFailed, const QueueItemPtr&, const string&) noexcept override;
 
-		void on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t aTick) noexcept;
-		void on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept;
+		void on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t aTick) noexcept override;
+		void on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept override;
 
 		//QueueItem update listeners
-		void on(QueueManagerListener::ItemRemoved, const QueueItemPtr& aQI, bool /*finished*/) noexcept;
-		void on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept;
-		void on(QueueManagerListener::ItemSourcesUpdated, const QueueItemPtr& aQI) noexcept;
-		void on(QueueManagerListener::ItemStatusUpdated, const QueueItemPtr& aQI) noexcept;
+		void on(QueueManagerListener::ItemRemoved, const QueueItemPtr& aQI, bool /*finished*/) noexcept override;
+		void on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept override;
+		void on(QueueManagerListener::ItemSourcesUpdated, const QueueItemPtr& aQI) noexcept override;
+		void on(QueueManagerListener::ItemStatusUpdated, const QueueItemPtr& aQI) noexcept override;
 
 		void onFileUpdated(const QueueItemPtr& aQI, const PropertyIdSet& aUpdatedProperties);
 		void onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription);

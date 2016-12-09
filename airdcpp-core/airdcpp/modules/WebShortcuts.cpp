@@ -17,13 +17,13 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
 
-#include "SettingsManager.h"
-#include "StringTokenizer.h"
-#include "SimpleXML.h"
 #include "WebShortcuts.h"
-#include "Pointer.h"
+
+#include <airdcpp/Pointer.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/StringTokenizer.h>
+#include <airdcpp/SimpleXML.h>
 
 namespace dcpp {
 

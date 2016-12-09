@@ -225,7 +225,7 @@ AirUtil::AdapterInfoList AirUtil::getBindAdapters(bool v6) {
 	});
 
 	// "Any" adapter
-	bindAddresses.emplace(bindAddresses.begin(), STRING(ANY), v6 ? "::" : "0.0.0.0", 0);
+	bindAddresses.emplace(bindAddresses.begin(), STRING(ANY), v6 ? "::" : "0.0.0.0", static_cast<uint8_t>(0));
 
 	// Current address not listed?
 	const auto& setting = v6 ? SETTING(BIND_ADDRESS6) : SETTING(BIND_ADDRESS);
@@ -521,15 +521,15 @@ int AirUtil::getMaxAutoOpened(double value) {
 	return slots;
 }
 
-string AirUtil::getPrioText(int prio) noexcept {
-	switch(prio) {
-		case QueueItemBase::PAUSED_FORCE: return STRING(PAUSED_FORCED);
-		case QueueItemBase::PAUSED: return STRING(PAUSED);
-		case QueueItemBase::LOWEST: return STRING(LOWEST);
-		case QueueItemBase::LOW: return STRING(LOW);
-		case QueueItemBase::NORMAL: return STRING(NORMAL);
-		case QueueItemBase::HIGH: return STRING(HIGH);
-		case QueueItemBase::HIGHEST: return STRING(HIGHEST);
+string AirUtil::getPrioText(Priority aPriority) noexcept {
+	switch(aPriority) {
+		case Priority::PAUSED_FORCE: return STRING(PAUSED_FORCED);
+		case Priority::PAUSED: return STRING(PAUSED);
+		case Priority::LOWEST: return STRING(LOWEST);
+		case Priority::LOW: return STRING(LOW);
+		case Priority::NORMAL: return STRING(NORMAL);
+		case Priority::HIGH: return STRING(HIGH);
+		case Priority::HIGHEST: return STRING(HIGHEST);
 		default: return STRING(PAUSED);
 	}
 }
@@ -816,7 +816,7 @@ string AirUtil::getLastCommonDirectoryPathFromSub(const string& aMainPath, const
 
 	// Get the next directory
 	if (pos < aSubPath.length()) {
-		auto pos2 = aSubPath.find('\\', pos);
+		auto pos2 = aSubPath.find(aSubSeparator, pos);
 		if (pos2 != string::npos) {
 			pos = pos2 + 1;
 		}
@@ -872,7 +872,7 @@ string AirUtil::getMatchPath(const string& aRemoteFile, const string& aLocalFile
 	// Get last matching directory for matching recursive filelist from the user
 	auto remoteFileDir = Util::getNmdcFilePath(aRemoteFile);
 	auto localBundleFileDir = Util::getFilePath(aLocalFile);
-	return AirUtil::getLastCommonDirectoryPathFromSub(localBundleFileDir, remoteFileDir, '\\', aBundlePath.length());
+	return AirUtil::getLastCommonDirectoryPathFromSub(localBundleFileDir, remoteFileDir, NMDC_SEPARATOR, aBundlePath.length());
 }
 
 pair<string, string::size_type> AirUtil::getDirName(const string& aPath, char aSeparator) noexcept {

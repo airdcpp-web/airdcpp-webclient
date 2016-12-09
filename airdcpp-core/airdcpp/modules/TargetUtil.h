@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_TARGET_UTIL_H
 #define DCPLUSPLUS_DCPP_TARGET_UTIL_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "GetSet.h"
-#include "Util.h"
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Util.h>
 
 #include <string>
 
@@ -31,40 +31,28 @@ using std::string;
 
 class TargetUtil {
 
+// DEPRECEATED
 public:
 	class TargetInfo {
 	public:
 		explicit TargetInfo() { }
 		explicit TargetInfo(const string& aPath, int64_t aFreeSpace = 0) : target(aPath), freeDiskSpace(aFreeSpace) { }
 
-		int64_t getRealFreeSpace() const { return freeDiskSpace - queued; }
-		bool isInitialized() { return freeDiskSpace != 0 || queued != 0 || !target.empty(); }
-
-		bool operator<(const TargetInfo& ti) const {
-			return (freeDiskSpace - queued) < (ti.freeDiskSpace - ti.queued);
-		}
-
-		int64_t getQueued() const noexcept {
-			return queued;
-		}
+		bool isInitialized() { return freeDiskSpace != 0 || !target.empty(); }
 
 		bool hasTarget() const noexcept {
 			return !target.empty();
 		}
 
 		bool hasFreeSpace(int64_t aRequiredBytes) const noexcept {
-			return getRealFreeSpace() >= aRequiredBytes;
+			return freeDiskSpace >= aRequiredBytes;
 		}
 
 		GETSET(string, target, Target);
 		IGETSET(int64_t, freeDiskSpace, FreeDiskSpace, 0);
-
-		void addQueued(int64_t aBytes) noexcept {
-			queued += aBytes;
-		}
-	private:
-		int64_t queued = 0;
 	};
+
+	typedef map<string, TargetInfo, noCaseStringLess> TargetInfoMap;
 
 	enum TargetType {
 		TARGET_PATH,
@@ -73,21 +61,10 @@ public:
 		TARGET_LAST
 	};
 
-	typedef unordered_map<string, TargetInfo, noCaseStringHash, noCaseStringEq> TargetInfoMap;
-	typedef unordered_set<string, noCaseStringHash, noCaseStringEq> VolumeSet;
-
-	static string getMountPath(const string& aPath, const VolumeSet& aVolumes);
-
-	static bool getTarget(const OrderedStringSet& aTargets, TargetInfo& ti_, const int64_t& size);
-
-	static bool getVirtualTarget(const string& aTarget, TargetType targetType, TargetInfo& ti_, const int64_t& size);
-
-	static void getVolumes(VolumeSet& volumes);
-	static bool getDiskInfo(TargetInfo& ti_);
-
-	static void compareMap(const TargetInfoMap& targets, TargetInfo& retTi_, const int64_t& aSize, int aMethod);
-	static string formatSizeNotification(const TargetInfo& ti, int64_t aSize);
-	static string formatSizeConfirmation(const TargetInfo& ti, int64_t aSize);
+	static void getVirtualTarget(const string& aTarget, TargetType targetType, TargetInfo& ti_);
+private:
+	static void getTarget(const OrderedStringSet& aTargets, TargetInfo& ti_);
+	static void compareMap(const TargetInfoMap& targets, TargetInfo& retTi_);
 };
 
 }

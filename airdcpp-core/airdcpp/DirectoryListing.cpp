@@ -22,7 +22,6 @@
 
 #include "ADLSearch.h"
 #include "AirUtil.h"
-#include "AutoSearchManager.h"
 #include "Bundle.h"
 #include "BZUtils.h"
 #include "ClientManager.h"
@@ -39,12 +38,10 @@
 #include "User.h"
 #include "ViewFileManager.h"
 
-#include <boost/algorithm/cxx11/all_of.hpp>
-
 
 namespace dcpp {
 
-using boost::algorithm::all_of;
+//using boost::algorithm::all_of;
 using boost::range::for_each;
 using boost::range::find_if;
 
@@ -220,7 +217,7 @@ DirectoryListing::Directory::Ptr DirectoryListing::createBaseDirectory(const str
 	dcassert(Util::isAdcPath(aBasePath));
 	auto cur = root;
 
-	const auto sl = StringTokenizer<string>(aBasePath, '/').getTokens();
+	const auto sl = StringTokenizer<string>(aBasePath, ADC_SEPARATOR).getTokens();
 	for (const auto& curDirName : sl) {
 		auto s = cur->directories.find(&curDirName);
 		if (s == cur->directories.end()) {
@@ -246,9 +243,9 @@ void DirectoryListing::loadFile() throw(Exception, AbortException) {
 		root->setLastUpdateDate(ff.getLastModified());
 		if(Util::stricmp(ext, ".bz2") == 0) {
 			FilteredInputStream<UnBZFilter, false> f(&ff);
-			loadXML(f, false, "/", ff.getLastModified());
+			loadXML(f, false, ADC_ROOT_STR, ff.getLastModified());
 		} else if(Util::stricmp(ext, ".xml") == 0) {
-			loadXML(ff, false, "/", ff.getLastModified());
+			loadXML(ff, false, ADC_ROOT_STR, ff.getLastModified());
 		}
 	}
 }
@@ -431,7 +428,10 @@ DirectoryListing::Directory::Ptr DirectoryListing::Directory::create(Directory* 
 	auto dir = Ptr(new Directory(aParent, aName, aType, aUpdateDate, aCheckDupe, aSize, aRemoteDate));
 	if (aParent && aType != TYPE_ADLS) { // This would cause an infinite recursion in ADL search
 		dcassert(aParent->directories.find(&dir->getName()) == aParent->directories.end());
-		aParent->directories.emplace(&dir->getName(), dir);
+		auto res = aParent->directories.emplace(&dir->getName(), dir);
+		if (!res.second) {
+			throw AbortException("The directory " + dir->getPath() + " contains items with duplicate names (" + dir->getName() + ", " + *(*res.first).first + ")");
+		}
 	}
 
 	return dir;
@@ -515,10 +515,10 @@ bool DirectoryListing::Directory::findIncomplete() const noexcept {
 	}).base() != directories.end();
 }
 
-void DirectoryListing::Directory::download(const string& aTarget, BundleFileInfo::List& aFiles) const noexcept {
+void DirectoryListing::Directory::toBundleInfoList(const string& aTarget, BundleDirectoryItemInfo::List& aFiles) const noexcept {
 	// First, recurse over the directories
 	for (const auto& d: directories | map_values) {
-		d->download(aTarget + d->getName() + PATH_SEPARATOR, aFiles);
+		d->toBundleInfoList(aTarget + d->getName() + PATH_SEPARATOR, aFiles);
 	}
 
 	// Then add the files
@@ -529,84 +529,26 @@ void DirectoryListing::Directory::download(const string& aTarget, BundleFileInfo
 	}
 }
 
-bool DirectoryListing::createBundle(const Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept {
-	BundleFileInfo::List aFiles;
-	aDir->download(Util::emptyString, aFiles);
+optional<DirectoryBundleAddInfo> DirectoryListing::createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPriority, string& errorMsg_) noexcept {
+	BundleDirectoryItemInfo::List aFiles;
+	aDir->toBundleInfoList(Util::emptyString, aFiles);
 
-	if (aFiles.empty() || (SETTING(SKIP_ZERO_BYTE) && none_of(aFiles.begin(), aFiles.end(), [](const BundleFileInfo& aFile) { return aFile.size > 0; }))) {
-		fire(DirectoryListingListener::UpdateStatusMessage(), STRING(DIR_EMPTY) + " " + aDir->getName());
-		return false;
-	}
-
-	string errorMsg;
-	BundlePtr b = nullptr;
 	try {
-		b = QueueManager::getInstance()->createDirectoryBundle(aTarget, hintedUser.user == ClientManager::getInstance()->getMe() && !isOwnList ? HintedUser() : hintedUser,
-			aFiles, prio, aDir->getRemoteDate(), errorMsg);
+		auto info = QueueManager::getInstance()->createDirectoryBundle(aTarget, hintedUser.user == ClientManager::getInstance()->getMe() && !isOwnList ? HintedUser() : hintedUser,
+			aFiles, aPriority, aDir->getRemoteDate(), errorMsg_);
+
+		return info;
 	} catch (const std::bad_alloc&) {
+		errorMsg_ = STRING(OUT_OF_MEMORY);
 		LogManager::getInstance()->message(STRING_F(BUNDLE_CREATION_FAILED, aTarget % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
-		return false;
-	} catch (const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(BUNDLE_CREATION_FAILED, aTarget % e.getError()), LogMessage::SEV_ERROR);
-		return false;
 	}
 
-	if (!errorMsg.empty()) {
-		if (aAutoSearch == 0) {
-			LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, aTarget % getNick(false) % errorMsg), LogMessage::SEV_WARNING);
-		} else {
-			AutoSearchManager::getInstance()->onBundleError(aAutoSearch, errorMsg, aTarget, hintedUser);
-		}
-	}
-
-	if (b) {
-		if (aAutoSearch > 0) {
-			AutoSearchManager::getInstance()->onBundleCreated(b, aAutoSearch);
-		}
-		return true;
-	}
-
-	return false;
-}
-
-bool DirectoryListing::downloadDirImpl(Directory::Ptr& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept {
-	dcassert(!aDir->findIncomplete());
-
-	/* Check if this is a root dir containing release dirs */
-	boost::regex reg;
-	reg.assign(AirUtil::getReleaseRegBasic());
-	if (!boost::regex_match(aDir->getName(), reg) && aDir->files.empty() && !aDir->directories.empty() &&
-		all_of(aDir->directories | map_keys, [&reg](const string* aName) { return boost::regex_match(*aName, reg); })) {
-			
-		/* Create bundles from each subfolder */
-		bool queued = false;
-		for (const auto& d: aDir->directories | map_values) {
-			if (createBundle(d, aTarget + d->getName() + PATH_SEPARATOR, prio, aAutoSearch)) {
-				queued = true;
-			}
-		}
-
-		return queued;
-	}
-
-	return createBundle(aDir, aTarget, prio, aAutoSearch);
-}
-
-bool DirectoryListing::downloadDir(const string& aDir, const string& aTarget, QueueItemBase::Priority prio, ProfileToken aAutoSearch) noexcept {
-	dcassert(aDir.size() > 2);
-	dcassert(aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
-
-	auto d = findDirectory(aDir);
-	if (d) {
-		return downloadDirImpl(d, aTarget, prio, aAutoSearch);
-	}
-
-	return false;
+	return boost::none;
 }
 
 int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {
 	dcassert(aDir.size() > 2);
-	dcassert(aDir.empty() || aDir[aDir.size() - 1] == '\\'); // This should not be PATH_SEPARATOR
+	dcassert(aDir == NMDC_ROOT_STR || aDir[aDir.size() - 1] == NMDC_SEPARATOR);
 
 	auto d = findDirectory(aDir);
 	if (d) {
@@ -631,10 +573,10 @@ bool DirectoryListing::viewAsText(const File::Ptr& aFile) const noexcept {
 }
 
 DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& aName, const Directory* aCurrent) const noexcept {
-	if (aName.empty())
+	if (aName == NMDC_ROOT_STR)
 		return root;
 
-	string::size_type end = aName.find('\\');
+	string::size_type end = aName.find(NMDC_SEPARATOR);
 	dcassert(end != string::npos);
 	string name = aName.substr(0, end);
 
@@ -859,7 +801,7 @@ void DirectoryListing::Directory::clearAdls() noexcept {
 string DirectoryListing::Directory::getPath() const noexcept {
 	//make sure to not try and get the name of the root dir
 	if (parent) {
-		return parent->getPath() + name + '\\';
+		return parent->getPath() + name + NMDC_SEPARATOR;
 	}
 
 	// root
@@ -1007,8 +949,13 @@ void DirectoryListing::dispatch(DispatcherQueue::Callback& aCallback) noexcept {
 	} catch (const std::bad_alloc&) {
 		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, getNick(false) % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		fire(DirectoryListingListener::LoadingFailed(), "Out of memory");
-	} catch (const AbortException&) {
-		fire(DirectoryListingListener::LoadingFailed(), Util::emptyString);
+	} catch (const AbortException& e) {
+		// The error is empty on user cancellations
+		if (!e.getError().empty()) {
+			LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, getNick(false) % e.getError()), LogMessage::SEV_ERROR);
+		}
+
+		fire(DirectoryListingListener::LoadingFailed(), e.getError());
 	} catch(const ShareException& e) {
 		fire(DirectoryListingListener::LoadingFailed(), e.getError());
 	} catch (const QueueException& e) {

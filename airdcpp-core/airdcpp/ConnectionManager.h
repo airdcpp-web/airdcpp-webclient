@@ -35,11 +35,10 @@ class SocketException;
 
 class TokenManager {
 public:
-	string makeToken() const noexcept;
-	string getToken(ConnectionType aConnType) noexcept;
+	string createToken(ConnectionType aConnType) noexcept;
 	bool addToken(const string& aToken, ConnectionType aConnType) noexcept;
 	void removeToken(const string& aToken) noexcept;
-	bool hasToken(const string& aToken, ConnectionType aConnType) noexcept;
+	bool hasToken(const string& aToken, ConnectionType aConnType) const noexcept;
 private:
 	unordered_map<string, ConnectionType> tokens;
 	static FastCriticalSection cs;
@@ -70,32 +69,28 @@ public:
 		TYPE_MCN_NORMAL
 	};
 
-	ConnectionQueueItem(const HintedUser& aUser, ConnectionType aConntype, const string& aToken) : token(aToken), 
-		downloadType(TYPE_ANY), connType(aConntype),
-		lastAttempt(0), errors(0), state(WAITING), maxConns(0), hubUrl(aUser.hint), user(aUser.user) {
-	}
+	ConnectionQueueItem(const HintedUser& aUser, ConnectionType aConntype, const string& aToken);
 	
 	GETSET(string, token, Token);
-	GETSET(DownloadType, downloadType, DownloadType);
+	IGETSET(DownloadType, downloadType, DownloadType, TYPE_ANY);
 	GETSET(string, lastBundle, LastBundle);
-	GETSET(uint64_t, lastAttempt, LastAttempt);
-	GETSET(int, errors, Errors); // Number of connection errors, or -1 after a protocol error
-	GETSET(State, state, State);
-	GETSET(uint8_t, maxConns, MaxConns);
-	GETSET(string, hubUrl, HubUrl);
+	IGETSET(uint64_t, lastAttempt, LastAttempt, 0);
+	IGETSET(int, errors, Errors, 0); // Number of connection errors, or -1 after a protocol error
+	IGETSET(State, state, State, WAITING);
+	IGETSET(uint8_t, maxConns, MaxConns, 0);
 	GETSET(ConnectionType, connType, ConnType);
 
-	const UserPtr& getUser() const { return user; }
-	//UserPtr& getUser() { return user; }
-	const HintedUser getHintedUser() const { return HintedUser(user, hubUrl); }
-	bool allowNewConnections(int running) const;
+	const string& getHubUrl() const noexcept { return user.hint; }
+	void setHubUrl(const string& aHubUrl) noexcept { user.hint = aHubUrl; }
+	const HintedUser& getUser() const noexcept { return user; }
+	bool allowNewConnections(int running) const noexcept;
 private:
-	UserPtr user;
+	HintedUser user;
 };
 
 class ExpectedMap {
 public:
-	void add(const string& aKey, const string& aMyNick, const string& aHubUrl) {
+	void add(const string& aKey, const string& aMyNick, const string& aHubUrl) noexcept {
 		Lock l(cs);
 		expectedConnections.emplace(aKey, make_pair(aMyNick, aHubUrl));
 	}

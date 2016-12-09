@@ -31,22 +31,18 @@
 #include "UserConnection.h"
 
 namespace dcpp {
-	FastCriticalSection TokenManager::cs;
+FastCriticalSection TokenManager::cs;
 
-string TokenManager::makeToken() const noexcept {
+string TokenManager::createToken(ConnectionType aConnType) noexcept {
 	string token;
 
-	FastLock l(cs);
-	do { token = Util::toString(Util::rand()); } while (tokens.find(token) != tokens.end());
+	{
+		FastLock l(cs);
+		do { token = Util::toString(Util::rand()); } while (tokens.find(token) != tokens.end());
 
-	return token;
-}
+		tokens.emplace(token, aConnType);
+	}
 
-
-string TokenManager::getToken(ConnectionType aConnType) noexcept{
-	string token = move(makeToken());
-	FastLock l(cs);
-	tokens.emplace(token, aConnType);
 	return token;
 }
 
@@ -56,7 +52,7 @@ bool TokenManager::addToken(const string& aToken, ConnectionType aConnType) noex
 	return res.second;
 }
 
-bool TokenManager::hasToken(const string& aToken, ConnectionType aConnType) noexcept{
+bool TokenManager::hasToken(const string& aToken, ConnectionType aConnType) const noexcept{
 	FastLock l(cs);
 	const auto res = tokens.find(aToken);
 	return res != tokens.end() && res->second == aConnType;
@@ -110,8 +106,13 @@ void ConnectionManager::listen() {
 	secureServer.reset(new Server(true, Util::toString(CONNSETTING(TLS_PORT)), CONNSETTING(BIND_ADDRESS), CONNSETTING(BIND_ADDRESS6)));
 }
 
-bool ConnectionQueueItem::allowNewConnections(int running) const {
-	return (running < AirUtil::getSlotsPerUser(true) || AirUtil::getSlotsPerUser(true) == 0) && (running < maxConns || maxConns == 0);
+ConnectionQueueItem::ConnectionQueueItem(const HintedUser& aUser, ConnectionType aConntype, const string& aToken) : token(aToken),
+	connType(aConntype), user(aUser) {
+
+}
+
+bool ConnectionQueueItem::allowNewConnections(int aRunning) const noexcept {
+	return (aRunning < AirUtil::getSlotsPerUser(true) || AirUtil::getSlotsPerUser(true) == 0) && (aRunning < maxConns || maxConns == 0);
 }
 
 
@@ -180,7 +181,7 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool smal
 
 ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, ConnectionType aConnType, const string& aToken) {
 	auto& container = cqis[aConnType];
-	auto cqi = new ConnectionQueueItem(aUser, aConnType, !aToken.empty() ? aToken : tokens.getToken(aConnType));
+	auto cqi = new ConnectionQueueItem(aUser, aConnType, !aToken.empty() ? aToken : tokens.createToken(aConnType));
 	container.emplace_back(cqi);
 
 	fire(ConnectionManagerListener::Added(), cqi);
@@ -259,7 +260,7 @@ void ConnectionManager::attemptDownloads(uint64_t aTick, StringList& removedToke
 	uint16_t attempts = 0;
 	for (auto cqi : downloads) {
 		if (cqi->getState() != ConnectionQueueItem::ACTIVE && cqi->getState() != ConnectionQueueItem::RUNNING) {
-			if (!cqi->getUser()->isOnline() || cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
+			if (!cqi->getUser().user->isOnline() || cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 				removedTokens.push_back(cqi->getToken());
 				continue;
 			}
@@ -708,7 +709,7 @@ void ConnectionManager::on(UserConnectionListener::MyNick, UserConnection* aSour
 		for(auto cqi: downloads) {
 			cqi->setErrors(0);
 			if((cqi->getState() == ConnectionQueueItem::CONNECTING || cqi->getState() == ConnectionQueueItem::WAITING) && 
-				cqi->getUser()->getCID() == cid)
+				cqi->getUser().user->getCID() == cid)
 			{
 				aSource->setUser(cqi->getUser());
 				// Indicate that we're interested in this file...
@@ -1055,7 +1056,7 @@ void ConnectionManager::failDownload(const string& aToken, const string& aError,
 		if (cqi->getDownloadType() == ConnectionQueueItem::TYPE_SMALL_CONF && cqi->getState() == ConnectionQueueItem::ACTIVE) {
 			//small slot item that was never used for downloading anything? check if we have normal files to download
 			if (allowNewMCN(cqi))
-				mcnUser = cqi->getHintedUser();
+				mcnUser = cqi->getUser();
 		}
 
 		cqi->setState(ConnectionQueueItem::WAITING);

@@ -140,7 +140,7 @@ void QueueManager::recheckBundle(QueueToken aBundleToken) noexcept {
 	auto oldPrio = b->getPriority();
 	auto oldStatus = b->getStatus();
 
-	setBundlePriority(b, QueueItemBase::PAUSED_FORCE);
+	setBundlePriority(b, Priority::PAUSED_FORCE);
 	Thread::sleep(1000);
 
 	setBundleStatus(b, Bundle::STATUS_RECHECK);
@@ -178,7 +178,7 @@ void QueueManager::recheckFiles(QueueItemList aQL) noexcept {
 		}
 
 		auto oldPrio = q->getPriority();
-		setQIPriority(q, QueueItemBase::PAUSED_FORCE);
+		setQIPriority(q, Priority::PAUSED_FORCE);
 		if (running) {
 			Thread::sleep(1000);
 		}
@@ -524,34 +524,29 @@ bool QueueManager::hasDownloadedBytes(const string& aTarget) throw(QueueExceptio
 	return q->getDownloadedBytes() > 0;
 }
 
-QueueItemPtr QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = Util::emptyString */, BundlePtr aBundle /*nullptr*/) throw(QueueException, FileException) {
-	//check the source
+QueueItemPtr QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = Util::emptyString */, BundlePtr aBundle /*nullptr*/) throw(QueueException, DupeException) {
+	// Pre-checks
 	checkSource(aUser);
-	//dcassert(!aUser.hint.empty());
-	if (aUser.hint.empty())
+	if (aUser.hint.empty()) {
 		throw QueueException(STRING(HUB_UNKNOWN));
+	}
 
-	//format the target
-	string target;
+	// Format the target
+	auto target = getListPath(aUser);
 	if((aFlags & QueueItem::FLAG_PARTIAL_LIST) && !aInitialDir.empty()) {
-		StringList nicks = ClientManager::getInstance()->getNicks(aUser);
-		if (nicks.empty())
-			throw QueueException(STRING(INVALID_TARGET_FILE));
-		target = Util::getListPath() + nicks[0] + ".partial[" + Util::validateFileName(aInitialDir) + "]";
-	} else {
-		target = getListPath(aUser);
+		target += ".partial[" + Util::validateFileName(aInitialDir) + "]";
 	}
 
 
-	//add in queue
+	// Add in queue
 
 	QueueItemPtr q = nullptr;
 	{
 		WLock l(cs);
-		auto ret = fileQueue.add(target, -1, (Flags::MaskType)(QueueItem::FLAG_USER_LIST | aFlags), QueueItem::HIGHEST, aInitialDir, GET_TIME(), TTHValue());
+		auto ret = fileQueue.add(target, -1, (Flags::MaskType)(QueueItem::FLAG_USER_LIST | aFlags), Priority::HIGHEST, aInitialDir, GET_TIME(), TTHValue());
 		if (!ret.second) {
 			//exists already
-			throw QueueException(STRING(LIST_ALREADY_QUEUED));
+			throw DupeException(STRING(LIST_ALREADY_QUEUED));
 		}
 
 		q = std::move(ret.first);
@@ -623,7 +618,10 @@ void QueueManager::checkSource(const HintedUser& aUser) const throw(QueueExcepti
 	}
 }
 
-void QueueManager::validateBundleFile(const string& aBundleDir, string& bundleFile_, const TTHValue& aTTH, QueueItemBase::Priority& priority_) const throw(QueueException, FileException, DupeException) {
+void QueueManager::validateBundleFile(const string& aBundleDir, string& bundleFile_, const TTHValue& aTTH, Priority& priority_, int64_t aSize) const throw(QueueException, FileException, DupeException) {
+	if (aSize <= 0) {
+		throw QueueException(STRING(ZERO_BYTE_QUEUE));
+	}
 
 	//check the skiplist
 
@@ -675,7 +673,7 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& bundleFi
 
 	//set the prio
 	if (highPrioFiles.match(Util::getFileName(bundleFile_))) {
-		priority_ = SETTING(PRIO_LIST_HIGHEST) ? QueueItem::HIGHEST : QueueItem::HIGH;
+		priority_ = SETTING(PRIO_LIST_HIGHEST) ? Priority::HIGHEST : Priority::HIGH;
 	}
 }
 
@@ -710,7 +708,7 @@ QueueItemPtr QueueManager::addOpenedItem(const string& aFileName, int64_t aSize,
 
 	{
 		WLock l(cs);
-		auto ret = fileQueue.add(target, aSize, flags, QueueItem::HIGHEST, Util::emptyString, GET_TIME(), aTTH);
+		auto ret = fileQueue.add(target, aSize, flags, Priority::HIGHEST, Util::emptyString, GET_TIME(), aTTH);
 
 		qi = std::move(ret.first);
 		added = ret.second;
@@ -730,7 +728,7 @@ QueueItemPtr QueueManager::addOpenedItem(const string& aFileName, int64_t aSize,
 	return qi;
 }
 
-BundlePtr QueueManager::getBundle(const string& aTarget, QueueItemBase::Priority aPrio, time_t aDate, bool isFileBundle) noexcept {
+BundlePtr QueueManager::getBundle(const string& aTarget, Priority aPrio, time_t aDate, bool isFileBundle) noexcept {
 	auto b = bundleQueue.getMergeBundle(aTarget);
 	if (!b) {
 		// create a new bundle
@@ -752,7 +750,7 @@ public:
 		bool isMinor;
 	};
 
-	ErrorReporter(int totalFileCount) : fileCount(totalFileCount) { }
+	ErrorReporter(int aTotalFileCount) : fileCount(aTotalFileCount) { }
 
 	void add(const string& aError, const string& aFile, bool aIsMinor) {
 		errors.emplace(aError, Error(aFile, aIsMinor));
@@ -777,23 +775,23 @@ public:
 		}
 
 		for (const auto& e: errorNames) {
-			auto c = errors.count(e);
-			if (c <= 3) {
-				//report each file
+			auto errorCount = errors.count(e);
+			if (errorCount <= 3) {
+				// Report each file
 				StringList paths;
 				auto k = errors.equal_range(e);
-				for (auto i = k.first; i != k.second; ++i)
+				for (auto i = k.first; i != k.second; ++i) {
 					paths.push_back(i->second.file);
+				}
 
-				string r = Util::toString(", ", paths);
-				msg.push_back(STRING_F(X_FILE_NAMES, e % r));
+				auto pathStr = Util::toString(", ", paths);
+				msg.push_back(STRING_F(X_FILE_NAMES, e % pathStr));
 			} else {
-				//too many errors, report the total failed count
-				msg.push_back(STRING_F(X_FILE_COUNT, e % c % fileCount));
+				// Too many errors, report the total failed count
+				msg.push_back(STRING_F(X_FILE_COUNT, e % errorCount % fileCount));
 			}
 		}
 
-		// long errors will crash the debug build.. fix maybe
 		return Util::toString(", ", msg);
 	}
 
@@ -802,11 +800,12 @@ private:
 	unordered_multimap<string, Error> errors;
 };
 
-BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileInfo::List& aFiles, QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) throw(QueueException) {
-	string target = formatBundleTarget(aTarget, aDate);
+optional<DirectoryBundleAddInfo> QueueManager::createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleDirectoryItemInfo::List& aFiles, Priority aPrio, time_t aDate, string& errorMsg_) noexcept {
+	// Generic validations that will throw
+	auto target = formatBundleTarget(aTarget, aDate);
 
-	// Check if the target is allowed
 	{
+		// There can't be existing bundles inside this directory
 		BundleList subBundles;
 		bundleQueue.getSubBundles(target, subBundles);
 		if (!subBundles.empty()) {
@@ -815,37 +814,49 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 				subPaths.push_back(b->getTarget());
 			}
 
-			throw QueueException(STRING_F(BUNDLE_ERROR_SUBBUNDLES, subBundles.size() % target % AirUtil::subtractCommonParents(target, subPaths)));
+			errorMsg_ = STRING_F(BUNDLE_ERROR_SUBBUNDLES, subBundles.size() % target % AirUtil::subtractCommonParents(target, subPaths));
+			return boost::none;
 		}
 	}
 
-	int fileCount = aFiles.size();
-
-	//check the source
 	if (aUser.user) {
-		//it's up to the caller to catch this one
-		checkSource(aUser);
+		try {
+			checkSource(aUser);
+		} catch (const QueueException& e) {
+			errorMsg_ = e.getError();
+			return boost::none;
+		}
 	}
 
+	if (aFiles.empty()) {
+		errorMsg_ = STRING(DIR_EMPTY);
+		return boost::none;
+	}
+
+	// File validation
+	int smallDupes = 0, fileCount = aFiles.size(), filesExist = 0;
+
+	DirectoryBundleAddInfo info;
 	ErrorReporter errors(fileCount);
 
-	int existingFiles = 0, smallDupes=0;
-
-	//check the files
-	aFiles.erase(boost::remove_if(aFiles, [&](BundleFileInfo& bfi) {
+	aFiles.erase(boost::remove_if(aFiles, [&](BundleDirectoryItemInfo& bfi) {
 		try {
-			validateBundleFile(target, bfi.file, bfi.tth, bfi.prio);
+			validateBundleFile(target, bfi.file, bfi.tth, bfi.prio, bfi.size);
 			return false; // valid
-		} catch(QueueException& e) {
+		} catch(const QueueException& e) {
 			errors.add(e.getError(), bfi.file, false);
-		} catch(FileException& /*e*/) {
-			existingFiles++;
-		} catch(DupeException& e) {
+			info.filesFailed++;
+		} catch(const FileException& e) {
+			errors.add(e.getError(), bfi.file, true);
+			filesExist++;
+		} catch(const DupeException& e) {
 			bool isSmall = bfi.size < Util::convertSize(SETTING(MIN_DUPE_CHECK_SIZE), Util::KB);
 			errors.add(e.getError(), bfi.file, isSmall);
 			if (isSmall) {
 				smallDupes++;
 				return false;
+			} else {
+				info.filesFailed++;
 			}
 		}
 
@@ -853,23 +864,17 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 	}), aFiles.end());
 
 
-	//check the errors
+	// Check file validation errors
 	if (aFiles.empty()) {
-		//report existing files only if all files exist to prevent useless spamming
-		if (existingFiles == fileCount) {
-			errorMsg_ = STRING_F(ALL_BUNDLE_FILES_EXIST, existingFiles);
-			return nullptr;
-		}
-
 		errorMsg_ = errors.getMessage();
-		return nullptr;
+		return boost::none;
 	} else if (smallDupes > 0) {
 		if (smallDupes == static_cast<int>(aFiles.size())) {
-			//no reason to continue if all remaining files are dupes
+			// No reason to continue if all remaining files are dupes
 			errorMsg_ = errors.getMessage();
-			return nullptr;
+			return boost::none;
 		} else {
-			//those will get queued, don't report
+			// Those will get queued, don't report
 			errors.clearMinor();
 		}
 	}
@@ -878,10 +883,9 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 
 	BundlePtr b = nullptr;
 	bool wantConnection = false;
-	int newItems = 0;
 	Bundle::Status oldStatus;
 
-	QueueItem::ItemBoolList items;
+	QueueItem::ItemBoolList queueItems;
 	{
 		WLock l(cs);
 		b = getBundle(target, aPrio, aDate, false);
@@ -891,53 +895,52 @@ BundlePtr QueueManager::createDirectoryBundle(const string& aTarget, const Hinte
 		for (auto& bfi: aFiles) {
 			try {
 				auto addInfo = addBundleFile(target + bfi.file, bfi.size, bfi.tth, aUser, 0, true, bfi.prio, wantConnection, b);
-				if (!addInfo) {
-					continue;
+				if (addInfo.second) {
+					info.filesAdded++;
+				} else {
+					info.filesUpdated++;
 				}
 
-				if ((*addInfo).second) {
-					newItems++;
-				}
-
-				items.push_back(*addInfo);
+				queueItems.push_back(std::move(addInfo));
 			} catch(QueueException& e) {
 				errors.add(e.getError(), bfi.file, false);
-			} catch(FileException& /*e*/) {
-				//the file has finished after we made the initial target check, don't add error for those
-				existingFiles++;
+				info.filesFailed++;
+			} catch(FileException& e) {
+				//the file has finished after we made the initial target check
+				errors.add(e.getError(), bfi.file, true);
+				filesExist++;
 			}
 		}
 
-		if (!addBundle(b, newItems)) {
-			b = nullptr;
-		}
+		addBundle(b, info.filesAdded);
 	}
 
-	if (existingFiles == fileCount) {
-		errorMsg_ = STRING_F(ALL_BUNDLE_FILES_EXIST, existingFiles);
-		return nullptr;
+	if (queueItems.empty()) {
+		errorMsg_ = errors.getMessage();
+		return boost::none;
 	}
 
-	if (b) {
-		// Those don't need to be reported to the user
-		errors.clearMinor();
+	dcassert(b);
 
-		onBundleAdded(b, oldStatus, items, aUser, wantConnection);
+	// Those don't need to be reported to the user
+	errors.clearMinor();
 
-		if (newItems > 0) {
-			// Report
-			if (oldStatus == Bundle::STATUS_NEW) {
-				LogManager::getInstance()->message(STRING_F(BUNDLE_CREATED, b->getName() % newItems) + " (" + CSTRING_F(TOTAL_SIZE, Util::formatBytes(b->getSize())) + ")", LogMessage::SEV_INFO);
-			} else if (b->getTarget() == target) {
-				LogManager::getInstance()->message(STRING_F(X_BUNDLE_ITEMS_ADDED, newItems % b->getName().c_str()), LogMessage::SEV_INFO);
-			} else {
-				LogManager::getInstance()->message(STRING_F(BUNDLE_MERGED, Util::getLastDir(target) % b->getName() % newItems), LogMessage::SEV_INFO);
-			}
+	onBundleAdded(b, oldStatus, queueItems, aUser, wantConnection);
+	info.bundleInfo = BundleAddInfo(b, oldStatus != Bundle::STATUS_NEW);
+
+	if (info.filesAdded > 0) {
+		// Report
+		if (oldStatus == Bundle::STATUS_NEW) {
+			LogManager::getInstance()->message(STRING_F(BUNDLE_CREATED, b->getName() % info.filesAdded) + " (" + CSTRING_F(TOTAL_SIZE, Util::formatBytes(b->getSize())) + ")", LogMessage::SEV_INFO);
+		} else if (b->getTarget() == target) {
+			LogManager::getInstance()->message(STRING_F(X_BUNDLE_ITEMS_ADDED, info.filesAdded % b->getName().c_str()), LogMessage::SEV_INFO);
+		} else {
+			LogManager::getInstance()->message(STRING_F(BUNDLE_MERGED, Util::getLastDir(target) % b->getName() % info.filesAdded), LogMessage::SEV_INFO);
 		}
 	}
 
 	errorMsg_ = errors.getMessage();
-	return b;
+	return info;
 }
 
 void QueueManager::addLoadedBundle(BundlePtr& aBundle) noexcept {
@@ -951,19 +954,10 @@ void QueueManager::addLoadedBundle(BundlePtr& aBundle) noexcept {
 	bundleQueue.addBundle(aBundle);
 }
 
-bool QueueManager::addBundle(BundlePtr& aBundle, int aItemsAdded) noexcept {
-	if (aBundle->getQueueItems().empty() && aItemsAdded > 0) {
-		// it finished already? (only 0 byte files were added)
-		tasks.addTask([=] {
-			BundlePtr b = aBundle;
-			checkBundleFinished(b);
-		});
-
-		return false;
+void QueueManager::addBundle(BundlePtr& aBundle, int aItemsAdded) noexcept {
+	if (aItemsAdded == 0) {
+		return;
 	}
-
-	if (aItemsAdded == 0)
-		return true;
 
 	if (aBundle->getStatus() == Bundle::STATUS_NEW) {
 		bundleQueue.addBundle(aBundle);
@@ -977,8 +971,6 @@ bool QueueManager::addBundle(BundlePtr& aBundle, int aItemsAdded) noexcept {
 			aBundle->setDirty();
 		}
 	}
-
-	return true;
 }
 
 void QueueManager::onBundleAdded(const BundlePtr& aBundle, Bundle::Status aOldStatus, const QueueItem::ItemBoolList& aItemsAdded, const HintedUser& aUser, bool aWantConnection) noexcept {
@@ -1022,8 +1014,8 @@ string QueueManager::formatBundleTarget(const string& aPath, time_t aRemoteDate)
 	return Util::validatePath(formatedPath);
 }
 
-BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, 
-		Flags::MaskType aFlags, QueueItemBase::Priority aPrio) throw(QueueException, FileException, DupeException) {
+BundleAddInfo QueueManager::createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate,
+		Flags::MaskType aFlags, Priority aPrio) throw(QueueException, FileException, DupeException) {
 
 	string filePath = formatBundleTarget(Util::getFilePath(aTarget), aDate);
 	string fileName = Util::getFileName(aTarget);
@@ -1033,7 +1025,7 @@ BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, c
 		checkSource(aUser);
 	}
 
-	validateBundleFile(filePath, fileName, aTTH, aPrio);
+	validateBundleFile(filePath, fileName, aTTH, aPrio, aSize);
 
 	BundlePtr b = nullptr;
 	bool wantConnection = false;
@@ -1050,38 +1042,26 @@ BundlePtr QueueManager::createFileBundle(const string& aTarget, int64_t aSize, c
 
 		fileAddInfo = addBundleFile(target, aSize, aTTH, aUser, aFlags, true, aPrio, wantConnection, b);
 
-		if (!addBundle(b, fileAddInfo && (*fileAddInfo).second ? 1 : 0)) {
-			b = nullptr;
+		addBundle(b, fileAddInfo.second ? 1 : 0);
+	}
+
+	onBundleAdded(b, oldStatus, { fileAddInfo }, aUser, wantConnection);
+
+	if (fileAddInfo.second) {
+		if (oldStatus == Bundle::STATUS_NEW) {
+			LogManager::getInstance()->message(STRING_F(FILE_X_QUEUED, b->getName() % Util::formatBytes(b->getSize())), LogMessage::SEV_INFO);
+		} else {
+			LogManager::getInstance()->message(STRING_F(BUNDLE_ITEM_ADDED, Util::getFileName(target) % b->getName()), LogMessage::SEV_INFO);
 		}
 	}
 
-	if (fileAddInfo && b) {
-		onBundleAdded(b, oldStatus, { *fileAddInfo }, aUser, wantConnection);
-
-		if ((*fileAddInfo).second) {
-			if (oldStatus == Bundle::STATUS_NEW) {
-				LogManager::getInstance()->message(STRING_F(FILE_X_QUEUED, b->getName() % Util::formatBytes(b->getSize())), LogMessage::SEV_INFO);
-			} else {
-				LogManager::getInstance()->message(STRING_F(BUNDLE_ITEM_ADDED, Util::getFileName(target) % b->getName()), LogMessage::SEV_INFO);
-			}
-		}
-	}
-
-	return b;
+	return BundleAddInfo(b, oldStatus == Bundle::STATUS_NEW);
 }
 
 QueueManager::FileAddInfo QueueManager::addBundleFile(const string& aTarget, int64_t aSize, const TTHValue& aRoot, const HintedUser& aUser, Flags::MaskType aFlags /* = 0 */,
-								   bool addBad /* = true */, QueueItemBase::Priority aPrio, bool& wantConnection_, BundlePtr& aBundle) throw(QueueException, FileException)
+								   bool addBad /* = true */, Priority aPrio, bool& wantConnection_, BundlePtr& aBundle) throw(QueueException, FileException)
 {
-	// Handle zero byte items
-	if(aSize == 0) {
-		if(!SETTING(SKIP_ZERO_BYTE)) {
-			File::ensureDirectory(aTarget);
-			File f(aTarget, File::WRITE, File::CREATE);
-		}
-
-		return boost::none;
-	}
+	dcassert(aSize > 0);
 
 	// Add the file
 	auto ret = fileQueue.add(aTarget, aSize, aFlags, aPrio, Util::emptyString, GET_TIME(), aRoot);
@@ -1096,8 +1076,8 @@ QueueManager::FileAddInfo QueueManager::addBundleFile(const string& aTarget, int
 	// New item? Add in the bundle
 	if (ret.second) {
 		// Highest wouldn't be started if the bundle is forced paused
-		if (aBundle->getPriority() == Bundle::PAUSED && ret.first->getPriority() == QueueItem::HIGHEST) {
-			ret.first->setPriority(QueueItem::HIGH);
+		if (aBundle->getPriority() == Priority::PAUSED && ret.first->getPriority() == Priority::HIGHEST) {
+			ret.first->setPriority(Priority::HIGH);
 		}
 
 		bundleQueue.addBundleItem(ret.first, aBundle);
@@ -1187,18 +1167,19 @@ string QueueManager::checkTarget(const string& toValidate, const string& aParent
 
 /** Add a source to an existing queue item */
 bool QueueManager::addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, bool checkTLS /*true*/) throw(QueueException, FileException) {
-	if (!aUser.user) //atleast magnet links can cause this to happen.
-		throw QueueException("Can't find Source user to add For Target: " + qi->getTargetFileName());
+	if (!aUser.user) { //atleast magnet links can cause this to happen.
+		throw QueueException(STRING(UNKNOWN_USER));
+	}
 
 	if (checkTLS && !aUser.user->isSet(User::NMDC) && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
 		throw QueueException(STRING(SOURCE_NO_ENCRYPTION));
 	}
 
 	if(qi->isFinished()) //no need to add source to finished item.
-		throw QueueException("Already Finished: " + Util::getFileName(qi->getTarget()));
+		throw QueueException(STRING(FILE_ALREADY_FINISHED) + ": " + Util::getFileName(qi->getTarget()));
 	
 	bool wantConnection = !qi->isPausedPrio();
-	dcassert(qi->getBundle() || qi->getPriority() == QueueItem::HIGHEST);
+	dcassert(qi->getBundle() || qi->getPriority() == Priority::HIGHEST);
 
 	if(qi->isSource(aUser)) {
 		if(qi->isSet(QueueItem::FLAG_USER_LIST)) {
@@ -1238,7 +1219,7 @@ Download* QueueManager::getDownload(UserConnection& aSource, const QueueTokenSet
 		const UserPtr& u = aSource.getUser();
 		bool hasDownload = false;
 
-		q = userQueue.getNext(aSource.getUser(), runningBundles, onlineHubs, lastError_, hasDownload, QueueItem::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), aType);
+		q = userQueue.getNext(aSource.getUser(), runningBundles, onlineHubs, lastError_, hasDownload, Priority::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), aType);
 		if (!q) {
 			dcdebug("none\n");
 			return nullptr;
@@ -1310,7 +1291,7 @@ bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& ru
 
 	if (slotsFull || speedFull) {
 		bool extraFull = (AirUtil::getSlots(true) != 0) && (downloadCount >= static_cast<size_t>(AirUtil::getSlots(true) + SETTING(EXTRA_DOWNLOAD_SLOTS)));
-		if (extraFull || mcn || aQI->getPriority() != QueueItem::HIGHEST) {
+		if (extraFull || mcn || aQI->getPriority() != Priority::HIGHEST) {
 			lastError_ = slotsFull ? STRING(ALL_DOWNLOAD_SLOTS_TAKEN) : STRING(MAX_DL_SPEED_REACHED);
 			return false;
 		}
@@ -1318,12 +1299,12 @@ bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& ru
 	}
 
 	// bundle with the lowest prio? don't start if there are other bundle running
-	if (aQI->getBundle() && aQI->getBundle()->getPriority() == QueueItemBase::LOWEST && !runningBundles.empty() && runningBundles.find(aQI->getBundle()->getToken()) == runningBundles.end()) {
+	if (aQI->getBundle() && aQI->getBundle()->getPriority() == Priority::LOWEST && !runningBundles.empty() && runningBundles.find(aQI->getBundle()->getToken()) == runningBundles.end()) {
 		lastError_ = STRING(LOWEST_PRIO_ERR_BUNDLES);
 		return false;
 	}
 
-	if (aQI->getPriority() == QueueItem::LOWEST) {
+	if (aQI->getPriority() == Priority::LOWEST) {
 		if (aQI->getBundle()) {
 			// start only if there are no other downloads running in this bundle (or the downloads belong to this file)
 			auto bundleDownloads = DownloadManager::getInstance()->getDownloadCount(aQI->getBundle());
@@ -1352,7 +1333,7 @@ bool QueueManager::startDownload(const UserPtr& aUser, const QueueTokenSet& runn
 	QueueItemPtr qi = nullptr;
 	{
 		RLock l(cs);
-		qi = userQueue.getNext(aUser, runningBundles, onlineHubs, lastError_, hasDownload, QueueItem::LOWEST, 0, aLastSpeed, aType);
+		qi = userQueue.getNext(aUser, runningBundles, onlineHubs, lastError_, hasDownload, Priority::LOWEST, 0, aLastSpeed, aType);
 	}
 
 	return allowStartQI(qi, runningBundles, lastError_);
@@ -1369,7 +1350,7 @@ pair<QueueItem::DownloadType, bool> QueueManager::startDownload(const UserPtr& a
 		QueueItemPtr qi = nullptr;
 		{
 			RLock l(cs);
-			qi = userQueue.getNext(aUser, runningBundles, hubs, lastError_, hasDownload, QueueItem::LOWEST, 0, 0, aType);
+			qi = userQueue.getNext(aUser, runningBundles, hubs, lastError_, hasDownload, Priority::LOWEST, 0, 0, aType);
 
 			if (qi) {
 				if (qi->getBundle()) {
@@ -2135,7 +2116,7 @@ int QueueManager::removeSource(const UserPtr& aUser, Flags::MaskType aReason, st
 	return static_cast<int>(ql.size());
 }
 
-void QueueManager::setBundlePriority(QueueToken aBundleToken, QueueItemBase::Priority p) noexcept {
+void QueueManager::setBundlePriority(QueueToken aBundleToken, Priority p) noexcept {
 	BundlePtr bundle = nullptr;
 	{
 		RLock l(cs);
@@ -2145,11 +2126,11 @@ void QueueManager::setBundlePriority(QueueToken aBundleToken, QueueItemBase::Pri
 	setBundlePriority(bundle, p, false);
 }
 
-void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool aKeepAutoPrio, time_t aResumeTime/* = 0*/) noexcept {
+void QueueManager::setBundlePriority(BundlePtr& aBundle, Priority p, bool aKeepAutoPrio, time_t aResumeTime/* = 0*/) noexcept {
 	if (!aBundle || aBundle->getStatus() == Bundle::STATUS_RECHECK)
 		return;
 
-	if (p == QueueItem::DEFAULT) {
+	if (p == Priority::DEFAULT) {
 		if (!aBundle->getAutoPriority()) {
 			toggleBundleAutoPriority(aBundle);
 		}
@@ -2157,7 +2138,7 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 		return;
 	}
 
-	QueueItemBase::Priority oldPrio = aBundle->getPriority();
+	Priority oldPrio = aBundle->getPriority();
 	if (oldPrio == p) {
 		if (aBundle->getResumeTime() != aResumeTime) {
 			aBundle->setResumeTime(aResumeTime);
@@ -2198,9 +2179,9 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority
 
 	aBundle->setDirty();
 
-	if(p == QueueItemBase::PAUSED_FORCE) {
+	if(p == Priority::PAUSED_FORCE) {
 		DownloadManager::getInstance()->disconnectBundle(aBundle);
-	} else if (oldPrio <= QueueItemBase::LOWEST) {
+	} else if (oldPrio <= Priority::LOWEST) {
 		connectBundleSources(aBundle);
 	}
 
@@ -2229,7 +2210,7 @@ void QueueManager::toggleBundleAutoPriority(BundlePtr& aBundle) noexcept {
 
 	if (aBundle->isPausedPrio()) {
 		// We don't want this one to stay paused if the auto priorities can't be counted
-		setBundlePriority(aBundle, Bundle::LOW, true);
+		setBundlePriority(aBundle, Priority::LOW, true);
 	} else {
 		// Auto priority state may not be fired if the old priority is kept
 		fire(QueueManagerListener::BundlePriority(), aBundle);
@@ -2257,7 +2238,7 @@ int QueueManager::removeFinishedBundles() noexcept {
 	return static_cast<int>(bundles.size());
 }
 
-void QueueManager::setPriority(QueueItemBase::Priority p) noexcept {
+void QueueManager::setPriority(Priority p) noexcept {
 	Bundle::TokenMap bundles;
 	{
 		RLock l(cs);
@@ -2269,7 +2250,7 @@ void QueueManager::setPriority(QueueItemBase::Priority p) noexcept {
 	}
 }
 
-void QueueManager::setQIPriority(const string& aTarget, QueueItemBase::Priority p) noexcept {
+void QueueManager::setQIPriority(const string& aTarget, Priority p) noexcept {
 	QueueItemPtr q = nullptr;
 	{
 		RLock l(cs);
@@ -2279,7 +2260,7 @@ void QueueManager::setQIPriority(const string& aTarget, QueueItemBase::Priority 
 	setQIPriority(q, p);
 }
 
-void QueueManager::setQIPriority(QueueItemPtr& q, QueueItemBase::Priority p, bool aKeepAutoPrio /*false*/) noexcept {
+void QueueManager::setQIPriority(QueueItemPtr& q, Priority p, bool aKeepAutoPrio /*false*/) noexcept {
 	HintedUserList getConn;
 	bool running = false;
 	if (!q || !q->getBundle()) {
@@ -2287,7 +2268,7 @@ void QueueManager::setQIPriority(QueueItemPtr& q, QueueItemBase::Priority p, boo
 		return;
 	}
 
-	if (p == QueueItem::DEFAULT) {
+	if (p == Priority::DEFAULT) {
 		if (!q->getAutoPriority()) {
 			setQIAutoPriority(q->getTarget());
 		}
@@ -2305,7 +2286,7 @@ void QueueManager::setQIPriority(QueueItemPtr& q, QueueItemBase::Priority p, boo
 	{
 		WLock l(cs);
 		if(q->getPriority() != p && !q->isFinished() ) {
-			if((q->isPausedPrio() && !b->isPausedPrio()) || (p == QueueItem::HIGHEST && b->getPriority() != QueueItemBase::PAUSED)) {
+			if((q->isPausedPrio() && !b->isPausedPrio()) || (p == Priority::HIGHEST && b->getPriority() != Priority::PAUSED)) {
 				// Problem, we have to request connections to all these users...
 				q->getOnlineUsers(getConn);
 			}
@@ -2322,9 +2303,9 @@ void QueueManager::setQIPriority(QueueItemPtr& q, QueueItemBase::Priority p, boo
 	fire(QueueManagerListener::ItemStatusUpdated(), q);
 
 	b->setDirty();
-	if(p == QueueItem::PAUSED && running) {
+	if(p == Priority::PAUSED && running) {
 		DownloadManager::getInstance()->abortDownload(q->getTarget());
-	} else if (p != QueueItemBase::PAUSED) {
+	} else if (p != Priority::PAUSED) {
 		for(auto& u: getConn)
 			ConnectionManager::getInstance()->getDownloadConnection(u);
 	}
@@ -2359,7 +2340,7 @@ void QueueManager::setQIAutoPriority(const string& aTarget) noexcept {
 		if (SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
 			setQIPriority(q, q->calculateAutoPriority());
 		} else if (q->isPausedPrio()) {
-			setQIPriority(q, QueueItem::LOW);
+			setQIPriority(q, Priority::LOW);
 		}
 	}
 }
@@ -2435,7 +2416,7 @@ public:
 	void startTag(const string& name, StringPairList& attribs, bool simple);
 	void endTag(const string& name);
 	void createFile(QueueItemPtr& aQI, bool aAddedByAutoSearch);
-	QueueItemBase::Priority validatePrio(const string& aPrio);
+	Priority validatePrio(const string& aPrio);
 	void resetBundle() {
 		curFile = nullptr;
 		curBundle = nullptr;
@@ -2545,17 +2526,17 @@ static const string sLastSource = "LastSource";
 static const string sAddedByAutoSearch = "AddedByAutoSearch";
 static const string sResumeTime = "ResumeTime";
 
-QueueItemBase::Priority QueueLoader::validatePrio(const string& aPrio) {
+Priority QueueLoader::validatePrio(const string& aPrio) {
 	int prio = Util::toInt(aPrio);
 	if (version == 1)
 		prio++;
 
-	if (prio > QueueItemBase::HIGHEST)
-		return QueueItemBase::HIGHEST;
-	if (prio < QueueItemBase::PAUSED_FORCE)
-		return QueueItemBase::PAUSED_FORCE;
+	if (prio > static_cast<int>(Priority::HIGHEST))
+		return Priority::HIGHEST;
+	if (prio < static_cast<int>(Priority::PAUSED_FORCE))
+		return Priority::PAUSED_FORCE;
 
-	return static_cast<QueueItemBase::Priority>(prio);
+	return static_cast<Priority>(prio);
 }
 
 void QueueLoader::createFile(QueueItemPtr& aQI, bool aAddedByAutosearch) {
@@ -2603,7 +2584,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 		time_t b_resumeTime = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sResumeTime, 5)));
 
 		if (ConnectionManager::getInstance()->tokens.addToken(token, CONNECTION_TYPE_DOWNLOAD)) {
-			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? validatePrio(prio) : Bundle::DEFAULT, dirDate, Util::toUInt32(token), false);
+			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? validatePrio(prio) : Priority::DEFAULT, dirDate, Util::toUInt32(token), false);
 			time_t finished = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sTimeFinished, 5)));
 			if (finished > 0) {
 				curBundle->setTimeFinished(finished);
@@ -2642,7 +2623,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			if (tthRoot.empty())
 				return;
 
-			QueueItemBase::Priority p = validatePrio(getAttrib(attribs, sPriority, 4));
+			Priority p = validatePrio(getAttrib(attribs, sPriority, 4));
 
 			string tempTarget = getAttrib(attribs, sTempTarget, 5);
 			uint8_t maxSegments = (uint8_t)Util::toInt(getAttrib(attribs, sMaxSegments, 5));
@@ -2651,7 +2632,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				added = GET_TIME();
 
 			if (Util::toInt(getAttrib(attribs, sAutoPriority, 6)) == 1) {
-				p = QueueItem::DEFAULT;
+				p = Priority::DEFAULT;
 			}
 
 			WLock l (qm->cs);
@@ -2723,7 +2704,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				return;
 
 			WLock l(qm->cs);
-			auto ret = qm->fileQueue.add(target, size, QueueItem::FLAG_FINISHED | QueueItem::FLAG_MOVED, QueueItemBase::DEFAULT, Util::emptyString, added, TTHValue(tth));
+			auto ret = qm->fileQueue.add(target, size, QueueItem::FLAG_FINISHED | QueueItem::FLAG_MOVED, Priority::DEFAULT, Util::emptyString, added, TTHValue(tth));
 			if (!ret.second) {
 				return;
 			}
@@ -2961,8 +2942,8 @@ void QueueManager::calculatePriorities(uint64_t aTick) noexcept {
 		return;
 	}
 
-	vector<pair<QueueItemPtr, QueueItemBase::Priority>> qiPriorities;
-	vector<pair<BundlePtr, QueueItemBase::Priority>> bundlePriorities;
+	vector<pair<QueueItemPtr, Priority>> qiPriorities;
+	vector<pair<BundlePtr, Priority>> bundlePriorities;
 
 	{
 		RLock l(cs);
@@ -2988,7 +2969,7 @@ void QueueManager::calculatePriorities(uint64_t aTick) noexcept {
 
 			if (SETTING(QI_AUTOPRIO) && prioType == SettingsManager::PRIO_PROGRESS && q->getAutoPriority() && q->getBundle() && !q->getBundle()->isFileBundle()) {
 				auto p1 = q->getPriority();
-				if (p1 != QueueItemBase::PAUSED && p1 != QueueItemBase::PAUSED_FORCE) {
+				if (p1 != Priority::PAUSED && p1 != Priority::PAUSED_FORCE) {
 					auto p2 = q->calculateAutoPriority();
 					if (p1 != p2)
 						qiPriorities.emplace_back(q, p2);
@@ -3030,7 +3011,7 @@ void QueueManager::checkResumeBundles() noexcept {
 	}
 
 	for (auto& b : resumeBundles) {
-		setBundlePriority(b, QueueItemBase::DEFAULT, false);
+		setBundlePriority(b, Priority::DEFAULT, false);
 	}
 }
 
@@ -3070,7 +3051,7 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 }
 
 template<class T>
-static void calculateBalancedPriorities(vector<pair<T, QueueItemBase::Priority>>& priorities, multimap<T, pair<int64_t, double>>& speedSourceMap, bool verbose) noexcept {
+static void calculateBalancedPriorities(vector<pair<T, Priority>>& priorities, multimap<T, pair<int64_t, double>>& speedSourceMap, bool verbose) noexcept {
 	if (speedSourceMap.empty())
 		return;
 
@@ -3112,41 +3093,41 @@ static void calculateBalancedPriorities(vector<pair<T, QueueItemBase::Priority>>
 
 
 	//start with the high prio, continue to normal and low
-	int8_t prio = QueueItemBase::HIGH;
+	auto prio = static_cast<int>(Priority::HIGH);
 
 	//counters for analyzing identical points
 	double lastPoints = 999.0;
 	int prioSet=0;
 
 	for (auto& i: finalMap) {
+		Priority newItemPrio;
+
 		if (lastPoints==i.first) {
-			if (verbose) {
-				LogManager::getInstance()->message(i.second->getTarget() + " points: " + Util::toString(i.first) + " setting prio " + AirUtil::getPrioText(prio), LogMessage::SEV_INFO);
-			}
+			newItemPrio = static_cast<Priority>(prio);
 
-			if(i.second->getPriority() != prio)
-				priorities.emplace_back(i.second, static_cast<QueueItemBase::Priority>(prio));
-
-			//don't increase the prio if two items have identical points
+			// Don't increase the prio if two items have identical points
 			if (prioSet < prioGroup) {
 				prioSet++;
 			}
 		} else {
-			//all priorities set from this group? but don't go below LOW
-			if (prioSet == prioGroup && prio != QueueItemBase::LOW) {
+			// All priorities set from this group? but don't go below LOW
+			if (prioSet == prioGroup && prio != static_cast<int>(Priority::LOW)) {
 				prio--;
-				prioSet=0;
+				prioSet = 0;
 			} 
 
-			if (verbose) {
-				LogManager::getInstance()->message(i.second->getTarget() + " points: " + Util::toString(i.first) + " setting prio " + AirUtil::getPrioText(prio), LogMessage::SEV_INFO);
-			}
-
-			if(i.second->getPriority() != prio)
-				priorities.emplace_back(i.second, static_cast<QueueItemBase::Priority>(prio));
+			newItemPrio = static_cast<Priority>(prio);
 
 			prioSet++;
 			lastPoints = i.first;
+		}
+
+		if (verbose) {
+			LogManager::getInstance()->message(i.second->getTarget() + " points: " + Util::toString(i.first) + " using prio " + AirUtil::getPrioText(newItemPrio), LogMessage::SEV_INFO);
+		}
+
+		if (i.second->getPriority() != newItemPrio) {
+			priorities.emplace_back(i.second, newItemPrio);
 		}
 	}
 }
@@ -3172,7 +3153,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) noexcept {
 		}
 	}
 
-	vector<pair<BundlePtr, QueueItemBase::Priority>> bundlePriorities;
+	vector<pair<BundlePtr, Priority>> bundlePriorities;
 	calculateBalancedPriorities<BundlePtr>(bundlePriorities, bundleSpeedSourceMap, verbose);
 
 	for(auto& p: bundlePriorities) {
@@ -3182,7 +3163,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) noexcept {
 
 	if (SETTING(QI_AUTOPRIO)) {
 
-		vector<pair<QueueItemPtr, QueueItemBase::Priority>> qiPriorities;
+		vector<pair<QueueItemPtr, Priority>> qiPriorities;
 		for(auto& s: qiMaps) {
 			calculateBalancedPriorities<QueueItemPtr>(qiPriorities, s, verbose);
 		}
@@ -3821,9 +3802,9 @@ MemoryInputStream* QueueManager::generateTTHList(QueueToken aBundleToken, bool i
 	}
 }
 
-void QueueManager::addBundleTTHList(const HintedUser& aUser, const string& aRemoteBundleToken, const TTHValue& tth) throw(QueueException) {
+void QueueManager::addBundleTTHList(const HintedUser& aUser, const string& aRemoteBundleToken, const TTHValue& aTTH) {
 	//LogManager::getInstance()->message("ADD TTHLIST");
-	auto b = findBundle(tth);
+	auto b = findBundle(aTTH);
 	if (b) {
 		addList(aUser, QueueItem::FLAG_TTHLIST_BUNDLE | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_MATCH_QUEUE, aRemoteBundleToken, b);
 	}

@@ -27,6 +27,7 @@
 #include "ShareManagerListener.h"
 #include "TimerManagerListener.h"
 
+#include "BundleInfo.h"
 #include "BundleQueue.h"
 #include "DelayedEvents.h"
 #include "DupeType.h"
@@ -37,7 +38,6 @@
 #include "Singleton.h"
 #include "Socket.h"
 #include "StringMatch.h"
-#include "TargetUtil.h"
 #include "TaskQueue.h"
 #include "UserQueue.h"
 
@@ -81,7 +81,7 @@ public:
 	uint64_t getTotalQueueSize() const noexcept { return fileQueue.getTotalQueueSize(); }
 
 	/** Add a user's filelist to the queue. */
-	QueueItemPtr addList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString, BundlePtr aBundle=nullptr) throw(QueueException, FileException);
+	QueueItemPtr addList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString, BundlePtr aBundle=nullptr) throw(QueueException, DupeException);
 
 	/** Add an item that is opened in the client or with an external program */
 	/** Files that are viewed in the client should be added from ViewFileManager */
@@ -130,16 +130,16 @@ public:
 	// Set priority for all bundles
 	// Won't affect bundles that are added later
 	// Use DEFAULT priority to enable auto priority
-	void setPriority(QueueItemBase::Priority p) noexcept;
+	void setPriority(Priority p) noexcept;
 
 	// Set priority for the file.
 	// Use DEFAULT priority to enable auto priority
-	void setQIPriority(const string& aTarget, QueueItemBase::Priority p) noexcept;
+	void setQIPriority(const string& aTarget, Priority p) noexcept;
 
 	// Set priority for the file.
 	// keepAutoPrio should be used only when performing auto priorization.
 	// Use DEFAULT priority to enable auto priority
-	void setQIPriority(QueueItemPtr& qi, QueueItemBase::Priority p, bool aKeepAutoPrio = false) noexcept;
+	void setQIPriority(QueueItemPtr& qi, Priority p, bool aKeepAutoPrio = false) noexcept;
 
 	// Toggle autoprio for the file
 	void setQIAutoPriority(const string& aTarget) noexcept;
@@ -225,20 +225,21 @@ public:
 	// Create a directory bundle with the supplied target path and files
 	// 
 	// aDate is the original date of the bundle (usually the modify date from source user)
-	// QueueException will be thrown only if the source is invalid (source can be nullptr though)
+	// No result is returned if no bundle was added or used for merging
+	// Source can be nullptr
 	// errorMsg_ will contain errors related to queueing the files
-	// nullptr can be returned if no files could be queued
-	BundlePtr createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleFileInfo::List& aFiles, 
-		QueueItemBase::Priority aPrio, time_t aDate, string& errorMsg_) throw(QueueException);
+	optional<DirectoryBundleAddInfo> createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleDirectoryItemInfo::List& aFiles,
+		Priority aPrio, time_t aDate, string& errorMsg_) noexcept;
 
 	// Create a file bundle with the supplied target path
 	// 
 	// aDate is the original date of the bundle (usually the modify date from source user)
 	// Source can be nullptr
 	// All errors will be thrown
-	// May return nullptr if the file is already active in queue or when adding 0-byte files
-	BundlePtr createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate, 
-		Flags::MaskType aFlags = 0, QueueItemBase::Priority aPrio = QueueItem::DEFAULT) throw(QueueException, FileException, DupeException);
+	//
+	// Returns the bundle and bool whether it's a newly created bundle
+	BundleAddInfo createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate,
+		Flags::MaskType aFlags = 0, Priority aPrio = Priority::DEFAULT) throw(QueueException, FileException, DupeException);
 
 	bool removeBundle(QueueToken aBundleToken, bool removeFinishedFiles) noexcept;
 	void removeBundle(BundlePtr& aBundle, bool removeFinishedFiles) noexcept;
@@ -264,7 +265,8 @@ public:
 	bool handlePartialResult(const HintedUser& aUser, const TTHValue& tth, const QueueItem::PartialSource& partialSource, PartsInfo& outPartialInfo) noexcept;
 
 	// Queue a TTH list from the user containing the supplied TTH
-	void addBundleTTHList(const HintedUser& aUser, const string& aRemoteBundleToken, const TTHValue& tth) throw(QueueException);
+	// Throws on errors
+	void addBundleTTHList(const HintedUser& aUser, const string& aRemoteBundleToken, const TTHValue& tth);
 	MemoryInputStream* generateTTHList(QueueToken aBundleToken, bool isInSharingHub, BundlePtr& bundle_) throw(QueueException);
 
 	//Bundle download failed due to Ex. disk full
@@ -272,12 +274,12 @@ public:
 
 	/* Priorities */
 	// Use DEFAULT priority to enable auto priority
-	void setBundlePriority(QueueToken aBundleToken, QueueItemBase::Priority p) noexcept;
+	void setBundlePriority(QueueToken aBundleToken, Priority p) noexcept;
 
 	// Set new priority for the specified bundle
 	// keepAutoPrio should be used only when performing auto priorization.
 	// Use DEFAULT priority to enable auto priority
-	void setBundlePriority(BundlePtr& aBundle, QueueItemBase::Priority p, bool aKeepAutoPrio=false, time_t aResumeTime = 0) noexcept;
+	void setBundlePriority(BundlePtr& aBundle, Priority p, bool aKeepAutoPrio=false, time_t aResumeTime = 0) noexcept;
 
 	// Toggle autoprio state for the bundle
 	void toggleBundleAutoPriority(QueueToken aBundleToken) noexcept;
@@ -349,12 +351,6 @@ public:
 	// directory (+ possible subdirectories) are detected automatically
 	StringList getNmdcDirPaths(const string& aDir) const noexcept;
 
-	// Get the amount of queued bytes for each mountpoint (takes reserved space into account as well)
-	void getDiskInfo(TargetUtil::TargetInfoMap& dirMap, const TargetUtil::VolumeSet& volumes) const noexcept { 
-		RLock l(cs); 
-		bundleQueue.getDiskInfo(dirMap, volumes); 
-	}
-
 	// Get the paths of all bundles
 	void getBundlePaths(OrderedStringSet& bundles) const noexcept;
 
@@ -421,10 +417,9 @@ private:
 	void removeBundleItem(QueueItemPtr& qi, bool finished) noexcept;
 	void addLoadedBundle(BundlePtr& aBundle) noexcept;
 
-	// Add a new bundle in queue or  (called from inside a WLock)
+	// Add a new bundle in queue or (called from inside a WLock)
 	// onBundleAdded must be called separately from outside the lock afterwards
-	// Returns false if the bundle couldn't be queued (most likely because of 0-byte content)
-	bool addBundle(BundlePtr& aBundle, int aFilesAdded) noexcept;
+	void addBundle(BundlePtr& aBundle, int aFilesAdded) noexcept;
 
 	// Fire events and perform other secondary actions for added bundles (don't lock)
 	void onBundleAdded(const BundlePtr& aBundle, Bundle::Status aOldStatus, const QueueItem::ItemBoolList& aItemsAdded, const HintedUser& aUser, bool aWantConnection) noexcept;
@@ -440,21 +435,20 @@ private:
 	void handleBundleUpdate(QueueToken aBundleToken) noexcept;
 
 	/** Get a bundle for adding new items in queue (a new one or existing)  */
-	BundlePtr getBundle(const string& aTarget, QueueItemBase::Priority aPrio, time_t aDate, bool aIsFileBundle) noexcept;
+	BundlePtr getBundle(const string& aTarget, Priority aPrio, time_t aDate, bool aIsFileBundle) noexcept;
 
-	typedef optional<pair<QueueItemPtr, bool>> FileAddInfo;
+	typedef pair<QueueItemPtr, bool> FileAddInfo;
 
 	// Add a file to the queue
 	// Returns the added queue item and bool whether it's a newly created item
-	// Returns nothing for zero byte items
 	FileAddInfo addBundleFile(const string& aTarget, int64_t aSize, const TTHValue& aRoot,
-		const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, QueueItemBase::Priority aPrio, bool& wantConnection_, BundlePtr& aBundle_) throw(QueueException, FileException);
+		const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, Priority aPrio, bool& wantConnection_, BundlePtr& aBundle_) throw(QueueException, FileException);
 
 	/** Check that we can download from this user */
 	void checkSource(const HintedUser& aUser) const throw(QueueException);
 
 	/** Check that we can download from this user */
-	void validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, QueueItemBase::Priority& priority_) const throw(QueueException, FileException, DupeException);
+	void validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, Priority& priority_, int64_t aSize) const throw(QueueException, FileException, DupeException);
 
 	/** Sanity check for the target filename */
 	//static string checkTargetPath(const string& aTarget) throw(QueueException, FileException);

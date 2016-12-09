@@ -19,8 +19,8 @@
 #ifndef _WEBSHORTCUTS_H
 #define _WEBSHORTCUTS_H
 
-#include "Singleton.h"
-#include "SettingsManager.h"
+#include <airdcpp/Singleton.h>
+#include <airdcpp/SettingsManager.h>
 
 namespace dcpp {
 

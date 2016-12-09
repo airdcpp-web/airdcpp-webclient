@@ -21,6 +21,7 @@
 
 #include "forward.h"
 
+#include "GetSet.h"
 #include "MerkleTree.h"
 #include "TrackableDownloadItem.h"
 

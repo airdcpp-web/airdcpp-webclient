@@ -99,7 +99,10 @@ double Localization::Language::getLanguageVersion() const noexcept {
 			auto version = xml.getIntChildAttrib(LANGVER_TAG);
 			return version;
 		}
-	} catch(...) { }
+	} catch(...) { 
+		// Parsing failed, re-download
+		return 0;
+	}
 
 	return 999;
 }

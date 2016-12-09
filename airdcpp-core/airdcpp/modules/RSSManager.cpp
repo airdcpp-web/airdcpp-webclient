@@ -1,14 +1,38 @@
 
-#include "stdinc.h"
-#include "DCPlusPlus.h"
+/*
+* Copyright (C) 2012-2016 AirDC++ Project
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+*/
 
-#include "HttpConnection.h"
+#include "stdinc.h"
+
+#include "AutoSearchManager.h"
 #include "RSSManager.h"
-#include "LogManager.h"
-#include "SearchManager.h"
-#include "ScopedFunctor.h"
-#include "AirUtil.h"
-#include "SimpleXMLReader.h"
+
+#include <airdcpp/HttpConnection.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/SearchManager.h>
+
+#include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/AirUtil.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/SimpleXMLReader.h>
+
 #include <boost/algorithm/string/trim.hpp>
 
 namespace dcpp {
@@ -27,18 +51,19 @@ RSSManager::~RSSManager()
 	TimerManager::getInstance()->removeListener(this);
 }
 
-void RSSManager::clearRSSData(const RSSPtr& aFeed) {
+void RSSManager::clearRSSData(const RSSPtr& aFeed) noexcept {
 	
 	{
 		Lock l(cs);
 		aFeed->getFeedData().clear(); 
 		aFeed->setDirty(true);
 	}
+	tasks.addTask([=] { savedatabase(aFeed); });
 	fire(RSSManagerListener::RSSDataCleared(), aFeed);
 
 }
 
-RSSPtr RSSManager::getFeedByName(const string& aName) const {
+RSSPtr RSSManager::getFeedByName(const string& aName) const noexcept {
 	Lock l(cs);
 	auto r = find_if(rssList.begin(), rssList.end(), [aName](const RSSPtr& a) { return aName == a->getFeedName(); });
 	if (r != rssList.end())
@@ -47,7 +72,7 @@ RSSPtr RSSManager::getFeedByName(const string& aName) const {
 	return nullptr;
 }
 
-RSSPtr RSSManager::getFeedByUrl(const string& aUrl) const {
+RSSPtr RSSManager::getFeedByUrl(const string& aUrl) const noexcept {
 	Lock l(cs);
 	auto r = find_if(rssList.begin(), rssList.end(), [aUrl](const RSSPtr& a) { return aUrl == a->getUrl(); });
 	if (r != rssList.end())
@@ -56,7 +81,7 @@ RSSPtr RSSManager::getFeedByUrl(const string& aUrl) const {
 	return nullptr;
 }
 
-RSSPtr RSSManager::getFeedByToken(int aToken) const { 
+RSSPtr RSSManager::getFeedByToken(int aToken) const noexcept {
 	Lock l(cs);
 	auto r = find_if(rssList.begin(), rssList.end(), [aToken](const RSSPtr& a) { return aToken == a->getToken(); });
 	if (r != rssList.end())
@@ -207,17 +232,25 @@ void RSSManager::matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) cons
 	
 	for (auto& aF : aFeed->getRssFilterList()) {
 		if (aF.match(aData->getTitle())) {
+			if (aF.skipDupes) {
+				if(ShareManager::getInstance()->isNmdcDirShared(aData->getTitle()))
+					break; //Need to match other filters?
+				if (QueueManager::getInstance()->isNmdcDirQueued(aData->getTitle(), 0) != DUPE_NONE)
+					break; //Need to match other filters?
+			}
 
-			auto targetType = TargetUtil::TargetType::TARGET_PATH;
-			AutoSearchManager::getInstance()->addAutoSearch(aData->getTitle(),
-				aF.getDownloadTarget(), targetType, true, AutoSearch::RSS_DOWNLOAD, true);
+			auto as = AutoSearchManager::getInstance()->addAutoSearch(aData->getTitle(),
+				aF.getDownloadTarget(), true, AutoSearch::RSS_DOWNLOAD, true);
+			if (as) {
+				AutoSearchManager::getInstance()->moveItemToGroup(as, aF.getAutosearchGroup());
+			}
 
 			break; //One match is enough
 		}
 	}
 }
 
-void RSSManager::updateFeedItem(RSSPtr& aFeed, const string& aUrl, const string& aName, int aUpdateInterval, bool aEnable) {
+void RSSManager::updateFeedItem(RSSPtr& aFeed, const string& aUrl, const string& aName, int aUpdateInterval, bool aEnable) noexcept {
 	bool added = false;
 	{
 		Lock l(cs);
@@ -233,10 +266,10 @@ void RSSManager::updateFeedItem(RSSPtr& aFeed, const string& aUrl, const string&
 		}
 	}
 
-	if(!added)
-		fire(RSSManagerListener::RSSFeedChanged(), aFeed);
-	else
+	if(added)
 		fire(RSSManagerListener::RSSFeedAdded(), aFeed);
+	else
+		fire(RSSManagerListener::RSSFeedChanged(), aFeed);
 
 }
 
@@ -246,20 +279,20 @@ void RSSManager::updateFilterList(const RSSPtr& aFeed, vector<RSSFilter>& aNewLi
 	for_each(aFeed->rssFilterList.begin(), aFeed->rssFilterList.end(), [&](RSSFilter& i) { i.prepare(); });
 }
 
-void RSSManager::enableFeedUpdate(const RSSPtr& aFeed, bool enable) {
+void RSSManager::enableFeedUpdate(const RSSPtr& aFeed, bool enable) noexcept {
 	Lock l(cs);
 	aFeed->setEnable(enable);
 	fire(RSSManagerListener::RSSFeedChanged(), aFeed);
 }
 
-void RSSManager::removeFeedItem(const RSSPtr& aFeed) {
+void RSSManager::removeFeedItem(const RSSPtr& aFeed) noexcept {
 	Lock l(cs);
 	//Delete database file?
 	rssList.erase(aFeed);
 	fire(RSSManagerListener::RSSFeedRemoved(), aFeed);
 }
 
-void RSSManager::downloadFeed(const RSSPtr& aFeed, bool verbose/*false*/) {
+void RSSManager::downloadFeed(const RSSPtr& aFeed, bool verbose/*false*/) noexcept {
 	if (!aFeed)
 		return;
 
@@ -275,7 +308,7 @@ void RSSManager::downloadFeed(const RSSPtr& aFeed, bool verbose/*false*/) {
 	});
 }
 
-RSSPtr RSSManager::getUpdateItem() const {
+RSSPtr RSSManager::getUpdateItem() const noexcept {
 	for (auto i : rssList) {
 		if (i->allowUpdate())
 			return i;
@@ -292,13 +325,12 @@ void RSSManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 		Lock l(cs);
 		downloadFeed(getUpdateItem());
 		nextUpdate = GET_TICK() + 1 * 60 * 1000; //Minute between item updates for now, TODO: handle intervals smartly :)
-	} else if ((lastXmlSave + 30000) < aTick) {
+	} else if ((lastXmlSave + 15000) < aTick) {
+		Lock l(cs);
+		vector<RSSPtr> saveList;
+		for_each(rssList.begin(), rssList.end(), [&](RSSPtr r) { if (r->getDirty()) saveList.push_back(r); });
 		tasks.addTask([=] {
-			Lock l(cs);
-			for (auto r : rssList) {
-				if (r->getDirty())
-					savedatabase(r);
-			}
+			for_each(saveList.begin(), saveList.end(), [&](const RSSPtr& r) { savedatabase(r); });
 		});
 		lastXmlSave = aTick;
 	}
@@ -334,44 +366,45 @@ private:
 };
 
 void RSSManager::load() {
-
-	SimpleXML xml;
-	SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
-	if (xml.findChild("RSS")) {
-		xml.stepIn();
-
-		while (xml.findChild("Settings")) 
-		{
-			auto feed = std::make_shared<RSS>(xml.getChildAttrib("Url"),
-				xml.getChildAttrib("Name"),
-				xml.getBoolChildAttrib("Enable"),
-				Util::toInt64(xml.getChildAttrib("LastUpdate")),
-				xml.getIntChildAttrib("UpdateInterval"),
-				xml.getIntChildAttrib("Token"));
+	try {
+		SimpleXML xml;
+		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
+		if (xml.findChild("RSS")) {
 			xml.stepIn();
-			if (xml.findChild("Filters")) {
-				xml.stepIn();
-				while (xml.findChild("Filter")) {
-					feed->rssFilterList.emplace_back(
-						xml.getChildAttrib("FilterPattern"),
-						xml.getChildAttrib("DownloadTarget"),
-						Util::toInt(xml.getChildAttrib("Method", "1")));
-				}
-				xml.stepOut();
-			}
 
+			while (xml.findChild("Settings"))
+			{
+				auto feed = std::make_shared<RSS>(xml.getChildAttrib("Url"),
+					xml.getChildAttrib("Name"),
+					xml.getBoolChildAttrib("Enable"),
+					Util::toInt64(xml.getChildAttrib("LastUpdate")),
+					xml.getIntChildAttrib("UpdateInterval"),
+					xml.getIntChildAttrib("Token"));
+				xml.stepIn();
+				if (xml.findChild("Filters")) {
+					xml.stepIn();
+					while (xml.findChild("Filter")) {
+						feed->rssFilterList.emplace_back(
+							xml.getChildAttrib("FilterPattern"),
+							xml.getChildAttrib("DownloadTarget"),
+							Util::toInt(xml.getChildAttrib("Method", "1")),
+							xml.getChildAttrib("AutoSearchGroup"),
+							xml.getBoolChildAttrib("SkipDupes"));
+					}
+					xml.stepOut();
+				}
+
+				xml.resetCurrentChild();
+				xml.stepOut();
+
+				for_each(feed->rssFilterList.begin(), feed->rssFilterList.end(), [&](RSSFilter& i) { i.prepare(); });
+				rssList.emplace(feed);
+			}
 			xml.resetCurrentChild();
 			xml.stepOut();
-
-			for_each(feed->rssFilterList.begin(), feed->rssFilterList.end(), [&](RSSFilter& i) { i.prepare(); });
-			rssList.emplace(feed);
 		}
-		xml.resetCurrentChild();
-		xml.stepOut();
-	}
 
-	StringList fileList = File::findFiles(DATABASE_DIR, "RSSDataBase*", File::TYPE_FILE);
-	try {
+		StringList fileList = File::findFiles(DATABASE_DIR, "RSSDataBase*", File::TYPE_FILE);
 		parallel_for_each(fileList.begin(), fileList.end(), [&](const string& path) {
 			if (Util::getFileExt(path) == ".xml") {
 
@@ -388,12 +421,13 @@ void RSSManager::load() {
 			}
 		});
 	}
-	catch (std::exception& e) {
-		LogManager::getInstance()->message("Loading the RSS failed: " + string(e.what()), LogMessage::SEV_INFO);
+	catch (const Exception& e) {
+		LogManager::getInstance()->message("Loading the RSS failed: " + e.getError(), LogMessage::SEV_INFO);
 	}
 
-	TimerManager::getInstance()->addListener(this);
 	nextUpdate = GET_TICK() + 10 * 1000; //start after 10 seconds
+	TimerManager::getInstance()->addListener(this);
+
 }
 
 void RSSManager::saveConfig(bool saveDatabase) {
@@ -418,6 +452,8 @@ void RSSManager::saveConfig(bool saveDatabase) {
 				xml.addChildAttrib("FilterPattern", f.getFilterPattern());
 				xml.addChildAttrib("DownloadTarget", f.getDownloadTarget());
 				xml.addChildAttrib("Method", f.getMethod());
+				xml.addChildAttrib("AutoSearchGroup", f.getAutosearchGroup());
+				xml.addChildAttrib("SkipDupes", f.skipDupes);
 			}
 			xml.stepOut();
 			xml.stepOut();

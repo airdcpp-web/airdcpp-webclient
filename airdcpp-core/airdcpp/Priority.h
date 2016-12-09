@@ -1,4 +1,3 @@
-#pragma once
 /*
 * Copyright (C) 2011-2016 AirDC++ Project
 *
@@ -17,31 +16,21 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_FILESYSTEM_API_H
-#define DCPLUSPLUS_DCPP_FILESYSTEM_API_H
+#ifndef DCPLUSPLUS_DCPP_PRIORITY_H_
+#define DCPLUSPLUS_DCPP_PRIORITY_H_
 
-#include <web-server/stdinc.h>
-
-#include <api/ApiModule.h>
-
-#include <airdcpp/typedefs.h>
-
-namespace webserver {
-	class FilesystemApi : public ApiModule {
-	public:
-		FilesystemApi(Session* aSession);
-		~FilesystemApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
-	private:
-		api_return handleListItems(ApiRequest& aRequest);
-		api_return handlePostDirectory(ApiRequest& aRequest);
-		api_return handleGetDiskInfo(ApiRequest& aRequest);
-
-		json serializeDirectoryContent(const string& aPath, bool aDirectoriesOnly);
+namespace dcpp {
+	enum class Priority {
+		DEFAULT = -1,
+		PAUSED_FORCE = 0,
+		PAUSED,
+		LOWEST,
+		LOW,
+		NORMAL,
+		HIGH,
+		HIGHEST,
+		LAST
 	};
 }
 
-#endif
+#endif /* DCPLUSPLUS_DCPP_PRIORITY_H_ */

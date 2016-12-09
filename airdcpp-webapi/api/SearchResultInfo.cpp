@@ -100,15 +100,26 @@ namespace webserver {
 		return relevanceInfo.matchRelevance; 
 	}
 
-	api_return SearchResultInfo::download(const string& aTargetDirectory, const string& aTargetName, TargetUtil::TargetType aTargetType, QueueItemBase::Priority aPrio) {
+	json SearchResultInfo::download(const string& aTargetDirectory, const string& aTargetName, Priority aPrio) {
 		bool fileDownload = sr->getType() == SearchResult::TYPE_FILE;
 
+		int succeeded = 0;
+		string lastError;
+		BundleAddInfo bundleAddInfo;
+		vector<DirectoryDownloadId> directoryDownloadIds;
+
 		auto download = [&](const SearchResultPtr& aSR) {
-			if (fileDownload) {
-				QueueManager::getInstance()->createFileBundle(aTargetDirectory + aTargetName, sr->getSize(), sr->getTTH(), sr->getUser(), sr->getDate(), 0, aPrio);
-			} else {
-				DirectoryListingManager::getInstance()->addDirectoryDownload(aSR->getFilePath(), aTargetName, aSR->getUser(), aTargetDirectory, aTargetType,
-					false, aPrio, false, 0, false, false);
+			try {
+				if (fileDownload) {
+					bundleAddInfo = QueueManager::getInstance()->createFileBundle(aTargetDirectory + aTargetName, sr->getSize(), sr->getTTH(), sr->getUser(), sr->getDate(), 0, aPrio);
+				} else {
+					auto id = DirectoryListingManager::getInstance()->addDirectoryDownload(aSR->getUser(), aTargetName, aSR->getFilePath(), aTargetDirectory, aPrio);
+					directoryDownloadIds.push_back(id);
+				}
+
+				succeeded++;
+			} catch (const Exception& e) {
+				lastError = e.getError();
 			}
 		};
 
@@ -121,6 +132,19 @@ namespace webserver {
 		SearchResult::pickResults(results, SETTING(MAX_AUTO_MATCH_SOURCES));
 		boost::for_each(results, download);
 
-		return websocketpp::http::status_code::ok;
+		if (succeeded == 0) {
+			throw Exception(lastError);
+		}
+
+		if (!directoryDownloadIds.empty()) {
+			return {
+				{ "directory_download_ids", directoryDownloadIds }
+			};
+		}
+
+		dcassert(bundleAddInfo.bundle);
+		return {
+			{ "bundle_id", bundleAddInfo.bundle->getToken() }
+		};
 	}
 }

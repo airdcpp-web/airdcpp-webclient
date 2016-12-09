@@ -36,7 +36,7 @@ namespace webserver {
 		FavoriteHubApi(Session* aSession);
 		~FavoriteHubApi();
 
-		int getVersion() const noexcept {
+		int getVersion() const noexcept override {
 			return 0;
 		}
 	private:
@@ -49,9 +49,9 @@ namespace webserver {
 
 		void updateProperties(FavoriteHubEntryPtr& aEntry, const json& j, bool aNewHub);
 
-		void on(FavoriteManagerListener::FavoriteHubAdded, const FavoriteHubEntryPtr& /*e*/)  noexcept;
-		void on(FavoriteManagerListener::FavoriteHubRemoved, const FavoriteHubEntryPtr& e) noexcept;
-		void on(FavoriteManagerListener::FavoriteHubUpdated, const FavoriteHubEntryPtr& e) noexcept;
+		void on(FavoriteManagerListener::FavoriteHubAdded, const FavoriteHubEntryPtr& /*e*/)  noexcept override;
+		void on(FavoriteManagerListener::FavoriteHubRemoved, const FavoriteHubEntryPtr& e) noexcept override;
+		void on(FavoriteManagerListener::FavoriteHubUpdated, const FavoriteHubEntryPtr& e) noexcept override;
 
 		typedef ListViewController<FavoriteHubEntryPtr, FavoriteHubUtils::PROP_LAST> HubView;
 		HubView view;

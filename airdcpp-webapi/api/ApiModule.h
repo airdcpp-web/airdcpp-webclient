@@ -25,18 +25,18 @@
 #include <web-server/ApiRequest.h>
 #include <web-server/SessionListener.h>
 
-#include <airdcpp/StringMatch.h>
-
 namespace webserver {
+	using boost::regex;
+
 	class WebSocket;
 	class ApiModule {
 	public:
-#define NUM_PARAM (StringMatch::getSearch(R"(\d+)", StringMatch::REGEX))
+#define NUM_PARAM (regex(R"(\d+)"))
 #define TOKEN_PARAM NUM_PARAM
-#define TTH_PARAM (StringMatch::getSearch(R"([0-9A-Z]{39})", StringMatch::REGEX))
+#define TTH_PARAM (regex(R"([0-9A-Z]{39})"))
 #define CID_PARAM TTH_PARAM
-#define STR_PARAM (StringMatch::getSearch(R"([a-z_]+)", StringMatch::REGEX))
-#define EXACT_PARAM(pattern) (StringMatch::getSearch(pattern, StringMatch::EXACT))
+#define STR_PARAM (regex(R"([a-z_]+)"))
+#define EXACT_PARAM(pattern) (regex("^" + string(pattern) + "$"))
 
 #define BRACED_INIT_LIST(...) {__VA_ARGS__}
 #define METHOD_HANDLER(section, access, method, params, requireJson, func) (requestHandlers[section].push_back(ApiModule::RequestHandler(access, method, requireJson, BRACED_INIT_LIST params, std::bind(&func, this, placeholders::_1))))
@@ -44,32 +44,31 @@ namespace webserver {
 		ApiModule(Session* aSession);
 		virtual ~ApiModule();
 
-		typedef vector<StringMatch> ParamList;
 		struct RequestHandler {
+			typedef vector<regex> ParamList;
+
 			typedef std::vector<RequestHandler> List;
 			typedef std::function<api_return(ApiRequest& aRequest)> HandlerFunction;
 
 			// Regular handler
 			RequestHandler(Access aAccess, ApiRequest::Method aMethod, bool aRequireJson, ParamList&& aParams, HandlerFunction aFunction) :
-				method(aMethod), requireJson(aRequireJson), params(move(aParams)), f(aFunction), access(aAccess) {
+				method(aMethod), requireJson(aRequireJson), params(std::move(aParams)), f(aFunction), access(aAccess) {
 			
 				dcassert((aMethod != ApiRequest::METHOD_DELETE && aMethod != ApiRequest::METHOD_GET) || !aRequireJson);
 			}
 
-			// Sub handler
-			RequestHandler(const StringMatch& aMatch, HandlerFunction aFunction) :
-				params({ aMatch }), f(aFunction), access(Access::ANY) { }
+			// Forwarder
+			// Used with hierarchial modules when adding matcher for submodule IDs in the parent
+			RequestHandler(const regex& aMatch, HandlerFunction aFunction) :
+				params({ aMatch }), f(aFunction), access(Access::ANY), method(ApiRequest::METHOD_FORWARD), requireJson(false) { }
 
-			const ApiRequest::Method method = ApiRequest::METHOD_LAST;
-			const bool requireJson = false;
+			const ApiRequest::Method method;
+			const bool requireJson;
 			const ParamList params;
 			const HandlerFunction f;
 			const Access access;
 
 			bool matchParams(const ApiRequest::RequestParamList& aParams) const noexcept;
-			bool isModuleHandler() const noexcept {
-				return method == ApiRequest::METHOD_LAST;
-			}
 		};
 
 		typedef std::map<std::string, RequestHandler::List> RequestHandlerMap;
@@ -115,8 +114,8 @@ namespace webserver {
 
 		typedef std::map<const string, bool> SubscriptionMap;
 
-		virtual void on(SessionListener::SocketConnected, const WebSocketPtr&) noexcept;
-		virtual void on(SessionListener::SocketDisconnected) noexcept;
+		virtual void on(SessionListener::SocketConnected, const WebSocketPtr&) noexcept override;
+		virtual void on(SessionListener::SocketDisconnected) noexcept override;
 
 		virtual bool send(const json& aJson);
 		virtual bool send(const string& aSubscription, const json& aJson);
