@@ -221,6 +221,8 @@ private:
 	bool spaceOrError(const char* error);
 
 	bool error(const char* message);
+
+	void decodeString(string& str_);
 };
 
 
