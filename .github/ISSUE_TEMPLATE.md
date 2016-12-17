@@ -12,6 +12,10 @@ Copy from *Settings* -> *About*
 
 UI related issues should also include the browser version.
 
+### Operating system:
+
+Name and version of the operating system on which the application is installed on
+
 ### Steps to reproduce the issue:
 
 If you are unable to reproduce the issue, you can explain that what was happening before the crash/issue occurred. If it is a recurring issue, please mention how often does it occur.
