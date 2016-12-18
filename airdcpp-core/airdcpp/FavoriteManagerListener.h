@@ -28,31 +28,20 @@ public:
 	virtual ~FavoriteManagerListener() { }
 	template<int I>	struct X { enum { TYPE = I };  };
 
-	typedef X<0> DownloadStarting;
-	typedef X<1> DownloadFailed;
-	typedef X<2> DownloadFinished;
+	typedef X<0> FavoriteHubAdded;
+	typedef X<1> FavoriteHubRemoved;
+	typedef X<2> FavoriteHubUpdated;
+	typedef X<3> FavoriteHubsUpdated;
 
-	typedef X<3> FavoriteHubAdded;
-	typedef X<4> FavoriteHubRemoved;
-	typedef X<5> FavoriteHubUpdated;
-	typedef X<6> FavoriteHubsUpdated;
+	typedef X<4> FavoriteUserAdded;
+	typedef X<5> FavoriteUserRemoved;
+	typedef X<6> FavoriteUserUpdated;
 
-	typedef X<7> FavoriteUserAdded;
-	typedef X<8> FavoriteUserRemoved;
-	typedef X<9> FavoriteUserUpdated;
+	typedef X<7> RecentAdded;
+	typedef X<8> RecentRemoved;
+	typedef X<9> RecentUpdated;
 
-	typedef X<10> LoadedFromCache;
-	typedef X<11> Corrupted;	
-
-	typedef X<12> RecentAdded;
-	typedef X<13> RecentRemoved;
-	typedef X<14> RecentUpdated;
-
-	typedef X<15> FavoriteDirectoriesUpdated;
-
-	virtual void on(DownloadStarting, const string&) noexcept { }
-	virtual void on(DownloadFailed, const string&) noexcept { }
-	virtual void on(DownloadFinished, const string&, bool) noexcept { }
+	typedef X<10> FavoriteDirectoriesUpdated;
 
 	virtual void on(FavoriteHubAdded, const FavoriteHubEntryPtr&) noexcept { }
 	virtual void on(FavoriteHubRemoved, const FavoriteHubEntryPtr&) noexcept {}
@@ -62,9 +51,6 @@ public:
 	virtual void on(FavoriteUserAdded, const FavoriteUser&) noexcept { }
 	virtual void on(FavoriteUserRemoved, const FavoriteUser&) noexcept { }
 	virtual void on(FavoriteUserUpdated, const UserPtr&) noexcept { }
-
-	virtual void on(LoadedFromCache, const string&, const string&) noexcept { }
-	virtual void on(Corrupted, const string&) noexcept { }
 
 	virtual void on(RecentAdded, const RecentHubEntryPtr&) noexcept {}
 	virtual void on(RecentRemoved, const RecentHubEntryPtr&) noexcept {}

@@ -90,9 +90,6 @@ class HttpConnection;
 
 struct HttpDownload;
 
-class HubEntry;
-typedef std::vector<HubEntry> HubEntryList;
-
 class Identity;
 
 class InputStream;

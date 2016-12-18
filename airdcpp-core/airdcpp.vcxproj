@@ -245,6 +245,8 @@
     <ClCompile Include="airdcpp\modules\ColorSettings.cpp" />
     <ClCompile Include="airdcpp\modules\FinishedManager.cpp" />
     <ClCompile Include="airdcpp\modules\HighlightManager.cpp" />
+    <ClCompile Include="airdcpp\modules\HublistManager.cpp" />
+    <ClCompile Include="airdcpp\modules\PreviewAppManager.cpp" />
     <ClCompile Include="airdcpp\modules\RSSManager.cpp" />
     <ClCompile Include="airdcpp\modules\TargetUtil.cpp" />
     <ClCompile Include="airdcpp\modules\WebShortcuts.cpp" />
@@ -364,6 +366,10 @@
     <ClInclude Include="airdcpp\modules\FinishedManager.h" />
     <ClInclude Include="airdcpp\modules\FinishedManagerListener.h" />
     <ClInclude Include="airdcpp\modules\HighlightManager.h" />
+    <ClInclude Include="airdcpp\modules\HublistEntry.h" />
+    <ClInclude Include="airdcpp\modules\HublistManager.h" />
+    <ClInclude Include="airdcpp\modules\HublistManagerListener.h" />
+    <ClInclude Include="airdcpp\modules\PreviewAppManager.h" />
     <ClInclude Include="airdcpp\modules\RSSManager.h" />
     <ClInclude Include="airdcpp\modules\TargetUtil.h" />
     <ClInclude Include="airdcpp\modules\WebShortcuts.h" />
