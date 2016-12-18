@@ -764,6 +764,7 @@ enum Strings { // @DontAdd
 	MATCH_ADL, // "ADL search"
 	MATCH_AUTOSEARCH, // "Match auto search"
 	MATCH_COLUMN, // "Match column"
+	MATCH_FILTERS, // "Match filters"
 	MATCH_FULL_PATH, // "Find matches from the full path instead of the file/directory name"
 	MATCH_PARTIAL, // "Match partial list"
 	MATCH_QUEUE, // "Match queue"

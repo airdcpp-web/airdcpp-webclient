@@ -110,9 +110,9 @@ void RSSManager::parseAtomFeed(SimpleXML& xml, RSSPtr& aFeed) {
 			if (xml.findChild("updated"))
 				date = xml.getChildData();
 
-			if (newdata) 
+			if (newdata) {
 				addData(titletmp, link, date, aFeed);
-
+			}
 			xml.stepOut();
 		}
 	xml.stepOut();
@@ -143,8 +143,9 @@ void RSSManager::parseRSSFeed(SimpleXML& xml, RSSPtr& aFeed) {
 				date = xml.getChildData();
 
 
-			if (newdata)
+			if (newdata) {
 				addData(titletmp, link, date, aFeed);
+			}
 
 			xml.stepOut();
 		}
@@ -209,26 +210,26 @@ bool RSSManager::checkTitle(const RSSPtr& aFeed, string& aTitle) {
 }
 
 void RSSManager::addData(const string& aTitle, const string& aLink, const string& aDate, RSSPtr& aFeed) {
-	RSSDataPtr data = new RSSData(aTitle, aLink, aDate, aFeed);
-	matchFilters(aFeed, data);
+	auto data = new RSSData(aTitle, aLink, aDate, aFeed);
 	{
 		Lock l(cs);
 		aFeed->getFeedData().emplace(aTitle, data);
 	}
 	aFeed->setDirty(true);
 	fire(RSSManagerListener::RSSDataAdded(), data);
+	
+	Lock l(cs);
+	matchFilters(aFeed, data);
 }
 
-void RSSManager::matchFilters(const RSSPtr& aFeed) const {
+void RSSManager::matchFilters(const RSSPtr& aFeed) {
 	if (aFeed) {
 		Lock l(cs);
-		for (auto data : aFeed->getFeedData() | map_values) {
-				matchFilters(aFeed, data);
-		}
+		for_each(aFeed->getFeedData() | map_values, [&](const RSSDataPtr& data) { matchFilters(aFeed, data); });
 	}
 }
 
-void RSSManager::matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) const {
+void RSSManager::matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) {
 	
 	for (auto& aF : aFeed->getRssFilterList()) {
 		if (aF.match(aData->getTitle())) {
@@ -238,13 +239,15 @@ void RSSManager::matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) cons
 				if (QueueManager::getInstance()->isNmdcDirQueued(aData->getTitle(), 0) != DUPE_NONE)
 					break; //Need to match other filters?
 			}
-
-			auto as = AutoSearchManager::getInstance()->addAutoSearch(aData->getTitle(),
-				aF.getDownloadTarget(), true, AutoSearch::RSS_DOWNLOAD, true);
-			if (as) {
-				AutoSearchManager::getInstance()->moveItemToGroup(as, aF.getAutosearchGroup());
+			if (aF.getFilterAction() == RSSFilter::DOWNLOAD) {
+				auto as = AutoSearchManager::getInstance()->addAutoSearch(aData->getTitle(),
+					aF.getDownloadTarget(), true, AutoSearch::RSS_DOWNLOAD, true);
+				if (as) {
+					AutoSearchManager::getInstance()->moveItemToGroup(as, aF.getAutosearchGroup());
+				}
+			} else if (aF.getFilterAction() == RSSFilter::REMOVE) {
+				tasks.addTask([=] { removeFeedData(aFeed, aData); });
 			}
-
 			break; //One match is enough
 		}
 	}
@@ -290,6 +293,13 @@ void RSSManager::removeFeedItem(const RSSPtr& aFeed) noexcept {
 	//Delete database file?
 	rssList.erase(aFeed);
 	fire(RSSManagerListener::RSSFeedRemoved(), aFeed);
+}
+
+void RSSManager::removeFeedData(const RSSPtr& aFeed, const RSSDataPtr& aData) {
+	fire(RSSManagerListener::RSSDataRemoved(), aData);
+	Lock l(cs);
+	aFeed->getFeedData().erase(aData->getTitle());
+	aFeed->setDirty(true);
 }
 
 void RSSManager::downloadFeed(const RSSPtr& aFeed, bool verbose/*false*/) noexcept {
@@ -381,18 +391,8 @@ void RSSManager::load() {
 					xml.getIntChildAttrib("UpdateInterval"),
 					xml.getIntChildAttrib("Token"));
 				xml.stepIn();
-				if (xml.findChild("Filters")) {
-					xml.stepIn();
-					while (xml.findChild("Filter")) {
-						feed->rssFilterList.emplace_back(
-							xml.getChildAttrib("FilterPattern"),
-							xml.getChildAttrib("DownloadTarget"),
-							Util::toInt(xml.getChildAttrib("Method", "1")),
-							xml.getChildAttrib("AutoSearchGroup"),
-							xml.getBoolChildAttrib("SkipDupes"));
-					}
-					xml.stepOut();
-				}
+
+				loadFilters(xml, feed->rssFilterList);
 
 				xml.resetCurrentChild();
 				xml.stepOut();
@@ -430,6 +430,22 @@ void RSSManager::load() {
 
 }
 
+void RSSManager::loadFilters(SimpleXML& xml, vector<RSSFilter>& aList) {
+	if (xml.findChild("Filters")) {
+		xml.stepIn();
+		while (xml.findChild("Filter")) {
+			aList.emplace_back(
+				xml.getChildAttrib("FilterPattern"),
+				xml.getChildAttrib("DownloadTarget"),
+				Util::toInt(xml.getChildAttrib("Method", "1")),
+				xml.getChildAttrib("AutoSearchGroup"),
+				xml.getBoolChildAttrib("SkipDupes"),
+				Util::toInt(xml.getChildAttrib("FilterAction", "0")));
+		}
+		xml.stepOut();
+	}
+}
+
 void RSSManager::saveConfig(bool saveDatabase) {
 	SimpleXML xml;
 	xml.addTag("RSS");
@@ -443,21 +459,10 @@ void RSSManager::saveConfig(bool saveDatabase) {
 		xml.addChildAttrib("LastUpdate", Util::toString(r->getLastUpdate()));
 		xml.addChildAttrib("UpdateInterval", Util::toString(r->getUpdateInterval()));
 		xml.addChildAttrib("Token", Util::toString(r->getToken()));
-		if (!r->getRssFilterList().empty()) {
-			xml.stepIn();
-			xml.addTag("Filters");
-			xml.stepIn();
-			for (auto f : r->rssFilterList) {
-				xml.addTag("Filter");
-				xml.addChildAttrib("FilterPattern", f.getFilterPattern());
-				xml.addChildAttrib("DownloadTarget", f.getDownloadTarget());
-				xml.addChildAttrib("Method", f.getMethod());
-				xml.addChildAttrib("AutoSearchGroup", f.getAutosearchGroup());
-				xml.addChildAttrib("SkipDupes", f.skipDupes);
-			}
-			xml.stepOut();
-			xml.stepOut();
-		}
+		
+		xml.stepIn();
+		saveFilters(xml, r->getRssFilterList());
+		xml.stepOut();
 
 		if (saveDatabase && r->getDirty())
 			savedatabase(r);
@@ -466,6 +471,23 @@ void RSSManager::saveConfig(bool saveDatabase) {
 	xml.stepOut();
 	SettingsManager::saveSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
 
+}
+
+void RSSManager::saveFilters(SimpleXML& aXml, const vector<RSSFilter>& aList) {
+	if (!aList.empty()) {
+		aXml.addTag("Filters");
+		aXml.stepIn();
+		for (auto f : aList) {
+			aXml.addTag("Filter");
+			aXml.addChildAttrib("FilterPattern", f.getFilterPattern());
+			aXml.addChildAttrib("DownloadTarget", f.getDownloadTarget());
+			aXml.addChildAttrib("Method", f.getMethod());
+			aXml.addChildAttrib("AutoSearchGroup", f.getAutosearchGroup());
+			aXml.addChildAttrib("SkipDupes", f.skipDupes);
+			aXml.addChildAttrib("FilterAction", f.getFilterAction());
+		}
+		aXml.stepOut();
+	}
 }
 
 #define LITERAL(n) n, sizeof(n)-1

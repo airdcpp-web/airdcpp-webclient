@@ -9,11 +9,12 @@ endif (APPLE)
 
 set (PROJECT_NAME "AirDC++ Web Client")
 set (TAG_APPLICATION "AirDC++w")
-set (VERSION "1.4.0")
-set (SOVERSION "1.4.0" )
+set (VERSION "1.4.1")
+set (SOVERSION "1.4.1" )
 
 set (GNUCXX_MINIMUM_VERSION "4.8")
 
+include (GNUInstallDirs)
 include (CheckIncludeFile)
 include (CheckIncludeFiles)
 include (CheckFunctionExists)
@@ -90,42 +91,35 @@ find_package(Boost 1.54.0 COMPONENTS regex system thread REQUIRED)
 
 set (Boost_INCLUDE_DIR)
 
-if (LIB_INSTALL_DIR)
-  set (LIBDIR ${LIB_INSTALL_DIR})
-endif (LIB_INSTALL_DIR)
-
 if (NOT LIBDIR)
-  set (LIBDIR "lib")
+  set (LIBDIR "${CMAKE_INSTALL_FULL_LIBDIR}")
 endif (NOT LIBDIR)
-
-message (STATUS "Library directory: ${CMAKE_INSTALL_PREFIX}/${LIBDIR}")
+message (STATUS "Library directory: ${LIBDIR}")
 
 if (INSTALL_RUNTIME_PATH)
-    set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${LIBDIR}")
+    set (CMAKE_INSTALL_RPATH "${LIBDIR}")
 endif (INSTALL_RUNTIME_PATH)
 
 if (NOT CMAKE_BUILD_TYPE)
   set (CMAKE_BUILD_TYPE "RelWithDebInfo")
 endif (NOT CMAKE_BUILD_TYPE)
 
-if (NOT SHARE_DIR)
-set (SHARE_DIR "share")
-endif (NOT SHARE_DIR)
+if (NOT RESOURCE_DIRECTORY)
+  set (RESOURCE_DIRECTORY "${CMAKE_INSTALL_FULL_DATAROOTDIR}/airdcpp/")
+endif (NOT RESOURCE_DIRECTORY)
+message (STATUS "Resource directory: ${RESOURCE_DIRECTORY}")
+
+
+if (NOT GLOBAL_CONFIG_DIRECTORY)
+  set (GLOBAL_CONFIG_DIRECTORY "${CMAKE_INSTALL_FULL_SYSCONFDIR}/airdcpp/")
+endif (NOT GLOBAL_CONFIG_DIRECTORY)
+message (STATUS "Startup config directory: ${GLOBAL_CONFIG_DIRECTORY}")
+
 
 if (APPLE)
     add_definitions(-DAPPLE)
 endif (APPLE)
 
-
-#if (APPLE)
-#  set (CLIENT_DATA_DIR "${PROJECT_NAME_GLOBAL}.app")
-#if (WIN32)
-#  set (CLIENT_DATA_DIR "${SHARE_DIR}")
-#else (WIN32)
-  set (RESOURCE_DIRECTORY "${CMAKE_INSTALL_PREFIX}/${SHARE_DIR}/airdcpp/")
-#endif (WIN32)
-
-message (STATUS "Resource directory: ${RESOURCE_DIRECTORY}")
 
 #find_program(GIT_EXECUTABLE git PATHS /sw/bin)
 
@@ -177,7 +171,7 @@ find_program (GZIP_CMD gzip)
 mark_as_advanced(GZIP_CMD)
 endif (UNIX)
 
-set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${LIBDIR}")
+set (CMAKE_INSTALL_RPATH "${LIBDIR}")
 
 add_definitions (-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT
                  -D_DATADIR="${CLIENT_DATA_DIR}" -DLOCALE_DIR="${LOCALE_DIR}" -DBUILDING_AIRDCPP)

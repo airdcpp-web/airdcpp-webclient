@@ -23,6 +23,7 @@
 #include <web-server/JsonUtil.h>
 
 #include <airdcpp/ResourceManager.h>
+#include <airdcpp/Util.h>
 
 
 namespace webserver {

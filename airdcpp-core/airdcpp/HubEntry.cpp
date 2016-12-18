@@ -31,11 +31,6 @@ namespace dcpp {
 FavoriteHubEntry::FavoriteHubEntry() noexcept : 
 	token(Util::randInt()) { }
 
-FavoriteHubEntry::FavoriteHubEntry(const HubEntry& rhs) noexcept : name(rhs.getName()), description(rhs.getDescription()),
-	token(Util::randInt()), server(rhs.getServer()) {
-
-}
-
 bool FavoriteHubEntry::isAdcHub() const noexcept {
 	return AirUtil::isAdcHub(server);
 }

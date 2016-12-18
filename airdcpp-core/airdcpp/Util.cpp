@@ -254,7 +254,7 @@ void Util::initialize(const string& aConfigPath) {
 	paths[PATH_LOCALE] = (localMode ? exePath : paths[PATH_USER_LOCAL]) + "Language\\";
 
 #else
-	paths[PATH_GLOBAL_CONFIG] = "/etc/";
+	paths[PATH_GLOBAL_CONFIG] = GLOBAL_CONFIG_DIRECTORY;
 	const char* home_ = getenv("HOME");
 	string home = home_ ? Text::toUtf8(home_) : "/tmp/";
 
@@ -364,6 +364,9 @@ void Util::loadBootConfig() noexcept {
 
 			params["APPDATA"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, SHGFP_TYPE_CURRENT, path), path));
 			params["PERSONAL"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, path), path));
+#else
+			const char* home_ = getenv("HOME");
+			params["HOME"] = home_ ? Text::toUtf8(home_) : "/tmp/";
 #endif
 			paths[PATH_USER_CONFIG] = Util::formatParams(boot.getChildData(), params);
 		}

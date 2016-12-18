@@ -20,17 +20,12 @@
 #include "FavoriteManager.h"
 
 #include "AirUtil.h"
-#include "BZUtils.h"
 #include "ClientManager.h"
-#include "CryptoManager.h"
-#include "FilteredFile.h"
-#include "HttpConnection.h"
 #include "LogManager.h"
 #include "RelevanceSearch.h"
 #include "ResourceManager.h"
 #include "ShareManager.h"
 #include "SimpleXML.h"
-#include "StringTokenizer.h"
 #include "UserCommand.h"
 
 namespace dcpp {
@@ -54,14 +49,6 @@ FavoriteManager::~FavoriteManager() {
 	ClientManager::getInstance()->removeListener(this);
 	SettingsManager::getInstance()->removeListener(this);
 	ShareManager::getInstance()->removeListener(this);
-
-	if(c) {
-		c->removeListener(this);
-		delete c;
-		c = nullptr;
-	}
-
-	for_each(previewApplications, DeleteFunction());
 }
 
 UserCommand FavoriteManager::addUserCommand(int type, int ctx, Flags::MaskType flags, const string& name, const string& command, const string& to, const string& hub) noexcept {
@@ -343,11 +330,6 @@ FavoriteManager::FavoriteDirectoryMap FavoriteManager::getFavoriteDirs() const n
 	return favoriteDirectories;
 }
 
-HubEntryList FavoriteManager::getPublicHubs() noexcept {
-	RLock l(cs);
-	return publicListMatrix[publicListServer];
-}
-
 void FavoriteManager::clearRecent() noexcept {
 	{
 		WLock l(cs);
@@ -399,65 +381,6 @@ void FavoriteManager::updateRecent(const RecentHubEntryPtr& entry) noexcept {
 		
 	fire(FavoriteManagerListener::RecentUpdated(), entry);
 	saveRecent();
-}
-
-class XmlListLoader : public SimpleXMLReader::CallBack {
-public:
-	XmlListLoader(HubEntryList& lst) : publicHubs(lst) { }
-	~XmlListLoader() { }
-	void startTag(const string& aName, StringPairList& attribs, bool) {
-		if(aName == "Hub") {
-			const string& name = getAttrib(attribs, "Name", 0);
-			const string& server = getAttrib(attribs, "Address", 1);
-			const string& description = getAttrib(attribs, "Description", 2);
-			const string& users = getAttrib(attribs, "Users", 3);
-			const string& country = getAttrib(attribs, "Country", 4);
-			const string& shared = getAttrib(attribs, "Shared", 5);
-			const string& minShare = getAttrib(attribs, "Minshare", 5);
-			const string& minSlots = getAttrib(attribs, "Minslots", 5);
-			const string& maxHubs = getAttrib(attribs, "Maxhubs", 5);
-			const string& maxUsers = getAttrib(attribs, "Maxusers", 5);
-			const string& reliability = getAttrib(attribs, "Reliability", 5);
-			const string& rating = getAttrib(attribs, "Rating", 5);
-			publicHubs.push_back(HubEntry(name, server, description, users, country, shared, minShare, minSlots, maxHubs, maxUsers, reliability, rating));
-		}
-	}
-private:
-	HubEntryList& publicHubs;
-};
-
-bool FavoriteManager::onHttpFinished(bool fromHttp) noexcept {
-	MemoryInputStream mis(downloadBuf);
-	bool success = true;
-
-	WLock l(cs);
-	HubEntryList& list = publicListMatrix[publicListServer];
-	list.clear();
-
-	try {
-		XmlListLoader loader(list);
-
-		if((listType == TYPE_BZIP2) && (!downloadBuf.empty())) {
-			FilteredInputStream<UnBZFilter, false> f(&mis);
-			SimpleXMLReader(&loader).parse(f);
-		} else {
-			SimpleXMLReader(&loader).parse(mis);
-		}
-	} catch(const Exception&) {
-		success = false;
-		fire(FavoriteManagerListener::Corrupted(), fromHttp ? publicListServer : Util::emptyString);
-	}
-
-	if(fromHttp) {
-		try {
-			File f(Util::getHubListsPath() + Util::validateFileName(publicListServer), File::WRITE, File::CREATE | File::TRUNCATE);
-			f.write(downloadBuf);
-		} catch(const FileException&) { }
-	}
-
-	downloadBuf = Util::emptyString;
-	
-	return success;
 }
 
 // FAVORITE HUBS START
@@ -575,7 +498,7 @@ bool FavoriteManager::hasActiveHubs() const noexcept {
 // FAVORITE HUBS END
 
 void FavoriteManager::save() noexcept {
-	if (!loaded)
+	if (loading)
 		return;
 
 	try {
@@ -700,31 +623,6 @@ void FavoriteManager::saveFavoriteHubs(SimpleXML& aXml) const noexcept {
 	aXml.stepOut();
 }
 
-void FavoriteManager::loadPreview(SimpleXML& aXml) {
-	aXml.resetCurrentChild();
-	if(aXml.findChild("PreviewApps")) {
-		aXml.stepIn();
-		while(aXml.findChild("Application")) {					
-			addPreviewApp(aXml.getChildAttrib("Name"), aXml.getChildAttrib("Application"), 
-				aXml.getChildAttrib("Arguments"), aXml.getChildAttrib("Extension"));			
-		}
-		aXml.stepOut();
-	}	
-}
-
-void FavoriteManager::savePreview(SimpleXML& aXml) const noexcept {
-	aXml.addTag("PreviewApps");
-	aXml.stepIn();
-	for(const auto& pa: previewApplications) {
-		aXml.addTag("Application");
-		aXml.addChildAttrib("Name", pa->getName());
-		aXml.addChildAttrib("Application", pa->getApplication());
-		aXml.addChildAttrib("Arguments", pa->getArguments());
-		aXml.addChildAttrib("Extension", pa->getExtension());
-	}
-	aXml.stepOut();
-}
-
 void FavoriteManager::saveRecent() const noexcept {
 	SimpleXML xml;
 
@@ -773,6 +671,7 @@ void FavoriteManager::loadCID() noexcept {
 }
 
 void FavoriteManager::load() noexcept {
+	loading = true;
 	
 	// Add NMDC standard op commands
 	static const char kickstr[] = 
@@ -798,7 +697,6 @@ void FavoriteManager::load() noexcept {
 			loadFavoriteUsers(xml);
 			loadUserCommands(xml);
 			loadFavoriteDirectories(xml);
-			loaded = true;
 
 			xml.stepOut();
 
@@ -822,6 +720,8 @@ void FavoriteManager::load() noexcept {
 	} catch(const Exception& e) {
 		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_RECENTS_NAME % e.getError()), LogMessage::SEV_ERROR);
 	}
+
+	loading = false;
 }
 
 void FavoriteManager::loadFavoriteHubs(SimpleXML& aXml) {
@@ -1034,18 +934,8 @@ void FavoriteManager::setUserDescription(const UserPtr& aUser, const string& des
 	save();
 }
 
-void FavoriteManager::on(SettingsManagerListener::Load, SimpleXML& xml) noexcept {
+void FavoriteManager::on(SettingsManagerListener::Load, SimpleXML&) noexcept {
 	loadCID();
-
-	try {
-		loadPreview(xml);
-	} catch (...) {
-
-	}
-}
-
-void FavoriteManager::on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {
-	savePreview(xml);
 }
 
 void FavoriteManager::loadRecent(SimpleXML& aXml) {
@@ -1062,11 +952,6 @@ void FavoriteManager::loadRecent(SimpleXML& aXml) {
 		}
 		aXml.stepOut();
 	}
-}
-
-StringList FavoriteManager::getHubLists() noexcept {
-	StringTokenizer<string> lists(SETTING(HUBLIST_SERVERS), ';');
-	return lists.getTokens();
 }
 
 FavoriteHubEntryPtr FavoriteManager::getFavoriteHubEntry(const string& aServer) const noexcept {
@@ -1107,11 +992,6 @@ RecentHubEntryList::const_iterator FavoriteManager::getRecentHub(const string& a
 	return find_if(recentHubs, [&aServer](const RecentHubEntryPtr& rhe) { return Util::stricmp(rhe->getServer(), aServer) == 0; });
 }
 
-void FavoriteManager::setHubList(int aHubList) noexcept {
-	lastServer = aHubList;
-	refresh();
-}
-
 RecentHubEntryPtr FavoriteManager::getRecentHubEntry(const string& aServer) const noexcept {
 	RLock l(cs);
 	auto p = getRecentHub(aServer);
@@ -1131,61 +1011,6 @@ RecentHubEntryList FavoriteManager::searchRecentHubs(const string& aPattern, siz
 	}
 
 	return search.getResults(aMaxResults);
-}
-
-void FavoriteManager::refresh(bool forceDownload /* = false */) noexcept {
-	StringList sl = getHubLists();
-	if(sl.empty())
-		return;
-	publicListServer = sl[(lastServer) % sl.size()];
-	if (Util::strnicmp(publicListServer.c_str(), "http://", 7) != 0) {
-		lastServer++;
-		return;
-	}
-
-	if(!forceDownload) {
-		string path = Util::getHubListsPath() + Util::validateFileName(publicListServer);
-		if(File::getSize(path) > 0) {
-			useHttp = false;
-			string fileDate;
-			{
-				WLock l(cs);
-				publicListMatrix[publicListServer].clear();
-			}
-			listType = (Util::stricmp(path.substr(path.size() - 4), ".bz2") == 0) ? TYPE_BZIP2 : TYPE_NORMAL;
-			try {
-				File cached(path, File::READ, File::OPEN);
-				downloadBuf = cached.read();
-				char buf[20];
-				time_t fd = cached.getLastModified();
-				if (strftime(buf, 20, "%x", localtime(&fd))) {
-					fileDate = string(buf);
-				}
-			} catch(const FileException&) {
-				downloadBuf = Util::emptyString;
-			}
-			if(!downloadBuf.empty()) {
-				if (onHttpFinished(false)) {
-					fire(FavoriteManagerListener::LoadedFromCache(), publicListServer, fileDate);
-				}		
-				return;
-			}
-		}
-	}
-
-	if(!running) {
-		useHttp = true;
-		{
-			WLock l(cs);
-			publicListMatrix[publicListServer].clear();
-		}
-		fire(FavoriteManagerListener::DownloadStarting(), publicListServer);
-		if(!c)
-			c = new HttpConnection();
-		c->addListener(this);
-		c->downloadFile(publicListServer);
-		running = true;
-	}
 }
 
 UserCommand::List FavoriteManager::getUserCommands(int ctx, const StringList& hubs, bool& op) noexcept {
@@ -1229,46 +1054,6 @@ UserCommand::List FavoriteManager::getUserCommands(int ctx, const StringList& hu
 		}
 	}
 	return lst;
-}
-
-// HttpConnectionListener
-void FavoriteManager::on(Data, HttpConnection*, const uint8_t* buf, size_t len) noexcept { 
-	if(useHttp)
-		downloadBuf.append((const char*)buf, len);
-}
-
-void FavoriteManager::on(Failed, HttpConnection*, const string& aLine) noexcept { 
-	c->removeListener(this);
-	lastServer++;
-	running = false;
-	if(useHttp){
-		downloadBuf = Util::emptyString;
-		fire(FavoriteManagerListener::DownloadFailed(), aLine);
-	}
-}
-
-void FavoriteManager::on(Complete, HttpConnection*, const string& aLine, bool fromCoral) noexcept {
-	bool parseSuccess = false;
-	c->removeListener(this);
-	if(useHttp) {
-		if(c->getMimeType() == "application/x-bzip2")
-			listType = TYPE_BZIP2;
-		parseSuccess = onHttpFinished(true);
-	}	
-	running = false;
-	if(parseSuccess) {
-		fire(FavoriteManagerListener::DownloadFinished(), aLine, fromCoral);
-	}
-}
-
-void FavoriteManager::on(Redirected, HttpConnection*, const string& aLine) noexcept { 
-	if(useHttp)
-		fire(FavoriteManagerListener::DownloadStarting(), aLine);
-}
-
-void FavoriteManager::on(Retried, HttpConnection*, const bool Connected) noexcept {
-	if (Connected)
-		downloadBuf = Util::emptyString;
 }
 
 void FavoriteManager::on(UserDisconnected, const UserPtr& user, bool wentOffline) noexcept {
