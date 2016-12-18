@@ -341,6 +341,12 @@
     <ClCompile Include="airdcpp\modules\TargetUtil.cpp">
       <Filter>Source Files\modules</Filter>
     </ClCompile>
+    <ClCompile Include="airdcpp\modules\PreviewAppManager.cpp">
+      <Filter>Source Files\modules</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\modules\HublistManager.cpp">
+      <Filter>Source Files\modules</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="airdcpp\AdcCommand.h">
@@ -887,6 +893,18 @@
       <Filter>Header Files\modules</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\modules\TargetUtil.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\PreviewAppManager.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\HublistManager.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\HublistManagerListener.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\HublistEntry.h">
       <Filter>Header Files\modules</Filter>
     </ClInclude>
   </ItemGroup>

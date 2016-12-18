@@ -26,55 +26,25 @@
 
 #include "FavHubGroup.h"
 #include "FavoriteUser.h"
-#include "HttpConnection.h"
 #include "HubEntry.h"
 #include "Singleton.h"
+#include "Speaker.h"
 #include "UserCommand.h"
 
 namespace dcpp {
-	
-class PreviewApplication {
-public:
-	typedef PreviewApplication* Ptr;
-	typedef vector<Ptr> List;
-	typedef List::const_iterator Iter;
-
-	PreviewApplication() noexcept {}
-	PreviewApplication(string n, string a, string r, string e) : name(n), application(a), arguments(r), extension(e) {};
-	~PreviewApplication() noexcept { }	
-
-	GETSET(string, name, Name);
-	GETSET(string, application, Application);
-	GETSET(string, arguments, Arguments);
-	GETSET(string, extension, Extension);
-};
 
 /**
  * Public hub list, favorites (hub&user). Assumed to be called only by UI thread.
  */
-class FavoriteManager : public Speaker<FavoriteManagerListener>, private HttpConnectionListener, public Singleton<FavoriteManager>,
+class FavoriteManager : public Speaker<FavoriteManagerListener>, public Singleton<FavoriteManager>,
 	private SettingsManagerListener, private ClientManagerListener, private ShareManagerListener
 {
 public:
-// Public Hubs
-	enum HubTypes {
-		TYPE_NORMAL,
-		TYPE_BZIP2
-	};
-	StringList getHubLists() noexcept;
-	void setHubList(int aHubList) noexcept;
-	int getSelectedHubList() const noexcept { return lastServer; }
-	void refresh(bool forceDownload = false) noexcept;
-	HubTypes getHubListType() const noexcept { return listType; }
-	HubEntryList getPublicHubs() noexcept;
-	bool isDownloading() const noexcept { return (useHttp && running); }
-
 // Favorite Users
 	typedef unordered_map<CID, FavoriteUser> FavoriteMap;
 
 	//remember to lock this
 	const FavoriteMap& getFavoriteUsers() const noexcept { return users; }
-	PreviewApplication::List& getPreviewApps() noexcept { return previewApplications; }
 
 	void addFavoriteUser(const HintedUser& aUser) noexcept;
 	void removeFavoriteUser(const UserPtr& aUser) noexcept;
@@ -125,29 +95,6 @@ public:
 	RecentHubEntryPtr getRecentHubEntry(const string& aServer) const noexcept;
 	RecentHubEntryList searchRecentHubs(const string& aPattern, size_t aMaxResults) const noexcept;
 
-	PreviewApplication* addPreviewApp(string name, string application, string arguments, string extension){
-		PreviewApplication* pa = new PreviewApplication(name, application, arguments, extension);
-		previewApplications.push_back(pa);
-		return pa;
-	}
-
-	PreviewApplication* removePreviewApp(unsigned int index){
-		if(previewApplications.size() > index)
-			previewApplications.erase(previewApplications.begin() + index);	
-		return NULL;
-	}
-
-	PreviewApplication* getPreviewApp(unsigned int index, PreviewApplication &pa){
-		if(previewApplications.size() > index)
-			pa = *previewApplications[index];	
-		return NULL;
-	}
-	
-	PreviewApplication* updatePreviewApp(int index, PreviewApplication &pa){
-		*previewApplications[index] = pa;
-		return NULL;
-	}
-
 // User Commands
 	UserCommand addUserCommand(int type, int ctx, Flags::MaskType flags, const string& name, const string& command, const string& to, const string& hub) noexcept;
 	bool getUserCommand(int cid, UserCommand& uc) noexcept;
@@ -175,24 +122,13 @@ private:
 	FavHubGroups favHubGroups;
 	FavoriteDirectoryMap favoriteDirectories;
 	RecentHubEntryList recentHubs;
-	PreviewApplication::List previewApplications;
 	UserCommand::List userCommands;
 	int lastId = 0;
 
 	FavoriteMap users;
-
-	// Public Hubs
-	typedef unordered_map<string, HubEntryList> PubListMap;
-	PubListMap publicListMatrix;
-	string publicListServer;
-	bool useHttp = false, running = false;
-	HttpConnection* c = nullptr;
-	int lastServer = 0;
-	HubTypes listType = TYPE_NORMAL;
-	string downloadBuf;
 	
 	/** Used during loading to prevent saving. */
-	bool loaded = false;
+	bool loading = false;
 
 	friend class Singleton<FavoriteManager>;
 	
@@ -218,34 +154,22 @@ private:
 	void on(ClientManagerListener::ClientRemoved, const ClientPtr& c) noexcept;
 	void on(ClientManagerListener::ClientRedirected, const ClientPtr& aOldClient, const ClientPtr& aNewClient) noexcept;
 
-	// HttpConnectionListener
-	void on(Data, HttpConnection*, const uint8_t*, size_t) noexcept;
-	void on(Failed, HttpConnection*, const string&) noexcept;
-	void on(Complete, HttpConnection*, const string&, bool) noexcept;
-	void on(Redirected, HttpConnection*, const string&) noexcept;
-	void on(Retried, HttpConnection*, bool) noexcept; 
-
-	bool onHttpFinished(bool fromHttp) noexcept;
-
 	void onConnectStateChanged(const ClientPtr& aClient, FavoriteHubEntry::ConnectState aState) noexcept;
 	void setConnectState(const FavoriteHubEntryPtr& aEntry) noexcept;
 
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept;
-	void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept;
 
 	void loadFavoriteHubs(SimpleXML& aXml);
 	void loadFavoriteDirectories(SimpleXML& aXml);
 	void loadFavoriteUsers(SimpleXML& aXml);
 	void loadUserCommands(SimpleXML& aXml);
 	void loadRecent(SimpleXML& aXml);
-	void loadPreview(SimpleXML& aXml);
 
 	void saveFavoriteHubs(SimpleXML& aXml) const noexcept;
 	void saveFavoriteUsers(SimpleXML& aXml) const noexcept;
 	void saveFavoriteDirectories(SimpleXML& aXml) const noexcept;
 	void saveUserCommands(SimpleXML& aXml) const noexcept;
-	void savePreview(SimpleXML& aXml) const noexcept;
 
 	void loadCID() noexcept;
 };

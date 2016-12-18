@@ -49,8 +49,8 @@ typedef boost::intrusive_ptr<RSSData> RSSDataPtr;
 class RSSFilter : public StringMatch {
 public:
 
-	RSSFilter(const string& aFilterPattern, const string& aDownloadTarget, int aMethod, const string& aGroup, bool aSkipDupes) noexcept :
-		filterPattern(aFilterPattern), downloadTarget(aDownloadTarget), autosearchGroup(aGroup), skipDupes(aSkipDupes)
+	RSSFilter(const string& aFilterPattern, const string& aDownloadTarget, int aMethod, const string& aGroup, bool aSkipDupes, int aAction) noexcept :
+		filterPattern(aFilterPattern), downloadTarget(aDownloadTarget), autosearchGroup(aGroup), skipDupes(aSkipDupes), filterAction(aAction)
 	{
 		pattern = aFilterPattern;
 		setMethod((StringMatch::Method)aMethod);
@@ -61,7 +61,13 @@ public:
 	GETSET(string, filterPattern, FilterPattern);
 	GETSET(string, downloadTarget, DownloadTarget);
 	IGETSET(string, autosearchGroup, AutosearchGroup, Util::emptyString);
+	IGETSET(int, filterAction, FilterAction, DOWNLOAD);
 	bool skipDupes = true;
+
+	enum filterActions {
+		DOWNLOAD = 0,
+		REMOVE = 1
+	};
 
 };
 
@@ -139,13 +145,15 @@ public:
 	template<int I>	struct X { enum { TYPE = I }; };
 
 	typedef X<0> RSSDataAdded;
-	typedef X<1> RSSDataCleared;
-	typedef X<2> RSSFeedUpdated;
-	typedef X<3> RSSFeedChanged;
-	typedef X<4> RSSFeedRemoved;
-	typedef X<5> RSSFeedAdded;
+	typedef X<1> RSSDataRemoved;
+	typedef X<2> RSSDataCleared;
+	typedef X<3> RSSFeedUpdated;
+	typedef X<4> RSSFeedChanged;
+	typedef X<5> RSSFeedRemoved;
+	typedef X<6> RSSFeedAdded;
 
 	virtual void on(RSSDataAdded, const RSSDataPtr&) noexcept { }
+	virtual void on(RSSDataRemoved, const RSSDataPtr&) noexcept { }
 	virtual void on(RSSDataCleared, const RSSPtr&) noexcept { }
 	virtual void on(RSSFeedUpdated, const RSSPtr&) noexcept { }
 	virtual void on(RSSFeedChanged, const RSSPtr&) noexcept { }
@@ -166,7 +174,7 @@ public:
 	void saveConfig(bool saveDatabase = true);
 
 	void clearRSSData(const RSSPtr& aFeed) noexcept;
-	void matchFilters(const RSSPtr& aFeed) const;
+	void matchFilters(const RSSPtr& aFeed);
 	
 	RSSPtr getFeedByName(const string& aName) const noexcept;
 	RSSPtr getFeedByUrl(const string& aUrl) const noexcept;
@@ -188,6 +196,11 @@ public:
 
 	void enableFeedUpdate(const RSSPtr& aFeed, bool enable) noexcept;
 
+	void removeFeedData(const RSSPtr& aFeed, const RSSDataPtr& aData);
+
+	void loadFilters(SimpleXML& aXml, vector<RSSFilter>& aList);
+	void saveFilters(SimpleXML& aXml, const vector<RSSFilter>& aList);
+
 private:
 
 	void savedatabase(const RSSPtr& aFeed);
@@ -197,7 +210,7 @@ private:
 
 	RSSPtr getUpdateItem() const noexcept;
 	
-	void matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) const;
+	void matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData);
 
 	unordered_set<RSSPtr> rssList;
 
