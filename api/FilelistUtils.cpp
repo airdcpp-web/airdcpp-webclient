@@ -31,7 +31,7 @@ namespace webserver {
 		{ PROP_PATH, "path", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 		{ PROP_TTH, "tth", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 		{ PROP_DUPE, "dupe", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
-		//{ PROP_COMPLETE, "complete", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
+		{ PROP_COMPLETE, "complete", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
 	};
 
 	const PropertyItemHandler<FilelistItemInfoPtr> FilelistUtils::propertyHandler(properties,
@@ -49,7 +49,7 @@ namespace webserver {
 					return Serializer::serializeFileType(aItem->getPath());
 				}
 
-				return Serializer::serializeFolderType(static_cast<int>(aItem->dir->getFileCount()), static_cast<int>(aItem->dir->getFolderCount()));
+				return Serializer::serializeFolderType(aItem->dir->getContentInfo());
 			}
 			case PROP_DUPE:
 			{
@@ -78,17 +78,8 @@ namespace webserver {
 				return a->getType() == FilelistItemInfo::FILE ? 1 : -1;
 			}
 
-			if (!a->isDirectory() && !b->isDirectory()) {
-				auto dirsA = a->dir->getFolderCount();
-				auto dirsB = b->dir->getFolderCount();
-				if (dirsA != dirsB) {
-					return compare(dirsA, dirsB);
-				}
-
-				auto filesA = a->dir->getFileCount();
-				auto filesB = b->dir->getFileCount();
-
-				return compare(filesA, filesB);
+			if (a->isDirectory() && b->isDirectory()) {
+				return Util::directoryContentSort(a->dir->getContentInfo(), b->dir->getContentInfo());
 			}
 
 			return Util::DefaultSort(Util::getFileExt(a->getName()), Util::getFileExt(b->getName()));
@@ -103,10 +94,10 @@ namespace webserver {
 		case PROP_PATH: return Util::toAdcFile(aItem->getPath());
 		case PROP_TYPE: {
 			if (aItem->isDirectory()) {
-				return Format::formatFolderContent(aItem->dir->getFileCount(), aItem->dir->getFolderCount());
-			} else {
-				return Format::formatFileType(aItem->getPath());
+				return Util::formatDirectoryContent(aItem->dir->getContentInfo());
 			}
+
+			return Util::formatFileType(aItem->getPath());
 		}
 		case PROP_TTH: return aItem->getType() == FilelistItemInfo::FILE ? aItem->file->getTTH().toBase32() : Util::emptyString;
 		default: dcassert(0); return Util::emptyString;
@@ -118,6 +109,7 @@ namespace webserver {
 		case PROP_SIZE: return (double)aItem->getSize();
 		case PROP_DATE: return (double)aItem->getDate();
 		case PROP_DUPE: return (double)aItem->getDupe();
+		case PROP_COMPLETE: return (double)aItem->isComplete();
 		default: dcassert(0); return 0;
 		}
 	}

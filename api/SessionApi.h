@@ -48,13 +48,10 @@ namespace webserver {
 		api_return handleActivity(ApiRequest& aRequest);
 
 		api_return handleGetSessions(ApiRequest& aRequest);
+		api_return handleGetCurrentSession(ApiRequest& aRequest);
 
-		static json getSystemInfo(const string& aIp) noexcept;
 		static json serializeSession(const SessionPtr& aSession) noexcept;
-
-		static string getHostname() noexcept;
-		static string getNetworkType(const string& aIp) noexcept;
-		static string getPlatform() noexcept;
+		static string getSessionType(const SessionPtr& aSession) noexcept;
 
 		void on(WebUserManagerListener::SessionCreated, const SessionPtr& aSession) noexcept override;
 		void on(WebUserManagerListener::SessionRemoved, const SessionPtr& aSession, bool aTimedOut) noexcept override;

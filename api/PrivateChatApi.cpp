@@ -30,11 +30,13 @@ namespace webserver {
 		"private_chat_removed"
 	};
 
-	PrivateChatApi::PrivateChatApi(Session* aSession) : ParentApiModule("session", CID_PARAM, Access::PRIVATE_CHAT_VIEW, aSession, subscriptionList, PrivateChatInfo::subscriptionList, [](const string& aId) { return Deserializer::parseCID(aId); }) {
+	PrivateChatApi::PrivateChatApi(Session* aSession) : 
+		ParentApiModule("session", CID_PARAM, Access::PRIVATE_CHAT_VIEW, aSession, subscriptionList, PrivateChatInfo::subscriptionList, 
+			[](const string& aId) { return Deserializer::parseCID(aId); },
+			[](const PrivateChatInfo& aInfo) { return serializeChat(aInfo.getChat()); }
+		) {
 
 		MessageManager::getInstance()->addListener(this);
-
-		METHOD_HANDLER("sessions", Access::PRIVATE_CHAT_VIEW, ApiRequest::METHOD_GET, (), false, PrivateChatApi::handleGetThreads);
 
 		METHOD_HANDLER("session", Access::PRIVATE_CHAT_EDIT, ApiRequest::METHOD_DELETE, (CID_PARAM), false, PrivateChatApi::handleDeleteChat);
 		METHOD_HANDLER("session", Access::PRIVATE_CHAT_EDIT, ApiRequest::METHOD_POST, (), true, PrivateChatApi::handlePostChat);
@@ -53,38 +55,21 @@ namespace webserver {
 
 	api_return PrivateChatApi::handlePostChat(ApiRequest& aRequest) {
 		auto user = Deserializer::deserializeHintedUser(aRequest.getRequestBody());
-		auto c = MessageManager::getInstance()->addChat(user, false);
-		if (!c) {
+		auto chat = MessageManager::getInstance()->addChat(user, false);
+		if (!chat) {
 			aRequest.setResponseErrorStr("Chat session exists");
-			return websocketpp::http::status_code::bad_request;
+			return websocketpp::http::status_code::conflict;
 		}
 
-		aRequest.setResponseBody({
-			{ "id", c->getUser()->getCID().toBase32() }
-		});
-
+		aRequest.setResponseBody(serializeChat(chat));
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return PrivateChatApi::handleDeleteChat(ApiRequest& aRequest) {
-		auto chat = getSubModule(aRequest.getStringParam(0));
-		if (!chat) {
-			aRequest.setResponseErrorStr("Chat session not found");
-			return websocketpp::http::status_code::not_found;
-		}
+		auto chat = getSubModule(aRequest);
 
 		MessageManager::getInstance()->removeChat(chat->getChat()->getUser());
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return PrivateChatApi::handleGetThreads(ApiRequest& aRequest) {
-		auto retJson = json::array();
-		forEachSubModule([&](const PrivateChatInfo& aInfo) {
-			retJson.push_back(serializeChat(aInfo.getChat()));
-		});
-
-		aRequest.setResponseBody(retJson);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return PrivateChatApi::handlePostMessage(ApiRequest& aRequest) {
@@ -100,7 +85,7 @@ namespace webserver {
 			return websocketpp::http::status_code::internal_server_error;
 		}
 
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	void PrivateChatApi::on(MessageManagerListener::ChatRemoved, const PrivateChatPtr& aChat) noexcept {
@@ -110,9 +95,7 @@ namespace webserver {
 			return;
 		}
 
-		send("private_chat_removed", {
-			{ "id", aChat->getUser()->getCID().toBase32() }
-		});
+		send("private_chat_removed", serializeChat(aChat));
 	}
 
 	void PrivateChatApi::addChat(const PrivateChatPtr& aChat) noexcept {
@@ -133,9 +116,10 @@ namespace webserver {
 			{ "id", aChat->getUser()->getCID().toBase32() },
 			{ "user", Serializer::serializeHintedUser(aChat->getHintedUser()) },
 			{ "ccpm_state", PrivateChatInfo::serializeCCPMState(aChat) },
+			{ "message_counts", Serializer::serializeCacheInfo(aChat->getCache(), Serializer::serializeUnreadChat) },
 		};
 
-		Serializer::serializeCacheInfo(j, aChat->getCache(), Serializer::serializeUnreadChat);
+		Serializer::serializeCacheInfoLegacy(j, aChat->getCache(), Serializer::serializeUnreadChat);
 		return j;
 	}
 }

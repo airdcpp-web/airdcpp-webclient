@@ -42,6 +42,8 @@ namespace webserver {
 		});
 
 		METHOD_HANDLER("roots", Access::SETTINGS_VIEW, ApiRequest::METHOD_GET, (), false, ShareRootApi::handleGetRoots);
+
+		METHOD_HANDLER("root", Access::SETTINGS_VIEW, ApiRequest::METHOD_POST, (EXACT_PARAM("get")), true, ShareRootApi::handleGetRoot);
 		METHOD_HANDLER("root", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("add")), true, ShareRootApi::handleAddRoot);
 		METHOD_HANDLER("root", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("update")), true, ShareRootApi::handleUpdateRoot);
 		METHOD_HANDLER("root", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("remove")), true, ShareRootApi::handleRemoveRoot);
@@ -64,6 +66,17 @@ namespace webserver {
 	ShareDirectoryInfoList ShareRootApi::getRoots() const noexcept {
 		RLock l(cs);
 		return roots;
+	}
+
+	api_return ShareRootApi::handleGetRoot(ApiRequest& aRequest) {
+		auto info = ShareManager::getInstance()->getRootInfo(JsonUtil::getField<string>("path", aRequest.getRequestBody(), false));
+		if (!info) {
+			aRequest.setResponseErrorStr("Path not found");
+			return websocketpp::http::status_code::not_found;
+		}
+
+		aRequest.setResponseBody(Serializer::serializeItem(info, ShareUtils::propertyHandler));
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return ShareRootApi::handleGetRoots(ApiRequest& aRequest) {
@@ -93,6 +106,8 @@ namespace webserver {
 		parseRoot(info, reqJson, true);
 
 		ShareManager::getInstance()->addRootDirectory(info);
+
+		aRequest.setResponseBody(Serializer::serializeItem(info, ShareUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -110,6 +125,7 @@ namespace webserver {
 		parseRoot(info, reqJson, false);
 
 		ShareManager::getInstance()->updateRootDirectory(info);
+		aRequest.setResponseBody(Serializer::serializeItem(info, ShareUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -122,8 +138,7 @@ namespace webserver {
 			return websocketpp::http::status_code::not_found;
 		}
 
-
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	void ShareRootApi::on(ShareManagerListener::RootCreated, const string& aPath) noexcept {
@@ -199,17 +214,24 @@ namespace webserver {
 	}
 
 	void ShareRootApi::parseRoot(ShareDirectoryInfoPtr& aInfo, const json& j, bool aIsNew) {
-		auto virtualName = JsonUtil::getOptionalField<string>("virtual_name", j, false, aIsNew);
+		auto virtualName = JsonUtil::getOptionalField<string>("virtual_name", j, false);
 		if (virtualName) {
 			aInfo->virtualName = *virtualName;
 		}
 
-		auto profiles = JsonUtil::getOptionalField<ProfileTokenSet>("profiles", j, false, aIsNew);
+		auto profiles = JsonUtil::getOptionalField<ProfileTokenSet>("profiles", j, false);
 		if (profiles) {
 			// Only validate added profiles
 			ProfileTokenSet diff;
 
 			auto newProfiles = *profiles;
+			for (const auto& p : newProfiles) {
+				if (!ShareManager::getInstance()->getShareProfile(p)) {
+					JsonUtil::throwError("profiles", JsonUtil::ERROR_INVALID, "Share profile " +  Util::toString(p)  + " was not found");
+				}
+			}
+
+
 			std::set_difference(newProfiles.begin(), newProfiles.end(),
 				aInfo->profiles.begin(), aInfo->profiles.end(), std::inserter(diff, diff.begin()));
 
@@ -222,7 +244,7 @@ namespace webserver {
 			aInfo->profiles = newProfiles;
 		}
 
-		auto incoming = JsonUtil::getOptionalField<bool>("incoming", j, false, false);
+		auto incoming = JsonUtil::getOptionalField<bool>("incoming", j, false);
 		if (incoming) {
 			aInfo->incoming = *incoming;
 		}

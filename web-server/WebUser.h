@@ -72,6 +72,8 @@ namespace webserver {
 		static Access toAccess(const string& aStr) noexcept;
 
 		int countPermissions() const noexcept;
+
+		static bool validateUsername(const string& aUsername) noexcept;
 	private:
 		void clearPermissions() noexcept;
 		int activeSessions = 0;

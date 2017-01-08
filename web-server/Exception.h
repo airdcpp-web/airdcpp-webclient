@@ -20,6 +20,8 @@
 #define DCPLUSPLUS_WEBSERVER_EXCEPTION_H
 
 #include <json/json.hpp>
+#include <websocketpp/http/constants.hpp>
+#include <string>
 
 #include <airdcpp/debug.h>
 
@@ -38,6 +40,15 @@ namespace webserver {
 		json error;
 	};
 
+	class RequestException : public std::runtime_error
+	{
+	public:
+		RequestException(websocketpp::http::status_code::value aCode, const std::string& aMessage) : code(aCode), std::runtime_error(aMessage.c_str()) { }
+
+		websocketpp::http::status_code::value getCode() const noexcept { return code; }
+	protected:
+		const websocketpp::http::status_code::value code;
+	};
 }
 
 #endif // !defined(EXCEPTION_H)

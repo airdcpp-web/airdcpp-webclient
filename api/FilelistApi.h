@@ -48,8 +48,6 @@ namespace webserver {
 		api_return handleDeleteList(ApiRequest& aRequest);
 		api_return handleOwnList(ApiRequest& aRequest);
 
-		api_return handleGetLists(ApiRequest& aRequest);
-
 		api_return handlePostDirectoryDownload(ApiRequest& aRequest);
 		api_return handleDeleteDirectoryDownload(ApiRequest& aRequest);
 		api_return handleGetDirectoryDownloads(ApiRequest& aRequest);
@@ -66,7 +64,7 @@ namespace webserver {
 		void on(DirectoryListingManagerListener::DirectoryDownloadFailed, const DirectoryDownloadPtr& aDirectoryInfo, const string& aError) noexcept override;
 
 		static json serializeList(const DirectoryListingPtr& aList) noexcept;
-		static json serializeDirectoryDownload(const DirectoryDownloadPtr& aDownload) noexcept;
+		static json serializeShareProfile(const DirectoryListingPtr& aList) noexcept;
 	};
 }
 

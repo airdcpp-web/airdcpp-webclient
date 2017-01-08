@@ -36,6 +36,8 @@ namespace webserver {
 	{
 		METHOD_HANDLER("directory", Access::FILELISTS_VIEW, ApiRequest::METHOD_POST, (), true, FilelistInfo::handleChangeDirectory);
 		METHOD_HANDLER("read", Access::VIEW_FILES_VIEW, ApiRequest::METHOD_POST, (), false, FilelistInfo::handleSetRead);
+
+		METHOD_HANDLER("items", Access::FILELISTS_VIEW, ApiRequest::METHOD_GET, (NUM_PARAM, NUM_PARAM), false, FilelistInfo::handleGetItems);
 	}
 
 	void FilelistInfo::init() noexcept {
@@ -56,6 +58,27 @@ namespace webserver {
 		dl->addAsyncTask(getAsyncWrapper(move(aTask)));
 	}
 
+	api_return FilelistInfo::handleGetItems(ApiRequest& aRequest) {
+		int start = aRequest.getRangeParam(0);
+		int count = aRequest.getRangeParam(1);
+
+		{
+			RLock l(cs);
+			auto curDir = dl->getCurrentLocationInfo().directory;
+			if (!curDir->isComplete() || !currentViewItemsInitialized) {
+				aRequest.setResponseErrorStr("Content of this directory is not yet available");
+				return websocketpp::http::status_code::service_unavailable;
+			}
+
+			aRequest.setResponseBody({
+				{ "list_path", curDir->getPath() },
+				{ "items", Serializer::serializeItemList(start, count, FilelistUtils::propertyHandler, currentViewItems) },
+			});
+		}
+
+		return websocketpp::http::status_code::ok;
+	}
+
 	api_return FilelistInfo::handleChangeDirectory(ApiRequest& aRequest) {
 		const auto& j = aRequest.getRequestBody();
 
@@ -63,7 +86,7 @@ namespace webserver {
 		auto reload = JsonUtil::getOptionalFieldDefault<bool>("reload", j, false);
 
 		dl->addDirectoryChangeTask(Util::toNmdcFile(listPath), reload);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return FilelistInfo::handleSetRead(ApiRequest& aRequest) {
@@ -105,12 +128,17 @@ namespace webserver {
 		auto ret = Serializer::serializeItem(std::make_shared<FilelistItemInfo>(location.directory), FilelistUtils::propertyHandler);
 
 		ret["size"] = location.totalSize;
-		ret["complete"] = location.directory->isComplete();
 		return ret;
 	}
 
 	// This should be called only from the filelist thread
 	void FilelistInfo::updateItems(const string& aPath) noexcept {
+		{
+			WLock l(cs);
+			currentViewItemsInitialized = false;
+			currentViewItems.clear();
+		}
+
 		auto curDir = dl->findDirectory(aPath);
 		if (!curDir) {
 			return;
@@ -127,6 +155,8 @@ namespace webserver {
 			for (auto& f : curDir->files) {
 				currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(f));
 			}
+
+			currentViewItemsInitialized = true;
 		}
 
 		directoryView.resetItems();

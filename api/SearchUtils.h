@@ -19,19 +19,19 @@
 #ifndef DCPLUSPLUS_DCPP_SEARCHUTILS_H
 #define DCPLUSPLUS_DCPP_SEARCHUTILS_H
 
-#include <api/SearchResultInfo.h>
 #include <api/common/Property.h>
 
 #include <web-server/stdinc.h>
 
 #include <airdcpp/typedefs.h>
+#include <airdcpp/GroupedSearchResult.h>
 
 
 namespace webserver {
 	class SearchUtils {
 	public:
 		static const PropertyList properties;
-		static const PropertyItemHandler<SearchResultInfoPtr> propertyHandler;
+		static const PropertyItemHandler<GroupedSearchResultPtr> propertyHandler;
 
 		enum Properties {
 			PROP_TOKEN = -1,
@@ -50,11 +50,11 @@ namespace webserver {
 			PROP_LAST
 		};
 
-		static json serializeResult(const SearchResultInfoPtr& aResult, int aPropertyName) noexcept;
+		static json serializeResult(const GroupedSearchResultPtr& aResult, int aPropertyName) noexcept;
 
-		static int compareResults(const SearchResultInfoPtr& a, const SearchResultInfoPtr& b, int aPropertyName) noexcept;
-		static std::string getStringInfo(const SearchResultInfoPtr& a, int aPropertyName) noexcept;
-		static double getNumericInfo(const SearchResultInfoPtr& a, int aPropertyName) noexcept;
+		static int compareResults(const GroupedSearchResultPtr& a, const GroupedSearchResultPtr& b, int aPropertyName) noexcept;
+		static std::string getStringInfo(const GroupedSearchResultPtr& a, int aPropertyName) noexcept;
+		static double getNumericInfo(const GroupedSearchResultPtr& a, int aPropertyName) noexcept;
 	};
 }
 

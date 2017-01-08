@@ -33,9 +33,16 @@ namespace webserver {
 		um.addListener(this);
 
 		METHOD_HANDLER("users", Access::ADMIN, ApiRequest::METHOD_GET, (), false, WebUserApi::handleGetUsers);
+
+		METHOD_HANDLER("user", Access::ADMIN, ApiRequest::METHOD_POST, (), true, WebUserApi::handleAddUser);
+		METHOD_HANDLER("user", Access::ADMIN, ApiRequest::METHOD_GET, (STR_PARAM), false, WebUserApi::handleGetUser);
+		METHOD_HANDLER("user", Access::ADMIN, ApiRequest::METHOD_PATCH, (STR_PARAM), true, WebUserApi::handleUpdateUser);
+		METHOD_HANDLER("user", Access::ADMIN, ApiRequest::METHOD_DELETE, (STR_PARAM), false, WebUserApi::handleRemoveUser);
+
+		// Deprecated
 		METHOD_HANDLER("user", Access::ADMIN, ApiRequest::METHOD_POST, (EXACT_PARAM("add")), true, WebUserApi::handleAddUser);
-		METHOD_HANDLER("user", Access::ADMIN, ApiRequest::METHOD_POST, (EXACT_PARAM("update")), true, WebUserApi::handleUpdateUser);
-		METHOD_HANDLER("user", Access::ADMIN, ApiRequest::METHOD_POST, (EXACT_PARAM("remove")), true, WebUserApi::handleRemoveUser);
+		METHOD_HANDLER("user", Access::ADMIN, ApiRequest::METHOD_POST, (EXACT_PARAM("update")), true, WebUserApi::handleUpdateUserLegacy);
+		METHOD_HANDLER("user", Access::ADMIN, ApiRequest::METHOD_POST, (EXACT_PARAM("remove")), true, WebUserApi::handleRemoveUserLegacy);
 
 		createSubscription("web_user_added");
 		createSubscription("web_user_updated");
@@ -56,27 +63,55 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
+	api_return WebUserApi::handleGetUser(ApiRequest& aRequest) {
+		auto user = um.getUser(aRequest.getStringParam(0));
+		if (!user) {
+			aRequest.setResponseErrorStr("User not found");
+			return websocketpp::http::status_code::not_found;
+		}
+
+		aRequest.setResponseBody(Serializer::serializeItem(user, WebUserUtils::propertyHandler));
+		return websocketpp::http::status_code::ok;
+	}
+
+	void WebUserApi::parseUser(WebUserPtr& aUser, const json& j, bool aIsNew) {
+		auto password = JsonUtil::getOptionalField<string>("password", j, false, aIsNew);
+		if (password) {
+			aUser->setPassword(*password);
+		}
+
+		auto permissions = JsonUtil::getOptionalField<StringList>("permissions", j, false, false);
+		if (permissions) {
+			// Only validate added profiles profiles
+			aUser->setPermissions(*permissions);
+		}
+	}
+
+
 	api_return WebUserApi::handleAddUser(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto userName = JsonUtil::getField<string>("username", reqJson, false);
+		if (!WebUser::validateUsername(userName)) {
+			JsonUtil::throwError("username", JsonUtil::ERROR_INVALID, "The username should only contain alphanumeric characters");
+		}
 
 		auto user = std::make_shared<WebUser>(userName, Util::emptyString);
 
 		parseUser(user, reqJson, true);
 
 		if (!um.addUser(user)) {
-			JsonUtil::throwError("username", JsonUtil::ERROR_EXISTS, "User with the same name exists");
-			return websocketpp::http::status_code::bad_request;
+			JsonUtil::throwError("username", JsonUtil::ERROR_EXISTS, "User with the same name exists already");
 		}
 
+		aRequest.setResponseBody(Serializer::serializeItem(user, WebUserUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return WebUserApi::handleUpdateUser(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		auto userName = JsonUtil::getField<string>("username", reqJson, false);
+		auto userName = aRequest.getStringParam(0);
 
 		auto user = um.getUser(userName);
 		if (!user) {
@@ -87,20 +122,18 @@ namespace webserver {
 		parseUser(user, reqJson, false);
 
 		um.updateUser(user);
+		aRequest.setResponseBody(Serializer::serializeItem(user, WebUserUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return WebUserApi::handleRemoveUser(ApiRequest& aRequest) {
-		const auto& reqJson = aRequest.getRequestBody();
-
-		auto userName = JsonUtil::getField<string>("username", reqJson, false);
+		auto userName = aRequest.getStringParam(0);
 		if (!um.removeUser(userName)) {
 			aRequest.setResponseErrorStr("User not found");
 			return websocketpp::http::status_code::not_found;
 		}
 
-
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	void WebUserApi::on(WebUserManagerListener::UserAdded, const WebUserPtr& aUser) noexcept {
@@ -127,16 +160,33 @@ namespace webserver {
 		});
 	}
 
-	void WebUserApi::parseUser(WebUserPtr& aUser, const json& j, bool aIsNew) {
-		auto password = JsonUtil::getOptionalField<string>("password", j, false, aIsNew);
-		if (password) {
-			aUser->setPassword(*password);
+	api_return WebUserApi::handleUpdateUserLegacy(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+
+		auto userName = JsonUtil::getField<string>("username", reqJson, false);
+
+		auto user = um.getUser(userName);
+		if (!user) {
+			aRequest.setResponseErrorStr("User not found");
+			return websocketpp::http::status_code::not_found;
 		}
 
-		auto permissions = JsonUtil::getOptionalField<StringList>("permissions", j, false, false);
-		if (permissions) {
-			// Only validate added profiles profiles
-			aUser->setPermissions(*permissions);
+		parseUser(user, reqJson, false);
+
+		um.updateUser(user);
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return WebUserApi::handleRemoveUserLegacy(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+
+		auto userName = JsonUtil::getField<string>("username", reqJson, false);
+		if (!um.removeUser(userName)) {
+			aRequest.setResponseErrorStr("User not found");
+			return websocketpp::http::status_code::not_found;
 		}
+
+
+		return websocketpp::http::status_code::ok;
 	}
 }

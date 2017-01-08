@@ -21,10 +21,10 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/SearchResultInfo.h>
 #include <api/SearchUtils.h>
+#include <api/SearchEntity.h>
 
-#include <api/ApiModule.h>
+#include <api/HierarchicalApiModule.h>
 #include <api/common/ListViewController.h>
 
 #include <airdcpp/typedefs.h>
@@ -33,8 +33,10 @@
 
 
 namespace webserver {
-	class SearchApi : public SubscribableApiModule, private SearchManagerListener {
+	class SearchApi : public ParentApiModule<SearchInstanceToken, SearchEntity>, private SearchManagerListener {
 	public:
+		static StringList subscriptionList;
+
 		SearchApi(Session* aSession);
 		~SearchApi();
 
@@ -42,10 +44,16 @@ namespace webserver {
 			return 0;
 		}
 	private:
+		static json serializeSearchInstance(const SearchEntity& aSearch) noexcept;
+
 		static json serializeSearchResult(const SearchResultPtr& aSR) noexcept;
-		SearchResultInfo::List getResultList();
+		GroupedSearchResultList getResultList();
 
 		static json serializeDirectSearchResults(const SearchResultList& aResults, SearchQuery& aQuery) noexcept;
+		SearchEntity::Ptr createInstance(uint64_t aExpirationTick);
+
+		api_return handleCreateInstance(ApiRequest& aRequest);
+		api_return handleDeleteInstance(ApiRequest& aRequest);
 
 		api_return handlePostHubSearch(ApiRequest& aRequest);
 		api_return handlePostUserSearch(ApiRequest& aRequest);
@@ -57,14 +65,18 @@ namespace webserver {
 		api_return handleDownload(ApiRequest& aRequest);
 		api_return handleGetChildren(ApiRequest& aRequest);
 
-		SearchResultInfo::Ptr getResult(ResultToken aToken);
+		GroupedSearchResultPtr getResult(GroupedResultToken aToken);
+		void onTimer() noexcept;
 
 		void on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept override;
 
-		typedef ListViewController<SearchResultInfoPtr, SearchUtils::PROP_LAST> SearchView;
+		typedef ListViewController<GroupedSearchResultPtr, SearchUtils::PROP_LAST> SearchView;
 		SearchView searchView;
 
-		SearchResultInfo::Map results;
+		SearchInstanceToken instanceIdCounter = 0;
+		TimerPtr timer;
+
+		GroupedSearchResult::Map results;
 		shared_ptr<SearchQuery> curSearch;
 
 		std::string currentSearchToken;

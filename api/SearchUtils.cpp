@@ -38,115 +38,106 @@ namespace webserver {
 		{ PROP_DUPE, "dupe", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
 	};
 
-	const PropertyItemHandler<SearchResultInfoPtr> SearchUtils::propertyHandler = {
+	const PropertyItemHandler<GroupedSearchResultPtr> SearchUtils::propertyHandler = {
 		properties,
 		SearchUtils::getStringInfo, SearchUtils::getNumericInfo, SearchUtils::compareResults, SearchUtils::serializeResult
 	};
 
-	json SearchUtils::serializeResult(const SearchResultInfoPtr& aResult, int aPropertyName) noexcept {
+	json SearchUtils::serializeResult(const GroupedSearchResultPtr& aResult, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 		case PROP_TYPE: {
 			if (!aResult->isDirectory()) {
-				return Serializer::serializeFileType(aResult->sr->getPath());
-			} else {
-				return Serializer::serializeFolderType(aResult->sr->getFileCount(), aResult->sr->getFolderCount());
+				return Serializer::serializeFileType(aResult->getPath());
 			}
+
+			return Serializer::serializeFolderType(aResult->getContentInfo());
 		}
 		case PROP_SLOTS: {
-			int free = 0, total = 0;
-			aResult->getSlots(free, total);
-			return Serializer::serializeSlots(free, total);
+			auto slots = aResult->getSlots();
+			return Serializer::serializeSlots(slots.free, slots.total);
 		}
 		case PROP_USERS: {
-			
 			return {
-				{ "count", aResult->getHits() + 1 },
-				{ "user", Serializer::serializeHintedUser(aResult->sr->getUser()) }
+				{ "count", aResult->getHits() },
+				{ "user", Serializer::serializeHintedUser(aResult->getBaseUser()) }
 			};
 		}
 		case PROP_DUPE:
 		{
 			if (aResult->isDirectory()) {
-				return Serializer::serializeDirectoryDupe(aResult->getDupe(), aResult->sr->getPath());
+				return Serializer::serializeDirectoryDupe(aResult->getDupe(), aResult->getPath());
 			}
 
-			return Serializer::serializeFileDupe(aResult->getDupe(), aResult->sr->getTTH());
+			return Serializer::serializeFileDupe(aResult->getDupe(), aResult->getTTH());
 		}
 		default: dcassert(0); return nullptr;
 		}
 	}
 
-	int SearchUtils::compareResults(const SearchResultInfoPtr& a, const SearchResultInfoPtr& b, int aPropertyName) noexcept {
+	int SearchUtils::compareResults(const GroupedSearchResultPtr& a, const GroupedSearchResultPtr& b, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 		case PROP_NAME: {
-			if (a->sr->getType() == b->sr->getType())
-				return Util::DefaultSort(a->sr->getFileName(), b->sr->getFileName());
-			else
-				return (a->sr->getType() == SearchResult::TYPE_DIRECTORY) ? -1 : 1;
+			if (a->isDirectory() == b->isDirectory()) {
+				return Util::DefaultSort(a->getFileName(), b->getFileName());
+			}
+
+			return a->isDirectory() ? -1 : 1;
 		}
 		case PROP_TYPE: {
-			if (a->sr->getType() != b->sr->getType()) {
+			if (a->isDirectory() != b->isDirectory()) {
 				// Directories go first
-				return a->sr->getType() == SearchResult::TYPE_FILE ? 1 : -1;
+				return a->isDirectory() ? -1 : 1;
 			}
 
-			if (a->sr->getType() != SearchResult::TYPE_FILE && b->sr->getType() != SearchResult::TYPE_FILE) {
-				// Directories
-				auto dirsA = a->sr->getFolderCount();
-				auto dirsB = b->sr->getFolderCount();
-				if (dirsA != dirsB) {
-					return compare(dirsA, dirsB);
-				}
-
-				auto filesA = a->sr->getFileCount();
-				auto filesB = b->sr->getFileCount();
-
-				return compare(filesA, filesB);
+			if (a->isDirectory() && b->isDirectory()) {
+				return Util::directoryContentSort(a->getContentInfo(), b->getContentInfo());
 			}
 
-			return Util::DefaultSort(Util::getFileExt(a->sr->getPath()), Util::getFileExt(b->sr->getPath()));
+			return Util::DefaultSort(Util::getFileExt(a->getPath()), Util::getFileExt(b->getPath()));
 		}
 		case PROP_SLOTS: {
-			if (a->sr->getFreeSlots() == b->sr->getFreeSlots())
-				return compare(a->sr->getTotalSlots(), b->sr->getTotalSlots());
-			else
-				return compare(a->sr->getFreeSlots(), b->sr->getFreeSlots());
+			auto slotsA = a->getSlots();
+			auto slotsB = b->getSlots();
+
+			if (slotsA.free == slotsB.free) {
+				return compare(slotsA.total, slotsB.total);
+			}
+
+			return compare(slotsA.free, slotsB.free);
 		}
 		case PROP_USERS: {
 			if (a->getHits() != b->getHits()) {
 				return compare(a->getHits(), b->getHits());
 			}
 
-			return Util::DefaultSort(Format::formatNicks(a->sr->getUser()), Format::formatNicks(b->sr->getUser()));
+			return Util::DefaultSort(Format::formatNicks(a->getBaseUser()), Format::formatNicks(b->getBaseUser()));
 		}
 		default: dcassert(0); return 0;
 		}
 	}
-	std::string SearchUtils::getStringInfo(const SearchResultInfoPtr& aResult, int aPropertyName) noexcept {
+	std::string SearchUtils::getStringInfo(const GroupedSearchResultPtr& aResult, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case PROP_NAME: return aResult->sr->getFileName();
-		case PROP_PATH: return Util::toAdcFile(aResult->sr->getPath());
-		case PROP_USERS: return Format::formatNicks(aResult->sr->getUser());
+		case PROP_NAME: return aResult->getFileName();
+		case PROP_PATH: return Util::toAdcFile(aResult->getPath());
+		case PROP_USERS: return Format::formatNicks(aResult->getBaseUser());
 		case PROP_TYPE: {
-			if (aResult->sr->getType() == SearchResult::TYPE_DIRECTORY) {
-				return Format::formatFolderContent(aResult->sr->getFileCount(), aResult->sr->getFolderCount());
+			if (aResult->isDirectory()) {
+				return Util::formatDirectoryContent(aResult->getContentInfo());
 			}
-			else {
-				return Format::formatFileType(aResult->sr->getPath());
-			}
+
+			return Util::formatFileType(aResult->getPath());
 		}
 		case PROP_SLOTS: {
-			int freeSlots = 0, totalSlots = 0;
-			aResult->getSlots(freeSlots, totalSlots);
-			return SearchResult::formatSlots(freeSlots, totalSlots);
+			auto slots = aResult->getSlots();
+			return SearchResult::formatSlots(slots.free, slots.total);
 		}
-		case PROP_TTH: return aResult->sr->getTTH().toBase32();
+		case PROP_TTH: return aResult->isDirectory() ? Util::emptyString : aResult->getTTH().toBase32();
 		default: dcassert(0); return Util::emptyString;
 		}
 	}
-	double SearchUtils::getNumericInfo(const SearchResultInfoPtr& aResult, int aPropertyName) noexcept {
+	double SearchUtils::getNumericInfo(const GroupedSearchResultPtr& aResult, int aPropertyName) noexcept {
 		switch (aPropertyName) {
-		case PROP_SIZE: return (double)aResult->sr->getSize();
+		case PROP_SIZE: return (double)aResult->getSize();
 		case PROP_HITS: return (double)aResult->getHits();
 		case PROP_CONNECTION: return aResult->getConnectionSpeed();
 		case PROP_RELEVANCE : return aResult->getTotalRelevance();

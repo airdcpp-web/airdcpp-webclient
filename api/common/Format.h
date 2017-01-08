@@ -26,9 +26,6 @@
 namespace webserver {
 	class Format {
 	public:
-		static std::string formatFolderContent(int fileCount, int folderCount) noexcept;
-		static std::string formatFileType(const std::string& aPath) noexcept;
-
 		static std::string formatIp(const string& aIP, const string& aCountryCode) noexcept;
 		static std::string formatIp(const string& aIP) noexcept;
 

@@ -28,10 +28,14 @@ namespace webserver {
 		ShareManager::getInstance()->addListener(this);
 
 		METHOD_HANDLER("profiles", Access::ANY, ApiRequest::METHOD_GET, (), false, ShareProfileApi::handleGetProfiles);
+
+		METHOD_HANDLER("profile", Access::ANY, ApiRequest::METHOD_GET, (TOKEN_PARAM), false, ShareProfileApi::handleGetProfile);
+		METHOD_HANDLER("profile", Access::ANY, ApiRequest::METHOD_GET, (), false, ShareProfileApi::handleGetDefaultProfile);
+
 		METHOD_HANDLER("profile", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (), true, ShareProfileApi::handleAddProfile);
 		METHOD_HANDLER("profile", Access::SETTINGS_EDIT, ApiRequest::METHOD_PATCH, (TOKEN_PARAM), true, ShareProfileApi::handleUpdateProfile);
 		METHOD_HANDLER("profile", Access::SETTINGS_EDIT, ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, ShareProfileApi::handleRemoveProfile);
-		METHOD_HANDLER("profile", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("default")), false, ShareProfileApi::handleDefaultProfile);
+		METHOD_HANDLER("profile", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("default")), false, ShareProfileApi::handleSetDefaultProfile);
 
 		createSubscription("share_profile_added");
 		createSubscription("share_profile_updated");
@@ -49,15 +53,37 @@ namespace webserver {
 
 		return{
 			{ "id", aProfile->getToken() },
-			{ "name", aProfile->getDisplayName() },
-			{ "plain_name", aProfile->getPlainName() },
+			{ "name", aProfile->getPlainName() },
+			{ "str", aProfile->getDisplayName() },
+			{ "plain_name", aProfile->getPlainName() }, // deprecated
 			{ "default", aProfile->isDefault() },
 			{ "size", totalSize },
 			{ "files", totalFiles },
 		};
 	}
 
-	api_return ShareProfileApi::handleDefaultProfile(ApiRequest& aRequest) {
+	api_return ShareProfileApi::handleGetProfile(ApiRequest& aRequest) {
+		auto profile = ShareManager::getInstance()->getShareProfile(aRequest.getTokenParam(0));
+		if (!profile) {
+			aRequest.setResponseErrorStr("Profile not found");
+			return websocketpp::http::status_code::not_found;
+		}
+
+		aRequest.setResponseBody(serializeShareProfile(profile));
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return ShareProfileApi::handleGetDefaultProfile(ApiRequest& aRequest) {
+		auto profile = ShareManager::getInstance()->getShareProfile(SETTING(DEFAULT_SP));
+		if (!profile) {
+			return websocketpp::http::status_code::internal_server_error;
+		}
+
+		aRequest.setResponseBody(serializeShareProfile(profile));
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return ShareProfileApi::handleSetDefaultProfile(ApiRequest& aRequest) {
 		auto token = aRequest.getTokenParam(0);
 		auto profile = ShareManager::getInstance()->getShareProfile(token);
 		if (!profile) {
@@ -66,7 +92,7 @@ namespace webserver {
 		}
 
 		ShareManager::getInstance()->setDefaultProfile(token);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	void ShareProfileApi::on(ShareManagerListener::ProfileAdded, ProfileToken aProfile) noexcept {
@@ -110,6 +136,8 @@ namespace webserver {
 		parseProfile(profile, reqJson);
 
 		ShareManager::getInstance()->addProfile(profile);
+
+		aRequest.setResponseBody(serializeShareProfile(profile));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -130,6 +158,8 @@ namespace webserver {
 
 		parseProfile(profile, reqJson);
 		ShareManager::getInstance()->updateProfile(profile);
+
+		aRequest.setResponseBody(serializeShareProfile(profile));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -151,8 +181,7 @@ namespace webserver {
 		}
 
 		ShareManager::getInstance()->removeProfile(token);
-
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return ShareProfileApi::handleGetProfiles(ApiRequest& aRequest) {

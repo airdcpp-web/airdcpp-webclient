@@ -46,17 +46,17 @@ namespace webserver {
 	api_return EventApi::handlePostMessage(ApiRequest& aRequest) {
 		auto message = Deserializer::deserializeStatusMessage(aRequest.getRequestBody());
 		LogManager::getInstance()->message(message.first, message.second);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return EventApi::handleRead(ApiRequest& aRequest) {
 		LogManager::getInstance()->setRead();
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return EventApi::handleClear(ApiRequest& aRequest) {
 		LogManager::getInstance()->clearCache();
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return EventApi::handleGetLog(ApiRequest& aRequest) {
@@ -70,8 +70,8 @@ namespace webserver {
 	}
 
 	api_return EventApi::handleGetInfo(ApiRequest& aRequest) {
-		json j;
-		Serializer::serializeCacheInfo(j, LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog);
+		json j = Serializer::serializeCacheInfo(LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog);
+		Serializer::serializeCacheInfoLegacy(j, LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog);
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
 	}
@@ -89,8 +89,8 @@ namespace webserver {
 			return;
 		}
 
-		json j;
-		Serializer::serializeCacheInfo(j, LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog);
+		json j = Serializer::serializeCacheInfo(LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog);
+		Serializer::serializeCacheInfoLegacy(j, LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog);
 		send("event_counts", j);
 	}
 

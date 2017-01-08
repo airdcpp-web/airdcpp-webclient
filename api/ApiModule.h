@@ -35,7 +35,7 @@ namespace webserver {
 #define TOKEN_PARAM NUM_PARAM
 #define TTH_PARAM (regex(R"([0-9A-Z]{39})"))
 #define CID_PARAM TTH_PARAM
-#define STR_PARAM (regex(R"([a-z_]+)"))
+#define STR_PARAM (regex(R"(\w+)"))
 #define EXACT_PARAM(pattern) (regex("^" + string(pattern) + "$"))
 
 #define BRACED_INIT_LIST(...) {__VA_ARGS__}

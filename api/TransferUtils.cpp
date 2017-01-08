@@ -51,7 +51,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case PROP_NAME: return aItem->getName();
 		case PROP_TARGET: return aItem->getTarget();
-		case PROP_TYPE: return Format::formatFileType(aItem->getTarget());
+		case PROP_TYPE: return Util::formatFileType(aItem->getTarget());
 		case PROP_STATUS: return aItem->getStatusString();
 		case PROP_IP: return aItem->getIp();
 		case PROP_USER: return Format::formatNicks(aItem->getHintedUser());

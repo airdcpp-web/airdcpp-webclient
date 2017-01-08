@@ -30,18 +30,17 @@ namespace webserver {
 	template<class T>
 	class ChatController {
 	public:
-		ChatController(SubscribableApiModule* aModule, const T& aChat, const string& aSubscriptionId) :
+		ChatController(SubscribableApiModule* aModule, const T& aChat, const string& aSubscriptionId, Access aViewPermission, Access aEditPermission, Access aSendPermission) :
 			module(aModule), subscriptionId(aSubscriptionId), chat(aChat)
 		{
 			auto& requestHandlers = aModule->getRequestHandlers();
 
-			auto access = aModule->getSubscriptionAccess();
-			METHOD_HANDLER("messages", Access::HUBS_VIEW, ApiRequest::METHOD_GET, (NUM_PARAM), false, ChatController::handleGetMessages);
-			METHOD_HANDLER("message", Access::HUBS_SEND, ApiRequest::METHOD_POST, (), true, ChatController::handlePostChatMessage);
-			METHOD_HANDLER("status", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), true, ChatController::handleStatusMessage);
+			METHOD_HANDLER("messages", aViewPermission, ApiRequest::METHOD_GET, (NUM_PARAM), false, ChatController::handleGetMessages);
+			METHOD_HANDLER("message", aSendPermission, ApiRequest::METHOD_POST, (), true, ChatController::handlePostChatMessage);
+			METHOD_HANDLER("status", aEditPermission, ApiRequest::METHOD_POST, (), true, ChatController::handlePostStatusMessage);
 
-			METHOD_HANDLER("read", Access::HUBS_VIEW, ApiRequest::METHOD_POST, (), false, ChatController::handleSetRead);
-			METHOD_HANDLER("clear", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, ChatController::handleClear);
+			METHOD_HANDLER("read", aViewPermission, ApiRequest::METHOD_POST, (), false, ChatController::handleSetRead);
+			METHOD_HANDLER("clear", aEditPermission, ApiRequest::METHOD_POST, (), false, ChatController::handleClear);
 		}
 
 		void onChatMessage(const ChatMessagePtr& aMessage) noexcept {
@@ -76,8 +75,11 @@ namespace webserver {
 				return;
 			}
 
-			json j;
-			Serializer::serializeCacheInfo(j, chat->getCache(), Serializer::serializeUnreadChat);
+			json j = {
+				{ "message_counts",  Serializer::serializeCacheInfo(chat->getCache(), Serializer::serializeUnreadChat) },
+			};
+
+			Serializer::serializeCacheInfoLegacy(j, chat->getCache(), Serializer::serializeUnreadChat);
 
 			module->send(s, j);
 		}
@@ -92,25 +94,25 @@ namespace webserver {
 				return websocketpp::http::status_code::internal_server_error;
 			}
 
-			return websocketpp::http::status_code::ok;
+			return websocketpp::http::status_code::no_content;
 		}
 
-		api_return handleStatusMessage(ApiRequest& aRequest) {
+		api_return handlePostStatusMessage(ApiRequest& aRequest) {
 			const auto& reqJson = aRequest.getRequestBody();
 
 			auto message = Deserializer::deserializeStatusMessage(reqJson);
 			chat->statusMessage(message.first, message.second);
-			return websocketpp::http::status_code::ok;
+			return websocketpp::http::status_code::no_content;
 		}
 
 		api_return handleClear(ApiRequest& aRequest) {
 			chat->clearCache();
-			return websocketpp::http::status_code::ok;
+			return websocketpp::http::status_code::no_content;
 		}
 
 		api_return handleSetRead(ApiRequest& aRequest) {
 			chat->setRead();
-			return websocketpp::http::status_code::ok;
+			return websocketpp::http::status_code::no_content;
 		}
 
 		api_return handleGetMessages(ApiRequest& aRequest) {

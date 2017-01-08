@@ -29,6 +29,7 @@
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/Message.h>
 #include <airdcpp/DirectoryListing.h>
+#include <airdcpp/DirectoryListingManager.h>
 #include <airdcpp/GeoManager.h>
 #include <airdcpp/OnlineUser.h>
 #include <airdcpp/QueueItem.h>
@@ -67,6 +68,10 @@ namespace webserver {
 			ret.insert("offline");
 		}
 
+		if (aUser->isSet(User::CCPM)) {
+			ret.insert("ccpm");
+		}
+
 		return ret;
 	}
 
@@ -85,16 +90,8 @@ namespace webserver {
 			flags_.insert("op");
 		}
 
-		if (aUser->getIdentity().isBot() || aUser->getIdentity().isHub()) {
-			flags_.insert("bot");
-		}
-
 		if (aUser->isHidden()) {
 			flags_.insert("hidden");
-		}
-
-		if (aUser->supportsCCPM()) {
-			flags_.insert("ccpm");
 		}
 
 		auto cm = aUser->getIdentity().getConnectMode();
@@ -106,7 +103,7 @@ namespace webserver {
 	}
 
 	json Serializer::serializeUser(const UserPtr& aUser) noexcept {
-		return{
+		return {
 			{ "cid", aUser->getCID().toBase32() },
 			{ "nicks", Util::listToString(ClientManager::getInstance()->getNicks(aUser->getCID())) },
 			{ "hubs", Util::listToString(ClientManager::getInstance()->getHubNames(aUser->getCID())) },
@@ -208,7 +205,14 @@ namespace webserver {
 		};
 	}
 
-	void Serializer::serializeCacheInfo(json& json_, const MessageCache& aCache, UnreadSerializerF unreadF) noexcept {
+	json Serializer::serializeCacheInfo(const MessageCache& aCache, const UnreadSerializerF& unreadF) noexcept {
+		return{
+			{ "total", aCache.size() },
+			{ "unread", unreadF(aCache) },
+		};
+	}
+
+	void Serializer::serializeCacheInfoLegacy(json& json_, const MessageCache& aCache, UnreadSerializerF unreadF) noexcept {
 		json_["unread_messages"] = unreadF(aCache);
 		json_["total_messages"] = aCache.size();
 	}
@@ -241,7 +245,7 @@ namespace webserver {
 		return serializeItemProperties(aUser, toPropertyIdSet(OnlineUserUtils::propertyHandler.properties), OnlineUserUtils::propertyHandler);
 	}
 
-	std::string typeNameToString(const string& aName) {
+	std::string Serializer::getFileTypeId(const string& aName) noexcept {
 		switch (aName[0]) {
 			case '1': return "audio";
 			case '2': return "compressed";
@@ -249,30 +253,30 @@ namespace webserver {
 			case '4': return "executable";
 			case '5': return "picture";
 			case '6': return "video";
-			default: return "other";
+			default: return aName.empty() ? "other" : aName;
 		}
 	}
 
 	json Serializer::serializeFileType(const string& aPath) noexcept {
-		auto ext = Format::formatFileType(aPath);
-		auto typeName = SearchManager::getInstance()->getNameByExtension(ext, true);
+		auto ext = Util::formatFileType(aPath);
+		auto typeName = getFileTypeId(SearchManager::getInstance()->getNameByExtension(ext, true));
 
 		return{
 			{ "id", "file" },
-			{ "content_type", typeNameToString(typeName) },
+			{ "content_type", typeName },
 			{ "str", ext }
 		};
 	}
 
-	json Serializer::serializeFolderType(int aFiles, int aDirectories) noexcept {
+	json Serializer::serializeFolderType(const DirectoryContentInfo& aContentInfo) noexcept {
 		json retJson = {
 			{ "id", "directory" },
-			{ "str", Format::formatFolderContent(aFiles, aDirectories) }
+			{ "str", Util::formatDirectoryContent(aContentInfo) }
 		};
 
-		if (aFiles >= 0 && aDirectories >= 0) {
-			retJson["files"] = aFiles;
-			retJson["directories"] = aDirectories;
+		if (Util::hasContentInfo(aContentInfo)) {
+			retJson["files"] = aContentInfo.files;
+			retJson["directories"] = aContentInfo.directories;
 		}
 
 		return retJson;
@@ -283,9 +287,10 @@ namespace webserver {
 	}
 
 	json Serializer::serializeIp(const string& aIP, const string& aCountryCode) noexcept {
-		return{
+		return {
 			{ "str", Format::formatIp(aIP, aCountryCode) },
-			{ "country_id", aCountryCode },
+			{ "country_id", aCountryCode }, // deprecated
+			{ "country", aCountryCode },
 			{ "ip", aIP }
 		};
 	}
@@ -347,18 +352,37 @@ namespace webserver {
 	}
 
 	json Serializer::serializeSlots(int aFree, int aTotal) noexcept {
-		return{
+		return {
 			{ "str", SearchResult::formatSlots(aFree, aTotal) },
 			{ "free", aFree },
 			{ "total", aTotal }
 		};
 	}
 
+	json Serializer::serializePriorityId(Priority aPriority) noexcept {
+		if (aPriority == Priority::DEFAULT) {
+			return nullptr;
+		}
+
+		return static_cast<int>(aPriority);
+	}
+
 	json Serializer::serializePriority(const QueueItemBase& aItem) noexcept {
-		return{
-			{ "id", static_cast<int>(aItem.getPriority()) },
+		return {
+			{ "id", serializePriorityId(aItem.getPriority()) },
 			{ "str", AirUtil::getPrioText(aItem.getPriority()) },
 			{ "auto", aItem.getAutoPriority() }
+		};
+	}
+
+	json Serializer::serializeDirectoryDownload(const DirectoryDownloadPtr& aDownload) noexcept {
+		return {
+			{ "id", aDownload->getId() },
+			{ "user", Serializer::serializeHintedUser(aDownload->getUser()) },
+			{ "target_name", aDownload->getBundleName() },
+			{ "target_directory", aDownload->getTarget() },
+			{ "priority", Serializer::serializePriorityId(aDownload->getPriority()) },
+			{ "list_path", aDownload->getListPath() },
 		};
 	}
 
@@ -380,7 +404,7 @@ namespace webserver {
 	}
 
 	json Serializer::serializeSourceCount(const QueueItemBase::SourceCount& aCount) noexcept {
-		return{
+		return {
 			{ "online", aCount.online },
 			{ "total", aCount.total },
 			{ "str", aCount.format() },

@@ -27,6 +27,7 @@
 
 #include <airdcpp/File.h>
 #include <airdcpp/QueueManager.h>
+#include <airdcpp/ShareManager.h>
 #include <airdcpp/ViewFileManager.h>
 
 #include <boost/range/algorithm/copy.hpp>
@@ -43,6 +44,7 @@ namespace webserver {
 
 		METHOD_HANDLER("sessions", Access::VIEW_FILES_VIEW, ApiRequest::METHOD_GET, (), false, ViewFileApi::handleGetFiles);
 		METHOD_HANDLER("session", Access::VIEW_FILES_EDIT, ApiRequest::METHOD_POST, (), true, ViewFileApi::handleAddFile);
+		METHOD_HANDLER("session", Access::VIEW_FILES_EDIT, ApiRequest::METHOD_POST, (TTH_PARAM), false, ViewFileApi::handleAddLocalFile);
 		METHOD_HANDLER("session", Access::VIEW_FILES_EDIT, ApiRequest::METHOD_DELETE, (TTH_PARAM), false, ViewFileApi::handleRemoveFile);
 
 		METHOD_HANDLER("session", Access::VIEW_FILES_VIEW, ApiRequest::METHOD_GET, (TTH_PARAM, EXACT_PARAM("text")), false, ViewFileApi::handleGetText);
@@ -90,23 +92,37 @@ namespace webserver {
 		auto user = Deserializer::deserializeHintedUser(j, true);
 		auto isText = JsonUtil::getOptionalFieldDefault<bool>("text", j, false);
 
-		bool added = false;
+		ViewFilePtr file = false;
 		try {
-			added = ViewFileManager::getInstance()->addUserFileThrow(name, size, tth, user, isText);
+			file = ViewFileManager::getInstance()->addUserFileThrow(name, size, tth, user, isText);
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::internal_server_error;
 		}
 
-		if (!added) {
+		if (!file) {
 			aRequest.setResponseErrorStr("File with the same TTH is open already");
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		aRequest.setResponseBody({
-			{ "id", tth.toBase32() }
-		});
+		aRequest.setResponseBody(serializeFile(file));
+		return websocketpp::http::status_code::ok;
+	}
 
+	api_return ViewFileApi::handleAddLocalFile(ApiRequest& aRequest) {
+		auto tth = Deserializer::parseTTH(aRequest.getStringParam(0));
+		if (!ShareManager::getInstance()->isFileShared(tth)) {
+			aRequest.setResponseErrorStr("TTH not shared");
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		auto file = ViewFileManager::getInstance()->addLocalFile(tth, JsonUtil::getOptionalFieldDefault<bool>("text", aRequest.getRequestBody(), false));
+		if (!file) {
+			aRequest.setResponseErrorStr("File with the same TTH is open already");
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		aRequest.setResponseBody(serializeFile(file));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -119,6 +135,11 @@ namespace webserver {
 
 		if (!file->isText()) {
 			aRequest.setResponseErrorStr("This method can't be used for non-text files");
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		if (File::getSize(file->getPath()) > Util::convertSize(1, Util::MB)) {
+			aRequest.setResponseErrorStr("File is too big to be viewed as text");
 			return websocketpp::http::status_code::bad_request;
 		}
 
@@ -156,7 +177,7 @@ namespace webserver {
 			return websocketpp::http::status_code::not_found;
 		}
 
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return ViewFileApi::handleSetRead(ApiRequest& aRequest) {
@@ -174,11 +195,7 @@ namespace webserver {
 	}
 
 	void ViewFileApi::on(ViewFileManagerListener::FileClosed, const ViewFilePtr& aFile) noexcept {
-		maybeSend("view_file_removed", [&] { 
-			return json({
-				{ "id", aFile->getTTH().toBase32() }
-			});
-		});
+		maybeSend("view_file_removed", [&] { return serializeFile(aFile); });
 	}
 
 	void ViewFileApi::on(ViewFileManagerListener::FileStateUpdated, const ViewFilePtr& aFile) noexcept {

@@ -435,7 +435,7 @@ namespace webserver {
 	bool WebServerManager::load(const ErrorF& aErrorF) noexcept {
 		try {
 			SimpleXML xml;
-			SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME, true);
+			SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
 			if (xml.findChild("WebServer")) {
 				xml.stepIn();
 

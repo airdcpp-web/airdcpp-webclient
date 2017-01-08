@@ -36,6 +36,10 @@ namespace webserver {
 		METHOD_HANDLER("hub", Access::FAVORITE_HUBS_EDIT, ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, FavoriteHubApi::handleRemoveHub);
 		METHOD_HANDLER("hub", Access::FAVORITE_HUBS_EDIT, ApiRequest::METHOD_PATCH, (TOKEN_PARAM), true, FavoriteHubApi::handleUpdateHub);
 		METHOD_HANDLER("hub", Access::FAVORITE_HUBS_VIEW, ApiRequest::METHOD_GET, (TOKEN_PARAM), false, FavoriteHubApi::handleGetHub);
+
+		createSubscription("favorite_hub_created");
+		createSubscription("favorite_hub_updated");
+		createSubscription("favorite_hub_removed");
 	}
 
 	FavoriteHubApi::~FavoriteHubApi() {
@@ -118,6 +122,14 @@ namespace webserver {
 				aEntry->get(HubSettings::Description) = JsonUtil::parseValue<string>("user_description", i.value());
 			} else if (key == "nmdc_encoding") {
 				aEntry->get(HubSettings::NmdcEncoding) = JsonUtil::parseValue<string>("nmdc_encoding", i.value());
+			} else if (key == "connection_mode_v4") {
+				aEntry->get(HubSettings::Connection) = *JsonUtil::getEnumField<int>("connection_mode_v4", i.value(), false, SettingsManager::INCOMING_DISABLED, SettingsManager::INCOMING_PASSIVE);
+			} else if (key == "connection_mode_v6") {
+				aEntry->get(HubSettings::Connection6) = *JsonUtil::getEnumField<int>("connection_mode_v6", i.value(), false, SettingsManager::INCOMING_DISABLED, SettingsManager::INCOMING_PASSIVE);
+			} else if (key == "connection_ip_v4") {
+				aEntry->get(HubSettings::UserIp) = JsonUtil::parseValue<string>("connection_ip_v4", i.value());
+			} else if (key == "connection_ip_v6") {
+				aEntry->get(HubSettings::UserIp6) = JsonUtil::parseValue<string>("connection_ip_v6", i.value());
 			}
 		}
 	}
@@ -130,9 +142,7 @@ namespace webserver {
 
 		FavoriteManager::getInstance()->addFavoriteHub(e);
 
-		aRequest.setResponseBody({
-			{ "id", e->getToken() }
-		});
+		aRequest.setResponseBody(Serializer::serializeItem(e, FavoriteHubUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -143,7 +153,7 @@ namespace webserver {
 			return websocketpp::http::status_code::not_found;
 		}
 
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return FavoriteHubApi::handleGetHub(ApiRequest& aRequest) {
@@ -167,16 +177,29 @@ namespace webserver {
 		updateProperties(e, aRequest.getRequestBody(), false);
 		FavoriteManager::getInstance()->onFavoriteHubUpdated(e);
 
+		aRequest.setResponseBody(Serializer::serializeItem(e, FavoriteHubUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
 	}
 
 	void FavoriteHubApi::on(FavoriteManagerListener::FavoriteHubAdded, const FavoriteHubEntryPtr& e)  noexcept {
 		view.onItemAdded(e);
+
+		maybeSend("favorite_hub_created", [&] {
+			return Serializer::serializeItem(e, FavoriteHubUtils::propertyHandler);
+		});
 	}
 	void FavoriteHubApi::on(FavoriteManagerListener::FavoriteHubRemoved, const FavoriteHubEntryPtr& e) noexcept {
 		view.onItemRemoved(e);
+
+		maybeSend("favorite_hub_removed", [&] {
+			return Serializer::serializeItem(e, FavoriteHubUtils::propertyHandler);
+		});
 	}
 	void FavoriteHubApi::on(FavoriteManagerListener::FavoriteHubUpdated, const FavoriteHubEntryPtr& e) noexcept {
 		view.onItemUpdated(e, toPropertyIdSet(FavoriteHubUtils::properties));
+
+		maybeSend("favorite_hub_updated", [&] {
+			return Serializer::serializeItem(e, FavoriteHubUtils::propertyHandler);
+		});
 	}
 }

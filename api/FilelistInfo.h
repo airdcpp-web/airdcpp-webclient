@@ -53,6 +53,7 @@ namespace webserver {
 	private:
 		api_return handleChangeDirectory(ApiRequest& aRequest);
 		api_return handleSetRead(ApiRequest& aRequest);
+		api_return handleGetItems(ApiRequest& aRequest);
 
 		void on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aDir, bool aBackgroundTask) noexcept override;
 		void on(DirectoryListingListener::LoadingFailed, const string& aReason) noexcept override;
@@ -84,6 +85,7 @@ namespace webserver {
 		void onSessionUpdated(const json& aData) noexcept;
 
 		FilelistItemInfo::List currentViewItems;
+		bool currentViewItemsInitialized = false;
 
 		void updateItems(const string& aPath) noexcept;
 

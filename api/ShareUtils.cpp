@@ -32,7 +32,8 @@ namespace webserver {
 		{ PROP_PROFILES, "profiles", TYPE_LIST_NUMERIC, SERIALIZE_CUSTOM, SORT_CUSTOM },
 		{ PROP_INCOMING, "incoming", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
 		{ PROP_LAST_REFRESH_TIME, "last_refresh_time", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
-		{ PROP_REFRESH_STATE, "refresh_state", TYPE_NUMERIC_OTHER, SERIALIZE_TEXT_NUMERIC, SORT_NUMERIC },
+		{ PROP_REFRESH_STATE, "refresh_state", TYPE_NUMERIC_OTHER, SERIALIZE_TEXT_NUMERIC, SORT_NUMERIC }, // DEPRECATED
+		{ PROP_STATUS, "status", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_NUMERIC },
 		{ PROP_TYPE, "type", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
 	};
 
@@ -48,7 +49,13 @@ namespace webserver {
 			return Serializer::serializeList(aItem->profiles, Serializer::serializeShareProfileSimple);
 		}
 		case PROP_TYPE: {
-			return Serializer::serializeFolderType(aItem->fileCount, aItem->folderCount);
+			return Serializer::serializeFolderType(aItem->contentInfo);
+		}
+		case PROP_STATUS: {
+			return {
+				{ "id", formatStatusId(aItem) },
+				{ "str", formatDisplayStatus(aItem) },
+			};
 		}
 		}
 
@@ -56,7 +63,17 @@ namespace webserver {
 		return nullptr;
 	}
 
-	string ShareUtils::formatRefreshState(const ShareDirectoryInfoPtr& aItem) noexcept {
+	string ShareUtils::formatStatusId(const ShareDirectoryInfoPtr& aItem) noexcept {
+		switch (static_cast<ShareManager::RefreshState>(aItem->refreshState)) {
+			case ShareManager::RefreshState::STATE_NORMAL: return "normal";
+			case ShareManager::RefreshState::STATE_PENDING: return "refresh_pending";
+			case ShareManager::RefreshState::STATE_RUNNING: return "refresh_running";
+		}
+
+		return Util::emptyString;
+	}
+
+	string ShareUtils::formatDisplayStatus(const ShareDirectoryInfoPtr& aItem) noexcept {
 		switch (static_cast<ShareManager::RefreshState>(aItem->refreshState)) {
 			case ShareManager::RefreshState::STATE_NORMAL: return STRING(NORMAL);
 			case ShareManager::RefreshState::STATE_PENDING: return "Refresh pending";
@@ -80,13 +97,7 @@ namespace webserver {
 	int ShareUtils::compareItems(const ShareDirectoryInfoPtr& a, const ShareDirectoryInfoPtr& b, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 		case PROP_TYPE: {
-			auto dirsA = a->folderCount;
-			auto dirsB = b->folderCount;
-			if (dirsA != dirsB) {
-				return compare(dirsA, dirsB);
-			}
-
-			return compare(a->fileCount, b->fileCount);
+			return Util::directoryContentSort(a->contentInfo, b->contentInfo);
 		}
 		case PROP_PROFILES: {
 			return compare(a->profiles.size(), b->profiles.size());
@@ -109,8 +120,9 @@ namespace webserver {
 		switch (aPropertyName) {
 		case PROP_VIRTUAL_NAME: return aItem->virtualName;
 		case PROP_PATH: return aItem->path;
-		case PROP_REFRESH_STATE: return formatRefreshState(aItem);
-		case PROP_TYPE: return Format::formatFolderContent(aItem->fileCount, aItem->folderCount);
+		case PROP_REFRESH_STATE: return formatDisplayStatus(aItem);
+		case PROP_STATUS: return formatDisplayStatus(aItem);
+		case PROP_TYPE: return Util::formatDirectoryContent(aItem->contentInfo);
 		default: dcassert(0); return Util::emptyString;
 		}
 	}
@@ -120,6 +132,7 @@ namespace webserver {
 		case PROP_INCOMING: return (double)aItem->incoming;
 		case PROP_LAST_REFRESH_TIME: return (double)aItem->lastRefreshTime;
 		case PROP_REFRESH_STATE: return (double)aItem->refreshState;
+		case PROP_STATUS: return (double)aItem->refreshState;
 		default: dcassert(0); return 0;
 		}
 	}

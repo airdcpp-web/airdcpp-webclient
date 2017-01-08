@@ -98,12 +98,10 @@ namespace webserver {
 
 	std::string QueueBundleUtils::formatBundleType(const BundlePtr& aBundle) noexcept {
 		if (aBundle->isFileBundle()) {
-			return Format::formatFileType(aBundle->getTarget());
-		} else {
-			size_t files = 0, folders = 0;
-			QueueManager::getInstance()->getBundleContent(aBundle, files, folders);
-			return Format::formatFolderContent(files, folders);
+			return Util::formatFileType(aBundle->getTarget());
 		}
+		
+		return Util::formatDirectoryContent(QueueManager::getInstance()->getBundleContent(aBundle));
 	}
 
 	double QueueBundleUtils::getNumericInfo(const BundlePtr& b, int aPropertyName) noexcept {
@@ -135,18 +133,10 @@ namespace webserver {
 			
 			if (!a->isFileBundle() && !b->isFileBundle()) {
 				// Directory bundles
-				RLock l(QueueManager::getInstance()->getCS());
-				auto dirsA = QueueManager::getInstance()->bundleQueue.getDirectoryCount(a);
-				auto dirsB = QueueManager::getInstance()->bundleQueue.getDirectoryCount(b);
+				auto contentA = QueueManager::getInstance()->getBundleContent(a);
+				auto contentB = QueueManager::getInstance()->getBundleContent(b);
 
-				if (dirsA != dirsB) {
-					return compare(dirsA, dirsB);
-				}
-
-				auto filesA = a->getQueueItems().size() + a->getFinishedFiles().size();
-				auto filesB = b->getQueueItems().size() + b->getFinishedFiles().size();
-
-				return compare(filesA, filesB);
+				return Util::directoryContentSort(contentA, contentB);
 			}
 
 			return Util::stricmp(Util::getFileExt(a->getTarget()), Util::getFileExt(b->getTarget()));
@@ -227,12 +217,9 @@ namespace webserver {
 		{
 			if (aBundle->isFileBundle()) {
 				return Serializer::serializeFileType(aBundle->getTarget());
-			} else {
-				size_t files = 0, folders = 0;
-				QueueManager::getInstance()->getBundleContent(aBundle, files, folders);
-
-				return Serializer::serializeFolderType(static_cast<int>(files), static_cast<int>(folders));
 			}
+
+			return Serializer::serializeFolderType(QueueManager::getInstance()->getBundleContent(aBundle));
 		}
 		case PROP_PRIORITY: {
 			return Serializer::serializePriority(*aBundle.get());

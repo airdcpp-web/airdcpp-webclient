@@ -33,14 +33,14 @@ namespace webserver {
 		const string& getResourcePath() const noexcept;
 
 		websocketpp::http::status_code::value handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest, 
-			std::string& output_, StringPairList& headers_) noexcept;
+			std::string& output_, StringPairList& headers_, const SessionPtr& aSession) noexcept;
 
 		static const char* getMimeType(const string& aFileName) noexcept;
 	private:
 		string resourcePath;
 
 		string parseResourcePath(const string& aResource, const websocketpp::http::parser::request& aRequest, StringPairList& headers_) const;
-		string parseViewFilePath(const string& aResource, StringPairList& headers_) const;
+		string parseViewFilePath(const string& aResource, StringPairList& headers_, const SessionPtr& aSession) const;
 
 		static string getExtension(const string& aResource) noexcept;
 

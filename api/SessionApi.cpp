@@ -19,6 +19,9 @@
 #include <web-server/stdinc.h>
 
 #include <api/SessionApi.h>
+#include <api/SystemApi.h>
+#include <api/WebUserUtils.h>
+#include <api/common/Serializer.h>
 
 #include <web-server/JsonUtil.h>
 #include <web-server/WebSocket.h>
@@ -41,6 +44,7 @@ namespace webserver {
 		METHOD_HANDLER("socket", Access::ANY, ApiRequest::METHOD_POST, (), false, SessionApi::failAuthenticatedRequest);
 
 		METHOD_HANDLER("sessions", Access::ADMIN, ApiRequest::METHOD_GET, (), false, SessionApi::handleGetSessions);
+		METHOD_HANDLER("session", Access::ANY, ApiRequest::METHOD_GET, (), false, SessionApi::handleGetCurrentSession);
 
 		aSession->getServer()->getUserManager().addListener(this);
 
@@ -60,72 +64,16 @@ namespace webserver {
 	api_return SessionApi::handleActivity(ApiRequest& aRequest) {
 		if (!aRequest.getSession()->isUserSession()) {
 			// This can be used to prevent the session from expiring
-			return websocketpp::http::status_code::ok;
+			return websocketpp::http::status_code::no_content;
 		}
 
 		ActivityManager::getInstance()->updateActivity();
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return SessionApi::handleLogout(ApiRequest& aRequest) {
 		WebServerManager::getInstance()->logout(aRequest.getSession()->getId());
-		return websocketpp::http::status_code::ok;
-	}
-
-	string SessionApi::getNetworkType(const string& aIp) noexcept {
-		auto ip = aIp;
-
-		// websocketpp will map IPv4 addresses to IPv6
-		auto v6 = aIp.find(":") != string::npos;
-		if (aIp.find("[::ffff:") == 0) {
-			auto end = aIp.rfind("]");
-			ip = aIp.substr(8, end - 8);
-			v6 = false;
-		} else if (aIp[0] == '[') {
-			// Remove brackets
-			auto end = aIp.rfind("]");
-			ip = aIp.substr(1, end - 1);
-		}
-
-		if (Util::isPrivateIp(ip, v6)) {
-			return "private";
-		} else if (Util::isLocalIp(ip, v6)) {
-			return "local";
-		}
-
-		return "internet";
-	}
-
-	string SessionApi::getHostname() noexcept {
-#ifdef _WIN32
-		TCHAR computerName[1024];
-		DWORD size = 1024;
-		GetComputerName(computerName, &size);
-		return Text::fromT(computerName);
-#else
-		char hostname[128];
-		gethostname(hostname, sizeof hostname);
-		return hostname;
-#endif
-	}
-
-	string SessionApi::getPlatform() noexcept {
-#ifdef _WIN32
-		return "windows";
-#elif APPLE
-		return "osx";
-#else
-		return "other";
-#endif
-	}
-
-	json SessionApi::getSystemInfo(const string& aIp) noexcept {
-		return {
-			{ "path_separator", PATH_SEPARATOR_STR },
-			{ "network_type", getNetworkType(aIp) },
-			{ "platform", getPlatform() },
-			{ "hostname", getHostname() },
-		};
+		return websocketpp::http::status_code::no_content;
 	}
 
 	websocketpp::http::status_code::value SessionApi::handleLogin(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIP) {
@@ -137,7 +85,7 @@ namespace webserver {
 		auto inactivityMinutes = JsonUtil::getOptionalFieldDefault<uint64_t>("max_inactivity", reqJson, WEBCFG(DEFAULT_SESSION_IDLE_TIMEOUT).uint64());
 		auto userSession = JsonUtil::getOptionalFieldDefault<bool>("user_session", reqJson, false);
 
-		auto session = WebServerManager::getInstance()->getUserManager().authenticate(username, password, 
+		auto session = WebServerManager::getInstance()->getUserManager().authenticateSession(username, password, 
 			aIsSecure, inactivityMinutes, userSession, aIP);
 
 		if (!session) {
@@ -145,21 +93,21 @@ namespace webserver {
 			return websocketpp::http::status_code::unauthorized;
 		}
 
-		json retJson = {
-			{ "permissions", session->getUser()->getPermissions() },
-			{ "token", session->getAuthToken() },
-			{ "user", session->getUser()->getUserName() },
-			{ "system", getSystemInfo(aIP) },
-			{ "run_wizard", SETTING(WIZARD_RUN) },
-			{ "cid", ClientManager::getInstance()->getMyCID().toBase32() },
-		};
-
 		if (aSocket) {
 			session->onSocketConnected(aSocket);
 			aSocket->setSession(session);
 		}
 
-		aRequest.setResponseBody(retJson);
+		aRequest.setResponseBody({
+			{ "token", session->getAuthToken() },
+			{ "session", serializeSession(session) },
+			{ "system", SystemApi::getSystemInfo() },
+			{ "permissions", session->getUser()->getPermissions() }, // deprecated
+			{ "user", session->getUser()->getUserName() }, // deprecated
+			{ "run_wizard", SETTING(WIZARD_RUN) }, // deprecated
+			{ "cid", ClientManager::getInstance()->getMyCID().toBase32() }, // deprecated
+		});
+
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -172,7 +120,7 @@ namespace webserver {
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		if (session->isSecure() != aIsSecure) {
+		if ((session->getSessionType() == Session::TYPE_SECURE)  != aIsSecure) {
 			aRequest.setResponseErrorStr("Invalid protocol");
 			return websocketpp::http::status_code::bad_request;
 		}
@@ -180,7 +128,7 @@ namespace webserver {
 		session->onSocketConnected(aSocket);
 		aSocket->setSession(session);
 
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return SessionApi::handleGetSessions(ApiRequest& aRequest) {
@@ -195,16 +143,29 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
+	api_return SessionApi::handleGetCurrentSession(ApiRequest& aRequest) {
+		aRequest.setResponseBody(serializeSession(aRequest.getSession()));
+		return websocketpp::http::status_code::ok;
+	}
+
+	string SessionApi::getSessionType(const SessionPtr& aSession) noexcept {
+		switch (aSession->getSessionType()) {
+			case Session::TYPE_BASIC_AUTH: return "basic_auth";
+			case Session::TYPE_PLAIN: return "plain";
+			case Session::TYPE_SECURE: return "secure";
+		}
+
+		dcassert(0);
+		return "";
+	}
+
 	json SessionApi::serializeSession(const SessionPtr& aSession) noexcept {
-		return{
+		return {
 			{ "id", aSession->getId() },
-			{ "secure", aSession->isSecure() },
-			{ "last_activity", aSession->getLastActivity() },
+			{ "type", getSessionType(aSession) },
+			{ "last_activity", GET_TICK() - aSession->getLastActivity() },
 			{ "ip", aSession->getIp() },
-			{ "user", {
-				{ "id",  aSession->getUser()->getToken() },
-				{ "username", aSession->getUser()->getUserName() },
-			} }
+			{ "user", Serializer::serializeItem(aSession->getUser(), WebUserUtils::propertyHandler) }
 		};
 	}
 

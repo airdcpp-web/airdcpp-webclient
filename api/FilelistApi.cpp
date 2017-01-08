@@ -33,17 +33,21 @@ namespace webserver {
 		"filelist_directory_download_failed",
 	};
 
-	FilelistApi::FilelistApi(Session* aSession) : ParentApiModule("session", CID_PARAM, Access::FILELISTS_VIEW, aSession, FilelistApi::subscriptionList, FilelistInfo::subscriptionList, [](const string& aId) { return Deserializer::parseCID(aId); }) {
+	FilelistApi::FilelistApi(Session* aSession) : 
+		ParentApiModule("session", CID_PARAM, Access::FILELISTS_VIEW, aSession, FilelistApi::subscriptionList, 
+			FilelistInfo::subscriptionList, 
+			[](const string& aId) { return Deserializer::parseCID(aId); },
+			[](const FilelistInfo& aInfo) { return serializeList(aInfo.getList()); }
+		) 
+	{
 
-		DirectoryListingManager::getInstance()->addListener(this);
-
-		METHOD_HANDLER("sessions", Access::FILELISTS_VIEW, ApiRequest::METHOD_GET, (), false, FilelistApi::handleGetLists);
+		DirectoryListingManager::getInstance()->addListener(this);;
 
 		METHOD_HANDLER("session", Access::FILELISTS_EDIT, ApiRequest::METHOD_DELETE, (CID_PARAM), false, FilelistApi::handleDeleteList);
 		METHOD_HANDLER("session", Access::FILELISTS_EDIT, ApiRequest::METHOD_POST, (), true, FilelistApi::handlePostList);
 		METHOD_HANDLER("session", Access::FILELISTS_VIEW, ApiRequest::METHOD_POST, (EXACT_PARAM("me")), true, FilelistApi::handleOwnList);
 
-		METHOD_HANDLER("download_directory", Access::DOWNLOAD, ApiRequest::METHOD_POST, (), true, FilelistApi::handlePostDirectoryDownload); // DEPRECEATED
+		METHOD_HANDLER("download_directory", Access::DOWNLOAD, ApiRequest::METHOD_POST, (), true, FilelistApi::handlePostDirectoryDownload); // DEPRECATED
 
 		METHOD_HANDLER("directory_downloads", Access::DOWNLOAD, ApiRequest::METHOD_GET, (), false, FilelistApi::handleGetDirectoryDownloads);
 		METHOD_HANDLER("directory_download", Access::DOWNLOAD, ApiRequest::METHOD_POST, (), true, FilelistApi::handlePostDirectoryDownload);
@@ -75,18 +79,18 @@ namespace webserver {
 		auto flags = aFlags;
 		flags.setFlag(QueueItem::FLAG_PARTIAL_LIST);
 
-		QueueItemPtr q = nullptr;
+		DirectoryListingPtr dl = nullptr;
 		try {
-			q = QueueManager::getInstance()->addList(user, flags.getFlags(), directory);
+			dl = DirectoryListingManager::getInstance()->createList(user, flags.getFlags(), directory);
+		} catch (const DupeException& e) {
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::conflict;
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		aRequest.setResponseBody({
-			{ "id", user.user->getCID().toBase32() }
-		});
-
+		aRequest.setResponseBody(serializeList(dl));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -110,24 +114,10 @@ namespace webserver {
 	}
 
 	api_return FilelistApi::handleDeleteList(ApiRequest& aRequest) {
-		auto list = getSubModule(aRequest.getStringParam(0));
-		if (!list) {
-			aRequest.setResponseErrorStr("List not found");
-			return websocketpp::http::status_code::not_found;
-		}
+		auto list = getSubModule(aRequest);
 
 		DirectoryListingManager::getInstance()->removeList(list->getList()->getUser());
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return FilelistApi::handleGetLists(ApiRequest& aRequest) {
-		auto retJson = json::array();
-		forEachSubModule([&](const FilelistInfo& aInfo) { 
-			retJson.push_back(serializeList(aInfo.getList()));
-		});
-
-		aRequest.setResponseBody(retJson);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	void FilelistApi::on(DirectoryListingManagerListener::ListingCreated, const DirectoryListingPtr& aList) noexcept {
@@ -156,7 +146,7 @@ namespace webserver {
 			return;
 		}
 
-		send("filelist_directory_download_added", serializeDirectoryDownload(aDownload));
+		send("filelist_directory_download_added", Serializer::serializeDirectoryDownload(aDownload));
 	}
 
 	void FilelistApi::on(DirectoryListingManagerListener::DirectoryDownloadRemoved, const DirectoryDownloadPtr& aDownload) noexcept {
@@ -164,7 +154,7 @@ namespace webserver {
 			return;
 		}
 
-		send("filelist_directory_download_removed", serializeDirectoryDownload(aDownload));
+		send("filelist_directory_download_removed", Serializer::serializeDirectoryDownload(aDownload));
 	}
 
 	void FilelistApi::on(DirectoryListingManagerListener::DirectoryDownloadProcessed, const DirectoryDownloadPtr& aDirectoryInfo, const DirectoryBundleAddInfo& aQueueInfo, const string& aError) noexcept {
@@ -173,7 +163,7 @@ namespace webserver {
 		}
 
 		send("filelist_directory_download_processed", {
-			{ "directory_download", serializeDirectoryDownload(aDirectoryInfo) },
+			{ "directory_download", Serializer::serializeDirectoryDownload(aDirectoryInfo) },
 			{ "result", Serializer::serializeDirectoryBundleAddInfo(aQueueInfo, aError) }
 		});
 	}
@@ -184,9 +174,17 @@ namespace webserver {
 		}
 
 		send("filelist_directory_download_failed", {
-			{ "directory_download", serializeDirectoryDownload(aDirectoryInfo) },
+			{ "directory_download", Serializer::serializeDirectoryDownload(aDirectoryInfo) },
 			{ "error", aError }
 		});
+	}
+
+	json FilelistApi::serializeShareProfile(const DirectoryListingPtr& aList) noexcept {
+		if (!aList->getIsOwnList()) {
+			return nullptr;
+		}
+
+		return Serializer::serializeShareProfileSimple(aList->getShareProfile());
 	}
 
 	json FilelistApi::serializeList(const DirectoryListingPtr& aList) noexcept {
@@ -194,7 +192,7 @@ namespace webserver {
 		size_t totalFiles = -1;
 		aList->getPartialListInfo(totalSize, totalFiles);
 
-		return{
+		return {
 			{ "id", aList->getUser()->getCID().toBase32() },
 			{ "user", Serializer::serializeHintedUser(aList->getHintedUser()) },
 			{ "state", FilelistInfo::serializeState(aList) },
@@ -203,17 +201,7 @@ namespace webserver {
 			{ "total_files", totalFiles },
 			{ "total_size", totalSize },
 			{ "read", aList->isRead() },
-			{ "share_profile", aList->getIsOwnList() ? Serializer::serializeShareProfileSimple(aList->getShareProfile()) : json() },
-		};
-	}
-
-	json FilelistApi::serializeDirectoryDownload(const DirectoryDownloadPtr& aDownload) noexcept {
-		return {
-			{ "id", aDownload->getId() },
-			{ "user", Serializer::serializeHintedUser(aDownload->getUser()) },
-			{ "target_name", aDownload->getBundleName() },
-			{ "target_directory", aDownload->getTarget() },
-			{ "list_path", aDownload->getListPath() },
+			{ "share_profile", serializeShareProfile(aList) },
 		};
 	}
 
@@ -222,7 +210,7 @@ namespace webserver {
 
 		auto ret = json::array();
 		for (const auto& d : downloads) {
-			ret.push_back(serializeDirectoryDownload(d));
+			ret.push_back(Serializer::serializeDirectoryDownload(d));
 		}
 
 		aRequest.setResponseBody(ret);
@@ -233,17 +221,15 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 		auto listPath = JsonUtil::getField<string>("list_path", aRequest.getRequestBody(), false);
 
-		string targetDirectory, targetBundleName;
+		string targetDirectory, targetBundleName = Util::getAdcLastDir(listPath);
 		Priority prio;
 		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetBundleName, prio);
 
 		auto user = Deserializer::deserializeHintedUser(reqJson);
 
 		try {
-			auto downloadId = DirectoryListingManager::getInstance()->addDirectoryDownload(user, targetBundleName, Util::toNmdcFile(listPath), targetDirectory, prio);
-			aRequest.setResponseBody({
-				{ "id", downloadId }
-			});
+			auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownload(user, targetBundleName, Util::toNmdcFile(listPath), targetDirectory, prio);
+			aRequest.setResponseBody(Serializer::serializeDirectoryDownload(directoryDownload));
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::bad_request;
@@ -259,6 +245,6 @@ namespace webserver {
 			return websocketpp::http::status_code::not_found;
 		}
 
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 }
