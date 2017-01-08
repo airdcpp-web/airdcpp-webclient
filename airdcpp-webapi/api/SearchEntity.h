@@ -55,7 +55,7 @@ namespace webserver {
 			return expirationTick;
 		}
 
-		void init() noexcept;
+		void init() noexcept override;
 	private:
 		GroupedSearchResultList getResultList() noexcept;
 

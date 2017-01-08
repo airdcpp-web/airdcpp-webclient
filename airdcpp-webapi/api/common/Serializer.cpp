@@ -206,7 +206,7 @@ namespace webserver {
 	}
 
 	json Serializer::serializeCacheInfo(const MessageCache& aCache, const UnreadSerializerF& unreadF) noexcept {
-		return{
+		return {
 			{ "total", aCache.size() },
 			{ "unread", unreadF(aCache) },
 		};
