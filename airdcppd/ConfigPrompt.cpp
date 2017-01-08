@@ -157,6 +157,9 @@ bool ConfigPrompt::addUser(webserver::WebServerManager* wsm) {
 		if (input != "y") {
 			return false;
 		}
+	} else if (!webserver::WebUser::validateUsername(username)) {
+		cout << "The username should contain only alphanumeric characters" << std::endl;
+		return false;
 	}
 
 	setPasswordMode(true);
