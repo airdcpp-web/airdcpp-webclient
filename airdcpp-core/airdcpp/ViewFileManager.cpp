@@ -170,7 +170,7 @@ namespace dcpp {
 			LogManager::getInstance()->message(STRING_F(ADD_FILE_ERROR, aFileName % ClientManager::getInstance()->getFormatedNicks(aUser) % e.getError()), LogMessage::SEV_NOTIFY);
 		}
 
-		return false;
+		return nullptr;
 	}
 
 	bool ViewFileManager::removeFile(const TTHValue& aTTH) noexcept {
