@@ -36,7 +36,7 @@ public:
 	typedef X<4> UsersUpdated;
 	typedef X<5> UserRemoved;
 	typedef X<6> Redirect;
-	typedef X<7> Failed;
+	typedef X<7> Disconnected;
 	typedef X<8> GetPassword;
 	typedef X<9> HubUpdated;
 	typedef X<10> ChatMessage;
@@ -49,7 +49,7 @@ public:
 	typedef X<17> HubTopic;
 	typedef X<18> AddLine;
 	typedef X<19> SetActive;
-	typedef X<20> Disconnecting;
+	typedef X<20> Close;
 	typedef X<21> MessagesRead;
 	typedef X<22> MessagesCleared;
 	typedef X<23> Redirected;
@@ -69,7 +69,7 @@ public:
 	virtual void on(UsersUpdated, const Client*, const OnlineUserList&) noexcept { }
 	virtual void on(UserRemoved, const Client*, const OnlineUserPtr&) noexcept { }
 	virtual void on(Redirect, const Client*, const string&) noexcept { }
-	virtual void on(Failed, const string&/*hubUrl*/, const string& /*aLine*/) noexcept { }
+	virtual void on(Disconnected, const string&/*hubUrl*/, const string& /*aLine*/) noexcept { }
 	virtual void on(GetPassword, const Client*) noexcept { }
 	virtual void on(HubUpdated, const Client*) noexcept { }
 	virtual void on(ChatMessage, const Client*, const ChatMessagePtr&) noexcept { }
@@ -82,7 +82,7 @@ public:
 	virtual void on(HubTopic, const Client*, const string&) noexcept { }
 	virtual void on(AddLine, const Client*, const string&) noexcept { }
 	virtual void on(SetActive, const Client*) noexcept {}
-	virtual void on(Disconnecting, const Client*) noexcept {}
+	virtual void on(Close, const Client*) noexcept {}
 	virtual void on(MessagesRead, const Client*) noexcept {}
 	virtual void on(MessagesCleared, const Client*) noexcept {}
 	virtual void on(Redirected, const string&/*old*/, const ClientPtr& /*new*/) noexcept {}

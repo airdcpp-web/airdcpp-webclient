@@ -40,6 +40,7 @@
 #include "LogManager.h"
 #include "MessageManager.h"
 #include "QueueManager.h"
+#include "RecentManager.h"
 #include "ShareManager.h"
 #include "SearchManager.h"
 #include "SettingsManager.h"
@@ -89,6 +90,7 @@ void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progr
 	ThrottleManager::newInstance();
 	QueueManager::newInstance();
 	FavoriteManager::newInstance();
+	RecentManager::newInstance();
 	ADLSearchManager::newInstance();
 	ConnectivityManager::newInstance();
 	DirectoryListingManager::newInstance();
@@ -142,6 +144,7 @@ void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progr
 	ShareManager::getInstance()->startup(stepF, progressF); 
 
 	FavoriteManager::getInstance()->load();
+	RecentManager::getInstance()->load();
 
 	if(SETTING(GET_USER_COUNTRY)) {
 		announce(STRING(COUNTRY_INFORMATION));
@@ -204,6 +207,7 @@ void shutdown(StepF stepF, ProgressF progressF, Callback moduleDestroyF) {
 	MessageManager::deleteInstance();
 	ConnectionManager::deleteInstance();
 	SearchManager::deleteInstance();
+	RecentManager::deleteInstance();
 	FavoriteManager::deleteInstance();
 	ClientManager::deleteInstance();
 	ShareManager::deleteInstance();

@@ -172,7 +172,7 @@ public:
 	}
 
 	void doRedirect() noexcept;
-	bool saveFavorite();
+	FavoriteHubEntryPtr saveFavorite();
 
 	enum State: uint8_t {
 		STATE_CONNECTING,	///< Waiting for socket to connect
@@ -264,6 +264,8 @@ private:
 	// Last used count type information for this hub
 	CountType countType = COUNT_UNCOUNTED;
 	bool countIsSharing = false;
+
+	void destroySocket(const AsyncF& aShutdownAction = nullptr) noexcept;
 };
 
 } // namespace dcpp

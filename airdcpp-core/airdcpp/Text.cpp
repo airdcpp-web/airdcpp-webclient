@@ -204,26 +204,11 @@ string wideToUtf8(const wstring& str) noexcept {
 	}
 
 	string tgt;
-#ifdef _WIN32
-	int size = 0;
-	tgt.resize( str.length() * 2 );
-
-	while( ( size = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), str.length(), &tgt[0], tgt.length(), NULL, NULL) ) == 0 ){
-		if( GetLastError() == ERROR_INSUFFICIENT_BUFFER )
-			tgt.resize( tgt.size() * 2 );
-		else
-			break;
-	}
-	
-	tgt.resize( size );
-	return tgt;
-#else	
 	string::size_type n = str.length();
 	for(string::size_type i = 0; i < n; ++i) {
 		wcToUtf8(str[i], tgt);
 	}
 	return tgt;
-#endif
 }
 
 string wideToAcp(const wstring& str, const string& toCharset) noexcept {
@@ -261,6 +246,10 @@ string wideToAcp(const wstring& str, const string& toCharset) noexcept {
 #endif
 }
 
+string sanitizeUtf8(const string& str) noexcept {
+	return wideToUtf8(utf8ToWide(str));
+}
+
 bool validateUtf8(const string& str) noexcept {
 	string::size_type i = 0;
 	while(i < str.length()) {
@@ -275,20 +264,6 @@ bool validateUtf8(const string& str) noexcept {
 
 wstring utf8ToWide(const string& str) noexcept {
 	wstring tgt;
-#ifdef _WIN32
-	int size = 0;
-	tgt.resize( str.length()+1 );
-	while( ( size = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), str.length(), &tgt[0], (int)tgt.length()) ) == 0 ){
-		if( GetLastError() == ERROR_INSUFFICIENT_BUFFER ) {
-			tgt.resize( tgt.size()*2 );
-		} else {
-			break;
-		}
-
-	}
-	tgt.resize( size );
-	return tgt;
-#else
 	tgt.reserve(str.length());
 	string::size_type n = str.length();
 	for(string::size_type i = 0; i < n; ) {
@@ -303,7 +278,6 @@ wstring utf8ToWide(const string& str) noexcept {
 		}
 	}
 	return tgt;
-#endif	
 }
 
 wchar_t toLower(wchar_t c) noexcept {

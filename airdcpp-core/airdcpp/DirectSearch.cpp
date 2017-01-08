@@ -39,7 +39,7 @@ namespace dcpp {
 	}
 
 	void DirectSearch::on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept {
-		if (compare(aSR->getToken(), searchToken) != 0) {
+		if (compare(aSR->getSearchToken(), searchToken) != 0) {
 			return;
 		}
 

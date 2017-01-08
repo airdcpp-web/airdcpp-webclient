@@ -29,6 +29,7 @@
 
 namespace dcpp {
 
+typedef uint64_t SearchResultId;
 class SearchResult : public FastAlloc<SearchResult>, public intrusive_ptr_base<SearchResult> {
 public:	
 	enum Types {
@@ -40,11 +41,11 @@ public:
 	SearchResult(const string& name);
 
 	//outgoing result (normal)
-	SearchResult(Types aType, int64_t aSize, const string& name, const TTHValue& aTTH, time_t aDate, int fileCount=0, int dirCount=0);
+	SearchResult(Types aType, int64_t aSize, const string& name, const TTHValue& aTTH, time_t aDate, const DirectoryContentInfo& aContentInfo);
 
 	//incoming results
 	SearchResult(const HintedUser& aUser, Types aType, uint8_t aTotalSlots, uint8_t aFreeSlots, 
-		int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& connection, int fileCount, int dirCount);
+		int64_t aSize, const string& aFilePath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& connection, const DirectoryContentInfo& aContentInfo);
 
 	string getFileName() const noexcept;
 	string toSR(const Client& client) const noexcept;
@@ -61,8 +62,6 @@ public:
 	Types getType() const noexcept { return type; }
 	size_t getTotalSlots() const noexcept { return totalSlots; }
 	size_t getFreeSlots() const noexcept { return freeSlots; }
-	int getFileCount() const noexcept { return files; }
-	int getFolderCount() const noexcept { return folders; }
 	const TTHValue& getTTH() const noexcept { return tth; }
 	
 	const string& getConnectionStr() const noexcept { return connection; }
@@ -70,7 +69,8 @@ public:
 	int64_t getSpeedPerSlot() const noexcept;
 
 	const string& getIP() const noexcept { return IP; }
-	const string& getToken() const noexcept { return token; }
+	const string& getSearchToken() const noexcept { return searchToken; }
+	SearchResultId getId() const noexcept { return id; }
 	time_t getDate() const noexcept { return date; }
 	const CID& getCID() const noexcept;
 	bool isNMDC() const noexcept;
@@ -94,6 +94,8 @@ public:
 	// Matches result against the current search and returns relevance information
 	// Non-mandatory validity checks are skipped if no search token is provided
 	bool getRelevance(SearchQuery& aQuery, RelevanceInfo& relevance_, const string& aSearchToken = Util::emptyString) const noexcept;
+
+	const DirectoryContentInfo& getContentInfo() const noexcept { return contentInfo; }
 private:
 	bool matches(SearchQuery& aQuery, const string& aSearchToken) const noexcept;
 
@@ -105,15 +107,16 @@ private:
 	
 	const string path;
 	const string IP;
-	const string token;
+
+	const string searchToken;
+	const SearchResultId id;
 	
 	const int64_t size = 0;
 	
 	const size_t totalSlots = 0;
 	const size_t freeSlots = 0;
 
-	const int folders = 0;
-	const int files = 0;
+	const DirectoryContentInfo contentInfo;
 	
 	const HintedUser user;
 	const Types type;

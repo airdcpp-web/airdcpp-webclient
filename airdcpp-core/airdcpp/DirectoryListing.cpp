@@ -299,7 +299,9 @@ static const string sBaseDate = "BaseDate";
 static const string sGenerator = "Generator";
 static const string sDirectory = "Directory";
 static const string sIncomplete = "Incomplete";
-static const string sChildren = "Children";
+static const string sDirectories = "Directories";
+static const string sFiles = "Files";
+static const string sChildren = "Children"; // DEPRECATED
 static const string sFile = "File";
 static const string sName = "Name";
 static const string sSize = "Size";
@@ -334,7 +336,15 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 
 			bool incomp = getAttrib(attribs, sIncomplete, 1) == "1";
-			bool children = getAttrib(attribs, sChildren, 2) == "1";
+			auto directoriesStr = getAttrib(attribs, sDirectories, 2);
+			auto filesStr = getAttrib(attribs, sFiles, 3);
+
+			DirectoryContentInfo contentInfo;
+			if (!filesStr.empty() || !directoriesStr.empty()) {
+				contentInfo = DirectoryContentInfo(Util::toInt(directoriesStr), Util::toInt(filesStr));
+			}
+
+			bool children = getAttrib(attribs, sChildren, 2) == "1" || contentInfo.directories > 0; // DEPRECATED
 
 			const string& size = getAttrib(attribs, sSize, 2);
 			const string& date = getAttrib(attribs, sDate, 3);
@@ -350,8 +360,10 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 
 			if(!d) {
-				d = DirectoryListing::Directory::create(cur, n, incomp ? (children ? DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD : DirectoryListing::Directory::TYPE_INCOMPLETE_NOCHILD) : 
-					DirectoryListing::Directory::TYPE_NORMAL, listDownloadDate, (partialList && checkDupe), size, Util::toUInt32(date));
+				auto type = incomp ? (children ? DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD : DirectoryListing::Directory::TYPE_INCOMPLETE_NOCHILD) :
+					DirectoryListing::Directory::TYPE_NORMAL;
+
+				d = DirectoryListing::Directory::create(cur, n, type, listDownloadDate, (partialList && checkDupe), contentInfo, size, Util::toUInt32(date));
 			} else {
 				if(!incomp) {
 					d->setComplete();
@@ -424,8 +436,8 @@ DirectoryListing::File::File(const File& rhs, bool _adls) noexcept : name(rhs.na
 	//dcdebug("DirectoryListing::File (copy) %s was created\n", rhs.getName().c_str());
 }
 
-DirectoryListing::Directory::Ptr DirectoryListing::Directory::create(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool aCheckDupe, const string& aSize, time_t aRemoteDate) {
-	auto dir = Ptr(new Directory(aParent, aName, aType, aUpdateDate, aCheckDupe, aSize, aRemoteDate));
+DirectoryListing::Directory::Ptr DirectoryListing::Directory::create(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool aCheckDupe, const DirectoryContentInfo& aContentInfo, const string& aSize, time_t aRemoteDate) {
+	auto dir = Ptr(new Directory(aParent, aName, aType, aUpdateDate, aCheckDupe, aContentInfo, aSize, aRemoteDate));
 	if (aParent && aType != TYPE_ADLS) { // This would cause an infinite recursion in ADL search
 		dcassert(aParent->directories.find(&dir->getName()) == aParent->directories.end());
 		auto res = aParent->directories.emplace(&dir->getName(), dir);
@@ -461,18 +473,18 @@ DirectoryListing::AdlDirectory::Ptr DirectoryListing::AdlDirectory::create(const
 }
 
 DirectoryListing::AdlDirectory::AdlDirectory(const string& aFullPath, DirectoryListing::Directory* aParent, const string& aName) : 
-	Directory(aParent, aName, Directory::TYPE_ADLS, GET_TIME(), false, Util::emptyString, 0), fullPath(aFullPath) {
+	Directory(aParent, aName, Directory::TYPE_ADLS, GET_TIME(), false, DirectoryContentInfo(), Util::emptyString, 0), fullPath(aFullPath) {
 
 }
 
-DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, Directory::DirType aType, time_t aUpdateDate, bool checkDupe, const string& aSize, time_t aRemoteDate /*0*/)
-	: name(aName), parent(aParent), type(aType), remoteDate(aRemoteDate), lastUpdateDate(aUpdateDate) {
+DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, Directory::DirType aType, time_t aUpdateDate, bool aCheckDupe, const DirectoryContentInfo& aContentInfo, const string& aSize, time_t aRemoteDate /*0*/)
+	: name(aName), parent(aParent), type(aType), remoteDate(aRemoteDate), lastUpdateDate(aUpdateDate), contentInfo(aContentInfo) {
 
 	if (!aSize.empty()) {
 		partialSize = Util::toInt64(aSize);
 	}
 
-	if (checkDupe) {
+	if (aCheckDupe) {
 		dupe = AirUtil::checkDirDupe(getPath(), partialSize);
 	}
 
@@ -513,6 +525,34 @@ bool DirectoryListing::Directory::findIncomplete() const noexcept {
 	return find_if(directories | map_values, [](const Directory::Ptr& dir) { 
 		return dir->findIncomplete(); 
 	}).base() != directories.end();
+}
+
+DirectoryContentInfo DirectoryListing::Directory::getContentInfoRecursive(bool aCountAdls) const noexcept {
+	if (isComplete()) {
+		size_t directoryCount = 0, fileCount = 0;
+		getContentInfo(directoryCount, fileCount, aCountAdls);
+		return DirectoryContentInfo(directoryCount, fileCount);
+	}
+
+	return contentInfo;
+}
+
+void DirectoryListing::Directory::getContentInfo(size_t& directories_, size_t& files_, bool aCountAdls) const noexcept {
+	if (!aCountAdls && getAdls()) {
+		return;
+	}
+
+	if (isComplete()) {
+		directories_ += directories.size();
+		files_ += files.size();
+
+		for (const auto& d : directories | map_values) {
+			d->getContentInfo(directories_, files_, aCountAdls);
+		}
+	} else if (Util::hasContentInfo(contentInfo)) {
+		directories_ += contentInfo.directories;
+		files_ += contentInfo.files;
+	}
 }
 
 void DirectoryListing::Directory::toBundleInfoList(const string& aTarget, BundleDirectoryItemInfo::List& aFiles) const noexcept {
@@ -558,15 +598,9 @@ int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {
 	return 0;
 }
 
-bool DirectoryListing::viewAsText(const File::Ptr& aFile) const noexcept {
+ViewFilePtr DirectoryListing::viewAsText(const File::Ptr& aFile) const noexcept {
 	if (isOwnList) {
-		StringList paths;
-		getLocalPaths(aFile, paths);
-		if (!paths.empty()) {
-			return ViewFileManager::getInstance()->addLocalFile(paths.front(), aFile->getTTH(), true);
-		}
-
-		return false;
+		return ViewFileManager::getInstance()->addLocalFile(aFile->getTTH(), true);
 	}
 
 	return ViewFileManager::getInstance()->addUserFileNotify(aFile->getName(), aFile->getSize(), aFile->getTTH(), hintedUser, true);
@@ -668,8 +702,7 @@ struct HashContained {
 
 struct DirectoryEmpty {
 	bool operator()(const DirectoryListing::Directory::Ptr& aDir) const {
-		bool r = aDir->getFileCount() + aDir->directories.size() == 0;
-		return r;
+		return Util::directoryEmpty(aDir->getContentInfo());
 	}
 };
 
@@ -773,19 +806,11 @@ int64_t DirectoryListing::Directory::getTotalSize(bool countAdls) const noexcept
 	return x;
 }
 
-size_t DirectoryListing::Directory::getTotalFileCount(bool countAdls) const noexcept {
-	if (!countAdls && getAdls())
+size_t DirectoryListing::Directory::getTotalFileCount(bool aCountAdls) const noexcept {
+	if (!aCountAdls && getAdls())
 		return 0;
 
-	auto x = getFileCount();
-	for (const auto& d: directories | map_values) {
-		if (!countAdls && d->getAdls()) {
-			continue;
-		}
-
-		x += d->getTotalFileCount(getAdls());
-	}
-	return x;
+	return getContentInfoRecursive(aCountAdls).files;
 }
 
 void DirectoryListing::Directory::clearAdls() noexcept {

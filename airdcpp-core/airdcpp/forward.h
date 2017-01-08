@@ -63,6 +63,7 @@ typedef std::vector<DirectoryListingPtr> DirectoryListingList;
 
 class DirectoryDownload;
 typedef std::shared_ptr<DirectoryDownload> DirectoryDownloadPtr;
+typedef vector<DirectoryDownloadPtr> DirectoryDownloadList;
 
 class Download;
 typedef Download* DownloadPtr;
@@ -128,9 +129,16 @@ typedef std::vector<RecentHubEntryPtr> RecentHubEntryList;
 class Search;
 typedef shared_ptr<Search> SearchPtr;
 
+class SearchInstance;
+typedef shared_ptr<SearchInstance> SearchInstancePtr;
+
 class SearchResult;
 typedef boost::intrusive_ptr<SearchResult> SearchResultPtr;
 typedef std::vector<SearchResultPtr> SearchResultList;
+
+class GroupedSearchResult;
+typedef std::shared_ptr<GroupedSearchResult> GroupedSearchResultPtr;
+typedef std::vector<GroupedSearchResultPtr> GroupedSearchResultList;
 
 class ServerSocket;
 

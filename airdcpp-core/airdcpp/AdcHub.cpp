@@ -1585,11 +1585,6 @@ void AdcHub::on(Line l, const string& aLine) noexcept {
 	dispatch(aLine);
 }
 
-void AdcHub::on(Failed f, const string& aLine) noexcept {
-	Client::on(f, aLine);
-	updateCounts(true); //we are disconnected, remove the count like nmdc hubs do...
-}
-
 void AdcHub::on(Second s, uint64_t aTick) noexcept {
 	Client::on(s, aTick);
 	if(stateNormal() && (aTick > (getLastActivity() + 120*1000)) ) {

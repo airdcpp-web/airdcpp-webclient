@@ -1185,11 +1185,6 @@ void NmdcHub::on(Line, const string& aLine) noexcept {
 	onLine(aLine);
 }
 
-void NmdcHub::on(Failed, const string& aLine) noexcept {
-	Client::on(Failed(), aLine);
-	updateCounts(true);	
-}
-
 void NmdcHub::on(Second, uint64_t aTick) noexcept {
 	Client::on(Second(), aTick);
 

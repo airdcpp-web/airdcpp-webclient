@@ -40,6 +40,11 @@ namespace dcpp {
 
 class SocketException;
 
+struct SearchQueueInfo {
+	int succeed;
+	uint64_t queueTime;
+};
+
 class SearchManager : public Speaker<SearchManagerListener>, public Singleton<SearchManager>, private TimerManagerListener, private SettingsManagerListener
 {
 public:
@@ -52,11 +57,6 @@ private:
 public:
 	static const char* getTypeStr(int type);
 	static bool isDefaultTypeStr(const string& type);
-
-	struct SearchQueueInfo {
-		int succeed;
-		uint64_t queueTime;
-	};
 	
 	SearchQueueInfo search(const SearchPtr& aSearch) noexcept;
 	SearchQueueInfo search(StringList& who, const SearchPtr& aSearch, void* aOwner = nullptr) noexcept;

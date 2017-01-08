@@ -238,6 +238,7 @@
     <ClCompile Include="airdcpp\AdcCommand.cpp" />
     <ClCompile Include="airdcpp\AdcHub.cpp" />
     <ClCompile Include="airdcpp\DirectSearch.cpp" />
+    <ClCompile Include="airdcpp\GroupedSearchResult.cpp" />
     <ClCompile Include="airdcpp\MessageCache.cpp" />
     <ClCompile Include="airdcpp\MessageManager.cpp" />
     <ClCompile Include="airdcpp\modules\AutoSearch.cpp" />
@@ -251,6 +252,8 @@
     <ClCompile Include="airdcpp\modules\TargetUtil.cpp" />
     <ClCompile Include="airdcpp\modules\WebShortcuts.cpp" />
     <ClCompile Include="airdcpp\PrivateChat.cpp" />
+    <ClCompile Include="airdcpp\RecentManager.cpp" />
+    <ClCompile Include="airdcpp\SearchInstance.cpp" />
     <ClCompile Include="airdcpp\SearchQuery.cpp" />
     <ClCompile Include="airdcpp\ADLSearch.cpp" />
     <ClCompile Include="airdcpp\AirUtil.cpp" />
@@ -357,6 +360,7 @@
     <ClInclude Include="airdcpp\BundleInfo.h" />
     <ClInclude Include="airdcpp\DirectSearch.h" />
     <ClInclude Include="airdcpp\DupeType.h" />
+    <ClInclude Include="airdcpp\GroupedSearchResult.h" />
     <ClInclude Include="airdcpp\HashManagerListener.h" />
     <ClInclude Include="airdcpp\modules\AutoSearch.h" />
     <ClInclude Include="airdcpp\modules\AutoSearchManager.h" />
@@ -374,6 +378,10 @@
     <ClInclude Include="airdcpp\modules\TargetUtil.h" />
     <ClInclude Include="airdcpp\modules\WebShortcuts.h" />
     <ClInclude Include="airdcpp\Priority.h" />
+    <ClInclude Include="airdcpp\RecentManager.h" />
+    <ClInclude Include="airdcpp\RecentManagerListener.h" />
+    <ClInclude Include="airdcpp\SearchInstance.h" />
+    <ClInclude Include="airdcpp\SearchInstanceListener.h" />
     <ClInclude Include="airdcpp\SettingsManagerListener.h" />
     <ClInclude Include="airdcpp\TimerManagerListener.h" />
     <ClInclude Include="airdcpp\ViewFileManagerListener.h" />

@@ -71,19 +71,12 @@ public:
 	};
 	typedef std::set<ThreadedCallBack, ThreadedCallBack::SizeSort> ThreadedCallBackSet;
 
-	/*class ThreadedCallBackLoader {
-	public:
-		ThreadedCallBackLoader(const ThreadedCallBackList& loaders);
-		void parse(ProgressFunction prog);
-	private:
-		struct SizeSort {
-			bool operator()(const ThreadedCallBack& left, const ThreadedCallBack& right) const;
-		};
+	enum Flags {
+		// Replace invalid UTF-8 data with placeholder characters
+		FLAG_REPLACE_INVALID_UTF8 = 0x01,
+	};
 
-		boost::ptr_set<ThreadedCallBack, SizeSort> callbacks;
-	};*/
-
-	SimpleXMLReader(CallBack* callback);
+	SimpleXMLReader(CallBack* callback, int aFlags = 0);
 	virtual ~SimpleXMLReader() { }
 
 	void parse(InputStream& is, size_t maxSize = 0);
@@ -223,6 +216,8 @@ private:
 	bool error(const char* message);
 
 	void decodeString(string& str_);
+
+	const int flags;
 };
 
 

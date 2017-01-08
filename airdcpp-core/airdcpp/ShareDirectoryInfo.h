@@ -23,6 +23,7 @@
 
 #include "forward.h"
 #include "typedefs.h"
+#include "SettingsManager.h"
 #include "Util.h"
 
 namespace dcpp {
@@ -40,6 +41,10 @@ namespace dcpp {
 			if (virtualName.empty()) {
 				virtualName = Util::getLastDir(aPath);
 			}
+
+			if (profiles.empty()) {
+				profiles.insert(SETTING(DEFAULT_SP));
+			}
 		}
 
 		~ShareDirectoryInfo() {}
@@ -55,8 +60,7 @@ namespace dcpp {
 			size = aInfo->size;
 			lastRefreshTime = aInfo->lastRefreshTime;
 			refreshState = aInfo->refreshState;
-			fileCount = aInfo->fileCount;
-			folderCount = aInfo->folderCount;
+			contentInfo = aInfo->contentInfo;
 		}
 
 		string virtualName;
@@ -67,8 +71,7 @@ namespace dcpp {
 		bool incoming = false;
 
 		int64_t size = 0;
-		size_t fileCount = 0;
-		size_t folderCount = 0;
+		DirectoryContentInfo contentInfo;
 
 		uint8_t refreshState = 0;
 		time_t lastRefreshTime = 0;

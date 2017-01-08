@@ -74,12 +74,11 @@ void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 	ShareManager::getInstance()->removeListener(this);
 
 	if (!aRedirect) {
-		fire(ClientListener::Disconnecting(), this);
+		fire(ClientListener::Close(), this);
 	}
 
 	if(sock) {
-		BufferedSocket::putSocket(sock, [=] { // Ensure that the pointer won't be deleted too early
-			state = STATE_DISCONNECTED;
+		destroySocket([=] { // Ensure that the pointer won't be deleted too early
 			if (!aRedirect) {
 				cache.clear();
 			}
@@ -187,10 +186,17 @@ bool Client::isActiveV6() const noexcept {
 	return !v4only() && get(HubSettings::Connection6) != SettingsManager::INCOMING_PASSIVE && get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED;
 }
 
+void Client::destroySocket(const AsyncF& aShutdownAction) noexcept {
+	auto socket = sock;
+	state = STATE_DISCONNECTED;
+	sock = nullptr;
+
+	BufferedSocket::putSocket(socket, aShutdownAction);
+}
+
 void Client::connect(bool withKeyprint) noexcept {
 	if (sock) {
-		BufferedSocket::putSocket(sock);
-		sock = 0;
+		destroySocket();
 	}
 
 	redirectUrl = Util::emptyString;
@@ -216,7 +222,7 @@ void Client::connect(bool withKeyprint) noexcept {
 		);
 	} catch (const Exception& e) {
 		setConnectState(STATE_DISCONNECTED);
-		fire(ClientListener::Failed(), hubUrl, e.getError());
+		fire(ClientListener::Disconnected(), hubUrl, e.getError());
 	}
 	updateActivity();
 }
@@ -373,7 +379,7 @@ void Client::on(BufferedSocketListener::Connecting) noexcept {
 	fire(ClientListener::Connecting(), this);
 }
 
-bool Client::saveFavorite() {
+FavoriteHubEntryPtr Client::saveFavorite() {
 	FavoriteHubEntryPtr e = new FavoriteHubEntry();
 	e->setServer(getHubUrl());
 	e->setName(getHubName());
@@ -383,7 +389,7 @@ bool Client::saveFavorite() {
 		e->setPassword(defpassword);
 	}
 
-	return FavoriteManager::getInstance()->addFavoriteHub(e);
+	return FavoriteManager::getInstance()->addFavoriteHub(e) ? e : nullptr;
 }
 
 void Client::doRedirect() noexcept {
@@ -401,20 +407,21 @@ void Client::doRedirect() noexcept {
 }
 
 void Client::on(BufferedSocketListener::Failed, const string& aLine) noexcept {
+	updateCounts(true);
 	clearUsers();
 	
-	if(stateNormal())
+	if (stateNormal()) {
 		FavoriteManager::getInstance()->removeUserCommand(hubUrl);
+	}
 
 	setConnectState(STATE_DISCONNECTED);
-	statusMessage(aLine, LogMessage::SEV_WARNING); //Error?
+	statusMessage(aLine, LogMessage::SEV_WARNING);
 
 	if (isKeyprintMismatch()) {
 		fire(ClientListener::KeyprintMismatch(), this);
 	}
 
-	sock->removeListener(this);
-	fire(ClientListener::Failed(), getHubUrl(), aLine);
+	fire(ClientListener::Disconnected(), getHubUrl(), aLine);
 }
 
 bool Client::isKeyprintMismatch() const noexcept {

@@ -233,7 +233,7 @@ public:
 
 	struct ShareItemStats {
 		int profileCount = 0;
-		size_t profileDirectoryCount = 0;
+		size_t rootDirectoryCount = 0;
 
 		int64_t totalSize = 0;
 		size_t totalFileCount = 0;
@@ -348,12 +348,12 @@ private:
 	uint64_t autoSearches = 0;
 	typedef BloomFilter<5> ShareBloom;
 
-	class ProfileDirectory : public intrusive_ptr_base<ProfileDirectory>, boost::noncopyable {
+	class RootDirectory : boost::noncopyable {
 		public:
-			typedef boost::intrusive_ptr<ProfileDirectory> Ptr;
+			typedef shared_ptr<RootDirectory> Ptr;
 			typedef unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> Map;
 
-			static Ptr create(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, Map& profileDirectories_) noexcept;
+			static Ptr create(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, Map& rootDirectories_) noexcept;
 
 			GETSET(string, path, Path);
 
@@ -363,15 +363,15 @@ private:
 			IGETSET(RefreshState, refreshState, RefreshState, RefreshState::STATE_NORMAL);
 			IGETSET(time_t, lastRefreshTime, LastRefreshTime, 0);
 
-			~ProfileDirectory() { }
-
 			bool hasRootProfile(ProfileToken aProfile) const noexcept;
 			bool hasRootProfile(const ProfileTokenSet& aProfiles) const noexcept;
 			void addRootProfile(ProfileToken aProfile) noexcept;
 			bool removeRootProfile(ProfileToken aProfile) noexcept;
+
 			inline string getName() const noexcept{
 				return virtualName->getNormal();
 			}
+
 			inline const string& getNameLower() const noexcept{
 				return virtualName->getLower();
 			}
@@ -381,15 +381,15 @@ private:
 			void setName(const string& aName) noexcept;
 			string getCacheXmlPath() const noexcept;
 		private:
-			ProfileDirectory(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming) noexcept;
+			RootDirectory(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming) noexcept;
 
 			unique_ptr<DualString> virtualName;
 	};
 
-	typedef vector<ProfileDirectory::Ptr> ProfileDirectoryList;
+	typedef vector<RootDirectory::Ptr> RootDirectoryList;
 	unique_ptr<ShareBloom> bloom;
 
-	struct FileListDir;
+	struct FilelistDirectory;
 	class Directory : public intrusive_ptr_base<Directory> {
 	public:
 		typedef boost::intrusive_ptr<Directory> Ptr;
@@ -468,7 +468,7 @@ private:
 		File::Set files;
 
 		static Ptr createNormal(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, Directory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept;
-		static Ptr createRoot(DualString&& aRealName, uint64_t aLastWrite, const ProfileDirectory::Ptr& aProfileDir, Map& rootPaths_, Directory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept;
+		static Ptr createRoot(DualString&& aRealName, uint64_t aLastWrite, const RootDirectory::Ptr& aProfileDir, Map& rootPaths_, Directory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept;
 
 		struct HasRootProfile {
 			HasRootProfile(const OptionalProfileToken& aProfile) : profile(aProfile) { }
@@ -497,7 +497,7 @@ private:
 
 		void search(SearchResultInfo::Set& aResults, SearchQuery& aStrings, int aLevel) const noexcept;
 
-		void toFileList(FileListDir& aListDir, bool aRecursive);
+		void toFileList(FilelistDirectory& aListDir, bool aRecursive);
 		void toTTHList(OutputStream& tthList, string& tmp2, bool recursive) const;
 
 		//for file list caching
@@ -506,7 +506,7 @@ private:
 
 		GETSET(uint64_t, lastWrite, LastWrite);
 		GETSET(Directory*, parent, Parent);
-		GETSET(ProfileDirectory::Ptr, profileDir, ProfileDir);
+		GETSET(RootDirectory::Ptr, rootDirectory, ProfileDir);
 
 		~Directory();
 
@@ -527,23 +527,23 @@ private:
 		Directory(Directory&) = delete;
 		Directory& operator=(Directory&) = delete;
 	private:
-		Directory(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, ProfileDirectory::Ptr root = nullptr);
+		Directory(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, RootDirectory::Ptr root = nullptr);
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 
 		string getRealPath(const string& path) const noexcept;
 	};
 
-	struct FileListDir {
-		typedef unordered_map<string*, FileListDir*, noCaseStringHash, noCaseStringEq> ListDirectoryMap;
+	struct FilelistDirectory {
+		typedef unordered_map<string*, FilelistDirectory*, noCaseStringHash, noCaseStringEq> Map;
 		Directory::List shareDirs;
 
-		FileListDir(const string& aName, int64_t aSize, uint64_t aDate);
-		~FileListDir();
+		FilelistDirectory(const string& aName, uint64_t aDate);
+		~FilelistDirectory();
 
-		string name;
-		int64_t size;
+		const string name;
 		uint64_t date;
-		ListDirectoryMap listDirs;
+
+		Map listDirs;
 
 		void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool fullList) const;
 		void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const;
@@ -575,7 +575,7 @@ private:
 
 	bool addDirResult(const Directory* aDir, SearchResultList& aResults, const OptionalProfileToken& aProfile, SearchQuery& srch) const noexcept;
 
-	ProfileDirectory::Map profileDirs;
+	RootDirectory::Map rootDirectories;
 
 	TaskQueue tasks;
 

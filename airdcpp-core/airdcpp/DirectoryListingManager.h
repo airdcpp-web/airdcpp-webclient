@@ -36,8 +36,6 @@ namespace dcpp {
 	public:
 		DirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner = nullptr);
 
-		typedef vector<DirectoryDownloadPtr> List;
-
 		// All clients don't support sending of recursive partial lists
 		IGETSET(bool, partialListFailed, PartialListFailed, false);
 		IGETSET(QueueItemPtr, queueItem, QueueItem, nullptr);
@@ -76,6 +74,8 @@ namespace dcpp {
 		void openOwnList(ProfileToken aProfile, bool useADL=false) noexcept;
 		void openFileList(const HintedUser& aUser, const string& aFile) noexcept;
 		
+		// Add a managed filelist session, throws queueing errors
+		DirectoryListingPtr createList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString);
 		bool removeList(const UserPtr& aUser) noexcept;
 
 		DirectoryListingManager() noexcept;
@@ -86,8 +86,8 @@ namespace dcpp {
 
 		// Throws on queueing errors (such as invalid source)
 		// If owner is specified, no errors are logged if queueing of the directory fails
-		DirectoryDownloadId addDirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner = nullptr);
-		DirectoryDownload::List getDirectoryDownloads() const noexcept;
+		DirectoryDownloadPtr addDirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner = nullptr);
+		DirectoryDownloadList getDirectoryDownloads() const noexcept;
 
 		bool hasDirectoryDownload(const string& aBundleName, void* aOwner) const noexcept;
 		bool removeDirectoryDownload(DirectoryDownloadId aId) noexcept;
