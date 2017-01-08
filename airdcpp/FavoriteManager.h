@@ -33,9 +33,6 @@
 
 namespace dcpp {
 
-/**
- * Public hub list, favorites (hub&user). Assumed to be called only by UI thread.
- */
 class FavoriteManager : public Speaker<FavoriteManagerListener>, public Singleton<FavoriteManager>,
 	private SettingsManagerListener, private ClientManagerListener, private ShareManagerListener
 {
@@ -85,15 +82,6 @@ public:
 
 	GroupedDirectoryMap getGroupedFavoriteDirs() const noexcept;
 	FavoriteDirectoryMap getFavoriteDirs() const noexcept;
-// Recent Hubs
-	RecentHubEntryList& getRecentHubs() noexcept { return recentHubs; };
-
-	void addRecent(const RecentHubEntryPtr& aEntry) noexcept;
-	void removeRecent(const RecentHubEntryPtr& aEntry) noexcept;
-	void updateRecent(const RecentHubEntryPtr& aEntry) noexcept;
-
-	RecentHubEntryPtr getRecentHubEntry(const string& aServer) const noexcept;
-	RecentHubEntryList searchRecentHubs(const string& aPattern, size_t aMaxResults) const noexcept;
 
 // User Commands
 	UserCommand addUserCommand(int type, int ctx, Flags::MaskType flags, const string& name, const string& command, const string& to, const string& hub) noexcept;
@@ -111,9 +99,6 @@ public:
 	void load() noexcept;
 	void save() noexcept;
 
-	void clearRecent() noexcept;
-	void saveRecent() const noexcept;
-
 	bool hasActiveHubs() const noexcept;
 
 	mutable SharedMutex cs;
@@ -121,7 +106,6 @@ private:
 	FavoriteHubEntryList favoriteHubs;
 	FavHubGroups favHubGroups;
 	FavoriteDirectoryMap favoriteDirectories;
-	RecentHubEntryList recentHubs;
 	UserCommand::List userCommands;
 	int lastId = 0;
 
@@ -137,7 +121,6 @@ private:
 	
 	FavoriteHubEntryList::const_iterator getFavoriteHub(const string& aServer) const noexcept;
 	FavoriteHubEntryList::const_iterator getFavoriteHub(ProfileToken aToken) const noexcept;
-	RecentHubEntryList::const_iterator getRecentHub(const string& aServer) const noexcept;
 
 	int resetProfile(ProfileToken oldProfile, ProfileToken newProfile, bool nmdcOnly) noexcept;
 
@@ -164,7 +147,6 @@ private:
 	void loadFavoriteDirectories(SimpleXML& aXml);
 	void loadFavoriteUsers(SimpleXML& aXml);
 	void loadUserCommands(SimpleXML& aXml);
-	void loadRecent(SimpleXML& aXml);
 
 	void saveFavoriteHubs(SimpleXML& aXml) const noexcept;
 	void saveFavoriteUsers(SimpleXML& aXml) const noexcept;

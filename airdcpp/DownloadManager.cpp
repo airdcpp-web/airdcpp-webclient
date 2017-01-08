@@ -695,11 +695,9 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess) 
 	if (d->getType() == Transfer::TYPE_PARTIAL_LIST && isNmdc) {
 		//partial lists should be only used for client viewing in NMDC
 		dcassert(d->isSet(Download::FLAG_VIEW));
-		fire(DownloadManagerListener::Failed(), d, STRING(NO_PARTIAL_SUPPORT_RETRY));
-		string dir = d->getTempTarget();
+		fire(DownloadManagerListener::Failed(), d, STRING(NO_PARTIAL_SUPPORT));
 		QueueManager::getInstance()->putDownload(d, true); // true, false is not used in putDownload for partial
 		removeConnection(aSource);
-		QueueManager::getInstance()->addList(aSource->getHintedUser(), QueueItem::FLAG_CLIENT_VIEW, dir);
 		return;
 	}
 

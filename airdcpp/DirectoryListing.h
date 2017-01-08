@@ -103,7 +103,10 @@ public:
 		Map directories;
 		File::List files;
 
-		static Directory::Ptr create(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool checkDupe = false, const string& aSize = Util::emptyString, time_t aRemoteDate = 0);
+		static Directory::Ptr create(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, 
+			bool checkDupe = false, const DirectoryContentInfo& aContentInfo = DirectoryContentInfo(),
+			const string& aSize = Util::emptyString, time_t aRemoteDate = 0);
+
 		virtual ~Directory();
 
 		size_t getTotalFileCount(bool countAdls) const noexcept;
@@ -117,9 +120,6 @@ public:
 		bool findIncomplete() const noexcept;
 		void search(OrderedStringSet& aResults, SearchQuery& aStrings) const noexcept;
 		void findFiles(const boost::regex& aReg, File::List& aResults) const noexcept;
-		
-		size_t getFileCount() const noexcept { return files.size(); }
-		size_t getFolderCount() const noexcept { return directories.size(); }
 		
 		int64_t getFilesSize() const noexcept;
 
@@ -144,9 +144,19 @@ public:
 			return name;
 		}
 
-	protected:
-		Directory(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool checkDupe, const string& aSize, time_t aRemoteDate);
+		// This function not thread safe as it will go through all complete directories
+		DirectoryContentInfo getContentInfoRecursive(bool aCountAdls) const noexcept;
 
+		// Partial list content info only
+		const DirectoryContentInfo& getContentInfo() const noexcept {
+			return contentInfo;
+		}
+	protected:
+		Directory(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool aCheckDupe, const DirectoryContentInfo& aContentInfo, const string& aSize, time_t aRemoteDate);
+
+		void getContentInfo(size_t& directories_, size_t& files_, bool aCountAdls) const noexcept;
+
+		const DirectoryContentInfo contentInfo;
 		const string name;
 	};
 
@@ -171,7 +181,7 @@ public:
 
 	optional<DirectoryBundleAddInfo> createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPrio, string& errorMsg_) noexcept;
 
-	bool viewAsText(const File::Ptr& aFile) const noexcept;
+	ViewFilePtr viewAsText(const File::Ptr& aFile) const noexcept;
 
 	int64_t getTotalListSize(bool adls = false) const noexcept { return root->getTotalSize(adls); }
 	int64_t getDirSize(const string& aDir) const noexcept;

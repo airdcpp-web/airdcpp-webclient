@@ -509,10 +509,11 @@ void QueueManager::searchAlternates(uint64_t aTick) noexcept {
 	}
 }
 
-void QueueManager::getBundleContent(const BundlePtr& aBundle, size_t& files_, size_t& directories_) const noexcept {
+DirectoryContentInfo QueueManager::getBundleContent(const BundlePtr& aBundle) const noexcept {
 	RLock l(cs);
-	files_ = aBundle->getQueueItems().size() + aBundle->getFinishedFiles().size();
-	directories_ = aBundle->isFileBundle() ? 0 : bundleQueue.getDirectoryCount(aBundle) - 1;
+	auto files = aBundle->getQueueItems().size() + aBundle->getFinishedFiles().size();
+	auto directories = aBundle->isFileBundle() ? 0 : bundleQueue.getDirectoryCount(aBundle) - 1;
+	return DirectoryContentInfo(directories, files);
 }
 
 bool QueueManager::hasDownloadedBytes(const string& aTarget) throw(QueueException) {
@@ -524,7 +525,7 @@ bool QueueManager::hasDownloadedBytes(const string& aTarget) throw(QueueExceptio
 	return q->getDownloadedBytes() > 0;
 }
 
-QueueItemPtr QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = Util::emptyString */, BundlePtr aBundle /*nullptr*/) throw(QueueException, DupeException) {
+QueueItemPtr QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = Util::emptyString */, const BundlePtr& aBundle /*nullptr*/) throw(QueueException, DupeException) {
 	// Pre-checks
 	checkSource(aUser);
 	if (aUser.hint.empty()) {
@@ -1055,7 +1056,7 @@ BundleAddInfo QueueManager::createFileBundle(const string& aTarget, int64_t aSiz
 		}
 	}
 
-	return BundleAddInfo(b, oldStatus == Bundle::STATUS_NEW);
+	return BundleAddInfo(b, oldStatus != Bundle::STATUS_NEW);
 }
 
 QueueManager::FileAddInfo QueueManager::addBundleFile(const string& aTarget, int64_t aSize, const TTHValue& aRoot, const HintedUser& aUser, Flags::MaskType aFlags /* = 0 */,
@@ -3743,7 +3744,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool aRemoveFinishedFiles) n
 
 	// An empty directory should be deleted even if finished files are not being deleted (directories are created even for temp files)
 	// Avoid disk access when cleaning up finished bundles
-	if (!isFinished && !aBundle->isFileBundle()) {
+	if (!aBundle->isFileBundle() && (aRemoveFinishedFiles || !isFinished)) {
 		AirUtil::removeDirectoryIfEmpty(aBundle->getTarget(), 10, !aRemoveFinishedFiles);
 	}
 

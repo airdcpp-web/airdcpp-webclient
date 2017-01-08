@@ -94,6 +94,14 @@ typedef std::function<void (const string&)> StepFunction;
 typedef std::function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> MessageFunction;
 typedef std::function<void (float)> ProgressFunction;
 
+// Recursively collected information about directory content
+struct DirectoryContentInfo {
+	DirectoryContentInfo() : directories(-1), files(-1) {  }
+	DirectoryContentInfo(int aDirectories, int aFiles) : directories(aDirectories), files(aFiles) {  }
+
+	int directories;
+	int files;
+};
 
 /** Uses SFINAE to determine whether a type provides a function; stores the result in "value".
 Inspired by <http://stackoverflow.com/a/8752988>. */
@@ -110,6 +118,18 @@ Inspired by <http://stackoverflow.com/a/8752988>. */
 class Util  
 {
 public:
+	static bool hasContentInfo(const DirectoryContentInfo& aContentInfo) {
+		return aContentInfo.directories >= 0 && aContentInfo.files >= 0;
+	}
+
+	static bool directoryEmpty(const DirectoryContentInfo& aContentInfo) {
+		return aContentInfo.directories == 0 && aContentInfo.files == 0;
+	}
+
+	static int directoryContentSort(const DirectoryContentInfo& a, const DirectoryContentInfo& b) noexcept;
+	static string formatDirectoryContent(const DirectoryContentInfo& aInfo) noexcept;
+	static string formatFileType(const string& aPath) noexcept;
+
 	struct PathSortOrderInt {
 		int operator()(const string& a, const string& b) const noexcept {
 			return pathSort(a, b);

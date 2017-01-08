@@ -118,7 +118,6 @@ private:
 
 	void on(Connected) noexcept override;
 	void on(Line, const string& l) noexcept override;
-	void on(Failed, const string&) noexcept override;
 };
 
 } // namespace dcpp

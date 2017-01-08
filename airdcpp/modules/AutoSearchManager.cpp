@@ -640,7 +640,7 @@ void AutoSearchManager::on(SearchManagerListener::SearchTypeRenamed, const strin
 
 void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
 	//don't match bundle searches
-	if (Util::stricmp(sr->getToken(), "qa") == 0)
+	if (Util::stricmp(sr->getSearchToken(), "qa") == 0)
 		return;
 
 	AutoSearchList matches;

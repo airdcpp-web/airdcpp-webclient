@@ -49,7 +49,7 @@ const ResourceManager::Strings SettingsManager::bloomStrings[BLOOM_LAST] { Resou
 const ResourceManager::Strings SettingsManager::profileStrings[PROFILE_LAST] { ResourceManager::NORMAL, ResourceManager::RAR_HUBS, ResourceManager::LAN_HUBS };
 const ResourceManager::Strings SettingsManager::refreshStrings[MULTITHREAD_LAST] { ResourceManager::NEVER, ResourceManager::MANUAL_REFRESHES, ResourceManager::ALWAYS };
 const ResourceManager::Strings SettingsManager::prioStrings[PRIO_LAST] { ResourceManager::DISABLED, ResourceManager::PRIOPAGE_ORDER_BALANCED, ResourceManager::PRIOPAGE_ORDER_PROGRESS };
-const ResourceManager::Strings SettingsManager::incomingStrings[INCOMING_LAST] { ResourceManager::DISABLED, ResourceManager::ACTIVE_MODE, ResourceManager::SETTINGS_ACTIVE_UPNP, ResourceManager::PASSIVE_MODE };
+const ResourceManager::Strings SettingsManager::incomingStrings[INCOMING_LAST] { ResourceManager::DISABLED, ResourceManager::SETTINGS_ACTIVE, ResourceManager::SETTINGS_ACTIVE_UPNP, ResourceManager::SETTINGS_PASSIVE };
 const ResourceManager::Strings SettingsManager::outgoingStrings[OUTGOING_LAST] { ResourceManager::SETTINGS_DIRECT, ResourceManager::SETTINGS_SOCKS5 };
 const ResourceManager::Strings SettingsManager::monitoringStrings[MONITORING_LAST] { ResourceManager::DISABLED, ResourceManager::INCOMING_ONLY, ResourceManager::ALL_DIRS };
 const ResourceManager::Strings SettingsManager::dropStrings[QUEUE_LAST] { ResourceManager::FILE, ResourceManager::BUNDLE, ResourceManager::ALL };
@@ -281,7 +281,7 @@ const string SettingsManager::settingTags[] =
 	"RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "FLReportDupeFiles",
 	"FilterFLShared", "FilterFLQueued", "FilterFLInversed", "FilterFLTop", "FilterFLPartialDupes", "FilterFLResetChange", "FilterSearchShared", "FilterSearchQueued", "FilterSearchInversed", "FilterSearchTop", "FilterSearchPartialDupes", "FilterSearchResetChange",
 	"SearchAschOnlyMan", "UseUploadBundles", "CloseMinimize", "LogIgnored", "UsersFilterIgnore", "NfoExternal", "SingleClickTray", "QueueShowFinished", "RemoveFinishedBundles", "LogCRCOk",
-	"FilterQueueInverse", "FilterQueueTop", "FilterQueueReset", "AlwaysCCPM",
+	"FilterQueueInverse", "FilterQueueTop", "FilterQueueReset", "AlwaysCCPM", "OpenAutoSearch",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -412,6 +412,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(OPEN_PUBLIC, false);
 	setDefault(OPEN_FAVORITE_HUBS, false);
 	setDefault(OPEN_FAVORITE_USERS, false);
+	setDefault(OPEN_AUTOSEARCH, false);
 	//setDefault(OPEN_RECENT_HUBS, false);
 	setDefault(OPEN_QUEUE, false);
 	setDefault(OPEN_FINISHED_UPLOADS, false);
@@ -1347,15 +1348,15 @@ HubSettings SettingsManager::getHubSettings() const noexcept {
 	return ret;
 }
 
-void SettingsManager::loadSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, bool aMigrate /*true*/) {
+void SettingsManager::loadSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName) {
 	auto fname = Util::getPath(aPath) + aFileName;
 
-	if (aMigrate) {
-		Util::migrate(fname);
-	}
+	Util::migrate(fname);
 
 	if (Util::fileExists(fname)) {
-		aXML.fromXML(File(fname, File::READ, File::OPEN).read());
+		// Some legacy config files (such as favorites and recent hubs) may contain invalid UTF-8 data
+		// so don't throw in case of validation errors
+		aXML.fromXML(File(fname, File::READ, File::OPEN).read(), SimpleXMLReader::FLAG_REPLACE_INVALID_UTF8);
 	}
 }
 

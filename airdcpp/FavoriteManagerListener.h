@@ -37,11 +37,7 @@ public:
 	typedef X<5> FavoriteUserRemoved;
 	typedef X<6> FavoriteUserUpdated;
 
-	typedef X<7> RecentAdded;
-	typedef X<8> RecentRemoved;
-	typedef X<9> RecentUpdated;
-
-	typedef X<10> FavoriteDirectoriesUpdated;
+	typedef X<7> FavoriteDirectoriesUpdated;
 
 	virtual void on(FavoriteHubAdded, const FavoriteHubEntryPtr&) noexcept { }
 	virtual void on(FavoriteHubRemoved, const FavoriteHubEntryPtr&) noexcept {}
@@ -51,10 +47,6 @@ public:
 	virtual void on(FavoriteUserAdded, const FavoriteUser&) noexcept { }
 	virtual void on(FavoriteUserRemoved, const FavoriteUser&) noexcept { }
 	virtual void on(FavoriteUserUpdated, const UserPtr&) noexcept { }
-
-	virtual void on(RecentAdded, const RecentHubEntryPtr&) noexcept {}
-	virtual void on(RecentRemoved, const RecentHubEntryPtr&) noexcept {}
-	virtual void on(RecentUpdated, const RecentHubEntryPtr&) noexcept {}
 
 	virtual void on(FavoriteDirectoriesUpdated) noexcept { }
 };
