@@ -92,7 +92,7 @@ namespace webserver {
 		auto user = Deserializer::deserializeHintedUser(j, true);
 		auto isText = JsonUtil::getOptionalFieldDefault<bool>("text", j, false);
 
-		ViewFilePtr file = false;
+		ViewFilePtr file = nullptr;
 		try {
 			file = ViewFileManager::getInstance()->addUserFileThrow(name, size, tth, user, isText);
 		} catch (const Exception& e) {
