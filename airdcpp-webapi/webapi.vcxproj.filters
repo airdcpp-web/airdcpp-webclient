@@ -123,9 +123,6 @@
     <ClInclude Include="api\HistoryApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
-    <ClInclude Include="api\SearchResultInfo.h">
-      <Filter>Header Files\api</Filter>
-    </ClInclude>
     <ClInclude Include="web-server\JsonUtil.h">
       <Filter>Header Files\web-server</Filter>
     </ClInclude>
@@ -249,6 +246,9 @@
     <ClInclude Include="api\FilelistItemInfo.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
+    <ClInclude Include="api\SearchEntity.h">
+      <Filter>Header Files\api</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
@@ -318,9 +318,6 @@
       <Filter>Source Files\api</Filter>
     </ClCompile>
     <ClCompile Include="api\HistoryApi.cpp">
-      <Filter>Source Files\api</Filter>
-    </ClCompile>
-    <ClCompile Include="api\SearchResultInfo.cpp">
       <Filter>Source Files\api</Filter>
     </ClCompile>
     <ClCompile Include="web-server\JsonUtil.cpp">
@@ -411,6 +408,9 @@
       <Filter>Source Files\api</Filter>
     </ClCompile>
     <ClCompile Include="api\FilelistItemInfo.cpp">
+      <Filter>Source Files\api</Filter>
+    </ClCompile>
+    <ClCompile Include="api\SearchEntity.cpp">
       <Filter>Source Files\api</Filter>
     </ClCompile>
   </ItemGroup>

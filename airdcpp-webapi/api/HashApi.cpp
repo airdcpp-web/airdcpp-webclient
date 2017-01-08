@@ -53,17 +53,17 @@ namespace webserver {
 
 	api_return HashApi::handleResume(ApiRequest& aRequest) {
 		HashManager::getInstance()->resumeHashing();
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return HashApi::handlePause(ApiRequest& aRequest) {
 		HashManager::getInstance()->pauseHashing();
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return HashApi::handleStop(ApiRequest& aRequest) {
 		HashManager::getInstance()->stop();
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	void HashApi::onTimer() noexcept {

@@ -187,24 +187,6 @@ namespace webserver {
 
 		// Serialize the setting
 		json ret = ApiSettingItem::infoToJson(aForceAutoValues);
-		/*ret["value"] = value.first;
-		ret["key"] = name;
-		ret["title"] = getDescription();
-		if (value.second) {
-			ret["auto"] = true;
-		}
-
-		if (unit.str != ResourceManager::LAST) {
-			ret["unit"] = ResourceManager::getInstance()->getString(unit.str) + (unit.isSpeed ? "/s" : "");
-		}
-
-		if (type == TYPE_FILE_PATH) {
-			ret["type"] = "file_path";
-		} else if (type == TYPE_DIRECTORY_PATH) {
-			ret["type"] = "directory_path";
-		} else if (type == TYPE_LONG_TEXT) {
-			ret["type"] = "long_text";
-		}*/
 
 		// Serialize possible enum values
 		auto enumStrings = SettingsManager::getEnumStrings(key, false);

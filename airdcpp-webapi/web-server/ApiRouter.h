@@ -31,7 +31,7 @@ namespace webserver {
 
 		void handleSocketRequest(const std::string& aRequestBody, WebSocketPtr& aSocket, bool aIsSecure) noexcept;
 		api_return handleHttpRequest(const std::string& aRequestPath, const websocketpp::http::parser::request& aRequest,
-			json& output_, json& error_, bool aIsSecure, const string& aIp) noexcept;
+			json& output_, json& error_, bool aIsSecure, const string& aIp, const SessionPtr& aSession) noexcept;
 	private:
 		api_return handleRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) noexcept;
 

@@ -35,12 +35,20 @@ namespace webserver {
 	class ParentApiModule : public SubscribableApiModule {
 	public:
 		typedef ParentApiModule<IdType, ItemType> Type;
-		typedef std::function<IdType(const string&)> ConvertF;
+		typedef std::function<IdType(const string&)> IdConvertF;
+		typedef std::function<json(const ItemType&)> ChildSerializeF;
 
-		ParentApiModule(const string& aSubmoduleSection, const regex& aIdMatcher, Access aAccess, Session* aSession, const StringList& aSubscriptions, const StringList& aChildSubscription, ConvertF aConvertF) :
-			SubscribableApiModule(aSession, aAccess, &aSubscriptions), convertF(aConvertF) {
+		ParentApiModule(const string& aSubmoduleSection, const regex& aIdMatcher, Access aAccess, Session* aSession, const StringList& aSubscriptions, const StringList& aChildSubscription, IdConvertF aIdConvertF, ChildSerializeF aChildSerializeF) :
+			SubscribableApiModule(aSession, aAccess, &aSubscriptions), idConvertF(aIdConvertF), childSerializeF(aChildSerializeF) {
 
+			// Request forwarder
 			requestHandlers[aSubmoduleSection].push_back(ApiModule::RequestHandler(aIdMatcher, std::bind(&Type::handleSubModuleRequest, this, placeholders::_1)));
+
+			// Get module
+			METHOD_HANDLER(aSubmoduleSection, aAccess, ApiRequest::METHOD_GET, (aIdMatcher), false, Type::handleGetSubmodule);
+
+			// List modules
+			METHOD_HANDLER(aSubmoduleSection + "s", aAccess, ApiRequest::METHOD_GET, (), false, Type::handleGetSubmodules);
 
 			for (const auto& s: aChildSubscription) {
 				childSubscriptions.emplace(s, false);
@@ -87,11 +95,7 @@ namespace webserver {
 
 		// Forward request to a submodule
 		api_return handleSubModuleRequest(ApiRequest& aRequest) {
-			auto sub = getSubModule(aRequest.getStringParam(0));
-			if (!sub) {
-				aRequest.setResponseErrorStr("Submodule was not found");
-				return websocketpp::http::status_code::not_found;
-			}
+			auto sub = getSubModule(aRequest);
 
 			aRequest.popParam();
 			return sub->handleRequest(aRequest);
@@ -131,7 +135,7 @@ namespace webserver {
 		}
 
 		// Submodules should NEVER be accessed outside of web server threads (e.g. API requests)
-		typename ItemType::Ptr getSubModule(IdType aId) {
+		typename ItemType::Ptr findSubModule(IdType aId) {
 			RLock l(cs);
 			auto m = subModules.find(aId);
 			if (m != subModules.end()) {
@@ -142,8 +146,35 @@ namespace webserver {
 		}
 
 		// Submodules should NEVER be accessed outside of web server threads (e.g. API requests)
-		typename ItemType::Ptr getSubModule(const string& aId) {
-			return getSubModule(convertF(aId));
+		typename ItemType::Ptr findSubModule(const string& aId) {
+			return findSubModule(idConvertF(aId));
+		}
+
+		// Parse module ID from the request, throws if the module was not found
+		typename ItemType::Ptr getSubModule(ApiRequest& aRequest) {
+			auto sub = findSubModule(aRequest.getStringParam(0));
+			if (!sub) {
+				throw RequestException(websocketpp::http::status_code::not_found, "Entity was not found");
+			}
+
+			return sub;
+		}
+
+		api_return handleGetSubmodules(ApiRequest& aRequest) {
+			auto retJson = json::array();
+			forEachSubModule([&](const ItemType& aInfo) {
+				retJson.push_back(childSerializeF(aInfo));
+			});
+
+			aRequest.setResponseBody(retJson);
+			return websocketpp::http::status_code::ok;
+		}
+
+		api_return handleGetSubmodule(ApiRequest& aRequest) {
+			auto info = getSubModule(aRequest);
+
+			aRequest.setResponseBody(childSerializeF(*info.get()));
+			return websocketpp::http::status_code::ok;
 		}
 	protected:
 		mutable SharedMutex cs;
@@ -155,7 +186,7 @@ namespace webserver {
 			}
 		}
 
-		void addSubModule(IdType aId, typename ItemType::Ptr&& aModule) {
+		void addSubModule(IdType aId, const typename ItemType::Ptr& aModule) {
 			{
 				WLock l(cs);
 				subModules.emplace(aId, aModule);
@@ -172,7 +203,8 @@ namespace webserver {
 		map<IdType, typename ItemType::Ptr> subModules;
 
 		SubscribableApiModule::SubscriptionMap childSubscriptions;
-		const ConvertF convertF;
+		const IdConvertF idConvertF;
+		const ChildSerializeF childSerializeF;
 	};
 
 	template<class ParentIdType, class ItemType, class ItemJsonType>
@@ -245,7 +277,7 @@ namespace webserver {
 			// Ensure that we have a session
 			SubscribableApiModule::asyncRunWrapper([=] {
 				// Ensure that we have a submodule (the parent must exist if we have a session)
-				auto m = aParentModule->getSubModule(aId);
+				auto m = aParentModule->findSubModule(aId);
 				if (!m) {
 					dcdebug("Trying to run an async task for a removed submodule\n");
 					return;

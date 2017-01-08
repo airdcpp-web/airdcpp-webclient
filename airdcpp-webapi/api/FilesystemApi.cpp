@@ -90,7 +90,7 @@ namespace webserver {
 			json item;
 			item["name"] = fileName;
 			if (i->isDirectory()) {
-				item["type"] = Serializer::serializeFolderType(-1, -1);
+				item["type"] = Serializer::serializeFolderType(DirectoryContentInfo());
 			} else {
 				item["type"] = Serializer::serializeFileType(i->getFileName());
 				item["size"] = i->getSize();
@@ -116,7 +116,7 @@ namespace webserver {
 			return websocketpp::http::status_code::internal_server_error;
 		}
 
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return FilesystemApi::handleGetDiskInfo(ApiRequest& aRequest) {

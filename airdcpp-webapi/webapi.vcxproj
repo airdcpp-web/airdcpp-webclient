@@ -205,7 +205,7 @@
     <ClInclude Include="api\QueueBundleUtils.h" />
     <ClInclude Include="api\RecentHubApi.h" />
     <ClInclude Include="api\SearchApi.h" />
-    <ClInclude Include="api\SearchResultInfo.h" />
+    <ClInclude Include="api\SearchEntity.h" />
     <ClInclude Include="api\SearchUtils.h" />
     <ClInclude Include="api\SessionApi.h" />
     <ClInclude Include="api\SettingApi.h" />
@@ -270,7 +270,7 @@
     <ClCompile Include="api\QueueBundleUtils.cpp" />
     <ClCompile Include="api\RecentHubApi.cpp" />
     <ClCompile Include="api\SearchApi.cpp" />
-    <ClCompile Include="api\SearchResultInfo.cpp" />
+    <ClCompile Include="api\SearchEntity.cpp" />
     <ClCompile Include="api\SearchUtils.cpp" />
     <ClCompile Include="api\SessionApi.cpp" />
     <ClCompile Include="api\SettingApi.cpp" />

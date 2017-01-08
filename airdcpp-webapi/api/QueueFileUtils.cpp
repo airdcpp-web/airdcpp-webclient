@@ -74,7 +74,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case PROP_NAME: return getDisplayName(aItem);
 		case PROP_TARGET: return aItem->getTarget();
-		case PROP_TYPE: return Format::formatFileType(aItem->getTarget());
+		case PROP_TYPE: return Util::formatFileType(aItem->getTarget());
 		case PROP_STATUS: return formatDisplayStatus(aItem);
 		case PROP_PRIORITY: return AirUtil::getPrioText(aItem->getPriority());
 		case PROP_SOURCES: return formatFileSources(aItem);

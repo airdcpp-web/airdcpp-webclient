@@ -98,6 +98,8 @@ namespace webserver {
 		auto name = JsonUtil::getOptionalField<string>("target_name", aJson, false, targetName_.empty());
 		if (name) {
 			targetName_ = *name;
+		} else if (targetName_.empty()) {
+			JsonUtil::throwError("target_name", JsonUtil::ERROR_MISSING, "Target bundle name must be provided");
 		}
 
 		priority_ = deserializePriority(aJson, true);

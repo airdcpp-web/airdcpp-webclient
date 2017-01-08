@@ -21,7 +21,7 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/FavoriteManager.h>
+#include <airdcpp/RecentManager.h>
 
 namespace webserver {
 	RecentHubApi::RecentHubApi(Session* aSession) : ApiModule(aSession) {
@@ -46,7 +46,7 @@ namespace webserver {
 		auto pattern = JsonUtil::getField<string>("pattern", reqJson);
 		auto maxResults = JsonUtil::getField<size_t>("max_results", reqJson);
 
-		auto hubs = FavoriteManager::getInstance()->searchRecentHubs(pattern, maxResults);
+		auto hubs = RecentManager::getInstance()->searchRecentHubs(pattern, maxResults);
 
 		auto retJson = json::array();
 		for (const auto& h : hubs) {
@@ -58,7 +58,7 @@ namespace webserver {
 	}
 
 	api_return RecentHubApi::handleGetHubs(ApiRequest& aRequest) {
-		auto hubs = FavoriteManager::getInstance()->getRecentHubs();
+		auto hubs = RecentManager::getInstance()->getRecentHubs();
 
 		auto retJson = Serializer::serializeFromPosition(aRequest.getRangeParam(0), aRequest.getRangeParam(1), hubs, serializeHub);
 		aRequest.setResponseBody(retJson);

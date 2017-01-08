@@ -101,22 +101,33 @@ namespace webserver {
 			websocketpp::http::status_code::value status;
 			auto ip = con->get_remote_endpoint();
 
+			string authError;
+			auto session = userManager->parseHttpSession(con->get_request(), authError, ip);
+
+			// Catch invalid authentication info
+			if (!authError.empty()) {
+				con->set_body(authError);
+				con->set_status(websocketpp::http::status_code::unauthorized);
+				return;
+			}
+
 			if (con->get_resource().length() >= 4 && con->get_resource().compare(0, 4, "/api") == 0) {
 				auto path = con->get_resource().substr(4);
 
 				onData(path + ": " + con->get_request().get_body(), TransportType::TYPE_HTTP_API, Direction::INCOMING, ip);
 
-				json output, error;
+				json output, apiError;
 				status = api.handleHttpRequest(
 					path,
 					con->get_request(),
 					output,
-					error,
+					apiError,
 					aIsSecure,
-					ip
-					);
+					ip,
+					session
+				);
 
-				auto data = status != websocketpp::http::status_code::ok ? error.dump() : output.dump();
+				auto data = status != websocketpp::http::status_code::ok ? apiError.dump() : output.dump();
 				onData(path + " (" + Util::toString(status) + "): " + data, TransportType::TYPE_HTTP_API, Direction::OUTGOING, ip);
 
 				con->set_body(data);
@@ -127,7 +138,7 @@ namespace webserver {
 
 				StringPairList headers;
 				std::string output;
-				status = fileServer.handleRequest(con->get_resource(), con->get_request(), output, headers);
+				status = fileServer.handleRequest(con->get_resource(), con->get_request(), output, headers, session);
 
 				for (const auto& p : headers) {
 					con->append_header(p.first, p.second);

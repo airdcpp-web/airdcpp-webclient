@@ -80,21 +80,7 @@ namespace webserver {
 
 	websocketpp::http::status_code::value ApiRouter::handleHttpRequest(const string& aRequestPath,
 		const websocketpp::http::parser::request& aRequest, json& output_, json& error_,
-		bool aIsSecure, const string& aIp) noexcept {
-
-		SessionPtr session = nullptr;
-		auto token = aRequest.get_header("Authorization");
-		if (token != websocketpp::http::empty_header) {
-			session = WebServerManager::getInstance()->getUserManager().getSession(token);
-			if (!session) {
-				// Don't let invalid Authorization tokens through
-				error_ = {
-					{ "message", "Invalid Authorization token (session expired?)" }
-				};
-
-				return websocketpp::http::status_code::unauthorized;
-			}
-		}
+		bool aIsSecure, const string& aIp, const SessionPtr& aSession) noexcept {
 
 		auto& requestBody = aRequest.get_body();
 		dcdebug("Received HTTP request: %s\n", aRequest.get_body().c_str());
@@ -103,7 +89,7 @@ namespace webserver {
 			apiRequest.validate();
 
 			apiRequest.parseHttpRequestJson(requestBody);
-			apiRequest.setSession(session);
+			apiRequest.setSession(aSession);
 
 			return handleRequest(apiRequest, aIsSecure, nullptr, aIp);
 		} catch (const std::exception& e) {
@@ -132,7 +118,7 @@ namespace webserver {
 			}
 
 			// Require using the same protocol that was used for logging in
-			if (aRequest.getSession()->isSecure() != aIsSecure) {
+			if ((aRequest.getSession()->getSessionType() == Session::TYPE_SECURE) != aIsSecure) {
 				aRequest.setResponseErrorStr("Protocol mismatch");
 				return websocketpp::http::status_code::not_acceptable;
 			}
@@ -143,6 +129,9 @@ namespace webserver {
 		} catch (const ArgumentException& e) {
 			aRequest.setResponseErrorJson(e.getErrorJson());
 			code = CODE_UNPROCESSABLE_ENTITY;
+		} catch (const RequestException& e) {
+			aRequest.setResponseErrorStr(e.what());
+			code = e.getCode();
 		} catch (const std::exception& e) {
 			aRequest.setResponseErrorStr(e.what());
 			code = websocketpp::http::status_code::bad_request;

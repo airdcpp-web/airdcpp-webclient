@@ -41,6 +41,7 @@ namespace webserver {
 		api_return handleGetFiles(ApiRequest& aRequest);
 
 		api_return handleAddFile(ApiRequest& aRequest);
+		api_return handleAddLocalFile(ApiRequest& aRequest);
 		api_return handleRemoveFile(ApiRequest& aRequest);
 
 		api_return handleGetText(ApiRequest& aRequest);

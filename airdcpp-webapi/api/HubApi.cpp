@@ -31,10 +31,14 @@ namespace webserver {
 		"hub_removed"
 	};
 
-	HubApi::HubApi(Session* aSession) : ParentApiModule("session", TOKEN_PARAM, Access::HUBS_VIEW, aSession, subscriptionList, HubInfo::subscriptionList, [](const string& aId) { return Util::toUInt32(aId); }) {
-		ClientManager::getInstance()->addListener(this);
+	HubApi::HubApi(Session* aSession) : 
+		ParentApiModule("session", TOKEN_PARAM, Access::HUBS_VIEW, aSession, subscriptionList, HubInfo::subscriptionList, 
+			[](const string& aId) { return Util::toUInt32(aId); },
+			[](const HubInfo& aInfo) { return serializeClient(aInfo.getClient()); }
+		) 
+	{
 
-		METHOD_HANDLER("sessions", Access::HUBS_VIEW, ApiRequest::METHOD_GET, (), false, HubApi::handleGetHubs);
+		ClientManager::getInstance()->addListener(this);
 
 		METHOD_HANDLER("session", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), true, HubApi::handleConnect);
 		METHOD_HANDLER("session", Access::HUBS_EDIT, ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, HubApi::handleDisconnect);
@@ -120,7 +124,6 @@ namespace webserver {
 		j["adc_down_per_user"] = stats.downPerAdcUser;
 		j["adc_up_per_user"] = stats.upPerAdcUser;
 		j["nmdc_speed_user"] = stats.nmdcSpeedPerUser;
-		//j["profile_root_count"] = stats.;
 
 		stats.forEachClient([&](const string& aName, int aCount, double aPercentage) {
 			j["clients"].push_back({
@@ -141,25 +144,16 @@ namespace webserver {
 			{ "hub_url", aClient->getHubUrl() },
 			{ "id", aClient->getClientId() },
 			{ "favorite_hub", aClient->getFavToken() },
-			{ "share_profile", Serializer::serializeShareProfileSimple(aClient->get(HubSettings::ShareProfile)) }
+			{ "share_profile", Serializer::serializeShareProfileSimple(aClient->get(HubSettings::ShareProfile)) },
+			{ "message_counts", Serializer::serializeCacheInfo(aClient->getCache(), Serializer::serializeUnreadChat) },
 		};
 
-		Serializer::serializeCacheInfo(j, aClient->getCache(), Serializer::serializeUnreadChat);
+		Serializer::serializeCacheInfoLegacy(j, aClient->getCache(), Serializer::serializeUnreadChat);
 		return j;
 	}
 
 	void HubApi::addHub(const ClientPtr& aClient) noexcept {
 		addSubModule(aClient->getClientId(), std::make_shared<HubInfo>(this, aClient));
-	}
-
-	api_return HubApi::handleGetHubs(ApiRequest& aRequest) {
-		auto retJson = json::array();
-		forEachSubModule([&](const HubInfo& aInfo) {
-			retJson.push_back(serializeClient(aInfo.getClient()));
-		});
-
-		aRequest.setResponseBody(retJson);
-		return websocketpp::http::status_code::ok;
 	}
 
 	// Use async tasks because adding/removing HubInfos require calls to ClientListener (which is likely 
@@ -183,9 +177,7 @@ namespace webserver {
 				return;
 			}
 
-			send("hub_removed", {
-				{ "id", aClient->getClientId() }
-			});
+			send("hub_removed", serializeClient(aClient));
 		});
 	}
 
@@ -197,14 +189,11 @@ namespace webserver {
 		RecentHubEntryPtr r = new RecentHubEntry(address);
 		auto client = ClientManager::getInstance()->createClient(r);
 		if (!client) {
-			aRequest.setResponseErrorStr("Hub exists");
-			return websocketpp::http::status_code::bad_request;
+			aRequest.setResponseErrorStr("Hub with the same URL exists already");
+			return websocketpp::http::status_code::conflict;
 		}
 
-		aRequest.setResponseBody({
-			{ "id", client->getClientId() }
-		});
-
+		aRequest.setResponseBody(serializeClient(client));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -213,7 +202,7 @@ namespace webserver {
 			return websocketpp::http::status_code::not_found;
 		}
 
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	// TODO: move to user API
@@ -223,8 +212,9 @@ namespace webserver {
 		auto pattern = JsonUtil::getField<string>("pattern", reqJson);
 		auto maxResults = JsonUtil::getField<size_t>("max_results", reqJson);
 		auto ignorePrefixes = JsonUtil::getOptionalFieldDefault<bool>("ignore_prefixes", reqJson, true);
+		auto hubs = Deserializer::deserializeHubUrls(reqJson);
 
-		auto users = ClientManager::getInstance()->searchNicks(pattern, maxResults, ignorePrefixes);
+		auto users = ClientManager::getInstance()->searchNicks(pattern, maxResults, ignorePrefixes, hubs);
 
 		auto retJson = json::array();
 		for (const auto& u : users) {

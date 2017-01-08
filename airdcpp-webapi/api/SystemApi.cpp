@@ -27,6 +27,7 @@
 #include <api/common/Serializer.h>
 
 #include <airdcpp/ActivityManager.h>
+#include <airdcpp/ClientManager.h>
 #include <airdcpp/Thread.h>
 #include <airdcpp/TimerManager.h>
 
@@ -40,6 +41,8 @@ namespace webserver {
 
 		METHOD_HANDLER("restart_web", Access::ADMIN, ApiRequest::METHOD_POST, (), false, SystemApi::handleRestartWeb);
 		METHOD_HANDLER("shutdown", Access::ADMIN, ApiRequest::METHOD_POST, (), false, SystemApi::handleShutdown);
+
+		METHOD_HANDLER("system_info", Access::ANY, ApiRequest::METHOD_GET, (), false, SystemApi::handleGetSystemInfo);
 
 		createSubscription("away_state");
 
@@ -78,16 +81,81 @@ namespace webserver {
 
 	api_return SystemApi::handleRestartWeb(ApiRequest& aRequest) {
 		systemActionThread = make_shared<SystemActionThread>(systemActionThread, false);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return SystemApi::handleShutdown(ApiRequest& aRequest) {
 		systemActionThread = make_shared<SystemActionThread>(systemActionThread, true);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	void SystemApi::on(ActivityManagerListener::AwayModeChanged, AwayMode /*aNewMode*/) noexcept {
 		send("away_state", serializeAwayState());
+	}
+
+	/*string SystemApi::getNetworkType(const string& aIp) noexcept {
+		auto ip = aIp;
+
+		// websocketpp will map IPv4 addresses to IPv6
+		auto v6 = aIp.find(":") != string::npos;
+		if (aIp.find("[::ffff:") == 0) {
+			auto end = aIp.rfind("]");
+			ip = aIp.substr(8, end - 8);
+			v6 = false;
+		}
+		else if (aIp[0] == '[') {
+			// Remove brackets
+			auto end = aIp.rfind("]");
+			ip = aIp.substr(1, end - 1);
+		}
+
+		if (Util::isPrivateIp(ip, v6)) {
+			return "private";
+		}
+		else if (Util::isLocalIp(ip, v6)) {
+			return "local";
+		}
+
+		return "internet";
+	}*/
+
+	string SystemApi::getHostname() noexcept {
+#ifdef _WIN32
+		TCHAR computerName[1024];
+		DWORD size = 1024;
+		GetComputerName(computerName, &size);
+		return Text::fromT(computerName);
+#else
+		char hostname[128];
+		gethostname(hostname, sizeof hostname);
+		return hostname;
+#endif
+	}
+
+	string SystemApi::getPlatform() noexcept {
+#ifdef _WIN32
+		return "windows";
+#elif APPLE
+		return "osx";
+#else
+		return "other";
+#endif
+	}
+
+	json SystemApi::getSystemInfo() noexcept {
+		return{
+			{ "path_separator", PATH_SEPARATOR_STR },
+			//{ "network_type", getNetworkType(aIp) },
+			{ "platform", getPlatform() },
+			{ "hostname", getHostname() },
+			{ "cid", ClientManager::getInstance()->getMyCID().toBase32() },
+			{ "run_wizard", SETTING(WIZARD_RUN) },
+		};
+	}
+
+	api_return SystemApi::handleGetSystemInfo(ApiRequest& aRequest) {
+		aRequest.setResponseBody(getSystemInfo());
+		return websocketpp::http::status_code::ok;
 	}
 
 	string SystemApi::getAwayState(AwayMode aAwayMode) noexcept {
@@ -116,6 +184,7 @@ namespace webserver {
 		auto away = JsonUtil::getField<bool>("away", aRequest.getRequestBody());
 		ActivityManager::getInstance()->setAway(away ? AWAY_MANUAL : AWAY_OFF);
 
+		aRequest.setResponseBody(serializeAwayState());
 		return websocketpp::http::status_code::ok;
 	}
 

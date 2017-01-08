@@ -63,31 +63,31 @@ namespace webserver {
 
 		api_return handleGetCounts(ApiRequest& aRequest);
 
-		void on(Redirect, const Client*, const string&) noexcept override;
-		void on(Failed, const string&, const string&) noexcept override;
-		void on(GetPassword, const Client*) noexcept override;
-		void on(HubUpdated, const Client*) noexcept override;
-		void on(HubTopic, const Client*, const string&) noexcept override;
-		void on(ConnectStateChanged, const Client*, uint8_t) noexcept override;
+		void on(ClientListener::Redirect, const Client*, const string&) noexcept override;
+		void on(ClientListener::Disconnected, const string&, const string&) noexcept override;
+		void on(ClientListener::GetPassword, const Client*) noexcept override;
+		void on(ClientListener::HubUpdated, const Client*) noexcept override;
+		void on(ClientListener::HubTopic, const Client*, const string&) noexcept override;
+		void on(ClientListener::ConnectStateChanged, const Client*, uint8_t) noexcept override;
 
-		void on(UserConnected, const Client*, const OnlineUserPtr&) noexcept override;
-		void on(UserUpdated, const Client*, const OnlineUserPtr&) noexcept override;
-		void on(UsersUpdated, const Client*, const OnlineUserList&) noexcept override;
-		void on(UserRemoved, const Client*, const OnlineUserPtr&) noexcept override;
+		void on(ClientListener::UserConnected, const Client*, const OnlineUserPtr&) noexcept override;
+		void on(ClientListener::UserUpdated, const Client*, const OnlineUserPtr&) noexcept override;
+		void on(ClientListener::UsersUpdated, const Client*, const OnlineUserList&) noexcept override;
+		void on(ClientListener::UserRemoved, const Client*, const OnlineUserPtr&) noexcept override;
 
-		void on(Disconnecting, const Client*) noexcept override;
-		void on(Redirected, const string&, const ClientPtr& aNewClient) noexcept override;
+		void on(ClientListener::Close, const Client*) noexcept override;
+		void on(ClientListener::Redirected, const string&, const ClientPtr& aNewClient) noexcept override;
 
-		void on(ChatMessage, const Client*, const ChatMessagePtr& m) noexcept override {
+		void on(ClientListener::ChatMessage, const Client*, const ChatMessagePtr& m) noexcept override {
 			chatHandler.onChatMessage(m);
 		}
-		void on(StatusMessage, const Client*, const LogMessagePtr& m, int = ClientListener::FLAG_NORMAL) noexcept override {
+		void on(ClientListener::StatusMessage, const Client*, const LogMessagePtr& m, int = ClientListener::FLAG_NORMAL) noexcept override {
 			chatHandler.onStatusMessage(m);
 		}
-		void on(MessagesRead, const Client*) noexcept override {
+		void on(ClientListener::MessagesRead, const Client*) noexcept override {
 			chatHandler.onMessagesUpdated();
 		}
-		void on(MessagesCleared, const Client*) noexcept override {
+		void on(ClientListener::MessagesCleared, const Client*) noexcept override {
 			chatHandler.onMessagesUpdated();
 		}
 

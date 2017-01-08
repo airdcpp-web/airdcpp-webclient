@@ -43,7 +43,8 @@ namespace webserver {
 		static json serializeLogMessage(const LogMessagePtr& aMessageData) noexcept;
 
 		typedef std::function<json(const MessageCache& aCache)> UnreadSerializerF;
-		static void serializeCacheInfo(json& json_, const MessageCache& aCache, UnreadSerializerF unreadF) noexcept;
+		static void serializeCacheInfoLegacy(json& json_, const MessageCache& aCache, UnreadSerializerF unreadF) noexcept;
+		static json serializeCacheInfo(const MessageCache& aCache, const UnreadSerializerF& unreadF) noexcept;
 		static json serializeUnreadChat(const MessageCache& aCache) noexcept;
 		static json serializeUnreadLog(const MessageCache& aCache) noexcept;
 
@@ -51,8 +52,9 @@ namespace webserver {
 		static json serializeHintedUser(const HintedUser& aUser) noexcept;
 		static json serializeOnlineUser(const OnlineUserPtr& aUser) noexcept;
 
+		static string getFileTypeId(const string& aName) noexcept;
 		static json serializeFileType(const string& aPath) noexcept;
-		static json serializeFolderType(int aFiles, int aDirectories) noexcept;
+		static json serializeFolderType(const DirectoryContentInfo& aContentInfo) noexcept;
 
 		static json serializeIp(const string& aIP) noexcept;
 		static json serializeIp(const string& aIP, const string& aCountryCode) noexcept;
@@ -69,9 +71,11 @@ namespace webserver {
 		static json serializeDirectoryDupe(DupeType aDupeType, const string& aPath) noexcept;
 		static json serializeSlots(int aFree, int aTotal) noexcept;
 
+		static json serializeDirectoryDownload(const DirectoryDownloadPtr& aDownload) noexcept;
 		static json serializeDirectoryBundleAddInfo(const DirectoryBundleAddInfo& aInfo, const string& aError) noexcept;
 		static json serializeBundleAddInfo(const BundleAddInfo& aInfo) noexcept;
 
+		static json serializePriorityId(Priority aPriority) noexcept;
 		static json serializePriority(const QueueItemBase& aItem) noexcept;
 		static json serializeSourceCount(const QueueItemBase::SourceCount& aCount) noexcept;
 

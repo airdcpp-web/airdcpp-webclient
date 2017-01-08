@@ -19,6 +19,7 @@
 #include <api/HubInfo.h>
 #include <api/ApiModule.h>
 #include <api/common/Serializer.h>
+#include <api/FavoriteHubUtils.h>
 
 #include <web-server/JsonUtil.h>
 
@@ -39,7 +40,7 @@ namespace webserver {
 
 	HubInfo::HubInfo(ParentType* aParentModule, const ClientPtr& aClient) :
 		SubApiModule(aParentModule, aClient->getClientId(), subscriptionList), client(aClient),
-		chatHandler(this, aClient, "hub"), 
+		chatHandler(this, aClient, "hub", Access::HUBS_VIEW, Access::HUBS_EDIT, Access::HUBS_SEND), 
 		view("hub_user_view", this, OnlineUserUtils::propertyHandler, std::bind(&HubInfo::getUsers, this), 500), 
 		timer(getTimer([this] { onTimer(); }, 1000)) {
 
@@ -70,15 +71,17 @@ namespace webserver {
 
 	api_return HubInfo::handleReconnect(ApiRequest& aRequest) {
 		client->reconnect();
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return HubInfo::handleFavorite(ApiRequest& aRequest) {
-		if (!client->saveFavorite()) {
+		auto favHub = client->saveFavorite();
+		if (!favHub) {
 			aRequest.setResponseErrorStr(STRING(FAVORITE_HUB_ALREADY_EXISTS));
 			return websocketpp::http::status_code::bad_request;
 		}
 
+		aRequest.setResponseBody(Serializer::serializeItem(favHub, FavoriteHubUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -86,12 +89,12 @@ namespace webserver {
 		auto password = JsonUtil::getField<string>("password", aRequest.getRequestBody(), false);
 
 		client->password(password);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return HubInfo::handleRedirect(ApiRequest& aRequest) {
 		client->doRedirect();
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	json HubInfo::serializeIdentity(const ClientPtr& aClient) noexcept {
@@ -142,7 +145,7 @@ namespace webserver {
 		};
 	}
 
-	void HubInfo::on(ClientListener::Disconnecting, const Client*) noexcept {
+	void HubInfo::on(ClientListener::Close, const Client*) noexcept {
 
 	}
 
@@ -154,7 +157,7 @@ namespace webserver {
 		sendConnectState();
 	}
 
-	void HubInfo::on(Failed, const string&, const string&) noexcept {
+	void HubInfo::on(ClientListener::Disconnected, const string&, const string&) noexcept {
 		sendConnectState();
 
 		view.resetItems();
@@ -231,7 +234,8 @@ namespace webserver {
 
 	void HubInfo::onUserUpdated(const OnlineUserPtr& ou) noexcept {
 		// Don't update all properties to avoid unneeded sorting
-		onUserUpdated(ou, { OnlineUserUtils::PROP_SHARED, OnlineUserUtils::PROP_DESCRIPTION, 
+		onUserUpdated(ou, { 
+			OnlineUserUtils::PROP_SHARED, OnlineUserUtils::PROP_DESCRIPTION, 
 			OnlineUserUtils::PROP_TAG, OnlineUserUtils::PROP_UPLOAD_SPEED, 
 			OnlineUserUtils::PROP_DOWNLOAD_SPEED, OnlineUserUtils::PROP_EMAIL, 
 			OnlineUserUtils::PROP_FILES, OnlineUserUtils::PROP_FLAGS,

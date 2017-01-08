@@ -25,43 +25,6 @@
 #include <boost/range/algorithm/copy.hpp>
 
 namespace webserver {
-	std::string Format::formatFolderContent(int fileCount, int folderCount) noexcept {
-		std::string name;
-
-		bool hasFileInfo = fileCount > 0;
-		bool hasFolderInfo = folderCount > 0;
-
-		if (hasFolderInfo) {
-			if (folderCount == 1) {
-				name += Util::toString(folderCount) + " " + Text::toLower(STRING(FOLDER));
-			} else {
-				name += STRING_F(X_FOLDERS, folderCount);
-			}
-		}
-
-		if (hasFileInfo) {
-			if (hasFolderInfo)
-				name += ", ";
-
-			if (fileCount == 1) {
-				name += Util::toString(fileCount) + " " + Text::toLower(STRING(FILE));
-			} else {
-				name += STRING_F(X_FILES, fileCount);
-			}
-		}
-
-		return name;
-	}
-
-	std::string Format::formatFileType(const string& aPath) noexcept {
-		auto type = Util::getFileExt(aPath);
-		if (type.size() > 0 && type[0] == '.') {
-			type.erase(0, 1);
-		}
-
-		return type;
-	}
-
 	std::string Format::formatNicks(const HintedUser& aUser) noexcept {
 		return Util::listToString(ClientManager::getInstance()->getNicks(aUser));
 	}

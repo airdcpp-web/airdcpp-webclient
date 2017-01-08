@@ -46,22 +46,78 @@ namespace webserver {
 		server->removeListener(this);
 	}
 
-	SessionPtr WebUserManager::authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, bool aUserSession, const string& aIP) noexcept {
-		auto u = getUser(aUserName);
-		if (!u) {
+	SessionPtr WebUserManager::parseHttpSession(const websocketpp::http::parser::request& aRequest, string& error_, const string& aIp) noexcept {
+		bool basicAuth = false;
+
+		auto token = aRequest.get_header("Authorization");
+		if (token != websocketpp::http::empty_header) {
+			if (token.length() > 6 && token.substr(0, 6) == "Basic ") {
+				token = websocketpp::base64_decode(token.substr(6));
+				basicAuth = true;
+			}
+		} else {
 			return nullptr;
 		}
 
-		if (u->getPassword() != aPassword) {
+		auto session = getSession(token);
+		if (!session) {
+			if (basicAuth) {
+				session = authenticateBasicHttp(token, aIp);
+				if (!session) {
+					error_ = "Invalid username or password";
+				}
+			} else {
+				error_ = "Invalid authorization token (session expired?)";
+			}
+		}
+
+		return session;
+	}
+
+	SessionPtr WebUserManager::authenticateSession(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, bool aUserSession, const string& aIP) noexcept {
+		auto user = getUser(aUserName);
+		if (!user) {
 			return nullptr;
 		}
 
-		u->setLastLogin(GET_TIME());
-		u->addSession();
-		fire(WebUserManagerListener::UserUpdated(), u);
+		if (user->getPassword() != aPassword) {
+			return nullptr;
+		}
 
-		auto uuid = boost::uuids::random_generator()();
-		auto session = std::make_shared<Session>(u, boost::uuids::to_string(uuid), aIsSecure, server, aMaxInactivityMinutes, aUserSession, aIP);
+		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+		return createSession(user, uuid, aIsSecure ? Session::TYPE_SECURE : Session::TYPE_PLAIN, aMaxInactivityMinutes, aUserSession, aIP);
+	}
+
+	SessionPtr WebUserManager::authenticateBasicHttp(const string& aAuthString, const string& aIP) noexcept {
+
+		string username, password;
+
+		auto i = aAuthString.rfind(':');
+		if (i == string::npos) {
+			return nullptr;
+		}
+
+		username = aAuthString.substr(0, i);
+		password = aAuthString.substr(i + 1);
+
+		auto user = getUser(username);
+		if (!user) {
+			return nullptr;
+		}
+
+		if (user->getPassword() != password) {
+			return nullptr;
+		}
+
+		return createSession(user, aAuthString, Session::TYPE_BASIC_AUTH, 60, false, aIP);
+	}
+
+	SessionPtr WebUserManager::createSession(const WebUserPtr& aUser, const string& aSessionToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, bool aUserSession, const string& aIP) {
+		auto session = std::make_shared<Session>(aUser, aSessionToken, aType, server, aMaxInactivityMinutes, aUserSession, aIP);
+
+		aUser->setLastLogin(GET_TIME());
+		aUser->addSession();
+		fire(WebUserManagerListener::UserUpdated(), aUser);
 
 		{
 			WLock l(cs);

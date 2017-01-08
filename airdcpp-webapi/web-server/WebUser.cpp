@@ -116,7 +116,11 @@ namespace webserver {
 
 	int WebUser::countPermissions() const noexcept {
 		return boost::accumulate(permissions | map_values, 0);
-		//return std::accumulate(permissions.begin(), permissions.end(), 0, [](const pair<Access, bool>))
+	}
+
+	bool WebUser::validateUsername(const string& aUsername) noexcept {
+		boost::regex reg(R"(\w+)");
+		return boost::regex_match(aUsername, reg);
 	}
 
 	string WebUser::getPermissionsStr() const noexcept {
@@ -129,9 +133,9 @@ namespace webserver {
 		}
 
 		dcassert(aAccess != Access::NONE);
-		/*if (aAccess == Access::NONE) {
+		if (aAccess == Access::NONE) {
 			return false;
-		}*/
+		}
 
 		return permissions.at(aAccess) || permissions.at(Access::ADMIN);
 	}
