@@ -79,6 +79,7 @@ public:
 	bool removeFavoriteDir(const string& aPath) noexcept;
 	bool hasFavoriteDir(const string& aPath) const noexcept;
 	void setFavoriteDirs(const FavoriteDirectoryMap& dirs) noexcept;
+	StringPair getFavoriteDirectory(const string& aPath) const noexcept;
 
 	GroupedDirectoryMap getGroupedFavoriteDirs() const noexcept;
 	FavoriteDirectoryMap getFavoriteDirs() const noexcept;

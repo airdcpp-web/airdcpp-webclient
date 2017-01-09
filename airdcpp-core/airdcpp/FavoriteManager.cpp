@@ -308,6 +308,16 @@ void FavoriteManager::setFavoriteDirs(const FavoriteDirectoryMap& dirs) noexcept
 	save();
 }
 
+StringPair FavoriteManager::getFavoriteDirectory(const string& aPath) const noexcept {
+	RLock l(cs);
+	auto i = favoriteDirectories.find(aPath);
+	if (i == favoriteDirectories.end()) {
+		return StringPair();
+	}
+
+	return *i;
+}
+
 GroupedDirectoryMap FavoriteManager::getGroupedFavoriteDirs() const noexcept {
 	GroupedDirectoryMap ret;
 

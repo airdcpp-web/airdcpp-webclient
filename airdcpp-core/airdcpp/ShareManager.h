@@ -351,11 +351,9 @@ private:
 	class RootDirectory : boost::noncopyable {
 		public:
 			typedef shared_ptr<RootDirectory> Ptr;
-			typedef unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> Map;
+			typedef unordered_map<TTHValue, Ptr> Map;
 
-			static Ptr create(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, Map& rootDirectories_) noexcept;
-
-			GETSET(string, path, Path);
+			static Ptr create(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming) noexcept;
 
 			GETSET(ProfileTokenSet, rootProfiles, RootProfiles);
 			IGETSET(bool, cacheDirty, CacheDirty, false);
@@ -376,6 +374,10 @@ private:
 				return virtualName->getLower();
 			}
 
+			inline const string& getPath() const noexcept {
+				return path;
+			}
+
 			bool useMonitoring() const noexcept;
 
 			void setName(const string& aName) noexcept;
@@ -384,6 +386,7 @@ private:
 			RootDirectory(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming) noexcept;
 
 			unique_ptr<DualString> virtualName;
+			const string path;
 	};
 
 	typedef vector<RootDirectory::Ptr> RootDirectoryList;
@@ -506,7 +509,7 @@ private:
 
 		GETSET(uint64_t, lastWrite, LastWrite);
 		GETSET(Directory*, parent, Parent);
-		GETSET(RootDirectory::Ptr, rootDirectory, ProfileDir);
+		GETSET(RootDirectory::Ptr, root, Root);
 
 		~Directory();
 
@@ -527,7 +530,7 @@ private:
 		Directory(Directory&) = delete;
 		Directory& operator=(Directory&) = delete;
 	private:
-		Directory(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, RootDirectory::Ptr root = nullptr);
+		Directory(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, const RootDirectory::Ptr& aRoot = nullptr);
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 
 		string getRealPath(const string& path) const noexcept;
@@ -575,7 +578,7 @@ private:
 
 	bool addDirResult(const Directory* aDir, SearchResultList& aResults, const OptionalProfileToken& aProfile, SearchQuery& srch) const noexcept;
 
-	RootDirectory::Map rootDirectories;
+	//RootDirectory::Map rootDirectories;
 
 	TaskQueue tasks;
 

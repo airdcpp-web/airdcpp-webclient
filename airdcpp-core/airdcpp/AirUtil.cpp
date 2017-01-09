@@ -146,6 +146,13 @@ TTHValue AirUtil::getTTH(const string& aFileName, int64_t aSize) noexcept {
 	return TTHValue(tmp.finalize());
 }
 
+TTHValue AirUtil::getPathId(const string& aPath) noexcept {
+	TigerHash tmp;
+	auto str = Text::toLower(aPath);
+	tmp.update(str.c_str(), str.length());
+	return TTHValue(tmp.finalize());
+}
+
 void AirUtil::init() {
 	releaseReg.assign(getReleaseRegBasic());
 	subDirRegPlain.assign(getSubDirReg(), boost::regex::icase);

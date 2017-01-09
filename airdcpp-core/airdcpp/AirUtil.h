@@ -57,7 +57,11 @@ public:
 	static bool isFinishedDupe(DupeType aType) noexcept;
 	static bool allowOpenDupe(DupeType aType) noexcept;
 
+	// Calculates TTH value from the lowercase filename and size
 	static TTHValue getTTH(const string& aFileName, int64_t aSize) noexcept;
+
+	// Calculates TTH value from the lowercase path
+	static TTHValue getPathId(const string& aPath) noexcept;
 
 	static void init();
 	static void updateCachedSettings();
