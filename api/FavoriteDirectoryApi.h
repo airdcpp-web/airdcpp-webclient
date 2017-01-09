@@ -42,12 +42,19 @@ namespace webserver {
 		api_return handleGetDirectories(ApiRequest& aRequest);
 
 		api_return handleAddDirectory(ApiRequest& aRequest);
+		api_return handleGetDirectory(ApiRequest& aRequest);
 		api_return handleUpdateDirectory(ApiRequest& aRequest);
 		api_return handleRemoveDirectory(ApiRequest& aRequest);
 
-		api_return handleSetDirectory(ApiRequest& aRequest, bool aExisting);
+		api_return handleUpdateDirectoryLegacy(ApiRequest& aRequest);
+		api_return handleRemoveDirectoryLegacy(ApiRequest& aRequest);
+
+		StringPair updatePath(const string& aPath, const json& aRequestJson);
 
 		void on(FavoriteManagerListener::FavoriteDirectoriesUpdated) noexcept override;
+
+		static string getPath(const ApiRequest& aRequest);
+		static json serializeDirectory(const StringPair& aDirectory) noexcept;
 	};
 }
 

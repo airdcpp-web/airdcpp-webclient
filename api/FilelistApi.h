@@ -42,7 +42,6 @@ namespace webserver {
 
 	private:
 		void addList(const DirectoryListingPtr& aList) noexcept;
-		api_return handleQueueList(ApiRequest& aRequest, QueueItem::Flags aFlags);
 
 		api_return handlePostList(ApiRequest& aRequest);
 		api_return handleDeleteList(ApiRequest& aRequest);

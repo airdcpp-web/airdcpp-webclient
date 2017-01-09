@@ -41,10 +41,15 @@ namespace webserver {
 		}
 	private:
 		api_return handleGetRoots(ApiRequest& aRequest);
-		api_return handleGetRoot(ApiRequest& aRequest);
+
 		api_return handleAddRoot(ApiRequest& aRequest);
+		api_return handleGetRoot(ApiRequest& aRequest);
 		api_return handleUpdateRoot(ApiRequest& aRequest);
 		api_return handleRemoveRoot(ApiRequest& aRequest);
+
+		// DEPRECATED
+		api_return handleUpdateRootLegacy(ApiRequest& aRequest);
+		api_return handleRemoveRootLegacy(ApiRequest& aRequest);
 
 		void parseRoot(ShareDirectoryInfoPtr& aInfo, const json& j, bool aIsNew);
 
@@ -59,6 +64,8 @@ namespace webserver {
 
 		void onRootUpdated(const ShareDirectoryInfoPtr& aInfo, PropertyIdSet&& aUpdatedProperties) noexcept;
 		ShareDirectoryInfoList getRoots() const noexcept;
+		ShareDirectoryInfoPtr findRoot(const string& aPath) noexcept;
+		ShareDirectoryInfoPtr getRoot(const ApiRequest& aRequest);
 
 		// ListViewController compares items by memory address so we need to store the list here 
 		ShareDirectoryInfoList roots;

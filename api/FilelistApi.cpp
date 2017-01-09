@@ -43,9 +43,9 @@ namespace webserver {
 
 		DirectoryListingManager::getInstance()->addListener(this);;
 
-		METHOD_HANDLER("session", Access::FILELISTS_EDIT, ApiRequest::METHOD_DELETE, (CID_PARAM), false, FilelistApi::handleDeleteList);
 		METHOD_HANDLER("session", Access::FILELISTS_EDIT, ApiRequest::METHOD_POST, (), true, FilelistApi::handlePostList);
-		METHOD_HANDLER("session", Access::FILELISTS_VIEW, ApiRequest::METHOD_POST, (EXACT_PARAM("me")), true, FilelistApi::handleOwnList);
+		METHOD_HANDLER("session", Access::FILELISTS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("me")), true, FilelistApi::handleOwnList);
+		METHOD_HANDLER("session", Access::FILELISTS_EDIT, ApiRequest::METHOD_DELETE, (CID_PARAM), false, FilelistApi::handleDeleteList);
 
 		METHOD_HANDLER("download_directory", Access::DOWNLOAD, ApiRequest::METHOD_POST, (), true, FilelistApi::handlePostDirectoryDownload); // DEPRECATED
 
@@ -70,24 +70,23 @@ namespace webserver {
 		addSubModule(aList->getUser()->getCID(), std::make_shared<FilelistInfo>(this, aList));
 	}
 
-	api_return FilelistApi::handleQueueList(ApiRequest& aRequest, QueueItem::Flags aFlags) {
+	api_return FilelistApi::handlePostList(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto user = Deserializer::deserializeHintedUser(reqJson);
 		auto directory = Util::toNmdcFile(JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/", false));
 
-		auto flags = aFlags;
-		flags.setFlag(QueueItem::FLAG_PARTIAL_LIST);
-
 		DirectoryListingPtr dl = nullptr;
 		try {
-			dl = DirectoryListingManager::getInstance()->createList(user, flags.getFlags(), directory);
-		} catch (const DupeException& e) {
-			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::conflict;
+			dl = DirectoryListingManager::getInstance()->createList(user, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, directory);
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::bad_request;
+		}
+
+		if (!dl) {
+			aRequest.setResponseErrorStr("Filelist from this user is open already");
+			return websocketpp::http::status_code::conflict;
 		}
 
 		aRequest.setResponseBody(serializeList(dl));
@@ -95,21 +94,57 @@ namespace webserver {
 	}
 
 	api_return FilelistApi::handleFindNfo(ApiRequest& aRequest) {
-		return handleQueueList(aRequest, QueueItem::FLAG_VIEW_NFO | QueueItem::FLAG_RECURSIVE_LIST);
+		const auto& reqJson = aRequest.getRequestBody();
+
+		auto user = Deserializer::deserializeHintedUser(reqJson);
+		if (user.user->isNMDC()) {
+			aRequest.setResponseErrorStr("This feature can't be used with NMDC users");
+			return websocketpp::http::status_code::precondition_failed;
+		}
+
+		auto directory = Util::toNmdcFile(JsonUtil::getField<string>("directory", reqJson, false));
+		if (directory == NMDC_ROOT_STR) {
+			aRequest.setResponseErrorStr("Filelist root is not allowed");
+			return websocketpp::http::status_code::precondition_failed;
+		}
+
+		try {
+			 QueueManager::getInstance()->addList(user, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_VIEW_NFO | QueueItem::FLAG_RECURSIVE_LIST, directory);
+		} catch (const Exception& e) {
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return FilelistApi::handleMatchQueue(ApiRequest& aRequest) {
-		return handleQueueList(aRequest, QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST);
-	}
+		const auto& reqJson = aRequest.getRequestBody();
 
-	api_return FilelistApi::handlePostList(ApiRequest& aRequest) {
-		return handleQueueList(aRequest, QueueItem::FLAG_CLIENT_VIEW);
+		auto user = Deserializer::deserializeHintedUser(reqJson);
+		auto directory = Util::toNmdcFile(JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/", false));
+
+		QueueItem::Flags flags = QueueItem::FLAG_MATCH_QUEUE;
+		if (directory != NMDC_ROOT_STR) {
+			flags.setFlag(QueueItem::FLAG_RECURSIVE_LIST);
+			flags.setFlag(QueueItem::FLAG_PARTIAL_LIST);
+		}
+
+		try {
+			QueueManager::getInstance()->addList(user, flags.getFlags(), directory);
+		} catch (const Exception& e) {
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return FilelistApi::handleOwnList(ApiRequest& aRequest) {
 		auto profile = Deserializer::deserializeShareProfile(aRequest.getRequestBody());
-		DirectoryListingManager::getInstance()->openOwnList(profile);
+		auto dl = DirectoryListingManager::getInstance()->openOwnList(profile);
 
+		aRequest.setResponseBody(serializeList(dl));
 		return websocketpp::http::status_code::ok;
 	}
 
