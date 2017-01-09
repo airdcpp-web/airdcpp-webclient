@@ -70,10 +70,6 @@ namespace webserver {
 			timer->stop(true);
 		}
 
-		void setActiveStateChangeHandler(StateChangeFunction aF) {
-			stateChangeF = aF;
-		}
-
 		void stop() noexcept {
 			setActive(false);
 			timer->stop(false);
@@ -128,12 +124,14 @@ namespace webserver {
 		bool isActive() const noexcept {
 			return active;
 		}
+
+		bool hasSourceItem(const T& aItem) const noexcept {
+			RLock l(cs);
+			return sourceItems.find(aItem) != sourceItems.end();
+		}
 	private:
 		void setActive(bool aActive) {
 			active = aActive;
-			if (stateChangeF) {
-				stateChangeF(aActive);
-			}
 		}
 
 		// FILTERS START
@@ -828,8 +826,6 @@ namespace webserver {
 			bool changed = true;
 			ValueMap values;
 		};
-
-		StateChangeFunction stateChangeF = nullptr;
 
 		bool itemListChanged = false;
 		IntCollector currentValues;

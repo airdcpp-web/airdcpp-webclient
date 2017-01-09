@@ -17,8 +17,12 @@
 */
 
 #include <api/FavoriteDirectoryApi.h>
+#include <api/common/Deserializer.h>
+#include <api/common/Serializer.h>
+
 #include <web-server/JsonUtil.h>
 
+#include <airdcpp/AirUtil.h>
 #include <airdcpp/FavoriteManager.h>
 
 namespace webserver {
@@ -27,9 +31,15 @@ namespace webserver {
 		METHOD_HANDLER("directories", Access::ANY, ApiRequest::METHOD_GET, (), false, FavoriteDirectoryApi::handleGetGroupedDirectories);
 		METHOD_HANDLER("directories_flat", Access::ANY, ApiRequest::METHOD_GET, (), false, FavoriteDirectoryApi::handleGetDirectories);
 
+		METHOD_HANDLER("directory", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (), true, FavoriteDirectoryApi::handleAddDirectory);
+		METHOD_HANDLER("directory", Access::ANY, ApiRequest::METHOD_GET, (TTH_PARAM), false, FavoriteDirectoryApi::handleGetDirectory);
+		METHOD_HANDLER("directory", Access::SETTINGS_EDIT, ApiRequest::METHOD_PATCH, (TTH_PARAM), true, FavoriteDirectoryApi::handleUpdateDirectory);
+		METHOD_HANDLER("directory", Access::SETTINGS_EDIT, ApiRequest::METHOD_DELETE, (TTH_PARAM), false, FavoriteDirectoryApi::handleRemoveDirectory);
+
+		// DEPRECATED
 		METHOD_HANDLER("directory", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("add")), true, FavoriteDirectoryApi::handleAddDirectory);
-		METHOD_HANDLER("directory", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("update")), true, FavoriteDirectoryApi::handleUpdateDirectory);
-		METHOD_HANDLER("directory", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("remove")), true, FavoriteDirectoryApi::handleRemoveDirectory);
+		METHOD_HANDLER("directory", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("update")), true, FavoriteDirectoryApi::handleUpdateDirectoryLegacy);
+		METHOD_HANDLER("directory", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("remove")), true, FavoriteDirectoryApi::handleRemoveDirectoryLegacy);
 
 		FavoriteManager::getInstance()->addListener(this);
 
@@ -61,47 +71,93 @@ namespace webserver {
 	}
 
 	json FavoriteDirectoryApi::serializeDirectories() noexcept {
-		auto ret = json::array();
-
-		auto directories = FavoriteManager::getInstance()->getFavoriteDirs();
-		for (const auto& vPath : directories) {
-			ret.push_back({
-				{ "name", vPath.second },
-				{ "path", vPath.first }
-			});
-		}
-
-		return ret;
+		return Serializer::serializeList(FavoriteManager::getInstance()->getFavoriteDirs(), serializeDirectory);
 	}
 
-	api_return FavoriteDirectoryApi::handleSetDirectory(ApiRequest& aRequest, bool aExisting) {
-		const auto& reqJson = aRequest.getRequestBody();
-
-		auto path = Util::validatePath(JsonUtil::getField<string>("path", reqJson, false), true);
-
-		auto hasDirectory = FavoriteManager::getInstance()->hasFavoriteDir(path);
-		if (!hasDirectory && aExisting) {
-			JsonUtil::throwError("path", JsonUtil::ERROR_INVALID, "Path doesn't exist");
-		} else if (hasDirectory && !aExisting) {
-			JsonUtil::throwError("path", JsonUtil::ERROR_EXISTS, "Path exists already");
-		}
-
-		auto groupName = JsonUtil::getField<string>("name", reqJson, false);
-
-		FavoriteManager::getInstance()->setFavoriteDir(path, groupName);
-
-		return websocketpp::http::status_code::ok;
+	json FavoriteDirectoryApi::serializeDirectory(const StringPair& aDirectory) noexcept {
+		return {
+			{ "id", AirUtil::getPathId(aDirectory.first).toBase32() },
+			{ "name", aDirectory.second },
+			{ "path", aDirectory.first }
+		};
 	}
 
 	api_return FavoriteDirectoryApi::handleAddDirectory(ApiRequest& aRequest) {
-		return handleSetDirectory(aRequest, false);
+		const auto& reqJson = aRequest.getRequestBody();
+
+		auto path = Util::validatePath(JsonUtil::getField<string>("path", reqJson, false), true);
+		if (FavoriteManager::getInstance()->hasFavoriteDir(path)) {
+			JsonUtil::throwError("path", JsonUtil::ERROR_EXISTS, "Path exists already");
+		}
+
+		auto info = updatePath(path, reqJson);
+		aRequest.setResponseBody(serializeDirectory(info));
+		return websocketpp::http::status_code::no_content;
+	}
+
+	api_return FavoriteDirectoryApi::handleGetDirectory(ApiRequest& aRequest) {
+		auto path = getPath(aRequest);
+
+		auto info = FavoriteManager::getInstance()->getFavoriteDirectory(path);
+		aRequest.setResponseBody(serializeDirectory(info));
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return FavoriteDirectoryApi::handleUpdateDirectory(ApiRequest& aRequest) {
-		return handleSetDirectory(aRequest, true);
+		auto path = getPath(aRequest);
+
+
+		auto info = updatePath(path, aRequest.getRequestBody());
+		aRequest.setResponseBody(serializeDirectory(info));
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return FavoriteDirectoryApi::handleRemoveDirectory(ApiRequest& aRequest) {
+		auto path = getPath(aRequest);
+		FavoriteManager::getInstance()->removeFavoriteDir(path);
+		return websocketpp::http::status_code::no_content;
+	}
+
+	string FavoriteDirectoryApi::getPath(const ApiRequest& aRequest) {
+		auto tth = Deserializer::parseTTH(aRequest.getStringParam(0));
+		auto dirs = FavoriteManager::getInstance()->getFavoriteDirs();
+		auto p = boost::find_if(dirs | map_keys, [&](const string& aPath) {
+			return AirUtil::getPathId(aPath) == tth;
+		});
+
+		if (p.base() == dirs.end()) {
+			throw RequestException(websocketpp::http::status_code::not_found, "Directory not found");
+		}
+
+		return *p;
+	}
+
+	StringPair FavoriteDirectoryApi::updatePath(const string& aPath, const json& aRequestJson) {
+		auto virtualName = JsonUtil::getOptionalFieldDefault<string>("name", aRequestJson, Util::getLastDir(aPath), false);
+		FavoriteManager::getInstance()->setFavoriteDir(aPath, virtualName);
+		return { aPath, virtualName };
+	}
+
+	void FavoriteDirectoryApi::on(FavoriteManagerListener::FavoriteDirectoriesUpdated) noexcept {
+		maybeSend("favorite_directories_updated", [&] { return serializeDirectories(); });
+	}
+
+
+
+
+	api_return FavoriteDirectoryApi::handleUpdateDirectoryLegacy(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+
+		auto path = JsonUtil::getField<string>("path", reqJson, false);
+		if (!FavoriteManager::getInstance()->hasFavoriteDir(path)) {
+			JsonUtil::throwError("path", JsonUtil::ERROR_INVALID, "Path doesn't exist");
+		}
+
+		updatePath(path, reqJson);
+		return websocketpp::http::status_code::no_content;
+	}
+
+	api_return FavoriteDirectoryApi::handleRemoveDirectoryLegacy(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto path = JsonUtil::getField<string>("path", reqJson, false);
@@ -110,10 +166,6 @@ namespace webserver {
 			return websocketpp::http::status_code::not_found;
 		}
 
-		return websocketpp::http::status_code::ok;
-	}
-
-	void FavoriteDirectoryApi::on(FavoriteManagerListener::FavoriteDirectoriesUpdated) noexcept {
-		maybeSend("favorite_directories_updated", [&] { return serializeDirectories(); });
+		return websocketpp::http::status_code::no_content;
 	}
 }
