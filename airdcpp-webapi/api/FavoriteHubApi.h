@@ -35,10 +35,6 @@ namespace webserver {
 	public:
 		FavoriteHubApi(Session* aSession);
 		~FavoriteHubApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		api_return handleAddHub(ApiRequest& aRequest);
 		api_return handleRemoveHub(ApiRequest& aRequest);

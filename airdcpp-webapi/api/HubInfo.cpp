@@ -40,16 +40,19 @@ namespace webserver {
 
 	HubInfo::HubInfo(ParentType* aParentModule, const ClientPtr& aClient) :
 		SubApiModule(aParentModule, aClient->getClientId(), subscriptionList), client(aClient),
-		chatHandler(this, aClient, "hub", Access::HUBS_VIEW, Access::HUBS_EDIT, Access::HUBS_SEND), 
+		chatHandler(this, std::bind(&HubInfo::getClient, this), "hub", Access::HUBS_VIEW, Access::HUBS_EDIT, Access::HUBS_SEND), 
 		view("hub_user_view", this, OnlineUserUtils::propertyHandler, std::bind(&HubInfo::getUsers, this), 500), 
 		timer(getTimer([this] { onTimer(); }, 1000)) {
 
-		METHOD_HANDLER("reconnect", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, HubInfo::handleReconnect);
-		METHOD_HANDLER("favorite", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, HubInfo::handleFavorite);
-		METHOD_HANDLER("password", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), true, HubInfo::handlePassword);
-		METHOD_HANDLER("redirect", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), false, HubInfo::handleRedirect);
+		METHOD_HANDLER(Access::HUBS_EDIT, METHOD_POST,	(EXACT_PARAM("reconnect")),	HubInfo::handleReconnect);
+		METHOD_HANDLER(Access::HUBS_EDIT, METHOD_POST,	(EXACT_PARAM("favorite")),	HubInfo::handleFavorite);
+		METHOD_HANDLER(Access::HUBS_EDIT, METHOD_POST,	(EXACT_PARAM("password")),	HubInfo::handlePassword);
+		METHOD_HANDLER(Access::HUBS_EDIT, METHOD_POST,	(EXACT_PARAM("redirect")),	HubInfo::handleRedirect);
 
-		METHOD_HANDLER("counts", Access::HUBS_VIEW, ApiRequest::METHOD_GET, (), false, HubInfo::handleGetCounts);
+		METHOD_HANDLER(Access::HUBS_VIEW, METHOD_GET,	(EXACT_PARAM("counts")),	HubInfo::handleGetCounts);
+
+		METHOD_HANDLER(Access::HUBS_VIEW, METHOD_GET,	(EXACT_PARAM("users"), RANGE_START_PARAM, RANGE_MAX_PARAM), HubInfo::handleGetUsers);
+		METHOD_HANDLER(Access::HUBS_VIEW, METHOD_GET,	(EXACT_PARAM("users"), CID_PARAM),							HubInfo::handleGetUser);
 	}
 
 	HubInfo::~HubInfo() {
@@ -62,6 +65,26 @@ namespace webserver {
 		client->addListener(this);
 
 		timer->start(false);
+	}
+
+	api_return HubInfo::handleGetUsers(ApiRequest& aRequest) {
+		OnlineUserList users;
+		client->getUserList(users, false);
+
+		auto start = aRequest.getRangeParam(START_POS);
+		auto count = aRequest.getRangeParam(MAX_COUNT);
+
+		auto j = Serializer::serializeItemList(start, count, OnlineUserUtils::propertyHandler, users);
+		aRequest.setResponseBody(j);
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return HubInfo::handleGetUser(ApiRequest& aRequest) {
+		auto user = Deserializer::getUser(aRequest.getCIDParam(), true);
+		auto ou = ClientManager::getInstance()->findOnlineUser(user->getCID(), client->getHubUrl(), false);
+
+		aRequest.setResponseBody(Serializer::serializeOnlineUser(ou));
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return HubInfo::handleGetCounts(ApiRequest& aRequest) {
@@ -115,34 +138,54 @@ namespace webserver {
 		if (!aClient->getRedirectUrl().empty()) {
 			return{
 				{ "id", "redirect" },
-				{ "hub_url", aClient->getRedirectUrl() }
+				{ "str", "Redirect" },
+				{ "data", {
+					{ "hub_url", aClient->getRedirectUrl() },
+				} },
 			};
 		}
 
-		string id;
 		switch (aClient->getConnectState()) {
-			case Client::STATE_CONNECTING:
 			case Client::STATE_PROTOCOL:
-			case Client::STATE_IDENTIFY: id = "connecting"; break;
+			case Client::STATE_IDENTIFY:
 			case Client::STATE_VERIFY: {
-				return {
-					{ "id", "password" },
-					{ "has_password", !aClient->getPassword().empty() }
-				};
-				break;
+				if (aClient->getPassword().empty()) {
+					return {
+						{ "id", "password" },
+						{ "str", "Password requested" },
+					};
+				}
 			}
-			case Client::STATE_NORMAL: id = "connected"; break;
+			case Client::STATE_CONNECTING: {
+				return {
+					{ "id", "connecting" },
+					{ "str", STRING(CONNECTING) },
+				};
+			}
 			case Client::STATE_DISCONNECTED: 
 			{
-				id = aClient->isKeyprintMismatch() ? "keyprint_mismatch" : "disconnected";
-				break;
+				if (aClient->isKeyprintMismatch()) {
+					return{
+						{ "id", "keyprint_mismatch" },
+						{ "str", STRING(KEYPRINT_MISMATCH) },
+					};
+				}
+
+				return {
+					{ "id", "disconnected" },
+					{ "str", STRING(DISCONNECTED) },
+				};
+			}
+			case Client::STATE_NORMAL: {
+				return {
+					{ "id", "connected" },
+					{ "str", STRING(CONNECTED) },
+				};
 			}
 		}
 
-		return {
-			{ "id", id },
-			{ "encryption", Serializer::serializeEncryption(aClient->getEncryptionInfo(), aClient->isTrusted()) },
-		};
+		dcassert(0);
+		return nullptr;
 	}
 
 	void HubInfo::on(ClientListener::Close, const Client*) noexcept {

@@ -31,10 +31,6 @@ namespace webserver {
 	public:
 		ShareProfileApi(Session* aSession);
 		~ShareProfileApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		static json serializeShareProfile(const ShareProfilePtr& aProfile) noexcept;
 

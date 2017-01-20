@@ -35,10 +35,6 @@ namespace webserver {
 	public:
 		ShareRootApi(Session* aSession);
 		~ShareRootApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		api_return handleGetRoots(ApiRequest& aRequest);
 
@@ -46,10 +42,6 @@ namespace webserver {
 		api_return handleGetRoot(ApiRequest& aRequest);
 		api_return handleUpdateRoot(ApiRequest& aRequest);
 		api_return handleRemoveRoot(ApiRequest& aRequest);
-
-		// DEPRECATED
-		api_return handleUpdateRootLegacy(ApiRequest& aRequest);
-		api_return handleRemoveRootLegacy(ApiRequest& aRequest);
 
 		void parseRoot(ShareDirectoryInfoPtr& aInfo, const json& j, bool aIsNew);
 

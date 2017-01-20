@@ -33,16 +33,15 @@ namespace webserver {
 	public:
 		UserApi(Session* aSession);
 		~UserApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		UserPtr getUser(ApiRequest& aRequest);
 
 		api_return handleIgnore(ApiRequest& aRequest);
 		api_return handleUnignore(ApiRequest& aRequest);
 		api_return handleGetIgnores(ApiRequest& aRequest);
+
+		api_return handleGetUser(ApiRequest& aRequest);
+		api_return handleSearchNicks(ApiRequest& aRequest);
 
 		void on(MessageManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept override;
 		void on(MessageManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept override;

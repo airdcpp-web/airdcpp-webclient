@@ -41,7 +41,7 @@ namespace webserver {
 			TYPE_BASIC_AUTH,
 		};
 
-		Session(const WebUserPtr& aUser, const std::string& aToken, SessionType aSessionType, WebServerManager* aServer, uint64_t maxInactivityMinutes, bool aIsUserSession, const string& aIP);
+		Session(const WebUserPtr& aUser, const std::string& aToken, SessionType aSessionType, WebServerManager* aServer, uint64_t maxInactivityMinutes, const string& aIP);
 		~Session();
 
 		const std::string& getAuthToken() const noexcept {
@@ -83,10 +83,6 @@ namespace webserver {
 			return maxInactivity;
 		}
 
-		bool isUserSession() const noexcept {
-			return userSession;
-		}
-
 		const string& getIp() const noexcept {
 			return ip;
 		}
@@ -101,7 +97,6 @@ namespace webserver {
 		const LocalSessionId id;
 		const std::string token;
 		const SessionType sessionType;
-		const bool userSession;
 		const string ip;
 
 		WebUserPtr user;

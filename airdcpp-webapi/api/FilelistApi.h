@@ -35,11 +35,6 @@ namespace webserver {
 
 		FilelistApi(Session* aSession);
 		~FilelistApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
-
 	private:
 		void addList(const DirectoryListingPtr& aList) noexcept;
 

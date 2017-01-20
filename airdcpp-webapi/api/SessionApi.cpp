@@ -36,15 +36,20 @@
 
 namespace webserver {
 	SessionApi::SessionApi(Session* aSession) : SubscribableApiModule(aSession, Access::ADMIN) {
-		METHOD_HANDLER("activity", Access::ANY, ApiRequest::METHOD_POST, (), false, SessionApi::handleActivity);
-		METHOD_HANDLER("auth", Access::ANY, ApiRequest::METHOD_DELETE, (), false, SessionApi::handleLogout);
+		// Just fail these since we have a session already...
+		METHOD_HANDLER(Access::ANY, METHOD_POST, (EXACT_PARAM("authorize")), SessionApi::failAuthenticatedRequest);
+		METHOD_HANDLER(Access::ANY, METHOD_POST, (EXACT_PARAM("socket")), SessionApi::failAuthenticatedRequest);
 
-		// Just fail these...
-		METHOD_HANDLER("auth", Access::ANY, ApiRequest::METHOD_POST, (), false, SessionApi::failAuthenticatedRequest);
-		METHOD_HANDLER("socket", Access::ANY, ApiRequest::METHOD_POST, (), false, SessionApi::failAuthenticatedRequest);
+		// Methods for the current session
+		METHOD_HANDLER(Access::ANY, METHOD_POST, (EXACT_PARAM("activity")), SessionApi::handleActivity);
 
-		METHOD_HANDLER("sessions", Access::ADMIN, ApiRequest::METHOD_GET, (), false, SessionApi::handleGetSessions);
-		METHOD_HANDLER("session", Access::ANY, ApiRequest::METHOD_GET, (), false, SessionApi::handleGetCurrentSession);
+		METHOD_HANDLER(Access::ANY, METHOD_GET, (EXACT_PARAM("self")), SessionApi::handleGetCurrentSession);
+		METHOD_HANDLER(Access::ANY, METHOD_DELETE, (EXACT_PARAM("self")), SessionApi::handleLogout);
+
+		// Admin methods
+		METHOD_HANDLER(Access::ADMIN, METHOD_GET, (), SessionApi::handleGetSessions);
+		METHOD_HANDLER(Access::ADMIN, METHOD_GET, (TOKEN_PARAM), SessionApi::handleGetSession);
+		METHOD_HANDLER(Access::ADMIN, METHOD_DELETE, (TOKEN_PARAM), SessionApi::handleRemoveSession);
 
 		aSession->getServer()->getUserManager().addListener(this);
 
@@ -62,16 +67,21 @@ namespace webserver {
 	}
 
 	api_return SessionApi::handleActivity(ApiRequest& aRequest) {
-		if (!aRequest.getSession()->isUserSession()) {
-			// This can be used to prevent the session from expiring
-			return websocketpp::http::status_code::no_content;
+		// This may also be used to prevent the session from expiring
+
+		if (JsonUtil::getOptionalFieldDefault<bool>("user_active", aRequest.getRequestBody(), false)) {
+			ActivityManager::getInstance()->updateActivity();
 		}
 
-		ActivityManager::getInstance()->updateActivity();
 		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return SessionApi::handleLogout(ApiRequest& aRequest) {
+		if (session->getSessionType() == Session::TYPE_BASIC_AUTH) {
+			aRequest.setResponseErrorStr("Sessions using basic authentication can't be deleted");
+			return websocketpp::http::status_code::bad_request;
+		}
+
 		WebServerManager::getInstance()->logout(aRequest.getSession()->getId());
 		return websocketpp::http::status_code::no_content;
 	}
@@ -83,10 +93,9 @@ namespace webserver {
 		auto password = JsonUtil::getField<string>("password", reqJson, false);
 
 		auto inactivityMinutes = JsonUtil::getOptionalFieldDefault<uint64_t>("max_inactivity", reqJson, WEBCFG(DEFAULT_SESSION_IDLE_TIMEOUT).uint64());
-		auto userSession = JsonUtil::getOptionalFieldDefault<bool>("user_session", reqJson, false);
 
 		auto session = WebServerManager::getInstance()->getUserManager().authenticateSession(username, password, 
-			aIsSecure, inactivityMinutes, userSession, aIP);
+			aIsSecure, inactivityMinutes, aIP);
 
 		if (!session) {
 			aRequest.setResponseErrorStr("Invalid username or password");
@@ -99,20 +108,22 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody({
-			{ "token", session->getAuthToken() },
-			{ "session", serializeSession(session) },
-			{ "system", SystemApi::getSystemInfo() },
-			{ "permissions", session->getUser()->getPermissions() }, // deprecated
-			{ "user", session->getUser()->getUserName() }, // deprecated
-			{ "run_wizard", SETTING(WIZARD_RUN) }, // deprecated
-			{ "cid", ClientManager::getInstance()->getMyCID().toBase32() }, // deprecated
+			{ "auth_token", session->getAuthToken() },
+			{ "user", Serializer::serializeItem(session->getUser(), WebUserUtils::propertyHandler) },
+			{ "system_info", SystemApi::getSystemInfo() },
+			{ "wizard_pending", SETTING(WIZARD_PENDING) },
 		});
 
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return SessionApi::handleSocketConnect(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket) {
-		auto sessionToken = JsonUtil::getField<string>("authorization", aRequest.getRequestBody(), false);
+		if (!aSocket) {
+			aRequest.setResponseErrorStr("This method may be called only via a websocket");
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		auto sessionToken = JsonUtil::getField<string>("auth_token", aRequest.getRequestBody(), false);
 
 		auto session = WebServerManager::getInstance()->getUserManager().getSession(sessionToken);
 		if (!session) {
@@ -133,14 +144,30 @@ namespace webserver {
 
 	api_return SessionApi::handleGetSessions(ApiRequest& aRequest) {
 		auto sessions = session->getServer()->getUserManager().getSessions();
+		aRequest.setResponseBody(Serializer::serializeList(sessions, serializeSession));
+		return websocketpp::http::status_code::ok;
+	}
 
-		auto ret = json::array();
-		for (const auto& s : sessions) {
-			ret.push_back(serializeSession(s));
+	api_return SessionApi::handleGetSession(ApiRequest& aRequest) {
+		auto s = session->getServer()->getUserManager().getSession(aRequest.getTokenParam());
+		if (!s) {
+			aRequest.setResponseErrorStr("Session not found");
+			return websocketpp::http::status_code::not_found;
 		}
 
-		aRequest.setResponseBody(ret);
+		aRequest.setResponseBody(serializeSession(s));
 		return websocketpp::http::status_code::ok;
+	}
+
+	api_return SessionApi::handleRemoveSession(ApiRequest& aRequest) {
+		auto removeSession = session->getServer()->getUserManager().getSession(aRequest.getTokenParam());
+		if (!removeSession) {
+			aRequest.setResponseErrorStr("Session not found");
+			return websocketpp::http::status_code::not_found;
+		}
+
+		session->getServer()->getUserManager().logout(removeSession);
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return SessionApi::handleGetCurrentSession(ApiRequest& aRequest) {

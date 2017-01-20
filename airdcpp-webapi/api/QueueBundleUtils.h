@@ -58,7 +58,6 @@ namespace webserver {
 
 	private:
 		static std::string formatStatusId(const BundlePtr& aBundle) noexcept;
-		static std::string formatDisplayStatus(const BundlePtr& aBundle) noexcept;
 		static std::string formatBundleSources(const BundlePtr& aBundle) noexcept;
 		static std::string formatBundleType(const BundlePtr& aBundle) noexcept;
 	};

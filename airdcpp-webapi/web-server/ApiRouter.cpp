@@ -17,7 +17,9 @@
 */
 
 #include <web-server/stdinc.h>
+#include <web-server/version.h>
 #include <web-server/ApiRouter.h>
+#include <web-server/JsonUtil.h>
 
 #include <web-server/ApiRequest.h>
 #include <web-server/WebServerManager.h>
@@ -40,9 +42,9 @@ namespace webserver {
 
 	}
 
-	void ApiRouter::handleSocketRequest(const string& aRequestBody, WebSocketPtr& aSocket, bool aIsSecure) noexcept {
+	void ApiRouter::handleSocketRequest(const string& aMessage, WebSocketPtr& aSocket, bool aIsSecure) noexcept {
 
-		dcdebug("Received socket request: %s\n", aRequestBody.c_str());
+		dcdebug("Received socket request: %s\n", aMessage.c_str());
 		bool authenticated = aSocket->getSession() != nullptr;
 
 		json responseJsonData, errorJson;
@@ -50,19 +52,15 @@ namespace webserver {
 		int callbackId = -1;
 
 		try {
-			const auto requestJson = json::parse(aRequestBody);
+			const auto requestJson = json::parse(aMessage);
 
-			auto cb = requestJson.find("callback_id");
-			if (cb != requestJson.end()) {
-				callbackId = cb.value();
-			}
+			callbackId = JsonUtil::getOptionalFieldDefault<int>("callback_id", requestJson, -1);
 
-			ApiRequest apiRequest(requestJson.at("path"), requestJson.at("method"), responseJsonData, errorJson);
-			apiRequest.parseSocketRequestJson(requestJson);
-			apiRequest.setSession(aSocket->getSession());
+			const string path = requestJson.at("path");
+			const auto data = JsonUtil::getOptionalRawField("data", requestJson);
+			const string method = requestJson.at("method");
 
-			apiRequest.validate();
-
+			ApiRequest apiRequest(aSocket->getConnectUrl() + path, method, std::move(data), aSocket->getSession(), responseJsonData, errorJson);
 			code = handleRequest(apiRequest, aIsSecure, aSocket, aSocket->getIp());
 		} catch (const std::exception& e) {
 			errorJson = { 
@@ -73,7 +71,7 @@ namespace webserver {
 		}
 
 		// Send an error also if parsing failed (there's no callback id)
-		if (callbackId > 0 || !errorJson.is_null()) {
+		if (callbackId >= 0 || !errorJson.is_null()) {
 			aSocket->sendApiResponse(responseJsonData, errorJson, code, callbackId);
 		}
 	}
@@ -85,12 +83,9 @@ namespace webserver {
 		auto& requestBody = aRequest.get_body();
 		dcdebug("Received HTTP request: %s\n", aRequest.get_body().c_str());
 		try {
-			ApiRequest apiRequest(aRequestPath, aRequest.get_method(), output_, error_);
-			apiRequest.validate();
+			auto bodyJson = aRequest.get_body().empty() ? json() : json::parse(aRequest.get_body());
 
-			apiRequest.parseHttpRequestJson(requestBody);
-			apiRequest.setSession(aSession);
-
+			ApiRequest apiRequest(aRequestPath, aRequest.get_method(), std::move(bodyJson), aSession, output_, error_);
 			return handleRequest(apiRequest, aIsSecure, nullptr, aIp);
 		} catch (const std::exception& e) {
 			error_ = { 
@@ -104,10 +99,15 @@ namespace webserver {
 	}
 
 	api_return ApiRouter::handleRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) noexcept {
+		if (aRequest.getApiVersion() != API_VERSION) {
+			aRequest.setResponseErrorStr("Unsupported API version");
+			return websocketpp::http::status_code::precondition_failed;
+		}
+
 		int code;
 		try {
 			// Special case because we may not have the session yet
-			if (aRequest.getApiModule() == "session" && !aRequest.getSession()) {
+			if (aRequest.getApiModule() == "sessions" && !aRequest.getSession()) {
 				return routeAuthRequest(aRequest, aIsSecure, aSocket, aIp);
 			}
 
@@ -141,14 +141,9 @@ namespace webserver {
 	}
 
 	api_return ApiRouter::routeAuthRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) {
-		if (aRequest.getApiVersion() != 0) {
-			aRequest.setResponseErrorStr("Invalid API version");
-			return websocketpp::http::status_code::precondition_failed;
-		}
-
-		if (aRequest.getStringParam(0) == "auth" && aRequest.getMethod() == ApiRequest::METHOD_POST) {
+		if (aRequest.getParamAt(0) == "authorize" && aRequest.getMethod() == METHOD_POST) {
 			return SessionApi::handleLogin(aRequest, aIsSecure, aSocket, aIp);
-		} else if (aRequest.getStringParam(0) == "socket" && aRequest.getMethod() == ApiRequest::METHOD_POST) {
+		} else if (aRequest.getParamAt(0) == "socket" && aRequest.getMethod() == METHOD_POST) {
 			return SessionApi::handleSocketConnect(aRequest, aIsSecure, aSocket);
 		}
 

@@ -26,18 +26,23 @@
 
 
 namespace webserver {
-	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, server_plain* aServer, WebServerManager* aWsm) : WebSocket(aIsSecure, aHdl, aWsm) {
+	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, const websocketpp::http::parser::request& aRequest, server_plain* aServer, WebServerManager* aWsm) : WebSocket(aIsSecure, aHdl, aRequest, aWsm) {
 		plainServer = aServer;
 	}
 
-	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, server_tls* aServer, WebServerManager* aWsm) : WebSocket(aIsSecure, aHdl, aWsm) {
+	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, const websocketpp::http::parser::request& aRequest, server_tls* aServer, WebServerManager* aWsm) : WebSocket(aIsSecure, aHdl, aRequest, aWsm) {
 		tlsServer = aServer;
 	}
 
-	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, WebServerManager* aWsm) :
+	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, const websocketpp::http::parser::request& aRequest, WebServerManager* aWsm) :
 		secure(aIsSecure), hdl(aHdl), timeCreated(GET_TICK()), wsm(aWsm) {
 
 		debugMessage("Websocket created");
+
+		url = aRequest.get_uri();
+		if (!url.empty() && url.back() != '/') {
+			url += '/';
+		}
 	}
 
 	WebSocket::~WebSocket() {
@@ -77,6 +82,8 @@ namespace webserver {
 			j["error"] = aErrorJson;
 		} else if (!aResponseJson.is_null()) {
 			j["data"] = aResponseJson;
+		} else {
+			dcassert(aCode == websocketpp::http::status_code::no_content);
 		}
 
 		sendPlain(j);

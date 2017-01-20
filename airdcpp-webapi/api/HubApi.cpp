@@ -32,7 +32,7 @@ namespace webserver {
 	};
 
 	HubApi::HubApi(Session* aSession) : 
-		ParentApiModule("session", TOKEN_PARAM, Access::HUBS_VIEW, aSession, subscriptionList, HubInfo::subscriptionList, 
+		ParentApiModule("sessions", TOKEN_PARAM, Access::HUBS_VIEW, aSession, subscriptionList, HubInfo::subscriptionList,
 			[](const string& aId) { return Util::toUInt32(aId); },
 			[](const HubInfo& aInfo) { return serializeClient(aInfo.getClient()); }
 		) 
@@ -40,15 +40,14 @@ namespace webserver {
 
 		ClientManager::getInstance()->addListener(this);
 
-		METHOD_HANDLER("session", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), true, HubApi::handleConnect);
-		METHOD_HANDLER("session", Access::HUBS_EDIT, ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, HubApi::handleDisconnect);
+		METHOD_HANDLER(Access::HUBS_EDIT,	METHOD_POST,	(EXACT_PARAM("sessions")),				HubApi::handleConnect);
+		METHOD_HANDLER(Access::HUBS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("sessions"), TOKEN_PARAM),	HubApi::handleDisconnect);
 
-		METHOD_HANDLER("search_nicks", Access::ANY, ApiRequest::METHOD_POST, (), true, HubApi::handleSearchNicks);
+		METHOD_HANDLER(Access::ANY,			METHOD_GET,		(EXACT_PARAM("stats")),					HubApi::handleGetStats);
+		METHOD_HANDLER(Access::HUBS_VIEW,	METHOD_POST,	(EXACT_PARAM("find_by_url")),			HubApi::handleFindByUrl);
 
-		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, HubApi::handleGetStats);
-
-		METHOD_HANDLER("message", Access::HUBS_SEND, ApiRequest::METHOD_POST, (), true, HubApi::handlePostMessage);
-		METHOD_HANDLER("status", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), true, HubApi::handlePostStatus);
+		METHOD_HANDLER(Access::HUBS_SEND,	METHOD_POST,	(EXACT_PARAM("chat_message")),			HubApi::handlePostMessage);
+		METHOD_HANDLER(Access::HUBS_EDIT,	METHOD_POST,	(EXACT_PARAM("status_message")),		HubApi::handlePostStatus);
 
 		auto rawHubs = ClientManager::getInstance()->getClients();
 		for (const auto& c : rawHubs | map_values) {
@@ -138,7 +137,7 @@ namespace webserver {
 	}
 
 	json HubApi::serializeClient(const ClientPtr& aClient) noexcept {
-		json j = {
+		return {
 			{ "identity", HubInfo::serializeIdentity(aClient) },
 			{ "connect_state", HubInfo::serializeConnectState(aClient) },
 			{ "hub_url", aClient->getHubUrl() },
@@ -146,10 +145,8 @@ namespace webserver {
 			{ "favorite_hub", aClient->getFavToken() },
 			{ "share_profile", Serializer::serializeShareProfileSimple(aClient->get(HubSettings::ShareProfile)) },
 			{ "message_counts", Serializer::serializeCacheInfo(aClient->getCache(), Serializer::serializeUnreadChat) },
+			{ "encryption", Serializer::serializeEncryption(aClient->getEncryptionInfo(), aClient->isTrusted()) },
 		};
-
-		Serializer::serializeCacheInfoLegacy(j, aClient->getCache(), Serializer::serializeUnreadChat);
-		return j;
 	}
 
 	void HubApi::addHub(const ClientPtr& aClient) noexcept {
@@ -186,8 +183,7 @@ namespace webserver {
 
 		auto address = JsonUtil::getField<string>("hub_url", reqJson, false);
 
-		RecentHubEntryPtr r = new RecentHubEntry(address);
-		auto client = ClientManager::getInstance()->createClient(r);
+		auto client = ClientManager::getInstance()->createClient(address);
 		if (!client) {
 			aRequest.setResponseErrorStr("Hub with the same URL exists already");
 			return websocketpp::http::status_code::conflict;
@@ -198,30 +194,23 @@ namespace webserver {
 	}
 
 	api_return HubApi::handleDisconnect(ApiRequest& aRequest) {
-		if (!ClientManager::getInstance()->putClient(aRequest.getTokenParam(0))) {
+		if (!ClientManager::getInstance()->putClient(aRequest.getTokenParam())) {
 			return websocketpp::http::status_code::not_found;
 		}
 
 		return websocketpp::http::status_code::no_content;
 	}
 
-	// TODO: move to user API
-	api_return HubApi::handleSearchNicks(ApiRequest& aRequest) {
-		const auto& reqJson = aRequest.getRequestBody();
+	api_return HubApi::handleFindByUrl(ApiRequest& aRequest) {
+		auto address = JsonUtil::getField<string>("hub_url", aRequest.getRequestBody(), false);
 
-		auto pattern = JsonUtil::getField<string>("pattern", reqJson);
-		auto maxResults = JsonUtil::getField<size_t>("max_results", reqJson);
-		auto ignorePrefixes = JsonUtil::getOptionalFieldDefault<bool>("ignore_prefixes", reqJson, true);
-		auto hubs = Deserializer::deserializeHubUrls(reqJson);
-
-		auto users = ClientManager::getInstance()->searchNicks(pattern, maxResults, ignorePrefixes, hubs);
-
-		auto retJson = json::array();
-		for (const auto& u : users) {
-			retJson.push_back(Serializer::serializeOnlineUser(u));
+		auto client = ClientManager::getInstance()->getClient(address);
+		if (!client) {
+			aRequest.setResponseErrorStr("Hub was not found");
+			return websocketpp::http::status_code::not_found;
 		}
 
-		aRequest.setResponseBody(retJson);
+		aRequest.setResponseBody(serializeClient(client));
 		return websocketpp::http::status_code::ok;
 	}
 }

@@ -39,7 +39,7 @@ namespace webserver {
 		// Parse Authentication header from an HTTP request
 		SessionPtr parseHttpSession(const websocketpp::http::parser::request& aRequest, string& error_, const string& aIp) noexcept;
 
-		SessionPtr authenticateSession(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, bool aUserSession, const string& aIP) noexcept;
+		SessionPtr authenticateSession(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, const string& aIP) noexcept;
 		SessionPtr authenticateBasicHttp(const string& aAuthString, const string& aIP) noexcept;
 
 		SessionList getSessions() const noexcept;
@@ -73,7 +73,7 @@ namespace webserver {
 		void removeSession(const SessionPtr& aSession, bool aTimedOut) noexcept;
 		TimerPtr expirationTimer;
 
-		SessionPtr createSession(const WebUserPtr& aUser, const string& aSessionToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, bool aUserSession, const string& aIP);
+		SessionPtr createSession(const WebUserPtr& aUser, const string& aSessionToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP);
 
 		void on(WebServerManagerListener::Started) noexcept;
 		void on(WebServerManagerListener::Stopped) noexcept;

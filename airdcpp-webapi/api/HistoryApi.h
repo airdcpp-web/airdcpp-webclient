@@ -31,16 +31,18 @@ namespace webserver {
 	public:
 		HistoryApi(Session* aSession);
 		~HistoryApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
-		api_return handleGetHistory(ApiRequest& aRequest);
-		api_return handlePostHistory(ApiRequest& aRequest);
-	};
+		api_return handleGetStrings(ApiRequest& aRequest);
+		api_return handleDeleteStrings(ApiRequest& aRequest);
+		api_return handlePostString(ApiRequest& aRequest);
 
-	static SettingsManager::HistoryType toHistoryType(const string& aName);
+		static json serializeHub(const RecentEntryPtr& aHub) noexcept;
+
+		api_return handleSearchHubs(ApiRequest& aRequest);
+		api_return handleGetHubs(ApiRequest& aRequest);
+
+		static SettingsManager::HistoryType toHistoryType(const string& aName);
+	};
 }
 
 #endif

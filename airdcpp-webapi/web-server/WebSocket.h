@@ -31,8 +31,8 @@ namespace webserver {
 
 	class WebSocket {
 	public:
-		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, server_plain* aServer, WebServerManager* aWsm);
-		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, server_tls* aServer, WebServerManager* aWsm);
+		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, const websocketpp::http::parser::request& aRequest, server_plain* aServer, WebServerManager* aWsm);
+		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, const websocketpp::http::parser::request& aRequest, server_tls* aServer, WebServerManager* aWsm);
 		~WebSocket();
 
 		void close(websocketpp::close::status::value aCode, const std::string& aMsg);
@@ -54,8 +54,12 @@ namespace webserver {
 		time_t getTimeCreated() const noexcept {
 			return timeCreated;
 		}
+
+		const string& getConnectUrl() const noexcept {
+			return url;
+		}
 	protected:
-		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, WebServerManager* aWsm);
+		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, const websocketpp::http::parser::request& aRequest, WebServerManager* aWsm);
 	private:
 		const union {
 			server_plain* plainServer;
@@ -66,6 +70,7 @@ namespace webserver {
 		WebServerManager* wsm;
 		const bool secure;
 		const time_t timeCreated;
+		string url;
 	};
 }
 

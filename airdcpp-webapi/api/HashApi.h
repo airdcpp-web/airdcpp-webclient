@@ -31,10 +31,6 @@ namespace webserver {
 	public:
 		HashApi(Session* aSession);
 		~HashApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		json previousStats;
 		void onTimer() noexcept;

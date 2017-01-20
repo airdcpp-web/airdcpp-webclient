@@ -31,11 +31,11 @@ namespace webserver {
 
 		FavoriteManager::getInstance()->addListener(this);
 
-		METHOD_HANDLER("hubs", Access::FAVORITE_HUBS_VIEW, ApiRequest::METHOD_GET, (NUM_PARAM, NUM_PARAM), false, FavoriteHubApi::handleGetHubs);
-		METHOD_HANDLER("hub", Access::FAVORITE_HUBS_EDIT, ApiRequest::METHOD_POST, (), true, FavoriteHubApi::handleAddHub);
-		METHOD_HANDLER("hub", Access::FAVORITE_HUBS_EDIT, ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, FavoriteHubApi::handleRemoveHub);
-		METHOD_HANDLER("hub", Access::FAVORITE_HUBS_EDIT, ApiRequest::METHOD_PATCH, (TOKEN_PARAM), true, FavoriteHubApi::handleUpdateHub);
-		METHOD_HANDLER("hub", Access::FAVORITE_HUBS_VIEW, ApiRequest::METHOD_GET, (TOKEN_PARAM), false, FavoriteHubApi::handleGetHub);
+		METHOD_HANDLER(Access::FAVORITE_HUBS_VIEW, METHOD_GET,		(RANGE_START_PARAM, RANGE_MAX_PARAM),	FavoriteHubApi::handleGetHubs);
+		METHOD_HANDLER(Access::FAVORITE_HUBS_EDIT, METHOD_POST,		(),										FavoriteHubApi::handleAddHub);
+		METHOD_HANDLER(Access::FAVORITE_HUBS_EDIT, METHOD_DELETE,	(TOKEN_PARAM),							FavoriteHubApi::handleRemoveHub);
+		METHOD_HANDLER(Access::FAVORITE_HUBS_EDIT, METHOD_PATCH,	(TOKEN_PARAM),							FavoriteHubApi::handleUpdateHub);
+		METHOD_HANDLER(Access::FAVORITE_HUBS_VIEW, METHOD_GET,		(TOKEN_PARAM),							FavoriteHubApi::handleGetHub);
 
 		createSubscription("favorite_hub_created");
 		createSubscription("favorite_hub_updated");
@@ -64,7 +64,7 @@ namespace webserver {
 	}
 
 	api_return FavoriteHubApi::handleGetHubs(ApiRequest& aRequest) {
-		auto j = Serializer::serializeItemList(aRequest.getRangeParam(0), aRequest.getRangeParam(1), FavoriteHubUtils::propertyHandler, getEntryList());
+		auto j = Serializer::serializeItemList(aRequest.getRangeParam(START_POS), aRequest.getRangeParam(MAX_COUNT), FavoriteHubUtils::propertyHandler, getEntryList());
 		aRequest.setResponseBody(j);
 
 		return websocketpp::http::status_code::ok;
@@ -147,7 +147,7 @@ namespace webserver {
 	}
 
 	api_return FavoriteHubApi::handleRemoveHub(ApiRequest& aRequest) {
-		auto token = aRequest.getTokenParam(0);
+		auto token = aRequest.getTokenParam();
 		if (!FavoriteManager::getInstance()->removeFavoriteHub(token)) {
 			aRequest.setResponseErrorStr("Hub not found");
 			return websocketpp::http::status_code::not_found;
@@ -157,7 +157,7 @@ namespace webserver {
 	}
 
 	api_return FavoriteHubApi::handleGetHub(ApiRequest& aRequest) {
-		auto entry = FavoriteManager::getInstance()->getFavoriteHubEntry(aRequest.getTokenParam(0));
+		auto entry = FavoriteManager::getInstance()->getFavoriteHubEntry(aRequest.getTokenParam());
 		if (!entry) {
 			aRequest.setResponseErrorStr("Hub not found");
 			return websocketpp::http::status_code::not_found;
@@ -168,7 +168,7 @@ namespace webserver {
 	}
 
 	api_return FavoriteHubApi::handleUpdateHub(ApiRequest& aRequest) {
-		auto e = FavoriteManager::getInstance()->getFavoriteHubEntry(aRequest.getTokenParam(0));
+		auto e = FavoriteManager::getInstance()->getFavoriteHubEntry(aRequest.getTokenParam());
 		if (!e) {
 			aRequest.setResponseErrorStr("Hub not found");
 			return websocketpp::http::status_code::not_found;

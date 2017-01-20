@@ -31,17 +31,14 @@ namespace webserver {
 	public:
 		EventApi(Session* aSession);
 		~EventApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		void onMessagesChanged() noexcept;
 
 		api_return handleGetInfo(ApiRequest& aRequest);
-		api_return handleGetLog(ApiRequest& aRequest);
 		api_return handleRead(ApiRequest& aRequest);
-		api_return handleClear(ApiRequest& aRequest);
+
+		api_return handleGetMessages(ApiRequest& aRequest);
+		api_return handleClearMessages(ApiRequest& aRequest);
 		api_return handlePostMessage(ApiRequest& aRequest);
 
 		// LogManagerListener

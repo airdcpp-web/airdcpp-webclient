@@ -35,12 +35,6 @@ namespace webserver {
 		// Session isn't associated yet when these get called...
 		static api_return handleLogin(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp);
 		static api_return handleSocketConnect(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket);
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
-
-
 	private:
 		api_return failAuthenticatedRequest(ApiRequest& aRequest);
 
@@ -49,6 +43,9 @@ namespace webserver {
 
 		api_return handleGetSessions(ApiRequest& aRequest);
 		api_return handleGetCurrentSession(ApiRequest& aRequest);
+
+		api_return handleGetSession(ApiRequest& aRequest);
+		api_return handleRemoveSession(ApiRequest& aRequest);
 
 		static json serializeSession(const SessionPtr& aSession) noexcept;
 		static string getSessionType(const SessionPtr& aSession) noexcept;

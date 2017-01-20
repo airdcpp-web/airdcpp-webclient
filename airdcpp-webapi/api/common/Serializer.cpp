@@ -53,7 +53,7 @@ namespace webserver {
 		}
 
 		if (aUser == ClientManager::getInstance()->getMe()) {
-			ret.insert("me");
+			ret.insert("self");
 		}
 
 		if (aUser->isSet(User::NMDC)) {
@@ -106,7 +106,8 @@ namespace webserver {
 		return {
 			{ "cid", aUser->getCID().toBase32() },
 			{ "nicks", Util::listToString(ClientManager::getInstance()->getNicks(aUser->getCID())) },
-			{ "hubs", Util::listToString(ClientManager::getInstance()->getHubNames(aUser->getCID())) },
+			{ "hub_names", Util::listToString(ClientManager::getInstance()->getHubNames(aUser->getCID())) },
+			{ "hub_urls", ClientManager::getInstance()->getHubUrls(aUser->getCID()) },
 			{ "flags", getUserFlags(aUser) }
 		};
 	}
@@ -125,6 +126,7 @@ namespace webserver {
 			{ "nicks", ClientManager::getInstance()->getFormatedNicks(aUser) },
 			{ "hub_url", aUser.hint },
 			{ "hub_names", ClientManager::getInstance()->getFormatedHubNames(aUser) },
+			{ "hub_urls", ClientManager::getInstance()->getHubUrls(aUser.user->getCID()) },
 			{ "flags", flags }
 		};
 	}
@@ -212,11 +214,6 @@ namespace webserver {
 		};
 	}
 
-	void Serializer::serializeCacheInfoLegacy(json& json_, const MessageCache& aCache, UnreadSerializerF unreadF) noexcept {
-		json_["unread_messages"] = unreadF(aCache);
-		json_["total_messages"] = aCache.size();
-	}
-
 	json Serializer::serializeUnreadLog(const MessageCache& aCache) noexcept {
 		return{
 			{ "info", aCache.countUnreadLogMessages(LogMessage::SEV_INFO) },
@@ -242,7 +239,7 @@ namespace webserver {
 	}
 
 	json Serializer::serializeOnlineUser(const OnlineUserPtr& aUser) noexcept {
-		return serializeItemProperties(aUser, toPropertyIdSet(OnlineUserUtils::propertyHandler.properties), OnlineUserUtils::propertyHandler);
+		return serializeItem(aUser, OnlineUserUtils::propertyHandler);
 	}
 
 	std::string Serializer::getFileTypeId(const string& aName) noexcept {
@@ -289,7 +286,6 @@ namespace webserver {
 	json Serializer::serializeIp(const string& aIP, const string& aCountryCode) noexcept {
 		return {
 			{ "str", Format::formatIp(aIP, aCountryCode) },
-			{ "country_id", aCountryCode }, // deprecated
 			{ "country", aCountryCode },
 			{ "ip", aIP }
 		};
@@ -311,7 +307,8 @@ namespace webserver {
 		auto info = aItem.getStatusInfo();
 		return {
 			{ "id", getDownloadStateId(info.state) },
-			{ "str", info.str }
+			{ "str", info.str },
+			{ "time_finished", aItem.isDownloaded() ? aItem.getLastTimeFinished() : 0 },
 		};
 	}
 
@@ -408,6 +405,26 @@ namespace webserver {
 			{ "online", aCount.online },
 			{ "total", aCount.total },
 			{ "str", aCount.format() },
+		};
+	}
+
+	json Serializer::serializeGroupedPaths(const pair<string, OrderedStringSet>& aGroupedPair) noexcept {
+		return {
+			{ "name", aGroupedPair.first },
+			{ "paths", aGroupedPair.second }
+		};
+	}
+
+	json Serializer::serializeActionHookError(const ActionHookErrorPtr& aError) noexcept {
+		if (!aError) {
+			return nullptr;
+		}
+
+		return{
+			{ "hook_id", aError->hookId },
+			{ "hook_name", aError->hookName },
+			{ "error_id", aError->errorId },
+			{ "str", aError->errorMessage },
 		};
 	}
 }

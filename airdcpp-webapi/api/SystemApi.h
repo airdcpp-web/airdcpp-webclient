@@ -31,10 +31,6 @@ namespace webserver {
 		SystemApi(Session* aSession);
 		~SystemApi();
 
-		int getVersion() const noexcept override {
-			return 0;
-		}
-
 		static json getSystemInfo() noexcept;
 	private:
 		static string getAwayState(AwayMode aAwayMode) noexcept;

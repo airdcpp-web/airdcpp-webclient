@@ -18,6 +18,7 @@
 
 #include <web-server/stdinc.h>
 
+#include <api/common/Deserializer.h>
 #include <api/common/FileSearchParser.h>
 #include <web-server/JsonUtil.h>
 
@@ -26,7 +27,12 @@
 
 namespace webserver {
 	SearchPtr FileSearchParser::parseSearch(const json& aJson, bool aIsDirectSearch, const string& aToken) {
-		auto s = make_shared<Search>(JsonUtil::getOptionalFieldDefault<bool>("manual", aJson, false) ? Search::MANUAL : Search::AUTO_SEARCH, aToken);
+		auto priority = Deserializer::deserializePriority(aJson, true);
+		if (priority == Priority::DEFAULT) {
+			priority = Priority::LOW;
+		}
+
+		auto s = make_shared<Search>(priority, aToken);
 		parseMatcher(JsonUtil::getRawField("query", aJson), s);
 		if (aIsDirectSearch) {
 			parseOptions(JsonUtil::getOptionalRawField("options", aJson), s);

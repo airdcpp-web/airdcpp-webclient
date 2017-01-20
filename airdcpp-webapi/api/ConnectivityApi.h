@@ -31,10 +31,6 @@ namespace webserver {
 	public:
 		ConnectivityApi(Session* aSession);
 		~ConnectivityApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		static json formatStatus(bool v6) noexcept;
 

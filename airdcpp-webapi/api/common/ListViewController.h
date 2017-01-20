@@ -54,14 +54,14 @@ namespace webserver {
 			auto& requestHandlers = aModule->getRequestHandlers();
 
 			auto access = aModule->getSubscriptionAccess();
-			METHOD_HANDLER(viewName, access, ApiRequest::METHOD_POST, (EXACT_PARAM("filter")), false, ListViewController::handlePostFilter);
-			METHOD_HANDLER(viewName, access, ApiRequest::METHOD_PUT, (EXACT_PARAM("filter"), TOKEN_PARAM), true, ListViewController::handlePutFilter);
-			METHOD_HANDLER(viewName, access, ApiRequest::METHOD_DELETE, (EXACT_PARAM("filter"), TOKEN_PARAM), false, ListViewController::handleDeleteFilter);
+			METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(viewName), EXACT_PARAM("filter")), ListViewController::handlePostFilter);
+			METHOD_HANDLER(access, METHOD_PUT, (EXACT_PARAM(viewName), EXACT_PARAM("filter"), TOKEN_PARAM), ListViewController::handlePutFilter);
+			METHOD_HANDLER(access, METHOD_DELETE, (EXACT_PARAM(viewName), EXACT_PARAM("filter"), TOKEN_PARAM), ListViewController::handleDeleteFilter);
 
-			METHOD_HANDLER(viewName, access, ApiRequest::METHOD_POST, (EXACT_PARAM("settings")), true, ListViewController::handlePostSettings);
-			METHOD_HANDLER(viewName, access, ApiRequest::METHOD_DELETE, (), false, ListViewController::handleReset);
+			METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(viewName), EXACT_PARAM("settings")), ListViewController::handlePostSettings);
+			METHOD_HANDLER(access, METHOD_DELETE, (EXACT_PARAM(viewName)), ListViewController::handleReset);
 
-			METHOD_HANDLER(viewName, access, ApiRequest::METHOD_GET, (EXACT_PARAM("items"), NUM_PARAM, NUM_PARAM), false, ListViewController::handleGetItems);
+			METHOD_HANDLER(access, METHOD_GET, (EXACT_PARAM(viewName), EXACT_PARAM("items"), RANGE_START_PARAM, RANGE_MAX_PARAM), ListViewController::handleGetItems);
 		}
 
 		~ListViewController() {
@@ -225,7 +225,7 @@ namespace webserver {
 
 			{
 				WLock l(cs);
-				auto i = findFilter(aRequest.getTokenParam(1));
+				auto i = findFilter(aRequest.getTokenParam());
 				if (i == filters.end()) {
 					aRequest.setResponseErrorStr("Filter not found");
 					return websocketpp::http::status_code::bad_request;
@@ -241,7 +241,7 @@ namespace webserver {
 		api_return handleDeleteFilter(ApiRequest& aRequest) {
 			const auto& reqJson = aRequest.getRequestBody();
 
-			if (!removeFilter(aRequest.getTokenParam(1))) {
+			if (!removeFilter(aRequest.getTokenParam())) {
 				aRequest.setResponseErrorStr("Filter not found");
 				return websocketpp::http::status_code::bad_request;
 			}
@@ -426,8 +426,8 @@ namespace webserver {
 		}
 
 		api_return handleGetItems(ApiRequest& aRequest) {
-			auto start = aRequest.getRangeParam(1);
-			auto end = aRequest.getRangeParam(2);
+			auto start = aRequest.getRangeParam(START_POS);
+			auto end = aRequest.getRangeParam(MAX_COUNT);
 			decltype(matchingItems) matchingItemsCopy;
 
 			{
@@ -743,7 +743,7 @@ namespace webserver {
 		// Append item with supplied property values
 		void appendItemPartial(const T& aItem, json& json_, int pos, const PropertyIdSet& aPropertyIds) {
 			appendItemPosition(aItem, json_, pos);
-			json_["items"][pos]["properties"] = Serializer::serializeItemProperties(aItem, aPropertyIds, itemHandler);
+			json_["items"][pos]["properties"] = Serializer::serializeProperties(aItem, itemHandler, aPropertyIds);
 		}
 
 		// Append item without property values
