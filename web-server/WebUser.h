@@ -69,7 +69,8 @@ namespace webserver {
 		bool isAdmin() const noexcept;
 
 		const static StringList accessStrings;
-		static Access toAccess(const string& aStr) noexcept;
+		static Access stringToAccess(const string& aStr) noexcept;
+		static const string& accessToString(Access aAccess) noexcept;
 
 		int countPermissions() const noexcept;
 

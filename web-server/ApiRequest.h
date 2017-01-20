@@ -24,23 +24,28 @@
 #include <airdcpp/typedefs.h>
 #include <airdcpp/GetSet.h>
 
+#define TOKEN_PARAM_ID "id_param"
+#define TTH_PARAM_ID "tth_param"
+#define CID_PARAM_ID "cid_param"
+
 namespace webserver {
+	enum RequestMethod {
+		METHOD_POST,
+		METHOD_GET,
+		METHOD_PUT,
+		METHOD_DELETE,
+		METHOD_PATCH,
+		METHOD_FORWARD, // Special 'any' method for internal API handlers
+		METHOD_LAST
+	};
+
 	class ApiRequest {
 	public:
-		typedef deque<std::string> RequestParamList;
-		enum Method {
-			METHOD_POST,
-			METHOD_GET,
-			METHOD_PUT,
-			METHOD_DELETE,
-			METHOD_PATCH,
-			METHOD_FORWARD, // Special 'any' method for internal API handlers
-			METHOD_LAST
-		};
+		typedef std::deque<std::string> ParamList;
+		typedef std::map<std::string, std::string> NamedParamMap;
 
-		ApiRequest(const std::string& aUrl, const std::string& aMethod, json& output_, json& error_) noexcept;
-
-		void validate();
+		// Throws on errors
+		ApiRequest(const std::string& aUrl, const std::string& aMethod, const json& aBody, const SessionPtr& aSession, json& output_, json& error_);
 
 		int getApiVersion() const noexcept {
 			return apiVersion;
@@ -50,27 +55,32 @@ namespace webserver {
 			return apiModule;
 		}
 
-		Method getMethod() const noexcept {
+		RequestMethod getMethod() const noexcept {
 			return method;
 		}
 
-		const RequestParamList& getParameters() const noexcept {
+		const string& getMethodStr() const noexcept {
+			return methodStr;
+		}
+
+		const ParamList& getParameters() const noexcept {
 			return parameters;
 		}
 
 		void popParam(size_t aCount = 1) noexcept;
 
-		const std::string& getStringParam(int pos) const noexcept;
+		const std::string& getStringParam(const string& aName) const noexcept;
+		const std::string& getParamAt(int aIndex) const noexcept;
+
+		// Throws in case of errors
+		TTHValue getTTHParam(const string& aName = TTH_PARAM_ID) const;
+
+		// Throws in case of errors
+		CID getCIDParam(const string& aName = CID_PARAM_ID) const;
 
 		// Use different naming to avoid accidentally using wrong conversion...
-		uint32_t getTokenParam(int pos) const noexcept;
-		int getRangeParam(int pos) const noexcept;
-
-		//GETSET(std::string , response, Response);
-		GETSET(SessionPtr, session, Session);
-
-		void parseHttpRequestJson(const std::string& aRequestBody);
-		void parseSocketRequestJson(const json& aJson);
+		uint32_t getTokenParam(const string& aName = TOKEN_PARAM_ID) const noexcept;
+		int getRangeParam(const string& aName) const noexcept;
 
 		bool hasRequestBody() const noexcept {
 			return !requestJson.is_null();
@@ -93,14 +103,25 @@ namespace webserver {
 		void setResponseErrorJson(const json& aError) {
 			responseJsonError = aError;
 		}
+
+		const SessionPtr& getSession() const noexcept {
+			return session;
+		}
+
+		void setNamedParams(const NamedParamMap& aParams) noexcept;
 	private:
-		RequestParamList parameters;
+		SessionPtr session;
+		void validate();
+
+		const string methodStr;
+		ParamList parameters;
+		NamedParamMap namedParameters;
 		int apiVersion = -1;
 		std::string apiModule;
 
-		Method method = METHOD_LAST;
+		RequestMethod method = METHOD_LAST;
 
-		json requestJson;
+		const json requestJson;
 
 		json& responseJsonData;
 		json& responseJsonError;

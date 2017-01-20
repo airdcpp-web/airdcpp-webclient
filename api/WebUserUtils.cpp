@@ -53,7 +53,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case PROP_PERMISSIONS:
 		{
-			auto i = WebUser::toAccess(aStringMatch.pattern);
+			auto i = WebUser::stringToAccess(aStringMatch.pattern);
 			if (i != Access::LAST) {
 				return aItem->hasPermission(i);
 			}

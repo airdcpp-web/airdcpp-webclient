@@ -45,7 +45,7 @@ namespace webserver {
 		PrivateChatInfo(ParentType* aParentModule, const PrivateChatPtr& aChat);
 		~PrivateChatInfo();
 
-		PrivateChatPtr getChat() const noexcept { return chat; }
+		const PrivateChatPtr& getChat() const noexcept { return chat; }
 
 		static string formatCCPMState(PrivateChat::CCPMState aState) noexcept;
 		static json serializeCCPMState(const PrivateChatPtr& aChat) noexcept;

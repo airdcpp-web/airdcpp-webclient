@@ -33,20 +33,18 @@ namespace webserver {
 
 		ViewFileApi(Session* aSession);
 		~ViewFileApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		api_return handleGetFiles(ApiRequest& aRequest);
 
 		api_return handleAddFile(ApiRequest& aRequest);
 		api_return handleAddLocalFile(ApiRequest& aRequest);
+		api_return handleGetFile(ApiRequest& aRequest);
 		api_return handleRemoveFile(ApiRequest& aRequest);
 
 		api_return handleGetText(ApiRequest& aRequest);
 		api_return handleSetRead(ApiRequest& aRequest);
 
+		static json serializeDownloadState(const ViewFilePtr& aFile) noexcept;
 		static json serializeFile(const ViewFilePtr& aFile) noexcept;
 		void onViewFileUpdated(const ViewFilePtr& aFile) noexcept;
 

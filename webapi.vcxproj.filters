@@ -159,9 +159,6 @@
     <ClInclude Include="api\HubInfo.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
-    <ClInclude Include="api\RecentHubApi.h">
-      <Filter>Header Files\api</Filter>
-    </ClInclude>
     <ClInclude Include="api\OnlineUserUtils.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
@@ -248,6 +245,9 @@
     </ClInclude>
     <ClInclude Include="api\SearchEntity.h">
       <Filter>Header Files\api</Filter>
+    </ClInclude>
+    <ClInclude Include="web-server\version.h">
+      <Filter>Header Files\web-server</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -342,9 +342,6 @@
       <Filter>Source Files\api</Filter>
     </ClCompile>
     <ClCompile Include="api\FilesystemApi.cpp">
-      <Filter>Source Files\api</Filter>
-    </ClCompile>
-    <ClCompile Include="api\RecentHubApi.cpp">
       <Filter>Source Files\api</Filter>
     </ClCompile>
     <ClCompile Include="api\HubInfo.cpp">

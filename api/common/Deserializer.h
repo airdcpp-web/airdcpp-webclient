@@ -36,11 +36,13 @@ namespace webserver {
 		// Get user with the provided CID
 		// Throws if the user is not found
 		static UserPtr getUser(const string& aCID, bool aAllowMe);
+		static UserPtr getUser(const CID& aCID, bool aAllowMe);
 
 		static TTHValue parseTTH(const string& aTTH);
 
 		static UserPtr deserializeUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
 		static HintedUser deserializeHintedUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
+		static OnlineUserPtr deserializeOnlineUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
 		static TTHValue deserializeTTH(const json& aJson);
 		static Priority deserializePriority(const json& aJson, bool allowDefault);
 

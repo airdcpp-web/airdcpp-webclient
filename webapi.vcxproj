@@ -203,7 +203,6 @@
     <ClInclude Include="api\QueueApi.h" />
     <ClInclude Include="api\QueueFileUtils.h" />
     <ClInclude Include="api\QueueBundleUtils.h" />
-    <ClInclude Include="api\RecentHubApi.h" />
     <ClInclude Include="api\SearchApi.h" />
     <ClInclude Include="api\SearchEntity.h" />
     <ClInclude Include="api\SearchUtils.h" />
@@ -232,6 +231,7 @@
     <ClInclude Include="web-server\SessionListener.h" />
     <ClInclude Include="web-server\stdinc.h" />
     <ClInclude Include="web-server\Timer.h" />
+    <ClInclude Include="web-server\version.h" />
     <ClInclude Include="web-server\WebServerManagerListener.h" />
     <ClInclude Include="web-server\WebServerManager.h" />
     <ClInclude Include="web-server\WebServerSettings.h" />
@@ -268,7 +268,6 @@
     <ClCompile Include="api\QueueApi.cpp" />
     <ClCompile Include="api\QueueFileUtils.cpp" />
     <ClCompile Include="api\QueueBundleUtils.cpp" />
-    <ClCompile Include="api\RecentHubApi.cpp" />
     <ClCompile Include="api\SearchApi.cpp" />
     <ClCompile Include="api\SearchEntity.cpp" />
     <ClCompile Include="api\SearchUtils.cpp" />

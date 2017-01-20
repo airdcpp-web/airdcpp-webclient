@@ -31,10 +31,6 @@ namespace webserver {
 	public:
 		ShareApi(Session* aSession);
 		~ShareApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		api_return handleRefreshShare(ApiRequest& aRequest);
 		api_return handleRefreshPaths(ApiRequest& aRequest);

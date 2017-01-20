@@ -31,10 +31,6 @@ namespace webserver {
 	public:
 		SettingApi(Session* aSession);
 		~SettingApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		api_return handleGetSettingInfos(ApiRequest& aRequest);
 		api_return handleGetSettingValues(ApiRequest& aRequest);

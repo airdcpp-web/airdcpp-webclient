@@ -31,10 +31,6 @@ namespace webserver {
 	public:
 		FilesystemApi(Session* aSession);
 		~FilesystemApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		api_return handleListItems(ApiRequest& aRequest);
 		api_return handlePostDirectory(ApiRequest& aRequest);

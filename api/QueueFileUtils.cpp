@@ -52,18 +52,7 @@ namespace webserver {
 	};
 
 	std::string QueueFileUtils::formatDisplayStatus(const QueueItemPtr& aItem) noexcept {
-		if (aItem->isSet(QueueItem::FLAG_FINISHED)) {
-			return STRING(FINISHED);
-		} 
-		
-		auto percentage = aItem->getPercentage(QueueManager::getInstance()->getDownloadedBytes(aItem));
-		if (aItem->isPausedPrio()) {
-			return STRING_F(PAUSED_PCT, percentage);
-		} else if (QueueManager::getInstance()->isWaiting(aItem)) {
-			return STRING_F(WAITING_PCT, percentage);
-		} else {
-			return STRING_F(RUNNING_PCT, percentage);
-		}
+		return aItem->getStatusString(QueueManager::getInstance()->getDownloadedBytes(aItem), QueueManager::getInstance()->isWaiting(aItem));
 	}
 
 	std::string QueueFileUtils::formatFileSources(const QueueItemPtr& aItem) noexcept {
@@ -97,7 +86,7 @@ namespace webserver {
 		}
 	}
 
-#define COMPARE_FINISHED(a, b) if (a->isSet(QueueItem::FLAG_FINISHED) != b->isSet(QueueItem::FLAG_FINISHED)) return a->isSet(QueueItem::FLAG_FINISHED) ? 1 : -1;
+#define COMPARE_IS_DOWNLOADED(a, b) if (a->isDownloaded() != b->isDownloaded()) return a->isDownloaded() ? 1 : -1;
 
 	string QueueFileUtils::getDisplayName(const QueueItemPtr& aItem) noexcept {
 		if (aItem->getBundle() && !aItem->getBundle()->isFileBundle()) {
@@ -116,19 +105,19 @@ namespace webserver {
 			return Util::stricmp(Util::getFileExt(a->getTarget()), Util::getFileExt(b->getTarget()));
 		}
 		case PROP_PRIORITY: {
-			COMPARE_FINISHED(a, b);
+			COMPARE_IS_DOWNLOADED(a, b);
 
 			return compare(static_cast<int>(a->getPriority()), static_cast<int>(b->getPriority()));
 		}
 		case PROP_STATUS: {
-			COMPARE_FINISHED(a, b);
+			COMPARE_IS_DOWNLOADED(a, b);
 			return compare(
 				a->getPercentage(QueueManager::getInstance()->getDownloadedBytes(a)), 
 				b->getPercentage(QueueManager::getInstance()->getDownloadedBytes(b))
 			);
 		}
 		case PROP_SOURCES: {
-			COMPARE_FINISHED(a, b);
+			COMPARE_IS_DOWNLOADED(a, b);
 
 			auto countsA = QueueManager::getInstance()->getSourceCount(a);
 			auto countsB = QueueManager::getInstance()->getSourceCount(b);
@@ -153,7 +142,8 @@ namespace webserver {
 		case PROP_STATUS:
 		{
 			return {
-				{ "finished", aFile->isSet(QueueItem::FLAG_FINISHED) },
+				{ "downloaded", aFile->isDownloaded() },
+				{ "completed", aFile->isSet(QueueItem::FLAG_MOVED) },
 				{ "str", formatDisplayStatus(aFile) },
 			};
 		}

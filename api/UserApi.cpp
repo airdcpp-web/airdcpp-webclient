@@ -32,9 +32,12 @@ namespace webserver {
 		ClientManager::getInstance()->addListener(this);
 		MessageManager::getInstance()->addListener(this);
 
-		METHOD_HANDLER("ignores", Access::SETTINGS_VIEW, ApiRequest::METHOD_GET, (), false, UserApi::handleGetIgnores);
-		METHOD_HANDLER("ignore", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (CID_PARAM), false, UserApi::handleIgnore);
-		METHOD_HANDLER("ignore", Access::SETTINGS_EDIT, ApiRequest::METHOD_DELETE, (CID_PARAM), false, UserApi::handleUnignore);
+		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("user"), CID_PARAM),	UserApi::handleGetUser);
+		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("search_nicks")),		UserApi::handleSearchNicks);
+
+		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("ignores")),			UserApi::handleGetIgnores);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("ignores"), CID_PARAM),	UserApi::handleIgnore);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("ignores"), CID_PARAM),	UserApi::handleUnignore);
 
 		createSubscription("user_connected");
 		createSubscription("user_updated");
@@ -50,19 +53,38 @@ namespace webserver {
 	}
 
 	UserPtr UserApi::getUser(ApiRequest& aRequest) {
-		return Deserializer::getUser(aRequest.getStringParam(0), true);
+		return Deserializer::getUser(aRequest.getCIDParam(), true);
+	}
+
+	api_return UserApi::handleGetUser(ApiRequest& aRequest) {
+		auto user = getUser(aRequest);
+		aRequest.setResponseBody(Serializer::serializeUser(user));
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return UserApi::handleSearchNicks(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+
+		auto pattern = JsonUtil::getField<string>("pattern", reqJson);
+		auto maxResults = JsonUtil::getField<size_t>("max_results", reqJson);
+		auto ignorePrefixes = JsonUtil::getOptionalFieldDefault<bool>("ignore_prefixes", reqJson, true);
+		auto hubs = Deserializer::deserializeHubUrls(reqJson);
+
+		auto users = ClientManager::getInstance()->searchNicks(pattern, maxResults, ignorePrefixes, hubs);
+		aRequest.setResponseBody(Serializer::serializeList(users, Serializer::serializeOnlineUser));
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return UserApi::handleIgnore(ApiRequest& aRequest) {
 		auto u = getUser(aRequest);
 		MessageManager::getInstance()->storeIgnore(u);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return UserApi::handleUnignore(ApiRequest& aRequest) {
 		auto u = getUser(aRequest);
 		MessageManager::getInstance()->removeIgnore(u);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return UserApi::handleGetIgnores(ApiRequest& aRequest) {

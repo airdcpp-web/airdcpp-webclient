@@ -207,7 +207,7 @@ namespace webserver {
 
 		auto session = aSession;
 		if (!session) {
-			auto auth = Util::decodeQuery(query)["auth"];
+			auto auth = Util::decodeQuery(query)["auth_token"];
 			if (!auth.empty()) {
 				session = WebServerManager::getInstance()->getUserManager().getSession(auth);
 			}

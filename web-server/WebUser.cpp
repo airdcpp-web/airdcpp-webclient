@@ -62,13 +62,17 @@ namespace webserver {
 		"view_file_edit",
 	};
 
-	Access WebUser::toAccess(const string& aStr) noexcept {
+	Access WebUser::stringToAccess(const string& aStr) noexcept {
 		auto pos = find(accessStrings.begin(), accessStrings.end(), aStr);
 		if (pos == accessStrings.end()) {
 			return Access::LAST;
 		}
 
 		return static_cast<Access>(pos - accessStrings.begin());
+	}
+
+	const string& WebUser::accessToString(Access aAccess) noexcept {
+		return accessStrings[static_cast<AccessType>(aAccess)];
 	}
 
 	WebUser::WebUser(const std::string& aUserName, const std::string& aPassword, bool aIsAdmin) : userName(aUserName), password(aPassword) {
@@ -96,7 +100,7 @@ namespace webserver {
 	void WebUser::setPermissions(const StringList& aPermissions) noexcept {
 		clearPermissions();
 		for (const auto& p : aPermissions) {
-			auto access = toAccess(p);
+			auto access = stringToAccess(p);
 			if (access != Access::LAST) {
 				permissions[access] = true;
 			}
@@ -107,7 +111,7 @@ namespace webserver {
 		StringList tmp;
 		for (const auto& v : permissions) {
 			if (v.second) {
-				tmp.push_back(accessStrings[static_cast<AccessType>(v.first)]);
+				tmp.push_back(accessToString(v.first));
 			}
 		}
 

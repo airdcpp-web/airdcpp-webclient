@@ -35,12 +35,15 @@ namespace webserver {
 	}
 
 	UserPtr Deserializer::getUser(const string& aCID, bool aAllowMe) {
-		auto cid = parseCID(aCID);
-		if (!aAllowMe && cid == ClientManager::getInstance()->getMyCID()) {
+		return getUser(parseCID(aCID), aAllowMe);
+	}
+
+	UserPtr Deserializer::getUser(const CID& aCID, bool aAllowMe) {
+		if (!aAllowMe && aCID == ClientManager::getInstance()->getMyCID()) {
 			throw std::invalid_argument("Own CID isn't allowed for this command");
 		}
 
-		auto u = ClientManager::getInstance()->findUser(cid);
+		auto u = ClientManager::getInstance()->findUser(aCID);
 		if (!u) {
 			throw std::invalid_argument("User not found");
 		}
@@ -71,14 +74,25 @@ namespace webserver {
 		return HintedUser(user, JsonUtil::getField<string>("hub_url", userJson, aAllowMe && user == ClientManager::getInstance()->getMe()));
 	}
 
+	OnlineUserPtr Deserializer::deserializeOnlineUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
+		auto hintedUser = deserializeHintedUser(aJson, aAllowMe, aFieldName);
+
+		auto onlineUser = ClientManager::getInstance()->findOnlineUser(hintedUser, false);
+		if (!onlineUser) {
+			throw std::invalid_argument("User is offline");
+		}
+
+		return onlineUser;
+	}
+
 	TTHValue Deserializer::deserializeTTH(const json& aJson) {
 		return parseTTH(JsonUtil::getField<string>("tth", aJson, false));
 	}
 
-	Priority Deserializer::deserializePriority(const json& aJson, bool allowDefault) {
-		auto minAllowed = allowDefault ? Priority::DEFAULT : Priority::PAUSED_FORCE;
+	Priority Deserializer::deserializePriority(const json& aJson, bool aAllowDefault) {
+		auto minAllowed = aAllowDefault ? Priority::DEFAULT : Priority::PAUSED_FORCE;
 
-		auto priority = JsonUtil::getEnumField<int>("priority", aJson, !allowDefault, static_cast<int>(minAllowed), static_cast<int>(Priority::HIGHEST));
+		auto priority = JsonUtil::getEnumField<int>("priority", aJson, !aAllowDefault, static_cast<int>(minAllowed), static_cast<int>(Priority::HIGHEST));
 		if (!priority) {
 			return Priority::DEFAULT;
 		}

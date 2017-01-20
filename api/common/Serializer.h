@@ -43,7 +43,6 @@ namespace webserver {
 		static json serializeLogMessage(const LogMessagePtr& aMessageData) noexcept;
 
 		typedef std::function<json(const MessageCache& aCache)> UnreadSerializerF;
-		static void serializeCacheInfoLegacy(json& json_, const MessageCache& aCache, UnreadSerializerF unreadF) noexcept;
 		static json serializeCacheInfo(const MessageCache& aCache, const UnreadSerializerF& unreadF) noexcept;
 		static json serializeUnreadChat(const MessageCache& aCache) noexcept;
 		static json serializeUnreadLog(const MessageCache& aCache) noexcept;
@@ -79,6 +78,8 @@ namespace webserver {
 		static json serializePriority(const QueueItemBase& aItem) noexcept;
 		static json serializeSourceCount(const QueueItemBase::SourceCount& aCount) noexcept;
 
+		static json serializeGroupedPaths(const pair<string, OrderedStringSet>& aGroupedPair) noexcept;
+		static json serializeActionHookError(const ActionHookErrorPtr& aError) noexcept;
 
 		// Serialize n messages from end by keeping the list order
 		// Throws for invalid parameters
@@ -145,15 +146,23 @@ namespace webserver {
 			});
 		}
 
+		// Serialize item with ID and all properties
 		template <class T>
 		static json serializeItem(const T& aItem, const PropertyItemHandler<T>& aHandler) noexcept {
-			auto j = serializeItemProperties(aItem, toPropertyIdSet(aHandler.properties), aHandler);
+			return serializePartialItem(aItem, aHandler, toPropertyIdSet(aHandler.properties));
+		}
+
+		// Serialize item with ID and specified properties
+		template <class T>
+		static json serializePartialItem(const T& aItem, const PropertyItemHandler<T>& aHandler, const PropertyIdSet& aPropertyIds) noexcept {
+			auto j = serializeProperties(aItem, aHandler, aPropertyIds);
 			j["id"] = aItem->getToken();
 			return j;
 		}
 
+		// Serialize specified item properties (without the ID)
 		template <class T>
-		static json serializeItemProperties(const T& aItem, const PropertyIdSet& aPropertyIds, const PropertyItemHandler<T>& aHandler) noexcept {
+		static json serializeProperties(const T& aItem, const PropertyItemHandler<T>& aHandler, const PropertyIdSet& aPropertyIds) noexcept {
 			json j;
 			for (auto id : aPropertyIds) {
 				const auto& prop = aHandler.properties[id];
@@ -164,11 +173,6 @@ namespace webserver {
 				}
 				case SERIALIZE_TEXT: {
 					j[prop.name] = aHandler.stringF(aItem, id);
-					break;
-				}
-				case SERIALIZE_TEXT_NUMERIC: {
-					j[prop.name]["id"] = aHandler.numberF(aItem, id);
-					j[prop.name]["str"] = aHandler.stringF(aItem, id);
 					break;
 				}
 				case SERIALIZE_BOOL: {

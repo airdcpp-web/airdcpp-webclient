@@ -82,9 +82,13 @@ namespace webserver {
 
 		template <typename EndpointType>
 		void on_open_socket(EndpointType* aServer, websocketpp::connection_hdl hdl, bool aIsSecure) {
-			WLock l(cs);
-			auto socket = make_shared<WebSocket>(aIsSecure, hdl, aServer, this);
-			sockets.emplace(hdl, socket);
+			auto con = aServer->get_con_from_hdl(hdl);
+			auto socket = make_shared<WebSocket>(aIsSecure, hdl, con->get_request(), aServer, this);
+
+			{
+				WLock l(cs);
+				sockets.emplace(hdl, socket);
+			}
 		}
 
 		void on_close_socket(websocketpp::connection_hdl hdl);
@@ -112,13 +116,11 @@ namespace webserver {
 			}
 
 			if (con->get_resource().length() >= 4 && con->get_resource().compare(0, 4, "/api") == 0) {
-				auto path = con->get_resource().substr(4);
-
-				onData(path + ": " + con->get_request().get_body(), TransportType::TYPE_HTTP_API, Direction::INCOMING, ip);
+				onData(con->get_resource() + ": " + con->get_request().get_body(), TransportType::TYPE_HTTP_API, Direction::INCOMING, ip);
 
 				json output, apiError;
 				status = api.handleHttpRequest(
-					path,
+					con->get_resource(),
 					con->get_request(),
 					output,
 					apiError,
@@ -128,7 +130,7 @@ namespace webserver {
 				);
 
 				auto data = status != websocketpp::http::status_code::ok ? apiError.dump() : output.dump();
-				onData(path + " (" + Util::toString(status) + "): " + data, TransportType::TYPE_HTTP_API, Direction::OUTGOING, ip);
+				onData(con->get_resource() + " (" + Util::toString(status) + "): " + data, TransportType::TYPE_HTTP_API, Direction::OUTGOING, ip);
 
 				con->set_body(data);
 				con->append_header("Content-Type", "application/json");

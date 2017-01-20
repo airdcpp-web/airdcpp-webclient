@@ -48,7 +48,7 @@ namespace webserver {
 		HubInfo(ParentType* aParentModule, const ClientPtr& aClient);
 		~HubInfo();
 
-		ClientPtr getClient() const noexcept { return client; }
+		const ClientPtr& getClient() const noexcept { return client; }
 
 		static json serializeConnectState(const ClientPtr& aClient) noexcept;
 		static json serializeIdentity(const ClientPtr& aClient) noexcept;
@@ -62,6 +62,8 @@ namespace webserver {
 		api_return handleRedirect(ApiRequest& aRequest);
 
 		api_return handleGetCounts(ApiRequest& aRequest);
+		api_return handleGetUsers(ApiRequest& aRequest);
+		api_return handleGetUser(ApiRequest& aRequest);
 
 		void on(ClientListener::Redirect, const Client*, const string&) noexcept override;
 		void on(ClientListener::Disconnected, const string&, const string&) noexcept override;

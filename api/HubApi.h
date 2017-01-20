@@ -36,10 +36,6 @@ namespace webserver {
 		HubApi(Session* aSession);
 		~HubApi();
 
-		int getVersion() const noexcept override {
-			return 0;
-		}
-
 		static json serializeClient(const ClientPtr& aClient) noexcept;
 	private:
 		void addHub(const ClientPtr& aClient) noexcept;
@@ -49,8 +45,9 @@ namespace webserver {
 
 		api_return handleConnect(ApiRequest& aRequest);
 		api_return handleDisconnect(ApiRequest& aRequest);
-		api_return handleSearchNicks(ApiRequest& aRequest);
 		api_return handleGetStats(ApiRequest& aRequest);
+
+		api_return handleFindByUrl(ApiRequest& aRequest);
 
 		void on(ClientManagerListener::ClientCreated, const ClientPtr&) noexcept override;
 		void on(ClientManagerListener::ClientRemoved, const ClientPtr&) noexcept override;

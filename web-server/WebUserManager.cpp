@@ -74,7 +74,7 @@ namespace webserver {
 		return session;
 	}
 
-	SessionPtr WebUserManager::authenticateSession(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, bool aUserSession, const string& aIP) noexcept {
+	SessionPtr WebUserManager::authenticateSession(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, const string& aIP) noexcept {
 		auto user = getUser(aUserName);
 		if (!user) {
 			return nullptr;
@@ -85,7 +85,7 @@ namespace webserver {
 		}
 
 		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
-		return createSession(user, uuid, aIsSecure ? Session::TYPE_SECURE : Session::TYPE_PLAIN, aMaxInactivityMinutes, aUserSession, aIP);
+		return createSession(user, uuid, aIsSecure ? Session::TYPE_SECURE : Session::TYPE_PLAIN, aMaxInactivityMinutes, aIP);
 	}
 
 	SessionPtr WebUserManager::authenticateBasicHttp(const string& aAuthString, const string& aIP) noexcept {
@@ -109,11 +109,11 @@ namespace webserver {
 			return nullptr;
 		}
 
-		return createSession(user, aAuthString, Session::TYPE_BASIC_AUTH, 60, false, aIP);
+		return createSession(user, aAuthString, Session::TYPE_BASIC_AUTH, 60, aIP);
 	}
 
-	SessionPtr WebUserManager::createSession(const WebUserPtr& aUser, const string& aSessionToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, bool aUserSession, const string& aIP) {
-		auto session = std::make_shared<Session>(aUser, aSessionToken, aType, server, aMaxInactivityMinutes, aUserSession, aIP);
+	SessionPtr WebUserManager::createSession(const WebUserPtr& aUser, const string& aSessionToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP) {
+		auto session = std::make_shared<Session>(aUser, aSessionToken, aType, server, aMaxInactivityMinutes, aIP);
 
 		aUser->setLastLogin(GET_TIME());
 		aUser->addSession();
@@ -126,11 +126,6 @@ namespace webserver {
 		}
 
 		fire(WebUserManagerListener::SessionCreated(), session);
-
-		if (aUserSession) {
-			ActivityManager::getInstance()->updateActivity();
-		}
-
 		return session;
 	}
 

@@ -38,17 +38,17 @@ namespace webserver {
 		typedef std::function<IdType(const string&)> IdConvertF;
 		typedef std::function<json(const ItemType&)> ChildSerializeF;
 
-		ParentApiModule(const string& aSubmoduleSection, const regex& aIdMatcher, Access aAccess, Session* aSession, const StringList& aSubscriptions, const StringList& aChildSubscription, IdConvertF aIdConvertF, ChildSerializeF aChildSerializeF) :
-			SubscribableApiModule(aSession, aAccess, &aSubscriptions), idConvertF(aIdConvertF), childSerializeF(aChildSerializeF) {
-
-			// Request forwarder
-			requestHandlers[aSubmoduleSection].push_back(ApiModule::RequestHandler(aIdMatcher, std::bind(&Type::handleSubModuleRequest, this, placeholders::_1)));
+		ParentApiModule(const string& aSubmoduleSection, ApiModule::RequestHandler::Param&& aParamMatcher, Access aAccess, Session* aSession, const StringList& aSubscriptions, const StringList& aChildSubscription, IdConvertF aIdConvertF, ChildSerializeF aChildSerializeF) :
+			SubscribableApiModule(aSession, aAccess, &aSubscriptions), idConvertF(aIdConvertF), childSerializeF(aChildSerializeF), paramId(aParamMatcher.id) {
 
 			// Get module
-			METHOD_HANDLER(aSubmoduleSection, aAccess, ApiRequest::METHOD_GET, (aIdMatcher), false, Type::handleGetSubmodule);
+			METHOD_HANDLER(aAccess, METHOD_GET, (EXACT_PARAM(aSubmoduleSection), aParamMatcher), Type::handleGetSubmodule);
 
 			// List modules
-			METHOD_HANDLER(aSubmoduleSection + "s", aAccess, ApiRequest::METHOD_GET, (), false, Type::handleGetSubmodules);
+			METHOD_HANDLER(aAccess, METHOD_GET, (EXACT_PARAM(aSubmoduleSection)), Type::handleGetSubmodules);
+
+			// Request forwarder
+			METHOD_HANDLER(Access::ANY, METHOD_FORWARD, (EXACT_PARAM(aSubmoduleSection), aParamMatcher), Type::handleSubModuleRequest);
 
 			for (const auto& s: aChildSubscription) {
 				childSubscriptions.emplace(s, false);
@@ -76,18 +76,18 @@ namespace webserver {
 				return websocketpp::http::status_code::precondition_required;
 			}
 
-			const auto& subscription = aRequest.getStringParam(0);
+			const auto& subscription = aRequest.getStringParam(LISTENER_PARAM_ID);
 			if (setChildSubscriptionState(subscription, true)) {
-				return websocketpp::http::status_code::ok;
+				return websocketpp::http::status_code::no_content;
 			}
 
 			return SubscribableApiModule::handleSubscribe(aRequest);
 		}
 
 		api_return handleUnsubscribe(ApiRequest& aRequest) override {
-			const auto& subscription = aRequest.getStringParam(0);
+			const auto& subscription = aRequest.getStringParam(LISTENER_PARAM_ID);
 			if (setChildSubscriptionState(subscription, false)) {
-				return websocketpp::http::status_code::ok;
+				return websocketpp::http::status_code::no_content;
 			}
 
 			return SubscribableApiModule::handleUnsubscribe(aRequest);
@@ -97,7 +97,9 @@ namespace webserver {
 		api_return handleSubModuleRequest(ApiRequest& aRequest) {
 			auto sub = getSubModule(aRequest);
 
-			aRequest.popParam();
+			// Remove section and module ID
+			aRequest.popParam(2);
+
 			return sub->handleRequest(aRequest);
 		}
 
@@ -152,9 +154,11 @@ namespace webserver {
 
 		// Parse module ID from the request, throws if the module was not found
 		typename ItemType::Ptr getSubModule(ApiRequest& aRequest) {
-			auto sub = findSubModule(aRequest.getStringParam(0));
+			auto id = aRequest.getStringParam(paramId);
+
+			auto sub = findSubModule(id);
 			if (!sub) {
-				throw RequestException(websocketpp::http::status_code::not_found, "Entity was not found");
+				throw RequestException(websocketpp::http::status_code::not_found, "Entity " + id + " was not found");
 			}
 
 			return sub;
@@ -205,6 +209,7 @@ namespace webserver {
 		SubscribableApiModule::SubscriptionMap childSubscriptions;
 		const IdConvertF idConvertF;
 		const ChildSerializeF childSerializeF;
+		const string paramId;
 	};
 
 	template<class ParentIdType, class ItemType, class ItemJsonType>

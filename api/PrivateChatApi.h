@@ -34,10 +34,6 @@ namespace webserver {
 
 		PrivateChatApi(Session* aSession);
 		~PrivateChatApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		void addChat(const PrivateChatPtr& aChat) noexcept;
 

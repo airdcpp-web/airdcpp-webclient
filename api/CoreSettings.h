@@ -45,15 +45,12 @@ namespace webserver {
 		{ "min_segment_size", SettingsManager::MIN_SEGMENT_SIZE, ResourceManager::SETTINGS_AIRDOWNLOADS_SEGMENT_SIZE, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::KiB, false } },
 		{ "new_segment_min_speed", SettingsManager::DONT_BEGIN_SEGMENT_SPEED, ResourceManager::DONT_ADD_SEGMENT_TEXT, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::KiB, true } },
 		{ "allow_slow_overlap", SettingsManager::OVERLAP_SLOW_SOURCES, ResourceManager::SETTINGS_OVERLAP_SLOW_SOURCES },
-		{ "share_finished_bundles", SettingsManager::ADD_FINISHED_INSTANTLY, ResourceManager::ADD_FINISHED_INSTANTLY },
-		{ "finished_no_hash", SettingsManager::FINISHED_NO_HASH, ResourceManager::SETTINGS_FINISHED_NO_HASH },
 		{ "finished_remove_exit", SettingsManager::REMOVE_FINISHED_BUNDLES, ResourceManager::BUNDLES_REMOVE_EXIT },
 
 		//{ ResourceManager::SETTINGS_SKIPPING_OPTIONS },
 		{ "dont_download_shared", SettingsManager::DONT_DL_ALREADY_SHARED, ResourceManager::SETTINGS_DONT_DL_ALREADY_SHARED },
 		{ "dont_download_queued", SettingsManager::DONT_DL_ALREADY_QUEUED, ResourceManager::SETTING_DONT_DL_ALREADY_QUEUED },
 		{ "download_dupe_min_size", SettingsManager::MIN_DUPE_CHECK_SIZE, ResourceManager::MIN_DUPE_CHECK_SIZE, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::KiB, false } },
-		{ "download_skip_zero_byte", SettingsManager::SKIP_ZERO_BYTE, ResourceManager::CHECK_IGNORE_ZERO_BYTE }, // DEPRECEATED, REMOVE LATER
 		{ "download_skiplist", SettingsManager::SKIPLIST_DOWNLOAD, ResourceManager::SETTINGS_SKIPLIST_DOWNLOAD },
 		{ "download_skiplist_regex", SettingsManager::DOWNLOAD_SKIPLIST_USE_REGEXP, ResourceManager::USE_REGEXP },
 
@@ -197,12 +194,6 @@ namespace webserver {
 		{ "history_hub_messages", SettingsManager::HUB_MESSAGE_CACHE , ResourceManager::HUBS },
 		{ "history_log_messages", SettingsManager::LOG_MESSAGE_CACHE , ResourceManager::SYSTEM_LOG },
 
-		//{ ResourceManager::SETTINGS_AIR_TABSPAGE },
-		{ "open_transfers", SettingsManager::SHOW_TRANSFERVIEW, ResourceManager::MENU_TRANSFERS },
-		{ "open_hublist", SettingsManager::OPEN_PUBLIC, ResourceManager::MAX_HASHING_THREADS },
-		{ "open_favorites", SettingsManager::OPEN_FAVORITE_HUBS, ResourceManager::MAX_VOL_HASHERS },
-		{ "open_queue", SettingsManager::OPEN_QUEUE, ResourceManager::MAX_VOL_HASHERS },
-
 		//{ ResourceManager::SETTINGS_ADVANCED },
 		{ "socket_read_buffer", SettingsManager::SOCKET_IN_BUFFER, ResourceManager::SETTINGS_SOCKET_IN_BUFFER },
 		{ "socket_write_buffer", SettingsManager::SOCKET_OUT_BUFFER, ResourceManager::SETTINGS_SOCKET_OUT_BUFFER },
@@ -216,7 +207,7 @@ namespace webserver {
 		{ "auto_follow_redirects", SettingsManager::AUTO_FOLLOW, ResourceManager::SETTINGS_AUTO_FOLLOW },
 		{ "disconnect_hubs_noreg", SettingsManager::DISALLOW_CONNECTION_TO_PASSED_HUBS, ResourceManager::DISALLOW_CONNECTION_TO_PASSED_HUBS },
 
-		{ "run_wizard", SettingsManager::WIZARD_RUN, ResourceManager::WIZARD_FINISHED_TITLE },
+		{ "wizard_pending", SettingsManager::WIZARD_PENDING, ResourceManager::WIZARD_FINISHED_TITLE },
 
 		{ "use_default_cert_paths", SettingsManager::USE_DEFAULT_CERT_PATHS, ResourceManager::USE_DEFAULT_CERT_PATHS },
 		{ "tls_certificate_file", SettingsManager::TLS_CERTIFICATE_FILE, ResourceManager::OWN_CERTIFICATE, ApiSettingItem::TYPE_FILE_PATH },

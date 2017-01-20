@@ -38,10 +38,6 @@ namespace webserver {
 	public:
 		QueueApi(Session* aSession);
 		~QueueApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		api_return handleFindDupePaths(ApiRequest& aRequest);
 		api_return handleRemoveSource(ApiRequest& aRequest);
@@ -51,7 +47,7 @@ namespace webserver {
 
 		api_return handleGetBundles(ApiRequest& aRequest);
 		api_return handleGetBundleFiles(ApiRequest& aRequest);
-		api_return handleRemoveFinishedBundles(ApiRequest& aRequest);
+		api_return handleRemoveCompletedBundles(ApiRequest& aRequest);
 		api_return handleBundlePriorities(ApiRequest& aRequest);
 
 		api_return handleGetFile(ApiRequest& aRequest);
@@ -90,10 +86,12 @@ namespace webserver {
 		//QueueItem update listeners
 		void on(QueueManagerListener::ItemRemoved, const QueueItemPtr& aQI, bool /*finished*/) noexcept override;
 		void on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept override;
-		void on(QueueManagerListener::ItemSourcesUpdated, const QueueItemPtr& aQI) noexcept override;
-		void on(QueueManagerListener::ItemStatusUpdated, const QueueItemPtr& aQI) noexcept override;
+		void on(QueueManagerListener::ItemSources, const QueueItemPtr& aQI) noexcept override;
+		void on(QueueManagerListener::ItemStatus, const QueueItemPtr& aQI) noexcept override;
+		void on(QueueManagerListener::ItemPriority, const QueueItemPtr& aQI) noexcept override;
+		void on(QueueManagerListener::ItemTick, const QueueItemPtr& aQI) noexcept override;
 
-		void onFileUpdated(const QueueItemPtr& aQI, const PropertyIdSet& aUpdatedProperties);
+		void onFileUpdated(const QueueItemPtr& aQI, const PropertyIdSet& aUpdatedProperties, const string& aSubscription);
 		void onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription);
 
 		typedef ListViewController<BundlePtr, QueueBundleUtils::PROP_LAST> BundleListView;

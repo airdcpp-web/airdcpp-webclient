@@ -31,10 +31,6 @@ namespace webserver {
 	public:
 		FavoriteDirectoryApi(Session* aSession);
 		~FavoriteDirectoryApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		static json serializeDirectories() noexcept;
 		
@@ -45,9 +41,6 @@ namespace webserver {
 		api_return handleGetDirectory(ApiRequest& aRequest);
 		api_return handleUpdateDirectory(ApiRequest& aRequest);
 		api_return handleRemoveDirectory(ApiRequest& aRequest);
-
-		api_return handleUpdateDirectoryLegacy(ApiRequest& aRequest);
-		api_return handleRemoveDirectoryLegacy(ApiRequest& aRequest);
 
 		StringPair updatePath(const string& aPath, const json& aRequestJson);
 

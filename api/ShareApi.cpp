@@ -31,18 +31,18 @@
 namespace webserver {
 	ShareApi::ShareApi(Session* aSession) : SubscribableApiModule(aSession, Access::SETTINGS_VIEW) {
 
-		METHOD_HANDLER("grouped_root_paths", Access::ANY, ApiRequest::METHOD_GET, (), false, ShareApi::handleGetGroupedRootPaths);
-		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, ShareApi::handleGetStats);
-		METHOD_HANDLER("find_dupe_paths", Access::ANY, ApiRequest::METHOD_POST, (), true, ShareApi::handleFindDupePaths);
-		METHOD_HANDLER("search", Access::SETTINGS_VIEW, ApiRequest::METHOD_POST, (), true, ShareApi::handleSearch);
+		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("grouped_root_paths")),				ShareApi::handleGetGroupedRootPaths);
+		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("stats")),								ShareApi::handleGetStats);
+		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("find_dupe_paths")),					ShareApi::handleFindDupePaths);
+		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("search")),							ShareApi::handleSearch);
 
-		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (), false, ShareApi::handleRefreshShare);
-		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("paths")), true, ShareApi::handleRefreshPaths);
-		METHOD_HANDLER("refresh", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("virtual")), true, ShareApi::handleRefreshVirtual);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh")),							ShareApi::handleRefreshShare);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh"), EXACT_PARAM("paths")),		ShareApi::handleRefreshPaths);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh"), EXACT_PARAM("virtual")),	ShareApi::handleRefreshVirtual);
 
-		METHOD_HANDLER("excludes", Access::SETTINGS_VIEW, ApiRequest::METHOD_GET, (), false, ShareApi::handleGetExcludes);
-		METHOD_HANDLER("exclude", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("add")), true, ShareApi::handleAddExclude);
-		METHOD_HANDLER("exclude", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("remove")), true, ShareApi::handleRemoveExclude);
+		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("excludes")),							ShareApi::handleGetExcludes);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("add")),		ShareApi::handleAddExclude);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("remove")),	ShareApi::handleRemoveExclude);
 
 		createSubscription("share_refreshed");
 
@@ -214,17 +214,8 @@ namespace webserver {
 	}
 
 	api_return ShareApi::handleGetGroupedRootPaths(ApiRequest& aRequest) {
-		auto ret = json::array();
-
 		auto roots = ShareManager::getInstance()->getGroupedDirectories();
-		for (const auto& vPath : roots) {
-			ret.push_back({
-				{ "name", vPath.first },
-				{ "paths", vPath.second }
-			});
-		}
-
-		aRequest.setResponseBody(ret);
+		aRequest.setResponseBody(Serializer::serializeList(roots, Serializer::serializeGroupedPaths));
 		return websocketpp::http::status_code::ok;
 	}
 

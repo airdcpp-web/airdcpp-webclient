@@ -31,50 +31,58 @@
 
 namespace webserver {
 	QueueApi::QueueApi(Session* aSession) : SubscribableApiModule(aSession, Access::QUEUE_VIEW),
-			bundleView("bundle_view", this, QueueBundleUtils::propertyHandler, getBundleList), fileView("queue_file_view", this, QueueFileUtils::propertyHandler, getFileList) {
+			bundleView("queue_bundle_view", this, QueueBundleUtils::propertyHandler, getBundleList), fileView("queue_file_view", this, QueueFileUtils::propertyHandler, getFileList) {
 
 		QueueManager::getInstance()->addListener(this);
 		DownloadManager::getInstance()->addListener(this);
 
-		createSubscription("bundle_added");
-		createSubscription("bundle_removed");
-		createSubscription("bundle_updated");
+		createSubscription("queue_bundle_added");
+		createSubscription("queue_bundle_removed");
+		createSubscription("queue_bundle_updated");
 
-		// These are included in bundle_updated events as well
-		createSubscription("bundle_tick");
-		createSubscription("bundle_content");
-		createSubscription("bundle_priority");
-		createSubscription("bundle_status");
-		createSubscription("bundle_sources");
+		// These are included in queue_bundle_updated events as well
+		createSubscription("queue_bundle_tick");
+		createSubscription("queue_bundle_content");
+		createSubscription("queue_bundle_priority");
+		createSubscription("queue_bundle_status");
+		createSubscription("queue_bundle_sources");
 
 		createSubscription("queue_file_added");
 		createSubscription("queue_file_removed");
 		createSubscription("queue_file_updated");
 
-		METHOD_HANDLER("bundles", Access::QUEUE_VIEW, ApiRequest::METHOD_GET, (NUM_PARAM, NUM_PARAM), false, QueueApi::handleGetBundles);
-		METHOD_HANDLER("bundles", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("remove_finished")), false, QueueApi::handleRemoveFinishedBundles);
-		METHOD_HANDLER("bundles", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("priority")), true, QueueApi::handleBundlePriorities);
+		// These are included in queue_file_updated events as well
+		createSubscription("queue_file_priority");
+		createSubscription("queue_file_status");
+		createSubscription("queue_file_sources");
+		createSubscription("queue_file_tick");
 
-		METHOD_HANDLER("bundle", Access::DOWNLOAD, ApiRequest::METHOD_POST, (EXACT_PARAM("file")), true, QueueApi::handleAddFileBundle);
-		METHOD_HANDLER("bundle", Access::DOWNLOAD, ApiRequest::METHOD_POST, (EXACT_PARAM("directory")), true, QueueApi::handleAddDirectoryBundle);
 
-		METHOD_HANDLER("bundle", Access::QUEUE_VIEW, ApiRequest::METHOD_GET, (TOKEN_PARAM, EXACT_PARAM("files"), NUM_PARAM, NUM_PARAM), false, QueueApi::handleGetBundleFiles);
-		METHOD_HANDLER("bundle", Access::QUEUE_VIEW, ApiRequest::METHOD_GET, (TOKEN_PARAM, EXACT_PARAM("sources")), false, QueueApi::handleGetBundleSources);
-		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_DELETE, (TOKEN_PARAM, EXACT_PARAM("source"), CID_PARAM), false, QueueApi::handleRemoveBundleSource);
+		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("bundles"), RANGE_START_PARAM, RANGE_MAX_PARAM),			QueueApi::handleGetBundles);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), EXACT_PARAM("remove_completed")),				QueueApi::handleRemoveCompletedBundles);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), EXACT_PARAM("priority")),						QueueApi::handleBundlePriorities);
 
-		METHOD_HANDLER("bundle", Access::QUEUE_VIEW, ApiRequest::METHOD_GET, (TOKEN_PARAM), false, QueueApi::handleGetBundle);
-		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("remove")), false, QueueApi::handleRemoveBundle);
-		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_PATCH, (TOKEN_PARAM), true, QueueApi::handleUpdateBundle);
+		METHOD_HANDLER(Access::DOWNLOAD,	METHOD_POST,	(EXACT_PARAM("bundles"), EXACT_PARAM("file")),							QueueApi::handleAddFileBundle);
+		METHOD_HANDLER(Access::DOWNLOAD,	METHOD_POST,	(EXACT_PARAM("bundles"), EXACT_PARAM("directory")),						QueueApi::handleAddDirectoryBundle);
 
-		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("search")), false, QueueApi::handleSearchBundle);
-		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("share")), false, QueueApi::handleShareBundle);
+		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("files"), RANGE_START_PARAM, RANGE_MAX_PARAM),	QueueApi::handleGetBundleFiles);
+		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("sources")),										QueueApi::handleGetBundleSources);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_DELETE,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("sources"), CID_PARAM),							QueueApi::handleRemoveBundleSource);
 
-		METHOD_HANDLER("file", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("search")), false, QueueApi::handleSearchFile);
-		METHOD_HANDLER("file", Access::QUEUE_EDIT, ApiRequest::METHOD_PATCH, (TOKEN_PARAM), true, QueueApi::handleUpdateFile);
+		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("bundles"), TOKEN_PARAM),									QueueApi::handleGetBundle);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("remove")),			QueueApi::handleRemoveBundle);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_PATCH,	(EXACT_PARAM("bundles"), TOKEN_PARAM),									QueueApi::handleUpdateBundle);
 
-		METHOD_HANDLER("remove_source", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (), true, QueueApi::handleRemoveSource);
-		METHOD_HANDLER("remove_file", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (), true, QueueApi::handleRemoveTarget);
-		METHOD_HANDLER("find_dupe_paths", Access::ANY, ApiRequest::METHOD_POST, (), true, QueueApi::handleFindDupePaths);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("search")),			QueueApi::handleSearchBundle);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("share")),			QueueApi::handleShareBundle);
+
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("search")),				QueueApi::handleSearchFile);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_PATCH,	(EXACT_PARAM("files"), TOKEN_PARAM),									QueueApi::handleUpdateFile);
+
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_DELETE,	(EXACT_PARAM("sources"), CID_PARAM),									QueueApi::handleRemoveSource);
+
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("remove_file")),											QueueApi::handleRemoveTarget);
+		METHOD_HANDLER(Access::ANY,			METHOD_POST,	(EXACT_PARAM("find_dupe_paths")),										QueueApi::handleFindDupePaths);
 	}
 
 	QueueApi::~QueueApi() {
@@ -101,7 +109,7 @@ namespace webserver {
 	}
 
 	api_return QueueApi::handleRemoveSource(ApiRequest& aRequest) {
-		auto user = Deserializer::deserializeUser(aRequest.getRequestBody());
+		auto user = Deserializer::getUser(aRequest.getCIDParam(), false);
 
 		auto removed = QueueManager::getInstance()->removeSource(user, QueueItem::Source::FLAG_REMOVED);
 		aRequest.setResponseBody({
@@ -130,8 +138,8 @@ namespace webserver {
 
 	// BUNDLES
 	api_return QueueApi::handleGetBundles(ApiRequest& aRequest)  {
-		int start = aRequest.getRangeParam(0);
-		int count = aRequest.getRangeParam(1);
+		int start = aRequest.getRangeParam(START_POS);
+		int count = aRequest.getRangeParam(MAX_COUNT);
 
 		auto j = Serializer::serializeItemList(start, count, QueueBundleUtils::propertyHandler, getBundleList());
 
@@ -139,8 +147,8 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return QueueApi::handleRemoveFinishedBundles(ApiRequest& aRequest) {
-		auto removed = QueueManager::getInstance()->removeFinishedBundles();
+	api_return QueueApi::handleRemoveCompletedBundles(ApiRequest& aRequest) {
+		auto removed = QueueManager::getInstance()->removeCompletedBundles();
 
 		aRequest.setResponseBody({
 			{ "count", removed }
@@ -164,7 +172,7 @@ namespace webserver {
 	}
 
 	BundlePtr QueueApi::getBundle(ApiRequest& aRequest) {
-		auto b = QueueManager::getInstance()->findBundle(aRequest.getTokenParam(0));
+		auto b = QueueManager::getInstance()->findBundle(aRequest.getTokenParam());
 		if (!b) {
 			throw RequestException(websocketpp::http::status_code::not_found, "Bundle not found");
 		}
@@ -173,7 +181,7 @@ namespace webserver {
 	}
 
 	QueueItemPtr QueueApi::getFile(ApiRequest& aRequest) {
-		auto q = QueueManager::getInstance()->findFile(aRequest.getTokenParam(0));
+		auto q = QueueManager::getInstance()->findFile(aRequest.getTokenParam());
 		if (!q) {
 			throw RequestException(websocketpp::http::status_code::not_found, "File not found");
 		}
@@ -206,8 +214,8 @@ namespace webserver {
 			files = b->getQueueItems();
 		}
 
-		int start = aRequest.getRangeParam(2);
-		int count = aRequest.getRangeParam(3);
+		int start = aRequest.getRangeParam(START_POS);
+		int count = aRequest.getRangeParam(MAX_COUNT);
 		auto j = Serializer::serializeItemList(start, count, QueueFileUtils::propertyHandler, files);
 
 		aRequest.setResponseBody(j);
@@ -234,7 +242,7 @@ namespace webserver {
 
 	api_return QueueApi::handleRemoveBundleSource(ApiRequest& aRequest) {
 		auto b = getBundle(aRequest);
-		auto user = Deserializer::getUser(aRequest.getStringParam(2), false);
+		auto user = Deserializer::getUser(aRequest.getCIDParam(), false);
 
 		auto removed = QueueManager::getInstance()->removeBundleSource(b, user, QueueItem::Source::FLAG_REMOVED);
 		aRequest.setResponseBody({
@@ -246,12 +254,12 @@ namespace webserver {
 
 	api_return QueueApi::handleShareBundle(ApiRequest& aRequest) {
 		auto b = getBundle(aRequest);
-		if (!b->isFinished()) {
-			aRequest.setResponseErrorStr("This action can only be performed for finished bundles");
-			return websocketpp::http::status_code::bad_request;
+		if (b->getStatus() != Bundle::STATUS_VALIDATION_ERROR) {
+			aRequest.setResponseErrorStr("This action can only be performed for bundles that have failed content validation");
+			return websocketpp::http::status_code::precondition_failed;
 		}
 
-		auto skipScan = JsonUtil::getOptionalFieldDefault<bool>("skip_scan", aRequest.getRequestBody(), false);
+		auto skipScan = JsonUtil::getOptionalFieldDefault<bool>("skip_validation", aRequest.getRequestBody(), false);
 		QueueManager::getInstance()->shareBundle(b, skipScan);
 		return websocketpp::http::status_code::no_content;
 	}
@@ -292,7 +300,6 @@ namespace webserver {
 				JsonUtil::getField<string>("name", fileJson),
 				Deserializer::deserializeTTH(fileJson),
 				JsonUtil::getField<int64_t>("size", fileJson),
-				JsonUtil::getField<time_t>("time", fileJson),
 				Deserializer::deserializePriority(fileJson, true))
 			);
 		}
@@ -368,6 +375,7 @@ namespace webserver {
 			}
 		}
 
+		aRequest.setResponseBody(Serializer::serializeItem(qi, QueueFileUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -379,7 +387,7 @@ namespace webserver {
 
 	// FILES (COMMON)
 	api_return QueueApi::handleGetFile(ApiRequest& aRequest) {
-		//auto success = QueueManager::getInstance()->findFile(aRequest.getTokenParam(0));
+		//auto success = QueueManager::getInstance()->findFile(aRequest.getTokenParam(TOKEN_PARAM_ID));
 		//return success ? websocketpp::http::status_code::ok : websocketpp::http::status_code::not_found;
 		return websocketpp::http::status_code::ok;
 	}
@@ -392,7 +400,7 @@ namespace webserver {
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 
@@ -413,23 +421,42 @@ namespace webserver {
 		send("queue_file_removed", Serializer::serializeItem(aQI, QueueFileUtils::propertyHandler));
 	}
 
-	void QueueApi::onFileUpdated(const QueueItemPtr& aQI, const PropertyIdSet& aUpdatedProperties) {
+	void QueueApi::onFileUpdated(const QueueItemPtr& aQI, const PropertyIdSet& aUpdatedProperties, const string& aSubscription) {
 		fileView.onItemUpdated(aQI, aUpdatedProperties);
-		if (!subscriptionActive("queue_file_updated"))
-			return;
+		if (subscriptionActive(aSubscription)) {
+			// Serialize full item for more specific updates to make reading of data easier 
+			// (such as cases when the script is interested only in finished files)
+			send(aSubscription, Serializer::serializeItem(aQI, QueueFileUtils::propertyHandler));
+		}
 
-		send("queue_file_updated", Serializer::serializeItem(aQI, QueueFileUtils::propertyHandler));
+		if (subscriptionActive("queue_file_updated")) {
+			// Serialize updated properties only
+			send("queue_file_updated", Serializer::serializePartialItem(aQI, QueueFileUtils::propertyHandler, aUpdatedProperties));
+		}
 	}
 
-	void QueueApi::on(QueueManagerListener::ItemSourcesUpdated, const QueueItemPtr& aQI) noexcept {
-		onFileUpdated(aQI, { QueueFileUtils::PROP_SOURCES });
+	void QueueApi::on(QueueManagerListener::ItemSources, const QueueItemPtr& aQI) noexcept {
+		onFileUpdated(aQI, { QueueFileUtils::PROP_SOURCES }, "queue_file_sources");
 	}
 
-	void QueueApi::on(QueueManagerListener::ItemStatusUpdated, const QueueItemPtr& aQI) noexcept {
+	void QueueApi::on(QueueManagerListener::ItemStatus, const QueueItemPtr& aQI) noexcept {
 		onFileUpdated(aQI, { 
 			QueueFileUtils::PROP_STATUS, QueueFileUtils::PROP_TIME_FINISHED, QueueFileUtils::PROP_BYTES_DOWNLOADED, 
-			QueueFileUtils::PROP_SECONDS_LEFT, QueueFileUtils::PROP_SPEED, QueueFileUtils::PROP_PRIORITY 
-		});
+			QueueFileUtils::PROP_SECONDS_LEFT, QueueFileUtils::PROP_SPEED 
+		}, "queue_file_status");
+	}
+
+	void QueueApi::on(QueueManagerListener::ItemPriority, const QueueItemPtr& aQI) noexcept {
+		onFileUpdated(aQI, {
+			QueueFileUtils::PROP_STATUS, QueueFileUtils::PROP_PRIORITY
+		}, "queue_file_priority");
+	}
+
+	void QueueApi::on(QueueManagerListener::ItemTick, const QueueItemPtr& aQI) noexcept {
+		onFileUpdated(aQI, {
+			QueueFileUtils::PROP_STATUS, QueueFileUtils::PROP_BYTES_DOWNLOADED,
+			QueueFileUtils::PROP_SECONDS_LEFT, QueueFileUtils::PROP_SPEED
+		}, "queue_file_tick");
 	}
 
 	void QueueApi::on(QueueManagerListener::FileRecheckFailed, const QueueItemPtr& aQI, const string& aError) noexcept {
@@ -440,55 +467,58 @@ namespace webserver {
 	// BUNDLE LISTENERS
 	void QueueApi::on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept {
 		bundleView.onItemAdded(aBundle);
-		if (!subscriptionActive("bundle_added"))
+		if (!subscriptionActive("queue_bundle_added"))
 			return;
 
-		send("bundle_added", Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));
+		send("queue_bundle_added", Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));
 	}
 	void QueueApi::on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept {
 		bundleView.onItemRemoved(aBundle);
-		if (!subscriptionActive("bundle_removed"))
+		if (!subscriptionActive("queue_bundle_removed"))
 			return;
 
-		send("bundle_removed", Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));
+		send("queue_bundle_removed", Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));
 	}
 
 	void QueueApi::onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription) {
 		bundleView.onItemUpdated(aBundle, aUpdatedProperties);
 		if (subscriptionActive(aSubscription)) {
-			send(aSubscription, Serializer::serializeItemProperties(aBundle, aUpdatedProperties, QueueBundleUtils::propertyHandler));
+			// Serialize full item for more specific updates to make reading of data easier 
+			// (such as cases when the script is interested only in finished bundles)
+			send(aSubscription, Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));
 		}
 
-		if (subscriptionActive("bundle_updated")) {
-			send("bundle_updated", Serializer::serializeItemProperties(aBundle, aUpdatedProperties, QueueBundleUtils::propertyHandler));
+		if (subscriptionActive("queue_bundle_updated")) {
+			// Serialize updated properties only
+			send("queue_bundle_updated", Serializer::serializePartialItem(aBundle, QueueBundleUtils::propertyHandler, aUpdatedProperties));
 		}
 	}
 
 	void QueueApi::on(QueueManagerListener::BundleSize, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SIZE, QueueBundleUtils::PROP_TYPE }, "bundle_content");
+		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SIZE, QueueBundleUtils::PROP_TYPE }, "queue_bundle_content");
 	}
 
 	void QueueApi::on(QueueManagerListener::BundlePriority, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_PRIORITY, QueueBundleUtils::PROP_STATUS }, "bundle_priority");
+		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_PRIORITY, QueueBundleUtils::PROP_STATUS }, "queue_bundle_priority");
 	}
 
 	void QueueApi::on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_STATUS, QueueBundleUtils::PROP_TIME_FINISHED }, "bundle_status");
+		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_STATUS, QueueBundleUtils::PROP_TIME_FINISHED }, "queue_bundle_status");
 	}
 
 	void QueueApi::on(QueueManagerListener::BundleSources, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SOURCES }, "bundle_sources");
+		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SOURCES }, "queue_bundle_sources");
 	}
 
 #define TICK_PROPS { QueueBundleUtils::PROP_SECONDS_LEFT, QueueBundleUtils::PROP_SPEED, QueueBundleUtils::PROP_STATUS, QueueBundleUtils::PROP_BYTES_DOWNLOADED }
 	void QueueApi::on(DownloadManagerListener::BundleTick, const BundleList& aTickBundles, uint64_t /*aTick*/) noexcept {
 		for (const auto& b : aTickBundles) {
-			onBundleUpdated(b, TICK_PROPS, "bundle_tick");
+			onBundleUpdated(b, TICK_PROPS, "queue_bundle_tick");
 		}
 	}
 
 	void QueueApi::on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept {
 		// "Waiting" isn't really a status (it's just meant to clear the props for running bundles...)
-		onBundleUpdated(aBundle, TICK_PROPS, "bundle_tick");
+		onBundleUpdated(aBundle, TICK_PROPS, "queue_bundle_tick");
 	}
 }

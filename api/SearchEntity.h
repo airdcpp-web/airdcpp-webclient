@@ -51,9 +51,7 @@ namespace webserver {
 			return id;
 		}
 
-		uint64_t getExpirationTick() const noexcept {
-			return expirationTick;
-		}
+		optional<int64_t> getTimeToExpiration() const noexcept;
 
 		void init() noexcept override;
 	private:
@@ -72,6 +70,7 @@ namespace webserver {
 		void on(SearchInstanceListener::GroupedResultUpdated, const GroupedSearchResultPtr& aResult) noexcept override;
 		void on(SearchInstanceListener::UserResult, const SearchResultPtr& aResult, const GroupedSearchResultPtr& aParent) noexcept override;
 		void on(SearchInstanceListener::Reset) noexcept override;
+		void on(SearchInstanceListener::HubSearchSent, const string& aSearchToken, int aSent) noexcept override;
 
 		typedef ListViewController<GroupedSearchResultPtr, SearchUtils::PROP_LAST> SearchView;
 		SearchView searchView;

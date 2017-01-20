@@ -27,7 +27,6 @@ namespace webserver {
 	enum SerializationMethod {
 		SERIALIZE_TEXT,
 		SERIALIZE_NUMERIC,
-		SERIALIZE_TEXT_NUMERIC,
 		SERIALIZE_BOOL,
 		SERIALIZE_CUSTOM
 	};

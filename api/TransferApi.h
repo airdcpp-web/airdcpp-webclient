@@ -41,10 +41,6 @@ namespace webserver {
 	public:
 		TransferApi(Session* aSession);
 		~TransferApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		void loadTransfers() noexcept;
 		void unloadTransfers() noexcept;
@@ -107,7 +103,7 @@ namespace webserver {
 		typedef ListViewController<TransferInfoPtr, TransferUtils::PROP_LAST> TransferListView;
 		TransferListView view;
 
-		void onTransferUpdated(const TransferInfoPtr& aTransfer, const PropertyIdSet& aUpdatedProperties) noexcept;
+		void onTransferUpdated(const TransferInfoPtr& aTransfer, const PropertyIdSet& aUpdatedProperties, const string& aSubscriptionName) noexcept;
 	};
 }
 

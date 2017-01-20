@@ -31,82 +31,70 @@ namespace webserver {
 
 	}
 
-	bool ApiModule::RequestHandler::matchParams(const ApiRequest::RequestParamList& aRequestParams) const noexcept {
-		if (method == ApiRequest::METHOD_FORWARD) {
+	optional<ApiRequest::NamedParamMap> ApiModule::RequestHandler::matchParams(const ApiRequest::ParamList& aRequestParams) const noexcept {
+		if (method == METHOD_FORWARD) {
 			// The request must contain more params than the forwarder has
 			// (there must be at least one parameter left for the next handler)
 			if (aRequestParams.size() <= params.size()) {
-				return false;
+				return boost::none;
 			}
 		} else if (aRequestParams.size() != params.size()) {
-			return false;
+			return boost::none;
 		}
 
 		for (auto i = 0; i < static_cast<int>(params.size()); i++) {
 			try {
-				if (!boost::regex_search(aRequestParams[i], params[i])) {
-					return false;
+				if (!boost::regex_search(aRequestParams[i], params[i].reg)) {
+					return boost::none;
 				}
 			} catch (const std::runtime_error&) {
-				return false;
+				return boost::none;
 			}
 		}
 
-		return true;
+		ApiRequest::NamedParamMap paramMap;
+		for (auto i = 0; i < static_cast<int>(params.size()); i++) {
+			paramMap[params[i].id] = aRequestParams[i];
+		}
+
+		return paramMap;
 	}
 
 	api_return ApiModule::handleRequest(ApiRequest& aRequest) {
-		// Find section
-		auto i = requestHandlers.find(aRequest.getStringParam(0));
-		if (i == requestHandlers.end()) {
-			aRequest.setResponseErrorStr("Invalid API section");
-			return websocketpp::http::status_code::bad_request;
-		}
-
-		aRequest.popParam();
-		const auto& sectionHandlers = i->second;
-
-		bool hasParamMatch = false; // for better error reporting
+		bool hasParamNameMatch = false; // for better error reporting
 
 		// Match parameters
-		auto handler = boost::find_if(sectionHandlers, [&](const RequestHandler& aHandler) {
+		auto handler = find_if(requestHandlers.begin(), requestHandlers.end(), [&](const RequestHandler& aHandler) {
 			// Regular matching
-			auto matchesParams = aHandler.matchParams(aRequest.getParameters());
-			if (!matchesParams) {
+			auto namedParams = aHandler.matchParams(aRequest.getParameters());
+			if (!namedParams) {
 				return false;
 			}
 
-			if (aHandler.method == aRequest.getMethod() || aHandler.method == ApiRequest::METHOD_FORWARD) {
+			if (aHandler.method == aRequest.getMethod() || aHandler.method == METHOD_FORWARD) {
+				aRequest.setNamedParams(*namedParams);
 				return true;
 			}
 
-			hasParamMatch = true;
+			hasParamNameMatch = true;
 			return false;
 		});
 
-		if (handler == sectionHandlers.end()) {
-			if (hasParamMatch) {
-				aRequest.setResponseErrorStr("Method not supported for this command");
-			} else {
-				aRequest.setResponseErrorStr("Invalid parameters for this API section");
+		if (handler == requestHandlers.end()) {
+			if (hasParamNameMatch) {
+				aRequest.setResponseErrorStr("Method " + aRequest.getMethodStr() + " is not supported for this handler");
+				return websocketpp::http::status_code::method_not_allowed;
 			}
 
-			return websocketpp::http::status_code::bad_request;
-		}
-
-		// Check JSON payload
-		if (handler->requireJson && !aRequest.hasRequestBody()) {
-			aRequest.setResponseErrorStr("JSON body required");
+			aRequest.setResponseErrorStr("The supplied URL doesn't match any method in this API module");
 			return websocketpp::http::status_code::bad_request;
 		}
 
 		// Check permission
 		if (!session->getUser()->hasPermission(handler->access)) {
-			aRequest.setResponseErrorStr("Permission denied");
+			aRequest.setResponseErrorStr("The permission " + WebUser::accessToString(handler->access) + " is required for accessing this method");
 			return websocketpp::http::status_code::forbidden;
 		}
-
-		// Exact params could be removed from the request...
 
 		return handler->f(aRequest);
 	}
@@ -150,8 +138,8 @@ namespace webserver {
 
 		aSession->addListener(this);
 
-		METHOD_HANDLER("listener", aSubscriptionAccess, ApiRequest::METHOD_POST, (STR_PARAM), false, SubscribableApiModule::handleSubscribe);
-		METHOD_HANDLER("listener", aSubscriptionAccess, ApiRequest::METHOD_DELETE, (STR_PARAM), false, SubscribableApiModule::handleUnsubscribe);
+		METHOD_HANDLER(aSubscriptionAccess, METHOD_POST, (EXACT_PARAM("listener"), STR_PARAM(LISTENER_PARAM_ID)), SubscribableApiModule::handleSubscribe);
+		METHOD_HANDLER(aSubscriptionAccess, METHOD_DELETE, (EXACT_PARAM("listener"), STR_PARAM(LISTENER_PARAM_ID)), SubscribableApiModule::handleUnsubscribe);
 	}
 
 	SubscribableApiModule::~SubscribableApiModule() {
@@ -178,21 +166,21 @@ namespace webserver {
 			return websocketpp::http::status_code::precondition_required;
 		}
 
-		const auto& subscription = aRequest.getStringParam(0);
+		const auto& subscription = aRequest.getStringParam(LISTENER_PARAM_ID);
 		if (!subscriptionExists(subscription)) {
 			aRequest.setResponseErrorStr("No such subscription: " + subscription);
 			return websocketpp::http::status_code::not_found;
 		}
 
 		setSubscriptionState(subscription, true);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return SubscribableApiModule::handleUnsubscribe(ApiRequest& aRequest) {
-		auto subscription = aRequest.getStringParam(0);
+		auto subscription = aRequest.getStringParam(LISTENER_PARAM_ID);
 		if (subscriptionExists(subscription)) {
 			setSubscriptionState(subscription, false);
-			return websocketpp::http::status_code::ok;
+			return websocketpp::http::status_code::no_content;
 		}
 
 		return websocketpp::http::status_code::not_found;

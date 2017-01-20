@@ -17,6 +17,7 @@
 */
 
 #include <web-server/stdinc.h>
+#include <web-server/version.h>
 
 #include <web-server/JsonUtil.h>
 #include <web-server/Timer.h>
@@ -34,15 +35,15 @@
 namespace webserver {
 	SystemApi::SystemApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY) {
 
-		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, SystemApi::handleGetStats);
+		METHOD_HANDLER(Access::ANY, METHOD_GET,		(EXACT_PARAM("stats")),			SystemApi::handleGetStats);
 
-		METHOD_HANDLER("away", Access::ANY, ApiRequest::METHOD_GET, (), false, SystemApi::handleGetAwayState);
-		METHOD_HANDLER("away", Access::ANY, ApiRequest::METHOD_POST, (), true, SystemApi::handleSetAway);
+		METHOD_HANDLER(Access::ANY, METHOD_GET,		(EXACT_PARAM("away")),			SystemApi::handleGetAwayState);
+		METHOD_HANDLER(Access::ANY, METHOD_POST,	(EXACT_PARAM("away")),			SystemApi::handleSetAway);
 
-		METHOD_HANDLER("restart_web", Access::ADMIN, ApiRequest::METHOD_POST, (), false, SystemApi::handleRestartWeb);
-		METHOD_HANDLER("shutdown", Access::ADMIN, ApiRequest::METHOD_POST, (), false, SystemApi::handleShutdown);
+		METHOD_HANDLER(Access::ADMIN, METHOD_POST,	(EXACT_PARAM("restart_web")),	SystemApi::handleRestartWeb);
+		METHOD_HANDLER(Access::ADMIN, METHOD_POST,	(EXACT_PARAM("shutdown")),		SystemApi::handleShutdown);
 
-		METHOD_HANDLER("system_info", Access::ANY, ApiRequest::METHOD_GET, (), false, SystemApi::handleGetSystemInfo);
+		METHOD_HANDLER(Access::ANY, METHOD_GET,		(EXACT_PARAM("system_info")),	SystemApi::handleGetSystemInfo);
 
 		createSubscription("away_state");
 
@@ -142,22 +143,6 @@ namespace webserver {
 #endif
 	}
 
-	json SystemApi::getSystemInfo() noexcept {
-		return{
-			{ "path_separator", PATH_SEPARATOR_STR },
-			//{ "network_type", getNetworkType(aIp) },
-			{ "platform", getPlatform() },
-			{ "hostname", getHostname() },
-			{ "cid", ClientManager::getInstance()->getMyCID().toBase32() },
-			{ "run_wizard", SETTING(WIZARD_RUN) },
-		};
-	}
-
-	api_return SystemApi::handleGetSystemInfo(ApiRequest& aRequest) {
-		aRequest.setResponseBody(getSystemInfo());
-		return websocketpp::http::status_code::ok;
-	}
-
 	string SystemApi::getAwayState(AwayMode aAwayMode) noexcept {
 		switch (aAwayMode) {
 			case AWAY_OFF: return "off";
@@ -189,15 +174,31 @@ namespace webserver {
 	}
 
 	api_return SystemApi::handleGetStats(ApiRequest& aRequest) {
-		auto started = TimerManager::getStartTime();
 		auto server = session->getServer();
 
 		aRequest.setResponseBody({
 			{ "server_threads", WEBCFG(SERVER_THREADS).num() },
-			{ "client_started", started },
-			{ "client_version", fullVersionString },
 			{ "active_sessions", server->getUserManager().getSessionCount() },
 		});
+		return websocketpp::http::status_code::ok;
+	}
+
+	json SystemApi::getSystemInfo() noexcept {
+		auto started = TimerManager::getStartTime();
+		return {
+			{ "api_version", API_VERSION },
+			{ "api_feature_level", API_FEATURE_LEVEL },
+			{ "path_separator", PATH_SEPARATOR_STR },
+			{ "platform", getPlatform() },
+			{ "hostname", getHostname() },
+			{ "cid", ClientManager::getInstance()->getMyCID().toBase32() },
+			{ "client_version", fullVersionString },
+			{ "client_started", started },
+		};
+	}
+
+	api_return SystemApi::handleGetSystemInfo(ApiRequest& aRequest) {
+		aRequest.setResponseBody(getSystemInfo());
 		return websocketpp::http::status_code::ok;
 	}
 }

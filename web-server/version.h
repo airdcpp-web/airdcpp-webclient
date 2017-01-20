@@ -16,30 +16,13 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_RECENTHUB_API_H
-#define DCPLUSPLUS_DCPP_RECENTHUB_API_H
-
-#include <web-server/stdinc.h>
-
-#include <api/ApiModule.h>
-
-#include <airdcpp/typedefs.h>
+#ifndef DCPLUSPLUS_API_VERSION_H
+#define DCPLUSPLUS_API_VERSION_H
 
 namespace webserver {
-	class RecentHubApi : public ApiModule {
-	public:
-		RecentHubApi(Session* aSession);
-		~RecentHubApi();
+#define API_VERSION 1
+#define API_FEATURE_LEVEL 0
 
-		int getVersion() const noexcept override {
-			return 0;
-		}
-
-		static json serializeHub(const RecentHubEntryPtr& aHub) noexcept;
-	private:
-		api_return handleSearchHubs(ApiRequest& aRequest);
-		api_return handleGetHubs(ApiRequest& aRequest);
-	};
 }
 
 #endif
