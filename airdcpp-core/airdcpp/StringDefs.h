@@ -1226,6 +1226,7 @@ enum Strings { // @DontAdd
 	SEARCH_METACRITIC, // "Metacritic"
 	SEARCH_OPTIONS, // "Search options"
 	SEARCH_PORT, // "Search (UDP)"
+	SEARCH_QUEUE_OVERFLOW, // "Failed to queue the search %1% due to search queue overflow (%2% searches pending)"
 	SEARCH_SITES, // "Search sites"
 	SEARCH_SPAM_FROM, // "Search spam detected from "
 	SEARCH_SPY, // "Search spy"

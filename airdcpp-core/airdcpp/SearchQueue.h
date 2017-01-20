@@ -46,6 +46,7 @@ public:
 	optional<uint64_t> getQueueTime(const Search::CompareF& aCompareF) const noexcept;
 	uint64_t getTotalQueueTime() const noexcept;
 	uint64_t getCurrentQueueTime() const noexcept;
+	int getQueueSize() const noexcept;
 private:
 	int getInterval(Priority aPriority) const noexcept;
 
