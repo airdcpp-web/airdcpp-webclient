@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_QUEUE_MANAGER_LISTENER_H
 
 #include "forward.h"
-#include "HashedFile.h"
 
 namespace dcpp {
 
@@ -32,15 +31,17 @@ public:
 	typedef X<0> ItemAdded;
 	typedef X<1> ItemFinished;
 	typedef X<2> ItemRemoved;
-	typedef X<3> ItemSourcesUpdated;
-	typedef X<4> ItemStatusUpdated;
+	typedef X<3> ItemSources;
+	typedef X<4> ItemPriority;
+	typedef X<5> ItemStatus;
+	typedef X<6> ItemTick;
 
-	typedef X<5> PartialListFinished;
-	typedef X<6> SourceFilesUpdated;
+	typedef X<7> PartialListFinished;
+	typedef X<8> SourceFilesUpdated;
 
-	typedef X<7> FileRecheckStarted;
-	typedef X<8> FileRecheckFailed;
-	typedef X<9> FileRecheckDone;
+	typedef X<9> FileRecheckStarted;
+	typedef X<10> FileRecheckFailed;
+	typedef X<11> FileRecheckDone;
 	
 	typedef X<15> BundleSources;
 
@@ -55,8 +56,10 @@ public:
 	virtual void on(ItemAdded, const QueueItemPtr&) noexcept { }
 	virtual void on(ItemFinished, const QueueItemPtr&, const string&, const HintedUser&, int64_t) noexcept { }
 	virtual void on(ItemRemoved, const QueueItemPtr&, bool) noexcept { }
-	virtual void on(ItemSourcesUpdated, const QueueItemPtr&) noexcept { }
-	virtual void on(ItemStatusUpdated, const QueueItemPtr&) noexcept { }
+	virtual void on(ItemSources, const QueueItemPtr&) noexcept { }
+	virtual void on(ItemStatus, const QueueItemPtr&) noexcept { }
+	virtual void on(ItemTick, const QueueItemPtr&) noexcept { }
+	virtual void on(ItemPriority, const QueueItemPtr&) noexcept { }
 	virtual void on(PartialListFinished, const HintedUser&, const string&, const string&) noexcept { }
 	virtual void on(SourceFilesUpdated, const UserPtr&) noexcept { }
 

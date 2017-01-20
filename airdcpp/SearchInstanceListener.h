@@ -31,6 +31,7 @@ namespace dcpp {
 		typedef X<1> GroupedResultAdded;
 		typedef X<2> GroupedResultUpdated;
 		typedef X<3> Reset;
+		typedef X<4> HubSearchSent;
 
 		virtual void on(GroupedResultAdded, const GroupedSearchResultPtr&) noexcept { }
 		virtual void on(GroupedResultUpdated, const GroupedSearchResultPtr&) noexcept { }
@@ -38,6 +39,7 @@ namespace dcpp {
 		virtual void on(UserResult, const SearchResultPtr&, const GroupedSearchResultPtr&) noexcept { }
 
 		virtual void on(Reset) noexcept { }
+		virtual void on(HubSearchSent, const string&, int) noexcept { }
 	};
 
 } // namespace dcpp

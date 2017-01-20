@@ -101,8 +101,10 @@ bool DirectoryListingManager::hasDirectoryDownload(const string& aBundleName, vo
 DirectoryDownloadList DirectoryListingManager::getDirectoryDownloads() const noexcept {
 	DirectoryDownloadList ret;
 
-	RLock l(cs);
-	boost::range::copy(dlDirectories | map_values, back_inserter(ret));
+	{
+		RLock l(cs);
+		boost::range::copy(dlDirectories | map_values, back_inserter(ret));
+	}
 
 	return ret;
 }
@@ -355,7 +357,7 @@ void DirectoryListingManager::on(QueueManagerListener::ItemRemoved, const QueueI
 	}
 }
 
-DirectoryListingPtr DirectoryListingManager::openOwnList(ProfileToken aProfile, bool useADL /*false*/) noexcept {
+DirectoryListingPtr DirectoryListingManager::openOwnList(ProfileToken aProfile, bool useADL /*false*/, const string& aDir/* = Util::emptyString*/) noexcept {
 	auto me = HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString);
 
 	auto dl = hasList(me.user);
@@ -367,17 +369,17 @@ DirectoryListingPtr DirectoryListingManager::openOwnList(ProfileToken aProfile, 
 	dl = createList(me, !useADL, Util::toString(aProfile), true);
 	dl->setMatchADL(useADL);
 
-	fire(DirectoryListingManagerListener::OpenListing(), dl, Util::emptyString, Util::emptyString);
+	fire(DirectoryListingManagerListener::OpenListing(), dl, aDir, Util::emptyString);
 	return dl;
 }
 
-DirectoryListingPtr DirectoryListingManager::openFileList(const HintedUser& aUser, const string& aFile) noexcept {
+DirectoryListingPtr DirectoryListingManager::openFileList(const HintedUser& aUser, const string& aFile, const string& aDir/* = Util::emptyString*/) noexcept {
 	if (hasList(aUser.user)) {
 		return nullptr;
 	}
 
 	auto dl = createList(aUser, false, aFile, false);
-	fire(DirectoryListingManagerListener::OpenListing(), dl, Util::emptyString, Util::emptyString);
+	fire(DirectoryListingManagerListener::OpenListing(), dl, aDir, Util::emptyString);
 	return dl;
 }
 

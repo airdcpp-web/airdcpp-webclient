@@ -22,6 +22,7 @@
 #include "ClientManager.h"
 #include "ConnectionManager.h"
 #include "MessageManager.h"
+#include "FavoriteManager.h"
 #include "LogManager.h"
 
 #include "AirUtil.h"
@@ -408,17 +409,7 @@ void MessageManager::saveUsers() {
 			xml.addChildAttrib("CID", u.first->getCID().toBase32());
 			xml.addChildAttrib("IgnoredMessages", u.second);
 
-			auto ou = ClientManager::getInstance()->findOnlineUser(u.first->getCID(), "");
-			if (ou) {
-				xml.addChildAttrib("Nick", ou->getIdentity().getNick());
-				xml.addChildAttrib("Hub", ou->getHubUrl());
-				xml.addChildAttrib("LastSeen", GET_TIME());
-			} else {
-				auto ofu = ClientManager::getInstance()->getOfflineUser(u.first->getCID());
-				xml.addChildAttrib("Nick", ofu ? ofu->getNick() : "");
-				xml.addChildAttrib("Hub", ofu ? ofu->getUrl() : "");
-				xml.addChildAttrib("LastSeen", ofu ? ofu->getLastSeen() : GET_TIME());
-			}
+			FavoriteManager::getInstance()->addSavedUser(u.first);
 		}
 	}
 
@@ -432,19 +423,15 @@ void MessageManager::loadUsers() {
 	try {
 		SimpleXML xml;
 		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
-		auto cm = ClientManager::getInstance();
 		if (xml.findChild("Ignored")) {
 			xml.stepIn();
 			xml.resetCurrentChild();
 			if (xml.findChild("Users")) {
 				xml.stepIn();
 				while (xml.findChild("User")) {
-					UserPtr user = cm->getUser(CID(xml.getChildAttrib("CID")));
-
-					{
-						WLock(cm->getCS());
-						cm->addOfflineUser(user, xml.getChildAttrib("Nick"), xml.getChildAttrib("Hub"), (uint32_t)xml.getIntChildAttrib("LastSeen"));
-					}
+					auto user = ClientManager::getInstance()->getUser(CID(xml.getChildAttrib("CID")));
+					if (!user)
+						continue;
 
 					WLock l(cs);
 					ignoredUsers.emplace(user, xml.getIntChildAttrib("IgnoredMessages"));

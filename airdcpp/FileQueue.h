@@ -66,6 +66,8 @@ public:
 
 	uint64_t getTotalQueueSize() const noexcept { return queueSize; }
 private:
+	static bool countTotalSize(const QueueItemPtr& aQI) noexcept;
+
 	QueueItem::StringMap pathQueue;
 	QueueItem::TTHMap tthIndex;
 	QueueItem::TokenMap tokenQueue;

@@ -41,6 +41,8 @@ atomic_flag ShareScannerManager::scanning;
 #endif
 
 ShareScannerManager::ShareScannerManager() : stop(false), tasks(false) {
+	QueueManager::getInstance()->bundleCompletionHook.addSubscriber(SHARE_SCANNER_HOOK_ID, STRING(SHARE_SCANNER), HOOK_HANDLER(ShareScannerManager::bundleCompletionHook));
+
 	// Case sensitive
 	releaseReg.assign(AirUtil::getReleaseRegBasic());
 	simpleReleaseReg.assign("(([A-Z0-9]\\S{3,})-([A-Za-z0-9_]{2,}))");
@@ -662,49 +664,30 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& aS
 	}
 }
 
-Bundle::Status ShareScannerManager::onScanBundle(const BundlePtr& aBundle, bool aFinished, string& error_) noexcept{
-	if (SETTING(SCAN_DL_BUNDLES) && !aBundle->isFileBundle()) {
-		ScanInfo scanner(aBundle->getName(), ScanInfo::TYPE_SYSLOG, false);
-
-		scanDir(aBundle->getTarget(), scanner);
-		find(aBundle->getTarget(), scanner);
-
-		bool hasMissing = scanner.hasMissing();
-		bool hasExtras = scanner.hasExtras();
-		bool hasInvalidSFV = scanner.invalidSFVFiles > 0;
-
-		if (aFinished || hasMissing || hasExtras || hasInvalidSFV) {
-			string logMsg;
-			if (!aFinished) {
-				logMsg = STRING_F(SCAN_FAILED_BUNDLE_FINISHED, aBundle->getName());
-			} else {
-				logMsg = STRING_F(SCAN_BUNDLE_FINISHED, aBundle->getName());
-			}
-
-			if (hasMissing || hasExtras || hasInvalidSFV) {
-				if (aFinished) {
-					logMsg += " ";
-					logMsg += CSTRING(SCAN_PROBLEMS_FOUND);
-					logMsg += ":  ";
-				}
-
-				logMsg += scanner.getResults();
-
-				error_ = STRING_F(SCANNING_FAILED_X, scanner.getResults());
-			} else {
-				logMsg += ", ";
-				logMsg += CSTRING(SCAN_NO_PROBLEMS);
-			}
-
-			LogManager::getInstance()->message(logMsg, (hasMissing || hasExtras) ? LogMessage::SEV_ERROR : LogMessage::SEV_INFO);
-			if (hasMissing && !hasExtras)
-				return Bundle::STATUS_FAILED_MISSING;
-			if (hasExtras || hasInvalidSFV)
-				return Bundle::STATUS_SHARING_FAILED;
-		}
+ActionHookErrorPtr ShareScannerManager::bundleCompletionHook(const BundlePtr& aBundle, const HookErrorGetter& aErrorGetter) noexcept{
+	if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle()) {
+		return nullptr;
 	}
 
-	return Bundle::STATUS_FINISHED;
+	ScanInfo scanner(aBundle->getName(), ScanInfo::TYPE_SYSLOG, false);
+
+	{
+		scanDir(aBundle->getTarget(), scanner);
+		find(aBundle->getTarget(), scanner);
+	}
+
+	auto hasMissing = scanner.hasMissing();
+	auto hasExtras = scanner.hasExtras();
+	auto hasInvalidSFV = scanner.invalidSFVFiles > 0;
+
+	if (hasMissing || hasExtras || hasInvalidSFV) {
+		LogManager::getInstance()->message(STRING_F(SCAN_FAILED_BUNDLE_FINISHED, aBundle->getName()) + scanner.getResults(), LogMessage::SEV_ERROR);
+
+		auto errorId = (hasExtras || hasInvalidSFV) ? SHARE_SCANNER_ERROR_INVALID_CONTENT : SHARE_SCANNER_ERROR_MISSING;
+		return aErrorGetter(errorId, scanner.getResults());
+	}
+
+	return nullptr;
 }
 
 bool ShareScannerManager::onScanSharedDir(const string& aDir, bool report) noexcept {

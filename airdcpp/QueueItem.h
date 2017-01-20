@@ -88,12 +88,10 @@ public:
 		FLAG_RECURSIVE_LIST		= 0x200,
 		/** TTH list for partial bundle sharing */
 		FLAG_TTHLIST_BUNDLE		= 0x400,
-		/** A finished bundle item */
-		FLAG_FINISHED			= 0x800,
-		/** A finished bundle item that has also been moved */
+		/** All segments have been downloaded */
+		FLAG_DOWNLOADED			= 0x800,
+		/** The dctmp extension has been removed */
 		FLAG_MOVED				= 0x1000,
-		/** A hashed bundle item */
-		FLAG_HASHED				= 0x4000,
 		/** A private file that won't be added in share and it's not available via partial sharing */
 		FLAG_PRIVATE			= 0x8000,
 		/** Associated to a specific bundle for matching */
@@ -228,7 +226,11 @@ public:
 	void addFinishedSegment(const Segment& segment) noexcept;
 	void resetDownloaded() noexcept;
 	
-	bool isFinished() const noexcept;
+	// Check that all segments have been downloaded (unsafe)
+	bool segmentsDone() const noexcept;
+
+	// The file has been flagged as downloaded
+	bool isDownloaded() const noexcept;
 
 	bool isRunning() const noexcept {
 		return !isWaiting();
@@ -240,6 +242,7 @@ public:
 	bool hasPartialSharingTarget() noexcept;
 
 	string getListName() const noexcept;
+	string getStatusString(int64_t aDownloadedBytes, bool aIsWaiting) const noexcept;
 
 	const string& getTempTarget() noexcept;
 	void setTempTarget(const string& aTempTarget) noexcept { tempTarget = aTempTarget; }

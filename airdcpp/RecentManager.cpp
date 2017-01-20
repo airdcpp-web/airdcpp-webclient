@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+* Copyright (C) 2011-2016 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -43,60 +43,66 @@ RecentManager::~RecentManager() {
 
 }
 
-void RecentManager::clearRecentHubs() noexcept {
+void RecentManager::clearRecents() noexcept {
+	for (auto r : recents) {
+		fire(RecentManagerListener::RecentRemoved(), r);
+	}
+
 	{
 		WLock l(cs);
-		recentHubs.clear();
+		recents.clear();
 	}
-
-	saveRecentHubs();
+	delayEvents.addEvent(SAVE, [=] { saveRecents(); }, 1000);
 }
 
 
-void RecentManager::addRecentHub(const RecentHubEntryPtr& aEntry) noexcept {
+void RecentManager::addRecent(const string& aUrl) noexcept {
+	
+	RecentEntryPtr r = getRecentEntry(aUrl);
+	if (r)
+		return;
+
 	{
 		WLock l(cs);
-		auto i = getRecentHub(aEntry->getServer());
-		if (i != recentHubs.end()) {
-			return;
-		}
-
-		recentHubs.push_back(aEntry);
+		r = new RecentEntry(aUrl);
+		recents.push_back(r);
 	}
 
-	fire(RecentManagerListener::RecentHubAdded(), aEntry);
-	saveRecentHubs();
+	fire(RecentManagerListener::RecentAdded(), r);
+	delayEvents.addEvent(SAVE, [=] { saveRecents(); }, 5000);
 }
 
-void RecentManager::removeRecentHub(const RecentHubEntryPtr& entry) noexcept {
+void RecentManager::removeRecent(const string& aUrl) noexcept {
+	RecentEntryPtr r = nullptr;
 	{
 		WLock l(cs);
-		auto i = find(recentHubs.begin(), recentHubs.end(), entry);
-		if (i == recentHubs.end()) {
+		auto i = find_if(recents, [&aUrl](const RecentEntryPtr& rhe) { return Util::stricmp(rhe->getUrl(), aUrl) == 0; });
+		if (i == recents.end()) {
 			return;
 		}
-
-		fire(RecentManagerListener::RecentHubRemoved(), entry);
-		recentHubs.erase(i);
+		r = *i;
+		recents.erase(i);
 	}
-
-	saveRecentHubs();
+	fire(RecentManagerListener::RecentRemoved(), r);
+	delayEvents.addEvent(SAVE, [=] { saveRecents(); }, 1000);
 }
 
-void RecentManager::updateRecentHub(const RecentHubEntryPtr& entry) noexcept {
-	{
-		RLock l(cs);
-		auto i = find(recentHubs.begin(), recentHubs.end(), entry);
-		if (i == recentHubs.end()) {
-			return;
-		}
+void RecentManager::updateRecent(const ClientPtr& aClient) noexcept {
+	RecentEntryPtr r = getRecentEntry(aClient->getHubUrl());
+	if (!r)
+		return;
+
+
+	if (r) {
+		r->setName(aClient->getHubName());
+		r->setDescription(aClient->getHubDescription());
 	}
 
-	fire(RecentManagerListener::RecentHubUpdated(), entry);
-	saveRecentHubs();
+	fire(RecentManagerListener::RecentUpdated(), r);
+	delayEvents.addEvent(SAVE, [=] { saveRecents(); }, 5000);
 }
 
-void RecentManager::saveRecentHubs() const noexcept {
+void RecentManager::saveRecents() const noexcept {
 	SimpleXML xml;
 
 	xml.addTag("Recents");
@@ -107,13 +113,11 @@ void RecentManager::saveRecentHubs() const noexcept {
 
 	{
 		RLock l(cs);
-		for (const auto& rhe : recentHubs) {
+		for (const auto& rhe : recents) {
 			xml.addTag("Hub");
 			xml.addChildAttrib("Name", rhe->getName());
 			xml.addChildAttrib("Description", rhe->getDescription());
-			xml.addChildAttrib("Users", rhe->getUsers());
-			xml.addChildAttrib("Shared", rhe->getShared());
-			xml.addChildAttrib("Server", rhe->getServer());
+			xml.addChildAttrib("Server", rhe->getUrl());
 		}
 	}
 
@@ -129,7 +133,7 @@ void RecentManager::load() noexcept {
 		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_RECENTS_NAME);
 		if (xml.findChild("Recents")) {
 			xml.stepIn();
-			loadRecentHubs(xml);
+			loadRecents(xml);
 			xml.stepOut();
 		}
 	} catch (const Exception& e) {
@@ -137,40 +141,37 @@ void RecentManager::load() noexcept {
 	}
 }
 
-void RecentManager::loadRecentHubs(SimpleXML& aXml) {
+void RecentManager::loadRecents(SimpleXML& aXml) {
 	aXml.resetCurrentChild();
 	if (aXml.findChild("Hubs")) {
 		aXml.stepIn();
 		while (aXml.findChild("Hub")) {
-			RecentHubEntryPtr e = new RecentHubEntry(aXml.getChildAttrib("Server"));
+			RecentEntryPtr e = new RecentEntry(aXml.getChildAttrib("Server"));
 			e->setName(aXml.getChildAttrib("Name"));
 			e->setDescription(aXml.getChildAttrib("Description"));
-			e->setUsers(aXml.getChildAttrib("Users"));
-			e->setShared(aXml.getChildAttrib("Shared"));
-			recentHubs.push_back(e);
+			recents.push_back(e);
 		}
 		aXml.stepOut();
 	}
 }
 
-RecentHubEntryList::const_iterator RecentManager::getRecentHub(const string& aServer) const noexcept {
-	return find_if(recentHubs, [&aServer](const RecentHubEntryPtr& rhe) { return Util::stricmp(rhe->getServer(), aServer) == 0; });
-}
-
-RecentHubEntryPtr RecentManager::getRecentHubEntry(const string& aServer) const noexcept {
+RecentEntryPtr RecentManager::getRecentEntry(const string& aServer) const noexcept {
 	RLock l(cs);
-	auto p = getRecentHub(aServer);
-	return p == recentHubs.end() ? nullptr : *p;
+	auto i = find_if(recents, [&aServer](const RecentEntryPtr& rhe) { return Util::stricmp(rhe->getUrl(), aServer) == 0; });
+	if (i != recents.end())
+		return *i;
+
+	return nullptr;
 }
 
-RecentHubEntryList RecentManager::searchRecentHubs(const string& aPattern, size_t aMaxResults) const noexcept {
-	auto search = RelevanceSearch<RecentHubEntryPtr>(aPattern, [](const RecentHubEntryPtr& aHub) {
+RecentEntryList RecentManager::searchRecents(const string& aPattern, size_t aMaxResults) const noexcept {
+	auto search = RelevanceSearch<RecentEntryPtr>(aPattern, [](const RecentEntryPtr& aHub) {
 		return aHub->getName();
 	});
 
 	{
 		RLock l(cs);
-		for (const auto& hub : recentHubs) {
+		for (const auto& hub : recents) {
 			search.match(hub);
 		}
 	}

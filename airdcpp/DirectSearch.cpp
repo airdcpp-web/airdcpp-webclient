@@ -31,7 +31,9 @@ namespace dcpp {
 		searchToken = aSearch->token;
 
 		maxResultCount = aSearch->maxResults;
-		ClientManager::getInstance()->directSearch(aUser, aSearch);
+
+		string error;
+		ClientManager::getInstance()->directSearch(aUser, aSearch, error);
 	}
 
 	DirectSearch::~DirectSearch() {

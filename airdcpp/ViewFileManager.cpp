@@ -27,6 +27,7 @@
 
 #include <boost/range/algorithm/copy.hpp>
 
+
 namespace dcpp {
 	ViewFileManager::ViewFileManager() noexcept {
 		QueueManager::getInstance()->addListener(this);
@@ -36,9 +37,15 @@ namespace dcpp {
 		QueueManager::getInstance()->removeListener(this);
 	}
 
-	ViewFileManager::ViewFileMap ViewFileManager::getFiles() const noexcept {
-		RLock l(cs);
-		return viewFiles;
+	ViewFileManager::ViewFileList ViewFileManager::getFiles() const noexcept {
+		ViewFileList ret;
+
+		{
+			RLock l(cs);
+			boost::range::copy(viewFiles | map_values, back_inserter(ret));
+		}
+
+		return ret;
 	}
 
 	void ViewFileManager::on(QueueManagerListener::ItemFinished, const QueueItemPtr& aQI, const string&, const HintedUser&, int64_t /*aSpeed*/) noexcept {
@@ -56,7 +63,7 @@ namespace dcpp {
 		return aQI->isSet(QueueItem::FLAG_CLIENT_VIEW) && !aQI->isSet(QueueItem::FLAG_USER_LIST) && !aQI->isSet(QueueItem::FLAG_OPEN);
 	}
 
-	void ViewFileManager::on(QueueManagerListener::ItemStatusUpdated, const QueueItemPtr& aQI) noexcept {
+	void ViewFileManager::on(QueueManagerListener::ItemTick, const QueueItemPtr& aQI) noexcept {
 		if (!isViewedItem(aQI)) {
 			return;
 		}

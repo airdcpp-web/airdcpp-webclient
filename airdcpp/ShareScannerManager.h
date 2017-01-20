@@ -43,7 +43,11 @@ public:
 
 
 class ShareScannerManager: public Singleton<ShareScannerManager>, public Thread, public Speaker<ScannerManagerListener> {
- 
+
+#define SHARE_SCANNER_HOOK_ID "share_scanner"
+#define SHARE_SCANNER_ERROR_MISSING "error_missing"
+#define SHARE_SCANNER_ERROR_INVALID_CONTENT "error_invalid"
+
 public:
 	enum ScanType {
 		TYPE_FULL,
@@ -54,7 +58,6 @@ public:
 
 	void scanShare(const StringList& paths = StringList()) noexcept;
 	void checkSfv(const StringList& paths) noexcept;
-	Bundle::Status onScanBundle(const BundlePtr& aBundle, bool finished, string& error_) noexcept;
 	bool onScanSharedDir(const string& aDir, bool report) noexcept;
 
 	void checkFileSFV(const string& path, DirSFVReader& sfv, bool isDirScan) noexcept;
@@ -72,6 +75,7 @@ private:
 	void runSfvCheck(const StringList& paths);
 	void runShareScan(const StringList& paths);
 
+	ActionHookErrorPtr bundleCompletionHook(const BundlePtr& aBundle, const HookErrorGetter& aErrorGetter) noexcept;
 
 	enum extraTypes {
 		AUDIOBOOK,

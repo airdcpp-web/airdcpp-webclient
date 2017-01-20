@@ -28,9 +28,13 @@
 namespace dcpp {
 	SearchInstance::SearchInstance() {
 		SearchManager::getInstance()->addListener(this);
+		ClientManager::getInstance()->addListener(this);
 	}
 
 	SearchInstance::~SearchInstance() {
+		ClientManager::getInstance()->cancelSearch(this);
+
+		ClientManager::getInstance()->removeListener(this);
 		SearchManager::getInstance()->removeListener(this);
 	}
 
@@ -63,31 +67,105 @@ namespace dcpp {
 		return resultSet;
 	}
 
-	void SearchInstance::reset() noexcept {
+	void SearchInstance::reset(const SearchPtr& aSearch) noexcept {
+		ClientManager::getInstance()->cancelSearch(this);
+
 		{
 			WLock l(cs);
+			currentSearchToken = aSearch->token;
+			curSearch = shared_ptr<SearchQuery>(SearchQuery::getSearch(aSearch));
+
 			results.clear();
+			queuedHubUrls.clear();
+			searchesSent = 0;
 		}
 
 		fire(SearchInstanceListener::Reset());
 	}
 
 	SearchQueueInfo SearchInstance::hubSearch(StringList& aHubUrls, const SearchPtr& aSearch) noexcept {
-		currentSearchToken = aSearch->token;
-		curSearch = shared_ptr<SearchQuery>(SearchQuery::getSearch(aSearch));
+		reset(aSearch);
 
-		reset();
+		auto queueInfo = SearchManager::getInstance()->search(aHubUrls, aSearch, this);
+		if (!queueInfo.queuedHubUrls.empty()) {
+			lastSearchTime = GET_TIME();
+			if (queueInfo.queueTime < 1000) {
+				fire(SearchInstanceListener::HubSearchSent(), currentSearchToken, queueInfo.queuedHubUrls.size());
+			} else {
+				WLock l(cs);
+				queuedHubUrls = queueInfo.queuedHubUrls;
+			}
+		}
 
-		return SearchManager::getInstance()->search(aHubUrls, aSearch, this);
+		return queueInfo;
 	}
 
-	void SearchInstance::userSearch(const HintedUser& aUser, const SearchPtr& aSearch) noexcept {
-		currentSearchToken = aSearch->token;
-		curSearch = shared_ptr<SearchQuery>(SearchQuery::getSearch(aSearch));
+	bool SearchInstance::userSearch(const HintedUser& aUser, const SearchPtr& aSearch, string& error_) noexcept {
+		reset(aSearch);
+		if (!ClientManager::getInstance()->directSearch(aUser, aSearch, error_)) {
+			return false;
+		}
 
-		reset();
+		lastSearchTime = GET_TIME();
+		return true;
+	}
 
-		ClientManager::getInstance()->directSearch(aUser, aSearch);
+	uint64_t SearchInstance::getTimeFromLastSearch() const noexcept {
+		if (lastSearchTime == 0) {
+			return 0;
+		}
+
+		return GET_TIME() - lastSearchTime;
+	}
+
+	uint64_t SearchInstance::getQueueTime() const noexcept {
+		auto time = ClientManager::getInstance()->getMaxSearchQueueTime(this);
+		if (time) {
+			return *time;
+		}
+
+		return 0;
+	}
+
+	int SearchInstance::getQueueCount() const noexcept {
+		RLock l(cs);
+		return static_cast<int>(queuedHubUrls.size());
+	}
+
+	int SearchInstance::getResultCount() const noexcept {
+		RLock l(cs);
+		return static_cast<int>(results.size());
+	}
+
+	void SearchInstance::on(ClientManagerListener::OutgoingSearch, const string& aHubUrl, const SearchPtr& aSearch) noexcept {
+		if (aSearch->owner != this) {
+			return;
+		}
+
+		searchesSent++;
+		removeQueuedUrl(aHubUrl);
+	}
+
+	void SearchInstance::on(ClientManagerListener::ClientDisconnected, const string& aHubUrl) noexcept {
+		removeQueuedUrl(aHubUrl);
+	}
+
+	void SearchInstance::removeQueuedUrl(const string& aHubUrl) noexcept {
+		auto queueEmpty = false;
+
+		{
+			WLock l(cs);
+			auto removed = queuedHubUrls.erase(aHubUrl);
+			if (removed == 0) {
+				return;
+			}
+
+			queueEmpty = queuedHubUrls.empty();
+		}
+
+		if (queueEmpty) {
+			fire(SearchInstanceListener::HubSearchSent(), currentSearchToken, searchesSent);
+		}
 	}
 
 	void SearchInstance::on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept {

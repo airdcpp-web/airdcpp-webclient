@@ -20,10 +20,12 @@
 
 #include "AutoSearch.h"
 
-#include <airdcpp/SearchQuery.h>
+#include <airdcpp/ActionHook.h>
 #include <airdcpp/Bundle.h>
-#include <airdcpp/SearchManager.h>
 #include <airdcpp/ResourceManager.h>
+#include <airdcpp/SearchQuery.h>
+#include <airdcpp/SearchManager.h>
+#include <airdcpp/ShareScannerManager.h>
 #include <airdcpp/SimpleXML.h>
 #include <airdcpp/TimerManager.h>
 
@@ -286,14 +288,12 @@ void AutoSearch::updateStatus() noexcept {
 		}
 	} else {
 		auto maxBundle = *boost::max_element(bundles, Bundle::StatusOrder());
-		if (maxBundle->getStatus() == Bundle::STATUS_QUEUED || maxBundle->getStatus() == Bundle::STATUS_FINISHED || maxBundle->getStatus() == Bundle::STATUS_MOVED || maxBundle->getStatus() == Bundle::STATUS_DOWNLOADED) {
-			status = AutoSearch::STATUS_QUEUED_OK;
-		} else if (maxBundle->getStatus() == Bundle::STATUS_FAILED_MISSING) {
+		if (ActionHookError::matches(maxBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_MISSING)) {
 			status = AutoSearch::STATUS_FAILED_MISSING;
-		} else if (maxBundle->getStatus() == Bundle::STATUS_SHARING_FAILED) {
+		} else if (ActionHookError::matches(maxBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_INVALID_CONTENT)) {
 			status = AutoSearch::STATUS_FAILED_EXTRAS;
 		} else {
-			dcassert(0);
+			status = AutoSearch::STATUS_QUEUED_OK;
 		}
 	}
 

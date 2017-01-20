@@ -223,7 +223,7 @@ void UserQueue::removeBundle(BundlePtr& aBundle, const UserPtr& aUser) noexcept 
 }
 
 void UserQueue::setBundlePriority(BundlePtr& aBundle, Priority p) noexcept {
-	dcassert(!aBundle->isFinished());
+	dcassert(!aBundle->isDownloaded());
 
 	HintedUserList sources;
 	aBundle->getSourceUsers(sources);

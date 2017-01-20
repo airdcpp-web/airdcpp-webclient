@@ -20,17 +20,18 @@
 #define DCPP_SEARCH_H
 
 #include "typedefs.h"
+#include "Priority.h"
 
 namespace dcpp {
 
 class Search {
 public:
-	enum Type : uint8_t {
+	/*enum Type : uint8_t {
 		MANUAL,
 		ALT,
 		ALT_AUTO,
 		AUTO_SEARCH,
-	};
+	};*/
 
 	enum SizeModes : uint8_t {
 		SIZE_DONTCARE = 0x00,
@@ -59,7 +60,11 @@ public:
 		MATCH_NAME_EXACT
 	};
 
-	Search(Type aSearchType, const string& aToken) noexcept : type(aSearchType), token(aToken) { }
+	// Typical priorities: 
+	// HIGH - manual foreground searches
+	// NORMAL - manual background searches
+	// LOW - automated queue searches
+	Search(Priority aPriority, const string& aToken) noexcept : priority(aPriority), token(aToken) { }
 	~Search() { }
 
 	SizeModes	sizeType = SIZE_DONTCARE;
@@ -68,7 +73,7 @@ public:
 	string		query;
 	StringList	exts;
 	StringList	excluded;
-	set<void*>	owners;
+	const void*	owner;
 	string		key;
 
 	bool		aschOnly = false;
@@ -103,18 +108,41 @@ public:
 	}*/
 
 	const string token;
-	const Type type;
+	const Priority priority;
 	
 	bool operator==(const Search& rhs) const {
-		 return this->sizeType == rhs.sizeType && 
-		 		this->size == rhs.size && 
-		 		this->fileType == rhs.fileType && 
-		 		this->query == rhs.query;
+		return this->sizeType == rhs.sizeType && 
+				this->size == rhs.size && 
+				this->fileType == rhs.fileType && 
+				this->query == rhs.query;
 	}
 
 	bool operator<(const Search& rhs) const {
-		 return this->type < rhs.type;
+		return this->priority > rhs.priority;
 	}
+
+	typedef function<bool(const SearchPtr&)> CompareF;
+	class ComparePtr {
+	public:
+		ComparePtr(const SearchPtr& compareTo) : a(compareTo) { }
+		bool operator()(const SearchPtr& p) const noexcept {
+			return p == a;
+		}
+	private:
+		ComparePtr& operator=(const ComparePtr&) = delete;
+		const SearchPtr& a;
+	};
+
+	class CompareOwner {
+	public:
+		CompareOwner(const void* compareTo) : a(compareTo) { }
+		bool operator()(const SearchPtr& p) const noexcept {
+			return p->owner == a;
+		}
+	private:
+		CompareOwner& operator=(const CompareOwner&) = delete;
+		const void* a;
+	};
 };
 
 }

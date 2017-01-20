@@ -21,7 +21,7 @@
 
 
 #include "DirectoryMonitorListener.h"
-#include "QueueManagerListener.h"
+#include "HashManagerListener.h"
 #include "SettingsManagerListener.h"
 #include "ShareManagerListener.h"
 #include "TimerManagerListener.h"
@@ -58,7 +58,7 @@ class SearchQuery;
 class FileList;
 
 class ShareManager : public Singleton<ShareManager>, public Speaker<ShareManagerListener>, private Thread, private SettingsManagerListener, 
-	private TimerManagerListener, private DirectoryMonitorListener
+	private TimerManagerListener, private DirectoryMonitorListener, private HashManagerListener
 {
 public:
 	// Call when a drive has been removed and it should be removed from monitoring
@@ -745,6 +745,9 @@ private:
 	virtual int run();
 
 	void runTasks(function<void (float)> progressF = nullptr) noexcept;
+
+	// HashManagerListener
+	void on(HashManagerListener::FileHashed, const string& aPath, HashedFile& fi) noexcept { onFileHashed(aPath, fi); }
 
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {

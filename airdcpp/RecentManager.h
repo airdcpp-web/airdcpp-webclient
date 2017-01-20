@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+* Copyright (C) 2011-2016 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,13 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_RECENT_MANAGER_H
-#define DCPLUSPLUS_DCPP_RECENT_MANAGER_H
+#ifndef RECENT_MANAGER_H
+#define RECENT_MANAGER_H
 
-#include "HubEntry.h"
+#include "RecentEntry.h"
 #include "Singleton.h"
 #include "Speaker.h"
+#include "DelayedEvents.h"
 
 #include "RecentManagerListener.h"
 
@@ -31,30 +32,34 @@ namespace dcpp {
 	{
 	public:
 		// Recent Hubs
-		RecentHubEntryList& getRecentHubs() noexcept { return recentHubs; };
+		RecentEntryList getRecents() noexcept {  RLock l(cs); return recents; };
 
-		void addRecentHub(const RecentHubEntryPtr& aEntry) noexcept;
-		void removeRecentHub(const RecentHubEntryPtr& aEntry) noexcept;
-		void updateRecentHub(const RecentHubEntryPtr& aEntry) noexcept;
+		void addRecent(const string& aEntry) noexcept;
+		void removeRecent(const string& aEntry) noexcept;
+		void updateRecent(const ClientPtr& aClient) noexcept;
 
-		RecentHubEntryPtr getRecentHubEntry(const string& aServer) const noexcept;
-		RecentHubEntryList searchRecentHubs(const string& aPattern, size_t aMaxResults) const noexcept;
+		RecentEntryPtr getRecentEntry(const string& aServer) const noexcept;
+		RecentEntryList searchRecents(const string& aPattern, size_t aMaxResults) const noexcept;
 
-		void clearRecentHubs() noexcept;
-		void saveRecentHubs() const noexcept;
+		void clearRecents() noexcept;
+		void saveRecents() const noexcept;
 
 		void load() noexcept;
 
 		mutable SharedMutex cs;
 	private:
-		RecentHubEntryList recentHubs;
+		RecentEntryList recents;
 		friend class Singleton<RecentManager>;
-
+		
+		enum Events {
+			SAVE = 0
+		};
 		RecentManager();
 		~RecentManager();
 
-		RecentHubEntryList::const_iterator getRecentHub(const string& aServer) const noexcept;
-		void loadRecentHubs(SimpleXML& aXml);
+		DelayedEvents<int> delayEvents;
+
+		void loadRecents(SimpleXML& aXml);
 	};
 
 } // namespace dcpp

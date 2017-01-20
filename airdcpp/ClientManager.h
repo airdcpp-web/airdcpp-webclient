@@ -49,7 +49,7 @@ class ClientManager : public Speaker<ClientManagerListener>,
 public:
 	// Returns the new ClientPtr
 	// NOTE: the main app should perform connecting to the new hub
-	ClientPtr createClient(const RecentHubEntryPtr& aEntry) noexcept;
+	ClientPtr createClient(const string& aUrl) noexcept;
 	ClientPtr getClient(const string& aHubURL) noexcept;
 	ClientPtr getClient(ClientToken aClientId) noexcept;
 
@@ -121,14 +121,15 @@ public:
 
 	bool hasClient(const string& aUrl) const noexcept;
 	
-	optional<uint64_t> search(string& who, const SearchPtr& aSearch) noexcept;
+	optional<uint64_t> search(string& aHubUrl, const SearchPtr& aSearch, string& error_) noexcept;
 
 	// Get users with nick matching the pattern. Uses relevancies for priorizing the results.
 	OnlineUserList searchNicks(const string& aPattern, size_t aMaxResults, bool aIgnorePrefix, const StringList& aHubUrls) const noexcept;
 
-	void directSearch(const HintedUser& user, const SearchPtr& aSearch) noexcept;
+	bool directSearch(const HintedUser& user, const SearchPtr& aSearch, string& error_) noexcept;
 	
-	void cancelSearch(void* aOwner) noexcept;
+	bool cancelSearch(const void* aOwner) noexcept;
+	optional<uint64_t> getMaxSearchQueueTime(const void* aOwner) noexcept;
 		
 	void infoUpdated() noexcept;
 
@@ -137,6 +138,7 @@ public:
 
 	UserPtr getUser(const string& aNick, const string& aHubUrl) noexcept;
 	UserPtr getUser(const CID& cid) noexcept;
+	UserPtr loadUser(const string& aCid, const string& aUrl, const string& aNick, uint32_t lastSeen = GET_TIME()) noexcept;
 
 	// usage needs to be locked!
 	const UserMap& getUsers() const { return users; }
@@ -155,7 +157,6 @@ public:
 
 	UserPtr findUserByNick(const string& aNick, const string& aHubUrl) const noexcept;
 	
-	//Note; Lock usage
 	void addOfflineUser(const UserPtr& user, const string& nick, const string& url, uint32_t lastSeen = GET_TIME()) noexcept;
 
 	string getMyNick(const string& hubUrl) const noexcept;
@@ -225,7 +226,7 @@ public:
 	//return users supporting the ASCH extension (and total users)
 	pair<size_t, size_t> countAschSupport(const OrderedStringSet& aHubs) const noexcept;
 private:
-	static ClientPtr createClient(const string& aHubURL, const ClientPtr& aOldClient = nullptr) noexcept;
+	static ClientPtr makeClient(const string& aHubURL, const ClientPtr& aOldClient = nullptr) noexcept;
 
 	typedef unordered_map<CID*, OfflineUser> OfflineUserMap;
 
@@ -277,6 +278,7 @@ private:
 	void on(ClientListener::HubUserCommand, const Client*, int, int, const string&, const string&) noexcept;
 	void on(ClientListener::NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize,
 		int aFileType, const string& aString, bool) noexcept;
+	void on(ClientListener::OutgoingSearch, const Client*, const SearchPtr&) noexcept;
 
 	// TimerManagerListener
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;

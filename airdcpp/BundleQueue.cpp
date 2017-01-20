@@ -43,8 +43,8 @@ size_t BundleQueue::getTotalFiles() const noexcept {
 void BundleQueue::addBundle(BundlePtr& aBundle) noexcept {
 	bundles[aBundle->getToken()] = aBundle;
 
-	if (aBundle->isFinished()) {
-		aBundle->setStatus(Bundle::STATUS_FINISHED);
+	if (aBundle->filesCompleted()) {
+		aBundle->setStatus(Bundle::STATUS_COMPLETED);
 		return;
 	}
 
@@ -338,7 +338,7 @@ void BundleQueue::addBundleItem(QueueItemPtr& aQI, BundlePtr& aBundle) noexcept 
 
 	if (!aBundle->isFileBundle()) {
 		forEachPath(aBundle, aQI->getTarget(), [&](PathInfo& aInfo) {
-			if (aQI->isFinished()) {
+			if (aQI->isDownloaded()) {
 				aInfo.finishedFiles++;
 			} else {
 				aInfo.queuedFiles++;
@@ -355,7 +355,7 @@ void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool aFinished) noexcept {
 
 	if (!aQI->getBundle()->isFileBundle()) {
 		forEachPath(aQI->getBundle(), aQI->getTarget(), [&](PathInfo& aInfo) {
-			if (aQI->isFinished()) {
+			if (aQI->isDownloaded()) {
 				aInfo.finishedFiles--;
 			} else {
 				aInfo.queuedFiles--;

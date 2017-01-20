@@ -340,7 +340,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			auto filesStr = getAttrib(attribs, sFiles, 3);
 
 			DirectoryContentInfo contentInfo;
-			if (!filesStr.empty() || !directoriesStr.empty()) {
+			if (!incomp || !filesStr.empty() || !directoriesStr.empty()) {
 				contentInfo = DirectoryContentInfo(Util::toInt(directoriesStr), Util::toInt(filesStr));
 			}
 

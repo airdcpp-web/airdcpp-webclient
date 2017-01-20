@@ -50,16 +50,12 @@ public:
 	enum Status {
 		STATUS_NEW, // not added in queue yet
 		STATUS_QUEUED,
-		STATUS_DOWNLOAD_FAILED,
+		STATUS_DOWNLOAD_ERROR,
 		STATUS_RECHECK,
 		STATUS_DOWNLOADED, // no queued files
-		STATUS_MOVED, // all files moved
-		STATUS_FAILED_MISSING,
-		STATUS_SHARING_FAILED,
-		STATUS_FINISHED, // no missing files, ready for hashing
-		STATUS_HASHING,
-		STATUS_HASH_FAILED,
-		STATUS_HASHED,
+		STATUS_VALIDATION_RUNNING, // the bundle is being validated by the completion hooks
+		STATUS_VALIDATION_ERROR, // hook validation failed (see the error pointer for more information)
+		STATUS_COMPLETED, // no validation errors, ready for sharing
 		STATUS_SHARED
 	};
 
@@ -120,7 +116,8 @@ public:
 	Bundle(QueueItemPtr& qi, time_t aBundleDate, QueueToken aToken = 0, bool aDirty = true) noexcept;
 	~Bundle() noexcept;
 
-	GETSET(string, lastError, LastError);
+	IGETSET(ActionHookErrorPtr, hookError, HookError, nullptr);
+	GETSET(string, error, Error);
 
 	IGETSET(Status, status, Status, STATUS_NEW);
 	IGETSET(time_t, bundleDate, BundleDate, 0);				// the file/directory modify date picked from the remote filelist when the bundle has been queued
@@ -163,6 +160,7 @@ public:
 	bool isRecent() const noexcept { return recent; }
 
 	/* QueueManager */
+	static bool isFailedStatus(Status aStatus) noexcept;
 	bool isFailed() const noexcept;
 
 	// Throws on errors
@@ -176,7 +174,18 @@ public:
 	void addFinishedItem(QueueItemPtr& qi, bool finished) noexcept;
 	void removeFinishedItem(QueueItemPtr& qi) noexcept;
 	void finishBundle() noexcept;
-	bool allowHash() const noexcept;
+
+	// All files have been downloaded and moved to the final destination
+	// Unsafe
+	bool filesCompleted() const noexcept;
+
+	// All bundles files have finished downloading
+	// Safe
+	bool isDownloaded() const noexcept;
+
+	// All bundles files have finished downloading and all validation hooks have completed
+	// Safe
+	bool isCompleted() const noexcept;
 
 	void clearFinishedNotifications(FinishedNotifyList& fnl) noexcept;
 	bool isFinishedNotified(const UserPtr& aUser) const noexcept;
@@ -195,6 +204,8 @@ public:
 
 	void addFinishedSegment(int64_t aSize) noexcept;
 	void removeFinishedSegment(int64_t aSize) noexcept;
+
+	string getStatusString() const noexcept;
 
 	/* DownloadManager */
 	int countConnections() const noexcept;
@@ -219,7 +230,6 @@ public:
 	void getSourceUsers(HintedUserList& l) const noexcept;
 	bool isSource(const UserPtr& aUser) const noexcept;
 	bool isBadSource(const UserPtr& aUser) const noexcept;
-	bool isFinished() const noexcept { return queueItems.empty(); }
 
 	/** All queue items indexed by user */
 	void addUserQueue(QueueItemPtr& qi) noexcept;

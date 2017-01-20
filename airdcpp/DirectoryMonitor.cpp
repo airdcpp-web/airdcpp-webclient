@@ -548,7 +548,7 @@ void DirectoryMonitor::processNotification(const string& aPath, const ByteVector
 
 		string notifyPath(Text::fromT(tstring(fni.FileName, fni.FileNameLength / sizeof(wchar_t) )));
 
-		auto fileName = Util::getFileName(notifyPath);
+		//auto fileName = Util::getFileName(notifyPath);
 
 		notifyPath = aPath + notifyPath;
 		switch(fni.Action) {

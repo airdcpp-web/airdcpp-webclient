@@ -21,12 +21,12 @@
 
 #include "ClientManagerListener.h"
 #include "DownloadManagerListener.h"
-#include "HashManagerListener.h"
 #include "QueueManagerListener.h"
 #include "SearchManagerListener.h"
 #include "ShareManagerListener.h"
 #include "TimerManagerListener.h"
 
+#include "ActionHook.h"
 #include "BundleInfo.h"
 #include "BundleQueue.h"
 #include "DelayedEvents.h"
@@ -57,14 +57,15 @@ namespace dcpp {
 
 namespace bimaps = boost::bimaps;
 
-class HashedFile;
 class UserConnection;
 class QueueLoader;
 
 class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManagerListener>, private TimerManagerListener, 
-	private SearchManagerListener, private ClientManagerListener, private HashManagerListener, private ShareManagerListener
+	private SearchManagerListener, private ClientManagerListener, private ShareManagerListener
 {
 public:
+	ActionHook<const BundlePtr> bundleCompletionHook;
+
 	// Add all queued TTHs in the supplied bloom filter
 	void getBloom(HashBloom& bloom) const noexcept;
 
@@ -117,9 +118,9 @@ public:
 		return false;
 	}
 
-	// Return all finished non-failed bundles
+	// Return all completed (verified) bundles
 	// Returns the number of bundles that were removed
-	int removeFinishedBundles() noexcept;
+	int removeCompletedBundles() noexcept;
 
 	// Remove source from the specified file
 	void removeFileSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
@@ -157,7 +158,6 @@ public:
 	// Set the maximum number of segments for the specified target
 	void setSegments(const string& aTarget, uint8_t aSegments) noexcept;
 
-	bool isFinished(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->isFinished(); }
 	bool isWaiting(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->isWaiting(); }
 
 	uint64_t getDownloadedBytes(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->getDownloadedBytes(); }
@@ -370,7 +370,7 @@ public:
 
 	// Returns true if the bundle passes the scan for missing/extra files
 	// Blocking call
-	bool scanBundle(BundlePtr& aBundle) noexcept;
+	bool runCompletionHooks(BundlePtr& aBundle) noexcept;
 
 	// Performs recheck for the supplied files. Recheck will be done in the calling thread.
 	// The integrity of all finished segments will be verified and SFV will be validated for finished files
@@ -476,9 +476,6 @@ private:
 	void pickMatch(QueueItemPtr qi) noexcept;
 	void matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult) noexcept;
 
-	void onFileHashed(const string& aPath, HashedFile& aFileInfo, bool failed) noexcept;
-	void hashBundle(BundlePtr& aBundle) noexcept;
-	void checkBundleHashed(BundlePtr& aBundle) noexcept;
 	void setBundleStatus(BundlePtr aBundle, Bundle::Status newStatus) noexcept;
 
 	/* Returns true if an item can be replaces */
@@ -514,10 +511,6 @@ private:
 	
 	// SearchManagerListener
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
-	
-	// HashManagerListener
-	void on(HashManagerListener::FileHashed, const string& aPath, HashedFile& fi) noexcept { onFileHashed(aPath, fi, false); }
-	void on(HashManagerListener::FileFailed, const string& aPath, HashedFile& fi) noexcept { onFileHashed(aPath, fi, true); }
 
 	// ClientManagerListener
 	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;

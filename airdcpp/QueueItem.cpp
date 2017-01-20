@@ -156,11 +156,11 @@ Priority QueueItem::calculateAutoPriority() const noexcept {
 
 bool QueueItem::hasPartialSharingTarget() noexcept {
 	// don't share items that are being moved
-	if (isFinished() && !isSet(QueueItem::FLAG_MOVED))
+	if (segmentsDone() && !isSet(QueueItem::FLAG_MOVED))
 		return false;
 
 	// don't share when the file does not exist
-	if(!Util::fileExists(isFinished() ? target : getTempTarget()))
+	if(!Util::fileExists(isSet(QueueItem::FLAG_MOVED) ? target : getTempTarget()))
 		return false;
 
 	return true;
@@ -189,6 +189,21 @@ bool QueueItem::isChunkDownloaded(int64_t startPos, int64_t& len) const noexcept
 	}
 
 	return false;
+}
+
+string QueueItem::getStatusString(int64_t aDownloadedBytes, bool aIsWaiting) const noexcept {
+	if (isSet(QueueItem::FLAG_DOWNLOADED)) {
+		return STRING(FINISHED);
+	}
+
+	auto percentage = getPercentage(aDownloadedBytes);
+	if (isPausedPrio()) {
+		return STRING_F(PAUSED_PCT, percentage);
+	} else if (aIsWaiting) {
+		return STRING_F(WAITING_PCT, percentage);
+	} else {
+		return STRING_F(RUNNING_PCT, percentage);
+	}
 }
 
 string QueueItem::getListName() const noexcept {
@@ -311,8 +326,12 @@ double QueueItem::getDownloadedFraction() const noexcept {
 	return static_cast<double>(getDownloadedBytes()) / size; 
 }
 
-bool QueueItem::isFinished() const noexcept {
+bool QueueItem::segmentsDone() const noexcept {
 	return done.size() == 1 && *done.begin() == Segment(0, size);
+}
+
+bool QueueItem::isDownloaded() const noexcept {
+	return isSet(FLAG_DOWNLOADED);
 }
 
 Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t aWantedSize, int64_t aLastSpeed, const PartialSource::Ptr& aPartialSource, bool aAllowOverlap) const noexcept {
@@ -605,7 +624,7 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& aOnline
 	}
 
 	dcassert(isSource(aUser));
-	if (isFinished()) {
+	if (segmentsDone()) {
 		return false;
 	}
 
@@ -670,7 +689,7 @@ QueueItemPtr QueueItem::pickSearchItem(const QueueItemList& aItems) noexcept {
 }
 
 void QueueItem::searchAlternates() noexcept {
-	auto s = make_shared<Search>(Search::ALT_AUTO, "qa");
+	auto s = make_shared<Search>(Priority::LOW, "qa");
 	s->query = tthRoot.toBase32();
 	s->fileType = Search::TYPE_TTH;
 
@@ -705,7 +724,7 @@ void QueueItem::removeDownloads(const UserPtr& aUser) noexcept {
 void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 	string indent = "\t";
 
-	if (isFinished()) {
+	if (segmentsDone()) {
 		f.write(LIT("\t<Finished"));
 	} else {
 		f.write(LIT("\t<Download"));
@@ -723,7 +742,7 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 	f.write(LIT("\" TTH=\""));
 	f.write(tthRoot.toBase32(b32tmp));
 
-	if (isFinished()) {
+	if (segmentsDone()) {
 		f.write(LIT("\" TimeFinished=\""));
 		f.write(Util::toString(timeFinished));
 		f.write(LIT("\" LastSource=\""));

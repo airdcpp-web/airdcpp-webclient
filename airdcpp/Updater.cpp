@@ -615,26 +615,28 @@ bool Updater::getUpdateVersionInfo(SimpleXML& xml, string& versionString, int& r
 		StringTokenizer<string> t(xml.getChildAttrib("MinOsVersion"), '.');
 		StringList& l = t.getTokens();
 
-		if (!Util::IsOSVersionOrGreater(Util::toInt(l[0]), Util::toInt(l[1])))
+		if (!Util::IsOSVersionOrGreater(Util::toInt(l[0]), Util::toInt(l[1]))) {
 			continue;
+		}
 
 		xml.stepIn();
 
-		if (xml.findChild("Version")) {
-			versionString = xml.getChildData();
-			xml.resetCurrentChild();
-			if (xml.findChild(UPGRADE_TAG)) {
-				remoteBuild = Util::toInt(xml.getChildAttrib("Build"));
-				string tmp = xml.getChildAttrib("VersionString");
-				if (!tmp.empty())
-					versionString = tmp;
+		if (xml.findChild(UPGRADE_TAG)) {
+			remoteBuild = Util::toInt(xml.getChildAttrib("Build"));
+			string tmp = xml.getChildAttrib("VersionString");
+			if (!tmp.empty()) {
+				versionString = tmp;
 			}
-			xml.resetCurrentChild();
-			return true;
+		} else {
+			dcassert(0);
+			return false;
 		}
-		break;
+
+		xml.resetCurrentChild();
+		return true;
 	}
 
+	dcassert(0);
 	return false;
 }
 
