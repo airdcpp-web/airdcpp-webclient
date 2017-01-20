@@ -66,8 +66,8 @@ namespace dcpp {
 		std::string currentSearchToken;
 		mutable SharedMutex cs;
 
-		void on(ClientManagerListener::OutgoingSearch, const string& aHubUrl, const SearchPtr& aSearch) noexcept;
-		void on(ClientManagerListener::ClientDisconnected, const string& aHubUrl) noexcept;
+		void on(ClientManagerListener::OutgoingSearch, const string& aHubUrl, const SearchPtr& aSearch) noexcept override;
+		void on(ClientManagerListener::ClientDisconnected, const string& aHubUrl) noexcept override;
 
 		void removeQueuedUrl(const string& aHubUrl) noexcept;
 		uint64_t lastSearchTime = 0;

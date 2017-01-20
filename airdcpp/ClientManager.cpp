@@ -1011,7 +1011,7 @@ optional<uint64_t> ClientManager::search(string& aHubUrl, const SearchPtr& aSear
 		auto result = i->second->queueSearch(aSearch);
 		if (!result) {
 			error_ = "Search queue overflow";
-			i->second->statusMessage("Failed to queue the search " + aSearch->query + " due to search queue overflow", LogMessage::SEV_WARNING);
+			i->second->statusMessage(STRING_F(SEARCH_QUEUE_OVERFLOW, aSearch->query % i->second->getSearchQueueSize()), LogMessage::SEV_WARNING);
 		}
 
 		return result;

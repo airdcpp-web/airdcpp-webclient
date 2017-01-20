@@ -63,6 +63,11 @@ uint64_t SearchQueue::getCurrentQueueTime() const noexcept {
 	return 0;
 }
 
+int SearchQueue::getQueueSize() const noexcept {
+	Lock l(cs);
+	return static_cast<int>(searchQueue.size());
+}
+
 uint64_t SearchQueue::getTotalQueueTime() const noexcept {
 	uint64_t queueTime = 0;
 	bool first = true;
