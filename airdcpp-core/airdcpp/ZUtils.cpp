@@ -63,7 +63,7 @@ bool ZFilter::operator()(const void* in, size_t& insize, void* out, size_t& outs
 		dcdebug("Dynamically disabled compression");
 
 		// Check if we ate all space already...
-		if (err == Z_BUF_ERROR) {
+		if (zs.avail_out == 0) {
 			outsize = outsize - zs.avail_out;
 			insize = insize - zs.avail_in;
 			totalOut += outsize;
