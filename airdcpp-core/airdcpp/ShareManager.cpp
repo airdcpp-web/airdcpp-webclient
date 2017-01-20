@@ -70,6 +70,7 @@ atomic_flag ShareManager::refreshing;
 ShareManager::ShareManager() : bloom(new ShareBloom(1 << 20)), monitor(1, false)
 { 
 	SettingsManager::getInstance()->addListener(this);
+	HashManager::getInstance()->addListener(this);
 #ifdef _WIN32
 	// don't share Windows directory
 	TCHAR path[MAX_PATH];
@@ -81,6 +82,7 @@ ShareManager::ShareManager() : bloom(new ShareBloom(1 << 20)), monitor(1, false)
 }
 
 ShareManager::~ShareManager() {
+	HashManager::getInstance()->removeListener(this);
 	SettingsManager::getInstance()->removeListener(this);
 }
 
@@ -2485,7 +2487,7 @@ void ShareManager::reportTaskStatus(uint8_t aTask, const RefreshPathList& direct
 			break;
 		case(ADD_BUNDLE):
 			if (finished)
-				msg = STRING_F(BUNDLE_X_SHARED, (SETTING(FINISHED_NO_HASH) ? displayName : Util::getLastDir(displayName))); //show the path with no hash so that it can be opened from the system log
+				msg = STRING_F(BUNDLE_X_SHARED, displayName); //show the whole path so that it can be opened from the system log
 			break;
 	};
 

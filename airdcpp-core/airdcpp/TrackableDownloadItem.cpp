@@ -37,6 +37,10 @@ namespace dcpp {
 		}
 	}
 
+	bool TrackableDownloadItem::isDownloaded() const noexcept {
+		return getDownloadState() == STATE_DOWNLOADED;
+	}
+
 	TrackableDownloadItem::State TrackableDownloadItem::getDownloadState() const noexcept {
 		if (!lastError.empty()) {
 			return STATE_DOWNLOAD_FAILED;

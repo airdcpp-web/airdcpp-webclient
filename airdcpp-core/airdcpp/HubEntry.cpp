@@ -44,8 +44,4 @@ string FavoriteHubEntry::getShareProfileName() const noexcept {
 	return ShareManager::getInstance()->getShareProfile(SETTING(DEFAULT_SP))->getDisplayName();
 }
 
-RecentHubEntry::RecentHubEntry(const string& aUrl) : server(boost::trim_copy(aUrl)), name("*"), description("*"), shared("*"), users("*") {
-
-}
-
 }

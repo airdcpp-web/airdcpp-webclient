@@ -1,5 +1,6 @@
+
 /*
-* Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+* Copyright (C) 2011-2016 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -16,27 +17,28 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_RECENTMANAGERLISTENER_H_
-#define DCPLUSPLUS_DCPP_RECENTMANAGERLISTENER_H_
+#ifndef RECENT_ENTRY_H_
+#define RECENT_ENTRY_H_
 
-#include "forward.h"
+#include "GetSet.h"
+#include "Pointer.h"
+#include "typedefs.h"
+
+#include <boost/algorithm/string/trim.hpp>
 
 namespace dcpp {
 
-	class RecentManagerListener {
-	public:
-		virtual ~RecentManagerListener() { }
-		template<int I>	struct X { enum { TYPE = I }; };
+class RecentEntry : public intrusive_ptr_base<RecentEntry> {
+public:
+	RecentEntry(const string& aUrl) : 
+		url(aUrl), name("*"), description("*") {
 
-		typedef X<0> RecentAdded;
-		typedef X<1> RecentRemoved;
-		typedef X<2> RecentUpdated;
+	}
 
-		virtual void on(RecentAdded, const RecentEntryPtr&) noexcept {}
-		virtual void on(RecentRemoved, const RecentEntryPtr&) noexcept {}
-		virtual void on(RecentUpdated, const RecentEntryPtr&) noexcept {}
-	};
+	GETSET(string, url, Url);
+	GETSET(string, name, Name);
+	GETSET(string, description, Description);
+};
 
-} // namespace dcpp
-
-#endif 
+}
+#endif

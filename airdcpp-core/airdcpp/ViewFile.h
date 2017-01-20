@@ -51,6 +51,10 @@ namespace dcpp {
 			return tth;
 		}
 
+		time_t getTimeCreated() const noexcept {
+			return timeCreated;
+		}
+
 		IGETSET(bool, read, Read, false);
 	protected:
 		void onStateChanged() noexcept;
@@ -60,6 +64,7 @@ namespace dcpp {
 		const TTHValue tth;
 		const bool text;
 		const bool localFile;
+		const time_t timeCreated;
 	};
 
 } // namespace dcpp

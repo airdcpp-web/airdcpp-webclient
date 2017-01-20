@@ -41,8 +41,9 @@ namespace dcpp {
 class SocketException;
 
 struct SearchQueueInfo {
-	int succeed;
+	StringSet queuedHubUrls;
 	uint64_t queueTime;
+	string error;
 };
 
 class SearchManager : public Speaker<SearchManagerListener>, public Singleton<SearchManager>, private TimerManagerListener, private SettingsManagerListener
@@ -59,7 +60,7 @@ public:
 	static bool isDefaultTypeStr(const string& type);
 	
 	SearchQueueInfo search(const SearchPtr& aSearch) noexcept;
-	SearchQueueInfo search(StringList& who, const SearchPtr& aSearch, void* aOwner = nullptr) noexcept;
+	SearchQueueInfo search(StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner = nullptr) noexcept;
 	
 	void respond(const AdcCommand& cmd, OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
 

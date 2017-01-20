@@ -53,7 +53,7 @@ pair<QueueItem::StringMap::const_iterator, bool> FileQueue::add(QueueItemPtr& qi
 	auto ret = pathQueue.emplace(const_cast<string*>(&qi->getTarget()), qi);
 	if (ret.second) {
 		tthIndex.emplace(const_cast<TTHValue*>(&qi->getTTH()), qi);
-		if (!qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW) && !qi->isSet(QueueItem::FLAG_FINISHED)) {
+		if (!qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW) && !qi->isSet(QueueItem::FLAG_DOWNLOADED)) {
 			dcassert(qi->getSize() >= 0);
 			queueSize += qi->getSize();
 		}
@@ -63,12 +63,20 @@ pair<QueueItem::StringMap::const_iterator, bool> FileQueue::add(QueueItemPtr& qi
 	return ret;
 }
 
+bool FileQueue::countTotalSize(const QueueItemPtr& aQI) noexcept {
+	if (aQI->isSet(QueueItem::FLAG_CLIENT_VIEW) || aQI->isSet(QueueItem::FLAG_USER_LIST)) {
+		return false;
+	}
+
+	return !aQI->getBundle() || !aQI->isSet(QueueItem::FLAG_DOWNLOADED);
+}
+
 void FileQueue::remove(const QueueItemPtr& qi) noexcept {
 	//TargetMap
 	auto f = pathQueue.find(const_cast<string*>(&qi->getTarget()));
 	if (f != pathQueue.end()) {
 		pathQueue.erase(f);
-		if (!qi->isSet(QueueItem::FLAG_USER_LIST) && (!qi->isSet(QueueItem::FLAG_FINISHED) || !qi->getBundle()) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
+		if (countTotalSize(qi)) {
 			dcassert(qi->getSize() >= 0);
 			queueSize -= qi->getSize();
 		}
@@ -117,7 +125,7 @@ void FileQueue::matchDir(const DirectoryListing::Directory::Ptr& aDir, QueueItem
 		auto tthRange = tthIndex.equal_range(const_cast<TTHValue*>(&f->getTTH()));
 
 		for_each(tthRange, [&](const pair<TTHValue*, QueueItemPtr>& tqp) {
-			if (!tqp.second->isFinished() && tqp.second->getSize() == f->getSize() && find(ql_, tqp.second) == ql_.end()) {
+			if (!tqp.second->isDownloaded() && tqp.second->getSize() == f->getSize() && find(ql_, tqp.second) == ql_.end()) {
 				ql_.push_back(tqp.second);
 			}
 		});
@@ -127,7 +135,7 @@ void FileQueue::matchDir(const DirectoryListing::Directory::Ptr& aDir, QueueItem
 DupeType FileQueue::isFileQueued(const TTHValue& aTTH) const noexcept {
 	auto qi = getQueuedFile(aTTH);
 	if (qi) {
-		return (qi->isFinished() ? DUPE_FINISHED_FULL : DUPE_QUEUE_FULL);
+		return (qi->isDownloaded() ? DUPE_FINISHED_FULL : DUPE_QUEUE_FULL);
 	}
 	return DUPE_NONE;
 }

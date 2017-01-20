@@ -27,29 +27,31 @@ namespace dcpp {
 class SearchQueue
 {
 public:
-	
 	SearchQueue();
 	~SearchQueue();
 
-	uint64_t add(const SearchPtr& s) noexcept;
-	SearchPtr pop() noexcept;
+	// Queues a new search, removes all possible existing items from the same owner
+	// none is returned if the search queue is currently too long
+	optional<uint64_t> maybeAdd(const SearchPtr& s) noexcept;
+
+	// Pops the next search item if one is available and it's allowed by the search intervals
+	SearchPtr maybePop() noexcept;
 	
 	void clear() noexcept;
-	bool cancelSearch(void* aOwner) noexcept;
-
-	uint64_t getNextSearchTick() const noexcept;
-	bool hasWaitingTime(uint64_t aTick) const noexcept;
-
-	uint64_t lastSearchTime = 0;
+	bool cancelSearch(const void* aOwner) noexcept;
 
 	// Interval defined by the client (settings or fav hub interval)
 	IGETSET(int, minInterval, MinInterval, 5000);
-private:
-	int getInterval(Search::Type aSearchType) const noexcept;
 
+	optional<uint64_t> getQueueTime(const Search::CompareF& aCompareF) const noexcept;
+	uint64_t getTotalQueueTime() const noexcept;
+	uint64_t getCurrentQueueTime() const noexcept;
+private:
+	int getInterval(Priority aPriority) const noexcept;
+
+	uint64_t lastSearchTick;
 	deque<SearchPtr> searchQueue;
-	int	nextInterval;
-	CriticalSection cs;
+	mutable CriticalSection cs;
 };
 
 }

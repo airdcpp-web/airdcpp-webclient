@@ -21,10 +21,12 @@
 
 #include "AirUtil.h"
 #include "File.h"
+#include "TimerManager.h"
 
 namespace dcpp {
 	ViewFile::ViewFile(const string& aTarget, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile, UpdateF&& aUpdateFunction) noexcept :
-		TrackableDownloadItem(aIsLocalFile), path(aTarget), tth(aTTH), updateFunction(aUpdateFunction), text(aIsText), localFile(aIsLocalFile) {
+		TrackableDownloadItem(aIsLocalFile), path(aTarget), tth(aTTH), timeCreated(GET_TIME()),
+		updateFunction(aUpdateFunction), text(aIsText), localFile(aIsLocalFile) {
 
 	}
 

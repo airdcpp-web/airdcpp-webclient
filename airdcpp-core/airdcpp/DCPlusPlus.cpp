@@ -109,9 +109,9 @@ void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progr
 
 	UploadManager::getInstance()->setFreeSlotMatcher();
 	Localization::init();
-	if(SETTING(WIZARD_RUN) && runWizard) {
+	if(SETTING(WIZARD_PENDING) && runWizard) {
 		runWizard();
-		SettingsManager::getInstance()->set(SettingsManager::WIZARD_RUN, false); //wizard has run on startup
+		SettingsManager::getInstance()->set(SettingsManager::WIZARD_PENDING, false); //wizard has run on startup
 	}
 
 
@@ -182,6 +182,7 @@ void shutdown(StepF stepF, ProgressF progressF, Callback moduleDestroyF) {
 	
 	announce(STRING(SAVING_SETTINGS));
 	QueueManager::getInstance()->shutdown();
+	FavoriteManager::getInstance()->shutdown();
 	SettingsManager::getInstance()->save();
 
 	if (moduleDestroyF) {

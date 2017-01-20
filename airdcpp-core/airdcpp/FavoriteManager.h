@@ -23,6 +23,7 @@
 #include "FavoriteManagerListener.h"
 #include "SettingsManagerListener.h"
 #include "ShareManagerListener.h"
+#include "TimerManagerListener.h"
 
 #include "FavHubGroup.h"
 #include "FavoriteUser.h"
@@ -34,7 +35,7 @@
 namespace dcpp {
 
 class FavoriteManager : public Speaker<FavoriteManagerListener>, public Singleton<FavoriteManager>,
-	private SettingsManagerListener, private ClientManagerListener, private ShareManagerListener
+	private SettingsManagerListener, private ClientManagerListener, private ShareManagerListener, private TimerManagerListener
 {
 public:
 // Favorite Users
@@ -44,6 +45,7 @@ public:
 	const FavoriteMap& getFavoriteUsers() const noexcept { return users; }
 
 	void addFavoriteUser(const HintedUser& aUser) noexcept;
+	void addSavedUser(const UserPtr& aUser) noexcept;
 	void removeFavoriteUser(const UserPtr& aUser) noexcept;
 	optional<FavoriteUser> getFavoriteUser(const UserPtr& aUser) const noexcept;
 
@@ -98,7 +100,8 @@ public:
 	UserCommand::List getUserCommands(int ctx, const StringList& hub, bool& op) noexcept;
 
 	void load() noexcept;
-	void save() noexcept;
+	void setDirty() { xmlDirty = true; }
+	void shutdown() noexcept;
 
 	bool hasActiveHubs() const noexcept;
 
@@ -110,11 +113,17 @@ private:
 	UserCommand::List userCommands;
 	int lastId = 0;
 
-	FavoriteMap users;
-	
-	/** Used during loading to prevent saving. */
-	bool loading = false;
+	uint64_t lastXmlSave = 0;
+	atomic<bool> xmlDirty{ false };
+	void save() noexcept;
 
+	//Favorite users
+	FavoriteMap users;
+	//Saved users
+	unordered_set<UserPtr, User::Hash> savedUsers;
+
+	FavoriteUser createUser(const UserPtr& aUser, const string& aUrl);
+	
 	friend class Singleton<FavoriteManager>;
 	
 	FavoriteManager();
@@ -124,6 +133,9 @@ private:
 	FavoriteHubEntryList::const_iterator getFavoriteHub(ProfileToken aToken) const noexcept;
 
 	int resetProfile(ProfileToken oldProfile, ProfileToken newProfile, bool nmdcOnly) noexcept;
+
+	// TimerManagerListener
+	void on(TimerManagerListener::Second, uint64_t tick) noexcept;
 
 	// ShareManagerListener
 	void on(ShareManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept;
@@ -150,7 +162,7 @@ private:
 	void loadUserCommands(SimpleXML& aXml);
 
 	void saveFavoriteHubs(SimpleXML& aXml) const noexcept;
-	void saveFavoriteUsers(SimpleXML& aXml) const noexcept;
+	void saveFavoriteUsers(SimpleXML& aXml) noexcept;
 	void saveFavoriteDirectories(SimpleXML& aXml) const noexcept;
 	void saveUserCommands(SimpleXML& aXml) const noexcept;
 

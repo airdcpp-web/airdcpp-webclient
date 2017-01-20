@@ -33,6 +33,7 @@ namespace dcpp {
 
 		// Leave the size unspecified if there is no tracking for download progress
 		virtual void onAddedQueue(const string& aDir, int64_t aSize = -1) noexcept;
+		bool isDownloaded() const noexcept;
 
 		virtual void onProgress(const string& aDir, int64_t aDownloadedBytes) noexcept;
 

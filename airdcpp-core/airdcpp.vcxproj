@@ -354,6 +354,7 @@
     <ClCompile Include="airdcpp\ZUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="airdcpp\ActionHook.h" />
     <ClInclude Include="airdcpp\ActivityManager.h" />
     <ClInclude Include="airdcpp\AdcCommand.h" />
     <ClInclude Include="airdcpp\AdcHub.h" />
@@ -378,6 +379,7 @@
     <ClInclude Include="airdcpp\modules\TargetUtil.h" />
     <ClInclude Include="airdcpp\modules\WebShortcuts.h" />
     <ClInclude Include="airdcpp\Priority.h" />
+    <ClInclude Include="airdcpp\RecentEntry.h" />
     <ClInclude Include="airdcpp\RecentManager.h" />
     <ClInclude Include="airdcpp\RecentManagerListener.h" />
     <ClInclude Include="airdcpp\SearchInstance.h" />

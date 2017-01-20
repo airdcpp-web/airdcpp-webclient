@@ -345,19 +345,16 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		
 		string seeker = param.substr(i, j-i);
 
-		bool isPassive = seeker.compare(0, 4, "Hub:") == 0;
+		bool isPassive = seeker.size() > 4 && seeker.compare(0, 4, "Hub:") == 0;
 		bool meActive = isActive();
 
 		// Filter own searches
-		if (!isPassive) {
+		if (meActive && !isPassive) {
 			if(seeker == (localIp + ":" + SearchManager::getInstance()->getPort())) {
 				return;
 			}
-		} else {
-			// Hub:seeker
-			if (seeker.compare(4, getMyNick().size(), getMyNick()) == 0) {
-				return;
-			}
+		} else if (isPassive && Util::stricmp(seeker.c_str() + 4, getMyNick().c_str()) == 0) {
+			return;
 		}
 
 		i = j + 1;
@@ -413,11 +410,12 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		i = j + 1;
 		string terms = unescape(param.substr(i));
 
-		if(terms.size() > 0) {
-			if(isPassive) {
-				OnlineUserPtr u = findUser(seeker.substr(4));
-
-				if(u == NULL) {
+		// without terms, this is an invalid search.
+		if (!terms.empty()) {
+			if (isPassive) {
+				// mark the user as passive
+				auto u = findUser(seeker.substr(4));
+				if (!u) {
 					return;
 				}
 

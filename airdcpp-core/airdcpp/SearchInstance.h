@@ -21,6 +21,7 @@
 
 #include "stdinc.h"
 
+#include "ClientManagerListener.h"
 #include "SearchInstanceListener.h"
 #include "SearchManagerListener.h"
 
@@ -31,15 +32,15 @@
 
 namespace dcpp {
 	struct SearchQueueInfo;
-	class SearchInstance : public Speaker<SearchInstanceListener>, private SearchManagerListener {
+	class SearchInstance : public Speaker<SearchInstanceListener>, private SearchManagerListener, private ClientManagerListener {
 	public:
 		SearchInstance();
 		~SearchInstance();
 
 		SearchQueueInfo hubSearch(StringList& aHubUrls, const SearchPtr& aSearch) noexcept;
-		void userSearch(const HintedUser& aUser, const SearchPtr& aSearch) noexcept;
+		bool userSearch(const HintedUser& aUser, const SearchPtr& aSearch, string& error_) noexcept;
 
-		void reset() noexcept;
+		void reset(const SearchPtr& aSearch) noexcept;
 
 		const string& getCurrentSearchToken() const noexcept {
 			return currentSearchToken;
@@ -50,14 +51,27 @@ namespace dcpp {
 		// The most relevant result is sorted first
 		GroupedSearchResult::Set getResultSet() const noexcept;
 		GroupedSearchResult::Ptr getResult(GroupedResultToken aToken) const noexcept;
+
+		uint64_t getTimeFromLastSearch() const noexcept;
+		int getQueueCount() const noexcept;
+		int getResultCount() const noexcept;
+		uint64_t getQueueTime() const noexcept;
 	private:
 		void on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept override;
 
 		GroupedSearchResult::Map results;
 		shared_ptr<SearchQuery> curSearch;
+		StringSet queuedHubUrls;
 
 		std::string currentSearchToken;
 		mutable SharedMutex cs;
+
+		void on(ClientManagerListener::OutgoingSearch, const string& aHubUrl, const SearchPtr& aSearch) noexcept;
+		void on(ClientManagerListener::ClientDisconnected, const string& aHubUrl) noexcept;
+
+		void removeQueuedUrl(const string& aHubUrl) noexcept;
+		uint64_t lastSearchTime = 0;
+		int searchesSent = 0;
 	};
 }
 

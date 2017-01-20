@@ -54,14 +54,13 @@ struct BundleDirectoryItemInfo {
 	BundleDirectoryItemInfo(BundleDirectoryItemInfo&) = delete;
 	BundleDirectoryItemInfo& operator=(BundleDirectoryItemInfo&) = delete;
 
-	BundleDirectoryItemInfo(string aFile, const TTHValue& aTTH, int64_t aSize, time_t aDate = 0, Priority aPrio = Priority::DEFAULT) noexcept :
-		file(move(aFile)), tth(aTTH), size(aSize), prio(aPrio), date(aDate) { }
+	BundleDirectoryItemInfo(string aFile, const TTHValue& aTTH, int64_t aSize, Priority aPrio = Priority::DEFAULT) noexcept :
+		file(move(aFile)), tth(aTTH), size(aSize), prio(aPrio) { }
 
 	string file;
 	TTHValue tth;
 	int64_t size;
 	Priority prio;
-	time_t date;
 
 	typedef vector<BundleDirectoryItemInfo> List;
 };

@@ -1306,7 +1306,7 @@ int HashManager::Hasher::run() {
 
 			WLock l(hcs);
 			if (w.empty()) {
-				//Nothing more to has, delete this hasher
+				//Nothing more to hash, delete this hasher
 				getInstance()->removeHasher(this);
 				break;
 			}

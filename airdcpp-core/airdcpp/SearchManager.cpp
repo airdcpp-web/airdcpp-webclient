@@ -87,7 +87,7 @@ SearchQueueInfo SearchManager::search(const SearchPtr& aSearch) noexcept {
 	return search(who, aSearch);
 }
 
-SearchQueueInfo SearchManager::search(StringList& who, const SearchPtr& aSearch, void* aOwner /* NULL */) noexcept {
+SearchQueueInfo SearchManager::search(StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner /* NULL */) noexcept {
 
 	string keyStr;
 	if (SETTING(ENABLE_SUDP)) {
@@ -101,20 +101,21 @@ SearchQueueInfo SearchManager::search(StringList& who, const SearchPtr& aSearch,
 		keyStr = Encoder::toBase32(key, 16);
 	}
 
-	aSearch->owners.insert(aOwner);
+	aSearch->owner = aOwner;
 	aSearch->key = keyStr;
 
-	int succeed = 0;
+	StringSet queued;
 	uint64_t estimateSearchSpan = 0;
-	for(auto& hubUrl: who) {
-		auto queueTime = ClientManager::getInstance()->search(hubUrl, aSearch);
+	string lastError;
+	for(auto& hubUrl: aHubUrls) {
+		auto queueTime = ClientManager::getInstance()->search(hubUrl, aSearch, lastError);
 		if (queueTime) {
 			estimateSearchSpan = max(estimateSearchSpan, *queueTime);
-			succeed++;
+			queued.insert(hubUrl);
 		}
 	}
 
-	return { succeed, estimateSearchSpan };
+	return { queued, estimateSearchSpan, lastError };
 }
 
 bool SearchManager::decryptPacket(string& x, size_t aLen, const ByteVector& aBuf) {

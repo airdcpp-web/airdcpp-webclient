@@ -265,7 +265,6 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 
 	// not a finished download?
 	if(!start && aConn->getState() != UserConnection::STATE_RUNNING) {
-		aConn->setDownload(nullptr);
 		removeRunningUser(aConn);
 		removeConnection(aConn);
 		return;
@@ -278,7 +277,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		d = QueueManager::getInstance()->getDownload(*aConn, runningBundles, hubs, errorMessage, newUrl, dlType);
 
 	if(!d) {
-		aConn->setDownload(nullptr);
+		//aConn->setDownload(nullptr);
 		aConn->unsetFlag(UserConnection::FLAG_RUNNING);
 		if(!errorMessage.empty()) {
 			fire(DownloadManagerListener::Status(), aConn, errorMessage);
@@ -430,7 +429,8 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 
 void DownloadManager::on(UserConnectionListener::Data, UserConnection* aSource, const uint8_t* aData, size_t aLen) noexcept {
 	Download* d = aSource->getDownload();
-	dcassert(d);
+	if (!d) //No download but receiving data??
+		aSource->disconnect(true);
 
 	try {
 		d->addPos(d->getOutput()->write(aData, aLen), aLen);
@@ -486,8 +486,8 @@ void DownloadManager::endData(UserConnection* aSource) {
 	try {
 		QueueManager::getInstance()->putDownload(d, true);
 	} catch (const HashException& e) {
-		aSource->setDownload(nullptr);
-		failDownload(aSource, e.getError(), false);
+		removeRunningUser(aSource);
+		removeConnection(aSource);
 		ConnectionManager::getInstance()->failDownload(aSource->getToken(), e.getError(), true);
 		return;
 	}
