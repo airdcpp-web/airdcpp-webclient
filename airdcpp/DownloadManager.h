@@ -30,6 +30,7 @@
 #include "CriticalSection.h"
 #include "Bundle.h"
 #include "MerkleTree.h"
+#include "Util.h"
 
 namespace dcpp {
 
