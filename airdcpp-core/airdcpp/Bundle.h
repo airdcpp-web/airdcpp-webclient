@@ -25,7 +25,6 @@
 #include "HintedUser.h"
 #include "MerkleTree.h"
 #include "Pointer.h"
-#include "QueueItem.h"
 #include "User.h"
 
 #include "QueueItemBase.h"

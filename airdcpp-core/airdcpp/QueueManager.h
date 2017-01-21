@@ -175,7 +175,7 @@ public:
 
 	// Get information about the next valid file in the queue
 	// Used for displaying initial information for a transfer before the connection has been established and the real download is created
-	bool getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, QueueToken& bundleToken) noexcept;
+	QueueItemPtr getQueueInfo(const HintedUser& aUser) noexcept;
 
 	// Check if a download can be started for the specified user
 	// 

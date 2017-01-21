@@ -1394,7 +1394,7 @@ void QueueManager::matchListing(const DirectoryListing& dl, int& matchingFiles_,
 	newFiles_ = addSources(dl.getHintedUser(), matchingItems, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, bundles_);
 }
 
-bool QueueManager::getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, QueueToken& bundleToken) noexcept {
+QueueItemPtr QueueManager::getQueueInfo(const HintedUser& aUser) noexcept {
 	OrderedStringSet hubs;
 	hubs.insert(aUser.hint);
 
@@ -1410,17 +1410,7 @@ bool QueueManager::getQueueInfo(const HintedUser& aUser, string& aTarget, int64_
 		qi = userQueue.getNext(aUser, runningBundles, hubs, lastError_, hasDownload);
 	}
 
-	if (!qi)
-		return false;
-
-	aTarget = qi->getTarget();
-	aSize = qi->getSize();
-	aFlags = qi->getFlags();
-	if (qi->getBundle()) {
-		bundleToken = qi->getBundle()->getToken();
-	}
-
-	return true;
+	return qi;
 }
 
 void QueueManager::toggleSlowDisconnectBundle(QueueToken aBundleToken) noexcept {
@@ -2060,7 +2050,7 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, Priority p, bool aKeepA
 
 	aBundle->setDirty();
 
-	if(p == Priority::PAUSED_FORCE) {
+	if (p == Priority::PAUSED_FORCE) {
 		DownloadManager::getInstance()->disconnectBundle(aBundle);
 	} else if (oldPrio <= Priority::LOWEST) {
 		connectBundleSources(aBundle);
@@ -2166,7 +2156,7 @@ void QueueManager::setQIPriority(QueueItemPtr& q, Priority p, bool aKeepAutoPrio
 
 	if (q->getPriority() != p && !q->isDownloaded()) {
 		WLock l(cs);
-		if((q->isPausedPrio() && !b->isPausedPrio()) || (p == Priority::HIGHEST && b->getPriority() != Priority::PAUSED)) {
+		if((q->isPausedPrio() && !b->isPausedPrio()) || (p == Priority::HIGHEST && b->getPriority() != Priority::PAUSED_FORCE)) {
 			// Problem, we have to request connections to all these users...
 			q->getOnlineUsers(getConn);
 		}
@@ -2182,9 +2172,9 @@ void QueueManager::setQIPriority(QueueItemPtr& q, Priority p, bool aKeepAutoPrio
 	fire(QueueManagerListener::ItemPriority(), q);
 
 	b->setDirty();
-	if(p == Priority::PAUSED && running) {
+	if (p == Priority::PAUSED_FORCE && running) {
 		DownloadManager::getInstance()->abortDownload(q->getTarget());
-	} else if (p != Priority::PAUSED) {
+	} else if (!q->isPausedPrio()) {
 		for(auto& u: getConn)
 			ConnectionManager::getInstance()->getDownloadConnection(u);
 	}

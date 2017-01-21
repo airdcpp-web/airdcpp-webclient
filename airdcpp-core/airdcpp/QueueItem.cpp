@@ -660,12 +660,18 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& aOnline
 }
 
 bool QueueItem::isPausedPrio() const noexcept {
-	if (bundle && !bundle->isPausedPrio() && priority != Priority::PAUSED) {
-		return false;
-	} else if ((!bundle || bundle->getPriority() != Priority::PAUSED_FORCE) && priority == Priority::HIGHEST) {
-		return false;
+	if (bundle) {
+		// Highest priority files will continue to run even if the bundle is paused (non-forced)
+		if (priority == Priority::HIGHEST && bundle->getPriority() != Priority::PAUSED_FORCE) {
+			return false;
+		}
+
+		if (bundle->isPausedPrio()) {
+			return true;
+		}
 	}
-	return true;
+
+	return QueueItemBase::isPausedPrio();
 }
 
 bool QueueItem::usesSmallSlot() const noexcept {
