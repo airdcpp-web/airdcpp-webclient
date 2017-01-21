@@ -64,7 +64,7 @@ void RecentManager::addRecent(const string& aUrl) noexcept {
 
 	{
 		WLock l(cs);
-		r = new RecentEntry(aUrl);
+		r = make_shared<RecentEntry>(aUrl);
 		recents.push_back(r);
 	}
 
@@ -146,7 +146,7 @@ void RecentManager::loadRecents(SimpleXML& aXml) {
 	if (aXml.findChild("Hubs")) {
 		aXml.stepIn();
 		while (aXml.findChild("Hub")) {
-			RecentEntryPtr e = new RecentEntry(aXml.getChildAttrib("Server"));
+			auto e = make_shared<RecentEntry>(aXml.getChildAttrib("Server"));
 			e->setName(aXml.getChildAttrib("Name"));
 			e->setDescription(aXml.getChildAttrib("Description"));
 			recents.push_back(e);

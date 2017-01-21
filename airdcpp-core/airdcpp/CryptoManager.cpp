@@ -21,9 +21,10 @@
 
 #include <boost/scoped_array.hpp>
 
+#include "Encoder.h"
 #include "File.h"
-#include "LogManager.h"
 #include "ClientManager.h"
+#include "LogManager.h"
 #include "version.h"
 
 #include <openssl/bn.h>

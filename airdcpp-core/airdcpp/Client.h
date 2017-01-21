@@ -30,7 +30,6 @@
 #include "HubSettings.h"
 #include "MessageCache.h"
 #include "OnlineUser.h"
-#include "Pointer.h"
 #include "SearchQueue.h"
 #include "Speaker.h"
 

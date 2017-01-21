@@ -17,18 +17,15 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef RECENT_ENTRY_H_
-#define RECENT_ENTRY_H_
+#ifndef DCPP_RECENT_ENTRY_H_
+#define DCPP_RECENT_ENTRY_H_
 
 #include "GetSet.h"
-#include "Pointer.h"
 #include "typedefs.h"
-
-#include <boost/algorithm/string/trim.hpp>
 
 namespace dcpp {
 
-class RecentEntry : public intrusive_ptr_base<RecentEntry> {
+class RecentEntry {
 public:
 	RecentEntry(const string& aUrl) : 
 		url(aUrl), name("*"), description("*") {

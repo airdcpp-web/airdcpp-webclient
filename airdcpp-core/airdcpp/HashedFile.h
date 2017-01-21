@@ -22,7 +22,6 @@
 #include "typedefs.h"
 #include "GetSet.h"
 #include "MerkleTree.h"
-#include "Pointer.h"
 
 namespace dcpp {
 

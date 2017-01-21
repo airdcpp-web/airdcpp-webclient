@@ -46,7 +46,7 @@ struct BundleAddInfo;
 struct DirectoryBundleAddInfo;
 
 class Bundle;
-typedef boost::intrusive_ptr<Bundle> BundlePtr;
+typedef std::shared_ptr<Bundle> BundlePtr;
 typedef std::vector<BundlePtr> BundleList;
 
 class CID;
@@ -62,7 +62,7 @@ class ClientManager;
 class ConnectionQueueItem;
 
 class DirectoryListing;
-typedef boost::intrusive_ptr<DirectoryListing> DirectoryListingPtr;
+typedef std::shared_ptr<DirectoryListing> DirectoryListingPtr;
 typedef std::vector<DirectoryListingPtr> DirectoryListingList;
 
 class DirectoryDownload;
@@ -123,11 +123,11 @@ typedef std::shared_ptr<PrivateChat> PrivateChatPtr;
 class QueueItemBase;
 
 class QueueItem;
-typedef boost::intrusive_ptr<QueueItem> QueueItemPtr;
+typedef std::shared_ptr<QueueItem> QueueItemPtr;
 typedef std::vector<QueueItemPtr> QueueItemList;
 
 class RecentEntry;
-typedef boost::intrusive_ptr<RecentEntry> RecentEntryPtr;
+typedef std::shared_ptr<RecentEntry> RecentEntryPtr;
 typedef std::vector<RecentEntryPtr> RecentEntryList;
 
 class Search;
@@ -137,7 +137,7 @@ class SearchInstance;
 typedef shared_ptr<SearchInstance> SearchInstancePtr;
 
 class SearchResult;
-typedef boost::intrusive_ptr<SearchResult> SearchResultPtr;
+typedef std::shared_ptr<SearchResult> SearchResultPtr;
 typedef std::vector<SearchResultPtr> SearchResultList;
 
 class GroupedSearchResult;

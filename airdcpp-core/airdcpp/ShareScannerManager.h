@@ -19,7 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_SHARE_SCANNER_MANAGER_H_
 #define DCPLUSPLUS_DCPP_SHARE_SCANNER_MANAGER_H_
 
-#include "Bundle.h"
 #include "CriticalSection.h"
 #include "DispatcherQueue.h"
 #include "SFVReader.h"

@@ -26,7 +26,6 @@
 
 #include "CriticalSection.h"
 #include "DirectoryListing.h"
-#include "Pointer.h"
 #include "Singleton.h"
 #include "TimerManagerListener.h"
 

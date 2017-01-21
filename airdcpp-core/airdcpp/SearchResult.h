@@ -24,13 +24,12 @@
 #include "FastAlloc.h"
 #include "HintedUser.h"
 #include "MerkleTree.h"
-#include "Pointer.h"
 #include "Util.h"
 
 namespace dcpp {
 
 typedef uint64_t SearchResultId;
-class SearchResult : public FastAlloc<SearchResult>, public intrusive_ptr_base<SearchResult> {
+class SearchResult : public FastAlloc<SearchResult> {
 public:	
 	enum Types {
 		TYPE_FILE,

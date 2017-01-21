@@ -41,18 +41,22 @@ using boost::range::find_if;
 using boost::accumulate;
 using boost::range::copy;
 	
-Bundle::Bundle(QueueItemPtr& qi, time_t aFileDate, QueueToken aToken /*0*/, bool aDirty /*true*/) noexcept :
-	Bundle(qi->getTarget(), qi->getTimeAdded(), qi->getPriority(), aFileDate, aToken, aDirty, true) {
+BundlePtr Bundle::createFileBundle(QueueItemPtr& qi, time_t aFileDate, QueueToken aToken /*0*/, bool aDirty /*true*/) noexcept {
 
+
+	auto bundle = make_shared<Bundle>(qi->getTarget(), qi->getTimeAdded(), qi->getPriority(), aFileDate, aToken, aDirty, true);
+	qi->setBundle(bundle);
 
 	if (qi->isDownloaded()) {
-		addFinishedItem(qi, false);
+		bundle->addFinishedItem(qi, false);
 	} else {
-		finishedSegments = qi->getDownloadedSegments();
-		currentDownloaded = qi->getDownloadedBytes();
-		setAutoPriority(qi->getAutoPriority());
-		addQueue(qi);
+		bundle->addFinishedSegment(qi->getDownloadedSegments());
+		bundle->setDownloadedBytes(qi->getDownloadedBytes());
+		bundle->setAutoPriority(qi->getAutoPriority());
+		bundle->addQueue(qi);
 	}
+
+	return bundle;
 }
 
 Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aBundleDate /*0*/, QueueToken aToken /*0*/, bool aDirty /*true*/, bool aIsFileBundle /*false*/) noexcept :
@@ -86,6 +90,7 @@ Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t 
 
 Bundle::~Bundle() noexcept {
 	ConnectionManager::getInstance()->tokens.removeToken(getStringToken());
+	dcdebug("Bundle %s was removed\n", getName().c_str());
 }
 
 string Bundle::getStatusString() const noexcept {
@@ -237,7 +242,6 @@ void Bundle::addFinishedItem(QueueItemPtr& qi, bool aFinished) noexcept {
 
 	finishedFiles.push_back(qi);
 	if (!aFinished) {
-		qi->setBundle(this);
 		increaseSize(qi->getSize());
 		addFinishedSegment(qi->getSize());
 	}
@@ -266,7 +270,6 @@ void Bundle::addQueue(QueueItemPtr& qi) noexcept {
 	dcassert(!qi->isSet(QueueItem::FLAG_MOVED) && !qi->segmentsDone());
 	dcassert(find(queueItems, qi) == queueItems.end());
 
-	qi->setBundle(this);
 	queueItems.push_back(qi);
 	increaseSize(qi->getSize());
 	addFinishedSegment(qi->getDownloadedSegments());

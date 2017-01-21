@@ -21,7 +21,6 @@
 
 #include "typedefs.h"
 
-#include "Bundle.h"
 #include "HintedUser.h"
 #include "MerkleTree.h"
 #include "Priority.h"

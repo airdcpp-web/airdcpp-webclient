@@ -32,9 +32,7 @@
 #include "version.h"
 #include "ZUtils.h"
 
-//#include "BerkeleyDB.h"
 #include "LevelDB.h"
-//#include "HamsterDB.h"
 
 #define FILEINDEX_VERSION 1
 #define HASHDATA_VERSION 1

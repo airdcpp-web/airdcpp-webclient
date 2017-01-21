@@ -21,17 +21,15 @@
 
 #include "QueueItemBase.h"
 
-#include "Bundle.h"
 #include "FastAlloc.h"
 #include "HintedUser.h"
 #include "MerkleTree.h"
-#include "Pointer.h"
 #include "Segment.h"
 #include "Util.h"
 
 namespace dcpp {
 
-class QueueItem : public QueueItemBase, public intrusive_ptr_base<QueueItem> {
+class QueueItem : public QueueItemBase {
 public:
 	typedef unordered_map<QueueToken, QueueItemPtr> TokenMap;
 	typedef unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
@@ -102,14 +100,14 @@ public:
 	 * Source parts info
 	 * Meaningful only when Source::FLAG_PARTIAL is set
 	 */
-	class PartialSource : public FastAlloc<PartialSource>, public intrusive_ptr_base<PartialSource> {
+	class PartialSource : public FastAlloc<PartialSource> {
 	public:
 		PartialSource(const string& aMyNick, const string& aHubIpPort, const string& aIp, const string& udp) : 
 			myNick(aMyNick), hubIpPort(aHubIpPort), ip(aIp), nextQueryTime(0), udpPort(udp), pendingQueryCount(0) {}
 		
 		~PartialSource() { }
 
-		typedef boost::intrusive_ptr<PartialSource> Ptr;
+		typedef shared_ptr<PartialSource> Ptr;
 
 		GETSET(PartsInfo, partialInfo, PartialInfo);
 		GETSET(string, myNick, MyNick);			// for NMDC support only

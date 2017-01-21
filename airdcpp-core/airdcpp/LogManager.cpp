@@ -22,6 +22,7 @@
 #include "File.h"
 #include "StringTokenizer.h"
 #include "TimerManager.h"
+#include "User.h"
 
 namespace dcpp {
 

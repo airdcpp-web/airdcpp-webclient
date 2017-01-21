@@ -28,10 +28,8 @@
 #include "Client.h"
 #include "CriticalSection.h"
 #include "OfflineUser.h"
-#include "SettingsManager.h"
 #include "Singleton.h"
 #include "Socket.h"
-#include "ShareProfile.h"
 #include "TimerManager.h"
 
 

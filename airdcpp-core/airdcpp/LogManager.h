@@ -24,13 +24,13 @@
 
 #include "typedefs.h"
 
+#include "CID.h"
 #include "DispatcherQueue.h"
 #include "LogManagerListener.h"
 #include "Message.h"
 #include "MessageCache.h"
 #include "Singleton.h"
 #include "Speaker.h"
-#include "User.h"
 
 namespace dcpp {
 

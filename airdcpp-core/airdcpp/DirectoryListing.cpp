@@ -22,11 +22,8 @@
 
 #include "ADLSearch.h"
 #include "AirUtil.h"
-#include "Bundle.h"
 #include "BZUtils.h"
 #include "ClientManager.h"
-#include "Download.h"
-#include "DownloadManager.h"
 #include "FilteredFile.h"
 #include "LogManager.h"
 #include "QueueManager.h"

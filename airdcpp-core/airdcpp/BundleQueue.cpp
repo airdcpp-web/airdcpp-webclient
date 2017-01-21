@@ -335,6 +335,7 @@ void BundleQueue::forEachPath(const BundlePtr& aBundle, const string& aFilePath,
 void BundleQueue::addBundleItem(QueueItemPtr& aQI, BundlePtr& aBundle) noexcept {
 	dcassert(!aQI->getBundle());
 	aBundle->addQueue(aQI);
+	aQI->setBundle(aBundle);
 
 	if (!aBundle->isFileBundle()) {
 		forEachPath(aBundle, aQI->getTarget(), [&](PathInfo& aInfo) {

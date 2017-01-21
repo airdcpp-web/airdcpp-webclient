@@ -24,7 +24,6 @@
 
 #include "HintedUser.h"
 #include "MerkleTree.h"
-#include "Pointer.h"
 #include "User.h"
 
 #include "QueueItemBase.h"
@@ -36,7 +35,7 @@ using std::string;
 #define DIR_BUNDLE_VERSION "2"
 #define FILE_BUNDLE_VERSION "2"
 
-class Bundle : public QueueItemBase, public intrusive_ptr_base<Bundle> {
+class Bundle : public QueueItemBase {
 public:
 	enum BundleFlags {
 		/** Flags for scheduled actions */
@@ -110,9 +109,8 @@ public:
 	typedef multimap<double, BundlePtr> SourceSpeedMapB;
 	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
 
-
+	static BundlePtr createFileBundle(QueueItemPtr& qi, time_t aBundleDate, QueueToken aToken = 0, bool aDirty = true) noexcept;
 	Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate=0, QueueToken aToken = 0, bool aDirty = true, bool isFileBundle = false) noexcept;
-	Bundle(QueueItemPtr& qi, time_t aBundleDate, QueueToken aToken = 0, bool aDirty = true) noexcept;
 	~Bundle() noexcept;
 
 	IGETSET(ActionHookErrorPtr, hookError, HookError, nullptr);
