@@ -98,6 +98,10 @@ namespace webserver {
 		return Util::toInt(namedParameters.at(aName));
 	}
 
+	int64_t ApiRequest::getSizeParam(const string& aName) const noexcept {
+		return Util::toInt64(namedParameters.at(aName));
+	}
+
 	const std::string& ApiRequest::getParamAt(int aIndex) const noexcept {
 		return parameters[aIndex];
 	}

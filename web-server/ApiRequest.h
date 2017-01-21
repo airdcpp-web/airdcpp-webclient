@@ -81,6 +81,7 @@ namespace webserver {
 		// Use different naming to avoid accidentally using wrong conversion...
 		uint32_t getTokenParam(const string& aName = TOKEN_PARAM_ID) const noexcept;
 		int getRangeParam(const string& aName) const noexcept;
+		int64_t getSizeParam(const string& aName) const noexcept;
 
 		bool hasRequestBody() const noexcept {
 			return !requestJson.is_null();

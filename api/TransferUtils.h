@@ -46,6 +46,7 @@ namespace webserver {
 			PROP_IP,
 			PROP_FLAGS,
 			PROP_ENCRYPTION,
+			PROP_QUEUE_ID,
 			PROP_LAST
 		};
 

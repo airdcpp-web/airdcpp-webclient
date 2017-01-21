@@ -47,8 +47,8 @@ namespace webserver {
 		METHOD_HANDLER(Access::TRANSFERS,	METHOD_POST,	(TOKEN_PARAM, EXACT_PARAM("force")),		TransferApi::handleForce);
 		METHOD_HANDLER(Access::TRANSFERS,	METHOD_POST,	(TOKEN_PARAM, EXACT_PARAM("disconnect")),	TransferApi::handleDisconnect);
 
-		METHOD_HANDLER(Access::ANY,			METHOD_GET,		(EXACT_PARAM("tranferred_bytes")),									TransferApi::handleGetTransferredBytes);
-		METHOD_HANDLER(Access::ANY,			METHOD_GET,		(EXACT_PARAM("stats")),												TransferApi::handleGetTransferStats);
+		METHOD_HANDLER(Access::ANY,			METHOD_GET,		(EXACT_PARAM("tranferred_bytes")),			TransferApi::handleGetTransferredBytes);
+		METHOD_HANDLER(Access::ANY,			METHOD_GET,		(EXACT_PARAM("stats")),						TransferApi::handleGetTransferStats);
 
 		createSubscription("transfer_statistics");
 
@@ -364,32 +364,31 @@ namespace webserver {
 	}
 
 	void TransferApi::updateQueueInfo(TransferInfoPtr& aInfo) noexcept {
-		QueueToken bundleToken = 0;
-		string aTarget;
-		int64_t aSize; int aFlags = 0;
-		if (!QueueManager::getInstance()->getQueueInfo(aInfo->getHintedUser(), aTarget, aSize, aFlags, bundleToken)) {
-			return;
+		{
+			auto qi = QueueManager::getInstance()->getQueueInfo(aInfo->getHintedUser());
+			if (!qi) {
+				return;
+			}
+
+			auto type = Transfer::TYPE_FILE;
+			if (qi->getFlags() & QueueItem::FLAG_PARTIAL_LIST)
+				type = Transfer::TYPE_PARTIAL_LIST;
+			else if (qi->getFlags() & QueueItem::FLAG_USER_LIST)
+				type = Transfer::TYPE_FULL_LIST;
+
+			aInfo->setType(type);
+			aInfo->setTarget(qi->getTarget());
+			aInfo->setSize(qi->getSize());
+			aInfo->setQueueToken(qi->getToken());
 		}
-
-		auto type = Transfer::TYPE_FILE;
-		if (aFlags & QueueItem::FLAG_PARTIAL_LIST)
-			type = Transfer::TYPE_PARTIAL_LIST;
-		else if (aFlags & QueueItem::FLAG_USER_LIST)
-			type = Transfer::TYPE_FULL_LIST;
-
-		aInfo->setType(type);
-		aInfo->setTarget(aTarget);
-		aInfo->setSize(aSize);
 
 		aInfo->setState(TransferInfo::STATE_WAITING);
 		aInfo->setStatusString(STRING(CONNECTING));
 
-		aInfo->setState(TransferInfo::STATE_WAITING);
-
 		onTransferUpdated(aInfo, {
 			TransferUtils::PROP_STATUS, TransferUtils::PROP_TARGET, 
 			TransferUtils::PROP_TYPE, TransferUtils::PROP_NAME, 
-			TransferUtils::PROP_SIZE 
+			TransferUtils::PROP_SIZE, TransferUtils::PROP_QUEUE_ID
 		}, Util::emptyString);
 	}
 
@@ -445,7 +444,7 @@ namespace webserver {
 		onTransferUpdated(aInfo, {
 			TransferUtils::PROP_STATUS, TransferUtils::PROP_SPEED, 
 			TransferUtils::PROP_BYTES_TRANSFERRED, TransferUtils::PROP_TIME_STARTED, 
-			TransferUtils::PROP_SIZE, TransferUtils::PROP_TARGET, 
+			TransferUtils::PROP_SIZE, TransferUtils::PROP_TARGET, TransferUtils::PROP_QUEUE_ID,
 			TransferUtils::PROP_NAME, TransferUtils::PROP_TYPE,
 			TransferUtils::PROP_IP, TransferUtils::PROP_ENCRYPTION, TransferUtils::PROP_FLAGS 
 		}, "transfer_starting");
