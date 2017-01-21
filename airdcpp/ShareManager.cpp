@@ -3326,7 +3326,7 @@ bool ShareManager::addDirResult(const Directory* aDir, SearchResultList& aResult
 	}
 
 	if (srch.matchesDate(date)) {
-		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_DIRECTORY, size, path, TTHValue(), date, DirectoryContentInfo(folders, files)));
+		auto sr = make_shared<SearchResult>(SearchResult::TYPE_DIRECTORY, size, path, TTHValue(), date, DirectoryContentInfo(folders, files));
 		aResults.push_back(sr);
 		return true;
 	}
@@ -3336,11 +3336,12 @@ bool ShareManager::addDirResult(const Directory* aDir, SearchResultList& aResult
 
 void ShareManager::Directory::File::addSR(SearchResultList& aResults, bool addParent) const noexcept {
 	if (addParent) {
-		SearchResultPtr sr(new SearchResult(parent->getNmdcPath()));
+		auto sr = make_shared<SearchResult>(parent->getNmdcPath());
 		aResults.push_back(sr);
 	} else {
-		SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, 
-			size, getNmdcPath(), getTTH(), getLastWrite(), DirectoryContentInfo()));
+		auto sr = make_shared<SearchResult>(SearchResult::TYPE_FILE,
+			size, getNmdcPath(), getTTH(), getLastWrite(), DirectoryContentInfo());
+
 		aResults.push_back(sr);
 	}
 }
@@ -3455,7 +3456,7 @@ void ShareManager::adcSearch(SearchResultList& results, SearchQuery& srch, const
 		for(const auto& f: files | map_values) {
 			if(f.key.empty() || (f.key == cid.toBase32())) { // if no key is set, it means its a hub share.
 				//TODO: fix the date?
-				SearchResultPtr sr(new SearchResult(SearchResult::TYPE_FILE, f.size, "tmp\\" + Util::getFileName(f.path), *srch.root, 0, DirectoryContentInfo()));
+				auto sr = make_shared<SearchResult>(SearchResult::TYPE_FILE, f.size, "tmp\\" + Util::getFileName(f.path), *srch.root, 0, DirectoryContentInfo());
 				results.push_back(sr);
 			}
 		}

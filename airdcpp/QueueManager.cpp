@@ -2409,7 +2409,7 @@ Priority QueueLoader::validatePrio(const string& aPrio) {
 
 void QueueLoader::createFile(QueueItemPtr& aQI, bool aAddedByAutosearch) {
 	if (ConnectionManager::getInstance()->tokens.addToken(Util::toString(curToken), CONNECTION_TYPE_DOWNLOAD)) {
-		curBundle = new Bundle(aQI, bundleDate, curToken, false);
+		curBundle = Bundle::createFileBundle(aQI, bundleDate, curToken, false);
 		curBundle->setTimeFinished(aQI->getTimeFinished());
 		curBundle->setAddedByAutoSearch(aAddedByAutosearch);
 		curBundle->setResumeTime(resumeTime);
@@ -2452,7 +2452,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 		time_t b_resumeTime = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sResumeTime, 5)));
 
 		if (ConnectionManager::getInstance()->tokens.addToken(token, CONNECTION_TYPE_DOWNLOAD)) {
-			curBundle = new Bundle(bundleTarget, added, !prio.empty() ? validatePrio(prio) : Priority::DEFAULT, dirDate, Util::toUInt32(token), false);
+			curBundle = make_shared<Bundle>(bundleTarget, added, !prio.empty() ? validatePrio(prio) : Priority::DEFAULT, dirDate, Util::toUInt32(token), false);
 			time_t finished = static_cast<time_t>(Util::toInt64(getAttrib(attribs, sTimeFinished, 5)));
 			if (finished > 0) {
 				curBundle->setTimeFinished(finished);
@@ -2515,7 +2515,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 					qm->bundleQueue.addBundleItem(qi, curBundle);
 				} else if (inDownloads) {
 					//assign bundles for the items in the old queue file
-					curBundle = new Bundle(qi, 0);
+					curBundle = Bundle::createFileBundle(qi, 0);
 				} else if (inFile && curToken != 0) {
 					createFile(qi, addedByAutosearch);
 				}
@@ -2669,7 +2669,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		{
 			WLock l(cs);
 			auto& rl = searchResults[selQI->getTarget()];
-			if (find_if(rl, [&sr](const SearchResultPtr& aSR) { return aSR->getUser() == sr->getUser() && aSR->getPath() == sr->getPath(); }) != rl.end()) {
+			if (boost::find_if(rl, [&sr](const SearchResultPtr& aSR) { return aSR->getUser() == sr->getUser() && aSR->getPath() == sr->getPath(); }) != rl.end()) {
 				//don't add the same result multiple times, makes the counting more reliable
 				return;
 			}
@@ -3124,7 +3124,7 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 				si = qi->getSource(aUser);
 				si->setFlag(QueueItem::Source::FLAG_PARTIAL);
 
-				auto ps = new QueueItem::PartialSource(partialSource.getMyNick(),
+				auto ps = make_shared<QueueItem::PartialSource>(partialSource.getMyNick(),
 					partialSource.getHubIpPort(), partialSource.getIp(), partialSource.getUdpPort());
 				si->setPartialSource(ps);
 

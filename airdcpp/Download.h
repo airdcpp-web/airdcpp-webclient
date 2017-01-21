@@ -24,7 +24,6 @@
 
 #include "forward.h"
 
-#include "Bundle.h"
 #include "Flags.h"
 #include "GetSet.h"
 #include "MerkleTree.h"

@@ -178,7 +178,7 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 		}
 	}
 
-	auto dirList = DirectoryListingPtr(new DirectoryListing(aUser, isPartialList, aFileName, false, false));
+	auto dirList = make_shared<DirectoryListing>(aUser, isPartialList, aFileName, false, false);
 	try {
 		if (isPartialList) {
 			dirList->loadPartialXml(aXml, Util::toAdcFile(aRemotePath));
@@ -384,7 +384,7 @@ DirectoryListingPtr DirectoryListingManager::openFileList(const HintedUser& aUse
 }
 
 DirectoryListingPtr DirectoryListingManager::createList(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsOwnList) noexcept {
-	auto dl = DirectoryListingPtr(new DirectoryListing(aUser, aPartial, aFileName, true, aIsOwnList));
+	auto dl = make_shared<DirectoryListing>(aUser, aPartial, aFileName, true, aIsOwnList);
 
 	{
 		WLock l(cs);

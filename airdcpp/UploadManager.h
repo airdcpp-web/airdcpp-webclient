@@ -26,7 +26,6 @@
 #include "FastAlloc.h"
 #include "HintedUser.h"
 #include "MerkleTree.h"
-#include "Pointer.h"
 #include "Singleton.h"
 #include "Speaker.h"
 #include "StringMatch.h"

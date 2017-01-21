@@ -20,16 +20,13 @@
 #include "QueueItem.h"
 
 #include "Bundle.h"
-#include "SimpleXML.h"
 #include "ClientManager.h"
-#include "HashManager.h"
 #include "Download.h"
 #include "File.h"
+#include "HashManager.h"
 #include "Util.h"
-#include "LogManager.h"
 #include "SearchManager.h"
-
-#include "AirUtil.h"
+#include "SimpleXML.h"
 
 namespace dcpp {
 
@@ -648,7 +645,6 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& aOnline
 		Segment segment = getNextSegment(getBlockSize(), aWantedSize, aLastSpeed, source->getPartialSource(), aAllowOverlap);
 		if(segment.getSize() == 0) {
 			lastError_ = (segment.getStart() == -1 || getSize() < Util::convertSize(SETTING(MIN_SEGMENT_SIZE), Util::KB)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
-			//LogManager::getInstance()->message("NO SEGMENT: " + aUser->getCID().toBase32());
 			dcdebug("No segment for %s (%s) in %s, block " I64_FMT "\n", aUser->getCID().toBase32().c_str(), Util::listToString(aOnlineHubs).c_str(), getTarget().c_str(), blockSize);
 			return false;
 		}

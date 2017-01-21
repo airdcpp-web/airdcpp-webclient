@@ -20,12 +20,7 @@
 
 #include "Message.h"
 #include "ClientManager.h"
-#include "Magnet.h"
 #include "OnlineUser.h"
-#include "QueueManager.h"
-#include "ResourceManager.h"
-#include "ShareManager.h"
-#include "Util.h"
 
 namespace dcpp {
 

@@ -33,7 +33,6 @@
 #include "GetSet.h"
 #include "HintedUser.h"
 #include "MerkleTree.h"
-#include "Pointer.h"
 #include "Priority.h"
 #include "SearchQuery.h"
 #include "TaskQueue.h"
@@ -46,7 +45,7 @@ namespace dcpp {
 class ListLoader;
 typedef uint32_t DirectoryListingToken;
 
-class DirectoryListing : public intrusive_ptr_base<DirectoryListing>, public UserInfoBase, public TrackableDownloadItem,
+class DirectoryListing : public UserInfoBase, public TrackableDownloadItem,
 	public Speaker<DirectoryListingListener>, private TimerManagerListener, 
 	private ClientManagerListener, private ShareManagerListener
 {
