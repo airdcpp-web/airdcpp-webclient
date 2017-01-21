@@ -40,6 +40,7 @@ namespace webserver {
 		{ PROP_IP, "ip", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
 		{ PROP_FLAGS, "flags", TYPE_LIST_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
 		{ PROP_ENCRYPTION, "encryption", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
+		{ PROP_QUEUE_ID, "queue_file_id", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
 	};
 
 	const PropertyItemHandler<TransferInfoPtr> TransferUtils::propertyHandler = {
@@ -69,6 +70,7 @@ namespace webserver {
 		case PROP_TIME_STARTED: return (double)aItem->getStarted();
 		case PROP_SPEED: return (double)aItem->getSpeed();
 		case PROP_SECONDS_LEFT: return (double)aItem->getTimeLeft();
+		case PROP_QUEUE_ID: return (double)aItem->getQueueToken();
 		default: dcassert(0); return 0;
 		}
 	}
@@ -132,6 +134,14 @@ namespace webserver {
 			{
 				auto trusted = aItem->getFlags().find("S") != aItem->getFlags().end();
 				return Serializer::serializeEncryption(aItem->getEncryption(), trusted);
+			}
+			case PROP_QUEUE_ID:
+			{
+				if (aItem->getQueueToken() == 0) {
+					return nullptr;
+				}
+
+				return aItem->getQueueToken();
 			}
 		}
 

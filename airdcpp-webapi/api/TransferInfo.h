@@ -24,6 +24,7 @@
 #include <airdcpp/typedefs.h>
 
 #include <airdcpp/HintedUser.h>
+#include <airdcpp/QueueItemBase.h>
 #include <airdcpp/ResourceManager.h>
 #include <airdcpp/Transfer.h>
 #include <airdcpp/Util.h>
@@ -64,6 +65,8 @@ namespace webserver {
 		IGETSET(int64_t, bytesTransferred, BytesTransferred, -1);
 		IGETSET(int64_t, speed, Speed, 0);
 		IGETSET(ItemState, state, State, STATE_WAITING);
+
+		IGETSET(QueueToken, queueToken, QueueToken, 0);
 
 		const TransferToken getToken() const noexcept {
 			return token;

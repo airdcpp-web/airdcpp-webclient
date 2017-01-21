@@ -32,6 +32,9 @@
 #include <api/QueueBundleUtils.h>
 #include <api/QueueFileUtils.h>
 
+namespace dcpp {
+	class Segment;
+}
 
 namespace webserver {
 	class QueueApi : public SubscribableApiModule, private QueueManagerListener, private DownloadManagerListener {
@@ -39,39 +42,54 @@ namespace webserver {
 		QueueApi(Session* aSession);
 		~QueueApi();
 	private:
+		// COMMON
 		api_return handleFindDupePaths(ApiRequest& aRequest);
 		api_return handleRemoveSource(ApiRequest& aRequest);
 
-		api_return handleRemoveBundle(ApiRequest& aRequest);
-		api_return handleRemoveTarget(ApiRequest& aRequest);
+		// BUNDLES
 
-		api_return handleGetBundles(ApiRequest& aRequest);
-		api_return handleGetBundleFiles(ApiRequest& aRequest);
-		api_return handleRemoveCompletedBundles(ApiRequest& aRequest);
-		api_return handleBundlePriorities(ApiRequest& aRequest);
-
-		api_return handleGetFile(ApiRequest& aRequest);
-		api_return handleGetBundle(ApiRequest& aRequest);
+		// Throws if the bundle is not found
+		static BundlePtr getBundle(ApiRequest& aRequest);
 
 		api_return handleAddDirectoryBundle(ApiRequest& aRequest);
 		api_return handleAddFileBundle(ApiRequest& aRequest);
+		api_return handleRemoveBundle(ApiRequest& aRequest);
+
+		api_return handleGetBundle(ApiRequest& aRequest);
+		api_return handleGetBundles(ApiRequest& aRequest);
+		api_return handleGetBundleFiles(ApiRequest& aRequest);
+
+		api_return handleRemoveCompletedBundles(ApiRequest& aRequest);
+		api_return handleBundlePriorities(ApiRequest& aRequest);
 
 		api_return handleGetBundleSources(ApiRequest& aRequest);
 		api_return handleRemoveBundleSource(ApiRequest& aRequest);
 
-		api_return handleUpdateBundle(ApiRequest& aRequest);
-
+		api_return handleBundlePriority(ApiRequest& aRequest);
 		api_return handleSearchBundle(ApiRequest& aRequest);
 		api_return handleShareBundle(ApiRequest& aRequest);
 
-		api_return handleUpdateFile(ApiRequest& aRequest);
+		// FILES
+
+		// Throws if the file can't be found
+		static QueueItemPtr getFile(ApiRequest& aRequest, bool aRequireBundle);
+
+		api_return handleGetFile(ApiRequest& aRequest);
+		api_return handleRemoveFile(ApiRequest& aRequest);
+
+		api_return handleGetFileSources(ApiRequest& aRequest);
+		api_return handleRemoveFileSource(ApiRequest& aRequest);
+
+		api_return handleFilePriority(ApiRequest& aRequest);
 		api_return handleSearchFile(ApiRequest& aRequest);
 
-		// Throws if the bundle is not found
-		BundlePtr getBundle(ApiRequest& aRequest);
-		QueueItemPtr getFile(ApiRequest& aRequest);
+		api_return handleGetFileSegments(ApiRequest& aRequest);
+		api_return handleAddFileSegment(ApiRequest& aRequest);
+		api_return handleRemoveFileSegment(ApiRequest& aRequest);
+		static json serializeSegment(const Segment& aSegment) noexcept;
+		static Segment parseSegment(const QueueItemPtr& aQI, ApiRequest& aRequest);
 
-		//bundle update listeners
+		// Bundle update listeners
 		void on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept override;
 		void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept override;
 		void on(QueueManagerListener::BundleSize, const BundlePtr& aBundle) noexcept override;
@@ -83,7 +101,7 @@ namespace webserver {
 		void on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t aTick) noexcept override;
 		void on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept override;
 
-		//QueueItem update listeners
+		// QueueItem update listeners
 		void on(QueueManagerListener::ItemRemoved, const QueueItemPtr& aQI, bool /*finished*/) noexcept override;
 		void on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept override;
 		void on(QueueManagerListener::ItemSources, const QueueItemPtr& aQI) noexcept override;
