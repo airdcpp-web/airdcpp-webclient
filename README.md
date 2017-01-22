@@ -13,6 +13,7 @@ The application can be installed on different types of systems, such as on file 
 - Save files on disk or view them via the browser
 - Chatting capabilities (group and private chat)
 - Browse directories shared by other users with a simple file browser interface
+- Extend functionality via [AirDC++ Web API](http://docs.airdcpp.apiary.io)
 
 
 ## [Try the online demo](http://webdemo.airdcpp.net)
@@ -28,6 +29,7 @@ AirDC++ Web Client wraps the following subprojects:
 * [Home page](https://airdcpp-web.github.io)
 * [Installation guide](https://airdcpp-web.github.io/docs/installation/installation.html)
 * [Contributing information](https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md)
+* [API reference](http://docs.airdcpp.apiary.io/)
 
 ## Feature requests or questions?
 
