@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 
 #include <airdcpp/QueueManager.h>
 #include <airdcpp/DownloadManager.h>
+#include <airdcpp/SearchManager.h>
 
 #include <boost/range/algorithm/copy.hpp>
 
@@ -191,7 +192,7 @@ namespace webserver {
 
 	api_return QueueApi::handleSearchBundle(ApiRequest& aRequest) {
 		auto b = getBundle(aRequest);
-		auto searches = QueueManager::getInstance()->searchBundleAlternates(b, true);
+		auto searches = QueueManager::getInstance()->searchBundleAlternates(b, false);
 
 		if (searches == 0) {
 			aRequest.setResponseErrorStr("No files to search for");
@@ -459,7 +460,7 @@ namespace webserver {
 
 	api_return QueueApi::handleSearchFile(ApiRequest& aRequest) {
 		auto qi = getFile(aRequest, false);
-		qi->searchAlternates();
+		QueueManager::getInstance()->searchFileAlternates(qi);
 		return websocketpp::http::status_code::no_content;
 	}
 
