@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,6 +59,7 @@ namespace bimaps = boost::bimaps;
 
 class UserConnection;
 class QueueLoader;
+struct SearchQueueInfo;
 
 class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManagerListener>, private TimerManagerListener, 
 	private SearchManagerListener, private ClientManagerListener, private ShareManagerListener
@@ -325,11 +326,14 @@ public:
 
 	// Search bundle for alternatives on the background
 	// Returns the number of searches that were sent
-	int searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSearch, uint64_t aTick = GET_TICK()) noexcept;
+	int searchBundleAlternates(const BundlePtr& aBundle, uint64_t aTick = GET_TICK()) noexcept;
+
+	SearchQueueInfo searchFileAlternates(const QueueItemPtr& aQI) const noexcept;
 
 	int getUnfinishedItemCount(const BundlePtr& aBundle) const noexcept;
 	int getFinishedItemCount(const BundlePtr& aBundle) const noexcept;
 
+	int getFinishedBundlesCount() const noexcept;
 
 	// Check if there are finished chuncks for the TTH
 	// Gets various information about the actual file and the length of downloaded segment
@@ -457,11 +461,11 @@ private:
 	static string formatBundleTarget(const string& aPath, time_t aRemoteDate) noexcept;
 
 	// Add a source to an existing queue item
-	bool addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, bool checkTLS=true) throw(QueueException, FileException);
+	bool addSource(const QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, bool checkTLS=true) throw(QueueException, FileException);
 
 	// Add a source for a list of queue items, returns the number of (new) files for which the source was added
-	int addSources(const HintedUser& aUser, QueueItemList items, Flags::MaskType aAddBad) noexcept;
-	int addSources(const HintedUser& aUser, QueueItemList items, Flags::MaskType aAddBad, BundleList& bundles_) noexcept;
+	int addSources(const HintedUser& aUser, const QueueItemList& aItems, Flags::MaskType aAddBad) noexcept;
+	int addSources(const HintedUser& aUser, const QueueItemList& aItems, Flags::MaskType aAddBad, BundleList& bundles_) noexcept;
 	 
 	void matchTTHList(const string& name, const HintedUser& user, int flags) noexcept;
 
@@ -502,6 +506,7 @@ private:
 
 	// Perform automatic search for alternate sources
 	void searchAlternates(uint64_t aTick) noexcept;
+	static bool autoSearchEnabled() noexcept;
 
 	// Resume bundles that were paused for a specific interval
 	void checkResumeBundles() noexcept;

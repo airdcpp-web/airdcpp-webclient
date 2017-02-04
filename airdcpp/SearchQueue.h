@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2003-2016 RevConnect, http://www.revconnect.com
+ * Copyright (C) 2003-2017 RevConnect, http://www.revconnect.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#pragma once
+#ifndef DCPLUSPLUS_DCPP_SEARCHQUEUE_H
+#define DCPLUSPLUS_DCPP_SEARCHQUEUE_H
 
 #include "CriticalSection.h"
 #include "GetSet.h"
@@ -32,7 +33,7 @@ public:
 
 	// Queues a new search, removes all possible existing items from the same owner
 	// none is returned if the search queue is currently too long
-	optional<uint64_t> maybeAdd(const SearchPtr& s) noexcept;
+	uint64_t add(const SearchPtr& s) noexcept;
 
 	// Pops the next search item if one is available and it's allowed by the search intervals
 	SearchPtr maybePop() noexcept;
@@ -47,6 +48,7 @@ public:
 	uint64_t getTotalQueueTime() const noexcept;
 	uint64_t getCurrentQueueTime() const noexcept;
 	int getQueueSize() const noexcept;
+	bool hasOverflow() const noexcept;
 private:
 	int getInterval(Priority aPriority) const noexcept;
 
@@ -56,3 +58,5 @@ private:
 };
 
 }
+
+#endif // !defined(DCPLUSPLUS_DCPP_SEARCHQUEUE_H)

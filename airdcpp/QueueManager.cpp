@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@
 #include "version.h"
 
 #include <boost/range/algorithm/copy.hpp>
+#include <boost/range/algorithm/count_if.hpp>
 
 #ifdef _WIN32
 #include <mmsystem.h>
@@ -487,24 +488,6 @@ void QueueManager::requestPartialSourceInfo(uint64_t aTick) noexcept {
 		}
 
 		delete param;
-	}
-}
-
-void QueueManager::searchAlternates(uint64_t aTick) noexcept {
-	if (!SETTING(AUTO_SEARCH) || !SETTING(AUTO_ADD_SOURCE)) {
-		return;
-	}
-
-	BundlePtr bundle;
-
-	{
-		RLock l(cs);
-		if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE))
-			bundle = bundleQueue.findSearchItem(aTick); //may modify the recent search queue
-	}
-
-	if (bundle) {
-		searchBundleAlternates(bundle, false, aTick);
 	}
 }
 
@@ -977,7 +960,7 @@ void QueueManager::onBundleAdded(const BundlePtr& aBundle, Bundle::Status aOldSt
 	if (aOldStatus == Bundle::STATUS_NEW) {
 		fire(QueueManagerListener::BundleAdded(), aBundle);
 
-		if (SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE) && !aBundle->isPausedPrio()) {
+		if (autoSearchEnabled() && !aBundle->isPausedPrio()) {
 			aBundle->setFlag(Bundle::FLAG_SCHEDULE_SEARCH);
 			addBundleUpdate(aBundle);
 		}
@@ -1166,7 +1149,7 @@ string QueueManager::checkTarget(const string& toValidate, const string& aParent
 }
 
 /** Add a source to an existing queue item */
-bool QueueManager::addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, bool checkTLS /*true*/) throw(QueueException, FileException) {
+bool QueueManager::addSource(const QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, bool checkTLS /*true*/) throw(QueueException, FileException) {
 	if (!aUser.user) { //atleast magnet links can cause this to happen.
 		throw QueueException(STRING(UNKNOWN_USER));
 	}
@@ -2028,7 +2011,6 @@ void QueueManager::setBundlePriority(BundlePtr& aBundle, Priority p, bool aKeepA
 		bundleQueue.removeSearchPrio(aBundle);
 		userQueue.setBundlePriority(aBundle, p);
 		bundleQueue.addSearchPrio(aBundle);
-		bundleQueue.recalculateSearchTimes(aBundle->isRecent(), true, GET_TICK());
 		if (!aKeepAutoPrio) {
 			aBundle->setAutoPriority(false);
 		}
@@ -2361,6 +2343,11 @@ void QueueManager::loadQueue(function<void (float)> progressF) noexcept {
 	SearchManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);
 	ShareManager::getInstance()->addListener(this);
+
+	auto finished_count = getFinishedBundlesCount();
+	if (finished_count > 500)
+		LogManager::getInstance()->message(STRING_F(BUNDLE_X_FINISHED_WARNING, finished_count), LogMessage::SEV_WARNING);
+
 }
 
 static const string sFile = "File";
@@ -3338,24 +3325,20 @@ void QueueManager::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList&
 	bundleQueue.getSourceInfo(aUser, aSources, aBad);
 }
 
-int QueueManager::addSources(const HintedUser& aUser, QueueItemList items, Flags::MaskType aAddBad) noexcept {
+int QueueManager::addSources(const HintedUser& aUser, const QueueItemList& aItems, Flags::MaskType aAddBad) noexcept {
 	BundleList bundles;
-	return addSources(aUser, items, aAddBad, bundles);
+	return addSources(aUser, aItems, aAddBad, bundles);
 }
 
-int QueueManager::addSources(const HintedUser& aUser, QueueItemList items, Flags::MaskType aAddBad, BundleList& matchingBundles_) noexcept {
-	if (items.empty()) {
-		return 0;
-	}
-
-	//int newFiles = 0;
+int QueueManager::addSources(const HintedUser& aUser, const QueueItemList& aItems, Flags::MaskType aAddBad, BundleList& matchingBundles_) noexcept {
 	bool wantConnection = false;
 
+	QueueItemList addedItems;
 	{
-		// Add the source
+		// Add sources
 
 		WLock l(cs);
-		items.erase(boost::remove_if(items, [&](QueueItemPtr& q) {
+		boost::algorithm::copy_if(aItems, back_inserter(addedItems), [&](const QueueItemPtr& q) {
 			if (q->getBundle() && find(matchingBundles_, q->getBundle()) == matchingBundles_.end()) {
 				matchingBundles_.push_back(q->getBundle());
 			}
@@ -3371,36 +3354,29 @@ int QueueManager::addSources(const HintedUser& aUser, QueueItemList items, Flags
 			}
 
 			return true;
-		}), items.end());
+		});
 	}
 
-	if (items.empty()) {
-		return 0;
-	}
-
-	{
-		Bundle::Set updatedBundles;
-
+	if (!addedItems.empty()) {
 		// Speakers
-		for (const auto& qi : items) {
+		for (const auto& qi : addedItems) {
 			fire(QueueManagerListener::ItemSources(), qi);
+		}
 
-			if (qi->getBundle() && updatedBundles.insert(qi->getBundle()).second) {
-				fire(QueueManagerListener::BundleSources(), qi->getBundle());
-			}
+		for (const auto& b : matchingBundles_) {
+			fire(QueueManagerListener::BundleSources(), b);
 		}
 
 		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
-	}
 
-	{
+
 		// Connect
 		if (wantConnection && aUser.user->isOnline()) {
 			ConnectionManager::getInstance()->getDownloadConnection(aUser);
 		}
 	}
 
-	return items.size();
+	return addedItems.size();
 }
 
 void QueueManager::connectBundleSources(BundlePtr& aBundle) noexcept {
@@ -3459,6 +3435,12 @@ int QueueManager::getFinishedItemCount(const BundlePtr& aBundle) const noexcept 
 	return (int)aBundle->getFinishedFiles().size(); 
 }
 
+int QueueManager::getFinishedBundlesCount() const noexcept {
+
+	RLock l(cs);
+	return static_cast<int>(boost::count_if(getBundles() | map_values, [&](const BundlePtr& b) { return b->isDownloaded(); }));
+}
+
 void QueueManager::addBundleUpdate(const BundlePtr& aBundle) noexcept{
 	/*
 	Add as Task to fix Deadlock!!
@@ -3489,7 +3471,7 @@ void QueueManager::handleBundleUpdate(QueueToken aBundleToken) noexcept {
 		}
 		
 		if (b->isSet(Bundle::FLAG_SCHEDULE_SEARCH)) {
-			searchBundleAlternates(b, false);
+			searchBundleAlternates(b);
 		}
 	}
 }
@@ -3725,18 +3707,40 @@ void QueueManager::updatePBD(const HintedUser& aUser, const TTHValue& aTTH) noex
 	addSources(aUser, qiList, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);
 }
 
-int QueueManager::searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSearch, uint64_t aTick) noexcept {
+bool QueueManager::autoSearchEnabled() noexcept {
+	return SETTING(AUTO_SEARCH) && SETTING(AUTO_ADD_SOURCE);
+}
+
+void QueueManager::searchAlternates(uint64_t aTick) noexcept {
+	if (!autoSearchEnabled() || ClientManager::getInstance()->hasSearchQueueOverflow()) {
+		return;
+	}
+
+	BundlePtr bundle;
+
+	// Get the item to search for
+	{
+		WLock l(cs);
+		bundle = bundleQueue.maybePopSearchItem(aTick);
+	}
+
+	if (!bundle) {
+		return;
+	}
+
+	// Perform the search
+	searchBundleAlternates(bundle, aTick);
+}
+
+int QueueManager::searchBundleAlternates(const BundlePtr& aBundle, uint64_t aTick) noexcept {
 	QueueItemList searchItems;
-	int64_t nextSearch = 0;
 
 	// Get the possible items to search for
 	{
 		RLock l(cs);
-		bool isScheduled = aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH);
+		auto isScheduled = aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH);
 
 		aBundle->unsetFlag(Bundle::FLAG_SCHEDULE_SEARCH);
-		if (!aIsManualSearch)
-			nextSearch = (bundleQueue.recalculateSearchTimes(aBundle->isRecent(), false, aTick) - aTick) / (60*1000);
 
 		if (isScheduled && !aBundle->allowAutoSearch())
 			return 0;
@@ -3748,26 +3752,47 @@ int QueueManager::searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSearc
 		return 0;
 	}
 
+	// Perform the searches
+	int queuedFileSearches = 0;
 	for (const auto& q : searchItems) {
-		q->searchAlternates();
-	}
-
-	aBundle->setLastSearch(aTick);
-
-	// Report
-	if (aIsManualSearch) {
-		LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName().c_str() % searchItems.size()), LogMessage::SEV_INFO);
-	} else if(SETTING(REPORT_ALTERNATES)) {
-		if (aBundle->isRecent()) {
-			LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH_RECENT, aBundle->getName() % searchItems.size()) +
-				" " + STRING_F(NEXT_RECENT_SEARCH_IN, nextSearch), LogMessage::SEV_INFO);
-		} else {
-			LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName() % searchItems.size()) +
-				" " + STRING_F(NEXT_SEARCH_IN, nextSearch), LogMessage::SEV_INFO);
+		auto success = !searchFileAlternates(q).queuedHubUrls.empty();
+		if (success) {
+			queuedFileSearches++;
 		}
 	}
 
-	return static_cast<int>(searchItems.size());
+	if (queuedFileSearches > 0) {
+		aBundle->setLastSearch(aTick);
+
+		uint64_t nextSearchTick = 0;
+		if (autoSearchEnabled()) {
+			RLock l(cs);
+			nextSearchTick = bundleQueue.recalculateSearchTimes(aBundle->isRecent(), true, aTick);
+		}
+
+		if (nextSearchTick == 0) {
+			LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName().c_str() % queuedFileSearches), LogMessage::SEV_INFO);
+		} else if (SETTING(REPORT_ALTERNATES)) {
+			auto nextSearchMinutes = (nextSearchTick - aTick) / (60 * 1000);
+			if (aBundle->isRecent()) {
+				LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH_RECENT, aBundle->getName() % queuedFileSearches) +
+					" " + STRING_F(NEXT_RECENT_SEARCH_IN, nextSearchMinutes), LogMessage::SEV_INFO);
+			} else {
+				LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName() % queuedFileSearches) +
+					" " + STRING_F(NEXT_SEARCH_IN, nextSearchMinutes), LogMessage::SEV_INFO);
+			}
+		}
+	}
+
+	return queuedFileSearches;
+}
+
+SearchQueueInfo QueueManager::searchFileAlternates(const QueueItemPtr& aQI) const noexcept {
+	auto s = make_shared<Search>(Priority::LOW, "qa");
+	s->query = aQI->getTTH().toBase32();
+	s->fileType = Search::TYPE_TTH;
+
+	return SearchManager::getInstance()->search(s);
 }
 
 void QueueManager::onUseSeqOrder(BundlePtr& b) noexcept {

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -288,10 +288,13 @@ void AutoSearch::updateStatus() noexcept {
 		}
 	} else {
 		auto maxBundle = *boost::max_element(bundles, Bundle::StatusOrder());
-		if (ActionHookError::matches(maxBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_MISSING)) {
-			status = AutoSearch::STATUS_FAILED_MISSING;
-		} else if (ActionHookError::matches(maxBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_INVALID_CONTENT)) {
-			status = AutoSearch::STATUS_FAILED_EXTRAS;
+		if(maxBundle->getStatus() == Bundle::STATUS_VALIDATION_ERROR) {
+			if (ActionHookError::matches(maxBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_MISSING)) {
+				status = AutoSearch::STATUS_FAILED_MISSING;
+			}
+			else if (ActionHookError::matches(maxBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_INVALID_CONTENT)) {
+				status = AutoSearch::STATUS_FAILED_EXTRAS;
+			}
 		} else {
 			status = AutoSearch::STATUS_QUEUED_OK;
 		}

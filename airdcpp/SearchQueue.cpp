@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2003-2016 RevConnect, http://www.revconnect.com
+ * Copyright (C) 2003-2017 RevConnect, http://www.revconnect.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -104,14 +104,13 @@ optional<uint64_t> SearchQueue::getQueueTime(const Search::CompareF& aCompareF) 
 }
 
 #define MAX_QUEUE_MINUTES 20
-optional<uint64_t> SearchQueue::maybeAdd(const SearchPtr& aSearch) noexcept {
+bool SearchQueue::hasOverflow() const noexcept {
+	return getTotalQueueTime() > (MAX_QUEUE_MINUTES * 60 * 1000);
+}
+
+uint64_t SearchQueue::add(const SearchPtr& aSearch) noexcept {
 	if (aSearch->owner) {
 		cancelSearch(aSearch->owner);
-	}
-
-	// Prevent the queue from growing indefinitely because of background searches
-	if (aSearch->priority < Priority::HIGH && getTotalQueueTime() > (MAX_QUEUE_MINUTES * 60 * 1000)) {
-		return boost::none;
 	}
 
 	{
@@ -120,7 +119,8 @@ optional<uint64_t> SearchQueue::maybeAdd(const SearchPtr& aSearch) noexcept {
 		searchQueue.insert(pos, aSearch);
 	}
 
-	return getQueueTime(Search::ComparePtr(aSearch));
+	auto queueTime = getQueueTime(Search::ComparePtr(aSearch));
+	return queueTime ? *queueTime : 0;
 }
 
 SearchPtr SearchQueue::maybePop() noexcept {

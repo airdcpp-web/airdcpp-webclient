@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -117,7 +117,6 @@ public:
 	typedef vector<WaitingUser> SlotQueue;
 	SlotQueue getUploadQueue() const;
 
-	void unreserveSlot(const UserPtr& aUser, bool add);
 	void onUBD(const AdcCommand& cmd);
 	void onUBN(const AdcCommand& cmd);
 	UploadBundlePtr findBundle(const string& aBundleToken);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@ public:
 	//AutoSearchPtr getNameDupe(const string& aName, bool report, const AutoSearchPtr& thisSearch = nullptr) const noexcept;
 	bool addFailedBundle(const BundlePtr& aBundle) noexcept;
 	void addAutoSearch(AutoSearchPtr aAutoSearch, bool search, bool loading = false) noexcept;
-	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, bool isDirectory, AutoSearch::ItemType asType, bool aRemove = true, int aInterval = AS_DEFAULT_SEARCH_INTERVAL) noexcept;
+	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, bool isDirectory, AutoSearch::ItemType asType, bool aRemove = true, int aInterval = AS_DEFAULT_SEARCH_INTERVAL, bool aSearch = true) noexcept;
 	AutoSearchList getSearchesByBundle(const BundlePtr& aBundle) const noexcept;
 	AutoSearchList getSearchesByString(const string& aSearchString, const AutoSearchPtr& ignoredSearch = nullptr) const noexcept;
 
@@ -115,8 +115,6 @@ private:
 	uint64_t lastSave = 0;
 	bool dirty = false;
 	time_t nextSearch = 0;
-	uint64_t lastSearchQueueTime = 0;
-	bool checkSearchQueueLimit() { return lastSearchQueueTime < (5 * 60 * 1000); }
 
 	bool endOfListReached = false;
 

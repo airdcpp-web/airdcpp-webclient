@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -74,7 +74,7 @@ namespace dcpp {
 		DirectoryListingPtr openOwnList(ProfileToken aProfile, bool useADL=false, const string& aDir = Util::emptyString) noexcept;
 
 		// Open local file, returns nullptr on duplicates
-		DirectoryListingPtr openFileList(const HintedUser& aUser, const string& aFile, const string& aDir = Util::emptyString) noexcept;
+		DirectoryListingPtr openFileList(const HintedUser& aUser, const string& aFile, const string& aDir = Util::emptyString, bool aPartial = false) noexcept;
 		
 		// Add a managed filelist session from remove user, throws queueing errors
 		// Returns nullptr on duplicates

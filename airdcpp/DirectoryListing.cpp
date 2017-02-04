@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1195,7 +1195,7 @@ int DirectoryListing::loadShareDirectory(const string& aPath, bool aRecurse) thr
 	throw Exception(CSTRING(FILE_NOT_AVAILABLE));
 }
 
-bool DirectoryListing::changeDirectory(const string& aPath, bool aReload, bool aIsSearchChange) noexcept {
+bool DirectoryListing::changeDirectory(const string& aPath, bool aReload, bool aIsSearchChange, bool aForceQueue) noexcept {
 	Directory::Ptr dir;
 	if (partialList) {
 		// Directory may not exist when searching in partial lists 
@@ -1218,7 +1218,7 @@ bool DirectoryListing::changeDirectory(const string& aPath, bool aReload, bool a
 	if (!partialList || dir->getLoading() || (dir->isComplete() && !aReload)) {
 		// No need to load anything
 	} else if (partialList) {
-		if (isOwnList || getUser()->isOnline()) {
+		if (isOwnList || (getUser()->isOnline() || aForceQueue)) {
 			dir->setLoading(true);
 
 			try {
@@ -1257,9 +1257,9 @@ bool DirectoryListing::nextResult(bool prev) noexcept {
 	return true;
 }
 
-void DirectoryListing::addDirectoryChangeTask(const string& aPath, bool aReload, bool aIsSearchChange) noexcept {
+void DirectoryListing::addDirectoryChangeTask(const string& aPath, bool aReload, bool aIsSearchChange, bool aForceQueue) noexcept {
 	addAsyncTask([=] {
-		changeDirectory(aPath, aReload, aIsSearchChange);
+		changeDirectory(aPath, aReload, aIsSearchChange, aForceQueue);
 	});
 }
 
