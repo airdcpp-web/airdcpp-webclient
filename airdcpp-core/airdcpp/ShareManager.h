@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -136,7 +136,7 @@ public:
 	bool isRefreshing() const noexcept { return refreshRunning; }
 	
 	// aIsMajor will regenerate the file list on next time when someone requests it
-	void setProfilesDirty(ProfileTokenSet aProfiles, bool aIsMajor) noexcept;
+	void setProfilesDirty(const ProfileTokenSet& aProfiles, bool aIsMajor) noexcept;
 
 	void startup(function<void(const string&)> stepF, function<void(float)> progressF) noexcept;
 	void shutdown(function<void(float)> progressF) noexcept;

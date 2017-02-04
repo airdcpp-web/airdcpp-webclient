@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -508,9 +508,9 @@ bool Client::updateCounts(bool aRemove) noexcept {
 	return true;
 }
 
-optional<uint64_t> Client::queueSearch(const SearchPtr& aSearch) noexcept {
+uint64_t Client::queueSearch(const SearchPtr& aSearch) noexcept {
 	dcdebug("Queue search %s\n", aSearch->query.c_str());
-	return searchQueue.maybeAdd(aSearch);
+	return searchQueue.add(aSearch);
 }
 
 optional<uint64_t> Client::getQueueTime(const void* aOwner) const noexcept {

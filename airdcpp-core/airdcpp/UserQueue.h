@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,8 +29,8 @@ namespace dcpp {
 /** All queue items indexed by user (this is a cache for the FileQueue really...) */
 class UserQueue {
 public:
-	void addQI(QueueItemPtr& qi) noexcept;
-	void addQI(QueueItemPtr& qi, const HintedUser& aUser, bool aIsBadSource = false) noexcept;
+	void addQI(const QueueItemPtr& qi) noexcept;
+	void addQI(const QueueItemPtr& qi, const HintedUser& aUser, bool aIsBadSource = false) noexcept;
 	void getUserQIs(const UserPtr& aUser, QueueItemList& ql) noexcept;
 
 	QueueItemPtr getNext(const UserPtr& aUser, const QueueTokenSet& runningBundles, const OrderedStringSet& onlineHubs, string& lastError_, bool& hasDownload,

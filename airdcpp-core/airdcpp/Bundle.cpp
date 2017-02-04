@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -309,12 +309,12 @@ bool Bundle::isBadSource(const UserPtr& aUser) const noexcept  {
 	return find(badSources, aUser) != badSources.end();
 }
 
-void Bundle::addUserQueue(QueueItemPtr& qi) noexcept {
+void Bundle::addUserQueue(const QueueItemPtr& qi) noexcept {
 	for(const auto& s: qi->getSources())
 		addUserQueue(qi, s.getUser());
 }
 
-bool Bundle::addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad /*false*/) noexcept {
+bool Bundle::addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool isBad /*false*/) noexcept {
 	auto& l = userQueue[static_cast<int>(qi->getPriority())][aUser.user];
 	dcassert(find(l, qi) == l.end());
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -229,8 +229,8 @@ public:
 	bool isBadSource(const UserPtr& aUser) const noexcept;
 
 	/** All queue items indexed by user */
-	void addUserQueue(QueueItemPtr& qi) noexcept;
-	bool addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad = false) noexcept;
+	void addUserQueue(const QueueItemPtr& qi) noexcept;
+	bool addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool isBad = false) noexcept;
 	QueueItemPtr getNextQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept;
 	void getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept;
 

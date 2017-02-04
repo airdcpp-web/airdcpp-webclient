@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,13 +26,13 @@
 namespace dcpp {
 
 
-void UserQueue::addQI(QueueItemPtr& qi) noexcept {
+void UserQueue::addQI(const QueueItemPtr& qi) noexcept {
 	for(const auto& i: qi->getSources()) {
 		addQI(qi, i.getUser());
 	}
 }
 
-void UserQueue::addQI(QueueItemPtr& qi, const HintedUser& aUser, bool aIsBadSource /*false*/) noexcept{
+void UserQueue::addQI(const QueueItemPtr& qi, const HintedUser& aUser, bool aIsBadSource /*false*/) noexcept{
 
 	if (qi->getPriority() == Priority::HIGHEST) {
 		auto& l = userPrioQueue[aUser.user];

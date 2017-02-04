@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -373,12 +373,12 @@ DirectoryListingPtr DirectoryListingManager::openOwnList(ProfileToken aProfile, 
 	return dl;
 }
 
-DirectoryListingPtr DirectoryListingManager::openFileList(const HintedUser& aUser, const string& aFile, const string& aDir/* = Util::emptyString*/) noexcept {
+DirectoryListingPtr DirectoryListingManager::openFileList(const HintedUser& aUser, const string& aFile, const string& aDir/* = Util::emptyString*/, bool aPartial/* = false*/) noexcept {
 	if (hasList(aUser.user)) {
 		return nullptr;
 	}
 
-	auto dl = createList(aUser, false, aFile, false);
+	auto dl = createList(aUser, aPartial, aFile, false);
 	fire(DirectoryListingManagerListener::OpenListing(), dl, aDir, Util::emptyString);
 	return dl;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -137,7 +137,7 @@ public:
 	public:
 		CompareOwner(const void* compareTo) : a(compareTo) { }
 		bool operator()(const SearchPtr& p) const noexcept {
-			return p->owner == a;
+			return !a ? true : p->owner == a;
 		}
 	private:
 		CompareOwner& operator=(const CompareOwner&) = delete;

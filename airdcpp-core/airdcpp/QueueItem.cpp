@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@
 #include "File.h"
 #include "HashManager.h"
 #include "Util.h"
-#include "SearchManager.h"
 #include "SimpleXML.h"
 
 namespace dcpp {
@@ -688,14 +687,6 @@ QueueItemPtr QueueItem::pickSearchItem(const QueueItemList& aItems) noexcept {
 	}
 
 	return searchItem;
-}
-
-void QueueItem::searchAlternates() noexcept {
-	auto s = make_shared<Search>(Priority::LOW, "qa");
-	s->query = tthRoot.toBase32();
-	s->fileType = Search::TYPE_TTH;
-
-	SearchManager::getInstance()->search(s);
 }
 
 void QueueItem::addDownload(Download* d) noexcept {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ namespace dcpp {
 
 using boost::range::find_if;
 
-BundleQueue::BundleQueue() { }
+BundleQueue::BundleQueue() : PrioritySearchQueue(SettingsManager::BUNDLE_SEARCH_TIME) { }
 
 BundleQueue::~BundleQueue() { }
 

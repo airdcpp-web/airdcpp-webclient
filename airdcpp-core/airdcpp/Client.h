@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -72,10 +72,11 @@ public:
 	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept = 0;
 	virtual void sendUserCmd(const UserCommand& command, const ParamMap& params) = 0;
 
-	optional<uint64_t> queueSearch(const SearchPtr& aSearch) noexcept;
+	uint64_t queueSearch(const SearchPtr& aSearch) noexcept;
 	optional<uint64_t> getQueueTime(const void* aOwner) const noexcept;
 	bool cancelSearch(const void* aOwner) noexcept { return searchQueue.cancelSearch(aOwner); }
 	int getSearchQueueSize() const noexcept { return searchQueue.getQueueSize(); }
+	bool hasSearchOverflow() const noexcept { return searchQueue.hasOverflow(); }
 	
 	virtual void password(const string& pwd) noexcept = 0;
 	void info();

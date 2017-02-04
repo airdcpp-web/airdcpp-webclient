@@ -1,6 +1,6 @@
 
 /*
-* Copyright (C) 2012-2016 AirDC++ Project
+* Copyright (C) 2012-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -241,7 +241,7 @@ void RSSManager::matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) {
 			}
 			if (aF.getFilterAction() == RSSFilter::DOWNLOAD) {
 				auto as = AutoSearchManager::getInstance()->addAutoSearch(aData->getTitle(),
-					aF.getDownloadTarget(), true, AutoSearch::RSS_DOWNLOAD, true);
+					aF.getDownloadTarget(), true, AutoSearch::RSS_DOWNLOAD, true, 60, false);
 				if (as) {
 					AutoSearchManager::getInstance()->moveItemToGroup(as, aF.getAutosearchGroup());
 				}
@@ -425,7 +425,7 @@ void RSSManager::load() {
 		LogManager::getInstance()->message("Loading the RSS failed: " + e.getError(), LogMessage::SEV_INFO);
 	}
 
-	nextUpdate = GET_TICK() + 10 * 1000; //start after 10 seconds
+	nextUpdate = GET_TICK() + 60 * 1000; //start after 60 seconds
 	TimerManager::getInstance()->addListener(this);
 
 }

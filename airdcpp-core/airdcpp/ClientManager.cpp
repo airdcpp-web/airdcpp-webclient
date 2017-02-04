@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1008,14 +1008,7 @@ optional<uint64_t> ClientManager::search(string& aHubUrl, const SearchPtr& aSear
 			return boost::none;
 		}
 
-		auto result = i->second->queueSearch(aSearch);
-		if (!result) {
-			error_ = "Search queue overflow";
-			i->second->statusMessage(STRING_F(SEARCH_QUEUE_OVERFLOW, aSearch->query % i->second->getSearchQueueSize()), LogMessage::SEV_WARNING);
-		}
-
-		return result;
-
+		return i->second->queueSearch(aSearch);
 	}
 
 	error_ = "Hub was not found";
@@ -1037,7 +1030,7 @@ bool ClientManager::cancelSearch(const void* aOwner) noexcept {
 	return ret;
 }
 
-optional<uint64_t> ClientManager::getMaxSearchQueueTime(const void* aOwner) noexcept {
+optional<uint64_t> ClientManager::getMaxSearchQueueTime(const void* aOwner) const noexcept {
 	optional<uint64_t> maxTime;
 
 	{
@@ -1051,6 +1044,12 @@ optional<uint64_t> ClientManager::getMaxSearchQueueTime(const void* aOwner) noex
 	}
 
 	return maxTime;
+}
+
+bool ClientManager::hasSearchQueueOverflow() const noexcept {
+	return find_if(clients | map_values, [](const ClientPtr& aClient) {
+		return aClient->hasSearchOverflow();
+	}).base() != clients.end();
 }
 
 bool ClientManager::directSearch(const HintedUser& aUser, const SearchPtr& aSearch, string& error_) noexcept {
