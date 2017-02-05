@@ -113,7 +113,6 @@ int utf8ToWc(const char* str, wchar_t& c) {
 	} else {                                   // 10xx xxxx
 		return -1;
 	}
-	dcassert(0);
 }
 
 void wcToUtf8(wchar_t c, string& str) {

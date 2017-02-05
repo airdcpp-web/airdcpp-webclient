@@ -36,6 +36,13 @@ SSLSocket::SSLSocket(CryptoManager::SSLContext context) : Socket(TYPE_TCP), ctx(
 	ctx = CryptoManager::getInstance()->getSSLContext(context);
 }
 
+#if OPENSSL_VERSION_NUMBER < 0x1000200fL
+static int SSL_is_server(SSL *s)
+{
+	return s->server;
+}
+#endif
+
 bool SSLSocket::waitConnected(uint64_t millis) {
 	if(!ssl) {
 		if(!Socket::waitConnected(millis)) {
@@ -57,9 +64,9 @@ bool SSLSocket::waitConnected(uint64_t millis) {
 	}
 
 	while(true) {
-		int ret = ssl->server?SSL_accept(ssl):SSL_connect(ssl);
+		int ret = SSL_is_server(ssl) ? SSL_accept(ssl) : SSL_connect(ssl);
 		if(ret == 1) {
-			dcdebug("Connected to SSL server using %s as %s\n", SSL_get_cipher(ssl), ssl->server?"server":"client");
+			dcdebug("Connected to SSL server using %s as %s\n", SSL_get_cipher(ssl), SSL_is_server(ssl) ? "server" : "client");
 			return true;
 		}
 		if(!waitWant(ret, millis)) {
