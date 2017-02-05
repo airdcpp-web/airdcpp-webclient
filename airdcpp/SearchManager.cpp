@@ -125,14 +125,13 @@ bool SearchManager::decryptPacket(string& x, size_t aLen, const ByteVector& aBuf
 
 		uint8_t ivd[16] = { };
 
-		EVP_CIPHER_CTX ctx;
-		EVP_CIPHER_CTX_init(&ctx);
+		auto ctx = EVP_CIPHER_CTX_new();
 
 		int len = 0, tmpLen=0;
-		EVP_DecryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, i.first, ivd);
-		EVP_DecryptUpdate(&ctx, &out[0], &len, aBuf.data(), aLen);
-		EVP_DecryptFinal_ex(&ctx, &out[0] + aLen, &tmpLen);
-		EVP_CIPHER_CTX_cleanup(&ctx);
+		EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, i.first, ivd);
+		EVP_DecryptUpdate(ctx, &out[0], &len, aBuf.data(), aLen);
+		EVP_DecryptFinal_ex(ctx, &out[0] + aLen, &tmpLen);
+		EVP_CIPHER_CTX_free(ctx);
 
 		// Validate padding and replace with 0-bytes.
 		int padlen = out[aLen-1];
