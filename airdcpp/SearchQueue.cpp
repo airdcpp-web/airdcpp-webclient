@@ -55,7 +55,7 @@ uint64_t SearchQueue::getCurrentQueueTime() const noexcept {
 	}
 
 	auto now = GET_TICK();
-	auto nextAllowedSearch = getInterval(searchQueue.front()->priority) + lastSearchTick;
+	auto nextAllowedSearch = lastSearchTick + getInterval(searchQueue.front()->priority);
 	if (nextAllowedSearch > now) {
 		return nextAllowedSearch - now;
 	}
@@ -113,14 +113,18 @@ uint64_t SearchQueue::add(const SearchPtr& aSearch) noexcept {
 		cancelSearch(aSearch->owner);
 	}
 
+
+	Lock l(cs);
+
 	{
-		Lock l(cs);
-		auto pos = std::upper_bound(searchQueue.begin(), searchQueue.end(), aSearch);
+		auto pos = std::upper_bound(searchQueue.begin(), searchQueue.end(), aSearch, Search::PrioritySort());
 		searchQueue.insert(pos, aSearch);
 	}
 
 	auto queueTime = getQueueTime(Search::ComparePtr(aSearch));
-	return queueTime ? *queueTime : 0;
+	dcassert(queueTime);
+	dcdebug("Queueing search %s, queue time " U64_FMT " (priority %d, min interval %d, last search " U64_FMT " ms ago)\n", aSearch->query.c_str(), *queueTime, static_cast<int>(aSearch->priority), minInterval, GET_TICK() - lastSearchTick);
+	return *queueTime;
 }
 
 SearchPtr SearchQueue::maybePop() noexcept {

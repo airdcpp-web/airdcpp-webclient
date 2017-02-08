@@ -100,7 +100,6 @@ public:
 	void getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSize_) const noexcept { return store.getDbSizes(fileDbSize_, hashDbSize_); }
 	bool maintenanceRunning() const noexcept { return optimizer.isRunning(); }
 
-	void renameFile(const string& aOldPath, const string& aNewPath, const HashedFile& fi) throw(HashException);
 	bool addFile(const string& aFilePathLower, const HashedFile& fi_) throw(HashException);
 private:
 	int pausers = 0;
@@ -195,7 +194,6 @@ private:
 
 		void addHashedFile(const string& aFilePathLower, const TigerTree& tt, const HashedFile& fi_) throw(HashException);
 		void addFile(const string& aFilePathLower, const HashedFile& fi_) throw(HashException);
-		void renameFile(const string& oldPath, const string& newPath, const HashedFile& fi)  throw(HashException);
 		void removeFile(const string& aFilePathLower) throw(HashException);
 
 		void load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) throw(HashException);

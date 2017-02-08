@@ -20,7 +20,7 @@
 #ifndef DIRECTORY_MONITOR_LISTENER_H
 #define DIRECTORY_MONITOR_LISTENER_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
 #include <string>
 

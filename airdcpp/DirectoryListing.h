@@ -300,7 +300,7 @@ private:
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 
 	// ShareManagerListener
-	void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept;
+	void on(ShareManagerListener::RefreshCompleted, uint8_t, const RefreshPathList& aPaths) noexcept;
 
 	void endSearch(bool timedOut = false) noexcept;
 

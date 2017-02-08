@@ -19,6 +19,7 @@
 #include "stdinc.h"
 
 #include "AutoSearchManager.h"
+#include "ShareScannerManager.h"
 #include "TargetUtil.h"
 
 #include <airdcpp/ClientManager.h>
@@ -31,7 +32,6 @@
 #include <airdcpp/User.h>
 
 #include <airdcpp/DirectoryListingManager.h>
-#include <airdcpp/ShareScannerManager.h>
 
 #include <boost/range/algorithm/max_element.hpp>
 

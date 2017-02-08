@@ -79,8 +79,13 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 		throw FileException(Util::translateError(GetLastError()));
 	}
 
+#ifdef _DEBUG
+	// Strip possible network path prefix
+	auto fileName = aFileName.size() > 2 && aFileName.substr(0, 2) == "\\\\" ? aFileName.substr(2) : aFileName;
+
 	// Avoid issues on Linux...
-	dcassert(compare(aFileName, getRealPath()) == 0);
+	dcassert(compare(fileName, getRealPath()) == 0);
+#endif
 }
 
 uint64_t File::getLastModified() const noexcept {
@@ -237,7 +242,7 @@ uint64_t File::getLastModified(const string& aPath) noexcept {
 	if (aPath.empty())
 		return 0;
 
-	FileFindIter ff = FileFindIter(aPath.back() == PATH_SEPARATOR ? aPath.substr(0, aPath.size() - 1) : aPath);
+	FileFindIter ff = FileFindIter(aPath);
 	if (ff != FileFindIter()) {
 		return ff->getLastWriteTime();
 	}
@@ -249,7 +254,7 @@ bool File::isHidden(const string& aPath) noexcept {
 	if (aPath.empty())
 		return 0;
 
-	FileFindIter ff = FileFindIter(aPath.back() == PATH_SEPARATOR ? aPath.substr(0, aPath.size() - 1) : aPath);
+	FileFindIter ff = FileFindIter(aPath);
 	if (ff != FileFindIter()) {
 		return ff->isHidden();
 	}
@@ -706,10 +711,8 @@ void File::forEachFile(const string& aPath, const string& aNamePattern, FileIter
 	for (FileFindIter i(aPath, aNamePattern); i != FileFindIter(); ++i) {
 		if ((!aSkipHidden || !i->isHidden())) {
 			auto name = i->getFileName();
-			if (name.compare(".") != 0 && (name.length() < 2 || name.compare("..") != 0)) {
-				bool isDir = i->isDirectory();
-				aHandlerF(name + (isDir ? PATH_SEPARATOR_STR : Util::emptyString), isDir, i->getSize());
-			}
+			auto isDir = i->isDirectory();
+			aHandlerF(name + (isDir ? PATH_SEPARATOR_STR : Util::emptyString), isDir, i->getSize());
 		}
 	}
 }
@@ -836,7 +839,14 @@ File::VolumeSet File::getVolumes() noexcept {
 FileFindIter::FileFindIter() : handle(INVALID_HANDLE_VALUE) { }
 
 FileFindIter::FileFindIter(const string& aPath, const string& aPattern, bool aDirsOnly /*false*/) : handle(INVALID_HANDLE_VALUE) {
-	handle = ::FindFirstFileEx(Text::toT(Util::formatPath(aPath) + aPattern).c_str(), FindExInfoBasic, &data, aDirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
+	auto path = Util::formatPath(aPath);
+
+	// An attempt to open a search with a trailing backslash always fails
+	if (aPattern.empty() && !path.empty() && path.back() == PATH_SEPARATOR) {
+		path.pop_back();
+	}
+
+	handle = ::FindFirstFileEx(Text::toT(path + aPattern).c_str(), FindExInfoBasic, &data, aDirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
 }
 
 FileFindIter::~FileFindIter() {
@@ -849,7 +859,10 @@ FileFindIter& FileFindIter::operator++() {
 	if(!::FindNextFile(handle, &data)) {
 		::FindClose(handle);
 		handle = INVALID_HANDLE_VALUE;
+	} else if (wcscmp((*this)->cFileName, _T(".")) == 0 || wcscmp((*this)->cFileName, _T("..")) == 0) {
+		this->operator++();
 	}
+
 	return *this;
 }
 

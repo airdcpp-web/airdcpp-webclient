@@ -735,9 +735,6 @@ bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int aMaxAttempts, in
 	for(FileFindIter i(aPath, "*"); i != FileFindIter(); ++i) {
 		try {
 			if(i->isDirectory()) {
-				if (i->getFileName().compare(".") == 0 || i->getFileName().compare("..") == 0)
-					continue;
-
 				string dir = aPath + i->getFileName() + PATH_SEPARATOR;
 				if (!removeDirectoryIfEmptyRe(dir, aMaxAttempts, 0))
 					return false;

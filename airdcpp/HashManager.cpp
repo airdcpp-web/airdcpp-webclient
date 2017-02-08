@@ -284,21 +284,6 @@ void HashManager::HashStore::addFile(const string& aFileLower, const HashedFile&
 	free(buf);
 }
 
-void HashManager::renameFile(const string& aOldPath, const string& aNewPath, const HashedFile& fi) throw(HashException) {
-	return store.renameFile(aOldPath, aNewPath, fi);
-}
-
-void HashManager::HashStore::renameFile(const string& oldPath, const string& newPath, const HashedFile& fi) throw(HashException) {
-	auto oldNameLower = Text::toLower(oldPath);
-	auto newNameLower = Text::toLower(newPath);
-	//HashedFile fi;
-	//if (getFileInfo(oldNameLower, fi)) {
-		removeFile(oldNameLower);
-		addFile(newNameLower, fi);
-		//return true;
-	//}
-}
-
 void HashManager::HashStore::removeFile(const string& aFilePathLower) throw(HashException) {
 	try {
 		fileDb->remove((void*) aFilePathLower.c_str(), aFilePathLower.length());

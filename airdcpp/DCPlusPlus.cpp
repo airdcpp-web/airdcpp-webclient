@@ -44,7 +44,6 @@
 #include "ShareManager.h"
 #include "SearchManager.h"
 #include "SettingsManager.h"
-#include "ShareScannerManager.h"
 #include "ThrottleManager.h"
 #include "UpdateManager.h"
 #include "UploadManager.h"
@@ -95,7 +94,6 @@ void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progr
 	ConnectivityManager::newInstance();
 	DirectoryListingManager::newInstance();
 	DebugManager::newInstance();
-	ShareScannerManager::newInstance();
 	GeoManager::newInstance();
 	UpdateManager::newInstance();
 	ViewFileManager::newInstance();
@@ -204,7 +202,6 @@ void shutdown(StepF stepF, ProgressF progressF, Callback moduleDestroyF) {
 	QueueManager::deleteInstance();
 	DownloadManager::deleteInstance();
 	UploadManager::deleteInstance();
-	ShareScannerManager::deleteInstance();
 	MessageManager::deleteInstance();
 	ConnectionManager::deleteInstance();
 	SearchManager::deleteInstance();

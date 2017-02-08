@@ -19,13 +19,13 @@
 #include "stdinc.h"
 
 #include "AutoSearch.h"
+#include "ShareScannerManager.h"
 
 #include <airdcpp/ActionHook.h>
 #include <airdcpp/Bundle.h>
 #include <airdcpp/ResourceManager.h>
 #include <airdcpp/SearchQuery.h>
 #include <airdcpp/SearchManager.h>
-#include <airdcpp/ShareScannerManager.h>
 #include <airdcpp/SimpleXML.h>
 #include <airdcpp/TimerManager.h>
 
