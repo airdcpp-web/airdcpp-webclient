@@ -46,12 +46,13 @@ namespace webserver {
 		api_return handleGetGroupedRootPaths(ApiRequest& aRequest);
 		api_return handleFindDupePaths(ApiRequest& aRequest);
 
-		void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept override;
+		void on(ShareManagerListener::RefreshQueued, uint8_t, const RefreshPathList& aPaths) noexcept override;
+		void on(ShareManagerListener::RefreshCompleted, uint8_t, const RefreshPathList& aPaths) noexcept override;
 
 		void on(ShareManagerListener::ExcludeAdded, const string& aPath) noexcept override;
 		void on(ShareManagerListener::ExcludeRemoved, const string& aPath) noexcept override;
 
-		void onShareRefreshed(const RefreshPathList& aRealPaths, uint8_t aTaskType) noexcept;
+		void onShareRefreshed(const RefreshPathList& aRealPaths, uint8_t aTaskType, const string& aSubscription) noexcept;
 
 		static string refreshTypeToString(uint8_t aTaskType) noexcept;
 

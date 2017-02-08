@@ -44,7 +44,8 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("add")),		ShareApi::handleAddExclude);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("remove")),	ShareApi::handleRemoveExclude);
 
-		createSubscription("share_refreshed");
+		createSubscription("share_refresh_queued");
+		createSubscription("share_refresh_completed");
 
 		createSubscription("share_exclude_added");
 		createSubscription("share_exclude_removed");
@@ -249,18 +250,22 @@ namespace webserver {
 		return Util::emptyString;
 	}
 
-	void ShareApi::onShareRefreshed(const RefreshPathList& aRealPaths, uint8_t aTaskType) noexcept {
-		if (!subscriptionActive("share_refreshed")) {
+	void ShareApi::onShareRefreshed(const RefreshPathList& aRealPaths, uint8_t aTaskType, const string& aSubscription) noexcept {
+		if (!subscriptionActive(aSubscription)) {
 			return;
 		}
 
-		send("share_refreshed", {
+		send(aSubscription, {
 			{ "real_paths", aRealPaths },
 			{ "type", refreshTypeToString(aTaskType) }
 		});
 	}
 
-	void ShareApi::on(ShareManagerListener::DirectoriesRefreshed, uint8_t aTaskType, const RefreshPathList& aPaths) noexcept {
-		onShareRefreshed(aPaths, aTaskType);
+	void ShareApi::on(ShareManagerListener::RefreshQueued, uint8_t aTaskType, const RefreshPathList& aPaths) noexcept {
+		onShareRefreshed(aPaths, aTaskType, "share_refresh_queued");
+	}
+
+	void ShareApi::on(ShareManagerListener::RefreshCompleted, uint8_t aTaskType, const RefreshPathList& aPaths) noexcept {
+		onShareRefreshed(aPaths, aTaskType, "share_refresh_completed");
 	}
 }
