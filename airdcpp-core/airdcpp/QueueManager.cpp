@@ -2344,9 +2344,9 @@ void QueueManager::loadQueue(function<void (float)> progressF) noexcept {
 	ClientManager::getInstance()->addListener(this);
 	ShareManager::getInstance()->addListener(this);
 
-	auto finished_count = getFinishedBundlesCount();
-	if (finished_count > 500)
-		LogManager::getInstance()->message(STRING_F(BUNDLE_X_FINISHED_WARNING, finished_count), LogMessage::SEV_WARNING);
+	auto finishedCount = getFinishedBundlesCount();
+	if (finishedCount > 500)
+		LogManager::getInstance()->message(STRING_F(BUNDLE_X_FINISHED_WARNING, finishedCount), LogMessage::SEV_WARNING);
 
 }
 
@@ -3210,50 +3210,7 @@ void QueueManager::getBundlePaths(OrderedStringSet& retBundles) const noexcept {
 	}
 }
 
-void QueueManager::checkRefreshPaths(OrderedStringSet& blockedBundlePaths_, RefreshPathList& refreshPaths_) noexcept {
-	BundleList failedBundles;
-	{
-		RLock l(cs);
-		for (const auto& b: bundleQueue.getBundles() | map_values) {
-			if (b->isFileBundle()) {
-				continue;
-			}
-
-			if (b->isCompleted()) {
-				// Valid for sharing
-				continue;
-			}
-
-			// check the path just to avoid running validation hooks for bundles that aren't being refreshed
-
-			{
-				// Find parent refresh directories of this bundle path
-				auto refreshPathIter = find_if(refreshPaths_.begin(), refreshPaths_.end(), IsParentOrExact(b->getTarget(), PATH_SEPARATOR));
-
-				if (refreshPathIter == refreshPaths_.end()) {
-					continue;
-				}
-
-				// No point to refresh exact bundle paths
-				if (Util::stricmp(*refreshPathIter, b->getTarget()) == 0) {
-					refreshPaths_.erase(*refreshPathIter);
-				}
-			}
-
-			if (b->getHookError()) {
-				failedBundles.push_back(b);
-			}
-
-			blockedBundlePaths_.insert(Text::toLower(b->getTarget()));
-		}
-	}
-
-	for (auto& b: failedBundles) {
-		shareBundle(b, false);
-	}
-}
-
-void QueueManager::on(ShareManagerListener::DirectoriesRefreshed, uint8_t aType, const RefreshPathList& aPaths) noexcept {
+void QueueManager::on(ShareManagerListener::RefreshCompleted, uint8_t aType, const RefreshPathList& aPaths) noexcept {
 	if (aType == ShareManager::REFRESH_ALL) {
 		onPathRefreshed(Util::emptyString, false);
 	} else {

@@ -20,17 +20,17 @@
 
 #include "ShareScannerManager.h"
 
-#include "AirUtil.h"
-#include "FilteredFile.h"
-#include "File.h"
-#include "HashManager.h"
-#include "LogManager.h"
-#include "QueueManager.h"
-#include "ShareManager.h"
-#include "StringTokenizer.h"
-#include "TimerManager.h"
+#include <airdcpp/AirUtil.h>
+#include <airdcpp/FilteredFile.h>
+#include <airdcpp/File.h>
+#include <airdcpp/HashManager.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/StringTokenizer.h>
+#include <airdcpp/TimerManager.h>
 
-#include "concurrency.h"
+#include <airdcpp/concurrency.h>
 
 namespace dcpp {
 
@@ -166,10 +166,6 @@ void ShareScannerManager::runShareScan(const StringList& aPaths) {
 
 	ScanInfoList scanners;
 	for (auto& rootPath : rootPaths) {
-		if (matchSkipList(Util::getLastDir(rootPath)) || QueueManager::getInstance()->findDirectoryBundle(rootPath)) {
-			continue;
-		}
-
 		scanners.emplace_back(rootPath, ScanInfo::TYPE_COLLECT_LOG, true);
 	}
 
@@ -178,7 +174,7 @@ void ShareScannerManager::runShareScan(const StringList& aPaths) {
 		parallel_for_each(scanners.begin(), scanners.end(), [&](ScanInfo& s) {
 			if (!s.rootPath.empty()) {
 				// TODO: FIX LINUX
-				FileFindIter i(s.rootPath.substr(0, s.rootPath.length() - 1), Util::emptyString, false);
+				FileFindIter i(s.rootPath, Util::emptyString, false);
 				if (!i->isHidden()) {
 					scanDir(s.rootPath, s);
 					if (SETTING(CHECK_DUPES) && (scanType == TYPE_PARTIAL || scanType == TYPE_FULL))
@@ -268,10 +264,11 @@ void ShareScannerManager::ScanInfo::merge(ScanInfo& collect) const {
 	collect.scanMessage += scanMessage;
 }
 
-bool ShareScannerManager::matchSkipList(const string& dir) {
+bool ShareScannerManager::validateShare(FileFindIter& aIter, const string& aPath) {
 	if (SETTING(CHECK_USE_SKIPLIST)) {
-		return ShareManager::getInstance()->matchSkipList(dir);
+		return ShareManager::getInstance()->validate(aIter, aPath);
 	}
+
 	return false;
 }
 
@@ -337,32 +334,37 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 
 	int nfoFiles = 0;
 	StringList sfvFileList, fileList, folderList;
-	File::forEachFile(aPath, "*", [&](const string& aFileName, bool aIsDir, int64_t aSize) {
-		if (matchSkipList(aFileName)) {
-			return;
+	for (FileFindIter i(aPath, "*"); i != FileFindIter(); ++i) {
+		if (i->isHidden()) {
+			continue;
 		}
 
-		if (aIsDir) {
-			folderList.push_back(Text::toLower(aFileName.substr(0, aFileName.length()-1)));
-			return;
+		auto fileName = i->getFileName();
+		if (!validateShare(i, aPath + fileName + (i->isDirectory() ? PATH_SEPARATOR_STR : Util::emptyString))) {
+			continue;
+		}
+
+		auto fileNameLower = Text::toLower(fileName);
+		if (i->isDirectory()) {
+			folderList.push_back(fileNameLower);
+			continue;
 		}
 
 		if (SETTING(CHECK_IGNORE_ZERO_BYTE)) {
-			if (aSize <= 0) {
-				return;
+			if (i->getSize() <= 0) {
+				continue;
 			}
 		}
 
-		auto fileNameLower = Text::toLower(aFileName);
 		auto ext = Util::getFileExt(fileNameLower);
 		if (ext == ".nfo") {
 			nfoFiles++;
 		} else if (ext == ".sfv") {
-			sfvFileList.push_back(aPath + aFileName);
+			sfvFileList.push_back(aPath + fileName);
 		}
 
 		fileList.push_back(fileNameLower);
-	});
+	}
 
 	if (fileList.empty()) {
 		//check if there are folders

@@ -43,8 +43,8 @@ public:
 
 	DualString(DualString&& rhs);
 	DualString& operator=(DualString&&);
-	DualString(const DualString&);
-	DualString& operator= (const DualString& other);
+	DualString(const DualString&) = delete;
+	DualString& operator= (const DualString& other) = delete;
 private:
 	size_t initSizeArray(size_t strLen);
 	MaskType* charSizes = nullptr;

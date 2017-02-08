@@ -69,7 +69,7 @@ SettingHolder::~SettingHolder() {
 	}
 
 	if (prevShareSkiplist != SETTING(SKIPLIST_SHARE) || prevShareSkiplistRegex != SETTING(SHARE_SKIPLIST_USE_REGEXP)) {
-		ShareManager::getInstance()->setSkipList();
+		ShareManager::getInstance()->reloadSkiplist();
 	}
 
 	if (prevFreeSlotMatcher != SETTING(FREE_SLOTS_EXTENSIONS)) {

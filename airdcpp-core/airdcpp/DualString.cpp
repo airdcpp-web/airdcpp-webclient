@@ -98,33 +98,6 @@ DualString::DualString(DualString&& rhs) : charSizes(rhs.charSizes) {
 	rhs.charSizes = nullptr;
 }
 
-DualString::DualString(const DualString& rhs) {
-	assign(rhs.begin(), rhs.end());
-	if (rhs.charSizes) {
-		auto size = initSizeArray(rhs.size());
-		for (size_t s = 0; s < size; ++s) {
-			charSizes[s] = rhs.charSizes[s];
-		}
-	}
-	//dcassert(0);
-}
-
-DualString& DualString::operator= (const DualString& rhs) {
-	if (charSizes) {
-		delete[] charSizes;
-		charSizes = nullptr;
-	}
-
-	assign(rhs.begin(), rhs.end());
-	if (rhs.charSizes) {
-		auto size = initSizeArray(rhs.size());
-		for (size_t s = 0; s < size; ++s) {
-			charSizes[s] = rhs.charSizes[s];
-		}
-	}
-	return *this;
-}
-
 DualString::~DualString() { 
 	if (charSizes)
 		delete[] charSizes; 

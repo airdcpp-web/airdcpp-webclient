@@ -1161,7 +1161,7 @@ void DirectoryListing::onUserUpdated(const UserPtr& aUser) noexcept {
 		return;
 	}
 
-	fire(DirectoryListingListener::UserUpdated());
+	addAsyncTask([=] { fire(DirectoryListingListener::UserUpdated()); });
 }
 
 void DirectoryListing::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcept {
@@ -1297,7 +1297,7 @@ void DirectoryListing::onListRemovedQueue(const string& aTarget, const string& a
 	TrackableDownloadItem::onRemovedQueue(aTarget, aFinished);
 }
 
-void DirectoryListing::on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept{
+void DirectoryListing::on(ShareManagerListener::RefreshCompleted, uint8_t, const RefreshPathList& aPaths) noexcept{
 	if (!partialList)
 		return;
 

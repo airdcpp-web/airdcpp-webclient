@@ -19,14 +19,15 @@
 #ifndef DCPLUSPLUS_DIRECTORY_MONITOR
 #define DCPLUSPLUS_DIRECTORY_MONITOR
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
 #include "DirectoryMonitorListener.h"
-#include "DispatcherQueue.h"
-#include "Exception.h"
-#include "Speaker.h"
-#include "Thread.h"
-#include "Util.h"
+
+#include <airdcpp/DispatcherQueue.h>
+#include <airdcpp/Exception.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/Thread.h>
+#include <airdcpp/Util.h>
 
 using std::string;
 

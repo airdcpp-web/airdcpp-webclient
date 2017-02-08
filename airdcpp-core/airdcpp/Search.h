@@ -143,6 +143,12 @@ public:
 		CompareOwner& operator=(const CompareOwner&) = delete;
 		const void* a;
 	};
+
+	struct PrioritySort {
+		bool operator()(const SearchPtr& left, const SearchPtr& right) const noexcept {
+			return left->priority > right->priority;
+		}
+	};
 };
 
 }
