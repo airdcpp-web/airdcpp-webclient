@@ -127,7 +127,7 @@ namespace webserver {
 
 		json retJson;
 		for (const auto& path : paths) {
-			auto targetInfo = File::getDiskInfo(path, volumes);
+			auto targetInfo = File::getDiskInfo(path, volumes, false);
 
 			retJson.push_back({
 				{ "path", path },
