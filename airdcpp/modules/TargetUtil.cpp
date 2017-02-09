@@ -52,7 +52,7 @@ void TargetUtil::getTarget(const OrderedStringSet& aTargets, TargetInfo& retTi_)
 	TargetInfoMap targetMap;
 
 	for(const auto& i: aTargets) {
-		auto target = File::getMountPath(i, volumes);
+		auto target = File::getMountPath(i, volumes, false);
 		if (!target.empty() && targetMap.find(target) == targetMap.end()) {
 			auto free = File::getFreeSpace(target);
 			if (free > 0) {

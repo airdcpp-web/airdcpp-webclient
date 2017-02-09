@@ -735,7 +735,7 @@ int64_t File::getFreeSpace(const string& aPath) noexcept {
 	return info.freeSpace;
 }
 
-string File::getMountPath(const string& aPath, const VolumeSet& aVolumes) noexcept {
+string File::getMountPath(const string& aPath, const VolumeSet& aVolumes, bool aIgnoreNetworkPaths) noexcept {
 	if (aVolumes.find(aPath) != aVolumes.end()) {
 		return aPath;
 	}
@@ -752,14 +752,17 @@ string File::getMountPath(const string& aPath, const VolumeSet& aVolumes) noexce
 	}
 
 #ifdef WIN32
-	// Not found from volumes... network path? This won't work with mounted dirs
-	if (aPath.length() > 2 && aPath.substr(0, 2) == "\\\\") {
-		l = aPath.find("\\", 2);
-		if (l != string::npos) {
-			//get the drive letter
-			l = aPath.find("\\", l + 1);
+	if (!aIgnoreNetworkPaths) {
+		// Not found from volumes... network path? This won't work with mounted dirs
+		// Get the first section containing the network host and the first folder/drive (//HTPC/g/)
+		if (aPath.length() > 2 && aPath.substr(0, 2) == "\\\\") {
+			l = aPath.find("\\", 2);
 			if (l != string::npos) {
-				return aPath.substr(0, l + 1);
+				//get the drive letter
+				l = aPath.find("\\", l + 1);
+				if (l != string::npos) {
+					return aPath.substr(0, l + 1);
+				}
 			}
 		}
 	}
@@ -770,8 +773,8 @@ string File::getMountPath(const string& aPath, const VolumeSet& aVolumes) noexce
 	return Util::emptyString;
 }
 
-File::DiskInfo File::getDiskInfo(const string& aTarget, const VolumeSet& aVolumes) noexcept {
-	auto mountPoint = getMountPath(aTarget, aVolumes);
+File::DiskInfo File::getDiskInfo(const string& aTarget, const VolumeSet& aVolumes, bool aIgnoreNetworkPaths) noexcept {
+	auto mountPoint = getMountPath(aTarget, aVolumes, aIgnoreNetworkPaths);
 	if (!mountPoint.empty()) {
 		return File::getDiskInfo(mountPoint);
 	}
@@ -847,6 +850,7 @@ FileFindIter::FileFindIter(const string& aPath, const string& aPattern, bool aDi
 	}
 
 	handle = ::FindFirstFileEx(Text::toT(path + aPattern).c_str(), FindExInfoBasic, &data, aDirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
+	validateCurrent();
 }
 
 FileFindIter::~FileFindIter() {
@@ -855,15 +859,22 @@ FileFindIter::~FileFindIter() {
 	}
 }
 
+FileFindIter& FileFindIter::validateCurrent() {
+	if (wcscmp((*this)->cFileName, _T(".")) == 0 || wcscmp((*this)->cFileName, _T("..")) == 0) {
+		return this->operator++();
+	}
+
+	return *this;
+}
+
 FileFindIter& FileFindIter::operator++() {
 	if(!::FindNextFile(handle, &data)) {
 		::FindClose(handle);
 		handle = INVALID_HANDLE_VALUE;
-	} else if (wcscmp((*this)->cFileName, _T(".")) == 0 || wcscmp((*this)->cFileName, _T("..")) == 0) {
-		this->operator++();
+		return *this;
 	}
 
-	return *this;
+	return validateCurrent();
 }
 
 bool FileFindIter::operator!=(const FileFindIter& rhs) const { return handle != rhs.handle; }
@@ -917,13 +928,25 @@ FileFindIter::FileFindIter(const string& aPath, const string& aPattern, bool dir
 		closedir(dir);
 		dir = NULL;
 		return;
-	} else if (!matchPattern()) {
-		operator++();
 	}
+
+	validateCurrent();
 }
 
 FileFindIter::~FileFindIter() {
 	if (dir) closedir(dir);
+}
+
+FileFindIter& FileFindIter::validateCurrent() {
+	if (strcmp((*this)->ent->d_name, ".") == 0 || strcmp((*this)->ent->d_name, "..") == 0) {
+		return this->operator++();
+	}
+
+	if (pattern && fnmatch(pattern->c_str(), data.ent->d_name, 0) != 0) {
+		return this->operator++();
+	}
+
+	return *this;
 }
 
 FileFindIter& FileFindIter::operator++() {
@@ -936,15 +959,7 @@ FileFindIter& FileFindIter::operator++() {
 		return *this;
 	}
 
-	if (matchPattern())
-		return *this;
-
-	// continue to the next one...
-	return operator++();
-}
-
-bool FileFindIter::matchPattern() const {
-	return !pattern || fnmatch(pattern->c_str(), data.ent->d_name, 0) == 0;
+	return validateCurrent();
 }
 
 bool FileFindIter::operator!=(const FileFindIter& rhs) const {

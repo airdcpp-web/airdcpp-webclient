@@ -136,7 +136,9 @@ public:
 	static DiskInfo getDiskInfo(const string& aPath) noexcept;
 
 	// Get disk space information from the supplied volumes (avoids disk access)
-	static DiskInfo getDiskInfo(const string& aTarget, const VolumeSet& aVolumes) noexcept;
+	// Not that getting disk space information for network folder may take some time
+	// especially with a large number of locations
+	static DiskInfo getDiskInfo(const string& aTarget, const VolumeSet& aVolumes, bool aIgnoreNetworkPaths) noexcept;
 
 	// Get a set of all mount points
 	static VolumeSet getVolumes() noexcept;
@@ -145,7 +147,7 @@ public:
 	static string getMountPath(const string& aPath) noexcept;
 
 	// Parse mount point from the supplied volumes (avoids disk access)
-	static string getMountPath(const string& aPath, const VolumeSet& aVolumes) noexcept;
+	static string getMountPath(const string& aPath, const VolumeSet& aVolumes, bool aIgnoreNetworkPaths) noexcept;
 
 	static int ensureDirectory(const string& aFile) noexcept;
 
@@ -225,10 +227,10 @@ public:
 	DirData* operator->() { return &data; }
 
 private:
+	FileFindIter& validateCurrent();
 #ifdef _WIN32
 	HANDLE handle;
 #else
-	bool matchPattern() const;
 	DIR* dir;
 	unique_ptr<string> pattern;
 #endif
