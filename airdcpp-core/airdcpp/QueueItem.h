@@ -80,8 +80,6 @@ public:
 		FLAG_PARTIAL_LIST 		= 0x40,
 		/** Open directly with an external program after the file has been downloaded */
 		FLAG_OPEN				= 0x80,
-		/** Find NFO from partial list and view it */
-		FLAG_VIEW_NFO			= 0x100,
 		/** Recursive partial list */
 		FLAG_RECURSIVE_LIST		= 0x200,
 		/** TTH list for partial bundle sharing */

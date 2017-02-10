@@ -272,8 +272,6 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 
 		LogManager::getInstance()->message(aList->getNick(false) + ": " + 
 			AirUtil::formatMatchResults(matches, newFiles, bundles), LogMessage::SEV_INFO);
-	} else if((aFlags & QueueItem::FLAG_VIEW_NFO) && (aFlags & QueueItem::FLAG_PARTIAL_LIST)) {
-		aList->addViewNfoTask(aPath, false);
 	}
 }
 

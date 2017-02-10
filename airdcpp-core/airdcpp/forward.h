@@ -126,10 +126,6 @@ class QueueItem;
 typedef std::shared_ptr<QueueItem> QueueItemPtr;
 typedef std::vector<QueueItemPtr> QueueItemList;
 
-class RecentEntry;
-typedef std::shared_ptr<RecentEntry> RecentEntryPtr;
-typedef std::vector<RecentEntryPtr> RecentEntryList;
-
 class Search;
 typedef shared_ptr<Search> SearchPtr;
 

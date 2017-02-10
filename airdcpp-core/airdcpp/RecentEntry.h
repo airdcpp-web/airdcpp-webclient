@@ -1,4 +1,3 @@
-
 /*
 * Copyright (C) 2011-2017 AirDC++ Project
 *
@@ -17,25 +16,88 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPP_RECENT_ENTRY_H_
-#define DCPP_RECENT_ENTRY_H_
+#ifndef DCPLUSPLUS_DCPP_RECENT_ENTRY_H_
+#define DCPLUSPLUS_DCPP_RECENT_ENTRY_H_
 
 #include "GetSet.h"
 #include "typedefs.h"
 
+#include "HintedUser.h"
+#include "TimerManager.h"
+
 namespace dcpp {
 
-class RecentEntry {
+class RecentBase {
 public:
-	RecentEntry(const string& aUrl) : 
-		url(aUrl), name("*"), description("*") {
+	RecentBase(time_t aLastOpened) : lastOpened(aLastOpened) { }
+
+	time_t getLastOpened() const noexcept { return lastOpened; }
+	void updateLastOpened() noexcept { lastOpened = GET_TIME(); }
+
+	template<typename T> struct Sort {
+		bool operator()(typename T::Ptr& a, typename T::Ptr& b) const noexcept { return a->getLastOpened() > b->getLastOpened(); }
+	};
+private:
+	time_t lastOpened;
+};
+
+class RecentHubEntry : public RecentBase {
+public:
+	RecentHubEntry(const string& aUrl, const string& aName = "*", const string& aDescription = "*", time_t aLastOpened = GET_TIME()) :
+		url(aUrl), name(aName), description(aDescription), RecentBase(aLastOpened) {
 
 	}
+
+	typedef std::shared_ptr<RecentHubEntry> Ptr;
 
 	GETSET(string, url, Url);
 	GETSET(string, name, Name);
 	GETSET(string, description, Description);
+
+	class UrlCompare {
+	public:
+		UrlCompare(const string& compareTo) : a(compareTo) { }
+		bool operator()(const Ptr& p) const noexcept {
+			return p->getUrl() == a;
+		}
+	private:
+		UrlCompare& operator=(const UrlCompare&) = delete;
+		const string& a;
+	};
 };
+
+class RecentUserEntry : public RecentBase {
+public:
+	RecentUserEntry(const HintedUser& aHintedUser, time_t aLastOpened = GET_TIME()) :
+		user(aHintedUser), RecentBase(aLastOpened) {
+
+	}
+
+	typedef std::shared_ptr<RecentUserEntry> Ptr;
+
+	const HintedUser& getUser() const noexcept { return user; }
+
+	class CidCompare {
+	public:
+		CidCompare(const CID& compareTo) : a(compareTo) { }
+		bool operator()(const Ptr& p) const noexcept {
+			return p->getUser().user->getCID() == a;
+		}
+	private:
+		CidCompare& operator=(const CidCompare&) = delete;
+		const CID& a;
+	};
+private:
+	const HintedUser user;
+};
+
+typedef RecentHubEntry::Ptr RecentHubEntryPtr;
+typedef std::vector<RecentHubEntryPtr> RecentHubEntryList;
+//typedef std::set<RecentHubEntryPtr, RecentBase::Sort<RecentHubEntrySet>> RecentHubEntrySet;
+
+typedef RecentUserEntry::Ptr RecentUserEntryPtr;
+typedef std::vector<RecentUserEntryPtr> RecentUserEntryList;
+//typedef std::set<RecentHubEntryPtr, RecentBase::Sort<RecentUserEntry>> RecentUserEntrySet;
 
 }
 #endif

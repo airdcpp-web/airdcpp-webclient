@@ -33,7 +33,6 @@
 #include "SimpleXMLReader.h"
 #include "StringTokenizer.h"
 #include "User.h"
-#include "ViewFileManager.h"
 
 
 namespace dcpp {
@@ -595,14 +594,6 @@ int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {
 	return 0;
 }
 
-ViewFilePtr DirectoryListing::viewAsText(const File::Ptr& aFile) const noexcept {
-	if (isOwnList) {
-		return ViewFileManager::getInstance()->addLocalFile(aFile->getTTH(), true);
-	}
-
-	return ViewFileManager::getInstance()->addUserFileNotify(aFile->getName(), aFile->getSize(), aFile->getTTH(), hintedUser, true);
-}
-
 DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& aName, const Directory* aCurrent) const noexcept {
 	if (aName == NMDC_ROOT_STR)
 		return root;
@@ -629,64 +620,6 @@ void DirectoryListing::Directory::findFiles(const boost::regex& aReg, File::List
 	for (const auto& d : directories | map_values) {
 		d->findFiles(aReg, aResults);
 	}
-}
-
-void DirectoryListing::findNfoImpl(const string& aPath, bool aAllowQueueList, DupeOpenF aDupeF) noexcept {
-	auto dir = findDirectory(aPath);
-	if (getIsOwnList()) {
-		if (!aDupeF) {
-			return;
-		}
-
-		try {
-			SearchResultList results;
-			auto query = SearchQuery(Util::emptyString, StringList(), { ".nfo" }, Search::MATCH_NAME_PARTIAL);
-			query.maxResults = 1;
-
-			ShareManager::getInstance()->adcSearch(results, query, getShareProfile(), ClientManager::getInstance()->getMyCID(), Util::toAdcFile(aPath));
-
-			if (!results.empty()) {
-				auto paths = AirUtil::getFileDupePaths(DUPE_SHARE_FULL, results.front()->getTTH());
-				if (!paths.empty()) {
-					aDupeF(paths.front());
-				}
-
-				return;
-			}
-		} catch (...) {
-		
-		}
-	} else if ((!dir || !dir->isComplete() || dir->findIncomplete())) {
-		if (!aAllowQueueList) {
-			// Don't try to queue the same list over and over again if it's malformed
-			return;
-		}
-
-		try {
-			QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_VIEW_NFO | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_RECURSIVE_LIST, dir->getPath());
-		}
-		catch (const Exception&) {
-
-		}
-
-		return;
-	} else {
-		boost::regex reg;
-		reg.assign("(.+\\.nfo)", boost::regex_constants::icase);
-		File::List results;
-		dir->findFiles(reg, results);
-
-		if (!results.empty()) {
-			try {
-				viewAsText(results.front());
-			} catch (const Exception&) {
-			
-			}
-			return;
-		}
-	}
-
-	LogManager::getInstance()->message(dir->getName() + ": " + STRING(NO_NFO_FOUND), LogMessage::SEV_NOTIFY);
 }
 
 struct HashContained {
@@ -920,10 +853,6 @@ uint8_t DirectoryListing::Directory::checkShareDupes() noexcept {
 void DirectoryListing::checkShareDupes() noexcept {
 	root->checkShareDupes();
 	root->setDupe(DUPE_NONE); //never show the root as a dupe or partial dupe.
-}
-
-void DirectoryListing::addViewNfoTask(const string& aPath, bool aAllowQueueList, DupeOpenF aDupeF) noexcept {
-	addAsyncTask([=] { findNfoImpl(aPath, aAllowQueueList, aDupeF); });
 }
 
 void DirectoryListing::addMatchADLTask() noexcept {

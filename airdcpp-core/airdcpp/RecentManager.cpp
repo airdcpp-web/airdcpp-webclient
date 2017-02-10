@@ -21,7 +21,9 @@
 
 #include "AirUtil.h"
 #include "ClientManager.h"
+#include "DirectoryListingManager.h"
 #include "LogManager.h"
+#include "MessageManager.h"
 #include "RelevanceSearch.h"
 #include "ResourceManager.h"
 #include "ShareManager.h"
@@ -36,59 +38,150 @@ namespace dcpp {
 using boost::range::find_if;
 
 RecentManager::RecentManager() {
+	ClientManager::getInstance()->addListener(this);
+	DirectoryListingManager::getInstance()->addListener(this);
+	MessageManager::getInstance()->addListener(this);
 
+	TimerManager::getInstance()->addListener(this);
 }
 
 RecentManager::~RecentManager() {
+	ClientManager::getInstance()->removeListener(this);
+	DirectoryListingManager::getInstance()->removeListener(this);
+	MessageManager::getInstance()->removeListener(this);
 
+	TimerManager::getInstance()->removeListener(this);
 }
 
-void RecentManager::clearRecents() noexcept {
-	for (auto r : recents) {
-		fire(RecentManagerListener::RecentRemoved(), r);
-	}
-
-	{
-		WLock l(cs);
-		recents.clear();
-	}
-	delayEvents.addEvent(SAVE, [=] { saveRecents(); }, 1000);
+RecentHubEntryList RecentManager::getRecentHubs() const noexcept {
+	RLock l(cs); 
+	return recentHubs; 
 }
 
+RecentUserEntryList RecentManager::getRecentChats() const noexcept {
+	RLock l(cs);
+	return recentChats;
+}
 
-void RecentManager::addRecent(const string& aUrl) noexcept {
-	
-	RecentEntryPtr r = getRecentEntry(aUrl);
-	if (r)
+RecentUserEntryList RecentManager::getRecentFilelists() const noexcept {
+	RLock l(cs);
+	return recentFilelists;
+}
+
+void RecentManager::on(TimerManagerListener::Minute, uint64_t) noexcept {
+	if (!xmlDirty) {
 		return;
+	}
+
+	xmlDirty = false;
+	save();
+}
+
+void RecentManager::on(MessageManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool) noexcept {
+	auto r = getRecentUser(aChat->getUser()->getCID(), recentChats);
+	if (r) {
+		r->updateLastOpened();
+		fire(RecentManagerListener::RecentChatUpdated(), r);
+		return;
+	}
 
 	{
 		WLock l(cs);
-		r = make_shared<RecentEntry>(aUrl);
-		recents.push_back(r);
+		r = make_shared<RecentUserEntry>(aChat->getHintedUser());
+		recentChats.push_back(r);
 	}
 
-	fire(RecentManagerListener::RecentAdded(), r);
-	delayEvents.addEvent(SAVE, [=] { saveRecents(); }, 5000);
+	fire(RecentManagerListener::RecentChatAdded(), r);
+	setDirty();
 }
 
-void RecentManager::removeRecent(const string& aUrl) noexcept {
-	RecentEntryPtr r = nullptr;
+void RecentManager::on(DirectoryListingManagerListener::ListingCreated, const DirectoryListingPtr& aListing) noexcept {
+	if (aListing->getIsOwnList()) {
+		return;
+	}
+
+	auto r = getRecentUser(aListing->getUser()->getCID(), recentFilelists);
+	if (r) {
+		r->updateLastOpened();
+		fire(RecentManagerListener::RecentFilelistUpdated(), r);
+		return;
+	}
+
 	{
 		WLock l(cs);
-		auto i = find_if(recents, [&aUrl](const RecentEntryPtr& rhe) { return Util::stricmp(rhe->getUrl(), aUrl) == 0; });
-		if (i == recents.end()) {
-			return;
-		}
-		r = *i;
-		recents.erase(i);
+		r = make_shared<RecentUserEntry>(aListing->getHintedUser());
+		recentFilelists.push_back(r);
 	}
-	fire(RecentManagerListener::RecentRemoved(), r);
-	delayEvents.addEvent(SAVE, [=] { saveRecents(); }, 1000);
+
+	fire(RecentManagerListener::RecentFilelistAdded(), r);
+	setDirty();
 }
 
-void RecentManager::updateRecent(const ClientPtr& aClient) noexcept {
-	RecentEntryPtr r = getRecentEntry(aClient->getHubUrl());
+void RecentManager::on(ClientManagerListener::ClientCreated, const ClientPtr& c) noexcept {
+	addRecentHub(c->getHubUrl());
+}
+
+void RecentManager::on(ClientManagerListener::ClientRedirected, const ClientPtr&, const ClientPtr& aNewClient) noexcept {
+	addRecentHub(aNewClient->getHubUrl());
+}
+
+void RecentManager::on(ClientManagerListener::ClientUpdated, const ClientPtr& c) noexcept {
+	updateRecentHub(c);
+}
+
+void RecentManager::on(ClientManagerListener::ClientRemoved, const ClientPtr& c) noexcept {
+	updateRecentHub(c);
+}
+
+void RecentManager::clearRecentHubs() noexcept {
+	for (const auto& r : recentHubs) {
+		fire(RecentManagerListener::RecentHubRemoved(), r);
+	}
+
+	{
+		WLock l(cs);
+		recentHubs.clear();
+	}
+
+	setDirty();
+}
+
+
+void RecentManager::addRecentHub(const string& aUrl) noexcept {
+	auto r = getRecentHub(aUrl);
+	if (r) {
+		r->updateLastOpened();
+		fire(RecentManagerListener::RecentHubUpdated(), r);
+		return;
+	}
+
+	{
+		WLock l(cs);
+		r = make_shared<RecentHubEntry>(aUrl);
+		recentHubs.push_back(r);
+	}
+
+	fire(RecentManagerListener::RecentHubAdded(), r);
+	setDirty();
+}
+
+void RecentManager::removeRecentHub(const string& aUrl) noexcept {
+	auto r = getRecentHub(aUrl);
+	if (!r) {
+		return;
+	}
+
+	{
+		WLock l(cs);
+		recentHubs.erase(remove(recentHubs.begin(), recentHubs.end(), r), recentHubs.end());
+	}
+
+	fire(RecentManagerListener::RecentHubRemoved(), r);
+	setDirty();
+}
+
+void RecentManager::updateRecentHub(const ClientPtr& aClient) noexcept {
+	auto r = getRecentHub(aClient->getHubUrl());
 	if (!r)
 		return;
 
@@ -98,33 +191,58 @@ void RecentManager::updateRecent(const ClientPtr& aClient) noexcept {
 		r->setDescription(aClient->getHubDescription());
 	}
 
-	fire(RecentManagerListener::RecentUpdated(), r);
-	delayEvents.addEvent(SAVE, [=] { saveRecents(); }, 5000);
+	fire(RecentManagerListener::RecentHubUpdated(), r);
+	setDirty();
 }
 
-void RecentManager::saveRecents() const noexcept {
+void RecentManager::save() const noexcept {
 	SimpleXML xml;
 
 	xml.addTag("Recents");
 	xml.stepIn();
 
-	xml.addTag("Hubs");
-	xml.stepIn();
+	saveRecentHubs(xml);
+	saveRecentUsers(xml, "PrivateChats", recentChats);
+	saveRecentUsers(xml, "Filelists", recentFilelists);
 
-	{
-		RLock l(cs);
-		for (const auto& rhe : recents) {
-			xml.addTag("Hub");
-			xml.addChildAttrib("Name", rhe->getName());
-			xml.addChildAttrib("Description", rhe->getDescription());
-			xml.addChildAttrib("Server", rhe->getUrl());
-		}
-	}
-
-	xml.stepOut();
 	xml.stepOut();
 
 	SettingsManager::saveSettingFile(xml, CONFIG_DIR, CONFIG_RECENTS_NAME);
+}
+
+void RecentManager::saveRecentHubs(SimpleXML& aXml) const noexcept {
+	aXml.addTag("Hubs");
+	aXml.stepIn();
+
+	{
+		RLock l(cs);
+		for (const auto& rhe : recentHubs) {
+			aXml.addTag("Hub");
+			aXml.addChildAttrib("Name", rhe->getName());
+			aXml.addChildAttrib("Description", rhe->getDescription());
+			aXml.addChildAttrib("Server", rhe->getUrl());
+			aXml.addChildAttrib("LastOpened", rhe->getLastOpened());
+		}
+	}
+
+	aXml.stepOut();
+}
+
+void RecentManager::saveRecentUsers(SimpleXML& aXml, const string& aRootTag, const RecentUserEntryList& users_) const noexcept {
+	aXml.addTag(aRootTag);
+	aXml.stepIn();
+
+	{
+		RLock l(cs);
+		for (const auto& rhe : users_) {
+			aXml.addTag("User");
+			aXml.addChildAttrib("CID", rhe->getUser().user->getCID().toBase32());
+			aXml.addChildAttrib("HubHint", rhe->getUser().hint);
+			aXml.addChildAttrib("LastOpened", rhe->getLastOpened());
+		}
+	}
+
+	aXml.stepOut();
 }
 
 void RecentManager::load() noexcept {
@@ -133,7 +251,9 @@ void RecentManager::load() noexcept {
 		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_RECENTS_NAME);
 		if (xml.findChild("Recents")) {
 			xml.stepIn();
-			loadRecents(xml);
+			loadRecentHubs(xml);
+			loadRecentUsers(xml, "PrivateChats", recentChats);
+			loadRecentUsers(xml, "Filelists", recentFilelists);
 			xml.stepOut();
 		}
 	} catch (const Exception& e) {
@@ -141,37 +261,64 @@ void RecentManager::load() noexcept {
 	}
 }
 
-void RecentManager::loadRecents(SimpleXML& aXml) {
+void RecentManager::loadRecentHubs(SimpleXML& aXml) {
 	aXml.resetCurrentChild();
 	if (aXml.findChild("Hubs")) {
 		aXml.stepIn();
 		while (aXml.findChild("Hub")) {
-			auto e = make_shared<RecentEntry>(aXml.getChildAttrib("Server"));
-			e->setName(aXml.getChildAttrib("Name"));
-			e->setDescription(aXml.getChildAttrib("Description"));
-			recents.push_back(e);
+			const string& hubUrl = aXml.getChildAttrib("Server");
+			const string& name = aXml.getChildAttrib("Name");
+			const string& description = aXml.getChildAttrib("Description");
+			const time_t& lastOpened = aXml.getLongLongChildAttrib("LastOpened");
+
+			auto e = make_shared<RecentHubEntry>(hubUrl, name, description, lastOpened);
+			recentHubs.push_back(e);
 		}
 		aXml.stepOut();
 	}
 }
 
-RecentEntryPtr RecentManager::getRecentEntry(const string& aServer) const noexcept {
-	RLock l(cs);
-	auto i = find_if(recents, [&aServer](const RecentEntryPtr& rhe) { return Util::stricmp(rhe->getUrl(), aServer) == 0; });
-	if (i != recents.end())
-		return *i;
+void RecentManager::loadRecentUsers(SimpleXML& aXml, const string& aRootTag, RecentUserEntryList& users_) {
+	aXml.resetCurrentChild();
+	if (aXml.findChild(aRootTag)) {
+		aXml.stepIn();
+		while (aXml.findChild("User")) {
+			const string& cid = aXml.getChildAttrib("CID");
+			const string& hubHint = aXml.getChildAttrib("HubHint");
+			const time_t& lastOpened = aXml.getLongLongChildAttrib("LastOpened");
 
-	return nullptr;
+			auto user = ClientManager::getInstance()->loadUser(cid, hubHint, Util::emptyString);
+			if (user == nullptr) {
+				return;
+			}
+
+			auto e = make_shared<RecentUserEntry>(HintedUser(user, hubHint), lastOpened);
+			users_.push_back(e);
+		}
+		aXml.stepOut();
+	}
 }
 
-RecentEntryList RecentManager::searchRecents(const string& aPattern, size_t aMaxResults) const noexcept {
-	auto search = RelevanceSearch<RecentEntryPtr>(aPattern, [](const RecentEntryPtr& aHub) {
+RecentHubEntryPtr RecentManager::getRecentHub(const string& aUrl) const noexcept {
+	RLock l(cs);
+	auto i = find_if(recentHubs, RecentHubEntry::UrlCompare(aUrl));
+	return i != recentHubs.end() ? *i : nullptr;
+}
+
+RecentUserEntryPtr RecentManager::getRecentUser(const CID& aCid, const RecentUserEntryList& aUsers) noexcept {
+	RLock l(cs);
+	auto i = find_if(aUsers, RecentUserEntry::CidCompare(aCid));
+	return i != aUsers.end() ? *i : nullptr;
+}
+
+RecentHubEntryList RecentManager::searchRecentHubs(const string& aPattern, size_t aMaxResults) const noexcept {
+	auto search = RelevanceSearch<RecentHubEntryPtr>(aPattern, [](const RecentHubEntryPtr& aHub) {
 		return aHub->getName();
 	});
 
 	{
 		RLock l(cs);
-		for (const auto& hub : recents) {
+		for (const auto& hub : recentHubs) {
 			search.match(hub);
 		}
 	}

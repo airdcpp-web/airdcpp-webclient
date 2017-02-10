@@ -269,7 +269,7 @@ bool ShareScannerManager::validateShare(FileFindIter& aIter, const string& aPath
 		return ShareManager::getInstance()->validate(aIter, aPath);
 	}
 
-	return false;
+	return true;
 }
 
 void ShareScannerManager::find(const string& aPath, ScanInfo& aScanInfo) noexcept {

@@ -89,7 +89,6 @@ void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progr
 	ThrottleManager::newInstance();
 	QueueManager::newInstance();
 	FavoriteManager::newInstance();
-	RecentManager::newInstance();
 	ADLSearchManager::newInstance();
 	ConnectivityManager::newInstance();
 	DirectoryListingManager::newInstance();
@@ -98,6 +97,7 @@ void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progr
 	UpdateManager::newInstance();
 	ViewFileManager::newInstance();
 	ActivityManager::newInstance();
+	RecentManager::newInstance();
 
 	if (moduleInitF) {
 		moduleInitF();
@@ -182,6 +182,7 @@ void shutdown(StepF stepF, ProgressF progressF, Callback moduleDestroyF) {
 	QueueManager::getInstance()->shutdown();
 	FavoriteManager::getInstance()->shutdown();
 	SettingsManager::getInstance()->save();
+	RecentManager::getInstance()->save();
 
 	if (moduleDestroyF) {
 		moduleDestroyF();
@@ -189,6 +190,7 @@ void shutdown(StepF stepF, ProgressF progressF, Callback moduleDestroyF) {
 
 	announce(STRING(SHUTTING_DOWN));
 
+	RecentManager::deleteInstance();
 	ActivityManager::deleteInstance();
 	ViewFileManager::deleteInstance();
 	UpdateManager::deleteInstance();
@@ -205,7 +207,6 @@ void shutdown(StepF stepF, ProgressF progressF, Callback moduleDestroyF) {
 	MessageManager::deleteInstance();
 	ConnectionManager::deleteInstance();
 	SearchManager::deleteInstance();
-	RecentManager::deleteInstance();
 	FavoriteManager::deleteInstance();
 	ClientManager::deleteInstance();
 	ShareManager::deleteInstance();

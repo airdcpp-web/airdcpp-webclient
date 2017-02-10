@@ -180,8 +180,6 @@ public:
 
 	optional<DirectoryBundleAddInfo> createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPrio, string& errorMsg_) noexcept;
 
-	ViewFilePtr viewAsText(const File::Ptr& aFile) const noexcept;
-
 	int64_t getTotalListSize(bool adls = false) const noexcept { return root->getTotalSize(adls); }
 	int64_t getDirSize(const string& aDir) const noexcept;
 	size_t getTotalFileCount(bool adls = false) const noexcept { return root->getTotalFileCount(adls); }
@@ -214,8 +212,6 @@ public:
 	GETSET(bool, matchADL, MatchADL);
 	IGETSET(bool, closing, Closing, false);
 
-	typedef std::function<void(const string& aPath)> DupeOpenF;
-	void addViewNfoTask(const string& aDir, bool aAllowQueueList, DupeOpenF aDupeF = nullptr) noexcept;
 	void addMatchADLTask() noexcept;
 	void addListDiffTask(const string& aFile, bool aOwnList) noexcept;
 
@@ -315,7 +311,6 @@ private:
 	void loadPartialImpl(const string& aXml, const string& aBasePath, bool aBackgroundTask, const AsyncF& aCompletionF) throw(Exception, AbortException);
 	void matchAdlImpl() throw(AbortException);
 	void matchQueueImpl() noexcept;
-	void findNfoImpl(const string& aPath, bool aAllowQueueList, DupeOpenF aDupeF) noexcept;
 
 	HintedUser hintedUser;
 	bool read = false;
