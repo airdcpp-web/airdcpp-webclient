@@ -1166,6 +1166,7 @@ void AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch) noex
 
 	if (user.getUser()->isSet(User::ASCH)) {
 		if (!aSearch->path.empty()) {
+			dcassert(aSearch->path.front() == ADC_SEPARATOR);
 			c.addParam("PA", aSearch->path);
 		}
 

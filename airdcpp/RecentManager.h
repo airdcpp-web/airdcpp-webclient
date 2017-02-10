@@ -16,50 +16,75 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef RECENT_MANAGER_H
-#define RECENT_MANAGER_H
+#ifndef DCPLUSPLUS_DCPP_RECENT_MANAGER_H
+#define DCPLUSPLUS_DCPP_RECENT_MANAGER_H
 
 #include "RecentEntry.h"
 #include "Singleton.h"
 #include "Speaker.h"
-#include "DelayedEvents.h"
 
+#include "ClientManagerListener.h"
+#include "DirectoryListingManagerListener.h"
+#include "MessageManagerListener.h"
 #include "RecentManagerListener.h"
+#include "TimerManagerListener.h"
 
 
 namespace dcpp {
-	class RecentManager : public Speaker<RecentManagerListener>, public Singleton<RecentManager>
+	class RecentManager : public Speaker<RecentManagerListener>, public Singleton<RecentManager>, private TimerManagerListener,
+		private ClientManagerListener, private MessageManagerListener, private DirectoryListingManagerListener
 	{
 	public:
+		RecentUserEntryList getRecentChats() const noexcept;
+		RecentUserEntryList getRecentFilelists() const noexcept;
+
 		// Recent Hubs
-		RecentEntryList getRecents() noexcept {  RLock l(cs); return recents; };
+		RecentHubEntryList getRecentHubs() const noexcept;
 
-		void addRecent(const string& aEntry) noexcept;
-		void removeRecent(const string& aEntry) noexcept;
-		void updateRecent(const ClientPtr& aClient) noexcept;
+		void addRecentHub(const string& aEntry) noexcept;
+		void removeRecentHub(const string& aEntry) noexcept;
+		void updateRecentHub(const ClientPtr& aClient) noexcept;
 
-		RecentEntryPtr getRecentEntry(const string& aServer) const noexcept;
-		RecentEntryList searchRecents(const string& aPattern, size_t aMaxResults) const noexcept;
+		void clearRecentHubs() noexcept;
 
-		void clearRecents() noexcept;
-		void saveRecents() const noexcept;
+		RecentHubEntryPtr getRecentHub(const string& aServer) const noexcept;
+		RecentHubEntryList searchRecentHubs(const string& aPattern, size_t aMaxResults) const noexcept;
 
 		void load() noexcept;
+		void save() const noexcept;
+	private:
+		RecentUserEntryPtr getRecentUser(const CID& aCid, const RecentUserEntryList& aUsers) noexcept;
+		void setDirty() noexcept { xmlDirty = true; }
+
+		RecentHubEntryList recentHubs;
+		RecentUserEntryList recentChats, recentFilelists;
+
+		friend class Singleton<RecentManager>;
 
 		mutable SharedMutex cs;
-	private:
-		RecentEntryList recents;
-		friend class Singleton<RecentManager>;
-		
-		enum Events {
-			SAVE = 0
-		};
+
+		void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
+
+		void on(ClientManagerListener::ClientCreated, const ClientPtr& c) noexcept;
+		void on(ClientManagerListener::ClientRedirected, const ClientPtr& aOldClient, const ClientPtr& aNewClient) noexcept;
+		void on(ClientManagerListener::ClientUpdated, const ClientPtr& c) noexcept;
+		void on(ClientManagerListener::ClientRemoved, const ClientPtr& c) noexcept;
+
+		void on(MessageManagerListener::ChatCreated, const PrivateChatPtr&, bool /* received message */) noexcept;
+
+		void on(DirectoryListingManagerListener::ListingCreated, const DirectoryListingPtr&) noexcept;
+
+
 		RecentManager();
 		~RecentManager();
 
-		DelayedEvents<int> delayEvents;
+		void loadRecentHubs(SimpleXML& aXml);
+		void loadRecentUsers(SimpleXML& aXml, const string& aRootTag, RecentUserEntryList& users_);
 
-		void loadRecents(SimpleXML& aXml);
+		void saveRecentHubs(SimpleXML& aXml) const noexcept;
+		void saveRecentUsers(SimpleXML& aXml, const string& aRootTag, const RecentUserEntryList& users_) const noexcept;
+
+		bool xmlDirty = false;
 	};
 
 } // namespace dcpp

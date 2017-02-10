@@ -702,9 +702,7 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess) 
 	}
 
 	string error = d->getType() == Transfer::TYPE_TREE ? STRING(NO_FULL_TREE) : STRING(FILE_NOT_AVAILABLE);
-	if (d->isSet(Download::FLAG_NFO) && isNmdc) {
-		error = STRING(NO_PARTIAL_SUPPORT);
-	} else if (aNoAccess) {
+	if (aNoAccess) {
 		error = STRING(NO_FILE_ACCESS);
 	}
 

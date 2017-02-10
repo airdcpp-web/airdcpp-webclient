@@ -51,8 +51,6 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 		setFlag(FLAG_VIEW);
 	if(qi.isSet(QueueItem::FLAG_MATCH_QUEUE))
 		setFlag(FLAG_QUEUE);
-	if(qi.isSet(QueueItem::FLAG_VIEW_NFO))
-		setFlag(FLAG_NFO);
 	if(qi.isSet(QueueItem::FLAG_RECURSIVE_LIST))
 		setFlag(FLAG_RECURSIVE);
 	if(qi.isSet(QueueItem::FLAG_TTHLIST_BUNDLE))
