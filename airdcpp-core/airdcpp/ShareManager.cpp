@@ -76,6 +76,7 @@ ShareManager::~ShareManager() {
 	SettingsManager::getInstance()->removeListener(this);
 }
 
+// Note that settings are loaded before this function is called
 void ShareManager::startup(function<void(const string&)> splashF, function<void(float)> progressF) noexcept {
 	AirUtil::updateCachedSettings();
 	if (!getShareProfile(SETTING(DEFAULT_SP))) {
@@ -89,8 +90,6 @@ void ShareManager::startup(function<void(const string&)> splashF, function<void(
 
 	ShareProfilePtr hidden = std::make_shared<ShareProfile>(STRING(SHARE_HIDDEN), SP_HIDDEN);
 	shareProfiles.push_back(hidden);
-
-	validator.reset(new SharePathValidator());
 
 	bool refreshed = false;
 	if(!loadCache(progressF)) {
@@ -665,6 +664,8 @@ void ShareManager::loadProfile(SimpleXML& aXml, const string& aName, ProfileToke
 }
 
 void ShareManager::load(SimpleXML& aXml) {
+	validator.reset(new SharePathValidator());
+
 	//WLock l(cs);
 	aXml.resetCurrentChild();
 
