@@ -35,7 +35,7 @@ public:
 	void updateLastOpened() noexcept { lastOpened = GET_TIME(); }
 
 	template<typename T> struct Sort {
-		bool operator()(typename T::Ptr& a, typename T::Ptr& b) const noexcept { return a->getLastOpened() > b->getLastOpened(); }
+		bool operator()(const typename T::Ptr& a, const typename T::Ptr& b) const noexcept { return a->getLastOpened() > b->getLastOpened(); }
 	};
 private:
 	time_t lastOpened;
