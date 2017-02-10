@@ -48,7 +48,6 @@ namespace webserver {
 		METHOD_HANDLER(Access::VIEW_FILES_EDIT, METHOD_POST,	(EXACT_PARAM("sessions"), TTH_PARAM),						ViewFileApi::handleAddLocalFile);
 		METHOD_HANDLER(Access::VIEW_FILES_EDIT, METHOD_DELETE,	(EXACT_PARAM("sessions"), TTH_PARAM),						ViewFileApi::handleRemoveFile);
 
-		METHOD_HANDLER(Access::VIEW_FILES_VIEW, METHOD_GET,		(EXACT_PARAM("sessions"), TTH_PARAM, EXACT_PARAM("text")),	ViewFileApi::handleGetText);
 		METHOD_HANDLER(Access::VIEW_FILES_VIEW, METHOD_POST,	(EXACT_PARAM("sessions"), TTH_PARAM, EXACT_PARAM("read")),	ViewFileApi::handleSetRead);
 	}
 
@@ -126,50 +125,6 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(serializeFile(file));
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return ViewFileApi::handleGetText(ApiRequest& aRequest) {
-		auto file = ViewFileManager::getInstance()->getFile(aRequest.getTTHParam());
-		if (!file) {
-			aRequest.setResponseErrorStr("File not found");
-			return websocketpp::http::status_code::not_found;
-		}
-
-		if (!file->isText()) {
-			aRequest.setResponseErrorStr("This method can't be used for non-text files");
-			return websocketpp::http::status_code::bad_request;
-		}
-
-		if (File::getSize(file->getPath()) > Util::convertSize(1, Util::MB)) {
-			aRequest.setResponseErrorStr("File is too big to be viewed as text");
-			return websocketpp::http::status_code::bad_request;
-		}
-
-		string content;
-		try {
-			File f(file->getPath(), File::READ, File::OPEN);
-
-			auto encoding = Util::emptyString;
-			bool nfo = Util::getFileExt(file->getPath()) == ".nfo";
-			if (nfo) {
-				// Platform-independent encoding conversion function could be added if there is more use for it
-#ifdef _WIN32
-				encoding = "CP.437";
-#else
-				encoding = "cp437";
-#endif
-			}
-
-			content = Text::toUtf8(f.read(), encoding);
-		} catch (const FileException& e) {
-			aRequest.setResponseErrorStr("Failed to open the file: " + e.getError() + "(" + file->getPath() + ")");
-			return websocketpp::http::status_code::internal_server_error;
-		}
-
-		aRequest.setResponseBody({
-			{ "text", content },
-		});
 		return websocketpp::http::status_code::ok;
 	}
 

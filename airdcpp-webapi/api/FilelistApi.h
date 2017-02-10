@@ -46,7 +46,6 @@ namespace webserver {
 		api_return handleDeleteDirectoryDownload(ApiRequest& aRequest);
 		api_return handleGetDirectoryDownloads(ApiRequest& aRequest);
 
-		api_return handleFindNfo(ApiRequest& aRequest);
 		api_return handleMatchQueue(ApiRequest& aRequest);
 
 		void on(DirectoryListingManagerListener::ListingCreated, const DirectoryListingPtr& aList) noexcept override;

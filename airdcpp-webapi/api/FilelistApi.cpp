@@ -51,7 +51,6 @@ namespace webserver {
 		METHOD_HANDLER(Access::DOWNLOAD,		METHOD_POST,	(EXACT_PARAM("directory_downloads")),				FilelistApi::handlePostDirectoryDownload);
 		METHOD_HANDLER(Access::DOWNLOAD,		METHOD_DELETE,	(EXACT_PARAM("directory_downloads"), TOKEN_PARAM),	FilelistApi::handleDeleteDirectoryDownload);
 
-		METHOD_HANDLER(Access::VIEW_FILES_EDIT,	METHOD_POST,	(EXACT_PARAM("find_nfo")),							FilelistApi::handleFindNfo);
 		METHOD_HANDLER(Access::QUEUE_EDIT,		METHOD_POST,	(EXACT_PARAM("match_queue")),						FilelistApi::handleMatchQueue);
 
 		auto rawLists = DirectoryListingManager::getInstance()->getLists();
@@ -89,31 +88,6 @@ namespace webserver {
 
 		aRequest.setResponseBody(serializeList(dl));
 		return websocketpp::http::status_code::ok;
-	}
-
-	api_return FilelistApi::handleFindNfo(ApiRequest& aRequest) {
-		const auto& reqJson = aRequest.getRequestBody();
-
-		auto user = Deserializer::deserializeHintedUser(reqJson);
-		if (user.user->isNMDC()) {
-			aRequest.setResponseErrorStr("This feature can't be used with NMDC users");
-			return websocketpp::http::status_code::precondition_failed;
-		}
-
-		auto directory = Util::toNmdcFile(JsonUtil::getField<string>("directory", reqJson, false));
-		if (directory == NMDC_ROOT_STR) {
-			aRequest.setResponseErrorStr("Filelist root is not allowed");
-			return websocketpp::http::status_code::precondition_failed;
-		}
-
-		try {
-			 QueueManager::getInstance()->addList(user, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_VIEW_NFO | QueueItem::FLAG_RECURSIVE_LIST, directory);
-		} catch (const Exception& e) {
-			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::bad_request;
-		}
-
-		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return FilelistApi::handleMatchQueue(ApiRequest& aRequest) {

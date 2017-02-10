@@ -23,8 +23,10 @@
 
 #include <api/common/Deserializer.h>
 
+#include <airdcpp/AirUtil.h>
 #include <airdcpp/File.h>
 #include <airdcpp/Util.h>
+
 #include <airdcpp/ViewFileManager.h>
 
 #include <sstream>
@@ -202,8 +204,8 @@ namespace webserver {
 	}
 
 	string FileServer::parseViewFilePath(const string& aResource, StringPairList& headers_, const SessionPtr& aSession) const {
-		string protocol, tth, port, path, query, fragment;
-		Util::decodeUrl(aResource, protocol, tth, port, path, query, fragment);
+		string protocol, tthStr, port, path, query, fragment;
+		Util::decodeUrl(aResource, protocol, tthStr, port, path, query, fragment);
 
 		auto session = aSession;
 		if (!session) {
@@ -217,15 +219,20 @@ namespace webserver {
 			}
 		}
 
-		auto file = ViewFileManager::getInstance()->getFile(Deserializer::parseTTH(tth));
-		if (!file) {
-			throw RequestException(websocketpp::http::status_code::not_found, "No files matching the TTH were found");
+		auto tth = Deserializer::parseTTH(tthStr);
+		auto paths = AirUtil::getFileDupePaths(AirUtil::checkFileDupe(tth), tth);
+		if (paths.empty()) {
+			auto file = ViewFileManager::getInstance()->getFile(tth);
+			if (!file) {
+				throw RequestException(websocketpp::http::status_code::not_found, "No files matching the TTH were found");
+			}
+
+			paths.push_back(file->getPath());
 		}
 
-		// One day 
-		// Files are identified by their TTH so the content won't change (but they are usually open only for a short time)
-		addCacheControlHeader(headers_, 1);
-		return file->getPath();
+		addCacheControlHeader(headers_, 1); // One day (files are identified by their TTH so the content won't change)
+
+		return paths.front();
 	}
 
 	string FileServer::formatPartialRange(int64_t aStartPos, int64_t aEndPos, int64_t aFileSize) noexcept {
@@ -309,6 +316,18 @@ namespace webserver {
 		} catch (const std::bad_alloc&) {
 			output_ = "Not enough memory on the server to serve this request";
 			return websocketpp::http::status_code::internal_server_error;
+		}
+
+		if (Util::getFileExt(filePath) == ".nfo") {
+			string encoding;
+
+			// Platform-independent encoding conversion function could be added if there is more use for it
+#ifdef _WIN32
+			encoding = "CP.437";
+#else
+			encoding = "cp437";
+#endif
+			output_ = Text::toUtf8(output_, encoding);
 		}
 
 		// Get the mime type (but get it from the original request with gzipped content)
