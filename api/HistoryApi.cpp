@@ -27,12 +27,15 @@
 namespace webserver {
 #define HISTORY_TYPE "history_type"
 	HistoryApi::HistoryApi(Session* aSession) : ApiModule(aSession) {
-		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("strings"), STR_PARAM(HISTORY_TYPE)),	HistoryApi::handleGetStrings);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("strings"), STR_PARAM(HISTORY_TYPE)),	HistoryApi::handleDeleteStrings);
-		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("strings"), STR_PARAM(HISTORY_TYPE)),	HistoryApi::handlePostString);
+		METHOD_HANDLER(Access::ANY,					METHOD_GET,		(EXACT_PARAM("strings"), STR_PARAM(HISTORY_TYPE)),	HistoryApi::handleGetStrings);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,		METHOD_DELETE,	(EXACT_PARAM("strings"), STR_PARAM(HISTORY_TYPE)),	HistoryApi::handleDeleteStrings);
+		METHOD_HANDLER(Access::ANY,					METHOD_POST,	(EXACT_PARAM("strings"), STR_PARAM(HISTORY_TYPE)),	HistoryApi::handlePostString);
 
-		METHOD_HANDLER(Access::HUBS_VIEW,		METHOD_GET,		(EXACT_PARAM("hubs"), RANGE_MAX_PARAM),				HistoryApi::handleGetHubs);
-		METHOD_HANDLER(Access::HUBS_VIEW,		METHOD_POST,	(EXACT_PARAM("hubs"), EXACT_PARAM("search")),		HistoryApi::handleSearchHubs);
+		METHOD_HANDLER(Access::HUBS_VIEW,			METHOD_GET,		(EXACT_PARAM("hubs"), RANGE_MAX_PARAM),				HistoryApi::handleGetHubs);
+		METHOD_HANDLER(Access::HUBS_VIEW,			METHOD_POST,	(EXACT_PARAM("hubs"), EXACT_PARAM("search")),		HistoryApi::handleSearchHubs);
+
+		METHOD_HANDLER(Access::PRIVATE_CHAT_VIEW,	METHOD_GET,		(EXACT_PARAM("private_chats"), RANGE_MAX_PARAM),	HistoryApi::handleGetChats);
+		METHOD_HANDLER(Access::FILELISTS_VIEW,		METHOD_GET,		(EXACT_PARAM("filelists"), RANGE_MAX_PARAM),		HistoryApi::handleGetFilelists);
 	}
 
 	HistoryApi::~HistoryApi() {
@@ -72,11 +75,19 @@ namespace webserver {
 		throw RequestException(websocketpp::http::status_code::bad_request, "Invalid string history type");
 	}
 
-	json HistoryApi::serializeHub(const RecentEntryPtr& aHub) noexcept {
+	json HistoryApi::serializeHub(const RecentHubEntryPtr& aHub) noexcept {
 		return {
 			{ "name", aHub->getName() },
 			{ "description", aHub->getDescription() },
-			{ "hub_url", aHub->getUrl() }
+			{ "hub_url", aHub->getUrl() },
+			{ "last_opened", aHub->getLastOpened() }
+		};
+	}
+
+	json HistoryApi::serializeUser(const RecentUserEntryPtr& aUser) noexcept {
+		return {
+			{ "user", Serializer::serializeHintedUser(aUser->getUser()) },
+			{ "last_opened", aUser->getLastOpened() }
 		};
 	}
 
@@ -86,15 +97,36 @@ namespace webserver {
 		auto pattern = JsonUtil::getField<string>("pattern", reqJson);
 		auto maxResults = JsonUtil::getField<size_t>("max_results", reqJson);
 
-		auto hubs = RecentManager::getInstance()->searchRecents(pattern, maxResults);
+		auto hubs = RecentManager::getInstance()->searchRecentHubs(pattern, maxResults);
 		aRequest.setResponseBody(Serializer::serializeList(hubs, serializeHub));
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return HistoryApi::handleGetHubs(ApiRequest& aRequest) {
-		auto hubs = RecentManager::getInstance()->getRecents();
+		auto hubs = RecentManager::getInstance()->getRecentHubs();
+		sort(hubs.begin(), hubs.end(), RecentBase::Sort<RecentHubEntry>());
 
-		auto retJson = Serializer::serializeFromEnd(aRequest.getRangeParam(MAX_COUNT), hubs, serializeHub);
+		auto retJson = Serializer::serializeFromPosition(0, aRequest.getRangeParam(MAX_COUNT), hubs, serializeHub);
+		aRequest.setResponseBody(retJson);
+
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return HistoryApi::handleGetChats(ApiRequest& aRequest) {
+		auto entries = RecentManager::getInstance()->getRecentChats();
+		sort(entries.begin(), entries.end(), RecentBase::Sort<RecentUserEntry>());
+
+		auto retJson = Serializer::serializeFromPosition(0, aRequest.getRangeParam(MAX_COUNT), entries, serializeUser);
+		aRequest.setResponseBody(retJson);
+
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return HistoryApi::handleGetFilelists(ApiRequest& aRequest) {
+		auto entries = RecentManager::getInstance()->getRecentFilelists();
+		sort(entries.begin(), entries.end(), RecentBase::Sort<RecentUserEntry>());
+
+		auto retJson = Serializer::serializeFromPosition(0, aRequest.getRangeParam(MAX_COUNT), entries, serializeUser);
 		aRequest.setResponseBody(retJson);
 
 		return websocketpp::http::status_code::ok;

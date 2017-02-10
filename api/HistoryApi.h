@@ -24,6 +24,7 @@
 #include <api/ApiModule.h>
 
 #include <airdcpp/typedefs.h>
+#include <airdcpp/RecentEntry.h>
 #include <airdcpp/SettingsManager.h>
 
 namespace webserver {
@@ -36,10 +37,13 @@ namespace webserver {
 		api_return handleDeleteStrings(ApiRequest& aRequest);
 		api_return handlePostString(ApiRequest& aRequest);
 
-		static json serializeHub(const RecentEntryPtr& aHub) noexcept;
+		static json serializeHub(const RecentHubEntryPtr& aHub) noexcept;
+		static json serializeUser(const RecentUserEntryPtr& aHub) noexcept;
 
 		api_return handleSearchHubs(ApiRequest& aRequest);
 		api_return handleGetHubs(ApiRequest& aRequest);
+		api_return handleGetChats(ApiRequest& aRequest);
+		api_return handleGetFilelists(ApiRequest& aRequest);
 
 		static SettingsManager::HistoryType toHistoryType(const string& aName);
 	};

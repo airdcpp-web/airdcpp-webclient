@@ -41,7 +41,6 @@ namespace webserver {
 		api_return handleGetFile(ApiRequest& aRequest);
 		api_return handleRemoveFile(ApiRequest& aRequest);
 
-		api_return handleGetText(ApiRequest& aRequest);
 		api_return handleSetRead(ApiRequest& aRequest);
 
 		static json serializeDownloadState(const ViewFilePtr& aFile) noexcept;
