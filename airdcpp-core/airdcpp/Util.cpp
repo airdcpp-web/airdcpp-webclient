@@ -755,6 +755,19 @@ string Util::formatBytes(int64_t aBytes) noexcept {
 	return buf;
 }
 
+string Util::formatAbbreviated(int aNum) noexcept {
+	char buf[64];
+	if (aNum < 2000) {
+		snprintf(buf, sizeof(buf), "%d", aNum);
+	} else if (aNum < 1000000) {
+		snprintf(buf, sizeof(buf), "%.01f%s", (double)aNum / 1000.0, "k");
+	} else {
+		snprintf(buf, sizeof(buf), "%.01f%s", (double)aNum / (1000000.0), "m");
+	}
+
+	return buf;
+}
+
 #ifdef _WIN32
 wstring Util::formatBytesW(int64_t aBytes) noexcept {
 	wchar_t buf[64];
@@ -775,20 +788,6 @@ wstring Util::formatBytesW(int64_t aBytes) noexcept {
 	}
 	return buf;
 }
-#endif
-
-string Util::formatAbbreviated(int aNum) noexcept {
-	char buf[64];
-	if (aNum < 2000) {
-		snprintf(buf, sizeof(buf), "%d", aNum);
-	} else if (aNum < 1000000) {
-		snprintf(buf, sizeof(buf), "%.01f%s", (double)aNum / 1000.0, "k");
-	} else {
-		snprintf(buf, sizeof(buf), "%.01f%s", (double)aNum / (1000000.0), "m");
-	}
-
-	return buf;
-}
 
 wstring Util::formatAbbreviatedW(int aNum) noexcept {
 	wchar_t buf[64];
@@ -802,6 +801,7 @@ wstring Util::formatAbbreviatedW(int aNum) noexcept {
 
 	return buf;
 }
+#endif
 
 int64_t Util::convertSize(int64_t aValue, Util::SizeUnits valueType, Util::SizeUnits to /*B*/) noexcept {
 	if (valueType > to) {
