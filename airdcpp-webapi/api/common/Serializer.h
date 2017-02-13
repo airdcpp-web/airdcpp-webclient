@@ -81,7 +81,7 @@ namespace webserver {
 		static json serializeGroupedPaths(const pair<string, OrderedStringSet>& aGroupedPair) noexcept;
 		static json serializeActionHookError(const ActionHookErrorPtr& aError) noexcept;
 
-		// Serialize n messages from end by keeping the list order
+		// Serialize n items from end by keeping the list order
 		// Throws for invalid parameters
 		template <class ContainerT, class FuncT>
 		static json serializeFromEnd(int aCount, const ContainerT& aList, FuncT aF) throw(std::exception) {
@@ -100,6 +100,28 @@ namespace webserver {
 			}
 
 			return serializeRange(beginIter, aList.end(), aF);
+		}
+
+		// Serialize n items from beginning by keeping the list order
+		// Throws for invalid parameters
+		template <class ContainerT, class FuncT>
+		static json serializeFromBegin(int aCount, const ContainerT& aList, FuncT aF) throw(std::exception) {
+			if (aList.empty()) {
+				return json::array();
+			}
+
+			if (aCount < 0) {
+				throw std::domain_error("Invalid range");
+			}
+
+			auto listSize = static_cast<int>(std::distance(aList.begin(), aList.end()));
+			auto endIter = aList.end();
+			if (aCount > 0 && listSize > aCount) {
+				endIter = aList.begin();
+				std::advance(endIter, aCount);
+			}
+
+			return serializeRange(aList.begin(), endIter, aF);
 		}
 
 		template <class ContainerT, class FuncT>

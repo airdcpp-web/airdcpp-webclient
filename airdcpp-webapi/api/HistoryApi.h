@@ -37,15 +37,14 @@ namespace webserver {
 		api_return handleDeleteStrings(ApiRequest& aRequest);
 		api_return handlePostString(ApiRequest& aRequest);
 
-		static json serializeHub(const RecentHubEntryPtr& aHub) noexcept;
-		static json serializeUser(const RecentUserEntryPtr& aHub) noexcept;
+		static json serializeRecentEntry(const RecentEntryPtr& aHub) noexcept;
 
-		api_return handleSearchHubs(ApiRequest& aRequest);
-		api_return handleGetHubs(ApiRequest& aRequest);
-		api_return handleGetChats(ApiRequest& aRequest);
-		api_return handleGetFilelists(ApiRequest& aRequest);
+		api_return handleSearchRecents(ApiRequest& aRequest);
+		api_return handleGetRecents(ApiRequest& aRequest);
+		api_return handleClearRecents(ApiRequest& aRequest);
 
-		static SettingsManager::HistoryType toHistoryType(const string& aName);
+		static SettingsManager::HistoryType toHistoryType(ApiRequest& aRequest);
+		static RecentEntry::Type toRecentType(ApiRequest& aRequest);
 	};
 }
 
