@@ -37,6 +37,24 @@ namespace dcpp {
 
 using boost::range::find_if;
 
+string RecentManager::rootTags[RecentEntry::TYPE_LAST] = {
+	"Hubs",
+	"PrivateChats",
+	"Filelists"
+};
+
+string RecentManager::itemTags[RecentEntry::TYPE_LAST] = {
+	"Hub",
+	"User",
+	"User"
+};
+
+SettingsManager::IntSetting RecentManager::maxLimits[RecentEntry::TYPE_LAST] = {
+	SettingsManager::MAX_RECENT_HUBS,
+	SettingsManager::MAX_RECENT_PRIVATE_CHATS,
+	SettingsManager::MAX_RECENT_FILELISTS,
+};
+
 RecentManager::RecentManager() {
 	ClientManager::getInstance()->addListener(this);
 	DirectoryListingManager::getInstance()->addListener(this);
@@ -53,19 +71,9 @@ RecentManager::~RecentManager() {
 	TimerManager::getInstance()->removeListener(this);
 }
 
-RecentHubEntryList RecentManager::getRecentHubs() const noexcept {
+RecentEntryList RecentManager::getRecents(RecentEntry::Type aType) const noexcept {
 	RLock l(cs); 
-	return recentHubs; 
-}
-
-RecentUserEntryList RecentManager::getRecentChats() const noexcept {
-	RLock l(cs);
-	return recentChats;
-}
-
-RecentUserEntryList RecentManager::getRecentFilelists() const noexcept {
-	RLock l(cs);
-	return recentFilelists;
+	return recents[aType]; 
 }
 
 void RecentManager::on(TimerManagerListener::Minute, uint64_t) noexcept {
@@ -78,21 +86,9 @@ void RecentManager::on(TimerManagerListener::Minute, uint64_t) noexcept {
 }
 
 void RecentManager::on(MessageManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool) noexcept {
-	auto r = getRecentUser(aChat->getUser()->getCID(), recentChats);
-	if (r) {
-		r->updateLastOpened();
-		fire(RecentManagerListener::RecentChatUpdated(), r);
-		return;
-	}
-
-	{
-		WLock l(cs);
-		r = make_shared<RecentUserEntry>(aChat->getHintedUser());
-		recentChats.push_back(r);
-	}
-
-	fire(RecentManagerListener::RecentChatAdded(), r);
-	setDirty();
+	auto old = getRecent(RecentEntry::TYPE_PRIVATE_CHAT, RecentEntry::CidCompare(aChat->getUser()->getCID()));
+	auto nick = ClientManager::getInstance()->getNick(aChat->getUser(), aChat->getHubUrl(), false);
+	onRecentOpened(RecentEntry::TYPE_PRIVATE_CHAT, nick, Util::emptyString, aChat->getHubUrl(), aChat->getUser(), old);
 }
 
 void RecentManager::on(DirectoryListingManagerListener::ListingCreated, const DirectoryListingPtr& aListing) noexcept {
@@ -100,98 +96,91 @@ void RecentManager::on(DirectoryListingManagerListener::ListingCreated, const Di
 		return;
 	}
 
-	auto r = getRecentUser(aListing->getUser()->getCID(), recentFilelists);
-	if (r) {
-		r->updateLastOpened();
-		fire(RecentManagerListener::RecentFilelistUpdated(), r);
-		return;
-	}
-
-	{
-		WLock l(cs);
-		r = make_shared<RecentUserEntry>(aListing->getHintedUser());
-		recentFilelists.push_back(r);
-	}
-
-	fire(RecentManagerListener::RecentFilelistAdded(), r);
-	setDirty();
+	auto shareInfo = ClientManager::getInstance()->getShareInfo(aListing->getHintedUser());
+	auto nick = ClientManager::getInstance()->getNick(aListing->getUser(), aListing->getHubUrl(), false);
+	auto old = getRecent(RecentEntry::TYPE_FILELIST, RecentEntry::CidCompare(aListing->getUser()->getCID()));
+	onRecentOpened(RecentEntry::TYPE_FILELIST, nick, shareInfo ? Util::formatBytes((*shareInfo).size) : Util::emptyString, aListing->getHubUrl(), aListing->getUser(), old);
 }
 
-void RecentManager::on(ClientManagerListener::ClientCreated, const ClientPtr& c) noexcept {
-	addRecentHub(c->getHubUrl());
+void RecentManager::on(ClientManagerListener::ClientCreated, const ClientPtr& aClient) noexcept {
+	onHubOpened(aClient);
 }
 
 void RecentManager::on(ClientManagerListener::ClientRedirected, const ClientPtr&, const ClientPtr& aNewClient) noexcept {
-	addRecentHub(aNewClient->getHubUrl());
+	onHubOpened(aNewClient);
+	auto old = getRecent(RecentEntry::TYPE_HUB, RecentEntry::UrlCompare(aNewClient->getHubUrl()));
+	onRecentOpened(RecentEntry::TYPE_HUB, aNewClient->getHubUrl(), Util::emptyString, aNewClient->getHubUrl(), nullptr, old);
 }
 
-void RecentManager::on(ClientManagerListener::ClientUpdated, const ClientPtr& c) noexcept {
-	updateRecentHub(c);
+void RecentManager::onHubOpened(const ClientPtr& aClient) noexcept {
+	auto old = getRecent(RecentEntry::TYPE_HUB, RecentEntry::UrlCompare(aClient->getHubUrl()));
+	onRecentOpened(RecentEntry::TYPE_HUB, aClient->getHubUrl(), Util::emptyString, aClient->getHubUrl(), nullptr, old);
 }
 
-void RecentManager::on(ClientManagerListener::ClientRemoved, const ClientPtr& c) noexcept {
-	updateRecentHub(c);
-}
-
-void RecentManager::clearRecentHubs() noexcept {
-	for (const auto& r : recentHubs) {
-		fire(RecentManagerListener::RecentHubRemoved(), r);
-	}
-
-	{
-		WLock l(cs);
-		recentHubs.clear();
-	}
-
-	setDirty();
-}
-
-
-void RecentManager::addRecentHub(const string& aUrl) noexcept {
-	auto r = getRecentHub(aUrl);
-	if (r) {
-		r->updateLastOpened();
-		fire(RecentManagerListener::RecentHubUpdated(), r);
-		return;
-	}
-
-	{
-		WLock l(cs);
-		r = make_shared<RecentHubEntry>(aUrl);
-		recentHubs.push_back(r);
-	}
-
-	fire(RecentManagerListener::RecentHubAdded(), r);
-	setDirty();
-}
-
-void RecentManager::removeRecentHub(const string& aUrl) noexcept {
-	auto r = getRecentHub(aUrl);
+void RecentManager::on(ClientManagerListener::ClientUpdated, const ClientPtr& aClient) noexcept {
+	auto r = getRecent(RecentEntry::TYPE_HUB, RecentEntry::UrlCompare(aClient->getHubUrl()));
 	if (!r) {
 		return;
 	}
 
-	{
-		WLock l(cs);
-		recentHubs.erase(remove(recentHubs.begin(), recentHubs.end(), r), recentHubs.end());
+	r->setName(aClient->getHubName());
+	r->setDescription(aClient->getHubDescription());
+
+	onRecentUpdated(RecentEntry::TYPE_HUB, r);
+}
+
+void RecentManager::clearRecents(RecentEntry::Type aType) noexcept {
+	for (const auto& r : recents[aType]) {
+		fire(RecentManagerListener::RecentRemoved(), r, aType);
 	}
 
-	fire(RecentManagerListener::RecentHubRemoved(), r);
+	{
+		WLock l(cs);
+		recents[aType].clear();
+	}
+
 	setDirty();
 }
 
-void RecentManager::updateRecentHub(const ClientPtr& aClient) noexcept {
-	auto r = getRecentHub(aClient->getHubUrl());
-	if (!r)
-		return;
 
-
-	if (r) {
-		r->setName(aClient->getHubName());
-		r->setDescription(aClient->getHubDescription());
+void RecentManager::onRecentOpened(RecentEntry::Type aType, const string& aName, const string& aDescription, const string& aUrl, const UserPtr& aUser, const RecentEntryPtr& aOldEntry) noexcept {
+	dcassert(!aName.empty() && !aUrl.empty());
+	if (aOldEntry) {
+		// Remove and add as the last item
+		removeRecent(aType, aOldEntry);
 	}
 
-	fire(RecentManagerListener::RecentHubUpdated(), r);
+	auto entry = make_shared<RecentEntry>(aName, aDescription, aUrl, aUser);
+	{
+		WLock l(cs);
+		recents[aType].push_back(entry);
+		checkCount(aType);
+	}
+
+	fire(RecentManagerListener::RecentAdded(), entry, aType);
+	setDirty();
+}
+
+void RecentManager::removeRecent(RecentEntry::Type aType, const RecentEntryPtr& aEntry) noexcept {
+	if (!aEntry) {
+		return;
+	}
+
+	{
+		WLock l(cs);
+		recents[aType].erase(remove(recents[aType].begin(), recents[aType].end(), aEntry), recents[aType].end());
+	}
+
+	fire(RecentManagerListener::RecentRemoved(), aEntry, aType);
+	setDirty();
+}
+
+void RecentManager::onRecentUpdated(RecentEntry::Type aType, const RecentEntryPtr& aEntry) noexcept {
+	if (!aEntry) {
+		return;
+	}
+
+	fire(RecentManagerListener::RecentUpdated(), aEntry, aType);
 	setDirty();
 }
 
@@ -201,44 +190,30 @@ void RecentManager::save() const noexcept {
 	xml.addTag("Recents");
 	xml.stepIn();
 
-	saveRecentHubs(xml);
-	saveRecentUsers(xml, "PrivateChats", recentChats);
-	saveRecentUsers(xml, "Filelists", recentFilelists);
+	saveRecents(xml, RecentEntry::TYPE_HUB);
+	saveRecents(xml, RecentEntry::TYPE_PRIVATE_CHAT);
+	saveRecents(xml, RecentEntry::TYPE_FILELIST);
 
 	xml.stepOut();
 
 	SettingsManager::saveSettingFile(xml, CONFIG_DIR, CONFIG_RECENTS_NAME);
 }
 
-void RecentManager::saveRecentHubs(SimpleXML& aXml) const noexcept {
-	aXml.addTag("Hubs");
+void RecentManager::saveRecents(SimpleXML& aXml, RecentEntry::Type aType) const noexcept {
+	aXml.addTag(rootTags[aType]);
 	aXml.stepIn();
 
 	{
 		RLock l(cs);
-		for (const auto& rhe : recentHubs) {
-			aXml.addTag("Hub");
+		for (const auto& rhe : recents[aType]) {
+			aXml.addTag(itemTags[aType]);
 			aXml.addChildAttrib("Name", rhe->getName());
 			aXml.addChildAttrib("Description", rhe->getDescription());
 			aXml.addChildAttrib("Server", rhe->getUrl());
 			aXml.addChildAttrib("LastOpened", rhe->getLastOpened());
-		}
-	}
-
-	aXml.stepOut();
-}
-
-void RecentManager::saveRecentUsers(SimpleXML& aXml, const string& aRootTag, const RecentUserEntryList& users_) const noexcept {
-	aXml.addTag(aRootTag);
-	aXml.stepIn();
-
-	{
-		RLock l(cs);
-		for (const auto& rhe : users_) {
-			aXml.addTag("User");
-			aXml.addChildAttrib("CID", rhe->getUser().user->getCID().toBase32());
-			aXml.addChildAttrib("HubHint", rhe->getUser().hint);
-			aXml.addChildAttrib("LastOpened", rhe->getLastOpened());
+			if (rhe->getUser()) {
+				aXml.addChildAttrib("CID", rhe->getUser()->getCID().toBase32());
+			}
 		}
 	}
 
@@ -251,9 +226,9 @@ void RecentManager::load() noexcept {
 		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_RECENTS_NAME);
 		if (xml.findChild("Recents")) {
 			xml.stepIn();
-			loadRecentHubs(xml);
-			loadRecentUsers(xml, "PrivateChats", recentChats);
-			loadRecentUsers(xml, "Filelists", recentFilelists);
+			loadRecents(xml, RecentEntry::TYPE_HUB);
+			loadRecents(xml, RecentEntry::TYPE_PRIVATE_CHAT);
+			loadRecents(xml, RecentEntry::TYPE_FILELIST);
 			xml.stepOut();
 		}
 	} catch (const Exception& e) {
@@ -261,65 +236,55 @@ void RecentManager::load() noexcept {
 	}
 }
 
-void RecentManager::loadRecentHubs(SimpleXML& aXml) {
+void RecentManager::loadRecents(SimpleXML& aXml, RecentEntry::Type aType) {
 	aXml.resetCurrentChild();
-	if (aXml.findChild("Hubs")) {
+	if (aXml.findChild(rootTags[aType])) {
 		aXml.stepIn();
-		while (aXml.findChild("Hub")) {
-			const string& hubUrl = aXml.getChildAttrib("Server");
+		while (aXml.findChild(itemTags[aType])) {
 			const string& name = aXml.getChildAttrib("Name");
-			const string& description = aXml.getChildAttrib("Description");
-			const time_t& lastOpened = aXml.getLongLongChildAttrib("LastOpened");
-
-			auto e = make_shared<RecentHubEntry>(hubUrl, name, description, lastOpened);
-			recentHubs.push_back(e);
-		}
-		aXml.stepOut();
-	}
-}
-
-void RecentManager::loadRecentUsers(SimpleXML& aXml, const string& aRootTag, RecentUserEntryList& users_) {
-	aXml.resetCurrentChild();
-	if (aXml.findChild(aRootTag)) {
-		aXml.stepIn();
-		while (aXml.findChild("User")) {
-			const string& cid = aXml.getChildAttrib("CID");
-			const string& hubHint = aXml.getChildAttrib("HubHint");
-			const time_t& lastOpened = aXml.getLongLongChildAttrib("LastOpened");
-
-			auto user = ClientManager::getInstance()->loadUser(cid, hubHint, Util::emptyString);
-			if (user == nullptr) {
-				return;
+			if (name.empty()) {
+				continue;
 			}
 
-			auto e = make_shared<RecentUserEntry>(HintedUser(user, hubHint), lastOpened);
-			users_.push_back(e);
+			const string& description = aXml.getChildAttrib("Description");
+			const string& hubUrl = aXml.getChildAttrib("Server");
+			const time_t& lastOpened = aXml.getLongLongChildAttrib("LastOpened");
+
+			UserPtr user = nullptr;
+			const string& cid = aXml.getChildAttrib("CID");
+			if (!cid.empty()) {
+				user = ClientManager::getInstance()->loadUser(cid, hubUrl, name);
+				if (user == nullptr) {
+					continue;
+				}
+			}
+
+			auto e = make_shared<RecentEntry>(name, description, hubUrl, user, lastOpened);
+			recents[aType].push_back(e);
 		}
 		aXml.stepOut();
 	}
+
+	// Old versions didn't have any limit for maximum recent hubs
+	checkCount(aType);
 }
 
-RecentHubEntryPtr RecentManager::getRecentHub(const string& aUrl) const noexcept {
-	RLock l(cs);
-	auto i = find_if(recentHubs, RecentHubEntry::UrlCompare(aUrl));
-	return i != recentHubs.end() ? *i : nullptr;
+void RecentManager::checkCount(RecentEntry::Type aType) noexcept {
+	auto toRemove = static_cast<int>(recents[aType].size()) - SettingsManager::getInstance()->get(maxLimits[aType]);
+	if (toRemove > 0) {
+		recents[aType].erase(recents[aType].begin(), recents[aType].begin() + toRemove);
+	}
 }
 
-RecentUserEntryPtr RecentManager::getRecentUser(const CID& aCid, const RecentUserEntryList& aUsers) noexcept {
-	RLock l(cs);
-	auto i = find_if(aUsers, RecentUserEntry::CidCompare(aCid));
-	return i != aUsers.end() ? *i : nullptr;
-}
-
-RecentHubEntryList RecentManager::searchRecentHubs(const string& aPattern, size_t aMaxResults) const noexcept {
-	auto search = RelevanceSearch<RecentHubEntryPtr>(aPattern, [](const RecentHubEntryPtr& aHub) {
+RecentEntryList RecentManager::searchRecents(RecentEntry::Type aType, const string& aPattern, size_t aMaxResults) const noexcept {
+	auto search = RelevanceSearch<RecentEntryPtr>(aPattern, [](const RecentEntryPtr& aHub) {
 		return aHub->getName();
 	});
 
 	{
 		RLock l(cs);
-		for (const auto& hub : recentHubs) {
-			search.match(hub);
+		for (const auto& e : recents[aType]) {
+			search.match(e);
 		}
 	}
 

@@ -777,6 +777,32 @@ wstring Util::formatBytesW(int64_t aBytes) noexcept {
 }
 #endif
 
+string Util::formatAbbreviated(int aNum) noexcept {
+	char buf[64];
+	if (aNum < 2000) {
+		snprintf(buf, sizeof(buf), "%d", aNum);
+	} else if (aNum < 1000000) {
+		snprintf(buf, sizeof(buf), "%.01f%s", (double)aNum / 1000.0, "k");
+	} else {
+		snprintf(buf, sizeof(buf), "%.01f%s", (double)aNum / (1000000.0), "m");
+	}
+
+	return buf;
+}
+
+wstring Util::formatAbbreviatedW(int aNum) noexcept {
+	wchar_t buf[64];
+	if (aNum < 2000) {
+		snwprintf(buf, sizeof(buf), L"%d", aNum);
+	} else if (aNum < 1000000) {
+		snwprintf(buf, sizeof(buf), L"%.01f%s", (double)aNum / 1000.0, L"k");
+	} else {
+		snwprintf(buf, sizeof(buf), L"%.01f%s", (double)aNum / (1000000.0), L"m");
+	}
+
+	return buf;
+}
+
 int64_t Util::convertSize(int64_t aValue, Util::SizeUnits valueType, Util::SizeUnits to /*B*/) noexcept {
 	if (valueType > to) {
 		return aValue * static_cast<int64_t>(pow(1024LL, static_cast<int64_t>(valueType - to)));
@@ -1504,7 +1530,7 @@ string Util::formatDirectoryContent(const DirectoryContentInfo& aContentInfo) no
 		if (aContentInfo.directories == 1) {
 			name += Util::toString(aContentInfo.directories) + " " + Text::toLower(STRING(FOLDER));
 		} else {
-			name += STRING_F(X_FOLDERS, aContentInfo.directories);
+			name += STRING_F(X_FOLDERS, Util::formatAbbreviated(aContentInfo.directories));
 		}
 	}
 
@@ -1515,7 +1541,7 @@ string Util::formatDirectoryContent(const DirectoryContentInfo& aContentInfo) no
 		if (aContentInfo.files == 1) {
 			name += Util::toString(aContentInfo.files) + " " + Text::toLower(STRING(FILE));
 		} else {
-			name += STRING_F(X_FILES, aContentInfo.files);
+			name += STRING_F(X_FILES, Util::formatAbbreviated(aContentInfo.files));
 		}
 	}
 

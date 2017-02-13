@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_RECENTMANAGERLISTENER_H_
 
 #include "forward.h"
+#include "RecentEntry.h"
 
 namespace dcpp {
 
@@ -28,26 +29,14 @@ namespace dcpp {
 		virtual ~RecentManagerListener() { }
 		template<int I>	struct X { enum { TYPE = I }; };
 
-		typedef X<0> RecentHubAdded;
-		typedef X<1> RecentHubRemoved;
-		typedef X<2> RecentHubUpdated;
-
-		typedef X<3> RecentFilelistAdded;
-		typedef X<4> RecentFilelistUpdated;
-
-		typedef X<5> RecentChatAdded;
-		typedef X<6> RecentChatUpdated;
+		typedef X<0> RecentAdded;
+		typedef X<1> RecentRemoved;
+		typedef X<2> RecentUpdated;
 
 
-		virtual void on(RecentHubAdded, const RecentHubEntryPtr&) noexcept {}
-		virtual void on(RecentHubRemoved, const RecentHubEntryPtr&) noexcept {}
-		virtual void on(RecentHubUpdated, const RecentHubEntryPtr&) noexcept {}
-
-		virtual void on(RecentFilelistAdded, const RecentUserEntryPtr&) noexcept {}
-		virtual void on(RecentFilelistUpdated, const RecentUserEntryPtr&) noexcept {}
-
-		virtual void on(RecentChatAdded, const RecentUserEntryPtr&) noexcept {}
-		virtual void on(RecentChatUpdated, const RecentUserEntryPtr&) noexcept {}
+		virtual void on(RecentAdded, const RecentEntryPtr&, RecentEntry::Type) noexcept {}
+		virtual void on(RecentRemoved, const RecentEntryPtr&, RecentEntry::Type) noexcept {}
+		virtual void on(RecentUpdated, const RecentEntryPtr&, RecentEntry::Type) noexcept {}
 	};
 
 } // namespace dcpp

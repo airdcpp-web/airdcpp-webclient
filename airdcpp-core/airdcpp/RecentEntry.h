@@ -27,33 +27,35 @@
 
 namespace dcpp {
 
-class RecentBase {
+class RecentEntry {
 public:
-	RecentBase(time_t aLastOpened) : lastOpened(aLastOpened) { }
-
-	time_t getLastOpened() const noexcept { return lastOpened; }
-	void updateLastOpened() noexcept { lastOpened = GET_TIME(); }
-
-	template<typename T> struct Sort {
-		bool operator()(const typename T::Ptr& a, const typename T::Ptr& b) const noexcept { return a->getLastOpened() > b->getLastOpened(); }
+	enum Type {
+		TYPE_HUB,
+		TYPE_PRIVATE_CHAT,
+		TYPE_FILELIST,
+		TYPE_LAST
 	};
-private:
-	time_t lastOpened;
-};
 
-class RecentHubEntry : public RecentBase {
-public:
-	RecentHubEntry(const string& aUrl, const string& aName = "*", const string& aDescription = "*", time_t aLastOpened = GET_TIME()) :
-		url(aUrl), name(aName), description(aDescription), RecentBase(aLastOpened) {
+	RecentEntry(const string& aName, const string& aDescription, const string& aUrl, const UserPtr& aUser = nullptr, time_t aLastOpened = GET_TIME()) :
+		name(aName), description(aDescription), url(aUrl), user(aUser), lastOpened(aLastOpened) {
 
 	}
 
-	typedef std::shared_ptr<RecentHubEntry> Ptr;
+	typedef std::shared_ptr<RecentEntry> Ptr;
 
 	GETSET(string, url, Url);
 	GETSET(string, name, Name);
 	GETSET(string, description, Description);
 
+	time_t getLastOpened() const noexcept { return lastOpened; }
+	void updateLastOpened() noexcept { lastOpened = GET_TIME(); }
+
+	const UserPtr& getUser() const noexcept {
+		return user;
+	}
+
+
+	// HELPERS
 	class UrlCompare {
 	public:
 		UrlCompare(const string& compareTo) : a(compareTo) { }
@@ -64,40 +66,29 @@ public:
 		UrlCompare& operator=(const UrlCompare&) = delete;
 		const string& a;
 	};
-};
-
-class RecentUserEntry : public RecentBase {
-public:
-	RecentUserEntry(const HintedUser& aHintedUser, time_t aLastOpened = GET_TIME()) :
-		user(aHintedUser), RecentBase(aLastOpened) {
-
-	}
-
-	typedef std::shared_ptr<RecentUserEntry> Ptr;
-
-	const HintedUser& getUser() const noexcept { return user; }
 
 	class CidCompare {
 	public:
 		CidCompare(const CID& compareTo) : a(compareTo) { }
 		bool operator()(const Ptr& p) const noexcept {
-			return p->getUser().user->getCID() == a;
+			return p->getUser()->getCID() == a;
 		}
 	private:
 		CidCompare& operator=(const CidCompare&) = delete;
 		const CID& a;
 	};
+
+	struct Sort {
+		bool operator()(const typename RecentEntry::Ptr& a, const typename RecentEntry::Ptr& b) const noexcept { return a->getLastOpened() > b->getLastOpened(); }
+	};
 private:
-	const HintedUser user;
+	const UserPtr user;
+
+	time_t lastOpened;
 };
 
-typedef RecentHubEntry::Ptr RecentHubEntryPtr;
-typedef std::vector<RecentHubEntryPtr> RecentHubEntryList;
-//typedef std::set<RecentHubEntryPtr, RecentBase::Sort<RecentHubEntrySet>> RecentHubEntrySet;
-
-typedef RecentUserEntry::Ptr RecentUserEntryPtr;
-typedef std::vector<RecentUserEntryPtr> RecentUserEntryList;
-//typedef std::set<RecentHubEntryPtr, RecentBase::Sort<RecentUserEntry>> RecentUserEntrySet;
+typedef RecentEntry::Ptr RecentEntryPtr;
+typedef std::vector<RecentEntryPtr> RecentEntryList;
 
 }
 #endif

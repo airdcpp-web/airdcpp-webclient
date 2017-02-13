@@ -310,6 +310,9 @@ public:
 	static string formatExactSize(int64_t aBytes) noexcept;
 	static wstring formatExactSizeW(int64_t aBytes) noexcept;
 
+	static string formatAbbreviated(int aNum) noexcept;
+	static wstring formatAbbreviatedW(int aNum) noexcept;
+
 	static wstring formatSecondsW(int64_t aSec, bool supressHours = false) noexcept;
 	static string formatSeconds(int64_t aSec, bool supressHours = false) noexcept;
 

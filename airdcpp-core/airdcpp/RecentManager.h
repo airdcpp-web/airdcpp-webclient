@@ -27,6 +27,7 @@
 #include "DirectoryListingManagerListener.h"
 #include "MessageManagerListener.h"
 #include "RecentManagerListener.h"
+#include "SettingsManager.h"
 #include "TimerManagerListener.h"
 
 
@@ -35,29 +36,31 @@ namespace dcpp {
 		private ClientManagerListener, private MessageManagerListener, private DirectoryListingManagerListener
 	{
 	public:
-		RecentUserEntryList getRecentChats() const noexcept;
-		RecentUserEntryList getRecentFilelists() const noexcept;
+		RecentEntryList getRecents(RecentEntry::Type aType) const noexcept;
 
-		// Recent Hubs
-		RecentHubEntryList getRecentHubs() const noexcept;
+		void removeRecent(RecentEntry::Type aType, const RecentEntryPtr& aEntry) noexcept;
+		void clearRecents(RecentEntry::Type aType) noexcept;
 
-		void addRecentHub(const string& aEntry) noexcept;
-		void removeRecentHub(const string& aEntry) noexcept;
-		void updateRecentHub(const ClientPtr& aClient) noexcept;
-
-		void clearRecentHubs() noexcept;
-
-		RecentHubEntryPtr getRecentHub(const string& aServer) const noexcept;
-		RecentHubEntryList searchRecentHubs(const string& aPattern, size_t aMaxResults) const noexcept;
+		RecentEntryList searchRecents(RecentEntry::Type aType, const string& aPattern, size_t aMaxResults) const noexcept;
 
 		void load() noexcept;
 		void save() const noexcept;
 	private:
-		RecentUserEntryPtr getRecentUser(const CID& aCid, const RecentUserEntryList& aUsers) noexcept;
+		void checkCount(RecentEntry::Type aType) noexcept;
+		void onHubOpened(const ClientPtr& aClient) noexcept;
+		void onRecentOpened(RecentEntry::Type aType, const string& aName, const string& aDescription, const string& aUrl, const UserPtr& aUser, const RecentEntryPtr& aEntry) noexcept;
+		void onRecentUpdated(RecentEntry::Type aType, const RecentEntryPtr& aEntry) noexcept;
+
+		template<typename CompareT>
+		RecentEntryPtr getRecent(RecentEntry::Type aType, const CompareT& aCompare) const noexcept {
+			RLock l(cs);
+			auto i = find_if(recents[aType], aCompare);
+			return i != recents[aType].end() ? *i : nullptr;
+		}
+
 		void setDirty() noexcept { xmlDirty = true; }
 
-		RecentHubEntryList recentHubs;
-		RecentUserEntryList recentChats, recentFilelists;
+		RecentEntryList recents[RecentEntry::TYPE_LAST];
 
 		friend class Singleton<RecentManager>;
 
@@ -68,7 +71,6 @@ namespace dcpp {
 		void on(ClientManagerListener::ClientCreated, const ClientPtr& c) noexcept;
 		void on(ClientManagerListener::ClientRedirected, const ClientPtr& aOldClient, const ClientPtr& aNewClient) noexcept;
 		void on(ClientManagerListener::ClientUpdated, const ClientPtr& c) noexcept;
-		void on(ClientManagerListener::ClientRemoved, const ClientPtr& c) noexcept;
 
 		void on(MessageManagerListener::ChatCreated, const PrivateChatPtr&, bool /* received message */) noexcept;
 
@@ -78,11 +80,12 @@ namespace dcpp {
 		RecentManager();
 		~RecentManager();
 
-		void loadRecentHubs(SimpleXML& aXml);
-		void loadRecentUsers(SimpleXML& aXml, const string& aRootTag, RecentUserEntryList& users_);
+		void loadRecents(SimpleXML& aXml, RecentEntry::Type aType);
+		void saveRecents(SimpleXML& aXml, RecentEntry::Type aType) const noexcept;
 
-		void saveRecentHubs(SimpleXML& aXml) const noexcept;
-		void saveRecentUsers(SimpleXML& aXml, const string& aRootTag, const RecentUserEntryList& users_) const noexcept;
+		static string rootTags[RecentEntry::TYPE_LAST];
+		static string itemTags[RecentEntry::TYPE_LAST];
+		static SettingsManager::IntSetting maxLimits[RecentEntry::TYPE_LAST];
 
 		bool xmlDirty = false;
 	};

@@ -706,14 +706,14 @@ OnlineUser* ClientManager::findOnlineUserHint(const CID& cid, const string& hint
 	return nullptr;
 }
 
-pair<int64_t, int> ClientManager::getShareInfo(const HintedUser& user) const noexcept {
+optional<ClientManager::ShareInfo> ClientManager::getShareInfo(const HintedUser& user) const noexcept {
 	RLock l (cs);
 	auto ou = findOnlineUser(user);
 	if (ou) {
-		return { Util::toInt64(ou->getIdentity().getShareSize()), Util::toInt(ou->getIdentity().getSharedFiles()) };
+		return ShareInfo({ Util::toInt64(ou->getIdentity().getShareSize()), Util::toInt(ou->getIdentity().getSharedFiles()) });
 	}
 
-	return { 0, 0 };
+	return boost::none;
 }
 
 void ClientManager::getUserInfoList(const UserPtr& user, User::UserInfoList& aList_) const noexcept {

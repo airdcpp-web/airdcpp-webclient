@@ -67,7 +67,13 @@ public:
 	StringList getHubNames(const CID& cid) const noexcept;
 	string getHubName(const string& aHubUrl) const noexcept;
 	StringList getNicks(const CID& cid, bool allowCID = true) const noexcept;
-	pair<int64_t, int> getShareInfo(const HintedUser& user) const noexcept;
+
+	struct ShareInfo {
+		const int64_t size;
+		const int fileCount;
+	};
+	optional<ShareInfo> getShareInfo(const HintedUser& user) const noexcept;
+
 	void getUserInfoList(const UserPtr& user, User::UserInfoList& aList_) const noexcept;
 
 	StringList getNicks(const HintedUser& user) const noexcept;

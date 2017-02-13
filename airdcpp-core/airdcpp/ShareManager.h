@@ -382,6 +382,7 @@ private:
 
 			//typedef set<File, FileLess> Set;
 			typedef SortedVector<File*, std::vector, string, Compare, NameLower> Set;
+			typedef unordered_multimap<TTHValue*, const Directory::File*> TTHMap;
 
 			File(DualString&& aName, const Directory::Ptr& aParent, const HashedFile& aFileInfo);
 			~File();
@@ -400,6 +401,9 @@ private:
 			GETSET(TTHValue, tth, TTH);
 
 			DualString name;
+
+			void updateIndices(ShareBloom& aBloom_, int64_t& sharedSize_, File::TTHMap& tthIndex_) noexcept;
+			void cleanIndices(int64_t& sharedSize_, TTHMap& tthIndex_) noexcept;
 		};
 
 		class SearchResultInfo {
@@ -436,11 +440,17 @@ private:
 		};
 
 		typedef SortedVector<Ptr, std::vector, string, Compare, NameLower> Set;
-		Set directories;
 		File::Set files;
 
 		static Ptr createNormal(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, Directory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept;
 		static Ptr createRoot(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, uint64_t aLastWrite, Map& rootPaths_, Directory::MultiMap& dirNameMap_, ShareBloom& bloom_, time_t aLastRefreshTime) noexcept;
+
+		// Set a new parent for the directory
+		// Possible directories with the same name must be removed from the parent first
+		static bool setParent(const Directory::Ptr& aDirectory, const Directory::Ptr& aParent) noexcept;
+
+		// Remove directory from possible parent and all shared containers
+		static void cleanIndices(Directory& aDirectory, int64_t& sharedSize_, File::TTHMap& tthIndex_, Directory::MultiMap& aDirNames_) noexcept;
 
 		struct HasRootProfile {
 			HasRootProfile(const OptionalProfileToken& aProfile) : profile(aProfile) { }
@@ -463,8 +473,13 @@ private:
 		bool hasProfile(const OptionalProfileToken& aProfile) const noexcept;
 
 		void getContentInfo(int64_t& size_, size_t& files_, size_t& folders_) const noexcept;
-		int64_t getSize() const noexcept;
+
+		// Return cached size for files directly inside this directory
+		int64_t getLevelSize() const noexcept;
+
+		// Count the recursive total size for the directory
 		int64_t getTotalSize() const noexcept;
+
 		void getProfileInfo(ProfileToken aProfile, int64_t& totalSize, size_t& filesCount) const noexcept;
 
 		void search(SearchResultInfo::Set& aResults, SearchQuery& aStrings, int aLevel) const noexcept;
@@ -477,7 +492,6 @@ private:
 		void filesToXmlList(OutputStream& xmlFile, string& indent, string& tmp2) const;
 
 		GETSET(uint64_t, lastWrite, LastWrite);
-		IGETSET(Directory*, parent, Parent, nullptr);
 
 		~Directory();
 
@@ -491,15 +505,34 @@ private:
 
 		// check for an updated modify date from filesystem
 		void updateModifyDate();
-		Directory::Ptr findDirByPath(const string& aPath, char separator) const noexcept;
 
 		Directory(Directory&) = delete;
 		Directory& operator=(Directory&) = delete;
 
 		const RootDirectory::Ptr& getRoot() const noexcept { return root; }
-		void increaseSize(int64_t aSize, int64_t& aTotalSize) noexcept { size += aSize; aTotalSize += aSize; }
-		void decreaseSize(int64_t aSize, int64_t& aTotalSize) noexcept { size -= aSize; aTotalSize -= aSize; }
+		void increaseSize(int64_t aSize, int64_t& totalSize_) noexcept;
+		void decreaseSize(int64_t aSize, int64_t& totalSize_) noexcept;
+
+		const Set& getDirectories() const noexcept {
+			return directories;
+		}
+
+		Directory* getParent() const noexcept {
+			return parent;
+		}
+
+		// Find child directory by path
+		// Returning of the initial directory (aPath empty) is not supported
+		Directory::Ptr findDirectoryByPath(const string& aPath, char separator) const noexcept;
+
+		Directory::Ptr findDirectoryByName(const string& aName) const noexcept;
 	private:
+		void cleanIndices(int64_t& sharedSize_, File::TTHMap& tthIndex_, Directory::MultiMap& dirNames_) noexcept;
+
+		Directory* parent;
+		Set directories;
+
+		// Size for files directly inside this directory
 		int64_t size = 0;
 		RootDirectory::Ptr root;
 
@@ -534,7 +567,7 @@ private:
 
 	friend class Singleton<ShareManager>;
 
-	typedef unordered_multimap<TTHValue*, const Directory::File*> HashFileMap;
+	typedef Directory::File::TTHMap HashFileMap;
 	HashFileMap tthIndex;
 	
 	ShareManager();
@@ -631,12 +664,6 @@ private:
 
 	static void addFile(DualString&& aName, const Directory::Ptr& aDir, const HashedFile& fi, HashFileMap& tthIndex_, ShareBloom& aBloom_, int64_t& sharedSize_, ProfileTokenSet* dirtyProfiles_ = nullptr) noexcept;
 
-	static void updateIndices(Directory::Ptr& aDirectory, ShareBloom& aBloom_, int64_t& sharedSize_, HashFileMap& tthIndex_, Directory::MultiMap& aDirNames_) noexcept;
-	static void updateIndices(Directory& dir, const Directory::File* f, ShareBloom& aBloom_, int64_t& sharedSize_, HashFileMap& tthIndex_) noexcept;
-
-	static void cleanIndices(Directory& dir, int64_t& sharedSize_, HashFileMap& tthIndex_, Directory::MultiMap& aDirNames_) noexcept;
-	static void cleanIndices(Directory& dir, const Directory::File* f, int64_t& sharedSize_, HashFileMap& tthIndex_) noexcept;
-
 	static void addDirName(const Directory::Ptr& dir, Directory::MultiMap& aDirNames, ShareBloom& aBloom) noexcept;
 	static void removeDirName(const Directory& dir, Directory::MultiMap& aDirNames) noexcept;
 
@@ -677,26 +704,23 @@ private:
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}
 
-		getRootsByVirtual(aVirtualPath.substr(1, start-1), aProfile, virtuals);
+		getRootsByVirtual(aVirtualPath.substr(1, start - 1), aProfile, virtuals);
 		if(virtuals.empty()) {
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}
 
-		Directory::Ptr d;
-		for(auto k = virtuals.begin(); k != virtuals.end(); k++) {
+		for(const auto& root: virtuals) {
 			string::size_type i = start; // always start from the begin.
 			string::size_type j = i + 1;
-			d = *k;
 
+			auto d = root;
 			while((i = aVirtualPath.find(ADC_SEPARATOR, j)) != string::npos) {
-				auto mi = d->directories.find(Text::toLower(aVirtualPath.substr(j, i - j)));
-				j = i + 1;
-				if (mi != d->directories.end()) {   //if we found something, look for more.
-					d = *mi;
-				} else {
-					d = nullptr;   //make the pointer null so we can check if found something or not.
+				d = d->findDirectoryByName(Text::toLower(aVirtualPath.substr(j, i - j)));
+				if (!d) {
 					break;
 				}
+
+				j = i + 1;
 			}
 
 			if (d) {

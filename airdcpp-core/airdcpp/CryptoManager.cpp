@@ -34,13 +34,25 @@
 #include <bzlib.h>
 
 #ifdef _MSC_VER
-# pragma comment(lib, "Crypt32.lib")
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#  pragma comment(lib, "Crypt32.lib")
+# endif
 # ifdef _DEBUG
-#  pragma comment(lib, "libcryptoMTd.lib")
-#  pragma comment(lib, "libsslMTd.lib")
+#  if OPENSSL_VERSION_NUMBER < 0x10100000L
+#   pragma comment(lib, "libeay32MTd.lib")
+#   pragma comment(lib, "ssleay32MTd.lib")
+#  else
+#   pragma comment(lib, "libcryptoMTd.lib")
+#   pragma comment(lib, "libsslMTd.lib")
+#  endif
 # else
-#  pragma comment(lib, "libcryptoMT.lib")
-#  pragma comment(lib, "libsslMT.lib")
+#  if OPENSSL_VERSION_NUMBER < 0x10100000L
+#   pragma comment(lib, "libeay32MT.lib")
+#   pragma comment(lib, "ssleay32MT.lib")
+#  else
+#   pragma comment(lib, "libcryptoMT.lib")
+#   pragma comment(lib, "libsslMT.lib")
+#  endif
 # endif
 #endif
 
