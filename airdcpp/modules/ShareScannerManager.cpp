@@ -23,7 +23,6 @@
 #include <airdcpp/AirUtil.h>
 #include <airdcpp/FilteredFile.h>
 #include <airdcpp/File.h>
-#include <airdcpp/HashManager.h>
 #include <airdcpp/LogManager.h>
 #include <airdcpp/QueueManager.h>
 #include <airdcpp/ShareManager.h>

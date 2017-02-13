@@ -2526,10 +2526,11 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			}
 		} else if(curFile && name == sSource) {
 			const string& cid = getAttrib(attribs, sCID, 0);
-			const string& hubHint = getAttrib(attribs, sHubHint, 1);
+			const string& nick = getAttrib(attribs, sNick, 1);
+			const string& hubHint = getAttrib(attribs, sHubHint, 2);
 
 			ClientManager* cm = ClientManager::getInstance();
-			auto user = cm->loadUser(cid, hubHint, sNick);
+			auto user = cm->loadUser(cid, hubHint, nick);
 			if (user == nullptr) {
 				return;
 			}

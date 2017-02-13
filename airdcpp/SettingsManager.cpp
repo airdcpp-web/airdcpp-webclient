@@ -232,7 +232,7 @@ const string SettingsManager::settingTags[] =
 "QueueSplitterPosition", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
 "SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", "MultithreadedRefresh", "MonitoringMode",
 "MonitoringDelay", "DelayCountMode", "MaxRunningBundles", "DefaultShareProfile", "UpdateChannel", "ColorStatusFinished", "ColorStatusShared", "ProgressLighten",
-"ConfigBuildNumber", "PmMessageCache", "HubMessageCache", "LogMessageCache",
+"ConfigBuildNumber", "PmMessageCache", "HubMessageCache", "LogMessageCache", "MaxRecentHubs", "MaxRecentPrivateChats", "MaxRecentFilelists",
 "SENTRY",
 
 // Bools
@@ -912,6 +912,10 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(ALWAYS_CCPM, false);
 	setDefault(AUTOSEARCHFRAME_VISIBLE, "1,1,1,1,1,1,1,1,1,1,1");
 	setDefault(SAVE_LAST_STATE, true);
+
+	setDefault(MAX_RECENT_HUBS, 30);
+	setDefault(MAX_RECENT_PRIVATE_CHATS, 15);
+	setDefault(MAX_RECENT_FILELISTS, 15);
 
 
 	// not in GUI

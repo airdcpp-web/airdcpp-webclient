@@ -154,8 +154,10 @@ void DirectoryListing::getPartialListInfo(int64_t& totalSize_, size_t& totalFile
 	}
 
 	auto si = ClientManager::getInstance()->getShareInfo(hintedUser);
-	totalSize_ = si.first;
-	totalFiles_ = si.second;
+	if (si) {
+		totalSize_ = (*si).size;
+		totalFiles_ = (*si).fileCount;
+	}
 }
 
 string DirectoryListing::getNickFromFilename(const string& fileName) noexcept {

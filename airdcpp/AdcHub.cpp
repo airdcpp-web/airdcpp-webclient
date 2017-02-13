@@ -279,6 +279,10 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 					statusMessage("This hub uses an outdated cryptographic protocol that has known security issues", LogMessage::SEV_WARNING);
 				}
 			}
+
+			if (Text::toLower(getHubIdentity().getApplication()).find("luadch v2") != string::npos) {
+				statusMessage("The hubsoft used by this hub doesn't forward Advanced Direct Connect protocol messages according to the protocol specifications. This may silently break various client features.", LogMessage::SEV_WARNING);
+			}
 		}
 
 		//we have to update the modes in case our connectivity changed
