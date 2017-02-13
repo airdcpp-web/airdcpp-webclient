@@ -95,8 +95,8 @@ namespace webserver {
 		string getName() {
 			switch (type) {
 				case Transfer::TYPE_TREE: return "TTH: " + Util::getFileName(target);
-				case Transfer::TYPE_FULL_LIST: return STRING(FILE_LIST);
-				case Transfer::TYPE_PARTIAL_LIST: return STRING(FILE_LIST_PARTIAL);
+				case Transfer::TYPE_FULL_LIST: return STRING(TYPE_FILE_LIST);
+				case Transfer::TYPE_PARTIAL_LIST: return STRING(TYPE_FILE_LIST_PARTIAL);
 				default: return Util::getFileName(target);
 			}
 		}

@@ -31,25 +31,23 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_EDIT,		METHOD_DELETE,	(EXACT_PARAM("strings"), STR_PARAM(HISTORY_TYPE)),	HistoryApi::handleDeleteStrings);
 		METHOD_HANDLER(Access::ANY,					METHOD_POST,	(EXACT_PARAM("strings"), STR_PARAM(HISTORY_TYPE)),	HistoryApi::handlePostString);
 
-		METHOD_HANDLER(Access::HUBS_VIEW,			METHOD_GET,		(EXACT_PARAM("hubs"), RANGE_MAX_PARAM),				HistoryApi::handleGetHubs);
-		METHOD_HANDLER(Access::HUBS_VIEW,			METHOD_POST,	(EXACT_PARAM("hubs"), EXACT_PARAM("search")),		HistoryApi::handleSearchHubs);
-
-		METHOD_HANDLER(Access::PRIVATE_CHAT_VIEW,	METHOD_GET,		(EXACT_PARAM("private_chats"), RANGE_MAX_PARAM),	HistoryApi::handleGetChats);
-		METHOD_HANDLER(Access::FILELISTS_VIEW,		METHOD_GET,		(EXACT_PARAM("filelists"), RANGE_MAX_PARAM),		HistoryApi::handleGetFilelists);
+		METHOD_HANDLER(Access::ANY,					METHOD_GET,		(EXACT_PARAM("sessions"), STR_PARAM(HISTORY_TYPE), RANGE_MAX_PARAM),		HistoryApi::handleGetRecents);
+		METHOD_HANDLER(Access::ANY,					METHOD_POST,	(EXACT_PARAM("sessions"), STR_PARAM(HISTORY_TYPE), EXACT_PARAM("search")),	HistoryApi::handleSearchRecents);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,		METHOD_DELETE,	(EXACT_PARAM("sessions"), STR_PARAM(HISTORY_TYPE)),							HistoryApi::handleClearRecents);
 	}
 
 	HistoryApi::~HistoryApi() {
 	}
 
 	api_return HistoryApi::handleGetStrings(ApiRequest& aRequest) {
-		auto type = toHistoryType(aRequest.getStringParam(HISTORY_TYPE));
+		auto type = toHistoryType(aRequest);
 		auto history = SettingsManager::getInstance()->getHistory(type);
 		aRequest.setResponseBody(history);
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return HistoryApi::handlePostString(ApiRequest& aRequest) {
-		auto type = toHistoryType(aRequest.getStringParam(HISTORY_TYPE));
+		auto type = toHistoryType(aRequest);
 		auto item = JsonUtil::getField<string>("string", aRequest.getRequestBody(), false);
 
 		SettingsManager::getInstance()->addToHistory(item, type);
@@ -57,17 +55,32 @@ namespace webserver {
 	}
 
 	api_return HistoryApi::handleDeleteStrings(ApiRequest& aRequest) {
-		auto type = toHistoryType(aRequest.getStringParam(HISTORY_TYPE));
+		auto type = toHistoryType(aRequest);
 		SettingsManager::getInstance()->clearHistory(type);
 		return websocketpp::http::status_code::no_content;
 	}
 
-	SettingsManager::HistoryType HistoryApi::toHistoryType(const string& aName) {
-		if (aName == "search_pattern") {
+	RecentEntry::Type HistoryApi::toRecentType(ApiRequest& aRequest) {
+		auto name = aRequest.getStringParam(HISTORY_TYPE);
+		if (name == "hub") {
+			return RecentEntry::TYPE_HUB;
+		} else if (name == "private_chat") {
+			return RecentEntry::TYPE_PRIVATE_CHAT;
+		} else if (name == "filelist") {
+			return RecentEntry::TYPE_FILELIST;
+		}
+
+		dcassert(0);
+		throw RequestException(websocketpp::http::status_code::bad_request, "Invalid entry history type");
+	}
+
+	SettingsManager::HistoryType HistoryApi::toHistoryType(ApiRequest& aRequest) {
+		auto name = aRequest.getStringParam(HISTORY_TYPE);
+		if (name == "search_pattern") {
 			return SettingsManager::HISTORY_SEARCH;
-		} else if (aName == "search_excluded") {
+		} else if (name == "search_excluded") {
 			return SettingsManager::HISTORY_EXCLUDE;
-		} else if (aName == "download_target") {
+		} else if (name == "download_target") {
 			return SettingsManager::HISTORY_DOWNLOAD_DIR;
 		}
 
@@ -75,60 +88,39 @@ namespace webserver {
 		throw RequestException(websocketpp::http::status_code::bad_request, "Invalid string history type");
 	}
 
-	json HistoryApi::serializeHub(const RecentHubEntryPtr& aHub) noexcept {
+	json HistoryApi::serializeRecentEntry(const RecentEntryPtr& aEntry) noexcept {
 		return {
-			{ "name", aHub->getName() },
-			{ "description", aHub->getDescription() },
-			{ "hub_url", aHub->getUrl() },
-			{ "last_opened", aHub->getLastOpened() }
+			{ "name", aEntry->getName() },
+			{ "description", aEntry->getDescription() },
+			{ "hub_url", aEntry->getUrl() },
+			{ "last_opened", aEntry->getLastOpened() },
+			{ "user", aEntry->getUser() ? Serializer::serializeHintedUser(HintedUser(aEntry->getUser(), aEntry->getUrl())) : json() },
 		};
 	}
 
-	json HistoryApi::serializeUser(const RecentUserEntryPtr& aUser) noexcept {
-		return {
-			{ "user", Serializer::serializeHintedUser(aUser->getUser()) },
-			{ "last_opened", aUser->getLastOpened() }
-		};
-	}
-
-	api_return HistoryApi::handleSearchHubs(ApiRequest& aRequest) {
+	api_return HistoryApi::handleSearchRecents(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto pattern = JsonUtil::getField<string>("pattern", reqJson);
 		auto maxResults = JsonUtil::getField<size_t>("max_results", reqJson);
 
-		auto hubs = RecentManager::getInstance()->searchRecentHubs(pattern, maxResults);
-		aRequest.setResponseBody(Serializer::serializeList(hubs, serializeHub));
+		auto hubs = RecentManager::getInstance()->searchRecents(toRecentType(aRequest), pattern, maxResults);
+		aRequest.setResponseBody(Serializer::serializeList(hubs, serializeRecentEntry));
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return HistoryApi::handleGetHubs(ApiRequest& aRequest) {
-		auto hubs = RecentManager::getInstance()->getRecentHubs();
-		sort(hubs.begin(), hubs.end(), RecentBase::Sort<RecentHubEntry>());
+	api_return HistoryApi::handleGetRecents(ApiRequest& aRequest) {
+		auto entries = RecentManager::getInstance()->getRecents(toRecentType(aRequest));
+		sort(entries.begin(), entries.end(), RecentEntry::Sort());
 
-		auto retJson = Serializer::serializeFromPosition(0, aRequest.getRangeParam(MAX_COUNT), hubs, serializeHub);
+		auto retJson = Serializer::serializeFromBegin(aRequest.getRangeParam(MAX_COUNT), entries, serializeRecentEntry);
 		aRequest.setResponseBody(retJson);
 
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return HistoryApi::handleGetChats(ApiRequest& aRequest) {
-		auto entries = RecentManager::getInstance()->getRecentChats();
-		sort(entries.begin(), entries.end(), RecentBase::Sort<RecentUserEntry>());
-
-		auto retJson = Serializer::serializeFromPosition(0, aRequest.getRangeParam(MAX_COUNT), entries, serializeUser);
-		aRequest.setResponseBody(retJson);
-
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return HistoryApi::handleGetFilelists(ApiRequest& aRequest) {
-		auto entries = RecentManager::getInstance()->getRecentFilelists();
-		sort(entries.begin(), entries.end(), RecentBase::Sort<RecentUserEntry>());
-
-		auto retJson = Serializer::serializeFromPosition(0, aRequest.getRangeParam(MAX_COUNT), entries, serializeUser);
-		aRequest.setResponseBody(retJson);
-
-		return websocketpp::http::status_code::ok;
+	api_return HistoryApi::handleClearRecents(ApiRequest& aRequest) {
+		RecentManager::getInstance()->clearRecents(toRecentType(aRequest));
+		return websocketpp::http::status_code::no_content;
 	}
 }

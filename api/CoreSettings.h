@@ -190,9 +190,14 @@ namespace webserver {
 		{ "history_download_max", SettingsManager::HISTORY_DIR_MAX, ResourceManager::SETTINGS_DOWNLOAD_LOCATIONS },
 		{ "history_download_clear_exit", SettingsManager::HISTORY_DIR_CLEAR, ResourceManager::CLEAR_EXIT },
 		{ "history_chat_log_lines", SettingsManager::MAX_PM_HISTORY_LINES, ResourceManager::MAX_PM_HISTORY_LINES },
+
 		{ "history_pm_messages", SettingsManager::PM_MESSAGE_CACHE, ResourceManager::PRIVATE_CHAT },
 		{ "history_hub_messages", SettingsManager::HUB_MESSAGE_CACHE , ResourceManager::HUBS },
 		{ "history_log_messages", SettingsManager::LOG_MESSAGE_CACHE , ResourceManager::SYSTEM_LOG },
+
+		{ "history_hub_sessions", SettingsManager::MAX_RECENT_HUBS , ResourceManager::HUB },
+		{ "history_pm_sessions", SettingsManager::MAX_RECENT_PRIVATE_CHATS , ResourceManager::PRIVATE_CHAT },
+		{ "history_filelist_sessions", SettingsManager::MAX_RECENT_FILELISTS , ResourceManager::FILELIST },
 
 		//{ ResourceManager::SETTINGS_ADVANCED },
 		{ "socket_read_buffer", SettingsManager::SOCKET_IN_BUFFER, ResourceManager::SETTINGS_SOCKET_IN_BUFFER },
