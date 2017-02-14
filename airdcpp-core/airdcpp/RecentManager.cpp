@@ -150,7 +150,7 @@ void RecentManager::onRecentOpened(RecentEntry::Type aType, const string& aName,
 		removeRecent(aType, aOldEntry);
 	}
 
-	auto entry = make_shared<RecentEntry>(aName, aDescription, aUrl, aUser);
+	auto entry = std::make_shared<RecentEntry>(aName, aDescription, aUrl, aUser);
 	{
 		WLock l(cs);
 		recents[aType].push_back(entry);
@@ -242,7 +242,7 @@ void RecentManager::loadRecents(SimpleXML& aXml, RecentEntry::Type aType) {
 		aXml.stepIn();
 		while (aXml.findChild(itemTags[aType])) {
 			const string& name = aXml.getChildAttrib("Name");
-			if (name.empty()) {
+			if (name.empty() || name == "*") {
 				continue;
 			}
 
@@ -259,7 +259,7 @@ void RecentManager::loadRecents(SimpleXML& aXml, RecentEntry::Type aType) {
 				}
 			}
 
-			auto e = make_shared<RecentEntry>(name, description, hubUrl, user, lastOpened);
+			auto e = std::make_shared<RecentEntry>(name, description, hubUrl, user, lastOpened);
 			recents[aType].push_back(e);
 		}
 		aXml.stepOut();
