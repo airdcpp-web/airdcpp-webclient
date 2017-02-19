@@ -158,7 +158,7 @@ ActionHookRejectionPtr IgnoreManager::isIgnoredOrFiltered(const ChatMessagePtr& 
 		return aRejectionGetter("message_filtered", "Message filtered");
 	}
 
-	return false;
+	return nullptr;
 }
 
 bool IgnoreManager::isChatFiltered(const string& aNick, const string& aText, ChatFilterItem::Context aContext) const noexcept {
