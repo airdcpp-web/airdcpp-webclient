@@ -26,8 +26,8 @@
 #include <airdcpp/DownloadManagerListener.h>
 #include <airdcpp/QueueManagerListener.h>
 
-#include <api/ApiModule.h>
 #include <api/common/ListViewController.h>
+#include <api/base/HookApiModule.h>
 
 #include <api/QueueBundleUtils.h>
 #include <api/QueueFileUtils.h>
@@ -37,11 +37,14 @@ namespace dcpp {
 }
 
 namespace webserver {
-	class QueueApi : public SubscribableApiModule, private QueueManagerListener, private DownloadManagerListener {
+	class QueueApi : public HookApiModule, private QueueManagerListener, private DownloadManagerListener {
 	public:
 		QueueApi(Session* aSession);
 		~QueueApi();
 	private:
+		ActionHookRejectionPtr bundleCompletionHook(const BundlePtr& aBundle, const HookRejectionGetter& aErrorGetter) noexcept;
+		ActionHookRejectionPtr fileCompletionHook(const QueueItemPtr& aFile, const HookRejectionGetter& aErrorGetter) noexcept;
+
 		// COMMON
 		api_return handleFindDupePaths(ApiRequest& aRequest);
 		api_return handleRemoveSource(ApiRequest& aRequest);

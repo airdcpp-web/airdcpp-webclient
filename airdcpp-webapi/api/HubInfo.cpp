@@ -17,7 +17,7 @@
 */
 
 #include <api/HubInfo.h>
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 #include <api/common/Serializer.h>
 #include <api/FavoriteHubUtils.h>
 
@@ -42,7 +42,8 @@ namespace webserver {
 		SubApiModule(aParentModule, aClient->getClientId(), subscriptionList), client(aClient),
 		chatHandler(this, std::bind(&HubInfo::getClient, this), "hub", Access::HUBS_VIEW, Access::HUBS_EDIT, Access::HUBS_SEND), 
 		view("hub_user_view", this, OnlineUserUtils::propertyHandler, std::bind(&HubInfo::getUsers, this), 500), 
-		timer(getTimer([this] { onTimer(); }, 1000)) {
+		timer(getTimer([this] { onTimer(); }, 1000)) 
+	{
 
 		METHOD_HANDLER(Access::HUBS_EDIT, METHOD_POST,	(EXACT_PARAM("reconnect")),	HubInfo::handleReconnect);
 		METHOD_HANDLER(Access::HUBS_EDIT, METHOD_POST,	(EXACT_PARAM("favorite")),	HubInfo::handleFavorite);

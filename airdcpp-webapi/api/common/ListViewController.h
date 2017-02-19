@@ -28,7 +28,7 @@
 
 #include <airdcpp/TimerManager.h>
 
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 #include <api/common/PropertyFilter.h>
 #include <api/common/Serializer.h>
 #include <api/common/ViewTasks.h>
@@ -50,18 +50,15 @@ namespace webserver {
 		{
 			aModule->getSession()->addListener(this);
 
-			// Magic for the following defines
-			auto& requestHandlers = aModule->getRequestHandlers();
-
 			auto access = aModule->getSubscriptionAccess();
-			METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(viewName), EXACT_PARAM("filter")), ListViewController::handlePostFilter);
-			METHOD_HANDLER(access, METHOD_PUT, (EXACT_PARAM(viewName), EXACT_PARAM("filter"), TOKEN_PARAM), ListViewController::handlePutFilter);
-			METHOD_HANDLER(access, METHOD_DELETE, (EXACT_PARAM(viewName), EXACT_PARAM("filter"), TOKEN_PARAM), ListViewController::handleDeleteFilter);
+			MODULE_METHOD_HANDLER(aModule, access, METHOD_POST, (EXACT_PARAM(viewName), EXACT_PARAM("filter")), ListViewController::handlePostFilter);
+			MODULE_METHOD_HANDLER(aModule, access, METHOD_PUT, (EXACT_PARAM(viewName), EXACT_PARAM("filter"), TOKEN_PARAM), ListViewController::handlePutFilter);
+			MODULE_METHOD_HANDLER(aModule, access, METHOD_DELETE, (EXACT_PARAM(viewName), EXACT_PARAM("filter"), TOKEN_PARAM), ListViewController::handleDeleteFilter);
 
-			METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(viewName), EXACT_PARAM("settings")), ListViewController::handlePostSettings);
-			METHOD_HANDLER(access, METHOD_DELETE, (EXACT_PARAM(viewName)), ListViewController::handleReset);
+			MODULE_METHOD_HANDLER(aModule, access, METHOD_POST, (EXACT_PARAM(viewName), EXACT_PARAM("settings")), ListViewController::handlePostSettings);
+			MODULE_METHOD_HANDLER(aModule, access, METHOD_DELETE, (EXACT_PARAM(viewName)), ListViewController::handleReset);
 
-			METHOD_HANDLER(access, METHOD_GET, (EXACT_PARAM(viewName), EXACT_PARAM("items"), RANGE_START_PARAM, RANGE_MAX_PARAM), ListViewController::handleGetItems);
+			MODULE_METHOD_HANDLER(aModule, access, METHOD_GET, (EXACT_PARAM(viewName), EXACT_PARAM("items"), RANGE_START_PARAM, RANGE_MAX_PARAM), ListViewController::handleGetItems);
 		}
 
 		~ListViewController() {

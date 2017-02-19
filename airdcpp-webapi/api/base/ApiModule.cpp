@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2015 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -17,10 +17,11 @@
 */
 
 #include <web-server/stdinc.h>
+
 #include <web-server/WebSocket.h>
 #include <web-server/WebServerManager.h>
 
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 
 namespace webserver {
 	ApiModule::ApiModule(Session* aSession) : session(aSession) {
@@ -138,8 +139,8 @@ namespace webserver {
 
 		aSession->addListener(this);
 
-		METHOD_HANDLER(aSubscriptionAccess, METHOD_POST, (EXACT_PARAM("listener"), STR_PARAM(LISTENER_PARAM_ID)), SubscribableApiModule::handleSubscribe);
-		METHOD_HANDLER(aSubscriptionAccess, METHOD_DELETE, (EXACT_PARAM("listener"), STR_PARAM(LISTENER_PARAM_ID)), SubscribableApiModule::handleUnsubscribe);
+		METHOD_HANDLER(aSubscriptionAccess, METHOD_POST, (EXACT_PARAM("listeners"), STR_PARAM(LISTENER_PARAM_ID)), SubscribableApiModule::handleSubscribe);
+		METHOD_HANDLER(aSubscriptionAccess, METHOD_DELETE, (EXACT_PARAM("listeners"), STR_PARAM(LISTENER_PARAM_ID)), SubscribableApiModule::handleUnsubscribe);
 	}
 
 	SubscribableApiModule::~SubscribableApiModule() {

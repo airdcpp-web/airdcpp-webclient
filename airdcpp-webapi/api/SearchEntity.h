@@ -23,7 +23,7 @@
 
 #include <api/SearchUtils.h>
 
-#include <api/HierarchicalApiModule.h>
+#include <api/base/HierarchicalApiModule.h>
 #include <api/common/ListViewController.h>
 
 #include <airdcpp/typedefs.h>

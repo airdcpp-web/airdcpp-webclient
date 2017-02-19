@@ -17,7 +17,7 @@
 */
 
 #include <api/PrivateChatInfo.h>
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 #include <api/common/Serializer.h>
 
 #include <web-server/JsonUtil.h>

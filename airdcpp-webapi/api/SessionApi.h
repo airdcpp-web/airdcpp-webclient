@@ -22,7 +22,7 @@
 #include <web-server/stdinc.h>
 #include <web-server/WebUserManagerListener.h>
 
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 
 #include <airdcpp/typedefs.h>
 

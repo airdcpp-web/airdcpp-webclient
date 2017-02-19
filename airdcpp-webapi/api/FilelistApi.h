@@ -21,7 +21,7 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/HierarchicalApiModule.h>
+#include <api/base/HierarchicalApiModule.h>
 #include <api/FilelistInfo.h>
 
 #include <airdcpp/typedefs.h>

@@ -170,6 +170,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="api\ApiSettingItem.h" />
+    <ClInclude Include="api\base\ApiModule.h" />
+    <ClInclude Include="api\base\HierarchicalApiModule.h" />
+    <ClInclude Include="api\base\HookApiModule.h" />
     <ClInclude Include="api\common\Deserializer.h" />
     <ClInclude Include="api\common\FileSearchParser.h" />
     <ClInclude Include="api\common\Format.h" />
@@ -178,7 +181,6 @@
     <ClInclude Include="api\common\Property.h" />
     <ClInclude Include="api\common\PropertyFilter.h" />
     <ClInclude Include="api\common\Serializer.h" />
-    <ClInclude Include="api\ApiModule.h" />
     <ClInclude Include="api\common\ViewTasks.h" />
     <ClInclude Include="api\ConnectivityApi.h" />
     <ClInclude Include="api\CoreSettings.h" />
@@ -191,7 +193,6 @@
     <ClInclude Include="api\FilelistUtils.h" />
     <ClInclude Include="api\FilesystemApi.h" />
     <ClInclude Include="api\HashApi.h" />
-    <ClInclude Include="api\HierarchicalApiModule.h" />
     <ClInclude Include="api\HistoryApi.h" />
     <ClInclude Include="api\HubApi.h" />
     <ClInclude Include="api\HubInfo.h" />
@@ -241,7 +242,8 @@
     <ClInclude Include="web-server\WebUserManagerListener.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="api\ApiModule.cpp" />
+    <ClCompile Include="api\base\ApiModule.cpp" />
+    <ClCompile Include="api\base\HookApiModule.cpp" />
     <ClCompile Include="api\common\Deserializer.cpp" />
     <ClCompile Include="api\common\FileSearchParser.cpp" />
     <ClCompile Include="api\common\Format.cpp" />

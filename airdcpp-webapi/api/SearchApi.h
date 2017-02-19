@@ -23,7 +23,7 @@
 
 #include <api/SearchEntity.h>
 
-#include <api/HierarchicalApiModule.h>
+#include <api/base/HierarchicalApiModule.h>
 
 #include <airdcpp/typedefs.h>
 

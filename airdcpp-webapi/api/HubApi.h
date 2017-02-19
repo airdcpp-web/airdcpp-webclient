@@ -21,7 +21,8 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/HierarchicalApiModule.h>
+#include <api/base/HierarchicalApiModule.h>
+#include <api/base/HookApiModule.h>
 #include <api/HubInfo.h>
 
 #include <airdcpp/typedefs.h>
@@ -29,7 +30,7 @@
 #include <airdcpp/ClientManagerListener.h>
 
 namespace webserver {
-	class HubApi : public ParentApiModule<ClientToken, HubInfo>, private ClientManagerListener {
+	class HubApi : public ParentApiModule<ClientToken, HubInfo, HookApiModule>, private ClientManagerListener {
 	public:
 		static StringList subscriptionList;
 
@@ -38,6 +39,9 @@ namespace webserver {
 
 		static json serializeClient(const ClientPtr& aClient) noexcept;
 	private:
+		ActionHookRejectionPtr incomingMessageHook(const ChatMessagePtr& aMessage, const HookRejectionGetter& aRejectionGetter);
+		ActionHookRejectionPtr outgoingMessageHook(const string& aMessage, bool aThirdPerson, const Client& aClient, const HookRejectionGetter& aRejectionGetter);
+
 		void addHub(const ClientPtr& aClient) noexcept;
 
 		api_return handlePostMessage(ApiRequest& aRequest);
