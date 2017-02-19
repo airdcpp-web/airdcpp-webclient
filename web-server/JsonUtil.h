@@ -48,8 +48,8 @@ namespace webserver {
 
 		// Can be used to return null values for non-existing fields. Behaves similar to getField when throwIfMissing is true.
 		template <typename T, typename JsonT>
-		static optional<T> getOptionalField(const string& aFieldName, const JsonT& aJson, bool aAllowEmpty = true, bool throwIfMissing = false) {
-			if (throwIfMissing) {
+		static optional<T> getOptionalField(const string& aFieldName, const JsonT& aJson, bool aAllowEmpty = true, bool aThrowIfMissing = false) {
+			if (aThrowIfMissing) {
 				return getField<T>(aFieldName, aJson, aAllowEmpty);
 			}
 
@@ -84,8 +84,8 @@ namespace webserver {
 
 		// Returns raw JSON value and returns null JSON if the field is missing
 		template <typename JsonT>
-		static json getOptionalRawField(const string& aFieldName, const JsonT& aJson) {
-			return getRawValue<JsonT>(aFieldName, aJson, false);
+		static json getOptionalRawField(const string& aFieldName, const JsonT& aJson, bool aThrowIfMissing = false) {
+			return getRawValue<JsonT>(aFieldName, aJson, aThrowIfMissing);
 		}
 
 		// Find and parse the given field. Throws if not found.

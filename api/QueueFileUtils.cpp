@@ -131,6 +131,20 @@ namespace webserver {
 		return 0;
 	}
 
+	string QueueFileUtils::formatStatusId(const QueueItemPtr& aItem) noexcept {
+		switch (aItem->getStatus()) {
+			case QueueItem::STATUS_NEW: return "new";
+			case QueueItem::STATUS_QUEUED: return "queued";
+			case QueueItem::STATUS_DOWNLOADED: return "downloaded";
+			case QueueItem::STATUS_VALIDATION_RUNNING: return "completion_validation_running";
+			case QueueItem::STATUS_VALIDATION_ERROR: return "completion_validation_error";
+			case QueueItem::STATUS_COMPLETED: return "completed";
+		}
+
+		dcassert(0);
+		return Util::emptyString;
+	}
+
 	json QueueFileUtils::serializeFileProperty(const QueueItemPtr& aFile, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 		case PROP_SOURCES:
@@ -142,9 +156,12 @@ namespace webserver {
 		case PROP_STATUS:
 		{
 			return {
+				{ "id", aFile->isDownloaded() },
 				{ "downloaded", aFile->isDownloaded() },
-				{ "completed", aFile->isSet(QueueItem::FLAG_MOVED) },
+				{ "completed", aFile->isCompleted() },
+				{ "failed", QueueItem::isFailedStatus(aFile->getStatus()) },
 				{ "str", formatDisplayStatus(aFile) },
+				{ "hook_error", Serializer::serializeActionHookError(aFile->getHookError()) }
 			};
 		}
 		case PROP_PRIORITY: {

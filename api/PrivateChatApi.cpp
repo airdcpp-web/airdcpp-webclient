@@ -22,6 +22,7 @@
 #include <api/common/Serializer.h>
 
 #include <airdcpp/ClientManager.h>
+#include <airdcpp/PrivateChatManager.h>
 #include <airdcpp/ScopedFunctor.h>
 
 namespace webserver {
@@ -30,32 +31,68 @@ namespace webserver {
 		"private_chat_removed"
 	};
 
+	ActionHookRejectionPtr PrivateChatApi::incomingMessageHook(const ChatMessagePtr& aMessage, const HookRejectionGetter& aRejectionGetter) {
+		return HookCompletionData::toResult(
+			fireHook("private_chat_incoming_message_hook", chrono::milliseconds(25), chrono::seconds(2), [&]() {
+				return Serializer::serializeChatMessage(aMessage);
+			}),
+			aRejectionGetter
+		);
+	}
+
+	ActionHookRejectionPtr PrivateChatApi::outgoingMessageHook(const string& aMessage, bool aThirdPerson, const HintedUser& aUser, bool aEcho, const HookRejectionGetter& aRejectionGetter) {
+		return HookCompletionData::toResult(
+			fireHook("private_chat_outgoing_message_hook", chrono::milliseconds(25), chrono::seconds(2), [&]() {
+				return json({
+					{ "text", aMessage },
+					{ "third_person", aThirdPerson },
+					{ "echo", aEcho },
+					{ "user", Serializer::serializeHintedUser(aUser) },
+				});
+			}),
+			aRejectionGetter
+		);
+	}
+
 	PrivateChatApi::PrivateChatApi(Session* aSession) : 
 		ParentApiModule("sessions", CID_PARAM, Access::PRIVATE_CHAT_VIEW, aSession, subscriptionList, PrivateChatInfo::subscriptionList,
 			[](const string& aId) { return Deserializer::parseCID(aId); },
-			[](const PrivateChatInfo& aInfo) { return serializeChat(aInfo.getChat()); }
+			[](const PrivateChatInfo& aInfo) { return serializeChat(aInfo.getChat()); },
+			Access::PRIVATE_CHAT_EDIT
 		) {
 
-		MessageManager::getInstance()->addListener(this);
+		PrivateChatManager::getInstance()->addListener(this);
+
+		createHook("private_chat_incoming_message_hook", [this](const string& aId, const string& aName) {
+			return ClientManager::getInstance()->incomingPrivateMessageHook.addSubscriber(aId, aName, HOOK_HANDLER(PrivateChatApi::incomingMessageHook));
+		}, [this](const string& aId) {
+			ClientManager::getInstance()->incomingPrivateMessageHook.removeSubscriber(aId);
+		});
+
+		createHook("private_chat_outgoing_message_hook", [this](const string& aId, const string& aName) {
+			return ClientManager::getInstance()->outgoingPrivateMessageHook.addSubscriber(aId, aName, HOOK_HANDLER(PrivateChatApi::outgoingMessageHook));
+		}, [this](const string& aId) {
+			ClientManager::getInstance()->outgoingPrivateMessageHook.removeSubscriber(aId);
+		});
 
 		METHOD_HANDLER(Access::PRIVATE_CHAT_EDIT,	METHOD_DELETE,	(EXACT_PARAM("sessions"), CID_PARAM),	PrivateChatApi::handleDeleteChat);
 		METHOD_HANDLER(Access::PRIVATE_CHAT_EDIT,	METHOD_POST,	(EXACT_PARAM("sessions")),				PrivateChatApi::handlePostChat);
 
 		METHOD_HANDLER(Access::PRIVATE_CHAT_SEND,	METHOD_POST,	(EXACT_PARAM("chat_message")),			PrivateChatApi::handlePostMessage);
 
-		auto rawChats = MessageManager::getInstance()->getChats();
+		auto rawChats = PrivateChatManager::getInstance()->getChats();
 		for (const auto& c : rawChats | map_values) {
 			addChat(c);
 		}
 	}
 
 	PrivateChatApi::~PrivateChatApi() {
-		MessageManager::getInstance()->removeListener(this);
+		PrivateChatManager::getInstance()->removeListener(this);
 	}
 
 	api_return PrivateChatApi::handlePostChat(ApiRequest& aRequest) {
 		auto user = Deserializer::deserializeHintedUser(aRequest.getRequestBody());
-		auto chat = MessageManager::getInstance()->addChat(user, false);
+		auto chat = PrivateChatManager::getInstance()->addChat(user, false);
 		if (!chat) {
 			aRequest.setResponseErrorStr("Chat session exists");
 			return websocketpp::http::status_code::conflict;
@@ -68,7 +105,7 @@ namespace webserver {
 	api_return PrivateChatApi::handleDeleteChat(ApiRequest& aRequest) {
 		auto chat = getSubModule(aRequest);
 
-		MessageManager::getInstance()->removeChat(chat->getChat()->getUser());
+		PrivateChatManager::getInstance()->removeChat(chat->getChat()->getUser());
 		return websocketpp::http::status_code::no_content;
 	}
 
@@ -88,7 +125,7 @@ namespace webserver {
 		return websocketpp::http::status_code::no_content;
 	}
 
-	void PrivateChatApi::on(MessageManagerListener::ChatRemoved, const PrivateChatPtr& aChat) noexcept {
+	void PrivateChatApi::on(PrivateChatManagerListener::ChatRemoved, const PrivateChatPtr& aChat) noexcept {
 		removeSubModule(aChat->getUser()->getCID());
 
 		if (!subscriptionActive("private_chat_removed")) {
@@ -102,7 +139,7 @@ namespace webserver {
 		addSubModule(aChat->getUser()->getCID(), std::make_shared<PrivateChatInfo>(this, aChat));
 	}
 
-	void PrivateChatApi::on(MessageManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool aReceivedMessage) noexcept {
+	void PrivateChatApi::on(PrivateChatManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool aReceivedMessage) noexcept {
 		addChat(aChat);
 		if (!subscriptionActive("private_chat_created")) {
 			return;

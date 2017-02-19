@@ -25,7 +25,7 @@
 #include <web-server/SessionListener.h>
 #include <web-server/WebUser.h>
 
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 
 #include <airdcpp/GetSet.h>
 #include <airdcpp/typedefs.h>

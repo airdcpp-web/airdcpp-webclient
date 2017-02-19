@@ -23,7 +23,7 @@
 
 #include <api/FavoriteHubUtils.h>
 
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 #include <api/common/ListViewController.h>
 
 #include <airdcpp/typedefs.h>

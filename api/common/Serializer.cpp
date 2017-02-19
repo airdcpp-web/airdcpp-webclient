@@ -415,7 +415,7 @@ namespace webserver {
 		};
 	}
 
-	json Serializer::serializeActionHookError(const ActionHookErrorPtr& aError) noexcept {
+	json Serializer::serializeActionHookError(const ActionHookRejectionPtr& aError) noexcept {
 		if (!aError) {
 			return nullptr;
 		}
@@ -423,8 +423,8 @@ namespace webserver {
 		return{
 			{ "hook_id", aError->hookId },
 			{ "hook_name", aError->hookName },
-			{ "error_id", aError->errorId },
-			{ "str", aError->errorMessage },
+			{ "error_id", aError->rejectId },
+			{ "str", aError->message },
 		};
 	}
 }

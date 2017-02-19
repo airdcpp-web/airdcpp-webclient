@@ -60,6 +60,7 @@ namespace webserver {
 		static double getNumericInfo(const QueueItemPtr& a, int aPropertyName) noexcept;
 
 	private:
+		static string formatStatusId(const QueueItemPtr& aItem) noexcept;
 		static string getDisplayName(const QueueItemPtr& aItem) noexcept;
 
 		static std::string formatDisplayStatus(const QueueItemPtr& aItem) noexcept;

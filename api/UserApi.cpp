@@ -23,14 +23,14 @@
 #include <api/common/Serializer.h>
 
 #include <airdcpp/ClientManager.h>
-#include <airdcpp/MessageManager.h>
+#include <airdcpp/IgnoreManager.h>
 
 
 namespace webserver {
 	UserApi::UserApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY) {
 
 		ClientManager::getInstance()->addListener(this);
-		MessageManager::getInstance()->addListener(this);
+		IgnoreManager::getInstance()->addListener(this);
 
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("user"), CID_PARAM),	UserApi::handleGetUser);
 		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("search_nicks")),		UserApi::handleSearchNicks);
@@ -49,7 +49,7 @@ namespace webserver {
 
 	UserApi::~UserApi() {
 		ClientManager::getInstance()->removeListener(this);
-		MessageManager::getInstance()->removeListener(this);
+		IgnoreManager::getInstance()->removeListener(this);
 	}
 
 	UserPtr UserApi::getUser(ApiRequest& aRequest) {
@@ -77,20 +77,20 @@ namespace webserver {
 
 	api_return UserApi::handleIgnore(ApiRequest& aRequest) {
 		auto u = getUser(aRequest);
-		MessageManager::getInstance()->storeIgnore(u);
+		IgnoreManager::getInstance()->storeIgnore(u);
 		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return UserApi::handleUnignore(ApiRequest& aRequest) {
 		auto u = getUser(aRequest);
-		MessageManager::getInstance()->removeIgnore(u);
+		IgnoreManager::getInstance()->removeIgnore(u);
 		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return UserApi::handleGetIgnores(ApiRequest& aRequest) {
 		auto j = json::array();
 
-		auto users = MessageManager::getInstance()->getIgnoredUsers();
+		auto users = IgnoreManager::getInstance()->getIgnoredUsers();
 		for (const auto& u : users) {
 			j.push_back({
 				{ "user", Serializer::serializeUser(u.first) },
@@ -102,13 +102,13 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	void UserApi::on(MessageManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept {
+	void UserApi::on(IgnoreManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept {
 		maybeSend("ignored_user_added", [&] {
 			return Serializer::serializeUser(aUser);
 		});
 	}
 
-	void UserApi::on(MessageManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept {
+	void UserApi::on(IgnoreManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept {
 		maybeSend("ignored_user_removed", [&] {
 			return Serializer::serializeUser(aUser);
 		});

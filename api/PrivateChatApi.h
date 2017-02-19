@@ -21,20 +21,24 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/HierarchicalApiModule.h>
+#include <api/base/HookApiModule.h>
+#include <api/base/HierarchicalApiModule.h>
 #include <api/PrivateChatInfo.h>
 
 #include <airdcpp/typedefs.h>
-#include <airdcpp/MessageManager.h>
+#include <airdcpp/PrivateChatManagerListener.h>
 
 namespace webserver {
-	class PrivateChatApi : public ParentApiModule<CID, PrivateChatInfo>, private MessageManagerListener {
+	class PrivateChatApi : public ParentApiModule<CID, PrivateChatInfo, HookApiModule>, private PrivateChatManagerListener {
 	public:
 		static StringList subscriptionList;
 
 		PrivateChatApi(Session* aSession);
 		~PrivateChatApi();
 	private:
+		ActionHookRejectionPtr incomingMessageHook(const ChatMessagePtr& aMessage, const HookRejectionGetter& aRejectionGetter);
+		ActionHookRejectionPtr outgoingMessageHook(const string& aMessage, bool aThirdPerson, const HintedUser& aUser, bool aEcho, const HookRejectionGetter& aRejectionGetter);
+
 		void addChat(const PrivateChatPtr& aChat) noexcept;
 
 		api_return handlePostChat(ApiRequest& aRequest);
@@ -42,8 +46,8 @@ namespace webserver {
 
 		api_return handlePostMessage(ApiRequest& aRequest);
 
-		void on(MessageManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool aReceivedMessage) noexcept override;
-		void on(MessageManagerListener::ChatRemoved, const PrivateChatPtr& aChat) noexcept override;
+		void on(PrivateChatManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool aReceivedMessage) noexcept override;
+		void on(PrivateChatManagerListener::ChatRemoved, const PrivateChatPtr& aChat) noexcept override;
 
 		static json serializeChat(const PrivateChatPtr& aChat) noexcept;
 	};

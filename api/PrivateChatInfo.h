@@ -28,17 +28,17 @@
 #include <airdcpp/PrivateChat.h>
 #include <airdcpp/User.h>
 
-#include <api/HierarchicalApiModule.h>
+#include <api/base/HookApiModule.h>
+#include <api/base/HierarchicalApiModule.h>
 #include <api/common/ChatController.h>
 
 namespace webserver {
 	class PrivateChatInfo;
 
-	class PrivateChatInfo : public SubApiModule<CID, PrivateChatInfo, std::string>, private PrivateChatListener {
+	class PrivateChatInfo : public SubApiModule<CID, PrivateChatInfo, std::string, HookApiModule>, private PrivateChatListener {
 	public:
 		static StringList subscriptionList;
 
-		typedef ParentApiModule<CID, PrivateChatInfo> ParentType;
 		typedef shared_ptr<PrivateChatInfo> Ptr;
 		typedef vector<Ptr> List;
 
