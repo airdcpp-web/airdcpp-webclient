@@ -91,7 +91,7 @@ namespace webserver {
 	}
 
 	api_return HookApiModule::handleAddHook(ApiRequest& aRequest) {
-		if (!socket) {
+		if (!SubscribableApiModule::getSocket()) {
 			aRequest.setResponseErrorStr("Socket required");
 			return websocketpp::http::status_code::precondition_required;
 		}
