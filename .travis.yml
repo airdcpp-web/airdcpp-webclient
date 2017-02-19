@@ -24,7 +24,7 @@ matrix:
 before_install:
   # Linux
   - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get update -qq; 
-        sudo apt-get install -y cmake npm python pkg-config libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.55-dev libboost-regex1.55 libboost-thread1.55 libboost-system1.55 libleveldb-dev;
+        sudo apt-get install -y cmake nodejs python pkg-config libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libgeoip-dev libboost1.55-dev libboost-regex1.55 libboost-thread1.55 libboost-system1.55 libleveldb-dev;
     fi
   # OSX
   - if [ $TRAVIS_OS_NAME == osx ]; then brew update;
