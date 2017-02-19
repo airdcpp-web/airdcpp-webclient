@@ -60,7 +60,7 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 
 	if (qi.getBundle()) {
 		dcassert(!qi.isSet(QueueItem::FLAG_USER_LIST));
-		dcassert(!qi.isSet(QueueItem::FLAG_TEXT));
+		dcassert(!qi.isSet(QueueItem::FLAG_CLIENT_VIEW));
 		setBundle(qi.getBundle());
 	}
 	

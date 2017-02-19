@@ -157,7 +157,7 @@ namespace dcpp {
 
 		auto qi = QueueManager::getInstance()->addOpenedItem(aFileName, aSize, aTTH, aUser, true, aIsText);
 
-		auto file = createFile(qi->getTarget(), qi->getTTH(), qi->isSet(QueueItem::FLAG_TEXT), false);
+		auto file = createFile(qi->getTarget(), qi->getTTH(), aIsText, false);
 		if (file) {
 			file->onAddedQueue(qi->getTarget(), qi->getSize());
 		}

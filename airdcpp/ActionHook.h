@@ -29,43 +29,53 @@
 
 
 namespace dcpp {
-	struct ActionHookError {
-		ActionHookError(const string& aHookId, const string& aHookName, const string& aErrorId, const string& aErrorMessage) :
-			hookId(aHookId), hookName(aHookName), errorId(aErrorId), errorMessage(aErrorMessage) {}
+	struct ActionHookRejection {
+		ActionHookRejection(const string& aHookId, const string& aHookName, const string& aRejectId, const string& aMessage) :
+			hookId(aHookId), hookName(aHookName), rejectId(aRejectId), message(aMessage) {}
 
 		const string hookId;
 		const string hookName;
-		const string errorId;
-		const string errorMessage;
+		const string rejectId;
+		const string message;
 
-		static bool matches(const ActionHookErrorPtr& aError, const string& aHookId, const string& aErrorId) noexcept {
-			if (!aError) return false;
+		static string formatError(const ActionHookRejectionPtr& aRejection) noexcept {
+			if (!aRejection) return "";
+			return aRejection->hookName + ": " + aRejection->message;
+		}
 
-			return aError->hookId == aHookId && aError->errorId == aErrorId;
+		static bool matches(const ActionHookRejectionPtr& aRejection, const string& aHookId, const string& aRejectId) noexcept {
+			if (!aRejection) return false;
+
+			return aRejection->hookId == aHookId && aRejection->rejectId == aRejectId;
 		}
 	};
 
-	template<typename ItemT>
+	template<typename... ArgT>
 	class ActionHook {
 	public:
-#define HOOK_HANDLER(func) std::bind(&func, this, placeholders::_1, placeholders::_2)
+#define HOOK_HANDLER(func) &func, *this
 
-		typedef std::function<ActionHookErrorPtr(ItemT& aItem, const HookErrorGetter& aErrorGetter)> HookCallback;
+		typedef std::function<ActionHookRejectionPtr(ArgT&... aItem, const HookRejectionGetter& aRejectionGetter)> HookCallback;
 		struct Subscriber {
 			string id;
 			string name;
 
 			HookCallback callback;
 
-			ActionHookErrorPtr getError(const string& aErrorId, const string& aErrorMessage) noexcept {
-				return make_shared<ActionHookError>(id, name, aErrorId, aErrorMessage);
+			ActionHookRejectionPtr getRejection(const string& aRejectId, const string& aMessage) noexcept {
+				return make_shared<ActionHookRejection>(id, name, aRejectId, aMessage);
 			}
 		};
 
-		void addSubscriber(const string& aId, const string& aName, HookCallback aCallback) noexcept {
+		template<typename CallbackT, typename ObjectT>
+		bool addSubscriber(const string& aId, const string& aName, CallbackT aCallback, ObjectT& aObject) noexcept {
 			Lock l(cs);
-			removeSubscriber(aId);
-			subscribers.push_back({ aId, aName, std::move(aCallback) });
+			if (findById(aId) != subscribers.end()) {
+				return false;
+			}
+
+			subscribers.push_back({ aId, aName, [&, aCallback](ArgT&... aArgs, const HookRejectionGetter& aRejectionGetter) { return (aObject.*aCallback)(aArgs..., aRejectionGetter); } });
+			return true;
 		}
 
 		bool removeSubscriber(const string& aId) noexcept {
@@ -79,7 +89,8 @@ namespace dcpp {
 			return true;
 		}
 
-		ActionHookErrorPtr runHooks(ItemT& aItem) const noexcept {
+		// Run all validation hooks, returns a rejection object in case of errors
+		ActionHookRejectionPtr runHooksError(ArgT&... aItem) const noexcept {
 			SubscriberList subscribersCopy;
 
 			{
@@ -88,13 +99,20 @@ namespace dcpp {
 			}
 
 			for (const auto& handler : subscribersCopy) {
-				auto error = handler.callback(aItem, std::bind(&Subscriber::getError, handler, std::placeholders::_1, std::placeholders::_2));
+				auto error = handler.callback(aItem..., std::bind(&Subscriber::getRejection, handler, std::placeholders::_1, std::placeholders::_2));
 				if (error) {
+					dcdebug("Hook rejected by handler %s: %s (%s)\n", error->hookId.c_str(), error->rejectId.c_str(), error->message.c_str());
 					return error;
 				}
 			}
 
 			return nullptr;
+		}
+
+		// Run all validation hooks, returns false in case of rejections
+		bool runHooksBasic(ArgT&... aItem) const noexcept {
+			auto rejection = runHooksError(aItem...);
+			return rejection ? false : true;
 		}
 
 		bool hasSubscribers() const noexcept {

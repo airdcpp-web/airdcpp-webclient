@@ -504,9 +504,7 @@ UserPtr ClientManager::loadUser(const string& aCid, const string& aUrl, const st
 		return nullptr;
 	}
 	auto u = getUser(CID(aCid));
-	
-	if (!aNick.empty() || !aUrl.empty())
-		addOfflineUser(u, aNick, aUrl, lastSeen);
+	addOfflineUser(u, aNick, aUrl, lastSeen);
 
 	return u;
 }
@@ -815,7 +813,7 @@ bool ClientManager::privateMessage(const HintedUser& aUser, const string& aMsg, 
 		return false;
 	}
 	
-	return user->getClient()->privateMessage(user, aMsg, error_, aThirdPerson, aEcho);
+	return user->getClient()->sendPrivateMessage(user, aMsg, error_, aThirdPerson, aEcho);
 }
 
 void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params, bool compatibility) noexcept {
@@ -923,6 +921,10 @@ pair<size_t, size_t> ClientManager::countAschSupport(const OrderedStringSet& hub
 
 void ClientManager::on(ClientListener::OutgoingSearch, const Client* aClient, const SearchPtr& aSearch) noexcept {
 	fire(ClientManagerListener::OutgoingSearch(), aClient->getHubUrl(), aSearch);
+}
+
+void ClientManager::on(ClientListener::PrivateMessage, const Client*, const ChatMessagePtr& aMessage) noexcept {
+	fire(ClientManagerListener::PrivateMessage(), aMessage);
 }
 
 void ClientManager::on(ClientListener::NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize,
@@ -1313,9 +1315,12 @@ CID ClientManager::getMyCID() noexcept {
 	return CID(tiger.finalize());
 }
 
-void ClientManager::addOfflineUser(const UserPtr& user, const string& nick, const string& url, uint32_t lastSeen/*GET_TIME()*/) noexcept{
+void ClientManager::addOfflineUser(const UserPtr& user, const string& aNick, const string& aUrl, uint32_t lastSeen/*GET_TIME()*/) noexcept{
+	if (!user || aNick.empty() || aUrl.empty())
+		return;
+
 	WLock l(cs);
-	offlineUsers.emplace(const_cast<CID*>(&user->getCID()), OfflineUser(nick, url, lastSeen));
+	offlineUsers.emplace(const_cast<CID*>(&user->getCID()), OfflineUser(aNick, aUrl, lastSeen));
 }
 
 string ClientManager::getMyNick(const string& hubUrl) const noexcept {

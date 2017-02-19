@@ -66,6 +66,7 @@ class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManager
 {
 public:
 	ActionHook<const BundlePtr> bundleCompletionHook;
+	ActionHook<const QueueItemPtr> fileCompletionHook;
 
 	// Add all queued TTHs in the supplied bloom filter
 	void getBloom(HashBloom& bloom) const noexcept;
@@ -80,7 +81,7 @@ public:
 	DirectoryContentInfo getBundleContent(const BundlePtr& aBundle) const noexcept;
 
 	// Get the total queued bytes
-	uint64_t getTotalQueueSize() const noexcept { return fileQueue.getTotalQueueSize(); }
+	uint64_t getTotalQueueSize() const noexcept { return bundleQueue.getTotalQueueSize(); }
 
 	// Add a user's filelist to the queue.
 	// New managed filelist sessions should be created via DirectoryListingManager instead
@@ -368,10 +369,6 @@ public:
 	// Blocking call
 	void shareBundle(BundlePtr aBundle, bool skipScan) noexcept;
 
-	// Returns true if the bundle passes the scan for missing/extra files
-	// Blocking call
-	bool runCompletionHooks(BundlePtr& aBundle) noexcept;
-
 	// Performs recheck for the supplied files. Recheck will be done in the calling thread.
 	// The integrity of all finished segments will be verified and SFV will be validated for finished files
 	// The file will be paused if running
@@ -469,14 +466,30 @@ private:
 
 	void renameDownloadedFile(const string& aSource, const string& aTarget, QueueItemPtr& q) noexcept;
 
-	void handleMovedBundleItem(QueueItemPtr& q) noexcept;
+	void sendFileCompletionNotifications(const QueueItemPtr& q) noexcept;
+
+	// Returns whether the bundle has completed download
+	// Will also attempt to validate and share completed bundles 
 	bool checkBundleFinished(BundlePtr& aBundle) noexcept;
+
+	// Returns true if any of the bundle files has failed validation
+	// Optionally also rechecks failed files
+	bool checkFailedBundleFiles(const BundlePtr& aBundle, bool aRevalidateFailed) noexcept;
+
+	// Returns true if the bundle passes possible completion hooks (e.g. scan for missing/extra files)
+	// Blocking call
+	bool runBundleCompletionHooks(const BundlePtr& aBundle) noexcept;
+
+	// Returns true if the file passes possible completion hooks (e.g. SFV check)
+	// Blocking call
+	bool runFileCompletionHooks(const QueueItemPtr& aQI) noexcept;
 
 	unordered_map<string, SearchResultList> searchResults;
 	void pickMatch(QueueItemPtr qi) noexcept;
 	void matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult) noexcept;
 
-	void setBundleStatus(BundlePtr aBundle, Bundle::Status newStatus) noexcept;
+	void setFileStatus(const QueueItemPtr& aFile, QueueItem::Status aNewStatus) noexcept;
+	void setBundleStatus(const BundlePtr& aBundle, Bundle::Status aNewStatus) noexcept;
 
 	/* Returns true if an item can be replaces */
 	bool replaceItem(QueueItemPtr& qi, int64_t aSize, const TTHValue& aTTH) throw(FileException, QueueException);

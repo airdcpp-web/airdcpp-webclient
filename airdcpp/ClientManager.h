@@ -24,6 +24,7 @@
 #include "ClientManagerListener.h"
 #include "TimerManagerListener.h"
 
+#include "ActionHook.h"
 #include "ConnectionType.h"
 #include "Client.h"
 #include "CriticalSection.h"
@@ -45,6 +46,10 @@ class ClientManager : public Speaker<ClientManagerListener>,
 	typedef UserMap::iterator UserIter;
 
 public:
+	ActionHook<const ChatMessagePtr> incomingHubMessageHook, incomingPrivateMessageHook;
+	ActionHook<const string, const bool, const HintedUser, const bool> outgoingPrivateMessageHook;
+	ActionHook<const string, const bool, const Client&> outgoingHubMessageHook;
+
 	// Returns the new ClientPtr
 	// NOTE: the main app should perform connecting to the new hub
 	ClientPtr createClient(const string& aUrl) noexcept;
@@ -283,6 +288,7 @@ private:
 	void on(ClientListener::NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize,
 		int aFileType, const string& aString, bool) noexcept;
 	void on(ClientListener::OutgoingSearch, const Client*, const SearchPtr&) noexcept;
+	void on(ClientListener::PrivateMessage, const Client*, const ChatMessagePtr&) noexcept;
 
 	// TimerManagerListener
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;

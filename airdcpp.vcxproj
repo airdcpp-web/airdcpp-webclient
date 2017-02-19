@@ -239,8 +239,9 @@
     <ClCompile Include="airdcpp\AdcHub.cpp" />
     <ClCompile Include="airdcpp\DirectSearch.cpp" />
     <ClCompile Include="airdcpp\GroupedSearchResult.cpp" />
+    <ClCompile Include="airdcpp\IgnoreManager.cpp" />
     <ClCompile Include="airdcpp\MessageCache.cpp" />
-    <ClCompile Include="airdcpp\MessageManager.cpp" />
+    <ClCompile Include="airdcpp\PrivateChatManager.cpp" />
     <ClCompile Include="airdcpp\modules\AutoSearch.cpp" />
     <ClCompile Include="airdcpp\modules\AutoSearchManager.cpp" />
     <ClCompile Include="airdcpp\modules\ColorSettings.cpp" />
@@ -365,6 +366,8 @@
     <ClInclude Include="airdcpp\DupeType.h" />
     <ClInclude Include="airdcpp\GroupedSearchResult.h" />
     <ClInclude Include="airdcpp\HashManagerListener.h" />
+    <ClInclude Include="airdcpp\IgnoreManager.h" />
+    <ClInclude Include="airdcpp\IgnoreManagerListener.h" />
     <ClInclude Include="airdcpp\modules\AutoSearch.h" />
     <ClInclude Include="airdcpp\modules\AutoSearchManager.h" />
     <ClInclude Include="airdcpp\modules\AutoSearchManagerListener.h" />
@@ -396,8 +399,8 @@
     <ClInclude Include="airdcpp\ViewFileManagerListener.h" />
     <ClInclude Include="airdcpp\MessageCache.h" />
     <ClInclude Include="airdcpp\ConnectionType.h" />
-    <ClInclude Include="airdcpp\MessageManager.h" />
-    <ClInclude Include="airdcpp\MessageManagerListener.h" />
+    <ClInclude Include="airdcpp\PrivateChatManager.h" />
+    <ClInclude Include="airdcpp\PrivateChatManagerListener.h" />
     <ClInclude Include="airdcpp\PrioritySearchQueue.h" />
     <ClInclude Include="airdcpp\PrivateChat.h" />
     <ClInclude Include="airdcpp\PrivateChatListener.h" />

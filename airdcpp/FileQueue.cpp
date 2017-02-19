@@ -49,26 +49,13 @@ pair<QueueItemPtr, bool> FileQueue::add(const string& aTarget, int64_t aSize, Fl
 }
 
 pair<QueueItem::StringMap::const_iterator, bool> FileQueue::add(QueueItemPtr& qi) noexcept {
-	dcassert(queueSize >= 0);
 	auto ret = pathQueue.emplace(const_cast<string*>(&qi->getTarget()), qi);
 	if (ret.second) {
+		qi->setStatus(QueueItem::STATUS_QUEUED);
 		tthIndex.emplace(const_cast<TTHValue*>(&qi->getTTH()), qi);
-		if (!qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW) && !qi->isSet(QueueItem::FLAG_DOWNLOADED)) {
-			dcassert(qi->getSize() >= 0);
-			queueSize += qi->getSize();
-		}
-
 		tokenQueue.emplace(qi->getToken(), qi);
 	}
 	return ret;
-}
-
-bool FileQueue::countTotalSize(const QueueItemPtr& aQI) noexcept {
-	if (aQI->isSet(QueueItem::FLAG_CLIENT_VIEW) || aQI->isSet(QueueItem::FLAG_USER_LIST)) {
-		return false;
-	}
-
-	return !aQI->getBundle() || !aQI->isSet(QueueItem::FLAG_DOWNLOADED);
 }
 
 void FileQueue::remove(const QueueItemPtr& qi) noexcept {
@@ -76,12 +63,7 @@ void FileQueue::remove(const QueueItemPtr& qi) noexcept {
 	auto f = pathQueue.find(const_cast<string*>(&qi->getTarget()));
 	if (f != pathQueue.end()) {
 		pathQueue.erase(f);
-		if (countTotalSize(qi)) {
-			dcassert(qi->getSize() >= 0);
-			queueSize -= qi->getSize();
-		}
 	}
-	dcassert(queueSize >= 0);
 
 	//TTHIndex
 	auto s = tthIndex.equal_range(const_cast<TTHValue*>(&qi->getTTH()));

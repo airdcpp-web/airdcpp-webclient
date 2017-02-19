@@ -348,11 +348,15 @@ void BundleQueue::addBundleItem(QueueItemPtr& aQI, BundlePtr& aBundle) noexcept 
 			aInfo.size += aQI->getSize();
 		});
 	}
+
+	if (!aBundle->isDownloaded()) {
+		queueSize += aQI->getSize();
+	}
 }
 
-void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool aFinished) noexcept {
+void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool aDownloadFinished) noexcept {
 	dcassert(aQI->getBundle());
-	aQI->getBundle()->removeQueue(aQI, aFinished);
+	aQI->getBundle()->removeQueue(aQI, aDownloadFinished);
 
 	if (!aQI->getBundle()->isFileBundle()) {
 		forEachPath(aQI->getBundle(), aQI->getTarget(), [&](PathInfo& aInfo) {
@@ -362,7 +366,7 @@ void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool aFinished) noexcept {
 				aInfo.queuedFiles--;
 			}
 
-			if (!aFinished) {
+			if (!aDownloadFinished) {
 				aInfo.size -= aQI->getSize();
 			}
 
@@ -374,6 +378,11 @@ void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool aFinished) noexcept {
 			dcassert(aInfo.size >= 0 && aInfo.finishedFiles >= 0 && aInfo.queuedFiles >= 0);
 #endif
 		});
+	}
+
+	if (aDownloadFinished || !aQI->isDownloaded()) {
+		queueSize -= aQI->getSize();
+		dcassert(queueSize >= 0);
 	}
 }
 

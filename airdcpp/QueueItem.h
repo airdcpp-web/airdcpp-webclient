@@ -70,29 +70,32 @@ public:
 		FLAG_DIRECTORY_DOWNLOAD = 0x02,
 		/** The file is downloaded to be viewed in the gui */
 		FLAG_CLIENT_VIEW		= 0x04,
-		/** Flag to indicate that file should be viewed as a text file */
-		FLAG_TEXT				= 0x08,
 		/** Match the queue against this list */
-		FLAG_MATCH_QUEUE		= 0x10,
+		FLAG_MATCH_QUEUE		= 0x08,
 		/** The file list downloaded was actually an .xml.bz2 list */
-		FLAG_XML_BZLIST			= 0x20,
+		FLAG_XML_BZLIST			= 0x10,
 		/** Only download a part of the file list */
-		FLAG_PARTIAL_LIST 		= 0x40,
+		FLAG_PARTIAL_LIST 		= 0x20,
 		/** Open directly with an external program after the file has been downloaded */
-		FLAG_OPEN				= 0x80,
+		FLAG_OPEN				= 0x40,
 		/** Recursive partial list */
-		FLAG_RECURSIVE_LIST		= 0x200,
+		FLAG_RECURSIVE_LIST		= 0x80,
 		/** TTH list for partial bundle sharing */
-		FLAG_TTHLIST_BUNDLE		= 0x400,
-		/** All segments have been downloaded */
-		FLAG_DOWNLOADED			= 0x800,
-		/** The dctmp extension has been removed */
-		FLAG_MOVED				= 0x1000,
+		FLAG_TTHLIST_BUNDLE		= 0x100,
 		/** A private file that won't be added in share and it's not available via partial sharing */
-		FLAG_PRIVATE			= 0x8000,
-		/** Associated to a specific bundle for matching */
-		FLAG_MATCH_BUNDLE		= 0x16000
+		FLAG_PRIVATE			= 0x200,
 	};
+
+	enum Status {
+		STATUS_NEW, // not added in queue yet
+		STATUS_QUEUED,
+		STATUS_DOWNLOADED,
+		STATUS_VALIDATION_RUNNING, // the file is being validated by the completion hooks
+		STATUS_VALIDATION_ERROR, // hook validation failed (see the error pointer for more information)
+		STATUS_COMPLETED, // no validation errors, ready for sharing
+	};
+
+	static bool isFailedStatus(Status aStatus) noexcept;
 
 	/**
 	 * Source parts info
@@ -227,12 +230,17 @@ public:
 	// The file has been flagged as downloaded
 	bool isDownloaded() const noexcept;
 
+	// File finished downloading and all validation hooks have completed (safe)
+	bool isCompleted() const noexcept;
+
 	bool isRunning() const noexcept {
 		return !isWaiting();
 	}
 	bool isWaiting() const noexcept {
 		return downloads.empty();
 	}
+
+	bool isFilelist() const noexcept;
 
 	bool hasPartialSharingTarget() noexcept;
 
@@ -249,6 +257,8 @@ public:
 	IGETSET(uint8_t, maxSegments, MaxSegments, 1);
 	IGETSET(BundlePtr, bundle, Bundle, nullptr);
 	IGETSET(string, lastSource, LastSource, Util::emptyString);
+	IGETSET(Status, status, Status, STATUS_NEW);
+	IGETSET(ActionHookRejectionPtr, hookError, HookError, nullptr);
 	
 	Priority calculateAutoPriority() const noexcept;
 
@@ -270,7 +280,8 @@ private:
 	void blockSourceHub(const HintedUser& aUser) noexcept;
 	bool isHubBlocked(const UserPtr& aUser, const string& aUrl) const noexcept;
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept;
-	uint8_t getMaxSegments(int64_t filesize) const noexcept;
+
+	static uint8_t getMaxSegments(int64_t aFileSize) noexcept;
 
 	int64_t blockSize = -1;
 };

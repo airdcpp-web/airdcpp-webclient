@@ -18,6 +18,7 @@
 
 #include "stdinc.h"
 
+#include "ActionHook.h"
 #include "AirUtil.h"
 #include "Bundle.h"
 #include "ClientManager.h"
@@ -134,7 +135,7 @@ bool Bundle::checkRecent() noexcept {
 
 bool Bundle::filesCompleted() const noexcept {
 	return queueItems.empty() && find_if(finishedFiles, [](const QueueItemPtr& q) { 
-		return !q->isSet(QueueItem::FLAG_MOVED); }) == finishedFiles.end();
+		return !q->isCompleted(); }) == finishedFiles.end();
 }
 
 bool Bundle::isDownloaded() const noexcept { 
@@ -143,6 +144,11 @@ bool Bundle::isDownloaded() const noexcept {
 
 bool Bundle::isCompleted() const noexcept {
 	return status >= STATUS_COMPLETED;
+}
+
+void Bundle::setHookError(const ActionHookRejectionPtr& aError) noexcept {
+	error = ActionHookRejection::formatError(aError);
+	hookError = aError;
 }
 
 void Bundle::setDownloadedBytes(int64_t aSize) noexcept {
@@ -237,8 +243,14 @@ void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
 	}
 }
 
+QueueItemList Bundle::getFailedItems() const noexcept {
+	QueueItemList ret;
+	copy_if(finishedFiles.begin(), finishedFiles.end(), back_inserter(ret), [this](const QueueItemPtr& q) { return q->getStatus() == QueueItem::STATUS_VALIDATION_ERROR; });
+	return ret;
+}
+
 void Bundle::addFinishedItem(QueueItemPtr& qi, bool aFinished) noexcept {
-	dcassert(qi->isSet(QueueItem::FLAG_DOWNLOADED) && qi->getTimeFinished() > 0);
+	dcassert(qi->isDownloaded() && qi->getTimeFinished() > 0);
 
 	finishedFiles.push_back(qi);
 	if (!aFinished) {
@@ -267,7 +279,7 @@ void Bundle::addQueue(QueueItemPtr& qi) noexcept {
 	}
 
 	dcassert(qi->getTimeFinished() == 0);
-	dcassert(!qi->isSet(QueueItem::FLAG_MOVED) && !qi->segmentsDone());
+	dcassert(!qi->isCompleted() && !qi->segmentsDone());
 	dcassert(find(queueItems, qi) == queueItems.end());
 
 	queueItems.push_back(qi);

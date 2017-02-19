@@ -28,9 +28,9 @@
 
 namespace dcpp {
 
-struct ActionHookError;
-typedef std::shared_ptr<ActionHookError> ActionHookErrorPtr;
-typedef std::function<ActionHookErrorPtr(const string& aErrorId, const string& aErrorMessage)> HookErrorGetter;
+struct ActionHookRejection;
+typedef std::shared_ptr<ActionHookRejection> ActionHookRejectionPtr;
+typedef std::function<ActionHookRejectionPtr(const string& aReasonId, const string& aMessage)> HookRejectionGetter;
 
 class AdcCommand;
 

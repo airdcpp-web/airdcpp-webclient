@@ -304,7 +304,7 @@ void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const Bund
 		return;
 	}
 
-	auto filesMissing = ActionHookError::matches(aBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_MISSING);
+	auto filesMissing = ActionHookRejection::matches(aBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_MISSING);
 	auto items = getSearchesByBundle(aBundle);
 	bool found = false, searched = false;
 	for (auto& as : items) {

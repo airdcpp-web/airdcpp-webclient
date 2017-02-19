@@ -251,7 +251,6 @@ const string SettingsManager::settingTags[] =
 "MagnetRegister", "MinimizeToTray", "NoAwayMsgToBots", "NoIpOverride",
 "PopupBotPms", "PopupHubPms", "PopunderFilelist", "PopunderPm",
 "LowestPrio", "PromptPassword",
-"SendUnknownCommands",
 "ShareHidden", "ShowJoins", "ShowMenuBar", "ShowStatusbar", "ShowToolbar",
 "ShowTransferview", "SocksResolve", "SortFavUsersFirst",
 "StatusInChat", "TimeDependentThrottle", "TimeStamps",
@@ -382,7 +381,6 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(HUB_USER_COMMANDS, true);
 	setDefault(LOG_FILELIST_TRANSFERS, false);
 	setDefault(LOG_SYSTEM, true);
-	setDefault(SEND_UNKNOWN_COMMANDS, false);
 	setDefault(MAX_HASH_SPEED, 0);
 	setDefault(GET_USER_COUNTRY, true);
 	setDefault(FAV_SHOW_JOINS, false);

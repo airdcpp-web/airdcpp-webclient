@@ -148,7 +148,7 @@ public:
 	void accept(const Socket& aServer);
 
 	void handlePM(const AdcCommand& c, bool echo) noexcept;
-	void pm(const string& message, bool thirdPerson = false);
+	bool pm(const string& aMessage, string& error_, bool aThirdPerson = false);
 
 	template<typename F>
 	void callAsync(F f) { if(socket) socket->callAsync(f); }
