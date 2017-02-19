@@ -26,7 +26,6 @@
 #include "DebugManager.h"
 #include "FavoriteManager.h"
 #include "LogManager.h"
-#include "MessageManager.h"
 #include "ResourceManager.h"
 #include "ShareManager.h"
 #include "ThrottleManager.h"
@@ -358,9 +357,57 @@ void Client::allowUntrustedConnect() noexcept {
 	connect(false);
 }
 
-void Client::onChatMessage(const ChatMessagePtr& aMessage) noexcept {
-	if (MessageManager::getInstance()->isIgnoredOrFiltered(aMessage, this, false))
+bool Client::sendMessage(const string& aMessage, string& error_, bool aThirdPerson) noexcept {
+	if (!stateNormal()) {
+		error_ = STRING(CONNECTING_IN_PROGRESS);
+		return false;
+	}
+
+	auto error = ClientManager::getInstance()->outgoingHubMessageHook.runHooksError(aMessage, aThirdPerson, *this);
+	if (error) {
+		error_ = error->formatError(error);
+		return false;
+	}
+
+
+	if (!aMessage.empty() && aMessage.front() == '/') {
+		return false;
+	}
+
+	return hubMessage(aMessage, error_, aThirdPerson);
+}
+
+bool Client::sendPrivateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept {
+	if (!stateNormal()) {
+		error_ = STRING(CONNECTING_IN_PROGRESS);
+		return false;
+	}
+
+	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage, aThirdPerson, HintedUser(aUser->getUser(), aUser->getHubUrl()), aEcho);
+	if (error) {
+		error_ = error->formatError(error);
+		return false;
+	}
+
+	if (!aMessage.empty() && aMessage.front() == '/') {
+		return false;
+	}
+
+	return privateMessage(aUser, aMessage, error_, aThirdPerson, aEcho);
+}
+
+void Client::onPrivateMessage(const ChatMessagePtr& aMessage) noexcept {
+	if (!ClientManager::getInstance()->incomingPrivateMessageHook.runHooksBasic(aMessage)) {
 		return;
+	}
+
+	fire(ClientListener::PrivateMessage(), this, aMessage);
+}
+
+void Client::onChatMessage(const ChatMessagePtr& aMessage) noexcept {
+	if (!ClientManager::getInstance()->incomingHubMessageHook.runHooksBasic(aMessage)) {
+		return;
+	}
 
 	if (get(HubSettings::LogMainChat)) {
 		ParamMap params;
@@ -372,7 +419,6 @@ void Client::onChatMessage(const ChatMessagePtr& aMessage) noexcept {
 	}
 
 	cache.addMessage(aMessage);
-
 	fire(ClientListener::ChatMessage(), this, aMessage);
 }
 

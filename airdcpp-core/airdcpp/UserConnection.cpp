@@ -232,16 +232,28 @@ void UserConnection::inf(bool withToken, int mcnSlots) {
 	send(c);
 }
 
-void UserConnection::pm(const string& message, bool thirdPerson) {
+bool UserConnection::pm(const string& aMessage, string& error_, bool aThirdPerson) {
+	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage, aThirdPerson, getHintedUser(), true);
+	if (error) {
+		error_ = error->formatError(error);
+		return false;
+	}
+
+	if (!aMessage.empty() && aMessage.front() == '/') {
+		return false;
+	}
 
 	AdcCommand c(AdcCommand::CMD_MSG);
-	c.addParam(message);
-	if (thirdPerson)
+	c.addParam(aMessage);
+	if (aThirdPerson) {
 		c.addParam("ME", "1");
+	}
+
 	send(c);
 
 	// simulate an echo message.
 	callAsync([=]{ handlePM(c, true); });
+	return true;
 }
 
 void UserConnection::handle(AdcCommand::MSG t, const AdcCommand& c) {
@@ -282,11 +294,16 @@ void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 	string tmp;
 
 	auto msg = std::make_shared<ChatMessage>(message, peer, me, peer);
+	msg->setThirdPerson(c.hasFlag("ME", 1));
 	if (c.getParam("TS", 1, tmp)) {
 		msg->setTime(Util::toInt64(tmp));
 	}
 
-	msg->setThirdPerson(c.hasFlag("ME", 1));
+	if (!ClientManager::getInstance()->incomingPrivateMessageHook.runHooksBasic(msg)) {
+		disconnect(true);
+		return;
+	}
+
 	fire(UserConnectionListener::PrivateMessage(), this, msg);
 }
 

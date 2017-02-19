@@ -88,6 +88,8 @@ public:
 
 	Bundle::TokenMap& getBundles() { return bundles; }
 	const Bundle::TokenMap& getBundles() const { return bundles; }
+
+	uint64_t getTotalQueueSize() const noexcept { return queueSize; }
 private:
 	void findNmdcDirs(const string& aPath, PathInfoPtrList& paths_) const noexcept;
 	const PathInfo* getNmdcSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept;
@@ -111,6 +113,8 @@ private:
 
 	// Bundles by token
 	Bundle::TokenMap bundles;
+
+	uint64_t queueSize = 0;
 };
 
 } // namespace dcpp

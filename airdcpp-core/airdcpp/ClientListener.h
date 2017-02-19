@@ -56,6 +56,7 @@ public:
 	typedef X<24> ConnectStateChanged;
 	typedef X<25> KeyprintMismatch;
 	typedef X<26> OutgoingSearch;
+	typedef X<27> PrivateMessage;
 
 	enum StatusFlags {
 		FLAG_NORMAL = 0x00,
@@ -90,6 +91,7 @@ public:
 	virtual void on(ConnectStateChanged, const Client*, uint8_t) noexcept {}
 	virtual void on(KeyprintMismatch, const Client*) noexcept {}
 	virtual void on(OutgoingSearch, const Client*, const SearchPtr&) noexcept {}
+	virtual void on(PrivateMessage, const Client*, const ChatMessagePtr&) noexcept { }
 };
 
 } // namespace dcpp

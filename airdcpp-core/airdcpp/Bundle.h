@@ -113,7 +113,6 @@ public:
 	Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate=0, QueueToken aToken = 0, bool aDirty = true, bool isFileBundle = false) noexcept;
 	~Bundle() noexcept;
 
-	IGETSET(ActionHookErrorPtr, hookError, HookError, nullptr);
 	GETSET(string, error, Error);
 
 	IGETSET(Status, status, Status, STATUS_NEW);
@@ -136,6 +135,10 @@ public:
 
 	QueueItemList& getFinishedFiles() { return finishedFiles; }
 	QueueItemList& getQueueItems() { return queueItems; }
+	void setHookError(const ActionHookRejectionPtr& aError) noexcept;
+	const ActionHookRejectionPtr& getHookError() const noexcept {
+		return hookError;
+	}
 
 	const FinishedNotifyList& getFinishedNotifications() const noexcept  { return finishedNotifications; }
 
@@ -234,6 +237,8 @@ public:
 	QueueItemPtr getNextQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept;
 	void getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept;
 
+	QueueItemList getFailedItems() const noexcept;
+
 	void removeUserQueue(QueueItemPtr& qi) noexcept;
 	bool removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason) noexcept;
 
@@ -241,6 +246,8 @@ public:
 	void rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept;
 	bool isEmpty() const noexcept { return queueItems.empty() && finishedFiles.empty(); }
 private:
+	ActionHookRejectionPtr hookError = nullptr;
+
 	int64_t lastSpeed = 0; // the speed sent on last time to UBN sources
 	int64_t lastDownloaded = 0; // the progress percent sent on last time to UBN sources
 

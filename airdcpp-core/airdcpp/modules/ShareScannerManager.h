@@ -48,6 +48,9 @@ class ShareScannerManager: public Singleton<ShareScannerManager>, public Thread,
 #define SHARE_SCANNER_ERROR_MISSING "error_missing"
 #define SHARE_SCANNER_ERROR_INVALID_CONTENT "error_invalid"
 
+#define SFV_CHECKER_HOOK_ID "sfv_checker"
+#define SFV_CHECKER_ERROR_CRC "error_crc"
+
 public:
 	enum ScanType {
 		TYPE_FULL,
@@ -75,7 +78,8 @@ private:
 	void runSfvCheck(const StringList& paths);
 	void runShareScan(const StringList& paths);
 
-	ActionHookErrorPtr bundleCompletionHook(const BundlePtr& aBundle, const HookErrorGetter& aErrorGetter) noexcept;
+	ActionHookRejectionPtr bundleCompletionHook(const BundlePtr& aBundle, const HookRejectionGetter& aErrorGetter) noexcept;
+	ActionHookRejectionPtr fileCompletionHook(const QueueItemPtr& aFile, const HookRejectionGetter& aErrorGetter) noexcept;
 
 	enum extraTypes {
 		AUDIOBOOK,

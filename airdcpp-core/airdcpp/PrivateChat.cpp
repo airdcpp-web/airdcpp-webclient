@@ -128,13 +128,12 @@ void PrivateChat::CCPMDisconnected() {
 	}
 }
 
-bool PrivateChat::sendMessage(const string& msg, string& error_, bool thirdPerson) {
+bool PrivateChat::sendMessage(const string& aMessage, string& error_, bool aThirdPerson) {
 	if (ccReady()) {
-		uc->pm(msg, thirdPerson);
-		return true;
+		return uc->pm(aMessage, error_, aThirdPerson);
 	}
 
-	return ClientManager::getInstance()->privateMessage(replyTo, msg, error_, thirdPerson);
+	return ClientManager::getInstance()->privateMessage(replyTo, aMessage, error_, aThirdPerson);
 }
 
 void PrivateChat::closeCC(bool now, bool noAutoConnect) {

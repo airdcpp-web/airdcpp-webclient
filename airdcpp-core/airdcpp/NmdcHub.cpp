@@ -38,7 +38,6 @@
 #include "ZUtils.h"
 #include "ThrottleManager.h"
 #include "UploadManager.h"
-#include "MessageManager.h"
 #include "ActivityManager.h"
 
 namespace dcpp {
@@ -916,7 +915,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			message->setFrom(findUser(fromNick));
 		}
 
-		MessageManager::getInstance()->onPrivateMessage(message);
+		onPrivateMessage(message);
 	} else if(cmd == "GetPass") {
 		OnlineUser& ou = getUser(getMyNick());
 		ou.getIdentity().set("RG", "1");
@@ -970,13 +969,8 @@ void NmdcHub::revConnectToMe(const OnlineUser& aUser) {
 	send("$RevConnectToMe " + fromUtf8(getMyNick()) + " " + fromUtf8(aUser.getIdentity().getNick()) + "|");
 }
 
-bool NmdcHub::hubMessage(const string& aMessage, string& error_, bool thirdPerson) noexcept { 
-	if(!stateNormal()) {
-		error_ = STRING(CONNECTING_IN_PROGRESS);
-		return false;
-	}
-
-	send(fromUtf8( "<" + getMyNick() + "> " + escape(thirdPerson ? "/me " + aMessage : aMessage) + "|" ) );
+bool NmdcHub::hubMessage(const string& aMessage, string& /*error_*/, bool aThirdPerson) noexcept { 
+	send(fromUtf8( "<" + getMyNick() + "> " + escape(aThirdPerson ? "/me " + aMessage : aMessage) + "|" ) );
 	return true;
 }
 
@@ -1133,7 +1127,7 @@ bool NmdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage,
 	if (aEcho) {
 		// Emulate a returning message...
 		auto message = std::make_shared<ChatMessage>(aMessage, ou, aUser, ou);
-		MessageManager::getInstance()->onPrivateMessage(message);
+		onPrivateMessage(message);
 	}
 
 	return true;

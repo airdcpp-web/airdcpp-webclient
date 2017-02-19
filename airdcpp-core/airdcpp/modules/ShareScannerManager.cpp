@@ -41,6 +41,7 @@ atomic_flag ShareScannerManager::scanning;
 
 ShareScannerManager::ShareScannerManager() : stop(false), tasks(false) {
 	QueueManager::getInstance()->bundleCompletionHook.addSubscriber(SHARE_SCANNER_HOOK_ID, STRING(SHARE_SCANNER), HOOK_HANDLER(ShareScannerManager::bundleCompletionHook));
+	QueueManager::getInstance()->fileCompletionHook.addSubscriber(SFV_CHECKER_HOOK_ID, STRING(SHARE_SCANNER), HOOK_HANDLER(ShareScannerManager::fileCompletionHook));
 
 	// Case sensitive
 	releaseReg.assign(AirUtil::getReleaseRegBasic());
@@ -665,7 +666,27 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& aS
 	}
 }
 
-ActionHookErrorPtr ShareScannerManager::bundleCompletionHook(const BundlePtr& aBundle, const HookErrorGetter& aErrorGetter) noexcept{
+ActionHookRejectionPtr ShareScannerManager::fileCompletionHook(const QueueItemPtr&, const HookRejectionGetter&) noexcept {
+	/*DirSFVReader sfv(Util::getFilePath(aFile->getTarget()));
+
+	auto fileNameLower = Text::toLower(Util::getFileName(aFile->getTarget()));
+	if (!sfv.hasFile(fileNameLower)) {
+		return nullptr;
+	}
+
+	try {
+		if (!sfv.isCrcValid(fileNameLower)) {
+			LogManager::getInstance()->message(STRING(CRC_FAILED) + ": " + aFile->getTarget(), LogMessage::SEV_ERROR);
+			return aErrorGetter(SFV_CHECKER_ERROR_CRC, STRING(CRC_FAILED));
+		}
+	} catch (const FileException&) {
+		LogManager::getInstance()->message(STRING_F(CRC_FILE_ERROR, aFile->getTarget()), LogMessage::SEV_ERROR);
+	}*/
+
+	return nullptr;
+}
+
+ActionHookRejectionPtr ShareScannerManager::bundleCompletionHook(const BundlePtr& aBundle, const HookRejectionGetter& aErrorGetter) noexcept{
 	if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle()) {
 		return nullptr;
 	}

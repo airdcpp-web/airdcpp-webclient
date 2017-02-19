@@ -284,9 +284,6 @@
     <ClCompile Include="airdcpp\SearchQuery.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\MessageManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="airdcpp\PrivateChat.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -360,6 +357,12 @@
       <Filter>Source Files\modules</Filter>
     </ClCompile>
     <ClCompile Include="airdcpp\SharePathValidator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\IgnoreManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\PrivateChatManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -808,12 +811,6 @@
     <ClInclude Include="airdcpp\ConnectionType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\MessageManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\MessageManagerListener.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="airdcpp\PrivateChat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -947,6 +944,18 @@
       <Filter>Header Files\modules</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\SharePathValidator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\IgnoreManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\PrivateChatManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\PrivateChatManagerListener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\IgnoreManagerListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

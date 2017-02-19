@@ -289,10 +289,10 @@ void AutoSearch::updateStatus() noexcept {
 	} else {
 		auto maxBundle = *boost::max_element(bundles, Bundle::StatusOrder());
 		if(maxBundle->getStatus() == Bundle::STATUS_VALIDATION_ERROR) {
-			if (ActionHookError::matches(maxBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_MISSING)) {
+			if (ActionHookRejection::matches(maxBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_MISSING)) {
 				status = AutoSearch::STATUS_FAILED_MISSING;
 			}
-			else if (ActionHookError::matches(maxBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_INVALID_CONTENT)) {
+			else if (ActionHookRejection::matches(maxBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_INVALID_CONTENT)) {
 				status = AutoSearch::STATUS_FAILED_EXTRAS;
 			}
 		} else {

@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "QueueItem.h"
 
+#include "ActionHook.h"
 #include "Bundle.h"
 #include "ClientManager.h"
 #include "Download.h"
@@ -124,6 +125,10 @@ bool QueueItem::PrioSortOrder::operator()(const QueueItemPtr& left, const QueueI
 	return left->getPriority() > right->getPriority();
 }
 
+bool QueueItem::isFailedStatus(Status aStatus) noexcept {
+	return aStatus == STATUS_VALIDATION_ERROR;
+}
+
 Priority QueueItem::calculateAutoPriority() const noexcept {
 	if(getAutoPriority()) {
 		Priority p;
@@ -151,12 +156,8 @@ Priority QueueItem::calculateAutoPriority() const noexcept {
 }
 
 bool QueueItem::hasPartialSharingTarget() noexcept {
-	// don't share items that are being moved
-	if (segmentsDone() && !isSet(QueueItem::FLAG_MOVED))
-		return false;
-
 	// don't share when the file does not exist
-	if(!Util::fileExists(isSet(QueueItem::FLAG_MOVED) ? target : getTempTarget()))
+	if(!Util::fileExists(isDownloaded() ? target : getTempTarget()))
 		return false;
 
 	return true;
@@ -188,7 +189,20 @@ bool QueueItem::isChunkDownloaded(int64_t startPos, int64_t& len) const noexcept
 }
 
 string QueueItem::getStatusString(int64_t aDownloadedBytes, bool aIsWaiting) const noexcept {
-	if (isSet(QueueItem::FLAG_DOWNLOADED)) {
+	if (isDownloaded()) {
+		switch (status) {
+			case STATUS_DOWNLOADED: return STRING(DOWNLOADED);
+			case STATUS_VALIDATION_RUNNING: return STRING(VALIDATING_CONTENT);
+			case STATUS_VALIDATION_ERROR: {
+				dcassert(hookError);
+				if (hookError) {
+					return ActionHookRejection::formatError(hookError);
+				}
+
+				return Util::emptyString;
+			}
+			case STATUS_COMPLETED: return STRING(FINISHED);
+		}
 		return STRING(FINISHED);
 	}
 
@@ -214,37 +228,37 @@ string QueueItem::getListName() const noexcept {
 }
 
 /* INTERNAL */
-uint8_t QueueItem::getMaxSegments(int64_t filesize) const noexcept {
-	uint8_t MaxSegments = 1;
+uint8_t QueueItem::getMaxSegments(int64_t aFileSize) noexcept {
+	uint8_t maxSegments = 1;
 
 	if(SETTING(SEGMENTS_MANUAL)) {
-		MaxSegments = min((uint8_t)SETTING(NUMBER_OF_SEGMENTS), (uint8_t)10);
+		maxSegments = min((uint8_t)SETTING(NUMBER_OF_SEGMENTS), (uint8_t)10);
 	} else {
-		if((filesize >= 2*1048576) && (filesize < 15*1048576)) {
-			MaxSegments = 2;
-		} else if((filesize >= (int64_t)15*1048576) && (filesize < (int64_t)30*1048576)) {
-			MaxSegments = 3;
-		} else if((filesize >= (int64_t)30*1048576) && (filesize < (int64_t)60*1048576)) {
-			MaxSegments = 4;
-		} else if((filesize >= (int64_t)60*1048576) && (filesize < (int64_t)120*1048576)) {
-			MaxSegments = 5;
-		} else if((filesize >= (int64_t)120*1048576) && (filesize < (int64_t)240*1048576)) {
-			MaxSegments = 6;
-		} else if((filesize >= (int64_t)240*1048576) && (filesize < (int64_t)480*1048576)) {
-			MaxSegments = 7;
-		} else if((filesize >= (int64_t)480*1048576) && (filesize < (int64_t)960*1048576)) {
-			MaxSegments = 8;
-		} else if((filesize >= (int64_t)960*1048576) && (filesize < (int64_t)1920*1048576)) {
-			MaxSegments = 9;
-		} else if(filesize >= (int64_t)1920*1048576) {
-			MaxSegments = 10;
+		if ((aFileSize >= 2*1048576) && (aFileSize < 15*1048576)) {
+			maxSegments = 2;
+		} else if((aFileSize >= (int64_t)15*1048576) && (aFileSize < (int64_t)30*1048576)) {
+			maxSegments = 3;
+		} else if((aFileSize >= (int64_t)30*1048576) && (aFileSize < (int64_t)60*1048576)) {
+			maxSegments = 4;
+		} else if((aFileSize >= (int64_t)60*1048576) && (aFileSize < (int64_t)120*1048576)) {
+			maxSegments = 5;
+		} else if((aFileSize >= (int64_t)120*1048576) && (aFileSize < (int64_t)240*1048576)) {
+			maxSegments = 6;
+		} else if((aFileSize >= (int64_t)240*1048576) && (aFileSize < (int64_t)480*1048576)) {
+			maxSegments = 7;
+		} else if((aFileSize >= (int64_t)480*1048576) && (aFileSize < (int64_t)960*1048576)) {
+			maxSegments = 8;
+		} else if((aFileSize >= (int64_t)960*1048576) && (aFileSize < (int64_t)1920*1048576)) {
+			maxSegments = 9;
+		} else if(aFileSize >= (int64_t)1920*1048576) {
+			maxSegments = 10;
 		}
 	}
 
 #ifdef _DEBUG
 	return 88;
 #else
-	return MaxSegments;
+	return maxSegments;
 #endif
 }
 
@@ -295,11 +309,14 @@ void QueueItem::removeSource(const UserPtr& aUser, Flags::MaskType reason) noexc
 }
 
 const string& QueueItem::getTempTarget() noexcept {
-	if (isSet(FLAG_OPEN) || (isSet(FLAG_CLIENT_VIEW) && isSet(FLAG_TEXT))) {
-		setTempTarget(target);
-	} else if(!isSet(QueueItem::FLAG_USER_LIST) && tempTarget.empty()) {
-		setTempTarget(target + TEMP_EXTENSION);
+	if (!isFilelist()) {
+		if (isSet(FLAG_OPEN) || isSet(FLAG_CLIENT_VIEW)) {
+			setTempTarget(target);
+		} else if (tempTarget.empty()) {
+			setTempTarget(target + TEMP_EXTENSION);
+		}
 	}
+
 	return tempTarget;
 }
 
@@ -327,7 +344,15 @@ bool QueueItem::segmentsDone() const noexcept {
 }
 
 bool QueueItem::isDownloaded() const noexcept {
-	return isSet(FLAG_DOWNLOADED);
+	return status >= STATUS_DOWNLOADED;
+}
+
+bool QueueItem::isCompleted() const noexcept {
+	return status >= STATUS_COMPLETED;
+}
+
+bool QueueItem::isFilelist() const noexcept {
+	return isSet(FLAG_USER_LIST);
 }
 
 Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t aWantedSize, int64_t aLastSpeed, const PartialSource::Ptr& aPartialSource, bool aAllowOverlap) const noexcept {

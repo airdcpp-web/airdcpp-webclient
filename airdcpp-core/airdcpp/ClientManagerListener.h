@@ -44,6 +44,7 @@ public:
 	typedef X<10> IncomingADCSearch;
 	typedef X<11> DirectSearchEnd;
 	typedef X<11> OutgoingSearch;
+	typedef X<12> PrivateMessage;
 
 
 	virtual void on(UserConnected, const OnlineUser&, bool /*was offline*/) noexcept { }
@@ -61,6 +62,7 @@ public:
 	virtual void on(IncomingADCSearch, const AdcCommand&) noexcept { }
 	virtual void on(DirectSearchEnd, const string& /*token*/, int /*resultcount*/) noexcept { }
 	virtual void on(OutgoingSearch, const string&, const SearchPtr&) noexcept {}
+	virtual void on(PrivateMessage, const ChatMessagePtr&) noexcept {}
 };
 
 } // namespace dcpp

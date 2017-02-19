@@ -32,7 +32,6 @@
 #include "HashBloom.h"
 #include "Localization.h"
 #include "LogManager.h"
-#include "MessageManager.h"
 #include "QueueManager.h"
 #include "ResourceManager.h"
 #include "ScopedFunctor.h"
@@ -383,7 +382,7 @@ void AdcHub::handle(AdcCommand::MSG, AdcCommand& c) noexcept {
 		if(!message->getReplyTo())
 			return;
 
-		MessageManager::getInstance()->onPrivateMessage(message);
+		onPrivateMessage(message);
 		return;
 	}
 
@@ -1073,15 +1072,10 @@ void AdcHub::connect(const OnlineUser& aUser, const string& aToken, bool aSecure
 	}
 }
 
-bool AdcHub::hubMessage(const string& aMessage, string& error_, bool thirdPerson) noexcept {
-	if(!stateNormal()) {
-		error_ = STRING(CONNECTING_IN_PROGRESS);
-		return false;
-	}
-
+bool AdcHub::hubMessage(const string& aMessage, string& error_, bool aThirdPerson) noexcept {
 	AdcCommand c(AdcCommand::CMD_MSG, AdcCommand::TYPE_BROADCAST);
 	c.addParam(aMessage);
-	if(thirdPerson)
+	if (aThirdPerson)
 		c.addParam("ME", "1");
 
 	if (!send(c)) {

@@ -659,8 +659,15 @@ public:
 
 class StringPtrEq {
 public:
-	size_t operator()(const string* a, const string* b) const noexcept {
+	bool operator()(const string* a, const string* b) const noexcept {
 		return *a == *b;
+	}
+};
+
+class StringPtrLess {
+public:
+	bool operator()(const string* a, const string* b) const noexcept {
+		return compare(*a, *b) < 0;
 	}
 };
 

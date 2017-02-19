@@ -17,31 +17,25 @@
 */
 
 
-#ifndef MESSAGE_MANAGER_LISTENER_H
-#define MESSAGE_MANAGER_LISTENER_H
+#ifndef DCPP_PRIVATECHAT_MANAGER_LISTENER_H
+#define DCPP_PRIVATECHAT_MANAGER_LISTENER_H
 
 #include "forward.h"
 
 namespace dcpp {
 
-	class MessageManagerListener {
+	class PrivateChatManagerListener {
 	public:
-		virtual ~MessageManagerListener() { }
+		virtual ~PrivateChatManagerListener() { }
 		template<int I>	struct X { enum { TYPE = I }; };
 
 		typedef X<0> ChatCreated;
 		typedef X<1> ChatRemoved;
 
-		typedef X<2> IgnoreAdded;
-		typedef X<3> IgnoreRemoved;
-
 		virtual void on(ChatCreated, const PrivateChatPtr&, bool /* received message */) noexcept{}
 		virtual void on(ChatRemoved, const PrivateChatPtr&) noexcept {}
-
-		virtual void on(IgnoreAdded, const UserPtr&) noexcept{}
-		virtual void on(IgnoreRemoved, const UserPtr&) noexcept{}
 	};
 
 } // namespace dcpp
 
-#endif // !defined(MESSAGE_MANAGER_LISTENER_H)
+#endif // !defined(DCPP_PRIVATECHAT_MANAGER_LISTENER_H)

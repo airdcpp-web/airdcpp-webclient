@@ -23,7 +23,7 @@
 #include "ClientManager.h"
 #include "DirectoryListingManager.h"
 #include "LogManager.h"
-#include "MessageManager.h"
+#include "PrivateChatManager.h"
 #include "RelevanceSearch.h"
 #include "ResourceManager.h"
 #include "ShareManager.h"
@@ -58,7 +58,7 @@ SettingsManager::IntSetting RecentManager::maxLimits[RecentEntry::TYPE_LAST] = {
 RecentManager::RecentManager() {
 	ClientManager::getInstance()->addListener(this);
 	DirectoryListingManager::getInstance()->addListener(this);
-	MessageManager::getInstance()->addListener(this);
+	PrivateChatManager::getInstance()->addListener(this);
 
 	TimerManager::getInstance()->addListener(this);
 }
@@ -66,7 +66,7 @@ RecentManager::RecentManager() {
 RecentManager::~RecentManager() {
 	ClientManager::getInstance()->removeListener(this);
 	DirectoryListingManager::getInstance()->removeListener(this);
-	MessageManager::getInstance()->removeListener(this);
+	PrivateChatManager::getInstance()->removeListener(this);
 
 	TimerManager::getInstance()->removeListener(this);
 }
@@ -85,9 +85,9 @@ void RecentManager::on(TimerManagerListener::Minute, uint64_t) noexcept {
 	save();
 }
 
-void RecentManager::on(MessageManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool) noexcept {
+void RecentManager::on(PrivateChatManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool) noexcept {
 	auto old = getRecent(RecentEntry::TYPE_PRIVATE_CHAT, RecentEntry::CidCompare(aChat->getUser()->getCID()));
-	auto nick = ClientManager::getInstance()->getNick(aChat->getUser(), aChat->getHubUrl(), false);
+	auto nick = ClientManager::getInstance()->getNick(aChat->getUser(), aChat->getHubUrl(), true);
 	onRecentOpened(RecentEntry::TYPE_PRIVATE_CHAT, nick, Util::emptyString, aChat->getHubUrl(), aChat->getUser(), old);
 }
 
@@ -97,7 +97,7 @@ void RecentManager::on(DirectoryListingManagerListener::ListingCreated, const Di
 	}
 
 	auto shareInfo = ClientManager::getInstance()->getShareInfo(aListing->getHintedUser());
-	auto nick = ClientManager::getInstance()->getNick(aListing->getUser(), aListing->getHubUrl(), false);
+	auto nick = ClientManager::getInstance()->getNick(aListing->getUser(), aListing->getHubUrl(), true);
 	auto old = getRecent(RecentEntry::TYPE_FILELIST, RecentEntry::CidCompare(aListing->getUser()->getCID()));
 	onRecentOpened(RecentEntry::TYPE_FILELIST, nick, shareInfo ? Util::formatBytes((*shareInfo).size) : Util::emptyString, aListing->getHubUrl(), aListing->getUser(), old);
 }
