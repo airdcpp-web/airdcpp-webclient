@@ -189,31 +189,33 @@ bool QueueItem::isChunkDownloaded(int64_t startPos, int64_t& len) const noexcept
 }
 
 string QueueItem::getStatusString(int64_t aDownloadedBytes, bool aIsWaiting) const noexcept {
-	if (isDownloaded()) {
-		switch (status) {
-			case STATUS_DOWNLOADED: return STRING(DOWNLOADED);
-			case STATUS_VALIDATION_RUNNING: return STRING(VALIDATING_CONTENT);
-			case STATUS_VALIDATION_ERROR: {
-				dcassert(hookError);
-				if (hookError) {
-					return ActionHookRejection::formatError(hookError);
-				}
-
-				return Util::emptyString;
+	switch (status) {
+		case STATUS_NEW:
+		case STATUS_QUEUED: {
+			auto percentage = getPercentage(aDownloadedBytes);
+			if (isPausedPrio()) {
+				return STRING_F(PAUSED_PCT, percentage);
+			} else if (aIsWaiting) {
+				return STRING_F(WAITING_PCT, percentage);
+			} else {
+				return STRING_F(RUNNING_PCT, percentage);
 			}
-			case STATUS_COMPLETED: return STRING(FINISHED);
 		}
-		return STRING(FINISHED);
+		case STATUS_DOWNLOADED: return STRING(DOWNLOADED);
+		case STATUS_VALIDATION_RUNNING: return STRING(VALIDATING_CONTENT);
+		case STATUS_VALIDATION_ERROR: {
+			dcassert(hookError);
+			if (hookError) {
+				return ActionHookRejection::formatError(hookError);
+			}
+
+			return Util::emptyString;
+		}
+		case STATUS_COMPLETED: return STRING(FINISHED);
 	}
 
-	auto percentage = getPercentage(aDownloadedBytes);
-	if (isPausedPrio()) {
-		return STRING_F(PAUSED_PCT, percentage);
-	} else if (aIsWaiting) {
-		return STRING_F(WAITING_PCT, percentage);
-	} else {
-		return STRING_F(RUNNING_PCT, percentage);
-	}
+	dcassert(0);
+	return Util::emptyString;
 }
 
 string QueueItem::getListName() const noexcept {
