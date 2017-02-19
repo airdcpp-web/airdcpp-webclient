@@ -68,7 +68,7 @@ namespace webserver {
 		}
 
 		api_return handleSubscribe(ApiRequest& aRequest) override {
-			if (!socket) {
+			if (!SubscribableApiModule::getSocket()) {
 				aRequest.setResponseErrorStr("Socket required");
 				return websocketpp::http::status_code::precondition_required;
 			}

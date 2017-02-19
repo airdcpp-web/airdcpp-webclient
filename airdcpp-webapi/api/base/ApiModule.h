@@ -152,17 +152,20 @@ namespace webserver {
 		Access getSubscriptionAccess() const noexcept {
 			return subscriptionAccess;
 		}
+
+		const WebSocketPtr& getSocket() const noexcept {
+			return socket;
+		}
 	protected:
 		virtual void on(SessionListener::SocketConnected, const WebSocketPtr&) noexcept override;
 		virtual void on(SessionListener::SocketDisconnected) noexcept override;
 
 		const Access subscriptionAccess;
 
-		WebSocketPtr socket = nullptr;
-
 		virtual api_return handleSubscribe(ApiRequest& aRequest);
 		virtual api_return handleUnsubscribe(ApiRequest& aRequest);
 	private:
+		WebSocketPtr socket = nullptr;
 		SubscriptionMap subscriptions;
 	};
 
