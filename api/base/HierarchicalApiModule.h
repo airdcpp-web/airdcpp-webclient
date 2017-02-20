@@ -31,6 +31,7 @@
 namespace webserver {
 	class WebSocket;
 
+	// Module class that will forward request to child entities and can be used to manager their subscriptions across all entities
 	template<class IdType, class ItemType, class BaseType = SubscribableApiModule>
 	class ParentApiModule : public BaseType {
 	public:
@@ -40,7 +41,7 @@ namespace webserver {
 
 		template<typename... ArgT>
 		ParentApiModule(const string& aSubmoduleSection, ApiModule::RequestHandler::Param&& aParamMatcher, Access aAccess, Session* aSession, const StringList& aSubscriptions, const StringList& aChildSubscription, IdConvertF aIdConvertF, ChildSerializeF aChildSerializeF, ArgT&&... args) :
-			BaseType(aSession, aAccess, &aSubscriptions, std::forward<ArgT>(args)...), idConvertF(aIdConvertF), childSerializeF(aChildSerializeF), paramId(aParamMatcher.id), childSubscriptions(aChildSubscription) {
+			BaseType(aSession, aAccess, &aSubscriptions, std::forward<ArgT>(args)...), idConvertF(aIdConvertF), childSerializeF(aChildSerializeF), paramId(aParamMatcher.id) {
 
 			// Get module
 			METHOD_HANDLER(aAccess, METHOD_GET, (EXACT_PARAM(aSubmoduleSection), aParamMatcher), Type::handleGetSubmodule);
@@ -50,6 +51,10 @@ namespace webserver {
 
 			// Request forwarder
 			METHOD_HANDLER(Access::ANY, METHOD_FORWARD, (EXACT_PARAM(aSubmoduleSection), aParamMatcher), Type::handleSubModuleRequest);
+
+			for (const auto& s: aChildSubscription) {
+				SubscribableApiModule::createSubscription(s);
+			}
 		}
 
 		~ParentApiModule() {
@@ -67,27 +72,8 @@ namespace webserver {
 			subModules.clear();
 		}
 
-		api_return handleSubscribe(ApiRequest& aRequest) override {
-			if (!SubscribableApiModule::getSocket()) {
-				aRequest.setResponseErrorStr("Socket required");
-				return websocketpp::http::status_code::precondition_required;
-			}
-
-			const auto& subscription = aRequest.getStringParam(LISTENER_PARAM_ID);
-			if (setChildSubscriptionState(subscription, true)) {
-				return websocketpp::http::status_code::no_content;
-			}
-
-			return SubscribableApiModule::handleSubscribe(aRequest);
-		}
-
-		api_return handleUnsubscribe(ApiRequest& aRequest) override {
-			const auto& subscription = aRequest.getStringParam(LISTENER_PARAM_ID);
-			if (setChildSubscriptionState(subscription, false)) {
-				return websocketpp::http::status_code::no_content;
-			}
-
-			return SubscribableApiModule::handleUnsubscribe(aRequest);
+		void createSubscription(const string& aSubscription) noexcept override {
+			dcassert(0);
 		}
 
 		// Forward request to a submodule
@@ -98,28 +84,6 @@ namespace webserver {
 			aRequest.popParam(2);
 
 			return sub->handleRequest(aRequest);
-		}
-
-		bool subscriptionExists(const string& aSubscription) const noexcept override {
-			if (hasChildSubscription(aSubscription)) {
-				return true;
-			}
-
-			return SubscribableApiModule::subscriptionExists(aSubscription);
-		}
-
-		// Change subscription state for all submodules
-		bool setChildSubscriptionState(const string& aSubscription, bool aActive) noexcept {
-			if (hasChildSubscription(aSubscription)) {
-				RLock l(cs);
-				for (const auto& m : subModules | map_values) {
-					m->setSubscriptionState(aSubscription, aActive);
-				}
-
-				return true;
-			}
-
-			return false;
 		}
 
 		// Submodules should NEVER be accessed outside of web server threads (e.g. API requests)
@@ -169,10 +133,6 @@ namespace webserver {
 	protected:
 		mutable SharedMutex cs;
 
-		bool hasChildSubscription(const string& aName) const noexcept {
-			return find(childSubscriptions.begin(), childSubscriptions.end(), aName) != childSubscriptions.end();
-		}
-
 		void forEachSubModule(std::function<void(const ItemType&)> aAction) {
 			RLock l(cs);
 			for (const auto& m : subModules | map_values) {
@@ -196,7 +156,6 @@ namespace webserver {
 	private:
 		map<IdType, typename ItemType::Ptr> subModules;
 
-		const StringList& childSubscriptions;
 		const IdConvertF idConvertF;
 		const ChildSerializeF childSerializeF;
 		const string paramId;
@@ -226,6 +185,16 @@ namespace webserver {
 			}
 
 			return send(aSubscription, aCallback());
+		}
+
+		bool subscriptionActive(const string& aSubscription) const noexcept override {
+			// Enabled across all entities?
+			if (parentModule->subscriptionActive(aSubscription)) {
+				return true;
+			}
+
+			// Enabled for this entity only?
+			return SubscribableApiModule::subscriptionActive(aSubscription);
 		}
 
 

@@ -114,7 +114,7 @@ namespace webserver {
 
 	ActionHookRejectionPtr QueueApi::fileCompletionHook(const QueueItemPtr& aFile, const HookRejectionGetter& aErrorGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook("queue_file_finished_hook", chrono::milliseconds(250), chrono::seconds(60), [&]() {
+			fireHook("queue_file_finished_hook", 60, [&]() {
 				return Serializer::serializeItem(aFile, QueueFileUtils::propertyHandler);
 			}),
 			aErrorGetter
@@ -123,7 +123,7 @@ namespace webserver {
 
 	ActionHookRejectionPtr QueueApi::bundleCompletionHook(const BundlePtr& aBundle, const HookRejectionGetter& aErrorGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook("queue_bundle_finished_hook", chrono::milliseconds(250), chrono::seconds(60), [&]() {
+			fireHook("queue_bundle_finished_hook", 60, [&]() {
 				return Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler);
 			}),
 			aErrorGetter

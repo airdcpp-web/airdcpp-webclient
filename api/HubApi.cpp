@@ -33,7 +33,7 @@ namespace webserver {
 
 	ActionHookRejectionPtr HubApi::incomingMessageHook(const ChatMessagePtr& aMessage, const HookRejectionGetter& aRejectionGetter) {
 		return HookCompletionData::toResult(
-			fireHook("hub_incoming_message_hook", chrono::milliseconds(25), chrono::seconds(2), [&]() {
+			fireHook("hub_incoming_message_hook", 2, [&]() {
 				return Serializer::serializeChatMessage(aMessage);
 			}),
 			aRejectionGetter
@@ -42,7 +42,7 @@ namespace webserver {
 
 	ActionHookRejectionPtr HubApi::outgoingMessageHook(const string& aMessage, bool aThirdPerson, const Client& aClient, const HookRejectionGetter& aRejectionGetter) {
 		return HookCompletionData::toResult(
-			fireHook("hub_outgoing_message_hook", chrono::milliseconds(25), chrono::seconds(2), [&]() {
+			fireHook("hub_outgoing_message_hook", 2, [&]() {
 				return json({
 					{ "text", aMessage },
 					{ "third_person", aThirdPerson },
