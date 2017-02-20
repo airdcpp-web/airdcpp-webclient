@@ -33,7 +33,7 @@ namespace webserver {
 
 	ActionHookRejectionPtr PrivateChatApi::incomingMessageHook(const ChatMessagePtr& aMessage, const HookRejectionGetter& aRejectionGetter) {
 		return HookCompletionData::toResult(
-			fireHook("private_chat_incoming_message_hook", chrono::milliseconds(25), chrono::seconds(2), [&]() {
+			fireHook("private_chat_incoming_message_hook", 2, [&]() {
 				return Serializer::serializeChatMessage(aMessage);
 			}),
 			aRejectionGetter
@@ -42,7 +42,7 @@ namespace webserver {
 
 	ActionHookRejectionPtr PrivateChatApi::outgoingMessageHook(const string& aMessage, bool aThirdPerson, const HintedUser& aUser, bool aEcho, const HookRejectionGetter& aRejectionGetter) {
 		return HookCompletionData::toResult(
-			fireHook("private_chat_outgoing_message_hook", chrono::milliseconds(25), chrono::seconds(2), [&]() {
+			fireHook("private_chat_outgoing_message_hook", 2, [&]() {
 				return json({
 					{ "text", aMessage },
 					{ "third_person", aThirdPerson },

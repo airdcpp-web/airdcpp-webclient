@@ -36,6 +36,13 @@ namespace webserver {
 			h.disable();
 		}
 
+		{
+			RLock l(cs);
+			for (auto& action : pendingHookActions | map_values) {
+				action.semaphore.signal();
+			}
+		}
+
 		// Wait for the pending action hooks to be cancelled
 		while (true) {
 			{
@@ -151,11 +158,13 @@ namespace webserver {
 			return websocketpp::http::status_code::not_found;
 		}
 
-		h->second = std::make_shared<HookCompletionData>(aRejected, aRequest.getRequestBody());
+		auto& action = h->second;
+		action.completionData = std::make_shared<HookCompletionData>(aRejected, aRequest.getRequestBody());
+		action.semaphore.signal();
 		return websocketpp::http::status_code::no_content;
 	}
 
-	HookApiModule::HookCompletionDataPtr HookApiModule::fireHook(const string& aSubscription, const std::chrono::milliseconds& aPollInterval, const std::chrono::milliseconds& aTimeout, JsonCallback&& aJsonCallback) {
+	HookApiModule::HookCompletionDataPtr HookApiModule::fireHook(const string& aSubscription, int aTimeoutSeconds, JsonCallback&& aJsonCallback) {
 		const auto& hook = hooks.find(aSubscription);
 		dcassert(hook != hooks.end());
 		if (!hook->second.isActive()) {
@@ -164,13 +173,12 @@ namespace webserver {
 
 		// Add a pending entry
 		auto id = pendingHookIdCounter++;
+		Semaphore completionSemaphore;
 
 		{
 			WLock l(cs);
-			pendingHookActions[id];
+			pendingHookActions.emplace(id, PendingAction({ completionSemaphore, nullptr }));
 		}
-
-		HookCompletionDataPtr completionData = nullptr;
 
 		// Notify the subscriber
 		if (send({
@@ -178,22 +186,16 @@ namespace webserver {
 			{ "completion_id", id },
 			{ "data", aJsonCallback() },
 		})) {
-			// Wait for the response
-			for (std::chrono::milliseconds waitCounter = chrono::milliseconds(0); waitCounter < aTimeout; waitCounter += aPollInterval) {
-				std::this_thread::sleep_for(aPollInterval);
+			completionSemaphore.wait(aTimeoutSeconds * 1000);
+		}
 
-				if (!hook->second.isActive()) {
-					// Cancelled
-					break;
-				}
+		// Clean up
+		HookCompletionDataPtr completionData = nullptr;
 
-				RLock l(cs);
-				completionData = pendingHookActions.at(id);
-				if (completionData) {
-					// Completed
-					break;
-				}
-			}
+		{
+			WLock l(cs);
+			completionData = pendingHookActions.at(id).completionData;
+			pendingHookActions.erase(id);
 		}
 
 #ifdef _DEBUG
@@ -201,11 +203,6 @@ namespace webserver {
 			dcdebug("API hook %s timed out\n", aSubscription.c_str());
 		}
 #endif
-
-		{
-			WLock l(cs);
-			pendingHookActions.erase(id);
-		}
 
 		return completionData;
 	}
