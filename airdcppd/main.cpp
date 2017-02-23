@@ -296,7 +296,7 @@ int main(int argc, char* argv[]) {
 	setApp(argv);
 
 	while (argc > 0) {
-		Util::addStartupParam(Text::fromT(*argv));
+		Util::addStartupParam(Text::toUtf8(*argv));
 		argc--;
 		argv++;
 	}
