@@ -433,9 +433,7 @@ namespace webserver {
 	}
 
 	bool WebServerManager::load(const ErrorF& aErrorF) noexcept {
-		try {
-			SimpleXML xml;
-			SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
+		SettingsManager::loadSettingFile(CONFIG_DIR, CONFIG_NAME, [this](SimpleXML& xml) {
 			if (xml.findChild("WebServer")) {
 				xml.stepIn();
 
@@ -458,11 +456,7 @@ namespace webserver {
 
 				xml.stepOut();
 			}
-		} catch (const Exception& e) {
-			if (aErrorF) {
-				aErrorF(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()));
-			}
-		}
+		}, aErrorF);
 
 		return hasValidConfig();
 	}
