@@ -171,6 +171,10 @@ namespace webserver {
 			return nullptr;
 		}
 
+#ifdef _DEBUG
+		auto start = std::chrono::system_clock::now();
+#endif
+
 		// Add a pending entry
 		auto id = pendingHookIdCounter++;
 		Semaphore completionSemaphore;
@@ -199,6 +203,9 @@ namespace webserver {
 		}
 
 #ifdef _DEBUG
+		std::chrono::duration<double> ellapsed = std::chrono::system_clock::now() - start;
+		dcdebug("Action %s completed in %f s\n", aSubscription.c_str(), ellapsed.count());
+
 		if (!completionData) {
 			dcdebug("API hook %s timed out\n", aSubscription.c_str());
 		}
