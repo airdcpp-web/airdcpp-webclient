@@ -26,20 +26,24 @@ namespace dcpp {
 
 #define STRING(x) ResourceManager::getInstance()->getString(ResourceManager::x)
 #define CSTRING(x) ResourceManager::getInstance()->getString(ResourceManager::x).c_str()
-#define WSTRING(x) ResourceManager::getInstance()->getStringW(ResourceManager::x)
-#define CWSTRING(x) ResourceManager::getInstance()->getStringW(ResourceManager::x).c_str()
 
 #define STRING_I(x) ResourceManager::getInstance()->getString(x)
 #define CSTRING_I(x) ResourceManager::getInstance()->getString(x).c_str()
-#define WSTRING_I(x) ResourceManager::getInstance()->getStringW(x)
-#define CWSTRING_I(x) ResourceManager::getInstance()->getStringW(x).c_str()
 
 #define STRING_F(x, args) (dcpp_fmt(ResourceManager::getString(ResourceManager::x)) % args).str()
 #define CSTRING_F(x, args) (dcpp_fmt(ResourceManager::getString(ResourceManager::x)) % args).str().c_str()
+
+#ifdef UNICODE
+
+#define WSTRING(x) ResourceManager::getInstance()->getStringW(ResourceManager::x)
+#define CWSTRING(x) ResourceManager::getInstance()->getStringW(ResourceManager::x).c_str()
+
+#define WSTRING_I(x) ResourceManager::getInstance()->getStringW(x)
+#define CWSTRING_I(x) ResourceManager::getInstance()->getStringW(x).c_str()
+
 #define WSTRING_F(x, args) (dcpp_fmt(ResourceManager::getStringW(ResourceManager::x)) % args).str()
 #define CWSTRING_F(x, args) (dcpp_fmt(ResourceManager::getStringW(ResourceManager::x)) % args).str().c_str()
 
-#ifdef UNICODE
 #define TSTRING WSTRING
 #define TSTRING_I WSTRING_I
 #define TSTRING_F WSTRING_F
@@ -62,25 +66,26 @@ public:
 
 	void loadLanguage(const string& aFile);
 	static const string& getString(Strings x) { dcassert(x >= 0 && x < LAST); return strings[x]; }
+#ifdef UNICODE
 	static const wstring& getStringW(Strings x) { dcassert(x >= 0 && x < LAST); return wstrings[x]; }
+#endif
 	bool isRTL() { return rtl; }
 
 private:
 	friend class Singleton<ResourceManager>;
 
-	ResourceManager() : rtl(false) {
-		createWide();
-	}
-
+	ResourceManager();
 	~ResourceManager() { }
 	
-	static string strings[LAST];
+#ifdef UNICODE
 	static wstring wstrings[LAST];
+	void createWide();
+#endif
+
+	static string strings[LAST];
 	static string names[LAST];
 
-	bool rtl;
-
-	void createWide();
+	bool rtl = false;
 };
 
 } // namespace dcpp

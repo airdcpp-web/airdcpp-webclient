@@ -96,23 +96,27 @@ void RSSManager::parseAtomFeed(SimpleXML& xml, RSSPtr& aFeed) {
 		while (xml.findChild("entry")) {
 			xml.stepIn();
 			bool newdata = false;
-			string titletmp;
+			string title;
 			string link;
 			string date;
 
 			if (xml.findChild("link")) {
 				link = xml.getChildAttrib("href");
 			}
+			xml.resetCurrentChild();
 			if (xml.findChild("title")) {
-				titletmp = xml.getChildData();
-				newdata = checkTitle(aFeed, titletmp);
+				title = xml.getChildData();
+				newdata = checkTitle(aFeed, title);
 			}
+			xml.resetCurrentChild();
 			if (xml.findChild("updated"))
 				date = xml.getChildData();
 
 			if (newdata) {
-				addData(titletmp, link, date, aFeed);
+				addData(title, link, date, aFeed);
 			}
+
+			xml.resetCurrentChild();
 			xml.stepOut();
 		}
 	xml.stepOut();
@@ -125,28 +129,31 @@ void RSSManager::parseRSSFeed(SimpleXML& xml, RSSPtr& aFeed) {
 		while (xml.findChild("item")) {
 			xml.stepIn();
 			bool newdata = false;
-			string titletmp;
+			string title;
 			string link;
 			string date;
 			if (xml.findChild("title")) {
-				titletmp = xml.getChildData();
-				newdata = checkTitle(aFeed, titletmp);
+				title = xml.getChildData();
+				newdata = checkTitle(aFeed, title);
 			}
 
+			xml.resetCurrentChild();
 			if (xml.findChild("link")) {
 				link = xml.getChildData();
 				//temp fix for some urls
 				if (strncmp(link.c_str(), "//", 2) == 0)
 					link = "https:" + link;
 			}
+
+			xml.resetCurrentChild();
 			if (xml.findChild("pubDate"))
 				date = xml.getChildData();
 
-
 			if (newdata) {
-				addData(titletmp, link, date, aFeed);
+				addData(title, link, date, aFeed);
 			}
 
+			xml.resetCurrentChild();
 			xml.stepOut();
 		}
 		xml.stepOut();
@@ -168,24 +175,6 @@ void RSSManager::downloadComplete(const string& aUrl) {
 	}
 
 	string tmpdata(conn->buf);
-	string erh;
-	string type;
-	unsigned long i = 1;
-	while (i) {
-		unsigned int res = 0;
-		sscanf(tmpdata.substr(i-1,4).c_str(), "%x", &res);
-		if (res == 0){
-			i=0;
-		}else{
-			if (tmpdata.substr(i-1,3).find("\x0d") != string::npos)
-				erh += tmpdata.substr(i+3,res);
-			if (tmpdata.substr(i-1,4).find("\x0d") != string::npos)
-				erh += tmpdata.substr(i+4,res);
-			else
-				erh += tmpdata.substr(i+5,res);
-			i += res+8;
-		}
-	}
 	try {
 		SimpleXML xml;
 		xml.fromXML(tmpdata.c_str());
@@ -210,7 +199,7 @@ bool RSSManager::checkTitle(const RSSPtr& aFeed, string& aTitle) {
 }
 
 void RSSManager::addData(const string& aTitle, const string& aLink, const string& aDate, RSSPtr& aFeed) {
-	auto data = new RSSData(aTitle, aLink, aDate, aFeed);
+	auto data = RSSDataPtr(new RSSData(aTitle, aLink, aDate, aFeed));
 	{
 		Lock l(cs);
 		aFeed->getFeedData().emplace(aTitle, data);
@@ -366,7 +355,7 @@ public:
 			const string& link = getAttrib(attribs, "link", 1);
 			const string& pubdate = getAttrib(attribs, "pubdate", 2);
 			const string& dateadded = getAttrib(attribs, "dateadded", 3);
-			auto rd = new RSSData(title, link, pubdate, aFeed, Util::toInt64(dateadded));
+			auto rd = RSSDataPtr(new RSSData(title, link, pubdate, aFeed, Util::toInt64(dateadded)));
 			aFeed->getFeedData().emplace(rd->getTitle(), rd);
 		}
 	}
@@ -376,9 +365,7 @@ private:
 };
 
 void RSSManager::load() {
-	try {
-		SimpleXML xml;
-		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
+	SettingsManager::loadSettingFile(CONFIG_DIR, CONFIG_NAME, [this](SimpleXML& xml) {
 		if (xml.findChild("RSS")) {
 			xml.stepIn();
 
@@ -403,11 +390,12 @@ void RSSManager::load() {
 			xml.resetCurrentChild();
 			xml.stepOut();
 		}
+	});
 
+	try {
 		StringList fileList = File::findFiles(DATABASE_DIR, "RSSDataBase*", File::TYPE_FILE);
 		parallel_for_each(fileList.begin(), fileList.end(), [&](const string& path) {
 			if (Util::getFileExt(path) == ".xml") {
-
 				try {
 					RSSLoader loader;
 
@@ -420,10 +408,7 @@ void RSSManager::load() {
 				}
 			}
 		});
-	}
-	catch (const Exception& e) {
-		LogManager::getInstance()->message("Loading the RSS failed: " + e.getError(), LogMessage::SEV_INFO);
-	}
+	} catch (...) { }
 
 	nextUpdate = GET_TICK() + 60 * 1000; //start after 60 seconds
 	TimerManager::getInstance()->addListener(this);

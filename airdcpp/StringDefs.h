@@ -1531,6 +1531,7 @@ enum Strings { // @DontAdd
 	SETTINGS_WS_HOWTO, // "How to use"
 	SETTINGS_WTOOLBAR_SIZE, // "Media toolbar icon size"
 	SETTINGS_ZDC_PROGRESS_OVERRIDE, // "Override system colors"
+	SETTING_FILE_RECOVERED, // "Settings were recovered from the file %1% that was saved on %2%. The corrupted file has been renamed to %3% (it can safely be removed). Some recent changes may have been lost."
 	SETTING_DONT_DL_ALREADY_QUEUED, // "Don't download files already in queue"
 	SETTING_NAME_X, // "Setting name: %1%"
 	SETUP_PASS, // "Setup password"

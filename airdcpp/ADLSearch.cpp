@@ -221,11 +221,7 @@ void ADLSearchManager::load() noexcept {
 	// Clear current
 	collection.clear();
 
-	// Load file as a string
-	try {
-		SimpleXML xml;
-		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
-
+	SettingsManager::loadSettingFile(CONFIG_DIR, CONFIG_NAME, [this](SimpleXML& xml) {
 		if(xml.findChild("ADLSearch")) {
 			xml.stepIn();
 
@@ -326,9 +322,7 @@ void ADLSearchManager::load() noexcept {
 				}
 			}
 		}
-	} catch(const Exception& e) { 
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogMessage::SEV_ERROR);
-	}
+	});
 
 	for(auto& s: collection) {
 		s.prepare();

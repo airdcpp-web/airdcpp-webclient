@@ -41,6 +41,10 @@ namespace Text {
 	extern string systemCharset;
 
 	void initialize();
+
+	int utf8ToWc(const char* str, wchar_t& c);
+	void wcToUtf8(wchar_t c, string& str);
+#ifdef WIN32
 	wstring acpToWide(const string& str, const string& fromCharset = "") noexcept;
 
 	wstring utf8ToWide(const string& str) noexcept;
@@ -48,15 +52,13 @@ namespace Text {
 	string wideToAcp(const wstring& str, const string& toCharset = "") noexcept;
 	string wideToUtf8(const wstring& str) noexcept;
 
-	int utf8ToWc(const char* str, wchar_t& c);
-	void wcToUtf8(wchar_t c, string& str);
-
-	inline string acpToUtf8(const string& str, const string& fromCharset = "") noexcept{
+	inline string acpToUtf8(const string& str, const string& fromCharset = "") noexcept {
 		return wideToUtf8(acpToWide(str, fromCharset));
 	}
-	inline string utf8ToAcp(const string& str, const string& toCharset = "") noexcept{
+	inline string utf8ToAcp(const string& str, const string& toCharset = "") noexcept {
 		return wideToAcp(utf8ToWide(str), toCharset);
 	}
+
 #ifdef UNICODE
 	inline tstring toT(const string& str) noexcept { return utf8ToWide(str); }
 	inline string fromT(const tstring& str) noexcept { return wideToUtf8(str); }
@@ -66,41 +68,38 @@ namespace Text {
 #endif
 
 	inline const TStringList& toT(const StringList& lst, TStringList& tmp) noexcept {
-		for(auto& i: lst)
+		for (auto& i : lst)
 			tmp.push_back(toT(i));
 		return tmp;
 	}
 
 	inline const StringList& fromT(const TStringList& lst, StringList& tmp) noexcept {
-		for(auto& i: lst)
+		for (auto& i : lst)
 			tmp.push_back(fromT(i));
 		return tmp;
 	}
 
+	wstring toLower(const wstring& str) noexcept;
+
+	string toDOS(string tmp) noexcept;
+	wstring toDOS(wstring tmp) noexcept;
+#else
+	string convert(const string& str, const string& fromCharset, const string& toCharset = "") noexcept;
+#endif
+
 	inline bool isAscii(const string& str) noexcept { return isAscii(str.c_str()); }
 	bool isAscii(const char* str) noexcept;
+	inline char asciiToLower(char c) { dcassert((((uint8_t)c) & 0x80) == 0); return (char)tolower(c); }
 
 	string sanitizeUtf8(const string& str) noexcept;
 	bool validateUtf8(const string& str) noexcept;
 
-	inline char asciiToLower(char c) { dcassert((((uint8_t)c) & 0x80) == 0); return (char)tolower(c); }
-
 	wchar_t toLower(wchar_t c) noexcept;
-
-	wstring toLower(const wstring& str) noexcept;
-
 	bool isLower(const string& str) noexcept;
-
 	string toLower(const string& str) noexcept;
-#ifndef _WIN32
-	string convert(const string& str, const string& fromCharset, const string& toCharset = "") noexcept;
-#endif
+
 	string toUtf8(const string& str, const string& fromCharset = "") noexcept;
-
 	string fromUtf8(const string& str, const string& toCharset = "") noexcept;
-
-	string toDOS(string tmp) noexcept;
-	wstring toDOS(wstring tmp) noexcept;
 
 	inline bool isSeparator(char c) noexcept {
 		return (c >= 32 && c <= 47) ||

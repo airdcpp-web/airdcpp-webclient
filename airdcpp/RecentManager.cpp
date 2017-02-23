@@ -77,11 +77,6 @@ RecentEntryList RecentManager::getRecents(RecentEntry::Type aType) const noexcep
 }
 
 void RecentManager::on(TimerManagerListener::Minute, uint64_t) noexcept {
-	if (!xmlDirty) {
-		return;
-	}
-
-	xmlDirty = false;
 	save();
 }
 
@@ -184,7 +179,13 @@ void RecentManager::onRecentUpdated(RecentEntry::Type aType, const RecentEntryPt
 	setDirty();
 }
 
-void RecentManager::save() const noexcept {
+void RecentManager::save() noexcept {
+	if (!xmlDirty) {
+		return;
+	}
+
+	xmlDirty = false;
+
 	SimpleXML xml;
 
 	xml.addTag("Recents");
@@ -221,9 +222,7 @@ void RecentManager::saveRecents(SimpleXML& aXml, RecentEntry::Type aType) const 
 }
 
 void RecentManager::load() noexcept {
-	try {
-		SimpleXML xml;
-		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_RECENTS_NAME);
+	SettingsManager::loadSettingFile(CONFIG_DIR, CONFIG_RECENTS_NAME, [this](SimpleXML& xml) {
 		if (xml.findChild("Recents")) {
 			xml.stepIn();
 			loadRecents(xml, RecentEntry::TYPE_HUB);
@@ -231,9 +230,7 @@ void RecentManager::load() noexcept {
 			loadRecents(xml, RecentEntry::TYPE_FILELIST);
 			xml.stepOut();
 		}
-	} catch (const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_RECENTS_NAME % e.getError()), LogMessage::SEV_ERROR);
-	}
+	});
 }
 
 void RecentManager::loadRecents(SimpleXML& aXml, RecentEntry::Type aType) {

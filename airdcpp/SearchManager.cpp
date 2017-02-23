@@ -564,17 +564,19 @@ string SearchManager::getPartsString(const PartsInfo& partsInfo) const {
 }
 
 
-AdcCommand SearchManager::toPSR(bool wantResponse, const string& myNick, const string& hubIpPort, const string& tth, const vector<uint16_t>& partialInfo) const {
+AdcCommand SearchManager::toPSR(bool aWantResponse, const string& aMyNick, const string& aHubIpPort, const string& aTTH, const vector<uint16_t>& aPartialInfo) const {
 	AdcCommand cmd(AdcCommand::CMD_PSR, AdcCommand::TYPE_UDP);
 		
-	if(!myNick.empty())
-		cmd.addParam("NI", Text::utf8ToAcp(myNick));
+	if (!aMyNick.empty()) {
+		auto hubUrl = ClientManager::getInstance()->findHub(aHubIpPort, true);
+		cmd.addParam("NI", Text::fromUtf8(aMyNick, ClientManager::getInstance()->findHubEncoding(hubUrl)));
+	}
 		
-	cmd.addParam("HI", hubIpPort);
-	cmd.addParam("U4", wantResponse ? getPort() : "0");
-	cmd.addParam("TR", tth);
-	cmd.addParam("PC", Util::toString(partialInfo.size() / 2));
-	cmd.addParam("PI", getPartsString(partialInfo));
+	cmd.addParam("HI", aHubIpPort);
+	cmd.addParam("U4", aWantResponse ? getPort() : "0");
+	cmd.addParam("TR", aTTH);
+	cmd.addParam("PC", Util::toString(aPartialInfo.size() / 2));
+	cmd.addParam("PI", getPartsString(aPartialInfo));
 	
 	return cmd;
 }
