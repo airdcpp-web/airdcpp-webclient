@@ -44,7 +44,7 @@ namespace dcpp {
 		RecentEntryList searchRecents(RecentEntry::Type aType, const string& aPattern, size_t aMaxResults) const noexcept;
 
 		void load() noexcept;
-		void save() const noexcept;
+		void save() noexcept;
 	private:
 		void checkCount(RecentEntry::Type aType) noexcept;
 		void onHubOpened(const ClientPtr& aClient) noexcept;

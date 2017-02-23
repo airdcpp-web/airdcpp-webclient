@@ -621,13 +621,10 @@ void FavoriteManager::saveFavoriteHubs(SimpleXML& aXml) const noexcept {
 }
 
 void FavoriteManager::loadCID() noexcept {
-	try {
-		SimpleXML xml;
-		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_FAV_NAME);
-
-		if(xml.findChild("Favorites")) {
+	SettingsManager::loadSettingFile(CONFIG_DIR, CONFIG_FAV_NAME, [this](SimpleXML& xml) {
+		if (xml.findChild("Favorites")) {
 			xml.stepIn();
-			if(xml.findChild("CID")) {
+			if (xml.findChild("CID")) {
 				xml.stepIn();
 				SettingsManager::getInstance()->set(SettingsManager::PRIVATE_ID, xml.getData());
 				xml.stepOut();
@@ -635,9 +632,7 @@ void FavoriteManager::loadCID() noexcept {
 
 			xml.stepOut();
 		}
-	} catch(const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_FAV_NAME % e.getError()), LogMessage::SEV_ERROR);
-	}
+	});
 }
 
 void FavoriteManager::load() noexcept {
@@ -656,9 +651,7 @@ void FavoriteManager::load() noexcept {
 	addUserCommand(UserCommand::TYPE_RAW_ONCE, UserCommand::CONTEXT_USER | UserCommand::CONTEXT_SEARCH, UserCommand::FLAG_NOSAVE, 
 		STRING(REDIRECT_USER), redirstr, "", "op");
 
-	try {
-		SimpleXML xml;
-		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_FAV_NAME);
+	SettingsManager::loadSettingFile(CONFIG_DIR, CONFIG_FAV_NAME, [this](SimpleXML& xml) {
 		if(xml.findChild("Favorites")) {
 			xml.stepIn();
 
@@ -668,15 +661,8 @@ void FavoriteManager::load() noexcept {
 			loadFavoriteDirectories(xml);
 
 			xml.stepOut();
-
-			//we have load it fine now, so make a backup of a working favorites.xml
-			auto f = Util::getPath(CONFIG_DIR) + CONFIG_FAV_NAME;
-			File::deleteFile(f + ".bak");
-			File::copyFile(f, f + ".bak");
 		}
-	} catch(const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_FAV_NAME % e.getError()), LogMessage::SEV_ERROR);
-	}
+	});
 
 	lastXmlSave = GET_TICK();
 	TimerManager::getInstance()->addListener(this);

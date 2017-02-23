@@ -1094,18 +1094,14 @@ AutoSearchPtr AutoSearchManager::loadItemFromXml(SimpleXML& aXml) {
 }
 
 void AutoSearchManager::load() noexcept {
-	try {
-		SimpleXML xml;
-		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
-
+	SettingsManager::loadSettingFile(CONFIG_DIR, CONFIG_NAME, [this](SimpleXML& xml) {
 		if(xml.findChild("Autosearch")) {
 			xml.stepIn();
 			loadAutoSearch(xml);
 			xml.stepOut();
 		}
-		resetSearchTimes(GET_TICK(), true);
-	} catch(const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogMessage::SEV_ERROR);
-	}
+	});
+
+	resetSearchTimes(GET_TICK(), true);
 }
 }

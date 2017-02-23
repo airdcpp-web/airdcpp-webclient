@@ -233,9 +233,7 @@ void IgnoreManager::saveUsers() {
 }
 
 void IgnoreManager::loadUsers() {
-	try {
-		SimpleXML xml;
-		SettingsManager::loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
+	SettingsManager::loadSettingFile(CONFIG_DIR, CONFIG_NAME, [this](SimpleXML& xml) {
 		if (xml.findChild("Ignored")) {
 			xml.stepIn();
 			xml.resetCurrentChild();
@@ -254,9 +252,7 @@ void IgnoreManager::loadUsers() {
 			}
 			xml.stepOut();
 		}
-	} catch (const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogMessage::SEV_ERROR);
-	}
+	});
 }
 
 }

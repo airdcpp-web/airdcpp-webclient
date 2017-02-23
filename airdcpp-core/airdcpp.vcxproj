@@ -352,7 +352,6 @@
     <ClCompile Include="airdcpp\version.cpp" />
     <ClCompile Include="airdcpp\ViewFile.cpp" />
     <ClCompile Include="airdcpp\ViewFileManager.cpp" />
-    <ClCompile Include="airdcpp\Wildcards.cpp" />
     <ClCompile Include="airdcpp\ZipFile.cpp" />
     <ClCompile Include="airdcpp\ZUtils.cpp" />
   </ItemGroup>
@@ -566,7 +565,6 @@
     <ClInclude Include="airdcpp\Util.h" />
     <ClInclude Include="airdcpp\version.h" />
     <ClInclude Include="airdcpp\w.h" />
-    <ClInclude Include="airdcpp\Wildcards.h" />
     <ClInclude Include="airdcpp\ZUtils.h" />
   </ItemGroup>
   <ItemGroup>

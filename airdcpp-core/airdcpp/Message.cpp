@@ -60,7 +60,7 @@ string ChatMessage::format() const noexcept {
 		i++;
 	}
 
-	return Text::toDOS(tmp);
+	return tmp;
 }
 
 } // namespace dcpp

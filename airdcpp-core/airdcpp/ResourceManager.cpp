@@ -26,7 +26,21 @@
 
 namespace dcpp {
 	
+#ifdef UNICODE
 wstring ResourceManager::wstrings[ResourceManager::LAST];
+
+void ResourceManager::createWide() {
+	for (int i = 0; i < LAST; ++i) {
+		wstrings[i] = Text::utf8ToWide(strings[i]);
+	}
+}
+#endif
+
+ResourceManager::ResourceManager() {
+#ifdef UNICODE
+	createWide();
+#endif
+}
 
 void ResourceManager::loadLanguage(const string& aFile) {
 	try {
@@ -66,15 +80,11 @@ void ResourceManager::loadLanguage(const string& aFile) {
 				strings[j->second] = xml.getChildData();
 			}
 		}
+#ifdef UNICODE
 		createWide();
+#endif
 	} catch(const Exception& e) {
 		LogManager::getInstance()->message("Failed to load the language file " + aFile + ": " + e.getError(), LogMessage::SEV_ERROR);
-	}
-}
-
-void ResourceManager::createWide() {
-	for(int i = 0; i < LAST; ++i) {
-		wstrings[i] = Text::utf8ToWide(strings[i]);
 	}
 }
 
