@@ -140,8 +140,6 @@ namespace webserver {
 	}
 
 	api_return HubApi::handleGetStats(ApiRequest& aRequest) {
-		json j;
-
 		auto optionalStats = ClientManager::getInstance()->getClientStats();
 		if (!optionalStats) {
 			return websocketpp::http::status_code::no_content;
@@ -149,24 +147,26 @@ namespace webserver {
 
 		auto stats = *optionalStats;
 
-		j["total_users"] = stats.totalUsers;
-		j["unique_users"] = stats.uniqueUsers;
-		j["unique_user_percentage"] = stats.uniqueUsersPercentage;
-		j["adc_users"] = stats.adcUsers;
-		j["nmdc_users"] = stats.nmdcUsers;
-		j["total_share"] = stats.totalShare;
-		j["share_per_user"] = stats.sharePerUser;
-		j["adc_down_per_user"] = stats.downPerAdcUser;
-		j["adc_up_per_user"] = stats.upPerAdcUser;
-		j["nmdc_speed_user"] = stats.nmdcSpeedPerUser;
+		json j = {
+			{ "total_users", stats.totalUsers },
+			{ "total_share", stats.totalShare },
 
-		stats.forEachClient([&](const string& aName, int aCount, double aPercentage) {
+			{ "unique_users", stats.uniqueUsers },
+			{ "adc_users", stats.adcUsers },
+			{ "nmdc_users", stats.nmdcUsers },
+			{ "active_users", stats.activeUsers },
+
+			{ "adc_down_per_user", stats.downPerAdcUser },
+			{ "adc_up_per_user", stats.upPerAdcUser },
+			{ "nmdc_speed_per_user", stats.nmdcSpeedPerUser },
+		};
+
+		for (const auto& c: stats.clients) {
 			j["clients"].push_back({
-				{ "name", aName },
-				{ "count", aCount },
-				{ "percentage", aPercentage },
+				{ "name", c.first },
+				{ "count", c.second },
 			});
-		});
+		}
 
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
