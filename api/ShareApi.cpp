@@ -189,25 +189,27 @@ namespace webserver {
 		json j = {
 			{ "total_file_count", itemStats.totalFileCount },
 			{ "total_directory_count", itemStats.totalDirectoryCount },
-			{ "files_per_directory", itemStats.filesPerDirectory },
 			{ "total_size", itemStats.totalSize },
-			{ "unique_file_percentage", itemStats.uniqueFilePercentage },
-			{ "unique_files", itemStats.uniqueFileCount },
+			{ "unique_file_count", itemStats.uniqueFileCount },
 			{ "average_file_age", itemStats.averageFileAge },
 			{ "profile_count", itemStats.profileCount },
 			{ "root_count", itemStats.rootDirectoryCount },
 
 			{ "total_searches", searchStats.totalSearches },
 			{ "total_searches_per_second", searchStats.totalSearchesPerSecond },
-			{ "total_recursive_searches", searchStats.recursiveSearches },
+
+			{ "auto_searches", searchStats.autoSearches },
+			{ "tth_searches", searchStats.tthSearches },
+
 			{ "unfiltered_recursive_searches_per_second", searchStats.unfilteredRecursiveSearchesPerSecond },
-			{ "filtered_search_percentage", searchStats.filteredSearchPercentage },
-			{ "unfiltered_recursive_match_percentage", searchStats.unfilteredRecursiveMatchPercentage },
+			{ "filtered_searches", searchStats.filteredSearches },
+
+			{ "recursive_searches", searchStats.recursiveSearches },
+			{ "recursive_searches_responded", searchStats.recursiveSearchesResponded },
+			{ "average_match_ms", searchStats.averageSearchMatchMs },
+
 			{ "average_search_token_count", searchStats.averageSearchTokenCount },
 			{ "average_search_token_length", searchStats.averageSearchTokenLength },
-			{ "auto_search_percentage", searchStats.autoSearchPercentage },
-			{ "tth_search_percentage", searchStats.tthSearchPercentage },
-			{ "average_match_ms", searchStats.averageSearchMatchMs },
 		};
 
 		aRequest.setResponseBody(j);
