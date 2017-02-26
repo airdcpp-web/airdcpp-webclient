@@ -23,53 +23,33 @@
 
 using std::string;
 
-wchar_t toLower(wchar_t c) noexcept {
-#ifdef _WIN32
-	return LOWORD(CharLowerW(reinterpret_cast<LPWSTR>(MAKELONG(c, 0))));
-#else
-	return (wchar_t)towlower(c);
-#endif
-}
-
-wchar_t toUpper(wchar_t c) noexcept {
-#ifdef _WIN32
-	return LOWORD(CharUpperW(reinterpret_cast<LPWSTR>(MAKELONG(c, 0))));
-#else
-	return (wchar_t)towupper(c);
-#endif
-}
-
 #define ARRAY_BITS (sizeof(MaskType)*8)
 
-DualString::DualString(const string& aStr) {
-	reserve(aStr.size());
-
-	//auto tmp = dcpp::Text::toLower(aStr);
+// Text::toLower should be used for initial conversion due to UTF-16 surrogate handling
+// Text::utf8ToWc should be sufficient for equality checks
+DualString::DualString(const string& aStr) : string(dcpp::Text::toLower(aStr)) {
 	int arrayPos = 0, bitPos = 0;
-	const char* end = &aStr[0] + aStr.size();
-	for (const char* p = &aStr[0]; p < end;) {
-		wchar_t c = 0;
-		int n = dcpp::Text::utf8ToWc(p, c);
-		if (n < 0) {
-			append("_");
-		} else {
-			auto lc = toLower(c);
-			if (lc != c) {
-				if (!charSizes) {
-					initSizeArray(aStr.size());
-				}
-				charSizes[arrayPos] |= (1 << bitPos);
+	auto a = aStr.c_str();
+	auto b = this->c_str();
+	while (*a) {
+		wchar_t ca = 0, cb = 0;
+		int na = dcpp::Text::utf8ToWc(a, ca);
+		int nb = dcpp::Text::utf8ToWc(b, cb);
+		if (ca != cb) {
+			if (!charSizes) {
+				initSizeArray(aStr.size());
 			}
-
-			dcpp::Text::wcToUtf8(lc, *this);
+			charSizes[arrayPos] |= (1 << bitPos);
 		}
 
-		p += n;
-		bitPos += n;
+		a += abs(na);
+		b += abs(nb);
+
+		bitPos += abs(na);
 
 		// move to the next array?
 		if (bitPos >= static_cast<int>(ARRAY_BITS)) {
-			bitPos = 0 + bitPos-ARRAY_BITS;
+			bitPos = 0 + bitPos - ARRAY_BITS;
 			arrayPos++;
 		}
 	}
@@ -117,7 +97,7 @@ string DualString::getNormal() const {
 			wchar_t c = 0;
 			int n = dcpp::Text::utf8ToWc(p, c);
 
-			dcpp::Text::wcToUtf8(toUpper(c), ret);
+			dcpp::Text::wcToUtf8(towupper(c), ret);
 
 			bitPos += n;
 			p += n;

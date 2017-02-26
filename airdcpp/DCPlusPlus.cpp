@@ -106,6 +106,7 @@ void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progr
 	}
 
 	SettingsManager::getInstance()->load(messageF);
+	FavoriteManager::getInstance()->load();
 
 	UploadManager::getInstance()->setFreeSlotMatcher();
 	Localization::init();
@@ -143,7 +144,7 @@ void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progr
 	announce(STRING(SHARED_FILES));
 	ShareManager::getInstance()->startup(stepF, progressF); 
 
-	FavoriteManager::getInstance()->load();
+	IgnoreManager::getInstance()->load();
 	RecentManager::getInstance()->load();
 
 	if(SETTING(GET_USER_COUNTRY)) {
@@ -182,9 +183,10 @@ void shutdown(StepF stepF, ProgressF progressF, Callback moduleDestroyF) {
 	
 	announce(STRING(SAVING_SETTINGS));
 	QueueManager::getInstance()->shutdown();
+	RecentManager::getInstance()->save();
+	IgnoreManager::getInstance()->save();
 	FavoriteManager::getInstance()->shutdown();
 	SettingsManager::getInstance()->save();
-	RecentManager::getInstance()->save();
 
 	if (moduleDestroyF) {
 		moduleDestroyF();

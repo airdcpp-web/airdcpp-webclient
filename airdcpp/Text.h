@@ -42,6 +42,10 @@ namespace Text {
 
 	void initialize();
 
+	// Size of wchar_t is usually 16 bits on Windows and 32 bits on other platforms
+	// For 16 bit wchars (UTF-16), we may have surrogate pairs and per-character conversion 
+	// will produce invalid results for them
+	// Use of these function should thus be avoided in platform-independent (or Windows-specific) code
 	int utf8ToWc(const char* str, wchar_t& c);
 	void wcToUtf8(wchar_t c, string& str);
 #ifdef WIN32
@@ -79,7 +83,13 @@ namespace Text {
 		return tmp;
 	}
 
-	wstring toLower(const wstring& str) noexcept;
+	// Modifies the original string
+	const wstring& toLowerReplace(wstring& tgt) noexcept;
+
+	inline wstring toLower(const wstring& str) noexcept {
+		wstring tmp(str);
+		return toLowerReplace(tmp);
+	}
 
 	string toDOS(string tmp) noexcept;
 	wstring toDOS(wstring tmp) noexcept;

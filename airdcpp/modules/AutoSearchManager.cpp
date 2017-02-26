@@ -107,7 +107,7 @@ void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search, bo
 		}
 	} 
 	if(!loading) {
-		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
+		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK()); }, 1000);
 	}
 }
 
@@ -128,7 +128,7 @@ bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) noexcept
 		as->setEnabled(toActive);
 		updateStatus(as, true);
 	}
-	delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
+	delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK()); }, 1000);
 	dirty = true;
 	return true;
 }
@@ -143,7 +143,7 @@ bool AutoSearchManager::updateAutoSearch(AutoSearchPtr& ipw) noexcept {
 		ipw->updateExcluded();
 	}
 
-	delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
+	delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK()); }, 1000);
 	//if (find_if(searchItems, [ipw](const AutoSearchPtr as) { return as->getSearchString() == ipw->getSearchString() && compare(ipw->getToken(), as->getToken()) != 0; }) != searchItems.end())
 	//	return false;
 	fire(AutoSearchManagerListener::UpdateItem(), ipw, true);
@@ -176,7 +176,7 @@ void AutoSearchManager::removeAutoSearch(AutoSearchPtr& aItem) noexcept {
 		}
 	}
 	if(hasItem)
-		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
+		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK()); }, 1000);
 }
 
 AutoSearchList AutoSearchManager::getSearchesByBundle(const BundlePtr& aBundle) const noexcept{
@@ -284,7 +284,7 @@ void AutoSearchManager::onBundleCreated(const BundlePtr& aBundle, const void* aS
 	}
 
 	if(found)
-		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
+		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK()); }, 1000);
 }
 
 void AutoSearchManager::onBundleError(const void* aSearch, const string& aError, const string& aBundleName, const HintedUser& aUser) noexcept {
@@ -357,7 +357,7 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) 
 	}
 	//One or more items got in searching state again
 	if (itemsEnabled)
-		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true);  }, 2000);
+		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK());  }, 2000);
 	
 }
 
@@ -479,13 +479,10 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 		}
 	}
 
-	resetSearchTimes(aTick);
+	resetSearchTimes(aTick, true);
 	fire(AutoSearchManagerListener::UpdateItem(), as, false);
 }
-void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aUpdate) noexcept {
-	int itemCount = 0;
-	int recentItems = 0;
-
+void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aForce) noexcept {
 	RLock l(cs);
 	if (searchItems.getItems().empty()) {
 		nextSearch = 0;
@@ -497,11 +494,6 @@ void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aUpdate) noexcept 
 	for (const auto& x : searchItems.getItems() | map_values) {
 		if (!x->allowNewItems())
 			continue;
-		if (x->isRecent())
-			recentItems++;
-
-		if (!x->isRecent() && x->nextAllowedSearch() <= GET_TIME())
-			itemCount++;
 
 		auto next_tt = x->getNextSearchTime();
 		tmp = tmp == 0 ? next_tt : min(next_tt, tmp);
@@ -513,14 +505,11 @@ void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aUpdate) noexcept 
 		return;
 	}
 	uint64_t nextSearchTick = 0;
-	
-	if(itemCount > 0)
-		nextSearchTick = searchItems.recalculateSearchTimes(false, aUpdate, aTick);
+	nextSearchTick = searchItems.recalculateSearchTimes(false, aForce, aTick);
 
 	//Calculate interval for recent items, if any..
 	uint64_t recentSearchTick = 0;
-	if (recentItems > 0)
-		recentSearchTick = searchItems.recalculateSearchTimes(true, aUpdate, aTick);
+	recentSearchTick = searchItems.recalculateSearchTimes(true, aForce, aTick);
 
 	nextSearchTick = recentSearchTick > 0 ? nextSearchTick > 0 ? min(recentSearchTick, nextSearchTick) : recentSearchTick : nextSearchTick;
 
@@ -560,7 +549,7 @@ void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 		AutoSearchPtr searchItem = nullptr;
 		{
 			WLock l(cs);
-			searchItem = searchItems.maybePopSearchItem(aTick);
+			searchItem = searchItems.maybePopSearchItem(aTick, true);
 		}
 
 		if (searchItem)
@@ -632,7 +621,7 @@ void AutoSearchManager::checkItems() noexcept {
 
 	//One or more items were set to waiting state due to search times
 	if(hasStatusChange)
-		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK(), true); }, 1000);
+		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK()); }, 1000);
 
 	handleExpiredItems(expired);
 }

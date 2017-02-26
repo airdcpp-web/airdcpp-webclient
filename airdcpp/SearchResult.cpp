@@ -122,7 +122,7 @@ bool SearchResult::SpeedSortOrder::operator()(const SearchResultPtr& lhs, const 
 		return lhs->getFreeSlots() * lhs->getSpeedPerSlot() > rhs->getFreeSlots() * rhs->getSpeedPerSlot();
 
 	//no free slots, choose a random user with the fastest connection available
-	return lhs->getConnectionInt() > lhs->getConnectionInt();
+	return lhs->getConnectionInt() > rhs->getConnectionInt();
 }
 
 bool SearchResult::DateOrder::operator()(const SearchResultPtr& a, const SearchResultPtr& b) const noexcept {

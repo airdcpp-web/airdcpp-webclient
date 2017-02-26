@@ -105,7 +105,6 @@ namespace dcpp {
 		IgnoreManager() noexcept;
 		~IgnoreManager() noexcept;
 
-		//IGNORE
 		typedef unordered_set<UserPtr, User::Hash> UserSet;
 
 		IgnoreMap getIgnoredUsers() const noexcept;
@@ -116,7 +115,10 @@ namespace dcpp {
 		void replaceList(vector<ChatFilterItem>& newList) {
 			ChatFilterItems = newList;
 		}
-		//IGNORE
+
+		// save & load
+		void save();
+		void load();
 
 	private:
 		ActionHookRejectionPtr onPrivateMessage(const ChatMessagePtr& aMessage, const HookRejectionGetter& aRejectionGetter) noexcept;
@@ -124,25 +126,17 @@ namespace dcpp {
 
 		mutable SharedMutex cs;
 
-		//IGNORE
 		IgnoreMap ignoredUsers;
 		bool checkIgnored(const OnlineUserPtr& aUser) noexcept;
 
-		// save & load
-		void load(SimpleXML& aXml);
-		void save(SimpleXML& aXml);
-		void saveUsers();
-		void loadUsers();
 		bool dirty = false;
 		// contains the ignored nicks and patterns 
 		vector<ChatFilterItem> ChatFilterItems;
-		//IGNORE
 
 		ActionHookRejectionPtr isIgnoredOrFiltered(const ChatMessagePtr& msg, const HookRejectionGetter& aRejectionGetter, bool PM) noexcept;
 
 		// chat filter
 		bool isChatFiltered(const string& aNick, const string& aText, ChatFilterItem::Context aContext = ChatFilterItem::ALL) const noexcept;
-
 
 		// SettingsManagerListener
 		virtual void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept;

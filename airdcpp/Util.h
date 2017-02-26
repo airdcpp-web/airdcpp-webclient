@@ -264,6 +264,21 @@ public:
 		replace(string_t(search), string_t(replacement), str);
 	}
 
+	template<typename T1, typename T2>
+	static double countAverage(T1 aFrom, T2 aTotal) {
+		return aTotal == 0 ? 0 : (static_cast<double>(aFrom) / static_cast<double>(aTotal));
+	}
+
+	template<typename T1, typename T2>
+	static int64_t countAverageInt64(T1 aFrom, T2 aTotal) {
+		return aTotal == 0 ? 0 : (aFrom / aTotal);
+	}
+
+	template<typename T1, typename T2>
+	static double countPercentage(T1 aFrom, T2 aTotal) {
+		return countAverage<T1, T2>(aFrom, aTotal) * 100.00;
+	}
+
 	static void sanitizeUrl(string& url) noexcept;
 	static void decodeUrl(const string& aUrl, string& protocol, string& host, string& port, string& path, string& query, string& fragment) noexcept;
 

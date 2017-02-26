@@ -43,7 +43,7 @@ namespace dcpp {
 class RSS;
 typedef std::shared_ptr<RSS> RSSPtr;
 class RSSData;
-typedef boost::intrusive_ptr<RSSData> RSSDataPtr;
+typedef std::shared_ptr<RSSData> RSSDataPtr;
 
 
 class RSSFilter : public StringMatch {
@@ -66,7 +66,7 @@ public:
 
 	enum filterActions {
 		DOWNLOAD = 0,
-		REMOVE = 1
+		REMOVE = 1,
 	};
 
 };
@@ -124,7 +124,7 @@ private:
 
 };
 
-class RSSData: public intrusive_ptr_base<RSSData>, private boost::noncopyable {
+class RSSData: private boost::noncopyable {
 public:
 	RSSData(const string& aTitle, const string& aLink, const string& aPubDate, const RSSPtr& aFeed, time_t aDateAdded = GET_TIME()) noexcept :
 		title(aTitle), link(aLink), pubDate(aPubDate), feed(aFeed), dateAdded(aDateAdded)  {
@@ -171,7 +171,7 @@ public:
 	~RSSManager();
 
 	void load();
-	void saveConfig(bool saveDatabase = true);
+	void save(bool aSaveDatabase = false);
 
 	void clearRSSData(const RSSPtr& aFeed) noexcept;
 	void matchFilters(const RSSPtr& aFeed);
@@ -182,7 +182,7 @@ public:
 
 	CriticalSection& getCS() { return cs; }
 
-	unordered_set<RSSPtr>& getRss(){
+	vector<RSSPtr>& getRss(){
 		return rssList;
 	}
 
@@ -212,7 +212,7 @@ private:
 	
 	void matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData);
 
-	unordered_set<RSSPtr> rssList;
+	vector<RSSPtr> rssList;
 
 	void parseRSSFeed(SimpleXML& xml, RSSPtr& aFeed);
 	void parseAtomFeed(SimpleXML& xml, RSSPtr& aFeed);

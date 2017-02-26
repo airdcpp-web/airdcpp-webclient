@@ -48,8 +48,9 @@ public:
 	virtual bool isOp() const noexcept = 0;
 	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) noexcept = 0;
 	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept = 0;
-	virtual void directSearch(const OnlineUser&, const SearchPtr&) noexcept {
-		dcassert(0); 
+	virtual bool directSearch(const OnlineUser&, const SearchPtr&, string&) noexcept {
+		dcassert(0);
+		return false;
 	}
 };
 

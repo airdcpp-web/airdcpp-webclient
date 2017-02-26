@@ -349,7 +349,7 @@ void BundleQueue::addBundleItem(QueueItemPtr& aQI, BundlePtr& aBundle) noexcept 
 		});
 	}
 
-	if (!aBundle->isDownloaded()) {
+	if (!aQI->isDownloaded()) {
 		queueSize += aQI->getSize();
 	}
 }
