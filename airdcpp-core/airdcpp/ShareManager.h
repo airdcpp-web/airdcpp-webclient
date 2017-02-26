@@ -219,10 +219,7 @@ public:
 		size_t totalFileCount = 0;
 		size_t totalDirectoryCount = 0;
 		size_t uniqueFileCount = 0;
-		double lowerCasePercentage = 0;
-		double uniqueFilePercentage = 0;
-		double rootDirectoryPercentage = 0;
-		double filesPerDirectory = 0;
+		size_t lowerCaseFiles = 0;
 		double averageNameLength = 0;
 		size_t totalNameSize = 0;
 		time_t averageFileAge = 0;
@@ -232,18 +229,16 @@ public:
 	struct ShareSearchStats {
 		uint64_t totalSearches = 0;
 		double totalSearchesPerSecond = 0;
-		uint64_t recursiveSearches = 0;
+		uint64_t recursiveSearches = 0, filteredSearches = 0;
 		uint64_t averageSearchMatchMs = 0;
+		uint64_t recursiveSearchesResponded = 0;
 
-		double filteredSearchPercentage = 0;
 		double unfilteredRecursiveSearchesPerSecond = 0;
-		double unfilteredRecursiveMatchPercentage = 0;
 
 		double averageSearchTokenCount = 0;
 		double averageSearchTokenLength = 0;
 
-		double autoSearchPercentage = 0;
-		double tthSearchPercentage = 0;
+		uint64_t autoSearches = 0, tthSearches = 0;
 	};
 	ShareSearchStats getSearchMatchingStats() const noexcept;
 

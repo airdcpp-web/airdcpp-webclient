@@ -126,7 +126,7 @@ void UploadBundle::findBundlePath(const string& aName) {
 		if (pos + aName.length() == u->getPath().length()) //file bundle
 			target = u->getPath();
 		else //dir bundle
-			target = upath.substr(0, pos + aName.length() + 1);
+			target = upath.substr(0, pos + aName.length());
 	}
 }
 

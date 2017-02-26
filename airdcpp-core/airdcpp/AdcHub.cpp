@@ -275,12 +275,12 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 			if (isSocketSecure()) {
 				auto encryption = getEncryptionInfo();
 				if (encryption.find("TLSv1.2") == string::npos) {
-					statusMessage("This hub uses an outdated cryptographic protocol that has known security issues", LogMessage::SEV_WARNING);
+					statusMessage("This hub uses an outdated cryptographic protocol that has known security issues. For more information, please see https://www.airdcpp.net/hubsoft-warnings", LogMessage::SEV_WARNING);
 				}
 			}
 
 			if (Text::toLower(getHubIdentity().getApplication()).find("luadch v2") != string::npos) {
-				statusMessage("The hubsoft used by this hub doesn't forward Advanced Direct Connect protocol messages according to the protocol specifications. This may silently break various client features.", LogMessage::SEV_WARNING);
+				statusMessage("The hubsoft used by this hub doesn't forward Advanced Direct Connect protocol messages according to the protocol specifications, which may silently break various client features. Certain functionality may have been disabled automatically in this hub. For more information, please see https://www.airdcpp.net/hubsoft-warnings", LogMessage::SEV_WARNING);
 			}
 		}
 
@@ -942,7 +942,7 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 				}
 
 				if (severity == AdcCommand::SUCCESS) {
-					statusMessage(STRING(VALIDATION_SUCCEED), LogMessage::SEV_INFO);
+					statusMessage(STRING(VALIDATION_SUCCEEDED), LogMessage::SEV_INFO);
 					return;
 				} else {
 					throw Exception(response.getParam(1));
@@ -1155,9 +1155,16 @@ StringList AdcHub::parseSearchExts(int flag) noexcept {
 	return ret;
 }
 
-void AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch) noexcept {
-	if(!stateNormal())
-		return;
+bool AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch, string& error_) noexcept {
+	if (!stateNormal()) {
+		error_ = STRING(CONNECTING_IN_PROGRESS);
+		return false;
+	}
+
+	if (Text::toLower(getHubIdentity().getApplication()).find("luadch v2") != string::npos) {
+		error_ = "This feature is blocked by the hubsoft";
+		return false;
+	}
 
 	AdcCommand c(AdcCommand::CMD_SCH, (user.getIdentity().getSID()), AdcCommand::TYPE_DIRECT);
 	constructSearch(c, aSearch, true);
@@ -1183,7 +1190,12 @@ void AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch) noex
 		c.addParam("MR", Util::toString(aSearch->maxResults));
 	}
 
-	send(c);
+	if (!send(c)) {
+		error_ = STRING(PERMISSION_DENIED_HUB);
+		return false;
+	}
+
+	return true;
 }
 
 void AdcHub::constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDirect) noexcept {

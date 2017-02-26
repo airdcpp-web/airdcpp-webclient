@@ -55,11 +55,39 @@ ActionHookRejectionPtr IgnoreManager::onHubMessage(const ChatMessagePtr& aMessag
 
 // SettingsManagerListener
 void IgnoreManager::on(SettingsManagerListener::Load, SimpleXML& aXml) noexcept {
-	load(aXml);
+	aXml.resetCurrentChild();
+	if (aXml.findChild("ChatFilterItems")) {
+		aXml.stepIn();
+		while (aXml.findChild("ChatFilterItem")) {
+			WLock l(cs);
+			ChatFilterItems.push_back(ChatFilterItem(aXml.getChildAttrib("Nick"), aXml.getChildAttrib("Text"),
+				(StringMatch::Method)aXml.getIntChildAttrib("NickMethod"), (StringMatch::Method)aXml.getIntChildAttrib("TextMethod"),
+				aXml.getBoolChildAttrib("MC"), aXml.getBoolChildAttrib("PM"), aXml.getBoolChildAttrib("Enabled")));
+		}
+		aXml.stepOut();
+	}
 }
 
 void IgnoreManager::on(SettingsManagerListener::Save, SimpleXML& aXml) noexcept {
-	save(aXml);
+	aXml.addTag("ChatFilterItems");
+	aXml.stepIn();
+	{
+		RLock l(cs);
+		for (const auto& i : ChatFilterItems) {
+			aXml.addTag("ChatFilterItem");
+			aXml.addChildAttrib("Nick", i.getNickPattern());
+			aXml.addChildAttrib("NickMethod", i.getNickMethod());
+			aXml.addChildAttrib("Text", i.getTextPattern());
+			aXml.addChildAttrib("TextMethod", i.getTextMethod());
+			aXml.addChildAttrib("MC", i.matchMainchat);
+			aXml.addChildAttrib("PM", i.matchPM);
+			aXml.addChildAttrib("Enabled", i.getEnabled());
+		}
+	}
+	aXml.stepOut();
+
+	if (dirty)
+		save();
 }
 
 IgnoreManager::IgnoreMap IgnoreManager::getIgnoredUsers() const noexcept {
@@ -169,44 +197,8 @@ bool IgnoreManager::isChatFiltered(const string& aNick, const string& aText, Cha
 	}
 	return false;
 }
-void IgnoreManager::load(SimpleXML& aXml) {
-	aXml.resetCurrentChild();
-	if (aXml.findChild("ChatFilterItems")) {
-		aXml.stepIn();
-		while (aXml.findChild("ChatFilterItem")) {
-			WLock l(cs);
-			ChatFilterItems.push_back(ChatFilterItem(aXml.getChildAttrib("Nick"), aXml.getChildAttrib("Text"),
-				(StringMatch::Method)aXml.getIntChildAttrib("NickMethod"), (StringMatch::Method)aXml.getIntChildAttrib("TextMethod"),
-				aXml.getBoolChildAttrib("MC"), aXml.getBoolChildAttrib("PM"), aXml.getBoolChildAttrib("Enabled")));
-		}
-		aXml.stepOut();
-	}
-	loadUsers();
-}
 
-void IgnoreManager::save(SimpleXML& aXml) {
-	aXml.addTag("ChatFilterItems");
-	aXml.stepIn();
-	{
-		RLock l(cs);
-		for (const auto& i : ChatFilterItems) {
-			aXml.addTag("ChatFilterItem");
-			aXml.addChildAttrib("Nick", i.getNickPattern());
-			aXml.addChildAttrib("NickMethod", i.getNickMethod());
-			aXml.addChildAttrib("Text", i.getTextPattern());
-			aXml.addChildAttrib("TextMethod", i.getTextMethod());
-			aXml.addChildAttrib("MC", i.matchMainchat);
-			aXml.addChildAttrib("PM", i.matchPM);
-			aXml.addChildAttrib("Enabled", i.getEnabled());
-		}
-	}
-	aXml.stepOut();
-
-	if (dirty)
-		saveUsers();
-}
-
-void IgnoreManager::saveUsers() {
+void IgnoreManager::save() {
 	SimpleXML xml;
 
 	xml.addTag("Ignored");
@@ -232,7 +224,7 @@ void IgnoreManager::saveUsers() {
 	SettingsManager::saveSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
 }
 
-void IgnoreManager::loadUsers() {
+void IgnoreManager::load() {
 	SettingsManager::loadSettingFile(CONFIG_DIR, CONFIG_NAME, [this](SimpleXML& xml) {
 		if (xml.findChild("Ignored")) {
 			xml.stepIn();
@@ -240,7 +232,7 @@ void IgnoreManager::loadUsers() {
 			if (xml.findChild("Users")) {
 				xml.stepIn();
 				while (xml.findChild("User")) {
-					auto user = ClientManager::getInstance()->getUser(CID(xml.getChildAttrib("CID")));
+					auto user = ClientManager::getInstance()->loadUser(xml.getChildAttrib("CID"), xml.getChildAttrib("Nick"), xml.getChildAttrib("Hub"));
 					if (!user)
 						continue;
 

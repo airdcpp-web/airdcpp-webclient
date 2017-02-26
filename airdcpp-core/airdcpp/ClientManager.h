@@ -166,7 +166,7 @@ public:
 
 	UserPtr findUserByNick(const string& aNick, const string& aHubUrl) const noexcept;
 	
-	void addOfflineUser(const UserPtr& user, const string& nick, const string& url, uint32_t lastSeen = GET_TIME()) noexcept;
+	void addOfflineUser(const UserPtr& user, const string& nick, const string& url, uint32_t lastSeen = 0) noexcept;
 
 	string getMyNick(const string& hubUrl) const noexcept;
 	optional<OfflineUser> getOfflineUser(const CID& cid);
@@ -189,7 +189,7 @@ public:
 	UserPtr& getMe() noexcept;
 
 	struct ClientStats {
-		int64_t totalShare = 0, sharePerUser = 0;
+		int64_t totalShare = 0;
 		int64_t uploadSpeed = 0, downloadSpeed = 0, nmdcConnection = 0;
 		int64_t nmdcSpeedPerUser = 0, downPerAdcUser = 0, upPerAdcUser = 0;
 
@@ -199,13 +199,9 @@ public:
 
 		int totalUsers = 0, uniqueUsers = 0;
 
-		double uniqueUsersPercentage = 0;
-		double activeUserPercentage = 0, operatorPercentage = 0, botPercentage = 0, hiddenPercentage = 0;
-
 		vector<pair<string, int> > clients;
 
 		void finalize() noexcept;
-		void forEachClient(function<void(const string&, int, double)> aHandler) const noexcept;
 	};
 
 	// No stats are returned if there are no hubs open (or users in them)
