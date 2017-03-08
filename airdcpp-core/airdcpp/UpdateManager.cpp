@@ -20,10 +20,9 @@
 #include "UpdateManager.h"
 
 #include <openssl/rsa.h>
-#include <openssl/objects.h>
-#include <openssl/pem.h>
 
 #include "AirUtil.h"
+#include "CryptoManager.h"
 #include "GeoManager.h"
 #include "HashCalc.h"
 #include "Localization.h"
@@ -75,25 +74,16 @@ void UpdateManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 bool UpdateManager::verifyVersionData(const string& data, const ByteVector& signature) {
 	int res = -1;
 
-	// Make SHA hash
-	SHA_CTX sha_ctx = { 0 };
-	uint8_t digest[SHA_DIGEST_LENGTH];
-
-	res = SHA1_Init(&sha_ctx);
-	if(res != 1)
+	auto digest = CryptoManager::calculateSha1(data);
+	if (!digest) {
 		return false;
-	res = SHA1_Update(&sha_ctx, data.c_str(), data.size());
-	if(res != 1)
-		return false;
-	res = SHA1_Final(digest, &sha_ctx);
-	if(res != 1)
-		return false;
+	}
 
 	// Extract Key
 	const uint8_t* key = UpdateManager::publicKey;
 	RSA* rsa = d2i_RSAPublicKey(NULL, &key, sizeof(UpdateManager::publicKey));
 	if(rsa) {
-		res = RSA_verify(NID_sha1, digest, sizeof(digest), &signature[0], signature.size(), rsa);
+		res = RSA_verify(NID_sha1, (*digest).data(), (*digest).size(), &signature[0], signature.size(), rsa);
 
 		RSA_free(rsa);
 		rsa = NULL;
@@ -285,6 +275,7 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 		}
 		xml.resetCurrentChild();
 
+		fire(UpdateManagerListener::VersionFileDownloaded(), xml);
 		updater->onVersionDownloaded(xml, verified, manualCheck);
 	} catch (const Exception& e) {
 		failVersionDownload(STRING_F(VERSION_PARSING_FAILED, e.getError()), manualCheck);

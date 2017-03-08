@@ -63,15 +63,19 @@ public:
 	}
 
 	// Get the next normal/recent item to search for and rotate the search queue
-	// The next search tick must be updated manually by the caller
+	// Recent state might change, recalculate next search for correct search queue
 	ItemT maybePopSearchItem(uint64_t aTick, bool aIgnoreNextTick = false) noexcept{
 		ItemT ret = nullptr;
 		if (aTick >= nextSearchNormal || aIgnoreNextTick) {
 			ret = maybePopNormal();
+			if (ret)
+				recalculateSearchTimes(false, true, aTick);
 		}
 
 		if (!ret && (aTick >= nextSearchRecent || aIgnoreNextTick)) {
 			ret = maybePopRecent();
+			if (ret)
+				recalculateSearchTimes(true, true, aTick);
 		}
 
 		return ret;
@@ -97,14 +101,16 @@ public:
 		if (aRecent) {
 			auto itemCount = getValidItemCountRecent();
 			if (itemCount == 0) {
-				return 0;
+				nextSearch = 0;
+				return nextSearch;
 			}
 
 			calculatedIntervalMinutes = max(15 / itemCount, minIntervalMinutes);
 		} else {
 			auto itemCount = getValidItemCountNormal();
 			if (itemCount == 0) {
-				return 0;
+				nextSearch = 0;
+				return nextSearch;
 			}
 
 			calculatedIntervalMinutes = max(60 / itemCount, minIntervalMinutes);

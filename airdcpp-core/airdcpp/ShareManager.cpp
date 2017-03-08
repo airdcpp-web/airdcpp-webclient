@@ -1102,6 +1102,7 @@ ShareManager::ShareSearchStats ShareManager::getSearchMatchingStats() const noex
 	stats.totalSearchesPerSecond = Util::countAverage(totalSearches, upseconds);
 	stats.recursiveSearches = recursiveSearches;
 	stats.recursiveSearchesResponded = recursiveSearchesResponded;
+	stats.filteredSearches = filteredSearches;
 	stats.unfilteredRecursiveSearchesPerSecond = (recursiveSearches - filteredSearches) / upseconds;
 
 	stats.averageSearchMatchMs = static_cast<uint64_t>(Util::countAverage(recursiveSearchTime, recursiveSearches - filteredSearches));

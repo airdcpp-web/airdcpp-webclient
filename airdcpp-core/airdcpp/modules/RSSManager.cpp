@@ -229,7 +229,7 @@ void RSSManager::matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) {
 			}
 			if (aF.getFilterAction() == RSSFilter::DOWNLOAD) {
 				auto as = AutoSearchManager::getInstance()->addAutoSearch(aData->getTitle(),
-					aF.getDownloadTarget(), true, AutoSearch::RSS_DOWNLOAD, true, 60, false);
+					aF.getDownloadTarget(), true, AutoSearch::RSS_DOWNLOAD, true, false, aF.getExpireDays());
 				if (as) {
 					AutoSearchManager::getInstance()->moveItemToGroup(as, aF.getAutosearchGroup());
 				}
@@ -251,7 +251,7 @@ void RSSManager::updateFeedItem(RSSPtr& aFeed, const string& aUrl, const string&
 		aFeed->setEnable(aEnable);
 
 		auto r = find_if(rssList.begin(), rssList.end(), [aFeed](const RSSPtr& a) { return aFeed->getToken() == a->getToken(); });
-		if (r != rssList.end()) {
+		if (r == rssList.end()) {
 			added = true;
 			rssList.emplace_back(aFeed);
 		}
@@ -426,7 +426,8 @@ void RSSManager::loadFilters(SimpleXML& xml, vector<RSSFilter>& aList) {
 				Util::toInt(xml.getChildAttrib("Method", "1")),
 				xml.getChildAttrib("AutoSearchGroup"),
 				xml.getBoolChildAttrib("SkipDupes"),
-				Util::toInt(xml.getChildAttrib("FilterAction", "0")));
+				Util::toInt(xml.getChildAttrib("FilterAction", "0")),
+				Util::toInt(xml.getChildAttrib("ExpireDays", "3")));
 		}
 		xml.stepOut();
 	}
@@ -471,6 +472,7 @@ void RSSManager::saveFilters(SimpleXML& aXml, const vector<RSSFilter>& aList) {
 			aXml.addChildAttrib("AutoSearchGroup", f.getAutosearchGroup());
 			aXml.addChildAttrib("SkipDupes", f.skipDupes);
 			aXml.addChildAttrib("FilterAction", f.getFilterAction());
+			aXml.addChildAttrib("ExpireDays", f.getExpireDays());
 		}
 		aXml.stepOut();
 	}

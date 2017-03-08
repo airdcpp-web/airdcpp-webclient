@@ -118,6 +118,7 @@ public:
 	static void copyFile(const string& src, const string& target);
 	static void renameFile(const string& source, const string& target);
 	static bool deleteFile(const string& aFileName) noexcept;
+	static void deleteFileThrow(const string& aFileName);
 	static bool deleteFileEx(const string& aFileName, int maxAttempts = 3) noexcept;
 
 	static uint64_t getLastModified(const string& path) noexcept;
@@ -158,7 +159,13 @@ public:
 	// Returns false if the directory exists already
 	static bool createDirectory(const string& aFile);
 
-	static void removeDirectory(const string& aPath) noexcept;
+	// Remove empty directory
+	// Returns false in case of errors (e.g. the directory is not actually empty)
+	static bool removeDirectory(const string& aPath) noexcept;
+
+	// Remove the directory even if it's not empty
+	// Throws in case of errors
+	static void removeDirectoryForced(const string& aPath);
 
 	static std::string makeAbsolutePath(const std::string& filename);
 	static std::string makeAbsolutePath(const std::string& path, const std::string& filename);
@@ -185,14 +192,18 @@ public:
 	// Iterate through content of aPath and handle files matching aNamePattern (use * to match all files)
 	// Stops if the handler returns false
 	static void forEachFile(const string& aPath, const string& aNamePattern, FileIterF aHandlerF, bool aSkipHidden = true);
+#ifdef _WIN32
+#define HandleType HANDLE
+#else
+#define HandleType int
+#endif
+
+	HandleType getNativeHandle() const noexcept { return h; }
+
 protected:
 	void close() noexcept;
 
-#ifdef _WIN32
-	HANDLE h;
-#else
-	int h;
-#endif
+	HandleType h;
 };
 
 class FileFindIter {

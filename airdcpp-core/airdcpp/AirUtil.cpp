@@ -238,7 +238,7 @@ AirUtil::AdapterInfoList AirUtil::getBindAdapters(bool v6) {
 	const auto& setting = v6 ? SETTING(BIND_ADDRESS6) : SETTING(BIND_ADDRESS);
 	auto cur = boost::find_if(bindAddresses, [&setting](const AirUtil::AdapterInfo& aInfo) { return aInfo.ip == setting; });
 	if (cur == bindAddresses.end()) {
-		bindAddresses.emplace_back(STRING(UNKNOWN), setting, 0);
+		bindAddresses.emplace_back(STRING(UNKNOWN), setting, static_cast<uint8_t>(0));
 		cur = bindAddresses.end() - 1;
 	}
 

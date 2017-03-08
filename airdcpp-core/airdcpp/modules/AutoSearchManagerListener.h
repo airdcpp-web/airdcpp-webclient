@@ -29,15 +29,17 @@ public:
 	virtual ~AutoSearchManagerListener() { }
 	template<int I>	struct X { enum { TYPE = I }; };
 
-	typedef X<0> RemoveItem;
-	typedef X<1> AddItem;
-	typedef X<2> UpdateItem;
+	typedef X<0> ItemRemoved;
+	typedef X<1> ItemAdded;
+	typedef X<2> ItemUpdated;
 	typedef X<3> SearchForeground;
+	typedef X<4> ItemSearched;
 
-	virtual void on(RemoveItem, const AutoSearchPtr&) noexcept { }
-	virtual void on(AddItem, const AutoSearchPtr&) noexcept { }
-	virtual void on(UpdateItem, const AutoSearchPtr&, bool) noexcept { }
+	virtual void on(ItemRemoved, const AutoSearchPtr&) noexcept { }
+	virtual void on(ItemAdded, const AutoSearchPtr&) noexcept { }
+	virtual void on(ItemUpdated, const AutoSearchPtr&, bool) noexcept { }
 	virtual void on(SearchForeground, const AutoSearchPtr&, const string& /*searchString*/) noexcept {}
+	virtual void on(ItemSearched, const AutoSearchPtr&, const string& /*aMsg*/) noexcept {}
 };
 
 } // namespace dcpp
