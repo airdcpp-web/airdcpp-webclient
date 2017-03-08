@@ -39,6 +39,7 @@ namespace webserver {
 			TYPE_PLAIN,
 			TYPE_SECURE,
 			TYPE_BASIC_AUTH,
+			TYPE_EXTENSION,
 		};
 
 		Session(const WebUserPtr& aUser, const std::string& aToken, SessionType aSessionType, WebServerManager* aServer, uint64_t maxInactivityMinutes, const string& aIP);

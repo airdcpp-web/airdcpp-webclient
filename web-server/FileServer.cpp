@@ -20,6 +20,7 @@
 
 #include <web-server/FileServer.h>
 #include <web-server/WebServerManager.h>
+#include <web-server/WebUserManager.h>
 
 #include <api/common/Deserializer.h>
 

@@ -21,6 +21,7 @@
 #include <web-server/ApiRequest.h>
 
 #include <api/ConnectivityApi.h>
+#include <api/ExtensionApi.h>
 #include <api/EventApi.h>
 #include <api/FavoriteDirectoryApi.h>
 #include <api/FavoriteHubApi.h>
@@ -56,6 +57,9 @@ namespace webserver {
 		ip(aIP) {
 
 		ADD_MODULE("connectivity", ConnectivityApi);
+#ifdef _DEBUG
+		ADD_MODULE("extensions", ExtensionApi);
+#endif
 		ADD_MODULE("events", EventApi);
 		ADD_MODULE("favorite_directories", FavoriteDirectoryApi);
 		ADD_MODULE("favorite_hubs", FavoriteHubApi);

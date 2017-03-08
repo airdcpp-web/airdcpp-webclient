@@ -18,8 +18,11 @@
 
 #include <web-server/stdinc.h>
 #include <api/ApiSettingItem.h>
+
+#include <web-server/ExtensionManager.h>
 #include <web-server/WebServerSettings.h>
 #include <web-server/WebServerManager.h>
+#include <web-server/WebUserManager.h>
 
 #include <airdcpp/typedefs.h>
 
@@ -63,12 +66,16 @@ namespace webserver {
 		fileServer.setResourcePath(Util::getPath(Util::PATH_RESOURCES) + "web-resources" + PATH_SEPARATOR);
 
 		userManager = unique_ptr<WebUserManager>(new WebUserManager(this));
+#ifdef _DEBUG
+		extManager = unique_ptr<ExtensionManager>(new ExtensionManager(this));
+#endif
 		ios.stop(); //Prevent io service from running until we load
 	}
 
 	WebServerManager::~WebServerManager() {
-		// Let it remove the listener
+		// Let them remove the listeners
 		userManager.reset();
+		extManager.reset();
 	}
 
 	string WebServerManager::getConfigPath() const noexcept {

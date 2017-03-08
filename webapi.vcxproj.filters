@@ -258,6 +258,18 @@
     <ClInclude Include="api\base\HierarchicalApiModule.h">
       <Filter>Header Files\api\base</Filter>
     </ClInclude>
+    <ClInclude Include="web-server\ExtensionManager.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="api\ExtensionApi.h">
+      <Filter>Header Files\api</Filter>
+    </ClInclude>
+    <ClInclude Include="web-server\ExtensionManagerListener.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="web-server\Extension.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
@@ -421,6 +433,15 @@
     </ClCompile>
     <ClCompile Include="api\base\ApiModule.cpp">
       <Filter>Source Files\api\base</Filter>
+    </ClCompile>
+    <ClCompile Include="web-server\ExtensionManager.cpp">
+      <Filter>Source Files\web-server</Filter>
+    </ClCompile>
+    <ClCompile Include="api\ExtensionApi.cpp">
+      <Filter>Source Files\api</Filter>
+    </ClCompile>
+    <ClCompile Include="web-server\Extension.cpp">
+      <Filter>Source Files\web-server</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

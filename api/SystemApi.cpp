@@ -23,12 +23,14 @@
 #include <web-server/Timer.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
+#include <web-server/WebUserManager.h>
 
 #include <api/SystemApi.h>
 #include <api/common/Serializer.h>
 
 #include <airdcpp/ActivityManager.h>
 #include <airdcpp/ClientManager.h>
+#include <airdcpp/Localization.h>
 #include <airdcpp/Thread.h>
 #include <airdcpp/TimerManager.h>
 
@@ -194,6 +196,7 @@ namespace webserver {
 			{ "cid", ClientManager::getInstance()->getMyCID().toBase32() },
 			{ "client_version", fullVersionString },
 			{ "client_started", started },
+			{ "language", Localization::getCurrentLocale() }
 		};
 	}
 
