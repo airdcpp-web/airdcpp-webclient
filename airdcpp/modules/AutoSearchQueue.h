@@ -33,6 +33,7 @@ namespace dcpp {
 		~Searches() {}
 
 		void addItem(AutoSearchPtr& as) {
+			as->checkRecent();
 			addSearchPrio(as);
 			searches.emplace(as->getToken(), as);
 		}

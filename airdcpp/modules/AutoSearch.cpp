@@ -32,7 +32,6 @@
 #include <boost/range/algorithm/max_element.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-
 namespace dcpp {
 
 using boost::max_element;
@@ -45,9 +44,9 @@ AutoSearch::AutoSearch() noexcept : token(Util::randInt(10)) {
 
 AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget,
 	StringMatch::Method aMethod, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime,
-	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, const string& aExcluded, int aSearchInterval, ItemType aType, bool aUserMetcherExclude, ProfileToken aToken /*rand*/) noexcept :
+	bool aCheckAlreadyQueued, bool aCheckAlreadyShared, bool aMatchFullPath, const string& aExcluded, ItemType aType, bool aUserMetcherExclude, ProfileToken aToken /*rand*/) noexcept :
 	enabled(aEnabled), searchString(aSearchString), fileType(aFileType), action(aAction), remove(aRemove),
-	expireTime(aExpireTime), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared), searchInterval(aSearchInterval),
+	expireTime(aExpireTime), checkAlreadyQueued(aCheckAlreadyQueued), checkAlreadyShared(aCheckAlreadyShared),
 	token(aToken), matchFullPath(aMatchFullPath), matcherString(aMatcherString), excludedString(aExcluded), asType(aType), userMatcherExclude(aUserMetcherExclude) {
 
 	if (timeAdded == 0)
@@ -56,11 +55,7 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 	if (token == 0)
 		token = Util::randInt(10);
 
-	if (searchInterval == 0)
-		searchInterval = AS_DEFAULT_SEARCH_INTERVAL;
-
 	setPriority(calculatePriority());
-
 	checkRecent();
 	setTarget(aTarget);
 	setMethod(aMethod);
@@ -85,12 +80,7 @@ bool AutoSearch::allowNewItems() const noexcept {
 }
 
 bool AutoSearch::allowAutoSearch() const noexcept{
-	return allowNewItems() && (nextAllowedSearch() <= GET_TIME()) && (isRecent() || (lastSearch + searchInterval * 60 <= GET_TIME()));
-}
-
-time_t AutoSearch::getNextSearchTime() const noexcept {
-	auto next_s = isRecent() ? lastSearch + 1 * 60 : lastSearch + searchInterval * 60;
-	return max(next_s, nextAllowedSearch());
+	return allowNewItems() && (nextAllowedSearch() <= GET_TIME());
 }
 
 bool AutoSearch::onBundleRemoved(const BundlePtr& aBundle, bool finished) noexcept {
@@ -412,7 +402,6 @@ void AutoSearch::saveToXml(SimpleXML& xml) {
 	xml.addChildAttrib("LastSearchTime", Util::toString(getLastSearch()));
 	xml.addChildAttrib("MatchFullPath", getMatchFullPath());
 	xml.addChildAttrib("ExcludedWords", getExcludedString());
-	xml.addChildAttrib("SearchInterval", Util::toString(getSearchInterval()));
 	xml.addChildAttrib("ItemType", Util::toString(getAsType()));
 	xml.addChildAttrib("Token", Util::toString(getToken()));
 	xml.addChildAttrib("TimeAdded", Util::toString(getTimeAdded()));

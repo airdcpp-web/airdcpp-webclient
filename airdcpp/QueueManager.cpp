@@ -3752,11 +3752,11 @@ void QueueManager::searchAlternates(uint64_t aTick) noexcept {
 
 int QueueManager::searchBundleAlternates(const BundlePtr& aBundle, uint64_t aTick) noexcept {
 	QueueItemList searchItems;
-
+	bool isScheduled = false;
 	// Get the possible items to search for
 	{
 		RLock l(cs);
-		auto isScheduled = aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH);
+		isScheduled = aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH);
 
 		aBundle->unsetFlag(Bundle::FLAG_SCHEDULE_SEARCH);
 
@@ -3785,7 +3785,11 @@ int QueueManager::searchBundleAlternates(const BundlePtr& aBundle, uint64_t aTic
 		uint64_t nextSearchTick = 0;
 		if (autoSearchEnabled()) {
 			RLock l(cs);
-			nextSearchTick = bundleQueue.recalculateSearchTimes(aBundle->isRecent(), true, aTick);
+			
+			if (isScheduled)
+				bundleQueue.recalculateSearchTimes(aBundle->isRecent(), true, aTick);
+
+			nextSearchTick = aBundle->isRecent() ? bundleQueue.getNextSearchRecent() : bundleQueue.getNextSearchNormal();
 		}
 
 		if (nextSearchTick == 0) {

@@ -173,6 +173,24 @@ string CryptoManager::keyprintToString(const ByteVector& aKP) noexcept {
 	return "SHA256/" + Encoder::toBase32(&aKP[0], aKP.size());
 }
 
+optional<ByteVector> CryptoManager::calculateSha1(const string& aData) noexcept {
+	ByteVector ret(SHA_DIGEST_LENGTH);
+
+	SHA_CTX sha_ctx = { 0 };
+
+	auto res = SHA1_Init(&sha_ctx);
+	if (res != 1)
+		return boost::none;
+	res = SHA1_Update(&sha_ctx, aData.c_str(), aData.size());
+	if (res != 1)
+		return boost::none;
+	res = SHA1_Final(ret.data(), &sha_ctx);
+	if (res != 1)
+		return boost::none;
+
+	return ret;
+}
+
 bool CryptoManager::TLSOk() const noexcept{
 	return SETTING(TLS_MODE) > 0 && certsLoaded && !keyprint.empty();
 }

@@ -77,6 +77,8 @@ public:
 	// Options that can also be shared with external contexts
 	static void setContextOptions(SSL_CTX* aSSL, bool aServer);
 	static string keyprintToString(const ByteVector& aKP) noexcept;
+
+	static optional<ByteVector> calculateSha1(const string& aData) noexcept;
 private:
 
 	friend class Singleton<CryptoManager>;

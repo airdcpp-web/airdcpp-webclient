@@ -82,9 +82,10 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 #ifdef _DEBUG
 	// Strip possible network path prefix
 	auto fileName = aFileName.size() > 2 && aFileName.substr(0, 2) == "\\\\" ? aFileName.substr(2) : aFileName;
+	auto realPath = getRealPath();
 
 	// Avoid issues on Linux...
-	dcassert(compare(fileName, getRealPath()) == 0);
+	dcassert(compare(fileName, realPath) == 0);
 #endif
 }
 
@@ -262,12 +263,14 @@ bool File::isHidden(const string& aPath) noexcept {
 	return false;
 }
 
-bool File::deleteFile(const string& aFileName) noexcept {
-	return ::DeleteFile(Text::toT(Util::formatPath(aFileName)).c_str()) > 0 ? true : false;
+void File::deleteFileThrow(const string& aFileName) {
+	if (!::DeleteFile(Text::toT(Util::formatPath(aFileName)).c_str())) {
+		throw FileException(Util::translateError(GetLastError()));
+	}
 }
 
-void File::removeDirectory(const string& aPath) noexcept {
-	::RemoveDirectory(Text::toT(Util::formatPath(aPath)).c_str());
+bool File::removeDirectory(const string& aPath) noexcept {
+	return ::RemoveDirectory(Text::toT(Util::formatPath(aPath)).c_str()) > 0 ? true : false;
 }
 
 int64_t File::getSize(const string& aFileName) noexcept {
@@ -545,8 +548,11 @@ void File::copyFile(const string& source, const string& target) {
 	}
 }
 
-bool File::deleteFile(const string& aFileName) noexcept {
-	return ::unlink(Text::fromUtf8(aFileName).c_str()) == 0;
+void File::deleteFileThrow(const string& aFileName) {
+	auto result = ::unlink(Text::fromUtf8(aFileName).c_str());
+	if (result == -1) {
+		throw FileException(Util::translateError(result));
+	}
 }
 
 int64_t File::getSize(const string& aFileName) noexcept {
@@ -624,8 +630,8 @@ uint64_t File::getLastModified(const string& aPath) noexcept {
 	return statbuf.st_mtime;
 }
 
-void File::removeDirectory(const string& aPath) noexcept {
-	rmdir(Text::fromUtf8(aPath).c_str());
+bool File::removeDirectory(const string& aPath) noexcept {
+	return rmdir(Text::fromUtf8(aPath).c_str()) == 0;
 }
 
 bool File::isHidden(const string& aPath) noexcept {
@@ -644,6 +650,31 @@ std::string File::makeAbsolutePath(const std::string& filename) {
 
 std::string File::makeAbsolutePath(const std::string& path, const std::string& filename) {
 	return isAbsolutePath(filename) ? filename : path + filename;
+}
+
+void File::removeDirectoryForced(const string& aPath) {
+	for (FileFindIter i(aPath, "*"); i != FileFindIter(); ++i) {
+		if (i->isDirectory()) {
+			removeDirectoryForced(aPath + i->getFileName() + PATH_SEPARATOR);
+		} else {
+			try {
+				deleteFileThrow(aPath + i->getFileName());
+			} catch (const FileException& e) {
+				throw FileException(e.getError() + "(" + aPath + i->getFileName() + ")");
+			}
+		}
+	}
+
+	File::removeDirectory(aPath);
+}
+
+bool File::deleteFile(const string& aFileName) noexcept {
+	try {
+		deleteFileThrow(aFileName);
+		return true;
+	} catch (...) { }
+
+	return false;
 }
 
 bool File::deleteFileEx(const string& aFileName, int maxAttempts) noexcept {

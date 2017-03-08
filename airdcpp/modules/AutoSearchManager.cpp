@@ -65,7 +65,7 @@ void AutoSearchManager::logMessage(const string& aMsg, LogMessage::Severity aSev
 }
 
 /* Adding new items for external use */
-AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, bool isDirectory, AutoSearch::ItemType asType, bool aRemove, int aInterval, bool aSearch) noexcept {
+AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, bool isDirectory, AutoSearch::ItemType asType, bool aRemove, bool aSearch, int aExpriredays) noexcept {
 	if (ss.length() <= 5) {
 		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, ss % STRING(LINE_EMPTY_OR_TOO_SHORT)), LogMessage::SEV_ERROR);
 		return nullptr;
@@ -77,8 +77,13 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 		return nullptr;
 	}
 
+	if (aExpriredays == 0)
+		aExpriredays = SETTING(AUTOSEARCH_EXPIRE_DAYS);
+
+	time_t expireTime = aExpriredays > 0 ? GET_TIME() + aExpriredays * 24 * 60 * 60 : 0;
+	
 	AutoSearchPtr as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_FILE, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, 
-		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, SETTING(AUTOSEARCH_EXPIRE_DAYS) > 0 ? GET_TIME() + (SETTING(AUTOSEARCH_EXPIRE_DAYS)*24*60*60) : 0, false, false, false, Util::emptyString, aInterval, asType, false);
+		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, expireTime, false, false, false, Util::emptyString, asType, false);
 
 	addAutoSearch(as, aSearch);
 	return as;
@@ -99,7 +104,7 @@ void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search, bo
 	}
 
 	dirty = true;
-	fire(AutoSearchManagerListener::AddItem(), aAutoSearch);
+	fire(AutoSearchManagerListener::ItemAdded(), aAutoSearch);
 	if (search) {
 		if (!searchItem(aAutoSearch, TYPE_NEW)) {
 			//no hubs
@@ -146,14 +151,14 @@ bool AutoSearchManager::updateAutoSearch(AutoSearchPtr& ipw) noexcept {
 	delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK()); }, 1000);
 	//if (find_if(searchItems, [ipw](const AutoSearchPtr as) { return as->getSearchString() == ipw->getSearchString() && compare(ipw->getToken(), as->getToken()) != 0; }) != searchItems.end())
 	//	return false;
-	fire(AutoSearchManagerListener::UpdateItem(), ipw, true);
+	fire(AutoSearchManagerListener::ItemUpdated(), ipw, true);
 	dirty = true;
 	return true;
 }
 
 void AutoSearchManager::updateStatus(AutoSearchPtr& as, bool setTabDirty) noexcept {
 	as->updateStatus();
-	fire(AutoSearchManagerListener::UpdateItem(), as, setTabDirty);
+	fire(AutoSearchManagerListener::ItemUpdated(), as, setTabDirty);
 }
 
 void AutoSearchManager::changeNumber(AutoSearchPtr as, bool increase) noexcept {
@@ -170,7 +175,7 @@ void AutoSearchManager::removeAutoSearch(AutoSearchPtr& aItem) noexcept {
 		WLock l(cs);
 		hasItem = searchItems.hasItem(aItem);
 		if(hasItem) {
-			fire(AutoSearchManagerListener::RemoveItem(), aItem);
+			fire(AutoSearchManagerListener::ItemRemoved(), aItem);
 			searchItems.removeItem(aItem);
 			dirty = true;
 		}
@@ -211,7 +216,7 @@ void AutoSearchManager::clearPaths(AutoSearchPtr as) noexcept {
 		as->clearPaths();
 	}
 
-	fire(AutoSearchManagerListener::UpdateItem(), as, true);
+	fire(AutoSearchManagerListener::ItemUpdated(), as, true);
 	dirty = true;
 }
 
@@ -253,7 +258,7 @@ string AutoSearchManager::getBundleStatuses(const AutoSearchPtr& as) const noexc
 
 void AutoSearchManager::clearError(AutoSearchPtr& as) noexcept {
 	as->setLastError(Util::emptyString);
-	fire(AutoSearchManagerListener::UpdateItem(), as, true);
+	fire(AutoSearchManagerListener::ItemUpdated(), as, true);
 }
 
 void AutoSearchManager::on(DirectoryListingManagerListener::DirectoryDownloadProcessed, const DirectoryDownloadPtr& aDirectoryInfo, const DirectoryBundleAddInfo& aQueueInfo, const string& /*aError*/) noexcept {
@@ -292,7 +297,7 @@ void AutoSearchManager::onBundleError(const void* aSearch, const string& aError,
 	auto as = searchItems.getItem(aSearch);
 	if (as) {
 		as->setLastError(STRING_F(AS_ERROR, aBundleName % aError % Util::getTimeString() % ClientManager::getInstance()->getFormatedNicks(aUser)));
-		fire(AutoSearchManagerListener::UpdateItem(), as, true);
+		fire(AutoSearchManagerListener::ItemUpdated(), as, true);
 	}
 
 	//logMessage(aError, true);
@@ -345,7 +350,7 @@ void AutoSearchManager::onRemoveBundle(const BundlePtr& aBundle, bool finished) 
 				itemsEnabled = true;
 				as->setLastError(Util::emptyString);
 				dirty = true;
-				fire(AutoSearchManagerListener::UpdateItem(), as, true);
+				fire(AutoSearchManagerListener::ItemUpdated(), as, true);
 			}
 		}
 	}
@@ -374,7 +379,7 @@ void AutoSearchManager::handleExpiredItems(AutoSearchList& expired) noexcept{
 
 			RLock l(cs);
 			as->updateStatus();
-			fire(AutoSearchManagerListener::UpdateItem(), as, false);
+			fire(AutoSearchManagerListener::ItemUpdated(), as, false);
 		}
 	}
 }
@@ -387,7 +392,7 @@ bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) noexcept {
 
 	//7 days expiry
 	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::getParentDir(aBundle->getTarget()), 
-		StringMatch::EXACT, Util::emptyString, Util::emptyString, GET_TIME() + 7*24*60*60, false, false, false, Util::emptyString, 60, AutoSearch::FAILED_BUNDLE, false);
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, GET_TIME() + 7*24*60*60, false, false, false, Util::emptyString, AutoSearch::FAILED_BUNDLE, false);
 
 	as->setGroup(SETTING(AS_FAILED_DEFAULT_GROUP));
 	as->addBundle(aBundle);
@@ -460,7 +465,7 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 					msg = CSTRING_F(AUTOSEARCH_ADDED_SEARCHED, searchWord);
 				}
 				else {
-					msg = STRING_F(ITEM_SEARCHED, searchWord);
+					msg = as->isRecent() ? STRING_F(ITEM_SEARCHED_RECENT, searchWord) : STRING_F(ITEM_SEARCHED, searchWord);
 				}
 			} else {
 				auto time = searchInfo.queueTime / 1000;
@@ -471,54 +476,33 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 					msg = CSTRING_F(AUTOSEARCH_ADDED_SEARCHED_IN, searchWord % time);
 				}
 				else {
-					msg = STRING_F(ITEM_SEARCHED_IN, searchWord % time);
+					msg = as->isRecent() ? STRING_F(ITEM_SEARCHED_IN_RECENT, searchWord % time) : STRING_F(ITEM_SEARCHED_IN, searchWord % time);
 				}
 			}
-
+			fire(AutoSearchManagerListener::ItemSearched(), as, msg);
 			logMessage(msg, LogMessage::SEV_INFO);
 		}
 	}
 
-	resetSearchTimes(aTick, true);
-	fire(AutoSearchManagerListener::UpdateItem(), as, false);
+	resetSearchTimes(aTick, false);
+	fire(AutoSearchManagerListener::ItemUpdated(), as, false);
 }
-void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aForce) noexcept {
+void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aRecalculate/* = true*/) noexcept {
 	RLock l(cs);
 	if (searchItems.getItems().empty()) {
 		nextSearch = 0;
 		return;
 	}
+	auto recentSearchTick = searchItems.getNextSearchRecent();
+	auto nextSearchTick = searchItems.getNextSearchNormal();
 
-	time_t tmp = 0;
-	//calculate which of the items has the nearest possible search time.
-	for (const auto& x : searchItems.getItems() | map_values) {
-		if (!x->allowNewItems())
-			continue;
-
-		auto next_tt = x->getNextSearchTime();
-		tmp = tmp == 0 ? next_tt : min(next_tt, tmp);
+	if (aRecalculate) {
+		nextSearchTick = searchItems.recalculateSearchTimes(false, false, aTick);
+		recentSearchTick = searchItems.recalculateSearchTimes(true, false, aTick);
 	}
-
-	//We have nothing to search for...
-	if (tmp == 0) {
-		nextSearch = 0;
-		return;
-	}
-	uint64_t nextSearchTick = 0;
-	nextSearchTick = searchItems.recalculateSearchTimes(false, aForce, aTick);
-
-	//Calculate interval for recent items, if any..
-	uint64_t recentSearchTick = 0;
-	recentSearchTick = searchItems.recalculateSearchTimes(true, aForce, aTick);
-
 	nextSearchTick = recentSearchTick > 0 ? nextSearchTick > 0 ? min(recentSearchTick, nextSearchTick) : recentSearchTick : nextSearchTick;
 
-	//We already missed the search time, add 3 seconds and search then.
-	if (aTick > nextSearchTick)
-		nextSearchTick = aTick + 3000;
-
-	time_t t = GET_TIME() + ((nextSearchTick - aTick) / 1000);
-	nextSearch = max(tmp, t);
+	nextSearch = toTimeT(nextSearchTick, aTick);
 	
 }
 
@@ -537,31 +521,33 @@ bool AutoSearchManager::searchItem(AutoSearchPtr& as, SearchType aType) noexcept
 
 /* Timermanager */
 void AutoSearchManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
-
-	if(nextSearch != 0 && nextSearch <= GET_TIME()) {
-		StringList allowedHubs;
-		ClientManager::getInstance()->getOnlineClients(allowedHubs);
-		//no hubs? no fun...
-		if (allowedHubs.empty()) {
-			return;
-		}
-
-		AutoSearchPtr searchItem = nullptr;
-		{
-			WLock l(cs);
-			searchItem = searchItems.maybePopSearchItem(aTick, true);
-		}
-
-		if (searchItem)
-			performSearch(searchItem, allowedHubs, TYPE_NORMAL, aTick);
-	}
-
+	
 	if (dirty && (lastSave + (20 * 1000) < aTick)) { //20 second delay between saves.
 		lastSave = aTick;
 		dirty = false;
 		save();
 	}
 
+	if(nextSearch != 0 && nextSearch <= GET_TIME()) {
+		if (ClientManager::getInstance()->hasSearchQueueOverflow())
+			return;
+
+		StringList allowedHubs;
+		ClientManager::getInstance()->getOnlineClients(allowedHubs);
+		//no hubs? no fun...
+		if (allowedHubs.empty())
+			return;
+
+		AutoSearchPtr searchItem = nullptr;
+		{
+			WLock l(cs);
+			searchItem = searchItems.maybePopSearchItem(aTick);
+		}
+
+		if (searchItem)
+			performSearch(searchItem, allowedHubs, TYPE_NORMAL, aTick);
+		
+	}
 }
 
 void AutoSearchManager::on(TimerManagerListener::Minute, uint64_t /*aTick*/) noexcept {
@@ -587,6 +573,7 @@ void AutoSearchManager::checkItems() noexcept {
 				searchItems.removeSearchPrio(as);
 				as->setPriority(newPrio);
 				searchItems.addSearchPrio(as);
+				hasStatusChange = true;
 			}
 
 			
@@ -617,7 +604,7 @@ void AutoSearchManager::checkItems() noexcept {
 		}
 	}
 
-	for_each(updateitems, [=](AutoSearchPtr as) { fire(AutoSearchManagerListener::UpdateItem(), as, false); });
+	for_each(updateitems, [=](AutoSearchPtr as) { fire(AutoSearchManagerListener::ItemUpdated(), as, false); });
 
 	//One or more items were set to waiting state due to search times
 	if(hasStatusChange)
@@ -632,7 +619,7 @@ void AutoSearchManager::on(SearchManagerListener::SearchTypeRenamed, const strin
 	for(auto& as: searchItems.getItems() | map_values) {
 		if (as->getFileType() == oldName) {
 			as->setFileType(newName);
-			fire(AutoSearchManagerListener::UpdateItem(), as, false);
+			fire(AutoSearchManagerListener::ItemUpdated(), as, false);
 		}
 	}
 }
@@ -720,7 +707,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 			auto& rl = searchResults[as->getToken()];
 			if (rl.empty()) {
 				as->setStatus(AutoSearch::STATUS_COLLECTING);
-				fire(AutoSearchManagerListener::UpdateItem(), as, false);
+				fire(AutoSearchManagerListener::ItemUpdated(), as, false);
 			} else if (find_if(rl, [&sr](const SearchResultPtr& aSR) { return aSR->getUser() == sr->getUser() && aSR->getPath() == sr->getPath(); }) != rl.end()) {
 				//don't add the same result multiple times, makes the counting more reliable
 				return;
@@ -792,7 +779,7 @@ void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 				auto paths = ShareManager::getInstance()->getNmdcDirPaths(dir);
 				if (!paths.empty()) {
 					as->setLastError(STRING_F(DIR_SHARED_ALREADY, paths.front()));
-					fire(AutoSearchManagerListener::UpdateItem(), as, true);
+					fire(AutoSearchManagerListener::ItemUpdated(), as, true);
 					continue;
 				}
 			}
@@ -802,7 +789,7 @@ void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 				auto paths = QueueManager::getInstance()->getNmdcDirPaths(dir);
 				if (!paths.empty()) {
 					as->setLastError(STRING_F(DIR_QUEUED_ALREADY, dir));
-					fire(AutoSearchManagerListener::UpdateItem(), as, true);
+					fire(AutoSearchManagerListener::ItemUpdated(), as, true);
 					continue;
 				}
 			}
@@ -902,7 +889,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 void AutoSearchManager::moveItemToGroup(AutoSearchPtr& as, const string& aGroup) {
 	if ((aGroup.empty() && !as->getGroup().empty()) || hasGroup(aGroup)) {
 		as->setGroup(aGroup);
-		fire(AutoSearchManagerListener::UpdateItem(), as, false);
+		fire(AutoSearchManagerListener::ItemUpdated(), as, false);
 	}
 }
 
@@ -993,7 +980,6 @@ AutoSearchPtr AutoSearchManager::loadItemFromXml(SimpleXML& aXml) {
 		aXml.getBoolChildAttrib("CheckAlreadyShared"),
 		aXml.getBoolChildAttrib("MatchFullPath"),
 		aXml.getChildAttrib("ExcludedWords"),
-		aXml.getIntChildAttrib("SearchInterval"),
 		(AutoSearch::ItemType)aXml.getIntChildAttrib("ItemType"),
 		aXml.getBoolChildAttrib("UserMatcherExclude"),
 		aXml.getIntChildAttrib("Token"));
@@ -1091,6 +1077,19 @@ void AutoSearchManager::load() noexcept {
 		}
 	});
 
-	resetSearchTimes(GET_TICK(), true);
+	resetSearchTimes(GET_TICK());
 }
+
+time_t AutoSearchManager::toTimeT(uint64_t& aValue, uint64_t currentTick/* = GET_TICK()*/) {
+	if (aValue == 0)
+		return 0;
+
+	if (currentTick >= aValue)
+		return GET_TIME();
+
+
+	return GET_TIME() + ((aValue - currentTick) / 1000);
+}
+
+
 }
