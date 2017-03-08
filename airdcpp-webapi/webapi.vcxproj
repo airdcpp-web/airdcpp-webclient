@@ -184,6 +184,7 @@
     <ClInclude Include="api\common\ViewTasks.h" />
     <ClInclude Include="api\ConnectivityApi.h" />
     <ClInclude Include="api\CoreSettings.h" />
+    <ClInclude Include="api\ExtensionApi.h" />
     <ClInclude Include="api\FavoriteDirectoryApi.h" />
     <ClInclude Include="api\FavoriteHubApi.h" />
     <ClInclude Include="api\FavoriteHubUtils.h" />
@@ -224,6 +225,9 @@
     <ClInclude Include="web-server\ApiRequest.h" />
     <ClInclude Include="web-server\ApiRouter.h" />
     <ClInclude Include="web-server\Exception.h" />
+    <ClInclude Include="web-server\Extension.h" />
+    <ClInclude Include="web-server\ExtensionManager.h" />
+    <ClInclude Include="web-server\ExtensionManagerListener.h" />
     <ClInclude Include="web-server\FileServer.h" />
     <ClInclude Include="web-server\JsonUtil.h" />
     <ClInclude Include="web-server\LazyInitWrapper.h" />
@@ -251,6 +255,7 @@
     <ClCompile Include="api\common\Serializer.cpp" />
     <ClCompile Include="api\ApiSettingItem.cpp" />
     <ClCompile Include="api\ConnectivityApi.cpp" />
+    <ClCompile Include="api\ExtensionApi.cpp" />
     <ClCompile Include="api\FavoriteDirectoryApi.cpp" />
     <ClCompile Include="api\FavoriteHubApi.cpp" />
     <ClCompile Include="api\FavoriteHubUtils.cpp" />
@@ -288,6 +293,8 @@
     <ClCompile Include="api\WebUserUtils.cpp" />
     <ClCompile Include="web-server\ApiRequest.cpp" />
     <ClCompile Include="web-server\ApiRouter.cpp" />
+    <ClCompile Include="web-server\Extension.cpp" />
+    <ClCompile Include="web-server\ExtensionManager.cpp" />
     <ClCompile Include="web-server\FileServer.cpp" />
     <ClCompile Include="web-server\JsonUtil.cpp" />
     <ClCompile Include="web-server\Session.cpp" />

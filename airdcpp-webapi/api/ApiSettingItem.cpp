@@ -58,6 +58,14 @@ namespace webserver {
 			ret["type"] = "directory_path";
 		} else if (type == TYPE_LONG_TEXT) {
 			ret["type"] = "long_text";
+		} else if (value.first.is_boolean()) {
+			ret["type"] = "boolean";
+		} else if (value.first.is_number()) {
+			ret["type"] = "number";
+		} else if (value.first.is_string()) {
+			ret["type"] = "string";
+		} else {
+			dcassert(0);
 		}
 
 		return ret;

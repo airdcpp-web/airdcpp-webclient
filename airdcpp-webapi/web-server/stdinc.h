@@ -58,6 +58,10 @@ namespace webserver {
 
 	typedef std::function<void()> CallBack;
 
+	class Extension;
+	typedef shared_ptr<Extension> ExtensionPtr;
+	typedef vector<ExtensionPtr> ExtensionList;
+
 	class Session;
 	typedef std::shared_ptr<Session> SessionPtr;
 	typedef std::vector<SessionPtr> SessionList;

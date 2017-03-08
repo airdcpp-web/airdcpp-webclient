@@ -20,6 +20,7 @@
 
 #include <web-server/WebSocket.h>
 #include <web-server/WebServerManager.h>
+#include <web-server/WebUserManager.h>
 
 #include <api/base/ApiModule.h>
 

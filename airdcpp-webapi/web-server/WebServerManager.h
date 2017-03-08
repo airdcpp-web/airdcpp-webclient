@@ -27,9 +27,8 @@
 
 #include "Timer.h"
 #include "WebServerManagerListener.h"
-//#include "WebServerSettings.h"
-#include "WebSocket.h"
 #include "WebUserManager.h"
+#include "WebSocket.h"
 
 #include <airdcpp/format.h>
 #include <airdcpp/Singleton.h>
@@ -42,6 +41,10 @@
 
 namespace webserver {
 	class ServerSettingItem;
+
+	class ExtensionManager;
+	class WebUserManager;
+
 	struct ServerConfig {
 		ServerConfig(ServerSettingItem& aPort, ServerSettingItem& aBindAddress) : port(aPort), bindAddress(aBindAddress) {
 
@@ -185,6 +188,10 @@ namespace webserver {
 			return *userManager.get();
 		}
 
+		ExtensionManager& getExtensionManager() noexcept {
+			return *extManager.get();
+		}
+
 		bool hasValidConfig() const noexcept;
 
 		ServerConfig& getPlainServerConfig() noexcept {
@@ -201,6 +208,13 @@ namespace webserver {
 		}
 
 		bool isRunning() const noexcept;
+		bool isListeningPlain() const noexcept {
+			return endpoint_plain.is_listening();
+		}
+
+		bool isListeningTls() const noexcept {
+			return endpoint_tls.is_listening();
+		}
 
 		const CallBack getShutdownF() const noexcept {
 			return shutdownF;
@@ -233,6 +247,7 @@ namespace webserver {
 		FileServer fileServer;
 
 		unique_ptr<WebUserManager> userManager;
+		unique_ptr<ExtensionManager> extManager;
 
 		TimerPtr socketTimer;
 

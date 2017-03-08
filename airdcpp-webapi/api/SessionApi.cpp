@@ -107,14 +107,17 @@ namespace webserver {
 			aSocket->setSession(session);
 		}
 
-		aRequest.setResponseBody({
-			{ "auth_token", session->getAuthToken() },
-			{ "user", Serializer::serializeItem(session->getUser(), WebUserUtils::propertyHandler) },
+		aRequest.setResponseBody(serializeLoginInfo(session));
+		return websocketpp::http::status_code::ok;
+	}
+
+	json SessionApi::serializeLoginInfo(const SessionPtr& aSession) {
+		return {
+			{ "auth_token", aSession->getAuthToken() },
+			{ "user", Serializer::serializeItem(aSession->getUser(), WebUserUtils::propertyHandler) },
 			{ "system_info", SystemApi::getSystemInfo() },
 			{ "wizard_pending", SETTING(WIZARD_PENDING) },
-		});
-
-		return websocketpp::http::status_code::ok;
+		};
 	}
 
 	api_return SessionApi::handleSocketConnect(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket) {
@@ -139,6 +142,7 @@ namespace webserver {
 		session->onSocketConnected(aSocket);
 		aSocket->setSession(session);
 
+		aRequest.setResponseBody(serializeLoginInfo(session));
 		return websocketpp::http::status_code::no_content;
 	}
 
@@ -180,6 +184,7 @@ namespace webserver {
 			case Session::TYPE_BASIC_AUTH: return "basic_auth";
 			case Session::TYPE_PLAIN: return "plain";
 			case Session::TYPE_SECURE: return "secure";
+			case Session::TYPE_EXTENSION: return "extension";
 		}
 
 		dcassert(0);

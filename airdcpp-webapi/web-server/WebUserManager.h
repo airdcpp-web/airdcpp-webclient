@@ -41,6 +41,7 @@ namespace webserver {
 
 		SessionPtr authenticateSession(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, const string& aIP) noexcept;
 		SessionPtr authenticateBasicHttp(const string& aAuthString, const string& aIP) noexcept;
+		SessionPtr createExtensionSession(const string& aExtensionName);
 
 		SessionList getSessions() const noexcept;
 		SessionPtr getSession(const string& aAuthToken) const noexcept;
@@ -75,10 +76,10 @@ namespace webserver {
 
 		SessionPtr createSession(const WebUserPtr& aUser, const string& aSessionToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP);
 
-		void on(WebServerManagerListener::Started) noexcept;
-		void on(WebServerManagerListener::Stopped) noexcept;
-		void on(WebServerManagerListener::LoadSettings, SimpleXML& aXml) noexcept;
-		void on(WebServerManagerListener::SaveSettings, SimpleXML& aXml) noexcept;
+		void on(WebServerManagerListener::Started) noexcept override;
+		void on(WebServerManagerListener::Stopped) noexcept override;
+		void on(WebServerManagerListener::LoadSettings, SimpleXML& aXml) noexcept override;
+		void on(WebServerManagerListener::SaveSettings, SimpleXML& aXml) noexcept override;
 
 		WebServerManager* server;
 	};
