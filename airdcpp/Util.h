@@ -148,6 +148,9 @@ public:
 	static string getOsVersion(bool http = false) noexcept;
 	static bool IsOSVersionOrGreater(int major, int minor) noexcept;
 
+	// Execute a background process and get exit code
+	static int runSystemCommand(const string& aCommand) noexcept;
+
 	enum Paths {
 		/** Global configuration */
 		PATH_GLOBAL_CONFIG,

@@ -112,8 +112,17 @@ DirectoryDownloadList DirectoryListingManager::getDirectoryDownloads() const noe
 DirectoryDownloadPtr DirectoryListingManager::addDirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner) {
 	dcassert(!aTarget.empty() && !aListPath.empty() && !aBundleName.empty());
 	auto downloadInfo = make_shared<DirectoryDownload>(aUser, aBundleName, aListPath, aTarget, p, aOwner);
+	
+	DirectoryListingPtr dl;
+	{
+		RLock l(cs);
+		auto vl = viewedLists.find(aUser.user);
+		if (vl != viewedLists.end()) {
+			dl = vl->second;
+		}
+	}
 
-	bool needList;
+	bool needList = false;
 	{
 		WLock l(cs);
 
@@ -131,8 +140,11 @@ DirectoryDownloadPtr DirectoryListingManager::addDirectoryDownload(const HintedU
 	}
 
 	fire(DirectoryListingManagerListener::DirectoryDownloadAdded(), downloadInfo);
-	if (needList) {
+
+	if (!dl && needList) {
 		queueList(downloadInfo);
+	} else if(dl) {
+		dl->addAsyncTask([=] { handleDownload(downloadInfo, dl, false); });
 	}
 
 	return downloadInfo;
@@ -142,7 +154,7 @@ void DirectoryListingManager::queueList(const DirectoryDownloadPtr& aDownloadInf
 	auto user = aDownloadInfo->getUser();
 
 	Flags flags = QueueItem::FLAG_DIRECTORY_DOWNLOAD;
-	if (!user.user->isSet(User::NMDC) && !aDownloadInfo->getPartialListFailed()) {
+	if (!user.user->isSet(User::NMDC)) {
 		flags.setFlag(QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_RECURSIVE_LIST);
 	}
 
@@ -193,28 +205,22 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 	processListAction(dirList, aRemotePath, aFlags);
 }
 
-void DirectoryListingManager::handleDownload(const DirectoryDownloadPtr& aDownloadInfo, const DirectoryListingPtr& aList) noexcept {
+void DirectoryListingManager::handleDownload(const DirectoryDownloadPtr& aDownloadInfo, const DirectoryListingPtr& aList, bool aListDownloaded/* = true*/) noexcept {
 	auto dir = aList->findDirectory(aDownloadInfo->getListPath());
 
 	// Check the content
 	{
-		auto getList = [&] {
-			aDownloadInfo->setPartialListFailed(true);
-			queueList(aDownloadInfo);
-		};
-
 		if (!dir) {
-			// Downloading directory for an open list? But don't queue anything if it's a fresh list and the directory is missing.
-			if (aList->getIsClientView()) {
-				getList();
+			// Downloading directory for an open list? Try to download a list from the dir...
+			if (!aListDownloaded) {
+				queueList(aDownloadInfo);
 			}
-
 			return;
 		}
 
 		if (aList->getPartialList() && dir->findIncomplete()) {
 			// Non-recursive partial list
-			getList();
+			queueList(aDownloadInfo);
 			return;
 		}
 	}

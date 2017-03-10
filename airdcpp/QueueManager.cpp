@@ -3792,16 +3792,18 @@ int QueueManager::searchBundleAlternates(const BundlePtr& aBundle, uint64_t aTic
 			nextSearchTick = aBundle->isRecent() ? bundleQueue.getNextSearchRecent() : bundleQueue.getNextSearchNormal();
 		}
 
-		if (nextSearchTick == 0) {
-			LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName().c_str() % queuedFileSearches), LogMessage::SEV_INFO);
-		} else if (SETTING(REPORT_ALTERNATES)) {
-			auto nextSearchMinutes = (nextSearchTick - aTick) / (60 * 1000);
-			if (aBundle->isRecent()) {
-				LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH_RECENT, aBundle->getName() % queuedFileSearches) +
-					" " + STRING_F(NEXT_RECENT_SEARCH_IN, nextSearchMinutes), LogMessage::SEV_INFO);
+		if (SETTING(REPORT_ALTERNATES)) {
+			if (nextSearchTick == 0 || aTick >= nextSearchTick) {
+				LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName().c_str() % queuedFileSearches), LogMessage::SEV_INFO);
 			} else {
-				LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName() % queuedFileSearches) +
-					" " + STRING_F(NEXT_SEARCH_IN, nextSearchMinutes), LogMessage::SEV_INFO);
+				auto nextSearchMinutes = (nextSearchTick - aTick) / (60 * 1000);
+				if (aBundle->isRecent()) {
+					LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH_RECENT, aBundle->getName() % queuedFileSearches) +
+						" " + STRING_F(NEXT_RECENT_SEARCH_IN, nextSearchMinutes), LogMessage::SEV_INFO);
+				} else {
+					LogManager::getInstance()->message(STRING_F(BUNDLE_ALT_SEARCH, aBundle->getName() % queuedFileSearches) +
+						" " + STRING_F(NEXT_SEARCH_IN, nextSearchMinutes), LogMessage::SEV_INFO);
+				}
 			}
 		}
 	}

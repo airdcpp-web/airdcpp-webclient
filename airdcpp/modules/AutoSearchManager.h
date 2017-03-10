@@ -127,6 +127,8 @@ private:
 	void clearError(AutoSearchPtr& as) noexcept;
 	void resetSearchTimes(uint64_t aTick, bool aRecalculate = true) noexcept;
 
+	void maybePopSearchItem(uint64_t aTick, bool aIgnoreSearchTimes); 
+
 	/* Listeners */
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept override;
 
