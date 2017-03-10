@@ -34,6 +34,15 @@
 namespace webserver {
 	ExtensionManager::ExtensionManager(WebServerManager* aWsm) : wsm(aWsm) {
 		wsm->addListener(this);
+
+		engines = {
+#ifdef _WIN32
+			{ "node", "./nodejs/node.exe;node" },
+#else
+			{ "node", "nodejs;node" },
+#endif
+			{ "python", "python" },
+		};
 	}
 
 	ExtensionManager::~ExtensionManager() {
@@ -43,6 +52,7 @@ namespace webserver {
 	void ExtensionManager::on(WebServerManagerListener::Started) noexcept {
 		load();
 	}
+
 	void ExtensionManager::on(WebServerManagerListener::Stopping) noexcept {
 		RLock l(cs);
 		for (const auto& ext : extensions) {
@@ -214,7 +224,7 @@ namespace webserver {
 			auto extensionInfo = Extension(tempPackageDirectory, nullptr, true);
 			finalInstallPath = extensionInfo.getRootPath();
 		} catch (const std::exception& e) {
-			failInstallation("Failed to read package.json", e.what());
+			failInstallation("Failed to load extension", e.what());
 			return;
 		}
 
@@ -276,7 +286,7 @@ namespace webserver {
 				LogManager::getInstance()->message("Extension " + aExtension->getName() + " has exited (see the extension log for error details)", LogMessage::SEV_ERROR);
 			});
 		} catch (const Exception& e) {
-			LogManager::getInstance()->message("Failed to parse the extension " + aPath + ": " + e.what(), LogMessage::SEV_ERROR);
+			LogManager::getInstance()->message("Failed to load extension " + aPath + ": " + e.what(), LogMessage::SEV_ERROR);
 			return nullptr;
 		}
 
@@ -291,7 +301,8 @@ namespace webserver {
 
 	bool ExtensionManager::startExtension(const ExtensionPtr& aExtension) noexcept {
 		try {
-			aExtension->start(wsm);
+			auto command = getStartCommand(aExtension);
+			aExtension->start(command, wsm);
 		} catch (const Exception& e) {
 			LogManager::getInstance()->message("Failed to start the extension " + aExtension->getName() + ": " + e.what(), LogMessage::SEV_ERROR);
 			return false;
@@ -310,5 +321,66 @@ namespace webserver {
 		fire(ExtensionManagerListener::ExtensionStopped(), aExtension);
 		LogManager::getInstance()->message("Extension " + aExtension->getName() + " was stopped", LogMessage::SEV_INFO);
 		return true;
+	}
+
+	string ExtensionManager::getStartCommand(const ExtensionPtr& aExtension) const {
+		string lastError;
+		for (const auto& extEngine : aExtension->getEngines()) {
+			string engineCommandStr;
+
+			{
+				RLock l(cs);
+				auto i = engines.find(extEngine);
+				if (i == engines.end()) {
+					lastError = "Scripting engine \"" + extEngine + "\" is not configured in application settings";
+					continue;
+				}
+
+				engineCommandStr = i->second;
+			}
+
+			// We have a match
+			auto parsedCommand = selectEngineCommand(engineCommandStr);
+			if (!parsedCommand.empty()) {
+				return parsedCommand;
+			}
+
+			lastError = "Scripting engine \"" + extEngine + "\" is not installed on the system (tested commands: " + engineCommandStr + ").";
+		}
+
+		dcassert(!lastError.empty());
+		throw Exception(lastError);
+	}
+
+	string ExtensionManager::selectEngineCommand(const string& aEngineCommands) noexcept {
+		auto tokens = StringTokenizer<string>(aEngineCommands, ';', false);
+		for (const auto& token: tokens.getTokens()) {
+			if (File::isAbsolutePath(token)) {
+				// Full path
+				if (Util::fileExists(token)) {
+					return token;
+				}
+			} else if (token.length() >= 2 && token.compare(0, 2, "./") == 0) {
+				// Relative path
+				auto fullPath = Util::getAppFilePath() + token.substr(2);
+				if (Util::fileExists(fullPath)) {
+					return fullPath;
+				}
+			} else {
+				// Application in PATH
+#ifdef _WIN32
+				string testCommand = "where";
+#else
+				string testCommand = "which";
+#endif
+				testCommand += " " + token;
+
+				if (Util::runSystemCommand(testCommand) == 0) {
+					return token;
+				}
+			}
+		}
+
+		return Util::emptyString;
 	}
 }

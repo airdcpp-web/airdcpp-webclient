@@ -58,7 +58,18 @@ namespace webserver {
 
 		bool startExtension(const ExtensionPtr& aExtension) noexcept;
 		bool stopExtension(const ExtensionPtr& aExtension) noexcept;
+
+		typedef map<string, string> EngineMap;
 	private:
+		// Get the engine start command for extension
+		// Throws on errors
+		string getStartCommand(const ExtensionPtr& aExtension) const;
+
+		// Parses the engine command param (command1;command2;...) and tests each token for an existing application
+		static string selectEngineCommand(const string& aEngineCommands) noexcept;
+
+		EngineMap engines;
+
 		// Remove extension from the list
 		bool removeList(const ExtensionPtr& aExtension);
 

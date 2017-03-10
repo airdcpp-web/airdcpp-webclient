@@ -34,6 +34,7 @@ namespace webserver {
 		~ExtensionApi();
 	private:
 		static json serializeExtension(const ExtensionPtr& aExtension) noexcept;
+		static json serializeLogs(const ExtensionPtr& aExtension) noexcept;
 
 		api_return handleGetExtensions(ApiRequest& aRequest);
 		api_return handleGetExtension(ApiRequest& aRequest);
