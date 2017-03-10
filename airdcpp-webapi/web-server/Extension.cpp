@@ -32,29 +32,47 @@ namespace webserver {
 		const auto packageStr = File(aPath + "package" + PATH_SEPARATOR_STR + "package.json", File::READ, File::OPEN).read();
 
 		try {
-			auto packageJson = json::parse(packageStr);
+			const json packageJson = json::parse(packageStr);
 
 			const string packageName = packageJson.at("name");
+			const string packageDescription = packageJson.at("description");
 			const string packageEntry = packageJson.at("main");
 			const string packageVersion = packageJson.at("version");
 			const string packageAuthor = packageJson.at("author").at("name");
 
+			auto enginesJson = packageJson.find("engines");
+			if (enginesJson != packageJson.end()) {
+				for (const auto& engine: json::iterator_wrapper(*enginesJson)) {
+					engines.emplace_back(engine.key());
+				}
+			}
+
+			if (engines.empty()) {
+				engines.emplace_back("node");
+			}
+
 			name = packageName;
+			description = packageDescription;
 			entry = packageEntry;
 			version = packageVersion;
 			author = packageAuthor;
 
 			privateExtension = packageJson.value("private", false);
 		} catch (const std::exception& e) {
-			throw Exception("Failed to parse package.json: " + string(e.what()));
+			throw Exception("Could not parse package.json (" + string(e.what()) + ")");
 		}
 
 		if (!aSkipPathValidation && compare(name, Util::getLastDir(aPath)) != 0) {
 			throw Exception("Extension path doesn't match with the extension name " + name);
 		}
+
+		// TODO: validate platform and API compatibility
 	}
 
-	void Extension::start(WebServerManager* wsm) {
+	void Extension::start(const string& aEngine, WebServerManager* wsm) {
+		File::ensureDirectory(getLogPath());
+		File::ensureDirectory(getSettingsPath());
+
 		if (isRunning()) {
 			dcassert(0);
 			return;
@@ -62,12 +80,35 @@ namespace webserver {
 
 		session = wsm->getUserManager().createExtensionSession(name);
 		
-		createProcess(wsm, session);
+		createProcess(aEngine, wsm, session);
 		running = true;
 
 		// Monitor the running state of the script
 		timer = wsm->addTimer([this, wsm] { checkRunningState(wsm); }, 2500);
 		timer->start(false);
+	}
+
+	string Extension::getConnectUrl(WebServerManager* wsm) noexcept {
+		const auto& serverConfig = wsm->isListeningPlain() ? wsm->getPlainServerConfig() : wsm->getTlsServerConfig();
+
+		auto bindAddress = serverConfig.bindAddress.str();
+		if (bindAddress.empty()) {
+			auto protocol = wsm->isListeningPlain();
+			if (!protocol) {
+				protocol = wsm->isListeningTls();
+			}
+
+			if (protocol) {
+				bindAddress = *protocol == boost::asio::ip::tcp::v6() ? "[::1]" : "127.0.0.1";
+			} else {
+				dcassert(0);
+			}
+		}
+
+		string address = wsm->isListeningPlain() ? "ws://" : "wss://";
+		address += bindAddress;
+		address += ":" + Util::toString(serverConfig.port.num()) + "/api/v1/ ";
+		return address;
 	}
 
 	StringList Extension::getLaunchParams(WebServerManager* wsm, const SessionPtr& aSession) const noexcept {
@@ -77,19 +118,7 @@ namespace webserver {
 		ret.push_back(getPackageDirectory() + entry);
 
 		// Connect URL
-		{
-			const auto& serverConfig = wsm->isListeningPlain() ? wsm->getPlainServerConfig() : wsm->getTlsServerConfig();
-
-			auto bindAddress = serverConfig.bindAddress.str();
-			if (bindAddress.empty()) {
-				bindAddress = "localhost";
-			}
-
-			string address = wsm->isListeningPlain() ? "ws://" : "wss://";
-			address += bindAddress + ":" + Util::toString(serverConfig.port.num()) + "/api/v1/ ";
-
-			ret.push_back(address);
-		}
+		ret.push_back(getConnectUrl(wsm));
 
 		// Session token
 		ret.push_back(aSession->getAuthToken());
@@ -174,7 +203,7 @@ namespace webserver {
 		}
 	}
 
-	void Extension::createProcess(WebServerManager* wsm, const SessionPtr& aSession) {
+	void Extension::createProcess(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {
 		// Setup log file for console output
 		initLog(messageLogHandle, getMessageLogPath());
 		initLog(errorLogHandle, getErrorLogPath());
@@ -191,14 +220,14 @@ namespace webserver {
 
 		auto paramList = getLaunchParams(wsm, aSession);
 
-		string paramStr;
+		string command(aEngine + " ");
 		for (const auto& p: paramList) {
-			paramStr += p + " ";
+			command += p + " ";
 		}
 
 		// Start the process
-		tstring command = _T("node ") + Text::toT(paramStr);
-		dcdebug("Starting extension %s, command %s\n", name.c_str(), Text::fromT(command).c_str());
+		tstring commandT = Text::toT(command);
+		dcdebug("Starting extension %s, command %s\n", name.c_str(), command.c_str());
 
 #ifdef _DEBUG
 		// Show the console window in debug mode
@@ -213,7 +242,7 @@ namespace webserver {
 
 		auto res = CreateProcess(
 			NULL,
-			(LPWSTR)command.c_str(),
+			(LPWSTR)commandT.c_str(),
 			0,
 			0,
 			TRUE,
@@ -283,10 +312,38 @@ namespace webserver {
 		pid = 0;
 	}
 
-	void Extension::createProcess(WebServerManager* wsm, const SessionPtr& aSession) {
+	void Extension::createProcess(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {
+		// Init logs
 		File messageLog(getMessageLogPath(), File::CREATE, File::RW);
 		File errorLog(getErrorLogPath(), File::CREATE, File::RW);
 
+
+		// Construct argv
+		char* app = (char*)aEngine.c_str();
+
+		vector<char*> argv;
+		argv.push_back(app);
+
+		{
+			auto paramList = getLaunchParams(wsm, aSession);
+			for (const auto& p : paramList) {
+				argv.push_back((char*)p.c_str());
+			}
+
+#ifdef _DEBUG
+			string command = string(app) + " ";
+			for (const auto& p : paramList) {
+				command += p + " ";
+			}
+
+			dcdebug("Starting extension %s, command %s\n", name.c_str(), command.c_str());
+#endif
+		}
+
+		argv.push_back(0);
+
+
+		// Create fork
 		pid = fork();
 		if (pid == -1) {
 			throw Exception("Failed to fork the process process: " + Util::translateError(errno));
@@ -295,27 +352,15 @@ namespace webserver {
 		if (pid == 0) {
 			// Child process
 
-			// Logs
+			// Redirect messages to log files
 			dup2(messageLog.getNativeHandle(), STDOUT_FILENO);
 			dup2(errorLog.getNativeHandle(), STDERR_FILENO);
 
-			// Construct argv
-			char command[] = "nodejs";
-
-			vector<char*> argv;
-			argv.push_back(command);
-
-			{
-				auto paramList = getLaunchParams(wsm, aSession);
-				for (const auto& p : paramList) {
-					argv.push_back((char*)p.c_str());
-				}
+			// Run, checkRunningState will handle errors...
+			if (execvp(aEngine.c_str(), &argv[0]) == -1) {
+				fprintf(stderr, "Failed to start the extension %s: %s\n", name.c_str(), Util::translateError(errno).c_str());
 			}
 
-			argv.push_back(0);
-
-			// Run, checkRunningState will handle errors...
-			execvp("nodejs", &argv[0]);
 			exit(0);
 		}
 	}

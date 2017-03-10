@@ -25,6 +25,8 @@
 #include <web-server/Session.h>
 #include <web-server/WebServerManager.h>
 
+#include <airdcpp/File.h>
+
 
 #define EXTENSION_PARAM_ID "extension"
 #define EXTENSION_PARAM (ApiModule::RequestHandler::Param(EXTENSION_PARAM_ID, regex(R"(^airdcpp-.+$)")))
@@ -53,13 +55,30 @@ namespace webserver {
 		em.removeListener(this);
 	}
 
+	json ExtensionApi::serializeLogs(const ExtensionPtr& aExtension) noexcept {
+		auto ret = json::array();
+		File::forEachFile(aExtension->getLogPath(), "*.log", [&](const string& aFileName, bool aIsDir, int64_t aSize) {
+			if (!aIsDir) {
+				ret.push_back({
+					{ "name", aFileName },
+					{ "size", aSize }
+				});
+			}
+		});
+
+		return ret;
+	}
+
 	json ExtensionApi::serializeExtension(const ExtensionPtr& aExtension) noexcept {
 		return {
 			{ "name", aExtension->getName() },
+			{ "description", aExtension->getDescription() },
 			{ "version", aExtension->getVersion() },
 			{ "author", aExtension->getAuthor() },
 			{ "running", aExtension->isRunning() },
 			{ "private", aExtension->isPrivate() },
+			{ "logs", serializeLogs(aExtension) },
+			{ "engines", aExtension->getEngines() },
 		};
 	}
 

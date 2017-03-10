@@ -35,7 +35,7 @@ namespace webserver {
 		Extension(const string& aPath, ErrorF&& aErrorF, bool aSkipPathValidation = false);
 
 		// Throws on errors
-		void start(WebServerManager* wsm);
+		void start(const string& aEngine, WebServerManager* wsm);
 
 		// Stop the extension and wait until it's not running anymore
 		// Returns false if the process couldn't be stopped
@@ -45,12 +45,20 @@ namespace webserver {
 			return EXTENSION_DIR_ROOT + name + PATH_SEPARATOR_STR;
 		}
 
+		string getSettingsPath() const noexcept {
+			return getRootPath() + "settings" + PATH_SEPARATOR_STR;
+		}
+
+		string getLogPath() const noexcept {
+			return getRootPath() + "logs" + PATH_SEPARATOR_STR;
+		}
+
 		string getMessageLogPath() const noexcept {
-			return getRootPath() + "output.log";
+			return getLogPath() + "output.log";
 		}
 
 		string getErrorLogPath() const noexcept {
-			return getRootPath() + "error.log";
+			return getLogPath() + "error.log";
 		}
 
 		string getPackageDirectory() const noexcept {
@@ -58,9 +66,11 @@ namespace webserver {
 		}
 
 		GETSET(string, name, Name);
+		GETSET(string, description, Description);
 		GETSET(string, entry, Entry);
 		GETSET(string, version, Version);
 		GETSET(string, author, Author);
+		GETSET(StringList, engines, Engines);
 
 		bool isRunning() const noexcept {
 			return running;
@@ -73,11 +83,12 @@ namespace webserver {
 		bool privateExtension = false;
 
 		StringList getLaunchParams(WebServerManager* wsm, const SessionPtr& aSession) const noexcept;
+		static string getConnectUrl(WebServerManager* wsm) noexcept;
 
 		bool running = false;
 
 		// Throws on errors
-		void createProcess(WebServerManager* wsm, const SessionPtr& aSession);
+		void createProcess(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession);
 
 		const ErrorF errorF;
 		SessionPtr session = nullptr;
