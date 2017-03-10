@@ -183,6 +183,33 @@ string Util::getAppPath() noexcept {
 	return Text::fromT(tstring(buf, x));
 }
 
+int Util::runSystemCommand(const string& aCommand) noexcept {
+	// std::system would flash a console window
+
+	STARTUPINFOW si;
+	PROCESS_INFORMATION pi;
+
+	ZeroMemory(&si, sizeof(si));
+	si.cb = sizeof(si);
+	ZeroMemory(&pi, sizeof(pi));
+
+	if (!CreateProcessW(NULL, (LPWSTR)Text::toT(aCommand).c_str(), NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
+		return -1;
+	}
+
+	WaitForSingleObject(pi.hProcess, INFINITE);
+
+	DWORD exitCode = 0;
+	if (!GetExitCodeProcess(pi.hProcess, &exitCode)) {
+		return -1;
+	}
+
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+
+	return exitCode;
+}
+
 #else
 
 void Util::setApp(const string& app) noexcept {
@@ -200,6 +227,10 @@ string Util::getSystemUsername() noexcept {
 	}
 
 	return buf;
+}
+
+int Util::runSystemCommand(const string& aCommand) noexcept {
+	return std::system(aCommand.c_str());
 }
 	
 #endif

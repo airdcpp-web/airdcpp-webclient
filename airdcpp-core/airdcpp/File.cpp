@@ -645,7 +645,7 @@ File::~File() {
 }
 
 std::string File::makeAbsolutePath(const std::string& filename) {
-	return makeAbsolutePath(Util::getAppFilePath() + PATH_SEPARATOR, filename);
+	return makeAbsolutePath(Util::getAppFilePath(), filename);
 }
 
 std::string File::makeAbsolutePath(const std::string& path, const std::string& filename) {

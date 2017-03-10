@@ -35,8 +35,6 @@ namespace dcpp {
 	public:
 		DirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner = nullptr);
 
-		// All clients don't support sending of recursive partial lists
-		IGETSET(bool, partialListFailed, PartialListFailed, false);
 		IGETSET(QueueItemPtr, queueItem, QueueItem, nullptr);
 
 		struct HasOwner {
@@ -102,7 +100,7 @@ namespace dcpp {
 		// Throws on errors
 		void queueList(const DirectoryDownloadPtr& aDownloadInfo);
 
-		void handleDownload(const DirectoryDownloadPtr& aDownloadInfo, const DirectoryListingPtr& aList) noexcept;
+		void handleDownload(const DirectoryDownloadPtr& aDownloadInfo, const DirectoryListingPtr& aList, bool aListDownloaded = true) noexcept;
 
 		DirectoryListingPtr createList(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsOwnList) noexcept;
 
