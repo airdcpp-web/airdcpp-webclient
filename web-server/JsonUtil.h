@@ -103,10 +103,12 @@ namespace webserver {
 					ret = aJson.template get<T>();
 				} catch (const exception& e) {
 					throwError(aFieldName, ERROR_INVALID, e.what());
+					return T(); // avoid MSVC warning
 				}
 
 				if (!aAllowEmpty && (isEmpty<T>(ret) || aJson.empty())) {
 					throwError(aFieldName, ERROR_INVALID, "Field can't be empty");
+					return T(); // avoid MSVC warning
 				}
 
 				return ret;
@@ -161,7 +163,7 @@ namespace webserver {
 		}
 
 		template <class T>
-		static bool isEmpty(const typename std::enable_if<!std::is_same<std::string, T>::value, T>::type& aValue) {
+		static bool isEmpty(const typename std::enable_if<!std::is_same<std::string, T>::value, T>::type&) {
 			return false;
 		}
 

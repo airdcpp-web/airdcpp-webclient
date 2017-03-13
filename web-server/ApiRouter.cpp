@@ -45,7 +45,6 @@ namespace webserver {
 	void ApiRouter::handleSocketRequest(const string& aMessage, WebSocketPtr& aSocket, bool aIsSecure) noexcept {
 
 		dcdebug("Received socket request: %s\n", aMessage.c_str());
-		bool authenticated = aSocket->getSession() != nullptr;
 
 		json responseJsonData, errorJson;
 		websocketpp::http::status_code::value code;
@@ -80,7 +79,6 @@ namespace webserver {
 		const websocketpp::http::parser::request& aRequest, json& output_, json& error_,
 		bool aIsSecure, const string& aIp, const SessionPtr& aSession) noexcept {
 
-		auto& requestBody = aRequest.get_body();
 		dcdebug("Received HTTP request: %s\n", aRequest.get_body().c_str());
 		try {
 			auto bodyJson = aRequest.get_body().empty() ? json() : json::parse(aRequest.get_body());
@@ -91,11 +89,9 @@ namespace webserver {
 			error_ = { 
 				{ "message", "Parsing failed: " + string(e.what()) }
 			};
-
-			return websocketpp::http::status_code::bad_request;
 		}
 
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::bad_request;
 	}
 
 	api_return ApiRouter::handleRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) noexcept {

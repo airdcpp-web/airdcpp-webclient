@@ -98,7 +98,7 @@ namespace webserver {
 
 			return Util::DefaultSort(a->getStatusString(), b->getStatusString());
 		}
-		default: dcassert(0); return 0;
+		default: dcassert(0);
 		}
 		return 0;
 	}

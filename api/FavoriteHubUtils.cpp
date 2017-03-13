@@ -100,7 +100,7 @@ namespace webserver {
 		return nullptr;
 	}
 
-	int FavoriteHubUtils::compareEntries(const FavoriteHubEntryPtr& a, const FavoriteHubEntryPtr& b, int aPropertyName) noexcept {
+	int FavoriteHubUtils::compareEntries(const FavoriteHubEntryPtr&, const FavoriteHubEntryPtr&, int) noexcept {
 		return 0;
 	}
 

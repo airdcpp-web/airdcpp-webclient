@@ -28,7 +28,7 @@
 namespace webserver {
 	using json = nlohmann::json;
 
-	class JsonException : private std::exception
+	class JsonException : public std::exception
 	{
 	public:
 		JsonException(const json& aError) : error(aError) { }

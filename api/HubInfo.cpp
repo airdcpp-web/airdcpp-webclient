@@ -93,7 +93,7 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return HubInfo::handleReconnect(ApiRequest& aRequest) {
+	api_return HubInfo::handleReconnect(ApiRequest&) {
 		client->reconnect();
 		return websocketpp::http::status_code::no_content;
 	}
@@ -116,7 +116,7 @@ namespace webserver {
 		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return HubInfo::handleRedirect(ApiRequest& aRequest) {
+	api_return HubInfo::handleRedirect(ApiRequest&) {
 		client->doRedirect();
 		return websocketpp::http::status_code::no_content;
 	}
@@ -299,7 +299,7 @@ namespace webserver {
 		onUserUpdated(aUser);
 	}
 
-	void HubInfo::on(ClientListener::UsersUpdated, const Client* c, const OnlineUserList& aUsers) noexcept {
+	void HubInfo::on(ClientListener::UsersUpdated, const Client*, const OnlineUserList& aUsers) noexcept {
 		for (auto& u : aUsers) {
 			onUserUpdated(u);
 		}

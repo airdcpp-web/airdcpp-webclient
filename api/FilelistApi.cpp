@@ -196,7 +196,7 @@ namespace webserver {
 
 	json FilelistApi::serializeList(const DirectoryListingPtr& aList) noexcept {
 		int64_t totalSize = -1;
-		size_t totalFiles = -1;
+		size_t totalFiles = 0;
 		aList->getPartialListInfo(totalSize, totalFiles);
 
 		return {

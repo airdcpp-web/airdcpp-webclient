@@ -199,27 +199,17 @@ namespace webserver {
 		return true;
 	}
 
-	template <typename EndpointType>
-	optional<boost::asio::ip::tcp> isListening(EndpointType& aEndpoint) noexcept {
-		if (!aEndpoint.is_listening()) {
-			return boost::none;
-		}
-
-		boost::system::error_code ec;
-		auto localEndpoint = aEndpoint.get_local_endpoint(ec);
-		if (ec) {
-			return boost::none;
-		}
-
-		return localEndpoint.protocol();
+	boost::asio::ip::tcp WebServerManager::getDefaultListenProtocol() noexcept {
+		auto v6Supported = !AirUtil::getLocalIp(true).empty();
+		return v6Supported ? boost::asio::ip::tcp::v6() : boost::asio::ip::tcp::v4();
 	}
 
-	optional<boost::asio::ip::tcp> WebServerManager::isListeningPlain() noexcept {
-		return isListening(endpoint_plain);
+	bool WebServerManager::isListeningPlain() const noexcept {
+		return endpoint_plain.is_listening();
 	}
 
-	optional<boost::asio::ip::tcp> WebServerManager::isListeningTls() noexcept {
-		return isListening(endpoint_tls);
+	bool WebServerManager::isListeningTls() const noexcept {
+		return endpoint_tls.is_listening();
 	}
 
 	template <typename EndpointType>
@@ -235,8 +225,7 @@ namespace webserver {
 				aEndpoint.listen(bindAddress, Util::toString(aConfig.port.num()));
 			} else {
 				// IPv6 and IPv4-mapped IPv6 addresses are used by default (given that IPv6 is supported by the OS)
-				auto v6Supported = !AirUtil::getLocalIp(true).empty();
-				aEndpoint.listen(v6Supported ? boost::asio::ip::tcp::v6() : boost::asio::ip::tcp::v4(), aConfig.port.num());
+				aEndpoint.listen(WebServerManager::getDefaultListenProtocol(), static_cast<uint16_t>(aConfig.port.num()));
 			}
 
 			aEndpoint.start_accept();
@@ -289,7 +278,7 @@ namespace webserver {
 	}
 
 	// For debugging only
-	void WebServerManager::onPongReceived(websocketpp::connection_hdl hdl, const string& aPayload) {
+	void WebServerManager::onPongReceived(websocketpp::connection_hdl hdl, const string& /*aPayload*/) {
 		auto socket = getSocket(hdl);
 		if (!socket) {
 			return;
@@ -302,7 +291,7 @@ namespace webserver {
 		fire(WebServerManagerListener::Data(), aData, aType, aDirection, aIP);
 	}
 
-	void WebServerManager::onPongTimeout(websocketpp::connection_hdl hdl, const string& aPayload) {
+	void WebServerManager::onPongTimeout(websocketpp::connection_hdl hdl, const string&) {
 		auto socket = getSocket(hdl);
 		if (!socket) {
 			return;

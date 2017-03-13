@@ -70,7 +70,7 @@ namespace webserver {
 		// The shared on_message handler takes a template parameter so the function can
 		// resolve any endpoint dependent types like message_ptr or connection_ptr
 		template <typename EndpointType>
-		void on_message(EndpointType* aServer, websocketpp::connection_hdl hdl,
+		void on_message(EndpointType*, websocketpp::connection_hdl hdl,
 			typename EndpointType::message_ptr msg, bool aIsSecure) {
 
 			auto socket = getSocket(hdl);
@@ -209,8 +209,10 @@ namespace webserver {
 
 		bool isRunning() const noexcept;
 
-		optional<boost::asio::ip::tcp> isListeningPlain() noexcept;
-		optional<boost::asio::ip::tcp> isListeningTls() noexcept;
+		bool isListeningPlain() const noexcept;
+		bool isListeningTls() const noexcept;
+
+		static boost::asio::ip::tcp getDefaultListenProtocol() noexcept;
 
 		const CallBack getShutdownF() const noexcept {
 			return shutdownF;

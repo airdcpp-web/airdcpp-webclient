@@ -72,7 +72,7 @@ namespace webserver {
 			subModules.clear();
 		}
 
-		void createSubscription(const string& aSubscription) noexcept override {
+		void createSubscription(const string&) noexcept override {
 			dcassert(0);
 		}
 
@@ -203,7 +203,7 @@ namespace webserver {
 		// module exist in the parent
 		virtual void init() noexcept = 0;
 
-		void createSubscription(const string& aSubscription) noexcept override {
+		void createSubscription(const string&) noexcept override {
 			dcassert(0);
 		}
 

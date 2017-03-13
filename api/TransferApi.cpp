@@ -233,7 +233,7 @@ namespace webserver {
 		previousStats.swap(newStats);
 	}
 
-	void TransferApi::onTick(const Transfer* aTransfer, bool aIsDownload) noexcept {
+	void TransferApi::onTick(const Transfer* aTransfer, bool /*aIsDownload*/) noexcept {
 		auto t = findTransfer(aTransfer->getToken());
 		if (!t) {
 			return;
@@ -270,7 +270,7 @@ namespace webserver {
 		}
 	}
 
-	void TransferApi::on(DownloadManagerListener::BundleTick, const BundleList& bundles, uint64_t aTick) noexcept {
+	void TransferApi::on(DownloadManagerListener::BundleTick, const BundleList& bundles, uint64_t /*aTick*/) noexcept {
 		lastDownloadBundles = bundles.size();
 	}
 
@@ -450,7 +450,7 @@ namespace webserver {
 		}, "transfer_starting");
 	}
 
-	void TransferApi::on(DownloadManagerListener::Requesting, const Download* aDownload, bool hubChanged) noexcept {
+	void TransferApi::on(DownloadManagerListener::Requesting, const Download* aDownload, bool /*hubChanged*/) noexcept {
 		starting(aDownload, STRING(REQUESTING), true);
 	}
 
@@ -508,7 +508,7 @@ namespace webserver {
 		onTransferCompleted(aUpload, false); 
 	}
 
-	void TransferApi::onTransferCompleted(const Transfer* aTransfer, bool aIsDownload) noexcept {
+	void TransferApi::onTransferCompleted(const Transfer* aTransfer, bool /*aIsDownload*/) noexcept {
 		auto t = findTransfer(aTransfer->getToken());
 		if (!t) {
 			return;

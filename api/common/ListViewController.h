@@ -236,8 +236,6 @@ namespace webserver {
 		}
 
 		api_return handleDeleteFilter(ApiRequest& aRequest) {
-			const auto& reqJson = aRequest.getRequestBody();
-
 			if (!removeFilter(aRequest.getTokenParam())) {
 				aRequest.setResponseErrorStr("Filter not found");
 				return websocketpp::http::status_code::bad_request;

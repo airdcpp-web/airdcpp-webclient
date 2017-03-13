@@ -82,12 +82,12 @@ namespace webserver {
 	};
 	static SystemActionThread::Ptr systemActionThread;
 
-	api_return SystemApi::handleRestartWeb(ApiRequest& aRequest) {
+	api_return SystemApi::handleRestartWeb(ApiRequest&) {
 		systemActionThread = make_shared<SystemActionThread>(systemActionThread, false);
 		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return SystemApi::handleShutdown(ApiRequest& aRequest) {
+	api_return SystemApi::handleShutdown(ApiRequest&) {
 		systemActionThread = make_shared<SystemActionThread>(systemActionThread, true);
 		return websocketpp::http::status_code::no_content;
 	}

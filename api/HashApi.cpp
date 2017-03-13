@@ -51,17 +51,17 @@ namespace webserver {
 		HashManager::getInstance()->removeListener(this);
 	}
 
-	api_return HashApi::handleResume(ApiRequest& aRequest) {
+	api_return HashApi::handleResume(ApiRequest&) {
 		HashManager::getInstance()->resumeHashing();
 		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return HashApi::handlePause(ApiRequest& aRequest) {
+	api_return HashApi::handlePause(ApiRequest&) {
 		HashManager::getInstance()->pauseHashing();
 		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return HashApi::handleStop(ApiRequest& aRequest) {
+	api_return HashApi::handleStop(ApiRequest&) {
 		HashManager::getInstance()->stop();
 		return websocketpp::http::status_code::no_content;
 	}

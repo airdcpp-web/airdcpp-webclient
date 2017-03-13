@@ -81,7 +81,7 @@ namespace webserver {
 	}
 
 	// Returns the value and bool indicating whether it's an auto detected value
-	pair<json, bool> ServerSettingItem::valueToJson(bool aForceAutoValues) const noexcept {
+	pair<json, bool> ServerSettingItem::valueToJson(bool /*aForceAutoValues*/) const noexcept {
 		return { value, false };
 	}
 
@@ -215,10 +215,10 @@ namespace webserver {
 			}
 		} else if (key == SettingsManager::MAPPER) {
 			auto mappers = ConnectivityManager::getInstance()->getMappers(false);
-			for (const auto& name : mappers) {
+			for (const auto& mapper : mappers) {
 				ret["values"].push_back({
-					{ "text", name },
-					{ "value", name }
+					{ "text", mapper },
+					{ "value", mapper }
 				});
 			}
 		}
