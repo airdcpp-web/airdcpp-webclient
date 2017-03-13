@@ -49,7 +49,7 @@ namespace webserver {
 		return j;
 	}
 
-	bool WebUserUtils::filterItem(const WebUserPtr& aItem, int aPropertyName, const StringMatch& aStringMatch, double aNumericMatcher) noexcept {
+	bool WebUserUtils::filterItem(const WebUserPtr& aItem, int aPropertyName, const StringMatch& aStringMatch, double /*aNumericMatcher*/) noexcept {
 		switch (aPropertyName) {
 		case PROP_PERMISSIONS:
 		{

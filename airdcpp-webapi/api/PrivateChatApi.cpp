@@ -139,7 +139,7 @@ namespace webserver {
 		addSubModule(aChat->getUser()->getCID(), std::make_shared<PrivateChatInfo>(this, aChat));
 	}
 
-	void PrivateChatApi::on(PrivateChatManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool aReceivedMessage) noexcept {
+	void PrivateChatApi::on(PrivateChatManagerListener::ChatCreated, const PrivateChatPtr& aChat, bool /*aReceivedMessage*/) noexcept {
 		addChat(aChat);
 		if (!subscriptionActive("private_chat_created")) {
 			return;

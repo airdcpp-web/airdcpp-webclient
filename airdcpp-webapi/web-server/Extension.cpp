@@ -93,16 +93,8 @@ namespace webserver {
 
 		auto bindAddress = serverConfig.bindAddress.str();
 		if (bindAddress.empty()) {
-			auto protocol = wsm->isListeningPlain();
-			if (!protocol) {
-				protocol = wsm->isListeningTls();
-			}
-
-			if (protocol) {
-				bindAddress = *protocol == boost::asio::ip::tcp::v6() ? "[::1]" : "127.0.0.1";
-			} else {
-				dcassert(0);
-			}
+			auto protocol = WebServerManager::getDefaultListenProtocol();
+			bindAddress = protocol == boost::asio::ip::tcp::v6() ? "[::1]" : "127.0.0.1";
 		}
 
 		string address = wsm->isListeningPlain() ? "ws://" : "wss://";
@@ -265,7 +257,7 @@ namespace webserver {
 		disableLogInheritance(errorLogHandle);
 	}
 
-	void Extension::checkRunningState(WebServerManager* wsm) noexcept {
+	void Extension::checkRunningState(WebServerManager*) noexcept {
 		DWORD exitCode = 0;
 		if (GetExitCodeProcess(piProcInfo.hProcess, &exitCode) != 0) {
 			if (exitCode != STILL_ACTIVE) {

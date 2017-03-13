@@ -169,7 +169,7 @@ namespace webserver {
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		if (token == SETTING(DEFAULT_SP)) {
+		if (static_cast<int>(token) == SETTING(DEFAULT_SP)) {
 			aRequest.setResponseErrorStr("The default profile can't be deleted (set another profile as default first)");
 			return websocketpp::http::status_code::bad_request;
 		}

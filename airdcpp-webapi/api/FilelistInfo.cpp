@@ -89,7 +89,7 @@ namespace webserver {
 		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return FilelistInfo::handleSetRead(ApiRequest& aRequest) {
+	api_return FilelistInfo::handleSetRead(ApiRequest&) {
 		dl->setRead();
 		return websocketpp::http::status_code::no_content;
 	}
@@ -167,25 +167,25 @@ namespace webserver {
 		});
 	}
 
-	void FilelistInfo::on(DirectoryListingListener::LoadingFailed, const string& aReason) noexcept {
+	void FilelistInfo::on(DirectoryListingListener::LoadingFailed, const string&) noexcept {
 
 	}
 
-	void FilelistInfo::on(DirectoryListingListener::LoadingStarted, bool aChangeDir) noexcept {
+	void FilelistInfo::on(DirectoryListingListener::LoadingStarted, bool /*aChangeDir*/) noexcept {
 
 	}
 
-	void FilelistInfo::on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aPath, bool aBackgroundTask) noexcept {
+	void FilelistInfo::on(DirectoryListingListener::LoadingFinished, int64_t /*aStart*/, const string& aPath, bool /*aBackgroundTask*/) noexcept {
 		if (aPath == dl->getCurrentLocationInfo().directory->getPath()) {
 			updateItems(aPath);
 		}
 	}
 
-	void FilelistInfo::on(DirectoryListingListener::ChangeDirectory, const string& aPath, bool aIsSearchChange) noexcept {
+	void FilelistInfo::on(DirectoryListingListener::ChangeDirectory, const string& aPath, bool /*aIsSearchChange*/) noexcept {
 		updateItems(aPath);
 	}
 
-	void FilelistInfo::on(DirectoryListingListener::UpdateStatusMessage, const string& aMessage) noexcept {
+	void FilelistInfo::on(DirectoryListingListener::UpdateStatusMessage, const string& /*aMessage*/) noexcept {
 
 	}
 

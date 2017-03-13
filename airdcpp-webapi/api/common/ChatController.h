@@ -100,12 +100,12 @@ namespace webserver {
 			return websocketpp::http::status_code::no_content;
 		}
 
-		api_return handleClear(ApiRequest& aRequest) {
+		api_return handleClear(ApiRequest&) {
 			chatF()->clearCache();
 			return websocketpp::http::status_code::no_content;
 		}
 
-		api_return handleSetRead(ApiRequest& aRequest) {
+		api_return handleSetRead(ApiRequest&) {
 			chatF()->setRead();
 			return websocketpp::http::status_code::no_content;
 		}

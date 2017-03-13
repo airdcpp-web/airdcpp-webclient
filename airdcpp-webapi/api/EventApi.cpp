@@ -49,12 +49,12 @@ namespace webserver {
 		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return EventApi::handleRead(ApiRequest& aRequest) {
+	api_return EventApi::handleRead(ApiRequest&) {
 		LogManager::getInstance()->setRead();
 		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return EventApi::handleClearMessages(ApiRequest& aRequest) {
+	api_return EventApi::handleClearMessages(ApiRequest&) {
 		LogManager::getInstance()->clearCache();
 		return websocketpp::http::status_code::no_content;
 	}

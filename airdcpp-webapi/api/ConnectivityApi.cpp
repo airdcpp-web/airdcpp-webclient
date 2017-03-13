@@ -73,7 +73,7 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return ConnectivityApi::handleDetect(ApiRequest& aRequest) {
+	api_return ConnectivityApi::handleDetect(ApiRequest&) {
 		ConnectivityManager::getInstance()->detectConnection();
 		return websocketpp::http::status_code::no_content;
 	}

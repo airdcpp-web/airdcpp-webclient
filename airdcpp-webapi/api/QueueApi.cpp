@@ -574,7 +574,7 @@ namespace webserver {
 		}, "queue_file_tick");
 	}
 
-	void QueueApi::on(QueueManagerListener::FileRecheckFailed, const QueueItemPtr& aQI, const string& aError) noexcept {
+	void QueueApi::on(QueueManagerListener::FileRecheckFailed, const QueueItemPtr&, const string&) noexcept {
 		//onFileUpdated(qi);
 	}
 
