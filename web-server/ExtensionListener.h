@@ -17,24 +17,34 @@
 */
 
 
-#ifndef DCPLUSPLUS_DCPP_EXTENSIONMANAGER_LISTENER_H
-#define DCPLUSPLUS_DCPP_EXTENSIONMANAGER_LISTENER_H
+#ifndef DCPLUSPLUS_DCPP_EXTENSION_LISTENER_H
+#define DCPLUSPLUS_DCPP_EXTENSION_LISTENER_H
 
 #include <web-server/stdinc.h>
 
 namespace webserver {
-	class ExtensionManagerListener {
+	class ExtensionListener {
 	public:
-		virtual ~ExtensionManagerListener() { }
+		virtual ~ExtensionListener() { }
 		template<int I>	struct X { enum { TYPE = I }; };
 
-		typedef X<0> ExtensionAdded;
-		typedef X<1> ExtensionRemoved;
+		typedef X<0> ExtensionStarted;
+		typedef X<1> ExtensionStopped;
 
-		virtual void on(ExtensionAdded, const ExtensionPtr&) noexcept { }
-		virtual void on(ExtensionRemoved, const ExtensionPtr&) noexcept { }
+		typedef X<2> SettingValuesUpdated;
+		typedef X<3> SettingDefinitionsUpdated;
+
+		typedef X<4> PackageUpdated;
+
+
+		virtual void on(ExtensionStarted) noexcept { }
+		virtual void on(ExtensionStopped) noexcept { }
+
+		virtual void on(SettingValuesUpdated, const SettingValueMap&) noexcept { }
+		virtual void on(SettingDefinitionsUpdated) noexcept { }
+		virtual void on(PackageUpdated) noexcept { }
 	};
 
 }
 
-#endif // !defined(DCPLUSPLUS_DCPP_EXTENSIONMANAGER_LISTENER_H)
+#endif // !defined(DCPLUSPLUS_DCPP_EXTENSION_LISTENER_H)

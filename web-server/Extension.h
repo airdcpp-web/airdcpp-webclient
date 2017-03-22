@@ -20,19 +20,28 @@
 #define DCPLUSPLUS_DCPP_EXTENSION_H
 
 #include <web-server/stdinc.h>
+#include <web-server/ExtensionListener.h>
+
+#include <api/ApiSettingItem.h>
 
 #include <airdcpp/GetSet.h>
+#include <airdcpp/Speaker.h>
 #include <airdcpp/Util.h>
 
 namespace webserver {
 #define EXTENSION_DIR_ROOT Util::getPath(Util::PATH_USER_CONFIG) + "extensions" + PATH_SEPARATOR_STR
 
-	class Extension {
+	class Extension : public Speaker<ExtensionListener> {
 	public:
 		typedef std::function<void(const Extension*)> ErrorF;
 
 		// Throws on errors
 		Extension(const string& aPath, ErrorF&& aErrorF, bool aSkipPathValidation = false);
+		Extension(const SessionPtr& aSession, const json& aPackageJson);
+
+		// Reload package.json from the supplied path
+		// Throws on errors
+		void reload();
 
 		// Throws on errors
 		void start(const string& aEngine, WebServerManager* wsm);
@@ -65,11 +74,16 @@ namespace webserver {
 			return getRootPath() + "package" + PATH_SEPARATOR_STR;
 		}
 
+		bool isManaged() const noexcept {
+			return managed;
+		}
+
 		GETSET(string, name, Name);
 		GETSET(string, description, Description);
 		GETSET(string, entry, Entry);
 		GETSET(string, version, Version);
 		GETSET(string, author, Author);
+		GETSET(string, homepage, Homepage);
 		GETSET(StringList, engines, Engines);
 
 		bool isRunning() const noexcept {
@@ -79,7 +93,39 @@ namespace webserver {
 		bool isPrivate() const noexcept {
 			return privateExtension;
 		}
+
+		const SessionPtr& getSession() const noexcept {
+			return session;
+		}
+
+		bool hasSettings() const noexcept;
+		ServerSettingItem::List getSettings() const noexcept;
+		ServerSettingItem* getSetting(const string& aKey) noexcept;
+
+		typedef map<string, json> SettingValueMap;
+		void setSettingValues(const SettingValueMap& aValues);
+		SettingValueMap getSettingValues() noexcept;
+
+		// Throws on errors
+		void swapSettingDefinitions(ServerSettingItem::List& aDefinitions);
+
+		FilesystemItemList getLogs() const noexcept;
 	private:
+		// Reload package.json from the supplied path
+		// Throws on errors
+		void initialize(const string& aPath, bool aSkipPathValidation);
+
+		static SharedMutex cs;
+		ServerSettingItem::List settings;
+
+		// Load package JSON
+		// Throws on errors
+		void initialize(const json& aJson);
+
+		// Parse airdcpp-specific package.json fields
+		void parseApiData(const json& aJson);
+
+		const bool managed;
 		bool privateExtension = false;
 
 		StringList getLaunchParams(WebServerManager* wsm, const SessionPtr& aSession) const noexcept;

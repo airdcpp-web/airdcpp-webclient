@@ -67,100 +67,6 @@ namespace webserver {
 
 	class WebServerManager : public dcpp::Singleton<WebServerManager>, public Speaker<WebServerManagerListener> {
 	public:
-		// The shared on_message handler takes a template parameter so the function can
-		// resolve any endpoint dependent types like message_ptr or connection_ptr
-		template <typename EndpointType>
-		void on_message(EndpointType*, websocketpp::connection_hdl hdl,
-			typename EndpointType::message_ptr msg, bool aIsSecure) {
-
-			auto socket = getSocket(hdl);
-			if (!socket) {
-				dcassert(0);
-				return;
-			}
-
-			onData(msg->get_payload(), TransportType::TYPE_SOCKET, Direction::INCOMING, socket->getIp());
-			api.handleSocketRequest(msg->get_payload(), socket, aIsSecure);
-		}
-
-		template <typename EndpointType>
-		void on_open_socket(EndpointType* aServer, websocketpp::connection_hdl hdl, bool aIsSecure) {
-			auto con = aServer->get_con_from_hdl(hdl);
-			auto socket = make_shared<WebSocket>(aIsSecure, hdl, con->get_request(), aServer, this);
-
-			{
-				WLock l(cs);
-				sockets.emplace(hdl, socket);
-			}
-		}
-
-		void on_close_socket(websocketpp::connection_hdl hdl);
-
-		void onPongReceived(websocketpp::connection_hdl hdl, const string& aPayload);
-		void onPongTimeout(websocketpp::connection_hdl hdl, const string& aPayload);
-
-		void onData(const string& aData, TransportType aType, Direction aDirection, const string& aIP) noexcept;
-
-		template <typename EndpointType>
-		void on_http(EndpointType* s, websocketpp::connection_hdl hdl, bool aIsSecure) {
-			// Blocking HTTP Handler
-			auto con = s->get_con_from_hdl(hdl);
-			websocketpp::http::status_code::value status;
-			auto ip = con->get_remote_endpoint();
-
-			string authError;
-			auto session = userManager->parseHttpSession(con->get_request(), authError, ip);
-
-			// Catch invalid authentication info
-			if (!authError.empty()) {
-				con->set_body(authError);
-				con->set_status(websocketpp::http::status_code::unauthorized);
-				return;
-			}
-
-			if (con->get_resource().length() >= 4 && con->get_resource().compare(0, 4, "/api") == 0) {
-				onData(con->get_resource() + ": " + con->get_request().get_body(), TransportType::TYPE_HTTP_API, Direction::INCOMING, ip);
-
-				json output, apiError;
-				status = api.handleHttpRequest(
-					con->get_resource(),
-					con->get_request(),
-					output,
-					apiError,
-					aIsSecure,
-					ip,
-					session
-				);
-
-				auto data = status != websocketpp::http::status_code::ok ? apiError.dump() : output.dump();
-				onData(con->get_resource() + " (" + Util::toString(status) + "): " + data, TransportType::TYPE_HTTP_API, Direction::OUTGOING, ip);
-
-				con->set_body(data);
-				con->append_header("Content-Type", "application/json");
-				con->set_status(status);
-			} else {
-				onData(con->get_request().get_method() + " " + con->get_resource(), TransportType::TYPE_HTTP_FILE, Direction::INCOMING, ip);
-
-				StringPairList headers;
-				std::string output;
-				status = fileServer.handleRequest(con->get_resource(), con->get_request(), output, headers, session);
-
-				for (const auto& p : headers) {
-					con->append_header(p.first, p.second);
-				}
-
-				onData(
-					con->get_request().get_method() + " " + con->get_resource() + ": " + Util::toString(status) + " (" + Util::formatBytes(output.length()) + ")", 
-					TransportType::TYPE_HTTP_FILE, 
-					Direction::OUTGOING, 
-					ip
-				);
-
-				con->set_status(status);
-				con->set_body(output);
-			}
-		}
-
 		TimerPtr addTimer(CallBack&& aCallBack, time_t aIntervalMillis, const Timer::CallbackWrapper& aCallbackWrapper = nullptr) noexcept;
 		void addAsyncTask(CallBack&& aCallBack) noexcept;
 
@@ -217,7 +123,103 @@ namespace webserver {
 		const CallBack getShutdownF() const noexcept {
 			return shutdownF;
 		}
+
+		// For command debugging
+		void onData(const string& aData, TransportType aType, Direction aDirection, const string& aIP) noexcept;
+
+		// Websocketpp event handlers
+		template <typename EndpointType>
+		void handleSocketConnected(EndpointType* aServer, websocketpp::connection_hdl hdl, bool aIsSecure) {
+			auto con = aServer->get_con_from_hdl(hdl);
+			auto socket = make_shared<WebSocket>(aIsSecure, hdl, con->get_request(), aServer, this);
+
+			addSocket(hdl, socket);
+		}
+
+		void handleSocketDisconnected(websocketpp::connection_hdl hdl);
+
+		void handlePongReceived(websocketpp::connection_hdl hdl, const string& aPayload);
+		void handlePongTimeout(websocketpp::connection_hdl hdl, const string& aPayload);
+
+		// The shared on_message handler takes a template parameter so the function can
+		// resolve any endpoint dependent types like message_ptr or connection_ptr
+		template <typename EndpointType>
+		void handleSocketMessage(EndpointType*, websocketpp::connection_hdl hdl,
+			typename EndpointType::message_ptr msg, bool aIsSecure) {
+
+			auto socket = getSocket(hdl);
+			if (!socket) {
+				dcassert(0);
+				return;
+			}
+
+			onData(msg->get_payload(), TransportType::TYPE_SOCKET, Direction::INCOMING, socket->getIp());
+			api.handleSocketRequest(msg->get_payload(), socket, aIsSecure);
+		}
+
+		template <typename EndpointType>
+		void handleHttpRequest(EndpointType* s, websocketpp::connection_hdl hdl, bool aIsSecure) {
+			// Blocking HTTP Handler
+			auto con = s->get_con_from_hdl(hdl);
+			websocketpp::http::status_code::value status;
+			auto ip = con->get_remote_endpoint();
+
+			string authError;
+			auto session = userManager->parseHttpSession(con->get_request(), authError, ip);
+
+			// Catch invalid authentication info
+			if (!authError.empty()) {
+				con->set_body(authError);
+				con->set_status(websocketpp::http::status_code::unauthorized);
+				return;
+			}
+
+			if (con->get_resource().length() >= 4 && con->get_resource().compare(0, 4, "/api") == 0) {
+				onData(con->get_resource() + ": " + con->get_request().get_body(), TransportType::TYPE_HTTP_API, Direction::INCOMING, ip);
+
+				json output, apiError;
+				status = api.handleHttpRequest(
+					con->get_resource(),
+					con->get_request(),
+					output,
+					apiError,
+					aIsSecure,
+					ip,
+					session
+				);
+
+				auto data = status != websocketpp::http::status_code::ok ? apiError.dump() : output.dump();
+				onData(con->get_resource() + " (" + Util::toString(status) + "): " + data, TransportType::TYPE_HTTP_API, Direction::OUTGOING, ip);
+
+				con->set_body(data);
+				con->append_header("Content-Type", "application/json");
+				con->set_status(status);
+			} else {
+				onData(con->get_request().get_method() + " " + con->get_resource(), TransportType::TYPE_HTTP_FILE, Direction::INCOMING, ip);
+
+				StringPairList headers;
+				std::string output;
+				status = fileServer.handleRequest(con->get_resource(), con->get_request(), output, headers, session);
+
+				for (const auto& p : headers) {
+					con->append_header(p.first, p.second);
+				}
+
+				onData(
+					con->get_request().get_method() + " " + con->get_resource() + ": " + Util::toString(status) + " (" + Util::formatBytes(output.length()) + ")",
+					TransportType::TYPE_HTTP_FILE,
+					Direction::OUTGOING,
+					ip
+				);
+
+				con->set_status(status);
+				con->set_body(output);
+			}
+		}
 	private:
+		context_ptr handleInitTls(websocketpp::connection_hdl hdl);
+
+		void addSocket(websocketpp::connection_hdl hdl, const WebSocketPtr& aSocket) noexcept;
 		WebSocketPtr getSocket(websocketpp::connection_hdl hdl) const noexcept;
 		bool listen(const ErrorF& errorF);
 
@@ -235,8 +237,6 @@ namespace webserver {
 		// strictly necessary, but simplifies thread management a bit.
 		boost::asio::io_service ios;
 		bool has_io_service = false;
-
-		context_ptr on_tls_init(websocketpp::connection_hdl hdl);
 
 		typedef vector<WebSocketPtr> WebSocketList;
 		std::map<websocketpp::connection_hdl, WebSocketPtr, std::owner_less<websocketpp::connection_hdl>> sockets;

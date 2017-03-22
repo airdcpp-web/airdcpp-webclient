@@ -165,9 +165,7 @@ namespace webserver {
 	}
 
 	HookApiModule::HookCompletionDataPtr HookApiModule::fireHook(const string& aSubscription, int aTimeoutSeconds, JsonCallback&& aJsonCallback) {
-		const auto& hook = hooks.find(aSubscription);
-		dcassert(hook != hooks.end());
-		if (!hook->second.isActive()) {
+		if (!hookActive(aSubscription)) {
 			return nullptr;
 		}
 

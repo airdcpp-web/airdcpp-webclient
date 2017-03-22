@@ -51,12 +51,7 @@ namespace webserver {
 		}
 
 		static ServerSettingItem* getSettingItem(const string& aKey) noexcept {
-			auto p = find_if(settings.begin(), settings.end(), [&](const ServerSettingItem& aItem) { return aItem.name == aKey; });
-			if (p != settings.end()) {
-				return &(*p);
-			}
-
-			return nullptr;
+			return ApiSettingItem::findSettingItem<ServerSettingItem>(settings, aKey);
 		}
 	};
 

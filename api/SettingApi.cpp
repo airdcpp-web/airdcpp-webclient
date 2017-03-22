@@ -25,40 +25,45 @@
 
 #include <web-server/JsonUtil.h>
 #include <api/common/Serializer.h>
+#include <api/common/SettingUtils.h>
 
 #include <airdcpp/SettingHolder.h>
 
 namespace webserver {
 	SettingApi::SettingApi(Session* aSession) : ApiModule(aSession) {
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST, (EXACT_PARAM("infos")),	SettingApi::handleGetSettingInfos);
-		METHOD_HANDLER(Access::ANY,				METHOD_POST, (EXACT_PARAM("get")),	SettingApi::handleGetSettingValues);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST, (EXACT_PARAM("set")),	SettingApi::handleSetSettings);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST, (EXACT_PARAM("reset")),	SettingApi::handleResetSettings);
+		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST, (EXACT_PARAM("definitions")),	SettingApi::handleGetDefinitions);
+		METHOD_HANDLER(Access::ANY,				METHOD_POST, (EXACT_PARAM("get")),			SettingApi::handleGetValues);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST, (EXACT_PARAM("set")),			SettingApi::handleSetValues);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST, (EXACT_PARAM("reset")),		SettingApi::handleResetValues);
 	}
 
 	SettingApi::~SettingApi() {
 	}
 
-	api_return SettingApi::handleGetSettingInfos(ApiRequest& aRequest) {
+	api_return SettingApi::handleGetDefinitions(ApiRequest& aRequest) {
 		const auto& requestJson = aRequest.getRequestBody();
 
-		auto forceAutoValues = JsonUtil::getOptionalFieldDefault<bool>("force_auto_values", requestJson, false);
-
-		json retJson;
-		parseSettingKeys(requestJson, [&](ApiSettingItem* aItem) {
-			retJson[aItem->name] = aItem->infoToJson(forceAutoValues);
+		json retJson = json::array();
+		parseSettingKeys(requestJson, [&](ApiSettingItem& aItem) {
+			retJson.push_back(SettingUtils::serializeDefinition(aItem));
 		});
 
 		aRequest.setResponseBody(retJson);
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return SettingApi::handleGetSettingValues(ApiRequest& aRequest) {
+	api_return SettingApi::handleGetValues(ApiRequest& aRequest) {
 		const auto& requestJson = aRequest.getRequestBody();
 
-		json retJson;
-		parseSettingKeys(requestJson, [&](ApiSettingItem* aItem) {
-			retJson[aItem->name] = aItem->valueToJson().first;
+		auto forceAutoValues = JsonUtil::getOptionalFieldDefault<bool>("force_auto_values", requestJson, false);
+
+		auto retJson = json::object();
+		parseSettingKeys(requestJson, [&](ApiSettingItem& aItem) {
+			if (aItem.usingAutoValue(forceAutoValues)) {
+				retJson[aItem.name] = aItem.getAutoValue();
+			} else {
+				retJson[aItem.name] = aItem.getValue();
+			}
 		});
 
 		aRequest.setResponseBody(retJson);
@@ -73,21 +78,21 @@ namespace webserver {
 				JsonUtil::throwError(key, JsonUtil::ERROR_INVALID, "Setting not found");
 			}
 
-			aHandler(setting);
+			aHandler(*setting);
 		}
 	}
 
-	api_return SettingApi::handleResetSettings(ApiRequest& aRequest) {
+	api_return SettingApi::handleResetValues(ApiRequest& aRequest) {
 		const auto& requestJson = aRequest.getRequestBody();
 
-		parseSettingKeys(requestJson, [&](ApiSettingItem* aItem) {
-			aItem->unset();
+		parseSettingKeys(requestJson, [&](ApiSettingItem& aItem) {
+			aItem.unset();
 		});
 
 		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return SettingApi::handleSetSettings(ApiRequest& aRequest) {
+	api_return SettingApi::handleSetValues(ApiRequest& aRequest) {
 		SettingHolder h(nullptr);
 
 		for (const auto& elem : json::iterator_wrapper(aRequest.getRequestBody())) {
@@ -96,7 +101,7 @@ namespace webserver {
 				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");
 			}
 
-			setting->setCurValue(elem.value());
+			setting->setValue(SettingUtils::validateValue(*setting, elem.value()));
 		}
 
 		SettingsManager::getInstance()->save();
@@ -106,9 +111,9 @@ namespace webserver {
 	}
 
 	ApiSettingItem* SettingApi::getSettingItem(const string& aKey) noexcept {
-		auto p = boost::find_if(coreSettings, [&](ApiSettingItem& aItem) { return aItem.name == aKey; });
-		if (p != coreSettings.end()) {
-			return &(*p);
+		auto p = ApiSettingItem::findSettingItem<CoreSettingItem>(coreSettings, aKey);
+		if (p) {
+			return p;
 		}
 
 		return WebServerSettings::getSettingItem(aKey);

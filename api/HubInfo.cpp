@@ -68,6 +68,10 @@ namespace webserver {
 		timer->start(false);
 	}
 
+	ClientToken HubInfo::getId() const noexcept {
+		return client->getClientId();
+	}
+
 	api_return HubInfo::handleGetUsers(ApiRequest& aRequest) {
 		OnlineUserList users;
 		client->getUserList(users, false);

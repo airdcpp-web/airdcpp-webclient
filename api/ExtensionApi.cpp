@@ -31,85 +31,53 @@
 #define EXTENSION_PARAM_ID "extension"
 #define EXTENSION_PARAM (ApiModule::RequestHandler::Param(EXTENSION_PARAM_ID, regex(R"(^airdcpp-.+$)")))
 namespace webserver {
-	ExtensionApi::ExtensionApi(Session* aSession) : HookApiModule(aSession, Access::ADMIN, nullptr, Access::ADMIN), em(aSession->getServer()->getExtensionManager()) {
+	StringList ExtensionApi::subscriptionList = {
+		"extension_added",
+		"extension_removed",
+	};
+
+	ExtensionApi::ExtensionApi(Session* aSession) : /*HookApiModule(aSession, Access::ADMIN, nullptr, Access::ADMIN),*/ 
+		em(aSession->getServer()->getExtensionManager()),
+		ParentApiModule(EXTENSION_PARAM, Access::ADMIN, aSession, ExtensionApi::subscriptionList,
+			ExtensionInfo::subscriptionList,
+			[](const string& aId) { return aId; },
+			[](const ExtensionInfo& aInfo) { return ExtensionInfo::serializeExtension(aInfo.getExtension()); }
+		)
+	{
 		em.addListener(this);
 
-		METHOD_HANDLER(Access::ADMIN, METHOD_GET, (), ExtensionApi::handleGetExtensions);
-
-		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (), ExtensionApi::handleAddExtension);
-		METHOD_HANDLER(Access::ADMIN, METHOD_GET, (EXTENSION_PARAM), ExtensionApi::handleGetExtension);
+		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (), ExtensionApi::handlePostExtension);
+		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (EXACT_PARAM("download")), ExtensionApi::handleDownloadExtension);
 		METHOD_HANDLER(Access::ADMIN, METHOD_DELETE, (EXTENSION_PARAM), ExtensionApi::handleRemoveExtension);
 
-		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (EXTENSION_PARAM, EXACT_PARAM("start")), ExtensionApi::handleStartExtension);
-		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (EXTENSION_PARAM, EXACT_PARAM("stop")), ExtensionApi::handleStopExtension);
-
-		createSubscription("extension_added");
-		createSubscription("extension_removed");
-		createSubscription("extension_updated");
-
-		createSubscription("extension_started");
-		createSubscription("extension_stopped");
+		for (const auto& ext: em.getExtensions()) {
+			addExtension(ext);
+		}
 	}
 
 	ExtensionApi::~ExtensionApi() {
 		em.removeListener(this);
 	}
 
-	json ExtensionApi::serializeLogs(const ExtensionPtr& aExtension) noexcept {
-		auto ret = json::array();
-		File::forEachFile(aExtension->getLogPath(), "*.log", [&](const string& aFileName, bool aIsDir, int64_t aSize) {
-			if (!aIsDir) {
-				ret.push_back({
-					{ "name", aFileName },
-					{ "size", aSize }
-				});
-			}
-		});
-
-		return ret;
+	void ExtensionApi::addExtension(const ExtensionPtr& aExtension) noexcept {
+		addSubModule(aExtension->getName(), std::make_shared<ExtensionInfo>(this, aExtension));
 	}
 
-	json ExtensionApi::serializeExtension(const ExtensionPtr& aExtension) noexcept {
-		return {
-			{ "name", aExtension->getName() },
-			{ "description", aExtension->getDescription() },
-			{ "version", aExtension->getVersion() },
-			{ "author", aExtension->getAuthor() },
-			{ "running", aExtension->isRunning() },
-			{ "private", aExtension->isPrivate() },
-			{ "logs", serializeLogs(aExtension) },
-			{ "engines", aExtension->getEngines() },
-		};
-	}
+	api_return ExtensionApi::handlePostExtension(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
 
-	ExtensionPtr ExtensionApi::getExtension(ApiRequest& aRequest) {
-		auto extension = em.getExtension(aRequest.getStringParam(EXTENSION_PARAM_ID));
-		if (!extension) {
-			throw RequestException(websocketpp::http::status_code::not_found, "Extension not found");
+		try {
+			auto ext = em.registerRemoteExtension(aRequest.getSession(), reqJson);
+			aRequest.setResponseBody(ExtensionInfo::serializeExtension(ext));
+		} catch (const Exception& e) {
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::bad_request;
 		}
 
-		return extension;
-	}
-
-	api_return ExtensionApi::handleGetExtension(ApiRequest& aRequest) {
-		auto extension = getExtension(aRequest);
-		aRequest.setResponseBody(serializeExtension(extension));
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return ExtensionApi::handleStartExtension(ApiRequest& aRequest) {
-		auto extension = getExtension(aRequest);
-		em.startExtension(extension);
-		return websocketpp::http::status_code::no_content;
-	}
-
-	api_return ExtensionApi::handleStopExtension(ApiRequest& aRequest) {
-		auto extension = getExtension(aRequest);
-		em.stopExtension(extension);
-		return websocketpp::http::status_code::no_content;
-	}
-
-	api_return ExtensionApi::handleAddExtension(ApiRequest& aRequest) {
+	api_return ExtensionApi::handleDownloadExtension(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto url = JsonUtil::getField<string>("url", reqJson, false);
@@ -124,10 +92,10 @@ namespace webserver {
 	}
 
 	api_return ExtensionApi::handleRemoveExtension(ApiRequest& aRequest) {
-		auto extension = getExtension(aRequest);
+		auto extensionInfo = getSubModule(aRequest);
 
 		try {
-			em.removeExtension(extension);
+			em.removeExtension(extensionInfo->getExtension());
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::internal_server_error;
@@ -136,38 +104,18 @@ namespace webserver {
 		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return ExtensionApi::handleGetExtensions(ApiRequest& aRequest) {
-		aRequest.setResponseBody(Serializer::serializeList(em.getExtensions(), serializeExtension));
-		return websocketpp::http::status_code::ok;
-	}
-
 	void ExtensionApi::on(ExtensionManagerListener::ExtensionAdded, const ExtensionPtr& aExtension) noexcept {
+		addExtension(aExtension);
+
 		maybeSend("extension_added", [&] {
-			return serializeExtension(aExtension);
+			return ExtensionInfo::serializeExtension(aExtension);
 		});
 	}
 
 	void ExtensionApi::on(ExtensionManagerListener::ExtensionRemoved, const ExtensionPtr& aExtension) noexcept {
+		removeSubModule(aExtension->getName());
 		maybeSend("extension_removed", [&] {
-			return serializeExtension(aExtension);
-		});
-	}
-
-	void ExtensionApi::on(ExtensionManagerListener::ExtensionUpdated, const ExtensionPtr& aExtension) noexcept {
-		maybeSend("extension_updated", [&] {
-			return serializeExtension(aExtension);
-		});
-	}
-
-	void ExtensionApi::on(ExtensionManagerListener::ExtensionStarted, const ExtensionPtr& aExtension) noexcept {
-		maybeSend("extension_started", [&] {
-			return serializeExtension(aExtension);
-		});
-	}
-
-	void ExtensionApi::on(ExtensionManagerListener::ExtensionStopped, const ExtensionPtr& aExtension) noexcept {
-		maybeSend("extension_stopped", [&] {
-			return serializeExtension(aExtension);
+			return ExtensionInfo::serializeExtension(aExtension);
 		});
 	}
 }

@@ -37,17 +37,17 @@ namespace webserver {
 	};
 
 	SearchApi::SearchApi(Session* aSession) : 
-		ParentApiModule("instances", TOKEN_PARAM, Access::SEARCH, aSession, subscriptionList, SearchEntity::subscriptionList,
+		ParentApiModule(TOKEN_PARAM, Access::SEARCH, aSession, subscriptionList, SearchEntity::subscriptionList,
 			[](const string& aId) { return Util::toUInt32(aId); },
 			[](const SearchEntity& aInfo) { return serializeSearchInstance(aInfo); }
 		),
 		timer(getTimer([this] { onTimer(); }, 30 * 1000)) 
 	{
 
-		METHOD_HANDLER(Access::SEARCH,	METHOD_POST,	(EXACT_PARAM("instances")),				SearchApi::handleCreateInstance);
-		METHOD_HANDLER(Access::SEARCH,	METHOD_DELETE,	(EXACT_PARAM("instances"), TOKEN_PARAM),	SearchApi::handleDeleteInstance);
+		METHOD_HANDLER(Access::SEARCH,	METHOD_POST,	(),						SearchApi::handleCreateInstance);
+		METHOD_HANDLER(Access::SEARCH,	METHOD_DELETE,	(TOKEN_PARAM),			SearchApi::handleDeleteInstance);
 
-		METHOD_HANDLER(Access::ANY,		METHOD_GET,		(EXACT_PARAM("types")),					SearchApi::handleGetTypes);
+		METHOD_HANDLER(Access::ANY,		METHOD_GET,		(EXACT_PARAM("types")),	SearchApi::handleGetTypes);
 
 		// Create an initial search instance
 		if (aSession->getSessionType() != Session::TYPE_BASIC_AUTH) {

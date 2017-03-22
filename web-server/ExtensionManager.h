@@ -47,7 +47,10 @@ namespace webserver {
 		bool downloadExtension(const string& aUrl, const string& aSha1) noexcept;
 
 		// Install extensions from the given tarball
-		void installExtension(const string& aPath) noexcept;
+		void installLocalExtension(const string& aPath) noexcept;
+
+		// Register non-local extension
+		ExtensionPtr registerRemoteExtension(const SessionPtr& aSession, const json& aPackageJson);
 
 		// Remove extension from disk
 		// Throws FileException on disk errors and Exception on other errors
@@ -60,18 +63,15 @@ namespace webserver {
 		bool stopExtension(const ExtensionPtr& aExtension) noexcept;
 
 		typedef map<string, string> EngineMap;
-	private:
+
 		// Get the engine start command for extension
 		// Throws on errors
 		string getStartCommand(const ExtensionPtr& aExtension) const;
-
+	private:
 		// Parses the engine command param (command1;command2;...) and tests each token for an existing application
 		static string selectEngineCommand(const string& aEngineCommands) noexcept;
 
 		EngineMap engines;
-
-		// Remove extension from the list
-		bool removeList(const ExtensionPtr& aExtension);
 
 		void onExtensionDownloadCompleted(const string& aUrl, const string& aSha1) noexcept;
 		void failInstallation(const string& aMessage, const string& aException) noexcept;
@@ -83,7 +83,7 @@ namespace webserver {
 
 		// Load extension from the supplied path and store in the extension list
 		// Returns the extension pointer in case it was parsed succesfully
-		ExtensionPtr loadExtension(const string& aPath) noexcept;
+		ExtensionPtr loadLocalExtension(const string& aPath) noexcept;
 
 		ExtensionList extensions;
 
@@ -91,6 +91,7 @@ namespace webserver {
 
 		void on(WebServerManagerListener::Started) noexcept override;
 		void on(WebServerManagerListener::Stopping) noexcept override;
+		void on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept override;
 	};
 }
 

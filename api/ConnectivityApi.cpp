@@ -23,6 +23,9 @@
 
 #include <api/common/Serializer.h>
 
+#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/SearchManager.h>
+
 namespace webserver {
 	ConnectivityApi::ConnectivityApi(Session* aSession) : SubscribableApiModule(aSession, Access::SETTINGS_VIEW) {
 		ConnectivityManager::getInstance()->addListener(this);
@@ -57,17 +60,23 @@ namespace webserver {
 			text = ConnectivityManager::getInstance()->getStatus(v6);
 		}
 
+		auto field = [](const string& s) { return s.empty() ? "undefined" : s; };
 		return {
 			{ "auto_detect", autoEnabled },
 			{ "enabled", protocolEnabled },
 			{ "text", text },
+			{ "bind_address", field(v6 ? CONNSETTING(BIND_ADDRESS6) : CONNSETTING(BIND_ADDRESS)) },
+			{ "external_ip", field(v6 ? CONNSETTING(EXTERNAL_IP6) : CONNSETTING(EXTERNAL_IP)) },
 		};
 	}
 
 	api_return ConnectivityApi::handleGetStatus(ApiRequest& aRequest) {
 		aRequest.setResponseBody({
 			{ "status_v4", formatStatus(false) },
-			{ "status_v6", formatStatus(true) }
+			{ "status_v6", formatStatus(true) },
+			{ "tcp_port", ConnectionManager::getInstance()->getPort() },
+			{ "tls_port", ConnectionManager::getInstance()->getSecurePort() },
+			{ "udp_port", SearchManager::getInstance()->getPort() },
 		});
 
 		return websocketpp::http::status_code::ok;

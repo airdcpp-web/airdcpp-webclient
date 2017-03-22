@@ -180,7 +180,7 @@ namespace webserver {
 
 		aRequest.setResponseBody({
 			{ "server_threads", WEBCFG(SERVER_THREADS).num() },
-			{ "active_sessions", server->getUserManager().getSessionCount() },
+			{ "active_sessions", server->getUserManager().getUserSessionCount() },
 		});
 		return websocketpp::http::status_code::ok;
 	}
@@ -196,7 +196,7 @@ namespace webserver {
 			{ "cid", ClientManager::getInstance()->getMyCID().toBase32() },
 			{ "client_version", fullVersionString },
 			{ "client_started", started },
-			{ "language", Localization::getCurrentLocale() }
+			{ "language", Localization::getCurLanguageLocale() }
 		};
 	}
 

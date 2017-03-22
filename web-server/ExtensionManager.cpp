@@ -21,6 +21,7 @@
 #include <web-server/ExtensionManager.h>
 #include <web-server/Extension.h>
 #include <web-server/WebServerManager.h>
+#include <web-server/WebSocket.h>
 
 #include <airdcpp/CryptoManager.h>
 #include <airdcpp/Encoder.h>
@@ -60,11 +61,35 @@ namespace webserver {
 		}
 	}
 
+	void ExtensionManager::on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept {
+		if (!aSocket->getSession()) {
+			return;
+		}
+
+		ExtensionPtr extension = nullptr;
+
+		// Remove possible unmanaged extensions matching this session
+		{
+			RLock l(cs);
+			auto i = find_if(extensions.begin(), extensions.end(), [&](const ExtensionPtr& aExtension) {
+				return aExtension->getSession() == aSocket->getSession();
+			});
+
+			if (i == extensions.end() || (*i)->isManaged()) {
+				return;
+			}
+
+			extension = *i;
+		}
+
+		removeExtension(extension);
+	}
+
 	void ExtensionManager::load() noexcept {
 		auto directories = File::findFiles(EXTENSION_DIR_ROOT, "*", File::TYPE_DIRECTORY);
 
 		for (const auto& path : directories) {
-			auto ext = loadExtension(path);
+			auto ext = loadLocalExtension(path);
 			if (ext) {
 				startExtension(ext);
 			}
@@ -77,30 +102,28 @@ namespace webserver {
 	}
 
 	void ExtensionManager::removeExtension(const ExtensionPtr& aExtension) {
-		// Stop running extensions
-		if (!stopExtension(aExtension)) {
-			throw Exception("Failed to stop the extension process");
-		}
+		if (aExtension->isManaged()) {
+			// Stop running extensions
+			if (!stopExtension(aExtension)) {
+				throw Exception("Failed to stop the extension process");
+			}
 
-		// Remove from disk
-		File::removeDirectoryForced(aExtension->getRootPath());
+			// Remove from disk
+			File::removeDirectoryForced(aExtension->getRootPath());
+		}
 
 		// Remove from list
-		removeList(aExtension);
-
-		fire(ExtensionManagerListener::ExtensionRemoved(), aExtension);
-	}
-
-	bool ExtensionManager::removeList(const ExtensionPtr& aExtension) {
-		WLock l(cs);
-		auto i = find(extensions.begin(), extensions.end(), aExtension);
-		if (i != extensions.end()) {
-			extensions.erase(i);
-			return true;
+		{
+			WLock l(cs);
+			auto i = find(extensions.begin(), extensions.end(), aExtension);
+			if (i != extensions.end()) {
+				extensions.erase(i);
+			} else {
+				dcassert(0);
+			}
 		}
 
-		dcassert(0);
-		return false;
+		fire(ExtensionManagerListener::ExtensionRemoved(), aExtension);
 	}
 
 	ExtensionPtr ExtensionManager::getExtension(const string& aName) const noexcept {
@@ -174,10 +197,10 @@ namespace webserver {
 		}
 
 		// Install
-		installExtension(tempFile);
+		installLocalExtension(tempFile);
 	}
 
-	void ExtensionManager::installExtension(const string& aInstallFilePath) noexcept {
+	void ExtensionManager::installLocalExtension(const string& aInstallFilePath) noexcept {
 		string tarFile = aInstallFilePath + "_DECOMPRESSED";
 		ScopedFunctor([&tarFile]() { 
 			auto success = File::deleteFile(tarFile);
@@ -221,7 +244,7 @@ namespace webserver {
 		string finalInstallPath;
 		try {
 			// Validate the package content
-			auto extensionInfo = Extension(tempPackageDirectory, nullptr, true);
+			Extension extensionInfo(tempPackageDirectory, nullptr, true);
 			finalInstallPath = extensionInfo.getRootPath();
 		} catch (const std::exception& e) {
 			failInstallation("Failed to load extension", e.what());
@@ -229,44 +252,56 @@ namespace webserver {
 		}
 
 		// Updating an existing extension?
-		auto oldExtension = getExtension(Util::getLastDir(finalInstallPath));
-		if (oldExtension) {
-			if (!stopExtension(oldExtension)) {
+		auto extension = getExtension(Util::getLastDir(finalInstallPath));
+		if (extension) {
+			if (!extension->isManaged()) {
+				failInstallation("Extension exits", "Unmanaged extensions can't be upgraded");
+				return;
+			}
+
+			// Stop and remove the old package
+			if (!stopExtension(extension)) {
 				return;
 			}
 
 			try {
-				File::removeDirectoryForced(oldExtension->getPackageDirectory());
+				File::removeDirectoryForced(extension->getPackageDirectory());
 			} catch (const FileException& e) {
-				failInstallation("Failed to remove the old extension package directory " + oldExtension->getPackageDirectory(), e.getError());
+				failInstallation("Failed to remove the old extension package directory " + extension->getPackageDirectory(), e.getError());
 			}
-
-			removeList(oldExtension);
-			//auto packageBackupPath = oldExtension->getRootPath() + "package.old" + PATH_SEPARATOR_STR;
-			//File::renameFile(oldExtension->getRootPath(), packageBackupPath);
 		}
 
 		// Extract to final destination directory
 		if (untar(tarFile, finalInstallPath) != 0) {
+			dcassert(0);
 			failInstallation("Failed to uncompress the extension to destination directory", Util::emptyString);
 			return;
 		}
 
-		// Load and start it
-		auto loadedExtension = loadExtension(finalInstallPath);
-		if (!loadedExtension) {
-			return;
-		}
+		if (extension) {
+			// Updating
+			try {
+				extension->reload();
+			} catch (const Exception& e) {
+				dcassert(0);
+				failInstallation("Failed to load extension " + finalInstallPath, e.what());
+				return;
+			}
 
-		if (oldExtension) {
-			fire(ExtensionManagerListener::ExtensionUpdated(), loadedExtension);
-			LogManager::getInstance()->message("Extension " + loadedExtension->getName() + " was updated succesfully", LogMessage::SEV_INFO);
+			LogManager::getInstance()->message("Extension " + extension->getName() + " was updated succesfully", LogMessage::SEV_INFO);
 		} else {
-			fire(ExtensionManagerListener::ExtensionAdded(), loadedExtension);
-			LogManager::getInstance()->message("Extension " + loadedExtension->getName() + " was installed succesfully", LogMessage::SEV_INFO);
+			// Install new
+			extension = loadLocalExtension(finalInstallPath);
+			if (!extension) {
+				dcassert(0);
+				return;
+			}
+
+			fire(ExtensionManagerListener::ExtensionAdded(), extension);
+			LogManager::getInstance()->message("Extension " + extension->getName() + " was installed succesfully", LogMessage::SEV_INFO);
 		}
 
-		startExtension(loadedExtension);
+		startExtension(extension);
 	}
 
 	void ExtensionManager::failInstallation(const string& aMessage, const string& aException) noexcept {
@@ -278,7 +313,23 @@ namespace webserver {
 		LogManager::getInstance()->message(msg, LogMessage::SEV_ERROR);
 	}
 
-	ExtensionPtr ExtensionManager::loadExtension(const string& aPath) noexcept {
+	ExtensionPtr ExtensionManager::registerRemoteExtension(const SessionPtr& aSession, const json& aPackageJson) {
+		auto ext = std::make_shared<Extension>(aSession, aPackageJson);
+
+		if (getExtension(ext->getName())) {
+			throw Exception("Extension " + ext->getName() + " exists already");
+		}
+
+		{
+			WLock l(cs);
+			extensions.push_back(ext);
+		}
+
+		fire(ExtensionManagerListener::ExtensionAdded(), ext);
+		return ext;
+	}
+
+	ExtensionPtr ExtensionManager::loadLocalExtension(const string& aPath) noexcept {
 		// Parse
 		ExtensionPtr ext = nullptr;
 		try {
@@ -308,7 +359,6 @@ namespace webserver {
 			return false;
 		}
 
-		fire(ExtensionManagerListener::ExtensionStarted(), aExtension);
 		LogManager::getInstance()->message("Extension " + aExtension->getName() + " was started", LogMessage::SEV_INFO);
 		return true;
 	}
@@ -318,7 +368,6 @@ namespace webserver {
 			return false;
 		}
 
-		fire(ExtensionManagerListener::ExtensionStopped(), aExtension);
 		LogManager::getInstance()->message("Extension " + aExtension->getName() + " was stopped", LogMessage::SEV_INFO);
 		return true;
 	}

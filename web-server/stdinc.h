@@ -67,6 +67,8 @@ namespace webserver {
 	typedef std::vector<SessionPtr> SessionList;
 	typedef uint32_t LocalSessionId;
 
+	typedef map<string, json> SettingValueMap;
+
 	class Timer;
 	typedef shared_ptr<Timer> TimerPtr;
 

@@ -16,30 +16,26 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_SETTINGAPI_H
-#define DCPLUSPLUS_DCPP_SETTINGAPI_H
+#ifndef DCPLUSPLUS_DCPP_SETTING_UTILS_H
+#define DCPLUSPLUS_DCPP_SETTING_UTILS_H
 
 #include <web-server/stdinc.h>
-
-#include <api/base/ApiModule.h>
-
-//#include <airdcpp/SettingsManager.h>
+#include <api/ApiSettingItem.h>
 
 namespace webserver {
-	class ApiSettingItem;
-	class SettingApi : public ApiModule {
+	class SettingUtils {
 	public:
-		SettingApi(Session* aSession);
-		~SettingApi();
-	private:
-		api_return handleGetDefinitions(ApiRequest& aRequest);
-		api_return handleGetValues(ApiRequest& aRequest);
-		api_return handleSetValues(ApiRequest& aRequest);
-		api_return handleResetValues(ApiRequest& aRequest);
+		static json validateValue(const ApiSettingItem& aItem, const json& aValue);
 
-		typedef function<void(ApiSettingItem&)> ParserF;
-		void parseSettingKeys(const json& aJson, ParserF aHandler);
-		static ApiSettingItem* getSettingItem(const string& aKey) noexcept;
+		static ServerSettingItem deserializeDefinition(const json& aJson);
+		static ServerSettingItem::List deserializeDefinitions(const json& aJson);
+
+		static json serializeDefinition(const ApiSettingItem& aItem) noexcept;
+		static string typeToStr(ApiSettingItem::Type aType) noexcept;
+
+		static ApiSettingItem::Type parseType(const string& aTypeStr) noexcept;
+	private:
+
 	};
 }
 

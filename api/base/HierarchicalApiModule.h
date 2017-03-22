@@ -40,17 +40,17 @@ namespace webserver {
 		typedef std::function<json(const ItemType&)> ChildSerializeF;
 
 		template<typename... ArgT>
-		ParentApiModule(const string& aSubmoduleSection, ApiModule::RequestHandler::Param&& aParamMatcher, Access aAccess, Session* aSession, const StringList& aSubscriptions, const StringList& aChildSubscription, IdConvertF aIdConvertF, ChildSerializeF aChildSerializeF, ArgT&&... args) :
+		ParentApiModule(ApiModule::RequestHandler::Param&& aParamMatcher, Access aAccess, Session* aSession, const StringList& aSubscriptions, const StringList& aChildSubscription, IdConvertF aIdConvertF, ChildSerializeF aChildSerializeF, ArgT&&... args) :
 			BaseType(aSession, aAccess, &aSubscriptions, std::forward<ArgT>(args)...), idConvertF(aIdConvertF), childSerializeF(aChildSerializeF), paramId(aParamMatcher.id) {
 
 			// Get module
-			METHOD_HANDLER(aAccess, METHOD_GET, (EXACT_PARAM(aSubmoduleSection), aParamMatcher), Type::handleGetSubmodule);
+			METHOD_HANDLER(aAccess, METHOD_GET, (aParamMatcher), Type::handleGetSubmodule);
 
 			// List modules
-			METHOD_HANDLER(aAccess, METHOD_GET, (EXACT_PARAM(aSubmoduleSection)), Type::handleGetSubmodules);
+			METHOD_HANDLER(aAccess, METHOD_GET, (), Type::handleGetSubmodules);
 
 			// Request forwarder
-			METHOD_HANDLER(Access::ANY, METHOD_FORWARD, (EXACT_PARAM(aSubmoduleSection), aParamMatcher), Type::handleSubModuleRequest);
+			METHOD_HANDLER(Access::ANY, METHOD_FORWARD, (aParamMatcher), Type::handleSubModuleRequest);
 
 			for (const auto& s: aChildSubscription) {
 				SubscribableApiModule::createSubscription(s);
@@ -80,8 +80,8 @@ namespace webserver {
 		api_return handleSubModuleRequest(ApiRequest& aRequest) {
 			auto sub = getSubModule(aRequest);
 
-			// Remove section and module ID
-			aRequest.popParam(2);
+			// Remove module ID
+			aRequest.popParam();
 
 			return sub->handleRequest(aRequest);
 		}
@@ -97,16 +97,11 @@ namespace webserver {
 			return nullptr;
 		}
 
-		// Submodules should NEVER be accessed outside of web server threads (e.g. API requests)
-		typename ItemType::Ptr findSubModule(const string& aId) {
-			return findSubModule(idConvertF(aId));
-		}
-
 		// Parse module ID from the request, throws if the module was not found
 		typename ItemType::Ptr getSubModule(ApiRequest& aRequest) {
 			auto id = aRequest.getStringParam(paramId);
 
-			auto sub = findSubModule(id);
+			auto sub = findSubModule(idConvertF(id));
 			if (!sub) {
 				throw RequestException(websocketpp::http::status_code::not_found, "Entity " + id + " was not found");
 			}
@@ -161,21 +156,21 @@ namespace webserver {
 		const string paramId;
 	};
 
-	template<class ParentIdType, class ItemType, class ItemJsonType, class ParentBaseType = SubscribableApiModule>
+	template<class IdType, class ItemType, class IdJsonType, class ParentBaseType = SubscribableApiModule>
 	class SubApiModule : public SubscribableApiModule {
 	public:
-		typedef ParentApiModule<ParentIdType, ItemType, ParentBaseType> ParentType;
+		typedef ParentApiModule<IdType, ItemType, ParentBaseType> ParentType;
 
 		// aId = ID of the entity owning this module
 		// Will inherit access from the parent module
-		SubApiModule(ParentType* aParentModule, const ItemJsonType& aId, const StringList& aSubscriptions) :
-			SubscribableApiModule(aParentModule->getSession(), aParentModule->getSubscriptionAccess(), &aSubscriptions), parentModule(aParentModule), id(aId) { }
+		SubApiModule(ParentType* aParentModule, const IdJsonType& aJsonId, const StringList& aSubscriptions) :
+			SubscribableApiModule(aParentModule->getSession(), aParentModule->getSubscriptionAccess(), &aSubscriptions), parentModule(aParentModule), jsonId(aJsonId) { }
 
 		bool send(const string& aSubscription, const json& aJson) override {
 			return SubscribableApiModule::send({
 				{ "event", aSubscription },
 				{ "data", aJson },
-				{ "id", id }
+				{ "id", jsonId }
 			});
 		}
 
@@ -203,6 +198,8 @@ namespace webserver {
 		// module exist in the parent
 		virtual void init() noexcept = 0;
 
+		virtual IdType getId() const noexcept = 0;
+
 		void createSubscription(const string&) noexcept override {
 			dcassert(0);
 		}
@@ -213,7 +210,7 @@ namespace webserver {
 
 		TimerPtr getTimer(CallBack&& aTask, time_t aIntervalMillis) override {
 			return session->getServer()->addTimer(move(aTask), aIntervalMillis, 
-				std::bind(&SubApiModule::moduleAsyncRunWrapper<ItemJsonType, ParentType>, std::placeholders::_1, parentModule, id, session->getId())
+				std::bind(&SubApiModule::moduleAsyncRunWrapper<ParentType>, std::placeholders::_1, parentModule, getId(), session->getId())
 			);
 		}
 
@@ -221,13 +218,13 @@ namespace webserver {
 		// ensure that the submodule (or the session) won't get deleted
 		CallBack getAsyncWrapper(CallBack&& aTask) noexcept override {
 			auto sessionId = session->getId();
-			auto moduleId = id;
+			auto moduleId = getId();
 			return [=] {
 				return moduleAsyncRunWrapper(aTask, parentModule, moduleId, sessionId);
 			};
 		}
 	private:
-		template<class IdType, class ParentType>
+		template<class ParentType>
 		static void moduleAsyncRunWrapper(const CallBack& aTask, ParentType* aParentModule, const IdType& aId, LocalSessionId aSessionId) {
 			// Ensure that we have a session
 			SubscribableApiModule::asyncRunWrapper([=] {
@@ -245,7 +242,7 @@ namespace webserver {
 
 		ParentType* parentModule;
 
-		const ItemJsonType id;
+		const IdJsonType jsonId;
 	};
 }
 

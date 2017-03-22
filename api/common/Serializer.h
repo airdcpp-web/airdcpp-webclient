@@ -81,6 +81,8 @@ namespace webserver {
 		static json serializeGroupedPaths(const pair<string, OrderedStringSet>& aGroupedPair) noexcept;
 		static json serializeActionHookError(const ActionHookRejectionPtr& aError) noexcept;
 
+		static json serializeFilesystemItem(const FilesystemItem& aInfo) noexcept;
+
 		// Serialize n items from end by keeping the list order
 		// Throws for invalid parameters
 		template <class ContainerT, class FuncT>

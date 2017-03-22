@@ -39,16 +39,25 @@ namespace webserver {
 		typedef X<0> Started;
 		typedef X<1> Stopping;
 		typedef X<2> Stopped;
+
 		typedef X<3> LoadSettings;
 		typedef X<4> SaveSettings;
 
-		typedef X<5> Data;
+		typedef X<5> SocketConnected;
+		typedef X<6> SocketDisconnected;
+
+		typedef X<7> Data;
+
 
 		virtual void on(Started) noexcept { }
 		virtual void on(Stopping) noexcept { }
 		virtual void on(Stopped) noexcept { }
+
 		virtual void on(LoadSettings, SimpleXML&) noexcept { }
 		virtual void on(SaveSettings, SimpleXML&) noexcept { }
+
+		virtual void on(SocketConnected, const WebSocketPtr&) noexcept { }
+		virtual void on(SocketDisconnected, const WebSocketPtr&) noexcept { }
 
 		virtual void on(Data, const string& /*aData*/, TransportType, Direction, const string& /*aIP*/) noexcept { }
 	};

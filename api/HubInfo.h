@@ -55,6 +55,7 @@ namespace webserver {
 		static json serializeCounts(const ClientPtr& aClient) noexcept;
 
 		void init() noexcept override;
+		ClientToken getId() const noexcept override;
 	private:
 		api_return handleReconnect(ApiRequest& aRequest);
 		api_return handleFavorite(ApiRequest& aRequest);

@@ -61,7 +61,7 @@ namespace webserver {
 
 		StringList getUserNames() const noexcept;
 
-		size_t getSessionCount() const noexcept;
+		size_t getUserSessionCount() const noexcept;
 	private:
 		mutable SharedMutex cs;
 

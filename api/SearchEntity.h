@@ -47,7 +47,7 @@ namespace webserver {
 			return search;
 		}
 
-		SearchInstanceToken getId() const noexcept {
+		SearchInstanceToken getId() const noexcept override {
 			return id;
 		}
 
@@ -55,6 +55,8 @@ namespace webserver {
 
 		void init() noexcept override;
 	private:
+		const SearchInstanceToken id;
+
 		GroupedSearchResultList getResultList() noexcept;
 
 		static json serializeSearchResult(const SearchResultPtr& aSR) noexcept;
@@ -76,7 +78,6 @@ namespace webserver {
 		SearchView searchView;
 
 		const SearchInstancePtr search;
-		const SearchInstanceToken id;
 		const uint64_t expirationTick;
 	};
 }

@@ -427,4 +427,19 @@ namespace webserver {
 			{ "str", aError->message },
 		};
 	}
+
+	json Serializer::serializeFilesystemItem(const FilesystemItem& aInfo) noexcept {
+		json ret = {
+			{ "name", aInfo.name }
+		};
+
+		if (aInfo.isDirectory) {
+			ret["type"] = Serializer::serializeFolderType(DirectoryContentInfo());
+		} else {
+			ret["type"] = Serializer::serializeFileType(aInfo.name);
+			ret["size"] = aInfo.size;
+		}
+
+		return ret;
+	}
 }
