@@ -136,11 +136,11 @@ void ShareScannerManager::runSfvCheck(const StringList& rootPaths) {
 		if (stop)
 			break;
 
-		File::forEachFile(i.first, "*", [&](const string& aFileName, bool isDir, int64_t /*aSize*/) {
-			if (stop || isDir)
+		File::forEachFile(i.first, "*", [&](const FilesystemItem& aInfo) {
+			if (stop || aInfo.isDirectory)
 				return;
 
-			checkFileSFV(aFileName, i.second, true);
+			checkFileSFV(aInfo.name, i.second, true);
 		});
 	}
 
@@ -276,11 +276,11 @@ void ShareScannerManager::find(const string& aPath, ScanInfo& aScanInfo) noexcep
 	if(stop)
 		return;
 	
-	File::forEachFile(aPath, "*", [&](const string& aFileName, bool aIsDir, int64_t /*aSize*/) {
-		if (!aIsDir || stop)
+	File::forEachFile(aPath, "*", [&](const FilesystemItem& aInfo) {
+		if (!aInfo.isDirectory || stop)
 			return;
 
-		auto currentDir = aPath + aFileName;
+		auto currentDir = aPath + aInfo.name;
 
 		if (aScanInfo.isManualShareScan) {
 			if (QueueManager::getInstance()->findDirectoryBundle(currentDir)) {
@@ -596,9 +596,9 @@ void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& di
 	}
 
 	/* Recursively scan subfolders */
-	File::forEachFile(aPath, "*", [&](const string& aFileName, bool isDir, int64_t /*aSize*/) {
-		if (isDir)
-			prepareSFVScanDir(aPath + aFileName, dirs);
+	File::forEachFile(aPath, "*", [&](const FilesystemItem& aInfo) {
+		if (aInfo.isDirectory)
+			prepareSFVScanDir(aPath + aInfo.name, dirs);
 	});
 }
 

@@ -66,14 +66,7 @@ void AutoSearchManager::logMessage(const string& aMsg, LogMessage::Severity aSev
 
 /* Adding new items for external use */
 AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& aTarget, bool isDirectory, AutoSearch::ItemType asType, bool aRemove, bool aSearch, int aExpriredays) noexcept {
-	if (ss.length() <= 5) {
-		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, ss % STRING(LINE_EMPTY_OR_TOO_SHORT)), LogMessage::SEV_ERROR);
-		return nullptr;
-	}
-
-	auto lst = getSearchesByString(ss);
-	if (!lst.empty()) {
-		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, ss % STRING(ITEM_NAME_EXISTS)), LogMessage::SEV_ERROR);
+	if (!validateAutoSearchStr(ss)) {
 		return nullptr;
 	}
 
@@ -116,6 +109,20 @@ void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search, bo
 	}
 }
 
+bool AutoSearchManager::validateAutoSearchStr(const string& aStr) const noexcept {
+	if (aStr.length() <= 5) {
+		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, aStr % STRING(LINE_EMPTY_OR_TOO_SHORT)), LogMessage::SEV_ERROR);
+		return false;
+	}
+
+	auto lst = getSearchesByString(aStr);
+	if (!lst.empty()) {
+		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, aStr % STRING(ITEM_NAME_EXISTS)), LogMessage::SEV_ERROR);
+		return false;
+	}
+	return true;
+}
+
 bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) noexcept {
 	if (as->getEnabled() == toActive) {
 		return false;
@@ -133,6 +140,11 @@ bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) noexcept
 		as->setEnabled(toActive);
 		updateStatus(as, true);
 	}
+
+	//No items enabled at this time? Schedule search for it...
+	if(toActive && nextSearch == 0 && (as->getLastSearch() < GET_TIME() + SETTING(AUTOSEARCH_EVERY) * 60))
+		delayEvents.addEvent(SEARCH_ITEM, [=] { maybePopSearchItem(GET_TICK(), true); }, 1000);
+
 	delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK()); }, 1000);
 	dirty = true;
 	return true;
@@ -507,7 +519,7 @@ void AutoSearchManager::resetSearchTimes(uint64_t aTick, bool aRecalculate/* = t
 }
 
 void AutoSearchManager::maybePopSearchItem(uint64_t aTick, bool aIgnoreSearchTimes) {
-	if (!aIgnoreSearchTimes && nextSearch == 0 && nextSearch > GET_TIME()) {
+	if (!aIgnoreSearchTimes && (nextSearch == 0 || nextSearch > GET_TIME())) {
 		return;
 	}
 
@@ -526,8 +538,10 @@ void AutoSearchManager::maybePopSearchItem(uint64_t aTick, bool aIgnoreSearchTim
 		searchItem = searchItems.maybePopSearchItem(aTick, aIgnoreSearchTimes);
 	}
 
-	if (searchItem)
+	if (searchItem) {
+		dcdebug("Auto search for %s (priority %d)\n", searchItem->getSearchString().c_str(), static_cast<int>(searchItem->getPriority()));
 		performSearch(searchItem, allowedHubs, TYPE_NORMAL, aTick);
+	}
 
 }
 
@@ -573,12 +587,21 @@ void AutoSearchManager::checkItems() noexcept {
 		WLock l(cs);
 
 		for(auto& as: searchItems.getItems() | map_values) {
-			bool aOldAllowAutoSearch = as->allowAutoSearch();
+			//Check if the item gets enabled from search time limits...
+			bool aOldSearchTimeEnabled = as->allowNewItems() && as->nextAllowedSearch() == 0;
 			bool fireUpdate = as->updateSearchTime();
+			bool aNewSearchTimeEnabled = as->allowNewItems() && as->nextAllowedSearch() == 0;
+
+			if (!aOldSearchTimeEnabled && aNewSearchTimeEnabled)
+				itemsEnabled++;
+
+			if (aOldSearchTimeEnabled && !aNewSearchTimeEnabled)
+				itemsDisabled++;
 
 			//update possible priority change
 			auto newPrio = as->calculatePriority();
 			if(!as->isRecent() && newPrio != as->getPriority()) {
+				dcdebug("Auto search %s, priority change from %d to %d \n", as->getSearchString().c_str(), as->getPriority(), newPrio);
 				searchItems.removeSearchPrio(as);
 				as->setPriority(newPrio);
 				searchItems.addSearchPrio(as);
@@ -606,12 +629,6 @@ void AutoSearchManager::checkItems() noexcept {
 
 			if (as->getExpireTime() > 0 || fireUpdate)
 				updateitems.push_back(as);
-
-			if (!aOldAllowAutoSearch && as->allowAutoSearch())
-				itemsEnabled++;
-
-			if (aOldAllowAutoSearch && !as->allowAutoSearch())
-				itemsDisabled++;
 		}
 	}
 
@@ -1079,6 +1096,9 @@ AutoSearchPtr AutoSearchManager::loadItemFromXml(SimpleXML& aXml) {
 	if (as->getExpireTime() > 0 && as->getBundles().empty() && as->getExpireTime() < GET_TIME()) {
 		as->setEnabled(false);
 	}
+
+	as->checkRecent();
+	as->setPriority(as->calculatePriority());
 
 	return as;
 }

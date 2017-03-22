@@ -83,6 +83,10 @@ void Localization::Language::setLanguageFile() noexcept {
 	SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, Util::getFileName(getLanguageFilePath()));
 }
 
+bool Localization::Language::NameSort::operator()(const Language& l1, const Language& l2) const noexcept {
+	return Util::stricmp(l1.languageName, l2.languageName) < 0;
+}
+
 string Localization::Language::getLanguageFilePath() const noexcept {
 	return isDefault() ? Util::emptyString : Util::getPath(Util::PATH_LOCALE) + locale + ".xml";
 }
@@ -198,15 +202,24 @@ void Localization::loadLanguage(int languageIndex) noexcept {
 	}
 }
 
-string Localization::getCurrentLocale() noexcept {
-	if (curLanguage > 0)
+string Localization::getLocale() noexcept {
+	if (curLanguage > 0) {
 		return languageList[curLanguage].locale;
-	else
-		return getSystemLocale();
+	}
+
+	return getSystemLocale();
 }
 
-string Localization::getLanguageStr() noexcept {
+string Localization::getCurLanguageLocale() noexcept {
+	return languageList[curLanguage].locale;
+}
+
+string Localization::getCurLanguageName() noexcept {
 	return languageList[curLanguage].languageName;
+}
+
+int Localization::getCurLanguageIndex() noexcept {
+	return curLanguage;
 }
 
 uint8_t Localization::getFlagIndexByName(const char* countryName) noexcept {

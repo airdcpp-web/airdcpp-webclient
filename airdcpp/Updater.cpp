@@ -53,14 +53,14 @@ namespace dcpp {
 
 int Updater::cleanExtraFiles(const string& aCurPath, const optional<StringSet>& aProtectedFiles) noexcept {
 	int deletedFiles = 0;
-	File::forEachFile(aCurPath, "*", [&](const string& aFileName, bool isDir, int64_t /*aSize*/) {
-		if (!isDir) {
-			auto fullPath = aCurPath + aFileName;
+	File::forEachFile(aCurPath, "*", [&](const FilesystemItem& aInfo) {
+		auto fullPath = aCurPath + aInfo.name;
+		if (!aInfo.isDirectory) {
 			if ((!aProtectedFiles || (*aProtectedFiles).find(fullPath) == (*aProtectedFiles).end()) && File::deleteFile(fullPath)) {
 				deletedFiles++;
 			}
 		} else {
-			deletedFiles += cleanExtraFiles(aCurPath + aFileName, aProtectedFiles);
+			deletedFiles += cleanExtraFiles(fullPath, aProtectedFiles);
 		}
 	});
 
@@ -88,16 +88,16 @@ bool Updater::applyUpdaterFiles(const string& aCurTempPath, const string& aCurDe
 	File::ensureDirectory(aCurDestinationPath);
 
 	try {
-		File::forEachFile(aCurTempPath, "*", [&](const string& aFileName, bool isDir, int64_t /*aSize*/) {
-			if (!isDir) {
-				auto destFile = aCurDestinationPath + aFileName;
+		File::forEachFile(aCurTempPath, "*", [&](const FilesystemItem& aInfo) {
+			if (!aInfo.isDirectory) {
+				auto destFile = aCurDestinationPath + aInfo.name;
 
 				try {
 					if (Util::fileExists(destFile)) {
 						File::deleteFile(destFile);
 					}
 
-					File::copyFile(aCurTempPath + aFileName, destFile);
+					File::copyFile(aCurTempPath + aInfo.name, destFile);
 					updatedFiles_.insert(destFile);
 
 					aLogger.log("Installed file " + destFile);
@@ -105,7 +105,7 @@ bool Updater::applyUpdaterFiles(const string& aCurTempPath, const string& aCurDe
 					throw FileException("Failed to copy the file " + destFile + " (" + e.getError() + ")");
 				}
 			} else {
-				applyUpdaterFiles(aCurTempPath + aFileName, aCurDestinationPath + aFileName, error_, updatedFiles_, aLogger);
+				applyUpdaterFiles(aCurTempPath + aInfo.name, aCurDestinationPath + aInfo.name, error_, updatedFiles_, aLogger);
 			}
 		});
 	} catch (const FileException& e) {

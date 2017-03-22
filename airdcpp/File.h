@@ -28,6 +28,12 @@
 
 namespace dcpp {
 
+struct FilesystemItem {
+	const string name;
+	const int64_t size;
+	const bool isDirectory;
+};
+
 class File : public IOStream {
 public:
 	enum Mode {
@@ -187,7 +193,7 @@ public:
 
 	static StringList findFiles(const string& path, const string& aNamePattern, int aFindFlags = TYPE_FILE | TYPE_DIRECTORY);
 
-	typedef std::function<void(const string& /*name*/, bool /*isDir*/, int64_t /*size*/)> FileIterF;
+	typedef std::function<void(const FilesystemItem&)> FileIterF;
 
 	// Iterate through content of aPath and handle files matching aNamePattern (use * to match all files)
 	// Stops if the handler returns false
