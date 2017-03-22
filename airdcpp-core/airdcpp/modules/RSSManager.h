@@ -212,6 +212,7 @@ private:
 	RSSPtr getUpdateItem() const noexcept;
 	
 	void matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData);
+	bool addAutoSearchItem(const RSSFilter& aFilter, const RSSDataPtr& aData) noexcept;
 
 	vector<RSSPtr> rssList;
 

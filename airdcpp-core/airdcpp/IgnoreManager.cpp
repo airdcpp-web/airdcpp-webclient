@@ -163,6 +163,10 @@ bool IgnoreManager::checkIgnored(const OnlineUserPtr& aUser) noexcept {
 ActionHookRejectionPtr IgnoreManager::isIgnoredOrFiltered(const ChatMessagePtr& msg, const HookRejectionGetter& aRejectionGetter, bool PM) noexcept {
 	const auto& fromIdentity = msg->getFrom()->getIdentity();
 
+	//Don't filter own messages
+	if (msg->getFrom()->getUser() == ClientManager::getInstance()->getMe())
+		return nullptr;
+
 	auto logIgnored = [&](bool filter) -> void {
 		if (SETTING(LOG_IGNORED)) {
 			string tmp;

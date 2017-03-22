@@ -728,9 +728,9 @@ StringList File::findFiles(const string& aPath, const string& aNamePattern, int 
 	StringList ret;
 
 	{
-		forEachFile(aPath, aNamePattern, [&](const string& aFileName, bool isDir, int64_t /*size*/) {
-			if ((aFindFlags & TYPE_FILE && !isDir) || (aFindFlags & TYPE_DIRECTORY && isDir)) {
-				ret.push_back(aPath + aFileName);
+		forEachFile(aPath, aNamePattern, [&](const FilesystemItem& aInfo) {
+			if ((aFindFlags & TYPE_FILE && !aInfo.isDirectory) || (aFindFlags & TYPE_DIRECTORY && aInfo.isDirectory)) {
+				ret.push_back(aPath + aInfo.name);
 			}
 		}, !(aFindFlags & FLAG_HIDDEN));
 	}
@@ -741,20 +741,23 @@ StringList File::findFiles(const string& aPath, const string& aNamePattern, int 
 void File::forEachFile(const string& aPath, const string& aNamePattern, FileIterF aHandlerF, bool aSkipHidden) {
 	for (FileFindIter i(aPath, aNamePattern); i != FileFindIter(); ++i) {
 		if ((!aSkipHidden || !i->isHidden())) {
-			auto name = i->getFileName();
 			auto isDir = i->isDirectory();
-			aHandlerF(name + (isDir ? PATH_SEPARATOR_STR : Util::emptyString), isDir, i->getSize());
+			aHandlerF({
+				i->getFileName() + (isDir ? PATH_SEPARATOR_STR : Util::emptyString),
+				i->getSize(),
+				isDir,
+			});
 		}
 	}
 }
 
 int64_t File::getDirSize(const string& aPath, bool aRecursive, const string& aNamePattern) noexcept {
 	int64_t size = 0;
-	File::forEachFile(aPath, aNamePattern, [&](const string& aFileName, bool isDir, int64_t aSize) {
-		if (isDir && aRecursive) {
-			size += getDirSize(aPath + aFileName, true, aNamePattern);
+	File::forEachFile(aPath, aNamePattern, [&](const FilesystemItem& aInfo) {
+		if (aInfo.isDirectory && aRecursive) {
+			size += getDirSize(aPath + aInfo.name, true, aNamePattern);
 		} else {
-			size += aSize;
+			size += aInfo.size;
 		}
 	});
 

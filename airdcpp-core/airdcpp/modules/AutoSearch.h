@@ -161,12 +161,10 @@ public:
 
 	Priority calculatePriority() const noexcept {
 		auto prio = Priority::LOW;
-		if ((status == STATUS_FAILED_MISSING) && getLastSearch() == 0) 
+		if (status == STATUS_FAILED_MISSING)
 			prio = Priority::HIGHEST;
-		else if (status == STATUS_FAILED_MISSING)
+		else if (getLastSearch() == 0)
 			prio = Priority::HIGH;
-		else if( getLastSearch() == 0)
-			prio = Priority::NORMAL;
 
 		return prio;
 	}

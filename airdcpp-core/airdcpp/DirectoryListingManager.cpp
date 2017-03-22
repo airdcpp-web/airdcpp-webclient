@@ -321,8 +321,9 @@ void DirectoryListingManager::on(QueueManagerListener::PartialListFinished, cons
 		}
 	}
 
+	dl->addHubUrlChangeTask(aUser.hint);
+
 	if (dl->hasCompletedDownloads()) {
-		dl->addHubUrlChangeTask(aUser.hint);
 		dl->addPartialListTask(aXML, aBase);
 	} else {
 		fire(DirectoryListingManagerListener::OpenListing(), dl, aBase, aXML);

@@ -16,10 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef LOCALIZATION_H
-#define LOCALIZATION_H
-
-#include "Util.h"
+#ifndef DCPLUSPLUS_DCPP_LOCALIZATION_H
+#define DCPLUSPLUS_DCPP_LOCALIZATION_H
 
 #define LANGVER_TAG "Revision"
 
@@ -44,14 +42,11 @@ class Localization {
 			bool isDefault() const noexcept;
 
 			struct NameSort { 
-				bool operator()(const Language& l1, const Language& l2) const noexcept {
-					return Util::stricmp(l1.languageName, l2.languageName) < 0;
-				}
+				bool operator()(const Language& l1, const Language& l2) const noexcept;
 			};
 		};
 
 		static string getSystemLocale() noexcept;
-		static int curLanguage;
 		static string getCurLanguageFilePath() noexcept;
 		static string getCurLanguageFileName() noexcept;
 		static double getCurLanguageVersion() noexcept;
@@ -61,14 +56,18 @@ class Localization {
 		static void setLanguage(int languageIndex) noexcept;
 		static void loadLanguage(int languageIndex) noexcept;
 
-		static string getCurrentLocale() noexcept;
-		static string getLanguageStr() noexcept;
+		static string getLocale() noexcept;
+		static string getCurLanguageLocale() noexcept;
+		static string getCurLanguageName() noexcept;
+		static int getCurLanguageIndex() noexcept;
 		static void init() noexcept;
 
 		static uint8_t getFlagIndexByCode(const char* countryCode) noexcept;
 		static uint8_t getFlagIndexByName(const char* countryName) noexcept;
 
 		static bool usingDefaultLanguage() noexcept;
+	private:
+		static int curLanguage;
 	};
 }
 #endif

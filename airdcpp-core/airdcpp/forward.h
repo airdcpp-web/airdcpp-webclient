@@ -80,6 +80,8 @@ typedef std::vector<FavoriteHubEntryPtr> FavoriteHubEntryList;
 class FavoriteUser;
 
 class File;
+struct FilesystemItem;
+typedef vector<FilesystemItem> FilesystemItemList;
 
 class FinishedManager;
 

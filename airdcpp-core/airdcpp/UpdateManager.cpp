@@ -195,17 +195,17 @@ void UpdateManager::completeLanguageDownload() {
 			auto path = Localization::getCurLanguageFilePath();
 			File::ensureDirectory(Util::getFilePath(path));
 			File(path, File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
-			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATED, Localization::getLanguageStr()), LogMessage::SEV_INFO);
+			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATED, Localization::getCurLanguageName()), LogMessage::SEV_INFO);
 			fire(UpdateManagerListener::LanguageFinished());
 
 			return;
 		} catch(const FileException& e) { 
-			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getLanguageStr() % e.getError()), LogMessage::SEV_WARNING);
+			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName() % e.getError()), LogMessage::SEV_WARNING);
 		}
 	}
 
 	fire(UpdateManagerListener::LanguageFailed(), conn->status);
-	LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getLanguageStr() % conn->status), LogMessage::SEV_WARNING);
+	LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName() % conn->status), LogMessage::SEV_WARNING);
 }
 
 void UpdateManager::completeVersionDownload(bool manualCheck) {
@@ -321,7 +321,7 @@ void UpdateManager::checkLanguage() {
 		return;
 	}
 
-	conns[CONN_LANGUAGE_CHECK].reset(new HttpDownload(links.language + "checkLangVersion.php?lc=" + Localization::getCurrentLocale(),
+	conns[CONN_LANGUAGE_CHECK].reset(new HttpDownload(links.language + "checkLangVersion.php?lc=" + Localization::getLocale(),
 		[this] { completeLanguageCheck(); }, false));
 }
 

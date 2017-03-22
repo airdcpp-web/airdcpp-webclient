@@ -54,9 +54,9 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 
 	if (token == 0)
 		token = Util::randInt(10);
-
-	setPriority(calculatePriority());
+	
 	checkRecent();
+	setPriority(calculatePriority());
 	setTarget(aTarget);
 	setMethod(aMethod);
 	userMatcher.setMethod(StringMatch::WILDCARD);
