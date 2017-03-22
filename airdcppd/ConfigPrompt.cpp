@@ -241,7 +241,7 @@ void ConfigPrompt::promptPort(webserver::ServerConfig& config_, const std::strin
 		cout << std::endl;
 	}
 
-	config_.port.setCurValue(port);
+	config_.port.setValue(port);
 	if (port > 0) {
 		cout << toBold(aProtocol + " port set to: ") << port << std::endl;
 	} else {
