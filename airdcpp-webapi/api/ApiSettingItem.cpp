@@ -212,9 +212,9 @@ namespace webserver {
 
 	json CoreSettingItem::getAutoValue() const noexcept {
 		switch (si.key) {
-			case SettingsManager::TCP_PORT: ConnectionManager::getInstance()->getPort();
-			case SettingsManager::UDP_PORT: SearchManager::getInstance()->getPort();
-			case SettingsManager::TLS_PORT: ConnectionManager::getInstance()->getSecurePort();
+			case SettingsManager::TCP_PORT: return ConnectionManager::getInstance()->getPort();
+			case SettingsManager::UDP_PORT: return SearchManager::getInstance()->getPort();
+			case SettingsManager::TLS_PORT: return ConnectionManager::getInstance()->getSecurePort();
 			case SettingsManager::MAPPER: 
 
 			case SettingsManager::BIND_ADDRESS: 
