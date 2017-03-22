@@ -55,7 +55,7 @@ namespace webserver {
 	}
 
 	HubApi::HubApi(Session* aSession) : 
-		ParentApiModule("sessions", TOKEN_PARAM, Access::HUBS_VIEW, aSession, subscriptionList, HubInfo::subscriptionList,
+		ParentApiModule(TOKEN_PARAM, Access::HUBS_VIEW, aSession, subscriptionList, HubInfo::subscriptionList,
 			[](const string& aId) { return Util::toUInt32(aId); },
 			[](const HubInfo& aInfo) { return serializeClient(aInfo.getClient()); },
 			Access::HUBS_EDIT
@@ -76,8 +76,8 @@ namespace webserver {
 			ClientManager::getInstance()->outgoingHubMessageHook.removeSubscriber(aId);
 		});
 
-		METHOD_HANDLER(Access::HUBS_EDIT,	METHOD_POST,	(EXACT_PARAM("sessions")),				HubApi::handleConnect);
-		METHOD_HANDLER(Access::HUBS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("sessions"), TOKEN_PARAM),	HubApi::handleDisconnect);
+		METHOD_HANDLER(Access::HUBS_EDIT,	METHOD_POST,	(),										HubApi::handleConnect);
+		METHOD_HANDLER(Access::HUBS_EDIT,	METHOD_DELETE,	(TOKEN_PARAM),							HubApi::handleDisconnect);
 
 		METHOD_HANDLER(Access::HUBS_VIEW,	METHOD_GET,		(EXACT_PARAM("stats")),					HubApi::handleGetStats);
 		METHOD_HANDLER(Access::HUBS_VIEW,	METHOD_POST,	(EXACT_PARAM("find_by_url")),			HubApi::handleFindByUrl);

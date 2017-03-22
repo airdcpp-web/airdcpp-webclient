@@ -46,6 +46,10 @@ namespace webserver {
 		chat->addListener(this);
 	}
 
+	CID PrivateChatInfo::getId() const noexcept {
+		return chat->getUser()->getCID();
+	}
+
 	PrivateChatInfo::~PrivateChatInfo() {
 		chat->removeListener(this);
 	}

@@ -36,6 +36,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/range/algorithm/count_if.hpp>
 
 
 namespace webserver {
@@ -169,9 +170,11 @@ namespace webserver {
 		return s->second;
 	}
 
-	size_t WebUserManager::getSessionCount() const noexcept {
+	size_t WebUserManager::getUserSessionCount() const noexcept {
 		RLock l(cs);
-		return sessionsLocalId.size();
+		return boost::count_if(sessionsLocalId | map_values, [=](const SessionPtr& s) {
+			return s->getSessionType() != Session::TYPE_EXTENSION;
+		});
 	}
 
 	void WebUserManager::logout(const SessionPtr& aSession) {

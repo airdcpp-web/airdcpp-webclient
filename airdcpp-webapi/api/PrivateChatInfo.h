@@ -51,6 +51,7 @@ namespace webserver {
 		static json serializeCCPMState(const PrivateChatPtr& aChat) noexcept;
 
 		void init() noexcept override;
+		CID getId() const noexcept override;
 	private:
 		api_return handleDisconnectCCPM(ApiRequest& aRequest);
 		api_return handleConnectCCPM(ApiRequest& aRequest);

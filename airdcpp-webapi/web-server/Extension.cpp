@@ -23,26 +23,66 @@
 #include <web-server/WebUserManager.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
+#include <web-server/version.h>
 
 #include <airdcpp/File.h>
 
 
 namespace webserver {
-	Extension::Extension(const string& aPath, ErrorF&& aErrorF, bool aSkipPathValidation) : errorF(std::move(aErrorF)) {
-		const auto packageStr = File(aPath + "package" + PATH_SEPARATOR_STR + "package.json", File::READ, File::OPEN).read();
+	SharedMutex Extension::cs;
 
+	Extension::Extension(const string& aPath, ErrorF&& aErrorF, bool aSkipPathValidation) : errorF(std::move(aErrorF)), managed(true) {
+		initialize(aPath, aSkipPathValidation);
+	}
+
+	Extension::Extension(const SessionPtr& aSession, const json& aPackageJson) : managed(false), session(aSession) {
+		initialize(aPackageJson);
+	}
+
+	void Extension::reload() {
+		initialize(getRootPath(), false);
+
+		fire(ExtensionListener::PackageUpdated());
+	}
+
+	void Extension::initialize(const string& aPath, bool aSkipPathValidation) {
+		const auto packageStr = File(aPath + "package" + PATH_SEPARATOR_STR + "package.json", File::READ, File::OPEN).read();
 		try {
 			const json packageJson = json::parse(packageStr);
 
-			const string packageName = packageJson.at("name");
-			const string packageDescription = packageJson.at("description");
-			const string packageEntry = packageJson.at("main");
-			const string packageVersion = packageJson.at("version");
-			const string packageAuthor = packageJson.at("author").at("name");
+			initialize(packageJson);
+		} catch (const std::exception& e) {
+			throw Exception("Could not parse package.json (" + string(e.what()) + ")");
+		}
 
-			auto enginesJson = packageJson.find("engines");
-			if (enginesJson != packageJson.end()) {
-				for (const auto& engine: json::iterator_wrapper(*enginesJson)) {
+		if (!aSkipPathValidation && compare(name, Util::getLastDir(aPath)) != 0) {
+			throw Exception("Extension path doesn't match with the extension name " + name);
+		}
+	}
+
+	void Extension::initialize(const json& aJson) {
+		// Required fields
+		const string packageName = aJson.at("name");
+		const string packageDescription = aJson.at("description");
+		const string packageEntry = aJson.at("main");
+		const string packageVersion = aJson.at("version");
+		const string packageAuthor = aJson.at("author").at("name");
+
+		privateExtension = aJson.value("private", false);
+
+		name = packageName;
+		description = packageDescription;
+		entry = packageEntry;
+		version = packageVersion;
+		author = packageAuthor;
+
+		// Optional fields
+		homepage = aJson.value("homepage", Util::emptyString);
+
+		{
+			auto enginesJson = aJson.find("engines");
+			if (enginesJson != aJson.end()) {
+				for (const auto& engine : json::iterator_wrapper(*enginesJson)) {
 					engines.emplace_back(engine.key());
 				}
 			}
@@ -51,25 +91,102 @@ namespace webserver {
 				engines.emplace_back("node");
 			}
 
-			name = packageName;
-			description = packageDescription;
-			entry = packageEntry;
-			version = packageVersion;
-			author = packageAuthor;
-
-			privateExtension = packageJson.value("private", false);
-		} catch (const std::exception& e) {
-			throw Exception("Could not parse package.json (" + string(e.what()) + ")");
 		}
 
-		if (!aSkipPathValidation && compare(name, Util::getLastDir(aPath)) != 0) {
-			throw Exception("Extension path doesn't match with the extension name " + name);
+		parseApiData(aJson.at("airdcpp"));
+	}
+
+	void Extension::parseApiData(const json& aJson) {
+		// Check API compatibility
+		{
+			const int apiVersion = aJson.at("apiVersion");
+			if (apiVersion != API_VERSION) {
+				throw Exception("Extension requires API version " + Util::toString(apiVersion) + " while the application uses version " + Util::toString(API_VERSION));
+			}
 		}
 
-		// TODO: validate platform and API compatibility
+		{
+			const int minFeatureLevel = aJson.value("minApiFeatureLevel", 0);
+			if (minFeatureLevel != API_FEATURE_LEVEL) {
+				throw Exception("Extension requires API feature level " + Util::toString(minFeatureLevel) + " or newer while the application uses version " + Util::toString(API_FEATURE_LEVEL));
+			}
+		}
+	}
+
+	FilesystemItemList Extension::getLogs() const noexcept {
+		FilesystemItemList ret;
+
+		if (managed) {
+			File::forEachFile(getLogPath(), "*.log", [&](const FilesystemItem& aInfo) {
+				if (aInfo.isDirectory) {
+					return;
+				}
+
+				ret.push_back(aInfo);
+			});
+		}
+
+		return ret;
+	}
+
+	ServerSettingItem* Extension::getSetting(const string& aKey) noexcept {
+		RLock l(cs);
+		return ApiSettingItem::findSettingItem<ServerSettingItem>(settings, aKey);
+	}
+
+	bool Extension::hasSettings() const noexcept {
+		RLock l(cs);
+		return !settings.empty(); 
+	}
+
+	ServerSettingItem::List Extension::getSettings() const noexcept {
+		RLock l(cs);
+		return settings;
+	}
+
+	void Extension::swapSettingDefinitions(ServerSettingItem::List& aDefinitions) {
+		{
+			WLock l(cs);
+			settings.swap(aDefinitions);
+		}
+
+		fire(ExtensionListener::SettingDefinitionsUpdated());
+	}
+
+	void Extension::setSettingValues(const SettingValueMap& aValues) {
+		{
+			WLock l(cs);
+			for (const auto& vp: aValues) {
+				auto setting = ApiSettingItem::findSettingItem<ServerSettingItem>(settings, vp.first);
+				if (!setting) {
+					throw Exception("Setting " + vp.first + " was not found");
+				}
+
+				setting->setValue(vp.second);
+			}
+		}
+
+		fire(ExtensionListener::SettingValuesUpdated(), aValues);
+	}
+
+	Extension::SettingValueMap Extension::getSettingValues() noexcept {
+		SettingValueMap values;
+
+		{
+			RLock l(cs);
+			for (const auto& setting: settings) {
+				values[setting.name] = setting.getValue();
+			}
+		}
+
+		return values;
 	}
 
 	void Extension::start(const string& aEngine, WebServerManager* wsm) {
+		if (!managed) {
+			return;
+		}
+
 		File::ensureDirectory(getLogPath());
 		File::ensureDirectory(getSettingsPath());
 
@@ -81,7 +198,9 @@ namespace webserver {
 		session = wsm->getUserManager().createExtensionSession(name);
 		
 		createProcess(aEngine, wsm, session);
+
 		running = true;
+		fire(ExtensionListener::ExtensionStarted());
 
 		// Monitor the running state of the script
 		timer = wsm->addTimer([this, wsm] { checkRunningState(wsm); }, 2500);
@@ -109,19 +228,29 @@ namespace webserver {
 		// Script to launch
 		ret.push_back(getPackageDirectory() + entry);
 
+		// Params
+		auto addParam = [&ret](const string& aName, const string& aParam) {
+			ret.push_back("--" + aName + "=" + aParam);
+		};
+
 		// Connect URL
-		ret.push_back(getConnectUrl(wsm));
+		addParam("apiUrl", getConnectUrl(wsm));
 
 		// Session token
-		ret.push_back(aSession->getAuthToken());
+		addParam("authToken", aSession->getAuthToken());
 
-		// Package directory
-		ret.push_back(getRootPath());
+		// Paths
+		addParam("logPath", getLogPath());
+		addParam("settingsPath", getSettingsPath());
 
 		return ret;
 	}
 
 	bool Extension::stop() noexcept {
+		if (!managed) {
+			return false;
+		}
+
 		if (!isRunning()) {
 			return true;
 		}
@@ -131,6 +260,7 @@ namespace webserver {
 			return false;
 		}
 
+		fire(ExtensionListener::ExtensionStopped());
 		onStopped(false);
 		return true;
 	}

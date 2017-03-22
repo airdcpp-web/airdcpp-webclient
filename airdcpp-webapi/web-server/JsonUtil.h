@@ -36,14 +36,25 @@ namespace webserver {
 		static optional<T> getEnumField(const string& aFieldName, const JsonT& aJson, bool aRequired, int aMin, int aMax) {
 			auto value = getOptionalField<T>(aFieldName, aJson, false, aRequired);
 			if (value) {
-				if (*value < aMin || *value > aMax) {
-					throwError(aFieldName, ERROR_INVALID,
-						"Value " + std::to_string(*value) + " is not in range " + 
-						std::to_string(aMin) + " - " + std::to_string(aMax));
-				}
+				validateRange(aFieldName, *value, aMin, aMax);
 			}
 
 			return value;
+		}
+
+		template <typename T>
+		static void validateRange(const string& aFieldName, const T& aValue, int aMin, int aMax) {
+			if (aValue < aMin || aValue > aMax) {
+				throwError(aFieldName, ERROR_INVALID,
+					"Value " + std::to_string(aValue) + " is not in range " +
+					std::to_string(aMin) + " - " + std::to_string(aMax));
+			}
+		}
+
+		template <typename T, typename JsonT>
+		static T getEnumFieldDefault(const string& aFieldName, const JsonT& aJson, T aDefault, int aMin, int aMax) {
+			auto value = getEnumField<T, JsonT>(aFieldName, aJson, false, aMin, aMax);
+			return value ? *value : aDefault;
 		}
 
 		// Can be used to return null values for non-existing fields. Behaves similar to getField when throwIfMissing is true.
@@ -130,9 +141,6 @@ namespace webserver {
 
 		// Return a new JSON object with exact key-value pairs removed
 		static json filterExactValues(const json& aNew, const json& aCompareTo) noexcept;
-
-		// Throws if the value types of the supplied JSON objects don't match
-		static void ensureType(const string& aFieldName, const json& aNew, const json& aExisting);
 	private:
 		// Returns raw JSON value and optionally throws
 		template <typename JsonT>

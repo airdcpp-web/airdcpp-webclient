@@ -50,6 +50,10 @@ namespace webserver {
 		}
 	}
 
+	CID FilelistInfo::getId() const noexcept {
+		return dl->getUser()->getCID();
+	}
+
 	FilelistInfo::~FilelistInfo() {
 		dl->removeListener(this);
 	}

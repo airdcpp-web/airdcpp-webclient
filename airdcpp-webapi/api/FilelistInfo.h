@@ -35,7 +35,6 @@ namespace webserver {
 
 	class FilelistInfo : public SubApiModule<CID, FilelistInfo, std::string>, private DirectoryListingListener {
 	public:
-		typedef ParentApiModule<CID, FilelistInfo> ParentType;
 		typedef shared_ptr<FilelistInfo> Ptr;
 
 		static const StringList subscriptionList;
@@ -50,6 +49,7 @@ namespace webserver {
 		static json serializeLocation(const DirectoryListingPtr& aListing) noexcept;
 
 		void init() noexcept override;
+		CID getId() const noexcept override;
 	private:
 		api_return handleChangeDirectory(ApiRequest& aRequest);
 		api_return handleSetRead(ApiRequest& aRequest);
@@ -77,10 +77,10 @@ namespace webserver {
 
 		FilelistItemInfo::List getCurrentViewItems();
 
+		DirectoryListingPtr dl;
+
 		typedef ListViewController<FilelistItemInfoPtr, FilelistUtils::PROP_LAST> DirectoryView;
 		DirectoryView directoryView;
-
-		DirectoryListingPtr dl;
 
 		void onSessionUpdated(const json& aData) noexcept;
 

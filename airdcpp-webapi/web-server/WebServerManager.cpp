@@ -41,20 +41,20 @@
 
 namespace webserver {
 	vector<ServerSettingItem> WebServerSettings::settings = {
-		{ "web_plain_port", "Port", 5600 },
-		{ "web_plain_bind_address", "Bind address", "" },
+		{ "web_plain_port", "Port", 5600, ApiSettingItem::TYPE_NUMBER, false, { 1, 65535 } },
+		{ "web_plain_bind_address", "Bind address", "", ApiSettingItem::TYPE_STRING, true },
 
-		{ "web_tls_port", "Port", 5601 },
-		{ "web_tls_bind_address", "Bind address", "" },
+		{ "web_tls_port", "Port", 5601, ApiSettingItem::TYPE_NUMBER, false, { 1, 65535 } },
+		{ "web_tls_bind_address", "Bind address", "", ApiSettingItem::TYPE_STRING, true },
 
-		{ "web_tls_certificate_path", "Certificate path", "", ApiSettingItem::TYPE_FILE_PATH },
-		{ "web_tls_certificate_key_path", "Certificate key path", "", ApiSettingItem::TYPE_FILE_PATH },
+		{ "web_tls_certificate_path", "Certificate path", "", ApiSettingItem::TYPE_FILE_PATH, true },
+		{ "web_tls_certificate_key_path", "Certificate key path", "", ApiSettingItem::TYPE_FILE_PATH, true },
 
-		{ "web_server_threads", "Server threads", 4 },
+		{ "web_server_threads", "Server threads", 4, ApiSettingItem::TYPE_NUMBER, false, { 1, 100 } },
 
-		{ "default_idle_timeout", "Default session inactivity timeout", 20, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::MINUTES_LOWER, false } },
-		{ "ping_interval", "Socket ping interval", 30, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::SECONDS_LOWER, false } },
-		{ "ping_timeout", "Socket ping timeout", 10, ApiSettingItem::TYPE_GENERAL, { ResourceManager::Strings::SECONDS_LOWER, false } },
+		{ "default_idle_timeout", "Default session inactivity timeout (minutes)", 20, ApiSettingItem::TYPE_NUMBER, false },
+		{ "ping_interval", "Socket ping interval (seconds)", 30, ApiSettingItem::TYPE_NUMBER, false, { 1, 10000 } },
+		{ "ping_timeout", "Socket ping timeout (seconds)", 10, ApiSettingItem::TYPE_NUMBER, false, { 1, 10000 } },
 	};
 
 	using namespace dcpp;
@@ -129,17 +129,17 @@ namespace webserver {
 	template<class T>
 	void setEndpointHandlers(T& aEndpoint, bool aIsSecure, WebServerManager* aServer) {
 		aEndpoint.set_http_handler(
-			std::bind(&WebServerManager::on_http<T>, aServer, &aEndpoint, _1, aIsSecure));
+			std::bind(&WebServerManager::handleHttpRequest<T>, aServer, &aEndpoint, _1, aIsSecure));
 		aEndpoint.set_message_handler(
-			std::bind(&WebServerManager::on_message<T>, aServer, &aEndpoint, _1, _2, aIsSecure));
+			std::bind(&WebServerManager::handleSocketMessage<T>, aServer, &aEndpoint, _1, _2, aIsSecure));
 
-		aEndpoint.set_close_handler(std::bind(&WebServerManager::on_close_socket, aServer, _1));
-		aEndpoint.set_open_handler(std::bind(&WebServerManager::on_open_socket<T>, aServer, &aEndpoint, _1, aIsSecure));
+		aEndpoint.set_close_handler(std::bind(&WebServerManager::handleSocketDisconnected, aServer, _1));
+		aEndpoint.set_open_handler(std::bind(&WebServerManager::handleSocketConnected<T>, aServer, &aEndpoint, _1, aIsSecure));
 
 		aEndpoint.set_open_handshake_timeout(HANDSHAKE_TIMEOUT);
 
 		aEndpoint.set_pong_timeout(WEBCFG(PING_TIMEOUT).num() * 1000);
-		aEndpoint.set_pong_timeout_handler(std::bind(&WebServerManager::onPongTimeout, aServer, _1, _2));
+		aEndpoint.set_pong_timeout_handler(std::bind(&WebServerManager::handlePongTimeout, aServer, _1, _2));
 
 		// Workaround for https://github.com/zaphoyd/websocketpp/issues/549
 		aEndpoint.set_listen_backlog(boost::asio::socket_base::max_connections);
@@ -190,7 +190,7 @@ namespace webserver {
 		setEndpointHandlers(endpoint_tls, true, this);
 
 		// TLS endpoint has an extra handler for the tls init
-		endpoint_tls.set_tls_init_handler(std::bind(&WebServerManager::on_tls_init, this, _1));
+		endpoint_tls.set_tls_init_handler(std::bind(&WebServerManager::handleInitTls, this, _1));
 
 		// Logging
 		setEndpointLogSettings(endpoint_plain, debugStreamPlain);
@@ -277,8 +277,12 @@ namespace webserver {
 		return nullptr;
 	}
 
+	void WebServerManager::onData(const string& aData, TransportType aType, Direction aDirection, const string& aIP) noexcept {
+		fire(WebServerManagerListener::Data(), aData, aType, aDirection, aIP);
+	}
+
 	// For debugging only
-	void WebServerManager::onPongReceived(websocketpp::connection_hdl hdl, const string& /*aPayload*/) {
+	void WebServerManager::handlePongReceived(websocketpp::connection_hdl hdl, const string& /*aPayload*/) {
 		auto socket = getSocket(hdl);
 		if (!socket) {
 			return;
@@ -287,11 +291,7 @@ namespace webserver {
 		socket->debugMessage("PONG succeed");
 	}
 
-	void WebServerManager::onData(const string& aData, TransportType aType, Direction aDirection, const string& aIP) noexcept {
-		fire(WebServerManagerListener::Data(), aData, aType, aDirection, aIP);
-	}
-
-	void WebServerManager::onPongTimeout(websocketpp::connection_hdl hdl, const string&) {
+	void WebServerManager::handlePongTimeout(websocketpp::connection_hdl hdl, const string&) {
 		auto socket = getSocket(hdl);
 		if (!socket) {
 			return;
@@ -324,7 +324,7 @@ namespace webserver {
 		}
 	}
 
-	context_ptr WebServerManager::on_tls_init(websocketpp::connection_hdl hdl) {
+	context_ptr WebServerManager::handleInitTls(websocketpp::connection_hdl hdl) {
 		//std::cout << "on_tls_init called with hdl: " << hdl.lock().get() << std::endl;
 		context_ptr ctx(new boost::asio::ssl::context(boost::asio::ssl::context::tlsv12));
 
@@ -426,7 +426,16 @@ namespace webserver {
 		ios.post(aCallBack);
 	}
 
-	void WebServerManager::on_close_socket(websocketpp::connection_hdl hdl) {
+	void WebServerManager::addSocket(websocketpp::connection_hdl hdl, const WebSocketPtr& aSocket) noexcept {
+		{
+			WLock l(cs);
+			sockets.emplace(hdl, aSocket);
+		}
+
+		fire(WebServerManagerListener::SocketConnected(), aSocket);
+	}
+
+	void WebServerManager::handleSocketDisconnected(websocketpp::connection_hdl hdl) {
 		WebSocketPtr socket = nullptr;
 
 		{
@@ -445,6 +454,8 @@ namespace webserver {
 		if (socket->getSession()) {
 			socket->getSession()->onSocketDisconnected();
 		}
+
+		fire(WebServerManagerListener::SocketDisconnected(), socket);
 	}
 
 	bool WebServerManager::hasValidConfig() const noexcept {
@@ -463,7 +474,7 @@ namespace webserver {
 
 					if (xml.findChild("Threads")) {
 						xml.stepIn();
-						WEBCFG(SERVER_THREADS).setCurValue(max(Util::toInt(xml.getData()), 1));
+						WEBCFG(SERVER_THREADS).setValue(max(Util::toInt(xml.getData()), 1));
 						xml.stepOut();
 					}
 					xml.resetCurrentChild();
@@ -482,12 +493,12 @@ namespace webserver {
 
 	void WebServerManager::loadServer(SimpleXML& aXml, const string& aTagName, ServerConfig& config_, bool aTls) noexcept {
 		if (aXml.findChild(aTagName)) {
-			config_.port.setCurValue(aXml.getIntChildAttrib("Port"));
-			config_.bindAddress.setCurValue(aXml.getChildAttrib("BindAddress"));
+			config_.port.setValue(aXml.getIntChildAttrib("Port"));
+			config_.bindAddress.setValue(aXml.getChildAttrib("BindAddress"));
 
 			if (aTls) {
-				WEBCFG(TLS_CERT_PATH).setCurValue(aXml.getChildAttrib("Certificate"));
-				WEBCFG(TLS_CERT_KEY_PATH).setCurValue(aXml.getChildAttrib("CertificateKey"));
+				WEBCFG(TLS_CERT_PATH).setValue(aXml.getChildAttrib("Certificate"));
+				WEBCFG(TLS_CERT_KEY_PATH).setValue(aXml.getChildAttrib("CertificateKey"));
 			}
 		}
 

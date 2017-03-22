@@ -55,7 +55,7 @@ namespace webserver {
 	}
 
 	PrivateChatApi::PrivateChatApi(Session* aSession) : 
-		ParentApiModule("sessions", CID_PARAM, Access::PRIVATE_CHAT_VIEW, aSession, subscriptionList, PrivateChatInfo::subscriptionList,
+		ParentApiModule(CID_PARAM, Access::PRIVATE_CHAT_VIEW, aSession, subscriptionList, PrivateChatInfo::subscriptionList,
 			[](const string& aId) { return Deserializer::parseCID(aId); },
 			[](const PrivateChatInfo& aInfo) { return serializeChat(aInfo.getChat()); },
 			Access::PRIVATE_CHAT_EDIT
@@ -75,10 +75,10 @@ namespace webserver {
 			ClientManager::getInstance()->outgoingPrivateMessageHook.removeSubscriber(aId);
 		});
 
-		METHOD_HANDLER(Access::PRIVATE_CHAT_EDIT,	METHOD_DELETE,	(EXACT_PARAM("sessions"), CID_PARAM),	PrivateChatApi::handleDeleteChat);
-		METHOD_HANDLER(Access::PRIVATE_CHAT_EDIT,	METHOD_POST,	(EXACT_PARAM("sessions")),				PrivateChatApi::handlePostChat);
+		METHOD_HANDLER(Access::PRIVATE_CHAT_EDIT,	METHOD_DELETE,	(CID_PARAM),					PrivateChatApi::handleDeleteChat);
+		METHOD_HANDLER(Access::PRIVATE_CHAT_EDIT,	METHOD_POST,	(),								PrivateChatApi::handlePostChat);
 
-		METHOD_HANDLER(Access::PRIVATE_CHAT_SEND,	METHOD_POST,	(EXACT_PARAM("chat_message")),			PrivateChatApi::handlePostMessage);
+		METHOD_HANDLER(Access::PRIVATE_CHAT_SEND,	METHOD_POST,	(EXACT_PARAM("chat_message")),	PrivateChatApi::handlePostMessage);
 
 		auto rawChats = PrivateChatManager::getInstance()->getChats();
 		for (const auto& c : rawChats | map_values) {

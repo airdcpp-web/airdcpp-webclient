@@ -82,7 +82,7 @@ namespace webserver {
 
 		auto shareProfileToken = deserializeIntHubSetting("share_profile", j);
 		if (shareProfileToken && *shareProfileToken != HUB_SETTING_DEFAULT_INT) {
-			if (!AirUtil::isAdcHub(!server ? aEntry->getServer() : *server) && *shareProfileToken != SETTING(DEFAULT_SP)) {
+			if (!AirUtil::isAdcHub(!server ? aEntry->getServer() : *server) && *shareProfileToken != SETTING(DEFAULT_SP) && *shareProfileToken != SP_HIDDEN) {
 				JsonUtil::throwError("share_profile", JsonUtil::ERROR_INVALID, "Share profiles can't be changed for NMDC hubs");
 			}
 
