@@ -20,7 +20,9 @@ else
 fi
 
 # Shut it down
-curl -H "Content-Type: application/json" -X POST -u user:pass http://localhost:5600/api/v1/system/shutdown
+curl -s -o /dev/null -I -v -w "%{http_code}" -H "Content-Type: application/json" -X "POST" -u "user:pass" "http://localhost:5600/api/v1/system/shutdown"
+echo $http_code
+
 if ! [ $? -eq 0 ]; then
         echo "Failed to execute the shutdown command"
         exit 1
@@ -28,7 +30,7 @@ else
         echo "Shutdown initiated"
 fi
 
-sleep 5
+sleep 20
 
 # Ensure that it's not running
 ps cax | grep airdcppd > /dev/null
