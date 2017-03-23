@@ -39,6 +39,9 @@ before_install:
   - cd ..
 script:
   - CXXFLAGS=-Werror cmake -DCMAKE_CXX_COMPILER=$COMPILER . && make -j2 && sudo make install
+  - if [ $TRAVIS_OS_NAME == linux ]; then
+        sh ./test/initial_run.sh;
+    fi
 branches:
   only:
     - master
