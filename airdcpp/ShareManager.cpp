@@ -63,13 +63,12 @@ atomic_flag ShareManager::refreshing = ATOMIC_FLAG_INIT;
 atomic_flag ShareManager::refreshing;
 #endif
 
-ShareManager::ShareManager() : bloom(new ShareBloom(1 << 20))
+ShareManager::ShareManager() : bloom(new ShareBloom(1 << 20)), validator(new SharePathValidator())
 { 
 	SettingsManager::getInstance()->addListener(this);
 	HashManager::getInstance()->addListener(this);
 
 	File::ensureDirectory(Util::getPath(Util::PATH_SHARECACHE));
-
 #ifdef _DEBUG
 	{
 		auto emoji = Text::wideToUtf8(L"\U0001F30D");
@@ -691,7 +690,7 @@ void ShareManager::loadProfile(SimpleXML& aXml, const string& aName, ProfileToke
 }
 
 void ShareManager::load(SimpleXML& aXml) {
-	validator.reset(new SharePathValidator());
+	validator->reloadSkiplist();
 
 	//WLock l(cs);
 	aXml.resetCurrentChild();

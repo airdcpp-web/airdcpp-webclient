@@ -73,7 +73,7 @@ public:
 		STR_LAST };
 
 	enum IntSetting { INT_FIRST = STR_LAST + 1,
-		INCOMING_CONNECTIONS = INT_FIRST, INCOMING_CONNECTIONS6, TCP_PORT, SLOTS,
+		INCOMING_CONNECTIONS = INT_FIRST, INCOMING_CONNECTIONS6, TCP_PORT, UPLOAD_SLOTS,
 		BACKGROUND_COLOR, TEXT_COLOR,
 		BUFFER_SIZE, DOWNLOAD_SLOTS, MAX_DOWNLOAD_SPEED,
 		MIN_UPLOAD_SPEED, MAIN_WINDOW_STATE,
@@ -330,7 +330,7 @@ public:
 	// Attempts to load the setting file and creates a backup after completion
 	// Settings are recovered automatically from the backup file in case the main setting file is malformed/corrupted
 	typedef std::function<void(SimpleXML&)> ParseCallback;
-	static void loadSettingFile(Util::Paths aPath, const string& aFileName, ParseCallback&& aParseCallback, const CustomReportF& aCustomErrorF = nullptr) noexcept;
+	static bool loadSettingFile(Util::Paths aPath, const string& aFileName, ParseCallback&& aParseCallback, const CustomReportF& aCustomErrorF = nullptr) noexcept;
 private:
 	boost::regex connectionRegex;
 
