@@ -30,7 +30,7 @@ else
         echo "Shutdown initiated"
 fi
 
-sleep 20
+sleep 40
 
 # Ensure that it's not running
 ps cax | grep airdcppd > /dev/null
