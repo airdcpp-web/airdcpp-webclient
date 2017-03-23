@@ -399,7 +399,7 @@ int AirUtil::getSlots(bool aIsDownload, double aValue, SettingsManager::SettingP
 		return SETTING(DOWNLOAD_SLOTS);
 	} else if (!SETTING(UL_AUTODETECT) && aValue == 0 && !aIsDownload) {
 		//LogManager::getInstance()->message("Slots2");
-		return SETTING(SLOTS);
+		return SETTING(UPLOAD_SLOTS);
 	}
 
 	double speed;

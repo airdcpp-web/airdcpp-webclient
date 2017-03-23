@@ -59,7 +59,7 @@ class ShareManager : public Singleton<ShareManager>, public Speaker<ShareManager
 	private TimerManagerListener, private HashManagerListener
 {
 public:
-	unique_ptr<SharePathValidator> validator;
+	const unique_ptr<SharePathValidator> validator;
 
 	// Validate that the profiles are valid for the supplied path (sub/parent directory matching)
 	// Existing profiles shouldn't be supplied

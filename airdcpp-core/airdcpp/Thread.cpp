@@ -85,7 +85,8 @@ void Thread::t_resume() {
 
 void Thread::setThreadPriority(Priority p) {
 	if (!::SetThreadPriority(threadHandle, p)) {
-		dcassert(0);
+		dcdebug("Unable to set thread priority: %s", Util::translateError(GetLastError()).c_str());
+		//dcassert(0);
 		//throw ThreadException("Unable to set thread priority: " + Util::translateError(GetLastError()));
 	}
 }

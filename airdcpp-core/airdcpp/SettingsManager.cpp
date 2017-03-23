@@ -305,7 +305,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(SLOTS_ALTERNATE_LIMITING, 1);
 	
 	setDefault(DOWNLOAD_DIRECTORY, Util::getPath(Util::PATH_DOWNLOADS));
-	setDefault(SLOTS, 2);
+	setDefault(UPLOAD_SLOTS, 2);
 	setDefault(MAX_COMMAND_LENGTH, 512*1024); // 512 KiB
 
 	setDefault(BIND_ADDRESS, "0.0.0.0");
@@ -1167,36 +1167,23 @@ void SettingsManager::set(StrSetting key, string const& value, bool aForceSet) n
 }
 
 void SettingsManager::set(IntSetting key, int value, bool aForceSet) noexcept {
-	if ((key == SLOTS) && (value <= 0)) {
+	if (key == UPLOAD_SLOTS && value <= 0) {
 		value = 1;
-	}
-	if ((key == EXTRA_SLOTS) && (value < 1)) {
+	} else if (key == EXTRA_SLOTS && value < 1) {
 		value = 1;
-	}
-
-	if ((key == AUTOSEARCH_EVERY) && (value < 1)) {
+	} else if (key == AUTOSEARCH_EVERY && value < 1) {
 		value = 1;
-	}
-
-	if ((key == SET_MINISLOT_SIZE) && (value < 64)) {
+	} else if (key == SET_MINISLOT_SIZE && value < 64) {
 		value = 64;
-	}
-
-	if ((key == NUMBER_OF_SEGMENTS) && (value > 10)) {
+	} else if (key == NUMBER_OF_SEGMENTS && value > 10) {
 		value = 10;
-	}
-
-	if ((key == BUNDLE_SEARCH_TIME) && (value < 5)) {
+	} else if (key == BUNDLE_SEARCH_TIME && value < 5) {
 		value = 5;
-	}
-
-	if ((key == MINIMUM_SEARCH_INTERVAL) && (value < 5)) {
+	} else if (key == MINIMUM_SEARCH_INTERVAL && value < 5) {
 		value = 5;
-	}
-	if ((key == MAX_RESIZE_LINES) && (value < 1)) {
+	} else if (key == MAX_RESIZE_LINES && value < 1) {
 		value = 1;
 	}
-
 
 	intSettings[key - INT_FIRST] = value;
 	updateValueSet(key, value, aForceSet);
@@ -1346,13 +1333,13 @@ void settingXmlMessage(const string& aMessage, LogMessage::Severity aSeverity, c
 	}
 }
 
-void SettingsManager::loadSettingFile(Util::Paths aPath, const string& aFileName, ParseCallback&& aParseCallback, const CustomReportF& aCustomReportF) noexcept {
+bool SettingsManager::loadSettingFile(Util::Paths aPath, const string& aFileName, ParseCallback&& aParseCallback, const CustomReportF& aCustomReportF) noexcept {
 	const auto fullPath = Util::getPath(aPath) + aFileName;
 
 	Util::migrate(fullPath);
 
 	if (!Util::fileExists(fullPath)) {
-		return;
+		return false;
 	}
 
 	const auto parseFile = [&](const string& aPath) {
@@ -1376,7 +1363,7 @@ void SettingsManager::loadSettingFile(Util::Paths aPath, const string& aFileName
 	if (!parseFile(fullPath)) {
 		// Try to load the file that was previously loaded succesfully
 		if (!Util::fileExists(backupPath) || !parseFile(backupPath)) {
-			return;
+			return false;
 		}
 
 		auto corruptedCopyPath = fullPath + Util::formatTime(".CORRUPTED_%Y-%m-%d_%H-%M-%S", time(NULL));
@@ -1387,7 +1374,7 @@ void SettingsManager::loadSettingFile(Util::Paths aPath, const string& aFileName
 			File::copyFile(backupPath, fullPath);
 		} catch (const Exception& e) {
 			settingXmlMessage(STRING_F(UNABLE_TO_RENAME, fullPath % e.getError()), LogMessage::SEV_ERROR, aCustomReportF);
-			return;
+			return false;
 		}
 
 		settingXmlMessage(STRING_F(SETTING_FILE_RECOVERED, backupPath % Util::formatTime("%Y-%m-%d %H:%M", File::getLastModified(backupPath)) % corruptedCopyPath), LogMessage::SEV_INFO, aCustomReportF);
@@ -1400,6 +1387,8 @@ void SettingsManager::loadSettingFile(Util::Paths aPath, const string& aFileName
 			settingXmlMessage(STRING_F(SAVE_FAILED_X, backupPath % e.getError()), LogMessage::SEV_ERROR, aCustomReportF);
 		}
 	}
+
+	return true;
 }
 
 bool SettingsManager::saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, const CustomReportF& aCustomErrorF) noexcept {
