@@ -121,8 +121,13 @@ namespace webserver {
 		{ SettingsManager::MAX_COMPRESSION, { 0, 9 } },
 		{ SettingsManager::MINIMUM_SEARCH_INTERVAL, { 5, 1000 } },
 
-		{ SettingsManager::SLOTS, { 1, 250 } },
+		{ SettingsManager::UPLOAD_SLOTS, { 1, 250 } },
 		{ SettingsManager::DOWNLOAD_SLOTS, { 1, 250 } },
+		{ SettingsManager::SET_MINISLOT_SIZE, { 64, MAX_INT_VALUE } },
+		{ SettingsManager::EXTRA_SLOTS, { 1, 100 } },
+
+		{ SettingsManager::NUMBER_OF_SEGMENTS, { 1, 10 } },
+		{ SettingsManager::BUNDLE_SEARCH_TIME, { 5, MAX_INT_VALUE } },
 
 		// No validation for other enums at the moment but negative value would cause issues otherwise...
 		{ SettingsManager::INCOMING_CONNECTIONS, { SettingsManager::INCOMING_DISABLED, SettingsManager::INCOMING_LAST } },
@@ -165,7 +170,7 @@ namespace webserver {
 
 		{ SettingsManager::MIN_UPLOAD_SPEED, CoreSettingItem::GROUP_LIMITS_UL },
 		{ SettingsManager::AUTO_SLOTS, CoreSettingItem::GROUP_LIMITS_UL },
-		{ SettingsManager::SLOTS, CoreSettingItem::GROUP_LIMITS_UL },
+		{ SettingsManager::UPLOAD_SLOTS, CoreSettingItem::GROUP_LIMITS_UL },
 
 		{ SettingsManager::MAX_MCN_DOWNLOADS, CoreSettingItem::GROUP_LIMITS_MCN },
 		{ SettingsManager::MAX_MCN_UPLOADS, CoreSettingItem::GROUP_LIMITS_MCN },
@@ -235,7 +240,7 @@ namespace webserver {
 			case SettingsManager::DOWNLOAD_SLOTS: return AirUtil::getSlots(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
 			case SettingsManager::MAX_DOWNLOAD_SPEED: return AirUtil::getSpeedLimit(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
 
-			case SettingsManager::SLOTS: return AirUtil::getSlots(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
+			case SettingsManager::UPLOAD_SLOTS: return AirUtil::getSlots(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
 			case SettingsManager::MIN_UPLOAD_SPEED: return AirUtil::getSpeedLimit(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
 			case SettingsManager::AUTO_SLOTS: return AirUtil::getMaxAutoOpened(Util::toDouble(SETTING(UPLOAD_SPEED)));
 
