@@ -110,7 +110,7 @@ namespace webserver {
 		{ "upload_auto_limits", SettingsManager::UL_AUTODETECT, ResourceManager::AUTODETECT },
 		{ "upload_auto_grant_speed", SettingsManager::MIN_UPLOAD_SPEED, ResourceManager::SETTINGS_UPLOADS_MIN_SPEED, ApiSettingItem::TYPE_LAST, ResourceManager::Strings::KiBS },
 		{ "upload_max_granted", SettingsManager::AUTO_SLOTS, ResourceManager::SETTINGS_AUTO_SLOTS },
-		{ "upload_slots", SettingsManager::SLOTS, ResourceManager::SETTINGS_UPLOADS_SLOTS },
+		{ "upload_slots", SettingsManager::UPLOAD_SLOTS, ResourceManager::SETTINGS_UPLOADS_SLOTS },
 		{ "upload_minislot_size", SettingsManager::SET_MINISLOT_SIZE, ResourceManager::SETCZDC_SMALL_FILES, ApiSettingItem::TYPE_LAST, ResourceManager::Strings::KiB },
 		{ "upload_minislot_ext", SettingsManager::FREE_SLOTS_EXTENSIONS, ResourceManager::ST_MINISLOTS_EXT },
 
