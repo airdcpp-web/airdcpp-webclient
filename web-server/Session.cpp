@@ -88,18 +88,19 @@ namespace webserver {
 	}
 
 	ApiModule* Session::getModule(const string& aModule) {
+		Lock l(cs); // Avoid races when modules are being initialized by LazyModuleWrapper
 		auto h = apiHandlers.find(aModule);
 		return h != apiHandlers.end() ? h->second.get() : nullptr;
 	}
 
 	websocketpp::http::status_code::value Session::handleRequest(ApiRequest& aRequest) {
-		auto h = apiHandlers.find(aRequest.getApiModule());
-		if (h != apiHandlers.end()) {
-			return h->second->handleRequest(aRequest);
+		auto module = getModule(aRequest.getApiModule());
+		if (!module) {
+			aRequest.setResponseErrorStr("Section not found");
+			return websocketpp::http::status_code::not_found;
 		}
 
-		aRequest.setResponseErrorStr("Section not found");
-		return websocketpp::http::status_code::not_found;
+		return module->handleRequest(aRequest);
 	}
 
 	void Session::onSocketConnected(const WebSocketPtr& aSocket) noexcept {

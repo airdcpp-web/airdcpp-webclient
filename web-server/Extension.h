@@ -50,6 +50,10 @@ namespace webserver {
 		// Returns false if the process couldn't be stopped
 		bool stop() noexcept;
 
+		// Check that the extension is compatible with the current API
+		// Throws on errors
+		void checkCompatibility();
+
 		string getRootPath() const noexcept {
 			return EXTENSION_DIR_ROOT + name + PATH_SEPARATOR_STR;
 		}
@@ -101,6 +105,7 @@ namespace webserver {
 		bool hasSettings() const noexcept;
 		ServerSettingItem::List getSettings() const noexcept;
 		ServerSettingItem* getSetting(const string& aKey) noexcept;
+		void resetSettings() noexcept;
 
 		typedef map<string, json> SettingValueMap;
 		void setSettingValues(const SettingValueMap& aValues);
@@ -111,6 +116,9 @@ namespace webserver {
 
 		FilesystemItemList getLogs() const noexcept;
 	private:
+		int apiVersion = 0;
+		int minApiFeatureLevel = 0;
+
 		// Reload package.json from the supplied path
 		// Throws on errors
 		void initialize(const string& aPath, bool aSkipPathValidation);

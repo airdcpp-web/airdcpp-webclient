@@ -245,6 +245,8 @@ namespace webserver {
 		try {
 			// Validate the package content
 			Extension extensionInfo(tempPackageDirectory, nullptr, true);
+
+			extensionInfo.checkCompatibility();
 			finalInstallPath = extensionInfo.getRootPath();
 		} catch (const std::exception& e) {
 			failInstallation("Failed to load extension", e.what());

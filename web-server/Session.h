@@ -27,6 +27,7 @@
 
 #include <api/base/ApiModule.h>
 
+#include <airdcpp/CriticalSection.h>
 #include <airdcpp/GetSet.h>
 #include <airdcpp/typedefs.h>
 #include <airdcpp/Speaker.h>
@@ -102,6 +103,8 @@ namespace webserver {
 
 		WebUserPtr user;
 		WebServerManager* server;
+
+		mutable CriticalSection cs;
 	};
 }
 
