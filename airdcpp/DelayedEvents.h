@@ -47,26 +47,37 @@ public:
 	}
 
 	bool runTask(const T& aKey) {
-		Lock l(cs);
-		auto i = eventList.find(aKey);
-		if (i != eventList.end()) {
-			i->second.get()->f();
+		unique_ptr<DelayTask> task;
+
+		{
+			Lock l(cs);
+			auto i = eventList.find(aKey);
+			if (i == eventList.end()) {
+				return false;
+			}
+
+			task = std::move(i->second);
 			eventList.erase(i);
-			return true;
 		}
-		return false;
+
+		task->f();
+		return true;
 	}
 
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept {
-		Lock l(cs);
-		for (auto i = eventList.begin(); i != eventList.end();) {
-			if (aTick > i->second.get()->runTick) {
-				i->second.get()->f();
-				eventList.erase(i);
-				i = eventList.begin();
-			} else {
-				i++;
+		vector<T> taskKeys;
+
+		{
+			Lock l(cs);
+			for (const auto& i: eventList) {
+				if (aTick > i.second->runTick) {
+					taskKeys.push_back(i.first);
+				}
 			}
+		}
+
+		for (const auto& k: taskKeys) {
+			runTask(k);
 		}
 	}
 
@@ -84,7 +95,9 @@ public:
 
 	void clear() {
 		List tmp;
-		tmp = move(eventList);
+
+		Lock l(cs);
+		eventList.swap(eventList);
 	}
 
 	bool removeEvent(const T& aKey) {

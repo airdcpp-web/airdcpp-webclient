@@ -297,7 +297,7 @@ void AutoSearch::updateStatus() noexcept {
 }
 
 bool AutoSearch::removePostSearch() noexcept {
-	if (lastIncFinish > 0 && lastIncFinish + SETTING(AS_DELAY_HOURS) + 60 * 60 <= GET_TIME()) {
+	if (lastIncFinish > 0 && (SETTING(AS_DELAY_HOURS) == 0 || lastIncFinish + SETTING(AS_DELAY_HOURS) + 60 * 60 <= GET_TIME())) {
 		lastIncFinish = 0;
 		return true;
 	}
