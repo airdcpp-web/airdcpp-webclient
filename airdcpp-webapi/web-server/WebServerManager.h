@@ -154,7 +154,15 @@ namespace webserver {
 			}
 
 			onData(msg->get_payload(), TransportType::TYPE_SOCKET, Direction::INCOMING, socket->getIp());
-			api.handleSocketRequest(msg->get_payload(), socket, aIsSecure);
+
+			// Messages received from each socket will always use the same thread
+			// This will also help with hooks getting timed out when they are being run and
+			// resolved by the same socket
+			// TODO: use different threads for handling requests that involve running of hooks
+			addAsyncTask([=] {
+				auto s = socket;
+				api.handleSocketRequest(msg->get_payload(), s, aIsSecure); 
+			});
 		}
 
 		template <typename EndpointType>

@@ -96,21 +96,19 @@ namespace webserver {
 		parseApiData(aJson.at("airdcpp"));
 	}
 
-	void Extension::parseApiData(const json& aJson) {
-		// Check API compatibility
-		{
-			const int apiVersion = aJson.at("apiVersion");
-			if (apiVersion != API_VERSION) {
-				throw Exception("Extension requires API version " + Util::toString(apiVersion) + " while the application uses version " + Util::toString(API_VERSION));
-			}
+	void Extension::checkCompatibility() {
+		if (apiVersion != API_VERSION) {
+			throw Exception("Extension requires API version " + Util::toString(apiVersion) + " while the application uses version " + Util::toString(API_VERSION));
 		}
 
-		{
-			const int minFeatureLevel = aJson.value("minApiFeatureLevel", 0);
-			if (minFeatureLevel != API_FEATURE_LEVEL) {
-				throw Exception("Extension requires API feature level " + Util::toString(minFeatureLevel) + " or newer while the application uses version " + Util::toString(API_FEATURE_LEVEL));
-			}
+		if (minApiFeatureLevel != API_FEATURE_LEVEL) {
+			throw Exception("Extension requires API feature level " + Util::toString(minApiFeatureLevel) + " or newer while the application uses version " + Util::toString(API_FEATURE_LEVEL));
 		}
+	}
+
+	void Extension::parseApiData(const json& aJson) {
+		apiVersion = aJson.at("apiVersion");
+		minApiFeatureLevel = aJson.value("minApiFeatureLevel", 0);
 	}
 
 	FilesystemItemList Extension::getLogs() const noexcept {
@@ -153,6 +151,15 @@ namespace webserver {
 		fire(ExtensionListener::SettingDefinitionsUpdated());
 	}
 
+	void Extension::resetSettings() noexcept {
+		{
+			WLock l(cs);
+			settings.clear();
+		}
+
+		fire(ExtensionListener::SettingDefinitionsUpdated());
+	}
+
 	void Extension::setSettingValues(const SettingValueMap& aValues) {
 		{
 			WLock l(cs);
@@ -187,13 +194,15 @@ namespace webserver {
 			return;
 		}
 
-		File::ensureDirectory(getLogPath());
-		File::ensureDirectory(getSettingsPath());
-
 		if (isRunning()) {
 			dcassert(0);
 			return;
 		}
+
+		File::ensureDirectory(getLogPath());
+		File::ensureDirectory(getSettingsPath());
+
+		checkCompatibility();
 
 		session = wsm->getUserManager().createExtensionSession(name);
 		
@@ -260,12 +269,12 @@ namespace webserver {
 			return false;
 		}
 
-		fire(ExtensionListener::ExtensionStopped());
 		onStopped(false);
 		return true;
 	}
 
 	void Extension::onStopped(bool aFailed) noexcept {
+		fire(ExtensionListener::ExtensionStopped(), aFailed);
 		if (aFailed) {
 			timer->stop(false);
 		}
@@ -276,6 +285,7 @@ namespace webserver {
 		}
 
 		resetProcessState();
+		resetSettings();
 
 		running = false;
 		if (aFailed && errorF) {

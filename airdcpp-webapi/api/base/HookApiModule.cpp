@@ -154,7 +154,7 @@ namespace webserver {
 		WLock l(cs);
 		auto h = pendingHookActions.find(id);
 		if (h == pendingHookActions.end()) {
-			aRequest.setResponseErrorStr("No pending hook with this ID");
+			aRequest.setResponseErrorStr("No pending hook with ID " + std::to_string(id) + " (did the hook time out?)");
 			return websocketpp::http::status_code::not_found;
 		}
 

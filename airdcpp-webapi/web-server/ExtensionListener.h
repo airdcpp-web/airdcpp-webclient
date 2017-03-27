@@ -38,7 +38,7 @@ namespace webserver {
 
 
 		virtual void on(ExtensionStarted) noexcept { }
-		virtual void on(ExtensionStopped) noexcept { }
+		virtual void on(ExtensionStopped, bool /*aFailed*/) noexcept { }
 
 		virtual void on(SettingValuesUpdated, const SettingValueMap&) noexcept { }
 		virtual void on(SettingDefinitionsUpdated) noexcept { }

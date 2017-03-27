@@ -166,7 +166,7 @@ namespace webserver {
 		});
 	}
 
-	void ExtensionInfo::on(ExtensionListener::ExtensionStopped) noexcept {
+	void ExtensionInfo::on(ExtensionListener::ExtensionStopped, bool) noexcept {
 		onUpdated([&] {
 			return json({
 				{ "running", extension->isRunning() }

@@ -56,7 +56,7 @@ namespace webserver {
 		void on(ExtensionListener::SettingDefinitionsUpdated) noexcept override;
 
 		void on(ExtensionListener::ExtensionStarted) noexcept override;
-		void on(ExtensionListener::ExtensionStopped) noexcept override;
+		void on(ExtensionListener::ExtensionStopped, bool aFailed) noexcept override;
 		void on(ExtensionListener::PackageUpdated) noexcept override;
 
 		api_return handleStartExtension(ApiRequest& aRequest);
