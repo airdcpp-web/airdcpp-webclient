@@ -587,16 +587,7 @@ void AutoSearchManager::checkItems() noexcept {
 		WLock l(cs);
 
 		for(auto& as: searchItems.getItems() | map_values) {
-			//Check if the item gets enabled from search time limits...
-			bool aOldSearchTimeEnabled = as->allowNewItems() && as->nextAllowedSearch() == 0;
-			bool fireUpdate = as->updateSearchTime();
-			bool aNewSearchTimeEnabled = as->allowNewItems() && as->nextAllowedSearch() == 0;
-
-			if (!aOldSearchTimeEnabled && aNewSearchTimeEnabled)
-				itemsEnabled++;
-
-			if (aOldSearchTimeEnabled && !aNewSearchTimeEnabled)
-				itemsDisabled++;
+			bool fireUpdate = false;
 
 			//update possible priority change
 			auto newPrio = as->calculatePriority();
@@ -608,27 +599,37 @@ void AutoSearchManager::checkItems() noexcept {
 				hasPrioChange = true;
 			}
 
-			
-			//check expired, and remove them.
-			if (as->getStatus() != AutoSearch::STATUS_EXPIRED && as->expirationTimeReached() && as->getBundles().empty()) {
-				expired.push_back(as);
-			}
-
 			// check post search items and whether we can change the number
 			if (as->removePostSearch()) {
 				if (as->maxNumberReached()) {
 					expired.push_back(as);
 					continue;
-				} else {
-					dirty = true;
-					as->changeNumber(true);
-					as->updateStatus();
-					fireUpdate = true;
 				}
+				dirty = true;
+				as->changeNumber(true);
+				as->updateStatus();
+				fireUpdate = true;
+			}
+			
+			//check expired, and remove them.
+			if (as->getStatus() != AutoSearch::STATUS_EXPIRED && as->expirationTimeReached() && as->getBundles().empty()) {
+				expired.push_back(as);
+				continue;
 			}
 
-			if (as->getExpireTime() > 0 || fireUpdate)
+			//Check if the item gets enabled from search time limits...
+			bool aOldSearchTimeEnabled = as->allowNewItems() && as->nextAllowedSearch() == 0;
+
+			if (as->updateSearchTime() || as->getExpireTime() > 0 || fireUpdate)
 				updateitems.push_back(as);
+
+			bool aNewSearchTimeEnabled = as->allowNewItems() && as->nextAllowedSearch() == 0;
+
+			if (!aOldSearchTimeEnabled && aNewSearchTimeEnabled)
+				itemsEnabled++;
+
+			if (aOldSearchTimeEnabled && !aNewSearchTimeEnabled)
+				itemsDisabled++;
 		}
 	}
 

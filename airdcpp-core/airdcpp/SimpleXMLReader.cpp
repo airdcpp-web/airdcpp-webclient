@@ -92,7 +92,7 @@ SimpleXMLReader::SimpleXMLReader(SimpleXMLReader::CallBack* callback, int aFlags
 }
 
 void SimpleXMLReader::append(std::string& str, size_t maxLen, int c) {
-	if(str.size() + 1 > maxLen) {
+	if(str.size() > maxLen) {
 		error("Buffer overflow");
 	}
 	str.append(1, (std::string::value_type)c);
@@ -433,7 +433,7 @@ bool SimpleXMLReader::cdata() {
 }
 
 bool SimpleXMLReader::entref(string& d) {
-	if(d.size() + 1 >= MAX_VALUE_SIZE) {
+	if(d.size() > MAX_VALUE_SIZE) {
 		error("Buffer overflow");
 	}
 
