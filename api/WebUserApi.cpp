@@ -71,12 +71,12 @@ namespace webserver {
 	}
 
 	void WebUserApi::parseUser(WebUserPtr& aUser, const json& j, bool aIsNew) {
-		auto password = JsonUtil::getOptionalField<string>("password", j, false, aIsNew);
+		auto password = JsonUtil::getOptionalField<string>("password", j, aIsNew);
 		if (password) {
 			aUser->setPassword(*password);
 		}
 
-		auto permissions = JsonUtil::getOptionalField<StringList>("permissions", j, false, false);
+		auto permissions = JsonUtil::getOptionalField<StringList>("permissions", j);
 		if (permissions) {
 			// Only validate added profiles profiles
 			aUser->setPermissions(*permissions);

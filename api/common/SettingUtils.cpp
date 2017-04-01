@@ -30,7 +30,12 @@ namespace webserver {
 			{ "key", aItem.name },
 			{ "title", aItem.getTitle() },
 			{ "type", typeToStr(aItem.type) },
+			{ "default_value", aItem.getDefaultValue() },
 		};
+
+		if (!aItem.getHelpStr().empty()) {
+			ret["help"] = aItem.getHelpStr();
+		}
 
 		if (aItem.isOptional()) {
 			ret["optional"] = true;
@@ -38,7 +43,7 @@ namespace webserver {
 
 		{
 			for (const auto& opt : aItem.getEnumOptions()) {
-				ret["values"].push_back({
+				ret["options"].push_back({
 					{ "id", opt.id },
 					{ "name", opt.text },
 				});
@@ -57,6 +62,16 @@ namespace webserver {
 			}
 		}
 
+		if (aItem.type == ApiSettingItem::TYPE_LIST) {
+			ret["item_type"] = typeToStr(aItem.itemType);
+			if (aItem.itemType == ApiSettingItem::TYPE_STRUCT) {
+				dcassert(!aItem.getValueTypes().empty());
+				for (const auto& valueType: aItem.getValueTypes()) {
+					ret["definitions"].push_back(serializeDefinition(*valueType));
+				}
+			}
+		}
+
 		return ret;
 	}
 
@@ -68,6 +83,8 @@ namespace webserver {
 			case ApiSettingItem::TYPE_FILE_PATH: return "file_path";
 			case ApiSettingItem::TYPE_DIRECTORY_PATH: return "directory_path";
 			case ApiSettingItem::TYPE_TEXT: return "text";
+			case ApiSettingItem::TYPE_LIST: return "list";
+			case ApiSettingItem::TYPE_STRUCT: return "struct";
 			case ApiSettingItem::TYPE_LAST: dcassert(0);
 		}
 
@@ -75,27 +92,85 @@ namespace webserver {
 		return Util::emptyString;
 	}
 
-	json SettingUtils::validateValue(const ApiSettingItem& aItem, const json& aValue) {
-		if (aItem.type == ApiSettingItem::TYPE_NUMBER) {
-			auto num = JsonUtil::parseValue<int>(aItem.name, aValue, aItem.isOptional());
-
-			// Validate range
-			JsonUtil::validateRange(aItem.name, num, aItem.getMinMax().min, aItem.getMinMax().max);
-
-			return num;
-		} else if (ApiSettingItem::isString(aItem.type)) {
-			auto value = JsonUtil::parseValue<string>(aItem.name, aValue, aItem.isOptional());
-
-			// Validate paths
-			if (aItem.type == ApiSettingItem::TYPE_DIRECTORY_PATH) {
-				value = Util::validatePath(value, true);
-			} else if (aItem.type == ApiSettingItem::TYPE_FILE_PATH) {
-				value = Util::validateFileName(value);
+	json SettingUtils::validateObjectListValue(const ApiSettingItem::PtrList& aPropertyDefinitions, const json& aValue) {
+		// Unknown properties will be ignored...
+		auto ret = json::object();
+		for (const auto& def: aPropertyDefinitions) {
+			auto i = aValue.find(def->name);
+			if (i == aValue.end()) {
+				ret[def->name] = validateValue(def->getDefaultValue(), *def);
+			} else {
+				ret[def->name] = validateValue(i.value(), *def);
 			}
+		}
 
-			return value;
-		} else if (aItem.type == ApiSettingItem::TYPE_BOOLEAN) {
-			return JsonUtil::parseValue<bool>(aItem.name, aValue, aItem.isOptional());
+		return ret;
+	}
+
+	json SettingUtils::validateValue(const json& aValue, const ApiSettingItem& aItem) {
+		return validateValue(aValue, aItem.name, aItem.type, aItem.itemType, aItem.isOptional(), aItem.getMinMax(), aItem.getValueTypes(), aItem.getEnumOptions());
+	}
+
+	json SettingUtils::validateValue(const json& aValue, const string& aKey, ApiSettingItem::Type aType, ApiSettingItem::Type aItemType, bool aOptional, const ApiSettingItem::MinMax& aMinMax,
+		const ApiSettingItem::PtrList& aObjectValues, const ApiSettingItem::EnumOption::List& aEnumOptions) {
+		{
+			// Validate the current value for enum fields
+			if (!aEnumOptions.empty()) {
+				if (!ApiSettingItem::optionsAllowed(aType, aItemType)) {
+					JsonUtil::throwError(aKey, JsonUtil::ERROR_INVALID, "options not supported for type " + typeToStr(aType));
+				}
+				
+				if (aType == ApiSettingItem::TYPE_LIST) {
+					// Array, validate all values
+					for (const auto& itemId: aValue) {
+						auto i = boost::find_if(aEnumOptions, [&](const ApiSettingItem::EnumOption& opt) { return opt.id == itemId; });
+						if (i == aEnumOptions.end()) {
+							JsonUtil::throwError(aKey, JsonUtil::ERROR_INVALID, "All values can't be found from enum options");
+						}
+					}
+				} else if (aType == ApiSettingItem::TYPE_NUMBER || aType == ApiSettingItem::TYPE_STRING) {
+					// Single value
+					auto i = boost::find_if(aEnumOptions, [&](const ApiSettingItem::EnumOption& opt) { return opt.id == aValue; });
+					if (i == aEnumOptions.end()) {
+						JsonUtil::throwError(aKey, JsonUtil::ERROR_INVALID, "Value is not one of the enum options");
+					}
+				}
+			}
+		}
+
+		if (aType == ApiSettingItem::TYPE_NUMBER) {
+			return parseIntSetting(aKey, aValue, aOptional, aMinMax);
+		} else if (ApiSettingItem::isString(aType)) {
+			return parseStringSetting(aKey, aValue, aOptional, aType);
+		} else if (aType == ApiSettingItem::TYPE_BOOLEAN) {
+			return JsonUtil::parseValue<bool>(aKey, aValue, aOptional);
+		} else if (aType == ApiSettingItem::TYPE_LIST) {
+			if (aItemType == ApiSettingItem::TYPE_STRUCT) {
+				auto ret = json::array();
+				for (const auto& listValueObj : JsonUtil::parseValue<json::array_t>(aKey, aValue, aOptional)) {
+					ret.push_back(validateObjectListValue(aObjectValues, JsonUtil::parseValue<json::object_t>(aKey, listValueObj, false)));
+				}
+
+				return ret;
+			} else if (aItemType == ApiSettingItem::TYPE_NUMBER) {
+				auto ret = json::array();
+				for (const int item: JsonUtil::parseValue<ApiSettingItem::ListNumber>(aKey, aValue, aOptional)) {
+					ret.push_back(parseIntSetting(aKey, item, false, aMinMax));
+				}
+
+				return ret;
+			} else if (ApiSettingItem::isString(aItemType)) {
+				auto ret = json::array();
+				for (const string& item: JsonUtil::parseValue<ApiSettingItem::ListString>(aKey, aValue, aOptional)) {
+					ret.push_back(parseStringSetting(aKey, item, false, aItemType));
+				}
+
+				return ret;
+			} else {
+				JsonUtil::throwError(aKey, JsonUtil::ERROR_INVALID, "type " + typeToStr(aItemType) + " is not supported for list items");
+			}
+		} else if (aType == ApiSettingItem::TYPE_STRUCT) {
+			JsonUtil::throwError(aKey, JsonUtil::ERROR_INVALID, "object type is supported only for list items");
 		}
 
 		dcassert(0);
@@ -112,45 +187,113 @@ namespace webserver {
 		return ret;
 	}
 
-	ServerSettingItem SettingUtils::deserializeDefinition(const json& aJson) {
+	json SettingUtils::parseEnumOptionId(const json& aJson, ApiSettingItem::Type aType) {
+		if (aType == ApiSettingItem::TYPE_NUMBER) {
+			return JsonUtil::getField<int>("id", aJson, false);
+		}
+
+		return JsonUtil::getField<string>("id", aJson, false);
+	}
+
+	json SettingUtils::parseStringSetting(const string& aFieldName, const json& aJson, bool aOptional, ApiSettingItem::Type aType) {
+		auto value = JsonUtil::parseValue<string>(aFieldName, aJson, aOptional);
+
+		// Validate paths
+		if (aType == ApiSettingItem::TYPE_DIRECTORY_PATH) {
+			value = Util::validatePath(value, true);
+		} else if (aType == ApiSettingItem::TYPE_FILE_PATH) {
+			value = Util::validateFileName(value);
+		}
+
+		return value;
+	}
+
+	json SettingUtils::parseIntSetting(const string& aFieldName, const json& aJson, bool aOptional, const ApiSettingItem::MinMax& aMinMax) {
+		auto num = JsonUtil::parseValue<int>(aFieldName, aJson, aOptional);
+
+		// Validate range
+		JsonUtil::validateRange(aFieldName, num, aMinMax.min, aMinMax.max);
+
+		return num;
+	}
+
+	ServerSettingItem SettingUtils::deserializeDefinition(const json& aJson, bool aIsListValue) {
 		auto key = JsonUtil::getField<string>("key", aJson, false);
 		auto title = JsonUtil::getField<string>("title", aJson, false);
 
-		auto typeStr = JsonUtil::getField<string>("type", aJson, false);
-		auto type = parseType(typeStr);
-		if (type == ApiSettingItem::TYPE_LAST) {
-			JsonUtil::throwError("type", JsonUtil::ERROR_INVALID, "Invalid type " + typeStr);
+		auto type = deserializeType("type", aJson, false);
+		auto itemType = deserializeType("item_type", aJson, type != ApiSettingItem::TYPE_LIST);
+
+		if (aIsListValue && type == ApiSettingItem::TYPE_LIST) {
+			JsonUtil::throwError("type", JsonUtil::ERROR_INVALID, "Field of type " + typeToStr(type) + " can't be used for list item");
 		}
 
 		auto isOptional = JsonUtil::getOptionalFieldDefault<bool>("optional", aJson, false);
 		if (isOptional && (type == ApiSettingItem::TYPE_BOOLEAN || type == ApiSettingItem::TYPE_NUMBER)) {
-			JsonUtil::throwError("optional", JsonUtil::ERROR_INVALID, "Field of type " + typeStr + " can't be optional");
+			JsonUtil::throwError("optional", JsonUtil::ERROR_INVALID, "Field of type " + typeToStr(type) + " can't be optional");
 		}
 
-		auto defaultValue = JsonUtil::getOptionalRawField("defaultValue", aJson, !isOptional);
+		auto help = JsonUtil::getOptionalFieldDefault<string>("help", aJson, Util::emptyString);
 
-		auto minValue = JsonUtil::getOptionalFieldDefault<int>("min", aJson, 0);
-		auto maxValue = JsonUtil::getOptionalFieldDefault<int>("max", aJson, MAX_INT_VALUE);
+		ApiSettingItem::MinMax minMax = {
+			JsonUtil::getOptionalFieldDefault<int>("min", aJson, 0),
+			JsonUtil::getOptionalFieldDefault<int>("max", aJson, MAX_INT_VALUE)
+		};
 
-		return ServerSettingItem(key, title, defaultValue, type, isOptional, { minValue, maxValue });
+		ServerSettingItem::List objectValues;
+		if (type == ApiSettingItem::TYPE_LIST && itemType == ApiSettingItem::TYPE_STRUCT) {
+			for (const auto& valueJ: JsonUtil::getRawField("definitions", aJson)) {
+				objectValues.push_back(deserializeDefinition(valueJ, true));
+			}
+		}
+
+		ApiSettingItem::EnumOption::List enumOptions;
+
+		if (ApiSettingItem::optionsAllowed(type, itemType)) {
+			auto optionsJson = JsonUtil::getOptionalRawField("options", aJson, false);
+			if (!optionsJson.is_null()) {
+				for (const auto& opt: optionsJson) {
+					enumOptions.push_back({
+						parseEnumOptionId(opt, type),
+						JsonUtil::getField<string>("name", opt, false)
+					});
+				}
+			}
+		}
+
+		auto defaultValue = validateValue(
+			JsonUtil::getOptionalRawField("default_value", aJson, !isOptional), 
+			key, type, itemType, true, minMax, ApiSettingItem::valueTypesToPtrList(objectValues), enumOptions
+		);
+
+		return ServerSettingItem(key, title, defaultValue, type, isOptional, minMax, objectValues, help, itemType, enumOptions);
 	}
 
-	ApiSettingItem::Type SettingUtils::parseType(const string& aTypeStr) noexcept {
-		if (aTypeStr == "string") {
-			return ApiSettingItem::TYPE_STRING;
-		} else if (aTypeStr == "boolean") {
-			return ApiSettingItem::TYPE_BOOLEAN;
-		} else if (aTypeStr == "number") {
-			return ApiSettingItem::TYPE_NUMBER;
-		} else if (aTypeStr == "text") {
-			return ApiSettingItem::TYPE_TEXT;
-		} else if (aTypeStr == "file_path") {
-			return ApiSettingItem::TYPE_FILE_PATH;
-		} else if (aTypeStr == "directory_path") {
-			return ApiSettingItem::TYPE_DIRECTORY_PATH;
+	ApiSettingItem::Type SettingUtils::deserializeType(const string& aFieldName, const json& aJson, bool aOptional) {
+		auto itemTypeStr = JsonUtil::getOptionalField<string>(aFieldName, aJson, !aOptional);
+		if (itemTypeStr) {
+			if (*itemTypeStr == "string") {
+				return ApiSettingItem::TYPE_STRING;
+			} else if (*itemTypeStr == "boolean") {
+				return ApiSettingItem::TYPE_BOOLEAN;
+			} else if (*itemTypeStr == "number") {
+				return ApiSettingItem::TYPE_NUMBER;
+			} else if (*itemTypeStr == "text") {
+				return ApiSettingItem::TYPE_TEXT;
+			} else if (*itemTypeStr == "file_path") {
+				return ApiSettingItem::TYPE_FILE_PATH;
+			} else if (*itemTypeStr == "directory_path") {
+				return ApiSettingItem::TYPE_DIRECTORY_PATH;
+			} else if (*itemTypeStr == "list") {
+				return ApiSettingItem::TYPE_LIST;
+			} else if (*itemTypeStr == "struct") {
+				return ApiSettingItem::TYPE_STRUCT;
+			}
+
+			dcassert(0);
+			JsonUtil::throwError(aFieldName, JsonUtil::ERROR_INVALID, "Invalid item type " + *itemTypeStr);
 		}
 
-		dcassert(0);
 		return ApiSettingItem::TYPE_LAST;
 	}
 }

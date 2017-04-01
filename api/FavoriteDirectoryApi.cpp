@@ -119,7 +119,7 @@ namespace webserver {
 	}
 
 	StringPair FavoriteDirectoryApi::updatePath(const string& aPath, const json& aRequestJson) {
-		auto virtualName = JsonUtil::getOptionalFieldDefault<string>("name", aRequestJson, Util::getLastDir(aPath), false);
+		auto virtualName = JsonUtil::getOptionalFieldDefault<string>("name", aRequestJson, Util::getLastDir(aPath));
 		FavoriteManager::getInstance()->setFavoriteDir(aPath, virtualName);
 		return { aPath, virtualName };
 	}

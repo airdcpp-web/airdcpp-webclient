@@ -38,7 +38,7 @@ namespace webserver {
 
 	ExtensionApi::ExtensionApi(Session* aSession) : /*HookApiModule(aSession, Access::ADMIN, nullptr, Access::ADMIN),*/ 
 		em(aSession->getServer()->getExtensionManager()),
-		ParentApiModule(EXTENSION_PARAM, Access::ADMIN, aSession, ExtensionApi::subscriptionList,
+		ParentApiModule(EXTENSION_PARAM, Access::SETTINGS_VIEW, aSession, ExtensionApi::subscriptionList,
 			ExtensionInfo::subscriptionList,
 			[](const string& aId) { return aId; },
 			[](const ExtensionInfo& aInfo) { return ExtensionInfo::serializeExtension(aInfo.getExtension()); }
@@ -81,7 +81,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto url = JsonUtil::getField<string>("url", reqJson, false);
-		auto sha = JsonUtil::getOptionalFieldDefault<string>("shasum", reqJson, Util::emptyString, true);
+		auto sha = JsonUtil::getOptionalFieldDefault<string>("shasum", reqJson, Util::emptyString);
 
 		if (!em.downloadExtension(url, sha)) {
 			aRequest.setResponseErrorStr("Extension is being download already");

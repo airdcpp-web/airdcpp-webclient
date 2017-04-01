@@ -279,6 +279,9 @@
     <ClInclude Include="api\common\SettingUtils.h">
       <Filter>Header Files\api\common</Filter>
     </ClInclude>
+    <ClInclude Include="web-server\SystemUtil.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
@@ -457,6 +460,9 @@
     </ClCompile>
     <ClCompile Include="api\common\SettingUtils.cpp">
       <Filter>Source Files\api\common</Filter>
+    </ClCompile>
+    <ClCompile Include="web-server\SystemUtil.cpp">
+      <Filter>Source Files\web-server</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

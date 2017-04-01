@@ -112,10 +112,10 @@ namespace webserver {
 				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");
 			}
 
-			settings[elem.key()] = SettingUtils::validateValue(*setting, elem.value());
+			settings[elem.key()] = SettingUtils::validateValue(elem.value(), *setting);
 		}
 
-		extension->setSettingValues(aRequest.getRequestBody());
+		extension->setSettingValues(settings);
 		return websocketpp::http::status_code::no_content;
 	}
 

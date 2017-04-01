@@ -102,25 +102,23 @@ namespace webserver {
 
 	void Deserializer::deserializeDownloadParams(const json& aJson, const SessionPtr& aSession, string& targetDirectory_, string& targetName_, Priority& priority_) {
 		// Target path
-		targetDirectory_ = JsonUtil::getOptionalFieldDefault<string>("target_directory", aJson, SETTING(DOWNLOAD_DIRECTORY), false);
+		targetDirectory_ = JsonUtil::getOptionalFieldDefault<string>("target_directory", aJson, SETTING(DOWNLOAD_DIRECTORY));
 
 		ParamMap params;
 		params["username"] = aSession->getUser()->getUserName();
 		targetDirectory_ = Util::formatParams(targetDirectory_, params, nullptr, 0);
 
 		// A default target name can be provided
-		auto name = JsonUtil::getOptionalField<string>("target_name", aJson, false, targetName_.empty());
+		auto name = JsonUtil::getOptionalField<string>("target_name", aJson, targetName_.empty());
 		if (name) {
 			targetName_ = *name;
-		} else if (targetName_.empty()) {
-			JsonUtil::throwError("target_name", JsonUtil::ERROR_MISSING, "Target bundle name must be provided");
 		}
 
 		priority_ = deserializePriority(aJson, true);
 	}
 
 	StringList Deserializer::deserializeHubUrls(const json& aJson) {
-		auto hubUrls = JsonUtil::getOptionalFieldDefault<StringList>("hub_urls", aJson, StringList(), false);
+		auto hubUrls = JsonUtil::getOptionalFieldDefault<StringList>("hub_urls", aJson, StringList());
 		if (hubUrls.empty()) {
 			ClientManager::getInstance()->getOnlineClients(hubUrls);
 		}

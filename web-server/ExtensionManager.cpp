@@ -66,23 +66,25 @@ namespace webserver {
 			return;
 		}
 
-		ExtensionPtr extension = nullptr;
+		aSocket->getSession()->getServer()->addAsyncTask([=] {
+			ExtensionPtr extension = nullptr;
 
-		// Remove possible unmanaged extensions matching this session
-		{
-			RLock l(cs);
-			auto i = find_if(extensions.begin(), extensions.end(), [&](const ExtensionPtr& aExtension) {
-				return aExtension->getSession() == aSocket->getSession();
-			});
+			// Remove possible unmanaged extensions matching this session
+			{
+				RLock l(cs);
+				auto i = find_if(extensions.begin(), extensions.end(), [&](const ExtensionPtr& aExtension) {
+					return aExtension->getSession() == aSocket->getSession();
+				});
 
-			if (i == extensions.end() || (*i)->isManaged()) {
-				return;
+				if (i == extensions.end() || (*i)->isManaged()) {
+					return;
+				}
+
+				extension = *i;
 			}
 
-			extension = *i;
-		}
-
-		removeExtension(extension);
+			removeExtension(extension);
+		});
 	}
 
 	void ExtensionManager::load() noexcept {

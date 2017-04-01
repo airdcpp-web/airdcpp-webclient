@@ -42,12 +42,12 @@ namespace webserver {
 	}
 
 	void FileSearchParser::parseMatcher(const json& aJson, const SearchPtr& aSearch) {
-		aSearch->query = JsonUtil::getOptionalFieldDefault<string>("pattern", aJson, Util::emptyString, false);
+		aSearch->query = JsonUtil::getOptionalFieldDefault<string>("pattern", aJson, Util::emptyString);
 
 		// Filetype
 		aSearch->fileType = aSearch->query.size() == 39 && Encoder::isBase32(aSearch->query.c_str()) ? Search::TYPE_TTH : Search::TYPE_ANY;
 
-		auto fileTypeStr = JsonUtil::getOptionalField<string>("file_type", aJson, false);
+		auto fileTypeStr = JsonUtil::getOptionalField<string>("file_type", aJson);
 		if (fileTypeStr) {
 			try {
 				SearchManager::getInstance()->getSearchType(parseFileType(*fileTypeStr), aSearch->fileType, aSearch->exts, true);
@@ -90,7 +90,7 @@ namespace webserver {
 		aSearch->excluded = JsonUtil::getOptionalFieldDefault<StringList>("excluded", aJson, StringList());
 
 		// Match type
-		auto matchTypeStr = JsonUtil::getOptionalFieldDefault<string>("match_type", aJson, "path_partial", false);
+		auto matchTypeStr = JsonUtil::getOptionalFieldDefault<string>("match_type", aJson, "path_partial");
 		aSearch->matchType = parseMatchType(matchTypeStr);
 	}
 

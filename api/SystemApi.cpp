@@ -20,6 +20,7 @@
 #include <web-server/version.h>
 
 #include <web-server/JsonUtil.h>
+#include <web-server/SystemUtil.h>
 #include <web-server/Timer.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
@@ -96,55 +97,6 @@ namespace webserver {
 		send("away_state", serializeAwayState());
 	}
 
-	/*string SystemApi::getNetworkType(const string& aIp) noexcept {
-		auto ip = aIp;
-
-		// websocketpp will map IPv4 addresses to IPv6
-		auto v6 = aIp.find(":") != string::npos;
-		if (aIp.find("[::ffff:") == 0) {
-			auto end = aIp.rfind("]");
-			ip = aIp.substr(8, end - 8);
-			v6 = false;
-		}
-		else if (aIp[0] == '[') {
-			// Remove brackets
-			auto end = aIp.rfind("]");
-			ip = aIp.substr(1, end - 1);
-		}
-
-		if (Util::isPrivateIp(ip, v6)) {
-			return "private";
-		}
-		else if (Util::isLocalIp(ip, v6)) {
-			return "local";
-		}
-
-		return "internet";
-	}*/
-
-	string SystemApi::getHostname() noexcept {
-#ifdef _WIN32
-		TCHAR computerName[1024];
-		DWORD size = 1024;
-		GetComputerName(computerName, &size);
-		return Text::fromT(computerName);
-#else
-		char hostname[128];
-		gethostname(hostname, sizeof hostname);
-		return hostname;
-#endif
-	}
-
-	string SystemApi::getPlatform() noexcept {
-#ifdef _WIN32
-		return "windows";
-#elif APPLE
-		return "osx";
-#else
-		return "other";
-#endif
-	}
-
 	string SystemApi::getAwayState(AwayMode aAwayMode) noexcept {
 		switch (aAwayMode) {
 			case AWAY_OFF: return "off";
@@ -191,8 +143,8 @@ namespace webserver {
 			{ "api_version", API_VERSION },
 			{ "api_feature_level", API_FEATURE_LEVEL },
 			{ "path_separator", PATH_SEPARATOR_STR },
-			{ "platform", getPlatform() },
-			{ "hostname", getHostname() },
+			{ "platform", SystemUtil::getPlatform() },
+			{ "hostname", SystemUtil::getHostname() },
 			{ "cid", ClientManager::getInstance()->getMyCID().toBase32() },
 			{ "client_version", fullVersionString },
 			{ "client_started", started },

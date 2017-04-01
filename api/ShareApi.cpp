@@ -227,7 +227,7 @@ namespace webserver {
 
 		auto ret = json::array();
 
-		auto path = JsonUtil::getOptionalField<string>("path", reqJson, false, false);
+		auto path = JsonUtil::getOptionalField<string>("path", reqJson);
 		if (path) {
 			ret = ShareManager::getInstance()->getNmdcDirPaths(Util::toNmdcFile(*path));
 		} else {

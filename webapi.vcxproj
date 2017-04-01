@@ -236,6 +236,7 @@
     <ClInclude Include="web-server\Session.h" />
     <ClInclude Include="web-server\SessionListener.h" />
     <ClInclude Include="web-server\stdinc.h" />
+    <ClInclude Include="web-server\SystemUtil.h" />
     <ClInclude Include="web-server\Timer.h" />
     <ClInclude Include="web-server\version.h" />
     <ClInclude Include="web-server\WebServerManagerListener.h" />
@@ -302,6 +303,7 @@
     <ClCompile Include="web-server\JsonUtil.cpp" />
     <ClCompile Include="web-server\Session.cpp" />
     <ClCompile Include="web-server\stdinc.cpp" />
+    <ClCompile Include="web-server\SystemUtil.cpp" />
     <ClCompile Include="web-server\WebServerManager.cpp" />
     <ClCompile Include="web-server\WebSocket.cpp" />
     <ClCompile Include="web-server\WebUser.cpp" />

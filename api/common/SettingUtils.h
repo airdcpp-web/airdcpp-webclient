@@ -25,17 +25,23 @@
 namespace webserver {
 	class SettingUtils {
 	public:
-		static json validateValue(const ApiSettingItem& aItem, const json& aValue);
+		static json validateValue(const json& aValue, const ApiSettingItem& aItem);
+		static json validateValue(const json& aValue, const string& aKey, ApiSettingItem::Type aType, ApiSettingItem::Type aItemType, bool aOptional, const ApiSettingItem::MinMax& aMinMax,
+			const ApiSettingItem::PtrList& aObjectValues, const ApiSettingItem::EnumOption::List& aEnumOptions);
 
-		static ServerSettingItem deserializeDefinition(const json& aJson);
+		static json validateObjectListValue(const ApiSettingItem::PtrList& aPropertyDefinitions, const json& aValue);
+
+		static ServerSettingItem deserializeDefinition(const json& aJson, bool aIsListValue = false);
 		static ServerSettingItem::List deserializeDefinitions(const json& aJson);
 
 		static json serializeDefinition(const ApiSettingItem& aItem) noexcept;
 		static string typeToStr(ApiSettingItem::Type aType) noexcept;
 
-		static ApiSettingItem::Type parseType(const string& aTypeStr) noexcept;
+		static ApiSettingItem::Type deserializeType(const string& aFieldName, const json& aJson, bool aOptional);
 	private:
-
+		static json parseEnumOptionId(const json& aJson, ApiSettingItem::Type aType);
+		static json parseStringSetting(const string& aFieldName, const json& aJson, bool aOptional, ApiSettingItem::Type aType);
+		static json parseIntSetting(const string& aFieldName, const json& aJson, bool aOptional, const ApiSettingItem::MinMax& aMinMax);
 	};
 }
 

@@ -71,9 +71,9 @@ namespace webserver {
 	}
 
 	void FavoriteHubApi::updateProperties(FavoriteHubEntryPtr& aEntry, const json& j, bool aNewHub) {
-		auto name = JsonUtil::getOptionalField<string>("name", j, false, aNewHub);
+		auto name = JsonUtil::getOptionalField<string>("name", j, aNewHub);
 
-		auto server = JsonUtil::getOptionalField<string>("hub_url", j, false, aNewHub);
+		auto server = JsonUtil::getOptionalField<string>("hub_url", j, aNewHub);
 		if (server) {
 			if (!FavoriteManager::getInstance()->isUnique(*server, aEntry->getToken())) {
 				JsonUtil::throwError("hub_url", JsonUtil::ERROR_EXISTS, STRING(FAVORITE_HUB_ALREADY_EXISTS));

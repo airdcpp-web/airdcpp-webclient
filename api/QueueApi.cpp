@@ -164,7 +164,7 @@ namespace webserver {
 
 		auto ret = json::array();
 
-		auto path = JsonUtil::getOptionalField<string>("path", reqJson, false);
+		auto path = JsonUtil::getOptionalField<string>("path", reqJson);
 		if (path) {
 			ret = QueueManager::getInstance()->getNmdcDirPaths(Util::toNmdcFile(*path));
 		} else {
