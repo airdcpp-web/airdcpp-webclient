@@ -20,6 +20,7 @@
 
 #include <web-server/Extension.h>
 
+#include <web-server/SystemUtil.h>
 #include <web-server/WebUserManager.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
@@ -66,7 +67,16 @@ namespace webserver {
 		const string packageDescription = aJson.at("description");
 		const string packageEntry = aJson.at("main");
 		const string packageVersion = aJson.at("version");
-		const string packageAuthor = aJson.at("author").at("name");
+
+		{
+			json packageAuthor = aJson.at("author");
+			if (packageAuthor.is_string()) {
+				author = packageAuthor.get<string>();
+			} else {
+				author = packageAuthor.at("name").get<string>();
+			}
+		}
+
 
 		privateExtension = aJson.value("private", false);
 
@@ -74,12 +84,12 @@ namespace webserver {
 		description = packageDescription;
 		entry = packageEntry;
 		version = packageVersion;
-		author = packageAuthor;
 
 		// Optional fields
 		homepage = aJson.value("homepage", Util::emptyString);
 
 		{
+			// Engines
 			auto enginesJson = aJson.find("engines");
 			if (enginesJson != aJson.end()) {
 				for (const auto& engine : json::iterator_wrapper(*enginesJson)) {
@@ -90,7 +100,18 @@ namespace webserver {
 			if (engines.empty()) {
 				engines.emplace_back("node");
 			}
+		}
 
+		{
+			// Operating system
+			auto osJson = aJson.find("os");
+			if (osJson != aJson.end()) {
+				const StringList osList = *osJson;
+				auto currentOs = SystemUtil::getPlatform();
+				if (std::find(osList.begin(), osList.end(), currentOs) == osList.end() && currentOs != "other") {
+					throw Exception("Extension is not compatible with your operating system, please the extension documentation for more information");
+				}
+			}
 		}
 
 		parseApiData(aJson.at("airdcpp"));
@@ -241,6 +262,9 @@ namespace webserver {
 		auto addParam = [&ret](const string& aName, const string& aParam) {
 			ret.push_back("--" + aName + "=" + aParam);
 		};
+
+		// Name
+		addParam("name", name);
 
 		// Connect URL
 		addParam("apiUrl", getConnectUrl(wsm));

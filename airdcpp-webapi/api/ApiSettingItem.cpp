@@ -33,8 +33,8 @@
 namespace webserver {
 	const ApiSettingItem::MinMax ApiSettingItem::defaultMinMax = { 0, MAX_INT_VALUE };
 
-	ApiSettingItem::ApiSettingItem(const string& aName, Type aType) :
-		name(aName), type(aType) {
+	ApiSettingItem::ApiSettingItem(const string& aName, Type aType, Type aItemType) :
+		name(aName), type(aType), itemType(aItemType) {
 
 	}
 
@@ -47,14 +47,26 @@ namespace webserver {
 		return getValue();
 	}
 
-	ServerSettingItem::ServerSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType, bool aOptional, const MinMax& aMinMax) :
-		ApiSettingItem(aKey, aType), desc(aTitle), defaultValue(aDefaultValue), value(aDefaultValue), optional(aOptional), minMax(aMinMax) {
+	ServerSettingItem::ServerSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType,
+		bool aOptional, const MinMax& aMinMax, const List& aObjectValues, const string& aHelp, Type aItemType, const EnumOption::List& aEnumOptions) :
+
+		ApiSettingItem(aKey, aType, aItemType), desc(aTitle), defaultValue(aDefaultValue), value(aDefaultValue), 
+		optional(aOptional), minMax(aMinMax), objectValues(aObjectValues), help(aHelp), enumOptions(aEnumOptions)
+	{
 
 	}
 
 	// Returns the value and bool indicating whether it's an auto detected value
 	json ServerSettingItem::getValue() const noexcept {
 		return value;
+	}
+
+	ApiSettingItem::PtrList ServerSettingItem::getValueTypes() const noexcept {
+		return valueTypesToPtrList(objectValues);
+	}
+
+	const string& ServerSettingItem::getHelpStr() const noexcept {
+		return help;
 	}
 
 	void ServerSettingItem::unset() noexcept {
@@ -72,15 +84,23 @@ namespace webserver {
 		return true;
 	}
 
-	int ServerSettingItem::num() {
+	int ServerSettingItem::num() const {
 		return value.get<int>();
 	}
 
-	uint64_t ServerSettingItem::uint64() {
+	ApiSettingItem::ListNumber ServerSettingItem::numList() const {
+		return value.get<vector<int>>();
+	}
+
+	ApiSettingItem::ListString ServerSettingItem::strList() const {
+		return value.get<vector<string>>();
+	}
+
+	uint64_t ServerSettingItem::uint64() const {
 		return value.get<uint64_t>();
 	}
 
-	string ServerSettingItem::str() {
+	string ServerSettingItem::str() const {
 		if (value.is_number()) {
 			return Util::toString(num());
 		}
@@ -88,7 +108,7 @@ namespace webserver {
 		return value.get<string>();
 	}
 
-	bool ServerSettingItem::boolean() {
+	bool ServerSettingItem::boolean() const {
 		return value.get<bool>();
 	}
 
@@ -101,8 +121,7 @@ namespace webserver {
 	}
 
 	ApiSettingItem::EnumOption::List ServerSettingItem::getEnumOptions() const noexcept {
-		ApiSettingItem::EnumOption::List ret;
-		return ret;
+		return enumOptions;
 	}
 
 
@@ -177,7 +196,7 @@ namespace webserver {
 	};
 
 	CoreSettingItem::CoreSettingItem(const string& aName, int aKey, ResourceManager::Strings aDesc, Type aType, ResourceManager::Strings aUnit) :
-		ApiSettingItem(aName, parseAutoType(aType, aKey)), si({ aKey, aDesc }), unit(aUnit) {
+		ApiSettingItem(aName, parseAutoType(aType, aKey), ApiSettingItem::TYPE_LAST), si({ aKey, aDesc }), unit(aUnit) {
 
 	}
 
@@ -258,6 +277,15 @@ namespace webserver {
 
 	bool CoreSettingItem::isOptional() const noexcept {
 		return optionalSettingKeys.find(si.key) != optionalSettingKeys.end();
+	}
+
+	ApiSettingItem::PtrList CoreSettingItem::getValueTypes() const noexcept {
+		dcassert(0);
+		return ApiSettingItem::PtrList();
+	}
+
+	const string& CoreSettingItem::getHelpStr() const noexcept {
+		return Util::emptyString;
 	}
 
 	json CoreSettingItem::getValue() const noexcept {

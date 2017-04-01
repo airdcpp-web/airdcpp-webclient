@@ -45,10 +45,6 @@ namespace webserver {
 
 		api_return handleGetSystemInfo(ApiRequest& aRequest);
 
-		static string getHostname() noexcept;
-		static string getNetworkType(const string& aIp) noexcept;
-		static string getPlatform() noexcept;
-
 		void on(ActivityManagerListener::AwayModeChanged, AwayMode aNewMode) noexcept override;
 	};
 }

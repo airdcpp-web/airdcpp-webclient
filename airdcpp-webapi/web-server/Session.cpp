@@ -57,9 +57,7 @@ namespace webserver {
 		ip(aIP) {
 
 		ADD_MODULE("connectivity", ConnectivityApi);
-#ifdef _DEBUG
 		ADD_MODULE("extensions", ExtensionApi);
-#endif
 		ADD_MODULE("events", EventApi);
 		ADD_MODULE("favorite_directories", FavoriteDirectoryApi);
 		ADD_MODULE("favorite_hubs", FavoriteHubApi);

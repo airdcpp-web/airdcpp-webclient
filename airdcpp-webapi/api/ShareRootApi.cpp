@@ -203,12 +203,12 @@ namespace webserver {
 	}
 
 	void ShareRootApi::parseRoot(ShareDirectoryInfoPtr& aInfo, const json& j, bool aIsNew) {
-		auto virtualName = JsonUtil::getOptionalField<string>("virtual_name", j, false);
+		auto virtualName = JsonUtil::getOptionalField<string>("virtual_name", j);
 		if (virtualName) {
 			aInfo->virtualName = *virtualName;
 		}
 
-		auto profiles = JsonUtil::getOptionalField<ProfileTokenSet>("profiles", j, false);
+		auto profiles = JsonUtil::getOptionalField<ProfileTokenSet>("profiles", j);
 		if (profiles) {
 			// Only validate added profiles
 			ProfileTokenSet diff;
@@ -233,7 +233,7 @@ namespace webserver {
 			aInfo->profiles = newProfiles;
 		}
 
-		auto incoming = JsonUtil::getOptionalField<bool>("incoming", j, false);
+		auto incoming = JsonUtil::getOptionalField<bool>("incoming", j);
 		if (incoming) {
 			aInfo->incoming = *incoming;
 		}

@@ -71,7 +71,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto user = Deserializer::deserializeHintedUser(reqJson);
-		auto directory = Util::toNmdcFile(JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/", false));
+		auto directory = Util::toNmdcFile(JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/"));
 
 		DirectoryListingPtr dl = nullptr;
 		try {
@@ -94,7 +94,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto user = Deserializer::deserializeHintedUser(reqJson);
-		auto directory = Util::toNmdcFile(JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/", false));
+		auto directory = Util::toNmdcFile(JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/"));
 
 		QueueItem::Flags flags = QueueItem::FLAG_MATCH_QUEUE;
 		if (directory != NMDC_ROOT_STR) {
