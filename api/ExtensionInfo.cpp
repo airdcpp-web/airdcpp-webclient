@@ -97,6 +97,11 @@ namespace webserver {
 			return websocketpp::http::status_code::conflict;
 		}
 
+		if (extension->getSession() != extension->getSession()) {
+			aRequest.setResponseErrorStr("Setting definitions may only be posted by the owning session");
+			return websocketpp::http::status_code::conflict;
+		}
+
 		auto defs = SettingUtils::deserializeDefinitions(aRequest.getRequestBody());
 		extension->swapSettingDefinitions(defs);
 		return websocketpp::http::status_code::no_content;
