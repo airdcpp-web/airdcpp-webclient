@@ -55,10 +55,15 @@ namespace webserver {
 	}
 
 	void ExtensionManager::on(WebServerManagerListener::Stopping) noexcept {
-		RLock l(cs);
-		for (const auto& ext : extensions) {
-			ext->stop();
+		{
+			RLock l(cs);
+			for (const auto& ext: extensions) {
+				ext->stop();
+			}
 		}
+
+		WLock l(cs);
+		extensions.clear();
 	}
 
 	void ExtensionManager::on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept {
@@ -121,7 +126,7 @@ namespace webserver {
 			if (i != extensions.end()) {
 				extensions.erase(i);
 			} else {
-				dcassert(0);
+				throw Exception("Extension was not found");
 			}
 		}
 
@@ -345,6 +350,12 @@ namespace webserver {
 			return nullptr;
 		}
 
+		if (getExtension(ext->getName())) {
+			dcassert(0);
+			LogManager::getInstance()->message("Failed to load extension " + aPath + ": exists already", LogMessage::SEV_ERROR);
+			return nullptr;
+		}
+
 		// Store in the extension list
 		{
 			WLock l(cs);
@@ -368,6 +379,10 @@ namespace webserver {
 	}
 
 	bool ExtensionManager::stopExtension(const ExtensionPtr& aExtension) noexcept {
+		if (!aExtension->isRunning()) {
+			return true;
+		}
+
 		if (!aExtension->stop()) {
 			return false;
 		}

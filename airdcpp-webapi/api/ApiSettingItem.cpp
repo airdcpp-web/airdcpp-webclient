@@ -53,7 +53,7 @@ namespace webserver {
 		ApiSettingItem(aKey, aType, aItemType), desc(aTitle), defaultValue(aDefaultValue), value(aDefaultValue), 
 		optional(aOptional), minMax(aMinMax), objectValues(aObjectValues), help(aHelp), enumOptions(aEnumOptions)
 	{
-
+		dcassert(aType != TYPE_NUMBER || minMax.min != minMax.max);
 	}
 
 	// Returns the value and bool indicating whether it's an auto detected value

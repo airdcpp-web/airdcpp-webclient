@@ -47,8 +47,11 @@ namespace webserver {
 		};
 
 		struct MinMax {
-			const int min;
-			const int max;
+			MinMax() {}
+			MinMax(int aMin, int aMax) : min(aMin), max(aMax) {}
+
+			const int min = 0;
+			const int max = 0;
 		};
 
 		static const MinMax defaultMinMax;
@@ -157,8 +160,8 @@ namespace webserver {
 	public:
 		typedef vector<ServerSettingItem> List;
 
-		ServerSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType, bool aOptional = false,
-			const MinMax& aMinMax = defaultMinMax, const List& aObjectValues = List(), const string& aHelp = "", Type aItemType = TYPE_LAST, const EnumOption::List& aEnumOptions = EnumOption::List());
+		ServerSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType, bool aOptional,
+			const MinMax& aMinMax = MinMax(), const List& aObjectValues = List(), const string& aHelp = "", Type aItemType = TYPE_LAST, const EnumOption::List& aEnumOptions = EnumOption::List());
 
 		// Returns the value and bool indicating whether it's an auto detected value
 		json getValue() const noexcept override;
