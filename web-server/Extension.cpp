@@ -477,24 +477,23 @@ namespace webserver {
 		// Construct argv
 		char* app = (char*)aEngine.c_str();
 
+		// Note that pushed pointed params should not be destructed until the extension is running...
 		vector<char*> argv;
 		argv.push_back(app);
 
-		{
-			auto paramList = getLaunchParams(wsm, aSession);
-			for (const auto& p : paramList) {
-				argv.push_back((char*)p.c_str());
-			}
+		auto paramList = getLaunchParams(wsm, aSession);
+		for (const auto& p : paramList) {
+			argv.push_back((char*)p.c_str());
+		}
 
 #ifdef _DEBUG
-			string command = string(app) + " ";
-			for (const auto& p : paramList) {
-				command += p + " ";
-			}
-
-			dcdebug("Starting extension %s, command %s\n", name.c_str(), command.c_str());
-#endif
+		string command = string(app) + " ";
+		for (const auto& p : paramList) {
+			command += p + " ";
 		}
+
+		dcdebug("Starting extension %s, command %s\n", name.c_str(), command.c_str());
+#endif
 
 		argv.push_back(0);
 
