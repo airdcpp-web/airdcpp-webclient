@@ -64,12 +64,19 @@ namespace webserver {
 			// There can't be references to shared child pointers from other threads because no other requests 
 			// can be active at this point (otherwise we wouldn't be destoying the session)
 
-			WLock l(cs);
-			dcassert(boost::find_if(subModules | map_values, [](const typename ItemType::Ptr& subModule) {  
-				return !subModule.unique();
-			}).base() == subModules.end());
+			// Run the destructors outside of WLock
+			SubModuleMap subModulesCopy;
 
-			subModules.clear();
+			{
+				WLock l(cs);
+				dcassert(boost::find_if(subModules | map_values, [](const typename ItemType::Ptr& subModule) {
+					return !subModule.unique();
+				}).base() == subModules.end());
+
+				subModules.swap(subModulesCopy);
+			}
+
+			subModulesCopy.clear();
 		}
 
 		void createSubscription(const string&) noexcept override {
@@ -145,11 +152,17 @@ namespace webserver {
 		}
 
 		void removeSubModule(IdType aId) {
-			WLock l(cs);
-			subModules.erase(aId);
+			// Avoid destructing the module inside WLock
+			auto subModule = findSubModule(aId);
+
+			{
+				WLock l(cs);
+				subModules.erase(aId);
+			}
 		}
 	private:
-		map<IdType, typename ItemType::Ptr> subModules;
+		typedef map<IdType, typename ItemType::Ptr> SubModuleMap;
+		SubModuleMap subModules;
 
 		const IdConvertF idConvertF;
 		const ChildSerializeF childSerializeF;

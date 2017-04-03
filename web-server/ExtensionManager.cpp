@@ -343,7 +343,10 @@ namespace webserver {
 		ExtensionPtr ext = nullptr;
 		try {
 			ext = std::make_shared<Extension>(aPath, [](const Extension* aExtension) {
-				LogManager::getInstance()->message("Extension " + aExtension->getName() + " has exited (see the extension log for error details)", LogMessage::SEV_ERROR);
+				LogManager::getInstance()->message(
+					"Extension " + aExtension->getName() + " has exited (see the extension log " + aExtension->getErrorLogPath() + " for error details)", 
+					LogMessage::SEV_ERROR
+				);
 			});
 		} catch (const Exception& e) {
 			LogManager::getInstance()->message("Failed to load extension " + aPath + ": " + e.what(), LogMessage::SEV_ERROR);

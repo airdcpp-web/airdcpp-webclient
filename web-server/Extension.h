@@ -162,6 +162,7 @@ namespace webserver {
 		HANDLE messageLogHandle = INVALID_HANDLE_VALUE;
 		HANDLE errorLogHandle = INVALID_HANDLE_VALUE;
 #else
+		static unique_ptr<File> initLog(const string& aPath);
 		pid_t pid = 0;
 #endif
 	};
