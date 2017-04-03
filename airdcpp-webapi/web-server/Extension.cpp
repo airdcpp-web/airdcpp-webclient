@@ -468,11 +468,19 @@ namespace webserver {
 		pid = 0;
 	}
 
+	unique_ptr<File> Extension::initLog(const string& aPath) {
+		if (Util::fileExists(aPath) && !File::deleteFile(aPath)) {
+			dcdebug("Failed to delete the old extension output log %s: %s\n", aPath.c_str(), Util::translateError(errno).c_str());
+			throw Exception("Failed to delete the old extension output log");
+		}
+
+		return unique_ptr<File>(new File(aPath, File::CREATE | File::TRUNCATE, File::RW));
+	}
+
 	void Extension::createProcess(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {
 		// Init logs
-		File messageLog(getMessageLogPath(), File::CREATE, File::RW);
-		File errorLog(getErrorLogPath(), File::CREATE, File::RW);
-
+		auto messageLog = std::move(initLog(getMessageLogPath()));
+		auto errorLog = std::move(initLog(getErrorLogPath()));
 
 		// Construct argv
 		char* app = (char*)aEngine.c_str();
@@ -508,8 +516,8 @@ namespace webserver {
 			// Child process
 
 			// Redirect messages to log files
-			dup2(messageLog.getNativeHandle(), STDOUT_FILENO);
-			dup2(errorLog.getNativeHandle(), STDERR_FILENO);
+			dup2(messageLog->getNativeHandle(), STDOUT_FILENO);
+			dup2(errorLog->getNativeHandle(), STDERR_FILENO);
 
 			// Run, checkRunningState will handle errors...
 			if (execvp(aEngine.c_str(), &argv[0]) == -1) {
