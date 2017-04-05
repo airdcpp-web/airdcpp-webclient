@@ -29,7 +29,7 @@
 
 namespace dcpp {
 
-SearchResultId searchResultIdCounter = 0;
+atomic<SearchResultId> searchResultIdCounter { 0 };
 
 SearchResult::SearchResult(const string& aPath) : path(aPath), type(TYPE_DIRECTORY), id(Util::rand()) { }
 

@@ -24,6 +24,7 @@
 #include "typedefs.h"
 
 #include "CriticalSection.h"
+#include "debug.h"
 
 #include <vector>
 

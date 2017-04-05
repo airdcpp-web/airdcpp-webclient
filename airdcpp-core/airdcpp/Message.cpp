@@ -24,7 +24,7 @@
 
 namespace dcpp {
 
-uint64_t messageIdCounter = 0;
+atomic<uint64_t> messageIdCounter { 0 };
 
 ChatMessage::ChatMessage(const string& aText, const OnlineUserPtr& aFrom, const OnlineUserPtr& aTo, const OnlineUserPtr& aReplyTo) noexcept :
 	text(aText), from(aFrom), to(aTo), replyTo(aReplyTo), id(messageIdCounter++), time(GET_TIME()) {

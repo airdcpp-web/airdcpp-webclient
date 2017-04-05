@@ -63,6 +63,11 @@ void initialize() {
 
 	dcassert("abcd1" == Text::toLower("ABCd1"));
 	dcassert(_T("abcd1") == Text::toLower(_T("ABCd1")));
+
+	dcassert("text1" == Text::uncapitalize("Text1"));
+	dcassert("SFV" == Text::uncapitalize("SFV"));
+	dcassert("A" == Text::uncapitalize("A"));
+	dcassert(Text::fromT(_T("\u00F6\u00F6")) == Text::uncapitalize(Text::fromT(_T("\u00D6\u00F6"))));
 #endif
 #else
 	systemCharset = string(nl_langinfo(CODESET));
@@ -176,10 +181,10 @@ string sanitizeUtf8(const string& str) noexcept {
 
 bool validateUtf8(const string& str) noexcept {
 	string::size_type i = 0;
-	while(i < str.length()) {
+	while (i < str.length()) {
 		wchar_t dummy = 0;
 		int j = utf8ToWc(&str[i], dummy);
-		if(j < 0)
+		if (j < 0)
 			return false;
 		i += j;
 	}
@@ -192,6 +197,50 @@ wchar_t toLower(wchar_t c) noexcept {
 
 bool isLower(const string& str) noexcept {
 	return compare(str, toLower(str)) == 0;
+}
+
+bool isLower(wchar_t c) noexcept {
+	return toLower(c) == c;
+}
+
+string uncapitalize(const string& str) noexcept {
+	auto a = str.c_str();
+	if (!a) {
+		return str;
+	}
+
+	// Compare the first character 
+	// Don't do anything if it's not uppercase
+	wchar_t c0;
+	int n0 = dcpp::Text::utf8ToWc(a, c0);
+	if (n0 == str.size()) {
+		// Don't convert single character strings
+		return str;
+	}
+
+	if (isLower(c0)) {
+		return str;
+	}
+	
+
+	// Move to the next character
+	a += abs(n0);
+	if (!a) {
+		return str;
+	}
+
+	// Compare the second character
+	// Don't do anything if it's uppercase as that would mess up words such as SFV
+	wchar_t c1;
+	dcpp::Text::utf8ToWc(a, c1);
+	if (!isLower(c1)) {
+		return str;
+	}
+
+	// Convert the first character to lowercase
+	string ret;
+	Text::wcToUtf8(Text::toLower(c0), ret);
+	return ret + str.substr(n0);
 }
 
 string toLower(const string& str) noexcept {

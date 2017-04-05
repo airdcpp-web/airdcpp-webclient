@@ -74,7 +74,7 @@ private:
 	~ShareScannerManager();
 	
 	int run();
-	bool validateShare(FileFindIter& aIter, const string& aPath);
+	bool validateShare(const string& aPath);
 	void runSfvCheck(const StringList& paths);
 	void runShareScan(const StringList& paths);
 

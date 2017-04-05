@@ -85,7 +85,10 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 	auto realPath = getRealPath();
 
 	// Avoid issues on Linux...
-	dcassert(compare(fileName, realPath) == 0);
+	dcassert(
+		compare(fileName, realPath) == 0 || 
+		Util::stricmp(fileName, realPath) != 0 // Shortcut/symlink
+	);
 #endif
 }
 

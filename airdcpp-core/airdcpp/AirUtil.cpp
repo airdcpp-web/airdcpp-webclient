@@ -60,8 +60,6 @@ boost::regex AirUtil::releaseReg;
 boost::regex AirUtil::subDirRegPlain;
 boost::regex AirUtil::crcReg;
 
-string AirUtil::privKeyFile;
-
 AirUtil::TimeCounter::TimeCounter(string aMsg) : start(GET_TICK()), msg(move(aMsg)) {
 
 }
@@ -214,10 +212,6 @@ void AirUtil::init() {
 	// Invalid path 2 (the result won't matter, just don't crash here)
 	dcassert(AirUtil::getMatchPath(R"(\File1.zip)", R"(E:\Bundle\File1.zip)", R"(E:\Bundle\)", false) == R"(\)");
 #endif
-}
-
-void AirUtil::updateCachedSettings() {
-	privKeyFile = Text::toLower(SETTING(TLS_PRIVATE_KEY_FILE));
 }
 
 AirUtil::AdapterInfoList AirUtil::getBindAdapters(bool v6) {
