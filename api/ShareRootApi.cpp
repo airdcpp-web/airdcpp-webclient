@@ -130,6 +130,14 @@ namespace webserver {
 	}
 
 	void ShareRootApi::on(ShareManagerListener::RootUpdated, const string& aPath) noexcept {
+		onRootUpdated(aPath, toPropertyIdSet(ShareUtils::properties));
+	}
+
+	void ShareRootApi::on(ShareManagerListener::RootRefreshState, const string& aPath) noexcept {
+		onRootUpdated(aPath, { ShareUtils::PROP_LAST_REFRESH_TIME, ShareUtils::PROP_SIZE });
+	}
+
+	void ShareRootApi::onRootUpdated(const string& aPath, PropertyIdSet&& aUpdatedProperties) noexcept {
 		auto info = ShareManager::getInstance()->getRootInfo(aPath);
 		if (!info) {
 			dcassert(0);
@@ -145,8 +153,9 @@ namespace webserver {
 		localInfo->merge(info);
 		info = localInfo;  // We need to use the same pointer because of listview
 
-		onRootUpdated(localInfo, toPropertyIdSet(ShareUtils::properties));
+		onRootUpdated(localInfo, std::move(aUpdatedProperties));
 	}
+
 
 	void ShareRootApi::onRootUpdated(const ShareDirectoryInfoPtr& aInfo, PropertyIdSet&& aUpdatedProperties) noexcept {
 		maybeSend("share_root_updated", [&] { 

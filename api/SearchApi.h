@@ -46,7 +46,7 @@ namespace webserver {
 
 		void onTimer() noexcept;
 
-		SearchInstanceToken instanceIdCounter = 0;
+		atomic<SearchInstanceToken> instanceIdCounter { 0 };
 		TimerPtr timer;
 	};
 }

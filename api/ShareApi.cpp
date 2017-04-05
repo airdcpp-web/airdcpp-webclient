@@ -27,14 +27,16 @@
 #include <airdcpp/HubEntry.h>
 #include <airdcpp/SearchResult.h>
 #include <airdcpp/ShareManager.h>
+#include <airdcpp/SharePathValidator.h>
 
 namespace webserver {
-	ShareApi::ShareApi(Session* aSession) : SubscribableApiModule(aSession, Access::SETTINGS_VIEW) {
+	ShareApi::ShareApi(Session* aSession) : HookApiModule(aSession, Access::SETTINGS_VIEW, nullptr, Access::SETTINGS_EDIT) {
 
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("grouped_root_paths")),				ShareApi::handleGetGroupedRootPaths);
 		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("stats")),								ShareApi::handleGetStats);
 		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("find_dupe_paths")),					ShareApi::handleFindDupePaths);
 		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("search")),							ShareApi::handleSearch);
+		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("validate_path")),						ShareApi::handleValidatePath);
 
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh")),							ShareApi::handleRefreshShare);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh"), EXACT_PARAM("paths")),		ShareApi::handleRefreshPaths);
@@ -50,11 +52,46 @@ namespace webserver {
 		createSubscription("share_exclude_added");
 		createSubscription("share_exclude_removed");
 
+		createHook("share_file_validation_hook", [this](const string& aId, const string& aName) {
+			return ShareManager::getInstance()->getValidator().fileValidationHook.addSubscriber(aId, aName, HOOK_HANDLER(ShareApi::fileValidationHook));
+		}, [this](const string& aId) {
+			ShareManager::getInstance()->getValidator().fileValidationHook.removeSubscriber(aId);
+		});
+
+		createHook("share_directory_validation_hook", [this](const string& aId, const string& aName) {
+			return ShareManager::getInstance()->getValidator().directoryValidationHook.addSubscriber(aId, aName, HOOK_HANDLER(ShareApi::directoryValidationHook));
+		}, [this](const string& aId) {
+			ShareManager::getInstance()->getValidator().directoryValidationHook.removeSubscriber(aId);
+		});
+
 		ShareManager::getInstance()->addListener(this);
 	}
 
 	ShareApi::~ShareApi() {
 		ShareManager::getInstance()->removeListener(this);
+	}
+
+	ActionHookRejectionPtr ShareApi::fileValidationHook(const string& aPath, int64_t aSize, const HookRejectionGetter& aErrorGetter) noexcept {
+		return HookCompletionData::toResult(
+			fireHook("share_file_validation_hook", 30, [&]() {
+				return json({
+					{ "path", aPath },
+					{ "size", aSize },
+				});
+			}),
+			aErrorGetter
+		);
+	}
+
+	ActionHookRejectionPtr ShareApi::directoryValidationHook(const string& aPath, const HookRejectionGetter& aErrorGetter) noexcept {
+		return HookCompletionData::toResult(
+			fireHook("share_directory_validation_hook", 30, [&]() {
+				return json({
+					{ "path", aPath },
+				});
+			}),
+			aErrorGetter
+		);
 	}
 
 	json ShareApi::serializeShareItem(const SearchResultPtr& aSR) noexcept {
@@ -220,6 +257,20 @@ namespace webserver {
 		auto roots = ShareManager::getInstance()->getGroupedDirectories();
 		aRequest.setResponseBody(Serializer::serializeList(roots, Serializer::serializeGroupedPaths));
 		return websocketpp::http::status_code::ok;
+	}
+
+	api_return ShareApi::handleValidatePath(ApiRequest& aRequest) {
+		try {
+			ShareManager::getInstance()->validatePath(JsonUtil::getField<string>("path", aRequest.getRequestBody()));
+		} catch (const QueueException& e) {
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::conflict;
+		} catch (const Exception& e) {
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::forbidden;
+		}
+
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return ShareApi::handleFindDupePaths(ApiRequest& aRequest) {

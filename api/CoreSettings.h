@@ -177,7 +177,7 @@ namespace webserver {
 		{ "report_downloads", SettingsManager::SYSTEM_SHOW_DOWNLOADS, ResourceManager::SYSTEM_SHOW_FINISHED_DOWNLOADS },
 		{ "report_search_alternates", SettingsManager::REPORT_ALTERNATES, ResourceManager::REPORT_ALTERNATES },
 		{ "report_added_sources", SettingsManager::REPORT_ADDED_SOURCES, ResourceManager::SETTINGS_REPORT_ADDED_SOURCES },
-		{ "report_share_skiplist", SettingsManager::REPORT_SKIPLIST, ResourceManager::REPORT_SKIPLIST },
+		{ "report_blocked_share", SettingsManager::REPORT_BLOCKED_SHARE, ResourceManager::REPORT_BLOCKED_SHARE },
 		{ "report_hashed_files", SettingsManager::LOG_HASHING, ResourceManager::LOG_HASHING },
 		{ "report_scheduled_refreshes", SettingsManager::LOG_SCHEDULED_REFRESHES, ResourceManager::SETTINGS_LOG_SCHEDULED_REFRESHES },
 		{ "report_filelist_dupes", SettingsManager::FL_REPORT_FILE_DUPES, ResourceManager::REPORT_DUPLICATE_FILES },

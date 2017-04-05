@@ -103,6 +103,8 @@ namespace webserver {
 
 		int pendingHookIdCounter = 1;
 		mutable SharedMutex cs;
+
+		int getActionId() noexcept;
 	};
 
 	typedef std::unique_ptr<ApiModule> HandlerPtr;

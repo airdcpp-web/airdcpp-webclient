@@ -164,6 +164,14 @@ namespace webserver {
 		return websocketpp::http::status_code::no_content;
 	}
 
+	int HookApiModule::getActionId() noexcept {
+		if (pendingHookIdCounter == std::numeric_limits<int>::max()) {
+			pendingHookIdCounter = 0;
+		}
+
+		return pendingHookIdCounter++;
+	}
+
 	HookApiModule::HookCompletionDataPtr HookApiModule::fireHook(const string& aSubscription, int aTimeoutSeconds, JsonCallback&& aJsonCallback) {
 		if (!hookActive(aSubscription)) {
 			return nullptr;
@@ -174,12 +182,14 @@ namespace webserver {
 #endif
 
 		// Add a pending entry
-		auto id = pendingHookIdCounter++;
+		decltype(pendingHookIdCounter) id;
 		Semaphore completionSemaphore;
 
 		{
 			WLock l(cs);
+			id = getActionId();
 			pendingHookActions.emplace(id, PendingAction({ completionSemaphore, nullptr }));
+			//dcdebug("Adding action %d for hook %s, total pending count %d\n", id, aSubscription.c_str(), pendingHookActions.size());
 		}
 
 		// Notify the subscriber
@@ -201,11 +211,11 @@ namespace webserver {
 		}
 
 #ifdef _DEBUG
-		std::chrono::duration<double> ellapsed = std::chrono::system_clock::now() - start;
-		dcdebug("Action %s completed in %f s\n", aSubscription.c_str(), ellapsed.count());
-
-		if (!completionData) {
-			dcdebug("API hook %s timed out\n", aSubscription.c_str());
+		if (completionData) {
+			std::chrono::duration<double> ellapsed = std::chrono::system_clock::now() - start;
+			dcdebug("Action %s (id %d) completed in %f s\n", aSubscription.c_str(), id, ellapsed.count());
+		} else {
+			dcdebug("Action %s (id %d) timed out\n", aSubscription.c_str(), id);
 		}
 #endif
 
