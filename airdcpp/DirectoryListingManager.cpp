@@ -33,7 +33,7 @@ using boost::range::for_each;
 using boost::range::find_if;
 
 
-DirectoryDownloadId directoryDownloadIdCounter = 0;
+atomic<DirectoryDownloadId> directoryDownloadIdCounter { 0 };
 
 DirectoryDownload::DirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner) :
 	id(directoryDownloadIdCounter++), listPath(aListPath), target(aTarget), priority(p), owner(aOwner), bundleName(aBundleName), user(aUser) { }

@@ -91,7 +91,7 @@ namespace dcpp {
 			const bool isDirectory;
 		};
 
-		optional<FileItem> ShareMonitorManager::checkModifiedPath(const string& aPath) const noexcept;
+		optional<FileItem> ShareMonitorManager::checkModifiedPath(const string& aPath) noexcept;
 		void addModifyInfo(const string& aPath) noexcept;
 
 		// Recursively removes all notifications for the given path
@@ -120,6 +120,10 @@ namespace dcpp {
 		// TimerManagerListener
 		void on(TimerManagerListener::Second, uint64_t tick) noexcept;
 		void on(TimerManagerListener::Minute, uint64_t tick) noexcept;
+
+		string lastMessage;
+		uint64_t messageTick = 0;
+		void reportFile(const string& aMessage) noexcept;
 	};
 
 } // namespace dcpp

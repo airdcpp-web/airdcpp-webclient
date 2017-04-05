@@ -19,6 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SHAREPATH_VALIDATOR_H
 #define DCPLUSPLUS_DCPP_SHAREPATH_VALIDATOR_H
 
+#include "ActionHook.h"
 #include "CriticalSection.h"
 #include "File.h"
 #include "StringMatch.h"
@@ -29,6 +30,9 @@ namespace dcpp {
 
 class SharePathValidator {
 public:
+	ActionHook<const string&, int64_t> fileValidationHook;
+	ActionHook<const string&> directoryValidationHook;
+
 	SharePathValidator();
 
 	// Get a list of excluded real paths
@@ -46,7 +50,7 @@ public:
 	// Check if a directory/file name matches skiplist
 	bool matchSkipList(const string& aName) const noexcept;
 
-	bool validate(FileFindIter& aIter, const string& aPath, const string& aPathLower, bool aReportErrors) const noexcept;
+	void validate(FileFindIter& aIter, const string& aPath) const;
 
 	void saveExcludes(SimpleXML& xml) const noexcept;
 	void loadExcludes(SimpleXML& xml) noexcept;
@@ -57,11 +61,11 @@ public:
 
 	// Check the list of directory path tokens relative to the base path
 	// Returns whether they are all valid to be added in share
-	bool validatePathTokens(const string& aBasePath, const StringList& aTokens) const noexcept;
+	void validatePathTokens(const string& aBasePath, const StringList& aTokens) const;
 private:
 	// Comprehensive check for a directory/file whether it is valid to be added in share
 	// Use validateRootPath for new root directories instead
-	bool checkSharedName(const string& aPath, const string& aPathLower, bool aIsDirectory, bool aReport = true, int64_t aSize = 0) const noexcept;
+	void checkSharedName(const string& aPath, bool aIsDirectory, int64_t aSize = 0) const;
 
 	bool isExcluded(const string& aPath) const noexcept;
 

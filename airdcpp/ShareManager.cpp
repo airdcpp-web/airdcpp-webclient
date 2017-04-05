@@ -23,6 +23,7 @@
 #include "Bundle.h"
 #include "BZUtils.h"
 #include "ClientManager.h"
+#include "ErrorCollector.h"
 #include "File.h"
 #include "FilteredFile.h"
 #include "LogManager.h"
@@ -95,7 +96,6 @@ ShareManager::~ShareManager() {
 
 // Note that settings are loaded before this function is called
 void ShareManager::startup(function<void(const string&)> splashF, function<void(float)> progressF) noexcept {
-	AirUtil::updateCachedSettings();
 	if (!getShareProfile(SETTING(DEFAULT_SP))) {
 		if (shareProfiles.empty()) {
 			auto sp = std::make_shared<ShareProfile>(STRING(DEFAULT), SETTING(DEFAULT_SP));
@@ -1397,23 +1397,40 @@ bool ShareManager::ShareBuilder::buildTree() noexcept {
 }
 
 void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aParent) {
-
+	ErrorCollector errors;
 	FileFindIter end;
 	for(FileFindIter i(aPath, "*"); i != end && !shutdown; ++i) {
-		string name = i->getFileName();
+		const auto name = i->getFileName();
 		if(name.empty()) {
 			return;
 		}
 
-		DualString dualName(name);
-		auto curPath = aPath + name + (i->isDirectory() ? PATH_SEPARATOR_STR : Util::emptyString);
-		auto curPathLower = aPathLower + dualName.getLower() + (i->isDirectory() ? PATH_SEPARATOR_STR : Util::emptyString);
+		const auto isDirectory = i->isDirectory();
+		if (!isDirectory) {
+			errors.increaseTotal();
+		}
 
-		if (!pathValidator.validate(i, curPath, curPathLower, true)) {
+		DualString dualName(name);
+		auto curPath = aPath + name + (isDirectory ? PATH_SEPARATOR_STR : Util::emptyString);
+		auto curPathLower = aPathLower + dualName.getLower() + (isDirectory ? PATH_SEPARATOR_STR : Util::emptyString);
+
+		try {
+			pathValidator.validate(i, curPath);
+		} catch (const ShareException& e) {
+			if (SETTING(REPORT_BLOCKED_SHARE)) {
+				if (isDirectory) {
+					LogManager::getInstance()->message(STRING_F(SHARE_DIRECTORY_BLOCKED, curPath % e.getError()), LogMessage::SEV_INFO);
+				} else {
+					errors.add(e.getError(), name, false);
+				}
+			}
+
+			continue;
+		} catch (...) {
 			continue;
 		}
 
-		if(i->isDirectory()) {
+		if (isDirectory) {
 			auto curDir = Directory::createNormal(move(dualName), aParent, i->getLastWriteTime(), lowerDirNameMapNew, bloom);
 			if (curDir) {
 				buildTree(curPath, curPathLower, curDir);
@@ -1432,6 +1449,11 @@ void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aP
 			} catch(const HashException&) {
 			}
 		}
+	}
+
+	auto msg = errors.getMessage();
+	if (!msg.empty()) {
+		LogManager::getInstance()->message(STRING_F(SHARE_FILES_BLOCKED, aPath % msg), LogMessage::SEV_INFO);
 	}
 }
 
@@ -1577,7 +1599,7 @@ void ShareManager::addAsyncTask(AsyncF aF) noexcept {
 ShareManager::RefreshResult ShareManager::refreshPaths(const StringList& aPaths, const string& aDisplayName /*Util::emptyString*/, function<void(float)> aProgressF /*nullptr*/) noexcept {
 	for (const auto& path : aPaths) {
 		auto d = findDirectory(path);
-		if (!d && !allowAddDir(path)) {
+		if (!d && !allowShareDirectory(path)) {
 			return RefreshResult::REFRESH_PATH_NOT_FOUND;
 		}
 	}
@@ -1945,6 +1967,7 @@ ShareManager::RefreshInfo::RefreshInfo(const string& aPath, const Directory::Ptr
 
 void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexcept {
 	unique_ptr<HashManager::HashPauser> pauser = nullptr;
+	ScopedFunctor([this] { refreshing.clear(); });
 
 	for (;;) {
 		TaskQueue::TaskPair t;
@@ -2067,7 +2090,6 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 #ifdef _DEBUG
 	validateDirectoryTreeDebug();
 #endif
-	refreshing.clear();
 }
 
 void ShareManager::RefreshInfo::mergeRefreshChanges(Directory::MultiMap& lowerDirNameMap_, Directory::Map& rootPaths_, HashFileMap& tthIndex_, int64_t& totalHash_, int64_t& totalAdded_, ProfileTokenSet* dirtyProfiles_) noexcept {
@@ -2128,7 +2150,7 @@ void ShareManager::setRefreshState(const string& aRefreshPath, RefreshState aSta
 		}
 	}
 
-	fire(ShareManagerListener::RootUpdated(), rootDir->getPath());
+	fire(ShareManagerListener::RootRefreshState(), rootDir->getPath());
 }
 
 bool ShareManager::applyRefreshChanges(RefreshInfo& ri, int64_t& totalHash_, ProfileTokenSet* aDirtyProfiles) {
@@ -2911,7 +2933,16 @@ void ShareManager::shareBundle(const BundlePtr& aBundle) noexcept {
 	addRefreshTask(ADD_BUNDLE, { aBundle->getTarget() }, RefreshType::TYPE_BUNDLE, aBundle->getTarget());
 }
 
-bool ShareManager::allowAddDir(const string& aRealPath) const noexcept {
+bool ShareManager::allowShareDirectory(const string& aRealPath) const noexcept {
+	try {
+		validatePath(aRealPath);
+		return true;
+	} catch (const Exception&) { }
+
+	return false;
+}
+
+void ShareManager::validatePath(const string& aRealPath) const {
 	StringList tokens;
 	Directory::Ptr baseDirectory = nullptr;
 
@@ -2921,11 +2952,11 @@ bool ShareManager::allowAddDir(const string& aRealPath) const noexcept {
 	}
 
 	if (!baseDirectory) {
-		return false;
+		throw ShareException(STRING(DIRECTORY_NOT_FOUND));
 	}
 
 	// Validate missing tokens
-	return validator->validatePathTokens(baseDirectory->getRealPath(), tokens);
+	validator->validatePathTokens(baseDirectory->getRealPath(), tokens);
 }
 
 ShareManager::Directory::Ptr ShareManager::findDirectory(const string& aRealPath, StringList& remainingTokens_) const noexcept {
@@ -2966,7 +2997,9 @@ ShareManager::Directory::Ptr ShareManager::getDirectory(const string& aRealPath)
 	}
 
 	// Validate the remaining tokens
-	if (!validator->validatePathTokens(curDir->getRealPath(), tokens)) {
+	try {
+		validator->validatePathTokens(curDir->getRealPath(), tokens);
+	} catch (const Exception&) {
 		return nullptr;
 	}
 
@@ -3087,8 +3120,8 @@ void ShareManager::setExcludedPaths(const StringSet& aPaths) noexcept {
 	validator->setExcludedPaths(aPaths);
 }
 
-bool ShareManager::validate(FileFindIter& aIter, const string& aPath) const noexcept {
+/*bool ShareManager::validate(FileFindIter& aIter, const string& aPath) const noexcept {
 	return validator->validate(aIter, aPath, Text::toLower(aPath), false);
-}
+}*/
 
 } // namespace dcpp

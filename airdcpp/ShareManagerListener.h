@@ -41,9 +41,10 @@ namespace dcpp {
 		typedef X<7> RootCreated;
 		typedef X<8> RootRemoved;
 		typedef X<9> RootUpdated;
+		typedef X<10> RootRefreshState;
 
-		typedef X<10> ExcludeAdded;
-		typedef X<11> ExcludeRemoved;
+		typedef X<11> ExcludeAdded;
+		typedef X<12> ExcludeRemoved;
 
 
 		virtual void on(ShareLoaded) noexcept{}
@@ -58,6 +59,7 @@ namespace dcpp {
 		virtual void on(RootCreated, const string&) noexcept {}
 		virtual void on(RootRemoved, const string&) noexcept {}
 		virtual void on(RootUpdated, const string&) noexcept {}
+		virtual void on(RootRefreshState, const string&) noexcept {}
 
 		virtual void on(ExcludeAdded, const string&) noexcept {}
 		virtual void on(ExcludeRemoved, const string&) noexcept {}

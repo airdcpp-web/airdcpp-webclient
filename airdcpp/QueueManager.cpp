@@ -28,6 +28,7 @@
 #include "DirectoryListingManager.h"
 #include "Download.h"
 #include "DownloadManager.h"
+#include "ErrorCollector.h"
 #include "FileReader.h"
 #include "HashManager.h"
 #include "LogManager.h"
@@ -607,7 +608,7 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& bundleFi
 
 	auto matchSkipList = [&] (string&& aName) -> void {
 		if(skipList.match(aName)) {
-			throw QueueException(STRING(DOWNLOAD_SKIPLIST_MATCH));
+			throw QueueException(STRING(SKIPLIST_DOWNLOAD_MATCH));
 		}
 	};
 
@@ -721,65 +722,6 @@ BundlePtr QueueManager::getBundle(const string& aTarget, Priority aPrio, time_t 
 	return b;
 }
 
-class ErrorReporter {
-public:
-	struct Error {
-		Error(const string& aFile, bool aIsMinor) : file(aFile), isMinor(aIsMinor) { }
-
-		string file;
-		bool isMinor;
-	};
-
-	ErrorReporter(int aTotalFileCount) : fileCount(aTotalFileCount) { }
-
-	void add(const string& aError, const string& aFile, bool aIsMinor) {
-		errors.emplace(aError, Error(aFile, aIsMinor));
-
-	}
-	
-	void clearMinor() {
-		errors.erase(boost::remove_if(errors | map_values, [](const Error& e) { return e.isMinor; }).base(), errors.end());
-	}
-
-	string getMessage() {
-		if (errors.empty()) {
-			return Util::emptyString;
-		}
-
-		StringList msg;
-
-		//get individual errors
-		StringSet errorNames;
-		for (const auto& p: errors | map_keys) {
-			errorNames.insert(p);
-		}
-
-		for (const auto& e: errorNames) {
-			auto errorCount = errors.count(e);
-			if (errorCount <= 3) {
-				// Report each file
-				StringList paths;
-				auto k = errors.equal_range(e);
-				for (auto i = k.first; i != k.second; ++i) {
-					paths.push_back(i->second.file);
-				}
-
-				auto pathStr = Util::toString(", ", paths);
-				msg.push_back(STRING_F(X_FILE_NAMES, e % pathStr));
-			} else {
-				// Too many errors, report the total failed count
-				msg.push_back(STRING_F(X_FILE_COUNT, e % errorCount % fileCount));
-			}
-		}
-
-		return Util::toString(", ", msg);
-	}
-
-private:
-	int fileCount;
-	unordered_multimap<string, Error> errors;
-};
-
 optional<DirectoryBundleAddInfo> QueueManager::createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleDirectoryItemInfo::List& aFiles, Priority aPrio, time_t aDate, string& errorMsg_) noexcept {
 	// Generic validations that will throw
 	auto target = formatBundleTarget(aTarget, aDate);
@@ -817,7 +759,7 @@ optional<DirectoryBundleAddInfo> QueueManager::createDirectoryBundle(const strin
 	int smallDupes = 0, fileCount = aFiles.size(), filesExist = 0;
 
 	DirectoryBundleAddInfo info;
-	ErrorReporter errors(fileCount);
+	ErrorCollector errors(fileCount);
 
 	aFiles.erase(boost::remove_if(aFiles, [&](BundleDirectoryItemInfo& bfi) {
 		try {
@@ -1567,7 +1509,7 @@ void QueueManager::shareBundle(BundlePtr aBundle, bool aSkipScan) noexcept {
 
 	setBundleStatus(aBundle, Bundle::STATUS_COMPLETED);
 
-	if (!ShareManager::getInstance()->allowAddDir(aBundle->getTarget())) {
+	if (!ShareManager::getInstance()->allowShareDirectory(aBundle->getTarget())) {
 		LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogMessage::SEV_INFO);
 		return;
 	}

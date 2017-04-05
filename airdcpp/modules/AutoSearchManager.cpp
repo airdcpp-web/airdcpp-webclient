@@ -612,7 +612,8 @@ void AutoSearchManager::checkItems() noexcept {
 			}
 			
 			//check expired, and remove them.
-			if (as->getStatus() != AutoSearch::STATUS_EXPIRED && as->expirationTimeReached() && as->getBundles().empty()) {
+			if (as->getStatus() != AutoSearch::STATUS_EXPIRED && as->getBundles().empty() && 
+				(as->expirationTimeReached() || (as->usingIncrementation() && as->getMaxNumber() > 0 && as->getCurNumber() > as->getMaxNumber()))) {
 				expired.push_back(as);
 				continue;
 			}

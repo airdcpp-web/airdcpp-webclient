@@ -37,7 +37,7 @@ SharePathValidator::SharePathValidator() {
 	TCHAR path[MAX_PATH];
 	::SHGetFolderPath(NULL, CSIDL_WINDOWS, NULL, SHGFP_TYPE_CURRENT, path);
 
-	winDir = Text::toLower(Text::fromT(path)) + PATH_SEPARATOR;
+	winDir = Text::fromT(path) + PATH_SEPARATOR;
 #endif
 
 	reloadSkiplist();
@@ -48,81 +48,52 @@ bool SharePathValidator::matchSkipList(const string& aName) const noexcept {
 	return skipList.match(aName); 
 }
 
-string lastMessage;
-uint64_t messageTick = 0;
-bool SharePathValidator::checkSharedName(const string& aPath, const string& aPathLower, bool isDir, bool aReport /*true*/, int64_t size /*0*/) const noexcept {
-	auto report = [&](const string& aMsg) {
-		// There may be sequential modification notifications for monitored files so don't spam the same message many times
-		if (aReport && (lastMessage != aMsg || messageTick + 3000 < GET_TICK())) {
-			LogManager::getInstance()->message(aMsg, LogMessage::SEV_INFO);
-			lastMessage = aMsg;
-			messageTick = GET_TICK();
-		}
-	};
+StringSet forbiddenExtension = {
+	".dctmp",
+	".tmp",
+	".temp",
+	".!ut", //uTorrent
+	".bc!", //BitComet
+	".missing",
+	".bak",
+	".bad",
+};
 
-	string aNameLower = isDir ? Util::getLastDir(aPathLower) : Util::getFileName(aPathLower);
+void SharePathValidator::checkSharedName(const string& aPath, bool aIsDir, int64_t aFileSize /*0*/) const {
+	const auto fileName = aIsDir ? Util::getLastDir(aPath) : Util::getFileName(aPath);
 
-	if (matchSkipList(isDir ? Util::getLastDir(aPath) : Util::getFileName(aPath))) {
-		if (SETTING(REPORT_SKIPLIST))
-			report(STRING(SKIPLIST_HIT) + aPath);
-		return false;
+	if (matchSkipList(aIsDir ? Util::getLastDir(aPath) : fileName)) {
+		throw ShareException(STRING(SKIPLIST_SHARE_MATCH));
 	}
 
-	if (!isDir) {
-		//dcassert(File::getSize(aPath) == size);
-		string fileExt = Util::getFileExt(aNameLower);
-		if ((strcmp(aNameLower.c_str(), "dcplusplus.xml") == 0) ||
-			(strcmp(aNameLower.c_str(), "favorites.xml") == 0) ||
-			(strcmp(fileExt.c_str(), ".dctmp") == 0) ||
-			(strcmp(fileExt.c_str(), ".antifrag") == 0))
-		{
-			return false;
+	if (!aIsDir) {
+		if (strcmp(fileName.c_str(), "DCPlusPlus.xml") == 0 ||
+			strcmp(fileName.c_str(), "Favorites.xml") == 0 ||
+			strcmp(aPath.c_str(), SETTING(TLS_PRIVATE_KEY_FILE).c_str()) == 0
+		) {
+			throw ShareException(STRING(DONT_SHARE_APP_DIRECTORY));
 		}
 
-		//check for forbidden file patterns
-		if (SETTING(REMOVE_FORBIDDEN)) {
-			string::size_type nameLen = aNameLower.size();
-			if ((strcmp(fileExt.c_str(), ".tdc") == 0) ||
-				(strcmp(fileExt.c_str(), ".getright") == 0) ||
-				(strcmp(fileExt.c_str(), ".temp") == 0) ||
-				(strcmp(fileExt.c_str(), ".tmp") == 0) ||
-				(strcmp(fileExt.c_str(), ".jc!") == 0) ||	//FlashGet
-				(strcmp(fileExt.c_str(), ".dmf") == 0) ||	//Download Master
-				(strcmp(fileExt.c_str(), ".!ut") == 0) ||	//uTorrent
-				(strcmp(fileExt.c_str(), ".bc!") == 0) ||	//BitComet
-				(strcmp(fileExt.c_str(), ".missing") == 0) ||
-				(strcmp(fileExt.c_str(), ".bak") == 0) ||
-				(strcmp(fileExt.c_str(), ".bad") == 0) ||
-				(nameLen > 9 && aNameLower.rfind("part.met") == nameLen - 8) ||
-				(aNameLower.find("__padding_") == 0) ||			//BitComet padding
-				(aNameLower.find("__incomplete__") == 0)		//winmx
-				) {
-				report(STRING(FORBIDDEN_FILE) + aPath);
-				return false;
-			}
+		// Check for forbidden file extensions
+		if (SETTING(REMOVE_FORBIDDEN) && forbiddenExtension.find(Text::toLower(Util::getFileExt(fileName))) != forbiddenExtension.end()) {
+			throw ShareException(STRING(FORBIDDEN_FILE_EXT));
 		}
 
-		if (strcmp(aPathLower.c_str(), AirUtil::privKeyFile.c_str()) == 0) {
-			return false;
+		if (SETTING(NO_ZERO_BYTE) && aFileSize == 0) {
+			throw ShareException(STRING(ZERO_BYTE_SHARE));
 		}
 
-		if (SETTING(NO_ZERO_BYTE) && !(size > 0))
-			return false;
-
-		if (SETTING(MAX_FILE_SIZE_SHARED) != 0 && size > Util::convertSize(SETTING(MAX_FILE_SIZE_SHARED), Util::MB)) {
-			report(STRING(BIG_FILE_NOT_SHARED) + " " + aPath + " (" + Util::formatBytes(size) + ")");
-			return false;
+		if (SETTING(MAX_FILE_SIZE_SHARED) != 0 && aFileSize > Util::convertSize(SETTING(MAX_FILE_SIZE_SHARED), Util::MB)) {
+			throw ShareException(STRING(BIG_FILE_NOT_SHARED));
 		}
 	} else {
 #ifdef _WIN32
 		// don't share Windows directory
-		if (aPathLower.length() >= winDir.length() && strcmp(aPathLower.substr(0, winDir.length()).c_str(), winDir.c_str()) == 0) {
-			return false;
+		if (strncmp(aPath.c_str(), winDir.c_str(), winDir.length()) == 0) {
+			throw ShareException(STRING(DONT_SHARE_APP_DIRECTORY));
 		}
 #endif
 	}
-
-	return true;
 }
 
 
@@ -215,55 +186,58 @@ void SharePathValidator::saveExcludes(SimpleXML& aXml) const noexcept {
 	aXml.stepOut();
 }
 
-bool SharePathValidator::validate(FileFindIter& aIter, const string& aPath, const string& aPathLower, bool aReportErrors) const noexcept {
+void SharePathValidator::validate(FileFindIter& aIter, const string& aPath) const {
 	if (!SETTING(SHARE_HIDDEN) && aIter->isHidden()) {
-		return false;
+		throw FileException("File is hidden");
 	}
 
 	if (!SETTING(SHARE_FOLLOW_SYMLINKS) && aIter->isLink()) {
-		return false;
+		throw FileException("File is a symbolic link");
 	}
 
 	if (aIter->isDirectory()) {
-		if (!checkSharedName(aPath, aPathLower, true, aReportErrors)) {
-			return false;
-		}
+		checkSharedName(aPath, true);
 
 		auto bundle = QueueManager::getInstance()->findDirectoryBundle(aPath);
 		if (bundle && !bundle->isCompleted()) {
-			return false;
+			throw QueueException("Directory is inside an unfinished bundle");
 		}
 
 		if (isExcluded(aPath)) {
-			return false;
+			throw ShareException("Directory is excluded from share");
 		}
-	} else if (!checkSharedName(aPath, aPathLower, false, aReportErrors, aIter->getSize())) {
-		return false;
-	}
 
-	return true;
+		auto error = directoryValidationHook.runHooksError(aPath);
+		if (error) {
+			throw ShareException(error->formatError(error));
+		}
+	} else {
+		auto size = aIter->getSize();
+		checkSharedName(aPath, false, size);
+
+		auto error = fileValidationHook.runHooksError(aPath, size);
+		if (error) {
+			throw ShareException(error->formatError(error));
+		}
+	}
 }
 
-void SharePathValidator::validateRootPath(const string& realPath) const throw(ShareException) {
-	if (realPath.empty()) {
+void SharePathValidator::validateRootPath(const string& aRealPath) const throw(ShareException) {
+	if (aRealPath.empty()) {
 		throw ShareException(STRING(NO_DIRECTORY_SPECIFIED));
 	}
 
-	if (!SETTING(SHARE_HIDDEN) && File::isHidden(realPath)) {
+	if (!SETTING(SHARE_HIDDEN) && File::isHidden(aRealPath)) {
 		throw ShareException(STRING(DIRECTORY_IS_HIDDEN));
 	}
 #ifdef _WIN32
-	//need to throw here, so throw the error and dont use airutil
-	TCHAR path[MAX_PATH];
-	::SHGetFolderPath(NULL, CSIDL_WINDOWS, NULL, SHGFP_TYPE_CURRENT, path);
-	string windows = Text::fromT((tstring)path) + PATH_SEPARATOR;
 	// don't share Windows directory
-	if (Util::strnicmp(realPath, windows, windows.length()) == 0) {
-		throw ShareException(STRING_F(CHECK_FORBIDDEN, realPath));
+	if (strncmp(aRealPath.c_str(), winDir.c_str(), winDir.length()) == 0) {
+		throw ShareException(STRING_F(FORBIDDEN_FILE_EXT, aRealPath));
 	}
 #endif
 
-	if (realPath == Util::getAppFilePath() || realPath == Util::getPath(Util::PATH_USER_CONFIG) || realPath == Util::getPath(Util::PATH_USER_LOCAL)) {
+	if (aRealPath == Util::getAppFilePath() || aRealPath == Util::getPath(Util::PATH_USER_CONFIG) || aRealPath == Util::getPath(Util::PATH_USER_LOCAL)) {
 		throw ShareException(STRING(DONT_SHARE_APP_DIRECTORY));
 	}
 }
@@ -275,29 +249,23 @@ void SharePathValidator::reloadSkiplist() {
 	skipList.prepare();
 }
 
-bool SharePathValidator::validatePathTokens(const string& aBasePath, const StringList& aTokens) const noexcept {
+void SharePathValidator::validatePathTokens(const string& aBasePath, const StringList& aTokens) const {
 	if (aTokens.empty()) {
-		return true;
+		return;
 	}
 
 	auto curPath = aBasePath;
-	auto curPathLower = Text::toLower(aBasePath);
 
 	for (const auto& currentName : aTokens) {
 		curPath += currentName + PATH_SEPARATOR;
-		curPathLower += Text::toLower(currentName) + PATH_SEPARATOR;
 
 		FileFindIter i(curPath);
 		if (i != FileFindIter()) {
-			if (!validate(i, curPath, curPathLower, false)) {
-				return false;
-			}
+			validate(i, curPath);
 		} else {
-			return false;
+			throw FileException(STRING(FILE_NOT_FOUND));
 		}
 	}
-
-	return true;
 }
 
 }
