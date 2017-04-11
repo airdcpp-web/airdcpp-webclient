@@ -47,7 +47,7 @@ endif()
 
 
 # OPTIONS
-option (INSTALL_RUNTIME_PATH "Install rpath" OFF)
+option (INSTALL_RUNTIME_PATH "Install rpath" ON)
 option (LOCAL_BOOST "Use local boost headers" OFF)
 option (INSTALL_WEB_UI "Download and install the Web UI package" ON)
 option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
@@ -131,7 +131,7 @@ if (NOT LIBDIR)
 endif (NOT LIBDIR)
 message (STATUS "Library directory: ${LIBDIR}")
 
-if (INSTALL_RUNTIME_PATH OR NOT DEFINED INSTALL_RUNTIME_PATH)
+if (INSTALL_RUNTIME_PATH)
   set (CMAKE_INSTALL_RPATH "${LIBDIR}")
 endif ()
 
