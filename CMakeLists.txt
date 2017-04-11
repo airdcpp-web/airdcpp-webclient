@@ -22,6 +22,9 @@ include (FindPkgConfig)
 include (CheckCXXSourceCompiles)
 include (cmake/CheckAtomic.cmake)
 
+
+
+# PRE-CHECKS
 CHECK_FUNCTION_EXISTS(posix_fadvise HAVE_POSIX_FADVISE)
 CHECK_FUNCTION_EXISTS(mallinfo HAVE_MALLINFO)
 CHECK_FUNCTION_EXISTS(malloc_stats HAVE_MALLOC_STATS)
@@ -42,6 +45,49 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 
+
+# OPTIONS
+option (INSTALL_RUNTIME_PATH "Install rpath" OFF)
+option (LOCAL_BOOST "Use local boost headers" OFF)
+option (INSTALL_WEB_UI "Download and install the Web UI package" ON)
+option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
+option (WITH_ASAN "Enable address sanitizer" OFF) # With clang: http://clang.llvm.org/docs/AddressSanitizer.html
+
+
+
+# STATIC/SHARED
+if (NOT DEFINED BUILD_SHARED_LIBS AND NOT WIN32)
+  set(BUILD_SHARED_LIBS ON)
+elseif (NOT BUILD_SHARED_LIBS)
+  # http://cmake.3232098.n2.nabble.com/Howto-compile-static-executable-td5580269.html
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+  set_property(GLOBAL PROPERTY LINK_SEARCH_START_STATIC ON)
+  set_property(GLOBAL PROPERTY LINK_SEARCH_END_STATIC ON)
+
+  set(Boost_USE_STATIC_RUNTIME ON)
+  set(Boost_USE_STATIC_LIBS ON)
+
+  #message(STATUS "CMAKE_EXE_LINKER_FLAGS: ${CMAKE_EXE_LINKER_FLAGS}")
+  #message(STATUS "CMAKE_EXE_LINK_DYNAMIC_C_FLAGS: ${CMAKE_EXE_LINK_DYNAMIC_C_FLAGS}")
+  #message(STATUS "CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS: ${CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS}")
+  #message(STATUS "CMAKE_SHARED_LIBRARY_C_FLAGS: ${CMAKE_SHARED_LIBRARY_C_FLAGS}")
+  #message(STATUS "CMAKE_SHARED_LIBRARY_CXX_FLAGS: ${CMAKE_SHARED_LIBRARY_CXX_FLAGS}")
+  #message(STATUS "CMAKE_SHARED_LIBRARY_LINK_C_FLAGS: ${CMAKE_SHARED_LIBRARY_LINK_C_FLAGS}")
+  #message(STATUS "CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS: ${CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS}")
+
+  set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} "-static-libgcc -static-libstdc++ -static")
+  #set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} "-static-libgcc -static-libstdc++")
+
+  set(CMAKE_EXE_LINK_DYNAMIC_C_FLAGS)
+  set(CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS)
+  set(CMAKE_SHARED_LIBRARY_C_FLAGS)
+  set(CMAKE_SHARED_LIBRARY_CXX_FLAGS)
+  set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
+  set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
+endif()
+
+
+## DEPENDENCIES
 find_package (GeoIP REQUIRED)
 find_package (PkgConfig)
 find_package (BZip2 REQUIRED)
@@ -58,17 +104,6 @@ find_package (Backtrace)
 find_package (TBB)
 
 
-#option (ENABLE_STACKTRACE "Show stacktrace when program receive SIGSEGV" ON)
-option (INSTALL_RUNTIME_PATH "Install rpath" OFF)
-option (LOCAL_BOOST "Use local boost headers" OFF)
-option (INSTALL_WEB_UI "Download and install the Web UI package" ON)
-option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
-option (WITH_ASAN "Enable address sanitizer" OFF) # With clang: http://clang.llvm.org/docs/AddressSanitizer.html
-
-#if (DO_NOT_USE_MUTEX OR HAIKU OR APPLE)
-#  add_definitions ( -DDO_NOT_USE_MUTEX )
-#endif ()
-
 if (TBB_FOUND)
   add_definitions ( -DHAVE_INTEL_TBB )
 endif(TBB_FOUND)
@@ -83,22 +118,22 @@ if (LOCAL_MINIUPNP)
 else (LOCAL_MINIUPNP)
   find_package (Miniupnpc REQUIRED)
 endif (LOCAL_MINIUPNP)
-  
-set(Boost_USE_STATIC_LIBS OFF) 
-set(Boost_USE_MULTITHREADED ON)  
-set(Boost_USE_STATIC_RUNTIME OFF) 
-find_package(Boost 1.54.0 COMPONENTS regex system thread REQUIRED) 
+
+set(Boost_USE_MULTITHREADED ON)
+find_package(Boost 1.54.0 COMPONENTS regex system thread REQUIRED)
 
 set (Boost_INCLUDE_DIR)
 
+
+# PATHS
 if (NOT LIBDIR)
   set (LIBDIR "${CMAKE_INSTALL_FULL_LIBDIR}")
 endif (NOT LIBDIR)
 message (STATUS "Library directory: ${LIBDIR}")
 
-if (INSTALL_RUNTIME_PATH)
-    set (CMAKE_INSTALL_RPATH "${LIBDIR}")
-endif (INSTALL_RUNTIME_PATH)
+if (INSTALL_RUNTIME_PATH OR NOT DEFINED INSTALL_RUNTIME_PATH)
+  set (CMAKE_INSTALL_RPATH "${LIBDIR}")
+endif ()
 
 if (NOT CMAKE_BUILD_TYPE)
   set (CMAKE_BUILD_TYPE "RelWithDebInfo")
@@ -109,7 +144,6 @@ if (NOT RESOURCE_DIRECTORY)
 endif (NOT RESOURCE_DIRECTORY)
 message (STATUS "Resource directory: ${RESOURCE_DIRECTORY}")
 
-
 if (NOT GLOBAL_CONFIG_DIRECTORY)
   set (GLOBAL_CONFIG_DIRECTORY "${CMAKE_INSTALL_FULL_SYSCONFDIR}/airdcpp/")
 endif (NOT GLOBAL_CONFIG_DIRECTORY)
@@ -119,6 +153,15 @@ message (STATUS "Startup config directory: ${GLOBAL_CONFIG_DIRECTORY}")
 if (APPLE)
     add_definitions(-DAPPLE)
 endif (APPLE)
+
+if (WIN32 OR HAIKU)
+    set (BINDIR .)
+elseif (UNIX)
+    set (BINDIR bin)
+    if (APPLE)
+        set (BUNDLEDIR .)
+    endif (APPLE)
+endif (WIN32 OR HAIKU)
 
 
 #find_program(GIT_EXECUTABLE git PATHS /sw/bin)
@@ -136,6 +179,8 @@ endif (APPLE)
 #	endif(GIT_TAG)
 #endif (GIT_EXECUTABLE)
 
+
+# SCRIPTS
 
 # Version information for the client
 execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc ${VERSION} ${TAG_APPLICATION} 
@@ -165,14 +210,7 @@ if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
 endif()
 
 
-if (UNIX)
-add_definitions (-D_GNU_SOURCE)
-find_program (GZIP_CMD gzip)
-mark_as_advanced(GZIP_CMD)
-endif (UNIX)
-
-set (CMAKE_INSTALL_RPATH "${LIBDIR}")
-
+# COMPILING DEFINITIONS
 add_definitions (-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT
                  -D_DATADIR="${CLIENT_DATA_DIR}" -DLOCALE_DIR="${LOCALE_DIR}" -DBUILDING_AIRDCPP)
 
@@ -197,21 +235,6 @@ if (WITH_ASAN)
     message(STATUS "Address sanitizer is enabled")
 endif()
 
-include_directories(${airdcpp_BINARY_DIR}
-   ${CMAKE_CURRENT_SOURCE_DIR}/airdcpp-core
-   ${CMAKE_CURRENT_SOURCE_DIR}/airdcpp-webapi
-   ${OPENSSL_INCLUDE_DIR}
-   )
-
-if (WIN32 OR HAIKU)
-    set (BINDIR .)
-elseif (UNIX)
-    set (BINDIR bin)
-    if (APPLE)
-        set (BUNDLEDIR .)
-    endif (APPLE)
-endif (WIN32 OR HAIKU)
-
 if (NOT CMAKE_BUILD_TYPE MATCHES "Debug" AND NOT ARM_OPTIMIZE_FULL)
   if (CMAKE_SYSTEM_PROCESSOR STREQUAL "arm" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "armv6l")
     set (CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Os")
@@ -226,10 +249,24 @@ if (NOT CMAKE_BUILD_TYPE MATCHES "Debug" AND NOT ARM_OPTIMIZE_FULL)
   endif()
 endif()
 
+
+
+# FILES TO COMPILE
+include_directories(${airdcpp_BINARY_DIR}
+   ${CMAKE_CURRENT_SOURCE_DIR}/airdcpp-core
+   ${CMAKE_CURRENT_SOURCE_DIR}/airdcpp-webapi
+   ${OPENSSL_INCLUDE_DIR}
+   )
+
 add_subdirectory (airdcpp-core)
 add_subdirectory (airdcpp-webapi)
 add_subdirectory (airdcppd)
 
+
+
+# REPORT
+message(STATUS "Build shared libraries: ${BUILD_SHARED_LIBS}")
+message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 message(STATUS "CMAKE_SYSTEM: ${CMAKE_SYSTEM}")
 message(STATUS "CMAKE_SYSTEM_PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "CMAKE_CXX_COMPILER_ID: ${CMAKE_CXX_COMPILER_ID}")
@@ -249,24 +286,27 @@ message(STATUS "CMAKE will use this libs (and headers) during build:
     tbb (headers): ${TBB_LIBRARIES} (${TBB_INCLUDE_DIRS})
     ")
 
-if(INSTALL_WEB_UI)
-	find_program(NPM_EXECUTABLE npm PATHS /sw/bin)
-	if(NOT NPM_EXECUTABLE)
-		message(FATAL_ERROR "Could not find 'npm' executable. Please install npm")
-	endif(NOT NPM_EXECUTABLE)
 
-	message(STATUS "Installing Web UI")
-        execute_process (COMMAND sh install_webui.sh ${SOVERSION}
-                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-                 RESULT_VARIABLE SCRIPT_RESULT)
 
-	if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
-            message(FATAL_ERROR "Failed to install Web UI")
-        endif()
+# WEB UI
+if (INSTALL_WEB_UI)
+  find_program(NPM_EXECUTABLE npm PATHS /sw/bin)
+  if(NOT NPM_EXECUTABLE)
+    message(FATAL_ERROR "Could not find 'npm' executable. Please install npm")
+  endif()
 
-else(INSTALL_WEB_UI)
-	message(STATUS "Skipping Web UI installation")
+  message(STATUS "Installing Web UI")
+  execute_process (COMMAND sh install_webui.sh ${SOVERSION}
+                   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                   RESULT_VARIABLE SCRIPT_RESULT)
+
+  if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
+    message(FATAL_ERROR "Failed to install Web UI")
+  endif()
+else (INSTALL_WEB_UI)
+  message(STATUS "Skipping Web UI installation")
 endif (INSTALL_WEB_UI)
+
 
 
 CONFIGURE_FILE(
@@ -277,5 +317,5 @@ ADD_CUSTOM_TARGET(uninstall
   "${CMAKE_COMMAND}" -P "${PROJECT_BINARY_DIR}/cmake_uninstall.cmake")
 
 if(INSTALL_WEB_UI)
-	install (DIRECTORY node_modules/airdcpp-webui/dist/ DESTINATION ${RESOURCE_DIRECTORY}web-resources)
+  install (DIRECTORY node_modules/airdcpp-webui/dist/ DESTINATION ${RESOURCE_DIRECTORY}web-resources)
 endif (INSTALL_WEB_UI)

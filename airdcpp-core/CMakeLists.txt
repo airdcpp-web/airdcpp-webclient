@@ -8,17 +8,15 @@ file (GLOB airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/*.h)
 set (AIRDCPP_SRCS ${airdcpp_srcs} PARENT_SCOPE)
 set (AIRDCPP_HDRS ${airdcpp_hdrs} PARENT_SCOPE)
 
-include_directories (${Boost_INCLUDE_DIR} ${BZIP2_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} 
+include_directories (${Boost_INCLUDE_DIR} ${BZIP2_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR}
 			${LevelDB_INCLUDE_DIR})
 
-# ${LibNatpmp_INCLUDE_DIR}
 
-if (WIN32)
-  set (LINK STATIC)
-else (WIN32)
+# WINDOWS
+if (NOT WIN32)
   list (REMOVE_ITEM airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/ZipFile.h)
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/ZipFile.cpp)
-  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/Updater.cpp)  
+  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/Updater.cpp)
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/Mapper_WinUPnP.cpp)
 
   if (NOT CMAKE_CROSSCOMPILING)
@@ -27,37 +25,35 @@ else (WIN32)
 
   set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/Util.cpp APPEND PROPERTY COMPILE_DEFINITIONS RESOURCE_DIRECTORY="${RESOURCE_DIRECTORY}")
   set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/Util.cpp APPEND PROPERTY COMPILE_DEFINITIONS GLOBAL_CONFIG_DIRECTORY="${GLOBAL_CONFIG_DIRECTORY}")
-endif (WIN32)
 
-if (NOT LINK)
-    set (LINK SHARED)
-endif (NOT LINK)
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/Updater.h PROPERTY COMPILE_DEFINITIONS NO_CLIENT_UPDATER)
+  add_definitions (-DNO_CLIENT_UPDATER)
+endif ()
 
+
+# APPLE
 if (APPLE)
-    list (APPEND airdcpp_extra_libs "iconv")
-    #set (EXTRA_LIBS "iconv")
+  list (APPEND airdcpp_extra_libs ${ICONV_LIBRARIES})
 endif (APPLE)
 
 
-
-set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/StringDefs.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -fno-var-tracking ")
-set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/Updater.h PROPERTY COMPILE_DEFINITIONS NO_CLIENT_UPDATER)
-
-add_definitions (-DNO_CLIENT_UPDATER)
-
+# OPTIONAL LIBRARIES
 if (TBB_FOUND)
   set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/concurrency.h PROPERTY COMPILE_DEFINITIONS HAVE_INTEL_TBB)
-  #target_link_libraries (airdcpp ${TBB_LIBRARIES})
   list (APPEND airdcpp_extra_libs ${TBB_LIBRARIES})
 endif (TBB_FOUND)
 
 if (LibNatpmp_FOUND )
   set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/MappingManager.cpp PROPERTY COMPILE_DEFINITIONS HAVE_NATPMP_H)
-  #target_link_libraries (airdcpp ${LibNatpmp_LIBRARY})
+
   list (APPEND airdcpp_extra_libs ${LibNatpmp_LIBRARY})
 else (LibNatpmp_FOUND )
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/Mapper_NATPMP.cpp)
 endif (LibNatpmp_FOUND )
+
+
+# GENERIC COMPILING PROPERTIES
+set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/StringDefs.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -fno-var-tracking ")
 
 
 if (ICONV_SECOND_ARGUMENT_IS_CONST)
@@ -78,31 +74,34 @@ if (HAVE_POSIX_FADVISE)
 endif (HAVE_POSIX_FADVISE)
 
 
-add_library (airdcpp ${LINK} ${airdcpp_srcs})
+
+# LINKING
+add_library (airdcpp ${airdcpp_srcs})
 
 target_link_libraries (airdcpp ${PTHREADS} ${BZIP2_LIBRARIES} ${ZLIB_LIBRARIES} ${MINIUPNP_LIBRARY}
 ${OPENSSL_LIBRARIES} ${ICONV_LIBRARIES} ${airdcpp_extra_libs} ${UPNP} ${Boost_LIBRARIES} ${LevelDB_LIBRARY} ${LibGeoIP_LIBRARY} )
 
 set_target_properties(airdcpp PROPERTIES VERSION ${SOVERSION} OUTPUT_NAME "airdcpp")
 
-if (WIN32)
-   set_property(TARGET airdcpp PROPERTY COMPILE_FLAGS)
-else(WIN32)
-   set_property(TARGET airdcpp PROPERTY COMPILE_FLAGS -fPIC)
-endif (WIN32)
+
+#if (WIN32)
+#   set_property(TARGET airdcpp PROPERTY COMPILE_FLAGS)
+#else(WIN32)
+#   set_property(TARGET airdcpp PROPERTY COMPILE_FLAGS -fPIC)
+#endif (WIN32)
 
 
-
+# INSTALLATION
 if (APPLE)
   set (LIBDIR1 .)
   set (LIBDIR ${PROJECT_NAME_GLOBAL}.app/Contents/MacOS)
 endif(APPLE)
 
-if (LINK STREQUAL SHARED)
-install (TARGETS airdcpp
+if (BUILD_SHARED_LIBS)
+  install (TARGETS airdcpp
             LIBRARY DESTINATION "${LIBDIR}" NAMELINK_SKIP
             BUNDLE DESTINATION ${LIBDIR1})
-endif (LINK STREQUAL SHARED)
+endif ()
 
 if (WITH_DEV_FILES)
     if (NOT AIRDCPP_INCLUDE_DIR)
