@@ -71,6 +71,7 @@ ShareManager::ShareManager() : bloom(new ShareBloom(1 << 20)), validator(new Sha
 
 	File::ensureDirectory(Util::getPath(Util::PATH_SHARECACHE));
 #ifdef _DEBUG
+#ifdef _WIN32
 	{
 		auto emoji = Text::wideToUtf8(L"\U0001F30D");
 
@@ -79,7 +80,6 @@ ShareManager::ShareManager() : bloom(new ShareBloom(1 << 20)), validator(new Sha
 		dcassert(d1.getLower() == emoji);
 	}
 
-#ifdef _WIN32
 	{
 		auto character = _T("\u00D6"); // Ö
 		DualString d2(Text::wideToUtf8(character));
