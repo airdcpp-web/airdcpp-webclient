@@ -23,10 +23,6 @@
 #define _WEBSOCKETPP_CPP11_STL_
 #endif
 
-#ifndef SSL_OP_NO_COMPRESSION
-#define SSL_OP_NO_COMPRESSION
-#endif
-
 # pragma warning(disable: 4005) // 'BOOST_ASIO_ERROR_CATEGORY_NOEXCEPT': macro redefinition
 
 #include <airdcpp/stdinc.h>

@@ -331,7 +331,9 @@ namespace webserver {
 			ctx->set_options(boost::asio::ssl::context::default_workarounds |
 				boost::asio::ssl::context::no_sslv2 |
 				boost::asio::ssl::context::no_sslv3 |
-				boost::asio::ssl::context::single_dh_use);
+				boost::asio::ssl::context::single_dh_use |
+				boost::asio::ssl::context::no_compression
+			);
 
 			const auto customCert = WEBCFG(TLS_CERT_PATH).str();
 			const auto customKey = WEBCFG(TLS_CERT_KEY_PATH).str();
