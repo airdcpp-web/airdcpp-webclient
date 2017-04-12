@@ -53,8 +53,11 @@ endif (LibNatpmp_FOUND )
 
 
 # GENERIC COMPILING PROPERTIES
-set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/StringDefs.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -fno-var-tracking ")
+if (CMAKE_BUILD_TYPE STREQUAL Debug)
+  add_definitions(-D_DEBUG)
+endif()
 
+set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/StringDefs.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -fno-var-tracking ")
 
 if (ICONV_SECOND_ARGUMENT_IS_CONST)
     set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/Text.cpp PROPERTY COMPILE_DEFINITIONS ICONV_CONST=const)
