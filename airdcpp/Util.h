@@ -662,7 +662,7 @@ private:
 
 	static StringList startupParams;
 	
-	static void loadBootConfig() noexcept;
+	static bool loadBootConfig(const string& aDirectoryPath) noexcept;
 
 	static int osMinor;
 	static int osMajor;

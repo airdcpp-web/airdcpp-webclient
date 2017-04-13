@@ -688,7 +688,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(FREE_SLOTS_EXTENSIONS, "*.nfo|*.sfv");
 	setDefault(POPUP_FONT, "MS Shell Dlg,-11,400,0");
 	setDefault(POPUP_TITLE_FONT, "MS Shell Dlg,-11,400,0");
-	setDefault(POPUPFILE, Util::getPath(Util::PATH_GLOBAL_CONFIG) + "popup.bmp");
+	setDefault(POPUPFILE, Util::getPath(Util::PATH_RESOURCES) + "popup.bmp");
 	setDefault(PM_PREVIEW, true);
 	setDefault(POPUP_TIME, 5);
 	setDefault(MAX_MSG_LENGTH, 120);

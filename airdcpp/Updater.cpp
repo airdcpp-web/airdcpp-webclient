@@ -426,7 +426,7 @@ string Updater::extractUpdater(const string& aUpdaterPath, int aBuildID, const s
 	xml.stepIn();
 	xml.addTag("DestinationPath", dstPath);
 	xml.addTag("SourcePath", srcPath);
-	xml.addTag("ConfigPath", Util::getPath(Util::PATH_GLOBAL_CONFIG));
+	xml.addTag("ConfigPath", Util::getPath(Util::PATH_USER_CONFIG));
 	xml.addTag("UpdaterFile", updaterExeFile);
 	xml.addTag("BuildID", aBuildID);
 	xml.stepOut();

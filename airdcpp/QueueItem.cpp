@@ -546,7 +546,7 @@ uint64_t QueueItem::getDownloadedBytes() const noexcept {
 void QueueItem::addFinishedSegment(const Segment& segment) noexcept {
 #ifdef _DEBUG
 	if (bundle)
-		dcdebug("adding segment segment of size %u (%u, %u)...", segment.getSize(), segment.getStart(), segment.getEnd());
+		dcdebug("adding segment segment of size " I64_FMT " (" I64_FMT ", " I64_FMT ")...", segment.getSize(), segment.getStart(), segment.getEnd());
 #endif
 
 	dcassert(segment.getOverlapped() == false);
