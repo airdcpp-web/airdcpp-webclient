@@ -469,12 +469,7 @@ namespace webserver {
 	}
 
 	unique_ptr<File> Extension::initLog(const string& aPath) {
-		if (Util::fileExists(aPath) && !File::deleteFile(aPath)) {
-			dcdebug("Failed to delete the old extension output log %s: %s\n", aPath.c_str(), Util::translateError(errno).c_str());
-			throw Exception("Failed to delete the old extension output log");
-		}
-
-		return unique_ptr<File>(new File(aPath, File::CREATE | File::TRUNCATE, File::RW));
+		return unique_ptr<File>(new File(aPath, File::RW, File::CREATE | File::TRUNCATE));
 	}
 
 	void Extension::createProcess(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {
