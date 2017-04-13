@@ -280,7 +280,6 @@ namespace webserver {
 	}
 
 	ApiSettingItem::PtrList CoreSettingItem::getValueTypes() const noexcept {
-		dcassert(0);
 		return ApiSettingItem::PtrList();
 	}
 
