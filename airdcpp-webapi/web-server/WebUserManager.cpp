@@ -224,9 +224,25 @@ namespace webserver {
 		expirationTimer = nullptr;
 
 		// Let the modules handle deletion in a clean way before we are shutting down...
-		WLock l(cs);
-		sessionsLocalId.clear();
-		sessionsRemoteId.clear();
+		SessionList sessions;
+
+		{
+			WLock l(cs);
+			boost::copy(sessionsLocalId | map_values, back_inserter(sessions));
+
+			sessionsLocalId.clear();
+			sessionsRemoteId.clear();
+		}
+
+		while (true) {
+			if (all_of(sessions.begin(), sessions.end(), [](const SessionPtr& aSession) {
+				return aSession.unique();
+			})) {
+				break;
+			}
+
+			Thread::sleep(50);
+		}
 	}
 
 	void WebUserManager::on(WebServerManagerListener::LoadSettings, SimpleXML& xml_) noexcept {
