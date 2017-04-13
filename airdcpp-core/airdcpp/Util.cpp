@@ -66,11 +66,13 @@ tstring Util::emptyStringT;
 string Util::paths[Util::PATH_LAST];
 StringList Util::startupParams;
 
-#ifndef _WIN32
-string Util::appPath;
+#ifdef _WIN32
+	bool Util::localMode = true;
+#else
+	bool Util::localMode = false;
+	string Util::appPath;
 #endif
 
-bool Util::localMode = true;
 bool Util::wasUncleanShutdown = false;
 
 static void sgenrand(unsigned long seed) noexcept;
@@ -87,30 +89,10 @@ void WINAPI invalidParameterHandler(const wchar_t*, const wchar_t*, const wchar_
 
 #ifdef _WIN32
 
-typedef HRESULT (WINAPI* _SHGetKnownFolderPath)(GUID& rfid, DWORD dwFlags, HANDLE hToken, PWSTR *ppszPath);
-
 static string getDownloadsPath(const string& def) noexcept {
-	// Try Vista downloads path
-	static _SHGetKnownFolderPath getKnownFolderPath = 0;
-	static HINSTANCE shell32 = NULL;
-
-	if(!shell32) {
-	    shell32 = ::LoadLibrary(_T("Shell32.dll"));
-	    if(shell32)
-	    {
-	    	getKnownFolderPath = (_SHGetKnownFolderPath)::GetProcAddress(shell32, "SHGetKnownFolderPath");
-
-	    	if(getKnownFolderPath) {
-	    		 PWSTR path = NULL;
-	             // Defined in KnownFolders.h.
-	             static GUID downloads = {0x374de290, 0x123f, 0x4565, {0x91, 0x64, 0x39, 0xc4, 0x92, 0x5e, 0x46, 0x7b}};
-	    		 if(getKnownFolderPath(downloads, 0, NULL, &path) == S_OK) {
-	    			 string ret = Text::fromT(path) + "\\";
-	    			 ::CoTaskMemFree(path);
-	    			 return ret;
-	    		 }
-	    	}
-	    }
+	PWSTR path = NULL;
+	if (SHGetKnownFolderPath(FOLDERID_Downloads, KF_FLAG_CREATE, NULL, &path) == S_OK) {
+		return Util::validatePath(Text::fromT(path), true);
 	}
 
 	return def + "Downloads\\";
@@ -248,65 +230,82 @@ void Util::initialize(const string& aConfigPath) {
 
 	sgenrand((unsigned long)time(NULL));
 
-#if (_MSC_VER >= 1400)
-	_set_invalid_parameter_handler(reinterpret_cast<_invalid_parameter_handler>(invalidParameterHandler));
-#endif
+	const auto exeDirectoryPath = getAppFilePath();
+
+	auto initConfig = [&]() {
+		// Prefer boot config from the same directory
+		if (loadBootConfig(exeDirectoryPath)) {
+			paths[PATH_GLOBAL_CONFIG] = exeDirectoryPath;
+		} else if (paths[PATH_GLOBAL_CONFIG] != exeDirectoryPath) {
+			// Linux may also use a separate global config directory
+			loadBootConfig(paths[PATH_GLOBAL_CONFIG]);
+		}
+
+		// USER CONFIG
+		{
+			if (!aConfigPath.empty()) {
+				paths[PATH_USER_CONFIG] = aConfigPath;
+			}
+
+			if (!paths[PATH_USER_CONFIG].empty() && !File::isAbsolutePath(paths[PATH_USER_CONFIG])) {
+				paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + paths[PATH_USER_CONFIG];
+			}
+
+			paths[PATH_USER_CONFIG] = validatePath(paths[PATH_USER_CONFIG], true);
+		}
+
+		if (localMode) {
+			if (paths[PATH_USER_CONFIG].empty()) {
+				paths[PATH_USER_CONFIG] = exeDirectoryPath + "Settings" + PATH_SEPARATOR_STR;
+			}
+
+			paths[PATH_DOWNLOADS] = paths[PATH_USER_CONFIG] + "Downloads" + PATH_SEPARATOR_STR;
+			paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
+
+			if (paths[PATH_RESOURCES].empty()) {
+				paths[PATH_RESOURCES] = exeDirectoryPath;
+			}
+		}
+	};
 
 #ifdef _WIN32
-	string exePath = getAppFilePath();
+	_set_invalid_parameter_handler(reinterpret_cast<_invalid_parameter_handler>(invalidParameterHandler));
 
-	// Global config path is the AirDC++ executable path...
-	paths[PATH_GLOBAL_CONFIG] = exePath;
+	paths[PATH_GLOBAL_CONFIG] = exeDirectoryPath;
+	initConfig();
 
-	paths[PATH_USER_CONFIG] = !aConfigPath.empty() ? aConfigPath : paths[PATH_GLOBAL_CONFIG] + "Settings\\";
-
-	loadBootConfig();
-
-	if(!File::isAbsolutePath(paths[PATH_USER_CONFIG])) {
-		paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + paths[PATH_USER_CONFIG];
-	}
-
-	paths[PATH_USER_CONFIG] = validatePath(paths[PATH_USER_CONFIG], true);
-
-	if(localMode) {
-		paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
-		paths[PATH_DOWNLOADS] = paths[PATH_USER_CONFIG] + "Downloads\\";
-	} else {
-		TCHAR buf[MAX_PATH+1] = { 0 };
-		if(::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, buf) == S_OK) {
+	if (!localMode) {
+		TCHAR buf[MAX_PATH + 1] = { 0 };
+		if (::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, buf) == S_OK) {
 			paths[PATH_USER_CONFIG] = Text::fromT(buf) + "\\AirDC++\\";
 		}
 
 		paths[PATH_DOWNLOADS] = getDownloadsPath(paths[PATH_USER_CONFIG]);
 		paths[PATH_USER_LOCAL] = ::SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, SHGFP_TYPE_CURRENT, buf) == S_OK ? Text::fromT(buf) + "\\AirDC++\\" : paths[PATH_USER_CONFIG];
+		paths[PATH_RESOURCES] = exeDirectoryPath;
 	}
-	
-	paths[PATH_RESOURCES] = exePath;
-	paths[PATH_LOCALE] = (localMode ? exePath : paths[PATH_USER_LOCAL]) + "Language\\";
 
+	paths[PATH_LOCALE] = (localMode ? exeDirectoryPath : paths[PATH_USER_LOCAL]) + "Language\\";
 #else
+	// Usually /etc/airdcpp/
 	paths[PATH_GLOBAL_CONFIG] = GLOBAL_CONFIG_DIRECTORY;
-	const char* home_ = getenv("HOME");
-	string home = home_ ? Text::toUtf8(home_) : "/tmp/";
 
-	paths[PATH_USER_CONFIG] = !aConfigPath.empty() ? aConfigPath : home + "/.airdc++/";
+	initConfig();
 
-	loadBootConfig();
+	if (!localMode) {
+		const char* home_ = getenv("HOME");
+		string home = home_ ? Text::toUtf8(home_) : "/tmp/";
 
-	if(!File::isAbsolutePath(paths[PATH_USER_CONFIG])) {
-		paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + paths[PATH_USER_CONFIG];
+		if (paths[PATH_USER_CONFIG].empty()) {
+			paths[PATH_USER_CONFIG] = home + "/.airdc++/";
+		}
+
+		paths[PATH_DOWNLOADS] = home + "/Downloads/";
+		paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
+		paths[PATH_RESOURCES] = RESOURCE_DIRECTORY;
 	}
 
-	paths[PATH_USER_CONFIG] = validatePath(paths[PATH_USER_CONFIG], true);
-
-	if(localMode) {
-		// @todo implement...
-	}
-
-	paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
-	paths[PATH_RESOURCES] = RESOURCE_DIRECTORY;
 	paths[PATH_LOCALE] = paths[PATH_RESOURCES] + "locale/";
-	paths[PATH_DOWNLOADS] = home + "/Downloads/";
 #endif
 
 	paths[PATH_FILE_LISTS] = paths[PATH_USER_CONFIG] + "FileLists" PATH_SEPARATOR_STR;
@@ -314,7 +313,7 @@ void Util::initialize(const string& aConfigPath) {
 	paths[PATH_NOTEPAD] = paths[PATH_USER_CONFIG] + "Notepad.txt";
 	paths[PATH_EMOPACKS] = paths[PATH_RESOURCES] + "EmoPacks" PATH_SEPARATOR_STR;
 	paths[PATH_BUNDLES] = paths[PATH_USER_CONFIG] + "Bundles" PATH_SEPARATOR_STR;
-	paths[PATH_THEMES] = paths[PATH_GLOBAL_CONFIG] + "Themes" PATH_SEPARATOR_STR;
+	paths[PATH_THEMES] = paths[PATH_RESOURCES] + "Themes" PATH_SEPARATOR_STR;
 	paths[PATH_SHARECACHE] = paths[PATH_USER_LOCAL] + "ShareCache" PATH_SEPARATOR_STR;
 
 	File::ensureDirectory(paths[PATH_USER_CONFIG]);
@@ -333,7 +332,7 @@ void Util::migrate(const string& file) noexcept {
 	}
 
 	auto fname = getFileName(file);
-	auto oldPath = paths[PATH_GLOBAL_CONFIG] + "Settings" + PATH_SEPARATOR + fname;
+	auto oldPath = Util::getAppFilePath() + "Settings" + PATH_SEPARATOR + fname;
 	if (File::getSize(oldPath) == -1) {
 		return;
 	}
@@ -350,7 +349,7 @@ void Util::migrate(const string& aNewDir, const string& aPattern) noexcept {
 	if (localMode)
 		return;
 
-	auto oldDir = Util::getPath(Util::PATH_GLOBAL_CONFIG) + "Settings" + PATH_SEPARATOR + Util::getLastDir(aNewDir) + PATH_SEPARATOR;
+	auto oldDir = getAppFilePath() + "Settings" + PATH_SEPARATOR + Util::getLastDir(aNewDir) + PATH_SEPARATOR;
 
 	if (Util::fileExists(oldDir)) {
 		// don't migrate if there are files in the new directory already
@@ -374,19 +373,18 @@ void Util::migrate(const string& aNewDir, const string& aPattern) noexcept {
 	}*/
 }
 
-void Util::loadBootConfig() noexcept {
+bool Util::loadBootConfig(const string& aDirectoryPath) noexcept {
 	// Load boot settings
 	try {
 		SimpleXML boot;
-		boot.fromXML(File(getPath(PATH_GLOBAL_CONFIG) + "dcppboot.xml", File::READ, File::OPEN).read());
+		boot.fromXML(File(aDirectoryPath + "dcppboot.xml", File::READ, File::OPEN).read());
 		boot.stepIn();
 
 		if(boot.findChild("LocalMode")) {
 			localMode = boot.getChildData() != "0";
 		}
-
 		boot.resetCurrentChild();
-		
+	
 		if(boot.findChild("ConfigPath")) {
 			ParamMap params;
 #ifdef _WIN32
@@ -399,11 +397,16 @@ void Util::loadBootConfig() noexcept {
 			const char* home_ = getenv("HOME");
 			params["HOME"] = home_ ? Text::toUtf8(home_) : "/tmp/";
 #endif
+
 			paths[PATH_USER_CONFIG] = Util::formatParams(boot.getChildData(), params);
 		}
+		boot.resetCurrentChild();
+		return true;
 	} catch(const Exception& ) {
 		// Unable to load boot settings...
 	}
+
+	return false;
 }
 
 #ifdef _WIN32
