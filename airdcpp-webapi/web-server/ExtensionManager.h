@@ -67,10 +67,12 @@ namespace webserver {
 		// Get the engine start command for extension
 		// Throws on errors
 		string getStartCommand(const ExtensionPtr& aExtension) const;
-	private:
+
+		EngineMap getEngines() const noexcept;
+
 		// Parses the engine command param (command1;command2;...) and tests each token for an existing application
 		static string selectEngineCommand(const string& aEngineCommands) noexcept;
-
+	private:
 		EngineMap engines;
 
 		void onExtensionDownloadCompleted(const string& aUrl, const string& aSha1) noexcept;

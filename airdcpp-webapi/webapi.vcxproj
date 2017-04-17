@@ -222,6 +222,7 @@
     <ClInclude Include="api\ViewFileApi.h" />
     <ClInclude Include="api\WebUserApi.h" />
     <ClInclude Include="api\WebUserUtils.h" />
+    <ClInclude Include="microtar\microtar.h" />
     <ClInclude Include="web-server\ApiRequest.h" />
     <ClInclude Include="web-server\ApiRouter.h" />
     <ClInclude Include="web-server\Exception.h" />
@@ -237,6 +238,7 @@
     <ClInclude Include="web-server\SessionListener.h" />
     <ClInclude Include="web-server\stdinc.h" />
     <ClInclude Include="web-server\SystemUtil.h" />
+    <ClInclude Include="web-server\TarFile.h" />
     <ClInclude Include="web-server\Timer.h" />
     <ClInclude Include="web-server\version.h" />
     <ClInclude Include="web-server\WebServerManagerListener.h" />
@@ -295,6 +297,12 @@
     <ClCompile Include="api\ViewFileApi.cpp" />
     <ClCompile Include="api\WebUserApi.cpp" />
     <ClCompile Include="api\WebUserUtils.cpp" />
+    <ClCompile Include="microtar\microtar.c">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;BOOST_ALL_NO_LIB;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;BOOST_ALL_NO_LIB;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions);_SCL_SECURE_NO_WARNINGS;</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;BOOST_ALL_NO_LIB;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions);_SCL_SECURE_NO_WARNINGS;</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;BOOST_ALL_NO_LIB;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions);_SCL_SECURE_NO_WARNINGS;</PreprocessorDefinitions>
+    </ClCompile>
     <ClCompile Include="web-server\ApiRequest.cpp" />
     <ClCompile Include="web-server\ApiRouter.cpp" />
     <ClCompile Include="web-server\Extension.cpp" />
@@ -304,6 +312,7 @@
     <ClCompile Include="web-server\Session.cpp" />
     <ClCompile Include="web-server\stdinc.cpp" />
     <ClCompile Include="web-server\SystemUtil.cpp" />
+    <ClCompile Include="web-server\TarFile.cpp" />
     <ClCompile Include="web-server\WebServerManager.cpp" />
     <ClCompile Include="web-server\WebSocket.cpp" />
     <ClCompile Include="web-server\WebUser.cpp" />

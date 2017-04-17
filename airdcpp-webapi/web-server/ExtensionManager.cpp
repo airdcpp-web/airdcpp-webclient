@@ -20,6 +20,7 @@
 
 #include <web-server/ExtensionManager.h>
 #include <web-server/Extension.h>
+#include <web-server/TarFile.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebSocket.h>
 
@@ -220,16 +221,6 @@ namespace webserver {
 			return;
 		}
 
-		const auto untar = [](const string& aTarFile, const string& aDestinationDirectory) {
-			File::ensureDirectory(aDestinationDirectory);
-#ifdef _WIN32
-			string command = "7z x " + aTarFile + " -o" + aDestinationDirectory + " -y";
-#else
-			string command = "tar -xf " + aTarFile + " -C " + aDestinationDirectory;
-#endif
-			return std::system(command.c_str());
-		};
-
 		string tempPackageDirectory = Util::getTempPath() + "extension_" + Util::getFileName(aInstallFilePath) + PATH_SEPARATOR_STR;
 		ScopedFunctor([&tempPackageDirectory]() {
 			try {
@@ -239,13 +230,13 @@ namespace webserver {
 			}
 		});
 
-		{
+		try {
 			// Unpack the content to temp directory for validation purposes
-			auto code = untar(tarFile, tempPackageDirectory);
-			if (code != 0) {
-				failInstallation("Failed to uncompress the extension to temp directory", "code " + Util::toString(code));
-				return;
-			}
+			TarFile tar(tarFile);
+			tar.extract(tempPackageDirectory);
+		} catch (const Exception& e) {
+			failInstallation("Failed to extract the extension to the temp directory", e.what());
+			return;
 		}
 
 		string finalInstallPath;
@@ -280,10 +271,12 @@ namespace webserver {
 			}
 		}
 
-		// Extract to final destination directory
-		if (untar(tarFile, finalInstallPath) != 0) {
-			dcassert(0);
-			failInstallation("Failed to uncompress the extension to destination directory", Util::emptyString);
+		try {
+			// Extract to final destination directory
+			TarFile tar(tarFile);
+			tar.extract(finalInstallPath);
+		} catch (const Exception& e) {
+			failInstallation("Failed to uncompress the extension to destination directory", e.what());
 			return;
 		}
 
@@ -421,6 +414,10 @@ namespace webserver {
 
 		dcassert(!lastError.empty());
 		throw Exception(lastError);
+	}
+
+	ExtensionManager::EngineMap ExtensionManager::getEngines() const noexcept {
+		return engines;
 	}
 
 	string ExtensionManager::selectEngineCommand(const string& aEngineCommands) noexcept {
