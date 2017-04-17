@@ -42,6 +42,8 @@ namespace webserver {
 		api_return handlePostExtension(ApiRequest& aRequest);
 		api_return handleRemoveExtension(ApiRequest& aRequest);
 
+		api_return handleGetEngineStatuses(ApiRequest& aRequest);
+
 		void on(ExtensionManagerListener::ExtensionAdded, const ExtensionPtr& aExtension) noexcept override;
 		void on(ExtensionManagerListener::ExtensionRemoved, const ExtensionPtr& aExtension) noexcept override;
 

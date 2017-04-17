@@ -43,6 +43,12 @@
     <Filter Include="Header Files\api\base">
       <UniqueIdentifier>{dcc50a98-6d4a-468a-b56a-bac48d4d800a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\microtar">
+      <UniqueIdentifier>{2d8bb1a8-bc73-479c-aae5-64a187625ce6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\microtar">
+      <UniqueIdentifier>{b490616b-e5c9-4b19-8f3b-43a2ab954f46}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="api\QueueApi.h">
@@ -282,6 +288,12 @@
     <ClInclude Include="web-server\SystemUtil.h">
       <Filter>Header Files\web-server</Filter>
     </ClInclude>
+    <ClInclude Include="web-server\TarFile.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="microtar\microtar.h">
+      <Filter>Header Files\microtar</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
@@ -463,6 +475,12 @@
     </ClCompile>
     <ClCompile Include="web-server\SystemUtil.cpp">
       <Filter>Source Files\web-server</Filter>
+    </ClCompile>
+    <ClCompile Include="web-server\TarFile.cpp">
+      <Filter>Source Files\web-server</Filter>
+    </ClCompile>
+    <ClCompile Include="microtar\microtar.c">
+      <Filter>Source Files\microtar</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

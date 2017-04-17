@@ -260,8 +260,12 @@ namespace webserver {
 	}
 
 	api_return ShareApi::handleValidatePath(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+		auto path = JsonUtil::getField<string>("path", reqJson);
+		auto skipCheckQueue = JsonUtil::getOptionalFieldDefault<bool>("skip_check_queue", reqJson, false);
+
 		try {
-			ShareManager::getInstance()->validatePath(JsonUtil::getField<string>("path", aRequest.getRequestBody()));
+			ShareManager::getInstance()->validatePath(path, skipCheckQueue);
 		} catch (const QueueException& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::conflict;

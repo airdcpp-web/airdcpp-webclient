@@ -50,6 +50,11 @@ namespace webserver {
 		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (EXACT_PARAM("download")), ExtensionApi::handleDownloadExtension);
 		METHOD_HANDLER(Access::ADMIN, METHOD_DELETE, (EXTENSION_PARAM), ExtensionApi::handleRemoveExtension);
 
+		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET, (EXACT_PARAM("engines"), EXACT_PARAM("status")), ExtensionApi::handleGetEngineStatuses);
+		// TODO
+		//METHOD_HANDLER(Access::ADMIN, METHOD_PUT, (EXACT_PARAM("engines")), ExtensionApi::handlePutEngines);
+		//METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET, (EXACT_PARAM("engines")), ExtensionApi::handleGetEngines);
+
 		for (const auto& ext: em.getExtensions()) {
 			addExtension(ext);
 		}
@@ -102,6 +107,21 @@ namespace webserver {
 		}
 
 		return websocketpp::http::status_code::no_content;
+	}
+
+	api_return ExtensionApi::handleGetEngineStatuses(ApiRequest& aRequest) {
+		auto ret = json::object();
+		for (const auto& e: em.getEngines()) {
+			auto command = ExtensionManager::selectEngineCommand(e.second);
+			if (!command.empty()) {
+				ret[e.first] = command;
+			} else {
+				ret[e.first] = nullptr;
+			}
+		}
+
+		aRequest.setResponseBody(ret);
+		return websocketpp::http::status_code::ok;
 	}
 
 	void ExtensionApi::on(ExtensionManagerListener::ExtensionAdded, const ExtensionPtr& aExtension) noexcept {
