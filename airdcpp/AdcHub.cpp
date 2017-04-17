@@ -246,14 +246,15 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 
 	if (u->getIdentity().supports(ADCS_FEATURE)) {
 		u->getUser()->setFlag(User::TLS);
+
+		//CCPM support flag is only sent if we support encryption too, so keep persistent here also...
+		if (u->getIdentity().supports(CCPM_FEATURE)) {
+			u->getUser()->setFlag(User::CCPM);
+		}
 	}
 
 	if (u->getIdentity().supports(ASCH_FEATURE)) {
 		u->getUser()->setFlag(User::ASCH);
-	}
-
-	if (u->getIdentity().supports(CCPM_FEATURE)) {
-		u->getUser()->setFlag(User::CCPM);
 	}
 
 	if (u->getUser() == getMyIdentity().getUser()) {

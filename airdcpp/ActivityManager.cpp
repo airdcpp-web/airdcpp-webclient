@@ -35,7 +35,7 @@ ActivityManager::~ActivityManager() {
 	SettingsManager::getInstance()->removeListener(this);
 }
 
-void ActivityManager::on(SettingsManagerListener::Load, SimpleXML&) noexcept {
+void ActivityManager::on(SettingsManagerListener::LoadCompleted, bool) noexcept {
 	if (SETTING(AWAY)) {
 		setAway(AWAY_MANUAL);
 	}

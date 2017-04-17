@@ -749,12 +749,6 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 	auto connectUser = [&] (OnlineUser* ou) -> bool {
 		isProtocolError = false;
 
-		if (aConnType == CONNECTION_TYPE_PM && !ou->supportsCCPM()) {
-			isProtocolError = true;
-			lastError_ = STRING(CCPM_NOT_SUPPORTED);
-			return false;
-		}
-
 		auto ret = ou->getClient()->connect(*ou, aToken, lastError_);
 		if (ret == AdcCommand::SUCCESS) {
 			return true;
@@ -779,6 +773,21 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 
 		return false;
 	};
+
+	if (aConnType == CONNECTION_TYPE_PM) {
+
+		if (!aUser->isSet(User::TLS)) {
+			isProtocolError = true;
+			lastError_ = STRING(SOURCE_NO_ENCRYPTION);
+			return false;
+		}
+		//We don't care which hub we use to establish the connection all we need to know is the user supports the CCPM feature.
+		if (!aUser->isSet(User::CCPM)) {
+			isProtocolError = true;
+			lastError_ = STRING(CCPM_NOT_SUPPORTED);
+			return false;
+		}
+	}
 
 	//prefer the hinted hub
 	auto p = find_if(op, [&hubHint_](const pair<CID*, OnlineUser*>& ouc) { return ouc.second->getHubUrl() == hubHint_; });

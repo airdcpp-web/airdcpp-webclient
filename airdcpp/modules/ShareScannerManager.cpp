@@ -264,10 +264,10 @@ void ShareScannerManager::ScanInfo::merge(ScanInfo& collect) const {
 	collect.scanMessage += scanMessage;
 }
 
-bool ShareScannerManager::validateShare(const string& aPath) {
+bool ShareScannerManager::validateShare(const string& aPath, bool aSkipCheckQueue) {
 	if (SETTING(CHECK_USE_SKIPLIST)) {
 		try {
-			ShareManager::getInstance()->validatePath(aPath);
+			ShareManager::getInstance()->validatePath(aPath, aSkipCheckQueue);
 		} catch (const Exception&) {
 			return false;
 		}
@@ -344,7 +344,7 @@ void ShareScannerManager::scanDir(const string& aPath, ScanInfo& aScan) noexcept
 		}
 
 		auto fileName = i->getFileName();
-		if (!validateShare(aPath + fileName + (i->isDirectory() ? PATH_SEPARATOR_STR : Util::emptyString))) {
+		if (!validateShare(aPath + fileName + (i->isDirectory() ? PATH_SEPARATOR_STR : Util::emptyString), !aScan.isManualShareScan)) {
 			continue;
 		}
 

@@ -74,7 +74,7 @@ private:
 	~ShareScannerManager();
 	
 	int run();
-	bool validateShare(const string& aPath);
+	bool validateShare(const string& aPath, bool aSkipCheckQueue);
 	void runSfvCheck(const StringList& paths);
 	void runShareScan(const StringList& paths);
 
@@ -126,9 +126,9 @@ private:
 
 		ScanInfo(const string& aRootPath, ReportType aReportType, bool aIsManualShareScan) : rootPath(aRootPath), reportType(aReportType), isManualShareScan(aIsManualShareScan) {}
 
-		string rootPath;
-		ReportType reportType;
-		bool isManualShareScan;
+		const string rootPath;
+		const ReportType reportType;
+		const bool isManualShareScan;
 
 		int missingFiles = 0;
 		int missingSFV = 0;
