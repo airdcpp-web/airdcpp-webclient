@@ -2,11 +2,8 @@ project(airdcpp-webapi)
 cmake_minimum_required(VERSION 2.6)
 # ######### General setup ##########
 
-aux_source_directory(${PROJECT_SOURCE_DIR}/web-server webapi_srcs)
-file (GLOB webapi_hdrs ${PROJECT_SOURCE_DIR}/web-server/*.h)
-
-file (GLOB_RECURSE webapi_hdrs ${PROJECT_SOURCE_DIR}/api *.h)
-file (GLOB_RECURSE webapi_srcs ${PROJECT_SOURCE_DIR}/api *.cpp)
+file (GLOB webapi_hdrs ${PROJECT_SOURCE_DIR}/*.h)
+file(GLOB_RECURSE webapi_srcs ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/*.c)
 
 set (WEBAPI_SRCS ${webapi_srcs} PARENT_SCOPE)
 set (WEBAPI_HDRS ${webapi_hdrs} PARENT_SCOPE)
