@@ -58,7 +58,6 @@ public:
 		}
 
 		auto& queue = getQueue(aItem);
-		dcassert(find(queue.begin(), queue.end(), aItem) != queue.end());
 		queue.erase(remove(queue.begin(), queue.end(), aItem), queue.end());
 	}
 

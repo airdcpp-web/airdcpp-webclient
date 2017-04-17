@@ -186,7 +186,7 @@ void SharePathValidator::saveExcludes(SimpleXML& aXml) const noexcept {
 	aXml.stepOut();
 }
 
-void SharePathValidator::validate(FileFindIter& aIter, const string& aPath) const {
+void SharePathValidator::validate(FileFindIter& aIter, const string& aPath, bool aSkipQueueCheck) const {
 	if (!SETTING(SHARE_HIDDEN) && aIter->isHidden()) {
 		throw FileException("File is hidden");
 	}
@@ -198,9 +198,11 @@ void SharePathValidator::validate(FileFindIter& aIter, const string& aPath) cons
 	if (aIter->isDirectory()) {
 		checkSharedName(aPath, true);
 
-		auto bundle = QueueManager::getInstance()->findDirectoryBundle(aPath);
-		if (bundle && !bundle->isCompleted()) {
-			throw QueueException("Directory is inside an unfinished bundle");
+		if (!aSkipQueueCheck) {
+			auto bundle = QueueManager::getInstance()->findDirectoryBundle(aPath);
+			if (bundle && !bundle->isCompleted()) {
+				throw QueueException("Directory is inside an unfinished bundle");
+			}
 		}
 
 		if (isExcluded(aPath)) {
@@ -249,7 +251,7 @@ void SharePathValidator::reloadSkiplist() {
 	skipList.prepare();
 }
 
-void SharePathValidator::validatePathTokens(const string& aBasePath, const StringList& aTokens) const {
+void SharePathValidator::validatePathTokens(const string& aBasePath, const StringList& aTokens, bool aSkipQueueCheck) const {
 	if (aTokens.empty()) {
 		return;
 	}
@@ -261,7 +263,7 @@ void SharePathValidator::validatePathTokens(const string& aBasePath, const Strin
 
 		FileFindIter i(curPath);
 		if (i != FileFindIter()) {
-			validate(i, curPath);
+			validate(i, curPath, aSkipQueueCheck);
 		} else {
 			throw FileException(STRING(FILE_NOT_FOUND));
 		}

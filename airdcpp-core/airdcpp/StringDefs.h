@@ -384,6 +384,7 @@ enum Strings { // @DontAdd
 	ENABLE_RSS, // "Enable auto update"
 	ENCRYPTED_TRANSFER, // "Encrypted transfer"
 	ENCRYPTION, // "Encryption"
+	ENCRYPTION_DISABLED, // "Client encryption disabled"
 	ENCRYPTION_FORCED, // "Enabled (forced in ADC hubs)"
 	END, // "End"
 	ENDLESS_REDIRECTION_LOOP, // "Endless redirection loop (%1%)"

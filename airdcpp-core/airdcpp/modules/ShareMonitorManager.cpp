@@ -232,7 +232,7 @@ namespace dcpp {
 			auto path = isDirectory ? aPath + PATH_SEPARATOR : aPath;
 
 			try {
-				ShareManager::getInstance()->validatePath(path);
+				ShareManager::getInstance()->validatePath(path, false);
 			} catch (const ShareException& e) {
 				reportFile(e.getError());
 				return boost::none;

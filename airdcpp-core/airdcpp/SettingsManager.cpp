@@ -955,7 +955,7 @@ string SettingsManager::getProfileName(int profile) const noexcept {
 }
 
 void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF) noexcept {
-	loadSettingFile(CONFIG_DIR, CONFIG_NAME, [this](SimpleXML& xml) {
+	auto fileLoaded = loadSettingFile(CONFIG_DIR, CONFIG_NAME, [this](SimpleXML& xml) {
 		if (xml.findChild("DCPlusPlus")) {
 			xml.stepIn();
 
@@ -1088,6 +1088,8 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 	checkBind(BIND_ADDRESS6, true);
 
 	applyProfileDefaults();
+
+	fire(SettingsManagerListener::LoadCompleted(), fileLoaded);
 }
 
 const SettingsManager::BoolSetting clearSettings[SettingsManager::HISTORY_LAST] = {

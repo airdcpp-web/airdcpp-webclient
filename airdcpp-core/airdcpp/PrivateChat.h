@@ -83,6 +83,8 @@ namespace dcpp {
 		string getLogPath() const noexcept;
 		bool isOnline() const noexcept { return online; }
 
+		bool allowCCPM();
+
 		CCPMState getCCPMState() const noexcept {
 			return ccpmState;
 		}

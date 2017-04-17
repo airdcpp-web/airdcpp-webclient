@@ -50,7 +50,7 @@ public:
 	// Check if a directory/file name matches skiplist
 	bool matchSkipList(const string& aName) const noexcept;
 
-	void validate(FileFindIter& aIter, const string& aPath) const;
+	void validate(FileFindIter& aIter, const string& aPath, bool aSkipQueueCheck) const;
 
 	void saveExcludes(SimpleXML& xml) const noexcept;
 	void loadExcludes(SimpleXML& xml) noexcept;
@@ -61,7 +61,7 @@ public:
 
 	// Check the list of directory path tokens relative to the base path
 	// Returns whether they are all valid to be added in share
-	void validatePathTokens(const string& aBasePath, const StringList& aTokens) const;
+	void validatePathTokens(const string& aBasePath, const StringList& aTokens, bool aSkipQueueCheck) const;
 private:
 	// Comprehensive check for a directory/file whether it is valid to be added in share
 	// Use validateRootPath for new root directories instead

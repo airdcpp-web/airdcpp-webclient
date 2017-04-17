@@ -149,7 +149,7 @@ public:
 
 	// Validate a file/directory path
 	// Throws on errors
-	void validatePath(const string& aPath) const;
+	void validatePath(const string& aPath, bool aSkipQueueCheck) const;
 
 	// Returns the dupe paths by directory name/NMDC path
 	StringList getNmdcDirPaths(const string& aDir) const noexcept;
@@ -746,23 +746,25 @@ private:
 	// If the exact directory can't be found, the missing directory names are added in remainingTokens_
 	Directory::Ptr findDirectory(const string& aRealPath, StringList& remainingTokens_) const noexcept;
 
-	virtual int run();
+	int run() override;
 
 	void runTasks(function<void (float)> progressF = nullptr) noexcept;
 
 	// HashManagerListener
-	void on(HashManagerListener::FileHashed, const string& aPath, HashedFile& fi) noexcept { onFileHashed(aPath, fi); }
+	void on(HashManagerListener::FileHashed, const string& aPath, HashedFile& fi) noexcept override { onFileHashed(aPath, fi); }
 
 	// SettingsManagerListener
-	void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {
+	void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept override {
 		save(xml);
 	}
-	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept {
+	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept override {
 		load(xml);
 	}
+
+	void on(SettingsManagerListener::LoadCompleted, bool aFileLoaded) noexcept override;
 	
 	// TimerManagerListener
-	void on(TimerManagerListener::Minute, uint64_t tick) noexcept;
+	void on(TimerManagerListener::Minute, uint64_t tick) noexcept override;
 
 	void load(SimpleXML& aXml);
 	void loadProfile(SimpleXML& aXml, const string& aName, ProfileToken aToken);
