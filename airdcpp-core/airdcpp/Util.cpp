@@ -350,27 +350,22 @@ void Util::migrate(const string& aNewDir, const string& aPattern) noexcept {
 		return;
 
 	auto oldDir = getAppFilePath() + "Settings" + PATH_SEPARATOR + Util::getLastDir(aNewDir) + PATH_SEPARATOR;
-
-	if (Util::fileExists(oldDir)) {
-		// don't migrate if there are files in the new directory already
-		auto fileListNew = File::findFiles(aNewDir, aPattern);
-		if (fileListNew.empty()) {
-			auto fileList = File::findFiles(oldDir, aPattern);
-			for (auto& path : fileList) {
-				try {
-					File::renameFile(path, aNewDir + Util::getFileName(path));
-				} catch (const FileException& /*e*/) {
-					//LogManager::getInstance()->message("Settings migration for failed: " + e.getError());
-				}
-			}
-		}
+	if (!Util::fileExists(oldDir)) {
+		return;
 	}
 
-	/*try {
-		File::renameFile(oldDir, oldDir + ".old");
-	} catch (FileException& e) {
-		// ...
-	}*/
+	// Don't migrate if there are files in the new directory already
+	auto fileListNew = File::findFiles(aNewDir, aPattern);
+	if (!File::findFiles(aNewDir, aPattern).empty()) {
+		return;
+	}
+
+	// Move the content
+	try {
+		File::moveDirectory(oldDir, aNewDir, aPattern);
+	} catch (const FileException&) {
+
+	}
 }
 
 bool Util::loadBootConfig(const string& aDirectoryPath) noexcept {
@@ -1476,6 +1471,10 @@ string Util::getParentDir(const string& path, const char separator /*PATH_SEPARA
 		return path.substr(0, j+1);
 	
 	return allowEmpty ? Util::emptyString : path;
+}
+
+string Util::joinDirectory(const string& aPath, const string& aDirectoryName, const char separator) noexcept {
+	return aPath + aDirectoryName + separator;
 }
 
 wstring Util::getFilePath(const wstring& path) noexcept {

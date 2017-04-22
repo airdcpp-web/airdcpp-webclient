@@ -247,6 +247,8 @@ public:
 	inline static string getNmdcParentDir(const string& path) noexcept { return getParentDir(path, NMDC_SEPARATOR, true); };
 	inline static string getAdcParentDir(const string& path) noexcept { return getParentDir(path, ADC_SEPARATOR, false); };
 
+	static string joinDirectory(const string& aPath, const string& aDirectoryName, const char separator = PATH_SEPARATOR) noexcept;
+
 	static string getFileExt(const string& path) noexcept;
 
 	static wstring getFilePath(const wstring& path) noexcept;

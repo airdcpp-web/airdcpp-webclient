@@ -54,7 +54,7 @@ namespace dcpp {
 int Updater::cleanExtraFiles(const string& aCurPath, const optional<StringSet>& aProtectedFiles) noexcept {
 	int deletedFiles = 0;
 	File::forEachFile(aCurPath, "*", [&](const FilesystemItem& aInfo) {
-		auto fullPath = aCurPath + aInfo.name;
+		auto fullPath = aInfo.getPath(aCurPath);
 		if (!aInfo.isDirectory) {
 			if ((!aProtectedFiles || (*aProtectedFiles).find(fullPath) == (*aProtectedFiles).end()) && File::deleteFile(fullPath)) {
 				deletedFiles++;
@@ -89,23 +89,24 @@ bool Updater::applyUpdaterFiles(const string& aCurTempPath, const string& aCurDe
 
 	try {
 		File::forEachFile(aCurTempPath, "*", [&](const FilesystemItem& aInfo) {
-			if (!aInfo.isDirectory) {
-				auto destFile = aCurDestinationPath + aInfo.name;
+			auto destFilePath = aInfo.getPath(aCurDestinationPath);
+			auto tempFilePath = aInfo.getPath(aCurTempPath);
 
+			if (!aInfo.isDirectory) {
 				try {
-					if (Util::fileExists(destFile)) {
-						File::deleteFile(destFile);
+					if (Util::fileExists(destFilePath)) {
+						File::deleteFile(destFilePath);
 					}
 
-					File::copyFile(aCurTempPath + aInfo.name, destFile);
-					updatedFiles_.insert(destFile);
+					File::copyFile(tempFilePath, destFilePath);
+					updatedFiles_.insert(destFilePath);
 
-					aLogger.log("Installed file " + destFile);
+					aLogger.log("Installed file " + destFilePath);
 				} catch (const Exception& e) {
-					throw FileException("Failed to copy the file " + destFile + " (" + e.getError() + ")");
+					throw FileException("Failed to copy the file " + destFilePath + " (" + e.getError() + ")");
 				}
 			} else {
-				applyUpdaterFiles(aCurTempPath + aInfo.name, aCurDestinationPath + aInfo.name, error_, updatedFiles_, aLogger);
+				applyUpdaterFiles(tempFilePath, destFilePath, error_, updatedFiles_, aLogger);
 			}
 		});
 	} catch (const FileException& e) {
