@@ -44,7 +44,7 @@ namespace webserver {
 		METHOD_HANDLER(Access::ANY, METHOD_POST, (EXACT_PARAM("activity")), SessionApi::handleActivity);
 
 		METHOD_HANDLER(Access::ANY, METHOD_GET, (EXACT_PARAM("self")), SessionApi::handleGetCurrentSession);
-		METHOD_HANDLER(Access::ANY, METHOD_DELETE, (EXACT_PARAM("self")), SessionApi::handleLogout);
+		METHOD_HANDLER(Access::ANY, METHOD_DELETE, (EXACT_PARAM("self")), SessionApi::handleRemoveCurrentSession);
 
 		// Admin methods
 		METHOD_HANDLER(Access::ADMIN, METHOD_GET, (), SessionApi::handleGetSessions);
@@ -76,13 +76,17 @@ namespace webserver {
 		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return SessionApi::handleLogout(ApiRequest& aRequest) {
-		if (session->getSessionType() == Session::TYPE_BASIC_AUTH) {
+	api_return SessionApi::handleRemoveCurrentSession(ApiRequest& aRequest) {
+		return logout(aRequest, aRequest.getSession());
+	}
+
+	api_return SessionApi::logout(ApiRequest& aRequest, const SessionPtr& aSession) {
+		if (aSession->getSessionType() == Session::TYPE_BASIC_AUTH) {
 			aRequest.setResponseErrorStr("Sessions using basic authentication can't be deleted");
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		WebServerManager::getInstance()->logout(aRequest.getSession()->getId());
+		session->getServer()->getUserManager().logout(aSession);
 		return websocketpp::http::status_code::no_content;
 	}
 
@@ -170,8 +174,7 @@ namespace webserver {
 			return websocketpp::http::status_code::not_found;
 		}
 
-		session->getServer()->getUserManager().logout(removeSession);
-		return websocketpp::http::status_code::no_content;
+		return logout(aRequest, removeSession);
 	}
 
 	api_return SessionApi::handleGetCurrentSession(ApiRequest& aRequest) {

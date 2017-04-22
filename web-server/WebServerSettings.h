@@ -41,6 +41,8 @@ namespace webserver {
 			DEFAULT_SESSION_IDLE_TIMEOUT,
 			PING_INTERVAL,
 			PING_TIMEOUT,
+
+			EXTENSIONS_DEBUG_MODE,
 		};
 
 		// Initialized in WebServerManager

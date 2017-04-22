@@ -34,6 +34,9 @@ namespace webserver {
 	StringList ExtensionApi::subscriptionList = {
 		"extension_added",
 		"extension_removed",
+		"extension_installation_started",
+		"extension_installation_succeeded",
+		"extension_installation_failed",
 	};
 
 	ExtensionApi::ExtensionApi(Session* aSession) : /*HookApiModule(aSession, Access::ADMIN, nullptr, Access::ADMIN),*/ 
@@ -85,10 +88,11 @@ namespace webserver {
 	api_return ExtensionApi::handleDownloadExtension(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
+		auto installId = JsonUtil::getField<string>("install_id", reqJson, false);
 		auto url = JsonUtil::getField<string>("url", reqJson, false);
 		auto sha = JsonUtil::getOptionalFieldDefault<string>("shasum", reqJson, Util::emptyString);
 
-		if (!em.downloadExtension(url, sha)) {
+		if (!em.downloadExtension(installId, url, sha)) {
 			aRequest.setResponseErrorStr("Extension is being download already");
 			return websocketpp::http::status_code::conflict;
 		}
@@ -136,6 +140,31 @@ namespace webserver {
 		removeSubModule(aExtension->getName());
 		maybeSend("extension_removed", [&] {
 			return ExtensionInfo::serializeExtension(aExtension);
+		});
+	}
+
+	void ExtensionApi::on(ExtensionManagerListener::InstallationStarted, const string& aInstallId) noexcept {
+		maybeSend("extension_installation_started", [&] {
+			return json({
+				{ "install_id", aInstallId },
+			});
+		});
+	}
+
+	void ExtensionApi::on(ExtensionManagerListener::InstallationSucceeded, const string& aInstallId) noexcept {
+		maybeSend("extension_installation_succeeded", [&] {
+			return json({
+				{ "install_id", aInstallId },
+			});
+		});
+	}
+
+	void ExtensionApi::on(ExtensionManagerListener::InstallationFailed, const string& aInstallId, const string& aError) noexcept {
+		maybeSend("extension_installation_failed", [&] {
+			return json({
+				{ "install_id", aInstallId },
+				{ "error", aError },
+			});
 		});
 	}
 }

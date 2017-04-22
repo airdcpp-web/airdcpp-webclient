@@ -38,25 +38,25 @@ namespace webserver {
 	void TarFile::extract(const string& aDestPath) {
 		mtar_header_t h;
 		while ((mtar_read_header(&tar, &h)) != MTAR_ENULLRECORD) {
-			//dcdebug("%s (%d bytes)\n", h.name, h.size);
+			if (h.type != MTAR_TDIR && strcmp(h.name, "pax_global_header") != 0) {
+				boost::scoped_array<char> buf(new char[h.size + 1]);
+				auto res = mtar_read_data(&tar, &buf[0], h.size);
+				if (res != MTAR_ESUCCESS) {
+					throw Exception(mtar_strerror(res));
+				}
 
-			boost::scoped_array<char> buf(new char[h.size + 1]);
-			auto res = mtar_read_data(&tar, &buf[0], h.size);
-			if (res != MTAR_ESUCCESS) {
-				throw Exception(mtar_strerror(res));
-			}
-
-			string destFile = aDestPath + h.name;
+				string destFile = aDestPath + h.name;
 
 #ifdef WIN32
-			// Wrong path separators would hit assertions...
-			boost::replace_all(destFile, "/", PATH_SEPARATOR_STR);
+				// Wrong path separators would hit assertions...
+				boost::replace_all(destFile, "/", PATH_SEPARATOR_STR);
 #endif
 
-			File::ensureDirectory(destFile);
-			{
-				File f(destFile, File::WRITE, File::OPEN | File::CREATE | File::TRUNCATE, File::BUFFER_SEQUENTIAL);
-				f.write(&buf[0], h.size);
+				File::ensureDirectory(destFile);
+				{
+					File f(destFile, File::WRITE, File::OPEN | File::CREATE | File::TRUNCATE, File::BUFFER_SEQUENTIAL);
+					f.write(&buf[0], h.size);
+				}
 			}
 
 			mtar_next(&tar);

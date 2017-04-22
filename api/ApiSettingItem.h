@@ -163,8 +163,8 @@ namespace webserver {
 		ServerSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType, bool aOptional,
 			const MinMax& aMinMax = MinMax(), const List& aObjectValues = List(), const string& aHelp = "", Type aItemType = TYPE_LAST, const EnumOption::List& aEnumOptions = EnumOption::List());
 
-		// Returns the value and bool indicating whether it's an auto detected value
 		json getValue() const noexcept override;
+		const json& getValueRef() const noexcept;
 
 		bool setValue(const json& aJson) override;
 

@@ -95,6 +95,7 @@ namespace webserver {
 	api_return SettingApi::handleSetValues(ApiRequest& aRequest) {
 		SettingHolder h(nullptr);
 
+		bool hasSet = false;
 		for (const auto& elem : json::iterator_wrapper(aRequest.getRequestBody())) {
 			auto setting = getSettingItem(elem.key());
 			if (!setting) {
@@ -102,7 +103,10 @@ namespace webserver {
 			}
 
 			setting->setValue(SettingUtils::validateValue(elem.value(), *setting));
+			hasSet = true;
 		}
+
+		dcassert(hasSet);
 
 		SettingsManager::getInstance()->save();
 		WebServerManager::getInstance()->save(nullptr);
