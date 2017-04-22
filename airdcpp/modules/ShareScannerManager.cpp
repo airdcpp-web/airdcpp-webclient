@@ -601,8 +601,9 @@ void ShareScannerManager::prepareSFVScanDir(const string& aPath, SFVScanList& di
 
 	/* Recursively scan subfolders */
 	File::forEachFile(aPath, "*", [&](const FilesystemItem& aInfo) {
-		if (aInfo.isDirectory)
-			prepareSFVScanDir(aPath + aInfo.name, dirs);
+		if (aInfo.isDirectory) {
+			prepareSFVScanDir(aInfo.getPath(aPath), dirs);
+		}
 	});
 }
 

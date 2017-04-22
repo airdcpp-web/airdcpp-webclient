@@ -32,6 +32,8 @@ struct FilesystemItem {
 	const string name;
 	const int64_t size;
 	const bool isDirectory;
+
+	string getPath(const string& aBasePath) const noexcept;
 };
 
 class File : public IOStream {
@@ -123,6 +125,7 @@ public:
 	static bool createFile(const string& aPath, const string& aContent = Util::emptyString) noexcept;
 	static void copyFile(const string& src, const string& target);
 	static void renameFile(const string& source, const string& target);
+	static void moveDirectory(const string& source, const string& target, const string& aPattern = "*");
 	static bool deleteFile(const string& aFileName) noexcept;
 	static void deleteFileThrow(const string& aFileName);
 	static bool deleteFileEx(const string& aFileName, int maxAttempts = 3) noexcept;
