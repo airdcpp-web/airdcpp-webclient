@@ -44,10 +44,10 @@ namespace webserver {
 		// Download extension from the given URL and install it
 		// SHA1 checksum is optional
 		// Returns false if the extension is being downloaded already
-		bool downloadExtension(const string& aUrl, const string& aSha1) noexcept;
+		bool downloadExtension(const string& aInstallId, const string& aUrl, const string& aSha1) noexcept;
 
 		// Install extensions from the given tarball
-		void installLocalExtension(const string& aPath) noexcept;
+		void installLocalExtension(const string& aInstallId, const string& aPath) noexcept;
 
 		// Register non-local extension
 		ExtensionPtr registerRemoteExtension(const SessionPtr& aSession, const json& aPackageJson);
@@ -75,8 +75,8 @@ namespace webserver {
 	private:
 		EngineMap engines;
 
-		void onExtensionDownloadCompleted(const string& aUrl, const string& aSha1) noexcept;
-		void failInstallation(const string& aMessage, const string& aException) noexcept;
+		void onExtensionDownloadCompleted(const string& aInstallId, const string& aUrl, const string& aSha1) noexcept;
+		void failInstallation(const string& aInstallId, const string& aMessage, const string& aException) noexcept;
 
 		typedef map<string, shared_ptr<HttpDownload>> HttpDownloadMap;
 		HttpDownloadMap httpDownloads;
@@ -93,6 +93,7 @@ namespace webserver {
 
 		void on(WebServerManagerListener::Started) noexcept override;
 		void on(WebServerManagerListener::Stopping) noexcept override;
+		void on(WebServerManagerListener::Stopped) noexcept override;
 		void on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept override;
 	};
 }

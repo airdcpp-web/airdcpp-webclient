@@ -38,7 +38,7 @@ namespace webserver {
 	private:
 		api_return failAuthenticatedRequest(ApiRequest& aRequest);
 
-		api_return handleLogout(ApiRequest& aRequest);
+		api_return handleRemoveCurrentSession(ApiRequest& aRequest);
 		api_return handleActivity(ApiRequest& aRequest);
 
 		api_return handleGetSessions(ApiRequest& aRequest);
@@ -46,6 +46,8 @@ namespace webserver {
 
 		api_return handleGetSession(ApiRequest& aRequest);
 		api_return handleRemoveSession(ApiRequest& aRequest);
+
+		api_return logout(ApiRequest& aRequest, const SessionPtr& aSession);
 
 		static json serializeLoginInfo(const SessionPtr& aSession);
 		static json serializeSession(const SessionPtr& aSession) noexcept;

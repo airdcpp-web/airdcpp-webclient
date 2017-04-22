@@ -50,7 +50,7 @@ namespace webserver {
 	ServerSettingItem::ServerSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType,
 		bool aOptional, const MinMax& aMinMax, const List& aObjectValues, const string& aHelp, Type aItemType, const EnumOption::List& aEnumOptions) :
 
-		ApiSettingItem(aKey, aType, aItemType), desc(aTitle), defaultValue(aDefaultValue), value(aDefaultValue), 
+		ApiSettingItem(aKey, aType, aItemType), desc(aTitle), defaultValue(aDefaultValue),
 		optional(aOptional), minMax(aMinMax), objectValues(aObjectValues), help(aHelp), enumOptions(aEnumOptions)
 	{
 		dcassert(aType != TYPE_NUMBER || minMax.min != minMax.max);
@@ -58,7 +58,11 @@ namespace webserver {
 
 	// Returns the value and bool indicating whether it's an auto detected value
 	json ServerSettingItem::getValue() const noexcept {
-		return value;
+		return getValueRef();
+	}
+
+	const json& ServerSettingItem::getValueRef() const noexcept {
+		return isDefault() ? defaultValue : value;
 	}
 
 	ApiSettingItem::PtrList ServerSettingItem::getValueTypes() const noexcept {
@@ -70,7 +74,7 @@ namespace webserver {
 	}
 
 	void ServerSettingItem::unset() noexcept {
-		value = defaultValue;
+		value = nullptr;
 	}
 
 	bool ServerSettingItem::setValue(const json& aJson) {
@@ -85,35 +89,35 @@ namespace webserver {
 	}
 
 	int ServerSettingItem::num() const {
-		return value.get<int>();
+		return getValueRef().get<int>();
 	}
 
 	ApiSettingItem::ListNumber ServerSettingItem::numList() const {
-		return value.get<vector<int>>();
+		return getValueRef().get<vector<int>>();
 	}
 
 	ApiSettingItem::ListString ServerSettingItem::strList() const {
-		return value.get<vector<string>>();
+		return getValueRef().get<vector<string>>();
 	}
 
 	uint64_t ServerSettingItem::uint64() const {
-		return value.get<uint64_t>();
+		return getValueRef().get<uint64_t>();
 	}
 
 	string ServerSettingItem::str() const {
-		if (value.is_number()) {
+		if (getValueRef().is_number()) {
 			return Util::toString(num());
 		}
 
-		return value.get<string>();
+		return getValueRef().get<string>();
 	}
 
 	bool ServerSettingItem::boolean() const {
-		return value.get<bool>();
+		return getValueRef().get<bool>();
 	}
 
 	bool ServerSettingItem::isDefault() const noexcept {
-		return value == defaultValue;
+		return value.is_null();
 	}
 
 	json ServerSettingItem::getDefaultValue() const noexcept {

@@ -132,6 +132,7 @@ namespace webserver {
 	}
 
 	void WebSocket::close(websocketpp::close::status::value aCode, const string& aMsg) {
+		debugMessage("WebSocket::close");
 		try {
 			if (secure) {
 				tlsServer->close(hdl, aCode, aMsg);

@@ -84,7 +84,6 @@ namespace webserver {
 		void disconnectSockets(const std::string& aMessage) noexcept;
 
 		// Reset sessions for associated sockets
-		void logout(LocalSessionId aSessionId) noexcept;
 		WebSocketPtr getSocket(LocalSessionId aSessionToken) noexcept;
 
 		bool load(const ErrorF& aErrorF) noexcept;

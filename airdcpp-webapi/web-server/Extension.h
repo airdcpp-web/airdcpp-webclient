@@ -36,8 +36,10 @@ namespace webserver {
 		typedef std::function<void(const Extension*)> ErrorF;
 
 		// Throws on errors
-		Extension(const string& aPath, ErrorF&& aErrorF, bool aSkipPathValidation = false);
+		Extension(const string& aPackageDirectory, ErrorF&& aErrorF, bool aSkipPathValidation = false);
 		Extension(const SessionPtr& aSession, const json& aPackageJson);
+
+		~Extension();
 
 		// Reload package.json from the supplied path
 		// Throws on errors
@@ -54,29 +56,14 @@ namespace webserver {
 		// Throws on errors
 		void checkCompatibility();
 
-		string getRootPath() const noexcept {
-			return EXTENSION_DIR_ROOT + name + PATH_SEPARATOR_STR;
-		}
+#define EXT_PACKAGE_DIR "package"
+#define EXT_CONFIG_DIR "settings"
+#define EXT_LOG_DIR "logs"
 
-		string getSettingsPath() const noexcept {
-			return getRootPath() + "settings" + PATH_SEPARATOR_STR;
-		}
-
-		string getLogPath() const noexcept {
-			return getRootPath() + "logs" + PATH_SEPARATOR_STR;
-		}
-
-		string getMessageLogPath() const noexcept {
-			return getLogPath() + "output.log";
-		}
-
-		string getErrorLogPath() const noexcept {
-			return getLogPath() + "error.log";
-		}
-
-		string getPackageDirectory() const noexcept {
-			return getRootPath() + "package" + PATH_SEPARATOR_STR;
-		}
+		static string getRootPath(const string& aName) noexcept;
+		string getRootPath() const noexcept;
+		string getMessageLogPath() const noexcept;
+		string getErrorLogPath() const noexcept;
 
 		bool isManaged() const noexcept {
 			return managed;
@@ -121,7 +108,7 @@ namespace webserver {
 
 		// Reload package.json from the supplied path
 		// Throws on errors
-		void initialize(const string& aPath, bool aSkipPathValidation);
+		void initialize(const string& aPackageDirectory, bool aSkipPathValidation);
 
 		static SharedMutex cs;
 		ServerSettingItem::List settings;

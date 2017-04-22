@@ -32,22 +32,42 @@
 namespace webserver {
 	SharedMutex Extension::cs;
 
-	Extension::Extension(const string& aPath, ErrorF&& aErrorF, bool aSkipPathValidation) : errorF(std::move(aErrorF)), managed(true) {
-		initialize(aPath, aSkipPathValidation);
+	string Extension::getRootPath(const string& aName) noexcept {
+		return EXTENSION_DIR_ROOT + aName + PATH_SEPARATOR_STR;
+	}
+
+	string Extension::getRootPath() const noexcept {
+		return getRootPath(name);
+	}
+
+	string Extension::getMessageLogPath() const noexcept {
+		return Util::joinDirectory(getRootPath(), EXT_LOG_DIR) + "output.log";
+	}
+
+	string Extension::getErrorLogPath() const noexcept {
+		return Util::joinDirectory(getRootPath(), EXT_LOG_DIR) + "error.log";
+	}
+
+	Extension::Extension(const string& aPackageDirectory, ErrorF&& aErrorF, bool aSkipPathValidation) : errorF(std::move(aErrorF)), managed(true) {
+		initialize(aPackageDirectory, aSkipPathValidation);
 	}
 
 	Extension::Extension(const SessionPtr& aSession, const json& aPackageJson) : managed(false), session(aSession) {
 		initialize(aPackageJson);
 	}
 
+	Extension::~Extension() {
+		dcdebug("Extension %s was destroyed\n", name.c_str());
+	}
+
 	void Extension::reload() {
-		initialize(getRootPath(), false);
+		initialize(Util::joinDirectory(getRootPath(), EXT_PACKAGE_DIR), false);
 
 		fire(ExtensionListener::PackageUpdated());
 	}
 
-	void Extension::initialize(const string& aPath, bool aSkipPathValidation) {
-		const auto packageStr = File(aPath + "package" + PATH_SEPARATOR_STR + "package.json", File::READ, File::OPEN).read();
+	void Extension::initialize(const string& aPackageDirectory, bool aSkipPathValidation) {
+		const auto packageStr = File(aPackageDirectory + "package.json", File::READ, File::OPEN).read();
 		try {
 			const json packageJson = json::parse(packageStr);
 
@@ -56,7 +76,7 @@ namespace webserver {
 			throw Exception("Could not parse package.json (" + string(e.what()) + ")");
 		}
 
-		if (!aSkipPathValidation && compare(name, Util::getLastDir(aPath)) != 0) {
+		if (!aSkipPathValidation && compare(name, Util::getLastDir(Util::getParentDir(aPackageDirectory))) != 0) {
 			throw Exception("Extension path doesn't match with the extension name " + name);
 		}
 	}
@@ -136,7 +156,7 @@ namespace webserver {
 		FilesystemItemList ret;
 
 		if (managed) {
-			File::forEachFile(getLogPath(), "*.log", [&](const FilesystemItem& aInfo) {
+			File::forEachFile(Util::joinDirectory(getRootPath(), EXT_LOG_DIR), "*.log", [&](const FilesystemItem& aInfo) {
 				if (aInfo.isDirectory) {
 					return;
 				}
@@ -215,13 +235,17 @@ namespace webserver {
 			return;
 		}
 
+		if (!wsm->isListeningPlain()) {
+			throw Exception("Extensions require the (plain) HTTP protocol to be enabled");
+		}
+
 		if (isRunning()) {
 			dcassert(0);
 			return;
 		}
 
-		File::ensureDirectory(getLogPath());
-		File::ensureDirectory(getSettingsPath());
+		File::ensureDirectory(Util::joinDirectory(getRootPath(), EXT_LOG_DIR));
+		File::ensureDirectory(Util::joinDirectory(getRootPath(), EXT_CONFIG_DIR));
 
 		checkCompatibility();
 
@@ -238,7 +262,7 @@ namespace webserver {
 	}
 
 	string Extension::getConnectUrl(WebServerManager* wsm) noexcept {
-		const auto& serverConfig = wsm->isListeningPlain() ? wsm->getPlainServerConfig() : wsm->getTlsServerConfig();
+		const auto& serverConfig = wsm->getPlainServerConfig();
 
 		auto bindAddress = serverConfig.bindAddress.str();
 		if (bindAddress.empty()) {
@@ -246,21 +270,18 @@ namespace webserver {
 			bindAddress = protocol == boost::asio::ip::tcp::v6() ? "[::1]" : "127.0.0.1";
 		}
 
-		string address = wsm->isListeningPlain() ? "ws://" : "wss://";
-		address += bindAddress;
-		address += ":" + Util::toString(serverConfig.port.num()) + "/api/v1/ ";
-		return address;
+		return bindAddress + ":" + Util::toString(serverConfig.port.num()) + "/api/v1/";
 	}
 
 	StringList Extension::getLaunchParams(WebServerManager* wsm, const SessionPtr& aSession) const noexcept {
 		StringList ret;
 
 		// Script to launch
-		ret.push_back(getPackageDirectory() + entry);
+		ret.push_back(Util::joinDirectory(getRootPath(), EXT_PACKAGE_DIR) + entry);
 
 		// Params
-		auto addParam = [&ret](const string& aName, const string& aParam) {
-			ret.push_back("--" + aName + "=" + aParam);
+		auto addParam = [&ret](const string& aName, const string& aParam = Util::emptyString) {
+			ret.push_back("--" + aName + (!aParam.empty() ? "=" + aParam : Util::emptyString));
 		};
 
 		// Name
@@ -273,8 +294,12 @@ namespace webserver {
 		addParam("authToken", aSession->getAuthToken());
 
 		// Paths
-		addParam("logPath", getLogPath());
-		addParam("settingsPath", getSettingsPath());
+		addParam("logPath", Util::joinDirectory(getRootPath(), EXT_LOG_DIR));
+		addParam("settingsPath", Util::joinDirectory(getRootPath(), EXT_CONFIG_DIR));
+
+		if (WEBCFG(EXTENSIONS_DEBUG_MODE).boolean()) {
+			addParam("debug");
+		}
 
 		return ret;
 	}
@@ -302,6 +327,12 @@ namespace webserver {
 		if (aFailed) {
 			timer->stop(false);
 		}
+		
+		dcdebug("Extension %s was stopped", name.c_str());
+		if (session) {
+			dcdebug(" (session %s, use count %ld)", session->getAuthToken().c_str(), session.use_count());
+		}
+		dcdebug("\n");
 
 		if (session) {
 			session->getServer()->getUserManager().logout(session);
@@ -311,6 +342,7 @@ namespace webserver {
 		resetProcessState();
 		resetSettings();
 
+		dcassert(running);
 		running = false;
 		if (aFailed && errorF) {
 			errorF(this);

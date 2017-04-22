@@ -71,13 +71,17 @@ namespace webserver {
 		std::map<LocalSessionId, SessionPtr> sessionsLocalId;
 
 		void checkExpiredSessions() noexcept;
+		void resetSocketSession(const WebSocketPtr& aSocket) noexcept;
 		void removeSession(const SessionPtr& aSession, bool aTimedOut) noexcept;
 		TimerPtr expirationTimer;
 
 		SessionPtr createSession(const WebUserPtr& aUser, const string& aSessionToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP);
 
 		void on(WebServerManagerListener::Started) noexcept override;
+		void on(WebServerManagerListener::Stopping) noexcept override;
 		void on(WebServerManagerListener::Stopped) noexcept override;
+		void on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept override;
+
 		void on(WebServerManagerListener::LoadSettings, SimpleXML& aXml) noexcept override;
 		void on(WebServerManagerListener::SaveSettings, SimpleXML& aXml) noexcept override;
 

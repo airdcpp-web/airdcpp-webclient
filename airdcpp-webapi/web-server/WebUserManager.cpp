@@ -178,9 +178,24 @@ namespace webserver {
 	}
 
 	void WebUserManager::logout(const SessionPtr& aSession) {
-		aSession->onSocketDisconnected();
-		
 		removeSession(aSession, false);
+
+		auto socket = server->getSocket(aSession->getId());
+		if (socket) {
+			resetSocketSession(socket);
+		} else {
+			dcdebug("No socket for session %s\n", aSession->getAuthToken().c_str());
+		}
+
+		dcdebug("Session %s logging out, use count: %ld\n", aSession->getAuthToken().c_str(), aSession.use_count());
+	}
+
+	void WebUserManager::resetSocketSession(const WebSocketPtr& aSocket) noexcept {
+		if (aSocket->getSession()) {
+			dcdebug("Resetting socket for session %s\n", aSocket->getSession()->getAuthToken().c_str());
+			aSocket->getSession()->onSocketDisconnected();
+			aSocket->setSession(nullptr);
+		}
 	}
 
 	void WebUserManager::checkExpiredSessions() noexcept {
@@ -220,6 +235,10 @@ namespace webserver {
 		expirationTimer->start(false);
 	}
 
+	void WebUserManager::on(WebServerManagerListener::Stopping) noexcept {
+
+	}
+
 	void WebUserManager::on(WebServerManagerListener::Stopped) noexcept {
 		expirationTimer = nullptr;
 
@@ -243,6 +262,10 @@ namespace webserver {
 
 			Thread::sleep(50);
 		}
+	}
+
+	void WebUserManager::on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept {
+		resetSocketSession(aSocket);
 	}
 
 	void WebUserManager::on(WebServerManagerListener::LoadSettings, SimpleXML& xml_) noexcept {
