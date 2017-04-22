@@ -26,9 +26,10 @@
 #include <airdcpp/StringTokenizer.h>
 #include <airdcpp/SimpleXML.h>
 
+
 namespace dcpp {
 	HublistManager::HublistManager() {
-		File::ensureDirectory(Util::getHubListsPath());
+		File::ensureDirectory(getHublistPath());
 	}
 
 	HublistManager::~HublistManager() {
@@ -37,6 +38,10 @@ namespace dcpp {
 			delete c;
 			c = nullptr;
 		}
+	}
+
+	string HublistManager::getHublistPath() noexcept {
+		return Util::getPath(Util::PATH_USER_LOCAL) + "HubLists" + PATH_SEPARATOR_STR;
 	}
 
 	HublistEntry::List HublistManager::getPublicHubs() noexcept {
@@ -97,7 +102,7 @@ namespace dcpp {
 
 		if (fromHttp) {
 			try {
-				File f(Util::getHubListsPath() + Util::validateFileName(publicListServer), File::WRITE, File::CREATE | File::TRUNCATE);
+				File f(getHublistPath() + Util::validateFileName(publicListServer), File::WRITE, File::CREATE | File::TRUNCATE);
 				f.write(downloadBuf);
 			}
 			catch (const FileException&) {}
@@ -129,7 +134,7 @@ namespace dcpp {
 		}
 
 		if (!forceDownload) {
-			string path = Util::getHubListsPath() + Util::validateFileName(publicListServer);
+			string path = getHublistPath() + Util::validateFileName(publicListServer);
 			if (File::getSize(path) > 0) {
 				useHttp = false;
 				string fileDate;

@@ -56,6 +56,8 @@ namespace dcpp {
 
 		mutable SharedMutex cs;
 	private:
+		static string getHublistPath() noexcept;
+
 		// Public Hubs
 		typedef unordered_map<string, HublistEntry::List> PubListMap;
 		PubListMap publicListMatrix;

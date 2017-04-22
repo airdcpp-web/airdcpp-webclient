@@ -309,16 +309,11 @@ void Util::initialize(const string& aConfigPath) {
 #endif
 
 	paths[PATH_FILE_LISTS] = paths[PATH_USER_CONFIG] + "FileLists" PATH_SEPARATOR_STR;
-	paths[PATH_HUB_LISTS] = paths[PATH_USER_LOCAL] + "HubLists" PATH_SEPARATOR_STR;
-	paths[PATH_NOTEPAD] = paths[PATH_USER_CONFIG] + "Notepad.txt";
-	paths[PATH_EMOPACKS] = paths[PATH_RESOURCES] + "EmoPacks" PATH_SEPARATOR_STR;
 	paths[PATH_BUNDLES] = paths[PATH_USER_CONFIG] + "Bundles" PATH_SEPARATOR_STR;
-	paths[PATH_THEMES] = paths[PATH_RESOURCES] + "Themes" PATH_SEPARATOR_STR;
 	paths[PATH_SHARECACHE] = paths[PATH_USER_LOCAL] + "ShareCache" PATH_SEPARATOR_STR;
 
 	File::ensureDirectory(paths[PATH_USER_CONFIG]);
 	File::ensureDirectory(paths[PATH_USER_LOCAL]);
-	File::ensureDirectory(paths[PATH_THEMES]);
 	File::ensureDirectory(paths[PATH_LOCALE]);
 }
 

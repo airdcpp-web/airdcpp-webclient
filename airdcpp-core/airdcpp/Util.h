@@ -166,18 +166,11 @@ public:
 		PATH_DOWNLOADS,
 		/** Default file list location */
 		PATH_FILE_LISTS,
-		/** Default hub list cache */
-		PATH_HUB_LISTS,
-		/** Where the notepad file is stored */
-		PATH_NOTEPAD,
-		/** Folder with emoticons packs*/
-		PATH_EMOPACKS,
-		/** XML files for each bundle*/
+		/** XML files for each bundle */
 		PATH_BUNDLES,
-		/** XML files for each bundle*/
+		/** XML files for cached share structure */
 		PATH_SHARECACHE,
-		/** Path to Theme Files*/
-		PATH_THEMES,
+
 		PATH_LAST
 	};
 
@@ -222,10 +215,6 @@ public:
 
 	/** Path of file lists */
 	static string getListPath() noexcept { return getPath(PATH_FILE_LISTS); }
-	/** Path of hub lists */
-	static string getHubListsPath() noexcept { return getPath(PATH_HUB_LISTS); }
-	/** Notepad filename */
-	static string getNotepadFile() noexcept { return getPath(PATH_NOTEPAD); }
 	/** Path of bundles */
 	static string getBundlePath() noexcept { return getPath(PATH_BUNDLES); }
 
