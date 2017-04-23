@@ -4,10 +4,10 @@ wantedVersion=$1
 if [ "$wantedVersion" = "latest" ]; then
   wantedVersion=$(npm show airdcpp-webui version)
 else
-	git ls-remote > /dev/null 2>&1
-	if [ $? -eq 0 ] && [ `git rev-parse --abbrev-ref HEAD` != "master" ];then
-		# There is no separate beta tag, everything is released under "latest"
-		wantedVersion=$(npm show airdcpp-webui version)
+  git ls-remote > /dev/null 2>&1
+  if [ $? -eq 0 ] && [ `git rev-parse --abbrev-ref HEAD` != "master" ];then
+    # There is no separate beta tag, everything is released under "latest"
+    wantedVersion=$(npm show airdcpp-webui version)
   elif [ $(echo $wantedVersion | grep b) ]; then
     # Convert to ^1.0.0-beta
     wantedVersion="~${wantedVersion%??}0-beta"

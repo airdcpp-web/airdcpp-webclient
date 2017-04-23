@@ -47,6 +47,10 @@ endif()
 
 
 # OPTIONS
+
+# 1.x had a different default value
+unset(INSTALL_RUNTIME_PATH CACHE)
+
 option (INSTALL_RUNTIME_PATH "Install rpath" ON)
 option (LOCAL_BOOST "Use local boost headers" OFF)
 option (INSTALL_WEB_UI "Download and install the Web UI package" ON)
@@ -271,6 +275,7 @@ message(STATUS "CMAKE_SYSTEM_PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "CMAKE_CXX_COMPILER_ID: ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "CMAKE_CXX_COMPILER_VERSION: ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
+message(STATUS "CMAKE_INSTALL_RPATH: ${CMAKE_INSTALL_RPATH}")
 message(STATUS "CMAKE will use this libs (and headers) during build:
     miniupnpc (headers):${MINIUPNP_LIBRARY} (${MINIUPNP_INCLUDE_DIR})
     boost (headers): ${Boost_LIBRARIES} (${Boost_INCLUDE_DIR})
