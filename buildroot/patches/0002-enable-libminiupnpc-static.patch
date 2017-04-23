@@ -1,0 +1,25 @@
+--- a/package/libminiupnpc/Config.in	2017-04-05 18:18:54.000000000 +0300
++++ b/package/libminiupnpc/Config.in	2017-04-12 22:38:10.753203545 +0300
+@@ -1,7 +1,6 @@
+ config BR2_PACKAGE_LIBMINIUPNPC
+ 	bool "libminiupnpc"
+ 	depends on !BR2_BINFMT_FLAT
+-	depends on !BR2_STATIC_LIBS
+ 	help
+ 	  The UPnP protocol is supported by most home adsl/cable routers
+ 	  and Microsoft Windows 2K/XP. The aim of the MiniUPnP project is
+@@ -16,5 +15,4 @@
+ 	  http://miniupnp.free.fr
+ 
+ comment "libminiupnpc needs a toolchain w/ dynamic library"
+-	depends on BR2_STATIC_LIBS
+ 	depends on !BR2_BINFMT_FLAT
+--- a/package/libminiupnpc/libminiupnpc.mk	2017-04-05 18:18:54.000000000 +0300
++++ b/package/libminiupnpc/libminiupnpc.mk	2017-04-12 22:41:07.583534531 +0300
+@@ -11,4 +11,6 @@
+ LIBMINIUPNPC_LICENSE = BSD-3c
+ LIBMINIUPNPC_LICENSE_FILES = LICENSE
+ 
++LIBMINIUPNPC_CONF_OPTS += -DUPNPC_BUILD_SHARED=FALSE
++
+ $(eval $(cmake-package))

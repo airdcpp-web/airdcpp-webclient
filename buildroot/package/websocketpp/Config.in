@@ -1,0 +1,13 @@
+config BR2_PACKAGE_WEBSOCKETPP
+	bool "websocketpp"
+	help
+	  WebSocket++ is a header only C++ library that implements RFC6455 The
+	  WebSocket Protocol. It allows integrating WebSocket client and server
+	  functionality into C++ programs. It uses interchangeable network
+	  transport modules including one based on raw char buffers, one based
+	  on C++ iostreams, and one based on Asio (either via Boost or
+	  standalone). End users can write additional transport policies to
+	  support other networking or event libraries as needed.
+
+	  http://www.zaphoyd.com/websocketpp/
+
