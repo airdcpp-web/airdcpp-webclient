@@ -1040,12 +1040,9 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 			}
 			xml.resetCurrentChild();
 
+#ifdef _WIN32
 			auto prevVersion = Util::toDouble(SETTING(CONFIG_VERSION));
 			//auto prevBuild = SETTING(CONFIG_BUILD_NUMBER);
-
-			//reset the old private hub profile to normal
-			if (prevVersion < 2.50 && SETTING(SETTINGS_PROFILE) == PROFILE_LAN)
-				unsetKey(SETTINGS_PROFILE);
 
 			if (prevVersion <= 2.50 && SETTING(MONITORING_MODE) != MONITORING_DISABLED) {
 				set(MONITORING_MODE, MONITORING_ALL);
@@ -1058,6 +1055,7 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 				unsetKey(SEARCHFRAME_WIDTHS);
 				unsetKey(SEARCHFRAME_VISIBLE);
 			}
+#endif
 
 			fire(SettingsManagerListener::Load(), xml);
 
