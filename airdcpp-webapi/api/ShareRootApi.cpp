@@ -134,7 +134,7 @@ namespace webserver {
 	}
 
 	void ShareRootApi::on(ShareManagerListener::RootRefreshState, const string& aPath) noexcept {
-		onRootUpdated(aPath, { ShareUtils::PROP_LAST_REFRESH_TIME, ShareUtils::PROP_SIZE });
+		onRootUpdated(aPath, { ShareUtils::PROP_LAST_REFRESH_TIME, ShareUtils::PROP_SIZE, ShareUtils::PROP_STATUS });
 	}
 
 	void ShareRootApi::onRootUpdated(const string& aPath, PropertyIdSet&& aUpdatedProperties) noexcept {
