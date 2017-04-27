@@ -284,7 +284,7 @@ void ShareScannerManager::find(const string& aPath, ScanInfo& aScanInfo) noexcep
 		if (!aInfo.isDirectory || stop)
 			return;
 
-		auto currentDir = aPath + aInfo.name;
+		auto currentDir = aInfo.getPath(aPath);
 
 		if (aScanInfo.isManualShareScan) {
 			if (QueueManager::getInstance()->findDirectoryBundle(currentDir)) {
