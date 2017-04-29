@@ -1,34 +1,74 @@
 #!/bin/bash
 
-if [ -z "$1" ]
+# Exit on errors
+set -e
+
+set -x
+
+if [ -z "$2" ]
   then
-    echo "Usage: build-portable <buildroot path> [ <arch> ]"
+    echo "Usage: build-portable <buildroot path> <output root path> [ <arch> ] [ <branch/tag> ]"
     exit 1
 fi
 
-BR_ROOT=`echo "$1" | xargs`
-ARCH=`echo "$2" | xargs`
-AIR_ROOT="$(dirname " $( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd ) ")"
+# Source
+BR_ROOT=$1
+ARCH=`echo "$3" | xargs`
+BRANCH=$4
+#AIR_ROOT="$(dirname " $( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd ) ")"
 
-# Put under the buildroot directory
-OUTPUT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/release"
+# Output
+OUTPUT_DIR=$2
+RELEASE_DIR=${OUTPUT_DIR}/release
 TMP_DIR=${OUTPUT_DIR}/tmp
 TMP_PKG_DIR=${TMP_DIR}/airdcpp-webclient
 
-VERSION=`git describe --tags --abbrev=4 --dirty=-d`
 
-echo "Creating portable archives for version ${VERSION}..."
+if [ ! -d $OUTPUT_DIR ]; then
+  mkdir -p $OUTPUT_DIR;
+fi
+
+if [ ! -d $RELEASE_DIR ]; then
+  mkdir -p $RELEASE_DIR;
+fi
+
+if [ ! -d $TMP_DIR ]; then
+  mkdir -p $TMP_DIR;
+fi
+
+
+
+# echo "Creating portable archives for version ${VERSION}..."
 echo ""
-echo "Application root: ${AIR_ROOT}"
 echo "Buildroot root: ${BR_ROOT}"
 echo "Output directory: ${OUTPUT_DIR}"
 echo ""
 
 
+FetchGit()
+{
+  if [[ ! $BRANCH ]]; then
+    BRANCH="develop"
+  fi
+
+  echo "Using git version ${BRANCH}"
+
+  if [ ! -d $AIR_ARCH_ROOT ]; then
+    mkdir -p $AIR_ARCH_ROOT;
+    cd ${AIR_ARCH_ROOT}
+    git clone https://github.com/airdcpp-web/airdcpp-webclient.git ${AIR_ARCH_ROOT}
+  else
+    cd ${AIR_ARCH_ROOT}
+    git pull
+  fi
+
+  git checkout ${BRANCH}
+}
+
+
 # Call with the current arch
 SetArch()
 {
-  # echo "SET ARCH $1 ii"
   case $1 in
     i786)
       ARCHSTR=32-bit
@@ -41,18 +81,25 @@ SetArch()
       ;;
   esac
 
-  PKG_BASE=airdcpp-$VERSION-$ARCHSTR-portable
   BR_ARCH_PATH=${BR_ROOT}/$1
+  AIR_ARCH_ROOT=${OUTPUT_DIR}/$1
 
   if [ ! -d $BR_ARCH_PATH ]; then
     echo "Buildroot architecture ${BR_ARCH_PATH} doesn't exist"
     exit 1
   fi
+
+
+  FetchGit
+
+  ARCH_VERSION=`git describe --tags --abbrev=4 --dirty=-d`
+  ARCH_PKG_BASE=airdcpp-$ARCH_VERSION-$ARCHSTR-portable
 }
 
 DeleteTmpDir()
 {
   rm -rf $TMP_PKG_DIR
+  #rm $TMP_PKG_DIR/*
   rm -d $TMP_DIR
 }
 
@@ -66,17 +113,17 @@ CreatePackage()
     DeleteTmpDir
   fi
 
-  mkdir -p $TMP_DIR;
+  mkdir -p $TMP_PKG_DIR;
   mkdir -p $TMP_PKG_DIR;
   mkdir -p $TMP_PKG_DIR/web-resources;
 
   echo "Packaging..."
 
-  cp -r ${AIR_ROOT}/node_modules/airdcpp-webui/dist/* ${TMP_PKG_DIR}/web-resources
-  cp ${AIR_ROOT}/buildroot/resources/dcppboot.xml ${TMP_PKG_DIR}
-  cp ${AIR_ROOT}/airdcppd/airdcppd ${TMP_PKG_DIR}
+  cp -r ${AIR_ARCH_ROOT}/node_modules/airdcpp-webui/dist/* ${TMP_PKG_DIR}/web-resources
+  cp ${AIR_ARCH_ROOT}/buildroot/resources/dcppboot.xml ${TMP_PKG_DIR}
+  cp ${AIR_ARCH_ROOT}/airdcppd/airdcppd ${TMP_PKG_DIR}
 
-  tar czvf $OUTPUT_DIR/$PKG_BASE.tar.gz -C ${TMP_DIR} airdcpp-webclient
+  tar czvf $RELEASE_DIR/$ARCH_PKG_BASE.tar.gz -C ${TMP_DIR} airdcpp-webclient
 
   DeleteTmpDir
 }
@@ -86,25 +133,25 @@ BuildArch()
 {
   SetArch $1
 
+  FetchGit
+
   if [[ ! $BUILD_THREADS ]]; then
     BUILD_THREADS=`getconf _NPROCESSORS_ONLN`
   fi
 
-  echo "Building package ${PKG_BASE} with ${BUILD_THREADS} threads"
+  echo "Building package ${ARCH_PKG_BASE} with ${BUILD_THREADS} threads"
   echo ""
 
-  if [ -f ${AIR_ROOT}/CMakeCache.txt ]; then
-    rm ${AIR_ROOT}/CMakeCache.txt
+  if [ -f ${AIR_ARCH_ROOT}/CMakeCache.txt ]; then
+    rm ${AIR_ARCH_ROOT}/CMakeCache.txt
   fi
 
-  cmake -DCMAKE_TOOLCHAIN_FILE="${BR_ARCH_PATH}/output/host/usr/share/buildroot/toolchainfile.cmake" -DBUILD_SHARED_LIBS=OFF ${AIR_ROOT}
+  cmake -DCMAKE_TOOLCHAIN_FILE="${BR_ARCH_PATH}/output/host/usr/share/buildroot/toolchainfile.cmake" -DBUILD_SHARED_LIBS=OFF ${AIR_ARCH_ROOT}
 
   make -j${BUILD_THREADS}
 
   CreatePackage
 }
-
-
 
 if [[ $ARCH ]]; then
   echo "Architecture ${ARCH} was specified"
