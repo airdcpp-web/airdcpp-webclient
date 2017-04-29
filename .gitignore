@@ -25,5 +25,6 @@ CMakeCache.txt
 install_manifest.txt
 Makefile
 airdcppd/airdcppd
+buildroot/release
 
 node_modules
