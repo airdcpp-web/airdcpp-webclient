@@ -3,7 +3,7 @@
 # Exit on errors
 set -e
 
-set -x
+# set -x
 
 if [ -z "$2" ]
   then
