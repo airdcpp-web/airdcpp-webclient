@@ -186,7 +186,7 @@ endif (WIN32 OR HAIKU)
 # SCRIPTS
 
 # Version information for the client
-execute_process (COMMAND sh generate_version.sh ./airdcpp-core/airdcpp/version.inc ${VERSION} ${TAG_APPLICATION} 
+execute_process (COMMAND sh scripts/generate_version.sh ./airdcpp-core/airdcpp/version.inc ${VERSION} ${TAG_APPLICATION} 
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             RESULT_VARIABLE SCRIPT_RESULT)
 
@@ -204,7 +204,7 @@ if(NOT PYTHON_EXECUTABLE)
   message(FATAL_ERROR "Could not find 'python' executable. Please install python")
 endif(NOT PYTHON_EXECUTABLE)
 
-execute_process (COMMAND ${PYTHON_EXECUTABLE} generate_stringdefs.py airdcpp-core/airdcpp/
+execute_process (COMMAND ${PYTHON_EXECUTABLE} scripts/generate_stringdefs.py airdcpp-core/airdcpp/
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             RESULT_VARIABLE SCRIPT_RESULT)
 
@@ -300,7 +300,7 @@ if (INSTALL_WEB_UI)
   endif()
 
   message(STATUS "Installing Web UI")
-  execute_process (COMMAND sh install_webui.sh ${SOVERSION}
+  execute_process (COMMAND sh scripts/install_webui.sh ${SOVERSION}
                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                    RESULT_VARIABLE SCRIPT_RESULT)
 
