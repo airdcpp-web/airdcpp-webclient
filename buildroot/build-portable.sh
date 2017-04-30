@@ -3,6 +3,7 @@
 # Exit on errors
 set -e
 
+# Debug mode
 # set -x
 
 if [ -z "$2" ]
@@ -19,17 +20,21 @@ BRANCH=$4
 
 # Output
 OUTPUT_DIR=$2
-RELEASE_DIR=${OUTPUT_DIR}/release
+PKG_DIR=${OUTPUT_DIR}/packages
 TMP_DIR=${OUTPUT_DIR}/tmp
 TMP_PKG_DIR=${TMP_DIR}/airdcpp-webclient
-
+BUILD_CACHE_DIR=${OUTPUT_DIR}/cache
 
 if [ ! -d $OUTPUT_DIR ]; then
   mkdir -p $OUTPUT_DIR;
 fi
 
-if [ ! -d $RELEASE_DIR ]; then
-  mkdir -p $RELEASE_DIR;
+if [ ! -d $BUILD_CACHE_DIR ]; then
+  mkdir -p $BUILD_CACHE_DIR;
+fi
+
+if [ ! -d $PKG_DIR ]; then
+  mkdir -p $PKG_DIR;
 fi
 
 if [ ! -d $TMP_DIR ]; then
@@ -82,7 +87,7 @@ SetArch()
   esac
 
   BR_ARCH_PATH=${BR_ROOT}/$1
-  AIR_ARCH_ROOT=${OUTPUT_DIR}/$1
+  AIR_ARCH_ROOT=${BUILD_CACHE_DIR}/$1
 
   if [ ! -d $BR_ARCH_PATH ]; then
     echo "Buildroot architecture ${BR_ARCH_PATH} doesn't exist"
@@ -94,6 +99,16 @@ SetArch()
 
   ARCH_VERSION=`git describe --tags --abbrev=4 --dirty=-d`
   ARCH_PKG_BASE=airdcpp-$ARCH_VERSION-$ARCHSTR-portable
+
+  if [ $BRANCH = "master" ]; then
+    PKG_TYPE_DIR=${PKG_DIR}/stable
+  else
+    PKG_TYPE_DIR=${PKG_DIR}/$BRANCH
+  fi
+
+  if [ ! -d $PKG_TYPE_DIR ]; then
+    mkdir -p $PKG_TYPE_DIR;
+  fi
 }
 
 DeleteTmpDir()
@@ -123,7 +138,7 @@ CreatePackage()
   cp ${AIR_ARCH_ROOT}/buildroot/resources/dcppboot.xml ${TMP_PKG_DIR}
   cp ${AIR_ARCH_ROOT}/airdcppd/airdcppd ${TMP_PKG_DIR}
 
-  tar czvf $RELEASE_DIR/$ARCH_PKG_BASE.tar.gz -C ${TMP_DIR} airdcpp-webclient
+  tar czvf $PKG_TYPE_DIR/$ARCH_PKG_BASE.tar.gz -C ${TMP_DIR} airdcpp-webclient
 
   DeleteTmpDir
 }
