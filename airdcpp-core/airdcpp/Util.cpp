@@ -364,10 +364,16 @@ void Util::migrate(const string& aNewDir, const string& aPattern) noexcept {
 }
 
 bool Util::loadBootConfig(const string& aDirectoryPath) noexcept {
-	// Load boot settings
+	string xmlFilePath;
+	if (Util::fileExists(aDirectoryPath + "dcppboot.xml.user")) {
+		xmlFilePath = aDirectoryPath + "dcppboot.xml.user";
+	} else {
+		xmlFilePath = aDirectoryPath + "dcppboot.xml";
+	}
+
 	try {
 		SimpleXML boot;
-		boot.fromXML(File(aDirectoryPath + "dcppboot.xml", File::READ, File::OPEN).read());
+		boot.fromXML(File(xmlFilePath, File::READ, File::OPEN).read());
 		boot.stepIn();
 
 		if(boot.findChild("LocalMode")) {
@@ -379,10 +385,10 @@ bool Util::loadBootConfig(const string& aDirectoryPath) noexcept {
 			ParamMap params;
 #ifdef _WIN32
 			// @todo load environment variables instead? would make it more useful on *nix
-			TCHAR path[MAX_PATH];
+			TCHAR tmpPath[MAX_PATH];
 
-			params["APPDATA"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, SHGFP_TYPE_CURRENT, path), path));
-			params["PERSONAL"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, path), path));
+			params["APPDATA"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, SHGFP_TYPE_CURRENT, tmpPath), tmpPath));
+			params["PERSONAL"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, tmpPath), tmpPath));
 #else
 			const char* home_ = getenv("HOME");
 			params["HOME"] = home_ ? Text::toUtf8(home_) : "/tmp/";

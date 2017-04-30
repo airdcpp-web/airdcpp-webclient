@@ -227,13 +227,17 @@ void Identity::set(const char* name, const string& val) noexcept {
 		info[*(short*)name] = val;
 }
 
-bool Identity::supports(const string& name) const noexcept {
+StringList Identity::getSupports() const noexcept {
 	string su = get("SU");
-	StringTokenizer<string> st(su, ',');
-	for(auto s: st.getTokens()) {
-		if(s == name)
+	return StringTokenizer<string>(su, ',').getTokens();
+}
+
+bool Identity::supports(const string& name) const noexcept {
+	for (const auto& s: getSupports()) {
+		if (s == name)
 			return true;
 	}
+
 	return false;
 }
 
@@ -241,7 +245,7 @@ std::map<string, string> Identity::getInfo() const noexcept {
 	std::map<string, string> ret;
 
 	RLock l(cs);
-	for(auto& i: info) {
+	for(const auto& i: info) {
 		ret[string((char*)(&i.first), 2)] = i.second;
 	}
 
