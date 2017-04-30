@@ -56,18 +56,18 @@ static void handleCrash(int sig) {
     if(crashed)
         abort();
 
-    crashed = true;
+	crashed = true;
 
 	uninit();
 
-    std::cerr << std::to_string(sig) << std::endl;
-    std::cerr << "pid: " << getpid() << std::endl;
+	std::cerr << std::to_string(sig) << std::endl;
+	std::cerr << "pid: " << getpid() << std::endl;
 #if USE_STACKTRACE
-    std::cerr << "Collecting crash information, please wait..." << std::endl;
-    cow::StackTrace trace(Util::getAppPath());
-    trace.generate_frames();
-    std::copy(trace.begin(), trace.end(),
-        std::ostream_iterator<cow::StackFrame>(std::cerr, "\n"));
+	std::cerr << "Collecting crash information, please wait..." << std::endl;
+	cow::StackTrace trace(Util::getAppPath());
+	trace.generate_frames();
+	std::copy(trace.begin(), trace.end(),
+	std::ostream_iterator<cow::StackFrame>(std::cerr, "\n"));
 
 	auto stackPath = Util::getPath(Util::PATH_USER_CONFIG) + "exceptioninfo.txt";
 	std::ofstream f;
@@ -78,15 +78,16 @@ static void handleCrash(int sig) {
 	f << "Client version: " + shortVersionString << std::endl << std::endl;
 
 	std::copy(trace.begin(), trace.end(),
-		std::ostream_iterator<cow::StackFrame>(f, "\n"));
+	std::ostream_iterator<cow::StackFrame>(f, "\n"));
 	f.close();
 	std::cout << "\nException info to be posted on the bug tracker has also been saved in " + stackPath << std::endl;
 #else
-    std::cerr << "Stacktrace is not enabled\n";
+	std::cout << "Stacktrace is not available" << std::endl;
+	std::cout << "Please see https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md#application-crashes" << std::endl;
+	std::cout << "for information about getting the crash log to post on the bug tracker" << std::endl;
 #endif
-	//std::cout << "You can ignore this message if you exited with Ctrl+C and the client was functioning correctly (and please use /quit in future)" << std::endl;
 	if (!asdaemon) {
-		std::cout << "Press enter to continue" << std::endl;
+		std::cout << "Press enter to exit" << std::endl;
 		cin.ignore();
 	}
 	exit(sig);
@@ -145,7 +146,12 @@ static void installHandler() {
 }
 
 static void savePid(int aPid, const string& aConfigPath) noexcept {
-	pidFileName = File::makeAbsolutePath(aConfigPath, "airdcppd.pid");
+	auto pidParam = Util::getStartupParam("-p");
+	if (pidParam) {
+		pidFileName = *pidParam;
+	} else {
+		pidFileName = File::makeAbsolutePath(aConfigPath, "airdcppd.pid");
+	}
 
 	try {
 		pidFile.reset(new File(pidFileName, File::WRITE, File::CREATE | File::OPEN | File::TRUNCATE));
@@ -165,7 +171,7 @@ static void reportError(const char* aMessage) noexcept {
 static void daemonize(const string& aConfigPath) noexcept {
 	auto doFork = [&aConfigPath](const char* aErrorMessage) {
 		auto ret = fork();
-		
+
 		switch(ret) {
 		case -1:
 			reportError(aErrorMessage);
@@ -177,32 +183,32 @@ static void daemonize(const string& aConfigPath) noexcept {
 			_exit(0);
 		}
 	};
-	
+
 	doFork("First fork failed");
 
 	if(setsid() < 0) {
 		reportError("setsid failed");
 		exit(6);
 	}
-	
+
 	doFork("Second fork failed");
-	
+
 	if (chdir("/") < 0) {
 		reportError("chdir failed");
 		exit(8);
 	}
-	
+
 	close(0);
 	close(1);
 	close(2);
-	
+
 	open("/dev/null", O_RDWR);
-	
+
 	if (dup(0) < 0) {
 		reportError("dup failed for stdout");
 		exit(9);
 	}
-	
+
 	if (dup(0) < 0) {
 		reportError("dup failed for stderr");
 		exit(10);
@@ -231,7 +237,7 @@ static void runDaemon(const string& aConfigPath) {
 
 static void runConsole(const string& aConfigPath) {
 	printf("Starting.\n"); fflush(stdout);
-	
+
 	savePid(static_cast<int>(getpid()), aConfigPath);
 
 	try {
@@ -262,6 +268,7 @@ static void printUsage() {
 	printHelp("-h", 								"Print help");
 	printHelp("-v", 								"Print version");
 	printHelp("-d", 								"Run as daemon");
+	printHelp("-p",									"Custom pid file path (default: <CFG_DIR>/.airdcppd.pid)");
 	printHelp("-c=PATH", 						"Use the specified config directory for client settings");
 
 	cout << std::endl;
@@ -338,7 +345,7 @@ int main(int argc, char* argv[]) {
 	setlocale(LC_ALL, "");
 
 	string configPath = Util::getPath(Util::PATH_USER_CONFIG);
-	if(asdaemon) {
+	if (asdaemon) {
 		runDaemon(configPath);
 	} else {
 		runConsole(configPath);
