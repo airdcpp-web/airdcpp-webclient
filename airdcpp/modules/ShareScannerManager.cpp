@@ -692,7 +692,7 @@ ActionHookRejectionPtr ShareScannerManager::fileCompletionHook(const QueueItemPt
 }
 
 ActionHookRejectionPtr ShareScannerManager::bundleCompletionHook(const BundlePtr& aBundle, const HookRejectionGetter& aErrorGetter) noexcept{
-	if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle()) {
+	if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle() || !validateShare(aBundle->getTarget(), true)) {
 		return nullptr;
 	}
 
