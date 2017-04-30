@@ -330,13 +330,14 @@ namespace webserver {
 	}
 
 	void ExtensionManager::failInstallation(const string& aInstallId, const string& aMessage, const string& aException) noexcept {
-		string msg = "Extension installation failed: " + aMessage;
+		auto msg = aMessage;
 		if (!aException.empty()) {
 			msg += " (" + aException + ")";
 		}
 
 		fire(ExtensionManagerListener::InstallationFailed(), aInstallId, msg);
-		LogManager::getInstance()->message(msg, LogMessage::SEV_ERROR);
+
+		LogManager::getInstance()->message("Extension installation failed: " + msg, LogMessage::SEV_ERROR);
 	}
 
 	ExtensionPtr ExtensionManager::registerRemoteExtension(const SessionPtr& aSession, const json& aPackageJson) {
