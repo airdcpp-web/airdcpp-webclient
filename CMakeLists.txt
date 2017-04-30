@@ -106,6 +106,12 @@ find_package (websocketpp REQUIRED)
 find_package (Backtrace)
 find_package (TBB)
 
+if (NOT BUILD_SHARED_LIBS)
+  # Shared LevelDB libraries are linked against Snappy already
+  # We need to link against Snappy manually when making portable builds
+  # (old hash databases wouldn't work otherwise)
+  find_package (Snappy REQUIRED)
+endif ()
 
 if (TBB_FOUND)
   add_definitions ( -DHAVE_INTEL_TBB )

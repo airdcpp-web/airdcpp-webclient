@@ -51,6 +51,9 @@ else (LibNatpmp_FOUND )
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/Mapper_NATPMP.cpp)
 endif (LibNatpmp_FOUND )
 
+#if (SNAPPY_FOUND)
+#  list (APPEND airdcpp_extra_libs ${SNAPPY_LIBRARIES})
+#endif (SNAPPY_FOUND)
 
 # GENERIC COMPILING PROPERTIES
 if (CMAKE_BUILD_TYPE STREQUAL Debug)
@@ -60,7 +63,7 @@ endif()
 set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/StringDefs.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -fno-var-tracking ")
 
 if (ICONV_SECOND_ARGUMENT_IS_CONST)
-    set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/Text.cpp PROPERTY COMPILE_DEFINITIONS ICONV_CONST=const)
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/Text.cpp PROPERTY COMPILE_DEFINITIONS ICONV_CONST=const)
 endif (ICONV_SECOND_ARGUMENT_IS_CONST)
 
 if (HAVE_IFADDRS_H)
@@ -82,7 +85,7 @@ endif (HAVE_POSIX_FADVISE)
 add_library (airdcpp ${airdcpp_srcs})
 
 target_link_libraries (airdcpp ${PTHREADS} ${BZIP2_LIBRARIES} ${ZLIB_LIBRARIES} ${MINIUPNP_LIBRARY}
-${OPENSSL_LIBRARIES} ${ICONV_LIBRARIES} ${airdcpp_extra_libs} ${UPNP} ${Boost_LIBRARIES} ${LevelDB_LIBRARY} ${LibGeoIP_LIBRARY} )
+${OPENSSL_LIBRARIES} ${ICONV_LIBRARIES} ${airdcpp_extra_libs} ${UPNP} ${Boost_LIBRARIES} ${LevelDB_LIBRARY} ${SNAPPY_LIBRARIES} ${LibGeoIP_LIBRARY} )
 
 set_target_properties(airdcpp PROPERTIES VERSION ${SOVERSION} OUTPUT_NAME "airdcpp")
 
