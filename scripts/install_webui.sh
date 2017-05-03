@@ -10,7 +10,7 @@ else
   if [ $? -eq 0 ] && [ `git rev-parse --abbrev-ref HEAD` = "develop" ];then
     # There is no separate beta tag, everything is released under "latest"
     wantedVersion=$(npm show airdcpp-webui version)
-  elif [ $(echo $wantedVersion | grep b) ]; then
+  elif [ $(echo $wantedVersion | grep 'a\|b') ]; then
     # Convert to ^1.0.0-beta
     wantedVersion="~${wantedVersion%??}0-beta"
   else
