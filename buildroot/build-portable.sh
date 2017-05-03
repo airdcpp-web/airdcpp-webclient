@@ -97,8 +97,13 @@ SetArch()
 
   FetchGit
 
+  ARCH_PKG_BASE_EXTRA=""
+  if [ $CMAKE_BUILD_TYPE = "Debug" ]; then
+    ARCH_PKG_BASE_EXTRA="-dbg"
+  fi
+
   ARCH_VERSION=`git describe --tags --abbrev=4 --dirty=-d`
-  ARCH_PKG_BASE=airdcpp-$ARCH_VERSION-$ARCHSTR-portable
+  ARCH_PKG_BASE=airdcpp-${ARCH_VERSION}-${ARCHSTR}-portable${ARCH_PKG_BASE_EXTRA}
 
   if [ $BRANCH = "master" ]; then
     PKG_TYPE_DIR=${PKG_DIR}/stable
@@ -138,9 +143,12 @@ CreatePackage()
   cp ${AIR_ARCH_ROOT}/buildroot/resources/dcppboot.xml ${TMP_PKG_DIR}
   cp ${AIR_ARCH_ROOT}/airdcppd/airdcppd ${TMP_PKG_DIR}
 
-  tar czvf $PKG_TYPE_DIR/$ARCH_PKG_BASE.tar.gz -C ${TMP_DIR} airdcpp-webclient
+  OUTPUT_PKG_PATH=$PKG_TYPE_DIR/$ARCH_PKG_BASE.tar.gz
+  tar czvf $OUTPUT_PKG_PATH -C ${TMP_DIR} airdcpp-webclient
 
   DeleteTmpDir
+
+  echo "Package was saved to ${OUTPUT_PKG_PATH}"
 }
 
 # Call with the current arch
@@ -161,7 +169,11 @@ BuildArch()
     rm ${AIR_ARCH_ROOT}/CMakeCache.txt
   fi
 
-  cmake -DCMAKE_TOOLCHAIN_FILE="${BR_ARCH_PATH}/output/host/usr/share/buildroot/toolchainfile.cmake" -DBUILD_SHARED_LIBS=OFF ${AIR_ARCH_ROOT}
+  if [[ ! $CMAKE_BUILD_TYPE ]]; then
+    CMAKE_BUILD_TYPE="RelWithDebInfo"
+  fi
+
+  cmake -DCMAKE_TOOLCHAIN_FILE="${BR_ARCH_PATH}/output/host/usr/share/buildroot/toolchainfile.cmake" -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DBUILD_SHARED_LIBS=OFF ${AIR_ARCH_ROOT}
 
   make -j${BUILD_THREADS}
 
