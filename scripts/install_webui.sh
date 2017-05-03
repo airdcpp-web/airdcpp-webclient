@@ -5,7 +5,9 @@ if [ "$wantedVersion" = "latest" ]; then
   wantedVersion=$(npm show airdcpp-webui version)
 else
   git ls-remote > /dev/null 2>&1
-  if [ $? -eq 0 ] && [ `git rev-parse --abbrev-ref HEAD` != "master" ];then
+
+  # Always install the latest Web UI version when using the develop branch
+  if [ $? -eq 0 ] && [ `git rev-parse --abbrev-ref HEAD` = "develop" ];then
     # There is no separate beta tag, everything is released under "latest"
     wantedVersion=$(npm show airdcpp-webui version)
   elif [ $(echo $wantedVersion | grep b) ]; then
