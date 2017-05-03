@@ -82,11 +82,13 @@ static void handleCrash(int sig) {
 	f.close();
 	std::cout << "\nException info to be posted on the bug tracker has also been saved in " + stackPath << std::endl;
 #else
+	std::cout << std::endl;
 	std::cout << "Stacktrace is not available" << std::endl;
 	std::cout << "Please see https://github.com/airdcpp-web/airdcpp-webclient/blob/master/.github/CONTRIBUTING.md#application-crashes" << std::endl;
 	std::cout << "for information about getting the crash log to post on the bug tracker" << std::endl;
 #endif
 	if (!asdaemon) {
+		std::cout << std::endl;
 		std::cout << "Press enter to exit" << std::endl;
 		cin.ignore();
 	}
@@ -268,7 +270,7 @@ static void printUsage() {
 	printHelp("-h", 								"Print help");
 	printHelp("-v", 								"Print version");
 	printHelp("-d", 								"Run as daemon");
-	printHelp("-p",									"Custom pid file path (default: <CFG_DIR>/.airdcppd.pid)");
+	printHelp("-p=PATH",								"Custom pid file path (default: <CFG_DIR>/.airdcppd.pid)");
 	printHelp("-c=PATH", 						"Use the specified config directory for client settings");
 
 	cout << std::endl;
