@@ -98,14 +98,14 @@ SetArch()
   FetchGit
 
   ARCH_PKG_BASE_EXTRA=""
-  if [ $CMAKE_BUILD_TYPE = "Debug" ]; then
+  if [[ $CMAKE_BUILD_TYPE = "Debug" ]]; then
     ARCH_PKG_BASE_EXTRA="-dbg"
   fi
 
   ARCH_VERSION=`git describe --tags --abbrev=4 --dirty=-d`
   ARCH_PKG_BASE=airdcpp-${ARCH_VERSION}-${ARCHSTR}-portable${ARCH_PKG_BASE_EXTRA}
 
-  if [ $BRANCH = "master" ]; then
+  if [[ $BRANCH = "master" ]]; then
     PKG_TYPE_DIR=${PKG_DIR}/stable
   else
     PKG_TYPE_DIR=${PKG_DIR}/$BRANCH
