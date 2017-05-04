@@ -169,11 +169,7 @@ BuildArch()
     rm ${AIR_ARCH_ROOT}/CMakeCache.txt
   fi
 
-  if [[ ! $CMAKE_BUILD_TYPE ]]; then
-    CMAKE_BUILD_TYPE="RelWithDebInfo"
-  fi
-
-  cmake -DCMAKE_TOOLCHAIN_FILE="${BR_ARCH_PATH}/output/host/usr/share/buildroot/toolchainfile.cmake" -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DBUILD_SHARED_LIBS=OFF ${AIR_ARCH_ROOT}
+  cmake -DCMAKE_TOOLCHAIN_FILE="${BR_ARCH_PATH}/output/host/usr/share/buildroot/toolchainfile.cmake" -DBUILD_SHARED_LIBS=OFF ${AIR_ARCH_ROOT}
 
   make -j${BUILD_THREADS}
 
