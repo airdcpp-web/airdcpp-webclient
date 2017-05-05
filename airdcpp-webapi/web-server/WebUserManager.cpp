@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include <web-server/WebUserManager.h>
 #include <web-server/WebServerManager.h>
+#include <web-server/WebServerSettings.h>
 
 #include <airdcpp/typedefs.h>
 
@@ -35,6 +36,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/range/algorithm/count_if.hpp>
 
 
 namespace webserver {
@@ -46,22 +48,78 @@ namespace webserver {
 		server->removeListener(this);
 	}
 
-	SessionPtr WebUserManager::authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, bool aUserSession, const string& aIP) noexcept {
-		auto u = getUser(aUserName);
-		if (!u) {
+	SessionPtr WebUserManager::parseHttpSession(const websocketpp::http::parser::request& aRequest, string& error_, const string& aIp) noexcept {
+		bool basicAuth = false;
+
+		auto token = aRequest.get_header("Authorization");
+		if (token != websocketpp::http::empty_header) {
+			if (token.length() > 6 && token.substr(0, 6) == "Basic ") {
+				token = websocketpp::base64_decode(token.substr(6));
+				basicAuth = true;
+			}
+		} else {
 			return nullptr;
 		}
 
-		if (u->getPassword() != aPassword) {
+		auto session = getSession(token);
+		if (!session) {
+			if (basicAuth) {
+				session = authenticateBasicHttp(token, aIp);
+				if (!session) {
+					error_ = "Invalid username or password";
+				}
+			} else {
+				error_ = "Invalid authorization token (session expired?)";
+			}
+		}
+
+		return session;
+	}
+
+	SessionPtr WebUserManager::authenticateSession(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, const string& aIP) noexcept {
+		auto user = getUser(aUserName);
+		if (!user) {
 			return nullptr;
 		}
 
-		u->setLastLogin(GET_TIME());
-		u->addSession();
-		fire(WebUserManagerListener::UserUpdated(), u);
+		if (user->getPassword() != aPassword) {
+			return nullptr;
+		}
 
-		auto uuid = boost::uuids::random_generator()();
-		auto session = std::make_shared<Session>(u, boost::uuids::to_string(uuid), aIsSecure, server, aMaxInactivityMinutes, aUserSession, aIP);
+		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+		return createSession(user, uuid, aIsSecure ? Session::TYPE_SECURE : Session::TYPE_PLAIN, aMaxInactivityMinutes, aIP);
+	}
+
+	SessionPtr WebUserManager::authenticateBasicHttp(const string& aAuthString, const string& aIP) noexcept {
+
+		string username, password;
+
+		auto i = aAuthString.rfind(':');
+		if (i == string::npos) {
+			return nullptr;
+		}
+
+		username = aAuthString.substr(0, i);
+		password = aAuthString.substr(i + 1);
+
+		auto user = getUser(username);
+		if (!user) {
+			return nullptr;
+		}
+
+		if (user->getPassword() != password) {
+			return nullptr;
+		}
+
+		return createSession(user, aAuthString, Session::TYPE_BASIC_AUTH, 60, aIP);
+	}
+
+	SessionPtr WebUserManager::createSession(const WebUserPtr& aUser, const string& aSessionToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP) {
+		auto session = std::make_shared<Session>(aUser, aSessionToken, aType, server, aMaxInactivityMinutes, aIP);
+
+		aUser->setLastLogin(GET_TIME());
+		aUser->addSession();
+		fire(WebUserManagerListener::UserUpdated(), aUser);
 
 		{
 			WLock l(cs);
@@ -70,12 +128,16 @@ namespace webserver {
 		}
 
 		fire(WebUserManagerListener::SessionCreated(), session);
-
-		if (aUserSession) {
-			ActivityManager::getInstance()->updateActivity();
-		}
-
 		return session;
+	}
+
+	SessionPtr WebUserManager::createExtensionSession(const string& aExtensionName) {
+		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+
+		// For internal use only (can't be used for logging in)
+		auto user = std::make_shared<WebUser>(aExtensionName, Util::emptyString, true);
+
+		return createSession(user, uuid, Session::TYPE_EXTENSION, WEBCFG(DEFAULT_SESSION_IDLE_TIMEOUT).uint64(), "localhost");
 	}
 
 	SessionList WebUserManager::getSessions() const noexcept {
@@ -108,15 +170,32 @@ namespace webserver {
 		return s->second;
 	}
 
-	size_t WebUserManager::getSessionCount() const noexcept {
+	size_t WebUserManager::getUserSessionCount() const noexcept {
 		RLock l(cs);
-		return sessionsLocalId.size();
+		return boost::count_if(sessionsLocalId | map_values, [=](const SessionPtr& s) {
+			return s->getSessionType() != Session::TYPE_EXTENSION;
+		});
 	}
 
 	void WebUserManager::logout(const SessionPtr& aSession) {
-		aSession->onSocketDisconnected();
-		
 		removeSession(aSession, false);
+
+		auto socket = server->getSocket(aSession->getId());
+		if (socket) {
+			resetSocketSession(socket);
+		} else {
+			dcdebug("No socket for session %s\n", aSession->getAuthToken().c_str());
+		}
+
+		dcdebug("Session %s logging out, use count: %ld\n", aSession->getAuthToken().c_str(), aSession.use_count());
+	}
+
+	void WebUserManager::resetSocketSession(const WebSocketPtr& aSocket) noexcept {
+		if (aSocket->getSession()) {
+			dcdebug("Resetting socket for session %s\n", aSocket->getSession()->getAuthToken().c_str());
+			aSocket->getSession()->onSocketDisconnected();
+			aSocket->setSession(nullptr);
+		}
 	}
 
 	void WebUserManager::checkExpiredSessions() noexcept {
@@ -156,13 +235,37 @@ namespace webserver {
 		expirationTimer->start(false);
 	}
 
+	void WebUserManager::on(WebServerManagerListener::Stopping) noexcept {
+
+	}
+
 	void WebUserManager::on(WebServerManagerListener::Stopped) noexcept {
 		expirationTimer = nullptr;
 
 		// Let the modules handle deletion in a clean way before we are shutting down...
-		WLock l(cs);
-		sessionsLocalId.clear();
-		sessionsRemoteId.clear();
+		SessionList sessions;
+
+		{
+			WLock l(cs);
+			boost::copy(sessionsLocalId | map_values, back_inserter(sessions));
+
+			sessionsLocalId.clear();
+			sessionsRemoteId.clear();
+		}
+
+		while (true) {
+			if (all_of(sessions.begin(), sessions.end(), [](const SessionPtr& aSession) {
+				return aSession.unique();
+			})) {
+				break;
+			}
+
+			Thread::sleep(50);
+		}
+	}
+
+	void WebUserManager::on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept {
+		resetSocketSession(aSocket);
 	}
 
 	void WebUserManager::on(WebServerManagerListener::LoadSettings, SimpleXML& xml_) noexcept {

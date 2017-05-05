@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -52,18 +52,7 @@ namespace webserver {
 	};
 
 	std::string QueueFileUtils::formatDisplayStatus(const QueueItemPtr& aItem) noexcept {
-		if (aItem->isSet(QueueItem::FLAG_FINISHED)) {
-			return STRING(FINISHED);
-		} 
-		
-		auto percentage = aItem->getPercentage(QueueManager::getInstance()->getDownloadedBytes(aItem));
-		if (aItem->isPausedPrio()) {
-			return STRING_F(PAUSED_PCT, percentage);
-		} else if (QueueManager::getInstance()->isWaiting(aItem)) {
-			return STRING_F(WAITING_PCT, percentage);
-		} else {
-			return STRING_F(RUNNING_PCT, percentage);
-		}
+		return aItem->getStatusString(QueueManager::getInstance()->getDownloadedBytes(aItem), QueueManager::getInstance()->isWaiting(aItem));
 	}
 
 	std::string QueueFileUtils::formatFileSources(const QueueItemPtr& aItem) noexcept {
@@ -74,7 +63,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case PROP_NAME: return getDisplayName(aItem);
 		case PROP_TARGET: return aItem->getTarget();
-		case PROP_TYPE: return Format::formatFileType(aItem->getTarget());
+		case PROP_TYPE: return Util::formatFileType(aItem->getTarget());
 		case PROP_STATUS: return formatDisplayStatus(aItem);
 		case PROP_PRIORITY: return AirUtil::getPrioText(aItem->getPriority());
 		case PROP_SOURCES: return formatFileSources(aItem);
@@ -97,7 +86,7 @@ namespace webserver {
 		}
 	}
 
-#define COMPARE_FINISHED(a, b) if (a->isSet(QueueItem::FLAG_FINISHED) != b->isSet(QueueItem::FLAG_FINISHED)) return a->isSet(QueueItem::FLAG_FINISHED) ? 1 : -1;
+#define COMPARE_IS_DOWNLOADED(a, b) if (a->isDownloaded() != b->isDownloaded()) return a->isDownloaded() ? 1 : -1;
 
 	string QueueFileUtils::getDisplayName(const QueueItemPtr& aItem) noexcept {
 		if (aItem->getBundle() && !aItem->getBundle()->isFileBundle()) {
@@ -116,19 +105,19 @@ namespace webserver {
 			return Util::stricmp(Util::getFileExt(a->getTarget()), Util::getFileExt(b->getTarget()));
 		}
 		case PROP_PRIORITY: {
-			COMPARE_FINISHED(a, b);
+			COMPARE_IS_DOWNLOADED(a, b);
 
 			return compare(static_cast<int>(a->getPriority()), static_cast<int>(b->getPriority()));
 		}
 		case PROP_STATUS: {
-			COMPARE_FINISHED(a, b);
+			COMPARE_IS_DOWNLOADED(a, b);
 			return compare(
 				a->getPercentage(QueueManager::getInstance()->getDownloadedBytes(a)), 
 				b->getPercentage(QueueManager::getInstance()->getDownloadedBytes(b))
 			);
 		}
 		case PROP_SOURCES: {
-			COMPARE_FINISHED(a, b);
+			COMPARE_IS_DOWNLOADED(a, b);
 
 			auto countsA = QueueManager::getInstance()->getSourceCount(a);
 			auto countsB = QueueManager::getInstance()->getSourceCount(b);
@@ -142,6 +131,20 @@ namespace webserver {
 		return 0;
 	}
 
+	string QueueFileUtils::formatStatusId(const QueueItemPtr& aItem) noexcept {
+		switch (aItem->getStatus()) {
+			case QueueItem::STATUS_NEW: return "new";
+			case QueueItem::STATUS_QUEUED: return "queued";
+			case QueueItem::STATUS_DOWNLOADED: return "downloaded";
+			case QueueItem::STATUS_VALIDATION_RUNNING: return "completion_validation_running";
+			case QueueItem::STATUS_VALIDATION_ERROR: return "completion_validation_error";
+			case QueueItem::STATUS_COMPLETED: return "completed";
+		}
+
+		dcassert(0);
+		return Util::emptyString;
+	}
+
 	json QueueFileUtils::serializeFileProperty(const QueueItemPtr& aFile, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 		case PROP_SOURCES:
@@ -153,8 +156,12 @@ namespace webserver {
 		case PROP_STATUS:
 		{
 			return {
-				{ "finished", aFile->isSet(QueueItem::FLAG_FINISHED) },
+				{ "id", aFile->isDownloaded() },
+				{ "downloaded", aFile->isDownloaded() },
+				{ "completed", aFile->isCompleted() },
+				{ "failed", QueueItem::isFailedStatus(aFile->getStatus()) },
 				{ "str", formatDisplayStatus(aFile) },
+				{ "hook_error", Serializer::serializeActionHookError(aFile->getHookError()) }
 			};
 		}
 		case PROP_PRIORITY: {

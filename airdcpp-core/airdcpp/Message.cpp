@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,16 +20,11 @@
 
 #include "Message.h"
 #include "ClientManager.h"
-#include "Magnet.h"
 #include "OnlineUser.h"
-#include "QueueManager.h"
-#include "ResourceManager.h"
-#include "ShareManager.h"
-#include "Util.h"
 
 namespace dcpp {
 
-uint64_t messageIdCounter = 0;
+atomic<uint64_t> messageIdCounter { 0 };
 
 ChatMessage::ChatMessage(const string& aText, const OnlineUserPtr& aFrom, const OnlineUserPtr& aTo, const OnlineUserPtr& aReplyTo) noexcept :
 	text(aText), from(aFrom), to(aTo), replyTo(aReplyTo), id(messageIdCounter++), time(GET_TIME()) {
@@ -65,7 +60,7 @@ string ChatMessage::format() const noexcept {
 		i++;
 	}
 
-	return Text::toDOS(tmp);
+	return tmp;
 }
 
 } // namespace dcpp

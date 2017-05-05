@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -19,44 +19,108 @@
 #include <api/HistoryApi.h>
 
 #include <web-server/JsonUtil.h>
-
 #include <api/common/Serializer.h>
 
+#include <airdcpp/RecentManager.h>
+
+
 namespace webserver {
+#define HISTORY_TYPE "history_type"
 	HistoryApi::HistoryApi(Session* aSession) : ApiModule(aSession) {
-		METHOD_HANDLER("items", Access::ANY, ApiRequest::METHOD_GET, (NUM_PARAM), false, HistoryApi::handleGetHistory);
-		METHOD_HANDLER("item", Access::ANY, ApiRequest::METHOD_POST, (NUM_PARAM), true, HistoryApi::handlePostHistory);
+		METHOD_HANDLER(Access::ANY,					METHOD_GET,		(EXACT_PARAM("strings"), STR_PARAM(HISTORY_TYPE)),	HistoryApi::handleGetStrings);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,		METHOD_DELETE,	(EXACT_PARAM("strings"), STR_PARAM(HISTORY_TYPE)),	HistoryApi::handleDeleteStrings);
+		METHOD_HANDLER(Access::ANY,					METHOD_POST,	(EXACT_PARAM("strings"), STR_PARAM(HISTORY_TYPE)),	HistoryApi::handlePostString);
+
+		METHOD_HANDLER(Access::ANY,					METHOD_GET,		(EXACT_PARAM("sessions"), STR_PARAM(HISTORY_TYPE), RANGE_MAX_PARAM),		HistoryApi::handleGetRecents);
+		METHOD_HANDLER(Access::ANY,					METHOD_POST,	(EXACT_PARAM("sessions"), STR_PARAM(HISTORY_TYPE), EXACT_PARAM("search")),	HistoryApi::handleSearchRecents);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,		METHOD_DELETE,	(EXACT_PARAM("sessions"), STR_PARAM(HISTORY_TYPE)),							HistoryApi::handleClearRecents);
 	}
 
 	HistoryApi::~HistoryApi() {
 	}
 
-	api_return HistoryApi::handleGetHistory(ApiRequest& aRequest) {
-		auto j = json::array();
-
-		auto history = SettingsManager::getInstance()->getHistory(toHistoryType(aRequest.getStringParam(0)));
-		for (const auto& s : history) {
-			j.push_back(s);
-		}
-
-		aRequest.setResponseBody(j);
+	api_return HistoryApi::handleGetStrings(ApiRequest& aRequest) {
+		auto type = toHistoryType(aRequest);
+		auto history = SettingsManager::getInstance()->getHistory(type);
+		aRequest.setResponseBody(history);
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return HistoryApi::handlePostHistory(ApiRequest& aRequest) {
-		auto type = toHistoryType(aRequest.getStringParam(0));
-		auto item = JsonUtil::getField<string>("item", aRequest.getRequestBody(), false);
+	api_return HistoryApi::handlePostString(ApiRequest& aRequest) {
+		auto type = toHistoryType(aRequest);
+		auto item = JsonUtil::getField<string>("string", aRequest.getRequestBody(), false);
 
 		SettingsManager::getInstance()->addToHistory(item, type);
 		return websocketpp::http::status_code::no_content;
 	}
 
-	static SettingsManager::HistoryType toHistoryType(const string& aName) {
-		auto type = Util::toInt(aName);
-		if (type < 0 || type >= SettingsManager::HistoryType::HISTORY_LAST) {
-			throw std::invalid_argument("Invalid history type");
+	api_return HistoryApi::handleDeleteStrings(ApiRequest& aRequest) {
+		auto type = toHistoryType(aRequest);
+		SettingsManager::getInstance()->clearHistory(type);
+		return websocketpp::http::status_code::no_content;
+	}
+
+	RecentEntry::Type HistoryApi::toRecentType(ApiRequest& aRequest) {
+		auto name = aRequest.getStringParam(HISTORY_TYPE);
+		if (name == "hub") {
+			return RecentEntry::TYPE_HUB;
+		} else if (name == "private_chat") {
+			return RecentEntry::TYPE_PRIVATE_CHAT;
+		} else if (name == "filelist") {
+			return RecentEntry::TYPE_FILELIST;
 		}
 
-		return static_cast<SettingsManager::HistoryType>(type);
+		dcassert(0);
+		throw RequestException(websocketpp::http::status_code::bad_request, "Invalid entry history type");
+	}
+
+	SettingsManager::HistoryType HistoryApi::toHistoryType(ApiRequest& aRequest) {
+		auto name = aRequest.getStringParam(HISTORY_TYPE);
+		if (name == "search_pattern") {
+			return SettingsManager::HISTORY_SEARCH;
+		} else if (name == "search_excluded") {
+			return SettingsManager::HISTORY_EXCLUDE;
+		} else if (name == "download_target") {
+			return SettingsManager::HISTORY_DOWNLOAD_DIR;
+		}
+
+		dcassert(0);
+		throw RequestException(websocketpp::http::status_code::bad_request, "Invalid string history type");
+	}
+
+	json HistoryApi::serializeRecentEntry(const RecentEntryPtr& aEntry) noexcept {
+		return {
+			{ "name", aEntry->getName() },
+			{ "description", aEntry->getDescription() },
+			{ "hub_url", aEntry->getUrl() },
+			{ "last_opened", aEntry->getLastOpened() },
+			{ "user", aEntry->getUser() ? Serializer::serializeHintedUser(HintedUser(aEntry->getUser(), aEntry->getUrl())) : json() },
+		};
+	}
+
+	api_return HistoryApi::handleSearchRecents(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+
+		auto pattern = JsonUtil::getField<string>("pattern", reqJson);
+		auto maxResults = JsonUtil::getField<size_t>("max_results", reqJson);
+
+		auto hubs = RecentManager::getInstance()->searchRecents(toRecentType(aRequest), pattern, maxResults);
+		aRequest.setResponseBody(Serializer::serializeList(hubs, serializeRecentEntry));
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return HistoryApi::handleGetRecents(ApiRequest& aRequest) {
+		auto entries = RecentManager::getInstance()->getRecents(toRecentType(aRequest));
+		sort(entries.begin(), entries.end(), RecentEntry::Sort());
+
+		auto retJson = Serializer::serializeFromBegin(aRequest.getRangeParam(MAX_COUNT), entries, serializeRecentEntry);
+		aRequest.setResponseBody(retJson);
+
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return HistoryApi::handleClearRecents(ApiRequest& aRequest) {
+		RecentManager::getInstance()->clearRecents(toRecentType(aRequest));
+		return websocketpp::http::status_code::no_content;
 	}
 }

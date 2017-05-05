@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -20,11 +20,14 @@
 
 #include <web-server/FileServer.h>
 #include <web-server/WebServerManager.h>
+#include <web-server/WebUserManager.h>
 
 #include <api/common/Deserializer.h>
 
+#include <airdcpp/AirUtil.h>
 #include <airdcpp/File.h>
 #include <airdcpp/Util.h>
+
 #include <airdcpp/ViewFileManager.h>
 
 #include <sstream>
@@ -150,7 +153,7 @@ namespace webserver {
 	string FileServer::parseResourcePath(const string& aResource, const websocketpp::http::parser::request& aRequest, StringPairList& headers_) const {
 		// Serve files only from the resource directory
 		if (aResource.empty() || aResource.find("..") != std::string::npos) {
-			throw std::domain_error("Invalid request");
+			throw RequestException(websocketpp::http::status_code::bad_request, "Invalid resource path");
 		}
 
 		auto request = aResource;
@@ -178,10 +181,10 @@ namespace webserver {
 
 			if (aRequest.get_header("Accept").find("text/html") == string::npos) {
 				if (aRequest.get_header("Content-Type") == "application/json") {
-					throw std::domain_error("File server won't serve JSON files. Did you mean \"/api" + aResource + "\" instead?");
+					throw RequestException(websocketpp::http::status_code::not_acceptable, "File server won't serve JSON files. Did you mean \"/api" + aResource + "\" instead?");
 				}
 
-				throw std::domain_error("Invalid file path (or use \"Accept: text/html\" if you want index.html)");
+				throw RequestException(websocketpp::http::status_code::not_found, "Invalid file path (hint: use \"Accept: text/html\" if you want index.html)");
 			}
 
 			request = "index.html";
@@ -201,29 +204,36 @@ namespace webserver {
 		return resourcePath + request;
 	}
 
-	string FileServer::parseViewFilePath(const string& aResource, StringPairList& headers_) const {
-		string protocol, tth, port, path, query, fragment;
-		Util::decodeUrl(aResource, protocol, tth, port, path, query, fragment);
+	string FileServer::parseViewFilePath(const string& aResource, StringPairList& headers_, const SessionPtr& aSession) const {
+		string protocol, tthStr, port, path, query, fragment;
+		Util::decodeUrl(aResource, protocol, tthStr, port, path, query, fragment);
 
-		auto auth = Util::decodeQuery(query)["auth"];
-		if (auth.empty()) {
-			throw std::domain_error("Authorization query missing");
+		auto session = aSession;
+		if (!session) {
+			auto auth = Util::decodeQuery(query)["auth_token"];
+			if (!auth.empty()) {
+				session = WebServerManager::getInstance()->getUserManager().getSession(auth);
+			}
+
+			if (!session || !session->getUser()->hasPermission(Access::VIEW_FILES_VIEW)) {
+				throw RequestException(websocketpp::http::status_code::unauthorized, "Not authorized");
+			}
 		}
 
-		auto session = WebServerManager::getInstance()->getUserManager().getSession(auth);
-		if (!session || !session->getUser()->hasPermission(Access::VIEW_FILES_VIEW)) {
-			throw std::domain_error("Not authorized");
+		auto tth = Deserializer::parseTTH(tthStr);
+		auto paths = AirUtil::getFileDupePaths(AirUtil::checkFileDupe(tth), tth);
+		if (paths.empty()) {
+			auto file = ViewFileManager::getInstance()->getFile(tth);
+			if (!file) {
+				throw RequestException(websocketpp::http::status_code::not_found, "No files matching the TTH were found");
+			}
+
+			paths.push_back(file->getPath());
 		}
 
-		auto file = ViewFileManager::getInstance()->getFile(Deserializer::parseTTH(tth));
-		if (!file) {
-			throw std::domain_error("No files matching the TTH were found");
-		}
+		addCacheControlHeader(headers_, 1); // One day (files are identified by their TTH so the content won't change)
 
-		// One day 
-		// Files are identified by their TTH so the content won't change (but they are usually open only for a short time)
-		addCacheControlHeader(headers_, 1);
-		return file->getPath();
+		return paths.front();
 	}
 
 	string FileServer::formatPartialRange(int64_t aStartPos, int64_t aEndPos, int64_t aFileSize) noexcept {
@@ -273,7 +283,7 @@ namespace webserver {
 	}
 
 	websocketpp::http::status_code::value FileServer::handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest,
-		string& output_, StringPairList& headers_) noexcept {
+		string& output_, StringPairList& headers_, const SessionPtr& aSession) noexcept {
 
 		dcdebug("Requesting file %s\n", aResource.c_str());
 
@@ -281,13 +291,13 @@ namespace webserver {
 		string filePath;
 		try {
 			if (aResource.length() >= 6 && aResource.compare(0, 6, "/view/") == 0) {
-				filePath = parseViewFilePath(aResource.substr(6), headers_);
+				filePath = parseViewFilePath(aResource.substr(6), headers_, aSession);
 			} else {
 				filePath = parseResourcePath(aResource, aRequest, headers_);
 			}
-		} catch (const std::exception& e) {
+		} catch (const RequestException& e) {
 			output_ = e.what();
-			return websocketpp::http::status_code::bad_request;
+			return e.getCode();
 		}
 
 		auto fileSize = File::getSize(filePath);
@@ -307,6 +317,18 @@ namespace webserver {
 		} catch (const std::bad_alloc&) {
 			output_ = "Not enough memory on the server to serve this request";
 			return websocketpp::http::status_code::internal_server_error;
+		}
+
+		if (Util::getFileExt(filePath) == ".nfo") {
+			string encoding;
+
+			// Platform-independent encoding conversion function could be added if there is more use for it
+#ifdef _WIN32
+			encoding = "CP.437";
+#else
+			encoding = "cp437";
+#endif
+			output_ = Text::toUtf8(output_, encoding);
 		}
 
 		// Get the mime type (but get it from the original request with gzipped content)

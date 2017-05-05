@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2012-2016 AirDC++ Project
+* Copyright (C) 2012-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -43,14 +43,14 @@ namespace dcpp {
 class RSS;
 typedef std::shared_ptr<RSS> RSSPtr;
 class RSSData;
-typedef boost::intrusive_ptr<RSSData> RSSDataPtr;
+typedef std::shared_ptr<RSSData> RSSDataPtr;
 
 
 class RSSFilter : public StringMatch {
 public:
 
-	RSSFilter(const string& aFilterPattern, const string& aDownloadTarget, int aMethod, const string& aGroup, bool aSkipDupes, int aAction) noexcept :
-		filterPattern(aFilterPattern), downloadTarget(aDownloadTarget), autosearchGroup(aGroup), skipDupes(aSkipDupes), filterAction(aAction)
+	RSSFilter(const string& aFilterPattern, const string& aDownloadTarget, int aMethod, const string& aGroup, bool aSkipDupes, int aAction, int aExpireDays) noexcept :
+		filterPattern(aFilterPattern), downloadTarget(aDownloadTarget), autosearchGroup(aGroup), skipDupes(aSkipDupes), filterAction(aAction), expireDays(aExpireDays)
 	{
 		pattern = aFilterPattern;
 		setMethod((StringMatch::Method)aMethod);
@@ -62,11 +62,12 @@ public:
 	GETSET(string, downloadTarget, DownloadTarget);
 	IGETSET(string, autosearchGroup, AutosearchGroup, Util::emptyString);
 	IGETSET(int, filterAction, FilterAction, DOWNLOAD);
+	IGETSET(int, expireDays, ExpireDays, 3);
 	bool skipDupes = true;
 
 	enum filterActions {
 		DOWNLOAD = 0,
-		REMOVE = 1
+		REMOVE = 1,
 	};
 
 };
@@ -100,9 +101,9 @@ public:
 
 	GETSET(string, url, Url);
 	GETSET(string, feedName, FeedName);
-	GETSET(time_t, lastUpdate, LastUpdate);
+	IGETSET(time_t, lastUpdate, LastUpdate, 0);
 	IGETSET(int, updateInterval, UpdateInterval, 60);
-	GETSET(int, token, Token);
+	IGETSET(int, token, Token, 0);
 	IGETSET(bool, dirty, Dirty, false);
 	IGETSET(bool, enable, Enable, true);
 
@@ -115,7 +116,7 @@ public:
 	vector<RSSFilter> rssFilterList;
 
 	bool allowUpdate() {
-		return enable && (getLastUpdate() + getUpdateInterval() * 60) < GET_TIME();
+		return getEnable() && (getLastUpdate() + getUpdateInterval() * 60) < GET_TIME();
 	}
 
 private:
@@ -124,7 +125,7 @@ private:
 
 };
 
-class RSSData: public intrusive_ptr_base<RSSData>, private boost::noncopyable {
+class RSSData: private boost::noncopyable {
 public:
 	RSSData(const string& aTitle, const string& aLink, const string& aPubDate, const RSSPtr& aFeed, time_t aDateAdded = GET_TIME()) noexcept :
 		title(aTitle), link(aLink), pubDate(aPubDate), feed(aFeed), dateAdded(aDateAdded)  {
@@ -171,7 +172,7 @@ public:
 	~RSSManager();
 
 	void load();
-	void saveConfig(bool saveDatabase = true);
+	void save(bool aSaveDatabase = false);
 
 	void clearRSSData(const RSSPtr& aFeed) noexcept;
 	void matchFilters(const RSSPtr& aFeed);
@@ -182,7 +183,7 @@ public:
 
 	CriticalSection& getCS() { return cs; }
 
-	unordered_set<RSSPtr>& getRss(){
+	vector<RSSPtr>& getRss(){
 		return rssList;
 	}
 
@@ -211,8 +212,9 @@ private:
 	RSSPtr getUpdateItem() const noexcept;
 	
 	void matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData);
+	bool addAutoSearchItem(const RSSFilter& aFilter, const RSSDataPtr& aData) noexcept;
 
-	unordered_set<RSSPtr> rssList;
+	vector<RSSPtr> rssList;
 
 	void parseRSSFeed(SimpleXML& xml, RSSPtr& aFeed);
 	void parseAtomFeed(SimpleXML& xml, RSSPtr& aFeed);

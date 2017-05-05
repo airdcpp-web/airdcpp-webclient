@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -35,12 +35,15 @@ namespace webserver {
 	}
 
 	UserPtr Deserializer::getUser(const string& aCID, bool aAllowMe) {
-		auto cid = parseCID(aCID);
-		if (!aAllowMe && cid == ClientManager::getInstance()->getMyCID()) {
+		return getUser(parseCID(aCID), aAllowMe);
+	}
+
+	UserPtr Deserializer::getUser(const CID& aCID, bool aAllowMe) {
+		if (!aAllowMe && aCID == ClientManager::getInstance()->getMyCID()) {
 			throw std::invalid_argument("Own CID isn't allowed for this command");
 		}
 
-		auto u = ClientManager::getInstance()->findUser(cid);
+		auto u = ClientManager::getInstance()->findUser(aCID);
 		if (!u) {
 			throw std::invalid_argument("User not found");
 		}
@@ -71,14 +74,25 @@ namespace webserver {
 		return HintedUser(user, JsonUtil::getField<string>("hub_url", userJson, aAllowMe && user == ClientManager::getInstance()->getMe()));
 	}
 
+	OnlineUserPtr Deserializer::deserializeOnlineUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
+		auto hintedUser = deserializeHintedUser(aJson, aAllowMe, aFieldName);
+
+		auto onlineUser = ClientManager::getInstance()->findOnlineUser(hintedUser, false);
+		if (!onlineUser) {
+			throw std::invalid_argument("User is offline");
+		}
+
+		return onlineUser;
+	}
+
 	TTHValue Deserializer::deserializeTTH(const json& aJson) {
 		return parseTTH(JsonUtil::getField<string>("tth", aJson, false));
 	}
 
-	Priority Deserializer::deserializePriority(const json& aJson, bool allowDefault) {
-		auto minAllowed = allowDefault ? Priority::DEFAULT : Priority::PAUSED_FORCE;
+	Priority Deserializer::deserializePriority(const json& aJson, bool aAllowDefault) {
+		auto minAllowed = aAllowDefault ? Priority::DEFAULT : Priority::PAUSED_FORCE;
 
-		auto priority = JsonUtil::getEnumField<int>("priority", aJson, !allowDefault, static_cast<int>(minAllowed), static_cast<int>(Priority::HIGHEST));
+		auto priority = JsonUtil::getEnumField<int>("priority", aJson, !aAllowDefault, static_cast<int>(minAllowed), static_cast<int>(Priority::HIGHEST));
 		if (!priority) {
 			return Priority::DEFAULT;
 		}
@@ -88,14 +102,14 @@ namespace webserver {
 
 	void Deserializer::deserializeDownloadParams(const json& aJson, const SessionPtr& aSession, string& targetDirectory_, string& targetName_, Priority& priority_) {
 		// Target path
-		targetDirectory_ = JsonUtil::getOptionalFieldDefault<string>("target_directory", aJson, SETTING(DOWNLOAD_DIRECTORY), false);
+		targetDirectory_ = JsonUtil::getOptionalFieldDefault<string>("target_directory", aJson, SETTING(DOWNLOAD_DIRECTORY));
 
 		ParamMap params;
 		params["username"] = aSession->getUser()->getUserName();
 		targetDirectory_ = Util::formatParams(targetDirectory_, params, nullptr, 0);
 
 		// A default target name can be provided
-		auto name = JsonUtil::getOptionalField<string>("target_name", aJson, false, targetName_.empty());
+		auto name = JsonUtil::getOptionalField<string>("target_name", aJson, targetName_.empty());
 		if (name) {
 			targetName_ = *name;
 		}
@@ -104,7 +118,7 @@ namespace webserver {
 	}
 
 	StringList Deserializer::deserializeHubUrls(const json& aJson) {
-		auto hubUrls = JsonUtil::getOptionalFieldDefault<StringList>("hub_urls", aJson, StringList(), false);
+		auto hubUrls = JsonUtil::getOptionalFieldDefault<StringList>("hub_urls", aJson, StringList());
 		if (hubUrls.empty()) {
 			ClientManager::getInstance()->getOnlineClients(hubUrls);
 		}

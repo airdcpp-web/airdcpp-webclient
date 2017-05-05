@@ -157,6 +157,9 @@ bool ConfigPrompt::addUser(webserver::WebServerManager* wsm) {
 		if (input != "y") {
 			return false;
 		}
+	} else if (!webserver::WebUser::validateUsername(username)) {
+		cout << "The username should contain only alphanumeric characters" << std::endl;
+		return false;
 	}
 
 	setPasswordMode(true);
@@ -238,7 +241,7 @@ void ConfigPrompt::promptPort(webserver::ServerConfig& config_, const std::strin
 		cout << std::endl;
 	}
 
-	config_.port.setCurValue(port);
+	config_.port.setValue(port);
 	if (port > 0) {
 		cout << toBold(aProtocol + " port set to: ") << port << std::endl;
 	} else {

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -82,6 +82,8 @@ namespace dcpp {
 		void fillLogParams(ParamMap& params) const noexcept;
 		string getLogPath() const noexcept;
 		bool isOnline() const noexcept { return online; }
+
+		bool allowCCPM();
 
 		CCPMState getCCPMState() const noexcept {
 			return ccpmState;

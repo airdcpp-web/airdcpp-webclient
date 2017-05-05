@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 
 #include <airdcpp/TimerManager.h>
 
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 #include <api/common/PropertyFilter.h>
 #include <api/common/Serializer.h>
 #include <api/common/ViewTasks.h>
@@ -50,28 +50,21 @@ namespace webserver {
 		{
 			aModule->getSession()->addListener(this);
 
-			// Magic for the following defines
-			auto& requestHandlers = aModule->getRequestHandlers();
-
 			auto access = aModule->getSubscriptionAccess();
-			METHOD_HANDLER(viewName, access, ApiRequest::METHOD_POST, (EXACT_PARAM("filter")), false, ListViewController::handlePostFilter);
-			METHOD_HANDLER(viewName, access, ApiRequest::METHOD_PUT, (EXACT_PARAM("filter"), TOKEN_PARAM), true, ListViewController::handlePutFilter);
-			METHOD_HANDLER(viewName, access, ApiRequest::METHOD_DELETE, (EXACT_PARAM("filter"), TOKEN_PARAM), false, ListViewController::handleDeleteFilter);
+			MODULE_METHOD_HANDLER(aModule, access, METHOD_POST, (EXACT_PARAM(viewName), EXACT_PARAM("filter")), ListViewController::handlePostFilter);
+			MODULE_METHOD_HANDLER(aModule, access, METHOD_PUT, (EXACT_PARAM(viewName), EXACT_PARAM("filter"), TOKEN_PARAM), ListViewController::handlePutFilter);
+			MODULE_METHOD_HANDLER(aModule, access, METHOD_DELETE, (EXACT_PARAM(viewName), EXACT_PARAM("filter"), TOKEN_PARAM), ListViewController::handleDeleteFilter);
 
-			METHOD_HANDLER(viewName, access, ApiRequest::METHOD_POST, (EXACT_PARAM("settings")), true, ListViewController::handlePostSettings);
-			METHOD_HANDLER(viewName, access, ApiRequest::METHOD_DELETE, (), false, ListViewController::handleReset);
+			MODULE_METHOD_HANDLER(aModule, access, METHOD_POST, (EXACT_PARAM(viewName), EXACT_PARAM("settings")), ListViewController::handlePostSettings);
+			MODULE_METHOD_HANDLER(aModule, access, METHOD_DELETE, (EXACT_PARAM(viewName)), ListViewController::handleReset);
 
-			METHOD_HANDLER(viewName, access, ApiRequest::METHOD_GET, (EXACT_PARAM("items"), NUM_PARAM, NUM_PARAM), false, ListViewController::handleGetItems);
+			MODULE_METHOD_HANDLER(aModule, access, METHOD_GET, (EXACT_PARAM(viewName), EXACT_PARAM("items"), RANGE_START_PARAM, RANGE_MAX_PARAM), ListViewController::handleGetItems);
 		}
 
 		~ListViewController() {
 			module->getSession()->removeListener(this);
 
 			timer->stop(true);
-		}
-
-		void setActiveStateChangeHandler(StateChangeFunction aF) {
-			stateChangeF = aF;
 		}
 
 		void stop() noexcept {
@@ -128,12 +121,14 @@ namespace webserver {
 		bool isActive() const noexcept {
 			return active;
 		}
+
+		bool hasSourceItem(const T& aItem) const noexcept {
+			RLock l(cs);
+			return sourceItems.find(aItem) != sourceItems.end();
+		}
 	private:
 		void setActive(bool aActive) {
 			active = aActive;
-			if (stateChangeF) {
-				stateChangeF(aActive);
-			}
 		}
 
 		// FILTERS START
@@ -227,7 +222,7 @@ namespace webserver {
 
 			{
 				WLock l(cs);
-				auto i = findFilter(aRequest.getTokenParam(1));
+				auto i = findFilter(aRequest.getTokenParam());
 				if (i == filters.end()) {
 					aRequest.setResponseErrorStr("Filter not found");
 					return websocketpp::http::status_code::bad_request;
@@ -241,9 +236,7 @@ namespace webserver {
 		}
 
 		api_return handleDeleteFilter(ApiRequest& aRequest) {
-			const auto& reqJson = aRequest.getRequestBody();
-
-			if (!removeFilter(aRequest.getTokenParam(1))) {
+			if (!removeFilter(aRequest.getTokenParam())) {
 				aRequest.setResponseErrorStr("Filter not found");
 				return websocketpp::http::status_code::bad_request;
 			}
@@ -428,8 +421,8 @@ namespace webserver {
 		}
 
 		api_return handleGetItems(ApiRequest& aRequest) {
-			auto start = aRequest.getRangeParam(1);
-			auto end = aRequest.getRangeParam(2);
+			auto start = aRequest.getRangeParam(START_POS);
+			auto end = aRequest.getRangeParam(MAX_COUNT);
 			decltype(matchingItems) matchingItemsCopy;
 
 			{
@@ -745,7 +738,7 @@ namespace webserver {
 		// Append item with supplied property values
 		void appendItemPartial(const T& aItem, json& json_, int pos, const PropertyIdSet& aPropertyIds) {
 			appendItemPosition(aItem, json_, pos);
-			json_["items"][pos]["properties"] = Serializer::serializeItemProperties(aItem, aPropertyIds, itemHandler);
+			json_["items"][pos]["properties"] = Serializer::serializeProperties(aItem, itemHandler, aPropertyIds);
 		}
 
 		// Append item without property values
@@ -828,8 +821,6 @@ namespace webserver {
 			bool changed = true;
 			ValueMap values;
 		};
-
-		StateChangeFunction stateChangeF = nullptr;
 
 		bool itemListChanged = false;
 		IntCollector currentValues;

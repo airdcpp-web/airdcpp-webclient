@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,6 +41,14 @@ namespace Text {
 	extern string systemCharset;
 
 	void initialize();
+
+	// Size of wchar_t is usually 16 bits on Windows and 32 bits on other platforms
+	// For 16 bit wchars (UTF-16), we may have surrogate pairs and per-character conversion 
+	// will produce invalid results for them
+	// Use of these function should thus be avoided in platform-independent (or Windows-specific) code
+	int utf8ToWc(const char* str, wchar_t& c);
+	void wcToUtf8(wchar_t c, string& str);
+#ifdef WIN32
 	wstring acpToWide(const string& str, const string& fromCharset = "") noexcept;
 
 	wstring utf8ToWide(const string& str) noexcept;
@@ -48,15 +56,13 @@ namespace Text {
 	string wideToAcp(const wstring& str, const string& toCharset = "") noexcept;
 	string wideToUtf8(const wstring& str) noexcept;
 
-	int utf8ToWc(const char* str, wchar_t& c);
-	void wcToUtf8(wchar_t c, string& str);
-
-	inline string acpToUtf8(const string& str, const string& fromCharset = "") noexcept{
+	inline string acpToUtf8(const string& str, const string& fromCharset = "") noexcept {
 		return wideToUtf8(acpToWide(str, fromCharset));
 	}
-	inline string utf8ToAcp(const string& str, const string& toCharset = "") noexcept{
+	inline string utf8ToAcp(const string& str, const string& toCharset = "") noexcept {
 		return wideToAcp(utf8ToWide(str), toCharset);
 	}
+
 #ifdef UNICODE
 	inline tstring toT(const string& str) noexcept { return utf8ToWide(str); }
 	inline string fromT(const tstring& str) noexcept { return wideToUtf8(str); }
@@ -66,40 +72,46 @@ namespace Text {
 #endif
 
 	inline const TStringList& toT(const StringList& lst, TStringList& tmp) noexcept {
-		for(auto& i: lst)
+		for (auto& i : lst)
 			tmp.push_back(toT(i));
 		return tmp;
 	}
 
 	inline const StringList& fromT(const TStringList& lst, StringList& tmp) noexcept {
-		for(auto& i: lst)
+		for (auto& i : lst)
 			tmp.push_back(fromT(i));
 		return tmp;
 	}
 
-	inline bool isAscii(const string& str) noexcept { return isAscii(str.c_str()); }
-	bool isAscii(const char* str) noexcept;
+	// Modifies the original string
+	const wstring& toLowerReplace(wstring& tgt) noexcept;
 
-	bool validateUtf8(const string& str) noexcept;
-
-	inline char asciiToLower(char c) { dcassert((((uint8_t)c) & 0x80) == 0); return (char)tolower(c); }
-
-	wchar_t toLower(wchar_t c) noexcept;
-
-	wstring toLower(const wstring& str) noexcept;
-
-	bool isLower(const string& str) noexcept;
-
-	string toLower(const string& str) noexcept;
-#ifndef _WIN32
-	string convert(const string& str, const string& fromCharset, const string& toCharset = "") noexcept;
-#endif
-	string toUtf8(const string& str, const string& fromCharset = "") noexcept;
-
-	string fromUtf8(const string& str, const string& toCharset = "") noexcept;
+	inline wstring toLower(const wstring& str) noexcept {
+		wstring tmp(str);
+		return toLowerReplace(tmp);
+	}
 
 	string toDOS(string tmp) noexcept;
 	wstring toDOS(wstring tmp) noexcept;
+#else
+	string convert(const string& str, const string& fromCharset, const string& toCharset = "") noexcept;
+#endif
+
+	inline bool isAscii(const string& str) noexcept { return isAscii(str.c_str()); }
+	bool isAscii(const char* str) noexcept;
+	inline char asciiToLower(char c) { dcassert((((uint8_t)c) & 0x80) == 0); return (char)tolower(c); }
+
+	string sanitizeUtf8(const string& str) noexcept;
+	bool validateUtf8(const string& str) noexcept;
+
+	wchar_t toLower(wchar_t c) noexcept;
+	bool isLower(const string& str) noexcept;
+	bool isLower(wchar_t c) noexcept;
+	string toLower(const string& str) noexcept;
+	string uncapitalize(const string& str) noexcept;
+
+	string toUtf8(const string& str, const string& fromCharset = "") noexcept;
+	string fromUtf8(const string& str, const string& toCharset = "") noexcept;
 
 	inline bool isSeparator(char c) noexcept {
 		return (c >= 32 && c <= 47) ||

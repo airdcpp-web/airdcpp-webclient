@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+* Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -23,29 +23,37 @@
 
 #include "forward.h"
 #include "typedefs.h"
-#include "Util.h"
+
+#include "AirUtil.h"
+#include "MerkleTree.h"
+#include "SettingsManager.h"
 
 namespace dcpp {
 	class ShareDirectoryInfo;
 	typedef std::shared_ptr<ShareDirectoryInfo> ShareDirectoryInfoPtr;
 	typedef vector<ShareDirectoryInfoPtr> ShareDirectoryInfoList;
 	typedef std::set<ShareDirectoryInfoPtr, std::owner_less<ShareDirectoryInfoPtr>> ShareDirectoryInfoSet;
+	typedef std::map<TTHValue, ShareDirectoryInfoPtr, std::owner_less<ShareDirectoryInfoPtr>> ShareDirectoryInfoMap;
 
 	class ShareDirectoryInfo {
 	public:
 
 		ShareDirectoryInfo(const string& aPath, const string& aVname = Util::emptyString, bool aIncoming = false, const ProfileTokenSet& aProfiles = ProfileTokenSet()) :
-			virtualName(aVname), path(aPath), incoming(aIncoming), profiles(aProfiles) {
+			virtualName(aVname), path(aPath), incoming(aIncoming), profiles(aProfiles), id(AirUtil::getPathId(aPath)) {
 		
 			if (virtualName.empty()) {
 				virtualName = Util::getLastDir(aPath);
+			}
+
+			if (profiles.empty()) {
+				profiles.insert(SETTING(DEFAULT_SP));
 			}
 		}
 
 		~ShareDirectoryInfo() {}
 
-		const string& getToken() const noexcept {
-			return path;
+		string getToken() const noexcept {
+			return id.toBase32();
 		}
 
 		void merge(const ShareDirectoryInfoPtr& aInfo) noexcept {
@@ -55,20 +63,19 @@ namespace dcpp {
 			size = aInfo->size;
 			lastRefreshTime = aInfo->lastRefreshTime;
 			refreshState = aInfo->refreshState;
-			fileCount = aInfo->fileCount;
-			folderCount = aInfo->folderCount;
+			contentInfo = aInfo->contentInfo;
 		}
 
 		string virtualName;
 
 		ProfileTokenSet profiles;
 
+		const TTHValue id;
 		const string path;
 		bool incoming = false;
 
 		int64_t size = 0;
-		size_t fileCount = 0;
-		size_t folderCount = 0;
+		DirectoryContentInfo contentInfo;
 
 		uint8_t refreshState = 0;
 		time_t lastRefreshTime = 0;
@@ -80,6 +87,15 @@ namespace dcpp {
 			PathCompare& operator=(const PathCompare&) = delete;
 		private:
 			const string& a;
+		};
+
+		class IdCompare {
+		public:
+			IdCompare(const TTHValue& compareTo) : a(compareTo) { }
+			bool operator()(const ShareDirectoryInfoPtr& p) { return p->id == a; }
+			IdCompare& operator=(const IdCompare&) = delete;
+		private:
+			const TTHValue& a;
 		};
 	};
 

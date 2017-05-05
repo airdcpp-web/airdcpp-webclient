@@ -23,28 +23,30 @@
 #include "typedefs.h"
 #include <string>
 
-using std::string;
+namespace dcpp {
 
 class UpdateManagerListener {
 public:
 	virtual ~UpdateManagerListener() { }
-	template<int I>	struct X { enum { TYPE = I };  };
+	template<int I>	struct X { enum { TYPE = I }; };
 
 	typedef X<0> UpdateAvailable;
 	typedef X<1> BadVersion;
 	typedef X<2> UpdateFailed;
 	typedef X<3> UpdateComplete;
+	typedef X<4> VersionFileDownloaded;
 
-	typedef X<4> SettingUpdated;
+	typedef X<5> SettingUpdated;
 
-	typedef X<5> LanguageDownloading;
-	typedef X<6> LanguageFinished;
-	typedef X<7> LanguageFailed;
+	typedef X<6> LanguageDownloading;
+	typedef X<7> LanguageFinished;
+	typedef X<8> LanguageFailed;
 
 	virtual void on(UpdateAvailable, const string& /*title*/, const string& /*message*/, const string& /*version*/, const string& /*url*/, bool /*autoUpdate*/, int /*build*/, const string& /*updateUrl*/) noexcept { }
 	virtual void on(BadVersion, const string& /*message*/, const string& /*url*/, const string& /*update*/, int /*build*/, bool /*autoUpdate*/) noexcept { }
 	virtual void on(UpdateFailed, const string& /*line*/) noexcept { }
 	virtual void on(UpdateComplete, const string& /*updater*/) noexcept { }
+	virtual void on(VersionFileDownloaded, SimpleXML&) noexcept { }
 
 	virtual void on(SettingUpdated, size_t /*key*/, const string& /*value*/) noexcept { }
 
@@ -52,5 +54,7 @@ public:
 	virtual void on(LanguageFinished) noexcept { }
 	virtual void on(LanguageFailed, const string& /*updater*/) noexcept { }
 };
+
+}
 
 #endif // !defined(UPDATEMANAGER_LISTENER_H)

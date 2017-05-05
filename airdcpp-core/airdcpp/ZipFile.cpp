@@ -274,9 +274,6 @@ void ZipFile::CreateZipFileList(StringPairList& files, const string& srcPath, co
 	FileFindIter end;
 	for(FileFindIter i(srcPath, "*"); i != end; ++i) {
 		string name = i->getFileName();
-		if(name == "." || name == "..")
-			continue;
-
 		if(i->isHidden() || i->isLink() || name.empty())
 			continue;
 

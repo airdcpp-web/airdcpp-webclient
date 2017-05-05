@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@ const ResourceManager::Strings SettingsManager::bloomStrings[BLOOM_LAST] { Resou
 const ResourceManager::Strings SettingsManager::profileStrings[PROFILE_LAST] { ResourceManager::NORMAL, ResourceManager::RAR_HUBS, ResourceManager::LAN_HUBS };
 const ResourceManager::Strings SettingsManager::refreshStrings[MULTITHREAD_LAST] { ResourceManager::NEVER, ResourceManager::MANUAL_REFRESHES, ResourceManager::ALWAYS };
 const ResourceManager::Strings SettingsManager::prioStrings[PRIO_LAST] { ResourceManager::DISABLED, ResourceManager::PRIOPAGE_ORDER_BALANCED, ResourceManager::PRIOPAGE_ORDER_PROGRESS };
-const ResourceManager::Strings SettingsManager::incomingStrings[INCOMING_LAST] { ResourceManager::DISABLED, ResourceManager::ACTIVE_MODE, ResourceManager::SETTINGS_ACTIVE_UPNP, ResourceManager::PASSIVE_MODE };
+const ResourceManager::Strings SettingsManager::incomingStrings[INCOMING_LAST] { ResourceManager::DISABLED, ResourceManager::SETTINGS_ACTIVE, ResourceManager::SETTINGS_ACTIVE_UPNP, ResourceManager::SETTINGS_PASSIVE };
 const ResourceManager::Strings SettingsManager::outgoingStrings[OUTGOING_LAST] { ResourceManager::SETTINGS_DIRECT, ResourceManager::SETTINGS_SOCKS5 };
 const ResourceManager::Strings SettingsManager::monitoringStrings[MONITORING_LAST] { ResourceManager::DISABLED, ResourceManager::INCOMING_ONLY, ResourceManager::ALL_DIRS };
 const ResourceManager::Strings SettingsManager::dropStrings[QUEUE_LAST] { ResourceManager::FILE, ResourceManager::BUNDLE, ResourceManager::ALL };
@@ -122,7 +122,7 @@ const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFI
 	{ SettingsManager::CHECK_EXTRA_FILES, false, ResourceManager::CHECK_EXTRA_FILES },
 	{ SettingsManager::CHECK_DUPES, false, ResourceManager::CHECK_DUPES },
 	{ SettingsManager::MAX_FILE_SIZE_SHARED, 0, ResourceManager::DONT_SHARE_BIGGER_THAN },
-	{ SettingsManager::SEARCH_TIME, 15, ResourceManager::MINIMUM_SEARCH_INTERVAL_SEC },
+	{ SettingsManager::MINIMUM_SEARCH_INTERVAL, 15, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, true, ResourceManager::SETTINGS_AUTO_FOLLOW },
 	{ SettingsManager::TOOLBAR_ORDER, (string)"0,-1,1,2,-1,3,4,5,-1,6,7,8,-1,9,10,12,-1,13,14,-1,15,16,-1,17,18,-1,20", ResourceManager::TOOLBAR_ORDER },
@@ -135,7 +135,7 @@ const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFI
 	{ SettingsManager::CHECK_EXTRA_FILES, true, ResourceManager::CHECK_EXTRA_FILES },
 	{ SettingsManager::CHECK_DUPES, true, ResourceManager::CHECK_DUPES },
 	{ SettingsManager::MAX_FILE_SIZE_SHARED, 600, ResourceManager::DONT_SHARE_BIGGER_THAN },
-	{ SettingsManager::SEARCH_TIME, 10, ResourceManager::MINIMUM_SEARCH_INTERVAL_SEC },
+	{ SettingsManager::MINIMUM_SEARCH_INTERVAL, 10, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, false, ResourceManager::SETTINGS_AUTO_FOLLOW },
 	{ SettingsManager::TOOLBAR_ORDER, (string)"1,-1,3,4,-1,6,7,8,-1,9,10,12,-1,13,14,-1,15,16,-1,17,18,-1,20", ResourceManager::TOOLBAR_ORDER },
@@ -148,7 +148,7 @@ const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFI
 	{ SettingsManager::CHECK_EXTRA_FILES, false, ResourceManager::CHECK_EXTRA_FILES },
 	{ SettingsManager::CHECK_DUPES, false, ResourceManager::CHECK_DUPES },
 	{ SettingsManager::MAX_FILE_SIZE_SHARED, 0, ResourceManager::DONT_SHARE_BIGGER_THAN },
-	{ SettingsManager::SEARCH_TIME, 10, ResourceManager::MINIMUM_SEARCH_INTERVAL_SEC },
+	{ SettingsManager::MINIMUM_SEARCH_INTERVAL, 10, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, true, ResourceManager::SETTINGS_AUTO_FOLLOW },
 	{ SettingsManager::TOOLBAR_ORDER, (string)"0,-1,1,2,-1,3,4,5,-1,6,7,8,-1,9,10,12,-1,13,14,-1,15,16,-1,17,18,-1,20", ResourceManager::TOOLBAR_ORDER },
@@ -232,11 +232,11 @@ const string SettingsManager::settingTags[] =
 "QueueSplitterPosition", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
 "SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", "MultithreadedRefresh", "MonitoringMode",
 "MonitoringDelay", "DelayCountMode", "MaxRunningBundles", "DefaultShareProfile", "UpdateChannel", "ColorStatusFinished", "ColorStatusShared", "ProgressLighten",
-"ConfigBuildNumber", "PmMessageCache", "HubMessageCache", "LogMessageCache",
+"ConfigBuildNumber", "PmMessageCache", "HubMessageCache", "LogMessageCache", "MaxRecentHubs", "MaxRecentPrivateChats", "MaxRecentFilelists",
 "SENTRY",
 
 // Bools
-"AddFinishedInstantly", "AdlsBreakOnFirst",
+"AdlsBreakOnFirst",
 "AllowUntrustedClients", "AllowUntrustedHubs",
 "AutoDetectIncomingConnection", "AutoDetectIncomingConnection6", "AutoFollow", "AutoKick", "AutoKickNoFavs", "AutoSearch",
 "BoldFinishedDownloads", "BoldFinishedUploads", "BoldHub", "BoldPm",
@@ -251,9 +251,8 @@ const string SettingsManager::settingTags[] =
 "MagnetRegister", "MinimizeToTray", "NoAwayMsgToBots", "NoIpOverride",
 "PopupBotPms", "PopupHubPms", "PopunderFilelist", "PopunderPm",
 "LowestPrio", "PromptPassword",
-"SendUnknownCommands",
 "ShareHidden", "ShowJoins", "ShowMenuBar", "ShowStatusbar", "ShowToolbar",
-"ShowTransferview", "SkipZeroByte", "SocksResolve", "SortFavUsersFirst",
+"ShowTransferview", "SocksResolve", "SortFavUsersFirst",
 "StatusInChat", "TimeDependentThrottle", "TimeStamps",
 "ToggleActiveTab", "UrlHandler", "UseCTRLForLineHistory", "UseSystemIcons",
 "UsersFilterFavorite", "UsersFilterOnline", "UsersFilterQueue", "UsersFilterWaiting",
@@ -270,7 +269,7 @@ const string SettingsManager::settingTags[] =
 "AutoDetectionUseLimited", "LogScheduledRefreshes", "AutoCompleteBundles", "SearchSaveHubsState", "ConfirmHubExit", "ConfirmASRemove", "EnableSUDP", "NmdcMagnetWarn",
 "UpdateIPHourly", "OpenTextOnBackground", "LockTB", "PopunderPartialList", "ShowTBStatusBar", "UseSlowDisconnectingDefault", "PrioListHighest",
 "UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "LogHashedFiles",
-"UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "ListHighlightBold", "ListHighlightItalic", "ReportSkiplist", "ScanDLBundles", "MCNAutoDetect", "DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte",
+"UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "ListHighlightBold", "ListHighlightItalic", "ReportBlockedShare", "ScanDLBundles", "MCNAutoDetect", "DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte",
 "TextDupeBold", "TextDupeItalic", "UnderlineLinks", "UnderlineDupes", "DupesInFilelists", "DupesInChat", "NoZeroByte", "CheckEmptyDirs", "CheckEmptyReleases", "CheckMissing", "CheckInvalidSFV", "CheckSfv",
 "CheckNfo", "CheckMp3Dir", "CheckExtraSfvNfo", "CheckExtraFiles", "CheckDupes", "CheckDiskCounts", "SortDirs", "WizardRunNew", "FormatRelease", "TextNormBold", "TextNormItalic", "SystemShowUploads", "SystemShowDownloads",
 "UseAdls", "DupeSearch", "passwd_protect", "passwd_protect_tray", "DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick",
@@ -278,10 +277,10 @@ const string SettingsManager::settingTags[] =
 "ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands",
 "PreviewPm", "IgnoreUseRegexpOrWc", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo",
 "ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "ShowSendMessage", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
-	"RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "FinishedNoHash", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "FLReportDupeFiles",
+	"RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "FLReportDupeFiles",
 	"FilterFLShared", "FilterFLQueued", "FilterFLInversed", "FilterFLTop", "FilterFLPartialDupes", "FilterFLResetChange", "FilterSearchShared", "FilterSearchQueued", "FilterSearchInversed", "FilterSearchTop", "FilterSearchPartialDupes", "FilterSearchResetChange",
 	"SearchAschOnlyMan", "UseUploadBundles", "CloseMinimize", "LogIgnored", "UsersFilterIgnore", "NfoExternal", "SingleClickTray", "QueueShowFinished", "RemoveFinishedBundles", "LogCRCOk",
-	"FilterQueueInverse", "FilterQueueTop", "FilterQueueReset", "AlwaysCCPM",
+	"FilterQueueInverse", "FilterQueueTop", "FilterQueueReset", "AlwaysCCPM", "OpenAutoSearch", "SaveLastState",
 	"SENTRY",
 	// Int64
 	"TotalUpload", "TotalDownload",
@@ -306,7 +305,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(SLOTS_ALTERNATE_LIMITING, 1);
 	
 	setDefault(DOWNLOAD_DIRECTORY, Util::getPath(Util::PATH_DOWNLOADS));
-	setDefault(SLOTS, 2);
+	setDefault(UPLOAD_SLOTS, 2);
 	setDefault(MAX_COMMAND_LENGTH, 512*1024); // 512 KiB
 
 	setDefault(BIND_ADDRESS, "0.0.0.0");
@@ -378,12 +377,10 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(MAX_TAB_ROWS, 4);
 	setDefault(MAX_COMPRESSION, 6);
 	setDefault(NO_AWAYMSG_TO_BOTS, true);
-	setDefault(SKIP_ZERO_BYTE, false);
 	setDefault(ADLS_BREAK_ON_FIRST, false);
 	setDefault(HUB_USER_COMMANDS, true);
 	setDefault(LOG_FILELIST_TRANSFERS, false);
 	setDefault(LOG_SYSTEM, true);
-	setDefault(SEND_UNKNOWN_COMMANDS, false);
 	setDefault(MAX_HASH_SPEED, 0);
 	setDefault(GET_USER_COUNTRY, true);
 	setDefault(FAV_SHOW_JOINS, false);
@@ -396,7 +393,6 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(MAGNET_REGISTER, false);
 	setDefault(MAGNET_ASK, true);
 	setDefault(MAGNET_ACTION, MAGNET_DOWNLOAD);
-	setDefault(ADD_FINISHED_INSTANTLY, true);
 	setDefault(DONT_DL_ALREADY_SHARED, false);
 	setDefault(CONFIRM_HUB_REMOVAL, true);
 	setDefault(USE_CTRL_FOR_LINE_HISTORY, true);
@@ -412,6 +408,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(OPEN_PUBLIC, false);
 	setDefault(OPEN_FAVORITE_HUBS, false);
 	setDefault(OPEN_FAVORITE_USERS, false);
+	setDefault(OPEN_AUTOSEARCH, false);
 	//setDefault(OPEN_RECENT_HUBS, false);
 	setDefault(OPEN_QUEUE, false);
 	setDefault(OPEN_FINISHED_UPLOADS, false);
@@ -618,7 +615,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(DONT_BEGIN_SEGMENT, true);
 	setDefault(DONT_BEGIN_SEGMENT_SPEED, 512);
 
-	setDefault(SEARCH_TIME, 15);
+	setDefault(BUNDLE_SEARCH_TIME, 15);
 	setDefault(AUTO_SLOTS, 5);	
 	
 	// default sounds
@@ -691,7 +688,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(FREE_SLOTS_EXTENSIONS, "*.nfo|*.sfv");
 	setDefault(POPUP_FONT, "MS Shell Dlg,-11,400,0");
 	setDefault(POPUP_TITLE_FONT, "MS Shell Dlg,-11,400,0");
-	setDefault(POPUPFILE, Util::getPath(Util::PATH_GLOBAL_CONFIG) + "popup.bmp");
+	setDefault(POPUPFILE, Util::getPath(Util::PATH_RESOURCES) + "popup.bmp");
 	setDefault(PM_PREVIEW, true);
 	setDefault(POPUP_TIME, 5);
 	setDefault(MAX_MSG_LENGTH, 120);
@@ -734,7 +731,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(SYSTEM_SHOW_DOWNLOADS, false);
 	setDefault(SETTINGS_PROFILE, PROFILE_NORMAL);
 	setDefault(DOWNLOAD_SPEED, connectionSpeeds[0]);
-	setDefault(WIZARD_RUN, true); // run wizard on startup
+	setDefault(WIZARD_PENDING, true); // run wizard on startup
 	setDefault(FORMAT_RELEASE, true);
 	setDefault(LOG_LINES, 500);
 
@@ -764,7 +761,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(DUPES_IN_FILELIST, true);
 	setDefault(DUPES_IN_CHAT, true);
 	setDefault(HIGHLIGHT_LIST, "");
-	setDefault(REPORT_SKIPLIST, true);
+	setDefault(REPORT_BLOCKED_SHARE, true);
 
 
 	setDefault(SCAN_DL_BUNDLES, true);
@@ -869,7 +866,6 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(MONITORING_MODE, MONITORING_DISABLED);
 #endif
 
-	setDefault(FINISHED_NO_HASH, true);
 	setDefault(MONITORING_DELAY, 30);
 	setDefault(DELAY_COUNT_MODE, DELAY_VOLUME);
 
@@ -913,6 +909,11 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(LOG_CRC_OK, false);
 	setDefault(ALWAYS_CCPM, false);
 	setDefault(AUTOSEARCHFRAME_VISIBLE, "1,1,1,1,1,1,1,1,1,1,1");
+	setDefault(SAVE_LAST_STATE, true);
+
+	setDefault(MAX_RECENT_HUBS, 30);
+	setDefault(MAX_RECENT_PRIVATE_CHATS, 15);
+	setDefault(MAX_RECENT_FILELISTS, 15);
 
 
 	// not in GUI
@@ -925,7 +926,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 #ifdef _WIN32
 	setDefault(NMDC_ENCODING, Text::systemCharset);
 #else
-	setDefault(NMDC_ENCODING, "CP1250");
+	setDefault(NMDC_ENCODING, "CP1252");
 #endif
 }
 
@@ -954,44 +955,38 @@ string SettingsManager::getProfileName(int profile) const noexcept {
 }
 
 void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF) noexcept {
-	try {
-		SimpleXML xml;
-		loadSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
-		if(xml.findChild("DCPlusPlus"))
-		{
+	auto fileLoaded = loadSettingFile(CONFIG_DIR, CONFIG_NAME, [this](SimpleXML& xml) {
+		if (xml.findChild("DCPlusPlus")) {
 			xml.stepIn();
-		
-			if(xml.findChild("Settings"))
-			{
+
+			if (xml.findChild("Settings")) {
 				xml.stepIn();
 
 				int i;
-			
-				for(i=STR_FIRST; i<STR_LAST; i++)
-				{
+
+				for (i = STR_FIRST; i < STR_LAST; i++) {
 					const string& attr = settingTags[i];
 					dcassert(attr.find("SENTRY") == string::npos);
-				
-					if(xml.findChild(attr))
+
+					if (xml.findChild(attr))
 						set(StrSetting(i), xml.getChildData(), true);
 					xml.resetCurrentChild();
 				}
-				for(i=INT_FIRST; i<INT_LAST; i++)
-				{
+
+				for (i = INT_FIRST; i < INT_LAST; i++) {
 					const string& attr = settingTags[i];
 					dcassert(attr.find("SENTRY") == string::npos);
-				
-					if(xml.findChild(attr))
+
+					if (xml.findChild(attr))
 						set(IntSetting(i), Util::toInt(xml.getChildData()), true);
 					xml.resetCurrentChild();
 				}
 
-				for(i=BOOL_FIRST; i<BOOL_LAST; i++)
-				{
+				for (i = BOOL_FIRST; i < BOOL_LAST; i++) {
 					const string& attr = settingTags[i];
 					dcassert(attr.find("SENTRY") == string::npos);
 
-					if(xml.findChild(attr)) {
+					if (xml.findChild(attr)) {
 						auto val = Util::toInt(xml.getChildData());
 						dcassert(val == 0 || val == 1);
 						set(BoolSetting(i), val ? true : false, true);
@@ -999,16 +994,15 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 					xml.resetCurrentChild();
 				}
 
-				for(i=INT64_FIRST; i<INT64_LAST; i++)
-				{
+				for (i = INT64_FIRST; i < INT64_LAST; i++) {
 					const string& attr = settingTags[i];
 					dcassert(attr.find("SENTRY") == string::npos);
-				
-					if(xml.findChild(attr))
+
+					if (xml.findChild(attr))
 						set(Int64Setting(i), Util::toInt64(xml.getChildData()), true);
 					xml.resetCurrentChild();
 				}
-			
+
 				xml.stepOut();
 			}
 
@@ -1016,27 +1010,27 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 
 
 			//load history lists
-			for(int i = 0; i < HISTORY_LAST; ++i) {
+			for (int i = 0; i < HISTORY_LAST; ++i) {
 				if (xml.findChild(historyTags[i])) {
 					xml.stepIn();
-					while(xml.findChild("HistoryItem")) {
+					while (xml.findChild("HistoryItem")) {
 						addToHistory(xml.getChildData(), static_cast<HistoryType>(i));
 					}
 					xml.stepOut();
 				}
 				xml.resetCurrentChild();
 			}
-		
-			if(xml.findChild("FileEvents")) {
+
+			if (xml.findChild("FileEvents")) {
 				xml.stepIn();
-				if(xml.findChild("OnFileComplete")) {
+				if (xml.findChild("OnFileComplete")) {
 					StringPair sp;
 					sp.first = xml.getChildAttrib("Command");
 					sp.second = xml.getChildAttrib("CommandLine");
 					fileEvents[ON_FILE_COMPLETE] = sp;
 				}
 				xml.resetCurrentChild();
-				if(xml.findChild("OnDirCreated")) {
+				if (xml.findChild("OnDirCreated")) {
 					StringPair sp;
 					sp.first = xml.getChildAttrib("Command");
 					sp.second = xml.getChildAttrib("CommandLine");
@@ -1046,12 +1040,9 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 			}
 			xml.resetCurrentChild();
 
+#ifdef _WIN32
 			auto prevVersion = Util::toDouble(SETTING(CONFIG_VERSION));
 			//auto prevBuild = SETTING(CONFIG_BUILD_NUMBER);
-
-			//reset the old private hub profile to normal
-			if(prevVersion < 2.50 && SETTING(SETTINGS_PROFILE) == PROFILE_LAN)
-				unsetKey(SETTINGS_PROFILE);
 
 			if (prevVersion <= 2.50 && SETTING(MONITORING_MODE) != MONITORING_DISABLED) {
 				set(MONITORING_MODE, MONITORING_ALL);
@@ -1064,15 +1055,13 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 				unsetKey(SEARCHFRAME_WIDTHS);
 				unsetKey(SEARCHFRAME_VISIBLE);
 			}
-		
+#endif
+
 			fire(SettingsManagerListener::Load(), xml);
 
 			xml.stepOut();
 		}
-
-	} catch(const Exception& e) { 
-		LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, CONFIG_NAME % e.getError()), LogMessage::SEV_ERROR);
-	}
+	});
 
 	setDefault(UDP_PORT, SETTING(TCP_PORT));
 
@@ -1097,6 +1086,8 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 	checkBind(BIND_ADDRESS6, true);
 
 	applyProfileDefaults();
+
+	fire(SettingsManagerListener::LoadCompleted(), fileLoaded);
 }
 
 const SettingsManager::BoolSetting clearSettings[SettingsManager::HISTORY_LAST] = {
@@ -1176,36 +1167,23 @@ void SettingsManager::set(StrSetting key, string const& value, bool aForceSet) n
 }
 
 void SettingsManager::set(IntSetting key, int value, bool aForceSet) noexcept {
-	if ((key == SLOTS) && (value <= 0)) {
+	if (key == UPLOAD_SLOTS && value <= 0) {
 		value = 1;
-	}
-	if ((key == EXTRA_SLOTS) && (value < 1)) {
+	} else if (key == EXTRA_SLOTS && value < 1) {
 		value = 1;
-	}
-
-	if ((key == AUTOSEARCH_EVERY) && (value < 1)) {
+	} else if (key == AUTOSEARCH_EVERY && value < 1) {
 		value = 1;
-	}
-
-	if ((key == SET_MINISLOT_SIZE) && (value < 64)) {
+	} else if (key == SET_MINISLOT_SIZE && value < 64) {
 		value = 64;
-	}
-
-	if ((key == NUMBER_OF_SEGMENTS) && (value > 10)) {
+	} else if (key == NUMBER_OF_SEGMENTS && value > 10) {
 		value = 10;
-	}
-
-	if ((key == SEARCH_TIME) && (value < 5)) {
+	} else if (key == BUNDLE_SEARCH_TIME && value < 5) {
 		value = 5;
-	}
-
-	if ((key == MINIMUM_SEARCH_INTERVAL) && (value < 5)) {
+	} else if (key == MINIMUM_SEARCH_INTERVAL && value < 5) {
 		value = 5;
-	}
-	if ((key == MAX_RESIZE_LINES) && (value < 1)) {
+	} else if (key == MAX_RESIZE_LINES && value < 1) {
 		value = 1;
 	}
-
 
 	intSettings[key - INT_FIRST] = value;
 	updateValueSet(key, value, aForceSet);
@@ -1347,24 +1325,78 @@ HubSettings SettingsManager::getHubSettings() const noexcept {
 	return ret;
 }
 
-void SettingsManager::loadSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, bool aMigrate /*true*/) {
-	auto fname = Util::getPath(aPath) + aFileName;
-
-	if (aMigrate) {
-		Util::migrate(fname);
-	}
-
-	if (Util::fileExists(fname)) {
-		aXML.fromXML(File(fname, File::READ, File::OPEN).read());
+void settingXmlMessage(const string& aMessage, LogMessage::Severity aSeverity, const SettingsManager::CustomReportF& aCustomErrorF) noexcept {
+	if (!aCustomErrorF) {
+		LogManager::getInstance()->message(aMessage, aSeverity);
+	} else {
+		aCustomErrorF(aMessage);
 	}
 }
 
-bool SettingsManager::saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, CustomErrorF aCustomErrorF) noexcept {
+bool SettingsManager::loadSettingFile(Util::Paths aPath, const string& aFileName, ParseCallback&& aParseCallback, const CustomReportF& aCustomReportF) noexcept {
+	const auto fullPath = Util::getPath(aPath) + aFileName;
+
+	Util::migrate(fullPath);
+
+	if (!Util::fileExists(fullPath)) {
+		return false;
+	}
+
+	const auto parseFile = [&](const string& aPath) {
+		SimpleXML xml;
+
+		try {
+			// Some legacy config files (such as favorites and recent hubs) may contain invalid UTF-8 data
+			// so don't throw in case of validation errors
+			xml.fromXML(File(aPath, File::READ, File::OPEN).read(), SimpleXMLReader::FLAG_REPLACE_INVALID_UTF8);
+
+			aParseCallback(xml);
+		} catch (const Exception& e) {
+			settingXmlMessage(STRING_F(LOAD_FAILED_X, aPath % e.getError()), LogMessage::SEV_ERROR, aCustomReportF);
+			return false;
+		}
+
+		return true;
+	};
+
+	const auto backupPath = fullPath + ".bak";
+	if (!parseFile(fullPath)) {
+		// Try to load the file that was previously loaded succesfully
+		if (!Util::fileExists(backupPath) || !parseFile(backupPath)) {
+			return false;
+		}
+
+		auto corruptedCopyPath = fullPath + Util::formatTime(".CORRUPTED_%Y-%m-%d_%H-%M-%S", time(NULL));
+
+		// Replace the main setting file with the backup
+		try {
+			File::renameFile(fullPath, corruptedCopyPath);
+			File::copyFile(backupPath, fullPath);
+		} catch (const Exception& e) {
+			settingXmlMessage(STRING_F(UNABLE_TO_RENAME, fullPath % e.getError()), LogMessage::SEV_ERROR, aCustomReportF);
+			return false;
+		}
+
+		settingXmlMessage(STRING_F(SETTING_FILE_RECOVERED, backupPath % Util::formatTime("%Y-%m-%d %H:%M", File::getLastModified(backupPath)) % corruptedCopyPath), LogMessage::SEV_INFO, aCustomReportF);
+	} else {
+		// Succeeded, save the backup
+		File::deleteFile(backupPath);
+		try {
+			File::copyFile(fullPath, backupPath);
+		} catch (const Exception& e) {
+			settingXmlMessage(STRING_F(SAVE_FAILED_X, backupPath % e.getError()), LogMessage::SEV_ERROR, aCustomReportF);
+		}
+	}
+
+	return true;
+}
+
+bool SettingsManager::saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, const CustomReportF& aCustomErrorF) noexcept {
 	string fname = Util::getPath(aPath) + aFileName;
 
 	try {
 		{
-			File f(fname + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE);
+			File f(fname + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE, File::BUFFER_WRITE_THROUGH);
 			f.write(SimpleXML::utf8Header);
 			f.write(aXML.toXML());
 		}
@@ -1375,13 +1407,7 @@ bool SettingsManager::saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const 
 			File::renameFile(fname + ".tmp", fname);
 		}
 	} catch (const FileException& e) {
-		auto msg = STRING_F(SAVE_FAILED_X, fname % e.getError());
-		if (!aCustomErrorF) {
-			LogManager::getInstance()->message(msg, LogMessage::SEV_ERROR);
-		} else {
-			aCustomErrorF(msg);
-		}
-
+		settingXmlMessage(STRING_F(SAVE_FAILED_X, fname % e.getError()), LogMessage::SEV_ERROR, aCustomErrorF);
 		return false;
 	}
 

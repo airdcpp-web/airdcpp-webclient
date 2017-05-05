@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/ConnectivityManager.h>
@@ -31,10 +31,6 @@ namespace webserver {
 	public:
 		ConnectivityApi(Session* aSession);
 		~ConnectivityApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		static json formatStatus(bool v6) noexcept;
 

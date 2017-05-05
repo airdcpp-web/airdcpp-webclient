@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,9 +43,6 @@ public:
 	static boost::regex subDirRegPlain;
 	static boost::regex crcReg;
 
-	/* Cache some things to lower case */
-	static string privKeyFile;
-
 	static DupeType checkDirDupe(const string& aDir, int64_t aSize);
 	static DupeType checkFileDupe(const TTHValue& aTTH);
 
@@ -57,10 +54,13 @@ public:
 	static bool isFinishedDupe(DupeType aType) noexcept;
 	static bool allowOpenDupe(DupeType aType) noexcept;
 
+	// Calculates TTH value from the lowercase filename and size
 	static TTHValue getTTH(const string& aFileName, int64_t aSize) noexcept;
 
+	// Calculates TTH value from the lowercase path
+	static TTHValue getPathId(const string& aPath) noexcept;
+
 	static void init();
-	static void updateCachedSettings();
 
 	static string toOpenFileName(const string& aFileName, const TTHValue& aTTH) noexcept;
 	static string fromOpenFileName(const string& aFileName) noexcept;

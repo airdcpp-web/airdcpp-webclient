@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,54 +21,33 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/SearchResultInfo.h>
-#include <api/SearchUtils.h>
+#include <api/SearchEntity.h>
 
-#include <api/ApiModule.h>
-#include <api/common/ListViewController.h>
+#include <api/base/HierarchicalApiModule.h>
 
 #include <airdcpp/typedefs.h>
-#include <airdcpp/SearchManagerListener.h>
-#include <airdcpp/SearchQuery.h>
 
 
 namespace webserver {
-	class SearchApi : public SubscribableApiModule, private SearchManagerListener {
+	class SearchApi : public ParentApiModule<SearchInstanceToken, SearchEntity> {
 	public:
+		static StringList subscriptionList;
+
 		SearchApi(Session* aSession);
 		~SearchApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
-		static json serializeSearchResult(const SearchResultPtr& aSR) noexcept;
-		SearchResultInfo::List getResultList();
+		static json serializeSearchInstance(const SearchEntity& aSearch) noexcept;
+		SearchEntity::Ptr createInstance(uint64_t aExpirationTick);
 
-		static json serializeDirectSearchResults(const SearchResultList& aResults, SearchQuery& aQuery) noexcept;
+		api_return handleCreateInstance(ApiRequest& aRequest);
+		api_return handleDeleteInstance(ApiRequest& aRequest);
 
-		api_return handlePostHubSearch(ApiRequest& aRequest);
-		api_return handlePostUserSearch(ApiRequest& aRequest);
-		api_return handlePostShareSearch(ApiRequest& aRequest);
-
-		api_return handleGetResults(ApiRequest& aRequest);
 		api_return handleGetTypes(ApiRequest& aRequest);
 
-		api_return handleDownload(ApiRequest& aRequest);
-		api_return handleGetChildren(ApiRequest& aRequest);
+		void onTimer() noexcept;
 
-		SearchResultInfo::Ptr getResult(ResultToken aToken);
-
-		void on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept override;
-
-		typedef ListViewController<SearchResultInfoPtr, SearchUtils::PROP_LAST> SearchView;
-		SearchView searchView;
-
-		SearchResultInfo::Map results;
-		shared_ptr<SearchQuery> curSearch;
-
-		std::string currentSearchToken;
-		mutable SharedMutex cs;
+		atomic<SearchInstanceToken> instanceIdCounter { 0 };
+		TimerPtr timer;
 	};
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,17 +19,14 @@
 #include "stdinc.h"
 #include "QueueItem.h"
 
+#include "ActionHook.h"
 #include "Bundle.h"
-#include "SimpleXML.h"
 #include "ClientManager.h"
-#include "HashManager.h"
 #include "Download.h"
 #include "File.h"
+#include "HashManager.h"
 #include "Util.h"
-#include "LogManager.h"
-#include "SearchManager.h"
-
-#include "AirUtil.h"
+#include "SimpleXML.h"
 
 namespace dcpp {
 
@@ -128,6 +125,10 @@ bool QueueItem::PrioSortOrder::operator()(const QueueItemPtr& left, const QueueI
 	return left->getPriority() > right->getPriority();
 }
 
+bool QueueItem::isFailedStatus(Status aStatus) noexcept {
+	return aStatus == STATUS_VALIDATION_ERROR;
+}
+
 Priority QueueItem::calculateAutoPriority() const noexcept {
 	if(getAutoPriority()) {
 		Priority p;
@@ -155,12 +156,8 @@ Priority QueueItem::calculateAutoPriority() const noexcept {
 }
 
 bool QueueItem::hasPartialSharingTarget() noexcept {
-	// don't share items that are being moved
-	if (isFinished() && !isSet(QueueItem::FLAG_MOVED))
-		return false;
-
 	// don't share when the file does not exist
-	if(!Util::fileExists(isFinished() ? target : getTempTarget()))
+	if(!Util::fileExists(isDownloaded() ? target : getTempTarget()))
 		return false;
 
 	return true;
@@ -191,6 +188,36 @@ bool QueueItem::isChunkDownloaded(int64_t startPos, int64_t& len) const noexcept
 	return false;
 }
 
+string QueueItem::getStatusString(int64_t aDownloadedBytes, bool aIsWaiting) const noexcept {
+	switch (status) {
+		case STATUS_NEW:
+		case STATUS_QUEUED: {
+			auto percentage = getPercentage(aDownloadedBytes);
+			if (isPausedPrio()) {
+				return STRING_F(PAUSED_PCT, percentage);
+			} else if (aIsWaiting) {
+				return STRING_F(WAITING_PCT, percentage);
+			} else {
+				return STRING_F(RUNNING_PCT, percentage);
+			}
+		}
+		case STATUS_DOWNLOADED: return STRING(DOWNLOADED);
+		case STATUS_VALIDATION_RUNNING: return STRING(VALIDATING_CONTENT);
+		case STATUS_VALIDATION_ERROR: {
+			dcassert(hookError);
+			if (hookError) {
+				return ActionHookRejection::formatError(hookError);
+			}
+
+			return Util::emptyString;
+		}
+		case STATUS_COMPLETED: return STRING(FINISHED);
+	}
+
+	dcassert(0);
+	return Util::emptyString;
+}
+
 string QueueItem::getListName() const noexcept {
 	dcassert(isSet(QueueItem::FLAG_USER_LIST));
 	if (isSet(QueueItem::FLAG_PARTIAL_LIST)) {
@@ -203,37 +230,37 @@ string QueueItem::getListName() const noexcept {
 }
 
 /* INTERNAL */
-uint8_t QueueItem::getMaxSegments(int64_t filesize) const noexcept {
-	uint8_t MaxSegments = 1;
+uint8_t QueueItem::getMaxSegments(int64_t aFileSize) noexcept {
+	uint8_t maxSegments = 1;
 
 	if(SETTING(SEGMENTS_MANUAL)) {
-		MaxSegments = min((uint8_t)SETTING(NUMBER_OF_SEGMENTS), (uint8_t)10);
+		maxSegments = min((uint8_t)SETTING(NUMBER_OF_SEGMENTS), (uint8_t)10);
 	} else {
-		if((filesize >= 2*1048576) && (filesize < 15*1048576)) {
-			MaxSegments = 2;
-		} else if((filesize >= (int64_t)15*1048576) && (filesize < (int64_t)30*1048576)) {
-			MaxSegments = 3;
-		} else if((filesize >= (int64_t)30*1048576) && (filesize < (int64_t)60*1048576)) {
-			MaxSegments = 4;
-		} else if((filesize >= (int64_t)60*1048576) && (filesize < (int64_t)120*1048576)) {
-			MaxSegments = 5;
-		} else if((filesize >= (int64_t)120*1048576) && (filesize < (int64_t)240*1048576)) {
-			MaxSegments = 6;
-		} else if((filesize >= (int64_t)240*1048576) && (filesize < (int64_t)480*1048576)) {
-			MaxSegments = 7;
-		} else if((filesize >= (int64_t)480*1048576) && (filesize < (int64_t)960*1048576)) {
-			MaxSegments = 8;
-		} else if((filesize >= (int64_t)960*1048576) && (filesize < (int64_t)1920*1048576)) {
-			MaxSegments = 9;
-		} else if(filesize >= (int64_t)1920*1048576) {
-			MaxSegments = 10;
+		if ((aFileSize >= 2*1048576) && (aFileSize < 15*1048576)) {
+			maxSegments = 2;
+		} else if((aFileSize >= (int64_t)15*1048576) && (aFileSize < (int64_t)30*1048576)) {
+			maxSegments = 3;
+		} else if((aFileSize >= (int64_t)30*1048576) && (aFileSize < (int64_t)60*1048576)) {
+			maxSegments = 4;
+		} else if((aFileSize >= (int64_t)60*1048576) && (aFileSize < (int64_t)120*1048576)) {
+			maxSegments = 5;
+		} else if((aFileSize >= (int64_t)120*1048576) && (aFileSize < (int64_t)240*1048576)) {
+			maxSegments = 6;
+		} else if((aFileSize >= (int64_t)240*1048576) && (aFileSize < (int64_t)480*1048576)) {
+			maxSegments = 7;
+		} else if((aFileSize >= (int64_t)480*1048576) && (aFileSize < (int64_t)960*1048576)) {
+			maxSegments = 8;
+		} else if((aFileSize >= (int64_t)960*1048576) && (aFileSize < (int64_t)1920*1048576)) {
+			maxSegments = 9;
+		} else if(aFileSize >= (int64_t)1920*1048576) {
+			maxSegments = 10;
 		}
 	}
 
 #ifdef _DEBUG
 	return 88;
 #else
-	return MaxSegments;
+	return maxSegments;
 #endif
 }
 
@@ -284,11 +311,14 @@ void QueueItem::removeSource(const UserPtr& aUser, Flags::MaskType reason) noexc
 }
 
 const string& QueueItem::getTempTarget() noexcept {
-	if (isSet(FLAG_OPEN) || (isSet(FLAG_CLIENT_VIEW) && isSet(FLAG_TEXT))) {
-		setTempTarget(target);
-	} else if(!isSet(QueueItem::FLAG_USER_LIST) && tempTarget.empty()) {
-		setTempTarget(target + TEMP_EXTENSION);
+	if (!isFilelist()) {
+		if (isSet(FLAG_OPEN) || isSet(FLAG_CLIENT_VIEW)) {
+			setTempTarget(target);
+		} else if (tempTarget.empty()) {
+			setTempTarget(target + TEMP_EXTENSION);
+		}
 	}
+
 	return tempTarget;
 }
 
@@ -311,8 +341,20 @@ double QueueItem::getDownloadedFraction() const noexcept {
 	return static_cast<double>(getDownloadedBytes()) / size; 
 }
 
-bool QueueItem::isFinished() const noexcept {
+bool QueueItem::segmentsDone() const noexcept {
 	return done.size() == 1 && *done.begin() == Segment(0, size);
+}
+
+bool QueueItem::isDownloaded() const noexcept {
+	return status >= STATUS_DOWNLOADED;
+}
+
+bool QueueItem::isCompleted() const noexcept {
+	return status >= STATUS_COMPLETED;
+}
+
+bool QueueItem::isFilelist() const noexcept {
+	return isSet(FLAG_USER_LIST);
 }
 
 Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t aWantedSize, int64_t aLastSpeed, const PartialSource::Ptr& aPartialSource, bool aAllowOverlap) const noexcept {
@@ -504,7 +546,7 @@ uint64_t QueueItem::getDownloadedBytes() const noexcept {
 void QueueItem::addFinishedSegment(const Segment& segment) noexcept {
 #ifdef _DEBUG
 	if (bundle)
-		dcdebug("adding segment segment of size %u (%u, %u)...", segment.getSize(), segment.getStart(), segment.getEnd());
+		dcdebug("adding segment segment of size " I64_FMT " (" I64_FMT ", " I64_FMT ")...", segment.getSize(), segment.getStart(), segment.getEnd());
 #endif
 
 	dcassert(segment.getOverlapped() == false);
@@ -605,7 +647,7 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& aOnline
 	}
 
 	dcassert(isSource(aUser));
-	if (isFinished()) {
+	if (segmentsDone()) {
 		return false;
 	}
 
@@ -629,7 +671,6 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& aOnline
 		Segment segment = getNextSegment(getBlockSize(), aWantedSize, aLastSpeed, source->getPartialSource(), aAllowOverlap);
 		if(segment.getSize() == 0) {
 			lastError_ = (segment.getStart() == -1 || getSize() < Util::convertSize(SETTING(MIN_SEGMENT_SIZE), Util::KB)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
-			//LogManager::getInstance()->message("NO SEGMENT: " + aUser->getCID().toBase32());
 			dcdebug("No segment for %s (%s) in %s, block " I64_FMT "\n", aUser->getCID().toBase32().c_str(), Util::listToString(aOnlineHubs).c_str(), getTarget().c_str(), blockSize);
 			return false;
 		}
@@ -641,12 +682,18 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& aOnline
 }
 
 bool QueueItem::isPausedPrio() const noexcept {
-	if (bundle && !bundle->isPausedPrio() && priority != Priority::PAUSED) {
-		return false;
-	} else if ((!bundle || bundle->getPriority() != Priority::PAUSED_FORCE) && priority == Priority::HIGHEST) {
-		return false;
+	if (bundle) {
+		// Highest priority files will continue to run even if the bundle is paused (non-forced)
+		if (priority == Priority::HIGHEST && bundle->getPriority() != Priority::PAUSED_FORCE) {
+			return false;
+		}
+
+		if (bundle->isPausedPrio()) {
+			return true;
+		}
 	}
-	return true;
+
+	return QueueItemBase::isPausedPrio();
 }
 
 bool QueueItem::usesSmallSlot() const noexcept {
@@ -667,14 +714,6 @@ QueueItemPtr QueueItem::pickSearchItem(const QueueItemList& aItems) noexcept {
 	}
 
 	return searchItem;
-}
-
-void QueueItem::searchAlternates() noexcept {
-	auto s = make_shared<Search>(Search::ALT_AUTO, "qa");
-	s->query = tthRoot.toBase32();
-	s->fileType = Search::TYPE_TTH;
-
-	SearchManager::getInstance()->search(s);
 }
 
 void QueueItem::addDownload(Download* d) noexcept {
@@ -705,7 +744,7 @@ void QueueItem::removeDownloads(const UserPtr& aUser) noexcept {
 void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 	string indent = "\t";
 
-	if (isFinished()) {
+	if (segmentsDone()) {
 		f.write(LIT("\t<Finished"));
 	} else {
 		f.write(LIT("\t<Download"));
@@ -723,7 +762,7 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 	f.write(LIT("\" TTH=\""));
 	f.write(tthRoot.toBase32(b32tmp));
 
-	if (isFinished()) {
+	if (segmentsDone()) {
 		f.write(LIT("\" TimeFinished=\""));
 		f.write(Util::toString(timeFinished));
 		f.write(LIT("\" LastSource=\""));

@@ -37,12 +37,21 @@
     <Filter Include="Header Files\api\platform\windows">
       <UniqueIdentifier>{ca48c5dc-6195-48d7-a46a-baac00dedad5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\api\base">
+      <UniqueIdentifier>{daa663f3-8877-4548-a07e-1cd045ea1561}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\api\base">
+      <UniqueIdentifier>{dcc50a98-6d4a-468a-b56a-bac48d4d800a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\microtar">
+      <UniqueIdentifier>{2d8bb1a8-bc73-479c-aae5-64a187625ce6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\microtar">
+      <UniqueIdentifier>{b490616b-e5c9-4b19-8f3b-43a2ab954f46}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="api\QueueApi.h">
-      <Filter>Header Files\api</Filter>
-    </ClInclude>
-    <ClInclude Include="api\ApiModule.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
     <ClInclude Include="api\SessionApi.h">
@@ -123,9 +132,6 @@
     <ClInclude Include="api\HistoryApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
-    <ClInclude Include="api\SearchResultInfo.h">
-      <Filter>Header Files\api</Filter>
-    </ClInclude>
     <ClInclude Include="web-server\JsonUtil.h">
       <Filter>Header Files\web-server</Filter>
     </ClInclude>
@@ -153,16 +159,10 @@
     <ClInclude Include="api\PrivateChatApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
-    <ClInclude Include="api\HierarchicalApiModule.h">
-      <Filter>Header Files\api</Filter>
-    </ClInclude>
     <ClInclude Include="api\FilesystemApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
     <ClInclude Include="api\HubInfo.h">
-      <Filter>Header Files\api</Filter>
-    </ClInclude>
-    <ClInclude Include="api\RecentHubApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
     <ClInclude Include="api\OnlineUserUtils.h">
@@ -249,12 +249,54 @@
     <ClInclude Include="api\FilelistItemInfo.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
+    <ClInclude Include="api\SearchEntity.h">
+      <Filter>Header Files\api</Filter>
+    </ClInclude>
+    <ClInclude Include="web-server\version.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="api\base\HookApiModule.h">
+      <Filter>Header Files\api\base</Filter>
+    </ClInclude>
+    <ClInclude Include="api\base\ApiModule.h">
+      <Filter>Header Files\api\base</Filter>
+    </ClInclude>
+    <ClInclude Include="api\base\HierarchicalApiModule.h">
+      <Filter>Header Files\api\base</Filter>
+    </ClInclude>
+    <ClInclude Include="web-server\ExtensionManager.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="api\ExtensionApi.h">
+      <Filter>Header Files\api</Filter>
+    </ClInclude>
+    <ClInclude Include="web-server\ExtensionManagerListener.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="web-server\Extension.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="api\ExtensionInfo.h">
+      <Filter>Header Files\api</Filter>
+    </ClInclude>
+    <ClInclude Include="web-server\ExtensionListener.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="api\common\SettingUtils.h">
+      <Filter>Header Files\api\common</Filter>
+    </ClInclude>
+    <ClInclude Include="web-server\SystemUtil.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="web-server\TarFile.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="microtar\microtar.h">
+      <Filter>Header Files\microtar</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
-      <Filter>Source Files\api</Filter>
-    </ClCompile>
-    <ClCompile Include="api\ApiModule.cpp">
       <Filter>Source Files\api</Filter>
     </ClCompile>
     <ClCompile Include="api\SessionApi.cpp">
@@ -320,9 +362,6 @@
     <ClCompile Include="api\HistoryApi.cpp">
       <Filter>Source Files\api</Filter>
     </ClCompile>
-    <ClCompile Include="api\SearchResultInfo.cpp">
-      <Filter>Source Files\api</Filter>
-    </ClCompile>
     <ClCompile Include="web-server\JsonUtil.cpp">
       <Filter>Source Files\web-server</Filter>
     </ClCompile>
@@ -345,9 +384,6 @@
       <Filter>Source Files\api</Filter>
     </ClCompile>
     <ClCompile Include="api\FilesystemApi.cpp">
-      <Filter>Source Files\api</Filter>
-    </ClCompile>
-    <ClCompile Include="api\RecentHubApi.cpp">
       <Filter>Source Files\api</Filter>
     </ClCompile>
     <ClCompile Include="api\HubInfo.cpp">
@@ -412,6 +448,39 @@
     </ClCompile>
     <ClCompile Include="api\FilelistItemInfo.cpp">
       <Filter>Source Files\api</Filter>
+    </ClCompile>
+    <ClCompile Include="api\SearchEntity.cpp">
+      <Filter>Source Files\api</Filter>
+    </ClCompile>
+    <ClCompile Include="api\base\HookApiModule.cpp">
+      <Filter>Source Files\api\base</Filter>
+    </ClCompile>
+    <ClCompile Include="api\base\ApiModule.cpp">
+      <Filter>Source Files\api\base</Filter>
+    </ClCompile>
+    <ClCompile Include="web-server\ExtensionManager.cpp">
+      <Filter>Source Files\web-server</Filter>
+    </ClCompile>
+    <ClCompile Include="api\ExtensionApi.cpp">
+      <Filter>Source Files\api</Filter>
+    </ClCompile>
+    <ClCompile Include="web-server\Extension.cpp">
+      <Filter>Source Files\web-server</Filter>
+    </ClCompile>
+    <ClCompile Include="api\ExtensionInfo.cpp">
+      <Filter>Source Files\api</Filter>
+    </ClCompile>
+    <ClCompile Include="api\common\SettingUtils.cpp">
+      <Filter>Source Files\api\common</Filter>
+    </ClCompile>
+    <ClCompile Include="web-server\SystemUtil.cpp">
+      <Filter>Source Files\web-server</Filter>
+    </ClCompile>
+    <ClCompile Include="web-server\TarFile.cpp">
+      <Filter>Source Files\web-server</Filter>
+    </ClCompile>
+    <ClCompile Include="microtar\microtar.c">
+      <Filter>Source Files\microtar</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

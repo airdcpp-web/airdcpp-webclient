@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,22 +21,18 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 
 #include <airdcpp/typedefs.h>
 
 #include <airdcpp/ClientManagerListener.h>
-#include <airdcpp/MessageManagerListener.h>
+#include <airdcpp/IgnoreManagerListener.h>
 
 namespace webserver {
-	class UserApi : public SubscribableApiModule, private MessageManagerListener, private ClientManagerListener {
+	class UserApi : public SubscribableApiModule, private IgnoreManagerListener, private ClientManagerListener {
 	public:
 		UserApi(Session* aSession);
 		~UserApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		UserPtr getUser(ApiRequest& aRequest);
 
@@ -44,8 +40,11 @@ namespace webserver {
 		api_return handleUnignore(ApiRequest& aRequest);
 		api_return handleGetIgnores(ApiRequest& aRequest);
 
-		void on(MessageManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept override;
-		void on(MessageManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept override;
+		api_return handleGetUser(ApiRequest& aRequest);
+		api_return handleSearchNicks(ApiRequest& aRequest);
+
+		void on(IgnoreManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept override;
+		void on(IgnoreManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept override;
 
 		void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool) noexcept override;
 		void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept override;

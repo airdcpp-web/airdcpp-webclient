@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -47,8 +47,7 @@ namespace webserver {
 			}
 
 			running = true;
-			timer.expires_from_now(aInstantTick ? boost::posix_time::milliseconds(0) : interval);
-			timer.async_wait(std::bind(&Timer::tick, std::placeholders::_1, cbWrapper, this));
+			scheduleNext(aInstantTick ? boost::posix_time::milliseconds(0) : interval);
 			return true;
 		}
 
@@ -77,10 +76,19 @@ namespace webserver {
 			}
 		}
 
+		void scheduleNext(const boost::posix_time::milliseconds& aFromNow) {
+			if (!running) {
+				return;
+			}
+
+			timer.expires_from_now(aFromNow);
+			timer.async_wait(std::bind(&Timer::tick, std::placeholders::_1, cbWrapper, this));
+		}
+
 		void runTask() {
 			cb();
 
-			start(false);
+			scheduleNext(interval);
 		}
 
 		CallBack cb;

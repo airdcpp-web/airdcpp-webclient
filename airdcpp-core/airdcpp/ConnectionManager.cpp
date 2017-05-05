@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -952,8 +952,24 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		}
 
 		// set the PM flag now in order to send a INF with PM1
-		if ((tokens.hasToken(token, CONNECTION_TYPE_PM) || cmd.hasFlag("PM", 0)) && !aSource->isSet(UserConnection::FLAG_PM)) {
-			aSource->setFlag(UserConnection::FLAG_PM);
+		if ((tokens.hasToken(token, CONNECTION_TYPE_PM) || cmd.hasFlag("PM", 0))) {
+			if(!aSource->isSet(UserConnection::FLAG_PM))
+				aSource->setFlag(UserConnection::FLAG_PM);
+
+			if (!aSource->getUser()->isSet(User::TLS)) {
+				fail(AdcCommand::ERROR_GENERIC, "Unencrypted PM connections not allowed");
+				return;
+			}
+
+			/*
+			This means we rely on hubs to distribute the CCPM flag correctly to both sides,
+			some hubs don't do this...
+			*/
+			//if (!aSource->getUser()->isSet(User::CCPM)) {
+				//fail(AdcCommand::ERROR_GENERIC, "Attempted to establish CCPM without supports flag");
+				//return;
+			//}
+
 		}
 
 		aSource->inf(false, aSource->isSet(UserConnection::FLAG_MCN1) ? AirUtil::getSlotsPerUser(false) : 0);

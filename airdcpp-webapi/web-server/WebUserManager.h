@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,12 @@ namespace webserver {
 		WebUserManager(WebServerManager* aServer);
 		~WebUserManager();
 
-		SessionPtr authenticate(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, bool aUserSession, const string& aIP) noexcept;
+		// Parse Authentication header from an HTTP request
+		SessionPtr parseHttpSession(const websocketpp::http::parser::request& aRequest, string& error_, const string& aIp) noexcept;
+
+		SessionPtr authenticateSession(const string& aUserName, const string& aPassword, bool aIsSecure, uint64_t aMaxInactivityMinutes, const string& aIP) noexcept;
+		SessionPtr authenticateBasicHttp(const string& aAuthString, const string& aIP) noexcept;
+		SessionPtr createExtensionSession(const string& aExtensionName);
 
 		SessionList getSessions() const noexcept;
 		SessionPtr getSession(const string& aAuthToken) const noexcept;
@@ -56,7 +61,7 @@ namespace webserver {
 
 		StringList getUserNames() const noexcept;
 
-		size_t getSessionCount() const noexcept;
+		size_t getUserSessionCount() const noexcept;
 	private:
 		mutable SharedMutex cs;
 
@@ -66,13 +71,19 @@ namespace webserver {
 		std::map<LocalSessionId, SessionPtr> sessionsLocalId;
 
 		void checkExpiredSessions() noexcept;
+		void resetSocketSession(const WebSocketPtr& aSocket) noexcept;
 		void removeSession(const SessionPtr& aSession, bool aTimedOut) noexcept;
 		TimerPtr expirationTimer;
 
-		void on(WebServerManagerListener::Started) noexcept;
-		void on(WebServerManagerListener::Stopped) noexcept;
-		void on(WebServerManagerListener::LoadSettings, SimpleXML& aXml) noexcept;
-		void on(WebServerManagerListener::SaveSettings, SimpleXML& aXml) noexcept;
+		SessionPtr createSession(const WebUserPtr& aUser, const string& aSessionToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP);
+
+		void on(WebServerManagerListener::Started) noexcept override;
+		void on(WebServerManagerListener::Stopping) noexcept override;
+		void on(WebServerManagerListener::Stopped) noexcept override;
+		void on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept override;
+
+		void on(WebServerManagerListener::LoadSettings, SimpleXML& aXml) noexcept override;
+		void on(WebServerManagerListener::SaveSettings, SimpleXML& aXml) noexcept override;
 
 		WebServerManager* server;
 	};

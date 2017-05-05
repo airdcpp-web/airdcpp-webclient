@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -41,12 +41,13 @@ namespace webserver {
 			PROP_PROFILES,
 			PROP_INCOMING,
 			PROP_LAST_REFRESH_TIME,
-			PROP_REFRESH_STATE,
+			PROP_STATUS,
 			PROP_TYPE,
 			PROP_LAST
 		};
 
-		static string formatRefreshState(const ShareDirectoryInfoPtr& aItem) noexcept;
+		static string formatDisplayStatus(const ShareDirectoryInfoPtr& aItem) noexcept;
+		static string formatStatusId(const ShareDirectoryInfoPtr& aItem) noexcept;
 
 		static json serializeItem(const ShareDirectoryInfoPtr& aItem, int aPropertyName) noexcept;
 		static bool filterItem(const ShareDirectoryInfoPtr& aItem, int aPropertyName, const StringMatch& aTextMatcher, double aNumericMatcher) noexcept;

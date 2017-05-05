@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,8 @@
 
 namespace webserver {
 	template <class T>
+
+	// NOTE: initialization is not thread safe
 	class LazyInitWrapper {
 	public:
 		typedef std::function < unique_ptr<T>() > InitF;

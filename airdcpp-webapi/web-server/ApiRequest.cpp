@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -17,42 +17,39 @@
 */
 
 #include <web-server/stdinc.h>
+#include <web-server/version.h>
 #include <web-server/ApiRequest.h>
+
+#include <airdcpp/CID.h>
+#include <airdcpp/MerkleTree.h>
 
 #include <airdcpp/StringTokenizer.h>
 #include <airdcpp/Util.h>
 
 namespace webserver {
-	ApiRequest::ApiRequest(const string& aUrl, const string& aMethod, json& output_, json& error_) noexcept : responseJsonData(output_), responseJsonError(error_) {
-		parameters = StringTokenizer<std::string, deque>(aUrl, '/').getTokens();
+	ApiRequest::ApiRequest(const string& aUrl, const string& aMethod, const json& aBody, const SessionPtr& aSession, json& output_, json& error_) :
+		responseJsonData(output_), responseJsonError(error_), methodStr(aMethod), session(aSession), requestJson(aBody)
+	{
+
+		if (aUrl.compare(0, 4, "/api") != 0) {
+			throw std::invalid_argument("Invalid URL path (the path should start with /api/v" + Util::toString(API_VERSION) + "/)");
+		}
+
+		parameters = StringTokenizer<std::string, deque>(aUrl.substr(4), '/').getTokens();
 
 		if (aMethod == "GET") {
 			method = METHOD_GET;
-		}
-		else if (aMethod == "POST") {
+		} else if (aMethod == "POST") {
 			method = METHOD_POST;
-		}
-		else if (aMethod == "PUT") {
+		} else if (aMethod == "PUT") {
 			method = METHOD_PUT;
-		}
-		else if (aMethod == "DELETE") {
+		} else if (aMethod == "DELETE") {
 			method = METHOD_DELETE;
-		}
-		else if (aMethod == "PATCH") {
+		} else if (aMethod == "PATCH") {
 			method = METHOD_PATCH;
 		}
-	}
 
-	void ApiRequest::parseHttpRequestJson(const string& aRequestBody) {
-		if (!aRequestBody.empty())
-			requestJson = json::parse(aRequestBody);
-	}
-
-	void ApiRequest::parseSocketRequestJson(const json& aJson) {
-		auto data = aJson.find("data");
-		if (data != aJson.end()) {
-			requestJson = *data;
-		}
+		validate();
 	}
 
 	void ApiRequest::validate() {
@@ -61,39 +58,69 @@ namespace webserver {
 			throw std::invalid_argument("Unsupported method");
 		}
 
-		// Module, version and command are always mandatory
-		if (static_cast<int>(parameters.size()) < 3) {
-			throw std::invalid_argument("Not enough parameters");
+		// Version and module are always mandatory
+		if (static_cast<int>(parameters.size()) < 2) {
+			throw std::invalid_argument("Not enough URL parameters");
 		}
-
-		// API Module
-		apiModule = parameters.front();
-		parameters.pop_front();
 
 		// Version
 		auto version = parameters.front();
 		parameters.pop_front();
 
+		// API Module
+		apiModule = parameters.front();
+		parameters.pop_front();
+
 		if (version.size() < 2) {
-			throw std::invalid_argument("Invalid version");
+			throw std::invalid_argument("Invalid API version format");
 		}
 
 		apiVersion = Util::toInt(version.substr(1));
+	}
+
+	void ApiRequest::setNamedParams(const NamedParamMap& aParams) noexcept {
+		namedParameters = aParams;
 	}
 
 	void ApiRequest::popParam(size_t aCount) noexcept {
 		parameters.erase(parameters.begin(), parameters.begin() + aCount);
 	}
 
-	uint32_t ApiRequest::getTokenParam(int pos) const noexcept {
-		return Util::toUInt32(parameters[pos]);
+	uint32_t ApiRequest::getTokenParam(const string& aName) const noexcept {
+		return Util::toUInt32(namedParameters.at(aName));
 	}
 
-	const string& ApiRequest::getStringParam(int pos) const noexcept {
-		return parameters[pos];
+	const string& ApiRequest::getStringParam(const string& aName) const noexcept {
+		return namedParameters.at(aName);
 	}
 
-	int ApiRequest::getRangeParam(int pos) const noexcept {
-		return Util::toInt(parameters[pos]);
+	int ApiRequest::getRangeParam(const string& aName) const noexcept {
+		return Util::toInt(namedParameters.at(aName));
+	}
+
+	int64_t ApiRequest::getSizeParam(const string& aName) const noexcept {
+		return Util::toInt64(namedParameters.at(aName));
+	}
+
+	const std::string& ApiRequest::getParamAt(int aIndex) const noexcept {
+		return parameters[aIndex];
+	}
+
+	TTHValue ApiRequest::getTTHParam(const string& aName) const {
+		auto param = getStringParam(aName);
+		if (!Encoder::isBase32(param.c_str())) {
+			throw std::invalid_argument("Invalid TTH URL parameter");
+		}
+
+		return TTHValue(param);
+	}
+
+	CID ApiRequest::getCIDParam(const string& aName) const {
+		auto param = getStringParam(aName);
+		if (!Encoder::isBase32(param.c_str())) {
+			throw std::invalid_argument("Invalid CID URL parameter");
+		}
+
+		return CID(param);
 	}
 }

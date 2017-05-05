@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,6 +40,12 @@ namespace dcpp {
 
 class SocketException;
 
+struct SearchQueueInfo {
+	StringSet queuedHubUrls;
+	uint64_t queueTime;
+	string error;
+};
+
 class SearchManager : public Speaker<SearchManagerListener>, public Singleton<SearchManager>, private TimerManagerListener, private SettingsManagerListener
 {
 public:
@@ -52,14 +58,9 @@ private:
 public:
 	static const char* getTypeStr(int type);
 	static bool isDefaultTypeStr(const string& type);
-
-	struct SearchQueueInfo {
-		int succeed;
-		uint64_t queueTime;
-	};
 	
 	SearchQueueInfo search(const SearchPtr& aSearch) noexcept;
-	SearchQueueInfo search(StringList& who, const SearchPtr& aSearch, void* aOwner = nullptr) noexcept;
+	SearchQueueInfo search(StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner = nullptr) noexcept;
 	
 	void respond(const AdcCommand& cmd, OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
 

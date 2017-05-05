@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -60,6 +60,7 @@ namespace webserver {
 		static double getNumericInfo(const QueueItemPtr& a, int aPropertyName) noexcept;
 
 	private:
+		static string formatStatusId(const QueueItemPtr& aItem) noexcept;
 		static string getDisplayName(const QueueItemPtr& aItem) noexcept;
 
 		static std::string formatDisplayStatus(const QueueItemPtr& aItem) noexcept;

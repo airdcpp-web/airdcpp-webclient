@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,17 +21,15 @@
 
 #include "QueueItemBase.h"
 
-#include "Bundle.h"
 #include "FastAlloc.h"
 #include "HintedUser.h"
 #include "MerkleTree.h"
-#include "Pointer.h"
 #include "Segment.h"
 #include "Util.h"
 
 namespace dcpp {
 
-class QueueItem : public QueueItemBase, public intrusive_ptr_base<QueueItem> {
+class QueueItem : public QueueItemBase {
 public:
 	typedef unordered_map<QueueToken, QueueItemPtr> TokenMap;
 	typedef unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
@@ -72,46 +70,45 @@ public:
 		FLAG_DIRECTORY_DOWNLOAD = 0x02,
 		/** The file is downloaded to be viewed in the gui */
 		FLAG_CLIENT_VIEW		= 0x04,
-		/** Flag to indicate that file should be viewed as a text file */
-		FLAG_TEXT				= 0x08,
 		/** Match the queue against this list */
-		FLAG_MATCH_QUEUE		= 0x10,
+		FLAG_MATCH_QUEUE		= 0x08,
 		/** The file list downloaded was actually an .xml.bz2 list */
-		FLAG_XML_BZLIST			= 0x20,
+		FLAG_XML_BZLIST			= 0x10,
 		/** Only download a part of the file list */
-		FLAG_PARTIAL_LIST 		= 0x40,
+		FLAG_PARTIAL_LIST 		= 0x20,
 		/** Open directly with an external program after the file has been downloaded */
-		FLAG_OPEN				= 0x80,
-		/** Find NFO from partial list and view it */
-		FLAG_VIEW_NFO			= 0x100,
+		FLAG_OPEN				= 0x40,
 		/** Recursive partial list */
-		FLAG_RECURSIVE_LIST		= 0x200,
+		FLAG_RECURSIVE_LIST		= 0x80,
 		/** TTH list for partial bundle sharing */
-		FLAG_TTHLIST_BUNDLE		= 0x400,
-		/** A finished bundle item */
-		FLAG_FINISHED			= 0x800,
-		/** A finished bundle item that has also been moved */
-		FLAG_MOVED				= 0x1000,
-		/** A hashed bundle item */
-		FLAG_HASHED				= 0x4000,
+		FLAG_TTHLIST_BUNDLE		= 0x100,
 		/** A private file that won't be added in share and it's not available via partial sharing */
-		FLAG_PRIVATE			= 0x8000,
-		/** Associated to a specific bundle for matching */
-		FLAG_MATCH_BUNDLE		= 0x16000
+		FLAG_PRIVATE			= 0x200,
 	};
+
+	enum Status {
+		STATUS_NEW, // not added in queue yet
+		STATUS_QUEUED,
+		STATUS_DOWNLOADED,
+		STATUS_VALIDATION_RUNNING, // the file is being validated by the completion hooks
+		STATUS_VALIDATION_ERROR, // hook validation failed (see the error pointer for more information)
+		STATUS_COMPLETED, // no validation errors, ready for sharing
+	};
+
+	static bool isFailedStatus(Status aStatus) noexcept;
 
 	/**
 	 * Source parts info
 	 * Meaningful only when Source::FLAG_PARTIAL is set
 	 */
-	class PartialSource : public FastAlloc<PartialSource>, public intrusive_ptr_base<PartialSource> {
+	class PartialSource : public FastAlloc<PartialSource> {
 	public:
 		PartialSource(const string& aMyNick, const string& aHubIpPort, const string& aIp, const string& udp) : 
 			myNick(aMyNick), hubIpPort(aHubIpPort), ip(aIp), nextQueryTime(0), udpPort(udp), pendingQueryCount(0) {}
 		
 		~PartialSource() { }
 
-		typedef boost::intrusive_ptr<PartialSource> Ptr;
+		typedef shared_ptr<PartialSource> Ptr;
 
 		GETSET(PartsInfo, partialInfo, PartialInfo);
 		GETSET(string, myNick, MyNick);			// for NMDC support only
@@ -167,7 +164,6 @@ public:
 	~QueueItem();
 
 	bool usesSmallSlot() const noexcept;
-	void searchAlternates() noexcept;
 
 	// Select a random item from the list to search for alternates
 	static QueueItemPtr pickSearchItem(const QueueItemList& aItems) noexcept;
@@ -228,7 +224,14 @@ public:
 	void addFinishedSegment(const Segment& segment) noexcept;
 	void resetDownloaded() noexcept;
 	
-	bool isFinished() const noexcept;
+	// Check that all segments have been downloaded (unsafe)
+	bool segmentsDone() const noexcept;
+
+	// The file has been flagged as downloaded
+	bool isDownloaded() const noexcept;
+
+	// File finished downloading and all validation hooks have completed (safe)
+	bool isCompleted() const noexcept;
 
 	bool isRunning() const noexcept {
 		return !isWaiting();
@@ -237,9 +240,12 @@ public:
 		return downloads.empty();
 	}
 
+	bool isFilelist() const noexcept;
+
 	bool hasPartialSharingTarget() noexcept;
 
 	string getListName() const noexcept;
+	string getStatusString(int64_t aDownloadedBytes, bool aIsWaiting) const noexcept;
 
 	const string& getTempTarget() noexcept;
 	void setTempTarget(const string& aTempTarget) noexcept { tempTarget = aTempTarget; }
@@ -251,6 +257,8 @@ public:
 	IGETSET(uint8_t, maxSegments, MaxSegments, 1);
 	IGETSET(BundlePtr, bundle, Bundle, nullptr);
 	IGETSET(string, lastSource, LastSource, Util::emptyString);
+	IGETSET(Status, status, Status, STATUS_NEW);
+	IGETSET(ActionHookRejectionPtr, hookError, HookError, nullptr);
 	
 	Priority calculateAutoPriority() const noexcept;
 
@@ -272,7 +280,8 @@ private:
 	void blockSourceHub(const HintedUser& aUser) noexcept;
 	bool isHubBlocked(const UserPtr& aUser, const string& aUrl) const noexcept;
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept;
-	uint8_t getMaxSegments(int64_t filesize) const noexcept;
+
+	static uint8_t getMaxSegments(int64_t aFileSize) noexcept;
 
 	int64_t blockSize = -1;
 };

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -28,29 +28,30 @@
 #include <airdcpp/PrivateChat.h>
 #include <airdcpp/User.h>
 
-#include <api/HierarchicalApiModule.h>
+#include <api/base/HookApiModule.h>
+#include <api/base/HierarchicalApiModule.h>
 #include <api/common/ChatController.h>
 
 namespace webserver {
 	class PrivateChatInfo;
 
-	class PrivateChatInfo : public SubApiModule<CID, PrivateChatInfo, std::string>, private PrivateChatListener {
+	class PrivateChatInfo : public SubApiModule<CID, PrivateChatInfo, std::string, HookApiModule>, private PrivateChatListener {
 	public:
 		static StringList subscriptionList;
 
-		typedef ParentApiModule<CID, PrivateChatInfo> ParentType;
 		typedef shared_ptr<PrivateChatInfo> Ptr;
 		typedef vector<Ptr> List;
 
 		PrivateChatInfo(ParentType* aParentModule, const PrivateChatPtr& aChat);
 		~PrivateChatInfo();
 
-		PrivateChatPtr getChat() const noexcept { return chat; }
+		const PrivateChatPtr& getChat() const noexcept { return chat; }
 
 		static string formatCCPMState(PrivateChat::CCPMState aState) noexcept;
 		static json serializeCCPMState(const PrivateChatPtr& aChat) noexcept;
 
 		void init() noexcept override;
+		CID getId() const noexcept override;
 	private:
 		api_return handleDisconnectCCPM(ApiRequest& aRequest);
 		api_return handleConnectCCPM(ApiRequest& aRequest);

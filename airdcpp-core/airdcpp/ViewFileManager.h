@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -35,23 +35,24 @@ namespace dcpp {
 	class ViewFileManager : public Singleton<ViewFileManager>, public Speaker<ViewFileManagerListener>, public QueueManagerListener {
 	public:
 		typedef unordered_map<TTHValue, ViewFilePtr> ViewFileMap;
+		typedef vector<ViewFilePtr> ViewFileList;
 
 		ViewFileManager() noexcept;
 		~ViewFileManager() noexcept;
 
-		ViewFileMap getFiles() const noexcept;
+		ViewFileList getFiles() const noexcept;
 
 		// Adds the file and shows a notification in case of errors
 		// Can be used for viewing own files by TTH as well
-		bool addUserFileNotify(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) noexcept;
+		ViewFilePtr addUserFileNotify(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) noexcept;
 
 		// Adds the file and throws if there are errors
 		// Can be used for viewing own files by TTH as well
 		// Throws on errors (QueueException, FileException)
-		bool addUserFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText);
+		ViewFilePtr addUserFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText);
 
 		// Add a file by real path
-		bool addLocalFile(const string& aPath, const TTHValue& aTTH, bool aIsText) noexcept;
+		ViewFilePtr addLocalFile(const TTHValue& aTTH, bool aIsText) noexcept;
 
 		bool removeFile(const TTHValue& aTTH) noexcept;
 
@@ -61,10 +62,9 @@ namespace dcpp {
 		ViewFilePtr createFile(const string& aFileName, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile) noexcept;
 		static bool isViewedItem(const QueueItemPtr& aQI) noexcept;
 
-		void on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept;
 		void on(QueueManagerListener::ItemFinished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t aSpeed) noexcept;
 		void on(QueueManagerListener::ItemRemoved, const QueueItemPtr& qi, bool finished) noexcept;
-		void on(QueueManagerListener::ItemStatusUpdated, const QueueItemPtr& aQI) noexcept;
+		void on(QueueManagerListener::ItemTick, const QueueItemPtr& aQI) noexcept;
 
 		void onFileStateUpdated(const TTHValue& aTTH) noexcept;
 

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,11 +66,13 @@ tstring Util::emptyStringT;
 string Util::paths[Util::PATH_LAST];
 StringList Util::startupParams;
 
-#ifndef _WIN32
-string Util::appPath;
+#ifdef _WIN32
+	bool Util::localMode = true;
+#else
+	bool Util::localMode = false;
+	string Util::appPath;
 #endif
 
-bool Util::localMode = true;
 bool Util::wasUncleanShutdown = false;
 
 static void sgenrand(unsigned long seed) noexcept;
@@ -87,30 +89,10 @@ void WINAPI invalidParameterHandler(const wchar_t*, const wchar_t*, const wchar_
 
 #ifdef _WIN32
 
-typedef HRESULT (WINAPI* _SHGetKnownFolderPath)(GUID& rfid, DWORD dwFlags, HANDLE hToken, PWSTR *ppszPath);
-
 static string getDownloadsPath(const string& def) noexcept {
-	// Try Vista downloads path
-	static _SHGetKnownFolderPath getKnownFolderPath = 0;
-	static HINSTANCE shell32 = NULL;
-
-	if(!shell32) {
-	    shell32 = ::LoadLibrary(_T("Shell32.dll"));
-	    if(shell32)
-	    {
-	    	getKnownFolderPath = (_SHGetKnownFolderPath)::GetProcAddress(shell32, "SHGetKnownFolderPath");
-
-	    	if(getKnownFolderPath) {
-	    		 PWSTR path = NULL;
-	             // Defined in KnownFolders.h.
-	             static GUID downloads = {0x374de290, 0x123f, 0x4565, {0x91, 0x64, 0x39, 0xc4, 0x92, 0x5e, 0x46, 0x7b}};
-	    		 if(getKnownFolderPath(downloads, 0, NULL, &path) == S_OK) {
-	    			 string ret = Text::fromT(path) + "\\";
-	    			 ::CoTaskMemFree(path);
-	    			 return ret;
-	    		 }
-	    	}
-	    }
+	PWSTR path = NULL;
+	if (SHGetKnownFolderPath(FOLDERID_Downloads, KF_FLAG_CREATE, NULL, &path) == S_OK) {
+		return Util::validatePath(Text::fromT(path), true);
 	}
 
 	return def + "Downloads\\";
@@ -183,6 +165,33 @@ string Util::getAppPath() noexcept {
 	return Text::fromT(tstring(buf, x));
 }
 
+int Util::runSystemCommand(const string& aCommand) noexcept {
+	// std::system would flash a console window
+
+	STARTUPINFOW si;
+	PROCESS_INFORMATION pi;
+
+	ZeroMemory(&si, sizeof(si));
+	si.cb = sizeof(si);
+	ZeroMemory(&pi, sizeof(pi));
+
+	if (!CreateProcessW(NULL, (LPWSTR)Text::toT(aCommand).c_str(), NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
+		return -1;
+	}
+
+	WaitForSingleObject(pi.hProcess, INFINITE);
+
+	DWORD exitCode = 0;
+	if (!GetExitCodeProcess(pi.hProcess, &exitCode)) {
+		return -1;
+	}
+
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+
+	return exitCode;
+}
+
 #else
 
 void Util::setApp(const string& app) noexcept {
@@ -201,6 +210,10 @@ string Util::getSystemUsername() noexcept {
 
 	return buf;
 }
+
+int Util::runSystemCommand(const string& aCommand) noexcept {
+	return std::system(aCommand.c_str());
+}
 	
 #endif
 
@@ -217,78 +230,90 @@ void Util::initialize(const string& aConfigPath) {
 
 	sgenrand((unsigned long)time(NULL));
 
-#if (_MSC_VER >= 1400)
-	_set_invalid_parameter_handler(reinterpret_cast<_invalid_parameter_handler>(invalidParameterHandler));
-#endif
+	const auto exeDirectoryPath = getAppFilePath();
+
+	auto initConfig = [&]() {
+		// Prefer boot config from the same directory
+		if (loadBootConfig(exeDirectoryPath)) {
+			paths[PATH_GLOBAL_CONFIG] = exeDirectoryPath;
+		} else if (paths[PATH_GLOBAL_CONFIG] != exeDirectoryPath) {
+			// Linux may also use a separate global config directory
+			loadBootConfig(paths[PATH_GLOBAL_CONFIG]);
+		}
+
+		// USER CONFIG
+		{
+			if (!aConfigPath.empty()) {
+				paths[PATH_USER_CONFIG] = aConfigPath;
+			}
+
+			if (!paths[PATH_USER_CONFIG].empty() && !File::isAbsolutePath(paths[PATH_USER_CONFIG])) {
+				paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + paths[PATH_USER_CONFIG];
+			}
+
+			paths[PATH_USER_CONFIG] = validatePath(paths[PATH_USER_CONFIG], true);
+		}
+
+		if (localMode) {
+			if (paths[PATH_USER_CONFIG].empty()) {
+				paths[PATH_USER_CONFIG] = exeDirectoryPath + "Settings" + PATH_SEPARATOR_STR;
+			}
+
+			paths[PATH_DOWNLOADS] = paths[PATH_USER_CONFIG] + "Downloads" + PATH_SEPARATOR_STR;
+			paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
+
+			if (paths[PATH_RESOURCES].empty()) {
+				paths[PATH_RESOURCES] = exeDirectoryPath;
+			}
+		}
+	};
 
 #ifdef _WIN32
-	string exePath = getAppFilePath();
+	_set_invalid_parameter_handler(reinterpret_cast<_invalid_parameter_handler>(invalidParameterHandler));
 
-	// Global config path is the AirDC++ executable path...
-	paths[PATH_GLOBAL_CONFIG] = exePath;
+	paths[PATH_GLOBAL_CONFIG] = exeDirectoryPath;
+	initConfig();
 
-	paths[PATH_USER_CONFIG] = !aConfigPath.empty() ? aConfigPath : paths[PATH_GLOBAL_CONFIG] + "Settings\\";
-
-	loadBootConfig();
-
-	if(!File::isAbsolutePath(paths[PATH_USER_CONFIG])) {
-		paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + paths[PATH_USER_CONFIG];
-	}
-
-	paths[PATH_USER_CONFIG] = validatePath(paths[PATH_USER_CONFIG], true);
-
-	if(localMode) {
-		paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
-		paths[PATH_DOWNLOADS] = paths[PATH_USER_CONFIG] + "Downloads\\";
-	} else {
-		TCHAR buf[MAX_PATH+1] = { 0 };
-		if(::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, buf) == S_OK) {
+	if (!localMode) {
+		TCHAR buf[MAX_PATH + 1] = { 0 };
+		if (::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, buf) == S_OK) {
 			paths[PATH_USER_CONFIG] = Text::fromT(buf) + "\\AirDC++\\";
 		}
 
 		paths[PATH_DOWNLOADS] = getDownloadsPath(paths[PATH_USER_CONFIG]);
 		paths[PATH_USER_LOCAL] = ::SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, SHGFP_TYPE_CURRENT, buf) == S_OK ? Text::fromT(buf) + "\\AirDC++\\" : paths[PATH_USER_CONFIG];
+		paths[PATH_RESOURCES] = exeDirectoryPath;
 	}
-	
-	paths[PATH_RESOURCES] = exePath;
-	paths[PATH_LOCALE] = (localMode ? exePath : paths[PATH_USER_LOCAL]) + "Language\\";
 
+	paths[PATH_LOCALE] = (localMode ? exeDirectoryPath : paths[PATH_USER_LOCAL]) + "Language\\";
 #else
+	// Usually /etc/airdcpp/
 	paths[PATH_GLOBAL_CONFIG] = GLOBAL_CONFIG_DIRECTORY;
-	const char* home_ = getenv("HOME");
-	string home = home_ ? Text::toUtf8(home_) : "/tmp/";
 
-	paths[PATH_USER_CONFIG] = !aConfigPath.empty() ? aConfigPath : home + "/.airdc++/";
+	initConfig();
 
-	loadBootConfig();
+	if (!localMode) {
+		const char* home_ = getenv("HOME");
+		string home = home_ ? Text::toUtf8(home_) : "/tmp/";
 
-	if(!File::isAbsolutePath(paths[PATH_USER_CONFIG])) {
-		paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + paths[PATH_USER_CONFIG];
+		if (paths[PATH_USER_CONFIG].empty()) {
+			paths[PATH_USER_CONFIG] = home + "/.airdc++/";
+		}
+
+		paths[PATH_DOWNLOADS] = home + "/Downloads/";
+		paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
+		paths[PATH_RESOURCES] = RESOURCE_DIRECTORY;
 	}
 
-	paths[PATH_USER_CONFIG] = validatePath(paths[PATH_USER_CONFIG], true);
-
-	if(localMode) {
-		// @todo implement...
-	}
-
-	paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
-	paths[PATH_RESOURCES] = RESOURCE_DIRECTORY;
 	paths[PATH_LOCALE] = paths[PATH_RESOURCES] + "locale/";
-	paths[PATH_DOWNLOADS] = home + "/Downloads/";
 #endif
 
 	paths[PATH_FILE_LISTS] = paths[PATH_USER_CONFIG] + "FileLists" PATH_SEPARATOR_STR;
-	paths[PATH_HUB_LISTS] = paths[PATH_USER_LOCAL] + "HubLists" PATH_SEPARATOR_STR;
-	paths[PATH_NOTEPAD] = paths[PATH_USER_CONFIG] + "Notepad.txt";
-	paths[PATH_EMOPACKS] = paths[PATH_RESOURCES] + "EmoPacks" PATH_SEPARATOR_STR;
 	paths[PATH_BUNDLES] = paths[PATH_USER_CONFIG] + "Bundles" PATH_SEPARATOR_STR;
-	paths[PATH_THEMES] = paths[PATH_GLOBAL_CONFIG] + "Themes" PATH_SEPARATOR_STR;
 	paths[PATH_SHARECACHE] = paths[PATH_USER_LOCAL] + "ShareCache" PATH_SEPARATOR_STR;
 
 	File::ensureDirectory(paths[PATH_USER_CONFIG]);
 	File::ensureDirectory(paths[PATH_USER_LOCAL]);
-	File::ensureDirectory(paths[PATH_THEMES]);
 	File::ensureDirectory(paths[PATH_LOCALE]);
 }
 
@@ -302,7 +327,7 @@ void Util::migrate(const string& file) noexcept {
 	}
 
 	auto fname = getFileName(file);
-	auto oldPath = paths[PATH_GLOBAL_CONFIG] + "Settings" + PATH_SEPARATOR + fname;
+	auto oldPath = Util::getAppFilePath() + "Settings" + PATH_SEPARATOR + fname;
 	if (File::getSize(oldPath) == -1) {
 		return;
 	}
@@ -319,60 +344,65 @@ void Util::migrate(const string& aNewDir, const string& aPattern) noexcept {
 	if (localMode)
 		return;
 
-	auto oldDir = Util::getPath(Util::PATH_GLOBAL_CONFIG) + "Settings" + PATH_SEPARATOR + Util::getLastDir(aNewDir) + PATH_SEPARATOR;
-
-	if (Util::fileExists(oldDir)) {
-		// don't migrate if there are files in the new directory already
-		auto fileListNew = File::findFiles(aNewDir, aPattern);
-		if (fileListNew.empty()) {
-			auto fileList = File::findFiles(oldDir, aPattern);
-			for (auto& path : fileList) {
-				try {
-					File::renameFile(path, aNewDir + Util::getFileName(path));
-				} catch (const FileException& /*e*/) {
-					//LogManager::getInstance()->message("Settings migration for failed: " + e.getError());
-				}
-			}
-		}
+	auto oldDir = getAppFilePath() + "Settings" + PATH_SEPARATOR + Util::getLastDir(aNewDir) + PATH_SEPARATOR;
+	if (!Util::fileExists(oldDir)) {
+		return;
 	}
 
-	/*try {
-		File::renameFile(oldDir, oldDir + ".old");
-	} catch (FileException& e) {
-		// ...
-	}*/
+	// Don't migrate if there are files in the new directory already
+	auto fileListNew = File::findFiles(aNewDir, aPattern);
+	if (!File::findFiles(aNewDir, aPattern).empty()) {
+		return;
+	}
+
+	// Move the content
+	try {
+		File::moveDirectory(oldDir, aNewDir, aPattern);
+	} catch (const FileException&) {
+
+	}
 }
 
-void Util::loadBootConfig() noexcept {
-	// Load boot settings
+bool Util::loadBootConfig(const string& aDirectoryPath) noexcept {
+	string xmlFilePath;
+	if (Util::fileExists(aDirectoryPath + "dcppboot.xml.user")) {
+		xmlFilePath = aDirectoryPath + "dcppboot.xml.user";
+	} else {
+		xmlFilePath = aDirectoryPath + "dcppboot.xml";
+	}
+
 	try {
 		SimpleXML boot;
-		boot.fromXML(File(getPath(PATH_GLOBAL_CONFIG) + "dcppboot.xml", File::READ, File::OPEN).read());
+		boot.fromXML(File(xmlFilePath, File::READ, File::OPEN).read());
 		boot.stepIn();
 
 		if(boot.findChild("LocalMode")) {
 			localMode = boot.getChildData() != "0";
 		}
-
 		boot.resetCurrentChild();
-		
+	
 		if(boot.findChild("ConfigPath")) {
 			ParamMap params;
 #ifdef _WIN32
 			// @todo load environment variables instead? would make it more useful on *nix
-			TCHAR path[MAX_PATH];
+			TCHAR tmpPath[MAX_PATH];
 
-			params["APPDATA"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, SHGFP_TYPE_CURRENT, path), path));
-			params["PERSONAL"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, path), path));
+			params["APPDATA"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, SHGFP_TYPE_CURRENT, tmpPath), tmpPath));
+			params["PERSONAL"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, tmpPath), tmpPath));
 #else
 			const char* home_ = getenv("HOME");
 			params["HOME"] = home_ ? Text::toUtf8(home_) : "/tmp/";
 #endif
+
 			paths[PATH_USER_CONFIG] = Util::formatParams(boot.getChildData(), params);
 		}
+		boot.resetCurrentChild();
+		return true;
 	} catch(const Exception& ) {
 		// Unable to load boot settings...
 	}
+
+	return false;
 }
 
 #ifdef _WIN32
@@ -755,6 +785,19 @@ string Util::formatBytes(int64_t aBytes) noexcept {
 	return buf;
 }
 
+string Util::formatAbbreviated(int aNum) noexcept {
+	char buf[64];
+	if (aNum < 2000) {
+		snprintf(buf, sizeof(buf), "%d", aNum);
+	} else if (aNum < 1000000) {
+		snprintf(buf, sizeof(buf), "%.01f%s", (double)aNum / 1000.0, "k");
+	} else {
+		snprintf(buf, sizeof(buf), "%.01f%s", (double)aNum / (1000000.0), "m");
+	}
+
+	return buf;
+}
+
 #ifdef _WIN32
 wstring Util::formatBytesW(int64_t aBytes) noexcept {
 	wchar_t buf[64];
@@ -773,6 +816,19 @@ wstring Util::formatBytesW(int64_t aBytes) noexcept {
 	} else {
 		snwprintf(buf, sizeof(buf), L"%.02f %s", (double)aBytes/(1152921504606846976.0), CWSTRING(EiB));
 	}
+	return buf;
+}
+
+wstring Util::formatAbbreviatedW(int aNum) noexcept {
+	wchar_t buf[64];
+	if (aNum < 2000) {
+		snwprintf(buf, sizeof(buf), L"%d", aNum);
+	} else if (aNum < 1000000) {
+		snwprintf(buf, sizeof(buf), L"%.01f%s", (double)aNum / 1000.0, L"k");
+	} else {
+		snwprintf(buf, sizeof(buf), L"%.01f%s", (double)aNum / (1000000.0), L"m");
+	}
+
 	return buf;
 }
 #endif
@@ -1418,6 +1474,10 @@ string Util::getParentDir(const string& path, const char separator /*PATH_SEPARA
 	return allowEmpty ? Util::emptyString : path;
 }
 
+string Util::joinDirectory(const string& aPath, const string& aDirectoryName, const char separator) noexcept {
+	return aPath + aDirectoryName + separator;
+}
+
 wstring Util::getFilePath(const wstring& path) noexcept {
 	wstring::size_type i = path.rfind(PATH_SEPARATOR);
 	return (i != wstring::npos) ? path.substr(0, i + 1) : path;
@@ -1480,6 +1540,55 @@ int Util::pathSort(const string& a, const string& b) noexcept {
 	}
 
 	return comp;
+}
+
+int Util::directoryContentSort(const DirectoryContentInfo& a, const DirectoryContentInfo& b) noexcept {
+	if (a.directories != b.directories) {
+		return compare(a.directories, b.directories);
+	}
+
+	return compare(a.files, b.files);
+}
+
+string Util::formatDirectoryContent(const DirectoryContentInfo& aContentInfo) noexcept {
+	if (!Util::hasContentInfo(aContentInfo)) {
+		return Util::emptyString;
+	}
+
+	string name;
+
+	bool hasFiles = aContentInfo.files > 0;
+	bool hasFolders = aContentInfo.directories > 0;
+
+	if (hasFolders) {
+		if (aContentInfo.directories == 1) {
+			name += Util::toString(aContentInfo.directories) + " " + Text::toLower(STRING(FOLDER));
+		} else {
+			name += STRING_F(X_FOLDERS, Util::formatAbbreviated(aContentInfo.directories));
+		}
+	}
+
+	if (hasFiles || !hasFolders) { // We must return something even if the directory is empty
+		if (hasFolders)
+			name += ", ";
+
+		if (aContentInfo.files == 1) {
+			name += Util::toString(aContentInfo.files) + " " + Text::toLower(STRING(FILE));
+		} else {
+			name += STRING_F(X_FILES, Util::formatAbbreviated(aContentInfo.files));
+		}
+	}
+
+	return name;
+}
+
+string Util::formatFileType(const string& aPath) noexcept {
+	auto type = Util::getFileExt(aPath);
+	if (type.size() > 0 && type[0] == '.') {
+		type.erase(0, 1);
+	}
+
+	return type;
 }
 
 /* natural sorting */

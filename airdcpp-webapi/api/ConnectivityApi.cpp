@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -23,16 +23,19 @@
 
 #include <api/common/Serializer.h>
 
+#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/SearchManager.h>
+
 namespace webserver {
 	ConnectivityApi::ConnectivityApi(Session* aSession) : SubscribableApiModule(aSession, Access::SETTINGS_VIEW) {
 		ConnectivityManager::getInstance()->addListener(this);
 
-		createSubscription("connectivity_message");
-		createSubscription("connectivity_started");
-		createSubscription("connectivity_finished");
+		createSubscription("connectivity_detection_message");
+		createSubscription("connectivity_detection_started");
+		createSubscription("connectivity_detection_finished");
 
-		METHOD_HANDLER("status", Access::SETTINGS_VIEW, ApiRequest::METHOD_GET, (), false, ConnectivityApi::handleGetStatus);
-		METHOD_HANDLER("detect", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (), false, ConnectivityApi::handleDetect);
+		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,	(EXACT_PARAM("status")), ConnectivityApi::handleGetStatus);
+		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("detect")), ConnectivityApi::handleDetect);
 	}
 
 	ConnectivityApi::~ConnectivityApi() {
@@ -57,50 +60,56 @@ namespace webserver {
 			text = ConnectivityManager::getInstance()->getStatus(v6);
 		}
 
+		auto field = [](const string& s) { return s.empty() ? "undefined" : s; };
 		return {
 			{ "auto_detect", autoEnabled },
 			{ "enabled", protocolEnabled },
 			{ "text", text },
+			{ "bind_address", field(v6 ? CONNSETTING(BIND_ADDRESS6) : CONNSETTING(BIND_ADDRESS)) },
+			{ "external_ip", field(v6 ? CONNSETTING(EXTERNAL_IP6) : CONNSETTING(EXTERNAL_IP)) },
 		};
 	}
 
 	api_return ConnectivityApi::handleGetStatus(ApiRequest& aRequest) {
 		aRequest.setResponseBody({
 			{ "status_v4", formatStatus(false) },
-			{ "status_v6", formatStatus(true) }
+			{ "status_v6", formatStatus(true) },
+			{ "tcp_port", ConnectionManager::getInstance()->getPort() },
+			{ "tls_port", ConnectionManager::getInstance()->getSecurePort() },
+			{ "udp_port", SearchManager::getInstance()->getPort() },
 		});
 
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return ConnectivityApi::handleDetect(ApiRequest& aRequest) {
+	api_return ConnectivityApi::handleDetect(ApiRequest&) {
 		ConnectivityManager::getInstance()->detectConnection();
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	void ConnectivityApi::on(ConnectivityManagerListener::Message, const string& aMessage) noexcept {
-		if (!subscriptionActive("connectivity_message"))
+		if (!subscriptionActive("connectivity_detection_message"))
 			return;
 
-		send("connectivity_message", aMessage);
+		send("connectivity_detection_message", aMessage);
 	}
 
 	void ConnectivityApi::on(ConnectivityManagerListener::Started, bool v6) noexcept {
-		if (!subscriptionActive("connectivity_started"))
+		if (!subscriptionActive("connectivity_detection_started"))
 			return;
 
-		send("connectivity_started", {  
+		send("connectivity_detection_started", {  
 			{ "v6", v6 }
 		});
 	}
 
-	void ConnectivityApi::on(ConnectivityManagerListener::Finished, bool v6, bool failed) noexcept {
-		if (!subscriptionActive("connectivity_finished"))
+	void ConnectivityApi::on(ConnectivityManagerListener::Finished, bool v6, bool aFailed) noexcept {
+		if (!subscriptionActive("connectivity_detection_finished"))
 			return;
 
-		send("connectivity_finished", {
+		send("connectivity_detection_finished", {
 			{ "v6", v6 },
-			{ "failed", failed }
+			{ "failed", aFailed }
 		});
 	}
 }

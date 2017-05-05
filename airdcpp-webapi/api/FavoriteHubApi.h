@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 
 #include <api/FavoriteHubUtils.h>
 
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 #include <api/common/ListViewController.h>
 
 #include <airdcpp/typedefs.h>
@@ -35,10 +35,6 @@ namespace webserver {
 	public:
 		FavoriteHubApi(Session* aSession);
 		~FavoriteHubApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		api_return handleAddHub(ApiRequest& aRequest);
 		api_return handleRemoveHub(ApiRequest& aRequest);

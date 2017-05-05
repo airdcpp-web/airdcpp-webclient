@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@
 
 namespace webserver {
 	TransferApi::TransferApi(Session* aSession) : 
-		SubscribableApiModule(aSession, Access::ANY),
+		SubscribableApiModule(aSession, Access::TRANSFERS),
 		timer(getTimer([this] { onTimer(); }, 1000)),
 		view("transfer_view", this, TransferUtils::propertyHandler, std::bind(&TransferApi::getTransfers, this))
 	{
@@ -41,13 +41,26 @@ namespace webserver {
 		UploadManager::getInstance()->addListener(this);
 		ConnectionManager::getInstance()->addListener(this);
 
-		METHOD_HANDLER("tranferred_bytes", Access::ANY, ApiRequest::METHOD_GET, (), false, TransferApi::handleGetTransferredBytes);
-		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, TransferApi::handleGetTransferStats);
+		METHOD_HANDLER(Access::TRANSFERS,	METHOD_GET,		(),											TransferApi::handleGetTransfers);
+		METHOD_HANDLER(Access::TRANSFERS,	METHOD_GET,		(TOKEN_PARAM),								TransferApi::handleGetTransfer);
 
-		METHOD_HANDLER("force", Access::TRANSFERS, ApiRequest::METHOD_POST, (TOKEN_PARAM), false, TransferApi::handleForce);
-		METHOD_HANDLER("disconnect", Access::TRANSFERS, ApiRequest::METHOD_POST, (TOKEN_PARAM), false, TransferApi::handleDisconnect);
+		METHOD_HANDLER(Access::TRANSFERS,	METHOD_POST,	(TOKEN_PARAM, EXACT_PARAM("force")),		TransferApi::handleForce);
+		METHOD_HANDLER(Access::TRANSFERS,	METHOD_POST,	(TOKEN_PARAM, EXACT_PARAM("disconnect")),	TransferApi::handleDisconnect);
+
+		METHOD_HANDLER(Access::TRANSFERS,	METHOD_GET,		(EXACT_PARAM("tranferred_bytes")),			TransferApi::handleGetTransferredBytes);
+		METHOD_HANDLER(Access::TRANSFERS,	METHOD_GET,		(EXACT_PARAM("stats")),						TransferApi::handleGetTransferStats);
 
 		createSubscription("transfer_statistics");
+
+		createSubscription("transfer_added");
+		createSubscription("transfer_updated");
+		createSubscription("transfer_removed");
+
+		// These are included in transfer_updated events as well
+		createSubscription("transfer_starting");
+		createSubscription("transfer_completed");
+		createSubscription("transfer_failed");
+
 		timer->start(false);
 
 		loadTransfers();
@@ -112,6 +125,19 @@ namespace webserver {
 		return ret;
 	}
 
+	api_return TransferApi::handleGetTransfers(ApiRequest& aRequest) {
+		auto j = Serializer::serializeItemList(TransferUtils::propertyHandler, getTransfers());
+		aRequest.setResponseBody(j);
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return TransferApi::handleGetTransfer(ApiRequest& aRequest) {
+		auto item = getTransfer(aRequest);
+
+		aRequest.setResponseBody(Serializer::serializeItem(item, TransferUtils::propertyHandler));
+		return websocketpp::http::status_code::ok;
+	}
+
 	api_return TransferApi::handleGetTransferredBytes(ApiRequest& aRequest) {
 		aRequest.setResponseBody({
 			{ "session_downloaded", Socket::getTotalDown() },
@@ -129,20 +155,18 @@ namespace webserver {
 			ConnectionManager::getInstance()->force(item->getStringToken());
 		}
 
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return TransferApi::handleDisconnect(ApiRequest& aRequest) {
 		auto item = getTransfer(aRequest);
 		ConnectionManager::getInstance()->disconnect(item->getStringToken());
 
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	TransferInfoPtr TransferApi::getTransfer(ApiRequest& aRequest) const {
-		// This isn't used ofter
-
-		auto wantedId = aRequest.getTokenParam(0);
+		auto wantedId = aRequest.getTokenParam();
 
 		RLock l(cs);
 		auto ret = boost::find_if(transfers | map_values, [&](const TransferInfoPtr& aInfo) {
@@ -150,7 +174,7 @@ namespace webserver {
 		});
 
 		if (ret.base() == transfers.end()) {
-			throw std::invalid_argument("Transfer not found");
+			throw RequestException(websocketpp::http::status_code::not_found, "Transfer not found");
 		}
 
 		return *ret;
@@ -209,8 +233,8 @@ namespace webserver {
 		previousStats.swap(newStats);
 	}
 
-	void TransferApi::onTick(const Transfer* aTransfer, bool aIsDownload) noexcept {
-		auto t = getTransfer(aTransfer->getToken());
+	void TransferApi::onTick(const Transfer* aTransfer, bool /*aIsDownload*/) noexcept {
+		auto t = findTransfer(aTransfer->getToken());
 		if (!t) {
 			return;
 		}
@@ -226,10 +250,10 @@ namespace webserver {
 			t->setStatusString(STRING_F(RUNNING_PCT, t->getPercentage()));
 		}
 
-		view.onItemUpdated(t, { 
+		onTransferUpdated(t, {
 			TransferUtils::PROP_STATUS, TransferUtils::PROP_BYTES_TRANSFERRED, 
 			TransferUtils::PROP_SPEED, TransferUtils::PROP_SECONDS_LEFT
-		});
+		}, Util::emptyString);
 	}
 
 	void TransferApi::on(UploadManagerListener::Tick, const UploadList& aUploads) noexcept {
@@ -246,7 +270,7 @@ namespace webserver {
 		}
 	}
 
-	void TransferApi::on(DownloadManagerListener::BundleTick, const BundleList& bundles, uint64_t aTick) noexcept {
+	void TransferApi::on(DownloadManagerListener::BundleTick, const BundleList& bundles, uint64_t /*aTick*/) noexcept {
 		lastDownloadBundles = bundles.size();
 	}
 
@@ -271,7 +295,11 @@ namespace webserver {
 			return;
 
 		auto t = addTransfer(aCqi, STRING(CONNECTING));
+
 		view.onItemAdded(t);
+		if (subscriptionActive("transfer_added")) {
+			send("transfer_added", Serializer::serializeItem(t, TransferUtils::propertyHandler));
+		}
 	}
 
 	void TransferApi::on(ConnectionManagerListener::Removed, const ConnectionQueueItem* aCqi) noexcept {
@@ -289,6 +317,9 @@ namespace webserver {
 		}
 
 		view.onItemRemoved(t);
+		if (subscriptionActive("transfer_removed")) {
+			send("transfer_removed", Serializer::serializeItem(t, TransferUtils::propertyHandler));
+		}
 	}
 
 	void TransferApi::onFailed(TransferInfoPtr& aInfo, const string& aReason) noexcept {
@@ -304,14 +335,14 @@ namespace webserver {
 		aInfo->setTimeLeft(-1);
 		aInfo->setState(TransferInfo::STATE_FAILED);
 
-		view.onItemUpdated(aInfo, { 
+		onTransferUpdated(aInfo, {
 			TransferUtils::PROP_STATUS, TransferUtils::PROP_SPEED,
 			TransferUtils::PROP_BYTES_TRANSFERRED, TransferUtils::PROP_SECONDS_LEFT
-		});
+		}, "transfer_failed");
 	}
 
 	void TransferApi::on(ConnectionManagerListener::Failed, const ConnectionQueueItem* aCqi, const string& aReason) noexcept {
-		auto t = getTransfer(aCqi->getToken());
+		auto t = findTransfer(aCqi->getToken());
 		if (!t) {
 			return;
 		}
@@ -319,38 +350,50 @@ namespace webserver {
 		onFailed(t, aCqi->getUser().user->isSet(User::OLD_CLIENT) ? STRING(SOURCE_TOO_OLD) : aReason);
 	}
 
-	void TransferApi::updateQueueInfo(TransferInfoPtr& aInfo) noexcept {
-		QueueToken bundleToken = 0;
-		string aTarget;
-		int64_t aSize; int aFlags = 0;
-		if (!QueueManager::getInstance()->getQueueInfo(aInfo->getHintedUser(), aTarget, aSize, aFlags, bundleToken)) {
-			return;
+	void TransferApi::onTransferUpdated(const TransferInfoPtr& aTransfer, const PropertyIdSet& aUpdatedProperties, const string& aSubscriptionName) noexcept {
+		view.onItemUpdated(aTransfer, aUpdatedProperties);
+
+		if (subscriptionActive("transfer_updated")) {
+			send("transfer_updated", Serializer::serializePartialItem(aTransfer, TransferUtils::propertyHandler, aUpdatedProperties));
 		}
 
-		auto type = Transfer::TYPE_FILE;
-		if (aFlags & QueueItem::FLAG_PARTIAL_LIST)
-			type = Transfer::TYPE_PARTIAL_LIST;
-		else if (aFlags & QueueItem::FLAG_USER_LIST)
-			type = Transfer::TYPE_FULL_LIST;
+		if (!aSubscriptionName.empty() && subscriptionActive(aSubscriptionName)) {
+			// Serialize all properties
+			send(aSubscriptionName, Serializer::serializeItem(aTransfer, TransferUtils::propertyHandler));
+		}
+	}
 
-		aInfo->setType(type);
-		aInfo->setTarget(aTarget);
-		aInfo->setSize(aSize);
+	void TransferApi::updateQueueInfo(TransferInfoPtr& aInfo) noexcept {
+		{
+			auto qi = QueueManager::getInstance()->getQueueInfo(aInfo->getHintedUser());
+			if (!qi) {
+				return;
+			}
+
+			auto type = Transfer::TYPE_FILE;
+			if (qi->getFlags() & QueueItem::FLAG_PARTIAL_LIST)
+				type = Transfer::TYPE_PARTIAL_LIST;
+			else if (qi->getFlags() & QueueItem::FLAG_USER_LIST)
+				type = Transfer::TYPE_FULL_LIST;
+
+			aInfo->setType(type);
+			aInfo->setTarget(qi->getTarget());
+			aInfo->setSize(qi->getSize());
+			aInfo->setQueueToken(qi->getToken());
+		}
 
 		aInfo->setState(TransferInfo::STATE_WAITING);
 		aInfo->setStatusString(STRING(CONNECTING));
 
-		aInfo->setState(TransferInfo::STATE_WAITING);
-
-		view.onItemUpdated(aInfo, { 
+		onTransferUpdated(aInfo, {
 			TransferUtils::PROP_STATUS, TransferUtils::PROP_TARGET, 
 			TransferUtils::PROP_TYPE, TransferUtils::PROP_NAME, 
-			TransferUtils::PROP_SIZE 
-		});
+			TransferUtils::PROP_SIZE, TransferUtils::PROP_QUEUE_ID
+		}, Util::emptyString);
 	}
 
 	void TransferApi::on(ConnectionManagerListener::Connecting, const ConnectionQueueItem* aCqi) noexcept {
-		auto t = getTransfer(aCqi->getToken());
+		auto t = findTransfer(aCqi->getToken());
 		if (!t) {
 			return;
 		}
@@ -359,16 +402,16 @@ namespace webserver {
 	}
 
 	void TransferApi::on(ConnectionManagerListener::UserUpdated, const ConnectionQueueItem* aCqi) noexcept {
-		auto t = getTransfer(aCqi->getToken());
+		auto t = findTransfer(aCqi->getToken());
 		if (!t) {
 			return;
 		}
 
-		view.onItemUpdated(t, { TransferUtils::PROP_USER });
+		onTransferUpdated(t, { TransferUtils::PROP_USER }, Util::emptyString);
 	}
 
 	void TransferApi::on(DownloadManagerListener::Failed, const Download* aDownload, const string& aReason) noexcept {
-		auto t = getTransfer(aDownload->getToken());
+		auto t = findTransfer(aDownload->getToken());
 		if (!t) {
 			return;
 		}
@@ -398,21 +441,21 @@ namespace webserver {
 		aTransfer->appendFlags(flags);
 		aInfo->setFlags(flags);
 
-		view.onItemUpdated(aInfo, { 
+		onTransferUpdated(aInfo, {
 			TransferUtils::PROP_STATUS, TransferUtils::PROP_SPEED, 
 			TransferUtils::PROP_BYTES_TRANSFERRED, TransferUtils::PROP_TIME_STARTED, 
-			TransferUtils::PROP_SIZE, TransferUtils::PROP_TARGET, 
+			TransferUtils::PROP_SIZE, TransferUtils::PROP_TARGET, TransferUtils::PROP_QUEUE_ID,
 			TransferUtils::PROP_NAME, TransferUtils::PROP_TYPE,
 			TransferUtils::PROP_IP, TransferUtils::PROP_ENCRYPTION, TransferUtils::PROP_FLAGS 
-		});
+		}, "transfer_starting");
 	}
 
-	void TransferApi::on(DownloadManagerListener::Requesting, const Download* aDownload, bool hubChanged) noexcept {
+	void TransferApi::on(DownloadManagerListener::Requesting, const Download* aDownload, bool /*hubChanged*/) noexcept {
 		starting(aDownload, STRING(REQUESTING), true);
 	}
 
 	void TransferApi::starting(const Download* aDownload, const string& aStatus, bool aFullUpdate) noexcept {
-		auto t = getTransfer(aDownload->getToken());
+		auto t = findTransfer(aDownload->getToken());
 		if (!t) {
 			return;
 		}
@@ -430,10 +473,10 @@ namespace webserver {
 			// Size was unknown for filelists when requesting
 			t->setSize(aDownload->getSegmentSize());
 
-			view.onItemUpdated(t, { 
+			onTransferUpdated(t, {
 				TransferUtils::PROP_STATUS, TransferUtils::PROP_FLAGS, 
 				TransferUtils::PROP_SIZE 
-			});
+			}, "transfer_starting");
 		}
 	}
 
@@ -443,7 +486,7 @@ namespace webserver {
 	}
 
 	void TransferApi::on(UploadManagerListener::Starting, const Upload* aUpload) noexcept {
-		auto t = getTransfer(aUpload->getToken());
+		auto t = findTransfer(aUpload->getToken());
 		if (!t) {
 			return;
 		}
@@ -451,7 +494,7 @@ namespace webserver {
 		starting(t, aUpload);
 	}
 
-	TransferInfoPtr TransferApi::getTransfer(const string& aToken) const noexcept {
+	TransferInfoPtr TransferApi::findTransfer(const string& aToken) const noexcept {
 		RLock l(cs);
 		auto i = transfers.find(aToken);
 		return i != transfers.end() ? i->second : nullptr;
@@ -465,8 +508,8 @@ namespace webserver {
 		onTransferCompleted(aUpload, false); 
 	}
 
-	void TransferApi::onTransferCompleted(const Transfer* aTransfer, bool aIsDownload) noexcept {
-		auto t = getTransfer(aTransfer->getToken());
+	void TransferApi::onTransferCompleted(const Transfer* aTransfer, bool /*aIsDownload*/) noexcept {
+		auto t = findTransfer(aTransfer->getToken());
 		if (!t) {
 			return;
 		}
@@ -477,10 +520,10 @@ namespace webserver {
 		t->setBytesTransferred(aTransfer->getSegmentSize());
 		t->setState(TransferInfo::STATE_FINISHED);
 
-		view.onItemUpdated(t, { 
+		onTransferUpdated(t, {
 			TransferUtils::PROP_STATUS, TransferUtils::PROP_SPEED,
 			TransferUtils::PROP_SECONDS_LEFT, TransferUtils::PROP_TIME_STARTED,
 			TransferUtils::PROP_BYTES_TRANSFERRED
-		});
+		}, "transfer_completed");
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,8 +24,6 @@
 
 #include "HintedUser.h"
 #include "MerkleTree.h"
-#include "Pointer.h"
-#include "QueueItem.h"
 #include "User.h"
 
 #include "QueueItemBase.h"
@@ -37,7 +35,7 @@ using std::string;
 #define DIR_BUNDLE_VERSION "2"
 #define FILE_BUNDLE_VERSION "2"
 
-class Bundle : public QueueItemBase, public intrusive_ptr_base<Bundle> {
+class Bundle : public QueueItemBase {
 public:
 	enum BundleFlags {
 		/** Flags for scheduled actions */
@@ -50,16 +48,12 @@ public:
 	enum Status {
 		STATUS_NEW, // not added in queue yet
 		STATUS_QUEUED,
-		STATUS_DOWNLOAD_FAILED,
+		STATUS_DOWNLOAD_ERROR,
 		STATUS_RECHECK,
 		STATUS_DOWNLOADED, // no queued files
-		STATUS_MOVED, // all files moved
-		STATUS_FAILED_MISSING,
-		STATUS_SHARING_FAILED,
-		STATUS_FINISHED, // no missing files, ready for hashing
-		STATUS_HASHING,
-		STATUS_HASH_FAILED,
-		STATUS_HASHED,
+		STATUS_VALIDATION_RUNNING, // the bundle is being validated by the completion hooks
+		STATUS_VALIDATION_ERROR, // hook validation failed (see the error pointer for more information)
+		STATUS_COMPLETED, // no validation errors, ready for sharing
 		STATUS_SHARED
 	};
 
@@ -115,12 +109,11 @@ public:
 	typedef multimap<double, BundlePtr> SourceSpeedMapB;
 	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
 
-
+	static BundlePtr createFileBundle(QueueItemPtr& qi, time_t aBundleDate, QueueToken aToken = 0, bool aDirty = true) noexcept;
 	Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate=0, QueueToken aToken = 0, bool aDirty = true, bool isFileBundle = false) noexcept;
-	Bundle(QueueItemPtr& qi, time_t aBundleDate, QueueToken aToken = 0, bool aDirty = true) noexcept;
 	~Bundle() noexcept;
 
-	GETSET(string, lastError, LastError);
+	GETSET(string, error, Error);
 
 	IGETSET(Status, status, Status, STATUS_NEW);
 	IGETSET(time_t, bundleDate, BundleDate, 0);				// the file/directory modify date picked from the remote filelist when the bundle has been queued
@@ -142,6 +135,10 @@ public:
 
 	QueueItemList& getFinishedFiles() { return finishedFiles; }
 	QueueItemList& getQueueItems() { return queueItems; }
+	void setHookError(const ActionHookRejectionPtr& aError) noexcept;
+	const ActionHookRejectionPtr& getHookError() const noexcept {
+		return hookError;
+	}
 
 	const FinishedNotifyList& getFinishedNotifications() const noexcept  { return finishedNotifications; }
 
@@ -163,6 +160,7 @@ public:
 	bool isRecent() const noexcept { return recent; }
 
 	/* QueueManager */
+	static bool isFailedStatus(Status aStatus) noexcept;
 	bool isFailed() const noexcept;
 
 	// Throws on errors
@@ -176,7 +174,18 @@ public:
 	void addFinishedItem(QueueItemPtr& qi, bool finished) noexcept;
 	void removeFinishedItem(QueueItemPtr& qi) noexcept;
 	void finishBundle() noexcept;
-	bool allowHash() const noexcept;
+
+	// All files have been downloaded and moved to the final destination
+	// Unsafe
+	bool filesCompleted() const noexcept;
+
+	// All bundles files have finished downloading
+	// Safe
+	bool isDownloaded() const noexcept;
+
+	// All bundles files have finished downloading and all validation hooks have completed
+	// Safe
+	bool isCompleted() const noexcept;
 
 	void clearFinishedNotifications(FinishedNotifyList& fnl) noexcept;
 	bool isFinishedNotified(const UserPtr& aUser) const noexcept;
@@ -195,6 +204,8 @@ public:
 
 	void addFinishedSegment(int64_t aSize) noexcept;
 	void removeFinishedSegment(int64_t aSize) noexcept;
+
+	string getStatusString() const noexcept;
 
 	/* DownloadManager */
 	int countConnections() const noexcept;
@@ -219,13 +230,14 @@ public:
 	void getSourceUsers(HintedUserList& l) const noexcept;
 	bool isSource(const UserPtr& aUser) const noexcept;
 	bool isBadSource(const UserPtr& aUser) const noexcept;
-	bool isFinished() const noexcept { return queueItems.empty(); }
 
 	/** All queue items indexed by user */
-	void addUserQueue(QueueItemPtr& qi) noexcept;
-	bool addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad = false) noexcept;
+	void addUserQueue(const QueueItemPtr& qi) noexcept;
+	bool addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool isBad = false) noexcept;
 	QueueItemPtr getNextQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept;
 	void getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept;
+
+	QueueItemList getFailedItems() const noexcept;
 
 	void removeUserQueue(QueueItemPtr& qi) noexcept;
 	bool removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason) noexcept;
@@ -234,6 +246,8 @@ public:
 	void rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept;
 	bool isEmpty() const noexcept { return queueItems.empty() && finishedFiles.empty(); }
 private:
+	ActionHookRejectionPtr hookError = nullptr;
+
 	int64_t lastSpeed = 0; // the speed sent on last time to UBN sources
 	int64_t lastDownloaded = 0; // the progress percent sent on last time to UBN sources
 

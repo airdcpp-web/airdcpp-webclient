@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,12 +21,12 @@
 
 #include "ClientManagerListener.h"
 #include "DownloadManagerListener.h"
-#include "HashManagerListener.h"
 #include "QueueManagerListener.h"
 #include "SearchManagerListener.h"
 #include "ShareManagerListener.h"
 #include "TimerManagerListener.h"
 
+#include "ActionHook.h"
 #include "BundleInfo.h"
 #include "BundleQueue.h"
 #include "DelayedEvents.h"
@@ -57,14 +57,17 @@ namespace dcpp {
 
 namespace bimaps = boost::bimaps;
 
-class HashedFile;
 class UserConnection;
 class QueueLoader;
+struct SearchQueueInfo;
 
 class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManagerListener>, private TimerManagerListener, 
-	private SearchManagerListener, private ClientManagerListener, private HashManagerListener, private ShareManagerListener
+	private SearchManagerListener, private ClientManagerListener, private ShareManagerListener
 {
 public:
+	ActionHook<const BundlePtr> bundleCompletionHook;
+	ActionHook<const QueueItemPtr> fileCompletionHook;
+
 	// Add all queued TTHs in the supplied bloom filter
 	void getBloom(HashBloom& bloom) const noexcept;
 
@@ -75,13 +78,14 @@ public:
 	bool hasDownloadedBytes(const string& aTarget) throw(QueueException);
 
 	// Get the subdirectories and total file count of a bundle
-	void getBundleContent(const BundlePtr& aBundle, size_t& files_, size_t& directories_) const noexcept;
+	DirectoryContentInfo getBundleContent(const BundlePtr& aBundle) const noexcept;
 
 	// Get the total queued bytes
-	uint64_t getTotalQueueSize() const noexcept { return fileQueue.getTotalQueueSize(); }
+	uint64_t getTotalQueueSize() const noexcept { return bundleQueue.getTotalQueueSize(); }
 
-	/** Add a user's filelist to the queue. */
-	QueueItemPtr addList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString, BundlePtr aBundle=nullptr) throw(QueueException, DupeException);
+	// Add a user's filelist to the queue.
+	// New managed filelist sessions should be created via DirectoryListingManager instead
+	QueueItemPtr addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString, const BundlePtr& aBundle = nullptr) throw(QueueException, DupeException);
 
 	/** Add an item that is opened in the client or with an external program */
 	/** Files that are viewed in the client should be added from ViewFileManager */
@@ -116,9 +120,9 @@ public:
 		return false;
 	}
 
-	// Return all finished non-failed bundles
+	// Return all completed (verified) bundles
 	// Returns the number of bundles that were removed
-	int removeFinishedBundles() noexcept;
+	int removeCompletedBundles() noexcept;
 
 	// Remove source from the specified file
 	void removeFileSource(const string& aTarget, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
@@ -156,7 +160,6 @@ public:
 	// Set the maximum number of segments for the specified target
 	void setSegments(const string& aTarget, uint8_t aSegments) noexcept;
 
-	bool isFinished(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->isFinished(); }
 	bool isWaiting(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->isWaiting(); }
 
 	uint64_t getDownloadedBytes(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->getDownloadedBytes(); }
@@ -174,7 +177,7 @@ public:
 
 	// Get information about the next valid file in the queue
 	// Used for displaying initial information for a transfer before the connection has been established and the real download is created
-	bool getQueueInfo(const HintedUser& aUser, string& aTarget, int64_t& aSize, int& aFlags, QueueToken& bundleToken) noexcept;
+	QueueItemPtr getQueueInfo(const HintedUser& aUser) noexcept;
 
 	// Check if a download can be started for the specified user
 	// 
@@ -324,11 +327,14 @@ public:
 
 	// Search bundle for alternatives on the background
 	// Returns the number of searches that were sent
-	int searchBundleAlternates(BundlePtr& aBundle, bool aIsManualSearch, uint64_t aTick = GET_TICK()) noexcept;
+	int searchBundleAlternates(const BundlePtr& aBundle, uint64_t aTick = GET_TICK()) noexcept;
+
+	SearchQueueInfo searchFileAlternates(const QueueItemPtr& aQI) const noexcept;
 
 	int getUnfinishedItemCount(const BundlePtr& aBundle) const noexcept;
 	int getFinishedItemCount(const BundlePtr& aBundle) const noexcept;
 
+	int getFinishedBundlesCount() const noexcept;
 
 	// Check if there are finished chuncks for the TTH
 	// Gets various information about the actual file and the length of downloaded segment
@@ -354,10 +360,6 @@ public:
 	// Get the paths of all bundles
 	void getBundlePaths(OrderedStringSet& bundles) const noexcept;
 
-	// Get the paths of all unfinished bundles
-	// Scans all finished bundles inside the directories being refreshed and queues succeeded for hashing
-	void checkRefreshPaths(OrderedStringSet& bundlePaths_, RefreshPathList& refreshPaths_) noexcept;
-
 	// Set size for a file list its size is known
 	void setFileListSize(const string& path, int64_t newSize) noexcept;
 
@@ -366,10 +368,6 @@ public:
 	// Share scanning will be skipped if skipScan is true
 	// Blocking call
 	void shareBundle(BundlePtr aBundle, bool skipScan) noexcept;
-
-	// Returns true if the bundle passes the scan for missing/extra files
-	// Blocking call
-	bool scanBundle(BundlePtr& aBundle) noexcept;
 
 	// Performs recheck for the supplied files. Recheck will be done in the calling thread.
 	// The integrity of all finished segments will be verified and SFV will be validated for finished files
@@ -456,11 +454,11 @@ private:
 	static string formatBundleTarget(const string& aPath, time_t aRemoteDate) noexcept;
 
 	// Add a source to an existing queue item
-	bool addSource(QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, bool checkTLS=true) throw(QueueException, FileException);
+	bool addSource(const QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, bool checkTLS=true) throw(QueueException, FileException);
 
 	// Add a source for a list of queue items, returns the number of (new) files for which the source was added
-	int addSources(const HintedUser& aUser, QueueItemList items, Flags::MaskType aAddBad) noexcept;
-	int addSources(const HintedUser& aUser, QueueItemList items, Flags::MaskType aAddBad, BundleList& bundles_) noexcept;
+	int addSources(const HintedUser& aUser, const QueueItemList& aItems, Flags::MaskType aAddBad) noexcept;
+	int addSources(const HintedUser& aUser, const QueueItemList& aItems, Flags::MaskType aAddBad, BundleList& bundles_) noexcept;
 	 
 	void matchTTHList(const string& name, const HintedUser& user, int flags) noexcept;
 
@@ -468,17 +466,30 @@ private:
 
 	void renameDownloadedFile(const string& aSource, const string& aTarget, QueueItemPtr& q) noexcept;
 
-	void handleMovedBundleItem(QueueItemPtr& q) noexcept;
+	void sendFileCompletionNotifications(const QueueItemPtr& q) noexcept;
+
+	// Returns whether the bundle has completed download
+	// Will also attempt to validate and share completed bundles 
 	bool checkBundleFinished(BundlePtr& aBundle) noexcept;
+
+	// Returns true if any of the bundle files has failed validation
+	// Optionally also rechecks failed files
+	bool checkFailedBundleFiles(const BundlePtr& aBundle, bool aRevalidateFailed) noexcept;
+
+	// Returns true if the bundle passes possible completion hooks (e.g. scan for missing/extra files)
+	// Blocking call
+	bool runBundleCompletionHooks(const BundlePtr& aBundle) noexcept;
+
+	// Returns true if the file passes possible completion hooks (e.g. SFV check)
+	// Blocking call
+	bool runFileCompletionHooks(const QueueItemPtr& aQI) noexcept;
 
 	unordered_map<string, SearchResultList> searchResults;
 	void pickMatch(QueueItemPtr qi) noexcept;
 	void matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult) noexcept;
 
-	void onFileHashed(const string& aPath, HashedFile& aFileInfo, bool failed) noexcept;
-	void hashBundle(BundlePtr& aBundle) noexcept;
-	void checkBundleHashed(BundlePtr& aBundle) noexcept;
-	void setBundleStatus(BundlePtr aBundle, Bundle::Status newStatus) noexcept;
+	void setFileStatus(const QueueItemPtr& aFile, QueueItem::Status aNewStatus) noexcept;
+	void setBundleStatus(const BundlePtr& aBundle, Bundle::Status aNewStatus) noexcept;
 
 	/* Returns true if an item can be replaces */
 	bool replaceItem(QueueItemPtr& qi, int64_t aSize, const TTHValue& aTTH) throw(FileException, QueueException);
@@ -504,6 +515,7 @@ private:
 
 	// Perform automatic search for alternate sources
 	void searchAlternates(uint64_t aTick) noexcept;
+	static bool autoSearchEnabled() noexcept;
 
 	// Resume bundles that were paused for a specific interval
 	void checkResumeBundles() noexcept;
@@ -513,17 +525,13 @@ private:
 	
 	// SearchManagerListener
 	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
-	
-	// HashManagerListener
-	void on(HashManagerListener::FileHashed, const string& aPath, HashedFile& fi) noexcept { onFileHashed(aPath, fi, false); }
-	void on(HashManagerListener::FileFailed, const string& aPath, HashedFile& fi) noexcept { onFileHashed(aPath, fi, true); }
 
 	// ClientManagerListener
 	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
 
 	// ShareManagerListener
-	void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept;
+	void on(ShareManagerListener::RefreshCompleted, uint8_t, const RefreshPathList& aPaths) noexcept;
 	void on(ShareLoaded) noexcept;
 	void onPathRefreshed(const string& aPath, bool startup) noexcept;
 

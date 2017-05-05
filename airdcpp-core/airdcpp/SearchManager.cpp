@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -80,14 +80,14 @@ string SearchManager::normalizeWhitespace(const string& aString){
 	return normalized;
 }
 
-SearchManager::SearchQueueInfo SearchManager::search(const SearchPtr& aSearch) noexcept {
+SearchQueueInfo SearchManager::search(const SearchPtr& aSearch) noexcept {
 	StringList who;
 	ClientManager::getInstance()->getOnlineClients(who);
 
 	return search(who, aSearch);
 }
 
-SearchManager::SearchQueueInfo SearchManager::search(StringList& who, const SearchPtr& aSearch, void* aOwner /* NULL */) noexcept {
+SearchQueueInfo SearchManager::search(StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner /* NULL */) noexcept {
 
 	string keyStr;
 	if (SETTING(ENABLE_SUDP)) {
@@ -101,20 +101,21 @@ SearchManager::SearchQueueInfo SearchManager::search(StringList& who, const Sear
 		keyStr = Encoder::toBase32(key, 16);
 	}
 
-	aSearch->owners.insert(aOwner);
+	aSearch->owner = aOwner;
 	aSearch->key = keyStr;
 
-	int succeed = 0;
+	StringSet queued;
 	uint64_t estimateSearchSpan = 0;
-	for(auto& hubUrl: who) {
-		auto queueTime = ClientManager::getInstance()->search(hubUrl, aSearch);
+	string lastError;
+	for(auto& hubUrl: aHubUrls) {
+		auto queueTime = ClientManager::getInstance()->search(hubUrl, aSearch, lastError);
 		if (queueTime) {
 			estimateSearchSpan = max(estimateSearchSpan, *queueTime);
-			succeed++;
+			queued.insert(hubUrl);
 		}
 	}
 
-	return { succeed, estimateSearchSpan };
+	return { queued, estimateSearchSpan, lastError };
 }
 
 bool SearchManager::decryptPacket(string& x, size_t aLen, const ByteVector& aBuf) {
@@ -124,14 +125,13 @@ bool SearchManager::decryptPacket(string& x, size_t aLen, const ByteVector& aBuf
 
 		uint8_t ivd[16] = { };
 
-		EVP_CIPHER_CTX ctx;
-		EVP_CIPHER_CTX_init(&ctx);
+		auto ctx = EVP_CIPHER_CTX_new();
 
 		int len = 0, tmpLen=0;
-		EVP_DecryptInit_ex(&ctx, EVP_aes_128_cbc(), NULL, i.first, ivd);
-		EVP_DecryptUpdate(&ctx, &out[0], &len, aBuf.data(), aLen);
-		EVP_DecryptFinal_ex(&ctx, &out[0] + aLen, &tmpLen);
-		EVP_CIPHER_CTX_cleanup(&ctx);
+		EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, i.first, ivd);
+		EVP_DecryptUpdate(ctx, &out[0], &len, aBuf.data(), aLen);
+		EVP_DecryptFinal_ex(ctx, &out[0] + aLen, &tmpLen);
+		EVP_CIPHER_CTX_free(ctx);
 
 		// Validate padding and replace with 0-bytes.
 		int padlen = out[aLen-1];
@@ -250,8 +250,8 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 	}
 
 
-	SearchResultPtr sr(new SearchResult(user, type, slots, freeSlots, size,
-		file, aRemoteIP, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString, 0, connection, -1, -1));
+	auto sr = make_shared<SearchResult>(user, type, slots, freeSlots, size,
+		file, aRemoteIP, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString, 0, connection, DirectoryContentInfo());
 	fire(SearchManagerListener::SR(), sr);
 }
 
@@ -303,8 +303,8 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 			th = TTHValue(tth);
 		}
 		
-		SearchResultPtr sr(new SearchResult(HintedUser(from, hubUrl), type, slots, (uint8_t)freeSlots, size,
-			file, remoteIp, th, token, date, connection, files, folders));
+		auto sr = make_shared<SearchResult>(HintedUser(from, hubUrl), type, slots, (uint8_t)freeSlots, size,
+			file, remoteIp, th, token, date, connection, DirectoryContentInfo(folders, files));
 		fire(SearchManagerListener::SR(), sr);
 	}
 }
@@ -564,17 +564,19 @@ string SearchManager::getPartsString(const PartsInfo& partsInfo) const {
 }
 
 
-AdcCommand SearchManager::toPSR(bool wantResponse, const string& myNick, const string& hubIpPort, const string& tth, const vector<uint16_t>& partialInfo) const {
+AdcCommand SearchManager::toPSR(bool aWantResponse, const string& aMyNick, const string& aHubIpPort, const string& aTTH, const vector<uint16_t>& aPartialInfo) const {
 	AdcCommand cmd(AdcCommand::CMD_PSR, AdcCommand::TYPE_UDP);
 		
-	if(!myNick.empty())
-		cmd.addParam("NI", Text::utf8ToAcp(myNick));
+	if (!aMyNick.empty()) {
+		auto hubUrl = ClientManager::getInstance()->findHub(aHubIpPort, true);
+		cmd.addParam("NI", Text::fromUtf8(aMyNick, ClientManager::getInstance()->findHubEncoding(hubUrl)));
+	}
 		
-	cmd.addParam("HI", hubIpPort);
-	cmd.addParam("U4", wantResponse ? getPort() : "0");
-	cmd.addParam("TR", tth);
-	cmd.addParam("PC", Util::toString(partialInfo.size() / 2));
-	cmd.addParam("PI", getPartsString(partialInfo));
+	cmd.addParam("HI", aHubIpPort);
+	cmd.addParam("U4", aWantResponse ? getPort() : "0");
+	cmd.addParam("TR", aTTH);
+	cmd.addParam("PC", Util::toString(aPartialInfo.size() / 2));
+	cmd.addParam("PI", getPartsString(aPartialInfo));
 	
 	return cmd;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ public:
 	typedef X<4> UsersUpdated;
 	typedef X<5> UserRemoved;
 	typedef X<6> Redirect;
-	typedef X<7> Failed;
+	typedef X<7> Disconnected;
 	typedef X<8> GetPassword;
 	typedef X<9> HubUpdated;
 	typedef X<10> ChatMessage;
@@ -49,12 +49,14 @@ public:
 	typedef X<17> HubTopic;
 	typedef X<18> AddLine;
 	typedef X<19> SetActive;
-	typedef X<20> Disconnecting;
+	typedef X<20> Close;
 	typedef X<21> MessagesRead;
 	typedef X<22> MessagesCleared;
 	typedef X<23> Redirected;
 	typedef X<24> ConnectStateChanged;
 	typedef X<25> KeyprintMismatch;
+	typedef X<26> OutgoingSearch;
+	typedef X<27> PrivateMessage;
 
 	enum StatusFlags {
 		FLAG_NORMAL = 0x00,
@@ -69,7 +71,7 @@ public:
 	virtual void on(UsersUpdated, const Client*, const OnlineUserList&) noexcept { }
 	virtual void on(UserRemoved, const Client*, const OnlineUserPtr&) noexcept { }
 	virtual void on(Redirect, const Client*, const string&) noexcept { }
-	virtual void on(Failed, const string&/*hubUrl*/, const string& /*aLine*/) noexcept { }
+	virtual void on(Disconnected, const string&/*hubUrl*/, const string& /*aLine*/) noexcept { }
 	virtual void on(GetPassword, const Client*) noexcept { }
 	virtual void on(HubUpdated, const Client*) noexcept { }
 	virtual void on(ChatMessage, const Client*, const ChatMessagePtr&) noexcept { }
@@ -82,12 +84,14 @@ public:
 	virtual void on(HubTopic, const Client*, const string&) noexcept { }
 	virtual void on(AddLine, const Client*, const string&) noexcept { }
 	virtual void on(SetActive, const Client*) noexcept {}
-	virtual void on(Disconnecting, const Client*) noexcept {}
+	virtual void on(Close, const Client*) noexcept {}
 	virtual void on(MessagesRead, const Client*) noexcept {}
 	virtual void on(MessagesCleared, const Client*) noexcept {}
 	virtual void on(Redirected, const string&/*old*/, const ClientPtr& /*new*/) noexcept {}
 	virtual void on(ConnectStateChanged, const Client*, uint8_t) noexcept {}
 	virtual void on(KeyprintMismatch, const Client*) noexcept {}
+	virtual void on(OutgoingSearch, const Client*, const SearchPtr&) noexcept {}
+	virtual void on(PrivateMessage, const Client*, const ChatMessagePtr&) noexcept { }
 };
 
 } // namespace dcpp

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/LogManagerListener.h>
@@ -31,17 +31,14 @@ namespace webserver {
 	public:
 		EventApi(Session* aSession);
 		~EventApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		void onMessagesChanged() noexcept;
 
 		api_return handleGetInfo(ApiRequest& aRequest);
-		api_return handleGetLog(ApiRequest& aRequest);
 		api_return handleRead(ApiRequest& aRequest);
-		api_return handleClear(ApiRequest& aRequest);
+
+		api_return handleGetMessages(ApiRequest& aRequest);
+		api_return handleClearMessages(ApiRequest& aRequest);
 		api_return handlePostMessage(ApiRequest& aRequest);
 
 		// LogManagerListener

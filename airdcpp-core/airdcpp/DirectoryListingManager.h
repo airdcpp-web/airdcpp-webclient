@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@
 
 #include "CriticalSection.h"
 #include "DirectoryListing.h"
-#include "Pointer.h"
 #include "Singleton.h"
 #include "TimerManagerListener.h"
 
@@ -36,10 +35,6 @@ namespace dcpp {
 	public:
 		DirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner = nullptr);
 
-		typedef vector<DirectoryDownloadPtr> List;
-
-		// All clients don't support sending of recursive partial lists
-		IGETSET(bool, partialListFailed, PartialListFailed, false);
 		IGETSET(QueueItemPtr, queueItem, QueueItem, nullptr);
 
 		struct HasOwner {
@@ -73,9 +68,15 @@ namespace dcpp {
 	public:
 		typedef unordered_map<UserPtr, DirectoryListingPtr, User::Hash> DirectoryListingMap;
 
-		void openOwnList(ProfileToken aProfile, bool useADL=false) noexcept;
-		void openFileList(const HintedUser& aUser, const string& aFile) noexcept;
+		// Browse own share, will always success
+		DirectoryListingPtr openOwnList(ProfileToken aProfile, bool useADL=false, const string& aDir = Util::emptyString) noexcept;
+
+		// Open local file, returns nullptr on duplicates
+		DirectoryListingPtr openFileList(const HintedUser& aUser, const string& aFile, const string& aDir = Util::emptyString, bool aPartial = false) noexcept;
 		
+		// Add a managed filelist session from remove user, throws queueing errors
+		// Returns nullptr on duplicates
+		DirectoryListingPtr createList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString);
 		bool removeList(const UserPtr& aUser) noexcept;
 
 		DirectoryListingManager() noexcept;
@@ -86,8 +87,8 @@ namespace dcpp {
 
 		// Throws on queueing errors (such as invalid source)
 		// If owner is specified, no errors are logged if queueing of the directory fails
-		DirectoryDownloadId addDirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner = nullptr);
-		DirectoryDownload::List getDirectoryDownloads() const noexcept;
+		DirectoryDownloadPtr addDirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner = nullptr);
+		DirectoryDownloadList getDirectoryDownloads() const noexcept;
 
 		bool hasDirectoryDownload(const string& aBundleName, void* aOwner) const noexcept;
 		bool removeDirectoryDownload(DirectoryDownloadId aId) noexcept;
@@ -99,7 +100,7 @@ namespace dcpp {
 		// Throws on errors
 		void queueList(const DirectoryDownloadPtr& aDownloadInfo);
 
-		void handleDownload(const DirectoryDownloadPtr& aDownloadInfo, const DirectoryListingPtr& aList) noexcept;
+		void handleDownload(const DirectoryDownloadPtr& aDownloadInfo, const DirectoryListingPtr& aList, bool aListDownloaded = true) noexcept;
 
 		DirectoryListingPtr createList(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsOwnList) noexcept;
 

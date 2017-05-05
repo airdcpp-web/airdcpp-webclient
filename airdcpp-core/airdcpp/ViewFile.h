@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+* Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -51,6 +51,10 @@ namespace dcpp {
 			return tth;
 		}
 
+		time_t getTimeCreated() const noexcept {
+			return timeCreated;
+		}
+
 		IGETSET(bool, read, Read, false);
 	protected:
 		void onStateChanged() noexcept;
@@ -60,6 +64,7 @@ namespace dcpp {
 		const TTHValue tth;
 		const bool text;
 		const bool localFile;
+		const time_t timeCreated;
 	};
 
 } // namespace dcpp

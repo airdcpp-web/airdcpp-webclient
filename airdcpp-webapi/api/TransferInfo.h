@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include <airdcpp/typedefs.h>
 
 #include <airdcpp/HintedUser.h>
+#include <airdcpp/QueueItemBase.h>
 #include <airdcpp/ResourceManager.h>
 #include <airdcpp/Transfer.h>
 #include <airdcpp/Util.h>
@@ -65,6 +66,8 @@ namespace webserver {
 		IGETSET(int64_t, speed, Speed, 0);
 		IGETSET(ItemState, state, State, STATE_WAITING);
 
+		IGETSET(QueueToken, queueToken, QueueToken, 0);
+
 		const TransferToken getToken() const noexcept {
 			return token;
 		}
@@ -92,8 +95,8 @@ namespace webserver {
 		string getName() {
 			switch (type) {
 				case Transfer::TYPE_TREE: return "TTH: " + Util::getFileName(target);
-				case Transfer::TYPE_FULL_LIST: return STRING(FILE_LIST);
-				case Transfer::TYPE_PARTIAL_LIST: return STRING(FILE_LIST_PARTIAL);
+				case Transfer::TYPE_FULL_LIST: return STRING(TYPE_FILE_LIST);
+				case Transfer::TYPE_PARTIAL_LIST: return STRING(TYPE_FILE_LIST_PARTIAL);
 				default: return Util::getFileName(target);
 			}
 		}

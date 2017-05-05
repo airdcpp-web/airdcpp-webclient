@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -31,20 +31,59 @@ namespace webserver {
 		"hub_removed"
 	};
 
-	HubApi::HubApi(Session* aSession) : ParentApiModule("session", TOKEN_PARAM, Access::HUBS_VIEW, aSession, subscriptionList, HubInfo::subscriptionList, [](const string& aId) { return Util::toUInt32(aId); }) {
+	ActionHookRejectionPtr HubApi::incomingMessageHook(const ChatMessagePtr& aMessage, const HookRejectionGetter& aRejectionGetter) {
+		return HookCompletionData::toResult(
+			fireHook("hub_incoming_message_hook", 2, [&]() {
+				return Serializer::serializeChatMessage(aMessage);
+			}),
+			aRejectionGetter
+		);
+	};
+
+	ActionHookRejectionPtr HubApi::outgoingMessageHook(const string& aMessage, bool aThirdPerson, const Client& aClient, const HookRejectionGetter& aRejectionGetter) {
+		return HookCompletionData::toResult(
+			fireHook("hub_outgoing_message_hook", 2, [&]() {
+				return json({
+					{ "text", aMessage },
+					{ "third_person", aThirdPerson },
+					{ "hub_url", aClient.getHubUrl() },
+					{ "session_id", aClient.getClientId() },
+				});
+			}),
+			aRejectionGetter
+		);
+	}
+
+	HubApi::HubApi(Session* aSession) : 
+		ParentApiModule(TOKEN_PARAM, Access::HUBS_VIEW, aSession, subscriptionList, HubInfo::subscriptionList,
+			[](const string& aId) { return Util::toUInt32(aId); },
+			[](const HubInfo& aInfo) { return serializeClient(aInfo.getClient()); },
+			Access::HUBS_EDIT
+		) 
+	{
+
 		ClientManager::getInstance()->addListener(this);
 
-		METHOD_HANDLER("sessions", Access::HUBS_VIEW, ApiRequest::METHOD_GET, (), false, HubApi::handleGetHubs);
+		createHook("hub_incoming_message_hook", [this](const string& aId, const string& aName) {
+			return ClientManager::getInstance()->incomingHubMessageHook.addSubscriber(aId, aName, HOOK_HANDLER(HubApi::incomingMessageHook));
+		}, [this](const string& aId) {
+			ClientManager::getInstance()->incomingHubMessageHook.removeSubscriber(aId);
+		});
 
-		METHOD_HANDLER("session", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), true, HubApi::handleConnect);
-		METHOD_HANDLER("session", Access::HUBS_EDIT, ApiRequest::METHOD_DELETE, (TOKEN_PARAM), false, HubApi::handleDisconnect);
+		createHook("hub_outgoing_message_hook", [this](const string& aId, const string& aName) {
+			return ClientManager::getInstance()->outgoingHubMessageHook.addSubscriber(aId, aName, HOOK_HANDLER(HubApi::outgoingMessageHook));
+		}, [this](const string& aId) {
+			ClientManager::getInstance()->outgoingHubMessageHook.removeSubscriber(aId);
+		});
 
-		METHOD_HANDLER("search_nicks", Access::ANY, ApiRequest::METHOD_POST, (), true, HubApi::handleSearchNicks);
+		METHOD_HANDLER(Access::HUBS_EDIT,	METHOD_POST,	(),										HubApi::handleConnect);
+		METHOD_HANDLER(Access::HUBS_EDIT,	METHOD_DELETE,	(TOKEN_PARAM),							HubApi::handleDisconnect);
 
-		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, HubApi::handleGetStats);
+		METHOD_HANDLER(Access::HUBS_VIEW,	METHOD_GET,		(EXACT_PARAM("stats")),					HubApi::handleGetStats);
+		METHOD_HANDLER(Access::HUBS_VIEW,	METHOD_POST,	(EXACT_PARAM("find_by_url")),			HubApi::handleFindByUrl);
 
-		METHOD_HANDLER("message", Access::HUBS_SEND, ApiRequest::METHOD_POST, (), true, HubApi::handlePostMessage);
-		METHOD_HANDLER("status", Access::HUBS_EDIT, ApiRequest::METHOD_POST, (), true, HubApi::handlePostStatus);
+		METHOD_HANDLER(Access::HUBS_SEND,	METHOD_POST,	(EXACT_PARAM("chat_message")),			HubApi::handlePostMessage);
+		METHOD_HANDLER(Access::HUBS_EDIT,	METHOD_POST,	(EXACT_PARAM("status_message")),		HubApi::handlePostStatus);
 
 		auto rawHubs = ClientManager::getInstance()->getClients();
 		for (const auto& c : rawHubs | map_values) {
@@ -101,8 +140,6 @@ namespace webserver {
 	}
 
 	api_return HubApi::handleGetStats(ApiRequest& aRequest) {
-		json j;
-
 		auto optionalStats = ClientManager::getInstance()->getClientStats();
 		if (!optionalStats) {
 			return websocketpp::http::status_code::no_content;
@@ -110,56 +147,46 @@ namespace webserver {
 
 		auto stats = *optionalStats;
 
-		j["total_users"] = stats.totalUsers;
-		j["unique_users"] = stats.uniqueUsers;
-		j["unique_user_percentage"] = stats.uniqueUsersPercentage;
-		j["adc_users"] = stats.adcUsers;
-		j["nmdc_users"] = stats.nmdcUsers;
-		j["total_share"] = stats.totalShare;
-		j["share_per_user"] = stats.sharePerUser;
-		j["adc_down_per_user"] = stats.downPerAdcUser;
-		j["adc_up_per_user"] = stats.upPerAdcUser;
-		j["nmdc_speed_user"] = stats.nmdcSpeedPerUser;
-		//j["profile_root_count"] = stats.;
+		json j = {
+			{ "total_users", stats.totalUsers },
+			{ "total_share", stats.totalShare },
 
-		stats.forEachClient([&](const string& aName, int aCount, double aPercentage) {
+			{ "unique_users", stats.uniqueUsers },
+			{ "adc_users", stats.adcUsers },
+			{ "nmdc_users", stats.nmdcUsers },
+			{ "active_users", stats.activeUsers },
+
+			{ "adc_down_per_user", stats.downPerAdcUser },
+			{ "adc_up_per_user", stats.upPerAdcUser },
+			{ "nmdc_speed_per_user", stats.nmdcSpeedPerUser },
+		};
+
+		for (const auto& c: stats.clients) {
 			j["clients"].push_back({
-				{ "name", aName },
-				{ "count", aCount },
-				{ "percentage", aPercentage },
+				{ "name", c.first },
+				{ "count", c.second },
 			});
-		});
+		}
 
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
 	}
 
 	json HubApi::serializeClient(const ClientPtr& aClient) noexcept {
-		json j = {
+		return {
 			{ "identity", HubInfo::serializeIdentity(aClient) },
 			{ "connect_state", HubInfo::serializeConnectState(aClient) },
 			{ "hub_url", aClient->getHubUrl() },
 			{ "id", aClient->getClientId() },
 			{ "favorite_hub", aClient->getFavToken() },
-			{ "share_profile", Serializer::serializeShareProfileSimple(aClient->get(HubSettings::ShareProfile)) }
+			{ "share_profile", Serializer::serializeShareProfileSimple(aClient->get(HubSettings::ShareProfile)) },
+			{ "message_counts", Serializer::serializeCacheInfo(aClient->getCache(), Serializer::serializeUnreadChat) },
+			{ "encryption", Serializer::serializeEncryption(aClient->getEncryptionInfo(), aClient->isTrusted()) },
 		};
-
-		Serializer::serializeCacheInfo(j, aClient->getCache(), Serializer::serializeUnreadChat);
-		return j;
 	}
 
 	void HubApi::addHub(const ClientPtr& aClient) noexcept {
 		addSubModule(aClient->getClientId(), std::make_shared<HubInfo>(this, aClient));
-	}
-
-	api_return HubApi::handleGetHubs(ApiRequest& aRequest) {
-		auto retJson = json::array();
-		forEachSubModule([&](const HubInfo& aInfo) {
-			retJson.push_back(serializeClient(aInfo.getClient()));
-		});
-
-		aRequest.setResponseBody(retJson);
-		return websocketpp::http::status_code::ok;
 	}
 
 	// Use async tasks because adding/removing HubInfos require calls to ClientListener (which is likely 
@@ -183,9 +210,7 @@ namespace webserver {
 				return;
 			}
 
-			send("hub_removed", {
-				{ "id", aClient->getClientId() }
-			});
+			send("hub_removed", serializeClient(aClient));
 		});
 	}
 
@@ -194,44 +219,34 @@ namespace webserver {
 
 		auto address = JsonUtil::getField<string>("hub_url", reqJson, false);
 
-		RecentHubEntryPtr r = new RecentHubEntry(address);
-		auto client = ClientManager::getInstance()->createClient(r);
+		auto client = ClientManager::getInstance()->createClient(address);
 		if (!client) {
-			aRequest.setResponseErrorStr("Hub exists");
-			return websocketpp::http::status_code::bad_request;
+			aRequest.setResponseErrorStr("Hub with the same URL exists already");
+			return websocketpp::http::status_code::conflict;
 		}
 
-		aRequest.setResponseBody({
-			{ "id", client->getClientId() }
-		});
-
+		aRequest.setResponseBody(serializeClient(client));
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return HubApi::handleDisconnect(ApiRequest& aRequest) {
-		if (!ClientManager::getInstance()->putClient(aRequest.getTokenParam(0))) {
+		if (!ClientManager::getInstance()->putClient(aRequest.getTokenParam())) {
 			return websocketpp::http::status_code::not_found;
 		}
 
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
-	// TODO: move to user API
-	api_return HubApi::handleSearchNicks(ApiRequest& aRequest) {
-		const auto& reqJson = aRequest.getRequestBody();
+	api_return HubApi::handleFindByUrl(ApiRequest& aRequest) {
+		auto address = JsonUtil::getField<string>("hub_url", aRequest.getRequestBody(), false);
 
-		auto pattern = JsonUtil::getField<string>("pattern", reqJson);
-		auto maxResults = JsonUtil::getField<size_t>("max_results", reqJson);
-		auto ignorePrefixes = JsonUtil::getOptionalFieldDefault<bool>("ignore_prefixes", reqJson, true);
-
-		auto users = ClientManager::getInstance()->searchNicks(pattern, maxResults, ignorePrefixes);
-
-		auto retJson = json::array();
-		for (const auto& u : users) {
-			retJson.push_back(Serializer::serializeOnlineUser(u));
+		auto client = ClientManager::getInstance()->getClient(address);
+		if (!client) {
+			aRequest.setResponseErrorStr("Hub was not found");
+			return websocketpp::http::status_code::not_found;
 		}
 
-		aRequest.setResponseBody(retJson);
+		aRequest.setResponseBody(serializeClient(client));
 		return websocketpp::http::status_code::ok;
 	}
 }

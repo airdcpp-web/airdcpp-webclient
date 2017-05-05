@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@
 #include "DebugManager.h"
 #include "FavoriteManager.h"
 #include "LogManager.h"
-#include "MessageManager.h"
 #include "ResourceManager.h"
 #include "ShareManager.h"
 #include "ThrottleManager.h"
@@ -36,14 +35,14 @@ namespace dcpp {
 
 atomic<long> Client::allCounts[COUNT_UNCOUNTED];
 atomic<long> Client::sharingCounts[COUNT_UNCOUNTED];
-ClientToken idCounter = 0;
+atomic<ClientToken> idCounter { 0 };
 
 Client::Client(const string& aHubUrl, char aSeparator, const ClientPtr& aOldClient) :
 	hubUrl(aHubUrl), separator(aSeparator), 
 	myIdentity(ClientManager::getInstance()->getMe(), 0),
 	clientId(aOldClient ? aOldClient->getClientId() : ++idCounter),
 	lastActivity(GET_TICK()),
-	cache(aOldClient ? aOldClient->getCache() : SettingsManager::HUB_MESSAGE_CACHE)
+	cache(SettingsManager::HUB_MESSAGE_CACHE)
 {
 	TimerManager::getInstance()->addListener(this);
 	ShareManager::getInstance()->addListener(this);
@@ -74,12 +73,13 @@ void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 	ShareManager::getInstance()->removeListener(this);
 
 	if (!aRedirect) {
-		fire(ClientListener::Disconnecting(), this);
+		fire(ClientListener::Close(), this);
 	}
 
 	if(sock) {
-		BufferedSocket::putSocket(sock, [=] { // Ensure that the pointer won't be deleted too early
-			state = STATE_DISCONNECTED;
+		destroySocket([=] { // Ensure that the pointer won't be deleted too early
+			// Users store a reference that prevents the client from being deleted
+			// so the lists must be cleared manually 
 			if (!aRedirect) {
 				cache.clear();
 			}
@@ -187,10 +187,17 @@ bool Client::isActiveV6() const noexcept {
 	return !v4only() && get(HubSettings::Connection6) != SettingsManager::INCOMING_PASSIVE && get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED;
 }
 
+void Client::destroySocket(const AsyncF& aShutdownAction) noexcept {
+	auto socket = sock;
+	state = STATE_DISCONNECTED;
+	sock = nullptr;
+
+	BufferedSocket::putSocket(socket, aShutdownAction);
+}
+
 void Client::connect(bool withKeyprint) noexcept {
 	if (sock) {
-		BufferedSocket::putSocket(sock);
-		sock = 0;
+		destroySocket();
 	}
 
 	redirectUrl = Util::emptyString;
@@ -216,7 +223,7 @@ void Client::connect(bool withKeyprint) noexcept {
 		);
 	} catch (const Exception& e) {
 		setConnectState(STATE_DISCONNECTED);
-		fire(ClientListener::Failed(), hubUrl, e.getError());
+		fire(ClientListener::Disconnected(), hubUrl, e.getError());
 	}
 	updateActivity();
 }
@@ -350,9 +357,61 @@ void Client::allowUntrustedConnect() noexcept {
 	connect(false);
 }
 
-void Client::onChatMessage(const ChatMessagePtr& aMessage) noexcept {
-	if (MessageManager::getInstance()->isIgnoredOrFiltered(aMessage, this, false))
+bool Client::isCommand(const string& aMessage) noexcept {
+	return !aMessage.empty() && aMessage.front() == '/';
+}
+
+bool Client::sendMessage(const string& aMessage, string& error_, bool aThirdPerson) noexcept {
+	if (!stateNormal() && !isCommand(aMessage)) {
+		error_ = STRING(CONNECTING_IN_PROGRESS);
+		return false;
+	}
+
+	auto error = ClientManager::getInstance()->outgoingHubMessageHook.runHooksError(aMessage, aThirdPerson, *this);
+	if (error) {
+		error_ = error->formatError(error);
+		return false;
+	}
+
+
+	if (isCommand(aMessage)) {
+		return false;
+	}
+
+	return hubMessage(aMessage, error_, aThirdPerson);
+}
+
+bool Client::sendPrivateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept {
+	if (!stateNormal() && !isCommand(aMessage)) {
+		error_ = STRING(CONNECTING_IN_PROGRESS);
+		return false;
+	}
+
+	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage, aThirdPerson, HintedUser(aUser->getUser(), aUser->getHubUrl()), aEcho);
+	if (error) {
+		error_ = error->formatError(error);
+		return false;
+	}
+
+	if (isCommand(aMessage)) {
+		return false;
+	}
+
+	return privateMessage(aUser, aMessage, error_, aThirdPerson, aEcho);
+}
+
+void Client::onPrivateMessage(const ChatMessagePtr& aMessage) noexcept {
+	if (!ClientManager::getInstance()->incomingPrivateMessageHook.runHooksBasic(aMessage)) {
 		return;
+	}
+
+	fire(ClientListener::PrivateMessage(), this, aMessage);
+}
+
+void Client::onChatMessage(const ChatMessagePtr& aMessage) noexcept {
+	if (!ClientManager::getInstance()->incomingHubMessageHook.runHooksBasic(aMessage)) {
+		return;
+	}
 
 	if (get(HubSettings::LogMainChat)) {
 		ParamMap params;
@@ -364,7 +423,6 @@ void Client::onChatMessage(const ChatMessagePtr& aMessage) noexcept {
 	}
 
 	cache.addMessage(aMessage);
-
 	fire(ClientListener::ChatMessage(), this, aMessage);
 }
 
@@ -373,7 +431,7 @@ void Client::on(BufferedSocketListener::Connecting) noexcept {
 	fire(ClientListener::Connecting(), this);
 }
 
-bool Client::saveFavorite() {
+FavoriteHubEntryPtr Client::saveFavorite() {
 	FavoriteHubEntryPtr e = new FavoriteHubEntry();
 	e->setServer(getHubUrl());
 	e->setName(getHubName());
@@ -383,7 +441,7 @@ bool Client::saveFavorite() {
 		e->setPassword(defpassword);
 	}
 
-	return FavoriteManager::getInstance()->addFavoriteHub(e);
+	return FavoriteManager::getInstance()->addFavoriteHub(e) ? e : nullptr;
 }
 
 void Client::doRedirect() noexcept {
@@ -401,20 +459,21 @@ void Client::doRedirect() noexcept {
 }
 
 void Client::on(BufferedSocketListener::Failed, const string& aLine) noexcept {
+	updateCounts(true);
 	clearUsers();
 	
-	if(stateNormal())
+	if (stateNormal()) {
 		FavoriteManager::getInstance()->removeUserCommand(hubUrl);
+	}
 
 	setConnectState(STATE_DISCONNECTED);
-	statusMessage(aLine, LogMessage::SEV_WARNING); //Error?
+	statusMessage(aLine, LogMessage::SEV_WARNING);
 
 	if (isKeyprintMismatch()) {
 		fire(ClientListener::KeyprintMismatch(), this);
 	}
 
-	sock->removeListener(this);
-	fire(ClientListener::Failed(), getHubUrl(), aLine);
+	fire(ClientListener::Disconnected(), getHubUrl(), aLine);
 }
 
 bool Client::isKeyprintMismatch() const noexcept {
@@ -504,6 +563,10 @@ uint64_t Client::queueSearch(const SearchPtr& aSearch) noexcept {
 	return searchQueue.add(aSearch);
 }
 
+optional<uint64_t> Client::getQueueTime(const void* aOwner) const noexcept {
+	return searchQueue.getQueueTime(Search::CompareOwner(aOwner));
+}
+
 string Client::getAllCountsStr() noexcept {
 	char buf[128];
 	return string(buf, snprintf(buf, sizeof(buf), "%ld/%ld/%ld",
@@ -530,11 +593,10 @@ void Client::on(TimerManagerListener::Second, uint64_t aTick) noexcept{
 		connect();
 	}
 
-	if (searchQueue.hasWaitingTime(aTick)) return;
-
 	if (isConnected()){
-		auto s = move(searchQueue.pop());
-		if (s){
+		auto s = move(searchQueue.maybePop());
+		if (s) {
+			fire(ClientListener::OutgoingSearch(), this, s);
 			search(move(s));
 		}
 	}

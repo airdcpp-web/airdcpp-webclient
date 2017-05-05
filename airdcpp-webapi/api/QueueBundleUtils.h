@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -58,7 +58,6 @@ namespace webserver {
 
 	private:
 		static std::string formatStatusId(const BundlePtr& aBundle) noexcept;
-		static std::string formatDisplayStatus(const BundlePtr& aBundle) noexcept;
 		static std::string formatBundleSources(const BundlePtr& aBundle) noexcept;
 		static std::string formatBundleType(const BundlePtr& aBundle) noexcept;
 	};

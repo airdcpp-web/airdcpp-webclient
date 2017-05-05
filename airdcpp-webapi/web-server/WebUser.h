@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -69,9 +69,12 @@ namespace webserver {
 		bool isAdmin() const noexcept;
 
 		const static StringList accessStrings;
-		static Access toAccess(const string& aStr) noexcept;
+		static Access stringToAccess(const string& aStr) noexcept;
+		static const string& accessToString(Access aAccess) noexcept;
 
 		int countPermissions() const noexcept;
+
+		static bool validateUsername(const string& aUsername) noexcept;
 	private:
 		void clearPermissions() noexcept;
 		int activeSessions = 0;

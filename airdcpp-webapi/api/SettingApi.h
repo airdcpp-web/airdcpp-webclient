@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 
 //#include <airdcpp/SettingsManager.h>
 
@@ -31,17 +31,13 @@ namespace webserver {
 	public:
 		SettingApi(Session* aSession);
 		~SettingApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
-		api_return handleGetSettingInfos(ApiRequest& aRequest);
-		api_return handleGetSettingValues(ApiRequest& aRequest);
-		api_return handleSetSettings(ApiRequest& aRequest);
-		api_return handleResetSettings(ApiRequest& aRequest);
+		api_return handleGetDefinitions(ApiRequest& aRequest);
+		api_return handleGetValues(ApiRequest& aRequest);
+		api_return handleSetValues(ApiRequest& aRequest);
+		api_return handleResetValues(ApiRequest& aRequest);
 
-		typedef function<void(ApiSettingItem*)> ParserF;
+		typedef function<void(ApiSettingItem&)> ParserF;
 		void parseSettingKeys(const json& aJson, ParserF aHandler);
 		static ApiSettingItem* getSettingItem(const string& aKey) noexcept;
 	};

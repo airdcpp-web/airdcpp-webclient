@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/ShareManagerListener.h>
@@ -31,18 +31,18 @@ namespace webserver {
 	public:
 		ShareProfileApi(Session* aSession);
 		~ShareProfileApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		static json serializeShareProfile(const ShareProfilePtr& aProfile) noexcept;
 
 		api_return handleGetProfiles(ApiRequest& aRequest);
+		api_return handleGetProfile(ApiRequest& aRequest);
+
 		api_return handleAddProfile(ApiRequest& aRequest);
 		api_return handleUpdateProfile(ApiRequest& aRequest);
 		api_return handleRemoveProfile(ApiRequest& aRequest);
-		api_return handleDefaultProfile(ApiRequest& aRequest);
+
+		api_return handleGetDefaultProfile(ApiRequest& aRequest);
+		api_return handleSetDefaultProfile(ApiRequest& aRequest);
 
 		void parseProfile(ShareProfilePtr& aProfile, const json& j);
 

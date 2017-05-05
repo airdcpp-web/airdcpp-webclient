@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,14 @@
 
 namespace dcpp {
 
+struct FilesystemItem {
+	const string name;
+	const int64_t size;
+	const bool isDirectory;
+
+	string getPath(const string& aBasePath) const noexcept;
+};
+
 class File : public IOStream {
 public:
 	enum Mode {
@@ -43,11 +51,12 @@ public:
 	};
 
 #ifdef _WIN32
-	enum BufferMode {
+	enum BufferMode : DWORD {
 		BUFFER_SEQUENTIAL = FILE_FLAG_SEQUENTIAL_SCAN,
 		BUFFER_RANDOM = FILE_FLAG_RANDOM_ACCESS,
 		BUFFER_AUTO = 0,
-		BUFFER_NONE = FILE_FLAG_NO_BUFFERING
+		BUFFER_NONE = FILE_FLAG_NO_BUFFERING,
+		BUFFER_WRITE_THROUGH = FILE_FLAG_WRITE_THROUGH
 	};
 
 	enum Access {
@@ -71,12 +80,14 @@ public:
 		BUFFER_SEQUENTIAL = POSIX_FADV_SEQUENTIAL,
 		BUFFER_RANDOM = POSIX_FADV_RANDOM,
 		BUFFER_AUTO = POSIX_FADV_NORMAL,
-		BUFFER_NONE = POSIX_FADV_DONTNEED
+		BUFFER_NONE = POSIX_FADV_DONTNEED,
+		BUFFER_WRITE_THROUGH = POSIX_FADV_NORMAL
 #else
 		BUFFER_SEQUENTIAL,
 		BUFFER_RANDOM,
 		BUFFER_AUTO,
-		BUFFER_NONE
+		BUFFER_NONE,
+		BUFFER_WRITE_THROUGH = BUFFER_AUTO
 #endif
 	};
 
@@ -114,7 +125,9 @@ public:
 	static bool createFile(const string& aPath, const string& aContent = Util::emptyString) noexcept;
 	static void copyFile(const string& src, const string& target);
 	static void renameFile(const string& source, const string& target);
+	static void moveDirectory(const string& source, const string& target, const string& aPattern = "*");
 	static bool deleteFile(const string& aFileName) noexcept;
+	static void deleteFileThrow(const string& aFileName);
 	static bool deleteFileEx(const string& aFileName, int maxAttempts = 3) noexcept;
 
 	static uint64_t getLastModified(const string& path) noexcept;
@@ -136,7 +149,9 @@ public:
 	static DiskInfo getDiskInfo(const string& aPath) noexcept;
 
 	// Get disk space information from the supplied volumes (avoids disk access)
-	static DiskInfo getDiskInfo(const string& aTarget, const VolumeSet& aVolumes) noexcept;
+	// Not that getting disk space information for network folder may take some time
+	// especially with a large number of locations
+	static DiskInfo getDiskInfo(const string& aTarget, const VolumeSet& aVolumes, bool aIgnoreNetworkPaths) noexcept;
 
 	// Get a set of all mount points
 	static VolumeSet getVolumes() noexcept;
@@ -145,7 +160,7 @@ public:
 	static string getMountPath(const string& aPath) noexcept;
 
 	// Parse mount point from the supplied volumes (avoids disk access)
-	static string getMountPath(const string& aPath, const VolumeSet& aVolumes) noexcept;
+	static string getMountPath(const string& aPath, const VolumeSet& aVolumes, bool aIgnoreNetworkPaths) noexcept;
 
 	static int ensureDirectory(const string& aFile) noexcept;
 
@@ -153,7 +168,13 @@ public:
 	// Returns false if the directory exists already
 	static bool createDirectory(const string& aFile);
 
-	static void removeDirectory(const string& aPath) noexcept;
+	// Remove empty directory
+	// Returns false in case of errors (e.g. the directory is not actually empty)
+	static bool removeDirectory(const string& aPath) noexcept;
+
+	// Remove the directory even if it's not empty
+	// Throws in case of errors
+	static void removeDirectoryForced(const string& aPath);
 
 	static std::string makeAbsolutePath(const std::string& filename);
 	static std::string makeAbsolutePath(const std::string& path, const std::string& filename);
@@ -175,19 +196,23 @@ public:
 
 	static StringList findFiles(const string& path, const string& aNamePattern, int aFindFlags = TYPE_FILE | TYPE_DIRECTORY);
 
-	typedef std::function<void(const string& /*name*/, bool /*isDir*/, int64_t /*size*/)> FileIterF;
+	typedef std::function<void(const FilesystemItem&)> FileIterF;
 
 	// Iterate through content of aPath and handle files matching aNamePattern (use * to match all files)
 	// Stops if the handler returns false
 	static void forEachFile(const string& aPath, const string& aNamePattern, FileIterF aHandlerF, bool aSkipHidden = true);
+#ifdef _WIN32
+#define HandleType HANDLE
+#else
+#define HandleType int
+#endif
+
+	HandleType getNativeHandle() const noexcept { return h; }
+
 protected:
 	void close() noexcept;
 
-#ifdef _WIN32
-	HANDLE h;
-#else
-	int h;
-#endif
+	HandleType h;
 };
 
 class FileFindIter {
@@ -225,10 +250,10 @@ public:
 	DirData* operator->() { return &data; }
 
 private:
+	FileFindIter& validateCurrent();
 #ifdef _WIN32
 	HANDLE handle;
 #else
-	bool matchPattern() const;
 	DIR* dir;
 	unique_ptr<string> pattern;
 #endif

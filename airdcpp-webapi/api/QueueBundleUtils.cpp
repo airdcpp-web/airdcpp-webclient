@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -49,37 +49,6 @@ namespace webserver {
 		QueueBundleUtils::getStringInfo, QueueBundleUtils::getNumericInfo, QueueBundleUtils::compareBundles, QueueBundleUtils::serializeBundleProperty
 	};
 
-	std::string QueueBundleUtils::formatDisplayStatus(const BundlePtr& aBundle) noexcept {
-		switch (aBundle->getStatus()) {
-		case Bundle::STATUS_NEW:
-		case Bundle::STATUS_QUEUED: {
-			auto percentage = aBundle->getPercentage(aBundle->getDownloadedBytes());
-			if (aBundle->isPausedPrio())
-				return STRING_F(PAUSED_PCT, percentage);
-
-			if (aBundle->getSpeed() > 0) { // Bundle->isRunning() ?
-				return STRING_F(RUNNING_PCT, percentage);
-			}
-			else {
-				return STRING_F(WAITING_PCT, percentage);
-			}
-		}
-		case Bundle::STATUS_RECHECK: return STRING(RECHECKING);
-		case Bundle::STATUS_DOWNLOADED: return STRING(MOVING);
-		case Bundle::STATUS_MOVED: return STRING(DOWNLOADED);
-		case Bundle::STATUS_DOWNLOAD_FAILED:
-		case Bundle::STATUS_FAILED_MISSING:
-		case Bundle::STATUS_SHARING_FAILED: return aBundle->getLastError();
-		case Bundle::STATUS_FINISHED: return STRING(FINISHED);
-		case Bundle::STATUS_HASHING: return STRING(HASHING);
-		case Bundle::STATUS_HASH_FAILED: return STRING(HASH_FAILED);
-		case Bundle::STATUS_HASHED: return STRING(HASHING_FINISHED);
-		case Bundle::STATUS_SHARED: return STRING(SHARED);
-		default:
-			return Util::emptyString;
-		}
-	}
-
 	std::string QueueBundleUtils::formatBundleSources(const BundlePtr& aBundle) noexcept {
 		return QueueManager::getInstance()->getSourceCount(aBundle).format();
 	}
@@ -89,7 +58,7 @@ namespace webserver {
 		case PROP_NAME: return b->getName();
 		case PROP_TARGET: return b->getTarget();
 		case PROP_TYPE: return formatBundleType(b);
-		case PROP_STATUS: return formatDisplayStatus(b);
+		case PROP_STATUS: return b->getStatusString();
 		case PROP_PRIORITY: return AirUtil::getPrioText(b->getPriority());
 		case PROP_SOURCES: return formatBundleSources(b);
 		default: dcassert(0); return Util::emptyString;
@@ -98,12 +67,10 @@ namespace webserver {
 
 	std::string QueueBundleUtils::formatBundleType(const BundlePtr& aBundle) noexcept {
 		if (aBundle->isFileBundle()) {
-			return Format::formatFileType(aBundle->getTarget());
-		} else {
-			size_t files = 0, folders = 0;
-			QueueManager::getInstance()->getBundleContent(aBundle, files, folders);
-			return Format::formatFolderContent(files, folders);
+			return Util::formatFileType(aBundle->getTarget());
 		}
+		
+		return Util::formatDirectoryContent(QueueManager::getInstance()->getBundleContent(aBundle));
 	}
 
 	double QueueBundleUtils::getNumericInfo(const BundlePtr& b, int aPropertyName) noexcept {
@@ -120,7 +87,7 @@ namespace webserver {
 		}
 	}
 
-#define COMPARE_FINISHED(a, b) if (a->getStatus() >= Bundle::STATUS_FINISHED != b->getStatus() >= Bundle::STATUS_FINISHED) return a->getStatus() >= Bundle::STATUS_FINISHED ? 1 : -1;
+#define COMPARE_IS_DOWNLOADED(a, b) if (a->isDownloaded() != b->isDownloaded()) return a->isDownloaded() ? 1 : -1;
 #define COMPARE_TYPE(a, b) if (a->isFileBundle() != b->isFileBundle()) return a->isFileBundle() ? 1 : -1;
 
 	int QueueBundleUtils::compareBundles(const BundlePtr& a, const BundlePtr& b, int aPropertyName) noexcept {
@@ -135,27 +102,16 @@ namespace webserver {
 			
 			if (!a->isFileBundle() && !b->isFileBundle()) {
 				// Directory bundles
-				RLock l(QueueManager::getInstance()->getCS());
-				auto dirsA = QueueManager::getInstance()->bundleQueue.getDirectoryCount(a);
-				auto dirsB = QueueManager::getInstance()->bundleQueue.getDirectoryCount(b);
+				auto contentA = QueueManager::getInstance()->getBundleContent(a);
+				auto contentB = QueueManager::getInstance()->getBundleContent(b);
 
-				if (dirsA != dirsB) {
-					return compare(dirsA, dirsB);
-				}
-
-				auto filesA = a->getQueueItems().size() + a->getFinishedFiles().size();
-				auto filesB = b->getQueueItems().size() + b->getFinishedFiles().size();
-
-				return compare(filesA, filesB);
+				return Util::directoryContentSort(contentA, contentB);
 			}
 
 			return Util::stricmp(Util::getFileExt(a->getTarget()), Util::getFileExt(b->getTarget()));
 		}
 		case PROP_PRIORITY: {
-			COMPARE_FINISHED(a, b);
-			if (a->isFinished() != b->isFinished()) {
-				return a->isFinished() ? 1 : -1;
-			}
+			COMPARE_IS_DOWNLOADED(a, b);
 
 			return compare(static_cast<int>(a->getPriority()), static_cast<int>(b->getPriority()));
 		}
@@ -170,7 +126,7 @@ namespace webserver {
 			);
 		}
 		case PROP_SOURCES: {
-			COMPARE_FINISHED(a, b);
+			COMPARE_IS_DOWNLOADED(a, b);
 
 			auto countsA = QueueManager::getInstance()->getSourceCount(a);
 			auto countsB = QueueManager::getInstance()->getSourceCount(b);
@@ -190,14 +146,10 @@ namespace webserver {
 			case Bundle::STATUS_QUEUED: return "queued";
 			case Bundle::STATUS_RECHECK: return "recheck";
 			case Bundle::STATUS_DOWNLOADED: return "downloaded";
-			case Bundle::STATUS_MOVED: return "moved";
-			case Bundle::STATUS_DOWNLOAD_FAILED: return "download_failed";
-			case Bundle::STATUS_FAILED_MISSING: return "scan_failed_files_missing";
-			case Bundle::STATUS_SHARING_FAILED: return "scan_failed";
-			case Bundle::STATUS_FINISHED: return "finished";
-			case Bundle::STATUS_HASHING: return "hashing";
-			case Bundle::STATUS_HASH_FAILED: return "hash_failed";
-			case Bundle::STATUS_HASHED: return "hashed";
+			case Bundle::STATUS_DOWNLOAD_ERROR: return "download_error";
+			case Bundle::STATUS_VALIDATION_RUNNING: return "completion_validation_running";
+			case Bundle::STATUS_VALIDATION_ERROR: return "completion_validation_error";
+			case Bundle::STATUS_COMPLETED: return "completed";
 			case Bundle::STATUS_SHARED: return "shared";
 		}
 
@@ -215,11 +167,13 @@ namespace webserver {
 
 		case PROP_STATUS:
 		{
-			return{
+			return {
 				{ "id", formatStatusId(aBundle) },
 				{ "failed", aBundle->isFailed() },
-				{ "finished", aBundle->getStatus() >= Bundle::STATUS_MOVED },
-				{ "str", formatDisplayStatus(aBundle) },
+				{ "downloaded", aBundle->isDownloaded() },
+				{ "completed", aBundle->isCompleted() },
+				{ "str", aBundle->getStatusString() },
+				{ "hook_error", Serializer::serializeActionHookError(aBundle->getHookError()) }
 			};
 		}
 
@@ -227,12 +181,9 @@ namespace webserver {
 		{
 			if (aBundle->isFileBundle()) {
 				return Serializer::serializeFileType(aBundle->getTarget());
-			} else {
-				size_t files = 0, folders = 0;
-				QueueManager::getInstance()->getBundleContent(aBundle, files, folders);
-
-				return Serializer::serializeFolderType(static_cast<int>(files), static_cast<int>(folders));
 			}
+
+			return Serializer::serializeFolderType(QueueManager::getInstance()->getBundleContent(aBundle));
 		}
 		case PROP_PRIORITY: {
 			return Serializer::serializePriority(*aBundle.get());

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -41,6 +41,8 @@ namespace webserver {
 			DEFAULT_SESSION_IDLE_TIMEOUT,
 			PING_INTERVAL,
 			PING_TIMEOUT,
+
+			EXTENSIONS_DEBUG_MODE,
 		};
 
 		// Initialized in WebServerManager
@@ -51,12 +53,7 @@ namespace webserver {
 		}
 
 		static ServerSettingItem* getSettingItem(const string& aKey) noexcept {
-			auto p = find_if(settings.begin(), settings.end(), [&](const ServerSettingItem& aItem) { return aItem.name == aKey; });
-			if (p != settings.end()) {
-				return &(*p);
-			}
-
-			return nullptr;
+			return ApiSettingItem::findSettingItem<ServerSettingItem>(settings, aKey);
 		}
 	};
 

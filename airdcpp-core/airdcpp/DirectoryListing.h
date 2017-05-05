@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@
 #include "GetSet.h"
 #include "HintedUser.h"
 #include "MerkleTree.h"
-#include "Pointer.h"
 #include "Priority.h"
 #include "SearchQuery.h"
 #include "TaskQueue.h"
@@ -46,7 +45,7 @@ namespace dcpp {
 class ListLoader;
 typedef uint32_t DirectoryListingToken;
 
-class DirectoryListing : public intrusive_ptr_base<DirectoryListing>, public UserInfoBase, public TrackableDownloadItem,
+class DirectoryListing : public UserInfoBase, public TrackableDownloadItem,
 	public Speaker<DirectoryListingListener>, private TimerManagerListener, 
 	private ClientManagerListener, private ShareManagerListener
 {
@@ -103,7 +102,10 @@ public:
 		Map directories;
 		File::List files;
 
-		static Directory::Ptr create(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool checkDupe = false, const string& aSize = Util::emptyString, time_t aRemoteDate = 0);
+		static Directory::Ptr create(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, 
+			bool checkDupe = false, const DirectoryContentInfo& aContentInfo = DirectoryContentInfo(),
+			const string& aSize = Util::emptyString, time_t aRemoteDate = 0);
+
 		virtual ~Directory();
 
 		size_t getTotalFileCount(bool countAdls) const noexcept;
@@ -117,9 +119,6 @@ public:
 		bool findIncomplete() const noexcept;
 		void search(OrderedStringSet& aResults, SearchQuery& aStrings) const noexcept;
 		void findFiles(const boost::regex& aReg, File::List& aResults) const noexcept;
-		
-		size_t getFileCount() const noexcept { return files.size(); }
-		size_t getFolderCount() const noexcept { return directories.size(); }
 		
 		int64_t getFilesSize() const noexcept;
 
@@ -144,9 +143,19 @@ public:
 			return name;
 		}
 
-	protected:
-		Directory(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool checkDupe, const string& aSize, time_t aRemoteDate);
+		// This function not thread safe as it will go through all complete directories
+		DirectoryContentInfo getContentInfoRecursive(bool aCountAdls) const noexcept;
 
+		// Partial list content info only
+		const DirectoryContentInfo& getContentInfo() const noexcept {
+			return contentInfo;
+		}
+	protected:
+		Directory(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool aCheckDupe, const DirectoryContentInfo& aContentInfo, const string& aSize, time_t aRemoteDate);
+
+		void getContentInfo(size_t& directories_, size_t& files_, bool aCountAdls) const noexcept;
+
+		const DirectoryContentInfo contentInfo;
 		const string name;
 	};
 
@@ -170,8 +179,6 @@ public:
 	int loadPartialXml(const string& aXml, const string& aAdcBase) throw(AbortException);
 
 	optional<DirectoryBundleAddInfo> createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPrio, string& errorMsg_) noexcept;
-
-	bool viewAsText(const File::Ptr& aFile) const noexcept;
 
 	int64_t getTotalListSize(bool adls = false) const noexcept { return root->getTotalSize(adls); }
 	int64_t getDirSize(const string& aDir) const noexcept;
@@ -205,8 +212,6 @@ public:
 	GETSET(bool, matchADL, MatchADL);
 	IGETSET(bool, closing, Closing, false);
 
-	typedef std::function<void(const string& aPath)> DupeOpenF;
-	void addViewNfoTask(const string& aDir, bool aAllowQueueList, DupeOpenF aDupeF = nullptr) noexcept;
 	void addMatchADLTask() noexcept;
 	void addListDiffTask(const string& aFile, bool aOwnList) noexcept;
 
@@ -253,7 +258,7 @@ public:
 
 	void setRead() noexcept;
 
-	void addDirectoryChangeTask(const string& aPath, bool aReload, bool aIsSearchChange = false) noexcept;
+	void addDirectoryChangeTask(const string& aPath, bool aReload, bool aIsSearchChange = false, bool aForceQueue = false) noexcept;
 protected:
 	void onStateChanged() noexcept;
 
@@ -265,7 +270,7 @@ private:
 	Directory::Ptr createBaseDirectory(const string& aPath, time_t aDownloadDate = GET_TIME()) noexcept;
 
 	// Returns false if the directory was not found from the list
-	bool changeDirectory(const string& aPath, bool aReload, bool aIsSearchChange = false) noexcept;
+	bool changeDirectory(const string& aPath, bool aReload, bool aIsSearchChange = false, bool aForceQueue = false) noexcept;
 
 	void setShareProfile(ProfileToken aProfile) noexcept;
 	void setHubUrl(const string& aHubUrl) noexcept;
@@ -291,7 +296,7 @@ private:
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
 
 	// ShareManagerListener
-	void on(ShareManagerListener::DirectoriesRefreshed, uint8_t, const RefreshPathList& aPaths) noexcept;
+	void on(ShareManagerListener::RefreshCompleted, uint8_t, const RefreshPathList& aPaths) noexcept;
 
 	void endSearch(bool timedOut = false) noexcept;
 
@@ -306,7 +311,6 @@ private:
 	void loadPartialImpl(const string& aXml, const string& aBasePath, bool aBackgroundTask, const AsyncF& aCompletionF) throw(Exception, AbortException);
 	void matchAdlImpl() throw(AbortException);
 	void matchQueueImpl() noexcept;
-	void findNfoImpl(const string& aPath, bool aAllowQueueList, DupeOpenF aDupeF) noexcept;
 
 	HintedUser hintedUser;
 	bool read = false;

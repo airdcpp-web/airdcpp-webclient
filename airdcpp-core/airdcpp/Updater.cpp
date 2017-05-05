@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2016 AirDC++ Project
+ * Copyright (C) 2012-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,14 +53,14 @@ namespace dcpp {
 
 int Updater::cleanExtraFiles(const string& aCurPath, const optional<StringSet>& aProtectedFiles) noexcept {
 	int deletedFiles = 0;
-	File::forEachFile(aCurPath, "*", [&](const string& aFileName, bool isDir, int64_t /*aSize*/) {
-		if (!isDir) {
-			auto fullPath = aCurPath + aFileName;
+	File::forEachFile(aCurPath, "*", [&](const FilesystemItem& aInfo) {
+		auto fullPath = aInfo.getPath(aCurPath);
+		if (!aInfo.isDirectory) {
 			if ((!aProtectedFiles || (*aProtectedFiles).find(fullPath) == (*aProtectedFiles).end()) && File::deleteFile(fullPath)) {
 				deletedFiles++;
 			}
 		} else {
-			deletedFiles += cleanExtraFiles(aCurPath + aFileName, aProtectedFiles);
+			deletedFiles += cleanExtraFiles(fullPath, aProtectedFiles);
 		}
 	});
 
@@ -88,24 +88,25 @@ bool Updater::applyUpdaterFiles(const string& aCurTempPath, const string& aCurDe
 	File::ensureDirectory(aCurDestinationPath);
 
 	try {
-		File::forEachFile(aCurTempPath, "*", [&](const string& aFileName, bool isDir, int64_t /*aSize*/) {
-			if (!isDir) {
-				auto destFile = aCurDestinationPath + aFileName;
+		File::forEachFile(aCurTempPath, "*", [&](const FilesystemItem& aInfo) {
+			auto destFilePath = aInfo.getPath(aCurDestinationPath);
+			auto tempFilePath = aInfo.getPath(aCurTempPath);
 
+			if (!aInfo.isDirectory) {
 				try {
-					if (Util::fileExists(destFile)) {
-						File::deleteFile(destFile);
+					if (Util::fileExists(destFilePath)) {
+						File::deleteFile(destFilePath);
 					}
 
-					File::copyFile(aCurTempPath + aFileName, destFile);
-					updatedFiles_.insert(destFile);
+					File::copyFile(tempFilePath, destFilePath);
+					updatedFiles_.insert(destFilePath);
 
-					aLogger.log("Installed file " + destFile);
+					aLogger.log("Installed file " + destFilePath);
 				} catch (const Exception& e) {
-					throw FileException("Failed to copy the file " + destFile + " (" + e.getError() + ")");
+					throw FileException("Failed to copy the file " + destFilePath + " (" + e.getError() + ")");
 				}
 			} else {
-				applyUpdaterFiles(aCurTempPath + aFileName, aCurDestinationPath + aFileName, error_, updatedFiles_, aLogger);
+				applyUpdaterFiles(tempFilePath, destFilePath, error_, updatedFiles_, aLogger);
 			}
 		});
 	} catch (const FileException& e) {
@@ -426,7 +427,7 @@ string Updater::extractUpdater(const string& aUpdaterPath, int aBuildID, const s
 	xml.stepIn();
 	xml.addTag("DestinationPath", dstPath);
 	xml.addTag("SourcePath", srcPath);
-	xml.addTag("ConfigPath", Util::getPath(Util::PATH_GLOBAL_CONFIG));
+	xml.addTag("ConfigPath", Util::getPath(Util::PATH_USER_CONFIG));
 	xml.addTag("UpdaterFile", updaterExeFile);
 	xml.addTag("BuildID", aBuildID);
 	xml.stepOut();
@@ -615,26 +616,28 @@ bool Updater::getUpdateVersionInfo(SimpleXML& xml, string& versionString, int& r
 		StringTokenizer<string> t(xml.getChildAttrib("MinOsVersion"), '.');
 		StringList& l = t.getTokens();
 
-		if (!Util::IsOSVersionOrGreater(Util::toInt(l[0]), Util::toInt(l[1])))
+		if (!Util::IsOSVersionOrGreater(Util::toInt(l[0]), Util::toInt(l[1]))) {
 			continue;
+		}
 
 		xml.stepIn();
 
-		if (xml.findChild("Version")) {
-			versionString = xml.getChildData();
-			xml.resetCurrentChild();
-			if (xml.findChild(UPGRADE_TAG)) {
-				remoteBuild = Util::toInt(xml.getChildAttrib("Build"));
-				string tmp = xml.getChildAttrib("VersionString");
-				if (!tmp.empty())
-					versionString = tmp;
+		if (xml.findChild(UPGRADE_TAG)) {
+			remoteBuild = Util::toInt(xml.getChildAttrib("Build"));
+			string tmp = xml.getChildAttrib("VersionString");
+			if (!tmp.empty()) {
+				versionString = tmp;
 			}
-			xml.resetCurrentChild();
-			return true;
+		} else {
+			dcassert(0);
+			return false;
 		}
-		break;
+
+		xml.resetCurrentChild();
+		return true;
 	}
 
+	dcassert(0);
 	return false;
 }
 

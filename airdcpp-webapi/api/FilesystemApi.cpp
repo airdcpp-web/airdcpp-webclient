@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -29,9 +29,9 @@
 
 namespace webserver {
 	FilesystemApi::FilesystemApi(Session* aSession) : ApiModule(aSession) {
-		METHOD_HANDLER("disk_info", Access::ANY, ApiRequest::METHOD_POST, (), true, FilesystemApi::handleGetDiskInfo);
-		METHOD_HANDLER("list_items", Access::FILESYSTEM_VIEW, ApiRequest::METHOD_POST, (), true, FilesystemApi::handleListItems);
-		METHOD_HANDLER("directory", Access::FILESYSTEM_EDIT, ApiRequest::METHOD_POST, (), true, FilesystemApi::handlePostDirectory);
+		METHOD_HANDLER(Access::ANY,				METHOD_POST, (EXACT_PARAM("disk_info")),	FilesystemApi::handleGetDiskInfo);
+		METHOD_HANDLER(Access::FILESYSTEM_VIEW, METHOD_POST, (EXACT_PARAM("list_items")),	FilesystemApi::handleListItems);
+		METHOD_HANDLER(Access::FILESYSTEM_EDIT, METHOD_POST, (EXACT_PARAM("directory")),	FilesystemApi::handlePostDirectory);
 	}
 
 	FilesystemApi::~FilesystemApi() {
@@ -76,28 +76,13 @@ namespace webserver {
 	json FilesystemApi::serializeDirectoryContent(const string& aPath, bool aDirectoriesOnly) {
 		auto retJson = json::array();
 
-		FileFindIter end;
-		for (FileFindIter i(aPath, "*"); i != end; ++i) {
-			auto fileName = i->getFileName();
-			if (fileName == "." || fileName == "..") {
-				continue;
+		File::forEachFile(aPath, "*", [&](const FilesystemItem& aInfo) {
+			if (aDirectoriesOnly && !aInfo.isDirectory) {
+				return;
 			}
 
-			if (aDirectoriesOnly && !i->isDirectory()) {
-				continue;
-			}
-
-			json item;
-			item["name"] = fileName;
-			if (i->isDirectory()) {
-				item["type"] = Serializer::serializeFolderType(-1, -1);
-			} else {
-				item["type"] = Serializer::serializeFileType(i->getFileName());
-				item["size"] = i->getSize();
-			}
-
-			retJson.push_back(item);
-		}
+			retJson.push_back(Serializer::serializeFilesystemItem(aInfo));
+		});
 
 		return retJson;
 	}
@@ -116,7 +101,7 @@ namespace webserver {
 			return websocketpp::http::status_code::internal_server_error;
 		}
 
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return FilesystemApi::handleGetDiskInfo(ApiRequest& aRequest) {
@@ -127,7 +112,7 @@ namespace webserver {
 
 		json retJson;
 		for (const auto& path : paths) {
-			auto targetInfo = File::getDiskInfo(path, volumes);
+			auto targetInfo = File::getDiskInfo(path, volumes, false);
 
 			retJson.push_back({
 				{ "path", path },

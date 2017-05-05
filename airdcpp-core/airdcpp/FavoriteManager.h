@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include "FavoriteManagerListener.h"
 #include "SettingsManagerListener.h"
 #include "ShareManagerListener.h"
+#include "TimerManagerListener.h"
 
 #include "FavHubGroup.h"
 #include "FavoriteUser.h"
@@ -33,11 +34,8 @@
 
 namespace dcpp {
 
-/**
- * Public hub list, favorites (hub&user). Assumed to be called only by UI thread.
- */
 class FavoriteManager : public Speaker<FavoriteManagerListener>, public Singleton<FavoriteManager>,
-	private SettingsManagerListener, private ClientManagerListener, private ShareManagerListener
+	private SettingsManagerListener, private ClientManagerListener, private ShareManagerListener, private TimerManagerListener
 {
 public:
 // Favorite Users
@@ -47,6 +45,7 @@ public:
 	const FavoriteMap& getFavoriteUsers() const noexcept { return users; }
 
 	void addFavoriteUser(const HintedUser& aUser) noexcept;
+	void addSavedUser(const UserPtr& aUser) noexcept;
 	void removeFavoriteUser(const UserPtr& aUser) noexcept;
 	optional<FavoriteUser> getFavoriteUser(const UserPtr& aUser) const noexcept;
 
@@ -82,18 +81,10 @@ public:
 	bool removeFavoriteDir(const string& aPath) noexcept;
 	bool hasFavoriteDir(const string& aPath) const noexcept;
 	void setFavoriteDirs(const FavoriteDirectoryMap& dirs) noexcept;
+	StringPair getFavoriteDirectory(const string& aPath) const noexcept;
 
 	GroupedDirectoryMap getGroupedFavoriteDirs() const noexcept;
 	FavoriteDirectoryMap getFavoriteDirs() const noexcept;
-// Recent Hubs
-	RecentHubEntryList& getRecentHubs() noexcept { return recentHubs; };
-
-	void addRecent(const RecentHubEntryPtr& aEntry) noexcept;
-	void removeRecent(const RecentHubEntryPtr& aEntry) noexcept;
-	void updateRecent(const RecentHubEntryPtr& aEntry) noexcept;
-
-	RecentHubEntryPtr getRecentHubEntry(const string& aServer) const noexcept;
-	RecentHubEntryList searchRecentHubs(const string& aPattern, size_t aMaxResults) const noexcept;
 
 // User Commands
 	UserCommand addUserCommand(int type, int ctx, Flags::MaskType flags, const string& name, const string& command, const string& to, const string& hub) noexcept;
@@ -109,10 +100,8 @@ public:
 	UserCommand::List getUserCommands(int ctx, const StringList& hub, bool& op) noexcept;
 
 	void load() noexcept;
-	void save() noexcept;
-
-	void clearRecent() noexcept;
-	void saveRecent() const noexcept;
+	void setDirty() { xmlDirty = true; }
+	void shutdown() noexcept;
 
 	bool hasActiveHubs() const noexcept;
 
@@ -121,15 +110,20 @@ private:
 	FavoriteHubEntryList favoriteHubs;
 	FavHubGroups favHubGroups;
 	FavoriteDirectoryMap favoriteDirectories;
-	RecentHubEntryList recentHubs;
 	UserCommand::List userCommands;
 	int lastId = 0;
 
-	FavoriteMap users;
-	
-	/** Used during loading to prevent saving. */
-	bool loading = false;
+	uint64_t lastXmlSave = 0;
+	atomic<bool> xmlDirty{ false };
+	void save() noexcept;
 
+	//Favorite users
+	FavoriteMap users;
+	//Saved users
+	unordered_set<UserPtr, User::Hash> savedUsers;
+
+	FavoriteUser createUser(const UserPtr& aUser, const string& aUrl);
+	
 	friend class Singleton<FavoriteManager>;
 	
 	FavoriteManager();
@@ -137,9 +131,11 @@ private:
 	
 	FavoriteHubEntryList::const_iterator getFavoriteHub(const string& aServer) const noexcept;
 	FavoriteHubEntryList::const_iterator getFavoriteHub(ProfileToken aToken) const noexcept;
-	RecentHubEntryList::const_iterator getRecentHub(const string& aServer) const noexcept;
 
 	int resetProfile(ProfileToken oldProfile, ProfileToken newProfile, bool nmdcOnly) noexcept;
+
+	// TimerManagerListener
+	void on(TimerManagerListener::Second, uint64_t tick) noexcept;
 
 	// ShareManagerListener
 	void on(ShareManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept;
@@ -164,10 +160,9 @@ private:
 	void loadFavoriteDirectories(SimpleXML& aXml);
 	void loadFavoriteUsers(SimpleXML& aXml);
 	void loadUserCommands(SimpleXML& aXml);
-	void loadRecent(SimpleXML& aXml);
 
 	void saveFavoriteHubs(SimpleXML& aXml) const noexcept;
-	void saveFavoriteUsers(SimpleXML& aXml) const noexcept;
+	void saveFavoriteUsers(SimpleXML& aXml) noexcept;
 	void saveFavoriteDirectories(SimpleXML& aXml) const noexcept;
 	void saveUserCommands(SimpleXML& aXml) const noexcept;
 

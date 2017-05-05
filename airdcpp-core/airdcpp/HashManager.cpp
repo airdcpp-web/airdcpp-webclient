@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,9 +32,7 @@
 #include "version.h"
 #include "ZUtils.h"
 
-//#include "BerkeleyDB.h"
 #include "LevelDB.h"
-//#include "HamsterDB.h"
 
 #define FILEINDEX_VERSION 1
 #define HASHDATA_VERSION 1
@@ -284,21 +282,6 @@ void HashManager::HashStore::addFile(const string& aFileLower, const HashedFile&
 	}
 
 	free(buf);
-}
-
-void HashManager::renameFile(const string& aOldPath, const string& aNewPath, const HashedFile& fi) throw(HashException) {
-	return store.renameFile(aOldPath, aNewPath, fi);
-}
-
-void HashManager::HashStore::renameFile(const string& oldPath, const string& newPath, const HashedFile& fi) throw(HashException) {
-	auto oldNameLower = Text::toLower(oldPath);
-	auto newNameLower = Text::toLower(newPath);
-	//HashedFile fi;
-	//if (getFileInfo(oldNameLower, fi)) {
-		removeFile(oldNameLower);
-		addFile(newNameLower, fi);
-		//return true;
-	//}
 }
 
 void HashManager::HashStore::removeFile(const string& aFilePathLower) throw(HashException) {
@@ -1306,7 +1289,7 @@ int HashManager::Hasher::run() {
 
 			WLock l(hcs);
 			if (w.empty()) {
-				//Nothing more to has, delete this hasher
+				//Nothing more to hash, delete this hasher
 				getInstance()->removeHasher(this);
 				break;
 			}

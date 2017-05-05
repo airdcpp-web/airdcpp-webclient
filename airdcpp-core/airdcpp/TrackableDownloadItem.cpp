@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+* Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,10 @@ namespace dcpp {
 		if (hasDownloads()) {
 			DownloadManager::getInstance()->removeListener(this);
 		}
+	}
+
+	bool TrackableDownloadItem::isDownloaded() const noexcept {
+		return getDownloadState() == STATE_DOWNLOADED;
 	}
 
 	TrackableDownloadItem::State TrackableDownloadItem::getDownloadState() const noexcept {

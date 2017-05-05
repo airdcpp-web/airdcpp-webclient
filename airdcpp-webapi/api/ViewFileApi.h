@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 
 #include <airdcpp/ViewFileManagerListener.h>
 
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 
 namespace webserver {
 	class ViewFileApi : public SubscribableApiModule, private ViewFileManagerListener {
@@ -33,19 +33,17 @@ namespace webserver {
 
 		ViewFileApi(Session* aSession);
 		~ViewFileApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		api_return handleGetFiles(ApiRequest& aRequest);
 
 		api_return handleAddFile(ApiRequest& aRequest);
+		api_return handleAddLocalFile(ApiRequest& aRequest);
+		api_return handleGetFile(ApiRequest& aRequest);
 		api_return handleRemoveFile(ApiRequest& aRequest);
 
-		api_return handleGetText(ApiRequest& aRequest);
 		api_return handleSetRead(ApiRequest& aRequest);
 
+		static json serializeDownloadState(const ViewFilePtr& aFile) noexcept;
 		static json serializeFile(const ViewFilePtr& aFile) noexcept;
 		void onViewFileUpdated(const ViewFilePtr& aFile) noexcept;
 

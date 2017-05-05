@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,10 +21,12 @@
 
 #include "AirUtil.h"
 #include "File.h"
+#include "TimerManager.h"
 
 namespace dcpp {
 	ViewFile::ViewFile(const string& aTarget, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile, UpdateF&& aUpdateFunction) noexcept :
-		TrackableDownloadItem(aIsLocalFile), path(aTarget), tth(aTTH), updateFunction(aUpdateFunction), text(aIsText), localFile(aIsLocalFile) {
+		TrackableDownloadItem(aIsLocalFile), path(aTarget), tth(aTTH), timeCreated(GET_TIME()),
+		updateFunction(aUpdateFunction), text(aIsText), localFile(aIsLocalFile) {
 
 	}
 

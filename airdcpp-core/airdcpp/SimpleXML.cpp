@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -215,14 +215,14 @@ string SimpleXML::childToXML() {
 	return tmp; 
 }
 
-void SimpleXML::fromXML(const string& aXML) {
+void SimpleXML::fromXML(const string& aXML, int aFlags) {
 	if(!root.children.empty()) {
 		delete root.children[0];
 		root.children.clear();
 	}
 
 	TagReader t(&root);
-	SimpleXMLReader(&t).parse(aXML);
+	SimpleXMLReader(&t, aFlags).parse(aXML);
 	
 	if(root.children.size() != 1) {
 		throw SimpleXMLException("Invalid XML file, missing or multiple root tags");

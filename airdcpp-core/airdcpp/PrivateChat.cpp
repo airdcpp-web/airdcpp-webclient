@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 
 #include "ClientManager.h"
 #include "ConnectionManager.h"
+#include "CryptoManager.h"
 #include "LogManager.h"
 #include "Message.h"
 
@@ -61,13 +62,23 @@ void PrivateChat::checkIgnored() noexcept {
 	}
 }
 
+bool PrivateChat::allowCCPM() {
+	if (!CryptoManager::getInstance()->TLSOk())
+		return false;
+
+	if (!getUser()->isSet(User::CCPM) || !getUser()->isSet(User::TLS))
+		return false;
+
+	return true;
+}
+
 void PrivateChat::checkCCPMHubBlocked() noexcept {
 	if (replyTo.user->isSet(User::NMDC)) {
 		return;
 	}
 
 	// Auto connecting?
-	if (ccReady() || (getUser()->isSet(User::CCPM) && SETTING(ALWAYS_CCPM))) {
+	if (ccReady() || (allowCCPM() && SETTING(ALWAYS_CCPM))) {
 		return;
 	}
 
@@ -80,6 +91,10 @@ void PrivateChat::checkCCPMHubBlocked() noexcept {
 	if (ou->supportsCCPM()) {
 		return;
 	}
+
+	//Encryption disabled...
+	if (!getUser()->isSet(User::TLS) || !CryptoManager::getInstance()->TLSOk())
+		return;
 
 	// Only report if the client is known to support CCPM
 	auto app = ou->getIdentity().getApplication();
@@ -128,13 +143,12 @@ void PrivateChat::CCPMDisconnected() {
 	}
 }
 
-bool PrivateChat::sendMessage(const string& msg, string& error_, bool thirdPerson) {
+bool PrivateChat::sendMessage(const string& aMessage, string& error_, bool aThirdPerson) {
 	if (ccReady()) {
-		uc->pm(msg, thirdPerson);
-		return true;
+		return uc->pm(aMessage, error_, aThirdPerson);
 	}
 
-	return ClientManager::getInstance()->privateMessage(replyTo, msg, error_, thirdPerson);
+	return ClientManager::getInstance()->privateMessage(replyTo, aMessage, error_, aThirdPerson);
 }
 
 void PrivateChat::closeCC(bool now, bool noAutoConnect) {
@@ -247,7 +261,7 @@ void PrivateChat::startCC() {
 }
 
 void PrivateChat::checkAlwaysCCPM() {
-	if (!SETTING(ALWAYS_CCPM) || !getUser()->isSet(User::CCPM))
+	if (!SETTING(ALWAYS_CCPM) || !allowCCPM())
 		return;
 
 	if (allowAutoCCPM && ccpmState == DISCONNECTED) {
@@ -267,11 +281,16 @@ void PrivateChat::checkCCPMTimeout() {
 }
 
 string PrivateChat::getLastCCPMError() {
-	if (!replyTo.user->isSet(User::CCPM)) {
+
+	if (!allowCCPM()) {
 		if (!replyTo.user->isOnline()) {
 			return STRING(USER_OFFLINE);
 		} else if (replyTo.user->isNMDC()) {
 			return STRING(CCPM_NOT_SUPPORTED_NMDC);
+		} else if (!replyTo.user->isSet(User::TLS)) {
+			return STRING(SOURCE_NO_ENCRYPTION);
+		} else if (!CryptoManager::getInstance()->TLSOk()) {
+				return STRING(ENCRYPTION_DISABLED);
 		} else {
 			return STRING(CCPM_NOT_SUPPORTED);
 		}

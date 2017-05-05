@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -105,7 +105,7 @@ public:
 
 	AutoSearch(bool aEnabled, const string& aSearchString, const string& aFileType, ActionType aAction, bool aRemove, const string& aTarget,
 		StringMatch::Method aMatcherType, const string& aMatcherString, const string& aUserMatch, time_t aExpireTime, bool aCheckAlreadyQueued,
-		bool aCheckAlreadyShared, bool matchFullPath, const string& aExcluded, int aSearhInterval, ItemType aType, bool aUserMatcherExclude, ProfileToken aToken = 0) noexcept;
+		bool aCheckAlreadyShared, bool matchFullPath, const string& aExcluded, ItemType aType, bool aUserMatcherExclude, ProfileToken aToken = 0) noexcept;
 
 	AutoSearch() noexcept;
 	~AutoSearch() noexcept;
@@ -130,7 +130,6 @@ public:
 	IGETSET(bool, checkAlreadyShared, CheckAlreadyShared, true);
 	IGETSET(bool, userMatcherExclude, UserMatcherExclude, false);
 
-	IGETSET(int, searchInterval, SearchInterval, 180);
 	IGETSET(bool, manualSearch, ManualSearch, false);
 	IGETSET(Status, status, Status, STATUS_SEARCHING);
 
@@ -162,12 +161,10 @@ public:
 
 	Priority calculatePriority() const noexcept {
 		auto prio = Priority::LOW;
-		if ((status == STATUS_FAILED_MISSING) && getLastSearch() == 0) 
+		if (status == STATUS_FAILED_MISSING)
 			prio = Priority::HIGHEST;
-		else if (status == STATUS_FAILED_MISSING)
+		else if (getLastSearch() == 0)
 			prio = Priority::HIGH;
-		else if( getLastSearch() == 0)
-			prio = Priority::NORMAL;
 
 		return prio;
 	}
@@ -176,8 +173,6 @@ public:
 	bool checkRecent();
 
 	time_t nextAllowedSearch() const noexcept;
-	//Get the time for next possible search
-	time_t getNextSearchTime() const noexcept;
 	bool allowNewItems() const noexcept;
 	bool allowAutoSearch() const noexcept;
 	void updatePattern() noexcept;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 #include "stdinc.h"
 
+#include "ActionHook.h"
 #include "AirUtil.h"
 #include "Bundle.h"
 #include "ClientManager.h"
@@ -41,18 +42,22 @@ using boost::range::find_if;
 using boost::accumulate;
 using boost::range::copy;
 	
-Bundle::Bundle(QueueItemPtr& qi, time_t aFileDate, QueueToken aToken /*0*/, bool aDirty /*true*/) noexcept :
-	Bundle(qi->getTarget(), qi->getTimeAdded(), qi->getPriority(), aFileDate, aToken, aDirty, true) {
+BundlePtr Bundle::createFileBundle(QueueItemPtr& qi, time_t aFileDate, QueueToken aToken /*0*/, bool aDirty /*true*/) noexcept {
 
 
-	if (qi->isFinished()) {
-		addFinishedItem(qi, false);
+	auto bundle = make_shared<Bundle>(qi->getTarget(), qi->getTimeAdded(), qi->getPriority(), aFileDate, aToken, aDirty, true);
+	qi->setBundle(bundle);
+
+	if (qi->isDownloaded()) {
+		bundle->addFinishedItem(qi, false);
 	} else {
-		finishedSegments = qi->getDownloadedSegments();
-		currentDownloaded = qi->getDownloadedBytes();
-		setAutoPriority(qi->getAutoPriority());
-		addQueue(qi);
+		bundle->addFinishedSegment(qi->getDownloadedSegments());
+		bundle->setDownloadedBytes(qi->getDownloadedBytes());
+		bundle->setAutoPriority(qi->getAutoPriority());
+		bundle->addQueue(qi);
 	}
+
+	return bundle;
 }
 
 Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aBundleDate /*0*/, QueueToken aToken /*0*/, bool aDirty /*true*/, bool aIsFileBundle /*false*/) noexcept :
@@ -86,6 +91,33 @@ Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t 
 
 Bundle::~Bundle() noexcept {
 	ConnectionManager::getInstance()->tokens.removeToken(getStringToken());
+	dcdebug("Bundle %s was removed\n", getName().c_str());
+}
+
+string Bundle::getStatusString() const noexcept {
+	switch (getStatus()) {
+		case Bundle::STATUS_NEW:
+		case Bundle::STATUS_QUEUED: {
+			auto percentage = getPercentage(getDownloadedBytes());
+			if (isPausedPrio()) {
+				return STRING_F(PAUSED_PCT, percentage);
+			}
+
+			if (getSpeed() > 0) {
+				return STRING_F(RUNNING_PCT, percentage);
+			} else {
+				return STRING_F(WAITING_PCT, percentage);
+			}
+		}
+		case Bundle::STATUS_RECHECK: return STRING(RECHECKING);
+		case Bundle::STATUS_DOWNLOADED: return STRING(DOWNLOADED);
+		case Bundle::STATUS_VALIDATION_RUNNING: return STRING(VALIDATING_CONTENT);
+		case Bundle::STATUS_DOWNLOAD_ERROR:
+		case Bundle::STATUS_VALIDATION_ERROR: return getError();
+		case Bundle::STATUS_COMPLETED: return STRING(FINISHED);
+		case Bundle::STATUS_SHARED: return STRING(SHARED);
+		default: return Util::emptyString;
+	}
 }
 
 void Bundle::increaseSize(int64_t aSize) noexcept {
@@ -101,9 +133,22 @@ bool Bundle::checkRecent() noexcept {
 	return recent;
 }
 
-bool Bundle::allowHash() const noexcept {
-	return status != STATUS_HASHING && queueItems.empty() && find_if(finishedFiles, [](const QueueItemPtr& q) { 
-		return !q->isSet(QueueItem::FLAG_MOVED); }) == finishedFiles.end();
+bool Bundle::filesCompleted() const noexcept {
+	return queueItems.empty() && find_if(finishedFiles, [](const QueueItemPtr& q) { 
+		return !q->isCompleted(); }) == finishedFiles.end();
+}
+
+bool Bundle::isDownloaded() const noexcept { 
+	return status >= STATUS_DOWNLOADED; 
+}
+
+bool Bundle::isCompleted() const noexcept {
+	return status >= STATUS_COMPLETED;
+}
+
+void Bundle::setHookError(const ActionHookRejectionPtr& aError) noexcept {
+	error = ActionHookRejection::formatError(aError);
+	hookError = aError;
 }
 
 void Bundle::setDownloadedBytes(int64_t aSize) noexcept {
@@ -198,17 +243,20 @@ void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
 	}
 }
 
+QueueItemList Bundle::getFailedItems() const noexcept {
+	QueueItemList ret;
+	copy_if(finishedFiles.begin(), finishedFiles.end(), back_inserter(ret), [this](const QueueItemPtr& q) { return q->getStatus() == QueueItem::STATUS_VALIDATION_ERROR; });
+	return ret;
+}
+
 void Bundle::addFinishedItem(QueueItemPtr& qi, bool aFinished) noexcept {
-	dcassert(qi->isSet(QueueItem::FLAG_FINISHED) && qi->getTimeFinished() > 0);
+	dcassert(qi->isDownloaded() && qi->getTimeFinished() > 0);
 
 	finishedFiles.push_back(qi);
 	if (!aFinished) {
-		qi->setFlag(QueueItem::FLAG_MOVED);
-		qi->setBundle(this);
 		increaseSize(qi->getSize());
 		addFinishedSegment(qi->getSize());
 	}
-	qi->setFlag(QueueItem::FLAG_FINISHED);
 }
 
 void Bundle::removeFinishedItem(QueueItemPtr& aQI) noexcept {
@@ -225,23 +273,22 @@ void Bundle::removeFinishedItem(QueueItemPtr& aQI) noexcept {
 }
 
 void Bundle::addQueue(QueueItemPtr& qi) noexcept {
-	if (qi->isFinished()) {
+	if (qi->isDownloaded()) {
 		addFinishedItem(qi, false);
 		return;
 	}
 
 	dcassert(qi->getTimeFinished() == 0);
-	dcassert(!qi->isSet(QueueItem::FLAG_FINISHED) && !qi->isSet(QueueItem::FLAG_MOVED));
+	dcassert(!qi->isCompleted() && !qi->segmentsDone());
 	dcassert(find(queueItems, qi) == queueItems.end());
 
-	qi->setBundle(this);
 	queueItems.push_back(qi);
 	increaseSize(qi->getSize());
 	addFinishedSegment(qi->getDownloadedSegments());
 }
 
 void Bundle::removeQueue(QueueItemPtr& aQI, bool aFileCompleted) noexcept {
-	if (!aFileCompleted && aQI->isSet(QueueItem::FLAG_FINISHED)) {
+	if (!aFileCompleted && aQI->isDownloaded()) {
 		removeFinishedItem(aQI);
 		return;
 	}
@@ -274,12 +321,12 @@ bool Bundle::isBadSource(const UserPtr& aUser) const noexcept  {
 	return find(badSources, aUser) != badSources.end();
 }
 
-void Bundle::addUserQueue(QueueItemPtr& qi) noexcept {
+void Bundle::addUserQueue(const QueueItemPtr& qi) noexcept {
 	for(const auto& s: qi->getSources())
 		addUserQueue(qi, s.getUser());
 }
 
-bool Bundle::addUserQueue(QueueItemPtr& qi, const HintedUser& aUser, bool isBad /*false*/) noexcept {
+bool Bundle::addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool isBad /*false*/) noexcept {
 	auto& l = userQueue[static_cast<int>(qi->getPriority())][aUser.user];
 	dcassert(find(l, qi) == l.end());
 
@@ -374,8 +421,12 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const noexcept {
 	}
 }
 
+bool Bundle::isFailedStatus(Status aStatus) noexcept {
+	return aStatus == STATUS_VALIDATION_ERROR || aStatus == STATUS_DOWNLOAD_ERROR;
+}
+
 bool Bundle::isFailed() const noexcept {
-	return status == STATUS_SHARING_FAILED || status == STATUS_FAILED_MISSING || status == STATUS_HASH_FAILED || status == STATUS_DOWNLOAD_FAILED;
+	return isFailedStatus(status);
 }
 
 void Bundle::rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept {

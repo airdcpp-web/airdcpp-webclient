@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -49,15 +49,5 @@ namespace webserver {
 		}
 
 		return ret;
-	}
-
-	void JsonUtil::ensureType(const string& aFieldName, const json& aNew, const json& aExisting) {
-		if (aExisting.is_number()) {
-			if (!aNew.is_number()) {
-				throwError(aFieldName, ERROR_INVALID, "The new value must be a number");
-			}
-		} else if (aNew.type() != aExisting.type()) {
-			throwError(aFieldName, ERROR_INVALID, "Type of the new value doesn't match with the existing type");
-		}
 	}
 }

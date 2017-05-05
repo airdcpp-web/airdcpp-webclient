@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -27,24 +27,18 @@
 #include <airdcpp/ShareManager.h>
 
 namespace webserver {
-	ShareRootApi::ShareRootApi(Session* aSession) : SubscribableApiModule(aSession, Access::SETTINGS_VIEW),
+	ShareRootApi::ShareRootApi(Session* aSession) : 
+		SubscribableApiModule(aSession, Access::SETTINGS_VIEW),
+		roots(ShareManager::getInstance()->getRootInfos()),
 		rootView("share_root_view", this, ShareUtils::propertyHandler, std::bind(&ShareRootApi::getRoots, this)),
 		timer(getTimer([this] { onTimer(); }, 5000)) {
 
-		// Maintain the view item listing only when it's needed
-		rootView.setActiveStateChangeHandler([&](bool aActive) {
-			WLock l(cs);
-			if (aActive) {
-				roots = ShareManager::getInstance()->getRootInfos();
-			} else {
-				roots.clear();
-			}
-		});
+		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,		(),				ShareRootApi::handleGetRoots);
 
-		METHOD_HANDLER("roots", Access::SETTINGS_VIEW, ApiRequest::METHOD_GET, (), false, ShareRootApi::handleGetRoots);
-		METHOD_HANDLER("root", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("add")), true, ShareRootApi::handleAddRoot);
-		METHOD_HANDLER("root", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("update")), true, ShareRootApi::handleUpdateRoot);
-		METHOD_HANDLER("root", Access::SETTINGS_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("remove")), true, ShareRootApi::handleRemoveRoot);
+		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,		(),				ShareRootApi::handleAddRoot);
+		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,		(TTH_PARAM),	ShareRootApi::handleGetRoot);
+		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_PATCH,		(TTH_PARAM),	ShareRootApi::handleUpdateRoot);
+		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_DELETE,	(TTH_PARAM),	ShareRootApi::handleRemoveRoot);
 
 		createSubscription("share_root_created");
 		createSubscription("share_root_updated");
@@ -64,6 +58,12 @@ namespace webserver {
 	ShareDirectoryInfoList ShareRootApi::getRoots() const noexcept {
 		RLock l(cs);
 		return roots;
+	}
+
+	api_return ShareRootApi::handleGetRoot(ApiRequest& aRequest) {
+		auto info = getRoot(aRequest);
+		aRequest.setResponseBody(Serializer::serializeItem(info, ShareUtils::propertyHandler));
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return ShareRootApi::handleGetRoots(ApiRequest& aRequest) {
@@ -93,44 +93,28 @@ namespace webserver {
 		parseRoot(info, reqJson, true);
 
 		ShareManager::getInstance()->addRootDirectory(info);
+
+		aRequest.setResponseBody(Serializer::serializeItem(info, ShareUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return ShareRootApi::handleUpdateRoot(ApiRequest& aRequest) {
-		const auto& reqJson = aRequest.getRequestBody();
+		auto info = getRoot(aRequest);
 
-		auto path = JsonUtil::getField<string>("path", reqJson, false);
-
-		auto info = ShareManager::getInstance()->getRootInfo(path);
-		if (!info) {
-			aRequest.setResponseErrorStr("Path not found");
-			return websocketpp::http::status_code::not_found;
-		}
-
-		parseRoot(info, reqJson, false);
-
+		parseRoot(info, aRequest.getRequestBody(), false);
 		ShareManager::getInstance()->updateRootDirectory(info);
+
+		aRequest.setResponseBody(Serializer::serializeItem(info, ShareUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return ShareRootApi::handleRemoveRoot(ApiRequest& aRequest) {
-		const auto& reqJson = aRequest.getRequestBody();
-
-		auto path = JsonUtil::getField<string>("path", reqJson, false);
-		if (!ShareManager::getInstance()->removeRootDirectory(path)) {
-			aRequest.setResponseErrorStr("Path not found");
-			return websocketpp::http::status_code::not_found;
-		}
-
-
-		return websocketpp::http::status_code::ok;
+		auto info = getRoot(aRequest);
+		ShareManager::getInstance()->removeRootDirectory(info->path);
+		return websocketpp::http::status_code::no_content;
 	}
 
 	void ShareRootApi::on(ShareManagerListener::RootCreated, const string& aPath) noexcept {
-		if (!subscriptionActive("share_root_created") && !rootView.isActive()) {
-			return;
-		}
-
 		auto info = ShareManager::getInstance()->getRootInfo(aPath);
 
 		{
@@ -146,70 +130,106 @@ namespace webserver {
 	}
 
 	void ShareRootApi::on(ShareManagerListener::RootUpdated, const string& aPath) noexcept {
-		if (!subscriptionActive("share_root_updated") && !rootView.isActive()) {
-			return;
-		}
+		onRootUpdated(aPath, toPropertyIdSet(ShareUtils::properties));
+	}
 
+	void ShareRootApi::on(ShareManagerListener::RootRefreshState, const string& aPath) noexcept {
+		onRootUpdated(aPath, { ShareUtils::PROP_LAST_REFRESH_TIME, ShareUtils::PROP_SIZE, ShareUtils::PROP_STATUS });
+	}
+
+	void ShareRootApi::onRootUpdated(const string& aPath, PropertyIdSet&& aUpdatedProperties) noexcept {
 		auto info = ShareManager::getInstance()->getRootInfo(aPath);
 		if (!info) {
 			dcassert(0);
 			return;
 		}
 
-		if (rootView.isActive()) {
-			RLock l(cs);
-			auto i = find_if(roots.begin(), roots.end(), ShareDirectoryInfo::PathCompare(aPath));
-			if (i == roots.end()) {
-				return;
-			}
-
-			// We need to use the same pointer because of listview
-			(*i)->merge(info);
-			info = *i;
+		auto localInfo = findRoot(aPath);
+		if (!localInfo) {
+			dcassert(0);
+			return;
 		}
 
-		onRootUpdated(info, toPropertyIdSet(ShareUtils::properties));
+		localInfo->merge(info);
+		info = localInfo;  // We need to use the same pointer because of listview
+
+		onRootUpdated(localInfo, std::move(aUpdatedProperties));
 	}
+
 
 	void ShareRootApi::onRootUpdated(const ShareDirectoryInfoPtr& aInfo, PropertyIdSet&& aUpdatedProperties) noexcept {
 		maybeSend("share_root_updated", [&] { 
-			return Serializer::serializeItemProperties(aInfo, aUpdatedProperties, ShareUtils::propertyHandler);
+			// Always serialize the full item
+			return Serializer::serializeItem(aInfo, ShareUtils::propertyHandler);
 		});
 
+		//dcassert(rootView.hasSourceItem(aInfo));
 		rootView.onItemUpdated(aInfo, aUpdatedProperties);
 	}
 
 	void ShareRootApi::on(ShareManagerListener::RootRemoved, const string& aPath) noexcept {
-		if (rootView.isActive()) {
+		ShareDirectoryInfoPtr info = nullptr;
+		if (!rootView.isActive() && !subscriptionActive("share_root_removed")) {
+			return;
+		}
+
+		auto root = findRoot(aPath);
+		if (!root) {
+			dcassert(0);
+			return;
+		}
+
+		rootView.onItemRemoved(root);
+
+		{
 			WLock l(cs);
-			auto i = find_if(roots.begin(), roots.end(), ShareDirectoryInfo::PathCompare(aPath));
-			if (i != roots.end()) {
-				rootView.onItemRemoved(*i);
-				roots.erase(i);
-			} else {
-				dcassert(0);
-			}
+			roots.erase(remove(roots.begin(), roots.end(), root), roots.end());
 		}
 
 		maybeSend("share_root_removed", [&] {
-			return json(
-				{ "path", aPath }
-			);
+			return Serializer::serializeItem(info, ShareUtils::propertyHandler);
 		});
 	}
 
+	ShareDirectoryInfoPtr ShareRootApi::getRoot(const ApiRequest& aRequest) {
+		RLock l(cs);
+		auto i = boost::find_if(roots, ShareDirectoryInfo::IdCompare(aRequest.getTTHParam()));
+		if (i == roots.end()) {
+			throw RequestException(websocketpp::http::status_code::not_found, "Root not found");
+		}
+
+		return *i;
+	}
+
+	ShareDirectoryInfoPtr ShareRootApi::findRoot(const string& aPath) noexcept {
+		RLock l(cs);
+		auto i = boost::find_if(roots, ShareDirectoryInfo::PathCompare(aPath));
+		if (i == roots.end()) {
+			return nullptr;
+		}
+
+		return *i;
+	}
+
 	void ShareRootApi::parseRoot(ShareDirectoryInfoPtr& aInfo, const json& j, bool aIsNew) {
-		auto virtualName = JsonUtil::getOptionalField<string>("virtual_name", j, false, aIsNew);
+		auto virtualName = JsonUtil::getOptionalField<string>("virtual_name", j);
 		if (virtualName) {
 			aInfo->virtualName = *virtualName;
 		}
 
-		auto profiles = JsonUtil::getOptionalField<ProfileTokenSet>("profiles", j, false, aIsNew);
+		auto profiles = JsonUtil::getOptionalField<ProfileTokenSet>("profiles", j);
 		if (profiles) {
 			// Only validate added profiles
 			ProfileTokenSet diff;
 
 			auto newProfiles = *profiles;
+			for (const auto& p : newProfiles) {
+				if (!ShareManager::getInstance()->getShareProfile(p)) {
+					JsonUtil::throwError("profiles", JsonUtil::ERROR_INVALID, "Share profile " +  Util::toString(p)  + " was not found");
+				}
+			}
+
+
 			std::set_difference(newProfiles.begin(), newProfiles.end(),
 				aInfo->profiles.begin(), aInfo->profiles.end(), std::inserter(diff, diff.begin()));
 
@@ -222,7 +242,7 @@ namespace webserver {
 			aInfo->profiles = newProfiles;
 		}
 
-		auto incoming = JsonUtil::getOptionalField<bool>("incoming", j, false, false);
+		auto incoming = JsonUtil::getOptionalField<bool>("incoming", j);
 		if (incoming) {
 			aInfo->incoming = *incoming;
 		}
@@ -239,7 +259,7 @@ namespace webserver {
 			}
 
 			for (const auto& p : hashedPaths) {
-				auto i = find_if(roots.begin(), roots.end(), [&](const ShareDirectoryInfoPtr& aInfo) {
+				auto i = boost::find_if(roots, [&](const ShareDirectoryInfoPtr& aInfo) {
 					return AirUtil::isParentOrExactLocal(aInfo->path, p);
 				});
 
@@ -265,11 +285,7 @@ namespace webserver {
 		}
 	}
 
-	void ShareRootApi::on(HashManagerListener::FileHashed, const string& aFilePath, HashedFile& aFileInfo) noexcept {
-		if (!rootView.isActive() && !subscriptionActive("share_root_updated")) {
-			return;
-		}
-
+	void ShareRootApi::on(HashManagerListener::FileHashed, const string& aFilePath, HashedFile&) noexcept {
 		WLock l(cs);
 		hashedPaths.insert(Util::getFilePath(aFilePath));
 	}

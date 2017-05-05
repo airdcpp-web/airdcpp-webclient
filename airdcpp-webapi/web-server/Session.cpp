@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include <web-server/ApiRequest.h>
 
 #include <api/ConnectivityApi.h>
+#include <api/ExtensionApi.h>
 #include <api/EventApi.h>
 #include <api/FavoriteDirectoryApi.h>
 #include <api/FavoriteHubApi.h>
@@ -31,7 +32,6 @@
 #include <api/HubApi.h>
 #include <api/PrivateChatApi.h>
 #include <api/QueueApi.h>
-#include <api/RecentHubApi.h>
 #include <api/SearchApi.h>
 #include <api/SessionApi.h>
 #include <api/SettingApi.h>
@@ -50,13 +50,14 @@
 namespace webserver {
 #define ADD_MODULE(name, type) (apiHandlers.emplace(name, LazyModuleWrapper([this] { return unique_ptr<type>(new type(this)); })))
 
-	Session::Session(WebUserPtr& aUser, const string& aToken, bool aIsSecure, WebServerManager* aServer, uint64_t maxInactivityMinutes, bool aIsUserSession, const string& aIP) :
+	Session::Session(const WebUserPtr& aUser, const string& aToken, SessionType aSessionType, WebServerManager* aServer, uint64_t maxInactivityMinutes, const string& aIP) :
 		id(Util::rand()), user(aUser), token(aToken), started(GET_TICK()), 
-		lastActivity(GET_TICK()), secure(aIsSecure), server(aServer), 
-		maxInactivity(maxInactivityMinutes*1000*60), userSession(aIsUserSession),
+		lastActivity(GET_TICK()), sessionType(aSessionType), server(aServer),
+		maxInactivity(maxInactivityMinutes*1000*60),
 		ip(aIP) {
 
 		ADD_MODULE("connectivity", ConnectivityApi);
+		ADD_MODULE("extensions", ExtensionApi);
 		ADD_MODULE("events", EventApi);
 		ADD_MODULE("favorite_directories", FavoriteDirectoryApi);
 		ADD_MODULE("favorite_hubs", FavoriteHubApi);
@@ -67,9 +68,8 @@ namespace webserver {
 		ADD_MODULE("hubs", HubApi);
 		ADD_MODULE("private_chat", PrivateChatApi);
 		ADD_MODULE("queue", QueueApi);
-		ADD_MODULE("recent_hubs", RecentHubApi);
 		ADD_MODULE("search", SearchApi);
-		ADD_MODULE("session", SessionApi);
+		ADD_MODULE("sessions", SessionApi);
 		ADD_MODULE("settings", SettingApi);
 		ADD_MODULE("share", ShareApi);
 		ADD_MODULE("share_profiles", ShareProfileApi);
@@ -86,23 +86,19 @@ namespace webserver {
 	}
 
 	ApiModule* Session::getModule(const string& aModule) {
+		Lock l(cs); // Avoid races when modules are being initialized by LazyModuleWrapper
 		auto h = apiHandlers.find(aModule);
 		return h != apiHandlers.end() ? h->second.get() : nullptr;
 	}
 
 	websocketpp::http::status_code::value Session::handleRequest(ApiRequest& aRequest) {
-		auto h = apiHandlers.find(aRequest.getApiModule());
-		if (h != apiHandlers.end()) {
-			if (aRequest.getApiVersion() != h->second->getVersion()) {
-				aRequest.setResponseErrorStr("Invalid API version");
-				return websocketpp::http::status_code::precondition_failed;
-			}
-
-			return h->second->handleRequest(aRequest);
+		auto module = getModule(aRequest.getApiModule());
+		if (!module) {
+			aRequest.setResponseErrorStr("Section not found");
+			return websocketpp::http::status_code::not_found;
 		}
 
-		aRequest.setResponseErrorStr("Section not found");
-		return websocketpp::http::status_code::not_found;
+		return module->handleRequest(aRequest);
 	}
 
 	void Session::onSocketConnected(const WebSocketPtr& aSocket) noexcept {

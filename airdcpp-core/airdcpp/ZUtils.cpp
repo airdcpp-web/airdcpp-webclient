@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ const double ZFilter::MIN_COMPRESSION_LEVEL = 0.9;
 ZFilter::ZFilter() : totalIn(0), totalOut(0), compressing(true) {
 	memset(&zs, 0, sizeof(zs));
 
-	if(deflateInit(&zs, 3) != Z_OK) {
+	if(deflateInit(&zs, SETTING(MAX_COMPRESSION)) != Z_OK) {
 		throw Exception(STRING(COMPRESSION_ERROR));
 	}
 }
@@ -54,7 +54,8 @@ bool ZFilter::operator()(const void* in, size_t& insize, void* out, size_t& outs
 	if(compressing && insize > 0 && outsize > 16 && (totalIn > (64*1024)) && ((static_cast<double>(totalOut) / totalIn) > 0.95)) {
 		zs.avail_in = 0;
 		zs.avail_out = outsize;
-		if(deflateParams(&zs, 0, Z_DEFAULT_STRATEGY) != Z_OK) {
+		auto err = ::deflateParams(&zs, 0, Z_DEFAULT_STRATEGY);
+		if (err == Z_STREAM_ERROR) {
 			throw Exception(STRING(COMPRESSION_ERROR));
 		}
 		zs.avail_in = insize;
@@ -62,7 +63,7 @@ bool ZFilter::operator()(const void* in, size_t& insize, void* out, size_t& outs
 		dcdebug("Dynamically disabled compression");
 
 		// Check if we ate all space already...
-		if(zs.avail_out == 0) {
+		if (zs.avail_out == 0) {
 			outsize = outsize - zs.avail_out;
 			insize = insize - zs.avail_in;
 			totalOut += outsize;

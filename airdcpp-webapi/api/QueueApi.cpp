@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -26,59 +26,108 @@
 
 #include <airdcpp/QueueManager.h>
 #include <airdcpp/DownloadManager.h>
+#include <airdcpp/SearchManager.h>
 
 #include <boost/range/algorithm/copy.hpp>
 
 namespace webserver {
-	QueueApi::QueueApi(Session* aSession) : SubscribableApiModule(aSession, Access::QUEUE_VIEW),
-			bundleView("bundle_view", this, QueueBundleUtils::propertyHandler, getBundleList), fileView("queue_file_view", this, QueueFileUtils::propertyHandler, getFileList) {
+#define SEGMENT_START "segment_start"
+#define SEGMENT_SIZE "segment_size"
+
+	QueueApi::QueueApi(Session* aSession) : HookApiModule(aSession, Access::QUEUE_VIEW, nullptr, Access::QUEUE_EDIT),
+			bundleView("queue_bundle_view", this, QueueBundleUtils::propertyHandler, getBundleList), fileView("queue_file_view", this, QueueFileUtils::propertyHandler, getFileList) {
 
 		QueueManager::getInstance()->addListener(this);
 		DownloadManager::getInstance()->addListener(this);
 
-		createSubscription("bundle_added");
-		createSubscription("bundle_removed");
-		createSubscription("bundle_updated");
+		createHook("queue_file_finished_hook", [this](const string& aId, const string& aName) {
+			return QueueManager::getInstance()->fileCompletionHook.addSubscriber(aId, aName, HOOK_HANDLER(QueueApi::fileCompletionHook));
+		}, [this](const string& aId) {
+			QueueManager::getInstance()->fileCompletionHook.removeSubscriber(aId);
+		});
 
-		// These are included in bundle_updated events as well
-		createSubscription("bundle_tick");
-		createSubscription("bundle_content");
-		createSubscription("bundle_priority");
-		createSubscription("bundle_status");
-		createSubscription("bundle_sources");
+		createHook("queue_bundle_finished_hook", [this](const string& aId, const string& aName) {
+			return QueueManager::getInstance()->bundleCompletionHook.addSubscriber(aId, aName, HOOK_HANDLER(QueueApi::bundleCompletionHook));
+		}, [this](const string& aId) {
+			QueueManager::getInstance()->bundleCompletionHook.removeSubscriber(aId);
+		});
 
-		createSubscription("file_added");
-		createSubscription("file_removed");
-		createSubscription("file_updated");
+		createSubscription("queue_bundle_added");
+		createSubscription("queue_bundle_removed");
+		createSubscription("queue_bundle_updated");
 
-		METHOD_HANDLER("bundles", Access::QUEUE_VIEW, ApiRequest::METHOD_GET, (NUM_PARAM, NUM_PARAM), false, QueueApi::handleGetBundles);
-		METHOD_HANDLER("bundles", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("remove_finished")), false, QueueApi::handleRemoveFinishedBundles);
-		METHOD_HANDLER("bundles", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("priority")), true, QueueApi::handleBundlePriorities);
+		// These are included in queue_bundle_updated events as well
+		createSubscription("queue_bundle_tick");
+		createSubscription("queue_bundle_content");
+		createSubscription("queue_bundle_priority");
+		createSubscription("queue_bundle_status");
+		createSubscription("queue_bundle_sources");
 
-		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("file")), true, QueueApi::handleAddFileBundle);
-		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (EXACT_PARAM("directory")), true, QueueApi::handleAddDirectoryBundle);
+		createSubscription("queue_file_added");
+		createSubscription("queue_file_removed");
+		createSubscription("queue_file_updated");
 
-		METHOD_HANDLER("bundle", Access::QUEUE_VIEW, ApiRequest::METHOD_GET, (TOKEN_PARAM, EXACT_PARAM("sources")), false, QueueApi::handleGetBundleSources);
-		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_DELETE, (TOKEN_PARAM, EXACT_PARAM("source"), CID_PARAM), false, QueueApi::handleRemoveBundleSource);
+		// These are included in queue_file_updated events as well
+		createSubscription("queue_file_priority");
+		createSubscription("queue_file_status");
+		createSubscription("queue_file_sources");
+		createSubscription("queue_file_tick");
 
-		METHOD_HANDLER("bundle", Access::QUEUE_VIEW, ApiRequest::METHOD_GET, (TOKEN_PARAM), false, QueueApi::handleGetBundle);
-		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("remove")), false, QueueApi::handleRemoveBundle);
-		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_PATCH, (TOKEN_PARAM), true, QueueApi::handleUpdateBundle);
 
-		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("search")), false, QueueApi::handleSearchBundle);
-		METHOD_HANDLER("bundle", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("share")), false, QueueApi::handleShareBundle);
+		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("bundles"), RANGE_START_PARAM, RANGE_MAX_PARAM),			QueueApi::handleGetBundles);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), EXACT_PARAM("remove_completed")),				QueueApi::handleRemoveCompletedBundles);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), EXACT_PARAM("priority")),						QueueApi::handleBundlePriorities);
 
-		METHOD_HANDLER("file", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (TOKEN_PARAM, EXACT_PARAM("search")), false, QueueApi::handleSearchFile);
-		METHOD_HANDLER("file", Access::QUEUE_EDIT, ApiRequest::METHOD_PATCH, (TOKEN_PARAM), true, QueueApi::handleUpdateFile);
+		METHOD_HANDLER(Access::DOWNLOAD,	METHOD_POST,	(EXACT_PARAM("bundles"), EXACT_PARAM("file")),							QueueApi::handleAddFileBundle);
+		METHOD_HANDLER(Access::DOWNLOAD,	METHOD_POST,	(EXACT_PARAM("bundles"), EXACT_PARAM("directory")),						QueueApi::handleAddDirectoryBundle);
 
-		METHOD_HANDLER("remove_source", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (), true, QueueApi::handleRemoveSource);
-		METHOD_HANDLER("remove_file", Access::QUEUE_EDIT, ApiRequest::METHOD_POST, (), true, QueueApi::handleRemoveTarget);
-		METHOD_HANDLER("find_dupe_paths", Access::ANY, ApiRequest::METHOD_POST, (), true, QueueApi::handleFindDupePaths);
+		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("files"), RANGE_START_PARAM, RANGE_MAX_PARAM),	QueueApi::handleGetBundleFiles);
+		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("sources")),										QueueApi::handleGetBundleSources);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_DELETE,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("sources"), CID_PARAM),							QueueApi::handleRemoveBundleSource);
+
+		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("bundles"), TOKEN_PARAM),									QueueApi::handleGetBundle);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("remove")),			QueueApi::handleRemoveBundle);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("priority")),			QueueApi::handleBundlePriority);
+
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("search")),			QueueApi::handleSearchBundle);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("share")),			QueueApi::handleShareBundle);
+
+		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("files"), TOKEN_PARAM),									QueueApi::handleGetFile);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("search")),				QueueApi::handleSearchFile);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("priority")),			QueueApi::handleFilePriority);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("remove")),				QueueApi::handleRemoveFile);
+
+		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("sources")),			QueueApi::handleGetFileSources);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_DELETE,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("sources"), CID_PARAM),	QueueApi::handleRemoveFileSource);
+
+		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("segments")),														QueueApi::handleGetFileSegments);
+		//METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("segments"), NUM_PARAM(SEGMENT_START), NUM_PARAM(SEGMENT_SIZE)),	QueueApi::handleAddFileSegment);
+
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_DELETE,	(EXACT_PARAM("sources"), CID_PARAM),									QueueApi::handleRemoveSource);
+		METHOD_HANDLER(Access::ANY,			METHOD_POST,	(EXACT_PARAM("find_dupe_paths")),										QueueApi::handleFindDupePaths);
 	}
 
 	QueueApi::~QueueApi() {
 		QueueManager::getInstance()->removeListener(this);
 		DownloadManager::getInstance()->removeListener(this);
+	}
+
+	ActionHookRejectionPtr QueueApi::fileCompletionHook(const QueueItemPtr& aFile, const HookRejectionGetter& aErrorGetter) noexcept {
+		return HookCompletionData::toResult(
+			fireHook("queue_file_finished_hook", 60, [&]() {
+				return Serializer::serializeItem(aFile, QueueFileUtils::propertyHandler);
+			}),
+			aErrorGetter
+		);
+	}
+
+	ActionHookRejectionPtr QueueApi::bundleCompletionHook(const BundlePtr& aBundle, const HookRejectionGetter& aErrorGetter) noexcept {
+		return HookCompletionData::toResult(
+			fireHook("queue_bundle_finished_hook", 60, [&]() {
+				return Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler);
+			}),
+			aErrorGetter
+		);
 	}
 
 	BundleList QueueApi::getBundleList() noexcept {
@@ -100,7 +149,7 @@ namespace webserver {
 	}
 
 	api_return QueueApi::handleRemoveSource(ApiRequest& aRequest) {
-		auto user = Deserializer::deserializeUser(aRequest.getRequestBody());
+		auto user = Deserializer::getUser(aRequest.getCIDParam(), false);
 
 		auto removed = QueueManager::getInstance()->removeSource(user, QueueItem::Source::FLAG_REMOVED);
 		aRequest.setResponseBody({
@@ -115,7 +164,7 @@ namespace webserver {
 
 		auto ret = json::array();
 
-		auto path = JsonUtil::getOptionalField<string>("path", reqJson, false);
+		auto path = JsonUtil::getOptionalField<string>("path", reqJson);
 		if (path) {
 			ret = QueueManager::getInstance()->getNmdcDirPaths(Util::toNmdcFile(*path));
 		} else {
@@ -129,8 +178,8 @@ namespace webserver {
 
 	// BUNDLES
 	api_return QueueApi::handleGetBundles(ApiRequest& aRequest)  {
-		int start = aRequest.getRangeParam(0);
-		int count = aRequest.getRangeParam(1);
+		int start = aRequest.getRangeParam(START_POS);
+		int count = aRequest.getRangeParam(MAX_COUNT);
 
 		auto j = Serializer::serializeItemList(start, count, QueueBundleUtils::propertyHandler, getBundleList());
 
@@ -138,8 +187,8 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return QueueApi::handleRemoveFinishedBundles(ApiRequest& aRequest) {
-		auto removed = QueueManager::getInstance()->removeFinishedBundles();
+	api_return QueueApi::handleRemoveCompletedBundles(ApiRequest& aRequest) {
+		auto removed = QueueManager::getInstance()->removeCompletedBundles();
 
 		aRequest.setResponseBody({
 			{ "count", removed }
@@ -163,26 +212,17 @@ namespace webserver {
 	}
 
 	BundlePtr QueueApi::getBundle(ApiRequest& aRequest) {
-		auto b = QueueManager::getInstance()->findBundle(aRequest.getTokenParam(0));
+		auto b = QueueManager::getInstance()->findBundle(aRequest.getTokenParam());
 		if (!b) {
-			throw std::invalid_argument("Bundle not found");
+			throw RequestException(websocketpp::http::status_code::not_found, "Bundle not found");
 		}
 
 		return b;
 	}
 
-	QueueItemPtr QueueApi::getFile(ApiRequest& aRequest) {
-		auto q = QueueManager::getInstance()->findFile(aRequest.getTokenParam(0));
-		if (!q) {
-			throw std::invalid_argument("File not found");
-		}
-
-		return q;
-	}
-
 	api_return QueueApi::handleSearchBundle(ApiRequest& aRequest) {
 		auto b = getBundle(aRequest);
-		auto searches = QueueManager::getInstance()->searchBundleAlternates(b, true);
+		auto searches = QueueManager::getInstance()->searchBundleAlternates(b, false);
 
 		if (searches == 0) {
 			aRequest.setResponseErrorStr("No files to search for");
@@ -193,6 +233,23 @@ namespace webserver {
 			{ "sent", searches },
 		});
 
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return QueueApi::handleGetBundleFiles(ApiRequest& aRequest) {
+		auto b = getBundle(aRequest);
+		QueueItemList files;
+
+		{
+			RLock l(QueueManager::getInstance()->getCS());
+			files = b->getQueueItems();
+		}
+
+		int start = aRequest.getRangeParam(START_POS);
+		int count = aRequest.getRangeParam(MAX_COUNT);
+		auto j = Serializer::serializeItemList(start, count, QueueFileUtils::propertyHandler, files);
+
+		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -216,7 +273,7 @@ namespace webserver {
 
 	api_return QueueApi::handleRemoveBundleSource(ApiRequest& aRequest) {
 		auto b = getBundle(aRequest);
-		auto user = Deserializer::getUser(aRequest.getStringParam(2), false);
+		auto user = Deserializer::getUser(aRequest.getCIDParam(), false);
 
 		auto removed = QueueManager::getInstance()->removeBundleSource(b, user, QueueItem::Source::FLAG_REMOVED);
 		aRequest.setResponseBody({
@@ -228,14 +285,14 @@ namespace webserver {
 
 	api_return QueueApi::handleShareBundle(ApiRequest& aRequest) {
 		auto b = getBundle(aRequest);
-		if (!b->isFinished()) {
-			aRequest.setResponseErrorStr("This action can only be performed for finished bundles");
-			return websocketpp::http::status_code::bad_request;
+		if (b->getStatus() != Bundle::STATUS_VALIDATION_ERROR) {
+			aRequest.setResponseErrorStr("This action can only be performed for bundles that have failed content validation");
+			return websocketpp::http::status_code::precondition_failed;
 		}
 
-		auto skipScan = JsonUtil::getOptionalFieldDefault<bool>("skip_scan", aRequest.getRequestBody(), false);
+		auto skipScan = JsonUtil::getOptionalFieldDefault<bool>("skip_validation", aRequest.getRequestBody(), false);
 		QueueManager::getInstance()->shareBundle(b, skipScan);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return QueueApi::handleAddFileBundle(ApiRequest& aRequest) {
@@ -252,13 +309,13 @@ namespace webserver {
 				JsonUtil::getField<int64_t>("size", reqJson, false),
 				Deserializer::deserializeTTH(reqJson),
 				Deserializer::deserializeHintedUser(reqJson),
-				JsonUtil::getField<time_t>("time", reqJson, false),
+				JsonUtil::getOptionalFieldDefault<time_t>("time", reqJson, GET_TIME()),
 				0,
 				prio
 			);
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::internal_server_error;
+			return websocketpp::http::status_code::bad_request;
 		}
 
 		aRequest.setResponseBody(Serializer::serializeBundleAddInfo(bundleAddInfo));
@@ -274,7 +331,6 @@ namespace webserver {
 				JsonUtil::getField<string>("name", fileJson),
 				Deserializer::deserializeTTH(fileJson),
 				JsonUtil::getField<int64_t>("size", fileJson),
-				JsonUtil::getField<time_t>("time", fileJson),
 				Deserializer::deserializePriority(fileJson, true))
 			);
 		}
@@ -283,13 +339,17 @@ namespace webserver {
 			JsonUtil::throwError("files", JsonUtil::ERROR_INVALID, "No files were supplied");
 		}
 
+		string targetDirectory, targetFileName;
+		Priority prio;
+		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetFileName, prio);
+
 		string errorMsg;
 		auto info = QueueManager::getInstance()->createDirectoryBundle(
-			JsonUtil::getField<string>("target", bundleJson),
+			targetDirectory + targetFileName,
 			Deserializer::deserializeHintedUser(bundleJson),
 			files,
-			Deserializer::deserializePriority(bundleJson, true),
-			JsonUtil::getField<time_t>("time", bundleJson),
+			prio,
+			JsonUtil::getOptionalFieldDefault<time_t>("time", bundleJson, GET_TIME()),
 			errorMsg
 		);
 
@@ -307,109 +367,214 @@ namespace webserver {
 
 		auto b = getBundle(aRequest);
 		QueueManager::getInstance()->removeBundle(b, removeFinished);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return QueueApi::handleUpdateBundle(ApiRequest& aRequest) {
+	api_return QueueApi::handleBundlePriority(ApiRequest& aRequest) {
 		auto b = getBundle(aRequest);
-		const auto& reqJson = aRequest.getRequestBody();
+		auto priority = Deserializer::deserializePriority(aRequest.getRequestBody(), true);
 
-		// Priority
-		if (reqJson.find("priority") != reqJson.end()) {
-			QueueManager::getInstance()->setBundlePriority(b, Deserializer::deserializePriority(reqJson, false));
-		}
-
-		if (reqJson.find("auto_priority") != reqJson.end()) {
-			auto autoPrio = JsonUtil::getField<bool>("auto_priority", reqJson);
-			if (autoPrio != b->getAutoPriority()) {
-				QueueManager::getInstance()->toggleBundleAutoPriority(b);
-			}
-		}
-
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return QueueApi::handleUpdateFile(ApiRequest& aRequest) {
-		auto qi = getFile(aRequest);
-		const auto& reqJson = aRequest.getRequestBody();
-
-		// Priority
-		if (reqJson.find("priority") != reqJson.end()) {
-			QueueManager::getInstance()->setQIPriority(qi, Deserializer::deserializePriority(reqJson, false));
-		}
-
-		if (reqJson.find("auto_priority") != reqJson.end()) {
-			auto autoPrio = JsonUtil::getField<bool>("auto_priority", reqJson);
-			if (autoPrio != qi->getAutoPriority()) {
-				QueueManager::getInstance()->setQIAutoPriority(qi->getTarget());
-			}
-		}
-
-		return websocketpp::http::status_code::ok;
-	}
-
-	api_return QueueApi::handleSearchFile(ApiRequest& aRequest) {
-		auto qi = getFile(aRequest);
-		qi->searchAlternates();
-		return websocketpp::http::status_code::ok;
+		QueueManager::getInstance()->setBundlePriority(b, priority);
+		return websocketpp::http::status_code::no_content;
 	}
 
 	// FILES (COMMON)
+	QueueItemPtr QueueApi::getFile(ApiRequest& aRequest, bool aRequireBundle) {
+		auto q = QueueManager::getInstance()->findFile(aRequest.getTokenParam());
+		if (!q) {
+			throw RequestException(websocketpp::http::status_code::not_found, "File not found");
+		}
+
+		if (aRequireBundle && !q->getBundle()) {
+			throw RequestException(websocketpp::http::status_code::bad_request, "This method may only be used for bundle files");
+		}
+
+		return q;
+	}
+
 	api_return QueueApi::handleGetFile(ApiRequest& aRequest) {
-		//auto success = QueueManager::getInstance()->findFile(aRequest.getTokenParam(0));
-		//return success ? websocketpp::http::status_code::ok : websocketpp::http::status_code::not_found;
+		auto qi = getFile(aRequest, false);
+
+		auto j = Serializer::serializeItem(qi, QueueFileUtils::propertyHandler);
+		aRequest.setResponseBody(j);
+
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return QueueApi::handleRemoveTarget(ApiRequest& aRequest) {
+	api_return QueueApi::handleRemoveFile(ApiRequest& aRequest) {
 		auto removeFinished = JsonUtil::getOptionalFieldDefault<bool>("remove_finished", aRequest.getRequestBody(), false);
-		auto path = JsonUtil::getField<string>("target", aRequest.getRequestBody(), false);
-		if (!QueueManager::getInstance()->removeFile(path, removeFinished)) {
-			aRequest.setResponseErrorStr("File not found");
-			return websocketpp::http::status_code::bad_request;
-		}
+
+		auto qi = getFile(aRequest, false);
+		QueueManager::getInstance()->removeFile(qi->getTarget(), removeFinished);
+		return websocketpp::http::status_code::no_content;
+	}
+
+	api_return QueueApi::handleAddFileSegment(ApiRequest& aRequest) {
+		auto qi = getFile(aRequest, true);
+		auto segment = parseSegment(qi, aRequest);
+
+		// TODO
 
 		return websocketpp::http::status_code::ok;
+	}
+
+	api_return QueueApi::handleRemoveFileSegment(ApiRequest& aRequest) {
+		auto qi = getFile(aRequest, true);
+		auto segment = parseSegment(qi, aRequest);
+
+		// TODO
+
+		return websocketpp::http::status_code::ok;
+	}
+
+	Segment QueueApi::parseSegment(const QueueItemPtr& qi, ApiRequest& aRequest) {
+		if (!QueueManager::getInstance()->isWaiting(qi)) {
+			throw RequestException(websocketpp::http::status_code::precondition_failed, "Segments can't be modified for running files");
+		}
+
+		auto segmentStart = aRequest.getSizeParam(SEGMENT_START);
+		auto segmentSize = aRequest.getSizeParam(SEGMENT_SIZE);
+
+		Segment s(segmentStart, segmentSize);
+
+		if (s.getSize() != qi->getSize()) {
+			auto blockSize = qi->getBlockSize();
+
+			if (s.getStart() % blockSize != 0) {
+				throw RequestException(websocketpp::http::status_code::bad_request, "Segment start must be aligned by " + Util::toString(blockSize));
+			}
+
+			if (s.getEnd() != qi->getSize()) {
+				if (s.getEnd() > qi->getSize()) {
+					throw RequestException(websocketpp::http::status_code::bad_request, "Segment end is beyond the end of the file");
+				}
+
+				if (s.getSize() % blockSize != 0) {
+					throw RequestException(websocketpp::http::status_code::bad_request, "Segment size must be aligned by " + Util::toString(blockSize));
+				}
+			}
+		}
+
+		return s;
+	}
+
+	api_return QueueApi::handleGetFileSegments(ApiRequest& aRequest) {
+		auto qi = getFile(aRequest, false);
+
+		vector<Segment> running, downloaded, done;
+		QueueManager::getInstance()->getChunksVisualisation(qi, running, downloaded, done);
+
+		aRequest.setResponseBody({
+			{ "block_size", qi->getBlockSize() },
+			{ "running", Serializer::serializeList(running, serializeSegment) },
+			{ "running_progress", Serializer::serializeList(downloaded, serializeSegment) },
+			{ "done", Serializer::serializeList(done, serializeSegment) },
+		});
+		return websocketpp::http::status_code::ok;
+	}
+
+	json QueueApi::serializeSegment(const Segment& aSegment) noexcept {
+		return{
+			{ "start", aSegment.getStart() },
+			{ "size", aSegment.getSize() },
+		};
+	}
+
+	api_return QueueApi::handleFilePriority(ApiRequest& aRequest) {
+		auto qi = getFile(aRequest, true);
+		auto priority = Deserializer::deserializePriority(aRequest.getRequestBody(), true);
+
+		QueueManager::getInstance()->setQIPriority(qi, priority);
+		return websocketpp::http::status_code::no_content;
+	}
+
+	api_return QueueApi::handleSearchFile(ApiRequest& aRequest) {
+		auto qi = getFile(aRequest, false);
+		QueueManager::getInstance()->searchFileAlternates(qi);
+		return websocketpp::http::status_code::no_content;
+	}
+
+	api_return QueueApi::handleGetFileSources(ApiRequest& aRequest) {
+		auto qi = getFile(aRequest, false);
+		auto sources = QueueManager::getInstance()->getSources(qi);
+
+		auto ret = json::array();
+		for (const auto& s : sources) {
+			ret.push_back({
+				{ "user", Serializer::serializeHintedUser(s.getUser()) },
+				{ "last_speed", s.getUser().user->getSpeed() },
+			});
+		}
+
+		aRequest.setResponseBody(ret);
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return QueueApi::handleRemoveFileSource(ApiRequest& aRequest) {
+		auto qi = getFile(aRequest, false);
+		auto user = Deserializer::getUser(aRequest.getCIDParam(), false);
+
+		QueueManager::getInstance()->removeFileSource(qi, user, QueueItem::Source::FLAG_REMOVED);
+		return websocketpp::http::status_code::no_content;
 	}
 
 
 	// FILE LISTENERS
 	void QueueApi::on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept {
 		fileView.onItemAdded(aQI);
-		if (!subscriptionActive("file_added"))
+		if (!subscriptionActive("queue_file_added"))
 			return;
 
-		send("file_added", Serializer::serializeItem(aQI, QueueFileUtils::propertyHandler));
+		send("queue_file_added", Serializer::serializeItem(aQI, QueueFileUtils::propertyHandler));
 	}
 
 	void QueueApi::on(QueueManagerListener::ItemRemoved, const QueueItemPtr& aQI, bool /*finished*/) noexcept {
 		fileView.onItemRemoved(aQI);
-		if (!subscriptionActive("file_removed"))
+		if (!subscriptionActive("queue_file_removed"))
 			return;
 
-		send("file_removed", Serializer::serializeItem(aQI, QueueFileUtils::propertyHandler));
+		send("queue_file_removed", Serializer::serializeItem(aQI, QueueFileUtils::propertyHandler));
 	}
 
-	void QueueApi::onFileUpdated(const QueueItemPtr& aQI, const PropertyIdSet& aUpdatedProperties) {
+	void QueueApi::onFileUpdated(const QueueItemPtr& aQI, const PropertyIdSet& aUpdatedProperties, const string& aSubscription) {
 		fileView.onItemUpdated(aQI, aUpdatedProperties);
-		if (!subscriptionActive("file_updated"))
-			return;
+		if (subscriptionActive(aSubscription)) {
+			// Serialize full item for more specific updates to make reading of data easier 
+			// (such as cases when the script is interested only in finished files)
+			send(aSubscription, Serializer::serializeItem(aQI, QueueFileUtils::propertyHandler));
+		}
 
-		send("file_updated", Serializer::serializeItem(aQI, QueueFileUtils::propertyHandler));
+		if (subscriptionActive("queue_file_updated")) {
+			// Serialize updated properties only
+			send("queue_file_updated", Serializer::serializePartialItem(aQI, QueueFileUtils::propertyHandler, aUpdatedProperties));
+		}
 	}
 
-	void QueueApi::on(QueueManagerListener::ItemSourcesUpdated, const QueueItemPtr& aQI) noexcept {
-		onFileUpdated(aQI, { QueueFileUtils::PROP_SOURCES });
+	void QueueApi::on(QueueManagerListener::ItemSources, const QueueItemPtr& aQI) noexcept {
+		onFileUpdated(aQI, { QueueFileUtils::PROP_SOURCES }, "queue_file_sources");
 	}
 
-	void QueueApi::on(QueueManagerListener::ItemStatusUpdated, const QueueItemPtr& aQI) noexcept {
+	void QueueApi::on(QueueManagerListener::ItemStatus, const QueueItemPtr& aQI) noexcept {
 		onFileUpdated(aQI, { 
 			QueueFileUtils::PROP_STATUS, QueueFileUtils::PROP_TIME_FINISHED, QueueFileUtils::PROP_BYTES_DOWNLOADED, 
-			QueueFileUtils::PROP_SECONDS_LEFT, QueueFileUtils::PROP_SPEED, QueueFileUtils::PROP_PRIORITY 
-		});
+			QueueFileUtils::PROP_SECONDS_LEFT, QueueFileUtils::PROP_SPEED 
+		}, "queue_file_status");
 	}
 
-	void QueueApi::on(QueueManagerListener::FileRecheckFailed, const QueueItemPtr& aQI, const string& aError) noexcept {
+	void QueueApi::on(QueueManagerListener::ItemPriority, const QueueItemPtr& aQI) noexcept {
+		onFileUpdated(aQI, {
+			QueueFileUtils::PROP_STATUS, QueueFileUtils::PROP_PRIORITY
+		}, "queue_file_priority");
+	}
+
+	void QueueApi::on(QueueManagerListener::ItemTick, const QueueItemPtr& aQI) noexcept {
+		onFileUpdated(aQI, {
+			QueueFileUtils::PROP_STATUS, QueueFileUtils::PROP_BYTES_DOWNLOADED,
+			QueueFileUtils::PROP_SECONDS_LEFT, QueueFileUtils::PROP_SPEED
+		}, "queue_file_tick");
+	}
+
+	void QueueApi::on(QueueManagerListener::FileRecheckFailed, const QueueItemPtr&, const string&) noexcept {
 		//onFileUpdated(qi);
 	}
 
@@ -417,55 +582,58 @@ namespace webserver {
 	// BUNDLE LISTENERS
 	void QueueApi::on(QueueManagerListener::BundleAdded, const BundlePtr& aBundle) noexcept {
 		bundleView.onItemAdded(aBundle);
-		if (!subscriptionActive("bundle_added"))
+		if (!subscriptionActive("queue_bundle_added"))
 			return;
 
-		send("bundle_added", Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));
+		send("queue_bundle_added", Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));
 	}
 	void QueueApi::on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept {
 		bundleView.onItemRemoved(aBundle);
-		if (!subscriptionActive("bundle_removed"))
+		if (!subscriptionActive("queue_bundle_removed"))
 			return;
 
-		send("bundle_removed", Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));
+		send("queue_bundle_removed", Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));
 	}
 
 	void QueueApi::onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription) {
 		bundleView.onItemUpdated(aBundle, aUpdatedProperties);
 		if (subscriptionActive(aSubscription)) {
-			send(aSubscription, Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));;
+			// Serialize full item for more specific updates to make reading of data easier 
+			// (such as cases when the script is interested only in finished bundles)
+			send(aSubscription, Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));
 		}
 
-		if (subscriptionActive("bundle_updated")) {
-			send(aSubscription, Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler));
+		if (subscriptionActive("queue_bundle_updated")) {
+			// Serialize updated properties only
+			send("queue_bundle_updated", Serializer::serializePartialItem(aBundle, QueueBundleUtils::propertyHandler, aUpdatedProperties));
 		}
 	}
 
 	void QueueApi::on(QueueManagerListener::BundleSize, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SIZE, QueueBundleUtils::PROP_TYPE }, "bundle_content");
+		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SIZE, QueueBundleUtils::PROP_TYPE }, "queue_bundle_content");
 	}
 
 	void QueueApi::on(QueueManagerListener::BundlePriority, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_PRIORITY, QueueBundleUtils::PROP_STATUS }, "bundle_priority");
+		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_PRIORITY, QueueBundleUtils::PROP_STATUS }, "queue_bundle_priority");
 	}
 
 	void QueueApi::on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_STATUS, QueueBundleUtils::PROP_TIME_FINISHED }, "bundle_status");
+		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_STATUS, QueueBundleUtils::PROP_TIME_FINISHED }, "queue_bundle_status");
 	}
 
 	void QueueApi::on(QueueManagerListener::BundleSources, const BundlePtr& aBundle) noexcept {
-		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SOURCES }, "bundle_sources");
+		onBundleUpdated(aBundle, { QueueBundleUtils::PROP_SOURCES }, "queue_bundle_sources");
 	}
 
 #define TICK_PROPS { QueueBundleUtils::PROP_SECONDS_LEFT, QueueBundleUtils::PROP_SPEED, QueueBundleUtils::PROP_STATUS, QueueBundleUtils::PROP_BYTES_DOWNLOADED }
 	void QueueApi::on(DownloadManagerListener::BundleTick, const BundleList& aTickBundles, uint64_t /*aTick*/) noexcept {
 		for (const auto& b : aTickBundles) {
-			onBundleUpdated(b, TICK_PROPS, "bundle_tick");
+			onBundleUpdated(b, TICK_PROPS, "queue_bundle_tick");
 		}
 	}
 
 	void QueueApi::on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept {
 		// "Waiting" isn't really a status (it's just meant to clear the props for running bundles...)
-		onBundleUpdated(aBundle, TICK_PROPS, "bundle_tick");
+		onBundleUpdated(aBundle, TICK_PROPS, "queue_bundle_tick");
 	}
 }

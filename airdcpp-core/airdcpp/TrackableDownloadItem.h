@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+* Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@ namespace dcpp {
 
 		// Leave the size unspecified if there is no tracking for download progress
 		virtual void onAddedQueue(const string& aDir, int64_t aSize = -1) noexcept;
+		bool isDownloaded() const noexcept;
 
 		virtual void onProgress(const string& aDir, int64_t aDownloadedBytes) noexcept;
 

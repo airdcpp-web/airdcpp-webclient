@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,9 +51,28 @@ void initialize() {
 	} else {
 		dcdebug("Unable to determine the program's locale");
 	}
+
+#ifdef _DEBUG
+	wstring emojiW = L"\U0001F30D";
+	auto emojiWLower = Text::toLower(emojiW);
+	dcassert(emojiW == emojiWLower);
+
+	auto emojiUtf8 = Text::wideToUtf8(emojiW);
+	auto emojiUtf8Lower = Text::toLower(emojiUtf8);
+	dcassert(emojiUtf8 == emojiUtf8Lower);
+
+	dcassert("abcd1" == Text::toLower("ABCd1"));
+	dcassert(_T("abcd1") == Text::toLower(_T("ABCd1")));
+
+	dcassert("text1" == Text::uncapitalize("Text1"));
+	dcassert("SFV" == Text::uncapitalize("SFV"));
+	dcassert("A" == Text::uncapitalize("A"));
+	dcassert(Text::fromT(_T("\u00F6\u00F6")) == Text::uncapitalize(Text::fromT(_T("\u00D6\u00F6"))));
+#endif
 #else
 	systemCharset = string(nl_langinfo(CODESET));
 #endif
+	dcassert(sanitizeUtf8("A\xc3Name") == "A_Name");
 }
 
 #ifdef _WIN32
@@ -77,77 +96,62 @@ bool isAscii(const char* str) noexcept {
 	return true;
 }
 
+// NOTE: this won't handle UTF-16 surrogate pairs
 int utf8ToWc(const char* str, wchar_t& c) {
-	uint8_t c0 = (uint8_t)str[0];
-	if(c0 & 0x80) {									// 1xxx xxxx
-		if(c0 & 0x40) {								// 11xx xxxx
-			if(c0 & 0x20) {							// 111x xxxx
-				if(c0 & 0x10) {						// 1111 xxxx
-					int n = -4;
-					if(c0 & 0x08) {					// 1111 1xxx
-						n = -5;
-						if(c0 & 0x04) {				// 1111 11xx
-							if(c0 & 0x02) {			// 1111 111x
-								return -1;
-							}
-							n = -6;
-						}
-					}
-					int i = -1;
-					while(i > n && (str[abs(i)] & 0x80) == 0x80)
-						--i;
-					return i;
-				} else {		// 1110xxxx
-					uint8_t c1 = (uint8_t)str[1];
-					if((c1 & (0x80 | 0x40)) != 0x80)
-						return -1;
+	const auto c0 = static_cast<uint8_t>(str[0]);
+	const auto bytes = 2 + !!(c0 & 0x20) + ((c0 & 0x30) == 0x30);
 
-					uint8_t c2 = (uint8_t)str[2];
-					if((c2 & (0x80 | 0x40)) != 0x80)
-						return -2;
-
-					// Ugly utf-16 surrogate catch
-					if((c0 & 0x0f) == 0x0d && (c1 & 0x3c) >= (0x08 << 2))
-						return -3;
-
-					// Overlong encoding
-					if(c0 == (0x80 | 0x40 | 0x20) && (c1 & (0x80 | 0x40 | 0x20)) == 0x80)
-						return -3;
-
-					c = (((wchar_t)c0 & 0x0f) << 12) |
-						(((wchar_t)c1 & 0x3f) << 6) |
-						((wchar_t)c2 & 0x3f);
-
-					return 3;
-				}
-			} else {				// 110xxxxx
-				uint8_t c1 = (uint8_t)str[1];
-				if((c1 & (0x80 | 0x40)) != 0x80)
-					return -1;
-
-				// Overlong encoding
-				if((c0 & ~1) == (0x80 | 0x40))
-					return -2;
-
-				c = (((wchar_t)c0 & 0x1f) << 6) |
-					((wchar_t)c1 & 0x3f);
-				return 2;
-			}
-		} else {					// 10xxxxxx
+	if ((c0 & 0xc0) == 0xc0) {                  // 11xx xxxx
+												// # bytes of leading 1's; check for 0 next
+		const auto check_bit = 1 << (7 - bytes);
+		if (c0 & check_bit)
 			return -1;
+
+		c = (check_bit - 1) & c0;
+
+		// 2-4 total, or 1-3 additional, bytes
+		// Can't run off end of str so long as has sub-0x80-terminator
+		for (auto i = 1; i < bytes; ++i) {
+			const auto ci = static_cast<uint8_t>(str[i]);
+			if ((ci & 0xc0) != 0x80)
+				return -i;
+			c = (c << 6) | (ci & 0x3f);
 		}
-	} else {						// 0xxxxxxx
-		c = (unsigned char)str[0];
+
+		// Invalid UTF-8 code points
+		if (c > 0x10ffff || (c >= 0xd800 && c <= 0xdfff)) {
+			// "REPLACEMENT CHARACTER": used to replace an incoming character
+			// whose value is unknown or unrepresentable in Unicode
+			c = 0xfffd;
+			return -bytes;
+		}
+
+		return bytes;
+	} else if ((c0 & 0x80) == 0) {             // 0xxx xxxx
+		c = static_cast<unsigned char>(str[0]);
 		return 1;
+	} else {                                   // 10xx xxxx
+		return -1;
 	}
 }
 
+// NOTE: this won't handle UTF-16 surrogate pairs
 void wcToUtf8(wchar_t c, string& str) {
-	if(c >= 0x0800) {
+	// https://tools.ietf.org/html/rfc3629#section-3
+	if (c > 0x10ffff || (c >= 0xd800 && c <= 0xdfff)) {
+		// Invalid UTF-8 code point
+		// REPLACEMENT CHARACTER: http://www.fileformat.info/info/unicode/char/0fffd/index.htm
+		wcToUtf8(0xfffd, str);
+	} else if (c >= 0x10000) {
+		str += (char)(0x80 | 0x40 | 0x20 | 0x10 | (c >> 18));
+		str += (char)(0x80 | ((c >> 12) & 0x3f));
+		str += (char)(0x80 | ((c >> 6) & 0x3f));
+		str += (char)(0x80 | (c & 0x3f));
+	} else if (c >= 0x0800) {
 		str += (char)(0x80 | 0x40 | 0x20 | (c >> 12));
 		str += (char)(0x80 | ((c >> 6) & 0x3f));
 		str += (char)(0x80 | (c & 0x3f));
-	} else if(c >= 0x0080) {
+	} else if (c >= 0x0080) {
 		str += (char)(0x80 | 0x40 | (c >> 6));
 		str += (char)(0x80 | (c & 0x3f));
 	} else {
@@ -155,185 +159,99 @@ void wcToUtf8(wchar_t c, string& str) {
 	}
 }
 
-wstring acpToWide(const string& str, const string& fromCharset) noexcept {
-	if(str.empty())
-		return Util::emptyStringW;
-#ifdef _WIN32
-	int n = MultiByteToWideChar(getCodePage(fromCharset), MB_PRECOMPOSED, str.c_str(), (int)str.length(), NULL, 0);
-	if(n == 0) {
-		return Util::emptyStringW;
-	}
-
-	wstring tmp;
-	tmp.resize(n);
-	n = MultiByteToWideChar(getCodePage(fromCharset), MB_PRECOMPOSED, str.c_str(), (int)str.length(), &tmp[0], n);
-	if(n == 0) {
-		return Util::emptyStringW;
-	}
-	return tmp;
-#else
-	size_t rv;
-	wchar_t wc;
-	const char *src = str.c_str();
-	size_t n = str.length() + 1;
-
-	wstring tmp;
-	tmp.reserve(n);
-
-	while(n > 0) {
-		rv = mbrtowc(&wc, src, n, NULL);
-		if(rv == 0 || rv == (size_t)-2) {
-			break;
-		} else if(rv == (size_t)-1) {
-			tmp.push_back(L'_');
-			++src;
-			--n;
-		} else {
-			tmp.push_back(wc);
-			src += rv;
-			n -= rv;
-		}
-	}
-	return tmp;
-#endif
-}
-
-string wideToUtf8(const wstring& str) noexcept {
-	if(str.empty()) {
-		return Util::emptyString;
-	}
-
+string sanitizeUtf8(const string& str) noexcept {
 	string tgt;
-#ifdef _WIN32
-	int size = 0;
-	tgt.resize( str.length() * 2 );
+	tgt.reserve(str.length());
 
-	while( ( size = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), str.length(), &tgt[0], tgt.length(), NULL, NULL) ) == 0 ){
-		if( GetLastError() == ERROR_INSUFFICIENT_BUFFER )
-			tgt.resize( tgt.size() * 2 );
-		else
-			break;
+	const auto n = str.length();
+	for (string::size_type i = 0; i < n; ) {
+		wchar_t c = 0;
+		int x = utf8ToWc(str.c_str() + i, c);
+		if (x < 0) {
+			tgt.insert(i, abs(x), '_');
+		} else {
+			wcToUtf8(c, tgt);
+		}
+
+		i += abs(x);
 	}
-	
-	tgt.resize( size );
+
 	return tgt;
-#else	
-	string::size_type n = str.length();
-	for(string::size_type i = 0; i < n; ++i) {
-		wcToUtf8(str[i], tgt);
-	}
-	return tgt;
-#endif
-}
-
-string wideToAcp(const wstring& str, const string& toCharset) noexcept {
-	if(str.empty())
-		return Util::emptyString;
-
-#ifdef _WIN32
-	int n = WideCharToMultiByte(getCodePage(toCharset), 0, str.c_str(), (int)str.length(), NULL, 0, NULL, NULL);
-	if(n == 0) {
-		return Util::emptyString;
-	}
-
-	string tmp;
-	tmp.resize(n);
-	n = WideCharToMultiByte(getCodePage(toCharset), 0, str.c_str(), (int)str.length(), &tmp[0], n, NULL, NULL);
-	if(n == 0) {
-		return Util::emptyString;
-	}
-	return tmp;
-#else
-	const wchar_t* src = str.c_str();
-	int n = wcsrtombs(NULL, &src, 0, NULL);
-	if(n < 1) {
-		return Util::emptyString;
-	}
-	src = str.c_str();
-
-	string tmp;
-	tmp.resize(n);
-	n = wcsrtombs(&tmp[0], &src, n, NULL);
-	if(n < 1) {
-		return Util::emptyString;
-	}
-	return tmp;
-#endif
 }
 
 bool validateUtf8(const string& str) noexcept {
 	string::size_type i = 0;
-	while(i < str.length()) {
+	while (i < str.length()) {
 		wchar_t dummy = 0;
 		int j = utf8ToWc(&str[i], dummy);
-		if(j < 0)
+		if (j < 0)
 			return false;
 		i += j;
 	}
 	return true;
 }
 
-wstring utf8ToWide(const string& str) noexcept {
-	wstring tgt;
-#ifdef _WIN32
-	int size = 0;
-	tgt.resize( str.length()+1 );
-	while( ( size = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), str.length(), &tgt[0], (int)tgt.length()) ) == 0 ){
-		if( GetLastError() == ERROR_INSUFFICIENT_BUFFER ) {
-			tgt.resize( tgt.size()*2 );
-		} else {
-			break;
-		}
-
-	}
-	tgt.resize( size );
-	return tgt;
-#else
-	tgt.reserve(str.length());
-	string::size_type n = str.length();
-	for(string::size_type i = 0; i < n; ) {
-		wchar_t c = 0;
-		int x = utf8ToWc(str.c_str() + i, c);
-		if(x < 0) {
-			tgt += '_';
-			i += abs(x);
-		} else {
-			i += x;
-			tgt += c;
-		}
-	}
-	return tgt;
-#endif	
-}
-
 wchar_t toLower(wchar_t c) noexcept {
-#ifdef _WIN32
-	return LOWORD(CharLowerW(reinterpret_cast<LPWSTR>(MAKELONG(c, 0))));
-#else
 	return (wchar_t)towlower(c);
-#endif
-}
-
-wstring toLower(const wstring& str) noexcept {
-	if(str.empty())
-		return Util::emptyStringW;
-
-	wstring tmp;
-	tmp.reserve(str.length());
-	for(auto& i: str) {
-		tmp += toLower(i);
-	}
-	return tmp;
 }
 
 bool isLower(const string& str) noexcept {
 	return compare(str, toLower(str)) == 0;
 }
 
+bool isLower(wchar_t c) noexcept {
+	return toLower(c) == c;
+}
+
+string uncapitalize(const string& str) noexcept {
+	auto a = str.c_str();
+	if (!a) {
+		return str;
+	}
+
+	// Compare the first character 
+	// Don't do anything if it's not uppercase
+	wchar_t c0;
+	int n0 = dcpp::Text::utf8ToWc(a, c0);
+	if (n0 == str.size()) {
+		// Don't convert single character strings
+		return str;
+	}
+
+	if (isLower(c0)) {
+		return str;
+	}
+	
+
+	// Move to the next character
+	a += abs(n0);
+	if (!a) {
+		return str;
+	}
+
+	// Compare the second character
+	// Don't do anything if it's uppercase as that would mess up words such as SFV
+	wchar_t c1;
+	dcpp::Text::utf8ToWc(a, c1);
+	if (!isLower(c1)) {
+		return str;
+	}
+
+	// Convert the first character to lowercase
+	string ret;
+	Text::wcToUtf8(Text::toLower(c0), ret);
+	return ret + str.substr(n0);
+}
+
 string toLower(const string& str) noexcept {
 	if(str.empty())
 		return Util::emptyString;
 
+#ifdef _WIN32
+	// WinAPI will handle UTF-16 surrogate pairs correctly
+	auto wstr = utf8ToWide(str);
+	return wideToUtf8(Text::toLowerReplace(wstr));
+#else
 	string tmp;
 	tmp.reserve(str.length());
 	const char* end = &str[0] + str.length();
@@ -349,6 +267,7 @@ string toLower(const string& str) noexcept {
 		}
 	}
 	return tmp;
+#endif
 }
 
 string toUtf8(const string& str, const string& fromCharset) noexcept {
@@ -381,6 +300,14 @@ string fromUtf8(const string& str, const string& toCharset) noexcept {
 #else
 	return convert(str, utf8, toCharset);
 #endif
+}
+
+bool isSeparator(wchar_t c) noexcept {
+	if (c > 127) {
+		return false;
+	}
+
+	return isSeparator(static_cast<char>(c));
 }
 
 #ifndef _WIN32
@@ -431,22 +358,101 @@ string convert(const string& str, const string& fromCharset, const string& toCha
 
 	return tmp;
 }
-#endif
+#else
+
+wstring acpToWide(const string& str, const string& fromCharset) noexcept {
+	if (str.empty())
+		return Util::emptyStringW;
+
+	int n = MultiByteToWideChar(getCodePage(fromCharset), MB_PRECOMPOSED, str.c_str(), (int)str.length(), NULL, 0);
+	if (n == 0) {
+		return Util::emptyStringW;
+	}
+
+	wstring tmp;
+	tmp.resize(n);
+	n = MultiByteToWideChar(getCodePage(fromCharset), MB_PRECOMPOSED, str.c_str(), (int)str.length(), &tmp[0], n);
+	if (n == 0) {
+		return Util::emptyStringW;
+	}
+	return tmp;
+}
+
+string wideToUtf8(const wstring& str) noexcept {
+	if (str.empty()) {
+		return Util::emptyString;
+	}
+
+	string tgt;
+	int size = 0;
+	tgt.resize(str.length() * 2);
+
+	while ((size = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), str.length(), &tgt[0], tgt.length(), NULL, NULL)) == 0) {
+		if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+			tgt.resize(tgt.size() * 2);
+		else
+			break;
+	}
+
+	tgt.resize(size);
+	return tgt;
+}
+
+string wideToAcp(const wstring& str, const string& toCharset) noexcept {
+	if (str.empty())
+		return Util::emptyString;
+
+	int n = WideCharToMultiByte(getCodePage(toCharset), 0, str.c_str(), (int)str.length(), NULL, 0, NULL, NULL);
+	if (n == 0) {
+		return Util::emptyString;
+	}
+
+	string tmp;
+	tmp.resize(n);
+	n = WideCharToMultiByte(getCodePage(toCharset), 0, str.c_str(), (int)str.length(), &tmp[0], n, NULL, NULL);
+	if (n == 0) {
+		return Util::emptyString;
+	}
+	return tmp;
+}
+
+wstring utf8ToWide(const string& str) noexcept {
+	wstring tgt;
+	int size = 0;
+	tgt.resize(str.length() + 1);
+	while ((size = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), str.length(), &tgt[0], (int)tgt.length())) == 0) {
+		if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+			tgt.resize(tgt.size() * 2);
+		}
+		else {
+			break;
+		}
+
+	}
+	tgt.resize(size);
+
+	return tgt;
+}
+
+const wstring& toLowerReplace(wstring& tgt) noexcept {
+	CharLower(const_cast<LPWSTR>(tgt.c_str()));
+	return tgt;
 }
 
 string Text::toDOS(string tmp) noexcept {
-	if(tmp.empty())
+	if (tmp.empty())
 		return Util::emptyString;
 
-	if(tmp[0] == '\r' && (tmp.size() == 1 || tmp[1] != '\n')) {
+	if (tmp[0] == '\r' && (tmp.size() == 1 || tmp[1] != '\n')) {
 		tmp.insert(1, "\n");
 	}
-	for(string::size_type i = 1; i < tmp.size() - 1; ++i) {
-		if(tmp[i] == '\r' && tmp[i+1] != '\n') {
+
+	for (string::size_type i = 1; i < tmp.size() - 1; ++i) {
+		if (tmp[i] == '\r' && tmp[i + 1] != '\n') {
 			// Mac ending
-			tmp.insert(i+1, "\n");
+			tmp.insert(i + 1, "\n");
 			i++;
-		} else if(tmp[i] == '\n' && tmp[i-1] != '\r') {
+		} else if (tmp[i] == '\n' && tmp[i - 1] != '\r') {
 			// Unix encoding
 			tmp.insert(i, "\r");
 			i++;
@@ -456,18 +462,19 @@ string Text::toDOS(string tmp) noexcept {
 }
 
 wstring Text::toDOS(wstring tmp) noexcept {
-	if(tmp.empty())
+	if (tmp.empty())
 		return Util::emptyStringW;
 
-	if(tmp[0] == L'\r' && (tmp.size() == 1 || tmp[1] != L'\n')) {
+	if (tmp[0] == L'\r' && (tmp.size() == 1 || tmp[1] != L'\n')) {
 		tmp.insert(1, L"\n");
 	}
-	for(string::size_type i = 1; i < tmp.size() - 1; ++i) {
-		if(tmp[i] == L'\r' && tmp[i+1] != L'\n') {
+
+	for (string::size_type i = 1; i < tmp.size() - 1; ++i) {
+		if (tmp[i] == L'\r' && tmp[i + 1] != L'\n') {
 			// Mac ending
-			tmp.insert(i+1, L"\n");
+			tmp.insert(i + 1, L"\n");
 			i++;
-		} else if(tmp[i] == L'\n' && tmp[i-1] != L'\r') {
+		} else if (tmp[i] == L'\n' && tmp[i - 1] != L'\r') {
 			// Unix encoding
 			tmp.insert(i, L"\r");
 			i++;
@@ -476,12 +483,8 @@ wstring Text::toDOS(wstring tmp) noexcept {
 	return tmp;
 }
 
-bool Text::isSeparator(wchar_t c) noexcept {
-	if (c > 127) {
-		return false;
-	}
+#endif
 
-	return isSeparator(static_cast<char>(c));
 }
 
 } // namespace dcpp

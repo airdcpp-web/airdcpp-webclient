@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -49,11 +49,11 @@ namespace webserver {
 		return j;
 	}
 
-	bool WebUserUtils::filterItem(const WebUserPtr& aItem, int aPropertyName, const StringMatch& aStringMatch, double aNumericMatcher) noexcept {
+	bool WebUserUtils::filterItem(const WebUserPtr& aItem, int aPropertyName, const StringMatch& aStringMatch, double /*aNumericMatcher*/) noexcept {
 		switch (aPropertyName) {
 		case PROP_PERMISSIONS:
 		{
-			auto i = WebUser::toAccess(aStringMatch.pattern);
+			auto i = WebUser::stringToAccess(aStringMatch.pattern);
 			if (i != Access::LAST) {
 				return aItem->hasPermission(i);
 			}

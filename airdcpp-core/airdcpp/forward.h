@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,10 @@
 
 namespace dcpp {
 
+struct ActionHookRejection;
+typedef std::shared_ptr<ActionHookRejection> ActionHookRejectionPtr;
+typedef std::function<ActionHookRejectionPtr(const string& aReasonId, const string& aMessage)> HookRejectionGetter;
+
 class AdcCommand;
 
 class SearchQuery;
@@ -42,7 +46,7 @@ struct BundleAddInfo;
 struct DirectoryBundleAddInfo;
 
 class Bundle;
-typedef boost::intrusive_ptr<Bundle> BundlePtr;
+typedef std::shared_ptr<Bundle> BundlePtr;
 typedef std::vector<BundlePtr> BundleList;
 
 class CID;
@@ -58,11 +62,12 @@ class ClientManager;
 class ConnectionQueueItem;
 
 class DirectoryListing;
-typedef boost::intrusive_ptr<DirectoryListing> DirectoryListingPtr;
+typedef std::shared_ptr<DirectoryListing> DirectoryListingPtr;
 typedef std::vector<DirectoryListingPtr> DirectoryListingList;
 
 class DirectoryDownload;
 typedef std::shared_ptr<DirectoryDownload> DirectoryDownloadPtr;
+typedef vector<DirectoryDownloadPtr> DirectoryDownloadList;
 
 class Download;
 typedef Download* DownloadPtr;
@@ -75,6 +80,8 @@ typedef std::vector<FavoriteHubEntryPtr> FavoriteHubEntryList;
 class FavoriteUser;
 
 class File;
+struct FilesystemItem;
+typedef vector<FilesystemItem> FilesystemItemList;
 
 class FinishedManager;
 
@@ -118,19 +125,22 @@ typedef std::shared_ptr<PrivateChat> PrivateChatPtr;
 class QueueItemBase;
 
 class QueueItem;
-typedef boost::intrusive_ptr<QueueItem> QueueItemPtr;
+typedef std::shared_ptr<QueueItem> QueueItemPtr;
 typedef std::vector<QueueItemPtr> QueueItemList;
-
-class RecentHubEntry;
-typedef boost::intrusive_ptr<RecentHubEntry> RecentHubEntryPtr;
-typedef std::vector<RecentHubEntryPtr> RecentHubEntryList;
 
 class Search;
 typedef shared_ptr<Search> SearchPtr;
 
+class SearchInstance;
+typedef shared_ptr<SearchInstance> SearchInstancePtr;
+
 class SearchResult;
-typedef boost::intrusive_ptr<SearchResult> SearchResultPtr;
+typedef std::shared_ptr<SearchResult> SearchResultPtr;
 typedef std::vector<SearchResultPtr> SearchResultList;
+
+class GroupedSearchResult;
+typedef std::shared_ptr<GroupedSearchResult> GroupedSearchResultPtr;
+typedef std::vector<GroupedSearchResultPtr> GroupedSearchResultList;
 
 class ServerSocket;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -84,15 +84,15 @@ void SimpleXMLReader::ThreadedCallBackLoader::parse(ProgressFunction prog) {
 
 }*/
 
-SimpleXMLReader::SimpleXMLReader(SimpleXMLReader::CallBack* callback) :
-	bufPos(0), pos(0), cb(callback), state(STATE_START)
+SimpleXMLReader::SimpleXMLReader(SimpleXMLReader::CallBack* callback, int aFlags) :
+	bufPos(0), pos(0), cb(callback), state(STATE_START), flags(aFlags)
 {
 	elements.reserve(64);
 	attribs.reserve(16);
 }
 
 void SimpleXMLReader::append(std::string& str, size_t maxLen, int c) {
-	if(str.size() + 1 > maxLen) {
+	if(str.size() > maxLen) {
 		error("Buffer overflow");
 	}
 	str.append(1, (std::string::value_type)c);
@@ -433,7 +433,7 @@ bool SimpleXMLReader::cdata() {
 }
 
 bool SimpleXMLReader::entref(string& d) {
-	if(d.size() + 1 >= MAX_VALUE_SIZE) {
+	if(d.size() > MAX_VALUE_SIZE) {
 		error("Buffer overflow");
 	}
 
@@ -767,12 +767,15 @@ bool SimpleXMLReader::process() {
 void SimpleXMLReader::decodeString(string& str_) {
 	auto isUtf8 = encoding.empty() || compare(encoding, Text::utf8) == 0;
 
-	if (isUtf8) {
-		if (!Text::validateUtf8(str_)) {
-			error("UTF-8 validation failed");
-		}
-	} else {
+	if (!isUtf8) {
 		str_ = Text::toUtf8(str_, encoding);
+	} else if (!Text::validateUtf8(str_)) {
+		if (flags & FLAG_REPLACE_INVALID_UTF8) {
+			dcassert(0);
+			str_ = Text::sanitizeUtf8(str_);
+		} else {
+			error("Malformed UTF-8 data");
+		}
 	}
 }
 

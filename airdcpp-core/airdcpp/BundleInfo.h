@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
 
 #include "typedefs.h"
 
-#include "Bundle.h"
 #include "HintedUser.h"
 #include "MerkleTree.h"
 #include "Priority.h"
@@ -54,14 +53,13 @@ struct BundleDirectoryItemInfo {
 	BundleDirectoryItemInfo(BundleDirectoryItemInfo&) = delete;
 	BundleDirectoryItemInfo& operator=(BundleDirectoryItemInfo&) = delete;
 
-	BundleDirectoryItemInfo(string aFile, const TTHValue& aTTH, int64_t aSize, time_t aDate = 0, Priority aPrio = Priority::DEFAULT) noexcept :
-		file(move(aFile)), tth(aTTH), size(aSize), prio(aPrio), date(aDate) { }
+	BundleDirectoryItemInfo(string aFile, const TTHValue& aTTH, int64_t aSize, Priority aPrio = Priority::DEFAULT) noexcept :
+		file(move(aFile)), tth(aTTH), size(aSize), prio(aPrio) { }
 
 	string file;
 	TTHValue tth;
 	int64_t size;
 	Priority prio;
-	time_t date;
 
 	typedef vector<BundleDirectoryItemInfo> List;
 };

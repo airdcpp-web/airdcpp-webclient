@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ namespace webserver {
 		static json serializeLogMessage(const LogMessagePtr& aMessageData) noexcept;
 
 		typedef std::function<json(const MessageCache& aCache)> UnreadSerializerF;
-		static void serializeCacheInfo(json& json_, const MessageCache& aCache, UnreadSerializerF unreadF) noexcept;
+		static json serializeCacheInfo(const MessageCache& aCache, const UnreadSerializerF& unreadF) noexcept;
 		static json serializeUnreadChat(const MessageCache& aCache) noexcept;
 		static json serializeUnreadLog(const MessageCache& aCache) noexcept;
 
@@ -51,8 +51,9 @@ namespace webserver {
 		static json serializeHintedUser(const HintedUser& aUser) noexcept;
 		static json serializeOnlineUser(const OnlineUserPtr& aUser) noexcept;
 
+		static string getFileTypeId(const string& aName) noexcept;
 		static json serializeFileType(const string& aPath) noexcept;
-		static json serializeFolderType(int aFiles, int aDirectories) noexcept;
+		static json serializeFolderType(const DirectoryContentInfo& aContentInfo) noexcept;
 
 		static json serializeIp(const string& aIP) noexcept;
 		static json serializeIp(const string& aIP, const string& aCountryCode) noexcept;
@@ -69,14 +70,20 @@ namespace webserver {
 		static json serializeDirectoryDupe(DupeType aDupeType, const string& aPath) noexcept;
 		static json serializeSlots(int aFree, int aTotal) noexcept;
 
+		static json serializeDirectoryDownload(const DirectoryDownloadPtr& aDownload) noexcept;
 		static json serializeDirectoryBundleAddInfo(const DirectoryBundleAddInfo& aInfo, const string& aError) noexcept;
 		static json serializeBundleAddInfo(const BundleAddInfo& aInfo) noexcept;
 
+		static json serializePriorityId(Priority aPriority) noexcept;
 		static json serializePriority(const QueueItemBase& aItem) noexcept;
 		static json serializeSourceCount(const QueueItemBase::SourceCount& aCount) noexcept;
 
+		static json serializeGroupedPaths(const pair<string, OrderedStringSet>& aGroupedPair) noexcept;
+		static json serializeActionHookError(const ActionHookRejectionPtr& aError) noexcept;
 
-		// Serialize n messages from end by keeping the list order
+		static json serializeFilesystemItem(const FilesystemItem& aInfo) noexcept;
+
+		// Serialize n items from end by keeping the list order
 		// Throws for invalid parameters
 		template <class ContainerT, class FuncT>
 		static json serializeFromEnd(int aCount, const ContainerT& aList, FuncT aF) throw(std::exception) {
@@ -95,6 +102,28 @@ namespace webserver {
 			}
 
 			return serializeRange(beginIter, aList.end(), aF);
+		}
+
+		// Serialize n items from beginning by keeping the list order
+		// Throws for invalid parameters
+		template <class ContainerT, class FuncT>
+		static json serializeFromBegin(int aCount, const ContainerT& aList, FuncT aF) throw(std::exception) {
+			if (aList.empty()) {
+				return json::array();
+			}
+
+			if (aCount < 0) {
+				throw std::domain_error("Invalid range");
+			}
+
+			auto listSize = static_cast<int>(std::distance(aList.begin(), aList.end()));
+			auto endIter = aList.end();
+			if (aCount > 0 && listSize > aCount) {
+				endIter = aList.begin();
+				std::advance(endIter, aCount);
+			}
+
+			return serializeRange(aList.begin(), endIter, aF);
 		}
 
 		template <class ContainerT, class FuncT>
@@ -141,15 +170,23 @@ namespace webserver {
 			});
 		}
 
+		// Serialize item with ID and all properties
 		template <class T>
 		static json serializeItem(const T& aItem, const PropertyItemHandler<T>& aHandler) noexcept {
-			auto j = serializeItemProperties(aItem, toPropertyIdSet(aHandler.properties), aHandler);
+			return serializePartialItem(aItem, aHandler, toPropertyIdSet(aHandler.properties));
+		}
+
+		// Serialize item with ID and specified properties
+		template <class T>
+		static json serializePartialItem(const T& aItem, const PropertyItemHandler<T>& aHandler, const PropertyIdSet& aPropertyIds) noexcept {
+			auto j = serializeProperties(aItem, aHandler, aPropertyIds);
 			j["id"] = aItem->getToken();
 			return j;
 		}
 
+		// Serialize specified item properties (without the ID)
 		template <class T>
-		static json serializeItemProperties(const T& aItem, const PropertyIdSet& aPropertyIds, const PropertyItemHandler<T>& aHandler) noexcept {
+		static json serializeProperties(const T& aItem, const PropertyItemHandler<T>& aHandler, const PropertyIdSet& aPropertyIds) noexcept {
 			json j;
 			for (auto id : aPropertyIds) {
 				const auto& prop = aHandler.properties[id];
@@ -160,11 +197,6 @@ namespace webserver {
 				}
 				case SERIALIZE_TEXT: {
 					j[prop.name] = aHandler.stringF(aItem, id);
-					break;
-				}
-				case SERIALIZE_TEXT_NUMERIC: {
-					j[prop.name]["id"] = aHandler.numberF(aItem, id);
-					j[prop.name]["str"] = aHandler.stringF(aItem, id);
 					break;
 				}
 				case SERIALIZE_BOOL: {

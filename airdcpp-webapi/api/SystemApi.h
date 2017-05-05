@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 #define DCPLUSPLUS_DCPP_SYSTEMAPI_H
 
 #include <web-server/stdinc.h>
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 
 #include <airdcpp/ActivityManager.h>
 
@@ -31,9 +31,7 @@ namespace webserver {
 		SystemApi(Session* aSession);
 		~SystemApi();
 
-		int getVersion() const noexcept override {
-			return 0;
-		}
+		static json getSystemInfo() noexcept;
 	private:
 		static string getAwayState(AwayMode aAwayMode) noexcept;
 		static json serializeAwayState() noexcept;
@@ -44,6 +42,8 @@ namespace webserver {
 		api_return handleGetStats(ApiRequest& aRequest);
 		api_return handleRestartWeb(ApiRequest& aRequest);
 		api_return handleShutdown(ApiRequest& aRequest);
+
+		api_return handleGetSystemInfo(ApiRequest& aRequest);
 
 		void on(ActivityManagerListener::AwayModeChanged, AwayMode aNewMode) noexcept override;
 	};

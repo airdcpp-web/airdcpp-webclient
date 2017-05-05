@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,14 +36,15 @@
 #include "FavoriteManager.h"
 #include "GeoManager.h"
 #include "HashManager.h"
+#include "IgnoreManager.h"
 #include "Localization.h"
 #include "LogManager.h"
-#include "MessageManager.h"
+#include "PrivateChatManager.h"
 #include "QueueManager.h"
+#include "RecentManager.h"
 #include "ShareManager.h"
 #include "SearchManager.h"
 #include "SettingsManager.h"
-#include "ShareScannerManager.h"
 #include "ThrottleManager.h"
 #include "UpdateManager.h"
 #include "UploadManager.h"
@@ -83,7 +84,7 @@ void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progr
 	ShareManager::newInstance();
 	ClientManager::newInstance();
 	ConnectionManager::newInstance();
-	MessageManager::newInstance();
+	PrivateChatManager::newInstance();
 	DownloadManager::newInstance();
 	UploadManager::newInstance();
 	ThrottleManager::newInstance();
@@ -93,23 +94,25 @@ void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progr
 	ConnectivityManager::newInstance();
 	DirectoryListingManager::newInstance();
 	DebugManager::newInstance();
-	ShareScannerManager::newInstance();
 	GeoManager::newInstance();
 	UpdateManager::newInstance();
 	ViewFileManager::newInstance();
 	ActivityManager::newInstance();
+	RecentManager::newInstance();
+	IgnoreManager::newInstance();
 
 	if (moduleInitF) {
 		moduleInitF();
 	}
 
 	SettingsManager::getInstance()->load(messageF);
+	FavoriteManager::getInstance()->load();
 
 	UploadManager::getInstance()->setFreeSlotMatcher();
 	Localization::init();
-	if(SETTING(WIZARD_RUN) && runWizard) {
+	if(SETTING(WIZARD_PENDING) && runWizard) {
 		runWizard();
-		SettingsManager::getInstance()->set(SettingsManager::WIZARD_RUN, false); //wizard has run on startup
+		SettingsManager::getInstance()->set(SettingsManager::WIZARD_PENDING, false); //wizard has run on startup
 	}
 
 
@@ -141,7 +144,8 @@ void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progr
 	announce(STRING(SHARED_FILES));
 	ShareManager::getInstance()->startup(stepF, progressF); 
 
-	FavoriteManager::getInstance()->load();
+	IgnoreManager::getInstance()->load();
+	RecentManager::getInstance()->load();
 
 	if(SETTING(GET_USER_COUNTRY)) {
 		announce(STRING(COUNTRY_INFORMATION));
@@ -179,6 +183,9 @@ void shutdown(StepF stepF, ProgressF progressF, Callback moduleDestroyF) {
 	
 	announce(STRING(SAVING_SETTINGS));
 	QueueManager::getInstance()->shutdown();
+	RecentManager::getInstance()->save();
+	IgnoreManager::getInstance()->save();
+	FavoriteManager::getInstance()->shutdown();
 	SettingsManager::getInstance()->save();
 
 	if (moduleDestroyF) {
@@ -187,6 +194,8 @@ void shutdown(StepF stepF, ProgressF progressF, Callback moduleDestroyF) {
 
 	announce(STRING(SHUTTING_DOWN));
 
+	IgnoreManager::deleteInstance();
+	RecentManager::deleteInstance();
 	ActivityManager::deleteInstance();
 	ViewFileManager::deleteInstance();
 	UpdateManager::deleteInstance();
@@ -200,8 +209,7 @@ void shutdown(StepF stepF, ProgressF progressF, Callback moduleDestroyF) {
 	QueueManager::deleteInstance();
 	DownloadManager::deleteInstance();
 	UploadManager::deleteInstance();
-	ShareScannerManager::deleteInstance();
-	MessageManager::deleteInstance();
+	PrivateChatManager::deleteInstance();
 	ConnectionManager::deleteInstance();
 	SearchManager::deleteInstance();
 	FavoriteManager::deleteInstance();

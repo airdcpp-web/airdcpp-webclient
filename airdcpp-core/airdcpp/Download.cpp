@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,8 +51,6 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 		setFlag(FLAG_VIEW);
 	if(qi.isSet(QueueItem::FLAG_MATCH_QUEUE))
 		setFlag(FLAG_QUEUE);
-	if(qi.isSet(QueueItem::FLAG_VIEW_NFO))
-		setFlag(FLAG_NFO);
 	if(qi.isSet(QueueItem::FLAG_RECURSIVE_LIST))
 		setFlag(FLAG_RECURSIVE);
 	if(qi.isSet(QueueItem::FLAG_TTHLIST_BUNDLE))
@@ -62,7 +60,7 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 
 	if (qi.getBundle()) {
 		dcassert(!qi.isSet(QueueItem::FLAG_USER_LIST));
-		dcassert(!qi.isSet(QueueItem::FLAG_TEXT));
+		dcassert(!qi.isSet(QueueItem::FLAG_CLIENT_VIEW));
 		setBundle(qi.getBundle());
 	}
 	

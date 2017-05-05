@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@ void TargetUtil::getTarget(const OrderedStringSet& aTargets, TargetInfo& retTi_)
 	TargetInfoMap targetMap;
 
 	for(const auto& i: aTargets) {
-		auto target = File::getMountPath(i, volumes);
+		auto target = File::getMountPath(i, volumes, false);
 		if (!target.empty() && targetMap.find(target) == targetMap.end()) {
 			auto free = File::getFreeSpace(target);
 			if (free > 0) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,19 +29,21 @@
 
 namespace dcpp {
 
-SearchResult::SearchResult(const string& aPath) : path(aPath), type(TYPE_DIRECTORY) { }
+atomic<SearchResultId> searchResultIdCounter { 0 };
+
+SearchResult::SearchResult(const string& aPath) : path(aPath), type(TYPE_DIRECTORY), id(Util::rand()) { }
 
 SearchResult::SearchResult(const HintedUser& aUser, Types aType, uint8_t aTotalSlots, uint8_t aFreeSlots,
-	int64_t aSize, const string& aPath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& aConnection, int aFiles, int dirCount) :
+	int64_t aSize, const string& aPath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& aConnection, const DirectoryContentInfo& aContentInfo) :
 
-	path(aPath), user(aUser), files(aFiles), folders(dirCount),
+	path(aPath), user(aUser), contentInfo(aContentInfo),
 	size(aSize), type(aType), totalSlots(aTotalSlots), freeSlots(aFreeSlots), IP(ip),
-	tth(aTTH), token(aToken), date(aDate), connection(aConnection) { }
+	tth(aTTH), searchToken(aToken), date(aDate), connection(aConnection), id(searchResultIdCounter++) { }
 
-SearchResult::SearchResult(Types aType, int64_t aSize, const string& aPath, const TTHValue& aTTH, time_t aDate, int aFiles, int aDirCount) :
+SearchResult::SearchResult(Types aType, int64_t aSize, const string& aPath, const TTHValue& aTTH, time_t aDate, const DirectoryContentInfo& aContentInfo) :
 	path(aPath), user(HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString)), size(aSize), type(aType), totalSlots(UploadManager::getInstance()->getSlots()),
-	freeSlots(UploadManager::getInstance()->getFreeSlots()), files(aFiles), folders(aDirCount),
-	tth(aTTH), date(aDate) { }
+	freeSlots(UploadManager::getInstance()->getFreeSlots()), contentInfo(aContentInfo),
+	tth(aTTH), date(aDate), id(searchResultIdCounter++) { }
 
 string SearchResult::toSR(const Client& c) const noexcept {
 	// File:		"$SR %s %s%c%s %d/%d%c%s (%s)|"
@@ -81,8 +83,8 @@ AdcCommand SearchResult::toRES(char aType) const noexcept {
 	cmd.addParam("DM", Util::toString(date));
 
 	if (type == TYPE_DIRECTORY) {
-		cmd.addParam("FI", Util::toString(files));
-		cmd.addParam("FO", Util::toString(folders));
+		cmd.addParam("FI", Util::toString(contentInfo.files));
+		cmd.addParam("FO", Util::toString(contentInfo.directories));
 	}
 	return cmd;
 }
@@ -120,7 +122,7 @@ bool SearchResult::SpeedSortOrder::operator()(const SearchResultPtr& lhs, const 
 		return lhs->getFreeSlots() * lhs->getSpeedPerSlot() > rhs->getFreeSlots() * rhs->getSpeedPerSlot();
 
 	//no free slots, choose a random user with the fastest connection available
-	return lhs->getConnectionInt() > lhs->getConnectionInt();
+	return lhs->getConnectionInt() > rhs->getConnectionInt();
 }
 
 bool SearchResult::DateOrder::operator()(const SearchResultPtr& a, const SearchResultPtr& b) const noexcept {
@@ -158,7 +160,7 @@ string SearchResult::getFilePath() const noexcept {
 bool SearchResult::matches(SearchQuery& aQuery, const string& aLocalSearchToken) const noexcept {
 	if (!user.user->isNMDC()) {
 		// ADC
-		if (aLocalSearchToken != token) {
+		if (aLocalSearchToken != searchToken) {
 			return false;
 		}
 	} else {

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+* Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,9 @@ namespace dcpp {
 		searchToken = aSearch->token;
 
 		maxResultCount = aSearch->maxResults;
-		ClientManager::getInstance()->directSearch(aUser, aSearch);
+
+		string error;
+		ClientManager::getInstance()->directSearch(aUser, aSearch, error);
 	}
 
 	DirectSearch::~DirectSearch() {
@@ -39,7 +41,7 @@ namespace dcpp {
 	}
 
 	void DirectSearch::on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept {
-		if (compare(aSR->getToken(), searchToken) != 0) {
+		if (compare(aSR->getSearchToken(), searchToken) != 0) {
 			return;
 		}
 

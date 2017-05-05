@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -136,7 +136,7 @@ public:
 		return (tmp.size() > 0) && tmp[0] == '1';
 	}
 	
-	void fromXML(const string& aXML);
+	void fromXML(const string& aXML, int aFlags = 0);
 	string toXML();
 	string childToXML();
 	void toXML(OutputStream* f);

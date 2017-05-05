@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -44,6 +44,11 @@ namespace webserver {
 			PROP_NICK,
 			PROP_HAS_PASSWORD,
 			PROP_USER_DESCRIPTION,
+			PROP_NMDC_ENCODING,
+			PROP_CONN_MODE4,
+			PROP_CONN_MODE6,
+			PROP_IP4,
+			PROP_IP6,
 			PROP_LAST
 		};
 
@@ -53,9 +58,12 @@ namespace webserver {
 		static std::string getStringInfo(const FavoriteHubEntryPtr& a, int aPropertyName) noexcept;
 		static double getNumericInfo(const FavoriteHubEntryPtr& a, int aPropertyName) noexcept;
 	private:
-		static string formatConnectState(const FavoriteHubEntryPtr& aEntry) noexcept;
+		static string getConnectStateStr(const FavoriteHubEntryPtr& aEntry) noexcept;
+		static string getConnectStateId(const FavoriteHubEntryPtr& aEntry) noexcept;
+
 		static json serializeHubSetting(tribool aSetting) noexcept;
 		static json serializeHubSetting(int aSetting) noexcept;
+		static string serializeHubSetting(const string& aSetting) noexcept;
 	};
 }
 

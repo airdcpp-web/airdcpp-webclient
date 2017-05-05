@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ namespace dcpp {
 
 using boost::range::find_if;
 
-BundleQueue::BundleQueue() { }
+BundleQueue::BundleQueue() : PrioritySearchQueue(SettingsManager::BUNDLE_SEARCH_TIME) { }
 
 BundleQueue::~BundleQueue() { }
 
@@ -43,8 +43,8 @@ size_t BundleQueue::getTotalFiles() const noexcept {
 void BundleQueue::addBundle(BundlePtr& aBundle) noexcept {
 	bundles[aBundle->getToken()] = aBundle;
 
-	if (aBundle->isFinished()) {
-		aBundle->setStatus(Bundle::STATUS_FINISHED);
+	if (aBundle->filesCompleted()) {
+		aBundle->setStatus(Bundle::STATUS_COMPLETED);
 		return;
 	}
 
@@ -335,10 +335,11 @@ void BundleQueue::forEachPath(const BundlePtr& aBundle, const string& aFilePath,
 void BundleQueue::addBundleItem(QueueItemPtr& aQI, BundlePtr& aBundle) noexcept {
 	dcassert(!aQI->getBundle());
 	aBundle->addQueue(aQI);
+	aQI->setBundle(aBundle);
 
 	if (!aBundle->isFileBundle()) {
 		forEachPath(aBundle, aQI->getTarget(), [&](PathInfo& aInfo) {
-			if (aQI->isFinished()) {
+			if (aQI->isDownloaded()) {
 				aInfo.finishedFiles++;
 			} else {
 				aInfo.queuedFiles++;
@@ -347,21 +348,25 @@ void BundleQueue::addBundleItem(QueueItemPtr& aQI, BundlePtr& aBundle) noexcept 
 			aInfo.size += aQI->getSize();
 		});
 	}
+
+	if (!aQI->isDownloaded()) {
+		queueSize += aQI->getSize();
+	}
 }
 
-void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool aFinished) noexcept {
+void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool aDownloadFinished) noexcept {
 	dcassert(aQI->getBundle());
-	aQI->getBundle()->removeQueue(aQI, aFinished);
+	aQI->getBundle()->removeQueue(aQI, aDownloadFinished);
 
 	if (!aQI->getBundle()->isFileBundle()) {
 		forEachPath(aQI->getBundle(), aQI->getTarget(), [&](PathInfo& aInfo) {
-			if (aQI->isFinished()) {
+			if (aQI->isDownloaded()) {
 				aInfo.finishedFiles--;
 			} else {
 				aInfo.queuedFiles--;
 			}
 
-			if (!aFinished) {
+			if (!aDownloadFinished) {
 				aInfo.size -= aQI->getSize();
 			}
 
@@ -373,6 +378,11 @@ void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool aFinished) noexcept {
 			dcassert(aInfo.size >= 0 && aInfo.finishedFiles >= 0 && aInfo.queuedFiles >= 0);
 #endif
 		});
+	}
+
+	if (aDownloadFinished || !aQI->isDownloaded()) {
+		queueSize -= aQI->getSize();
+		dcassert(queueSize >= 0);
 	}
 }
 

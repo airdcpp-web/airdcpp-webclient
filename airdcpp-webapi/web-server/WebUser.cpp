@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -62,13 +62,17 @@ namespace webserver {
 		"view_file_edit",
 	};
 
-	Access WebUser::toAccess(const string& aStr) noexcept {
+	Access WebUser::stringToAccess(const string& aStr) noexcept {
 		auto pos = find(accessStrings.begin(), accessStrings.end(), aStr);
 		if (pos == accessStrings.end()) {
 			return Access::LAST;
 		}
 
 		return static_cast<Access>(pos - accessStrings.begin());
+	}
+
+	const string& WebUser::accessToString(Access aAccess) noexcept {
+		return accessStrings[static_cast<AccessType>(aAccess)];
 	}
 
 	WebUser::WebUser(const std::string& aUserName, const std::string& aPassword, bool aIsAdmin) : userName(aUserName), password(aPassword) {
@@ -96,7 +100,7 @@ namespace webserver {
 	void WebUser::setPermissions(const StringList& aPermissions) noexcept {
 		clearPermissions();
 		for (const auto& p : aPermissions) {
-			auto access = toAccess(p);
+			auto access = stringToAccess(p);
 			if (access != Access::LAST) {
 				permissions[access] = true;
 			}
@@ -107,7 +111,7 @@ namespace webserver {
 		StringList tmp;
 		for (const auto& v : permissions) {
 			if (v.second) {
-				tmp.push_back(accessStrings[static_cast<AccessType>(v.first)]);
+				tmp.push_back(accessToString(v.first));
 			}
 		}
 
@@ -116,7 +120,11 @@ namespace webserver {
 
 	int WebUser::countPermissions() const noexcept {
 		return boost::accumulate(permissions | map_values, 0);
-		//return std::accumulate(permissions.begin(), permissions.end(), 0, [](const pair<Access, bool>))
+	}
+
+	bool WebUser::validateUsername(const string& aUsername) noexcept {
+		boost::regex reg(R"(\w+)");
+		return boost::regex_match(aUsername, reg);
 	}
 
 	string WebUser::getPermissionsStr() const noexcept {
@@ -129,9 +137,9 @@ namespace webserver {
 		}
 
 		dcassert(aAccess != Access::NONE);
-		/*if (aAccess == Access::NONE) {
+		if (aAccess == Access::NONE) {
 			return false;
-		}*/
+		}
 
 		return permissions.at(aAccess) || permissions.at(Access::ADMIN);
 	}

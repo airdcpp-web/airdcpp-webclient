@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,8 @@
 #include <airdcpp/Client.h>
 #include <airdcpp/Message.h>
 
-#include <api/HierarchicalApiModule.h>
+#include <api/base/HierarchicalApiModule.h>
+#include <api/base/HookApiModule.h>
 #include <api/OnlineUserUtils.h>
 
 #include <api/common/ChatController.h>
@@ -37,24 +38,24 @@
 namespace webserver {
 	class HubInfo;
 
-	class HubInfo : public SubApiModule<ClientToken, HubInfo, ClientToken>, private ClientListener {
+	class HubInfo : public SubApiModule<ClientToken, HubInfo, ClientToken, HookApiModule>, private ClientListener {
 	public:
 		static const StringList subscriptionList;
 
-		typedef ParentApiModule<ClientToken, HubInfo> ParentType;
 		typedef shared_ptr<HubInfo> Ptr;
 		typedef vector<Ptr> List;
 
 		HubInfo(ParentType* aParentModule, const ClientPtr& aClient);
 		~HubInfo();
 
-		ClientPtr getClient() const noexcept { return client; }
+		const ClientPtr& getClient() const noexcept { return client; }
 
 		static json serializeConnectState(const ClientPtr& aClient) noexcept;
 		static json serializeIdentity(const ClientPtr& aClient) noexcept;
 		static json serializeCounts(const ClientPtr& aClient) noexcept;
 
 		void init() noexcept override;
+		ClientToken getId() const noexcept override;
 	private:
 		api_return handleReconnect(ApiRequest& aRequest);
 		api_return handleFavorite(ApiRequest& aRequest);
@@ -62,32 +63,34 @@ namespace webserver {
 		api_return handleRedirect(ApiRequest& aRequest);
 
 		api_return handleGetCounts(ApiRequest& aRequest);
+		api_return handleGetUsers(ApiRequest& aRequest);
+		api_return handleGetUser(ApiRequest& aRequest);
 
-		void on(Redirect, const Client*, const string&) noexcept override;
-		void on(Failed, const string&, const string&) noexcept override;
-		void on(GetPassword, const Client*) noexcept override;
-		void on(HubUpdated, const Client*) noexcept override;
-		void on(HubTopic, const Client*, const string&) noexcept override;
-		void on(ConnectStateChanged, const Client*, uint8_t) noexcept override;
+		void on(ClientListener::Redirect, const Client*, const string&) noexcept override;
+		void on(ClientListener::Disconnected, const string&, const string&) noexcept override;
+		void on(ClientListener::GetPassword, const Client*) noexcept override;
+		void on(ClientListener::HubUpdated, const Client*) noexcept override;
+		void on(ClientListener::HubTopic, const Client*, const string&) noexcept override;
+		void on(ClientListener::ConnectStateChanged, const Client*, uint8_t) noexcept override;
 
-		void on(UserConnected, const Client*, const OnlineUserPtr&) noexcept override;
-		void on(UserUpdated, const Client*, const OnlineUserPtr&) noexcept override;
-		void on(UsersUpdated, const Client*, const OnlineUserList&) noexcept override;
-		void on(UserRemoved, const Client*, const OnlineUserPtr&) noexcept override;
+		void on(ClientListener::UserConnected, const Client*, const OnlineUserPtr&) noexcept override;
+		void on(ClientListener::UserUpdated, const Client*, const OnlineUserPtr&) noexcept override;
+		void on(ClientListener::UsersUpdated, const Client*, const OnlineUserList&) noexcept override;
+		void on(ClientListener::UserRemoved, const Client*, const OnlineUserPtr&) noexcept override;
 
-		void on(Disconnecting, const Client*) noexcept override;
-		void on(Redirected, const string&, const ClientPtr& aNewClient) noexcept override;
+		void on(ClientListener::Close, const Client*) noexcept override;
+		void on(ClientListener::Redirected, const string&, const ClientPtr& aNewClient) noexcept override;
 
-		void on(ChatMessage, const Client*, const ChatMessagePtr& m) noexcept override {
+		void on(ClientListener::ChatMessage, const Client*, const ChatMessagePtr& m) noexcept override {
 			chatHandler.onChatMessage(m);
 		}
-		void on(StatusMessage, const Client*, const LogMessagePtr& m, int = ClientListener::FLAG_NORMAL) noexcept override {
+		void on(ClientListener::StatusMessage, const Client*, const LogMessagePtr& m, int = ClientListener::FLAG_NORMAL) noexcept override {
 			chatHandler.onStatusMessage(m);
 		}
-		void on(MessagesRead, const Client*) noexcept override {
+		void on(ClientListener::MessagesRead, const Client*) noexcept override {
 			chatHandler.onMessagesUpdated();
 		}
-		void on(MessagesCleared, const Client*) noexcept override {
+		void on(ClientListener::MessagesCleared, const Client*) noexcept override {
 			chatHandler.onMessagesUpdated();
 		}
 

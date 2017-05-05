@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,8 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/HierarchicalApiModule.h>
+#include <api/base/HierarchicalApiModule.h>
+#include <api/base/HookApiModule.h>
 #include <api/HubInfo.h>
 
 #include <airdcpp/typedefs.h>
@@ -29,30 +30,28 @@
 #include <airdcpp/ClientManagerListener.h>
 
 namespace webserver {
-	class HubApi : public ParentApiModule<ClientToken, HubInfo>, private ClientManagerListener {
+	class HubApi : public ParentApiModule<ClientToken, HubInfo, HookApiModule>, private ClientManagerListener {
 	public:
 		static StringList subscriptionList;
 
 		HubApi(Session* aSession);
 		~HubApi();
 
-		int getVersion() const noexcept override {
-			return 0;
-		}
-
 		static json serializeClient(const ClientPtr& aClient) noexcept;
 	private:
+		ActionHookRejectionPtr incomingMessageHook(const ChatMessagePtr& aMessage, const HookRejectionGetter& aRejectionGetter);
+		ActionHookRejectionPtr outgoingMessageHook(const string& aMessage, bool aThirdPerson, const Client& aClient, const HookRejectionGetter& aRejectionGetter);
+
 		void addHub(const ClientPtr& aClient) noexcept;
 
 		api_return handlePostMessage(ApiRequest& aRequest);
 		api_return handlePostStatus(ApiRequest& aRequest);
 
-		api_return handleGetHubs(ApiRequest& aRequest);
-
 		api_return handleConnect(ApiRequest& aRequest);
 		api_return handleDisconnect(ApiRequest& aRequest);
-		api_return handleSearchNicks(ApiRequest& aRequest);
 		api_return handleGetStats(ApiRequest& aRequest);
+
+		api_return handleFindByUrl(ApiRequest& aRequest);
 
 		void on(ClientManagerListener::ClientCreated, const ClientPtr&) noexcept override;
 		void on(ClientManagerListener::ClientRemoved, const ClientPtr&) noexcept override;

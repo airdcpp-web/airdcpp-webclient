@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 AirDC++ Project
+ * Copyright (C) 2011-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,8 +59,6 @@ namespace dcpp {
 boost::regex AirUtil::releaseReg;
 boost::regex AirUtil::subDirRegPlain;
 boost::regex AirUtil::crcReg;
-
-string AirUtil::privKeyFile;
 
 AirUtil::TimeCounter::TimeCounter(string aMsg) : start(GET_TICK()), msg(move(aMsg)) {
 
@@ -146,6 +144,13 @@ TTHValue AirUtil::getTTH(const string& aFileName, int64_t aSize) noexcept {
 	return TTHValue(tmp.finalize());
 }
 
+TTHValue AirUtil::getPathId(const string& aPath) noexcept {
+	TigerHash tmp;
+	auto str = Text::toLower(aPath);
+	tmp.update(str.c_str(), str.length());
+	return TTHValue(tmp.finalize());
+}
+
 void AirUtil::init() {
 	releaseReg.assign(getReleaseRegBasic());
 	subDirRegPlain.assign(getSubDirReg(), boost::regex::icase);
@@ -209,10 +214,6 @@ void AirUtil::init() {
 #endif
 }
 
-void AirUtil::updateCachedSettings() {
-	privKeyFile = Text::toLower(SETTING(TLS_PRIVATE_KEY_FILE));
-}
-
 AirUtil::AdapterInfoList AirUtil::getBindAdapters(bool v6) {
 	// Get the addresses and sort them
 	auto bindAddresses = getNetworkAdapters(v6);
@@ -231,7 +232,7 @@ AirUtil::AdapterInfoList AirUtil::getBindAdapters(bool v6) {
 	const auto& setting = v6 ? SETTING(BIND_ADDRESS6) : SETTING(BIND_ADDRESS);
 	auto cur = boost::find_if(bindAddresses, [&setting](const AirUtil::AdapterInfo& aInfo) { return aInfo.ip == setting; });
 	if (cur == bindAddresses.end()) {
-		bindAddresses.emplace_back(STRING(UNKNOWN), setting, 0);
+		bindAddresses.emplace_back(STRING(UNKNOWN), setting, static_cast<uint8_t>(0));
 		cur = bindAddresses.end() - 1;
 	}
 
@@ -392,7 +393,7 @@ int AirUtil::getSlots(bool aIsDownload, double aValue, SettingsManager::SettingP
 		return SETTING(DOWNLOAD_SLOTS);
 	} else if (!SETTING(UL_AUTODETECT) && aValue == 0 && !aIsDownload) {
 		//LogManager::getInstance()->message("Slots2");
-		return SETTING(SLOTS);
+		return SETTING(UPLOAD_SLOTS);
 	}
 
 	double speed;
@@ -728,9 +729,6 @@ bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int aMaxAttempts, in
 	for(FileFindIter i(aPath, "*"); i != FileFindIter(); ++i) {
 		try {
 			if(i->isDirectory()) {
-				if (i->getFileName().compare(".") == 0 || i->getFileName().compare("..") == 0)
-					continue;
-
 				string dir = aPath + i->getFileName() + PATH_SEPARATOR;
 				if (!removeDirectoryIfEmptyRe(dir, aMaxAttempts, 0))
 					return false;

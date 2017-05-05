@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -29,9 +29,9 @@ namespace webserver {
 		ApiRouter();
 		~ApiRouter();
 
-		void handleSocketRequest(const std::string& aRequestBody, WebSocketPtr& aSocket, bool aIsSecure) noexcept;
+		void handleSocketRequest(const std::string& aMessage, WebSocketPtr& aSocket, bool aIsSecure) noexcept;
 		api_return handleHttpRequest(const std::string& aRequestPath, const websocketpp::http::parser::request& aRequest,
-			json& output_, json& error_, bool aIsSecure, const string& aIp) noexcept;
+			json& output_, json& error_, bool aIsSecure, const string& aIp, const SessionPtr& aSession) noexcept;
 	private:
 		api_return handleRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) noexcept;
 

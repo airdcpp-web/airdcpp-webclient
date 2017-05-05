@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,14 +24,13 @@
 #include "ClientManagerListener.h"
 #include "TimerManagerListener.h"
 
+#include "ActionHook.h"
 #include "ConnectionType.h"
 #include "Client.h"
 #include "CriticalSection.h"
 #include "OfflineUser.h"
-#include "SettingsManager.h"
 #include "Singleton.h"
 #include "Socket.h"
-#include "ShareProfile.h"
 #include "TimerManager.h"
 
 
@@ -47,9 +46,13 @@ class ClientManager : public Speaker<ClientManagerListener>,
 	typedef UserMap::iterator UserIter;
 
 public:
+	ActionHook<const ChatMessagePtr> incomingHubMessageHook, incomingPrivateMessageHook;
+	ActionHook<const string, const bool, const HintedUser, const bool> outgoingPrivateMessageHook;
+	ActionHook<const string, const bool, const Client&> outgoingHubMessageHook;
+
 	// Returns the new ClientPtr
 	// NOTE: the main app should perform connecting to the new hub
-	ClientPtr createClient(const RecentHubEntryPtr& aEntry) noexcept;
+	ClientPtr createClient(const string& aUrl) noexcept;
 	ClientPtr getClient(const string& aHubURL) noexcept;
 	ClientPtr getClient(ClientToken aClientId) noexcept;
 
@@ -69,7 +72,13 @@ public:
 	StringList getHubNames(const CID& cid) const noexcept;
 	string getHubName(const string& aHubUrl) const noexcept;
 	StringList getNicks(const CID& cid, bool allowCID = true) const noexcept;
-	pair<int64_t, int> getShareInfo(const HintedUser& user) const noexcept;
+
+	struct ShareInfo {
+		const int64_t size;
+		const int fileCount;
+	};
+	optional<ShareInfo> getShareInfo(const HintedUser& user) const noexcept;
+
 	void getUserInfoList(const UserPtr& user, User::UserInfoList& aList_) const noexcept;
 
 	StringList getNicks(const HintedUser& user) const noexcept;
@@ -120,15 +129,16 @@ public:
 	uint8_t getSlots(const CID& cid) const noexcept;
 
 	bool hasClient(const string& aUrl) const noexcept;
-	
-	optional<uint64_t> search(string& who, const SearchPtr& aSearch) noexcept;
 
 	// Get users with nick matching the pattern. Uses relevancies for priorizing the results.
-	OnlineUserList searchNicks(const string& aPattern, size_t aMaxResults, bool aIgnorePrefix) const noexcept;
+	OnlineUserList searchNicks(const string& aPattern, size_t aMaxResults, bool aIgnorePrefix, const StringList& aHubUrls) const noexcept;
 
-	void directSearch(const HintedUser& user, const SearchPtr& aSearch) noexcept;
+	bool directSearch(const HintedUser& user, const SearchPtr& aSearch, string& error_) noexcept;
 	
-	void cancelSearch(void* aOwner) noexcept;
+	optional<uint64_t> search(string& aHubUrl, const SearchPtr& aSearch, string& error_) noexcept;
+	bool cancelSearch(const void* aOwner) noexcept;
+	optional<uint64_t> getMaxSearchQueueTime(const void* aOwner) const noexcept;
+	bool hasSearchQueueOverflow() const noexcept;
 		
 	void infoUpdated() noexcept;
 
@@ -137,6 +147,7 @@ public:
 
 	UserPtr getUser(const string& aNick, const string& aHubUrl) noexcept;
 	UserPtr getUser(const CID& cid) noexcept;
+	UserPtr loadUser(const string& aCid, const string& aUrl, const string& aNick, uint32_t lastSeen = GET_TIME()) noexcept;
 
 	// usage needs to be locked!
 	const UserMap& getUsers() const { return users; }
@@ -155,8 +166,7 @@ public:
 
 	UserPtr findUserByNick(const string& aNick, const string& aHubUrl) const noexcept;
 	
-	//Note; Lock usage
-	void addOfflineUser(const UserPtr& user, const string& nick, const string& url, uint32_t lastSeen = GET_TIME()) noexcept;
+	void addOfflineUser(const UserPtr& user, const string& nick, const string& url, uint32_t lastSeen = 0) noexcept;
 
 	string getMyNick(const string& hubUrl) const noexcept;
 	optional<OfflineUser> getOfflineUser(const CID& cid);
@@ -179,7 +189,7 @@ public:
 	UserPtr& getMe() noexcept;
 
 	struct ClientStats {
-		int64_t totalShare = 0, sharePerUser = 0;
+		int64_t totalShare = 0;
 		int64_t uploadSpeed = 0, downloadSpeed = 0, nmdcConnection = 0;
 		int64_t nmdcSpeedPerUser = 0, downPerAdcUser = 0, upPerAdcUser = 0;
 
@@ -189,13 +199,9 @@ public:
 
 		int totalUsers = 0, uniqueUsers = 0;
 
-		double uniqueUsersPercentage = 0;
-		double activeUserPercentage = 0, operatorPercentage = 0, botPercentage = 0, hiddenPercentage = 0;
-
 		vector<pair<string, int> > clients;
 
 		void finalize() noexcept;
-		void forEachClient(function<void(const string&, int, double)> aHandler) const noexcept;
 	};
 
 	// No stats are returned if there are no hubs open (or users in them)
@@ -225,7 +231,7 @@ public:
 	//return users supporting the ASCH extension (and total users)
 	pair<size_t, size_t> countAschSupport(const OrderedStringSet& aHubs) const noexcept;
 private:
-	static ClientPtr createClient(const string& aHubURL, const ClientPtr& aOldClient = nullptr) noexcept;
+	static ClientPtr makeClient(const string& aHubURL, const ClientPtr& aOldClient = nullptr) noexcept;
 
 	typedef unordered_map<CID*, OfflineUser> OfflineUserMap;
 
@@ -269,14 +275,17 @@ private:
 	OnlineUser* findOnlineUserHint(const CID& cid, const string& hintUrl, OnlinePairC& p) const noexcept;
 
 	// ClientListener
-	void on(Connected, const Client* c) noexcept;
-	void on(UserUpdated, const Client*, const OnlineUserPtr& user) noexcept;
-	void on(UsersUpdated, const Client* c, const OnlineUserList&) noexcept;
-	void on(Failed, const string&, const string&) noexcept;
-	void on(HubUpdated, const Client* c) noexcept;
-	void on(HubUserCommand, const Client*, int, int, const string&, const string&) noexcept;
-	void on(NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize,
+	void on(ClientListener::Connected, const Client* c) noexcept;
+	void on(ClientListener::UserUpdated, const Client*, const OnlineUserPtr& user) noexcept;
+	void on(ClientListener::UsersUpdated, const Client* c, const OnlineUserList&) noexcept;
+	void on(ClientListener::Disconnected, const string&, const string&) noexcept;
+	void on(ClientListener::HubUpdated, const Client* c) noexcept;
+	void on(ClientListener::HubUserCommand, const Client*, int, int, const string&, const string&) noexcept;
+	void on(ClientListener::NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize,
 		int aFileType, const string& aString, bool) noexcept;
+	void on(ClientListener::OutgoingSearch, const Client*, const SearchPtr&) noexcept;
+	void on(ClientListener::PrivateMessage, const Client*, const ChatMessagePtr&) noexcept;
+
 	// TimerManagerListener
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 };

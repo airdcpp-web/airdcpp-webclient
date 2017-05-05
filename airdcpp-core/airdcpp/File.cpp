@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -79,8 +79,17 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 		throw FileException(Util::translateError(GetLastError()));
 	}
 
+#ifdef _DEBUG
+	// Strip possible network path prefix
+	auto fileName = aFileName.size() > 2 && aFileName.substr(0, 2) == "\\\\" ? aFileName.substr(2) : aFileName;
+	auto realPath = getRealPath();
+
 	// Avoid issues on Linux...
-	dcassert(compare(aFileName, getRealPath()) == 0);
+	dcassert(
+		compare(fileName, realPath) == 0 || 
+		Util::stricmp(fileName, realPath) != 0 // Shortcut/symlink
+	);
+#endif
 }
 
 uint64_t File::getLastModified() const noexcept {
@@ -237,7 +246,7 @@ uint64_t File::getLastModified(const string& aPath) noexcept {
 	if (aPath.empty())
 		return 0;
 
-	FileFindIter ff = FileFindIter(aPath.back() == PATH_SEPARATOR ? aPath.substr(0, aPath.size() - 1) : aPath);
+	FileFindIter ff = FileFindIter(aPath);
 	if (ff != FileFindIter()) {
 		return ff->getLastWriteTime();
 	}
@@ -249,7 +258,7 @@ bool File::isHidden(const string& aPath) noexcept {
 	if (aPath.empty())
 		return 0;
 
-	FileFindIter ff = FileFindIter(aPath.back() == PATH_SEPARATOR ? aPath.substr(0, aPath.size() - 1) : aPath);
+	FileFindIter ff = FileFindIter(aPath);
 	if (ff != FileFindIter()) {
 		return ff->isHidden();
 	}
@@ -257,12 +266,14 @@ bool File::isHidden(const string& aPath) noexcept {
 	return false;
 }
 
-bool File::deleteFile(const string& aFileName) noexcept {
-	return ::DeleteFile(Text::toT(Util::formatPath(aFileName)).c_str()) > 0 ? true : false;
+void File::deleteFileThrow(const string& aFileName) {
+	if (!::DeleteFile(Text::toT(Util::formatPath(aFileName)).c_str())) {
+		throw FileException(Util::translateError(GetLastError()));
+	}
 }
 
-void File::removeDirectory(const string& aPath) noexcept {
-	::RemoveDirectory(Text::toT(Util::formatPath(aPath)).c_str());
+bool File::removeDirectory(const string& aPath) noexcept {
+	return ::RemoveDirectory(Text::toT(Util::formatPath(aPath)).c_str()) > 0 ? true : false;
 }
 
 int64_t File::getSize(const string& aFileName) noexcept {
@@ -540,8 +551,11 @@ void File::copyFile(const string& source, const string& target) {
 	}
 }
 
-bool File::deleteFile(const string& aFileName) noexcept {
-	return ::unlink(Text::fromUtf8(aFileName).c_str()) == 0;
+void File::deleteFileThrow(const string& aFileName) {
+	auto result = ::unlink(Text::fromUtf8(aFileName).c_str());
+	if (result == -1) {
+		throw FileException(Util::translateError(result));
+	}
 }
 
 int64_t File::getSize(const string& aFileName) noexcept {
@@ -619,8 +633,8 @@ uint64_t File::getLastModified(const string& aPath) noexcept {
 	return statbuf.st_mtime;
 }
 
-void File::removeDirectory(const string& aPath) noexcept {
-	rmdir(Text::fromUtf8(aPath).c_str());
+bool File::removeDirectory(const string& aPath) noexcept {
+	return rmdir(Text::fromUtf8(aPath).c_str()) == 0;
 }
 
 bool File::isHidden(const string& aPath) noexcept {
@@ -634,11 +648,50 @@ File::~File() {
 }
 
 std::string File::makeAbsolutePath(const std::string& filename) {
-	return makeAbsolutePath(Util::getAppFilePath() + PATH_SEPARATOR, filename);
+	return makeAbsolutePath(Util::getAppFilePath(), filename);
 }
 
 std::string File::makeAbsolutePath(const std::string& path, const std::string& filename) {
 	return isAbsolutePath(filename) ? filename : path + filename;
+}
+
+void File::removeDirectoryForced(const string& aPath) {
+	for (FileFindIter i(aPath, "*"); i != FileFindIter(); ++i) {
+		if (i->isDirectory()) {
+			removeDirectoryForced(aPath + i->getFileName() + PATH_SEPARATOR);
+		} else {
+			try {
+				deleteFileThrow(aPath + i->getFileName());
+			} catch (const FileException& e) {
+				throw FileException(e.getError() + "(" + aPath + i->getFileName() + ")");
+			}
+		}
+	}
+
+	File::removeDirectory(aPath);
+}
+
+void File::moveDirectory(const string& aSource, const string& aTarget, const string& aPattern) {
+	File::ensureDirectory(aTarget);
+	File::forEachFile(aSource, aPattern, [&](const FilesystemItem& aInfo) {
+		auto sourcePath = aInfo.getPath(aSource);
+		auto destPath = aInfo.getPath(aTarget);
+
+		if (aInfo.isDirectory) {
+			moveDirectory(sourcePath, destPath);
+		} else {
+			renameFile(sourcePath, destPath);
+		}
+	});
+}
+
+bool File::deleteFile(const string& aFileName) noexcept {
+	try {
+		deleteFileThrow(aFileName);
+		return true;
+	} catch (...) { }
+
+	return false;
 }
 
 bool File::deleteFileEx(const string& aFileName, int maxAttempts) noexcept {
@@ -688,13 +741,21 @@ string File::read() {
 	return read((uint32_t)sz);
 }
 
+string FilesystemItem::getPath(const string& aBasePath) const noexcept {
+	if (isDirectory) {
+		return Util::joinDirectory(aBasePath, name);
+	}
+
+	return aBasePath + name;
+}
+
 StringList File::findFiles(const string& aPath, const string& aNamePattern, int aFindFlags) {
 	StringList ret;
 
 	{
-		forEachFile(aPath, aNamePattern, [&](const string& aFileName, bool isDir, int64_t /*size*/) {
-			if ((aFindFlags & TYPE_FILE && !isDir) || (aFindFlags & TYPE_DIRECTORY && isDir)) {
-				ret.push_back(aPath + aFileName);
+		forEachFile(aPath, aNamePattern, [&](const FilesystemItem& aInfo) {
+			if ((aFindFlags & TYPE_FILE && !aInfo.isDirectory) || (aFindFlags & TYPE_DIRECTORY && aInfo.isDirectory)) {
+				ret.push_back(aInfo.getPath(aPath));
 			}
 		}, !(aFindFlags & FLAG_HIDDEN));
 	}
@@ -705,22 +766,22 @@ StringList File::findFiles(const string& aPath, const string& aNamePattern, int 
 void File::forEachFile(const string& aPath, const string& aNamePattern, FileIterF aHandlerF, bool aSkipHidden) {
 	for (FileFindIter i(aPath, aNamePattern); i != FileFindIter(); ++i) {
 		if ((!aSkipHidden || !i->isHidden())) {
-			auto name = i->getFileName();
-			if (name.compare(".") != 0 && (name.length() < 2 || name.compare("..") != 0)) {
-				bool isDir = i->isDirectory();
-				aHandlerF(name + (isDir ? PATH_SEPARATOR_STR : Util::emptyString), isDir, i->getSize());
-			}
+			aHandlerF({
+				i->getFileName(),
+				i->getSize(),
+				i->isDirectory(),
+			});
 		}
 	}
 }
 
 int64_t File::getDirSize(const string& aPath, bool aRecursive, const string& aNamePattern) noexcept {
 	int64_t size = 0;
-	File::forEachFile(aPath, aNamePattern, [&](const string& aFileName, bool isDir, int64_t aSize) {
-		if (isDir && aRecursive) {
-			size += getDirSize(aPath + aFileName, true, aNamePattern);
+	File::forEachFile(aPath, aNamePattern, [&](const FilesystemItem& aInfo) {
+		if (aInfo.isDirectory && aRecursive) {
+			size += getDirSize(aInfo.getPath(aPath), true, aNamePattern);
 		} else {
-			size += aSize;
+			size += aInfo.size;
 		}
 	});
 
@@ -732,7 +793,7 @@ int64_t File::getFreeSpace(const string& aPath) noexcept {
 	return info.freeSpace;
 }
 
-string File::getMountPath(const string& aPath, const VolumeSet& aVolumes) noexcept {
+string File::getMountPath(const string& aPath, const VolumeSet& aVolumes, bool aIgnoreNetworkPaths) noexcept {
 	if (aVolumes.find(aPath) != aVolumes.end()) {
 		return aPath;
 	}
@@ -749,14 +810,17 @@ string File::getMountPath(const string& aPath, const VolumeSet& aVolumes) noexce
 	}
 
 #ifdef WIN32
-	// Not found from volumes... network path? This won't work with mounted dirs
-	if (aPath.length() > 2 && aPath.substr(0, 2) == "\\\\") {
-		l = aPath.find("\\", 2);
-		if (l != string::npos) {
-			//get the drive letter
-			l = aPath.find("\\", l + 1);
+	if (!aIgnoreNetworkPaths) {
+		// Not found from volumes... network path? This won't work with mounted dirs
+		// Get the first section containing the network host and the first folder/drive (//HTPC/g/)
+		if (aPath.length() > 2 && aPath.substr(0, 2) == "\\\\") {
+			l = aPath.find("\\", 2);
 			if (l != string::npos) {
-				return aPath.substr(0, l + 1);
+				//get the drive letter
+				l = aPath.find("\\", l + 1);
+				if (l != string::npos) {
+					return aPath.substr(0, l + 1);
+				}
 			}
 		}
 	}
@@ -767,8 +831,8 @@ string File::getMountPath(const string& aPath, const VolumeSet& aVolumes) noexce
 	return Util::emptyString;
 }
 
-File::DiskInfo File::getDiskInfo(const string& aTarget, const VolumeSet& aVolumes) noexcept {
-	auto mountPoint = getMountPath(aTarget, aVolumes);
+File::DiskInfo File::getDiskInfo(const string& aTarget, const VolumeSet& aVolumes, bool aIgnoreNetworkPaths) noexcept {
+	auto mountPoint = getMountPath(aTarget, aVolumes, aIgnoreNetworkPaths);
 	if (!mountPoint.empty()) {
 		return File::getDiskInfo(mountPoint);
 	}
@@ -836,7 +900,15 @@ File::VolumeSet File::getVolumes() noexcept {
 FileFindIter::FileFindIter() : handle(INVALID_HANDLE_VALUE) { }
 
 FileFindIter::FileFindIter(const string& aPath, const string& aPattern, bool aDirsOnly /*false*/) : handle(INVALID_HANDLE_VALUE) {
-	handle = ::FindFirstFileEx(Text::toT(Util::formatPath(aPath) + aPattern).c_str(), FindExInfoBasic, &data, aDirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
+	auto path = Util::formatPath(aPath);
+
+	// An attempt to open a search with a trailing backslash always fails
+	if (aPattern.empty() && !path.empty() && path.back() == PATH_SEPARATOR) {
+		path.pop_back();
+	}
+
+	handle = ::FindFirstFileEx(Text::toT(path + aPattern).c_str(), FindExInfoBasic, &data, aDirsOnly ? FindExSearchLimitToDirectories : FindExSearchNameMatch, NULL, NULL);
+	validateCurrent();
 }
 
 FileFindIter::~FileFindIter() {
@@ -845,12 +917,22 @@ FileFindIter::~FileFindIter() {
 	}
 }
 
+FileFindIter& FileFindIter::validateCurrent() {
+	if (wcscmp((*this)->cFileName, _T(".")) == 0 || wcscmp((*this)->cFileName, _T("..")) == 0) {
+		return this->operator++();
+	}
+
+	return *this;
+}
+
 FileFindIter& FileFindIter::operator++() {
 	if(!::FindNextFile(handle, &data)) {
 		::FindClose(handle);
 		handle = INVALID_HANDLE_VALUE;
+		return *this;
 	}
-	return *this;
+
+	return validateCurrent();
 }
 
 bool FileFindIter::operator!=(const FileFindIter& rhs) const { return handle != rhs.handle; }
@@ -904,13 +986,25 @@ FileFindIter::FileFindIter(const string& aPath, const string& aPattern, bool dir
 		closedir(dir);
 		dir = NULL;
 		return;
-	} else if (!matchPattern()) {
-		operator++();
 	}
+
+	validateCurrent();
 }
 
 FileFindIter::~FileFindIter() {
 	if (dir) closedir(dir);
+}
+
+FileFindIter& FileFindIter::validateCurrent() {
+	if (strcmp((*this)->ent->d_name, ".") == 0 || strcmp((*this)->ent->d_name, "..") == 0) {
+		return this->operator++();
+	}
+
+	if (pattern && fnmatch(pattern->c_str(), data.ent->d_name, 0) != 0) {
+		return this->operator++();
+	}
+
+	return *this;
 }
 
 FileFindIter& FileFindIter::operator++() {
@@ -923,15 +1017,7 @@ FileFindIter& FileFindIter::operator++() {
 		return *this;
 	}
 
-	if (matchPattern())
-		return *this;
-
-	// continue to the next one...
-	return operator++();
-}
-
-bool FileFindIter::matchPattern() const {
-	return !pattern || fnmatch(pattern->c_str(), data.ent->d_name, 0) == 0;
+	return validateCurrent();
 }
 
 bool FileFindIter::operator!=(const FileFindIter& rhs) const {

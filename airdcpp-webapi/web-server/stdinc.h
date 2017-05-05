@@ -58,10 +58,16 @@ namespace webserver {
 
 	typedef std::function<void()> CallBack;
 
+	class Extension;
+	typedef shared_ptr<Extension> ExtensionPtr;
+	typedef vector<ExtensionPtr> ExtensionList;
+
 	class Session;
 	typedef std::shared_ptr<Session> SessionPtr;
 	typedef std::vector<SessionPtr> SessionList;
 	typedef uint32_t LocalSessionId;
+
+	typedef map<string, json> SettingValueMap;
 
 	class Timer;
 	typedef shared_ptr<Timer> TimerPtr;

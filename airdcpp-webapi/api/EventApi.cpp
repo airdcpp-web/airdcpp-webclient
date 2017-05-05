@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -31,12 +31,12 @@ namespace webserver {
 		createSubscription("event_message");
 		createSubscription("event_counts");
 
-		METHOD_HANDLER("read", Access::EVENTS_VIEW, ApiRequest::METHOD_POST, (), false, EventApi::handleRead);
-		METHOD_HANDLER("counts", Access::EVENTS_VIEW, ApiRequest::METHOD_GET, (), false, EventApi::handleGetInfo);
-		METHOD_HANDLER("messages", Access::EVENTS_VIEW, ApiRequest::METHOD_GET, (NUM_PARAM), false, EventApi::handleGetLog);
+		METHOD_HANDLER(Access::EVENTS_VIEW, METHOD_POST,	(EXACT_PARAM("read")),		EventApi::handleRead);
+		METHOD_HANDLER(Access::EVENTS_VIEW, METHOD_GET,		(EXACT_PARAM("counts")),	EventApi::handleGetInfo);
 
-		METHOD_HANDLER("clear", Access::EVENTS_EDIT, ApiRequest::METHOD_POST, (), false, EventApi::handleClear);
-		METHOD_HANDLER("message", Access::EVENTS_EDIT, ApiRequest::METHOD_POST, (), true, EventApi::handlePostMessage);
+		METHOD_HANDLER(Access::EVENTS_VIEW, METHOD_GET,		(RANGE_MAX_PARAM),			EventApi::handleGetMessages);
+		METHOD_HANDLER(Access::EVENTS_EDIT, METHOD_DELETE,	(),							EventApi::handleClearMessages);
+		METHOD_HANDLER(Access::EVENTS_EDIT, METHOD_POST,	(),							EventApi::handlePostMessage);
 	}
 
 	EventApi::~EventApi() {
@@ -46,22 +46,22 @@ namespace webserver {
 	api_return EventApi::handlePostMessage(ApiRequest& aRequest) {
 		auto message = Deserializer::deserializeStatusMessage(aRequest.getRequestBody());
 		LogManager::getInstance()->message(message.first, message.second);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return EventApi::handleRead(ApiRequest& aRequest) {
+	api_return EventApi::handleRead(ApiRequest&) {
 		LogManager::getInstance()->setRead();
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return EventApi::handleClear(ApiRequest& aRequest) {
+	api_return EventApi::handleClearMessages(ApiRequest&) {
 		LogManager::getInstance()->clearCache();
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return EventApi::handleGetLog(ApiRequest& aRequest) {
+	api_return EventApi::handleGetMessages(ApiRequest& aRequest) {
 		auto j = Serializer::serializeFromEnd(
-			aRequest.getRangeParam(0),
+			aRequest.getRangeParam(MAX_COUNT),
 			LogManager::getInstance()->getCache().getLogMessages(),
 			Serializer::serializeLogMessage);
 
@@ -70,9 +70,7 @@ namespace webserver {
 	}
 
 	api_return EventApi::handleGetInfo(ApiRequest& aRequest) {
-		json j;
-		Serializer::serializeCacheInfo(j, LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog);
-		aRequest.setResponseBody(j);
+		aRequest.setResponseBody(Serializer::serializeCacheInfo(LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -89,9 +87,7 @@ namespace webserver {
 			return;
 		}
 
-		json j;
-		Serializer::serializeCacheInfo(j, LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog);
-		send("event_counts", j);
+		send("event_counts", Serializer::serializeCacheInfo(LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog));
 	}
 
 	void EventApi::on(LogManagerListener::Cleared) noexcept {

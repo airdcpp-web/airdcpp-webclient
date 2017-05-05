@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 */
 
 #include <api/PrivateChatInfo.h>
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 #include <api/common/Serializer.h>
 
 #include <web-server/JsonUtil.h>
@@ -33,41 +33,45 @@ namespace webserver {
 
 	PrivateChatInfo::PrivateChatInfo(ParentType* aParentModule, const PrivateChatPtr& aChat) :
 		SubApiModule(aParentModule, aChat->getUser()->getCID().toBase32(), subscriptionList), chat(aChat),
-		chatHandler(this, aChat, "private_chat") {
+		chatHandler(this, std::bind(&PrivateChatInfo::getChat, this), "private_chat", Access::PRIVATE_CHAT_VIEW, Access::PRIVATE_CHAT_EDIT, Access::PRIVATE_CHAT_SEND) {
 
-		METHOD_HANDLER("ccpm", Access::PRIVATE_CHAT_EDIT, ApiRequest::METHOD_POST, (), false, PrivateChatInfo::handleConnectCCPM);
-		METHOD_HANDLER("ccpm", Access::PRIVATE_CHAT_EDIT, ApiRequest::METHOD_DELETE, (), false, PrivateChatInfo::handleDisconnectCCPM);
+		METHOD_HANDLER(Access::PRIVATE_CHAT_EDIT, METHOD_POST,		(EXACT_PARAM("ccpm")),		PrivateChatInfo::handleConnectCCPM);
+		METHOD_HANDLER(Access::PRIVATE_CHAT_EDIT, METHOD_DELETE,	(EXACT_PARAM("ccpm")),		PrivateChatInfo::handleDisconnectCCPM);
 
-		METHOD_HANDLER("typing", Access::PRIVATE_CHAT_SEND, ApiRequest::METHOD_POST, (), false, PrivateChatInfo::handleStartTyping);
-		METHOD_HANDLER("typing", Access::PRIVATE_CHAT_SEND, ApiRequest::METHOD_DELETE, (), false, PrivateChatInfo::handleEndTyping);
+		METHOD_HANDLER(Access::PRIVATE_CHAT_SEND, METHOD_POST,		(EXACT_PARAM("typing")),	PrivateChatInfo::handleStartTyping);
+		METHOD_HANDLER(Access::PRIVATE_CHAT_SEND, METHOD_DELETE,	(EXACT_PARAM("typing")),	PrivateChatInfo::handleEndTyping);
 	}
 
 	void PrivateChatInfo::init() noexcept {
 		chat->addListener(this);
 	}
 
+	CID PrivateChatInfo::getId() const noexcept {
+		return chat->getUser()->getCID();
+	}
+
 	PrivateChatInfo::~PrivateChatInfo() {
 		chat->removeListener(this);
 	}
 
-	api_return PrivateChatInfo::handleStartTyping(ApiRequest& aRequest) {
+	api_return PrivateChatInfo::handleStartTyping(ApiRequest&) {
 		chat->sendPMInfo(PrivateChat::TYPING_ON);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return PrivateChatInfo::handleEndTyping(ApiRequest& aRequest) {
+	api_return PrivateChatInfo::handleEndTyping(ApiRequest&) {
 		chat->sendPMInfo(PrivateChat::TYPING_OFF);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return PrivateChatInfo::handleDisconnectCCPM(ApiRequest& aRequest) {
+	api_return PrivateChatInfo::handleDisconnectCCPM(ApiRequest&) {
 		chat->closeCC(false, true);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return PrivateChatInfo::handleConnectCCPM(ApiRequest& aRequest) {
+	api_return PrivateChatInfo::handleConnectCCPM(ApiRequest&) {
 		chat->startCC();
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	string PrivateChatInfo::formatCCPMState(PrivateChat::CCPMState aState) noexcept {
@@ -90,7 +94,6 @@ namespace webserver {
 		return{
 			{ "id", formatCCPMState(aChat->getCCPMState()) },
 			{ "str", PrivateChat::ccpmStateToString(aChat->getCCPMState()) },
-			{ "supported", aChat->getUser()->isSet(User::CCPM) },
 			{ "encryption", encryption },
 		};
 	}
@@ -106,7 +109,7 @@ namespace webserver {
 		});
 	}
 
-	void PrivateChatInfo::on(PrivateChatListener::PMStatus, PrivateChat*, uint8_t aSeverity) noexcept {
+	void PrivateChatInfo::on(PrivateChatListener::PMStatus, PrivateChat*, uint8_t /*aSeverity*/) noexcept {
 
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2016 AirDC++ Project
+ * Copyright (C) 2012-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@ public:
 	IGETSET(int64_t, totalSpeed, TotalSpeed, 0);
 	IGETSET(int64_t, actual, Actual, 0);
 	IGETSET(int64_t, uploadedSegments, UploadedSegments, 0);
+	GETSET(string, target, Target);
 	int delayTime = 0;
 
 	GETSET(UploadList, uploads, Uploads);
@@ -55,9 +56,6 @@ public:
 	void setSingleUser(bool aSingleUser, int64_t aUploadedSegments = 0);
 
 	string getName() const;
-	string getTarget() const { return target; }
-	void setTarget(string targetNew) { target = targetNew; }
-
 	string getToken() const { return token; }
 
 	uint64_t getSecondsLeft() const;
@@ -79,7 +77,6 @@ private:
 	time_t start = GET_TICK();
 
 	string token;
-	string target;
 };
 
 }

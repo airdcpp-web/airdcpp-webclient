@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ public:
 	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept override;
 	void sendUserCmd(const UserCommand& command, const ParamMap& params) override;
 	void search(const SearchPtr& aSearch) noexcept override;
-	void directSearch(const OnlineUser& user, const SearchPtr& aSearch) noexcept override;
+	bool directSearch(const OnlineUser& user, const SearchPtr& aSearch, string& error_) noexcept override;
 	void password(const string& pwd) noexcept override;
 	void infoImpl() noexcept override;
 	void refreshUserList(bool) noexcept override;
@@ -84,6 +84,8 @@ public:
 	AdcHub(const AdcHub&) = delete;
 	AdcHub& operator=(const AdcHub&) = delete;
 private:
+	bool isHubsoftVersionOrOlder(const string& aHubsoft, double aVersion);
+
 	friend class ClientManager;
 	friend class CommandHandler<AdcHub>;
 	friend class Identity;
@@ -158,7 +160,6 @@ private:
 	bool v4only() const noexcept override { return false; }
 	void on(BufferedSocketListener::Connected) noexcept override;
 	void on(BufferedSocketListener::Line, const string& aLine) noexcept override;
-	void on(BufferedSocketListener::Failed, const string& aLine) noexcept override;
 
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
 

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -26,9 +26,6 @@
 namespace webserver {
 	class Format {
 	public:
-		static std::string formatFolderContent(int fileCount, int folderCount) noexcept;
-		static std::string formatFileType(const std::string& aPath) noexcept;
-
 		static std::string formatIp(const string& aIP, const string& aCountryCode) noexcept;
 		static std::string formatIp(const string& aIP) noexcept;
 

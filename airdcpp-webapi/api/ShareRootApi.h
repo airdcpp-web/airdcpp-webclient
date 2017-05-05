@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/ApiModule.h>
+#include <api/base/ApiModule.h>
 #include <api/ShareUtils.h>
 #include <api/common/ListViewController.h>
 
@@ -35,28 +35,32 @@ namespace webserver {
 	public:
 		ShareRootApi(Session* aSession);
 		~ShareRootApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
 	private:
 		api_return handleGetRoots(ApiRequest& aRequest);
+
 		api_return handleAddRoot(ApiRequest& aRequest);
+		api_return handleGetRoot(ApiRequest& aRequest);
 		api_return handleUpdateRoot(ApiRequest& aRequest);
 		api_return handleRemoveRoot(ApiRequest& aRequest);
+
 		void parseRoot(ShareDirectoryInfoPtr& aInfo, const json& j, bool aIsNew);
 
 		void on(ShareManagerListener::RootCreated, const string& aPath) noexcept override;
 		void on(ShareManagerListener::RootRemoved, const string& aPath) noexcept override;
 		void on(ShareManagerListener::RootUpdated, const string& aPath) noexcept override;
+		void on(ShareManagerListener::RootRefreshState, const string& aPath) noexcept override;
 
 		void on(HashManagerListener::FileHashed, const string& aFilePath, HashedFile& aFileInfo) noexcept override;
 
 		typedef ListViewController<ShareDirectoryInfoPtr, ShareUtils::PROP_LAST> RootView;
 		RootView rootView;
 
+		void onRootUpdated(const string& aPath, PropertyIdSet&& aUpdatedProperties) noexcept;
 		void onRootUpdated(const ShareDirectoryInfoPtr& aInfo, PropertyIdSet&& aUpdatedProperties) noexcept;
+
 		ShareDirectoryInfoList getRoots() const noexcept;
+		ShareDirectoryInfoPtr findRoot(const string& aPath) noexcept;
+		ShareDirectoryInfoPtr getRoot(const ApiRequest& aRequest);
 
 		// ListViewController compares items by memory address so we need to store the list here 
 		ShareDirectoryInfoList roots;

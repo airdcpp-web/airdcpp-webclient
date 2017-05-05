@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2016 AirDC++ Project
+ * Copyright (C) 2012-2017 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -126,7 +126,7 @@ void UploadBundle::findBundlePath(const string& aName) {
 		if (pos + aName.length() == u->getPath().length()) //file bundle
 			target = u->getPath();
 		else //dir bundle
-			target = upath.substr(0, pos + aName.length() + 1);
+			target = upath.substr(0, pos + aName.length());
 	}
 }
 

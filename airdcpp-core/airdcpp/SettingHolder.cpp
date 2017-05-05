@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2013-2016 AirDC++ Project
+* Copyright (C) 2013-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -69,7 +69,7 @@ SettingHolder::~SettingHolder() {
 	}
 
 	if (prevShareSkiplist != SETTING(SKIPLIST_SHARE) || prevShareSkiplistRegex != SETTING(SHARE_SKIPLIST_USE_REGEXP)) {
-		ShareManager::getInstance()->setSkipList();
+		ShareManager::getInstance()->reloadSkiplist();
 	}
 
 	if (prevFreeSlotMatcher != SETTING(FREE_SLOTS_EXTENSIONS)) {

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ namespace webserver {
 		{ PROP_IP, "ip", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
 		{ PROP_FLAGS, "flags", TYPE_LIST_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
 		{ PROP_ENCRYPTION, "encryption", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
+		{ PROP_QUEUE_ID, "queue_file_id", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
 	};
 
 	const PropertyItemHandler<TransferInfoPtr> TransferUtils::propertyHandler = {
@@ -51,7 +52,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case PROP_NAME: return aItem->getName();
 		case PROP_TARGET: return aItem->getTarget();
-		case PROP_TYPE: return Format::formatFileType(aItem->getTarget());
+		case PROP_TYPE: return Util::formatFileType(aItem->getTarget());
 		case PROP_STATUS: return aItem->getStatusString();
 		case PROP_IP: return aItem->getIp();
 		case PROP_USER: return Format::formatNicks(aItem->getHintedUser());
@@ -69,6 +70,7 @@ namespace webserver {
 		case PROP_TIME_STARTED: return (double)aItem->getStarted();
 		case PROP_SPEED: return (double)aItem->getSpeed();
 		case PROP_SECONDS_LEFT: return (double)aItem->getTimeLeft();
+		case PROP_QUEUE_ID: return (double)aItem->getQueueToken();
 		default: dcassert(0); return 0;
 		}
 	}
@@ -96,7 +98,7 @@ namespace webserver {
 
 			return Util::DefaultSort(a->getStatusString(), b->getStatusString());
 		}
-		default: dcassert(0); return 0;
+		default: dcassert(0);
 		}
 		return 0;
 	}
@@ -132,6 +134,14 @@ namespace webserver {
 			{
 				auto trusted = aItem->getFlags().find("S") != aItem->getFlags().end();
 				return Serializer::serializeEncryption(aItem->getEncryption(), trusted);
+			}
+			case PROP_QUEUE_ID:
+			{
+				if (aItem->getQueueToken() == 0) {
+					return nullptr;
+				}
+
+				return aItem->getQueueToken();
 			}
 		}
 

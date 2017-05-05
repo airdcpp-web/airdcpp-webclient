@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -60,8 +60,8 @@ namespace dcpp {
 
 		string getAwayMessage(const string& aAwayMsg, ParamMap& params) const noexcept;
 	private:
-		void on(SettingsManagerListener::Load, SimpleXML& aXml) noexcept;
-		void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
+		void on(SettingsManagerListener::LoadCompleted, bool aFileLoaded) noexcept override;
+		void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
 
 		AwayMode awayMode = AWAY_OFF;
 		time_t lastActivity = GET_TICK();

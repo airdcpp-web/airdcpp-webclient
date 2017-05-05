@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 #include <web-server/stdinc.h>
 
+#include <api/common/Deserializer.h>
 #include <api/common/FileSearchParser.h>
 #include <web-server/JsonUtil.h>
 
@@ -26,7 +27,12 @@
 
 namespace webserver {
 	SearchPtr FileSearchParser::parseSearch(const json& aJson, bool aIsDirectSearch, const string& aToken) {
-		auto s = make_shared<Search>(Search::MANUAL, aToken);
+		auto priority = Deserializer::deserializePriority(aJson, true);
+		if (priority == Priority::DEFAULT) {
+			priority = Priority::LOW;
+		}
+
+		auto s = make_shared<Search>(priority, aToken);
 		parseMatcher(JsonUtil::getRawField("query", aJson), s);
 		if (aIsDirectSearch) {
 			parseOptions(JsonUtil::getOptionalRawField("options", aJson), s);
@@ -36,12 +42,12 @@ namespace webserver {
 	}
 
 	void FileSearchParser::parseMatcher(const json& aJson, const SearchPtr& aSearch) {
-		aSearch->query = JsonUtil::getOptionalFieldDefault<string>("pattern", aJson, Util::emptyString, false);
+		aSearch->query = JsonUtil::getOptionalFieldDefault<string>("pattern", aJson, Util::emptyString);
 
 		// Filetype
 		aSearch->fileType = aSearch->query.size() == 39 && Encoder::isBase32(aSearch->query.c_str()) ? Search::TYPE_TTH : Search::TYPE_ANY;
 
-		auto fileTypeStr = JsonUtil::getOptionalField<string>("file_type", aJson, false);
+		auto fileTypeStr = JsonUtil::getOptionalField<string>("file_type", aJson);
 		if (fileTypeStr) {
 			try {
 				SearchManager::getInstance()->getSearchType(parseFileType(*fileTypeStr), aSearch->fileType, aSearch->exts, true);
@@ -84,7 +90,7 @@ namespace webserver {
 		aSearch->excluded = JsonUtil::getOptionalFieldDefault<StringList>("excluded", aJson, StringList());
 
 		// Match type
-		auto matchTypeStr = JsonUtil::getOptionalFieldDefault<string>("match_type", aJson, "path_partial", false);
+		auto matchTypeStr = JsonUtil::getOptionalFieldDefault<string>("match_type", aJson, "path_partial");
 		aSearch->matchType = parseMatchType(matchTypeStr);
 	}
 

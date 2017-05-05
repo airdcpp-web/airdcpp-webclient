@@ -1,0 +1,14 @@
+<Boot>
+    <!--
+    ConfigPath specifies where settings, queue and other runtime data should be saved.
+    You may use the following variables, which are interpreted on a per-user basis:
+
+    %[HOME] - User's home directory, typically /home/<username>/
+
+    All % variables from strftime with the current time:
+    http://www.cplusplus.com/reference/ctime/strftime/
+
+    -->
+    <LocalMode>1</LocalMode>
+    <ConfigPath>./config/</ConfigPath>
+</Boot>

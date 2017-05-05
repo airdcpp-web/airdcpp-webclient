@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 #include <web-server/stdinc.h>
 
-#include <api/HierarchicalApiModule.h>
+#include <api/base/HierarchicalApiModule.h>
 #include <api/FilelistInfo.h>
 
 #include <airdcpp/typedefs.h>
@@ -35,26 +35,17 @@ namespace webserver {
 
 		FilelistApi(Session* aSession);
 		~FilelistApi();
-
-		int getVersion() const noexcept override {
-			return 0;
-		}
-
 	private:
 		void addList(const DirectoryListingPtr& aList) noexcept;
-		api_return handleQueueList(ApiRequest& aRequest, QueueItem::Flags aFlags);
 
 		api_return handlePostList(ApiRequest& aRequest);
 		api_return handleDeleteList(ApiRequest& aRequest);
 		api_return handleOwnList(ApiRequest& aRequest);
 
-		api_return handleGetLists(ApiRequest& aRequest);
-
 		api_return handlePostDirectoryDownload(ApiRequest& aRequest);
 		api_return handleDeleteDirectoryDownload(ApiRequest& aRequest);
 		api_return handleGetDirectoryDownloads(ApiRequest& aRequest);
 
-		api_return handleFindNfo(ApiRequest& aRequest);
 		api_return handleMatchQueue(ApiRequest& aRequest);
 
 		void on(DirectoryListingManagerListener::ListingCreated, const DirectoryListingPtr& aList) noexcept override;
@@ -66,7 +57,7 @@ namespace webserver {
 		void on(DirectoryListingManagerListener::DirectoryDownloadFailed, const DirectoryDownloadPtr& aDirectoryInfo, const string& aError) noexcept override;
 
 		static json serializeList(const DirectoryListingPtr& aList) noexcept;
-		static json serializeDirectoryDownload(const DirectoryDownloadPtr& aDownload) noexcept;
+		static json serializeShareProfile(const DirectoryListingPtr& aList) noexcept;
 	};
 }
 

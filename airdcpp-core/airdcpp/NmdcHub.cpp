@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,6 @@
 #include "ZUtils.h"
 #include "ThrottleManager.h"
 #include "UploadManager.h"
-#include "MessageManager.h"
 #include "ActivityManager.h"
 
 namespace dcpp {
@@ -345,19 +344,16 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		
 		string seeker = param.substr(i, j-i);
 
-		bool isPassive = seeker.compare(0, 4, "Hub:") == 0;
+		bool isPassive = seeker.size() > 4 && seeker.compare(0, 4, "Hub:") == 0;
 		bool meActive = isActive();
 
 		// Filter own searches
-		if (!isPassive) {
+		if (meActive && !isPassive) {
 			if(seeker == (localIp + ":" + SearchManager::getInstance()->getPort())) {
 				return;
 			}
-		} else {
-			// Hub:seeker
-			if (seeker.compare(4, getMyNick().size(), getMyNick()) == 0) {
-				return;
-			}
+		} else if (isPassive && Util::stricmp(seeker.c_str() + 4, getMyNick().c_str()) == 0) {
+			return;
 		}
 
 		i = j + 1;
@@ -413,11 +409,12 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		i = j + 1;
 		string terms = unescape(param.substr(i));
 
-		if(terms.size() > 0) {
-			if(isPassive) {
-				OnlineUserPtr u = findUser(seeker.substr(4));
-
-				if(u == NULL) {
+		// without terms, this is an invalid search.
+		if (!terms.empty()) {
+			if (isPassive) {
+				// mark the user as passive
+				auto u = findUser(seeker.substr(4));
+				if (!u) {
 					return;
 				}
 
@@ -918,7 +915,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			message->setFrom(findUser(fromNick));
 		}
 
-		MessageManager::getInstance()->onPrivateMessage(message);
+		onPrivateMessage(message);
 	} else if(cmd == "GetPass") {
 		OnlineUser& ou = getUser(getMyNick());
 		ou.getIdentity().set("RG", "1");
@@ -972,13 +969,8 @@ void NmdcHub::revConnectToMe(const OnlineUser& aUser) {
 	send("$RevConnectToMe " + fromUtf8(getMyNick()) + " " + fromUtf8(aUser.getIdentity().getNick()) + "|");
 }
 
-bool NmdcHub::hubMessage(const string& aMessage, string& error_, bool thirdPerson) noexcept { 
-	if(!stateNormal()) {
-		error_ = STRING(CONNECTING_IN_PROGRESS);
-		return false;
-	}
-
-	send(fromUtf8( "<" + getMyNick() + "> " + escape(thirdPerson ? "/me " + aMessage : aMessage) + "|" ) );
+bool NmdcHub::hubMessage(const string& aMessage, string& /*error_*/, bool aThirdPerson) noexcept { 
+	send(fromUtf8( "<" + getMyNick() + "> " + escape(aThirdPerson ? "/me " + aMessage : aMessage) + "|" ) );
 	return true;
 }
 
@@ -1135,7 +1127,7 @@ bool NmdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage,
 	if (aEcho) {
 		// Emulate a returning message...
 		auto message = std::make_shared<ChatMessage>(aMessage, ou, aUser, ou);
-		MessageManager::getInstance()->onPrivateMessage(message);
+		onPrivateMessage(message);
 	}
 
 	return true;
@@ -1183,11 +1175,6 @@ void NmdcHub::on(Connected) noexcept {
 void NmdcHub::on(Line, const string& aLine) noexcept {
 	Client::on(Line(), aLine);
 	onLine(aLine);
-}
-
-void NmdcHub::on(Failed, const string& aLine) noexcept {
-	Client::on(Failed(), aLine);
-	updateCounts(true);	
 }
 
 void NmdcHub::on(Second, uint64_t aTick) noexcept {

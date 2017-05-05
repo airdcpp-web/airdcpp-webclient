@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,11 +34,10 @@ namespace dcpp {
 /** All queue items indexed by user (this is a cache for the FileQueue really...) **/
 class FileQueue {
 public:
-	FileQueue() : queueSize(0) { }
+	FileQueue() { }
 	~FileQueue();
 
 	void getBloom(HashBloom& bloom) const noexcept;
-	void decreaseSize(uint64_t aSize) { queueSize -= aSize; }
 	typedef vector<pair<QueueItem::SourceConstIter, const QueueItemPtr> > PFSSourceList;
 
 	pair<QueueItem::StringMap::const_iterator, bool> add(QueueItemPtr& qi) noexcept;
@@ -63,14 +62,10 @@ public:
 
 	DupeType isFileQueued(const TTHValue& aTTH) const noexcept;
 	QueueItemPtr getQueuedFile(const TTHValue& aTTH) const noexcept;
-
-	uint64_t getTotalQueueSize() const noexcept { return queueSize; }
 private:
 	QueueItem::StringMap pathQueue;
 	QueueItem::TTHMap tthIndex;
 	QueueItem::TokenMap tokenQueue;
-
-	uint64_t queueSize;
 };
 
 } // namespace dcpp

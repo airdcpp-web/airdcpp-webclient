@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,21 +43,16 @@ void FileQueue::getBloom(HashBloom& bloom_) const noexcept {
 pair<QueueItemPtr, bool> FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, Priority p, 
 	const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept {
 
-	QueueItemPtr qi = new QueueItem(aTarget, aSize, p, aFlags, aAdded, root, aTempTarget);
+	auto qi = make_shared<QueueItem>(aTarget, aSize, p, aFlags, aAdded, root, aTempTarget);
 	auto ret = add(qi);
 	return { (ret.second ? qi : ret.first->second), ret.second };
 }
 
 pair<QueueItem::StringMap::const_iterator, bool> FileQueue::add(QueueItemPtr& qi) noexcept {
-	dcassert(queueSize >= 0);
 	auto ret = pathQueue.emplace(const_cast<string*>(&qi->getTarget()), qi);
 	if (ret.second) {
+		qi->setStatus(QueueItem::STATUS_QUEUED);
 		tthIndex.emplace(const_cast<TTHValue*>(&qi->getTTH()), qi);
-		if (!qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW) && !qi->isSet(QueueItem::FLAG_FINISHED)) {
-			dcassert(qi->getSize() >= 0);
-			queueSize += qi->getSize();
-		}
-
 		tokenQueue.emplace(qi->getToken(), qi);
 	}
 	return ret;
@@ -68,12 +63,7 @@ void FileQueue::remove(const QueueItemPtr& qi) noexcept {
 	auto f = pathQueue.find(const_cast<string*>(&qi->getTarget()));
 	if (f != pathQueue.end()) {
 		pathQueue.erase(f);
-		if (!qi->isSet(QueueItem::FLAG_USER_LIST) && (!qi->isSet(QueueItem::FLAG_FINISHED) || !qi->getBundle()) && !qi->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
-			dcassert(qi->getSize() >= 0);
-			queueSize -= qi->getSize();
-		}
 	}
-	dcassert(queueSize >= 0);
 
 	//TTHIndex
 	auto s = tthIndex.equal_range(const_cast<TTHValue*>(&qi->getTTH()));
@@ -117,7 +107,7 @@ void FileQueue::matchDir(const DirectoryListing::Directory::Ptr& aDir, QueueItem
 		auto tthRange = tthIndex.equal_range(const_cast<TTHValue*>(&f->getTTH()));
 
 		for_each(tthRange, [&](const pair<TTHValue*, QueueItemPtr>& tqp) {
-			if (!tqp.second->isFinished() && tqp.second->getSize() == f->getSize() && find(ql_, tqp.second) == ql_.end()) {
+			if (!tqp.second->isDownloaded() && tqp.second->getSize() == f->getSize() && find(ql_, tqp.second) == ql_.end()) {
 				ql_.push_back(tqp.second);
 			}
 		});
@@ -127,7 +117,7 @@ void FileQueue::matchDir(const DirectoryListing::Directory::Ptr& aDir, QueueItem
 DupeType FileQueue::isFileQueued(const TTHValue& aTTH) const noexcept {
 	auto qi = getQueuedFile(aTTH);
 	if (qi) {
-		return (qi->isFinished() ? DUPE_FINISHED_FULL : DUPE_QUEUE_FULL);
+		return (qi->isDownloaded() ? DUPE_FINISHED_FULL : DUPE_QUEUE_FULL);
 	}
 	return DUPE_NONE;
 }

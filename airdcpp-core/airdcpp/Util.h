@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -94,6 +94,14 @@ typedef std::function<void (const string&)> StepFunction;
 typedef std::function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> MessageFunction;
 typedef std::function<void (float)> ProgressFunction;
 
+// Recursively collected information about directory content
+struct DirectoryContentInfo {
+	DirectoryContentInfo() : directories(-1), files(-1) {  }
+	DirectoryContentInfo(int aDirectories, int aFiles) : directories(aDirectories), files(aFiles) {  }
+
+	int directories;
+	int files;
+};
 
 /** Uses SFINAE to determine whether a type provides a function; stores the result in "value".
 Inspired by <http://stackoverflow.com/a/8752988>. */
@@ -110,6 +118,18 @@ Inspired by <http://stackoverflow.com/a/8752988>. */
 class Util  
 {
 public:
+	static bool hasContentInfo(const DirectoryContentInfo& aContentInfo) {
+		return aContentInfo.directories >= 0 && aContentInfo.files >= 0;
+	}
+
+	static bool directoryEmpty(const DirectoryContentInfo& aContentInfo) {
+		return aContentInfo.directories == 0 && aContentInfo.files == 0;
+	}
+
+	static int directoryContentSort(const DirectoryContentInfo& a, const DirectoryContentInfo& b) noexcept;
+	static string formatDirectoryContent(const DirectoryContentInfo& aInfo) noexcept;
+	static string formatFileType(const string& aPath) noexcept;
+
 	struct PathSortOrderInt {
 		int operator()(const string& a, const string& b) const noexcept {
 			return pathSort(a, b);
@@ -128,6 +148,9 @@ public:
 	static string getOsVersion(bool http = false) noexcept;
 	static bool IsOSVersionOrGreater(int major, int minor) noexcept;
 
+	// Execute a background process and get exit code
+	static int runSystemCommand(const string& aCommand) noexcept;
+
 	enum Paths {
 		/** Global configuration */
 		PATH_GLOBAL_CONFIG,
@@ -143,18 +166,11 @@ public:
 		PATH_DOWNLOADS,
 		/** Default file list location */
 		PATH_FILE_LISTS,
-		/** Default hub list cache */
-		PATH_HUB_LISTS,
-		/** Where the notepad file is stored */
-		PATH_NOTEPAD,
-		/** Folder with emoticons packs*/
-		PATH_EMOPACKS,
-		/** XML files for each bundle*/
+		/** XML files for each bundle */
 		PATH_BUNDLES,
-		/** XML files for each bundle*/
+		/** XML files for cached share structure */
 		PATH_SHARECACHE,
-		/** Path to Theme Files*/
-		PATH_THEMES,
+
 		PATH_LAST
 	};
 
@@ -199,10 +215,6 @@ public:
 
 	/** Path of file lists */
 	static string getListPath() noexcept { return getPath(PATH_FILE_LISTS); }
-	/** Path of hub lists */
-	static string getHubListsPath() noexcept { return getPath(PATH_HUB_LISTS); }
-	/** Notepad filename */
-	static string getNotepadFile() noexcept { return getPath(PATH_NOTEPAD); }
 	/** Path of bundles */
 	static string getBundlePath() noexcept { return getPath(PATH_BUNDLES); }
 
@@ -224,6 +236,8 @@ public:
 	inline static string getNmdcParentDir(const string& path) noexcept { return getParentDir(path, NMDC_SEPARATOR, true); };
 	inline static string getAdcParentDir(const string& path) noexcept { return getParentDir(path, ADC_SEPARATOR, false); };
 
+	static string joinDirectory(const string& aPath, const string& aDirectoryName, const char separator = PATH_SEPARATOR) noexcept;
+
 	static string getFileExt(const string& path) noexcept;
 
 	static wstring getFilePath(const wstring& path) noexcept;
@@ -242,6 +256,21 @@ public:
 	template<typename string_t>
 	static inline void replace(const typename string_t::value_type* search, const typename string_t::value_type* replacement, string_t& str) noexcept {
 		replace(string_t(search), string_t(replacement), str);
+	}
+
+	template<typename T1, typename T2>
+	static double countAverage(T1 aFrom, T2 aTotal) {
+		return aTotal == 0 ? 0 : (static_cast<double>(aFrom) / static_cast<double>(aTotal));
+	}
+
+	template<typename T1, typename T2>
+	static int64_t countAverageInt64(T1 aFrom, T2 aTotal) {
+		return aTotal == 0 ? 0 : (aFrom / aTotal);
+	}
+
+	template<typename T1, typename T2>
+	static double countPercentage(T1 aFrom, T2 aTotal) {
+		return countAverage<T1, T2>(aFrom, aTotal) * 100.00;
 	}
 
 	static void sanitizeUrl(string& url) noexcept;
@@ -289,6 +318,9 @@ public:
 
 	static string formatExactSize(int64_t aBytes) noexcept;
 	static wstring formatExactSizeW(int64_t aBytes) noexcept;
+
+	static string formatAbbreviated(int aNum) noexcept;
+	static wstring formatAbbreviatedW(int aNum) noexcept;
 
 	static wstring formatSecondsW(int64_t aSec, bool supressHours = false) noexcept;
 	static string formatSeconds(int64_t aSec, bool supressHours = false) noexcept;
@@ -377,7 +409,7 @@ public:
 	}
 
 	static float toFloat(const string& aString) noexcept {
-		return (float)toDouble(aString.c_str());
+		return (float)toDouble(aString);
 	}
 
 	static string toString(short val) noexcept {
@@ -621,7 +653,7 @@ private:
 
 	static StringList startupParams;
 	
-	static void loadBootConfig() noexcept;
+	static bool loadBootConfig(const string& aDirectoryPath) noexcept;
 
 	static int osMinor;
 	static int osMajor;
@@ -636,8 +668,15 @@ public:
 
 class StringPtrEq {
 public:
-	size_t operator()(const string* a, const string* b) const noexcept {
+	bool operator()(const string* a, const string* b) const noexcept {
 		return *a == *b;
+	}
+};
+
+class StringPtrLess {
+public:
+	bool operator()(const string* a, const string* b) const noexcept {
+		return compare(*a, *b) < 0;
 	}
 };
 

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2016 AirDC++ Project
+* Copyright (C) 2011-2017 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -17,29 +17,36 @@
 */
 
 #include <web-server/stdinc.h>
+#include <web-server/version.h>
 
 #include <web-server/JsonUtil.h>
+#include <web-server/SystemUtil.h>
 #include <web-server/Timer.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
+#include <web-server/WebUserManager.h>
 
 #include <api/SystemApi.h>
 #include <api/common/Serializer.h>
 
 #include <airdcpp/ActivityManager.h>
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/Localization.h>
 #include <airdcpp/Thread.h>
 #include <airdcpp/TimerManager.h>
 
 namespace webserver {
 	SystemApi::SystemApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY) {
 
-		METHOD_HANDLER("stats", Access::ANY, ApiRequest::METHOD_GET, (), false, SystemApi::handleGetStats);
+		METHOD_HANDLER(Access::ANY, METHOD_GET,		(EXACT_PARAM("stats")),			SystemApi::handleGetStats);
 
-		METHOD_HANDLER("away", Access::ANY, ApiRequest::METHOD_GET, (), false, SystemApi::handleGetAwayState);
-		METHOD_HANDLER("away", Access::ANY, ApiRequest::METHOD_POST, (), true, SystemApi::handleSetAway);
+		METHOD_HANDLER(Access::ANY, METHOD_GET,		(EXACT_PARAM("away")),			SystemApi::handleGetAwayState);
+		METHOD_HANDLER(Access::ANY, METHOD_POST,	(EXACT_PARAM("away")),			SystemApi::handleSetAway);
 
-		METHOD_HANDLER("restart_web", Access::ADMIN, ApiRequest::METHOD_POST, (), false, SystemApi::handleRestartWeb);
-		METHOD_HANDLER("shutdown", Access::ADMIN, ApiRequest::METHOD_POST, (), false, SystemApi::handleShutdown);
+		METHOD_HANDLER(Access::ADMIN, METHOD_POST,	(EXACT_PARAM("restart_web")),	SystemApi::handleRestartWeb);
+		METHOD_HANDLER(Access::ADMIN, METHOD_POST,	(EXACT_PARAM("shutdown")),		SystemApi::handleShutdown);
+
+		METHOD_HANDLER(Access::ANY, METHOD_GET,		(EXACT_PARAM("system_info")),	SystemApi::handleGetSystemInfo);
 
 		createSubscription("away_state");
 
@@ -76,14 +83,14 @@ namespace webserver {
 	};
 	static SystemActionThread::Ptr systemActionThread;
 
-	api_return SystemApi::handleRestartWeb(ApiRequest& aRequest) {
+	api_return SystemApi::handleRestartWeb(ApiRequest&) {
 		systemActionThread = make_shared<SystemActionThread>(systemActionThread, false);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return SystemApi::handleShutdown(ApiRequest& aRequest) {
+	api_return SystemApi::handleShutdown(ApiRequest&) {
 		systemActionThread = make_shared<SystemActionThread>(systemActionThread, true);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	void SystemApi::on(ActivityManagerListener::AwayModeChanged, AwayMode /*aNewMode*/) noexcept {
@@ -116,19 +123,37 @@ namespace webserver {
 		auto away = JsonUtil::getField<bool>("away", aRequest.getRequestBody());
 		ActivityManager::getInstance()->setAway(away ? AWAY_MANUAL : AWAY_OFF);
 
+		aRequest.setResponseBody(serializeAwayState());
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return SystemApi::handleGetStats(ApiRequest& aRequest) {
-		auto started = TimerManager::getStartTime();
 		auto server = session->getServer();
 
 		aRequest.setResponseBody({
 			{ "server_threads", WEBCFG(SERVER_THREADS).num() },
-			{ "client_started", started },
-			{ "client_version", fullVersionString },
-			{ "active_sessions", server->getUserManager().getSessionCount() },
+			{ "active_sessions", server->getUserManager().getUserSessionCount() },
 		});
+		return websocketpp::http::status_code::ok;
+	}
+
+	json SystemApi::getSystemInfo() noexcept {
+		auto started = TimerManager::getStartTime();
+		return {
+			{ "api_version", API_VERSION },
+			{ "api_feature_level", API_FEATURE_LEVEL },
+			{ "path_separator", PATH_SEPARATOR_STR },
+			{ "platform", SystemUtil::getPlatform() },
+			{ "hostname", SystemUtil::getHostname() },
+			{ "cid", ClientManager::getInstance()->getMyCID().toBase32() },
+			{ "client_version", fullVersionString },
+			{ "client_started", started },
+			{ "language", Localization::getCurLanguageLocale() }
+		};
+	}
+
+	api_return SystemApi::handleGetSystemInfo(ApiRequest& aRequest) {
+		aRequest.setResponseBody(getSystemInfo());
 		return websocketpp::http::status_code::ok;
 	}
 }

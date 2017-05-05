@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -85,7 +85,8 @@ void Thread::t_resume() {
 
 void Thread::setThreadPriority(Priority p) {
 	if (!::SetThreadPriority(threadHandle, p)) {
-		dcassert(0);
+		dcdebug("Unable to set thread priority: %s", Util::translateError(GetLastError()).c_str());
+		//dcassert(0);
 		//throw ThreadException("Unable to set thread priority: " + Util::translateError(GetLastError()));
 	}
 }

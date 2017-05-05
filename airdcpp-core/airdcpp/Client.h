@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,6 @@
 #include "HubSettings.h"
 #include "MessageCache.h"
 #include "OnlineUser.h"
-#include "Pointer.h"
 #include "SearchQueue.h"
 #include "Speaker.h"
 
@@ -49,8 +48,9 @@ public:
 	virtual bool isOp() const noexcept = 0;
 	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) noexcept = 0;
 	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept = 0;
-	virtual void directSearch(const OnlineUser&, const SearchPtr&) noexcept {
-		dcassert(0); 
+	virtual bool directSearch(const OnlineUser&, const SearchPtr&, string&) noexcept {
+		dcassert(0);
+		return false;
 	}
 };
 
@@ -64,17 +64,17 @@ public:
 	virtual void disconnect(bool graceless) noexcept;
 
 	// Default message method
-	bool sendMessage(const string& aMessage, string& error_, bool thirdPerson = false) noexcept {
-		return hubMessage(aMessage, error_, thirdPerson);
-	}
+	bool sendMessage(const string& aMessage, string& error_, bool aThirdPerson = false) noexcept;
+	bool sendPrivateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept;
 
 	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) noexcept = 0;
-	virtual bool hubMessage(const string& aMessage, string& error_, bool thirdPerson = false) noexcept = 0;
-	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept = 0;
 	virtual void sendUserCmd(const UserCommand& command, const ParamMap& params) = 0;
 
 	uint64_t queueSearch(const SearchPtr& aSearch) noexcept;
-	void cancelSearch(void* aOwner) noexcept { searchQueue.cancelSearch(aOwner); }
+	optional<uint64_t> getQueueTime(const void* aOwner) const noexcept;
+	bool cancelSearch(const void* aOwner) noexcept { return searchQueue.cancelSearch(aOwner); }
+	int getSearchQueueSize() const noexcept { return searchQueue.getQueueSize(); }
+	bool hasSearchOverflow() const noexcept { return searchQueue.hasOverflow(); }
 	
 	virtual void password(const string& pwd) noexcept = 0;
 	void info();
@@ -172,7 +172,7 @@ public:
 	}
 
 	void doRedirect() noexcept;
-	bool saveFavorite();
+	FavoriteHubEntryPtr saveFavorite();
 
 	enum State: uint8_t {
 		STATE_CONNECTING,	///< Waiting for socket to connect
@@ -193,13 +193,16 @@ public:
 
 	void allowUntrustedConnect() noexcept;
 	bool isKeyprintMismatch() const noexcept;
+
+	static bool isCommand(const string& aMessage) noexcept;
 protected:
+	virtual bool hubMessage(const string& aMessage, string& error_, bool aThirdPerson = false) noexcept = 0;
+	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept = 0;
 	virtual void clearUsers() noexcept = 0;
 
 	void setConnectState(State aState) noexcept;
 	MessageCache cache;
 
-	friend class ClientManager;
 	Client(const string& hubURL, char separator, const ClientPtr& aOldClient);
 
 	SearchQueue searchQueue;
@@ -238,6 +241,7 @@ protected:
 	virtual bool v4only() const noexcept = 0;
 	void onPassword() noexcept;
 
+	void onPrivateMessage(const ChatMessagePtr& aMessage) noexcept;
 	void onChatMessage(const ChatMessagePtr& aMessage) noexcept;
 	void onRedirect(const string& aRedirectUrl) noexcept;
 
@@ -264,6 +268,8 @@ private:
 	// Last used count type information for this hub
 	CountType countType = COUNT_UNCOUNTED;
 	bool countIsSharing = false;
+
+	void destroySocket(const AsyncF& aShutdownAction = nullptr) noexcept;
 };
 
 } // namespace dcpp
