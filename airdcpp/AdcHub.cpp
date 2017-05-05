@@ -136,11 +136,7 @@ OnlineUser* AdcHub::findUser(const CID& aCID) const noexcept {
 
 void AdcHub::getUserList(OnlineUserList& list, bool aListHidden) const noexcept {
 	RLock l(cs);
-	for(const auto& i: users) {
-		if (i.first == AdcCommand::HUB_SID) {
-			continue;
-		}
-
+	for (const auto& i: users) {
 		if (!aListHidden && i.second->isHidden()) {
 			continue;
 		}

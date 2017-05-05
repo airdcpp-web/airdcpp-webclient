@@ -926,7 +926,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 #ifdef _WIN32
 	setDefault(NMDC_ENCODING, Text::systemCharset);
 #else
-	setDefault(NMDC_ENCODING, "CP1250");
+	setDefault(NMDC_ENCODING, "CP1252");
 #endif
 }
 
