@@ -8,14 +8,18 @@ set -e
 
 if [ -z "$2" ]
   then
-    echo "Usage: build-portable <buildroot path> <output root path> [ <arch> ] [ <branch/tag> ]"
+    echo "Usage: build-portable <buildroot path> <output root path> [ <arch> ]"
+    echo ""
+    echo "Additional variables:"
+    echo ""
+    echo "BRANCH: branch/commit id for checkout (default: develop)"
+    echo ""
     exit 1
 fi
 
 # Source
 BR_ROOT=$1
 ARCH=`echo "$3" | xargs`
-BRANCH=$4
 #AIR_ROOT="$(dirname " $( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd ) ")"
 
 # Output
@@ -64,7 +68,7 @@ FetchGit()
     git clone https://github.com/airdcpp-web/airdcpp-webclient.git ${AIR_ARCH_ROOT}
   else
     cd ${AIR_ARCH_ROOT}
-    git pull
+    git pull --all
   fi
 
   git checkout ${BRANCH}
