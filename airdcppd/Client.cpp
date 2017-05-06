@@ -57,8 +57,24 @@ void Client::run() {
 }
 
 void Client::stop() {
-	webserver::WebServerManager::getInstance()->stop();
-	shutdownSemaphore.signal();
+	if (!running) {
+		if (!asDaemon) {
+			printf("Shutdown request ignored, operation in progress\n");
+		}
+		
+		return;
+	}
+	
+	running = false;
+	if (!asDaemon) {
+		printf("Shutdown requested...\n");
+	}
+	
+	// FreeBSD would fail with "Fatal error 'thread 0x807616000 was already on queue."
+	// if signaling from a system thread
+	webserver::WebServerManager::getInstance()->addAsyncTask([this] {
+		shutdownSemaphore.signal();
+	});
 }
 
 void webErrorF(const string& aError) {
@@ -132,15 +148,13 @@ bool Client::startup() {
 		cdmDebug.reset(new CDMDebug(cdmClient, cdmHub, cdmWeb));
 	}
 
-	started = true;
+	running = true;
 	return true;
 }
 
 void Client::shutdown() {
-	if (!started) {
-		return;
-	}
-
+	webserver::WebServerManager::getInstance()->stop();
+	
 	cdmDebug.reset(nullptr);
 
 	ClientManager::getInstance()->putClients();

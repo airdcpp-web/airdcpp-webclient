@@ -43,7 +43,7 @@ private:
 	void on(DirectoryListingManagerListener::OpenListing, const DirectoryListingPtr& aList, const string& aDir, const string& aXML) noexcept;
 	void on(ClientManagerListener::ClientCreated, const ClientPtr&) noexcept;
 
-	bool started = false;
+	bool running = false;
 	bool asDaemon = false;
 	
 	unique_ptr<CDMDebug> cdmDebug;
