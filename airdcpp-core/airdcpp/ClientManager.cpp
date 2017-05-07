@@ -715,14 +715,31 @@ optional<ClientManager::ShareInfo> ClientManager::getShareInfo(const HintedUser&
 	return boost::none;
 }
 
-void ClientManager::getUserInfoList(const UserPtr& user, User::UserInfoList& aList_) const noexcept {
-	RLock l(cs);
-	auto p = onlineUsers.equal_range(const_cast<CID*>(&user->getCID()));
+User::UserInfoList ClientManager::getUserInfoList(const UserPtr& user) const noexcept {
+	User::UserInfoList ret;
 
-	for(auto i = p.first; i != p.second; ++i) {
-		auto& ou = i->second;
-		aList_.emplace_back(ou->getHubUrl(), ou->getClient()->getHubName(), Util::toInt64(ou->getIdentity().getShareSize()));
+	{
+		RLock l(cs);
+		auto p = onlineUsers.equal_range(const_cast<CID*>(&user->getCID()));
+
+		for (auto i = p.first; i != p.second; ++i) {
+			auto& ou = i->second;
+			ret.emplace_back(ou->getHubUrl(), ou->getClient()->getHubName(), Util::toInt64(ou->getIdentity().getShareSize()));
+		}
 	}
+
+	return ret;
+}
+
+HintedUser ClientManager::checkDownloadUrl(const HintedUser& aUser) const noexcept {
+	auto userInfoList = ClientManager::getInstance()->getUserInfoList(aUser);
+	if (!userInfoList.empty() && find(userInfoList, aUser.hint) == userInfoList.end()) {
+		sort(userInfoList.begin(), userInfoList.end(), User::UserHubInfo::ShareSort());
+
+		return { aUser.user, userInfoList.back().hubUrl };
+	}
+
+	return aUser;
 }
 
 OnlineUserPtr ClientManager::findOnlineUser(const HintedUser& user, bool aAllowFallback) const noexcept {

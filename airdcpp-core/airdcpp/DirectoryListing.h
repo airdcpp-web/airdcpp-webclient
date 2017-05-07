@@ -150,12 +150,17 @@ public:
 		const DirectoryContentInfo& getContentInfo() const noexcept {
 			return contentInfo;
 		}
+
+		void setContentInfo(const DirectoryContentInfo& aContentInfo) {
+			contentInfo.files = aContentInfo.files;
+			contentInfo.directories = aContentInfo.directories;
+		}
 	protected:
 		Directory(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool aCheckDupe, const DirectoryContentInfo& aContentInfo, const string& aSize, time_t aRemoteDate);
 
 		void getContentInfo(size_t& directories_, size_t& files_, bool aCountAdls) const noexcept;
 
-		const DirectoryContentInfo contentInfo;
+		DirectoryContentInfo contentInfo;
 		const string name;
 	};
 

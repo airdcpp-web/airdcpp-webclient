@@ -428,17 +428,19 @@ DirectoryListingPtr DirectoryListingManager::createList(const HintedUser& aUser,
 		return nullptr;
 	}
 
-	auto qi = QueueManager::getInstance()->addList(aUser, aFlags, aInitialDir);
+	auto user = ClientManager::getInstance()->checkDownloadUrl(aUser);
+	auto qi = QueueManager::getInstance()->addList(user, aFlags, aInitialDir);
 	if (!qi) {
 		return nullptr;
 	}
 
 	if (!qi->isSet(QueueItem::FLAG_PARTIAL_LIST)) {
-		dl = createList(aUser, false, qi->getListName(), false);
+		dl = createList(user, false, qi->getListName(), false);
 	} else {
-		dl = createList(aUser, true, Util::emptyString, false);
+		dl = createList(user, true, Util::emptyString, false);
 	}
 
+	dl->onAddedQueue(qi->getTarget());
 	return dl;
 }
 
