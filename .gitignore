@@ -4,6 +4,10 @@
 *~
 *.swp
 
+# Output
+airdcppd/airdcppd
+node_modules
+
 *.o
 *.so
 *.so.?*
@@ -24,7 +28,7 @@ cmake_install.cmake
 CMakeCache.txt
 install_manifest.txt
 Makefile
-airdcppd/airdcppd
-buildroot/release
 
-node_modules
+# Precompiled headers
+cotire
+*_cotire.cmake

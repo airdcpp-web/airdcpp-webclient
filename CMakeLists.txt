@@ -21,7 +21,7 @@ include (CheckFunctionExists)
 include (FindPkgConfig)
 include (CheckCXXSourceCompiles)
 include (cmake/CheckAtomic.cmake)
-
+include (cmake/cotire.cmake)
 
 
 # PRE-CHECKS
