@@ -412,8 +412,13 @@ void ListLoader::endTag(const string& name) {
 		if(name == sDirectory) {
 			cur = cur->getParent();
 		} else if(name == sFileListing) {
-			// cur should be root now, set it complete
+			// Cur should be the loaded base path now
+
 			cur->setComplete();
+
+			// Content info is not loaded for the base path
+			cur->setContentInfo(cur->getContentInfoRecursive(false));
+
 			inListing = false;
 		}
 	}
