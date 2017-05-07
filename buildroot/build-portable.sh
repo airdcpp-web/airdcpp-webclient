@@ -68,10 +68,10 @@ FetchGit()
     git clone https://github.com/airdcpp-web/airdcpp-webclient.git ${AIR_ARCH_ROOT}
   else
     cd ${AIR_ARCH_ROOT}
-    git pull --all
   fi
 
   git checkout ${BRANCH}
+  git pull
 }
 
 
@@ -106,14 +106,16 @@ SetArch()
     ARCH_PKG_BASE_EXTRA="-dbg"
   fi
 
-  ARCH_VERSION=`git describe --tags --abbrev=4 --dirty=-d`
-  ARCH_PKG_BASE=airdcpp-${ARCH_VERSION}-${ARCHSTR}-portable${ARCH_PKG_BASE_EXTRA}
 
   if [[ $BRANCH = "master" ]]; then
     PKG_TYPE_DIR=${PKG_DIR}/stable
+    ARCH_VERSION=`git describe --abbrev=0 --tags`
   else
     PKG_TYPE_DIR=${PKG_DIR}/$BRANCH
+    ARCH_VERSION=`git describe --tags --abbrev=4 --dirty=-d`
   fi
+
+  ARCH_PKG_BASE=airdcpp-${ARCH_VERSION}-${ARCHSTR}-portable${ARCH_PKG_BASE_EXTRA}
 
   if [ ! -d $PKG_TYPE_DIR ]; then
     mkdir -p $PKG_TYPE_DIR;
@@ -159,8 +161,6 @@ CreatePackage()
 BuildArch()
 {
   SetArch $1
-
-  FetchGit
 
   if [[ ! $BUILD_THREADS ]]; then
     BUILD_THREADS=`getconf _NPROCESSORS_ONLN`
