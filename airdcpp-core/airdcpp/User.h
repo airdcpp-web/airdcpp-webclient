@@ -68,6 +68,16 @@ public:
 
 	struct UserHubInfo {
 		UserHubInfo(const string& aHubUrl, const string& aHubName, int64_t aShared) : hubName(aHubName), hubUrl(aHubUrl), shared(aShared) { }
+		bool operator==(const string& aHubUrl) const noexcept {
+			return hubUrl == aHubUrl;
+		}
+
+		// Sort from lowest to highest
+		struct ShareSort {
+			bool operator()(const UserHubInfo& a, const UserHubInfo& b) const noexcept {
+				return a.shared < b.shared;
+			}
+		};
 
 		string hubName;
 		string hubUrl;
