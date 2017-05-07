@@ -1,5 +1,8 @@
 #!/bin/bash
 
+bold=$(tput bold)
+normal=$(tput sgr0)
+
 # Exit on errors
 set -e
 
@@ -10,9 +13,11 @@ if [ -z "$2" ]
   then
     echo "Usage: build-portable <buildroot path> <output root path> [ <arch> ]"
     echo ""
-    echo "Additional variables:"
+    echo "Additional options:"
     echo ""
     echo "BRANCH: branch/commit id for checkout (default: develop)"
+    echo "BUILD_THREADS: number of compiler threads to use (default: auto)"
+    echo "SKIP_EXISTING: don't build/overwrite existing target packages (default: disabled)"
     echo ""
     exit 1
 fi
@@ -20,7 +25,6 @@ fi
 # Source
 BR_ROOT=$1
 ARCH=`echo "$3" | xargs`
-#AIR_ROOT="$(dirname " $( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd ) ")"
 
 # Output
 OUTPUT_DIR=$2
@@ -116,9 +120,17 @@ SetArch()
   fi
 
   ARCH_PKG_BASE=airdcpp-${ARCH_VERSION}-${ARCHSTR}-portable${ARCH_PKG_BASE_EXTRA}
+  ARCH_PKG_PATH=$PKG_TYPE_DIR/$ARCH_PKG_BASE.tar.gz
 
   if [ ! -d $PKG_TYPE_DIR ]; then
     mkdir -p $PKG_TYPE_DIR;
+  fi
+
+  if [[ $SKIP_EXISTING ]] && [[ -f $ARCH_PKG_PATH ]]; then
+    echo "${bold}Skipping architecture $1, target file ${ARCH_PKG_PATH} exist${normal}"
+    SKIP_ARCH=1
+  else
+    SKIP_ARCH=0
   fi
 }
 
@@ -149,18 +161,25 @@ CreatePackage()
   cp ${AIR_ARCH_ROOT}/buildroot/resources/dcppboot.xml ${TMP_PKG_DIR}
   cp ${AIR_ARCH_ROOT}/airdcppd/airdcppd ${TMP_PKG_DIR}
 
-  OUTPUT_PKG_PATH=$PKG_TYPE_DIR/$ARCH_PKG_BASE.tar.gz
-  tar czvf $OUTPUT_PKG_PATH -C ${TMP_DIR} airdcpp-webclient
+  ARCH_PKG_PATH=$PKG_TYPE_DIR/$ARCH_PKG_BASE.tar.gz
+  tar czvf $ARCH_PKG_PATH -C ${TMP_DIR} airdcpp-webclient
 
   DeleteTmpDir
 
-  echo "Package was saved to ${OUTPUT_PKG_PATH}"
+  echo "${bold}Package was saved to ${ARCH_PKG_PATH}${normal}"
+  BUILD_SUMMARY="${BUILD_SUMMARY}${ARCH_PKG_PATH}\n"
 }
 
 # Call with the current arch
 BuildArch()
 {
+  echo ""
+  echo "${bold}Configuring architecture $1...${normal}"
   SetArch $1
+  if [[ $SKIP_ARCH -eq 1 ]]; then
+    return 0
+  fi
+
 
   if [[ ! $BUILD_THREADS ]]; then
     BUILD_THREADS=`getconf _NPROCESSORS_ONLN`
@@ -181,11 +200,17 @@ BuildArch()
 }
 
 if [[ $ARCH ]]; then
-  echo "Architecture ${ARCH} was specified"
+  echo "${bold}Architecture ${ARCH} was specified${normal}"
   BuildArch $ARCH
 else
-  echo "No architecture was specified, building all ${ARCH}"
+  echo "${bold}No architecture was specified, building all${normal}"
   for d in ${BR_ROOT}/*/ ; do
     BuildArch $(basename $d)
   done
 fi
+
+echo ""
+echo "${bold}Created packages:${normal}"
+echo ""
+echo -e "${BUILD_SUMMARY}"
+echo ""
