@@ -113,7 +113,14 @@ SetArch()
 
   if [[ $BRANCH = "master" ]]; then
     PKG_TYPE_DIR=${PKG_DIR}/stable
-    ARCH_VERSION=`git describe --abbrev=0 --tags`
+    ARCH_GIT_VERSION=`git describe --abbrev=0 --tags`
+    ARCH_VERSION=`cat ${AIR_ARCH_ROOT}/CMakeLists.txt | pcregrep -o1 'set \(VERSION \"([0-9]+\.[0-9]+\.[0-9]+)\"\)'`
+
+    # Additional check so that incorrect stable versions aren't being built...
+    if [[ $ARCH_GIT_VERSION != $ARCH_VERSION ]]; then
+      echo "${bold}Git tag/CMakeLists version mismatch${normal}"
+      exit 1
+    fi
   else
     PKG_TYPE_DIR=${PKG_DIR}/$BRANCH
     ARCH_VERSION=`git describe --tags --abbrev=4 --dirty=-d`
