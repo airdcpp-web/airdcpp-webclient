@@ -306,7 +306,7 @@ if (INSTALL_WEB_UI)
   endif()
 
   message(STATUS "Installing Web UI")
-  execute_process (COMMAND sh scripts/install_webui.sh ${SOVERSION}
+  execute_process (COMMAND sh scripts/install_webui.sh ${SOVERSION} scripts/parse_webui_version.sh
                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                    RESULT_VARIABLE SCRIPT_RESULT)
 
