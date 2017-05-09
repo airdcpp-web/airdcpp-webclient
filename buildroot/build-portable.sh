@@ -126,7 +126,7 @@ SetArch()
   fi
 
   ARCH_PKG_UI_VERSION=$(sh ./scripts/parse_webui_version.sh ${ARCH_VERSION})
-  ARCH_PKG_BASE="airdcpp-${ARCH_VERSION}-(webui-${ARCH_PKG_UI_VERSION})-${ARCHSTR}-portable${ARCH_PKG_BASE_EXTRA}"
+  ARCH_PKG_BASE="airdcpp_${ARCH_VERSION}_webui-${ARCH_PKG_UI_VERSION}_${ARCHSTR}_portable${ARCH_PKG_BASE_EXTRA}"
   ARCH_PKG_PATH="$PKG_TYPE_DIR/$ARCH_PKG_BASE.tar.gz"
 
   if [ ! -d $PKG_TYPE_DIR ]; then
