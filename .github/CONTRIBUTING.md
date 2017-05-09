@@ -39,14 +39,16 @@ Other useful information:
 
 Include all text from the generated crash log to your bug report. The log is located at ``/home/<username>/.airdc++/exceptioninfo.txt``.
 
+If you see the message `Stacktrace is not available`, attach debugger to the running process by following the instructions for [Application freezes/deadlocks](#application-freezesdeadlocks) below (don't quit the application before that!).
+
 ### Application freezes/deadlocks
 
 Note that you should first confirm whether the client has frozen and the issue isn't in the UI (try opening the UI in a new tab).
 
-You must have the ``gdb`` package installed before running the following commands.
+You must have the ``gdb`` package installed before running the following commands. If you get an error `Could not attach to process` when trying to attach to process, you must start gdb as root instead.
 
 ```
-$ cat ~/.airdc++/airdcppd.pid
+$ pgrep airdcppd
 [number]
 gdb
 attach [number]
