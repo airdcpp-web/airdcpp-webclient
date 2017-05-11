@@ -14,7 +14,7 @@ The application uses [Advanced Direct Connect](https://en.wikipedia.org/wiki/Adv
 - Save files on disk or view them via the browser
 - Chatting capabilities (group and private chat)
 - Browse directories shared by other users with a simple file browser interface
-- [Extension support](https://github.com/airdcpp-web/airdcpp-extension-js)
+- [Extension support](https://github.com/airdcpp-web/airdcpp-extension-js) using [Node.js](https://nodejs.org/en/) (+others)
 - [Web API (HTTP REST and WebSockets)](http://apidocs.airdcpp.net)
 
 ## Download
