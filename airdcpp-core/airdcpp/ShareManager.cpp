@@ -1172,24 +1172,25 @@ TTH searches: %d%% (hash bloom mode: %s)")
 	return ret;
 }
 
-void ShareManager::validateNewRootProfiles(const string& realPath, const ProfileTokenSet& aProfiles) const throw(ShareException) {
-	RLock l(cs);
-	for (const auto& p : rootPaths) {
-		auto rootProfileNames = ShareProfile::getProfileNames(p.second->getRoot()->getRootProfiles(), shareProfiles);
-		if (AirUtil::isParentOrExactLocal(p.first, realPath)) {
-			if (Util::stricmp(p.first, realPath) != 0) {
-				// Subdirectory of an existing directory is not allowed
-				throw ShareException(STRING_F(DIRECTORY_PARENT_SHARED, Util::listToString(rootProfileNames)));
-			}
+void ShareManager::validateRootPath(const string& aRealPath, bool aMatchCurrentRoots) const throw(ShareException) {
+	validator->validateRootPath(aRealPath);
 
-			// Exact match is fine unless it's in this profile already
-			if (p.second->getRoot()->hasRootProfile(aProfiles)) {
+	if (aMatchCurrentRoots) {
+		RLock l(cs);
+		for (const auto& p: rootPaths) {
+			auto rootProfileNames = ShareProfile::getProfileNames(p.second->getRoot()->getRootProfiles(), shareProfiles);
+			if (AirUtil::isParentOrExactLocal(p.first, aRealPath)) {
+				if (Util::stricmp(p.first, aRealPath) != 0) {
+					// Subdirectory of an existing directory is not allowed
+					throw ShareException(STRING_F(DIRECTORY_PARENT_SHARED, Util::listToString(rootProfileNames)));
+				}
+
 				throw ShareException(STRING(DIRECTORY_SHARED));
 			}
-		}
 
-		if (AirUtil::isSubLocal(p.first, realPath)) {
-			throw ShareException(STRING_F(DIRECTORY_SUBDIRS_SHARED, Util::listToString(rootProfileNames)));
+			if (AirUtil::isSubLocal(p.first, aRealPath)) {
+				throw ShareException(STRING_F(DIRECTORY_SUBDIRS_SHARED, Util::listToString(rootProfileNames)));
+			}
 		}
 	}
 }
@@ -3114,10 +3115,6 @@ bool ShareManager::removeExcludedPath(const string& aPath) noexcept {
 
 void ShareManager::reloadSkiplist() {
 	validator->reloadSkiplist();
-}
-
-void ShareManager::validateRootPath(const string& aPath) {
-	validator->validateRootPath(aPath);
 }
 
 void ShareManager::setExcludedPaths(const StringSet& aPaths) noexcept {
