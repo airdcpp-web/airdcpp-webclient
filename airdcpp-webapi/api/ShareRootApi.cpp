@@ -84,13 +84,9 @@ namespace webserver {
 			JsonUtil::throwError("path", JsonUtil::ERROR_INVALID, e.what());
 		}
 
-		if (ShareManager::getInstance()->isRealPathShared(path)) {
-			JsonUtil::throwError("path", JsonUtil::ERROR_INVALID, "Path is shared already");
-		}
-
 		auto info = std::make_shared<ShareDirectoryInfo>(path);
 
-		parseRoot(info, reqJson, true);
+		parseRoot(info, reqJson);
 
 		ShareManager::getInstance()->addRootDirectory(info);
 
@@ -101,7 +97,7 @@ namespace webserver {
 	api_return ShareRootApi::handleUpdateRoot(ApiRequest& aRequest) {
 		auto info = getRoot(aRequest);
 
-		parseRoot(info, aRequest.getRequestBody(), false);
+		parseRoot(info, aRequest.getRequestBody());
 		ShareManager::getInstance()->updateRootDirectory(info);
 
 		aRequest.setResponseBody(Serializer::serializeItem(info, ShareUtils::propertyHandler));
@@ -211,32 +207,20 @@ namespace webserver {
 		return *i;
 	}
 
-	void ShareRootApi::parseRoot(ShareDirectoryInfoPtr& aInfo, const json& j, bool aIsNew) {
+	void ShareRootApi::parseRoot(ShareDirectoryInfoPtr& aInfo, const json& j) {
 		auto virtualName = JsonUtil::getOptionalField<string>("virtual_name", j);
 		if (virtualName) {
 			aInfo->virtualName = *virtualName;
 		}
 
+		// Default profile is added for new roots if profiles are not specified
 		auto profiles = JsonUtil::getOptionalField<ProfileTokenSet>("profiles", j);
 		if (profiles) {
-			// Only validate added profiles
-			ProfileTokenSet diff;
-
 			auto newProfiles = *profiles;
 			for (const auto& p : newProfiles) {
 				if (!ShareManager::getInstance()->getShareProfile(p)) {
 					JsonUtil::throwError("profiles", JsonUtil::ERROR_INVALID, "Share profile " +  Util::toString(p)  + " was not found");
 				}
-			}
-
-
-			std::set_difference(newProfiles.begin(), newProfiles.end(),
-				aInfo->profiles.begin(), aInfo->profiles.end(), std::inserter(diff, diff.begin()));
-
-			try {
-				ShareManager::getInstance()->validateNewRootProfiles(aInfo->path, diff);
-			} catch (ShareException& e) {
-				JsonUtil::throwError(aIsNew ? "path" : "profiles", JsonUtil::ERROR_INVALID, e.what());
 			}
 
 			aInfo->profiles = newProfiles;

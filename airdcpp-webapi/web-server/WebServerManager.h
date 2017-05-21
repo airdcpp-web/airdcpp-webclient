@@ -25,12 +25,14 @@
 #include "FileServer.h"
 #include "ApiRequest.h"
 
+#include "SystemUtil.h"
 #include "Timer.h"
 #include "WebServerManagerListener.h"
 #include "WebUserManager.h"
 #include "WebSocket.h"
 
 #include <airdcpp/format.h>
+#include <airdcpp/Message.h>
 #include <airdcpp/Singleton.h>
 #include <airdcpp/Speaker.h>
 #include <airdcpp/Util.h>
@@ -169,16 +171,19 @@ namespace webserver {
 			// Blocking HTTP Handler
 			auto con = s->get_con_from_hdl(hdl);
 			websocketpp::http::status_code::value status;
-			auto ip = con->get_remote_endpoint();
+			auto ip = SystemUtil::normalizeIp(con->get_remote_endpoint());
 
-			string authError;
-			auto session = userManager->parseHttpSession(con->get_request(), authError, ip);
+			SessionPtr session = nullptr;
 
-			// Catch invalid authentication info
-			if (!authError.empty()) {
-				con->set_body(authError);
-				con->set_status(websocketpp::http::status_code::unauthorized);
-				return;
+			auto authToken = con->get_request().get_header("Authorization");
+			if (authToken != websocketpp::http::empty_header) {
+				try {
+					session = userManager->parseHttpSession(authToken, ip);
+				} catch (const std::exception& e) {
+					con->set_body(e.what());
+					con->set_status(websocketpp::http::status_code::unauthorized);
+					return;
+				}
 			}
 
 			if (con->get_resource().length() >= 4 && con->get_resource().compare(0, 4, "/api") == 0) {
@@ -223,6 +228,8 @@ namespace webserver {
 				con->set_body(output);
 			}
 		}
+
+		void log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
 	private:
 		context_ptr handleInitTls(websocketpp::connection_hdl hdl);
 
