@@ -43,7 +43,7 @@ namespace webserver {
 		api_return handleUpdateRoot(ApiRequest& aRequest);
 		api_return handleRemoveRoot(ApiRequest& aRequest);
 
-		void parseRoot(ShareDirectoryInfoPtr& aInfo, const json& j, bool aIsNew);
+		void parseRoot(ShareDirectoryInfoPtr& aInfo, const json& j);
 
 		void on(ShareManagerListener::RootCreated, const string& aPath) noexcept override;
 		void on(ShareManagerListener::RootRemoved, const string& aPath) noexcept override;

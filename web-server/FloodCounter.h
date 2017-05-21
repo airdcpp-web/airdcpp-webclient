@@ -16,21 +16,37 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_SYSTEMUTIL_H
-#define DCPLUSPLUS_DCPP_SYSTEMUTIL_H
+#ifndef DCPLUSPLUS_WEBSERVER_FLOODCOUNTER_H
+#define DCPLUSPLUS_WEBSERVER_FLOODCOUNTER_H
 
 #include <web-server/stdinc.h>
 
-namespace webserver {
-	class SystemUtil {
-	public:
-		static string getHostname() noexcept;
-		static string getPlatform() noexcept;
+#include <airdcpp/CriticalSection.h>
 
-		// Normalize IPv6 mapped IPv4 addresses and remove 
-		// other extras (brackets/port)
-		static string normalizeIp(const string& aIp) noexcept;
+namespace webserver {
+
+	// Class to control IP flood 
+	class FloodCounter {
+	public:
+		FloodCounter(int aCount, int aPeriod);
+
+		bool checkFlood(const string& aIp) const noexcept;
+		void addAttempt(const string& aIp) noexcept;
+
+		// Remove expired flood entries
+		// Must be called externally, optimally with an interval equal to floodPeriod
+		void prune() noexcept;
+	protected:
+		//typedef deque<string> IpList;
+		typedef multimap<string, time_t> IpMap;
+
+		IpMap floodIps;
+
+		mutable SharedMutex cs;
+
+		const int floodPeriod;
+		const int floodCount;
 	};
 }
 
-#endif
+#endif // !defined(DCPLUSPLUS_WEBSERVER_FLOODCOUNTER_H)
