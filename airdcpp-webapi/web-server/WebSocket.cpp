@@ -53,10 +53,10 @@ namespace webserver {
 		try {
 			if (secure) {
 				auto conn = tlsServer->get_con_from_hdl(hdl);
-				return SystemUtil::normalizeIp(conn->get_remote_endpoint());
+				return conn->get_raw_socket().remote_endpoint().address().to_string();
 			} else {
 				auto conn = plainServer->get_con_from_hdl(hdl);
-				return SystemUtil::normalizeIp(conn->get_remote_endpoint());
+				return conn->get_raw_socket().remote_endpoint().address().to_string();
 			}
 		} catch (const std::exception& e) {
 			dcdebug("WebSocket::getIp failed: %s\n", e.what());

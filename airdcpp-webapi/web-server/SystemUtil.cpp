@@ -22,20 +22,6 @@
 #include <airdcpp/Text.h>
 
 namespace webserver {
-	string SystemUtil::normalizeIp(const string& aIp) noexcept {
-		auto ip = boost::asio::ip::address::from_string(aIp);
-		if (ip.is_v6()) {
-			auto ip6 = ip.to_v6();
-			if (ip6.is_v4_mapped()) {
-				return ip6.to_v4().to_string();
-			} else {
-				return ip6.to_string();
-			}
-		}
-
-		return ip.to_v4().to_string();
-	}
-
 	string SystemUtil::getHostname() noexcept {
 #ifdef _WIN32
 		TCHAR computerName[1024];
