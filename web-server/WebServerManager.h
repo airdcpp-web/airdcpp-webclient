@@ -171,7 +171,7 @@ namespace webserver {
 			// Blocking HTTP Handler
 			auto con = s->get_con_from_hdl(hdl);
 			websocketpp::http::status_code::value status;
-			auto ip = SystemUtil::normalizeIp(con->get_remote_endpoint());
+			auto ip = con->get_raw_socket().remote_endpoint().address().to_string();
 
 			SessionPtr session = nullptr;
 

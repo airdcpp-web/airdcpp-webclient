@@ -26,10 +26,6 @@ namespace webserver {
 	public:
 		static string getHostname() noexcept;
 		static string getPlatform() noexcept;
-
-		// Normalize IPv6 mapped IPv4 addresses and remove 
-		// other extras (brackets/port)
-		static string normalizeIp(const string& aIp) noexcept;
 	};
 }
 
