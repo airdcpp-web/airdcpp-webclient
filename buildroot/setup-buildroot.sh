@@ -14,19 +14,6 @@ echo "Setup file location: ${AIR_BR_PATH}"
 echo "Target path: ${BR_PATH}"
 echo ""
 
-# Fix build errors with musl
-
-patch -p0 --dry-run --silent -d${BR_PATH} -p1 < $AIR_BR_PATH/patches/0001-fix-musl.patch >/dev/null 2>&1
-
-if [ $? -eq 0 ];
-then
-  echo "Applying fix for musl builds"
-  patch -d${BR_PATH} -p1 < $AIR_BR_PATH/patches/0001-fix-musl.patch
-else
-  echo "musl build patch is applied already"
-fi
-
-
 # Enable static build with libminiupnpc
 
 patch -p0 --dry-run --silent -d${BR_PATH} -p1 < $AIR_BR_PATH/patches/0002-enable-libminiupnpc-static.patch >/dev/null 2>&1
