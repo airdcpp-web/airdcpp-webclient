@@ -56,20 +56,17 @@ namespace webserver {
 	}
 
 	void ExtensionManager::on(WebServerManagerListener::Stopping) noexcept {
-		{
-			RLock l(cs);
-			for (const auto& ext: extensions) {
-				ext->removeListeners();
-				ext->stop();
-			}
+		RLock l(cs);
+		for (const auto& ext: extensions) {
+			ext->removeListeners();
+			ext->stop();
 		}
-
-		WLock l(cs);
-		extensions.clear();
 	}
 
 	void ExtensionManager::on(WebServerManagerListener::Stopped) noexcept {
-
+		WLock l(cs);
+		dcassert(all_of(extensions.begin(), extensions.end(), [](const ExtensionPtr& aExtension) { return !aExtension->getSession(); }));
+		extensions.clear();
 	}
 
 	void ExtensionManager::on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept {
@@ -343,8 +340,13 @@ namespace webserver {
 	ExtensionPtr ExtensionManager::registerRemoteExtension(const SessionPtr& aSession, const json& aPackageJson) {
 		auto ext = std::make_shared<Extension>(aSession, aPackageJson);
 
-		if (getExtension(ext->getName())) {
-			throw Exception("Extension " + ext->getName() + " exists already");
+		auto existing = getExtension(ext->getName());
+		if (existing) {
+			if (existing->isManaged()) {
+				throw Exception("Managed extension with the same name exists already");
+			}
+
+			removeExtension(existing);
 		}
 
 		{

@@ -46,6 +46,7 @@ namespace webserver {
 		{ "new_segment_min_speed", SettingsManager::DONT_BEGIN_SEGMENT_SPEED, ResourceManager::DONT_ADD_SEGMENT_TEXT, ApiSettingItem::TYPE_LAST, ResourceManager::Strings::KiBS },
 		{ "allow_slow_overlap", SettingsManager::OVERLAP_SLOW_SOURCES, ResourceManager::SETTINGS_OVERLAP_SLOW_SOURCES },
 		{ "finished_remove_exit", SettingsManager::REMOVE_FINISHED_BUNDLES, ResourceManager::BUNDLES_REMOVE_EXIT },
+		{ "use_partial_sharing", SettingsManager::USE_PARTIAL_SHARING, ResourceManager::PARTIAL_SHARING },
 
 		//{ ResourceManager::SETTINGS_SKIPPING_OPTIONS },
 		{ "dont_download_shared", SettingsManager::DONT_DL_ALREADY_SHARED, ResourceManager::SETTINGS_DONT_DL_ALREADY_SHARED },

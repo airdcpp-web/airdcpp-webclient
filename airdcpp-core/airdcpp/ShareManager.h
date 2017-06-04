@@ -65,9 +65,8 @@ public:
 		return *validator.get();
 	}
 
-	// Validate that the profiles are valid for the supplied path (sub/parent directory matching)
-	// Existing profiles shouldn't be supplied
-	void validateNewRootProfiles(const string& realPath, const ProfileTokenSet& aProfiles) const throw(ShareException);
+	// Validate that the new root can be added in share (sub/parent/existing directory matching)
+	void validateRootPath(const string& aRealPath, bool aMatchCurrentRoots = true) const throw(ShareException);
 
 	// Returns virtual path of a TTH
 	string toVirtual(const TTHValue& aTTH, ProfileToken aProfile) const throw(ShareException);
@@ -305,7 +304,6 @@ public:
 	bool removeExcludedPath(const string& aPath) noexcept;
 
 	void reloadSkiplist();
-	void validateRootPath(const string& aPath);
 	void setExcludedPaths(const StringSet& aPaths) noexcept;
 private:
 	void countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_, size_t& roots_) const noexcept;

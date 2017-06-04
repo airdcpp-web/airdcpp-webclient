@@ -231,6 +231,7 @@
     <ClInclude Include="web-server\ExtensionManager.h" />
     <ClInclude Include="web-server\ExtensionManagerListener.h" />
     <ClInclude Include="web-server\FileServer.h" />
+    <ClInclude Include="web-server\FloodCounter.h" />
     <ClInclude Include="web-server\JsonUtil.h" />
     <ClInclude Include="web-server\LazyInitWrapper.h" />
     <ClInclude Include="web-server\Access.h" />
@@ -308,6 +309,7 @@
     <ClCompile Include="web-server\Extension.cpp" />
     <ClCompile Include="web-server\ExtensionManager.cpp" />
     <ClCompile Include="web-server\FileServer.cpp" />
+    <ClCompile Include="web-server\FloodCounter.cpp" />
     <ClCompile Include="web-server\JsonUtil.cpp" />
     <ClCompile Include="web-server\Session.cpp" />
     <ClCompile Include="web-server\stdinc.cpp" />

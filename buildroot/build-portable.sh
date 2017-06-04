@@ -76,6 +76,7 @@ FetchGit()
 
   git checkout ${BRANCH}
   git pull
+  git fetch --prune --tags
 }
 
 
@@ -117,7 +118,7 @@ SetArch()
 
     # Additional check so that incorrect stable versions aren't being built...
     if [[ $ARCH_GIT_VERSION != $ARCH_VERSION ]]; then
-      echo "${bold}Git tag/CMakeLists version mismatch${normal}"
+      echo "${bold}Git tag/CMakeLists version mismatch (git $ARCH_GIT_VERSION, CMakeLists $ARCH_VERSION)${normal}"
       exit 1
     fi
   else

@@ -28,6 +28,7 @@
 
 #include <airdcpp/AirUtil.h>
 #include <airdcpp/CryptoManager.h>
+#include <airdcpp/LogManager.h>
 #include <airdcpp/SettingsManager.h>
 #include <airdcpp/SimpleXML.h>
 #include <airdcpp/TimerManager.h>
@@ -279,7 +280,10 @@ namespace webserver {
 	}
 
 	void WebServerManager::onData(const string& aData, TransportType aType, Direction aDirection, const string& aIP) noexcept {
-		fire(WebServerManagerListener::Data(), aData, aType, aDirection, aIP);
+		// Avoid possible deadlocks due to possible simultaneous disconnected/server state listener events
+		addAsyncTask([=] {
+			fire(WebServerManagerListener::Data(), aData, aType, aDirection, aIP);
+		});
 	}
 
 	// For debugging only
@@ -437,6 +441,10 @@ namespace webserver {
 
 		dcdebug("Socket disconnected: %s\n", socket->getSession() ? socket->getSession()->getAuthToken().c_str() : "(no session)");
 		fire(WebServerManagerListener::SocketDisconnected(), socket);
+	}
+
+	void WebServerManager::log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
+		LogManager::getInstance()->message("[WEB] " + aMsg, aSeverity);
 	}
 
 	bool WebServerManager::hasValidConfig() const noexcept {

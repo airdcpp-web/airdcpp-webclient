@@ -98,14 +98,16 @@ namespace webserver {
 
 		auto inactivityMinutes = JsonUtil::getOptionalFieldDefault<uint64_t>("max_inactivity", reqJson, WEBCFG(DEFAULT_SESSION_IDLE_TIMEOUT).uint64());
 
-		auto session = WebServerManager::getInstance()->getUserManager().authenticateSession(username, password, 
-			aIsSecure, inactivityMinutes, aIP);
-
-		if (!session) {
-			aRequest.setResponseErrorStr("Invalid username or password");
+		SessionPtr session = nullptr;
+		try {
+			session = WebServerManager::getInstance()->getUserManager().authenticateSession(username, password,
+				aIsSecure ? Session::TYPE_SECURE : Session::TYPE_PLAIN, inactivityMinutes, aIP);
+		} catch (const std::exception& e) {
+			aRequest.setResponseErrorStr(e.what());
 			return websocketpp::http::status_code::unauthorized;
 		}
 
+		dcassert(session);
 		if (aSocket) {
 			session->onSocketConnected(aSocket);
 			aSocket->setSession(session);
