@@ -240,7 +240,8 @@ namespace webserver {
 
 	void HubInfo::sendConnectState() noexcept {
 		onHubUpdated({
-			{ "connect_state", serializeConnectState(client) }
+			{ "encryption", Serializer::serializeEncryption(client->getEncryptionInfo(), client->isTrusted()) },
+			{ "connect_state", serializeConnectState(client) },
 		});
 	}
 
