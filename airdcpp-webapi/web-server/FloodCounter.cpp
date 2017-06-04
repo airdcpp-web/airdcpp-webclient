@@ -29,7 +29,7 @@ namespace webserver {
 	bool FloodCounter::checkFlood(const string& aIp) const noexcept {
 		RLock l(cs);
 		auto tmp = floodIps.count(aIp);
-		return floodIps.count(aIp) < floodCount;
+		return static_cast<int>(floodIps.count(aIp)) < floodCount;
 	}
 
 	void FloodCounter::addAttempt(const string& aIp) noexcept {
