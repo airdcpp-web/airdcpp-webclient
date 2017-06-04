@@ -105,10 +105,11 @@ namespace Text {
 	bool validateUtf8(const string& str) noexcept;
 
 	wchar_t toLower(wchar_t c) noexcept;
+	wchar_t toUpper(wchar_t c) noexcept;
+
 	bool isLower(const string& str) noexcept;
 	bool isLower(wchar_t c) noexcept;
 	string toLower(const string& str) noexcept;
-	string uncapitalize(const string& str) noexcept;
 
 	string toUtf8(const string& str, const string& fromCharset = "") noexcept;
 	string fromUtf8(const string& str, const string& toCharset = "") noexcept;

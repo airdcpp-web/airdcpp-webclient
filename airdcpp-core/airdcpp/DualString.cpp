@@ -97,7 +97,7 @@ string DualString::getNormal() const {
 			wchar_t c = 0;
 			int n = dcpp::Text::utf8ToWc(p, c);
 
-			dcpp::Text::wcToUtf8(towupper(c), ret);
+			dcpp::Text::wcToUtf8(dcpp::Text::toUpper(c), ret);
 
 			bitPos += n;
 			p += n;
