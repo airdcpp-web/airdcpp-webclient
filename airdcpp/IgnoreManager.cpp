@@ -151,13 +151,8 @@ bool IgnoreManager::checkIgnored(const OnlineUserPtr& aUser) noexcept {
 		return false;
 	}
 
-	// Increase the ignored message count
-	auto ignored = (aUser->getClient() && aUser->getClient()->isOp()) || !aUser->getIdentity().isOp() || aUser->getIdentity().isBot();
-	if (ignored) {
-		i->second++;
-	}
-
-	return ignored;
+	i->second++;
+	return true;
 }
 
 ActionHookRejectionPtr IgnoreManager::isIgnoredOrFiltered(const ChatMessagePtr& msg, const HookRejectionGetter& aRejectionGetter, bool PM) noexcept {
