@@ -202,7 +202,7 @@ namespace webserver {
 		if (aType == ApiSettingItem::TYPE_DIRECTORY_PATH) {
 			value = Util::validatePath(value, true);
 		} else if (aType == ApiSettingItem::TYPE_FILE_PATH) {
-			value = Util::validateFileName(value);
+			value = Util::validatePath(value, false);
 		}
 
 		return value;
