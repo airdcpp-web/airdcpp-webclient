@@ -333,12 +333,12 @@ namespace webserver {
 		return serializeDupe(aDupeType, AirUtil::getFileDupePaths(aDupeType, aTTH));
 	}
 
-	json Serializer::serializeDirectoryDupe(DupeType aDupeType, const string& aPath) noexcept {
+	json Serializer::serializeDirectoryDupe(DupeType aDupeType, const string& aAdcPath) noexcept {
 		if (aDupeType == DUPE_NONE) {
 			return nullptr;
 		}
 
-		return serializeDupe(aDupeType, AirUtil::getDirDupePaths(aDupeType, aPath));
+		return serializeDupe(aDupeType, AirUtil::getAdcDirectoryDupePaths(aDupeType, aAdcPath));
 	}
 
 	json Serializer::serializeDupe(DupeType aDupeType, StringList&& aPaths) noexcept {

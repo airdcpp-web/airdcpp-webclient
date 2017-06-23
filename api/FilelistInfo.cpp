@@ -45,7 +45,7 @@ namespace webserver {
 
 		if (dl->isLoaded()) {
 			addListTask([=] {
-				updateItems(dl->getCurrentLocationInfo().directory->getPath());
+				updateItems(dl->getCurrentLocationInfo().directory->getAdcPath());
 			});
 		}
 	}
@@ -75,7 +75,7 @@ namespace webserver {
 			}
 
 			aRequest.setResponseBody({
-				{ "list_path", curDir->getPath() },
+				{ "list_path", curDir->getAdcPath() },
 				{ "items", Serializer::serializeItemList(start, count, FilelistUtils::propertyHandler, currentViewItems) },
 			});
 		}
@@ -89,7 +89,7 @@ namespace webserver {
 		auto listPath = JsonUtil::getField<string>("list_path", j, false);
 		auto reload = JsonUtil::getOptionalFieldDefault<bool>("reload", j, false);
 
-		dl->addDirectoryChangeTask(Util::toNmdcFile(listPath), reload);
+		dl->addDirectoryChangeTask(listPath, reload);
 		return websocketpp::http::status_code::no_content;
 	}
 
@@ -180,7 +180,7 @@ namespace webserver {
 	}
 
 	void FilelistInfo::on(DirectoryListingListener::LoadingFinished, int64_t /*aStart*/, const string& aPath, bool /*aBackgroundTask*/) noexcept {
-		if (aPath == dl->getCurrentLocationInfo().directory->getPath()) {
+		if (aPath == dl->getCurrentLocationInfo().directory->getAdcPath()) {
 			updateItems(aPath);
 		}
 	}

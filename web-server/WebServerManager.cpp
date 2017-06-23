@@ -42,10 +42,10 @@
 
 namespace webserver {
 	vector<ServerSettingItem> WebServerSettings::settings = {
-		{ "web_plain_port", "Port", 5600, ApiSettingItem::TYPE_NUMBER, false, { 1, 65535 } },
+		{ "web_plain_port", "Port", 5600, ApiSettingItem::TYPE_NUMBER, false, { 0, 65535 } },
 		{ "web_plain_bind_address", "Bind address", "", ApiSettingItem::TYPE_STRING, true },
 
-		{ "web_tls_port", "Port", 5601, ApiSettingItem::TYPE_NUMBER, false, { 1, 65535 } },
+		{ "web_tls_port", "Port", 5601, ApiSettingItem::TYPE_NUMBER, false, { 0, 65535 } },
 		{ "web_tls_bind_address", "Bind address", "", ApiSettingItem::TYPE_STRING, true },
 
 		{ "web_tls_certificate_path", "Certificate path", "", ApiSettingItem::TYPE_FILE_PATH, true },

@@ -71,7 +71,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto user = Deserializer::deserializeHintedUser(reqJson);
-		auto directory = Util::toNmdcFile(JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/"));
+		auto directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/");
 
 		DirectoryListingPtr dl = nullptr;
 		try {
@@ -94,10 +94,10 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto user = Deserializer::deserializeHintedUser(reqJson);
-		auto directory = Util::toNmdcFile(JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/"));
+		auto directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/");
 
 		QueueItem::Flags flags = QueueItem::FLAG_MATCH_QUEUE;
-		if (directory != NMDC_ROOT_STR) {
+		if (directory != ADC_ROOT_STR) {
 			flags.setFlag(QueueItem::FLAG_RECURSIVE_LIST);
 			flags.setFlag(QueueItem::FLAG_PARTIAL_LIST);
 		}
@@ -229,7 +229,7 @@ namespace webserver {
 		auto user = Deserializer::deserializeHintedUser(reqJson);
 
 		try {
-			auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownload(user, targetBundleName, Util::toNmdcFile(listPath), targetDirectory, prio);
+			auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownload(user, targetBundleName, listPath, targetDirectory, prio);
 			aRequest.setResponseBody(Serializer::serializeDirectoryDownload(directoryDownload));
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
