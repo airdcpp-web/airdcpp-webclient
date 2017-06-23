@@ -137,7 +137,7 @@ namespace dcpp {
 
 		// Returns true if all include strings were matched (no other checks)
 		// The caller must ensure that recursion exists as long as the matches are used
-		bool matchesNmdcPath(const string& aPath, Recursion& recursion_) noexcept;
+		bool matchesAdcPath(const string& aPath, Recursion& recursion_) noexcept;
 
 		inline bool matchesSize(int64_t aSize) const noexcept { return aSize >= gt && aSize <= lt; }
 		inline bool matchesDate(time_t aDate) const noexcept { return aDate == 0 || (aDate >= minDate && aDate <= maxDate); }

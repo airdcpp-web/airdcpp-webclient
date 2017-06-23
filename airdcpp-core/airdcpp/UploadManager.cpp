@@ -921,7 +921,7 @@ void UploadManager::on(UserConnectionListener::Get, UserConnection* aSource, con
 	}
 	
 	int64_t bytes = -1;
-	if(prepareFile(*aSource, Transfer::names[Transfer::TYPE_FILE], Util::toAdcFile(aFile), aResume, bytes, Util::emptyString)) {
+	if(prepareFile(*aSource, Transfer::names[Transfer::TYPE_FILE], aFile, aResume, bytes, Util::emptyString)) {
 		aSource->setState(UserConnection::STATE_SEND);
 		aSource->fileLength(Util::toString(aSource->getUpload()->getSegmentSize()));
 	}

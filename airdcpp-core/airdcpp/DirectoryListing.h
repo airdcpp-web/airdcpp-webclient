@@ -67,8 +67,8 @@ public:
 		~File() { }
 
 
-		string getPath() const noexcept {
-			return parent->getPath() + name;
+		string getAdcPath() const noexcept {
+			return parent->getAdcPath() + name;
 		}
 
 		GETSET(string, name, Name);
@@ -122,7 +122,7 @@ public:
 		
 		int64_t getFilesSize() const noexcept;
 
-		string getPath() const noexcept;
+		string getAdcPath() const noexcept;
 		uint8_t checkShareDupes() noexcept;
 		
 		IGETSET(int64_t, partialSize, PartialSize, 0);
@@ -137,7 +137,8 @@ public:
 		void setComplete() noexcept { type = TYPE_NORMAL; }
 		bool getAdls() const noexcept { return type == TYPE_ADLS; }
 
-		void toBundleInfoList(const string& aTarget, BundleDirectoryItemInfo::List& aFiles) const noexcept;
+		// Create recursive bundle file info listing with relative paths
+		BundleDirectoryItemInfo::List toBundleInfoList() const noexcept;
 
 		const string& getName() const noexcept {
 			return name;
@@ -156,6 +157,8 @@ public:
 			contentInfo.directories = aContentInfo.directories;
 		}
 	protected:
+		void toBundleInfoList(const string& aTarget, BundleDirectoryItemInfo::List& aFiles) const noexcept;
+
 		Directory(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool aCheckDupe, const DirectoryContentInfo& aContentInfo, const string& aSize, time_t aRemoteDate);
 
 		void getContentInfo(size_t& directories_, size_t& files_, bool aCountAdls) const noexcept;
@@ -167,8 +170,8 @@ public:
 	class AdlDirectory : public Directory {
 	public:
 		typedef shared_ptr<AdlDirectory> Ptr;
-		GETSET(string, fullPath, FullPath);
-		static Ptr create(const string& aFullPath, Directory* aParent, const string& aName);
+		GETSET(string, fullAdcPath, FullAdcPath);
+		static Ptr create(const string& aFullAdcPath, Directory* aParent, const string& aName);
 	private:
 		AdlDirectory(const string& aFullPath, Directory* aParent, const string& aName);
 	};
@@ -176,12 +179,14 @@ public:
 	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool isClientView, bool aIsOwnList=false);
 	~DirectoryListing();
 	
-	void loadFile() throw(Exception, AbortException);
+	// Throws Exception, AbortException
+	void loadFile();
 	bool isLoaded() const noexcept;
 
 
 	// Returns the number of loaded dirs
-	int loadPartialXml(const string& aXml, const string& aAdcBase) throw(AbortException);
+	// Throws AbortException
+	int loadPartialXml(const string& aXml, const string& aAdcBase);
 
 	optional<DirectoryBundleAddInfo> createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPrio, string& errorMsg_) noexcept;
 
@@ -191,8 +196,12 @@ public:
 
 	const Directory::Ptr getRoot() const noexcept { return root; }
 	Directory::Ptr getRoot() noexcept { return root; }
-	void getLocalPaths(const Directory::Ptr& d, StringList& ret) const throw(ShareException);
-	void getLocalPaths(const File::Ptr& f, StringList& ret) const throw(ShareException);
+
+	// Throws ShareException
+	void getLocalPaths(const Directory::Ptr& d, StringList& ret) const;
+
+	// Throws ShareException
+	void getLocalPaths(const File::Ptr& f, StringList& ret) const;
 
 	bool isMyCID() const noexcept;
 	string getNick(bool firstOnly) const noexcept;
@@ -269,7 +278,8 @@ protected:
 
 private:
 	// Returns the number of loaded dirs
-	int loadXML(InputStream& aXml, bool aUpdating, const string& aBase, time_t aListDate = GET_TIME()) throw(AbortException);
+	// Throws AbortException
+	int loadXML(InputStream& aXml, bool aUpdating, const string& aBase, time_t aListDate = GET_TIME());
 
 	// Create and insert a base directory with the given path (or return an existing one)
 	Directory::Ptr createBaseDirectory(const string& aPath, time_t aDownloadDate = GET_TIME()) noexcept;
@@ -305,16 +315,24 @@ private:
 
 	void endSearch(bool timedOut = false) noexcept;
 
-	int loadShareDirectory(const string& aPath, bool aRecurse = false) throw(Exception, AbortException);
+	// Throws Exception, AbortException
+	int loadShareDirectory(const string& aPath, bool aRecurse = false);
 
 	OrderedStringSet searchResults;
 	OrderedStringSet::iterator curResult;
 
-	void listDiffImpl(const string& aFile, bool aOwnList) throw(Exception, AbortException);
-	void loadFileImpl(const string& aInitialDir) throw(Exception, AbortException);
+	// Throws Exception, AbortException
+	void listDiffImpl(const string& aFile, bool aOwnList);
+
+	// Throws Exception, AbortException
+	void loadFileImpl(const string& aInitialDir);
 	void searchImpl(const SearchPtr& aSearch) noexcept;
-	void loadPartialImpl(const string& aXml, const string& aBasePath, bool aBackgroundTask, const AsyncF& aCompletionF) throw(Exception, AbortException);
-	void matchAdlImpl() throw(AbortException);
+
+	// Throws Exception, AbortException
+	void loadPartialImpl(const string& aXml, const string& aBasePath, bool aBackgroundTask, const AsyncF& aCompletionF);
+
+	// Throws AbortException
+	void matchAdlImpl();
 	void matchQueueImpl() noexcept;
 
 	HintedUser hintedUser;

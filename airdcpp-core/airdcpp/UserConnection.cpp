@@ -55,7 +55,7 @@ const string UserConnection::DOWNLOAD = "Download";
 
 const string UserConnection::FEATURE_AIRDC = "AIRDC";
 
-void UserConnection::on(BufferedSocketListener::Line, const string& aLine) throw () {
+void UserConnection::on(BufferedSocketListener::Line, const string& aLine) noexcept {
 
 	COMMAND_DEBUG(aLine, DebugManager::TYPE_CLIENT, DebugManager::INCOMING, getRemoteIp());
 	

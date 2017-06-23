@@ -689,9 +689,9 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 				}
 
 				if (as->getMatchFullPath()) {
-					if (!as->match(sr->getPath()))
+					if (!as->match(sr->getAdcPath()))
 						continue;
-					if (as->isExcluded(sr->getPath()))
+					if (as->isExcluded(sr->getAdcPath()))
 						continue;
 				} else {
 					const string matchPath = sr->getFileName();
@@ -742,7 +742,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 			if (rl.empty()) {
 				as->setStatus(AutoSearch::STATUS_COLLECTING);
 				fire(AutoSearchManagerListener::ItemUpdated(), as, false);
-			} else if (find_if(rl, [&sr](const SearchResultPtr& aSR) { return aSR->getUser() == sr->getUser() && aSR->getPath() == sr->getPath(); }) != rl.end()) {
+			} else if (find_if(rl, [&sr](const SearchResultPtr& aSR) { return aSR->getUser() == sr->getUser() && aSR->getAdcPath() == sr->getAdcPath(); }) != rl.end()) {
 				//don't add the same result multiple times, makes the counting more reliable
 				return;
 			}
@@ -810,7 +810,7 @@ void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 
 			//check shared
 			if (as->getCheckAlreadyShared()) {
-				auto paths = ShareManager::getInstance()->getNmdcDirPaths(dir);
+				auto paths = ShareManager::getInstance()->getAdcDirectoryPaths(dir);
 				if (!paths.empty()) {
 					as->setLastError(STRING_F(DIR_SHARED_ALREADY, paths.front()));
 					fire(AutoSearchManagerListener::ItemUpdated(), as, true);
@@ -820,7 +820,7 @@ void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 
 			//check queued
 			if (as->getCheckAlreadyQueued() && as->getStatus() != AutoSearch::STATUS_FAILED_MISSING) {
-				auto paths = QueueManager::getInstance()->getNmdcDirPaths(dir);
+				auto paths = QueueManager::getInstance()->getAdcDirectoryPaths(dir);
 				if (!paths.empty()) {
 					as->setLastError(STRING_F(DIR_QUEUED_ALREADY, dir));
 					fire(AutoSearchManagerListener::ItemUpdated(), as, true);
@@ -886,7 +886,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 				}
 
 				auto priority = as->getAction() == AutoSearch::ACTION_QUEUE ? Priority::PAUSED : Priority::DEFAULT;
-				DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getUser(), sr->getFileName(), sr->getFilePath(), as->getTarget(), priority, as.get());
+				DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getUser(), sr->getFileName(), sr->getAdcFilePath(), as->getTarget(), priority, as.get());
 			} else {
 				auto info = QueueManager::getInstance()->createFileBundle(as->getTarget() + sr->getFileName(), sr->getSize(), sr->getTTH(), 
 					sr->getUser(), sr->getDate(), 0, 

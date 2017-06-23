@@ -83,8 +83,8 @@ namespace dcpp {
 			return baseResult->getSize();
 		}
 
-		const string& getPath() const noexcept {
-			return baseResult->getPath();
+		const string& getAdcPath() const noexcept {
+			return baseResult->getAdcPath();
 		}
 
 		string getFileName() const noexcept {

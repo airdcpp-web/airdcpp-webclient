@@ -46,7 +46,7 @@ namespace dcpp {
 			return results;
 		}
 
-		void getPaths(OrderedStringSet& paths_, bool aParents) const noexcept;
+		void getAdcPaths(OrderedStringSet& paths_, bool aParents) const noexcept;
 
 		bool hasTimedOut() const noexcept {
 			return timedOut;

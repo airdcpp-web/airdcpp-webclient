@@ -57,27 +57,30 @@ public:
 	void stopHashing(const string& baseDir) noexcept;
 	void setPriority(Thread::Priority p) noexcept;
 
-	/** @return HashedFileInfo */
-	void getFileInfo(const string& fileLower, const string& aFileName, HashedFile& aFileInfo) throw(HashException);
+	// @return HashedFileInfo
+	// Throws HashException
+	void getFileInfo(const string& fileLower, const string& aFileName, HashedFile& aFileInfo);
 
 	bool getTree(const TTHValue& root, TigerTree& tt) noexcept;
 
 	/** Return block size of the tree associated with root, or 0 if no such tree is in the store */
 	size_t getBlockSize(const TTHValue& root) noexcept;
 
-	//void addTree(const string& aFileName, uint32_t aTimeStamp, const TigerTree& tt);
-	void addTree(const TigerTree& tree) throw(HashException) { store.addTree(tree); }
+	// Throws HashException
+	void addTree(const TigerTree& tree) { store.addTree(tree); }
 
 	void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed, int& hashers) const noexcept;
 
-	void getFileTTH(const string& aFile, int64_t aSize, bool addStore, TTHValue& tth_, int64_t& sizeLeft_, const bool& aCancel, std::function<void(int64_t /*timeLeft*/, const string& /*fileName*/)> updateF = nullptr)  throw(HashException);
+	// Throws HashException
+	void getFileTTH(const string& aFile, int64_t aSize, bool addStore, TTHValue& tth_, int64_t& sizeLeft_, const bool& aCancel, std::function<void(int64_t /*timeLeft*/, const string& /*fileName*/)> updateF = nullptr);
 
 	/**
 	 * Rebuild hash data file
 	 */
 	void startMaintenance(bool verify);
 
-	void startup(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) throw(HashException);
+	// Throws Exception in case of fatal errors
+	void startup(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF);
 	void stop() noexcept;
 	void shutdown(ProgressFunction progressF) noexcept;
 
@@ -100,7 +103,8 @@ public:
 	void getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSize_) const noexcept { return store.getDbSizes(fileDbSize_, hashDbSize_); }
 	bool maintenanceRunning() const noexcept { return optimizer.isRunning(); }
 
-	bool addFile(const string& aFilePathLower, const HashedFile& fi_) throw(HashException);
+	// Throws HashException
+	bool addFile(const string& aFilePathLower, const HashedFile& fi_);
 private:
 	int pausers = 0;
 	class Hasher : public Thread {
@@ -192,33 +196,32 @@ private:
 		HashStore();
 		~HashStore();
 
-		void addHashedFile(const string& aFilePathLower, const TigerTree& tt, const HashedFile& fi_) throw(HashException);
-		void addFile(const string& aFilePathLower, const HashedFile& fi_) throw(HashException);
-		void removeFile(const string& aFilePathLower) throw(HashException);
-
-		void load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) throw(HashException);
+		void addHashedFile(const string& aFilePathLower, const TigerTree& tt, const HashedFile& fi_);
+		void addFile(const string& aFilePathLower, const HashedFile& fi_);
+		void removeFile(const string& aFilePathLower);
+		void load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF);
 
 		void optimize(bool doVerify) noexcept;
 
-		bool checkTTH(const string& aFileNameLower, HashedFile& fi_);
+		bool checkTTH(const string& aFileNameLower, HashedFile& fi_) noexcept;
 
-		void addTree(const TigerTree& tt) throw(HashException);
-		bool getFileInfo(const string& aFileLower, HashedFile& aFile);
+		void addTree(const TigerTree& tt);
+		bool getFileInfo(const string& aFileLower, HashedFile& aFile) noexcept;
 		bool getTree(const TTHValue& root, TigerTree& tth);
-		bool hasTree(const TTHValue& root) throw(HashException);
+		bool hasTree(const TTHValue& root);
 
 		enum InfoType {
 			TYPE_FILESIZE,
 			TYPE_BLOCKSIZE
 		};
-		int64_t getRootInfo(const TTHValue& root, InfoType aType) noexcept;
+		int64_t getRootInfo(const TTHValue& aRoot, InfoType aType) noexcept;
 
 		string getDbStats() noexcept;
 
-		void openDb(StepFunction stepF, MessageFunction messageF) throw(DbException);
-		void closeDb();
+		void openDb(StepFunction stepF, MessageFunction messageF);
+		void closeDb() noexcept;
 
-		void onScheduleRepair(bool schedule);
+		void onScheduleRepair(bool aSchedule);
 		bool isRepairScheduled() const noexcept;
 
 		void getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSize_) const noexcept;
@@ -231,11 +234,11 @@ private:
 		friend class HashLoader;
 
 		/** FOR CONVERSION ONLY: Root -> tree mapping info, we assume there's only one tree for each root (a collision would mean we've broken tiger...) */
-		void loadLegacyTree(File& dataFile, int64_t aSize, int64_t aIndex, int64_t aBlockSize, size_t datLen, const TTHValue& root, TigerTree& tt) throw(HashException);
+		void loadLegacyTree(File& dataFile, int64_t aSize, int64_t aIndex, int64_t aBlockSize, size_t aDataLength, const TTHValue& root, TigerTree& tt_);
 
 
 
-		static bool loadTree(const void* src, size_t len, const TTHValue& aRoot, TigerTree& aTree, bool reportCorruption);
+		static bool loadTree(const void* src, size_t len, const TTHValue& aRoot, TigerTree& aTree, bool aReportCorruption);
 
 		static bool loadFileInfo(const void* src, size_t len, HashedFile& aFile);
 		static void saveFileInfo(void *dest, const HashedFile& aTree);

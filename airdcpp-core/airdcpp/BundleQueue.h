@@ -79,9 +79,9 @@ public:
 	void saveQueue(bool force) noexcept;
 	QueueItemList getSearchItems(const BundlePtr& aBundle) const noexcept;
 
-	DupeType isNmdcDirQueued(const string& aPath, int64_t aSize) const noexcept;
+	DupeType isAdcDirectoryQueued(const string& aPath, int64_t aSize) const noexcept;
 
-	StringList getNmdcDirPaths(const string& aDirName) const noexcept;
+	StringList getAdcDirectoryPaths(const string& aDirName) const noexcept;
 	size_t getDirectoryCount(const BundlePtr& aBundle) const noexcept;
 
 	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept;
@@ -91,8 +91,8 @@ public:
 
 	uint64_t getTotalQueueSize() const noexcept { return queueSize; }
 private:
-	void findNmdcDirs(const string& aPath, PathInfoPtrList& paths_) const noexcept;
-	const PathInfo* getNmdcSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept;
+	void findAdcDirectories(const string& aPath, PathInfoPtrList& paths_) const noexcept;
+	const PathInfo* getAdcSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept;
 
 	// Get path infos by bundle path
 	const PathInfo::List* getPathInfos(const string& aBundlePath) const noexcept;

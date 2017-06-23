@@ -433,6 +433,7 @@ string Util::cleanPathChars(string tmp, bool isFileName) noexcept {
 		i++;
 	}
 
+#ifdef _WIN32
 	// Then, eliminate all ':' that are not the second letter ("c:\...")
 	i = 0;
 	while( (i = tmp.find(':', i)) != string::npos) {
@@ -443,6 +444,7 @@ string Util::cleanPathChars(string tmp, bool isFileName) noexcept {
 		tmp[i] = '_';	
 		i++;
 	}
+#endif
 
 	// Remove the .\ that doesn't serve any purpose
 	i = 0;

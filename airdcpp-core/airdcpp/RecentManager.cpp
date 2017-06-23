@@ -91,6 +91,11 @@ void RecentManager::on(DirectoryListingManagerListener::ListingCreated, const Di
 		return;
 	}
 
+	if (aListing->getHubUrl().empty()) {
+		// Filelist loaded from disk
+		return;
+	}
+
 	auto shareInfo = ClientManager::getInstance()->getShareInfo(aListing->getHintedUser());
 	auto nick = ClientManager::getInstance()->getNick(aListing->getUser(), aListing->getHubUrl(), true);
 	auto old = getRecent(RecentEntry::TYPE_FILELIST, RecentEntry::CidCompare(aListing->getUser()->getCID()));

@@ -170,7 +170,7 @@ void File::movePos(int64_t pos) noexcept {
 size_t File::read(void* buf, size_t& len) {
 	DWORD x;
 	if(!::ReadFile(h, buf, (DWORD)len, &x, NULL)) {
-		throw(FileException(Util::translateError(GetLastError())));
+		throw FileException(Util::translateError(GetLastError()));
 	}
 	len = x;
 	return x;

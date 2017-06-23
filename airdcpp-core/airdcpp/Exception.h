@@ -34,11 +34,11 @@ public:
 	Exception(const string& aError) : errorString(aError), errorCode(0) { dcdrun(if(errorString.size()>0)) dcdebug("Thrown: %s\n", errorString.c_str()); }
 	Exception(const string& aError, int& eCode) : errorString(aError), errorCode(eCode) { dcdrun(if (errorString.size()>0)) dcdebug("Thrown: %s\n", errorString.c_str()); }
 
-	virtual const char* what() const throw() { return getError().c_str(); }
+	virtual const char* what() const noexcept { return getError().c_str(); }
 	
-	virtual ~Exception() throw() { }
-	virtual const string& getError() const { return errorString; }
-	virtual const int& getErrorCode() const { return errorCode; }
+	virtual ~Exception() noexcept { }
+	virtual const string& getError() const noexcept { return errorString; }
+	virtual const int& getErrorCode() const noexcept { return errorCode; }
 protected:
 	string errorString;
 	int errorCode;
@@ -51,7 +51,7 @@ public:\
 	name() : Exception(#name) { } \
 	name(const string& aError) : Exception(#name ": " + aError) { } \
 	name(const string& aError, int& eCode) : Exception(#name ": " + aError, eCode) { } \
-	virtual ~name() throw() { } \
+	virtual ~name() noexcept { } \
 }
 
 #else // _DEBUG
@@ -61,7 +61,7 @@ public:\
 	name() : Exception() { } \
 	name(const string& aError) : Exception(aError) { } \
 	name(const string& aError, int& eCode) : Exception(aError, eCode) { } \
-	virtual ~name() throw() { } \
+	virtual ~name() noexcept { } \
 }
 #endif
 
