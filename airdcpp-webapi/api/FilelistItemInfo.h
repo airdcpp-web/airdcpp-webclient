@@ -48,7 +48,7 @@ namespace webserver {
 
 		DupeType getDupe() const noexcept { return type == DIRECTORY ? dir->getDupe() : file->getDupe(); }
 		const string& getName() const noexcept { return type == DIRECTORY ? dir->getName() : file->getName(); }
-		string getPath() const noexcept { return type == DIRECTORY ? dir->getPath() : file->getPath(); }
+		string getAdcPath() const noexcept { return type == DIRECTORY ? dir->getAdcPath() : file->getAdcPath(); }
 		bool isAdl() const noexcept { return type == DIRECTORY ? dir->getAdls() : file->getAdls(); }
 		bool isComplete() const noexcept { return type == DIRECTORY ? dir->isComplete() : true; }
 

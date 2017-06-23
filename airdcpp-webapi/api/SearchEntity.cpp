@@ -90,7 +90,7 @@ namespace webserver {
 	json SearchEntity::serializeSearchResult(const SearchResultPtr& aSR) noexcept {
 		return {
 			{ "id", aSR->getId() },
-			{ "path", Util::toAdcFile(aSR->getPath()) },
+			{ "path", aSR->getAdcPath() },
 			{ "ip", Serializer::serializeIp(aSR->getIP()) },
 			{ "user", Serializer::serializeHintedUser(aSR->getUser()) },
 			{ "connection", aSR->getConnectionInt() },
