@@ -45,11 +45,11 @@ void DirectoryMonitor::stopMonitoring() {
 	server->stop();
 }
 
-void DirectoryMonitor::init() throw(MonitorException) {
+void DirectoryMonitor::init() {
 	server->init();
 }
 
-void DirectoryMonitor::Server::init() throw(MonitorException) {
+void DirectoryMonitor::Server::init() {
 	if (threadRunning.test_and_set())
 		return;
 
@@ -314,7 +314,7 @@ void DirectoryMonitor::Server::deleteDirectory(DirectoryMonitor::Server::Monitor
 	}
 }
 
-bool DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorException) {
+bool DirectoryMonitor::Server::addDirectory(const string& aPath) {
 	{
 		RLock l(cs);
 		if (monitors.find(aPath) != monitors.end())
@@ -350,7 +350,7 @@ bool DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorEx
 
 #else
 
-bool DirectoryMonitor::Server::addDirectory(const string& aPath) throw(MonitorException) {
+bool DirectoryMonitor::Server::addDirectory(const string& aPath) {
 	return true;
 }
 
@@ -368,7 +368,7 @@ void DirectoryMonitor::processNotification(const string& aPath, const ByteVector
 
 #endif
 
-bool DirectoryMonitor::addDirectory(const string& aPath) throw(MonitorException) {
+bool DirectoryMonitor::addDirectory(const string& aPath) {
 	return server->addDirectory(aPath);
 }
 

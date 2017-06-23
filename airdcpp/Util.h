@@ -221,19 +221,15 @@ public:
 	static string translateError(int aError) noexcept;
 
 	static string getFilePath(const string& path, const char separator = PATH_SEPARATOR) noexcept;
-	inline static string getNmdcFilePath(const string& path) noexcept { return getFilePath(path, NMDC_SEPARATOR); }
 	inline static string getAdcFilePath(const string& path) noexcept { return getFilePath(path, ADC_SEPARATOR); }
 
 	static string getFileName(const string& path, const char separator = PATH_SEPARATOR) noexcept;
-	inline static string getNmdcFileName(const string& path) noexcept { return getFileName(path, NMDC_SEPARATOR); };
 	inline static string getAdcFileName(const string& path) noexcept { return getFileName(path, ADC_SEPARATOR); };
 
 	static string getLastDir(const string& path, const char separator = PATH_SEPARATOR) noexcept;
-	inline static string getNmdcLastDir(const string& path) noexcept { return getLastDir(path, NMDC_SEPARATOR); };
 	inline static string getAdcLastDir(const string& path) noexcept { return getLastDir(path, ADC_SEPARATOR); };
 
 	static string getParentDir(const string& path, const char separator = PATH_SEPARATOR, bool allowEmpty = false) noexcept;
-	inline static string getNmdcParentDir(const string& path) noexcept { return getParentDir(path, NMDC_SEPARATOR, true); };
 	inline static string getAdcParentDir(const string& path) noexcept { return getParentDir(path, ADC_SEPARATOR, false); };
 
 	static string joinDirectory(const string& aPath, const string& aDirectoryName, const char separator = PATH_SEPARATOR) noexcept;

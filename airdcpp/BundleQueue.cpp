@@ -73,9 +73,9 @@ BundlePtr BundleQueue::findBundle(QueueToken bundleToken) const noexcept {
 	return i != bundles.end() ? i->second : nullptr;
 }
 
-DupeType BundleQueue::isNmdcDirQueued(const string& aPath, int64_t aSize) const noexcept {
+DupeType BundleQueue::isAdcDirectoryQueued(const string& aPath, int64_t aSize) const noexcept {
 	PathInfoPtrList infos;
-	findNmdcDirs(aPath, infos);
+	findAdcDirectories(aPath, infos);
 
 	if (infos.empty())
 		return DUPE_NONE;
@@ -121,9 +121,9 @@ size_t BundleQueue::getDirectoryCount(const BundlePtr& aBundle) const noexcept {
 	return (*pathInfos).size();
 }
 
-StringList BundleQueue::getNmdcDirPaths(const string& aPath) const noexcept {
+StringList BundleQueue::getAdcDirectoryPaths(const string& aPath) const noexcept {
 	PathInfoPtrList infos;
-	findNmdcDirs(aPath, infos);
+	findAdcDirectories(aPath, infos);
 
 	StringList ret;
 	for (const auto& p : infos) {
@@ -133,9 +133,9 @@ StringList BundleQueue::getNmdcDirPaths(const string& aPath) const noexcept {
 	return ret;
 }
 
-void BundleQueue::findNmdcDirs(const string& aPath, PathInfoPtrList& pathInfos_) const noexcept {
+void BundleQueue::findAdcDirectories(const string& aPath, PathInfoPtrList& pathInfos_) const noexcept {
 	// Get the last meaningful directory to look up
-	auto dirNameInfo = AirUtil::getDirName(aPath, NMDC_SEPARATOR);
+	auto dirNameInfo = AirUtil::getAdcDirectoryName(aPath);
 	auto directories = dirNameMap.equal_range(dirNameInfo.first);
 	if (directories.first == directories.second)
 		return;
@@ -144,7 +144,7 @@ void BundleQueue::findNmdcDirs(const string& aPath, PathInfoPtrList& pathInfos_)
 	for (auto s = directories.first; s != directories.second; ++s) {
 		if (dirNameInfo.second != string::npos) {
 			// Confirm that we have the subdirectory as well
-			auto subDir = getNmdcSubDirectoryInfo(aPath.substr(dirNameInfo.second), s->second.bundle);
+			auto subDir = getAdcSubDirectoryInfo(aPath.substr(dirNameInfo.second), s->second.bundle);
 			if (subDir) {
 				pathInfos_.push_back(subDir);
 			}
@@ -154,11 +154,11 @@ void BundleQueue::findNmdcDirs(const string& aPath, PathInfoPtrList& pathInfos_)
 	}
 }
 
-const BundleQueue::PathInfo* BundleQueue::getNmdcSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept {
+const BundleQueue::PathInfo* BundleQueue::getAdcSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept {
 	auto pathInfos = getPathInfos(aBundle->getTarget());
 	if (pathInfos) {
 		for (const auto& p : *pathInfos) {
-			auto pos = AirUtil::compareFromEnd(p->path, aSubPath, NMDC_SEPARATOR);
+			auto pos = AirUtil::compareFromEndAdc(p->path, aSubPath);
 			if (pos == 0) {
 				return p;
 			}

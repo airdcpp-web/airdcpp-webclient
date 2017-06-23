@@ -69,14 +69,14 @@ namespace dcpp {
 		typedef unordered_map<UserPtr, DirectoryListingPtr, User::Hash> DirectoryListingMap;
 
 		// Browse own share, will always success
-		DirectoryListingPtr openOwnList(ProfileToken aProfile, bool useADL=false, const string& aDir = Util::emptyString) noexcept;
+		DirectoryListingPtr openOwnList(ProfileToken aProfile, bool useADL=false, const string& aDir = ADC_ROOT_STR) noexcept;
 
 		// Open local file, returns nullptr on duplicates
-		DirectoryListingPtr openFileList(const HintedUser& aUser, const string& aFile, const string& aDir = Util::emptyString, bool aPartial = false) noexcept;
+		DirectoryListingPtr openFileList(const HintedUser& aUser, const string& aFile, const string& aDir = ADC_ROOT_STR, bool aPartial = false) noexcept;
 		
 		// Add a managed filelist session from remove user, throws queueing errors
 		// Returns nullptr on duplicates
-		DirectoryListingPtr createList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString);
+		DirectoryListingPtr createList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = ADC_ROOT_STR);
 		bool removeList(const UserPtr& aUser) noexcept;
 
 		DirectoryListingManager() noexcept;

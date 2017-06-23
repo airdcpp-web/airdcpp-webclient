@@ -438,7 +438,7 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 		return;
 	}
 
-	string filePath = fullPath + NMDC_SEPARATOR_STR + currentFile->getName();
+	string filePath = fullPath + ADC_SEPARATOR_STR + currentFile->getName();
 	// Match searches
 	for(auto& is: collection) {
 		if(destDirVector[is.ddIndex].fileAdded) {
@@ -468,7 +468,7 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const Direct
 	// Add to any substructure being stored
 	for (auto& id: destDirVector) {
 		if (id.subdir) {
-			auto newDir = DirectoryListing::AdlDirectory::create(fullPath.substr(1) + NMDC_SEPARATOR_STR, id.subdir, currentDir->getName());
+			auto newDir = DirectoryListing::AdlDirectory::create(fullPath.substr(1) + ADC_SEPARATOR_STR, id.subdir, currentDir->getName());
 			id.subdir = newDir.get();
 		}
 	}
@@ -484,7 +484,7 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const Direct
 		}
 
 		if(is.matchesDirectory(currentDir->getName())) {
-			auto newDir = DirectoryListing::AdlDirectory::create(fullPath.substr(1) + NMDC_SEPARATOR_STR, destDirVector[is.ddIndex].dir.get(), currentDir->getName());;
+			auto newDir = DirectoryListing::AdlDirectory::create(fullPath.substr(1) + ADC_SEPARATOR_STR, destDirVector[is.ddIndex].dir.get(), currentDir->getName());;
 			destDirVector[is.ddIndex].subdir = newDir.get();
 			if(breakOnFirst) {
 				// Found a match, search no more
@@ -562,7 +562,7 @@ void ADLSearchManager::FinalizeDestinationDirectories(DestDirList& destDirs, Dir
 	}
 }
 
-void ADLSearchManager::matchListing(DirectoryListing& aDirList) throw(AbortException) {
+void ADLSearchManager::matchListing(DirectoryListing& aDirList) {
 	running++;
 	ScopedFunctor([&] { running--; });
 
@@ -579,13 +579,13 @@ void ADLSearchManager::matchListing(DirectoryListing& aDirList) throw(AbortExcep
 	FinalizeDestinationDirectories(destDirs, root);
 }
 
-void ADLSearchManager::matchRecurse(DestDirList &aDestList, const DirectoryListing::Directory::Ptr& aDir, string &aPath, DirectoryListing& aDirList) throw(AbortException) {
+void ADLSearchManager::matchRecurse(DestDirList &aDestList, const DirectoryListing::Directory::Ptr& aDir, string &aPath, DirectoryListing& aDirList) {
 	if (aDirList.getClosing()) {
 		throw AbortException();
 	}
 
 	for (const auto& dir: aDir->directories | map_values) {
-		string tmpPath = aPath + NMDC_SEPARATOR_STR + dir->getName();
+		string tmpPath = aPath + ADC_SEPARATOR_STR + dir->getName();
 		MatchesDirectory(aDestList, dir, tmpPath);
 		matchRecurse(aDestList, dir, tmpPath, aDirList);
 	}

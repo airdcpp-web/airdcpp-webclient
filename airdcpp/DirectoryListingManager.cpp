@@ -111,7 +111,7 @@ DirectoryDownloadList DirectoryListingManager::getDirectoryDownloads() const noe
 
 DirectoryDownloadPtr DirectoryListingManager::addDirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner) {
 	dcassert(!aTarget.empty() && !aListPath.empty() && !aBundleName.empty());
-	auto downloadInfo = make_shared<DirectoryDownload>(aUser, aBundleName, aListPath, aTarget, p, aOwner);
+	auto downloadInfo = make_shared<DirectoryDownload>(aUser, Util::cleanPathSeparators(aBundleName), aListPath, aTarget, p, aOwner);
 	
 	DirectoryListingPtr dl;
 	{
@@ -193,7 +193,7 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 	auto dirList = make_shared<DirectoryListing>(aUser, isPartialList, aFileName, false, false);
 	try {
 		if (isPartialList) {
-			dirList->loadPartialXml(aXml, Util::toAdcFile(aRemotePath));
+			dirList->loadPartialXml(aXml, aRemotePath);
 		} else {
 			dirList->loadFile();
 		}
@@ -251,7 +251,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 		{
 			WLock l(cs);
 			auto dp = dlDirectories.equal_range(aList->getHintedUser().user) | map_values;
-			if ((aFlags & QueueItem::FLAG_PARTIAL_LIST) && !aPath.empty()) {
+			if (aFlags & QueueItem::FLAG_PARTIAL_LIST) {
 				//partial list
 				auto udp = find_if(dp, [&aPath](const DirectoryDownloadPtr& ddi) { return Util::stricmp(aPath.c_str(), ddi->getListPath().c_str()) == 0; });
 				if (udp != dp.end()) {
@@ -281,7 +281,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 	}
 }
 
-void DirectoryListingManager::on(QueueManagerListener::ItemFinished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t /*aSpeed*/) noexcept {
+void DirectoryListingManager::on(QueueManagerListener::ItemFinished, const QueueItemPtr& qi, const string& aAdcDirectoryPath, const HintedUser& aUser, int64_t /*aSpeed*/) noexcept {
 	if (!qi->isSet(QueueItem::FLAG_CLIENT_VIEW) || !qi->isSet(QueueItem::FLAG_USER_LIST))
 		return;
 
@@ -299,9 +299,9 @@ void DirectoryListingManager::on(QueueManagerListener::ItemFinished, const Queue
 	if (dl) {
 		dl->setFileName(qi->getListName());
 		if (dl->hasCompletedDownloads()) {
-			dl->addFullListTask(dir);
+			dl->addFullListTask(aAdcDirectoryPath);
 		} else {
-			fire(DirectoryListingManagerListener::OpenListing(), dl, dir, Util::emptyString);
+			fire(DirectoryListingManagerListener::OpenListing(), dl, aAdcDirectoryPath, Util::emptyString);
 		}
 	}
 }
@@ -382,6 +382,8 @@ DirectoryListingPtr DirectoryListingManager::openFileList(const HintedUser& aUse
 	if (hasList(aUser.user)) {
 		return nullptr;
 	}
+
+	dcassert(aPartial || Util::fileExists(aFile));
 
 	auto dl = createList(aUser, aPartial, aFile, false);
 	fire(DirectoryListingManagerListener::OpenListing(), dl, aDir, Util::emptyString);

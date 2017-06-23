@@ -39,7 +39,7 @@ public:
 	SSLSocketException(const string& aError) noexcept : SocketException(aError) { }
 #endif // _DEBUG
 	SSLSocketException(int aError) noexcept : SocketException(aError) { }
-	virtual ~SSLSocketException() throw() { }
+	virtual ~SSLSocketException() noexcept { }
 };
 
 class SSLSocket : public Socket {

@@ -60,7 +60,7 @@ LevelDB::LevelDB(const string& aPath, const string& aFriendlyName, uint64_t cach
 
 string LevelDB::getRepairFlag() const { return dbPath + "REPAIR"; }
 
-void LevelDB::open(StepFunction stepF, MessageFunction messageF) throw(DbException) {
+void LevelDB::open(StepFunction stepF, MessageFunction messageF) {
 	bool forceRepair = Util::fileExists(getRepairFlag());
 	if (forceRepair) {
 		repair(stepF, messageF);
@@ -89,7 +89,7 @@ void LevelDB::open(StepFunction stepF, MessageFunction messageF) throw(DbExcepti
 	}
 }
 
-void LevelDB::repair(StepFunction stepF, MessageFunction messageF) throw(DbException) {
+void LevelDB::repair(StepFunction stepF, MessageFunction messageF) {
 	stepF(STRING_F(REPAIRING_X, getNameLower()));
 	
 	//remove any existing log
@@ -125,7 +125,7 @@ LevelDB::~LevelDB() {
 
 #define DBACTION(f) (performDbOperation([&] { return f; }))
 
-void LevelDB::put(void* aKey, size_t keyLen, void* aValue, size_t valueLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) throw(DbException) {
+void LevelDB::put(void* aKey, size_t keyLen, void* aValue, size_t valueLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) {
 	totalWrites++;
 	leveldb::Slice key((const char*)aKey, keyLen);
 	leveldb::Slice value((const char*)aValue, valueLen);
@@ -134,7 +134,7 @@ void LevelDB::put(void* aKey, size_t keyLen, void* aValue, size_t valueLen, DbSn
 	DBACTION(db->Put(writeoptions, key, value));
 }
 
-bool LevelDB::get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool(void* aValue, size_t aValueLen)> loadF, DbSnapshot* /*aSnapshot*/ /*nullptr*/) throw(DbException) {
+bool LevelDB::get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::function<bool(void* aValue, size_t aValueLen)> loadF, DbSnapshot* /*aSnapshot*/ /*nullptr*/) {
 	totalReads++;
 	string value;
 	leveldb::Slice key((const char*)aKey, keyLen);
@@ -146,7 +146,7 @@ bool LevelDB::get(void* aKey, size_t keyLen, size_t /*initialValueLen*/, std::fu
 	return false;
 }
 
-string LevelDB::getStats() throw(DbException) {
+string LevelDB::getStats() {
 	string ret;
 	string value = "leveldb.stats";
 	leveldb::Slice prop(value.c_str(), value.length());
@@ -163,23 +163,23 @@ string LevelDB::getStats() throw(DbException) {
 	return ret;
 }
 
-bool LevelDB::hasKey(void* aKey, size_t keyLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) throw(DbException) {
+bool LevelDB::hasKey(void* aKey, size_t keyLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) {
 	string value;
 	leveldb::Slice key((const char*)aKey, keyLen);
 	auto ret = db->Get(iteroptions, key, &value);
 	return ret.ok();
 }
 
-void LevelDB::remove(void* aKey, size_t keyLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) throw(DbException) {
+void LevelDB::remove(void* aKey, size_t keyLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) {
 	leveldb::Slice key((const char*)aKey, keyLen);
 	DBACTION(db->Delete(writeoptions, key));
 }
 
-int64_t LevelDB::getSizeOnDisk() throw(DbException) {
+int64_t LevelDB::getSizeOnDisk() {
 	return File::getDirSize(getPath(), false);
 }
 
-size_t LevelDB::size(bool thorough, DbSnapshot* aSnapshot /*nullptr*/) throw(DbException) {
+size_t LevelDB::size(bool thorough, DbSnapshot* aSnapshot /*nullptr*/) {
 	if (!thorough && lastSize > 0)
 		return lastSize;
 
@@ -204,7 +204,7 @@ DbSnapshot* LevelDB::getSnapshot() {
 	return new LevelSnapshot(db);
 }
 
-void LevelDB::remove_if(std::function<bool(void* aKey, size_t key_len, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot /*nullptr*/) throw(DbException) {
+void LevelDB::remove_if(std::function<bool(void* aKey, size_t key_len, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot /*nullptr*/) {
 	leveldb::WriteBatch wb;
 	leveldb::ReadOptions options;
 	options.fill_cache = false;
@@ -234,7 +234,7 @@ void LevelDB::compact() {
 	db->CompactRange(nullptr, nullptr);
 }
 
-leveldb::Status LevelDB::performDbOperation(function<leveldb::Status()> f) throw(DbException) {
+leveldb::Status LevelDB::performDbOperation(function<leveldb::Status()> f) {
 	int attempts = 0;
 	leveldb::Status ret;
 	for (;;) {
@@ -256,7 +256,7 @@ leveldb::Status LevelDB::performDbOperation(function<leveldb::Status()> f) throw
 	return ret;
 }
 
-void LevelDB::checkDbError(leveldb::Status aStatus) throw(DbException) {
+void LevelDB::checkDbError(leveldb::Status aStatus) {
 	if (aStatus.ok())
 		return;
 

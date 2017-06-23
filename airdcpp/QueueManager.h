@@ -75,7 +75,8 @@ public:
 	size_t getQueuedBundleFiles() const noexcept;
 
 	// Check if there are downloaded bytes (running downloads or finished segments) for the specified file
-	bool hasDownloadedBytes(const string& aTarget) throw(QueueException);
+	// Throws QueueException if the file can't be found
+	bool hasDownloadedBytes(const string& aTarget);
 
 	// Get the subdirectories and total file count of a bundle
 	DirectoryContentInfo getBundleContent(const BundlePtr& aBundle) const noexcept;
@@ -85,11 +86,13 @@ public:
 
 	// Add a user's filelist to the queue.
 	// New managed filelist sessions should be created via DirectoryListingManager instead
-	QueueItemPtr addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir = Util::emptyString, const BundlePtr& aBundle = nullptr) throw(QueueException, DupeException);
+	// Throws QueueException, DupeException
+	QueueItemPtr addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir = ADC_ROOT_STR, const BundlePtr& aBundle = nullptr);
 
-	/** Add an item that is opened in the client or with an external program */
-	/** Files that are viewed in the client should be added from ViewFileManager */
-	QueueItemPtr addOpenedItem(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsClientView, bool aIsText = true) throw(QueueException, FileException);
+	// Add an item that is opened in the client or with an external program
+	// Files that are viewed in the client should be added from ViewFileManager
+	// Throws QueueException, FileException
+	QueueItemPtr addOpenedItem(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsClientView, bool aIsText = true);
 
 	/** Readd a source that was removed */
 	bool readdQISource(const string& target, const HintedUser& aUser) noexcept;
@@ -192,29 +195,29 @@ public:
 	// hasDownload will be set to true if there are any files queued from the user
 	// TODO: FINISH
 	pair<QueueItem::DownloadType, bool> startDownload(const UserPtr& aUser, string& hubUrl, QueueItemBase::DownloadType aType, QueueToken& bundleToken,
-		bool& allowUrlChange, bool& hasDownload, string& lastError_) noexcept;
+		bool& allowUrlChange_, bool& hasDownload_, string& lastError_) noexcept;
 
 	// Creates new download for the specified user
 	// This won't check various download limits so startDownload should be called first
 	// newUrl can be changed if the download is for a filelist from a different hub
 	// lastError_ will contain the last error why a file can't be started (not cleared if a download is found afterwards)
-	Download* getDownload(UserConnection& aSource, const QueueTokenSet& runningBundles, const OrderedStringSet& onlineHubs, string& lastError_, string& newUrl, QueueItemBase::DownloadType aType) noexcept;
+	Download* getDownload(UserConnection& aSource, const QueueTokenSet& aRunningBundles, const OrderedStringSet& aOnlineHubs, string& lastError_, string& newUrl_, QueueItemBase::DownloadType aType) noexcept;
 
 	// Handle an ended transfer
 	// finished should be true if the file/segment was finished successfully (false if disconnected/failed). Always false for finished trees.
 	// noAccess should be true if the transfer failed because there was no access to the file.
 	// rotateQueue will put current bundle file at the end of the transfer source's user queue (e.g. there's a problem with the local target and other files should be tried next).
 	// HashException will thrown only for tree transfers that could not be stored in the hash database.
-	void putDownload(Download* aDownload, bool finished, bool noAccess=false, bool rotateQueue=false) throw(HashException);
+	void putDownload(Download* aDownload, bool aFinished, bool aNoAccess = false, bool aRotateQueue = false);
 	
 
 	void loadQueue(function<void (float)> progressF) noexcept;
 
 	// Force will force bundle to be saved even when it's not dirty (not recommended as it may take a long time with huge queues)
-	void saveQueue(bool force) noexcept;
+	void saveQueue(bool aForce) noexcept;
 	void shutdown() noexcept;
 
-	void noDeleteFileList(const string& path) noexcept;
+	void noDeleteFileList(const string& aPath) noexcept;
 
 	// Being called after the skiplist/high prio pattern has been changed 
 	void setMatchers() noexcept;
@@ -241,8 +244,9 @@ public:
 	// All errors will be thrown
 	//
 	// Returns the bundle and bool whether it's a newly created bundle
+	// Throws QueueException, FileException, DupeException
 	BundleAddInfo createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate,
-		Flags::MaskType aFlags = 0, Priority aPrio = Priority::DEFAULT) throw(QueueException, FileException, DupeException);
+		Flags::MaskType aFlags = 0, Priority aPrio = Priority::DEFAULT);
 
 	bool removeBundle(QueueToken aBundleToken, bool removeFinishedFiles) noexcept;
 	void removeBundle(BundlePtr& aBundle, bool removeFinishedFiles) noexcept;
@@ -270,7 +274,9 @@ public:
 	// Queue a TTH list from the user containing the supplied TTH
 	// Throws on errors
 	void addBundleTTHList(const HintedUser& aUser, const string& aRemoteBundleToken, const TTHValue& tth);
-	MemoryInputStream* generateTTHList(QueueToken aBundleToken, bool isInSharingHub, BundlePtr& bundle_) throw(QueueException);
+
+	// Throws QueueException
+	MemoryInputStream* generateTTHList(QueueToken aBundleToken, bool isInSharingHub, BundlePtr& bundle_);
 
 	//Bundle download failed due to Ex. disk full
 	void bundleDownloadFailed(BundlePtr& aBundle, const string& aError);
@@ -347,15 +353,15 @@ public:
 	string getBundlePath(QueueToken aBundleToken) const noexcept;
 
 	// Return dupe information about the directory
-	DupeType isNmdcDirQueued(const string& aDir, int64_t aSize) const noexcept;
+	DupeType isAdcDirectoryQueued(const string& aDir, int64_t aSize) const noexcept;
 
 	// Get bundle by (exact) real path
 	BundlePtr findDirectoryBundle(const string& aPath) const noexcept;
 
 	// Get all real paths of the directory name
-	// You may also give a path in NMDC format and the relevant 
+	// You may also give a path in ADC format and the relevant 
 	// directory (+ possible subdirectories) are detected automatically
-	StringList getNmdcDirPaths(const string& aDir) const noexcept;
+	StringList getAdcDirectoryPaths(const string& aDir) const noexcept;
 
 	// Get the paths of all bundles
 	void getBundlePaths(OrderedStringSet& bundles) const noexcept;
@@ -439,22 +445,30 @@ private:
 
 	// Add a file to the queue
 	// Returns the added queue item and bool whether it's a newly created item
+	// Throws QueueException, FileException in case of target file issues (see the replaceItem method)
 	FileAddInfo addBundleFile(const string& aTarget, int64_t aSize, const TTHValue& aRoot,
-		const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, Priority aPrio, bool& wantConnection_, BundlePtr& aBundle_) throw(QueueException, FileException);
+		const HintedUser& aUser, Flags::MaskType aFlags, bool addBad, Priority aPrio, bool& wantConnection_, BundlePtr& aBundle_);
 
-	/** Check that we can download from this user */
-	void checkSource(const HintedUser& aUser) const throw(QueueException);
+	// Removes the provided queue item in case the downloaded target file is missing
+	// Throws FileException if an identical target file exists or QueueException in case of target mismatches
+	bool checkRemovedTarget(QueueItemPtr& qi, int64_t aSize, const TTHValue& aTTH);
 
-	/** Check that we can download from this user */
-	void validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, Priority& priority_, int64_t aSize) const throw(QueueException, FileException, DupeException);
+	// Check that we can download from this user
+	// Throws QueueException in case of errors
+	void checkSource(const HintedUser& aUser) const;
 
-	/** Sanity check for the target filename */
-	//static string checkTargetPath(const string& aTarget) throw(QueueException, FileException);
-	static string checkTarget(const string& toValidate, const string& aParentDir=Util::emptyString) throw(QueueException, FileException);
+	// Validate bundle file against ignore and dupe options + performs target validity check (see checkTarget)
+	// Throws QueueException, FileException, DupeException
+	void validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, Priority& priority_, int64_t aSize) const;
+
+	// Sanity check for the target filename
+	// Throws QueueException on invalid path format and FileException if the target file exists
+	static string checkTarget(const string& toValidate, const string& aParentDir = Util::emptyString);
 	static string formatBundleTarget(const string& aPath, time_t aRemoteDate) noexcept;
 
 	// Add a source to an existing queue item
-	bool addSource(const QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, bool checkTLS=true) throw(QueueException, FileException);
+	// Throws QueueException in case of errors
+	bool addSource(const QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType aAddBad, bool aCheckTLS = true);
 
 	// Add a source for a list of queue items, returns the number of (new) files for which the source was added
 	int addSources(const HintedUser& aUser, const QueueItemList& aItems, Flags::MaskType aAddBad) noexcept;
@@ -490,9 +504,6 @@ private:
 
 	void setFileStatus(const QueueItemPtr& aFile, QueueItem::Status aNewStatus) noexcept;
 	void setBundleStatus(const BundlePtr& aBundle, Bundle::Status aNewStatus) noexcept;
-
-	/* Returns true if an item can be replaces */
-	bool replaceItem(QueueItemPtr& qi, int64_t aSize, const TTHValue& aTTH) throw(FileException, QueueException);
 
 	void removeFileSource(QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 

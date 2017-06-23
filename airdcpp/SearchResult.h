@@ -55,8 +55,9 @@ public:
 	static string formatSlots(size_t aFree, size_t aTotal) noexcept;
 	string getSlotString() const noexcept;
 
-	string getFilePath() const noexcept;
-	const string& getPath() const noexcept { return path; }
+	string getAdcFilePath() const noexcept;
+	const string& getAdcPath() const noexcept { return path; }
+
 	int64_t getSize() const noexcept { return size; }
 	Types getType() const noexcept { return type; }
 	size_t getTotalSlots() const noexcept { return totalSlots; }
