@@ -149,8 +149,10 @@ CryptoManager::~CryptoManager() {
 	CRYPTO_set_locking_callback(NULL);
 	delete[] cs;
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	/* thread-local cleanup */
 	ERR_remove_thread_state(NULL);
+#endif
 
 	clientContext.reset();
 	serverContext.reset();
