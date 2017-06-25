@@ -67,7 +67,7 @@ namespace webserver {
 	api_return ExtensionInfo::handleStartExtension(ApiRequest& aRequest) {
 		try {
 			auto server = aRequest.getSession()->getServer();
-			extension->start(server->getExtensionManager().getStartCommand(extension), server);
+			extension->start(server->getExtensionManager().getStartCommand(extension->getEngines()), server);
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.what());
 			return websocketpp::http::status_code::internal_server_error;

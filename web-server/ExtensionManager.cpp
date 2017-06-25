@@ -100,8 +100,8 @@ namespace webserver {
 
 		for (const auto& path : directories) {
 			auto ext = loadLocalExtension(path);
-			if (ext) {
-				startExtension(ext);
+			if (ext && startExtensionImpl(ext)) {
+				LogManager::getInstance()->message("Extension " + ext->getName() + " was loaded", LogMessage::SEV_INFO);
 			}
 		}
 	}
@@ -116,7 +116,7 @@ namespace webserver {
 			aExtension->removeListeners();
 
 			// Stop running extensions
-			if (!stopExtension(aExtension)) {
+			if (!aExtension->stop()) {
 				throw Exception("Failed to stop the extension process");
 			}
 
@@ -279,7 +279,7 @@ namespace webserver {
 			}
 
 			// Stop and remove the old package
-			if (!stopExtension(extension)) {
+			if (!extension->stop()) {
 				return;
 			}
 
@@ -322,7 +322,7 @@ namespace webserver {
 			LogManager::getInstance()->message("Extension " + extension->getName() + " was installed succesfully", LogMessage::SEV_INFO);
 		}
 
-		startExtension(extension);
+		startExtensionImpl(extension);
 		fire(ExtensionManagerListener::InstallationSucceeded(), aInstallId);
 	}
 
@@ -358,15 +358,31 @@ namespace webserver {
 		return ext;
 	}
 
+#define EXIT_CODE_TIMEOUT 124
+	void ExtensionManager::onExtensionFailed(const Extension* aExtension, uint32_t aExitCode) noexcept {
+		if (aExitCode == EXIT_CODE_TIMEOUT) {
+			// Attempt to restart it (but outside of extension's timer thread)
+			auto name = aExtension->getName();
+			wsm->addAsyncTask([=] {
+				auto extension = getExtension(name);
+				if (extension && startExtensionImpl(extension)) {
+					LogManager::getInstance()->message("Extension " + aExtension->getName() + " timed out and was restarted", LogMessage::SEV_INFO);
+				}
+			});
+		} else {
+			 LogManager::getInstance()->message(
+				 "Extension " + aExtension->getName() + " has exited (see the extension log " + aExtension->getErrorLogPath() + " for error details)",
+				 LogMessage::SEV_ERROR
+			 );
+		 }
+	}
+
 	ExtensionPtr ExtensionManager::loadLocalExtension(const string& aPath) noexcept {
 		// Parse
 		ExtensionPtr ext = nullptr;
 		try {
-			ext = std::make_shared<Extension>(Util::joinDirectory(aPath, EXT_PACKAGE_DIR), [](const Extension* aExtension) {
-				LogManager::getInstance()->message(
-					"Extension " + aExtension->getName() + " has exited (see the extension log " + aExtension->getErrorLogPath() + " for error details)", 
-					LogMessage::SEV_ERROR
-				);
+			ext = std::make_shared<Extension>(Util::joinDirectory(aPath, EXT_PACKAGE_DIR), [this](Extension* aExtension, uint32_t aExitCode) {
+				onExtensionFailed(aExtension, aExitCode);
 			});
 		} catch (const Exception& e) {
 			LogManager::getInstance()->message("Failed to load extension " + aPath + ": " + e.what(), LogMessage::SEV_ERROR);
@@ -388,35 +404,21 @@ namespace webserver {
 		return ext;
 	}
 
-	bool ExtensionManager::startExtension(const ExtensionPtr& aExtension) noexcept {
+	bool ExtensionManager::startExtensionImpl(const ExtensionPtr& aExtension) noexcept {
 		try {
-			auto command = getStartCommand(aExtension);
+			auto command = getStartCommand(aExtension->getEngines());
 			aExtension->start(command, wsm);
 		} catch (const Exception& e) {
 			LogManager::getInstance()->message("Failed to start the extension " + aExtension->getName() + ": " + e.what(), LogMessage::SEV_ERROR);
 			return false;
 		}
 
-		LogManager::getInstance()->message("Extension " + aExtension->getName() + " was started", LogMessage::SEV_INFO);
 		return true;
 	}
 
-	bool ExtensionManager::stopExtension(const ExtensionPtr& aExtension) noexcept {
-		if (!aExtension->isRunning()) {
-			return true;
-		}
-
-		if (!aExtension->stop()) {
-			return false;
-		}
-
-		LogManager::getInstance()->message("Extension " + aExtension->getName() + " was stopped", LogMessage::SEV_INFO);
-		return true;
-	}
-
-	string ExtensionManager::getStartCommand(const ExtensionPtr& aExtension) const {
+	string ExtensionManager::getStartCommand(const StringList& aEngines) const {
 		string lastError;
-		for (const auto& extEngine : aExtension->getEngines()) {
+		for (const auto& extEngine : aEngines) {
 			string engineCommandStr;
 
 			{

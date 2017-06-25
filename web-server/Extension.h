@@ -33,7 +33,7 @@ namespace webserver {
 
 	class Extension : public Speaker<ExtensionListener> {
 	public:
-		typedef std::function<void(const Extension*)> ErrorF;
+		typedef std::function<void(Extension*, uint32_t /*exitCode*/)> ErrorF;
 
 		// Throws on errors
 		Extension(const string& aPackageDirectory, ErrorF&& aErrorF, bool aSkipPathValidation = false);
@@ -135,6 +135,7 @@ namespace webserver {
 		SessionPtr session = nullptr;
 
 		void checkRunningState(WebServerManager* wsm) noexcept;
+		void onFailed(uint32_t aExitCode) noexcept;
 		void onStopped(bool aFailed) noexcept;
 		TimerPtr timer = nullptr;
 
