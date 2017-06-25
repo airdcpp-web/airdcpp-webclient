@@ -59,20 +59,20 @@ namespace webserver {
 		ExtensionPtr getExtension(const string& aName) const noexcept;
 		ExtensionList getExtensions() const noexcept;
 
-		bool startExtension(const ExtensionPtr& aExtension) noexcept;
-		bool stopExtension(const ExtensionPtr& aExtension) noexcept;
-
 		typedef map<string, string> EngineMap;
 
 		// Get the engine start command for extension
 		// Throws on errors
-		string getStartCommand(const ExtensionPtr& aExtension) const;
+		string getStartCommand(const StringList& aEngines) const;
 
 		EngineMap getEngines() const noexcept;
 
 		// Parses the engine command param (command1;command2;...) and tests each token for an existing application
 		static string selectEngineCommand(const string& aEngineCommands) noexcept;
 	private:
+		void onExtensionFailed(const Extension* aExtension, uint32_t aExitCode) noexcept;
+		bool startExtensionImpl(const ExtensionPtr& aExtension) noexcept;
+
 		EngineMap engines;
 
 		void onExtensionDownloadCompleted(const string& aInstallId, const string& aUrl, const string& aSha1) noexcept;

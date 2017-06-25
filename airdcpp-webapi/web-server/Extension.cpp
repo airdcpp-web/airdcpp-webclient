@@ -322,11 +322,20 @@ namespace webserver {
 		return true;
 	}
 
+	void Extension::onFailed(uint32_t aExitCode) noexcept {
+		dcdebug("Extension %s failed with code %u\n", name.c_str(), aExitCode);
+
+		timer->stop(false);
+
+		onStopped(true);
+
+		if (errorF) {
+			errorF(this, aExitCode);
+		}
+	}
+
 	void Extension::onStopped(bool aFailed) noexcept {
 		fire(ExtensionListener::ExtensionStopped(), aFailed);
-		if (aFailed) {
-			timer->stop(false);
-		}
 		
 		dcdebug("Extension %s was stopped", name.c_str());
 		if (session) {
@@ -344,9 +353,6 @@ namespace webserver {
 
 		dcassert(running);
 		running = false;
-		if (aFailed && errorF) {
-			errorF(this);
-		}
 	}
 #ifdef _WIN32
 	void Extension::initLog(HANDLE& aHandle, const string& aPath) {
@@ -457,8 +463,7 @@ namespace webserver {
 		DWORD exitCode = 0;
 		if (GetExitCodeProcess(piProcInfo.hProcess, &exitCode) != 0) {
 			if (exitCode != STILL_ACTIVE) {
-				dcdebug("Extension %s exited with code %d\n", name.c_str(), exitCode);
-				onStopped(true);
+				onFailed(exitCode);
 			}
 		} else {
 			dcdebug("Failed to check running state of extension %s (%s)\n", name.c_str(), Util::translateError(::GetLastError()).c_str());
@@ -492,7 +497,12 @@ namespace webserver {
 	void Extension::checkRunningState(WebServerManager* wsm) noexcept {
 		int status = 0;
 		if (waitpid(pid, &status, WNOHANG) != 0) {
-			onStopped(true);
+			int exitCode = 1;
+			if (WIFEXITED(status)) {
+				exitCode = WEXITSTATUS(status);
+			}
+
+			onFailed(exitCode);
 		}
 	}
 
