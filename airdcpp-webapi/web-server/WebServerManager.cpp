@@ -444,7 +444,7 @@ namespace webserver {
 	}
 
 	void WebServerManager::log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
-		LogManager::getInstance()->message("[WEB] " + aMsg, aSeverity);
+		LogManager::getInstance()->message(aMsg, aSeverity);
 	}
 
 	bool WebServerManager::hasValidConfig() const noexcept {

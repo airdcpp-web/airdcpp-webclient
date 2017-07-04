@@ -88,6 +88,8 @@ namespace webserver {
 		const string& getIp() const noexcept {
 			return ip;
 		}
+
+		void reportError(const string& aError) noexcept;
 	private:
 		typedef LazyInitWrapper<ApiModule> LazyModuleWrapper;
 		std::map<std::string , LazyModuleWrapper> apiHandlers;

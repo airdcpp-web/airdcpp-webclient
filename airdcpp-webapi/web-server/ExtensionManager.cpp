@@ -28,7 +28,6 @@
 #include <airdcpp/Encoder.h>
 #include <airdcpp/File.h>
 #include <airdcpp/HttpDownload.h>
-#include <airdcpp/LogManager.h>
 #include <airdcpp/ScopedFunctor.h>
 #include <airdcpp/ZUtils.h>
 
@@ -101,7 +100,7 @@ namespace webserver {
 		for (const auto& path : directories) {
 			auto ext = loadLocalExtension(path);
 			if (ext && startExtensionImpl(ext)) {
-				LogManager::getInstance()->message("Extension " + ext->getName() + " was loaded", LogMessage::SEV_INFO);
+				wsm->log("Extension " + ext->getName() + " was loaded", LogMessage::SEV_INFO);
 			}
 		}
 	}
@@ -309,7 +308,7 @@ namespace webserver {
 				return;
 			}
 
-			LogManager::getInstance()->message("Extension " + extension->getName() + " was updated succesfully", LogMessage::SEV_INFO);
+			wsm->log("Extension " + extension->getName() + " was updated succesfully", LogMessage::SEV_INFO);
 		} else {
 			// Install new
 			extension = loadLocalExtension(Extension::getRootPath(extensionName));
@@ -319,7 +318,7 @@ namespace webserver {
 			}
 
 			fire(ExtensionManagerListener::ExtensionAdded(), extension);
-			LogManager::getInstance()->message("Extension " + extension->getName() + " was installed succesfully", LogMessage::SEV_INFO);
+			wsm->log("Extension " + extension->getName() + " was installed succesfully", LogMessage::SEV_INFO);
 		}
 
 		startExtensionImpl(extension);
@@ -334,7 +333,7 @@ namespace webserver {
 
 		fire(ExtensionManagerListener::InstallationFailed(), aInstallId, msg);
 
-		LogManager::getInstance()->message("Extension installation failed: " + msg, LogMessage::SEV_ERROR);
+		wsm->log("Extension installation failed: " + msg, LogMessage::SEV_ERROR);
 	}
 
 	ExtensionPtr ExtensionManager::registerRemoteExtension(const SessionPtr& aSession, const json& aPackageJson) {
@@ -366,11 +365,11 @@ namespace webserver {
 			wsm->addAsyncTask([=] {
 				auto extension = getExtension(name);
 				if (extension && startExtensionImpl(extension)) {
-					LogManager::getInstance()->message("Extension " + aExtension->getName() + " timed out and was restarted", LogMessage::SEV_INFO);
+					wsm->log("Extension " + aExtension->getName() + " timed out and was restarted", LogMessage::SEV_INFO);
 				}
 			});
 		} else {
-			 LogManager::getInstance()->message(
+			 wsm->log(
 				 "Extension " + aExtension->getName() + " has exited (see the extension log " + aExtension->getErrorLogPath() + " for error details)",
 				 LogMessage::SEV_ERROR
 			 );
@@ -385,13 +384,13 @@ namespace webserver {
 				onExtensionFailed(aExtension, aExitCode);
 			});
 		} catch (const Exception& e) {
-			LogManager::getInstance()->message("Failed to load extension " + aPath + ": " + e.what(), LogMessage::SEV_ERROR);
+			wsm->log("Failed to load extension " + aPath + ": " + e.what(), LogMessage::SEV_ERROR);
 			return nullptr;
 		}
 
 		if (getExtension(ext->getName())) {
 			dcassert(0);
-			LogManager::getInstance()->message("Failed to load extension " + aPath + ": exists already", LogMessage::SEV_ERROR);
+			wsm->log("Failed to load extension " + aPath + ": exists already", LogMessage::SEV_ERROR);
 			return nullptr;
 		}
 
@@ -409,7 +408,7 @@ namespace webserver {
 			auto command = getStartCommand(aExtension->getEngines());
 			aExtension->start(command, wsm);
 		} catch (const Exception& e) {
-			LogManager::getInstance()->message("Failed to start the extension " + aExtension->getName() + ": " + e.what(), LogMessage::SEV_ERROR);
+			wsm->log("Failed to start the extension " + aExtension->getName() + ": " + e.what(), LogMessage::SEV_ERROR);
 			return false;
 		}
 
