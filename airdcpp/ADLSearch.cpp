@@ -37,14 +37,14 @@
 namespace dcpp {
 	
 // Constructor
-ADLSearch::ADLSearch() : 
+ADLSearch::ADLSearch() :
 isActive(true), 
 isAutoQueue(false), 
 sourceType(OnlyFile), 
 minFileSize(-1), 
 maxFileSize(-1), 
 typeFileSize(SizeBytes), 
-destDir("ADLSearch"), 
+name("ADLSearch"),
 ddIndex(0),
 adlsComment("none") {
 	match.pattern = "<Enter string>";
@@ -151,6 +151,12 @@ void ADLSearch::setPattern(const string& aPattern) {
 	match.pattern = aPattern;
 }
 
+void ADLSearch::setDestDir(const string& aDestDir) noexcept {
+	if (!aDestDir.empty()) {
+		name = Util::cleanPathSeparators(aDestDir);
+	}
+}
+
 bool ADLSearch::matchesFile(const string& f, const string& fp, int64_t size) {
 	// Check status
 	if(!isActive) {
@@ -252,8 +258,8 @@ void ADLSearchManager::load() noexcept {
 						xml.resetCurrentChild();
 					}
 
-					if(xml.findChild("DestDirectory")) {
-						search.destDir = xml.getChildData();
+					if (xml.findChild("DestDirectory")) {
+						search.setDestDir(xml.getChildData());
 					} else {
 						xml.resetCurrentChild();
 					}
@@ -403,7 +409,7 @@ void ADLSearchManager::save(bool force /*false*/) noexcept {
 		xml.addTag("SearchString", search.match.pattern);
 		xml.addChildAttrib("RegEx", search.isRegEx());
 		xml.addTag("SourceType", search.SourceTypeToString(search.sourceType));
-		xml.addTag("DestDirectory", search.destDir);
+		xml.addTag("DestDirectory", search.getDestDir());
 		xml.addTag("AdlsComment", search.adlsComment);
 		xml.addTag("IsActive", search.isActive);
 		xml.addTag("MaxSize", search.maxFileSize);
@@ -514,7 +520,7 @@ void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, Dire
 	// Scan all loaded searches
 	for(auto& is: collection) {
 		// Check empty destination directory
-		if(is.destDir.size() == 0) {
+		if(is.getDestDir().size() == 0) {
 			// Set to default
 			is.ddIndex = 0;
 			continue;
@@ -524,7 +530,7 @@ void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, Dire
 		bool isNew = true;
 		long ddIndex = 0;
 		for(auto id = destDirs.cbegin(); id != destDirs.cend(); ++id, ++ddIndex) {
-			if(Util::stricmp(is.destDir.c_str(), id->name.c_str()) == 0) {
+			if(Util::stricmp(is.getDestDir().c_str(), id->name.c_str()) == 0) {
 				// Already exists, reuse index
 				is.ddIndex = ddIndex;
 				isNew = false;
@@ -534,8 +540,8 @@ void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, Dire
 
 		if(isNew) {
 			// Add new destination directory
-			DestDir newDir = { is.destDir, 
-				DirectoryListing::Directory::create(root.get(), "<<<" + is.destDir + ">>>", 
+			DestDir newDir = { is.getDestDir(),
+				DirectoryListing::Directory::create(root.get(), "<<<" + is.getDestDir() + ">>>",
 					DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) 
 			};
 

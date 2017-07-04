@@ -84,14 +84,19 @@ public:
 	int64_t GetSizeBase();
 
 	// Name of the destination directory (empty = 'ADLSearch') and its index
-	string destDir;
+	//string destDir;
 	unsigned long ddIndex;
 
 	bool isRegEx() const;
 	void setRegEx(bool b);
 	string getPattern();
 	void setPattern(const string& aPattern);
+
+	void setDestDir(const string& aDestDir) noexcept;
+	const string& getDestDir() const noexcept { return name; }
 private:
+	string name;
+
 	friend class ADLSearchManager;
 
 	StringMatch match;
