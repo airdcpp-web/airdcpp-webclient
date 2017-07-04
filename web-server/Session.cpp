@@ -126,4 +126,8 @@ namespace webserver {
 	void Session::updateActivity() noexcept {
 		lastActivity = GET_TICK();
 	}
+
+	void Session::reportError(const string& aError) noexcept {
+		server->log(aError, LogMessage::SEV_ERROR);
+	}
 }
