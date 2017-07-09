@@ -40,7 +40,7 @@ namespace webserver {
 
 		api_return handleDownloadExtension(ApiRequest& aRequest);
 		api_return handlePostExtension(ApiRequest& aRequest);
-		api_return handleRemoveExtension(ApiRequest& aRequest);
+		api_return handleDeleteSubmodule(ApiRequest& aRequest) override;
 
 		api_return handleGetEngineStatuses(ApiRequest& aRequest);
 

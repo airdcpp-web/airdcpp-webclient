@@ -48,7 +48,7 @@ namespace webserver {
 		api_return handlePostStatus(ApiRequest& aRequest);
 
 		api_return handleConnect(ApiRequest& aRequest);
-		api_return handleDisconnect(ApiRequest& aRequest);
+		api_return handleDeleteSubmodule(ApiRequest& aRequest) override;
 		api_return handleGetStats(ApiRequest& aRequest);
 
 		api_return handleFindByUrl(ApiRequest& aRequest);

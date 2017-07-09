@@ -42,7 +42,7 @@ namespace webserver {
 		void addChat(const PrivateChatPtr& aChat) noexcept;
 
 		api_return handlePostChat(ApiRequest& aRequest);
-		api_return handleDeleteChat(ApiRequest& aRequest);
+		api_return handleDeleteSubmodule(ApiRequest& aRequest) override;
 
 		api_return handlePostMessage(ApiRequest& aRequest);
 

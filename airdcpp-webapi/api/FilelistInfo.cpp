@@ -34,8 +34,10 @@ namespace webserver {
 		dl(aFilelist),
 		directoryView("filelist_view", this, FilelistUtils::propertyHandler, std::bind(&FilelistInfo::getCurrentViewItems, this))
 	{
+		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_PATCH,	(),															FilelistInfo::handleUpdateList);
+
 		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_POST,	(EXACT_PARAM("directory")),									FilelistInfo::handleChangeDirectory);
-		METHOD_HANDLER(Access::VIEW_FILES_VIEW,	METHOD_POST,	(EXACT_PARAM("read")),										FilelistInfo::handleSetRead);
+		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_POST,	(EXACT_PARAM("read")),										FilelistInfo::handleSetRead);
 
 		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_GET,		(EXACT_PARAM("items"), RANGE_START_PARAM, RANGE_MAX_PARAM), FilelistInfo::handleGetItems);
 	}
@@ -60,6 +62,23 @@ namespace webserver {
 
 	void FilelistInfo::addListTask(CallBack&& aTask) noexcept {
 		dl->addAsyncTask(getAsyncWrapper(move(aTask)));
+	}
+
+	api_return FilelistInfo::handleUpdateList(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+		if (dl->getIsOwnList()) {
+			auto profile = Deserializer::deserializeOptionalShareProfile(reqJson);
+			if (profile) {
+				dl->addShareProfileChangeTask(*profile);
+			}
+		} else {
+			auto hubUrl = JsonUtil::getOptionalField<string>("hub_url", reqJson);
+			if (hubUrl) {
+				dl->addHubUrlChangeTask(*hubUrl);
+			}
+		}
+
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return FilelistInfo::handleGetItems(ApiRequest& aRequest) {

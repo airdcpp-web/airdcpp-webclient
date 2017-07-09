@@ -40,7 +40,7 @@ namespace webserver {
 		SearchEntity::Ptr createInstance(uint64_t aExpirationTick);
 
 		api_return handleCreateInstance(ApiRequest& aRequest);
-		api_return handleDeleteInstance(ApiRequest& aRequest);
+		api_return handleDeleteSubmodule(ApiRequest& aRequest);
 
 		api_return handleGetTypes(ApiRequest& aRequest);
 

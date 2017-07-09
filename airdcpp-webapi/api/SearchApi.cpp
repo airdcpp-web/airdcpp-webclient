@@ -45,7 +45,6 @@ namespace webserver {
 	{
 
 		METHOD_HANDLER(Access::SEARCH,	METHOD_POST,	(),						SearchApi::handleCreateInstance);
-		METHOD_HANDLER(Access::SEARCH,	METHOD_DELETE,	(TOKEN_PARAM),			SearchApi::handleDeleteInstance);
 
 		METHOD_HANDLER(Access::ANY,		METHOD_GET,		(EXACT_PARAM("types")),	SearchApi::handleGetTypes);
 
@@ -106,10 +105,9 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return SearchApi::handleDeleteInstance(ApiRequest& aRequest) {
+	api_return SearchApi::handleDeleteSubmodule(ApiRequest& aRequest) {
 		auto instance = getSubModule(aRequest);
 		removeSubModule(instance->getId());
-
 		return websocketpp::http::status_code::no_content;
 	}
 
