@@ -365,22 +365,28 @@ void DirectoryListingManager::on(QueueManagerListener::ItemRemoved, const QueueI
 DirectoryListingPtr DirectoryListingManager::openOwnList(ProfileToken aProfile, bool useADL /*false*/, const string& aDir/* = Util::emptyString*/) noexcept {
 	auto me = HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString);
 
-	auto dl = hasList(me.user);
-	if (dl) {
-		dl->addShareProfileChangeTask(aProfile);
-		return dl;
+	{
+		auto dl = findList(me.user);
+		if (dl) {
+			// REMOVE
+			dl->addShareProfileChangeTask(aProfile);
+			return dl;
+		}
 	}
 
-	dl = createList(me, !useADL, Util::toString(aProfile), true);
+	auto dl = createList(me, !useADL, Util::toString(aProfile), true);
 	dl->setMatchADL(useADL);
 
 	fire(DirectoryListingManagerListener::OpenListing(), dl, aDir, Util::emptyString);
 	return dl;
 }
 
-DirectoryListingPtr DirectoryListingManager::openFileList(const HintedUser& aUser, const string& aFile, const string& aDir/* = Util::emptyString*/, bool aPartial/* = false*/) noexcept {
-	if (hasList(aUser.user)) {
-		return nullptr;
+DirectoryListingPtr DirectoryListingManager::openLocalFileList(const HintedUser& aUser, const string& aFile, const string& aDir/* = Util::emptyString*/, bool aPartial/* = false*/) noexcept {
+	{
+		auto dl = findList(aUser.user);
+		if (dl) {
+			return nullptr;
+		}
 	}
 
 	dcassert(aPartial || Util::fileExists(aFile));
@@ -403,31 +409,33 @@ DirectoryListingPtr DirectoryListingManager::createList(const HintedUser& aUser,
 }
 
 void DirectoryListingManager::on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept {
-	if (!aQI->isSet(QueueItem::FLAG_CLIENT_VIEW) || !aQI->isSet(QueueItem::FLAG_USER_LIST))
+	if (!aQI->isSet(QueueItem::FLAG_CLIENT_VIEW) || !aQI->isSet(QueueItem::FLAG_USER_LIST)) {
 		return;
+	}
 
 	auto user = aQI->getSources()[0].getUser();
-	auto dl = hasList(user);
+	auto dl = findList(user);
 	if (dl) {
 		dl->onAddedQueue(aQI->getTarget());
 	}
 }
 
-DirectoryListingPtr DirectoryListingManager::hasList(const UserPtr& aUser) noexcept {
+DirectoryListingPtr DirectoryListingManager::findList(const UserPtr& aUser) noexcept {
 	RLock l (cs);
 	auto p = viewedLists.find(aUser);
 	if (p != viewedLists.end()) {
-		p->second->setActive();
 		return p->second;
 	}
 
 	return nullptr;
 }
 
-DirectoryListingPtr DirectoryListingManager::createList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir) {
-	auto dl = hasList(aUser);
-	if (dl) {
-		return nullptr;
+DirectoryListingPtr DirectoryListingManager::openRemoteFileList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir) {
+	{
+		auto dl = findList(aUser);
+		if (dl) {
+			return nullptr;
+		}
 	}
 
 	auto user = ClientManager::getInstance()->checkDownloadUrl(aUser);
@@ -436,6 +444,7 @@ DirectoryListingPtr DirectoryListingManager::createList(const HintedUser& aUser,
 		return nullptr;
 	}
 
+	DirectoryListingPtr dl;
 	if (!qi->isSet(QueueItem::FLAG_PARTIAL_LIST)) {
 		dl = createList(user, false, qi->getListName(), false);
 	} else {

@@ -59,7 +59,7 @@ SettingsManager::EnumStringMap SettingsManager::getEnumStrings(int aKey, bool aV
 	EnumStringMap ret;
 
 	auto insertStrings = [&](const ResourceManager::Strings* aStrings, int aMax, int aMin = 0) {
-		auto cur = SettingsManager::getInstance()->get(static_cast<SettingsManager::IntSetting>(aKey));
+		auto cur = getInstance()->get(static_cast<IntSetting>(aKey));
 		if (!aValidateCurrentValue || (cur >= aMin && cur < aMax)) {
 			// The string array indexing always starts from 0
 			for (int i = 0; i < aMax; i++) {
@@ -80,12 +80,12 @@ SettingsManager::EnumStringMap SettingsManager::getEnumStrings(int aKey, bool aV
 		insertStrings(refreshStrings, MULTITHREAD_LAST);
 	}
 
-	if (aKey == SettingsManager::TLS_MODE) {
+	if (aKey == TLS_MODE) {
 		insertStrings(encryptionStrings, TLS_LAST);
 	}
 
 	if (aKey == OUTGOING_CONNECTIONS) {
-		insertStrings(outgoingStrings, TLS_LAST);
+		insertStrings(outgoingStrings, OUTGOING_LAST);
 	}
 
 	if (aKey == DL_AUTO_DISCONNECT_MODE) {

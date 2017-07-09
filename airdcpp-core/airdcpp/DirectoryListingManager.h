@@ -72,11 +72,11 @@ namespace dcpp {
 		DirectoryListingPtr openOwnList(ProfileToken aProfile, bool useADL=false, const string& aDir = ADC_ROOT_STR) noexcept;
 
 		// Open local file, returns nullptr on duplicates
-		DirectoryListingPtr openFileList(const HintedUser& aUser, const string& aFile, const string& aDir = ADC_ROOT_STR, bool aPartial = false) noexcept;
+		DirectoryListingPtr openLocalFileList(const HintedUser& aUser, const string& aFile, const string& aDir = ADC_ROOT_STR, bool aPartial = false) noexcept;
 		
 		// Add a managed filelist session from remove user, throws queueing errors
 		// Returns nullptr on duplicates
-		DirectoryListingPtr createList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = ADC_ROOT_STR);
+		DirectoryListingPtr openRemoteFileList(const HintedUser& HintedUser, Flags::MaskType aFlags, const string& aInitialDir = ADC_ROOT_STR);
 		bool removeList(const UserPtr& aUser) noexcept;
 
 		DirectoryListingManager() noexcept;
@@ -94,6 +94,7 @@ namespace dcpp {
 		bool removeDirectoryDownload(DirectoryDownloadId aId) noexcept;
 
 		DirectoryListingMap getLists() const noexcept;
+		DirectoryListingPtr findList(const UserPtr& aUser) noexcept;
 	private:
 		bool removeDirectoryDownload(const UserPtr& aUser, const string& aPath) noexcept;
 
@@ -107,8 +108,6 @@ namespace dcpp {
 		friend class Singleton<DirectoryListingManager>;
 
 		mutable SharedMutex cs;
-
-		DirectoryListingPtr hasList(const UserPtr& aUser) noexcept;
 
 		/** Directories queued for downloading */
 		unordered_multimap<UserPtr, DirectoryDownloadPtr, User::Hash> dlDirectories;
