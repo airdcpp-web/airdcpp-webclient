@@ -250,8 +250,6 @@ public:
 	
 	bool supportsASCH() const noexcept;
 
-	void setActive() noexcept;
-
 	struct LocationInfo {
 		int64_t totalSize = -1;
 		int files = -1;

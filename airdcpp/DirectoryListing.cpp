@@ -791,10 +791,6 @@ string DirectoryListing::Directory::getAdcPath() const noexcept {
 	return ADC_ROOT_STR;
 }
 
-void DirectoryListing::setActive() noexcept {
-	fire(DirectoryListingListener::SetActive());
-}
-
 int64_t DirectoryListing::Directory::getFilesSize() const noexcept {
 	int64_t x = 0;
 	for (const auto& f: files) {
