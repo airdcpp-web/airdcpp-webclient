@@ -51,6 +51,7 @@ namespace webserver {
 		void init() noexcept override;
 		CID getId() const noexcept override;
 	private:
+		api_return handleUpdateList(ApiRequest& aRequest);
 		api_return handleChangeDirectory(ApiRequest& aRequest);
 		api_return handleSetRead(ApiRequest& aRequest);
 		api_return handleGetItems(ApiRequest& aRequest);

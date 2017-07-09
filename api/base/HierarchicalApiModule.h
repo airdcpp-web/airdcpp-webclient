@@ -46,6 +46,9 @@ namespace webserver {
 			// Get module
 			METHOD_HANDLER(aAccess, METHOD_GET, (aParamMatcher), Type::handleGetSubmodule);
 
+			// Delete module
+			METHOD_HANDLER(aAccess, METHOD_DELETE, (aParamMatcher), Type::handleDeleteSubmodule);
+
 			// List modules
 			METHOD_HANDLER(aAccess, METHOD_GET, (), Type::handleGetSubmodules);
 
@@ -115,23 +118,6 @@ namespace webserver {
 
 			return sub;
 		}
-
-		api_return handleGetSubmodules(ApiRequest& aRequest) {
-			auto retJson = json::array();
-			forEachSubModule([&](const ItemType& aInfo) {
-				retJson.push_back(childSerializeF(aInfo));
-			});
-
-			aRequest.setResponseBody(retJson);
-			return websocketpp::http::status_code::ok;
-		}
-
-		api_return handleGetSubmodule(ApiRequest& aRequest) {
-			auto info = getSubModule(aRequest);
-
-			aRequest.setResponseBody(childSerializeF(*info.get()));
-			return websocketpp::http::status_code::ok;
-		}
 	protected:
 		mutable SharedMutex cs;
 
@@ -160,6 +146,25 @@ namespace webserver {
 				subModules.erase(aId);
 			}
 		}
+
+		api_return handleGetSubmodules(ApiRequest& aRequest) {
+			auto retJson = json::array();
+			forEachSubModule([&](const ItemType& aInfo) {
+				retJson.push_back(childSerializeF(aInfo));
+			});
+
+			aRequest.setResponseBody(retJson);
+			return websocketpp::http::status_code::ok;
+		}
+
+		api_return handleGetSubmodule(ApiRequest& aRequest) {
+			auto info = getSubModule(aRequest);
+
+			aRequest.setResponseBody(childSerializeF(*info.get()));
+			return websocketpp::http::status_code::ok;
+		}
+
+		virtual api_return handleDeleteSubmodule(ApiRequest& aRequest) = 0;
 	private:
 		typedef map<IdType, typename ItemType::Ptr> SubModuleMap;
 		SubModuleMap subModules;
