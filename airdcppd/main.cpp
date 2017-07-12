@@ -274,7 +274,7 @@ static void printUsage() {
 	printHelp("-c=PATH", 						"Use the specified config directory for client settings");
 
 	cout << std::endl;
-	printHelp("--no-auto-connect", 	"Don't connect to any favorite hub on startup");
+	printHelp("--no-autoconnect", 	"Don't connect to any favorite hub on startup");
 	printHelp("--cdm-hub", 					"Print all protocol communication with hubs in the console (debug)");
 	printHelp("--cdm-client", 			"Print all protocol communication with other clients in the console (debug)");
 	printHelp("--cdm-web", 					"Print web API commands and file requests in the console (debug)");
