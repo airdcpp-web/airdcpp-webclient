@@ -53,7 +53,7 @@ namespace webserver {
 		bool isComplete() const noexcept { return type == DIRECTORY ? dir->isComplete() : true; }
 
 		time_t getDate() const noexcept { return type == DIRECTORY ? dir->getRemoteDate() : file->getRemoteDate(); }
-		time_t getSize() const noexcept { return type == DIRECTORY ? dir->getTotalSize(false) : file->getSize(); }
+		int64_t getSize() const noexcept { return type == DIRECTORY ? dir->getTotalSize(false) : file->getSize(); }
 
 		DirectoryListingToken getToken() const noexcept;
 
