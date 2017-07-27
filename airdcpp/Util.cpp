@@ -296,7 +296,7 @@ void Util::initialize(const string& aConfigPath) {
 
 	if (!localMode) {
 		const char* home_ = getenv("HOME");
-		string home = home_ ? Text::toUtf8(home_) : "/tmp/";
+		string home = home_ ? home_ : "/tmp/";
 
 		if (paths[PATH_USER_CONFIG].empty()) {
 			paths[PATH_USER_CONFIG] = home + "/.airdc++/";
@@ -393,7 +393,7 @@ bool Util::loadBootConfig(const string& aDirectoryPath) noexcept {
 			params["PERSONAL"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, tmpPath), tmpPath));
 #else
 			const char* home_ = getenv("HOME");
-			params["HOME"] = home_ ? Text::toUtf8(home_) : "/tmp/";
+			params["HOME"] = home_ ? home_ : "/tmp/";
 #endif
 
 			paths[PATH_USER_CONFIG] = Util::formatParams(boot.getChildData(), params);
@@ -1244,8 +1244,8 @@ string Util::formatTime(const string &msg, const time_t t) noexcept {
 		if(!loc) {
 			return Util::emptyString;
 		}
-
-#ifndef _WIN64
+#ifdef _WIN32
+	#ifndef _WIN64
 		// Work it around :P
 		string::size_type i = 0;
 		while((i = ret.find("%", i)) != string::npos) {
@@ -1254,8 +1254,8 @@ string Util::formatTime(const string &msg, const time_t t) noexcept {
 			}
 			i += 2;
 		}
+	#endif
 #endif
-
 		size_t bufsize = ret.size() + 256;
 		string buf(bufsize, 0);
 
@@ -1528,7 +1528,7 @@ string Util::translateError(int aError) noexcept {
 	}
 	return tmp;
 #else // _WIN32
-	return Text::toUtf8(strerror(aError));
+	return strerror(aError);
 #endif // _WIN32
 }
 

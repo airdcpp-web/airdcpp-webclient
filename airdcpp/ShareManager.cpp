@@ -1128,7 +1128,7 @@ Average name length of a shared item: %d bytes (total size %s)")
 		% itemStats.rootDirectoryCount
 		% Util::formatBytes(itemStats.totalSize)
 		% itemStats.totalFileCount % Util::countPercentage(itemStats.lowerCaseFiles, itemStats.totalFileCount)
-		% itemStats.uniqueFileCount % Util::countPercentage(itemStats.uniqueFileCount, itemStats.totalDirectoryCount)
+		% itemStats.uniqueFileCount % Util::countPercentage(itemStats.uniqueFileCount, itemStats.totalFileCount)
 		% itemStats.totalDirectoryCount % Util::countAverage(itemStats.totalFileCount, itemStats.totalDirectoryCount)
 		% Util::formatTime(itemStats.averageFileAge, false, true)
 		% itemStats.averageNameLength
