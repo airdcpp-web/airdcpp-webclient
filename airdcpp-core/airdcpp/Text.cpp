@@ -240,7 +240,8 @@ string toLower(const string& str) noexcept {
 }
 
 string toUtf8(const string& str, const string& fromCharset) noexcept {
-	if(str.empty()) {
+	if(str.empty() || fromCharset.empty()) {
+		// Assume that system encoding is UTF-8
 		return str;
 	}
 
@@ -256,7 +257,8 @@ string toUtf8(const string& str, const string& fromCharset) noexcept {
 }
 
 string fromUtf8(const string& str, const string& toCharset) noexcept {
-	if(str.empty()) {
+	if (str.empty() || toCharset.empty()) {
+		// Assume that system encoding is UTF-8
 		return str;
 	}
 
