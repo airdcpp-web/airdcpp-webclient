@@ -24,11 +24,6 @@
 #include "TimerManager.h"
 #include "UploadManager.h"
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread.hpp>
-#include <boost/detail/lightweight_mutex.hpp>
-
 namespace dcpp {
 	// The actual limiting code is from StrongDC++
 	// Bandwidth limiting in DC++ is broken: https://www.airdcpp.net/forum/viewtopic.php?f=7&t=4485&p=8856#p8856
@@ -60,7 +55,7 @@ namespace dcpp {
 		if(getDownLimit() == 0 || downs == 0)
 			return sock->read(buffer, len);
 
-		boost::unique_lock<boost::mutex> lock(downMutex);
+		unique_lock<mutex> lock(downMutex);
 
 
 		if(downTokens > 0)
@@ -78,12 +73,12 @@ namespace dcpp {
 			lock.unlock();
 
 			// give a chance to other transfers to get a token
-			boost::thread::yield();
+			Thread::yield();
 			return readSize;
 		}
 
 		// no tokens, wait for them
-		downCond.timed_wait(lock, boost::posix_time::millisec(CONDWAIT_TIMEOUT));
+		downCond.wait_for(lock, std::chrono::milliseconds(CONDWAIT_TIMEOUT));
 		return -1;	// from BufferedSocket: -1 = retry, 0 = connection close
 	}
 	
@@ -97,7 +92,7 @@ namespace dcpp {
 		if(getUpLimit() == 0 || ups == 0)
 			return sock->write(buffer, len);
 		
-		boost::unique_lock<boost::mutex> lock(upMutex);
+		unique_lock<mutex> lock(upMutex);
 		
 		if(upTokens > 0)
 		{
@@ -112,12 +107,12 @@ namespace dcpp {
 			int sent = sock->write(buffer, len);
 
 			// give a chance to other transfers to get a token
-			boost::thread::yield();
+			Thread::yield();
 			return sent;
 		}
 		
 		// no tokens, wait for them
-		upCond.timed_wait(lock, boost::posix_time::millisec(CONDWAIT_TIMEOUT));
+		upCond.wait_for(lock, std::chrono::milliseconds(CONDWAIT_TIMEOUT));
 		return 0;	// from BufferedSocket: -1 = failed, 0 = retry
 	}
 
@@ -176,14 +171,14 @@ namespace dcpp {
 		// readd tokens
 		if(downLimit > 0)
 		{
-			boost::lock_guard<boost::mutex> lock(downMutex);
+			lock_guard<mutex> lock(downMutex);
 			downTokens = downLimit;
 			downCond.notify_all();
 		}
 			
 		if(upLimit > 0)
 		{
-			boost::lock_guard<boost::mutex> lock(upMutex);
+			lock_guard<mutex> lock(upMutex);
 			upTokens = upLimit;
 			upCond.notify_all();
 		}
