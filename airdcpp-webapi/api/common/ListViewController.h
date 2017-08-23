@@ -571,10 +571,10 @@ namespace webserver {
 
 
 				auto startIter = matchingItems.begin();
-				advance(startIter, newStart_);
+				std::advance(startIter, newStart_);
 
 				auto endIter = startIter;
-				advance(endIter, count);
+				std::advance(endIter, count);
 
 				std::copy(startIter, endIter, back_inserter(nextViewportItems_));
 				currentItemsCopy = currentViewportItems;
