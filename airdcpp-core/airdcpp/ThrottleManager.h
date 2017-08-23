@@ -23,6 +23,10 @@
 #include "SettingsManager.h"
 #include "TimerManagerListener.h"
 
+#include <condition_variable>
+#include <mutex>
+
+
 namespace dcpp
 {
 	
