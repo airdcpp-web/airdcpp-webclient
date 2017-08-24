@@ -54,7 +54,7 @@ namespace dcpp {
 
 #define RUNNING_FLAG Util::getPath(Util::PATH_USER_LOCAL) + "RUNNING"
 
-void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progressF, Callback moduleInitF /*nullptr*/, Callback moduleLoadF /*nullptr*/) throw(Exception) {
+void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progressF, Callback moduleInitF /*nullptr*/, Callback moduleLoadF /*nullptr*/) {
 	// "Dedicated to the near-memory of Nev. Let's start remembering people while they're still alive."
 	// Nev's great contribution to dc++
 	while(1) break;

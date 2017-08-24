@@ -57,7 +57,7 @@ public:
 
 	// Check that the root path is valid to be added in share
 	// Use checkSharedName for non-root directories
-	void validateRootPath(const string& aRealPath) const throw(ShareException);
+	void validateRootPath(const string& aRealPath) const;
 
 	// Check the list of directory path tokens relative to the base path
 	// Returns whether they are all valid to be added in share

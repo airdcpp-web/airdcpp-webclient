@@ -53,7 +53,7 @@ string SearchResult::toSR(const Client& c) const noexcept {
 	tmp.append("$SR ", 4);
 	tmp.append(Text::fromUtf8(c.getMyNick(), c.get(HubSettings::NmdcEncoding)));
 	tmp.append(1, ' ');
-	string acpFile = Text::fromUtf8(path, c.get(HubSettings::NmdcEncoding));
+	string acpFile = Util::toNmdcFile(Text::fromUtf8(path, c.get(HubSettings::NmdcEncoding)));
 	if(type == TYPE_FILE) {
 		tmp.append(acpFile);
 		tmp.append(1, '\x05');
@@ -77,7 +77,7 @@ AdcCommand SearchResult::toRES(char aType) const noexcept {
 	AdcCommand cmd(AdcCommand::CMD_RES, aType);
 	cmd.addParam("SI", Util::toString(size));
 	cmd.addParam("SL", Util::toString(freeSlots));
-	cmd.addParam("FN", Util::toAdcFile(path));
+	cmd.addParam("FN", path);
 	if (!SettingsManager::lanMode && type != TYPE_DIRECTORY)
 		cmd.addParam("TR", getTTH().toBase32());
 	cmd.addParam("DM", Util::toString(date));
@@ -91,9 +91,9 @@ AdcCommand SearchResult::toRES(char aType) const noexcept {
 
 string SearchResult::getFileName() const noexcept {
 	if(getType() == TYPE_FILE) 
-		return Util::getNmdcFileName(path); 
+		return Util::getAdcFileName(path); 
 
-	return Util::getNmdcLastDir(path);
+	return Util::getAdcLastDir(path);
 }
 
 string SearchResult::getSlotString() const noexcept {
@@ -151,10 +151,11 @@ void SearchResult::pickResults(SearchResultList& aResults, int aMaxCount) noexce
 	}
 }
 
-string SearchResult::getFilePath() const noexcept {
+string SearchResult::getAdcFilePath() const noexcept {
 	if (type == TYPE_DIRECTORY)
 		return path;
-	return Util::getNmdcFilePath(path);
+
+	return Util::getAdcFilePath(path);
 }
 
 bool SearchResult::matches(SearchQuery& aQuery, const string& aLocalSearchToken) const noexcept {
@@ -199,7 +200,7 @@ bool SearchResult::getRelevance(SearchQuery& aQuery, RelevanceInfo& relevance_, 
 	// Match path
 	SearchQuery::Recursion recursion;
 	ScopedFunctor([&] { aQuery.recursion = nullptr; });
-	if (!aQuery.matchesNmdcPath(path, recursion)) {
+	if (!aQuery.matchesAdcPath(path, recursion)) {
 		return false;
 	}
 

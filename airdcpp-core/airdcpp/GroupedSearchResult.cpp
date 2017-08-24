@@ -36,7 +36,7 @@ namespace dcpp {
 		// check the dupe
 		if (SETTING(DUPE_SEARCH)) {
 			if (baseResult->getType() == SearchResult::TYPE_DIRECTORY) {
-				dupe = AirUtil::checkDirDupe(baseResult->getPath(), baseResult->getSize());
+				dupe = AirUtil::checkAdcDirectoryDupe(baseResult->getAdcPath(), baseResult->getSize());
 			} else {
 				dupe = AirUtil::checkFileDupe(baseResult->getTTH());
 			}
@@ -159,7 +159,7 @@ namespace dcpp {
 
 		boost::for_each(pickDownloadResults(), [&](const SearchResultPtr& aSR) {
 			try {
-				auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownload(aSR->getUser(), aTargetName, aSR->getFilePath(), aTargetDirectory, aPrio);
+				auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownload(aSR->getUser(), aTargetName, aSR->getAdcFilePath(), aTargetDirectory, aPrio);
 				directoryDownloads.push_back(directoryDownload);
 			} catch (const Exception& e) {
 				lastError = e.getError();

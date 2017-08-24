@@ -251,14 +251,14 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 
 
 	auto sr = make_shared<SearchResult>(user, type, slots, freeSlots, size,
-		file, aRemoteIP, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString, 0, connection, DirectoryContentInfo());
+		Util::toAdcFile(file), aRemoteIP, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString, 0, connection, DirectoryContentInfo());
 	fire(SearchManagerListener::SR(), sr);
 }
 
 void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const string& remoteIp) {
 	int freeSlots = -1;
 	int64_t size = -1;
-	string file;
+	string adcPath;
 	string tth;
 	string token;
 	time_t date = 0;
@@ -266,7 +266,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 
 	for(auto& str: cmd.getParameters()) {
 		if(str.compare(0, 2, "FN") == 0) {
-			file = Util::toNmdcFile(str.substr(2));
+			adcPath = str.substr(2);
 		} else if(str.compare(0, 2, "SL") == 0) {
 			freeSlots = Util::toInt(str.substr(2));
 		} else if(str.compare(0, 2, "SI") == 0) {
@@ -291,20 +291,24 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		if (!ClientManager::getInstance()->connectADCSearchResult(from->getCID(), token, hubUrl, connection, slots))
 			return;
 
-		auto type = (file.empty() || file.back() == NMDC_SEPARATOR ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE);
+		if (adcPath.empty()) {
+			return;
+		}
+
+		auto type = adcPath.back() == ADC_SEPARATOR ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE;
 		if(type == SearchResult::TYPE_FILE && tth.empty())
 			return;
 
 		TTHValue th;
 		if (type == SearchResult::TYPE_DIRECTORY || SettingsManager::lanMode) {
 			//calculate a TTH from the directory name and size
-			th = AirUtil::getTTH(type == SearchResult::TYPE_FILE ? Util::getNmdcFileName(file) : Util::getNmdcLastDir(file), size);
+			th = AirUtil::getTTH(type == SearchResult::TYPE_FILE ? Util::getAdcFileName(adcPath) : Util::getAdcLastDir(adcPath), size);
 		} else {
 			th = TTHValue(tth);
 		}
 		
 		auto sr = make_shared<SearchResult>(HintedUser(from, hubUrl), type, slots, (uint8_t)freeSlots, size,
-			file, remoteIp, th, token, date, connection, DirectoryContentInfo(folders, files));
+			adcPath, remoteIp, th, token, date, connection, DirectoryContentInfo(folders, files));
 		fire(SearchManagerListener::SR(), sr);
 	}
 }

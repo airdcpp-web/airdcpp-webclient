@@ -61,7 +61,7 @@ bool HashManager::checkTTH(const string& aFileLower, const string& aFileName, Ha
 	return true;
 }
 
-void HashManager::getFileInfo(const string& aFileLower, const string& aFileName, HashedFile& fi_) throw(HashException) {
+void HashManager::getFileInfo(const string& aFileLower, const string& aFileName, HashedFile& fi_) {
 	dcassert(Text::isLower(aFileLower));
 	auto found = store.getFileInfo(aFileLower, fi_);
 	if (!found) {
@@ -177,7 +177,7 @@ bool HashManager::hashFile(const string& filePath, const string& pathLower, int6
 	return h->hashFile(filePath, pathLower, size, vol);
 }
 
-void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, TTHValue& tth_, int64_t& sizeLeft_, const bool& aCancel, std::function<void(int64_t, const string&)> updateF/*nullptr*/) throw(HashException) {
+void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, TTHValue& tth_, int64_t& sizeLeft_, const bool& aCancel, std::function<void(int64_t, const string&)> updateF/*nullptr*/) {
 	auto pathLower = Text::toLower(aFile);
 	HashedFile fi(File::getLastModified(aFile), aSize);
 
@@ -247,7 +247,7 @@ void HashManager::hashDone(const string& aFileName, const string& pathLower, con
 	}
 }
 
-bool HashManager::addFile(const string& aPath, const HashedFile& fi_) throw(HashException) {
+bool HashManager::addFile(const string& aPath, const HashedFile& fi_) {
 	//check that the file exists
 	if (File::getSize(aPath) != fi_.getSize()) {
 		return false;
@@ -265,12 +265,12 @@ bool HashManager::addFile(const string& aPath, const HashedFile& fi_) throw(Hash
 	return true;
 }
 
-void HashManager::HashStore::addHashedFile(const string& aFileLower, const TigerTree& tt, const HashedFile& fi_) throw(HashException) {
+void HashManager::HashStore::addHashedFile(const string& aFileLower, const TigerTree& tt, const HashedFile& fi_) {
 	addTree(tt);
 	addFile(aFileLower, fi_);
 }
 
-void HashManager::HashStore::addFile(const string& aFileLower, const HashedFile& fi_) throw(HashException) {
+void HashManager::HashStore::addFile(const string& aFileLower, const HashedFile& fi_) {
 	auto sz = getFileInfoSize(fi_);
 	void* buf = malloc(sz);
 	saveFileInfo(buf, fi_);
@@ -284,7 +284,7 @@ void HashManager::HashStore::addFile(const string& aFileLower, const HashedFile&
 	free(buf);
 }
 
-void HashManager::HashStore::removeFile(const string& aFilePathLower) throw(HashException) {
+void HashManager::HashStore::removeFile(const string& aFilePathLower) {
 	try {
 		fileDb->remove((void*) aFilePathLower.c_str(), aFilePathLower.length());
 	} catch (DbException& e) {
@@ -292,7 +292,7 @@ void HashManager::HashStore::removeFile(const string& aFilePathLower) throw(Hash
 	}
 }
 
-void HashManager::HashStore::addTree(const TigerTree& tt) throw(HashException) {
+void HashManager::HashStore::addTree(const TigerTree& tt) {
 	size_t treelen = tt.getLeaves().size() == 1 ? 0 : tt.getLeaves().size() * TTHValue::BYTES;
 	auto sz = sizeof(uint8_t) + sizeof(int64_t) + sizeof(int64_t) + treelen;
 
@@ -329,10 +329,10 @@ void HashManager::HashStore::addTree(const TigerTree& tt) throw(HashException) {
 	free(buf);
 }
 
-bool HashManager::HashStore::getTree(const TTHValue& root, TigerTree& tt) {
+bool HashManager::HashStore::getTree(const TTHValue& aRoot, TigerTree& tt) {
 	try {
-		return hashDb->get((void*)root.data, sizeof(TTHValue), 100*1024, [&](void* aValue, size_t valueLen) {
-			return loadTree(aValue, valueLen, root, tt, true);
+		return hashDb->get((void*)aRoot.data, sizeof(TTHValue), 100*1024, [&](void* aValue, size_t valueLen) {
+			return loadTree(aValue, valueLen, aRoot, tt, true);
 		});
 	} catch(DbException& e) {
 		LogManager::getInstance()->message(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
@@ -341,17 +341,17 @@ bool HashManager::HashStore::getTree(const TTHValue& root, TigerTree& tt) {
 	return false;
 }
 
-bool HashManager::HashStore::hasTree(const TTHValue& root) throw(HashException) {
+bool HashManager::HashStore::hasTree(const TTHValue& aRoot) {
 	bool ret = false;
 	try {
-		ret = hashDb->hasKey((void*)root.data, sizeof(TTHValue));
+		ret = hashDb->hasKey((void*)aRoot.data, sizeof(TTHValue));
 	} catch(DbException& e) {
 		throw HashException(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()));
 	}
 	return ret;
 }
 
-bool HashManager::HashStore::loadTree(const void* src, size_t len, const TTHValue& aRoot, TigerTree& aTree, bool reportCorruption) {
+bool HashManager::HashStore::loadTree(const void* src, size_t len, const TTHValue& aRoot, TigerTree& aTree, bool aReportCorruption) {
 	if (len < sizeof(uint8_t) +sizeof(int64_t) +sizeof(int64_t))
 		return false;
 
@@ -380,7 +380,7 @@ bool HashManager::HashStore::loadTree(const void* src, size_t len, const TTHValu
 		memcpy(&buf[0], p, datalen);
 		aTree = TigerTree(fileSize, blockSize, &buf[0]);
 		if (aTree.getRoot() != aRoot) {
-			if (reportCorruption) {
+			if (aReportCorruption) {
 				LogManager::getInstance()->message(STRING_F(TREE_LOAD_FAILED_DB, aRoot.toBase32() % STRING(INVALID_TREE) % "/verifydb"), LogMessage::SEV_ERROR);
 			}
 			return false;
@@ -445,7 +445,7 @@ uint32_t HashManager::HashStore::getFileInfoSize(const HashedFile& /*aTree*/) {
 	return sizeof(uint8_t) + sizeof(uint64_t) + sizeof(TTHValue) + sizeof(int64_t);
 }
 
-void HashManager::HashStore::loadLegacyTree(File& f, int64_t aSize, int64_t aIndex, int64_t aBlockSize, size_t datLen, const TTHValue& root, TigerTree& tt) throw(HashException) {
+void HashManager::HashStore::loadLegacyTree(File& f, int64_t aSize, int64_t aIndex, int64_t aBlockSize, size_t datLen, const TTHValue& root, TigerTree& tt) {
 	try {
 		f.setPos(aIndex);
 		boost::scoped_array<uint8_t> buf(new uint8_t[datLen]);
@@ -483,26 +483,25 @@ int64_t HashManager::HashStore::getRootInfo(const TTHValue& root, InfoType aType
 	return ret;
 }
 
-bool HashManager::HashStore::checkTTH(const string& aFileLower, HashedFile& fi) {
-	auto initialTime = fi.getTimeStamp();
-	auto initialSize = fi.getSize();
+bool HashManager::HashStore::checkTTH(const string& aFileLower, HashedFile& fi_) noexcept {
+	auto initialTime = fi_.getTimeStamp();
+	auto initialSize = fi_.getSize();
 
-	if (getFileInfo(aFileLower, fi)) {
-		if (fi.getTimeStamp() == initialTime && fi.getSize() == initialSize) {
+	if (getFileInfo(aFileLower, fi_)) {
+		if (fi_.getTimeStamp() == initialTime && fi_.getSize() == initialSize) {
 			return true;
-			//return hasTree(outTTH_);
 		}
 	}
 
 	return false;
 }
 
-bool HashManager::HashStore::getFileInfo(const string& aFileLower, HashedFile& fi_) {
+bool HashManager::HashStore::getFileInfo(const string& aFileLower, HashedFile& fi_) noexcept {
 	try {
 		return fileDb->get((void*)aFileLower.c_str(), aFileLower.length(), sizeof(HashedFile), [&](void* aValue, size_t valueLen) {
 			return loadFileInfo(aValue, valueLen, fi_);
 		});
-	} catch(DbException& e) {
+	} catch(const DbException& e) {
 		LogManager::getInstance()->message(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
 	}
 
@@ -689,7 +688,7 @@ void HashManager::HashStore::getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSiz
 	hashDbSize_ = hashDb->getSizeOnDisk();
 }
 
-void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF) throw(DbException) {
+void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF) {
 	auto hashDataPath = Util::getPath(Util::PATH_USER_CONFIG) + "HashData" + PATH_SEPARATOR;
 	auto fileIndexPath = Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex" + PATH_SEPARATOR;
 
@@ -702,18 +701,22 @@ void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF
 	uint32_t cacheSize = static_cast<uint32_t>(Util::convertSize(max(SETTING(DB_CACHE_SIZE), 1), Util::MB));
 	auto blockSize = File::getBlockSize(Util::getPath(Util::PATH_USER_CONFIG));
 
-	// Use the file system block size in here. Using a block size smaller than that reduces the performance significantly especially when writing a lot of data (e.g. when migrating the data)
-	// The default cache size of 8 MB is able to hold approximately 256-512 trees with the block size of 16KB which should be enough for most common transfers (should the size be increased with larger block size?)
-	// The number of open files doesn't matter here since the tree lookups are very much random (20 is the minimum allowed by LevelDB). The data won't compress so no need to even try it.
-	hashDb.reset(new LevelDB(hashDataPath, STRING(HASH_DATA), cacheSize, 20, false, max(static_cast<int64_t>(16*1024), blockSize)));
+	try {
+		// Use the file system block size in here. Using a block size smaller than that reduces the performance significantly especially when writing a lot of data (e.g. when migrating the data)
+		// The default cache size of 8 MB is able to hold approximately 256-512 trees with the block size of 16KB which should be enough for most common transfers (should the size be increased with larger block size?)
+		// The number of open files doesn't matter here since the tree lookups are very much random (20 is the minimum allowed by LevelDB). The data won't compress so no need to even try it.
+		hashDb.reset(new LevelDB(hashDataPath, STRING(HASH_DATA), cacheSize, 20, false, max(static_cast<int64_t>(16 * 1024), blockSize)));
 
-	// Use a large block size and allow more open files because the reads are nearly sequential in here (but done with multiple threads). 
-	// The default database sorting isn't perfect when having files and folders mixed within the same directory but that shouldn't be a big issue (avoid using custom comparison function for now...)
-	fileDb.reset(new LevelDB(fileIndexPath, STRING(FILE_INDEX), cacheSize, 50, true, 64*1024));
+		// Use a large block size and allow more open files because the reads are nearly sequential in here (but done with multiple threads). 
+		// The default database sorting isn't perfect when having files and folders mixed within the same directory but that shouldn't be a big issue (avoid using custom comparison function for now...)
+		fileDb.reset(new LevelDB(fileIndexPath, STRING(FILE_INDEX), cacheSize, 50, true, 64 * 1024));
 
 
-	hashDb->open(stepF, messageF);
-	fileDb->open(stepF, messageF);
+		hashDb->open(stepF, messageF);
+		fileDb->open(stepF, messageF);
+	} catch (const DbException& e) {
+		throw HashException(e.getError());
+	}
 }
 
 class HashLoader: public SimpleXMLReader::CallBack {
@@ -761,7 +764,7 @@ private:
 	unordered_map<TTHValue, int64_t> sizeMap;
 };
 
-void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) throw(HashException) {
+void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) {
 	auto dataFile = Util::getPath(Util::PATH_USER_CONFIG) + "HashData.dat";
 	auto indexFile = Util::getPath(Util::PATH_USER_CONFIG) + "HashIndex.xml";
 
@@ -791,15 +794,10 @@ void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF
 	}
 
 
-	//open the new database
-	try {
-		openDb(stepF, messageF);
-	} catch (...) {
-		throw HashException();
-	}
+	// Open the new database
+	openDb(stepF, messageF);
 
-
-	//migrate the old database file
+	// Migrate the old database file
 	if (migrating) {
 		stepF(STRING(UPGRADING_HASHDATA));
 		try {
@@ -914,7 +912,7 @@ void HashLoader::endTag(const string& name) {
 HashManager::HashStore::HashStore() {
 }
 
-void HashManager::HashStore::closeDb() {
+void HashManager::HashStore::closeDb() noexcept {
 	hashDb.reset(nullptr);
 	fileDb.reset(nullptr);
 }
@@ -1017,7 +1015,7 @@ int HashManager::Optimizer::run() {
 	return 0;
 }
 
-void HashManager::startup(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) throw(HashException) {
+void HashManager::startup(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) {
 	hashers.push_back(new Hasher(false, 0));
 	store.load(stepF, progressF, messageF); 
 }

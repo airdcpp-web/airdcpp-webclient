@@ -73,7 +73,7 @@ namespace webserver {
 				username = token.substr(0, i);
 				password = token.substr(i + 1);
 
-				return authenticateSession(username, password, Session::TYPE_BASIC_AUTH, 60, aIP);
+				return authenticateSession(username, password, Session::TYPE_BASIC_AUTH, 60, aIP, token);
 			} else {
 				throw std::domain_error("Invalid authorization token (session expired?)");
 			}
@@ -83,6 +83,11 @@ namespace webserver {
 	}
 
 	SessionPtr WebUserManager::authenticateSession(const string& aUserName, const string& aPassword, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP) {
+		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+		return authenticateSession(aUserName, aPassword, aType, aMaxInactivityMinutes, aIP, uuid);
+	}
+
+	SessionPtr WebUserManager::authenticateSession(const string& aUserName, const string& aPassword, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP, const string& aSessionToken) {
 		if (!authFloodCounter.checkFlood(aIP)) {
 			server->log("Multiple failed login attempts detected from IP " + aIP, LogMessage::SEV_WARNING);
 			throw std::domain_error("Too many failed login attempts detected (wait for a while before retrying)");
@@ -94,11 +99,12 @@ namespace webserver {
 			throw std::domain_error("Invalid username or password");
 		}
 
-		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
-		return createSession(user, uuid, aType, aMaxInactivityMinutes, aIP);
+		return createSession(user, aSessionToken, aType, aMaxInactivityMinutes, aIP);
 	}
 
 	SessionPtr WebUserManager::createSession(const WebUserPtr& aUser, const string& aSessionToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP) noexcept {
+		dcassert(aType != Session::TYPE_BASIC_AUTH || aSessionToken.find(":") != string::npos);
+
 		auto session = std::make_shared<Session>(aUser, aSessionToken, aType, server, aMaxInactivityMinutes, aIP);
 
 		aUser->setLastLogin(GET_TIME());
@@ -107,6 +113,12 @@ namespace webserver {
 
 		{
 			WLock l(cs);
+
+			// Single session per user when using basic auth
+			dcassert(aType != Session::TYPE_BASIC_AUTH || boost::find_if(sessionsRemoteId | map_values, [&](const SessionPtr& aSession) {
+				return aSession->getSessionType() == Session::TYPE_BASIC_AUTH && aSession->getUser() == aUser;
+			}).base() == sessionsRemoteId.end());
+
 			sessionsRemoteId.emplace(session->getAuthToken(), session);
 			sessionsLocalId.emplace(session->getId(), session);
 		}

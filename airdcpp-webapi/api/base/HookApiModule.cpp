@@ -18,6 +18,7 @@
 
 #include <web-server/stdinc.h>
 #include <web-server/JsonUtil.h>
+#include <web-server/Session.h>
 
 #include <api/base/HookApiModule.h>
 
@@ -210,14 +211,15 @@ namespace webserver {
 			pendingHookActions.erase(id);
 		}
 
+		if (!completionData) {
+			session->reportError("Action " + aSubscription + " timed out for subscriber " + session->getUser()->getUserName() + "\n");
+			dcdebug("Action %s (id %d) timed out\n", aSubscription.c_str(), id);
 #ifdef _DEBUG
-		if (completionData) {
+		} else {
 			std::chrono::duration<double> ellapsed = std::chrono::system_clock::now() - start;
 			dcdebug("Action %s (id %d) completed in %f s\n", aSubscription.c_str(), id, ellapsed.count());
-		} else {
-			dcdebug("Action %s (id %d) timed out\n", aSubscription.c_str(), id);
-		}
 #endif
+		}
 
 		return completionData;
 	}

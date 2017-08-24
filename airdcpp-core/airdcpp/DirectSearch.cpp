@@ -84,12 +84,12 @@ namespace dcpp {
 		return false;
 	}
 
-	void DirectSearch::getPaths(OrderedStringSet& paths_, bool aParents) const noexcept {
+	void DirectSearch::getAdcPaths(OrderedStringSet& paths_, bool aParents) const noexcept {
 		for (const auto& sr : results) {
-			auto path = sr->getPath();
+			auto path = sr->getAdcPath();
 			if (aParents && !sr->getUser().user->isSet(User::ASCH)) {
 				//convert the regular search results
-				path = sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getNmdcParentDir(sr->getPath()) : sr->getFilePath();
+				path = sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getAdcParentDir(sr->getAdcPath()) : sr->getAdcFilePath();
 			}
 
 			paths_.insert(path);

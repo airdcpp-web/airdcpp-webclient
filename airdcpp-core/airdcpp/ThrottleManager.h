@@ -23,7 +23,9 @@
 #include "SettingsManager.h"
 #include "TimerManagerListener.h"
 
-#include <boost/thread/condition_variable.hpp>
+#include <condition_variable>
+#include <mutex>
+
 
 namespace dcpp
 {
@@ -66,13 +68,13 @@ namespace dcpp
 		
 		// download limiter
 		size_t						downTokens = 0;
-		boost::condition_variable	downCond;
-		boost::mutex				downMutex;
+		condition_variable	downCond;
+		mutex				downMutex;
 		
 		// upload limiter
 		size_t						upTokens = 0;
-		boost::condition_variable	upCond;
-		boost::mutex				upMutex;
+		condition_variable	upCond;
+		mutex				upMutex;
 			
 		friend class Singleton<ThrottleManager>;
 		

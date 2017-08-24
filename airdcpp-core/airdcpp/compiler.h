@@ -41,8 +41,8 @@
 #endif // _WIN32
 
 #elif defined(_MSC_VER)
-#if _MSC_FULL_VER < 190023918
-#error Visual Studio 2015 Update 2 is required
+#if _MSC_FULL_VER < 191125506
+#error Visual Studio 2017.3 or newer is required
 #endif
 
 //disable the deprecated warnings for the CRT functions.

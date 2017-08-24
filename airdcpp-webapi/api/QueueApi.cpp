@@ -166,7 +166,7 @@ namespace webserver {
 
 		auto path = JsonUtil::getOptionalField<string>("path", reqJson);
 		if (path) {
-			ret = QueueManager::getInstance()->getNmdcDirPaths(Util::toNmdcFile(*path));
+			ret = QueueManager::getInstance()->getAdcDirectoryPaths(*path);
 		} else {
 			auto tth = Deserializer::deserializeTTH(reqJson);
 			ret = QueueManager::getInstance()->getTargets(tth);

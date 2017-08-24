@@ -30,8 +30,9 @@ typedef function<void(float)> ProgressF;
 typedef function<void()> Callback;
 typedef function<bool(const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> MessageF;
 
-// This should throw on fatal errors only (such as hash database initialization errors)
-extern void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progressF, Callback moduleInitF = nullptr, Callback moduleLoadF = nullptr) throw(Exception);
+// This will throw Exception on fatal errors (such as hash database initialization errors)
+extern void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progressF, Callback moduleInitF = nullptr, Callback moduleLoadF = nullptr);
+
 extern void shutdown(StepF stepF, ProgressF progressF, Callback moduleDestroyF = nullptr);
 
 } // namespace dcpp

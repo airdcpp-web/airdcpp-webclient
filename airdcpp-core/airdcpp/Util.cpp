@@ -269,6 +269,8 @@ void Util::initialize(const string& aConfigPath) {
 	};
 
 #ifdef _WIN32
+	File::ensureDirectory(getTempPath());
+
 	_set_invalid_parameter_handler(reinterpret_cast<_invalid_parameter_handler>(invalidParameterHandler));
 
 	paths[PATH_GLOBAL_CONFIG] = exeDirectoryPath;
@@ -294,7 +296,7 @@ void Util::initialize(const string& aConfigPath) {
 
 	if (!localMode) {
 		const char* home_ = getenv("HOME");
-		string home = home_ ? Text::toUtf8(home_) : "/tmp/";
+		string home = home_ ? home_ : "/tmp/";
 
 		if (paths[PATH_USER_CONFIG].empty()) {
 			paths[PATH_USER_CONFIG] = home + "/.airdc++/";
@@ -391,7 +393,7 @@ bool Util::loadBootConfig(const string& aDirectoryPath) noexcept {
 			params["PERSONAL"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, tmpPath), tmpPath));
 #else
 			const char* home_ = getenv("HOME");
-			params["HOME"] = home_ ? Text::toUtf8(home_) : "/tmp/";
+			params["HOME"] = home_ ? home_ : "/tmp/";
 #endif
 
 			paths[PATH_USER_CONFIG] = Util::formatParams(boot.getChildData(), params);
@@ -405,20 +407,15 @@ bool Util::loadBootConfig(const string& aDirectoryPath) noexcept {
 	return false;
 }
 
-#ifdef _WIN32
-static const char badChars[] = { 
-	1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-		17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-		31, '<', '>', '/', '"', '|', '?', '*', 0
-};
-#else
-
 static const char badChars[] = { 
 	1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
 	17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-	31, '<', '>', '\\', '"', '|', '?', '*', 0
-};
+	31, 
+#ifdef _WIN32
+	'<', '>', '"', '|', '?', '*', '/',
 #endif
+	0
+};
 
 /**
  * Replaces all strange characters in a file with '_'
@@ -433,6 +430,7 @@ string Util::cleanPathChars(string tmp, bool isFileName) noexcept {
 		i++;
 	}
 
+#ifdef _WIN32
 	// Then, eliminate all ':' that are not the second letter ("c:\...")
 	i = 0;
 	while( (i = tmp.find(':', i)) != string::npos) {
@@ -443,6 +441,7 @@ string Util::cleanPathChars(string tmp, bool isFileName) noexcept {
 		tmp[i] = '_';	
 		i++;
 	}
+#endif
 
 	// Remove the .\ that doesn't serve any purpose
 	i = 0;
@@ -1245,8 +1244,8 @@ string Util::formatTime(const string &msg, const time_t t) noexcept {
 		if(!loc) {
 			return Util::emptyString;
 		}
-
-#ifndef _WIN64
+#ifdef _WIN32
+	#ifndef _WIN64
 		// Work it around :P
 		string::size_type i = 0;
 		while((i = ret.find("%", i)) != string::npos) {
@@ -1255,8 +1254,8 @@ string Util::formatTime(const string &msg, const time_t t) noexcept {
 			}
 			i += 2;
 		}
+	#endif
 #endif
-
 		size_t bufsize = ret.size() + 256;
 		string buf(bufsize, 0);
 
@@ -1529,7 +1528,7 @@ string Util::translateError(int aError) noexcept {
 	}
 	return tmp;
 #else // _WIN32
-	return Text::toUtf8(strerror(aError));
+	return strerror(aError);
 #endif // _WIN32
 }
 

@@ -47,7 +47,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case PROP_TYPE: {
 			if (!aResult->isDirectory()) {
-				return Serializer::serializeFileType(aResult->getPath());
+				return Serializer::serializeFileType(aResult->getAdcPath());
 			}
 
 			return Serializer::serializeFolderType(aResult->getContentInfo());
@@ -65,7 +65,7 @@ namespace webserver {
 		case PROP_DUPE:
 		{
 			if (aResult->isDirectory()) {
-				return Serializer::serializeDirectoryDupe(aResult->getDupe(), aResult->getPath());
+				return Serializer::serializeDirectoryDupe(aResult->getDupe(), aResult->getAdcPath());
 			}
 
 			return Serializer::serializeFileDupe(aResult->getDupe(), aResult->getTTH());
@@ -93,7 +93,7 @@ namespace webserver {
 				return Util::directoryContentSort(a->getContentInfo(), b->getContentInfo());
 			}
 
-			return Util::DefaultSort(Util::getFileExt(a->getPath()), Util::getFileExt(b->getPath()));
+			return Util::DefaultSort(Util::getFileExt(a->getAdcPath()), Util::getFileExt(b->getAdcPath()));
 		}
 		case PROP_SLOTS: {
 			auto slotsA = a->getSlots();
@@ -118,14 +118,14 @@ namespace webserver {
 	std::string SearchUtils::getStringInfo(const GroupedSearchResultPtr& aResult, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 		case PROP_NAME: return aResult->getFileName();
-		case PROP_PATH: return Util::toAdcFile(aResult->getPath());
+		case PROP_PATH: return aResult->getAdcPath();
 		case PROP_USERS: return Format::formatNicks(aResult->getBaseUser());
 		case PROP_TYPE: {
 			if (aResult->isDirectory()) {
 				return Util::formatDirectoryContent(aResult->getContentInfo());
 			}
 
-			return Util::formatFileType(aResult->getPath());
+			return Util::formatFileType(aResult->getAdcPath());
 		}
 		case PROP_SLOTS: {
 			auto slots = aResult->getSlots();

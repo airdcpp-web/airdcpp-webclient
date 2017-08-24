@@ -66,7 +66,7 @@ namespace webserver {
 		{ "http_proxy", SettingsManager::HTTP_PROXY, ResourceManager::SETTINGS_HTTP_PROXY },
 		{ "outgoing_mode", SettingsManager::OUTGOING_CONNECTIONS, ResourceManager::SETTINGS_OUTGOING },
 		{ "socks_server", SettingsManager::SOCKS_SERVER, ResourceManager::SETTINGS_SOCKS5_IP },
-		{ "socks_user", SettingsManager::SOCKS_USER, ResourceManager::SETTINGS_SOCKS5_RESOLVE },
+		{ "socks_user", SettingsManager::SOCKS_USER, ResourceManager::SETTINGS_SOCKS5_USERNAME },
 		{ "socks_password", SettingsManager::SOCKS_PASSWORD, ResourceManager::PASSWORD },
 		{ "socks_port", SettingsManager::SOCKS_PORT, ResourceManager::PORT },
 		{ "socks_resolve", SettingsManager::SOCKS_RESOLVE, ResourceManager::SETTINGS_SOCKS5_RESOLVE },

@@ -80,6 +80,9 @@ namespace webserver {
 		void removeSession(const SessionPtr& aSession, bool aTimedOut) noexcept;
 		TimerPtr expirationTimer;
 
+		// Throws on errors
+		SessionPtr authenticateSession(const string& aUserName, const string& aPassword, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP, const string& aSessionToken);
+
 		SessionPtr createSession(const WebUserPtr& aUser, const string& aSessionToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP) noexcept;
 
 		void on(WebServerManagerListener::Started) noexcept override;

@@ -58,7 +58,7 @@ public:
 	SocketException(const string& aError) noexcept : Exception(aError) { }
 #endif // _DEBUG
 	SocketException(int aError) noexcept;
-	virtual ~SocketException() throw() { }
+	virtual ~SocketException() noexcept { }
 private:
 	static string errorToString(int aError) noexcept;
 };

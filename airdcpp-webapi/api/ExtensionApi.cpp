@@ -51,7 +51,6 @@ namespace webserver {
 
 		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (), ExtensionApi::handlePostExtension);
 		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (EXACT_PARAM("download")), ExtensionApi::handleDownloadExtension);
-		METHOD_HANDLER(Access::ADMIN, METHOD_DELETE, (EXTENSION_PARAM), ExtensionApi::handleRemoveExtension);
 
 		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET, (EXACT_PARAM("engines"), EXACT_PARAM("status")), ExtensionApi::handleGetEngineStatuses);
 		// TODO
@@ -100,7 +99,7 @@ namespace webserver {
 		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return ExtensionApi::handleRemoveExtension(ApiRequest& aRequest) {
+	api_return ExtensionApi::handleDeleteSubmodule(ApiRequest& aRequest) {
 		auto extensionInfo = getSubModule(aRequest);
 
 		try {

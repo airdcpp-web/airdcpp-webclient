@@ -67,7 +67,7 @@ namespace webserver {
 		static string getDupeId(DupeType aDupeType) noexcept;
 		static json serializeDupe(DupeType aDupeType, StringList&& aPaths) noexcept;
 		static json serializeFileDupe(DupeType aDupeType, const TTHValue& aTTH) noexcept;
-		static json serializeDirectoryDupe(DupeType aDupeType, const string& aPath) noexcept;
+		static json serializeDirectoryDupe(DupeType aDupeType, const string& aAdcPath) noexcept;
 		static json serializeSlots(int aFree, int aTotal) noexcept;
 
 		static json serializeDirectoryDownload(const DirectoryDownloadPtr& aDownload) noexcept;
@@ -86,7 +86,7 @@ namespace webserver {
 		// Serialize n items from end by keeping the list order
 		// Throws for invalid parameters
 		template <class ContainerT, class FuncT>
-		static json serializeFromEnd(int aCount, const ContainerT& aList, FuncT aF) throw(std::exception) {
+		static json serializeFromEnd(int aCount, const ContainerT& aList, FuncT aF) {
 			if (aList.empty()) {
 				return json::array();
 			}
@@ -107,7 +107,7 @@ namespace webserver {
 		// Serialize n items from beginning by keeping the list order
 		// Throws for invalid parameters
 		template <class ContainerT, class FuncT>
-		static json serializeFromBegin(int aCount, const ContainerT& aList, FuncT aF) throw(std::exception) {
+		static json serializeFromBegin(int aCount, const ContainerT& aList, FuncT aF) {
 			if (aList.empty()) {
 				return json::array();
 			}
@@ -134,7 +134,7 @@ namespace webserver {
 		// Serialize n messages from position
 		// Throws for invalid parameters
 		template <class ContainerT, class FuncT>
-		static json serializeFromPosition(int aBeginPos, int aCount, const ContainerT& aList, FuncT aF) throw(std::exception) {
+		static json serializeFromPosition(int aBeginPos, int aCount, const ContainerT& aList, FuncT aF) {
 			auto listSize = static_cast<int>(std::distance(aList.begin(), aList.end()));
 			if (listSize == 0) {
 				return json::array();
@@ -156,7 +156,7 @@ namespace webserver {
 		// Serialize a list of items provider by the handler with a custom range
 		// Throws for invalid range parameters
 		template <class T, class ContainerT>
-		static json serializeItemList(int aStart, int aCount, const PropertyItemHandler<T>& aHandler, const ContainerT& aItems) throw(std::exception) {
+		static json serializeItemList(int aStart, int aCount, const PropertyItemHandler<T>& aHandler, const ContainerT& aItems) {
 			return Serializer::serializeFromPosition(aStart, aCount, aItems, [&aHandler](const T& aItem) {
 				return Serializer::serializeItem(aItem, aHandler);
 			});
@@ -164,7 +164,7 @@ namespace webserver {
 
 		// Serialize a list of items provider by the handler
 		template <class T, class ContainerT>
-		static json serializeItemList(const PropertyItemHandler<T>& aHandler, const ContainerT& aItems) throw(std::exception) {
+		static json serializeItemList(const PropertyItemHandler<T>& aHandler, const ContainerT& aItems) {
 			return Serializer::serializeRange(aItems.begin(), aItems.end(), [&aHandler](const T& aItem) {
 				return Serializer::serializeItem(aItem, aHandler);
 			});

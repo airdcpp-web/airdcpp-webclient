@@ -43,10 +43,11 @@ public:
 	static boost::regex subDirRegPlain;
 	static boost::regex crcReg;
 
-	static DupeType checkDirDupe(const string& aDir, int64_t aSize);
+	// Check directory dupe status by name or ADC path
+	static DupeType checkAdcDirectoryDupe(const string& aAdcPath, int64_t aSize);
 	static DupeType checkFileDupe(const TTHValue& aTTH);
 
-	static StringList getDirDupePaths(DupeType aType, const string& aPath);
+	static StringList getAdcDirectoryDupePaths(DupeType aType, const string& aAdcPath);
 	static StringList getFileDupePaths(DupeType aType, const TTHValue& aTTH);
 
 	static bool isShareDupe(DupeType aType) noexcept;
@@ -112,14 +113,12 @@ public:
 	// Returns true if aDir is a sub directory of aParent
 	// Note: matching is always case insensitive. This will also handle directory paths in aParent without the trailing slash to work with Windows limitations (share monitoring)
 	inline static bool isSubAdc(const string& aDir, const string& aParent) noexcept { return isSub(aDir, aParent, ADC_SEPARATOR);	}
-	inline static bool isSubNmdc(const string& aDir, const string& aParent) noexcept { return isSub(aDir, aParent, NMDC_SEPARATOR); }
 	inline static bool isSubLocal(const string& aDir, const string& aParent) noexcept { return isSub(aDir, aParent, PATH_SEPARATOR); }
 	static bool isSub(const string& aDir, const string& aParent, const char separator) noexcept;
 
 	// Returns true if aSub is a subdir of aDir OR both are the same directory
 	// Note: matching is always case insensitive. This will also handle directory paths in aSub without the trailing slash to work with Windows limitations (share monitoring)
 	inline static bool isParentOrExactAdc(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, ADC_SEPARATOR); }
-	inline static bool isParentOrExactNmdc(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, NMDC_SEPARATOR); }
 	inline static bool isParentOrExactLocal(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, PATH_SEPARATOR); }
 	static bool isParentOrExact(const string& aDir, const string& aSub, const char separator) noexcept;
 
@@ -128,7 +127,6 @@ public:
 	static const string getSubDirReg() noexcept;
 
 	inline static string getReleaseDirLocal(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, PATH_SEPARATOR); };
-	inline static string getNmdcReleaseDir(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, NMDC_SEPARATOR); };
 	inline static string getAdcReleaseDir(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, ADC_SEPARATOR); };
 	static string getReleaseDir(const string& dir, bool cut, const char separator) noexcept;
 
@@ -143,7 +141,13 @@ public:
 	static string regexEscape(const string& aStr, bool isWildcard) noexcept;
 
 	// Removes common dirs from the end of toSubtract
-	static string subtractCommonDirs(const string& toCompare, const string& toSubtract, char separator) noexcept;
+	static string subtractCommonAdcDirectories(const string& toCompare, const string& toSubtract) noexcept {
+		return subtractCommonDirs(toCompare, toSubtract, ADC_SEPARATOR);
+	}
+
+	static string subtractCommonDirectories(const string& toCompare, const string& toSubtract) noexcept {
+		return subtractCommonDirs(toCompare, toSubtract, PATH_SEPARATOR);
+	}
 
 	// Removes common path section from the beginning of toSubtract
 	// Path separators are ignored when comparing
@@ -151,21 +155,34 @@ public:
 
 	// Returns the position from the end of aSubPath from where the paths start to differ
 	// Path separators are ignored when comparing
-	static size_t compareFromEnd(const string& aMainPath, const string& aSubPath, char aSubSeparator) noexcept;
+	static size_t compareFromEndAdc(const string& aMainPath, const string& aSubAdcPath) noexcept {
+		return compareFromEnd(aMainPath, aSubAdcPath, ADC_SEPARATOR);
+	}
 
-	// Get the path for matching a file list (remote file must be in NMDC format)
+	// Get the path for matching a file list (remote file must be in ADC format)
 	// Returns the local path for NMDC and the remote path for ADC (or empty for NMDC results that have nothing in common)
-	static string getMatchPath(const string& aRemoteFile, const string& aLocalFile, const string& aBundlePath, bool aNmdc) noexcept;
+	static string getAdcMatchPath(const string& aRemoteFile, const string& aLocalFile, const string& aLocalBundlePath, bool aNmdc) noexcept;
 
 	// Remove common subdirectories (except the last one) from the end of aSubPath
 	// Non-subtractable length of aMainPath may also be specified
 	// Path separators are ignored when comparing
-	static string getLastCommonDirectoryPathFromSub(const string& aMainPath, const string& aSubPath, char aSubSeparator, size_t aMainBaseLength = 0) noexcept;
+	static string getLastCommonAdcDirectoryPathFromSub(const string& aMainPath, const string& aSubPath, size_t aMainBaseLength = 0) noexcept {
+		return getLastCommonDirectoryPathFromSub(aMainPath, aSubPath, ADC_SEPARATOR, aMainBaseLength);
+	}
 
 	/* Returns the name without subdirs and possible position from where the subdir starts */
-	static pair<string, string::size_type> getDirName(const string& aName, char separator) noexcept;
+	static pair<string, string::size_type> getAdcDirectoryName(const string& aName) noexcept {
+		return getDirName(aName, ADC_SEPARATOR);
+	}
+
 	static string getTitle(const string& searchTerm) noexcept;
 private:
+	static pair<string, string::size_type> getDirName(const string& aName, char separator) noexcept;
+	static string getLastCommonDirectoryPathFromSub(const string& aMainPath, const string& aSubPath, char aSubSeparator, size_t aMainBaseLength) noexcept;
+
+	static string subtractCommonDirs(const string& toCompare, const string& toSubtract, char separator) noexcept;
+	static size_t compareFromEnd(const string& aMainPath, const string& aSubPath, char aSubSeparator) noexcept;
+
 	static bool removeDirectoryIfEmptyRe(const string& tgt, int maxAttempts, int curAttempts);
 };
 

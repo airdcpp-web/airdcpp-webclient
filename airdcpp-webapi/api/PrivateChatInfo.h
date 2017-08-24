@@ -53,6 +53,7 @@ namespace webserver {
 		void init() noexcept override;
 		CID getId() const noexcept override;
 	private:
+		api_return handleUpdateSession(ApiRequest& aRequest);
 		api_return handleDisconnectCCPM(ApiRequest& aRequest);
 		api_return handleConnectCCPM(ApiRequest& aRequest);
 

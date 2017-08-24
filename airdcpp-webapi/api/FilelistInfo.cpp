@@ -34,8 +34,10 @@ namespace webserver {
 		dl(aFilelist),
 		directoryView("filelist_view", this, FilelistUtils::propertyHandler, std::bind(&FilelistInfo::getCurrentViewItems, this))
 	{
+		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_PATCH,	(),															FilelistInfo::handleUpdateList);
+
 		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_POST,	(EXACT_PARAM("directory")),									FilelistInfo::handleChangeDirectory);
-		METHOD_HANDLER(Access::VIEW_FILES_VIEW,	METHOD_POST,	(EXACT_PARAM("read")),										FilelistInfo::handleSetRead);
+		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_POST,	(EXACT_PARAM("read")),										FilelistInfo::handleSetRead);
 
 		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_GET,		(EXACT_PARAM("items"), RANGE_START_PARAM, RANGE_MAX_PARAM), FilelistInfo::handleGetItems);
 	}
@@ -45,7 +47,7 @@ namespace webserver {
 
 		if (dl->isLoaded()) {
 			addListTask([=] {
-				updateItems(dl->getCurrentLocationInfo().directory->getPath());
+				updateItems(dl->getCurrentLocationInfo().directory->getAdcPath());
 			});
 		}
 	}
@@ -62,6 +64,23 @@ namespace webserver {
 		dl->addAsyncTask(getAsyncWrapper(move(aTask)));
 	}
 
+	api_return FilelistInfo::handleUpdateList(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+		if (dl->getIsOwnList()) {
+			auto profile = Deserializer::deserializeOptionalShareProfile(reqJson);
+			if (profile) {
+				dl->addShareProfileChangeTask(*profile);
+			}
+		} else {
+			auto hubUrl = JsonUtil::getOptionalField<string>("hub_url", reqJson);
+			if (hubUrl) {
+				dl->addHubUrlChangeTask(*hubUrl);
+			}
+		}
+
+		return websocketpp::http::status_code::no_content;
+	}
+
 	api_return FilelistInfo::handleGetItems(ApiRequest& aRequest) {
 		int start = aRequest.getRangeParam(START_POS);
 		int count = aRequest.getRangeParam(MAX_COUNT);
@@ -75,7 +94,7 @@ namespace webserver {
 			}
 
 			aRequest.setResponseBody({
-				{ "list_path", curDir->getPath() },
+				{ "list_path", curDir->getAdcPath() },
 				{ "items", Serializer::serializeItemList(start, count, FilelistUtils::propertyHandler, currentViewItems) },
 			});
 		}
@@ -89,7 +108,7 @@ namespace webserver {
 		auto listPath = JsonUtil::getField<string>("list_path", j, false);
 		auto reload = JsonUtil::getOptionalFieldDefault<bool>("reload", j, false);
 
-		dl->addDirectoryChangeTask(Util::toNmdcFile(listPath), reload);
+		dl->addDirectoryChangeTask(listPath, reload);
 		return websocketpp::http::status_code::no_content;
 	}
 
@@ -180,7 +199,7 @@ namespace webserver {
 	}
 
 	void FilelistInfo::on(DirectoryListingListener::LoadingFinished, int64_t /*aStart*/, const string& aPath, bool /*aBackgroundTask*/) noexcept {
-		if (aPath == dl->getCurrentLocationInfo().directory->getPath()) {
+		if (aPath == dl->getCurrentLocationInfo().directory->getAdcPath()) {
 			updateItems(aPath);
 		}
 	}

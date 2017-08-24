@@ -224,7 +224,7 @@ void SharePathValidator::validate(FileFindIter& aIter, const string& aPath, bool
 	}
 }
 
-void SharePathValidator::validateRootPath(const string& aRealPath) const throw(ShareException) {
+void SharePathValidator::validateRootPath(const string& aRealPath) const {
 	if (aRealPath.empty()) {
 		throw ShareException(STRING(NO_DIRECTORY_SPECIFIED));
 	}

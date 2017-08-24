@@ -84,14 +84,19 @@ public:
 	int64_t GetSizeBase();
 
 	// Name of the destination directory (empty = 'ADLSearch') and its index
-	string destDir;
+	//string destDir;
 	unsigned long ddIndex;
 
 	bool isRegEx() const;
 	void setRegEx(bool b);
 	string getPattern();
 	void setPattern(const string& aPattern);
+
+	void setDestDir(const string& aDestDir) noexcept;
+	const string& getDestDir() const noexcept { return name; }
 private:
+	string name;
+
 	friend class ADLSearchManager;
 
 	StringMatch match;
@@ -141,7 +146,8 @@ public:
 	GETSET(HintedUser, user, User)
 
 	// @remarks Used to add ADLSearch directories to an existing DirectoryListing
-	void matchListing(DirectoryListing& /*aDirList*/) throw(AbortException);
+	// Throws AbortException
+	void matchListing(DirectoryListing& aList);
 	bool addCollection(ADLSearch& search, int index) noexcept;
 	bool removeCollection(int index) noexcept;
 	bool changeState(int index, bool enabled) noexcept;
@@ -152,7 +158,8 @@ private:
 	bool dirty;
 
 	// @internal
-	void matchRecurse(DestDirList& /*aDestList*/, const DirectoryListing::Directory::Ptr& /*aDir*/, string& /*aPath*/, DirectoryListing& /*aDirList*/) throw(AbortException);
+	// Throws AbortException
+	void matchRecurse(DestDirList& /*aDestList*/, const DirectoryListing::Directory::Ptr& /*aDir*/, string& /*aPath*/, DirectoryListing& /*aDirList*/);
 	// Search for file match
 	void MatchesFile(DestDirList& destDirVector, const DirectoryListing::File::Ptr& currentFile, string& fullPath) noexcept;
 	// Search for directory match

@@ -69,12 +69,12 @@ AirUtil::TimeCounter::~TimeCounter() {
 	LogManager::getInstance()->message(msg + ", took " + Util::toString(end - start) + " ms", LogMessage::SEV_INFO);
 }
 
-StringList AirUtil::getDirDupePaths(DupeType aType, const string& aPath) {
+StringList AirUtil::getAdcDirectoryDupePaths(DupeType aType, const string& aAdcPath) {
 	StringList ret;
 	if (isShareDupe(aType)) {
-		ret = ShareManager::getInstance()->getNmdcDirPaths(aPath);
+		ret = ShareManager::getInstance()->getAdcDirectoryPaths(aAdcPath);
 	} else {
-		ret = QueueManager::getInstance()->getNmdcDirPaths(aPath);
+		ret = QueueManager::getInstance()->getAdcDirectoryPaths(aAdcPath);
 	}
 
 	return ret;
@@ -103,13 +103,13 @@ bool AirUtil::isFinishedDupe(DupeType aType) noexcept {
 	return aType == DUPE_FINISHED_FULL || aType == DUPE_FINISHED_PARTIAL;
 }
 
-DupeType AirUtil::checkDirDupe(const string& aDir, int64_t aSize) {
-	auto dupe = ShareManager::getInstance()->isNmdcDirShared(aDir, aSize);
+DupeType AirUtil::checkAdcDirectoryDupe(const string& aAdcPath, int64_t aSize) {
+	auto dupe = ShareManager::getInstance()->isAdcDirectoryShared(aAdcPath, aSize);
 	if (dupe != DUPE_NONE) {
 		return dupe;
 	}
 
-	return QueueManager::getInstance()->isNmdcDirQueued(aDir, aSize);
+	return QueueManager::getInstance()->isAdcDirectoryQueued(aAdcPath, aSize);
 }
 
 string AirUtil::toOpenFileName(const string& aFileName, const TTHValue& aTTH) noexcept {
@@ -174,43 +174,42 @@ void AirUtil::init() {
 	dcassert(AirUtil::isSubLocal(R"(C:\Projects\test)", ""));
 	dcassert(!AirUtil::isSubLocal("", R"(C:\Projects\test)"));
 
-	dcassert(AirUtil::compareFromEnd(R"(/Downloads/1/)", R"(Downloads\1\)", '\\') == 0);
-	dcassert(AirUtil::compareFromEnd(R"(/Downloads/1/)", R"(Download\1\)", '\\') == 9);
+	dcassert(AirUtil::compareFromEndAdc(R"(Downloads\1\)", R"(/Downloads/1/)") == 0);
+	dcassert(AirUtil::compareFromEndAdc(R"(Downloads\1\)", R"(/Download/1/)") == 10);
 
-	dcassert(AirUtil::compareFromEnd(R"(E:\Downloads\Projects\CD1\)", R"(CD1\)", '\\') == 0);
-	dcassert(AirUtil::compareFromEnd(R"(E:\Downloads\1\)", R"(1\)", '\\') == 0);
-	dcassert(AirUtil::compareFromEnd(R"(/Downloads/Projects/CD1/)", R"(cd1\)", '\\') == 0);
-	dcassert(AirUtil::compareFromEnd(R"(/Downloads/1/)", R"(1\)", '\\') == 0);
+	dcassert(AirUtil::compareFromEndAdc(R"(E:\Downloads\Projects\CD1\)", R"(/CD1/)") == 0);
+	dcassert(AirUtil::compareFromEndAdc(R"(E:\Downloads\1\)", R"(/1/)") == 0);
+	dcassert(AirUtil::compareFromEndAdc(R"(/Downloads/Projects/CD1/)", R"(/cd1/)") == 0);
+	dcassert(AirUtil::compareFromEndAdc(R"(/Downloads/1/)", R"(/1/)") == 0);
 
 
 	// MATCH PATHS (NMDC)
-	auto tmp = AirUtil::getMatchPath(R"(SHARE\Random\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\)", true);
-	dcassert(AirUtil::getMatchPath(R"(SHARE\Random\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\)", true) == Util::emptyString);
-	dcassert(AirUtil::getMatchPath(R"(SHARE\Bundle\Bundle\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\)", true) == R"(E:\Downloads\Bundle\)");
+	dcassert(AirUtil::getAdcMatchPath(R"(/SHARE/Random/CommonSub/File1.zip)", R"(E:\Downloads\Bundle\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\)", true) == ADC_ROOT_STR);
+	dcassert(AirUtil::getAdcMatchPath(R"(/SHARE/Bundle/Bundle/CommonSub/File1.zip)", R"(E:\Downloads\Bundle\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\)", true) == R"(E:\Downloads\Bundle\)");
 
 	// MATCH PATHS (ADC)
 
 	// Different remote bundle path
-	dcassert(AirUtil::getMatchPath(R"(SHARE\Bundle\RandomRemoteDir\File1.zip)", R"(E:\Downloads\Bundle\RandomLocalDir\File1.zip)", R"(E:\Downloads\Bundle\)", false) == R"(SHARE\Bundle\RandomRemoteDir\)");
-	dcassert(AirUtil::getMatchPath(R"(SHARE\RandomRemoteBundle\File1.zip)", R"(E:\Downloads\Bundle\File1.zip)", R"(E:\Downloads\Bundle\)", false) == R"(SHARE\RandomRemoteBundle\)");
+	dcassert(AirUtil::getAdcMatchPath(R"(/SHARE/Bundle/RandomRemoteDir/File1.zip)", R"(E:\Downloads\Bundle\RandomLocalDir\File1.zip)", R"(E:\Downloads\Bundle\)", false) == R"(/SHARE/Bundle/RandomRemoteDir/)");
+	dcassert(AirUtil::getAdcMatchPath(R"(/SHARE/RandomRemoteBundle/File1.zip)", R"(E:\Downloads\Bundle\File1.zip)", R"(E:\Downloads\Bundle\)", false) == R"(/SHARE/RandomRemoteBundle/)");
 
 	// Common directory name for file parent
-	dcassert(AirUtil::getMatchPath(R"(SHARE\Bundle\RandomRemoteDir\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\RandomLocalDir\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\)", false) == R"(SHARE\Bundle\RandomRemoteDir\CommonSub\)");
+	dcassert(AirUtil::getAdcMatchPath(R"(/SHARE/Bundle/RandomRemoteDir/CommonSub/File1.zip)", R"(E:\Downloads\Bundle\RandomLocalDir\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\)", false) == R"(/SHARE/Bundle/RandomRemoteDir/CommonSub/)");
 
 	// Subpath is shorter than subdir in main
-	dcassert(AirUtil::getMatchPath(R"(CommonSub\File1.zip)", R"(E:\Downloads\Bundle\RandomLocalDir\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\)", false) == R"(CommonSub\)");
+	dcassert(AirUtil::getAdcMatchPath(R"(/CommonSub/File1.zip)", R"(E:\Downloads\Bundle\RandomLocalDir\CommonSub\File1.zip)", R"(E:\Downloads\Bundle\)", false) == R"(/CommonSub/)");
 
 	// Exact match
-	dcassert(AirUtil::getMatchPath(R"(CommonParent\Bundle\Common\File1.zip)", R"(E:\CommonParent\Bundle\Common\File1.zip)", R"(E:\CommonParent\Bundle\)", false) == R"(CommonParent\Bundle\)");
+	dcassert(AirUtil::getAdcMatchPath(R"(/CommonParent/Bundle/Common/File1.zip)", R"(E:\CommonParent\Bundle\Common\File1.zip)", R"(E:\CommonParent\Bundle\)", false) == R"(/CommonParent/Bundle/)");
 
 	// Short parent
-	dcassert(AirUtil::getMatchPath(R"(1\File1.zip)", R"(E:\Bundle\File1.zip)", R"(E:\Bundle\)", false) == R"(1\)");
+	dcassert(AirUtil::getAdcMatchPath(R"(/1/File1.zip)", R"(E:\Bundle\File1.zip)", R"(E:\Bundle\)", false) == R"(/1/)");
 
 	// Invalid path 1 (the result won't matter, just don't crash here)
-	dcassert(AirUtil::getMatchPath(R"(File1.zip)", R"(E:\Bundle\File1.zip)", R"(E:\Bundle\)", false) == R"(File1.zip)");
+	dcassert(AirUtil::getAdcMatchPath(R"(File1.zip)", R"(E:\Bundle\File1.zip)", R"(E:\Bundle\)", false) == R"(File1.zip)");
 
 	// Invalid path 2 (the result won't matter, just don't crash here)
-	dcassert(AirUtil::getMatchPath(R"(\File1.zip)", R"(E:\Bundle\File1.zip)", R"(E:\Bundle\)", false) == R"(\)");
+	dcassert(AirUtil::getAdcMatchPath(R"(/File1.zip)", R"(E:\Bundle\File1.zip)", R"(E:\Bundle\)", false) == R"(/)");
 #endif
 }
 
@@ -814,7 +813,7 @@ string AirUtil::getLastCommonDirectoryPathFromSub(const string& aMainPath, const
 
 	// Get the next directory
 	if (pos < aSubPath.length()) {
-		auto pos2 = aSubPath.find(aSubSeparator, pos);
+		auto pos2 = aSubPath.find(aSubSeparator, pos + 1);
 		if (pos2 != string::npos) {
 			pos = pos2 + 1;
 		}
@@ -857,20 +856,20 @@ size_t AirUtil::compareFromEnd(const string& aMainPath, const string& aSubPath, 
 }
 
 
-string AirUtil::getMatchPath(const string& aRemoteFile, const string& aLocalFile, const string& aBundlePath, bool aNmdc) noexcept {
+string AirUtil::getAdcMatchPath(const string& aRemoteFile, const string& aLocalFile, const string& aLocalBundlePath, bool aNmdc) noexcept {
 	if (aNmdc) {
 		// For simplicity, only perform the path comparison for ADC results
-		if (Text::toLower(aRemoteFile).find(Text::toLower(Util::getLastDir(aBundlePath))) != string::npos) {
-			return aBundlePath;
+		if (Text::toLower(aRemoteFile).find(Text::toLower(Util::getLastDir(aLocalBundlePath))) != string::npos) {
+			return aLocalBundlePath;
 		}
 
-		return Util::emptyString;
+		return ADC_ROOT_STR;
 	}
 
 	// Get last matching directory for matching recursive filelist from the user
-	auto remoteFileDir = Util::getNmdcFilePath(aRemoteFile);
+	auto remoteFileDir = Util::getAdcFilePath(aRemoteFile);
 	auto localBundleFileDir = Util::getFilePath(aLocalFile);
-	return AirUtil::getLastCommonDirectoryPathFromSub(localBundleFileDir, remoteFileDir, NMDC_SEPARATOR, aBundlePath.length());
+	return AirUtil::getLastCommonAdcDirectoryPathFromSub(localBundleFileDir, remoteFileDir, aLocalBundlePath.length());
 }
 
 pair<string, string::size_type> AirUtil::getDirName(const string& aPath, char aSeparator) noexcept {

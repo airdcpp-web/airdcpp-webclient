@@ -96,7 +96,7 @@ namespace webserver {
 
 	json ShareApi::serializeShareItem(const SearchResultPtr& aSR) noexcept {
 		auto isDirectory = aSR->getType() == SearchResult::TYPE_DIRECTORY;
-		auto path = Util::toAdcFile(aSR->getPath());
+		auto path = aSR->getAdcPath();
 
 		StringList realPaths;
 		try {
@@ -111,7 +111,7 @@ namespace webserver {
 			{ "virtual_path", path },
 			{ "real_paths", realPaths },
 			{ "time", aSR->getDate() },
-			{ "type", isDirectory ? Serializer::serializeFolderType(aSR->getContentInfo()) : Serializer::serializeFileType(aSR->getPath()) },
+			{ "type", isDirectory ? Serializer::serializeFolderType(aSR->getContentInfo()) : Serializer::serializeFileType(aSR->getAdcPath()) },
 			{ "size", aSR->getSize() },
 			{ "tth", isDirectory ? Util::emptyString : aSR->getTTH().toBase32() },
 		};
@@ -284,7 +284,7 @@ namespace webserver {
 
 		auto path = JsonUtil::getOptionalField<string>("path", reqJson);
 		if (path) {
-			ret = ShareManager::getInstance()->getNmdcDirPaths(Util::toNmdcFile(*path));
+			ret = ShareManager::getInstance()->getAdcDirectoryPaths(*path);
 		} else {
 			auto tth = Deserializer::deserializeTTH(reqJson);
 			ret = ShareManager::getInstance()->getRealPaths(tth);
