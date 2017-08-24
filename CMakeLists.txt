@@ -9,8 +9,8 @@ endif (APPLE)
 
 set (PROJECT_NAME "AirDC++ Web Client")
 set (TAG_APPLICATION "AirDC++w")
-set (VERSION "2.1.0")
-set (SOVERSION "2.1.0" )
+set (VERSION "2.2.0")
+set (SOVERSION "2.2.0" )
 
 set (GNUCXX_MINIMUM_VERSION "4.8")
 
