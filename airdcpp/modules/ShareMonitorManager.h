@@ -91,7 +91,7 @@ namespace dcpp {
 			const bool isDirectory;
 		};
 
-		optional<FileItem> ShareMonitorManager::checkModifiedPath(const string& aPath) noexcept;
+		optional<FileItem> checkModifiedPath(const string& aPath) noexcept;
 		void addModifyInfo(const string& aPath) noexcept;
 
 		// Recursively removes all notifications for the given path

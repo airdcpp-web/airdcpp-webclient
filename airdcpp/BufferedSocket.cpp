@@ -70,7 +70,7 @@ void BufferedSocket::setMode (Modes aMode, size_t aRollback) {
 			rollback = aRollback;
 			break;
 		case MODE_ZPIPE:
-			filterIn = std::unique_ptr<UnZFilter>(new UnZFilter);
+			filterIn = make_unique<UnZFilter>();
 			break;
 		case MODE_DATA:
 			break;

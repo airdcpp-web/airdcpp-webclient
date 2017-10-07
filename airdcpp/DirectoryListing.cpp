@@ -908,6 +908,7 @@ void DirectoryListing::close() noexcept {
 }
 
 void DirectoryListing::addSearchTask(const SearchPtr& aSearch) noexcept {
+	dcassert(Util::isAdcPath(aSearch->path));
 	addAsyncTask([=] { searchImpl(aSearch); });
 }
 

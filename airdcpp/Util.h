@@ -20,30 +20,9 @@
 #define DCPLUSPLUS_DCPP_UTIL_H
 
 #include "compiler.h"
+#include "constants.h"
 
-#define SP_HIDDEN 1
-
-#define ADC_SEPARATOR '/'
-#define ADC_SEPARATOR_STR "/"
-
-#define NMDC_SEPARATOR '\\'
-#define NMDC_SEPARATOR_STR "\\"
-
-#define ADC_ROOT ADC_SEPARATOR
-#define ADC_ROOT_STR ADC_SEPARATOR_STR
-
-// Empty char defines would cause issues with clang
-#define NMDC_ROOT_STR ""
-
-#ifdef _WIN32
-
-# define PATH_SEPARATOR '\\'
-# define PATH_SEPARATOR_STR "\\"
-
-#else
-
-# define PATH_SEPARATOR '/'
-# define PATH_SEPARATOR_STR "/"
+#ifndef _WIN32
 
 #include <sys/stat.h>
 #include <unistd.h>
@@ -277,6 +256,7 @@ public:
 	static map<string, string> decodeQuery(const string& query) noexcept;
 
 	static bool isAdcPath(const string& aPath) noexcept;
+	static bool isAdcRoot(const string& aPath) noexcept;
 
 	static inline string validatePath(const string& aPath, bool requireEndSeparator = false) noexcept {
 		auto path = cleanPathChars(aPath, false);

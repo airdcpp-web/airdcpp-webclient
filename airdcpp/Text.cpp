@@ -240,8 +240,7 @@ string toLower(const string& str) noexcept {
 }
 
 string toUtf8(const string& str, const string& fromCharset) noexcept {
-	if(str.empty() || fromCharset.empty()) {
-		// Assume that system encoding is UTF-8
+	if(str.empty()) {
 		return str;
 	}
 
@@ -252,13 +251,17 @@ string toUtf8(const string& str, const string& fromCharset) noexcept {
 
 	return acpToUtf8(str, fromCharset);
 #else
+	if (fromCharset.empty()) {
+		// Assume that system encoding is UTF-8
+		return str;
+	}
+
 	return convert(str, fromCharset, utf8);
 #endif
 }
 
 string fromUtf8(const string& str, const string& toCharset) noexcept {
-	if (str.empty() || toCharset.empty()) {
-		// Assume that system encoding is UTF-8
+	if (str.empty()) {
 		return str;
 	}
 
@@ -269,6 +272,11 @@ string fromUtf8(const string& str, const string& toCharset) noexcept {
 
 	return utf8ToAcp(str, toCharset);
 #else
+	if (toCharset.empty()) {
+		// Assume that system encoding is UTF-8
+		return str;
+	}
+
 	return convert(str, utf8, toCharset);
 #endif
 }

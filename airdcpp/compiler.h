@@ -21,14 +21,14 @@
 
 #if defined (__clang__)
 
-#if __clang_major__ < 3 || (__clang_major__ == 3 && __clang_minor__ < 3)
-#error Clang 3.3 is required
+#if __clang_major__ < 3 || (__clang_major__ == 3 && __clang_minor__ < 4)
+#error Clang 3.4 is required
 #endif
 
 #elif defined(__GNUC__)
 
-#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 8)
-#error GCC 4.8 is required
+#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 9)
+#error GCC 4.9 is required
 #endif
 
 #ifdef _WIN32

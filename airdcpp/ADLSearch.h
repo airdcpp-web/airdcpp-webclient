@@ -159,11 +159,11 @@ private:
 
 	// @internal
 	// Throws AbortException
-	void matchRecurse(DestDirList& /*aDestList*/, const DirectoryListing::Directory::Ptr& /*aDir*/, string& /*aPath*/, DirectoryListing& /*aDirList*/);
+	void matchRecurse(DestDirList& /*aDestList*/, const DirectoryListing::Directory::Ptr& /*aDir*/, const string& aAdcPath, DirectoryListing& /*aDirList*/);
 	// Search for file match
-	void MatchesFile(DestDirList& destDirVector, const DirectoryListing::File::Ptr& currentFile, string& fullPath) noexcept;
+	void MatchesFile(DestDirList& destDirVector, const DirectoryListing::File::Ptr& currentFile, const string& aAdcPath) noexcept;
 	// Search for directory match
-	void MatchesDirectory(DestDirList& destDirVector, const DirectoryListing::Directory::Ptr& currentDir, string& fullPath) noexcept;
+	void MatchesDirectory(DestDirList& destDirVector, const DirectoryListing::Directory::Ptr& currentDir, const string& aAdcPath) noexcept;
 	// Step up directory
 	void stepUpDirectory(DestDirList& destDirVector) noexcept;
 

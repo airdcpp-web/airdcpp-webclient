@@ -362,7 +362,7 @@ string UpdateManager::getVersionUrl() const {
 }
 
 void UpdateManager::init() {
-	updater = unique_ptr<Updater>(new Updater(this));
+	updater = make_unique<Updater>(this);
 
 	checkVersion(false);
 }
