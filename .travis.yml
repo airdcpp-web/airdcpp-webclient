@@ -25,7 +25,7 @@ matrix:
       env: COMPILER=g++-7
     - os: osx
       compiler: clang
-      osx_image: xcode8.3
+      osx_image: xcode9
       env: COMPILER=clang++
 before_install:
   # Linux
