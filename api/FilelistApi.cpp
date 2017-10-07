@@ -70,7 +70,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto user = Deserializer::deserializeHintedUser(reqJson);
-		auto directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/");
+		auto directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, ADC_ROOT_STR);
 
 		DirectoryListingPtr dl = nullptr;
 		try {
@@ -93,7 +93,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto user = Deserializer::deserializeHintedUser(reqJson);
-		auto directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/");
+		auto directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, ADC_ROOT_STR);
 
 		QueueItem::Flags flags = QueueItem::FLAG_MATCH_QUEUE;
 		if (directory != ADC_ROOT_STR) {
