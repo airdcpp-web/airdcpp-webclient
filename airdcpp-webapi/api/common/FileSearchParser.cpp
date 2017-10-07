@@ -95,7 +95,7 @@ namespace webserver {
 	}
 
 	void FileSearchParser::parseOptions(const json& aJson, const SearchPtr& aSearch) {
-		aSearch->path = JsonUtil::getOptionalFieldDefault<string>("path", aJson, "/");
+		aSearch->path = JsonUtil::getOptionalFieldDefault<string>("path", aJson, ADC_ROOT_STR);
 		aSearch->maxResults = JsonUtil::getOptionalFieldDefault<int>("max_results", aJson, 5);
 		aSearch->returnParents = JsonUtil::getOptionalFieldDefault<bool>("return_parents", aJson, false);
 		aSearch->requireReply = true;

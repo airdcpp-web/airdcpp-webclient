@@ -511,7 +511,7 @@ namespace webserver {
 	}
 
 	unique_ptr<File> Extension::initLog(const string& aPath) {
-		return unique_ptr<File>(new File(aPath, File::RW, File::CREATE | File::TRUNCATE));
+		return make_unique<File>(aPath, File::RW, File::CREATE | File::TRUNCATE);
 	}
 
 	void Extension::createProcess(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {

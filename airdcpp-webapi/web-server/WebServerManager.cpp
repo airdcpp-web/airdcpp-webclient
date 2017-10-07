@@ -68,8 +68,8 @@ namespace webserver {
 
 		fileServer.setResourcePath(Util::getPath(Util::PATH_RESOURCES) + "web-resources" + PATH_SEPARATOR);
 
-		extManager = unique_ptr<ExtensionManager>(new ExtensionManager(this));
-		userManager = unique_ptr<WebUserManager>(new WebUserManager(this));
+		extManager = make_unique<ExtensionManager>(this);
+		userManager = make_unique<WebUserManager>(this);
 
 		ios.stop(); //Prevent io service from running until we load
 	}
