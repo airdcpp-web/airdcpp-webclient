@@ -1225,6 +1225,10 @@ bool Util::isAdcPath(const string& aPath) noexcept {
 	return !aPath.empty() && aPath.front() == ADC_ROOT && aPath.back() == ADC_SEPARATOR;
 }
 
+bool Util::isAdcRoot(const string& aPath) noexcept {
+	return aPath.size() == 1 && aPath.front() == ADC_ROOT;
+}
+
 bool Util::fileExists(const string &aFile) noexcept {
 	if(aFile.empty())
 		return false;

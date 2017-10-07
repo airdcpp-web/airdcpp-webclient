@@ -328,7 +328,7 @@ bool ShareManager::RootDirectory::hasRootProfile(ProfileToken aProfile) const no
 }
 
 ShareManager::RootDirectory::RootDirectory(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, time_t aLastRefreshTime) noexcept :
-	path(aRootPath), cacheDirty(false), virtualName(unique_ptr<DualString>(new DualString(aVname))), 
+	path(aRootPath), cacheDirty(false), virtualName(make_unique<DualString>(aVname)), 
 	incoming(aIncoming), rootProfiles(aProfiles), lastRefreshTime(aLastRefreshTime) {
 
 }
@@ -1582,7 +1582,7 @@ struct ShareTask : public Task {
 };
 
 void ShareManager::addAsyncTask(AsyncF aF) noexcept {
-	tasks.add(ASYNC, unique_ptr<Task>(new AsyncTask(aF)));
+	tasks.add(ASYNC, make_unique<AsyncTask>(aF));
 	if (!refreshing.test_and_set()) {
 		start();
 	}
@@ -1665,7 +1665,7 @@ ShareManager::RefreshResult ShareManager::addRefreshTask(TaskType aTaskType, con
 	}
 
 	fire(ShareManagerListener::RefreshQueued(), aTaskType, paths);
-	tasks.add(aTaskType, unique_ptr<Task>(new ShareTask(paths, aDisplayName, aRefreshType)));
+	tasks.add(aTaskType, make_unique<ShareTask>(paths, aDisplayName, aRefreshType));
 
 	if(refreshing.test_and_set()) {
 		if (aRefreshType != TYPE_STARTUP_DELAYED) {

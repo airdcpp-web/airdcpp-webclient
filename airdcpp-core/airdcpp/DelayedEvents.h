@@ -90,7 +90,7 @@ public:
 			return;
 		}
 
-		eventList.emplace(aKey, unique_ptr<DelayTask>(new DelayTask(f, GET_TICK() + aDelayTicks)));
+		eventList.emplace(aKey, make_unique<DelayTask>(f, GET_TICK() + aDelayTicks));
 	}
 
 	void clear() {

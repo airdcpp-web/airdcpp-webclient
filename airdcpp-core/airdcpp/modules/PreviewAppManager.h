@@ -50,8 +50,8 @@ namespace dcpp {
 		private SettingsManagerListener
 	{
 	public:
-		PreviewAppManager::PreviewAppManager();
-		PreviewAppManager::~PreviewAppManager();
+		PreviewAppManager();
+		~PreviewAppManager();
 
 		PreviewApplication::List& getPreviewApps() noexcept { return previewApplications; }
 

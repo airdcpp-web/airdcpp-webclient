@@ -232,7 +232,7 @@ void Download::open(int64_t bytes, bool z, bool hasDownloadedBytes) {
 			fileFlags |= File::BUFFER_AUTO;
 		}
 
-		unique_ptr<SharedFileStream> f(new SharedFileStream(target, File::WRITE, fileFlags));
+		auto f = make_unique<SharedFileStream>(target, File::WRITE, fileFlags);
 
 		if(f->getSize() != fullSize) {
 			f->setSize(fullSize);
