@@ -19,12 +19,13 @@
 #ifndef DCPLUSPLUS_DCPP_UDP_SERVER_H
 #define DCPLUSPLUS_DCPP_UDP_SERVER_H
 
+#include "AdcCommand.h"
 #include "DispatcherQueue.h"
 #include "Socket.h"
 
 namespace dcpp {
 
-class UDPServer : public Thread {
+class UDPServer : public Thread, public CommandHandler<UDPServer> {
 public:
 	UDPServer();
 	virtual ~UDPServer();
@@ -32,7 +33,11 @@ public:
 	const string& getPort() const { return port; }
 	void disconnect();
 	void listen();
+
+
 private:
+	friend class CommandHandler<UDPServer>;
+
 	virtual int run();
 
 	std::unique_ptr<Socket> socket;
@@ -41,6 +46,20 @@ private:
 
 	DispatcherQueue pp;
 	void handlePacket(const ByteVector& aBuf, size_t aLen, const string& aRemoteIp);
+
+	// Search results
+	void handle(AdcCommand::RES, AdcCommand& c, const string& aRemoteIp) noexcept;
+
+	// Partial sharing
+	void handle(AdcCommand::PSR, AdcCommand& c, const string& aRemoteIp) noexcept;
+	void handle(AdcCommand::PBD, AdcCommand& c, const string& aRemoteIp) noexcept;
+
+	// Upload bundles
+	void handle(AdcCommand::UBD, AdcCommand& c, const string& aRemoteIp) noexcept;
+	void handle(AdcCommand::UBN, AdcCommand& c, const string& aRemoteIp) noexcept;
+
+	// Ignore any other ADC commands for now
+	template<typename T> void handle(T, AdcCommand&, const string&) { }
 };
 
 }
