@@ -127,76 +127,104 @@ void UDPServer::handlePacket(const ByteVector& aBuf, size_t aLen, const string& 
 
 	COMMAND_DEBUG(x, DebugManager::TYPE_CLIENT_UDP, DebugManager::INCOMING, aRemoteIp);
 
-	if(x.compare(0, 4, "$SR ") == 0) {
-		SearchManager::getInstance()->onSR(x, aRemoteIp);
-	} else if(x.compare(1, 4, "RES ") == 0 && x[x.length() - 1] == 0x0a) {
-		AdcCommand c(x.substr(0, x.length()-1));
-		if(c.getParameters().empty())
-			return;
-		string cid = c.getParam(0);
-		if(cid.size() != 39)
-			return;
-
-		UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
-		if(!user)
-			return;
-
-		// Remove the CID
-		// This should be handled by AdcCommand really...
-		c.getParameters().erase(c.getParameters().begin());
-
-		SearchManager::getInstance()->onRES(c, user, aRemoteIp);
-	} else if (x.compare(1, 4, "PSR ") == 0 && x[x.length() - 1] == 0x0a) {
-		AdcCommand c(x.substr(0, x.length()-1));
-		if(c.getParameters().empty())
-			return;
-		string cid = c.getParam(0);
-		if(cid.size() != 39)
-			return;
-
-		UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
-		// when user == NULL then it is probably NMDC user, check it later
-			
-		// Remove the CID
-		c.getParameters().erase(c.getParameters().begin());			
-			
-		SearchManager::getInstance()->onPSR(c, user, aRemoteIp);
-		
-	} else if (x.compare(1, 4, "PBD ") == 0 && x[x.length() - 1] == 0x0a) {
-		if (!SETTING(USE_PARTIAL_SHARING)) {
-			return;
-		}
-		//LogManager::getInstance()->message("GOT PBD UDP: " + x);
-		AdcCommand c(x.substr(0, x.length()-1));
-		if(c.getParameters().empty())
-			return;
-		string cid = c.getParam(0);
-		if(cid.size() != 39)
-			return;
-
-		UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
-			
-		// Remove the CID
-		c.getParameters().erase(c.getParameters().begin());			
-			
-		if (user)
-			SearchManager::getInstance()->onPBD(c, user);
-		
-	} else if ((x.compare(1, 4, "UBD ") == 0 || x.compare(1, 4, "UBN ") == 0) && x[x.length() - 1] == 0x0a) {
-		AdcCommand c(x.substr(0, x.length()-1));
-		if(c.getParameters().empty())
-			return;
-			
-		// No CID in UBD/UBN commands
-			
-		if (x.compare(1, 4, "UBN ") == 0) {
-			//LogManager::getInstance()->message("GOT UBN UDP: " + x);
-			UploadManager::getInstance()->onUBN(c);
+	if (x.compare(0, 1, "$") == 0) {
+		// NMDC commands
+		if (x.compare(1, 3, "SR ") == 0) {
+			SearchManager::getInstance()->onSR(x, aRemoteIp);
 		} else {
-			//LogManager::getInstance()->message("GOT UBD UDP: " + x);
-			UploadManager::getInstance()->onUBD(c);
+			dcdebug("Unknown NMDC command received via UDP: %s\n", x.c_str());
 		}
+		
+		return;
 	}
+
+	// ADC commands
+
+	// ADC commands must end with \n
+	if (x[x.length() - 1] != 0x0a) {
+		dcdebug("Invalid UDP data received: %s (no newline)\n", x.c_str());
+		return;
+	}
+
+	if (!Text::validateUtf8(x)) {
+		dcdebug("UTF-8 valition failed for received UDP data: %s\n", x.c_str());
+		return;
+	}
+
+	// Dispatch without newline
+	dispatch(x.substr(0, x.length() - 1), false, aRemoteIp);
+}
+
+void UDPServer::handle(AdcCommand::RES, AdcCommand& c, const string& aRemoteIp) noexcept {
+	if (c.getParameters().empty())
+		return;
+
+	string cid = c.getParam(0);
+	if (cid.size() != 39)
+		return;
+
+	UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
+	if (!user)
+		return;
+
+	// Remove the CID
+	// This should be handled by AdcCommand really...
+	c.getParameters().erase(c.getParameters().begin());
+
+	SearchManager::getInstance()->onRES(c, user, aRemoteIp);
+}
+
+void UDPServer::handle(AdcCommand::PSR, AdcCommand& c, const string& aRemoteIp) noexcept {
+	if (c.getParameters().empty())
+		return;
+
+	const auto cid = c.getParam(0);
+	if (cid.size() != 39)
+		return;
+
+	UserPtr user = ClientManager::getInstance()->findUser(CID(cid));
+	// when user == NULL then it is probably NMDC user, check it later
+
+	// Remove the CID
+	c.getParameters().erase(c.getParameters().begin());
+
+	SearchManager::getInstance()->onPSR(c, user, aRemoteIp);
+}
+
+void UDPServer::handle(AdcCommand::PBD, AdcCommand& c, const string&) noexcept {
+	if (!SETTING(USE_PARTIAL_SHARING)) {
+		return;
+	}
+
+	//LogManager::getInstance()->message("GOT PBD UDP: " + x);
+	if (c.getParameters().empty())
+		return;
+
+	const auto cid = c.getParam(0);
+	if (cid.size() != 39)
+		return;
+
+	const auto user = ClientManager::getInstance()->findUser(CID(cid));
+
+	// Remove the CID
+	c.getParameters().erase(c.getParameters().begin());
+
+	if (user)
+		SearchManager::getInstance()->onPBD(c, user);
+}
+
+void UDPServer::handle(AdcCommand::UBD, AdcCommand& c, const string&) noexcept {
+	if (c.getParameters().empty())
+		return;
+
+	UploadManager::getInstance()->onUBD(c);
+}
+
+void UDPServer::handle(AdcCommand::UBN, AdcCommand& c, const string&) noexcept {
+	if (c.getParameters().empty())
+		return;
+
+	UploadManager::getInstance()->onUBN(c);
 }
 
 }

@@ -23,9 +23,9 @@
 
 namespace dcpp {
 
-AdcCommand::AdcCommand(uint32_t aCmd, char aType /* = TYPE_CLIENT */) : cmdInt(aCmd), from(0), type(aType) { }
-AdcCommand::AdcCommand(uint32_t aCmd, const uint32_t aTarget, char aType) : cmdInt(aCmd), from(0), to(aTarget), type(aType) { }
-AdcCommand::AdcCommand(Severity sev, Error err, const string& desc, char aType /* = TYPE_CLIENT */) : cmdInt(CMD_STA), from(0), type(aType) {
+AdcCommand::AdcCommand(uint32_t aCmd, char aType /* = TYPE_CLIENT */) noexcept : cmdInt(aCmd), from(0), type(aType) { }
+AdcCommand::AdcCommand(uint32_t aCmd, const uint32_t aTarget, char aType) noexcept : cmdInt(aCmd), from(0), to(aTarget), type(aType) { }
+AdcCommand::AdcCommand(Severity sev, Error err, const string& desc, char aType /* = TYPE_CLIENT */) noexcept : cmdInt(CMD_STA), from(0), type(aType) {
 	addParam((sev == SEV_SUCCESS && err == SUCCESS) ? "000" : Util::toString(sev * 100 + err));
 	addParam(desc);
 }
@@ -159,19 +159,19 @@ void AdcCommand::parse(const string& aLine, bool nmdc /* = false */) {
 	}
 }
 
-string AdcCommand::toString(const CID& aCID) const {
+string AdcCommand::toString(const CID& aCID) const noexcept {
 	return getHeaderString(aCID) + getParamString(false);
 }
 
-string AdcCommand::toString() const {
+string AdcCommand::toString() const noexcept {
 	return getHeaderString() + getParamString(false);
 }
 
-string AdcCommand::toString(uint32_t sid /* = 0 */, bool nmdc /* = false */) const {
+string AdcCommand::toString(uint32_t sid /* = 0 */, bool nmdc /* = false */) const noexcept {
 	return getHeaderString(sid, nmdc) + getParamString(nmdc);
 }
 
-string AdcCommand::escape(const string& str, bool old) {
+string AdcCommand::escape(const string& str, bool old) noexcept {
 	string tmp = str;
 	string::size_type i = 0;
 	while( (i = tmp.find_first_of(" \n\\", i)) != string::npos) {
@@ -189,7 +189,7 @@ string AdcCommand::escape(const string& str, bool old) {
 	return tmp;
 }
 
-string AdcCommand::getHeaderString(uint32_t sid, bool nmdc) const {
+string AdcCommand::getHeaderString(uint32_t sid, bool nmdc) const noexcept {
 	string tmp;
 	if(nmdc) {
 		tmp += "$ADC";
@@ -216,7 +216,7 @@ string AdcCommand::getHeaderString(uint32_t sid, bool nmdc) const {
 	return tmp;
 }
 
-string AdcCommand::getHeaderString(const CID& cid) const {
+string AdcCommand::getHeaderString(const CID& cid) const noexcept {
 	dcassert(type == TYPE_UDP);
 	string tmp;
 	
@@ -227,7 +227,7 @@ string AdcCommand::getHeaderString(const CID& cid) const {
 	return tmp;
 }
 
-string AdcCommand::getHeaderString() const {
+string AdcCommand::getHeaderString() const noexcept {
 	dcassert(type == TYPE_UDP);
 	string tmp;
 	
@@ -236,11 +236,11 @@ string AdcCommand::getHeaderString() const {
 	return tmp;
 }
 
-const string& AdcCommand::getParam(size_t n) const {
+const string& AdcCommand::getParam(size_t n) const noexcept {
 	return getParameters().size() > n ? getParameters()[n] : Util::emptyString;
 }
 
-string AdcCommand::getParamString(bool nmdc) const {
+string AdcCommand::getParamString(bool nmdc) const noexcept {
 	string tmp;
 	for(const auto& i: getParameters()) {
 		tmp += ' ';
@@ -254,7 +254,7 @@ string AdcCommand::getParamString(bool nmdc) const {
 	return tmp;
 }
 
-bool AdcCommand::getParam(const char* name, size_t start, string& ret) const {
+bool AdcCommand::getParam(const char* name, size_t start, string& ret) const noexcept {
 	for(string::size_type i = start; i < getParameters().size(); ++i) {
 		if(toCode(name) == toCode(getParameters()[i].c_str())) {
 			ret = getParameters()[i].substr(2);
@@ -264,7 +264,7 @@ bool AdcCommand::getParam(const char* name, size_t start, string& ret) const {
 	return false;
 }
 
-bool AdcCommand::getParam(const char* name, size_t start, StringList& ret) const {
+bool AdcCommand::getParam(const char* name, size_t start, StringList& ret) const noexcept {
 	for(string::size_type i = start; i < getParameters().size(); ++i) {
 		if(toCode(name) == toCode(getParameters()[i].c_str())) {
 			ret.push_back(getParameters()[i].substr(2));
@@ -273,7 +273,7 @@ bool AdcCommand::getParam(const char* name, size_t start, StringList& ret) const
 	return !ret.empty();
 }
 
-bool AdcCommand::hasFlag(const char* name, size_t start) const {
+bool AdcCommand::hasFlag(const char* name, size_t start) const noexcept {
 	for(string::size_type i = start; i < getParameters().size(); ++i) {
 		if(toCode(name) == toCode(getParameters()[i].c_str()) && 
 			getParameters()[i].size() == 3 &&

@@ -69,7 +69,10 @@ namespace dcpp {
 	}
 
 	void ShareMonitorManager::on(ShareManagerListener::RootCreated, const string& aPath) noexcept {
-		addMonitoring({ aPath });
+		auto rootInfo = ShareManager::getInstance()->getRootInfo(aPath);
+		if (useMonitoring(rootInfo)) {
+			addMonitoring({ aPath });
+		}
 	}
 
 	void ShareMonitorManager::on(ShareManagerListener::RootRemoved, const string& aPath) noexcept {
