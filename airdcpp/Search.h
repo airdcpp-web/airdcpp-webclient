@@ -67,7 +67,7 @@ public:
 	string		query;
 	StringList	exts;
 	StringList	excluded;
-	const void*	owner;
+	const void*	owner = nullptr;
 	string		key;
 
 	bool		aschOnly = false;

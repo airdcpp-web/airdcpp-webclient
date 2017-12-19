@@ -85,6 +85,7 @@ void Transfer::getParams(const UserConnection& aSource, ParamMap& params) const 
 	params["userI4"] = [&] { return aSource.getRemoteIp(); };
 
 	params["hub"] = [&] { return ClientManager::getInstance()->getFormatedHubNames(aSource.getHintedUser()); };
+	params["hubNI"] = [&] { return ClientManager::getInstance()->getFormatedHubNames(aSource.getHintedUser()); };
 
 	params["hubURL"] = [&] { 
 		StringList hubs = ClientManager::getInstance()->getHubUrls(aSource.getUser()->getCID());

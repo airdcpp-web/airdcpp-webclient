@@ -56,7 +56,7 @@ private:
 
 	// need to save these to get the external IP...
 	long lastPort = 0;
-	Protocol lastProtocol;
+	Protocol lastProtocol = PROTOCOL_LAST;
 #endif
 };
 

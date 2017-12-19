@@ -993,7 +993,7 @@ void HashManager::startMaintenance(bool verify){
 	optimizer.startMaintenance(verify); 
 }
 
-HashManager::Optimizer::Optimizer() : running(false) {
+HashManager::Optimizer::Optimizer() {
 
 }
 

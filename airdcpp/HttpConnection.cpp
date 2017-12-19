@@ -31,14 +31,10 @@ namespace dcpp {
 
 static const std::string CORAL_SUFFIX = ".nyud.net";
 
-HttpConnection::HttpConnection(bool coralize, bool aIsUnique, bool aV4only /*false*/) :
+HttpConnection::HttpConnection(bool aCoralize, bool aIsUnique, bool aV4only /*false*/) :
 port("80"),
-size(-1),
-done(0),
-connState(CONN_UNKNOWN),
-coralizeState(coralize ? CST_DEFAULT : CST_NOCORALIZE),
+coralizeState(aCoralize ? CST_DEFAULT : CST_NOCORALIZE),
 isUnique(aIsUnique),
-socket(0),
 v4only(aV4only)
 {
 }
@@ -166,7 +162,7 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 	if(connState == CONN_CHUNKED && aLine.size() > 1) {
 		string::size_type i;
 		string chunkSizeStr;
-		if((i = aLine.find(";")) == string::npos) {
+		if((i = aLine.find(';')) == string::npos) {
 			chunkSizeStr = aLine.substr(0, aLine.length() - 1);
 		} else chunkSizeStr = aLine.substr(0, i);
 

@@ -70,7 +70,6 @@ struct DropInfo {
 void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	vector<DropInfo> dropTargets;
 	vector<pair<CID, AdcCommand>> UBNList;
-	StringList targets;
 	BundleList bundleTicks;
 	unordered_map<UserPtr, int64_t, User::Hash> userSpeedMap;
 

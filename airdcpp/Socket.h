@@ -240,7 +240,7 @@ public:
 	GETSET(string, ip6, Ip6);
 	GETSET(string, localIp4, LocalIp4);
 	GETSET(string, localIp6, LocalIp6);
-	GETSET(bool, v4only, V4only);
+	IGETSET(bool, v4only, V4only, false);
 
 	const string& getIp() const noexcept {
 		return sock6.valid() ? ip6 : ip4;

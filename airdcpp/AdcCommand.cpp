@@ -19,13 +19,14 @@
 #include "stdinc.h"
 #include "AdcCommand.h"
 
-#include "ClientManager.h"
+#include "CID.h"
+#include "Util.h"
 
 namespace dcpp {
 
-AdcCommand::AdcCommand(uint32_t aCmd, char aType /* = TYPE_CLIENT */) noexcept : cmdInt(aCmd), from(0), type(aType) { }
-AdcCommand::AdcCommand(uint32_t aCmd, const uint32_t aTarget, char aType) noexcept : cmdInt(aCmd), from(0), to(aTarget), type(aType) { }
-AdcCommand::AdcCommand(Severity sev, Error err, const string& desc, char aType /* = TYPE_CLIENT */) noexcept : cmdInt(CMD_STA), from(0), type(aType) {
+AdcCommand::AdcCommand(uint32_t aCmd, char aType /* = TYPE_CLIENT */) noexcept : cmdInt(aCmd), type(aType) { }
+AdcCommand::AdcCommand(uint32_t aCmd, const uint32_t aTarget, char aType) noexcept : cmdInt(aCmd), to(aTarget), type(aType) { }
+AdcCommand::AdcCommand(Severity sev, Error err, const string& desc, char aType /* = TYPE_CLIENT */) noexcept : cmdInt(CMD_STA), type(aType) {
 	addParam((sev == SEV_SUCCESS && err == SUCCESS) ? "000" : Util::toString(sev * 100 + err));
 	addParam(desc);
 }

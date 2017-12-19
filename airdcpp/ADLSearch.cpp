@@ -24,7 +24,6 @@
 #include "stdinc.h"
 #include "ADLSearch.h"
 
-#include "ClientManager.h"
 #include "File.h"
 #include "LogManager.h"
 #include "QueueManager.h"
