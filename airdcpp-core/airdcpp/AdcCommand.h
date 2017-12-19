@@ -184,8 +184,8 @@ private:
 		uint8_t cmd[4];
 		uint32_t cmdInt;
 	};
-	uint32_t from;
-	uint32_t to;
+	uint32_t from = 0;
+	uint32_t to = 0;
 	char type;
 
 };

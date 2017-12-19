@@ -147,7 +147,7 @@ void UDPServer::handlePacket(const ByteVector& aBuf, size_t aLen, const string& 
 	}
 
 	if (!Text::validateUtf8(x)) {
-		dcdebug("UTF-8 valition failed for received UDP data: %s\n", x.c_str());
+		dcdebug("UTF-8 validation failed for received UDP data: %s\n", x.c_str());
 		return;
 	}
 

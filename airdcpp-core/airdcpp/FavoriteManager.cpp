@@ -697,7 +697,7 @@ void FavoriteManager::loadFavoriteHubs(SimpleXML& aXml) {
 			}
 
 			// Remove failovers
-			auto p = server.find(";");
+			auto p = server.find(';');
 			if (p != string::npos) {
 				server = server.substr(0, p);
 			}

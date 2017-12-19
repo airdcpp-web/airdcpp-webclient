@@ -98,18 +98,18 @@ bool DirSFVReader::loadFile(const string& aContent) noexcept {
 		line = Text::toUtf8(rawLine);
 
 		// Make sure that the line is valid
-		if (!regex_search(line, AirUtil::crcReg) || line.find(";") != string::npos) {
+		if (!regex_search(line, AirUtil::crcReg) || line.find(';') != string::npos) {
 			continue;
 		}
 
 		//We cant handle sfv with files in subdirectories currently.
-		if (line.find("\\") != string::npos) {
+		if (line.find('\\') != string::npos) {
 			hasValidLines = true;
 			continue;
 		}
 
 		//only keep the filename
-		auto pos = line.rfind(" ");
+		auto pos = line.rfind(' ');
 		if (pos == string::npos) {
 			continue;
 		}

@@ -535,7 +535,7 @@ public:
 		snprintf(buf, sizeof(buf), "%%%X", val&0x0FF);
 		return buf;
 	}
-	static char fromHexEscape(const string aString) noexcept {
+	static char fromHexEscape(const string& aString) noexcept {
 		unsigned int res = 0;
 		sscanf(aString.c_str(), "%X", &res);
 		return static_cast<char>(res);

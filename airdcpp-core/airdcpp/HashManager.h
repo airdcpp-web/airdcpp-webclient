@@ -268,8 +268,8 @@ private:
 		void startMaintenance(bool verify);
 		bool isRunning() const noexcept { return running; }
 	private:
-		bool verify;
-		atomic<bool> running;
+		bool verify = true;
+		atomic<bool> running = { false };
 		virtual int run();
 	};
 

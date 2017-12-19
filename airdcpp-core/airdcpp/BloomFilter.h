@@ -47,8 +47,8 @@ public:
 		table.resize(s);
 	}
 
-	void merge(BloomFilter<N>& aBloom) {
-		for (unsigned int i = 0; i < table.size(); ++i) {
+	void merge(const BloomFilter<N>& aBloom) {
+		for (size_t i = 0; i < table.size(); ++i) {
 			if (aBloom.table[i] == true) {
 				table[i] = true;
 			}

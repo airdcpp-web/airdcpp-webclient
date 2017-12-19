@@ -94,10 +94,8 @@ public:
 	}
 
 	void clear() {
-		List tmp;
-
 		Lock l(cs);
-		eventList.swap(eventList);
+		eventList.clear();
 	}
 
 	bool removeEvent(const T& aKey) {

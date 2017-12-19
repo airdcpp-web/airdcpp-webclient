@@ -44,7 +44,7 @@ public:
 	int64_t getDone() const { return done; }
 
 private:
-	enum RequestType { TYPE_GET, TYPE_POST };
+	enum RequestType { TYPE_GET, TYPE_POST, TYPE_UNKNOWN };
 	enum ConnectionStates { CONN_UNKNOWN, CONN_OK, CONN_FAILED, CONN_MOVED, CONN_CHUNKED };
 	enum CoralizeStates { CST_DEFAULT, CST_CONNECTED, CST_NOCORALIZE };
 
@@ -58,14 +58,14 @@ private:
 	string requestBody;
 
 	string mimeType;
-	int64_t size;
-	int64_t done;
+	int64_t size = -1;
+	int64_t done = 0;
 
-	ConnectionStates connState;
+	ConnectionStates connState = CONN_UNKNOWN;
 	CoralizeStates coralizeState;
-	RequestType connType;
+	RequestType connType = TYPE_UNKNOWN;
 
-	BufferedSocket* socket;
+	BufferedSocket* socket = nullptr;
 
 	void prepareRequest(RequestType type);
 	void abortRequest(bool disconnect);
@@ -76,8 +76,8 @@ private:
 	void on(Data, uint8_t*, size_t) noexcept;
 	void on(ModeChange) noexcept;
 	void on(Failed, const string&) noexcept;
-	bool isUnique;
-	bool v4only;
+	const bool isUnique;
+	const bool v4only;
 };
 
 } // namespace dcpp

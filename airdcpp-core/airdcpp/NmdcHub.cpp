@@ -725,7 +725,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 				pk = param.substr(j + 4);
 			} else {
 				// Workaround for faulty linux hubs...
-				j = param.find(" ");
+				j = param.find(' ');
 				if(j != string::npos)
 					lock = param.substr(0, j);
 				else

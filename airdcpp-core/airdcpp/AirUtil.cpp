@@ -902,7 +902,7 @@ string AirUtil::getTitle(const string& searchTerm) noexcept {
 	auto ret = Text::toLower(searchTerm);
 
 	//Remove group name
-	size_t pos = ret.rfind("-");
+	size_t pos = ret.rfind('-');
 	if (pos != string::npos)
 		ret = ret.substr(0, pos);
 

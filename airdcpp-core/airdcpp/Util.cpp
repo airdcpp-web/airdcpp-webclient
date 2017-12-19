@@ -352,7 +352,6 @@ void Util::migrate(const string& aNewDir, const string& aPattern) noexcept {
 	}
 
 	// Don't migrate if there are files in the new directory already
-	auto fileListNew = File::findFiles(aNewDir, aPattern);
 	if (!File::findFiles(aNewDir, aPattern).empty()) {
 		return;
 	}
@@ -912,7 +911,7 @@ wstring Util::formatExactSizeW(int64_t aBytes) noexcept {
 #endif
 
 string Util::formatExactSize(int64_t aBytes) noexcept {
-#ifdef _WIN32
+#ifdef _WIN32	
 	TCHAR tbuf[128];
 	TCHAR number[64];
 	NUMBERFMT nf;
@@ -927,20 +926,20 @@ string Util::formatExactSize(int64_t aBytes) noexcept {
 	nf.NegativeOrder = 0;
 	nf.lpDecimalSep = sep;
 
-	GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_SGROUPING, Dummy, 16);
+	GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SGROUPING, Dummy, 16);
 	nf.Grouping = Util::toInt(Text::fromT(Dummy));
-	GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_STHOUSAND, Dummy, 16);
+	GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_STHOUSAND, Dummy, 16);
 	nf.lpThousandSep = Dummy;
 
 	GetNumberFormat(LOCALE_USER_DEFAULT, 0, number, &nf, tbuf, sizeof(tbuf) / sizeof(tbuf[0]));
 
 	char buf[128];
-	_snprintf(buf, sizeof(buf), "%s %s", buf, CSTRING(B));
+	_snprintf(buf, sizeof(buf), "%s %s", Text::fromT(tbuf).c_str(), CSTRING(B));
 	return buf;
 #else
 	char buf[128];
-	snprintf(buf, sizeof(buf), "%'lld ", (long long int)aBytes);
-	return string(buf) + STRING(B);
+	snprintf(buf, sizeof(buf), "%'lld %s", (long long int)aBytes, CSTRING(B));
+	return string(buf);
 #endif
 }
 
@@ -1606,10 +1605,6 @@ int Util::DefaultSort(const wchar_t *a, const wchar_t *b) noexcept {
 		if(!t1) {
 			if(Text::toLower(*a) != Text::toLower(*b))
 				return ((int)Text::toLower(*a)) - ((int)Text::toLower(*b));
-			a++; b++;
-		} else if(!t1) {
-			if(*a != *b)
-				return ((int)*a) - ((int)*b);
 			a++; b++;
 		} else {
 			while(iswdigit(*a)) {
