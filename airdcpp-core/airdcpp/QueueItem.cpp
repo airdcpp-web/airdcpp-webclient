@@ -388,9 +388,7 @@ Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t aWantedSize, int64
 		return Segment(start, std::min(size, end) - start);
 	}
 	
-	if(isPausedPrio() || downloads.size() >= maxSegments ||
-		(SETTING(DONT_BEGIN_SEGMENT) && static_cast<uint64_t>(Util::convertSize(SETTING(DONT_BEGIN_SEGMENT_SPEED), Util::KB)) < getAverageSpeed()))
-	{
+	if(isPausedPrio() || downloads.size() >= maxSegments) {
 		// no other segments if we have reached the speed or segment limit
 		return Segment(-1, 0);
 	}
