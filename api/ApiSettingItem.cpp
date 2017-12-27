@@ -346,7 +346,7 @@ namespace webserver {
 		auto title = si.getDescription();
 
 		if (unit != ResourceManager::LAST) {
-			title += " " + ResourceManager::getInstance()->getString(unit);
+			title += " (" + ResourceManager::getInstance()->getString(unit) + ")";
 		}
 
 		return title;
