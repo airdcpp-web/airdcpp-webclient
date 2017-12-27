@@ -194,20 +194,28 @@ void ConnectivityManager::detectConnection() {
 	autoDetectedV4 = detectV4;
 	autoDetectedV6 = detectV6;
 
-	if (detectV4 && Util::isPublicIp(AirUtil::getLocalIp(false), false)) {
-		{
-			WLock l(cs);
-			autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE;
-		}
+	if (detectV4) {
+		if (Util::isPublicIp(AirUtil::getLocalIp(false), false)) {
+			// Direct connection
+			{
+				WLock l(cs);
+				autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE;
+			}
 
-		log(STRING(CONN_DIRECT_DETECTED), LogMessage::SEV_INFO, TYPE_V4);
-		fire(ConnectivityManagerListener::Finished(), false, false);
-		runningV4 = false;
-		detectV4 = false;
+			log(STRING(CONN_DIRECT_DETECTED), LogMessage::SEV_INFO, TYPE_V4);
+			fire(ConnectivityManagerListener::Finished(), false, false);
+			runningV4 = false;
+			detectV4 = false;
+		} else {
+			// Private IP, enable UPNP
+			WLock l(cs);
+			autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE_UPNP;
+		}
 	}
 
 	if (detectV6) {
 		if (Util::isPublicIp(AirUtil::getLocalIp(true), true)) {
+			// Direct connection
 			{
 				WLock l(cs);
 				autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_ACTIVE;
@@ -232,20 +240,11 @@ void ConnectivityManager::detectConnection() {
 	if (!detectV6 && !detectV4)
 		return;
 
-	if (detectV4) {
-		WLock l(cs);
-		autoSettings[SettingsManager::INCOMING_CONNECTIONS] = SettingsManager::INCOMING_ACTIVE_UPNP;
-	}
-
-	if (detectV6) {
-		WLock l(cs);
-		autoSettings[SettingsManager::INCOMING_CONNECTIONS6] = SettingsManager::INCOMING_ACTIVE_UPNP;
-	}
-
 	log(STRING(CONN_NAT_DETECTED), LogMessage::SEV_INFO, (detectV4 && detectV6 ? TYPE_BOTH : detectV4 ? TYPE_V4 : TYPE_V6));
 
-	if (detectV6)
-		startMapping(true);
+	// UPNP mapping is not being used with v6 for now
+	//if (detectV6)
+	//	startMapping(true);
 	if (detectV4)
 		startMapping(false);
 }

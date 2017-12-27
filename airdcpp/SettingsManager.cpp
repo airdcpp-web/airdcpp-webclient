@@ -209,7 +209,7 @@ const string SettingsManager::settingTags[] =
 "Progress3DDepth",
 "ProgressTextDown", "ProgressTextUp", "ExtraDownloadSlots", "ErrorColor", "TransferSplitSize",
 "DisconnectSpeed", "DisconnectFileSpeed", "DisconnectTime", "RemoveSpeed", "MenubarLeftColor",
-"MenubarRightColor", "DisconnectFileSize", "NumberOfSegments", "MaxHashSpeed", "PMLogLines", "SearchAlternateColour", "SearchTime", "DontBeginSegmentSpeed",
+"MenubarRightColor", "DisconnectFileSize", "NumberOfSegments", "MaxHashSpeed", "PMLogLines", "SearchAlternateColour", "SearchTime",
 "MagnetAction", "PopupType", "ShutdownAction", "MinimumSearchInterval", "MaxAutoMatchSource", "ReservedSlotColor", "IgnoredColor", "FavoriteColor", "NormalColour",
 "PasiveColor", "OpColor", "ProgressBackColor", "ProgressSegmentColor", "UDPPort",
 "UserListDoubleClick", "TransferListDoubleClick", "ChatDoubleClick", "OutgoingConnections", "SocketInBuffer", "SocketOutBuffer",
@@ -264,7 +264,7 @@ const string SettingsManager::settingTags[] =
 "UseAutoPriorityByDefault", "UseOldSharingUI", "DefaultSearchFreeSlots",
 
 "TextGeneralBold", "TextGeneralItalic", "TextMyOwnBold", "TextMyOwnItalic", "TextPrivateBold", "TextPrivateItalic", "TextSystemBold", "TextSystemItalic", "TextServerBold", "TextServerItalic", "TextTimestampBold", "TextTimestampItalic",
-"TextMyNickBold", "TextMyNickItalic", "TextFavBold", "TextFavItalic", "TextOPBold", "TextOPItalic", "TextURLBold", "TextURLItalic", "ProgressOverrideColors", "ProgressOverrideColors2", "MenubarTwoColors", "MenubarBumped", "DontBeginSegment",
+"TextMyNickBold", "TextMyNickItalic", "TextFavBold", "TextFavItalic", "TextOPBold", "TextOPItalic", "TextURLBold", "TextURLItalic", "ProgressOverrideColors", "ProgressOverrideColors2", "MenubarTwoColors", "MenubarBumped", 
 
 "AutoDetectionUseLimited", "LogScheduledRefreshes", "AutoCompleteBundles", "SearchSaveHubsState", "ConfirmHubExit", "ConfirmASRemove", "EnableSUDP", "NmdcMagnetWarn",
 "UpdateIPHourly", "OpenTextOnBackground", "LockTB", "PopunderPartialList", "ShowTBStatusBar", "UseSlowDisconnectingDefault", "PrioListHighest",
@@ -611,9 +611,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(REPORT_ALTERNATES, true);	
 
 	setDefault(SOUNDS_DISABLED, false);
-	setDefault(UPLOADQUEUEFRAME_SHOW_TREE, true);	
-	setDefault(DONT_BEGIN_SEGMENT, true);
-	setDefault(DONT_BEGIN_SEGMENT_SPEED, 512);
+	setDefault(UPLOADQUEUEFRAME_SHOW_TREE, true);
 
 	setDefault(BUNDLE_SEARCH_TIME, 15);
 	setDefault(AUTO_SLOTS, 5);	
