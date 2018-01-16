@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -105,7 +105,7 @@ public:
 	string getTag() const noexcept;
 	string getApplication() const noexcept;
 	int getTotalHubCount() const noexcept;
-	const string& getCountry() const noexcept;
+	string getCountry() const noexcept;
 	StringList getSupports() const noexcept;
 	bool supports(const string& name) const noexcept;
 	bool isHub() const noexcept { return isClientType(CT_HUB) || isSet("HU"); }

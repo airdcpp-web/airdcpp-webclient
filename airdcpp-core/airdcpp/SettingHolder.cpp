@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2013-2017 AirDC++ Project
+* Copyright (C) 2013-2018 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -76,18 +76,13 @@ SettingHolder::~SettingHolder() {
 		UploadManager::getInstance()->setFreeSlotMatcher();
 	}
 
-	bool rebuildGeo = prevGeo && SETTING(COUNTRY_FORMAT) != prevGeoFormat;
 	if (SETTING(GET_USER_COUNTRY) != prevGeo) {
 		if (SETTING(GET_USER_COUNTRY)) {
 			GeoManager::getInstance()->init();
 			UpdateManager::getInstance()->checkGeoUpdate();
 		} else {
 			GeoManager::getInstance()->close();
-			rebuildGeo = false;
 		}
-	}
-	if (rebuildGeo) {
-		GeoManager::getInstance()->rebuild();
 	}
 
 	if (prevUpdateChannel != SETTING(UPDATE_CHANNEL)) {

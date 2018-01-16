@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2017 AirDC++ Project
+ * Copyright (C) 2012-2018 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,8 +50,7 @@ UpdateManager::UpdateManager() : lastIPUpdate(GET_TICK()) {
 
 	links.homepage = "https://www.airdcpp.net/";
 	links.downloads = links.homepage + "download/";
-	links.geoip6 = "http://geoip6.airdcpp.net";
-	links.geoip4 = "http://geoip4.airdcpp.net";
+	links.geoip = "http://geoip.airdcpp.net";
 	links.guides = links.homepage + "guides/";
 	links.customize = links.homepage + "customizations/";
 	links.discuss = links.homepage + "forum/";
@@ -142,47 +141,41 @@ void UpdateManager::completeIPCheck(bool manual, bool v6) {
 	fire(UpdateManagerListener::SettingUpdated(), setting, ip);
 }
 
-
 void UpdateManager::checkGeoUpdate() {
-	checkGeoUpdate(true);
-	checkGeoUpdate(false);
-}
-
-void UpdateManager::checkGeoUpdate(bool v6) {
 	// update when the database is non-existent or older than 25 days (GeoIP updates every month).
 	try {
-		File f(GeoManager::getDbPath(v6) + ".gz", File::READ, File::OPEN);
+		File f(GeoManager::getDbPath() + ".gz", File::READ, File::OPEN);
 		if(f.getSize() > 0 && static_cast<time_t>(f.getLastModified()) > GET_TIME() - 3600 * 24 * 25) {
 			return;
 		}
 	} catch(const FileException&) { }
-	updateGeo(v6);
+	updateGeo();
 }
 
-void UpdateManager::updateGeo(bool v6) {
-	auto& conn = conns[v6 ? CONN_GEO_V6 : CONN_GEO_V4];
+void UpdateManager::updateGeo() {
+	auto& conn = conns[CONN_GEO];
 	if(conn)
 		return;
 
-	LogManager::getInstance()->message(STRING_F(GEOIP_UPDATING, (v6 ? "IPv6" : "IPv4")), LogMessage::SEV_INFO);
-	conn.reset(new HttpDownload(v6 ? links.geoip6 : links.geoip4,
-		[this, v6] { completeGeoDownload(v6); }, false));
+	LogManager::getInstance()->message(STRING(GEOIP_UPDATING), LogMessage::SEV_INFO);
+	conn.reset(new HttpDownload(links.geoip,
+		[this] { completeGeoDownload(); }, false));
 }
 
-void UpdateManager::completeGeoDownload(bool v6) {
-	auto& conn = conns[v6 ? CONN_GEO_V6 : CONN_GEO_V4];
+void UpdateManager::completeGeoDownload() {
+	auto& conn = conns[CONN_GEO];
 	if(!conn) { return; }
 	ScopedFunctor([&conn] { conn.reset(); });
 
 	if(!conn->buf.empty()) {
 		try {
-			File(GeoManager::getDbPath(v6) + ".gz", File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
-			GeoManager::getInstance()->update(v6);
-			LogManager::getInstance()->message(STRING_F(GEOIP_UPDATED, (v6 ? "IPv6" : "IPv4")), LogMessage::SEV_INFO);
+			File(GeoManager::getDbPath() + ".gz", File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
+			GeoManager::getInstance()->update();
+			LogManager::getInstance()->message(STRING(GEOIP_UPDATED), LogMessage::SEV_INFO);
 			return;
 		} catch(const FileException&) { }
 	}
-	LogManager::getInstance()->message(STRING_F(GEOIP_UPDATING_FAILED, (v6 ? "IPv6" : "IPv4")), LogMessage::SEV_WARNING);
+	LogManager::getInstance()->message(STRING(GEOIP_UPDATING_FAILED), LogMessage::SEV_WARNING);
 }
 
 void UpdateManager::completeLanguageDownload() {
@@ -240,12 +233,8 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 				links.downloads = xml.getChildData();
 			}
 			xml.resetCurrentChild();
-			if(xml.findChild("GeoIPv6")) {
-				links.geoip6 = xml.getChildData();
-			}
-			xml.resetCurrentChild();
-			if(xml.findChild("GeoIPv4")) {
-				links.geoip4 = xml.getChildData();
+			if(xml.findChild("GeoIP")) {
+				links.geoip = xml.getChildData();
 			}
 			xml.resetCurrentChild();
 			if(xml.findChild("Customize")) {
