@@ -23,7 +23,7 @@
     <RootNamespace>airdcpp</RootNamespace>
     <ProjectName>airdcpp-core</ProjectName>
     <UseNativeEnvironment>true</UseNativeEnvironment>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -85,7 +85,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\geoip;$(SolutionDir)\bzip2;$(SolutionDir)\boost;$(SolutionDir)\zlib;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\maxminddb;$(SolutionDir)\bzip2;$(SolutionDir)\boost;$(SolutionDir)\zlib;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -108,7 +108,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\geoip;$(SolutionDir)\boost;$(SolutionDir)\bzip2;$(SolutionDir)\openssl\include;$(SolutionDir)\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\maxminddb;$(SolutionDir)\bzip2;$(SolutionDir)\boost;$(SolutionDir)\zlib;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -143,7 +143,7 @@
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\geoip;$(SolutionDir)\bzip2;$(SolutionDir)\boost;$(SolutionDir)\zlib;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\maxminddb;$(SolutionDir)\bzip2;$(SolutionDir)\boost;$(SolutionDir)\zlib;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -183,7 +183,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir)\geoip;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\bzip2;$(SolutionDir)\zlib;$(SolutionDir)\boost;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\maxminddb;$(SolutionDir)\bzip2;$(SolutionDir)\boost;$(SolutionDir)\zlib;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -562,14 +562,6 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
     </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)geoip\geoip.vcxproj">
-      <Project>{40440579-27af-4e34-8374-ca64b340f1d9}</Project>
-      <Private>true</Private>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
-    </ProjectReference>
     <ProjectReference Include="$(SolutionDir)leveldb\LevelDB.vcxproj">
       <Project>{a7ff59d3-eafd-43a1-8aa7-5087229c75d1}</Project>
     </ProjectReference>
@@ -587,6 +579,9 @@
       <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
+    </ProjectReference>
+    <ProjectReference Include="..\maxminddb\libmaxminddb.vcxproj">
+      <Project>{82953bda-2960-4ada-a6d5-92e65ccb4a3d}</Project>
     </ProjectReference>
     <ProjectReference Include="..\miniupnpc\miniupnpc.vcxproj">
       <Project>{51015502-c27c-43cf-9fa4-12ab9db5d36e}</Project>

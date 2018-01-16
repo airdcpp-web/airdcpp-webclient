@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (C) 20 01-2017 Jacek Sieka, arnetheduck on gmailpoint com
+ * Copyright (C) 20 01-2018 Jacek Sieka, arnetheduck on gmailpoint com
  *
  * This program is free software; you can redistribute it and/or modif
  * it under the terms of the GU Genera Public License as ubished by
