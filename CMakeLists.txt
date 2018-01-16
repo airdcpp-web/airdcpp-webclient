@@ -95,7 +95,7 @@ endif()
 
 
 ## DEPENDENCIES
-find_package (GeoIP REQUIRED)
+find_package (MaxMindDB REQUIRED)
 find_package (PkgConfig)
 find_package (BZip2 REQUIRED)
 find_package (ZLIB REQUIRED)
@@ -297,7 +297,7 @@ message(STATUS "CMAKE will use this libs (and headers) during build:
     zlib (headers): ${ZLIB_LIBRARIES} (${ZLIB_INCLUDE_DIR})
     openssl (headers): ${OPENSSL_LIBRARIES} (${OPENSSL_INCLUDE_DIR})
     iconv (headers): ${ICONV_LIBRARIES} (${ICONV_INCLUDE_DIR})
-    geoip (headers): ${LibGeoIP_LIBRARY} (${LibGeoIP_INCLUDE_DIR})
+    maxminddb (headers): ${LIBMAXMINDDB_LIBRARY} (${LIBMAXMINDDB_INCLUDE_DIR})
     leveldb (headers): ${LevelDB_LIBRARY} (${LevelDB_INCLUDE_DIR})
     websocketpp (headers): (${WEBSOCKETPP_INCLUDE_DIR})
     natpmp (headers): ${LibNatpmp_LIBRARY} (${LibNatpmp_INCLUDE_DIR})
