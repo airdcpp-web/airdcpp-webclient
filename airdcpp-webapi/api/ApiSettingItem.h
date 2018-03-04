@@ -64,7 +64,7 @@ namespace webserver {
 
 		static bool optionsAllowed(Type aType, Type aItemType) {
 			return aType == ApiSettingItem::TYPE_STRING || aType == ApiSettingItem::TYPE_NUMBER ||
-				(aItemType == ApiSettingItem::TYPE_LIST && (aItemType == ApiSettingItem::TYPE_STRING || aItemType == ApiSettingItem::TYPE_NUMBER));
+				(aType == ApiSettingItem::TYPE_LIST && (aItemType == ApiSettingItem::TYPE_STRING || aItemType == ApiSettingItem::TYPE_NUMBER));
 		}
 
 		// Returns the value and bool indicating whether it's an auto detected value

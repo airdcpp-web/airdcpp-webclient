@@ -103,7 +103,7 @@ namespace webserver {
 	}
 
 	SessionPtr WebUserManager::createSession(const WebUserPtr& aUser, const string& aSessionToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP) noexcept {
-		dcassert(aType != Session::TYPE_BASIC_AUTH || aSessionToken.find(":") != string::npos);
+		dcassert(aType != Session::TYPE_BASIC_AUTH || aSessionToken.find(':') != string::npos);
 
 		auto session = std::make_shared<Session>(aUser, aSessionToken, aType, server, aMaxInactivityMinutes, aIP);
 
