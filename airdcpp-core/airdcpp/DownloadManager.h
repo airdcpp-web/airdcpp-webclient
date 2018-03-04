@@ -94,7 +94,7 @@ private:
 	void removeConnection(UserConnectionPtr aConn);
 	void removeDownload(Download* aDown);
 	void fileNotAvailable(UserConnection* aSource, bool noAccess);
-	void noSlots(UserConnection* aSource, string param = Util::emptyString);
+	void noSlots(UserConnection* aSource, const string& param = Util::emptyString);
 
 	void failDownload(UserConnection* aSource, const string& reason, bool rotateQueue);
 

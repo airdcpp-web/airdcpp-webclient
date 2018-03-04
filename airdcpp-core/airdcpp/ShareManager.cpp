@@ -643,15 +643,15 @@ void ShareManager::loadProfile(SimpleXML& aXml, const string& aName, ProfileToke
 
 		const auto& loadedVirtualName = aXml.getChildAttrib("Virtual");
 
-		// Validate in case we have changed the rules
-		auto vName = validateVirtualName(loadedVirtualName.empty() ? Util::getLastDir(realPath) : loadedVirtualName);
-
 		auto p = rootPaths.find(realPath);
 		if (p != rootPaths.end()) {
 			p->second->getRoot()->addRootProfile(aToken);
 		} else {
 			auto incoming = aXml.getBoolChildAttrib("Incoming");
 			auto lastRefreshTime = aXml.getLongLongChildAttrib("LastRefreshTime");
+
+			// Validate in case we have changed the rules
+			auto vName = validateVirtualName(loadedVirtualName.empty() ? Util::getLastDir(realPath) : loadedVirtualName);
 			Directory::createRoot(realPath, vName, { aToken }, incoming, 0, rootPaths, lowerDirNameMap, *bloom.get(), lastRefreshTime);
 		}
 	}
@@ -1780,7 +1780,6 @@ bool ShareManager::removeProfile(ProfileToken aToken) noexcept {
 
 bool ShareManager::addRootDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo) noexcept {
 	dcassert(!aDirectoryInfo->profiles.empty());
-	Directory::Ptr newRoot = nullptr;
 	const auto& path = aDirectoryInfo->path;
 
 	{
@@ -1792,7 +1791,7 @@ bool ShareManager::addRootDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo)
 			dcassert(find_if(rootPaths | map_keys, IsParentOrExact(path, PATH_SEPARATOR)).base() == rootPaths.end());
 
 			// It's a new parent, will be handled in the task thread
-			newRoot = Directory::createRoot(path, aDirectoryInfo->virtualName, aDirectoryInfo->profiles, aDirectoryInfo->incoming, File::getLastModified(path), rootPaths, lowerDirNameMap, *bloom.get(), 0);
+			Directory::createRoot(path, aDirectoryInfo->virtualName, aDirectoryInfo->profiles, aDirectoryInfo->incoming, File::getLastModified(path), rootPaths, lowerDirNameMap, *bloom.get(), 0);
 		}
 	}
 
@@ -1857,10 +1856,9 @@ bool ShareManager::updateRootDirectory(const ShareDirectoryInfoPtr& aDirectoryIn
 
 	{
 		WLock l(cs);
-		auto vName = validateVirtualName(aDirectoryInfo->virtualName);
-
 		auto p = rootPaths.find(aDirectoryInfo->path);
 		if (p != rootPaths.end()) {
+			auto vName = validateVirtualName(aDirectoryInfo->virtualName);
 			rootDirectory = p->second->getRoot();
 
 			// Make sure that all removed profiles are set dirty as well
@@ -2448,11 +2446,6 @@ void ShareManager::FilelistDirectory::toXml(OutputStream& xmlFile, string& inden
 			xmlFile.write(LITERAL("\" />\r\n"));
 		} else {
 			xmlFile.write(LITERAL("\" Incomplete=\"1"));
-
-			// DEPRECATED
-			if (directoryCount > 0) {
-				xmlFile.write(LITERAL("\" Children=\"1"));
-			}
 
 			if (directoryCount > 0) {
 				xmlFile.write(LITERAL("\" Directories=\""));

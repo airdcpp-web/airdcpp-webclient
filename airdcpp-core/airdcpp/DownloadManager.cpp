@@ -183,9 +183,9 @@ void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
 bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly) {
 
 	RLock l(cs);
-	for(auto uc: idlers) {
-		if(uc->getUser() == user) {
-			if (((!smallSlot && uc->isSet(UserConnection::FLAG_SMALL_SLOT)) || (smallSlot && !uc->isSet(UserConnection::FLAG_SMALL_SLOT))) && uc->isSet(UserConnection::FLAG_MCN1))
+	for (auto uc: idlers) {
+		if (uc->getUser() == user) {
+			if (smallSlot != uc->isSet(UserConnection::FLAG_SMALL_SLOT) && uc->isSet(UserConnection::FLAG_MCN1))
 				continue;
 			if (!reportOnly)
 				uc->callAsync([this, uc] { revive(uc); });
@@ -506,7 +506,7 @@ int64_t DownloadManager::getRunningAverage() const {
 void DownloadManager::on(UserConnectionListener::MaxedOut, UserConnection* aSource, const string& param) noexcept {
 	noSlots(aSource, param);
 }
-void DownloadManager::noSlots(UserConnection* aSource, string param) {
+void DownloadManager::noSlots(UserConnection* aSource, const string& param) {
 	if(aSource->getState() != UserConnection::STATE_SND) {
 		dcdebug("DM::noSlots Bad state, disconnecting\n");
 		aSource->disconnect();
