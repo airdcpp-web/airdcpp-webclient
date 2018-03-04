@@ -344,6 +344,6 @@ namespace webserver {
 			return websocketpp::http::status_code::partial_content;
 		}
 
-		return partialContent ? websocketpp::http::status_code::partial_content : websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::ok;
 	}
 }
