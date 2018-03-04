@@ -111,7 +111,7 @@ namespace webserver {
 		SettingValueMap settings;
 
 		// Validate values
-		for (const auto& elem : json::iterator_wrapper(aRequest.getRequestBody())) {
+		for (const auto& elem : aRequest.getRequestBody().items()) {
 			auto setting = extension->getSetting(elem.key());
 			if (!setting) {
 				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");

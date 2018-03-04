@@ -112,7 +112,7 @@ namespace webserver {
 			// Engines
 			auto enginesJson = aJson.find("engines");
 			if (enginesJson != aJson.end()) {
-				for (const auto& engine : json::iterator_wrapper(*enginesJson)) {
+				for (const auto& engine : (*enginesJson).items()) {
 					engines.emplace_back(engine.key());
 				}
 			}
