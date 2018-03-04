@@ -438,7 +438,7 @@ void HashManager::HashStore::saveFileInfo(void *dest, const HashedFile& aFile) {
 
 	int64_t fileSize = aFile.getSize();
 	memcpy(p, &fileSize, sizeof(int64_t));
-	p += sizeof(int64_t);
+	//p += sizeof(int64_t);
 }
 
 uint32_t HashManager::HashStore::getFileInfoSize(const HashedFile& /*aTree*/) {

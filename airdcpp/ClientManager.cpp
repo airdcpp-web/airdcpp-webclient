@@ -1061,7 +1061,7 @@ optional<uint64_t> ClientManager::getMaxSearchQueueTime(const void* aOwner) cons
 		for (const auto& c : clients | map_values) {
 			auto t = c->getQueueTime(aOwner);
 			if (t) {
-				t = maxTime ? max(*t, *maxTime) : *t;
+				maxTime = maxTime ? max(*t, *maxTime) : *t;
 			}
 		}
 	}

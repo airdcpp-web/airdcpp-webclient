@@ -1033,11 +1033,11 @@ AdcCommand::Error AdcHub::allowConnect(const OnlineUser& aUser, bool aSecure, st
 
 	//check the IP protocol
 	if (aUser.getIdentity().getConnectMode() == Identity::MODE_NOCONNECT_IP) {
-		if ((!getMyIdentity().getIp6().empty() && !aUser.getIdentity().allowV6Connections())) {
+		if (!getMyIdentity().getIp6().empty() && !aUser.getIdentity().allowV6Connections()) {
 			failedProtocol_ = "IPv6";
 			return AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
 		}
-		if ((!getMyIdentity().getIp4().empty() && !aUser.getIdentity().allowV4Connections())) {
+		if (!getMyIdentity().getIp4().empty() && !aUser.getIdentity().allowV4Connections()) {
 			failedProtocol_ = "IPv4";
 			return AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
 		}

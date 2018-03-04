@@ -761,7 +761,7 @@ StringList File::findFiles(const string& aPath, const string& aNamePattern, int 
 
 void File::forEachFile(const string& aPath, const string& aNamePattern, FileIterF aHandlerF, bool aSkipHidden) {
 	for (FileFindIter i(aPath, aNamePattern); i != FileFindIter(); ++i) {
-		if ((!aSkipHidden || !i->isHidden())) {
+		if (!aSkipHidden || !i->isHidden()) {
 			aHandlerF({
 				i->getFileName(),
 				i->getSize(),
