@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_WEBSERVER_EXCEPTION_H
 #define DCPLUSPLUS_WEBSERVER_EXCEPTION_H
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 #include <websocketpp/http/constants.hpp>
 #include <string>
 

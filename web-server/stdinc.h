@@ -28,7 +28,7 @@
 #include <airdcpp/stdinc.h>
 #include <airdcpp/StringTokenizer.h>
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
 #include <web-server/Exception.h>
 

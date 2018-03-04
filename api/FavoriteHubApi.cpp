@@ -108,7 +108,7 @@ namespace webserver {
 		}
 
 		// Values that don't need to be validated
-		for (const auto& i : json::iterator_wrapper(j)) {
+		for (const auto& i : j.items()) {
 			auto key = i.key();
 			if (key == "auto_connect") {
 				aEntry->setAutoConnect(JsonUtil::parseValue<bool>("auto_connect", i.value()));

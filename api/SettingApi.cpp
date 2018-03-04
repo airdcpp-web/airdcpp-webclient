@@ -96,7 +96,7 @@ namespace webserver {
 		SettingHolder h(nullptr);
 
 		bool hasSet = false;
-		for (const auto& elem : json::iterator_wrapper(aRequest.getRequestBody())) {
+		for (const auto& elem : aRequest.getRequestBody().items()) {
 			auto setting = getSettingItem(elem.key());
 			if (!setting) {
 				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");
