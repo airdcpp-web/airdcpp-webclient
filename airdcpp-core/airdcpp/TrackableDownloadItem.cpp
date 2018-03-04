@@ -50,11 +50,7 @@ namespace dcpp {
 		{
 			RLock l(cs);
 			if (downloads.empty()) {
-				if (!lastError.empty()) {
-					state = STATE_DOWNLOAD_FAILED;
-				} else {
-					state = hasCompletedDownloads() ? STATE_DOWNLOADED : STATE_DOWNLOAD_PENDING;
-				}
+				state = hasCompletedDownloads() ? STATE_DOWNLOADED : STATE_DOWNLOAD_PENDING;
 			} else {
 				auto hasRunning = boost::find_if(downloads | map_values, PathInfo::IsRunning()).base() != downloads.end();
 				state = hasRunning ? STATE_DOWNLOADING : STATE_DOWNLOAD_PENDING;

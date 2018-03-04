@@ -44,8 +44,7 @@ DirSFVReader::DirSFVReader(const string& aPath) {
 	loadPath(aPath);
 }
 
-DirSFVReader::DirSFVReader(const string& /*aPath*/, const StringList& aSfvFiles) {
-	sfvFiles = aSfvFiles;
+DirSFVReader::DirSFVReader(const string& /*aPath*/, const StringList& aSfvFiles) : sfvFiles(aSfvFiles) {
 	load();
 }
 
