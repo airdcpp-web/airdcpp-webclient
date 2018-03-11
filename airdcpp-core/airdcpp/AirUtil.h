@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2017 AirDC++ Project
+ * Copyright (C) 2011-2018 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef DCPP_AIRUTIL_H
-#define DCPP_AIRUTIL_H
+#ifndef DCPLUSPLUS_DCPP_AIRUTIL_H
+#define DCPLUSPLUS_DCPP_AIRUTIL_H
 
 #include "compiler.h"
 

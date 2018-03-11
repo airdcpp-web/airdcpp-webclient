@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2017 AirDC++ Project
+* Copyright (C) 2011-2018 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -15,6 +15,8 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
+
+#include "stdinc.h"
 
 #include <api/ExtensionInfo.h>
 #include <api/common/Serializer.h>
@@ -97,7 +99,7 @@ namespace webserver {
 			return websocketpp::http::status_code::conflict;
 		}
 
-		if (extension->getSession() != extension->getSession()) {
+		if (extension->getSession() != aRequest.getSession()) {
 			aRequest.setResponseErrorStr("Setting definitions may only be posted by the owning session");
 			return websocketpp::http::status_code::conflict;
 		}
@@ -111,7 +113,7 @@ namespace webserver {
 		SettingValueMap settings;
 
 		// Validate values
-		for (const auto& elem : json::iterator_wrapper(aRequest.getRequestBody())) {
+		for (const auto& elem : aRequest.getRequestBody().items()) {
 			auto setting = extension->getSetting(elem.key());
 			if (!setting) {
 				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");

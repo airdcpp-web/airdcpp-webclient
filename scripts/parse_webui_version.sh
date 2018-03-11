@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Debug mode
+# set -x
+
 if [ -z "$1" ]
   then
     echo "Usage: parse_ui_version.sh <application version>"

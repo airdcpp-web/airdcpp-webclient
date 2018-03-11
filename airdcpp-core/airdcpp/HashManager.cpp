@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -438,7 +438,7 @@ void HashManager::HashStore::saveFileInfo(void *dest, const HashedFile& aFile) {
 
 	int64_t fileSize = aFile.getSize();
 	memcpy(p, &fileSize, sizeof(int64_t));
-	p += sizeof(int64_t);
+	//p += sizeof(int64_t);
 }
 
 uint32_t HashManager::HashStore::getFileInfoSize(const HashedFile& /*aTree*/) {
@@ -993,7 +993,7 @@ void HashManager::startMaintenance(bool verify){
 	optimizer.startMaintenance(verify); 
 }
 
-HashManager::Optimizer::Optimizer() : running(false) {
+HashManager::Optimizer::Optimizer() {
 
 }
 

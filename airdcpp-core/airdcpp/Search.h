@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2017 AirDC++ Project
+ * Copyright (C) 2011-2018 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,9 +16,10 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef DCPP_SEARCH_H
-#define DCPP_SEARCH_H
+#ifndef DCPLUSPLUS_DCPP_SEARCH_H
+#define DCPLUSPLUS_DCPP_SEARCH_H
 
+#include "constants.h"
 #include "typedefs.h"
 #include "Priority.h"
 
@@ -26,13 +27,6 @@ namespace dcpp {
 
 class Search {
 public:
-	/*enum Type : uint8_t {
-		MANUAL,
-		ALT,
-		ALT_AUTO,
-		AUTO_SEARCH,
-	};*/
-
 	enum SizeModes : uint8_t {
 		SIZE_DONTCARE = 0x00,
 		SIZE_ATLEAST = 0x01,
@@ -73,7 +67,7 @@ public:
 	string		query;
 	StringList	exts;
 	StringList	excluded;
-	const void*	owner;
+	const void*	owner = nullptr;
 	string		key;
 
 	bool		aschOnly = false;
@@ -86,7 +80,7 @@ public:
 	MatchType matchType = MATCH_PATH_PARTIAL;
 	int maxResults = 10;
 	bool requireReply = false;
-	string path;
+	string path = ADC_ROOT_STR;
 
 	/*optional<int64_t> minSize;
 	optional<int64_t> maxSize;
@@ -153,4 +147,4 @@ public:
 
 }
 
-#endif // !defined(SEARCH_H)
+#endif // !defined(DCPLUSPLUS_DCPP_SEARCH_H)

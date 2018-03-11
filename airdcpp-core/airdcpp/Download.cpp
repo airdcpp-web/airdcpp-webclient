@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -232,7 +232,7 @@ void Download::open(int64_t bytes, bool z, bool hasDownloadedBytes) {
 			fileFlags |= File::BUFFER_AUTO;
 		}
 
-		unique_ptr<SharedFileStream> f(new SharedFileStream(target, File::WRITE, fileFlags));
+		auto f = make_unique<SharedFileStream>(target, File::WRITE, fileFlags);
 
 		if(f->getSize() != fullSize) {
 			f->setSize(fullSize);

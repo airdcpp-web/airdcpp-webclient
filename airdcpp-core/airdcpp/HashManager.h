@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -268,8 +268,8 @@ private:
 		void startMaintenance(bool verify);
 		bool isRunning() const noexcept { return running; }
 	private:
-		bool verify;
-		atomic<bool> running;
+		bool verify = true;
+		atomic<bool> running = { false };
 		virtual int run();
 	};
 

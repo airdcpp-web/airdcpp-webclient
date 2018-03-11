@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,14 +21,14 @@
 
 #if defined (__clang__)
 
-#if __clang_major__ < 3 || (__clang_major__ == 3 && __clang_minor__ < 3)
-#error Clang 3.3 is required
+#if __clang_major__ < 3 || (__clang_major__ == 3 && __clang_minor__ < 4)
+#error Clang 3.4 is required
 #endif
 
 #elif defined(__GNUC__)
 
-#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 8)
-#error GCC 4.8 is required
+#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 9)
+#error GCC 4.9 is required
 #endif
 
 #ifdef _WIN32
@@ -50,12 +50,8 @@
 #define _ATL_SECURE_NO_DEPRECATE 1
 #define _CRT_NON_CONFORMING_SWPRINTFS 1
 
-#if defined(_MSC_VER)
 #define strtoll _strtoi64
 #define snwprintf _snwprintf
-#else
-#define snwprintf snprintf
-#endif
 
 #else
 #error No supported compiler found
@@ -138,10 +134,8 @@
 # pragma warning(disable: 4267) // conversion from 'xxx' to 'yyy', possible loss of data
 # pragma warning(disable: 4706) // assignment within conditional expression
 
-# pragma warning(disable: 4592) // warning C4592: 'updateCommand': symbol will be dynamically initialized (implementation limitation) - exists in VS2015 Update 1 and 2, recheck when a new update is released
+#define BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE 1
 
-// Enable a bugfix in VS2015 update 2, remove in the next major version of Visual Studio
-#define _ENABLE_ATOMIC_ALIGNMENT_FIX
 #endif
 
 #endif // DCPLUSPLUS_DCPP_COMPILER_H

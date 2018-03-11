@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -75,10 +75,10 @@ bool isIPInRange(const string& aIP1, const string& aIP2, uint8_t mask, bool v6) 
 
 		in6_addr addr1, addr2;
 
-		auto p = aIP1.find("%");
+		auto p = aIP1.find('%');
 		inet_pton(AF_INET6, (p != string::npos ? aIP1.substr(0, p) : aIP1).c_str(), &addr1);
 
-		p = aIP2.find("%");
+		p = aIP2.find('%');
 		inet_pton(AF_INET6, (p != string::npos ? aIP2.substr(0, p) : aIP2).c_str(), &addr2);
 
 		//reset the non-common bytes

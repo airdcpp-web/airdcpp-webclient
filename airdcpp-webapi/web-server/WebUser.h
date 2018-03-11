@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2017 AirDC++ Project
+* Copyright (C) 2011-2018 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_WEBUSER_H
 #define DCPLUSPLUS_DCPP_WEBUSER_H
 
-#include <web-server/stdinc.h>
+#include "stdinc.h"
 #include <web-server/Access.h>
 
 #include <airdcpp/typedefs.h>

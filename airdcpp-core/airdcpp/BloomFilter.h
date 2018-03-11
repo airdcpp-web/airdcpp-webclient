@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,8 +47,8 @@ public:
 		table.resize(s);
 	}
 
-	void merge(BloomFilter<N>& aBloom) {
-		for (unsigned int i = 0; i < table.size(); ++i) {
+	void merge(const BloomFilter<N>& aBloom) {
+		for (size_t i = 0; i < table.size(); ++i) {
 			if (aBloom.table[i] == true) {
 				table[i] = true;
 			}

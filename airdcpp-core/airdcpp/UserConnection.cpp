@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -95,7 +95,7 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 		if(!param.empty())
 			fire(UserConnectionListener::MyNick(), this, param);
 	} else if(cmd == "Direction") {
-		x = param.find(" ");
+		x = param.find(' ');
 		if(x != string::npos) {
 			fire(UserConnectionListener::Direction(), this, param.substr(0, x), param.substr(x+1));
 		}

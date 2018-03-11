@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2017 AirDC++ Project
+* Copyright (C) 2011-2018 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -15,6 +15,8 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
+
+#include "stdinc.h"
 
 #include <api/FavoriteHubApi.h>
 
@@ -108,7 +110,7 @@ namespace webserver {
 		}
 
 		// Values that don't need to be validated
-		for (const auto& i : json::iterator_wrapper(j)) {
+		for (const auto& i : j.items()) {
 			auto key = i.key();
 			if (key == "auto_connect") {
 				aEntry->setAutoConnect(JsonUtil::parseValue<bool>("auto_connect", i.value()));

@@ -85,7 +85,7 @@ endif (HAVE_POSIX_FADVISE)
 add_library (airdcpp ${airdcpp_srcs})
 
 target_link_libraries (airdcpp ${PTHREADS} ${BZIP2_LIBRARIES} ${ZLIB_LIBRARIES} ${MINIUPNP_LIBRARY}
-${OPENSSL_LIBRARIES} ${ICONV_LIBRARIES} ${airdcpp_extra_libs} ${UPNP} ${Boost_LIBRARIES} ${LevelDB_LIBRARY} ${SNAPPY_LIBRARIES} ${LibGeoIP_LIBRARY} )
+${OPENSSL_LIBRARIES} ${ICONV_LIBRARIES} ${airdcpp_extra_libs} ${UPNP} ${Boost_LIBRARIES} ${LevelDB_LIBRARY} ${SNAPPY_LIBRARIES} ${LIBMAXMINDDB_LIBRARY} )
 
 set_target_properties(airdcpp PROPERTIES VERSION ${SOVERSION} OUTPUT_NAME "airdcpp")
 

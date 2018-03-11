@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,8 +44,7 @@ DirSFVReader::DirSFVReader(const string& aPath) {
 	loadPath(aPath);
 }
 
-DirSFVReader::DirSFVReader(const string& /*aPath*/, const StringList& aSfvFiles) {
-	sfvFiles = aSfvFiles;
+DirSFVReader::DirSFVReader(const string& /*aPath*/, const StringList& aSfvFiles) : sfvFiles(aSfvFiles) {
 	load();
 }
 
@@ -98,18 +97,18 @@ bool DirSFVReader::loadFile(const string& aContent) noexcept {
 		line = Text::toUtf8(rawLine);
 
 		// Make sure that the line is valid
-		if (!regex_search(line, AirUtil::crcReg) || line.find(";") != string::npos) {
+		if (!regex_search(line, AirUtil::crcReg) || line.find(';') != string::npos) {
 			continue;
 		}
 
 		//We cant handle sfv with files in subdirectories currently.
-		if (line.find("\\") != string::npos) {
+		if (line.find('\\') != string::npos) {
 			hasValidLines = true;
 			continue;
 		}
 
 		//only keep the filename
-		auto pos = line.rfind(" ");
+		auto pos = line.rfind(' ');
 		if (pos == string::npos) {
 			continue;
 		}

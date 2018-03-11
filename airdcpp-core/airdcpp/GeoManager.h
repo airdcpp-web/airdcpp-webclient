@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,23 +38,20 @@ public:
 	/** Prepare the databases and fill internal caches. */
 	void init();
 	/** Update a database and its internal caches. Call after a new one have been downloaded. */
-	void update(bool v6);
-	/** Rebuild the internal caches. Call after a change of country settings. */
-	void rebuild();
+	void update();
 	/** Unload databases and clear internal caches. */
 	void close();
 
-	enum { V6 = 1 << 1, V4 = 1 << 2 };
 	/** Map an IP address to a country. The flags specify which database(s) to look into. */
-	const string& getCountry(const string& ip, int flags = V6 | V4);
+	string getCountry(const string& ip) const;
 
-	static string getDbPath(bool v6);
+	static string getDbPath();
 
 private:
 	friend class Singleton<GeoManager>;
 
 	// only these 2 for now. in the future, more databases could be added (region / city info...).
-	unique_ptr<GeoIP> geo6, geo4;
+	unique_ptr<GeoIP> geo;
 
 	GeoManager() { }
 	virtual ~GeoManager() { }

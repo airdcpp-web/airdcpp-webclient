@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2017 AirDC++ Project
+* Copyright (C) 2011-2018 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -15,6 +15,8 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
+
+#include "stdinc.h"
 
 #include <api/FilelistApi.h>
 
@@ -70,7 +72,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto user = Deserializer::deserializeHintedUser(reqJson);
-		auto directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/");
+		auto directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, ADC_ROOT_STR);
 
 		DirectoryListingPtr dl = nullptr;
 		try {
@@ -93,7 +95,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto user = Deserializer::deserializeHintedUser(reqJson);
-		auto directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, "/");
+		auto directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, ADC_ROOT_STR);
 
 		QueueItem::Flags flags = QueueItem::FLAG_MATCH_QUEUE;
 		if (directory != ADC_ROOT_STR) {

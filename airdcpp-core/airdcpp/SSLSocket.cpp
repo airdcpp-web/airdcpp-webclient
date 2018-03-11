@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -257,7 +257,7 @@ bool SSLSocket::verifyKeyprint(const string& expKP, bool allowUntrusted) noexcep
 	if(!ssl)
 		return true;
 
-	if(expKP.empty() || expKP.find("/") == string::npos)
+	if(expKP.empty() || expKP.find('/') == string::npos)
 		return allowUntrusted; 
 
 	verifyData.reset(new CryptoManager::SSLVerifyData(allowUntrusted, expKP));

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -420,7 +420,7 @@ size_t QueueManager::getQueuedBundleFiles() const noexcept {
 	return bundleQueue.getTotalFiles();
 }
 
-bool QueueManager::getSearchInfo(const string& aTarget, TTHValue& tth_, int64_t size_) noexcept {
+bool QueueManager::getSearchInfo(const string& aTarget, TTHValue& tth_, int64_t& size_) noexcept {
 	RLock l(cs);
 	QueueItemPtr qi = fileQueue.findFile(aTarget);
 	if(qi) {
@@ -534,7 +534,7 @@ QueueItemPtr QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFla
 		}
 
 		q = std::move(ret.first);
-		addSource(q, aUser, true, false);
+		addSource(q, aUser, QueueItem::Source::FLAG_MASK, false);
 		if (aBundle) {
 			matchLists.insert(TokenStringMultiBiMap::value_type(aBundle->getToken(), q->getTarget()));
 		}
@@ -699,7 +699,7 @@ QueueItemPtr QueueManager::addOpenedItem(const string& aFileName, int64_t aSize,
 		qi = std::move(ret.first);
 		added = ret.second;
 
-		wantConnection = addSource(qi, aUser, true, false);
+		wantConnection = addSource(qi, aUser, QueueItem::Source::FLAG_MASK, false);
 	}
 
 	if (added) {
@@ -1616,7 +1616,6 @@ void QueueManager::bundleDownloadFailed(BundlePtr& aBundle, const string& aError
 }
 
 void QueueManager::putDownload(Download* aDownload, bool aFinished, bool aNoAccess /*false*/, bool aRotateQueue /*false*/) {
-	HintedUserList getConn;
 	QueueItemPtr q = nullptr;
 
 	// Make sure the download gets killed
@@ -1652,6 +1651,8 @@ void QueueManager::putDownload(Download* aDownload, bool aFinished, bool aNoAcce
 		onDownloadFailed(q, d.get(), aNoAccess, aRotateQueue);
 	} else if (q->isSet(QueueItem::FLAG_USER_LIST)) {
 		onFilelistDownloadCompleted(q, d.get());
+	} else if (d->getType() == Transfer::TYPE_TREE) {
+		onTreeDownloadCompleted(q, d.get());
 	} else {
 		onFileDownloadCompleted(q, d.get());
 	}
@@ -1745,19 +1746,18 @@ void QueueManager::onFilelistDownloadCompleted(QueueItemPtr& aQI, Download* aDow
 	fire(QueueManagerListener::ItemRemoved(), aQI, true);
 }
 
-void QueueManager::onFileDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept {
-	if (aDownload->getType() == Transfer::TYPE_TREE) {
-		{
-			WLock l(cs);
-			userQueue.removeDownload(aQI, aDownload->getToken());
-		}
-
-		dcassert(aDownload->getTreeValid());
-		HashManager::getInstance()->addTree(aDownload->getTigerTree());
-		fire(QueueManagerListener::ItemStatus(), aQI);
-		return;
+void QueueManager::onTreeDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) {
+	{
+		WLock l(cs);
+		userQueue.removeDownload(aQI, aDownload->getToken());
 	}
 
+	dcassert(aDownload->getTreeValid());
+	HashManager::getInstance()->addTree(aDownload->getTigerTree());
+	fire(QueueManagerListener::ItemStatus(), aQI);
+}
+
+void QueueManager::onFileDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept {
 	dcassert(aDownload->getType() == Transfer::TYPE_FILE);
 
 	aDownload->setOverlapped(false);
@@ -2508,9 +2508,6 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			if(!simple)
 				curFile = ret.first;
 		} else if(curFile && name == sSegment) {
-			if(!curFile)
-				return;
-
 			int64_t start = Util::toInt64(getAttrib(attribs, sStart, 0));
 			int64_t size = Util::toInt64(getAttrib(attribs, sSize, 1));
 			
@@ -2720,7 +2717,7 @@ void QueueManager::matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult
 		} else {
 			//An ADC directory bundle, match recursive partial list
 			try {
-				addList(aResult->getUser(), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST |(path.empty() ? 0 : QueueItem::FLAG_PARTIAL_LIST), path, aQI->getBundle());
+				addList(aResult->getUser(), QueueItem::FLAG_MATCH_QUEUE | QueueItem::FLAG_RECURSIVE_LIST | QueueItem::FLAG_PARTIAL_LIST, path, aQI->getBundle());
 			} catch(...) { }
 		}
 	} else if (SETTING(ALLOW_MATCH_FULL_LIST)) {

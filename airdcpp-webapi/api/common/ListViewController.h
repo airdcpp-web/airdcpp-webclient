@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2017 AirDC++ Project
+* Copyright (C) 2011-2018 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,8 +18,6 @@
 
 #ifndef DCPLUSPLUS_DCPP_LISTVIEW_H
 #define DCPLUSPLUS_DCPP_LISTVIEW_H
-
-#include <web-server/stdinc.h>
 
 #include <web-server/JsonUtil.h>
 #include <web-server/SessionListener.h>

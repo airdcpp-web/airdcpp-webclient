@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -697,7 +697,7 @@ void FavoriteManager::loadFavoriteHubs(SimpleXML& aXml) {
 			}
 
 			// Remove failovers
-			auto p = server.find(";");
+			auto p = server.find(';');
 			if (p != string::npos) {
 				server = server.substr(0, p);
 			}

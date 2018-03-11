@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2017 AirDC++ Project
+* Copyright (C) 2011-2018 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#include <web-server/stdinc.h>
+#include "stdinc.h"
 
 #include <web-server/JsonUtil.h>
 
@@ -40,7 +40,7 @@ namespace webserver {
 
 	json JsonUtil::filterExactValues(const json& aNew, const json& aCompareTo) noexcept {
 		json ret = aNew;
-		for (const auto& v: json::iterator_wrapper(aCompareTo)) {
+		for (const auto& v: aCompareTo.items()) {
 			auto key = v.key();
 			auto i = aNew.find(key);
 			if (i != aNew.end() && aNew.at(key) == aCompareTo.at(key)) {

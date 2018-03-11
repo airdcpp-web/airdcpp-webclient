@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-typedef struct GeoIPTag GeoIP;
+struct MMDB_s;
 
 namespace dcpp {
 
@@ -34,21 +34,20 @@ public:
 	explicit GeoIP(string&& path);
 	~GeoIP();
 
-	const string& getCountry(const string& ip) const;
+	string getCountry(const string& ip) const;
 	void update();
-	void rebuild();
+	//void rebuild();
 
 private:
 	bool decompress() const;
 	void open();
 	void close();
-	bool v6() const;
 
 	//mutable CriticalSection cs;
-	::GeoIP* geo;
+	::MMDB_s* geo;
 
 	const string path;
-	vector<string> cache;
+	const string language;
 };
 
 } // namespace dcpp

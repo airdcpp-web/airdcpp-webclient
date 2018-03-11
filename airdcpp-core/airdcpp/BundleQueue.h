@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2017 AirDC++ Project
+ * Copyright (C) 2011-2018 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -89,7 +89,7 @@ public:
 	Bundle::TokenMap& getBundles() { return bundles; }
 	const Bundle::TokenMap& getBundles() const { return bundles; }
 
-	uint64_t getTotalQueueSize() const noexcept { return queueSize; }
+	int64_t getTotalQueueSize() const noexcept { return queueSize; }
 private:
 	void findAdcDirectories(const string& aPath, PathInfoPtrList& paths_) const noexcept;
 	const PathInfo* getAdcSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept;
@@ -114,7 +114,7 @@ private:
 	// Bundles by token
 	Bundle::TokenMap bundles;
 
-	uint64_t queueSize = 0;
+	int64_t queueSize = 0;
 };
 
 } // namespace dcpp

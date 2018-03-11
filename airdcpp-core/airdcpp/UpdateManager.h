@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2017 AirDC++ Project
+ * Copyright (C) 2012-2018 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,8 +40,7 @@ public:
 	struct {
 		string homepage;
 		string downloads;
-		string geoip6;
-		string geoip4;
+		string geoip;
 		string guides;
 		string customize;
 		string discuss;
@@ -54,8 +53,7 @@ public:
 
 	enum {
 		CONN_VERSION,
-		CONN_GEO_V6,
-		CONN_GEO_V4,
+		CONN_GEO,
 		CONN_LANGUAGE_FILE,
 		CONN_LANGUAGE_CHECK,
 		CONN_SIGNATURE,
@@ -94,12 +92,11 @@ private:
 
 	ByteVector versionSig;
 
-	void updateGeo(bool v6);
-	void checkGeoUpdate(bool v6);
+	void updateGeo();
 
 	void completeSignatureDownload(bool manual);
 	void completeLanguageCheck();
-	void completeGeoDownload(bool v6);
+	void completeGeoDownload();
 	void completeVersionDownload(bool manualCheck);
 	void completeLanguageDownload();
 	void completeIPCheck(bool manualCheck, bool v6);

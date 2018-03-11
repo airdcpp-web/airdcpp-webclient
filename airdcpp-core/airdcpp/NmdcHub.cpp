@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -725,7 +725,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 				pk = param.substr(j + 4);
 			} else {
 				// Workaround for faulty linux hubs...
-				j = param.find(" ");
+				j = param.find(' ');
 				if(j != string::npos)
 					lock = param.substr(0, j);
 				else

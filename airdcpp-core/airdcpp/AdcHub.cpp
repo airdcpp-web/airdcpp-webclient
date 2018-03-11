@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -277,7 +277,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 			}
 
 			if (isHubsoftVersionOrOlder("luadch", 2.18)) {
-				statusMessage("The hubsoft used by this hub doesn't forward Advanced Direct Connect protocol messages according to the protocol specifications, which may silently break various client features. Certain functionality may have been disabled automatically in this hub. For more information, please see https://www.airdcpp.net/hubsoft-warnings", LogMessage::SEV_WARNING);
+				statusMessage("This hub uses an outdated hubsoft version that doesn't forward Advanced Direct Connect protocol messages according to the protocol specifications, which may silently break various client features. Certain functionality may have been disabled automatically in this hub. For more information, please see https://www.airdcpp.net/hubsoft-warnings", LogMessage::SEV_WARNING);
 			}
 		}
 
@@ -877,7 +877,6 @@ void AdcHub::handle(AdcCommand::TCP, AdcCommand& c) noexcept {
 
 void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aToken, bool v6) {
 	// Construct the command we are going to send
-	string su;
 	AdcCommand hbriCmd(AdcCommand::CMD_TCP, AdcCommand::TYPE_HUB);
 
 	StringMap dummyMap;
@@ -1034,11 +1033,11 @@ AdcCommand::Error AdcHub::allowConnect(const OnlineUser& aUser, bool aSecure, st
 
 	//check the IP protocol
 	if (aUser.getIdentity().getConnectMode() == Identity::MODE_NOCONNECT_IP) {
-		if ((!getMyIdentity().getIp6().empty() && !aUser.getIdentity().allowV6Connections())) {
+		if (!getMyIdentity().getIp6().empty() && !aUser.getIdentity().allowV6Connections()) {
 			failedProtocol_ = "IPv6";
 			return AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
 		}
-		if ((!getMyIdentity().getIp4().empty() && !aUser.getIdentity().allowV4Connections())) {
+		if (!getMyIdentity().getIp4().empty() && !aUser.getIdentity().allowV4Connections()) {
 			failedProtocol_ = "IPv4";
 			return AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
 		}
@@ -1176,7 +1175,7 @@ bool AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch, stri
 	}
 
 	if (isHubsoftVersionOrOlder("luadch", 2.18)) {
-		error_ = "Feature is blocked by hub " + Client::getHubName();
+		error_ = "Feature is blocked by hub " + Client::getHubName() + " (the hub is using an outdated hubsoft version)";
 		return false;
 	}
 
@@ -1184,8 +1183,8 @@ bool AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch, stri
 	constructSearch(c, aSearch, true);
 
 	if (user.getUser()->isSet(User::ASCH)) {
-		if (!aSearch->path.empty()) {
-			dcassert(aSearch->path.front() == ADC_SEPARATOR);
+		if (!Util::isAdcRoot(aSearch->path)) {
+			dcassert(Util::isAdcPath(aSearch->path));
 			c.addParam("PA", aSearch->path);
 		}
 

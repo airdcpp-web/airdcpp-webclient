@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -85,6 +85,7 @@ void Transfer::getParams(const UserConnection& aSource, ParamMap& params) const 
 	params["userI4"] = [&] { return aSource.getRemoteIp(); };
 
 	params["hub"] = [&] { return ClientManager::getInstance()->getFormatedHubNames(aSource.getHintedUser()); };
+	params["hubNI"] = [&] { return ClientManager::getInstance()->getFormatedHubNames(aSource.getHintedUser()); };
 
 	params["hubURL"] = [&] { 
 		StringList hubs = ClientManager::getInstance()->getHubUrls(aSource.getUser()->getCID());

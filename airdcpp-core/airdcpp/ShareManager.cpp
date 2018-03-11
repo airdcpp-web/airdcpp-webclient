@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -328,7 +328,7 @@ bool ShareManager::RootDirectory::hasRootProfile(ProfileToken aProfile) const no
 }
 
 ShareManager::RootDirectory::RootDirectory(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, time_t aLastRefreshTime) noexcept :
-	path(aRootPath), cacheDirty(false), virtualName(unique_ptr<DualString>(new DualString(aVname))), 
+	path(aRootPath), cacheDirty(false), virtualName(make_unique<DualString>(aVname)), 
 	incoming(aIncoming), rootProfiles(aProfiles), lastRefreshTime(aLastRefreshTime) {
 
 }
@@ -643,15 +643,15 @@ void ShareManager::loadProfile(SimpleXML& aXml, const string& aName, ProfileToke
 
 		const auto& loadedVirtualName = aXml.getChildAttrib("Virtual");
 
-		// Validate in case we have changed the rules
-		auto vName = validateVirtualName(loadedVirtualName.empty() ? Util::getLastDir(realPath) : loadedVirtualName);
-
 		auto p = rootPaths.find(realPath);
 		if (p != rootPaths.end()) {
 			p->second->getRoot()->addRootProfile(aToken);
 		} else {
 			auto incoming = aXml.getBoolChildAttrib("Incoming");
 			auto lastRefreshTime = aXml.getLongLongChildAttrib("LastRefreshTime");
+
+			// Validate in case we have changed the rules
+			auto vName = validateVirtualName(loadedVirtualName.empty() ? Util::getLastDir(realPath) : loadedVirtualName);
 			Directory::createRoot(realPath, vName, { aToken }, incoming, 0, rootPaths, lowerDirNameMap, *bloom.get(), lastRefreshTime);
 		}
 	}
@@ -1582,7 +1582,7 @@ struct ShareTask : public Task {
 };
 
 void ShareManager::addAsyncTask(AsyncF aF) noexcept {
-	tasks.add(ASYNC, unique_ptr<Task>(new AsyncTask(aF)));
+	tasks.add(ASYNC, make_unique<AsyncTask>(aF));
 	if (!refreshing.test_and_set()) {
 		start();
 	}
@@ -1665,7 +1665,7 @@ ShareManager::RefreshResult ShareManager::addRefreshTask(TaskType aTaskType, con
 	}
 
 	fire(ShareManagerListener::RefreshQueued(), aTaskType, paths);
-	tasks.add(aTaskType, unique_ptr<Task>(new ShareTask(paths, aDisplayName, aRefreshType)));
+	tasks.add(aTaskType, make_unique<ShareTask>(paths, aDisplayName, aRefreshType));
 
 	if(refreshing.test_and_set()) {
 		if (aRefreshType != TYPE_STARTUP_DELAYED) {
@@ -1780,7 +1780,6 @@ bool ShareManager::removeProfile(ProfileToken aToken) noexcept {
 
 bool ShareManager::addRootDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo) noexcept {
 	dcassert(!aDirectoryInfo->profiles.empty());
-	Directory::Ptr newRoot = nullptr;
 	const auto& path = aDirectoryInfo->path;
 
 	{
@@ -1792,7 +1791,7 @@ bool ShareManager::addRootDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo)
 			dcassert(find_if(rootPaths | map_keys, IsParentOrExact(path, PATH_SEPARATOR)).base() == rootPaths.end());
 
 			// It's a new parent, will be handled in the task thread
-			newRoot = Directory::createRoot(path, aDirectoryInfo->virtualName, aDirectoryInfo->profiles, aDirectoryInfo->incoming, File::getLastModified(path), rootPaths, lowerDirNameMap, *bloom.get(), 0);
+			Directory::createRoot(path, aDirectoryInfo->virtualName, aDirectoryInfo->profiles, aDirectoryInfo->incoming, File::getLastModified(path), rootPaths, lowerDirNameMap, *bloom.get(), 0);
 		}
 	}
 
@@ -1857,10 +1856,9 @@ bool ShareManager::updateRootDirectory(const ShareDirectoryInfoPtr& aDirectoryIn
 
 	{
 		WLock l(cs);
-		auto vName = validateVirtualName(aDirectoryInfo->virtualName);
-
 		auto p = rootPaths.find(aDirectoryInfo->path);
 		if (p != rootPaths.end()) {
+			auto vName = validateVirtualName(aDirectoryInfo->virtualName);
 			rootDirectory = p->second->getRoot();
 
 			// Make sure that all removed profiles are set dirty as well
@@ -2448,11 +2446,6 @@ void ShareManager::FilelistDirectory::toXml(OutputStream& xmlFile, string& inden
 			xmlFile.write(LITERAL("\" />\r\n"));
 		} else {
 			xmlFile.write(LITERAL("\" Incomplete=\"1"));
-
-			// DEPRECATED
-			if (directoryCount > 0) {
-				xmlFile.write(LITERAL("\" Children=\"1"));
-			}
 
 			if (directoryCount > 0) {
 				xmlFile.write(LITERAL("\" Directories=\""));

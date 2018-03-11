@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2017 AirDC++ Project
+ * Copyright (C) 2011-2018 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -90,14 +90,12 @@ public:
 			return;
 		}
 
-		eventList.emplace(aKey, unique_ptr<DelayTask>(new DelayTask(f, GET_TICK() + aDelayTicks)));
+		eventList.emplace(aKey, make_unique<DelayTask>(f, GET_TICK() + aDelayTicks));
 	}
 
 	void clear() {
-		List tmp;
-
 		Lock l(cs);
-		eventList.swap(eventList);
+		eventList.clear();
 	}
 
 	bool removeEvent(const T& aKey) {

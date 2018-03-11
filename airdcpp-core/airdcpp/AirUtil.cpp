@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2017 AirDC++ Project
+ * Copyright (C) 2011-2018 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -902,7 +902,7 @@ string AirUtil::getTitle(const string& searchTerm) noexcept {
 	auto ret = Text::toLower(searchTerm);
 
 	//Remove group name
-	size_t pos = ret.rfind("-");
+	size_t pos = ret.rfind('-');
 	if (pos != string::npos)
 		ret = ret.substr(0, pos);
 

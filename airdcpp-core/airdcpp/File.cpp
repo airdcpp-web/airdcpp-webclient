@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -319,7 +319,7 @@ bool File::isAbsolutePath(const string& path) noexcept {
 }
 
 string File::getMountPath(const string& aPath) noexcept {
-	unique_ptr<TCHAR> buf(new TCHAR[aPath.length()]);
+	unique_ptr<TCHAR[]> buf(new TCHAR[aPath.length()+1]);
 	GetVolumePathName(Text::toT(Util::formatPath(aPath)).c_str(), buf.get(), aPath.length());
 	return Text::fromT(buf.get());
 }
@@ -761,7 +761,7 @@ StringList File::findFiles(const string& aPath, const string& aNamePattern, int 
 
 void File::forEachFile(const string& aPath, const string& aNamePattern, FileIterF aHandlerF, bool aSkipHidden) {
 	for (FileFindIter i(aPath, aNamePattern); i != FileFindIter(); ++i) {
-		if ((!aSkipHidden || !i->isHidden())) {
+		if (!aSkipHidden || !i->isHidden()) {
 			aHandlerF({
 				i->getFileName(),
 				i->getSize(),
@@ -810,10 +810,10 @@ string File::getMountPath(const string& aPath, const VolumeSet& aVolumes, bool a
 		// Not found from volumes... network path? This won't work with mounted dirs
 		// Get the first section containing the network host and the first folder/drive (//HTPC/g/)
 		if (aPath.length() > 2 && aPath.substr(0, 2) == "\\\\") {
-			l = aPath.find("\\", 2);
+			l = aPath.find('\\', 2);
 			if (l != string::npos) {
 				//get the drive letter
-				l = aPath.find("\\", l + 1);
+				l = aPath.find('\\', l + 1);
 				if (l != string::npos) {
 					return aPath.substr(0, l + 1);
 				}

@@ -9,10 +9,10 @@ endif (APPLE)
 
 set (PROJECT_NAME "AirDC++ Web Client")
 set (TAG_APPLICATION "AirDC++w")
-set (VERSION "2.2.1") # NOTE: the minor version must match the lastest UI version
-set (SOVERSION "2.2.1" )
+set (VERSION "2.3.0") # NOTE: the minor version must match the lastest UI version
+set (SOVERSION "2.3.0" )
 
-set (GNUCXX_MINIMUM_VERSION "4.8")
+set (GNUCXX_MINIMUM_VERSION "4.9")
 
 include (GNUInstallDirs)
 include (CheckIncludeFile)
@@ -95,7 +95,7 @@ endif()
 
 
 ## DEPENDENCIES
-find_package (GeoIP REQUIRED)
+find_package (MaxMindDB REQUIRED)
 find_package (PkgConfig)
 find_package (BZip2 REQUIRED)
 find_package (ZLIB REQUIRED)
@@ -232,7 +232,7 @@ add_definitions (-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT
                  -D_DATADIR="${CLIENT_DATA_DIR}" -DLOCALE_DIR="${LOCALE_DIR}" -DBUILDING_AIRDCPP)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID STREQUAL Clang)
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -pipe -Wformat -Werror=format-security -fpermissive")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pipe -Wformat -Werror=format-security -fpermissive")
     if (USE_GOLD)
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-linker-plugin")
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-linker-plugin")
@@ -240,6 +240,11 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID STREQUAL Clang)
     if (NOT APPLE)
         set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--as-needed")
     endif ()
+endif ()
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+    # Disable ABI change notification spam
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-psabi")
 endif ()
 
 if (WITH_ASAN)
@@ -297,7 +302,7 @@ message(STATUS "CMAKE will use this libs (and headers) during build:
     zlib (headers): ${ZLIB_LIBRARIES} (${ZLIB_INCLUDE_DIR})
     openssl (headers): ${OPENSSL_LIBRARIES} (${OPENSSL_INCLUDE_DIR})
     iconv (headers): ${ICONV_LIBRARIES} (${ICONV_INCLUDE_DIR})
-    geoip (headers): ${LibGeoIP_LIBRARY} (${LibGeoIP_INCLUDE_DIR})
+    maxminddb (headers): ${LIBMAXMINDDB_LIBRARY} (${LIBMAXMINDDB_INCLUDE_DIR})
     leveldb (headers): ${LevelDB_LIBRARY} (${LevelDB_INCLUDE_DIR})
     websocketpp (headers): (${WEBSOCKETPP_INCLUDE_DIR})
     natpmp (headers): ${LibNatpmp_LIBRARY} (${LibNatpmp_INCLUDE_DIR})

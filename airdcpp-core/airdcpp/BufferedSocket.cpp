@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,7 +70,7 @@ void BufferedSocket::setMode (Modes aMode, size_t aRollback) {
 			rollback = aRollback;
 			break;
 		case MODE_ZPIPE:
-			filterIn = std::unique_ptr<UnZFilter>(new UnZFilter);
+			filterIn = make_unique<UnZFilter>();
 			break;
 		case MODE_DATA:
 			break;

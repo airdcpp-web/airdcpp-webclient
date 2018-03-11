@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -82,7 +82,7 @@ public:
 	DirectoryContentInfo getBundleContent(const BundlePtr& aBundle) const noexcept;
 
 	// Get the total queued bytes
-	uint64_t getTotalQueueSize() const noexcept { return bundleQueue.getTotalQueueSize(); }
+	int64_t getTotalQueueSize() const noexcept { return bundleQueue.getTotalQueueSize(); }
 
 	// Add a user's filelist to the queue.
 	// New managed filelist sessions should be created via DirectoryListingManager instead
@@ -267,7 +267,7 @@ public:
 	void removeBundleNotify(const UserPtr& aUser, QueueToken aBundleToken) noexcept;
 
 	void sendRemovePBD(const HintedUser& aUser, const string& aRemoteToken) noexcept;
-	bool getSearchInfo(const string& aTarget, TTHValue& tth_, int64_t size_) noexcept;
+	bool getSearchInfo(const string& aTarget, TTHValue& tth_, int64_t& size_) noexcept;
 	bool handlePartialSearch(const UserPtr& aUser, const TTHValue& tth, PartsInfo& _outPartsInfo, string& _bundle, bool& _reply, bool& _add) noexcept;
 	bool handlePartialResult(const HintedUser& aUser, const TTHValue& tth, const QueueItem::PartialSource& partialSource, PartsInfo& outPartialInfo) noexcept;
 
@@ -512,6 +512,8 @@ private:
 	void onFileFinished(const QueueItemPtr& aQI, Download* aDownload, const string& aListDirectory) noexcept;
 	void onDownloadFailed(QueueItemPtr& aQI, Download* aDownload, bool aNoAccess, bool aRotateQueue) noexcept;
 	void onFileDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept;
+	// Throws HashException
+	void onTreeDownloadCompleted(QueueItemPtr& aQI, Download* aDownload);
 	void onFilelistDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept;
 
 	StringMatch highPrioFiles;

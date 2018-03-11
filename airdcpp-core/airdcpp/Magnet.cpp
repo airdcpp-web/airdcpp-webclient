@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2017 AirDC++ Project
+ * Copyright (C) 2012-2018 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,7 +61,7 @@ Magnet::Magnet(const string& aLink) {
 		} else if (type.length() == 2 && Util::strnicmp(type.c_str(), "dn", 2) == 0) {
 			fname = param;
 		} else if (type.length() == 2 && Util::strnicmp(type.c_str(), "xl", 2) == 0) {
-			fsize = Util::toInt64(param.c_str());
+			fsize = Util::toInt64(param);
 		}
 	}
 

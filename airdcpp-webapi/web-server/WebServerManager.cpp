@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2017 AirDC++ Project
+* Copyright (C) 2011-2018 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#include <web-server/stdinc.h>
+#include "stdinc.h"
 #include <api/ApiSettingItem.h>
 
 #include <web-server/ExtensionManager.h>
@@ -68,8 +68,8 @@ namespace webserver {
 
 		fileServer.setResourcePath(Util::getPath(Util::PATH_RESOURCES) + "web-resources" + PATH_SEPARATOR);
 
-		extManager = unique_ptr<ExtensionManager>(new ExtensionManager(this));
-		userManager = unique_ptr<WebUserManager>(new WebUserManager(this));
+		extManager = make_unique<ExtensionManager>(this);
+		userManager = make_unique<WebUserManager>(this);
 
 		ios.stop(); //Prevent io service from running until we load
 	}

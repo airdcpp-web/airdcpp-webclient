@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -302,7 +302,7 @@ checkslots:
 					fileSize = size = xml.size();
 				} else {
 					countFilePositions();
-					unique_ptr<File> f(new File(sourceFile, File::READ, File::OPEN | File::SHARED_WRITE)); // write for partial sharing
+					auto f = make_unique<File>(sourceFile, File::READ, File::OPEN | File::SHARED_WRITE); // write for partial sharing
 			
 					f->setPos(start);
 					is = move(f);
@@ -537,7 +537,6 @@ void UploadManager::checkMultiConn() {
 
 void UploadManager::onUBN(const AdcCommand& cmd) {
 	string bundleToken;
-	string hubIpPort;
 	float percent = -1;
 	string speedStr;
 
@@ -591,7 +590,6 @@ void UploadManager::onUBN(const AdcCommand& cmd) {
 
 void UploadManager::createBundle(const AdcCommand& cmd) {
 	string bundleToken;
-	string hubIpPort;
 	string token;
 	string name;
 	int64_t size=0, downloaded=0;

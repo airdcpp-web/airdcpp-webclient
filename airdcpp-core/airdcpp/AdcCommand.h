@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -184,8 +184,8 @@ private:
 		uint8_t cmd[4];
 		uint32_t cmdInt;
 	};
-	uint32_t from;
-	uint32_t to;
+	uint32_t from = 0;
+	uint32_t to = 0;
 	char type;
 
 };

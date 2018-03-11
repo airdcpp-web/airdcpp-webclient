@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2017 AirDC++ Project
+* Copyright (C) 2011-2018 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -15,6 +15,8 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
+
+#include "stdinc.h"
 
 #include <api/SettingApi.h>
 #include <api/ApiSettingItem.h>
@@ -96,7 +98,7 @@ namespace webserver {
 		SettingHolder h(nullptr);
 
 		bool hasSet = false;
-		for (const auto& elem : json::iterator_wrapper(aRequest.getRequestBody())) {
+		for (const auto& elem : aRequest.getRequestBody().items()) {
 			auto setting = getSettingItem(elem.key());
 			if (!setting) {
 				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");

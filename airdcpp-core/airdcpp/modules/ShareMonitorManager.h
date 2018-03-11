@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2017 AirDC++ Project
+* Copyright (C) 2011-2018 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -91,7 +91,7 @@ namespace dcpp {
 			const bool isDirectory;
 		};
 
-		optional<FileItem> ShareMonitorManager::checkModifiedPath(const string& aPath) noexcept;
+		optional<FileItem> checkModifiedPath(const string& aPath) noexcept;
 		void addModifyInfo(const string& aPath) noexcept;
 
 		// Recursively removes all notifications for the given path
