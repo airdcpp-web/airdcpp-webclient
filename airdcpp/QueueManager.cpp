@@ -1651,6 +1651,8 @@ void QueueManager::putDownload(Download* aDownload, bool aFinished, bool aNoAcce
 		onDownloadFailed(q, d.get(), aNoAccess, aRotateQueue);
 	} else if (q->isSet(QueueItem::FLAG_USER_LIST)) {
 		onFilelistDownloadCompleted(q, d.get());
+	} else if (d->getType() == Transfer::TYPE_TREE) {
+		onTreeDownloadCompleted(q, d.get());
 	} else {
 		onFileDownloadCompleted(q, d.get());
 	}
@@ -1744,19 +1746,18 @@ void QueueManager::onFilelistDownloadCompleted(QueueItemPtr& aQI, Download* aDow
 	fire(QueueManagerListener::ItemRemoved(), aQI, true);
 }
 
-void QueueManager::onFileDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept {
-	if (aDownload->getType() == Transfer::TYPE_TREE) {
-		{
-			WLock l(cs);
-			userQueue.removeDownload(aQI, aDownload->getToken());
-		}
-
-		dcassert(aDownload->getTreeValid());
-		HashManager::getInstance()->addTree(aDownload->getTigerTree());
-		fire(QueueManagerListener::ItemStatus(), aQI);
-		return;
+void QueueManager::onTreeDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) {
+	{
+		WLock l(cs);
+		userQueue.removeDownload(aQI, aDownload->getToken());
 	}
 
+	dcassert(aDownload->getTreeValid());
+	HashManager::getInstance()->addTree(aDownload->getTigerTree());
+	fire(QueueManagerListener::ItemStatus(), aQI);
+}
+
+void QueueManager::onFileDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept {
 	dcassert(aDownload->getType() == Transfer::TYPE_FILE);
 
 	aDownload->setOverlapped(false);

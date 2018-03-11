@@ -512,6 +512,8 @@ private:
 	void onFileFinished(const QueueItemPtr& aQI, Download* aDownload, const string& aListDirectory) noexcept;
 	void onDownloadFailed(QueueItemPtr& aQI, Download* aDownload, bool aNoAccess, bool aRotateQueue) noexcept;
 	void onFileDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept;
+	// Throws HashException
+	void onTreeDownloadCompleted(QueueItemPtr& aQI, Download* aDownload);
 	void onFilelistDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept;
 
 	StringMatch highPrioFiles;
