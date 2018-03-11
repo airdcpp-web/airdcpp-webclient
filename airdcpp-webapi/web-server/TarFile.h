@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_TARFILE_H
 #define DCPLUSPLUS_DCPP_TARFILE_H
 
-#include <web-server/stdinc.h>
+#include "stdinc.h"
 
 #include <microtar/microtar.h>
 

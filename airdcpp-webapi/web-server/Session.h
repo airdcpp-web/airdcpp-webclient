@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SESSION_H
 #define DCPLUSPLUS_DCPP_SESSION_H
 
-#include <web-server/stdinc.h>
+#include "stdinc.h"
 
 #include <web-server/LazyInitWrapper.h>
 #include <web-server/SessionListener.h>

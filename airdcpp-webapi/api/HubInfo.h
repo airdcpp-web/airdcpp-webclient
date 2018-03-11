@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_HUBINFO_H
 #define DCPLUSPLUS_DCPP_HUBINFO_H
 
-#include <web-server/stdinc.h>
-
 #include <airdcpp/typedefs.h>
 #include <airdcpp/GetSet.h>
 

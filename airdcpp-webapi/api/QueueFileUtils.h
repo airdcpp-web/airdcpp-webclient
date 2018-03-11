@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_QUEUE_FILE_UTILS_H
 #define DCPLUSPLUS_DCPP_QUEUE_FILE_UTILS_H
 
-#include <web-server/stdinc.h>
-
 #include <api/common/Property.h>
 
 #include <airdcpp/typedefs.h>

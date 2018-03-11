@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_FILESEARCH_PARSER_H
 #define DCPLUSPLUS_DCPP_FILESEARCH_PARSER_H
 
-#include <web-server/stdinc.h>
-
 #include <airdcpp/typedefs.h>
 #include <airdcpp/Search.h>
 

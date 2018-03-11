@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_FORMAT_H
 #define DCPLUSPLUS_DCPP_FORMAT_H
 
-#include <web-server/stdinc.h>
-
 #include <airdcpp/typedefs.h>
 
 namespace webserver {

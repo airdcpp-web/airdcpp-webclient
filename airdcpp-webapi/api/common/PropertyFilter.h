@@ -19,7 +19,6 @@
 #ifndef DCPP_PROPERTYFILTER_H
 #define DCPP_PROPERTYFILTER_H
 
-#include <airdcpp/stdinc.h>
 #include <airdcpp/CriticalSection.h>
 
 #include <api/common/Property.h>

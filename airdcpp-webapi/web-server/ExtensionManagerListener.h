@@ -20,7 +20,7 @@
 #ifndef DCPLUSPLUS_DCPP_EXTENSIONMANAGER_LISTENER_H
 #define DCPLUSPLUS_DCPP_EXTENSIONMANAGER_LISTENER_H
 
-#include <web-server/stdinc.h>
+#include "stdinc.h"
 
 namespace webserver {
 	class ExtensionManagerListener {

@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_FILELIST_H
 #define DCPLUSPLUS_DCPP_FILELIST_H
 
-#include <web-server/stdinc.h>
-
 #include <api/FilelistUtils.h>
 #include <api/FilelistItemInfo.h>
 

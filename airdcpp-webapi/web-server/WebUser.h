@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_WEBUSER_H
 #define DCPLUSPLUS_DCPP_WEBUSER_H
 
-#include <web-server/stdinc.h>
+#include "stdinc.h"
 #include <web-server/Access.h>
 
 #include <airdcpp/typedefs.h>

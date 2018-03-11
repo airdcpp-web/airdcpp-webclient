@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_WEBSOCKET_H
 #define DCPLUSPLUS_DCPP_WEBSOCKET_H
 
-#include <web-server/stdinc.h>
+#include "stdinc.h"
 
 #include <web-server/Session.h>
 #include <web-server/ApiRequest.h>

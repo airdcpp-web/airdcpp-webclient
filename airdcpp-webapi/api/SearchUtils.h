@@ -21,8 +21,6 @@
 
 #include <api/common/Property.h>
 
-#include <web-server/stdinc.h>
-
 #include <airdcpp/typedefs.h>
 #include <airdcpp/GroupedSearchResult.h>
 

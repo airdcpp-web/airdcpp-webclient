@@ -19,7 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_EXTENSION_API_H
 #define DCPLUSPLUS_DCPP_EXTENSION_API_H
 
-#include <web-server/stdinc.h>
 #include <web-server/ExtensionManagerListener.h>
 
 #include <api/base/HierarchicalApiModule.h>

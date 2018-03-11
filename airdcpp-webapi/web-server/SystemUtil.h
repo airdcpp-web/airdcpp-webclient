@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SYSTEMUTIL_H
 #define DCPLUSPLUS_DCPP_SYSTEMUTIL_H
 
-#include <web-server/stdinc.h>
+#include "stdinc.h"
 
 namespace webserver {
 	class SystemUtil {

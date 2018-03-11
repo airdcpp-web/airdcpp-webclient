@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_SHAREROOT_API_H
 #define DCPLUSPLUS_DCPP_SHAREROOT_API_H
 
-#include <web-server/stdinc.h>
-
 #include <api/base/ApiModule.h>
 #include <api/ShareUtils.h>
 #include <api/common/ListViewController.h>

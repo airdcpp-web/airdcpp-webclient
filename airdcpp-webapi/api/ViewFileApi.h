@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_FILEVIEW_API_H
 #define DCPLUSPLUS_DCPP_FILEVIEW_API_H
 
-#include <web-server/stdinc.h>
-
 #include <airdcpp/typedefs.h>
 
 #include <airdcpp/ViewFileManagerListener.h>

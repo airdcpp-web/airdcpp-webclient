@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_CORESETTINGS_H
 #define DCPLUSPLUS_DCPP_CORESETTINGS_H
 
-#include <web-server/stdinc.h>
-
 #include <api/ApiSettingItem.h>
 #include <airdcpp/SettingsManager.h>
 
