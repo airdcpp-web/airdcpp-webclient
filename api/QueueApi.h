@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_QUEUEAPI_H
 #define DCPLUSPLUS_DCPP_QUEUEAPI_H
 
-#include <web-server/stdinc.h>
-
 #include <airdcpp/typedefs.h>
 
 #include <airdcpp/DownloadManagerListener.h>

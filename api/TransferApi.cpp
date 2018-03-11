@@ -16,7 +16,8 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#include <web-server/stdinc.h>
+#include "stdinc.h"
+
 #include <web-server/Timer.h>
 
 #include <api/TransferApi.h>

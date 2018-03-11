@@ -23,7 +23,7 @@ endif()
 target_link_libraries (airdcpp-webapi airdcpp ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES})
 set_target_properties(airdcpp-webapi PROPERTIES VERSION ${SOVERSION} OUTPUT_NAME "airdcpp-webapi")
 
-set_target_properties(airdcpp-webapi PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "web-server/stdinc.h")
+set_target_properties(airdcpp-webapi PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdinc.h")
 if (COMMAND cotire)
   cotire(airdcpp-webapi)
 endif()

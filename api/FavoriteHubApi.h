@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_FAVORITEHUBAPI_H
 #define DCPLUSPLUS_DCPP_FAVORITEHUBAPI_H
 
-#include <web-server/stdinc.h>
-
 #include <api/FavoriteHubUtils.h>
 
 #include <api/base/ApiModule.h>

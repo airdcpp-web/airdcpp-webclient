@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_PRIVATEMESSAGE_H
 #define DCPLUSPLUS_DCPP_PRIVATEMESSAGE_H
 
-#include <web-server/stdinc.h>
-
 #include <airdcpp/typedefs.h>
 #include <airdcpp/GetSet.h>
 

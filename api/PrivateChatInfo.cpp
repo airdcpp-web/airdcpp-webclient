@@ -16,6 +16,8 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
+#include "stdinc.h"
+
 #include <api/PrivateChatInfo.h>
 #include <api/base/ApiModule.h>
 #include <api/common/Serializer.h>

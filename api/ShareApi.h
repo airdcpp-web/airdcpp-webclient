@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_SHAREAPI_H
 #define DCPLUSPLUS_DCPP_SHAREAPI_H
 
-#include <web-server/stdinc.h>
-
 #include <api/base/HookApiModule.h>
 
 #include <airdcpp/typedefs.h>

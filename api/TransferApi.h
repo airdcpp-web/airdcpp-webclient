@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_TRANSFERAPI_H
 #define DCPLUSPLUS_DCPP_TRANSFERAPI_H
 
-#include <web-server/stdinc.h>
-
 #include <api/base/ApiModule.h>
 #include <api/TransferInfo.h>
 #include <api/TransferUtils.h>

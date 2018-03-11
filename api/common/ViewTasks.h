@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_VIEWTASKS_H
 #define DCPLUSPLUS_DCPP_VIEWTASKS_H
 
-#include <web-server/stdinc.h>
-
 #include <airdcpp/CriticalSection.h>
 
 

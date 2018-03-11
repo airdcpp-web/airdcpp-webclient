@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_SETTINGAPI_H
 #define DCPLUSPLUS_DCPP_SETTINGAPI_H
 
-#include <web-server/stdinc.h>
-
 #include <api/base/ApiModule.h>
 
 //#include <airdcpp/SettingsManager.h>

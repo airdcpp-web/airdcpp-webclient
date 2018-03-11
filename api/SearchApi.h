@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_SEARCHAPI_H
 #define DCPLUSPLUS_DCPP_SEARCHAPI_H
 
-#include <web-server/stdinc.h>
-
 #include <api/SearchEntity.h>
 
 #include <api/base/HierarchicalApiModule.h>

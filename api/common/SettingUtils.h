@@ -19,7 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_SETTING_UTILS_H
 #define DCPLUSPLUS_DCPP_SETTING_UTILS_H
 
-#include <web-server/stdinc.h>
 #include <api/ApiSettingItem.h>
 
 namespace webserver {

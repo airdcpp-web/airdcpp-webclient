@@ -19,7 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_SYSTEMAPI_H
 #define DCPLUSPLUS_DCPP_SYSTEMAPI_H
 
-#include <web-server/stdinc.h>
 #include <api/base/ApiModule.h>
 
 #include <airdcpp/ActivityManager.h>

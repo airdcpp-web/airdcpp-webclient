@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_HOOK_APIMODULE_H
 #define DCPLUSPLUS_DCPP_HOOK_APIMODULE_H
 
-#include <web-server/stdinc.h>
-
 #include <web-server/Access.h>
 #include <web-server/SessionListener.h>
 

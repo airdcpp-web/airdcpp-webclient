@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_DESERIALIZER_H
 #define DCPLUSPLUS_DCPP_DESERIALIZER_H
 
-#include <web-server/stdinc.h>
-
 #include <airdcpp/typedefs.h>
 #include <airdcpp/MerkleTree.h>
 #include <airdcpp/Message.h>

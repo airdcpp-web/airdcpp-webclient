@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_PRIVATEMESSAGEAPI_H
 #define DCPLUSPLUS_DCPP_PRIVATEMESSAGEAPI_H
 
-#include <web-server/stdinc.h>
-
 #include <api/base/HookApiModule.h>
 #include <api/base/HierarchicalApiModule.h>
 #include <api/PrivateChatInfo.h>

@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_SERIALIZER_H
 #define DCPLUSPLUS_DCPP_SERIALIZER_H
 
-#include <web-server/stdinc.h>
-
 #include <api/common/Property.h>
 
 #include <airdcpp/typedefs.h>

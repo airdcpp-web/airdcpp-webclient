@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_LISTVIEW_H
 #define DCPLUSPLUS_DCPP_LISTVIEW_H
 
-#include <web-server/stdinc.h>
-
 #include <web-server/JsonUtil.h>
 #include <web-server/SessionListener.h>
 #include <web-server/Timer.h>

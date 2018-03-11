@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_TRANSFERUTILS_H
 #define DCPLUSPLUS_DCPP_TRANSFERUTILS_H
 
-#include <web-server/stdinc.h>
-
 #include <api/TransferInfo.h>
 #include <api/common/Property.h>
 

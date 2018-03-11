@@ -19,8 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_FILELISTAPI_H
 #define DCPLUSPLUS_DCPP_FILELISTAPI_H
 
-#include <web-server/stdinc.h>
-
 #include <api/base/HierarchicalApiModule.h>
 #include <api/FilelistInfo.h>
 

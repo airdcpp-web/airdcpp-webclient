@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_EXTENSION_H
 #define DCPLUSPLUS_DCPP_EXTENSION_H
 
-#include <web-server/stdinc.h>
+#include "stdinc.h"
 #include <web-server/ExtensionListener.h>
 
 #include <api/ApiSettingItem.h>

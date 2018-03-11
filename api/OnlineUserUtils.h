@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_ONLINEUSER_UTILS_H
 #define DCPLUSPLUS_DCPP_ONLINEUSER_UTILS_H
 
-#include <web-server/stdinc.h>
+#include "stdinc.h"
 
 #include <api/common/Property.h>
 
