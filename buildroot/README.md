@@ -18,7 +18,7 @@ Extract the package and rename the output directory based on the current archite
 
 `tar jxvf buildroot-2018.02.tar.bz2`
 
-`mv -f buildroot-2018.02 armhf` (replace "armhf" with the wanted arch name)
+`mv -f buildroot-2018.02 armhf` (replace `armhf` with the wanted arch name)
 
 The architecture name can be freely chosen. The following architecture names are used for the shipped binaries: `armhf`, `x86_64`, `i786`
 
@@ -42,9 +42,9 @@ Run `make -j4` (this will compile the environment with 4 threads)
 
 `/AIRDCPP_SOURCE_PATH/buildroot/build-portable.sh /BUILDROOT_ROOT_PATH/ /OUTPUT_DIRECTORY/ [ARCH_NAME]`
 
-`BUILDROOT_ROOT_PATH` is the manually created directory containing all your configured buildroot environments (it shouldn't contain the actual architecture directory)
-`ARCH_NAME` is the architecture that you want to compile. If no architecture is being provided, all architectures found from the directory will be compiled.
-`OUTPUT_DIRECTORY` is the output directory that will be used for cached build files and the final packages. It's recommended to create a new directory for that.
+- `BUILDROOT_ROOT_PATH` is the manually created directory containing all your configured buildroot environments (it shouldn't contain the actual architecture directory)
+- `ARCH_NAME` is the architecture that you want to compile. If no architecture is being provided, all architectures found from the directory will be compiled.
+- `OUTPUT_DIRECTORY` is the output directory that will be used for cached build files and the final packages. It's recommended to create a new directory for that.
 
 Run the `build-portable.sh` script without arguments to see the possible additional env variables to use.
 
