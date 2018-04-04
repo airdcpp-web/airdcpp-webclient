@@ -1,4 +1,4 @@
-### Download Buildroot
+## Download Buildroot
 
 You should first create a new directory (e.g. `buildroot`) where you will put the buildroot package and all the wanted buildroot environment directories.
 
@@ -8,11 +8,11 @@ Download buildroot in the newly created directory:
 wget https://buildroot.org/downloads/buildroot-2018.02.tar.bz2
 ```
 
-### Setup environments
+## Setup environments
 
 Repeat the following steps for all wanted architectures.
 
-#### Extract files
+### Extract files
 
 Extract the package and rename the output directory based on the current architecture: 
 
@@ -22,7 +22,7 @@ Extract the package and rename the output directory based on the current archite
 
 The architecture name can be freely chosen. The following architecture names are used for the shipped binaries: `armhf`, `x86_64`, `i786`
 
-#### Install defaults
+### Install defaults
 
 Install the default configuration and patches by running the following command:  
 
@@ -30,15 +30,15 @@ Install the default configuration and patches by running the following command:
 
 Example command: `/home/airdcpp/airdcpp-webclient/buildroot/setup-buildroot.sh /home/airdcpp/buildroot/armhf/`
 
-#### Configure
+### Configure and build
 
-Run `make nconfig` and edit the environment based on you needs (mainly the `Target options` sections).
+Run `make nconfig` in the environment directory and edit the configuration based on you needs (mainly the `Target options` sections).
 
-#### Build environtment
+When you are satisfied with the configuration, run `make -j4` to compile the environment (the example command will compile the environment with 4 threads).
 
-Run `make -j4` (this will compile the environment with 4 threads)
+## Build AirDC++
 
-### Build application
+Use the following command to compile the AirDC++ Web Client binaries for your configured target environments:
 
 `/AIRDCPP_SOURCE_PATH/buildroot/build-portable.sh /BUILDROOT_ROOT_PATH/ /OUTPUT_DIRECTORY/ [ARCH_NAME]`
 
