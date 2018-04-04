@@ -1,3 +1,5 @@
+This guide will instruct how to use [Buildroot](https://buildroot.org) to cross-compile binaries for different system architectures. Note that [binaries for the most common architectures are provided](https://airdcpp-web.github.io/docs/installation/linux-binaries.html) and you may post an issue on Github if you want new architectures to be added.
+
 ## Download Buildroot
 
 You should first create a new directory (e.g. `buildroot`) where you will put the buildroot package and all the wanted buildroot environment directories.
