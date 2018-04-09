@@ -16,8 +16,8 @@ if [ -z "$2" ]
     echo "Additional options:"
     echo ""
     echo "BRANCH: branch/commit id for checkout (default: develop)"
-    echo "BUILD_LATEST: create a latest portable package without version numbers (default: false)"
     echo "BUILD_THREADS: number of compiler threads to use (default: auto)"
+    echo "CREATE_LATEST: create a latest portable package without version numbers (default: false)"
     echo "SKIP_EXISTING: don't build/overwrite existing target packages (default: disabled)"
     echo ""
     exit 1
@@ -26,7 +26,7 @@ fi
 # Source
 BR_ROOT=$1
 ARCH=`echo "$3" | xargs`
-BUILD_LATEST=$4
+CREATE_LATEST=$4
 
 # Output
 OUTPUT_DIR=$2
@@ -174,7 +174,7 @@ CreatePackage()
   ARCH_PKG_PATH=$PKG_TYPE_DIR/$ARCH_PKG_BASE.tar.gz
   tar czvf $ARCH_PKG_PATH -C ${TMP_DIR} airdcpp-webclient
   
-  if [[ $BUILD_LATEST == true ]]; then
+  if [[ $CREATE_LATEST == true ]]; then
     cp $ARCH_PKG_PATH $PKG_TYPE_DIR/airdcpp_latest_${BRANCH}_${ARCHSTR}_portable.tar.gz
     echo "${bold}Package was saved to $PKG_TYPE_DIR/airdcpp_latest_${BRANCH}_${ARCHSTR}_portable.tar.gz${normal}"
   fi
