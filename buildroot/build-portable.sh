@@ -176,7 +176,7 @@ CreatePackage()
 
   if [[ $CREATE_LATEST == true ]]; then
     cp $ARCH_PKG_PATH $PKG_TYPE_DIR/airdcpp_latest_${BRANCH}_${ARCHSTR}_portable.tar.gz
-    echo "${bold}Package was saved to${normal} $PKG_TYPE_DIR/airdcpp_latest_${BRANCH}_${ARCHSTR}_portable.tar.gz"
+    echo "${bold}Package was saved to $PKG_TYPE_DIR/airdcpp_latest_${BRANCH}_${ARCHSTR}_portable.tar.gz${normal}"
   fi
   
   DeleteTmpDir
