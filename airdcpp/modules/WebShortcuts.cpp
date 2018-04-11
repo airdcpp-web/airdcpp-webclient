@@ -30,11 +30,11 @@ namespace dcpp {
 WebShortcuts::WebShortcuts() {
 	SettingsManager::getInstance()->addListener(this);
 	//add our default ones, should we pick translations here?
-	list.push_back(new WebShortcut(STRING(SEARCH_GOOGLE_FULL), "google", "http://www.google.com/search?q=", false));
-	list.push_back(new WebShortcut(STRING(SEARCH_GOOGLE_TITLE), "googletitle", "http://www.google.com/search?q=", true));
-	list.push_back(new WebShortcut(STRING(SEARCH_IMDB), "imdb", "http://www.imdb.com/find?q=", true));
-	list.push_back(new WebShortcut(STRING(SEARCH_TVCOM), "tvcom", "http://www.tv.com/search?q=", true));
-	list.push_back(new WebShortcut(STRING(SEARCH_METACRITIC), "metacritic", "http://www.metacritic.com/search/all/%s/results", true));
+	list.push_back(new WebShortcut(STRING(SEARCH_GOOGLE_FULL), "google", "https://www.google.com/search?q=", false));
+	list.push_back(new WebShortcut(STRING(SEARCH_GOOGLE_TITLE), "googletitle", "https://www.google.com/search?q=", true));
+	list.push_back(new WebShortcut(STRING(SEARCH_IMDB), "imdb", "https://www.imdb.com/find?q=", true));
+	list.push_back(new WebShortcut(STRING(SEARCH_TVCOM), "tvcom", "https://www.tv.com/search?q=", true));
+	list.push_back(new WebShortcut(STRING(SEARCH_METACRITIC), "metacritic", "https://www.metacritic.com/search/all/%s/results", true));
 }
 
 WebShortcuts::~WebShortcuts() {
