@@ -247,7 +247,7 @@ string Updater::createUpdate() noexcept {
 					//xml.replaceChildAttrib("Commit", Util::toString(COMMIT_NUMBER));
 					xml.replaceChildAttrib("VersionString", VERSIONSTRING);
 					xml.stepIn();
-					xml.setData("http://builds.airdcpp.net/updater/" + updaterFile);
+					xml.setData("https://builds.airdcpp.net/updater/" + updaterFile);
 
 					// Replace the line endings to use Unix format (it would be converted by the hosting provider anyway, which breaks the signature)
 					auto content = SimpleXML::utf8Header;

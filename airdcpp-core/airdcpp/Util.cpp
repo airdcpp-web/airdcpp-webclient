@@ -695,24 +695,23 @@ string Util::formatSeconds(int64_t aSec, bool supressHours /*false*/) noexcept {
 	return buf;
 }
 
-string Util::formatTime(int64_t aSec, bool translate, bool perMinute) noexcept {
+string Util::formatTime(uint64_t aSec, bool aTranslate, bool aPerMinute) noexcept {
 	string formatedTime;
 
-	uint64_t n, i;
-	i = 0;
+	decltype(aSec) n, added = 0;
 
 	auto appendTime = [&] (const string& aTranslatedS, const string& aEnglishS, const string& aTranslatedP, const string& aEnglishP) -> void {
-		if (perMinute && i == 2) //add max 2 values
+		if (aPerMinute && added == 2) //add max 2 values
 			return;
 
 		char buf[128];
 		if(n >= 2) {
-			snprintf(buf, sizeof(buf), ("%d " + ((translate ? Text::toLower(aTranslatedP) : aEnglishP) + " ")).c_str(), n);
+			snprintf(buf, sizeof(buf), (U64_FMT " " + ((aTranslate ? Text::toLower(aTranslatedP) : aEnglishP) + " ")).c_str(), n);
 		} else {
-			snprintf(buf, sizeof(buf), ("%d " + ((translate ? Text::toLower(aTranslatedS) : aEnglishS) + " ")).c_str(), n);
+			snprintf(buf, sizeof(buf), (U64_FMT " " + ((aTranslate ? Text::toLower(aTranslatedS) : aEnglishS) + " ")).c_str(), n);
 		}
 		formatedTime += (string)buf;
-		i++;
+		added++;
 	};
 
 	n = aSec / (24*3600*365);
@@ -747,12 +746,12 @@ string Util::formatTime(int64_t aSec, bool translate, bool perMinute) noexcept {
 
 	n = aSec / (60);
 	aSec %= (60);
-	if(n || perMinute) {
+	if(n || aPerMinute) {
 		appendTime(STRING(MINUTE), "min", STRING(MINUTES_LOWER), "min");
 	}
 
 	n = aSec;
-	if(++i <= 3 && !perMinute) {
+	if(++added <= 3 && !aPerMinute) {
 		appendTime(STRING(SECOND), "sec", STRING(SECONDS_LOWER), "sec");
 	}
 
