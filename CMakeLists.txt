@@ -57,6 +57,7 @@ unset(INSTALL_RUNTIME_PATH CACHE)
 
 option (INSTALL_RUNTIME_PATH "Install rpath" ON)
 option (LOCAL_BOOST "Use local boost headers" OFF)
+option (STRIP "Strip debugging symbols to a separate file" OFF)
 option (INSTALL_WEB_UI "Download and install the Web UI package" ON)
 option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
 option (WITH_ASAN "Enable address sanitizer" OFF) # With clang: http://clang.llvm.org/docs/AddressSanitizer.html

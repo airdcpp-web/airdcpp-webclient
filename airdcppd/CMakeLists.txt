@@ -29,6 +29,15 @@ if (CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(-D_DEBUG)
 endif()
 
+if (STRIP)
+  ADD_CUSTOM_COMMAND(
+      TARGET airdcppd
+      POST_BUILD
+      COMMAND sh ../scripts/strip-symbols.sh ${PROJECT_SOURCE_DIR}/airdcppd
+  )
+endif()
+
+
 set_property (TARGET ${PROJECT_NAME} PROPERTY OUTPUT_NAME ${PROJECT_NAME})
 install (TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${BINDIR}
