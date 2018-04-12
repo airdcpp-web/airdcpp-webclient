@@ -43,19 +43,19 @@ If you see the message `Stacktrace is not available`, attach debugger to the run
 
 #### Crashes with portable builds
 
-When using a portable build, you will also need to download the matching debugging symbols for the version that you are using. Debugging symbols available only for application version 2.3.1 or newer.
+When using a portable build, you will also need to download the matching debugging symbols for the version that you are using. Debugging symbols are provided starting from application version 2.3.1.
 
 Download links:
 
-[Debugging symbols for stable builds](https://web-builds.airdcpp.net/stable/dbg_symbols/)
-[Debugging symbols for develop builds](https://web-builds.airdcpp.net/develop/dbg_symbols/)
+- [Debugging symbols for stable builds](https://web-builds.airdcpp.net/stable/dbg_symbols/)
+- [Debugging symbols for develop builds](https://web-builds.airdcpp.net/develop/dbg_symbols/)
 
 Extract the content of the symbol package to the directory where the airdcppd executable is located before launching the debugger.
 
 
 ### Application freezes/deadlocks
 
-Note that you should first confirm whether the client has frozen and the issue isn't in the UI (try opening the UI in a new tab).
+If there is no crash message printed in the console, you should first confirm that the client has really frozen and the issue isn't in the UI (try opening the UI in a new tab).
 
 You must have the ``gdb`` package installed before running the following commands. If you get an error `Could not attach to process` when trying to attach to process, you must start gdb as root instead.
 
