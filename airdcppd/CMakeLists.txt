@@ -33,7 +33,7 @@ if (STRIP)
   ADD_CUSTOM_COMMAND(
       TARGET airdcppd
       POST_BUILD
-      COMMAND sh ../scripts/strip-symbols.sh ${PROJECT_SOURCE_DIR}/airdcppd
+      COMMAND sh ../scripts/strip-symbols.sh ${PROJECT_SOURCE_DIR}/airdcppd ${CMAKE_OBJCOPY}
   )
 endif()
 

@@ -242,12 +242,9 @@ BuildArch()
     rm ${AIR_ARCH_ROOT}/CMakeCache.txt
   fi
 
-  cmake -DCMAKE_TOOLCHAIN_FILE="${BR_ARCH_PATH}/output/host/usr/share/buildroot/toolchainfile.cmake" -DBUILD_SHARED_LIBS=OFF ${AIR_ARCH_ROOT}
+  cmake -DCMAKE_TOOLCHAIN_FILE="${BR_ARCH_PATH}/output/host/usr/share/buildroot/toolchainfile.cmake" -DBUILD_SHARED_LIBS=OFF -DSTRIP=ON ${AIR_ARCH_ROOT}
 
   make -j${BUILD_THREADS}
-
-  # Strip symbols to a separate file
-  ${AIR_ARCH_ROOT}/scripts/strip-symbols.sh ${AIR_ARCH_ROOT}/airdcppd/airdcppd
 
   CreatePackage
 }

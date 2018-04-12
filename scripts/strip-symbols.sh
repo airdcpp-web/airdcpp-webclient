@@ -7,14 +7,20 @@ scriptdir=`dirname ${0}`
 scriptdir=`(cd ${scriptdir}; pwd)`
 scriptname=`basename ${0}`
 
+objcopy=$2
+if [ -z "$objcopy" ]; then
+  objcopy="objcopy"
+fi
+
+echo "Using ${objcopy} for stripping"
+
 set -e
 
 tostripdir=`dirname "$1"`
 tostripfile=`basename "$1"`
 
-
 if [ -z ${tostripfile} ] ; then
-  echo "USAGE ${scriptname} <tostrip>"
+  echo "USAGE ${scriptname} <tostrip> [<objcopy cmd>]"
   exit 1
 fi
 
@@ -32,7 +38,7 @@ if [ ! -d "${debugdir}" ] ; then
 fi
 
 echo "stripping ${tostripfile}, putting debug info into ${debugfile}"
-objcopy --only-keep-debug "${tostripfile}" "${debugpathtmp}"
+"${objcopy}" --only-keep-debug "${tostripfile}" "${debugpathtmp}"
 
 # Check the size of the output file to avoid packing invalid debug information
 FILESIZE=$(stat -c%s "${debugpathtmp}")
@@ -44,7 +50,7 @@ else
   mv "${debugpathtmp}" "${debugpath}"
 fi
 
-strip --strip-debug --strip-unneeded "${tostripfile}"
-objcopy --add-gnu-debuglink="${debugpath}" "${tostripfile}"
+"${objcopy}" --strip-debug --strip-unneeded "${tostripfile}"
+"${objcopy}" --add-gnu-debuglink="${debugpath}" "${tostripfile}"
 chmod -x "${debugdir}/${debugfile}"
 
