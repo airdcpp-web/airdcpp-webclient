@@ -7,7 +7,7 @@ normal=$(tput sgr0)
 set -e
 
 # Debug mode
-# set -x
+#set -x
 
 if [ -z "$2" ]
   then
@@ -17,7 +17,6 @@ if [ -z "$2" ]
     echo ""
     echo "BRANCH: branch/commit id for checkout (default: develop)"
     echo "BUILD_THREADS: number of compiler threads to use (default: auto)"
-    echo "CREATE_LATEST: create a latest portable package without version numbers (default: false)"
     echo "SKIP_EXISTING: don't build/overwrite existing target packages (default: disabled)"
     echo ""
     exit 1
@@ -114,7 +113,7 @@ SetArch()
   fi
 
   if [[ $BRANCH = "master" ]]; then
-    PKG_TYPE_DIR=${PKG_DIR}/stable
+    PKG_OUTPUT_DIR=${PKG_DIR}/stable
     ARCH_GIT_VERSION=$(git describe --abbrev=0 --tags)
     ARCH_VERSION=$(cat ${AIR_ARCH_ROOT}/CMakeLists.txt | pcregrep -o1 'set \(VERSION \"([0-9]+\.[0-9]+\.[0-9]+)\"\)')
 
@@ -124,16 +123,16 @@ SetArch()
       exit 1
     fi
   else
-    PKG_TYPE_DIR=${PKG_DIR}/$BRANCH
+    PKG_OUTPUT_DIR=${PKG_DIR}/$BRANCH
     ARCH_VERSION=$(git describe --tags --abbrev=4 --dirty=-d)
   fi
 
   ARCH_PKG_UI_VERSION=$(sh ./scripts/parse_webui_version.sh ${ARCH_VERSION})
   ARCH_PKG_BASE="airdcpp_${ARCH_VERSION}_webui-${ARCH_PKG_UI_VERSION}_${ARCHSTR}_portable${ARCH_PKG_BASE_EXTRA}"
-  ARCH_PKG_PATH="$PKG_TYPE_DIR/$ARCH_PKG_BASE.tar.gz"
+  ARCH_PKG_PATH="$PKG_OUTPUT_DIR/$ARCH_PKG_BASE.tar.gz"
 
-  if [ ! -d $PKG_TYPE_DIR ]; then
-    mkdir -p $PKG_TYPE_DIR;
+  if [ ! -d $PKG_OUTPUT_DIR ]; then
+    mkdir -p $PKG_OUTPUT_DIR;
   fi
 
   if [[ $SKIP_EXISTING ]] && [[ -f $ARCH_PKG_PATH ]]; then
@@ -144,14 +143,7 @@ SetArch()
   fi
 }
 
-DeleteTmpDir()
-{
-  rm -rf $TMP_PKG_DIR
-  #rm $TMP_PKG_DIR/*
-  rm -d $TMP_DIR
-}
-
-CreatePackage()
+CreateTmpDir()
 {
   if [ ! -d $OUTPUT_DIR ]; then
     mkdir -p $OUTPUT_DIR;
@@ -162,27 +154,70 @@ CreatePackage()
   fi
 
   mkdir -p $TMP_PKG_DIR;
-  mkdir -p $TMP_PKG_DIR;
   mkdir -p $TMP_PKG_DIR/web-resources;
+}
 
-  echo "Packaging..."
+DeleteTmpDir()
+{
+  #rm -rf $TMP_PKG_DIR
+  rm -rf $TMP_DIR
+  #rm -d $TMP_DIR
+}
+
+CreatePackage()
+{
+  CreateTmpDir
+
+  echo "Packaging app..."
 
   cp -r ${AIR_ARCH_ROOT}/node_modules/airdcpp-webui/dist/* ${TMP_PKG_DIR}/web-resources
   cp ${AIR_ARCH_ROOT}/buildroot/resources/dcppboot.xml ${TMP_PKG_DIR}
   cp ${AIR_ARCH_ROOT}/airdcppd/airdcppd ${TMP_PKG_DIR}
+  #cp -r ${AIR_ARCH_ROOT}/airdcppd/.debug ${TMP_PKG_DIR}
 
-  ARCH_PKG_PATH=$PKG_TYPE_DIR/$ARCH_PKG_BASE.tar.gz
+
+  # Versioned package
+  ARCH_PKG_PATH=$PKG_OUTPUT_DIR/$ARCH_PKG_BASE.tar.gz
   tar czvf $ARCH_PKG_PATH -C ${TMP_DIR} airdcpp-webclient
-  
-  if [[ $CREATE_LATEST == true ]]; then
-    cp $ARCH_PKG_PATH $PKG_TYPE_DIR/airdcpp_latest_${BRANCH}_${ARCHSTR}_portable.tar.gz
-    echo "${bold}Package was saved to $PKG_TYPE_DIR/airdcpp_latest_${BRANCH}_${ARCHSTR}_portable.tar.gz${normal}"
+
+  #echo "${bold}Package was saved to ${ARCH_PKG_PATH}${normal}"
+  #APP_PKG_SUMMARY="${APP_PKG_SUMMARY}${ARCH_PKG_PATH}\n"
+
+
+  # Latest package
+  ARCH_LATEST_PKG_PATH=$PKG_OUTPUT_DIR/airdcpp_latest_${BRANCH}_${ARCHSTR}_portable.tar.gz
+  cp $ARCH_PKG_PATH $ARCH_LATEST_PKG_PATH
+
+
+  # Report
+  echo "${bold}Package was saved to ${ARCH_PKG_PATH}${normal}"
+
+  APP_PKG_SUMMARY="${APP_PKG_SUMMARY}${ARCH_PKG_PATH}\n"
+  APP_PKG_SUMMARY="${APP_PKG_SUMMARY}${ARCH_LATEST_PKG_PATH}\n"
+
+
+  CreateSymbols
+  DeleteTmpDir
+}
+
+CreateSymbols()
+{
+  echo "Packaging symbols..."
+
+  SYMBOLS_OUTPUT_DIR=$PKG_OUTPUT_DIR/dbg_symbols
+
+  if [ ! -d $SYMBOLS_OUTPUT_DIR ]; then
+    mkdir -p $SYMBOLS_OUTPUT_DIR;
   fi
 
-  DeleteTmpDir
+  cp -r ${AIR_ARCH_ROOT}/airdcppd/.debug ${TMP_DIR}
 
-  echo "${bold}Package was saved to ${ARCH_PKG_PATH}${normal}"
-  BUILD_SUMMARY="${BUILD_SUMMARY}${ARCH_PKG_PATH}\n"
+  ARCH_SYMBOL_PKG_PATH=$SYMBOLS_OUTPUT_DIR/dbg_symbols_$ARCH_PKG_BASE.tar.gz
+  tar czvf $ARCH_SYMBOL_PKG_PATH -C ${TMP_DIR} .debug
+
+  echo "${bold}Symbols were saved to ${ARCH_SYMBOL_PKG_PATH}${normal}"
+
+  SYMBOLS_PKG_SUMMARY="${SYMBOLS_PKG_SUMMARY}${ARCH_SYMBOL_PKG_PATH}\n"
 }
 
 # Call with the current arch
@@ -211,6 +246,9 @@ BuildArch()
 
   make -j${BUILD_THREADS}
 
+  # Strip symbols to a separate file
+  ${AIR_ARCH_ROOT}/scripts/strip-symbols.sh ${AIR_ARCH_ROOT}/airdcppd/airdcppd
+
   CreatePackage
 }
 
@@ -225,7 +263,15 @@ else
 fi
 
 echo ""
+echo ""
+echo ""
+echo "${bold}---SUMMARY---${normal}"
+echo ""
 echo "${bold}Created packages:${normal}"
 echo ""
-echo -e "${BUILD_SUMMARY}"
+echo -e "${APP_PKG_SUMMARY}"
+echo ""
+echo "${bold}Symbols:${normal}"
+echo ""
+echo -e "${SYMBOLS_PKG_SUMMARY}"
 echo ""
