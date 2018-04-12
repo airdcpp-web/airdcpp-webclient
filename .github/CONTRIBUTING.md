@@ -41,6 +41,18 @@ Include all text from the generated crash log to your bug report. The log is loc
 
 If you see the message `Stacktrace is not available`, attach debugger to the running process by following the instructions for [Application freezes/deadlocks](#application-freezesdeadlocks) below (don't quit the application before that!).
 
+#### Crashes with portable builds
+
+When using a portable build, you will also need to download the matching debugging symbols for the version that you are using. Debugging symbols available only for application version 2.3.1 or newer.
+
+Download links:
+
+[Debugging symbols for stable builds](https://web-builds.airdcpp.net/stable/dbg_symbols/)
+[Debugging symbols for develop builds](https://web-builds.airdcpp.net/develop/dbg_symbols/)
+
+Extract the content of the symbol package to the directory where the airdcppd executable is located before launching the debugger.
+
+
 ### Application freezes/deadlocks
 
 Note that you should first confirm whether the client has frozen and the issue isn't in the UI (try opening the UI in a new tab).
