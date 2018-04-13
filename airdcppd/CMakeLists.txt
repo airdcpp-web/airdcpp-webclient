@@ -30,13 +30,18 @@ if (CMAKE_BUILD_TYPE STREQUAL Debug)
 endif()
 
 if (STRIP)
-  ADD_CUSTOM_COMMAND(
-      TARGET airdcppd
-      POST_BUILD
-      COMMAND sh ../scripts/strip-symbols.sh ${PROJECT_SOURCE_DIR}/airdcppd ${CMAKE_OBJCOPY}
-  )
+  find_program(OBJCOPY_CMD objcopy PATHS /sw/bin)
+  if (OBJCOPY_CMD)
+    message(STATUS "OBJCOPY_CMD: ${OBJCOPY_CMD}")
+    ADD_CUSTOM_COMMAND(
+        TARGET airdcppd
+        POST_BUILD
+        COMMAND sh ../scripts/strip-symbols.sh ${PROJECT_SOURCE_DIR}/airdcppd ${OBJCOPY_CMD}
+    )
+  else (OBJCOPY_CMD)
+    message (FATAL_ERROR "objcopy was not found, can not strip the binary")
+  endif()
 endif()
-
 
 set_property (TARGET ${PROJECT_NAME} PROPERTY OUTPUT_NAME ${PROJECT_NAME})
 install (TARGETS ${PROJECT_NAME}
