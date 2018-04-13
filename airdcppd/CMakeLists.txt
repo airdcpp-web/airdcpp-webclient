@@ -30,6 +30,11 @@ if (CMAKE_BUILD_TYPE STREQUAL Debug)
 endif()
 
 if (STRIP)
+  if (NOT CMAKE_OBJCOPY)
+    message (FATAL_ERROR "CMAKE_OBJCOPY is not set")
+  endif()
+
+  message(STATUS "CMAKE_OBJCOPY: ${CMAKE_OBJCOPY}")
   ADD_CUSTOM_COMMAND(
       TARGET airdcppd
       POST_BUILD
