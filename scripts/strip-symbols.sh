@@ -12,6 +12,8 @@ if [ -z "$objcopy" ]; then
   objcopy="objcopy"
 fi
 
+echo "Using ${objcopy} for stripping"
+
 set -e
 
 tostripdir=`dirname "$1"`
