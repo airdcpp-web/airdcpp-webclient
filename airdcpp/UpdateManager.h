@@ -65,16 +65,16 @@ public:
 
 	unique_ptr<HttpDownload> conns[CONN_LAST];
 
-	void checkVersion(bool aManual);
+	void checkVersion(bool aManualCheck);
 	void checkLanguage();
 
-	void checkIP(bool manual, bool v6);
+	void checkIP(bool aManualCheck, bool v6);
 
 	void checkGeoUpdate();
 
 	void init();
 
-	void checkAdditionalUpdates(bool manualCheck);
+	void checkAdditionalUpdates(bool aManualCheck);
 	string getVersionUrl() const;
 
 	Updater& getUpdater() const noexcept {
@@ -83,7 +83,7 @@ public:
 private:
 	unique_ptr<Updater> updater;
 
-	void failVersionDownload(const string& aError, bool manualCheck);
+	void failVersionDownload(const string& aError, bool aManualCheck);
 
 	static const char* versionUrl[VERSION_LAST];
 
@@ -94,12 +94,12 @@ private:
 
 	void updateGeo();
 
-	void completeSignatureDownload(bool manual);
+	void completeSignatureDownload(bool aManualCheck);
 	void completeLanguageCheck();
 	void completeGeoDownload();
-	void completeVersionDownload(bool manualCheck);
+	void completeVersionDownload(bool aManualCheck);
 	void completeLanguageDownload();
-	void completeIPCheck(bool manualCheck, bool v6);
+	void completeIPCheck(bool aManualCheck, bool v6);
 
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 };

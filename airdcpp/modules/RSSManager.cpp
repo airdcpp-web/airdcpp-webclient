@@ -310,7 +310,7 @@ void RSSManager::downloadFeed(const RSSPtr& aFeed, bool verbose/*false*/) noexce
 
 	tasks.addTask([=] {
 		aFeed->rssDownload.reset(new HttpDownload(aFeed->getUrl(),
-			[this, aFeed] { downloadComplete(aFeed->getUrl()); }, false));
+			[this, aFeed] { downloadComplete(aFeed->getUrl()); }));
 
 		if(verbose)
 			LogManager::getInstance()->message(STRING(UPDATING) + " " + aFeed->getUrl(), LogMessage::SEV_INFO);

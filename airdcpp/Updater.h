@@ -35,6 +35,8 @@ class Updater {
 #define UPDATE_TEMP_DIR Util::getTempPath() + "Updater" + PATH_SEPARATOR_STR
 #define UPDATE_TEMP_LOG Util::getTempPath() + "airdcpp_updater.log"
 
+//#define FORCE_UPDATE
+
 public:
 	class FileLogger {
 	public:

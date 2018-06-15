@@ -1362,27 +1362,54 @@ int Util::randInt(int min, int max) noexcept {
     return dist(gen);
 }
 
+#ifdef _WIN32
 string Util::getDateTime(time_t t) noexcept {
 	if (t == 0)
 		return Util::emptyString;
 
 	char buf[64];
-	tm _tm = *localtime(&t);
+	tm _tm;
+	auto err = localtime_s(&_tm, &t);
+	if (err > 0) {
+		dcdebug("Failed to parse date " I64_FMT ": %s\n", t, translateError(err).c_str());
+		return Util::emptyString;
+	}
+
 	strftime(buf, 64, SETTING(DATE_FORMAT).c_str(), &_tm);
 
 	return buf;
 }
 
-#ifdef _WIN32
 wstring Util::getDateTimeW(time_t t) noexcept {
 	if (t == 0)
 		return Util::emptyStringT;
 
 	TCHAR buf[64];
 	tm _tm;
-	localtime_s(&_tm, &t);
+	auto err = localtime_s(&_tm, &t);
+	if (err > 0) {
+		dcdebug("Failed to parse date " I64_FMT ": %s\n", t, translateError(err).c_str());
+		return Util::emptyStringW;
+	}
+
 	wcsftime(buf, 64, Text::toT(SETTING(DATE_FORMAT)).c_str(), &_tm);
 	
+	return buf;
+}
+#else
+string Util::getDateTime(time_t t) noexcept {
+	if (t == 0)
+		return Util::emptyString;
+
+	char buf[64];
+	tm _tm;
+	if (!localtime_r(&t, &_tm)) {
+		dcdebug("Failed to parse date " I64_FMT ": %s\n", t, translateError(errno).c_str());
+		return Util::emptyString;
+	}
+
+	strftime(buf, 64, SETTING(DATE_FORMAT).c_str(), &_tm);
+
 	return buf;
 }
 #endif

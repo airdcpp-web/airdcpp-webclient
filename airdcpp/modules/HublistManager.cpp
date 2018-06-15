@@ -195,7 +195,7 @@ namespace dcpp {
 		}
 	}
 
-	void HublistManager::on(Complete, HttpConnection*, const string& aLine, bool fromCoral) noexcept {
+	void HublistManager::on(Complete, HttpConnection*, const string& aLine) noexcept {
 		bool parseSuccess = false;
 		c->removeListener(this);
 		if (useHttp) {
@@ -205,7 +205,7 @@ namespace dcpp {
 		}
 		running = false;
 		if (parseSuccess) {
-			fire(HublistManagerListener::DownloadFinished(), aLine, fromCoral);
+			fire(HublistManagerListener::DownloadFinished(), aLine);
 		}
 	}
 

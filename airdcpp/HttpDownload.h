@@ -33,13 +33,13 @@ struct HttpDownload : private HttpConnectionListener, private boost::noncopyable
 	typedef std::function<void ()> CompletionF;
 	CompletionF f;
 
-	explicit HttpDownload(const string& address, CompletionF f, bool coralize = true, bool v4only = false);
+	explicit HttpDownload(const string& address, CompletionF f, bool v4only = false);
 	~HttpDownload();
 
 	// HttpConnectionListener
 	void on(HttpConnectionListener::Data, HttpConnection*, const uint8_t* buf_, size_t len) noexcept;
 	void on(HttpConnectionListener::Failed, HttpConnection*, const string& status_) noexcept;
-	void on(HttpConnectionListener::Complete, HttpConnection*, const string& status_, bool) noexcept;
+	void on(HttpConnectionListener::Complete, HttpConnection*, const string& status_) noexcept;
 	void on(HttpConnectionListener::Retried, HttpConnection*, bool connected) noexcept;
 };
 
