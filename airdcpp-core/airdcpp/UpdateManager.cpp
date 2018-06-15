@@ -101,13 +101,18 @@ void UpdateManager::completeSignatureDownload(bool manualCheck) {
 		versionSig.assign(conn->buf.begin(), conn->buf.end());
 	}
 
-	conns[CONN_VERSION].reset(new HttpDownload(getVersionUrl(),
-		[this, manualCheck] { completeVersionDownload(manualCheck); }, false));
+	conns[CONN_VERSION] = make_unique<HttpDownload>(
+		getVersionUrl(),
+		[this, manualCheck] { completeVersionDownload(manualCheck); }
+	);
 }
 
 void UpdateManager::checkIP(bool manual, bool v6) {
-	conns[v6 ? CONN_IP6 : CONN_IP4].reset(new HttpDownload(v6 ? links.ipcheck6 : links.ipcheck4,
-		[=] { completeIPCheck(manual, v6); }, false, !v6));
+	conns[v6 ? CONN_IP6 : CONN_IP4] = make_unique<HttpDownload>(
+		v6 ? links.ipcheck6 : links.ipcheck4,
+		[=] { completeIPCheck(manual, v6); }, 
+		!v6
+	);
 }
 
 void UpdateManager::completeIPCheck(bool manual, bool v6) {
@@ -158,8 +163,10 @@ void UpdateManager::updateGeo() {
 		return;
 
 	LogManager::getInstance()->message(STRING(GEOIP_UPDATING), LogMessage::SEV_INFO);
-	conn.reset(new HttpDownload(links.geoip,
-		[this] { completeGeoDownload(); }, false));
+	conn = make_unique<HttpDownload>(
+		links.geoip,
+		[this] { completeGeoDownload(); }
+	);
 }
 
 void UpdateManager::completeGeoDownload() {
@@ -310,8 +317,10 @@ void UpdateManager::checkLanguage() {
 		return;
 	}
 
-	conns[CONN_LANGUAGE_CHECK].reset(new HttpDownload(links.language + "checkLangVersion.php?lc=" + Localization::getLocale(),
-		[this] { completeLanguageCheck(); }, false));
+	conns[CONN_LANGUAGE_CHECK] = make_unique<HttpDownload>(
+		links.language + "checkLangVersion.php?lc=" + Localization::getLocale(),
+		[this] { completeLanguageCheck(); }
+	);
 }
 
 void UpdateManager::completeLanguageCheck() {
@@ -322,8 +331,10 @@ void UpdateManager::completeLanguageCheck() {
 	if(!conn->buf.empty()) {
 		if (Util::toDouble(conn->buf) > Localization::getCurLanguageVersion()) {
 			fire(UpdateManagerListener::LanguageDownloading());
-			conns[CONN_LANGUAGE_FILE].reset(new HttpDownload(links.language + Localization::getCurLanguageFileName(),
-				[this] { completeLanguageDownload(); }, false));
+			conns[CONN_LANGUAGE_FILE] = make_unique<HttpDownload>(
+				links.language + Localization::getCurLanguageFileName(),
+				[this] { completeLanguageDownload(); }
+			);
 		} else {
 			fire(UpdateManagerListener::LanguageFinished());
 		}
@@ -341,8 +352,10 @@ void UpdateManager::checkVersion(bool aManual) {
 	}
 
 	versionSig.clear();
-	conns[CONN_SIGNATURE].reset(new HttpDownload(getVersionUrl() + ".sign",
-		[this, aManual] { completeSignatureDownload(aManual); }, false));
+	conns[CONN_SIGNATURE] = make_unique<HttpDownload>(
+		getVersionUrl() + ".sign",
+		[this, aManual] { completeSignatureDownload(aManual); }
+	);
 }
 
 string UpdateManager::getVersionUrl() const {

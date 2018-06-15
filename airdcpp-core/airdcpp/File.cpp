@@ -92,27 +92,27 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 #endif
 }
 
-uint64_t File::getLastModified() const noexcept {
+time_t File::getLastModified() const noexcept {
 	FILETIME f = {0};
 	::GetFileTime(h, NULL, NULL, &f);
 	return convertTime(&f);
 }
 
-uint64_t File::convertTime(FILETIME* f) {
+time_t File::convertTime(FILETIME* f) {
 	SYSTEMTIME s = { 1970, 1, 0, 1, 0, 0, 0, 0 };
 	FILETIME f2 = {0};
 	if(::SystemTimeToFileTime(&s, &f2)) {
 		ULARGE_INTEGER a,b;
-		a.LowPart =f->dwLowDateTime;
-		a.HighPart=f->dwHighDateTime;
-		b.LowPart =f2.dwLowDateTime;
-		b.HighPart=f2.dwHighDateTime;
-		return (a.QuadPart - b.QuadPart) / (10000000LL); // 100ns > s
+		a.LowPart = f->dwLowDateTime;
+		a.HighPart = f->dwHighDateTime;
+		b.LowPart = f2.dwLowDateTime;
+		b.HighPart = f2.dwHighDateTime;
+		return (static_cast<time_t>(a.QuadPart) - static_cast<time_t>(b.QuadPart)) / (10000000LL); // 100ns > s
 	}
 	return 0;
 }
 
-FILETIME File::convertTime(uint64_t f) {
+FILETIME File::convertTime(time_t f) {
 	FILETIME ft;
 
 	ft.dwLowDateTime = (DWORD)f;
@@ -242,7 +242,7 @@ void File::copyFile(const string& src, const string& target) {
 	}
 }
 
-uint64_t File::getLastModified(const string& aPath) noexcept {
+time_t File::getLastModified(const string& aPath) noexcept {
 	if (aPath.empty())
 		return 0;
 
@@ -380,7 +380,7 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 #endif
 }
 
-uint64_t File::getLastModified() const noexcept {
+time_t File::getLastModified() const noexcept {
 	struct stat s;
 	if (::fstat(h, &s) == -1)
 		return 0;
@@ -620,7 +620,7 @@ string File::getMountPath(const string& aPath) noexcept {
 	return Util::toString((uint32_t)statbuf.st_dev);
 }
 
-uint64_t File::getLastModified(const string& aPath) noexcept {
+time_t File::getLastModified(const string& aPath) noexcept {
 	struct stat statbuf;
 	if (stat(aPath.c_str(), &statbuf) == -1) {
 		return 0;
@@ -955,7 +955,7 @@ int64_t FileFindIter::DirData::getSize() {
 	return (int64_t)nFileSizeLow | ((int64_t)nFileSizeHigh)<<32;
 }
 
-uint64_t FileFindIter::DirData::getLastWriteTime() {
+time_t FileFindIter::DirData::getLastWriteTime() {
 	return File::convertTime(&ftLastWriteTime);
 }
 
@@ -1055,7 +1055,7 @@ int64_t FileFindIter::DirData::getSize() {
 	return inode.st_size;
 }
 
-uint64_t FileFindIter::DirData::getLastWriteTime() {
+time_t FileFindIter::DirData::getLastWriteTime() {
 	struct stat inode;
 	if (!ent) return false;
 	if (stat((base + PATH_SEPARATOR + ent->d_name).c_str(), &inode) == -1) return 0;

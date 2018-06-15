@@ -343,7 +343,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			TTHValue tth(h); /// @todo verify validity?
 
-			auto f = make_shared<DirectoryListing::File>(cur, n, size, tth, checkDupe, Util::toUInt32(getAttrib(attribs, sDate, 3)));
+			auto f = make_shared<DirectoryListing::File>(cur, n, size, tth, checkDupe, Util::toTimeT(getAttrib(attribs, sDate, 3)));
 			cur->files.push_back(f);
 		} else if(name == sDirectory) {
 			const string& n = getAttrib(attribs, sName, 0);
@@ -377,12 +377,12 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				auto type = incomp ? (children ? DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD : DirectoryListing::Directory::TYPE_INCOMPLETE_NOCHILD) :
 					DirectoryListing::Directory::TYPE_NORMAL;
 
-				d = DirectoryListing::Directory::create(cur, n, type, listDownloadDate, (partialList && checkDupe), contentInfo, size, Util::toUInt32(date));
+				d = DirectoryListing::Directory::create(cur, n, type, listDownloadDate, (partialList && checkDupe), contentInfo, size, Util::toTimeT(date));
 			} else {
 				if(!incomp) {
 					d->setComplete();
 				}
-				d->setRemoteDate(Util::toUInt32(date));
+				d->setRemoteDate(Util::toTimeT(date));
 			}
 			cur = d.get();
 
@@ -408,7 +408,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			dcassert(list->findDirectory(base));
 
 			const string& baseDate = getAttrib(attribs, sBaseDate, 3);
-			cur->setRemoteDate(Util::toUInt32(baseDate));
+			cur->setRemoteDate(Util::toTimeT(baseDate));
 		}
 
 		// Set the root complete only after we have finished loading 

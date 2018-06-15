@@ -316,7 +316,7 @@ public:
 	void reloadSkiplist();
 	void setExcludedPaths(const StringSet& aPaths) noexcept;
 private:
-	void countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_, size_t& roots_) const noexcept;
+	void countStats(time_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_, size_t& roots_) const noexcept;
 
 	uint64_t totalSearches = 0;
 	uint64_t tthSearches = 0;
@@ -406,7 +406,7 @@ private:
 
 			GETSET(int64_t, size, Size);
 			GETSET(Directory*, parent, Parent);
-			GETSET(uint64_t, lastWrite, LastWrite);
+			GETSET(time_t, lastWrite, LastWrite);
 			GETSET(TTHValue, tth, TTH);
 
 			DualString name;
@@ -451,8 +451,8 @@ private:
 		typedef SortedVector<Ptr, std::vector, string, Compare, NameLower> Set;
 		File::Set files;
 
-		static Ptr createNormal(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, Directory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept;
-		static Ptr createRoot(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, uint64_t aLastWrite, Map& rootPaths_, Directory::MultiMap& dirNameMap_, ShareBloom& bloom_, time_t aLastRefreshTime) noexcept;
+		static Ptr createNormal(DualString&& aRealName, const Ptr& aParent, time_t aLastWrite, Directory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept;
+		static Ptr createRoot(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, time_t aLastWrite, Map& rootPaths_, Directory::MultiMap& dirNameMap_, ShareBloom& bloom_, time_t aLastRefreshTime) noexcept;
 
 		// Set a new parent for the directory
 		// Possible directories with the same name must be removed from the parent first
@@ -499,7 +499,7 @@ private:
 		void toXmlList(OutputStream& xmlFile, string& indent, string& tmp);
 		void filesToXmlList(OutputStream& xmlFile, string& indent, string& tmp2) const;
 
-		GETSET(uint64_t, lastWrite, LastWrite);
+		GETSET(time_t, lastWrite, LastWrite);
 
 		~Directory();
 
@@ -508,7 +508,7 @@ private:
 
 		//void addBloom(ShareBloom& aBloom) const noexcept;
 
-		void countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_) const noexcept;
+		void countStats(time_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_) const noexcept;
 		DualString realName;
 
 		// check for an updated modify date from filesystem
@@ -544,7 +544,7 @@ private:
 		int64_t size = 0;
 		RootDirectory::Ptr root;
 
-		Directory(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, const RootDirectory::Ptr& aRoot = nullptr);
+		Directory(DualString&& aRealName, const Ptr& aParent, time_t aLastWrite, const RootDirectory::Ptr& aRoot = nullptr);
 		friend void intrusive_ptr_release(intrusive_ptr_base<Directory>*);
 
 		string getRealPath(const string& path) const noexcept;
@@ -554,11 +554,11 @@ private:
 		typedef unordered_map<string*, FilelistDirectory*, noCaseStringHash, noCaseStringEq> Map;
 		Directory::List shareDirs;
 
-		FilelistDirectory(const string& aName, uint64_t aDate);
+		FilelistDirectory(const string& aName, time_t aDate);
 		~FilelistDirectory();
 
 		const string name;
-		uint64_t date;
+		time_t date;
 
 		Map listDirs;
 
@@ -621,7 +621,7 @@ private:
 
 	class RefreshInfo : boost::noncopyable {
 	public:
-		RefreshInfo(const string& aPath, const Directory::Ptr& aOldRoot, uint64_t aLastWrite, ShareBloom& bloom_);
+		RefreshInfo(const string& aPath, const Directory::Ptr& aOldRoot, time_t aLastWrite, ShareBloom& bloom_);
 		~RefreshInfo();
 
 		Directory::Ptr oldShareDirectory;
@@ -642,7 +642,7 @@ private:
 
 	class ShareBuilder : public RefreshInfo {
 	public:
-		ShareBuilder(const string& aPath, const Directory::Ptr& aOldRoot, uint64_t aLastWrite, ShareBloom& bloom_, bool& shutdown_, SharePathValidator& aPathValidator);
+		ShareBuilder(const string& aPath, const Directory::Ptr& aOldRoot, time_t aLastWrite, ShareBloom& bloom_, bool& shutdown_, SharePathValidator& aPathValidator);
 
 		// Recursive function for building a new share tree from a path
 		bool buildTree() noexcept;
@@ -772,7 +772,7 @@ private:
 	void on(SettingsManagerListener::LoadCompleted, bool aFileLoaded) noexcept override;
 	
 	// TimerManagerListener
-	void on(TimerManagerListener::Minute, uint64_t tick) noexcept override;
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
 
 	void load(SimpleXML& aXml);
 	void loadProfile(SimpleXML& aXml, const string& aName, ProfileToken aToken);

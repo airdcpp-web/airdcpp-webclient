@@ -276,7 +276,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		} else if(str.compare(0, 2, "TO") == 0) {
 			token = str.substr(2);
 		} else if(str.compare(0, 2, "DM") == 0) {
-			date = Util::toUInt32(str.substr(2));
+			date = Util::toTimeT(str.substr(2));
 		} else if(str.compare(0, 2, "FI") == 0) {
 			files = Util::toInt(str.substr(2));
 		} else if(str.compare(0, 2, "FO") == 0) {

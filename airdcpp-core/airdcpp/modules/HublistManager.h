@@ -71,7 +71,7 @@ namespace dcpp {
 		// HttpConnectionListener
 		void on(Data, HttpConnection*, const uint8_t*, size_t) noexcept;
 		void on(Failed, HttpConnection*, const string&) noexcept;
-		void on(Complete, HttpConnection*, const string&, bool) noexcept;
+		void on(Complete, HttpConnection*, const string&) noexcept;
 		void on(Redirected, HttpConnection*, const string&) noexcept;
 		void on(Retried, HttpConnection*, bool) noexcept;
 

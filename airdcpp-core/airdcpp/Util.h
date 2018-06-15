@@ -342,6 +342,10 @@ public:
 #endif
 	}
 
+	static time_t toTimeT(const string& aString) noexcept {
+		return static_cast<time_t>(toInt64(aString));
+	}
+
 	static int toInt(const string& aString) noexcept {
 		return atoi(aString.c_str());
 	}

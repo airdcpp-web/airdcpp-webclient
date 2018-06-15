@@ -159,7 +159,7 @@ void ShareManager::setProfilesDirty(const ProfileTokenSet& aProfiles, bool aIsMa
 	}
 }
 
-ShareManager::Directory::Directory(DualString&& aRealName, const ShareManager::Directory::Ptr& aParent, uint64_t aLastWrite, const RootDirectory::Ptr& aRoot) :
+ShareManager::Directory::Directory(DualString&& aRealName, const ShareManager::Directory::Ptr& aParent, time_t aLastWrite, const RootDirectory::Ptr& aRoot) :
 	parent(aParent.get()),
 	root(aRoot),
 	lastWrite(aLastWrite),
@@ -740,7 +740,7 @@ OptionalProfileToken ShareManager::getProfileByName(const string& aName) const n
 	return (*p)->getToken();
 }
 
-ShareManager::Directory::Ptr ShareManager::Directory::createNormal(DualString&& aRealName, const Ptr& aParent, uint64_t aLastWrite, Directory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept {
+ShareManager::Directory::Ptr ShareManager::Directory::createNormal(DualString&& aRealName, const Ptr& aParent, time_t aLastWrite, Directory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept {
 	auto dir = Ptr(new Directory(move(aRealName), aParent, aLastWrite, nullptr));
 
 	if (aParent) {
@@ -755,7 +755,7 @@ ShareManager::Directory::Ptr ShareManager::Directory::createNormal(DualString&& 
 }
 
 ShareManager::Directory::Ptr ShareManager::Directory::createRoot(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, 
-	uint64_t aLastWrite, Map& rootPaths_, Directory::MultiMap& dirNameMap_, ShareBloom& bloom, time_t aLastRefreshTime) noexcept 
+	time_t aLastWrite, Map& rootPaths_, Directory::MultiMap& dirNameMap_, ShareBloom& bloom, time_t aLastRefreshTime) noexcept
 {
 	auto dir = Ptr(new Directory(Util::getLastDir(aRootPath), nullptr, aLastWrite, RootDirectory::create(aRootPath, aVname, aProfiles, aIncoming, aLastRefreshTime)));
 
@@ -852,7 +852,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 			if(!name.empty()) {
 				curDirPath += name + PATH_SEPARATOR;
 
-				cur = ShareManager::Directory::createNormal(name, cur, Util::toUInt32(date), lowerDirNameMapNew, bloom);
+				cur = ShareManager::Directory::createNormal(name, cur, Util::toTimeT(date), lowerDirNameMapNew, bloom);
 				if (!cur) {
 					throw Exception("Duplicate directory name");
 				}
@@ -886,7 +886,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 			if (version > Util::toInt(SHARE_CACHE_VERSION))
 				throw Exception("Newer cache version"); //don't load those...
 
-			cur->setLastWrite(Util::toUInt32(getAttrib(attribs, DATE, 2)));
+			cur->setLastWrite(Util::toTimeT(getAttrib(attribs, DATE, 2)));
 		}
 	}
 	void endTag(const string& name) {
@@ -1029,7 +1029,7 @@ void ShareManager::save(SimpleXML& aXml) {
 	}
 }
 
-void ShareManager::Directory::countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles_, size_t& lowerCaseFiles_, size_t& totalStrLen_) const noexcept{
+void ShareManager::Directory::countStats(time_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles_, size_t& lowerCaseFiles_, size_t& totalStrLen_) const noexcept{
 	for(auto& d: directories) {
 		d->countStats(totalAge_, totalDirs_, totalSize_, totalFiles_, lowerCaseFiles_, totalStrLen_);
 	}
@@ -1048,7 +1048,7 @@ void ShareManager::Directory::countStats(uint64_t& totalAge_, size_t& totalDirs_
 	totalFiles_ += files.size();
 }
 
-void ShareManager::countStats(uint64_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles_, size_t& lowerCaseFiles_, size_t& totalStrLen_, size_t& roots_) const noexcept{
+void ShareManager::countStats(time_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles_, size_t& lowerCaseFiles_, size_t& totalStrLen_, size_t& roots_) const noexcept{
 	RLock l(cs);
 	for (const auto& d : rootPaths | map_values) {
 		totalDirs_++;
@@ -1071,7 +1071,7 @@ optional<ShareManager::ShareItemStats> ShareManager::getShareItemStats() const n
 	stats.profileCount = shareProfiles.size() - 1; // remove hidden
 	stats.uniqueFileCount = uniqueTTHs.size();
 
-	uint64_t totalAge = 0;
+	time_t totalAge = 0;
 	countStats(totalAge, stats.totalDirectoryCount, stats.totalSize, stats.totalFileCount, stats.lowerCaseFiles, stats.totalNameSize, stats.rootDirectoryCount);
 
 	if (stats.uniqueFileCount == 0 || stats.totalDirectoryCount == 0) {
@@ -1369,7 +1369,7 @@ bool ShareManager::RefreshInfo::checkContent(const Directory::Ptr& aDirectory) n
 	return true;
 }
 
-ShareManager::ShareBuilder::ShareBuilder(const string& aPath, const Directory::Ptr& aOldRoot, uint64_t aLastWrite, ShareBloom& bloom_, bool& shutdown_, SharePathValidator& aPathValidator) : 
+ShareManager::ShareBuilder::ShareBuilder(const string& aPath, const Directory::Ptr& aOldRoot, time_t aLastWrite, ShareBloom& bloom_, bool& shutdown_, SharePathValidator& aPathValidator) :
 	shutdown(shutdown_), pathValidator(aPathValidator), RefreshInfo(aPath, aOldRoot, aLastWrite, bloom_) {
 
 }
@@ -1942,7 +1942,7 @@ ShareManager::RefreshInfo::~RefreshInfo() {
 
 }
 
-ShareManager::RefreshInfo::RefreshInfo(const string& aPath, const Directory::Ptr& aOldShareDirectory, uint64_t aLastWrite, ShareBloom& bloom_) : 
+ShareManager::RefreshInfo::RefreshInfo(const string& aPath, const Directory::Ptr& aOldShareDirectory, time_t aLastWrite, ShareBloom& bloom_) :
 	path(aPath), oldShareDirectory(aOldShareDirectory), bloom(bloom_) {
 
 	// Use a different directory for building the tree
@@ -2405,7 +2405,7 @@ void ShareManager::Directory::toFileList(FilelistDirectory& aListDir, bool aRecu
 	}
 }
 
-ShareManager::FilelistDirectory::FilelistDirectory(const string& aName, uint64_t aDate) : name(aName), date(aDate) { }
+ShareManager::FilelistDirectory::FilelistDirectory(const string& aName, time_t aDate) : name(aName), date(aDate) { }
 
 ShareManager::FilelistDirectory::~FilelistDirectory() {
 	for_each(listDirs | map_values, DeleteFunction());
@@ -2685,7 +2685,7 @@ bool ShareManager::addDirectoryResult(const Directory* aDir, SearchResultList& a
 	}
 
 	// Count date and content information
-	uint64_t date = 0;
+	time_t date = 0;
 	int64_t size = 0;
 	size_t files = 0, folders = 0;
 	for(const auto& d: result) {
