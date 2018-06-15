@@ -268,6 +268,8 @@ namespace webserver {
 		if (bindAddress.empty()) {
 			auto protocol = WebServerManager::getDefaultListenProtocol();
 			bindAddress = protocol == boost::asio::ip::tcp::v6() ? "[::1]" : "127.0.0.1";
+		} else {
+			bindAddress = wsm->resolveAddress(bindAddress, serverConfig.port.str());
 		}
 
 		return bindAddress + ":" + Util::toString(serverConfig.port.num()) + "/api/v1/";

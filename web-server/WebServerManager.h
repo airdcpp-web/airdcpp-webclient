@@ -230,6 +230,8 @@ namespace webserver {
 		}
 
 		void log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
+
+		string resolveAddress(const string& aHostname, const string& aPort) noexcept;
 	private:
 		context_ptr handleInitTls(websocketpp::connection_hdl hdl);
 
