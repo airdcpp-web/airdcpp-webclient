@@ -1371,7 +1371,7 @@ string Util::getDateTime(time_t t) noexcept {
 	tm _tm;
 	auto err = localtime_s(&_tm, &t);
 	if (err > 0) {
-		dcdebug("Failed to parse date " I64_FMT ": %s\n", t, translateError(err).c_str());
+		dcdebug("Failed to parse date " I64_FMT ": %s\n", static_cast<int64_t>(t), translateError(err).c_str());
 		return Util::emptyString;
 	}
 
@@ -1388,7 +1388,7 @@ wstring Util::getDateTimeW(time_t t) noexcept {
 	tm _tm;
 	auto err = localtime_s(&_tm, &t);
 	if (err > 0) {
-		dcdebug("Failed to parse date " I64_FMT ": %s\n", t, translateError(err).c_str());
+		dcdebug("Failed to parse date " I64_FMT ": %s\n", static_cast<int64_t>(t), translateError(err).c_str());
 		return Util::emptyStringW;
 	}
 
