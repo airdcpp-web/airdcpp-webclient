@@ -47,7 +47,7 @@ ConfigPrompt::ConfigF ConfigPrompt::checkArgs() {
 	if (!f) {
 		return nullptr;
 	}
-	
+
 	const auto errorF = [&](const string& aError) {
 		std::cout << aError << std::endl;
 	};
@@ -145,14 +145,14 @@ bool ConfigPrompt::addUser(webserver::WebServerManager* wsm) {
 	cout << std::endl;
 	cout << std::endl;
 	cout << "Enter username: ";
-	cin >> username;
+	std::getline(std::cin, username);
 	cout << std::endl;
 
 	auto user = um.getUser(username);
 	if (user) {
 		string input;
 		cout << "A user with the same name exists. Do you want to change the password? (y/n): ";
-		cin >> input;
+		std::getline(std::cin, input);
 
 		if (input != "y") {
 			return false;
@@ -166,13 +166,13 @@ bool ConfigPrompt::addUser(webserver::WebServerManager* wsm) {
 	ScopedFunctor([=] { setPasswordMode(false); });
 
 	cout << "Enter password (input hidden): ";
-	cin >> password;
+	std::getline(std::cin, password);
 	cout << std::endl;
 
 	{
 		string passwordConfirm;
 		cout << "Retype password: ";
-		cin >> passwordConfirm;
+		std::getline(std::cin, passwordConfirm);
 
 		cout << std::endl;
 		if (passwordConfirm != password) {
@@ -197,9 +197,8 @@ bool ConfigPrompt::removeUser(webserver::WebServerManager* wsm) {
 	auto& um = wsm->getUserManager();
 
 	std::string username;
-	cout << "Enter username to remove" << std::endl;
-	cin >> username;
-	cout << std::endl;
+	cout << "Enter username to remove: ";
+	std::getline(std::cin, username);
 
 	auto ret = um.removeUser(username);
 	if (ret) {
