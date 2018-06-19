@@ -23,8 +23,8 @@ matrix:
             - ubuntu-toolchain-r-test
             - sourceline: 'ppa:maxmind/ppa'
           packages:
-            - g++-7
-      env: COMPILER=g++-7
+            - g++-8
+      env: COMPILER=g++-8
     - os: osx
       compiler: clang
       osx_image: xcode9.4
