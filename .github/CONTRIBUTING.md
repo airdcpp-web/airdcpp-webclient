@@ -48,6 +48,8 @@ If there is no crash message printed in the console, you should first confirm th
 
 You must have the ``gdb`` package installed before running the following commands. When using a portable build, you will also need to have the debugging symbols in place (see the section [Crashes/freezes with portable builds](#crashesfreezes-with-portable-builds) below for more information). If you get an error `Could not attach to process` when trying to attach to process, you must start gdb as root instead.
 
+Run the following commands:
+
 ```
 $ pgrep airdcppd
 [number]
