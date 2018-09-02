@@ -742,7 +742,7 @@ optional<DirectoryBundleAddInfo> QueueManager::createDirectoryBundle(const strin
 			}
 
 			errorMsg_ = STRING_F(BUNDLE_ERROR_SUBBUNDLES, subBundles.size() % target % AirUtil::subtractCommonParents(target, subPaths));
-			return boost::none;
+			return nullopt;
 		}
 	}
 
@@ -751,13 +751,13 @@ optional<DirectoryBundleAddInfo> QueueManager::createDirectoryBundle(const strin
 			checkSource(aUser);
 		} catch (const QueueException& e) {
 			errorMsg_ = e.getError();
-			return boost::none;
+			return nullopt;
 		}
 	}
 
 	if (aFiles.empty()) {
 		errorMsg_ = STRING(DIR_EMPTY);
-		return boost::none;
+		return nullopt;
 	}
 
 	// File validation
@@ -794,12 +794,12 @@ optional<DirectoryBundleAddInfo> QueueManager::createDirectoryBundle(const strin
 	// Check file validation errors
 	if (aFiles.empty()) {
 		errorMsg_ = errors.getMessage();
-		return boost::none;
+		return nullopt;
 	} else if (smallDupes > 0) {
 		if (smallDupes == static_cast<int>(aFiles.size())) {
 			// No reason to continue if all remaining files are dupes
 			errorMsg_ = errors.getMessage();
-			return boost::none;
+			return nullopt;
 		} else {
 			// Those will get queued, don't report
 			errors.clearMinor();
@@ -844,7 +844,7 @@ optional<DirectoryBundleAddInfo> QueueManager::createDirectoryBundle(const strin
 
 	if (queueItems.empty()) {
 		errorMsg_ = errors.getMessage();
-		return boost::none;
+		return nullopt;
 	}
 
 	dcassert(b);

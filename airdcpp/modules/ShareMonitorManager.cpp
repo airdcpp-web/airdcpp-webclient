@@ -238,15 +238,15 @@ namespace dcpp {
 				ShareManager::getInstance()->validatePath(path, false);
 			} catch (const ShareException& e) {
 				reportFile(e.getError());
-				return boost::none;
+				return nullopt;
 			} catch (...) {
-				return boost::none;
+				return nullopt;
 			}
 
 			return FileItem({ path, isDirectory });
 		}
 
-		return boost::none;
+		return nullopt;
 	}
 
 	void ShareMonitorManager::addModifyInfo(const string& aPath) noexcept {

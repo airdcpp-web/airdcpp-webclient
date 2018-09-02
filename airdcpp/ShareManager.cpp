@@ -736,7 +736,7 @@ OptionalProfileToken ShareManager::getProfileByName(const string& aName) const n
 
 	auto p = find_if(shareProfiles, [&](const ShareProfilePtr& aProfile) { return Util::stricmp(aProfile->getPlainName(), aName) == 0; });
 	if (p == shareProfiles.end())
-		return boost::none;
+		return nullopt;
 	return (*p)->getToken();
 }
 
@@ -1075,7 +1075,7 @@ optional<ShareManager::ShareItemStats> ShareManager::getShareItemStats() const n
 	countStats(totalAge, stats.totalDirectoryCount, stats.totalSize, stats.totalFileCount, stats.lowerCaseFiles, stats.totalNameSize, stats.rootDirectoryCount);
 
 	if (stats.uniqueFileCount == 0 || stats.totalDirectoryCount == 0) {
-		return boost::none;
+		return nullopt;
 	}
 
 	stats.averageFileAge = GET_TIME() - static_cast<time_t>(Util::countAverage(totalAge, stats.totalFileCount));

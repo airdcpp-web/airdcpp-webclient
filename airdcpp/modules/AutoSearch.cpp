@@ -360,9 +360,9 @@ bool AutoSearch::updateSearchTime() noexcept {
 		//add the start (or end) hours and minutes (if needed)
 		auto& timeStruct = toEnabled ? startTime : endTime;
 		if (timeStruct.hour > nextSearch.time_of_day().hours()) {
-			nextSearch += (hours(timeStruct.hour) + minutes(timeStruct.minute)) - (hours(nextSearch.time_of_day().hours()) + minutes(nextSearch.time_of_day().minutes()));
+			nextSearch += (hours(timeStruct.hour) + minutes(timeStruct.minute)) - (hours(static_cast<long>(nextSearch.time_of_day().hours())) + minutes(static_cast<long>(nextSearch.time_of_day().minutes())));
 		} else if ((timeStruct.hour == nextSearch.time_of_day().hours() && timeStruct.minute > nextSearch.time_of_day().minutes())) {
-			nextSearch += minutes(timeStruct.minute - nextSearch.time_of_day().minutes());
+			nextSearch += minutes(timeStruct.minute - static_cast<long>(nextSearch.time_of_day().minutes()));
 		}
 	};
 

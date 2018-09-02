@@ -182,13 +182,13 @@ optional<ByteVector> CryptoManager::calculateSha1(const string& aData) noexcept 
 
 	auto res = SHA1_Init(&sha_ctx);
 	if (res != 1)
-		return boost::none;
+		return nullopt;
 	res = SHA1_Update(&sha_ctx, aData.c_str(), aData.size());
 	if (res != 1)
-		return boost::none;
+		return nullopt;
 	res = SHA1_Final(ret.data(), &sha_ctx);
 	if (res != 1)
-		return boost::none;
+		return nullopt;
 
 	return ret;
 }

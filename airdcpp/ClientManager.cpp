@@ -351,7 +351,7 @@ optional<OfflineUser> ClientManager::getOfflineUser(const CID& cid) {
 	if (i != offlineUsers.end()) {
 		return i->second;
 	}
-	return boost::none;
+	return nullopt;
 }
 
 string ClientManager::getField(const CID& cid, const string& hint, const char* field) const noexcept {
@@ -649,7 +649,7 @@ optional<ProfileToken> ClientManager::findProfile(UserConnection& p, const strin
 		return op.first->second->getClient()->get(HubSettings::ShareProfile);
 	}
 
-	return boost::none;
+	return nullopt;
 }
 
 bool ClientManager::isActive() const noexcept {
@@ -712,7 +712,7 @@ optional<ClientManager::ShareInfo> ClientManager::getShareInfo(const HintedUser&
 		return ShareInfo({ Util::toInt64(ou->getIdentity().getShareSize()), Util::toInt(ou->getIdentity().getSharedFiles()) });
 	}
 
-	return boost::none;
+	return nullopt;
 }
 
 User::UserInfoList ClientManager::getUserInfoList(const UserPtr& user) const noexcept {
@@ -1028,14 +1028,14 @@ optional<uint64_t> ClientManager::search(string& aHubUrl, const SearchPtr& aSear
 	if(i != clients.end()) {
 		if (!i->second->isConnected()) {
 			error_ = "Hub is not connected";
-			return boost::none;
+			return nullopt;
 		}
 
 		return i->second->queueSearch(aSearch);
 	}
 
 	error_ = "Hub was not found";
-	return boost::none;
+	return nullopt;
 }
 
 bool ClientManager::cancelSearch(const void* aOwner) noexcept {
@@ -1171,7 +1171,7 @@ optional<ClientManager::ClientStats> ClientManager::getClientStats() const noexc
 		stats.totalUsers = onlineUsers.size();
 		stats.uniqueUsers = uniqueUserMap.size();
 		if (stats.uniqueUsers == 0) {
-			return boost::none;
+			return nullopt;
 		}
 
 		// User counts

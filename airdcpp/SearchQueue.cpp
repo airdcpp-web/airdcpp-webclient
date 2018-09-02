@@ -100,7 +100,7 @@ optional<uint64_t> SearchQueue::getQueueTime(const Search::CompareF& aCompareF) 
 	}
 
 	// Not found
-	return boost::none;
+	return nullopt;
 }
 
 #define MAX_QUEUE_MINUTES 20
