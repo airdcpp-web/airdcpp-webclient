@@ -190,7 +190,7 @@ public:
 
 	// Get real paths for an ADC virtual path
 	// Throws ShareException
-	void getRealPaths(const string& path, StringList& ret, const OptionalProfileToken& aProfile = boost::none) const;
+	void getRealPaths(const string& path, StringList& ret, const OptionalProfileToken& aProfile = nullopt) const;
 
 	StringList getRealPaths(const TTHValue& root) const noexcept;
 
@@ -278,7 +278,7 @@ public:
 	bool removeProfile(ProfileToken aToken) noexcept;
 
 	// Convert real path to virtual path. Returns an empty string if not shared.
-	string realToVirtualAdc(const string& aPath, const OptionalProfileToken& aToken = boost::none) const noexcept;
+	string realToVirtualAdc(const string& aPath, const OptionalProfileToken& aToken = nullopt) const noexcept;
 
 	// If allowFallback is true, the default profile will be returned if the requested one is not found
 	ShareProfilePtr getShareProfile(ProfileToken aProfile, bool allowFallback = false) const noexcept;

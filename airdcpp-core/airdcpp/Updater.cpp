@@ -73,7 +73,7 @@ int Updater::destroyDirectory(const string& aPath) {
 
 	// The updater exe may not shut down instantly
 	for (int i = 0; i < 3; i++) {
-		removed += cleanExtraFiles(aPath, boost::none);
+		removed += cleanExtraFiles(aPath, nullopt);
 		if (Util::fileExists(aPath)) {
 			Sleep(1000);
 		} else {

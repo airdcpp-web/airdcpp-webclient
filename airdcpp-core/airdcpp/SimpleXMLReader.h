@@ -59,7 +59,7 @@ public:
 		int64_t size;
 		string xmlPath;
 
-		struct SizeSort : std::binary_function<ThreadedCallBack, ThreadedCallBack,bool> {
+		struct SizeSort {
 			bool operator()(const ThreadedCallBack& left, const ThreadedCallBack& right) const;
 		};
 

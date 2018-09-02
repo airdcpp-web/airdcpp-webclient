@@ -607,7 +607,7 @@ optional<DirectoryBundleAddInfo> DirectoryListing::createBundle(const Directory:
 		LogManager::getInstance()->message(STRING_F(BUNDLE_CREATION_FAILED, aTarget % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 	}
 
-	return boost::none;
+	return nullopt;
 }
 
 int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {

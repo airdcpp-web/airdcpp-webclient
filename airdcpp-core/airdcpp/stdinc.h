@@ -80,14 +80,21 @@
 #include <boost/scoped_array.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/regex.hpp>
-#include <boost/optional.hpp>
+
+#if defined(_MSC_VER)
+	#include <optional>
+	using std::optional;
+#else
+	#include <boost/optional.hpp>
+	using boost::optional;
+	#define nullopt boost::none
+#endif
 
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/adaptor/reversed.hpp>
 
 namespace dcpp {
 	using namespace std;
-	using boost::optional;
 	using boost::adaptors::map_values;
 	using boost::adaptors::map_keys;
 	using boost::adaptors::reversed;
