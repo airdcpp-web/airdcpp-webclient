@@ -28,12 +28,17 @@
 
 namespace airdcppd {
 
+//using namespace std;
+//using dcpp::ScopedFunctor;
+//using Util = dcpp::Util;
+using namespace dcpp;
+
 std::string ConfigPrompt::toBold(const std::string& aText) {
 	return "\e[1m" + aText + "\e[0m";
 }
 
 ConfigPrompt::ConfigF ConfigPrompt::checkArgs() {
-	function<bool(webserver::WebServerManager*)> f = nullptr;
+	std::function<bool(webserver::WebServerManager*)> f = nullptr;
 	if (Util::hasStartupParam("--configure")) {
 		f = &runConfigure;
 	} else if (Util::hasStartupParam("--add-user")) {
@@ -48,7 +53,7 @@ ConfigPrompt::ConfigF ConfigPrompt::checkArgs() {
 		return nullptr;
 	}
 
-	const auto errorF = [&](const string& aError) {
+	const auto errorF = [&](const std::string& aError) {
 		std::cout << aError << std::endl;
 	};
 
@@ -59,12 +64,12 @@ ConfigPrompt::ConfigF ConfigPrompt::checkArgs() {
 		auto wsm = webserver::WebServerManager::getInstance();
 		wsm->load(errorF);
 
-		cout << std::endl;
-		cout << std::endl;
+		std::cout << std::endl;
+		std::cout << std::endl;
 
 		auto save = f(wsm);
 
-		cout << std::endl;
+		std::cout << std::endl;
 		if (save) {
 			if (wsm->save(errorF)) {
 				cout << toBold("Configuration was written to " + wsm->getConfigPath()) << std::endl;
@@ -80,26 +85,26 @@ bool ConfigPrompt::runConfigure(webserver::WebServerManager* wsm) {
 	auto& tlsServerConfig = wsm->getTlsServerConfig();
 
 	promptPort(plainServerConfig, "HTTP");
-	cout << std::endl;
+	std::cout << std::endl;
 
 	promptPort(tlsServerConfig, "HTTPS");
-	cout << std::endl;
+	std::cout << std::endl;
 
 	if (!wsm->getUserManager().hasUsers()) {
-		cout << toBold("No existing users were found, adding new one.") << std::endl;
+		std::cout << toBold("No existing users were found, adding new one.") << std::endl;
 
 		addUser(wsm);
 	} else {
-		cout << toBold("Configured users were found. Use the separate commands if you want to modify them (see help).") << std::endl;
+		std::cout << toBold("Configured users were found. Use the separate commands if you want to modify them (see help).") << std::endl;
 	}
 
-	cout << std::endl;
+	std::cout << std::endl;
 
 	if (!wsm->hasValidConfig()) {
-		cout << toBold("No valid configuration was entered. Please re-run the command.") << std::endl;
+		std::cout << toBold("No valid configuration was entered. Please re-run the command.") << std::endl;
 		return false;
 	} else {
-		cout << toBold("Configuration finished")
+		std::cout << toBold("Configuration finished")
 			<< std::endl
 			<< std::endl
 			<< "You may now connect to the client via "
@@ -107,16 +112,16 @@ bool ConfigPrompt::runConfigure(webserver::WebServerManager* wsm) {
 			<< std::endl;
 
 		if (plainServerConfig.hasValidConfig()) {
-			cout << "http://<server address>:" << plainServerConfig.port.num() << std::endl;
+			std::cout << "http://<server address>:" << plainServerConfig.port.num() << std::endl;
 		}
 
 		if (tlsServerConfig.hasValidConfig()) {
-			cout << "https://<server address>:" << tlsServerConfig.port.num() << std::endl;
-			cout << std::endl;
+			std::cout << "https://<server address>:" << tlsServerConfig.port.num() << std::endl;
+			std::cout << std::endl;
 
-			cout << toBold("NOTE:") << std::endl;
-			cout << std::endl;
-			cout << "When connecting to the client via HTTPS, the browser will warn you about a self-signed certificate. "
+			std::cout << toBold("NOTE:") << std::endl;
+			std::cout << std::endl;
+			std::cout << "When connecting to the client via HTTPS, the browser will warn you about a self-signed certificate. "
 				<< "If you want the error to go away, you should search for information specific to your operating system about adding the site/certificate as trusted. "
 				<< "When browsing within the local network, using HTTPS is generally not needed."
 				<< std::endl;
@@ -141,53 +146,53 @@ bool ConfigPrompt::addUser(webserver::WebServerManager* wsm) {
 	auto& um = wsm->getUserManager();
 
 	std::string username, password;
-	cout << toBold("The user will be created with administrative permissions. Users with restricted permissions can be added from the Web UI.");
-	cout << std::endl;
-	cout << std::endl;
-	cout << "Enter username: ";
+	std::cout << toBold("The user will be created with administrative permissions. Users with restricted permissions can be added from the Web UI.");
+	std::cout << std::endl;
+	std::cout << std::endl;
+	std::cout << "Enter username: ";
 	std::getline(std::cin, username);
-	cout << std::endl;
+	std::cout << std::endl;
 
 	auto user = um.getUser(username);
 	if (user) {
-		string input;
-		cout << "A user with the same name exists. Do you want to change the password? (y/n): ";
+		std::string input;
+		std::cout << "A user with the same name exists. Do you want to change the password? (y/n): ";
 		std::getline(std::cin, input);
 
 		if (input != "y") {
 			return false;
 		}
 	} else if (!webserver::WebUser::validateUsername(username)) {
-		cout << "The username should contain only alphanumeric characters" << std::endl;
+		std::cout << "The username should contain only alphanumeric characters" << std::endl;
 		return false;
 	}
 
 	setPasswordMode(true);
 	ScopedFunctor([=] { setPasswordMode(false); });
 
-	cout << "Enter password (input hidden): ";
+	std::cout << "Enter password (input hidden): ";
 	std::getline(std::cin, password);
-	cout << std::endl;
+	std::cout << std::endl;
 
 	{
-		string passwordConfirm;
-		cout << "Retype password: ";
+		std::string passwordConfirm;
+		std::cout << "Retype password: ";
 		std::getline(std::cin, passwordConfirm);
 
-		cout << std::endl;
+		std::cout << std::endl;
 		if (passwordConfirm != password) {
-			cout << "Passwords didn't match" << std::endl;
+			std::cout << "Passwords didn't match" << std::endl;
 			return false;
 		}
 	}
 
 	if (!user) {
-		um.addUser(make_shared<webserver::WebUser>(username, password, true));
-		cout << "The user " << username << " was added" << std::endl;
+		um.addUser(std::make_shared<webserver::WebUser>(username, password, true));
+		std::cout << "The user " << username << " was added" << std::endl;
 	} else {
 		user->setPassword(password);
 		um.updateUser(user);
-		cout << "Password for the user " << username << " was updated" << std::endl;
+		std::cout << "Password for the user " << username << " was updated" << std::endl;
 	}
 
 	return true;
@@ -197,14 +202,14 @@ bool ConfigPrompt::removeUser(webserver::WebServerManager* wsm) {
 	auto& um = wsm->getUserManager();
 
 	std::string username;
-	cout << "Enter username to remove: ";
+	std::cout << "Enter username to remove: ";
 	std::getline(std::cin, username);
 
 	auto ret = um.removeUser(username);
 	if (ret) {
-		cout << "The user " << username << " was removed" << std::endl;
+		std::cout << "The user " << username << " was removed" << std::endl;
 	} else {
-		cout << "The user " << username << " was not found" << std::endl;
+		std::cout << "The user " << username << " was not found" << std::endl;
 	}
 
 	return ret;
@@ -213,9 +218,9 @@ bool ConfigPrompt::removeUser(webserver::WebServerManager* wsm) {
 bool ConfigPrompt::listUsers(webserver::WebServerManager* wsm) {
 	auto users = wsm->getUserManager().getUserNames();
 	if (users.empty()) {
-		cout << "No users exist" << std::endl;
+		std::cout << "No users exist" << std::endl;
 	} else {
-		cout << Util::listToString(users) << std::endl;
+		std::cout << Util::listToString(users) << std::endl;
 	}
 
 	return false;
@@ -224,31 +229,31 @@ bool ConfigPrompt::listUsers(webserver::WebServerManager* wsm) {
 void ConfigPrompt::promptPort(webserver::ServerConfig& config_, const std::string& aProtocol) {
 	auto port = config_.port.num();
 
-	cout << "Enter " << aProtocol << " port (empty: " << port << ", 0 = disabled): ";
+	std::cout << "Enter " << aProtocol << " port (empty: " << port << ", 0 = disabled): ";
 
-	string input;
+	std::string input;
 	std::getline(std::cin, input);
 
 	if (!input.empty()) {
 		port = atoi(input.c_str());
 		if (port < 0 || port > 65535) {
-			cout << "Invalid port number\n";
+			std::cout << "Invalid port number\n";
 			promptPort(config_, aProtocol);
 			return;
 		}
 
-		cout << std::endl;
+		std::cout << std::endl;
 	}
 
 	config_.port.setValue(port);
 	if (port > 0) {
-		cout << toBold(aProtocol + " port set to: ") << port << std::endl;
+		std::cout << toBold(aProtocol + " port set to: ") << port << std::endl;
 	} else {
-		cout << toBold(aProtocol + " protocol disabled") << std::endl;
+		std::cout << toBold(aProtocol + " protocol disabled") << std::endl;
 	}
 
 	if (port > 0 && port < 1024) {
-		cout << toBold("NOTE: Ports under 1024 require you to run the client as root. It's recommended to use ports higher than 1024") << std::endl;
+		std::cout << toBold("NOTE: Ports under 1024 require you to run the client as root. It's recommended to use ports higher than 1024") << std::endl;
 	}
 }
 

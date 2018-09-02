@@ -36,6 +36,8 @@
 
 namespace airdcppd {
 
+using namespace dcpp;
+
 Client::Client(bool aAsDaemon) : asDaemon(aAsDaemon) {
 
 }
@@ -61,15 +63,15 @@ void Client::stop() {
 		if (!asDaemon) {
 			printf("Shutdown request ignored, operation in progress\n");
 		}
-		
+
 		return;
 	}
-	
+
 	running = false;
 	if (!asDaemon) {
 		printf("Shutdown requested...\n");
 	}
-	
+
 	// FreeBSD would fail with "Fatal error 'thread 0x807616000 was already on queue."
 	// if signaling from a system thread
 	webserver::WebServerManager::getInstance()->addAsyncTask([this] {
@@ -147,7 +149,7 @@ bool Client::startup() {
 
 void Client::shutdown() {
 	webserver::WebServerManager::getInstance()->stop();
-	
+
 	cdmDebug.reset(nullptr);
 
 	ClientManager::getInstance()->putClients();

@@ -34,6 +34,7 @@
 #include <fstream>
 
 using namespace std;
+using namespace dcpp;
 
 static unique_ptr<File> pidFile;
 static string pidFileName;
