@@ -55,7 +55,7 @@ namespace webserver {
 	optional<int> FavoriteHubApi::deserializeIntHubSetting(const string& aFieldName, const json& aJson) {
 		auto p = aJson.find(aFieldName);
 		if (p == aJson.end()) {
-			return boost::none;
+			return nullopt;
 		}
 
 		if ((*p).is_null()) {

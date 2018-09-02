@@ -36,19 +36,19 @@ namespace webserver {
 	optional<ApiRequest::NamedParamMap> ApiModule::RequestHandler::matchParams(const ApiRequest::ParamList& aRequestParams) const noexcept {
 		if (method == METHOD_FORWARD) {
 			if (aRequestParams.size() < params.size()) {
-				return boost::none;
+				return nullopt;
 			}
 		} else if (method != METHOD_FORWARD && aRequestParams.size() != params.size()) {
-			return boost::none;
+			return nullopt;
 		}
 
 		for (auto i = 0; i < static_cast<int>(params.size()); i++) {
 			try {
 				if (!boost::regex_search(aRequestParams[i], params[i].reg)) {
-					return boost::none;
+					return nullopt;
 				}
 			} catch (const std::runtime_error&) {
-				return boost::none;
+				return nullopt;
 			}
 		}
 
