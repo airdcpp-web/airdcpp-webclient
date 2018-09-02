@@ -255,7 +255,7 @@ namespace webserver {
 
 		while (true) {
 			if (all_of(sessions.begin(), sessions.end(), [](const SessionPtr& aSession) {
-				return aSession.unique();
+				return aSession.use_count() == 1;
 			})) {
 				break;
 			}

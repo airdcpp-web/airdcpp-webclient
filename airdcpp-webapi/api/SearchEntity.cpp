@@ -60,7 +60,7 @@ namespace webserver {
 
 	optional<int64_t> SearchEntity::getTimeToExpiration() const noexcept {
 		if (expirationTick == 0) {
-			return boost::none;
+			return nullopt;
 		}
 
 		return static_cast<int64_t>(expirationTick) - static_cast<int64_t>(GET_TICK());

@@ -65,17 +65,17 @@ namespace webserver {
 			}
 
 			if (aJson.is_null()) {
-				return boost::none;
+				return nullopt;
 			}
 
 			auto p = aJson.find(aFieldName);
 			if (p == aJson.end()) {
-				return boost::none;
+				return nullopt;
 			}
 
 			auto value = parseValue<T>(aFieldName, *p, true);
 			if (isEmpty<T>(value, *p)) {
-				return boost::none;
+				return nullopt;
 			}
 
 			return value;
