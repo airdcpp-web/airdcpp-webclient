@@ -42,6 +42,7 @@ namespace webserver {
 		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_POST,	(EXACT_PARAM("read")),										FilelistInfo::handleSetRead);
 
 		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_GET,		(EXACT_PARAM("items"), RANGE_START_PARAM, RANGE_MAX_PARAM), FilelistInfo::handleGetItems);
+		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_GET,		(EXACT_PARAM("items"), TOKEN_PARAM),						FilelistInfo::handleGetItem);
 	}
 
 	void FilelistInfo::init() noexcept {
@@ -104,6 +105,29 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
+
+	api_return FilelistInfo::handleGetItem(ApiRequest& aRequest) {
+		FilelistItemInfoPtr item = nullptr;
+
+		{
+			RLock l(cs);
+			auto i = boost::find_if(currentViewItems, [&aRequest](const FilelistItemInfoPtr& aInfo) {
+				return aInfo->getToken() == aRequest.getTokenParam();
+			});
+
+			if (i == currentViewItems.end()) {
+				aRequest.setResponseErrorStr("Item not found");
+				return websocketpp::http::status_code::not_found;
+			}
+
+			item = *i;
+		}
+
+		auto j = Serializer::serializeItem(item, FilelistUtils::propertyHandler);
+		aRequest.setResponseBody(j);
+		return websocketpp::http::status_code::ok;
+	}
+
 	api_return FilelistInfo::handleChangeDirectory(ApiRequest& aRequest) {
 		const auto& j = aRequest.getRequestBody();
 
@@ -147,6 +171,7 @@ namespace webserver {
 	json FilelistInfo::serializeLocation(const DirectoryListingPtr& aListing) noexcept {
 		const auto& location = aListing->getCurrentLocationInfo();
 		if (!location.directory) {
+			// Shouldn't happen
 			return nullptr;
 		}
 

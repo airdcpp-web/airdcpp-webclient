@@ -62,6 +62,7 @@ namespace webserver {
 		api_return handlePostHubSearch(ApiRequest& aRequest);
 		api_return handlePostUserSearch(ApiRequest& aRequest);
 		api_return handleGetResults(ApiRequest& aRequest);
+		api_return handleGetResult(ApiRequest& aRequest);
 
 		api_return handleDownload(ApiRequest& aRequest);
 		api_return handleGetChildren(ApiRequest& aRequest);

@@ -33,7 +33,7 @@
 #define _SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING // boost\detail\allocator_utilities.hpp(125): error C4996: 'std::allocator<_Other>::rebind<Type>::other': warning STL4010: Various members of std::allocator are deprecated in C++17.
 #endif
 
-#ifndef _SILENCE_CXX17_NEGATORS_DEPRECATION_WARNING
+#ifndef _SILENCE_CXX17_NEGATORS_DEPRECATION_WARNING // TODO: fix when GCC 7 is required with support for std::not_fn
 #define _SILENCE_CXX17_NEGATORS_DEPRECATION_WARNING // api\common\serializer.cpp(235): error C4996: 'std::not1': warning STL4008: std::not1(), std::not2(), std::unary_negate, and std::binary_negate are deprecated in C++17. They are superseded by std::not_fn().
 #endif
 
