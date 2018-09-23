@@ -46,6 +46,7 @@ namespace webserver {
 		METHOD_HANDLER(Access::SEARCH,		METHOD_POST,	(EXACT_PARAM("user_search")),									SearchEntity::handlePostUserSearch);
 
 		METHOD_HANDLER(Access::SEARCH,		METHOD_GET,		(EXACT_PARAM("results"), RANGE_START_PARAM, RANGE_MAX_PARAM),	SearchEntity::handleGetResults);
+		METHOD_HANDLER(Access::SEARCH,		METHOD_GET,		(EXACT_PARAM("results"), TTH_PARAM),							SearchEntity::handleGetResult);
 		METHOD_HANDLER(Access::DOWNLOAD,	METHOD_POST,	(EXACT_PARAM("results"), TTH_PARAM, EXACT_PARAM("download")),	SearchEntity::handleDownload);
 		METHOD_HANDLER(Access::SEARCH,		METHOD_GET,		(EXACT_PARAM("results"), TTH_PARAM, EXACT_PARAM("children")),	SearchEntity::handleGetChildren);
 	}
@@ -86,6 +87,18 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(Serializer::serializeList(result->getChildren(), serializeSearchResult));
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return SearchEntity::handleGetResult(ApiRequest& aRequest) {
+		auto result = search->getResult(aRequest.getTTHParam());
+		if (!result) {
+			aRequest.setResponseErrorStr("Result not found");
+			return websocketpp::http::status_code::not_found;
+		}
+
+		auto j = Serializer::serializeItem(result, SearchUtils::propertyHandler);
+		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
 	}
 

@@ -146,6 +146,7 @@ namespace webserver {
 	json Serializer::serializeShareProfileSimple(ProfileToken aProfile) noexcept {
 		auto sp = ShareManager::getInstance()->getShareProfile(aProfile);
 		if (!sp) {
+			// Shouldn't happen
 			return nullptr;
 		}
 
