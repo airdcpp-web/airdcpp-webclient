@@ -142,7 +142,7 @@ namespace webserver {
 			throw Exception("Extension requires API version " + Util::toString(apiVersion) + " while the application uses version " + Util::toString(API_VERSION));
 		}
 
-		if (minApiFeatureLevel != API_FEATURE_LEVEL) {
+		if (minApiFeatureLevel > API_FEATURE_LEVEL) {
 			throw Exception("Extension requires API feature level " + Util::toString(minApiFeatureLevel) + " or newer while the application uses version " + Util::toString(API_FEATURE_LEVEL));
 		}
 	}
