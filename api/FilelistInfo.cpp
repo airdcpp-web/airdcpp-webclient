@@ -109,18 +109,32 @@ namespace webserver {
 	api_return FilelistInfo::handleGetItem(ApiRequest& aRequest) {
 		FilelistItemInfoPtr item = nullptr;
 
+		// TODO: refactor filelists and do something better than this
 		{
 			RLock l(cs);
+
+			// Check view items
 			auto i = boost::find_if(currentViewItems, [&aRequest](const FilelistItemInfoPtr& aInfo) {
 				return aInfo->getToken() == aRequest.getTokenParam();
 			});
 
 			if (i == currentViewItems.end()) {
-				aRequest.setResponseErrorStr("Item not found");
-				return websocketpp::http::status_code::not_found;
+				// Check current location
+				const auto& location = dl->getCurrentLocationInfo();
+				if (location.directory) {
+					auto dir = std::make_shared<FilelistItemInfo>(location.directory);
+					if (dir->getToken() == aRequest.getTokenParam()) {
+						item = dir;
+					}
+				}
+			} else {
+				item = *i;
 			}
+		}
 
-			item = *i;
+		if (!item) {
+			aRequest.setResponseErrorStr("Item not found");
+			return websocketpp::http::status_code::not_found;
 		}
 
 		auto j = Serializer::serializeItem(item, FilelistUtils::propertyHandler);

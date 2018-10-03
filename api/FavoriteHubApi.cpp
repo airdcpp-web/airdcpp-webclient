@@ -52,19 +52,6 @@ namespace webserver {
 		return FavoriteManager::getInstance()->getFavoriteHubs();
 	}
 
-	optional<int> FavoriteHubApi::deserializeIntHubSetting(const string& aFieldName, const json& aJson) {
-		auto p = aJson.find(aFieldName);
-		if (p == aJson.end()) {
-			return nullopt;
-		}
-
-		if ((*p).is_null()) {
-			return HUB_SETTING_DEFAULT_INT;
-		}
-
-		return JsonUtil::parseValue<int>(aFieldName, *p);
-	}
-
 	api_return FavoriteHubApi::handleGetHubs(ApiRequest& aRequest) {
 		auto j = Serializer::serializeItemList(aRequest.getRangeParam(START_POS), aRequest.getRangeParam(MAX_COUNT), FavoriteHubUtils::propertyHandler, getEntryList());
 		aRequest.setResponseBody(j);
@@ -73,46 +60,45 @@ namespace webserver {
 	}
 
 	void FavoriteHubApi::updateProperties(FavoriteHubEntryPtr& aEntry, const json& j, bool aNewHub) {
-		auto name = JsonUtil::getOptionalField<string>("name", j, aNewHub);
+		{
+			// Required values
+			auto name = JsonUtil::getOptionalField<string>("name", j, aNewHub);
 
-		auto server = JsonUtil::getOptionalField<string>("hub_url", j, aNewHub);
-		if (server) {
-			if (!FavoriteManager::getInstance()->isUnique(*server, aEntry->getToken())) {
-				JsonUtil::throwError("hub_url", JsonUtil::ERROR_EXISTS, STRING(FAVORITE_HUB_ALREADY_EXISTS));
-			}
-		}
-
-		auto shareProfileToken = deserializeIntHubSetting("share_profile", j);
-		if (shareProfileToken && *shareProfileToken != HUB_SETTING_DEFAULT_INT) {
-			if (!AirUtil::isAdcHub(!server ? aEntry->getServer() : *server) && *shareProfileToken != SETTING(DEFAULT_SP) && *shareProfileToken != SP_HIDDEN) {
-				JsonUtil::throwError("share_profile", JsonUtil::ERROR_INVALID, "Share profiles can't be changed for NMDC hubs");
-			}
-
-			if (*shareProfileToken) {
-				auto shareProfilePtr = ShareManager::getInstance()->getShareProfile(*shareProfileToken, false);
-				if (!shareProfilePtr) {
-					JsonUtil::throwError("share_profile", JsonUtil::ERROR_INVALID, "Invalid share profile");
+			auto server = JsonUtil::getOptionalField<string>("hub_url", j, aNewHub);
+			if (server) {
+				if (!FavoriteManager::getInstance()->isUnique(*server, aEntry->getToken())) {
+					JsonUtil::throwError("hub_url", JsonUtil::ERROR_EXISTS, STRING(FAVORITE_HUB_ALREADY_EXISTS));
 				}
 			}
+
+			// We have valid values
+			if (name) {
+				aEntry->setName(*name);
+			}
+
+			if (server) {
+				aEntry->setServer(*server);
+			}
 		}
 
-		// We have valid values
-		if (name) {
-			aEntry->setName(*name);
-		}
-
-		if (server) {
-			aEntry->setServer(*server);
-		}
-
-		if (shareProfileToken) {
-			aEntry->get(HubSettings::ShareProfile) = *shareProfileToken;
-		}
-
-		// Values that don't need to be validated
+		// Optional values
 		for (const auto& i : j.items()) {
 			auto key = i.key();
-			if (key == "auto_connect") {
+			if (key == "share_profile") {
+				auto shareProfileToken = JsonUtil::getOptionalFieldDefault("share_profile", j, HUB_SETTING_DEFAULT_INT);
+				if (shareProfileToken != HUB_SETTING_DEFAULT_INT) {
+					if (!AirUtil::isAdcHub(aEntry->getServer()) && shareProfileToken != SETTING(DEFAULT_SP) && shareProfileToken != SP_HIDDEN) {
+						JsonUtil::throwError("share_profile", JsonUtil::ERROR_INVALID, "Share profiles can't be changed for NMDC hubs");
+					}
+
+					auto shareProfilePtr = ShareManager::getInstance()->getShareProfile(shareProfileToken, false);
+					if (!shareProfilePtr) {
+						JsonUtil::throwError("share_profile", JsonUtil::ERROR_INVALID, "Invalid share profile");
+					}
+				}
+
+				aEntry->get(HubSettings::ShareProfile) = shareProfileToken;
+			} else if (key == "auto_connect") {
 				aEntry->setAutoConnect(JsonUtil::parseValue<bool>("auto_connect", i.value()));
 			} else if (key == "hub_description") {
 				aEntry->setDescription(JsonUtil::parseValue<string>("hub_description", i.value()));
@@ -125,9 +111,9 @@ namespace webserver {
 			} else if (key == "nmdc_encoding") {
 				aEntry->get(HubSettings::NmdcEncoding) = JsonUtil::parseValue<string>("nmdc_encoding", i.value());
 			} else if (key == "connection_mode_v4") {
-				aEntry->get(HubSettings::Connection) = *JsonUtil::getEnumField<int>("connection_mode_v4", i.value(), false, SettingsManager::INCOMING_DISABLED, SettingsManager::INCOMING_PASSIVE);
+				aEntry->get(HubSettings::Connection) = JsonUtil::parseEnumValueDefault<int>("connection_mode_v4", i.value(), HUB_SETTING_DEFAULT_INT, SettingsManager::INCOMING_DISABLED, SettingsManager::INCOMING_PASSIVE);
 			} else if (key == "connection_mode_v6") {
-				aEntry->get(HubSettings::Connection6) = *JsonUtil::getEnumField<int>("connection_mode_v6", i.value(), false, SettingsManager::INCOMING_DISABLED, SettingsManager::INCOMING_PASSIVE);
+				aEntry->get(HubSettings::Connection6) = JsonUtil::parseEnumValueDefault<int>("connection_mode_v6", i.value(), HUB_SETTING_DEFAULT_INT, SettingsManager::INCOMING_DISABLED, SettingsManager::INCOMING_PASSIVE);
 			} else if (key == "connection_ip_v4") {
 				aEntry->get(HubSettings::UserIp) = JsonUtil::parseValue<string>("connection_ip_v4", i.value());
 			} else if (key == "connection_ip_v6") {

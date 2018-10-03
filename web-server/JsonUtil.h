@@ -33,8 +33,8 @@ namespace webserver {
 
 		// Return enum field with range validation
 		template <typename T, typename JsonT>
-		static optional<T> getEnumField(const string& aFieldName, const JsonT& aJson, bool aRequired, int aMin, int aMax) {
-			auto value = getOptionalField<T>(aFieldName, aJson, aRequired);
+		static optional<T> getOptionalEnumField(const string& aFieldName, const JsonT& aJson, bool aRequired, int aMin, int aMax) {
+			auto value = getOptionalField<T, JsonT>(aFieldName, aJson, aRequired);
 			if (value) {
 				validateRange(aFieldName, *value, aMin, aMax);
 			}
@@ -53,7 +53,7 @@ namespace webserver {
 
 		template <typename T, typename JsonT>
 		static T getEnumFieldDefault(const string& aFieldName, const JsonT& aJson, T aDefault, int aMin, int aMax) {
-			auto value = getEnumField<T, JsonT>(aFieldName, aJson, false, aMin, aMax);
+			auto value = getOptionalEnumField<T, JsonT>(aFieldName, aJson, false, aMin, aMax);
 			return value ? *value : aDefault;
 		}
 
@@ -61,7 +61,7 @@ namespace webserver {
 		template <typename T, typename JsonT>
 		static optional<T> getOptionalField(const string& aFieldName, const JsonT& aJson, bool aThrowIfMissing = false) {
 			if (aThrowIfMissing) {
-				return getField<T>(aFieldName, aJson, false);
+				return getField<T, JsonT>(aFieldName, aJson, false);
 			}
 
 			if (aJson.is_null()) {
@@ -73,18 +73,13 @@ namespace webserver {
 				return nullopt;
 			}
 
-			auto value = parseValue<T>(aFieldName, *p, true);
-			if (isEmpty<T>(value, *p)) {
-				return nullopt;
-			}
-
-			return value;
+			return parseOptionalValue<T, JsonT>(aFieldName, *p);
 		}
 
 		// Get the field value if it exists and return the default otherwise
 		template <typename T, typename JsonT>
 		static T getOptionalFieldDefault(const string& aFieldName, const JsonT& aJson, const T& aDefault) {
-			auto v = getOptionalField<T>(aFieldName, aJson);
+			auto v = getOptionalField<T, JsonT>(aFieldName, aJson);
 			if (v) {
 				return *v;
 			}
@@ -122,7 +117,7 @@ namespace webserver {
 					return T(); // avoid MSVC warning
 				}
 
-				if (!aAllowEmpty && isEmpty<T>(ret, aJson)) {
+				if (!aAllowEmpty && isEmpty<T, JsonT>(ret, aJson)) {
 					throwError(aFieldName, ERROR_INVALID, "Field can't be empty");
 					return T(); // avoid MSVC warning
 				}
@@ -135,6 +130,36 @@ namespace webserver {
 			}
 
 			return convertNullValue<T>(aFieldName);
+		}
+
+		template <typename T, typename JsonT>
+		static optional<T> parseOptionalValue(const string& aFieldName, const JsonT& aJson) {
+			if (aJson.is_null()) {
+				return nullopt;
+			}
+
+			auto value = parseValue<T, JsonT>(aFieldName, aJson, true);
+			if (isEmpty<T, JsonT>(value, aJson)) {
+				return nullopt;
+			}
+
+			return value;
+		}
+
+		template <typename T, typename JsonT>
+		static optional<T> parseOptionalEnumValue(const string& aFieldName, const JsonT& aJson, int aMin, int aMax) {
+			auto value = parseOptionalValue<T, JsonT>(aFieldName, aJson);
+			if (value) {
+				validateRange(aFieldName, *value, aMin, aMax);
+			}
+
+			return value;
+		}
+
+		template <typename T, typename JsonT>
+		static T parseEnumValueDefault(const string& aFieldName, const JsonT& aJson, T aDefault, int aMin, int aMax) {
+			auto value = parseOptionalEnumValue<T, JsonT>(aFieldName, aJson, aMin, aMax);
+			return value ? *value : aDefault;
 		}
 
 		static void throwError(const string& aFieldName, ErrorType aType, const string& aMessage)  {
