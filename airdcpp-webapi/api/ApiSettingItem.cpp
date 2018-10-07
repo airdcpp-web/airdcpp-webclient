@@ -24,6 +24,7 @@
 #include <airdcpp/AirUtil.h>
 #include <airdcpp/ConnectionManager.h>
 #include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/Localization.h>
 #include <airdcpp/ResourceManager.h>
 #include <airdcpp/SearchManager.h>
 #include <airdcpp/SettingHolder.h>
@@ -337,6 +338,10 @@ namespace webserver {
 			auto mappers = ConnectivityManager::getInstance()->getMappers(false);
 			for (const auto& mapper : mappers) {
 				ret.emplace_back(EnumOption({ mapper, mapper }));
+			}
+		} else if (si.key == SettingsManager::LANGUAGE_FILE) {
+			for (const auto& language: Localization::languageList) {
+				ret.emplace_back(EnumOption({ Util::getFileName(language.getLanguageFilePath()), language.languageName }));
 			}
 		}
 
