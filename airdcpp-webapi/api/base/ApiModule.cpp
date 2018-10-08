@@ -33,18 +33,18 @@ namespace webserver {
 
 	}
 
-	optional<ApiRequest::NamedParamMap> ApiModule::RequestHandler::matchParams(const ApiRequest::ParamList& aRequestParams) const noexcept {
+	optional<ApiRequest::NamedParamMap> ApiModule::RequestHandler::matchParams(const ApiRequest::PathTokenList& aPathTokens) const noexcept {
 		if (method == METHOD_FORWARD) {
-			if (aRequestParams.size() < params.size()) {
+			if (aPathTokens.size() < params.size()) {
 				return nullopt;
 			}
-		} else if (method != METHOD_FORWARD && aRequestParams.size() != params.size()) {
+		} else if (method != METHOD_FORWARD && aPathTokens.size() != params.size()) {
 			return nullopt;
 		}
 
 		for (auto i = 0; i < static_cast<int>(params.size()); i++) {
 			try {
-				if (!boost::regex_search(aRequestParams[i], params[i].reg)) {
+				if (!boost::regex_search(aPathTokens[i], params[i].reg)) {
 					return nullopt;
 				}
 			} catch (const std::runtime_error&) {
@@ -54,7 +54,7 @@ namespace webserver {
 
 		ApiRequest::NamedParamMap paramMap;
 		for (auto i = 0; i < static_cast<int>(params.size()); i++) {
-			paramMap[params[i].id] = aRequestParams[i];
+			paramMap[params[i].id] = aPathTokens[i];
 		}
 
 		return paramMap;
@@ -66,7 +66,7 @@ namespace webserver {
 		// Match parameters
 		auto handler = find_if(requestHandlers.begin(), requestHandlers.end(), [&](const RequestHandler& aHandler) {
 			// Regular matching
-			auto namedParams = aHandler.matchParams(aRequest.getParameters());
+			auto namedParams = aHandler.matchParams(aRequest.getPathTokens());
 			if (!namedParams) {
 				return false;
 			}
@@ -86,7 +86,7 @@ namespace webserver {
 				return websocketpp::http::status_code::method_not_allowed;
 			}
 
-			aRequest.setResponseErrorStr("The supplied URL doesn't match any method in this API module");
+			aRequest.setResponseErrorStr("The supplied URL " + aRequest.getRequestPath() + " doesn't match any method in this API module");
 			return websocketpp::http::status_code::bad_request;
 		}
 

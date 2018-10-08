@@ -78,7 +78,7 @@ namespace webserver {
 			const HandlerFunction f;
 			const Access access;
 
-			optional<ApiRequest::NamedParamMap> matchParams(const ApiRequest::ParamList& aParams) const noexcept;
+			optional<ApiRequest::NamedParamMap> matchParams(const ApiRequest::PathTokenList& aPathTokens) const noexcept;
 		};
 
 		typedef std::vector<RequestHandler> RequestHandlerList;

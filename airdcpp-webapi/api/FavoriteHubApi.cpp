@@ -137,7 +137,7 @@ namespace webserver {
 	api_return FavoriteHubApi::handleRemoveHub(ApiRequest& aRequest) {
 		auto token = aRequest.getTokenParam();
 		if (!FavoriteManager::getInstance()->removeFavoriteHub(token)) {
-			aRequest.setResponseErrorStr("Hub not found");
+			aRequest.setResponseErrorStr("Favorite hub " + Util::toString(aRequest.getTokenParam()) + " was not found");
 			return websocketpp::http::status_code::not_found;
 		}
 
@@ -147,7 +147,7 @@ namespace webserver {
 	api_return FavoriteHubApi::handleGetHub(ApiRequest& aRequest) {
 		auto entry = FavoriteManager::getInstance()->getFavoriteHubEntry(aRequest.getTokenParam());
 		if (!entry) {
-			aRequest.setResponseErrorStr("Hub not found");
+			aRequest.setResponseErrorStr("Favorite hub " + Util::toString(aRequest.getTokenParam()) + " was not found");
 			return websocketpp::http::status_code::not_found;
 		}
 
@@ -158,7 +158,7 @@ namespace webserver {
 	api_return FavoriteHubApi::handleUpdateHub(ApiRequest& aRequest) {
 		auto e = FavoriteManager::getInstance()->getFavoriteHubEntry(aRequest.getTokenParam());
 		if (!e) {
-			aRequest.setResponseErrorStr("Hub not found");
+			aRequest.setResponseErrorStr("Favorite hub " + Util::toString(aRequest.getTokenParam()) + " was not found");
 			return websocketpp::http::status_code::not_found;
 		}
 
