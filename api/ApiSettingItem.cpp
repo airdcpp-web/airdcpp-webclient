@@ -343,7 +343,7 @@ namespace webserver {
 			}
 		} else if (si.key == SettingsManager::LANGUAGE_FILE) {
 			for (const auto& language: Localization::getLanguages()) {
-				ret.emplace_back(EnumOption({ language.languageFile, language.languageName }));
+				ret.emplace_back(EnumOption({ language.getLanguageSettingValue(), language.getLanguageName() }));
 			}
 		}
 
