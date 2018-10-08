@@ -319,7 +319,7 @@ void UpdateManager::checkLanguage() {
 	}
 
 	conns[CONN_LANGUAGE_CHECK] = make_unique<HttpDownload>(
-		links.language + "checkLangVersion.php?lc=" + curLanguage->locale,
+		links.language + "checkLangVersion.php?lc=" + curLanguage->getLocale(),
 		[this] { completeLanguageCheck(); }
 	);
 }

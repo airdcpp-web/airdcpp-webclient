@@ -30,11 +30,12 @@ class Localization {
 		class Language {
 		public:
 			Language() { }
-			explicit Language(const string& aLanguage, const char* aCountryFlagCode, const string& aLocale, const string& aLanguageFile) : languageName(aLanguage), 
-				locale(aLocale), languageFile(aLanguageFile), countryFlagCode(aCountryFlagCode) {
+			explicit Language(const string& aLanguage, const char* aCountryFlagCode, const string& aLocale) : languageName(aLanguage), 
+				locale(aLocale), countryFlagCode(aCountryFlagCode) {
 			}
 
 			string getLanguageFilePath() const noexcept;
+			string getLanguageSettingValue() const noexcept;
 			double getLanguageVersion() const noexcept;
 			bool isDefault() const noexcept;
 
@@ -42,7 +43,19 @@ class Localization {
 				bool operator()(const Language& l1, const Language& l2) const noexcept;
 			};
 
-			string languageName, locale, languageFile;
+			const string& getLanguageName() const noexcept {
+				return languageName;
+			}
+
+			const string& getLocale() const noexcept {
+				return locale;
+			}
+
+			const char* getCountryFlagCode() const noexcept {
+				return countryFlagCode;
+			}
+		private:
+			string languageName, locale;
 			const char* countryFlagCode;
 		};
 

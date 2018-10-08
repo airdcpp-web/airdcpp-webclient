@@ -82,7 +82,24 @@ bool Localization::Language::NameSort::operator()(const Language& l1, const Lang
 }
 
 string Localization::Language::getLanguageFilePath() const noexcept {
-	return isDefault() ? Util::emptyString : Util::getPath(Util::PATH_LOCALE) + locale + ".xml";
+	const auto fileName = getLanguageSettingValue();
+	if (fileName.empty()) {
+		return Util::emptyString;
+	}
+
+	return Util::getPath(Util::PATH_LOCALE) + fileName;
+}
+
+string Localization::Language::getLanguageSettingValue() const noexcept {
+	if (isDefault()) {
+		return Util::emptyString;
+	}
+
+	if (Util::getFileExt(locale) == ".xml") {
+		return locale;
+	}
+
+	return locale + ".xml";
 }
 
 double Localization::Language::getLanguageVersion() const noexcept {
@@ -108,21 +125,21 @@ vector<Localization::Language> Localization::languageList;
 
 void Localization::init() noexcept {
 	// remove the file names at some point
-	languageList.emplace_back("English", "GB", "en-US", Util::emptyString);
-	languageList.emplace_back("Danish", "DK", "da-DK", "Danish_for_AirDC.xml");
-	languageList.emplace_back("Dutch", "NL", "nl-NL", "Dutch_for_AirDC.xml");
-	languageList.emplace_back("Finnish", "FI", "fi-FI", "Finnish_for_AirDC.xml");
-	languageList.emplace_back("French", "FR", "fr-FR", "French_for_AirDC.xml");
-	languageList.emplace_back("German", "DE", "de-DE", "German_for_AirDC.xml");
-	languageList.emplace_back("Hungarian", "HU", "hu-HU", "Hungarian_for_AirDC.xml");
-	languageList.emplace_back("Italian", "IT", "it-IT", "Italian_for_AirDC.xml");
-	languageList.emplace_back("Norwegian", "NO", "no-NO", "Norwegian_for_AirDC.xml");
-	languageList.emplace_back("Polish", "PL", "pl-PL", "Polish_for_AirDC.xml");
-	languageList.emplace_back("Portuguese", "PT", "pt-BR", "Port_Br_for_AirDC.xml");
-	languageList.emplace_back("Romanian", "RO", "ro-RO", "Romanian_for_AirDC.xml");
-	languageList.emplace_back("Russian", "RU", "ru-RU", "Russian_for_AirDC.xml");
-	languageList.emplace_back("Spanish", "ES", "es-ES", "Spanish_for_AirDC.xml");
-	languageList.emplace_back("Swedish", "SE", "sv-SE", "Swedish_for_AirDC.xml");
+	languageList.emplace_back("English", "GB", "en-US");
+	languageList.emplace_back("Danish", "DK", "da-DK");
+	languageList.emplace_back("Dutch", "NL", "nl-NL");
+	languageList.emplace_back("Finnish", "FI", "fi-FI");
+	languageList.emplace_back("French", "FR", "fr-FR");
+	languageList.emplace_back("German", "DE", "de-DE");
+	languageList.emplace_back("Hungarian", "HU", "hu-HU");
+	languageList.emplace_back("Italian", "IT", "it-IT");
+	languageList.emplace_back("Norwegian", "NO", "no-NO");
+	languageList.emplace_back("Polish", "PL", "pl-PL");
+	languageList.emplace_back("Portuguese", "PT", "pt-BR");
+	languageList.emplace_back("Romanian", "RO", "ro-RO");
+	languageList.emplace_back("Russian", "RU", "ru-RU");
+	languageList.emplace_back("Spanish", "ES", "es-ES");
+	languageList.emplace_back("Swedish", "SE", "sv-SE");
 
 	languageList.shrink_to_fit();
 }
@@ -167,17 +184,17 @@ string Localization::getCurLanguageFilePath() noexcept {
 
 string Localization::getLocale() noexcept {
 	const auto lang = getCurrentLanguage();
-	return lang && !lang->isDefault() ? lang->locale : getSystemLocale();
+	return lang && !lang->isDefault() ? lang->getLocale() : getSystemLocale();
 }
 
 string Localization::getCurLanguageLocale() noexcept {
 	const auto lang = getCurrentLanguage();
-	return lang ? lang->locale : getSystemLocale();
+	return lang ? lang->getLocale() : getSystemLocale();
 }
 
 string Localization::getCurLanguageName() noexcept {
 	const auto lang = getCurrentLanguage();
-	return lang ? lang->languageName : "(Custom " + Util::getFileName(SETTING(LANGUAGE_FILE)) + ")";
+	return lang ? lang->getLanguageName() : "(Custom " + Util::getFileName(SETTING(LANGUAGE_FILE)) + ")";
 }
 
 
@@ -196,7 +213,6 @@ Localization::LanguageList Localization::getLanguages() noexcept {
 	ret.emplace_back(
 		getCurLanguageName(),
 		"",
-		getSystemLocale(),
 		SETTING(LANGUAGE_FILE)
 	);
 
@@ -205,13 +221,13 @@ Localization::LanguageList Localization::getLanguages() noexcept {
 
 
 optional<int> Localization::getLanguageIndex(const Localization::LanguageList& aLanguages) noexcept {
-	const auto langFile = SETTING(LANGUAGE_FILE);
-	if (langFile.empty()) {
+	const auto curSetting = SETTING(LANGUAGE_FILE);
+	if (curSetting.empty()) {
 		return 0;
 	}
 
-	auto s = find_if(aLanguages.begin(), aLanguages.end(), [&langFile](const Language& aLang) {
-		return aLang.languageFile == langFile;
+	auto s = find_if(aLanguages.begin(), aLanguages.end(), [&curSetting](const Language& aLang) {
+		return aLang.getLanguageSettingValue() == curSetting;
 	});
 
 	if (s != aLanguages.end()) {
