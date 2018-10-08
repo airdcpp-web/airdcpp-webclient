@@ -117,10 +117,7 @@ void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progr
 
 
 	if(!SETTING(LANGUAGE_FILE).empty()) {
-		string languageFile = SETTING(LANGUAGE_FILE);
-		if(!File::isAbsolutePath(languageFile))
-			languageFile = Util::getPath(Util::PATH_LOCALE) + languageFile;
-		ResourceManager::getInstance()->loadLanguage(languageFile);
+		ResourceManager::getInstance()->loadLanguage(SETTING(LANGUAGE_FILE));
 	}
 
 	CryptoManager::getInstance()->loadCertificates();

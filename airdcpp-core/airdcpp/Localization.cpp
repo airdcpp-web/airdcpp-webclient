@@ -21,7 +21,6 @@
 #include "AirUtil.h"
 #include "File.h"
 #include "Localization.h"
-#include "ResourceManager.h"
 #include "SimpleXML.h"
 #include "Util.h"
 
@@ -78,11 +77,6 @@ static const char* countryCodes[] = {
 
 namespace dcpp {
 
-void Localization::Language::setLanguageFile() noexcept {
-	// The path isn't relevant for the user or the client and it will cause problems when the setting dir location changes
-	SettingsManager::getInstance()->set(SettingsManager::LANGUAGE_FILE, Util::getFileName(getLanguageFilePath()));
-}
-
 bool Localization::Language::NameSort::operator()(const Language& l1, const Language& l2) const noexcept {
 	return Util::stricmp(l1.languageName, l2.languageName) < 0;
 }
@@ -99,7 +93,6 @@ double Localization::Language::getLanguageVersion() const noexcept {
 		SimpleXML xml;
 		xml.fromXML(File(getLanguageFilePath(), File::READ, File::OPEN, File::BUFFER_SEQUENTIAL).read());
 		if (xml.findChild("Language")) {
-			//xml.stepIn();
 			auto version = xml.getIntChildAttrib(LANGVER_TAG);
 			return version;
 		}
@@ -112,49 +105,24 @@ double Localization::Language::getLanguageVersion() const noexcept {
 }
 
 vector<Localization::Language> Localization::languageList;
-int Localization::curLanguage; //position of the current language in the list
 
 void Localization::init() noexcept {
 	// remove the file names at some point
 	languageList.emplace_back("English", "GB", "en-US", Util::emptyString);
-	languageList.emplace_back("Danish", "DK", "da-DK", "Danish_for_AirDC");
-	languageList.emplace_back("Dutch", "NL", "nl-NL", "Dutch_for_AirDC");
-	languageList.emplace_back("Finnish", "FI", "fi-FI", "Finnish_for_AirDC");
-	languageList.emplace_back("French", "FR", "fr-FR", "French_for_AirDC");
-	languageList.emplace_back("German", "DE", "de-DE", "German_for_AirDC");
-	languageList.emplace_back("Hungarian", "HU", "hu-HU", "Hungarian_for_AirDC");
-	languageList.emplace_back("Italian", "IT", "it-IT", "Italian_for_AirDC");
-	languageList.emplace_back("Norwegian", "NO", "no-NO", "Norwegian_for_AirDC");
-	languageList.emplace_back("Polish", "PL", "pl-PL", "Polish_for_AirDC");
-	languageList.emplace_back("Portuguese", "PT", "pt-BR", "Port_Br_for_AirDC");
-	languageList.emplace_back("Romanian", "RO", "ro-RO", "Romanian_for_AirDC");
-	languageList.emplace_back("Russian", "RU", "ru-RU", "Russian_for_AirDC");
-	languageList.emplace_back("Spanish", "ES", "es-ES", "Spanish_for_AirDC");
-	languageList.emplace_back("Swedish", "SE", "sv-SE", "Swedish_for_AirDC");
-
-	//sort(languageList.begin()+1, languageList.end(), Language::NameSort());
-
-	curLanguage = 0;
-	string langFile = SETTING(LANGUAGE_FILE);
-	if (!langFile.empty()) {
-		langFile = Util::getFileName(langFile);
-		if (langFile.length() > 4) {
-			langFile.erase(langFile.length()-4, 4);
-			auto s = find_if(languageList.begin(), languageList.end(), [&langFile](const Language& aLang) { return aLang.locale == langFile || aLang.languageFile == langFile; });
-			if (s != languageList.end()) {
-				curLanguage = static_cast<int>(distance(languageList.begin(), s));
-				if (curLanguage > 0 /*&& !Util::fileExists(SETTING(LANGUAGE_FILE))*/) {
-					// paths changed? reset the default path
-					// always convert the old paths to only use the file name for versions <= 2.91... remove at some point
-					(*s).setLanguageFile();
-				}
-			} else {
-				/* Not one of the predefined language files, add a custom list item */
-				languageList.emplace_back("(Custom: " + langFile + ")", "", getSystemLocale(), langFile);
-				curLanguage = languageList.size() - 1;
-			}
-		}
-	}
+	languageList.emplace_back("Danish", "DK", "da-DK", "Danish_for_AirDC.xml");
+	languageList.emplace_back("Dutch", "NL", "nl-NL", "Dutch_for_AirDC.xml");
+	languageList.emplace_back("Finnish", "FI", "fi-FI", "Finnish_for_AirDC.xml");
+	languageList.emplace_back("French", "FR", "fr-FR", "French_for_AirDC.xml");
+	languageList.emplace_back("German", "DE", "de-DE", "German_for_AirDC.xml");
+	languageList.emplace_back("Hungarian", "HU", "hu-HU", "Hungarian_for_AirDC.xml");
+	languageList.emplace_back("Italian", "IT", "it-IT", "Italian_for_AirDC.xml");
+	languageList.emplace_back("Norwegian", "NO", "no-NO", "Norwegian_for_AirDC.xml");
+	languageList.emplace_back("Polish", "PL", "pl-PL", "Polish_for_AirDC.xml");
+	languageList.emplace_back("Portuguese", "PT", "pt-BR", "Port_Br_for_AirDC.xml");
+	languageList.emplace_back("Romanian", "RO", "ro-RO", "Romanian_for_AirDC.xml");
+	languageList.emplace_back("Russian", "RU", "ru-RU", "Russian_for_AirDC.xml");
+	languageList.emplace_back("Spanish", "ES", "es-ES", "Spanish_for_AirDC.xml");
+	languageList.emplace_back("Swedish", "SE", "sv-SE", "Swedish_for_AirDC.xml");
 
 	languageList.shrink_to_fit();
 }
@@ -173,55 +141,88 @@ bool Localization::Language::isDefault() const noexcept {
 	return locale == "en-US";
 }
 
+Localization::Language* Localization::getCurrentLanguage() noexcept {
+	auto index = getLanguageIndex(languageList);
+	if (index) {
+		return &languageList[*index];
+	}
+
+	return nullptr;
+}
+
 bool Localization::usingDefaultLanguage() noexcept {
-	return languageList[curLanguage].isDefault();
+	const auto lang = getCurrentLanguage();
+	return lang && lang->isDefault();
 }
 
 double Localization::getCurLanguageVersion() noexcept {
-	return languageList[curLanguage].getLanguageVersion();
+	const auto lang = getCurrentLanguage();
+	return lang ? lang->getLanguageVersion() : 0;
 }
 
 string Localization::getCurLanguageFilePath() noexcept {
-	return languageList[curLanguage].getLanguageFilePath();
-}
-
-string Localization::getCurLanguageFileName() noexcept {
-	return languageList[curLanguage].locale + ".xml";
-}
-
-void Localization::setLanguage(int languageIndex) noexcept {
-	if (languageIndex >= 0 && languageIndex < (int)languageList.size() && languageList[languageIndex].languageName != languageList[curLanguage].languageName) {
-		curLanguage = languageIndex;
-		languageList[curLanguage].setLanguageFile(); //update the language file in the settings
-	}
-}
-
-void Localization::loadLanguage(int languageIndex) noexcept {
-	if (languageIndex >= 0 && languageIndex < (int)languageList.size()) {
-		ResourceManager::getInstance()->loadLanguage(languageList[languageIndex].getLanguageFilePath());
-	}
+	const auto lang = getCurrentLanguage();
+	return lang ? lang->getLanguageFilePath() : SETTING(LANGUAGE_FILE);
 }
 
 string Localization::getLocale() noexcept {
-	if (curLanguage > 0) {
-		return languageList[curLanguage].locale;
-	}
-
-	return getSystemLocale();
+	const auto lang = getCurrentLanguage();
+	return lang && !lang->isDefault() ? lang->locale : getSystemLocale();
 }
 
 string Localization::getCurLanguageLocale() noexcept {
-	return languageList[curLanguage].locale;
+	const auto lang = getCurrentLanguage();
+	return lang ? lang->locale : getSystemLocale();
 }
 
 string Localization::getCurLanguageName() noexcept {
-	return languageList[curLanguage].languageName;
+	const auto lang = getCurrentLanguage();
+	return lang ? lang->languageName : "(Custom " + Util::getFileName(SETTING(LANGUAGE_FILE)) + ")";
 }
 
-int Localization::getCurLanguageIndex() noexcept {
-	return curLanguage;
+
+const Localization::LanguageList& Localization::getDefaultLanguages() noexcept {
+	return languageList;
 }
 
+Localization::LanguageList Localization::getLanguages() noexcept {
+	auto lang = getCurrentLanguage();
+	if (lang) {
+		return languageList;
+	}
+
+	// Append custom language
+	auto ret = languageList;
+	ret.emplace_back(
+		getCurLanguageName(),
+		"",
+		getSystemLocale(),
+		SETTING(LANGUAGE_FILE)
+	);
+
+	return ret;
+}
+
+
+optional<int> Localization::getLanguageIndex(const Localization::LanguageList& aLanguages) noexcept {
+	const auto langFile = SETTING(LANGUAGE_FILE);
+	if (langFile.empty()) {
+		return 0;
+	}
+
+	auto s = find_if(aLanguages.begin(), aLanguages.end(), [&langFile](const Language& aLang) {
+		return aLang.languageFile == langFile;
+	});
+
+	if (s != aLanguages.end()) {
+		return static_cast<int>(distance(aLanguages.begin(), s));
+	}
+
+	return nullopt;
+}
+
+
+// FLAGS
 uint8_t Localization::getFlagIndexByName(const char* countryName) noexcept {
 	// country codes are not sorted, use linear searching (it is not used so often)
 	const char** first = countryNames;
