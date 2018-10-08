@@ -312,13 +312,14 @@ void UpdateManager::checkAdditionalUpdates(bool manualCheck) {
 }
 
 void UpdateManager::checkLanguage() {
-	if (Localization::usingDefaultLanguage() || links.language.empty()) {
+	auto curLanguage = Localization::getCurrentLanguage();
+	if (!curLanguage || curLanguage->isDefault() || links.language.empty()) {
 		fire(UpdateManagerListener::LanguageFinished());
 		return;
 	}
 
 	conns[CONN_LANGUAGE_CHECK] = make_unique<HttpDownload>(
-		links.language + "checkLangVersion.php?lc=" + Localization::getLocale(),
+		links.language + "checkLangVersion.php?lc=" + curLanguage->locale,
 		[this] { completeLanguageCheck(); }
 	);
 }
@@ -332,7 +333,7 @@ void UpdateManager::completeLanguageCheck() {
 		if (Util::toDouble(conn->buf) > Localization::getCurLanguageVersion()) {
 			fire(UpdateManagerListener::LanguageDownloading());
 			conns[CONN_LANGUAGE_FILE] = make_unique<HttpDownload>(
-				links.language + Localization::getCurLanguageFileName(),
+				links.language + Util::getFileName(Localization::getCurLanguageFilePath()),
 				[this] { completeLanguageDownload(); }
 			);
 		} else {
