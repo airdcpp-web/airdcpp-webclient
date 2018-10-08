@@ -286,8 +286,6 @@ void Util::initialize(const string& aConfigPath) {
 		paths[PATH_USER_LOCAL] = ::SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, SHGFP_TYPE_CURRENT, buf) == S_OK ? Text::fromT(buf) + "\\AirDC++\\" : paths[PATH_USER_CONFIG];
 		paths[PATH_RESOURCES] = exeDirectoryPath;
 	}
-
-	paths[PATH_LOCALE] = (localMode ? exeDirectoryPath : paths[PATH_USER_LOCAL]) + "Language\\";
 #else
 	// Usually /etc/airdcpp/
 	paths[PATH_GLOBAL_CONFIG] = GLOBAL_CONFIG_DIRECTORY;
@@ -306,10 +304,9 @@ void Util::initialize(const string& aConfigPath) {
 		paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
 		paths[PATH_RESOURCES] = RESOURCE_DIRECTORY;
 	}
-
-	paths[PATH_LOCALE] = paths[PATH_RESOURCES] + "locale/";
 #endif
 
+	paths[PATH_LOCALE] = (localMode ? exeDirectoryPath : paths[PATH_USER_LOCAL]) + "Language" PATH_SEPARATOR_STR;
 	paths[PATH_FILE_LISTS] = paths[PATH_USER_CONFIG] + "FileLists" PATH_SEPARATOR_STR;
 	paths[PATH_BUNDLES] = paths[PATH_USER_CONFIG] + "Bundles" PATH_SEPARATOR_STR;
 	paths[PATH_SHARECACHE] = paths[PATH_USER_LOCAL] + "ShareCache" PATH_SEPARATOR_STR;
