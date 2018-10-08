@@ -200,7 +200,8 @@ namespace webserver {
 					session
 				);
 
-				auto data = status != websocketpp::http::status_code::ok ? apiError.dump() : output.dump();
+				const auto& responseJson = !apiError.is_null() ? apiError : output;
+				const auto data = !responseJson.is_null() ? responseJson.dump() : "";
 				onData(con->get_resource() + " (" + Util::toString(status) + "): " + data, TransportType::TYPE_HTTP_API, Direction::OUTGOING, ip);
 
 				con->set_body(data);

@@ -28,14 +28,14 @@
 
 namespace webserver {
 	ApiRequest::ApiRequest(const string& aUrl, const string& aMethod, const json& aBody, const SessionPtr& aSession, json& output_, json& error_) :
-		responseJsonData(output_), responseJsonError(error_), methodStr(aMethod), session(aSession), requestJson(aBody)
+		responseJsonData(output_), responseJsonError(error_), methodStr(aMethod), session(aSession), requestJson(aBody), path(aUrl)
 	{
 
 		if (aUrl.compare(0, 4, "/api") != 0) {
 			throw std::invalid_argument("Invalid URL path (the path should start with /api/v" + Util::toString(API_VERSION) + "/)");
 		}
 
-		parameters = StringTokenizer<std::string, deque>(aUrl.substr(4), '/').getTokens();
+		pathTokens = StringTokenizer<std::string, deque>(aUrl.substr(4), '/').getTokens();
 
 		if (aMethod == "GET") {
 			method = METHOD_GET;
@@ -59,17 +59,17 @@ namespace webserver {
 		}
 
 		// Version and module are always mandatory
-		if (static_cast<int>(parameters.size()) < 2) {
+		if (static_cast<int>(pathTokens.size()) < 2) {
 			throw std::invalid_argument("Not enough URL parameters");
 		}
 
 		// Version
-		auto version = parameters.front();
-		parameters.pop_front();
+		auto version = pathTokens.front();
+		pathTokens.pop_front();
 
 		// API Module
-		apiModule = parameters.front();
-		parameters.pop_front();
+		apiModule = pathTokens.front();
+		pathTokens.pop_front();
 
 		if (version.size() < 2) {
 			throw std::invalid_argument("Invalid API version format");
@@ -83,7 +83,7 @@ namespace webserver {
 	}
 
 	void ApiRequest::popParam(size_t aCount) noexcept {
-		parameters.erase(parameters.begin(), parameters.begin() + aCount);
+		pathTokens.erase(pathTokens.begin(), pathTokens.begin() + aCount);
 	}
 
 	uint32_t ApiRequest::getTokenParam(const string& aName) const noexcept {
@@ -102,8 +102,8 @@ namespace webserver {
 		return Util::toInt64(namedParameters.at(aName));
 	}
 
-	const std::string& ApiRequest::getParamAt(int aIndex) const noexcept {
-		return parameters[aIndex];
+	const std::string& ApiRequest::getPathTokenAt(int aIndex) const noexcept {
+		return pathTokens[aIndex];
 	}
 
 	TTHValue ApiRequest::getTTHParam(const string& aName) const {
