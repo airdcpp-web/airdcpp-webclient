@@ -626,6 +626,7 @@ DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& a
 	if (aName == ADC_ROOT_STR)
 		return root;
 
+	dcassert(Util::isAdcPath(aName));
 	auto end = aName.find(ADC_SEPARATOR, 1);
 	dcassert(end != string::npos);
 	string name = aName.substr(1, end - 1);
@@ -768,7 +769,12 @@ size_t DirectoryListing::Directory::getTotalFileCount(bool aCountAdls) const noe
 	if (!aCountAdls && getAdls())
 		return 0;
 
-	return getContentInfoRecursive(aCountAdls).files;
+	const auto childContentInfo = getContentInfoRecursive(aCountAdls);
+	if (Util::hasContentInfo(childContentInfo)) {
+		return childContentInfo.files;
+	}
+
+	return 0;
 }
 
 void DirectoryListing::Directory::clearAdls() noexcept {

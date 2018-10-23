@@ -284,24 +284,29 @@ map<string, Identity> ClientManager::getIdentities(const UserPtr &u) const noexc
 }
 
 string ClientManager::getNick(const UserPtr& u, const string& hint, bool allowFallback /*true*/) const noexcept {
-	RLock l(cs);
-	OnlinePairC p;
-	auto ou = findOnlineUserHint(u->getCID(), hint, p);
-	if(ou)
-		return ou->getIdentity().getNick();
+	{
+		RLock l(cs);
+		OnlinePairC p;
+		auto ou = findOnlineUserHint(u->getCID(), hint, p);
+		if (ou) {
+			return ou->getIdentity().getNick();
+		}
 
-	if(allowFallback) {
-		if (p.first != p.second){
-			return p.first->second->getIdentity().getNick();
-		} else {
-			// offline
-			auto i = offlineUsers.find(const_cast<CID*>(&u->getCID()));
-			if(i != offlineUsers.end()) {
-				return i->second.getNick();
+		if (allowFallback) {
+			if (p.first != p.second) {
+				return p.first->second->getIdentity().getNick();
+			} else {
+				// offline
+				auto i = offlineUsers.find(const_cast<CID*>(&u->getCID()));
+				if (i != offlineUsers.end()) {
+					return i->second.getNick();
+				}
 			}
 		}
 	}
-	dcassert(0);
+
+	//dcassert(0);
+
 	//Should try to avoid this case at all times by saving users nicks and loading them...
 	return u->getCID().toBase32();
 
