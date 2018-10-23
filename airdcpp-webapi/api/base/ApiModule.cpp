@@ -193,7 +193,13 @@ namespace webserver {
 			return false;
 		}
 
-		s->sendPlain(aJson);
+		try {
+			s->sendPlain(aJson);
+		} catch (const std::exception&) {
+			// Ignore JSON errors...
+			return false;
+		}
+
 		return true;
 	}
 
