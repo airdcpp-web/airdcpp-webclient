@@ -86,15 +86,26 @@ namespace webserver {
 			dcassert(aCode == websocketpp::http::status_code::no_content);
 		}
 
-		sendPlain(j);
+		try {
+			sendPlain(j);
+		} catch (const std::exception& e) {
+			sendApiResponse(
+				nullptr, 
+				{
+					{ "message", "Failed to convert data to JSON: " + string(e.what()) }
+				}, 
+				websocketpp::http::status_code::internal_server_error, 
+				aCallbackId
+			);
+		}
 	}
 
 	void WebSocket::logError(const string& aMessage, websocketpp::log::level aErrorLevel) const noexcept {
 		auto message = (dcpp_fmt("Websocket: " + aMessage + " (%s)") % (session ? session->getAuthToken().c_str() : "no session")).str();
 		if (secure) {
-			tlsServer->get_elog().write(aErrorLevel, message);
+			wsm->logDebugError(tlsServer, message, aErrorLevel);
 		} else {
-			plainServer->get_elog().write(aErrorLevel, message);
+			wsm->logDebugError(plainServer, message, aErrorLevel);
 		}
 	}
 
@@ -102,8 +113,14 @@ namespace webserver {
 		dcdebug(string(aMessage + " (%s)\n").c_str(), session ? session->getAuthToken().c_str() : "no session");
 	}
 
-	void WebSocket::sendPlain(const json& aJson) noexcept {
-		auto str = aJson.dump();
+	void WebSocket::sendPlain(const json& aJson) {
+		string str;
+		try {
+			str = aJson.dump();
+		} catch (const std::exception& e) {
+			logError("Failed to convert data to JSON: " + string(e.what()), websocketpp::log::elevel::fatal);
+			throw e;
+		}
 
 		wsm->onData(str, TransportType::TYPE_SOCKET, Direction::OUTGOING, getIp());
 

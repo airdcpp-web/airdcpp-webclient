@@ -166,6 +166,12 @@ namespace webserver {
 			});
 		}
 
+
+		template <typename EndpointType>
+		void logDebugError(EndpointType* s, const string& aMessage, websocketpp::log::level aErrorLevel) {
+			s->get_elog().write(aErrorLevel, aMessage);
+		}
+
 		template <typename EndpointType>
 		void handleHttpRequest(EndpointType* s, websocketpp::connection_hdl hdl, bool aIsSecure) {
 			// Blocking HTTP Handler
@@ -201,7 +207,19 @@ namespace webserver {
 				);
 
 				const auto& responseJson = !apiError.is_null() ? apiError : output;
-				const auto data = !responseJson.is_null() ? responseJson.dump() : "";
+				string data;
+				if (!responseJson.is_null()) {
+					try {
+						data = responseJson.dump();
+					} catch (const std::exception& e) {
+						logDebugError(s, "Failed to convert data to JSON: " + string(e.what()), websocketpp::log::elevel::fatal);
+
+						con->set_body("Failed to convert data to JSON: " + string(e.what()));
+						con->set_status(websocketpp::http::status_code::internal_server_error);
+						return;
+					}
+				}
+
 				onData(con->get_resource() + " (" + Util::toString(status) + "): " + data, TransportType::TYPE_HTTP_API, Direction::OUTGOING, ip);
 
 				con->set_body(data);
