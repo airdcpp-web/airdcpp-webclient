@@ -154,6 +154,6 @@ namespace webserver {
 
 		auto verify = JsonUtil::getField<bool>("verify", aRequest.getRequestBody());
 		HashManager::getInstance()->startMaintenance(verify);
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::no_content;
 	}
 }
