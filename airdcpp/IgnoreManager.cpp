@@ -140,8 +140,12 @@ bool IgnoreManager::removeIgnore(const UserPtr& aUser) noexcept {
 	return true;
 }
 
-bool IgnoreManager::checkIgnored(const OnlineUserPtr& aUser) noexcept {
+bool IgnoreManager::checkIgnored(const OnlineUserPtr& aUser, bool aPM) noexcept {
 	if (!aUser) {
+		return false;
+	}
+
+	if (aPM && PrivateChatManager::getInstance()->getChat(aUser->getUser())) {
 		return false;
 	}
 
@@ -155,7 +159,7 @@ bool IgnoreManager::checkIgnored(const OnlineUserPtr& aUser) noexcept {
 	return true;
 }
 
-ActionHookRejectionPtr IgnoreManager::isIgnoredOrFiltered(const ChatMessagePtr& msg, const HookRejectionGetter& aRejectionGetter, bool PM) noexcept {
+ActionHookRejectionPtr IgnoreManager::isIgnoredOrFiltered(const ChatMessagePtr& msg, const HookRejectionGetter& aRejectionGetter, bool aPM) noexcept {
 	const auto& fromIdentity = msg->getFrom()->getIdentity();
 
 	//Don't filter own messages
@@ -165,7 +169,7 @@ ActionHookRejectionPtr IgnoreManager::isIgnoredOrFiltered(const ChatMessagePtr& 
 	auto logIgnored = [&](bool filter) -> void {
 		if (SETTING(LOG_IGNORED)) {
 			string tmp;
-			if (PM) {
+			if (aPM) {
 				tmp = filter ? STRING(PM_MESSAGE_FILTERED) : STRING(PM_MESSAGE_IGNORED);
 			} else {
 				tmp = (filter ? STRING(MC_MESSAGE_FILTERED) : STRING(MC_MESSAGE_IGNORED));
@@ -176,11 +180,11 @@ ActionHookRejectionPtr IgnoreManager::isIgnoredOrFiltered(const ChatMessagePtr& 
 	};
 
 	// replyTo can be different if the message is received via a chat room (it should be possible to ignore those as well)
-	if (checkIgnored(msg->getFrom()) || checkIgnored(msg->getReplyTo())) {
+	if (checkIgnored(msg->getFrom(), aPM) || checkIgnored(msg->getReplyTo(), aPM)) {
 		return aRejectionGetter("user_ignored", "User ignored");
 	}
 
-	if (isChatFiltered(fromIdentity.getNick(), msg->getText(), PM ? ChatFilterItem::PM : ChatFilterItem::MC)) {
+	if (isChatFiltered(fromIdentity.getNick(), msg->getText(), aPM ? ChatFilterItem::PM : ChatFilterItem::MC)) {
 		logIgnored(true);
 		return aRejectionGetter("message_filtered", "Message filtered");
 	}
