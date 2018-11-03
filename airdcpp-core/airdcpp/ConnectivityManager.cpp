@@ -129,8 +129,9 @@ void ConnectivityManager::clearAutoSettings(bool v6, bool resetDefaults) {
 }
 
 void ConnectivityManager::detectConnection() {
-	if(isRunning())
+	if (isRunning()) {
 		return;
+	}
 
 	bool detectV4 = false;
 	if (SETTING(AUTO_DETECT_CONNECTION) && SETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED) {
@@ -142,6 +143,10 @@ void ConnectivityManager::detectConnection() {
 	if (SETTING(AUTO_DETECT_CONNECTION6) && SETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED) {
 		detectV6 = true;
 		runningV6 = true;
+	}
+
+	if (!detectV6 && !detectV4) {
+		return;
 	}
 
 	if (detectV4) {

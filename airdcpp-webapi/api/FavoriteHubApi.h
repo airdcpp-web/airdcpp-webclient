@@ -51,7 +51,6 @@ namespace webserver {
 		HubView view;
 
 		static FavoriteHubEntryList getEntryList() noexcept;
-		static optional<int> deserializeIntHubSetting(const string& aFieldName, const json& aJson);
 	};
 }
 

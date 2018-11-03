@@ -62,10 +62,10 @@ namespace webserver {
 		static string driveTypeToString(UINT aDriveType) {
 			switch (aDriveType) {
 				case DRIVE_RAMDISK:
+				case DRIVE_CDROM:
 				case DRIVE_REMOVABLE: return "removable";
 				case DRIVE_FIXED: return "drive_fixed";
 				case DRIVE_REMOTE: return "drive_remote";
-				case DRIVE_CDROM: return "drive_cdrom";
 			}
 
 			return Util::emptyString;

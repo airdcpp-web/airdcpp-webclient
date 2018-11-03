@@ -27,47 +27,60 @@ namespace dcpp {
 class Localization {
 	
 	public:
-		struct Language {
+		class Language {
+		public:
 			Language() { }
-			explicit Language(const string& aLanguage, const char* aCountryFlagCode, const string& aLocale, const string& aLanguageFile) : languageName(aLanguage), 
-				locale(aLocale), languageFile(aLanguageFile), countryFlagCode(aCountryFlagCode) {
+			explicit Language(const string& aLanguage, const char* aCountryFlagCode, const string& aLocale) : languageName(aLanguage), 
+				locale(aLocale), countryFlagCode(aCountryFlagCode) {
 			}
 
-			string languageName, locale, languageFile;
-			const char* countryFlagCode;
-
-			void setLanguageFile() noexcept;
 			string getLanguageFilePath() const noexcept;
+			string getLanguageSettingValue() const noexcept;
 			double getLanguageVersion() const noexcept;
 			bool isDefault() const noexcept;
 
 			struct NameSort { 
 				bool operator()(const Language& l1, const Language& l2) const noexcept;
 			};
+
+			const string& getLanguageName() const noexcept {
+				return languageName;
+			}
+
+			const string& getLocale() const noexcept {
+				return locale;
+			}
+
+			const char* getCountryFlagCode() const noexcept {
+				return countryFlagCode;
+			}
+		private:
+			string languageName, locale;
+			const char* countryFlagCode;
 		};
+
+		typedef vector<Language> LanguageList;
 
 		static string getSystemLocale() noexcept;
 		static string getCurLanguageFilePath() noexcept;
-		static string getCurLanguageFileName() noexcept;
 		static double getCurLanguageVersion() noexcept;
-
-		static vector<Language> languageList;
-
-		static void setLanguage(int languageIndex) noexcept;
-		static void loadLanguage(int languageIndex) noexcept;
 
 		static string getLocale() noexcept;
 		static string getCurLanguageLocale() noexcept;
 		static string getCurLanguageName() noexcept;
-		static int getCurLanguageIndex() noexcept;
+		static optional<int> getLanguageIndex(const LanguageList& aLanguages) noexcept;
 		static void init() noexcept;
 
 		static uint8_t getFlagIndexByCode(const char* countryCode) noexcept;
 		static uint8_t getFlagIndexByName(const char* countryName) noexcept;
 
 		static bool usingDefaultLanguage() noexcept;
+		static const LanguageList& getDefaultLanguages() noexcept;
+		static LanguageList getLanguages() noexcept;
+
+		static Language* getCurrentLanguage() noexcept;
 	private:
-		static int curLanguage;
+		static vector<Language> languageList;
 	};
 }
 #endif

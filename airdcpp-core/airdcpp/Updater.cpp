@@ -73,7 +73,7 @@ int Updater::destroyDirectory(const string& aPath) {
 
 	// The updater exe may not shut down instantly
 	for (int i = 0; i < 3; i++) {
-		removed += cleanExtraFiles(aPath, boost::none);
+		removed += cleanExtraFiles(aPath, nullopt);
 		if (Util::fileExists(aPath)) {
 			Sleep(1000);
 		} else {
@@ -247,7 +247,7 @@ string Updater::createUpdate() noexcept {
 					//xml.replaceChildAttrib("Commit", Util::toString(COMMIT_NUMBER));
 					xml.replaceChildAttrib("VersionString", VERSIONSTRING);
 					xml.stepIn();
-					xml.setData("http://builds.airdcpp.net/updater/" + updaterFile);
+					xml.setData("https://builds.airdcpp.net/updater/" + updaterFile);
 
 					// Replace the line endings to use Unix format (it would be converted by the hosting provider anyway, which breaks the signature)
 					auto content = SimpleXML::utf8Header;
@@ -577,7 +577,9 @@ bool Updater::onVersionDownloaded(SimpleXML& xml, bool aVerified, bool aManualCh
 
 	//Check for updated version
 
+#ifndef FORCE_UPDATE
 	if ((remoteBuild > ownBuild && remoteBuild > installedUpdate) || aManualCheck) {
+#endif
 		auto updateMethod = SETTING(UPDATE_METHOD);
 		if ((!autoUpdateEnabled || updateMethod == UPDATE_PROMPT) || aManualCheck) {
 			if (xml.findChild("Title")) {
@@ -593,7 +595,9 @@ bool Updater::onVersionDownloaded(SimpleXML& xml, bool aVerified, bool aManualCh
 			downloadUpdate(updateUrl, remoteBuild, aManualCheck);
 		}
 		xml.resetCurrentChild();
+#ifndef FORCE_UPDATE
 	}
+#endif
 
 	return true;
 }
@@ -606,8 +610,10 @@ void Updater::downloadUpdate(const string& aUrl, int newBuildID, bool manualChec
 	if (clientDownload)
 		return;
 
-	clientDownload.reset(new HttpDownload(aUrl,
-		[this, newBuildID, manualCheck] { completeUpdateDownload(newBuildID, manualCheck); }, false));
+	clientDownload = make_unique<HttpDownload>(
+		aUrl,
+		[this, newBuildID, manualCheck] { completeUpdateDownload(newBuildID, manualCheck); }
+	);
 }
 
 bool Updater::getUpdateVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild) {

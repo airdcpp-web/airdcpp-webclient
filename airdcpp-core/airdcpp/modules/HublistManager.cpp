@@ -128,7 +128,7 @@ namespace dcpp {
 		if (sl.empty())
 			return;
 		publicListServer = sl[(lastServer) % sl.size()];
-		if (Util::strnicmp(publicListServer.c_str(), "http://", 7) != 0) {
+		if (Util::findSubString(publicListServer, "http://") != 0 && Util::findSubString(publicListServer, "https://") != 0) {
 			lastServer++;
 			return;
 		}
@@ -195,7 +195,7 @@ namespace dcpp {
 		}
 	}
 
-	void HublistManager::on(Complete, HttpConnection*, const string& aLine, bool fromCoral) noexcept {
+	void HublistManager::on(Complete, HttpConnection*, const string& aLine) noexcept {
 		bool parseSuccess = false;
 		c->removeListener(this);
 		if (useHttp) {
@@ -205,7 +205,7 @@ namespace dcpp {
 		}
 		running = false;
 		if (parseSuccess) {
-			fire(HublistManagerListener::DownloadFinished(), aLine, fromCoral);
+			fire(HublistManagerListener::DownloadFinished(), aLine);
 		}
 	}
 

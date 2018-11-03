@@ -29,6 +29,20 @@ if (CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(-D_DEBUG)
 endif()
 
+if (STRIP)
+  if (NOT CMAKE_OBJCOPY)
+    message (FATAL_ERROR "CMAKE_OBJCOPY is not set")
+  endif()
+
+  message(STATUS "CMAKE_OBJCOPY: ${CMAKE_OBJCOPY}")
+  ADD_CUSTOM_COMMAND(
+      TARGET airdcppd
+      POST_BUILD
+      COMMAND sh ../scripts/strip-symbols.sh ${PROJECT_SOURCE_DIR}/airdcppd ${CMAKE_OBJCOPY}
+  )
+endif()
+
+
 set_property (TARGET ${PROJECT_NAME} PROPERTY OUTPUT_NAME ${PROJECT_NAME})
 install (TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${BINDIR}

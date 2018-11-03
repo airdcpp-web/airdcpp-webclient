@@ -80,8 +80,6 @@
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #define _LL(x) x##ll
 #define _ULL(x) x##ull
-#define I64_FMT "%I64d"
-#define U64_FMT "%I64d"
 
 #else
 
@@ -93,10 +91,10 @@
 	#define _ULL(x) x##ull
 #endif
 
-#define I64_FMT "%" PRId64
-#define U64_FMT "%" PRIu64
 #endif
 
+#define I64_FMT "%" PRId64
+#define U64_FMT "%" PRIu64
 #define SIZET_FMT "%zu"
 
 #ifndef NOMINMAX

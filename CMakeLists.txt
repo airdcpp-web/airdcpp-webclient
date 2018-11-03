@@ -9,8 +9,8 @@ endif (APPLE)
 
 set (PROJECT_NAME "AirDC++ Web Client")
 set (TAG_APPLICATION "AirDC++w")
-set (VERSION "2.3.0") # NOTE: the minor version must match the lastest UI version
-set (SOVERSION "2.3.0" )
+set (VERSION "2.4.0") # NOTE: the minor version must match the lastest UI version
+set (SOVERSION "2.4.0" )
 
 set (GNUCXX_MINIMUM_VERSION "4.9")
 
@@ -57,6 +57,7 @@ unset(INSTALL_RUNTIME_PATH CACHE)
 
 option (INSTALL_RUNTIME_PATH "Install rpath" ON)
 option (LOCAL_BOOST "Use local boost headers" OFF)
+option (STRIP "Strip debugging symbols to a separate file" OFF)
 option (INSTALL_WEB_UI "Download and install the Web UI package" ON)
 option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
 option (WITH_ASAN "Enable address sanitizer" OFF) # With clang: http://clang.llvm.org/docs/AddressSanitizer.html

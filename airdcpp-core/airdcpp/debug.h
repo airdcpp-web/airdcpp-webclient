@@ -30,7 +30,7 @@
 #define dcdebug debugTrace
 #include <crtdbg.h>
 
-inline void CDECL debugTrace(const char* format, ...) {
+inline void __cdecl debugTrace(const char* format, ...) {
 
 	//show the debug info in output window. 	 
 	va_list args;
@@ -41,7 +41,6 @@ inline void CDECL debugTrace(const char* format, ...) {
 	::MultiByteToWideChar(CP_UTF8, NULL, str, -1, str2, sizeof(str2) -1);
 	OutputDebugString(str2);
 	va_end(args);
-
 }
 
 #define dcassert(exp) \

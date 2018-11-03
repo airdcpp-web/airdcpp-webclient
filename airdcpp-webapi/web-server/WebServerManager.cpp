@@ -224,7 +224,7 @@ namespace webserver {
 		try {
 			const auto bindAddress = aConfig.bindAddress.str();
 			if (!bindAddress.empty()) {
-				aEndpoint.listen(bindAddress, Util::toString(aConfig.port.num()));
+				aEndpoint.listen(bindAddress, aConfig.port.str());
 			} else {
 				// IPv6 and IPv4-mapped IPv6 addresses are used by default (given that IPv6 is supported by the OS)
 				aEndpoint.listen(WebServerManager::getDefaultListenProtocol(), static_cast<uint16_t>(aConfig.port.num()));
@@ -445,6 +445,26 @@ namespace webserver {
 
 	void WebServerManager::log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
 		LogManager::getInstance()->message(aMsg, aSeverity);
+	}
+
+	string WebServerManager::resolveAddress(const string& aHostname, const string& aPort) noexcept {
+		auto ret = aHostname;
+
+		boost::asio::ip::tcp::resolver resolver(ios);
+		boost::asio::ip::tcp::resolver::query query(aHostname, aPort);
+
+		try {
+			boost::asio::ip::tcp::resolver::iterator iter = resolver.resolve(query);
+			ret = iter->endpoint().address().to_string();
+
+			if (iter->endpoint().protocol() == boost::asio::ip::tcp::v6()) {
+				ret = "[" + ret + "]";
+			}
+		} catch (const std::exception& e) {
+			log(e.what(), LogMessage::SEV_ERROR);
+		}
+
+		return ret;
 	}
 
 	bool WebServerManager::hasValidConfig() const noexcept {

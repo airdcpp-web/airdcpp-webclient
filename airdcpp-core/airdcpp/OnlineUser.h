@@ -157,30 +157,8 @@ private:
 	static SharedMutex cs;
 };
 
-class OnlineUser :  public FastAlloc<OnlineUser>, public intrusive_ptr_base<OnlineUser>, public UserInfoBase, private boost::noncopyable {
+class OnlineUser :  public FastAlloc<OnlineUser>, public intrusive_ptr_base<OnlineUser>, private boost::noncopyable {
 public:
-	enum {
-		COLUMN_FIRST,
-		COLUMN_NICK = COLUMN_FIRST, 
-		COLUMN_SHARED, 
-		COLUMN_EXACT_SHARED, 
-		COLUMN_DESCRIPTION, 
-		COLUMN_TAG,
-		COLUMN_ULSPEED,
-		COLUMN_DLSPEED,
-		COLUMN_IP4,
-		COLUMN_IP6,
-		COLUMN_EMAIL, 
-		COLUMN_VERSION, 
-		COLUMN_MODE4,
-		COLUMN_MODE6,
-		COLUMN_FILES, 
-		COLUMN_HUBS, 
-		COLUMN_SLOTS,
-		COLUMN_CID,
-		COLUMN_LAST
-	};
-
 	struct Hash {
 		size_t operator()(const OnlineUserPtr& x) const { return ((size_t)(&(*x)))/sizeof(OnlineUser); }
 	};
@@ -223,20 +201,13 @@ public:
 	Identity& getIdentity() noexcept { return identity; }
 
 	/* UserInfo */
-	uint8_t getImageIndex() const noexcept;
 	bool isHidden() const noexcept { return identity.isHidden(); }
 
 	const ClientPtr& getClient() const noexcept { return client; }
-#ifdef _WIN32
-	static int compareItems(const OnlineUser* a, const OnlineUser* b, uint8_t col) noexcept;
-	bool update(int sortCol, const tstring& oldText = Util::emptyStringT);
-	tstring getText(uint8_t col, bool copy = false) const;
-#endif
 
 	string getLogPath() const noexcept;
 	bool supportsCCPM() const noexcept;
 
-	bool isInList;
 	GETSET(Identity, identity, Identity);
 private:
 	ClientPtr client;

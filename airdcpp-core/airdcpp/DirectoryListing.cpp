@@ -343,7 +343,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 			TTHValue tth(h); /// @todo verify validity?
 
-			auto f = make_shared<DirectoryListing::File>(cur, n, size, tth, checkDupe, Util::toUInt32(getAttrib(attribs, sDate, 3)));
+			auto f = make_shared<DirectoryListing::File>(cur, n, size, tth, checkDupe, Util::toTimeT(getAttrib(attribs, sDate, 3)));
 			cur->files.push_back(f);
 		} else if(name == sDirectory) {
 			const string& n = getAttrib(attribs, sName, 0);
@@ -377,12 +377,12 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				auto type = incomp ? (children ? DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD : DirectoryListing::Directory::TYPE_INCOMPLETE_NOCHILD) :
 					DirectoryListing::Directory::TYPE_NORMAL;
 
-				d = DirectoryListing::Directory::create(cur, n, type, listDownloadDate, (partialList && checkDupe), contentInfo, size, Util::toUInt32(date));
+				d = DirectoryListing::Directory::create(cur, n, type, listDownloadDate, (partialList && checkDupe), contentInfo, size, Util::toTimeT(date));
 			} else {
 				if(!incomp) {
 					d->setComplete();
 				}
-				d->setRemoteDate(Util::toUInt32(date));
+				d->setRemoteDate(Util::toTimeT(date));
 			}
 			cur = d.get();
 
@@ -408,7 +408,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			dcassert(list->findDirectory(base));
 
 			const string& baseDate = getAttrib(attribs, sBaseDate, 3);
-			cur->setRemoteDate(Util::toUInt32(baseDate));
+			cur->setRemoteDate(Util::toTimeT(baseDate));
 		}
 
 		// Set the root complete only after we have finished loading 
@@ -607,7 +607,7 @@ optional<DirectoryBundleAddInfo> DirectoryListing::createBundle(const Directory:
 		LogManager::getInstance()->message(STRING_F(BUNDLE_CREATION_FAILED, aTarget % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 	}
 
-	return boost::none;
+	return nullopt;
 }
 
 int64_t DirectoryListing::getDirSize(const string& aDir) const noexcept {
@@ -626,6 +626,7 @@ DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& a
 	if (aName == ADC_ROOT_STR)
 		return root;
 
+	dcassert(Util::isAdcPath(aName));
 	auto end = aName.find(ADC_SEPARATOR, 1);
 	dcassert(end != string::npos);
 	string name = aName.substr(1, end - 1);
@@ -768,7 +769,12 @@ size_t DirectoryListing::Directory::getTotalFileCount(bool aCountAdls) const noe
 	if (!aCountAdls && getAdls())
 		return 0;
 
-	return getContentInfoRecursive(aCountAdls).files;
+	const auto childContentInfo = getContentInfoRecursive(aCountAdls);
+	if (Util::hasContentInfo(childContentInfo)) {
+		return childContentInfo.files;
+	}
+
+	return 0;
 }
 
 void DirectoryListing::Directory::clearAdls() noexcept {

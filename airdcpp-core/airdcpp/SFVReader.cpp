@@ -69,7 +69,7 @@ optional<uint32_t> DirSFVReader::hasFile(const string& aFileName) const noexcept
 		return p->second;
 	}
 
-	return boost::none;
+	return nullopt;
 }
 
 bool DirSFVReader::isCrcValid(const string& aFileName) const {

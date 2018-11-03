@@ -44,7 +44,7 @@ ResourceManager::ResourceManager() {
 
 void ResourceManager::loadLanguage(const string& aFile) {
 	try {
-		File f(aFile, File::READ, File::OPEN, File::BUFFER_SEQUENTIAL, false);
+		File f(!File::isAbsolutePath(aFile) ? Util::getPath(Util::PATH_LOCALE) + aFile : aFile, File::READ, File::OPEN, File::BUFFER_SEQUENTIAL, false);
 		SimpleXML xml;
 		xml.fromXML(f.read());
 

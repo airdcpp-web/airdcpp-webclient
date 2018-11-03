@@ -71,7 +71,8 @@ public:
 
 	void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed, int& hashers) const noexcept;
 
-	// Throws HashException
+	// Get TTH for a file synchronously (and optionally stores the hash information)
+	// Throws HashException/FileException
 	void getFileTTH(const string& aFile, int64_t aSize, bool addStore, TTHValue& tth_, int64_t& sizeLeft_, const bool& aCancel, std::function<void(int64_t /*timeLeft*/, const string& /*fileName*/)> updateF = nullptr);
 
 	/**

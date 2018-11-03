@@ -93,6 +93,10 @@ namespace webserver {
 		auto url = JsonUtil::getField<string>("url", reqJson, false);
 		auto sha = JsonUtil::getOptionalFieldDefault<string>("shasum", reqJson, Util::emptyString);
 
+		if (Util::findSubString(url, "http://") != 0 && Util::findSubString(url, "https://") != 0) {
+			JsonUtil::throwError("url", JsonUtil::ERROR_INVALID, "Invalid URL");
+		}
+
 		if (!em.downloadExtension(installId, url, sha)) {
 			aRequest.setResponseErrorStr("Extension is being download already");
 			return websocketpp::http::status_code::conflict;

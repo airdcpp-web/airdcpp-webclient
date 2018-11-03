@@ -21,8 +21,8 @@
 
 namespace dcpp {
 
-HttpDownload::HttpDownload(const string& address, CompletionF f, bool coralize, bool v4only /*false*/) :
-	c(new HttpConnection(coralize, true, v4only)),
+HttpDownload::HttpDownload(const string& address, CompletionF f, bool v4only /*false*/) :
+	c(new HttpConnection(true, v4only)),
 f(f)
 {
 	c->addListener(this);
@@ -43,7 +43,7 @@ void HttpDownload::on(HttpConnectionListener::Failed, HttpConnection*, const str
 	f();
 }
 
-void HttpDownload::on(HttpConnectionListener::Complete, HttpConnection*, const string& status_, bool) noexcept {
+void HttpDownload::on(HttpConnectionListener::Complete, HttpConnection*, const string& status_) noexcept {
 	status = status_;
 	f();
 }

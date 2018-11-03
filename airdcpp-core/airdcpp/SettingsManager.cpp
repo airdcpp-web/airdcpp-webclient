@@ -242,7 +242,7 @@ const string SettingsManager::settingTags[] =
 "BoldFinishedDownloads", "BoldFinishedUploads", "BoldHub", "BoldPm",
 "BoldQueue", "BoldSearch", "BoldSystemLog", "ClearSearch",
 "CompressTransfers", "ConfirmADLSRemoval", "ConfirmExit",
-"ConfirmHubRemoval", "ConfirmUserRemoval", "Coral",
+"ConfirmHubRemoval", "ConfirmUserRemoval",
 "DontDlAlreadyQueued", "DontDLAlreadyShared", "FavShowJoins", "FilterMessages",
 "GetUserCountry", "GetUserInfo", "HubUserCommands",
 "KeepLists",
@@ -437,7 +437,6 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(ALLOW_UNTRUSTED_HUBS, true);
 	setDefault(ALLOW_UNTRUSTED_CLIENTS, true);		
 	setDefault(SORT_FAVUSERS_FIRST, false);
-	setDefault(CORAL, true);	
 	setDefault(NUMBER_OF_SEGMENTS, 3);
 	setDefault(SEGMENTS_MANUAL, false);
 	setDefault(TEXT_FONT, "Tahoma,-11,400,0");

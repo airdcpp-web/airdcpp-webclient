@@ -48,7 +48,7 @@ namespace webserver {
 		auto protocolEnabled = modeValue != SettingsManager::INCOMING_DISABLED;
 
 		string text;
-		auto autoEnabled = v6 ? SETTING(AUTO_DETECT_CONNECTION6) : SETTING(AUTO_DETECT_CONNECTION);
+		auto autoEnabled = protocolEnabled && (v6 ? SETTING(AUTO_DETECT_CONNECTION6) : SETTING(AUTO_DETECT_CONNECTION));
 		if (!autoEnabled) {
 			auto enumStrings = SettingsManager::getEnumStrings(modeKey, true);
 			if (!enumStrings.empty()) {

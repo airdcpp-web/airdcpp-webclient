@@ -4,7 +4,7 @@
 #
 #################################################################################
 
-WEBSOCKETPP_VERSION = 0.7.0
+WEBSOCKETPP_VERSION = 0.8.1
 WEBSOCKETPP_SITE = $(call github,zaphoyd,websocketpp,$(WEBSOCKETPP_VERSION))
 WEBSOCKETPP_INSTALL_STAGING = YES
 WEBSOCKETPP_LICENSE = BSD or MIT

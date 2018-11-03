@@ -142,7 +142,7 @@ namespace webserver {
 			throw Exception("Extension requires API version " + Util::toString(apiVersion) + " while the application uses version " + Util::toString(API_VERSION));
 		}
 
-		if (minApiFeatureLevel != API_FEATURE_LEVEL) {
+		if (minApiFeatureLevel > API_FEATURE_LEVEL) {
 			throw Exception("Extension requires API feature level " + Util::toString(minApiFeatureLevel) + " or newer while the application uses version " + Util::toString(API_FEATURE_LEVEL));
 		}
 	}
@@ -268,6 +268,8 @@ namespace webserver {
 		if (bindAddress.empty()) {
 			auto protocol = WebServerManager::getDefaultListenProtocol();
 			bindAddress = protocol == boost::asio::ip::tcp::v6() ? "[::1]" : "127.0.0.1";
+		} else {
+			bindAddress = wsm->resolveAddress(bindAddress, serverConfig.port.str());
 		}
 
 		return bindAddress + ":" + Util::toString(serverConfig.port.num()) + "/api/v1/";

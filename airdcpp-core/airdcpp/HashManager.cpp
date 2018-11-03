@@ -184,7 +184,11 @@ void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, 
 	if (!store.checkTTH(pathLower, fi)) {
 		File f(aFile, File::READ, File::OPEN);
 		int64_t bs = max(TigerTree::calcBlockSize(aSize, 10), MIN_BLOCK_SIZE);
-		uint64_t timestamp = f.getLastModified();
+		auto timestamp = f.getLastModified();
+		if (timestamp < 0) {
+			throw FileException(STRING(INVALID_MODIFICATION_DATE));
+		}
+
 		TigerTree tt(bs);
 
 		auto start = GET_TICK();
@@ -882,7 +886,7 @@ void HashLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 		} else if (inFiles && name == sFile) {
 			file = getAttrib(attribs, sName, 0);
-			auto timeStamp = Util::toUInt32(getAttrib(attribs, sTimeStamp, 1));
+			auto timeStamp = Util::toTimeT(getAttrib(attribs, sTimeStamp, 1));
 			const string& root = getAttrib(attribs, sRoot, 2);
 
 			if (!file.empty() && timeStamp > 0 && !root.empty()) {
@@ -1140,7 +1144,12 @@ int HashManager::Hasher::run() {
 				totalBytesLeft += size - originalSize;
 
 				int64_t bs = max(TigerTree::calcBlockSize(size, 10), MIN_BLOCK_SIZE);
-				uint64_t timestamp = f.getLastModified();
+
+				auto timestamp = f.getLastModified();
+				if (timestamp < 0) {
+					throw FileException(STRING(INVALID_MODIFICATION_DATE));
+				}
+
 				TigerTree tt(bs);
 
 				CRC32Filter crc32;

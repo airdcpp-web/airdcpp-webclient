@@ -34,6 +34,7 @@
 #include <fstream>
 
 using namespace std;
+using namespace dcpp;
 
 static unique_ptr<File> pidFile;
 static string pidFileName;
@@ -89,7 +90,13 @@ static void handleCrash(int sig) {
 #endif
 	if (!asdaemon) {
 		std::cout << std::endl;
+#if USE_STACKTRACE
 		std::cout << "Press enter to exit" << std::endl;
+#else
+		std::cout << "Attach debugger in a separate terminal window to get the necessary information for the bug report and press enter to exit when you are finished" << std::endl;
+#endif
+
+
 		cin.ignore();
 	}
 	exit(sig);

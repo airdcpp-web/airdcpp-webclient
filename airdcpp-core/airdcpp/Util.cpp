@@ -286,8 +286,6 @@ void Util::initialize(const string& aConfigPath) {
 		paths[PATH_USER_LOCAL] = ::SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, SHGFP_TYPE_CURRENT, buf) == S_OK ? Text::fromT(buf) + "\\AirDC++\\" : paths[PATH_USER_CONFIG];
 		paths[PATH_RESOURCES] = exeDirectoryPath;
 	}
-
-	paths[PATH_LOCALE] = (localMode ? exeDirectoryPath : paths[PATH_USER_LOCAL]) + "Language\\";
 #else
 	// Usually /etc/airdcpp/
 	paths[PATH_GLOBAL_CONFIG] = GLOBAL_CONFIG_DIRECTORY;
@@ -306,10 +304,9 @@ void Util::initialize(const string& aConfigPath) {
 		paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
 		paths[PATH_RESOURCES] = RESOURCE_DIRECTORY;
 	}
-
-	paths[PATH_LOCALE] = paths[PATH_RESOURCES] + "locale/";
 #endif
 
+	paths[PATH_LOCALE] = (localMode ? exeDirectoryPath : paths[PATH_USER_LOCAL]) + "Language" PATH_SEPARATOR_STR;
 	paths[PATH_FILE_LISTS] = paths[PATH_USER_CONFIG] + "FileLists" PATH_SEPARATOR_STR;
 	paths[PATH_BUNDLES] = paths[PATH_USER_CONFIG] + "Bundles" PATH_SEPARATOR_STR;
 	paths[PATH_SHARECACHE] = paths[PATH_USER_LOCAL] + "ShareCache" PATH_SEPARATOR_STR;
@@ -695,24 +692,23 @@ string Util::formatSeconds(int64_t aSec, bool supressHours /*false*/) noexcept {
 	return buf;
 }
 
-string Util::formatTime(int64_t aSec, bool translate, bool perMinute) noexcept {
+string Util::formatTime(uint64_t aSec, bool aTranslate, bool aPerMinute) noexcept {
 	string formatedTime;
 
-	uint64_t n, i;
-	i = 0;
+	decltype(aSec) n, added = 0;
 
 	auto appendTime = [&] (const string& aTranslatedS, const string& aEnglishS, const string& aTranslatedP, const string& aEnglishP) -> void {
-		if (perMinute && i == 2) //add max 2 values
+		if (aPerMinute && added == 2) //add max 2 values
 			return;
 
 		char buf[128];
 		if(n >= 2) {
-			snprintf(buf, sizeof(buf), ("%d " + ((translate ? Text::toLower(aTranslatedP) : aEnglishP) + " ")).c_str(), n);
+			snprintf(buf, sizeof(buf), (U64_FMT " " + ((aTranslate ? Text::toLower(aTranslatedP) : aEnglishP) + " ")).c_str(), n);
 		} else {
-			snprintf(buf, sizeof(buf), ("%d " + ((translate ? Text::toLower(aTranslatedS) : aEnglishS) + " ")).c_str(), n);
+			snprintf(buf, sizeof(buf), (U64_FMT " " + ((aTranslate ? Text::toLower(aTranslatedS) : aEnglishS) + " ")).c_str(), n);
 		}
 		formatedTime += (string)buf;
-		i++;
+		added++;
 	};
 
 	n = aSec / (24*3600*365);
@@ -747,12 +743,12 @@ string Util::formatTime(int64_t aSec, bool translate, bool perMinute) noexcept {
 
 	n = aSec / (60);
 	aSec %= (60);
-	if(n || perMinute) {
+	if(n || aPerMinute) {
 		appendTime(STRING(MINUTE), "min", STRING(MINUTES_LOWER), "min");
 	}
 
 	n = aSec;
-	if(++i <= 3 && !perMinute) {
+	if(++added <= 3 && !aPerMinute) {
 		appendTime(STRING(SECOND), "sec", STRING(SECONDS_LOWER), "sec");
 	}
 
@@ -1363,27 +1359,54 @@ int Util::randInt(int min, int max) noexcept {
     return dist(gen);
 }
 
+#ifdef _WIN32
 string Util::getDateTime(time_t t) noexcept {
 	if (t == 0)
 		return Util::emptyString;
 
 	char buf[64];
-	tm _tm = *localtime(&t);
+	tm _tm;
+	auto err = localtime_s(&_tm, &t);
+	if (err > 0) {
+		dcdebug("Failed to parse date " I64_FMT ": %s\n", static_cast<int64_t>(t), translateError(err).c_str());
+		return Util::emptyString;
+	}
+
 	strftime(buf, 64, SETTING(DATE_FORMAT).c_str(), &_tm);
 
 	return buf;
 }
 
-#ifdef _WIN32
 wstring Util::getDateTimeW(time_t t) noexcept {
 	if (t == 0)
 		return Util::emptyStringT;
 
 	TCHAR buf[64];
 	tm _tm;
-	localtime_s(&_tm, &t);
+	auto err = localtime_s(&_tm, &t);
+	if (err > 0) {
+		dcdebug("Failed to parse date " I64_FMT ": %s\n", static_cast<int64_t>(t), translateError(err).c_str());
+		return Util::emptyStringW;
+	}
+
 	wcsftime(buf, 64, Text::toT(SETTING(DATE_FORMAT)).c_str(), &_tm);
 	
+	return buf;
+}
+#else
+string Util::getDateTime(time_t t) noexcept {
+	if (t == 0)
+		return Util::emptyString;
+
+	char buf[64];
+	tm _tm;
+	if (!localtime_r(&t, &_tm)) {
+		dcdebug("Failed to parse date " I64_FMT ": %s\n", static_cast<int64_t>(t), translateError(errno).c_str());
+		return Util::emptyString;
+	}
+
+	strftime(buf, 64, SETTING(DATE_FORMAT).c_str(), &_tm);
+
 	return buf;
 }
 #endif

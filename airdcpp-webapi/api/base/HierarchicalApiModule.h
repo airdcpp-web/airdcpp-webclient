@@ -72,7 +72,7 @@ namespace webserver {
 			{
 				WLock l(cs);
 				dcassert(boost::find_if(subModules | map_values, [](const typename ItemType::Ptr& subModule) {
-					return !subModule.unique();
+					return subModule.use_count() != 1;
 				}).base() == subModules.end());
 
 				subModules.swap(subModulesCopy);

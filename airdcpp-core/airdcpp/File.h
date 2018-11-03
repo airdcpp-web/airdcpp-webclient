@@ -65,8 +65,8 @@ public:
 		RW = READ | WRITE
 	};
 
-	static uint64_t convertTime(FILETIME* f);
-	static FILETIME convertTime(uint64_t f);
+	static time_t convertTime(FILETIME* f);
+	static FILETIME convertTime(time_t f);
 #else // !_WIN32
 
 	enum {
@@ -120,7 +120,7 @@ public:
 	// Generally the operating system should decide when the buffered data is written on disk
 	size_t flushBuffers(bool aForce = true) override;
 
-	uint64_t getLastModified() const noexcept;
+	time_t getLastModified() const noexcept;
 
 	static bool createFile(const string& aPath, const string& aContent = Util::emptyString) noexcept;
 	static void copyFile(const string& src, const string& target);
@@ -130,7 +130,7 @@ public:
 	static void deleteFileThrow(const string& aFileName);
 	static bool deleteFileEx(const string& aFileName, int maxAttempts = 3) noexcept;
 
-	static uint64_t getLastModified(const string& path) noexcept;
+	static time_t getLastModified(const string& path) noexcept;
 	static int64_t getSize(const string& aFileName) noexcept;
 	static int64_t getBlockSize(const string& aFileName) noexcept;
 
@@ -239,7 +239,7 @@ public:
 		bool isHidden();
 		bool isLink();
 		int64_t getSize();
-		uint64_t getLastWriteTime();
+		time_t getLastWriteTime();
 		#ifndef _WIN32
 			dirent *ent;
 			string base;

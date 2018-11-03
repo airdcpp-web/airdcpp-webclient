@@ -38,7 +38,7 @@ namespace dcpp {
 
 		virtual void on(DownloadStarting, const string&) noexcept { }
 		virtual void on(DownloadFailed, const string&) noexcept { }
-		virtual void on(DownloadFinished, const string&, bool) noexcept { }
+		virtual void on(DownloadFinished, const string&) noexcept { }
 
 		virtual void on(LoadedFromCache, const string&, const string&) noexcept { }
 		virtual void on(Corrupted, const string&) noexcept { }

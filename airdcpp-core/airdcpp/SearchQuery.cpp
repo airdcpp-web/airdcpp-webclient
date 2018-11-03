@@ -365,6 +365,10 @@ bool SearchQuery::matchesFileLower(const string& aName, int64_t aSize, uint64_t 
 
 bool SearchQuery::matchesAdcPath(const string& aPath, Recursion& recursion_) noexcept {
 	auto sl = StringTokenizer<string>(aPath, ADC_SEPARATOR).getTokens();
+	if (sl.empty()) {
+		// Invalid path
+		return false;
+	}
 
 	size_t level = 0;
 	for (;;) {

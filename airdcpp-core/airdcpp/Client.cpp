@@ -78,6 +78,8 @@ void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 
 	if(sock) {
 		destroySocket([=] { // Ensure that the pointer won't be deleted too early
+			sock = nullptr;
+
 			// Users store a reference that prevents the client from being deleted
 			// so the lists must be cleared manually 
 			if (!aRedirect) {
@@ -188,11 +190,9 @@ bool Client::isActiveV6() const noexcept {
 }
 
 void Client::destroySocket(const AsyncF& aShutdownAction) noexcept {
-	auto socket = sock;
 	state = STATE_DISCONNECTED;
-	sock = nullptr;
 
-	BufferedSocket::putSocket(socket, aShutdownAction);
+	BufferedSocket::putSocket(sock, aShutdownAction);
 }
 
 void Client::connect(bool withKeyprint) noexcept {

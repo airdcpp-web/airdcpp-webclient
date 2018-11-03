@@ -24,6 +24,7 @@
 #include <airdcpp/AirUtil.h>
 #include <airdcpp/ConnectionManager.h>
 #include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/Localization.h>
 #include <airdcpp/ResourceManager.h>
 #include <airdcpp/SearchManager.h>
 #include <airdcpp/SettingHolder.h>
@@ -169,6 +170,8 @@ namespace webserver {
 		SettingsManager::SKIPLIST_DOWNLOAD,
 		SettingsManager::SKIPLIST_SHARE,
 		SettingsManager::FREE_SLOTS_EXTENSIONS,
+
+		SettingsManager::LANGUAGE_FILE,
 	};
 
 	map<int, CoreSettingItem::Group> groupMappings = {
@@ -337,6 +340,10 @@ namespace webserver {
 			auto mappers = ConnectivityManager::getInstance()->getMappers(false);
 			for (const auto& mapper : mappers) {
 				ret.emplace_back(EnumOption({ mapper, mapper }));
+			}
+		} else if (si.key == SettingsManager::LANGUAGE_FILE) {
+			for (const auto& language: Localization::getLanguages()) {
+				ret.emplace_back(EnumOption({ language.getLanguageSettingValue(), language.getLanguageName() }));
 			}
 		}
 
