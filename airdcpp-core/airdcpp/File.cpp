@@ -525,8 +525,9 @@ void File::renameFile(const string& source, const string& target) {
 	if(ret != 0 && errno == EXDEV) {
 		copyFile(source, target);
 		deleteFile(source);
-	} else if(ret != 0)
-		throw FileException(source + Util::translateError(errno));
+	} else if (ret != 0) {
+		throw FileException(Util::translateError(errno));
+	}
 }
 
 // This doesn't assume all bytes are written in one write call, it is a bit safer

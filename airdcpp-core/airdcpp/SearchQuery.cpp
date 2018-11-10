@@ -283,9 +283,9 @@ SearchQuery::SearchQuery(const StringList& params, size_t aMaxResults) noexcept 
 		} else if(toCode('M', 'T') == cmd) {
 			matchType = static_cast<Search::MatchType>(Util::toInt(p.substr(2)));
 		} else if(toCode('O', 'T') == cmd) {
-			maxDate = Util::toInt64(p.substr(2));
+			maxDate = Util::toTimeT(p.substr(2));
 		} else if(toCode('N', 'T') == cmd) {
-			minDate = Util::toInt64(p.substr(2));
+			minDate = Util::toTimeT(p.substr(2));
 		} else if(toCode('P', 'P') == cmd) {
 			addParents = (p[2] == '1');
 		}
