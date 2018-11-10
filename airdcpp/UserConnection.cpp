@@ -297,7 +297,7 @@ void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 	auto msg = std::make_shared<ChatMessage>(message, peer, me, peer);
 	msg->setThirdPerson(c.hasFlag("ME", 1));
 	if (c.getParam("TS", 1, tmp)) {
-		msg->setTime(Util::toInt64(tmp));
+		msg->setTime(Util::toTimeT(tmp));
 	}
 
 	if (!ClientManager::getInstance()->incomingPrivateMessageHook.runHooksBasic(msg)) {

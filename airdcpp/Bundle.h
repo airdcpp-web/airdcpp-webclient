@@ -109,8 +109,8 @@ public:
 	typedef multimap<double, BundlePtr> SourceSpeedMapB;
 	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
 
-	static BundlePtr createFileBundle(QueueItemPtr& qi, time_t aBundleDate, QueueToken aToken = 0, bool aDirty = true) noexcept;
-	Bundle(const string& target, time_t added, Priority aPriority, time_t aDirDate=0, QueueToken aToken = 0, bool aDirty = true, bool isFileBundle = false) noexcept;
+	Bundle(const QueueItemPtr& qi, time_t aFileDate, QueueToken aToken = 0, bool aDirty = true) noexcept;
+	Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aDirDate = 0, QueueToken aToken = 0, bool aDirty = true, bool aIsFileBundle = false) noexcept;
 	~Bundle() noexcept;
 
 	GETSET(string, error, Error);

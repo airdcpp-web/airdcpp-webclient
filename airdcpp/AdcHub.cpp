@@ -368,7 +368,7 @@ void AdcHub::handle(AdcCommand::MSG, AdcCommand& c) noexcept {
 
 	string temp;
 	if (c.getParam("TS", 1, temp))
-		message->setTime(Util::toInt64(temp));
+		message->setTime(Util::toTimeT(temp));
 
 	if(c.getParam("PM", 1, temp)) { // add PM<group-cid> as well
 		message->setTo(findUser(c.getTo()));

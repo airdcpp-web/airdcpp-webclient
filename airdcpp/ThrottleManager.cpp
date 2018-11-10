@@ -51,8 +51,8 @@ namespace dcpp {
 	 */
 	int ThrottleManager::read(Socket* sock, void* buffer, size_t len)
 	{
-		size_t downs = DownloadManager::getInstance()->getDownloadCount();
-		if(getDownLimit() == 0 || downs == 0)
+		size_t downs = DownloadManager::getInstance()->getTotalDownloadConnectionCount();
+		if (getDownLimit() == 0 || downs == 0)
 			return sock->read(buffer, len);
 
 		unique_lock<mutex> lock(downMutex);

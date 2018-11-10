@@ -42,22 +42,14 @@ using boost::range::find_if;
 using boost::accumulate;
 using boost::range::copy;
 	
-BundlePtr Bundle::createFileBundle(QueueItemPtr& qi, time_t aFileDate, QueueToken aToken /*0*/, bool aDirty /*true*/) noexcept {
+Bundle::Bundle(const QueueItemPtr& qi, time_t aFileDate, QueueToken aToken /*0*/, bool aDirty /*true*/) noexcept :
+	Bundle(qi->getTarget(), qi->getTimeAdded(), qi->getPriority(), aFileDate, aToken, aDirty, true) {
 
-
-	auto bundle = make_shared<Bundle>(qi->getTarget(), qi->getTimeAdded(), qi->getPriority(), aFileDate, aToken, aDirty, true);
-	qi->setBundle(bundle);
-
-	if (qi->isDownloaded()) {
-		bundle->addFinishedItem(qi, false);
-	} else {
-		bundle->addFinishedSegment(qi->getDownloadedSegments());
-		bundle->setDownloadedBytes(qi->getDownloadedBytes());
-		bundle->setAutoPriority(qi->getAutoPriority());
-		bundle->addQueue(qi);
+	if (!qi->isDownloaded()) {
+		addFinishedSegment(qi->getDownloadedSegments());
+		setDownloadedBytes(qi->getDownloadedBytes());
+		setAutoPriority(qi->getAutoPriority());
 	}
-
-	return bundle;
 }
 
 Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aBundleDate /*0*/, QueueToken aToken /*0*/, bool aDirty /*true*/, bool aIsFileBundle /*false*/) noexcept :
