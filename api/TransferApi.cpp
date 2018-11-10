@@ -192,7 +192,7 @@ namespace webserver {
 		};
 
 		auto uploads = UploadManager::getInstance()->getUploadCount();
-		auto downloads = DownloadManager::getInstance()->getDownloadCount();
+		auto downloads = DownloadManager::getInstance()->getTotalDownloadConnectionCount();
 
 		auto downSpeed = DownloadManager::getInstance()->getLastDownSpeed();
 		if (resetSpeed(downloads, downSpeed)) {
