@@ -30,10 +30,11 @@
 
 #define USERNAME_PARAM "username"
 namespace webserver {
-	WebUserApi::WebUserApi(Session* aSession) : SubscribableApiModule(aSession, Access::ADMIN), um(aSession->getServer()->getUserManager()),
-		view("web_user_view", this, WebUserUtils::propertyHandler, std::bind(&WebUserApi::getUsers, this)) {
-
-		um.addListener(this);
+	WebUserApi::WebUserApi(Session* aSession) : 
+		SubscribableApiModule(aSession, Access::ADMIN, { "web_user_added", "web_user_updated", "web_user_removed" }),
+		um(aSession->getServer()->getUserManager()),
+		view("web_user_view", this, WebUserUtils::propertyHandler, std::bind(&WebUserApi::getUsers, this)) 
+	{
 
 		METHOD_HANDLER(Access::ADMIN, METHOD_GET,		(),								WebUserApi::handleGetUsers);
 
@@ -42,9 +43,7 @@ namespace webserver {
 		METHOD_HANDLER(Access::ADMIN, METHOD_PATCH,		(STR_PARAM(USERNAME_PARAM)),	WebUserApi::handleUpdateUser);
 		METHOD_HANDLER(Access::ADMIN, METHOD_DELETE,	(STR_PARAM(USERNAME_PARAM)),	WebUserApi::handleRemoveUser);
 
-		createSubscription("web_user_added");
-		createSubscription("web_user_updated");
-		createSubscription("web_user_removed");
+		um.addListener(this);
 	}
 
 	WebUserApi::~WebUserApi() {

@@ -27,15 +27,13 @@
 #include <airdcpp/SearchManager.h>
 
 namespace webserver {
-	ConnectivityApi::ConnectivityApi(Session* aSession) : SubscribableApiModule(aSession, Access::SETTINGS_VIEW) {
-		ConnectivityManager::getInstance()->addListener(this);
-
-		createSubscription("connectivity_detection_message");
-		createSubscription("connectivity_detection_started");
-		createSubscription("connectivity_detection_finished");
-
+	ConnectivityApi::ConnectivityApi(Session* aSession) : 
+		SubscribableApiModule(aSession, Access::SETTINGS_VIEW, { "connectivity_detection_message", "connectivity_detection_started", "connectivity_detection_finished" }) 
+	{
 		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,	(EXACT_PARAM("status")), ConnectivityApi::handleGetStatus);
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("detect")), ConnectivityApi::handleDetect);
+
+		ConnectivityManager::getInstance()->addListener(this);
 	}
 
 	ConnectivityApi::~ConnectivityApi() {

@@ -32,8 +32,20 @@
 #include <airdcpp/SharePathValidator.h>
 
 namespace webserver {
-	ShareApi::ShareApi(Session* aSession) : HookApiModule(aSession, Access::SETTINGS_VIEW, nullptr, Access::SETTINGS_EDIT) {
-
+	ShareApi::ShareApi(Session* aSession) : 
+		HookApiModule(
+			aSession, 
+			Access::SETTINGS_VIEW, 
+			{ 
+				"share_refresh_queued", 
+				"share_refresh_completed", 
+				
+				"share_exclude_added", 
+				"share_exclude_removed" 
+			}, 
+			Access::SETTINGS_EDIT
+		) 
+	{
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("grouped_root_paths")),				ShareApi::handleGetGroupedRootPaths);
 		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("stats")),								ShareApi::handleGetStats);
 		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("find_dupe_paths")),					ShareApi::handleFindDupePaths);
@@ -47,12 +59,6 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("excludes")),							ShareApi::handleGetExcludes);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("add")),		ShareApi::handleAddExclude);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("remove")),	ShareApi::handleRemoveExclude);
-
-		createSubscription("share_refresh_queued");
-		createSubscription("share_refresh_completed");
-
-		createSubscription("share_exclude_added");
-		createSubscription("share_exclude_removed");
 
 		createHook("share_file_validation_hook", [this](const string& aId, const string& aName) {
 			return ShareManager::getInstance()->getValidator().fileValidationHook.addSubscriber(aId, aName, HOOK_HANDLER(ShareApi::fileValidationHook));

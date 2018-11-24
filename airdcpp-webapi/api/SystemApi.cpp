@@ -36,7 +36,7 @@
 #include <airdcpp/TimerManager.h>
 
 namespace webserver {
-	SystemApi::SystemApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY) {
+	SystemApi::SystemApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY, { "away_state" }) {
 
 		METHOD_HANDLER(Access::ANY, METHOD_GET,		(EXACT_PARAM("stats")),			SystemApi::handleGetStats);
 
@@ -47,8 +47,6 @@ namespace webserver {
 		METHOD_HANDLER(Access::ADMIN, METHOD_POST,	(EXACT_PARAM("shutdown")),		SystemApi::handleShutdown);
 
 		METHOD_HANDLER(Access::ANY, METHOD_GET,		(EXACT_PARAM("system_info")),	SystemApi::handleGetSystemInfo);
-
-		createSubscription("away_state");
 
 		ActivityManager::getInstance()->addListener(this);
 	}
