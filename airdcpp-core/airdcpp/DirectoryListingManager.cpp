@@ -336,7 +336,7 @@ void DirectoryListingManager::on(QueueManagerListener::ItemRemoved, const QueueI
 
 	auto u = qi->getSources()[0].getUser();
 	if (qi->isSet(QueueItem::FLAG_DIRECTORY_DOWNLOAD) && !aFinished) {
-		removeDirectoryDownload(u, qi->getTempTarget());
+		removeDirectoryDownload(u, qi->getListDirectoryPath());
 	}
 
 	if (qi->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
@@ -353,7 +353,7 @@ void DirectoryListingManager::on(QueueManagerListener::ItemRemoved, const QueueI
 			dl = p->second;
 		}
 
-		dl->onListRemovedQueue(qi->getTarget(), qi->getTempTarget(), aFinished);
+		dl->onListRemovedQueue(qi->getTarget(), qi->getListDirectoryPath(), aFinished);
 
 		bool closing = (dl->getClosing() || !dl->hasCompletedDownloads());
 		if (!aFinished && !dl->hasDownloads() && closing) {

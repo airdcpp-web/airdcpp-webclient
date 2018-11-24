@@ -506,8 +506,10 @@ bool QueueManager::hasDownloadedBytes(const string& aTarget) {
 	return q->getDownloadedBytes() > 0;
 }
 
-QueueItemPtr QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = Util::emptyString */, const BundlePtr& aBundle /*nullptr*/) {
-	dcassert(!aInitialDir.empty());
+QueueItemPtr QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = ADC_ROOT */, const BundlePtr& aBundle /*nullptr*/) {
+	if (!Util::isAdcPath(aInitialDir)) {
+		throw QueueException(STRING_F(INVALID_PATH, aInitialDir));
+	}
 
 	// Pre-checks
 	checkSource(aUser);
@@ -1724,7 +1726,7 @@ void QueueManager::onFilelistDownloadCompleted(QueueItemPtr& aQI, Download* aDow
 		if (aDownload->isSet(Download::FLAG_TTHLIST)) {
 			matchTTHList(aDownload->getPFS(), aDownload->getHintedUser(), aQI->getFlags());
 		} else {
-			DirectoryListingManager::getInstance()->processList(aQI->getListName(), aDownload->getPFS(), aDownload->getHintedUser(), aDownload->getTempTarget(), aQI->getFlags());
+			DirectoryListingManager::getInstance()->processList(aQI->getListName(), aDownload->getPFS(), aDownload->getHintedUser(), aDownload->getListDirectoryPath(), aQI->getFlags());
 		}
 
 		if (aQI->isSet(QueueItem::FLAG_MATCH_QUEUE)) {
@@ -1732,9 +1734,9 @@ void QueueManager::onFilelistDownloadCompleted(QueueItemPtr& aQI, Download* aDow
 			matchLists.right.erase(aQI->getTarget());
 		}
 	} else if (aDownload->getType() == Transfer::TYPE_PARTIAL_LIST) {
-		fire(QueueManagerListener::PartialListFinished(), aDownload->getHintedUser(), aDownload->getPFS(), aQI->getTempTarget());
+		fire(QueueManagerListener::PartialListFinished(), aDownload->getHintedUser(), aDownload->getPFS(), aQI->getListDirectoryPath());
 	} else {
-		onFileFinished(aQI, aDownload, aQI->getTempTarget());  // We cheated and stored the initial display directory here (when opening lists from search)
+		onFileFinished(aQI, aDownload, aQI->getListDirectoryPath());
 	}
 
 	{

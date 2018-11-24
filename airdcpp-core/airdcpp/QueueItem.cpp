@@ -311,14 +311,32 @@ void QueueItem::removeSource(const UserPtr& aUser, Flags::MaskType reason) noexc
 }
 
 const string& QueueItem::getTempTarget() noexcept {
-	if (!isFilelist()) {
-		if (isSet(FLAG_OPEN) || isSet(FLAG_CLIENT_VIEW)) {
-			setTempTarget(target);
-		} else if (tempTarget.empty()) {
-			setTempTarget(target + TEMP_EXTENSION);
-		}
+	if (isFilelist()) {
+		// tempTarget is used for the directory path
+		return Util::emptyString;
 	}
 
+	if (isSet(FLAG_OPEN) || isSet(FLAG_CLIENT_VIEW)) {
+		setTempTarget(target);
+	} else if (tempTarget.empty()) {
+		setTempTarget(target + TEMP_EXTENSION);
+	}
+
+	return tempTarget;
+}
+
+void QueueItem::setTempTarget(const string& aTempTarget) noexcept {
+	if (isFilelist()) {
+		// The list path can't be changed
+		return;
+	}
+
+	tempTarget = aTempTarget;
+}
+
+const string& QueueItem::getListDirectoryPath() const noexcept {
+	dcassert(isFilelist());
+	dcassert(!tempTarget.empty());
 	return tempTarget;
 }
 

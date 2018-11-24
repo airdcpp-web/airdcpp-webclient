@@ -33,7 +33,7 @@
 namespace dcpp {
 
 Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn, qi.getTarget(), qi.getTTH()),
-	tempTarget(qi.getTempTarget())
+	tempTarget(qi.getTempTarget()), listDirectoryPath(qi.getListDirectoryPath())
 {
 	conn.setDownload(this);
 	
@@ -138,7 +138,7 @@ AdcCommand Download::getCommand(bool zlib, const string& mySID) const noexcept {
 	cmd.addParam(Transfer::names[getType()]);
 
 	if(getType() == TYPE_PARTIAL_LIST) {
-		cmd.addParam(getTempTarget());
+		cmd.addParam(getListDirectoryPath());
 	} else if(getType() == TYPE_FULL_LIST) {
 		if(isSet(Download::FLAG_XML_BZ_LIST)) {
 			cmd.addParam(USER_LIST_NAME_BZ);

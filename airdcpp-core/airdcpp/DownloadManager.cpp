@@ -708,17 +708,12 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess) 
 	removeDownload(d);
 	removeRunningUser(aSource);
 
-	bool isNmdc = aSource->isSet(UserConnection::FLAG_NMDC);
-	if (d->getType() == Transfer::TYPE_PARTIAL_LIST && isNmdc) {
-		//partial lists should be only used for client viewing in NMDC
-		dcassert(d->isSet(Download::FLAG_VIEW));
-		fire(DownloadManagerListener::Failed(), d, STRING(NO_PARTIAL_SUPPORT));
-		QueueManager::getInstance()->putDownload(d, true); // true, false is not used in putDownload for partial
-		removeConnection(aSource);
-		return;
+
+	auto error = d->getType() == Transfer::TYPE_TREE ? STRING(NO_FULL_TREE) : STRING(FILE_NOT_AVAILABLE);
+	if (d->getType() == Transfer::TYPE_PARTIAL_LIST && aSource->isSet(UserConnection::FLAG_NMDC)) {
+		error += " / " + STRING(NO_PARTIAL_SUPPORT);
 	}
 
-	string error = d->getType() == Transfer::TYPE_TREE ? STRING(NO_FULL_TREE) : STRING(FILE_NOT_AVAILABLE);
 	if (aNoAccess) {
 		error = STRING(NO_FILE_ACCESS);
 	}
