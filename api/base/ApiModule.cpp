@@ -127,13 +127,11 @@ namespace webserver {
 	}
 
 
-	SubscribableApiModule::SubscribableApiModule(Session* aSession, Access aSubscriptionAccess, const StringList* aSubscriptions) : ApiModule(aSession), subscriptionAccess(aSubscriptionAccess) {
+	SubscribableApiModule::SubscribableApiModule(Session* aSession, Access aSubscriptionAccess, const StringList& aSubscriptions) : ApiModule(aSession), subscriptionAccess(aSubscriptionAccess) {
 		socket = WebServerManager::getInstance()->getSocket(aSession->getId());
 
-		if (aSubscriptions) {
-			for (const auto& s : *aSubscriptions) {
-				subscriptions.emplace(s, false);
-			}
+		for (const auto& s: aSubscriptions) {
+			subscriptions.emplace(s, false);
 		}
 
 		aSession->addListener(this);

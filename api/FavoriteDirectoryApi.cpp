@@ -28,8 +28,9 @@
 #include <airdcpp/FavoriteManager.h>
 
 namespace webserver {
-	FavoriteDirectoryApi::FavoriteDirectoryApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY) {
-
+	FavoriteDirectoryApi::FavoriteDirectoryApi(Session* aSession) : 
+		SubscribableApiModule(aSession, Access::ANY, { "favorite_directories_updated" }) 
+	{
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("grouped_paths")),			FavoriteDirectoryApi::handleGetGroupedDirectories);
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(),										FavoriteDirectoryApi::handleGetDirectories);
 
@@ -39,8 +40,6 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(TTH_PARAM),							FavoriteDirectoryApi::handleRemoveDirectory);
 
 		FavoriteManager::getInstance()->addListener(this);
-
-		createSubscription("favorite_directories_updated");
 	}
 
 	FavoriteDirectoryApi::~FavoriteDirectoryApi() {

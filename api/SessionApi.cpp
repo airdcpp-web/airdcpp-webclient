@@ -35,7 +35,9 @@
 #include <airdcpp/version.h>
 
 namespace webserver {
-	SessionApi::SessionApi(Session* aSession) : SubscribableApiModule(aSession, Access::ADMIN) {
+	SessionApi::SessionApi(Session* aSession) : 
+		SubscribableApiModule(aSession, Access::ADMIN, { "session_created", "session_removed" }) 
+	{
 		// Just fail these since we have a session already...
 		METHOD_HANDLER(Access::ANY, METHOD_POST, (EXACT_PARAM("authorize")), SessionApi::failAuthenticatedRequest);
 		METHOD_HANDLER(Access::ANY, METHOD_POST, (EXACT_PARAM("socket")), SessionApi::failAuthenticatedRequest);
@@ -52,9 +54,6 @@ namespace webserver {
 		METHOD_HANDLER(Access::ADMIN, METHOD_DELETE, (TOKEN_PARAM), SessionApi::handleRemoveSession);
 
 		aSession->getServer()->getUserManager().addListener(this);
-
-		createSubscription("session_created");
-		createSubscription("session_removed");
 	}
 
 	SessionApi::~SessionApi() {

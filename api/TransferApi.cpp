@@ -34,14 +34,23 @@
 
 namespace webserver {
 	TransferApi::TransferApi(Session* aSession) : 
-		SubscribableApiModule(aSession, Access::TRANSFERS),
+		SubscribableApiModule(
+			aSession, Access::TRANSFERS, 
+			{ 
+				"transfer_statistics", 
+				"transfer_added", 
+				"transfer_updated", 
+				"transfer_removed",
+
+				// These are included in transfer_updated events as well
+				"transfer_starting",
+				"transfer_completed",
+				"transfer_failed",
+			}
+		),
 		timer(getTimer([this] { onTimer(); }, 1000)),
 		view("transfer_view", this, TransferUtils::propertyHandler, std::bind(&TransferApi::getTransfers, this))
 	{
-		DownloadManager::getInstance()->addListener(this);
-		UploadManager::getInstance()->addListener(this);
-		ConnectionManager::getInstance()->addListener(this);
-
 		METHOD_HANDLER(Access::TRANSFERS,	METHOD_GET,		(),											TransferApi::handleGetTransfers);
 		METHOD_HANDLER(Access::TRANSFERS,	METHOD_GET,		(TOKEN_PARAM),								TransferApi::handleGetTransfer);
 
@@ -51,20 +60,13 @@ namespace webserver {
 		METHOD_HANDLER(Access::TRANSFERS,	METHOD_GET,		(EXACT_PARAM("tranferred_bytes")),			TransferApi::handleGetTransferredBytes);
 		METHOD_HANDLER(Access::TRANSFERS,	METHOD_GET,		(EXACT_PARAM("stats")),						TransferApi::handleGetTransferStats);
 
-		createSubscription("transfer_statistics");
-
-		createSubscription("transfer_added");
-		createSubscription("transfer_updated");
-		createSubscription("transfer_removed");
-
-		// These are included in transfer_updated events as well
-		createSubscription("transfer_starting");
-		createSubscription("transfer_completed");
-		createSubscription("transfer_failed");
-
 		timer->start(false);
 
 		loadTransfers();
+
+		DownloadManager::getInstance()->addListener(this);
+		UploadManager::getInstance()->addListener(this);
+		ConnectionManager::getInstance()->addListener(this);
 	}
 
 	TransferApi::~TransferApi() {

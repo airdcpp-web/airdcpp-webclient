@@ -25,18 +25,17 @@
 #include <airdcpp/LogManager.h>
 
 namespace webserver {
-	EventApi::EventApi(Session* aSession) : SubscribableApiModule(aSession, Access::EVENTS_VIEW) {
-		LogManager::getInstance()->addListener(this);
-
-		createSubscription("event_message");
-		createSubscription("event_counts");
-
+	EventApi::EventApi(Session* aSession) : 
+		SubscribableApiModule(aSession, Access::EVENTS_VIEW, { "event_message", "event_counts" }) 
+	{
 		METHOD_HANDLER(Access::EVENTS_VIEW, METHOD_POST,	(EXACT_PARAM("read")),		EventApi::handleRead);
 		METHOD_HANDLER(Access::EVENTS_VIEW, METHOD_GET,		(EXACT_PARAM("counts")),	EventApi::handleGetInfo);
 
 		METHOD_HANDLER(Access::EVENTS_VIEW, METHOD_GET,		(RANGE_MAX_PARAM),			EventApi::handleGetMessages);
 		METHOD_HANDLER(Access::EVENTS_EDIT, METHOD_DELETE,	(),							EventApi::handleClearMessages);
 		METHOD_HANDLER(Access::EVENTS_EDIT, METHOD_POST,	(),							EventApi::handlePostMessage);
+
+		LogManager::getInstance()->addListener(this);
 	}
 
 	EventApi::~EventApi() {
