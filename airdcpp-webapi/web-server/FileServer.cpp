@@ -168,11 +168,8 @@ namespace webserver {
 				headers_.emplace_back("Content-Encoding", "gzip");
 			}
 
-			if (extension != "ico") {
-				// There's no hash with favicon.ico...
-				addCacheControlHeader(headers_, 30);
-			} else if (extension != "html") {
-				// One year (file versioning is done with hashes in filenames)
+			if (extension != "html" && aResource != "/sw.js") {
+				// File versioning is done with hashes in filenames (except for the index file and service worker)
 				addCacheControlHeader(headers_, 365);
 			}
 		} else {
