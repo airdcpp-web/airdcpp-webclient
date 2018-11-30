@@ -42,6 +42,8 @@
 #define FLOOD_COUNT 5
 #define FLOOD_PERIOD 45
 
+#define REFRESH_TOKEN_VALIDITY_DAYS 30ULL
+
 namespace webserver {
 	WebUserManager::WebUserManager(WebServerManager* aServer) : server(aServer), authFloodCounter(FLOOD_COUNT, FLOOD_PERIOD) {
 		aServer->addListener(this);
@@ -54,15 +56,20 @@ namespace webserver {
 	SessionPtr WebUserManager::parseHttpSession(const string& aAuthToken, const string& aIP) {
 		auto token = aAuthToken;
 
-		bool basicAuth = false;
+		auto authType = AUTH_UNKNOWN;
 		if (token.length() > 6 && token.substr(0, 6) == "Basic ") {
 			token = websocketpp::base64_decode(token.substr(6));
-			basicAuth = true;
+			authType = AUTH_BASIC;
+		} else if (token.length() > 7 && token.substr(0, 7) == "Bearer ") {
+			token = token.substr(7);
+			authType = AUTH_BEARER;
+		} else {
+			authType = AUTH_BEARER;
 		}
 
 		auto session = getSession(token);
 		if (!session) {
-			if (basicAuth) {
+			if (authType == AUTH_BASIC) {
 				string username, password;
 
 				auto i = token.rfind(':');
@@ -85,6 +92,28 @@ namespace webserver {
 	SessionPtr WebUserManager::authenticateSession(const string& aUserName, const string& aPassword, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP) {
 		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
 		return authenticateSession(aUserName, aPassword, aType, aMaxInactivityMinutes, aIP, uuid);
+	}
+
+	SessionPtr WebUserManager::authenticateSession(const string& aRefreshToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP) {
+		WebUserPtr user = nullptr;
+
+		{
+			RLock l(cs);
+			auto i = refreshTokens.find(aRefreshToken);
+			if (i == refreshTokens.end()) {
+				throw std::domain_error("Invalid refresh token");
+			}
+
+			user = i->second.user;
+		}
+
+		{
+			WLock l(cs);
+			refreshTokens.erase(aRefreshToken);
+		}
+
+		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+		return createSession(user, uuid, aType, aMaxInactivityMinutes, aIP);
 	}
 
 	SessionPtr WebUserManager::authenticateSession(const string& aUserName, const string& aPassword, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP, const string& aSessionToken) {
@@ -139,8 +168,10 @@ namespace webserver {
 	SessionList WebUserManager::getSessions() const noexcept {
 		SessionList ret;
 
-		RLock l(cs);
-		boost::range::copy(sessionsLocalId | map_values, back_inserter(ret));
+		{
+			RLock l(cs);
+			boost::range::copy(sessionsLocalId | map_values, back_inserter(ret));
+		}
 
 		return ret;
 	}
@@ -148,7 +179,6 @@ namespace webserver {
 	SessionPtr WebUserManager::getSession(const string& aSession) const noexcept {
 		RLock l(cs);
 		auto s = sessionsRemoteId.find(aSession);
-
 		if (s == sessionsRemoteId.end()) {
 			return nullptr;
 		}
@@ -213,6 +243,25 @@ namespace webserver {
 		}
 	}
 
+	void WebUserManager::checkExpiredTokens() noexcept {
+		TokenInfo::List removedTokens;
+		auto time = GET_TIME();
+
+		{
+			RLock l(cs);
+			boost::algorithm::copy_if(refreshTokens | map_values, back_inserter(removedTokens), [=](const TokenInfo& ti) {
+				return time > ti.expiresOn;
+			});
+		}
+
+		{
+			WLock l(cs);
+			for (const auto& t : removedTokens) {
+				refreshTokens.erase(t.token);
+			}
+		}
+	}
+
 	void WebUserManager::removeSession(const SessionPtr& aSession, bool aTimedOut) noexcept {
 		aSession->getUser()->removeSession();
 		fire(WebUserManagerListener::UserUpdated(), aSession->getUser());
@@ -228,7 +277,8 @@ namespace webserver {
 
 	void WebUserManager::on(WebServerManagerListener::Started) noexcept {
 		expirationTimer = server->addTimer([this] { 
-			checkExpiredSessions(); 
+			checkExpiredSessions();
+			checkExpiredTokens();
 			authFloodCounter.prune();
 		}, FLOOD_PERIOD * 1000);
 
@@ -295,23 +345,61 @@ namespace webserver {
 			xml_.stepOut();
 		}
 
+		if (xml_.findChild("RefreshTokens")) {
+			xml_.stepIn();
+			while (xml_.findChild("TokenInfo")) {
+				const auto& token = xml_.getChildAttrib("Token");
+				const auto& username = xml_.getChildAttrib("Username");
+				const auto& expiresOn = xml_.getLongLongChildAttrib("ExpiresOn");
+
+				if (username.empty() || token.empty() || GET_TIME() > expiresOn) {
+					continue;
+				}
+
+				auto user = getUser(username);
+				if (!user) {
+					continue;
+				}
+
+				refreshTokens.emplace(token, TokenInfo({ token, user, expiresOn }));
+			}
+			xml_.stepOut();
+		}
+
 		xml_.resetCurrentChild();
 	}
 
 	void WebUserManager::on(WebServerManagerListener::SaveSettings, SimpleXML& xml_) noexcept {
-		xml_.addTag("WebUsers");
-		xml_.stepIn();
 		{
-			RLock l(cs);
-			for (const auto& u : users | map_values) {
-				xml_.addTag("WebUser");
-				xml_.addChildAttrib("Username", u->getUserName());
-				xml_.addChildAttrib("Password", u->getPassword());
-				xml_.addChildAttrib("LastLogin", u->getLastLogin());
-				xml_.addChildAttrib("Permissions", u->getPermissionsStr());
+			xml_.addTag("WebUsers");
+			xml_.stepIn();
+			{
+				RLock l(cs);
+				for (const auto& u: users | map_values) {
+					xml_.addTag("WebUser");
+					xml_.addChildAttrib("Username", u->getUserName());
+					xml_.addChildAttrib("Password", u->getPassword());
+					xml_.addChildAttrib("LastLogin", u->getLastLogin());
+					xml_.addChildAttrib("Permissions", u->getPermissionsStr());
+				}
 			}
+			xml_.stepOut();
 		}
-		xml_.stepOut();
+
+		{
+			xml_.addTag("RefreshTokens");
+			xml_.stepIn();
+			{
+				RLock l(cs);
+				for (const auto& t: refreshTokens | map_values) {
+					xml_.addTag("TokenInfo");
+					xml_.addChildAttrib("Token", t.token);
+					xml_.addChildAttrib("Username", t.user->getUserName());
+					xml_.addChildAttrib("ExpiresOn", t.expiresOn);
+				}
+			}
+			xml_.stepOut();
+		}
 	}
 
 	bool WebUserManager::hasUsers() const noexcept {
@@ -349,7 +437,63 @@ namespace webserver {
 		return user->second;
 	}
 
-	bool WebUserManager::updateUser(const WebUserPtr& aUser) noexcept {
+	string WebUserManager::createRefreshToken(const WebUserPtr& aUser) noexcept {
+		const auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+		const time_t expiration = GET_TIME() + (REFRESH_TOKEN_VALIDITY_DAYS * 24ULL * 60ULL * 60ULL * 1000ULL);
+
+		{
+			WLock l(cs);
+			refreshTokens.emplace(uuid, TokenInfo({ uuid, aUser, expiration }));
+		}
+
+		return uuid;
+	}
+
+	void WebUserManager::removeRefreshTokens(const WebUserPtr& aUser) noexcept {
+		TokenInfo::List removedTokens;
+
+		{
+			RLock l(cs);
+			boost::algorithm::copy_if(refreshTokens | map_values, back_inserter(removedTokens), [=](const TokenInfo& ti) {
+				return ti.user == aUser;
+			});
+		}
+
+		{
+			WLock l(cs);
+			for (const auto& t: removedTokens) {
+				refreshTokens.erase(t.token);
+			}
+		}
+	}
+
+
+	void WebUserManager::removeSessions(const WebUserPtr& aUser) noexcept {
+		SessionList removedSession;
+
+		{
+			RLock l(cs);
+			boost::algorithm::copy_if(sessionsLocalId | map_values, back_inserter(removedSession), [=](const SessionPtr& s) {
+				return s->getUser() == aUser;
+			});
+		}
+
+		for (const auto& s: removedSession) {
+			auto socket = server->getSocket(s->getId());
+			if (socket) {
+				socket->close(websocketpp::close::status::normal, "Re-authentication required");
+			}
+
+			removeSession(s, true);
+		}
+	}
+
+	bool WebUserManager::updateUser(const WebUserPtr& aUser, bool aRemoveSessions) noexcept {
+		if (aRemoveSessions) {
+			removeRefreshTokens(aUser);
+			removeSessions(aUser);
+		}
+
 		fire(WebUserManagerListener::UserUpdated(), aUser);
 		return true;
 	}
@@ -359,6 +503,9 @@ namespace webserver {
 		if (!user) {
 			return false;
 		}
+
+		removeRefreshTokens(user);
+		removeSessions(user);
 
 		{
 			WLock l(cs);
@@ -387,9 +534,10 @@ namespace webserver {
 
 	void WebUserManager::replaceWebUsers(const WebUserList& newUsers) noexcept {
 		WLock l(cs);
+		refreshTokens.clear();
 		users.clear();
-		for (auto u : newUsers)
+		for (auto u : newUsers) {
 			users.emplace(u->getUserName(), u);
+		}
 	}
-
 }

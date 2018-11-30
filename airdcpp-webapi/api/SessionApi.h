@@ -48,7 +48,7 @@ namespace webserver {
 
 		api_return logout(ApiRequest& aRequest, const SessionPtr& aSession);
 
-		static json serializeLoginInfo(const SessionPtr& aSession);
+		static json serializeLoginInfo(const SessionPtr& aSession, const string& aRefreshToken);
 		static json serializeSession(const SessionPtr& aSession) noexcept;
 		static string getSessionType(const SessionPtr& aSession) noexcept;
 
