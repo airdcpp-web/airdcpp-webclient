@@ -71,17 +71,26 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	void WebUserApi::parseUser(WebUserPtr& aUser, const json& j, bool aIsNew) {
-		auto password = JsonUtil::getOptionalField<string>("password", j, aIsNew);
-		if (password) {
-			aUser->setPassword(*password);
+	bool WebUserApi::parseUser(WebUserPtr& aUser, const json& j, bool aIsNew) {
+		auto hasChanges = false;
+
+		{
+			auto password = JsonUtil::getOptionalField<string>("password", j, aIsNew);
+			if (password) {
+				aUser->setPassword(*password);
+				hasChanges = true;
+			}
 		}
 
-		auto permissions = JsonUtil::getOptionalField<StringList>("permissions", j);
-		if (permissions) {
-			// Only validate added profiles profiles
-			aUser->setPermissions(*permissions);
+		{
+			auto permissions = JsonUtil::getOptionalField<StringList>("permissions", j);
+			if (permissions) {
+				aUser->setPermissions(*permissions);
+				hasChanges = true;
+			}
 		}
+
+		return hasChanges;
 	}
 
 
@@ -116,9 +125,11 @@ namespace webserver {
 			return websocketpp::http::status_code::not_found;
 		}
 
-		parseUser(user, reqJson, false);
+		auto hasChanges = parseUser(user, reqJson, false);
+		if (hasChanges) {
+			um.updateUser(user, aRequest.getSession()->getUser() != user);
+		}
 
-		um.updateUser(user);
 		aRequest.setResponseBody(Serializer::serializeItem(user, WebUserUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
 	}
