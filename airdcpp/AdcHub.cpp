@@ -271,8 +271,8 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 
 			if (isSocketSecure()) {
 				auto encryption = getEncryptionInfo();
-				if (encryption.find("TLSv1.2") == string::npos) {
-					statusMessage("This hub uses an outdated cryptographic protocol that has known security issues. For more information, please see https://www.airdcpp.net/hubsoft-warnings", LogMessage::SEV_WARNING);
+				if (encryption.find("TLSv1.2") == string::npos && encryption.find("TLSv1.3") == string::npos) {
+					statusMessage("This hub uses an outdated cryptographic protocol (" + encryption + ") with known security issues. Support for this protocol version will be removed in future, thus preventing you from connecting to this hub. For more information, please see https://www.airdcpp.net/hubsoft-warnings", LogMessage::SEV_WARNING);
 				}
 			}
 

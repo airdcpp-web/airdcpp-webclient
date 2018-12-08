@@ -33,7 +33,7 @@
 namespace dcpp {
 
 Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn, qi.getTarget(), qi.getTTH()),
-	tempTarget(qi.getTempTarget()), listDirectoryPath(qi.getListDirectoryPath())
+	tempTarget(qi.getTempTarget()), listDirectoryPath(qi.isFilelist() ? qi.getListDirectoryPath() : Util::emptyString)
 {
 	conn.setDownload(this);
 	
