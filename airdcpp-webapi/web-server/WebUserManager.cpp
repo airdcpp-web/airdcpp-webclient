@@ -350,7 +350,7 @@ namespace webserver {
 			while (xml_.findChild("TokenInfo")) {
 				const auto& token = xml_.getChildAttrib("Token");
 				const auto& username = xml_.getChildAttrib("Username");
-				const auto& expiresOn = xml_.getLongLongChildAttrib("ExpiresOn");
+				const auto& expiresOn = static_cast<time_t>(xml_.getLongLongChildAttrib("ExpiresOn"));
 
 				if (username.empty() || token.empty() || GET_TIME() > expiresOn) {
 					continue;
@@ -439,7 +439,7 @@ namespace webserver {
 
 	string WebUserManager::createRefreshToken(const WebUserPtr& aUser) noexcept {
 		const auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
-		const time_t expiration = GET_TIME() + (REFRESH_TOKEN_VALIDITY_DAYS * 24ULL * 60ULL * 60ULL * 1000ULL);
+		const time_t expiration = GET_TIME() + static_cast<time_t>(REFRESH_TOKEN_VALIDITY_DAYS * 24ULL * 60ULL * 60ULL * 1000ULL);
 
 		{
 			WLock l(cs);
