@@ -24,7 +24,7 @@
 #include <api/base/HookApiModule.h>
 
 namespace webserver {
-	HookApiModule::HookApiModule(Session* aSession, Access aSubscriptionAccess, const StringList* aSubscriptions, Access aHookAccess) :
+	HookApiModule::HookApiModule(Session* aSession, Access aSubscriptionAccess, const StringList& aSubscriptions, Access aHookAccess) :
 		SubscribableApiModule(aSession, aSubscriptionAccess, aSubscriptions) 
 	{
 		METHOD_HANDLER(aHookAccess, METHOD_POST, (EXACT_PARAM("hooks"), STR_PARAM(LISTENER_PARAM_ID)), HookApiModule::handleAddHook);

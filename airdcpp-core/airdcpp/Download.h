@@ -86,7 +86,7 @@ public:
 	const unique_ptr<OutputStream>& getOutput() const { return output; }
 
 	GETSET(string, tempTarget, TempTarget);
-	//GETSET(string, remotePath, RemotePath);
+	GETSET(string, listDirectoryPath, ListDirectoryPath);
 
 	IGETSET(uint64_t, lastTick, LastTick, GET_TICK());
 	IGETSET(bool, treeValid, TreeValid, false);

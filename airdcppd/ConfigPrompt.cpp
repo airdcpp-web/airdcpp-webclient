@@ -191,7 +191,7 @@ bool ConfigPrompt::addUser(webserver::WebServerManager* wsm) {
 		std::cout << "The user " << username << " was added" << std::endl;
 	} else {
 		user->setPassword(password);
-		um.updateUser(user);
+		um.updateUser(user, true);
 		std::cout << "Password for the user " << username << " was updated" << std::endl;
 	}
 

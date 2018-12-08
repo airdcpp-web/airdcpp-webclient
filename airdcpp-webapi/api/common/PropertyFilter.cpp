@@ -253,7 +253,7 @@ namespace webserver {
 			end = matcher.pattern.length();
 		}
 
-		time_t ret = Util::toInt64(matcher.pattern.substr(0, end)) * multiplier;
+		auto ret = Util::toTimeT(matcher.pattern.substr(0, end)) * multiplier;
 		return make_pair(static_cast<double>(ret > 0 ? GET_TIME() - ret : ret), hasMatch);
 	}
 

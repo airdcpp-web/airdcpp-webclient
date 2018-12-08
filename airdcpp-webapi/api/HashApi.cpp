@@ -26,9 +26,19 @@
 #include <api/common/Serializer.h>
 
 namespace webserver {
-	HashApi::HashApi(Session* aSession) : SubscribableApiModule(aSession, Access::SETTINGS_VIEW),
-		timer(getTimer([this] { onTimer(); }, 1000)) {
-
+	HashApi::HashApi(Session* aSession) : 
+		SubscribableApiModule(
+			aSession, 
+			Access::SETTINGS_VIEW, 
+			{ 
+				"hash_database_status", 
+				"hash_statistics", 
+				"hasher_directory_finished", 
+				"hasher_finished",
+			}
+		),
+		timer(getTimer([this] { onTimer(); }, 1000)) 
+	{
 		HashManager::getInstance()->addListener(this);
 
 		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,	(EXACT_PARAM("database_status")),	HashApi::handleGetDbStatus);
@@ -37,11 +47,6 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("pause")),				HashApi::handlePause);
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("resume")),			HashApi::handleResume);
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("stop")),				HashApi::handleStop);
-
-		createSubscription("hash_database_status");
-		createSubscription("hash_statistics");
-		createSubscription("hasher_directory_finished");
-		createSubscription("hasher_finished");
 
 		timer->start(false);
 	}

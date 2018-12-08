@@ -58,15 +58,9 @@ public:
 	/** @return Running average download speed in Bytes/s */
 	int64_t getRunningAverage() const;
 
-	/** @return Number of downloads. */ 
-	size_t getDownloadCount() const {
-		RLock l(cs);
-		return downloads.size();
-	}
-	size_t getDownloadCount(const BundlePtr& aBundle) const {
-		RLock l(cs);
-		return aBundle->getDownloads().size();
-	}
+	size_t getTotalDownloadConnectionCount() const noexcept;
+	size_t getFileDownloadConnectionCount() const noexcept;
+	size_t getBundleDownloadConnectionCount(const BundlePtr& aBundle) const noexcept;
 
 	// This will ignore bundles with no downloads and 
 	// bundles using highest priority

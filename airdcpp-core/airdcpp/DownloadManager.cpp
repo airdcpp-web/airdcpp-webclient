@@ -503,9 +503,27 @@ int64_t DownloadManager::getRunningAverage() const {
 	return avg;
 }
 
+size_t DownloadManager::getTotalDownloadConnectionCount() const noexcept {
+	RLock l(cs);
+	return downloads.size();
+}
+
+size_t DownloadManager::getFileDownloadConnectionCount() const noexcept {
+	RLock l(cs);
+	return std::accumulate(downloads.begin(), downloads.end(), static_cast<size_t>(0), [](size_t aOld, const Download* aDownload) {
+		return aDownload->getUserConnection().isSet(UserConnection::FLAG_SMALL_SLOT) ? aOld : aOld + 1;
+	});
+}
+
+size_t DownloadManager::getBundleDownloadConnectionCount(const BundlePtr& aBundle) const noexcept {
+	RLock l(cs);
+	return aBundle->getDownloads().size();
+}
+
 void DownloadManager::on(UserConnectionListener::MaxedOut, UserConnection* aSource, const string& param) noexcept {
 	noSlots(aSource, param);
 }
+
 void DownloadManager::noSlots(UserConnection* aSource, const string& param) {
 	if(aSource->getState() != UserConnection::STATE_SND) {
 		dcdebug("DM::noSlots Bad state, disconnecting\n");
@@ -690,17 +708,12 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess) 
 	removeDownload(d);
 	removeRunningUser(aSource);
 
-	bool isNmdc = aSource->isSet(UserConnection::FLAG_NMDC);
-	if (d->getType() == Transfer::TYPE_PARTIAL_LIST && isNmdc) {
-		//partial lists should be only used for client viewing in NMDC
-		dcassert(d->isSet(Download::FLAG_VIEW));
-		fire(DownloadManagerListener::Failed(), d, STRING(NO_PARTIAL_SUPPORT));
-		QueueManager::getInstance()->putDownload(d, true); // true, false is not used in putDownload for partial
-		removeConnection(aSource);
-		return;
+
+	auto error = d->getType() == Transfer::TYPE_TREE ? STRING(NO_FULL_TREE) : STRING(FILE_NOT_AVAILABLE);
+	if (d->getType() == Transfer::TYPE_PARTIAL_LIST && aSource->isSet(UserConnection::FLAG_NMDC)) {
+		error += " / " + STRING(NO_PARTIAL_SUPPORT);
 	}
 
-	string error = d->getType() == Transfer::TYPE_TREE ? STRING(NO_FULL_TREE) : STRING(FILE_NOT_AVAILABLE);
 	if (aNoAccess) {
 		error = STRING(NO_FILE_ACCESS);
 	}

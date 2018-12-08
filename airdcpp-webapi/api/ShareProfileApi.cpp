@@ -25,10 +25,17 @@
 #include <airdcpp/ShareManager.h>
 
 namespace webserver {
-	ShareProfileApi::ShareProfileApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY) {
-
-		ShareManager::getInstance()->addListener(this);
-
+	ShareProfileApi::ShareProfileApi(Session* aSession) : 
+		SubscribableApiModule(
+			aSession, 
+			Access::ANY, 
+			{ 
+				"share_profile_added", 
+				"share_profile_updated", 
+				"share_profile_removed" 
+			}
+		) 
+	{
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(),										ShareProfileApi::handleGetProfiles);
 
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(TOKEN_PARAM),							ShareProfileApi::handleGetProfile);
@@ -39,9 +46,7 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(TOKEN_PARAM),							ShareProfileApi::handleRemoveProfile);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(TOKEN_PARAM, EXACT_PARAM("default")),	ShareProfileApi::handleSetDefaultProfile);
 
-		createSubscription("share_profile_added");
-		createSubscription("share_profile_updated");
-		createSubscription("share_profile_removed");
+		ShareManager::getInstance()->addListener(this);
 	}
 
 	ShareProfileApi::~ShareProfileApi() {

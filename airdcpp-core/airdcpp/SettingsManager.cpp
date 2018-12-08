@@ -336,7 +336,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(POPUP_HUB_PMS, true);
 	setDefault(POPUP_BOT_PMS, true);
 	setDefault(BUFFER_SIZE, 64);
-	setDefault(HUBLIST_SERVERS, "http://dchublist.com/hublist.xml.bz2;http://hublist.eu/hublist.xml.bz2;http://www.hublista.hu/hublist.xml.bz2;");
+	setDefault(HUBLIST_SERVERS, "https://www.te-home.net/?do=hublist&get=hublist.xml.bz2;https://dchublist.org/hublist.xml.bz2;https://dchublist.ru/hublist.xml.bz2;http://hublist.eu/hublist.xml.bz2;");
 	setDefault(DOWNLOAD_SLOTS, 50);
 	setDefault(MAX_DOWNLOAD_SPEED, 0);
 	setDefault(LOG_DIRECTORY, Util::getPath(Util::PATH_USER_CONFIG) + "Logs" PATH_SEPARATOR_STR);

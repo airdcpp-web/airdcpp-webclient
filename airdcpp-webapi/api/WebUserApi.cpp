@@ -30,10 +30,11 @@
 
 #define USERNAME_PARAM "username"
 namespace webserver {
-	WebUserApi::WebUserApi(Session* aSession) : SubscribableApiModule(aSession, Access::ADMIN), um(aSession->getServer()->getUserManager()),
-		view("web_user_view", this, WebUserUtils::propertyHandler, std::bind(&WebUserApi::getUsers, this)) {
-
-		um.addListener(this);
+	WebUserApi::WebUserApi(Session* aSession) : 
+		SubscribableApiModule(aSession, Access::ADMIN, { "web_user_added", "web_user_updated", "web_user_removed" }),
+		um(aSession->getServer()->getUserManager()),
+		view("web_user_view", this, WebUserUtils::propertyHandler, std::bind(&WebUserApi::getUsers, this)) 
+	{
 
 		METHOD_HANDLER(Access::ADMIN, METHOD_GET,		(),								WebUserApi::handleGetUsers);
 
@@ -42,9 +43,7 @@ namespace webserver {
 		METHOD_HANDLER(Access::ADMIN, METHOD_PATCH,		(STR_PARAM(USERNAME_PARAM)),	WebUserApi::handleUpdateUser);
 		METHOD_HANDLER(Access::ADMIN, METHOD_DELETE,	(STR_PARAM(USERNAME_PARAM)),	WebUserApi::handleRemoveUser);
 
-		createSubscription("web_user_added");
-		createSubscription("web_user_updated");
-		createSubscription("web_user_removed");
+		um.addListener(this);
 	}
 
 	WebUserApi::~WebUserApi() {
@@ -72,17 +71,26 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	void WebUserApi::parseUser(WebUserPtr& aUser, const json& j, bool aIsNew) {
-		auto password = JsonUtil::getOptionalField<string>("password", j, aIsNew);
-		if (password) {
-			aUser->setPassword(*password);
+	bool WebUserApi::parseUser(WebUserPtr& aUser, const json& j, bool aIsNew) {
+		auto hasChanges = false;
+
+		{
+			auto password = JsonUtil::getOptionalField<string>("password", j, aIsNew);
+			if (password) {
+				aUser->setPassword(*password);
+				hasChanges = true;
+			}
 		}
 
-		auto permissions = JsonUtil::getOptionalField<StringList>("permissions", j);
-		if (permissions) {
-			// Only validate added profiles profiles
-			aUser->setPermissions(*permissions);
+		{
+			auto permissions = JsonUtil::getOptionalField<StringList>("permissions", j);
+			if (permissions) {
+				aUser->setPermissions(*permissions);
+				hasChanges = true;
+			}
 		}
+
+		return hasChanges;
 	}
 
 
@@ -117,9 +125,11 @@ namespace webserver {
 			return websocketpp::http::status_code::not_found;
 		}
 
-		parseUser(user, reqJson, false);
+		auto hasChanges = parseUser(user, reqJson, false);
+		if (hasChanges) {
+			um.updateUser(user, aRequest.getSession()->getUser() != user);
+		}
 
-		um.updateUser(user);
 		aRequest.setResponseBody(Serializer::serializeItem(user, WebUserUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
 	}

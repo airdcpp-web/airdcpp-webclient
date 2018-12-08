@@ -245,10 +245,11 @@ public:
 	bool hasPartialSharingTarget() noexcept;
 
 	string getListName() const noexcept;
+	const string& getListDirectoryPath() const noexcept;
 	string getStatusString(int64_t aDownloadedBytes, bool aIsWaiting) const noexcept;
 
 	const string& getTempTarget() noexcept;
-	void setTempTarget(const string& aTempTarget) noexcept { tempTarget = aTempTarget; }
+	void setTempTarget(const string& aTempTarget) noexcept;
 
 	GETSET(TTHValue, tthRoot, TTH);
 	GETSET(SegmentSet, done, Done);	

@@ -70,7 +70,7 @@ namespace webserver {
 		};
 		typedef HookCompletionData::Ptr HookCompletionDataPtr;
 
-		HookApiModule(Session* aSession, Access aSubscriptionAccess, const StringList* aSubscriptions, Access aHookAccess);
+		HookApiModule(Session* aSession, Access aSubscriptionAccess, const StringList& aSubscriptions, Access aHookAccess);
 
 		virtual void createHook(const string& aSubscription, HookAddF&& aAddHandler, HookRemoveF&& aRemoveF) noexcept;
 		virtual bool hookActive(const string& aSubscription) const noexcept;

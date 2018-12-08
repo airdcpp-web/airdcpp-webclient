@@ -29,11 +29,20 @@
 
 
 namespace webserver {
-	UserApi::UserApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY) {
-
-		ClientManager::getInstance()->addListener(this);
-		IgnoreManager::getInstance()->addListener(this);
-
+	UserApi::UserApi(Session* aSession) : 
+		SubscribableApiModule(
+			aSession, 
+			Access::ANY, 
+			{ 
+				"user_connected", 
+				"user_updated", 
+				"user_disconnected", 
+				
+				"ignored_user_added", 
+				"ignored_user_removed" 
+			}
+		) 
+	{
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("user"), CID_PARAM),		UserApi::handleGetUser); // DEPRECATED
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(CID_PARAM),							UserApi::handleGetUser);
 		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("search_nicks")),			UserApi::handleSearchNicks);
@@ -42,12 +51,8 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("ignores"), CID_PARAM),	UserApi::handleIgnore);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("ignores"), CID_PARAM),	UserApi::handleUnignore);
 
-		createSubscription("user_connected");
-		createSubscription("user_updated");
-		createSubscription("user_disconnected");
-
-		createSubscription("ignored_user_added");
-		createSubscription("ignored_user_removed");
+		ClientManager::getInstance()->addListener(this);
+		IgnoreManager::getInstance()->addListener(this);
 	}
 
 	UserApi::~UserApi() {

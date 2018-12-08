@@ -28,10 +28,9 @@
 
 
 namespace webserver {
-	FavoriteHubApi::FavoriteHubApi(Session* aSession) : SubscribableApiModule(aSession, Access::FAVORITE_HUBS_VIEW),
+	FavoriteHubApi::FavoriteHubApi(Session* aSession) : 
+		SubscribableApiModule(aSession, Access::FAVORITE_HUBS_VIEW, { "favorite_hub_created", "favorite_hub_updated", "favorite_hub_removed" }),
 		view("favorite_hub_view", this, FavoriteHubUtils::propertyHandler, getEntryList) {
-
-		FavoriteManager::getInstance()->addListener(this);
 
 		METHOD_HANDLER(Access::FAVORITE_HUBS_VIEW, METHOD_GET,		(RANGE_START_PARAM, RANGE_MAX_PARAM),	FavoriteHubApi::handleGetHubs);
 		METHOD_HANDLER(Access::FAVORITE_HUBS_EDIT, METHOD_POST,		(),										FavoriteHubApi::handleAddHub);
@@ -39,9 +38,7 @@ namespace webserver {
 		METHOD_HANDLER(Access::FAVORITE_HUBS_EDIT, METHOD_PATCH,	(TOKEN_PARAM),							FavoriteHubApi::handleUpdateHub);
 		METHOD_HANDLER(Access::FAVORITE_HUBS_VIEW, METHOD_GET,		(TOKEN_PARAM),							FavoriteHubApi::handleGetHub);
 
-		createSubscription("favorite_hub_created");
-		createSubscription("favorite_hub_updated");
-		createSubscription("favorite_hub_removed");
+		FavoriteManager::getInstance()->addListener(this);
 	}
 
 	FavoriteHubApi::~FavoriteHubApi() {

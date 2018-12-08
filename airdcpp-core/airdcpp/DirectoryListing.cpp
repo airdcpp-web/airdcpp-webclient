@@ -1005,7 +1005,12 @@ void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aBase
 		checkShareDupes();
 
 	auto dir = findDirectory(aBasePath);
-	dcassert(dir);
+	if (!dir) {
+		// Base path should have been validated while loading partial list
+		dcassert(!partialList);
+		dir = root;
+	}
+
 	if (dir) {
 		dir->setLoading(false);
 		if (!aBackgroundTask) {
@@ -1016,7 +1021,7 @@ void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aBase
 		onStateChanged();
 	}
 	
-	fire(DirectoryListingListener::LoadingFinished(), aStartTime, aBasePath, aBackgroundTask);
+	fire(DirectoryListingListener::LoadingFinished(), aStartTime, dir->getAdcPath(), aBackgroundTask);
 }
 
 void DirectoryListing::updateCurrentLocation(const Directory::Ptr& aCurrentDirectory) noexcept {

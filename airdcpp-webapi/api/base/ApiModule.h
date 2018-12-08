@@ -113,7 +113,7 @@ namespace webserver {
 	
 	class SubscribableApiModule : public ApiModule, protected SessionListener {
 	public:
-		SubscribableApiModule(Session* aSession, Access aSubscriptionAccess, const StringList* aSubscriptions = nullptr);
+		SubscribableApiModule(Session* aSession, Access aSubscriptionAccess, const StringList& aSubscriptions);
 		virtual ~SubscribableApiModule();
 
 		typedef std::map<const string, bool> SubscriptionMap;

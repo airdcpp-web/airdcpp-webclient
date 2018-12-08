@@ -628,6 +628,7 @@ enum Strings { // @DontAdd
 	INVALID_MODIFICATION_DATE, // "Invalid modification date"
 	INVALID_NUMBER_OF_SLOTS, // "Invalid number of slots"
 	INVALID_PASSWORD, // "Invalid password"
+	INVALID_PATH, // "Invalid path: %1%"
 	INVALID_PATTERN, // "Invalid pattern: %1%"
 	INVALID_REGEXP, // "Invalid regexp!"
 	NO_VALID_LINES, // "No valid lines were found"
