@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2018 AirDC++ Project
+ * Copyright (C) 2011-2019 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@ public:
 	static boost::regex releaseReg;
 	static boost::regex subDirRegPlain;
 	static boost::regex crcReg;
+	static boost::regex lineBreakRegex;
 
 	// Check directory dupe status by name or ADC path
 	static DupeType checkAdcDirectoryDupe(const string& aAdcPath, int64_t aSize);

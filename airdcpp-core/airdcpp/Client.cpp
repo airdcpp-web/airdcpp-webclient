@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -143,7 +143,7 @@ void Client::reloadSettings(bool aUpdateNick) noexcept {
 }
 
 bool Client::changeBoolHubSetting(HubSettings::HubBoolSetting aSetting) noexcept {
-	auto newValue = !get(aSetting);
+	auto newValue = static_cast<bool>(!get(aSetting));
 	get(aSetting) = newValue;
 
 	//save for a favorite hub if needed
