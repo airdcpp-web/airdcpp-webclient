@@ -158,6 +158,7 @@ public:
 
 	// Parse mount point (requires disk access)
 	static string getMountPath(const string& aPath) noexcept;
+	static int64_t getDeviceId(const string& aPath) noexcept;
 
 	// Parse mount point from the supplied volumes (avoids disk access)
 	static string getMountPath(const string& aPath, const VolumeSet& aVolumes, bool aIgnoreNetworkPaths) noexcept;
