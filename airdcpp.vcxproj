@@ -233,7 +233,6 @@
     <ClCompile Include="airdcpp\modules\RSSManager.cpp" />
     <ClCompile Include="airdcpp\modules\ShareMonitorManager.cpp" />
     <ClCompile Include="airdcpp\modules\ShareScannerManager.cpp" />
-    <ClCompile Include="airdcpp\modules\TargetUtil.cpp" />
     <ClCompile Include="airdcpp\modules\WebShortcuts.cpp" />
     <ClCompile Include="airdcpp\PrivateChat.cpp" />
     <ClCompile Include="airdcpp\RecentManager.cpp" />
@@ -366,7 +365,6 @@
     <ClInclude Include="airdcpp\modules\RSSManager.h" />
     <ClInclude Include="airdcpp\modules\ShareMonitorManager.h" />
     <ClInclude Include="airdcpp\modules\ShareScannerManager.h" />
-    <ClInclude Include="airdcpp\modules\TargetUtil.h" />
     <ClInclude Include="airdcpp\modules\WebShortcuts.h" />
     <ClInclude Include="airdcpp\Priority.h" />
     <ClInclude Include="airdcpp\RecentEntry.h" />

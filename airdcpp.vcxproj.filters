@@ -326,9 +326,6 @@
     <ClCompile Include="airdcpp\modules\ColorSettings.cpp">
       <Filter>Source Files\modules</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\modules\TargetUtil.cpp">
-      <Filter>Source Files\modules</Filter>
-    </ClCompile>
     <ClCompile Include="airdcpp\modules\PreviewAppManager.cpp">
       <Filter>Source Files\modules</Filter>
     </ClCompile>
@@ -890,9 +887,6 @@
       <Filter>Header Files\modules</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\modules\ColorSettings.h">
-      <Filter>Header Files\modules</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\modules\TargetUtil.h">
       <Filter>Header Files\modules</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\modules\PreviewAppManager.h">

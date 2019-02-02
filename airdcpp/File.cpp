@@ -318,6 +318,12 @@ bool File::isAbsolutePath(const string& path) noexcept {
 	return path.size() > 2 && (path[1] == ':' || path[0] == '/' || path[0] == '\\');
 }
 
+int64_t File::getDeviceId(const string& aPath) noexcept {
+	DWORD dwSerialNumber;
+	auto ret = GetVolumeInformation(Text::toT(getMountPath(aPath)).c_str(), NULL, 0, &dwSerialNumber, NULL, NULL, NULL, 0);
+	return ret > 0 ? dwSerialNumber : -1;
+}
+
 string File::getMountPath(const string& aPath) noexcept {
 	unique_ptr<TCHAR[]> buf(new TCHAR[aPath.length()+1]);
 	GetVolumePathName(Text::toT(Util::formatPath(aPath)).c_str(), buf.get(), aPath.length());
@@ -613,12 +619,18 @@ int64_t File::getBlockSize(const string& aFileName) noexcept {
 }
 
 string File::getMountPath(const string& aPath) noexcept {
+	auto volumes = File::getVolumes();
+	return getMountPath(aPath, volumes, false);
+}
+
+
+int64_t File::getDeviceId(const string& aPath) noexcept {
 	struct stat statbuf;
 	if (stat(aPath.c_str(), &statbuf) == -1) {
-		return Util::emptyString;
+		return -1;
 	}
 
-	return Util::toString((uint32_t)statbuf.st_dev);
+	return (int64_t)statbuf.st_dev;
 }
 
 time_t File::getLastModified(const string& aPath) noexcept {
@@ -823,7 +835,7 @@ string File::getMountPath(const string& aPath, const VolumeSet& aVolumes, bool a
 	}
 #else
 	// Return the root
-	return PATH_SEPARATOR_STR;
+	return aVolumes.empty() ? Util::emptyString : PATH_SEPARATOR_STR;
 #endif
 	return Util::emptyString;
 }

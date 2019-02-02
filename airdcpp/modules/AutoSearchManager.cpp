@@ -20,7 +20,6 @@
 
 #include "AutoSearchManager.h"
 #include "ShareScannerManager.h"
-#include "TargetUtil.h"
 
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/LogManager.h>
@@ -1045,15 +1044,7 @@ AutoSearchPtr AutoSearchManager::loadItemFromXml(SimpleXML& aXml) {
 	}
 	as->setLastSearch(aXml.getIntChildAttrib("LastSearchTime"));
 
-	// LEGACY
-	auto targetType = (TargetUtil::TargetType)aXml.getIntChildAttrib("TargetType");
-	if (targetType > TargetUtil::TARGET_PATH) {
-		TargetUtil::TargetInfo ti;
-		TargetUtil::getVirtualTarget(as->getTarget(), targetType, ti);
-
-		as->setTarget(ti.getTarget());
-		logMessage("The target path of item " + as->getDisplayName() + " was changed to " + ti.getTarget() + " (auto selecting of paths isn't supported in this client version)", LogMessage::SEV_INFO);
-	} else if (as->getTarget().empty()) {
+	if (as->getTarget().empty()) {
 		as->setTarget(SETTING(DOWNLOAD_DIRECTORY));
 	}
 
