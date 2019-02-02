@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2018 AirDC++ Project
+* Copyright (C) 2011-2019 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -20,13 +20,11 @@
 #define DCPLUSPLUS_PRIORITY_SEARCH_QUEUE_H
 
 #include "stdinc.h"
+#include <random>
 
 #include "SettingsManager.h"
 #include "TimerManager.h"
 
-// TODO: replace with STD when MSVC can initialize the distribution correctly
-#include <boost/random/discrete_distribution.hpp>
-#include <boost/random/mersenne_twister.hpp>
 
 namespace dcpp {
 
@@ -158,7 +156,7 @@ private:
 			return nullptr;
 		}
 
-		auto dist = boost::random::discrete_distribution<>(probabilities);
+		auto dist = discrete_distribution<>(probabilities.begin(), probabilities.end());
 
 		// Choose the search queue, can't be paused or lowest
 		auto& sbq = prioSearchQueue[dist(gen) + static_cast<int>(Priority::LOW)];
@@ -181,7 +179,7 @@ private:
 		return static_cast<int>(count_if(recentSearchQueue.begin(), recentSearchQueue.end(), AllowSearch()));
 	}
 
-	boost::mt19937 gen;
+	mt19937 gen;
 
 	int getValidItemCountNormal(ProbabilityList* probabilities_ = nullptr) const noexcept{
 		int itemCount = 0;

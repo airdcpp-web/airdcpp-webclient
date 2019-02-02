@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,11 @@
 #include <unistd.h>
 #define BOOST_PTHREAD_HAS_MUTEXATTR_SETTYPE
 #endif
+
+#if !defined(BOOST_THREAD_POLL_INTERVAL_MILLISECONDS)
+#define BOOST_THREAD_POLL_INTERVAL_MILLISECONDS 100
+#endif
+
 
 /*#ifndef _WIN64
 # undef memcpy
@@ -77,6 +82,8 @@
 #include <boost/range/algorithm/remove_if.hpp>
 #include <boost/algorithm/cxx11/copy_if.hpp>
 
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #include <boost/scoped_array.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/regex.hpp>
