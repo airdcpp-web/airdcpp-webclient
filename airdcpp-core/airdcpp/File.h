@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -158,6 +158,7 @@ public:
 
 	// Parse mount point (requires disk access)
 	static string getMountPath(const string& aPath) noexcept;
+	static int64_t getDeviceId(const string& aPath) noexcept;
 
 	// Parse mount point from the supplied volumes (avoids disk access)
 	static string getMountPath(const string& aPath, const VolumeSet& aVolumes, bool aIgnoreNetworkPaths) noexcept;

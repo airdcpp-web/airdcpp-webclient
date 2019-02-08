@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2018 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,13 +86,12 @@ bool DirSFVReader::isCrcValid(const string& aFileName) const {
 	return true;
 }
 
-boost::regex lineBreakRegex(R"(\n|\r)");
 bool DirSFVReader::loadFile(const string& aContent) noexcept {
 	/* Get the filename and crc */
 	bool hasValidLines = false;
 	string line;
 
-	StringTokenizer<string> tokenizer(aContent, lineBreakRegex);
+	StringTokenizer<string> tokenizer(aContent, AirUtil::lineBreakRegex);
 	for (const auto& rawLine: tokenizer.getTokens()) {
 		line = Text::toUtf8(rawLine);
 
