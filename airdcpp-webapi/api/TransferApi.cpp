@@ -107,7 +107,7 @@ namespace webserver {
 			RLock l(dm->getCS());
 			for (const auto& d : dm->getDownloads()) {
 				if (d->getUserConnection().getState() == UserConnection::STATE_RUNNING) {
-					starting(d, "Downloading", true);
+					starting(d, STRING(DOWNLOADING), true);
 				}
 			}
 		}
@@ -236,7 +236,7 @@ namespace webserver {
 		previousStats.swap(newStats);
 	}
 
-	void TransferApi::onTick(const Transfer* aTransfer, bool /*aIsDownload*/) noexcept {
+	void TransferApi::onTick(const Transfer* aTransfer, bool aIsDownload) noexcept {
 		auto t = findTransfer(aTransfer->getToken());
 		if (!t) {
 			return;
@@ -248,7 +248,7 @@ namespace webserver {
 
 		uint64_t timeSinceStarted = GET_TICK() - t->getStarted();
 		if (timeSinceStarted < 1000) {
-			t->setStatusString("Starting...");
+			t->setStatusString(aIsDownload ? STRING(DOWNLOAD_STARTING) : STRING(UPLOAD_STARTING));
 		} else {
 			t->setStatusString(STRING_F(RUNNING_PCT, t->getPercentage()));
 		}
@@ -485,7 +485,7 @@ namespace webserver {
 
 	void TransferApi::on(DownloadManagerListener::Starting, const Download* aDownload) noexcept {
 		// No need for full update as it's done in the requesting phase
-		starting(aDownload, "Starting...", false);
+		starting(aDownload, STRING(DOWNLOAD_STARTING), false);
 	}
 
 	void TransferApi::on(UploadManagerListener::Starting, const Upload* aUpload) noexcept {
@@ -511,13 +511,13 @@ namespace webserver {
 		onTransferCompleted(aUpload, false); 
 	}
 
-	void TransferApi::onTransferCompleted(const Transfer* aTransfer, bool /*aIsDownload*/) noexcept {
+	void TransferApi::onTransferCompleted(const Transfer* aTransfer, bool aIsDownload) noexcept {
 		auto t = findTransfer(aTransfer->getToken());
 		if (!t) {
 			return;
 		}
 
-		t->setStatusString("Finished, idle...");
+		t->setStatusString(aIsDownload ? STRING(DOWNLOAD_FINISHED_IDLE) : STRING(UPLOAD_FINISHED_IDLE));
 		t->setSpeed(-1);
 		t->setTimeLeft(-1);
 		t->setBytesTransferred(aTransfer->getSegmentSize());

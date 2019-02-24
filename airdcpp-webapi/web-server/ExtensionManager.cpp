@@ -100,7 +100,7 @@ namespace webserver {
 		for (const auto& path : directories) {
 			auto ext = loadLocalExtension(path);
 			if (ext && startExtensionImpl(ext)) {
-				wsm->log("Extension " + ext->getName() + " was loaded", LogMessage::SEV_INFO);
+				wsm->log(STRING_F(WEB_EXTENSION_LOADED, ext->getName()), LogMessage::SEV_INFO);
 			}
 		}
 	}
@@ -181,7 +181,7 @@ namespace webserver {
 			}
 
 			if (download->buf.empty()) {
-				failInstallation(aInstallId, "Download failed", download->status);
+				failInstallation(aInstallId, STRING(WEB_EXTENSION_DOWNLOAD_FAILED), download->status);
 				return;
 			}
 
@@ -194,7 +194,7 @@ namespace webserver {
 						sprintf(&mdString[i * 2], "%02x", (*calculatedSha1)[i]);
 
 					if (compare(string(mdString), aSha1) != 0) {
-						failInstallation(aInstallId, "Download failed", "Checksum validation mismatch");
+						failInstallation(aInstallId, STRING(WEB_EXTENSION_DOWNLOAD_FAILED), STRING(WEB_EXTENSION_CHECKSUM_MISMATCH));
 						return;
 					}
 				}
@@ -204,7 +204,7 @@ namespace webserver {
 			try {
 				File(tempFile, File::WRITE, File::CREATE | File::TRUNCATE).write(download->buf);
 			} catch (const FileException& e) {
-				failInstallation(aInstallId, "Failed to save the package", e.what());
+				failInstallation(aInstallId, STRING(WEB_EXTENSION_PACKAGE_SAVE_FAILED), e.what());
 				return;
 			}
 		}
@@ -223,7 +223,7 @@ namespace webserver {
 		try {
 			GZ::decompress(aInstallFilePath, tarFile);
 		} catch (const Exception& e) {
-			failInstallation(aInstallId, "Failed to decompress the package", e.what());
+			failInstallation(aInstallId, STRING(WEB_EXTENSION_PACKAGE_EXTRACT_FAILED), e.what());
 			return;
 		}
 
@@ -241,7 +241,7 @@ namespace webserver {
 			TarFile tar(tarFile);
 			tar.extract(tempRoot);
 		} catch (const Exception& e) {
-			failInstallation(aInstallId, "Failed to extract the extension to the temp directory", e.what());
+			failInstallation(aInstallId, STRING(WEB_EXTENSION_PACKAGE_EXTRACT_FAILED), e.what());
 			return;
 		}
 
@@ -250,7 +250,7 @@ namespace webserver {
 		{
 			auto directories = File::findFiles(tempRoot, "*", File::TYPE_DIRECTORY);
 			if (directories.size() != 1) {
-				failInstallation(aInstallId, "Malformed package content", "There should be a single directory directly inside the extension package");
+				failInstallation(aInstallId, STRING(WEB_EXTENSION_PACKAGE_MALFORMED_CONTENT), "There should be a single directory directly inside the extension package");
 			}
 
 			tempPackageDirectory = directories.front();
@@ -265,7 +265,7 @@ namespace webserver {
 			extensionInfo.checkCompatibility();
 			extensionName = extensionInfo.getName();
 		} catch (const std::exception& e) {
-			failInstallation(aInstallId, "Failed to load extension", e.what());
+			failInstallation(aInstallId, STRING(WEB_EXTENSION_LOAD_ERROR), e.what());
 			return;
 		}
 
@@ -273,7 +273,7 @@ namespace webserver {
 		auto extension = getExtension(extensionName);
 		if (extension) {
 			if (!extension->isManaged()) {
-				failInstallation(aInstallId, "Extension exits", "Unmanaged extensions can't be upgraded");
+				failInstallation(aInstallId, STRING(WEB_EXTENSION_EXISTS), "Unmanaged extensions can't be upgraded");
 				return;
 			}
 
@@ -308,7 +308,7 @@ namespace webserver {
 				return;
 			}
 
-			wsm->log("Extension " + extension->getName() + " was updated succesfully", LogMessage::SEV_INFO);
+			wsm->log(STRING_F(WEB_EXTENSION_UPDATED, extension->getName()), LogMessage::SEV_INFO);
 		} else {
 			// Install new
 			extension = loadLocalExtension(Extension::getRootPath(extensionName));
@@ -318,7 +318,7 @@ namespace webserver {
 			}
 
 			fire(ExtensionManagerListener::ExtensionAdded(), extension);
-			wsm->log("Extension " + extension->getName() + " was installed succesfully", LogMessage::SEV_INFO);
+			wsm->log(STRING_F(WEB_EXTENSION_INSTALLED, extension->getName()), LogMessage::SEV_INFO);
 		}
 
 		startExtensionImpl(extension);
@@ -333,7 +333,7 @@ namespace webserver {
 
 		fire(ExtensionManagerListener::InstallationFailed(), aInstallId, msg);
 
-		wsm->log("Extension installation failed: " + msg, LogMessage::SEV_ERROR);
+		wsm->log(STRING_F(WEB_EXTENSION_INSTALLATION_FAILED, msg), LogMessage::SEV_ERROR);
 	}
 
 	ExtensionPtr ExtensionManager::registerRemoteExtension(const SessionPtr& aSession, const json& aPackageJson) {
@@ -342,7 +342,7 @@ namespace webserver {
 		auto existing = getExtension(ext->getName());
 		if (existing) {
 			if (existing->isManaged()) {
-				throw Exception("Managed extension with the same name exists already");
+				throw Exception(STRING(WEB_EXTENSION_EXISTS));
 			}
 
 			removeExtension(existing);
@@ -365,12 +365,12 @@ namespace webserver {
 			wsm->addAsyncTask([=] {
 				auto extension = getExtension(name);
 				if (extension && startExtensionImpl(extension)) {
-					wsm->log("Extension " + aExtension->getName() + " timed out and was restarted", LogMessage::SEV_INFO);
+					wsm->log(STRING_F(WEB_EXTENSION_TIMED_OUT, aExtension->getName()), LogMessage::SEV_INFO);
 				}
 			});
 		} else {
 			 wsm->log(
-				 "Extension " + aExtension->getName() + " has exited (see the extension log " + aExtension->getErrorLogPath() + " for error details)",
+				 STRING_F(WEB_EXTENSION_EXITED, aExtension->getName() % aExtension->getErrorLogPath()),
 				 LogMessage::SEV_ERROR
 			 );
 		 }
@@ -384,13 +384,13 @@ namespace webserver {
 				onExtensionFailed(aExtension, aExitCode);
 			});
 		} catch (const Exception& e) {
-			wsm->log("Failed to load extension " + aPath + ": " + e.what(), LogMessage::SEV_ERROR);
+			wsm->log(STRING_F(WEB_EXTENSION_LOAD_ERROR_X, aPath % e.what()), LogMessage::SEV_ERROR);
 			return nullptr;
 		}
 
 		if (getExtension(ext->getName())) {
 			dcassert(0);
-			wsm->log("Failed to load extension " + aPath + ": exists already", LogMessage::SEV_ERROR);
+			wsm->log(STRING_F(WEB_EXTENSION_LOAD_ERROR_X, aPath % STRING(WEB_EXTENSION_EXISTS)), LogMessage::SEV_ERROR);
 			return nullptr;
 		}
 
@@ -408,7 +408,7 @@ namespace webserver {
 			auto command = getStartCommand(aExtension->getEngines());
 			aExtension->start(command, wsm);
 		} catch (const Exception& e) {
-			wsm->log("Failed to start the extension " + aExtension->getName() + ": " + e.what(), LogMessage::SEV_ERROR);
+			wsm->log(STRING_F(WEB_EXTENSION_START_ERROR, aExtension->getName() % e.what()), LogMessage::SEV_ERROR);
 			return false;
 		}
 
@@ -424,7 +424,7 @@ namespace webserver {
 				RLock l(cs);
 				auto i = engines.find(extEngine);
 				if (i == engines.end()) {
-					lastError = "Scripting engine \"" + extEngine + "\" is not configured in application settings";
+					lastError = STRING_F(WEB_EXTENSION_ENGINE_NO_CONFIG, extEngine);
 					continue;
 				}
 
@@ -437,7 +437,7 @@ namespace webserver {
 				return parsedCommand;
 			}
 
-			lastError = "Scripting engine \"" + extEngine + "\" is not installed on the system (tested commands: " + engineCommandStr + ").";
+			lastError = STRING_F(WEB_EXTENSION_ENGINE_NOT_INSTALLED, extEngine % engineCommandStr);
 		}
 
 		dcassert(!lastError.empty());

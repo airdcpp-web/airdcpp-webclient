@@ -33,6 +33,16 @@
 #include <airdcpp/StringTokenizer.h>
 
 namespace webserver {
+	string ApiSettingItem::formatTitle(ResourceManager::Strings aDesc, ResourceManager::Strings aUnit) noexcept {
+		auto title = ResourceManager::getInstance()->getString(aDesc);
+
+		if (aUnit != ResourceManager::LAST) {
+			title += " (" + ResourceManager::getInstance()->getString(aUnit) + ")";
+		}
+
+		return title;
+	}
+
 	const ApiSettingItem::MinMax ApiSettingItem::defaultMinMax = { 0, MAX_INT_VALUE };
 
 	ApiSettingItem::ApiSettingItem(const string& aName, Type aType, Type aItemType) :
@@ -56,6 +66,12 @@ namespace webserver {
 		optional(aOptional), minMax(aMinMax), objectValues(aObjectValues), help(aHelp), enumOptions(aEnumOptions)
 	{
 		dcassert(aType != TYPE_NUMBER || minMax.min != minMax.max);
+	}
+
+
+	ServerSettingItem::ServerSettingItem(const string& aKey, const ResourceManager::Strings aDesc, const json& aDefaultValue, Type aType, bool aOptional,
+		const MinMax& aMinMax, const ResourceManager::Strings aUnit): ServerSettingItem(aKey, ApiSettingItem::formatTitle(aDesc, aUnit), aDefaultValue, aType, aOptional, aMinMax) {
+
 	}
 
 	// Returns the value and bool indicating whether it's an auto detected value
@@ -351,13 +367,7 @@ namespace webserver {
 	}
 
 	string CoreSettingItem::getTitle() const noexcept {
-		auto title = si.getDescription();
-
-		if (unit != ResourceManager::LAST) {
-			title += " (" + ResourceManager::getInstance()->getString(unit) + ")";
-		}
-
-		return title;
+		return ApiSettingItem::formatTitle(si.desc, unit);
 	}
 
 	void CoreSettingItem::unset() noexcept {

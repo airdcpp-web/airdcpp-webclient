@@ -129,7 +129,7 @@ namespace webserver {
 				const StringList osList = *osJson;
 				auto currentOs = SystemUtil::getPlatform();
 				if (std::find(osList.begin(), osList.end(), currentOs) == osList.end() && currentOs != "other") {
-					throw Exception("Extension is not compatible with your operating system, please the extension documentation for more information");
+					throw Exception("Extension is not compatible with your operating system (check the extension documentation for more information)");
 				}
 			}
 		}
