@@ -77,8 +77,8 @@ namespace webserver {
 	string ShareUtils::formatDisplayStatus(const ShareDirectoryInfoPtr& aItem) noexcept {
 		switch (static_cast<ShareManager::RefreshState>(aItem->refreshState)) {
 			case ShareManager::RefreshState::STATE_NORMAL: return STRING(NORMAL);
-			case ShareManager::RefreshState::STATE_PENDING: return "Refresh pending";
-			case ShareManager::RefreshState::STATE_RUNNING: return "Refreshing";
+			case ShareManager::RefreshState::STATE_PENDING: return STRING(API_SHARE_REFRESH_PENDING);
+			case ShareManager::RefreshState::STATE_RUNNING: return STRING(API_SHARE_REFRESHING);
 		}
 
 		return Util::emptyString;

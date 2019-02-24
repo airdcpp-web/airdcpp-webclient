@@ -52,6 +52,7 @@ namespace webserver {
 			const int max = 0;
 		};
 
+		static string formatTitle(ResourceManager::Strings aDesc, ResourceManager::Strings aUnit) noexcept;
 		static const MinMax defaultMinMax;
 
 		ApiSettingItem(const string& aName, Type aType, Type aItemType);
@@ -159,7 +160,11 @@ namespace webserver {
 		typedef vector<ServerSettingItem> List;
 
 		ServerSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType, bool aOptional,
-			const MinMax& aMinMax = MinMax(), const List& aObjectValues = List(), const string& aHelp = "", Type aItemType = TYPE_LAST, const EnumOption::List& aEnumOptions = EnumOption::List());
+			const MinMax& aMinMax = MinMax(), const List& aObjectValues = List(), const string& aHelp = "", 
+			Type aItemType = TYPE_LAST, const EnumOption::List& aEnumOptions = EnumOption::List());
+
+		ServerSettingItem(const string& aKey, const ResourceManager::Strings aDesc, const json& aDefaultValue, Type aType, bool aOptional,
+			const MinMax& aMinMax = MinMax(), const ResourceManager::Strings aUnit = ResourceManager::LAST);
 
 		json getValue() const noexcept override;
 		const json& getValueRef() const noexcept;

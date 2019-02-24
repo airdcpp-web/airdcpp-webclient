@@ -42,22 +42,22 @@
 
 namespace webserver {
 	vector<ServerSettingItem> WebServerSettings::settings = {
-		{ "web_plain_port", "Port", 5600, ApiSettingItem::TYPE_NUMBER, false, { 0, 65535 } },
-		{ "web_plain_bind_address", "Bind address", "", ApiSettingItem::TYPE_STRING, true },
+		{ "web_plain_port", ResourceManager::WEB_CFG_PORT, 5600, ApiSettingItem::TYPE_NUMBER, false, { 0, 65535 } },
+		{ "web_plain_bind_address", ResourceManager::WEB_CFG_BIND_ADDRESS, "", ApiSettingItem::TYPE_STRING, true },
 
-		{ "web_tls_port", "Port", 5601, ApiSettingItem::TYPE_NUMBER, false, { 0, 65535 } },
-		{ "web_tls_bind_address", "Bind address", "", ApiSettingItem::TYPE_STRING, true },
+		{ "web_tls_port", ResourceManager::WEB_CFG_PORT, 5601, ApiSettingItem::TYPE_NUMBER, false, { 0, 65535 } },
+		{ "web_tls_bind_address", ResourceManager::WEB_CFG_BIND_ADDRESS, "", ApiSettingItem::TYPE_STRING, true },
 
-		{ "web_tls_certificate_path", "Certificate path", "", ApiSettingItem::TYPE_FILE_PATH, true },
-		{ "web_tls_certificate_key_path", "Certificate key path", "", ApiSettingItem::TYPE_FILE_PATH, true },
+		{ "web_tls_certificate_path", ResourceManager::WEB_CFG_CERT_PATH, "", ApiSettingItem::TYPE_FILE_PATH, true },
+		{ "web_tls_certificate_key_path", ResourceManager::WEB_CFG_CERT_KEY_PATH, "", ApiSettingItem::TYPE_FILE_PATH, true },
 
-		{ "web_server_threads", "Server threads", 4, ApiSettingItem::TYPE_NUMBER, false, { 1, 100 } },
+		{ "web_server_threads", ResourceManager::WEB_CFG_SERVER_THREADS, 4, ApiSettingItem::TYPE_NUMBER, false, { 1, 100 } },
 
-		{ "default_idle_timeout", "Default session inactivity timeout (minutes)", 20, ApiSettingItem::TYPE_NUMBER, false, { 0, MAX_INT_VALUE } },
-		{ "ping_interval", "Socket ping interval (seconds)", 30, ApiSettingItem::TYPE_NUMBER, false, { 1, 10000 } },
-		{ "ping_timeout", "Socket ping timeout (seconds)", 10, ApiSettingItem::TYPE_NUMBER, false, { 1, 10000 } },
+		{ "default_idle_timeout", ResourceManager::WEB_CFG_IDLE_TIMEOUT, 20, ApiSettingItem::TYPE_NUMBER, false, { 0, MAX_INT_VALUE }, ResourceManager::MINUTES_LOWER },
+		{ "ping_interval", ResourceManager::WEB_CFG_PING_INTERVAL, 30, ApiSettingItem::TYPE_NUMBER, false, { 1, 10000 }, ResourceManager::SECONDS_LOWER },
+		{ "ping_timeout", ResourceManager::WEB_CFG_PING_TIMEOUT, 10, ApiSettingItem::TYPE_NUMBER, false, { 1, 10000 }, ResourceManager::SECONDS_LOWER },
 
-		{ "extensions_debug_mode", "Run extensions in debug mode", false, ApiSettingItem::TYPE_BOOLEAN, false },
+		{ "extensions_debug_mode", ResourceManager::WEB_CFG_EXTENSIONS_DEBUG_MODE, false, ApiSettingItem::TYPE_BOOLEAN, false },
 	};
 
 	using namespace dcpp;
@@ -233,9 +233,9 @@ namespace webserver {
 			aEndpoint.start_accept();
 			return true;
 		} catch (const std::exception& e) {
-			auto message = boost::format("Failed to set up %1% server on port %2%: %3% (is the port in use by another application?)") % aProtocol % aConfig.port.num() % string(e.what());
+			auto message = STRING_F(WEB_SERVER_SETUP_FAILED, aProtocol % aConfig.port.num() % string(e.what()));
 			if (errorF) {
-				errorF(message.str());
+				errorF(message);
 			}
 		}
 

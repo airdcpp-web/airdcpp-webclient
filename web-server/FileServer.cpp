@@ -165,7 +165,8 @@ namespace webserver {
 			// We have compressed versions only for JS files
 			if (extension == "js" && aRequest.get_header("Accept-Encoding").find("gzip") != string::npos) {
 				request += ".gz";
-				headers_.emplace_back("Content-Encoding", "gzip");
+				// The Content-Encoding header will be set only after the file has been read successfully
+				// as gzip encoding shouldn't be used in case of errors...
 			}
 
 			if (extension != "html" && aResource != "/sw.js") {
@@ -316,23 +317,30 @@ namespace webserver {
 			return websocketpp::http::status_code::internal_server_error;
 		}
 
-		if (Util::getFileExt(filePath) == ".nfo") {
-			string encoding;
+		{
+			const auto ext = Util::getFileExt(filePath);
+			if (ext == ".nfo") {
+				string encoding;
 
-			// Platform-independent encoding conversion function could be added if there is more use for it
+				// Platform-independent encoding conversion function could be added if there is more use for it
 #ifdef _WIN32
-			encoding = "CP.437";
+				encoding = "CP.437";
 #else
-			encoding = "cp437";
+				encoding = "cp437";
 #endif
-			output_ = Text::toUtf8(output_, encoding);
+				output_ = Text::toUtf8(output_, encoding);
+			} else if (ext == ".gz" && aRequest.get_header("Accept-Encoding").find("gzip") != string::npos) {
+				headers_.emplace_back("Content-Encoding", "gzip");
+			}
 		}
 
-		// Get the mime type (but get it from the original request with gzipped content)
-		auto usingEncoding = find_if(headers_.begin(), headers_.end(), CompareFirst<string, string>("Content-Encoding")) != headers_.end();
-		auto type = getMimeType(usingEncoding ? aResource : filePath);
-		if (type) {
-			headers_.emplace_back("Content-Type", type);
+		{
+			// Get the mime type (but get it from the original request with gzipped content)
+			auto usingEncoding = find_if(headers_.begin(), headers_.end(), CompareFirst<string, string>("Content-Encoding")) != headers_.end();
+			auto type = getMimeType(usingEncoding ? aResource : filePath);
+			if (type) {
+				headers_.emplace_back("Content-Type", type);
+			}
 		}
 
 		if (partialContent) {

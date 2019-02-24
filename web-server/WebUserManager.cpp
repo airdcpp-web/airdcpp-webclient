@@ -118,7 +118,7 @@ namespace webserver {
 
 	SessionPtr WebUserManager::authenticateSession(const string& aUserName, const string& aPassword, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP, const string& aSessionToken) {
 		if (!authFloodCounter.checkFlood(aIP)) {
-			server->log("Multiple failed login attempts detected from IP " + aIP, LogMessage::SEV_WARNING);
+			server->log(STRING_F(WEB_SERVER_MULTIPLE_FAILED_ATTEMPTS, aIP), LogMessage::SEV_WARNING);
 			throw std::domain_error("Too many failed login attempts detected (wait for a while before retrying)");
 		}
 
