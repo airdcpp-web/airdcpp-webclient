@@ -124,22 +124,25 @@ double Localization::Language::getLanguageVersion() const noexcept {
 vector<Localization::Language> Localization::languageList;
 
 void Localization::init() noexcept {
-	// remove the file names at some point
 	languageList.emplace_back("English", "GB", "en-US");
+	languageList.emplace_back("Basque", "EU", "eu");
 	languageList.emplace_back("Danish", "DK", "da-DK");
 	languageList.emplace_back("Dutch", "NL", "nl-NL");
 	languageList.emplace_back("Finnish", "FI", "fi-FI");
 	languageList.emplace_back("French", "FR", "fr-FR");
 	languageList.emplace_back("German", "DE", "de-DE");
+	//languageList.emplace_back("Greek", "GR", "el-GR");
 	languageList.emplace_back("Hungarian", "HU", "hu-HU");
 	languageList.emplace_back("Italian", "IT", "it-IT");
 	languageList.emplace_back("Norwegian", "NO", "no-NO");
 	languageList.emplace_back("Polish", "PL", "pl-PL");
-	languageList.emplace_back("Portuguese", "PT", "pt-BR");
+	languageList.emplace_back("Portuguese", "PT", "pt-PT");
+	languageList.emplace_back("Portuguese (Brazil)", "BR", "pt-BR");
 	languageList.emplace_back("Romanian", "RO", "ro-RO");
 	languageList.emplace_back("Russian", "RU", "ru-RU");
 	languageList.emplace_back("Spanish", "ES", "es-ES");
 	languageList.emplace_back("Swedish", "SE", "sv-SE");
+	//languageList.emplace_back("Turkish", "TR", "tr-TR");
 
 	languageList.shrink_to_fit();
 }
