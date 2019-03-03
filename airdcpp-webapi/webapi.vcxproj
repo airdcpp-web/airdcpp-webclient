@@ -304,6 +304,7 @@
     <ClCompile Include="api\ShareProfileApi.cpp" />
     <ClCompile Include="api\ShareRootApi.cpp" />
     <ClCompile Include="api\ShareUtils.cpp" />
+    <ClCompile Include="api\WebServerSettings.cpp" />
     <ClCompile Include="api\SystemApi.cpp" />
     <ClCompile Include="api\TransferApi.cpp" />
     <ClCompile Include="api\TransferUtils.cpp" />

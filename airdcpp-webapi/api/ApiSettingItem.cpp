@@ -59,43 +59,58 @@ namespace webserver {
 		return getValue();
 	}
 
-	ServerSettingItem::ServerSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType,
-		bool aOptional, const MinMax& aMinMax, const List& aObjectValues, const string& aHelp, Type aItemType, const EnumOption::List& aEnumOptions) :
+	JsonSettingItem::JsonSettingItem(const string& aKey, const json& aDefaultValue, Type aType,
+		bool aOptional, const MinMax& aMinMax, const string& aHelp, Type aItemType, const EnumOption::List& aEnumOptions) :
 
-		ApiSettingItem(aKey, aType, aItemType), desc(aTitle), defaultValue(aDefaultValue),
-		optional(aOptional), minMax(aMinMax), objectValues(aObjectValues), help(aHelp), enumOptions(aEnumOptions)
+		ApiSettingItem(aKey, aType, aItemType), defaultValue(aDefaultValue),
+		optional(aOptional), minMax(aMinMax), help(aHelp), enumOptions(aEnumOptions)
 	{
 		dcassert(aType != TYPE_NUMBER || minMax.min != minMax.max);
 	}
 
 
-	ServerSettingItem::ServerSettingItem(const string& aKey, const ResourceManager::Strings aDesc, const json& aDefaultValue, Type aType, bool aOptional,
-		const MinMax& aMinMax, const ResourceManager::Strings aUnit): ServerSettingItem(aKey, ApiSettingItem::formatTitle(aDesc, aUnit), aDefaultValue, aType, aOptional, aMinMax) {
+	ServerSettingItem::ServerSettingItem(const string& aKey, const ResourceManager::Strings aTitleKey, const json& aDefaultValue, Type aType, bool aOptional,
+		const MinMax& aMinMax, const ResourceManager::Strings aUnit): JsonSettingItem(aKey, aDefaultValue, aType, aOptional, aMinMax), titleKey(aTitleKey) {
 
-	}
-
-	// Returns the value and bool indicating whether it's an auto detected value
-	json ServerSettingItem::getValue() const noexcept {
-		return getValueRef();
-	}
-
-	const json& ServerSettingItem::getValueRef() const noexcept {
-		return isDefault() ? defaultValue : value;
 	}
 
 	ApiSettingItem::PtrList ServerSettingItem::getValueTypes() const noexcept {
+		return ApiSettingItem::PtrList();
+	}
+
+	string ServerSettingItem::getTitle() const noexcept {
+		return ResourceManager::getInstance()->getString(titleKey);
+	}
+
+	ExtensionSettingItem::ExtensionSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType,
+		bool aOptional, const MinMax& aMinMax, const List& aObjectValues, const string& aHelp, Type aItemType, const EnumOption::List& aEnumOptions) : 
+
+		JsonSettingItem(aKey, aDefaultValue, aType, aOptional, aMinMax, aHelp, aItemType, aEnumOptions), title(aTitle), objectValues(aObjectValues) {
+
+	}
+
+	ApiSettingItem::PtrList ExtensionSettingItem::getValueTypes() const noexcept {
 		return valueTypesToPtrList(objectValues);
 	}
 
-	const string& ServerSettingItem::getHelpStr() const noexcept {
+	// Returns the value and bool indicating whether it's an auto detected value
+	json JsonSettingItem::getValue() const noexcept {
+		return getValueRef();
+	}
+
+	const json& JsonSettingItem::getValueRef() const noexcept {
+		return isDefault() ? defaultValue : value;
+	}
+
+	const string& JsonSettingItem::getHelpStr() const noexcept {
 		return help;
 	}
 
-	void ServerSettingItem::unset() noexcept {
+	void JsonSettingItem::unset() noexcept {
 		value = nullptr;
 	}
 
-	bool ServerSettingItem::setValue(const json& aJson) {
+	bool JsonSettingItem::setValue(const json& aJson) {
 		if (aJson.is_null()) {
 			unset();
 		} else {
@@ -106,23 +121,23 @@ namespace webserver {
 		return true;
 	}
 
-	int ServerSettingItem::num() const {
+	int JsonSettingItem::num() const {
 		return getValueRef().get<int>();
 	}
 
-	ApiSettingItem::ListNumber ServerSettingItem::numList() const {
+	ApiSettingItem::ListNumber JsonSettingItem::numList() const {
 		return getValueRef().get<vector<int>>();
 	}
 
-	ApiSettingItem::ListString ServerSettingItem::strList() const {
+	ApiSettingItem::ListString JsonSettingItem::strList() const {
 		return getValueRef().get<vector<string>>();
 	}
 
-	uint64_t ServerSettingItem::uint64() const {
+	uint64_t JsonSettingItem::uint64() const {
 		return getValueRef().get<uint64_t>();
 	}
 
-	string ServerSettingItem::str() const {
+	string JsonSettingItem::str() const {
 		if (getValueRef().is_number()) {
 			return Util::toString(num());
 		}
@@ -130,24 +145,24 @@ namespace webserver {
 		return getValueRef().get<string>();
 	}
 
-	bool ServerSettingItem::boolean() const {
+	bool JsonSettingItem::boolean() const {
 		return getValueRef().get<bool>();
 	}
 
-	bool ServerSettingItem::isDefault() const noexcept {
+	bool JsonSettingItem::isDefault() const noexcept {
 		return value.is_null();
 	}
 
-	json ServerSettingItem::getDefaultValue() const noexcept {
+	json JsonSettingItem::getDefaultValue() const noexcept {
 		return defaultValue;
 	}
 
-	ApiSettingItem::EnumOption::List ServerSettingItem::getEnumOptions() const noexcept {
+	ApiSettingItem::EnumOption::List JsonSettingItem::getEnumOptions() const noexcept {
 		return enumOptions;
 	}
 
 
-	const ApiSettingItem::MinMax& ServerSettingItem::getMinMax() const noexcept {
+	const ApiSettingItem::MinMax& JsonSettingItem::getMinMax() const noexcept {
 		return minMax;
 	}
 

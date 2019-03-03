@@ -32,8 +32,8 @@ namespace webserver {
 
 		static json validateObjectListValue(const ApiSettingItem::PtrList& aPropertyDefinitions, const json& aValue);
 
-		static ServerSettingItem deserializeDefinition(const json& aJson, bool aIsListValue = false);
-		static ServerSettingItem::List deserializeDefinitions(const json& aJson);
+		static ExtensionSettingItem deserializeDefinition(const json& aJson, bool aIsListValue = false);
+		static ExtensionSettingItem::List deserializeDefinitions(const json& aJson);
 
 		static json serializeDefinition(const ApiSettingItem& aItem) noexcept;
 		static string typeToStr(ApiSettingItem::Type aType) noexcept;

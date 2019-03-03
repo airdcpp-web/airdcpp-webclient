@@ -168,9 +168,9 @@ namespace webserver {
 		return ret;
 	}
 
-	ServerSettingItem* Extension::getSetting(const string& aKey) noexcept {
+	ExtensionSettingItem* Extension::getSetting(const string& aKey) noexcept {
 		RLock l(cs);
-		return ApiSettingItem::findSettingItem<ServerSettingItem>(settings, aKey);
+		return ApiSettingItem::findSettingItem<ExtensionSettingItem>(settings, aKey);
 	}
 
 	bool Extension::hasSettings() const noexcept {
@@ -178,12 +178,12 @@ namespace webserver {
 		return !settings.empty(); 
 	}
 
-	ServerSettingItem::List Extension::getSettings() const noexcept {
+	ExtensionSettingItem::List Extension::getSettings() const noexcept {
 		RLock l(cs);
 		return settings;
 	}
 
-	void Extension::swapSettingDefinitions(ServerSettingItem::List& aDefinitions) {
+	void Extension::swapSettingDefinitions(ExtensionSettingItem::List& aDefinitions) {
 		{
 			WLock l(cs);
 			settings.swap(aDefinitions);
@@ -205,7 +205,7 @@ namespace webserver {
 		{
 			WLock l(cs);
 			for (const auto& vp: aValues) {
-				auto setting = ApiSettingItem::findSettingItem<ServerSettingItem>(settings, vp.first);
+				auto setting = ApiSettingItem::findSettingItem<ExtensionSettingItem>(settings, vp.first);
 				if (!setting) {
 					throw Exception("Setting " + vp.first + " was not found");
 				}

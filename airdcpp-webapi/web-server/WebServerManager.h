@@ -30,6 +30,7 @@
 #include "WebServerManagerListener.h"
 #include "WebUserManager.h"
 #include "WebSocket.h"
+#include "WebServerSettings.h"
 
 #include <airdcpp/format.h>
 #include <airdcpp/Message.h>
@@ -251,7 +252,13 @@ namespace webserver {
 		void log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
 
 		string resolveAddress(const string& aHostname, const string& aPort) noexcept;
+
+		WebServerSettings& getSettings() noexcept {
+			return settings;
+		}
 	private:
+		WebServerSettings settings;
+
 		context_ptr handleInitTls(websocketpp::connection_hdl hdl);
 
 		void addSocket(websocketpp::connection_hdl hdl, const WebSocketPtr& aSocket) noexcept;
