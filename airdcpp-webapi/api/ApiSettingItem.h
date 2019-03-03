@@ -161,7 +161,8 @@ namespace webserver {
 			const MinMax& aMinMax = MinMax(), const string& aHelp = "", 
 			Type aItemType = TYPE_LAST, const EnumOption::List& aEnumOptions = EnumOption::List());
 
-		virtual string getTitle() const noexcept = 0;
+		virtual string getTitle() const noexcept override = 0;
+		virtual ApiSettingItem::PtrList getValueTypes() const noexcept override = 0;
 
 		json getValue() const noexcept override;
 		const json& getValueRef() const noexcept;

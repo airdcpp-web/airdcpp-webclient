@@ -488,7 +488,7 @@
     <ClCompile Include="stdinc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="api\WebServerSettings.cpp">
+    <ClCompile Include="web-server\WebServerSettings.cpp">
       <Filter>Source Files\web-server</Filter>
     </ClCompile>
   </ItemGroup>
