@@ -179,8 +179,8 @@ namespace webserver {
 		return nullptr;
 	}
 
-	ServerSettingItem::List SettingUtils::deserializeDefinitions(const json& aJson) {
-		ServerSettingItem::List ret;
+	ExtensionSettingItem::List SettingUtils::deserializeDefinitions(const json& aJson) {
+		ExtensionSettingItem::List ret;
 
 		for (const auto& def: aJson) {
 			ret.push_back(deserializeDefinition(def));
@@ -219,7 +219,7 @@ namespace webserver {
 		return num;
 	}
 
-	ServerSettingItem SettingUtils::deserializeDefinition(const json& aJson, bool aIsListValue) {
+	ExtensionSettingItem SettingUtils::deserializeDefinition(const json& aJson, bool aIsListValue) {
 		auto key = JsonUtil::getField<string>("key", aJson, false);
 		auto title = JsonUtil::getField<string>("title", aJson, false);
 
@@ -242,7 +242,7 @@ namespace webserver {
 			JsonUtil::getOptionalFieldDefault<int>("max", aJson, MAX_INT_VALUE)
 		};
 
-		ServerSettingItem::List objectValues;
+		ExtensionSettingItem::List objectValues;
 		if (type == ApiSettingItem::TYPE_LIST && itemType == ApiSettingItem::TYPE_STRUCT) {
 			for (const auto& valueJ: JsonUtil::getRawField("definitions", aJson)) {
 				objectValues.push_back(deserializeDefinition(valueJ, true));
@@ -271,10 +271,10 @@ namespace webserver {
 			validateEnumValue(defaultValue, key, type, itemType, enumOptions);
 		}
 
-		return ServerSettingItem(key, title, defaultValue, type, isOptional, minMax, objectValues, help, itemType, enumOptions);
+		return ExtensionSettingItem(key, title, defaultValue, type, isOptional, minMax, objectValues, help, itemType, enumOptions);
 	}
 
-	ApiSettingItem::Type SettingUtils::deserializeType(const string& aFieldName, const json& aJson, bool aOptional) {
+	ExtensionSettingItem::Type SettingUtils::deserializeType(const string& aFieldName, const json& aJson, bool aOptional) {
 		auto itemTypeStr = JsonUtil::getOptionalField<string>(aFieldName, aJson, !aOptional);
 		if (itemTypeStr) {
 			if (*itemTypeStr == "string") {

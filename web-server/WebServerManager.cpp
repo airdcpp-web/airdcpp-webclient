@@ -41,30 +41,12 @@
 #define HANDSHAKE_TIMEOUT 0 // disabled, affects HTTP downloads
 
 namespace webserver {
-	vector<ServerSettingItem> WebServerSettings::settings = {
-		{ "web_plain_port", ResourceManager::WEB_CFG_PORT, 5600, ApiSettingItem::TYPE_NUMBER, false, { 0, 65535 } },
-		{ "web_plain_bind_address", ResourceManager::WEB_CFG_BIND_ADDRESS, "", ApiSettingItem::TYPE_STRING, true },
-
-		{ "web_tls_port", ResourceManager::WEB_CFG_PORT, 5601, ApiSettingItem::TYPE_NUMBER, false, { 0, 65535 } },
-		{ "web_tls_bind_address", ResourceManager::WEB_CFG_BIND_ADDRESS, "", ApiSettingItem::TYPE_STRING, true },
-
-		{ "web_tls_certificate_path", ResourceManager::WEB_CFG_CERT_PATH, "", ApiSettingItem::TYPE_FILE_PATH, true },
-		{ "web_tls_certificate_key_path", ResourceManager::WEB_CFG_CERT_KEY_PATH, "", ApiSettingItem::TYPE_FILE_PATH, true },
-
-		{ "web_server_threads", ResourceManager::WEB_CFG_SERVER_THREADS, 4, ApiSettingItem::TYPE_NUMBER, false, { 1, 100 } },
-
-		{ "default_idle_timeout", ResourceManager::WEB_CFG_IDLE_TIMEOUT, 20, ApiSettingItem::TYPE_NUMBER, false, { 0, MAX_INT_VALUE }, ResourceManager::MINUTES_LOWER },
-		{ "ping_interval", ResourceManager::WEB_CFG_PING_INTERVAL, 30, ApiSettingItem::TYPE_NUMBER, false, { 1, 10000 }, ResourceManager::SECONDS_LOWER },
-		{ "ping_timeout", ResourceManager::WEB_CFG_PING_TIMEOUT, 10, ApiSettingItem::TYPE_NUMBER, false, { 1, 10000 }, ResourceManager::SECONDS_LOWER },
-
-		{ "extensions_debug_mode", ResourceManager::WEB_CFG_EXTENSIONS_DEBUG_MODE, false, ApiSettingItem::TYPE_BOOLEAN, false },
-	};
-
 	using namespace dcpp;
-	WebServerManager::WebServerManager() : has_io_service(false), 
-		ios(WEBCFG(SERVER_THREADS).num()), 
-		plainServerConfig(WEBCFG(PLAIN_PORT), WEBCFG(PLAIN_BIND)),
-		tlsServerConfig(WEBCFG(TLS_PORT), WEBCFG(TLS_BIND)) {
+	WebServerManager::WebServerManager() : 
+		ios(settings.getValue(WebServerSettings::SERVER_THREADS).getDefaultValue()),
+		plainServerConfig(settings.getValue(WebServerSettings::PLAIN_PORT), settings.getValue(WebServerSettings::PLAIN_BIND)),
+		tlsServerConfig(settings.getValue(WebServerSettings::TLS_PORT), settings.getValue(WebServerSettings::TLS_BIND))
+	{
 
 		fileServer.setResourcePath(Util::getPath(Util::PATH_RESOURCES) + "web-resources" + PATH_SEPARATOR);
 

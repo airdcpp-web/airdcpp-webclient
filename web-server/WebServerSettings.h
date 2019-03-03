@@ -27,6 +27,8 @@
 namespace webserver {
 	class WebServerSettings {
 	public:
+		WebServerSettings();
+
 		enum ServerSettings {
 			PLAIN_PORT,
 			PLAIN_BIND,
@@ -45,19 +47,19 @@ namespace webserver {
 			EXTENSIONS_DEBUG_MODE,
 		};
 
-		// Initialized in WebServerManager
-		static vector<ServerSettingItem> settings;
-
-		static ServerSettingItem& getValue(ServerSettings aSetting) noexcept {
+		ServerSettingItem& getValue(ServerSettings aSetting) noexcept {
 			return settings[aSetting];
 		}
 
-		static ServerSettingItem* getSettingItem(const string& aKey) noexcept {
+		ServerSettingItem* getSettingItem(const string& aKey) noexcept {
 			return ApiSettingItem::findSettingItem<ServerSettingItem>(settings, aKey);
 		}
+
+	private:
+		vector<ServerSettingItem> settings;
 	};
 
-#define WEBCFG(k) (webserver::WebServerSettings::getValue(webserver::WebServerSettings::k))
+#define WEBCFG(k) (webserver::WebServerManager::getInstance()->getSettings().getValue(webserver::WebServerSettings::k))
 }
 
 #endif
