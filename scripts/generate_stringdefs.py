@@ -37,14 +37,15 @@ if __name__ == "__main__":
                 enum_started = True
             elif enum_started:
                 parts = l.split("//", 1)
-            if parts and len(parts) == 2:
-                name, string = parts
-                name = name.strip(" \t,")
-                string = string.strip(" \t\r\n")
-                if name == "LAST":
-                    break
-                texts["names"].append('"' + camel_case(name) + '"')
-                texts["strings"].append(string)
+                if parts and len(parts) == 2:
+                    name, string = parts
+
+                    name = name.strip(" \t,")
+                    string = string.strip(" \t\r\n")
+                    if name == "LAST":
+                        break
+                    texts["names"].append('"' + camel_case(name) + '"')
+                    texts["strings"].append(string)
     template = textwrap.dedent('''\
     std::string dcpp::ResourceManager::{name}[] = {{
     {texts}
