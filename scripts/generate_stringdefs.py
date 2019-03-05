@@ -37,8 +37,8 @@ if __name__ == "__main__":
                 enum_started = True
             elif enum_started:
                 parts = l.split("//", 1)
-		if parts and len(parts) == 2:
-		    name, string = parts
+        if parts and len(parts) == 2:
+            name, string = parts
                     name = name.strip(" \t,")
                     string = string.strip(" \t\r\n")
                     if name == "LAST":
