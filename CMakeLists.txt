@@ -56,10 +56,10 @@ OPTION(ENABLE_TBB "Enable support of the TBB library to improve performance"
 unset(INSTALL_RUNTIME_PATH CACHE)
 
 option (INSTALL_RUNTIME_PATH "Install rpath" ON)
-option (LOCAL_BOOST "Use local boost headers" OFF)
+#option (LOCAL_BOOST "Use local boost headers" OFF)
 option (STRIP "Strip debugging symbols to a separate file" OFF)
 option (INSTALL_WEB_UI "Download and install the Web UI package" ON)
-option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
+#option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
 option (WITH_ASAN "Enable address sanitizer" OFF) # With clang: http://clang.llvm.org/docs/AddressSanitizer.html
 
 
@@ -92,6 +92,10 @@ elseif (NOT BUILD_SHARED_LIBS)
   set(CMAKE_SHARED_LIBRARY_CXX_FLAGS)
   set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
   set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
+
+  # Boost UUID uses getrandom() kernel call, which is not supported on older platforms (which can't be detected by Boost with static builds)
+  # https://github.com/boostorg/uuid/issues/91
+  add_definitions ( -DBOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX )
 endif()
 
 
