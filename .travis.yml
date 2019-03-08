@@ -20,7 +20,7 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - ppa:mhier/libboost-latest
+            - sourceline: 'ppa:mhier/libboost-latest'
           packages:
             - g++-8
             - libboost1.68-dev
