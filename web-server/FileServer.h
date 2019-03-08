@@ -22,6 +22,8 @@
 #include "stdinc.h"
 
 #include <airdcpp/typedefs.h>
+#include <airdcpp/CriticalSection.h>
+
 
 namespace webserver {
 	class FileServer {
@@ -32,11 +34,19 @@ namespace webserver {
 		void setResourcePath(const string& aPath) noexcept;
 		const string& getResourcePath() const noexcept;
 
-		websocketpp::http::status_code::value handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest, 
+		websocketpp::http::status_code::value handleRequest(const websocketpp::http::parser::request& aRequest, 
 			std::string& output_, StringPairList& headers_, const SessionPtr& aSession) noexcept;
 
 		static const char* getMimeType(const string& aFileName) noexcept;
+
+		string getTempFilePath(const string& fileId) const noexcept;
 	private:
+		websocketpp::http::status_code::value handleGetRequest(const websocketpp::http::parser::request& aRequest,
+			std::string& output_, StringPairList& headers_, const SessionPtr& aSession) noexcept;
+
+		websocketpp::http::status_code::value handlePostRequest(const websocketpp::http::parser::request& aRequest,
+			std::string& output_, StringPairList& headers_, const SessionPtr& aSession) noexcept;
+
 		string resourcePath;
 
 		string parseResourcePath(const string& aResource, const websocketpp::http::parser::request& aRequest, StringPairList& headers_) const;
@@ -52,6 +62,9 @@ namespace webserver {
 		static string formatPartialRange(int64_t aStart, int64_t aEnd, int64_t aFileSize) noexcept;
 
 		static void addCacheControlHeader(StringPairList& headers_, int aDaysValid) noexcept;
+
+		mutable SharedMutex cs;
+		StringMap tempFiles;
 	};
 }
 

@@ -231,7 +231,7 @@ namespace webserver {
 
 				StringPairList headers;
 				std::string output;
-				status = fileServer.handleRequest(con->get_resource(), con->get_request(), output, headers, session);
+				status = fileServer.handleRequest(con->get_request(), output, headers, session);
 
 				for (const auto& p : headers) {
 					con->append_header(p.first, p.second);
@@ -255,6 +255,10 @@ namespace webserver {
 
 		WebServerSettings& getSettings() noexcept {
 			return settings;
+		}
+
+		const FileServer& getFileServer() const noexcept {
+			return fileServer;
 		}
 	private:
 		WebServerSettings settings;
