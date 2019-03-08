@@ -30,6 +30,14 @@ namespace dcpp {
 
 using std::map;
 
+
+string Magnet::makeMagnet(const TTHValue& aHash, const string& aFile, int64_t aSize) noexcept {
+	string ret = "magnet:?xt=urn:tree:tiger:" + aHash.toBase32();
+	if (aSize > 0)
+		ret += "&xl=" + Util::toString(aSize);
+	return ret + "&dn=" + Util::encodeURI(aFile);
+}
+
 Magnet::Magnet(const string& aLink) { 
 	// official types that are of interest to us
 	//  xt = exact topic

@@ -55,6 +55,19 @@ class SharePathValidator;
 
 class FileList;
 
+typedef uint32_t TempShareToken;
+struct TempShareInfo {
+	TempShareInfo(const string& aKey, const string& aName, const string& aPath, int64_t aSize, const TTHValue& aTTH) noexcept;
+
+	const TempShareToken id;
+	const string name;
+	const string key; //CID or hubUrl
+	const string path; //filepath
+	const int64_t size; //filesize
+	const TTHValue tth;
+	const time_t timeAdded;
+};
+
 class ShareManager : public Singleton<ShareManager>, public Speaker<ShareManagerListener>, private Thread, private SettingsManagerListener, 
 	private TimerManagerListener, private HashManagerListener
 {
@@ -197,29 +210,16 @@ public:
 	IGETSET(size_t, hits, Hits, 0);
 	IGETSET(int64_t, sharedSize, SharedSize, 0);
 
-	//tempShares
-	struct TempShareInfo {
-		TempShareInfo(const string& aKey, const string& aPath, int64_t aSize) : key(aKey), path(aPath), size(aSize) { }
-		
-		string key; //CID or hubUrl
-		string path; //filepath
-		int64_t size; //filesize
-	};
-
 	typedef unordered_multimap<TTHValue, TempShareInfo> TempShareMap;
-	TempShareMap tempShares;
-	void addTempShare(const string& aKey, const TTHValue& tth, const string& filePath, int64_t aSize, ProfileToken aProfile);
 
-	// GUI only
-	bool hasTempShares() { return !tempShares.empty(); }
+	optional<TempShareInfo> addTempShare(const string& aKey, const TTHValue& tth, const string& aName, const string& filePath, int64_t aSize, ProfileToken aProfile);
 
-	// GUI only
-	TempShareMap& getTempShares() { return tempShares; }
+	bool hasTempShares() const noexcept;
+	TempShareInfoList getTempShares() const noexcept;
 
-	void removeTempShare(const string& aKey, const TTHValue& tth);
-	void removeTempShare(const string& aPath);
-	void clearTempShares();
-	bool isTempShared(const string& aKey, const TTHValue& tth);
+	bool removeTempShare(const string& aKey, const TTHValue& tth) noexcept;
+	bool removeTempShare(TempShareToken aId) noexcept;
+	bool isTempShared(const string& aKey, const TTHValue& tth) const noexcept;
 	//tempShares end
 
 	// Get real paths of all shared root directories
@@ -316,6 +316,8 @@ public:
 	void reloadSkiplist();
 	void setExcludedPaths(const StringSet& aPaths) noexcept;
 private:
+	TempShareMap tempShares;
+
 	void countStats(time_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& lowerCaseFiles, size_t& totalStrLen_, size_t& roots_) const noexcept;
 
 	uint64_t totalSearches = 0;
