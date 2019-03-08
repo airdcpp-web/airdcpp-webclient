@@ -23,7 +23,8 @@ matrix:
             - sourceline: 'ppa:mhier/libboost-latest'
           packages:
             - g++-8
-            - libboost
+            - libboost1.68-dev
+            - libboost1.68
       env: COMPILER=g++-8
     - os: osx
       compiler: clang
