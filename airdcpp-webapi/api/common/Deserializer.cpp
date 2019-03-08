@@ -60,18 +60,27 @@ namespace webserver {
 		return TTHValue(aTTH);
 	}
 
-	UserPtr Deserializer::parseUser(const json& aJson, bool aAllowMe) {
-		return getUser(JsonUtil::getField<string>("cid", aJson, false), aAllowMe);
+	UserPtr Deserializer::deserializeUser(const json& aJson, bool aAllowMe, bool aOptional) {
+		const auto cid = JsonUtil::getOptionalField<string>("cid", aJson, !aOptional);
+		if (!cid) {
+			return nullptr;
+		}
+
+		return getUser(*cid, aAllowMe);
 	}
 
-	UserPtr Deserializer::deserializeUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
-		auto userJson = JsonUtil::getRawField(aFieldName, aJson);
+	/*UserPtr Deserializer::deserializeUser(const json& aJson, bool aAllowMe, const string& aFieldName, bool aOptional) {
+		auto userJson = JsonUtil::getRawField(aFieldName, aJson, !aOptional);
+		if (userJson.is_null()) {
+			return nullptr;
+		}
+
 		return parseUser(userJson, aAllowMe);
-	}
+	}*/
 
 	HintedUser Deserializer::deserializeHintedUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
 		auto userJson = JsonUtil::getRawField(aFieldName, aJson);
-		auto user = parseUser(userJson, aAllowMe);
+		auto user = deserializeUser(userJson, aAllowMe, false);
 		return HintedUser(user, JsonUtil::getField<string>("hub_url", userJson, aAllowMe && user == ClientManager::getInstance()->getMe()));
 	}
 

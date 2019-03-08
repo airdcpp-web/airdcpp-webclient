@@ -39,7 +39,10 @@ namespace webserver {
 	}
 
 	FileServer::~FileServer() {
-
+		RLock l(cs);
+		for (const auto& f: tempFiles) {
+			File::deleteFile(f.second);
+		}
 	}
 
 	const string& FileServer::getResourcePath() const noexcept {
@@ -280,18 +283,74 @@ namespace webserver {
 		return true;
 	}
 
-	websocketpp::http::status_code::value FileServer::handleRequest(const string& aResource, const websocketpp::http::parser::request& aRequest,
+
+	websocketpp::http::status_code::value FileServer::handlePostRequest(const websocketpp::http::parser::request& aRequest,
+		std::string& output_, StringPairList& headers_, const SessionPtr& aSession) noexcept {
+
+		const auto& requestPath = aRequest.get_uri();
+		if (requestPath == "/temp") {
+			if (!aSession || !aSession->getUser()->hasPermission(Access::FILESYSTEM_EDIT)) {
+				//throw RequestException(websocketpp::http::status_code::unauthorized, "Not authorized");
+				output_ = "Not authorized";
+				return websocketpp::http::status_code::unauthorized;
+			}
+
+			const auto fileName = Util::toString(Util::rand());
+			const auto filePath = Util::getTempPath() + fileName;
+
+			try {
+				File file(filePath, File::WRITE, File::TRUNCATE | File::CREATE, File::BUFFER_SEQUENTIAL);
+				file.write(aRequest.get_body());
+			} catch (const FileException& e) {
+				output_ = "Failed to write the file: " + e.getError();
+				return websocketpp::http::status_code::internal_server_error;
+			}
+
+			{
+				WLock l(cs);
+				tempFiles.emplace(fileName, filePath);
+			}
+
+			headers_.emplace_back("Location", fileName);
+			return websocketpp::http::status_code::created;
+		}
+
+		output_ = "Requested resource was not found";
+		return websocketpp::http::status_code::not_found;
+	}
+
+	string FileServer::getTempFilePath(const string& fileId) const noexcept {
+		RLock l(cs);
+		auto i = tempFiles.find(fileId);
+		return i != tempFiles.end() ? i->second : Util::emptyString;
+	}
+
+	websocketpp::http::status_code::value FileServer::handleRequest(const websocketpp::http::parser::request& aRequest,
 		string& output_, StringPairList& headers_, const SessionPtr& aSession) noexcept {
 
-		dcdebug("Requesting file %s\n", aResource.c_str());
+		if (aRequest.get_method() == "GET") {
+			return handleGetRequest(aRequest, output_, headers_, aSession);
+		} else if (aRequest.get_method() == "POST") {
+			return handlePostRequest(aRequest, output_, headers_, aSession);
+		}
+
+		output_ = "Requested resource was not found";
+		return websocketpp::http::status_code::not_found;
+	}
+
+	websocketpp::http::status_code::value FileServer::handleGetRequest(const websocketpp::http::parser::request& aRequest,
+		string& output_, StringPairList& headers_, const SessionPtr& aSession) noexcept {
+
+		const auto& requestUrl = aRequest.get_uri();
+		dcdebug("Requesting file %s\n", requestUrl.c_str());
 
 		// Get the disk path
 		string filePath;
 		try {
-			if (aResource.length() >= 6 && aResource.compare(0, 6, "/view/") == 0) {
-				filePath = parseViewFilePath(aResource.substr(6), headers_, aSession);
+			if (requestUrl.length() >= 6 && requestUrl.compare(0, 6, "/view/") == 0) {
+				filePath = parseViewFilePath(requestUrl.substr(6), headers_, aSession);
 			} else {
-				filePath = parseResourcePath(aResource, aRequest, headers_);
+				filePath = parseResourcePath(requestUrl, aRequest, headers_);
 			}
 		} catch (const RequestException& e) {
 			output_ = e.what();
@@ -337,7 +396,7 @@ namespace webserver {
 		{
 			// Get the mime type (but get it from the original request with gzipped content)
 			auto usingEncoding = find_if(headers_.begin(), headers_.end(), CompareFirst<string, string>("Content-Encoding")) != headers_.end();
-			auto type = getMimeType(usingEncoding ? aResource : filePath);
+			auto type = getMimeType(usingEncoding ? requestUrl : filePath);
 			if (type) {
 				headers_.emplace_back("Content-Type", type);
 			}

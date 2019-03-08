@@ -38,7 +38,8 @@ namespace webserver {
 
 		static TTHValue parseTTH(const string& aTTH);
 
-		static UserPtr deserializeUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
+		//static UserPtr deserializeUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user", bool aOptional = false);
+		static UserPtr deserializeUser(const json& aJson, bool aAllowMe, bool aOptional = false);
 		static HintedUser deserializeHintedUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
 		static OnlineUserPtr deserializeOnlineUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
 		static TTHValue deserializeTTH(const json& aJson);
@@ -58,7 +59,6 @@ namespace webserver {
 		static OptionalProfileToken deserializeOptionalShareProfile(const json& aJson);
 	private:
 		static LogMessage::Severity parseSeverity(const string& aText);
-		static UserPtr parseUser(const json& aJson, bool aAllowMe);
 	};
 }
 

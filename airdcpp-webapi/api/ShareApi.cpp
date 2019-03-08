@@ -20,13 +20,19 @@
 
 #include <api/ShareApi.h>
 
+#include <web-server/Session.h>
+#include <web-server/WebServerManager.h>
+
 #include <api/common/Deserializer.h>
 #include <api/common/FileSearchParser.h>
 #include <api/common/Serializer.h>
 
 #include <web-server/JsonUtil.h>
 
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/HashManager.h>
 #include <airdcpp/HubEntry.h>
+#include <airdcpp/Magnet.h>
 #include <airdcpp/SearchResult.h>
 #include <airdcpp/ShareManager.h>
 #include <airdcpp/SharePathValidator.h>
@@ -41,7 +47,10 @@ namespace webserver {
 				"share_refresh_completed", 
 				
 				"share_exclude_added", 
-				"share_exclude_removed" 
+				"share_exclude_removed",
+
+				"share_temp_item_added",
+				"share_temp_item_removed",
 			}, 
 			Access::SETTINGS_EDIT
 		) 
@@ -59,6 +68,10 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("excludes")),							ShareApi::handleGetExcludes);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("add")),		ShareApi::handleAddExclude);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("remove")),	ShareApi::handleRemoveExclude);
+
+		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("temp_shares")),						ShareApi::handleGetTempShares);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("temp_shares")),						ShareApi::handleAddTempShare);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("temp_shares"), TOKEN_PARAM),			ShareApi::handleRemoveTempShare);
 
 		createHook("share_file_validation_hook", [this](const string& aId, const string& aName) {
 			return ShareManager::getInstance()->getValidator().fileValidationHook.addSubscriber(aId, aName, HOOK_HANDLER(ShareApi::fileValidationHook));
@@ -147,6 +160,99 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
+	api_return ShareApi::handleAddTempShare(ApiRequest& aRequest) {
+		//auto content = JsonUtil::getField<string>("content", aRequest.getRequestBody(), false);
+		const auto fileId = JsonUtil::getField<string>("file_id", aRequest.getRequestBody(), false);
+		const auto name = JsonUtil::getField<string>("name", aRequest.getRequestBody(), false);
+		const auto user = Deserializer::deserializeUser(aRequest.getRequestBody(), false, true);
+
+		ProfileToken shareProfileToken;
+		{
+			const auto hubUrl = JsonUtil::getField<string>("hub_url", aRequest.getRequestBody(), false);
+			auto client = ClientManager::getInstance()->getClient(hubUrl);
+			if (client) {
+				shareProfileToken = client->get(HubSettings::ShareProfile);
+			} else {
+				aRequest.setResponseErrorStr("Hub " + hubUrl + " was not found");
+				return websocketpp::http::status_code::bad_request;
+			}
+		}
+
+		//const auto filePath = Util::getTempPath() + Util::toString(Util::rand()) + "_" + name;
+		const auto filePath = aRequest.getSession()->getServer()->getFileServer().getTempFilePath(fileId);
+		if (filePath.empty() || !Util::fileExists(filePath)) {
+			aRequest.setResponseErrorStr("File with an ID " + fileId + " was not found");
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		/*int64_t size = 0;
+
+		// Save on disk
+		try {
+			File file(filePath, File::WRITE, File::TRUNCATE | File::CREATE, File::BUFFER_SEQUENTIAL);
+			file.write(Util::base64_decode(content));
+			size = file.getSize();
+		} catch (const FileException& e) {
+			aRequest.setResponseErrorStr("Failed to write the file: " + e.getError());
+			return websocketpp::http::status_code::internal_server_error;
+		}*/
+
+		const auto size = File::getSize(filePath);
+		TTHValue tth;
+
+		{
+			int64_t sizeLeft = 0;
+			bool cancelHashing = false;
+
+			// Calculate TTH
+			try {
+				HashManager::getInstance()->getFileTTH(filePath, size, true, tth, sizeLeft, cancelHashing);
+			} catch (const Exception& e) {
+				aRequest.setResponseErrorStr("Failed to calculate file TTH: " + e.getError());
+				return websocketpp::http::status_code::internal_server_error;
+			}
+		}
+
+		auto key = user ? user->getCID().toBase32() : Util::emptyString;
+		auto item = ShareManager::getInstance()->addTempShare(key, tth, name, filePath, size, shareProfileToken);
+
+		aRequest.setResponseBody({
+			{ "magnet", Magnet::makeMagnet(tth, name, size) },
+			{ "item", !item ? json() : serializeTempShare(*item) }
+		});
+
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return ShareApi::handleRemoveTempShare(ApiRequest& aRequest) {
+		auto token = aRequest.getTokenParam();
+		if (!ShareManager::getInstance()->removeTempShare(token)) {
+			aRequest.setResponseErrorStr("Temp share was not found");
+			return websocketpp::http::status_code::bad_request;
+		}
+
+		return websocketpp::http::status_code::no_content;
+	}
+
+	json ShareApi::serializeTempShare(const TempShareInfo& aInfo) noexcept {
+		return {
+			{ "id", aInfo.id },
+			{ "name", aInfo.name },
+			{ "path", aInfo.path },
+			{ "size", aInfo.size },
+			{ "tth", aInfo.tth.toBase32() },
+			{ "time_added", aInfo.timeAdded },
+			{ "type", Serializer::serializeFileType(aInfo.path) }
+		};
+	}
+
+	api_return ShareApi::handleGetTempShares(ApiRequest& aRequest) {
+		const auto tempShares = ShareManager::getInstance()->getTempShares();
+
+		aRequest.setResponseBody(Serializer::serializeList(tempShares, serializeTempShare));
+		return websocketpp::http::status_code::ok;
+	}
+
 	api_return ShareApi::handleGetExcludes(ApiRequest& aRequest) {
 		aRequest.setResponseBody(ShareManager::getInstance()->getExcludedPaths());
 		return websocketpp::http::status_code::ok;
@@ -184,6 +290,19 @@ namespace webserver {
 	void ShareApi::on(ShareManagerListener::ExcludeRemoved, const string& aPath) noexcept {
 		send("share_exclude_removed", {
 			{ "path", aPath }
+		});
+	}
+
+
+	void ShareApi::on(ShareManagerListener::TempFileAdded, const TempShareInfo& aFile) noexcept {
+		maybeSend("share_temp_item_added", [&] {
+			return serializeTempShare(aFile);
+		});
+	}
+
+	void ShareApi::on(ShareManagerListener::TempFileRemoved, const TempShareInfo& aFile) noexcept {
+		maybeSend("share_temp_item_removed", [&] {
+			return serializeTempShare(aFile);
 		});
 	}
 
