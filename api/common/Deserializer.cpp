@@ -69,15 +69,6 @@ namespace webserver {
 		return getUser(*cid, aAllowMe);
 	}
 
-	/*UserPtr Deserializer::deserializeUser(const json& aJson, bool aAllowMe, const string& aFieldName, bool aOptional) {
-		auto userJson = JsonUtil::getRawField(aFieldName, aJson, !aOptional);
-		if (userJson.is_null()) {
-			return nullptr;
-		}
-
-		return parseUser(userJson, aAllowMe);
-	}*/
-
 	HintedUser Deserializer::deserializeHintedUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
 		auto userJson = JsonUtil::getRawField(aFieldName, aJson);
 		auto user = deserializeUser(userJson, aAllowMe, false);
@@ -134,6 +125,25 @@ namespace webserver {
 		}
 
 		return hubUrls;
+	}
+
+
+	ClientPtr Deserializer::deserializeClient(const json& aJson, bool aOptional) {
+		const auto hubUrl = JsonUtil::getOptionalField<string>("hub_url", aJson, !aOptional);
+		if (!hubUrl) {
+			return nullptr;
+		}
+
+		auto client = ClientManager::getInstance()->getClient(*hubUrl);
+		if (!client) {
+			//if (aOptional) {
+			//	return nullptr;
+			//}
+
+			throw std::invalid_argument("Hub " + *hubUrl + " was not found");
+		}
+
+		return client;
 	}
 
 	pair<string, bool> Deserializer::deserializeChatMessage(const json& aJson) {

@@ -161,41 +161,16 @@ namespace webserver {
 	}
 
 	api_return ShareApi::handleAddTempShare(ApiRequest& aRequest) {
-		//auto content = JsonUtil::getField<string>("content", aRequest.getRequestBody(), false);
 		const auto fileId = JsonUtil::getField<string>("file_id", aRequest.getRequestBody(), false);
 		const auto name = JsonUtil::getField<string>("name", aRequest.getRequestBody(), false);
 		const auto user = Deserializer::deserializeUser(aRequest.getRequestBody(), false, true);
+		const auto client = Deserializer::deserializeClient(aRequest.getRequestBody());
 
-		ProfileToken shareProfileToken;
-		{
-			const auto hubUrl = JsonUtil::getField<string>("hub_url", aRequest.getRequestBody(), false);
-			auto client = ClientManager::getInstance()->getClient(hubUrl);
-			if (client) {
-				shareProfileToken = client->get(HubSettings::ShareProfile);
-			} else {
-				aRequest.setResponseErrorStr("Hub " + hubUrl + " was not found");
-				return websocketpp::http::status_code::bad_request;
-			}
-		}
-
-		//const auto filePath = Util::getTempPath() + Util::toString(Util::rand()) + "_" + name;
 		const auto filePath = aRequest.getSession()->getServer()->getFileServer().getTempFilePath(fileId);
 		if (filePath.empty() || !Util::fileExists(filePath)) {
 			aRequest.setResponseErrorStr("File with an ID " + fileId + " was not found");
 			return websocketpp::http::status_code::bad_request;
 		}
-
-		/*int64_t size = 0;
-
-		// Save on disk
-		try {
-			File file(filePath, File::WRITE, File::TRUNCATE | File::CREATE, File::BUFFER_SEQUENTIAL);
-			file.write(Util::base64_decode(content));
-			size = file.getSize();
-		} catch (const FileException& e) {
-			aRequest.setResponseErrorStr("Failed to write the file: " + e.getError());
-			return websocketpp::http::status_code::internal_server_error;
-		}*/
 
 		const auto size = File::getSize(filePath);
 		TTHValue tth;
@@ -214,7 +189,7 @@ namespace webserver {
 		}
 
 		auto key = user ? user->getCID().toBase32() : Util::emptyString;
-		auto item = ShareManager::getInstance()->addTempShare(key, tth, name, filePath, size, shareProfileToken);
+		auto item = ShareManager::getInstance()->addTempShare(key, tth, name, filePath, size, client->get(HubSettings::ShareProfile));
 
 		aRequest.setResponseBody({
 			{ "magnet", Magnet::makeMagnet(tth, name, size) },
@@ -309,8 +284,6 @@ namespace webserver {
 	api_return ShareApi::handleRefreshShare(ApiRequest& aRequest) {
 		auto incoming = JsonUtil::getOptionalFieldDefault<bool>("incoming", aRequest.getRequestBody(), false);
 		ShareManager::getInstance()->refresh(incoming);
-
-		//aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::no_content;
 	}
 

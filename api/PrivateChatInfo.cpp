@@ -24,6 +24,7 @@
 
 #include <web-server/JsonUtil.h>
 
+#include <airdcpp/Client.h>
 #include <airdcpp/PrivateChat.h>
 
 namespace webserver {
@@ -60,9 +61,10 @@ namespace webserver {
 
 	api_return PrivateChatInfo::handleUpdateSession(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
-		auto hubUrl = JsonUtil::getOptionalField<string>("hub_url", reqJson);
-		if (hubUrl) {
-			chat->setHubUrl(*hubUrl);
+
+		auto client = Deserializer::deserializeClient(reqJson, true);
+		if (client) {
+			chat->setHubUrl(client->getHubUrl());
 		}
 
 		return websocketpp::http::status_code::no_content;

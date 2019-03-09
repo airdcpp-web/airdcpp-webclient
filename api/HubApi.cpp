@@ -237,14 +237,7 @@ namespace webserver {
 	}
 
 	api_return HubApi::handleFindByUrl(ApiRequest& aRequest) {
-		auto address = JsonUtil::getField<string>("hub_url", aRequest.getRequestBody(), false);
-
-		auto client = ClientManager::getInstance()->getClient(address);
-		if (!client) {
-			aRequest.setResponseErrorStr("Hub was not found");
-			return websocketpp::http::status_code::not_found;
-		}
-
+		auto client = Deserializer::deserializeClient(aRequest.getRequestBody());
 		aRequest.setResponseBody(serializeClient(client));
 		return websocketpp::http::status_code::ok;
 	}
