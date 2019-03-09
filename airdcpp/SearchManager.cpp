@@ -36,23 +36,23 @@
 
 namespace dcpp {
 
-const char* SearchManager::types[Search::TYPE_LAST] = {
-	CSTRING(ANY),
-	CSTRING(AUDIO),
-	CSTRING(COMPRESSED),
-	CSTRING(DOCUMENT),
-	CSTRING(EXECUTABLE),
-	CSTRING(PICTURE),
-	CSTRING(VIDEO),
-	CSTRING(DIRECTORY),
-	"TTH",
-	CSTRING(FILE)
+ResourceManager::Strings SearchManager::types[Search::TYPE_LAST] = {
+	ResourceManager::ANY,
+	ResourceManager::AUDIO,
+	ResourceManager::COMPRESSED,
+	ResourceManager::DOCUMENT,
+	ResourceManager::EXECUTABLE,
+	ResourceManager::PICTURE,
+	ResourceManager::VIDEO,
+	ResourceManager::DIRECTORY,
+	ResourceManager::TTH_ROOT,
+	ResourceManager::FILE
 };
-const char* SearchManager::getTypeStr(int type) {
-	return types[type];
+const string& SearchManager::getTypeStr(int aType) noexcept {
+	return ResourceManager::getInstance()->getString(types[aType]);
 }
 
-bool SearchManager::isDefaultTypeStr(const string& type) {
+bool SearchManager::isDefaultTypeStr(const string& type) noexcept {
 	 return type.size() == 1 && type[0] >= '0' && type[0] <= '9';
 }
 
