@@ -23,6 +23,7 @@
 #include <api/common/Deserializer.h>
 #include <web-server/JsonUtil.h>
 
+#include <airdcpp/Client.h>
 #include <airdcpp/DirectoryListingManager.h>
 
 
@@ -75,9 +76,9 @@ namespace webserver {
 				dl->addShareProfileChangeTask(*profile);
 			}
 		} else {
-			auto hubUrl = JsonUtil::getOptionalField<string>("hub_url", reqJson);
-			if (hubUrl) {
-				dl->addHubUrlChangeTask(*hubUrl);
+			auto client = Deserializer::deserializeClient(reqJson, true);
+			if (client) {
+				dl->addHubUrlChangeTask(client->getHubUrl());
 			}
 		}
 

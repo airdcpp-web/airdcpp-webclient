@@ -290,7 +290,6 @@ namespace webserver {
 		const auto& requestPath = aRequest.get_uri();
 		if (requestPath == "/temp") {
 			if (!aSession || !aSession->getUser()->hasPermission(Access::FILESYSTEM_EDIT)) {
-				//throw RequestException(websocketpp::http::status_code::unauthorized, "Not authorized");
 				output_ = "Not authorized";
 				return websocketpp::http::status_code::unauthorized;
 			}
