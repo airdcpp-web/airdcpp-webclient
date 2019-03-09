@@ -676,16 +676,16 @@ bool ClientManager::isActive(const string& aHubUrl) const noexcept {
 	return false;
 }
 
-string ClientManager::findMySID(const UserPtr& aUser, string& aHubUrl, bool allowFallback) const noexcept {
-	if(!aHubUrl.empty()) { // we cannot find the correct SID without a hubUrl
+string ClientManager::findMySID(const UserPtr& aUser, string& hubUrl_, bool aAllowFallback) const noexcept {
+	if(!hubUrl_.empty()) { // we cannot find the correct SID without a hubUrl
 		OnlinePairC op;
 
 		RLock l(cs);
-		OnlineUser* u = findOnlineUserHint(aUser->getCID(), aHubUrl, op);
+		OnlineUser* u = findOnlineUserHint(aUser->getCID(), hubUrl_, op);
 		if(u) {
 			return u->getClient()->getMyIdentity().getSIDString();
-		} else if (allowFallback) {
-			aHubUrl = op.first->second->getClient()->getHubUrl();
+		} else if (aAllowFallback) {
+			hubUrl_ = op.first->second->getClient()->getHubUrl();
 			return op.first->second->getClient()->getMyIdentity().getSIDString();
 		}
 	}
@@ -693,15 +693,15 @@ string ClientManager::findMySID(const UserPtr& aUser, string& aHubUrl, bool allo
 	return Util::emptyString;
 }
 
-OnlineUser* ClientManager::findOnlineUserHint(const CID& cid, const string& hintUrl, OnlinePairC& p) const noexcept {
+OnlineUser* ClientManager::findOnlineUserHint(const CID& cid, const string& aHintUrl, OnlinePairC& p) const noexcept {
 	p = onlineUsers.equal_range(const_cast<CID*>(&cid));
 	if(p.first == p.second) // no user found with the given CID.
 		return nullptr;
 
-	if(!hintUrl.empty()) {
+	if(!aHintUrl.empty()) {
 		for(auto i = p.first; i != p.second; ++i) {
-			OnlineUser* u = i->second;
-			if(u->getClient()->getHubUrl() == hintUrl) {
+			auto u = i->second;
+			if(u->getClient()->getHubUrl() == aHintUrl) {
 				return u;
 			}
 		}
@@ -710,9 +710,9 @@ OnlineUser* ClientManager::findOnlineUserHint(const CID& cid, const string& hint
 	return nullptr;
 }
 
-optional<ClientManager::ShareInfo> ClientManager::getShareInfo(const HintedUser& user) const noexcept {
+optional<ClientManager::ShareInfo> ClientManager::getShareInfo(const HintedUser& aUser) const noexcept {
 	RLock l (cs);
-	auto ou = findOnlineUser(user);
+	auto ou = findOnlineUser(aUser);
 	if (ou) {
 		return ShareInfo({ Util::toInt64(ou->getIdentity().getShareSize()), Util::toInt(ou->getIdentity().getSharedFiles()) });
 	}
@@ -742,6 +742,15 @@ HintedUser ClientManager::checkDownloadUrl(const HintedUser& aUser) const noexce
 		sort(userInfoList.begin(), userInfoList.end(), User::UserHubInfo::ShareSort());
 
 		return { aUser.user, userInfoList.back().hubUrl };
+	}
+
+	return aUser;
+}
+
+HintedUser ClientManager::checkOnlineUrl(const HintedUser& aUser) const noexcept {
+	auto u = findOnlineUser(aUser, true);
+	if (u && u->getHubUrl() != aUser.hint) {
+		return { aUser.user, u->getHubUrl() };
 	}
 
 	return aUser;

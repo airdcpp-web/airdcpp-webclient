@@ -86,6 +86,10 @@ public:
 	// URL won't be changed for offline users
 	HintedUser checkDownloadUrl(const HintedUser& aUser) const noexcept;
 
+	// Updates the hinted URL in case the user is not online in the original one
+	// URL won't be changed for offline users
+	HintedUser checkOnlineUrl(const HintedUser& aUser) const noexcept;
+
 	StringList getNicks(const HintedUser& user) const noexcept;
 	StringList getHubNames(const HintedUser& user) const noexcept;
 	StringList getHubUrls(const HintedUser& user) const noexcept;
