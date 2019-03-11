@@ -409,9 +409,9 @@ void ShareManager::toRealWithSize(const string& aVirtualFile, const ProfileToken
 		}
 
 		const auto files = tempShares.equal_range(tth);
-		for(auto i = files.first; i != files.second; ++i) {
+		for (auto i = files.first; i != files.second; ++i) {
 			noAccess_ = false;
-			if(i->second.key.empty() || (i->second.key == aUser.user->getCID().toBase32())) { // if no key is set, it means its a hub share.
+			if (i->second.hasAccess(aUser)) {
 				path_ = i->second.path;
 				size_ = i->second.size;
 				return;
@@ -505,12 +505,13 @@ AdcCommand ShareManager::getFileInfo(const string& aFile, ProfileToken aProfile)
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 }
 
-bool ShareManager::isTempShared(const string& aKey, const TTHValue& tth) const noexcept {
+bool ShareManager::isTempShared(const UserPtr& aUser, const TTHValue& tth) const noexcept {
 	RLock l(cs);
 	const auto fp = tempShares.equal_range(tth);
-	for(auto i = fp.first; i != fp.second; ++i) {
-		if(i->second.key.empty() || (i->second.key == aKey)) // if no key is set, it means its a hub share.
+	for (auto i = fp.first; i != fp.second; ++i) {
+		if (i->second.hasAccess(aUser)) {
 			return true;
+		}
 	}
 	return false;
 }
@@ -531,21 +532,25 @@ TempShareInfoList ShareManager::getTempShares() const noexcept {
 }
 
 
-TempShareInfo::TempShareInfo(const string& aKey, const string& aName, const string& aPath, int64_t aSize, const TTHValue& aTTH) noexcept :
-	id(Util::rand()), key(aKey), name(aName), path(aPath), size(aSize), tth(aTTH), timeAdded(GET_TIME()) { }
+TempShareInfo::TempShareInfo(const string& aName, const string& aPath, int64_t aSize, const TTHValue& aTTH, const UserPtr& aUser) noexcept :
+	id(Util::rand()), user(aUser), name(aName), path(aPath), size(aSize), tth(aTTH), timeAdded(GET_TIME()) { }
 
-optional<TempShareInfo> ShareManager::addTempShare(const string& aKey, const TTHValue& aTTH, const string& aName, const string& aFilePath, int64_t aSize, ProfileToken aProfile) {
+bool TempShareInfo::hasAccess(const UserPtr& aUser) const noexcept {
+	return !user || user == aUser;
+}
+
+optional<TempShareInfo> ShareManager::addTempShare(const TTHValue& aTTH, const string& aName, const string& aFilePath, int64_t aSize, ProfileToken aProfile, const UserPtr& aUser) noexcept {
 	// Regular shared file?
 	if (isFileShared(aTTH, aProfile)) {
 		return nullopt;
 	} 
 	
-	const auto item = TempShareInfo(aKey, aName, aFilePath, aSize, aTTH);
+	const auto item = TempShareInfo(aName, aFilePath, aSize, aTTH, aUser);
 	{
 		WLock l(cs);
 		const auto files = tempShares.equal_range(aTTH);
 		for (auto i = files.first; i != files.second; ++i) {
-			if (i->second.key == aKey) {
+			if (i->second.hasAccess(aUser)) {
 				return i->second;
 			}
 		}
@@ -558,14 +563,14 @@ optional<TempShareInfo> ShareManager::addTempShare(const string& aKey, const TTH
 	return item;
 }
 
-bool ShareManager::removeTempShare(const string& aKey, const TTHValue& tth) noexcept {
+bool ShareManager::removeTempShare(const UserPtr& aUser, const TTHValue& tth) noexcept {
 	optional<TempShareInfo> removedItem;
 
 	{
 		WLock l(cs);
 		const auto files = tempShares.equal_range(tth);
 		for (auto i = files.first; i != files.second; ++i) {
-			if (i->second.key == aKey) {
+			if (i->second.user == aUser) {
 				removedItem.emplace(i->second);
 				tempShares.erase(i);
 				break;
@@ -2873,7 +2878,7 @@ void ShareManager::adcSearch(SearchResultList& results, SearchQuery& srch, const
 
 		const auto files = tempShares.equal_range(*srch.root);
 		for(const auto& f: files | map_values) {
-			if(f.key.empty() || (f.key == cid.toBase32())) { // if no key is set, it means its a hub share.
+			if(!f.user || f.user->getCID() == cid) {
 				//TODO: fix the date?
 				auto sr = make_shared<SearchResult>(SearchResult::TYPE_FILE, f.size, "/tmp/" + f.name, *srch.root, f.timeAdded, DirectoryContentInfo());
 				results.push_back(sr);
