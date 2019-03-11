@@ -188,8 +188,7 @@ namespace webserver {
 			}
 		}
 
-		auto key = user ? user->getCID().toBase32() : Util::emptyString;
-		auto item = ShareManager::getInstance()->addTempShare(key, tth, name, filePath, size, client->get(HubSettings::ShareProfile));
+		auto item = ShareManager::getInstance()->addTempShare(tth, name, filePath, size, client->get(HubSettings::ShareProfile), user);
 
 		aRequest.setResponseBody({
 			{ "magnet", Magnet::makeMagnet(tth, name, size) },
@@ -217,7 +216,8 @@ namespace webserver {
 			{ "size", aInfo.size },
 			{ "tth", aInfo.tth.toBase32() },
 			{ "time_added", aInfo.timeAdded },
-			{ "type", Serializer::serializeFileType(aInfo.path) }
+			{ "type", Serializer::serializeFileType(aInfo.path) },
+			{ "user", aInfo.user ? Serializer::serializeUser(aInfo.user) : json() }
 		};
 	}
 
