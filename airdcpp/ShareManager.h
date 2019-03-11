@@ -57,15 +57,17 @@ class FileList;
 
 typedef uint32_t TempShareToken;
 struct TempShareInfo {
-	TempShareInfo(const string& aKey, const string& aName, const string& aPath, int64_t aSize, const TTHValue& aTTH) noexcept;
+	TempShareInfo(const string& aName, const string& aPath, int64_t aSize, const TTHValue& aTTH, const UserPtr& aUser) noexcept;
 
 	const TempShareToken id;
 	const string name;
-	const string key; //CID or hubUrl
+	const UserPtr user; //CID or hubUrl
 	const string path; //filepath
 	const int64_t size; //filesize
 	const TTHValue tth;
 	const time_t timeAdded;
+
+	bool hasAccess(const UserPtr& aUser) const noexcept;
 };
 
 class ShareManager : public Singleton<ShareManager>, public Speaker<ShareManagerListener>, private Thread, private SettingsManagerListener, 
@@ -212,14 +214,14 @@ public:
 
 	typedef unordered_multimap<TTHValue, TempShareInfo> TempShareMap;
 
-	optional<TempShareInfo> addTempShare(const string& aKey, const TTHValue& tth, const string& aName, const string& filePath, int64_t aSize, ProfileToken aProfile);
+	optional<TempShareInfo> addTempShare(const TTHValue& tth, const string& aName, const string& filePath, int64_t aSize, ProfileToken aProfile, const UserPtr& aUser) noexcept;
 
 	bool hasTempShares() const noexcept;
 	TempShareInfoList getTempShares() const noexcept;
 
-	bool removeTempShare(const string& aKey, const TTHValue& tth) noexcept;
+	bool removeTempShare(const UserPtr& aUser, const TTHValue& tth) noexcept;
 	bool removeTempShare(TempShareToken aId) noexcept;
-	bool isTempShared(const string& aKey, const TTHValue& tth) const noexcept;
+	bool isTempShared(const UserPtr& aUser, const TTHValue& tth) const noexcept;
 	//tempShares end
 
 	// Get real paths of all shared root directories
