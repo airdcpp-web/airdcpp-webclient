@@ -14,18 +14,18 @@ matrix:
             - libboost-regex1.58
             - libboost-thread1.58
             - libboost-system1.58
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'ppa:mhier/libboost-latest'
-          packages:
-            - g++-8
-            - libboost1.68-dev
-            - libboost1.68
-      env: COMPILER=g++-8
+#    - os: linux
+#      compiler: gcc
+#      addons:
+#        apt:
+#          sources:
+#            - ubuntu-toolchain-r-test
+#            - sourceline: 'ppa:mhier/libboost-latest'
+#          packages:
+#            - g++-8
+#            - libboost1.68-dev
+#            - libboost1.68
+#      env: COMPILER=g++-8
     - os: osx
       compiler: clang
       osx_image: xcode10.1
