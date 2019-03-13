@@ -409,9 +409,9 @@ void ShareManager::toRealWithSize(const string& aVirtualFile, const ProfileToken
 		}
 
 		const auto files = tempShares.equal_range(tth);
-		for(auto i = files.first; i != files.second; ++i) {
+		for (auto i = files.first; i != files.second; ++i) {
 			noAccess_ = false;
-			if(i->second.key.empty() || (i->second.key == aUser.user->getCID().toBase32())) { // if no key is set, it means its a hub share.
+			if (i->second.hasAccess(aUser)) {
 				path_ = i->second.path;
 				size_ = i->second.size;
 				return;
@@ -505,51 +505,107 @@ AdcCommand ShareManager::getFileInfo(const string& aFile, ProfileToken aProfile)
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 }
 
-bool ShareManager::isTempShared(const string& aKey, const TTHValue& tth) {
+bool ShareManager::isTempShared(const UserPtr& aUser, const TTHValue& tth) const noexcept {
 	RLock l(cs);
 	const auto fp = tempShares.equal_range(tth);
-	for(auto i = fp.first; i != fp.second; ++i) {
-		if(i->second.key.empty() || (i->second.key == aKey)) // if no key is set, it means its a hub share.
+	for (auto i = fp.first; i != fp.second; ++i) {
+		if (i->second.hasAccess(aUser)) {
 			return true;
+		}
 	}
 	return false;
 }
 
-void ShareManager::addTempShare(const string& aKey, const TTHValue& tth, const string& filePath, int64_t aSize, ProfileToken aProfile) {
+bool ShareManager::hasTempShares() const noexcept {
+	return !tempShares.empty(); 
+}
+
+TempShareInfoList ShareManager::getTempShares() const noexcept {
+	TempShareInfoList ret;
+
+	{
+		RLock l(cs);
+		boost::copy(tempShares | map_values, back_inserter(ret));
+	}
+
+	return ret;
+}
+
+
+TempShareInfo::TempShareInfo(const string& aName, const string& aPath, int64_t aSize, const TTHValue& aTTH, const UserPtr& aUser) noexcept :
+	id(Util::rand()), user(aUser), name(aName), path(aPath), size(aSize), tth(aTTH), timeAdded(GET_TIME()) { }
+
+bool TempShareInfo::hasAccess(const UserPtr& aUser) const noexcept {
+	return !user || user == aUser;
+}
+
+optional<TempShareInfo> ShareManager::addTempShare(const TTHValue& aTTH, const string& aName, const string& aFilePath, int64_t aSize, ProfileToken aProfile, const UserPtr& aUser) noexcept {
+	// Regular shared file?
+	if (isFileShared(aTTH, aProfile)) {
+		return nullopt;
+	} 
 	
-	//first check if already exists in Share.
-	if(isFileShared(tth, aProfile)) {
-		return;
-	} else {
+	const auto item = TempShareInfo(aName, aFilePath, aSize, aTTH, aUser);
+	{
+		WLock l(cs);
+		const auto files = tempShares.equal_range(aTTH);
+		for (auto i = files.first; i != files.second; ++i) {
+			if (i->second.hasAccess(aUser)) {
+				return i->second;
+			}
+		}
+
+		//didnt exist.. fine, add it.
+		tempShares.emplace(aTTH, item);
+	}
+
+	fire(ShareManagerListener::TempFileAdded(), item);
+	return item;
+}
+
+bool ShareManager::removeTempShare(const UserPtr& aUser, const TTHValue& tth) noexcept {
+	optional<TempShareInfo> removedItem;
+
+	{
 		WLock l(cs);
 		const auto files = tempShares.equal_range(tth);
-		for(auto i = files.first; i != files.second; ++i) {
-			if(i->second.key == aKey)
-				return;
-		}
-		//didnt exist.. fine, add it.
-		tempShares.emplace(tth, TempShareInfo(aKey, filePath, aSize));
-	}
-}
-void ShareManager::removeTempShare(const string& aKey, const TTHValue& tth) {
-	WLock l(cs);
-	const auto files = tempShares.equal_range(tth);
-	for(auto i = files.first; i != files.second; ++i) {
-		if(i->second.key == aKey) {
-			tempShares.erase(i);
-			break;
+		for (auto i = files.first; i != files.second; ++i) {
+			if (i->second.user == aUser) {
+				removedItem.emplace(i->second);
+				tempShares.erase(i);
+				break;
+			}
 		}
 	}
+
+	if (removedItem) {
+		fire(ShareManagerListener::TempFileRemoved(), *removedItem);
+		return true;
+	}
+
+
+	return false;
 }
 
-void ShareManager::removeTempShare(const string& aPath) {
-	WLock l(cs);
-	tempShares.erase(boost::remove_if(tempShares | map_values, [&](const TempShareInfo& ti) { return Util::stricmp(aPath, ti.path) == 0; }).base(), tempShares.end());
-}
+bool ShareManager::removeTempShare(TempShareToken aId) noexcept {
+	optional<TempShareInfo> removedItem;
 
-void ShareManager::clearTempShares() {
-	WLock l(cs);
-	tempShares.clear();
+	{
+		WLock l(cs);
+		const auto i = find_if(tempShares | map_values, [aId](const TempShareInfo& ti) {
+			return ti.id == aId;
+		});
+
+		if (i.base() == tempShares.end()) {
+			return false;
+		}
+
+		removedItem.emplace(*i);
+		tempShares.erase(i.base());
+	}
+
+	fire(ShareManagerListener::TempFileRemoved(), *removedItem);
+	return true;
 }
 
 void ShareManager::getRealPaths(const string& aVirtualPath, StringList& realPaths_, const OptionalProfileToken& aProfile) const {
@@ -2822,9 +2878,9 @@ void ShareManager::adcSearch(SearchResultList& results, SearchQuery& srch, const
 
 		const auto files = tempShares.equal_range(*srch.root);
 		for(const auto& f: files | map_values) {
-			if(f.key.empty() || (f.key == cid.toBase32())) { // if no key is set, it means its a hub share.
+			if(!f.user || f.user->getCID() == cid) {
 				//TODO: fix the date?
-				auto sr = make_shared<SearchResult>(SearchResult::TYPE_FILE, f.size, "/tmp/" + Util::getFileName(f.path), *srch.root, 0, DirectoryContentInfo());
+				auto sr = make_shared<SearchResult>(SearchResult::TYPE_FILE, f.size, "/tmp/" + f.name, *srch.root, f.timeAdded, DirectoryContentInfo());
 				results.push_back(sr);
 			}
 		}

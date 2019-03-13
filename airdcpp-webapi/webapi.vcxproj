@@ -338,6 +338,7 @@
     <ClCompile Include="web-server\SystemUtil.cpp" />
     <ClCompile Include="web-server\TarFile.cpp" />
     <ClCompile Include="web-server\WebServerManager.cpp" />
+    <ClCompile Include="web-server\WebServerSettings.cpp" />
     <ClCompile Include="web-server\WebSocket.cpp" />
     <ClCompile Include="web-server\WebUser.cpp" />
     <ClCompile Include="web-server\WebUserManager.cpp" />

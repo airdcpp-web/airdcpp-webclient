@@ -19,6 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SEARCH_MANAGER_H
 #define DCPLUSPLUS_DCPP_SEARCH_MANAGER_H
 
+#include "ResourceManager.h"
 #include "SearchManagerListener.h"
 #include "SettingsManagerListener.h"
 #include "TimerManagerListener.h"
@@ -54,10 +55,10 @@ public:
 	typedef SearchTypes::iterator SearchTypesIter;
 	typedef SearchTypes::const_iterator SearchTypesIterC;
 private:
-	static const char* types[Search::TYPE_LAST];
+	static ResourceManager::Strings types[Search::TYPE_LAST];
 public:
-	static const char* getTypeStr(int type);
-	static bool isDefaultTypeStr(const string& type);
+	static const string& getTypeStr(int type) noexcept;
+	static bool isDefaultTypeStr(const string& type) noexcept;
 	
 	SearchQueueInfo search(const SearchPtr& aSearch) noexcept;
 	SearchQueueInfo search(StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner = nullptr) noexcept;

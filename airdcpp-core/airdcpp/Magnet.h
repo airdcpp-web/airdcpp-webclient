@@ -32,6 +32,8 @@ using std::string;
 
 /** Struct for a magnet uri */
 struct Magnet {
+	static string makeMagnet(const TTHValue& aHash, const string& aFile, int64_t aSize) noexcept;
+
 	string fname, type, param, hash;
 	//TTHValue tth;
 	int64_t fsize;

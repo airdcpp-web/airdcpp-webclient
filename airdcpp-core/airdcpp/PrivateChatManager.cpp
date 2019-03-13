@@ -52,12 +52,14 @@ PrivateChatManager::~PrivateChatManager() noexcept {
 	ConnectionManager::getInstance()->disconnect();
 }
 
-PrivateChatPtr PrivateChatManager::addChat(const HintedUser& user, bool aReceivedMessage) noexcept {
-	if (getChat(user.user)) {
+PrivateChatPtr PrivateChatManager::addChat(const HintedUser& aUser, bool aReceivedMessage) noexcept {
+	if (getChat(aUser.user)) {
 		return nullptr;
 	}
 
 	PrivateChatPtr chat;
+
+	auto user = ClientManager::getInstance()->checkOnlineUrl(aUser);
 
 	{
 		WLock l(cs);

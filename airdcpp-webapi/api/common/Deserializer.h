@@ -38,7 +38,7 @@ namespace webserver {
 
 		static TTHValue parseTTH(const string& aTTH);
 
-		static UserPtr deserializeUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
+		static UserPtr deserializeUser(const json& aJson, bool aAllowMe, bool aOptional = false);
 		static HintedUser deserializeHintedUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
 		static OnlineUserPtr deserializeOnlineUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
 		static TTHValue deserializeTTH(const json& aJson);
@@ -48,6 +48,7 @@ namespace webserver {
 
 		// Returns all connected hubs if the list is not found from the JSON
 		static StringList deserializeHubUrls(const json& aJson);
+		static ClientPtr deserializeClient(const json& aJson, bool aOptional = false);
 
 		static pair<string, bool> deserializeChatMessage(const json& aJson);
 		static pair<string, LogMessage::Severity> deserializeStatusMessage(const json& aJson);
@@ -58,7 +59,6 @@ namespace webserver {
 		static OptionalProfileToken deserializeOptionalShareProfile(const json& aJson);
 	private:
 		static LogMessage::Severity parseSeverity(const string& aText);
-		static UserPtr parseUser(const json& aJson, bool aAllowMe);
 	};
 }
 

@@ -41,30 +41,12 @@
 #define HANDSHAKE_TIMEOUT 0 // disabled, affects HTTP downloads
 
 namespace webserver {
-	vector<ServerSettingItem> WebServerSettings::settings = {
-		{ "web_plain_port", "Port", 5600, ApiSettingItem::TYPE_NUMBER, false, { 0, 65535 } },
-		{ "web_plain_bind_address", "Bind address", "", ApiSettingItem::TYPE_STRING, true },
-
-		{ "web_tls_port", "Port", 5601, ApiSettingItem::TYPE_NUMBER, false, { 0, 65535 } },
-		{ "web_tls_bind_address", "Bind address", "", ApiSettingItem::TYPE_STRING, true },
-
-		{ "web_tls_certificate_path", "Certificate path", "", ApiSettingItem::TYPE_FILE_PATH, true },
-		{ "web_tls_certificate_key_path", "Certificate key path", "", ApiSettingItem::TYPE_FILE_PATH, true },
-
-		{ "web_server_threads", "Server threads", 4, ApiSettingItem::TYPE_NUMBER, false, { 1, 100 } },
-
-		{ "default_idle_timeout", "Default session inactivity timeout (minutes)", 20, ApiSettingItem::TYPE_NUMBER, false, { 0, MAX_INT_VALUE } },
-		{ "ping_interval", "Socket ping interval (seconds)", 30, ApiSettingItem::TYPE_NUMBER, false, { 1, 10000 } },
-		{ "ping_timeout", "Socket ping timeout (seconds)", 10, ApiSettingItem::TYPE_NUMBER, false, { 1, 10000 } },
-
-		{ "extensions_debug_mode", "Run extensions in debug mode", false, ApiSettingItem::TYPE_BOOLEAN, false },
-	};
-
 	using namespace dcpp;
-	WebServerManager::WebServerManager() : has_io_service(false), 
-		ios(WEBCFG(SERVER_THREADS).num()), 
-		plainServerConfig(WEBCFG(PLAIN_PORT), WEBCFG(PLAIN_BIND)),
-		tlsServerConfig(WEBCFG(TLS_PORT), WEBCFG(TLS_BIND)) {
+	WebServerManager::WebServerManager() : 
+		ios(settings.getValue(WebServerSettings::SERVER_THREADS).getDefaultValue()),
+		plainServerConfig(settings.getValue(WebServerSettings::PLAIN_PORT), settings.getValue(WebServerSettings::PLAIN_BIND)),
+		tlsServerConfig(settings.getValue(WebServerSettings::TLS_PORT), settings.getValue(WebServerSettings::TLS_BIND))
+	{
 
 		fileServer.setResourcePath(Util::getPath(Util::PATH_RESOURCES) + "web-resources" + PATH_SEPARATOR);
 
@@ -233,9 +215,9 @@ namespace webserver {
 			aEndpoint.start_accept();
 			return true;
 		} catch (const std::exception& e) {
-			auto message = boost::format("Failed to set up %1% server on port %2%: %3% (is the port in use by another application?)") % aProtocol % aConfig.port.num() % string(e.what());
+			auto message = STRING_F(WEB_SERVER_SETUP_FAILED, aProtocol % aConfig.port.num() % string(e.what()));
 			if (errorF) {
-				errorF(message.str());
+				errorF(message);
 			}
 		}
 

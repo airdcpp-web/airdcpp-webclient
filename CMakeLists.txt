@@ -9,8 +9,8 @@ endif (APPLE)
 
 set (PROJECT_NAME "AirDC++ Web Client")
 set (TAG_APPLICATION "AirDC++w")
-set (VERSION "2.5.1") # NOTE: the minor version must match the lastest UI version
-set (SOVERSION "2.5.1" )
+set (VERSION "2.6.0") # NOTE: the minor version must match the lastest UI version
+set (SOVERSION "2.6.0" )
 
 set (GNUCXX_MINIMUM_VERSION "4.9")
 
@@ -56,10 +56,10 @@ OPTION(ENABLE_TBB "Enable support of the TBB library to improve performance"
 unset(INSTALL_RUNTIME_PATH CACHE)
 
 option (INSTALL_RUNTIME_PATH "Install rpath" ON)
-option (LOCAL_BOOST "Use local boost headers" OFF)
+#option (LOCAL_BOOST "Use local boost headers" OFF)
 option (STRIP "Strip debugging symbols to a separate file" OFF)
 option (INSTALL_WEB_UI "Download and install the Web UI package" ON)
-option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
+#option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
 option (WITH_ASAN "Enable address sanitizer" OFF) # With clang: http://clang.llvm.org/docs/AddressSanitizer.html
 
 
@@ -92,6 +92,10 @@ elseif (NOT BUILD_SHARED_LIBS)
   set(CMAKE_SHARED_LIBRARY_CXX_FLAGS)
   set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
   set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
+
+  # Boost UUID uses getrandom() kernel call, which is not supported on older platforms (which can't be detected by Boost with static builds)
+  # https://github.com/boostorg/uuid/issues/91
+  add_definitions ( -DBOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX )
 endif()
 
 
@@ -258,19 +262,19 @@ if (WITH_ASAN)
     message(STATUS "Address sanitizer is enabled")
 endif()
 
-if (NOT CMAKE_BUILD_TYPE MATCHES "Debug" AND NOT ARM_OPTIMIZE_FULL)
-  if (CMAKE_SYSTEM_PROCESSOR STREQUAL "arm" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "armv6l")
-    set (CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Os")
-    set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-DNDEBUG -Os -g")
+#if (NOT CMAKE_BUILD_TYPE MATCHES "Debug" AND NOT ARM_OPTIMIZE_FULL)
+#  if (CMAKE_SYSTEM_PROCESSOR STREQUAL "arm" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "armv6l")
+#    set (CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Os")
+#    set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-DNDEBUG -Os -g")
 
-    message (STATUS "---------------------------------------------------------------------------------------------------------")
-    message (STATUS "IMPORTANT")
-    message (STATUS "Certain code optimizations are disabled by default on ARM architectures due to possible stability issues")
-    message (STATUS "If you want to compile the client with full optimizations enabled, run cmake with the option -DARM_OPTIMIZE_FULL=1 (please report back your findings if there are no issues)")
-    message (STATUS "More information: https://github.com/airdcpp-web/airdcpp-webclient/issues/141#issuecomment-233186424")
-    message (STATUS "---------------------------------------------------------------------------------------------------------")
-  endif()
-endif()
+#    message (STATUS "---------------------------------------------------------------------------------------------------------")
+#    message (STATUS "IMPORTANT")
+#    message (STATUS "Certain code optimizations are disabled by default on ARM architectures due to possible stability issues")
+#    message (STATUS "If you want to compile the client with full optimizations enabled, run cmake with the option -DARM_OPTIMIZE_FULL=1 (please report back your findings if there are no issues)")
+#    message (STATUS "More information: https://github.com/airdcpp-web/airdcpp-webclient/issues/141#issuecomment-233186424")
+#    message (STATUS "---------------------------------------------------------------------------------------------------------")
+#  endif()
+#endif()
 
 
 

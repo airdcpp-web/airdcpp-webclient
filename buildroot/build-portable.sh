@@ -111,6 +111,9 @@ SetArch()
 
   BR_ARCH_PATH=${BR_ROOT}/$1
   AIR_ARCH_ROOT=${BUILD_CACHE_DIR}/$1
+  if [[ $CMAKE_BUILD_TYPE = "Debug" ]]; then
+    AIR_ARCH_ROOT=${AIR_ARCH_ROOT}-dbg
+  fi
 
   if [ ! -d $BR_ARCH_PATH ]; then
     echo "Buildroot architecture ${BR_ARCH_PATH} doesn't exist"
@@ -207,7 +210,6 @@ CreatePackage()
 
   APP_PKG_SUMMARY="${APP_PKG_SUMMARY}${ARCH_PKG_PATH}\n"
   APP_PKG_SUMMARY="${APP_PKG_SUMMARY}${ARCH_LATEST_PKG_PATH}\n"
-
 
   CreateSymbols
   DeleteTmpDir

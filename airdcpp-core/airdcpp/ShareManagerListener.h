@@ -46,6 +46,9 @@ namespace dcpp {
 		typedef X<11> ExcludeAdded;
 		typedef X<12> ExcludeRemoved;
 
+		typedef X<13> TempFileAdded;
+		typedef X<14> TempFileRemoved;
+
 
 		virtual void on(ShareLoaded) noexcept{}
 		virtual void on(RefreshCompleted, uint8_t /*tasktype*/, const RefreshPathList&) noexcept{}
@@ -63,6 +66,9 @@ namespace dcpp {
 
 		virtual void on(ExcludeAdded, const string&) noexcept {}
 		virtual void on(ExcludeRemoved, const string&) noexcept {}
+
+		virtual void on(TempFileAdded, const TempShareInfo&) noexcept {}
+		virtual void on(TempFileRemoved, const TempShareInfo&) noexcept {}
 	};
 
 } // namespace dcpp

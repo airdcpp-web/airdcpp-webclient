@@ -21,7 +21,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("directory")
     args = parser.parse_args()
-    
+
     header_path = os.path.join(args.directory, "StringDefs.h")
     cpp_path = os.path.join(args.directory, "StringDefs.cpp")
     if os.path.isfile(cpp_path) and os.path.getmtime(header_path) < os.path.getmtime(cpp_path):
@@ -36,13 +36,16 @@ if __name__ == "__main__":
             if parts and parts[0] == "enum":
                 enum_started = True
             elif enum_started:
-                name, string = l.split("//", 1)
-                name = name.strip(" \t,")
-                string = string.strip(" \t\r\n")
-                if name == "LAST":
-                    break
-                texts["names"].append('"' + camel_case(name) + '"')
-                texts["strings"].append(string)
+                parts = l.split("//", 1)
+                if parts and len(parts) == 2:
+                    name, string = parts
+
+                    name = name.strip(" \t,")
+                    string = string.strip(" \t\r\n")
+                    if name == "LAST":
+                        break
+                    texts["names"].append('"' + camel_case(name) + '"')
+                    texts["strings"].append(string)
     template = textwrap.dedent('''\
     std::string dcpp::ResourceManager::{name}[] = {{
     {texts}
