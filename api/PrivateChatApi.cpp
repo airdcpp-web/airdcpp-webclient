@@ -93,13 +93,13 @@ namespace webserver {
 
 	api_return PrivateChatApi::handlePostChat(ApiRequest& aRequest) {
 		auto user = Deserializer::deserializeHintedUser(aRequest.getRequestBody());
-		auto chat = PrivateChatManager::getInstance()->addChat(user, false);
-		if (!chat) {
+		auto res = PrivateChatManager::getInstance()->addChat(user, false);
+		if (!res.second) {
 			aRequest.setResponseErrorStr("Chat session exists");
 			return websocketpp::http::status_code::conflict;
 		}
 
-		aRequest.setResponseBody(serializeChat(chat));
+		aRequest.setResponseBody(serializeChat(res.first));
 		return websocketpp::http::status_code::ok;
 	}
 
