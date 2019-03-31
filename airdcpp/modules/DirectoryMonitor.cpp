@@ -21,6 +21,7 @@
 #include "DirectoryMonitor.h"
 
 #include <airdcpp/AirUtil.h>
+#include <airdcpp/LogManager.h>
 #include <airdcpp/ResourceManager.h>
 #include <airdcpp/Text.h>
 
@@ -272,12 +273,16 @@ int DirectoryMonitor::Server::read() {
 						(*mon)->changes++;
 						(*mon)->queueNotificationTask(dwBytesXFered);
 					} /*else {
-						LogManager::getInstance()->message("An empty notification was received when monitoring " + Text::fromT((*mon)->path) + " (report this)", LogMessage::SEV_WARNING);
+						LogManager::getInstance()->message("An empty notification was received when monitoring " + (*mon)->path + " (report this)", LogMessage::SEV_WARNING);
 					}*/
 
 					(*mon)->beginRead();
 				}
 			} catch (const MonitorException& e) {
+				if (debug) {
+					LogManager::getInstance()->message("Monitoring error for path " + (*mon)->path + ": " + e.getError(), LogMessage::SEV_WARNING);
+				}
+
 				(*mon)->errorCount++;
 				if ((*mon)->errorCount < 60) {
 					//we'll most likely get the error instantly again...

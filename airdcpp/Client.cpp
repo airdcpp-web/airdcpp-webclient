@@ -369,7 +369,7 @@ bool Client::sendMessage(const string& aMessage, string& error_, bool aThirdPers
 
 	auto error = ClientManager::getInstance()->outgoingHubMessageHook.runHooksError(aMessage, aThirdPerson, *this);
 	if (error) {
-		error_ = error->formatError(error);
+		error_ = ActionHookRejection::formatError(error);
 		return false;
 	}
 
@@ -389,7 +389,7 @@ bool Client::sendPrivateMessage(const OnlineUserPtr& aUser, const string& aMessa
 
 	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage, aThirdPerson, HintedUser(aUser->getUser(), aUser->getHubUrl()), aEcho);
 	if (error) {
-		error_ = error->formatError(error);
+		error_ = ActionHookRejection::formatError(error);
 		return false;
 	}
 

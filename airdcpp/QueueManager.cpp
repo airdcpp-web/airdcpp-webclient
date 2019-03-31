@@ -3457,10 +3457,7 @@ void QueueManager::handleBundleUpdate(QueueToken aBundleToken) noexcept {
 
 	if (b) {
 		if (b->isSet(Bundle::FLAG_UPDATE_SIZE)) {
-			if (b->isSet(Bundle::FLAG_UPDATE_SIZE)) {
-				fire(QueueManagerListener::BundleSize(), b);
-			} 
-
+			fire(QueueManagerListener::BundleSize(), b);
 			DownloadManager::getInstance()->sendSizeUpdate(b);
 		}
 		

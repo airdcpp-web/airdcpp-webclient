@@ -113,17 +113,17 @@ ProfileToken DirectoryListing::getShareProfile() const noexcept {
 
 void DirectoryListing::addHubUrlChangeTask(const string& aHubUrl) noexcept {
 	addAsyncTask([=] {
-		setHubUrl(aHubUrl);
+		setHubUrlImpl(aHubUrl);
 	});
 }
 
 void DirectoryListing::addShareProfileChangeTask(ProfileToken aProfile) noexcept {
 	addAsyncTask([=] {
-		setShareProfile(aProfile);
+		setShareProfileImpl(aProfile);
 	});
 }
 
-void DirectoryListing::setHubUrl(const string& aHubUrl) noexcept {
+void DirectoryListing::setHubUrlImpl(const string& aHubUrl) noexcept {
 	if (aHubUrl == hintedUser.hint) {
 		return;
 	}
@@ -132,7 +132,7 @@ void DirectoryListing::setHubUrl(const string& aHubUrl) noexcept {
 	fire(DirectoryListingListener::UserUpdated());
 }
 
-void DirectoryListing::setShareProfile(ProfileToken aProfile) noexcept {
+void DirectoryListing::setShareProfileImpl(ProfileToken aProfile) noexcept {
 	if (getShareProfile() == aProfile) {
 		return;
 	}
@@ -208,7 +208,7 @@ bool DirectoryListing::supportsASCH() const noexcept {
 }
 
 void DirectoryListing::onStateChanged() noexcept {
-	fire(DirectoryListingListener::StateChanged());
+	addAsyncTask([=]() { fire(DirectoryListingListener::StateChanged()); });
 }
 
 DirectoryListing::Directory::Ptr DirectoryListing::createBaseDirectory(const string& aBasePath, time_t aDownloadDate) noexcept {
@@ -1011,15 +1011,13 @@ void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aBase
 		dir = root;
 	}
 
-	if (dir) {
-		dir->setLoading(false);
-		if (!aBackgroundTask) {
-			updateCurrentLocation(dir);
-			read = false;
-		}
-
-		onStateChanged();
+	dir->setLoading(false);
+	if (!aBackgroundTask) {
+		updateCurrentLocation(dir);
+		read = false;
 	}
+
+	onStateChanged();
 	
 	fire(DirectoryListingListener::LoadingFinished(), aStartTime, dir->getAdcPath(), aBackgroundTask);
 }
@@ -1161,7 +1159,7 @@ int DirectoryListing::loadShareDirectory(const string& aPath, bool aRecurse) {
 	throw Exception(CSTRING(FILE_NOT_AVAILABLE));
 }
 
-bool DirectoryListing::changeDirectory(const string& aAdcPath, bool aReload, bool aIsSearchChange, bool aForceQueue) noexcept {
+void DirectoryListing::changeDirectoryImpl(const string& aAdcPath, bool aReload, bool aIsSearchChange, bool aForceQueue) noexcept {
 	Directory::Ptr dir;
 	if (partialList) {
 		// Directory may not exist when searching in partial lists 
@@ -1171,7 +1169,7 @@ bool DirectoryListing::changeDirectory(const string& aAdcPath, bool aReload, boo
 		dir = findDirectory(aAdcPath);
 		if (!dir) {
 			dcassert(0);
-			return false;
+			return;
 		}
 	}
 
@@ -1199,11 +1197,7 @@ bool DirectoryListing::changeDirectory(const string& aAdcPath, bool aReload, boo
 		} else {
 			fire(DirectoryListingListener::UpdateStatusMessage(), STRING(USER_OFFLINE));
 		}
-	} else {
-		return false;
 	}
-
-	return true;
 }
 
 bool DirectoryListing::nextResult(bool prev) noexcept {
@@ -1225,7 +1219,7 @@ bool DirectoryListing::nextResult(bool prev) noexcept {
 
 void DirectoryListing::addDirectoryChangeTask(const string& aPath, bool aReload, bool aIsSearchChange, bool aForceQueue) noexcept {
 	addAsyncTask([=] {
-		changeDirectory(aPath, aReload, aIsSearchChange, aForceQueue);
+		changeDirectoryImpl(aPath, aReload, aIsSearchChange, aForceQueue);
 	});
 }
 

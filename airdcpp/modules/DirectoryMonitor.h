@@ -65,6 +65,11 @@ public:
 	bool hasDirectories() const {
 		return server->hasDirectories();
 	}
+
+
+	void setDebug(bool aEnabled) noexcept {
+		server->setDebug(aEnabled);
+	}
 private:
 	friend class Monitor;
 	class Server : public Thread {
@@ -93,7 +98,13 @@ private:
 		// ReadDirectoryChangesW doesn't notice if the path gets removed. This function should be
 		// polled periodically in order to remove missing paths from monitoring.
 		//void validatePathExistance();  // replaced by deviceRemoved for now.. 
+
+		void setDebug(bool aEnabled) noexcept {
+			debug = aEnabled;
+		}
 	private:
+		bool debug = false;
+
 		typedef std::unordered_map<string, Monitor*, noCaseStringHash, noCaseStringEq> MonitorMap;
 		mutable SharedMutex cs;
 		MonitorMap monitors;
