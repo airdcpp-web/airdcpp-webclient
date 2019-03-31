@@ -48,6 +48,12 @@ namespace dcpp {
 		monitor.callAsync([=] { rebuildMonitoring(); });
 	}
 
+	void ShareMonitorManager::setMonitorDebug(bool aEnabled) noexcept {
+		monitorDebug = aEnabled;
+
+		monitor.setDebug(aEnabled);
+	}
+
 	string ShareMonitorManager::printStats() const noexcept {
 		string ret = "\r\n\r\n-=[ Monitoring statistics ]=-\r\n\r\n";
 		if (monitor.hasDirectories()) {

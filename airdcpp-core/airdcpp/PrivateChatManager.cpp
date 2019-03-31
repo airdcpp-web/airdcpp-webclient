@@ -52,23 +52,22 @@ PrivateChatManager::~PrivateChatManager() noexcept {
 	ConnectionManager::getInstance()->disconnect();
 }
 
-PrivateChatPtr PrivateChatManager::addChat(const HintedUser& aUser, bool aReceivedMessage) noexcept {
-	if (getChat(aUser.user)) {
-		return nullptr;
-	}
-
+pair<PrivateChatPtr, bool> PrivateChatManager::addChat(const HintedUser& aUser, bool aReceivedMessage) noexcept {
 	PrivateChatPtr chat;
 
 	auto user = ClientManager::getInstance()->checkOnlineUrl(aUser);
 
 	{
 		WLock l(cs);
-		chat = std::make_shared<PrivateChat>(user, getPMConn(user.user));
-		chats.emplace(user.user, chat);
+		auto res = chats.emplace(user.user, std::make_shared<PrivateChat>(user, getPMConn(user.user)));
+		chat = res.first->second;
+		if (!res.second) {
+			return { chat, false };
+		}
 	}
 
 	fire(PrivateChatManagerListener::ChatCreated(), chat, aReceivedMessage);
-	return chat;
+	return { chat, true };
 }
 
 PrivateChatPtr PrivateChatManager::getChat(const UserPtr& aUser) const noexcept {
@@ -171,19 +170,20 @@ void PrivateChatManager::onPrivateMessage(const ChatMessagePtr& aMessage) {
 		}
 	}
 
-	auto c = aMessage->getFrom()->getClient();
 	if (wndCnt > 200) {
 		DisconnectCCPM(user);
 		return;
 	}
 
+
+	const auto client = aMessage->getFrom()->getClient();
 	const auto& identity = aMessage->getReplyTo()->getIdentity();
 	if ((identity.isBot() && !SETTING(POPUP_BOT_PMS)) || (identity.isHub() && !SETTING(POPUP_HUB_PMS))) {
-		c->addLine(STRING(PRIVATE_MESSAGE_FROM) + " " + identity.getNick() + ": " + aMessage->format());
+		client->addLine(STRING(PRIVATE_MESSAGE_FROM) + " " + identity.getNick() + ": " + aMessage->format());
 		return;
 	}
 
-	auto chat = addChat(HintedUser(user, aMessage->getReplyTo()->getClient()->getHubUrl()), true);
+	auto chat = addChat(HintedUser(user, client->getHubUrl()), true).first;
 	chat->handleMessage(aMessage);
 
 	if (ActivityManager::getInstance()->isAway() && !myPM && (!SETTING(NO_AWAYMSG_TO_BOTS) || !user->isSet(User::BOT))) {
@@ -191,7 +191,7 @@ void PrivateChatManager::onPrivateMessage(const ChatMessagePtr& aMessage) {
 		aMessage->getFrom()->getIdentity().getParams(params, "user", false);
 
 		string error;
-		chat->sendMessage(ActivityManager::getInstance()->getAwayMessage(c->get(HubSettings::AwayMsg), params), error, false);
+		chat->sendMessage(ActivityManager::getInstance()->getAwayMessage(client->get(HubSettings::AwayMsg), params), error, false);
 	}
 }
 

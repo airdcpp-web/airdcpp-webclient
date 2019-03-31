@@ -211,7 +211,7 @@ void SharePathValidator::validate(FileFindIter& aIter, const string& aPath, bool
 
 		auto error = directoryValidationHook.runHooksError(aPath);
 		if (error) {
-			throw ShareException(error->formatError(error));
+			throw ShareException(ActionHookRejection::formatError(error));
 		}
 	} else {
 		auto size = aIter->getSize();
@@ -219,7 +219,7 @@ void SharePathValidator::validate(FileFindIter& aIter, const string& aPath, bool
 
 		auto error = fileValidationHook.runHooksError(aPath, size);
 		if (error) {
-			throw ShareException(error->formatError(error));
+			throw ShareException(ActionHookRejection::formatError(error));
 		}
 	}
 }
