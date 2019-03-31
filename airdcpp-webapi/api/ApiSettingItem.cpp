@@ -364,8 +364,8 @@ namespace webserver {
 		} else if (si.key == SettingsManager::BIND_ADDRESS || si.key == SettingsManager::BIND_ADDRESS6) {
 			auto bindAddresses = AirUtil::getBindAdapters(si.key == SettingsManager::BIND_ADDRESS6);
 			for (const auto& adapter : bindAddresses) {
-				auto name = adapter.ip + (!adapter.adapterName.empty() ? " (" + adapter.adapterName + ")" : Util::emptyString);
-				ret.emplace_back(EnumOption({ adapter.ip, name }));
+				auto title = adapter.ip + (!adapter.adapterName.empty() ? " (" + adapter.adapterName + ")" : Util::emptyString);
+				ret.emplace_back(EnumOption({ adapter.ip, title }));
 			}
 		} else if (si.key == SettingsManager::MAPPER) {
 			auto mappers = ConnectivityManager::getInstance()->getMappers(false);

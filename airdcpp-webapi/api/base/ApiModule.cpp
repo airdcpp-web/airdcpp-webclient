@@ -38,7 +38,7 @@ namespace webserver {
 			if (aPathTokens.size() < params.size()) {
 				return nullopt;
 			}
-		} else if (method != METHOD_FORWARD && aPathTokens.size() != params.size()) {
+		} else if (aPathTokens.size() != params.size()) {
 			return nullopt;
 		}
 

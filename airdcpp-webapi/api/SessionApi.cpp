@@ -123,6 +123,9 @@ namespace webserver {
 				aRequest.setResponseErrorStr(e.what());
 				return websocketpp::http::status_code::bad_request;
 			}
+		} else {
+			JsonUtil::throwError("grant_type", JsonUtil::ERROR_INVALID, "Invalid grant_type");
+			return websocketpp::http::status_code::bad_request;
 		}
 
 		dcassert(session);
