@@ -243,6 +243,8 @@ private:
 
 };
 
+inline bool operator==(UserConnection* ptr, const string& aToken) { return compare(ptr->getToken(), aToken) == 0; }
+
 } // namespace dcpp
 
 #endif // !defined(USER_CONNECTION_H)

@@ -27,6 +27,7 @@
 #include "LogManager.h"
 #include "QueueManager.h"
 #include "ResourceManager.h"
+#include "ScopedFunctor.h"
 #include "UploadManager.h"
 #include "UserConnection.h"
 
@@ -274,7 +275,7 @@ void ConnectionManager::attemptDownloads(uint64_t aTick, StringList& removedToke
 				cqi->getLastAttempt() + 60 * 1000 * max(1, cqi->getErrors()) < aTick))
 			{
 				// TODO: no one can understand this code, fix!
-				cqi->setLastAttempt(aTick);
+				ScopedFunctor([=] { cqi->setLastAttempt(aTick); });
 
 				QueueToken bundleToken = 0;
 				string lastError, hubHint = cqi->getHubUrl();
@@ -290,8 +291,7 @@ void ConnectionManager::attemptDownloads(uint64_t aTick, StringList& removedToke
 					cqi->setDownloadType(ConnectionQueueItem::TYPE_ANY);
 					startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, QueueItem::TYPE_ANY,
 						bundleToken, allowUrlChange, hasDownload, lastError);
-				}
-				else if (cqi->getDownloadType() == ConnectionQueueItem::TYPE_ANY && startDown.first == QueueItem::TYPE_SMALL &&
+				} else if (cqi->getDownloadType() == ConnectionQueueItem::TYPE_ANY && startDown.first == QueueItem::TYPE_SMALL &&
 					count_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* aCQI) {
 					return aCQI->getUser() == cqi->getUser() && (cqi->getDownloadType() == ConnectionQueueItem::TYPE_SMALL || cqi->getDownloadType() == ConnectionQueueItem::TYPE_SMALL_CONF);
 				}) == 0) {
@@ -308,7 +308,10 @@ void ConnectionManager::attemptDownloads(uint64_t aTick, StringList& removedToke
 				cqi->setLastBundle(bundleToken != 0 ? Util::toString(bundleToken) : Util::emptyString);
 				cqi->setHubUrl(hubHint);
 
-				if (cqi->getState() == ConnectionQueueItem::WAITING) {
+				if (cqi->getState() == ConnectionQueueItem::WAITING || 
+					// Forcing the connection and it's not connected yet? Retry
+					(cqi->getLastAttempt() == 0 && cqi->getState() == ConnectionQueueItem::CONNECTING && find(userConnections.begin(), userConnections.end(), cqi->getToken()) == userConnections.end())
+				) {
 					if (startDown.second) {
 						cqi->setState(ConnectionQueueItem::CONNECTING);
 						bool protocolError = false;
@@ -323,20 +326,17 @@ void ConnectionManager::attemptDownloads(uint64_t aTick, StringList& removedToke
 							fire(ConnectionManagerListener::Connecting(), cqi);
 							attempts++;
 						}
-					}
-					else {
+					} else {
 						fire(ConnectionManagerListener::Failed(), cqi, lastError);
 					}
 				}
-			}
-			else if (cqi->getState() == ConnectionQueueItem::CONNECTING && cqi->getLastAttempt() + 50 * 1000 < aTick) {
+			} else if (cqi->getState() == ConnectionQueueItem::CONNECTING && cqi->getLastAttempt() + 50 * 1000 < aTick) {
 
 				cqi->setErrors(cqi->getErrors() + 1);
 				fire(ConnectionManagerListener::Failed(), cqi, STRING(CONNECTION_TIMEOUT));
 				cqi->setState(ConnectionQueueItem::WAITING);
 			}
-		}
-		else if (cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
+		} else if (cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
 			cqi->unsetFlag(ConnectionQueueItem::FLAG_REMOVE);
 		}
 	}
@@ -1149,9 +1149,9 @@ void ConnectionManager::disconnect(const UserPtr& aUser) {
 	}
 }
 
-void ConnectionManager::disconnect(const string& token) {
+void ConnectionManager::disconnect(const string& aToken) {
 	RLock l(cs);
-	auto s = find_if(userConnections.begin(), userConnections.end(), [&](UserConnection* uc) { return compare(uc->getToken(), token) == 0; });
+	auto s = find(userConnections.begin(), userConnections.end(), aToken);
 	if (s != userConnections.end())
 		(*s)->disconnect(true);
 }
@@ -1166,11 +1166,11 @@ void ConnectionManager::disconnect(const UserPtr& aUser, ConnectionType aConnTyp
 	}
 }
 
-bool ConnectionManager::setBundle(const string& token, const string& bundleToken) {
+bool ConnectionManager::setBundle(const string& aToken, const string& aBundleToken) {
 	RLock l (cs);
-	auto s = find_if(userConnections.begin(), userConnections.end(), [&](UserConnection* uc) { return compare(uc->getToken(), token) == 0; });
+	auto s = find(userConnections.begin(), userConnections.end(), aToken);
 	if (s != userConnections.end()) {
-		(*s)->setLastBundle(bundleToken);
+		(*s)->setLastBundle(aBundleToken);
 		return true;
 	}
 	return false;
