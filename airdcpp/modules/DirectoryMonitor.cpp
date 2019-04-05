@@ -253,7 +253,7 @@ int DirectoryMonitor::Server::read() {
 			}
 
 			try {
-				if ((dwError != 0 && dwError != ERROR_INVALID_PARAMETER) || !ret) {
+				if ((dwError != 0 && dwError != ERROR_INVALID_PARAMETER && dwError != ERROR_INTERNAL_ERROR) || !ret) {
 					// Too many changes to track, http://blogs.msdn.com/b/oldnewthing/archive/2011/08/12/10195186.aspx
 					// The documentation only states the code ERROR_NOTIFY_ENUM_DIR for this, but according to the testing ERROR_NOT_ENOUGH_QUOTA and ERROR_ALREADY_EXISTS seem to be used instead....
 					// (and ERROR_TOO_MANY_CMDS with network drives)
