@@ -244,8 +244,26 @@ namespace webserver {
 			worker_threads.create_thread(boost::bind(&boost::asio::io_service::run, &ios));
 		}
 
-		socketTimer = addTimer([this] { pingTimer(); }, WEBCFG(PING_INTERVAL).num() * 1000);
-		socketTimer->start(false);
+		// Add timers
+		{
+			const auto logger = getDefaultErrorLogger();
+			minuteTimer = addTimer(
+				[this, logger] {
+					save(logger);
+				},
+				30 * 1000
+			);
+
+			socketPingTimer = addTimer(
+				[this] {
+					pingTimer();
+				},
+				WEBCFG(PING_INTERVAL).num() * 1000
+			);
+
+			minuteTimer->start(false);
+			socketPingTimer->start(false);
+		}
 
 		fire(WebServerManagerListener::Started());
 		return true;
@@ -347,8 +365,11 @@ namespace webserver {
 	}
 
 	void WebServerManager::stop() {
-		if(socketTimer)
-			socketTimer->stop(true);
+		if (minuteTimer)
+			minuteTimer->stop(true);
+		if (socketPingTimer)
+			socketPingTimer->stop(true);
+
 		fire(WebServerManagerListener::Stopping());
 
 		if(endpoint_plain.is_listening())
@@ -397,6 +418,10 @@ namespace webserver {
 		ios.post(aCallBack);
 	}
 
+	void WebServerManager::setDirty() noexcept {
+		isDirty = true;
+	}
+
 	void WebServerManager::addSocket(websocketpp::connection_hdl hdl, const WebSocketPtr& aSocket) noexcept {
 		{
 			WLock l(cs);
@@ -426,7 +451,18 @@ namespace webserver {
 	}
 
 	void WebServerManager::log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
+		if (!LogManager::getInstance()) {
+			// Core is not initialized yet
+			return;
+		}
+
 		LogManager::getInstance()->message(aMsg, aSeverity);
+	}
+
+	WebServerManager::ErrorF WebServerManager::getDefaultErrorLogger() const noexcept {
+		return [this](const string& aMessage) {
+			log(aMessage, LogMessage::SEV_ERROR);
+		};
 	}
 
 	string WebServerManager::resolveAddress(const string& aHostname, const string& aPort) noexcept {
@@ -504,6 +540,14 @@ namespace webserver {
 	}
 
 	bool WebServerManager::save(const ErrorF& aCustomErrorF) noexcept {
+		{
+			if (!isDirty) {
+				return false;
+			}
+
+			isDirty = false;
+		}
+
 		SimpleXML xml;
 
 		xml.addTag("WebServer");
