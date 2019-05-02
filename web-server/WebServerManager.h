@@ -72,6 +72,7 @@ namespace webserver {
 	public:
 		TimerPtr addTimer(CallBack&& aCallBack, time_t aIntervalMillis, const Timer::CallbackWrapper& aCallbackWrapper = nullptr) noexcept;
 		void addAsyncTask(CallBack&& aCallBack) noexcept;
+		void setDirty() noexcept;
 
 		WebServerManager();
 		~WebServerManager();
@@ -250,6 +251,7 @@ namespace webserver {
 		}
 
 		void log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
+		ErrorF getDefaultErrorLogger() const noexcept;
 
 		string resolveAddress(const string& aHostname, const string& aPort) noexcept;
 
@@ -293,7 +295,8 @@ namespace webserver {
 		unique_ptr<WebUserManager> userManager;
 		unique_ptr<ExtensionManager> extManager;
 
-		TimerPtr socketTimer;
+		TimerPtr minuteTimer;
+		TimerPtr socketPingTimer;
 
 		server_plain endpoint_plain;
 		server_tls endpoint_tls;
@@ -301,6 +304,7 @@ namespace webserver {
 		boost::thread_group worker_threads;
 
 		CallBack shutdownF;
+		bool isDirty = false;
 	};
 }
 

@@ -114,6 +114,7 @@ namespace webserver {
 		void on(WebServerManagerListener::SaveSettings, SimpleXML& aXml) noexcept override;
 
 		WebServerManager* server;
+		void setDirty() noexcept;
 	};
 }
 

@@ -111,7 +111,7 @@ namespace webserver {
 		dcassert(hasSet);
 
 		SettingsManager::getInstance()->save();
-		WebServerManager::getInstance()->save(nullptr);
+		WebServerManager::getInstance()->setDirty();
 
 		return websocketpp::http::status_code::no_content;
 	}
