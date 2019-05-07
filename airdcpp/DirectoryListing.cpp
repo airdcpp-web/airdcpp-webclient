@@ -207,6 +207,11 @@ bool DirectoryListing::supportsASCH() const noexcept {
 	return !partialList || isOwnList || hintedUser.user->isSet(User::ASCH);
 }
 
+void DirectoryListing::setDirectoryLoadingState(const Directory::Ptr& aDir, bool aLoading) noexcept {
+	aDir->setLoading(aLoading);
+	onStateChanged();
+}
+
 void DirectoryListing::onStateChanged() noexcept {
 	addAsyncTask([=]() { fire(DirectoryListingListener::StateChanged()); });
 }
@@ -1011,14 +1016,12 @@ void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aBase
 		dir = root;
 	}
 
-	dir->setLoading(false);
 	if (!aBackgroundTask) {
 		updateCurrentLocation(dir);
 		read = false;
 	}
 
-	onStateChanged();
-	
+	setDirectoryLoadingState(dir, false);
 	fire(DirectoryListingListener::LoadingFinished(), aStartTime, dir->getAdcPath(), aBackgroundTask);
 }
 
@@ -1176,14 +1179,17 @@ void DirectoryListing::changeDirectoryImpl(const string& aAdcPath, bool aReload,
 	dcassert(findDirectory(aAdcPath) != nullptr);
 
 	clearLastError();
-	updateCurrentLocation(dir);
-	fire(DirectoryListingListener::ChangeDirectory(), aAdcPath, aIsSearchChange);
+
+	if (!currentLocation.directory || aAdcPath != currentLocation.directory->getAdcPath()) {
+		updateCurrentLocation(dir);
+		fire(DirectoryListingListener::ChangeDirectory(), aAdcPath, aIsSearchChange);
+	}
 
 	if (!partialList || dir->getLoading() || (dir->isComplete() && !aReload)) {
 		// No need to load anything
 	} else if (partialList) {
 		if (isOwnList || (getUser()->isOnline() || aForceQueue)) {
-			dir->setLoading(true);
+			setDirectoryLoadingState(dir, true);
 
 			try {
 				if (isOwnList) {
@@ -1246,10 +1252,8 @@ void DirectoryListing::onListRemovedQueue(const string& aTarget, const string& a
 		addAsyncTask([=] {
 			auto dir = findDirectory(aDir);
 			if (dir) {
-				dir->setLoading(false);
+				setDirectoryLoadingState(dir, false);
 				fire(DirectoryListingListener::RemovedQueue(), aDir);
-
-				onStateChanged();
 			}
 		});
 	}

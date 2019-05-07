@@ -275,6 +275,8 @@ protected:
 	void onStateChanged() noexcept;
 
 private:
+	void setDirectoryLoadingState(const Directory::Ptr& aDir, bool aLoading) noexcept;
+
 	// Returns the number of loaded dirs
 	// Throws AbortException
 	int loadXML(InputStream& aXml, bool aUpdating, const string& aBase, time_t aListDate = GET_TIME());
