@@ -42,7 +42,8 @@ namespace dcpp {
 		PrivateChatManager() noexcept;
 		~PrivateChatManager() noexcept;
 
-		PrivateChatPtr addChat(const HintedUser& user, bool aReceivedMessage) noexcept;
+		// Returns the chat session and boolean whether the session was newly created
+		pair<PrivateChatPtr, bool> addChat(const HintedUser& user, bool aReceivedMessage) noexcept;
 		PrivateChatPtr getChat(const UserPtr& aUser) const noexcept;
 
 		void DisconnectCCPM(const UserPtr& aUser);

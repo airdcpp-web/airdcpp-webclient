@@ -404,6 +404,18 @@ namespace webserver {
 		updateQueueInfo(t);
 	}
 
+
+	void TransferApi::on(ConnectionManagerListener::Forced, const ConnectionQueueItem* aCqi) noexcept {
+		auto t = findTransfer(aCqi->getToken());
+		if (!t) {
+			return;
+		}
+
+		t->setState(TransferInfo::STATE_WAITING);
+		t->setStatusString(STRING(CONNECTING_FORCED));
+		onTransferUpdated(t, { TransferUtils::PROP_STATUS }, Util::emptyString);
+	}
+
 	void TransferApi::on(ConnectionManagerListener::UserUpdated, const ConnectionQueueItem* aCqi) noexcept {
 		auto t = findTransfer(aCqi->getToken());
 		if (!t) {

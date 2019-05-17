@@ -52,8 +52,11 @@ namespace dcpp {
 		// Called when the monitoring mode has been changed
 		void rebuildMonitoring() noexcept;
 
-		IGETSET(bool, monitorDebug, MonitorDebug, false);
+		bool getMonitorDebug() const noexcept { return monitorDebug; }
+		void setMonitorDebug(bool aEnabled) noexcept;
 	private:
+		bool monitorDebug = false;
+
 		DirectoryMonitor monitor;
 
 		static bool useMonitoring(const ShareDirectoryInfoPtr& aRootInfo) noexcept;

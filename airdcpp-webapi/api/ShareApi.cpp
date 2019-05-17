@@ -216,7 +216,7 @@ namespace webserver {
 			{ "size", aInfo.size },
 			{ "tth", aInfo.tth.toBase32() },
 			{ "time_added", aInfo.timeAdded },
-			{ "type", Serializer::serializeFileType(aInfo.path) },
+			{ "type", Serializer::serializeFileType(aInfo.name) },
 			{ "user", aInfo.user ? Serializer::serializeUser(aInfo.user) : json() }
 		};
 	}

@@ -77,6 +77,7 @@ namespace webserver {
 		void on(ConnectionManagerListener::Removed, const ConnectionQueueItem* aCqi) noexcept override;
 		void on(ConnectionManagerListener::Failed, const ConnectionQueueItem* aCqi, const string &reason) noexcept override;
 		void on(ConnectionManagerListener::Connecting, const ConnectionQueueItem* aCqi) noexcept override;
+		void on(ConnectionManagerListener::Forced, const ConnectionQueueItem* aCqi) noexcept override;
 		void on(ConnectionManagerListener::UserUpdated, const ConnectionQueueItem* aCqi) noexcept override;
 
 		void on(DownloadManagerListener::Starting, const Download* aDownload) noexcept override;

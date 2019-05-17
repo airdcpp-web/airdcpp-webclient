@@ -112,6 +112,8 @@ namespace webserver {
 			refreshTokens.erase(aRefreshToken);
 		}
 
+		setDirty();
+
 		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
 		return createSession(user, uuid, aType, aMaxInactivityMinutes, aIP);
 	}
@@ -138,7 +140,11 @@ namespace webserver {
 
 		aUser->setLastLogin(GET_TIME());
 		aUser->addSession();
-		fire(WebUserManagerListener::UserUpdated(), aUser);
+
+		if (aType != Session::TYPE_EXTENSION) {
+			fire(WebUserManagerListener::UserUpdated(), aUser);
+			setDirty();
+		}
 
 		{
 			WLock l(cs);
@@ -402,6 +408,10 @@ namespace webserver {
 		}
 	}
 
+	void WebUserManager::setDirty() noexcept {
+		server->setDirty();
+	}
+
 	bool WebUserManager::hasUsers() const noexcept {
 		RLock l(cs);
 		return !users.empty();
@@ -424,6 +434,7 @@ namespace webserver {
 		}
 
 		fire(WebUserManagerListener::UserAdded(), aUser);
+		setDirty();
 		return true;
 	}
 
@@ -446,6 +457,7 @@ namespace webserver {
 			refreshTokens.emplace(uuid, TokenInfo({ uuid, aUser, expiration }));
 		}
 
+		setDirty();
 		return uuid;
 	}
 
@@ -465,6 +477,8 @@ namespace webserver {
 				refreshTokens.erase(t.token);
 			}
 		}
+
+		setDirty();
 	}
 
 
@@ -495,6 +509,7 @@ namespace webserver {
 		}
 
 		fire(WebUserManagerListener::UserUpdated(), aUser);
+		setDirty();
 		return true;
 	}
 
@@ -513,6 +528,7 @@ namespace webserver {
 		}
 
 		fire(WebUserManagerListener::UserRemoved(), user);
+		setDirty();
 		return true;
 	}
 
@@ -533,11 +549,15 @@ namespace webserver {
 	}
 
 	void WebUserManager::replaceWebUsers(const WebUserList& newUsers) noexcept {
-		WLock l(cs);
-		refreshTokens.clear();
-		users.clear();
-		for (auto u : newUsers) {
-			users.emplace(u->getUserName(), u);
+		{
+			WLock l(cs);
+			refreshTokens.clear();
+			users.clear();
+			for (auto u : newUsers) {
+				users.emplace(u->getUserName(), u);
+			}
 		}
+
+		setDirty();
 	}
 }
