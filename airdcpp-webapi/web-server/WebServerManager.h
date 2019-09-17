@@ -25,6 +25,7 @@
 #include "FileServer.h"
 #include "ApiRequest.h"
 
+#include "HttpUtil.h"
 #include "SystemUtil.h"
 #include "Timer.h"
 #include "WebServerManagerListener.h"
@@ -183,7 +184,7 @@ namespace webserver {
 
 			SessionPtr session = nullptr;
 
-			auto authToken = con->get_request().get_header("Authorization");
+			auto authToken = HttpUtil::parseAuthToken(con->get_request());
 			if (authToken != websocketpp::http::empty_header) {
 				try {
 					session = userManager->parseHttpSession(authToken, ip);
@@ -232,21 +233,45 @@ namespace webserver {
 
 				StringPairList headers;
 				std::string output;
-				status = fileServer.handleRequest(con->get_request(), output, headers, session);
 
-				for (const auto& p : headers) {
-					con->append_header(p.first, p.second);
+
+				const auto responseF = [this, con, ip](websocketpp::http::status_code::value aStatus, const string& aOutput, const StringPairList& aHeaders = StringPairList()) {
+					for (const auto& p : aHeaders) {
+						con->append_header(p.first, p.second);
+					}
+
+					onData(
+						con->get_request().get_method() + " " + con->get_resource() + ": " + Util::toString(aStatus) + " (" + Util::formatBytes(aOutput.length()) + ")",
+						TransportType::TYPE_HTTP_FILE,
+						Direction::OUTGOING,
+						ip
+					);
+
+					if (HttpUtil::isStatusOk(aStatus)) {
+						con->set_status(aStatus);
+						con->set_body(aOutput);
+					} else {
+						con->set_status(aStatus, aOutput);
+						con->set_body(aOutput);
+					}
+				};
+
+				bool isDeferred = false;
+				const auto deferredF = [&]() {
+					con->defer_http_response();
+					isDeferred = true;
+
+					return [=](websocketpp::http::status_code::value aStatus, const string& aOutput, const StringPairList& aHeaders) {
+						responseF(aStatus, aOutput, aHeaders);
+						con->send_http_response();
+					};
+				};
+
+				status = fileServer.handleRequest(con->get_request(), output, headers, session, deferredF);
+
+				if (!isDeferred) {
+					responseF(status, output, headers);
 				}
-
-				onData(
-					con->get_request().get_method() + " " + con->get_resource() + ": " + Util::toString(status) + " (" + Util::formatBytes(output.length()) + ")",
-					TransportType::TYPE_HTTP_FILE,
-					Direction::OUTGOING,
-					ip
-				);
-
-				con->set_status(status);
-				con->set_body(output);
 			}
 		}
 

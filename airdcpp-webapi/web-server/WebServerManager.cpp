@@ -365,6 +365,8 @@ namespace webserver {
 	}
 
 	void WebServerManager::stop() {
+		fileServer.stop();
+
 		if (minuteTimer)
 			minuteTimer->stop(true);
 		if (socketPingTimer)
