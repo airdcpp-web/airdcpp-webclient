@@ -175,7 +175,12 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 		} else {
 			abortRequest(true);
 		
-			fire(HttpConnectionListener::Failed(), this, str(boost::format("%1% (%2%)") % aLine % currentUrl));
+			auto error = aLine;
+			if (error.length() > 1 && error.back() == '\r') {
+				error.pop_back(); // These would cause issues in HTTP messages
+			}
+
+			fire(HttpConnectionListener::Failed(), this, str(boost::format("%1% (%2%)") % error % currentUrl));
 			if (isUnique) { delete this; return; }
 			connState = CONN_FAILED;
 		}
