@@ -43,6 +43,7 @@ namespace webserver {
 		api_return handlePostDirectoryDownload(ApiRequest& aRequest);
 		api_return handleDeleteDirectoryDownload(ApiRequest& aRequest);
 		api_return handleGetDirectoryDownloads(ApiRequest& aRequest);
+		api_return handleGetDirectoryDownload(ApiRequest& aRequest);
 
 		api_return handleMatchQueue(ApiRequest& aRequest);
 

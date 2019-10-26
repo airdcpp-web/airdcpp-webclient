@@ -304,6 +304,17 @@ namespace webserver {
 		return Util::emptyString;
 	}
 
+	string Serializer::getDirectoryDownloadStateId(DirectoryDownload::State aState) noexcept {
+		switch (aState) {
+			case DirectoryDownload::State::PENDING: return "pending";
+			case DirectoryDownload::State::QUEUED: return "queued";
+			case DirectoryDownload::State::FAILED: return "failed";
+		}
+
+		dcassert(0);
+		return Util::emptyString;
+	}
+
 	json Serializer::serializeDownloadState(const TrackableDownloadItem& aItem) noexcept {
 		auto info = aItem.getStatusInfo();
 		return {
@@ -381,6 +392,9 @@ namespace webserver {
 			{ "target_directory", aDownload->getTarget() },
 			{ "priority", Serializer::serializePriorityId(aDownload->getPriority()) },
 			{ "list_path", aDownload->getListPath() },
+			{ "state", getDirectoryDownloadStateId(aDownload->getState()) },
+			{ "queue_info", aDownload->getQueueInfo() ? serializeDirectoryBundleAddInfo(*aDownload->getQueueInfo(), aDownload->getError()) : json() },
+			{ "error", aDownload->getError() },
 		};
 	}
 
