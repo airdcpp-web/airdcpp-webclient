@@ -149,6 +149,7 @@ public:
 		//GETSET(string, remotePath, RemotePath);
 		OrderedStringSet blockedHubs;
 		bool updateHubUrl(const OrderedStringSet& aOnlineHubs, string& hubUrl_, bool aIsFileList) noexcept;
+		static string formatError(const Flags& aFlags) noexcept;
 	};
 
 	typedef vector<Source> SourceList;

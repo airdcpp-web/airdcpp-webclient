@@ -41,16 +41,16 @@ public:
 		Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, 
 		bool allowOverlap, string& lastError_, bool& hasDownload) noexcept;
 
-	void addDownload(QueueItemPtr& qi, Download* d) noexcept;
-	void removeDownload(QueueItemPtr& qi, const string& aToken) noexcept;
+	void addDownload(const QueueItemPtr& qi, Download* d) noexcept;
+	void removeDownload(const QueueItemPtr& qi, const string& aToken) noexcept;
 
-	void removeQI(QueueItemPtr& qi, bool removeRunning = true) noexcept;
-	void removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning = true, Flags::MaskType reason = 0) noexcept;
-	void setQIPriority(QueueItemPtr& qi, Priority p) noexcept;
+	void removeQI(const QueueItemPtr& qi, bool removeRunning = true) noexcept;
+	void removeQI(const QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning = true, Flags::MaskType reason = 0) noexcept;
+	void setQIPriority(const QueueItemPtr& qi, Priority p) noexcept;
 
-	void addBundle(BundlePtr& aBundle, const UserPtr& aUser) noexcept;
-	void removeBundle(BundlePtr& aBundle, const UserPtr& aUser) noexcept;
-	void setBundlePriority(BundlePtr& aBundle, Priority p) noexcept;
+	void addBundle(const BundlePtr& aBundle, const UserPtr& aUser) noexcept;
+	void removeBundle(const BundlePtr& aBundle, const UserPtr& aUser) noexcept;
+	void setBundlePriority(const BundlePtr& aBundle, Priority p) noexcept;
 
 	unordered_map<UserPtr, BundleList, User::Hash>& getBundleList()  { return userBundleQueue; }
 	unordered_map<UserPtr, QueueItemList, User::Hash>& getPrioList()  { return userPrioQueue; }

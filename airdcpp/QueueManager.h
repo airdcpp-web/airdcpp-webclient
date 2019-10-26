@@ -96,10 +96,10 @@ public:
 
 	/** Readd a source that was removed */
 	bool readdQISource(const string& target, const HintedUser& aUser) noexcept;
-	void readdBundleSource(BundlePtr aBundle, const HintedUser& aUser) noexcept;
+	void readdBundleSource(const BundlePtr aBundle, const HintedUser& aUser) noexcept;
 
 	// Change bundle to use sequential order (instead of random order)
-	void onUseSeqOrder(BundlePtr& aBundle) noexcept;
+	void onUseSeqOrder(const BundlePtr& aBundle) noexcept;
 
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
 	void matchListing(const DirectoryListing& dl, int& matchingFiles_, int& newFiles_, BundleList& bundles_) noexcept;
@@ -146,7 +146,7 @@ public:
 	// Set priority for the file.
 	// keepAutoPrio should be used only when performing auto priorization.
 	// Use DEFAULT priority to enable auto priority
-	void setQIPriority(QueueItemPtr& qi, Priority p, bool aKeepAutoPrio = false) noexcept;
+	void setQIPriority(const QueueItemPtr& qi, Priority p, bool aKeepAutoPrio = false) noexcept;
 
 	// Toggle autoprio for the file
 	void setQIAutoPriority(const string& aTarget) noexcept;
@@ -249,7 +249,7 @@ public:
 		Flags::MaskType aFlags = 0, Priority aPrio = Priority::DEFAULT);
 
 	bool removeBundle(QueueToken aBundleToken, bool removeFinishedFiles) noexcept;
-	void removeBundle(BundlePtr& aBundle, bool removeFinishedFiles) noexcept;
+	void removeBundle(const BundlePtr& aBundle, bool removeFinishedFiles) noexcept;
 
 	// Find a bundle by token
 	BundlePtr findBundle(QueueToken aBundleToken) const noexcept { RLock l (cs); return bundleQueue.findBundle(aBundleToken); }
@@ -279,7 +279,7 @@ public:
 	MemoryInputStream* generateTTHList(QueueToken aBundleToken, bool isInSharingHub, BundlePtr& bundle_);
 
 	//Bundle download failed due to Ex. disk full
-	void bundleDownloadFailed(BundlePtr& aBundle, const string& aError);
+	void bundleDownloadFailed(const BundlePtr& aBundle, const string& aError);
 
 	/* Priorities */
 	// Use DEFAULT priority to enable auto priority
@@ -288,11 +288,11 @@ public:
 	// Set new priority for the specified bundle
 	// keepAutoPrio should be used only when performing auto priorization.
 	// Use DEFAULT priority to enable auto priority
-	void setBundlePriority(BundlePtr& aBundle, Priority p, bool aKeepAutoPrio=false, time_t aResumeTime = 0) noexcept;
+	void setBundlePriority(const BundlePtr& aBundle, Priority p, bool aKeepAutoPrio=false, time_t aResumeTime = 0) noexcept;
 
 	// Toggle autoprio state for the bundle
 	void toggleBundleAutoPriority(QueueToken aBundleToken) noexcept;
-	void toggleBundleAutoPriority(BundlePtr& aBundle) noexcept;
+	void toggleBundleAutoPriority(const BundlePtr& aBundle) noexcept;
 
 	// Perform autopriorization for applicable bundles
 	// verbose is only used for debugging purposes to print the points for each bundle
@@ -415,26 +415,26 @@ private:
 	bool recheckFileImpl(const string& aPath, bool isBundleCheck, int64_t& failedBytes_) noexcept;
 	void handleFailedRecheckItems(const QueueItemList& ql) noexcept;
 
-	void connectBundleSources(BundlePtr& aBundle) noexcept;
+	void connectBundleSources(const BundlePtr& aBundle) noexcept;
 	bool allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& runningBundles, string& lastError_, bool mcn = false) noexcept;
 
-	void removeBundleItem(QueueItemPtr& qi, bool finished) noexcept;
-	void addLoadedBundle(BundlePtr& aBundle) noexcept;
+	void removeBundleItem(const QueueItemPtr& qi, bool finished) noexcept;
+	void addLoadedBundle(const BundlePtr& aBundle) noexcept;
 
 	// Add a new bundle in queue or (called from inside a WLock)
 	// onBundleAdded must be called separately from outside the lock afterwards
-	void addBundle(BundlePtr& aBundle, int aFilesAdded) noexcept;
+	void addBundle(const BundlePtr& aBundle, int aFilesAdded) noexcept;
 
 	// Fire events and perform other secondary actions for added bundles (don't lock)
 	void onBundleAdded(const BundlePtr& aBundle, Bundle::Status aOldStatus, const QueueItem::ItemBoolList& aItemsAdded, const HintedUser& aUser, bool aWantConnection) noexcept;
 
 	// Called after new items have been added to a finished bundled (addBundle will handle this automatically)
-	void readdBundle(BundlePtr& aBundle) noexcept;
+	void readdBundle(const BundlePtr& aBundle) noexcept;
 
 	// Remove filelist queued for matching for this bundle
-	void removeBundleLists(BundlePtr& aBundle) noexcept;
+	void removeBundleLists(const BundlePtr& aBundle) noexcept;
 
-	void removeQI(QueueItemPtr& qi, bool removeData = false) noexcept;
+	void removeQI(const QueueItemPtr& qi, bool removeData = false) noexcept;
 
 	void handleBundleUpdate(QueueToken aBundleToken) noexcept;
 
@@ -451,7 +451,7 @@ private:
 
 	// Removes the provided queue item in case the downloaded target file is missing
 	// Throws FileException if an identical target file exists or QueueException in case of target mismatches
-	bool checkRemovedTarget(QueueItemPtr& qi, int64_t aSize, const TTHValue& aTTH);
+	bool checkRemovedTarget(const QueueItemPtr& qi, int64_t aSize, const TTHValue& aTTH);
 
 	// Check that we can download from this user
 	// Throws QueueException in case of errors
@@ -478,13 +478,13 @@ private:
 
 	void addBundleUpdate(const BundlePtr& aBundle) noexcept;
 
-	void renameDownloadedFile(const string& aSource, const string& aTarget, QueueItemPtr& q) noexcept;
+	void renameDownloadedFile(const string& aSource, const string& aTarget, const QueueItemPtr& q) noexcept;
 
 	void sendFileCompletionNotifications(const QueueItemPtr& q) noexcept;
 
 	// Returns whether the bundle has completed download
 	// Will also attempt to validate and share completed bundles 
-	bool checkBundleFinished(BundlePtr& aBundle) noexcept;
+	bool checkBundleFinished(const BundlePtr& aBundle) noexcept;
 
 	// Returns true if any of the bundle files has failed validation
 	// Optionally also rechecks failed files
@@ -499,22 +499,22 @@ private:
 	bool runFileCompletionHooks(const QueueItemPtr& aQI) noexcept;
 
 	unordered_map<string, SearchResultList> searchResults;
-	void pickMatch(QueueItemPtr qi) noexcept;
-	void matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult) noexcept;
+	void pickMatch(const QueueItemPtr qi) noexcept;
+	void matchBundle(const QueueItemPtr& aQI, const SearchResultPtr& aResult) noexcept;
 
 	void setFileStatus(const QueueItemPtr& aFile, QueueItem::Status aNewStatus) noexcept;
 	void setBundleStatus(const BundlePtr& aBundle, Bundle::Status aNewStatus) noexcept;
 
-	void removeFileSource(QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
+	void removeFileSource(const QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason, bool removeConn = true) noexcept;
 
 	string getListPath(const HintedUser& user) const noexcept;
 
 	void onFileFinished(const QueueItemPtr& aQI, Download* aDownload, const string& aListDirectory) noexcept;
-	void onDownloadFailed(QueueItemPtr& aQI, Download* aDownload, bool aNoAccess, bool aRotateQueue) noexcept;
-	void onFileDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept;
+	void onDownloadFailed(const QueueItemPtr& aQI, Download* aDownload, bool aNoAccess, bool aRotateQueue) noexcept;
+	void onFileDownloadCompleted(const QueueItemPtr& aQI, Download* aDownload) noexcept;
 	// Throws HashException
-	void onTreeDownloadCompleted(QueueItemPtr& aQI, Download* aDownload);
-	void onFilelistDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept;
+	void onTreeDownloadCompleted(const QueueItemPtr& aQI, Download* aDownload);
+	void onFilelistDownloadCompleted(const QueueItemPtr& aQI, Download* aDownload) noexcept;
 
 	StringMatch highPrioFiles;
 	StringMatch skipList;

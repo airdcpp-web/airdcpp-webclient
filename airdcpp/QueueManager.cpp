@@ -558,7 +558,7 @@ string QueueManager::getListPath(const HintedUser& user) const noexcept {
 	return Util::getListPath() + nick + user.user->getCID().toBase32();
 }
 
-bool QueueManager::checkRemovedTarget(QueueItemPtr& q, int64_t aSize, const TTHValue& aTTH) {
+bool QueueManager::checkRemovedTarget(const QueueItemPtr& q, int64_t aSize, const TTHValue& aTTH) {
 	if (q->isDownloaded()) {
 		/* The target file doesn't exist, add our item. Also recheck the existance in case of finished files being moved on the same time. */
 		dcassert(q->getBundle());
@@ -872,7 +872,7 @@ optional<DirectoryBundleAddInfo> QueueManager::createDirectoryBundle(const strin
 	return info;
 }
 
-void QueueManager::addLoadedBundle(BundlePtr& aBundle) noexcept {
+void QueueManager::addLoadedBundle(const BundlePtr& aBundle) noexcept {
 	WLock l(cs);
 	if (aBundle->isEmpty())
 		return;
@@ -883,7 +883,7 @@ void QueueManager::addLoadedBundle(BundlePtr& aBundle) noexcept {
 	bundleQueue.addBundle(aBundle);
 }
 
-void QueueManager::addBundle(BundlePtr& aBundle, int aItemsAdded) noexcept {
+void QueueManager::addBundle(const BundlePtr& aBundle, int aItemsAdded) noexcept {
 	if (aItemsAdded == 0) {
 		return;
 	}
@@ -1398,7 +1398,7 @@ void QueueManager::onFileFinished(const QueueItemPtr& aQI, Download* aDownload, 
 	fire(QueueManagerListener::ItemFinished(), aQI, aListDirectory, aDownload->getHintedUser(), aDownload->getAverageSpeed());
 }
 
-void QueueManager::renameDownloadedFile(const string& source, const string& target, QueueItemPtr& aQI) noexcept {
+void QueueManager::renameDownloadedFile(const string& source, const string& target, const QueueItemPtr& aQI) noexcept {
 	try {
 		File::ensureDirectory(target);
 		UploadManager::getInstance()->abortUpload(source);
@@ -1467,7 +1467,7 @@ void QueueManager::sendFileCompletionNotifications(const QueueItemPtr& qi) noexc
 }
 
 
-bool QueueManager::checkBundleFinished(BundlePtr& aBundle) noexcept {
+bool QueueManager::checkBundleFinished(const BundlePtr& aBundle) noexcept {
 	bool hasNotifications = false, isPrivate = false;
 	if (!aBundle->isDownloaded()) {
 		return false;
@@ -1608,7 +1608,7 @@ bool QueueManager::runFileCompletionHooks(const QueueItemPtr& aQI) noexcept {
 	return true;
 }
 
-void QueueManager::bundleDownloadFailed(BundlePtr& aBundle, const string& aError) {
+void QueueManager::bundleDownloadFailed(const BundlePtr& aBundle, const string& aError) {
 	if (!aBundle) {
 		return;
 	}
@@ -1660,7 +1660,7 @@ void QueueManager::putDownload(Download* aDownload, bool aFinished, bool aNoAcce
 	}
 }
 
-void QueueManager::onDownloadFailed(QueueItemPtr& aQI, Download* aDownload, bool aNoAccess, bool aRotateQueue) noexcept {
+void QueueManager::onDownloadFailed(const QueueItemPtr& aQI, Download* aDownload, bool aNoAccess, bool aRotateQueue) noexcept {
 	if (aDownload->getType() == Transfer::TYPE_FULL_LIST && !aDownload->getTempTarget().empty()) {
 		// No use keeping an unfinished file list...
 		File::deleteFile(aDownload->getTempTarget());
@@ -1710,7 +1710,7 @@ void QueueManager::onDownloadFailed(QueueItemPtr& aQI, Download* aDownload, bool
 	return;
 }
 
-void QueueManager::onFilelistDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept {
+void QueueManager::onFilelistDownloadCompleted(const QueueItemPtr& aQI, Download* aDownload) noexcept {
 	// Finished
 
 	{
@@ -1748,7 +1748,7 @@ void QueueManager::onFilelistDownloadCompleted(QueueItemPtr& aQI, Download* aDow
 	fire(QueueManagerListener::ItemRemoved(), aQI, true);
 }
 
-void QueueManager::onTreeDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) {
+void QueueManager::onTreeDownloadCompleted(const QueueItemPtr& aQI, Download* aDownload) {
 	{
 		WLock l(cs);
 		userQueue.removeDownload(aQI, aDownload->getToken());
@@ -1759,7 +1759,7 @@ void QueueManager::onTreeDownloadCompleted(QueueItemPtr& aQI, Download* aDownloa
 	fire(QueueManagerListener::ItemStatus(), aQI);
 }
 
-void QueueManager::onFileDownloadCompleted(QueueItemPtr& aQI, Download* aDownload) noexcept {
+void QueueManager::onFileDownloadCompleted(const QueueItemPtr& aQI, Download* aDownload) noexcept {
 	dcassert(aDownload->getType() == Transfer::TYPE_FILE);
 
 	aDownload->setOverlapped(false);
@@ -1851,7 +1851,7 @@ void QueueManager::matchTTHList(const string& aName, const HintedUser& aUser, in
 	addSources(aUser, ql, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);
 }
 
-void QueueManager::removeQI(QueueItemPtr& q, bool aDeleteData /*false*/) noexcept {
+void QueueManager::removeQI(const QueueItemPtr& q, bool aDeleteData /*false*/) noexcept {
 	StringList x;
 	dcassert(q);
 
@@ -1904,7 +1904,7 @@ void QueueManager::removeFileSource(const string& aTarget, const UserPtr& aUser,
 
 #define MAX_SIZE_WO_TREE 20*1024*1024
 
-void QueueManager::removeFileSource(QueueItemPtr& q, const UserPtr& aUser, Flags::MaskType aReason, bool aRemoveConn /* = true */) noexcept {
+void QueueManager::removeFileSource(const QueueItemPtr& q, const UserPtr& aUser, Flags::MaskType aReason, bool aRemoveConn /* = true */) noexcept {
 	bool isRunning = false;
 	bool removeCompletely = false;
 	{
@@ -1916,6 +1916,7 @@ void QueueManager::removeFileSource(QueueItemPtr& q, const UserPtr& aUser, Flags
 			return;
 	
 		if(q->isSet(QueueItem::FLAG_USER_LIST)) {
+			q->getSource(aUser)->setFlag(aReason);
 			removeCompletely = true;
 			goto endCheck;
 		}
@@ -1980,7 +1981,7 @@ void QueueManager::setBundlePriority(QueueToken aBundleToken, Priority p) noexce
 	setBundlePriority(bundle, p, false);
 }
 
-void QueueManager::setBundlePriority(BundlePtr& aBundle, Priority p, bool aKeepAutoPrio, time_t aResumeTime/* = 0*/) noexcept {
+void QueueManager::setBundlePriority(const BundlePtr& aBundle, Priority p, bool aKeepAutoPrio, time_t aResumeTime/* = 0*/) noexcept {
 	if (!aBundle || aBundle->getStatus() == Bundle::STATUS_RECHECK)
 		return;
 
@@ -2051,7 +2052,7 @@ void QueueManager::toggleBundleAutoPriority(QueueToken aBundleToken) noexcept {
 	toggleBundleAutoPriority(bundle);
 }
 
-void QueueManager::toggleBundleAutoPriority(BundlePtr& aBundle) noexcept {
+void QueueManager::toggleBundleAutoPriority(const BundlePtr& aBundle) noexcept {
 	if (aBundle->isDownloaded())
 		return;
 
@@ -2113,7 +2114,7 @@ void QueueManager::setQIPriority(const string& aTarget, Priority p) noexcept {
 	setQIPriority(q, p);
 }
 
-void QueueManager::setQIPriority(QueueItemPtr& q, Priority p, bool aKeepAutoPrio /*false*/) noexcept {
+void QueueManager::setQIPriority(const QueueItemPtr& q, Priority p, bool aKeepAutoPrio /*false*/) noexcept {
 	HintedUserList getConn;
 	bool running = false;
 	if (!q || !q->getBundle()) {
@@ -2718,7 +2719,7 @@ void QueueManager::pickMatch(QueueItemPtr qi) noexcept {
 	}
 }
 
-void QueueManager::matchBundle(QueueItemPtr& aQI, const SearchResultPtr& aResult) noexcept {
+void QueueManager::matchBundle(const QueueItemPtr& aQI, const SearchResultPtr& aResult) noexcept {
 	if (aQI->getBundle()->isFileBundle()) {
 		// No reason to match anything with file bundles
 		addSources(aResult->getUser(), { aQI }, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE);
@@ -3373,7 +3374,7 @@ int QueueManager::addSources(const HintedUser& aUser, const QueueItemList& aItem
 	return addedItems.size();
 }
 
-void QueueManager::connectBundleSources(BundlePtr& aBundle) noexcept {
+void QueueManager::connectBundleSources(const BundlePtr& aBundle) noexcept {
 	if (aBundle->isPausedPrio())
 		return;
 
@@ -3390,7 +3391,7 @@ void QueueManager::connectBundleSources(BundlePtr& aBundle) noexcept {
 	}
 }
 
-void QueueManager::readdBundle(BundlePtr& aBundle) noexcept {
+void QueueManager::readdBundle(const BundlePtr& aBundle) noexcept {
 	aBundle->setStatus(Bundle::STATUS_QUEUED);
 
 	//check that the finished files still exist
@@ -3466,7 +3467,7 @@ void QueueManager::handleBundleUpdate(QueueToken aBundleToken) noexcept {
 		}
 	}
 }
-void QueueManager::removeBundleItem(QueueItemPtr& qi, bool aFinished) noexcept{
+void QueueManager::removeBundleItem(const QueueItemPtr& qi, bool aFinished) noexcept{
 	BundlePtr bundle = qi->getBundle();
 	if (!bundle) {
 		return;
@@ -3528,7 +3529,7 @@ bool QueueManager::removeBundle(QueueToken aBundleToken, bool removeFinishedFile
 	return false;
 }
 
-void QueueManager::removeBundle(BundlePtr& aBundle, bool aRemoveFinishedFiles) noexcept{
+void QueueManager::removeBundle(const BundlePtr& aBundle, bool aRemoveFinishedFiles) noexcept{
 	if (aBundle->getStatus() == Bundle::STATUS_NEW) {
 		return;
 	}
@@ -3595,7 +3596,7 @@ void QueueManager::removeBundle(BundlePtr& aBundle, bool aRemoveFinishedFiles) n
 	removeBundleLists(aBundle);
 }
 
-void QueueManager::removeBundleLists(BundlePtr& aBundle) noexcept{
+void QueueManager::removeBundleLists(const BundlePtr& aBundle) noexcept{
 	QueueItemList removed;
 	{
 		RLock l(cs);
@@ -3791,7 +3792,7 @@ SearchQueueInfo QueueManager::searchFileAlternates(const QueueItemPtr& aQI) cons
 	return SearchManager::getInstance()->search(s);
 }
 
-void QueueManager::onUseSeqOrder(BundlePtr& b) noexcept {
+void QueueManager::onUseSeqOrder(const BundlePtr& b) noexcept {
 	if (!b)
 		return;
 

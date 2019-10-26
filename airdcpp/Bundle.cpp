@@ -241,7 +241,7 @@ QueueItemList Bundle::getFailedItems() const noexcept {
 	return ret;
 }
 
-void Bundle::addFinishedItem(QueueItemPtr& qi, bool aFinished) noexcept {
+void Bundle::addFinishedItem(const QueueItemPtr& qi, bool aFinished) noexcept {
 	dcassert(qi->isDownloaded() && qi->getTimeFinished() > 0);
 
 	finishedFiles.push_back(qi);
@@ -251,7 +251,7 @@ void Bundle::addFinishedItem(QueueItemPtr& qi, bool aFinished) noexcept {
 	}
 }
 
-void Bundle::removeFinishedItem(QueueItemPtr& aQI) noexcept {
+void Bundle::removeFinishedItem(const QueueItemPtr& aQI) noexcept {
 	auto f = find(finishedFiles, aQI);
 	if (f != finishedFiles.end()) {
 		decreaseSize(aQI->getSize());
@@ -264,7 +264,7 @@ void Bundle::removeFinishedItem(QueueItemPtr& aQI) noexcept {
 	dcassert(0);
 }
 
-void Bundle::addQueue(QueueItemPtr& qi) noexcept {
+void Bundle::addQueue(const QueueItemPtr& qi) noexcept {
 	if (qi->isDownloaded()) {
 		addFinishedItem(qi, false);
 		return;
@@ -279,7 +279,7 @@ void Bundle::addQueue(QueueItemPtr& qi) noexcept {
 	addFinishedSegment(qi->getDownloadedSegments());
 }
 
-void Bundle::removeQueue(QueueItemPtr& aQI, bool aFileCompleted) noexcept {
+void Bundle::removeQueue(const QueueItemPtr& aQI, bool aFileCompleted) noexcept {
 	if (!aFileCompleted && aQI->isDownloaded()) {
 		removeFinishedItem(aQI);
 		return;
@@ -421,7 +421,7 @@ bool Bundle::isFailed() const noexcept {
 	return isFailedStatus(status);
 }
 
-void Bundle::rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept {
+void Bundle::rotateUserQueue(const QueueItemPtr& qi, const UserPtr& aUser) noexcept {
 	dcassert(qi->isSource(aUser));
 	auto& ulm = userQueue[static_cast<int>(qi->getPriority())];
 	auto j = ulm.find(aUser);
@@ -439,12 +439,12 @@ void Bundle::rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept {
 	}
 }
 
-void Bundle::removeUserQueue(QueueItemPtr& qi) noexcept {
+void Bundle::removeUserQueue(const QueueItemPtr& qi) noexcept {
 	for(auto& s: qi->getSources())
 		removeUserQueue(qi, s.getUser(), 0);
 }
 
-bool Bundle::removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason) noexcept{
+bool Bundle::removeUserQueue(const QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason) noexcept{
 
 	//remove from UserQueue
 	dcassert(qi->isSource(aUser));
