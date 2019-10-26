@@ -854,6 +854,24 @@ bool QueueItem::Source::updateHubUrl(const OrderedStringSet& aOnlineHubs, string
 	return false;
 }
 
+string QueueItem::Source::formatError(const Flags& aFlags) noexcept {
+	if (aFlags.isSet(QueueItem::Source::FLAG_FILE_NOT_AVAILABLE)) {
+		return STRING(FILE_NOT_AVAILABLE);
+	} else if (aFlags.isSet(QueueItem::Source::FLAG_BAD_TREE)) {
+		return STRING(INVALID_TREE);
+	} else if (aFlags.isSet(QueueItem::Source::FLAG_NO_NEED_PARTS)) {
+		return STRING(NO_NEEDED_PART);
+	} else if (aFlags.isSet(QueueItem::Source::FLAG_NO_TTHF)) {
+		return STRING(SOURCE_TOO_OLD);
+	} else if (aFlags.isSet(QueueItem::Source::FLAG_SLOW_SOURCE)) {
+		return STRING(SLOW_USER);
+	} else if (aFlags.isSet(QueueItem::Source::FLAG_UNTRUSTED)) {
+		return STRING(CERTIFICATE_NOT_TRUSTED);
+	}
+
+	return Util::emptyString;
+}
+
 void QueueItem::resetDownloaded() noexcept {
 	if (bundle) {
 		bundle->removeFinishedSegment(getDownloadedSegments());

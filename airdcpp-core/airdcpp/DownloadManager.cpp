@@ -157,7 +157,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		QueueManager::getInstance()->handleSlowDisconnect(dtp.user, dtp.target, dtp.bundle);
 }
 
-void DownloadManager::sendSizeUpdate(BundlePtr& aBundle) const noexcept {
+void DownloadManager::sendSizeUpdate(const BundlePtr& aBundle) const noexcept {
 	RLock l (cs);
 	aBundle->sendSizeUpdate();
 }
@@ -611,7 +611,7 @@ void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove
 	aSource->setLastBundle(Util::emptyString);
 }
 
-void DownloadManager::disconnectBundle(BundlePtr& aBundle, const UserPtr& aUser) {
+void DownloadManager::disconnectBundle(const BundlePtr& aBundle, const UserPtr& aUser) {
 	//UserConnectionList u;
 	{
 		RLock l(cs);

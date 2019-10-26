@@ -48,12 +48,12 @@ public:
 	void addConnection(UserConnection* conn);
 	bool checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly = false);
 
-	void sendSizeUpdate(BundlePtr& aBundle) const noexcept;
+	void sendSizeUpdate(const BundlePtr& aBundle) const noexcept;
 	BundlePtr findRunningBundle(QueueToken bundleToken) const noexcept;
 
 	/** @internal */
 	void abortDownload(const string& aTarget, const UserPtr& aUser = nullptr);
-	void disconnectBundle(BundlePtr& aBundle, const UserPtr& aUser = nullptr);
+	void disconnectBundle(const BundlePtr& aBundle, const UserPtr& aUser = nullptr);
 
 	/** @return Running average download speed in Bytes/s */
 	int64_t getRunningAverage() const;

@@ -955,6 +955,9 @@
     <ClInclude Include="airdcpp\constants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="airdcpp\DirectoryDownload.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="airdcpp\StringDefs.h">

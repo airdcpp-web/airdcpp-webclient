@@ -110,6 +110,7 @@ CryptoManager::CryptoManager()
 
 void CryptoManager::setContextOptions(SSL_CTX* aCtx, bool aServer) {
 	const char ciphersuites[] =
+		"TLS_AES_128_GCM_SHA256"
 		"ECDHE-ECDSA-AES128-GCM-SHA256:"
 		"ECDHE-RSA-AES128-GCM-SHA256:"
 		"ECDHE-ECDSA-AES128-SHA256:"
@@ -118,6 +119,7 @@ void CryptoManager::setContextOptions(SSL_CTX* aCtx, bool aServer) {
 		"ECDHE-RSA-AES128-SHA:"
 		"DHE-RSA-AES128-SHA:"
 		"AES128-SHA:"
+		"TLS_AES_256_GCM_SHA384"
 		"ECDHE-ECDSA-AES256-GCM-SHA384:"
 		"ECDHE-RSA-AES256-GCM-SHA384:"
 		"ECDHE-ECDSA-AES256-SHA384:"
