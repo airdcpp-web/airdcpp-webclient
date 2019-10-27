@@ -63,6 +63,8 @@ public:
 	virtual ByteVector getKeyprint() const noexcept override;
 	virtual bool verifyKeyprint(const string& expKeyp, bool allowUntrusted) noexcept override;
 
+	virtual void connect(const AddressInfo& aAddr, const string& aPort, const string& aLocalPort = Util::emptyString) override;
+
 	virtual bool waitConnected(uint64_t millis) override;
 	virtual bool waitAccepted(uint64_t millis) override;
 
@@ -75,6 +77,7 @@ private:
 
 	int checkSSL(int ret);
 	bool waitWant(int ret, uint64_t millis);
+	string hostname;
 };
 
 } // namespace dcpp
