@@ -236,10 +236,6 @@ namespace webserver {
 
 
 				const auto responseF = [this, con, ip](websocketpp::http::status_code::value aStatus, const string& aOutput, const StringPairList& aHeaders = StringPairList()) {
-					for (const auto& p : aHeaders) {
-						con->append_header(p.first, p.second);
-					}
-
 					onData(
 						con->get_request().get_method() + " " + con->get_resource() + ": " + Util::toString(aStatus) + " (" + Util::formatBytes(aOutput.length()) + ")",
 						TransportType::TYPE_HTTP_FILE,
@@ -248,6 +244,11 @@ namespace webserver {
 					);
 
 					if (HttpUtil::isStatusOk(aStatus)) {
+						// Don't set any incomplete/invalid headers in case of errors...
+						for (const auto& p : aHeaders) {
+							con->append_header(p.first, p.second);
+						}
+
 						con->set_status(aStatus);
 						con->set_body(aOutput);
 					} else {

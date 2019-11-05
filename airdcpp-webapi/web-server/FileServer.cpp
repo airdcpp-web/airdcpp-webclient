@@ -82,8 +82,7 @@ namespace webserver {
 			// We have compressed versions only for JS files
 			if (extension == "js" && aRequest.get_header("Accept-Encoding").find("gzip") != string::npos) {
 				request += ".gz";
-				// The Content-Encoding header will be set only after the file has been read successfully
-				// as gzip encoding shouldn't be used in case of errors...
+				headers_.emplace_back("Content-Encoding", "gzip");
 			}
 
 			if (extension != "html" && aResource != "/sw.js") {
@@ -260,8 +259,6 @@ namespace webserver {
 				encoding = "cp437";
 #endif
 				output_ = Text::toUtf8(output_, encoding);
-			} else if (ext == ".gz" && aRequest.get_header("Accept-Encoding").find("gzip") != string::npos) {
-				headers_.emplace_back("Content-Encoding", "gzip");
 			}
 		}
 
@@ -344,7 +341,9 @@ namespace webserver {
 					aCompletionF(websocketpp::http::status_code::not_acceptable, d->status, StringPairList());
 				}
 			} else {
-				aCompletionF(websocketpp::http::status_code::ok, d->buf, StringPairList());
+				StringPairList headers;
+				HttpUtil::addCacheControlHeader(headers, 0);
+				aCompletionF(websocketpp::http::status_code::ok, d->buf, headers);
 			}
 		}
 	}
