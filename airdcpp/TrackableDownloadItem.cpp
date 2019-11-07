@@ -140,6 +140,7 @@ namespace dcpp {
 	}
 
 	string TrackableDownloadItem::formatRunningStatus() const noexcept {
+		RLock l(cs);
 		auto p = find_if(downloads | map_values, PathInfo::IsRunning());
 
 		if (p.base() != downloads.end() && p->trackProgress()) {
