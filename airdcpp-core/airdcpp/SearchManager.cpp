@@ -603,13 +603,13 @@ AdcCommand SearchManager::toPBD(const string& hubIpPort, const string& bundle, c
 	return cmd;
 }
 
-void SearchManager::validateSearchTypeName(const string& name) const {
-	if(name.empty() || (name.size() == 1 && name[0] >= '0' && name[0] <= '8')) {
+void SearchManager::validateSearchTypeName(const string& aName) const {
+	if (aName.empty() || isDefaultTypeStr(aName)) {
 		throw SearchTypeException("Invalid search type name"); // TODO: localize
 	}
 
-	for(int type = Search::TYPE_ANY; type != Search::TYPE_LAST; ++type) {
-		if(getTypeStr(type) == name) {
+	for (int type = Search::TYPE_ANY; type != Search::TYPE_LAST; ++type) {
+		if (getTypeStr(type) == aName) {
 			throw SearchTypeException("This search type already exists"); // TODO: localize
 		}
 	}
@@ -622,47 +622,50 @@ void SearchManager::setSearchTypeDefaults() {
 
 		// for conveniency, the default search exts will be the same as the ones defined by SEGA.
 		const auto& searchExts = AdcHub::getSearchExts();
-		for(size_t i = 0, n = searchExts.size(); i < n; ++i)
+		for (size_t i = 0, n = searchExts.size(); i < n; ++i)
 			searchTypes[string(1, '1' + i)] = searchExts[i];
 	}
 
 	fire(SearchManagerListener::SearchTypesChanged());
 }
 
-void SearchManager::addSearchType(const string& name, const StringList& extensions, bool validated) {
-	if(!validated) {
-		validateSearchTypeName(name);
-	}
+void SearchManager::addSearchType(const string& aName, const StringList& aExtensions) {
+	validateSearchTypeName(aName);
 
 	{
 		WLock l(cs);
-		if(searchTypes.find(name) != searchTypes.end()) {
+		if(searchTypes.find(aName) != searchTypes.end()) {
 			throw SearchTypeException("This search type already exists"); // TODO: localize
 		}
 
-		searchTypes[name] = extensions;
+		searchTypes[aName] = aExtensions;
 	}
 	fire(SearchManagerListener::SearchTypesChanged());
 }
 
-void SearchManager::delSearchType(const string& name) {
-	validateSearchTypeName(name);
+void SearchManager::delSearchType(const string& aName) {
+	validateSearchTypeName(aName);
 	{
 		WLock l(cs);
-		searchTypes.erase(name);
+		searchTypes.erase(aName);
 	}
 	fire(SearchManagerListener::SearchTypesChanged());
 }
 
-void SearchManager::renameSearchType(const string& oldName, const string& newName) {
-	validateSearchTypeName(newName);
-	StringList exts = getSearchType(oldName)->second;
-	addSearchType(newName, exts, true);
+void SearchManager::renameSearchType(const string& aOldName, const string& aNewName) {
+	if (isDefaultTypeStr(aOldName)) {
+		throw SearchTypeException("Default search types can't be renamed"); // TODO: localize
+	}
+
+	auto exts = getExtensions(aOldName);
+	addSearchType(aNewName, exts);
+
 	{
 		WLock l(cs);
-		searchTypes.erase(oldName);
+		searchTypes.erase(aOldName);
 	}
-	fire(SearchManagerListener::SearchTypeRenamed(), oldName, newName);
+
+	fire(SearchManagerListener::SearchTypeRenamed(), aOldName, aNewName);
 }
 
 void SearchManager::modSearchType(const string& name, const StringList& extensions) {
@@ -673,12 +676,13 @@ void SearchManager::modSearchType(const string& name, const StringList& extensio
 	fire(SearchManagerListener::SearchTypesChanged());
 }
 
-const StringList& SearchManager::getExtensions(const string& name) {
-	return getSearchType(name)->second;
+const StringList& SearchManager::getExtensions(const string& aName) {
+	RLock l(cs);
+	return getSearchType(aName)->second;
 }
 
 SearchManager::SearchTypesIter SearchManager::getSearchType(const string& aName) {
-	SearchTypesIter ret = searchTypes.find(aName);
+	auto ret = searchTypes.find(aName);
 	if(ret == searchTypes.end()) {
 		throw SearchTypeException("No such search type"); // TODO: localize
 	}

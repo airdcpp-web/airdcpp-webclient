@@ -79,14 +79,14 @@ public:
 
 
 	// Search types
-	void validateSearchTypeName(const string& name) const;
+	void validateSearchTypeName(const string& aName) const;
 	void setSearchTypeDefaults();
-	void addSearchType(const string& name, const StringList& extensions, bool validated = false);
-	void delSearchType(const string& name);
-	void renameSearchType(const string& oldName, const string& newName);
-	void modSearchType(const string& name, const StringList& extensions);
+	void addSearchType(const string& aName, const StringList& aExtensions);
+	void delSearchType(const string& aName);
+	void renameSearchType(const string& aOldName, const string& aNewName);
+	void modSearchType(const string& aName, const StringList& aExtensions);
 
-	const StringList& getExtensions(const string& name);
+	const StringList& getExtensions(const string& aName);
 
 	const SearchTypes& getSearchTypes() const {
 		return searchTypes;

@@ -68,6 +68,7 @@ public:
 	enum filterActions {
 		DOWNLOAD = 0,
 		REMOVE = 1,
+		ADD_AUTOSEARCH = 2,
 	};
 
 };

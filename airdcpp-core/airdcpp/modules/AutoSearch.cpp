@@ -110,11 +110,26 @@ bool AutoSearch::onBundleRemoved(const BundlePtr& aBundle, bool finished) noexce
 	return expired;
 }
 
+Priority AutoSearch::calculatePriority() const noexcept {
+	auto prio = Priority::NORMAL;
+
+	if (status == STATUS_FAILED_MISSING)
+		prio = Priority::HIGHEST;
+	else if (getLastSearch() == 0)
+		prio = Priority::HIGHEST;
+	else if (getAsType() != NORMAL && allowAutoSearch() && (getLastSearch() + 48 * 60 * 60 < GET_TIME()))
+		prio = Priority::HIGH; //48 hours since last search.. consider it high prio?
+	else if (getLastSearch() + 48 * 60 * 60 > GET_TIME() && getTimeAdded() + 168 * 60 * 60 < GET_TIME() && !usingIncrementation())
+		prio = Priority::LOW; //Last search within 48hours and over a week old item, low probablity of finding anything now so lower prio...
+
+	return prio;
+}
+
 bool AutoSearch::checkRecent() { 
 	if (getTimeAdded() == 0 || getAsType() == NORMAL)
 		recent = false;
 	else {
-		recent = GET_TIME() < (getTimeAdded() + 3 * 60 * 60);
+		recent = GET_TIME() < (getTimeAdded() + 6 * 60 * 60);
 	}
 	return recent;
 }
