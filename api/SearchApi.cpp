@@ -32,10 +32,11 @@
 
 
 #define DEFAULT_INSTANCE_EXPIRATION_MINUTES 30
+#define SEARCH_TYPE_ID "search_type"
 
 namespace webserver {
 	StringList SearchApi::subscriptionList = {
-
+		"search_types_updated"
 	};
 
 	SearchApi::SearchApi(Session* aSession) : 
@@ -48,7 +49,11 @@ namespace webserver {
 
 		METHOD_HANDLER(Access::SEARCH,	METHOD_POST,	(),						SearchApi::handleCreateInstance);
 
-		METHOD_HANDLER(Access::ANY,		METHOD_GET,		(EXACT_PARAM("types")),	SearchApi::handleGetTypes);
+		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("types")),								SearchApi::handleGetTypes);
+		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("types"), STR_PARAM(SEARCH_TYPE_ID)),	SearchApi::handleGetType);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("types")),								SearchApi::handlePostType);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_PATCH,	(EXACT_PARAM("types"), STR_PARAM(SEARCH_TYPE_ID)),	SearchApi::handleUpdateType);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("types"), STR_PARAM(SEARCH_TYPE_ID)),	SearchApi::handleRemoveType);
 
 		// Create an initial search instance
 		if (aSession->getSessionType() != Session::TYPE_BASIC_AUTH) {
@@ -56,10 +61,12 @@ namespace webserver {
 		}
 
 		timer->start(false);
+		SearchManager::getInstance()->addListener(this);
 	}
 
 	SearchApi::~SearchApi() {
 		timer->stop(true);
+		SearchManager::getInstance()->removeListener(this);
 	}
 
 	void SearchApi::onTimer() noexcept {
@@ -114,27 +121,104 @@ namespace webserver {
 	}
 
 	api_return SearchApi::handleGetTypes(ApiRequest& aRequest) {
-		auto getName = [](const string& aId) -> string {
-			if (SearchManager::isDefaultTypeStr(aId)) {
-				return string(SearchManager::getTypeStr(aId[0] - '0'));
-			}
-
-			return aId;
-		};
-
 		auto types = SearchManager::getInstance()->getSearchTypes();
 
 		json retJ;
 		for (const auto& s : types) {
-			retJ.push_back({
-				{ "id", Serializer::getFileTypeId(s.first) },
-				{ "str", getName(s.first) },
-				{ "extensions", s.second },
-				{ "default_type", SearchManager::isDefaultTypeStr(s.first) }
-			});
+			retJ.push_back(serializeSearchType(s.first, s.second));
 		}
 
 		aRequest.setResponseBody(retJ);
 		return websocketpp::http::status_code::ok;
+	}
+
+	api_return SearchApi::handleGetType(ApiRequest& aRequest) {
+		auto id = parseSearchTypeId(aRequest);
+
+		StringList extList;
+		auto ftype = Search::TYPE_ANY;
+		SearchManager::getInstance()->getSearchType(id, ftype, extList);
+
+		aRequest.setResponseBody(serializeSearchType(id, extList));
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return SearchApi::handlePostType(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+
+		auto name = JsonUtil::getField<string>("name", reqJson, false);
+		auto extensions = JsonUtil::getField<StringList>("extensions", reqJson, false);
+
+		SearchManager::getInstance()->addSearchType(name, extensions);
+		return websocketpp::http::status_code::no_content;
+	}
+
+	api_return SearchApi::handleUpdateType(ApiRequest& aRequest) {
+		auto id = parseSearchTypeId(aRequest);
+
+		const auto& reqJson = aRequest.getRequestBody();
+
+		auto name = JsonUtil::getOptionalField<string>("name", reqJson);
+		auto extensions = JsonUtil::getOptionalField<StringList>("extensions", reqJson);
+
+		if (name) {
+			SearchManager::getInstance()->renameSearchType(id, *name);
+		}
+
+		if (extensions) {
+			SearchManager::getInstance()->modSearchType(id, *extensions);
+		}
+
+		return websocketpp::http::status_code::no_content;
+	}
+
+	api_return SearchApi::handleRemoveType(ApiRequest& aRequest) {
+		auto id = parseSearchTypeId(aRequest);
+		SearchManager::getInstance()->delSearchType(id);
+		return websocketpp::http::status_code::no_content;
+	}
+
+	void SearchApi::on(SearchManagerListener::SearchTypesChanged) noexcept {
+		if (!subscriptionActive("search_types_updated"))
+			return;
+
+		send("search_types_updated", json());
+	}
+
+
+	json SearchApi::serializeSearchType(const string& aId, const StringList& aExtensions) noexcept {
+		auto name = aId;
+		if (SearchManager::isDefaultTypeStr(aId)) {
+			name = string(SearchManager::getTypeStr(aId[0] - '0'));
+		}
+
+		return {
+			{ "id", Serializer::getFileTypeId(aId) },
+			{ "str", name },
+			{ "name", name },
+			{ "extensions", aExtensions },
+			{ "default_type", SearchManager::isDefaultTypeStr(aId) }
+		};
+	}
+
+
+	string SearchApi::parseSearchTypeId(ApiRequest& aRequest) noexcept {
+		auto id = aRequest.getStringParam(SEARCH_TYPE_ID);
+
+		if (id == Serializer::getFileTypeId(Util::toString(Search::TYPE_AUDIO))) {
+			return Util::toString(Search::TYPE_AUDIO);
+		} else if (id == Serializer::getFileTypeId(Util::toString(Search::TYPE_COMPRESSED))) {
+			return Util::toString(Search::TYPE_COMPRESSED);
+		} else if (id == Serializer::getFileTypeId(Util::toString(Search::TYPE_DOCUMENT))) {
+			return Util::toString(Search::TYPE_DOCUMENT);
+		} else if (id == Serializer::getFileTypeId(Util::toString(Search::TYPE_EXECUTABLE))) {
+			return Util::toString(Search::TYPE_EXECUTABLE);
+		} else if (id == Serializer::getFileTypeId(Util::toString(Search::TYPE_PICTURE))) {
+			return Util::toString(Search::TYPE_PICTURE);
+		} else if (id == Serializer::getFileTypeId(Util::toString(Search::TYPE_VIDEO))) {
+			return Util::toString(Search::TYPE_VIDEO);
+		}
+
+		return id;
 	}
 }
