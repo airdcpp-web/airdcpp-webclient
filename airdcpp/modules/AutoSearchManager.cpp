@@ -141,7 +141,7 @@ bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) noexcept
 	}
 
 	//No items enabled at this time? Schedule search for it...
-	if(toActive && nextSearch == 0 && (as->getLastSearch() < GET_TIME() + SETTING(AUTOSEARCH_EVERY) * 60))
+	if(toActive && nextSearch == 0 && (as->getLastSearch() + SETTING(AUTOSEARCH_EVERY) * 60 < GET_TIME()))
 		delayEvents.addEvent(SEARCH_ITEM, [=] { maybePopSearchItem(GET_TICK(), true); }, 1000);
 
 	delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK()); }, 1000);
