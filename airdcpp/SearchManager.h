@@ -47,18 +47,31 @@ struct SearchQueueInfo {
 	string error;
 };
 
+class SearchType {
+public:
+	SearchType(const string& aId, const string& aName, const StringList& aExtensions) :
+		id(aId), name(aName), extensions(aExtensions) {
+
+	}
+
+	string getDisplayName() const noexcept;
+	bool isDefault() const noexcept;
+	Search::TypeModes getTypeMode() const noexcept;
+
+	GETSET(string, id, Id);
+	GETSET(string, name, Name);
+	GETSET(StringList, extensions, Extensions);
+};
+
 class SearchManager : public Speaker<SearchManagerListener>, public Singleton<SearchManager>, private TimerManagerListener, private SettingsManagerListener
 {
 public:
-
-	typedef map<string, StringList> SearchTypes;
-	typedef SearchTypes::iterator SearchTypesIter;
-	typedef SearchTypes::const_iterator SearchTypesIterC;
+	typedef map<string, SearchTypePtr> SearchTypes;
 private:
 	static ResourceManager::Strings types[Search::TYPE_LAST];
 public:
-	static const string& getTypeStr(int type) noexcept;
-	static bool isDefaultTypeStr(const string& type) noexcept;
+	static const string& getTypeStr(int aType) noexcept;
+	static bool isDefaultTypeStr(const string& aType) noexcept;
 	
 	SearchQueueInfo search(const SearchPtr& aSearch) noexcept;
 	SearchQueueInfo search(StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner = nullptr) noexcept;
@@ -79,22 +92,19 @@ public:
 
 
 	// Search types
-	void validateSearchTypeName(const string& aName) const;
+	static void validateSearchTypeName(const string& aName);
 	void setSearchTypeDefaults();
-	void addSearchType(const string& aName, const StringList& aExtensions);
-	void delSearchType(const string& aName);
-	void renameSearchType(const string& aOldName, const string& aNewName);
-	void modSearchType(const string& aName, const StringList& aExtensions);
+	SearchTypePtr addSearchType(const string& aName, const StringList& aExtensions);
+	void delSearchType(const string& aId);
+	SearchTypePtr modSearchType(const string& aId, const optional<string>& aName, const optional<StringList>& aExtensions);
 
-	const StringList& getExtensions(const string& aName);
+	SearchTypeList getSearchTypes() const noexcept;
 
-	const SearchTypes& getSearchTypes() const {
-		return searchTypes;
-	}
+	void getSearchType(int aPos, Search::TypeModes& type_, StringList& extList_, string& typeId_);
+	void getSearchType(const string& aId, Search::TypeModes& type_, StringList& extList_, string& name_);
 
-	void getSearchType(int pos, Search::TypeModes& type_, StringList& extList_, string& name_);
-	void getSearchType(const string& aName, Search::TypeModes& type_, StringList& extList_, bool aLock = false);
-	string getNameByExtension(const string& aExtension, bool defaultsOnly = false) const noexcept;
+	SearchTypePtr getSearchType(const string& aId) const;
+	string getTypeIdByExtension(const string& aExtension, bool aDefaultsOnly = false) const noexcept;
 
 	bool decryptPacket(string& x, size_t aLen, const ByteVector& aBuf);
 private:
@@ -119,8 +129,6 @@ private:
 
 	// Search types
 	SearchTypes searchTypes; // name, extlist
-
-	SearchTypesIter getSearchType(const string& name);
 
 	UDPServer udpServer;
 };

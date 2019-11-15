@@ -115,7 +115,7 @@ Priority AutoSearch::calculatePriority() const noexcept {
 
 	if (status == STATUS_FAILED_MISSING)
 		prio = Priority::HIGHEST;
-	else if (getLastSearch() == 0)
+	else if (getLastSearch() == 0) //no searches performed
 		prio = Priority::HIGHEST;
 	else if (getAsType() != NORMAL && allowAutoSearch() && (getLastSearch() + 48 * 60 * 60 < GET_TIME()))
 		prio = Priority::HIGH; //48 hours since last search.. consider it high prio?
@@ -207,7 +207,16 @@ void AutoSearch::updatePattern() noexcept {
 }
 
 string AutoSearch::getDisplayType() const noexcept {
-	return SearchManager::isDefaultTypeStr(fileType) ? SearchManager::getTypeStr(fileType[0] - '0') : fileType;
+	StringList ext;
+	Search::TypeModes mode;
+	string name;
+	try {
+		SearchManager::getInstance()->getSearchType(fileType, mode, ext, name);
+	} catch (...) {
+		return STRING(ANY);
+	}
+
+	return name;
 }
 
 void AutoSearch::addBundle(const BundlePtr& aBundle) noexcept {
