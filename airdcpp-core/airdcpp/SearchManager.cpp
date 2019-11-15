@@ -33,6 +33,7 @@
 
 #include <openssl/evp.h>
 #include <openssl/rand.h>
+#include <boost/range/algorithm/copy.hpp>
 
 namespace dcpp {
 
@@ -52,8 +53,27 @@ const string& SearchManager::getTypeStr(int aType) noexcept {
 	return ResourceManager::getInstance()->getString(types[aType]);
 }
 
-bool SearchManager::isDefaultTypeStr(const string& type) noexcept {
-	 return type.size() == 1 && type[0] >= '0' && type[0] <= '9';
+bool SearchManager::isDefaultTypeStr(const string& aType) noexcept {
+	 return aType.size() == 1 && aType[0] >= '0' && aType[0] <= '9';
+}
+
+
+string SearchType::getDisplayName() const noexcept {
+	return isDefault() ? SearchManager::getTypeStr(id[0] - '0') : name;
+}
+
+bool SearchType::isDefault() const noexcept {
+	return SearchManager::isDefaultTypeStr(id);
+}
+
+
+Search::TypeModes SearchType::getTypeMode() const noexcept {
+	if (!isDefault()) {
+		// Custom search type
+		return Search::TYPE_ANY;
+	}
+
+	return static_cast<Search::TypeModes>(id[0] - '0');
 }
 
 SearchManager::SearchManager() {
@@ -603,7 +623,7 @@ AdcCommand SearchManager::toPBD(const string& hubIpPort, const string& bundle, c
 	return cmd;
 }
 
-void SearchManager::validateSearchTypeName(const string& aName) const {
+void SearchManager::validateSearchTypeName(const string& aName) {
 	if (aName.empty() || isDefaultTypeStr(aName)) {
 		throw SearchTypeException("Invalid search type name"); // TODO: localize
 	}
@@ -615,157 +635,146 @@ void SearchManager::validateSearchTypeName(const string& aName) const {
 	}
 }
 
-void SearchManager::setSearchTypeDefaults() {
-	WLock l(cs);
+SearchTypeList SearchManager::getSearchTypes() const noexcept {
+	SearchTypeList ret;
+
 	{
+		RLock l(cs);
+		boost::copy(searchTypes | map_values, back_inserter(ret));
+	}
+
+	return ret;
+}
+
+void SearchManager::setSearchTypeDefaults() {
+	{
+		WLock l(cs);
 		searchTypes.clear();
 
 		// for conveniency, the default search exts will be the same as the ones defined by SEGA.
 		const auto& searchExts = AdcHub::getSearchExts();
-		for (size_t i = 0, n = searchExts.size(); i < n; ++i)
-			searchTypes[string(1, '1' + i)] = searchExts[i];
-	}
-
-	fire(SearchManagerListener::SearchTypesChanged());
-}
-
-void SearchManager::addSearchType(const string& aName, const StringList& aExtensions) {
-	validateSearchTypeName(aName);
-
-	{
-		WLock l(cs);
-		if(searchTypes.find(aName) != searchTypes.end()) {
-			throw SearchTypeException("This search type already exists"); // TODO: localize
+		for (size_t i = 0, n = searchExts.size(); i < n; ++i) {
+			const auto id = string(1, '1' + i);
+			searchTypes[id] = make_shared<SearchType>(id, id, searchExts[i]);
 		}
-
-		searchTypes[aName] = aExtensions;
 	}
+
 	fire(SearchManagerListener::SearchTypesChanged());
 }
 
-void SearchManager::delSearchType(const string& aName) {
+SearchTypePtr SearchManager::addSearchType(const string& aName, const StringList& aExtensions) {
 	validateSearchTypeName(aName);
+
+	auto searchType = make_shared<SearchType>(Util::toString(Util::rand()), aName, aExtensions);
+
 	{
 		WLock l(cs);
-		searchTypes.erase(aName);
+		searchTypes[searchType->getId()] = searchType;
+	}
+
+	fire(SearchManagerListener::SearchTypesChanged());
+	return searchType;
+}
+
+void SearchManager::delSearchType(const string& aId) {
+	validateSearchTypeName(aId);
+	{
+		WLock l(cs);
+		searchTypes.erase(aId);
 	}
 	fire(SearchManagerListener::SearchTypesChanged());
 }
 
-void SearchManager::renameSearchType(const string& aOldName, const string& aNewName) {
-	if (isDefaultTypeStr(aOldName)) {
-		throw SearchTypeException("Default search types can't be renamed"); // TODO: localize
+SearchTypePtr SearchManager::modSearchType(const string& aId, const optional<string>& aName, const optional<StringList>& aExtensions) {
+	auto type = getSearchType(aId);
+
+	if (aName && !type->isDefault()) {
+		type->setName(*aName);
 	}
 
-	auto exts = getExtensions(aOldName);
-	addSearchType(aNewName, exts);
-
-	{
-		WLock l(cs);
-		searchTypes.erase(aOldName);
+	if (aExtensions) {
+		type->setExtensions(*aExtensions);
 	}
 
-	fire(SearchManagerListener::SearchTypeRenamed(), aOldName, aNewName);
-}
-
-void SearchManager::modSearchType(const string& name, const StringList& extensions) {
-	{
-		WLock l(cs);
-		getSearchType(name)->second = extensions;
-	}
 	fire(SearchManagerListener::SearchTypesChanged());
+	return type;
 }
 
-const StringList& SearchManager::getExtensions(const string& aName) {
+SearchTypePtr SearchManager::getSearchType(const string& aId) const {
 	RLock l(cs);
-	return getSearchType(aName)->second;
-}
-
-SearchManager::SearchTypesIter SearchManager::getSearchType(const string& aName) {
-	auto ret = searchTypes.find(aName);
+	auto ret = searchTypes.find(aId);
 	if(ret == searchTypes.end()) {
 		throw SearchTypeException("No such search type"); // TODO: localize
 	}
-	return ret;
+	return ret->second;
 }
 
-void SearchManager::getSearchType(int pos, Search::TypeModes& type_, StringList& extList_, string& name_) {
+void SearchManager::getSearchType(int aPos, Search::TypeModes& type_, StringList& extList_, string& typeId_) {
 	// Any, directory or TTH
-	if (pos < 4) {
-		if (pos == 0) {
-			name_ = SEARCH_TYPE_ANY;
+	if (aPos < 4) {
+		if (aPos == 0) {
+			typeId_ = SEARCH_TYPE_ANY;
 			type_ = Search::TYPE_ANY;
-		} else if (pos == 1) {
-			name_ = SEARCH_TYPE_DIRECTORY;
+		} else if (aPos == 1) {
+			typeId_ = SEARCH_TYPE_DIRECTORY;
 			type_ = Search::TYPE_DIRECTORY;
-		} else if (pos == 2) {
-			name_ = SEARCH_TYPE_TTH;
+		} else if (aPos == 2) {
+			typeId_ = SEARCH_TYPE_TTH;
 			type_ = Search::TYPE_TTH;
-		} else if (pos == 3) {
-			name_ = SEARCH_TYPE_FILE;
+		} else if (aPos == 3) {
+			typeId_ = SEARCH_TYPE_FILE;
 			type_ = Search::TYPE_FILE;
 		}
 		return;
 	}
-	pos = pos-4;
 
-	int counter = 0;
-	for(auto& i: searchTypes) {
-		if (counter++ == pos) {
-			if(i.first.size() > 1 || i.first[0] < '1' || i.first[0] > '6') {
-				// custom search type
-				type_ = Search::TYPE_ANY;
-			} else {
-				type_ = static_cast<Search::TypeModes>(i.first[0] - '0');
+	{
+		auto typeIndex = aPos - 4;
+		int counter = 0;
+
+		RLock l(cs);
+		for (auto& i : searchTypes) {
+			if (counter++ == typeIndex) {
+				type_ = i.second->getTypeMode();
+				typeId_ = i.second->getId();
+				extList_ = i.second->getExtensions();
+				return;
 			}
-
-			name_ = i.first;
-			extList_ = i.second;
-			return;
 		}
 	}
 
 	throw SearchTypeException("No such search type"); 
 }
 
-void SearchManager::getSearchType(const string& aName, Search::TypeModes& type_, StringList& extList_, bool aLock) {
-	if (aName.empty())
+void SearchManager::getSearchType(const string& aId, Search::TypeModes& type_, StringList& extList_, string& name_) {
+	if (aId.empty())
 		throw SearchTypeException("No such search type"); 
 
 	// Any, directory or TTH
-	if (aName[0] == SEARCH_TYPE_ANY[0] || aName[0] == SEARCH_TYPE_DIRECTORY[0] || aName[0] == SEARCH_TYPE_TTH[0]  || aName[0] == SEARCH_TYPE_FILE[0]) {
-		type_ = static_cast<Search::TypeModes>(aName[0] - '0');
+	if (aId[0] == SEARCH_TYPE_ANY[0] || aId[0] == SEARCH_TYPE_DIRECTORY[0] || aId[0] == SEARCH_TYPE_TTH[0]  || aId[0] == SEARCH_TYPE_FILE[0]) {
+		type_ = static_cast<Search::TypeModes>(aId[0] - '0');
+		name_ = getTypeStr(aId[0] - '0');
 		return;
 	}
 
-	ConditionalRLock(cs, aLock);
-	auto p = searchTypes.find(aName);
-	if (p != searchTypes.end()) {
-		extList_ = p->second;
-		if(aName[0] < '1' || aName[0] > '6') {
-			// custom search type
-			type_ = Search::TYPE_ANY;
-		} else {
-			type_ = static_cast<Search::TypeModes>(aName[0] - '0');
-		}
-		return;
-	}
-
-	throw SearchTypeException("No such search type"); 
+	auto type = getSearchType(aId);
+	extList_ = type->getExtensions();
+	type_ = type->getTypeMode();
+	name_ = type->getDisplayName();
 }
 
-string SearchManager::getNameByExtension(const string& aExtension, bool aDefaultsOnly) const noexcept {
+string SearchManager::getTypeIdByExtension(const string& aExtension, bool aDefaultsOnly) const noexcept {
 	auto extensionLower = Text::toLower(aExtension);
 
 	RLock l(cs);
-	for (const auto& type : searchTypes) {
-		if (aDefaultsOnly && (type.first.size() > 1 || type.first[0] < '1' || type.first[0] > '6')) {
+	for (const auto& type : searchTypes | map_values) {
+		if (aDefaultsOnly && !type->isDefault()) {
 			continue;
 		}
 
-		auto i = boost::find(type.second, extensionLower);
-		if (i != type.second.end()) {
-			return type.first;
+		auto i = boost::find(type->getExtensions(), extensionLower);
+		if (i != type->getExtensions().end()) {
+			return type->getId();
 		}
 	}
 
@@ -777,9 +786,13 @@ void SearchManager::on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {
 	xml.addTag("SearchTypes");
 	xml.stepIn();
 	{
-		for(auto& i: searchTypes) {
-			xml.addTag("SearchType", Util::toString(";", i.second));
-			xml.addChildAttrib("Id", i.first);
+		RLock l(cs);
+		for(auto& t: searchTypes | map_values) {
+			xml.addTag("SearchType", Util::toString(";", t->getExtensions()));
+			xml.addChildAttrib("Id", t->getName());
+			if (!t->isDefault()) {
+				xml.addChildAttrib("UniqueId", t->getId());
+			}
 		}
 	}
 	xml.stepOut();
@@ -799,7 +812,14 @@ void SearchManager::on(SettingsManagerListener::Load, SimpleXML& xml) noexcept {
 			if(name.empty()) {
 				continue;
 			}
-			searchTypes[name] = StringTokenizer<string>(extensions, ';').getTokens();
+
+			auto id = xml.getChildAttrib("UniqueId");
+			if (id.empty()) {
+				// Legacy/default type
+				id = name;
+			}
+
+			searchTypes[id] = make_shared<SearchType>(id, name, StringTokenizer<string>(extensions, ';').getTokens());
 		}
 		xml.stepOut();
 	}

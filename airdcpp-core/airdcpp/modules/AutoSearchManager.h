@@ -137,8 +137,6 @@ private:
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
 
-	void on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept override;
-
 	void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept override { onRemoveBundle(aBundle, false); }
 	void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept override;
 

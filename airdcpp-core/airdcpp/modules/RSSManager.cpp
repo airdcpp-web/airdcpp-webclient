@@ -219,6 +219,15 @@ void RSSManager::matchFilters(const RSSPtr& aFeed) {
 
 void RSSManager::matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) {
 	
+	//Match remove filters first, so it works kind of as a skiplist also
+	bool remove = find_if(aFeed->getRssFilterList().begin(), aFeed->getRssFilterList().end(), [&](const RSSFilter& a)
+		{ return a.getFilterAction() == RSSFilter::REMOVE && a.match(aData->getTitle()); }) != aFeed->getRssFilterList().end();
+
+	if (remove) {
+		tasks.addTask([=] { removeFeedData(aFeed, aData); });
+		return;
+	}
+
 	for (auto& aF : aFeed->getRssFilterList()) {
 		if (aF.match(aData->getTitle())) {
 			if (aF.skipDupes) {
@@ -229,9 +238,7 @@ void RSSManager::matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) {
 			}
 			if (aF.getFilterAction() == RSSFilter::DOWNLOAD || aF.getFilterAction() == RSSFilter::ADD_AUTOSEARCH) {
 				addAutoSearchItem(aF, aData);
-			} else if (aF.getFilterAction() == RSSFilter::REMOVE) {
-				tasks.addTask([=] { removeFeedData(aFeed, aData); });
-			}
+			} 
 			break; //One match is enough
 		}
 	}
