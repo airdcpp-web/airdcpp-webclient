@@ -31,7 +31,6 @@ namespace webserver {
 		static void parseOptions(const json& aJson, const SearchPtr& aSearch);
 
 		static Search::MatchType parseMatchType(const string& aTypeStr);
-		static const string& parseFileType(const string& aType) noexcept;
 	};
 }
 

@@ -122,24 +122,15 @@ namespace webserver {
 
 	api_return SearchApi::handleGetTypes(ApiRequest& aRequest) {
 		auto types = SearchManager::getInstance()->getSearchTypes();
-
-		json retJ;
-		for (const auto& s : types) {
-			retJ.push_back(serializeSearchType(s.first, s.second));
-		}
-
-		aRequest.setResponseBody(retJ);
+		aRequest.setResponseBody(Serializer::serializeList(types, serializeSearchType));
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return SearchApi::handleGetType(ApiRequest& aRequest) {
 		auto id = parseSearchTypeId(aRequest);
 
-		StringList extList;
-		auto ftype = Search::TYPE_ANY;
-		SearchManager::getInstance()->getSearchType(id, ftype, extList);
-
-		aRequest.setResponseBody(serializeSearchType(id, extList));
+		auto type = SearchManager::getInstance()->getSearchType(id);
+		aRequest.setResponseBody(serializeSearchType(type));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -149,8 +140,10 @@ namespace webserver {
 		auto name = JsonUtil::getField<string>("name", reqJson, false);
 		auto extensions = JsonUtil::getField<StringList>("extensions", reqJson, false);
 
-		SearchManager::getInstance()->addSearchType(name, extensions);
-		return websocketpp::http::status_code::no_content;
+		auto type = SearchManager::getInstance()->addSearchType(name, extensions);
+		aRequest.setResponseBody(serializeSearchType(type));
+
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return SearchApi::handleUpdateType(ApiRequest& aRequest) {
@@ -161,15 +154,9 @@ namespace webserver {
 		auto name = JsonUtil::getOptionalField<string>("name", reqJson);
 		auto extensions = JsonUtil::getOptionalField<StringList>("extensions", reqJson);
 
-		if (name) {
-			SearchManager::getInstance()->renameSearchType(id, *name);
-		}
-
-		if (extensions) {
-			SearchManager::getInstance()->modSearchType(id, *extensions);
-		}
-
-		return websocketpp::http::status_code::no_content;
+		auto type = SearchManager::getInstance()->modSearchType(id, name, extensions);
+		aRequest.setResponseBody(serializeSearchType(type));
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return SearchApi::handleRemoveType(ApiRequest& aRequest) {
@@ -186,39 +173,19 @@ namespace webserver {
 	}
 
 
-	json SearchApi::serializeSearchType(const string& aId, const StringList& aExtensions) noexcept {
-		auto name = aId;
-		if (SearchManager::isDefaultTypeStr(aId)) {
-			name = string(SearchManager::getTypeStr(aId[0] - '0'));
-		}
-
+	json SearchApi::serializeSearchType(const SearchTypePtr& aType) noexcept {
+		auto name = aType->getDisplayName();
 		return {
-			{ "id", Serializer::getFileTypeId(aId) },
+			{ "id", Serializer::getFileTypeId(aType->getId()) },
 			{ "str", name },
 			{ "name", name },
-			{ "extensions", aExtensions },
-			{ "default_type", SearchManager::isDefaultTypeStr(aId) }
+			{ "extensions", aType->getExtensions() },
+			{ "default_type", aType->isDefault() }
 		};
 	}
 
 
 	string SearchApi::parseSearchTypeId(ApiRequest& aRequest) noexcept {
-		auto id = aRequest.getStringParam(SEARCH_TYPE_ID);
-
-		if (id == Serializer::getFileTypeId(Util::toString(Search::TYPE_AUDIO))) {
-			return Util::toString(Search::TYPE_AUDIO);
-		} else if (id == Serializer::getFileTypeId(Util::toString(Search::TYPE_COMPRESSED))) {
-			return Util::toString(Search::TYPE_COMPRESSED);
-		} else if (id == Serializer::getFileTypeId(Util::toString(Search::TYPE_DOCUMENT))) {
-			return Util::toString(Search::TYPE_DOCUMENT);
-		} else if (id == Serializer::getFileTypeId(Util::toString(Search::TYPE_EXECUTABLE))) {
-			return Util::toString(Search::TYPE_EXECUTABLE);
-		} else if (id == Serializer::getFileTypeId(Util::toString(Search::TYPE_PICTURE))) {
-			return Util::toString(Search::TYPE_PICTURE);
-		} else if (id == Serializer::getFileTypeId(Util::toString(Search::TYPE_VIDEO))) {
-			return Util::toString(Search::TYPE_VIDEO);
-		}
-
-		return id;
+		return Deserializer::parseSearchType(aRequest.getStringParam(SEARCH_TYPE_ID));
 	}
 }

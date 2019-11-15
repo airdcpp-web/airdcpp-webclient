@@ -193,4 +193,23 @@ namespace webserver {
 
 		return profile;
 	}
+
+
+	const map<string, string> fileTypeMappings = {
+		{ "any", "0" },
+		{ "audio", "1" },
+		{ "compressed", "2" },
+		{ "document", "3" },
+		{ "executable", "4" },
+		{ "picture", "5" },
+		{ "video", "6" },
+		{ "directory", "7" },
+		{ "tth", "8" },
+		{ "file", "9" },
+	};
+
+	string Deserializer::parseSearchType(const string& aType) {
+		auto i = fileTypeMappings.find(aType);
+		return i != fileTypeMappings.end() ? i->second : aType;
+	}
 }
