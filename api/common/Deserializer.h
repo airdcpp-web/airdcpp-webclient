@@ -57,6 +57,7 @@ namespace webserver {
 		static ProfileToken deserializeShareProfile(const json& aJson);
 
 		static OptionalProfileToken deserializeOptionalShareProfile(const json& aJson);
+		static string parseSearchType(const string& aType);
 	private:
 		static LogMessage::Severity parseSeverity(const string& aText);
 	};

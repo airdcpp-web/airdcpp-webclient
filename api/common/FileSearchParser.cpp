@@ -50,7 +50,8 @@ namespace webserver {
 		auto fileTypeStr = JsonUtil::getOptionalField<string>("file_type", aJson);
 		if (fileTypeStr) {
 			try {
-				SearchManager::getInstance()->getSearchType(parseFileType(*fileTypeStr), aSearch->fileType, aSearch->exts, true);
+				string name;
+				SearchManager::getInstance()->getSearchType(Deserializer::parseSearchType(*fileTypeStr), aSearch->fileType, aSearch->exts, name);
 			} catch (...) {
 				throw std::domain_error("Invalid file type");
 			}
@@ -99,24 +100,6 @@ namespace webserver {
 		aSearch->maxResults = JsonUtil::getOptionalFieldDefault<int>("max_results", aJson, 5);
 		aSearch->returnParents = JsonUtil::getOptionalFieldDefault<bool>("return_parents", aJson, false);
 		aSearch->requireReply = true;
-	}
-
-	const map<string, string> fileTypeMappings = {
-		{ "any", "0" },
-		{ "audio", "1" },
-		{ "compressed", "2" },
-		{ "document", "3" },
-		{ "executable", "4" },
-		{ "picture", "5" },
-		{ "video", "6" },
-		{ "directory", "7" },
-		{ "tth", "8" },
-		{ "file", "9" },
-	};
-
-	const string& FileSearchParser::parseFileType(const string& aType) noexcept {
-		auto i = fileTypeMappings.find(aType);
-		return i != fileTypeMappings.end() ? i->second : aType;
 	}
 
 	Search::MatchType FileSearchParser::parseMatchType(const string& aTypeStr) {

@@ -53,7 +53,7 @@ namespace webserver {
 
 		void on(SearchManagerListener::SearchTypesChanged) noexcept override;
 
-		static json serializeSearchType(const string& aId, const StringList& aExtensions) noexcept;
+		static json serializeSearchType(const SearchTypePtr& aType) noexcept;
 		static string parseSearchTypeId(ApiRequest& aRequest) noexcept;
 	};
 }

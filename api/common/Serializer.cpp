@@ -243,21 +243,25 @@ namespace webserver {
 		return serializeItem(aUser, OnlineUserUtils::propertyHandler);
 	}
 
-	std::string Serializer::getFileTypeId(const string& aName) noexcept {
-		switch (aName[0]) {
+	std::string Serializer::getFileTypeId(const string& aId) noexcept {
+		if (aId.length() != 1) {
+			return aId;
+		}
+
+		switch (aId[0]) {
 			case '1': return "audio";
 			case '2': return "compressed";
 			case '3': return "document";
 			case '4': return "executable";
 			case '5': return "picture";
 			case '6': return "video";
-			default: return aName.empty() ? "other" : aName;
+			default: return aId;
 		}
 	}
 
 	json Serializer::serializeFileType(const string& aPath) noexcept {
 		auto ext = Util::formatFileType(aPath);
-		auto typeName = getFileTypeId(SearchManager::getInstance()->getNameByExtension(ext, true));
+		auto typeName = getFileTypeId(SearchManager::getInstance()->getTypeIdByExtension(ext, true));
 
 		return{
 			{ "id", "file" },
