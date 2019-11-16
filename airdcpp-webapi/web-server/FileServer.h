@@ -35,14 +35,16 @@ namespace webserver {
 		const string& getResourcePath() const noexcept;
 
 		websocketpp::http::status_code::value handleRequest(const websocketpp::http::parser::request& aRequest, 
-			std::string& output_, StringPairList& headers_, const SessionPtr& aSession) noexcept;
-
-		static const char* getMimeType(const string& aFileName) noexcept;
+			std::string& output_, StringPairList& headers_, const SessionPtr& aSession, const DeferredHandler& aDeferF);
 
 		string getTempFilePath(const string& fileId) const noexcept;
+		void stop() noexcept;
 	private:
 		websocketpp::http::status_code::value handleGetRequest(const websocketpp::http::parser::request& aRequest,
-			std::string& output_, StringPairList& headers_, const SessionPtr& aSession) noexcept;
+			std::string& output_, StringPairList& headers_, const SessionPtr& aSession, const DeferredHandler& aDeferF);
+
+		websocketpp::http::status_code::value handleProxyDownload(const string& aUrl, string& output_, const DeferredHandler& aDeferF) noexcept;
+		void onProxyDownloadCompleted(int64_t aDownloadId, const HTTPCompletionF& aCompletionF) noexcept;
 
 		websocketpp::http::status_code::value handlePostRequest(const websocketpp::http::parser::request& aRequest,
 			std::string& output_, StringPairList& headers_, const SessionPtr& aSession) noexcept;
@@ -54,17 +56,11 @@ namespace webserver {
 
 		static string getExtension(const string& aResource) noexcept;
 
-		// Parses start and end position from a range HTTP request field
-		// Initial value of end_ should be the file size
-		// Returns true if the partial range was parsed successfully
-		static bool parsePartialRange(const string& aHeaderData, int64_t& start_, int64_t& end_) noexcept;
-
-		static string formatPartialRange(int64_t aStart, int64_t aEnd, int64_t aFileSize) noexcept;
-
-		static void addCacheControlHeader(StringPairList& headers_, int aDaysValid) noexcept;
-
 		mutable SharedMutex cs;
 		StringMap tempFiles;
+
+		int64_t proxyDownloadCounter = 0;
+		map<int64_t, std::shared_ptr<HttpDownload>> proxyDownloads;
 	};
 }
 

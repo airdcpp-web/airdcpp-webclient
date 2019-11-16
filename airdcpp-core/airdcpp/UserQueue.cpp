@@ -135,27 +135,27 @@ QueueItemPtr UserQueue::getNextBundleQI(const UserPtr& aUser, const QueueTokenSe
 	return nullptr;
 }
 
-void UserQueue::addDownload(QueueItemPtr& qi, Download* d) noexcept {
+void UserQueue::addDownload(const QueueItemPtr& qi, Download* d) noexcept {
 	qi->addDownload(d);
 }
 
-void UserQueue::removeDownload(QueueItemPtr& qi, const string& aToken) noexcept {
+void UserQueue::removeDownload(const QueueItemPtr& qi, const string& aToken) noexcept {
 	qi->removeDownload(aToken);
 }
 
-void UserQueue::setQIPriority(QueueItemPtr& qi, Priority p) noexcept {
+void UserQueue::setQIPriority(const QueueItemPtr& qi, Priority p) noexcept {
 	removeQI(qi, false);
 	qi->setPriority(p);
 	addQI(qi);
 }
 
-void UserQueue::removeQI(QueueItemPtr& qi, bool removeRunning /*true*/) noexcept{
+void UserQueue::removeQI(const QueueItemPtr& qi, bool removeRunning /*true*/) noexcept{
 	for(const auto& i: qi->getSources()) {
 		removeQI(qi, i.getUser(), removeRunning, 0);
 	}
 }
 
-void UserQueue::removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning /*true*/, Flags::MaskType reason) noexcept{
+void UserQueue::removeQI(const QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning /*true*/, Flags::MaskType reason) noexcept{
 
 	if(removeRunning) {
 		qi->removeDownloads(aUser);
@@ -197,12 +197,12 @@ void UserQueue::removeQI(QueueItemPtr& qi, const UserPtr& aUser, bool removeRunn
 	}
 }
 
-void UserQueue::addBundle(BundlePtr& aBundle, const UserPtr& aUser) noexcept{
+void UserQueue::addBundle(const BundlePtr& aBundle, const UserPtr& aUser) noexcept{
 	auto& s = userBundleQueue[aUser];
 	s.insert(upper_bound(s.begin(), s.end(), aBundle, Bundle::SortOrder()), aBundle);
 }
 
-void UserQueue::removeBundle(BundlePtr& aBundle, const UserPtr& aUser) noexcept {
+void UserQueue::removeBundle(const BundlePtr& aBundle, const UserPtr& aUser) noexcept {
 	auto j = userBundleQueue.find(aUser);
 	dcassert(j != userBundleQueue.end());
 	if (j == userBundleQueue.end()) {
@@ -222,7 +222,7 @@ void UserQueue::removeBundle(BundlePtr& aBundle, const UserPtr& aUser) noexcept 
 	}
 }
 
-void UserQueue::setBundlePriority(BundlePtr& aBundle, Priority p) noexcept {
+void UserQueue::setBundlePriority(const BundlePtr& aBundle, Priority p) noexcept {
 	dcassert(!aBundle->isDownloaded());
 
 	HintedUserList sources;

@@ -218,6 +218,8 @@ namespace webserver {
 		{ "tls_certificate_file", SettingsManager::TLS_CERTIFICATE_FILE, ResourceManager::OWN_CERTIFICATE, ApiSettingItem::TYPE_FILE_PATH },
 		{ "tls_private_key_file", SettingsManager::TLS_PRIVATE_KEY_FILE, ResourceManager::PRIVATE_KEY_FILE, ApiSettingItem::TYPE_FILE_PATH },
 		{ "always_ccpm", SettingsManager::ALWAYS_CCPM, ResourceManager::ALWAYS_CCPM },
+		{ "tls_allow_untrusted_clients", SettingsManager::ALLOW_UNTRUSTED_CLIENTS, ResourceManager::SETTINGS_ALLOW_UNTRUSTED_CLIENTS },
+		{ "tls_allow_untrusted_hubs", SettingsManager::ALLOW_UNTRUSTED_HUBS, ResourceManager::SETTINGS_ALLOW_UNTRUSTED_HUBS },
 		{ "tls_mode", SettingsManager::TLS_MODE, ResourceManager::TRANSFER_ENCRYPTION },
 	};
 }

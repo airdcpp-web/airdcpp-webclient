@@ -66,6 +66,9 @@ namespace webserver {
 	typedef websocketpp::server<websocketpp::config::asio_tls> server_tls;
 	typedef websocketpp::http::status_code::value api_return;
 
+	typedef std::function<void(api_return aStatus, const std::string& aOutput, const std::vector<std::pair<std::string, std::string>>& aHeaders)> HTTPCompletionF;
+	typedef std::function<HTTPCompletionF()> DeferredHandler;
+
 	using namespace dcpp;
 
 	using json = nlohmann::json;

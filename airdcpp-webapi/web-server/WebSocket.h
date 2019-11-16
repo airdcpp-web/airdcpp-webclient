@@ -64,6 +64,8 @@ namespace webserver {
 		const string& getConnectUrl() const noexcept {
 			return url;
 		}
+
+		const websocketpp::http::parser::request& getRequest() noexcept;
 	protected:
 		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, const websocketpp::http::parser::request& aRequest, WebServerManager* aWsm);
 	private:

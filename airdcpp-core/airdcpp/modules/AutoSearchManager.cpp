@@ -141,7 +141,7 @@ bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) noexcept
 	}
 
 	//No items enabled at this time? Schedule search for it...
-	if(toActive && nextSearch == 0 && (as->getLastSearch() < GET_TIME() + SETTING(AUTOSEARCH_EVERY) * 60))
+	if(toActive && nextSearch == 0 && (as->getLastSearch() + SETTING(AUTOSEARCH_EVERY) * 60 < GET_TIME()))
 		delayEvents.addEvent(SEARCH_ITEM, [=] { maybePopSearchItem(GET_TICK(), true); }, 1000);
 
 	delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK()); }, 1000);
@@ -422,7 +422,8 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 	StringList extList;
 	auto ftype = Search::TYPE_ANY;
 	try {
-		SearchManager::getInstance()->getSearchType(as->getFileType(), ftype, extList, true);
+		string name;
+		SearchManager::getInstance()->getSearchType(as->getFileType(), ftype, extList, name);
 	} catch(const SearchTypeException&) {
 		//reset to default
 		as->setFileType(SEARCH_TYPE_ANY);
@@ -647,16 +648,6 @@ void AutoSearchManager::checkItems() noexcept {
 }
 
 /* SearchManagerListener and matching */
-void AutoSearchManager::on(SearchManagerListener::SearchTypeRenamed, const string& oldName, const string& newName) noexcept {
-	RLock l(cs);
-	for(auto& as: searchItems.getItems() | map_values) {
-		if (as->getFileType() == oldName) {
-			as->setFileType(newName);
-			fire(AutoSearchManagerListener::ItemUpdated(), as, false);
-		}
-	}
-}
-
 void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
 	//don't match bundle searches
 	if (Util::stricmp(sr->getSearchToken(), "qa") == 0)
@@ -722,13 +713,20 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 
 			//check the extension
 			try {
-				Search::TypeModes tmp;
 				StringList exts;
-				SearchManager::getInstance()->getSearchType(as->getFileType(), tmp, exts, true);
-				auto name = sr->getFileName();
+
+				{
+					string typeName;
+					Search::TypeModes tmp;
+					SearchManager::getInstance()->getSearchType(as->getFileType(), tmp, exts, typeName);
+				}
+
+				auto fileName = sr->getFileName();
 
 				//match
-				auto p = find_if(exts, [&name](const string& i) { return name.length() >= i.length() && Util::stricmp(name.c_str() + name.length() - i.length(), i.c_str()) == 0; });
+				auto p = find_if(exts, [&fileName](const string& i) { 
+					return fileName.length() >= i.length() && Util::stricmp(fileName.c_str() + fileName.length() - i.length(), i.c_str()) == 0;
+				});
 				if (p == exts.end()) continue;
 			} catch(...) {
 				//lets agree that it's match...

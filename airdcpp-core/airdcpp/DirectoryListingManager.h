@@ -25,46 +25,13 @@
 #include "DirectoryListingManagerListener.h"
 
 #include "CriticalSection.h"
+#include "DirectoryDownload.h"
 #include "DirectoryListing.h"
 #include "Singleton.h"
 #include "TimerManagerListener.h"
 
 namespace dcpp {
-	typedef uint32_t DirectoryDownloadId;
-	class DirectoryDownload {
-	public:
-		DirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner = nullptr);
-
-		IGETSET(QueueItemPtr, queueItem, QueueItem, nullptr);
-
-		struct HasOwner {
-			HasOwner(void* aOwner, const string& s) : a(s), owner(aOwner) { }
-			bool operator()(const DirectoryDownloadPtr& ddi) const noexcept;
-
-			const string& a;
-			void* owner;
-
-			HasOwner& operator=(const HasOwner&) = delete;
-		};
-
-		const HintedUser& getUser() const noexcept { return user; }
-		const string& getBundleName() const noexcept { return bundleName; }
-		const string& getTarget() const noexcept { return target; }
-		const string& getListPath() const noexcept { return listPath; }
-		Priority getPriority() const noexcept { return priority; }
-		const void* getOwner() const noexcept { return owner; }
-		DirectoryDownloadId getId() const noexcept { return id; }
-	private:
-		const DirectoryDownloadId id;
-		const Priority priority;
-		const HintedUser user;
-		const string target;
-		const string bundleName;
-		const string listPath;
-		const void* owner;
-	};
-
-	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener {
+	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener, public TimerManagerListener {
 	public:
 		typedef unordered_map<UserPtr, DirectoryListingPtr, User::Hash> DirectoryListingMap;
 
@@ -89,14 +56,19 @@ namespace dcpp {
 		// If owner is specified, no errors are logged if queueing of the directory fails
 		DirectoryDownloadPtr addDirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner = nullptr);
 		DirectoryDownloadList getDirectoryDownloads() const noexcept;
+		DirectoryDownloadPtr getDirectoryDownload(DirectoryDownloadId aId) const noexcept;
 
 		bool hasDirectoryDownload(const string& aBundleName, void* aOwner) const noexcept;
-		bool removeDirectoryDownload(DirectoryDownloadId aId) noexcept;
+		bool cancelDirectoryDownload(DirectoryDownloadId aId) noexcept;
 
 		DirectoryListingMap getLists() const noexcept;
 		DirectoryListingPtr findList(const UserPtr& aUser) noexcept;
 	private:
-		bool removeDirectoryDownload(const UserPtr& aUser, const string& aPath) noexcept;
+		// bool removeDirectoryDownload(const UserPtr& aUser, const string& aPath, bool aForced) noexcept;
+		void removeDirectoryDownload(const DirectoryDownloadPtr& aDownloadInfo) noexcept;
+		DirectoryDownloadList getPendingDirectoryDownloadsUnsafe(const UserPtr& aUser) const noexcept;
+		DirectoryDownloadPtr getPendingDirectoryDownloadUnsafe(const UserPtr& aUser, const string& aPath) const noexcept;
+		void failDirectoryDownload(const DirectoryDownloadPtr& aDownloadInfo, const string& aError) noexcept;
 
 		// Throws on errors
 		void queueList(const DirectoryDownloadPtr& aDownloadInfo);
@@ -110,8 +82,7 @@ namespace dcpp {
 		mutable SharedMutex cs;
 
 		/** Directories queued for downloading */
-		unordered_multimap<UserPtr, DirectoryDownloadPtr, User::Hash> dlDirectories;
-
+		DirectoryDownloadList dlDirectories;
 
 		/** Lists open in the client **/
 		DirectoryListingMap viewedLists;
@@ -121,6 +92,9 @@ namespace dcpp {
 		void on(QueueManagerListener::ItemRemoved, const QueueItemPtr& qi, bool finished) noexcept;
 
 		void on(QueueManagerListener::PartialListFinished, const HintedUser& aUser, const string& aXml, const string& aBase) noexcept;
+
+
+		void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
 	};
 
 }

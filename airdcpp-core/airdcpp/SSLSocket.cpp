@@ -43,6 +43,16 @@ static int SSL_is_server(SSL *s)
 }
 #endif
 
+
+void SSLSocket::connect(const AddressInfo& aAddr, const string& aPort, const string& aLocalPort) {
+	if (aAddr.getType() == AddressInfo::TYPE_URL) {
+		// https://github.com/openssl/openssl/issues/7147#issuecomment-419621673
+		hostname = aAddr.getV4CompatibleAddress();
+	}
+
+	Socket::connect(aAddr, aPort, aLocalPort);
+}
+
 bool SSLSocket::waitConnected(uint64_t millis) {
 	if(!ssl) {
 		if(!Socket::waitConnected(millis)) {
@@ -55,6 +65,11 @@ bool SSLSocket::waitConnected(uint64_t millis) {
 		if(!verifyData) {
 			SSL_set_verify(ssl, SSL_VERIFY_NONE, NULL);
 		} else SSL_set_ex_data(ssl, CryptoManager::idxVerifyData, verifyData.get());
+
+		if (!hostname.empty()) {
+			// https://github.com/openssl/openssl/issues/7147#issuecomment-419621673
+			SSL_set_tlsext_host_name(ssl, hostname.c_str());
+		}
 
 		checkSSL(SSL_set_fd(ssl, static_cast<int>(getSock())));
 	}

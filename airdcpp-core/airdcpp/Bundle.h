@@ -166,13 +166,13 @@ public:
 	// Throws on errors
 	void save();
 
-	void addQueue(QueueItemPtr& qi) noexcept;
-	void removeQueue(QueueItemPtr& qi, bool aFinished) noexcept;
+	void addQueue(const QueueItemPtr& qi) noexcept;
+	void removeQueue(const QueueItemPtr& qi, bool aFinished) noexcept;
 
 	void getDirQIs(const string& aDir, QueueItemList& ql) const noexcept;
 
-	void addFinishedItem(QueueItemPtr& qi, bool finished) noexcept;
-	void removeFinishedItem(QueueItemPtr& qi) noexcept;
+	void addFinishedItem(const QueueItemPtr& qi, bool finished) noexcept;
+	void removeFinishedItem(const QueueItemPtr& qi) noexcept;
 	void finishBundle() noexcept;
 
 	// All files have been downloaded and moved to the final destination
@@ -239,11 +239,11 @@ public:
 
 	QueueItemList getFailedItems() const noexcept;
 
-	void removeUserQueue(QueueItemPtr& qi) noexcept;
-	bool removeUserQueue(QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason) noexcept;
+	void removeUserQueue(const QueueItemPtr& qi) noexcept;
+	bool removeUserQueue(const QueueItemPtr& qi, const UserPtr& aUser, Flags::MaskType reason) noexcept;
 
 	//moves the file back in userqueue for the given user (only within the same priority)
-	void rotateUserQueue(QueueItemPtr& qi, const UserPtr& aUser) noexcept;
+	void rotateUserQueue(const QueueItemPtr& qi, const UserPtr& aUser) noexcept;
 	bool isEmpty() const noexcept { return queueItems.empty() && finishedFiles.empty(); }
 private:
 	ActionHookRejectionPtr hookError = nullptr;

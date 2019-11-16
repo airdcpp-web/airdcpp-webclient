@@ -219,6 +219,15 @@ void RSSManager::matchFilters(const RSSPtr& aFeed) {
 
 void RSSManager::matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) {
 	
+	//Match remove filters first, so it works kind of as a skiplist also
+	bool remove = find_if(aFeed->getRssFilterList().begin(), aFeed->getRssFilterList().end(), [&](const RSSFilter& a)
+		{ return a.getFilterAction() == RSSFilter::REMOVE && a.match(aData->getTitle()); }) != aFeed->getRssFilterList().end();
+
+	if (remove) {
+		tasks.addTask([=] { removeFeedData(aFeed, aData); });
+		return;
+	}
+
 	for (auto& aF : aFeed->getRssFilterList()) {
 		if (aF.match(aData->getTitle())) {
 			if (aF.skipDupes) {
@@ -227,11 +236,9 @@ void RSSManager::matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) {
 				if (QueueManager::getInstance()->isAdcDirectoryQueued(aData->getTitle(), 0) != DUPE_NONE)
 					break; //Need to match other filters?
 			}
-			if (aF.getFilterAction() == RSSFilter::DOWNLOAD) {
+			if (aF.getFilterAction() == RSSFilter::DOWNLOAD || aF.getFilterAction() == RSSFilter::ADD_AUTOSEARCH) {
 				addAutoSearchItem(aF, aData);
-			} else if (aF.getFilterAction() == RSSFilter::REMOVE) {
-				tasks.addTask([=] { removeFeedData(aFeed, aData); });
-			}
+			} 
 			break; //One match is enough
 		}
 	}
@@ -244,7 +251,7 @@ bool RSSManager::addAutoSearchItem(const RSSFilter& aFilter, const RSSDataPtr& a
 
 	time_t expireTime = aFilter.getExpireDays() > 0 ? GET_TIME() + aFilter.getExpireDays() * 24 * 60 * 60 : 0;
 
-	AutoSearchPtr as = new AutoSearch(true, aData->getTitle(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, aFilter.getDownloadTarget(),
+	AutoSearchPtr as = new AutoSearch(aFilter.getFilterAction() == RSSFilter::DOWNLOAD, aData->getTitle(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, aFilter.getDownloadTarget(),
 		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, expireTime, true, true, false, Util::emptyString, AutoSearch::RSS_DOWNLOAD, false);
 
 	as->setGroup(aFilter.getAutosearchGroup());

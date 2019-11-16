@@ -61,12 +61,12 @@ public:
 
 	BundleQueue();
 	~BundleQueue();
-	void addBundleItem(QueueItemPtr& qi, BundlePtr& aBundle) noexcept;
-	void removeBundleItem(QueueItemPtr& qi, bool finished) noexcept;
+	void addBundleItem(const QueueItemPtr& aQI, const BundlePtr& aBundle) noexcept;
+	void removeBundleItem(const QueueItemPtr& aQI, bool finished) noexcept;
 
 	size_t getTotalFiles() const noexcept;
 
-	void addBundle(BundlePtr& aBundle) noexcept;
+	void addBundle(const BundlePtr& aBundle) noexcept;
 
 	BundlePtr findBundle(QueueToken bundleToken) const noexcept;
 	BundlePtr findBundle(const string& aPath) const noexcept;
@@ -74,7 +74,7 @@ public:
 	BundlePtr getMergeBundle(const string& aTarget) const noexcept;
 	void getSubBundles(const string& aTarget, BundleList& retBundles) const noexcept;
 
-	void removeBundle(BundlePtr& aBundle) noexcept;
+	void removeBundle(const BundlePtr& aBundle) noexcept;
 
 	void saveQueue(bool force) noexcept;
 	QueueItemList getSearchItems(const BundlePtr& aBundle) const noexcept;

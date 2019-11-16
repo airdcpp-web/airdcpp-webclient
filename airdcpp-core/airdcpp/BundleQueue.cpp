@@ -40,7 +40,7 @@ size_t BundleQueue::getTotalFiles() const noexcept {
 	return boost::accumulate(bundles | map_values, (size_t)0, [](size_t old, const BundlePtr& b) { return old + b->getQueueItems().size() + b->getFinishedFiles().size(); });
 }
 
-void BundleQueue::addBundle(BundlePtr& aBundle) noexcept {
+void BundleQueue::addBundle(const BundlePtr& aBundle) noexcept {
 	bundles[aBundle->getToken()] = aBundle;
 
 	if (aBundle->filesCompleted()) {
@@ -332,7 +332,7 @@ void BundleQueue::forEachPath(const BundlePtr& aBundle, const string& aFilePath,
 	}
 }
 
-void BundleQueue::addBundleItem(QueueItemPtr& aQI, BundlePtr& aBundle) noexcept {
+void BundleQueue::addBundleItem(const QueueItemPtr& aQI, const BundlePtr& aBundle) noexcept {
 	dcassert(!aQI->getBundle());
 	aBundle->addQueue(aQI);
 	aQI->setBundle(aBundle);
@@ -354,7 +354,7 @@ void BundleQueue::addBundleItem(QueueItemPtr& aQI, BundlePtr& aBundle) noexcept 
 	}
 }
 
-void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool aDownloadFinished) noexcept {
+void BundleQueue::removeBundleItem(const QueueItemPtr& aQI, bool aDownloadFinished) noexcept {
 	dcassert(aQI->getBundle());
 	aQI->getBundle()->removeQueue(aQI, aDownloadFinished);
 
@@ -386,7 +386,7 @@ void BundleQueue::removeBundleItem(QueueItemPtr& aQI, bool aDownloadFinished) no
 	}
 }
 
-void BundleQueue::removeBundle(BundlePtr& aBundle) noexcept{
+void BundleQueue::removeBundle(const BundlePtr& aBundle) noexcept{
 	if (aBundle->getStatus() == Bundle::STATUS_NEW) {
 		return;
 	}

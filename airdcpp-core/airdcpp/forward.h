@@ -138,6 +138,10 @@ class SearchResult;
 typedef std::shared_ptr<SearchResult> SearchResultPtr;
 typedef std::vector<SearchResultPtr> SearchResultList;
 
+class SearchType;
+typedef shared_ptr<SearchType> SearchTypePtr;
+typedef vector<SearchTypePtr> SearchTypeList;
+
 class GroupedSearchResult;
 typedef std::shared_ptr<GroupedSearchResult> GroupedSearchResultPtr;
 typedef std::vector<GroupedSearchResultPtr> GroupedSearchResultList;
