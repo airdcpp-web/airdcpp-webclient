@@ -1216,7 +1216,7 @@ string Util::formatParams(const string& aMsg, const ParamMap& aParams, FilterF a
 	return result;
 }
 
-bool Util::isAdcPath(const string& aPath) noexcept {
+bool Util::isAdcDirectoryPath(const string& aPath) noexcept {
 	return !aPath.empty() && aPath.front() == ADC_ROOT && aPath.back() == ADC_SEPARATOR;
 }
 
@@ -1501,6 +1501,23 @@ string Util::getParentDir(const string& path, const char separator /*PATH_SEPARA
 
 string Util::joinDirectory(const string& aPath, const string& aDirectoryName, const char separator) noexcept {
 	return aPath + aDirectoryName + separator;
+}
+
+string Util::ensureTrailingSlash(const string& aPath, const char aSeparator) noexcept {
+	if (!aPath.empty() && !isDirectoryPath(aPath, aSeparator)) {
+		return aPath + aSeparator;
+	}
+
+	return aPath;
+}
+
+string Util::validatePath(const string& aPath, bool aRequireEndSeparator) noexcept {
+	auto path = cleanPathChars(aPath, false);
+	if (aRequireEndSeparator) {
+		path = Util::ensureTrailingSlash(path);
+	}
+
+	return path;
 }
 
 wstring Util::getFilePath(const wstring& path) noexcept {

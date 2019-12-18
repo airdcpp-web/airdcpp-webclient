@@ -144,7 +144,7 @@ pair<uint8_t*,size_t> ZipFile::ReadCurrentFile() {
 	return { buf, info.uncompressed_size };
 }
 
-void ZipFile::ReadCurrentFile(const string &path) {
+void ZipFile::ReadCurrentFile(const string& aPath) {
 	try {
 		string nameInZip = this->GetCurrentFileName();
 
@@ -156,7 +156,7 @@ void ZipFile::ReadCurrentFile(const string &path) {
 		if (nameInZip[nameInZip.size()-1] != '/' &&  nameInZip[nameInZip.size()-1] != '\\') {
 			pair<uint8_t*,size_t> file = this->ReadCurrentFile();
 
-			const string& fullPath = (path[path.size()-1] == PATH_SEPARATOR) ? path + nameInZip : path;
+			const string& fullPath = Util::isDirectoryPath(aPath) ? aPath + nameInZip : aPath;
 			File::ensureDirectory(fullPath);
 
 			{

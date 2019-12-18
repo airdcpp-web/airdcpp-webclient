@@ -644,7 +644,7 @@ bool ShareManager::isRealPathShared(const string& aPath) const noexcept {
 	RLock l (cs);
 	auto d = findDirectory(Util::getFilePath(aPath));
 	if (d) {
-		if (!aPath.empty() && aPath.back() == PATH_SEPARATOR) {
+		if (Util::isDirectoryPath(aPath)) {
 			// It's a directory
 			return true;
 		}
@@ -667,7 +667,7 @@ string ShareManager::realToVirtualAdc(const string& aPath, const OptionalProfile
 	}
 
 	auto vPathAdc = d->getAdcPath();
-	if (aPath.back() == PATH_SEPARATOR) {
+	if (Util::isDirectoryPath(aPath)) {
 		// Directory
 		return vPathAdc;
 	}
@@ -2987,17 +2987,30 @@ void ShareManager::validatePath(const string& aRealPath, bool aSkipQueueCheck) c
 	StringList tokens;
 	Directory::Ptr baseDirectory = nullptr;
 
+	auto isDirectoryPath = Util::isDirectoryPath(aRealPath);
+	auto isFileShared = false;
+
 	{
 		RLock l(cs);
-		baseDirectory = findDirectory(aRealPath, tokens);
+		baseDirectory = findDirectory(!isDirectoryPath ? Util::getFilePath(aRealPath) : aRealPath, tokens);
+		if (!baseDirectory) {
+			throw ShareException(STRING(DIRECTORY_NOT_FOUND));
+		}
+
+		if (!isDirectoryPath && tokens.empty()) {
+			auto i = baseDirectory->files.find(Text::toLower(Util::getFileName(aRealPath)));
+			isFileShared = i != baseDirectory->files.end();
+		}
 	}
 
-	if (!baseDirectory) {
-		throw ShareException(STRING(DIRECTORY_NOT_FOUND));
-	}
 
-	// Validate missing tokens
-	validator->validatePathTokens(baseDirectory->getRealPath(), tokens, aSkipQueueCheck);
+	// Validate missing directory path tokens
+	validator->validateDirectoryPathTokens(baseDirectory->getRealPath(), tokens, aSkipQueueCheck);
+
+	if (!isDirectoryPath && !isFileShared) {
+		// Validate the file
+		validator->validatePath(aRealPath, aSkipQueueCheck);
+	}
 }
 
 ShareManager::Directory::Ptr ShareManager::findDirectory(const string& aRealPath, StringList& remainingTokens_) const noexcept {
@@ -3039,7 +3052,7 @@ ShareManager::Directory::Ptr ShareManager::getDirectory(const string& aRealPath)
 
 	// Validate the remaining tokens
 	try {
-		validator->validatePathTokens(curDir->getRealPath(), tokens, false);
+		validator->validateDirectoryPathTokens(curDir->getRealPath(), tokens, false);
 	} catch (const Exception&) {
 		return nullptr;
 	}

@@ -27,6 +27,7 @@
 #include <airdcpp/ShareManager.h>
 #include <airdcpp/QueueManager.h>
 #include <airdcpp/SearchManager.h>
+#include <airdcpp/ClientManager.h>
 
 #include <airdcpp/ScopedFunctor.h>
 #include <airdcpp/AirUtil.h>
@@ -256,7 +257,12 @@ bool RSSManager::addAutoSearchItem(const RSSFilter& aFilter, const RSSDataPtr& a
 
 	as->setGroup(aFilter.getAutosearchGroup());
 
-	AutoSearchManager::getInstance()->addAutoSearch(as, false, false);
+	/*
+	a hack, try to avoid growing autosearch list, allow adding max 5 items to internal searchqueue directly... will result in ~2 minute searchqueue time.
+	Hopefylly most of these will get hits so we dont need to search them again.
+	*/
+	bool search = (aFilter.getFilterAction() == RSSFilter::DOWNLOAD) && ClientManager::getInstance()->getMaxSearchQueueSize() < 5;
+	AutoSearchManager::getInstance()->addAutoSearch(as, search, false);
 	return true;
 }
 

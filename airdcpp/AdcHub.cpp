@@ -1184,7 +1184,7 @@ bool AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch, stri
 
 	if (user.getUser()->isSet(User::ASCH)) {
 		if (!Util::isAdcRoot(aSearch->path)) {
-			dcassert(Util::isAdcPath(aSearch->path));
+			dcassert(Util::isAdcDirectoryPath(aSearch->path));
 			c.addParam("PA", aSearch->path);
 		}
 

@@ -459,7 +459,7 @@ private:
 
 	// Validate bundle file against ignore and dupe options + performs target validity check (see checkTarget)
 	// Throws QueueException, FileException, DupeException
-	void validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, Priority& priority_, int64_t aSize) const;
+	void validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, Priority& priority_, int64_t aSize, Flags::MaskType aFlags = 0) const;
 
 	// Sanity check for the target filename
 	// Throws QueueException on invalid path format and FileException if the target file exists

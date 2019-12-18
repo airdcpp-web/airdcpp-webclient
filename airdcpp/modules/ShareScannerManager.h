@@ -61,7 +61,7 @@ public:
 
 	void scanShare(const StringList& paths = StringList()) noexcept;
 	void checkSfv(const StringList& paths) noexcept;
-	bool onScanSharedDir(const string& aDir, bool report) noexcept;
+	// bool onScanSharedDir(const string& aDir, bool report) noexcept;
 
 	void checkFileSFV(const string& path, DirSFVReader& sfv, bool isDirScan) noexcept;
 	void Stop();
