@@ -178,7 +178,7 @@ namespace webserver {
 		{ SettingsManager::MINIMUM_SEARCH_INTERVAL, { 5, 1000 } },
 
 		{ SettingsManager::UPLOAD_SLOTS, { 1, 250 } },
-		{ SettingsManager::DOWNLOAD_SLOTS, { 1, 250 } },
+		{ SettingsManager::DOWNLOAD_SLOTS, { 0, 250 } },
 		{ SettingsManager::SET_MINISLOT_SIZE, { 64, MAX_INT_VALUE } },
 		{ SettingsManager::EXTRA_SLOTS, { 1, 100 } },
 
