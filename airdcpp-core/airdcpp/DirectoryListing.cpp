@@ -217,7 +217,7 @@ void DirectoryListing::onStateChanged() noexcept {
 }
 
 DirectoryListing::Directory::Ptr DirectoryListing::createBaseDirectory(const string& aBasePath, time_t aDownloadDate) noexcept {
-	dcassert(Util::isAdcPath(aBasePath));
+	dcassert(Util::isAdcDirectoryPath(aBasePath));
 	auto cur = root;
 
 	const auto sl = StringTokenizer<string>(aBasePath, ADC_SEPARATOR).getTokens();
@@ -399,7 +399,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 	} else if(name == sFileListing) {
 		if (updating) {
 			const string& b = getAttrib(attribs, sBase, 2);
-			dcassert(Util::isAdcPath(base));
+			dcassert(Util::isAdcDirectoryPath(base));
 
 			// Validate the parsed base path
 			{
@@ -631,7 +631,7 @@ DirectoryListing::Directory::Ptr DirectoryListing::findDirectory(const string& a
 	if (aName == ADC_ROOT_STR)
 		return root;
 
-	dcassert(Util::isAdcPath(aName));
+	dcassert(Util::isAdcDirectoryPath(aName));
 	auto end = aName.find(ADC_SEPARATOR, 1);
 	dcassert(end != string::npos);
 	string name = aName.substr(1, end - 1);
@@ -919,7 +919,7 @@ void DirectoryListing::close() noexcept {
 }
 
 void DirectoryListing::addSearchTask(const SearchPtr& aSearch) noexcept {
-	dcassert(Util::isAdcPath(aSearch->path));
+	dcassert(Util::isAdcDirectoryPath(aSearch->path));
 	addAsyncTask([=] { searchImpl(aSearch); });
 }
 

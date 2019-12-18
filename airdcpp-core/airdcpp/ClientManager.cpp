@@ -1089,6 +1089,23 @@ bool ClientManager::hasSearchQueueOverflow() const noexcept {
 	}).base() != clients.end();
 }
 
+int ClientManager::getMaxSearchQueueSize() const noexcept {
+	int maxSize = 0;
+
+	{
+		RLock l(cs);
+		for (const auto& c : clients | map_values) {
+			auto s = c->getSearchQueueSize();
+			if (s) {
+				maxSize = maxSize ? max(s, maxSize) : s;
+			}
+		}
+	}
+
+	return maxSize;
+
+}
+
 bool ClientManager::directSearch(const HintedUser& aUser, const SearchPtr& aSearch, string& error_) noexcept {
 	if (aUser.user->isNMDC()) {
 		error_ = "Direct search is not supported with NMDC users";

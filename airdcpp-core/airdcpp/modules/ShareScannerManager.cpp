@@ -113,7 +113,7 @@ void ShareScannerManager::runSfvCheck(const StringList& rootPaths) {
 	SFVScanList sfvDirPaths;
 	StringList sfvFilePaths;
 	for (auto& path : rootPaths) {
-		if (path.back() == PATH_SEPARATOR) {
+		if (Util::isDirectoryPath(path)) {
 			prepareSFVScanDir(path, sfvDirPaths);
 		} else {
 			prepareSFVScanFile(path, sfvFilePaths);
@@ -717,7 +717,7 @@ ActionHookRejectionPtr ShareScannerManager::bundleCompletionHook(const BundlePtr
 	return nullptr;
 }
 
-bool ShareScannerManager::onScanSharedDir(const string& aDir, bool report) noexcept {
+/*bool ShareScannerManager::onScanSharedDir(const string& aDir, bool report) noexcept {
 	if (!SETTING(SCAN_MONITORED_FOLDERS))
 		return true;
 
@@ -744,7 +744,7 @@ bool ShareScannerManager::onScanSharedDir(const string& aDir, bool report) noexc
 	}
 
 	return true;
-}
+}*/
 
 void ShareScannerManager::reportMessage(const string& aMessage, ScanInfo& aScan, bool warning /*true*/) noexcept {
 	if (aScan.reportType == ScanInfo::TYPE_SYSLOG) {

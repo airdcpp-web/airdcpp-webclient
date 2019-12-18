@@ -507,7 +507,7 @@ bool QueueManager::hasDownloadedBytes(const string& aTarget) {
 }
 
 QueueItemPtr QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFlags, const string& aInitialDir /* = ADC_ROOT */, const BundlePtr& aBundle /*nullptr*/) {
-	if (!Util::isAdcPath(aInitialDir)) {
+	if (!Util::isAdcDirectoryPath(aInitialDir)) {
 		throw QueueException(STRING_F(INVALID_PATH, aInitialDir));
 	}
 
@@ -606,7 +606,7 @@ void QueueManager::checkSource(const HintedUser& aUser) const {
 	}
 }
 
-void QueueManager::validateBundleFile(const string& aBundleDir, string& bundleFile_, const TTHValue& aTTH, Priority& priority_, int64_t aSize) const {
+void QueueManager::validateBundleFile(const string& aBundleDir, string& bundleFile_, const TTHValue& aTTH, Priority& priority_, int64_t aSize, Flags::MaskType aFlags/*=0*/) const {
 	if (aSize <= 0) {
 		throw QueueException(STRING(ZERO_BYTE_QUEUE));
 	}
@@ -619,16 +619,18 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& bundleFi
 		}
 	};
 
-	//match the file name
-	matchSkipList(Util::getFileName(bundleFile_));
+	//no skiplist for private (magnet) downloads
+	if (!(aFlags & QueueItem::FLAG_PRIVATE)) {
+		//match the file name
+		matchSkipList(Util::getFileName(bundleFile_));
 
-	//match all dirs (if any)
-	string::size_type i = 0, j = 0;
-	while ((i = bundleFile_.find(PATH_SEPARATOR, j)) != string::npos) {
-		matchSkipList(bundleFile_.substr(j, i - j));
-		j = i + 1;
+		//match all dirs (if any)
+		string::size_type i = 0, j = 0;
+		while ((i = bundleFile_.find(PATH_SEPARATOR, j)) != string::npos) {
+			matchSkipList(bundleFile_.substr(j, i - j));
+			j = i + 1;
+		}
 	}
-
 
 	//validate the target and check the existance
 	bundleFile_ = checkTarget(bundleFile_, aBundleDir);
@@ -954,7 +956,7 @@ BundleAddInfo QueueManager::createFileBundle(const string& aTarget, int64_t aSiz
 		checkSource(aUser);
 	}
 
-	validateBundleFile(filePath, fileName, aTTH, aPrio, aSize);
+	validateBundleFile(filePath, fileName, aTTH, aPrio, aSize, aFlags);
 
 	BundlePtr b = nullptr;
 	bool wantConnection = false;

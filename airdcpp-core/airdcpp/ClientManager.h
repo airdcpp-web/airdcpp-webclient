@@ -148,6 +148,7 @@ public:
 	bool cancelSearch(const void* aOwner) noexcept;
 	optional<uint64_t> getMaxSearchQueueTime(const void* aOwner) const noexcept;
 	bool hasSearchQueueOverflow() const noexcept;
+	int getMaxSearchQueueSize() const noexcept;
 		
 	void infoUpdated() noexcept;
 

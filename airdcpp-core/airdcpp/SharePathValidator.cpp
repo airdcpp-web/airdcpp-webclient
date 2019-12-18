@@ -251,7 +251,7 @@ void SharePathValidator::reloadSkiplist() {
 	skipList.prepare();
 }
 
-void SharePathValidator::validatePathTokens(const string& aBasePath, const StringList& aTokens, bool aSkipQueueCheck) const {
+void SharePathValidator::validateDirectoryPathTokens(const string& aBasePath, const StringList& aTokens, bool aSkipQueueCheck) const {
 	if (aTokens.empty()) {
 		return;
 	}
@@ -260,13 +260,17 @@ void SharePathValidator::validatePathTokens(const string& aBasePath, const Strin
 
 	for (const auto& currentName : aTokens) {
 		curPath += currentName + PATH_SEPARATOR;
+		validatePath(curPath, aSkipQueueCheck);
+	}
+}
 
-		FileFindIter i(curPath);
-		if (i != FileFindIter()) {
-			validate(i, curPath, aSkipQueueCheck);
-		} else {
-			throw FileException(STRING(FILE_NOT_FOUND));
-		}
+
+void SharePathValidator::validatePath(const string& aPath, bool aSkipQueueCheck) const {
+	FileFindIter i(aPath);
+	if (i != FileFindIter()) {
+		validate(i, aPath, aSkipQueueCheck);
+	} else {
+		throw FileException(STRING(FILE_NOT_FOUND));
 	}
 }
 

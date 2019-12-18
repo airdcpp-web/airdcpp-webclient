@@ -199,26 +199,30 @@ public:
 
 	static string translateError(int aError) noexcept;
 
-	static string getFilePath(const string& path, const char separator = PATH_SEPARATOR) noexcept;
-	inline static string getAdcFilePath(const string& path) noexcept { return getFilePath(path, ADC_SEPARATOR); }
+	static string getFilePath(const string& aPath, const char aSeparator = PATH_SEPARATOR) noexcept;
+	inline static string getAdcFilePath(const string& aPath) noexcept { return getFilePath(aPath, ADC_SEPARATOR); }
 
-	static string getFileName(const string& path, const char separator = PATH_SEPARATOR) noexcept;
-	inline static string getAdcFileName(const string& path) noexcept { return getFileName(path, ADC_SEPARATOR); };
+	static string getFileName(const string& aPath, const char aSeparator = PATH_SEPARATOR) noexcept;
+	inline static string getAdcFileName(const string& aPath) noexcept { return getFileName(aPath, ADC_SEPARATOR); };
 
-	static string getLastDir(const string& path, const char separator = PATH_SEPARATOR) noexcept;
-	inline static string getAdcLastDir(const string& path) noexcept { return getLastDir(path, ADC_SEPARATOR); };
+	static string getLastDir(const string& aPath, const char aSeparator = PATH_SEPARATOR) noexcept;
+	inline static string getAdcLastDir(const string& aPath) noexcept { return getLastDir(aPath, ADC_SEPARATOR); };
 
-	static string getParentDir(const string& path, const char separator = PATH_SEPARATOR, bool allowEmpty = false) noexcept;
-	inline static string getAdcParentDir(const string& path) noexcept { return getParentDir(path, ADC_SEPARATOR, false); };
+	static string getParentDir(const string& aPath, const char aSeparator = PATH_SEPARATOR, bool allowEmpty = false) noexcept;
+	inline static string getAdcParentDir(const string& aPath) noexcept { return getParentDir(aPath, ADC_SEPARATOR, false); };
+
+	template<typename string_t>
+	inline static bool isDirectoryPath(const string_t& aPath, const char aSeparator = PATH_SEPARATOR) noexcept { return !aPath.empty() && aPath.back() == aSeparator; }
+	static string ensureTrailingSlash(const string& aPath, const char aSeparator = PATH_SEPARATOR) noexcept;
 
 	static string joinDirectory(const string& aPath, const string& aDirectoryName, const char separator = PATH_SEPARATOR) noexcept;
 
-	static string getFileExt(const string& path) noexcept;
+	static string getFileExt(const string& aPath) noexcept;
 
-	static wstring getFilePath(const wstring& path) noexcept;
-	static wstring getFileName(const wstring& path) noexcept;
-	static wstring getFileExt(const wstring& path) noexcept;
-	static wstring getLastDir(const wstring& path) noexcept;
+	static wstring getFilePath(const wstring& aPath) noexcept;
+	static wstring getFileName(const wstring& aPath) noexcept;
+	static wstring getFileExt(const wstring& aPath) noexcept;
+	static wstring getLastDir(const wstring& aPath) noexcept;
 
 	template<typename string_t>
 	static void replace(const string_t& search, const string_t& replacement, string_t& str) noexcept {
@@ -255,16 +259,10 @@ public:
 	static void parseIpPort(const string& aIpPort, string& ip, string& port) noexcept;
 	static map<string, string> decodeQuery(const string& query) noexcept;
 
-	static bool isAdcPath(const string& aPath) noexcept;
+	static bool isAdcDirectoryPath(const string& aPath) noexcept;
 	static bool isAdcRoot(const string& aPath) noexcept;
 
-	static inline string validatePath(const string& aPath, bool requireEndSeparator = false) noexcept {
-		auto path = cleanPathChars(aPath, false);
-		if (requireEndSeparator && !path.empty() && path.back() != PATH_SEPARATOR) {
-			path += PATH_SEPARATOR;
-		}
-		return path; 
-	}
+	static string validatePath(const string& aPath, bool aRequireEndSeparator = false) noexcept;
 	static inline string validateFileName(const string& aFileName) noexcept { return cleanPathChars(aFileName, true); }
 	static string cleanPathSeparators(const string& str) noexcept;
 	static bool checkExtension(const string& tmp) noexcept;

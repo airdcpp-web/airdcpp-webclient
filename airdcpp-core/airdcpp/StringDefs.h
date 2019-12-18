@@ -825,6 +825,7 @@ enum Strings { // @DontAdd
 	MENU_QUICK_CONNECT, // "Quick connect...\tCtrl+Q"
 	MENU_RECONNECT, // "Reconnect\tCtrl+R"
 	MENU_RECONNECT_DISCONNECTED, // "Reconnect disconnected"
+	MENU_MARK_AS_READ, // "Mark all windows as read (unbold tabs)"
 	MENU_REFRESH_FILE_LIST, // "Refresh file list\tCtrl+E"
 	MENU_RESTORE_ALL, // "Restore all"
 	MENU_SCAN_MISSING, // "Scan share for missing/extra files"
