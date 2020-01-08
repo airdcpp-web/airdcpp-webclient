@@ -191,7 +191,7 @@ namespace webserver {
 	}
 
 	websocketpp::http::status_code::value FileServer::handleRequest(const websocketpp::http::parser::request& aRequest,
-		string& output_, StringPairList& headers_, const SessionPtr& aSession, const DeferredHandler& aDeferF) {
+		string& output_, StringPairList& headers_, const SessionPtr& aSession, const FileDeferredHandler& aDeferF) {
 
 		if (aRequest.get_method() == "GET") {
 			return handleGetRequest(aRequest, output_, headers_, aSession, aDeferF);
@@ -204,7 +204,7 @@ namespace webserver {
 	}
 
 	websocketpp::http::status_code::value FileServer::handleGetRequest(const websocketpp::http::parser::request& aRequest,
-		string& output_, StringPairList& headers_, const SessionPtr& aSession, const DeferredHandler& aDeferF) {
+		string& output_, StringPairList& headers_, const SessionPtr& aSession, const FileDeferredHandler& aDeferF) {
 
 		const auto& requestUrl = aRequest.get_uri();
 		dcdebug("Requesting file %s\n", requestUrl.c_str());
@@ -280,7 +280,7 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	websocketpp::http::status_code::value FileServer::handleProxyDownload(const string& aRequestUrl, string& output_, const DeferredHandler& aDeferF) noexcept {
+	websocketpp::http::status_code::value FileServer::handleProxyDownload(const string& aRequestUrl, string& output_, const FileDeferredHandler& aDeferF) noexcept {
 		string protocol, host, port, path, query, fragment;
 		Util::decodeUrl(aRequestUrl, protocol, host, port, path, query, fragment);
 
@@ -314,7 +314,7 @@ namespace webserver {
 		return websocketpp::http::status_code::accepted;
 	}
 
-	void FileServer::onProxyDownloadCompleted(int64_t aDownloadId, const HTTPCompletionF& aCompletionF) noexcept {
+	void FileServer::onProxyDownloadCompleted(int64_t aDownloadId, const HTTPFileCompletionF& aCompletionF) noexcept {
 		ScopedFunctor([&] {
 			WLock l(cs);
 			proxyDownloads.erase(aDownloadId);

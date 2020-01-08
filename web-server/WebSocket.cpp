@@ -19,6 +19,7 @@
 #include "stdinc.h"
 
 #include <web-server/HttpUtil.h>
+#include <web-server/JsonUtil.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebSocket.h>
 
@@ -169,5 +170,14 @@ namespace webserver {
 		} else {
 			return plainServer->get_con_from_hdl(hdl)->get_request();
 		}
+	}
+
+	void WebSocket::parseRequest(const string& aRequest, int& callbackId_, string& method_, string& path_, json& data_) {
+		const auto requestJson = json::parse(aRequest);
+
+		callbackId_ = JsonUtil::getOptionalFieldDefault<int>("callback_id", requestJson, -1);
+		path_ = requestJson.at("path");
+		data_ = JsonUtil::getOptionalRawField("data", requestJson);
+		method_ = requestJson.at("method");
 	}
 }

@@ -45,7 +45,7 @@ namespace webserver {
 		typedef std::map<std::string, std::string> NamedParamMap;
 
 		// Throws on errors
-		ApiRequest(const std::string& aUrl, const std::string& aMethod, const json& aBody, const SessionPtr& aSession, json& output_, json& error_);
+		ApiRequest(const std::string& aUrl, const std::string& aMethod, const json& aBody, const SessionPtr& aSession, const ApiDeferredHandler& aDeferredHandler, json& output_, json& error_);
 
 		int getApiVersion() const noexcept {
 			return apiVersion;
@@ -96,8 +96,12 @@ namespace webserver {
 		}
 
 		void setResponseErrorStr(const std::string& aError) {
-			responseJsonError = {
-				{ "message", aError } 
+			responseJsonError = toResponseErrorStr(aError);
+		}
+
+		static json toResponseErrorStr(const std::string& aError) noexcept {
+			return {
+				{ "message", aError }
 			};
 		}
 
@@ -114,6 +118,8 @@ namespace webserver {
 		}
 
 		void setNamedParams(const NamedParamMap& aParams) noexcept;
+
+		ApiCompletionF defer();
 	private:
 		SessionPtr session;
 		void validate();
@@ -131,6 +137,7 @@ namespace webserver {
 
 		json& responseJsonData;
 		json& responseJsonError;
+		ApiDeferredHandler deferredHandler;
 	};
 }
 
