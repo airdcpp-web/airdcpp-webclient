@@ -186,7 +186,7 @@ void SharePathValidator::saveExcludes(SimpleXML& aXml) const noexcept {
 	aXml.stepOut();
 }
 
-void SharePathValidator::validate(FileFindIter& aIter, const string& aPath, bool aSkipQueueCheck) const {
+void SharePathValidator::validateHooked(FileFindIter& aIter, const string& aPath, bool aSkipQueueCheck) const {
 	if (!SETTING(SHARE_HIDDEN) && aIter->isHidden()) {
 		throw FileException("File is hidden");
 	}
@@ -251,7 +251,7 @@ void SharePathValidator::reloadSkiplist() {
 	skipList.prepare();
 }
 
-void SharePathValidator::validateDirectoryPathTokens(const string& aBasePath, const StringList& aTokens, bool aSkipQueueCheck) const {
+void SharePathValidator::validateDirectoryPathTokensHooked(const string& aBasePath, const StringList& aTokens, bool aSkipQueueCheck) const {
 	if (aTokens.empty()) {
 		return;
 	}
@@ -260,15 +260,15 @@ void SharePathValidator::validateDirectoryPathTokens(const string& aBasePath, co
 
 	for (const auto& currentName : aTokens) {
 		curPath += currentName + PATH_SEPARATOR;
-		validatePath(curPath, aSkipQueueCheck);
+		validatePathHooked(curPath, aSkipQueueCheck);
 	}
 }
 
 
-void SharePathValidator::validatePath(const string& aPath, bool aSkipQueueCheck) const {
+void SharePathValidator::validatePathHooked(const string& aPath, bool aSkipQueueCheck) const {
 	FileFindIter i(aPath);
 	if (i != FileFindIter()) {
-		validate(i, aPath, aSkipQueueCheck);
+		validateHooked(i, aPath, aSkipQueueCheck);
 	} else {
 		throw FileException(STRING(FILE_NOT_FOUND));
 	}

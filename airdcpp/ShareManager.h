@@ -134,8 +134,7 @@ public:
 	RefreshResult refreshVirtualName(const string& aDir) noexcept;
 
 	// Refresh the specific directories
-	// This validates that each path exists
-	RefreshResult refreshPaths(const StringList& aPaths, const string& displayName = Util::emptyString, function<void(float)> progressF = nullptr) noexcept;
+	void refreshPaths(const StringList& aPaths, const string& displayName = Util::emptyString, function<void(float)> progressF = nullptr) noexcept;
 
 	bool isRefreshing() const noexcept { return refreshRunning; }
 	
@@ -166,11 +165,11 @@ public:
 	bool isRealPathShared(const string& aPath) const noexcept;
 
 	// Returns true if the real path can be added in share
-	bool allowShareDirectory(const string& aPath) const noexcept;
+	bool allowShareDirectoryHooked(const string& aPath) const noexcept;
 
 	// Validate a file/directory path
 	// Throws on errors
-	void validatePath(const string& aPath, bool aSkipQueueCheck) const;
+	void validatePathHooked(const string& aPath, bool aSkipQueueCheck) const;
 
 	// Returns the dupe paths by directory name/NMDC path
 	StringList getAdcDirectoryPaths(const string& aAdcPath) const noexcept;

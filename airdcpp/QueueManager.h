@@ -484,11 +484,11 @@ private:
 
 	// Returns whether the bundle has completed download
 	// Will also attempt to validate and share completed bundles 
-	bool checkBundleFinished(const BundlePtr& aBundle) noexcept;
+	bool checkBundleFinishedHooked(const BundlePtr& aBundle) noexcept;
 
 	// Returns true if any of the bundle files has failed validation
 	// Optionally also rechecks failed files
-	bool checkFailedBundleFiles(const BundlePtr& aBundle, bool aRevalidateFailed) noexcept;
+	bool checkFailedBundleFilesHooked(const BundlePtr& aBundle, bool aRevalidateFailed) noexcept;
 
 	// Returns true if the bundle passes possible completion hooks (e.g. scan for missing/extra files)
 	// Blocking call

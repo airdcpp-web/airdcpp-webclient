@@ -361,7 +361,7 @@ bool Client::isCommand(const string& aMessage) noexcept {
 	return !aMessage.empty() && aMessage.front() == '/';
 }
 
-bool Client::sendMessage(const string& aMessage, string& error_, bool aThirdPerson) noexcept {
+bool Client::sendMessageHooked(const string& aMessage, string& error_, bool aThirdPerson) noexcept {
 	if (!stateNormal() && !isCommand(aMessage)) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
@@ -381,7 +381,7 @@ bool Client::sendMessage(const string& aMessage, string& error_, bool aThirdPers
 	return hubMessage(aMessage, error_, aThirdPerson);
 }
 
-bool Client::sendPrivateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept {
+bool Client::sendPrivateMessageHooked(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept {
 	if (!stateNormal() && !isCommand(aMessage)) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;

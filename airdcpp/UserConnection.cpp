@@ -233,7 +233,7 @@ void UserConnection::inf(bool withToken, int mcnSlots) {
 	send(c);
 }
 
-bool UserConnection::pm(const string& aMessage, string& error_, bool aThirdPerson) {
+bool UserConnection::sendPrivateMessageHooked(const string& aMessage, string& error_, bool aThirdPerson) {
 	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage, aThirdPerson, getHintedUser(), true);
 	if (error) {
 		error_ = ActionHookRejection::formatError(error);

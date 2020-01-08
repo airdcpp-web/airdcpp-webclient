@@ -267,7 +267,7 @@ void ShareScannerManager::ScanInfo::merge(ScanInfo& collect) const {
 bool ShareScannerManager::validateShare(const string& aPath, bool aSkipCheckQueue) {
 	if (SETTING(CHECK_USE_SKIPLIST)) {
 		try {
-			ShareManager::getInstance()->validatePath(aPath, aSkipCheckQueue);
+			ShareManager::getInstance()->validatePathHooked(aPath, aSkipCheckQueue);
 		} catch (const Exception&) {
 			return false;
 		}
