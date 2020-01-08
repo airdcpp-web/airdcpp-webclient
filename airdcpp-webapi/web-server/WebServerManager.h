@@ -158,15 +158,7 @@ namespace webserver {
 			}
 
 			onData(msg->get_payload(), TransportType::TYPE_SOCKET, Direction::INCOMING, socket->getIp());
-
-			// Messages received from each socket will always use the same thread
-			// This will also help with hooks getting timed out when they are being run and
-			// resolved by the same socket
-			// TODO: use different threads for handling requests that involve running of hooks
-			addAsyncTask([=] {
-				auto s = socket;
-				api.handleSocketRequest(msg->get_payload(), s, aIsSecure); 
-			});
+			api.handleSocketRequest(msg->get_payload(), socket, aIsSecure);
 		}
 
 
@@ -179,7 +171,6 @@ namespace webserver {
 		void handleHttpRequest(EndpointType* s, websocketpp::connection_hdl hdl, bool aIsSecure) {
 			// Blocking HTTP Handler
 			auto con = s->get_con_from_hdl(hdl);
-			websocketpp::http::status_code::value status;
 			auto ip = con->get_raw_socket().remote_endpoint().address().to_string();
 
 			SessionPtr session = nullptr;
@@ -198,36 +189,56 @@ namespace webserver {
 			if (con->get_resource().length() >= 4 && con->get_resource().compare(0, 4, "/api") == 0) {
 				onData(con->get_resource() + ": " + con->get_request().get_body(), TransportType::TYPE_HTTP_API, Direction::INCOMING, ip);
 
+
+				const auto responseF = [this, s, con, ip](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
+					string data;
+					const auto& responseJson = !aResponseErrorJson.is_null() ? aResponseErrorJson : aResponseJsonData;
+					if (!responseJson.is_null()) {
+						try {
+							data = responseJson.dump();
+						} catch (const std::exception & e) {
+							logDebugError(s, "Failed to convert data to JSON: " + string(e.what()), websocketpp::log::elevel::fatal);
+
+							con->set_body("Failed to convert data to JSON: " + string(e.what()));
+							con->set_status(websocketpp::http::status_code::internal_server_error);
+							return;
+						}
+					}
+
+					onData(con->get_resource() + " (" + Util::toString(aStatus) + "): " + data, TransportType::TYPE_HTTP_API, Direction::OUTGOING, ip);
+
+					con->set_body(data);
+					con->append_header("Content-Type", "application/json");
+					con->set_status(aStatus);
+				};
+
+
+				bool isDeferred = false;
+				const auto deferredF = [&]() {
+					con->defer_http_response();
+					isDeferred = true;
+
+					return [=](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
+						responseF(aStatus, aResponseJsonData, aResponseErrorJson);
+						con->send_http_response();
+					};
+				};
+
 				json output, apiError;
-				status = api.handleHttpRequest(
+				auto status = api.handleHttpRequest(
 					con->get_resource(),
 					con->get_request(),
 					output,
 					apiError,
 					aIsSecure,
 					ip,
-					session
+					session,
+					deferredF
 				);
 
-				const auto& responseJson = !apiError.is_null() ? apiError : output;
-				string data;
-				if (!responseJson.is_null()) {
-					try {
-						data = responseJson.dump();
-					} catch (const std::exception& e) {
-						logDebugError(s, "Failed to convert data to JSON: " + string(e.what()), websocketpp::log::elevel::fatal);
-
-						con->set_body("Failed to convert data to JSON: " + string(e.what()));
-						con->set_status(websocketpp::http::status_code::internal_server_error);
-						return;
-					}
+				if (!isDeferred) {
+					responseF(status, output, apiError);
 				}
-
-				onData(con->get_resource() + " (" + Util::toString(status) + "): " + data, TransportType::TYPE_HTTP_API, Direction::OUTGOING, ip);
-
-				con->set_body(data);
-				con->append_header("Content-Type", "application/json");
-				con->set_status(status);
 			} else {
 				onData(con->get_request().get_method() + " " + con->get_resource(), TransportType::TYPE_HTTP_FILE, Direction::INCOMING, ip);
 
@@ -268,8 +279,7 @@ namespace webserver {
 					};
 				};
 
-				status = fileServer.handleRequest(con->get_request(), output, headers, session, deferredF);
-
+				auto status = fileServer.handleRequest(con->get_request(), output, headers, session, deferredF);
 				if (!isDeferred) {
 					responseF(status, output, headers);
 				}
@@ -310,6 +320,8 @@ namespace webserver {
 		// set up an external io_service to run both endpoints on. This is not
 		// strictly necessary, but simplifies thread management a bit.
 		boost::asio::io_service ios;
+		boost::asio::io_service tasks;
+		boost::asio::io_service::work work;
 		bool has_io_service = false;
 
 		typedef vector<WebSocketPtr> WebSocketList;
@@ -327,7 +339,8 @@ namespace webserver {
 		server_plain endpoint_plain;
 		server_tls endpoint_tls;
 
-		boost::thread_group worker_threads;
+		unique_ptr<boost::thread_group> ios_threads;
+		unique_ptr<boost::thread_group> task_threads;
 
 		CallBack shutdownF;
 		bool isDirty = false;

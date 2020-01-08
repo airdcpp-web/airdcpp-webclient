@@ -117,13 +117,17 @@ namespace webserver {
 		auto message = Deserializer::deserializeChatMessage(reqJson);
 		auto echo = JsonUtil::getOptionalFieldDefault<bool>("echo", reqJson, false);
 
-		string error_;
-		if (!ClientManager::getInstance()->privateMessage(user, message.first, error_, message.second, echo)) {
-			aRequest.setResponseErrorStr(error_);
-			return websocketpp::http::status_code::internal_server_error;
-		}
+		const auto complete = aRequest.defer();
+		addAsyncTask([=] {
+			string error_;
+			if (!ClientManager::getInstance()->privateMessageHooked(user, message.first, error_, message.second, echo)) {
+				complete(websocketpp::http::status_code::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error_));
+			} else {
+				complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+			}
+		});
 
-		return websocketpp::http::status_code::no_content;
+		return websocketpp::http::status_code::see_other;
 	}
 
 	void PrivateChatApi::on(PrivateChatManagerListener::ChatRemoved, const PrivateChatPtr& aChat) noexcept {

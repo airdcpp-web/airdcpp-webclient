@@ -35,16 +35,16 @@ namespace webserver {
 		const string& getResourcePath() const noexcept;
 
 		websocketpp::http::status_code::value handleRequest(const websocketpp::http::parser::request& aRequest, 
-			std::string& output_, StringPairList& headers_, const SessionPtr& aSession, const DeferredHandler& aDeferF);
+			std::string& output_, StringPairList& headers_, const SessionPtr& aSession, const FileDeferredHandler& aDeferF);
 
 		string getTempFilePath(const string& fileId) const noexcept;
 		void stop() noexcept;
 	private:
 		websocketpp::http::status_code::value handleGetRequest(const websocketpp::http::parser::request& aRequest,
-			std::string& output_, StringPairList& headers_, const SessionPtr& aSession, const DeferredHandler& aDeferF);
+			std::string& output_, StringPairList& headers_, const SessionPtr& aSession, const FileDeferredHandler& aDeferF);
 
-		websocketpp::http::status_code::value handleProxyDownload(const string& aUrl, string& output_, const DeferredHandler& aDeferF) noexcept;
-		void onProxyDownloadCompleted(int64_t aDownloadId, const HTTPCompletionF& aCompletionF) noexcept;
+		websocketpp::http::status_code::value handleProxyDownload(const string& aUrl, string& output_, const FileDeferredHandler& aDeferF) noexcept;
+		void onProxyDownloadCompleted(int64_t aDownloadId, const HTTPFileCompletionF& aCompletionF) noexcept;
 
 		websocketpp::http::status_code::value handlePostRequest(const websocketpp::http::parser::request& aRequest,
 			std::string& output_, StringPairList& headers_, const SessionPtr& aSession) noexcept;

@@ -27,8 +27,8 @@
 #include <airdcpp/Util.h>
 
 namespace webserver {
-	ApiRequest::ApiRequest(const string& aUrl, const string& aMethod, const json& aBody, const SessionPtr& aSession, json& output_, json& error_) :
-		responseJsonData(output_), responseJsonError(error_), methodStr(aMethod), session(aSession), requestJson(aBody), path(aUrl)
+	ApiRequest::ApiRequest(const string& aUrl, const string& aMethod, const json& aBody, const SessionPtr& aSession, const ApiDeferredHandler& aDeferredHandler, json& output_, json& error_) :
+		methodStr(aMethod), session(aSession), requestJson(aBody), path(aUrl), deferredHandler(aDeferredHandler), responseJsonData(output_), responseJsonError(error_)
 	{
 
 		if (aUrl.compare(0, 4, "/api") != 0) {
@@ -122,5 +122,10 @@ namespace webserver {
 		}
 
 		return CID(param);
+	}
+
+
+	ApiCompletionF ApiRequest::defer() {
+		return deferredHandler();
 	}
 }

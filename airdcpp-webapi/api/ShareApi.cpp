@@ -289,12 +289,7 @@ namespace webserver {
 
 	api_return ShareApi::handleRefreshPaths(ApiRequest& aRequest) {
 		auto paths = JsonUtil::getField<StringList>("paths", aRequest.getRequestBody(), false);
-
-		auto ret = ShareManager::getInstance()->refreshPaths(paths);
-		if (ret == ShareManager::RefreshResult::REFRESH_PATH_NOT_FOUND) {
-			aRequest.setResponseErrorStr("Invalid paths were supplied");
-			return websocketpp::http::status_code::bad_request;
-		}
+		ShareManager::getInstance()->refreshPaths(paths);
 
 		return websocketpp::http::status_code::no_content;
 	}
@@ -364,17 +359,22 @@ namespace webserver {
 		auto path = JsonUtil::getField<string>("path", reqJson);
 		auto skipCheckQueue = JsonUtil::getOptionalFieldDefault<bool>("skip_check_queue", reqJson, false);
 
-		try {
-			ShareManager::getInstance()->validatePath(path, skipCheckQueue);
-		} catch (const QueueException& e) {
-			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::conflict;
-		} catch (const Exception& e) {
-			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::forbidden;
-		}
+		const auto complete = aRequest.defer();
+		addAsyncTask([=] {
+			try {
+				ShareManager::getInstance()->validatePathHooked(path, skipCheckQueue);
+			} catch (const QueueException& e) {
+				complete(websocketpp::http::status_code::conflict, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+				return;
+			} catch (const Exception& e) {
+				complete(websocketpp::http::status_code::forbidden, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+				return;
+			}
 
-		return websocketpp::http::status_code::no_content;
+			complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+		});
+
+		return websocketpp::http::status_code::see_other;
 	}
 
 	api_return ShareApi::handleFindDupePaths(ApiRequest& aRequest) {

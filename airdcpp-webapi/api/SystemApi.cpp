@@ -92,7 +92,9 @@ namespace webserver {
 	}
 
 	void SystemApi::on(ActivityManagerListener::AwayModeChanged, AwayMode /*aNewMode*/) noexcept {
-		send("away_state", serializeAwayState());
+		maybeSend("away_state", [] {
+			return serializeAwayState();
+		});
 	}
 
 	string SystemApi::getAwayState(AwayMode aAwayMode) noexcept {
