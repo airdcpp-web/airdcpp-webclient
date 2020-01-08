@@ -64,8 +64,8 @@ public:
 	virtual void disconnect(bool graceless) noexcept;
 
 	// Default message method
-	bool sendMessage(const string& aMessage, string& error_, bool aThirdPerson = false) noexcept;
-	bool sendPrivateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept;
+	bool sendMessageHooked(const string& aMessage, string& error_, bool aThirdPerson = false) noexcept;
+	bool sendPrivateMessageHooked(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept;
 
 	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) noexcept = 0;
 	virtual void sendUserCmd(const UserCommand& command, const ParamMap& params) = 0;

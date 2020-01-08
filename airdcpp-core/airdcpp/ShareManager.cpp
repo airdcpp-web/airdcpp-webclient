@@ -1463,7 +1463,7 @@ void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aP
 		auto curPathLower = aPathLower + dualName.getLower() + (isDirectory ? PATH_SEPARATOR_STR : Util::emptyString);
 
 		try {
-			pathValidator.validate(i, curPath, false);
+			pathValidator.validateHooked(i, curPath, false);
 		} catch (const ShareException& e) {
 			if (SETTING(REPORT_BLOCKED_SHARE)) {
 				if (isDirectory) {
@@ -1644,15 +1644,17 @@ void ShareManager::addAsyncTask(AsyncF aF) noexcept {
 	}
 }
 
-ShareManager::RefreshResult ShareManager::refreshPaths(const StringList& aPaths, const string& aDisplayName /*Util::emptyString*/, function<void(float)> aProgressF /*nullptr*/) noexcept {
-	for (const auto& path : aPaths) {
-		auto d = findDirectory(path);
-		if (!d && !allowShareDirectory(path)) {
-			return RefreshResult::REFRESH_PATH_NOT_FOUND;
+void ShareManager::refreshPaths(const StringList& aPaths, const string& aDisplayName /*Util::emptyString*/, function<void(float)> aProgressF /*nullptr*/) noexcept {
+	addAsyncTask([=] {
+		for (const auto& path : aPaths) {
+			auto d = findDirectory(path);
+			if (!d && !allowShareDirectoryHooked(path)) {
+				return RefreshResult::REFRESH_PATH_NOT_FOUND;
+			}
 		}
-	}
 
-	return addRefreshTask(REFRESH_DIRS, aPaths, RefreshType::TYPE_MANUAL, aDisplayName, aProgressF);
+		return addRefreshTask(REFRESH_DIRS, aPaths, RefreshType::TYPE_MANUAL, aDisplayName, aProgressF);
+	});
 }
 
 void ShareManager::validateRefreshTask(StringList& dirs_) noexcept {
@@ -2041,14 +2043,6 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 		}
 
 		auto dirs = task->dirs;
-
-		// Handle the removed paths
-		for (const auto& d : task->dirs) {
-			if (dirs.find(d) == dirs.end()) {
-				setRefreshState(d, RefreshState::STATE_NORMAL, true);
-			}
-		}
-
 		if (dirs.empty()) {
 			continue;
 		}
@@ -2974,16 +2968,16 @@ void ShareManager::shareBundle(const BundlePtr& aBundle) noexcept {
 	addRefreshTask(ADD_BUNDLE, { aBundle->getTarget() }, RefreshType::TYPE_BUNDLE, aBundle->getTarget());
 }
 
-bool ShareManager::allowShareDirectory(const string& aRealPath) const noexcept {
+bool ShareManager::allowShareDirectoryHooked(const string& aRealPath) const noexcept {
 	try {
-		validatePath(aRealPath, false);
+		validatePathHooked(aRealPath, false);
 		return true;
 	} catch (const Exception&) { }
 
 	return false;
 }
 
-void ShareManager::validatePath(const string& aRealPath, bool aSkipQueueCheck) const {
+void ShareManager::validatePathHooked(const string& aRealPath, bool aSkipQueueCheck) const {
 	StringList tokens;
 	Directory::Ptr baseDirectory = nullptr;
 
@@ -3005,11 +2999,11 @@ void ShareManager::validatePath(const string& aRealPath, bool aSkipQueueCheck) c
 
 
 	// Validate missing directory path tokens
-	validator->validateDirectoryPathTokens(baseDirectory->getRealPath(), tokens, aSkipQueueCheck);
+	validator->validateDirectoryPathTokensHooked(baseDirectory->getRealPath(), tokens, aSkipQueueCheck);
 
 	if (!isDirectoryPath && !isFileShared) {
 		// Validate the file
-		validator->validatePath(aRealPath, aSkipQueueCheck);
+		validator->validatePathHooked(aRealPath, aSkipQueueCheck);
 	}
 }
 
@@ -3047,17 +3041,11 @@ ShareManager::Directory::Ptr ShareManager::getDirectory(const string& aRealPath)
 	// Find the existing directories
 	auto curDir = findDirectory(aRealPath, tokens);
 	if (!curDir) {
-		return curDir;
-	}
-
-	// Validate the remaining tokens
-	try {
-		validator->validateDirectoryPathTokens(curDir->getRealPath(), tokens, false);
-	} catch (const Exception&) {
 		return nullptr;
 	}
 
 	// Create missing directories
+	// Tokens should have been validated earlier
 	for (const auto& curName : tokens) {
 		curDir->updateModifyDate();
 		curDir = Directory::createNormal(DualString(curName), curDir, File::getLastModified(curDir->getRealPath()), lowerDirNameMap, *bloom.get());

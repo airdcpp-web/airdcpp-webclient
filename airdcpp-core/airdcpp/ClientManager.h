@@ -221,7 +221,7 @@ public:
 	bool sendUDP(AdcCommand& c, const CID& to, bool noCID = false, bool noPassive = false, const string& encryptionKey = Util::emptyString, const string& aHubUrl = Util::emptyString) noexcept;
 
 	bool connect(const UserPtr& aUser, const string& aToken, bool allowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError, ConnectionType type = CONNECTION_TYPE_LAST) const noexcept;
-	bool privateMessage(const HintedUser& aUser, const string& aMsg, string& error_, bool aThirdPerson, bool aEcho = true) noexcept;
+	bool privateMessageHooked(const HintedUser& aUser, const string& aMsg, string& error_, bool aThirdPerson, bool aEcho = true) noexcept;
 	void userCommand(const HintedUser& aUser, const UserCommand& uc, ParamMap& params, bool compatibility) noexcept;
 
 	bool isActive() const noexcept;

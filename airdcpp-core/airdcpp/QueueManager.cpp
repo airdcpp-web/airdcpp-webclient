@@ -1437,7 +1437,7 @@ void QueueManager::renameDownloadedFile(const string& source, const string& targ
 				}
 			}
 
-			checkBundleFinished(bundle);
+			checkBundleFinishedHooked(bundle);
 		}
 	});
 }
@@ -1469,13 +1469,13 @@ void QueueManager::sendFileCompletionNotifications(const QueueItemPtr& qi) noexc
 }
 
 
-bool QueueManager::checkBundleFinished(const BundlePtr& aBundle) noexcept {
+bool QueueManager::checkBundleFinishedHooked(const BundlePtr& aBundle) noexcept {
 	bool hasNotifications = false, isPrivate = false;
 	if (!aBundle->isDownloaded()) {
 		return false;
 	}
 
-	if (!checkFailedBundleFiles(aBundle, false)) {
+	if (!checkFailedBundleFilesHooked(aBundle, false)) {
 		return false;
 	}
 
@@ -1508,49 +1508,52 @@ bool QueueManager::checkBundleFinished(const BundlePtr& aBundle) noexcept {
 
 	LogManager::getInstance()->message(STRING_F(DL_BUNDLE_FINISHED, aBundle->getName().c_str()), LogMessage::SEV_INFO);
 	shareBundle(aBundle, false);
+
 	return true;
 }
 
 void QueueManager::shareBundle(BundlePtr aBundle, bool aSkipScan) noexcept {
-	if (!aSkipScan && !runBundleCompletionHooks(aBundle)) {
-		return;
-	}
+	tasks.addTask([=] {
+		if (!aSkipScan && !runBundleCompletionHooks(aBundle)) {
+			return;
+		}
 
-	setBundleStatus(aBundle, Bundle::STATUS_COMPLETED);
+		setBundleStatus(aBundle, Bundle::STATUS_COMPLETED);
 
-	if (!ShareManager::getInstance()->allowShareDirectory(aBundle->getTarget())) {
-		LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogMessage::SEV_INFO);
-		return;
-	}
+		if (!ShareManager::getInstance()->allowShareDirectoryHooked(aBundle->getTarget())) {
+			LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogMessage::SEV_INFO);
+			return;
+		}
 
-	// Add the downloaded trees for all bundle file paths in hash database
-	QueueItemList finishedFiles;
+		// Add the downloaded trees for all bundle file paths in hash database
+		QueueItemList finishedFiles;
 
-	{
-		RLock l(cs);
-		finishedFiles = aBundle->getFinishedFiles();
-	}
+		{
+			RLock l(cs);
+			finishedFiles = aBundle->getFinishedFiles();
+		}
 
-
-	{
-		HashManager::HashPauser pauser;
-		for (const auto& q : finishedFiles) {
-			HashedFile fi(q->getTTH(), File::getLastModified(q->getTarget()), q->getSize());
-			try {
-				HashManager::getInstance()->addFile(q->getTarget(), fi);
-			} catch (...) {
-				//hash it...
+		{
+			HashManager::HashPauser pauser;
+			for (const auto& q : finishedFiles) {
+				HashedFile fi(q->getTTH(), File::getLastModified(q->getTarget()), q->getSize());
+				try {
+					HashManager::getInstance()->addFile(q->getTarget(), fi);
+				}
+				catch (...) {
+					//hash it...
+				}
 			}
 		}
-	}
 
-	ShareManager::getInstance()->shareBundle(aBundle);
-	if (aBundle->isFileBundle()) {
-		setBundleStatus(aBundle, Bundle::STATUS_SHARED);
-	}
+		ShareManager::getInstance()->shareBundle(aBundle);
+		if (aBundle->isFileBundle()) {
+			setBundleStatus(aBundle, Bundle::STATUS_SHARED);
+		}
+	});
 }
 
-bool QueueManager::checkFailedBundleFiles(const BundlePtr& aBundle, bool aRevalidateFailed) noexcept {
+bool QueueManager::checkFailedBundleFilesHooked(const BundlePtr& aBundle, bool aRevalidateFailed) noexcept {
 	QueueItemList failedFiles;
 
 	{
@@ -1575,7 +1578,7 @@ bool QueueManager::checkFailedBundleFiles(const BundlePtr& aBundle, bool aRevali
 }
 
 bool QueueManager::runBundleCompletionHooks(const BundlePtr& aBundle) noexcept {
-	if (!checkFailedBundleFiles(aBundle, true)) {
+	if (!checkFailedBundleFilesHooked(aBundle, true)) {
 		return false;
 	}
 
@@ -3504,9 +3507,13 @@ void QueueManager::removeBundleItem(const QueueItemPtr& qi, bool aFinished) noex
 			setBundleStatus(bundle, Bundle::STATUS_DOWNLOADED);
 			removeBundleLists(bundle);
 		}
-	} else if (!aFinished && !checkBundleFinished(bundle)) {
-		bundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
-		addBundleUpdate(bundle);
+	} else if (!aFinished ) {
+		tasks.addTask([=] {
+			if (!checkBundleFinishedHooked(bundle)) {
+				bundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
+				addBundleUpdate(bundle);
+			}
+		});
 	}
 
 	for (auto& u : sources)

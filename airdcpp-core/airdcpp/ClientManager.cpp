@@ -841,7 +841,7 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool all
 	return false;
 }
 
-bool ClientManager::privateMessage(const HintedUser& aUser, const string& aMsg, string& error_, bool aThirdPerson, bool aEcho) noexcept {
+bool ClientManager::privateMessageHooked(const HintedUser& aUser, const string& aMsg, string& error_, bool aThirdPerson, bool aEcho) noexcept {
 	OnlineUserPtr user = nullptr;
 
 	{
@@ -854,7 +854,7 @@ bool ClientManager::privateMessage(const HintedUser& aUser, const string& aMsg, 
 		return false;
 	}
 	
-	return user->getClient()->sendPrivateMessage(user, aMsg, error_, aThirdPerson, aEcho);
+	return user->getClient()->sendPrivateMessageHooked(user, aMsg, error_, aThirdPerson, aEcho);
 }
 
 void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params, bool compatibility) noexcept {

@@ -54,7 +54,7 @@ namespace dcpp {
 		PrivateChat(const HintedUser& aUser, UserConnection* aUc = nullptr);
 		~PrivateChat();
 
-		bool sendMessage(const string& msg, string& error_, bool thirdPerson);
+		bool sendMessageHooked(const string& msg, string& error_, bool thirdPerson);
 		void handleMessage(const ChatMessagePtr& aMessage) noexcept;
 		void statusMessage(const string& aMessage, LogMessage::Severity aSeverity) noexcept;
 
