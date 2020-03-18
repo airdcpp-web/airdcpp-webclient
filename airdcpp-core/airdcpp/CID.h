@@ -36,6 +36,8 @@ public:
 	string toBase32() const;
 	string& toBase32(string& tmp) const;
 
+	operator std::string() const { return toBase32(); }
+
 	size_t toHash() const {
 		// RVO should handle this as efficiently as reinterpret_cast version
 		size_t cidHash;

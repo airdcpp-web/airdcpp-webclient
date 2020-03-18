@@ -46,9 +46,9 @@ class ClientManager : public Speaker<ClientManagerListener>,
 	typedef UserMap::iterator UserIter;
 
 public:
-	ActionHook<const ChatMessagePtr> incomingHubMessageHook, incomingPrivateMessageHook;
-	ActionHook<const string, const bool, const HintedUser, const bool> outgoingPrivateMessageHook;
-	ActionHook<const string, const bool, const Client&> outgoingHubMessageHook;
+	ActionHook<nullptr_t, const ChatMessagePtr> incomingHubMessageHook, incomingPrivateMessageHook;
+	ActionHook<nullptr_t, const string, const bool, const HintedUser, const bool> outgoingPrivateMessageHook;
+	ActionHook<nullptr_t, const string, const bool, const Client&> outgoingHubMessageHook;
 
 	// Returns the new ClientPtr
 	// NOTE: the main app should perform connecting to the new hub

@@ -400,6 +400,10 @@ bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) noexcept {
 	if (!lst.empty()) {
 		return false;
 	}
+	//allow adding only release dirs, avoid adding too common bundle names to auto search ( will result in bundle growing by pretty much anything that matches... )
+	if (!AirUtil::isRelease(aBundle->getName()))
+		return false;
+
 
 	//7 days expiry
 	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::getParentDir(aBundle->getTarget()), 

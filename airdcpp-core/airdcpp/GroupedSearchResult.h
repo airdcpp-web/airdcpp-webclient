@@ -63,10 +63,6 @@ namespace dcpp {
 		double getTotalRelevance() const noexcept;
 		double getMatchRelevance() const noexcept;
 
-		/*GroupedResultToken getToken() const noexcept {
-			return token;
-		}*/
-
 		string getToken() const noexcept {
 			return baseResult->getTTH().toBase32();
 		}
@@ -95,6 +91,10 @@ namespace dcpp {
 			return baseResult->getUser();
 		}
 
+		const string& getBaseUserIP() const noexcept {
+			return baseResult->getIP();
+		}
+
 		int getHits() const noexcept;
 
 		double getConnectionSpeed() const noexcept;
@@ -110,9 +110,10 @@ namespace dcpp {
 		time_t getOldestDate() const noexcept;
 
 		SearchResultList getChildren() const noexcept;
-	private:
+
 		// Selects the best child results for downloading
 		SearchResultList pickDownloadResults() const noexcept;
+	private:
 
 		DupeType dupe;
 		SearchResultList children;

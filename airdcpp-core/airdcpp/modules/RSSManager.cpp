@@ -255,6 +255,10 @@ bool RSSManager::addAutoSearchItem(const RSSFilter& aFilter, const RSSDataPtr& a
 	AutoSearchPtr as = new AutoSearch(aFilter.getFilterAction() == RSSFilter::DOWNLOAD, aData->getTitle(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, aFilter.getDownloadTarget(),
 		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, expireTime, true, true, false, Util::emptyString, AutoSearch::RSS_DOWNLOAD, false);
 
+	//format time params, befora adding to autosearch, so we can use RSS date for folder
+	if(aFilter.getFormatTimeParams())
+		as->setTarget(Util::formatTime(aFilter.getDownloadTarget(), GET_TIME()));
+
 	as->setGroup(aFilter.getAutosearchGroup());
 
 	/*
@@ -452,7 +456,8 @@ void RSSManager::loadFilters(SimpleXML& xml, vector<RSSFilter>& aList) {
 				xml.getChildAttrib("AutoSearchGroup"),
 				xml.getBoolChildAttrib("SkipDupes"),
 				Util::toInt(xml.getChildAttrib("FilterAction", "0")),
-				Util::toInt(xml.getChildAttrib("ExpireDays", "3")));
+				Util::toInt(xml.getChildAttrib("ExpireDays", "3")),
+				xml.getBoolChildAttrib("FormatTimeParams"));
 		}
 		xml.stepOut();
 	}
@@ -498,6 +503,7 @@ void RSSManager::saveFilters(SimpleXML& aXml, const vector<RSSFilter>& aList) {
 			aXml.addChildAttrib("SkipDupes", f.skipDupes);
 			aXml.addChildAttrib("FilterAction", f.getFilterAction());
 			aXml.addChildAttrib("ExpireDays", f.getExpireDays());
+			aXml.addChildAttrib("FormatTimeParams", f.getFormatTimeParams());
 		}
 		aXml.stepOut();
 	}

@@ -40,7 +40,7 @@ atomic<ClientToken> idCounter { 0 };
 Client::Client(const string& aHubUrl, char aSeparator, const ClientPtr& aOldClient) :
 	hubUrl(aHubUrl), separator(aSeparator), 
 	myIdentity(ClientManager::getInstance()->getMe(), 0),
-	clientId(aOldClient ? aOldClient->getClientId() : ++idCounter),
+	clientId(aOldClient ? aOldClient->getToken() : ++idCounter),
 	lastActivity(GET_TICK()),
 	cache(SettingsManager::HUB_MESSAGE_CACHE)
 {

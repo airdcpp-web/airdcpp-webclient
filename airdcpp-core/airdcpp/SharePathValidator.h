@@ -30,8 +30,8 @@ namespace dcpp {
 
 class SharePathValidator {
 public:
-	ActionHook<const string&, int64_t> fileValidationHook;
-	ActionHook<const string&> directoryValidationHook;
+	ActionHook<nullptr_t, const string&, int64_t> fileValidationHook;
+	ActionHook<nullptr_t, const string&> directoryValidationHook;
 
 	SharePathValidator();
 

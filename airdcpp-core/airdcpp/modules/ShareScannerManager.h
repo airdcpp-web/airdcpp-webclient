@@ -78,8 +78,8 @@ private:
 	void runSfvCheck(const StringList& paths);
 	void runShareScan(const StringList& paths);
 
-	ActionHookRejectionPtr bundleCompletionHook(const BundlePtr& aBundle, const HookRejectionGetter& aErrorGetter) noexcept;
-	ActionHookRejectionPtr fileCompletionHook(const QueueItemPtr& aFile, const HookRejectionGetter& aErrorGetter) noexcept;
+	ActionHookResult<> bundleCompletionHook(const BundlePtr& aBundle, const ActionHookResultGetter<>& aResultGetter) noexcept;
+	ActionHookResult<> fileCompletionHook(const QueueItemPtr& aFile, const ActionHookResultGetter<>& aResultGetter) noexcept;
 
 	enum extraTypes {
 		AUDIOBOOK,

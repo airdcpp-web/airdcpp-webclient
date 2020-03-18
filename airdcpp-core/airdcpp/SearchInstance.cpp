@@ -19,14 +19,17 @@
 #include "stdinc.h"
 #include "SearchInstance.h"
 
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/SearchManager.h>
+#include "ClientManager.h"
+#include "SearchManager.h"
+
+#include "SearchQuery.h"
 
 #include <boost/range/algorithm/copy.hpp>
 
 
 namespace dcpp {
-	SearchInstance::SearchInstance() {
+	atomic<SearchInstanceToken> searchInstanceIdCounter { 0 };
+	SearchInstance::SearchInstance(const string& aOwnerId, uint64_t aExpirationTick) : ownerId(aOwnerId), token(searchInstanceIdCounter++), expirationTick(aExpirationTick) {
 		SearchManager::getInstance()->addListener(this);
 		ClientManager::getInstance()->addListener(this);
 	}
@@ -36,6 +39,14 @@ namespace dcpp {
 
 		ClientManager::getInstance()->removeListener(this);
 		SearchManager::getInstance()->removeListener(this);
+	}
+
+	optional<int64_t> SearchInstance::getTimeToExpiration() const noexcept {
+		if (expirationTick == 0) {
+			return nullopt;
+		}
+
+		return static_cast<int64_t>(expirationTick) - static_cast<int64_t>(GET_TICK());
 	}
 
 	GroupedSearchResult::Ptr SearchInstance::getResult(GroupedResultToken aToken) const noexcept {
@@ -73,11 +84,13 @@ namespace dcpp {
 		{
 			WLock l(cs);
 			currentSearchToken = aSearch->token;
-			curSearch = shared_ptr<SearchQuery>(SearchQuery::getSearch(aSearch));
+			curMatcher = shared_ptr<SearchQuery>(SearchQuery::getSearch(aSearch));
+			curParams = aSearch;
 
 			results.clear();
 			queuedHubUrls.clear();
 			searchesSent = 0;
+			filteredResultCount = 0;
 		}
 
 		fire(SearchInstanceListener::Reset());
@@ -89,6 +102,8 @@ namespace dcpp {
 		auto queueInfo = SearchManager::getInstance()->search(aHubUrls, aSearch, this);
 		if (!queueInfo.queuedHubUrls.empty()) {
 			lastSearchTime = GET_TIME();
+
+			fire(SearchInstanceListener::HubSearchQueued(), currentSearchToken, queueInfo.queueTime, queuedHubUrls.size());
 			if (queueInfo.queueTime < 1000) {
 				fire(SearchInstanceListener::HubSearchSent(), currentSearchToken, queueInfo.queuedHubUrls.size());
 			} else {
@@ -169,17 +184,25 @@ namespace dcpp {
 	}
 
 	void SearchInstance::on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept {
-		auto search = curSearch; // Increase the refs
-		if (!search) {
+		auto matcher = curMatcher; // Increase the refs
+		if (!matcher) {
 			return;
 		}
 
 		SearchResult::RelevanceInfo relevanceInfo;
 		{
 			WLock l(cs);
-			if (!aResult->getRelevance(*search.get(), relevanceInfo, currentSearchToken)) {
+			if (!aResult->getRelevance(*matcher.get(), relevanceInfo, currentSearchToken)) {
+				filteredResultCount++;
+				fire(SearchInstanceListener::ResultFiltered());
 				return;
 			}
+		}
+
+		if (freeSlotsOnly && aResult->getFreeSlots() < 1) {
+			filteredResultCount++;
+			fire(SearchInstanceListener::ResultFiltered());
+			return;
 		}
 
 		GroupedSearchResultPtr parent = nullptr;
@@ -206,7 +229,7 @@ namespace dcpp {
 				return;
 			}
 
-			fire(SearchInstanceListener::GroupedResultUpdated(), parent);
+			fire(SearchInstanceListener::ChildResultAdded(), parent, aResult);
 		}
 
 		fire(SearchInstanceListener::UserResult(), aResult, parent);

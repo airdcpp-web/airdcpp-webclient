@@ -40,6 +40,7 @@ struct HashValue : FastAlloc<HashValue<Hasher> >{
 
 	std::string toBase32() const { return Encoder::toBase32(data, BYTES); }
 	std::string& toBase32(std::string& tmp) const { return Encoder::toBase32(data, BYTES, tmp); }
+	operator std::string() const { return toBase32(); }
 
 	explicit operator bool() const { return find_if(data, data + BYTES, [](uint8_t c) { return c != 0; }) != data + BYTES; }
 

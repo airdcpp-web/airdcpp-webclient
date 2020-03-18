@@ -25,6 +25,7 @@
 #include "QueueManager.h"
 #include "ResourceManager.h"
 #include "ScopedFunctor.h"
+#include "SearchInstance.h"
 #include "SearchResult.h"
 #include "ShareManager.h"
 #include "SimpleXML.h"
@@ -136,6 +137,57 @@ SearchQueueInfo SearchManager::search(StringList& aHubUrls, const SearchPtr& aSe
 	}
 
 	return { queued, estimateSearchSpan, lastError };
+}
+
+
+SearchInstancePtr SearchManager::createSearchInstance(const string& aOwnerId, uint64_t aExpirationTick) noexcept {
+	auto searchInstance = make_shared<SearchInstance>(aOwnerId, aExpirationTick);
+
+	{
+		WLock l(cs);
+		searchInstances.emplace(searchInstance->getToken(), searchInstance);
+	}
+
+	fire(SearchManagerListener::SearchInstanceCreated(), searchInstance);
+	return searchInstance;
+}
+
+
+SearchInstancePtr SearchManager::removeSearchInstance(SearchInstanceToken aToken) noexcept {
+	SearchInstancePtr ret = nullptr;
+
+	{
+		WLock l(cs);
+		auto i = searchInstances.find(aToken);
+		if (i == searchInstances.end()) {
+			return nullptr;
+		}
+
+		ret = i->second;
+		searchInstances.erase(i);
+	}
+
+	fire(SearchManagerListener::SearchInstanceRemoved(), ret);
+	return ret;
+}
+
+SearchInstancePtr SearchManager::getSearchInstance(SearchInstanceToken aToken) const noexcept {
+	RLock l(cs);
+	auto i = searchInstances.find(aToken);
+	return i != searchInstances.end() ? i->second : nullptr;
+}
+
+SearchInstanceList SearchManager::getSearchInstances() const noexcept {
+	SearchInstanceList ret;
+
+	{
+		RLock l(cs);
+		for (auto& i : searchInstances | map_values) {
+			ret.push_back(i);
+		}
+	}
+
+	return ret;
 }
 
 bool SearchManager::decryptPacket(string& x, size_t aLen, const ByteVector& aBuf) {
@@ -334,15 +386,35 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 }
 
 void SearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
-	WLock l (cs);
-	for (auto i = searchKeys.begin(); i != searchKeys.end();) {
-		if (i->second + 1000*60*15 < aTick) {
-			delete i->first;
-			searchKeys.erase(i);
-			i = searchKeys.begin();
-		} else {
-			++i;
+	vector<SearchInstanceToken> expiredIds;
+
+	{
+		RLock l(cs);
+		for (const auto& i: searchInstances | map_values) {
+			auto expiration = i->getTimeToExpiration();
+			if (expiration && *expiration <= 0) {
+				expiredIds.push_back(i->getToken());
+				dcdebug("Removing an expired search instance (expiration: " U64_FMT ", now: " U64_FMT ")\n", *expiration, GET_TICK());
+			}
 		}
+	}
+
+	for (const auto& id: expiredIds) {
+		removeSearchInstance(id);
+	}
+
+	{
+		WLock l(cs);
+		for (auto i = searchKeys.begin(); i != searchKeys.end();) {
+			if (i->second + 1000 * 60 * 15 < aTick) {
+				delete i->first;
+				searchKeys.erase(i);
+				i = searchKeys.begin();
+			} else {
+				++i;
+			}
+		}
+
 	}
 }
 

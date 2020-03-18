@@ -97,6 +97,7 @@ public:
 	virtual void refreshUserList(bool) noexcept = 0;
 	virtual void getUserList(OnlineUserList& list, bool aListHidden) const noexcept = 0;
 	virtual OnlineUserPtr findUser(const string& aNick) const noexcept = 0;
+	virtual OnlineUser* findUser(const uint32_t aSID) const noexcept = 0;
 	
 	const string& getPort() const noexcept { return port; }
 	const string& getAddress() const noexcept { return address; }
@@ -137,7 +138,7 @@ public:
 	IGETSET(bool, autoReconnect, AutoReconnect, false);
 	IGETSET(ProfileToken, favToken, FavToken, 0);
 
-	ClientToken getClientId() const noexcept {
+	ClientToken getToken() const noexcept {
 		return clientId;
 	}
 
