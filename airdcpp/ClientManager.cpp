@@ -77,7 +77,7 @@ ClientPtr ClientManager::createClient(const string& aUrl) noexcept {
 			ret.first->second->setActive();
 		}
 
-		clientsById.emplace(c->getClientId(), c);
+		clientsById.emplace(c->getToken(), c);
 	}
 
 	if (!added) {
@@ -149,7 +149,7 @@ bool ClientManager::putClient(ClientPtr& aClient) noexcept {
 	{
 		WLock l(cs);
 		clients.erase(const_cast<string*>(&aClient->getHubUrl()));
-		clientsById.erase(aClient->getClientId());
+		clientsById.erase(aClient->getToken());
 	}
 
 	return true;
@@ -172,7 +172,7 @@ ClientPtr ClientManager::redirect(const string& aHubUrl, const string& aNewUrl) 
 		WLock l(cs);
 		clients.erase(const_cast<string*>(&aHubUrl));
 		clients.emplace(const_cast<string*>(&newClient->getHubUrl()), newClient);
-		clientsById[newClient->getClientId()] = newClient;
+		clientsById[newClient->getToken()] = newClient;
 	}
 
 	newClient->addListener(this);
@@ -1436,7 +1436,7 @@ bool ClientManager::connectADCSearchResult(const CID& aCID, string& token_, stri
 	if(slash == string::npos) { return false; }
 
 	auto uniqueId = Util::toUInt32(token_.substr(0, slash));
-	auto client = find_if(clients | map_values, [uniqueId](const ClientPtr& c) { return c->getClientId() == uniqueId; });
+	auto client = find_if(clients | map_values, [uniqueId](const ClientPtr& c) { return c->getToken() == uniqueId; });
 	if(client.base() == clients.end()) { return false; }
 	hubUrl_ = (*client)->getHubUrl();
 

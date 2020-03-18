@@ -179,6 +179,10 @@ public:
 	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool isClientView, bool aIsOwnList=false);
 	~DirectoryListing();
 	
+	const CID& getToken() const noexcept {
+		return hintedUser.user->getCID();
+	}
+
 	// Throws Exception, AbortException
 	void loadFile();
 	bool isLoaded() const noexcept;

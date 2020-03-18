@@ -183,6 +183,15 @@ OnlineUserPtr NmdcHub::findUser(const string& aNick) const noexcept {
 	return i == users.end() ? NULL : i->second;
 }
 
+
+OnlineUser* NmdcHub::findUser(const uint32_t aSID) const noexcept {
+	auto i = find_if(users | map_values, [=](const OnlineUser* u) {
+		return u->getIdentity().getSID() == aSID;
+	});
+
+	return i.base() != users.end() ? *i : nullptr;
+}
+
 void NmdcHub::putUser(const string& aNick) noexcept {
 	OnlineUser* ou = NULL;
 	{

@@ -45,12 +45,12 @@ IgnoreManager::~IgnoreManager() noexcept {
 	SettingsManager::getInstance()->removeListener(this);
 }
 
-ActionHookRejectionPtr IgnoreManager::onPrivateMessage(const ChatMessagePtr& aMessage, const HookRejectionGetter& aRejectionGetter) noexcept {
-	return isIgnoredOrFiltered(aMessage, aRejectionGetter, true);
+ActionHookResult<> IgnoreManager::onPrivateMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter) noexcept {
+	return isIgnoredOrFiltered(aMessage, aResultGetter, true);
 }
 
-ActionHookRejectionPtr IgnoreManager::onHubMessage(const ChatMessagePtr& aMessage, const HookRejectionGetter& aRejectionGetter) noexcept {
-	return isIgnoredOrFiltered(aMessage, aRejectionGetter, false);
+ActionHookResult<> IgnoreManager::onHubMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter) noexcept {
+	return isIgnoredOrFiltered(aMessage, aResultGetter, false);
 }
 
 // SettingsManagerListener
@@ -159,12 +159,12 @@ bool IgnoreManager::checkIgnored(const OnlineUserPtr& aUser, bool aPM) noexcept 
 	return true;
 }
 
-ActionHookRejectionPtr IgnoreManager::isIgnoredOrFiltered(const ChatMessagePtr& msg, const HookRejectionGetter& aRejectionGetter, bool aPM) noexcept {
+ActionHookResult<> IgnoreManager::isIgnoredOrFiltered(const ChatMessagePtr& msg, const ActionHookResultGetter<>& aResultGetter, bool aPM) noexcept {
 	const auto& fromIdentity = msg->getFrom()->getIdentity();
 
 	//Don't filter own messages
 	if (msg->getFrom()->getUser() == ClientManager::getInstance()->getMe())
-		return nullptr;
+		return { nullptr, nullptr };
 
 	auto logIgnored = [&](bool filter) -> void {
 		if (SETTING(LOG_IGNORED)) {
@@ -181,15 +181,15 @@ ActionHookRejectionPtr IgnoreManager::isIgnoredOrFiltered(const ChatMessagePtr& 
 
 	// replyTo can be different if the message is received via a chat room (it should be possible to ignore those as well)
 	if (checkIgnored(msg->getFrom(), aPM) || checkIgnored(msg->getReplyTo(), aPM)) {
-		return aRejectionGetter("user_ignored", "User ignored");
+		return aResultGetter.getRejection("user_ignored", "User ignored");
 	}
 
 	if (isChatFiltered(fromIdentity.getNick(), msg->getText(), aPM ? ChatFilterItem::PM : ChatFilterItem::MC)) {
 		logIgnored(true);
-		return aRejectionGetter("message_filtered", "Message filtered");
+		return aResultGetter.getRejection("message_filtered", "Message filtered");
 	}
 
-	return nullptr;
+	return { nullptr, nullptr };
 }
 
 bool IgnoreManager::isChatFiltered(const string& aNick, const string& aText, ChatFilterItem::Context aContext) const noexcept {

@@ -89,6 +89,7 @@ private:
 
 	OnlineUser& getUser(const string& aNick) noexcept;
 	OnlineUserPtr findUser(const string& aNick) const noexcept override;
+	OnlineUser* findUser(const uint32_t aSID) const noexcept override;
 	void putUser(const string& aNick) noexcept;
 	
 	// don't convert to UTF-8 if string is already in this encoding

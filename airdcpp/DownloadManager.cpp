@@ -389,8 +389,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 			d->open(bytes, z, hasDownloadedBytes);
 		}
 	} catch(const FileException& e) {
-		auto b = d->getBundle();
-		QueueManager::getInstance()->bundleDownloadFailed(b, e.getError());
+		QueueManager::getInstance()->onDownloadError(d->getBundle(), e.getError());
 	
 		failDownload(aSource, STRING(COULD_NOT_OPEN_TARGET_FILE) + " " + e.getError(), true);
 		return;
@@ -440,7 +439,16 @@ void DownloadManager::on(UserConnectionListener::Data, UserConnection* aSource, 
 			aSource->setLineMode(0);
 		}
 	} catch(const Exception& e) {
-		//d->resetPos(); // is there a better way than resetting the position?
+
+		//TTH inconsistency, do we get other errors here?
+		if (e.getErrorCode() == Exception::TTH_INCONSISTENCY) {
+			QueueManager::getInstance()->removeFileSource(d->getPath(), aSource->getUser(), QueueItem::Source::FLAG_TTH_INCONSISTENCY, false);
+			//Pause temporarily to give other bundles a chance to get downloaded, this one wont complete anyway...
+			//Might be enough to just remove this source? 
+			QueueManager::getInstance()->onDownloadError(d->getBundle(), e.getError()); 
+			//d->resetPos(); // is there a better way than resetting the position?
+		}
+
 		failDownload(aSource, e.getError(), true);
 	}
 }

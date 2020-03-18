@@ -37,6 +37,8 @@
 
 #include "pubkey.h"
 
+#define IP_DB_EXPIRATION_DAYS 90 
+
 namespace dcpp {
 
 const char* UpdateManager::versionUrl[VERSION_LAST] = { 
@@ -147,10 +149,10 @@ void UpdateManager::completeIPCheck(bool manual, bool v6) {
 }
 
 void UpdateManager::checkGeoUpdate() {
-	// update when the database is non-existent or older than 25 days (GeoIP updates every month).
+	// update when the database is non-existent or older than X days 
 	try {
 		File f(GeoManager::getDbPath() + ".gz", File::READ, File::OPEN);
-		if(f.getSize() > 0 && static_cast<time_t>(f.getLastModified()) > GET_TIME() - 3600 * 24 * 25) {
+		if(f.getSize() > 0 && static_cast<time_t>(f.getLastModified()) > GET_TIME() - 3600 * 24 * IP_DB_EXPIRATION_DAYS) {
 			return;
 		}
 	} catch(const FileException&) { }

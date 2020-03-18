@@ -1002,7 +1002,7 @@ void FavoriteManager::setConnectState(const FavoriteHubEntryPtr& aEntry) noexcep
 	auto client = ClientManager::getInstance()->getClient(aEntry->getServer());
 	if (client) {
 		aEntry->setConnectState(client->isConnected() ? FavoriteHubEntry::STATE_CONNECTED : FavoriteHubEntry::STATE_CONNECTING);
-		aEntry->setCurrentHubToken(client->getClientId());
+		aEntry->setCurrentHubToken(client->getToken());
 	} else {
 		aEntry->setCurrentHubToken(0);
 		aEntry->setConnectState(FavoriteHubEntry::STATE_DISCONNECTED);
@@ -1016,7 +1016,7 @@ void FavoriteManager::onConnectStateChanged(const ClientPtr& aClient, FavoriteHu
 		if (aState == FavoriteHubEntry::STATE_DISCONNECTED) {
 			hub->setCurrentHubToken(0);
 		} else {
-			hub->setCurrentHubToken(aClient->getClientId());
+			hub->setCurrentHubToken(aClient->getToken());
 		}
 
 		fire(FavoriteManagerListener::FavoriteHubUpdated(), hub);

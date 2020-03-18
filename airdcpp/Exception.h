@@ -27,12 +27,19 @@ namespace dcpp {
 
 using std::string;
 
+
 class Exception : public std::exception
 {
 public:
 	Exception() { }
 	Exception(const string& aError) : errorString(aError), errorCode(0) { dcdrun(if(errorString.size()>0)) dcdebug("Thrown: %s\n", errorString.c_str()); }
-	Exception(const string& aError, int& eCode) : errorString(aError), errorCode(eCode) { dcdrun(if (errorString.size()>0)) dcdebug("Thrown: %s\n", errorString.c_str()); }
+	Exception(const string& aError, int eCode) : errorString(aError), errorCode(eCode) { dcdrun(if (errorString.size()>0)) dcdebug("Thrown: %s\n", errorString.c_str()); }
+
+	//should start using some codes for the exceptions since most of them are translated...
+	enum {
+		NONE = 0,
+		TTH_INCONSISTENCY = 1
+	};
 
 	virtual const char* what() const noexcept { return getError().c_str(); }
 	
@@ -50,7 +57,7 @@ protected:
 public:\
 	name() : Exception(#name) { } \
 	name(const string& aError) : Exception(#name ": " + aError) { } \
-	name(const string& aError, int& eCode) : Exception(#name ": " + aError, eCode) { } \
+	name(const string& aError, int eCode) : Exception(#name ": " + aError, eCode) { } \
 	virtual ~name() noexcept { } \
 }
 
@@ -60,7 +67,7 @@ public:\
 public:\
 	name() : Exception() { } \
 	name(const string& aError) : Exception(aError) { } \
-	name(const string& aError, int& eCode) : Exception(aError, eCode) { } \
+	name(const string& aError, int eCode) : Exception(aError, eCode) { } \
 	virtual ~name() noexcept { } \
 }
 #endif

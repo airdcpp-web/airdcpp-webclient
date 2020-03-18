@@ -867,7 +867,10 @@ string QueueItem::Source::formatError(const Flags& aFlags) noexcept {
 		return STRING(SLOW_USER);
 	} else if (aFlags.isSet(QueueItem::Source::FLAG_UNTRUSTED)) {
 		return STRING(CERTIFICATE_NOT_TRUSTED);
+	} else if (aFlags.isSet(QueueItem::Source::FLAG_TTH_INCONSISTENCY)) {
+		return STRING(TTH_INCONSISTENCY);
 	}
+
 
 	return Util::emptyString;
 }

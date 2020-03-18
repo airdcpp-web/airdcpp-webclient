@@ -26,7 +26,6 @@
 #include "SearchManagerListener.h"
 
 #include "GroupedSearchResult.h"
-#include "SearchQuery.h"
 #include "Speaker.h"
 
 
@@ -34,7 +33,7 @@ namespace dcpp {
 	struct SearchQueueInfo;
 	class SearchInstance : public Speaker<SearchInstanceListener>, private SearchManagerListener, private ClientManagerListener {
 	public:
-		SearchInstance();
+		SearchInstance(const string& aOwnerId, uint64_t aExpirationTick = 0);
 		~SearchInstance();
 
 		SearchQueueInfo hubSearch(StringList& aHubUrls, const SearchPtr& aSearch) noexcept;
@@ -56,11 +55,32 @@ namespace dcpp {
 		int getQueueCount() const noexcept;
 		int getResultCount() const noexcept;
 		uint64_t getQueueTime() const noexcept;
+
+		int getFilteredResultCount() const noexcept {
+			return filteredResultCount;
+		}
+
+		SearchPtr getCurrentParams() const noexcept {
+			return curParams;
+		}
+
+		SearchInstanceToken getToken() const noexcept {
+			return token;
+		}
+
+		const string& getOwnerId() const noexcept {
+			return ownerId;
+		}
+
+		optional<int64_t> getTimeToExpiration() const noexcept;
+
+		IGETSET(bool, freeSlotsOnly, FreeSlotsOnly, false);
 	private:
 		void on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept override;
 
 		GroupedSearchResult::Map results;
-		shared_ptr<SearchQuery> curSearch;
+		shared_ptr<SearchQuery> curMatcher;
+		SearchPtr curParams;
 		StringSet queuedHubUrls;
 
 		std::string currentSearchToken;
@@ -72,6 +92,11 @@ namespace dcpp {
 		void removeQueuedUrl(const string& aHubUrl) noexcept;
 		uint64_t lastSearchTime = 0;
 		int searchesSent = 0;
+		int filteredResultCount = 0;
+
+		const SearchInstanceToken token;
+		const uint64_t expirationTick;
+		const string ownerId;
 	};
 }
 

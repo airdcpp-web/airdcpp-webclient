@@ -216,6 +216,7 @@
     <ClCompile Include="airdcpp\ActivityManager.cpp" />
     <ClCompile Include="airdcpp\AdcCommand.cpp" />
     <ClCompile Include="airdcpp\AdcHub.cpp" />
+    <ClCompile Include="airdcpp\ContextMenuManager.cpp" />
     <ClCompile Include="airdcpp\DirectSearch.cpp" />
     <ClCompile Include="airdcpp\ErrorCollector.cpp" />
     <ClCompile Include="airdcpp\GroupedSearchResult.cpp" />
@@ -317,6 +318,7 @@
     <ClCompile Include="airdcpp\TimerManager.cpp" />
     <ClCompile Include="airdcpp\TrackableDownloadItem.cpp" />
     <ClCompile Include="airdcpp\Transfer.cpp" />
+    <ClCompile Include="airdcpp\TransferInfoManager.cpp" />
     <ClCompile Include="airdcpp\UDPServer.cpp" />
     <ClCompile Include="airdcpp\UpdateManager.cpp" />
     <ClCompile Include="airdcpp\Updater.cpp" />
@@ -341,12 +343,14 @@
     <ClInclude Include="airdcpp\AdcHub.h" />
     <ClInclude Include="airdcpp\BundleInfo.h" />
     <ClInclude Include="airdcpp\constants.h" />
+    <ClInclude Include="airdcpp\ContextMenuManager.h" />
     <ClInclude Include="airdcpp\DirectoryDownload.h" />
     <ClInclude Include="airdcpp\DirectSearch.h" />
     <ClInclude Include="airdcpp\DupeType.h" />
     <ClInclude Include="airdcpp\ErrorCollector.h" />
     <ClInclude Include="airdcpp\GroupedSearchResult.h" />
     <ClInclude Include="airdcpp\HashManagerListener.h" />
+    <ClInclude Include="airdcpp\TransferInfo.h" />
     <ClInclude Include="airdcpp\IgnoreManager.h" />
     <ClInclude Include="airdcpp\IgnoreManagerListener.h" />
     <ClInclude Include="airdcpp\modules\AutoSearch.h" />
@@ -376,6 +380,7 @@
     <ClInclude Include="airdcpp\SettingsManagerListener.h" />
     <ClInclude Include="airdcpp\SharePathValidator.h" />
     <ClInclude Include="airdcpp\TimerManagerListener.h" />
+    <ClInclude Include="airdcpp\TransferInfoManager.h" />
     <ClInclude Include="airdcpp\ViewFileManagerListener.h" />
     <ClInclude Include="airdcpp\MessageCache.h" />
     <ClInclude Include="airdcpp\ConnectionType.h" />
