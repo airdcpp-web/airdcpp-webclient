@@ -410,8 +410,11 @@ namespace webserver {
 		ios.stop();
 		tasks.stop();
 
-		task_threads->join_all();
-		ios_threads->join_all();
+		if (task_threads)
+			task_threads->join_all();
+
+		if (ios_threads)
+			ios_threads->join_all();
 
 		task_threads.reset();
 		ios_threads.reset();

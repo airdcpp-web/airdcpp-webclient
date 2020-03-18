@@ -219,9 +219,6 @@
     <ClInclude Include="api\UserApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
-    <ClInclude Include="api\TransferInfo.h">
-      <Filter>Header Files\api</Filter>
-    </ClInclude>
     <ClInclude Include="api\TransferUtils.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
@@ -299,6 +296,9 @@
     </ClInclude>
     <ClInclude Include="web-server\HttpUtil.h">
       <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="api\MenuApi.h">
+      <Filter>Header Files\api</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -496,6 +496,9 @@
     </ClCompile>
     <ClCompile Include="web-server\HttpUtil.cpp">
       <Filter>Source Files\web-server</Filter>
+    </ClCompile>
+    <ClCompile Include="api\MenuApi.cpp">
+      <Filter>Source Files\api</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

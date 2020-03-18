@@ -30,8 +30,8 @@ namespace webserver {
 		ShareApi(Session* aSession);
 		~ShareApi();
 	private:
-		ActionHookRejectionPtr fileValidationHook(const string& aPath, int64_t aSize, const HookRejectionGetter& aErrorGetter) noexcept;
-		ActionHookRejectionPtr directoryValidationHook(const string& aPath, const HookRejectionGetter& aErrorGetter) noexcept;
+		ActionHookResult<> fileValidationHook(const string& aPath, int64_t aSize, const ActionHookResultGetter<>& aResultGetter) noexcept;
+		ActionHookResult<> directoryValidationHook(const string& aPath, const ActionHookResultGetter<>& aResultGetter) noexcept;
 
 		api_return handleRefreshShare(ApiRequest& aRequest);
 		api_return handleRefreshPaths(ApiRequest& aRequest);

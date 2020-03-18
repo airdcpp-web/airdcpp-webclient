@@ -105,6 +105,20 @@ namespace webserver {
 			return parseValue<T>(aFieldName, getRawValue(aFieldName, aJson, true), aAllowEmpty);
 		}
 
+		template <typename JsonT>
+		static json getArrayField(const string& aFieldName, const JsonT& aJson, bool aAllowEmpty) {
+			auto ret = getRawValue<JsonT>(aFieldName, aJson, true);
+			if (!ret.is_array()) {
+				throwError(aFieldName, ERROR_INVALID, "Field must be an array");
+			}
+
+			if (!aAllowEmpty && ret.empty()) {
+				throwError(aFieldName, ERROR_INVALID, "Array can't be empty");
+			}
+
+			return ret;
+		}
+
 		// Get value from the given JSON element
 		template <typename T, typename JsonT>
 		static T parseValue(const string& aFieldName, const JsonT& aJson, bool aAllowEmpty = true) {
@@ -163,7 +177,7 @@ namespace webserver {
 		}
 
 		static void throwError(const string& aFieldName, ErrorType aType, const string& aMessage)  {
-			throw ArgumentException(getError(aFieldName, aType, aMessage));
+			throw ArgumentException(getError(aFieldName, aType, aMessage), aMessage);
 		}
 
 		static json getError(const string& aFieldName, ErrorType aType, const string& aMessage) noexcept;
@@ -212,7 +226,8 @@ namespace webserver {
 
 		template <class T>
 		static typename std::enable_if<std::is_integral<T>::value, T>::type convertNullValue(const string& aFieldName) {
-			throw ArgumentException(getError(aFieldName, ERROR_INVALID, "Field can't be empty"));
+			throwError(aFieldName, ERROR_INVALID, "Field can't be empty");
+			return T(); // Not used
 		}
 
 		static string errorTypeToString(ErrorType aType) noexcept;

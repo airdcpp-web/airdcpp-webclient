@@ -28,11 +28,11 @@
 namespace webserver {
 	using json = nlohmann::json;
 
-	class JsonException : public std::exception
+	class JsonException : public std::runtime_error
 	{
 	public:
-		JsonException(const json& aError) : error(aError) { }
-		JsonException(json&& aError) : error(move(aError)) { }
+		JsonException(const json& aError, const std::string& aMessage) : error(aError), std::runtime_error(aMessage.c_str()) { }
+		JsonException(json&& aError, const std::string& aMessage) : error(move(aError)), std::runtime_error(aMessage.c_str()) { }
 
 		virtual ~JsonException() noexcept { }
 		const json& getErrorJson() const { return error; }

@@ -29,8 +29,6 @@
 
 
 namespace webserver {
-	class SearchEntity;
-	typedef uint32_t SearchInstanceToken;
 	class SearchEntity : public SubApiModule<SearchInstanceToken, SearchEntity, SearchInstanceToken>, private SearchInstanceListener {
 	public:
 		static const StringList subscriptionList;
@@ -38,22 +36,20 @@ namespace webserver {
 		typedef ParentApiModule<SearchInstanceToken, SearchEntity> ParentType;
 		typedef shared_ptr<SearchEntity> Ptr;
 
-		SearchEntity(ParentType* aParentModule, const SearchInstancePtr& aSearch, SearchInstanceToken aId, uint64_t aExpirationTick);
+		SearchEntity(ParentType* aParentModule, const SearchInstancePtr& aSearch);
 		~SearchEntity();
 
 		const SearchInstancePtr& getSearch() const noexcept {
 			return search;
 		}
 
-		SearchInstanceToken getId() const noexcept override {
-			return id;
-		}
-
-		optional<int64_t> getTimeToExpiration() const noexcept;
+		SearchInstanceToken getId() const noexcept override;
 
 		void init() noexcept override;
+
+		static json serializeSearchQuery(const SearchPtr& aQuery) noexcept;
 	private:
-		const SearchInstanceToken id;
+		const SearchInstancePtr search;
 
 		GroupedSearchResultList getResultList() noexcept;
 
@@ -68,16 +64,14 @@ namespace webserver {
 		api_return handleGetChildren(ApiRequest& aRequest);
 
 		void on(SearchInstanceListener::GroupedResultAdded, const GroupedSearchResultPtr& aResult) noexcept override;
-		void on(SearchInstanceListener::GroupedResultUpdated, const GroupedSearchResultPtr& aResult) noexcept override;
+		void on(SearchInstanceListener::ChildResultAdded, const GroupedSearchResultPtr& aResult, const SearchResultPtr&) noexcept override;
 		void on(SearchInstanceListener::UserResult, const SearchResultPtr& aResult, const GroupedSearchResultPtr& aParent) noexcept override;
 		void on(SearchInstanceListener::Reset) noexcept override;
 		void on(SearchInstanceListener::HubSearchSent, const string& aSearchToken, int aSent) noexcept override;
+		void on(SearchInstanceListener::HubSearchQueued, const string& aSearchToken, uint64_t aQueueTime, size_t aQueuedCount) noexcept override;
 
 		typedef ListViewController<GroupedSearchResultPtr, SearchUtils::PROP_LAST> SearchView;
 		SearchView searchView;
-
-		const SearchInstancePtr search;
-		const uint64_t expirationTick;
 	};
 }
 
