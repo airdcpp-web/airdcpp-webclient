@@ -40,6 +40,7 @@ namespace webserver {
 
 		api_return handleGetUser(ApiRequest& aRequest);
 		api_return handleSearchNicks(ApiRequest& aRequest);
+		api_return handleSearchHintedUser(ApiRequest& aRequest);
 
 		void on(IgnoreManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept override;
 		void on(IgnoreManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept override;

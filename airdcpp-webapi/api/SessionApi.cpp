@@ -141,6 +141,7 @@ namespace webserver {
 
 	json SessionApi::serializeLoginInfo(const SessionPtr& aSession, const string& aRefreshToken) {
 		json ret = {
+			{ "session_id", aSession->getId() },
 			{ "auth_token", aSession->getAuthToken() },
 			{ "token_type", "Bearer" },
 			{ "user", Serializer::serializeItem(aSession->getUser(), WebUserUtils::propertyHandler) },

@@ -46,6 +46,7 @@ namespace webserver {
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("user"), CID_PARAM),		UserApi::handleGetUser); // DEPRECATED
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(CID_PARAM),							UserApi::handleGetUser);
 		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("search_nicks")),			UserApi::handleSearchNicks);
+		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("search_hinted_user")),	UserApi::handleSearchHintedUser);
 
 		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("ignores")),				UserApi::handleGetIgnores);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("ignores"), CID_PARAM),	UserApi::handleIgnore);
@@ -80,6 +81,12 @@ namespace webserver {
 
 		auto users = ClientManager::getInstance()->searchNicks(pattern, maxResults, ignorePrefixes, hubs);
 		aRequest.setResponseBody(Serializer::serializeList(users, Serializer::serializeOnlineUser));
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return UserApi::handleSearchHintedUser(ApiRequest& aRequest) {
+		const auto user = Deserializer::deserializeHintedUser(aRequest.getRequestBody(), true);
+		aRequest.setResponseBody(Serializer::serializeHintedUser(user));
 		return websocketpp::http::status_code::ok;
 	}
 

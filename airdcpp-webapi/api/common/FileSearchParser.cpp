@@ -51,7 +51,7 @@ namespace webserver {
 		if (fileTypeStr) {
 			try {
 				string name;
-				SearchManager::getInstance()->getSearchType(Deserializer::parseSearchType(*fileTypeStr), aSearch->fileType, aSearch->exts, name);
+				SearchManager::getInstance()->getSearchType(parseSearchType(*fileTypeStr), aSearch->fileType, aSearch->exts, name);
 			} catch (...) {
 				throw std::domain_error("Invalid file type");
 			}
@@ -112,5 +112,28 @@ namespace webserver {
 		}
 
 		throw std::domain_error("Invalid match type");
+	}
+
+	const map<string, string> fileTypeMappings = {
+		{ "any", "0" },
+		{ "audio", "1" },
+		{ "compressed", "2" },
+		{ "document", "3" },
+		{ "executable", "4" },
+		{ "picture", "5" },
+		{ "video", "6" },
+		{ "directory", "7" },
+		{ "tth", "8" },
+		{ "file", "9" },
+	};
+
+	string FileSearchParser::parseSearchType(const string& aType) {
+		auto i = fileTypeMappings.find(aType);
+		return i != fileTypeMappings.end() ? i->second : aType;
+	}
+
+	string FileSearchParser::serializeSearchType(const string& aType) {
+		auto i = boost::find(fileTypeMappings | map_values, aType);
+		return i.base() != fileTypeMappings.end() ? i.base()->first : aType;
 	}
 }

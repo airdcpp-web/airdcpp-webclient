@@ -92,7 +92,7 @@ namespace webserver {
 		ShareManager::getInstance()->removeListener(this);
 	}
 
-	ActionHookRejectionPtr ShareApi::fileValidationHook(const string& aPath, int64_t aSize, const HookRejectionGetter& aErrorGetter) noexcept {
+	ActionHookResult<> ShareApi::fileValidationHook(const string& aPath, int64_t aSize, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
 			fireHook("share_file_validation_hook", 30, [&]() {
 				return json({
@@ -100,18 +100,18 @@ namespace webserver {
 					{ "size", aSize },
 				});
 			}),
-			aErrorGetter
+			aResultGetter
 		);
 	}
 
-	ActionHookRejectionPtr ShareApi::directoryValidationHook(const string& aPath, const HookRejectionGetter& aErrorGetter) noexcept {
+	ActionHookResult<> ShareApi::directoryValidationHook(const string& aPath, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
 			fireHook("share_directory_validation_hook", 30, [&]() {
 				return json({
 					{ "path", aPath },
 				});
 			}),
-			aErrorGetter
+			aResultGetter
 		);
 	}
 

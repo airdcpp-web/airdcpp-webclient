@@ -33,16 +33,16 @@ namespace webserver {
 		"private_chat_removed"
 	};
 
-	ActionHookRejectionPtr PrivateChatApi::incomingMessageHook(const ChatMessagePtr& aMessage, const HookRejectionGetter& aRejectionGetter) {
+	ActionHookResult<> PrivateChatApi::incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter) {
 		return HookCompletionData::toResult(
 			fireHook("private_chat_incoming_message_hook", 2, [&]() {
 				return Serializer::serializeChatMessage(aMessage);
 			}),
-			aRejectionGetter
+			aResultGetter
 		);
 	}
 
-	ActionHookRejectionPtr PrivateChatApi::outgoingMessageHook(const string& aMessage, bool aThirdPerson, const HintedUser& aUser, bool aEcho, const HookRejectionGetter& aRejectionGetter) {
+	ActionHookResult<> PrivateChatApi::outgoingMessageHook(const string& aMessage, bool aThirdPerson, const HintedUser& aUser, bool aEcho, const ActionHookResultGetter<>& aResultGetter) {
 		return HookCompletionData::toResult(
 			fireHook("private_chat_outgoing_message_hook", 2, [&]() {
 				return json({
@@ -52,7 +52,7 @@ namespace webserver {
 					{ "user", Serializer::serializeHintedUser(aUser) },
 				});
 			}),
-			aRejectionGetter
+			aResultGetter
 		);
 	}
 

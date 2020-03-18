@@ -26,6 +26,9 @@ namespace webserver {
 	class FileSearchParser {
 	public:
 		static SearchPtr parseSearch(const json& aJson, bool aIsDirectSearch, const string& aToken);
+
+		static string parseSearchType(const string& aType);
+		static string serializeSearchType(const string& aType);
 	private:
 		static void parseMatcher(const json& aJson, const SearchPtr& aSearch);
 		static void parseOptions(const json& aJson, const SearchPtr& aSearch);

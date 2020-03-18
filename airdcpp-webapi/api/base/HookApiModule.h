@@ -22,6 +22,7 @@
 #include <web-server/Access.h>
 #include <web-server/SessionListener.h>
 
+#include <airdcpp/ActionHook.h>
 #include <airdcpp/CriticalSection.h>
 #include <airdcpp/Semaphore.h>
 
@@ -66,7 +67,27 @@ namespace webserver {
 
 			typedef std::shared_ptr<HookCompletionData> Ptr;
 
-			static ActionHookRejectionPtr toResult(const HookCompletionData::Ptr& aData, const HookRejectionGetter& aRejectionGetter) noexcept;
+			template<typename DataT>
+			using HookDataGetter = std::function<DataT(const json& aDataJson, const ActionHookResultGetter<DataT>& aResultGetter)>;
+
+			template <typename DataT = nullptr_t>
+			static ActionHookResult<DataT> toResult(const HookCompletionData::Ptr& aData, const ActionHookResultGetter<DataT>& aResultGetter, const HookDataGetter<DataT>& aDataGetter = nullptr) noexcept {
+				if (aData) {
+					if (aData->rejected) {
+						return aResultGetter.getRejection(aData->rejectId, aData->rejectMessage);
+					} else if (aDataGetter) {
+						try {
+							const auto data = aResultGetter.getData(aDataGetter(aData->resolveJson, aResultGetter));
+							return data;
+						} catch (const std::exception& e) {
+							dcdebug("Failed to deserialize hook data for subscriber %s: %s\n", aResultGetter.getId().c_str(), e.what());
+							return aResultGetter.getRejection("invalid_hook_data", e.what());
+						}
+					}
+				}
+
+				return { nullptr, nullptr };
+			}
 		};
 		typedef HookCompletionData::Ptr HookCompletionDataPtr;
 

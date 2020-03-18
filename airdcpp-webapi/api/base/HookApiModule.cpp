@@ -130,14 +130,6 @@ namespace webserver {
 		}
 	}
 
-	ActionHookRejectionPtr HookApiModule::HookCompletionData::toResult(const HookCompletionData::Ptr& aData, const HookRejectionGetter& aRejectionGetter) noexcept {
-		if (!aData || !aData->rejected) {
-			return nullptr;
-		}
-
-		return aRejectionGetter(aData->rejectId, aData->rejectMessage);
-	}
-
 	void HookApiModule::createHook(const string& aSubscription, HookAddF&& aAddHandler, HookRemoveF&& aRemoveF) noexcept {
 		hooks.emplace(aSubscription, HookSubscriber(std::move(aAddHandler), std::move(aRemoveF)));
 	}

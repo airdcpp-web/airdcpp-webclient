@@ -41,7 +41,7 @@ namespace webserver {
 	};
 
 	HubInfo::HubInfo(ParentType* aParentModule, const ClientPtr& aClient) :
-		SubApiModule(aParentModule, aClient->getClientId(), subscriptionList), client(aClient),
+		SubApiModule(aParentModule, aClient->getToken(), subscriptionList), client(aClient),
 		chatHandler(this, std::bind(&HubInfo::getClient, this), "hub", Access::HUBS_VIEW, Access::HUBS_EDIT, Access::HUBS_SEND), 
 		view("hub_user_view", this, OnlineUserUtils::propertyHandler, std::bind(&HubInfo::getUsers, this), 500), 
 		timer(getTimer([this] { onTimer(); }, 1000)) 
@@ -55,7 +55,8 @@ namespace webserver {
 		METHOD_HANDLER(Access::HUBS_VIEW, METHOD_GET,	(EXACT_PARAM("counts")),	HubInfo::handleGetCounts);
 
 		METHOD_HANDLER(Access::HUBS_VIEW, METHOD_GET,	(EXACT_PARAM("users"), RANGE_START_PARAM, RANGE_MAX_PARAM), HubInfo::handleGetUsers);
-		METHOD_HANDLER(Access::HUBS_VIEW, METHOD_GET,	(EXACT_PARAM("users"), CID_PARAM),							HubInfo::handleGetUser);
+		METHOD_HANDLER(Access::HUBS_VIEW, METHOD_GET,	(EXACT_PARAM("users"), CID_PARAM),							HubInfo::handleGetUserCid);
+		METHOD_HANDLER(Access::HUBS_VIEW, METHOD_GET,	(EXACT_PARAM("users"), TOKEN_PARAM),						HubInfo::handleGetUserId);
 	}
 
 	HubInfo::~HubInfo() {
@@ -71,7 +72,7 @@ namespace webserver {
 	}
 
 	ClientToken HubInfo::getId() const noexcept {
-		return client->getClientId();
+		return client->getToken();
 	}
 
 	api_return HubInfo::handleGetUsers(ApiRequest& aRequest) {
@@ -86,9 +87,20 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return HubInfo::handleGetUser(ApiRequest& aRequest) {
+	api_return HubInfo::handleGetUserCid(ApiRequest& aRequest) {
 		auto user = Deserializer::getUser(aRequest.getCIDParam(), true);
 		auto ou = ClientManager::getInstance()->findOnlineUser(user->getCID(), client->getHubUrl(), false);
+
+		aRequest.setResponseBody(Serializer::serializeOnlineUser(ou));
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return HubInfo::handleGetUserId(ApiRequest& aRequest) {
+		auto ou = client->findUser(aRequest.getTokenParam());
+		if (!ou) {
+			aRequest.setResponseErrorStr("User was not found");
+			return websocketpp::http::status_code::not_found;
+		}
 
 		aRequest.setResponseBody(Serializer::serializeOnlineUser(ou));
 		return websocketpp::http::status_code::ok;
