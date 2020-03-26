@@ -184,7 +184,7 @@ namespace webserver {
 		}
 
 		void setFilterProperties(const json& aRequestJson, PropertyFilter& aFilter) {
-			auto method = JsonUtil::getField<int>("method", aRequestJson);
+			auto method = JsonUtil::getRangeField<int>("method", aRequestJson, StringMatch::PARTIAL, StringMatch::EXACT);
 			auto property = JsonUtil::getField<string>("property", aRequestJson);
 
 			// Pattern can be string or numeric
@@ -290,18 +290,14 @@ namespace webserver {
 			typename IntCollector::ValueMap updatedValues;
 
 			{
-				auto start = JsonUtil::getOptionalField<int>("range_start", j);
+				auto start = JsonUtil::getOptionalRangeField<int>("range_start", j, false, 0);
 				if (start) {
-					if (*start < 0) {
-						throw std::invalid_argument("Negative range start not allowed");
-					}
-
 					updatedValues[IntCollector::TYPE_RANGE_START] = *start;
 				}
 			}
 
 			{
-				auto end = JsonUtil::getOptionalField<int>("max_count", j);
+				auto end = JsonUtil::getOptionalRangeField<int>("max_count", j, false, 0);
 				if (end) {
 					updatedValues[IntCollector::TYPE_MAX_COUNT] = *end;
 				}

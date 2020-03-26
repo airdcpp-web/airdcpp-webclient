@@ -33,7 +33,7 @@ namespace webserver {
 
 		// Return enum field with range validation
 		template <typename T, typename JsonT>
-		static optional<T> getOptionalEnumField(const string& aFieldName, const JsonT& aJson, bool aRequired, int aMin, int aMax) {
+		static optional<T> getOptionalRangeField(const string& aFieldName, const JsonT& aJson, bool aRequired, int aMin, int aMax = std::numeric_limits<T>::max()) {
 			auto value = getOptionalField<T, JsonT>(aFieldName, aJson, aRequired);
 			if (value) {
 				validateRange(aFieldName, *value, aMin, aMax);
@@ -52,8 +52,15 @@ namespace webserver {
 		}
 
 		template <typename T, typename JsonT>
-		static T getEnumFieldDefault(const string& aFieldName, const JsonT& aJson, T aDefault, int aMin, int aMax) {
-			auto value = getOptionalEnumField<T, JsonT>(aFieldName, aJson, false, aMin, aMax);
+		static T getRangeField(const string& aFieldName, const JsonT& aJson, int aMin, int aMax = std::numeric_limits<T>::max()) {
+			auto value = getField<T, JsonT>(aFieldName, aJson, false);
+			validateRange(aFieldName, value, aMin, aMax);
+			return value;
+		}
+
+		template <typename T, typename JsonT>
+		static T getRangeFieldDefault(const string& aFieldName, const JsonT& aJson, T aDefault, int aMin, int aMax = std::numeric_limits<T>::max()) {
+			auto value = getOptionalRangeField<T, JsonT>(aFieldName, aJson, false, aMin, aMax);
 			return value ? *value : aDefault;
 		}
 
@@ -161,7 +168,7 @@ namespace webserver {
 		}
 
 		template <typename T, typename JsonT>
-		static optional<T> parseOptionalEnumValue(const string& aFieldName, const JsonT& aJson, int aMin, int aMax) {
+		static optional<T> parseOptionalRangeValue(const string& aFieldName, const JsonT& aJson, int aMin, int aMax) {
 			auto value = parseOptionalValue<T, JsonT>(aFieldName, aJson);
 			if (value) {
 				validateRange(aFieldName, *value, aMin, aMax);
@@ -171,8 +178,8 @@ namespace webserver {
 		}
 
 		template <typename T, typename JsonT>
-		static T parseEnumValueDefault(const string& aFieldName, const JsonT& aJson, T aDefault, int aMin, int aMax) {
-			auto value = parseOptionalEnumValue<T, JsonT>(aFieldName, aJson, aMin, aMax);
+		static T parseRangeValueDefault(const string& aFieldName, const JsonT& aJson, T aDefault, int aMin, int aMax) {
+			auto value = parseOptionalRangeValue<T, JsonT>(aFieldName, aJson, aMin, aMax);
 			return value ? *value : aDefault;
 		}
 

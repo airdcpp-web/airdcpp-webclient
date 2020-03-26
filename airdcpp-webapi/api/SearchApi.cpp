@@ -66,6 +66,18 @@ namespace webserver {
 
 	SearchApi::~SearchApi() {
 		SearchManager::getInstance()->removeListener(this);
+
+		if (session->getSessionType() != Session::TYPE_BASIC_AUTH) {
+			// Remove instances created by this session
+			auto ownerId = createCurrentSessionOwnerId("");
+			for (const auto& i : SearchManager::getInstance()->getSearchInstances()) {
+				if (i->getOwnerId().length() >= ownerId.length() && 
+					i->getOwnerId().substr(0, ownerId.length()) == ownerId) 
+				{
+					SearchManager::getInstance()->removeSearchInstance(i->getToken());
+				}
+			}
+		}
 	}
 
 	void SearchApi::on(SearchManagerListener::SearchInstanceCreated, const SearchInstancePtr& aInstance) noexcept {
@@ -95,17 +107,17 @@ namespace webserver {
 	}
 
 
-	string SearchApi::createOwnerId(const SessionPtr& aSession, const string& aSuffix) noexcept {
+	string SearchApi::createCurrentSessionOwnerId(const string& aSuffix) noexcept {
 		string ret;
 
-		switch (aSession->getSessionType()) {
+		switch (session->getSessionType()) {
 		case Session::TYPE_EXTENSION:
-			ret = "extension:" + aSession->getUser()->getUserName();
+			ret = "extension:" + session->getUser()->getUserName();
 			break;
 		case Session::TYPE_BASIC_AUTH:
 			ret = "basic_auth";
 		default:
-			ret = "session:" + Util::toString(aSession->getId());
+			ret = "session:" + Util::toString(session->getId());
 		}
 
 		if (!aSuffix.empty()) {
@@ -116,15 +128,15 @@ namespace webserver {
 	}
 
 	api_return SearchApi::handleCreateInstance(ApiRequest& aRequest) {
-		auto expirationMinutes = JsonUtil::getOptionalFieldDefault<int>("expiration", aRequest.getRequestBody(), DEFAULT_INSTANCE_EXPIRATION_MINUTES);
+		auto expirationMinutes = JsonUtil::getRangeFieldDefault<int>("expiration", aRequest.getRequestBody(), DEFAULT_INSTANCE_EXPIRATION_MINUTES, 0);
 		auto ownerIdSuffix = JsonUtil::getOptionalFieldDefault<string>(
 			"owner_suffix", aRequest.getRequestBody(), 
 			""
 		);
 
 		auto instance = SearchManager::getInstance()->createSearchInstance(
-			createOwnerId(aRequest.getSession(), ownerIdSuffix), 
-			GET_TICK() + expirationMinutes * 60 * 1000
+			createCurrentSessionOwnerId(ownerIdSuffix),
+			expirationMinutes > 0 ? GET_TICK() + (expirationMinutes * 60 * 1000) : 0
 		);
 
 		aRequest.setResponseBody(serializeSearchInstance(instance));

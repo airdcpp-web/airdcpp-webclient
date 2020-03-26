@@ -98,7 +98,7 @@ namespace webserver {
 	Priority Deserializer::deserializePriority(const json& aJson, bool aAllowDefault) {
 		auto minAllowed = aAllowDefault ? Priority::DEFAULT : Priority::PAUSED_FORCE;
 
-		auto priority = JsonUtil::getOptionalEnumField<int>("priority", aJson, !aAllowDefault, static_cast<int>(minAllowed), static_cast<int>(Priority::HIGHEST));
+		auto priority = JsonUtil::getOptionalRangeField<int>("priority", aJson, !aAllowDefault, static_cast<int>(minAllowed), static_cast<int>(Priority::HIGHEST));
 		if (!priority) {
 			return Priority::DEFAULT;
 		}
