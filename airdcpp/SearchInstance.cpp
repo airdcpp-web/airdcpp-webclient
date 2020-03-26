@@ -46,7 +46,7 @@ namespace dcpp {
 			return nullopt;
 		}
 
-		return static_cast<int64_t>(expirationTick) - static_cast<int64_t>(GET_TICK());
+		return std::max(static_cast<int64_t>(expirationTick) - static_cast<int64_t>(GET_TICK()), static_cast<int64_t>(0));
 	}
 
 	GroupedSearchResult::Ptr SearchInstance::getResult(GroupedResultToken aToken) const noexcept {
