@@ -28,7 +28,7 @@
 
 
 namespace dcpp {
-	atomic<SearchInstanceToken> searchInstanceIdCounter { 0 };
+	atomic<SearchInstanceToken> searchInstanceIdCounter { 1 };
 	SearchInstance::SearchInstance(const string& aOwnerId, uint64_t aExpirationTick) : ownerId(aOwnerId), token(searchInstanceIdCounter++), expirationTick(aExpirationTick) {
 		SearchManager::getInstance()->addListener(this);
 		ClientManager::getInstance()->addListener(this);
