@@ -108,9 +108,9 @@ namespace webserver {
 			} else if (key == "nmdc_encoding") {
 				aEntry->get(HubSettings::NmdcEncoding) = JsonUtil::parseValue<string>("nmdc_encoding", i.value());
 			} else if (key == "connection_mode_v4") {
-				aEntry->get(HubSettings::Connection) = JsonUtil::parseEnumValueDefault<int>("connection_mode_v4", i.value(), HUB_SETTING_DEFAULT_INT, SettingsManager::INCOMING_DISABLED, SettingsManager::INCOMING_PASSIVE);
+				aEntry->get(HubSettings::Connection) = JsonUtil::parseRangeValueDefault<int>("connection_mode_v4", i.value(), HUB_SETTING_DEFAULT_INT, SettingsManager::INCOMING_DISABLED, SettingsManager::INCOMING_PASSIVE);
 			} else if (key == "connection_mode_v6") {
-				aEntry->get(HubSettings::Connection6) = JsonUtil::parseEnumValueDefault<int>("connection_mode_v6", i.value(), HUB_SETTING_DEFAULT_INT, SettingsManager::INCOMING_DISABLED, SettingsManager::INCOMING_PASSIVE);
+				aEntry->get(HubSettings::Connection6) = JsonUtil::parseRangeValueDefault<int>("connection_mode_v6", i.value(), HUB_SETTING_DEFAULT_INT, SettingsManager::INCOMING_DISABLED, SettingsManager::INCOMING_PASSIVE);
 			} else if (key == "connection_ip_v4") {
 				aEntry->get(HubSettings::UserIp) = JsonUtil::parseValue<string>("connection_ip_v4", i.value());
 			} else if (key == "connection_ip_v6") {
