@@ -124,6 +124,7 @@ namespace dcpp {
 		}
 
 		t->setStatusString(aStatus);
+		updateQueueInfo(t);
 		return t;
 	}
 
@@ -190,32 +191,25 @@ namespace dcpp {
 	}
 
 	void TransferInfoManager::updateQueueInfo(TransferInfoPtr& aInfo) noexcept {
-		{
-			auto qi = QueueManager::getInstance()->getQueueInfo(aInfo->getHintedUser());
-			if (!qi) {
-				return;
-			}
-
-			auto type = Transfer::TYPE_FILE;
-			if (qi->getFlags() & QueueItem::FLAG_PARTIAL_LIST)
-				type = Transfer::TYPE_PARTIAL_LIST;
-			else if (qi->getFlags() & QueueItem::FLAG_USER_LIST)
-				type = Transfer::TYPE_FULL_LIST;
-
-			aInfo->setType(type);
-			aInfo->setTarget(qi->getTarget());
-			aInfo->setSize(qi->getSize());
-			aInfo->setQueueToken(qi->getToken());
+		if (!aInfo->isDownload()) {
+			return;
 		}
 
-		aInfo->setState(TransferInfo::STATE_WAITING);
-		aInfo->setStatusString(STRING(CONNECTING));
+		auto qi = QueueManager::getInstance()->getQueueInfo(aInfo->getHintedUser());
+		if (!qi) {
+			return;
+		}
 
-		onTransferUpdated(
-			aInfo,
-			TransferInfo::UpdateFlags::STATUS | TransferInfo::UpdateFlags::TARGET | TransferInfo::UpdateFlags::TYPE |
-			TransferInfo::UpdateFlags::SIZE | TransferInfo::UpdateFlags::QUEUE_ID | TransferInfo::UpdateFlags::STATE
-		);
+		auto type = Transfer::TYPE_FILE;
+		if (qi->getFlags() & QueueItem::FLAG_PARTIAL_LIST)
+			type = Transfer::TYPE_PARTIAL_LIST;
+		else if (qi->getFlags() & QueueItem::FLAG_USER_LIST)
+			type = Transfer::TYPE_FULL_LIST;
+
+		aInfo->setType(type);
+		aInfo->setTarget(qi->getTarget());
+		aInfo->setSize(qi->getSize());
+		aInfo->setQueueToken(qi->getToken());
 	}
 
 	void TransferInfoManager::on(ConnectionManagerListener::Connecting, const ConnectionQueueItem* aCqi) noexcept {
@@ -224,7 +218,16 @@ namespace dcpp {
 			return;
 		}
 
+		t->setState(TransferInfo::STATE_WAITING);
+		t->setStatusString(STRING(CONNECTING));
+
 		updateQueueInfo(t);
+
+		onTransferUpdated(
+			t,
+			TransferInfo::UpdateFlags::STATUS | TransferInfo::UpdateFlags::TARGET | TransferInfo::UpdateFlags::TYPE |
+			TransferInfo::UpdateFlags::SIZE | TransferInfo::UpdateFlags::QUEUE_ID | TransferInfo::UpdateFlags::STATE
+		);
 	}
 
 
