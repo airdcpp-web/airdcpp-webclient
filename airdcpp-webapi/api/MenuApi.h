@@ -122,6 +122,7 @@ namespace webserver {
 		void on(ContextMenuManagerListener::FavoriteHubMenuSelected, const vector<uint32_t>&, const string& aHookId, const string& aMenuItemId) noexcept override;
 		void on(ContextMenuManagerListener::UserMenuSelected, const vector<CID>&, const string& aHookId, const string& aMenuItemId) noexcept override;
 		void on(ContextMenuManagerListener::HintedUserMenuSelected, const vector<HintedUser>&, const string& aHookId, const string& aMenuItemId) noexcept override;
+		void on(ContextMenuManagerListener::ExtensionMenuSelected, const vector<string>&, const string& aHookId, const string& aMenuItemId) noexcept override;
 
 		void on(ContextMenuManagerListener::GroupedSearchResultMenuSelected, const vector<TTHValue>& aSelectedIds, const SearchInstancePtr& aInstance, const string& aHookId, const string& aMenuItemId) noexcept override;
 		void on(ContextMenuManagerListener::FilelistItemMenuSelected, const vector<uint32_t>& aSelectedIds, const DirectoryListingPtr& aList, const string& aHookId, const string& aMenuItemId) noexcept override;

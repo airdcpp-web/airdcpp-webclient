@@ -186,7 +186,7 @@ namespace webserver {
 	json FilelistInfo::serializeLocation(const DirectoryListingPtr& aListing) noexcept {
 		const auto& location = aListing->getCurrentLocationInfo();
 		if (!location.directory) {
-			// Shouldn't happen
+			// The list hasn't been loaded yet
 			return nullptr;
 		}
 

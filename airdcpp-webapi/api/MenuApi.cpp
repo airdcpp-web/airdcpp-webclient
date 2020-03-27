@@ -114,6 +114,7 @@ namespace webserver {
 				"share_root_menuitem_selected",
 				"user_menuitem_selected",
 				"hinted_user_menuitem_selected",
+				"extension_menuitem_selected",
 				"hub_user_menuitem_selected",
 				"grouped_search_result_menuitem_selected",
 				"filelist_item_menuitem_selected",
@@ -131,7 +132,7 @@ namespace webserver {
 		CONTEXT_MENU_HANDLER("share_root", shareRoot, ShareRoot, TTHValue, tthArrayValueParser, defaultArrayValueSerializer<TTHValue>, Access::ANY);
 		CONTEXT_MENU_HANDLER("user", user, User, CID, cidArrayValueParser, defaultArrayValueSerializer<CID>, Access::ANY);
 		CONTEXT_MENU_HANDLER("hinted_user", hintedUser, HintedUser, HintedUser, hintedUserArrayValueParser, Serializer::serializeHintedUser, Access::ANY);
-		// CONTEXT_MENU_HANDLER("hub_user", hubUser, HubUser, HintedUser, hintedUserArrayValueParser, Serializer::serializeHintedUser, Access::ANY);
+		CONTEXT_MENU_HANDLER("extension", extension, Extension, string, defaultArrayValueParser<string>, defaultArrayValueSerializer<string>, Access::ANY);
 
 		const auto parseFilelist = [](const json& aJson, const string& aFieldName) {
 			auto cidStr = JsonUtil::parseValue<string>(aFieldName, aJson, false);
@@ -279,5 +280,9 @@ namespace webserver {
 
 	void MenuApi::on(ContextMenuManagerListener::FilelistItemMenuSelected, const vector<uint32_t>& aSelectedIds, const DirectoryListingPtr& aList, const string& aHookId, const string& aMenuItemId) noexcept {
 		onMenuItemSelected("filelist_item", aSelectedIds, aHookId, aMenuItemId, aList->getToken());
+	}
+
+	void MenuApi::on(ContextMenuManagerListener::ExtensionMenuSelected, const vector<string>& aSelectedIds, const string& aHookId, const string& aMenuItemId) noexcept {
+		onMenuItemSelected("extension", aSelectedIds, aHookId, aMenuItemId);
 	}
 }

@@ -234,7 +234,7 @@ namespace webserver {
 		return updatedProps;
 	}
 
-	void TransferApi::on(TransferInfoManagerListener::Updated, const TransferInfoPtr& aInfo, int aUpdatedProperties) noexcept {
+	void TransferApi::on(TransferInfoManagerListener::Updated, const TransferInfoPtr& aInfo, int aUpdatedProperties, bool aTick) noexcept {
 		auto updatedProps = updateFlagsToPropertyIds(aUpdatedProperties);
 
 		view.onItemUpdated(aInfo, updatedProps);

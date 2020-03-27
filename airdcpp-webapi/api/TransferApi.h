@@ -54,12 +54,12 @@ namespace webserver {
 		void on(DownloadManagerListener::BundleTick, const BundleList& bundles, uint64_t aTick) noexcept override;
 		void on(UploadManagerListener::BundleTick, const UploadBundleList& bundles) noexcept override;
 
-		void on(TransferInfoManagerListener::Added, const TransferInfoPtr& aInfo) noexcept;
-		void on(TransferInfoManagerListener::Updated, const TransferInfoPtr& aInfo, int aUpdatedProperties) noexcept;
-		void on(TransferInfoManagerListener::Removed, const TransferInfoPtr& aInfo) noexcept;
-		void on(TransferInfoManagerListener::Failed, const TransferInfoPtr& aInfo) noexcept;
-		void on(TransferInfoManagerListener::Starting, const TransferInfoPtr& aInfo) noexcept;
-		void on(TransferInfoManagerListener::Completed, const TransferInfoPtr& aInfo) noexcept;
+		void on(TransferInfoManagerListener::Added, const TransferInfoPtr& aInfo) noexcept override;
+		void on(TransferInfoManagerListener::Updated, const TransferInfoPtr& aInfo, int aUpdatedProperties, bool aTick) noexcept override;
+		void on(TransferInfoManagerListener::Removed, const TransferInfoPtr& aInfo) noexcept override;
+		void on(TransferInfoManagerListener::Failed, const TransferInfoPtr& aInfo) noexcept override;
+		void on(TransferInfoManagerListener::Starting, const TransferInfoPtr& aInfo) noexcept override;
+		void on(TransferInfoManagerListener::Completed, const TransferInfoPtr& aInfo) noexcept override;
 
 		json previousStats;
 
