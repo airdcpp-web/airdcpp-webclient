@@ -32,6 +32,8 @@ class SharePathValidator {
 public:
 	ActionHook<nullptr_t, const string&, int64_t> fileValidationHook;
 	ActionHook<nullptr_t, const string&> directoryValidationHook;
+	ActionHook<nullptr_t, const string&, bool /* aNewParent */> newDirectoryValidationHook;
+	ActionHook<nullptr_t, const string&, int64_t, bool /* aNewParent */> newFileValidationHook;
 
 	SharePathValidator();
 
