@@ -42,6 +42,26 @@ namespace webserver {
 			return value;
 		}
 
+		// Return enum field with range validation
+		template <typename T, typename JsonT>
+		static optional<T> getOptionalEnumField(const string& aFieldName, const JsonT& aJson, bool aRequired, const std::vector<T>& aAllowedValues) {
+			auto value = getOptionalField<T, JsonT>(aFieldName, aJson, aRequired);
+			if (value && find(aAllowedValues.begin(), aAllowedValues.end(), *value) == aAllowedValues.end()) {
+				string allowedValuesStr;
+				for (const auto& v: aAllowedValues) {
+					if (!allowedValuesStr.empty()) {
+						allowedValuesStr += ", ";
+					}
+
+					allowedValuesStr += "\"" + v + "\"";
+				}
+
+				throwError(aFieldName, ERROR_INVALID, "Value \"" + string(*value) + "\" isn't valid (allowed values: " + allowedValuesStr + ")");
+			}
+
+			return value;
+		}
+
 		template <typename T>
 		static void validateRange(const string& aFieldName, const T& aValue, int aMin, int aMax) {
 			if (aValue < aMin || aValue > aMax) {
@@ -56,6 +76,12 @@ namespace webserver {
 			auto value = getField<T, JsonT>(aFieldName, aJson, false);
 			validateRange(aFieldName, value, aMin, aMax);
 			return value;
+		}
+
+		template <typename T, typename JsonT>
+		static T getEnumFieldDefault(const string& aFieldName, const JsonT& aJson, T aDefault, const std::vector<T>& aAllowedValues) {
+			auto value = getOptionalEnumField<T, JsonT>(aFieldName, aJson, false, aAllowedValues);
+			return value ? *value : aDefault;
 		}
 
 		template <typename T, typename JsonT>

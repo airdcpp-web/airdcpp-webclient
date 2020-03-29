@@ -36,6 +36,8 @@ namespace webserver {
 		MenuApi(Session* aSession);
 		~MenuApi();
 	private:
+		static StringMap deserializeIconInfo(const json& aJson);
+
 		static ContextMenuItemPtr toMenuItem(const json& aData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter);
 		static ContextMenuItemList deserializeMenuItems(const json& aData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter);
 
