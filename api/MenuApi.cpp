@@ -200,7 +200,7 @@ namespace webserver {
 		return {
 			{ "id", aMenuItem->getId() },
 			{ "title", aMenuItem->getTitle() },
-			{ "icon", aMenuItem->getIcon() },
+			{ "icon", aMenuItem->getIconInfo() },
 			{ "hook_id", aMenuItem->getHookId() },
 		};
 	}
@@ -216,12 +216,27 @@ namespace webserver {
 		return ret;
 	}
 
+	StringMap MenuApi::deserializeIconInfo(const json& aJson) {
+		StringMap iconInfo;
+		if (!aJson.is_null()) {
+			if (!aJson.is_object()) {
+				JsonUtil::throwError("icon", JsonUtil::ERROR_INVALID, "Field must be an object");
+			}
+
+			for (const auto& entry : aJson.items()) {
+				iconInfo[entry.key()] = entry.value();
+			}
+		}
+
+		return iconInfo;
+	}
+
 	ContextMenuItemPtr MenuApi::toMenuItem(const json& aData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter) {
 		const auto id = JsonUtil::getField<string>("id", aData, false);
 		const auto title = JsonUtil::getField<string>("title", aData, false);
-		const auto icon = JsonUtil::getOptionalFieldDefault<string>("icon", aData, Util::emptyString);
+		const auto iconInfo = deserializeIconInfo(JsonUtil::getOptionalRawField("icon", aData, false));
 
-		return make_shared<ContextMenuItem>(id, title, icon, aResultGetter.getId());
+		return make_shared<ContextMenuItem>(id, title, iconInfo, aResultGetter.getId());
 	}
 
 	void MenuApi::onMenuItemSelected(const string& aMenuId, const json& aSelectedIds, const string& aHookId, const string& aMenuItemId, const json& aEntityId) noexcept {
@@ -233,10 +248,6 @@ namespace webserver {
 				{ "selected_ids", aSelectedIds },
 				{ "entity_id", aEntityId },
 			};
-
-			/*if (aEntityId) {
-				ret["entity_id"] = aEntityId;
-			}*/
 
 			return ret;
 		});

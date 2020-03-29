@@ -32,6 +32,8 @@ namespace webserver {
 	private:
 		ActionHookResult<> fileValidationHook(const string& aPath, int64_t aSize, const ActionHookResultGetter<>& aResultGetter) noexcept;
 		ActionHookResult<> directoryValidationHook(const string& aPath, const ActionHookResultGetter<>& aResultGetter) noexcept;
+		ActionHookResult<> newDirectoryValidationHook(const string& aPath, bool aNewParent, const ActionHookResultGetter<>& aResultGetter) noexcept;
+		ActionHookResult<> newFileValidationHook(const string& aPath, int64_t aSize, bool aNewParent, const ActionHookResultGetter<>& aResultGetter) noexcept;
 
 		api_return handleRefreshShare(ApiRequest& aRequest);
 		api_return handleRefreshPaths(ApiRequest& aRequest);
