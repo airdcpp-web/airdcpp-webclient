@@ -85,13 +85,13 @@ namespace dcpp {
 
 	class ContextMenuItem {
 	public:
-		ContextMenuItem(const string& aId, const string& aTitle, const string& aIcon, const string& aHookId /*, std::function<void()>&& aOnClick*/) : id(aId), title(aTitle), icon(aIcon), hookId(aHookId) /*onClick(aOnClick)*/ {
+		ContextMenuItem(const string& aId, const string& aTitle, const StringMap& aIconInfo, const string& aHookId) : id(aId), title(aTitle), iconInfo(aIconInfo), hookId(aHookId) {
 
 		}
 
 		GETSET(string, id, Id);
 		GETSET(string, title, Title);
-		GETSET(string, icon, Icon);
+		GETSET(StringMap, iconInfo, IconInfo);
 		GETSET(string, hookId, HookId);
 	private:
 	};
