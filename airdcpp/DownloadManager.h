@@ -87,7 +87,7 @@ private:
 	void removeRunningUser(UserConnection* aSource, bool sendRemoved=false) noexcept;
 	void removeConnection(UserConnectionPtr aConn);
 	void removeDownload(Download* aDown);
-	void fileNotAvailable(UserConnection* aSource, bool noAccess);
+	void fileNotAvailable(UserConnection* aSource, bool aNoAccess, const string& aMessage = Util::emptyString);
 	void noSlots(UserConnection* aSource, const string& param = Util::emptyString);
 
 	void failDownload(UserConnection* aSource, const string& reason, bool rotateQueue);

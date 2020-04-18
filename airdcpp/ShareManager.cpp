@@ -2344,7 +2344,7 @@ string ShareManager::generateOwnList(ProfileToken aProfile) {
 
 //forwards the calls to createFileList for creating the filelist that was reguested.
 FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*false*/) {
-	FileList* fl = nullptr;
+	ShareProfilePtr shareProfile = nullptr;
 
 	{
 		RLock l(cs);
@@ -2353,9 +2353,17 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}
 
-		fl = (*i)->getProfileList();
+		shareProfile = *i;
 	}
 
+	// The filelist generation code currently causes the filelist to get corrupted if the size is over 1 gigabytes, which has happened with a share of over 30 million files
+	// Uploading filelists of that size would get problematic, as loading them would most likely crash all 32 bit clients
+	// Limit the maximum file count to 20 million, to be somewhat safe
+	if (shareProfile->getSharedFiles() > 20000000) {
+		throw ShareException("The size of the filelist exceeds the maximum limit of 1 GB / 20 million files; please use a partial list instead");
+	}
+
+	FileList* fl = shareProfile->getProfileList();
 
 	{
 		Lock lFl(fl->cs);

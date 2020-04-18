@@ -48,7 +48,6 @@ AutoSearchManager::AutoSearchManager() noexcept
 {
 	TimerManager::getInstance()->addListener(this);
 	SearchManager::getInstance()->addListener(this);
-	QueueManager::getInstance()->addListener(this);
 	DirectoryListingManager::getInstance()->addListener(this);
 }
 
@@ -1107,6 +1106,8 @@ void AutoSearchManager::load() noexcept {
 		}
 	});
 
+	//Start listening after queue has loaded, avoids adding duplicate failed items.
+	QueueManager::getInstance()->addListener(this);
 	resetSearchTimes(GET_TICK());
 }
 
