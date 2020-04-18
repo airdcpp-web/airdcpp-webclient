@@ -57,6 +57,7 @@ namespace webserver {
 
 		// Prevent io service from running until we load
 		ios.stop();
+		tasks.stop();
 	}
 
 	WebServerManager::~WebServerManager() {

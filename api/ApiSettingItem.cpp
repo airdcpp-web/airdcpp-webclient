@@ -202,6 +202,11 @@ namespace webserver {
 		SettingsManager::SKIPLIST_SHARE,
 		SettingsManager::FREE_SLOTS_EXTENSIONS,
 
+		SettingsManager::HTTP_PROXY,
+		SettingsManager::SOCKS_SERVER,
+		SettingsManager::SOCKS_USER,
+		SettingsManager::SOCKS_PASSWORD,
+
 		SettingsManager::LANGUAGE_FILE,
 	};
 

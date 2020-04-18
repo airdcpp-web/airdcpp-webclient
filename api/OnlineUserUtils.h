@@ -44,6 +44,7 @@ namespace webserver {
 			PROP_IP6,
 			PROP_EMAIL,
 			PROP_FILES,
+			PROP_HUB_ID,
 			PROP_HUB_URL,
 			PROP_HUB_NAME,
 			PROP_FLAGS,
