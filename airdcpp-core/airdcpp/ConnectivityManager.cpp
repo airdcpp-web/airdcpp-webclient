@@ -369,8 +369,8 @@ string ConnectivityManager::getInformation() const {
 		"\tBound interface (v4): %7%\n"
 		"\tBound interface (v6): %8%\n"
 		"\tTransfer port: %9%\n"
-		"\tEncrypted transfer port: %10%\n"
-		"\tSearch port: %11%") % autoStatusV4 % autoStatusV6 % getMode(false) % getMode(true) %
+		"\tSearch port: %11%\n"
+		"\tEncrypted transfer port: %10%") % autoStatusV4 % autoStatusV6 % getMode(false) % getMode(true) %
 		field(CONNSETTING(EXTERNAL_IP)) % field(CONNSETTING(EXTERNAL_IP6)) %
 		field(CONNSETTING(BIND_ADDRESS)) % field(CONNSETTING(BIND_ADDRESS6)) %
 		field(ConnectionManager::getInstance()->getPort()) % field(ConnectionManager::getInstance()->getSecurePort()) %

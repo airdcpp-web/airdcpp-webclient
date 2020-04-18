@@ -666,20 +666,21 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 		return;
 	}
 
-	const string& err = cmd.getParameters()[0];
-	if(err.length() != 3) {
+	const string& errorCode = cmd.getParam(0);
+	const string& errorMessage = cmd.getParam(1);
+	if(errorCode.length() != 3) {
 		aSource->disconnect();
 		return;
 	}
 
-	switch(Util::toInt(err.substr(0, 1))) {
+	switch(Util::toInt(errorCode.substr(0, 1))) {
 		case AdcCommand::SEV_FATAL:
 			aSource->disconnect();
 			return;
 		case AdcCommand::SEV_RECOVERABLE:
-			switch(Util::toInt(err.substr(1))) {
+			switch(Util::toInt(errorCode.substr(1))) {
 				case AdcCommand::ERROR_FILE_NOT_AVAILABLE:
-					fileNotAvailable(aSource, false);
+					fileNotAvailable(aSource, false, errorMessage);
 					return;
 				case AdcCommand::ERROR_SLOTS_FULL:
 					{
@@ -696,13 +697,13 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 			}
 		case AdcCommand::SEV_SUCCESS:
 			// We don't know any messages that would give us these...
-			dcdebug("Unknown success message %s %s", err.c_str(), cmd.getParam(1).c_str());
+			dcdebug("Unknown success message %s %s", errorCode.c_str(), errorMessage.c_str());
 			return;
 	}
 	aSource->disconnect();
 }
 
-void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess) {
+void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess, const string& aMessage) {
 	if(aSource->getState() != UserConnection::STATE_SND) {
 		dcdebug("DM::fileNotAvailable Invalid state, disconnecting");
 		aSource->disconnect();
@@ -716,14 +717,16 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess) 
 	removeDownload(d);
 	removeRunningUser(aSource);
 
-
-	auto error = d->getType() == Transfer::TYPE_TREE ? STRING(NO_FULL_TREE) : STRING(FILE_NOT_AVAILABLE);
-	if (d->getType() == Transfer::TYPE_PARTIAL_LIST && aSource->isSet(UserConnection::FLAG_NMDC)) {
-		error += " / " + STRING(NO_PARTIAL_SUPPORT);
-	}
-
+	string error;
 	if (aNoAccess) {
 		error = STRING(NO_FILE_ACCESS);
+	} else {
+		error = d->getType() == Transfer::TYPE_TREE ? STRING(NO_FULL_TREE) : STRING(FILE_NOT_AVAILABLE);
+		if (d->getType() == Transfer::TYPE_PARTIAL_LIST && aSource->isSet(UserConnection::FLAG_NMDC)) {
+			error += " / " + STRING(NO_PARTIAL_SUPPORT);
+		} else if (!aMessage.empty() && aMessage != UserConnection::FILE_NOT_AVAILABLE) {
+			error += " (" + aMessage + ")";
+		}
 	}
 
 	fire(DownloadManagerListener::Failed(), d, error);
