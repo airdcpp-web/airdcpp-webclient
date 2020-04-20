@@ -1575,6 +1575,15 @@ string Util::translateError(int aError) noexcept {
 #endif // _WIN32
 }
 
+string Util::formatLastError() noexcept {
+#ifdef _WIN32
+	int error = GetLastError();
+#else
+	int error = errno;
+#endif
+	return translateError(error);
+}
+
 int Util::pathSort(const string& a, const string& b) noexcept {
 	auto comp = compare(Util::getFilePath(a), Util::getFilePath(b));
 	if (comp == 0) {

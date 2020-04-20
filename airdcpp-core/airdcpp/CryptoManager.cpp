@@ -272,8 +272,9 @@ void CryptoManager::generateCertificate() {
 		File::ensureDirectory(SETTING(TLS_PRIVATE_KEY_FILE));
 		FILE* f = dcpp_fopen(SETTING(TLS_PRIVATE_KEY_FILE).c_str(), "w");
 		if (!f) {
-			return;
+			throw CryptoException(Util::formatLastError() + " (" + SETTING(TLS_PRIVATE_KEY_FILE) + ")");
 		}
+
 		PEM_write_RSAPrivateKey(f, rsa, NULL, NULL, 0, NULL, NULL);
 		fclose(f);
 	}
@@ -282,7 +283,7 @@ void CryptoManager::generateCertificate() {
 		FILE* f = dcpp_fopen(SETTING(TLS_CERTIFICATE_FILE).c_str(), "w");
 		if (!f) {
 			File::deleteFile(SETTING(TLS_PRIVATE_KEY_FILE));
-			return;
+			throw CryptoException(Util::formatLastError() + " (" + SETTING(TLS_CERTIFICATE_FILE) + ")");
 		}
 		PEM_write_X509(f, x509ss);
 		fclose(f);
