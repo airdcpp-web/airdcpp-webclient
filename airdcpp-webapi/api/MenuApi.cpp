@@ -36,7 +36,7 @@
 
 
 #define CONTEXT_MENU_HANDLER(menuId, hook, hook2, idType, idDeserializerFunc, idSerializerFunc, access) \
-	createHook(menuId, [this](const string& aId, const string& aName) { \
+	createHook(toHookId(menuId), [this](const string& aId, const string& aName) { \
 		return ContextMenuManager::getInstance()->hook##MenuHook.addSubscriber( \
 			aId, \
 			aName, \
@@ -64,14 +64,12 @@
 	});
 
 #define ENTITY_CONTEXT_MENU_HANDLER(menuId, hook, hook2, idType, idDeserializerFunc, idSerializerFunc, entityType, entityDeserializerFunc, access) \
-	createHook(menuId, [this](const string& aId, const string& aName) { \
+	createHook(toHookId(menuId), [this](const string& aId, const string& aName) { \
 		return ContextMenuManager::getInstance()->hook##MenuHook.addSubscriber( \
 			aId, \
 			aName, \
 			[this](const vector<idType>& aSelections, const entityType& aEntity, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter) { \
-				return MenuApi::menuListHookHandler<idType>(aSelections, aResultGetter, menuId, idSerializerFunc, { \
-					"entity_id", aEntity->getToken() \
-				}); \
+				return MenuApi::menuListHookHandler<idType>(aSelections, aResultGetter, menuId, idSerializerFunc, aEntity->getToken()); \
 			} \
 		); \
 	}, [this](const string& aId) { \
@@ -124,15 +122,15 @@ namespace webserver {
 
 		ContextMenuManager::getInstance()->addListener(this);
 
-		CONTEXT_MENU_HANDLER("queue_bundle", queueBundle, QueueBundle, uint32_t, defaultArrayValueParser<uint32_t>, defaultArrayValueSerializer<uint32_t>, Access::ANY);
-		CONTEXT_MENU_HANDLER("queue_file", queueFile, QueueFile, uint32_t, defaultArrayValueParser<uint32_t>, defaultArrayValueSerializer<uint32_t>, Access::ANY);
-		CONTEXT_MENU_HANDLER("transfer", transfer, Transfer, uint32_t, defaultArrayValueParser<uint32_t>, defaultArrayValueSerializer<uint32_t>, Access::ANY);
-		CONTEXT_MENU_HANDLER("favorite_hub", favoriteHub, FavoriteHub, uint32_t, defaultArrayValueParser<uint32_t>, defaultArrayValueSerializer<uint32_t>, Access::ANY);
+		CONTEXT_MENU_HANDLER("queue_bundle", queueBundle, QueueBundle, uint32_t, Deserializer::defaultArrayValueParser<uint32_t>, Serializer::defaultArrayValueSerializer<uint32_t>, Access::ANY);
+		CONTEXT_MENU_HANDLER("queue_file", queueFile, QueueFile, uint32_t, Deserializer::defaultArrayValueParser<uint32_t>, Serializer::defaultArrayValueSerializer<uint32_t>, Access::ANY);
+		CONTEXT_MENU_HANDLER("transfer", transfer, Transfer, uint32_t, Deserializer::defaultArrayValueParser<uint32_t>, Serializer::defaultArrayValueSerializer<uint32_t>, Access::ANY);
+		CONTEXT_MENU_HANDLER("favorite_hub", favoriteHub, FavoriteHub, uint32_t, Deserializer::defaultArrayValueParser<uint32_t>, Serializer::defaultArrayValueSerializer<uint32_t>, Access::ANY);
 
-		CONTEXT_MENU_HANDLER("share_root", shareRoot, ShareRoot, TTHValue, tthArrayValueParser, defaultArrayValueSerializer<TTHValue>, Access::ANY);
-		CONTEXT_MENU_HANDLER("user", user, User, CID, cidArrayValueParser, defaultArrayValueSerializer<CID>, Access::ANY);
-		CONTEXT_MENU_HANDLER("hinted_user", hintedUser, HintedUser, HintedUser, hintedUserArrayValueParser, Serializer::serializeHintedUser, Access::ANY);
-		CONTEXT_MENU_HANDLER("extension", extension, Extension, string, defaultArrayValueParser<string>, defaultArrayValueSerializer<string>, Access::ANY);
+		CONTEXT_MENU_HANDLER("share_root", shareRoot, ShareRoot, TTHValue, Deserializer::tthArrayValueParser, Serializer::defaultArrayValueSerializer<TTHValue>, Access::ANY);
+		CONTEXT_MENU_HANDLER("user", user, User, CID, Deserializer::cidArrayValueParser, Serializer::defaultArrayValueSerializer<CID>, Access::ANY);
+		CONTEXT_MENU_HANDLER("hinted_user", hintedUser, HintedUser, HintedUser, Deserializer::hintedUserArrayValueParser, Serializer::serializeHintedUser, Access::ANY);
+		CONTEXT_MENU_HANDLER("extension", extension, Extension, string, Deserializer::defaultArrayValueParser<string>, Serializer::defaultArrayValueSerializer<string>, Access::ANY);
 
 		const auto parseFilelist = [](const json& aJson, const string& aFieldName) {
 			auto cidStr = JsonUtil::parseValue<string>(aFieldName, aJson, false);
@@ -166,34 +164,13 @@ namespace webserver {
 			return instance;
 		};
 
-		ENTITY_CONTEXT_MENU_HANDLER("hub_user", hubUser, HubUser, uint32_t, defaultArrayValueParser<uint32_t>, defaultArrayValueSerializer<uint32_t>, ClientPtr, parseClient, Access::ANY);
-		ENTITY_CONTEXT_MENU_HANDLER("filelist_item", filelistItem, FilelistItem, uint32_t, defaultArrayValueParser<uint32_t>, defaultArrayValueSerializer<uint32_t>, DirectoryListingPtr, parseFilelist, Access::ANY);
-		ENTITY_CONTEXT_MENU_HANDLER("grouped_search_result", groupedSearchResult, GroupedSearchResult, TTHValue, tthArrayValueParser, defaultArrayValueSerializer<TTHValue>, SearchInstancePtr, parseSearchInstance, Access::ANY);
+		ENTITY_CONTEXT_MENU_HANDLER("hub_user", hubUser, HubUser, uint32_t, Deserializer::defaultArrayValueParser<uint32_t>, Serializer::defaultArrayValueSerializer<uint32_t>, ClientPtr, parseClient, Access::ANY);
+		ENTITY_CONTEXT_MENU_HANDLER("filelist_item", filelistItem, FilelistItem, uint32_t, Deserializer::defaultArrayValueParser<uint32_t>, Serializer::defaultArrayValueSerializer<uint32_t>, DirectoryListingPtr, parseFilelist, Access::ANY);
+		ENTITY_CONTEXT_MENU_HANDLER("grouped_search_result", groupedSearchResult, GroupedSearchResult, TTHValue, Deserializer::tthArrayValueParser, Serializer::defaultArrayValueSerializer<TTHValue>, SearchInstancePtr, parseSearchInstance, Access::ANY);
 	}
 
 	MenuApi::~MenuApi() {
 		ContextMenuManager::getInstance()->removeListener(this);
-	}
-
-	json MenuApi::toHookData(const json& aSelectedIds, const json& aData) {
-		return json({
-			{ "ids", aSelectedIds },
-			{ "data", aData },
-		});
-	}
-
-	TTHValue MenuApi::tthArrayValueParser(const json& aJson, const string& aFieldName) {
-		auto tthStr = JsonUtil::parseValue<string>(aFieldName, aJson, false);
-		return Deserializer::parseTTH(tthStr);
-	}
-
-	CID MenuApi::cidArrayValueParser(const json& aJson, const string& aFieldName) {
-		auto cidStr = JsonUtil::parseValue<string>(aFieldName, aJson, false);
-		return Deserializer::getUser(cidStr, true)->getCID();
-	}
-
-	HintedUser MenuApi::hintedUserArrayValueParser(const json& aJson, const string& aFieldName) {
-		return Deserializer::parseHintedUser(aJson, aFieldName, true);
 	}
 
 	json MenuApi::serializeMenuItem(const ContextMenuItemPtr& aMenuItem) {

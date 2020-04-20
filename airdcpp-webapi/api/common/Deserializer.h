@@ -77,6 +77,15 @@ namespace webserver {
 
 			return ret;
 		}
+
+		static TTHValue tthArrayValueParser(const json& aJson, const string& aFieldName);
+		static CID cidArrayValueParser(const json& aJson, const string& aFieldName);
+		static HintedUser hintedUserArrayValueParser(const json& aJson, const string& aFieldName);
+
+		template<typename IdT>
+		static IdT defaultArrayValueParser(const json& aJson, const string& aFieldName) {
+			return JsonUtil::parseValue<IdT>(aFieldName, aJson, false);
+		}
 	private:
 		static LogMessage::Severity parseSeverity(const string& aText);
 	};
