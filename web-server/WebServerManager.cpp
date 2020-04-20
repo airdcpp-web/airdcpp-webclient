@@ -343,12 +343,14 @@ namespace webserver {
 
 	context_ptr WebServerManager::handleInitTls(websocketpp::connection_hdl hdl) {
 		//std::cout << "on_tls_init called with hdl: " << hdl.lock().get() << std::endl;
-		context_ptr ctx(new boost::asio::ssl::context(boost::asio::ssl::context::tlsv12));
+		context_ptr ctx(new boost::asio::ssl::context(boost::asio::ssl::context::tls));
 
 		try {
 			ctx->set_options(boost::asio::ssl::context::default_workarounds |
 				boost::asio::ssl::context::no_sslv2 |
 				boost::asio::ssl::context::no_sslv3 |
+				boost::asio::ssl::context::no_tlsv1 |
+				boost::asio::ssl::context::no_tlsv1_1 |
 				boost::asio::ssl::context::single_dh_use |
 				boost::asio::ssl::context::no_compression
 			);

@@ -36,26 +36,28 @@ namespace webserver {
 		MenuApi(Session* aSession);
 		~MenuApi();
 	private:
+		static string toHookId(const string& aMenuId) noexcept {
+			return aMenuId + "_list_menuitems";
+		}
+
 		static StringMap deserializeIconInfo(const json& aJson);
 
 		static ContextMenuItemPtr toMenuItem(const json& aData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter);
 		static ContextMenuItemList deserializeMenuItems(const json& aData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter);
 
-		static json toHookData(const json& aSelectedIds, const json& aData = json());
 		static json serializeMenuItem(const ContextMenuItemPtr& aMenuItem);
-
 
 		template<typename IdT>
 		using IdSerializer = std::function<json(const IdT& aId)>;
 
 		template<typename IdT>
-		ActionHookResult<ContextMenuItemList> menuListHookHandler(const vector<IdT>& aSelections, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter, const string& aMenuId, const IdSerializer<IdT>& aIdSerializer, const json& aData = nullptr) {
+		ActionHookResult<ContextMenuItemList> menuListHookHandler(const vector<IdT>& aSelections, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter, const string& aMenuId, const IdSerializer<IdT>& aIdSerializer, const json& aEntityId = nullptr) {
 			return HookCompletionData::toResult<ContextMenuItemList>(
-				fireHook(aMenuId, 1, [&]() {
-					return toHookData(
-					 	Serializer::serializeList(aSelections, aIdSerializer),
-						aData
-					);
+				fireHook(toHookId(aMenuId), 1, [&]() {
+					return json({
+						{ "selected_ids", Serializer::serializeList(aSelections, aIdSerializer) },
+						{ "entity_id", aEntityId },
+					});
 				}),
 				aResultGetter,
 				MenuApi::deserializeMenuItems
@@ -102,20 +104,6 @@ namespace webserver {
 
 		template<typename IdT>
 		using EntityListHandlerFunc = std::function<ContextMenuItemList(const vector<IdT> & aId)>;
-
-		static TTHValue tthArrayValueParser(const json& aJson, const string& aFieldName);
-		static CID cidArrayValueParser(const json& aJson, const string& aFieldName);
-		static HintedUser hintedUserArrayValueParser(const json& aJson, const string& aFieldName);
-
-		template<typename IdT>
-		static IdT defaultArrayValueParser(const json& aJson, const string& aFieldName) {
-			return JsonUtil::parseValue<IdT>(aFieldName, aJson, false);
-		}
-
-		template<typename IdT>
-		static json defaultArrayValueSerializer(const IdT& aJson) {
-			return aJson;
-		}
 
 		void on(ContextMenuManagerListener::QueueBundleMenuSelected, const vector<uint32_t>&, const string& aHookId, const string& aMenuItemId) noexcept override;
 		void on(ContextMenuManagerListener::QueueFileMenuSelected, const vector<uint32_t>&, const string& aHookId, const string& aMenuItemId) noexcept override;

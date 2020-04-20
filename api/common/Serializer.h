@@ -212,6 +212,11 @@ namespace webserver {
 
 			return j;
 		}
+
+		template<typename IdT>
+		static json defaultArrayValueSerializer(const IdT& aJson) {
+			return aJson;
+		}
 	private:
 		static void appendOnlineUserFlags(const OnlineUserPtr& aUser, StringSet& flags_) noexcept;
 

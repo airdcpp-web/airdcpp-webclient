@@ -198,4 +198,18 @@ namespace webserver {
 
 		return profile;
 	}
+
+	TTHValue Deserializer::tthArrayValueParser(const json& aJson, const string& aFieldName) {
+		auto tthStr = JsonUtil::parseValue<string>(aFieldName, aJson, false);
+		return parseTTH(tthStr);
+	}
+
+	CID Deserializer::cidArrayValueParser(const json& aJson, const string& aFieldName) {
+		auto cidStr = JsonUtil::parseValue<string>(aFieldName, aJson, false);
+		return getUser(cidStr, true)->getCID();
+	}
+
+	HintedUser Deserializer::hintedUserArrayValueParser(const json& aJson, const string& aFieldName) {
+		return parseHintedUser(aJson, aFieldName, true);
+	}
 }
