@@ -198,6 +198,7 @@ public:
 	static string getBundlePath() noexcept { return getPath(PATH_BUNDLES); }
 
 	static string translateError(int aError) noexcept;
+	static string formatLastError() noexcept;
 
 	static string getFilePath(const string& aPath, const char aSeparator = PATH_SEPARATOR) noexcept;
 	inline static string getAdcFilePath(const string& aPath) noexcept { return getFilePath(aPath, ADC_SEPARATOR); }
