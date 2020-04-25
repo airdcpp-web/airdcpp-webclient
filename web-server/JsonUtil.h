@@ -164,6 +164,7 @@ namespace webserver {
 					return T(); // avoid MSVC warning
 				}
 
+				validateValue<T>(ret);
 				if (!aAllowEmpty && isEmpty<T, JsonT>(ret, aJson)) {
 					throwError(aFieldName, ERROR_INVALID, "Field can't be empty");
 					return T(); // avoid MSVC warning
@@ -261,6 +262,18 @@ namespace webserver {
 		static typename std::enable_if<std::is_integral<T>::value, T>::type convertNullValue(const string& aFieldName) {
 			throwError(aFieldName, ERROR_INVALID, "Field can't be empty");
 			return T(); // Not used
+		}
+
+
+		template <class T>
+		static void validateValue(typename std::enable_if<std::is_same<std::string, T>::value, T>::type& value_) {
+			// Remove null characters as they may cause issues as string terminators
+			value_.erase(std::find(value_.begin(), value_.end(), '\0'), value_.end());
+		}
+
+		template <class T>
+		static void validateValue(typename std::enable_if<!std::is_same<std::string, T>::value, T>::type& value_) {
+
 		}
 
 		static string errorTypeToString(ErrorType aType) noexcept;

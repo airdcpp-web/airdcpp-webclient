@@ -89,7 +89,12 @@ namespace webserver {
 
 	api_return HubInfo::handleGetUserCid(ApiRequest& aRequest) {
 		auto user = Deserializer::getUser(aRequest.getCIDParam(), true);
+
 		auto ou = ClientManager::getInstance()->findOnlineUser(user->getCID(), client->getHubUrl(), false);
+		if (!ou) {
+			aRequest.setResponseErrorStr("User was not found");
+			return websocketpp::http::status_code::not_found;
+		}
 
 		aRequest.setResponseBody(Serializer::serializeOnlineUser(ou));
 		return websocketpp::http::status_code::ok;
