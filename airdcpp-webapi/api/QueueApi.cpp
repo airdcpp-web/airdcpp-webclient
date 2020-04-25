@@ -144,7 +144,7 @@ namespace webserver {
 		auto qm = QueueManager::getInstance();
 
 		RLock l(qm->getCS());
-		boost::range::copy(qm->getBundles() | map_values, back_inserter(bundles));
+		boost::range::copy(qm->getBundlesUnsafe() | map_values, back_inserter(bundles));
 		return bundles;
 	}
 
@@ -153,7 +153,7 @@ namespace webserver {
 		auto qm = QueueManager::getInstance();
 
 		RLock l(qm->getCS());
-		boost::range::copy(qm->getFileQueue() | map_values, back_inserter(items));
+		boost::range::copy(qm->getFileQueueUnsafe() | map_values, back_inserter(items));
 		return items;
 	}
 

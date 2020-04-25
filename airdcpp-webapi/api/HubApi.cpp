@@ -86,9 +86,14 @@ namespace webserver {
 		METHOD_HANDLER(Access::HUBS_SEND,	METHOD_POST,	(EXACT_PARAM("chat_message")),			HubApi::handlePostMessage);
 		METHOD_HANDLER(Access::HUBS_EDIT,	METHOD_POST,	(EXACT_PARAM("status_message")),		HubApi::handlePostStatus);
 
-		auto rawHubs = ClientManager::getInstance()->getClients();
-		for (const auto& c : rawHubs | map_values) {
-			addHub(c);
+		{
+			auto cm = ClientManager::getInstance();
+
+			RLock l(cm->getCS());
+			auto rawHubs = cm->getClientsUnsafe();
+			for (const auto& c : rawHubs | map_values) {
+				addHub(c);
+			}
 		}
 	}
 
