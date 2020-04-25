@@ -3464,9 +3464,8 @@ int QueueManager::getFinishedItemCount(const BundlePtr& aBundle) const noexcept 
 }
 
 int QueueManager::getFinishedBundlesCount() const noexcept {
-
 	RLock l(cs);
-	return static_cast<int>(boost::count_if(getBundles() | map_values, [&](const BundlePtr& b) { return b->isDownloaded(); }));
+	return static_cast<int>(boost::count_if(bundleQueue.getBundles() | map_values, [&](const BundlePtr& b) { return b->isDownloaded(); }));
 }
 
 void QueueManager::addBundleUpdate(const BundlePtr& aBundle) noexcept{

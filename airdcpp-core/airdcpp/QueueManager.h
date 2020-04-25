@@ -224,9 +224,9 @@ public:
 
 	SharedMutex& getCS() { return cs; }
 	// Locking must be handled by the caller
-	const Bundle::TokenMap& getBundles() const { return bundleQueue.getBundles(); }
+	const Bundle::TokenMap& getBundlesUnsafe() const { return bundleQueue.getBundles(); }
 	// Locking must be handled by the caller
-	const QueueItem::StringMap& getFileQueue() const { return fileQueue.getPathQueue(); }
+	const QueueItem::StringMap& getFileQueueUnsafe() const { return fileQueue.getPathQueue(); }
 
 	// Create a directory bundle with the supplied target path and files
 	// 
