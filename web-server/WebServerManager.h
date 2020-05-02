@@ -209,6 +209,7 @@ namespace webserver {
 
 					con->set_body(data);
 					con->append_header("Content-Type", "application/json");
+					con->append_header("Connection", "close"); // Workaround for https://github.com/zaphoyd/websocketpp/issues/890
 					con->set_status(aStatus);
 				};
 
@@ -253,6 +254,8 @@ namespace webserver {
 						Direction::OUTGOING,
 						ip
 					);
+
+					con->append_header("Connection", "close"); // Workaround for https://github.com/zaphoyd/websocketpp/issues/890
 
 					if (HttpUtil::isStatusOk(aStatus)) {
 						// Don't set any incomplete/invalid headers in case of errors...
