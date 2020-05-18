@@ -126,6 +126,7 @@ vector<Localization::Language> Localization::languageList;
 void Localization::init() noexcept {
 	languageList.emplace_back("English", "GB", "en-US");
 	languageList.emplace_back("Basque", "EU", "eu");
+	languageList.emplace_back("Catalan", "AD", "cat");
 	languageList.emplace_back("Danish", "DK", "da-DK");
 	languageList.emplace_back("Dutch", "NL", "nl-NL");
 	languageList.emplace_back("Finnish", "FI", "fi-FI");
