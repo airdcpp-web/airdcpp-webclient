@@ -54,6 +54,7 @@ namespace webserver {
 		GroupedSearchResultList getResultList() noexcept;
 
 		static json serializeSearchResult(const SearchResultPtr& aSR) noexcept;
+		json serializeSearchQueueInfo(uint64_t aQueueItem, size_t aQueueCount) noexcept;
 
 		api_return handlePostHubSearch(ApiRequest& aRequest);
 		api_return handlePostUserSearch(ApiRequest& aRequest);

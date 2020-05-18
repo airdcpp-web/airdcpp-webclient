@@ -174,13 +174,17 @@ namespace webserver {
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		aRequest.setResponseBody({
-			{ "queue_time", queueResult.queueTime },
-			{ "search_id", search->getCurrentSearchToken() },
-			{ "queued_count", queueResult.queuedHubUrls.size() },
-		});
-
+		aRequest.setResponseBody(serializeSearchQueueInfo(queueResult.queueTime, queueResult.queuedHubUrls.size()));
 		return websocketpp::http::status_code::ok;
+	}
+
+	json SearchEntity::serializeSearchQueueInfo(uint64_t aQueueItem, size_t aQueueCount) noexcept {
+		return {
+			{ "queue_time", aQueueItem },
+			{ "search_id", search->getCurrentSearchToken() },
+			{ "queued_count", aQueueCount },
+			{ "query", serializeSearchQuery(search->getCurrentParams()) },
+		};
 	}
 
 	api_return SearchEntity::handlePostUserSearch(ApiRequest& aRequest) {
@@ -242,12 +246,7 @@ namespace webserver {
 
 	void SearchEntity::on(SearchInstanceListener::HubSearchQueued, const string& aSearchToken, uint64_t aQueueTime, size_t aQueuedCount) noexcept {
 		if (subscriptionActive("search_hub_searches_queued")) {
-			send("search_hub_searches_queued", {
-				{ "search_id", aSearchToken },
-				{ "query", serializeSearchQuery(search->getCurrentParams()) },
-				{ "queued_count", aQueuedCount },
-				{ "queue_time", aQueueTime }
-			});
+			send("search_hub_searches_queued", serializeSearchQueueInfo(aQueueTime, aQueuedCount));
 		}
 	}
 
