@@ -27,24 +27,10 @@ find_library(LIBMAXMINDDB_LIBRARY
 )
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(LibMaxMindDB DEFAULT_MSG
+find_package_handle_standard_args(MaxMindDB DEFAULT_MSG
     LIBMAXMINDDB_LIBRARY
     LIBMAXMINDDB_INCLUDE_DIR
 )
-
-#if (LIBMAXMINDDB_FOUND)
-#    include(CheckCXXSourceCompiles)
-#    set(CMAKE_REQUIRED_INCLUDES ${LIBMAXMINDDB_INCLUDE_DIR})
-#    check_cxx_source_compiles("
-#    #include "maxminddb.h"
-#    int main() { GEOIP_COUNTRY_EDITION_V6; return 0; }
-#    " HAVE_GEOIP_COUNTRY_EDITION_V6)
-#    check_cxx_source_compiles("
-#    #include <GeoIPCity.h>
-#    int main() { GEOIP_CITY_EDITION_REV0_V6; return 0; }
-#    " HAVE_GEOIP_CITY_EDITION_REV0_V6)
-#    set(CMAKE_REQUIRED_INCLUDES)
-#endif ()
 
 mark_as_advanced(
     LibMaxMindDB_ROOT_DIR
