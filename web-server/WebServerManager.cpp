@@ -314,6 +314,10 @@ namespace webserver {
 			return;
 		}
 
+		if (socket->getSession() && socket->getSession()->getSessionType() == Session::SessionType::TYPE_EXTENSION && WEBCFG(EXTENSIONS_DEBUG_MODE).boolean()) {
+			log("Disconnecting extension " + socket->getSession()->getUser()->getUserName() + " because of ping timeout", LogMessage::SEV_INFO);
+		}
+
 		socket->debugMessage("PONG timed out");
 
 		socket->close(websocketpp::close::status::internal_endpoint_error, "PONG timed out");
