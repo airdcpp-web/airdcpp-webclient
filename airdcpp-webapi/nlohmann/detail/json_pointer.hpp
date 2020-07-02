@@ -3,6 +3,7 @@
 #include <algorithm> // all_of
 #include <cassert> // assert
 #include <cctype> // isdigit
+#include <limits> // max
 #include <numeric> // accumulate
 #include <string> // string
 #include <utility> // move
@@ -126,8 +127,8 @@ class json_pointer
     /*!
     @brief append an array index at the end of this JSON pointer
 
-    @param[in] array_index  array index to append
-    @return JSON pointer with @a array_index appended
+    @param[in] array_idx  array index to append
+    @return JSON pointer with @a array_idx appended
 
     @liveexample{The example shows the usage of `operator/=`.,json_pointer__operator_add}
 
@@ -139,9 +140,9 @@ class json_pointer
 
     @since version 3.6.0
     */
-    json_pointer& operator/=(std::size_t array_index)
+    json_pointer& operator/=(std::size_t array_idx)
     {
-        return *this /= std::to_string(array_index);
+        return *this /= std::to_string(array_idx);
     }
 
     /*!
@@ -189,8 +190,8 @@ class json_pointer
     @brief create a new JSON pointer by appending the array-index-token at the end of the JSON pointer
 
     @param[in] ptr  JSON pointer
-    @param[in] array_index  array index
-    @return a new JSON pointer with @a array_index appended to @a ptr
+    @param[in] array_idx  array index
+    @return a new JSON pointer with @a array_idx appended to @a ptr
 
     @liveexample{The example shows the usage of `operator/`.,json_pointer__operator_add_binary}
 
@@ -200,9 +201,9 @@ class json_pointer
 
     @since version 3.6.0
     */
-    friend json_pointer operator/(const json_pointer& ptr, std::size_t array_index)
+    friend json_pointer operator/(const json_pointer& ptr, std::size_t array_idx)
     {
-        return json_pointer(ptr) /= array_index;
+        return json_pointer(ptr) /= array_idx;
     }
 
     /*!
@@ -325,12 +326,39 @@ class json_pointer
 
     @return integer representation of @a s
 
+    @throw parse_error.106  if an array index begins with '0'
+    @throw parse_error.109  if an array index begins not with a digit
     @throw out_of_range.404 if string @a s could not be converted to an integer
+    @throw out_of_range.410 if an array index exceeds size_type
     */
-    static int array_index(const std::string& s)
+    static typename BasicJsonType::size_type array_index(const std::string& s)
     {
+        using size_type = typename BasicJsonType::size_type;
+
+        // error condition (cf. RFC 6901, Sect. 4)
+        if (JSON_HEDLEY_UNLIKELY(s.size() > 1 and s[0] == '0'))
+        {
+            JSON_THROW(detail::parse_error::create(106, 0,
+                                                   "array index '" + s +
+                                                   "' must not begin with '0'"));
+        }
+
+        // error condition (cf. RFC 6901, Sect. 4)
+        if (JSON_HEDLEY_UNLIKELY(s.size() > 1 and not (s[0] >= '1' and s[0] <= '9')))
+        {
+            JSON_THROW(detail::parse_error::create(109, 0, "array index '" + s + "' is not a number"));
+        }
+
         std::size_t processed_chars = 0;
-        const int res = std::stoi(s, &processed_chars);
+        unsigned long long res = 0;
+        JSON_TRY
+        {
+            res = std::stoull(s, &processed_chars);
+        }
+        JSON_CATCH(std::out_of_range&)
+        {
+            JSON_THROW(detail::out_of_range::create(404, "unresolved reference token '" + s + "'"));
+        }
 
         // check if the string was completely read
         if (JSON_HEDLEY_UNLIKELY(processed_chars != s.size()))
@@ -338,7 +366,14 @@ class json_pointer
             JSON_THROW(detail::out_of_range::create(404, "unresolved reference token '" + s + "'"));
         }
 
-        return res;
+        // only triggered on special platforms (like 32bit), see also
+        // https://github.com/nlohmann/json/pull/2203
+        if (res >= static_cast<unsigned long long>((std::numeric_limits<size_type>::max)()))
+        {
+            JSON_THROW(detail::out_of_range::create(410, "array index " + s + " exceeds size_type")); // LCOV_EXCL_LINE
+        }
+
+        return static_cast<size_type>(res);
     }
 
     json_pointer top() const
@@ -397,14 +432,7 @@ class json_pointer
                 case detail::value_t::array:
                 {
                     // create an entry in the array
-                    JSON_TRY
-                    {
-                        result = &result->operator[](static_cast<size_type>(array_index(reference_token)));
-                    }
-                    JSON_CATCH(std::invalid_argument&)
-                    {
-                        JSON_THROW(detail::parse_error::create(109, 0, "array index '" + reference_token + "' is not a number"));
-                    }
+                    result = &result->operator[](array_index(reference_token));
                     break;
                 }
 
@@ -474,14 +502,6 @@ class json_pointer
 
                 case detail::value_t::array:
                 {
-                    // error condition (cf. RFC 6901, Sect. 4)
-                    if (JSON_HEDLEY_UNLIKELY(reference_token.size() > 1 and reference_token[0] == '0'))
-                    {
-                        JSON_THROW(detail::parse_error::create(106, 0,
-                                                               "array index '" + reference_token +
-                                                               "' must not begin with '0'"));
-                    }
-
                     if (reference_token == "-")
                     {
                         // explicitly treat "-" as index beyond the end
@@ -490,15 +510,7 @@ class json_pointer
                     else
                     {
                         // convert array index to number; unchecked access
-                        JSON_TRY
-                        {
-                            ptr = &ptr->operator[](
-                                static_cast<size_type>(array_index(reference_token)));
-                        }
-                        JSON_CATCH(std::invalid_argument&)
-                        {
-                            JSON_THROW(detail::parse_error::create(109, 0, "array index '" + reference_token + "' is not a number"));
-                        }
+                        ptr = &ptr->operator[](array_index(reference_token));
                     }
                     break;
                 }
@@ -541,23 +553,8 @@ class json_pointer
                                                                 ") is out of range"));
                     }
 
-                    // error condition (cf. RFC 6901, Sect. 4)
-                    if (JSON_HEDLEY_UNLIKELY(reference_token.size() > 1 and reference_token[0] == '0'))
-                    {
-                        JSON_THROW(detail::parse_error::create(106, 0,
-                                                               "array index '" + reference_token +
-                                                               "' must not begin with '0'"));
-                    }
-
                     // note: at performs range check
-                    JSON_TRY
-                    {
-                        ptr = &ptr->at(static_cast<size_type>(array_index(reference_token)));
-                    }
-                    JSON_CATCH(std::invalid_argument&)
-                    {
-                        JSON_THROW(detail::parse_error::create(109, 0, "array index '" + reference_token + "' is not a number"));
-                    }
+                    ptr = &ptr->at(array_index(reference_token));
                     break;
                 }
 
@@ -606,24 +603,8 @@ class json_pointer
                                                                 ") is out of range"));
                     }
 
-                    // error condition (cf. RFC 6901, Sect. 4)
-                    if (JSON_HEDLEY_UNLIKELY(reference_token.size() > 1 and reference_token[0] == '0'))
-                    {
-                        JSON_THROW(detail::parse_error::create(106, 0,
-                                                               "array index '" + reference_token +
-                                                               "' must not begin with '0'"));
-                    }
-
                     // use unchecked array access
-                    JSON_TRY
-                    {
-                        ptr = &ptr->operator[](
-                            static_cast<size_type>(array_index(reference_token)));
-                    }
-                    JSON_CATCH(std::invalid_argument&)
-                    {
-                        JSON_THROW(detail::parse_error::create(109, 0, "array index '" + reference_token + "' is not a number"));
-                    }
+                    ptr = &ptr->operator[](array_index(reference_token));
                     break;
                 }
 
@@ -665,23 +646,8 @@ class json_pointer
                                                                 ") is out of range"));
                     }
 
-                    // error condition (cf. RFC 6901, Sect. 4)
-                    if (JSON_HEDLEY_UNLIKELY(reference_token.size() > 1 and reference_token[0] == '0'))
-                    {
-                        JSON_THROW(detail::parse_error::create(106, 0,
-                                                               "array index '" + reference_token +
-                                                               "' must not begin with '0'"));
-                    }
-
                     // note: at performs range check
-                    JSON_TRY
-                    {
-                        ptr = &ptr->at(static_cast<size_type>(array_index(reference_token)));
-                    }
-                    JSON_CATCH(std::invalid_argument&)
-                    {
-                        JSON_THROW(detail::parse_error::create(109, 0, "array index '" + reference_token + "' is not a number"));
-                    }
+                    ptr = &ptr->at(array_index(reference_token));
                     break;
                 }
 
@@ -723,31 +689,36 @@ class json_pointer
                         // "-" always fails the range check
                         return false;
                     }
-
-                    // error condition (cf. RFC 6901, Sect. 4)
-                    if (JSON_HEDLEY_UNLIKELY(reference_token.size() > 1 and reference_token[0] == '0'))
+                    if (JSON_HEDLEY_UNLIKELY(reference_token.size() == 1 and not ("0" <= reference_token and reference_token <= "9")))
                     {
-                        JSON_THROW(detail::parse_error::create(106, 0,
-                                                               "array index '" + reference_token +
-                                                               "' must not begin with '0'"));
+                        // invalid char
+                        return false;
                     }
-
-                    JSON_TRY
+                    if (JSON_HEDLEY_UNLIKELY(reference_token.size() > 1))
                     {
-                        const auto idx = static_cast<size_type>(array_index(reference_token));
-                        if (idx >= ptr->size())
+                        if (JSON_HEDLEY_UNLIKELY(not ('1' <= reference_token[0] and reference_token[0] <= '9')))
                         {
-                            // index out of range
+                            // first char should be between '1' and '9'
                             return false;
                         }
+                        for (std::size_t i = 1; i < reference_token.size(); i++)
+                        {
+                            if (JSON_HEDLEY_UNLIKELY(not ('0' <= reference_token[i] and reference_token[i] <= '9')))
+                            {
+                                // other char should be between '0' and '9'
+                                return false;
+                            }
+                        }
+                    }
 
-                        ptr = &ptr->operator[](idx);
-                        break;
-                    }
-                    JSON_CATCH(std::invalid_argument&)
+                    const auto idx = array_index(reference_token);
+                    if (idx >= ptr->size())
                     {
-                        JSON_THROW(detail::parse_error::create(109, 0, "array index '" + reference_token + "' is not a number"));
+                        // index out of range
+                        return false;
                     }
+
+                    ptr = &ptr->operator[](idx);
                     break;
                 }
 
