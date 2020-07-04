@@ -92,7 +92,7 @@ namespace webserver {
 		{
 			RLock l(cs);
 			auto curDir = dl->getCurrentLocationInfo().directory;
-			if (!curDir->isComplete() || !currentViewItemsInitialized) {
+			if (!curDir || !curDir->isComplete() || !currentViewItemsInitialized) {
 				aRequest.setResponseErrorStr("Content of this directory is not yet available");
 				return websocketpp::http::status_code::service_unavailable;
 			}
