@@ -46,6 +46,7 @@
 namespace webserver {
 	class ServerSettingItem;
 
+	class ContextMenuManager;
 	class ExtensionManager;
 	class WebUserManager;
 
@@ -100,6 +101,10 @@ namespace webserver {
 
 		ExtensionManager& getExtensionManager() noexcept {
 			return *extManager.get();
+		}
+
+		ContextMenuManager& getContextMenuManager() noexcept {
+			return *contextMenuManager.get();
 		}
 
 		bool hasValidConfig() const noexcept;
@@ -335,6 +340,7 @@ namespace webserver {
 
 		unique_ptr<WebUserManager> userManager;
 		unique_ptr<ExtensionManager> extManager;
+		unique_ptr<ContextMenuManager> contextMenuManager;
 
 		TimerPtr minuteTimer;
 		TimerPtr socketPingTimer;

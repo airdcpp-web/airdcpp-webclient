@@ -20,11 +20,14 @@
 
 #include <api/MenuApi.h>
 
-#include <web-server/JsonUtil.h>
 #include <api/common/Deserializer.h>
 #include <api/common/Serializer.h>
 
 #include <api/QueueBundleUtils.h>
+
+#include <web-server/JsonUtil.h>
+#include <web-server/Session.h>
+#include <web-server/WebServerManager.h>
 
 #include <airdcpp/Bundle.h>
 
@@ -37,43 +40,43 @@
 
 #define CONTEXT_MENU_HANDLER(menuId, hook, hook2, idType, idDeserializerFunc, idSerializerFunc, access) \
 	createHook(toHookId(menuId), [this](const string& aId, const string& aName) { \
-		return ContextMenuManager::getInstance()->hook##MenuHook.addSubscriber( \
+		return cmm.hook##MenuHook.addSubscriber( \
 			aId, \
 			aName, \
-			[this](const vector<idType>& aSelections, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter) { \
-				return MenuApi::menuListHookHandler<idType>(aSelections, aResultGetter, menuId, idSerializerFunc); \
+			[this](const vector<idType>& aSelections, const AccessList& aAccessList, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter) { \
+				return MenuApi::menuListHookHandler<idType>(aSelections, aAccessList, aResultGetter, menuId, idSerializerFunc); \
 			} \
 		); \
 	}, [this](const string& aId) { \
-		ContextMenuManager::getInstance()->hook##MenuHook.removeSubscriber(aId); \
+		cmm.hook##MenuHook.removeSubscriber(aId); \
 	}); \
 	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("select")), [=](ApiRequest& aRequest) { \
 		return handleClickItem<idType>( \
 			aRequest, \
 			menuId, \
-			std::bind(&ContextMenuManager::onClick##hook2##Item, ContextMenuManager::getInstance(), placeholders::_1, placeholders::_2, placeholders::_3), \
+			std::bind(&ContextMenuManager::onClick##hook2##Item, &cmm, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4), \
 			idDeserializerFunc \
 		); \
 	}); \
 	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list")), [=](ApiRequest& aRequest) { \
 		return handleListItems<idType>( \
 			aRequest, \
-			std::bind(&ContextMenuManager::get##hook2##Menu, ContextMenuManager::getInstance(), placeholders::_1), \
+			std::bind(&ContextMenuManager::get##hook2##Menu, &cmm, placeholders::_1, placeholders::_2), \
 			idDeserializerFunc \
 		); \
 	});
 
 #define ENTITY_CONTEXT_MENU_HANDLER(menuId, hook, hook2, idType, idDeserializerFunc, idSerializerFunc, entityType, entityDeserializerFunc, access) \
 	createHook(toHookId(menuId), [this](const string& aId, const string& aName) { \
-		return ContextMenuManager::getInstance()->hook##MenuHook.addSubscriber( \
+		return cmm.hook##MenuHook.addSubscriber( \
 			aId, \
 			aName, \
-			[this](const vector<idType>& aSelections, const entityType& aEntity, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter) { \
-				return MenuApi::menuListHookHandler<idType>(aSelections, aResultGetter, menuId, idSerializerFunc, aEntity->getToken()); \
+			[this](const vector<idType>& aSelections, const AccessList& aAccessList, const entityType& aEntity, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter) { \
+				return MenuApi::menuListHookHandler<idType>(aSelections, aAccessList, aResultGetter, menuId, idSerializerFunc, aEntity->getToken()); \
 			} \
 		); \
 	}, [this](const string& aId) { \
-		ContextMenuManager::getInstance()->hook##MenuHook.removeSubscriber(aId); \
+		cmm.hook##MenuHook.removeSubscriber(aId); \
 	}); \
 	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("select")), [=](ApiRequest& aRequest) { \
 		const auto entityId = JsonUtil::getRawField("entity_id", aRequest.getRequestBody()); \
@@ -81,8 +84,8 @@
 		return handleClickItem<idType>( \
 			aRequest,  \
 			menuId, \
-			[=](const vector<idType>& aSelectedIds, const string& aHookId, const string& aMenuId) { \
-				return ContextMenuManager::getInstance()->onClick##hook2##Item(aSelectedIds, aHookId, aMenuId, entity); \
+			[=](const vector<idType>& aSelectedIds, const AccessList& aAccessList, const string& aHookId, const string& aMenuId) { \
+				return cmm.onClick##hook2##Item(aSelectedIds, aAccessList, aHookId, aMenuId, entity); \
 			}, \
 			idDeserializerFunc \
 		); \
@@ -92,8 +95,8 @@
 		auto entity = entityDeserializerFunc(entityId, "entity_id"); \
 		return handleListItems<idType>( \
 			aRequest, \
-			[=](const vector<idType>& aSelectedIds) { \
-				return ContextMenuManager::getInstance()->get##hook2##Menu(aSelectedIds, entity); \
+			[=](const vector<idType>& aSelectedIds, const AccessList& aAccessList) { \
+				return cmm.get##hook2##Menu(aSelectedIds, aAccessList, entity); \
 			}, \
 			idDeserializerFunc \
 		); \
@@ -101,6 +104,7 @@
 
 namespace webserver {
 	MenuApi::MenuApi(Session* aSession) : 
+		cmm(aSession->getServer()->getContextMenuManager()),
 		HookApiModule(
 			aSession,
 			Access::ANY,
@@ -120,7 +124,7 @@ namespace webserver {
 			Access::ANY
 		) {
 
-		ContextMenuManager::getInstance()->addListener(this);
+		cmm.addListener(this);
 
 		CONTEXT_MENU_HANDLER("queue_bundle", queueBundle, QueueBundle, uint32_t, Deserializer::defaultArrayValueParser<uint32_t>, Serializer::defaultArrayValueSerializer<uint32_t>, Access::ANY);
 		CONTEXT_MENU_HANDLER("queue_file", queueFile, QueueFile, uint32_t, Deserializer::defaultArrayValueParser<uint32_t>, Serializer::defaultArrayValueSerializer<uint32_t>, Access::ANY);
@@ -170,7 +174,7 @@ namespace webserver {
 	}
 
 	MenuApi::~MenuApi() {
-		ContextMenuManager::getInstance()->removeListener(this);
+		cmm.removeListener(this);
 	}
 
 	json MenuApi::serializeMenuItem(const ContextMenuItemPtr& aMenuItem) {
@@ -216,7 +220,7 @@ namespace webserver {
 		return make_shared<ContextMenuItem>(id, title, iconInfo, aResultGetter.getId());
 	}
 
-	void MenuApi::onMenuItemSelected(const string& aMenuId, const json& aSelectedIds, const string& aHookId, const string& aMenuItemId, const json& aEntityId) noexcept {
+	void MenuApi::onMenuItemSelected(const string& aMenuId, const json& aSelectedIds, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId, const json& aEntityId) noexcept {
 		maybeSend(aMenuId + "_menuitem_selected", [&]() {
 			json ret = {
 				{ "hook_id", aHookId },
@@ -224,53 +228,54 @@ namespace webserver {
 				{ "menuitem_id", aMenuItemId },
 				{ "selected_ids", aSelectedIds },
 				{ "entity_id", aEntityId },
+				{ "permissions", Serializer::serializePermissions(aAccessList) }
 			};
 
 			return ret;
 		});
 	}
 
-	void MenuApi::on(ContextMenuManagerListener::QueueBundleMenuSelected, const vector<uint32_t>& aSelectedIds, const string& aHookId, const string& aMenuItemId) noexcept {
-		onMenuItemSelected("queue_bundle", aSelectedIds, aHookId, aMenuItemId);
+	void MenuApi::on(ContextMenuManagerListener::QueueBundleMenuSelected, const vector<uint32_t>& aSelectedIds, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept {
+		onMenuItemSelected("queue_bundle", aSelectedIds, aAccessList, aHookId, aMenuItemId);
 	}
 
-	void MenuApi::on(ContextMenuManagerListener::QueueFileMenuSelected, const vector<uint32_t>& aSelectedIds, const string& aHookId, const string& aMenuItemId) noexcept {
-		onMenuItemSelected("queue_file", aSelectedIds, aHookId, aMenuItemId);
+	void MenuApi::on(ContextMenuManagerListener::QueueFileMenuSelected, const vector<uint32_t>& aSelectedIds, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept {
+		onMenuItemSelected("queue_file", aSelectedIds, aAccessList, aHookId, aMenuItemId);
 	}
 
-	void MenuApi::on(ContextMenuManagerListener::TransferMenuSelected, const vector<uint32_t>& aSelectedIds, const string& aHookId, const string& aMenuItemId) noexcept {
-		onMenuItemSelected("transfer", aSelectedIds, aHookId, aMenuItemId);
+	void MenuApi::on(ContextMenuManagerListener::TransferMenuSelected, const vector<uint32_t>& aSelectedIds, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept {
+		onMenuItemSelected("transfer", aSelectedIds, aAccessList, aHookId, aMenuItemId);
 	}
 
-	void MenuApi::on(ContextMenuManagerListener::ShareRootMenuSelected, const vector<TTHValue>& aSelectedIds, const string& aHookId, const string& aMenuItemId) noexcept {
-		onMenuItemSelected("share_root", aSelectedIds, aHookId, aMenuItemId);
+	void MenuApi::on(ContextMenuManagerListener::ShareRootMenuSelected, const vector<TTHValue>& aSelectedIds, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept {
+		onMenuItemSelected("share_root", aSelectedIds, aAccessList, aHookId, aMenuItemId);
 	}
 
-	void MenuApi::on(ContextMenuManagerListener::FavoriteHubMenuSelected, const vector<uint32_t>& aSelectedIds, const string& aHookId, const string& aMenuItemId) noexcept {
-		onMenuItemSelected("favorite_hub", aSelectedIds, aHookId, aMenuItemId);
+	void MenuApi::on(ContextMenuManagerListener::FavoriteHubMenuSelected, const vector<uint32_t>& aSelectedIds, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept {
+		onMenuItemSelected("favorite_hub", aSelectedIds, aAccessList, aHookId, aMenuItemId);
 	}
 
-	void MenuApi::on(ContextMenuManagerListener::UserMenuSelected, const vector<CID>& aSelectedIds, const string& aHookId, const string& aMenuItemId) noexcept {
-		onMenuItemSelected("user", aSelectedIds, aHookId, aMenuItemId);
+	void MenuApi::on(ContextMenuManagerListener::UserMenuSelected, const vector<CID>& aSelectedIds, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept {
+		onMenuItemSelected("user", aSelectedIds, aAccessList, aHookId, aMenuItemId);
 	}
 
-	void MenuApi::on(ContextMenuManagerListener::HintedUserMenuSelected, const vector<HintedUser>& aSelectedIds, const string& aHookId, const string& aMenuItemId) noexcept {
-		onMenuItemSelected("hinted_user", Serializer::serializeList(aSelectedIds, Serializer::serializeHintedUser), aHookId, aMenuItemId);
+	void MenuApi::on(ContextMenuManagerListener::HintedUserMenuSelected, const vector<HintedUser>& aSelectedIds, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept {
+		onMenuItemSelected("hinted_user", Serializer::serializeList(aSelectedIds, Serializer::serializeHintedUser), aAccessList, aHookId, aMenuItemId);
 	}
 
-	void MenuApi::on(ContextMenuManagerListener::HubUserMenuSelected, const vector<uint32_t>& aSelectedIds, const ClientPtr& aClient, const string& aHookId, const string& aMenuItemId) noexcept {
-		onMenuItemSelected("hub_user", aSelectedIds, aHookId, aMenuItemId, aClient->getToken());
+	void MenuApi::on(ContextMenuManagerListener::HubUserMenuSelected, const vector<uint32_t>& aSelectedIds, const AccessList& aAccessList, const ClientPtr& aClient, const string& aHookId, const string& aMenuItemId) noexcept {
+		onMenuItemSelected("hub_user", aSelectedIds, aAccessList, aHookId, aMenuItemId, aClient->getToken());
 	}
 
-	void MenuApi::on(ContextMenuManagerListener::GroupedSearchResultMenuSelected, const vector<TTHValue>& aSelectedIds, const SearchInstancePtr& aInstance, const string& aHookId, const string& aMenuItemId) noexcept {
-		onMenuItemSelected("grouped_search_result", aSelectedIds, aHookId, aMenuItemId, aInstance->getToken());
+	void MenuApi::on(ContextMenuManagerListener::GroupedSearchResultMenuSelected, const vector<TTHValue>& aSelectedIds, const AccessList& aAccessList, const SearchInstancePtr& aInstance, const string& aHookId, const string& aMenuItemId) noexcept {
+		onMenuItemSelected("grouped_search_result", aSelectedIds, aAccessList, aHookId, aMenuItemId, aInstance->getToken());
 	}
 
-	void MenuApi::on(ContextMenuManagerListener::FilelistItemMenuSelected, const vector<uint32_t>& aSelectedIds, const DirectoryListingPtr& aList, const string& aHookId, const string& aMenuItemId) noexcept {
-		onMenuItemSelected("filelist_item", aSelectedIds, aHookId, aMenuItemId, aList->getToken());
+	void MenuApi::on(ContextMenuManagerListener::FilelistItemMenuSelected, const vector<uint32_t>& aSelectedIds, const AccessList& aAccessList, const DirectoryListingPtr& aList, const string& aHookId, const string& aMenuItemId) noexcept {
+		onMenuItemSelected("filelist_item", aSelectedIds, aAccessList, aHookId, aMenuItemId, aList->getToken());
 	}
 
-	void MenuApi::on(ContextMenuManagerListener::ExtensionMenuSelected, const vector<string>& aSelectedIds, const string& aHookId, const string& aMenuItemId) noexcept {
-		onMenuItemSelected("extension", aSelectedIds, aHookId, aMenuItemId);
+	void MenuApi::on(ContextMenuManagerListener::ExtensionMenuSelected, const vector<string>& aSelectedIds, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept {
+		onMenuItemSelected("extension", aSelectedIds, aAccessList, aHookId, aMenuItemId);
 	}
 }

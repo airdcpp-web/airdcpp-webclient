@@ -21,6 +21,8 @@
 
 #include <api/common/Property.h>
 
+#include <web-server/Access.h>
+
 #include <airdcpp/typedefs.h>
 
 #include <airdcpp/DirectoryDownload.h>
@@ -82,6 +84,8 @@ namespace webserver {
 		static json serializeActionHookError(const ActionHookRejectionPtr& aError) noexcept;
 
 		static json serializeFilesystemItem(const FilesystemItem& aInfo) noexcept;
+
+		static StringList serializePermissions(const AccessList& aPermissions) noexcept;
 
 		// Serialize n items from end by keeping the list order
 		// Throws for invalid parameters

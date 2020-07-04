@@ -65,7 +65,8 @@ namespace webserver {
 		void setPermissions(const StringList& aPermissions) noexcept;
 
 		string getPermissionsStr() const noexcept;
-		StringList getPermissions() const noexcept;
+		static StringList permissionsToStringList(const AccessList& aPermissions) noexcept;
+		AccessList getPermissions() const noexcept;
 		bool isAdmin() const noexcept;
 
 		const static StringList accessStrings;

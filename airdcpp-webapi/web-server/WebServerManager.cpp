@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include <api/ApiSettingItem.h>
 
+#include <web-server/ContextMenuManager.h>
 #include <web-server/ExtensionManager.h>
 #include <web-server/WebServerSettings.h>
 #include <web-server/WebServerManager.h>
@@ -54,6 +55,7 @@ namespace webserver {
 
 		extManager = make_unique<ExtensionManager>(this);
 		userManager = make_unique<WebUserManager>(this);
+		contextMenuManager = make_unique<ContextMenuManager>();
 
 		// Prevent io service from running until we load
 		ios.stop();

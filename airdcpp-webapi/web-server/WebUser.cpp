@@ -107,16 +107,26 @@ namespace webserver {
 		}
 	}
 
-	StringList WebUser::getPermissions() const noexcept {
-		StringList tmp;
+	StringList WebUser::permissionsToStringList(const AccessList& aPermissions) noexcept {
+		StringList ret;
+		for (const auto& access: aPermissions) {
+			ret.push_back(accessToString(access));
+		}
+
+		return ret;
+	}
+
+	AccessList WebUser::getPermissions() const noexcept {
+		AccessList ret;
 		for (const auto& v : permissions) {
 			if (v.second) {
-				tmp.push_back(accessToString(v.first));
+				ret.push_back(v.first);
 			}
 		}
 
-		return tmp;
+		return ret;
 	}
+
 
 	int WebUser::countPermissions() const noexcept {
 		return boost::accumulate(permissions | map_values, 0);
@@ -128,7 +138,7 @@ namespace webserver {
 	}
 
 	string WebUser::getPermissionsStr() const noexcept {
-		return Util::toString(",", getPermissions());
+		return Util::toString(",", permissionsToStringList(getPermissions()));
 	}
 
 	bool WebUser::hasPermission(Access aAccess) const noexcept {

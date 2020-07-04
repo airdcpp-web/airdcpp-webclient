@@ -23,6 +23,8 @@
 
 #include <api/OnlineUserUtils.h>
 
+#include <web-server/WebUser.h>
+
 #include <airdcpp/AirUtil.h>
 #include <airdcpp/Bundle.h>
 #include <airdcpp/Client.h>
@@ -461,5 +463,9 @@ namespace webserver {
 		}
 
 		return ret;
+	}
+
+	StringList Serializer::serializePermissions(const AccessList& aPermissions) noexcept {
+		return WebUser::permissionsToStringList(aPermissions);
 	}
 }

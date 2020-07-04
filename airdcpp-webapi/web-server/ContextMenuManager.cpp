@@ -16,57 +16,33 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_ACCESS_H
-#define DCPLUSPLUS_DCPP_ACCESS_H
+#include "stdinc.h"
+
+#include "ContextMenuManager.h"
+
+#include <airdcpp/DirectoryListingManager.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/SearchManager.h>
 
 
 namespace webserver {
-	typedef int8_t AccessType;
+	ContextMenuManager::ContextMenuManager() {
 
-	// Remember to edit WebUser::accessStrings as well
-	enum class Access: AccessType {
-		NONE = -2,
-		ANY = -1,
-		ADMIN = 0,
+	}
 
-		SEARCH,
-		DOWNLOAD,
-		TRANSFERS,
+	ContextMenuManager::~ContextMenuManager() {
 
-		EVENTS_VIEW,
-		EVENTS_EDIT,
+	}
 
-		QUEUE_VIEW,
-		QUEUE_EDIT,
+	ContextMenuItemList ContextMenuManager::normalizeMenuItems(const ActionHookDataList<ContextMenuItemList>& aResult) noexcept {
+		ContextMenuItemList ret;
+		for (const auto& i : aResult) {
+			for (const auto& s : i->data) {
+				ret.push_back(s);
+			}
+		}
 
-		FAVORITE_HUBS_VIEW,
-		FAVORITE_HUBS_EDIT,
+		return ret;
+	}
 
-		SETTINGS_VIEW,
-		SETTINGS_EDIT,
-
-		FILESYSTEM_VIEW,
-		FILESYSTEM_EDIT,
-
-		HUBS_VIEW,
-		HUBS_EDIT,
-		HUBS_SEND,
-
-		PRIVATE_CHAT_VIEW,
-		PRIVATE_CHAT_EDIT,
-		PRIVATE_CHAT_SEND,
-
-		FILELISTS_VIEW,
-		FILELISTS_EDIT,
-
-		VIEW_FILES_VIEW,
-		VIEW_FILES_EDIT,
-
-		LAST,
-	};
-
-	typedef map<Access, bool> AccessMap;
-	typedef vector<Access> AccessList;
-}
-
-#endif
+} // namespace webserver

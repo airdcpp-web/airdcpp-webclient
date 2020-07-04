@@ -43,7 +43,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case PROP_PERMISSIONS:
 		{
-			return aItem->getPermissions();
+			return Serializer::serializePermissions(aItem->getPermissions());
 		}
 		}
 

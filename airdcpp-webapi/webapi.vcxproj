@@ -239,6 +239,7 @@
     <ClInclude Include="stdinc.h" />
     <ClInclude Include="web-server\ApiRequest.h" />
     <ClInclude Include="web-server\ApiRouter.h" />
+    <ClInclude Include="web-server\ContextMenuManager.h" />
     <ClInclude Include="web-server\Exception.h" />
     <ClInclude Include="web-server\Extension.h" />
     <ClInclude Include="web-server\ExtensionListener.h" />
@@ -331,6 +332,7 @@
     </ClCompile>
     <ClCompile Include="web-server\ApiRequest.cpp" />
     <ClCompile Include="web-server\ApiRouter.cpp" />
+    <ClCompile Include="web-server\ContextMenuManager.cpp" />
     <ClCompile Include="web-server\Extension.cpp" />
     <ClCompile Include="web-server\ExtensionManager.cpp" />
     <ClCompile Include="web-server\FileServer.cpp" />
