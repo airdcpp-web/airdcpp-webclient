@@ -216,7 +216,6 @@
     <ClCompile Include="airdcpp\ActivityManager.cpp" />
     <ClCompile Include="airdcpp\AdcCommand.cpp" />
     <ClCompile Include="airdcpp\AdcHub.cpp" />
-    <ClCompile Include="airdcpp\ContextMenuManager.cpp" />
     <ClCompile Include="airdcpp\DirectSearch.cpp" />
     <ClCompile Include="airdcpp\ErrorCollector.cpp" />
     <ClCompile Include="airdcpp\GroupedSearchResult.cpp" />
@@ -343,7 +342,6 @@
     <ClInclude Include="airdcpp\AdcHub.h" />
     <ClInclude Include="airdcpp\BundleInfo.h" />
     <ClInclude Include="airdcpp\constants.h" />
-    <ClInclude Include="airdcpp\ContextMenuManager.h" />
     <ClInclude Include="airdcpp\DirectoryDownload.h" />
     <ClInclude Include="airdcpp\DirectSearch.h" />
     <ClInclude Include="airdcpp\DupeType.h" />

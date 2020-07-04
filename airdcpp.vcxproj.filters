@@ -362,9 +362,6 @@
     <ClCompile Include="airdcpp\ErrorCollector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ContextMenuManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="airdcpp\TransferInfoManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -962,9 +959,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\DirectoryDownload.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\ContextMenuManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\TransferInfoManager.h">

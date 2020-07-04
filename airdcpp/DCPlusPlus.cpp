@@ -29,7 +29,6 @@
 #include "ClientManager.h"
 #include "ConnectionManager.h"
 #include "ConnectivityManager.h"
-#include "ContextMenuManager.h"
 #include "CryptoManager.h"
 #include "DebugManager.h"
 #include "DirectoryListingManager.h"
@@ -102,7 +101,6 @@ void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progr
 	ActivityManager::newInstance();
 	RecentManager::newInstance();
 	IgnoreManager::newInstance();
-	ContextMenuManager::newInstance();
 	TransferInfoManager::newInstance();
 
 	if (moduleInitF) {
@@ -196,7 +194,6 @@ void shutdown(StepF stepF, ProgressF progressF, Callback moduleDestroyF) {
 	announce(STRING(SHUTTING_DOWN));
 
 	TransferInfoManager::deleteInstance();
-	ContextMenuManager::deleteInstance();
 	IgnoreManager::deleteInstance();
 	RecentManager::deleteInstance();
 	ActivityManager::deleteInstance();
