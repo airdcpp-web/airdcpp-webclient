@@ -82,6 +82,10 @@ namespace webserver {
 
 	typedef std::function<void()> CallBack;
 
+	class ContextMenuItem;
+	typedef std::shared_ptr<ContextMenuItem> ContextMenuItemPtr;
+	typedef std::vector<ContextMenuItemPtr> ContextMenuItemList;
+
 	class Extension;
 	typedef shared_ptr<Extension> ExtensionPtr;
 	typedef vector<ExtensionPtr> ExtensionList;

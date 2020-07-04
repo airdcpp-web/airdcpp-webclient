@@ -300,6 +300,9 @@
     <ClInclude Include="api\MenuApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
+    <ClInclude Include="web-server\ContextMenuManager.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
@@ -499,6 +502,9 @@
     </ClCompile>
     <ClCompile Include="api\MenuApi.cpp">
       <Filter>Source Files\api</Filter>
+    </ClCompile>
+    <ClCompile Include="web-server\ContextMenuManager.cpp">
+      <Filter>Source Files\web-server</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
