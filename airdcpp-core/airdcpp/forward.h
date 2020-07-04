@@ -79,10 +79,6 @@ class ClientManager;
 
 class ConnectionQueueItem;
 
-class ContextMenuItem;
-typedef std::shared_ptr<ContextMenuItem> ContextMenuItemPtr;
-typedef std::vector<ContextMenuItemPtr> ContextMenuItemList;
-
 class DirectoryListing;
 typedef std::shared_ptr<DirectoryListing> DirectoryListingPtr;
 typedef std::vector<DirectoryListingPtr> DirectoryListingList;
