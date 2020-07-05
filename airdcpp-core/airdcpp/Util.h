@@ -622,6 +622,8 @@ public:
 
 	static bool usingLocalMode() noexcept { return localMode; }
 	static bool wasUncleanShutdown;
+
+	static bool isChatCommand(const string& aText) noexcept;
 private:
 	static string cleanPathChars(string aPath, bool isFileName) noexcept;
 

@@ -143,12 +143,17 @@ void PrivateChat::CCPMDisconnected() {
 	}
 }
 
-bool PrivateChat::sendMessageHooked(const string& aMessage, string& error_, bool aThirdPerson) {
-	if (ccReady()) {
-		return uc->sendPrivateMessageHooked(aMessage, error_, aThirdPerson);
+bool PrivateChat::sendMessageHooked(const OutgoingChatMessage& aMessage, string& error_) {
+	if (Util::isChatCommand(aMessage.text)) {
+		fire(PrivateChatListener::ChatCommand(), this, aMessage);
+		// TODO: don't continue and run hooks after this with API v2
 	}
 
-	return ClientManager::getInstance()->privateMessageHooked(replyTo, aMessage, error_, aThirdPerson);
+	if (ccReady()) {
+		return uc->sendPrivateMessageHooked(aMessage, error_);
+	}
+
+	return ClientManager::getInstance()->privateMessageHooked(replyTo, aMessage, error_);
 }
 
 void PrivateChat::closeCC(bool now, bool noAutoConnect) {

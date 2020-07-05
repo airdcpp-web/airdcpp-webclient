@@ -233,20 +233,20 @@ void UserConnection::inf(bool withToken, int mcnSlots) {
 	send(c);
 }
 
-bool UserConnection::sendPrivateMessageHooked(const string& aMessage, string& error_, bool aThirdPerson) {
-	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage, aThirdPerson, getHintedUser(), true);
+bool UserConnection::sendPrivateMessageHooked(const OutgoingChatMessage& aMessage, string& error_) {
+	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage, getHintedUser(), true);
 	if (error) {
 		error_ = ActionHookRejection::formatError(error);
 		return false;
 	}
 
-	if (!aMessage.empty() && aMessage.front() == '/') {
+	if (Util::isChatCommand(aMessage.text)) {
 		return false;
 	}
 
 	AdcCommand c(AdcCommand::CMD_MSG);
-	c.addParam(aMessage);
-	if (aThirdPerson) {
+	c.addParam(aMessage.text);
+	if (aMessage.thirdPerson) {
 		c.addParam("ME", "1");
 	}
 

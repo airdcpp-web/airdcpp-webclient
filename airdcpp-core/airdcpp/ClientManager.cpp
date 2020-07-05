@@ -830,14 +830,14 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool aAl
 	return false;
 }
 
-bool ClientManager::privateMessageHooked(const HintedUser& aUser, const string& aMsg, string& error_, bool aThirdPerson, bool aEcho) noexcept {
+bool ClientManager::privateMessageHooked(const HintedUser& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho) noexcept {
 	auto user = findOnlineUser(aUser);
 	if (!user) {
 		error_ = STRING(USER_OFFLINE);
 		return false;
 	}
 	
-	return user->getClient()->sendPrivateMessageHooked(user, aMsg, error_, aThirdPerson, aEcho);
+	return user->getClient()->sendPrivateMessageHooked(user, aMessage, error_, aEcho);
 }
 
 void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params_, bool aCompatibility) noexcept {

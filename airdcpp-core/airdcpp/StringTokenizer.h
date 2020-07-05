@@ -27,7 +27,7 @@ namespace dcpp {
 template<class T, template<class V, class = std::allocator<V> > class ContainerT = vector>
 class StringTokenizer
 {
-private:
+protected:
 	ContainerT<T> tokens;
 
 	template<class SeparatorT>
@@ -74,7 +74,47 @@ public:
 
 	ContainerT<T>& getTokens() { return tokens; }
 
+	StringTokenizer() noexcept { }
 	~StringTokenizer() { }
+};
+
+
+template<class T, template<class V, class = std::allocator<V>> class ContainerT = vector>
+class CommandTokenizer : public StringTokenizer<T, ContainerT>
+{
+public:
+	// similar to StringTokenizer but handles quotation marks (and doesn't create empty tokens)
+	CommandTokenizer(const T& aString) noexcept {
+
+		string::size_type i = 0, prev = 0;
+		auto addString = [&] {
+			if (prev != i) {
+				this->tokens.push_back(aString.substr(prev, i - prev));
+			}
+			prev = i + 1;
+		};
+
+		bool quote = false;
+		while ((i = aString.find_first_of(" \"", i)) != string::npos) {
+			switch (aString[i]) {
+			case ' ': {
+				if (!quote) addString();
+				break;
+			}
+			case '\"': {
+				quote = !quote;
+				addString();
+				break;
+			}
+			}
+			i++;
+		}
+
+		if (prev < aString.size()) {
+			i = aString.size();
+			addString();
+		}
+	}
 };
 
 } // namespace dcpp

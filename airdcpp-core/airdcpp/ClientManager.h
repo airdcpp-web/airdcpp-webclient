@@ -47,8 +47,8 @@ class ClientManager : public Speaker<ClientManagerListener>,
 
 public:
 	ActionHook<nullptr_t, const ChatMessagePtr> incomingHubMessageHook, incomingPrivateMessageHook;
-	ActionHook<nullptr_t, const string, const bool, const HintedUser, const bool> outgoingPrivateMessageHook;
-	ActionHook<nullptr_t, const string, const bool, const Client&> outgoingHubMessageHook;
+	ActionHook<nullptr_t, const OutgoingChatMessage&, const HintedUser, const bool /*echo*/> outgoingPrivateMessageHook;
+	ActionHook<nullptr_t, const OutgoingChatMessage&, const Client&> outgoingHubMessageHook;
 
 	// Returns the new ClientPtr
 	// NOTE: the main app should perform connecting to the new hub
@@ -219,7 +219,7 @@ public:
 	bool sendUDP(AdcCommand& c, const CID& to, bool aNoCID = false, bool aNoPassive = false, const string& aEncryptionKey = Util::emptyString, const string& aHubUrl = Util::emptyString) noexcept;
 
 	bool connect(const UserPtr& aUser, const string& aToken, bool aAllowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError_, ConnectionType type = CONNECTION_TYPE_LAST) const noexcept;
-	bool privateMessageHooked(const HintedUser& aUser, const string& aMsg, string& error_, bool aThirdPerson, bool aEcho = true) noexcept;
+	bool privateMessageHooked(const HintedUser& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho = true) noexcept;
 	void userCommand(const HintedUser& aUser, const UserCommand& uc, ParamMap& params_, bool aCompatibility) noexcept;
 
 	bool isActive() const noexcept;
