@@ -357,47 +357,46 @@ void Client::allowUntrustedConnect() noexcept {
 	connect(false);
 }
 
-bool Client::isCommand(const string& aMessage) noexcept {
-	return !aMessage.empty() && aMessage.front() == '/';
-}
-
-bool Client::sendMessageHooked(const string& aMessage, string& error_, bool aThirdPerson) noexcept {
-	if (!stateNormal() && !isCommand(aMessage)) {
+bool Client::sendMessageHooked(const OutgoingChatMessage& aMessage, string& error_) noexcept {
+	if (Util::isChatCommand(aMessage.text)) {
+		fire(ClientListener::ChatCommand(), this, aMessage);
+		// TODO: don't continue and run hooks after this with API v2
+	} else if (!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
 	}
 
-	auto error = ClientManager::getInstance()->outgoingHubMessageHook.runHooksError(aMessage, aThirdPerson, *this);
+	auto error = ClientManager::getInstance()->outgoingHubMessageHook.runHooksError(aMessage, *this);
 	if (error) {
 		error_ = ActionHookRejection::formatError(error);
 		return false;
 	}
 
 
-	if (isCommand(aMessage)) {
+	if (Util::isChatCommand(aMessage.text)) {
 		return false;
 	}
 
-	return hubMessage(aMessage, error_, aThirdPerson);
+	return hubMessage(aMessage.text, error_, aMessage.thirdPerson);
 }
 
-bool Client::sendPrivateMessageHooked(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept {
-	if (!stateNormal() && !isCommand(aMessage)) {
+bool Client::sendPrivateMessageHooked(const OnlineUserPtr& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho) noexcept {
+	if (!stateNormal() && !Util::isChatCommand(aMessage.text)) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
 	}
 
-	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage, aThirdPerson, HintedUser(aUser->getUser(), aUser->getHubUrl()), aEcho);
+	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage, HintedUser(aUser->getUser(), aUser->getHubUrl()), aEcho);
 	if (error) {
 		error_ = ActionHookRejection::formatError(error);
 		return false;
 	}
 
-	if (isCommand(aMessage)) {
+	if (Util::isChatCommand(aMessage.text)) {
 		return false;
 	}
 
-	return privateMessage(aUser, aMessage, error_, aThirdPerson, aEcho);
+	return privateMessage(aUser, aMessage.text, error_, aMessage.thirdPerson, aEcho);
 }
 
 void Client::onPrivateMessage(const ChatMessagePtr& aMessage) noexcept {

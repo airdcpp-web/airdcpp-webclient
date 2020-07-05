@@ -1921,4 +1921,8 @@ string Util::getOsVersion(bool http /*false*/) noexcept {
 #endif // _WIN32
 }
 
+bool Util::isChatCommand(const string& aText) noexcept {
+	return !aText.empty() && aText.front() == '/';
+}
+
 } // namespace dcpp

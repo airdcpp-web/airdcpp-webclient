@@ -24,6 +24,14 @@
 
 namespace dcpp {
 
+struct OutgoingChatMessage {
+	OutgoingChatMessage(const string& aMessage, const void* aOwner, bool aThirdPerson) noexcept : text(aMessage), owner(aOwner), thirdPerson(aThirdPerson) {}
+
+	const string text;
+	const void* owner;
+	const bool thirdPerson;
+};
+
 class ChatMessage {
 public:
 	ChatMessage(const string& aText, const OnlineUserPtr& aFrom, const OnlineUserPtr& aTo = nullptr, const OnlineUserPtr& aReplyTo = nullptr) noexcept;

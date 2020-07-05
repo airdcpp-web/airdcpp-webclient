@@ -122,6 +122,7 @@ class InputStream;
 class LogManager;
 
 struct Message;
+struct OutgoingChatMessage;
 
 class ChatMessage;
 typedef std::shared_ptr<ChatMessage> ChatMessagePtr;

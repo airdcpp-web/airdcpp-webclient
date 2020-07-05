@@ -64,8 +64,8 @@ public:
 	virtual void disconnect(bool graceless) noexcept;
 
 	// Default message method
-	bool sendMessageHooked(const string& aMessage, string& error_, bool aThirdPerson = false) noexcept;
-	bool sendPrivateMessageHooked(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept;
+	bool sendMessageHooked(const OutgoingChatMessage& aMessage, string& error_) noexcept;
+	bool sendPrivateMessageHooked(const OnlineUserPtr& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho = true) noexcept;
 
 	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) noexcept = 0;
 	virtual void sendUserCmd(const UserCommand& command, const ParamMap& params) = 0;
@@ -194,8 +194,6 @@ public:
 
 	void allowUntrustedConnect() noexcept;
 	bool isKeyprintMismatch() const noexcept;
-
-	static bool isCommand(const string& aMessage) noexcept;
 protected:
 	virtual bool hubMessage(const string& aMessage, string& error_, bool aThirdPerson = false) noexcept = 0;
 	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept = 0;
