@@ -42,12 +42,12 @@ namespace webserver {
 		);
 	};
 
-	ActionHookResult<> HubApi::outgoingMessageHook(const string& aMessage, bool aThirdPerson, const Client& aClient, const ActionHookResultGetter<>& aResultGetter) {
+	ActionHookResult<> HubApi::outgoingMessageHook(const OutgoingChatMessage& aMessage, const Client& aClient, const ActionHookResultGetter<>& aResultGetter) {
 		return HookCompletionData::toResult(
 			fireHook("hub_outgoing_message_hook", 2, [&]() {
 				return json({
-					{ "text", aMessage },
-					{ "third_person", aThirdPerson },
+					{ "text", aMessage.text },
+					{ "third_person", aMessage.thirdPerson },
 					{ "hub_url", aClient.getHubUrl() },
 					{ "session_id", aClient.getToken() },
 				});
@@ -113,7 +113,7 @@ namespace webserver {
 			string lastError;
 			for (const auto& url: hubs) {
 				auto c = ClientManager::getInstance()->getClient(url);
-				if (c && c->isConnected() && c->sendMessageHooked(message.first, lastError, message.second)) {
+				if (c && c->isConnected() && c->sendMessageHooked(OutgoingChatMessage(message.first, aRequest.getSession().get(), message.second), lastError)) {
 					succeed++;
 				}
 			}

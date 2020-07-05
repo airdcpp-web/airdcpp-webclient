@@ -31,7 +31,8 @@ namespace webserver {
 	StringList PrivateChatInfo::subscriptionList = {
 		"private_chat_updated",
 		"private_chat_message",
-		"private_chat_status"
+		"private_chat_status",
+		"private_chat_text_command"
 	};
 
 	PrivateChatInfo::PrivateChatInfo(ParentType* aParentModule, const PrivateChatPtr& aChat) :
