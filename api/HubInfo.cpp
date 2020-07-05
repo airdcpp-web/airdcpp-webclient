@@ -34,6 +34,7 @@ namespace webserver {
 		"hub_counts_updated",
 		"hub_message",
 		"hub_status",
+		"hub_text_command",
 
 		"hub_user_connected",
 		"hub_user_updated",

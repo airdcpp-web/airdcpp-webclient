@@ -42,12 +42,12 @@ namespace webserver {
 		);
 	}
 
-	ActionHookResult<> PrivateChatApi::outgoingMessageHook(const string& aMessage, bool aThirdPerson, const HintedUser& aUser, bool aEcho, const ActionHookResultGetter<>& aResultGetter) {
+	ActionHookResult<> PrivateChatApi::outgoingMessageHook(const OutgoingChatMessage& aMessage, const HintedUser& aUser, bool aEcho, const ActionHookResultGetter<>& aResultGetter) {
 		return HookCompletionData::toResult(
 			fireHook("private_chat_outgoing_message_hook", 2, [&]() {
 				return json({
-					{ "text", aMessage },
-					{ "third_person", aThirdPerson },
+					{ "text", aMessage.text },
+					{ "third_person", aMessage.thirdPerson },
 					{ "echo", aEcho },
 					{ "user", Serializer::serializeHintedUser(aUser) },
 				});
@@ -120,7 +120,7 @@ namespace webserver {
 		const auto complete = aRequest.defer();
 		addAsyncTask([=] {
 			string error_;
-			if (!ClientManager::getInstance()->privateMessageHooked(user, message.first, error_, message.second, echo)) {
+			if (!ClientManager::getInstance()->privateMessageHooked(user, OutgoingChatMessage(message.first, aRequest.getSession().get(), message.second), error_, echo)) {
 				complete(websocketpp::http::status_code::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error_));
 			} else {
 				complete(websocketpp::http::status_code::no_content, nullptr, nullptr);

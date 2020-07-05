@@ -92,6 +92,9 @@ namespace webserver {
 		void on(ClientListener::MessagesCleared, const Client*) noexcept override {
 			chatHandler.onMessagesUpdated();
 		}
+		void on(ClientListener::ChatCommand, const Client*, const OutgoingChatMessage& aMessage) noexcept override {
+			chatHandler.onChatCommand(aMessage);
+		}
 
 		OnlineUserList getUsers() noexcept;
 		void onUserUpdated(const OnlineUserPtr& ou) noexcept;
