@@ -18,6 +18,8 @@
 
 #include "stdinc.h"
 #include "File.h"
+
+#include "Exception.h"
 #include "Thread.h"
 
 #ifdef _WIN32

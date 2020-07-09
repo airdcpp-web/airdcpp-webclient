@@ -28,6 +28,7 @@
 #include "GetSet.h"
 #include "SimpleXML.h"
 #include "Singleton.h"
+#include "Speaker.h"
 #include "StringMatch.h"
 #include "User.h"
 

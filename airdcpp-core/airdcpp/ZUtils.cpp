@@ -23,6 +23,7 @@
 #include "File.h"
 #include "format.h"
 #include "ScopedFunctor.h"
+#include "SettingsManager.h"
 
 namespace dcpp {
 

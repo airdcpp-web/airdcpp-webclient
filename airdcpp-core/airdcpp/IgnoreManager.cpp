@@ -24,6 +24,7 @@
 #include "FavoriteManager.h"
 #include "LogManager.h"
 #include "PrivateChatManager.h"
+#include "SettingsManager.h"
 
 #include "Message.h"
 #include "Util.h"
