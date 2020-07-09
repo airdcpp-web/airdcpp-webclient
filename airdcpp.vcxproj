@@ -348,6 +348,7 @@
     <ClInclude Include="airdcpp\ErrorCollector.h" />
     <ClInclude Include="airdcpp\GroupedSearchResult.h" />
     <ClInclude Include="airdcpp\HashManagerListener.h" />
+    <ClInclude Include="airdcpp\StreamBase.h" />
     <ClInclude Include="airdcpp\TransferInfo.h" />
     <ClInclude Include="airdcpp\IgnoreManager.h" />
     <ClInclude Include="airdcpp\IgnoreManagerListener.h" />

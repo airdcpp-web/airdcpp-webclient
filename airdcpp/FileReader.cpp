@@ -22,11 +22,11 @@
 
 #include "debug.h"
 #include "File.h"
+#include "Exception.h"
 #include "Text.h"
 #include "Util.h"
 
 #ifndef _WIN32
-#include "TimerManager.h"
 #include <fcntl.h>
 #endif
 

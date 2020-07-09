@@ -30,6 +30,7 @@
 #include "QueueItem.h"
 #include "SearchResult.h"
 #include "SimpleXML.h"
+#include "Streams.h"
 #include "TimerManager.h"
 #include "UserConnection.h"
 
