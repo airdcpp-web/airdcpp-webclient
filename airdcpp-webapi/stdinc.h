@@ -66,8 +66,10 @@ namespace webserver {
 	typedef websocketpp::server<websocketpp::config::asio_tls> server_tls;
 	typedef websocketpp::http::status_code::value api_return;
 
-	typedef std::function<void(api_return aStatus, const std::string& aOutput, const std::vector<std::pair<std::string, std::string>>& aHeaders)> HTTPCompletionF;
-	typedef std::function<HTTPCompletionF()> DeferredHandler;
+	typedef std::function<void(api_return aStatus, const std::string& aOutput, const std::vector<std::pair<std::string, std::string>>& aHeaders)> HTTPFileCompletionF;
+	typedef std::function<void(api_return aStatus, const json& aResponseJsonData, const json& aResponseErrorJson)> ApiCompletionF;
+	typedef std::function<HTTPFileCompletionF()> FileDeferredHandler;
+	typedef std::function<ApiCompletionF()> ApiDeferredHandler;
 
 	using namespace dcpp;
 
@@ -79,6 +81,10 @@ namespace webserver {
 	class ApiRequest;
 
 	typedef std::function<void()> CallBack;
+
+	class ContextMenuItem;
+	typedef std::shared_ptr<ContextMenuItem> ContextMenuItemPtr;
+	typedef std::vector<ContextMenuItemPtr> ContextMenuItemList;
 
 	class Extension;
 	typedef shared_ptr<Extension> ExtensionPtr;

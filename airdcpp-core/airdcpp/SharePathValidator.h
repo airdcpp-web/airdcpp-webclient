@@ -30,8 +30,10 @@ namespace dcpp {
 
 class SharePathValidator {
 public:
-	ActionHook<const string&, int64_t> fileValidationHook;
-	ActionHook<const string&> directoryValidationHook;
+	ActionHook<nullptr_t, const string&, int64_t> fileValidationHook;
+	ActionHook<nullptr_t, const string&> directoryValidationHook;
+	ActionHook<nullptr_t, const string&, bool /* aNewParent */> newDirectoryValidationHook;
+	ActionHook<nullptr_t, const string&, int64_t, bool /* aNewParent */> newFileValidationHook;
 
 	SharePathValidator();
 
@@ -50,7 +52,7 @@ public:
 	// Check if a directory/file name matches skiplist
 	bool matchSkipList(const string& aName) const noexcept;
 
-	void validate(FileFindIter& aIter, const string& aPath, bool aSkipQueueCheck) const;
+	void validateHooked(FileFindIter& aIter, const string& aPath, bool aSkipQueueCheck) const;
 
 	void saveExcludes(SimpleXML& xml) const noexcept;
 	void loadExcludes(SimpleXML& xml) noexcept;
@@ -60,8 +62,12 @@ public:
 	void validateRootPath(const string& aRealPath) const;
 
 	// Check the list of directory path tokens relative to the base path
-	// Returns whether they are all valid to be added in share
-	void validatePathTokens(const string& aBasePath, const StringList& aTokens, bool aSkipQueueCheck) const;
+	// Throws in case of errors
+	void validateDirectoryPathTokensHooked(const string& aBasePath, const StringList& aTokens, bool aSkipQueueCheck) const;
+
+	// Check a single directory/file path
+	// Throws in case of errors
+	void validatePathHooked(const string& aPath, bool aSkipQueueCheck) const;
 private:
 	// Comprehensive check for a directory/file whether it is valid to be added in share
 	// Use validateRootPath for new root directories instead

@@ -24,6 +24,9 @@
 #include <airdcpp/Message.h>
 #include <airdcpp/Priority.h>
 
+#include <web-server/JsonUtil.h>
+
+
 namespace webserver {
 	typedef std::function<api_return(const string& aTarget, Priority aPriority)> DownloadHandler;
 
@@ -37,6 +40,7 @@ namespace webserver {
 		static UserPtr getUser(const CID& aCID, bool aAllowMe);
 
 		static TTHValue parseTTH(const string& aTTH);
+		static HintedUser parseHintedUser(const json& aJson, const string& aFieldName, bool aAllowMe = false);
 
 		static UserPtr deserializeUser(const json& aJson, bool aAllowMe, bool aOptional = false);
 		static HintedUser deserializeHintedUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
@@ -57,7 +61,31 @@ namespace webserver {
 		static ProfileToken deserializeShareProfile(const json& aJson);
 
 		static OptionalProfileToken deserializeOptionalShareProfile(const json& aJson);
-		static string parseSearchType(const string& aType);
+
+		template <typename ItemT>
+		using ArrayDeserializerFunc = std::function<ItemT(const json& aJson, const string& aFieldName)>;
+
+		template <typename ItemT>
+		static vector<ItemT> deserializeList(const string& aFieldName, const json& aList, const ArrayDeserializerFunc<ItemT>& aF, bool aAllowEmpty) {
+			const auto arrayJson = JsonUtil::getArrayField(aFieldName, aList, aAllowEmpty);
+
+			vector<ItemT> ret;
+			for (const auto& item: arrayJson) {
+				// ret.push_back(aF ? aF(item) : JsonUtil::parseValue<ItemT>(aFieldName, item, false));
+				ret.push_back(aF(item, aFieldName));
+			}
+
+			return ret;
+		}
+
+		static TTHValue tthArrayValueParser(const json& aJson, const string& aFieldName);
+		static CID cidArrayValueParser(const json& aJson, const string& aFieldName);
+		static HintedUser hintedUserArrayValueParser(const json& aJson, const string& aFieldName);
+
+		template<typename IdT>
+		static IdT defaultArrayValueParser(const json& aJson, const string& aFieldName) {
+			return JsonUtil::parseValue<IdT>(aFieldName, aJson, false);
+		}
 	private:
 		static LogMessage::Severity parseSeverity(const string& aText);
 	};

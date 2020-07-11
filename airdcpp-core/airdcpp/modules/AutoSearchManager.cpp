@@ -48,7 +48,6 @@ AutoSearchManager::AutoSearchManager() noexcept
 {
 	TimerManager::getInstance()->addListener(this);
 	SearchManager::getInstance()->addListener(this);
-	QueueManager::getInstance()->addListener(this);
 	DirectoryListingManager::getInstance()->addListener(this);
 }
 
@@ -400,6 +399,10 @@ bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) noexcept {
 	if (!lst.empty()) {
 		return false;
 	}
+	//allow adding only release dirs, avoid adding too common bundle names to auto search ( will result in bundle growing by pretty much anything that matches... )
+	if (!AirUtil::isRelease(aBundle->getName()))
+		return false;
+
 
 	//7 days expiry
 	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::getParentDir(aBundle->getTarget()), 
@@ -896,22 +899,18 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 			return;
 		}
 	} else if (as->getAction() == AutoSearch::ACTION_REPORT) {
-		ClientManager* cm = ClientManager::getInstance();
-		{
-			RLock l(cm->getCS());
-			auto u = cm->findOnlineUser(sr->getUser());
-			if (u) {
-				auto client = u->getClient();
-				if (client && client->isConnected()) {
-					//TODO: use magnet link
-					client->addLine(STRING(AUTO_SEARCH) + ": " + 
-						STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::TYPE_DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)) % sr->getFileName() % u->getIdentity().getNick()));
-				}
+		auto u = ClientManager::getInstance()->findOnlineUser(sr->getUser());
+		if (u) {
+			auto client = u->getClient();
+			if (client && client->isConnected()) {
+				//TODO: use magnet link
+				client->addLine(STRING(AUTO_SEARCH) + ": " +
+					STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::TYPE_DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)) % sr->getFileName() % u->getIdentity().getNick()));
+			}
 
-				if (as->getRemove()) {
-					removeAutoSearch(as);
-					logMessage(STRING_F(COMPLETE_ITEM_X_REMOVED, as->getSearchString()), LogMessage::SEV_INFO);
-				}
+			if (as->getRemove()) {
+				removeAutoSearch(as);
+				logMessage(STRING_F(COMPLETE_ITEM_X_REMOVED, as->getSearchString()), LogMessage::SEV_INFO);
 			}
 		}
 	}
@@ -1103,6 +1102,8 @@ void AutoSearchManager::load() noexcept {
 		}
 	});
 
+	//Start listening after queue has loaded, avoids adding duplicate failed items.
+	QueueManager::getInstance()->addListener(this);
 	resetSearchTimes(GET_TICK());
 }
 

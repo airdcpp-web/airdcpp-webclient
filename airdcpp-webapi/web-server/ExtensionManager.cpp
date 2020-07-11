@@ -369,10 +369,17 @@ namespace webserver {
 				}
 			});
 		} else {
-			 wsm->log(
-				 STRING_F(WEB_EXTENSION_EXITED, aExtension->getName() % aExtension->getErrorLogPath()),
-				 LogMessage::SEV_ERROR
-			 );
+			if (WEBCFG(EXTENSIONS_DEBUG_MODE).boolean()) {
+				wsm->log(
+					"Extension " + aExtension->getName() + " exited with code " + Util::toString(aExitCode), 
+					LogMessage::SEV_ERROR
+				);
+			}
+
+			wsm->log(
+				STRING_F(WEB_EXTENSION_EXITED, aExtension->getName() % aExtension->getErrorLogPath()),
+				LogMessage::SEV_ERROR
+			);
 		 }
 	}
 

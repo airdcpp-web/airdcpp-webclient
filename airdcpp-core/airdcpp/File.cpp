@@ -18,6 +18,8 @@
 
 #include "stdinc.h"
 #include "File.h"
+
+#include "Exception.h"
 #include "Thread.h"
 
 #ifdef _WIN32
@@ -877,10 +879,7 @@ File::VolumeSet File::getVolumes() noexcept {
 
 	while (drives != 0) {
 		if (drives & 1 && (GetDriveType(drive) != DRIVE_CDROM && GetDriveType(drive) == DRIVE_REMOTE)) {
-			string path = Text::fromT(drive);
-			if (path[path.length() - 1] != PATH_SEPARATOR) {
-				path += PATH_SEPARATOR;
-			}
+			string path = Util::ensureTrailingSlash(Text::fromT(drive));
 			volumes.insert(path);
 		}
 
@@ -912,7 +911,7 @@ FileFindIter::FileFindIter(const string& aPath, const string& aPattern, bool aDi
 	auto path = Util::formatPath(aPath);
 
 	// An attempt to open a search with a trailing backslash always fails
-	if (aPattern.empty() && !path.empty() && path.back() == PATH_SEPARATOR) {
+	if (aPattern.empty() && Util::isDirectoryPath(path)) {
 		path.pop_back();
 	}
 

@@ -33,26 +33,26 @@ namespace webserver {
 		"hub_removed"
 	};
 
-	ActionHookRejectionPtr HubApi::incomingMessageHook(const ChatMessagePtr& aMessage, const HookRejectionGetter& aRejectionGetter) {
+	ActionHookResult<> HubApi::incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter) {
 		return HookCompletionData::toResult(
 			fireHook("hub_incoming_message_hook", 2, [&]() {
 				return Serializer::serializeChatMessage(aMessage);
 			}),
-			aRejectionGetter
+			aResultGetter
 		);
 	};
 
-	ActionHookRejectionPtr HubApi::outgoingMessageHook(const string& aMessage, bool aThirdPerson, const Client& aClient, const HookRejectionGetter& aRejectionGetter) {
+	ActionHookResult<> HubApi::outgoingMessageHook(const OutgoingChatMessage& aMessage, const Client& aClient, const ActionHookResultGetter<>& aResultGetter) {
 		return HookCompletionData::toResult(
 			fireHook("hub_outgoing_message_hook", 2, [&]() {
 				return json({
-					{ "text", aMessage },
-					{ "third_person", aThirdPerson },
+					{ "text", aMessage.text },
+					{ "third_person", aMessage.thirdPerson },
 					{ "hub_url", aClient.getHubUrl() },
-					{ "session_id", aClient.getClientId() },
+					{ "session_id", aClient.getToken() },
 				});
 			}),
-			aRejectionGetter
+			aResultGetter
 		);
 	}
 
@@ -86,9 +86,14 @@ namespace webserver {
 		METHOD_HANDLER(Access::HUBS_SEND,	METHOD_POST,	(EXACT_PARAM("chat_message")),			HubApi::handlePostMessage);
 		METHOD_HANDLER(Access::HUBS_EDIT,	METHOD_POST,	(EXACT_PARAM("status_message")),		HubApi::handlePostStatus);
 
-		auto rawHubs = ClientManager::getInstance()->getClients();
-		for (const auto& c : rawHubs | map_values) {
-			addHub(c);
+		{
+			auto cm = ClientManager::getInstance();
+
+			RLock l(cm->getCS());
+			auto rawHubs = cm->getClientsUnsafe();
+			for (const auto& c : rawHubs | map_values) {
+				addHub(c);
+			}
 		}
 	}
 
@@ -101,21 +106,28 @@ namespace webserver {
 
 		auto message = Deserializer::deserializeChatMessage(reqJson);
 		auto hubs = Deserializer::deserializeHubUrls(reqJson);
-		int succeed = 0;
 
-		string lastError;
-		for (const auto& url : hubs) {
-			auto c = ClientManager::getInstance()->getClient(url);
-			if (c && c->isConnected() && c->sendMessage(message.first, lastError, message.second)) {
-				succeed++;
+		const auto complete = aRequest.defer();
+		addAsyncTask([=] {
+			int succeed = 0;
+			string lastError;
+			for (const auto& url: hubs) {
+				auto c = ClientManager::getInstance()->getClient(url);
+				if (c && c->isConnected() && c->sendMessageHooked(OutgoingChatMessage(message.first, aRequest.getSession().get(), message.second), lastError)) {
+					succeed++;
+				}
 			}
-		}
 
-		aRequest.setResponseBody({
-			{ "sent", succeed },
+			complete(
+				websocketpp::http::status_code::ok, 
+				{
+					{ "sent", succeed },
+				}, 
+				nullptr
+			);
 		});
 
-		return websocketpp::http::status_code::ok;
+		return websocketpp::http::status_code::see_other;
 	}
 
 	api_return HubApi::handlePostStatus(ApiRequest& aRequest) {
@@ -178,7 +190,7 @@ namespace webserver {
 			{ "identity", HubInfo::serializeIdentity(aClient) },
 			{ "connect_state", HubInfo::serializeConnectState(aClient) },
 			{ "hub_url", aClient->getHubUrl() },
-			{ "id", aClient->getClientId() },
+			{ "id", aClient->getToken() },
 			{ "favorite_hub", aClient->getFavToken() },
 			{ "share_profile", Serializer::serializeShareProfileSimple(aClient->get(HubSettings::ShareProfile)) },
 			{ "message_counts", Serializer::serializeCacheInfo(aClient->getCache(), Serializer::serializeUnreadChat) },
@@ -187,7 +199,7 @@ namespace webserver {
 	}
 
 	void HubApi::addHub(const ClientPtr& aClient) noexcept {
-		addSubModule(aClient->getClientId(), std::make_shared<HubInfo>(this, aClient));
+		addSubModule(aClient->getToken(), std::make_shared<HubInfo>(this, aClient));
 	}
 
 	// Use async tasks because adding/removing HubInfos require calls to ClientListener (which is likely 
@@ -205,7 +217,7 @@ namespace webserver {
 
 	void HubApi::on(ClientManagerListener::ClientRemoved, const ClientPtr& aClient) noexcept {
 		addAsyncTask([=] {
-			removeSubModule(aClient->getClientId());
+			removeSubModule(aClient->getToken());
 
 			if (!subscriptionActive("hub_removed")) {
 				return;

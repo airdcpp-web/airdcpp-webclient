@@ -233,20 +233,20 @@ void UserConnection::inf(bool withToken, int mcnSlots) {
 	send(c);
 }
 
-bool UserConnection::pm(const string& aMessage, string& error_, bool aThirdPerson) {
-	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage, aThirdPerson, getHintedUser(), true);
+bool UserConnection::sendPrivateMessageHooked(const OutgoingChatMessage& aMessage, string& error_) {
+	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage, getHintedUser(), true);
 	if (error) {
 		error_ = ActionHookRejection::formatError(error);
 		return false;
 	}
 
-	if (!aMessage.empty() && aMessage.front() == '/') {
+	if (Util::isChatCommand(aMessage.text)) {
 		return false;
 	}
 
 	AdcCommand c(AdcCommand::CMD_MSG);
-	c.addParam(aMessage);
-	if (aThirdPerson) {
+	c.addParam(aMessage.text);
+	if (aMessage.thirdPerson) {
 		c.addParam("ME", "1");
 	}
 
@@ -270,18 +270,13 @@ void UserConnection::handle(AdcCommand::PMI t, const AdcCommand& c) {
 
 void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 	const string& message = c.getParam(0);
-	OnlineUserPtr peer = nullptr;
-	OnlineUserPtr me = nullptr;
 
 	auto cm = ClientManager::getInstance();
-	{
-		RLock l(cm->getCS());
-		peer = cm->findOnlineUser(user->getCID(), getHubUrl());
-		//try to use the same hub so nicks match to a hub, not the perfect solution for CCPM, nicks keep changing when hubs go offline.
-		if(peer && peer->getHubUrl() != hubUrl) 
-			setHubUrl(peer->getHubUrl());
-		me = cm->findOnlineUser(cm->getMe()->getCID(), getHubUrl());
-	}
+	auto peer = cm->findOnlineUser(user->getCID(), getHubUrl());
+	//try to use the same hub so nicks match to a hub, not the perfect solution for CCPM, nicks keep changing when hubs go offline.
+	if(peer && peer->getHubUrl() != hubUrl) 
+		setHubUrl(peer->getHubUrl());
+	auto me = cm->findOnlineUser(cm->getMe()->getCID(), getHubUrl());
 
 	if (!me || !peer){ //ChatMessage cant be formatted without the OnlineUser!
 		disconnect(true);

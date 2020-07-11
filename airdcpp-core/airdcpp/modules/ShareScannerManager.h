@@ -61,7 +61,7 @@ public:
 
 	void scanShare(const StringList& paths = StringList()) noexcept;
 	void checkSfv(const StringList& paths) noexcept;
-	bool onScanSharedDir(const string& aDir, bool report) noexcept;
+	// bool onScanSharedDir(const string& aDir, bool report) noexcept;
 
 	void checkFileSFV(const string& path, DirSFVReader& sfv, bool isDirScan) noexcept;
 	void Stop();
@@ -78,8 +78,8 @@ private:
 	void runSfvCheck(const StringList& paths);
 	void runShareScan(const StringList& paths);
 
-	ActionHookRejectionPtr bundleCompletionHook(const BundlePtr& aBundle, const HookRejectionGetter& aErrorGetter) noexcept;
-	ActionHookRejectionPtr fileCompletionHook(const QueueItemPtr& aFile, const HookRejectionGetter& aErrorGetter) noexcept;
+	ActionHookResult<> bundleCompletionHook(const BundlePtr& aBundle, const ActionHookResultGetter<>& aResultGetter) noexcept;
+	ActionHookResult<> fileCompletionHook(const QueueItemPtr& aFile, const ActionHookResultGetter<>& aResultGetter) noexcept;
 
 	enum extraTypes {
 		AUDIOBOOK,

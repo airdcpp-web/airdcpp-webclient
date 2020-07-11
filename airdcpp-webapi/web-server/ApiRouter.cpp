@@ -46,45 +46,54 @@ namespace webserver {
 
 		dcdebug("Received socket request: %s\n", aMessage.size() > 500 ? (aMessage.substr(0, 500) + "...").c_str() : aMessage.c_str());
 
-		json responseJsonData, errorJson;
+		// Parse request
 		websocketpp::http::status_code::value code;
 		int callbackId = -1;
-
+		string method, path;
+		json data;
 		try {
-			const auto requestJson = json::parse(aMessage);
-
-			callbackId = JsonUtil::getOptionalFieldDefault<int>("callback_id", requestJson, -1);
-
-			const string path = requestJson.at("path");
-			const auto data = JsonUtil::getOptionalRawField("data", requestJson);
-			const string method = requestJson.at("method");
-
-			ApiRequest apiRequest(aSocket->getConnectUrl() + path, method, std::move(data), aSocket->getSession(), responseJsonData, errorJson);
-			code = handleRequest(apiRequest, aIsSecure, aSocket, aSocket->getIp());
+			WebSocket::parseRequest(aMessage, callbackId, method, path, data);
 		} catch (const std::exception& e) {
-			errorJson = { 
-				{ "message", "Parsing failed: " + string(e.what()) }
-			};
-
-			code = websocketpp::http::status_code::bad_request;
+			aSocket->sendApiResponse(nullptr, ApiRequest::toResponseErrorStr("Parsing failed: " + string(e.what())), websocketpp::http::status_code::bad_request, callbackId);
+			return;
 		}
 
-		// Send an error also if parsing failed (there's no callback id)
-		if (callbackId >= 0 || !errorJson.is_null()) {
-			aSocket->sendApiResponse(responseJsonData, errorJson, code, callbackId);
+		// Prepare response handlers
+		const auto responseF = [callbackId, aSocket](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
+			aSocket->sendApiResponse(aResponseJsonData, aResponseErrorJson, aStatus, callbackId);
+		};
+
+		bool isDeferred = false;
+		const auto deferredF = [&]() {
+			isDeferred = true;
+
+			return [=](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
+				responseF(aStatus, aResponseJsonData, aResponseErrorJson);
+			};
+		};
+
+		// Route request
+
+		json responseJsonData, responseErrorJson;
+		ApiRequest apiRequest(aSocket->getConnectUrl() + path, method, std::move(data), aSocket->getSession(), deferredF, responseJsonData, responseErrorJson);
+		code = handleRequest(apiRequest, aIsSecure, aSocket, aSocket->getIp());
+		if (!isDeferred) {
+			responseF(code, responseJsonData, responseErrorJson);
 		}
 	}
 
 	websocketpp::http::status_code::value ApiRouter::handleHttpRequest(const string& aRequestPath,
 		const websocketpp::http::parser::request& aRequest, json& output_, json& error_,
-		bool aIsSecure, const string& aIp, const SessionPtr& aSession) noexcept {
+		bool aIsSecure, const string& aIp, const SessionPtr& aSession, const ApiDeferredHandler& aDeferredHandler) noexcept 
+	{
 
 		dcdebug("Received HTTP request: %s\n", aRequest.get_body().c_str());
 		try {
 			auto bodyJson = aRequest.get_body().empty() ? json() : json::parse(aRequest.get_body());
 
-			ApiRequest apiRequest(aRequestPath, aRequest.get_method(), std::move(bodyJson), aSession, output_, error_);
-			return handleRequest(apiRequest, aIsSecure, nullptr, aIp);
+			ApiRequest apiRequest(aRequestPath, aRequest.get_method(), std::move(bodyJson), aSession, aDeferredHandler, output_, error_);
+			const auto status = handleRequest(apiRequest, aIsSecure, nullptr, aIp);
+			return status;
 		} catch (const std::exception& e) {
 			error_ = { 
 				{ "message", "Parsing failed: " + string(e.what()) }

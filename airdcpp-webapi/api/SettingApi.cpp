@@ -57,11 +57,14 @@ namespace webserver {
 	api_return SettingApi::handleGetValues(ApiRequest& aRequest) {
 		const auto& requestJson = aRequest.getRequestBody();
 
-		auto forceAutoValues = JsonUtil::getOptionalFieldDefault<bool>("force_auto_values", requestJson, false);
+		auto valueMode = JsonUtil::getEnumFieldDefault<string>("value_mode", requestJson, "current", { "current", "force_auto", "force_manual" });
+		if (JsonUtil::getOptionalFieldDefault<bool>("force_auto_values", requestJson, false)) { // Deprecated
+			valueMode = "force_auto";
+		}
 
 		auto retJson = json::object();
 		parseSettingKeys(requestJson, [&](ApiSettingItem& aItem) {
-			if (aItem.usingAutoValue(forceAutoValues)) {
+			if (valueMode != "force_manual" && aItem.usingAutoValue(valueMode == "force_auto")) {
 				retJson[aItem.name] = aItem.getAutoValue();
 			} else {
 				retJson[aItem.name] = aItem.getValue();

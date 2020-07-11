@@ -20,9 +20,10 @@
 #ifndef _SHAREDFILESTREAM_H
 #define _SHAREDFILESTREAM_H
 
+#include "CriticalSection.h"
 #include "File.h"
-#include "Thread.h"
 #include "GetSet.h"
+#include "Thread.h"
 
 namespace dcpp {
 

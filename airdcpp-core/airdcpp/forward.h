@@ -28,9 +28,27 @@
 
 namespace dcpp {
 
+
+template<typename DataT>
+class ActionHookSubscriber;
+
 struct ActionHookRejection;
 typedef std::shared_ptr<ActionHookRejection> ActionHookRejectionPtr;
-typedef std::function<ActionHookRejectionPtr(const string& aReasonId, const string& aMessage)> HookRejectionGetter;
+
+template<typename DataT = nullptr_t>
+struct ActionHookData;
+
+template<typename DataT = nullptr_t>
+using ActionHookDataPtr = std::shared_ptr<ActionHookData<DataT>>;
+
+template<typename DataT = nullptr_t>
+struct ActionHookResult;
+
+template<typename DataT = nullptr_t>
+using ActionHookDataList = vector<ActionHookDataPtr<DataT>>;
+
+template<typename DataT = nullptr_t>
+using ActionHookResultGetter = ActionHookSubscriber<DataT>;
 
 class AdcCommand;
 
@@ -104,6 +122,7 @@ class InputStream;
 class LogManager;
 
 struct Message;
+struct OutgoingChatMessage;
 
 class ChatMessage;
 typedef std::shared_ptr<ChatMessage> ChatMessagePtr;
@@ -133,6 +152,8 @@ typedef shared_ptr<Search> SearchPtr;
 
 class SearchInstance;
 typedef shared_ptr<SearchInstance> SearchInstancePtr;
+typedef vector<SearchInstancePtr> SearchInstanceList;
+typedef uint32_t SearchInstanceToken;
 
 class SearchResult;
 typedef std::shared_ptr<SearchResult> SearchResultPtr;

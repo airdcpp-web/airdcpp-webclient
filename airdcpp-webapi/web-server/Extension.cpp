@@ -106,7 +106,7 @@ namespace webserver {
 		version = packageVersion;
 
 		// Optional fields
-		homepage = aJson.value("homepage", Util::emptyString);
+		homepage = aJson.value("homepage", "");
 
 		{
 			// Engines

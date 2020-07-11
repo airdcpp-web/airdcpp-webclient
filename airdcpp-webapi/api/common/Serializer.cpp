@@ -23,6 +23,8 @@
 
 #include <api/OnlineUserUtils.h>
 
+#include <web-server/WebUser.h>
+
 #include <airdcpp/AirUtil.h>
 #include <airdcpp/Bundle.h>
 #include <airdcpp/Client.h>
@@ -104,6 +106,7 @@ namespace webserver {
 
 	json Serializer::serializeUser(const UserPtr& aUser) noexcept {
 		return {
+			{ "id", aUser->getCID().toBase32() },
 			{ "cid", aUser->getCID().toBase32() },
 			{ "nicks", Util::listToString(ClientManager::getInstance()->getNicks(aUser->getCID())) },
 			{ "hub_names", Util::listToString(ClientManager::getInstance()->getHubNames(aUser->getCID())) },
@@ -460,5 +463,9 @@ namespace webserver {
 		}
 
 		return ret;
+	}
+
+	StringList Serializer::serializePermissions(const AccessList& aPermissions) noexcept {
+		return WebUser::permissionsToStringList(aPermissions);
 	}
 }

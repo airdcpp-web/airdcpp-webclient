@@ -1184,7 +1184,7 @@ bool AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch, stri
 
 	if (user.getUser()->isSet(User::ASCH)) {
 		if (!Util::isAdcRoot(aSearch->path)) {
-			dcassert(Util::isAdcPath(aSearch->path));
+			dcassert(Util::isAdcDirectoryPath(aSearch->path));
 			c.addParam("PA", aSearch->path);
 		}
 
@@ -1213,7 +1213,7 @@ bool AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch, stri
 
 void AdcHub::constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDirect) noexcept {
 	if(!aSearch->token.empty())
-		c.addParam("TO", Util::toString(getClientId()) + "/" + aSearch->token);
+		c.addParam("TO", Util::toString(getToken()) + "/" + aSearch->token);
 
 	if(aSearch->fileType == Search::TYPE_TTH) {
 		c.addParam("TR", aSearch->query);

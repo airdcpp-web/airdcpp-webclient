@@ -25,6 +25,8 @@
 #include <api/common/Deserializer.h>
 #include <api/common/Serializer.h>
 
+#include <airdcpp/StringTokenizer.h>
+
 namespace webserver {
 	template<class T>
 	class ChatController {
@@ -66,6 +68,31 @@ namespace webserver {
 		void onMessagesUpdated() {
 			sendUnread();
 		}
+
+		void onChatCommand(const OutgoingChatMessage& aMessage) {
+			auto s = toListenerName("text_command");
+			if (!module->subscriptionActive(s)) {
+				return;
+			}
+
+			auto tokens = CommandTokenizer<std::string, std::deque>(aMessage.text).getTokens();
+			if (tokens.empty()) {
+				return;
+			}
+
+			auto command = tokens.front();
+			if (command.length() == 1) {
+				return;
+			}
+
+			tokens.pop_front();
+
+			module->send(s, {
+				{ "command", command.substr(1) },
+				{ "args", tokens },
+				{ "permissions",  Serializer::serializePermissions(parseMessageAuthorAccess(aMessage)) },
+			});
+		}
 	private:
 		void sendUnread() noexcept {
 			auto s = toListenerName("updated");
@@ -78,17 +105,38 @@ namespace webserver {
 			});
 		}
 
+		AccessList parseMessageAuthorAccess(const OutgoingChatMessage& aMessage) {
+			const auto sessions = module->getSession()->getServer()->getUserManager().getSessions();
+			const auto ownerSessionIter = std::find_if(sessions.begin(), sessions.end(), [&aMessage](const SessionPtr& aSession) {
+				return aSession.get() == aMessage.owner;
+			});
+
+			AccessList permissions;
+			if (ownerSessionIter != sessions.end()) {
+				permissions = (*ownerSessionIter)->getUser()->getPermissions();
+			} else {
+				// GUI/extension etc
+				permissions.push_back(Access::ADMIN);
+			}
+
+			return permissions;
+		}
+
 		api_return handlePostChatMessage(ApiRequest& aRequest) {
 			const auto& reqJson = aRequest.getRequestBody();
 			auto message = Deserializer::deserializeChatMessage(reqJson);
 
-			string error;
-			if (!chatF()->sendMessage(message.first, error, message.second) && !error.empty()) {
-				aRequest.setResponseErrorStr(error);
-				return websocketpp::http::status_code::internal_server_error;
-			}
+			const auto complete = aRequest.defer();
+			module->addAsyncTask([=] {
+				string error;
+				if (!chatF()->sendMessageHooked(OutgoingChatMessage(message.first, aRequest.getSession().get(), message.second), error) && !error.empty()) {
+					complete(websocketpp::http::status_code::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error));
+				} else {
+					complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+				}
+			});
 
-			return websocketpp::http::status_code::no_content;
+			return websocketpp::http::status_code::see_other;
 		}
 
 		api_return handlePostStatusMessage(ApiRequest& aRequest) {

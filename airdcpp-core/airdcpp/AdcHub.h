@@ -118,7 +118,7 @@ private:
 	string checkNick(const string& nick) noexcept override;
 
 	OnlineUser& getUser(const uint32_t aSID, const CID& aCID) noexcept;
-	OnlineUser* findUser(const uint32_t aSID) const noexcept;
+	OnlineUser* findUser(const uint32_t aSID) const noexcept override;
 	OnlineUser* findUser(const CID& cid) const noexcept;
 	
 	OnlineUserPtr findUser(const string& aNick) const noexcept override;

@@ -85,6 +85,18 @@ namespace webserver {
 			ShareManager::getInstance()->getValidator().directoryValidationHook.removeSubscriber(aId);
 		});
 
+		createHook("new_share_directory_validation_hook", [this](const string& aId, const string& aName) {
+			return ShareManager::getInstance()->getValidator().newDirectoryValidationHook.addSubscriber(aId, aName, HOOK_HANDLER(ShareApi::newDirectoryValidationHook));
+		}, [this](const string& aId) {
+			ShareManager::getInstance()->getValidator().newDirectoryValidationHook.removeSubscriber(aId);
+		});
+
+		createHook("new_share_file_validation_hook", [this](const string& aId, const string& aName) {
+			return ShareManager::getInstance()->getValidator().newFileValidationHook.addSubscriber(aId, aName, HOOK_HANDLER(ShareApi::newFileValidationHook));
+		}, [this](const string& aId) {
+			ShareManager::getInstance()->getValidator().newFileValidationHook.removeSubscriber(aId);
+		});
+
 		ShareManager::getInstance()->addListener(this);
 	}
 
@@ -92,7 +104,7 @@ namespace webserver {
 		ShareManager::getInstance()->removeListener(this);
 	}
 
-	ActionHookRejectionPtr ShareApi::fileValidationHook(const string& aPath, int64_t aSize, const HookRejectionGetter& aErrorGetter) noexcept {
+	ActionHookResult<> ShareApi::fileValidationHook(const string& aPath, int64_t aSize, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
 			fireHook("share_file_validation_hook", 30, [&]() {
 				return json({
@@ -100,18 +112,44 @@ namespace webserver {
 					{ "size", aSize },
 				});
 			}),
-			aErrorGetter
+			aResultGetter
 		);
 	}
 
-	ActionHookRejectionPtr ShareApi::directoryValidationHook(const string& aPath, const HookRejectionGetter& aErrorGetter) noexcept {
+	ActionHookResult<> ShareApi::directoryValidationHook(const string& aPath, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
 			fireHook("share_directory_validation_hook", 30, [&]() {
 				return json({
 					{ "path", aPath },
 				});
 			}),
-			aErrorGetter
+			aResultGetter
+		);
+	}
+
+	ActionHookResult<> ShareApi::newDirectoryValidationHook(const string& aPath, bool aNewParent, const ActionHookResultGetter<>& aResultGetter) noexcept {
+		return HookCompletionData::toResult(
+			fireHook("new_share_directory_validation_hook", 60, [&]() {
+				return json({
+					{ "path", aPath },
+					{ "new_parent", aNewParent },
+				});
+			}),
+			aResultGetter
+		);
+	}
+
+
+	ActionHookResult<> ShareApi::newFileValidationHook(const string& aPath, int64_t aSize, bool aNewParent, const ActionHookResultGetter<>& aResultGetter) noexcept {
+		return HookCompletionData::toResult(
+			fireHook("new_share_file_validation_hook", 60, [&]() {
+				return json({
+					{ "path", aPath },
+					{ "size", aSize },
+					{ "new_parent", aNewParent },
+				});
+			}),
+			aResultGetter
 		);
 	}
 
@@ -289,12 +327,7 @@ namespace webserver {
 
 	api_return ShareApi::handleRefreshPaths(ApiRequest& aRequest) {
 		auto paths = JsonUtil::getField<StringList>("paths", aRequest.getRequestBody(), false);
-
-		auto ret = ShareManager::getInstance()->refreshPaths(paths);
-		if (ret == ShareManager::RefreshResult::REFRESH_PATH_NOT_FOUND) {
-			aRequest.setResponseErrorStr("Invalid paths were supplied");
-			return websocketpp::http::status_code::bad_request;
-		}
+		ShareManager::getInstance()->refreshPaths(paths);
 
 		return websocketpp::http::status_code::no_content;
 	}
@@ -364,17 +397,22 @@ namespace webserver {
 		auto path = JsonUtil::getField<string>("path", reqJson);
 		auto skipCheckQueue = JsonUtil::getOptionalFieldDefault<bool>("skip_check_queue", reqJson, false);
 
-		try {
-			ShareManager::getInstance()->validatePath(path, skipCheckQueue);
-		} catch (const QueueException& e) {
-			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::conflict;
-		} catch (const Exception& e) {
-			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::forbidden;
-		}
+		const auto complete = aRequest.defer();
+		addAsyncTask([=] {
+			try {
+				ShareManager::getInstance()->validatePathHooked(path, skipCheckQueue);
+			} catch (const QueueException& e) {
+				complete(websocketpp::http::status_code::conflict, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+				return;
+			} catch (const Exception& e) {
+				complete(websocketpp::http::status_code::forbidden, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+				return;
+			}
 
-		return websocketpp::http::status_code::no_content;
+			complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+		});
+
+		return websocketpp::http::status_code::see_other;
 	}
 
 	api_return ShareApi::handleFindDupePaths(ApiRequest& aRequest) {

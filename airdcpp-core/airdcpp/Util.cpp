@@ -1216,7 +1216,7 @@ string Util::formatParams(const string& aMsg, const ParamMap& aParams, FilterF a
 	return result;
 }
 
-bool Util::isAdcPath(const string& aPath) noexcept {
+bool Util::isAdcDirectoryPath(const string& aPath) noexcept {
 	return !aPath.empty() && aPath.front() == ADC_ROOT && aPath.back() == ADC_SEPARATOR;
 }
 
@@ -1503,6 +1503,23 @@ string Util::joinDirectory(const string& aPath, const string& aDirectoryName, co
 	return aPath + aDirectoryName + separator;
 }
 
+string Util::ensureTrailingSlash(const string& aPath, const char aSeparator) noexcept {
+	if (!aPath.empty() && !isDirectoryPath(aPath, aSeparator)) {
+		return aPath + aSeparator;
+	}
+
+	return aPath;
+}
+
+string Util::validatePath(const string& aPath, bool aRequireEndSeparator) noexcept {
+	auto path = cleanPathChars(aPath, false);
+	if (aRequireEndSeparator) {
+		path = Util::ensureTrailingSlash(path);
+	}
+
+	return path;
+}
+
 wstring Util::getFilePath(const wstring& path) noexcept {
 	wstring::size_type i = path.rfind(PATH_SEPARATOR);
 	return (i != wstring::npos) ? path.substr(0, i + 1) : path;
@@ -1556,6 +1573,15 @@ string Util::translateError(int aError) noexcept {
 #else // _WIN32
 	return strerror(aError);
 #endif // _WIN32
+}
+
+string Util::formatLastError() noexcept {
+#ifdef _WIN32
+	int error = GetLastError();
+#else
+	int error = errno;
+#endif
+	return translateError(error);
 }
 
 int Util::pathSort(const string& a, const string& b) noexcept {
@@ -1893,6 +1919,10 @@ string Util::getOsVersion(bool http /*false*/) noexcept {
 	return string(n.sysname) + " " + string(n.release) + " (" + string(n.machine) + ")";
 
 #endif // _WIN32
+}
+
+bool Util::isChatCommand(const string& aText) noexcept {
+	return !aText.empty() && aText.front() == '/';
 }
 
 } // namespace dcpp

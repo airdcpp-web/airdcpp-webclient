@@ -19,7 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_FILE_H
 #define DCPLUSPLUS_DCPP_FILE_H
 
-#include "Streams.h"
+#include "StreamBase.h"
+#include "Util.h"
 
 #ifndef _WIN32
 #include <dirent.h>

@@ -66,6 +66,7 @@ namespace webserver {
 	};
 
 	typedef map<Access, bool> AccessMap;
+	typedef vector<Access> AccessList;
 }
 
 #endif

@@ -33,26 +33,26 @@ namespace webserver {
 		"private_chat_removed"
 	};
 
-	ActionHookRejectionPtr PrivateChatApi::incomingMessageHook(const ChatMessagePtr& aMessage, const HookRejectionGetter& aRejectionGetter) {
+	ActionHookResult<> PrivateChatApi::incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter) {
 		return HookCompletionData::toResult(
 			fireHook("private_chat_incoming_message_hook", 2, [&]() {
 				return Serializer::serializeChatMessage(aMessage);
 			}),
-			aRejectionGetter
+			aResultGetter
 		);
 	}
 
-	ActionHookRejectionPtr PrivateChatApi::outgoingMessageHook(const string& aMessage, bool aThirdPerson, const HintedUser& aUser, bool aEcho, const HookRejectionGetter& aRejectionGetter) {
+	ActionHookResult<> PrivateChatApi::outgoingMessageHook(const OutgoingChatMessage& aMessage, const HintedUser& aUser, bool aEcho, const ActionHookResultGetter<>& aResultGetter) {
 		return HookCompletionData::toResult(
 			fireHook("private_chat_outgoing_message_hook", 2, [&]() {
 				return json({
-					{ "text", aMessage },
-					{ "third_person", aThirdPerson },
+					{ "text", aMessage.text },
+					{ "third_person", aMessage.thirdPerson },
 					{ "echo", aEcho },
 					{ "user", Serializer::serializeHintedUser(aUser) },
 				});
 			}),
-			aRejectionGetter
+			aResultGetter
 		);
 	}
 
@@ -117,13 +117,17 @@ namespace webserver {
 		auto message = Deserializer::deserializeChatMessage(reqJson);
 		auto echo = JsonUtil::getOptionalFieldDefault<bool>("echo", reqJson, false);
 
-		string error_;
-		if (!ClientManager::getInstance()->privateMessage(user, message.first, error_, message.second, echo)) {
-			aRequest.setResponseErrorStr(error_);
-			return websocketpp::http::status_code::internal_server_error;
-		}
+		const auto complete = aRequest.defer();
+		addAsyncTask([=] {
+			string error_;
+			if (!ClientManager::getInstance()->privateMessageHooked(user, OutgoingChatMessage(message.first, aRequest.getSession().get(), message.second), error_, echo)) {
+				complete(websocketpp::http::status_code::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error_));
+			} else {
+				complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+			}
+		});
 
-		return websocketpp::http::status_code::no_content;
+		return websocketpp::http::status_code::see_other;
 	}
 
 	void PrivateChatApi::on(PrivateChatManagerListener::ChatRemoved, const PrivateChatPtr& aChat) noexcept {

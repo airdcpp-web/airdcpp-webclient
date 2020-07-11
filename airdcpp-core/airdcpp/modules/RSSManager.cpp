@@ -27,6 +27,7 @@
 #include <airdcpp/ShareManager.h>
 #include <airdcpp/QueueManager.h>
 #include <airdcpp/SearchManager.h>
+#include <airdcpp/ClientManager.h>
 
 #include <airdcpp/ScopedFunctor.h>
 #include <airdcpp/AirUtil.h>
@@ -254,9 +255,18 @@ bool RSSManager::addAutoSearchItem(const RSSFilter& aFilter, const RSSDataPtr& a
 	AutoSearchPtr as = new AutoSearch(aFilter.getFilterAction() == RSSFilter::DOWNLOAD, aData->getTitle(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, aFilter.getDownloadTarget(),
 		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, expireTime, true, true, false, Util::emptyString, AutoSearch::RSS_DOWNLOAD, false);
 
+	//format time params, befora adding to autosearch, so we can use RSS date for folder
+	if(aFilter.getFormatTimeParams())
+		as->setTarget(Util::formatTime(aFilter.getDownloadTarget(), GET_TIME()));
+
 	as->setGroup(aFilter.getAutosearchGroup());
 
-	AutoSearchManager::getInstance()->addAutoSearch(as, false, false);
+	/*
+	a hack, try to avoid growing autosearch list, allow adding max 5 items to internal searchqueue directly... will result in ~2 minute searchqueue time.
+	Hopefylly most of these will get hits so we dont need to search them again.
+	*/
+	bool search = (aFilter.getFilterAction() == RSSFilter::DOWNLOAD) && ClientManager::getInstance()->getMaxSearchQueueSize() < 5;
+	AutoSearchManager::getInstance()->addAutoSearch(as, search, false);
 	return true;
 }
 
@@ -446,7 +456,8 @@ void RSSManager::loadFilters(SimpleXML& xml, vector<RSSFilter>& aList) {
 				xml.getChildAttrib("AutoSearchGroup"),
 				xml.getBoolChildAttrib("SkipDupes"),
 				Util::toInt(xml.getChildAttrib("FilterAction", "0")),
-				Util::toInt(xml.getChildAttrib("ExpireDays", "3")));
+				Util::toInt(xml.getChildAttrib("ExpireDays", "3")),
+				xml.getBoolChildAttrib("FormatTimeParams"));
 		}
 		xml.stepOut();
 	}
@@ -492,6 +503,7 @@ void RSSManager::saveFilters(SimpleXML& aXml, const vector<RSSFilter>& aList) {
 			aXml.addChildAttrib("SkipDupes", f.skipDupes);
 			aXml.addChildAttrib("FilterAction", f.getFilterAction());
 			aXml.addChildAttrib("ExpireDays", f.getExpireDays());
+			aXml.addChildAttrib("FormatTimeParams", f.getFormatTimeParams());
 		}
 		aXml.stepOut();
 	}

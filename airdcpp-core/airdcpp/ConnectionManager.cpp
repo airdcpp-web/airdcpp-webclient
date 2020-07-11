@@ -104,6 +104,11 @@ void ConnectionManager::listen() {
 		dcdebug("Skipping secure port: %d\n", CONNSETTING(TLS_PORT));
 		return;
 	}
+	if (CONNSETTING(TCP_PORT) == CONNSETTING(TLS_PORT))
+	{
+		LogManager::getInstance()->message(STRING(ERROR_TLS_PORT), LogMessage::SEV_ERROR);
+	}
+
 	secureServer.reset(new Server(true, Util::toString(CONNSETTING(TLS_PORT)), CONNSETTING(BIND_ADDRESS), CONNSETTING(BIND_ADDRESS6)));
 }
 

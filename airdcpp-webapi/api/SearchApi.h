@@ -34,8 +34,7 @@ namespace webserver {
 		SearchApi(Session* aSession);
 		~SearchApi();
 	private:
-		static json serializeSearchInstance(const SearchEntity& aSearch) noexcept;
-		SearchEntity::Ptr createInstance(uint64_t aExpirationTick);
+		static json serializeSearchInstance(const SearchInstancePtr& aSearch) noexcept;
 
 		api_return handleCreateInstance(ApiRequest& aRequest);
 		api_return handleDeleteSubmodule(ApiRequest& aRequest) override;
@@ -46,15 +45,13 @@ namespace webserver {
 		api_return handleUpdateType(ApiRequest& aRequest);
 		api_return handleRemoveType(ApiRequest& aRequest);
 
-		void onTimer() noexcept;
-
-		atomic<SearchInstanceToken> instanceIdCounter { 0 };
-		TimerPtr timer;
-
 		void on(SearchManagerListener::SearchTypesChanged) noexcept override;
+		void on(SearchManagerListener::SearchInstanceCreated, const SearchInstancePtr& aInstance) noexcept override;
+		void on(SearchManagerListener::SearchInstanceRemoved, const SearchInstancePtr& aInstance) noexcept override;
 
 		static json serializeSearchType(const SearchTypePtr& aType) noexcept;
 		static string parseSearchTypeId(ApiRequest& aRequest) noexcept;
+		string createCurrentSessionOwnerId(const string& aSuffix) noexcept;
 	};
 }
 

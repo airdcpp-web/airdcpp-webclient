@@ -66,6 +66,7 @@ namespace webserver {
 		}
 
 		const websocketpp::http::parser::request& getRequest() noexcept;
+		static void parseRequest(const string& aRequest, int& callbackId_, string& method_, string& path_, json& data_);
 	protected:
 		WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, const websocketpp::http::parser::request& aRequest, WebServerManager* aWsm);
 	private:

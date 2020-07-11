@@ -1,6 +1,6 @@
 language: cpp
 
-dist: xenial
+dist: bionic
 sudo: required
 
 matrix:
@@ -10,10 +10,10 @@ matrix:
       addons:
         apt:
           packages:
-            - libboost1.58-dev
-            - libboost-regex1.58
-            - libboost-thread1.58
-            - libboost-system1.58
+            - libboost1.65-dev
+            - libboost-regex1.65
+            - libboost-thread1.65
+            - libboost-system1.65
 #    - os: linux
 #      compiler: gcc
 #      addons:
@@ -28,12 +28,12 @@ matrix:
 #      env: COMPILER=g++-8
     - os: osx
       compiler: clang
-      osx_image: xcode10.1
+      osx_image: xcode12
       env: COMPILER=clang++
 before_install:
   # Linux
-  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get update -qq; 
-        sudo apt-get install -y cmake nodejs python pkg-config libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libmaxminddb-dev libleveldb-dev;
+  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt update -qq; 
+        sudo apt install -y cmake nodejs python pkg-config libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libmaxminddb-dev libleveldb-dev;
     fi
   # OSX
   - if [ $TRAVIS_OS_NAME == osx ]; then brew update;

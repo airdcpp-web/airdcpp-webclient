@@ -176,7 +176,7 @@ BundlePtr BundleQueue::getMergeBundle(const string& aTarget) const noexcept {
 	auto filePath = Util::getFilePath(aTarget);
 
 	for(const auto& compareBundle: bundles | map_values) {
-		dcassert(aTarget.back() != PATH_SEPARATOR || !AirUtil::isSubLocal(compareBundle->getTarget(), filePath));
+		dcassert(!Util::isDirectoryPath(aTarget) || !AirUtil::isSubLocal(compareBundle->getTarget(), filePath));
 
 		if (compareBundle->isFileBundle()) {
 			// Adding the same file again?

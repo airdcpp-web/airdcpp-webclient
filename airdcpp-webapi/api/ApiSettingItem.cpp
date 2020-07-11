@@ -178,7 +178,7 @@ namespace webserver {
 		{ SettingsManager::MINIMUM_SEARCH_INTERVAL, { 5, 1000 } },
 
 		{ SettingsManager::UPLOAD_SLOTS, { 1, 250 } },
-		{ SettingsManager::DOWNLOAD_SLOTS, { 1, 250 } },
+		{ SettingsManager::DOWNLOAD_SLOTS, { 0, 250 } },
 		{ SettingsManager::SET_MINISLOT_SIZE, { 64, MAX_INT_VALUE } },
 		{ SettingsManager::EXTRA_SLOTS, { 1, 100 } },
 
@@ -201,6 +201,11 @@ namespace webserver {
 		SettingsManager::SKIPLIST_DOWNLOAD,
 		SettingsManager::SKIPLIST_SHARE,
 		SettingsManager::FREE_SLOTS_EXTENSIONS,
+
+		SettingsManager::HTTP_PROXY,
+		SettingsManager::SOCKS_SERVER,
+		SettingsManager::SOCKS_USER,
+		SettingsManager::SOCKS_PASSWORD,
 
 		SettingsManager::LANGUAGE_FILE,
 	};

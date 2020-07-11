@@ -162,39 +162,7 @@ SearchQuery* SearchQuery::getSearch(const SearchPtr& aSearch) noexcept {
 }
 
 StringList SearchQuery::parseSearchString(const string& aString) noexcept {
-	// similar to StringTokenizer but handles quotation marks (and doesn't create empty tokens)
-
-	StringList ret;
-	string::size_type i = 0, prev=0;
-	auto addString = [&] {
-		if (prev != i) {
-			ret.push_back(aString.substr(prev, i-prev));
-		}
-		prev = i+1;
-	};
-
-	bool quote = false;
-	while( (i = aString.find_first_of(" \"", i)) != string::npos) {
-		switch(aString[i]) {
-			case ' ': {
-				if (!quote) addString();
-				break;
-			}
-			case '\"': {
-				quote = !quote;
-				addString();
-				break;
-			}
-		}
-		i++;
-	}
-
-	if(prev < aString.size()) {
-		i = aString.size();
-		addString();
-	}
-		
-	return ret;
+	return CommandTokenizer<string, vector>(aString).getTokens();
 }
 
 SearchQuery::SearchQuery(const string& nmdcString, Search::SizeModes aSizeMode, int64_t size, Search::TypeModes aFileType, size_t aMaxResults) noexcept : maxResults(aMaxResults) {

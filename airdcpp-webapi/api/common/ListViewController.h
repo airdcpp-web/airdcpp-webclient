@@ -184,7 +184,7 @@ namespace webserver {
 		}
 
 		void setFilterProperties(const json& aRequestJson, PropertyFilter& aFilter) {
-			auto method = JsonUtil::getField<int>("method", aRequestJson);
+			auto method = JsonUtil::getRangeField<int>("method", aRequestJson, StringMatch::PARTIAL, StringMatch::EXACT);
 			auto property = JsonUtil::getField<string>("property", aRequestJson);
 
 			// Pattern can be string or numeric
@@ -290,18 +290,14 @@ namespace webserver {
 			typename IntCollector::ValueMap updatedValues;
 
 			{
-				auto start = JsonUtil::getOptionalField<int>("range_start", j);
+				auto start = JsonUtil::getOptionalRangeField<int>("range_start", j, false, 0);
 				if (start) {
-					if (*start < 0) {
-						throw std::invalid_argument("Negative range start not allowed");
-					}
-
 					updatedValues[IntCollector::TYPE_RANGE_START] = *start;
 				}
 			}
 
 			{
-				auto end = JsonUtil::getOptionalField<int>("max_count", j);
+				auto end = JsonUtil::getOptionalRangeField<int>("max_count", j, false, 0);
 				if (end) {
 					updatedValues[IntCollector::TYPE_MAX_COUNT] = *end;
 				}
@@ -534,15 +530,15 @@ namespace webserver {
 			for (auto& t : aTaskList) {
 				switch (t.second.type) {
 				case ADD_ITEM: {
-					handleAddItem(t.first, aSortProperty, aSortAscending, rangeStart_);
+					handleAddItemTask(t.first, aSortProperty, aSortAscending, rangeStart_);
 					break;
 				}
 				case REMOVE_ITEM: {
-					handleRemoveItem(t.first, rangeStart_);
+					handleRemoveItemTask(t.first, rangeStart_);
 					break;
 				}
 				case UPDATE_ITEM: {
-					if (handleUpdateItem(t.first, aSortProperty, aSortAscending, rangeStart_)) {
+					if (handleUpdateItemTask(t.first, aSortProperty, aSortAscending, rangeStart_)) {
 						updatedItems.emplace(t.first, t.second.updatedProperties);
 					}
 					break;
@@ -644,59 +640,42 @@ namespace webserver {
 			}
 		}
 
-		void handleAddItem(const T& aItem, int aSortProperty, int aSortAscending, int& rangeStart_) {
-			if (sourceFilter) {
-				RLock l(cs);
-				PropertyFilter::Matcher<PropertyFilter*> matcher(sourceFilter.get());
-				if (!matchesFilter<PropertyFilter*>(aItem, matcher)) {
-					return;
-				}
-			}
-
-			auto matches = matchesFilter(aItem, getFilterMatcherList());
-
-			{
-				WLock l(cs);
-				sourceItems.emplace(aItem);
-
-				if (matches) {
-					auto iter = matchingItems.insert(std::upper_bound(
-						matchingItems.begin(),
-						matchingItems.end(),
-						aItem,
-						std::bind(&ListViewController::itemSort, std::placeholders::_1, std::placeholders::_2, itemHandler, aSortProperty, aSortAscending)
-					), aItem);
-
-					auto pos = static_cast<int>(std::distance(matchingItems.begin(), iter));
-					if (pos < rangeStart_) {
-						// Update the range range positions
-						rangeStart_++;
-					}
-				}
-			}
-		}
-
-		void handleRemoveItem(const T& aItem, int& rangeStart_) {
-			WLock l(cs);
-			auto iter = findItem(aItem, matchingItems);
-			if (iter == matchingItems.end()) {
-				//dcassert(0);
+		void handleAddItemTask(const T& aItem, int aSortProperty, int aSortAscending, int& rangeStart_) {
+			if (!matchesSourceFilter(aItem)) {
 				return;
 			}
 
-			auto pos = static_cast<int>(std::distance(matchingItems.begin(), iter));
+			auto matchesFilters = matchesFilter(aItem, getFilterMatcherList());
 
-			matchingItems.erase(iter);
-			sourceItems.erase(aItem);
-
-			if (rangeStart_ > 0 && pos > rangeStart_) {
-				// Update the range range positions
-				rangeStart_--;
+			WLock l(cs);
+			sourceItems.emplace(aItem);
+			if (matchesFilters) {
+				addMatchingItemUnsafe(aItem, aSortProperty, aSortAscending, rangeStart_);
 			}
 		}
 
+		void handleRemoveItemTask(const T& aItem, int& rangeStart_) {
+			WLock l(cs);
+			sourceItems.erase(aItem);
+			removeMatchingItemUnsafe(aItem, rangeStart_);
+		}
+
+		bool matchesSourceFilter(const T& aItem) {
+			if (!sourceFilter) {
+				return true;
+			}
+
+			RLock l(cs);
+			PropertyFilter::Matcher<PropertyFilter*> matcher(sourceFilter.get());
+			return matchesFilter<PropertyFilter*>(aItem, matcher);
+		}
+
 		// Returns false if the item was added/removed (or the item doesn't exist in any item list)
-		bool handleUpdateItem(const T& aItem, int aSortProperty, int aSortAscending, int& rangeStart_) {
+		bool handleUpdateItemTask(const T& aItem, int aSortProperty, int aSortAscending, int& rangeStart_) {
+			if (!matchesSourceFilter(aItem)) {
+				return false;
+			}
+
 			bool inList;
 
 			{
@@ -712,16 +691,56 @@ namespace webserver {
 			auto matchers = getFilterMatcherList();
 			if (!matchesFilter(aItem, matchers)) {
 				if (inList) {
-					handleRemoveItem(aItem, rangeStart_);
+					WLock l(cs);
+					removeMatchingItemUnsafe(aItem, rangeStart_);
 				}
 
 				return false;
 			} else if (!inList) {
-				handleAddItem(aItem, aSortProperty, aSortAscending, rangeStart_);
+				WLock l(cs);
+				addMatchingItemUnsafe(aItem, aSortProperty, aSortAscending, rangeStart_);
 				return false;
 			}
 
 			return true;
+		}
+
+
+		// Add an item in the current matching view item list
+		void addMatchingItemUnsafe(const T& aItem, int aSortProperty, int aSortAscending, int& rangeStart_) {
+			auto matchingItemsIter = matchingItems.insert(
+				std::upper_bound(
+					matchingItems.begin(),
+					matchingItems.end(),
+					aItem,
+					std::bind(&ListViewController::itemSort, std::placeholders::_1, std::placeholders::_2, itemHandler, aSortProperty, aSortAscending)
+				),
+				aItem
+			);
+
+			auto pos = static_cast<int>(std::distance(matchingItems.begin(), matchingItemsIter));
+			if (pos < rangeStart_) {
+				// Update the range range positions
+				rangeStart_++;
+			}
+		}
+
+		// Remove an item from the current matching view item list
+		void removeMatchingItemUnsafe(const T& aItem, int& rangeStart_) {
+			auto matchingItemsIter = findItem(aItem, matchingItems);
+			if (matchingItemsIter == matchingItems.end()) {
+				//dcassert(0);
+				return;
+			}
+
+			auto pos = static_cast<int>(std::distance(matchingItems.begin(), matchingItemsIter));
+
+			matchingItems.erase(matchingItemsIter);
+
+			if (rangeStart_ > 0 && pos > rangeStart_) {
+				// Update the range range positions
+				rangeStart_--;
+			}
 		}
 
 		// TASKS END

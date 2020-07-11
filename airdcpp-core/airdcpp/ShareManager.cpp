@@ -118,7 +118,7 @@ void ShareManager::startup(function<void(const string&)> splashF, function<void(
 
 void ShareManager::abortRefresh() noexcept {
 	//abort buildtree and refresh, we are shutting down.
-	aShutdown = true;
+	stopping = true;
 }
 
 void ShareManager::shutdown(function<void(float)> progressF) noexcept {
@@ -644,7 +644,7 @@ bool ShareManager::isRealPathShared(const string& aPath) const noexcept {
 	RLock l (cs);
 	auto d = findDirectory(Util::getFilePath(aPath));
 	if (d) {
-		if (!aPath.empty() && aPath.back() == PATH_SEPARATOR) {
+		if (Util::isDirectoryPath(aPath)) {
 			// It's a directory
 			return true;
 		}
@@ -667,7 +667,7 @@ string ShareManager::realToVirtualAdc(const string& aPath, const OptionalProfile
 	}
 
 	auto vPathAdc = d->getAdcPath();
-	if (aPath.back() == PATH_SEPARATOR) {
+	if (Util::isDirectoryPath(aPath)) {
 		// Directory
 		return vPathAdc;
 	}
@@ -1425,14 +1425,14 @@ bool ShareManager::RefreshInfo::checkContent(const Directory::Ptr& aDirectory) n
 	return true;
 }
 
-ShareManager::ShareBuilder::ShareBuilder(const string& aPath, const Directory::Ptr& aOldRoot, time_t aLastWrite, ShareBloom& bloom_, bool& shutdown_, SharePathValidator& aPathValidator) :
-	shutdown(shutdown_), pathValidator(aPathValidator), RefreshInfo(aPath, aOldRoot, aLastWrite, bloom_) {
+ShareManager::ShareBuilder::ShareBuilder(const string& aPath, const Directory::Ptr& aOldRoot, time_t aLastWrite, ShareBloom& bloom_, ShareManager* aSm) :
+	sm(*aSm), RefreshInfo(aPath, aOldRoot, aLastWrite, bloom_) {
 
 }
 
 bool ShareManager::ShareBuilder::buildTree() noexcept {
 	try {
-		buildTree(path, Text::toLower(path), newShareDirectory);
+		buildTree(path, Text::toLower(path), newShareDirectory, oldShareDirectory);
 	} catch (const std::bad_alloc&) {
 		LogManager::getInstance()->message(STRING_F(DIR_REFRESH_FAILED, path % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		return false;
@@ -1444,10 +1444,10 @@ bool ShareManager::ShareBuilder::buildTree() noexcept {
 	return true;
 }
 
-void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aParent) {
+void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aParent, const Directory::Ptr& aOldParent) {
 	ErrorCollector errors;
 	FileFindIter end;
-	for(FileFindIter i(aPath, "*"); i != end && !shutdown; ++i) {
+	for(FileFindIter i(aPath, "*"); i != end && !sm.stopping; ++i) {
 		const auto name = i->getFileName();
 		if(name.empty()) {
 			return;
@@ -1463,7 +1463,7 @@ void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aP
 		auto curPathLower = aPathLower + dualName.getLower() + (isDirectory ? PATH_SEPARATOR_STR : Util::emptyString);
 
 		try {
-			pathValidator.validate(i, curPath, false);
+			sm.validator->validateHooked(i, curPath, false);
 		} catch (const ShareException& e) {
 			if (SETTING(REPORT_BLOCKED_SHARE)) {
 				if (isDirectory) {
@@ -1479,14 +1479,51 @@ void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aP
 		}
 
 		if (isDirectory) {
+			Directory::Ptr oldDir = nullptr;
+			if (aOldParent) {
+				RLock l(sm.cs);
+				auto dirIter = aOldParent->getDirectories().find(dualName.getLower());
+				if (dirIter != aOldParent->getDirectories().end()) {
+					oldDir = *dirIter;
+				}
+			}
+
+			if (!oldDir) {
+				auto newParent = !aOldParent;
+				auto error = sm.validator->newDirectoryValidationHook.runHooksError(curPath, newParent);
+				if (error) {
+					continue;
+				}
+			} else {
+				newDirectoriesCount++;
+			}
+
 			auto curDir = Directory::createNormal(move(dualName), aParent, i->getLastWriteTime(), lowerDirNameMapNew, bloom);
 			if (curDir) {
-				buildTree(curPath, curPathLower, curDir);
+				buildTree(curPath, curPathLower, curDir, oldDir);
 				checkContent(curDir);
 			}
 		} else {
 			// Not a directory, assume it's a file...
-			int64_t size = i->getSize();
+			auto size = i->getSize();
+
+			if (sm.validator->newFileValidationHook.hasSubscribers()) {
+				auto isNew = !aOldParent;
+				if (aOldParent) {
+					RLock l(sm.cs);
+					auto fileIter = aOldParent->files.find(dualName.getLower());
+					isNew = fileIter != aOldParent->files.end();
+				}
+
+				if (isNew) {
+					auto newParent = !aOldParent;
+					auto error = sm.validator->newFileValidationHook.runHooksError(curPath, size, newParent);
+					if (error) {
+						continue;
+					}
+				}
+			}
+
 			try {
 				HashedFile fi(i->getLastWriteTime(), size);
 				if(HashManager::getInstance()->checkTTH(aPathLower + dualName.getLower(), aPath + name, fi)) {
@@ -1644,15 +1681,17 @@ void ShareManager::addAsyncTask(AsyncF aF) noexcept {
 	}
 }
 
-ShareManager::RefreshResult ShareManager::refreshPaths(const StringList& aPaths, const string& aDisplayName /*Util::emptyString*/, function<void(float)> aProgressF /*nullptr*/) noexcept {
-	for (const auto& path : aPaths) {
-		auto d = findDirectory(path);
-		if (!d && !allowShareDirectory(path)) {
-			return RefreshResult::REFRESH_PATH_NOT_FOUND;
+void ShareManager::refreshPaths(const StringList& aPaths, const string& aDisplayName /*Util::emptyString*/, function<void(float)> aProgressF /*nullptr*/) noexcept {
+	addAsyncTask([=] {
+		for (const auto& path : aPaths) {
+			auto d = findDirectory(path);
+			if (!d && !allowShareDirectoryHooked(path)) {
+				return RefreshResult::REFRESH_PATH_NOT_FOUND;
+			}
 		}
-	}
 
-	return addRefreshTask(REFRESH_DIRS, aPaths, RefreshType::TYPE_MANUAL, aDisplayName, aProgressF);
+		return addRefreshTask(REFRESH_DIRS, aPaths, RefreshType::TYPE_MANUAL, aDisplayName, aProgressF);
+	});
 }
 
 void ShareManager::validateRefreshTask(StringList& dirs_) noexcept {
@@ -2041,14 +2080,6 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 		}
 
 		auto dirs = task->dirs;
-
-		// Handle the removed paths
-		for (const auto& d : task->dirs) {
-			if (dirs.find(d) == dirs.end()) {
-				setRefreshState(d, RefreshState::STATE_NORMAL, true);
-			}
-		}
-
 		if (dirs.empty()) {
 			continue;
 		}
@@ -2062,7 +2093,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 			RLock l (cs);
 			for(auto& refreshPath: dirs) {
 				auto directory = findDirectory(refreshPath);
-				refreshDirs.insert(std::make_shared<ShareBuilder>(refreshPath, directory, File::getLastModified(refreshPath), *refreshBloom, aShutdown, *validator.get()));
+				refreshDirs.insert(std::make_shared<ShareBuilder>(refreshPath, directory, File::getLastModified(refreshPath), *refreshBloom, this));
 			}
 		}
 
@@ -2089,7 +2120,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 			auto succeed = ri.buildTree();
 
 			// Don't save cache with an incomplete tree
-			if (aShutdown)
+			if (stopping)
 				return;
 
 			// Apply the changes
@@ -2117,7 +2148,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 			continue;
 		}
 
-		if (aShutdown)
+		if (stopping)
 			break;
 
 		if(t.first == REFRESH_ALL) {
@@ -2313,7 +2344,7 @@ string ShareManager::generateOwnList(ProfileToken aProfile) {
 
 //forwards the calls to createFileList for creating the filelist that was reguested.
 FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*false*/) {
-	FileList* fl = nullptr;
+	ShareProfilePtr shareProfile = nullptr;
 
 	{
 		RLock l(cs);
@@ -2322,9 +2353,17 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}
 
-		fl = (*i)->getProfileList();
+		shareProfile = *i;
 	}
 
+	// The filelist generation code currently causes the filelist to get corrupted if the size is over 1 gigabytes, which has happened with a share of over 30 million files
+	// Uploading filelists of that size would get problematic, as loading them would most likely crash all 32 bit clients
+	// Limit the maximum file count to 20 million, to be somewhat safe
+	if (shareProfile->getSharedFiles() > 20000000) {
+		throw ShareException("The size of the filelist exceeds the maximum limit of 1 GB / 20 million files; please use a partial list instead");
+	}
+
+	FileList* fl = shareProfile->getProfileList();
 
 	{
 		Lock lFl(fl->cs);
@@ -2974,30 +3013,43 @@ void ShareManager::shareBundle(const BundlePtr& aBundle) noexcept {
 	addRefreshTask(ADD_BUNDLE, { aBundle->getTarget() }, RefreshType::TYPE_BUNDLE, aBundle->getTarget());
 }
 
-bool ShareManager::allowShareDirectory(const string& aRealPath) const noexcept {
+bool ShareManager::allowShareDirectoryHooked(const string& aRealPath) const noexcept {
 	try {
-		validatePath(aRealPath, false);
+		validatePathHooked(aRealPath, false);
 		return true;
 	} catch (const Exception&) { }
 
 	return false;
 }
 
-void ShareManager::validatePath(const string& aRealPath, bool aSkipQueueCheck) const {
+void ShareManager::validatePathHooked(const string& aRealPath, bool aSkipQueueCheck) const {
 	StringList tokens;
 	Directory::Ptr baseDirectory = nullptr;
 
+	auto isDirectoryPath = Util::isDirectoryPath(aRealPath);
+	auto isFileShared = false;
+
 	{
 		RLock l(cs);
-		baseDirectory = findDirectory(aRealPath, tokens);
+		baseDirectory = findDirectory(!isDirectoryPath ? Util::getFilePath(aRealPath) : aRealPath, tokens);
+		if (!baseDirectory) {
+			throw ShareException(STRING(DIRECTORY_NOT_FOUND));
+		}
+
+		if (!isDirectoryPath && tokens.empty()) {
+			auto i = baseDirectory->files.find(Text::toLower(Util::getFileName(aRealPath)));
+			isFileShared = i != baseDirectory->files.end();
+		}
 	}
 
-	if (!baseDirectory) {
-		throw ShareException(STRING(DIRECTORY_NOT_FOUND));
-	}
 
-	// Validate missing tokens
-	validator->validatePathTokens(baseDirectory->getRealPath(), tokens, aSkipQueueCheck);
+	// Validate missing directory path tokens
+	validator->validateDirectoryPathTokensHooked(baseDirectory->getRealPath(), tokens, aSkipQueueCheck);
+
+	if (!isDirectoryPath && !isFileShared) {
+		// Validate the file
+		validator->validatePathHooked(aRealPath, aSkipQueueCheck);
+	}
 }
 
 ShareManager::Directory::Ptr ShareManager::findDirectory(const string& aRealPath, StringList& remainingTokens_) const noexcept {
@@ -3034,17 +3086,11 @@ ShareManager::Directory::Ptr ShareManager::getDirectory(const string& aRealPath)
 	// Find the existing directories
 	auto curDir = findDirectory(aRealPath, tokens);
 	if (!curDir) {
-		return curDir;
-	}
-
-	// Validate the remaining tokens
-	try {
-		validator->validatePathTokens(curDir->getRealPath(), tokens, false);
-	} catch (const Exception&) {
 		return nullptr;
 	}
 
 	// Create missing directories
+	// Tokens should have been validated earlier
 	for (const auto& curName : tokens) {
 		curDir->updateModifyDate();
 		curDir = Directory::createNormal(DualString(curName), curDir, File::getLastModified(curDir->getRealPath()), lowerDirNameMap, *bloom.get());

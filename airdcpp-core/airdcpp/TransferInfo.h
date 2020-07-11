@@ -19,19 +19,38 @@
 #ifndef DCPLUSPLUS_DCPP_TRANSFERINFO_H
 #define DCPLUSPLUS_DCPP_TRANSFERINFO_H
 
-#include <airdcpp/typedefs.h>
+#include "typedefs.h"
 
-#include <airdcpp/HintedUser.h>
-#include <airdcpp/QueueItemBase.h>
-#include <airdcpp/ResourceManager.h>
-#include <airdcpp/Transfer.h>
-#include <airdcpp/Util.h>
+#include "HintedUser.h"
+#include "QueueItemBase.h"
+#include "ResourceManager.h"
+#include "Transfer.h"
+#include "Util.h"
 
 
-namespace webserver {
+namespace dcpp {
 	typedef uint32_t TransferToken;
 	class TransferInfo {
 	public:
+
+		enum UpdateFlags {
+			STATE = 0x01,
+			TARGET = 0x02,
+			TYPE = 0x04,
+			SIZE = 0x08,
+			STATUS = 0x10,
+			BYTES_TRANSFERRED = 0x40,
+			USER = 0x80,
+			TIME_STARTED = 0x100,
+			SPEED = 0x200,
+			SECONDS_LEFT = 0x400,
+			IP = 0x800,
+			FLAGS = 0x1000,
+			ENCRYPTION = 0x2000,
+			QUEUE_ID = 0x4000,
+			// BUNDLE_ID = 0x8000,
+		};
+
 		enum ItemState {
 			STATE_WAITING,
 			STATE_FAILED,
@@ -44,8 +63,8 @@ namespace webserver {
 		typedef vector<Ptr> List;
 		typedef unordered_map<string, Ptr> Map;
 
-		TransferInfo(const HintedUser& aUser, bool aIsDownload, const std::string& aToken) :
-			user(aUser), download(aIsDownload), stringToken(aToken)
+		TransferInfo(const HintedUser& aUser, bool aIsDownload, const std::string& aStringToken) :
+			user(aUser), download(aIsDownload), stringToken(aStringToken)
 		{ }
 
 		IGETSET(int64_t, timeLeft, TimeLeft, -1);
@@ -54,7 +73,8 @@ namespace webserver {
 		GETSET(string, encryption, Encryption);
 		GETSET(string, ip, Ip);
 		GETSET(string, target, Target);
-		GETSET(string, statusString, StatusString);
+		GETSET(string, statusString, StatusString)
+		GETSET(string, bundle, Bundle);
 		GETSET(OrderedStringSet, flags, Flags);
 
 		IGETSET(Transfer::Type, type, Type, Transfer::TYPE_LAST)
@@ -92,20 +112,10 @@ namespace webserver {
 
 		string getName() {
 			switch (type) {
-				case Transfer::TYPE_TREE: return "TTH: " + Util::getFileName(target);
-				case Transfer::TYPE_FULL_LIST: return STRING(TYPE_FILE_LIST);
-				case Transfer::TYPE_PARTIAL_LIST: return STRING(TYPE_FILE_LIST_PARTIAL);
-				default: return Util::getFileName(target);
-			}
-		}
-
-		string getStateKey() {
-			switch (state) {
-			case STATE_WAITING: return "waiting";
-			case STATE_FINISHED: return "finished";
-			case STATE_RUNNING: return "running";
-			case STATE_FAILED: return "failed";
-			default: dcassert(0); return Util::emptyString;
+			case Transfer::TYPE_TREE: return "TTH: " + Util::getFileName(target);
+			case Transfer::TYPE_FULL_LIST: return STRING(TYPE_FILE_LIST);
+			case Transfer::TYPE_PARTIAL_LIST: return STRING(TYPE_FILE_LIST_PARTIAL);
+			default: return Util::getFileName(target);
 			}
 		}
 	private:

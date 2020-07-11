@@ -30,6 +30,7 @@
 #include <api/HashApi.h>
 #include <api/HistoryApi.h>
 #include <api/HubApi.h>
+#include <api/MenuApi.h>
 #include <api/PrivateChatApi.h>
 #include <api/QueueApi.h>
 #include <api/SearchApi.h>
@@ -66,6 +67,7 @@ namespace webserver {
 		ADD_MODULE("hash", HashApi);
 		ADD_MODULE("histories", HistoryApi);
 		ADD_MODULE("hubs", HubApi);
+		ADD_MODULE("menus", MenuApi);
 		ADD_MODULE("private_chat", PrivateChatApi);
 		ADD_MODULE("queue", QueueApi);
 		ADD_MODULE("search", SearchApi);

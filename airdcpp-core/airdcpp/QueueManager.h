@@ -65,8 +65,8 @@ class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManager
 	private SearchManagerListener, private ClientManagerListener, private ShareManagerListener
 {
 public:
-	ActionHook<const BundlePtr> bundleCompletionHook;
-	ActionHook<const QueueItemPtr> fileCompletionHook;
+	ActionHook<nullptr_t, const BundlePtr> bundleCompletionHook;
+	ActionHook<nullptr_t, const QueueItemPtr> fileCompletionHook;
 
 	// Add all queued TTHs in the supplied bloom filter
 	void getBloom(HashBloom& bloom) const noexcept;
@@ -224,9 +224,9 @@ public:
 
 	SharedMutex& getCS() { return cs; }
 	// Locking must be handled by the caller
-	const Bundle::TokenMap& getBundles() const { return bundleQueue.getBundles(); }
+	const Bundle::TokenMap& getBundlesUnsafe() const { return bundleQueue.getBundles(); }
 	// Locking must be handled by the caller
-	const QueueItem::StringMap& getFileQueue() const { return fileQueue.getPathQueue(); }
+	const QueueItem::StringMap& getFileQueueUnsafe() const { return fileQueue.getPathQueue(); }
 
 	// Create a directory bundle with the supplied target path and files
 	// 
@@ -278,8 +278,8 @@ public:
 	// Throws QueueException
 	MemoryInputStream* generateTTHList(QueueToken aBundleToken, bool isInSharingHub, BundlePtr& bundle_);
 
-	//Bundle download failed due to Ex. disk full
-	void bundleDownloadFailed(const BundlePtr& aBundle, const string& aError);
+	//Bundle download failed due to Ex. disk full, or TTH_INCONSISTENCY
+	void onDownloadError(const BundlePtr& aBundle, const string& aError);
 
 	/* Priorities */
 	// Use DEFAULT priority to enable auto priority
@@ -459,7 +459,7 @@ private:
 
 	// Validate bundle file against ignore and dupe options + performs target validity check (see checkTarget)
 	// Throws QueueException, FileException, DupeException
-	void validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, Priority& priority_, int64_t aSize) const;
+	void validateBundleFile(const string& aBundleDir, string& aBundleFile, const TTHValue& aTTH, Priority& priority_, int64_t aSize, Flags::MaskType aFlags = 0) const;
 
 	// Sanity check for the target filename
 	// Throws QueueException on invalid path format and FileException if the target file exists
@@ -484,11 +484,11 @@ private:
 
 	// Returns whether the bundle has completed download
 	// Will also attempt to validate and share completed bundles 
-	bool checkBundleFinished(const BundlePtr& aBundle) noexcept;
+	bool checkBundleFinishedHooked(const BundlePtr& aBundle) noexcept;
 
 	// Returns true if any of the bundle files has failed validation
 	// Optionally also rechecks failed files
-	bool checkFailedBundleFiles(const BundlePtr& aBundle, bool aRevalidateFailed) noexcept;
+	bool checkFailedBundleFilesHooked(const BundlePtr& aBundle, bool aRevalidateFailed) noexcept;
 
 	// Returns true if the bundle passes possible completion hooks (e.g. scan for missing/extra files)
 	// Blocking call

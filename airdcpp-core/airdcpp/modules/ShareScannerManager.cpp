@@ -113,7 +113,7 @@ void ShareScannerManager::runSfvCheck(const StringList& rootPaths) {
 	SFVScanList sfvDirPaths;
 	StringList sfvFilePaths;
 	for (auto& path : rootPaths) {
-		if (path.back() == PATH_SEPARATOR) {
+		if (Util::isDirectoryPath(path)) {
 			prepareSFVScanDir(path, sfvDirPaths);
 		} else {
 			prepareSFVScanFile(path, sfvFilePaths);
@@ -267,7 +267,7 @@ void ShareScannerManager::ScanInfo::merge(ScanInfo& collect) const {
 bool ShareScannerManager::validateShare(const string& aPath, bool aSkipCheckQueue) {
 	if (SETTING(CHECK_USE_SKIPLIST)) {
 		try {
-			ShareManager::getInstance()->validatePath(aPath, aSkipCheckQueue);
+			ShareManager::getInstance()->validatePathHooked(aPath, aSkipCheckQueue);
 		} catch (const Exception&) {
 			return false;
 		}
@@ -671,7 +671,7 @@ void ShareScannerManager::checkFileSFV(const string& aFileName, DirSFVReader& aS
 	}
 }
 
-ActionHookRejectionPtr ShareScannerManager::fileCompletionHook(const QueueItemPtr&, const HookRejectionGetter&) noexcept {
+ActionHookResult<> ShareScannerManager::fileCompletionHook(const QueueItemPtr&, const ActionHookResultGetter<>&) noexcept {
 	/*DirSFVReader sfv(Util::getFilePath(aFile->getTarget()));
 
 	auto fileNameLower = Text::toLower(Util::getFileName(aFile->getTarget()));
@@ -688,12 +688,12 @@ ActionHookRejectionPtr ShareScannerManager::fileCompletionHook(const QueueItemPt
 		LogManager::getInstance()->message(STRING_F(CRC_FILE_ERROR, aFile->getTarget()), LogMessage::SEV_ERROR);
 	}*/
 
-	return nullptr;
+	return { nullptr, nullptr };
 }
 
-ActionHookRejectionPtr ShareScannerManager::bundleCompletionHook(const BundlePtr& aBundle, const HookRejectionGetter& aErrorGetter) noexcept{
+ActionHookResult<> ShareScannerManager::bundleCompletionHook(const BundlePtr& aBundle, const ActionHookResultGetter<>& aResultGetter) noexcept{
 	if (!SETTING(SCAN_DL_BUNDLES) || aBundle->isFileBundle() || !validateShare(aBundle->getTarget(), true)) {
-		return nullptr;
+		return { nullptr, nullptr };
 	}
 
 	ScanInfo scanner(aBundle->getName(), ScanInfo::TYPE_SYSLOG, false);
@@ -711,13 +711,13 @@ ActionHookRejectionPtr ShareScannerManager::bundleCompletionHook(const BundlePtr
 		LogManager::getInstance()->message(STRING_F(SCAN_FAILED_BUNDLE_FINISHED, aBundle->getName()) + scanner.getResults(), LogMessage::SEV_ERROR);
 
 		auto errorId = (hasExtras || hasInvalidSFV) ? SHARE_SCANNER_ERROR_INVALID_CONTENT : SHARE_SCANNER_ERROR_MISSING;
-		return aErrorGetter(errorId, scanner.getResults());
+		return aResultGetter.getRejection(errorId, scanner.getResults());
 	}
 
-	return nullptr;
+	return { nullptr, nullptr };
 }
 
-bool ShareScannerManager::onScanSharedDir(const string& aDir, bool report) noexcept {
+/*bool ShareScannerManager::onScanSharedDir(const string& aDir, bool report) noexcept {
 	if (!SETTING(SCAN_MONITORED_FOLDERS))
 		return true;
 
@@ -744,7 +744,7 @@ bool ShareScannerManager::onScanSharedDir(const string& aDir, bool report) noexc
 	}
 
 	return true;
-}
+}*/
 
 void ShareScannerManager::reportMessage(const string& aMessage, ScanInfo& aScan, bool warning /*true*/) noexcept {
 	if (aScan.reportType == ScanInfo::TYPE_SYSLOG) {

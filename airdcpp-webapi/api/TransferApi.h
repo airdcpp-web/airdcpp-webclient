@@ -20,29 +20,25 @@
 #define DCPLUSPLUS_DCPP_TRANSFERAPI_H
 
 #include <api/base/ApiModule.h>
-#include <api/TransferInfo.h>
 #include <api/TransferUtils.h>
 
 #include <api/common/ListViewController.h>
 
 #include <airdcpp/typedefs.h>
 
-#include <airdcpp/Transfer.h>
+#include <airdcpp/TransferInfo.h>
 
-#include <airdcpp/ConnectionManagerListener.h>
+#include <airdcpp/TransferInfoManager.h>
 #include <airdcpp/DownloadManagerListener.h>
 #include <airdcpp/UploadManagerListener.h>
 
 
 namespace webserver {
-	class TransferApi : public SubscribableApiModule, private ConnectionManagerListener, private DownloadManagerListener, private UploadManagerListener {
+	class TransferApi : public SubscribableApiModule, private TransferInfoManagerListener, private DownloadManagerListener, private UploadManagerListener {
 	public:
 		TransferApi(Session* aSession);
 		~TransferApi();
 	private:
-		void loadTransfers() noexcept;
-		void unloadTransfers() noexcept;
-
 		json serializeTransferStats() const noexcept;
 
 		api_return handleGetTransfers(ApiRequest& aRequest);
@@ -53,41 +49,17 @@ namespace webserver {
 		api_return handleForce(ApiRequest& aRequest);
 		api_return handleDisconnect(ApiRequest& aRequest);
 
-		TransferInfoPtr getTransfer(ApiRequest& aRequest) const;
-		TransferInfoPtr findTransfer(const string& aToken) const noexcept;
-		TransferInfo::List getTransfers() const noexcept;
-		TransferInfoPtr addTransfer(const ConnectionQueueItem* aCqi, const string& aStatus) noexcept;
-
 		void onTimer();
 
-		void onFailed(TransferInfoPtr& aInfo, const string& aReason) noexcept;
-		void starting(const Download* aDownload, const string& aStatus, bool aFullUpdate) noexcept;
-		void starting(TransferInfoPtr& aInfo, const Transfer* aTransfer) noexcept;
-		void onTransferCompleted(const Transfer* aTransfer, bool aIsDownload) noexcept;
-		void onTick(const Transfer* aTransfer, bool aIsDownload) noexcept;
-		void updateQueueInfo(TransferInfoPtr& aInfo) noexcept;
-
-		void on(DownloadManagerListener::Tick, const DownloadList& aDownloads) noexcept override;
 		void on(DownloadManagerListener::BundleTick, const BundleList& bundles, uint64_t aTick) noexcept override;
-
-		void on(UploadManagerListener::Tick, const UploadList& aUploads) noexcept override;
 		void on(UploadManagerListener::BundleTick, const UploadBundleList& bundles) noexcept override;
 
-		void on(ConnectionManagerListener::Added, const ConnectionQueueItem* aCqi) noexcept override;
-		void on(ConnectionManagerListener::Removed, const ConnectionQueueItem* aCqi) noexcept override;
-		void on(ConnectionManagerListener::Failed, const ConnectionQueueItem* aCqi, const string &reason) noexcept override;
-		void on(ConnectionManagerListener::Connecting, const ConnectionQueueItem* aCqi) noexcept override;
-		void on(ConnectionManagerListener::Forced, const ConnectionQueueItem* aCqi) noexcept override;
-		void on(ConnectionManagerListener::UserUpdated, const ConnectionQueueItem* aCqi) noexcept override;
-
-		void on(DownloadManagerListener::Starting, const Download* aDownload) noexcept override;
-		void on(DownloadManagerListener::Complete, const Download* aDownload, bool) noexcept override;
-		void on(DownloadManagerListener::Failed, const Download* aDownload, const string &reason) noexcept override;
-		void on(DownloadManagerListener::Requesting, const Download* aDownload, bool hubChanged) noexcept override;
-
-		void on(UploadManagerListener::Starting, const Upload* aUpload) noexcept override;
-		void on(UploadManagerListener::Complete, const Upload* aUpload) noexcept override;
-
+		void on(TransferInfoManagerListener::Added, const TransferInfoPtr& aInfo) noexcept override;
+		void on(TransferInfoManagerListener::Updated, const TransferInfoPtr& aInfo, int aUpdatedProperties, bool aTick) noexcept override;
+		void on(TransferInfoManagerListener::Removed, const TransferInfoPtr& aInfo) noexcept override;
+		void on(TransferInfoManagerListener::Failed, const TransferInfoPtr& aInfo) noexcept override;
+		void on(TransferInfoManagerListener::Starting, const TransferInfoPtr& aInfo) noexcept override;
+		void on(TransferInfoManagerListener::Completed, const TransferInfoPtr& aInfo) noexcept override;
 
 		json previousStats;
 
@@ -96,13 +68,12 @@ namespace webserver {
 
 		TimerPtr timer;
 
-		mutable SharedMutex cs;
-		TransferInfo::Map transfers;
-
 		typedef ListViewController<TransferInfoPtr, TransferUtils::PROP_LAST> TransferListView;
 		TransferListView view;
 
-		void onTransferUpdated(const TransferInfoPtr& aTransfer, const PropertyIdSet& aUpdatedProperties, const string& aSubscriptionName) noexcept;
+		TransferInfoPtr getTransfer(ApiRequest& aRequest) const;
+		TransferInfo::List getTransfers() const noexcept;
+		static PropertyIdSet updateFlagsToPropertyIds(int aUpdatedProperties) noexcept;
 	};
 }
 

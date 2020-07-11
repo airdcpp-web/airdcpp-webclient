@@ -34,12 +34,12 @@ namespace webserver {
 		"search_user_result",
 		"search_result_added",
 		"search_result_updated",
+		"search_hub_searches_queued",
 		"search_hub_searches_sent",
 	};
 
-	SearchEntity::SearchEntity(ParentType* aParentModule, const SearchInstancePtr& aSearch, SearchInstanceToken aId, uint64_t aExpirationTick) :
-		expirationTick(aExpirationTick), id(aId),
-		SubApiModule(aParentModule, aId, subscriptionList), search(aSearch),
+	SearchEntity::SearchEntity(ParentType* aParentModule, const SearchInstancePtr& aSearch) :
+		SubApiModule(aParentModule, aSearch->getToken(), subscriptionList), search(aSearch),
 		searchView("search_view", this, SearchUtils::propertyHandler, std::bind(&SearchEntity::getResultList, this)) {
 
 		METHOD_HANDLER(Access::SEARCH,		METHOD_POST,	(EXACT_PARAM("hub_search")),									SearchEntity::handlePostHubSearch);
@@ -55,16 +55,12 @@ namespace webserver {
 		search->removeListener(this);
 	}
 
-	void SearchEntity::init() noexcept {
-		search->addListener(this);
+	SearchInstanceToken SearchEntity::getId() const noexcept {
+		return search->getToken();
 	}
 
-	optional<int64_t> SearchEntity::getTimeToExpiration() const noexcept {
-		if (expirationTick == 0) {
-			return nullopt;
-		}
-
-		return static_cast<int64_t>(expirationTick) - static_cast<int64_t>(GET_TICK());
+	void SearchEntity::init() noexcept {
+		search->addListener(this);
 	}
 
 	GroupedSearchResultList SearchEntity::getResultList() noexcept {
@@ -100,6 +96,21 @@ namespace webserver {
 		auto j = Serializer::serializeItem(result, SearchUtils::propertyHandler);
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
+	}
+
+	json SearchEntity::serializeSearchQuery(const SearchPtr& aQuery) noexcept {
+		if (!aQuery) {
+			return nullptr;
+		}
+
+		return {
+			{ "pattern", aQuery->query },
+			{ "min_size", (aQuery->sizeType == Search::SIZE_ATLEAST && aQuery->size != 0) || aQuery->sizeType == Search::SIZE_EXACT ? json(aQuery->size) : json() },
+			{ "max_size", aQuery->sizeType == Search::SIZE_ATMOST || aQuery->sizeType == Search::SIZE_EXACT ? json(aQuery->size) : json() },
+			{ "file_type", FileSearchParser::serializeSearchType(Util::toString(aQuery->fileType)) }, // TODO: custom types
+			{ "extensions", aQuery->exts },
+			{ "excluded", aQuery->excluded },
+		};
 	}
 
 	json SearchEntity::serializeSearchResult(const SearchResultPtr& aSR) noexcept {
@@ -163,13 +174,17 @@ namespace webserver {
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		aRequest.setResponseBody({
-			{ "queue_time", queueResult.queueTime },
-			{ "search_id", search->getCurrentSearchToken() },
-			{ "queued_count", queueResult.queuedHubUrls.size() },
-		});
-
+		aRequest.setResponseBody(serializeSearchQueueInfo(queueResult.queueTime, queueResult.queuedHubUrls.size()));
 		return websocketpp::http::status_code::ok;
+	}
+
+	json SearchEntity::serializeSearchQueueInfo(uint64_t aQueueItem, size_t aQueueCount) noexcept {
+		return {
+			{ "queue_time", aQueueItem },
+			{ "search_id", search->getCurrentSearchToken() },
+			{ "queued_count", aQueueCount },
+			{ "query", serializeSearchQuery(search->getCurrentParams()) },
+		};
 	}
 
 	api_return SearchEntity::handlePostUserSearch(ApiRequest& aRequest) {
@@ -199,7 +214,7 @@ namespace webserver {
 		}
 	}
 
-	void SearchEntity::on(SearchInstanceListener::GroupedResultUpdated, const GroupedSearchResultPtr& aResult) noexcept {
+	void SearchEntity::on(SearchInstanceListener::ChildResultAdded, const GroupedSearchResultPtr& aResult, const SearchResultPtr&) noexcept {
 		searchView.onItemUpdated(aResult, {
 			SearchUtils::PROP_RELEVANCE, SearchUtils::PROP_CONNECTION,
 			SearchUtils::PROP_HITS, SearchUtils::PROP_SLOTS,
@@ -228,10 +243,18 @@ namespace webserver {
 		searchView.resetItems();
 	}
 
+
+	void SearchEntity::on(SearchInstanceListener::HubSearchQueued, const string& aSearchToken, uint64_t aQueueTime, size_t aQueuedCount) noexcept {
+		if (subscriptionActive("search_hub_searches_queued")) {
+			send("search_hub_searches_queued", serializeSearchQueueInfo(aQueueTime, aQueuedCount));
+		}
+	}
+
 	void SearchEntity::on(SearchInstanceListener::HubSearchSent, const string& aSearchToken, int aSent) noexcept {
 		if (subscriptionActive("search_hub_searches_sent")) {
 			send("search_hub_searches_sent", {
 				{ "search_id", aSearchToken },
+				{ "query", serializeSearchQuery(search->getCurrentParams()) },
 				{ "sent", aSent }
 			});
 		}

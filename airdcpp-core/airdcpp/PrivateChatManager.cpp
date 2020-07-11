@@ -191,7 +191,8 @@ void PrivateChatManager::onPrivateMessage(const ChatMessagePtr& aMessage) {
 		aMessage->getFrom()->getIdentity().getParams(params, "user", false);
 
 		string error;
-		chat->sendMessage(ActivityManager::getInstance()->getAwayMessage(client->get(HubSettings::AwayMsg), params), error, false);
+		const auto message = ActivityManager::getInstance()->getAwayMessage(client->get(HubSettings::AwayMsg), params);
+		chat->sendMessageHooked(OutgoingChatMessage(message, nullptr, false), error);
 	}
 }
 

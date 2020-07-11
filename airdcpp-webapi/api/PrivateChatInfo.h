@@ -79,6 +79,10 @@ namespace webserver {
 			chatHandler.onMessagesUpdated();
 		}
 
+		void on(PrivateChatListener::ChatCommand, PrivateChat*, const OutgoingChatMessage& aMessage) noexcept override {
+			chatHandler.onChatCommand(aMessage);
+		}
+
 		void onSessionUpdated(const json& aData) noexcept;
 
 		ChatController<PrivateChatPtr> chatHandler;

@@ -64,8 +64,8 @@ public:
 	virtual void disconnect(bool graceless) noexcept;
 
 	// Default message method
-	bool sendMessage(const string& aMessage, string& error_, bool aThirdPerson = false) noexcept;
-	bool sendPrivateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept;
+	bool sendMessageHooked(const OutgoingChatMessage& aMessage, string& error_) noexcept;
+	bool sendPrivateMessageHooked(const OnlineUserPtr& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho = true) noexcept;
 
 	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) noexcept = 0;
 	virtual void sendUserCmd(const UserCommand& command, const ParamMap& params) = 0;
@@ -97,6 +97,7 @@ public:
 	virtual void refreshUserList(bool) noexcept = 0;
 	virtual void getUserList(OnlineUserList& list, bool aListHidden) const noexcept = 0;
 	virtual OnlineUserPtr findUser(const string& aNick) const noexcept = 0;
+	virtual OnlineUser* findUser(const uint32_t aSID) const noexcept = 0;
 	
 	const string& getPort() const noexcept { return port; }
 	const string& getAddress() const noexcept { return address; }
@@ -137,7 +138,7 @@ public:
 	IGETSET(bool, autoReconnect, AutoReconnect, false);
 	IGETSET(ProfileToken, favToken, FavToken, 0);
 
-	ClientToken getClientId() const noexcept {
+	ClientToken getToken() const noexcept {
 		return clientId;
 	}
 
@@ -193,8 +194,6 @@ public:
 
 	void allowUntrustedConnect() noexcept;
 	bool isKeyprintMismatch() const noexcept;
-
-	static bool isCommand(const string& aMessage) noexcept;
 protected:
 	virtual bool hubMessage(const string& aMessage, string& error_, bool aThirdPerson = false) noexcept = 0;
 	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept = 0;

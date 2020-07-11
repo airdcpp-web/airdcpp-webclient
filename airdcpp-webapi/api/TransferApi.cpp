@@ -25,6 +25,7 @@
 #include <airdcpp/Download.h>
 #include <airdcpp/Upload.h>
 
+#include <airdcpp/AirUtil.h>
 #include <airdcpp/DownloadManager.h>
 #include <airdcpp/ConnectionManager.h>
 #include <airdcpp/QueueManager.h>
@@ -62,11 +63,9 @@ namespace webserver {
 
 		timer->start(false);
 
-		loadTransfers();
-
 		DownloadManager::getInstance()->addListener(this);
 		UploadManager::getInstance()->addListener(this);
-		ConnectionManager::getInstance()->addListener(this);
+		TransferInfoManager::getInstance()->addListener(this);
 	}
 
 	TransferApi::~TransferApi() {
@@ -74,58 +73,11 @@ namespace webserver {
 
 		DownloadManager::getInstance()->removeListener(this);
 		UploadManager::getInstance()->removeListener(this);
-		ConnectionManager::getInstance()->removeListener(this);
-	}
-
-	void TransferApi::loadTransfers() noexcept {
-		// add the existing connections
-		{
-			auto cm = ConnectionManager::getInstance();
-			RLock l(cm->getCS());
-			for (const auto& d : cm->getTransferConnections(true)) {
-				auto info = addTransfer(d, "Inactive, waiting for status updates");
-				updateQueueInfo(info);
-			}
-
-			for (const auto& u : cm->getTransferConnections(false)) {
-				addTransfer(u, "Inactive, waiting for status updates");
-			}
-		}
-
-		{
-			auto um = UploadManager::getInstance();
-			RLock l(um->getCS());
-			for (const auto& u : um->getUploads()) {
-				if (u->getUserConnection().getState() == UserConnection::STATE_RUNNING) {
-					on(UploadManagerListener::Starting(), u);
-				}
-			}
-		}
-
-		{
-			auto dm = DownloadManager::getInstance();
-			RLock l(dm->getCS());
-			for (const auto& d : dm->getDownloads()) {
-				if (d->getUserConnection().getState() == UserConnection::STATE_RUNNING) {
-					starting(d, STRING(DOWNLOADING), true);
-				}
-			}
-		}
-	}
-
-	void TransferApi::unloadTransfers() noexcept {
-		WLock l(cs);
-		transfers.clear();
+		TransferInfoManager::getInstance()->removeListener(this);
 	}
 
 	TransferInfo::List TransferApi::getTransfers() const noexcept {
-		TransferInfo::List ret;
-		{
-			RLock l(cs);
-			boost::range::copy(transfers | map_values, back_inserter(ret));
-		}
-
-		return ret;
+		return TransferInfoManager::getInstance()->getTransfers();
 	}
 
 	api_return TransferApi::handleGetTransfers(ApiRequest& aRequest) {
@@ -171,16 +123,12 @@ namespace webserver {
 	TransferInfoPtr TransferApi::getTransfer(ApiRequest& aRequest) const {
 		auto wantedId = aRequest.getTokenParam();
 
-		RLock l(cs);
-		auto ret = boost::find_if(transfers | map_values, [&](const TransferInfoPtr& aInfo) {
-			return aInfo->getToken() == wantedId;
-		});
-
-		if (ret.base() == transfers.end()) {
+		auto t = TransferInfoManager::getInstance()->findTransfer(wantedId);
+		if (!t) {
 			throw RequestException(websocketpp::http::status_code::not_found, "Transfer not found");
 		}
 
-		return *ret;
+		return t;
 	}
 
 	api_return TransferApi::handleGetTransferStats(ApiRequest& aRequest) {
@@ -236,43 +184,6 @@ namespace webserver {
 		previousStats.swap(newStats);
 	}
 
-	void TransferApi::onTick(const Transfer* aTransfer, bool aIsDownload) noexcept {
-		auto t = findTransfer(aTransfer->getToken());
-		if (!t) {
-			return;
-		}
-
-		t->setSpeed(aTransfer->getAverageSpeed());
-		t->setBytesTransferred(aTransfer->getPos());
-		t->setTimeLeft(aTransfer->getSecondsLeft());
-
-		uint64_t timeSinceStarted = GET_TICK() - t->getStarted();
-		if (timeSinceStarted < 1000) {
-			t->setStatusString(aIsDownload ? STRING(DOWNLOAD_STARTING) : STRING(UPLOAD_STARTING));
-		} else {
-			t->setStatusString(STRING_F(RUNNING_PCT, t->getPercentage()));
-		}
-
-		onTransferUpdated(t, {
-			TransferUtils::PROP_STATUS, TransferUtils::PROP_BYTES_TRANSFERRED, 
-			TransferUtils::PROP_SPEED, TransferUtils::PROP_SECONDS_LEFT
-		}, Util::emptyString);
-	}
-
-	void TransferApi::on(UploadManagerListener::Tick, const UploadList& aUploads) noexcept {
-		for (const auto& ul : aUploads) {
-			if (ul->getPos() == 0) continue;
-
-			onTick(ul, false);
-		}
-	}
-
-	void TransferApi::on(DownloadManagerListener::Tick, const DownloadList& aDownloads) noexcept {
-		for (const auto& dl : aDownloads) {
-			onTick(dl, true);
-		}
-	}
-
 	void TransferApi::on(DownloadManagerListener::BundleTick, const BundleList& bundles, uint64_t /*aTick*/) noexcept {
 		lastDownloadBundles = bundles.size();
 	}
@@ -281,264 +192,79 @@ namespace webserver {
 		lastUploadBundles = bundles.size();
 	}
 
-	TransferInfoPtr TransferApi::addTransfer(const ConnectionQueueItem* aCqi, const string& aStatus) noexcept {
-		auto t = std::make_shared<TransferInfo>(aCqi->getUser(), aCqi->getConnType() == ConnectionType::CONNECTION_TYPE_DOWNLOAD, aCqi->getToken());
-
-		{
-			WLock l(cs);
-			transfers[aCqi->getToken()] = t;
-		}
-
-		t->setStatusString(aStatus);
-		return t;
-	}
-
-	void TransferApi::on(ConnectionManagerListener::Added, const ConnectionQueueItem* aCqi) noexcept {
-		if (aCqi->getConnType() == CONNECTION_TYPE_PM)
-			return;
-
-		auto t = addTransfer(aCqi, STRING(CONNECTING));
-
-		view.onItemAdded(t);
+	void TransferApi::on(TransferInfoManagerListener::Added, const TransferInfoPtr& aInfo) noexcept {
+		view.onItemAdded(aInfo);
 		if (subscriptionActive("transfer_added")) {
-			send("transfer_added", Serializer::serializeItem(t, TransferUtils::propertyHandler));
+			send("transfer_added", Serializer::serializeItem(aInfo, TransferUtils::propertyHandler));
 		}
 	}
 
-	void TransferApi::on(ConnectionManagerListener::Removed, const ConnectionQueueItem* aCqi) noexcept {
-		TransferInfoPtr t;
+	PropertyIdSet TransferApi::updateFlagsToPropertyIds(int aUpdatedProperties) noexcept {
+		PropertyIdSet updatedProps;
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::TARGET)
+			updatedProps.insert(TransferUtils::PROP_TARGET);
+			updatedProps.insert(TransferUtils::PROP_NAME);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::TYPE)
+			updatedProps.insert(TransferUtils::PROP_TYPE);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::SIZE)
+			updatedProps.insert(TransferUtils::PROP_SIZE);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::STATUS)
+			updatedProps.insert(TransferUtils::PROP_STATUS);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::BYTES_TRANSFERRED)
+			updatedProps.insert(TransferUtils::PROP_BYTES_TRANSFERRED);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::USER)
+			updatedProps.insert(TransferUtils::PROP_USER);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::TIME_STARTED)
+			updatedProps.insert(TransferUtils::PROP_TIME_STARTED);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::SPEED)
+			updatedProps.insert(TransferUtils::PROP_SPEED);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::SECONDS_LEFT)
+			updatedProps.insert(TransferUtils::PROP_SECONDS_LEFT);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::IP)
+			updatedProps.insert(TransferUtils::PROP_IP);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::FLAGS)
+			updatedProps.insert(TransferUtils::PROP_FLAGS);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::ENCRYPTION)
+			updatedProps.insert(TransferUtils::PROP_ENCRYPTION);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::QUEUE_ID)
+			updatedProps.insert(TransferUtils::PROP_QUEUE_ID);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::STATE)
+			updatedProps.insert(TransferUtils::PROP_STATUS);
 
-		{
-			WLock l(cs);
-			auto i = transfers.find(aCqi->getToken());
-			if (i == transfers.end()) {
-				return;
-			}
-
-			t = i->second;
-			transfers.erase(i);
-		}
-
-		view.onItemRemoved(t);
-		if (subscriptionActive("transfer_removed")) {
-			send("transfer_removed", Serializer::serializeItem(t, TransferUtils::propertyHandler));
-		}
+		return updatedProps;
 	}
 
-	void TransferApi::onFailed(TransferInfoPtr& aInfo, const string& aReason) noexcept {
-		if (aInfo->getState() == TransferInfo::STATE_FAILED) {
-			// The connection is disconnected right after download fails, which causes double events
-			// Don't override the previous message
-			return;
-		}
+	void TransferApi::on(TransferInfoManagerListener::Updated, const TransferInfoPtr& aInfo, int aUpdatedProperties, bool aTick) noexcept {
+		auto updatedProps = updateFlagsToPropertyIds(aUpdatedProperties);
 
-		aInfo->setStatusString(aReason);
-		aInfo->setSpeed(-1);
-		aInfo->setBytesTransferred(-1);
-		aInfo->setTimeLeft(-1);
-		aInfo->setState(TransferInfo::STATE_FAILED);
-
-		onTransferUpdated(aInfo, {
-			TransferUtils::PROP_STATUS, TransferUtils::PROP_SPEED,
-			TransferUtils::PROP_BYTES_TRANSFERRED, TransferUtils::PROP_SECONDS_LEFT
-		}, "transfer_failed");
-	}
-
-	void TransferApi::on(ConnectionManagerListener::Failed, const ConnectionQueueItem* aCqi, const string& aReason) noexcept {
-		auto t = findTransfer(aCqi->getToken());
-		if (!t) {
-			return;
-		}
-
-		onFailed(t, aCqi->getUser().user->isSet(User::OLD_CLIENT) ? STRING(SOURCE_TOO_OLD) : aReason);
-	}
-
-	void TransferApi::onTransferUpdated(const TransferInfoPtr& aTransfer, const PropertyIdSet& aUpdatedProperties, const string& aSubscriptionName) noexcept {
-		view.onItemUpdated(aTransfer, aUpdatedProperties);
-
+		view.onItemUpdated(aInfo, updatedProps);
 		if (subscriptionActive("transfer_updated")) {
-			send("transfer_updated", Serializer::serializePartialItem(aTransfer, TransferUtils::propertyHandler, aUpdatedProperties));
-		}
-
-		if (!aSubscriptionName.empty() && subscriptionActive(aSubscriptionName)) {
-			// Serialize all properties
-			send(aSubscriptionName, Serializer::serializeItem(aTransfer, TransferUtils::propertyHandler));
+			send("transfer_updated", Serializer::serializePartialItem(aInfo, TransferUtils::propertyHandler, updatedProps));
 		}
 	}
 
-	void TransferApi::updateQueueInfo(TransferInfoPtr& aInfo) noexcept {
-		{
-			auto qi = QueueManager::getInstance()->getQueueInfo(aInfo->getHintedUser());
-			if (!qi) {
-				return;
-			}
-
-			auto type = Transfer::TYPE_FILE;
-			if (qi->getFlags() & QueueItem::FLAG_PARTIAL_LIST)
-				type = Transfer::TYPE_PARTIAL_LIST;
-			else if (qi->getFlags() & QueueItem::FLAG_USER_LIST)
-				type = Transfer::TYPE_FULL_LIST;
-
-			aInfo->setType(type);
-			aInfo->setTarget(qi->getTarget());
-			aInfo->setSize(qi->getSize());
-			aInfo->setQueueToken(qi->getToken());
-		}
-
-		aInfo->setState(TransferInfo::STATE_WAITING);
-		aInfo->setStatusString(STRING(CONNECTING));
-
-		onTransferUpdated(aInfo, {
-			TransferUtils::PROP_STATUS, TransferUtils::PROP_TARGET, 
-			TransferUtils::PROP_TYPE, TransferUtils::PROP_NAME, 
-			TransferUtils::PROP_SIZE, TransferUtils::PROP_QUEUE_ID
-		}, Util::emptyString);
-	}
-
-	void TransferApi::on(ConnectionManagerListener::Connecting, const ConnectionQueueItem* aCqi) noexcept {
-		auto t = findTransfer(aCqi->getToken());
-		if (!t) {
-			return;
-		}
-
-		updateQueueInfo(t);
-	}
-
-
-	void TransferApi::on(ConnectionManagerListener::Forced, const ConnectionQueueItem* aCqi) noexcept {
-		auto t = findTransfer(aCqi->getToken());
-		if (!t) {
-			return;
-		}
-
-		t->setState(TransferInfo::STATE_WAITING);
-		t->setStatusString(STRING(CONNECTING_FORCED));
-		onTransferUpdated(t, { TransferUtils::PROP_STATUS }, Util::emptyString);
-	}
-
-	void TransferApi::on(ConnectionManagerListener::UserUpdated, const ConnectionQueueItem* aCqi) noexcept {
-		auto t = findTransfer(aCqi->getToken());
-		if (!t) {
-			return;
-		}
-
-		onTransferUpdated(t, { TransferUtils::PROP_USER }, Util::emptyString);
-	}
-
-	void TransferApi::on(DownloadManagerListener::Failed, const Download* aDownload, const string& aReason) noexcept {
-		auto t = findTransfer(aDownload->getToken());
-		if (!t) {
-			return;
-		}
-
-		auto status = aReason;
-		if (aDownload->isSet(Download::FLAG_SLOWUSER)) {
-			status += ": " + STRING(SLOW_USER);
-		} else if (aDownload->getOverlapped() && !aDownload->isSet(Download::FLAG_OVERLAP)) {
-			status += ": " + STRING(OVERLAPPED_SLOW_SEGMENT);
-		}
-
-		onFailed(t, status);
-	}
-
-	void TransferApi::starting(TransferInfoPtr& aInfo, const Transfer* aTransfer) noexcept {
-		aInfo->setBytesTransferred(aTransfer->getPos());
-		aInfo->setTarget(aTransfer->getPath());
-		aInfo->setStarted(GET_TICK());
-		aInfo->setType(aTransfer->getType());
-		aInfo->setSize(aTransfer->getSegmentSize());
-
-		aInfo->setState(TransferInfo::STATE_RUNNING);
-		aInfo->setIp(aTransfer->getUserConnection().getRemoteIp());
-		aInfo->setEncryption(aTransfer->getUserConnection().getEncryptionInfo());
-
-		OrderedStringSet flags;
-		aTransfer->appendFlags(flags);
-		aInfo->setFlags(flags);
-
-		onTransferUpdated(aInfo, {
-			TransferUtils::PROP_STATUS, TransferUtils::PROP_SPEED, 
-			TransferUtils::PROP_BYTES_TRANSFERRED, TransferUtils::PROP_TIME_STARTED, 
-			TransferUtils::PROP_SIZE, TransferUtils::PROP_TARGET, TransferUtils::PROP_QUEUE_ID,
-			TransferUtils::PROP_NAME, TransferUtils::PROP_TYPE,
-			TransferUtils::PROP_IP, TransferUtils::PROP_ENCRYPTION, TransferUtils::PROP_FLAGS 
-		}, "transfer_starting");
-	}
-
-	void TransferApi::on(DownloadManagerListener::Requesting, const Download* aDownload, bool /*hubChanged*/) noexcept {
-		starting(aDownload, STRING(REQUESTING), true);
-	}
-
-	void TransferApi::starting(const Download* aDownload, const string& aStatus, bool aFullUpdate) noexcept {
-		auto t = findTransfer(aDownload->getToken());
-		if (!t) {
-			return;
-		}
-
-		t->setStatusString(aStatus);
-
-		if (aFullUpdate) {
-			starting(t, aDownload);
-		} else {
-			// All flags weren't known when requesting
-			OrderedStringSet flags;
-			aDownload->appendFlags(flags);
-			t->setFlags(flags);
-
-			// Size was unknown for filelists when requesting
-			t->setSize(aDownload->getSegmentSize());
-
-			onTransferUpdated(t, {
-				TransferUtils::PROP_STATUS, TransferUtils::PROP_FLAGS, 
-				TransferUtils::PROP_SIZE 
-			}, "transfer_starting");
+	void TransferApi::on(TransferInfoManagerListener::Removed, const TransferInfoPtr& aInfo) noexcept {
+		view.onItemRemoved(aInfo);
+		if (subscriptionActive("transfer_removed")) {
+			send("transfer_removed", Serializer::serializeItem(aInfo, TransferUtils::propertyHandler));
 		}
 	}
 
-	void TransferApi::on(DownloadManagerListener::Starting, const Download* aDownload) noexcept {
-		// No need for full update as it's done in the requesting phase
-		starting(aDownload, STRING(DOWNLOAD_STARTING), false);
-	}
-
-	void TransferApi::on(UploadManagerListener::Starting, const Upload* aUpload) noexcept {
-		auto t = findTransfer(aUpload->getToken());
-		if (!t) {
-			return;
+	void TransferApi::on(TransferInfoManagerListener::Failed, const TransferInfoPtr& aInfo) noexcept { 
+		if (subscriptionActive("transfer_failed")) {
+			send("transfer_failed", Serializer::serializeItem(aInfo, TransferUtils::propertyHandler));
 		}
-
-		starting(t, aUpload);
 	}
 
-	TransferInfoPtr TransferApi::findTransfer(const string& aToken) const noexcept {
-		RLock l(cs);
-		auto i = transfers.find(aToken);
-		return i != transfers.end() ? i->second : nullptr;
-	}
-
-	void TransferApi::on(DownloadManagerListener::Complete, const Download* aDownload, bool) noexcept {
-		onTransferCompleted(aDownload, true); 
-	}
-
-	void TransferApi::on(UploadManagerListener::Complete, const Upload* aUpload) noexcept {
-		onTransferCompleted(aUpload, false); 
-	}
-
-	void TransferApi::onTransferCompleted(const Transfer* aTransfer, bool aIsDownload) noexcept {
-		auto t = findTransfer(aTransfer->getToken());
-		if (!t) {
-			return;
+	void TransferApi::on(TransferInfoManagerListener::Starting, const TransferInfoPtr& aInfo) noexcept {
+		if (subscriptionActive("transfer_starting")) {
+			send("transfer_starting", Serializer::serializeItem(aInfo, TransferUtils::propertyHandler));
 		}
+	}
 
-		t->setStatusString(aIsDownload ? STRING(DOWNLOAD_FINISHED_IDLE) : STRING(UPLOAD_FINISHED_IDLE));
-		t->setSpeed(-1);
-		t->setTimeLeft(-1);
-		t->setBytesTransferred(aTransfer->getSegmentSize());
-		t->setState(TransferInfo::STATE_FINISHED);
-
-		onTransferUpdated(t, {
-			TransferUtils::PROP_STATUS, TransferUtils::PROP_SPEED,
-			TransferUtils::PROP_SECONDS_LEFT, TransferUtils::PROP_TIME_STARTED,
-			TransferUtils::PROP_BYTES_TRANSFERRED
-		}, "transfer_completed");
+	void TransferApi::on(TransferInfoManagerListener::Completed, const TransferInfoPtr& aInfo) noexcept {
+		if (subscriptionActive("transfer_completed")) {
+			send("transfer_completed", Serializer::serializeItem(aInfo, TransferUtils::propertyHandler));
+		}
 	}
 }

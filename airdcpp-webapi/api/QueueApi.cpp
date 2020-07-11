@@ -121,21 +121,21 @@ namespace webserver {
 		DownloadManager::getInstance()->removeListener(this);
 	}
 
-	ActionHookRejectionPtr QueueApi::fileCompletionHook(const QueueItemPtr& aFile, const HookRejectionGetter& aErrorGetter) noexcept {
+	ActionHookResult<> QueueApi::fileCompletionHook(const QueueItemPtr& aFile, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
 			fireHook("queue_file_finished_hook", 60, [&]() {
 				return Serializer::serializeItem(aFile, QueueFileUtils::propertyHandler);
 			}),
-			aErrorGetter
+			aResultGetter
 		);
 	}
 
-	ActionHookRejectionPtr QueueApi::bundleCompletionHook(const BundlePtr& aBundle, const HookRejectionGetter& aErrorGetter) noexcept {
+	ActionHookResult<> QueueApi::bundleCompletionHook(const BundlePtr& aBundle, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
 			fireHook("queue_bundle_finished_hook", 60, [&]() {
 				return Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler);
 			}),
-			aErrorGetter
+			aResultGetter
 		);
 	}
 
@@ -144,7 +144,7 @@ namespace webserver {
 		auto qm = QueueManager::getInstance();
 
 		RLock l(qm->getCS());
-		boost::range::copy(qm->getBundles() | map_values, back_inserter(bundles));
+		boost::range::copy(qm->getBundlesUnsafe() | map_values, back_inserter(bundles));
 		return bundles;
 	}
 
@@ -153,7 +153,7 @@ namespace webserver {
 		auto qm = QueueManager::getInstance();
 
 		RLock l(qm->getCS());
-		boost::range::copy(qm->getFileQueue() | map_values, back_inserter(items));
+		boost::range::copy(qm->getFileQueueUnsafe() | map_values, back_inserter(items));
 		return items;
 	}
 

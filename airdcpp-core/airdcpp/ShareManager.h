@@ -134,8 +134,7 @@ public:
 	RefreshResult refreshVirtualName(const string& aDir) noexcept;
 
 	// Refresh the specific directories
-	// This validates that each path exists
-	RefreshResult refreshPaths(const StringList& aPaths, const string& displayName = Util::emptyString, function<void(float)> progressF = nullptr) noexcept;
+	void refreshPaths(const StringList& aPaths, const string& displayName = Util::emptyString, function<void(float)> progressF = nullptr) noexcept;
 
 	bool isRefreshing() const noexcept { return refreshRunning; }
 	
@@ -166,11 +165,11 @@ public:
 	bool isRealPathShared(const string& aPath) const noexcept;
 
 	// Returns true if the real path can be added in share
-	bool allowShareDirectory(const string& aPath) const noexcept;
+	bool allowShareDirectoryHooked(const string& aPath) const noexcept;
 
 	// Validate a file/directory path
 	// Throws on errors
-	void validatePath(const string& aPath, bool aSkipQueueCheck) const;
+	void validatePathHooked(const string& aPath, bool aSkipQueueCheck) const;
 
 	// Returns the dupe paths by directory name/NMDC path
 	StringList getAdcDirectoryPaths(const string& aAdcPath) const noexcept;
@@ -606,7 +605,7 @@ private:
 
 	bool loadCache(function<void(float)> progressF) noexcept;
 
-	bool aShutdown = false;
+	bool stopping = false;
 	
 	static atomic_flag refreshing;
 	bool refreshRunning = false;
@@ -632,6 +631,7 @@ private:
 		Directory::Ptr newShareDirectory;
 		int64_t hashSize = 0;
 		int64_t addedSize = 0;
+		size_t newDirectoriesCount = 0;
 		Directory::Map rootPathsNew;
 		Directory::MultiMap lowerDirNameMapNew;
 		HashFileMap tthIndexNew;
@@ -646,15 +646,14 @@ private:
 
 	class ShareBuilder : public RefreshInfo {
 	public:
-		ShareBuilder(const string& aPath, const Directory::Ptr& aOldRoot, time_t aLastWrite, ShareBloom& bloom_, bool& shutdown_, SharePathValidator& aPathValidator);
+		ShareBuilder(const string& aPath, const Directory::Ptr& aOldRoot, time_t aLastWrite, ShareBloom& bloom_, ShareManager* sm);
 
 		// Recursive function for building a new share tree from a path
 		bool buildTree() noexcept;
 	private:
-		void buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aCurrentDirectory);
+		void buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aCurrentDirectory, const Directory::Ptr& aOldDirectory);
 
-		bool& shutdown;
-		SharePathValidator& pathValidator;
+		const ShareManager& sm;
 	};
 
 	typedef shared_ptr<ShareBuilder> ShareBuilderPtr;

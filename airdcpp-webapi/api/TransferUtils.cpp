@@ -20,7 +20,7 @@
 
 #include <api/TransferUtils.h>
 
-#include <api/TransferApi.h>
+#include <api/common/Serializer.h>
 #include <api/common/Format.h>
 
 
@@ -110,7 +110,7 @@ namespace webserver {
 			case PROP_STATUS:
 			{
 				return {
-					{ "id", aItem->getStateKey() },
+					{ "id", serializeStateKey(aItem->getState()) },
 					{ "str", aItem->getStatusString() },
 				};
 			}
@@ -147,5 +147,15 @@ namespace webserver {
 
 		dcassert(0);
 		return nullptr;
+	}
+
+	string TransferUtils::serializeStateKey(TransferInfo::ItemState aState) noexcept {
+		switch (aState) {
+			case TransferInfo::STATE_WAITING: return "waiting";
+			case TransferInfo::STATE_FINISHED: return "finished";
+			case TransferInfo::STATE_RUNNING: return "running";
+			case TransferInfo::STATE_FAILED: return "failed";
+			default: dcassert(0); return Util::emptyString;
+		}
 	}
 }
