@@ -227,6 +227,13 @@ namespace webserver {
 	}
 
 	string HttpUtil::parseAuthToken(const websocketpp::http::parser::request& aRequest) noexcept {
+		// Support custom header name as reverse proxy with basic auth would replace the regular Authorization header
+		// https://github.com/airdcpp-web/airdcpp-webclient/issues/330
+		auto ret = aRequest.get_header("X-Authorization");
+		if (!ret.empty()) {
+			return ret;
+		}
+
 		return aRequest.get_header("Authorization");
 	}
 }
