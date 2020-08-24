@@ -151,6 +151,9 @@ void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progr
 		GeoManager::getInstance()->init();
 	}
 
+	announce(STRING(CONNECTIVITY));
+	ConnectivityManager::getInstance()->startup(messageF);
+
 	// Modules may depend on data loaded in other sections
 	// Initialization should still be performed before loading SettingsManager as some modules save their config there
 	if (moduleLoadF) {

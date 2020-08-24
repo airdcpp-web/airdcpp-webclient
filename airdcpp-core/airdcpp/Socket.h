@@ -159,16 +159,9 @@ public:
 	 */
 	void socksConnect(const Socket::AddressInfo& aIp, const string& aPort, uint64_t timeout = 0);
 
-	/**
-	 * Sends data, will block until all data has been sent or an exception occurs
-	 * @param aBuffer Buffer with data
-	 * @param aLen Data length
-	 * @throw SocketExcpetion Send failed.
-	 */
-	void writeAll(const void* aBuffer, int aLen, uint64_t timeout = 0);
 	virtual int write(const void* aBuffer, int aLen);
 	int write(const string& aData) { return write(aData.data(), (int)aData.length()); }
-	virtual void writeTo(const string& aIp, const string& aPort, const void* aBuffer, int aLen, bool proxy = true);
+	virtual void writeTo(const string& aIp, const string& aPort, const void* aBuffer, int aLen);
 	void writeTo(const string& aIp, const string& aPort, const string& aData) { writeTo(aIp, aPort, aData.data(), (int)aData.length()); }
 	virtual void shutdown() noexcept;
 	virtual void close() noexcept;
@@ -194,13 +187,6 @@ public:
 	 * @throw SocketException On any failure.
 	 */
 	virtual int read(void* aBuffer, int aBufLen, string &aIP);
-	/**
-	 * Reads data until aBufLen bytes have been read or an error occurs.
-	 * If the socket is closed, or the timeout is reached, the number of bytes read
-	 * actually read is returned.
-	 * On exception, an unspecified amount of bytes might have already been read.
-	 */
-	int readAll(void* aBuffer, int aBufLen, uint64_t timeout = 0);
 
 	virtual std::pair<bool, bool> wait(uint64_t millis, bool checkRead, bool checkWrite);
 
@@ -233,6 +219,7 @@ public:
 
 	/** When socks settings are updated, this has to be called... */
 	static void socksUpdated();
+	static bool socksUdpInitialized() noexcept;
 
 	static int getLastError();
 
@@ -247,6 +234,7 @@ public:
 	}
 
 	bool isV6Valid() const noexcept;
+	static string resolveName(const sockaddr* sa, socklen_t sa_len, int flags = NI_NUMERICHOST);
 protected:
 	typedef union {
 		sockaddr sa;
@@ -268,17 +256,56 @@ protected:
 		uint64_t totalUp;
 	};
 	static Stats stats;
-
-	static addr udpAddr;
-	static socklen_t udpAddrLen;
 private:
+	enum SocksAddrType {
+		TYPE_V4 = 1,
+		TYPE_DOMAIN = 3,
+		TYPE_V6 = 4,
+	};
+
 	void connect(const string& aAddr, const string& aPort, const string& localPort, string& lastError_);
-	void socksAuth(uint64_t timeout);
+
 	socket_t setSock(socket_t s, int af);
 
 	// Low level interface
 	socket_t create(const addrinfo& ai);
-	static string resolveName(const sockaddr* sa, socklen_t sa_len, int flags = NI_NUMERICHOST);
+
+
+	// SOCKS5
+	static addr udpAddr;
+	static socklen_t udpAddrLen;
+
+	static void socksParseResponseAddress(const ByteVector& aData, size_t aDataLength, addr& addr_);
+	void socksConnect(addr& addr_, std::function<void(ByteVector& connStr_)>&& aConstructConnStr, uint64_t aTimeout);
+	void appendSocksAddress(const string& aName, const string& aPort, ByteVector& connStr_) const;
+
+	static uint16_t validateSocksResponse(const ByteVector& aData, size_t aDataLength);
+
+	/**
+	 * Sends data, will block until all data has been sent or an exception occurs
+	 * @param aBuffer Buffer with data
+	 * @param aLen Data length
+	 * @throw SocketExcpetion Send failed.
+	 */
+	void socksWrite(const void* aBuffer, int aLen, uint64_t timeout = 0);
+
+	/**
+	 * Reads data until aIsComplete returns true.
+	 * If the socket is closed, or the timeout is reached, the number of bytes read
+	 * actually read is returned.
+	 * On exception, an unspecified amount of bytes might have already been read.
+	 */
+	int socksRead(ByteVector& aBuffer, int aBufLen, std::function<bool(const ByteVector&, int)>&& aIsComplete, uint64_t aTimeout = 0);
+
+	/**
+	 * Reads data until aBufLen bytes have been read or an error occurs.
+	 * If the socket is closed, or the timeout is reached, the number of bytes read
+	 * actually read is returned.
+	 * On exception, an unspecified amount of bytes might have already been read.
+	 */
+	int socksRead(ByteVector& aBuffer, int aBufLen, uint64_t timeout = 0);
+
+	void socksAuth(uint64_t timeout);
 };
 
 } // namespace dcpp

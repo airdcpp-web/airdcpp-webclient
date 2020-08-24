@@ -42,6 +42,23 @@ mapperV4(false)
 {
 }
 
+
+void ConnectivityManager::startup(const function<bool(const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)>& aMessageF) noexcept {
+	try {
+		ConnectivityManager::getInstance()->setup(true, true);
+	} catch (const Exception& e) {
+		aMessageF(STRING_F(PORT_BYSY, e.getError()), false, true);
+	}
+
+	if (CONNSETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5) {
+		try {
+			Socket::socksUpdated();
+		} catch (const SocketException& e) {
+			aMessageF(e.getError(), false, true);
+		}
+	}
+}
+
 bool ConnectivityManager::get(SettingsManager::BoolSetting setting) const {
 	if(SETTING(AUTO_DETECT_CONNECTION) || SETTING(AUTO_DETECT_CONNECTION6)) {
 		RLock l(cs);
