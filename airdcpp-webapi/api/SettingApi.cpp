@@ -98,7 +98,12 @@ namespace webserver {
 	}
 
 	api_return SettingApi::handleSetValues(ApiRequest& aRequest) {
-		SettingHolder h(nullptr);
+		auto server = aRequest.getSession()->getServer();
+		auto holder = make_shared<SettingHolder>(
+			[=](const string& aError) {
+				server->log(aError, LogMessage::SEV_ERROR);
+			}
+		);
 
 		bool hasSet = false;
 		for (const auto& elem : aRequest.getRequestBody().items()) {
@@ -114,7 +119,11 @@ namespace webserver {
 		dcassert(hasSet);
 
 		SettingsManager::getInstance()->save();
-		WebServerManager::getInstance()->setDirty();
+		server->setDirty();
+
+		server->addAsyncTask([=] {
+			holder->apply();
+		});
 
 		return websocketpp::http::status_code::no_content;
 	}
