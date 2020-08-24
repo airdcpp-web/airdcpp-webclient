@@ -126,12 +126,6 @@ bool Client::startup() {
 	TimerManager::getInstance()->start();
 	UpdateManager::getInstance()->init();
 
-	try {
-		ConnectivityManager::getInstance()->setup(true, true);
-	} catch (const Exception& e) {
-
-	}
-
 	if (!Util::hasStartupParam("--no-autoconnect")) {
 		FavoriteManager::getInstance()->autoConnect();
 	}
