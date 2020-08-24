@@ -19,7 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_SETTINGHOLDER_
 #define DCPLUSPLUS_DCPP_SETTINGHOLDER_
 
-#include "ConnectivityManager.h"
 #include "SettingsManager.h"
 
 namespace dcpp {
@@ -32,6 +31,8 @@ public:
 	SettingHolder(ErrorFunction errorF);
 	~SettingHolder();
 
+	void apply();
+private:
 	const int prevTCP = SETTING(TCP_PORT);
 	const int prevUDP = SETTING(UDP_PORT);
 	const int prevTLS = SETTING(TLS_PORT);
@@ -41,7 +42,12 @@ public:
 	const string prevMapper = SETTING(MAPPER);
 	const string prevBind = SETTING(BIND_ADDRESS);
 	const string prevBind6 = SETTING(BIND_ADDRESS6);
-	const int prevProxy = CONNSETTING(OUTGOING_CONNECTIONS);
+
+	const int prevOutConn = SETTING(OUTGOING_CONNECTIONS);
+	const string prevSocksServer = SETTING(SOCKS_SERVER);
+	const int prevSocksPort = SETTING(SOCKS_PORT);
+	const string prevSocksUser = SETTING(SOCKS_USER);
+	const string prevSocksPassword = SETTING(SOCKS_PASSWORD);
 
 
 	const bool prevGeo = SETTING(GET_USER_COUNTRY);
@@ -60,7 +66,7 @@ public:
 	const string prevTranslation = SETTING(LANGUAGE_FILE);
 
 	const int prevUpdateChannel = SETTING(UPDATE_CHANNEL);
-private:
+
 	ErrorFunction errorF;
 	void showError(const string& aError) const noexcept;
 };

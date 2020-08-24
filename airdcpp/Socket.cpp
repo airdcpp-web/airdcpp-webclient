@@ -373,7 +373,12 @@ void Socket::connect(const string& aAddr, const string& aPort, const string& aLo
 	auto addr = resolveAddr(aAddr, aPort);
 	for (auto ai = addr.get(); ai; ai = ai->ai_next) {
 		if ((ai->ai_family == AF_INET && !sock4.valid()) ||
-			(ai->ai_family == AF_INET6 && !sock6.valid() && !v4only)) {
+			(ai->ai_family == AF_INET6 && !sock6.valid())) {
+
+			if (ai->ai_family == AF_INET6 && v4only) {
+				lastError_ = STRING(CONNECTION_IPV6_UNSUPPORTED);
+				continue;
+			}
 
 			try {
 				auto sock = create(*ai);
@@ -407,63 +412,97 @@ namespace {
 		return start + timeout - now;
 	}
 }
-
-void Socket::socksConnect(const Socket::AddressInfo& aAddr, const string& aPort, uint64_t timeout) {
-	if(SETTING(SOCKS_SERVER).empty() || SETTING(SOCKS_PORT) == 0) {
-		throw SocketException(STRING(SOCKS_FAILED));
-	}
-
-	uint64_t start = GET_TICK();
-
-	connect(AddressInfo(SETTING(SOCKS_SERVER), AddressInfo::TYPE_URL), Util::toString(SETTING(SOCKS_PORT)));
-
-	if(!waitConnected(timeLeft(start, timeout))) {
-		throw SocketException(STRING(SOCKS_FAILED));
-	}
-
-	socksAuth(timeLeft(start, timeout));
-
-	ByteVector connStr;
-
-	// Authenticated, let's get on with it...
-	connStr.push_back(5);			// SOCKSv5
-	connStr.push_back(1);			// Connect
-	connStr.push_back(0);			// Reserved
-
-	auto v4Addr = aAddr.getV4CompatibleAddress();
-	if(SETTING(SOCKS_RESOLVE)) {
-		connStr.push_back(3);		// Address type: domain name
-		connStr.push_back((uint8_t) v4Addr.size());
-		connStr.insert(connStr.end(), v4Addr.begin(), v4Addr.end());
+void Socket::appendSocksAddress(const string& aAddr, const string& aPort, ByteVector& connStr_) const {
+	if (SETTING(SOCKS_RESOLVE)) {
+		connStr_.push_back(SocksAddrType::TYPE_DOMAIN);
+		connStr_.push_back((uint8_t)aAddr.size());
+		connStr_.insert(connStr_.end(), aAddr.begin(), aAddr.end());
 	} else {
-		connStr.push_back(1);		// Address type: IPv4;
-		unsigned long addr = inet_addr(resolve(v4Addr, AF_INET).c_str());
-		uint8_t* paddr = (uint8_t*)&addr;
-		connStr.insert(connStr.end(), paddr, paddr+4);
+		auto ai = resolveAddr(aAddr, aPort);
+		if (ai->ai_family == AF_INET) {
+			connStr_.push_back(SocksAddrType::TYPE_V4);
+			uint8_t* paddr = (uint8_t*)&((sockaddr_in*)ai->ai_addr)->sin_addr;
+			connStr_.insert(connStr_.end(), paddr, paddr + 4);
+		} else if (ai->ai_family == AF_INET6) {
+			connStr_.push_back(SocksAddrType::TYPE_V6);
+			uint8_t* paddr = (uint8_t*)&((sockaddr_in6*)ai->ai_addr)->sin6_addr;
+			connStr_.insert(connStr_.end(), paddr, paddr + 16);
+		}
 	}
 
 	uint16_t port = htons(static_cast<uint16_t>(Util::toInt(aPort)));
 	uint8_t* pport = (uint8_t*)&port;
-	connStr.push_back(pport[0]);
-	connStr.push_back(pport[1]);
+	connStr_.push_back(pport[0]);
+	connStr_.push_back(pport[1]);
+}
 
-	writeAll(&connStr[0], connStr.size(), timeLeft(start, timeout));
-
-	// We assume we'll get a ipv4 address back...therefore, 10 bytes...
-	/// @todo add support for ipv6
-	if(readAll(&connStr[0], 10, timeLeft(start, timeout)) != 10) {
+void Socket::socksConnect(addr& addr_, std::function<void(ByteVector& connStr_)>&& aConstructConnStr, uint64_t aTimeout) {
+	if (SETTING(SOCKS_SERVER).empty() || SETTING(SOCKS_PORT) == 0) {
 		throw SocketException(STRING(SOCKS_FAILED));
 	}
 
-	if(connStr[0] != 5 || connStr[1] != 0) {
+	ByteVector connStr;
+	uint64_t start = GET_TICK();
+
+	// Auth
+
+	// Not pretty, but IPv6 should always be allowed with SOCKS server...
+	auto prevV4Only = v4only;
+	setV4only(false);
+	Socket::connect(AddressInfo(SETTING(SOCKS_SERVER), AddressInfo::TYPE_URL), Util::toString(SETTING(SOCKS_PORT)));
+	setV4only(prevV4Only);
+
+	if (!Socket::waitConnected(timeLeft(start, aTimeout))) {
 		throw SocketException(STRING(SOCKS_FAILED));
 	}
 
-	in_addr sock_addr;
+	socksAuth(timeLeft(start, aTimeout));
 
-	memset(&sock_addr, 0, sizeof(sock_addr));
-	sock_addr.s_addr = *((unsigned long*)&connStr[4]);
-	setIp4(inet_ntoa(sock_addr));
+	aConstructConnStr(connStr);
+
+	// Send data
+	socksWrite(&connStr[0], connStr.size(), timeLeft(start, aTimeout));
+
+	connStr.resize(22);
+	auto len = socksRead(
+		connStr,
+		22,
+		[](const ByteVector& aBuffer, int aLen) {
+			try {
+				validateSocksResponse(aBuffer, aLen);
+				return true;
+			} catch (...) {
+				return false;
+			}
+		},
+		timeLeft(start, aTimeout)
+	);
+
+	socksParseResponseAddress(connStr, len, addr_);
+}
+
+void Socket::socksConnect(const Socket::AddressInfo& aAddr, const string& aPort, uint64_t aTimeout) {
+	addr sock_addr;
+	socksConnect(
+		sock_addr,
+		[&](ByteVector& connStr_) {
+			connStr_.push_back(5);			// SOCKSv5
+			connStr_.push_back(1);			// Connect
+			connStr_.push_back(0);			// Reserved
+			appendSocksAddress(aAddr.hasV6CompatibleAddress() ? aAddr.getV6CompatibleAddress() : aAddr.getV4CompatibleAddress(), aPort, connStr_);
+		},
+		aTimeout
+	);
+
+	auto isV6 = sock_addr.sa.sa_family == AF_INET6;
+	const auto ip = resolveName(&sock_addr.sa, isV6 ? sizeof(sock_addr.sai6) : sizeof(sock_addr.sai));
+	if (isV6) {
+		setIp6(ip);
+	} else {
+		setIp4(ip);
+	}
+
+	dcdebug("SOCKS5: resolved address %s:%d (v6: %s)\n", ip.c_str(), isV6 ? sock_addr.sai6.sin6_port : sock_addr.sai.sin_port, isV6 ? "true" : "false");
 }
 
 void Socket::socksAuth(uint64_t timeout) {
@@ -477,13 +516,13 @@ void Socket::socksAuth(uint64_t timeout) {
 		connStr.push_back(1);			// 1 method
 		connStr.push_back(0);			// Method 0: No auth...
 
-		writeAll(&connStr[0], 3, timeLeft(start, timeout));
+		socksWrite(&connStr[0], 3, timeLeft(start, timeout));
 
-		if(readAll(&connStr[0], 2, timeLeft(start, timeout)) != 2) {
+		if (socksRead(connStr, 2, timeLeft(start, timeout)) != 2) {
 			throw SocketException(STRING(SOCKS_FAILED));
 		}
 
-		if(connStr[1] != 0) {
+		if (connStr[1] != 0) {
 			throw SocketException(STRING(SOCKS_NEEDS_AUTH));
 		}
 	} else {
@@ -492,12 +531,12 @@ void Socket::socksAuth(uint64_t timeout) {
 		connStr.push_back(5);			// SOCKSv5
 		connStr.push_back(1);			// 1 method
 		connStr.push_back(2);			// Method 2: Name/Password...
-		writeAll(&connStr[0], 3, timeLeft(start, timeout));
+		socksWrite(&connStr[0], 3, timeLeft(start, timeout));
 
-		if(readAll(&connStr[0], 2, timeLeft(start, timeout)) != 2) {
+		if (socksRead(connStr, 2, timeLeft(start, timeout)) != 2) {
 			throw SocketException(STRING(SOCKS_FAILED));
 		}
-		if(connStr[1] != 2) {
+		if (connStr[1] != 2) {
 			throw SocketException(STRING(SOCKS_AUTH_UNSUPPORTED));
 		}
 
@@ -509,9 +548,9 @@ void Socket::socksAuth(uint64_t timeout) {
 		connStr.push_back((uint8_t)SETTING(SOCKS_PASSWORD).length());
 		connStr.insert(connStr.end(), SETTING(SOCKS_PASSWORD).begin(), SETTING(SOCKS_PASSWORD).end());
 
-		writeAll(&connStr[0], connStr.size(), timeLeft(start, timeout));
+		socksWrite(&connStr[0], connStr.size(), timeLeft(start, timeout));
 
-		if(readAll(&connStr[0], 2, timeLeft(start, timeout)) != 2) {
+		if (socksRead(connStr, 2, timeLeft(start, timeout)) != 2) {
 			throw SocketException(STRING(SOCKS_AUTH_FAILED));
 		}
 
@@ -573,15 +612,14 @@ int Socket::read(void* aBuffer, int aBufLen, string &aIP) {
 	return len;
 }
 
-int Socket::readAll(void* aBuffer, int aBufLen, uint64_t timeout) {
-	uint8_t* buf = (uint8_t*)aBuffer;
+int Socket::socksRead(ByteVector& aBuffer, int aBufLen, std::function<bool(const ByteVector& aBuffer, int aBufLen)>&& aIsComplete, uint64_t aTimeout) {
 	int i = 0;
-	while(i < aBufLen) {
-		int j = read(buf + i, aBufLen - i);
-		if(j == 0) {
+	while (i <= 0 || !aIsComplete(aBuffer, i)) {
+		int j = Socket::read(&aBuffer[i], aBufLen - i);
+		if (j == 0) {
 			return i;
 		} else if(j == -1) {
-			if(!wait(timeout, true, false).first) {
+			if(!Socket::wait(aTimeout, true, false).first) {
 				return i;
 			}
 			continue;
@@ -592,16 +630,25 @@ int Socket::readAll(void* aBuffer, int aBufLen, uint64_t timeout) {
 	return i;
 }
 
-void Socket::writeAll(const void* aBuffer, int aLen, uint64_t timeout) {
+int Socket::socksRead(ByteVector& aBuffer, int aBufLen, uint64_t aTimeout) {
+	return socksRead(
+		aBuffer, 
+		aBufLen, 
+		[aBufLen](const ByteVector&, int aLen) { return aLen == aBufLen; }, 
+		aTimeout
+	);
+}
+
+void Socket::socksWrite(const void* aBuffer, int aLen, uint64_t timeout) {
 	const uint8_t* buf = (const uint8_t*)aBuffer;
 	int pos = 0;
 	// No use sending more than this at a time...
 	int sendSize = getSocketOptInt(SO_SNDBUF);
 
 	while(pos < aLen) {
-		int i = write(buf+pos, (int)std::min(aLen-pos, sendSize));
-		if(i == -1) {
-			wait(timeout, false, true);
+		int i = Socket::write(buf+pos, (int)std::min(aLen-pos, sendSize));
+		if (i == -1) {
+			Socket::wait(timeout, false, true);
 		} else {
 			pos+=i;
 			stats.totalUp += i;
@@ -623,7 +670,7 @@ int Socket::write(const void* aBuffer, int aLen) {
  * @param aLen Data length
  * @throw SocketExcpetion Send failed.
  */
-void Socket::writeTo(const string& aAddr, const string& aPort, const void* aBuffer, int aLen, bool proxy) {
+void Socket::writeTo(const string& aAddr, const string& aPort, const void* aBuffer, int aLen) {
 	if(aLen <= 0)
 		return;
 
@@ -634,48 +681,58 @@ void Socket::writeTo(const string& aAddr, const string& aPort, const void* aBuff
 	auto buf = (const uint8_t*)aBuffer;
 
 	int sent;
-	if(proxy && CONNSETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5) {
-		if(udpAddr.sa.sa_family == 0) {
-			throw SocketException(STRING(SOCKS_SETUP_ERROR));
-		}
+	if (CONNSETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5 && socksUdpInitialized()) {
+		// Create connect string
+		ByteVector connStr;
 
-		vector<uint8_t> connStr;
-
-		connStr.reserve(aLen + 24);
+		connStr.reserve((size_t)aLen + 24);
 
 		connStr.push_back(0);		// Reserved
 		connStr.push_back(0);		// Reserved
 		connStr.push_back(0);		// Fragment number, always 0 in our case...
 
-		if(SETTING(SOCKS_RESOLVE)) {
-			connStr.push_back(3);
-			connStr.push_back((uint8_t)aAddr.size());
-			connStr.insert(connStr.end(), aAddr.begin(), aAddr.end());
-		} else {
-			auto ai = resolveAddr(aAddr, aPort);
+		appendSocksAddress(aAddr, aPort, connStr); // Destination address
 
-			if(ai->ai_family == AF_INET) {
-				connStr.push_back(1);		// Address type: IPv4
-				uint8_t* paddr = (uint8_t*)&((sockaddr_in*)ai->ai_addr)->sin_addr;
-				connStr.insert(connStr.end(), paddr, paddr+4);
-			} else if(ai->ai_family == AF_INET6) {
-				connStr.push_back(4);		// Address type: IPv6
-				uint8_t* paddr = (uint8_t*)&((sockaddr_in6*)ai->ai_addr)->sin6_addr;
-				connStr.insert(connStr.end(), paddr, paddr+16);
-			}
+		connStr.insert(connStr.end(), buf, buf + aLen); // Data
+
+		// Initialize socket
+		if ((udpAddr.sa.sa_family == AF_INET && !sock4.valid()) || (udpAddr.sa.sa_family == AF_INET6 && !sock6.valid())) {
+			addrinfo ai = { 0 };
+			ai.ai_family = udpAddr.sa.sa_family;
+			ai.ai_flags = 0;
+			ai.ai_socktype = type == TYPE_TCP ? SOCK_STREAM : SOCK_DGRAM;
+			ai.ai_protocol = type;
+
+			create(ai);
 		}
 
-		connStr.insert(connStr.end(), buf, buf + aLen);
-
-		sent = check([&] { return ::sendto(udpAddr.sa.sa_family == AF_INET ? sock4 : sock6,
-			(const char*)&connStr[0], (int)connStr.size(), 0, &udpAddr.sa, udpAddrLen); });
+		// Send
+		sent = check([&] { 
+			return ::sendto(
+				udpAddr.sa.sa_family == AF_INET ? sock4 : sock6,
+				(const char*)&connStr[0], 
+				(int)connStr.size(), 
+				0, 
+				&udpAddr.sa, 
+				udpAddrLen
+			); 
+		});
 	} else {
 		auto ai = resolveAddr(aAddr, aPort);
 		if((ai->ai_family == AF_INET && !sock4.valid()) || (ai->ai_family == AF_INET6 && !sock6.valid())) {
 			create(*ai);
 		}
-		sent = check([&] { return ::sendto(ai->ai_family == AF_INET ? sock4 : sock6,
-			(const char*)aBuffer, (int)aLen, 0, ai->ai_addr, ai->ai_addrlen); });
+
+		sent = check([&] { 
+			return ::sendto(
+				ai->ai_family == AF_INET ? sock4 : sock6,
+				(const char*)aBuffer, 
+				(int)aLen, 
+				0, 
+				ai->ai_addr, 
+				ai->ai_addrlen
+			); 
+		});
 	}
 
 	stats.totalUp += sent;
@@ -831,7 +888,7 @@ string Socket::resolveName(const sockaddr* sa, socklen_t sa_len, int flags) {
 	char buf[1024];
 
 	auto err = ::getnameinfo(sa, sa_len, buf, sizeof(buf), NULL, 0, flags);
-	if(err) {
+	if (err) {
 		throw SocketException(err);
 	}
 
@@ -868,6 +925,11 @@ uint16_t Socket::getLocalPort() noexcept {
 	return 0;
 }
 
+
+bool Socket::socksUdpInitialized() noexcept {
+	return udpAddr.sa.sa_family != 0;
+}
+
 void Socket::socksUpdated() {
 	memset(&udpAddr, 0, sizeof(udpAddr));
 	udpAddrLen = sizeof(udpAddr);
@@ -876,41 +938,93 @@ void Socket::socksUpdated() {
 		try {
 			Socket s(TYPE_TCP);
 			s.setBlocking(false);
-			s.connect(AddressInfo(SETTING(SOCKS_SERVER), AddressInfo::TYPE_URL), static_cast<uint16_t>(SETTING(SOCKS_PORT)));
-			s.socksAuth(SOCKS_TIMEOUT);
+			s.socksConnect(
+				udpAddr,
+				[&s](ByteVector& connStr_) {
+					const bool v6 = s.isV6Valid();
 
-			char connStr[10];
-			connStr[0] = 5;			// SOCKSv5
-			connStr[1] = 3;			// UDP Associate
-			connStr[2] = 0;			// Reserved
-			connStr[3] = 1;			// Address type: IPv4;
-			*((long*)(&connStr[4])) = 0;		// No specific outgoing UDP address
-			*((uint16_t*)(&connStr[8])) = 0;	// No specific port...
+					connStr_.push_back(5);			// SOCKSv5
+					connStr_.push_back(3);			// UDP Associate
+					connStr_.push_back(0);			// Reserved
+					connStr_.push_back((unsigned char)(v6 ? SocksAddrType::TYPE_V6 : SocksAddrType::TYPE_V4));
 
-			s.writeAll(connStr, 10, SOCKS_TIMEOUT);
-
-			// We assume we'll get a ipv4 address back...therefore, 10 bytes...if not, things
-			// will break, but hey...noone's perfect (and I'm tired...)...
-			if(s.readAll(connStr, 10, SOCKS_TIMEOUT) != 10) {
-				return;
-			}
-
-			if(connStr[0] != 5 || connStr[1] != 0) {
-				return;
-			}
-
-			udpAddr.sa.sa_family = AF_INET;
-			udpAddr.sai.sin_port = *((uint16_t*)(&connStr[8]));
-#ifdef _WIN32
-			udpAddr.sai.sin_addr.S_un.S_addr = *((long*) (&connStr[4]));
-#else
-			udpAddr.sai.sin_addr.s_addr = *((long*) (&connStr[4]));
-#endif
-			udpAddrLen = sizeof(udpAddr.sai);
-		} catch(const SocketException&) {
-			dcdebug("Socket: Failed to register with socks server\n");
+					connStr_.insert(connStr_.end(), v6 ? 16 : 4, 0); // No specific outgoing UDP address
+					connStr_.insert(connStr_.end(), 2, 0); // No specific port...
+				},
+				SOCKS_TIMEOUT
+			);
+		} catch (const SocketException& e) {
+			dcdebug("Socket: Failed to register with socks server (%s)\n", e.getError().c_str());
+			throw SocketException(STRING_F(SOCKS_SETUP_ERROR, e.getError()));
 		}
+
+		auto isV6 = udpAddr.sa.sa_family == AF_INET6;
+		udpAddrLen = isV6 ? sizeof(udpAddr.sai6) : sizeof(udpAddr.sai);
+
+		dcdebug("SOCKS5: UDP initialized with address %s:%d (v6: %s)\n", resolveName(&udpAddr.sa, udpAddrLen).c_str(), isV6 ? udpAddr.sai6.sin6_port : udpAddr.sai.sin_port, isV6 ? "true" : "false");
 	}
+}
+
+
+uint16_t Socket::validateSocksResponse(const ByteVector& aData, size_t aDataLength) {
+	if (aDataLength < 3) {
+		dcdebug("SOCKS5: not enough bytes in the response (" SIZET_FMT ")\n", aDataLength);
+		throw SocketException(STRING(SOCKS_UNSUPPORTED_RESPONSE));
+	}
+
+	if (aData[0] != 5) {
+		dcdebug("SOCKS5: invalid SOCKS version received (%d)\n", aData[0]);
+		throw SocketException(STRING(SOCKS_UNSUPPORTED_RESPONSE));
+	}
+
+	if (aData[1] != 0) {
+		// Connection failed
+		dcdebug("SOCKS5: error received (%d)\n", aData[1]);
+		throw SocketException(STRING(SOCKS_FAILED));
+	}
+
+	uint16_t af = 0;
+	if (aData[3] == SocksAddrType::TYPE_V4) {
+		af = AF_INET;
+	} else if (aData[3] == SocksAddrType::TYPE_V6) {
+		af = AF_INET6;
+	} else {
+		dcdebug("SOCKS5: unsupported protocol (%d)\n", aData[3]);
+		throw SocketException(STRING(SOCKS_UNSUPPORTED_RESPONSE));
+	}
+
+	size_t expectedDataLength = af == AF_INET ? 10 : 22;
+	if (aDataLength != expectedDataLength) {
+		dcdebug("SOCKS5: received " SIZET_FMT " bytes while " SIZET_FMT " bytes were expected\n", aDataLength, expectedDataLength);
+		throw SocketException(STRING(SOCKS_UNSUPPORTED_RESPONSE));
+	}
+
+	return af;
+}
+
+void Socket::socksParseResponseAddress(const ByteVector& aData, size_t aDataLength, Socket::addr& addr_) {
+	auto af = validateSocksResponse(aData, aDataLength);
+	addr_.sa.sa_family = af;
+
+	const auto port = *((uint16_t*)(&aData[aData.size() - 2])); // 2 bytes
+	if (addr_.sa.sa_family == AF_INET6) {
+		addr_.sai6.sin6_port = port;
+	} else {
+		addr_.sai.sin_port = port;
+	}
+#ifdef _WIN32
+	if (addr_.sa.sa_family == AF_INET6) {
+		memcpy(addr_.sai6.sin6_addr.u.Byte, &aData[4], 16);
+	} else {
+		addr_.sai.sin_addr.S_un.S_addr = *((long*)(&aData[4]));
+	}
+#else
+	if (udpAddr.sa.sa_family == AF_INET6) {
+		memcpy(addr_.sai6.sin6_addr.s6_addr, &aData[4], 16);
+	} else {
+		addr_.sai.sin_addr.s_addr = *((long*)(&aData[4]));
+	}
+#endif
 }
 
 void Socket::shutdown() noexcept {

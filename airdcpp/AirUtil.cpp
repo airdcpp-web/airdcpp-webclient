@@ -287,11 +287,11 @@ AirUtil::AdapterInfoList AirUtil::getNetworkAdapters(bool v6) {
 #else
 
 #ifdef HAVE_IFADDRS_H
-	struct ifaddrs *ifap;
+	struct ifaddrs* ifap;
 
 	if (getifaddrs(&ifap) == 0) {
-		for (struct ifaddrs *i = ifap; i != NULL; i = i->ifa_next) {
-			struct sockaddr *sa = i->ifa_addr;
+		for (struct ifaddrs* i = ifap; i != NULL; i = i->ifa_next) {
+			struct sockaddr* sa = i->ifa_addr;
 
 			// If the interface is up, is not a loopback and it has an address
 			if ((i->ifa_flags & IFF_UP) && !(i->ifa_flags & IFF_LOOPBACK) && sa != NULL) {
@@ -301,12 +301,13 @@ AirUtil::AdapterInfoList AirUtil::getNetworkAdapters(bool v6) {
 				if (!v6 && sa->sa_family == AF_INET) {
 					// IPv4 address
 					struct sockaddr_in* sai = (struct sockaddr_in*)sa;
-					src = (void*) &(sai->sin_addr);
+					src = (void*)&(sai->sin_addr);
 					len = INET_ADDRSTRLEN;
-				} else if (v6 && sa->sa_family == AF_INET6) {
+				}
+				else if (v6 && sa->sa_family == AF_INET6) {
 					// IPv6 address
 					struct sockaddr_in6* sai6 = (struct sockaddr_in6*)sa;
-					src = (void*) &(sai6->sin6_addr);
+					src = (void*)&(sai6->sin6_addr);
 					len = INET6_ADDRSTRLEN;
 				}
 
@@ -317,7 +318,7 @@ AirUtil::AdapterInfoList AirUtil::getNetworkAdapters(bool v6) {
 					// TODO: get the prefix
 					adapterInfos.emplace_back("Unknown", (string)address, 0);
 				}
-			}
+}
 		}
 		freeifaddrs(ifap);
 	}

@@ -54,6 +54,8 @@ public:
 class ConnectivityManager : public Singleton<ConnectivityManager>, public Speaker<ConnectivityManagerListener>
 {
 public:
+	void startup(const function<bool(const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)>& aMessageF) noexcept;
+
 	bool get(SettingsManager::BoolSetting setting) const;
 	int get(SettingsManager::IntSetting setting) const;
 	const string& get(SettingsManager::StrSetting setting) const;
