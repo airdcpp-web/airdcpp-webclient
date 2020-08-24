@@ -24,11 +24,13 @@
 
 #include "typedefs.h"
 
+#include "AddressInfo.h"
 #include "BufferedSocketListener.h"
+#include "GetSet.h"
 #include "Semaphore.h"
 #include "Thread.h"
-#include "Speaker.h"
 #include "Socket.h"
+#include "Speaker.h"
 
 namespace dcpp {
 
@@ -73,8 +75,8 @@ public:
 	}
 
 	void accept(const Socket& srv, bool secure, bool allowUntrusted, const string& expKP = Util::emptyString);
-	void connect(const Socket::AddressInfo& aAddress, const string& aPort, bool secure, bool allowUntrusted, bool proxy, const string& expKP = Util::emptyString);
-	void connect(const Socket::AddressInfo& aAddress, const string& aPort, const string& localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy, const string& expKP = Util::emptyString);
+	void connect(const AddressInfo& aAddress, const string& aPort, bool secure, bool allowUntrusted, bool proxy, const string& expKP = Util::emptyString);
+	void connect(const AddressInfo& aAddress, const string& aPort, const string& localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy, const string& expKP = Util::emptyString);
 
 	/** Sets data mode for aBytes bytes. Must be called within onLine. */
 	void setDataMode(int64_t aBytes = -1) { mode = MODE_DATA; dataBytes = aBytes; }
@@ -86,14 +88,17 @@ public:
 	void setLineMode(size_t aRollback) { setMode (MODE_LINE, aRollback);}
 	void setMode(Modes mode, size_t aRollback = 0);
 	Modes getMode() const { return mode; }
-	const string& getIp() const { return sock->getIp(); }
 
+	const string& getIp() const { return sock->getIp(); }
 	bool isSecure() const { return sock->isSecure(); }
 	bool isTrusted() const { return sock->isTrusted(); }
 	bool isKeyprintMatch() const { return sock->isKeyprintMatch(); }
 	std::string getEncryptionInfo() const { return sock->getEncryptionInfo(); }
 	ByteVector getKeyprint() const { return sock->getKeyprint(); }
-	bool verifyKeyprint(const string& expKeyp, bool allowUntrusted) noexcept{ return sock->verifyKeyprint(expKeyp, allowUntrusted); };
+	bool verifyKeyprint(const string& expKeyp, bool allowUntrusted) noexcept { return sock->verifyKeyprint(expKeyp, allowUntrusted); };
+	string getLocalIp() const { return sock->getLocalIp(); }
+	uint16_t getLocalPort() const { return sock->getLocalPort(); }
+	bool isV6Valid() const { return sock->isV6Valid(); }
 
 	void write(const string& aData) { write(aData.data(), aData.length()); }
 	void write(const char* aBuf, size_t aLen) noexcept;
@@ -104,10 +109,6 @@ public:
 	void callAsync(function<void ()> f) { Lock l(cs); addTask(ASYNC_CALL, new CallData(f)); }
 
 	void disconnect(bool graceless = false) noexcept { Lock l(cs); if(graceless) disconnecting = true; addTask(DISCONNECT, 0); }
-
-	string getLocalIp() const { return sock->getLocalIp(); }
-	uint16_t getLocalPort() const { return sock->getLocalPort(); }
-	bool isV6Valid() const { return sock->isV6Valid(); }
 
 	GETSET(char, separator, Separator);
 	GETSET(bool, useLimiter, UseLimiter);
@@ -132,8 +133,8 @@ private:
 		virtual ~TaskData() { }
 	};
 	struct ConnectInfo : public TaskData {
-		ConnectInfo(Socket::AddressInfo addr_, string port_, string localPort_, NatRoles natRole_, bool proxy_) : addr(addr_), port(port_), localPort(localPort_), natRole(natRole_), proxy(proxy_) {}
-		Socket::AddressInfo addr;
+		ConnectInfo(AddressInfo addr_, string port_, string localPort_, NatRoles natRole_, bool proxy_) : addr(addr_), port(port_), localPort(localPort_), natRole(natRole_), proxy(proxy_) {}
+		AddressInfo addr;
 		string port;
 		string localPort;
 		NatRoles natRole;
@@ -173,7 +174,7 @@ private:
 
 	virtual int run();
 
-	void threadConnect(const Socket::AddressInfo& aAddr, const string& aPort, const string& localPort, NatRoles natRole, bool proxy);
+	void threadConnect(const AddressInfo& aAddr, const string& aPort, const string& localPort, NatRoles natRole, bool proxy);
 	void threadAccept();
 	void threadRead();
 	void threadSendFile(InputStream* is);

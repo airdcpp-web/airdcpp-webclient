@@ -36,7 +36,6 @@
 #include "HashBloom.h"
 #include "MerkleTree.h"
 #include "Singleton.h"
-#include "Socket.h"
 #include "StringMatch.h"
 #include "TaskQueue.h"
 #include "UserQueue.h"
@@ -398,7 +397,7 @@ private:
 	
 	mutable SharedMutex cs;
 
-	Socket udp;
+	unique_ptr<Socket> udp;
 
 	/** QueueItems by target and TTH */
 	FileQueue fileQueue;

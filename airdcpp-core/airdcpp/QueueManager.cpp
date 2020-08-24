@@ -65,7 +65,7 @@ namespace dcpp {
 using boost::range::for_each;
 
 QueueManager::QueueManager() : 
-	udp(Socket::TYPE_UDP),
+	udp(make_unique<Socket>(Socket::TYPE_UDP)),
 	tasks(true)
 { 
 	//add listeners in loadQueue
@@ -480,7 +480,7 @@ void QueueManager::requestPartialSourceInfo(uint64_t aTick) noexcept {
 		try {
 			AdcCommand cmd = SearchManager::getInstance()->toPSR(true, param->myNick, param->hubIpPort, param->tth, param->parts);
 			COMMAND_DEBUG(cmd.toString(), DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, param->ip);
-			udp.writeTo(param->ip, param->udpPort, cmd.toString(ClientManager::getInstance()->getMyCID()));
+			udp->writeTo(param->ip, param->udpPort, cmd.toString(ClientManager::getInstance()->getMyCID()));
 		} catch (...) {
 			dcdebug("Partial search caught error\n");
 		}

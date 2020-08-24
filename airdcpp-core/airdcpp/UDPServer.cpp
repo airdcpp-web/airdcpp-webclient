@@ -26,6 +26,7 @@
 #include "ResourceManager.h"
 #include "SearchManager.h"
 #include "SettingsManager.h"
+#include "Socket.h"
 #include "UDPServer.h"
 #include "UploadManager.h"
 

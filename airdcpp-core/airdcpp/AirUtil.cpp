@@ -28,7 +28,6 @@
 #include "SettingsManager.h"
 #include "ShareManager.h"
 #include "SimpleXML.h"
-#include "Socket.h"
 #include "StringTokenizer.h"
 #include "ThrottleManager.h"
 #include "Util.h"

@@ -30,7 +30,6 @@
 #include "CriticalSection.h"
 #include "OfflineUser.h"
 #include "Singleton.h"
-#include "Socket.h"
 #include "TimerManager.h"
 
 
@@ -260,7 +259,7 @@ private:
 
 	UserPtr me;
 
-	Socket udp;
+	unique_ptr<Socket> udp;
 	
 	CID pid;
 	uint64_t lastOfflineUserCleanup;

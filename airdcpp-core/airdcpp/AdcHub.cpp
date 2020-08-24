@@ -69,7 +69,7 @@ const string AdcHub::CCPM_FEATURE("CCPM");
 const vector<StringList> AdcHub::searchExtensions;
 
 AdcHub::AdcHub(const string& aHubURL, const ClientPtr& aOldClient) :
-	Client(aHubURL, '\n', aOldClient), udp(Socket::TYPE_UDP) {
+	Client(aHubURL, '\n', aOldClient), udp(make_unique<Socket>(Socket::TYPE_UDP)) {
 
 	TimerManager::getInstance()->addListener(this);
 }
@@ -563,10 +563,10 @@ void AdcHub::sendUDP(const AdcCommand& cmd) noexcept {
 	}
 
 	try {
-		udp.writeTo(remoteIp, remotePort, command);
+		udp->writeTo(remoteIp, remotePort, command);
 	} catch(const SocketException& e) {
 		dcdebug("AdcHub::sendUDP: write failed: %s\n", e.getError().c_str());
-		udp.close();
+		udp->close();
 	}
 }
 
@@ -897,7 +897,7 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 		COMMAND_DEBUG(snd, DebugManager::TYPE_HUB, DebugManager::OUTGOING, aIP + ":" + aPort);
 
 		// Connect
-		hbri->connect(Socket::AddressInfo(aIP, v6 ? Socket::AddressInfo::TYPE_V6 : Socket::AddressInfo::TYPE_V4), aPort);
+		hbri->connect(AddressInfo(aIP, v6 ? AddressInfo::TYPE_V6 : AddressInfo::TYPE_V4), aPort);
 
 		auto endTime = GET_TICK() + 10000;
 		bool connSucceeded;

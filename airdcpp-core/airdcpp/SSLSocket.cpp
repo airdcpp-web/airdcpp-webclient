@@ -192,7 +192,7 @@ int SSLSocket::checkSSL(int ret) {
 				throw SSLSocketException(sys_err);
 			} else {
 				// See the BUGS section at https://www.openssl.org/docs/man1.1.1/man3/SSL_get_error.html
-				throw SSLSocketException(STRING(TLS_ERROR) + ": " + "connection reset by the peeer");
+				throw SSLSocketException(STRING(TLS_ERROR) + ": connection reset by the peer");
 			}
 		}
 		default:
