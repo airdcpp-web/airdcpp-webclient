@@ -463,17 +463,18 @@ void Socket::socksConnect(addr& addr_, std::function<void(ByteVector& connStr_)>
 	// Send data
 	socksWrite(&connStr[0], connStr.size(), timeLeft(start, aTimeout));
 
+	// Read response
 	connStr.resize(22);
 	auto len = socksRead(
 		connStr,
 		22,
 		[](const ByteVector& aBuffer, int aLen) {
-			try {
-				validateSocksResponse(aBuffer, aLen);
-				return true;
-			} catch (...) {
+			if (aLen < 10) {
 				return false;
 			}
+
+			auto expectedDataLength = aBuffer[3] == SocksAddrType::TYPE_V6 ? 22 : 10;
+			return aLen >= expectedDataLength;
 		},
 		timeLeft(start, aTimeout)
 	);
@@ -481,7 +482,7 @@ void Socket::socksConnect(addr& addr_, std::function<void(ByteVector& connStr_)>
 	socksParseResponseAddress(connStr, len, addr_);
 }
 
-void Socket::socksConnect(const Socket::AddressInfo& aAddr, const string& aPort, uint64_t aTimeout) {
+void Socket::socksConnect(const AddressInfo& aAddr, const string& aPort, uint64_t aTimeout) {
 	addr sock_addr;
 	socksConnect(
 		sock_addr,
@@ -965,9 +966,8 @@ void Socket::socksUpdated() {
 	}
 }
 
-
-uint16_t Socket::validateSocksResponse(const ByteVector& aData, size_t aDataLength) {
-	if (aDataLength < 3) {
+void Socket::socksParseResponseAddress(const ByteVector& aData, size_t aDataLength, Socket::addr& addr_) {
+	if (aDataLength < 10) {
 		dcdebug("SOCKS5: not enough bytes in the response (" SIZET_FMT ")\n", aDataLength);
 		throw SocketException(STRING(SOCKS_UNSUPPORTED_RESPONSE));
 	}
@@ -983,28 +983,20 @@ uint16_t Socket::validateSocksResponse(const ByteVector& aData, size_t aDataLeng
 		throw SocketException(STRING(SOCKS_FAILED));
 	}
 
-	uint16_t af = 0;
 	if (aData[3] == SocksAddrType::TYPE_V4) {
-		af = AF_INET;
+		addr_.sa.sa_family = AF_INET;
 	} else if (aData[3] == SocksAddrType::TYPE_V6) {
-		af = AF_INET6;
+		addr_.sa.sa_family = AF_INET6;
 	} else {
 		dcdebug("SOCKS5: unsupported protocol (%d)\n", aData[3]);
 		throw SocketException(STRING(SOCKS_UNSUPPORTED_RESPONSE));
 	}
 
-	size_t expectedDataLength = af == AF_INET ? 10 : 22;
+	size_t expectedDataLength = addr_.sa.sa_family == AF_INET ? 10 : 22;
 	if (aDataLength != expectedDataLength) {
 		dcdebug("SOCKS5: received " SIZET_FMT " bytes while " SIZET_FMT " bytes were expected\n", aDataLength, expectedDataLength);
 		throw SocketException(STRING(SOCKS_UNSUPPORTED_RESPONSE));
 	}
-
-	return af;
-}
-
-void Socket::socksParseResponseAddress(const ByteVector& aData, size_t aDataLength, Socket::addr& addr_) {
-	auto af = validateSocksResponse(aData, aDataLength);
-	addr_.sa.sa_family = af;
 
 	const auto port = *((uint16_t*)(&aData[aData.size() - 2])); // 2 bytes
 	if (addr_.sa.sa_family == AF_INET6) {

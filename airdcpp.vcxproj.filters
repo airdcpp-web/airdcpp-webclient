@@ -970,6 +970,9 @@
     <ClInclude Include="airdcpp\StreamBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="airdcpp\AddressInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="airdcpp\StringDefs.h">

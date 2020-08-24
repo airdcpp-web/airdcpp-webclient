@@ -41,6 +41,7 @@ const int INVALID_SOCKET = -1;
 #define SOCKET_ERROR -1
 #endif
 
+#include "AddressInfo.h"
 #include "GetSet.h"
 #include "Util.h"
 #include "Exception.h"
@@ -91,55 +92,6 @@ public:
 	typedef std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> addrinfo_p;
 	typedef vector<addrinfo_p> AddrinfoList;
 
-	class AddressInfo {
-	public:
-		enum Type {
-			TYPE_V4,
-			TYPE_V6,
-			TYPE_URL,
-			TYPE_DUAL
-		};
-
-		AddressInfo(const string& aIP, Type aType) : type(aType) {
-			ip[aType] = aIP;
-		}
-
-		AddressInfo(const string& aV4, const string& aV6) {
-			ip[TYPE_V4] = aV4;
-			ip[TYPE_V6] = aV6;
-			type = TYPE_DUAL;
-		}
-
-		bool hasV6CompatibleAddress() const noexcept{
-			return type != TYPE_V4;
-		}
-
-			bool hasV4CompatibleAddress() const noexcept{
-			return type != TYPE_V6;
-		}
-
-		string getV6CompatibleAddress() const noexcept{
-			if (type == TYPE_DUAL)
-			return ip[TYPE_V6];
-
-			return ip[type];
-		}
-
-		string getV4CompatibleAddress() const noexcept{
-			if (type == TYPE_DUAL)
-			return ip[TYPE_V4];
-
-			return ip[type];
-		}
-
-		Type getType() const noexcept{
-			return type;
-		}
-	private:
-		Type type;
-		string ip[TYPE_DUAL];
-	};
-
 	explicit Socket(SocketType type) : type(type) { }
 
 	virtual ~Socket() { }
@@ -157,7 +109,7 @@ public:
 	/**
 	 * Same as connect(), but through the SOCKS5 server
 	 */
-	void socksConnect(const Socket::AddressInfo& aIp, const string& aPort, uint64_t timeout = 0);
+	void socksConnect(const AddressInfo& aIp, const string& aPort, uint64_t timeout = 0);
 
 	virtual int write(const void* aBuffer, int aLen);
 	int write(const string& aData) { return write(aData.data(), (int)aData.length()); }
@@ -278,8 +230,6 @@ private:
 	static void socksParseResponseAddress(const ByteVector& aData, size_t aDataLength, addr& addr_);
 	void socksConnect(addr& addr_, std::function<void(ByteVector& connStr_)>&& aConstructConnStr, uint64_t aTimeout);
 	void appendSocksAddress(const string& aName, const string& aPort, ByteVector& connStr_) const;
-
-	static uint16_t validateSocksResponse(const ByteVector& aData, size_t aDataLength);
 
 	/**
 	 * Sends data, will block until all data has been sent or an exception occurs

@@ -214,7 +214,7 @@ void Client::connect(bool withKeyprint) noexcept {
 		sock = BufferedSocket::getSocket(separator, v4only());
 		sock->addListener(this);
 		sock->connect(
-			Socket::AddressInfo(address, Socket::AddressInfo::TYPE_URL), 
+			AddressInfo(address, AddressInfo::TYPE_URL), 
 			port, 
 			AirUtil::isSecure(hubUrl), 
 			SETTING(ALLOW_UNTRUSTED_HUBS), 

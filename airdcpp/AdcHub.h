@@ -24,7 +24,6 @@
 #include "Client.h"
 #include "CriticalSection.h"
 #include "AdcCommand.h"
-#include "Socket.h"
 
 #include <future>
 
@@ -103,7 +102,7 @@ private:
 	bool checkProtocol(const OnlineUser& aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken) noexcept;
 
 	bool oldPassword = false;
-	Socket udp;
+	unique_ptr<Socket> udp;
 	SIDMap users;
 	StringMap lastInfoMap;
 	mutable SharedMutex cs;
