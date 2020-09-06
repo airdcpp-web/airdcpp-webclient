@@ -189,6 +189,8 @@
     <ClInclude Include="api\common\Format.h" />
     <ClInclude Include="api\common\ListViewController.h" />
     <ClInclude Include="api\common\ChatController.h" />
+    <ClInclude Include="api\common\MessageHighlight.h" />
+    <ClInclude Include="api\common\MessageUtils.h" />
     <ClInclude Include="api\common\Property.h" />
     <ClInclude Include="api\common\PropertyFilter.h" />
     <ClInclude Include="api\common\Serializer.h" />
@@ -271,6 +273,8 @@
     <ClCompile Include="api\common\Deserializer.cpp" />
     <ClCompile Include="api\common\FileSearchParser.cpp" />
     <ClCompile Include="api\common\Format.cpp" />
+    <ClCompile Include="api\common\MessageHighlight.cpp" />
+    <ClCompile Include="api\common\MessageUtils.cpp" />
     <ClCompile Include="api\common\PropertyFilter.cpp" />
     <ClCompile Include="api\common\Serializer.cpp" />
     <ClCompile Include="api\ApiSettingItem.cpp" />

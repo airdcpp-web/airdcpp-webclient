@@ -112,7 +112,7 @@ namespace webserver {
 				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");
 			}
 
-			setting->setValue(SettingUtils::validateValue(elem.value(), *setting));
+			setting->setValue(SettingUtils::validateValue(elem.value(), *setting, nullptr));
 			hasSet = true;
 		}
 

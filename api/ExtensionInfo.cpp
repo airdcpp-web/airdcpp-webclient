@@ -111,6 +111,7 @@ namespace webserver {
 
 	api_return ExtensionInfo::handlePostSettings(ApiRequest& aRequest) {
 		SettingValueMap settings;
+		UserList userReferences;
 
 		// Validate values
 		for (const auto& elem : aRequest.getRequestBody().items()) {
@@ -119,10 +120,10 @@ namespace webserver {
 				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");
 			}
 
-			settings[elem.key()] = SettingUtils::validateValue(elem.value(), *setting);
+			settings[elem.key()] = SettingUtils::validateValue(elem.value(), *setting, &userReferences);
 		}
 
-		extension->setSettingValues(settings);
+		extension->setSettingValues(settings, userReferences);
 		return websocketpp::http::status_code::no_content;
 	}
 

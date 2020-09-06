@@ -26,6 +26,8 @@
 
 
 namespace webserver {
+	const string ContextMenuManager::URLS_SUPPORT("urls");
+
 	ContextMenuManager::ContextMenuManager() {
 
 	}

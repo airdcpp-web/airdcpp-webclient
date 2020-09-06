@@ -19,30 +19,38 @@
 #ifndef DCPLUSPLUS_DCPP_SETTING_UTILS_H
 #define DCPLUSPLUS_DCPP_SETTING_UTILS_H
 
+#include <airdcpp/forward.h>
+
 #include <api/ApiSettingItem.h>
+
 
 namespace webserver {
 	class SettingUtils {
 	public:
-		static json validateValue(const json& aValue, const ApiSettingItem& aItem);
-
-		static void validateEnumValue(const json& aValue, const string& aKey, ApiSettingItem::Type aType, ApiSettingItem::Type aItemType, const ApiSettingItem::EnumOption::List& aEnumOptions);
-
-		static json convertValue(const json& aValue, const string& aKey, ApiSettingItem::Type aType, ApiSettingItem::Type aItemType, bool aOptional, const ApiSettingItem::MinMax& aMinMax, const ApiSettingItem::PtrList& aObjectValues);
-
-		static json validateObjectListValue(const ApiSettingItem::PtrList& aPropertyDefinitions, const json& aValue);
+		static json validateValue(const json& aValue, const ApiSettingItem& aItem, UserList* userReferences_);
 
 		static ExtensionSettingItem deserializeDefinition(const json& aJson, bool aIsListValue = false);
 		static ExtensionSettingItem::List deserializeDefinitions(const json& aJson);
 
 		static json serializeDefinition(const ApiSettingItem& aItem) noexcept;
-		static string typeToStr(ApiSettingItem::Type aType) noexcept;
-
-		static ApiSettingItem::Type deserializeType(const string& aFieldName, const json& aJson, bool aOptional);
 	private:
+		static void validateEnumValue(const json& aValue, const string& aKey, ApiSettingItem::Type aType, ApiSettingItem::Type aItemType, const ApiSettingItem::EnumOption::List& aEnumOptions);
+		static json validateObjectListValue(const ApiSettingItem::PtrList& aPropertyDefinitions, const json& aValue, UserList* userReferences_);
+
+		static json convertValue(const json& aValue, const string& aKey, ApiSettingItem::Type aType, ApiSettingItem::Type aItemType, bool aOptional, const ApiSettingItem::MinMax& aMinMax, const ApiSettingItem::PtrList& aObjectValues, UserList* userReferences_);
+		static json convertListCompatibleValue(const json& aValue, const string& aKey, ApiSettingItem::Type aType, bool aOptional, const ApiSettingItem::MinMax& aMinMax, UserList* userReferences_);
+
+
 		static json parseEnumOptionId(const json& aJson, ApiSettingItem::Type aType);
 		static json parseStringSetting(const string& aFieldName, const json& aJson, bool aOptional, ApiSettingItem::Type aType);
 		static json parseIntSetting(const string& aFieldName, const json& aJson, bool aOptional, const ApiSettingItem::MinMax& aMinMax);
+
+		static bool isListCompatibleValue(ApiSettingItem::Type aType) noexcept {
+			return aType == ApiSettingItem::TYPE_NUMBER || ApiSettingItem::isString(aType) || aType == ApiSettingItem::TYPE_HINTER_USER;
+		}
+
+		static string typeToStr(ApiSettingItem::Type aType) noexcept;
+		static ApiSettingItem::Type deserializeType(const string& aFieldName, const json& aJson, bool aOptional);
 	};
 }
 

@@ -20,6 +20,7 @@
 
 #include <api/HubApi.h>
 
+#include <api/common/MessageUtils.h>
 #include <api/common/Serializer.h>
 
 #include <web-server/JsonUtil.h>
@@ -36,7 +37,7 @@ namespace webserver {
 	ActionHookResult<> HubApi::incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter) {
 		return HookCompletionData::toResult(
 			fireHook("hub_incoming_message_hook", 2, [&]() {
-				return Serializer::serializeChatMessage(aMessage);
+				return MessageUtils::serializeChatMessage(aMessage);
 			}),
 			aResultGetter
 		);
@@ -193,8 +194,9 @@ namespace webserver {
 			{ "id", aClient->getToken() },
 			{ "favorite_hub", aClient->getFavToken() },
 			{ "share_profile", Serializer::serializeShareProfileSimple(aClient->get(HubSettings::ShareProfile)) },
-			{ "message_counts", Serializer::serializeCacheInfo(aClient->getCache(), Serializer::serializeUnreadChat) },
+			{ "message_counts", MessageUtils::serializeCacheInfo(aClient->getCache(), MessageUtils::serializeUnreadChat) },
 			{ "encryption", Serializer::serializeEncryption(aClient->getEncryptionInfo(), aClient->isTrusted()) },
+			{ "settings", HubInfo::serializeSettings(aClient) },
 		};
 	}
 

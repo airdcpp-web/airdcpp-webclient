@@ -28,7 +28,7 @@
 
 namespace webserver {
 	CID Deserializer::parseCID(const string& aCID) {
-		if (!Encoder::isBase32(aCID.c_str())) {
+		if (aCID.length() != 39 || !Encoder::isBase32(aCID.c_str())) {
 			throw std::invalid_argument("Invalid CID");
 		}
 
@@ -52,6 +52,15 @@ namespace webserver {
 		return u;
 	}
 
+	UserPtr Deserializer::getOfflineUser(const string& aCID, const string& aNicks, const string& aHubUrl, bool aAllowMe) {
+		auto u = ClientManager::getInstance()->loadUser(aCID, aHubUrl, aNicks);
+		if (!aAllowMe && u->getCID() == ClientManager::getInstance()->getMyCID()) {
+			throw std::invalid_argument("Own CID isn't allowed for this command");
+		}
+
+		return u;
+	}
+
 	TTHValue Deserializer::parseTTH(const string& aTTH) {
 		if (!Encoder::isBase32(aTTH.c_str())) {
 			throw std::invalid_argument("Invalid TTH");
@@ -69,8 +78,12 @@ namespace webserver {
 		return getUser(*cid, aAllowMe);
 	}
 
-	HintedUser Deserializer::deserializeHintedUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
-		auto userJson = JsonUtil::getRawField(aFieldName, aJson);
+	HintedUser Deserializer::deserializeHintedUser(const json& aJson, bool aAllowMe, bool aOptional, const string& aFieldName) {
+		auto userJson = JsonUtil::getOptionalRawField(aFieldName, aJson);
+		if (userJson.is_null()) {
+			return HintedUser();
+		}
+
 		return parseHintedUser(userJson, aFieldName, aAllowMe);
 	}
 
@@ -80,8 +93,28 @@ namespace webserver {
 		return HintedUser(user, hubUrl);
 	}
 
+	UserPtr Deserializer::parseOfflineUser(const json& aJson, const string& aFieldName, bool aAllowMe, const string& aHubUrl) {
+		const auto cid = JsonUtil::getField<string>("cid", aJson, false);
+		const auto nicks = JsonUtil::getField<string>("nicks", aJson, false);
+		auto user = getOfflineUser(cid, nicks, aHubUrl, aAllowMe);
+		return user;
+	}
+
+	Deserializer::OfflineHintedUser Deserializer::parseOfflineHintedUser(const json& aJson, const string& aFieldName, bool aAllowMe) {
+		const auto cid = JsonUtil::getField<string>("cid", aJson, false);
+		const auto hubUrl = JsonUtil::getField<string>("hub_url", aJson, aAllowMe);
+		const auto nicks = JsonUtil::getField<string>("nicks", aJson, false);
+
+		auto user = getOfflineUser(cid, nicks, hubUrl, aAllowMe);
+		if (hubUrl.empty() && user != ClientManager::getInstance()->getMe()) {
+			throw std::invalid_argument("hub_url missing");
+		}
+
+		return OfflineHintedUser(user, hubUrl, nicks);
+	}
+
 	OnlineUserPtr Deserializer::deserializeOnlineUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
-		auto hintedUser = deserializeHintedUser(aJson, aAllowMe, aFieldName);
+		auto hintedUser = deserializeHintedUser(aJson, aAllowMe, false, aFieldName);
 
 		auto onlineUser = ClientManager::getInstance()->findOnlineUser(hintedUser, false);
 		if (!onlineUser) {

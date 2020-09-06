@@ -21,6 +21,7 @@
 #include <api/EventApi.h>
 #include <api/common/Deserializer.h>
 #include <api/common/Serializer.h>
+#include <api/common/MessageUtils.h>
 
 #include <airdcpp/LogManager.h>
 
@@ -62,20 +63,21 @@ namespace webserver {
 		auto j = Serializer::serializeFromEnd(
 			aRequest.getRangeParam(MAX_COUNT),
 			LogManager::getInstance()->getCache().getLogMessages(),
-			Serializer::serializeLogMessage);
+			MessageUtils::serializeLogMessage
+		);
 
 		aRequest.setResponseBody(j);
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return EventApi::handleGetInfo(ApiRequest& aRequest) {
-		aRequest.setResponseBody(Serializer::serializeCacheInfo(LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog));
+		aRequest.setResponseBody(MessageUtils::serializeCacheInfo(LogManager::getInstance()->getCache(), MessageUtils::serializeUnreadLog));
 		return websocketpp::http::status_code::ok;
 	}
 
 	void EventApi::on(LogManagerListener::Message, const LogMessagePtr& aMessageData) noexcept {
 		if (subscriptionActive("event_message")) {
-			send("event_message", Serializer::serializeLogMessage(aMessageData));
+			send("event_message", MessageUtils::serializeLogMessage(aMessageData));
 		}
 
 		onMessagesChanged();
@@ -86,7 +88,7 @@ namespace webserver {
 			return;
 		}
 
-		send("event_counts", Serializer::serializeCacheInfo(LogManager::getInstance()->getCache(), Serializer::serializeUnreadLog));
+		send("event_counts", MessageUtils::serializeCacheInfo(LogManager::getInstance()->getCache(), MessageUtils::serializeUnreadLog));
 	}
 
 	void EventApi::on(LogManagerListener::Cleared) noexcept {

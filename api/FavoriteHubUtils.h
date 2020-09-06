@@ -58,10 +58,6 @@ namespace webserver {
 	private:
 		static string getConnectStateStr(const FavoriteHubEntryPtr& aEntry) noexcept;
 		static string getConnectStateId(const FavoriteHubEntryPtr& aEntry) noexcept;
-
-		static json serializeHubSetting(tribool aSetting) noexcept;
-		static json serializeHubSetting(int aSetting) noexcept;
-		static string serializeHubSetting(const string& aSetting) noexcept;
 	};
 }
 

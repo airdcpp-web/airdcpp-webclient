@@ -24,6 +24,7 @@
 #include <api/base/ApiModule.h>
 #include <api/common/Deserializer.h>
 #include <api/common/Serializer.h>
+#include <api/common/MessageUtils.h>
 
 #include <airdcpp/StringTokenizer.h>
 
@@ -51,7 +52,7 @@ namespace webserver {
 				return;
 			}
 
-			module->send(s, Serializer::serializeChatMessage(aMessage));
+			module->send(s, MessageUtils::serializeChatMessage(aMessage));
 		}
 
 		void onStatusMessage(const LogMessagePtr& aMessage) noexcept {
@@ -62,7 +63,7 @@ namespace webserver {
 				return;
 			}
 
-			module->send(s, Serializer::serializeLogMessage(aMessage));
+			module->send(s, MessageUtils::serializeLogMessage(aMessage));
 		}
 
 		void onMessagesUpdated() {
@@ -101,7 +102,7 @@ namespace webserver {
 			}
 
 			module->send(s, {
-				{ "message_counts",  Serializer::serializeCacheInfo(chatF()->getCache(), Serializer::serializeUnreadChat) },
+				{ "message_counts",  MessageUtils::serializeCacheInfo(chatF()->getCache(), MessageUtils::serializeUnreadChat) },
 			});
 		}
 
@@ -161,7 +162,8 @@ namespace webserver {
 			auto j = Serializer::serializeFromEnd(
 				aRequest.getRangeParam(MAX_COUNT),
 				chatF()->getCache().getMessages(),
-				Serializer::serializeMessage);
+				MessageUtils::serializeMessage
+			);
 
 			aRequest.setResponseBody(j);
 			return websocketpp::http::status_code::ok;

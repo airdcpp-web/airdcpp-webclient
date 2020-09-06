@@ -47,6 +47,7 @@ namespace webserver {
 		view("hub_user_view", this, OnlineUserUtils::propertyHandler, std::bind(&HubInfo::getUsers, this), 500), 
 		timer(getTimer([this] { onTimer(); }, 1000)) 
 	{
+		METHOD_HANDLER(Access::HUBS_EDIT, METHOD_PATCH, (),							HubInfo::handleUpdateHub);
 
 		METHOD_HANDLER(Access::HUBS_EDIT, METHOD_POST,	(EXACT_PARAM("reconnect")),	HubInfo::handleReconnect);
 		METHOD_HANDLER(Access::HUBS_EDIT, METHOD_POST,	(EXACT_PARAM("favorite")),	HubInfo::handleFavorite);
@@ -74,6 +75,23 @@ namespace webserver {
 
 	ClientToken HubInfo::getId() const noexcept {
 		return client->getToken();
+	}
+
+	api_return HubInfo::handleUpdateHub(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+
+		for (const auto& i : reqJson.items()) {
+			auto key = i.key();
+			if (key == "chat_notify") {
+				client->setHubSetting(HubSettings::ChatNotify, JsonUtil::parseValue<bool>("chat_notify", i.value()));
+			} else if (key == "show_joins") {
+				client->setHubSetting(HubSettings::ShowJoins, JsonUtil::parseValue<bool>("show_joins", i.value()));
+			} else if (key == "fav_show_joins") {
+				client->setHubSetting(HubSettings::FavShowJoins, JsonUtil::parseValue<bool>("fav_show_joins", i.value()));
+			}
+		}
+
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return HubInfo::handleGetUsers(ApiRequest& aRequest) {
@@ -149,6 +167,16 @@ namespace webserver {
 		return {
 			{ "name", aClient->getHubName() },
 			{ "description", aClient->getHubDescription() },
+		};
+	}
+
+
+	json HubInfo::serializeSettings(const ClientPtr& aClient) noexcept {
+		return {
+			{ "nick", Serializer::serializeHubSetting(aClient->get(HubSettings::Nick)) },
+			{ "chat_notify", Serializer::serializeHubSetting(aClient->get(HubSettings::ChatNotify)) },
+			{ "show_joins", Serializer::serializeHubSetting(aClient->get(HubSettings::ShowJoins)) },
+			{ "fav_show_joins", Serializer::serializeHubSetting(aClient->get(HubSettings::FavShowJoins)) },
 		};
 	}
 
@@ -242,6 +270,12 @@ namespace webserver {
 		}
 
 		sendConnectState();
+	}
+
+	void HubInfo::on(ClientListener::SettingsUpdated, const Client*) noexcept {
+		onHubUpdated({
+			{ "settings", serializeSettings(client) }
+		});
 	}
 
 	void HubInfo::on(ClientListener::GetPassword, const Client*) noexcept {

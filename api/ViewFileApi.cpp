@@ -70,15 +70,15 @@ namespace webserver {
 	}
 
 	json ViewFileApi::serializeFile(const ViewFilePtr& aFile) noexcept {
-		auto mimeType = HttpUtil::getMimeType(aFile->getPath());
+		auto mimeType = HttpUtil::getMimeType(aFile->getFileName());
 		return{
 			{ "id", aFile->getTTH().toBase32() },
 			{ "tth", aFile->getTTH().toBase32() },
 			{ "text", aFile->isText() },
 			{ "read", aFile->getRead() },
-			{ "name", aFile->getDisplayName() },
+			{ "name", aFile->getFileName() },
 			{ "download_state", serializeDownloadState(aFile) },
-			{ "type", Serializer::serializeFileType(aFile->getPath()) },
+			{ "type", Serializer::serializeFileType(aFile->getFileName()) },
 			{ "time_opened", aFile->getTimeCreated() },
 			{ "content_ready", aFile->isLocalFile() || aFile->isDownloaded() },
 			{ "mime_type", mimeType ? mimeType : Util::emptyString },
@@ -105,7 +105,7 @@ namespace webserver {
 			file = ViewFileManager::getInstance()->addUserFileThrow(name, size, tth, user, isText);
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::internal_server_error;
+			return websocketpp::http::status_code::bad_request;
 		}
 
 		if (!file) {
@@ -124,7 +124,14 @@ namespace webserver {
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		auto file = ViewFileManager::getInstance()->addLocalFile(tth, JsonUtil::getOptionalFieldDefault<bool>("text", aRequest.getRequestBody(), false));
+		ViewFilePtr file = nullptr;
+		try {
+			file = ViewFileManager::getInstance()->addLocalFileThrow(tth, JsonUtil::getOptionalFieldDefault<bool>("text", aRequest.getRequestBody(), false));
+		} catch (const Exception& e) {
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::bad_request;
+		}
+
 		if (!file) {
 			aRequest.setResponseErrorStr("File with the same TTH is open already");
 			return websocketpp::http::status_code::bad_request;
