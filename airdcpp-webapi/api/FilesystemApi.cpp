@@ -23,6 +23,7 @@
 
 #include <web-server/JsonUtil.h>
 
+#include <airdcpp/Exception.h>
 #include <airdcpp/File.h>
 
 #ifdef WIN32

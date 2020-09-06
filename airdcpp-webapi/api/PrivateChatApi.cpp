@@ -21,6 +21,7 @@
 #include <api/PrivateChatApi.h>
 
 #include <api/common/Deserializer.h>
+#include <api/common/MessageUtils.h>
 #include <api/common/Serializer.h>
 
 #include <airdcpp/ClientManager.h>
@@ -36,7 +37,7 @@ namespace webserver {
 	ActionHookResult<> PrivateChatApi::incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter) {
 		return HookCompletionData::toResult(
 			fireHook("private_chat_incoming_message_hook", 2, [&]() {
-				return Serializer::serializeChatMessage(aMessage);
+				return MessageUtils::serializeChatMessage(aMessage);
 			}),
 			aResultGetter
 		);
@@ -158,7 +159,7 @@ namespace webserver {
 			{ "id", aChat->getUser()->getCID().toBase32() },
 			{ "user", Serializer::serializeHintedUser(aChat->getHintedUser()) },
 			{ "ccpm_state", PrivateChatInfo::serializeCCPMState(aChat) },
-			{ "message_counts", Serializer::serializeCacheInfo(aChat->getCache(), Serializer::serializeUnreadChat) },
+			{ "message_counts", MessageUtils::serializeCacheInfo(aChat->getCache(), MessageUtils::serializeUnreadChat) },
 		};
 	}
 }

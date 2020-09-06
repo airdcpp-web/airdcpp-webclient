@@ -38,6 +38,12 @@ namespace webserver {
 		{ "away_idle_time", SettingsManager::AWAY_IDLE_TIME, ResourceManager::AWAY_IDLE_TIME_BEGIN, ApiSettingItem::TYPE_LAST, ResourceManager::Strings::MINUTES_LOWER },
 		{ "away_no_bots", SettingsManager::NO_AWAYMSG_TO_BOTS, ResourceManager::SETTINGS_NO_AWAYMSG_TO_BOTS },
 
+		{ "format_release_names", SettingsManager::FORMAT_RELEASE, ResourceManager::FORMAT_RELEASE },
+		{ "format_dupes_chat", SettingsManager::DUPES_IN_CHAT, ResourceManager::SETTINGS_DUPE_CHAT },
+		{ "format_dupes_filelist", SettingsManager::DUPES_IN_FILELIST, ResourceManager::SETTINGS_DUPE_FILELIST },
+		{ "format_dupes_search", SettingsManager::DUPE_SEARCH, ResourceManager::SETTINGS_DUPE_SEARCH },
+
+
 		//{ ResourceManager::SETTINGS_DOWNLOADS },
 		{ "download_directory", SettingsManager::DOWNLOAD_DIRECTORY, ResourceManager::SETTINGS_DOWNLOAD_DIRECTORY, ApiSettingItem::TYPE_DIRECTORY_PATH },
 		{ "segmented_downloads", SettingsManager::MULTI_CHUNK, ResourceManager::SETTINGS_SEGMENTED_DOWNLOADS },

@@ -54,13 +54,14 @@ namespace webserver {
 		using IdSerializer = std::function<json(const IdT& aId)>;
 
 		template<typename IdT>
-		ActionHookResult<ContextMenuItemList> menuListHookHandler(const vector<IdT>& aSelections, const AccessList& aAccessList, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter, const string& aMenuId, const IdSerializer<IdT>& aIdSerializer, const json& aEntityId = nullptr) {
+		ActionHookResult<ContextMenuItemList> menuListHookHandler(const vector<IdT>& aSelections, const AccessList& aAccessList, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter, const string& aMenuId, const IdSerializer<IdT>& aIdSerializer, const StringList& aSupports, const json& aEntityId = nullptr) {
 			return HookCompletionData::toResult<ContextMenuItemList>(
 				fireHook(toHookId(aMenuId), 1, [&]() {
 					return json({
 						{ "selected_ids", Serializer::serializeList(aSelections, aIdSerializer) },
 						{ "permissions", Serializer::serializePermissions(aAccessList) },
 						{ "entity_id", aEntityId },
+						{ "supports", aSupports },
 					});
 				}),
 				aResultGetter,
@@ -74,30 +75,32 @@ namespace webserver {
 		}
 
 		template<typename IdT>
-		using ClickHandlerFunc = std::function<void(const vector<IdT>& aId, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId)>;
+		using ClickHandlerFunc = std::function<void(const vector<IdT>& aId, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId, const StringList& aSupports)>;
 
 		template<typename IdT>
 		api_return handleClickItem(ApiRequest& aRequest, const string& aMenuId, const ClickHandlerFunc<IdT>& aHandler, const Deserializer::ArrayDeserializerFunc<IdT>& aIdDeserializerFunc) {
 			const auto selectedIds = deserializeItemIds<IdT>(aRequest, aIdDeserializerFunc);
 			const auto hookId = JsonUtil::getField<string>("hook_id", aRequest.getRequestBody(), false);
 			const auto menuItemId = JsonUtil::getField<string>("menuitem_id", aRequest.getRequestBody(), false);
+			const auto supports = JsonUtil::getOptionalFieldDefault<StringList>("supports", aRequest.getRequestBody(), StringList());
 
 			const auto accessList = aRequest.getSession()->getUser()->getPermissions();
-			aHandler(selectedIds, accessList, hookId, menuItemId);
+			aHandler(selectedIds, accessList, hookId, menuItemId, supports);
 			return websocketpp::http::status_code::no_content;
 		}
 
 		template<typename IdT>
-		using ListHandlerFunc = std::function<ContextMenuItemList(const vector<IdT>& aId, const AccessList& aAccessList)>;
+		using ListHandlerFunc = std::function<ContextMenuItemList(const vector<IdT>& aId, const AccessList& aAccessList, const StringList& aSupports)>;
 
 		template<typename IdT>
 		api_return handleListItems(ApiRequest& aRequest, const ListHandlerFunc<IdT>& aHandler, const Deserializer::ArrayDeserializerFunc<IdT>& aIdDeserializerFunc) {
 			const auto selectedIds = deserializeItemIds<IdT>(aRequest, aIdDeserializerFunc);
+			const auto supports = JsonUtil::getOptionalFieldDefault<StringList>("supports", aRequest.getRequestBody(), StringList());
 			const auto complete = aRequest.defer();
 
 			const auto accessList = aRequest.getSession()->getUser()->getPermissions();
 			addAsyncTask([=] {
-				const auto items = aHandler(selectedIds, accessList);
+				const auto items = aHandler(selectedIds, accessList, supports);
 				complete(
 					websocketpp::http::status_code::ok,
 					Serializer::serializeList(items, MenuApi::serializeMenuItem),
@@ -111,20 +114,20 @@ namespace webserver {
 		template<typename IdT>
 		using EntityListHandlerFunc = std::function<ContextMenuItemList(const vector<IdT> & aId, const AccessList& aAccessList)>;
 
-		void on(ContextMenuManagerListener::QueueBundleMenuSelected, const vector<uint32_t>&, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept override;
-		void on(ContextMenuManagerListener::QueueFileMenuSelected, const vector<uint32_t>&, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept override;
-		void on(ContextMenuManagerListener::TransferMenuSelected, const vector<uint32_t>&, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept override;
-		void on(ContextMenuManagerListener::ShareRootMenuSelected, const vector<TTHValue>&, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept override;
-		void on(ContextMenuManagerListener::FavoriteHubMenuSelected, const vector<uint32_t>&, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept override;
-		void on(ContextMenuManagerListener::UserMenuSelected, const vector<CID>&, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept override;
-		void on(ContextMenuManagerListener::HintedUserMenuSelected, const vector<HintedUser>&, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept override;
-		void on(ContextMenuManagerListener::ExtensionMenuSelected, const vector<string>&, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept override;
+		void on(ContextMenuManagerListener::QueueBundleMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::QueueFileMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::TransferMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::ShareRootMenuSelected, const vector<TTHValue>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::FavoriteHubMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::UserMenuSelected, const vector<CID>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::HintedUserMenuSelected, const vector<HintedUser>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::ExtensionMenuSelected, const vector<string>&, const ContextMenuItemClickData& aClickData) noexcept override;
 
-		void on(ContextMenuManagerListener::GroupedSearchResultMenuSelected, const vector<TTHValue>& aSelectedIds, const AccessList& aAccessList, const SearchInstancePtr& aInstance, const string& aHookId, const string& aMenuItemId) noexcept override;
-		void on(ContextMenuManagerListener::FilelistItemMenuSelected, const vector<uint32_t>& aSelectedIds, const AccessList& aAccessList, const DirectoryListingPtr& aList, const string& aHookId, const string& aMenuItemId) noexcept override;
-		void on(ContextMenuManagerListener::HubUserMenuSelected, const vector<uint32_t>&, const AccessList& aAccessList, const ClientPtr& aClient, const string& aHookId, const string& aMenuItemId) noexcept override;
+		void on(ContextMenuManagerListener::GroupedSearchResultMenuSelected, const vector<TTHValue>& aSelectedIds, const SearchInstancePtr& aInstance, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::FilelistItemMenuSelected, const vector<uint32_t>& aSelectedIds, const DirectoryListingPtr& aList, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::HubUserMenuSelected, const vector<uint32_t>&, const ClientPtr& aClient, const ContextMenuItemClickData& aClickData) noexcept override;
 
-		void onMenuItemSelected(const string& aMenuId, const json& aSelectedIds, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId, const json& aEntityId = nullptr) noexcept;
+		void onMenuItemSelected(const string& aMenuId, const json& aSelectedIds, const ContextMenuItemClickData& aClickData, const json& aEntityId = nullptr) noexcept;
 	};
 }
 

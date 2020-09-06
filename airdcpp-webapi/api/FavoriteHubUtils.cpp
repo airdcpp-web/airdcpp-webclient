@@ -21,6 +21,7 @@
 #include <api/FavoriteHubUtils.h>
 
 #include <api/common/Format.h>
+#include <api/common/Serializer.h>
 
 #include <web-server/JsonUtil.h>
 
@@ -81,7 +82,7 @@ namespace webserver {
 			{
 				auto defined = HubSettings::defined(aEntry->get(HubSettings::ShareProfile));
 				return {
-					{ "id", serializeHubSetting(aEntry->get(HubSettings::ShareProfile)) },
+					{ "id", Serializer::serializeHubSetting(aEntry->get(HubSettings::ShareProfile)) },
 					{ "str", defined ? aEntry->getShareProfileName() : Util::emptyString }
 				};
 			}
@@ -94,8 +95,8 @@ namespace webserver {
 					{ "current_hub_id", aEntry->getCurrentHubToken() }
 				};
 			}
-			case PROP_CONN_MODE4: return serializeHubSetting(aEntry->get(HubSettings::Connection));
-			case PROP_CONN_MODE6: return serializeHubSetting(aEntry->get(HubSettings::Connection6));
+			case PROP_CONN_MODE4: return Serializer::serializeHubSetting(aEntry->get(HubSettings::Connection));
+			case PROP_CONN_MODE6: return Serializer::serializeHubSetting(aEntry->get(HubSettings::Connection6));
 		}
 
 		dcassert(0);
@@ -106,41 +107,17 @@ namespace webserver {
 		return 0;
 	}
 
-	json FavoriteHubUtils::serializeHubSetting(tribool aSetting) noexcept {
-		if (!HubSettings::defined(aSetting)) {
-			return nullptr;
-		}
-
-		return aSetting.value;
-	}
-
-	json FavoriteHubUtils::serializeHubSetting(int aSetting) noexcept {
-		if (!HubSettings::defined(aSetting)) {
-			return nullptr;
-		}
-
-		return aSetting;
-	}
-
-	string FavoriteHubUtils::serializeHubSetting(const string& aSetting) noexcept {
-		if (!HubSettings::defined(aSetting)) {
-			return Util::emptyString;
-		}
-
-		return aSetting;
-	}
-
 	std::string FavoriteHubUtils::getStringInfo(const FavoriteHubEntryPtr& aEntry, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 			case PROP_NAME: return aEntry->getName();
 			case PROP_HUB_URL: return aEntry->getServer();
 			case PROP_HUB_DESCRIPTION: return aEntry->getDescription();
-			case PROP_NICK: return serializeHubSetting(aEntry->get(HubSettings::Nick));
-			case PROP_USER_DESCRIPTION: return serializeHubSetting(aEntry->get(HubSettings::Description));
+			case PROP_NICK: return Serializer::serializeHubSetting(aEntry->get(HubSettings::Nick));
+			case PROP_USER_DESCRIPTION: return Serializer::serializeHubSetting(aEntry->get(HubSettings::Description));
 			case PROP_SHARE_PROFILE: return HubSettings::defined(aEntry->get(HubSettings::ShareProfile)) ? aEntry->getShareProfileName() : Util::emptyString;
-			case PROP_NMDC_ENCODING: return serializeHubSetting(aEntry->get(HubSettings::NmdcEncoding));
-			case PROP_IP4: return serializeHubSetting(aEntry->get(HubSettings::UserIp));
-			case PROP_IP6: return serializeHubSetting(aEntry->get(HubSettings::UserIp6));
+			case PROP_NMDC_ENCODING: return Serializer::serializeHubSetting(aEntry->get(HubSettings::NmdcEncoding));
+			case PROP_IP4: return Serializer::serializeHubSetting(aEntry->get(HubSettings::UserIp));
+			case PROP_IP6: return Serializer::serializeHubSetting(aEntry->get(HubSettings::UserIp6));
 			default: dcassert(0); return Util::emptyString;
 		}
 	}

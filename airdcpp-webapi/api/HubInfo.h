@@ -50,11 +50,14 @@ namespace webserver {
 
 		static json serializeConnectState(const ClientPtr& aClient) noexcept;
 		static json serializeIdentity(const ClientPtr& aClient) noexcept;
+		static json serializeSettings(const ClientPtr& aClient) noexcept;
 		static json serializeCounts(const ClientPtr& aClient) noexcept;
 
 		void init() noexcept override;
 		ClientToken getId() const noexcept override;
 	private:
+		api_return handleUpdateHub(ApiRequest& aRequest);
+
 		api_return handleReconnect(ApiRequest& aRequest);
 		api_return handleFavorite(ApiRequest& aRequest);
 		api_return handlePassword(ApiRequest& aRequest);
@@ -71,6 +74,7 @@ namespace webserver {
 		void on(ClientListener::HubUpdated, const Client*) noexcept override;
 		void on(ClientListener::HubTopic, const Client*, const string&) noexcept override;
 		void on(ClientListener::ConnectStateChanged, const Client*, uint8_t) noexcept override;
+		void on(ClientListener::SettingsUpdated, const Client*) noexcept override;
 
 		void on(ClientListener::UserConnected, const Client*, const OnlineUserPtr&) noexcept override;
 		void on(ClientListener::UserUpdated, const Client*, const OnlineUserPtr&) noexcept override;

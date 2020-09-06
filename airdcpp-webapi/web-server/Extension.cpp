@@ -196,12 +196,13 @@ namespace webserver {
 		{
 			WLock l(cs);
 			settings.clear();
+			userReferences.clear();
 		}
 
 		fire(ExtensionListener::SettingDefinitionsUpdated());
 	}
 
-	void Extension::setSettingValues(const SettingValueMap& aValues) {
+	void Extension::setSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences) {
 		{
 			WLock l(cs);
 			for (const auto& vp: aValues) {
@@ -212,6 +213,8 @@ namespace webserver {
 
 				setting->setValue(vp.second);
 			}
+
+			userReferences.insert(aUserReferences.begin(), aUserReferences.end());
 		}
 
 		fire(ExtensionListener::SettingValuesUpdated(), aValues);

@@ -317,7 +317,7 @@ namespace webserver {
 				targetDirectory + targetFileName,
 				JsonUtil::getField<int64_t>("size", reqJson, false),
 				Deserializer::deserializeTTH(reqJson),
-				Deserializer::deserializeHintedUser(reqJson),
+				Deserializer::deserializeHintedUser(reqJson, false, true),
 				JsonUtil::getOptionalFieldDefault<time_t>("time", reqJson, GET_TIME()),
 				0,
 				prio
@@ -355,7 +355,7 @@ namespace webserver {
 		string errorMsg;
 		auto info = QueueManager::getInstance()->createDirectoryBundle(
 			targetDirectory + targetFileName,
-			Deserializer::deserializeHintedUser(bundleJson),
+			Deserializer::deserializeHintedUser(bundleJson, false, true),
 			files,
 			prio,
 			JsonUtil::getOptionalFieldDefault<time_t>("time", bundleJson, GET_TIME()),
