@@ -30,8 +30,6 @@
 
 namespace dcpp {
 
-struct HubSettings;
-
 class SettingsManager : public Singleton<SettingsManager>, public Speaker<SettingsManagerListener>
 {
 public:

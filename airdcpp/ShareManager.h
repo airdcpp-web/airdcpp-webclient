@@ -213,10 +213,11 @@ public:
 
 	typedef unordered_multimap<TTHValue, TempShareInfo> TempShareMap;
 
-	optional<TempShareInfo> addTempShare(const TTHValue& tth, const string& aName, const string& filePath, int64_t aSize, ProfileToken aProfile, const UserPtr& aUser) noexcept;
+	optional<TempShareInfo> addTempShare(const TTHValue& aTTH, const string& aName, const string& aFilePath, int64_t aSize, ProfileToken aProfile, const UserPtr& aUser) noexcept;
 
 	bool hasTempShares() const noexcept;
 	TempShareInfoList getTempShares() const noexcept;
+	TempShareInfoList getTempShares(const TTHValue& aTTH) const noexcept;
 
 	bool removeTempShare(const UserPtr& aUser, const TTHValue& tth) noexcept;
 	bool removeTempShare(TempShareToken aId) noexcept;

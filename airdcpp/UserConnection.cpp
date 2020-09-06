@@ -268,7 +268,7 @@ void UserConnection::handle(AdcCommand::PMI t, const AdcCommand& c) {
 }
 
 
-void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
+void UserConnection::handlePM(const AdcCommand& c, bool aEcho) noexcept{
 	const string& message = c.getParam(0);
 
 	auto cm = ClientManager::getInstance();
@@ -283,7 +283,7 @@ void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 		return;
 	}
 
-	if (echo) {
+	if (aEcho) {
 		std::swap(peer, me);
 	}
 
@@ -291,6 +291,7 @@ void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 
 	auto msg = std::make_shared<ChatMessage>(message, peer, me, peer);
 	msg->setThirdPerson(c.hasFlag("ME", 1));
+	msg->updateMentions(me->getIdentity());
 	if (c.getParam("TS", 1, tmp)) {
 		msg->setTime(Util::toTimeT(tmp));
 	}

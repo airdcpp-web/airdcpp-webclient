@@ -563,6 +563,20 @@ optional<TempShareInfo> ShareManager::addTempShare(const TTHValue& aTTH, const s
 	return item;
 }
 
+TempShareInfoList ShareManager::getTempShares(const TTHValue& aTTH) const noexcept {
+	TempShareInfoList ret;
+
+	{
+		RLock l(cs);
+		const auto files = tempShares.equal_range(aTTH);
+		for (auto i = files.first; i != files.second; ++i) {
+			ret.push_back(i->second);
+		}
+	}
+
+	return ret;
+}
+
 bool ShareManager::removeTempShare(const UserPtr& aUser, const TTHValue& tth) noexcept {
 	optional<TempShareInfo> removedItem;
 

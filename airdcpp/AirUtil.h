@@ -39,10 +39,12 @@ public:
 		string msg;
 	};
 
-	static boost::regex releaseReg;
+	static boost::regex releaseRegBasic;
+	static boost::regex releaseRegChat;
 	static boost::regex subDirRegPlain;
 	static boost::regex crcReg;
 	static boost::regex lineBreakRegex;
+	static boost::regex urlReg;
 
 	// Check directory dupe status by name or ADC path
 	static DupeType checkAdcDirectoryDupe(const string& aAdcPath, int64_t aSize);
@@ -65,7 +67,6 @@ public:
 	static void init();
 
 	static string toOpenFileName(const string& aFileName, const TTHValue& aTTH) noexcept;
-	static string fromOpenFileName(const string& aFileName) noexcept;
 
 	struct AdapterInfo {
 		AdapterInfo(const string& aName, const string& aIP, uint8_t aPrefix) : adapterName(aName), ip(aIP), prefix(aPrefix) { }
@@ -126,12 +127,11 @@ public:
 	static const string getReleaseRegLong(bool chat) noexcept;
 	static const string getReleaseRegBasic() noexcept;
 	static const string getSubDirReg() noexcept;
+	static const string getUrlReg() noexcept;
 
 	inline static string getReleaseDirLocal(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, PATH_SEPARATOR); };
 	inline static string getAdcReleaseDir(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, ADC_SEPARATOR); };
 	static string getReleaseDir(const string& dir, bool cut, const char separator) noexcept;
-
-	static const string getLinkUrl() noexcept;
 
 	static void removeDirectoryIfEmpty(const string& tgt, int maxAttempts, bool silent);
 
