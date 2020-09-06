@@ -429,6 +429,7 @@ enum Strings { // @DontAdd
 	FAILED_TO_LOAD_PRIVATE_KEY, // "Failed to load private key"
 	FAILED_TO_READ, // "Failed to read %1%: %2%"
 	FAILED_TO_SHUTDOWN, // "Failed to shutdown!"
+	FAILED_TO_OPEN_FILE, // "Failed to open the file %1%: %2%"
 	FAVDIRS_SHOW_SHARED, // "Show shared directories in the \"Download to\" menu"
 	FAVORITE, // "Favorite"
 	FAVORITE_DIR_NAME, // "Favorite name"

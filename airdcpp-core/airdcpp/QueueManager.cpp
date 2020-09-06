@@ -731,7 +731,7 @@ BundlePtr QueueManager::getBundle(const string& aTarget, Priority aPrio, time_t 
 	return b;
 }
 
-optional<DirectoryBundleAddInfo> QueueManager::createDirectoryBundle(const string& aTarget, const HintedUser& aUser, BundleDirectoryItemInfo::List& aFiles, Priority aPrio, time_t aDate, string& errorMsg_) noexcept {
+optional<DirectoryBundleAddInfo> QueueManager::createDirectoryBundle(const string& aTarget, const HintedUser& aOptionalUser, BundleDirectoryItemInfo::List& aFiles, Priority aPrio, time_t aDate, string& errorMsg_) noexcept {
 	// Generic validations that will throw
 	auto target = formatBundleTarget(aTarget, aDate);
 
@@ -750,9 +750,9 @@ optional<DirectoryBundleAddInfo> QueueManager::createDirectoryBundle(const strin
 		}
 	}
 
-	if (aUser.user) {
+	if (aOptionalUser) {
 		try {
-			checkSource(aUser);
+			checkSource(aOptionalUser);
 		} catch (const QueueException& e) {
 			errorMsg_ = e.getError();
 			return nullopt;
@@ -825,7 +825,7 @@ optional<DirectoryBundleAddInfo> QueueManager::createDirectoryBundle(const strin
 		//add the files
 		for (auto& bfi: aFiles) {
 			try {
-				auto addInfo = addBundleFile(target + bfi.file, bfi.size, bfi.tth, aUser, 0, true, bfi.prio, wantConnection, b);
+				auto addInfo = addBundleFile(target + bfi.file, bfi.size, bfi.tth, aOptionalUser, 0, true, bfi.prio, wantConnection, b);
 				if (addInfo.second) {
 					info.filesAdded++;
 				} else {
@@ -856,7 +856,7 @@ optional<DirectoryBundleAddInfo> QueueManager::createDirectoryBundle(const strin
 	// Those don't need to be reported to the user
 	errors.clearMinor();
 
-	onBundleAdded(b, oldStatus, queueItems, aUser, wantConnection);
+	onBundleAdded(b, oldStatus, queueItems, aOptionalUser, wantConnection);
 	info.bundleInfo = BundleAddInfo(b, oldStatus != Bundle::STATUS_NEW);
 
 	if (info.filesAdded > 0) {
@@ -904,7 +904,7 @@ void QueueManager::addBundle(const BundlePtr& aBundle, int aItemsAdded) noexcept
 	}
 }
 
-void QueueManager::onBundleAdded(const BundlePtr& aBundle, Bundle::Status aOldStatus, const QueueItem::ItemBoolList& aItemsAdded, const HintedUser& aUser, bool aWantConnection) noexcept {
+void QueueManager::onBundleAdded(const BundlePtr& aBundle, Bundle::Status aOldStatus, const QueueItem::ItemBoolList& aItemsAdded, const HintedUser& aOptionalUser, bool aWantConnection) noexcept {
 	if (aOldStatus == Bundle::STATUS_NEW) {
 		fire(QueueManagerListener::BundleAdded(), aBundle);
 
@@ -928,11 +928,13 @@ void QueueManager::onBundleAdded(const BundlePtr& aBundle, Bundle::Status aOldSt
 		}
 	}
 
-	fire(QueueManagerListener::SourceFilesUpdated(), aUser);
+	if (aOptionalUser) {
+		fire(QueueManagerListener::SourceFilesUpdated(), aOptionalUser);
+	}
 
-	if (aWantConnection && aUser.user->isOnline()) {
+	if (aWantConnection && aOptionalUser && aOptionalUser.user->isOnline()) {
 		//connect to the source (we must have an user in this case)
-		ConnectionManager::getInstance()->getDownloadConnection(aUser);
+		ConnectionManager::getInstance()->getDownloadConnection(aOptionalUser);
 	}
 }
 
@@ -945,15 +947,15 @@ string QueueManager::formatBundleTarget(const string& aPath, time_t aRemoteDate)
 	return Util::validatePath(formatedPath);
 }
 
-BundleAddInfo QueueManager::createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, time_t aDate,
+BundleAddInfo QueueManager::createFileBundle(const string& aTarget, int64_t aSize, const TTHValue& aTTH, const HintedUser& aOptionalUser, time_t aDate,
 		Flags::MaskType aFlags, Priority aPrio) {
 
 	string filePath = formatBundleTarget(Util::getFilePath(aTarget), aDate);
 	string fileName = Util::getFileName(aTarget);
 
 	//check the source
-	if (aUser.user) {
-		checkSource(aUser);
+	if (aOptionalUser) {
+		checkSource(aOptionalUser);
 	}
 
 	validateBundleFile(filePath, fileName, aTTH, aPrio, aSize, aFlags);
@@ -971,12 +973,12 @@ BundleAddInfo QueueManager::createFileBundle(const string& aTarget, int64_t aSiz
 		b = getBundle(target, aPrio, aDate, true);
 		oldStatus = b->getStatus();
 
-		fileAddInfo = addBundleFile(target, aSize, aTTH, aUser, aFlags, true, aPrio, wantConnection, b);
+		fileAddInfo = addBundleFile(target, aSize, aTTH, aOptionalUser, aFlags, true, aPrio, wantConnection, b);
 
 		addBundle(b, fileAddInfo.second ? 1 : 0);
 	}
 
-	onBundleAdded(b, oldStatus, { fileAddInfo }, aUser, wantConnection);
+	onBundleAdded(b, oldStatus, { fileAddInfo }, aOptionalUser, wantConnection);
 
 	if (fileAddInfo.second) {
 		if (oldStatus == Bundle::STATUS_NEW) {
@@ -989,7 +991,7 @@ BundleAddInfo QueueManager::createFileBundle(const string& aTarget, int64_t aSiz
 	return BundleAddInfo(b, oldStatus != Bundle::STATUS_NEW);
 }
 
-QueueManager::FileAddInfo QueueManager::addBundleFile(const string& aTarget, int64_t aSize, const TTHValue& aRoot, const HintedUser& aUser, Flags::MaskType aFlags /* = 0 */,
+QueueManager::FileAddInfo QueueManager::addBundleFile(const string& aTarget, int64_t aSize, const TTHValue& aRoot, const HintedUser& aOptionalUser, Flags::MaskType aFlags /* = 0 */,
 								   bool addBad /* = true */, Priority aPrio, bool& wantConnection_, BundlePtr& aBundle)
 {
 	dcassert(aSize > 0);
@@ -1015,9 +1017,9 @@ QueueManager::FileAddInfo QueueManager::addBundleFile(const string& aTarget, int
 	}
 
 	// Add the source
-	if (aUser.user) {
+	if (aOptionalUser) {
 		try {
-			if (addSource(ret.first, aUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0), false)) {
+			if (addSource(ret.first, aOptionalUser, (Flags::MaskType)(addBad ? QueueItem::Source::FLAG_MASK : 0), false)) {
 				wantConnection_ = true;
 			}
 		} catch(const Exception&) {
@@ -1062,7 +1064,7 @@ void QueueManager::readdBundleSource(BundlePtr aBundle, const HintedUser& aUser)
 
 string QueueManager::checkTarget(const string& toValidate, const string& aParentDir /*empty*/) {
 #ifdef _WIN32
-	if(toValidate.length()+aParentDir.length() > UNC_MAX_PATH) {
+	if (toValidate.length() + aParentDir.length() > UNC_MAX_PATH) {
 		throw QueueException(STRING(TARGET_FILENAME_TOO_LONG));
 	}
 

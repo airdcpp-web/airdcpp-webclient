@@ -816,11 +816,20 @@ FavoriteHubEntryList FavoriteManager::getFavoriteHubs(const string& group) const
 }
 
 void FavoriteManager::setHubSetting(const string& aUrl, HubSettings::HubBoolSetting aSetting, bool aNewValue) noexcept {
-	RLock l(cs);
-	auto p = getFavoriteHub(aUrl);
-	if (p != favoriteHubs.end()) {
+	FavoriteHubEntryPtr hub;
+
+	{
+		RLock l(cs);
+		auto p = getFavoriteHub(aUrl);
+		if (p == favoriteHubs.end()) {
+			return;
+		}
+
+		hub = *p;
 		(*p)->get(aSetting) = aNewValue;
 	}
+
+	fire(FavoriteManagerListener::FavoriteHubUpdated(), hub);
 }
 
 bool FavoriteManager::hasSlot(const UserPtr& aUser) const noexcept {

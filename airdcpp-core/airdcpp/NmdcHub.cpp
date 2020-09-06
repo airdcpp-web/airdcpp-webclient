@@ -326,6 +326,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 			chatMessage->setFrom(o);
 		}
+		chatMessage->updateMentions(getMyIdentity());
 
 		onChatMessage(chatMessage);
 		return;
@@ -923,6 +924,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			message->setReplyTo(findUser(rtNick));
 			message->setFrom(findUser(fromNick));
 		}
+		message->updateMentions(getMyIdentity());
 
 		onPrivateMessage(message);
 	} else if(cmd == "GetPass") {

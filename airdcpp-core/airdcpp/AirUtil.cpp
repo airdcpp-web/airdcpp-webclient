@@ -55,10 +55,12 @@
 
 namespace dcpp {
 
-boost::regex AirUtil::releaseReg;
+boost::regex AirUtil::releaseRegBasic;
+boost::regex AirUtil::releaseRegChat;
 boost::regex AirUtil::subDirRegPlain;
 boost::regex AirUtil::crcReg;
 boost::regex AirUtil::lineBreakRegex;
+boost::regex AirUtil::urlReg;
 
 AirUtil::TimeCounter::TimeCounter(string aMsg) : start(GET_TICK()), msg(move(aMsg)) {
 
@@ -116,15 +118,6 @@ string AirUtil::toOpenFileName(const string& aFileName, const TTHValue& aTTH) no
 	return aTTH.toBase32() + "_" + Util::validateFileName(aFileName);
 }
 
-string AirUtil::fromOpenFileName(const string& aFileName) noexcept {
-	if (aFileName.size() <= 40) {
-		dcassert(0);
-		return aFileName;
-	}
-
-	return aFileName.substr(40);
-}
-
 DupeType AirUtil::checkFileDupe(const TTHValue& aTTH) {
 	if (ShareManager::getInstance()->isFileShared(aTTH)) {
 		return DUPE_SHARE_FULL;
@@ -152,7 +145,9 @@ TTHValue AirUtil::getPathId(const string& aPath) noexcept {
 }
 
 void AirUtil::init() {
-	releaseReg.assign(getReleaseRegBasic());
+	releaseRegBasic.assign(getReleaseRegBasic());
+	releaseRegChat.assign(getReleaseRegLong(true));
+	urlReg.assign(getUrlReg());
 	subDirRegPlain.assign(getSubDirReg(), boost::regex::icase);
 	crcReg.assign(R"(.{5,200}\s(\w{8})$)");
 	lineBreakRegex.assign(R"(\n|\r)");
@@ -662,7 +657,7 @@ bool AirUtil::stringRegexMatch(const string& aReg, const string& aString) {
 bool AirUtil::isRelease(const string& aString) {
 
 	try {
-		return boost::regex_match(aString, releaseReg);
+		return boost::regex_match(aString, releaseRegBasic);
 	}
 	catch (...) {}
 
@@ -697,7 +692,7 @@ void AirUtil::getRegexMatches(const string& aString, StringList& l, const boost:
 	}
 }
 
-const string AirUtil::getLinkUrl() noexcept {
+const string AirUtil::getUrlReg() noexcept {
 	return R"(((?:[a-z][\w-]{0,10})?:/{1,3}|www\d{0,3}[.]|magnet:\?[^\s=]+=|spotify:|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`()\[\]{};:'\".,<>?«»“”‘’]))";
 }
 

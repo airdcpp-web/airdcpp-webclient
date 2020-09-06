@@ -142,15 +142,22 @@ void Client::reloadSettings(bool aUpdateNick) noexcept {
 	}
 }
 
-bool Client::changeBoolHubSetting(HubSettings::HubBoolSetting aSetting) noexcept {
+
+bool Client::toggleHubBoolSetting(HubSettings::HubBoolSetting aSetting) noexcept {
 	auto newValue = static_cast<bool>(!get(aSetting));
-	get(aSetting) = newValue;
+	setHubSetting(aSetting, newValue);
+	return newValue;
+}
+
+void Client::setHubSetting(HubSettings::HubBoolSetting aSetting, bool aNewValue) noexcept {
+	get(aSetting) = aNewValue;
 
 	//save for a favorite hub if needed
 	if (favToken > 0) {
-		FavoriteManager::getInstance()->setHubSetting(hubUrl, aSetting, newValue);
+		FavoriteManager::getInstance()->setHubSetting(hubUrl, aSetting, aNewValue);
 	}
-	return newValue;
+
+	fire(ClientListener::SettingsUpdated(), this);
 }
 
 void Client::updated(const OnlineUserPtr& aUser) noexcept {

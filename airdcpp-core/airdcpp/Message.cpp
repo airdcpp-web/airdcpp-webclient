@@ -24,7 +24,7 @@
 
 namespace dcpp {
 
-atomic<uint64_t> messageIdCounter { 0 };
+atomic<uint64_t> messageIdCounter { 1 };
 
 ChatMessage::ChatMessage(const string& aText, const OnlineUserPtr& aFrom, const OnlineUserPtr& aTo, const OnlineUserPtr& aReplyTo) noexcept :
 	text(aText), from(aFrom), to(aTo), replyTo(aReplyTo), id(messageIdCounter++), time(GET_TIME()) {
@@ -61,6 +61,17 @@ string ChatMessage::format() const noexcept {
 	}
 
 	return tmp;
+}
+
+
+void ChatMessage::updateMentions(const Identity& aMe) noexcept {
+	if (from->getIdentity().getSID() == aMe.getSID()) {
+		return;
+	}
+
+	if (text.find(aMe.getNick()) != string::npos) {
+		mentionedNick = aMe.getNick();
+	}
 }
 
 } // namespace dcpp

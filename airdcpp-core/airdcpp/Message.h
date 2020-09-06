@@ -46,6 +46,7 @@ public:
 	GETSET(bool, read, Read);
 
 	string format() const noexcept;
+	void updateMentions(const Identity& aMe) noexcept;
 
 	const string& getText() const noexcept {
 		return text;
@@ -54,7 +55,12 @@ public:
 	uint64_t getId() const noexcept {
 		return id;
 	}
+
+	const string& getMentionedNick() const noexcept {
+		return mentionedNick;
+	}
 private:
+	string mentionedNick;
 	string text;
 	const uint64_t id;
 };

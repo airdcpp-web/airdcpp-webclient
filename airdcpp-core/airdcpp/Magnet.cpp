@@ -31,6 +31,20 @@ namespace dcpp {
 using std::map;
 
 
+
+optional<Magnet> Magnet::parseMagnet(const string& aLink) noexcept {
+	Magnet m(aLink);
+	if (m.fname.empty() || m.fsize == -1 || m.hash.empty()) {
+		return nullopt;
+	}
+
+	if (m.hash.length() != 39 || !Encoder::isBase32(m.hash.c_str())) {
+		return nullopt;
+	}
+
+	return m;
+}
+
 string Magnet::makeMagnet(const TTHValue& aHash, const string& aFile, int64_t aSize) noexcept {
 	string ret = "magnet:?xt=urn:tree:tiger:" + aHash.toBase32();
 	if (aSize > 0)
