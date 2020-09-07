@@ -130,6 +130,8 @@ void DirectoryListing::setHubUrlImpl(const string& aHubUrl) noexcept {
 
 	hintedUser.hint = aHubUrl;
 	fire(DirectoryListingListener::UserUpdated());
+
+	QueueManager::getInstance()->updateFilelistUrl(hintedUser);
 }
 
 void DirectoryListing::setShareProfileImpl(ProfileToken aProfile) noexcept {

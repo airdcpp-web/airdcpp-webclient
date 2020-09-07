@@ -220,13 +220,15 @@ namespace dcpp {
 
 		t->setState(TransferInfo::STATE_WAITING);
 		t->setStatusString(STRING(CONNECTING));
+		t->setHubUrl(aCqi->getHubUrl());
 
 		updateQueueInfo(t);
 
 		onTransferUpdated(
 			t,
 			TransferInfo::UpdateFlags::STATUS | TransferInfo::UpdateFlags::TARGET | TransferInfo::UpdateFlags::TYPE |
-			TransferInfo::UpdateFlags::SIZE | TransferInfo::UpdateFlags::QUEUE_ID | TransferInfo::UpdateFlags::STATE
+			TransferInfo::UpdateFlags::SIZE | TransferInfo::UpdateFlags::QUEUE_ID | TransferInfo::UpdateFlags::STATE |
+			TransferInfo::UpdateFlags::USER
 		);
 	}
 
@@ -248,6 +250,7 @@ namespace dcpp {
 			return;
 		}
 
+		t->setHubUrl(aCqi->getHubUrl());
 		onTransferUpdated(t, TransferInfo::UpdateFlags::USER);
 	}
 
