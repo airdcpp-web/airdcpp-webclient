@@ -1141,7 +1141,7 @@ bool QueueManager::addSource(const QueueItemPtr& qi, const HintedUser& aUser, Fl
 	
 }
 
-Download* QueueManager::getDownload(UserConnection& aSource, const QueueTokenSet& runningBundles, const OrderedStringSet& onlineHubs, string& lastError_, string& newUrl, QueueItemBase::DownloadType aType) noexcept{
+Download* QueueManager::getDownload(UserConnection& aSource, const QueueTokenSet& aRunningBundles, const OrderedStringSet& aOnlineHubs, string& lastError_, string& newUrl, QueueItemBase::DownloadType aType) noexcept{
 	QueueItemPtr q = nullptr;
 	Download* d = nullptr;
 
@@ -1152,7 +1152,7 @@ Download* QueueManager::getDownload(UserConnection& aSource, const QueueTokenSet
 		const UserPtr& u = aSource.getUser();
 		bool hasDownload = false;
 
-		q = userQueue.getNext(aSource.getUser(), runningBundles, onlineHubs, lastError_, hasDownload, Priority::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), aType);
+		q = userQueue.getNext(aSource.getUser(), aRunningBundles, aOnlineHubs, lastError_, hasDownload, Priority::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), aType);
 		if (!q) {
 			dcdebug("none\n");
 			return nullptr;
@@ -1162,7 +1162,7 @@ Download* QueueManager::getDownload(UserConnection& aSource, const QueueTokenSet
 
 		//update the hub hint
 		newUrl = aSource.getHubUrl();
-		source->updateHubUrl(onlineHubs, newUrl, (q->isSet(QueueItem::FLAG_USER_LIST) && !q->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
+		source->updateDownloadHubUrl(aOnlineHubs, newUrl, (q->isSet(QueueItem::FLAG_USER_LIST) && !q->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
 
 		//check partial sources
 		if (source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
@@ -1299,7 +1299,7 @@ pair<QueueItem::DownloadType, bool> QueueManager::startDownload(const UserPtr& a
 				}
 
 				allowUrlChange = !qi->isSet(QueueItem::FLAG_USER_LIST);
-				qi->getSource(aUser)->updateHubUrl(hubs, hubHint, (qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
+				qi->getSource(aUser)->updateDownloadHubUrl(hubs, hubHint, (qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
 			}
 		}
 
@@ -1383,6 +1383,33 @@ StringList QueueManager::getTargets(const TTHValue& tth) noexcept {
 		sl.push_back(q->getTarget());
 
 	return sl;
+}
+
+void QueueManager::updateFilelistUrl(const HintedUser& aUser) noexcept {
+	QueueItemList updated;
+
+	{
+		QueueItemList ql;
+
+		RLock l(cs);
+		userQueue.getUserQIs(aUser, ql);
+
+		for (const auto& q : ql) {
+			if (q->isFilelist() && q->isSet(QueueItem::FLAG_CLIENT_VIEW)) {
+				auto source = q->getSource(aUser);
+				source->setHubUrl(aUser.hint);
+				updated.push_back(q);
+			}
+		}
+	}
+
+	if (!updated.empty()) {
+		for (const auto& q: updated) {
+			fire(QueueManagerListener::ItemSources(), q);
+		}
+
+		ConnectionManager::getInstance()->getDownloadConnection(aUser);
+	}
 }
 
 void QueueManager::onFileFinished(const QueueItemPtr& aQI, Download* aDownload, const string& aListDirectory) noexcept {
