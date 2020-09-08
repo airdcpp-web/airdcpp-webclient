@@ -23,6 +23,9 @@
 #include <api/common/Serializer.h>
 #include <api/common/MessageUtils.h>
 
+#include <web-server/Session.h>
+#include <web-server/WebServerManager.h>
+
 #include <airdcpp/LogManager.h>
 
 namespace webserver {
@@ -76,11 +79,14 @@ namespace webserver {
 	}
 
 	void EventApi::on(LogManagerListener::Message, const LogMessagePtr& aMessageData) noexcept {
-		if (subscriptionActive("event_message")) {
-			send("event_message", MessageUtils::serializeLogMessage(aMessageData));
-		}
+		// Avoid deadlocks if the event is fired from inside a lock
+		session->getServer()->addAsyncTask([=] {
+			if (subscriptionActive("event_message")) {
+				send("event_message", MessageUtils::serializeLogMessage(aMessageData));
+			}
 
-		onMessagesChanged();
+			onMessagesChanged();
+		});
 	}
 
 	void EventApi::onMessagesChanged() noexcept {
