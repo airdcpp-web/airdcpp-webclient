@@ -113,33 +113,43 @@ void Client::on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noe
 	}
 }
 
+/// @todo update the nick in ADC hubs?
 void Client::reloadSettings(bool aUpdateNick) noexcept {
-	/// @todo update the nick in ADC hubs?
-	string prevNick;
-	if(!aUpdateNick)
-		prevNick = get(Nick);
+	HubSettings oldHubSettings = *static_cast<HubSettings*>(this);
 
-	auto fav = FavoriteManager::getInstance()->getFavoriteHubEntry(getHubUrl());
-
+	// Merging
 	*static_cast<HubSettings*>(this) = SettingsManager::getInstance()->getHubSettings();
 
+	auto fav = FavoriteManager::getInstance()->getFavoriteHubEntry(getHubUrl());
 	if(fav) {
 		FavoriteManager::getInstance()->mergeHubSettings(fav, *this);
+		favToken = fav->getToken();
+	}
+
+	// Restore the old nick if nick change is not allowed
+	if (aUpdateNick) {
+		checkNick(get(Nick));
+	} else {
+		get(Nick) = oldHubSettings.get(Nick);
+	}
+
+	// Avoid unnecessary listener updates
+	if (oldHubSettings == *static_cast<HubSettings*>(this)) {
+		return;
+	}
+
+	// Something has changes
+	if (fav) {
 		if (!fav->getPassword().empty()) {
 			setPassword(fav->getPassword());
 		}
-
-		favToken = fav->getToken();
 	} else {
 		setPassword(Util::emptyString);
 	}
 
 	searchQueue.setMinInterval(get(HubSettings::SearchInterval) * 1000); //convert from seconds
-	if (aUpdateNick) {
-		checkNick(get(Nick));
-	} else {
-		get(Nick) = prevNick;
-	}
+
+	fire(ClientListener::SettingsUpdated(), this);
 }
 
 

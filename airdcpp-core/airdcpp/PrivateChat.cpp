@@ -280,8 +280,8 @@ void PrivateChat::checkAlwaysCCPM() {
 void PrivateChat::checkCCPMTimeout() {
 	if (ccpmState == CONNECTING) {
 		statusMessage(STRING(CCPM_TIMEOUT), LogMessage::SEV_INFO);
-		fire(PrivateChatListener::CCPMStatusUpdated(), this);
 		ccpmState = DISCONNECTED;
+		fire(PrivateChatListener::CCPMStatusUpdated(), this);
 	} 
 }
 

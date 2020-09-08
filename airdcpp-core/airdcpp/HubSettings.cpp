@@ -117,4 +117,24 @@ void HubSettings::save(SimpleXML& xml) const {
 	}
 }
 
+bool HubSettings::operator==(const HubSettings& aOther) const noexcept {
+	for (uint8_t i = 0; i < StringCount; ++i) {
+		if (strings[i] != aOther.strings[i]) {
+			return false;
+		}
+	}
+	for (uint8_t i = 0; i < BoolCount; ++i) {
+		if (bools[i] != aOther.bools[i]) {
+			return false;
+		}
+	}
+	for (uint8_t i = 0; i < IntCount; ++i) {
+		if (ints[i] != aOther.ints[i]) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 } // namespace dcpp
