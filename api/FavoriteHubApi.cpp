@@ -115,8 +115,27 @@ namespace webserver {
 				aEntry->get(HubSettings::UserIp) = JsonUtil::parseValue<string>("connection_ip_v4", i.value());
 			} else if (key == "connection_ip_v6") {
 				aEntry->get(HubSettings::UserIp6) = JsonUtil::parseValue<string>("connection_ip_v6", i.value());
+			} else if (key == "show_joins") {
+				aEntry->get(HubSettings::ShowJoins) = deserializeTribool("show_joins", i.value());
+			} else if (key == "fav_show_joins") {
+				aEntry->get(HubSettings::FavShowJoins) = deserializeTribool("fav_show_joins", i.value());
+			} else if (key == "chat_notify") {
+				aEntry->get(HubSettings::ChatNotify) = deserializeTribool("chat_notify", i.value());
+			} else if (key == "log_hub_chat") {
+				aEntry->get(HubSettings::LogMainChat) = deserializeTribool("log_hub_chat", i.value());
+			} else if (key == "away_message") {
+				aEntry->get(HubSettings::AwayMsg) = JsonUtil::parseValue<string>("away_message", i.value());
 			}
 		}
+	}
+
+	tribool FavoriteHubApi::deserializeTribool(const string& aFieldName, const json& aJson) {
+		auto value = JsonUtil::parseOptionalValue<bool>(aFieldName, aJson);
+		if (!value) {
+			return tribool(indeterminate);
+		}
+
+		return *value;
 	}
 
 	api_return FavoriteHubApi::handleAddHub(ApiRequest& aRequest) {
