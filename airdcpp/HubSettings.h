@@ -93,6 +93,7 @@ struct HubSettings
 	void load(SimpleXML& xml);
 	void save(SimpleXML& xml) const;
 
+	bool operator==(const HubSettings& aOther) const noexcept;
 private:
 	enum { StringCount = HubStrLast - HubStrFirst,
 		BoolCount = HubBoolLast - HubBoolFirst,
