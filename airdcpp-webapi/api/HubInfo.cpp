@@ -82,7 +82,7 @@ namespace webserver {
 
 		for (const auto& i : reqJson.items()) {
 			auto key = i.key();
-			if (key == "chat_notify") {
+			if (key == "use_main_chat_notify") {
 				client->setHubSetting(HubSettings::ChatNotify, JsonUtil::parseValue<bool>("chat_notify", i.value()));
 			} else if (key == "show_joins") {
 				client->setHubSetting(HubSettings::ShowJoins, JsonUtil::parseValue<bool>("show_joins", i.value()));
@@ -174,7 +174,7 @@ namespace webserver {
 	json HubInfo::serializeSettings(const ClientPtr& aClient) noexcept {
 		return {
 			{ "nick", Serializer::serializeHubSetting(aClient->get(HubSettings::Nick)) },
-			{ "chat_notify", Serializer::serializeHubSetting(aClient->get(HubSettings::ChatNotify)) },
+			{ "use_main_chat_notify", Serializer::serializeHubSetting(aClient->get(HubSettings::ChatNotify)) },
 			{ "show_joins", Serializer::serializeHubSetting(aClient->get(HubSettings::ShowJoins)) },
 			{ "fav_show_joins", Serializer::serializeHubSetting(aClient->get(HubSettings::FavShowJoins)) },
 		};

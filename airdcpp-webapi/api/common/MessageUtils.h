@@ -23,9 +23,8 @@
 
 #include <airdcpp/DupeType.h>
 #include <airdcpp/Message.h>
+#include <airdcpp/MessageHighlight.h>
 #include <airdcpp/SortedVector.h>
-
-#include "MessageHighlight.h"
 
 
 namespace dcpp {
@@ -35,9 +34,7 @@ namespace dcpp {
 namespace webserver {
 	class MessageUtils {
 	public:
-		static json serializeHighlights(const string& aText, const string& aMyNick, const UserPtr& aUser);
-		static json serializeMessageHighlight(const MessageHighlight& aHighlight);
-
+		static json serializeMessageHighlight(const MessageHighlight::Ptr& aHighlight);
 
 		static json serializeMessage(const Message& aMessage) noexcept;
 		static json serializeChatMessage(const ChatMessagePtr& aMessage) noexcept;
@@ -55,7 +52,7 @@ namespace webserver {
 		static string getMessageSeverity(LogMessage::Severity aSeverity) noexcept;
 
 		static string getHighlighType(MessageHighlight::HighlightType aType) noexcept;
-		static json getContentType(const MessageHighlight& aHighlight) noexcept;
+		static json getContentType(const MessageHighlight::Ptr& aHighlight) noexcept;
 	private:
 
 	};

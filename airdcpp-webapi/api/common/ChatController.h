@@ -42,6 +42,8 @@ namespace webserver {
 			MODULE_METHOD_HANDLER(aModule, aViewPermission, METHOD_GET, (EXACT_PARAM("messages"), RANGE_MAX_PARAM), ChatController::handleGetMessages);
 			MODULE_METHOD_HANDLER(aModule, aViewPermission, METHOD_POST, (EXACT_PARAM("messages"), EXACT_PARAM("read")), ChatController::handleSetRead);
 			MODULE_METHOD_HANDLER(aModule, aEditPermission, METHOD_DELETE, (EXACT_PARAM("messages")), ChatController::handleClear);
+
+			MODULE_METHOD_HANDLER(aModule, aEditPermission, METHOD_GET, (EXACT_PARAM("messages"), EXACT_PARAM("highlights"), TOKEN_PARAM), ChatController::handleGetMessageHighlight);
 		}
 
 		void onChatMessage(const ChatMessagePtr& aMessage) noexcept {
@@ -156,6 +158,18 @@ namespace webserver {
 		api_return handleSetRead(ApiRequest&) {
 			chatF()->setRead();
 			return websocketpp::http::status_code::no_content;
+		}
+
+		api_return handleGetMessageHighlight(ApiRequest& aRequest) {
+			const auto id = aRequest.getTokenParam();
+			auto highlight = chatF()->getCache().findMessageHighlight(id);
+			if (!highlight) {
+				aRequest.setResponseErrorStr("Message highlight " + Util::toString(id) + " was not found");
+				return websocketpp::http::status_code::not_found;
+			}
+
+			aRequest.setResponseBody(MessageUtils::serializeMessageHighlight(highlight));
+			return websocketpp::http::status_code::ok;
 		}
 
 		api_return handleGetMessages(ApiRequest& aRequest) {

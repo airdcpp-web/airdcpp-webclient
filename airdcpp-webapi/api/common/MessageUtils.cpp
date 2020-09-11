@@ -61,7 +61,7 @@ namespace webserver {
 			{ "time", aMessage->getTime() },
 			{ "is_read", aMessage->getRead() },
 			{ "third_person", aMessage->getThirdPerson() },
-			{ "highlights", MessageUtils::serializeHighlights(aMessage->getText(), aMessage->getMentionedNick(), aMessage->getFrom()->getUser()) },
+			{ "highlights", Serializer::serializeList(aMessage->getHighlights(), serializeMessageHighlight) },
 			{ "has_mention", hasMention(aMessage) },
 		};
 
@@ -86,14 +86,14 @@ namespace webserver {
 		}
 	}
 
-	json MessageUtils::serializeLogMessage(const LogMessagePtr& aMessageData) noexcept {
+	json MessageUtils::serializeLogMessage(const LogMessagePtr& aMessage) noexcept {
 		return {
-			{ "id", aMessageData->getId() },
-			{ "text", aMessageData->getText() },
-			{ "time", aMessageData->getTime() },
-			{ "severity", getMessageSeverity(aMessageData->getSeverity()) },
-			{ "is_read", aMessageData->getRead() },
-			{ "highlights", MessageUtils::serializeHighlights(aMessageData->getText(), Util::emptyString, nullptr) }
+			{ "id", aMessage->getId() },
+			{ "text", aMessage->getText() },
+			{ "time", aMessage->getTime() },
+			{ "severity", getMessageSeverity(aMessage->getSeverity()) },
+			{ "is_read", aMessage->getRead() },
+			{ "highlights", Serializer::serializeList(aMessage->getHighlights(), serializeMessageHighlight) }
 		};
 	}
 
@@ -113,15 +113,15 @@ namespace webserver {
 	}
 
 	bool MessageUtils::hasMention(const ChatMessagePtr& aMessage) noexcept {
-		return !aMessage->getMentionedNick().empty() && !isBot(aMessage);
+		return !aMessage->getMentionedNick().empty();
 	}
 
 	bool MessageUtils::isBot(const ChatMessagePtr& aMessage) noexcept {
-		return aMessage->getFrom()->getIdentity().isBot() || aMessage->getFrom()->getIdentity().isHub();
+		return !isUser(aMessage);
 	}
 
 	bool MessageUtils::isUser(const ChatMessagePtr& aMessage) noexcept {
-		return !isBot(aMessage);
+		return aMessage->getFrom()->getIdentity().isUser();
 	}
 
 	json MessageUtils::serializeUnreadChat(const MessageCache& aCache) noexcept {
@@ -133,30 +133,25 @@ namespace webserver {
 		};
 	}
 
-	json MessageUtils::serializeHighlights(const string& aText, const string& aMyNick, const UserPtr& aUser) {
-		// auto highlights = parseHighlights(aText, aMyNick, aUser);
-		return Serializer::serializeList(MessageHighlight::parseHighlights(aText, aMyNick, aUser), serializeMessageHighlight);
-	}
-
-
-	json MessageUtils::getContentType(const MessageHighlight& aHighlight) noexcept {
-		if (!aHighlight.getMagnet()) {
+	json MessageUtils::getContentType(const MessageHighlight::Ptr& aHighlight) noexcept {
+		if (!aHighlight->getMagnet()) {
 			return json();
 		}
 
-		const auto ext = Util::formatFileType((*aHighlight.getMagnet()).fname);
+		const auto ext = Util::formatFileType((*aHighlight->getMagnet()).fname);
 		return Serializer::toFileContentType(ext);
 	}
 
-	json MessageUtils::serializeMessageHighlight(const MessageHighlight& aHighlight) {
+	json MessageUtils::serializeMessageHighlight(const MessageHighlight::Ptr& aHighlight) {
 		return {
-			{ "text", aHighlight.text },
-			{ "type", getHighlighType(aHighlight.getType()) },
+			{ "id", aHighlight->getToken() },
+			{ "text", aHighlight->getText() },
+			{ "type", getHighlighType(aHighlight->getType()) },
 			{ "position", {
-				{ "start", aHighlight.getStart() },
-				{ "end", aHighlight.getEnd() },
+				{ "start", aHighlight->getStart() },
+				{ "end", aHighlight->getEnd() },
 			}},
-			{ "dupe", Serializer::serializeFileDupe(aHighlight.getDupe(), aHighlight.getMagnet() ? (*aHighlight.getMagnet()).getTTH() : TTHValue()) },
+			{ "dupe", Serializer::serializeFileDupe(aHighlight->getDupe(), aHighlight->getMagnet() ? (*aHighlight->getMagnet()).getTTH() : TTHValue()) },
 			{ "content_type", getContentType(aHighlight) },
 		};
 	}

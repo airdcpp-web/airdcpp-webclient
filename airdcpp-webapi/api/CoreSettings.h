@@ -38,11 +38,15 @@ namespace webserver {
 		{ "away_idle_time", SettingsManager::AWAY_IDLE_TIME, ResourceManager::AWAY_IDLE_TIME_BEGIN, ApiSettingItem::TYPE_LAST, ResourceManager::Strings::MINUTES_LOWER },
 		{ "away_no_bots", SettingsManager::NO_AWAYMSG_TO_BOTS, ResourceManager::SETTINGS_NO_AWAYMSG_TO_BOTS },
 
+		// Appearance
 		{ "format_release_names", SettingsManager::FORMAT_RELEASE, ResourceManager::FORMAT_RELEASE },
 		{ "format_dupes_chat", SettingsManager::DUPES_IN_CHAT, ResourceManager::SETTINGS_DUPE_CHAT },
 		{ "format_dupes_filelist", SettingsManager::DUPES_IN_FILELIST, ResourceManager::SETTINGS_DUPE_FILELIST },
 		{ "format_dupes_search", SettingsManager::DUPE_SEARCH, ResourceManager::SETTINGS_DUPE_SEARCH },
 
+		{ "use_main_chat_notify", SettingsManager::SHOW_CHAT_NOTIFY, ResourceManager::CHAT_NOTIFY },
+		{ "show_joins", SettingsManager::SHOW_JOINS, ResourceManager::SETTINGS_SHOW_JOINS },
+		{ "fav_show_joins", SettingsManager::FAV_SHOW_JOINS, ResourceManager::FAV_SHOW_JOIN },
 
 		//{ ResourceManager::SETTINGS_DOWNLOADS },
 		{ "download_directory", SettingsManager::DOWNLOAD_DIRECTORY, ResourceManager::SETTINGS_DOWNLOAD_DIRECTORY, ApiSettingItem::TYPE_DIRECTORY_PATH },

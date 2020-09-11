@@ -75,9 +75,11 @@ namespace webserver {
 		typedef X<8> HintedUserMenuSelected;
 		typedef X<9> ExtensionMenuSelected;
 
-		typedef X<10> FilelistItemMenuSelected;
-		typedef X<11> GroupedSearchResultMenuSelected;
-		typedef X<12> HubUserMenuSelected;
+		typedef X<15> FilelistItemMenuSelected;
+		typedef X<16> GroupedSearchResultMenuSelected;
+		typedef X<17> HubUserMenuSelected;
+		typedef X<18> HubMessageHighlightMenuSelected;
+		typedef X<19> PrivateChatMessageHighlightMenuSelected;
 
 
 		virtual void on(QueueBundleMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData&) noexcept { }
@@ -88,11 +90,13 @@ namespace webserver {
 		virtual void on(UserMenuSelected, const vector<CID>&, const ContextMenuItemClickData&) noexcept { }
 		virtual void on(HintedUserMenuSelected, const vector<HintedUser>&, const ContextMenuItemClickData&) noexcept { }
 
+		virtual void on(ExtensionMenuSelected, const vector<string>&, const ContextMenuItemClickData&) noexcept { }
+
 		virtual void on(FilelistItemMenuSelected, const vector<uint32_t>&, const DirectoryListingPtr&, const ContextMenuItemClickData&) noexcept { }
 		virtual void on(GroupedSearchResultMenuSelected, const vector<TTHValue>&, const SearchInstancePtr&, const ContextMenuItemClickData&) noexcept { }
 		virtual void on(HubUserMenuSelected, const vector<uint32_t>&, const ClientPtr&, const ContextMenuItemClickData&) noexcept { }
-
-		virtual void on(ExtensionMenuSelected, const vector<string>&, const ContextMenuItemClickData&) noexcept { }
+		virtual void on(HubMessageHighlightMenuSelected, const vector<uint32_t>&, const ClientPtr&, const ContextMenuItemClickData&) noexcept { }
+		virtual void on(PrivateChatMessageHighlightMenuSelected, const vector<uint32_t>&, const PrivateChatPtr&, const ContextMenuItemClickData&) noexcept { }
 	};
 
 	class ContextMenuItem {
@@ -128,6 +132,8 @@ namespace webserver {
 		ENTITY_CONTEXT_MENU(uint32_t, filelistItem, FilelistItem, DirectoryListingPtr);
 		ENTITY_CONTEXT_MENU(TTHValue, groupedSearchResult, GroupedSearchResult, SearchInstancePtr);
 		ENTITY_CONTEXT_MENU(uint32_t, hubUser, HubUser, ClientPtr);
+		ENTITY_CONTEXT_MENU(uint32_t, hubMessageHighlight, HubMessageHighlight, ClientPtr);
+		ENTITY_CONTEXT_MENU(uint32_t, privateChatMessageHighlight, PrivateChatMessageHighlight, PrivateChatPtr);
 
 		typedef vector<ContextMenuItem> MenuItemList;
 
