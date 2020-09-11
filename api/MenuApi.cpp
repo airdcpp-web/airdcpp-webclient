@@ -31,11 +31,12 @@
 
 #include <airdcpp/Bundle.h>
 
-#include <airdcpp/DirectoryListingManager.h>
 #include <airdcpp/ClientManager.h>
+#include <airdcpp/DirectoryListing.h>
+#include <airdcpp/DirectoryListingManager.h>
+#include <airdcpp/PrivateChatManager.h>
 #include <airdcpp/SearchManager.h>
 #include <airdcpp/SearchInstance.h>
-#include <airdcpp/DirectoryListing.h>
 
 
 #define CONTEXT_MENU_HANDLER(menuId, hook, hook2, idType, idDeserializerFunc, idSerializerFunc, access) \
@@ -117,9 +118,12 @@ namespace webserver {
 				"user_menuitem_selected",
 				"hinted_user_menuitem_selected",
 				"extension_menuitem_selected",
+
 				"hub_user_menuitem_selected",
 				"grouped_search_result_menuitem_selected",
 				"filelist_item_menuitem_selected",
+				"hub_message_highlight_menuitem_selected",
+				"private_chat_message_highlight_menuitem_selected",
 			},
 			Access::ANY
 		) {
@@ -168,9 +172,21 @@ namespace webserver {
 			return instance;
 		};
 
+		const auto parsePrivateChat = [](const json& aJson, const string& aFieldName) {
+			auto cid = JsonUtil::parseValue<string>(aFieldName, aJson, false);
+			auto instance = PrivateChatManager::getInstance()->getChat(Deserializer::getUser(cid, false));
+			if (!instance) {
+				JsonUtil::throwError(aFieldName, JsonUtil::ERROR_INVALID, "Invalid session ID");
+			}
+
+			return instance;
+		};
+
 		ENTITY_CONTEXT_MENU_HANDLER("hub_user", hubUser, HubUser, uint32_t, Deserializer::defaultArrayValueParser<uint32_t>, Serializer::defaultArrayValueSerializer<uint32_t>, ClientPtr, parseClient, Access::ANY);
 		ENTITY_CONTEXT_MENU_HANDLER("filelist_item", filelistItem, FilelistItem, uint32_t, Deserializer::defaultArrayValueParser<uint32_t>, Serializer::defaultArrayValueSerializer<uint32_t>, DirectoryListingPtr, parseFilelist, Access::ANY);
 		ENTITY_CONTEXT_MENU_HANDLER("grouped_search_result", groupedSearchResult, GroupedSearchResult, TTHValue, Deserializer::tthArrayValueParser, Serializer::defaultArrayValueSerializer<TTHValue>, SearchInstancePtr, parseSearchInstance, Access::ANY);
+		ENTITY_CONTEXT_MENU_HANDLER("hub_message_highlight", hubMessageHighlight, HubMessageHighlight, uint32_t, Deserializer::defaultArrayValueParser<uint32_t>, Serializer::defaultArrayValueSerializer<uint32_t>, ClientPtr, parseClient, Access::ANY);
+		ENTITY_CONTEXT_MENU_HANDLER("private_chat_message_highlight", privateChatMessageHighlight, PrivateChatMessageHighlight, uint32_t, Deserializer::defaultArrayValueParser<uint32_t>, Serializer::defaultArrayValueSerializer<uint32_t>, PrivateChatPtr, parsePrivateChat, Access::ANY);
 	}
 
 	MenuApi::~MenuApi() {

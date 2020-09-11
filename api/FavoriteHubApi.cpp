@@ -119,10 +119,10 @@ namespace webserver {
 				aEntry->get(HubSettings::ShowJoins) = deserializeTribool("show_joins", i.value());
 			} else if (key == "fav_show_joins") {
 				aEntry->get(HubSettings::FavShowJoins) = deserializeTribool("fav_show_joins", i.value());
-			} else if (key == "chat_notify") {
-				aEntry->get(HubSettings::ChatNotify) = deserializeTribool("chat_notify", i.value());
-			} else if (key == "log_hub_chat") {
-				aEntry->get(HubSettings::LogMainChat) = deserializeTribool("log_hub_chat", i.value());
+			} else if (key == "use_main_chat_notify") {
+				aEntry->get(HubSettings::ChatNotify) = deserializeTribool("use_main_chat_notify", i.value());
+			} else if (key == "log_main") {
+				aEntry->get(HubSettings::LogMainChat) = deserializeTribool("log_main", i.value());
 			} else if (key == "away_message") {
 				aEntry->get(HubSettings::AwayMsg) = JsonUtil::parseValue<string>("away_message", i.value());
 			}
