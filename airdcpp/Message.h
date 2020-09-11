@@ -21,6 +21,7 @@
 
 #include "forward.h"
 #include "GetSet.h"
+#include "MessageHighlight.h"
 
 namespace dcpp {
 
@@ -46,7 +47,7 @@ public:
 	GETSET(bool, read, Read);
 
 	string format() const noexcept;
-	void updateMentions(const Identity& aMe) noexcept;
+	void parseHighlights(const Identity& aMe) noexcept;
 
 	const string& getText() const noexcept {
 		return text;
@@ -59,7 +60,12 @@ public:
 	const string& getMentionedNick() const noexcept {
 		return mentionedNick;
 	}
+
+	const MessageHighlight::List& getHighlights() const noexcept {
+		return highlights;
+	}
 private:
+	MessageHighlight::List highlights;
 	string mentionedNick;
 	string text;
 	const uint64_t id;
@@ -98,11 +104,16 @@ public:
 	}
 
 	IGETSET(bool, read, Read, false);
+
+	const MessageHighlight::List& getHighlights() const noexcept {
+		return highlights;
+	}
 private:
 	const uint64_t id;
 	string text;
 	const time_t time;
 	const Severity severity;
+	MessageHighlight::List highlights;
 };
 
 struct Message {
@@ -116,6 +127,9 @@ struct Message {
 
 	const ChatMessagePtr chatMessage = nullptr;
 	const LogMessagePtr logMessage = nullptr;
+	const MessageHighlight::List& getHighlights() const noexcept {
+		return type == TYPE_CHAT ? chatMessage->getHighlights() : logMessage->getHighlights();
+	}
 
 	const Type type;
 };

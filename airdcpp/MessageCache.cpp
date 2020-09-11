@@ -74,6 +74,12 @@ namespace dcpp {
 		return updated;
 	}
 
+	MessageHighlight::Ptr MessageCache::findMessageHighlight(MessageHighlightToken aToken) const noexcept {
+		RLock l(cs);
+		auto i = highlights.find(aToken);
+		return i != highlights.end() ? i->second : nullptr;
+	}
+
 	int MessageCache::size() const noexcept {
 		RLock l(cs);
 		return static_cast<int>(messages.size());
@@ -84,6 +90,7 @@ namespace dcpp {
 
 		WLock l(cs);
 		messages.clear();
+		highlights.clear();
 		return ret;
 	}
 
@@ -124,8 +131,16 @@ namespace dcpp {
 	void MessageCache::add(Message&& aMessage) noexcept {
 		WLock l(cs);
 		messages.push_back(move(aMessage));
+		for (const auto& hl : aMessage.getHighlights()) {
+			highlights.emplace(hl->getToken(), hl);
+		}
 
 		if (static_cast<int>(messages.size()) > SettingsManager::getInstance()->get(setting)) {
+			auto toRemove = messages.front();
+			for (const auto& hl : toRemove.getHighlights()) {
+				highlights.erase(hl->getToken());
+			}
+
 			messages.pop_front();
 		}
 	}

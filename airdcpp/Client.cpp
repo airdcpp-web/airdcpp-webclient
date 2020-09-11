@@ -138,7 +138,7 @@ void Client::reloadSettings(bool aUpdateNick) noexcept {
 		return;
 	}
 
-	// Something has changes
+	// Something has changed
 	if (fav) {
 		if (!fav->getPassword().empty()) {
 			setPassword(fav->getPassword());
@@ -417,6 +417,7 @@ bool Client::sendPrivateMessageHooked(const OnlineUserPtr& aUser, const Outgoing
 }
 
 void Client::onPrivateMessage(const ChatMessagePtr& aMessage) noexcept {
+	aMessage->parseHighlights(getMyIdentity());
 	if (!ClientManager::getInstance()->incomingPrivateMessageHook.runHooksBasic(aMessage)) {
 		return;
 	}
@@ -425,6 +426,7 @@ void Client::onPrivateMessage(const ChatMessagePtr& aMessage) noexcept {
 }
 
 void Client::onChatMessage(const ChatMessagePtr& aMessage) noexcept {
+	aMessage->parseHighlights(getMyIdentity());
 	if (!ClientManager::getInstance()->incomingHubMessageHook.runHooksBasic(aMessage)) {
 		return;
 	}

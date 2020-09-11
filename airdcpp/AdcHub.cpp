@@ -365,7 +365,6 @@ void AdcHub::handle(AdcCommand::MSG, AdcCommand& c) noexcept {
 		return;
 
 	message->setThirdPerson(c.hasFlag("ME", 1));
-	message->updateMentions(getMyIdentity());
 
 	string temp;
 	if (c.getParam("TS", 1, temp))
