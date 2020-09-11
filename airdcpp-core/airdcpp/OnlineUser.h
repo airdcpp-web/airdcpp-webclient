@@ -114,6 +114,7 @@ public:
 	bool isHidden() const noexcept { return isClientType(CT_HIDDEN) || isClientType(CT_HUB) || isSet("HI"); }
 	bool isBot() const noexcept { return isClientType(CT_BOT) || isSet("BO"); }
 	bool isAway() const noexcept { return (getStatus() & AWAY) || isSet("AW"); }
+	bool isUser() const noexcept { return !isBot() && !isHub() && !isHidden(); }
 	bool isTcpActive(const ClientPtr& = nullptr) const noexcept;
 	bool isTcp4Active(const ClientPtr& = nullptr) const noexcept;
 	bool isTcp6Active() const noexcept;

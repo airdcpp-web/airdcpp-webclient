@@ -22,8 +22,8 @@
 #include "stdinc.h"
 
 #include "typedefs.h"
-#include "Message.h"
 #include "CriticalSection.h"
+#include "Message.h"
 #include "SettingsManager.h"
 
 namespace dcpp {
@@ -68,11 +68,13 @@ namespace dcpp {
 		MessageCount setRead() noexcept;
 
 		SharedMutex& getCS() const noexcept { return cs; }
+		MessageHighlight::Ptr findMessageHighlight(MessageHighlightToken aToken) const noexcept;
 	private:
 		void add(Message&& aMessage) noexcept;
 
 		SettingsManager::IntSetting setting;
 		MessageList messages;
+		map<MessageHighlightToken, MessageHighlight::Ptr> highlights;
 
 		mutable SharedMutex cs;
 	};

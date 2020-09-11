@@ -32,9 +32,10 @@ ChatMessage::ChatMessage(const string& aText, const OnlineUserPtr& aFrom, const 
 	read = aFrom && aFrom->getUser() == ClientManager::getInstance()->getMe();
 }
 
-LogMessage::LogMessage(const string& aMessage, LogMessage::Severity sev, bool aHistory) noexcept : 
-	id(messageIdCounter++), text(aMessage), time(aHistory ? 0 : GET_TIME()), severity(sev), read(aHistory) {
+LogMessage::LogMessage(const string& aMessage, LogMessage::Severity aSeverity, bool aHistory) noexcept : 
+	id(messageIdCounter++), text(aMessage), time(aHistory ? 0 : GET_TIME()), severity(aSeverity), read(aHistory) {
 
+	highlights = MessageHighlight::parseHighlights(aMessage, Util::emptyString, nullptr);
 }
 
 string ChatMessage::format() const noexcept {
@@ -64,8 +65,10 @@ string ChatMessage::format() const noexcept {
 }
 
 
-void ChatMessage::updateMentions(const Identity& aMe) noexcept {
-	if (from->getIdentity().getSID() == aMe.getSID()) {
+void ChatMessage::parseHighlights(const Identity& aMe) noexcept {
+	highlights = MessageHighlight::parseHighlights(text, aMe.getNick(), from->getUser());
+
+	if (from->getIdentity().getSID() == aMe.getSID() || !from->getIdentity().isUser()) {
 		return;
 	}
 

@@ -1,0 +1,80 @@
+/*
+* Copyright (C) 2011-2019 AirDC++ Project
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+*/
+
+#ifndef DCPLUSPLUS_DCPP_MESSAGEHIGHLIGHT_H
+#define DCPLUSPLUS_DCPP_MESSAGEHIGHLIGHT_H
+
+#include "typedefs.h"
+
+#include "DupeType.h"
+#include "GetSet.h"
+#include "Magnet.h"
+#include "SortedVector.h"
+
+
+namespace dcpp {
+	typedef uint32_t MessageHighlightToken;
+
+	class MessageHighlight {
+	public:
+		enum HighlightType {
+			TYPE_URL,
+			TYPE_RELEASE,
+			TYPE_TEMP_SHARE,
+			TYPE_ME,
+		};
+
+		explicit MessageHighlight(size_t aStart, const string& aText, HighlightType aType);
+
+		MessageHighlightToken getToken() const noexcept {
+			return token;
+		}
+
+		const string& getText() const noexcept {
+			return text;
+		}
+
+		GETSET(HighlightType, type, Type);
+		GETSET(optional<Magnet>, magnet, Magnet);
+
+		GETSET(size_t, start, Start);
+		GETSET(size_t, end, End);
+
+		DupeType getDupe() const noexcept;
+
+		struct LinkSortOrder {
+			int operator()(size_t a, size_t b) const noexcept;
+		};
+
+		typedef shared_ptr<MessageHighlight> Ptr;
+
+		struct LinkStartPos {
+			size_t operator()(const MessageHighlight::Ptr& a) const { return a->getStart(); }
+		};
+
+		typedef SortedVector<MessageHighlight::Ptr, vector, size_t, MessageHighlight::LinkSortOrder, LinkStartPos> List;
+
+		static MessageHighlight::List parseHighlights(const string& aText, const string& aMyNick, const UserPtr& aUser);
+	private:
+		MessageHighlightToken token;
+		string text;
+	};
+
+}
+
+#endif

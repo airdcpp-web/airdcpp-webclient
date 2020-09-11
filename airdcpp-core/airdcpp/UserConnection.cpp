@@ -291,11 +291,11 @@ void UserConnection::handlePM(const AdcCommand& c, bool aEcho) noexcept{
 
 	auto msg = std::make_shared<ChatMessage>(message, peer, me, peer);
 	msg->setThirdPerson(c.hasFlag("ME", 1));
-	msg->updateMentions(me->getIdentity());
 	if (c.getParam("TS", 1, tmp)) {
 		msg->setTime(Util::toTimeT(tmp));
 	}
 
+	msg->parseHighlights(me->getIdentity());
 	if (!ClientManager::getInstance()->incomingPrivateMessageHook.runHooksBasic(msg)) {
 		disconnect(true);
 		return;
