@@ -68,13 +68,13 @@ namespace dcpp {
 		MessageCount setRead() noexcept;
 
 		SharedMutex& getCS() const noexcept { return cs; }
-		MessageHighlight::Ptr findMessageHighlight(MessageHighlightToken aToken) const noexcept;
+		MessageHighlightPtr findMessageHighlight(MessageHighlightToken aToken) const noexcept;
 	private:
 		void add(Message&& aMessage) noexcept;
 
 		SettingsManager::IntSetting setting;
 		MessageList messages;
-		map<MessageHighlightToken, MessageHighlight::Ptr> highlights;
+		map<MessageHighlightToken, MessageHighlightPtr> highlights;
 
 		mutable SharedMutex cs;
 	};

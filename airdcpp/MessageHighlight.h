@@ -30,16 +30,23 @@
 namespace dcpp {
 	typedef uint32_t MessageHighlightToken;
 
-	class MessageHighlight {
+	struct Position {
+		Position(size_t aStart, size_t aEnd) : start(aStart), end(aEnd) {}
+
+		GETSET(size_t, start, Start);
+		GETSET(size_t, end, End);
+	};
+
+	class MessageHighlight : public Position {
 	public:
 		enum HighlightType {
-			TYPE_URL,
-			TYPE_RELEASE,
-			TYPE_TEMP_SHARE,
-			TYPE_ME,
+			TYPE_LINK_URL,
+			TYPE_LINK_TEXT,
+			TYPE_BOLD,
+			TYPE_USER,
 		};
 
-		explicit MessageHighlight(size_t aStart, const string& aText, HighlightType aType);
+		explicit MessageHighlight(size_t aStart, const string& aText, HighlightType aType, const string& aTag);
 
 		MessageHighlightToken getToken() const noexcept {
 			return token;
@@ -49,27 +56,26 @@ namespace dcpp {
 			return text;
 		}
 
+		GETSET(string, tag, Tag);
 		GETSET(HighlightType, type, Type);
 		GETSET(optional<Magnet>, magnet, Magnet);
 
-		GETSET(size_t, start, Start);
-		GETSET(size_t, end, End);
-
 		DupeType getDupe() const noexcept;
 
-		struct LinkSortOrder {
-			int operator()(size_t a, size_t b) const noexcept;
+		// typedef size_t KeyT;
+		typedef Position KeyT;
+
+		struct HighlightSort {
+			int operator()(const KeyT& a, const KeyT& b) const noexcept;
 		};
 
-		typedef shared_ptr<MessageHighlight> Ptr;
-
-		struct LinkStartPos {
-			size_t operator()(const MessageHighlight::Ptr& a) const { return a->getStart(); }
+		struct HighlightPosition {
+			const KeyT& operator()(const MessageHighlightPtr& a) const noexcept;
 		};
 
-		typedef SortedVector<MessageHighlight::Ptr, vector, size_t, MessageHighlight::LinkSortOrder, LinkStartPos> List;
+		typedef SortedVector<MessageHighlightPtr, vector, KeyT, HighlightSort, HighlightPosition> SortedList;
 
-		static MessageHighlight::List parseHighlights(const string& aText, const string& aMyNick, const UserPtr& aUser);
+		static MessageHighlight::SortedList parseHighlights(const string& aText, const string& aMyNick, const UserPtr& aUser);
 	private:
 		MessageHighlightToken token;
 		string text;

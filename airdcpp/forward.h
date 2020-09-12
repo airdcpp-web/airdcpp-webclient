@@ -124,6 +124,10 @@ class LogManager;
 struct Message;
 struct OutgoingChatMessage;
 
+class MessageHighlight;
+typedef shared_ptr<MessageHighlight> MessageHighlightPtr;
+typedef vector<MessageHighlightPtr> MessageHighlightList;
+
 class ChatMessage;
 typedef std::shared_ptr<ChatMessage> ChatMessagePtr;
 typedef std::deque<ChatMessagePtr> ChatMessageList;

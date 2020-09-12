@@ -122,8 +122,8 @@ namespace dcpp {
 		void load();
 
 	private:
-		ActionHookResult<> onPrivateMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter) noexcept;
-		ActionHookResult<> onHubMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter) noexcept;
+		ActionHookResult<MessageHighlightList> onPrivateMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept;
+		ActionHookResult<MessageHighlightList> onHubMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept;
 
 		mutable SharedMutex cs;
 
@@ -134,7 +134,7 @@ namespace dcpp {
 		// contains the ignored nicks and patterns 
 		vector<ChatFilterItem> ChatFilterItems;
 
-		ActionHookResult<> isIgnoredOrFiltered(const ChatMessagePtr& msg, const ActionHookResultGetter<>& aResultGetter, bool aPM) noexcept;
+		ActionHookResult<MessageHighlightList> isIgnoredOrFiltered(const ChatMessagePtr& msg, const ActionHookResultGetter<MessageHighlightList>& aResultGetter, bool aPM) noexcept;
 
 		// chat filter
 		bool isChatFiltered(const string& aNick, const string& aText, ChatFilterItem::Context aContext = ChatFilterItem::ALL) const noexcept;

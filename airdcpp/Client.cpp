@@ -417,8 +417,7 @@ bool Client::sendPrivateMessageHooked(const OnlineUserPtr& aUser, const Outgoing
 }
 
 void Client::onPrivateMessage(const ChatMessagePtr& aMessage) noexcept {
-	aMessage->parseHighlights(getMyIdentity());
-	if (!ClientManager::getInstance()->incomingPrivateMessageHook.runHooksBasic(aMessage)) {
+	if (!ClientManager::processChatMessage(aMessage, getMyIdentity(), ClientManager::getInstance()->incomingPrivateMessageHook)) {
 		return;
 	}
 
@@ -426,8 +425,7 @@ void Client::onPrivateMessage(const ChatMessagePtr& aMessage) noexcept {
 }
 
 void Client::onChatMessage(const ChatMessagePtr& aMessage) noexcept {
-	aMessage->parseHighlights(getMyIdentity());
-	if (!ClientManager::getInstance()->incomingHubMessageHook.runHooksBasic(aMessage)) {
+	if (!ClientManager::processChatMessage(aMessage, getMyIdentity(), ClientManager::getInstance()->incomingHubMessageHook)) {
 		return;
 	}
 

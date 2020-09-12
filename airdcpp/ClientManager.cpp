@@ -1479,4 +1479,24 @@ bool ClientManager::connectNMDCSearchResult(const string& aUserIP, const string&
 	return true;
 }
 
+
+bool ClientManager::processChatMessage(const ChatMessagePtr& aMessage, const Identity& aMyIdentity, const ActionHook<MessageHighlightList, const ChatMessagePtr>& aHook) {
+	aMessage->parseMention(aMyIdentity);
+
+	{
+		MessageHighlightList highlights;
+
+		try {
+			auto results = aHook.runHooksDataThrow(aMessage);
+			highlights = ActionHook<MessageHighlightList>::normalizeListItems(results);
+		} catch (const HookRejectException& e) {
+			return false;
+		}
+
+		aMessage->parseHighlights(aMyIdentity, highlights);
+	}
+
+	return true;
+}
+
 } // namespace dcpp

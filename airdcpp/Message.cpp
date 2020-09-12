@@ -65,8 +65,8 @@ string ChatMessage::format() const noexcept {
 }
 
 
-void ChatMessage::parseHighlights(const Identity& aMe) noexcept {
-	highlights = MessageHighlight::parseHighlights(text, aMe.getNick(), from->getUser());
+void ChatMessage::parseMention(const Identity& aMe) noexcept {
+	// highlights = MessageHighlight::parseHighlights(text, aMe.getNick(), from->getUser());
 
 	if (from->getIdentity().getSID() == aMe.getSID() || !from->getIdentity().isUser()) {
 		return;
@@ -74,6 +74,19 @@ void ChatMessage::parseHighlights(const Identity& aMe) noexcept {
 
 	if (text.find(aMe.getNick()) != string::npos) {
 		mentionedNick = aMe.getNick();
+	}
+}
+
+void ChatMessage::parseHighlights(const Identity& aMe, const MessageHighlightList& aHookHighlights) noexcept {
+	// Insert hook highlights
+	for (const auto& hl: aHookHighlights) {
+		highlights.insert_sorted(hl);
+	}
+
+	// Insert our highlights (that won't overlap)
+	const auto defaultHighlights = MessageHighlight::parseHighlights(text, aMe.getNick(), from->getUser());
+	for (const auto& hl: defaultHighlights) {
+		highlights.insert_sorted(hl);
 	}
 }
 

@@ -47,7 +47,8 @@ public:
 	GETSET(bool, read, Read);
 
 	string format() const noexcept;
-	void parseHighlights(const Identity& aMe) noexcept;
+	void parseMention(const Identity& aMe) noexcept;
+	void parseHighlights(const Identity& aMe, const MessageHighlightList& aHighlights) noexcept;
 
 	const string& getText() const noexcept {
 		return text;
@@ -61,11 +62,11 @@ public:
 		return mentionedNick;
 	}
 
-	const MessageHighlight::List& getHighlights() const noexcept {
+	const MessageHighlight::SortedList& getHighlights() const noexcept {
 		return highlights;
 	}
 private:
-	MessageHighlight::List highlights;
+	MessageHighlight::SortedList highlights;
 	string mentionedNick;
 	string text;
 	const uint64_t id;
@@ -105,7 +106,7 @@ public:
 
 	IGETSET(bool, read, Read, false);
 
-	const MessageHighlight::List& getHighlights() const noexcept {
+	const MessageHighlight::SortedList& getHighlights() const noexcept {
 		return highlights;
 	}
 private:
@@ -113,7 +114,7 @@ private:
 	string text;
 	const time_t time;
 	const Severity severity;
-	MessageHighlight::List highlights;
+	MessageHighlight::SortedList highlights;
 };
 
 struct Message {
@@ -127,7 +128,7 @@ struct Message {
 
 	const ChatMessagePtr chatMessage = nullptr;
 	const LogMessagePtr logMessage = nullptr;
-	const MessageHighlight::List& getHighlights() const noexcept {
+	const MessageHighlight::SortedList& getHighlights() const noexcept {
 		return type == TYPE_CHAT ? chatMessage->getHighlights() : logMessage->getHighlights();
 	}
 

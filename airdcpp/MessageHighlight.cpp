@@ -29,16 +29,29 @@ namespace dcpp {
 
 	atomic<MessageHighlightToken> messageHighlightIdCounter { 1 };
 
-	MessageHighlight::MessageHighlight(size_t aStart, const string& aText, HighlightType aType) : token(messageHighlightIdCounter++), start(aStart), end(aStart + aText.size()), text(aText), type(aType) {
+	MessageHighlight::MessageHighlight(size_t aStart, const string& aText, HighlightType aType, const string& aTag) : 
+		token(messageHighlightIdCounter++), 
+		Position({ aStart, aStart + aText.size() }), 
+		text(aText), type(aType), tag(aTag)
+	{
 
 	}
 
-	int MessageHighlight::LinkSortOrder::operator()(size_t a, size_t b) const noexcept {
-		return compare(a, b);
+	int MessageHighlight::HighlightSort::operator()(const MessageHighlight::KeyT& a, const MessageHighlight::KeyT& b) const noexcept {
+		// Overlapping ranges can't be added
+		if (a.getStart() <= b.getEnd() && b.getStart() <= a.getEnd()) {
+			return 0;
+		}
+
+		return compare(a.getStart(), b.getStart());
 	}
 
-	MessageHighlight::List MessageHighlight::parseHighlights(const string& aText, const string& aMyNick, const UserPtr& aUser) {
-		MessageHighlight::List ret;
+	const MessageHighlight::KeyT& MessageHighlight::HighlightPosition::operator()(const MessageHighlightPtr& aHighlight) const noexcept {
+		return *aHighlight;
+	}
+
+	MessageHighlight::SortedList MessageHighlight::parseHighlights(const string& aText, const string& aMyNick, const UserPtr& aUser) {
+		MessageHighlight::SortedList ret;
 
 		// My nick
 		if (!aMyNick.empty()) {
@@ -48,7 +61,7 @@ namespace dcpp {
 				auto lMyNickEnd = lMyNickStart + aMyNick.size();
 				lSearchFrom = lMyNickEnd;
 
-				ret.insert_sorted(make_shared<MessageHighlight>(lMyNickStart, aMyNick, MessageHighlight::HighlightType::TYPE_ME));
+				ret.insert_sorted(make_shared<MessageHighlight>(lMyNickStart, aMyNick, MessageHighlight::HighlightType::TYPE_USER, "me"));
 			}
 		}
 
@@ -63,7 +76,7 @@ namespace dcpp {
 			while (boost::regex_search(start, end, result, AirUtil::releaseRegChat, boost::match_default)) {
 				std::string link(result[0].first, result[0].second);
 
-				ret.insert_sorted(make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_RELEASE));
+				ret.insert_sorted(make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_LINK_TEXT, "release"));
 				start = result[0].second;
 				pos += result.position() + link.length();
 			}
@@ -80,7 +93,7 @@ namespace dcpp {
 				while (boost::regex_search(start, end, result, AirUtil::urlReg, boost::match_default)) {
 					string link(result[0].first, result[0].second);
 
-					auto highlight = make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_URL);
+					auto highlight = make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_LINK_URL, "url");
 
 					if (link.find("magnet:?") == 0) {
 						auto m = Magnet::parseMagnet(link);
@@ -88,7 +101,9 @@ namespace dcpp {
 							highlight->setMagnet(m);
 
 							if (ShareManager::getInstance()->isTempShared(aUser, (*m).getTTH())) {
-								highlight->setType(MessageHighlight::HighlightType::TYPE_TEMP_SHARE);
+								highlight->setTag("temp_share");
+							} else {
+								highlight->setTag("magnet");
 							}
 						}
 					}
@@ -109,10 +124,10 @@ namespace dcpp {
 
 	DupeType MessageHighlight::getDupe() const noexcept {
 		switch (type) {
-			case TYPE_RELEASE: {
+			case TYPE_LINK_TEXT: {
 				return AirUtil::checkAdcDirectoryDupe(text, 0);
 			}
-			case TYPE_URL: {
+			case TYPE_LINK_URL: {
 				if (magnet) {
 					return (*magnet).getDupeType();
 				}
