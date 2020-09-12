@@ -24,6 +24,7 @@
 #include "typedefs.h"
 
 #include "CriticalSection.h"
+#include "Exception.h"
 #include "GetSet.h"
 #include "debug.h"
 
@@ -32,13 +33,14 @@
 
 namespace dcpp {
 	struct ActionHookRejection {
-		ActionHookRejection(const string& aHookId, const string& aHookName, const string& aRejectId, const string& aMessage) :
-			hookId(aHookId), hookName(aHookName), rejectId(aRejectId), message(aMessage) {}
+		ActionHookRejection(const string& aHookId, const string& aHookName, const string& aRejectId, const string& aMessage, bool aIsDataError = false) :
+			hookId(aHookId), hookName(aHookName), rejectId(aRejectId), message(aMessage), isDataError(aIsDataError) {}
 
 		const string hookId;
 		const string hookName;
 		const string rejectId;
 		const string message;
+		const bool isDataError;
 
 		static string formatError(const ActionHookRejectionPtr& aRejection) noexcept {
 			if (!aRejection) return "";
@@ -50,6 +52,19 @@ namespace dcpp {
 
 			return aRejection->hookId == aHookId && aRejection->rejectId == aRejectId;
 		}
+	};
+
+	class HookRejectException : public Exception {
+	public:
+		HookRejectException(const ActionHookRejectionPtr& aRejection) : Exception(ActionHookRejection::formatError(aRejection)), rejection(aRejection) {
+
+		}
+
+		const ActionHookRejectionPtr& getRejection() const noexcept {
+			return rejection;
+		}
+	private:
+		ActionHookRejectionPtr rejection;
 	};
 
 
@@ -80,6 +95,11 @@ namespace dcpp {
 
 		ActionHookResult<DataT> getRejection(const string& aRejectId, const string& aMessage) const noexcept {
 			auto error = make_shared<ActionHookRejection>(id, name, aRejectId, aMessage);
+			return { error, nullptr };
+		}
+
+		ActionHookResult<DataT> getDataRejection(const std::exception& e) const noexcept {
+			auto error = make_shared<ActionHookRejection>(id, name, "invalid_hook_data", e.what(), true);
 			return { error, nullptr };
 		}
 
@@ -162,32 +182,24 @@ namespace dcpp {
 			return nullptr;
 		}
 
-		// Run all validation hooks, returns a rejection object in case of errors
-		ActionHookDataList<DataT> runHooksData(ArgT&... aItem) const noexcept {
-			SubscriberList subscribersCopy;
+		// Get data from all hooks, throw in case of rejections
+		ActionHookDataList<DataT> runHooksDataThrow(ArgT&... aItem) const {
+			return runHooksDataImpl(
+				[](const ActionHookRejectionPtr& aRejection) {
+					if (aRejection->isDataError) {
+						// Ignore data deserialization failures...
+						return;
+					}
 
-			{
-				Lock l(cs);
-				subscribersCopy = subscribers;
-			}
+					throw HookRejectException(aRejection);
+				},
+				std::forward<ArgT>(aItem)...
+			);
+		}
 
-			ActionHookDataList<DataT> ret;
-			for (const auto& handler : subscribersCopy) {
-				auto handlerRes = handler.callback(
-					aItem..., 
-					handler
-				);
-				/*if (res.error) {
-					dcdebug("Hook rejected by handler %s: %s (%s)\n", res.error->hookId.c_str(), res.error->rejectId.c_str(), res.error->message.c_str());
-					return res.error;
-				}*/
-
-				if (handlerRes.data) {
-					ret.push_back(handlerRes.data);
-				}
-			}
-
-			return ret;
+		// Get data from all hooks, ignore errors
+		ActionHookDataList<DataT> runHooksData(ArgT&... aItem) const {
+			return runHooksDataImpl(nullptr, std::forward<ArgT>(aItem)...);
 		}
 
 		// Run all validation hooks, returns false in case of rejections
@@ -200,6 +212,17 @@ namespace dcpp {
 			Lock l(cs);
 			return !subscribers.empty();
 		}
+
+		static DataT normalizeListItems(const ActionHookDataList<DataT>& aResult) noexcept {
+			DataT ret;
+			for (const auto& i: aResult) {
+				for (const auto& s : i->data) {
+					ret.push_back(s);
+				}
+			}
+
+			return ret;
+		}
 	private:
 		typedef std::vector<ActionHookHandler> SubscriberList;
 
@@ -211,6 +234,36 @@ namespace dcpp {
 
 		SubscriberList subscribers;
 		mutable CriticalSection cs;
+
+		ActionHookDataList<DataT> runHooksDataImpl(const std::function<void(const ActionHookRejectionPtr&)> aRejectHandler, ArgT&... aItem) const {
+			SubscriberList subscribersCopy;
+
+			{
+				Lock l(cs);
+				subscribersCopy = subscribers;
+			}
+
+			ActionHookDataList<DataT> ret;
+			for (const auto& handler : subscribersCopy) {
+				auto handlerRes = handler.callback(
+					aItem...,
+					handler
+				);
+
+				if (handlerRes.error) {
+					dcdebug("Hook rejected by handler %s: %s (%s)\n", handlerRes.error->hookId.c_str(), handlerRes.error->rejectId.c_str(), handlerRes.error->message.c_str());
+					if (aRejectHandler) {
+						aRejectHandler(handlerRes.error);
+					}
+				}
+
+				if (handlerRes.data) {
+					ret.push_back(handlerRes.data);
+				}
+			}
+
+			return ret;
+		}
 	};
 }
 

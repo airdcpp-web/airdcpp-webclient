@@ -74,7 +74,7 @@ namespace dcpp {
 		return updated;
 	}
 
-	MessageHighlight::Ptr MessageCache::findMessageHighlight(MessageHighlightToken aToken) const noexcept {
+	MessageHighlightPtr MessageCache::findMessageHighlight(MessageHighlightToken aToken) const noexcept {
 		RLock l(cs);
 		auto i = highlights.find(aToken);
 		return i != highlights.end() ? i->second : nullptr;

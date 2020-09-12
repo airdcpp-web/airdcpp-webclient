@@ -46,11 +46,11 @@ IgnoreManager::~IgnoreManager() noexcept {
 	SettingsManager::getInstance()->removeListener(this);
 }
 
-ActionHookResult<> IgnoreManager::onPrivateMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter) noexcept {
+ActionHookResult<MessageHighlightList> IgnoreManager::onPrivateMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept {
 	return isIgnoredOrFiltered(aMessage, aResultGetter, true);
 }
 
-ActionHookResult<> IgnoreManager::onHubMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter) noexcept {
+ActionHookResult<MessageHighlightList> IgnoreManager::onHubMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept {
 	return isIgnoredOrFiltered(aMessage, aResultGetter, false);
 }
 
@@ -160,7 +160,7 @@ bool IgnoreManager::checkIgnored(const OnlineUserPtr& aUser, bool aPM) noexcept 
 	return true;
 }
 
-ActionHookResult<> IgnoreManager::isIgnoredOrFiltered(const ChatMessagePtr& msg, const ActionHookResultGetter<>& aResultGetter, bool aPM) noexcept {
+ActionHookResult<MessageHighlightList> IgnoreManager::isIgnoredOrFiltered(const ChatMessagePtr& msg, const ActionHookResultGetter<MessageHighlightList>& aResultGetter, bool aPM) noexcept {
 	const auto& fromIdentity = msg->getFrom()->getIdentity();
 
 	//Don't filter own messages

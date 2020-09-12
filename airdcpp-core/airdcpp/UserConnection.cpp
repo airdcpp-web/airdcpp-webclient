@@ -295,8 +295,7 @@ void UserConnection::handlePM(const AdcCommand& c, bool aEcho) noexcept{
 		msg->setTime(Util::toTimeT(tmp));
 	}
 
-	msg->parseHighlights(me->getIdentity());
-	if (!ClientManager::getInstance()->incomingPrivateMessageHook.runHooksBasic(msg)) {
+	if (!ClientManager::processChatMessage(msg, me->getIdentity(), ClientManager::getInstance()->incomingPrivateMessageHook)) {
 		disconnect(true);
 		return;
 	}
