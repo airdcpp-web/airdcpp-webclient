@@ -33,7 +33,7 @@
 #define CONTEXT_MENU(type, name, name2) \
 	ActionHook<ContextMenuItemList, const vector<type>&, const AccessList&, const ContextMenuSupportList&> name##MenuHook; \
 	ContextMenuItemList get##name2##Menu(const vector<type>& aItems, const AccessList& aAccessList, const ContextMenuSupportList& aSupports) const noexcept { \
-		return normalizeMenuItems(name##MenuHook.runHooksData(aItems, aAccessList, aSupports)); \
+		return ActionHook<ContextMenuItemList>::normalizeListItems(name##MenuHook.runHooksData(aItems, aAccessList, aSupports)); \
 	} \
 	void onClick##name2##Item(const vector<type>& aItems, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId, const ContextMenuSupportList& aSupports) noexcept { \
 		fire(ContextMenuManagerListener::name2##MenuSelected(), aItems, ContextMenuItemClickData({ aHookId, aMenuItemId, aSupports, aAccessList })); \
@@ -43,7 +43,7 @@
 #define ENTITY_CONTEXT_MENU(type, name, name2, entityType) \
 	ActionHook<ContextMenuItemList, const vector<type>&, const AccessList&, const entityType&, const ContextMenuSupportList&> name##MenuHook; \
 	ContextMenuItemList get##name2##Menu(const vector<type>& aItems, const AccessList& aAccessList, const ContextMenuSupportList& aSupports, const entityType& aEntity) const noexcept { \
-		return normalizeMenuItems(name##MenuHook.runHooksData(aItems, aAccessList, aEntity, aSupports)); \
+		return ActionHook<ContextMenuItemList>::normalizeListItems(name##MenuHook.runHooksData(aItems, aAccessList, aEntity, aSupports)); \
 	} \
 	void onClick##name2##Item(const vector<type>& aItems, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId, const ContextMenuSupportList& aSupports, const entityType& aEntity) noexcept { \
 		fire(ContextMenuManagerListener::name2##MenuSelected(), aItems, aEntity, ContextMenuItemClickData({ aHookId, aMenuItemId, aSupports, aAccessList })); \
@@ -139,8 +139,6 @@ namespace webserver {
 
 		ContextMenuManager();
 		~ContextMenuManager();
-
-		static ContextMenuItemList normalizeMenuItems(const ActionHookDataList<ContextMenuItemList>& aResult) noexcept;
 	private:
 	};
 

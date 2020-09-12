@@ -81,7 +81,7 @@ namespace webserver {
 							return data;
 						} catch (const std::exception& e) {
 							dcdebug("Failed to deserialize hook data for subscriber %s: %s\n", aResultGetter.getId().c_str(), e.what());
-							return aResultGetter.getRejection("invalid_hook_data", e.what());
+							return aResultGetter.getDataRejection(e);
 						}
 					}
 				}

@@ -37,7 +37,7 @@ namespace webserver {
 
 		static json serializeClient(const ClientPtr& aClient) noexcept;
 	private:
-		ActionHookResult<> incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter);
+		ActionHookResult<MessageHighlightList> incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter);
 		ActionHookResult<> outgoingMessageHook(const OutgoingChatMessage& aMessage, const Client& aClient, const ActionHookResultGetter<>& aResultGetter);
 
 		void addHub(const ClientPtr& aClient) noexcept;
