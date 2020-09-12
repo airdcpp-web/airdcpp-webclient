@@ -34,7 +34,10 @@ namespace dcpp {
 namespace webserver {
 	class MessageUtils {
 	public:
-		static json serializeMessageHighlight(const MessageHighlight::Ptr& aHighlight);
+		static json serializeMessageHighlight(const MessageHighlightPtr& aHighlight);
+
+		typedef std::function<MessageHighlightList(const json&, const ActionHookResultGetter<MessageHighlightList>&)> MessageHighlightDeserializer;
+		static MessageHighlightDeserializer getMessageHookHighlightDeserializer(const string& aMessage);
 
 		static json serializeMessage(const Message& aMessage) noexcept;
 		static json serializeChatMessage(const ChatMessagePtr& aMessage) noexcept;
@@ -52,9 +55,11 @@ namespace webserver {
 		static string getMessageSeverity(LogMessage::Severity aSeverity) noexcept;
 
 		static string getHighlighType(MessageHighlight::HighlightType aType) noexcept;
-		static json getContentType(const MessageHighlight::Ptr& aHighlight) noexcept;
+		static json getContentType(const MessageHighlightPtr& aHighlight) noexcept;
 	private:
-
+		static MessageHighlightList deserializeHookMessageHighlights(const json& aData, const ActionHookResultGetter<MessageHighlightList>& aResultGetter, const string& aMessageText);
+		static MessageHighlightPtr deserializeMessageHighlight(const json& aJson, const string& aMessageText, const string& aDefaultDescriptionId);
+		static MessageHighlight::HighlightType parseHighlightType(const string& aTypeStr);
 	};
 }
 

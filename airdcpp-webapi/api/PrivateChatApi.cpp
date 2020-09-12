@@ -34,12 +34,13 @@ namespace webserver {
 		"private_chat_removed"
 	};
 
-	ActionHookResult<> PrivateChatApi::incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter) {
-		return HookCompletionData::toResult(
+	ActionHookResult<MessageHighlightList> PrivateChatApi::incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) {
+		return HookCompletionData::toResult<MessageHighlightList>(
 			fireHook("private_chat_incoming_message_hook", 2, [&]() {
 				return MessageUtils::serializeChatMessage(aMessage);
 			}),
-			aResultGetter
+			aResultGetter,
+			MessageUtils::getMessageHookHighlightDeserializer(aMessage->getText())
 		);
 	}
 

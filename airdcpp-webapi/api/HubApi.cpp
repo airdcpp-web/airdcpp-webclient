@@ -34,12 +34,13 @@ namespace webserver {
 		"hub_removed"
 	};
 
-	ActionHookResult<> HubApi::incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter) {
-		return HookCompletionData::toResult(
+	ActionHookResult<MessageHighlightList> HubApi::incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) {
+		return HookCompletionData::toResult<MessageHighlightList>(
 			fireHook("hub_incoming_message_hook", 2, [&]() {
 				return MessageUtils::serializeChatMessage(aMessage);
 			}),
-			aResultGetter
+			aResultGetter,
+			MessageUtils::getMessageHookHighlightDeserializer(aMessage->getText())
 		);
 	};
 
