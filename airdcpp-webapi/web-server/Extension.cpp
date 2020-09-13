@@ -67,7 +67,13 @@ namespace webserver {
 	}
 
 	void Extension::initialize(const string& aPackageDirectory, bool aSkipPathValidation) {
-		const auto packageStr = File(aPackageDirectory + "package.json", File::READ, File::OPEN).read();
+		string packageStr;
+		try {
+			packageStr = File(aPackageDirectory + "package.json", File::READ, File::OPEN).read();
+		} catch (const FileException& e) {
+			throw Exception("Could not open " + aPackageDirectory + "package.json (" + string(e.what()) + ")");
+		}
+
 		try {
 			const json packageJson = json::parse(packageStr);
 

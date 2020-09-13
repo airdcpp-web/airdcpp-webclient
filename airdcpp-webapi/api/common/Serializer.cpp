@@ -96,10 +96,10 @@ namespace webserver {
 			flags_.insert("hidden");
 		}
 
-		auto cm = aUser->getIdentity().getConnectMode();
+		auto cm = aUser->getIdentity().getTcpConnectMode();
 		if (!aUser->getUser()->isNMDC() && (cm == Identity::MODE_NOCONNECT_PASSIVE || cm == Identity::MODE_NOCONNECT_IP || cm == Identity::MODE_UNDEFINED)) {
 			flags_.insert("noconnect");
-		} else if (!aUser->getIdentity().isTcpActive(aUser->getClient())) {
+		} else if (!aUser->getIdentity().hasActiveTcpConnectivity(aUser->getClient())) {
 			flags_.insert("passive");
 		}
 	}
