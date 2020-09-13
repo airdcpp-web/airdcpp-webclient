@@ -53,34 +53,7 @@ namespace dcpp {
 	MessageHighlight::SortedList MessageHighlight::parseHighlights(const string& aText, const string& aMyNick, const UserPtr& aUser) {
 		MessageHighlight::SortedList ret;
 
-		// My nick
-		if (!aMyNick.empty()) {
-			size_t lMyNickStart = string::npos;
-			size_t lSearchFrom = 0;
-			while ((lMyNickStart = aText.find(aMyNick, lSearchFrom)) != string::npos) {
-				auto lMyNickEnd = lMyNickStart + aMyNick.size();
-				lSearchFrom = lMyNickEnd;
-
-				ret.insert_sorted(make_shared<MessageHighlight>(lMyNickStart, aMyNick, MessageHighlight::HighlightType::TYPE_USER, "me"));
-			}
-		}
-
-
-		// Parse release names
-		if (SETTING(FORMAT_RELEASE) || SETTING(DUPES_IN_CHAT)) {
-			auto start = aText.cbegin();
-			auto end = aText.cend();
-			boost::match_results<string::const_iterator> result;
-			int pos = 0;
-
-			while (boost::regex_search(start, end, result, AirUtil::releaseRegChat, boost::match_default)) {
-				std::string link(result[0].first, result[0].second);
-
-				ret.insert_sorted(make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_LINK_TEXT, "release"));
-				start = result[0].second;
-				pos += result.position() + link.length();
-			}
-		}
+		// Note: the earlier formatters will override the later ones in case of duplicates
 
 		// Parse links
 		{
@@ -116,6 +89,34 @@ namespace dcpp {
 
 			} catch (...) {
 				//...
+			}
+		}
+
+		// Parse release names
+		if (SETTING(FORMAT_RELEASE) || SETTING(DUPES_IN_CHAT)) {
+			auto start = aText.cbegin();
+			auto end = aText.cend();
+			boost::match_results<string::const_iterator> result;
+			int pos = 0;
+
+			while (boost::regex_search(start, end, result, AirUtil::releaseRegChat, boost::match_default)) {
+				std::string link(result[0].first, result[0].second);
+
+				ret.insert_sorted(make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_LINK_TEXT, "release"));
+				start = result[0].second;
+				pos += result.position() + link.length();
+			}
+		}
+
+		// My nick
+		if (!aMyNick.empty()) {
+			size_t lMyNickStart = string::npos;
+			size_t lSearchFrom = 0;
+			while ((lMyNickStart = aText.find(aMyNick, lSearchFrom)) != string::npos) {
+				auto lMyNickEnd = lMyNickStart + aMyNick.size();
+				lSearchFrom = lMyNickEnd;
+
+				ret.insert_sorted(make_shared<MessageHighlight>(lMyNickStart, aMyNick, MessageHighlight::HighlightType::TYPE_USER, "me"));
 			}
 		}
 
