@@ -260,7 +260,9 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 			setAutoReconnect(true);
 		}
 
-		u->getIdentity().setConnectMode(Identity::MODE_ME);
+		u->getIdentity().setTcpConnectMode(Identity::MODE_ME);
+		u->getIdentity().setUdpConnectMode(Identity::MODE_ME);
+
 		setMyIdentity(u->getIdentity());
 		updateCounts(false);
 
@@ -291,7 +293,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 			{
 				RLock l(cs);
 				boost::algorithm::copy_if(users | map_values, back_inserter(ouList), [this](OnlineUser* ou) {
-					return ou->getIdentity().getConnectMode() != Identity::MODE_ME && ou->getIdentity().updateConnectMode(getMyIdentity(), this);
+					return ou->getIdentity().getTcpConnectMode() != Identity::MODE_ME && ou->getIdentity().updateConnectMode(getMyIdentity(), this);
 				});
 			}
 
@@ -499,8 +501,8 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 	if (!checkProtocol(*u, allowSecure, protocol, token))
 		return;
 
-	if(getMyIdentity().isTcpActive()) {
-		//we are active the other guy is not
+	if (getMyIdentity().isTcp4Active() || getMyIdentity().isTcp6Active()) {
+		// We are active the other guy is not (and he wants to connect to us)
 		connect(*u, token, allowSecure, true);
 		return;
 	}
@@ -554,10 +556,11 @@ void AdcHub::sendUDP(const AdcCommand& cmd) noexcept {
 			return;
 		}
 		OnlineUser& ou = *i->second;
-		if(!ou.getIdentity().isUdpActive()) {
+		if (!Identity::isActiveMode(ou.getIdentity().getUdpConnectMode())) {
 			return;
 		}
-		remoteIp = ou.getIdentity().getIp();
+
+		remoteIp = ou.getIdentity().getUdpIp();
 		remotePort = ou.getIdentity().getUdpPort();
 		command = cmd.toString(ou.getUser()->getCID());
 	}
@@ -675,17 +678,13 @@ void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
 	if(ou->getUser() == ClientManager::getInstance()->getMe())
 		return;
 
-	bool isUdpActive = ou->getIdentity().isUdpActive();
-	if (isUdpActive) {
-		//check that we have a common IP protocol available (we don't want to send responses via wrong hubs)
-		const auto& me = getMyIdentity();
-		if (me.getIp4().empty() || !ou->getIdentity().isUdp4Active()) {
-			if (me.getIp6().empty() || !ou->getIdentity().isUdp6Active()) {
-				return;
-			}
-		}
+	// Check that we have a common IP protocol available
+	auto mode = ou->getIdentity().getUdpConnectMode();
+	if (mode == Identity::MODE_NOCONNECT_IP) {
+		return;
 	}
 
+	auto isUdpActive = Identity::isActiveMode(mode);
 	SearchManager::getInstance()->respond(c, *ou, isUdpActive, getIpPort(), get(HubSettings::ShareProfile));
 }
 
@@ -695,7 +694,7 @@ void AdcHub::handle(AdcCommand::RES, AdcCommand& c) noexcept {
 		dcdebug("Invalid user in AdcHub::onRES\n");
 		return;
 	}
-	SearchManager::getInstance()->onRES(c, ou->getUser(), ou->getIdentity().getIp());
+	SearchManager::getInstance()->onRES(c, ou->getUser(), ou->getIdentity().getUdpIp());
 }
 
 void AdcHub::handle(AdcCommand::PSR, AdcCommand& c) noexcept {
@@ -704,7 +703,7 @@ void AdcHub::handle(AdcCommand::PSR, AdcCommand& c) noexcept {
 		dcdebug("Invalid user in AdcHub::onPSR\n");
 		return;
 	}
-	SearchManager::getInstance()->onPSR(c, ou->getUser(), ou->getIdentity().getIp());
+	SearchManager::getInstance()->onPSR(c, ou->getUser(), ou->getIdentity().getUdpIp());
 }
 
 void AdcHub::handle(AdcCommand::PBD, AdcCommand& c) noexcept {
@@ -1027,17 +1026,18 @@ AdcCommand::Error AdcHub::allowConnect(const OnlineUser& aUser, bool aSecure, st
 	}
 
 	//check the passive mode
-	if (aUser.getIdentity().getConnectMode() == Identity::MODE_NOCONNECT_PASSIVE) {
+	if (aUser.getIdentity().getTcpConnectMode() == Identity::MODE_NOCONNECT_PASSIVE) {
 		return AdcCommand::ERROR_FEATURE_MISSING;
 	}
 
 	//check the IP protocol
-	if (aUser.getIdentity().getConnectMode() == Identity::MODE_NOCONNECT_IP) {
-		if (!getMyIdentity().getIp6().empty() && !aUser.getIdentity().allowV6Connections()) {
+	if (aUser.getIdentity().getTcpConnectMode() == Identity::MODE_NOCONNECT_IP) {
+		if (!getMyIdentity().getIp6().empty() && !Identity::allowV6Connections(aUser.getIdentity().getTcpConnectMode())) {
 			failedProtocol_ = "IPv6";
 			return AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
 		}
-		if (!getMyIdentity().getIp4().empty() && !aUser.getIdentity().allowV4Connections()) {
+
+		if (!getMyIdentity().getIp4().empty() && !Identity::allowV4Connections(aUser.getIdentity().getTcpConnectMode())) {
 			failedProtocol_ = "IPv4";
 			return AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
 		}
@@ -1048,10 +1048,18 @@ AdcCommand::Error AdcHub::allowConnect(const OnlineUser& aUser, bool aSecure, st
 	return AdcCommand::SUCCESS;
 }
 
+
+bool AdcHub::acceptUserConnections(const OnlineUser& aUser) noexcept {
+	auto allowV4 = Identity::allowV4Connections(aUser.getIdentity().getTcpConnectMode()) && getMyIdentity().isTcp4Active();
+	auto allowV6 = Identity::allowV6Connections(aUser.getIdentity().getTcpConnectMode()) && getMyIdentity().isTcp6Active();
+	return allowV4 || allowV6;
+}
+
 void AdcHub::connect(const OnlineUser& aUser, const string& aToken, bool aSecure, bool aReplyingRCM) noexcept {
 	const string* proto = aSecure ? &SECURE_CLIENT_PROTOCOL_TEST : &CLIENT_PROTOCOL;
 
-	if (aReplyingRCM || (aUser.getIdentity().allowV6Connections() && getMyIdentity().isTcp6Active()) || (aUser.getIdentity().allowV4Connections() && getMyIdentity().isTcp4Active())) {
+	// Always let the other user connect if he requested that even if we haven't determined common connectivity
+	if (aReplyingRCM || acceptUserConnections(aUser)) {
 		const string& ownPort = aSecure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
 		if(ownPort.empty()) {
 			// Oops?

@@ -859,7 +859,7 @@ bool ClientManager::sendUDP(AdcCommand& cmd, const CID& aCID, bool aNoCID /*fals
 		return false;
 	}
 
-	if (cmd.getType() == AdcCommand::TYPE_UDP && !u->getIdentity().isUdpActive()) {
+	if (cmd.getType() == AdcCommand::TYPE_UDP && !Identity::isActiveMode(u->getIdentity().getUdpConnectMode())) {
 		if (u->getUser()->isNMDC() || aNoPassive) {
 			return false;
 		}
@@ -869,7 +869,7 @@ bool ClientManager::sendUDP(AdcCommand& cmd, const CID& aCID, bool aNoCID /*fals
 		u->getClient()->send(cmd);
 	} else {
 		try {
-			COMMAND_DEBUG(cmd.toString(), DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, u->getIdentity().getIp() + ":" + u->getIdentity().getUdpPort());
+			COMMAND_DEBUG(cmd.toString(), DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, u->getIdentity().getUdpIp() + ":" + u->getIdentity().getUdpPort());
 			auto cmdStr = aNoCID ? cmd.toString() : cmd.toString(getMe()->getCID());
 			if (!aKey.empty() && Encoder::isBase32(aKey.c_str())) {
 				uint8_t keyChar[16];
@@ -901,7 +901,7 @@ bool ClientManager::sendUDP(AdcCommand& cmd, const CID& aCID, bool aNoCID /*fals
 				delete[] out;
 			}
 
-			udp->writeTo(u->getIdentity().getIp(), u->getIdentity().getUdpPort(), cmdStr);
+			udp->writeTo(u->getIdentity().getUdpIp(), u->getIdentity().getUdpPort(), cmdStr);
 		} catch(const SocketException&) {
 			dcdebug("Socket exception sending ADC UDP command\n");
 		}
@@ -1204,7 +1204,7 @@ optional<ClientManager::ClientStats> ClientManager::getClientStats() const noexc
 				stats.operators++;
 			}
 
-			if (ou->getIdentity().isTcpActive()) {
+			if (ou->getIdentity().hasActiveTcpConnectivity()) {
 				stats.activeUsers++;
 			}
 
