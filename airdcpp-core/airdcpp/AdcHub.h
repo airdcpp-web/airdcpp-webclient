@@ -96,6 +96,9 @@ private:
 
 	void connect(const OnlineUser& aUser, const string& aToken, bool aSecure, bool aReplyingRCM = false) noexcept;
 
+	// Can we accept incoming connections from the other user?
+	bool acceptUserConnections(const OnlineUser& aUser) noexcept;
+
 	/* Checks if we are allowed to connect to the user */
 	AdcCommand::Error allowConnect(const OnlineUser& aUser, bool aSecure, string& failedProtocol_, bool checkBase) const noexcept;
 	/* Does the same thing but also sends the error to the remote user */

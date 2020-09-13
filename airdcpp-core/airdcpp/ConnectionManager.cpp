@@ -576,10 +576,10 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort,
 	}
 
 	try {
-		if (aUser.getIdentity().getConnectMode() == Identity::MODE_ACTIVE_DUAL) {
+		if (aUser.getIdentity().getTcpConnectMode() == Identity::MODE_ACTIVE_DUAL) {
 			uc->connect(AddressInfo(aUser.getIdentity().getIp4(), aUser.getIdentity().getIp6()), aPort, localPort, natRole, aUser);
 		} else {
-			auto ai = AddressInfo(aUser.getIdentity().getIp(), aUser.getIdentity().allowV6Connections() ? AddressInfo::TYPE_V6 : AddressInfo::TYPE_V4);
+			auto ai = AddressInfo(aUser.getIdentity().getTcpConnectIp(), Identity::allowV6Connections(aUser.getIdentity().getTcpConnectMode()) ? AddressInfo::TYPE_V6 : AddressInfo::TYPE_V4);
 			uc->connect(move(ai), aPort, localPort, natRole, aUser);
 		}
 	} catch(const Exception&) {

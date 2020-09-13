@@ -102,7 +102,7 @@ int NmdcHub::connect(const OnlineUser& aUser, const string&, string& /*lastError
 void NmdcHub::refreshLocalIp() noexcept {
 	if((!CONNSETTING(NO_IP_OVERRIDE) || getUserIp4().empty()) && !getMyIdentity().getIp4().empty()) {
 		// Best case - the server detected it
-		localIp = getMyIdentity().getIp();
+		localIp = getMyIdentity().getTcpConnectIp();
 	} else {
 		localIp.clear();
 	}
@@ -161,7 +161,8 @@ OnlineUser& NmdcHub::getUser(const string& aNick) noexcept {
 		u->getIdentity().setNick(aNick);
 		if(u->getUser() == getMyIdentity().getUser()) {
 			setMyIdentity(u->getIdentity());
-			u->getIdentity().setConnectMode(isActive() ? Identity::MODE_ACTIVE_V4 : Identity::MODE_PASSIVE_V4);
+			u->getIdentity().setTcpConnectMode(isActive() ? Identity::MODE_ACTIVE_V4 : Identity::MODE_PASSIVE_V4);
+			u->getIdentity().setUdpConnectMode(isActive() ? Identity::MODE_ACTIVE_V4 : Identity::MODE_PASSIVE_V4);
 		}
 	}
 	
