@@ -44,11 +44,11 @@ OnlineUser::~OnlineUser() noexcept {
 }
 
 bool Identity::hasActiveTcpConnectivity(const ClientPtr& c) const noexcept {
-	if (user == ClientManager::getInstance()->getMe()) {
+	if (user->isSet(User::NMDC) || isMe()) {
 		return isTcp4Active(c) || isTcp6Active();
 	}
 
-	return isActiveMode(tcpConnectMode);
+	return isActiveMode(adcTcpConnectMode);
 }
 
 bool Identity::isTcp4Active(const ClientPtr& c) const noexcept {
@@ -57,7 +57,7 @@ bool Identity::isTcp4Active(const ClientPtr& c) const noexcept {
 		return !user->isSet(User::PASSIVE);
 	} else {
 		// NMDC flag is not set for our own user (and neither the global User::PASSIVE flag can be used here)
-		if (c && user == ClientManager::getInstance()->getMe()) {
+		if (c && isMe()) {
 			return c->isActiveV4();
 		}
 
@@ -91,11 +91,19 @@ string Identity::getUdpPort() const noexcept {
 }
 
 string Identity::getTcpConnectIp() const noexcept {
-	return !allowV6Connections(tcpConnectMode) ? getIp4() : getIp6();
+	if (user->isNMDC()) {
+		return getIp4();
+	}
+
+	return !allowV6Connections(adcTcpConnectMode) ? getIp4() : getIp6();
 }
 
 string Identity::getUdpIp() const noexcept {
-	return !allowV6Connections(udpConnectMode) ? getIp4() : getIp6();
+	if (user->isNMDC()) {
+		return getIp4();
+	}
+
+	return !allowV6Connections(adcUdpConnectMode) ? getIp4() : getIp6();
 }
 
 string Identity::getConnectionString() const noexcept {
@@ -192,7 +200,7 @@ Identity& Identity::operator = (const Identity& rhs) {
 	user = rhs.user;
 	sid = rhs.sid;
 	info = rhs.info;
-	tcpConnectMode = rhs.tcpConnectMode;
+	adcTcpConnectMode = rhs.adcTcpConnectMode;
 	return *this;
 }
 
@@ -251,6 +259,10 @@ bool Identity::supports(const string& name) const noexcept {
 	return false;
 }
 
+bool Identity::isMe() const noexcept {
+	return ClientManager::getInstance()->getMe() == user;
+}
+
 std::map<string, string> Identity::getInfo() const noexcept {
 	std::map<string, string> ret;
 
@@ -267,6 +279,10 @@ int Identity::getTotalHubCount() const noexcept {
 }
 
 Identity::Mode Identity::detectConnectMode(const Identity& aMe, const Identity& aOther, bool aMeActive4, bool aMeActive6, bool aOtherActive4, bool aOtherActive6, bool aNatTravelsal, const Client* aClient) noexcept {
+	if (aMe.getUser() == aOther.getUser()) {
+		return MODE_ME;
+	}
+
 	auto mode = MODE_NOCONNECT_IP;
 
 	if (!aMe.getIp6().empty() && !aOther.getIp6().empty()) {
@@ -314,21 +330,41 @@ Identity::Mode Identity::detectConnectModeUdp(const Identity& aMe, const Identit
 	return detectConnectMode(aMe, aOther, aMe.isUdp4Active(), aMe.isUdp6Active(), aOther.isUdp4Active(), aOther.isUdp6Active(), false, aClient);
 }
 
-bool Identity::updateConnectMode(const Identity& me, const Client* aClient) noexcept {
+Identity::Mode Identity::getTcpConnectMode() const noexcept {
+	if (isMe()) {
+		return Mode::MODE_ME;
+	}
+
+	if (user->isNMDC()) {
+		return isTcp4Active() ? Mode::MODE_ACTIVE_V4 : Mode::MODE_PASSIVE_V4;
+	}
+
+	return adcTcpConnectMode;
+}
+
+bool Identity::isUdpActive() const noexcept {
+	if (user->isNMDC()) {
+		return isUdp4Active();
+	}
+
+	return isActiveMode(adcUdpConnectMode);
+}
+
+bool Identity::updateAdcConnectModes(const Identity& me, const Client* aClient) noexcept {
 	bool updated = false;
 
 	{
 		auto newModeTcp = detectConnectModeTcp(me, *this, aClient);
-		if (tcpConnectMode != newModeTcp) {
-			tcpConnectMode = newModeTcp;
+		if (adcTcpConnectMode != newModeTcp) {
+			adcTcpConnectMode = newModeTcp;
 			updated = true;
 		}
 	}
 
 	{
 		auto newModeUdp = detectConnectModeUdp(me, *this, aClient);
-		if (udpConnectMode != newModeUdp) {
-			udpConnectMode = newModeUdp;
+		if (adcUdpConnectMode != newModeUdp) {
+			adcUdpConnectMode = newModeUdp;
 			updated = true;
 		}
 	}
@@ -336,6 +372,9 @@ bool Identity::updateConnectMode(const Identity& me, const Client* aClient) noex
 	return updated;
 }
 
+bool Identity::allowConnections(Mode aConnectMode) noexcept {
+	return allowV4Connections(aConnectMode) || allowV6Connections(aConnectMode);
+}
 
 bool Identity::allowV4Connections(Mode aConnectMode) noexcept {
 	return aConnectMode == MODE_PASSIVE_V4 || aConnectMode == MODE_ACTIVE_V4 || aConnectMode == MODE_PASSIVE_V4_UNKNOWN || aConnectMode == MODE_ACTIVE_DUAL;

@@ -859,7 +859,7 @@ bool ClientManager::sendUDP(AdcCommand& cmd, const CID& aCID, bool aNoCID /*fals
 		return false;
 	}
 
-	if (cmd.getType() == AdcCommand::TYPE_UDP && !Identity::isActiveMode(u->getIdentity().getUdpConnectMode())) {
+	if (cmd.getType() == AdcCommand::TYPE_UDP && !u->getIdentity().isUdpActive()) {
 		if (u->getUser()->isNMDC() || aNoPassive) {
 			return false;
 		}
@@ -1489,7 +1489,7 @@ bool ClientManager::processChatMessage(const ChatMessagePtr& aMessage, const Ide
 		try {
 			auto results = aHook.runHooksDataThrow(aMessage);
 			highlights = ActionHook<MessageHighlightList>::normalizeListItems(results);
-		} catch (const HookRejectException& e) {
+		} catch (const HookRejectException&) {
 			return false;
 		}
 

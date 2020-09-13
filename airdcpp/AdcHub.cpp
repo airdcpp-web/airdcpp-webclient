@@ -260,9 +260,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 			setAutoReconnect(true);
 		}
 
-		u->getIdentity().setTcpConnectMode(Identity::MODE_ME);
-		u->getIdentity().setUdpConnectMode(Identity::MODE_ME);
-
+		u->getIdentity().updateAdcConnectModes(u->getIdentity(), this);
 		setMyIdentity(u->getIdentity());
 		updateCounts(false);
 
@@ -293,14 +291,14 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 			{
 				RLock l(cs);
 				boost::algorithm::copy_if(users | map_values, back_inserter(ouList), [this](OnlineUser* ou) {
-					return ou->getIdentity().getTcpConnectMode() != Identity::MODE_ME && ou->getIdentity().updateConnectMode(getMyIdentity(), this);
+					return ou->getIdentity().getTcpConnectMode() != Identity::MODE_ME && ou->getIdentity().updateAdcConnectModes(getMyIdentity(), this);
 				});
 			}
 
 			fire(ClientListener::UsersUpdated(), this, ouList);
 		}
 	} else if (stateNormal()) {
-		u->getIdentity().updateConnectMode(getMyIdentity(), this);
+		u->getIdentity().updateAdcConnectModes(getMyIdentity(), this);
 	}
 
 	if (u->getIdentity().isHub()) {
@@ -556,7 +554,7 @@ void AdcHub::sendUDP(const AdcCommand& cmd) noexcept {
 			return;
 		}
 		OnlineUser& ou = *i->second;
-		if (!Identity::isActiveMode(ou.getIdentity().getUdpConnectMode())) {
+		if (!ou.getIdentity().isUdpActive()) {
 			return;
 		}
 
@@ -678,9 +676,9 @@ void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
 	if(ou->getUser() == ClientManager::getInstance()->getMe())
 		return;
 
-	// Check that we have a common IP protocol available
-	auto mode = ou->getIdentity().getUdpConnectMode();
-	if (mode == Identity::MODE_NOCONNECT_IP) {
+	// No point to send results if downloads aren't possible
+	auto mode = ou->getIdentity().getTcpConnectMode();
+	if (!Identity::allowConnections(mode)) {
 		return;
 	}
 
