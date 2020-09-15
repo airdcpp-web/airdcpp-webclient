@@ -195,11 +195,13 @@ namespace webserver {
 	}
 
 	MessageHighlightList MessageUtils::deserializeHookMessageHighlights(const json& aData, const ActionHookResultGetter<MessageHighlightList>& aResultGetter, const string& aMessageText) {
-		const auto highlightItems = JsonUtil::getArrayField("highlights", aData, true);
+		const auto highlightItems = JsonUtil::getOptionalArrayField("highlights", aData);
 
 		MessageHighlightList ret;
-		for (const auto& hl : highlightItems) {
-			ret.push_back(MessageUtils::deserializeMessageHighlight(hl, aMessageText, aResultGetter.getId()));
+		if (!highlightItems.is_null()) {
+			for (const auto& hl : highlightItems) {
+				ret.push_back(MessageUtils::deserializeMessageHighlight(hl, aMessageText, aResultGetter.getId()));
+			}
 		}
 
 		return ret;

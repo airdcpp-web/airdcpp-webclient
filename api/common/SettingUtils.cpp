@@ -84,6 +84,7 @@ namespace webserver {
 			case ApiSettingItem::TYPE_NUMBER: return "number";
 			case ApiSettingItem::TYPE_STRING: return "string";
 			case ApiSettingItem::TYPE_FILE_PATH: return "file_path";
+			case ApiSettingItem::TYPE_EXISTING_FILE_PATH: return "existing_file_path";
 			case ApiSettingItem::TYPE_DIRECTORY_PATH: return "directory_path";
 			case ApiSettingItem::TYPE_TEXT: return "text";
 			case ApiSettingItem::TYPE_LIST: return "list";
@@ -231,6 +232,11 @@ namespace webserver {
 			value = Util::validatePath(value, true);
 		} else if (aType == ApiSettingItem::TYPE_FILE_PATH) {
 			value = Util::validatePath(value, false);
+		} else if (aType == ApiSettingItem::TYPE_EXISTING_FILE_PATH) {
+			value = Util::validatePath(value, false);
+			// if (!Util::fileExists()) {
+
+			//}
 		}
 
 		return value;
@@ -314,6 +320,8 @@ namespace webserver {
 				return ApiSettingItem::TYPE_TEXT;
 			} else if (*itemTypeStr == "file_path") {
 				return ApiSettingItem::TYPE_FILE_PATH;
+			} else if (*itemTypeStr == "existing_file_path") {
+				return ApiSettingItem::TYPE_EXISTING_FILE_PATH;
 			} else if (*itemTypeStr == "directory_path") {
 				return ApiSettingItem::TYPE_DIRECTORY_PATH;
 			} else if (*itemTypeStr == "hub_url") {

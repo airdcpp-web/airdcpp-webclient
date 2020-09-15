@@ -23,6 +23,8 @@
 
 #include "Access.h"
 
+#include <web-server/ApiSettingItem.h>
+
 #include <airdcpp/ActionHook.h>
 #include <airdcpp/GetSet.h>
 #include <airdcpp/Singleton.h>
@@ -35,8 +37,8 @@
 	ContextMenuItemList get##name2##Menu(const vector<type>& aItems, const AccessList& aAccessList, const ContextMenuSupportList& aSupports) const noexcept { \
 		return ActionHook<ContextMenuItemList>::normalizeListItems(name##MenuHook.runHooksData(aItems, aAccessList, aSupports)); \
 	} \
-	void onClick##name2##Item(const vector<type>& aItems, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId, const ContextMenuSupportList& aSupports) noexcept { \
-		fire(ContextMenuManagerListener::name2##MenuSelected(), aItems, ContextMenuItemClickData({ aHookId, aMenuItemId, aSupports, aAccessList })); \
+	void onClick##name2##Item(const vector<type>& aItems, const ContextMenuItemClickData& aClickData) noexcept { \
+		fire(ContextMenuManagerListener::name2##MenuSelected(), aItems, aClickData); \
 	}
 
 
@@ -45,8 +47,8 @@
 	ContextMenuItemList get##name2##Menu(const vector<type>& aItems, const AccessList& aAccessList, const ContextMenuSupportList& aSupports, const entityType& aEntity) const noexcept { \
 		return ActionHook<ContextMenuItemList>::normalizeListItems(name##MenuHook.runHooksData(aItems, aAccessList, aEntity, aSupports)); \
 	} \
-	void onClick##name2##Item(const vector<type>& aItems, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId, const ContextMenuSupportList& aSupports, const entityType& aEntity) noexcept { \
-		fire(ContextMenuManagerListener::name2##MenuSelected(), aItems, aEntity, ContextMenuItemClickData({ aHookId, aMenuItemId, aSupports, aAccessList })); \
+	void onClick##name2##Item(const vector<type>& aItems, const ContextMenuItemClickData& aClickData, const entityType& aEntity) noexcept { \
+		fire(ContextMenuManagerListener::name2##MenuSelected(), aItems, aEntity, aClickData); \
 	}
 
 
@@ -54,10 +56,14 @@ namespace webserver {
 	typedef StringList ContextMenuSupportList;
 
 	struct ContextMenuItemClickData {
+		ContextMenuItemClickData(const string& aHookId, const string& aMenuItemId, const ContextMenuSupportList& aSupports, const AccessList aAccess, const SettingValueMap aFormValues) noexcept :
+			hookId(aHookId), menuItemId(aMenuItemId), supports(aSupports), access(aAccess), formValues(aFormValues) {}
+
 		const string hookId;
 		const string menuItemId;
 		const ContextMenuSupportList supports;
 		const AccessList access;
+		const SettingValueMap formValues;
 	};
 
 	class ContextMenuManagerListener {
@@ -101,8 +107,8 @@ namespace webserver {
 
 	class ContextMenuItem {
 	public:
-		ContextMenuItem(const string& aId, const string& aTitle, const StringMap& aIconInfo, const string& aHookId, const StringList& aUrls) :
-			id(aId), title(aTitle), iconInfo(aIconInfo), hookId(aHookId), urls(aUrls) {
+		ContextMenuItem(const string& aId, const string& aTitle, const StringMap& aIconInfo, const string& aHookId, const StringList& aUrls, const ExtensionSettingItem::List& aFormFieldDefinitions) :
+			id(aId), title(aTitle), iconInfo(aIconInfo), hookId(aHookId), urls(aUrls), formFieldDefinitions(aFormFieldDefinitions) {
 
 		}
 
@@ -111,6 +117,7 @@ namespace webserver {
 		GETSET(StringMap, iconInfo, IconInfo);
 		GETSET(string, hookId, HookId);
 		GETSET(StringList, urls, Urls);
+		GETSET(ExtensionSettingItem::List, formFieldDefinitions, FormFieldDefinitions);
 	private:
 	};
 

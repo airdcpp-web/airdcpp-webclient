@@ -20,9 +20,9 @@
 #define DCPLUSPLUS_DCPP_EXTENSION_H
 
 #include "stdinc.h"
-#include <web-server/ExtensionListener.h>
 
-#include <api/ApiSettingItem.h>
+#include <web-server/ExtensionListener.h>
+#include <web-server/ApiSettingItem.h>
 
 #include <airdcpp/GetSet.h>
 #include <airdcpp/Speaker.h>

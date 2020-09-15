@@ -48,6 +48,9 @@ namespace webserver {
 		static ContextMenuItemPtr toMenuItem(const json& aData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter);
 		static ContextMenuItemList deserializeMenuItems(const json& aData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter);
 
+		static ExtensionSettingItem::List deserializeFormFieldDefinitions(const json& aJson);
+		// static SettingValueMap deserializeFormValues(const json& aJson, const ExtensionSettingItem::List& aDefinitions);
+
 		static json serializeMenuItem(const ContextMenuItemPtr& aMenuItem);
 
 		template<typename IdT>
@@ -75,19 +78,19 @@ namespace webserver {
 		}
 
 		template<typename IdT>
-		using ClickHandlerFunc = std::function<void(const vector<IdT>& aId, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId, const StringList& aSupports)>;
+		using ClickHandlerFunc = std::function<void(const vector<IdT>& aId, const ContextMenuItemClickData& aClickData)>;
 
 		template<typename IdT>
 		api_return handleClickItem(ApiRequest& aRequest, const string& aMenuId, const ClickHandlerFunc<IdT>& aHandler, const Deserializer::ArrayDeserializerFunc<IdT>& aIdDeserializerFunc) {
 			const auto selectedIds = deserializeItemIds<IdT>(aRequest, aIdDeserializerFunc);
-			const auto hookId = JsonUtil::getField<string>("hook_id", aRequest.getRequestBody(), false);
-			const auto menuItemId = JsonUtil::getField<string>("menuitem_id", aRequest.getRequestBody(), false);
-			const auto supports = JsonUtil::getOptionalFieldDefault<StringList>("supports", aRequest.getRequestBody(), StringList());
 
 			const auto accessList = aRequest.getSession()->getUser()->getPermissions();
-			aHandler(selectedIds, accessList, hookId, menuItemId, supports);
+			const auto clickData = deserializeClickData(aRequest.getRequestBody(), accessList);
+			aHandler(selectedIds, clickData);
 			return websocketpp::http::status_code::no_content;
 		}
+
+		ContextMenuItemClickData deserializeClickData(const json& aJson, const AccessList& aPermissions);
 
 		template<typename IdT>
 		using ListHandlerFunc = std::function<ContextMenuItemList(const vector<IdT>& aId, const AccessList& aAccessList, const StringList& aSupports)>;
