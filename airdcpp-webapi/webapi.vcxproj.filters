@@ -177,9 +177,6 @@
     <ClInclude Include="api\SettingApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
-    <ClInclude Include="api\ApiSettingItem.h">
-      <Filter>Header Files\api</Filter>
-    </ClInclude>
     <ClInclude Include="api\ConnectivityApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
@@ -306,6 +303,9 @@
     <ClInclude Include="api\common\MessageUtils.h">
       <Filter>Header Files\api\common</Filter>
     </ClInclude>
+    <ClInclude Include="web-server\ApiSettingItem.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
@@ -402,9 +402,6 @@
       <Filter>Source Files\api</Filter>
     </ClCompile>
     <ClCompile Include="api\SettingApi.cpp">
-      <Filter>Source Files\api</Filter>
-    </ClCompile>
-    <ClCompile Include="api\ApiSettingItem.cpp">
       <Filter>Source Files\api</Filter>
     </ClCompile>
     <ClCompile Include="api\ConnectivityApi.cpp">
@@ -511,6 +508,9 @@
     </ClCompile>
     <ClCompile Include="api\common\MessageUtils.cpp">
       <Filter>Source Files\api\common</Filter>
+    </ClCompile>
+    <ClCompile Include="web-server\ApiSettingItem.cpp">
+      <Filter>Source Files\web-server</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

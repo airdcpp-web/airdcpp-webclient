@@ -19,15 +19,15 @@
 #include "stdinc.h"
 
 #include <api/SettingApi.h>
-#include <api/ApiSettingItem.h>
 
 #include <api/CoreSettings.h>
-#include <web-server/WebServerManager.h>
-#include <web-server/WebServerSettings.h>
-
-#include <web-server/JsonUtil.h>
 #include <api/common/Serializer.h>
 #include <api/common/SettingUtils.h>
+
+#include <web-server/ApiSettingItem.h>
+#include <web-server/JsonUtil.h>
+#include <web-server/WebServerManager.h>
+#include <web-server/WebServerSettings.h>
 
 #include <airdcpp/SettingHolder.h>
 

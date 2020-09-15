@@ -21,7 +21,8 @@
 
 #include "stdinc.h"
 
-#include <api/ApiSettingItem.h>
+#include <web-server/ApiSettingItem.h>
+
 #include <airdcpp/SettingsManager.h>
 
 namespace webserver {

@@ -18,7 +18,7 @@
 
 #include "stdinc.h"
 
-#include <api/ApiSettingItem.h>
+#include <web-server/ApiSettingItem.h>
 #include <web-server/JsonUtil.h>
 
 #include <airdcpp/AirUtil.h>

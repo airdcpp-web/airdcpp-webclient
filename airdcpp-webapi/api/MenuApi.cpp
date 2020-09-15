@@ -22,6 +22,7 @@
 
 #include <api/common/Deserializer.h>
 #include <api/common/Serializer.h>
+#include <api/common/SettingUtils.h>
 
 #include <api/QueueBundleUtils.h>
 
@@ -55,7 +56,7 @@
 		return handleClickItem<idType>( \
 			aRequest, \
 			menuId, \
-			std::bind(&ContextMenuManager::onClick##hook2##Item, &cmm, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4, placeholders::_5), \
+			std::bind(&ContextMenuManager::onClick##hook2##Item, &cmm, placeholders::_1, placeholders::_2), \
 			idDeserializerFunc \
 		); \
 	}); \
@@ -85,8 +86,8 @@
 		return handleClickItem<idType>( \
 			aRequest,  \
 			menuId, \
-			[=](const vector<idType>& aSelectedIds, const AccessList& aAccessList, const string& aHookId, const string& aMenuId, const StringList& aSupports) { \
-				return cmm.onClick##hook2##Item(aSelectedIds, aAccessList, aHookId, aMenuId, aSupports, entity); \
+			[=](const vector<idType>& aSelectedIds, const ContextMenuItemClickData& aClickData) { \
+				return cmm.onClick##hook2##Item(aSelectedIds, aClickData, entity); \
 			}, \
 			idDeserializerFunc \
 		); \
@@ -193,6 +194,31 @@ namespace webserver {
 		cmm.removeListener(this);
 	}
 
+
+	ContextMenuItemClickData MenuApi::deserializeClickData(const json& aJson, const AccessList& aPermissions) {
+		const auto hookId = JsonUtil::getField<string>("hook_id", aJson, false);
+		const auto menuItemId = JsonUtil::getField<string>("menuitem_id", aJson, false);
+		const auto supports = JsonUtil::getOptionalFieldDefault<StringList>("supports", aJson, StringList());
+
+		ExtensionSettingItem::List formFieldDefinitions = deserializeFormFieldDefinitions(aJson);
+		SettingValueMap formValues;
+
+		if (!formFieldDefinitions.empty()) {
+			// Deserialize values
+			auto valuesJson = JsonUtil::getRawField("form_value", aJson);
+			for (const auto& elem: valuesJson.items()) {
+				auto setting = ApiSettingItem::findSettingItem<ExtensionSettingItem>(formFieldDefinitions, elem.key());
+				if (!setting) {
+					JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Definition for the value was not found");
+				}
+
+				formValues[elem.key()] = SettingUtils::validateValue(elem.value(), *setting, nullptr);
+			}
+		}
+
+		return ContextMenuItemClickData(hookId, menuItemId, supports, aPermissions, formValues);
+	}
+
 	json MenuApi::serializeMenuItem(const ContextMenuItemPtr& aMenuItem) {
 		return {
 			{ "id", aMenuItem->getId() },
@@ -200,6 +226,7 @@ namespace webserver {
 			{ "icon", aMenuItem->getIconInfo() },
 			{ "hook_id", aMenuItem->getHookId() },
 			{ "urls", aMenuItem->getUrls() },
+			{ "form_definitions", aMenuItem->getFormFieldDefinitions().empty() ? json() : Serializer::serializeList(aMenuItem->getFormFieldDefinitions(), SettingUtils::serializeDefinition) },
 		};
 	}
 
@@ -235,7 +262,17 @@ namespace webserver {
 		const auto iconInfo = deserializeIconInfo(JsonUtil::getOptionalRawField("icon", aData, false));
 		const auto urls = JsonUtil::getOptionalFieldDefault<StringList>("urls", aData, StringList());
 
-		return make_shared<ContextMenuItem>(id, title, iconInfo, aResultGetter.getId(), urls);
+		return make_shared<ContextMenuItem>(id, title, iconInfo, aResultGetter.getId(), urls, deserializeFormFieldDefinitions(aData));
+	}
+
+
+	ExtensionSettingItem::List MenuApi::deserializeFormFieldDefinitions(const json& aJson) {
+		const auto formFieldsJson = JsonUtil::getOptionalArrayField("form_definitions", aJson);
+		if (!formFieldsJson.is_null()) {
+			return SettingUtils::deserializeDefinitions(formFieldsJson);
+		}
+
+		return ExtensionSettingItem::List();
 	}
 
 	void MenuApi::onMenuItemSelected(const string& aMenuId, const json& aSelectedIds, const ContextMenuItemClickData& aClickData, const json& aEntityId) noexcept {
@@ -247,7 +284,8 @@ namespace webserver {
 				{ "selected_ids", aSelectedIds },
 				{ "entity_id", aEntityId },
 				{ "permissions", Serializer::serializePermissions(aClickData.access) },
-				{ "supports", aClickData.supports}
+				{ "supports", aClickData.supports },
+				{ "form_values", aClickData.formValues },
 			};
 
 			return ret;

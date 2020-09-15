@@ -21,7 +21,7 @@
 
 #include <airdcpp/forward.h>
 
-#include <api/ApiSettingItem.h>
+#include <web-server/ApiSettingItem.h>
 
 
 namespace webserver {

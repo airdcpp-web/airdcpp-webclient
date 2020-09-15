@@ -180,7 +180,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="api\ApiSettingItem.h" />
     <ClInclude Include="api\base\ApiModule.h" />
     <ClInclude Include="api\base\HierarchicalApiModule.h" />
     <ClInclude Include="api\base\HookApiModule.h" />
@@ -240,6 +239,7 @@
     <ClInclude Include="stdinc.h" />
     <ClInclude Include="web-server\ApiRequest.h" />
     <ClInclude Include="web-server\ApiRouter.h" />
+    <ClInclude Include="web-server\ApiSettingItem.h" />
     <ClInclude Include="web-server\ContextMenuManager.h" />
     <ClInclude Include="web-server\Exception.h" />
     <ClInclude Include="web-server\Extension.h" />
@@ -275,7 +275,6 @@
     <ClCompile Include="api\common\MessageUtils.cpp" />
     <ClCompile Include="api\common\PropertyFilter.cpp" />
     <ClCompile Include="api\common\Serializer.cpp" />
-    <ClCompile Include="api\ApiSettingItem.cpp" />
     <ClCompile Include="api\common\SettingUtils.cpp" />
     <ClCompile Include="api\ConnectivityApi.cpp" />
     <ClCompile Include="api\ExtensionApi.cpp" />
@@ -334,6 +333,7 @@
     </ClCompile>
     <ClCompile Include="web-server\ApiRequest.cpp" />
     <ClCompile Include="web-server\ApiRouter.cpp" />
+    <ClCompile Include="web-server\ApiSettingItem.cpp" />
     <ClCompile Include="web-server\ContextMenuManager.cpp" />
     <ClCompile Include="web-server\Extension.cpp" />
     <ClCompile Include="web-server\ExtensionManager.cpp" />

@@ -152,6 +152,16 @@ namespace webserver {
 			return ret;
 		}
 
+		template <typename JsonT>
+		static json getOptionalArrayField(const string& aFieldName, const JsonT& aJson) {
+			auto ret = getRawValue<JsonT>(aFieldName, aJson, false);
+			if (!ret.is_null() && !ret.is_array()) {
+				throwError(aFieldName, ERROR_INVALID, "Field must be an array");
+			}
+
+			return ret;
+		}
+
 		// Get value from the given JSON element
 		template <typename T, typename JsonT>
 		static T parseValue(const string& aFieldName, const JsonT& aJson, bool aAllowEmpty = true) {
