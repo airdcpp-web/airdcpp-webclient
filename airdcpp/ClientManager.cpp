@@ -987,9 +987,11 @@ void ClientManager::on(ClientListener::NmdcSearch, Client* aClient, const string
 				if(port.empty()) 
 					port = "412";
 
-				for(const auto& sr: l)
-					udp->writeTo(ip, port, sr->toSR(*aClient));
-
+				for (const auto& sr: l) {
+					auto data = sr->toSR(*aClient);
+					COMMAND_DEBUG(data, DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, ip + ":" + port);
+					udp->writeTo(ip, port, data);
+				}
 			} catch(...) {
 				dcdebug("Search caught error\n");
 			}
@@ -1014,7 +1016,9 @@ void ClientManager::on(ClientListener::NmdcSearch, Client* aClient, const string
 		
 		try {
 			AdcCommand cmd = SearchManager::getInstance()->toPSR(true, aClient->getMyNick(), aClient->getIpPort(), aTTH.toBase32(), partialInfo);
-			udp->writeTo(Socket::resolve(ip), port, cmd.toString(getMe()->getCID()));
+			auto data = cmd.toString(getMe()->getCID());
+			COMMAND_DEBUG(data, DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, ip + ":" + port);
+			udp->writeTo(Socket::resolve(ip), port, data);
 		} catch(...) {
 			dcdebug("Partial search caught error\n");		
 		}
