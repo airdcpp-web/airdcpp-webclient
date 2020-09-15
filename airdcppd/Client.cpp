@@ -49,8 +49,10 @@ void Client::run() {
 
 	if (!asDaemon) {
 		auto wsm = webserver::WebServerManager::getInstance();
-		printf(".\n%s running, press ctrl-c to exit...\n", shortVersionString.c_str());
+		printf(".\n\n%s running, press ctrl-c to exit...\n\n", shortVersionString.c_str());
 		printf("HTTP port: %d, HTTPS port: %d\n", WEBCFG(PLAIN_PORT).num(), WEBCFG(TLS_PORT).num());
+		printf("Config path: %s\n", Util::getPath(Util::PATH_USER_CONFIG).c_str());
+		printf("Web resources path: %s\n", wsm->getResourcePath().c_str());
 	}
 
 	shutdownSemaphore.wait();
