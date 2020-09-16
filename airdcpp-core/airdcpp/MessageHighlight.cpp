@@ -132,10 +132,12 @@ namespace dcpp {
 				if (magnet) {
 					return (*magnet).getDupeType();
 				}
-				break;
-			}
-		}
 
-		return DUPE_NONE;
+				return DUPE_NONE;
+			}
+			case TYPE_BOLD:
+			case TYPE_USER:
+			default: return DUPE_NONE;
+		}
 	}
 }
