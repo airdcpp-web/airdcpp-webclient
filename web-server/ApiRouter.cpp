@@ -123,7 +123,7 @@ namespace webserver {
 			}
 
 			// Require using the same protocol that was used for logging in
-			if ((aRequest.getSession()->getSessionType() == Session::TYPE_SECURE) != aIsSecure) {
+			if (aRequest.getSession()->getSessionType() != Session::TYPE_BASIC_AUTH && (aRequest.getSession()->getSessionType() == Session::TYPE_SECURE) != aIsSecure) {
 				aRequest.setResponseErrorStr("Protocol mismatch");
 				return websocketpp::http::status_code::not_acceptable;
 			}
