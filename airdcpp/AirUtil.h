@@ -123,6 +123,7 @@ public:
 	inline static bool isParentOrExactAdc(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, ADC_SEPARATOR); }
 	inline static bool isParentOrExactLocal(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, PATH_SEPARATOR); }
 	static bool isParentOrExact(const string& aDir, const string& aSub, const char separator) noexcept;
+	static bool isParentOrExactLower(const string& aParentLower, const string& aSubLower, const char aSeparator) noexcept;
 
 	static const string getReleaseRegLong(bool chat) noexcept;
 	static const string getReleaseRegBasic() noexcept;

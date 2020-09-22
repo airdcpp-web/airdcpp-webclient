@@ -328,7 +328,7 @@ bool ShareManager::RootDirectory::hasRootProfile(ProfileToken aProfile) const no
 }
 
 ShareManager::RootDirectory::RootDirectory(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, time_t aLastRefreshTime) noexcept :
-	path(aRootPath), cacheDirty(false), virtualName(make_unique<DualString>(aVname)), 
+	path(aRootPath), pathLower(Text::toLower(aRootPath)), virtualName(make_unique<DualString>(aVname)), 
 	incoming(aIncoming), rootProfiles(aProfiles), lastRefreshTime(aLastRefreshTime) {
 
 }
@@ -908,7 +908,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 		ShareManager::RefreshInfo(aPath, aOldRoot, 0, aBloom),
 		ThreadedCallBack(aOldRoot->getRoot()->getCacheXmlPath()),
 		curDirPath(aOldRoot->getRoot()->getPath()),
-		curDirPathLower(Text::toLower(aOldRoot->getRoot()->getPath()))
+		curDirPathLower(aOldRoot->getRoot()->getPathLower())
 	{ 
 		cur = newShareDirectory;
 	}
@@ -3067,7 +3067,7 @@ void ShareManager::validatePathHooked(const string& aRealPath, bool aSkipQueueCh
 }
 
 ShareManager::Directory::Ptr ShareManager::findDirectory(const string& aRealPath, StringList& remainingTokens_) const noexcept {
-	auto mi = find_if(rootPaths | map_keys, IsParentOrExact(aRealPath, PATH_SEPARATOR)).base();
+	auto mi = find_if(rootPaths | map_values, Directory::RootIsParentOrExact(aRealPath)).base();
 	if (mi == rootPaths.end()) {
 		return nullptr;
 	}

@@ -956,11 +956,24 @@ bool AirUtil::isParentOrExact(const string& aTestParent, const string& aSub, con
 	if (aSub.length() < aTestParent.length())
 		return false;
 
-	if (Util::stricmp(aSub.substr(0, aTestParent.length()), aTestParent) != 0)
+	if (Util::strnicmp(aSub, aTestParent, aTestParent.length()) != 0)
 		return false;
 
 	// either the parent must end with a separator or it must follow in the subdirectory
 	return aTestParent.empty() || aTestParent.length() == aSub.length() || aTestParent.back() == aSeparator || aSub[aTestParent.length()] == aSeparator;
+}
+
+
+bool AirUtil::isParentOrExactLower(const string& aParentLower, const string& aSubLower, const char aSeparator) noexcept {
+	if (aSubLower.length() < aParentLower.length())
+		return false;
+
+	if (strncmp(aSubLower.c_str(), aParentLower.c_str(), aParentLower.length()) != 0) {
+		return false;
+	}
+
+	// either the parent must end with a separator or it must follow in the subdirectory
+	return aParentLower.empty() || aParentLower.length() == aSubLower.length() || aParentLower.back() == aSeparator || aSubLower[aParentLower.length()] == aSeparator;
 }
 
 }
