@@ -42,7 +42,7 @@ namespace webserver {
 
 	}
 
-	void ApiRouter::handleSocketRequest(const string& aMessage, WebSocketPtr& aSocket, bool aIsSecure) noexcept {
+	void ApiRouter::handleSocketRequest(const string& aMessage, const WebSocketPtr& aSocket, bool aIsSecure) noexcept {
 
 		dcdebug("Received socket request: %s\n", aMessage.size() > 500 ? (aMessage.substr(0, 500) + "...").c_str() : aMessage.c_str());
 

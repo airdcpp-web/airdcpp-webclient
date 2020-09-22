@@ -129,17 +129,13 @@ namespace webserver {
 			const auto& reqJson = aRequest.getRequestBody();
 			auto message = Deserializer::deserializeChatMessage(reqJson);
 
-			const auto complete = aRequest.defer();
-			module->addAsyncTask([=] {
-				string error;
-				if (!chatF()->sendMessageHooked(OutgoingChatMessage(message.first, aRequest.getSession().get(), message.second), error) && !error.empty()) {
-					complete(websocketpp::http::status_code::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error));
-				} else {
-					complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
-				}
-			});
+			string error;
+			if (!chatF()->sendMessageHooked(OutgoingChatMessage(message.first, aRequest.getSession().get(), message.second), error) && !error.empty()) {
+				aRequest.setResponseErrorStr(error);
+				return websocketpp::http::status_code::internal_server_error;
+			}
 
-			return websocketpp::http::status_code::see_other;
+			return websocketpp::http::status_code::no_content;
 		}
 
 		api_return handlePostStatusMessage(ApiRequest& aRequest) {

@@ -24,6 +24,8 @@
 namespace webserver {
 	class JsonUtil {
 	public:
+		static const json emptyJson;
+
 		enum ErrorType {
 			ERROR_MISSING,
 			ERROR_INVALID,
@@ -122,13 +124,13 @@ namespace webserver {
 
 		// Returns raw JSON value and throws if the field is missing
 		template <typename JsonT>
-		static json getRawField(const string& aFieldName, const JsonT& aJson) {
+		static const json& getRawField(const string& aFieldName, const JsonT& aJson) {
 			return getRawValue<JsonT>(aFieldName, aJson, true);
 		}
 
 		// Returns raw JSON value and returns null JSON if the field is missing
 		template <typename JsonT>
-		static json getOptionalRawField(const string& aFieldName, const JsonT& aJson, bool aThrowIfMissing = false) {
+		static const json& getOptionalRawField(const string& aFieldName, const JsonT& aJson, bool aThrowIfMissing = false) {
 			return getRawValue<JsonT>(aFieldName, aJson, aThrowIfMissing);
 		}
 
@@ -139,8 +141,8 @@ namespace webserver {
 		}
 
 		template <typename JsonT>
-		static json getArrayField(const string& aFieldName, const JsonT& aJson, bool aAllowEmpty) {
-			auto ret = getRawValue<JsonT>(aFieldName, aJson, true);
+		static const json& getArrayField(const string& aFieldName, const JsonT& aJson, bool aAllowEmpty) {
+			const auto& ret = getRawValue<JsonT>(aFieldName, aJson, true);
 			if (!ret.is_array()) {
 				throwError(aFieldName, ERROR_INVALID, "Field must be an array");
 			}
@@ -153,8 +155,8 @@ namespace webserver {
 		}
 
 		template <typename JsonT>
-		static json getOptionalArrayField(const string& aFieldName, const JsonT& aJson) {
-			auto ret = getRawValue<JsonT>(aFieldName, aJson, false);
+		static const json& getOptionalArrayField(const string& aFieldName, const JsonT& aJson) {
+			const auto& ret = getRawValue<JsonT>(aFieldName, aJson, false);
 			if (!ret.is_null() && !ret.is_array()) {
 				throwError(aFieldName, ERROR_INVALID, "Field must be an array");
 			}
@@ -231,10 +233,10 @@ namespace webserver {
 	private:
 		// Returns raw JSON value and optionally throws
 		template <typename JsonT>
-		static json getRawValue(const string& aFieldName, const JsonT& aJson, bool aThrowIfMissing) {
+		static const json& getRawValue(const string& aFieldName, const JsonT& aJson, bool aThrowIfMissing) {
 			if (aJson.is_null()) {
 				if (!aThrowIfMissing) {
-					return json();
+					return emptyJson;
 				}
 
 				throwError(aFieldName, ERROR_MISSING, "JSON null");
@@ -243,7 +245,7 @@ namespace webserver {
 			auto p = aJson.find(aFieldName);
 			if (p == aJson.end()) {
 				if (!aThrowIfMissing) {
-					return json();
+					return emptyJson;
 				}
 
 				throwError(aFieldName, ERROR_MISSING, "Field missing");

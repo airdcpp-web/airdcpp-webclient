@@ -121,7 +121,8 @@ namespace webserver {
 		SettingsManager::getInstance()->save();
 		server->setDirty();
 
-		server->addAsyncTask([=] {
+		// This may take a while, don't wait
+		addAsyncTask([=] {
 			holder->apply();
 		});
 

@@ -99,19 +99,12 @@ namespace webserver {
 		api_return handleListItems(ApiRequest& aRequest, const ListHandlerFunc<IdT>& aHandler, const Deserializer::ArrayDeserializerFunc<IdT>& aIdDeserializerFunc) {
 			const auto selectedIds = deserializeItemIds<IdT>(aRequest, aIdDeserializerFunc);
 			const auto supports = JsonUtil::getOptionalFieldDefault<StringList>("supports", aRequest.getRequestBody(), StringList());
-			const auto complete = aRequest.defer();
-
 			const auto accessList = aRequest.getSession()->getUser()->getPermissions();
-			addAsyncTask([=] {
-				const auto items = aHandler(selectedIds, accessList, supports);
-				complete(
-					websocketpp::http::status_code::ok,
-					Serializer::serializeList(items, MenuApi::serializeMenuItem),
-					nullptr
-				);
-			});
 
-			return websocketpp::http::status_code::see_other;
+			const auto items = aHandler(selectedIds, accessList, supports);
+			aRequest.setResponseBody(Serializer::serializeList(items, MenuApi::serializeMenuItem));
+
+			return websocketpp::http::status_code::ok;
 		}
 
 		template<typename IdT>

@@ -294,10 +294,7 @@ namespace webserver {
 	}
 
 	void WebServerManager::onData(const string& aData, TransportType aType, Direction aDirection, const string& aIP) noexcept {
-		// Avoid possible deadlocks due to possible simultaneous disconnected/server state listener events
-		addAsyncTask([=] {
-			fire(WebServerManagerListener::Data(), aData, aType, aDirection, aIP);
-		});
+		fire(WebServerManagerListener::Data(), aData, aType, aDirection, aIP);
 	}
 
 	// For debugging only

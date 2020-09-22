@@ -21,6 +21,9 @@
 #include <web-server/JsonUtil.h>
 
 namespace webserver {
+
+	const json JsonUtil::emptyJson;
+
 	string JsonUtil::errorTypeToString(ErrorType aType) noexcept {
 		switch (aType) {
 			case ERROR_MISSING: return "missing_field";
