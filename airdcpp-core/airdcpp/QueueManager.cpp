@@ -1871,6 +1871,28 @@ void QueueManager::setSegments(const string& aTarget, uint8_t aSegments) noexcep
 	}
 }
 
+void QueueManager::addDoneSegment(const QueueItemPtr& aQI, const Segment& aSegment) noexcept {
+	{
+		WLock l(cs);
+		aQI->addFinishedSegment(aSegment);
+	}
+
+	fire(QueueManagerListener::ItemStatus(), aQI);
+	
+	// TODO: add bundle listener
+}
+
+void QueueManager::resetDownloadedSegments(const QueueItemPtr& aQI) noexcept {
+	{
+		WLock l(cs);
+		aQI->resetDownloaded();
+	}
+
+	fire(QueueManagerListener::ItemStatus(), aQI);
+
+	// TODO: add bundle listener
+}
+
 void QueueManager::matchTTHList(const string& aName, const HintedUser& aUser, int aFlags) noexcept {
 	if (!(aFlags & QueueItem::FLAG_MATCH_QUEUE)) {
 		return;

@@ -162,6 +162,12 @@ public:
 	// Set the maximum number of segments for the specified target
 	void setSegments(const string& aTarget, uint8_t aSegments) noexcept;
 
+	void getChunksVisualisation(const QueueItemPtr& qi, vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const noexcept { RLock l(cs); qi->getChunksVisualisation(running, downloaded, done); }
+
+	void addDoneSegment(const QueueItemPtr& aQI, const Segment& aSegment) noexcept;
+	void resetDownloadedSegments(const QueueItemPtr& aQI) noexcept;
+
+
 	bool isWaiting(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->isWaiting(); }
 
 	uint64_t getDownloadedBytes(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->getDownloadedBytes(); }
@@ -173,9 +179,6 @@ public:
 
 	Bundle::SourceList getBundleSources(const BundlePtr& b) const noexcept { RLock l(cs); return b->getSources(); }
 	Bundle::SourceList getBadBundleSources(const BundlePtr& b) const noexcept { RLock l(cs); return b->getBadSources(); }
-
-	void getChunksVisualisation(const QueueItemPtr& qi, vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const noexcept { RLock l(cs); qi->getChunksVisualisation(running, downloaded, done); }
-
 
 	// Get information about the next valid file in the queue
 	// Used for displaying initial information for a transfer before the connection has been established and the real download is created

@@ -363,6 +363,10 @@ private:
 				return path;
 			}
 
+			inline const string& getPathLower() const noexcept {
+				return pathLower;
+			}
+
 			void setName(const string& aName) noexcept;
 			string getCacheXmlPath() const noexcept;
 		private:
@@ -370,6 +374,7 @@ private:
 
 			unique_ptr<DualString> virtualName;
 			const string path;
+			const string pathLower;
 	};
 
 	typedef vector<RootDirectory::Ptr> RootDirectoryList;
@@ -538,6 +543,21 @@ private:
 		Directory::Ptr findDirectoryByPath(const string& aPath, char separator) const noexcept;
 
 		Directory::Ptr findDirectoryByName(const string& aName) const noexcept;
+
+
+		class RootIsParentOrExact {
+		public:
+			// Returns true for items matching the predicate that are parent directories of compareTo (or exact matches)
+			RootIsParentOrExact(const string& aCompareTo) : compareToLower(Text::toLower(aCompareTo)), separator(PATH_SEPARATOR) {}
+			bool operator()(const Directory::Ptr& aDirectory) const noexcept { 
+				return AirUtil::isParentOrExactLower(aDirectory->getRoot()->getPathLower(), compareToLower, separator);
+			}
+
+			RootIsParentOrExact& operator=(const RootIsParentOrExact&) = delete;
+		private:
+			const string compareToLower;
+			const char separator;
+		};
 	private:
 		void cleanIndices(int64_t& sharedSize_, File::TTHMap& tthIndex_, Directory::MultiMap& dirNames_) noexcept;
 
