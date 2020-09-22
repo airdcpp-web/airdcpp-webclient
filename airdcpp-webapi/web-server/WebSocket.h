@@ -51,7 +51,10 @@ namespace webserver {
 		WebSocket(WebSocket&) = delete;
 		WebSocket& operator=(WebSocket&) = delete;
 
-		string getIp() const noexcept;
+		const string& getIp() const noexcept {
+			return ip;
+		}
+
 		void ping() noexcept;
 
 		void logError(const string& aMessage, websocketpp::log::level aErrorLevel) const noexcept;
@@ -80,6 +83,7 @@ namespace webserver {
 		const bool secure;
 		const time_t timeCreated;
 		string url;
+		string ip;
 	};
 }
 

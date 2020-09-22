@@ -45,7 +45,7 @@ namespace webserver {
 		typedef std::map<std::string, std::string> NamedParamMap;
 
 		// Throws on errors
-		ApiRequest(const std::string& aUrl, const std::string& aMethod, const json& aBody, const SessionPtr& aSession, const ApiDeferredHandler& aDeferredHandler, json& output_, json& error_);
+		ApiRequest(const std::string& aUrl, const std::string& aMethod, json&& aBody, const SessionPtr& aSession, const ApiDeferredHandler& aDeferredHandler, json& output_, json& error_);
 
 		int getApiVersion() const noexcept {
 			return apiVersion;

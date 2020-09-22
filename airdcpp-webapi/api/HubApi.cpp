@@ -109,27 +109,20 @@ namespace webserver {
 		auto message = Deserializer::deserializeChatMessage(reqJson);
 		auto hubs = Deserializer::deserializeHubUrls(reqJson);
 
-		const auto complete = aRequest.defer();
-		addAsyncTask([=] {
-			int succeed = 0;
-			string lastError;
-			for (const auto& url: hubs) {
-				auto c = ClientManager::getInstance()->getClient(url);
-				if (c && c->isConnected() && c->sendMessageHooked(OutgoingChatMessage(message.first, aRequest.getSession().get(), message.second), lastError)) {
-					succeed++;
-				}
+		int succeed = 0;
+		string lastError;
+		for (const auto& url: hubs) {
+			auto c = ClientManager::getInstance()->getClient(url);
+			if (c && c->isConnected() && c->sendMessageHooked(OutgoingChatMessage(message.first, aRequest.getSession().get(), message.second), lastError)) {
+				succeed++;
 			}
+		}
 
-			complete(
-				websocketpp::http::status_code::ok, 
-				{
-					{ "sent", succeed },
-				}, 
-				nullptr
-			);
+		aRequest.setResponseBody({
+			{ "sent", succeed },
 		});
 
-		return websocketpp::http::status_code::see_other;
+		return websocketpp::http::status_code::ok;
 	}
 
 	api_return HubApi::handlePostStatus(ApiRequest& aRequest) {

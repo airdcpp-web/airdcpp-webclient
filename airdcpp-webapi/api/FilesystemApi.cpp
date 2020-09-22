@@ -59,9 +59,18 @@ namespace webserver {
 			retJson = Filesystem::getDriveListing(false);
 #endif
 		} else {
-			if (!Util::fileExists(path)) {
-				aRequest.setResponseErrorStr("The path doesn't exist on disk");
-				return websocketpp::http::status_code::bad_request;
+			{
+				// Validate path
+				FileFindIter i(path);
+				if (i != FileFindIter()) {
+					if (!i->isDirectory()) {
+						aRequest.setResponseErrorStr("Path is not a directory");
+						return websocketpp::http::status_code::bad_request;
+					}
+				} else {
+					aRequest.setResponseErrorStr("The path doesn't exist on disk");
+					return websocketpp::http::status_code::bad_request;
+				}
 			}
 
 			try {

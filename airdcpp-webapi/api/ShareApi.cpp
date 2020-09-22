@@ -397,22 +397,17 @@ namespace webserver {
 		auto path = JsonUtil::getField<string>("path", reqJson);
 		auto skipCheckQueue = JsonUtil::getOptionalFieldDefault<bool>("skip_check_queue", reqJson, false);
 
-		const auto complete = aRequest.defer();
-		addAsyncTask([=] {
-			try {
-				ShareManager::getInstance()->validatePathHooked(path, skipCheckQueue);
-			} catch (const QueueException& e) {
-				complete(websocketpp::http::status_code::conflict, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
-				return;
-			} catch (const Exception& e) {
-				complete(websocketpp::http::status_code::forbidden, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
-				return;
-			}
+		try {
+			ShareManager::getInstance()->validatePathHooked(path, skipCheckQueue);
+		} catch (const QueueException& e) {
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::conflict;
+		} catch (const Exception& e) {
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::forbidden;
+		}
 
-			complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
-		});
-
-		return websocketpp::http::status_code::see_other;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return ShareApi::handleFindDupePaths(ApiRequest& aRequest) {

@@ -107,7 +107,8 @@ namespace webserver {
 		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_DELETE,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("sources"), CID_PARAM),	QueueApi::handleRemoveFileSource);
 
 		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("segments")),														QueueApi::handleGetFileSegments);
-		//METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("segments"), NUM_PARAM(SEGMENT_START), NUM_PARAM(SEGMENT_SIZE)),	QueueApi::handleAddFileSegment);
+		// METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("segments"), NUM_PARAM(SEGMENT_START), NUM_PARAM(SEGMENT_SIZE)),	QueueApi::handleAddFileSegment);
+		// METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_DELETE,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("segments")),														QueueApi::handleResetFileSegments);
 
 		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_DELETE,	(EXACT_PARAM("sources"), CID_PARAM),									QueueApi::handleRemoveSource);
 		METHOD_HANDLER(Access::ANY,			METHOD_POST,	(EXACT_PARAM("find_dupe_paths")),										QueueApi::handleFindDupePaths);
@@ -422,16 +423,15 @@ namespace webserver {
 		auto qi = getFile(aRequest, true);
 		auto segment = parseSegment(qi, aRequest);
 
-		// TODO
+		QueueManager::getInstance()->addDoneSegment(qi, segment);
 
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return QueueApi::handleRemoveFileSegment(ApiRequest& aRequest) {
+	api_return QueueApi::handleResetFileSegments(ApiRequest& aRequest) {
 		auto qi = getFile(aRequest, true);
-		auto segment = parseSegment(qi, aRequest);
 
-		// TODO
+		QueueManager::getInstance()->resetDownloadedSegments(qi);
 
 		return websocketpp::http::status_code::ok;
 	}
