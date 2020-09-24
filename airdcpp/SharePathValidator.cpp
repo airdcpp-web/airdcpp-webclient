@@ -31,6 +31,11 @@
 
 namespace dcpp {
 
+
+bool ShareValidatorException::isReportableError(ShareValidatorErrorType aType) noexcept {
+	return aType == TYPE_CONFIG_ADJUSTABLE || aType == TYPE_HOOK;
+}
+
 SharePathValidator::SharePathValidator() {
 #ifdef _WIN32
 	// don't share Windows directory
@@ -60,37 +65,37 @@ StringSet forbiddenExtension = {
 };
 
 void SharePathValidator::checkSharedName(const string& aPath, bool aIsDir, int64_t aFileSize /*0*/) const {
-	const auto fileName = aIsDir ? Util::getLastDir(aPath) : Util::getFileName(aPath);
+	const auto name = aIsDir ? Util::getLastDir(aPath) : Util::getFileName(aPath);
 
-	if (matchSkipList(aIsDir ? Util::getLastDir(aPath) : fileName)) {
-		throw ShareException(STRING(SKIPLIST_SHARE_MATCH));
+	if (matchSkipList(name)) {
+		throw ShareValidatorException(STRING(SKIPLIST_SHARE_MATCH), ShareValidatorErrorType::TYPE_CONFIG_ADJUSTABLE);
 	}
 
 	if (!aIsDir) {
-		if (strcmp(fileName.c_str(), "DCPlusPlus.xml") == 0 ||
-			strcmp(fileName.c_str(), "Favorites.xml") == 0 ||
+		if (strcmp(name.c_str(), "DCPlusPlus.xml") == 0 ||
+			strcmp(name.c_str(), "Favorites.xml") == 0 ||
 			strcmp(aPath.c_str(), SETTING(TLS_PRIVATE_KEY_FILE).c_str()) == 0
 		) {
-			throw ShareException(STRING(DONT_SHARE_APP_DIRECTORY));
+			throw ShareValidatorException(STRING(DONT_SHARE_APP_DIRECTORY), ShareValidatorErrorType::TYPE_FORBIDDEN_GENERIC);
 		}
 
 		// Check for forbidden file extensions
-		if (SETTING(REMOVE_FORBIDDEN) && forbiddenExtension.find(Text::toLower(Util::getFileExt(fileName))) != forbiddenExtension.end()) {
-			throw ShareException(STRING(FORBIDDEN_FILE_EXT));
+		if (SETTING(REMOVE_FORBIDDEN) && forbiddenExtension.find(Text::toLower(Util::getFileExt(name))) != forbiddenExtension.end()) {
+			throw ShareValidatorException(STRING(FORBIDDEN_FILE_EXT), ShareValidatorErrorType::TYPE_CONFIG_BOOLEAN);
 		}
 
 		if (SETTING(NO_ZERO_BYTE) && aFileSize == 0) {
-			throw ShareException(STRING(ZERO_BYTE_SHARE));
+			throw ShareValidatorException(STRING(ZERO_BYTE_SHARE), ShareValidatorErrorType::TYPE_CONFIG_BOOLEAN);
 		}
 
 		if (SETTING(MAX_FILE_SIZE_SHARED) != 0 && aFileSize > Util::convertSize(SETTING(MAX_FILE_SIZE_SHARED), Util::MB)) {
-			throw ShareException(STRING(BIG_FILE_NOT_SHARED));
+			throw ShareValidatorException(STRING(BIG_FILE_NOT_SHARED), ShareValidatorErrorType::TYPE_CONFIG_ADJUSTABLE);
 		}
 	} else {
 #ifdef _WIN32
 		// don't share Windows directory
 		if (strncmp(aPath.c_str(), winDir.c_str(), winDir.length()) == 0) {
-			throw ShareException(STRING(DONT_SHARE_APP_DIRECTORY));
+			throw ShareValidatorException(STRING(DONT_SHARE_APP_DIRECTORY), ShareValidatorErrorType::TYPE_FORBIDDEN_GENERIC);
 		}
 #endif
 	}
@@ -186,16 +191,16 @@ void SharePathValidator::saveExcludes(SimpleXML& aXml) const noexcept {
 	aXml.stepOut();
 }
 
-void SharePathValidator::validateHooked(FileFindIter& aIter, const string& aPath, bool aSkipQueueCheck) const {
-	if (!SETTING(SHARE_HIDDEN) && aIter->isHidden()) {
-		throw FileException("File is hidden");
+void SharePathValidator::validateHooked(const FileItem& aFileItem, const string& aPath, bool aSkipQueueCheck) const {
+	if (!SETTING(SHARE_HIDDEN) && aFileItem.isHidden()) {
+		throw ShareValidatorException("File is hidden", ShareValidatorErrorType::TYPE_CONFIG_BOOLEAN);
 	}
 
-	if (!SETTING(SHARE_FOLLOW_SYMLINKS) && aIter->isLink()) {
-		throw FileException("File is a symbolic link");
+	if (!SETTING(SHARE_FOLLOW_SYMLINKS) && aFileItem.isLink()) {
+		throw ShareValidatorException("File is a symbolic link", ShareValidatorErrorType::TYPE_CONFIG_BOOLEAN);
 	}
 
-	if (aIter->isDirectory()) {
+	if (aFileItem.isDirectory()) {
 		checkSharedName(aPath, true);
 
 		if (!aSkipQueueCheck) {
@@ -206,20 +211,20 @@ void SharePathValidator::validateHooked(FileFindIter& aIter, const string& aPath
 		}
 
 		if (isExcluded(aPath)) {
-			throw ShareException("Directory is excluded from share");
+			throw ShareValidatorException("Directory is excluded from share", ShareValidatorErrorType::TYPE_EXCLUDED);
 		}
 
 		auto error = directoryValidationHook.runHooksError(aPath);
 		if (error) {
-			throw ShareException(ActionHookRejection::formatError(error));
+			throw ShareValidatorException(ActionHookRejection::formatError(error), ShareValidatorErrorType::TYPE_HOOK);
 		}
 	} else {
-		auto size = aIter->getSize();
+		auto size = aFileItem.getSize();
 		checkSharedName(aPath, false, size);
 
 		auto error = fileValidationHook.runHooksError(aPath, size);
 		if (error) {
-			throw ShareException(ActionHookRejection::formatError(error));
+			throw ShareValidatorException(ActionHookRejection::formatError(error), ShareValidatorErrorType::TYPE_HOOK);
 		}
 	}
 }
@@ -229,6 +234,7 @@ void SharePathValidator::validateRootPath(const string& aRealPath) const {
 		throw ShareException(STRING(NO_DIRECTORY_SPECIFIED));
 	}
 
+	// No point to share a directory if all files in it would get blocked as they are hidden
 	if (!SETTING(SHARE_HIDDEN) && File::isHidden(aRealPath)) {
 		throw ShareException(STRING(DIRECTORY_IS_HIDDEN));
 	}
@@ -266,12 +272,8 @@ void SharePathValidator::validateDirectoryPathTokensHooked(const string& aBasePa
 
 
 void SharePathValidator::validatePathHooked(const string& aPath, bool aSkipQueueCheck) const {
-	FileFindIter i(aPath);
-	if (i != FileFindIter()) {
-		validateHooked(i, aPath, aSkipQueueCheck);
-	} else {
-		throw FileException(STRING(FILE_NOT_FOUND));
-	}
+	File f(aPath, File::READ, File::OPEN, File::BUFFER_NONE);
+	validateHooked(f, aPath, aSkipQueueCheck);
 }
 
 }

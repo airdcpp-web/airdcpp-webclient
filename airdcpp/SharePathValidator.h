@@ -28,6 +28,33 @@
 
 namespace dcpp {
 
+
+// STANDARD_EXCEPTION(ShareValidatorException);
+
+enum ShareValidatorErrorType {
+	TYPE_FORBIDDEN_GENERIC,
+	TYPE_CONFIG_BOOLEAN,
+	TYPE_CONFIG_ADJUSTABLE,
+	// TYPE_QUEUE,
+	TYPE_EXCLUDED,
+	TYPE_HOOK,
+};
+
+class ShareValidatorException: public Exception {
+public:
+	ShareValidatorException(const string& aMessage, ShareValidatorErrorType aType) : Exception(aMessage), type(aType) {
+
+	}
+
+	ShareValidatorErrorType getType() const noexcept {
+		return type;
+	}
+
+	static bool isReportableError(ShareValidatorErrorType aType) noexcept;
+private:
+	const ShareValidatorErrorType type;
+};
+
 class SharePathValidator {
 public:
 	ActionHook<nullptr_t, const string&, int64_t> fileValidationHook;
@@ -52,8 +79,6 @@ public:
 	// Check if a directory/file name matches skiplist
 	bool matchSkipList(const string& aName) const noexcept;
 
-	void validateHooked(FileFindIter& aIter, const string& aPath, bool aSkipQueueCheck) const;
-
 	void saveExcludes(SimpleXML& xml) const noexcept;
 	void loadExcludes(SimpleXML& xml) noexcept;
 
@@ -62,15 +87,21 @@ public:
 	void validateRootPath(const string& aRealPath) const;
 
 	// Check the list of directory path tokens relative to the base path
-	// Throws in case of errors
+	// Throws ShareValidatorException/QueueException in case of errors
 	void validateDirectoryPathTokensHooked(const string& aBasePath, const StringList& aTokens, bool aSkipQueueCheck) const;
 
 	// Check a single directory/file path
-	// Throws in case of errors
+	// Throws ShareValidatorException/QueueException in case of validation errors
+	// FileException is thrown if the path doesn't exist
 	void validatePathHooked(const string& aPath, bool aSkipQueueCheck) const;
+
+	// Check a single directory/file item
+	// Throws ShareValidatorException/QueueException in case of errors
+	void validateHooked(const FileItem& aFileItem, const string& aPath, bool aSkipQueueCheck) const;
 private:
 	// Comprehensive check for a directory/file whether it is valid to be added in share
 	// Use validateRootPath for new root directories instead
+	// Throws ShareValidatorException in case of errors
 	void checkSharedName(const string& aPath, bool aIsDirectory, int64_t aSize = 0) const;
 
 	bool isExcluded(const string& aPath) const noexcept;
