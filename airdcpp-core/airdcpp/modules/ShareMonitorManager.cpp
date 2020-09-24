@@ -24,6 +24,7 @@
 #include <airdcpp/File.h>
 #include <airdcpp/LogManager.h>
 #include <airdcpp/ShareManager.h>
+#include <airdcpp/SharePathValidator.h>
 
 namespace dcpp {
 	ShareMonitorManager::ShareMonitorManager() : monitor(1, false) {
@@ -242,8 +243,13 @@ namespace dcpp {
 
 			try {
 				ShareManager::getInstance()->validatePathHooked(path, false);
-			} catch (const ShareException& e) {
-				reportFile(e.getError());
+			} catch (const ShareValidatorException& e) {
+				if (SETTING(REPORT_BLOCKED_SHARE) && ShareValidatorException::isReportableError(e.getType())) {
+					reportFile(e.getError());
+				} else if (monitorDebug) {
+					LogManager::getInstance()->message("Modification for path " + aPath + " ignored: " + e.getError(), LogMessage::SEV_INFO);
+				}
+
 				return nullopt;
 			} catch (...) {
 				return nullopt;

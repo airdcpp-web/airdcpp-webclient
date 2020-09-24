@@ -1477,9 +1477,9 @@ void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aP
 		auto curPathLower = aPathLower + dualName.getLower() + (isDirectory ? PATH_SEPARATOR_STR : Util::emptyString);
 
 		try {
-			sm.validator->validateHooked(i, curPath, false);
-		} catch (const ShareException& e) {
-			if (SETTING(REPORT_BLOCKED_SHARE)) {
+			sm.validator->validateHooked(*i, curPath, false);
+		} catch (const ShareValidatorException& e) {
+			if (SETTING(REPORT_BLOCKED_SHARE) && ShareValidatorException::isReportableError(e.getType())) {
 				if (isDirectory) {
 					LogManager::getInstance()->message(STRING_F(SHARE_DIRECTORY_BLOCKED, curPath % e.getError()), LogMessage::SEV_INFO);
 				} else {
