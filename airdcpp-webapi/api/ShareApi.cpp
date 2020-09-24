@@ -400,11 +400,21 @@ namespace webserver {
 		try {
 			ShareManager::getInstance()->validatePathHooked(path, skipCheckQueue);
 		} catch (const QueueException& e) {
+			// Queued bundle
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::conflict;
-		} catch (const Exception& e) {
+		} catch (const ShareValidatorException& e) {
+			// Validation error
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::forbidden;
+		} catch (const ShareException& e) {
+			// Path not inside a shared directory
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::expectation_failed;
+		} catch (const FileException& e) {
+			// File doesn't exist
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::not_found;
 		}
 
 		return websocketpp::http::status_code::no_content;
