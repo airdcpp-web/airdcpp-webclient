@@ -59,20 +59,19 @@ namespace webserver {
 			retJson = Filesystem::getDriveListing(false);
 #endif
 		} else {
-			{
-				// Validate path
-				FileFindIter i(path);
-				if (i != FileFindIter()) {
-					if (!i->isDirectory()) {
-						aRequest.setResponseErrorStr("Path is not a directory");
-						return websocketpp::http::status_code::bad_request;
-					}
-				} else {
-					aRequest.setResponseErrorStr("The path doesn't exist on disk");
+			// Validate path
+			try {
+				File f(path, File::READ, File::OPEN, File::BUFFER_NONE);
+				if (!f.isDirectory()) {
+					aRequest.setResponseErrorStr("Path is not a directory");
 					return websocketpp::http::status_code::bad_request;
 				}
+			} catch (const FileException& e) {
+				aRequest.setResponseErrorStr(e.getError());
+				return websocketpp::http::status_code::bad_request;
 			}
 
+			// Return listing
 			try {
 				retJson = serializeDirectoryContent(path, dirsOnly);
 			} catch (const FileException& e) {
