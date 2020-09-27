@@ -525,8 +525,8 @@ private:
 	StringMatch skipList;
 
 	// TimerManagerListener
-	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
-	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
 
 	// Request information about finished segments from all partial sources
 	void requestPartialSourceInfo(uint64_t aTick) noexcept;
@@ -542,15 +542,16 @@ private:
 	void calculatePriorities(uint64_t aTick) noexcept;
 	
 	// SearchManagerListener
-	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
+	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept override;
 
 	// ClientManagerListener
-	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;
-	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
+	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept override;
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept override;
 
 	// ShareManagerListener
-	void on(ShareManagerListener::RefreshCompleted, uint8_t, const RefreshPathList& aPaths) noexcept;
-	void on(ShareLoaded) noexcept;
+	void on(ShareManagerListener::RefreshCompleted, uint8_t, const RefreshPathList& aPaths, int64_t aTotalHash) noexcept override;
+	void on(ShareLoaded) noexcept override;
+
 	void onPathRefreshed(const string& aPath, bool startup) noexcept;
 
 	DelayedEvents<QueueToken> delayEvents;

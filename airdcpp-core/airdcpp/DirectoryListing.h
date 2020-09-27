@@ -305,16 +305,16 @@ private:
 	atomic_flag running;
 
 	// ClientManagerListener
-	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;
-	void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
-	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
+	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept override;
+	void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept override;
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept override;
 
 	void onUserUpdated(const UserPtr& aUser) noexcept;
 
-	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
 
 	// ShareManagerListener
-	void on(ShareManagerListener::RefreshCompleted, uint8_t, const RefreshPathList& aPaths) noexcept;
+	void on(ShareManagerListener::RefreshCompleted, uint8_t, const RefreshPathList& aPaths, int64_t aTotalHash) noexcept override;
 
 	void endSearch(bool timedOut = false) noexcept;
 

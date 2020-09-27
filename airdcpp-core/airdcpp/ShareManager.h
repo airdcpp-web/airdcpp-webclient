@@ -144,8 +144,8 @@ public:
 	void startup(function<void(const string&)> stepF, function<void(float)> progressF) noexcept;
 	void shutdown(function<void(float)> progressF) noexcept;
 
-	// Should only be called on shutdown for now
-	void abortRefresh() noexcept;
+	// Abort filelist refresh
+	bool abortRefresh() noexcept;
 
 	void nmdcSearch(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept;
 

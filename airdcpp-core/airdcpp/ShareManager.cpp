@@ -116,9 +116,13 @@ void ShareManager::startup(function<void(const string&)> splashF, function<void(
 	});
 }
 
-void ShareManager::abortRefresh() noexcept {
-	//abort buildtree and refresh, we are shutting down.
+bool ShareManager::abortRefresh() noexcept {
+	if (tasks.empty()) {
+		return false;
+	}
+
 	stopping = true;
+	return true;
 }
 
 void ShareManager::shutdown(function<void(float)> progressF) noexcept {
@@ -1455,7 +1459,7 @@ bool ShareManager::ShareBuilder::buildTree() noexcept {
 		return false;
 	}
 
-	return true;
+	return !sm.stopping;
 }
 
 void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aParent, const Directory::Ptr& aOldParent) {
@@ -2070,8 +2074,11 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 
 	for (;;) {
 		TaskQueue::TaskPair t;
-		if (!tasks.getFront(t))
+		if (!tasks.getFront(t)) {
+			stopping = false;
 			break;
+		}
+
 		ScopedFunctor([this] { tasks.pop_front(); });
 
 		if (t.first == ASYNC) {
@@ -2124,6 +2131,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 
 		int64_t totalHash = 0;
 		ProfileTokenSet dirtyProfiles;
+		bool allBuildersSucceed = true;
 
 		auto doRefresh = [&](const ShareBuilderPtr& i) {
 			auto& ri = *i.get();
@@ -2133,14 +2141,12 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 			// Build the tree
 			auto succeed = ri.buildTree();
 
-			// Don't save cache with an incomplete tree
-			if (stopping)
-				return;
-
 			// Apply the changes
 			if (succeed) {
 				WLock l(cs);
 				applyRefreshChanges(ri, totalHash, &dirtyProfiles);
+			} else {
+				allBuildersSucceed = false;
 			}
 
 			// Finish up
@@ -2162,20 +2168,19 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 			continue;
 		}
 
-		if (stopping)
-			break;
+		if (allBuildersSucceed) {
+			if (t.first == REFRESH_ALL) {
+				// Reset the bloom so that removed files are nulled (which won't happen with partial refreshes)
 
-		if(t.first == REFRESH_ALL) {
-			// Reset the bloom so that removed files are nulled (which won't happen with partial refreshes)
+				WLock l(cs);
+				bloom.reset(refreshBloom);
+			}
 
-			WLock l(cs);
-			bloom.reset(refreshBloom);
+			setProfilesDirty(dirtyProfiles, task->type == TYPE_MANUAL || t.first == REFRESH_ALL || t.first == ADD_BUNDLE);
 		}
 
-		setProfilesDirty(dirtyProfiles, task->type == TYPE_MANUAL || t.first == REFRESH_ALL || t.first == ADD_BUNDLE);
 		reportTaskStatus(t.first, dirs, true, totalHash, task->displayName, task->type);
-
-		fire(ShareManagerListener::RefreshCompleted(), t.first, dirs);
+		fire(ShareManagerListener::RefreshCompleted(), t.first, dirs, totalHash);
 	}
 
 #ifdef _DEBUG
