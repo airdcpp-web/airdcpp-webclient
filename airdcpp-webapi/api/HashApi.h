@@ -33,6 +33,8 @@ namespace webserver {
 		json previousStats;
 		void onTimer() noexcept;
 
+		json getHashStatistics() noexcept;
+
 		static json formatDbStatus(bool aMaintenanceRunning) noexcept;
 		void updateDbStatus(bool aMaintenanceRunning) noexcept;
 
@@ -42,6 +44,7 @@ namespace webserver {
 
 		api_return handleOptimize(ApiRequest& aRequest);
 		api_return handleGetDbStatus(ApiRequest& aRequest);
+		api_return handleGetStats(ApiRequest& aRequest);
 
 		void on(HashManagerListener::DirectoryHashed, const string& aPath, int aFilesHashed, int64_t aSizeHashed, time_t aHashDuration, int aHasherId) noexcept override;
 		void on(HashManagerListener::HasherFinished, int aDirshashed, int aFilesHashed, int64_t aSizeHashed, time_t aHashDuration, int aHasherId) noexcept override;

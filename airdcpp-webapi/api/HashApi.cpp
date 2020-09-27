@@ -44,6 +44,8 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,	(EXACT_PARAM("database_status")),	HashApi::handleGetDbStatus);
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("optimize_database")),	HashApi::handleOptimize);
 
+		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,	(EXACT_PARAM("stats")),				HashApi::handleGetStats);
+
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("pause")),				HashApi::handlePause);
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("resume")),			HashApi::handleResume);
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("stop")),				HashApi::handleStop);
@@ -72,29 +74,39 @@ namespace webserver {
 		return websocketpp::http::status_code::no_content;
 	}
 
+	api_return HashApi::handleGetStats(ApiRequest& aRequest) {
+		aRequest.setResponseBody(getHashStatistics());
+		return websocketpp::http::status_code::ok;
+	}
+
+	json HashApi::getHashStatistics() noexcept {
+		string curFile;
+		int64_t bytesLeft = 0, speed = 0;
+		size_t filesLeft = 0;
+		int hashersRunning = 0;
+		bool paused = false;
+
+		HashManager::getInstance()->getStats(curFile, bytesLeft, filesLeft, speed, hashersRunning, paused);
+
+		return {
+			{ "hash_speed", speed },
+			{ "hash_bytes_left", bytesLeft },
+			{ "hash_files_left", filesLeft },
+			{ "hashers", hashersRunning },
+			{ "paused", paused },
+		};
+	}
+
 	void HashApi::onTimer() noexcept {
 		if (!subscriptionActive("hash_statistics"))
 			return;
 
-		string curFile;
-		int64_t bytesLeft = 0, speed = 0;
-		size_t filesLeft = 0;
-		int hashers = 0;
-
-		HashManager::getInstance()->getStats(curFile, bytesLeft, filesLeft, speed, hashers);
-
-		json j = {
-			{ "hash_speed", speed },
-			{ "hash_bytes_left", bytesLeft },
-			{ "hash_files_left", filesLeft },
-			{ "hashers", hashers },
-		};
-
-		if (previousStats == j)
+		auto newStats = getHashStatistics();
+		if (previousStats == newStats)
 			return;
 
-		send("hash_statistics", j);
-		previousStats.swap(j);
+		send("hash_statistics", newStats);
+		previousStats.swap(newStats);
 	}
 
 	void HashApi::on(HashManagerListener::MaintananceStarted) noexcept {
