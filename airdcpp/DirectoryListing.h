@@ -219,9 +219,9 @@ public:
 
 	void getPartialListInfo(int64_t& totalSize_, size_t& totalFiles_) const noexcept;
 	
-	const UserPtr& getUser() const noexcept { return hintedUser.user; }
+	const UserPtr& getUser() const noexcept override { return hintedUser.user; }
 	const HintedUser& getHintedUser() const noexcept { return hintedUser; }
-	const string& getHubUrl() const noexcept { return hintedUser.hint; }
+	const string& getHubUrl() const noexcept override { return hintedUser.hint; }
 		
 	GETSET(bool, partialList, PartialList);
 	GETSET(bool, isOwnList, IsOwnList);
@@ -276,7 +276,7 @@ public:
 
 	void addDirectoryChangeTask(const string& aPath, bool aReload, bool aIsSearchChange = false, bool aForceQueue = false) noexcept;
 protected:
-	void onStateChanged() noexcept;
+	void onStateChanged() noexcept override;
 
 private:
 	void setDirectoryLoadingState(const Directory::Ptr& aDir, bool aLoading) noexcept;
