@@ -944,7 +944,7 @@ bool AirUtil::isSub(const string& aTestSub, const string& aParent, const char se
 	if (aTestSub.length() <= aParent.length())
 		return false;
 
-	if (Util::stricmp(aTestSub.substr(0, aParent.length()), aParent) != 0)
+	if (Util::strnicmp(aTestSub, aParent, aParent.length()) != 0)
 		return false;
 
 	// either the parent must end with a separator or it must follow in the subdirectory

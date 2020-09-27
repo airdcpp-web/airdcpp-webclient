@@ -69,7 +69,7 @@ public:
 	// Throws HashException
 	void addTree(const TigerTree& tree) { store.addTree(tree); }
 
-	void getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed, int& hashers) const noexcept;
+	void getStats(string& curFile_, int64_t& bytesLeft_, size_t& filesLeft_, int64_t& speed_, int& hashersRunning_, bool& isPaused_) const noexcept;
 
 	// Get TTH for a file synchronously (and optionally stores the hash information)
 	// Throws HashException/FileException
@@ -120,6 +120,7 @@ private:
 		bool pause() noexcept;
 		void resume();
 		bool isPaused() const noexcept;
+		bool isRunning() const noexcept;
 		
 		void clear() noexcept;
 

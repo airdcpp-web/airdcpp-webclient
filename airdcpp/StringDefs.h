@@ -1896,6 +1896,7 @@ enum Strings { // @DontAdd
 	X_NO_RELEASE_FILES, // "%1% folders with no release files"
 	X_PROFILE_DIRS_EXISTS, // "This directory also exists in %1% other profile(s)"
 	X_RESULTS_FOUND, // "Results were found from %1% directories"
+	X_THREADS, // "%1% threads"
 	X_USERS, // "%1% users"
 	X_USERS_WAITING, // "%1% user(s) (%2% waiting)"
 	YEAR, // "Year"
