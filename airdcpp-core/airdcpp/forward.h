@@ -177,6 +177,8 @@ class ShareProfile;
 typedef std::shared_ptr<ShareProfile> ShareProfilePtr;
 typedef vector<ShareProfilePtr> ShareProfileList;
 typedef set<string> RefreshPathList;
+struct ShareRefreshTask;
+typedef uint32_t ShareRefreshTaskToken;
 
 struct TempShareInfo;
 typedef vector<TempShareInfo> TempShareInfoList;

@@ -107,6 +107,10 @@ public:
 		return tasks; 
 	}
 
+	const List& getTasks() const noexcept {
+		return tasks;
+	}
+
 	mutable CriticalSection cs;
 	TaskQueue(const TaskQueue&) = delete;
 	TaskQueue& operator=(const TaskQueue&) = delete;

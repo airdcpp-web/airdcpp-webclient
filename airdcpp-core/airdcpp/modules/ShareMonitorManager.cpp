@@ -211,7 +211,7 @@ namespace dcpp {
 			}
 		}
 
-		ShareManager::getInstance()->refreshPaths({ info.getPath() });
+		ShareManager::getInstance()->refreshPathsHooked(ShareRefreshPriority::NORMAL, { info.getPath() });
 		return true;
 	}
 
@@ -325,6 +325,6 @@ namespace dcpp {
 			LogManager::getInstance()->message("Monitoring overflow: " + aRootPath, LogMessage::SEV_INFO);
 
 		// Refresh the root
-		ShareManager::getInstance()->refreshPaths({ aRootPath });
+		ShareManager::getInstance()->refreshPathsHooked(ShareRefreshPriority::NORMAL, { aRootPath });
 	}
 } // namespace dcpp
