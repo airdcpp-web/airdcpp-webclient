@@ -214,9 +214,9 @@ namespace webserver {
 
 	string ShareApi::refreshPriorityToString(ShareRefreshPriority aPriority) noexcept {
 		switch (aPriority) {
-			case ShareRefreshPriority::BLOCKING: return "blocking";
-			case ShareRefreshPriority::MANUAL: return "manual";
+			case ShareRefreshPriority::BLOCKING:
 			case ShareRefreshPriority::NORMAL: return "normal";
+			case ShareRefreshPriority::MANUAL: return "manual";
 			case ShareRefreshPriority::SCHEDULED: return "scheduled";
 		}
 
