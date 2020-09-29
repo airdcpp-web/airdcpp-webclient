@@ -549,7 +549,7 @@ private:
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept override;
 
 	// ShareManagerListener
-	void on(ShareManagerListener::RefreshCompleted, uint8_t, const RefreshPathList& aPaths, int64_t aTotalHash) noexcept override;
+	void on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, int64_t aTotalHash) noexcept override;
 	void on(ShareLoaded) noexcept override;
 
 	void onPathRefreshed(const string& aPath, bool startup) noexcept;

@@ -3322,11 +3322,15 @@ void QueueManager::getBundlePaths(OrderedStringSet& retBundles) const noexcept {
 	}
 }
 
-void QueueManager::on(ShareManagerListener::RefreshCompleted, uint8_t aType, const RefreshPathList& aPaths, int64_t) noexcept {
-	if (aType == ShareManager::REFRESH_ALL) {
+void QueueManager::on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, int64_t) noexcept {
+	if (!aSucceed) {
+		return;
+	}
+
+	if (aTask.type == ShareRefreshType::REFRESH_ALL) {
 		onPathRefreshed(Util::emptyString, false);
 	} else {
-		for (const auto& p : aPaths) {
+		for (const auto& p : aTask.dirs) {
 			onPathRefreshed(p, false);
 		}
 	}

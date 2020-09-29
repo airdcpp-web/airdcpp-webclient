@@ -51,8 +51,8 @@ namespace dcpp {
 
 
 		virtual void on(ShareLoaded) noexcept{}
-		virtual void on(RefreshCompleted, uint8_t /*tasktype*/, const RefreshPathList&, int64_t /*totalHash*/) noexcept{}
-		virtual void on(RefreshQueued, uint8_t /*tasktype*/, const RefreshPathList&) noexcept {}
+		virtual void on(RefreshCompleted, const ShareRefreshTask&, bool /*aSucceed*/, int64_t /*totalHash*/) noexcept{}
+		virtual void on(RefreshQueued, const ShareRefreshTask&) noexcept {}
 
 		virtual void on(ProfileAdded, ProfileToken) noexcept {}
 		virtual void on(ProfileUpdated, ProfileToken, bool /*aIsMajorChange*/) noexcept {}
