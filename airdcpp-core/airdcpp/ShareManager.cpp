@@ -2030,7 +2030,8 @@ void ShareManager::updateRootDirectories(const ShareDirectoryInfoList& changedDi
 void ShareManager::reportTaskStatus(const ShareRefreshTask& aTask, bool aFinished, int64_t aHashSize) const noexcept {
 	string msg;
 	switch (aTask.type) {
-		case(ShareRefreshType::REFRESH_ALL):
+		case (ShareRefreshType::STARTUP):
+		case (ShareRefreshType::REFRESH_ALL):
 			msg = aFinished ? STRING(FILE_LIST_REFRESH_FINISHED) : STRING(FILE_LIST_REFRESH_INITIATED);
 			break;
 		case (ShareRefreshType::REFRESH_DIRS):
