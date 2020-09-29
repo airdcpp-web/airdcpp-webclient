@@ -93,7 +93,7 @@ namespace webserver {
 			{ "hash_bytes_left", bytesLeft },
 			{ "hash_files_left", filesLeft },
 			{ "hashers", hashersRunning },
-			{ "paused", paused },
+			{ "pause_forced", paused },
 		};
 	}
 
