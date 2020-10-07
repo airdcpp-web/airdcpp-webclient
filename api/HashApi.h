@@ -33,7 +33,7 @@ namespace webserver {
 		json previousStats;
 		void onTimer() noexcept;
 
-		json getHashStatistics() noexcept;
+		json serializeHashStatistics(const HashManager::HashStats& aStats) noexcept;
 
 		static json formatDbStatus(bool aMaintenanceRunning) noexcept;
 		void updateDbStatus(bool aMaintenanceRunning) noexcept;

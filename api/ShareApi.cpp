@@ -42,16 +42,17 @@ namespace webserver {
 		HookApiModule(
 			aSession, 
 			Access::SETTINGS_VIEW, 
-			{ 
-				"share_refresh_queued", 
-				"share_refresh_completed", 
+			{
+				"share_refresh_queued",
+				"share_refresh_started",
+				"share_refresh_completed",
 				
-				"share_exclude_added", 
+				"share_exclude_added",
 				"share_exclude_removed",
 
 				"share_temp_item_added",
 				"share_temp_item_removed",
-			}, 
+			},
 			Access::SETTINGS_EDIT
 		) 
 	{
@@ -552,9 +553,18 @@ namespace webserver {
 	void ShareApi::on(ShareManagerListener::RefreshQueued, const ShareRefreshTask& aTask) noexcept {
 		maybeSend("share_refresh_queued", [&] {
 			return json({
-				{ "id", aTask.token },
-				{ "real_paths", aTask.dirs },
-				{ "type", refreshTypeToString(aTask.type) },
+				{ "task", serializeRefreshTask(aTask) },
+
+				{ "real_paths", aTask.dirs }, // DEPRECATED
+				{ "type", refreshTypeToString(aTask.type) }, // DEPRECATED
+			});
+		});
+	}
+
+	void ShareApi::on(ShareManagerListener::RefreshStarted, const ShareRefreshTask& aTask) noexcept {
+		maybeSend("share_refresh_started", [&] {
+			return json({
+				{ "task", serializeRefreshTask(aTask) },
 			});
 		});
 	}
@@ -562,10 +572,11 @@ namespace webserver {
 	void ShareApi::on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, int64_t aTotalHash) noexcept {
 		maybeSend("share_refresh_completed", [&] {
 			return json({
-				{ "id", aTask.token },
-				{ "real_paths", aTask.dirs },
-				{ "type", refreshTypeToString(aTask.type) },
+				{ "task", serializeRefreshTask(aTask) },
 				{ "hash_bytes_queued", aTotalHash },
+
+				{ "real_paths", aTask.dirs }, // DEPRECATED 
+				{ "type", refreshTypeToString(aTask.type) }, // DEPRECATED
 			});
 		});
 	}

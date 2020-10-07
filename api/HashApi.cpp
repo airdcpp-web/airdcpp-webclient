@@ -18,6 +18,8 @@
 
 #include "stdinc.h"
 
+#include <airdcpp/SettingsManager.h>
+
 #include <web-server/JsonUtil.h>
 #include <web-server/Timer.h>
 
@@ -75,37 +77,34 @@ namespace webserver {
 	}
 
 	api_return HashApi::handleGetStats(ApiRequest& aRequest) {
-		aRequest.setResponseBody(getHashStatistics());
+		auto stats = HashManager::getInstance()->getStats();
+		aRequest.setResponseBody(serializeHashStatistics(stats));
 		return websocketpp::http::status_code::ok;
 	}
 
-	json HashApi::getHashStatistics() noexcept {
-		string curFile;
-		int64_t bytesLeft = 0, speed = 0;
-		size_t filesLeft = 0;
-		int hashersRunning = 0;
-		bool paused = false;
-
-		HashManager::getInstance()->getStats(curFile, bytesLeft, filesLeft, speed, hashersRunning, paused);
-
+	json HashApi::serializeHashStatistics(const HashManager::HashStats& aStats) noexcept {
 		return {
-			{ "hash_speed", speed },
-			{ "hash_bytes_left", bytesLeft },
-			{ "hash_files_left", filesLeft },
-			{ "hashers", hashersRunning },
-			{ "pause_forced", paused },
+			{ "hash_speed", aStats.speed },
+			{ "hash_bytes_left", aStats.bytesLeft },
+			{ "hash_files_left", aStats.filesLeft },
+			{ "hash_bytes_added", aStats.bytesAdded },
+			{ "hash_files_added", aStats.filesAdded },
+			{ "hashers", aStats.hashersRunning },
+			{ "pause_forced", aStats.isPaused },
+			{ "max_hash_speed", SETTING(MAX_HASH_SPEED) },
 		};
 	}
 
 	void HashApi::onTimer() noexcept {
-		if (!subscriptionActive("hash_statistics"))
+		if (!subscriptionActive("hash_statistics")) {
 			return;
+		}
 
-		auto newStats = getHashStatistics();
+		auto newStats = serializeHashStatistics(HashManager::getInstance()->getStats());
 		if (previousStats == newStats)
 			return;
 
-		send("hash_statistics", newStats);
+		send("hash_statistics", Serializer::serializeChangedProperties(newStats, previousStats));
 		previousStats.swap(newStats);
 	}
 

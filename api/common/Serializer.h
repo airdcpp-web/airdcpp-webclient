@@ -212,6 +212,8 @@ namespace webserver {
 			return j;
 		}
 
+		static json serializeChangedProperties(const json& aNewProperties, const json& aOldProperties) noexcept;
+
 		template<typename IdT>
 		static json defaultArrayValueSerializer(const IdT& aJson) {
 			return aJson;
