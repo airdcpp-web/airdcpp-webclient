@@ -419,4 +419,19 @@ namespace webserver {
 
 		return aSetting;
 	}
+
+	json Serializer::serializeChangedProperties(const json& aNewProperties, const json& aOldProperties) noexcept {
+		if (aOldProperties.is_null()) {
+			return aNewProperties;
+		}
+
+		json ret;
+		for (const auto& p: aNewProperties.items()) {
+			if (p.value() != aOldProperties[p.key()]) {
+				ret[p.key()] = p.value();
+			}
+		}
+
+		return ret;
+	}
 }
