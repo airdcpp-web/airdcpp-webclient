@@ -2135,6 +2135,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 }
 
 void ShareManager::runRefreshTask(const ShareRefreshTask& aTask, function<void(float)> progressF) noexcept {
+	fire(ShareManagerListener::RefreshStarted(), aTask);
 
 	refreshRunning = true;
 	ScopedFunctor([this] { refreshRunning = false; });
