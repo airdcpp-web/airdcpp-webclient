@@ -1011,6 +1011,11 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 		File::deleteFile(p);
 	}
 
+	// XML missing for some of the roots?
+	if (cacheLoaders.size() < rootPaths.size()) {
+		return false;
+	}
+
 	{
 		const auto dirCount = cacheLoaders.size();
 
@@ -2384,10 +2389,10 @@ void ShareManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	if(SETTING(AUTO_REFRESH_TIME) > 0 && lastFullUpdate + SETTING(AUTO_REFRESH_TIME) * 60 * 1000 <= aTick) {
 		lastIncomingUpdate = aTick;
 		lastFullUpdate = aTick;
-		refresh(ShareRefreshType::REFRESH_INCOMING, ShareRefreshPriority::SCHEDULED);
+		refresh(ShareRefreshType::REFRESH_ALL, ShareRefreshPriority::SCHEDULED);
 	} else if(SETTING(INCOMING_REFRESH_TIME) > 0 && lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= aTick) {
 		lastIncomingUpdate = aTick;
-		refresh(ShareRefreshType::REFRESH_ALL, ShareRefreshPriority::SCHEDULED);
+		refresh(ShareRefreshType::REFRESH_INCOMING, ShareRefreshPriority::SCHEDULED);
 	}
 }
 
