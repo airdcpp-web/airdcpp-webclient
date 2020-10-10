@@ -111,8 +111,9 @@ void ShareManager::startup(function<void(const string&)> splashF, function<void(
 
 		TimerManager::getInstance()->addListener(this);
 
-		if (SETTING(STARTUP_REFRESH) && !refreshed)
-			refresh(ShareRefreshType::STARTUP, ShareRefreshPriority::SCHEDULED);
+		if (SETTING(STARTUP_REFRESH) && !refreshed) {
+			refresh(ShareRefreshType::STARTUP, ShareRefreshPriority::NORMAL);
+		}
 	});
 }
 
@@ -2116,7 +2117,7 @@ void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexce
 
 		if (t.first == TaskType::REFRESH) {
 			auto task = static_cast<ShareRefreshTask*>(t.second);
-			if (task->type == ShareRefreshType::STARTUP && task->priority == ShareRefreshPriority::SCHEDULED) {
+			if (task->type == ShareRefreshType::STARTUP && task->priority != ShareRefreshPriority::BLOCKING) {
 				Thread::sleep(5000); // let the client start first
 			}
 
