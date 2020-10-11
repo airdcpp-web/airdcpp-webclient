@@ -159,11 +159,11 @@ public:
 
 	// Refresh the specific directories
 	// Returns nullopt if the path doesn't exist in share (and it can't be added there)
-	optional<RefreshTaskQueueInfo> refreshPathsHooked(ShareRefreshPriority aPriority, const StringList& aPaths, const string& aDisplayName = Util::emptyString, function<void(float)> aProgressF = nullptr) noexcept;
+	optional<RefreshTaskQueueInfo> refreshPathsHooked(ShareRefreshPriority aPriority, const StringList& aPaths, const void* aCaller, const string& aDisplayName = Util::emptyString, function<void(float)> aProgressF = nullptr) noexcept;
 
 	// Refresh the specific directories
 	// Throws if the path doesn't exist in share and can't be added there
-	RefreshTaskQueueInfo refreshPathsHookedThrow(ShareRefreshPriority aPriority, const StringList& aPaths, const string& aDisplayName = Util::emptyString, function<void(float)> aProgressF = nullptr);
+	RefreshTaskQueueInfo refreshPathsHookedThrow(ShareRefreshPriority aPriority, const StringList& aPaths, const void* aCaller, const string& aDisplayName = Util::emptyString, function<void(float)> aProgressF = nullptr);
 
 	bool isRefreshing() const noexcept { return refreshRunning; }
 	
@@ -196,11 +196,11 @@ public:
 	bool isRealPathShared(const string& aPath) const noexcept;
 
 	// Returns true if the real path can be added in share
-	bool allowShareDirectoryHooked(const string& aPath) const noexcept;
+	bool allowShareDirectoryHooked(const string& aPath, const void* aCaller) const noexcept;
 
 	// Validate a file/directory path
 	// Throws on errors
-	void validatePathHooked(const string& aPath, bool aSkipQueueCheck) const;
+	void validatePathHooked(const string& aPath, bool aSkipQueueCheck, const void* aCaller) const;
 
 	// Returns the dupe paths by directory name/NMDC path
 	StringList getAdcDirectoryPaths(const string& aAdcPath) const noexcept;

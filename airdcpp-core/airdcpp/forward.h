@@ -30,7 +30,7 @@ namespace dcpp {
 
 
 template<typename DataT>
-class ActionHookSubscriber;
+class ActionHookDataGetter;
 
 struct ActionHookRejection;
 typedef std::shared_ptr<ActionHookRejection> ActionHookRejectionPtr;
@@ -48,7 +48,7 @@ template<typename DataT = nullptr_t>
 using ActionHookDataList = vector<ActionHookDataPtr<DataT>>;
 
 template<typename DataT = nullptr_t>
-using ActionHookResultGetter = ActionHookSubscriber<DataT>;
+using ActionHookResultGetter = ActionHookDataGetter<DataT>;
 
 class AdcCommand;
 

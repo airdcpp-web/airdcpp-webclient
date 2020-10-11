@@ -1491,7 +1491,7 @@ bool ClientManager::processChatMessage(const ChatMessagePtr& aMessage, const Ide
 		MessageHighlightList highlights;
 
 		try {
-			auto results = aHook.runHooksDataThrow(aMessage);
+			auto results = aHook.runHooksDataThrow(ClientManager::getInstance(), aMessage);
 			highlights = ActionHook<MessageHighlightList>::normalizeListItems(results);
 		} catch (const HookRejectException&) {
 			return false;

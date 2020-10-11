@@ -107,8 +107,7 @@ namespace dcpp {
 	}
 
 	void ShareMonitorManager::rebuildMonitoring() noexcept {
-		StringList monAdd;
-		StringList monRem;
+		StringList monAdd, monRem;
 
 		{
 			auto roots = ShareManager::getInstance()->getRootInfos();
@@ -211,7 +210,7 @@ namespace dcpp {
 			}
 		}
 
-		ShareManager::getInstance()->refreshPathsHooked(ShareRefreshPriority::NORMAL, { info.getPath() });
+		ShareManager::getInstance()->refreshPathsHooked(ShareRefreshPriority::NORMAL, { info.getPath() }, this);
 		return true;
 	}
 
@@ -235,23 +234,31 @@ namespace dcpp {
 		}
 	};
 
+	bool ShareMonitorManager::validatePath(const string& aPath) {
+		try {
+			ShareManager::getInstance()->validatePathHooked(aPath, false, this);
+		} catch (const ShareValidatorException& e) {
+			if (SETTING(REPORT_BLOCKED_SHARE) && ShareValidatorException::isReportableError(e.getType())) {
+				reportFile(e.getError());
+			} else if (monitorDebug) {
+				LogManager::getInstance()->message("Modification for path " + aPath + " ignored: " + e.getError(), LogMessage::SEV_INFO);
+			}
+
+			return false;
+		} catch (...) {
+			return false;
+		}
+
+		return true;
+	}
+
 	optional<ShareMonitorManager::FileItem> ShareMonitorManager::checkModifiedPath(const string& aPath) noexcept {
 		FileFindIter f(aPath);
 		if (f != FileFindIter()) {
 			auto isDirectory = f->isDirectory();
 			auto path = isDirectory ? aPath + PATH_SEPARATOR : aPath;
 
-			try {
-				ShareManager::getInstance()->validatePathHooked(path, false);
-			} catch (const ShareValidatorException& e) {
-				if (SETTING(REPORT_BLOCKED_SHARE) && ShareValidatorException::isReportableError(e.getType())) {
-					reportFile(e.getError());
-				} else if (monitorDebug) {
-					LogManager::getInstance()->message("Modification for path " + aPath + " ignored: " + e.getError(), LogMessage::SEV_INFO);
-				}
-
-				return nullopt;
-			} catch (...) {
+			if (!validatePath(path)) {
 				return nullopt;
 			}
 
@@ -279,8 +286,9 @@ namespace dcpp {
 	}
 
 	void ShareMonitorManager::on(DirectoryMonitorListener::FileCreated, const string& aPath) noexcept {
-		if (monitorDebug)
+		if (monitorDebug) {
 			LogManager::getInstance()->message("File added: " + aPath, LogMessage::SEV_INFO);
+		}
 
 		auto fileItem = checkModifiedPath(aPath);
 		if (fileItem) {
@@ -290,8 +298,9 @@ namespace dcpp {
 	}
 
 	void ShareMonitorManager::on(DirectoryMonitorListener::FileModified, const string& aPath) noexcept {
-		if (monitorDebug)
+		if (monitorDebug) {
 			LogManager::getInstance()->message("File modified: " + aPath, LogMessage::SEV_INFO);
+		}
 
 		auto fileItem = checkModifiedPath(aPath);
 		if (!fileItem) {
@@ -321,10 +330,11 @@ namespace dcpp {
 	}
 
 	void ShareMonitorManager::on(DirectoryMonitorListener::Overflow, const string& aRootPath) noexcept {
-		if (monitorDebug)
+		if (monitorDebug) {
 			LogManager::getInstance()->message("Monitoring overflow: " + aRootPath, LogMessage::SEV_INFO);
+		}
 
 		// Refresh the root
-		ShareManager::getInstance()->refreshPathsHooked(ShareRefreshPriority::NORMAL, { aRootPath });
+		ShareManager::getInstance()->refreshPathsHooked(ShareRefreshPriority::NORMAL, { aRootPath }, this);
 	}
 } // namespace dcpp

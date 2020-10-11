@@ -1561,7 +1561,7 @@ void QueueManager::shareBundle(BundlePtr aBundle, bool aSkipScan) noexcept {
 
 		setBundleStatus(aBundle, Bundle::STATUS_COMPLETED);
 
-		if (!ShareManager::getInstance()->allowShareDirectoryHooked(aBundle->getTarget())) {
+		if (!ShareManager::getInstance()->allowShareDirectoryHooked(aBundle->getTarget(), this)) {
 			LogManager::getInstance()->message(STRING_F(NOT_IN_SHARED_DIR, aBundle->getTarget().c_str()), LogMessage::SEV_INFO);
 			return;
 		}
@@ -1626,7 +1626,7 @@ bool QueueManager::runBundleCompletionHooks(const BundlePtr& aBundle) noexcept {
 	if (bundleCompletionHook.hasSubscribers()) {
 		setBundleStatus(aBundle, Bundle::STATUS_VALIDATION_RUNNING);
 
-		auto error = bundleCompletionHook.runHooksError(aBundle);
+		auto error = bundleCompletionHook.runHooksError(this, aBundle);
 		if (error) {
 			aBundle->setHookError(error);
 			setBundleStatus(aBundle, Bundle::STATUS_VALIDATION_ERROR);
@@ -1642,7 +1642,7 @@ bool QueueManager::runFileCompletionHooks(const QueueItemPtr& aQI) noexcept {
 	if (aQI->getBundle() && fileCompletionHook.hasSubscribers()) {
 		setFileStatus(aQI, QueueItem::STATUS_VALIDATION_RUNNING);
 
-		auto error = fileCompletionHook.runHooksError(aQI);
+		auto error = fileCompletionHook.runHooksError(this, aQI);
 		if (error) {
 			aQI->setHookError(error);
 			setFileStatus(aQI, QueueItem::STATUS_VALIDATION_ERROR);

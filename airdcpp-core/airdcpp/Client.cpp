@@ -383,7 +383,7 @@ bool Client::sendMessageHooked(const OutgoingChatMessage& aMessage, string& erro
 		return false;
 	}
 
-	auto error = ClientManager::getInstance()->outgoingHubMessageHook.runHooksError(aMessage, *this);
+	auto error = ClientManager::getInstance()->outgoingHubMessageHook.runHooksError(this, aMessage, *this);
 	if (error) {
 		error_ = ActionHookRejection::formatError(error);
 		return false;
@@ -403,7 +403,7 @@ bool Client::sendPrivateMessageHooked(const OnlineUserPtr& aUser, const Outgoing
 		return false;
 	}
 
-	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage, HintedUser(aUser->getUser(), aUser->getHubUrl()), aEcho);
+	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(this, aMessage, HintedUser(aUser->getUser(), aUser->getHubUrl()), aEcho);
 	if (error) {
 		error_ = ActionHookRejection::formatError(error);
 		return false;
