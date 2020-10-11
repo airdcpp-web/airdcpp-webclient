@@ -75,13 +75,16 @@ namespace webserver {
 		return i->second;
 	}
 
-	bool HookApiModule::HookSubscriber::enable(const json& aJson) {
+	bool HookApiModule::HookSubscriber::enable(const void* aOwner, const json& aJson) {
 		if (active) {
 			return true;
 		}
 
 		auto id = JsonUtil::getField<string>("id", aJson, false);
-		if (!addHandler(id, JsonUtil::getField<string>("name", aJson, false))) {
+		auto name = JsonUtil::getField<string>("name", aJson, false);
+		// auto skipOwner = JsonUtil::getOptionalFieldDefault<bool>("skip_owner", aJson, true);
+		auto skipOwner = true;
+		if (!addHandler(ActionHookSubscriber(id, name, skipOwner ? aOwner : nullptr))) {
 			return false;
 		}
 
@@ -106,7 +109,7 @@ namespace webserver {
 		}
 
 		auto& hook = getHookSubscriber(aRequest);
-		if (!hook.enable(aRequest.getRequestBody())) {
+		if (!hook.enable(aRequest.getOwnerPtr(), aRequest.getRequestBody())) {
 			aRequest.setResponseErrorStr("Subscription ID exists already for this hook event");
 			return websocketpp::http::status_code::conflict;
 		}

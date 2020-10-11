@@ -33,9 +33,9 @@
 
 
 #define CONTEXT_MENU(type, name, name2) \
-	ActionHook<ContextMenuItemList, const vector<type>&, const AccessList&, const ContextMenuSupportList&> name##MenuHook; \
-	ContextMenuItemList get##name2##Menu(const vector<type>& aItems, const AccessList& aAccessList, const ContextMenuSupportList& aSupports) const noexcept { \
-		return ActionHook<ContextMenuItemList>::normalizeListItems(name##MenuHook.runHooksData(aItems, aAccessList, aSupports)); \
+	ActionHook<ContextMenuItemList, const vector<type>&, const ContextMenuItemListData&> name##MenuHook; \
+	ContextMenuItemList get##name2##Menu(const vector<type>& aItems, const ContextMenuItemListData& aListData) const noexcept { \
+		return ActionHook<ContextMenuItemList>::normalizeListItems(name##MenuHook.runHooksData(aListData.caller, aItems, aListData)); \
 	} \
 	void onClick##name2##Item(const vector<type>& aItems, const ContextMenuItemClickData& aClickData) noexcept { \
 		fire(ContextMenuManagerListener::name2##MenuSelected(), aItems, aClickData); \
@@ -43,9 +43,9 @@
 
 
 #define ENTITY_CONTEXT_MENU(type, name, name2, entityType) \
-	ActionHook<ContextMenuItemList, const vector<type>&, const AccessList&, const entityType&, const ContextMenuSupportList&> name##MenuHook; \
-	ContextMenuItemList get##name2##Menu(const vector<type>& aItems, const AccessList& aAccessList, const ContextMenuSupportList& aSupports, const entityType& aEntity) const noexcept { \
-		return ActionHook<ContextMenuItemList>::normalizeListItems(name##MenuHook.runHooksData(aItems, aAccessList, aEntity, aSupports)); \
+	ActionHook<ContextMenuItemList, const vector<type>&, const ContextMenuItemListData&, const entityType&> name##MenuHook; \
+	ContextMenuItemList get##name2##Menu(const vector<type>& aItems, const ContextMenuItemListData& aListData, const entityType& aEntity) const noexcept { \
+		return ActionHook<ContextMenuItemList>::normalizeListItems(name##MenuHook.runHooksData(aListData.caller, aItems, aListData, aEntity)); \
 	} \
 	void onClick##name2##Item(const vector<type>& aItems, const ContextMenuItemClickData& aClickData, const entityType& aEntity) noexcept { \
 		fire(ContextMenuManagerListener::name2##MenuSelected(), aItems, aEntity, aClickData); \
@@ -54,6 +54,15 @@
 
 namespace webserver {
 	typedef StringList ContextMenuSupportList;
+
+	struct ContextMenuItemListData {
+		ContextMenuItemListData(const ContextMenuSupportList& aSupports, const AccessList aAccess, const void* aCaller) noexcept :
+			supports(aSupports), access(aAccess), caller(aCaller) {}
+
+		const void* caller;
+		const ContextMenuSupportList supports;
+		const AccessList access;
+	};
 
 	struct ContextMenuItemClickData {
 		ContextMenuItemClickData(const string& aHookId, const string& aMenuItemId, const ContextMenuSupportList& aSupports, const AccessList aAccess, const SettingValueMap aFormValues) noexcept :

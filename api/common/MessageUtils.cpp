@@ -200,7 +200,7 @@ namespace webserver {
 		MessageHighlightList ret;
 		if (!highlightItems.is_null()) {
 			for (const auto& hl : highlightItems) {
-				ret.push_back(MessageUtils::deserializeMessageHighlight(hl, aMessageText, aResultGetter.getId()));
+				ret.push_back(MessageUtils::deserializeMessageHighlight(hl, aMessageText, aResultGetter.getSubscriber().getId()));
 			}
 		}
 

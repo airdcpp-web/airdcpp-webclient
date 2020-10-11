@@ -162,12 +162,8 @@ namespace webserver {
 				return;
 			}
 
-			// Increase concurrency as messages received from each socket will always use the same thread
-			addAsyncTask([=] {
-				// onData call must be async to avoid possible deadlocks due to possible simultaneous disconnected/server state listener events
-				onData(msg->get_payload(), TransportType::TYPE_SOCKET, Direction::INCOMING, socket->getIp());
-				api.handleSocketRequest(msg->get_payload(), socket, aIsSecure);
-			});
+			onData(msg->get_payload(), TransportType::TYPE_SOCKET, Direction::INCOMING, socket->getIp());
+			api.handleSocketRequest(msg->get_payload(), socket, aIsSecure);
 		}
 
 
@@ -196,58 +192,59 @@ namespace webserver {
 			}
 
 			if (con->get_resource().length() >= 4 && con->get_resource().compare(0, 4, "/api") == 0) {
-				con->defer_http_response();
-				addAsyncTask([=] {
-					onData(con->get_resource() + ": " + con->get_request().get_body(), TransportType::TYPE_HTTP_API, Direction::INCOMING, ip);
+				onData(con->get_resource() + ": " + con->get_request().get_body(), TransportType::TYPE_HTTP_API, Direction::INCOMING, ip);
 
-					const auto responseF = [this, s, con, ip](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
-						string data;
-						const auto& responseJson = !aResponseErrorJson.is_null() ? aResponseErrorJson : aResponseJsonData;
-						if (!responseJson.is_null()) {
-							try {
-								data = responseJson.dump();
-							} catch (const std::exception& e) {
-								logDebugError(s, "Failed to convert data to JSON: " + string(e.what()), websocketpp::log::elevel::fatal);
 
-								con->set_body("Failed to convert data to JSON: " + string(e.what()));
-								con->set_status(websocketpp::http::status_code::internal_server_error);
-								con->send_http_response();
-								return;
-							}
+				const auto responseF = [this, s, con, ip](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
+					string data;
+					const auto& responseJson = !aResponseErrorJson.is_null() ? aResponseErrorJson : aResponseJsonData;
+					if (!responseJson.is_null()) {
+						try {
+							data = responseJson.dump();
+						} catch (const std::exception& e) {
+							logDebugError(s, "Failed to convert data to JSON: " + string(e.what()), websocketpp::log::elevel::fatal);
+
+							con->set_body("Failed to convert data to JSON: " + string(e.what()));
+							con->set_status(websocketpp::http::status_code::internal_server_error);
+							return;
 						}
+					}
 
-						onData(con->get_resource() + " (" + Util::toString(aStatus) + "): " + data, TransportType::TYPE_HTTP_API, Direction::OUTGOING, ip);
+					onData(con->get_resource() + " (" + Util::toString(aStatus) + "): " + data, TransportType::TYPE_HTTP_API, Direction::OUTGOING, ip);
 
-						con->set_body(data);
-						con->append_header("Content-Type", "application/json");
-						con->append_header("Connection", "close"); // Workaround for https://github.com/zaphoyd/websocketpp/issues/890
-						con->set_status(aStatus);
+					con->set_body(data);
+					con->append_header("Content-Type", "application/json");
+					con->append_header("Connection", "close"); // Workaround for https://github.com/zaphoyd/websocketpp/issues/890
+					con->set_status(aStatus);
+				};
+
+
+				bool isDeferred = false;
+				const auto deferredF = [&]() {
+					con->defer_http_response();
+					isDeferred = true;
+
+					return [=](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
+						responseF(aStatus, aResponseJsonData, aResponseErrorJson);
 						con->send_http_response();
 					};
+				};
 
+				json output, apiError;
+				auto status = api.handleHttpRequest(
+					con->get_resource(),
+					con->get_request(),
+					output,
+					apiError,
+					aIsSecure,
+					ip,
+					session,
+					deferredF
+				);
 
-					bool isDeferred = false;
-					const auto deferredF = [&]() {
-						isDeferred = true;
-						return responseF;
-					};
-
-					json output, apiError;
-					auto status = api.handleHttpRequest(
-						con->get_resource(),
-						con->get_request(),
-						output,
-						apiError,
-						aIsSecure,
-						ip,
-						session,
-						deferredF
-					);
-
-					if (!isDeferred) {
-						responseF(status, output, apiError);
-					}
-				});
+				if (!isDeferred) {
+					responseF(status, output, apiError);
+				}
 			} else {
 				onData(con->get_request().get_method() + " " + con->get_resource(), TransportType::TYPE_HTTP_FILE, Direction::INCOMING, ip);
 
@@ -351,7 +348,14 @@ namespace webserver {
 		server_plain endpoint_plain;
 		server_tls endpoint_tls;
 
+		// Web server threads
 		unique_ptr<boost::thread_group> ios_threads;
+
+		// Task threads (running of hooks, timers or other long running task, or just to avoid deadlocks)
+		// 
+		// IMPORTANT:
+		// Calling hooks and handling the hook return data must be handled by separate thread pools to avoid the case when 
+		// all task threads are waiting for a hook response (and there are no threads left to handle those)
 		unique_ptr<boost::thread_group> task_threads;
 
 		CallBack shutdownF;
