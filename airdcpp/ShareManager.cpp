@@ -1478,7 +1478,7 @@ void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aP
 		auto curPathLower = aPathLower + dualName.getLower() + (isDirectory ? PATH_SEPARATOR_STR : Util::emptyString);
 
 		try {
-			sm.validator->validateHooked(*i, curPath, false);
+			sm.validator->validateHooked(*i, curPath, false, &sm);
 		} catch (const ShareValidatorException& e) {
 			if (SETTING(REPORT_BLOCKED_SHARE) && ShareValidatorException::isReportableError(e.getType())) {
 				if (isDirectory) {
@@ -1505,7 +1505,7 @@ void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aP
 
 			if (!oldDir) {
 				auto newParent = !aOldParent;
-				auto error = sm.validator->newDirectoryValidationHook.runHooksError(curPath, newParent);
+				auto error = sm.validator->newDirectoryValidationHook.runHooksError(&sm, curPath, newParent);
 				if (error) {
 					continue;
 				}
@@ -1532,7 +1532,7 @@ void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aP
 
 				if (isNew) {
 					auto newParent = !aOldParent;
-					auto error = sm.validator->newFileValidationHook.runHooksError(curPath, size, newParent);
+					auto error = sm.validator->newFileValidationHook.runHooksError(&sm, curPath, size, newParent);
 					if (error) {
 						continue;
 					}
@@ -1696,9 +1696,9 @@ void ShareManager::addAsyncTask(AsyncF aF) noexcept {
 	}
 }
 
-optional<ShareManager::RefreshTaskQueueInfo> ShareManager::refreshPathsHooked(ShareRefreshPriority aPriority, const StringList& aPaths, const string& aDisplayName /*Util::emptyString*/, function<void(float)> aProgressF /*nullptr*/) noexcept {
+optional<ShareManager::RefreshTaskQueueInfo> ShareManager::refreshPathsHooked(ShareRefreshPriority aPriority, const StringList& aPaths, const void* aCaller, const string& aDisplayName /*Util::emptyString*/, function<void(float)> aProgressF /*nullptr*/) noexcept {
 	try {
-		return refreshPathsHookedThrow(aPriority, aPaths, aDisplayName, aProgressF);
+		return refreshPathsHookedThrow(aPriority, aPaths, aCaller, aDisplayName, aProgressF);
 	} catch (const Exception&) {
 		// ...
 	}
@@ -1707,10 +1707,10 @@ optional<ShareManager::RefreshTaskQueueInfo> ShareManager::refreshPathsHooked(Sh
 }
 
 
-ShareManager::RefreshTaskQueueInfo ShareManager::refreshPathsHookedThrow(ShareRefreshPriority aPriority, const StringList& aPaths, const string& aDisplayName, function<void(float)> aProgressF) {
+ShareManager::RefreshTaskQueueInfo ShareManager::refreshPathsHookedThrow(ShareRefreshPriority aPriority, const StringList& aPaths, const void* aCaller, const string& aDisplayName, function<void(float)> aProgressF) {
 	for (const auto& path : aPaths) {
 		// Ensure that the path exists in share (or it can be added)
-		validatePathHooked(path, false);
+		validatePathHooked(path, false, aCaller);
 	}
 
 	return addRefreshTask(aPriority, aPaths, ShareRefreshType::REFRESH_DIRS, aDisplayName, aProgressF);
@@ -3123,16 +3123,16 @@ void ShareManager::shareBundle(const BundlePtr& aBundle) noexcept {
 	addRefreshTask(ShareRefreshPriority::NORMAL, { aBundle->getTarget() }, ShareRefreshType::BUNDLE, aBundle->getTarget());
 }
 
-bool ShareManager::allowShareDirectoryHooked(const string& aRealPath) const noexcept {
+bool ShareManager::allowShareDirectoryHooked(const string& aRealPath, const void* aCaller) const noexcept {
 	try {
-		validatePathHooked(aRealPath, false);
+		validatePathHooked(aRealPath, false, aCaller);
 		return true;
 	} catch (const Exception&) { }
 
 	return false;
 }
 
-void ShareManager::validatePathHooked(const string& aRealPath, bool aSkipQueueCheck) const {
+void ShareManager::validatePathHooked(const string& aRealPath, bool aSkipQueueCheck, const void* aCaller) const {
 	StringList tokens;
 	Directory::Ptr baseDirectory = nullptr;
 
@@ -3154,11 +3154,11 @@ void ShareManager::validatePathHooked(const string& aRealPath, bool aSkipQueueCh
 
 
 	// Validate missing directory path tokens
-	validator->validateDirectoryPathTokensHooked(baseDirectory->getRealPath(), tokens, aSkipQueueCheck);
+	validator->validateNewDirectoryPathTokensHooked(baseDirectory->getRealPath(), tokens, aSkipQueueCheck, aCaller);
 
 	if (!isDirectoryPath && !isFileShared) {
 		// Validate the file
-		validator->validatePathHooked(aRealPath, aSkipQueueCheck);
+		validator->validateNewFilePathHooked(aRealPath, aSkipQueueCheck, !tokens.empty(), aCaller);
 	}
 }
 

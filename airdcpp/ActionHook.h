@@ -85,62 +85,95 @@ namespace dcpp {
 		ActionHookDataPtr<DataT> data = nullptr;
 	};
 
-	template<typename DataT>
+	// General subscriber config
 	class ActionHookSubscriber {
 	public:
-		ActionHookSubscriber(const string& aId, const string& aName) noexcept : id(aId), name(aName) {  }
+		ActionHookSubscriber(const string& aId, const string& aName, const void* aIgnoredOwner) noexcept : id(aId), name(aName), ignoredOwner(aIgnoredOwner) {  }
 
-		GETSET(string, id, Id);
-		GETSET(string, name, Name);
+		const string& getId() const noexcept {
+			return id;
+		}
+
+		const string& getName() const noexcept {
+			return name;
+		}
+
+		const void* getIgnoredOwner() const noexcept {
+			return ignoredOwner;
+		}
+	private:
+		string id;
+		string name;
+		const void* ignoredOwner;
+	};
+
+	// Helper class to be passed to hook handlers for creating result entities
+	template<typename DataT>
+	class ActionHookDataGetter {
+	public:
+		ActionHookDataGetter(ActionHookSubscriber&& aSubscriber) noexcept : subscriber(std::move(aSubscriber)) {  }
 
 		ActionHookResult<DataT> getRejection(const string& aRejectId, const string& aMessage) const noexcept {
-			auto error = make_shared<ActionHookRejection>(id, name, aRejectId, aMessage);
+			auto error = make_shared<ActionHookRejection>(subscriber.getId(), subscriber.getName(), aRejectId, aMessage);
 			return { error, nullptr };
 		}
 
 		ActionHookResult<DataT> getDataRejection(const std::exception& e) const noexcept {
-			auto error = make_shared<ActionHookRejection>(id, name, "invalid_hook_data", e.what(), true);
+			auto error = make_shared<ActionHookRejection>(subscriber.getId(), subscriber.getName(), "invalid_hook_data", e.what(), true);
 			return { error, nullptr };
 		}
 
 		ActionHookResult<DataT> getData(const DataT& aData) const noexcept {
-			auto data = make_shared<ActionHookData<DataT>>(id, name, aData);
+			auto data = make_shared<ActionHookData<DataT>>(subscriber.getId(), subscriber.getName(), aData);
 			return { nullptr, data };
 		}
-	};
 
+		const ActionHookSubscriber& getSubscriber() const noexcept {
+			return subscriber;
+		}
+	protected:
+		ActionHookSubscriber subscriber;
+	};
 
 	template<typename DataT, typename... ArgT>
 	class ActionHook {
 	public:
 #define HOOK_HANDLER(func) &func, *this
-		class ActionHookHandler: public ActionHookSubscriber<DataT> {
-		public:
-			typedef std::function<ActionHookResult<DataT>(ArgT &... aItem, const ActionHookResultGetter<DataT> & aResultGetter)> HookCallback;
 
-			ActionHookHandler(const string& aId, const string& aName, const HookCallback& aCallback) noexcept: ActionHookSubscriber<DataT>(aId, aName), callback(aCallback) {  }
+		// Internal hook handler
+		class ActionHookHandler {
+		public:
+			typedef std::function<ActionHookResult<DataT>(ArgT&... aItem, const ActionHookResultGetter<DataT>& aResultGetter)> HookCallback;
+
+			ActionHookHandler(ActionHookSubscriber&& aSubscriber, const HookCallback& aCallback) noexcept: dataGetter(ActionHookDataGetter<DataT>(std::move(aSubscriber))), callback(aCallback) {  }
+
+			const string& getId() const noexcept {
+				return dataGetter.getSubscriber().getId();
+			}
 		protected:
 			friend class ActionHook;
 
+			ActionHookDataGetter<DataT> dataGetter;
 			HookCallback callback;
 		};
 
-		using CallbackFunc = std::function<ActionHookResult<DataT>(ArgT &... aArgs, const ActionHookResultGetter<DataT> & aResultGetter)>;
-		bool addSubscriber(const string& aId, const string& aName, CallbackFunc aCallback) noexcept {
+		typedef shared_ptr<ActionHookHandler> ActionHookHandlerPtr;
+
+		using CallbackFunc = std::function<ActionHookResult<DataT>(ArgT&... aArgs, const ActionHookResultGetter<DataT>& aResultGetter)>;
+		bool addSubscriber(ActionHookSubscriber&& aSubscriber, CallbackFunc aCallback) noexcept {
 			Lock l(cs);
-			if (findById(aId) != subscribers.end()) {
+			if (findById(aSubscriber.getId()) != subscribers.end()) {
 				return false;
 			}
 
-			subscribers.push_back(ActionHookHandler(aId, aName, aCallback));
+			subscribers.push_back(ActionHookHandler(std::move(aSubscriber), aCallback));
 			return true;
 		}
 
 		template<typename CallbackT, typename ObjectT>
-		bool addSubscriber(const string& aId, const string& aName, CallbackT aCallback, ObjectT& aObject) noexcept {
+		bool addSubscriber(ActionHookSubscriber&& aSubscriber, CallbackT aCallback, ObjectT& aObject) noexcept {
 			return addSubscriber(
-				aId,
-				aName,
+				std::move(aSubscriber),
 				[&, aCallback](ArgT&... aArgs, const ActionHookResultGetter<DataT>& aResultGetter) {
 					return (aObject.*aCallback)(aArgs..., aResultGetter);
 				}
@@ -159,18 +192,11 @@ namespace dcpp {
 		}
 
 		// Run all validation hooks, returns a rejection object in case of errors
-		ActionHookRejectionPtr runHooksError(ArgT&... aItem) const noexcept {
-			SubscriberList subscribersCopy;
-
-			{
-				Lock l(cs);
-				subscribersCopy = subscribers;
-			}
-
-			for (const auto& handler : subscribersCopy) {
+		ActionHookRejectionPtr runHooksError(const void* aOwner, ArgT&... aItem) const noexcept {
+			for (const auto& handler: getHookHandlers(aOwner)) {
 				auto res = handler.callback(
 					aItem..., 
-					handler
+					handler.dataGetter
 				);
 
 				if (res.error) {
@@ -183,8 +209,9 @@ namespace dcpp {
 		}
 
 		// Get data from all hooks, throw in case of rejections
-		ActionHookDataList<DataT> runHooksDataThrow(ArgT&... aItem) const {
+		ActionHookDataList<DataT> runHooksDataThrow(const void* aOwner, ArgT&... aItem) const {
 			return runHooksDataImpl(
+				aOwner,
 				[](const ActionHookRejectionPtr& aRejection) {
 					if (aRejection->isDataError) {
 						// Ignore data deserialization failures...
@@ -198,13 +225,13 @@ namespace dcpp {
 		}
 
 		// Get data from all hooks, ignore errors
-		ActionHookDataList<DataT> runHooksData(ArgT&... aItem) const {
-			return runHooksDataImpl(nullptr, std::forward<ArgT>(aItem)...);
+		ActionHookDataList<DataT> runHooksData(const void* aOwner, ArgT&... aItem) const {
+			return runHooksDataImpl(aOwner, nullptr, std::forward<ArgT>(aItem)...);
 		}
 
 		// Run all validation hooks, returns false in case of rejections
-		bool runHooksBasic(ArgT&... aItem) const noexcept {
-			auto rejection = runHooksError(aItem...);
+		bool runHooksBasic(const void* aOwner, ArgT&... aItem) const noexcept {
+			auto rejection = runHooksError(aOwner, aItem...);
 			return rejection ? false : true;
 		}
 
@@ -235,19 +262,12 @@ namespace dcpp {
 		SubscriberList subscribers;
 		mutable CriticalSection cs;
 
-		ActionHookDataList<DataT> runHooksDataImpl(const std::function<void(const ActionHookRejectionPtr&)> aRejectHandler, ArgT&... aItem) const {
-			SubscriberList subscribersCopy;
-
-			{
-				Lock l(cs);
-				subscribersCopy = subscribers;
-			}
-
+		ActionHookDataList<DataT> runHooksDataImpl(const void* aOwner, const std::function<void(const ActionHookRejectionPtr&)> aRejectHandler, ArgT&... aItem) const {
 			ActionHookDataList<DataT> ret;
-			for (const auto& handler : subscribersCopy) {
+			for (const auto& handler : getHookHandlers(aOwner)) {
 				auto handlerRes = handler.callback(
 					aItem...,
-					handler
+					handler.dataGetter
 				);
 
 				if (handlerRes.error) {
@@ -259,6 +279,21 @@ namespace dcpp {
 
 				if (handlerRes.data) {
 					ret.push_back(handlerRes.data);
+				}
+			}
+
+			return ret;
+		}
+
+		SubscriberList getHookHandlers(const void* aOwner) const noexcept {
+			SubscriberList ret;
+
+			{
+				Lock l(cs);
+				for (const auto& s: subscribers) {
+					if (!s.dataGetter.getSubscriber().getIgnoredOwner() || s.dataGetter.getSubscriber().getIgnoredOwner() != aOwner) {
+						ret.push_back(s);
+					}
 				}
 			}
 

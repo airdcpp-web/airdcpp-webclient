@@ -40,8 +40,8 @@ atomic_flag ShareScannerManager::scanning;
 #endif
 
 ShareScannerManager::ShareScannerManager() : stop(false), tasks(false) {
-	QueueManager::getInstance()->bundleCompletionHook.addSubscriber(SHARE_SCANNER_HOOK_ID, STRING(SHARE_SCANNER), HOOK_HANDLER(ShareScannerManager::bundleCompletionHook));
-	QueueManager::getInstance()->fileCompletionHook.addSubscriber(SFV_CHECKER_HOOK_ID, STRING(SHARE_SCANNER), HOOK_HANDLER(ShareScannerManager::fileCompletionHook));
+	QueueManager::getInstance()->bundleCompletionHook.addSubscriber(ActionHookSubscriber(SHARE_SCANNER_HOOK_ID, STRING(SHARE_SCANNER), nullptr), HOOK_HANDLER(ShareScannerManager::bundleCompletionHook));
+	QueueManager::getInstance()->fileCompletionHook.addSubscriber(ActionHookSubscriber(SFV_CHECKER_HOOK_ID, STRING(SHARE_SCANNER), nullptr), HOOK_HANDLER(ShareScannerManager::fileCompletionHook));
 
 	// Case sensitive
 	releaseReg.assign(AirUtil::getReleaseRegBasic());
@@ -267,7 +267,7 @@ void ShareScannerManager::ScanInfo::merge(ScanInfo& collect) const {
 bool ShareScannerManager::validateShare(const string& aPath, bool aSkipCheckQueue) {
 	if (SETTING(CHECK_USE_SKIPLIST)) {
 		try {
-			ShareManager::getInstance()->validatePathHooked(aPath, aSkipCheckQueue);
+			ShareManager::getInstance()->validatePathHooked(aPath, aSkipCheckQueue, this);
 		} catch (const Exception&) {
 			return false;
 		}
