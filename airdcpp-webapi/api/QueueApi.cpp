@@ -68,14 +68,14 @@ namespace webserver {
 		fileView("queue_file_view", this, QueueFileUtils::propertyHandler, getFileList) 
 	{
 
-		createHook("queue_file_finished_hook", [this](const string& aId, const string& aName) {
-			return QueueManager::getInstance()->fileCompletionHook.addSubscriber(aId, aName, HOOK_HANDLER(QueueApi::fileCompletionHook));
+		createHook("queue_file_finished_hook", [this](ActionHookSubscriber&& aSubscriber) {
+			return QueueManager::getInstance()->fileCompletionHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(QueueApi::fileCompletionHook));
 		}, [this](const string& aId) {
 			QueueManager::getInstance()->fileCompletionHook.removeSubscriber(aId);
 		});
 
-		createHook("queue_bundle_finished_hook", [this](const string& aId, const string& aName) {
-			return QueueManager::getInstance()->bundleCompletionHook.addSubscriber(aId, aName, HOOK_HANDLER(QueueApi::bundleCompletionHook));
+		createHook("queue_bundle_finished_hook", [this](ActionHookSubscriber&& aSubscriber) {
+			return QueueManager::getInstance()->bundleCompletionHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(QueueApi::bundleCompletionHook));
 		}, [this](const string& aId) {
 			QueueManager::getInstance()->bundleCompletionHook.removeSubscriber(aId);
 		});

@@ -28,6 +28,8 @@
 #define TTH_PARAM_ID "tth_param"
 #define CID_PARAM_ID "cid_param"
 
+#define CODE_DEFERRED websocketpp::http::status_code::see_other
+
 namespace webserver {
 	enum RequestMethod {
 		METHOD_POST,
@@ -111,6 +113,10 @@ namespace webserver {
 
 		const SessionPtr& getSession() const noexcept {
 			return session;
+		}
+
+		const void* getOwnerPtr() const noexcept {
+			return session.get();
 		}
 
 		const string& getRequestPath() const noexcept {

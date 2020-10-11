@@ -41,12 +41,11 @@
 
 
 #define CONTEXT_MENU_HANDLER(menuId, hook, hook2, idType, idDeserializerFunc, idSerializerFunc, access) \
-	createHook(toHookId(menuId), [this](const string& aId, const string& aName) { \
+	createHook(toHookId(menuId), [this](ActionHookSubscriber&& aSubscriber) { \
 		return cmm.hook##MenuHook.addSubscriber( \
-			aId, \
-			aName, \
-			[this](const vector<idType>& aSelections, const AccessList& aAccessList, const StringList& aSupports, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter) { \
-				return MenuApi::menuListHookHandler<idType>(aSelections, aAccessList, aResultGetter, menuId, idSerializerFunc, aSupports); \
+			std::move(aSubscriber), \
+			[this](const vector<idType>& aSelections, const ContextMenuItemListData& aListData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter) { \
+				return MenuApi::menuListHookHandler<idType>(aSelections, aListData, aResultGetter, menuId, idSerializerFunc); \
 			} \
 		); \
 	}, [this](const string& aId) { \
@@ -63,18 +62,17 @@
 	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list")), [=](ApiRequest& aRequest) { \
 		return handleListItems<idType>( \
 			aRequest, \
-			std::bind(&ContextMenuManager::get##hook2##Menu, &cmm, placeholders::_1, placeholders::_2, placeholders::_3), \
+			std::bind(&ContextMenuManager::get##hook2##Menu, &cmm, placeholders::_1, placeholders::_2), \
 			idDeserializerFunc \
 		); \
 	});
 
 #define ENTITY_CONTEXT_MENU_HANDLER(menuId, hook, hook2, idType, idDeserializerFunc, idSerializerFunc, entityType, entityDeserializerFunc, access) \
-	createHook(toHookId(menuId), [this](const string& aId, const string& aName) { \
+	createHook(toHookId(menuId), [this](ActionHookSubscriber&& aSubscriber) { \
 		return cmm.hook##MenuHook.addSubscriber( \
-			aId, \
-			aName, \
-			[this](const vector<idType>& aSelections, const AccessList& aAccessList, const entityType& aEntity, const StringList& aSupports, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter) { \
-				return MenuApi::menuListHookHandler<idType>(aSelections, aAccessList, aResultGetter, menuId, idSerializerFunc, aSupports, aEntity->getToken()); \
+			std::move(aSubscriber), \
+			[this](const vector<idType>& aSelections, const ContextMenuItemListData& aListData, const entityType& aEntity, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter) { \
+				return MenuApi::menuListHookHandler<idType>(aSelections, aListData, aResultGetter, menuId, idSerializerFunc, aEntity->getToken()); \
 			} \
 		); \
 	}, [this](const string& aId) { \
@@ -97,8 +95,8 @@
 		auto entity = entityDeserializerFunc(entityId, "entity_id"); \
 		return handleListItems<idType>( \
 			aRequest, \
-			[=](const vector<idType>& aSelectedIds, const AccessList& aAccessList, const StringList& aSupports) { \
-				return cmm.get##hook2##Menu(aSelectedIds, aAccessList, aSupports, entity); \
+			[=](const vector<idType>& aSelectedIds, const ContextMenuItemListData& aListData) { \
+				return cmm.get##hook2##Menu(aSelectedIds, aListData, entity); \
 			}, \
 			idDeserializerFunc \
 		); \
@@ -262,7 +260,7 @@ namespace webserver {
 		const auto iconInfo = deserializeIconInfo(JsonUtil::getOptionalRawField("icon", aData, false));
 		const auto urls = JsonUtil::getOptionalFieldDefault<StringList>("urls", aData, StringList());
 
-		return make_shared<ContextMenuItem>(id, title, iconInfo, aResultGetter.getId(), urls, deserializeFormFieldDefinitions(aData));
+		return make_shared<ContextMenuItem>(id, title, iconInfo, aResultGetter.getSubscriber().getId(), urls, deserializeFormFieldDefinitions(aData));
 	}
 
 
