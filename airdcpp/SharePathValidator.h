@@ -91,14 +91,14 @@ public:
 	// FileException is thrown if some of the directories don't exist
 	void validateNewDirectoryPathTokensHooked(const string& aBasePath, const StringList& aTokens, bool aSkipQueueCheck, const void* aCaller) const;
 
-	// Check a new file path
-	// Throws ShareValidatorException/QueueException in case of errors
-	// FileException is thrown if the file doesn't exist
-	void validateNewFilePathHooked(const string& aPath, bool aSkipQueueCheck, bool aNewParent, const void* aCaller) const;
-
 	// Check a single directory/file item
 	// Throws ShareValidatorException/QueueException in case of errors
-	void validateHooked(const FileItem& aFileItem, const string& aPath, bool aSkipQueueCheck, const void* aCaller) const;
+	void validateHooked(const FileItem& aFileItem, const string& aPath, bool aSkipQueueCheck, const void* aCaller, bool aIsNew, bool aNewParent) const;
+
+	// Check a new file/directory path
+	// Throws ShareValidatorException/QueueException in case of errors
+	// FileException is thrown if the file doesn't exist
+	void validateNewPathHooked(const string& aPath, bool aSkipQueueCheck, bool aNewParent, const void* aCaller) const;
 private:
 	// Comprehensive check for a directory/file whether it is valid to be added in share
 	// Use validateRootPath for new root directories instead

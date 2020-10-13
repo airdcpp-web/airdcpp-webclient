@@ -48,6 +48,7 @@
 namespace dcpp {
 
 class File;
+class ErrorCollector;
 class OutputStream;
 class MemoryInputStream;
 class SearchQuery;
@@ -68,6 +69,20 @@ struct TempShareInfo {
 	const time_t timeAdded;
 
 	bool hasAccess(const UserPtr& aUser) const noexcept;
+};
+
+struct ShareRefreshStats {
+	int64_t hashSize = 0;
+	int64_t addedSize = 0;
+
+	size_t existingDirectoryCount = 0;
+	size_t existingFileCount = 0;
+	size_t newDirectoryCount = 0;
+	size_t newFileCount = 0;
+	size_t skippedDirectoryCount = 0;
+	size_t skippedFileCount = 0;
+
+	void merge(const ShareRefreshStats& aOther) noexcept;
 };
 
 enum class ShareRefreshType : uint8_t {
@@ -680,9 +695,9 @@ private:
 
 		Directory::Ptr oldShareDirectory;
 		Directory::Ptr newShareDirectory;
-		int64_t hashSize = 0;
-		int64_t addedSize = 0;
-		size_t newDirectoriesCount = 0;
+
+		ShareRefreshStats stats;
+
 		Directory::Map rootPathsNew;
 		Directory::MultiMap lowerDirNameMapNew;
 		HashFileMap tthIndexNew;
@@ -691,7 +706,7 @@ private:
 
 		ShareManager::ShareBloom& bloom;
 
-		void mergeRefreshChanges(Directory::MultiMap& aDirNameMap, Directory::Map& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) noexcept;
+		void applyRefreshChanges(Directory::MultiMap& lowerDirNameMap_, Directory::Map& rootPaths_, HashFileMap& tthIndex_, int64_t& sharedBytes_, ProfileTokenSet* dirtyProfiles) noexcept;
 		bool checkContent(const Directory::Ptr& aDirectory) noexcept;
 	};
 
@@ -704,13 +719,16 @@ private:
 	private:
 		void buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aCurrentDirectory, const Directory::Ptr& aOldDirectory, const bool& aStopping);
 
+		typedef function<void()> ValidatorF;
+		bool validateFileItem(const FileItem& aFileItem, const string& aPath, bool aIsNew, bool aNewParent, ErrorCollector& aErrorCollector) noexcept;
+
 		const ShareManager& sm;
 	};
 
 	typedef shared_ptr<ShareBuilder> ShareBuilderPtr;
 	typedef set<ShareBuilderPtr, std::less<ShareBuilderPtr>> ShareBuilderSet;
 
-	bool applyRefreshChanges(RefreshInfo& ri, int64_t& totalHash_, ProfileTokenSet* aDirtyProfiles);
+	bool applyRefreshChanges(RefreshInfo& ri, ProfileTokenSet* aDirtyProfiles);
 
 	// Display a log message if the refresh can't be started immediately
 	void reportPendingRefresh(ShareRefreshType aTask, const RefreshPathList& aDirectories, const string& displayName) const noexcept;
@@ -833,7 +851,7 @@ private:
 	void loadProfile(SimpleXML& aXml, const string& aName, ProfileToken aToken);
 	void save(SimpleXML& aXml);
 
-	void reportTaskStatus(const ShareRefreshTask& aTask, bool aFinished, int64_t aHashSize) const noexcept;
+	void reportTaskStatus(const ShareRefreshTask& aTask, bool aFinished, const ShareRefreshStats* aStats) const noexcept;
 	
 	ShareProfileList shareProfiles;
 }; //sharemanager end

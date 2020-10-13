@@ -1263,7 +1263,7 @@ void DirectoryListing::onListRemovedQueue(const string& aTarget, const string& a
 	TrackableDownloadItem::onRemovedQueue(aTarget, aFinished);
 }
 
-void DirectoryListing::on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, int64_t) noexcept{
+void DirectoryListing::on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, const ShareRefreshStats&) noexcept{
 	if (!aSucceed || !partialList)
 		return;
 

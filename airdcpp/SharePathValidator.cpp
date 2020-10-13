@@ -191,7 +191,7 @@ void SharePathValidator::saveExcludes(SimpleXML& aXml) const noexcept {
 	aXml.stepOut();
 }
 
-void SharePathValidator::validateHooked(const FileItem& aFileItem, const string& aPath, bool aSkipQueueCheck, const void* aCaller) const {
+void SharePathValidator::validateHooked(const FileItem& aFileItem, const string& aPath, bool aSkipQueueCheck, const void* aCaller, bool aIsNew, bool aNewParent) const {
 	if (!SETTING(SHARE_HIDDEN) && aFileItem.isHidden()) {
 		throw ShareValidatorException("File is hidden", ShareValidatorErrorType::TYPE_CONFIG_BOOLEAN);
 	}
@@ -214,6 +214,13 @@ void SharePathValidator::validateHooked(const FileItem& aFileItem, const string&
 			throw ShareValidatorException("Directory is excluded from share", ShareValidatorErrorType::TYPE_EXCLUDED);
 		}
 
+		if (aIsNew) {
+			auto error = newDirectoryValidationHook.runHooksError(aCaller, aPath, aNewParent);
+			if (error) {
+				throw ShareValidatorException(ActionHookRejection::formatError(error), ShareValidatorErrorType::TYPE_HOOK);
+			}
+		}
+
 		auto error = directoryValidationHook.runHooksError(aCaller, aPath);
 		if (error) {
 			throw ShareValidatorException(ActionHookRejection::formatError(error), ShareValidatorErrorType::TYPE_HOOK);
@@ -221,6 +228,13 @@ void SharePathValidator::validateHooked(const FileItem& aFileItem, const string&
 	} else {
 		auto size = aFileItem.getSize();
 		checkSharedName(aPath, false, size);
+
+		if (aIsNew) {
+			auto error = newFileValidationHook.runHooksError(aCaller, aPath, size, aNewParent);
+			if (error) {
+				throw ShareValidatorException(ActionHookRejection::formatError(error), ShareValidatorErrorType::TYPE_HOOK);
+			}
+		}
 
 		auto error = fileValidationHook.runHooksError(aCaller, aPath, size);
 		if (error) {
@@ -266,37 +280,14 @@ void SharePathValidator::validateNewDirectoryPathTokensHooked(const string& aBas
 	auto newParent = false;
 	for (const auto& currentName: aNewTokens) {
 		curPath += currentName + PATH_SEPARATOR;
-
-		{
-			File f(curPath, File::READ, File::OPEN, File::BUFFER_NONE);
-			dcassert(f.isDirectory());
-			validateHooked(f, curPath, aSkipQueueCheck, aCaller);
-		}
-
-		auto error = newDirectoryValidationHook.runHooksError(aCaller, curPath, newParent);
-		if (error) {
-			throw ShareValidatorException(ActionHookRejection::formatError(error), ShareValidatorErrorType::TYPE_HOOK);
-		}
-
-		newParent = false;
+		validateNewPathHooked(curPath, aSkipQueueCheck, newParent, aCaller);
+		newParent = true;
 	}
 }
 
-void SharePathValidator::validateNewFilePathHooked(const string& aPath, bool aSkipQueueCheck, bool aNewParent, const void* aCaller) const {
-	int64_t size;
-
-	{
-		File f(aPath, File::READ, File::OPEN, File::BUFFER_NONE);
-		dcassert(!f.isDirectory());
-		validateHooked(f, aPath, aSkipQueueCheck, aCaller);
-
-		size = f.getSize();
-	}
-
-	auto error = newFileValidationHook.runHooksError(aCaller, aPath, size, aNewParent);
-	if (error) {
-		throw ShareValidatorException(ActionHookRejection::formatError(error), ShareValidatorErrorType::TYPE_HOOK);
-	}
+void SharePathValidator::validateNewPathHooked(const string& aPath, bool aSkipQueueCheck, bool aNewParent, const void* aCaller) const {
+	File f(aPath, File::READ, File::OPEN, File::BUFFER_NONE);
+	validateHooked(f, aPath, aSkipQueueCheck, aCaller, true, aNewParent);
 }
 
 }
