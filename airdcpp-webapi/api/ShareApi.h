@@ -38,7 +38,8 @@ namespace webserver {
 
 		api_return handleRefreshShare(ApiRequest& aRequest);
 		api_return handleRefreshPaths(ApiRequest& aRequest);
-		api_return handleRefreshVirtual(ApiRequest& aRequest);
+		api_return handleRefreshVirtualName(ApiRequest& aRequest);
+		api_return handleRefreshVirtualPath(ApiRequest& aRequest);
 		api_return handleAbortRefreshShare(ApiRequest& aRequest);
 		api_return handleAbortRefreshTask(ApiRequest& aRequest);
 		api_return handleGetRefreshTasks(ApiRequest& aRequest);
@@ -79,6 +80,7 @@ namespace webserver {
 		static string refreshPriorityToString(ShareRefreshPriority aPriority) noexcept;
 
 		static ShareRefreshPriority parseRefreshPriority(const json& aJson);
+		static string formatVirtualPath(const string& aVirtualPath);
 	};
 }
 

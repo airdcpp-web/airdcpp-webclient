@@ -97,6 +97,10 @@ namespace webserver {
 
 	void FileSearchParser::parseOptions(const json& aJson, const SearchPtr& aSearch) {
 		aSearch->path = JsonUtil::getOptionalFieldDefault<string>("path", aJson, ADC_ROOT_STR);
+		if (!Util::isAdcDirectoryPath(aSearch->path)) {
+			JsonUtil::throwError("Path", JsonUtil::ERROR_INVALID, "Path " + aSearch->path + " isn't a valid ADC directory path");
+		}
+
 		aSearch->maxResults = JsonUtil::getOptionalFieldDefault<int>("max_results", aJson, 5);
 		aSearch->returnParents = JsonUtil::getOptionalFieldDefault<bool>("return_parents", aJson, false);
 		aSearch->requireReply = true;
