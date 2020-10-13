@@ -3322,7 +3322,7 @@ void QueueManager::getBundlePaths(OrderedStringSet& retBundles) const noexcept {
 	}
 }
 
-void QueueManager::on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, int64_t) noexcept {
+void QueueManager::on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, const ShareRefreshStats&) noexcept {
 	if (!aSucceed) {
 		return;
 	}

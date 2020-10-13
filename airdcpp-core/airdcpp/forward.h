@@ -176,7 +176,10 @@ class ServerSocket;
 class ShareProfile;
 typedef std::shared_ptr<ShareProfile> ShareProfilePtr;
 typedef vector<ShareProfilePtr> ShareProfileList;
+
 typedef set<string> RefreshPathList;
+struct ShareRefreshStats;
+
 struct ShareRefreshTask;
 typedef uint32_t ShareRefreshTaskToken;
 
