@@ -583,12 +583,23 @@ namespace webserver {
 		});
 	}
 
-	void ShareApi::on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, int64_t aTotalHash) noexcept {
+	void ShareApi::on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, const ShareRefreshStats& aStats) noexcept {
 		maybeSend("share_refresh_completed", [&] {
 			return json({
 				{ "task", serializeRefreshTask(aTask) },
-				{ "hash_bytes_queued", aTotalHash },
-
+				{ "results", {
+					{ "directory_counts", {
+						{ "skipped", aStats.skippedDirectoryCount },
+						{ "existing", aStats.existingDirectoryCount },
+						{ "new", aStats.newDirectoryCount },
+					}},
+					{ "file_counts", {
+						{ "skipped", aStats.skippedFileCount },
+						{ "existing", aStats.existingFileCount },
+						{ "new", aStats.newFileCount },
+					}},
+					{ "hash_bytes_queued", aStats.hashSize },
+				}},
 				{ "real_paths", aTask.dirs }, // DEPRECATED 
 				{ "type", refreshTypeToString(aTask.type) }, // DEPRECATED
 			});

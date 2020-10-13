@@ -127,7 +127,9 @@ namespace webserver {
 		const bool managed;
 		bool privateExtension = false;
 
-		StringList getLaunchParams(WebServerManager* wsm, const SessionPtr& aSession) const noexcept;
+		// Get the arguments for launching the extension
+		// The escape option should be used only when the args can't be passed separately (the extension is launched with one string command)
+		StringList getLaunchParams(WebServerManager* wsm, const SessionPtr& aSession, bool aEscape) const noexcept;
 		static string getConnectUrl(WebServerManager* wsm) noexcept;
 
 		bool running = false;
