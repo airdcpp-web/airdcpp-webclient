@@ -1672,7 +1672,7 @@ void ShareManager::validateDirectoryRecursiveDebug(const Directory::Ptr& aDir, O
 
 #endif
 
-optional<ShareManager::RefreshTaskQueueInfo> ShareManager::refreshVirtualName(const string& aVirtualName) noexcept {
+optional<ShareManager::RefreshTaskQueueInfo> ShareManager::refreshVirtualName(const string& aVirtualName, ShareRefreshPriority aPriority) noexcept {
 	StringList refreshDirs;
 
 	{
@@ -1688,7 +1688,7 @@ optional<ShareManager::RefreshTaskQueueInfo> ShareManager::refreshVirtualName(co
 		return nullopt;
 	}
 
-	return addRefreshTask(ShareRefreshPriority::MANUAL, refreshDirs, ShareRefreshType::REFRESH_DIRS, aVirtualName);
+	return addRefreshTask(aPriority, refreshDirs, ShareRefreshType::REFRESH_DIRS, aVirtualName);
 }
 
 
@@ -2088,7 +2088,7 @@ void ShareManager::reportTaskStatus(const ShareRefreshTask& aTask, bool aFinishe
 	};
 
 	if (!msg.empty()) {
-		if (aStats) {
+		if (aStats && aStats->hashSize > 0) {
 			msg += " " + STRING_F(FILES_ADDED_FOR_HASH, Util::formatBytes(aStats->hashSize));
 		} else if (aTask.priority == ShareRefreshPriority::SCHEDULED && !SETTING(LOG_SCHEDULED_REFRESHES)) {
 			return;

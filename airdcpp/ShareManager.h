@@ -170,7 +170,7 @@ public:
 
 	// Refresh a single single path or all paths under a virtual name (roots only)
 	// Returns nullopt if the path doesn't exist in share
-	optional<RefreshTaskQueueInfo> refreshVirtualName(const string& aDir) noexcept;
+	optional<RefreshTaskQueueInfo> refreshVirtualName(const string& aVirtualName, ShareRefreshPriority aPriority) noexcept;
 
 	// Refresh the specific directories
 	// Returns nullopt if the path doesn't exist in share (and it can't be added there)
