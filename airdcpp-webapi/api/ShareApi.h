@@ -61,7 +61,7 @@ namespace webserver {
 
 		void on(ShareManagerListener::RefreshQueued, const ShareRefreshTask& aTask) noexcept override;
 		void on(ShareManagerListener::RefreshStarted, const ShareRefreshTask& aTask) noexcept override;
-		void on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, int64_t aTotalHash) noexcept override;
+		void on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, const ShareRefreshStats& aStats) noexcept override;
 
 		void on(ShareManagerListener::ExcludeAdded, const string& aPath) noexcept override;
 		void on(ShareManagerListener::ExcludeRemoved, const string& aPath) noexcept override;
