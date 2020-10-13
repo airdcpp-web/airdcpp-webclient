@@ -65,7 +65,7 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh")),							ShareApi::handleRefreshShare);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("refresh")),							ShareApi::handleAbortRefreshShare);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh"), EXACT_PARAM("paths")),		ShareApi::handleRefreshPaths);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh"), EXACT_PARAM("virtual")),	ShareApi::handleRefreshVirtual);
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh"), EXACT_PARAM("virtual")),	ShareApi::handleRefreshVirtualPath);
 
 		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("refresh"), EXACT_PARAM("tasks")),					ShareApi::handleGetRefreshTasks);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("refresh"), EXACT_PARAM("tasks"), TOKEN_PARAM),	ShareApi::handleAbortRefreshTask);
@@ -418,7 +418,16 @@ namespace webserver {
 		return CODE_DEFERRED;
 	}
 
-	api_return ShareApi::handleRefreshVirtual(ApiRequest& aRequest) {
+	string ShareApi::formatVirtualPath(const string& aVirtualPath) {
+		auto tokens = StringTokenizer<string>(aVirtualPath, ADC_SEPARATOR).getTokens();
+		if (tokens.size() == 1) {
+			return tokens.front();
+		}
+
+		return aVirtualPath;
+	}
+
+	api_return ShareApi::handleRefreshVirtualPath(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 		addAsyncTask([
 			virtualPath = JsonUtil::getField<string>("path", reqJson, false),
@@ -426,14 +435,19 @@ namespace webserver {
 			complete = aRequest.defer(),
 			callerPtr = aRequest.getOwnerPtr()
 		] {
+			if (!Util::isAdcDirectoryPath(virtualPath)) {
+				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr("Path " + virtualPath + " isn't a valid ADC directory path"));
+				return;
+			}
+
 			StringList refreshPaths;
 			try {
 				ShareManager::getInstance()->getRealPaths(virtualPath, refreshPaths);
 
-				auto refreshInfo = ShareManager::getInstance()->refreshPathsHookedThrow(priority, refreshPaths, callerPtr);
+				auto refreshInfo = ShareManager::getInstance()->refreshPathsHookedThrow(priority, refreshPaths, callerPtr, formatVirtualPath(virtualPath));
 				complete(websocketpp::http::status_code::ok, serializeRefreshQueueInfo(refreshInfo), nullptr);
 			} catch (const ShareException& e) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, e.getError());
+				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 			}
 		});
 
@@ -488,7 +502,7 @@ namespace webserver {
 	api_return ShareApi::handleValidatePath(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 		addAsyncTask([
-			path = JsonUtil::getField<string>("path", reqJson),
+			path = JsonUtil::getField<string>("path", reqJson), // File/directory path
 			skipCheckQueue = JsonUtil::getOptionalFieldDefault<bool>("skip_check_queue", reqJson, false),
 			complete = aRequest.defer(),
 			callerPtr = aRequest.getOwnerPtr()
@@ -526,6 +540,7 @@ namespace webserver {
 
 		auto path = JsonUtil::getOptionalField<string>("path", reqJson);
 		if (path) {
+			// Note: non-standard/partial paths are allowed, no strict directory path validation
 			ret = ShareManager::getInstance()->getAdcDirectoryPaths(*path);
 		} else {
 			auto tth = Deserializer::deserializeTTH(reqJson);
