@@ -60,14 +60,8 @@ namespace webserver {
 #endif
 		} else {
 			// Validate path
-			try {
-				File f(path, File::READ, File::OPEN, File::BUFFER_NONE);
-				if (!f.isDirectory()) {
-					aRequest.setResponseErrorStr("Path is not a directory");
-					return websocketpp::http::status_code::bad_request;
-				}
-			} catch (const FileException& e) {
-				aRequest.setResponseErrorStr(e.getError());
+			if (!File::isDirectory(path)) {
+				aRequest.setResponseErrorStr("Directory " + path + " doesn't exist");
 				return websocketpp::http::status_code::bad_request;
 			}
 
