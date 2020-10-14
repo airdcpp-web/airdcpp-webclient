@@ -191,7 +191,7 @@ void SharePathValidator::saveExcludes(SimpleXML& aXml) const noexcept {
 	aXml.stepOut();
 }
 
-void SharePathValidator::validateHooked(const FileItem& aFileItem, const string& aPath, bool aSkipQueueCheck, const void* aCaller, bool aIsNew, bool aNewParent) const {
+void SharePathValidator::validateHooked(const FileItemInfoBase& aFileItem, const string& aPath, bool aSkipQueueCheck, const void* aCaller, bool aIsNew, bool aNewParent) const {
 	if (!SETTING(SHARE_HIDDEN) && aFileItem.isHidden()) {
 		throw ShareValidatorException("File is hidden", ShareValidatorErrorType::TYPE_CONFIG_BOOLEAN);
 	}
@@ -286,7 +286,7 @@ void SharePathValidator::validateNewDirectoryPathTokensHooked(const string& aBas
 }
 
 void SharePathValidator::validateNewPathHooked(const string& aPath, bool aSkipQueueCheck, bool aNewParent, const void* aCaller) const {
-	File f(aPath, File::READ, File::OPEN, File::BUFFER_NONE);
+	FileItem f(aPath);
 	validateHooked(f, aPath, aSkipQueueCheck, aCaller, true, aNewParent);
 }
 

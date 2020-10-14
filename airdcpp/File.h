@@ -37,14 +37,14 @@ struct FilesystemItem {
 	string getPath(const string& aBasePath) const noexcept;
 };
 
-struct FileItem {
+struct FileItemInfoBase {
 	virtual bool isDirectory() const noexcept = 0;
 	virtual bool isHidden() const noexcept = 0;
 	virtual bool isLink() const noexcept = 0;
 	virtual int64_t getSize() const noexcept = 0;
 };
 
-class File: public IOStream, public FileItem {
+class File: public IOStream {
 public:
 	enum Mode {
 		OPEN = 0x01,
@@ -109,12 +109,8 @@ public:
 	~File();
 
 	bool isOpen() const noexcept;
-	int64_t getSize() const noexcept override;
+	int64_t getSize() const noexcept;
 	void setSize(int64_t newSize);
-
-	bool isDirectory() const noexcept override;
-	bool isHidden() const noexcept override;
-	bool isLink() const noexcept override;
 
 	int64_t getPos() const noexcept;
 	void setPos(int64_t pos) noexcept override;
@@ -192,8 +188,9 @@ public:
 	static std::string makeAbsolutePath(const std::string& filename);
 	static std::string makeAbsolutePath(const std::string& path, const std::string& filename);
 
-	static bool isAbsolutePath(const string& path) noexcept;
-	static bool isHidden(const string& path) noexcept;
+	static bool isAbsolutePath(const string& aPath) noexcept;
+	static bool isHidden(const string& aPath) noexcept;
+	static bool isDirectory(const string& aPath) noexcept;
 
 	string readFromEnd(size_t len);
 	string read(size_t len);
@@ -218,6 +215,7 @@ public:
 #define HandleType HANDLE
 #else
 #define HandleType int
+	static bool isLink(const string& aPath) noexcept;
 #endif
 
 	HandleType getNativeHandle() const noexcept { return h; }
@@ -243,7 +241,7 @@ public:
 	FileFindIter& operator++();
 	bool operator!=(const FileFindIter& rhs) const;
 
-	struct DirData: FileItem {
+	struct DirData: FileItemInfoBase {
 		DirData();
 
 		string getFileName() const noexcept;
@@ -260,8 +258,8 @@ public:
 		#endif
 	};
 
-	DirData& operator*() { return data; }
-	DirData* operator->() { return &data; }
+	const DirData& operator*() const noexcept { return data; }
+	const DirData* operator->() const noexcept { return &data; }
 
 private:
 	FileFindIter& validateCurrent();
@@ -273,6 +271,22 @@ private:
 #endif
 
 	DirData data;
+};
+
+class FileItem : public FileItemInfoBase {
+public:
+	FileItem(const string& aPath);
+
+	bool isDirectory() const noexcept override;
+	bool isHidden() const noexcept override;
+	bool isLink() const noexcept override;
+	int64_t getSize() const noexcept override;
+private:
+#ifdef _WIN32
+	FileFindIter ff;
+#else
+	string path;
+#endif
 };
 
 #ifdef _WIN32

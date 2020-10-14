@@ -1459,7 +1459,7 @@ bool ShareManager::ShareBuilder::buildTree(const bool& aStopping) noexcept {
 	return !aStopping;
 }
 
-bool ShareManager::ShareBuilder::validateFileItem(const FileItem& aFileItem, const string& aPath, bool aIsNew, bool aNewParent, ErrorCollector& aErrorCollector) noexcept {
+bool ShareManager::ShareBuilder::validateFileItem(const FileItemInfoBase& aFileItem, const string& aPath, bool aIsNew, bool aNewParent, ErrorCollector& aErrorCollector) noexcept {
 	try {
 		sm.validator->validateHooked(aFileItem, aPath, false, &sm, aIsNew, aNewParent);
 	} catch (const ShareValidatorException& e) {

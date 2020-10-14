@@ -84,7 +84,7 @@ File::File(const string& aFileName, int aAccess, int aMode, BufferMode aBufferMo
 	}
 
 #ifdef _DEBUG
-	dcassert(isDirectory() == isDirectoryPath);
+	dcassert(isDirectory(aFileName) == isDirectoryPath);
 
 	// Strip possible network path prefix
 	auto fileName = aFileName.size() > 2 && aFileName.substr(0, 2) == "\\\\" ? aFileName.substr(2) : aFileName;
@@ -144,34 +144,6 @@ int64_t File::getSize() const noexcept {
 		return -1;
 
 	return x.QuadPart;
-}
-
-
-bool File::isDirectory() const noexcept {
-	FILE_BASIC_INFO i;
-	if (!GetFileInformationByHandleEx(h, FileBasicInfo, &i, sizeof(i))) {
-		return false;
-	}
-
-	return (i.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) > 0;
-}
-
-bool File::isHidden() const noexcept {
-	FILE_BASIC_INFO i;
-	if (!GetFileInformationByHandleEx(h, FileBasicInfo, &i, sizeof(i))) {
-		return false;
-	}
-
-	return ((i.FileAttributes & FILE_ATTRIBUTE_HIDDEN) /*|| (cFileName[0] == L'.')*/ || (i.FileAttributes & FILE_ATTRIBUTE_SYSTEM) || (i.FileAttributes & FILE_ATTRIBUTE_OFFLINE));
-}
-
-bool File::isLink() const noexcept {
-	FILE_BASIC_INFO i;
-	if (!GetFileInformationByHandleEx(h, FileBasicInfo, &i, sizeof(i))) {
-		return false;
-	}
-
-	return (i.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) > 0;
 }
 
 int64_t File::getPos() const noexcept {
@@ -295,6 +267,15 @@ bool File::isHidden(const string& aPath) noexcept {
 	FileFindIter ff = FileFindIter(aPath);
 	if (ff != FileFindIter()) {
 		return ff->isHidden();
+	}
+
+	return false;
+}
+
+bool File::isDirectory(const string& aPath) noexcept {
+	FileFindIter ff = FileFindIter(aPath);
+	if (ff != FileFindIter()) {
+		return ff->isDirectory();
 	}
 
 	return false;
@@ -462,26 +443,6 @@ int64_t File::getSize() const noexcept {
 		return -1;
 
 	return (int64_t)s.st_size;
-}
-
-bool File::isDirectory() const noexcept {
-	struct stat inode;
-	if (::fstat(h, &inode) == -1) return false;
-	return S_ISDIR(inode.st_mode);
-}
-
-bool File::isHidden() const noexcept {
-	auto fileName = Util::getFileName(getRealPath());
-
-	// Check if the parent directory is hidden for '.'
-	// if (strcmp(fileName, ".") == 0 && base[0] == '.') return true;
-	return fileName.length() > 1 && fileName[0] == '.';
-}
-
-bool File::isLink() const noexcept {
-	struct stat inode;
-	if (::fstat(h, &inode) == -1) return false;
-	return S_ISLNK(inode.st_mode);
 }
 
 int64_t File::getPos() const noexcept {
@@ -701,6 +662,18 @@ bool File::removeDirectory(const string& aPath) noexcept {
 
 bool File::isHidden(const string& aPath) noexcept {
 	return aPath.find("/.") != string::npos;
+}
+
+bool File::isDirectory(const string& aPath) noexcept {
+	struct stat inode;
+	if (stat(aPath.c_str(), &inode) == -1) return false;
+	return S_ISDIR(inode.st_mode);
+}
+
+bool File::isLink(const string& aPath) noexcept {
+	struct stat inode;
+	if (lstat(aPath.c_str(), &inode) == -1) return false;
+	return S_ISLNK(inode.st_mode);
 }
 
 #endif // !_WIN32
@@ -1005,7 +978,7 @@ FileFindIter& FileFindIter::operator++() {
 
 bool FileFindIter::operator!=(const FileFindIter& rhs) const { return handle != rhs.handle; }
 
-FileFindIter::DirData::DirData() : FileItem() { }
+FileFindIter::DirData::DirData() { }
 
 string FileFindIter::DirData::getFileName() const noexcept {
 	return Text::fromT(fd.cFileName);
@@ -1029,6 +1002,30 @@ int64_t FileFindIter::DirData::getSize() const noexcept {
 
 time_t FileFindIter::DirData::getLastWriteTime() const noexcept {
 	return File::convertTime(&fd.ftLastWriteTime);
+}
+
+FileItem::FileItem(const string& aPath) : ff(aPath) {
+	if (ff != FileFindIter()) {
+		// ...
+	} else {
+		throw FileException(Util::translateError(GetLastError()));
+	}
+}
+
+bool FileItem::isDirectory() const noexcept {
+	return ff->isDirectory();
+}
+
+bool FileItem::isHidden() const noexcept {
+	return ff->isHidden();
+}
+
+bool FileItem::isLink() const noexcept {
+	return ff->isLink();
+}
+
+int64_t FileItem::getSize() const noexcept {
+	return ff->getSize();
 }
 
 #else // _WIN32
@@ -1121,15 +1118,12 @@ bool FileFindIter::DirData::isHidden() const noexcept {
 bool FileFindIter::DirData::isLink() const noexcept {
 	struct stat inode;
 	if (!ent) return false;
-	if (lstat((base + PATH_SEPARATOR + ent->d_name).c_str(), &inode) == -1) return false;
-	return S_ISLNK(inode.st_mode);
+	return File::isLink(base + PATH_SEPARATOR + ent->d_name);
 }
 
 int64_t FileFindIter::DirData::getSize() const noexcept {
-	struct stat inode;
 	if (!ent) return 0;
-	if (stat((base + PATH_SEPARATOR + ent->d_name).c_str(), &inode) == -1) return 0;
-	return inode.st_size;
+	return File::getSize(base + PATH_SEPARATOR + ent->d_name);
 }
 
 time_t FileFindIter::DirData::getLastWriteTime() const noexcept {
@@ -1137,6 +1131,29 @@ time_t FileFindIter::DirData::getLastWriteTime() const noexcept {
 	if (!ent) return 0;
 	if (stat((base + PATH_SEPARATOR + ent->d_name).c_str(), &inode) == -1) return 0;
 	return inode.st_mtime;
+}
+
+FileItem::FileItem(const string& aPath) : path(aPath) {
+	struct stat inode;
+	if (stat(aPath.c_str(), &inode) == -1) {
+		throw FileException(Util::translateError(errno));
+	}
+}
+
+bool FileItem::isDirectory() const noexcept {
+	return File::isDirectory(path);
+}
+
+bool FileItem::isHidden() const noexcept {
+	return File::isHidden(path);
+}
+
+bool FileItem::isLink() const noexcept {
+	return File::isLink(path);
+}
+
+int64_t FileItem::getSize() const noexcept {
+	return File::getSize(path);
 }
 
 #endif // _WIN32
