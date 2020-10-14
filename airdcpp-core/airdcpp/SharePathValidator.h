@@ -93,7 +93,7 @@ public:
 
 	// Check a single directory/file item
 	// Throws ShareValidatorException/QueueException in case of errors
-	void validateHooked(const FileItem& aFileItem, const string& aPath, bool aSkipQueueCheck, const void* aCaller, bool aIsNew, bool aNewParent) const;
+	void validateHooked(const FileItemInfoBase& aFileItem, const string& aPath, bool aSkipQueueCheck, const void* aCaller, bool aIsNew, bool aNewParent) const;
 
 	// Check a new file/directory path
 	// Throws ShareValidatorException/QueueException in case of errors
