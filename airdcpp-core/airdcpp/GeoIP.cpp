@@ -93,7 +93,7 @@ string GeoIP::getCountry(const string& ip) const {
 			&mmdb_error
 		);
 
-		if (mmdb_error == MMDB_SUCCESS && gai_error == 0) {
+		if (res.found_entry && mmdb_error == MMDB_SUCCESS && gai_error == 0) {
 			const string& setting = SETTING(COUNTRY_FORMAT);
 
 			ParamMap params;
