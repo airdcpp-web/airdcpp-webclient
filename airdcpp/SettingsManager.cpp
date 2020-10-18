@@ -774,7 +774,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(ALLOW_MATCH_FULL_LIST, true);
 	setDefault(REPORT_ADDED_SOURCES, false);
 	setDefault(EXPAND_BUNDLES, false);
-	setDefault(COUNTRY_FORMAT, "%[2code] - %[name]");
+	setDefault(COUNTRY_FORMAT, "%[2code]");
 	setDefault(FORMAT_DIR_REMOTE_TIME, false);
 	setDefault(DISCONNECT_MIN_SOURCES, 2);
 	setDefault(USE_SLOW_DISCONNECTING_DEFAULT, true);
