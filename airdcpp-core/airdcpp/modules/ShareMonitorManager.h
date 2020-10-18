@@ -94,6 +94,7 @@ namespace dcpp {
 			const bool isDirectory;
 		};
 
+		bool validatePath(const string& aPath);
 		optional<FileItem> checkModifiedPath(const string& aPath) noexcept;
 		void addModifyInfo(const string& aPath) noexcept;
 

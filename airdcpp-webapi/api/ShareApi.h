@@ -22,6 +22,7 @@
 #include <api/base/HookApiModule.h>
 
 #include <airdcpp/typedefs.h>
+#include <airdcpp/ShareManager.h>
 #include <airdcpp/ShareManagerListener.h>
 
 namespace webserver {
@@ -37,7 +38,11 @@ namespace webserver {
 
 		api_return handleRefreshShare(ApiRequest& aRequest);
 		api_return handleRefreshPaths(ApiRequest& aRequest);
-		api_return handleRefreshVirtual(ApiRequest& aRequest);
+		api_return handleRefreshVirtualName(ApiRequest& aRequest);
+		api_return handleRefreshVirtualPath(ApiRequest& aRequest);
+		api_return handleAbortRefreshShare(ApiRequest& aRequest);
+		api_return handleAbortRefreshTask(ApiRequest& aRequest);
+		api_return handleGetRefreshTasks(ApiRequest& aRequest);
 
 		api_return handleAddExclude(ApiRequest& aRequest);
 		api_return handleRemoveExclude(ApiRequest& aRequest);
@@ -55,8 +60,9 @@ namespace webserver {
 		api_return handleFindDupePaths(ApiRequest& aRequest);
 		api_return handleValidatePath(ApiRequest& aRequest);
 
-		void on(ShareManagerListener::RefreshQueued, uint8_t, const RefreshPathList& aPaths) noexcept override;
-		void on(ShareManagerListener::RefreshCompleted, uint8_t, const RefreshPathList& aPaths) noexcept override;
+		void on(ShareManagerListener::RefreshQueued, const ShareRefreshTask& aTask) noexcept override;
+		void on(ShareManagerListener::RefreshStarted, const ShareRefreshTask& aTask) noexcept override;
+		void on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, const ShareRefreshStats& aStats) noexcept override;
 
 		void on(ShareManagerListener::ExcludeAdded, const string& aPath) noexcept override;
 		void on(ShareManagerListener::ExcludeRemoved, const string& aPath) noexcept override;
@@ -64,11 +70,17 @@ namespace webserver {
 		void on(ShareManagerListener::TempFileAdded, const TempShareInfo& aFile) noexcept override;
 		void on(ShareManagerListener::TempFileRemoved, const TempShareInfo& aFile) noexcept override;
 
-		void onShareRefreshed(const RefreshPathList& aRealPaths, uint8_t aTaskType, const string& aSubscription) noexcept;
-
-		static string refreshTypeToString(uint8_t aTaskType) noexcept;
+		static string refreshTypeToString(ShareRefreshType aType) noexcept;
 
 		static json serializeShareItem(const SearchResultPtr& aSR) noexcept;
+		static json serializeRefreshQueueInfo(const ShareManager::RefreshTaskQueueInfo& aRefreshQueueInfo) noexcept;
+		static json serializeRefreshTask(const ShareRefreshTask& aRefreshTask) noexcept;
+
+		static string refreshResultToString(ShareManager::RefreshTaskQueueResult aRefreshQueueResult) noexcept;
+		static string refreshPriorityToString(ShareRefreshPriority aPriority) noexcept;
+
+		static ShareRefreshPriority parseRefreshPriority(const json& aJson);
+		static string formatVirtualPath(const string& aVirtualPath);
 	};
 }
 

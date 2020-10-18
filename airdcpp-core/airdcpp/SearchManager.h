@@ -26,10 +26,12 @@
 
 #include "AdcCommand.h"
 #include "CriticalSection.h"
+#include "GetSet.h"
 #include "Search.h"
 #include "Singleton.h"
 #include "Speaker.h"
 #include "UDPServer.h"
+#include "Util.h"
 
 
 namespace dcpp {

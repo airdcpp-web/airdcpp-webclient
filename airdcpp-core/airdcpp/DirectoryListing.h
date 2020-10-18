@@ -219,9 +219,9 @@ public:
 
 	void getPartialListInfo(int64_t& totalSize_, size_t& totalFiles_) const noexcept;
 	
-	const UserPtr& getUser() const noexcept { return hintedUser.user; }
+	const UserPtr& getUser() const noexcept override { return hintedUser.user; }
 	const HintedUser& getHintedUser() const noexcept { return hintedUser; }
-	const string& getHubUrl() const noexcept { return hintedUser.hint; }
+	const string& getHubUrl() const noexcept override { return hintedUser.hint; }
 		
 	GETSET(bool, partialList, PartialList);
 	GETSET(bool, isOwnList, IsOwnList);
@@ -276,7 +276,7 @@ public:
 
 	void addDirectoryChangeTask(const string& aPath, bool aReload, bool aIsSearchChange = false, bool aForceQueue = false) noexcept;
 protected:
-	void onStateChanged() noexcept;
+	void onStateChanged() noexcept override;
 
 private:
 	void setDirectoryLoadingState(const Directory::Ptr& aDir, bool aLoading) noexcept;
@@ -305,16 +305,16 @@ private:
 	atomic_flag running;
 
 	// ClientManagerListener
-	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;
-	void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
-	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
+	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept override;
+	void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept override;
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept override;
 
 	void onUserUpdated(const UserPtr& aUser) noexcept;
 
-	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
 
 	// ShareManagerListener
-	void on(ShareManagerListener::RefreshCompleted, uint8_t, const RefreshPathList& aPaths) noexcept;
+	void on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, const ShareRefreshStats&) noexcept override;
 
 	void endSearch(bool timedOut = false) noexcept;
 

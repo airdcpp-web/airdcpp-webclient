@@ -142,8 +142,10 @@ public:
 		return clientId;
 	}
 
-	/* Set a hub setting and return the new value */
-	bool changeBoolHubSetting(HubSettings::HubBoolSetting aSetting) noexcept;
+	void setHubSetting(HubSettings::HubBoolSetting aSetting, bool aNewValue) noexcept;
+
+	/* Toggle a hub setting and return the new value */
+	bool toggleHubBoolSetting(HubSettings::HubBoolSetting aSetting) noexcept;
 
 	enum CountType: uint8_t {
 		COUNT_NORMAL = 0x00,

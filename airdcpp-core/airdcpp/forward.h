@@ -30,7 +30,7 @@ namespace dcpp {
 
 
 template<typename DataT>
-class ActionHookSubscriber;
+class ActionHookDataGetter;
 
 struct ActionHookRejection;
 typedef std::shared_ptr<ActionHookRejection> ActionHookRejectionPtr;
@@ -48,7 +48,7 @@ template<typename DataT = nullptr_t>
 using ActionHookDataList = vector<ActionHookDataPtr<DataT>>;
 
 template<typename DataT = nullptr_t>
-using ActionHookResultGetter = ActionHookSubscriber<DataT>;
+using ActionHookResultGetter = ActionHookDataGetter<DataT>;
 
 class AdcCommand;
 
@@ -124,6 +124,10 @@ class LogManager;
 struct Message;
 struct OutgoingChatMessage;
 
+class MessageHighlight;
+typedef shared_ptr<MessageHighlight> MessageHighlightPtr;
+typedef vector<MessageHighlightPtr> MessageHighlightList;
+
 class ChatMessage;
 typedef std::shared_ptr<ChatMessage> ChatMessagePtr;
 typedef std::deque<ChatMessagePtr> ChatMessageList;
@@ -172,7 +176,12 @@ class ServerSocket;
 class ShareProfile;
 typedef std::shared_ptr<ShareProfile> ShareProfilePtr;
 typedef vector<ShareProfilePtr> ShareProfileList;
+
 typedef set<string> RefreshPathList;
+struct ShareRefreshStats;
+
+struct ShareRefreshTask;
+typedef uint32_t ShareRefreshTaskToken;
 
 struct TempShareInfo;
 typedef vector<TempShareInfo> TempShareInfoList;

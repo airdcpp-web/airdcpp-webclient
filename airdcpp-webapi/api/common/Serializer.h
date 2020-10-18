@@ -24,34 +24,29 @@
 #include <web-server/Access.h>
 
 #include <airdcpp/typedefs.h>
+#include <airdcpp/tribool.h>
 
 #include <airdcpp/DirectoryDownload.h>
 #include <airdcpp/DupeType.h>
-#include <airdcpp/MessageCache.h>
 #include <airdcpp/QueueItemBase.h>
 #include <airdcpp/TrackableDownloadItem.h>
 
+
+namespace dcpp {
+	struct DirectoryContentInfo;
+}
 
 namespace webserver {
 	class Serializer {
 	public:
 		static StringSet getUserFlags(const UserPtr& aUser) noexcept;
 		static StringSet getOnlineUserFlags(const OnlineUserPtr& aUser) noexcept;
-		static string getSeverity(LogMessage::Severity aSeverity) noexcept;
-
-		static json serializeMessage(const Message& aMessage) noexcept;
-		static json serializeChatMessage(const ChatMessagePtr& aMessage) noexcept;
-		static json serializeLogMessage(const LogMessagePtr& aMessageData) noexcept;
-
-		typedef std::function<json(const MessageCache& aCache)> UnreadSerializerF;
-		static json serializeCacheInfo(const MessageCache& aCache, const UnreadSerializerF& unreadF) noexcept;
-		static json serializeUnreadChat(const MessageCache& aCache) noexcept;
-		static json serializeUnreadLog(const MessageCache& aCache) noexcept;
 
 		static json serializeUser(const UserPtr& aUser) noexcept;
 		static json serializeHintedUser(const HintedUser& aUser) noexcept;
 		static json serializeOnlineUser(const OnlineUserPtr& aUser) noexcept;
 
+		static string toFileContentType(const string& aExt) noexcept;
 		static string getFileTypeId(const string& aName) noexcept;
 		static json serializeFileType(const string& aPath) noexcept;
 		static json serializeFolderType(const DirectoryContentInfo& aContentInfo) noexcept;
@@ -217,10 +212,16 @@ namespace webserver {
 			return j;
 		}
 
+		static json serializeChangedProperties(const json& aNewProperties, const json& aOldProperties) noexcept;
+
 		template<typename IdT>
 		static json defaultArrayValueSerializer(const IdT& aJson) {
 			return aJson;
 		}
+
+		static json serializeHubSetting(const tribool& aSetting) noexcept;
+		static json serializeHubSetting(int aSetting) noexcept;
+		static string serializeHubSetting(const string& aSetting) noexcept;
 	private:
 		static void appendOnlineUserFlags(const OnlineUserPtr& aUser, StringSet& flags_) noexcept;
 

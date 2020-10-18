@@ -23,6 +23,8 @@
 
 #include "Access.h"
 
+#include <web-server/ApiSettingItem.h>
+
 #include <airdcpp/ActionHook.h>
 #include <airdcpp/GetSet.h>
 #include <airdcpp/Singleton.h>
@@ -31,28 +33,51 @@
 
 
 #define CONTEXT_MENU(type, name, name2) \
-	ActionHook<ContextMenuItemList, const vector<type>&, const AccessList&> name##MenuHook; \
-	ContextMenuItemList get##name2##Menu(const vector<type>& aItems, const AccessList& aAccessList) const noexcept { \
-		return normalizeMenuItems(name##MenuHook.runHooksData(aItems, aAccessList)); \
+	ActionHook<ContextMenuItemList, const vector<type>&, const ContextMenuItemListData&> name##MenuHook; \
+	ContextMenuItemList get##name2##Menu(const vector<type>& aItems, const ContextMenuItemListData& aListData) const noexcept { \
+		return ActionHook<ContextMenuItemList>::normalizeListItems(name##MenuHook.runHooksData(aListData.caller, aItems, aListData)); \
 	} \
-	void onClick##name2##Item(const vector<type>& aItems, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId) noexcept { \
-		fire(ContextMenuManagerListener::name2##MenuSelected(), aItems, aAccessList, aHookId, aMenuItemId); \
+	void onClick##name2##Item(const vector<type>& aItems, const ContextMenuItemClickData& aClickData) noexcept { \
+		fire(ContextMenuManagerListener::name2##MenuSelected(), aItems, aClickData); \
 	}
 
 
 #define ENTITY_CONTEXT_MENU(type, name, name2, entityType) \
-	ActionHook<ContextMenuItemList, const vector<type>&, const AccessList&, const entityType&> name##MenuHook; \
-	ContextMenuItemList get##name2##Menu(const vector<type>& aItems, const AccessList& aAccessList, const entityType& aEntity) const noexcept { \
-		return normalizeMenuItems(name##MenuHook.runHooksData(aItems, aAccessList, aEntity)); \
+	ActionHook<ContextMenuItemList, const vector<type>&, const ContextMenuItemListData&, const entityType&> name##MenuHook; \
+	ContextMenuItemList get##name2##Menu(const vector<type>& aItems, const ContextMenuItemListData& aListData, const entityType& aEntity) const noexcept { \
+		return ActionHook<ContextMenuItemList>::normalizeListItems(name##MenuHook.runHooksData(aListData.caller, aItems, aListData, aEntity)); \
 	} \
-	void onClick##name2##Item(const vector<type>& aItems, const AccessList& aAccessList, const string& aHookId, const string& aMenuItemId, const entityType& aEntity) noexcept { \
-		fire(ContextMenuManagerListener::name2##MenuSelected(), aItems, aAccessList, aEntity, aHookId, aMenuItemId); \
+	void onClick##name2##Item(const vector<type>& aItems, const ContextMenuItemClickData& aClickData, const entityType& aEntity) noexcept { \
+		fire(ContextMenuManagerListener::name2##MenuSelected(), aItems, aEntity, aClickData); \
 	}
 
 
 namespace webserver {
+	typedef StringList ContextMenuSupportList;
+
+	struct ContextMenuItemListData {
+		ContextMenuItemListData(const ContextMenuSupportList& aSupports, const AccessList aAccess, const void* aCaller) noexcept :
+			supports(aSupports), access(aAccess), caller(aCaller) {}
+
+		const void* caller;
+		const ContextMenuSupportList supports;
+		const AccessList access;
+	};
+
+	struct ContextMenuItemClickData {
+		ContextMenuItemClickData(const string& aHookId, const string& aMenuItemId, const ContextMenuSupportList& aSupports, const AccessList aAccess, const SettingValueMap aFormValues) noexcept :
+			hookId(aHookId), menuItemId(aMenuItemId), supports(aSupports), access(aAccess), formValues(aFormValues) {}
+
+		const string hookId;
+		const string menuItemId;
+		const ContextMenuSupportList supports;
+		const AccessList access;
+		const SettingValueMap formValues;
+	};
+
 	class ContextMenuManagerListener {
 	public:
+
 		virtual ~ContextMenuManagerListener() { }
 		template<int I>	struct X { enum { TYPE = I }; };
 
@@ -65,29 +90,34 @@ namespace webserver {
 		typedef X<8> HintedUserMenuSelected;
 		typedef X<9> ExtensionMenuSelected;
 
-		typedef X<10> FilelistItemMenuSelected;
-		typedef X<11> GroupedSearchResultMenuSelected;
-		typedef X<12> HubUserMenuSelected;
+		typedef X<15> FilelistItemMenuSelected;
+		typedef X<16> GroupedSearchResultMenuSelected;
+		typedef X<17> HubUserMenuSelected;
+		typedef X<18> HubMessageHighlightMenuSelected;
+		typedef X<19> PrivateChatMessageHighlightMenuSelected;
 
 
-		virtual void on(QueueBundleMenuSelected, const vector<uint32_t>&, const AccessList&, const string& /*aHookId*/, const string& /*aMenuItemId*/) noexcept { }
-		virtual void on(QueueFileMenuSelected, const vector<uint32_t>&, const AccessList&, const string& /*aHookId*/, const string& /*aMenuItemId*/) noexcept { }
-		virtual void on(TransferMenuSelected, const vector<uint32_t>&, const AccessList&, const string& /*aHookId*/, const string& /*aMenuItemId*/) noexcept { }
-		virtual void on(ShareRootMenuSelected, const vector<TTHValue>&, const AccessList&, const string& /*aHookId*/, const string& /*aMenuItemId*/) noexcept { }
-		virtual void on(FavoriteHubMenuSelected, const vector<uint32_t>&, const AccessList&, const string& /*aHookId*/, const string& /*aMenuItemId*/) noexcept { }
-		virtual void on(UserMenuSelected, const vector<CID>&, const AccessList&, const string& /*aHookId*/, const string& /*aMenuItemId*/) noexcept { }
-		virtual void on(HintedUserMenuSelected, const vector<HintedUser>&, const AccessList&, const string& /*aHookId*/, const string& /*aMenuItemId*/) noexcept { }
+		virtual void on(QueueBundleMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData&) noexcept { }
+		virtual void on(QueueFileMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData&) noexcept { }
+		virtual void on(TransferMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData&) noexcept { }
+		virtual void on(ShareRootMenuSelected, const vector<TTHValue>&, const ContextMenuItemClickData&) noexcept { }
+		virtual void on(FavoriteHubMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData&) noexcept { }
+		virtual void on(UserMenuSelected, const vector<CID>&, const ContextMenuItemClickData&) noexcept { }
+		virtual void on(HintedUserMenuSelected, const vector<HintedUser>&, const ContextMenuItemClickData&) noexcept { }
 
-		virtual void on(FilelistItemMenuSelected, const vector<uint32_t>&, const AccessList&, const DirectoryListingPtr&, const string& /*aHookId*/, const string& /*aMenuItemId*/) noexcept { }
-		virtual void on(GroupedSearchResultMenuSelected, const vector<TTHValue>&, const AccessList&, const SearchInstancePtr&, const string& /*aHookId*/, const string& /*aMenuItemId*/) noexcept { }
-		virtual void on(HubUserMenuSelected, const vector<uint32_t>&, const AccessList&, const ClientPtr&, const string& /*aHookId*/, const string& /*aMenuItemId*/) noexcept { }
+		virtual void on(ExtensionMenuSelected, const vector<string>&, const ContextMenuItemClickData&) noexcept { }
 
-		virtual void on(ExtensionMenuSelected, const vector<string>&, const AccessList&, const string& /*aHookId*/, const string& /*aMenuItemId*/) noexcept { }
+		virtual void on(FilelistItemMenuSelected, const vector<uint32_t>&, const DirectoryListingPtr&, const ContextMenuItemClickData&) noexcept { }
+		virtual void on(GroupedSearchResultMenuSelected, const vector<TTHValue>&, const SearchInstancePtr&, const ContextMenuItemClickData&) noexcept { }
+		virtual void on(HubUserMenuSelected, const vector<uint32_t>&, const ClientPtr&, const ContextMenuItemClickData&) noexcept { }
+		virtual void on(HubMessageHighlightMenuSelected, const vector<uint32_t>&, const ClientPtr&, const ContextMenuItemClickData&) noexcept { }
+		virtual void on(PrivateChatMessageHighlightMenuSelected, const vector<uint32_t>&, const PrivateChatPtr&, const ContextMenuItemClickData&) noexcept { }
 	};
 
 	class ContextMenuItem {
 	public:
-		ContextMenuItem(const string& aId, const string& aTitle, const StringMap& aIconInfo, const string& aHookId) : id(aId), title(aTitle), iconInfo(aIconInfo), hookId(aHookId) {
+		ContextMenuItem(const string& aId, const string& aTitle, const StringMap& aIconInfo, const string& aHookId, const StringList& aUrls, const ExtensionSettingItem::List& aFormFieldDefinitions) :
+			id(aId), title(aTitle), iconInfo(aIconInfo), hookId(aHookId), urls(aUrls), formFieldDefinitions(aFormFieldDefinitions) {
 
 		}
 
@@ -95,6 +125,8 @@ namespace webserver {
 		GETSET(string, title, Title);
 		GETSET(StringMap, iconInfo, IconInfo);
 		GETSET(string, hookId, HookId);
+		GETSET(StringList, urls, Urls);
+		GETSET(ExtensionSettingItem::List, formFieldDefinitions, FormFieldDefinitions);
 	private:
 	};
 
@@ -102,6 +134,8 @@ namespace webserver {
 	{
 
 	public:
+		static const string URLS_SUPPORT;
+
 		CONTEXT_MENU(uint32_t, queueBundle, QueueBundle);
 		CONTEXT_MENU(uint32_t, queueFile, QueueFile);
 		CONTEXT_MENU(TTHValue, shareRoot, ShareRoot);
@@ -114,13 +148,13 @@ namespace webserver {
 		ENTITY_CONTEXT_MENU(uint32_t, filelistItem, FilelistItem, DirectoryListingPtr);
 		ENTITY_CONTEXT_MENU(TTHValue, groupedSearchResult, GroupedSearchResult, SearchInstancePtr);
 		ENTITY_CONTEXT_MENU(uint32_t, hubUser, HubUser, ClientPtr);
+		ENTITY_CONTEXT_MENU(uint32_t, hubMessageHighlight, HubMessageHighlight, ClientPtr);
+		ENTITY_CONTEXT_MENU(uint32_t, privateChatMessageHighlight, PrivateChatMessageHighlight, PrivateChatPtr);
 
 		typedef vector<ContextMenuItem> MenuItemList;
 
 		ContextMenuManager();
 		~ContextMenuManager();
-
-		static ContextMenuItemList normalizeMenuItems(const ActionHookDataList<ContextMenuItemList>& aResult) noexcept;
 	private:
 	};
 

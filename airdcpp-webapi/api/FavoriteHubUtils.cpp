@@ -21,6 +21,7 @@
 #include <api/FavoriteHubUtils.h>
 
 #include <api/common/Format.h>
+#include <api/common/Serializer.h>
 
 #include <web-server/JsonUtil.h>
 
@@ -41,11 +42,17 @@ namespace webserver {
 		{ PROP_HAS_PASSWORD, "has_password", TYPE_NUMERIC_OTHER, SERIALIZE_BOOL, SORT_NUMERIC },
 		{ PROP_USER_DESCRIPTION, "user_description", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 		{ PROP_NMDC_ENCODING, "nmdc_encoding", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_AWAY_MESSAGE, "away_message", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 
 		{ PROP_CONN_MODE4, "connection_mode_v4", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
 		{ PROP_CONN_MODE6, "connection_mode_v6", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
 		{ PROP_IP4, "connection_ip_v4", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 		{ PROP_IP6, "connection_ip_v6", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+
+		{ PROP_SHOW_JOINS, "show_joins", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
+		{ PROP_FAV_SHOW_JOINS, "fav_show_joins", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
+		{ PROP_CHAT_NOTIFY, "use_main_chat_notify", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
+		{ PROP_LOG_HUB_CHAT, "log_main", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
 	};
 
 	const PropertyItemHandler<FavoriteHubEntryPtr> FavoriteHubUtils::propertyHandler = {
@@ -81,7 +88,7 @@ namespace webserver {
 			{
 				auto defined = HubSettings::defined(aEntry->get(HubSettings::ShareProfile));
 				return {
-					{ "id", serializeHubSetting(aEntry->get(HubSettings::ShareProfile)) },
+					{ "id", Serializer::serializeHubSetting(aEntry->get(HubSettings::ShareProfile)) },
 					{ "str", defined ? aEntry->getShareProfileName() : Util::emptyString }
 				};
 			}
@@ -94,8 +101,12 @@ namespace webserver {
 					{ "current_hub_id", aEntry->getCurrentHubToken() }
 				};
 			}
-			case PROP_CONN_MODE4: return serializeHubSetting(aEntry->get(HubSettings::Connection));
-			case PROP_CONN_MODE6: return serializeHubSetting(aEntry->get(HubSettings::Connection6));
+			case PROP_CONN_MODE4: return Serializer::serializeHubSetting(aEntry->get(HubSettings::Connection));
+			case PROP_CONN_MODE6: return Serializer::serializeHubSetting(aEntry->get(HubSettings::Connection6));
+			case PROP_SHOW_JOINS: return Serializer::serializeHubSetting(aEntry->get(HubSettings::ShowJoins));
+			case PROP_FAV_SHOW_JOINS: return Serializer::serializeHubSetting(aEntry->get(HubSettings::FavShowJoins));
+			case PROP_CHAT_NOTIFY: return Serializer::serializeHubSetting(aEntry->get(HubSettings::ChatNotify));
+			case PROP_LOG_HUB_CHAT: return Serializer::serializeHubSetting(aEntry->get(HubSettings::LogMainChat));
 		}
 
 		dcassert(0);
@@ -106,41 +117,18 @@ namespace webserver {
 		return 0;
 	}
 
-	json FavoriteHubUtils::serializeHubSetting(tribool aSetting) noexcept {
-		if (!HubSettings::defined(aSetting)) {
-			return nullptr;
-		}
-
-		return aSetting.value;
-	}
-
-	json FavoriteHubUtils::serializeHubSetting(int aSetting) noexcept {
-		if (!HubSettings::defined(aSetting)) {
-			return nullptr;
-		}
-
-		return aSetting;
-	}
-
-	string FavoriteHubUtils::serializeHubSetting(const string& aSetting) noexcept {
-		if (!HubSettings::defined(aSetting)) {
-			return Util::emptyString;
-		}
-
-		return aSetting;
-	}
-
 	std::string FavoriteHubUtils::getStringInfo(const FavoriteHubEntryPtr& aEntry, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 			case PROP_NAME: return aEntry->getName();
 			case PROP_HUB_URL: return aEntry->getServer();
 			case PROP_HUB_DESCRIPTION: return aEntry->getDescription();
-			case PROP_NICK: return serializeHubSetting(aEntry->get(HubSettings::Nick));
-			case PROP_USER_DESCRIPTION: return serializeHubSetting(aEntry->get(HubSettings::Description));
+			case PROP_NICK: return Serializer::serializeHubSetting(aEntry->get(HubSettings::Nick));
+			case PROP_USER_DESCRIPTION: return Serializer::serializeHubSetting(aEntry->get(HubSettings::Description));
 			case PROP_SHARE_PROFILE: return HubSettings::defined(aEntry->get(HubSettings::ShareProfile)) ? aEntry->getShareProfileName() : Util::emptyString;
-			case PROP_NMDC_ENCODING: return serializeHubSetting(aEntry->get(HubSettings::NmdcEncoding));
-			case PROP_IP4: return serializeHubSetting(aEntry->get(HubSettings::UserIp));
-			case PROP_IP6: return serializeHubSetting(aEntry->get(HubSettings::UserIp6));
+			case PROP_NMDC_ENCODING: return Serializer::serializeHubSetting(aEntry->get(HubSettings::NmdcEncoding));
+			case PROP_IP4: return Serializer::serializeHubSetting(aEntry->get(HubSettings::UserIp));
+			case PROP_IP6: return Serializer::serializeHubSetting(aEntry->get(HubSettings::UserIp6));
+			case PROP_AWAY_MESSAGE: return Serializer::serializeHubSetting(aEntry->get(HubSettings::AwayMsg));
 			default: dcassert(0); return Util::emptyString;
 		}
 	}
@@ -151,6 +139,10 @@ namespace webserver {
 			case PROP_HAS_PASSWORD: return (double)!aEntry->getPassword().empty();
 			case PROP_CONN_MODE4: return (double)aEntry->get(HubSettings::Connection);
 			case PROP_CONN_MODE6: return (double)aEntry->get(HubSettings::Connection6);
+			case PROP_SHOW_JOINS: return (double)toInt(aEntry->get(HubSettings::ShowJoins));
+			case PROP_FAV_SHOW_JOINS: return (double)toInt(aEntry->get(HubSettings::FavShowJoins));
+			case PROP_CHAT_NOTIFY: return (double)toInt(aEntry->get(HubSettings::ChatNotify));
+			case PROP_LOG_HUB_CHAT: return (double)toInt(aEntry->get(HubSettings::LogMainChat));
 			default: dcassert(0); return 0;
 		}
 	}

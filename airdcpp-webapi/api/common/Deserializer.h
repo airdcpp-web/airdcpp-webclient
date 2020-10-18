@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_DESERIALIZER_H
 
 #include <airdcpp/typedefs.h>
+#include <airdcpp/HintedUser.h>
 #include <airdcpp/MerkleTree.h>
 #include <airdcpp/Message.h>
 #include <airdcpp/Priority.h>
@@ -32,6 +33,12 @@ namespace webserver {
 
 	class Deserializer {
 	public:
+		struct OfflineHintedUser : public HintedUser {
+			OfflineHintedUser(const UserPtr& aUser, const string& aHubUrl, const string& aNicks) : HintedUser(aUser, aHubUrl), nicks(aNicks) { }
+
+			string nicks;
+		};
+
 		static CID parseCID(const string& aCID);
 
 		// Get user with the provided CID
@@ -39,11 +46,17 @@ namespace webserver {
 		static UserPtr getUser(const string& aCID, bool aAllowMe);
 		static UserPtr getUser(const CID& aCID, bool aAllowMe);
 
+		// Get or create a user
+		static UserPtr getOfflineUser(const string& aCID, const string& aNicks, const string& aHubUrl, bool aAllowMe);
+
 		static TTHValue parseTTH(const string& aTTH);
 		static HintedUser parseHintedUser(const json& aJson, const string& aFieldName, bool aAllowMe = false);
 
+		static UserPtr parseOfflineUser(const json& aJson, const string& aFieldName, bool aAllowMe = false, const string& aHubUrl = "");
+		static OfflineHintedUser parseOfflineHintedUser(const json& aJson, const string& aFieldName, bool aAllowMe = false);
+
 		static UserPtr deserializeUser(const json& aJson, bool aAllowMe, bool aOptional = false);
-		static HintedUser deserializeHintedUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
+		static HintedUser deserializeHintedUser(const json& aJson, bool aAllowMe = false, bool aOptional = false, const string& aFieldName = "user");
 		static OnlineUserPtr deserializeOnlineUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
 		static TTHValue deserializeTTH(const json& aJson);
 		static Priority deserializePriority(const json& aJson, bool allowDefault);

@@ -21,7 +21,6 @@
 
 #include "AdcCommand.h"
 #include "DispatcherQueue.h"
-#include "Socket.h"
 
 namespace dcpp {
 

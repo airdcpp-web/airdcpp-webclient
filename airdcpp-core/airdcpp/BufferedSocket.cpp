@@ -105,11 +105,11 @@ void BufferedSocket::accept(const Socket& srv, bool secure, bool allowUntrusted,
 	addTask(ACCEPTED, 0);
 }
 
-void BufferedSocket::connect(const Socket::AddressInfo& aAddress, const string& aPort, bool secure, bool allowUntrusted, bool proxy, const string& expKP) {
+void BufferedSocket::connect(const AddressInfo& aAddress, const string& aPort, bool secure, bool allowUntrusted, bool proxy, const string& expKP) {
 	connect(aAddress, aPort, Util::emptyString, NAT_NONE, secure, allowUntrusted, proxy, expKP);
 }
 
-void BufferedSocket::connect(const Socket::AddressInfo& aAddress, const string& aPort, const string& localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy, const string& expKP) {
+void BufferedSocket::connect(const AddressInfo& aAddress, const string& aPort, const string& localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy, const string& expKP) {
 	//dcdebug("BufferedSocket::connect() %p\n", (void*)this);
 	unique_ptr<Socket> s(secure ? new SSLSocket(natRole == NAT_SERVER ? CryptoManager::SSL_SERVER : CryptoManager::SSL_CLIENT, allowUntrusted, expKP) : new Socket(Socket::TYPE_TCP));
 
@@ -124,7 +124,7 @@ void BufferedSocket::connect(const Socket::AddressInfo& aAddress, const string& 
 
 #define LONG_TIMEOUT 30000
 #define SHORT_TIMEOUT 1000
-void BufferedSocket::threadConnect(const Socket::AddressInfo& aAddr, const string& aPort, const string& localPort, NatRoles natRole, bool proxy) {
+void BufferedSocket::threadConnect(const AddressInfo& aAddr, const string& aPort, const string& localPort, NatRoles natRole, bool proxy) {
 	dcassert(state == STARTING);
 
 	fire(BufferedSocketListener::Connecting());

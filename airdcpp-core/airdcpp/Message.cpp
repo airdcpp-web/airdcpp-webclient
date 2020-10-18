@@ -24,7 +24,7 @@
 
 namespace dcpp {
 
-atomic<uint64_t> messageIdCounter { 0 };
+atomic<uint64_t> messageIdCounter { 1 };
 
 ChatMessage::ChatMessage(const string& aText, const OnlineUserPtr& aFrom, const OnlineUserPtr& aTo, const OnlineUserPtr& aReplyTo) noexcept :
 	text(aText), from(aFrom), to(aTo), replyTo(aReplyTo), id(messageIdCounter++), time(GET_TIME()) {
@@ -32,9 +32,10 @@ ChatMessage::ChatMessage(const string& aText, const OnlineUserPtr& aFrom, const 
 	read = aFrom && aFrom->getUser() == ClientManager::getInstance()->getMe();
 }
 
-LogMessage::LogMessage(const string& aMessage, LogMessage::Severity sev, bool aHistory) noexcept : 
-	id(messageIdCounter++), text(aMessage), time(aHistory ? 0 : GET_TIME()), severity(sev), read(aHistory) {
+LogMessage::LogMessage(const string& aMessage, LogMessage::Severity aSeverity, bool aHistory) noexcept : 
+	id(messageIdCounter++), text(aMessage), time(aHistory ? 0 : GET_TIME()), severity(aSeverity), read(aHistory) {
 
+	highlights = MessageHighlight::parseHighlights(aMessage, Util::emptyString, nullptr);
 }
 
 string ChatMessage::format() const noexcept {
@@ -61,6 +62,32 @@ string ChatMessage::format() const noexcept {
 	}
 
 	return tmp;
+}
+
+
+void ChatMessage::parseMention(const Identity& aMe) noexcept {
+	// highlights = MessageHighlight::parseHighlights(text, aMe.getNick(), from->getUser());
+
+	if (from->getIdentity().getSID() == aMe.getSID() || !from->getIdentity().isUser()) {
+		return;
+	}
+
+	if (text.find(aMe.getNick()) != string::npos) {
+		mentionedNick = aMe.getNick();
+	}
+}
+
+void ChatMessage::parseHighlights(const Identity& aMe, const MessageHighlightList& aHookHighlights) noexcept {
+	// Insert hook highlights
+	for (const auto& hl: aHookHighlights) {
+		highlights.insert_sorted(hl);
+	}
+
+	// Insert our highlights (that won't overlap)
+	const auto defaultHighlights = MessageHighlight::parseHighlights(text, aMe.getNick(), from->getUser());
+	for (const auto& hl: defaultHighlights) {
+		highlights.insert_sorted(hl);
+	}
 }
 
 } // namespace dcpp

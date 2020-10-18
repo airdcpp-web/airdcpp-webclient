@@ -23,6 +23,7 @@
 
 #include <web-server/JsonUtil.h>
 
+#include <airdcpp/Exception.h>
 #include <airdcpp/File.h>
 
 #ifdef WIN32
@@ -58,11 +59,13 @@ namespace webserver {
 			retJson = Filesystem::getDriveListing(false);
 #endif
 		} else {
-			if (!Util::fileExists(path)) {
-				aRequest.setResponseErrorStr("The path doesn't exist on disk");
+			// Validate path
+			if (!File::isDirectory(path)) {
+				aRequest.setResponseErrorStr("Directory " + path + " doesn't exist");
 				return websocketpp::http::status_code::bad_request;
 			}
 
+			// Return listing
 			try {
 				retJson = serializeDirectoryContent(path, dirsOnly);
 			} catch (const FileException& e) {

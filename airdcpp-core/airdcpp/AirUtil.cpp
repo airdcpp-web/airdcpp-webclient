@@ -28,7 +28,6 @@
 #include "SettingsManager.h"
 #include "ShareManager.h"
 #include "SimpleXML.h"
-#include "Socket.h"
 #include "StringTokenizer.h"
 #include "ThrottleManager.h"
 #include "Util.h"
@@ -56,10 +55,12 @@
 
 namespace dcpp {
 
-boost::regex AirUtil::releaseReg;
+boost::regex AirUtil::releaseRegBasic;
+boost::regex AirUtil::releaseRegChat;
 boost::regex AirUtil::subDirRegPlain;
 boost::regex AirUtil::crcReg;
 boost::regex AirUtil::lineBreakRegex;
+boost::regex AirUtil::urlReg;
 
 AirUtil::TimeCounter::TimeCounter(string aMsg) : start(GET_TICK()), msg(move(aMsg)) {
 
@@ -117,15 +118,6 @@ string AirUtil::toOpenFileName(const string& aFileName, const TTHValue& aTTH) no
 	return aTTH.toBase32() + "_" + Util::validateFileName(aFileName);
 }
 
-string AirUtil::fromOpenFileName(const string& aFileName) noexcept {
-	if (aFileName.size() <= 40) {
-		dcassert(0);
-		return aFileName;
-	}
-
-	return aFileName.substr(40);
-}
-
 DupeType AirUtil::checkFileDupe(const TTHValue& aTTH) {
 	if (ShareManager::getInstance()->isFileShared(aTTH)) {
 		return DUPE_SHARE_FULL;
@@ -153,7 +145,9 @@ TTHValue AirUtil::getPathId(const string& aPath) noexcept {
 }
 
 void AirUtil::init() {
-	releaseReg.assign(getReleaseRegBasic());
+	releaseRegBasic.assign(getReleaseRegBasic());
+	releaseRegChat.assign(getReleaseRegLong(true));
+	urlReg.assign(getUrlReg());
 	subDirRegPlain.assign(getSubDirReg(), boost::regex::icase);
 	crcReg.assign(R"(.{5,200}\s(\w{8})$)");
 	lineBreakRegex.assign(R"(\n|\r)");
@@ -287,11 +281,11 @@ AirUtil::AdapterInfoList AirUtil::getNetworkAdapters(bool v6) {
 #else
 
 #ifdef HAVE_IFADDRS_H
-	struct ifaddrs *ifap;
+	struct ifaddrs* ifap;
 
 	if (getifaddrs(&ifap) == 0) {
-		for (struct ifaddrs *i = ifap; i != NULL; i = i->ifa_next) {
-			struct sockaddr *sa = i->ifa_addr;
+		for (struct ifaddrs* i = ifap; i != NULL; i = i->ifa_next) {
+			struct sockaddr* sa = i->ifa_addr;
 
 			// If the interface is up, is not a loopback and it has an address
 			if ((i->ifa_flags & IFF_UP) && !(i->ifa_flags & IFF_LOOPBACK) && sa != NULL) {
@@ -301,12 +295,13 @@ AirUtil::AdapterInfoList AirUtil::getNetworkAdapters(bool v6) {
 				if (!v6 && sa->sa_family == AF_INET) {
 					// IPv4 address
 					struct sockaddr_in* sai = (struct sockaddr_in*)sa;
-					src = (void*) &(sai->sin_addr);
+					src = (void*)&(sai->sin_addr);
 					len = INET_ADDRSTRLEN;
-				} else if (v6 && sa->sa_family == AF_INET6) {
+				}
+				else if (v6 && sa->sa_family == AF_INET6) {
 					// IPv6 address
 					struct sockaddr_in6* sai6 = (struct sockaddr_in6*)sa;
-					src = (void*) &(sai6->sin6_addr);
+					src = (void*)&(sai6->sin6_addr);
 					len = INET6_ADDRSTRLEN;
 				}
 
@@ -317,7 +312,7 @@ AirUtil::AdapterInfoList AirUtil::getNetworkAdapters(bool v6) {
 					// TODO: get the prefix
 					adapterInfos.emplace_back("Unknown", (string)address, 0);
 				}
-			}
+}
 		}
 		freeifaddrs(ifap);
 	}
@@ -662,7 +657,7 @@ bool AirUtil::stringRegexMatch(const string& aReg, const string& aString) {
 bool AirUtil::isRelease(const string& aString) {
 
 	try {
-		return boost::regex_match(aString, releaseReg);
+		return boost::regex_match(aString, releaseRegBasic);
 	}
 	catch (...) {}
 
@@ -697,7 +692,7 @@ void AirUtil::getRegexMatches(const string& aString, StringList& l, const boost:
 	}
 }
 
-const string AirUtil::getLinkUrl() noexcept {
+const string AirUtil::getUrlReg() noexcept {
 	return R"(((?:[a-z][\w-]{0,10})?:/{1,3}|www\d{0,3}[.]|magnet:\?[^\s=]+=|spotify:|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`()\[\]{};:'\".,<>?«»“”‘’]))";
 }
 
@@ -949,7 +944,7 @@ bool AirUtil::isSub(const string& aTestSub, const string& aParent, const char se
 	if (aTestSub.length() <= aParent.length())
 		return false;
 
-	if (Util::stricmp(aTestSub.substr(0, aParent.length()), aParent) != 0)
+	if (Util::strnicmp(aTestSub, aParent, aParent.length()) != 0)
 		return false;
 
 	// either the parent must end with a separator or it must follow in the subdirectory
@@ -961,11 +956,24 @@ bool AirUtil::isParentOrExact(const string& aTestParent, const string& aSub, con
 	if (aSub.length() < aTestParent.length())
 		return false;
 
-	if (Util::stricmp(aSub.substr(0, aTestParent.length()), aTestParent) != 0)
+	if (Util::strnicmp(aSub, aTestParent, aTestParent.length()) != 0)
 		return false;
 
 	// either the parent must end with a separator or it must follow in the subdirectory
 	return aTestParent.empty() || aTestParent.length() == aSub.length() || aTestParent.back() == aSeparator || aSub[aTestParent.length()] == aSeparator;
+}
+
+
+bool AirUtil::isParentOrExactLower(const string& aParentLower, const string& aSubLower, const char aSeparator) noexcept {
+	if (aSubLower.length() < aParentLower.length())
+		return false;
+
+	if (strncmp(aSubLower.c_str(), aParentLower.c_str(), aParentLower.length()) != 0) {
+		return false;
+	}
+
+	// either the parent must end with a separator or it must follow in the subdirectory
+	return aParentLower.empty() || aParentLower.length() == aSubLower.length() || aParentLower.back() == aSeparator || aSubLower[aParentLower.length()] == aSeparator;
 }
 
 }

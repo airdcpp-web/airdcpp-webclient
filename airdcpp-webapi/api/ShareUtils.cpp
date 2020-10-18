@@ -56,6 +56,7 @@ namespace webserver {
 			return {
 				{ "id", formatStatusId(aItem) },
 				{ "str", formatDisplayStatus(aItem) },
+				{ "refresh_task_id", aItem->refreshTaskToken ? json(*aItem->refreshTaskToken) : json() },
 			};
 		}
 		}

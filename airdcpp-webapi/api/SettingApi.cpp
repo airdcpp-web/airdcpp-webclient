@@ -19,15 +19,15 @@
 #include "stdinc.h"
 
 #include <api/SettingApi.h>
-#include <api/ApiSettingItem.h>
 
 #include <api/CoreSettings.h>
-#include <web-server/WebServerManager.h>
-#include <web-server/WebServerSettings.h>
-
-#include <web-server/JsonUtil.h>
 #include <api/common/Serializer.h>
 #include <api/common/SettingUtils.h>
+
+#include <web-server/ApiSettingItem.h>
+#include <web-server/JsonUtil.h>
+#include <web-server/WebServerManager.h>
+#include <web-server/WebServerSettings.h>
 
 #include <airdcpp/SettingHolder.h>
 
@@ -98,7 +98,12 @@ namespace webserver {
 	}
 
 	api_return SettingApi::handleSetValues(ApiRequest& aRequest) {
-		SettingHolder h(nullptr);
+		auto server = aRequest.getSession()->getServer();
+		auto holder = make_shared<SettingHolder>(
+			[=](const string& aError) {
+				server->log(aError, LogMessage::SEV_ERROR);
+			}
+		);
 
 		bool hasSet = false;
 		for (const auto& elem : aRequest.getRequestBody().items()) {
@@ -107,14 +112,19 @@ namespace webserver {
 				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");
 			}
 
-			setting->setValue(SettingUtils::validateValue(elem.value(), *setting));
+			setting->setValue(SettingUtils::validateValue(elem.value(), *setting, nullptr));
 			hasSet = true;
 		}
 
 		dcassert(hasSet);
 
 		SettingsManager::getInstance()->save();
-		WebServerManager::getInstance()->setDirty();
+		server->setDirty();
+
+		// This may take a while, don't wait
+		addAsyncTask([=] {
+			holder->apply();
+		});
 
 		return websocketpp::http::status_code::no_content;
 	}

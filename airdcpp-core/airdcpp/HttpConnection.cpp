@@ -88,7 +88,7 @@ void HttpConnection::prepareRequest(RequestType type) {
 	} else mimeType.clear();
 
 	string proto, fragment;
-	if(SETTING(HTTP_PROXY).empty()) {
+	if (SETTING(HTTP_PROXY).empty()) {
 		Util::decodeUrl(currentUrl, proto, server, port, file, query, fragment);
 		if(file.empty())
 			file = "/";
@@ -109,7 +109,7 @@ void HttpConnection::prepareRequest(RequestType type) {
 
 	socket->addListener(this);
 	try {
-		socket->connect(Socket::AddressInfo(server, Socket::AddressInfo::TYPE_URL), port, (proto == "https"), true, false);
+		socket->connect(AddressInfo(server, AddressInfo::TYPE_URL), port, (proto == "https"), true, false);
 	} catch(const Exception& e) {
 		fire(HttpConnectionListener::Failed(), this, e.getError() + " (" + currentUrl + ")");
 		connState = CONN_FAILED;

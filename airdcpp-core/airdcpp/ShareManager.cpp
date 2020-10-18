@@ -59,9 +59,9 @@ using boost::range::remove_if;
 #define SHARE_CACHE_VERSION "3"
 
 #ifdef ATOMIC_FLAG_INIT
-atomic_flag ShareManager::refreshing = ATOMIC_FLAG_INIT;
+atomic_flag ShareManager::tasksRunning = ATOMIC_FLAG_INIT;
 #else
-atomic_flag ShareManager::refreshing;
+atomic_flag ShareManager::tasksRunning;
 #endif
 
 ShareManager::ShareManager() : bloom(new ShareBloom(1 << 20)), validator(new SharePathValidator())
@@ -101,7 +101,7 @@ void ShareManager::startup(function<void(const string&)> splashF, function<void(
 	if(!loadCache(progressF)) {
 		if (splashF)
 			splashF(STRING(REFRESHING_SHARE));
-		refresh(false, TYPE_STARTUP_BLOCKING, progressF);
+		refresh(ShareRefreshType::STARTUP, ShareRefreshPriority::BLOCKING, progressF);
 		refreshed = true;
 	}
 
@@ -111,14 +111,10 @@ void ShareManager::startup(function<void(const string&)> splashF, function<void(
 
 		TimerManager::getInstance()->addListener(this);
 
-		if (SETTING(STARTUP_REFRESH) && !refreshed)
-			refresh(false, TYPE_STARTUP_DELAYED);
+		if (SETTING(STARTUP_REFRESH) && !refreshed) {
+			refresh(ShareRefreshType::STARTUP, ShareRefreshPriority::NORMAL);
+		}
 	});
-}
-
-void ShareManager::abortRefresh() noexcept {
-	//abort buildtree and refresh, we are shutting down.
-	stopping = true;
 }
 
 void ShareManager::shutdown(function<void(float)> progressF) noexcept {
@@ -328,7 +324,7 @@ bool ShareManager::RootDirectory::hasRootProfile(ProfileToken aProfile) const no
 }
 
 ShareManager::RootDirectory::RootDirectory(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, time_t aLastRefreshTime) noexcept :
-	path(aRootPath), cacheDirty(false), virtualName(make_unique<DualString>(aVname)), 
+	path(aRootPath), pathLower(Text::toLower(aRootPath)), virtualName(make_unique<DualString>(aVname)), 
 	incoming(aIncoming), rootProfiles(aProfiles), lastRefreshTime(aLastRefreshTime) {
 
 }
@@ -561,6 +557,20 @@ optional<TempShareInfo> ShareManager::addTempShare(const TTHValue& aTTH, const s
 
 	fire(ShareManagerListener::TempFileAdded(), item);
 	return item;
+}
+
+TempShareInfoList ShareManager::getTempShares(const TTHValue& aTTH) const noexcept {
+	TempShareInfoList ret;
+
+	{
+		RLock l(cs);
+		const auto files = tempShares.equal_range(aTTH);
+		for (auto i = files.first; i != files.second; ++i) {
+			ret.push_back(i->second);
+		}
+	}
+
+	return ret;
 }
 
 bool ShareManager::removeTempShare(const UserPtr& aUser, const TTHValue& tth) noexcept {
@@ -894,7 +904,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 		ShareManager::RefreshInfo(aPath, aOldRoot, 0, aBloom),
 		ThreadedCallBack(aOldRoot->getRoot()->getCacheXmlPath()),
 		curDirPath(aOldRoot->getRoot()->getPath()),
-		curDirPathLower(Text::toLower(aOldRoot->getRoot()->getPath()))
+		curDirPathLower(aOldRoot->getRoot()->getPathLower())
 	{ 
 		cur = newShareDirectory;
 	}
@@ -932,9 +942,9 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 				DualString name(fname);
 				HashedFile fi;
 				HashManager::getInstance()->getFileInfo(curDirPathLower + name.getLower(), curDirPath + fname, fi);
-				addFile(move(name), cur, fi, tthIndexNew, bloom, addedSize);
+				addFile(move(name), cur, fi, tthIndexNew, bloom, stats.addedSize);
 			} catch(Exception& e) {
-				hashSize += File::getSize(curDirPath + fname);
+				stats.hashSize += File::getSize(curDirPath + fname);
 				dcdebug("Error loading file list %s \n", e.getError().c_str());
 			}
 		} else if (compare(aName, SHARE) == 0) {
@@ -1002,6 +1012,11 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 		File::deleteFile(p);
 	}
 
+	// XML missing for some of the roots?
+	if (cacheLoaders.size() < rootPaths.size()) {
+		return false;
+	}
+
 	{
 		const auto dirCount = cacheLoaders.size();
 
@@ -1042,18 +1057,18 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 	}
 
 	// Apply the changes
-	int64_t hashSize = 0;
-
+	ShareRefreshStats stats;
 	for (const auto& l : cacheLoaders) {
-		applyRefreshChanges(*l, hashSize, nullptr);
+		applyRefreshChanges(*l, nullptr);
+		stats.merge(l->stats);
 	}
 
 #ifdef _DEBUG
 	//validateDirectoryTreeDebug();
 #endif
 
-	if (hashSize > 0) {
-		LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(hashSize)), LogMessage::SEV_INFO);
+	if (stats.hashSize > 0) {
+		LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(stats.hashSize)), LogMessage::SEV_INFO);
 	}
 
 	return true;
@@ -1418,7 +1433,7 @@ bool ShareManager::isFileShared(const TTHValue& aTTH, ProfileToken aProfile) con
 bool ShareManager::RefreshInfo::checkContent(const Directory::Ptr& aDirectory) noexcept {
 	if (SETTING(SKIP_EMPTY_DIRS_SHARE) && aDirectory->getDirectories().empty() && aDirectory->files.empty()) {
 		// Remove from parent
-		Directory::cleanIndices(*aDirectory.get(), addedSize, tthIndexNew, lowerDirNameMapNew);
+		Directory::cleanIndices(*aDirectory.get(), stats.addedSize, tthIndexNew, lowerDirNameMapNew);
 		return false;
 	}
 
@@ -1430,9 +1445,9 @@ ShareManager::ShareBuilder::ShareBuilder(const string& aPath, const Directory::P
 
 }
 
-bool ShareManager::ShareBuilder::buildTree() noexcept {
+bool ShareManager::ShareBuilder::buildTree(const bool& aStopping) noexcept {
 	try {
-		buildTree(path, Text::toLower(path), newShareDirectory, oldShareDirectory);
+		buildTree(path, Text::toLower(path), newShareDirectory, oldShareDirectory, aStopping);
 	} catch (const std::bad_alloc&) {
 		LogManager::getInstance()->message(STRING_F(DIR_REFRESH_FAILED, path % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		return false;
@@ -1441,13 +1456,33 @@ bool ShareManager::ShareBuilder::buildTree() noexcept {
 		return false;
 	}
 
+	return !aStopping;
+}
+
+bool ShareManager::ShareBuilder::validateFileItem(const FileItemInfoBase& aFileItem, const string& aPath, bool aIsNew, bool aNewParent, ErrorCollector& aErrorCollector) noexcept {
+	try {
+		sm.validator->validateHooked(aFileItem, aPath, false, &sm, aIsNew, aNewParent);
+	} catch (const ShareValidatorException& e) {
+		if (SETTING(REPORT_BLOCKED_SHARE) && ShareValidatorException::isReportableError(e.getType())) {
+			if (aFileItem.isDirectory()) {
+				LogManager::getInstance()->message(STRING_F(SHARE_DIRECTORY_BLOCKED, aPath % e.getError()), LogMessage::SEV_INFO);
+			} else {
+				aErrorCollector.add(e.getError(), Util::getFileName(aPath), false);
+			}
+		}
+
+		return false;
+	} catch (...) {
+		return false;
+	}
+
 	return true;
 }
 
-void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aParent, const Directory::Ptr& aOldParent) {
+void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aParent, const Directory::Ptr& aOldParent, const bool& aStopping) {
 	ErrorCollector errors;
 	FileFindIter end;
-	for(FileFindIter i(aPath, "*"); i != end && !sm.stopping; ++i) {
+	for(FileFindIter i(aPath, "*"); i != end && !aStopping; ++i) {
 		const auto name = i->getFileName();
 		if(name.empty()) {
 			return;
@@ -1462,23 +1497,8 @@ void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aP
 		auto curPath = aPath + name + (isDirectory ? PATH_SEPARATOR_STR : Util::emptyString);
 		auto curPathLower = aPathLower + dualName.getLower() + (isDirectory ? PATH_SEPARATOR_STR : Util::emptyString);
 
-		try {
-			sm.validator->validateHooked(i, curPath, false);
-		} catch (const ShareException& e) {
-			if (SETTING(REPORT_BLOCKED_SHARE)) {
-				if (isDirectory) {
-					LogManager::getInstance()->message(STRING_F(SHARE_DIRECTORY_BLOCKED, curPath % e.getError()), LogMessage::SEV_INFO);
-				} else {
-					errors.add(e.getError(), name, false);
-				}
-			}
-
-			continue;
-		} catch (...) {
-			continue;
-		}
-
 		if (isDirectory) {
+			// Check whether it's shared already
 			Directory::Ptr oldDir = nullptr;
 			if (aOldParent) {
 				RLock l(sm.cs);
@@ -1488,48 +1508,65 @@ void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aP
 				}
 			}
 
-			if (!oldDir) {
+			auto isNew = !oldDir;
+
+			// Validations
+			{
 				auto newParent = !aOldParent;
-				auto error = sm.validator->newDirectoryValidationHook.runHooksError(curPath, newParent);
-				if (error) {
+				if (!validateFileItem(*i, curPath, isNew, newParent, errors)) {
+					stats.skippedDirectoryCount++;
 					continue;
 				}
-			} else {
-				newDirectoriesCount++;
+
 			}
 
+			// Add it
 			auto curDir = Directory::createNormal(move(dualName), aParent, i->getLastWriteTime(), lowerDirNameMapNew, bloom);
 			if (curDir) {
-				buildTree(curPath, curPathLower, curDir, oldDir);
-				checkContent(curDir);
+				buildTree(curPath, curPathLower, curDir, oldDir, aStopping);
+				if (checkContent(curDir)) {
+					if (isNew) {
+						stats.newDirectoryCount++;
+					} else {
+						stats.existingDirectoryCount++;
+					}
+				}
 			}
 		} else {
 			// Not a directory, assume it's a file...
-			auto size = i->getSize();
 
-			if (sm.validator->newFileValidationHook.hasSubscribers()) {
+			{
+				// Check whether it's shared already
 				auto isNew = !aOldParent;
 				if (aOldParent) {
 					RLock l(sm.cs);
 					auto fileIter = aOldParent->files.find(dualName.getLower());
-					isNew = fileIter != aOldParent->files.end();
+					isNew = fileIter == aOldParent->files.end();
+				}
+
+
+				// Validations
+				auto newParent = !aOldParent;
+				if (!validateFileItem(*i, curPath, isNew, newParent, errors)) {
+					stats.skippedFileCount++;
+					continue;
 				}
 
 				if (isNew) {
-					auto newParent = !aOldParent;
-					auto error = sm.validator->newFileValidationHook.runHooksError(curPath, size, newParent);
-					if (error) {
-						continue;
-					}
+					stats.newFileCount++;
+				} else {
+					stats.existingFileCount++;
 				}
 			}
 
+			// Add it
+			auto size = i->getSize();
 			try {
 				HashedFile fi(i->getLastWriteTime(), size);
 				if(HashManager::getInstance()->checkTTH(aPathLower + dualName.getLower(), aPath + name, fi)) {
-					addFile(move(dualName), aParent, fi, tthIndexNew, bloom, addedSize);
+					addFile(move(dualName), aParent, fi, tthIndexNew, bloom, stats.addedSize);
 				} else {
-					hashSize += size;
+					stats.hashSize += size;
 				}
 			} catch(const HashException&) {
 			}
@@ -1635,7 +1672,7 @@ void ShareManager::validateDirectoryRecursiveDebug(const Directory::Ptr& aDir, O
 
 #endif
 
-ShareManager::RefreshResult ShareManager::refreshVirtualName(const string& aVirtualName) noexcept {
+optional<ShareManager::RefreshTaskQueueInfo> ShareManager::refreshVirtualName(const string& aVirtualName, ShareRefreshPriority aPriority) noexcept {
 	StringList refreshDirs;
 
 	{
@@ -1647,89 +1684,101 @@ ShareManager::RefreshResult ShareManager::refreshVirtualName(const string& aVirt
 		}
 	}
 
-	return addRefreshTask(REFRESH_DIRS, refreshDirs, TYPE_MANUAL, aVirtualName);
+	if (refreshDirs.empty()) {
+		return nullopt;
+	}
+
+	return addRefreshTask(aPriority, refreshDirs, ShareRefreshType::REFRESH_DIRS, aVirtualName);
 }
 
 
-ShareManager::RefreshResult ShareManager::refresh(bool aIncoming, RefreshType aType, function<void(float)> progressF /*nullptr*/) noexcept {
+ShareManager::RefreshTaskQueueInfo ShareManager::refresh(ShareRefreshType aType, ShareRefreshPriority aPriority, function<void(float)> progressF /*nullptr*/) noexcept {
 	StringList dirs;
 
 	{
 		RLock l (cs);
 		for (const auto& d: rootPaths | map_values) {
-			if (aIncoming && !d->getRoot()->getIncoming())
+			if (aType == ShareRefreshType::REFRESH_INCOMING && !d->getRoot()->getIncoming())
 				continue;
 
 			dirs.push_back(d->getRoot()->getPath());
 		}
 	}
 
-	return addRefreshTask(aIncoming ? REFRESH_INCOMING : REFRESH_ALL, dirs, aType, Util::emptyString, progressF);
+	return addRefreshTask(aPriority, dirs, aType, Util::emptyString, progressF);
 }
 
-struct ShareTask : public Task {
-	ShareTask(const RefreshPathList& aDirs, const string& aDisplayName, ShareManager::RefreshType aRefreshType) : dirs(aDirs), displayName(aDisplayName), type(aRefreshType) { }
-	RefreshPathList dirs;
-	string displayName;
-	ShareManager::RefreshType type;
-};
+ShareRefreshTask::ShareRefreshTask(ShareRefreshTaskToken aToken, const RefreshPathList& aDirs, const string& aDisplayName, ShareRefreshType aRefreshType, ShareRefreshPriority aPriority) :
+	token(aToken), dirs(aDirs), displayName(aDisplayName), type(aRefreshType), priority(aPriority) { }
 
 void ShareManager::addAsyncTask(AsyncF aF) noexcept {
 	tasks.add(ASYNC, make_unique<AsyncTask>(aF));
-	if (!refreshing.test_and_set()) {
+	if (!tasksRunning.test_and_set()) {
 		start();
 	}
 }
 
-void ShareManager::refreshPaths(const StringList& aPaths, const string& aDisplayName /*Util::emptyString*/, function<void(float)> aProgressF /*nullptr*/) noexcept {
-	addAsyncTask([=] {
-		for (const auto& path : aPaths) {
-			auto d = findDirectory(path);
-			if (!d && !allowShareDirectoryHooked(path)) {
-				return RefreshResult::REFRESH_PATH_NOT_FOUND;
-			}
-		}
+optional<ShareManager::RefreshTaskQueueInfo> ShareManager::refreshPathsHooked(ShareRefreshPriority aPriority, const StringList& aPaths, const void* aCaller, const string& aDisplayName /*Util::emptyString*/, function<void(float)> aProgressF /*nullptr*/) noexcept {
+	try {
+		return refreshPathsHookedThrow(aPriority, aPaths, aCaller, aDisplayName, aProgressF);
+	} catch (const Exception&) {
+		// ...
+	}
 
-		return addRefreshTask(REFRESH_DIRS, aPaths, RefreshType::TYPE_MANUAL, aDisplayName, aProgressF);
-	});
+	return nullopt;
+}
+
+
+ShareManager::RefreshTaskQueueInfo ShareManager::refreshPathsHookedThrow(ShareRefreshPriority aPriority, const StringList& aPaths, const void* aCaller, const string& aDisplayName, function<void(float)> aProgressF) {
+	for (const auto& path : aPaths) {
+		// Ensure that the path exists in share (or it can be added)
+		validatePathHooked(path, false, aCaller);
+	}
+
+	return addRefreshTask(aPriority, aPaths, ShareRefreshType::REFRESH_DIRS, aDisplayName, aProgressF);
 }
 
 void ShareManager::validateRefreshTask(StringList& dirs_) noexcept {
 	Lock l(tasks.cs);
-	auto& tq = tasks.getTasks();
+	const auto& tq = tasks.getTasks();
 
-	//remove directories that have already been queued for refreshing
+	// Remove the exact directories that have already been queued for refreshing
 	for (const auto& i : tq) {
 		if (i.first != ASYNC) {
-			auto t = static_cast<ShareTask*>(i.second.get());
-			dirs_.erase(boost::remove_if(dirs_, [t](const string& p) {
-				return boost::find(t->dirs, p) != t->dirs.end();
-			}), dirs_.end());
+			auto t = static_cast<ShareRefreshTask*>(i.second.get());
+			if (!t->canceled) {
+				dirs_.erase(
+					boost::remove_if(dirs_, [t](const string& p) {
+						return boost::find(t->dirs, p) != t->dirs.end();
+					}), 
+					dirs_.end()
+				);
+			}
 		}
 	}
 }
 
-void ShareManager::reportPendingRefresh(TaskType aTaskType, const RefreshPathList& aDirectories, const string& aDisplayName) const noexcept {
+void ShareManager::reportPendingRefresh(ShareRefreshType aType, const RefreshPathList& aDirectories, const string& aDisplayName) const noexcept {
 	string msg;
-	switch (aTaskType) {
-		case(REFRESH_ALL) :
+	switch (aType) {
+		case(ShareRefreshType::REFRESH_ALL) :
 			msg = STRING(REFRESH_QUEUED);
 			break;
-		case(REFRESH_DIRS) :
+		case(ShareRefreshType::REFRESH_DIRS) :
 			if (!aDisplayName.empty()) {
 				msg = STRING_F(VIRTUAL_REFRESH_QUEUED, aDisplayName);
 			} else if (aDirectories.size() == 1) {
 				msg = STRING_F(DIRECTORY_REFRESH_QUEUED, *aDirectories.begin());
 			}
 			break;
-		case(ADD_DIR) :
+		case(ShareRefreshType::ADD_DIR) :
 			if (aDirectories.size() == 1) {
 				msg = STRING_F(ADD_DIRECTORY_QUEUED, *aDirectories.begin());
 			} else {
 				msg = STRING_F(ADD_DIRECTORIES_QUEUED, aDirectories.size());
 			}
 					  break;
-		case(REFRESH_INCOMING) :
+		case(ShareRefreshType::REFRESH_INCOMING) :
 			msg = STRING(INCOMING_REFRESH_QUEUED);
 			break;
 		default:
@@ -1741,47 +1790,66 @@ void ShareManager::reportPendingRefresh(TaskType aTaskType, const RefreshPathLis
 	}
 }
 
-ShareManager::RefreshResult ShareManager::addRefreshTask(TaskType aTaskType, const StringList& aDirs, RefreshType aRefreshType, const string& aDisplayName, function<void(float)> aProgressF) noexcept {
-	if (aDirs.empty()) {
-		return RefreshResult::REFRESH_PATH_NOT_FOUND;
-	}
+ShareManager::RefreshTaskQueueInfo ShareManager::addRefreshTask(ShareRefreshPriority aPriority, const StringList& aDirs, ShareRefreshType aRefreshType, const string& aDisplayName, function<void(float)> aProgressF) noexcept {
+	/*if (aDirs.empty()) {
+		return {
+			nullopt,
+			RefreshTaskQueueResult::REFRESH_PATH_NOT_FOUND
+		};
+	}*/
 
 	auto dirs = aDirs;
 	validateRefreshTask(dirs);
 
 	if (dirs.empty()) {
-		return RefreshResult::REFRESH_ALREADY_QUEUED;
+		return {
+			nullopt,
+			RefreshTaskQueueResult::EXISTS
+		};
 	}
 
+	auto token = Util::rand();
 	RefreshPathList paths;
 	for (auto& path : dirs) {
-		setRefreshState(path, RefreshState::STATE_PENDING, false);
+		setRefreshState(path, RefreshState::STATE_PENDING, false, token);
 		paths.insert(path);
 	}
 
-	fire(ShareManagerListener::RefreshQueued(), aTaskType, paths);
-	tasks.add(aTaskType, make_unique<ShareTask>(paths, aDisplayName, aRefreshType));
 
-	if(refreshing.test_and_set()) {
-		if (aRefreshType != TYPE_STARTUP_DELAYED) {
-			//this is always called from the task thread...
-			reportPendingRefresh(aTaskType, paths, aDisplayName);
-		}
-		return RefreshResult::REFRESH_IN_PROGRESS;
+	{
+		auto task = make_unique<ShareRefreshTask>(token, paths, aDisplayName, aRefreshType, aPriority);
+		fire(ShareManagerListener::RefreshQueued(), *task.get());
+
+		tasks.add(TaskType::REFRESH, std::move(task));
 	}
 
-	if (aRefreshType == TYPE_STARTUP_BLOCKING && aTaskType == REFRESH_ALL) {
+	if (tasksRunning.test_and_set()) {
+		if (aRefreshType != ShareRefreshType::STARTUP) {
+			// This is always called from the task thread...
+			reportPendingRefresh(aRefreshType, paths, aDisplayName);
+		}
+
+		return {
+			token,
+			RefreshTaskQueueResult::QUEUED
+		};
+	}
+
+	if (aPriority == ShareRefreshPriority::BLOCKING) {
 		runTasks(aProgressF);
 	} else {
 		try {
 			start();
 		} catch(const ThreadException& e) {
 			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError(), LogMessage::SEV_WARNING);
-			refreshing.clear();
+			tasksRunning.clear();
 		}
 	}
 
-	return RefreshResult::REFRESH_STARTED;
+	return {
+		token,
+		RefreshTaskQueueResult::STARTED
+	};
 }
 
 void ShareManager::getRootPaths(StringList& paths_) const noexcept {
@@ -1891,7 +1959,7 @@ bool ShareManager::addRootDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo)
 	}
 
 	fire(ShareManagerListener::RootCreated(), path);
-	addRefreshTask(ADD_DIR, { path }, TYPE_MANUAL);
+	addRefreshTask(ShareRefreshPriority::MANUAL, { path }, ShareRefreshType::ADD_DIR);
 
 	return true;
 }
@@ -1987,41 +2055,42 @@ void ShareManager::updateRootDirectories(const ShareDirectoryInfoList& changedDi
 #endif
 }
 
-void ShareManager::reportTaskStatus(uint8_t aTask, const RefreshPathList& directories, bool finished, int64_t aHashSize, const string& displayName, RefreshType aRefreshType) const noexcept {
+void ShareManager::reportTaskStatus(const ShareRefreshTask& aTask, bool aFinished, const ShareRefreshStats* aStats) const noexcept {
 	string msg;
-	switch (aTask) {
-		case(REFRESH_ALL):
-			msg = finished ? STRING(FILE_LIST_REFRESH_FINISHED) : STRING(FILE_LIST_REFRESH_INITIATED);
+	switch (aTask.type) {
+		case (ShareRefreshType::STARTUP):
+		case (ShareRefreshType::REFRESH_ALL):
+			msg = aFinished ? STRING(FILE_LIST_REFRESH_FINISHED) : STRING(FILE_LIST_REFRESH_INITIATED);
 			break;
-		case(REFRESH_DIRS):
-			if (!displayName.empty()) {
-				msg = finished ? STRING_F(VIRTUAL_DIRECTORY_REFRESHED, displayName) : STRING_F(FILE_LIST_REFRESH_INITIATED_VPATH, displayName);
-			} else if (directories.size() == 1) {
-				msg = finished ? STRING_F(DIRECTORY_REFRESHED, *directories.begin()) : STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *directories.begin());
+		case (ShareRefreshType::REFRESH_DIRS):
+			if (!aTask.displayName.empty()) {
+				msg = aFinished ? STRING_F(VIRTUAL_DIRECTORY_REFRESHED, aTask.displayName) : STRING_F(FILE_LIST_REFRESH_INITIATED_VPATH, aTask.displayName);
+			} else if (aTask.dirs.size() == 1) {
+				msg = aFinished ? STRING_F(DIRECTORY_REFRESHED, *aTask.dirs.begin()) : STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *aTask.dirs.begin());
 			} else {
-				msg = finished ? STRING_F(X_DIRECTORIES_REFRESHED, directories.size()) : STRING_F(FILE_LIST_REFRESH_INITIATED_X_PATHS, directories.size());
+				msg = aFinished ? STRING_F(X_DIRECTORIES_REFRESHED, aTask.dirs.size()) : STRING_F(FILE_LIST_REFRESH_INITIATED_X_PATHS, aTask.dirs.size());
 			}
 			break;
-		case(ADD_DIR):
-			if (directories.size() == 1) {
-				msg = finished ? STRING_F(DIRECTORY_ADDED, *directories.begin()) : STRING_F(ADDING_SHARED_DIR, *directories.begin());
+		case(ShareRefreshType::ADD_DIR):
+			if (aTask.dirs.size() == 1) {
+				msg = aFinished ? STRING_F(DIRECTORY_ADDED, *aTask.dirs.begin()) : STRING_F(ADDING_SHARED_DIR, *aTask.dirs.begin());
 			} else {
-				msg = finished ? STRING_F(ADDING_X_SHARED_DIRS, directories.size()) : STRING_F(DIRECTORIES_ADDED, directories.size());
+				msg = aFinished ? STRING_F(ADDING_X_SHARED_DIRS, aTask.dirs.size()) : STRING_F(DIRECTORIES_ADDED, aTask.dirs.size());
 			}
 			break;
-		case(REFRESH_INCOMING):
-			msg = finished ? STRING(INCOMING_REFRESHED) : STRING(FILE_LIST_REFRESH_INITIATED_INCOMING);
+		case(ShareRefreshType::REFRESH_INCOMING):
+			msg = aFinished ? STRING(INCOMING_REFRESHED) : STRING(FILE_LIST_REFRESH_INITIATED_INCOMING);
 			break;
-		case(ADD_BUNDLE):
-			if (finished)
-				msg = STRING_F(BUNDLE_X_SHARED, displayName); //show the whole path so that it can be opened from the system log
+		case(ShareRefreshType::BUNDLE):
+			if (aFinished)
+				msg = STRING_F(BUNDLE_X_SHARED, aTask.displayName); //show the whole path so that it can be opened from the system log
 			break;
 	};
 
 	if (!msg.empty()) {
-		if (aHashSize > 0) {
-			msg += " " + STRING_F(FILES_ADDED_FOR_HASH, Util::formatBytes(aHashSize));
-		} else if (aRefreshType == TYPE_SCHEDULED && !SETTING(LOG_SCHEDULED_REFRESHES)) {
+		if (aStats && aStats->hashSize > 0) {
+			msg += " " + STRING_F(FILES_ADDED_FOR_HASH, Util::formatBytes(aStats->hashSize));
+		} else if (aTask.priority == ShareRefreshPriority::SCHEDULED && !SETTING(LOG_SCHEDULED_REFRESHES)) {
 			return;
 		}
 		LogManager::getInstance()->message(msg, LogMessage::SEV_INFO);
@@ -2052,124 +2121,162 @@ ShareManager::RefreshInfo::RefreshInfo(const string& aPath, const Directory::Ptr
 
 void ShareManager::runTasks(function<void (float)> progressF /*nullptr*/) noexcept {
 	unique_ptr<HashManager::HashPauser> pauser = nullptr;
-	ScopedFunctor([this] { refreshing.clear(); });
+	ScopedFunctor([this] { tasksRunning.clear(); });
 
 	for (;;) {
 		TaskQueue::TaskPair t;
-		if (!tasks.getFront(t))
+		if (!tasks.getFront(t)) {
 			break;
+		}
+
 		ScopedFunctor([this] { tasks.pop_front(); });
 
-		if (t.first == ASYNC) {
+		if (t.first == TaskType::ASYNC) {
 			auto task = static_cast<AsyncTask*>(t.second);
 			task->f();
 			continue;
 		}
 
-		auto task = static_cast<ShareTask*>(t.second);
-		if (task->type == TYPE_STARTUP_DELAYED)
-			Thread::sleep(5000); // let the client start first
-
-		setThreadPriority(task->type == TYPE_MANUAL ? Thread::NORMAL : Thread::IDLE);
-
-		refreshRunning = true;
-		ScopedFunctor([this] { refreshRunning = false; });
-
-		if (!pauser) {
-			pauser.reset(new HashManager::HashPauser());
-		}
-
-		auto dirs = task->dirs;
-		if (dirs.empty()) {
-			continue;
-		}
-
-		ShareBuilderSet refreshDirs;
-
-		ShareBloom* refreshBloom = t.first == REFRESH_ALL ? new ShareBloom(1 << 20) : bloom.get();
-
-		// Get refresh infos for each path
-		{
-			RLock l (cs);
-			for(auto& refreshPath: dirs) {
-				auto directory = findDirectory(refreshPath);
-				refreshDirs.insert(std::make_shared<ShareBuilder>(refreshPath, directory, File::getLastModified(refreshPath), *refreshBloom, this));
+		if (t.first == TaskType::REFRESH) {
+			auto task = static_cast<ShareRefreshTask*>(t.second);
+			if (task->type == ShareRefreshType::STARTUP && task->priority != ShareRefreshPriority::BLOCKING) {
+				Thread::sleep(5000); // let the client start first
 			}
+
+			task->running = true;
+
+			setThreadPriority(task->priority == ShareRefreshPriority::MANUAL ? Thread::NORMAL : Thread::IDLE);
+			if (!pauser) {
+				pauser.reset(new HashManager::HashPauser());
+			}
+
+			runRefreshTask(*task, progressF);
 		}
 
-		reportTaskStatus(t.first, dirs, false, 0, task->displayName, task->type);
-		if (t.first == REFRESH_INCOMING) {
-			lastIncomingUpdate = GET_TICK();
-		} else if (t.first == REFRESH_ALL) {
-			lastFullUpdate = GET_TICK();
-			lastIncomingUpdate = GET_TICK();
+	}
+
+#ifdef _DEBUG
+	if (pauser) {
+		validateDirectoryTreeDebug();
+	}
+#endif
+}
+
+void ShareManager::runRefreshTask(const ShareRefreshTask& aTask, function<void(float)> progressF) noexcept {
+	fire(ShareManagerListener::RefreshStarted(), aTask);
+
+	refreshRunning = true;
+	ScopedFunctor([this] { refreshRunning = false; });
+
+	auto dirs = aTask.dirs;
+	if (dirs.empty()) {
+		return;
+	}
+
+	ShareBuilderSet refreshDirs;
+
+	ShareBloom* refreshBloom = aTask.type == ShareRefreshType::REFRESH_ALL ? new ShareBloom(1 << 20) : bloom.get();
+
+	// Get refresh infos for each path
+	{
+		RLock l(cs);
+		for (auto& refreshPath : dirs) {
+			auto directory = findDirectory(refreshPath);
+			refreshDirs.insert(std::make_shared<ShareBuilder>(refreshPath, directory, File::getLastModified(refreshPath), *refreshBloom, this));
 		}
+	}
 
-		// Refresh
-		atomic<long> progressCounter(0);
+	reportTaskStatus(aTask, false, nullptr);
+	if (aTask.type == ShareRefreshType::REFRESH_INCOMING) {
+		lastIncomingUpdate = GET_TICK();
+	} else if (aTask.type == ShareRefreshType::REFRESH_ALL) {
+		lastFullUpdate = GET_TICK();
+		lastIncomingUpdate = GET_TICK();
+	}
 
-		int64_t totalHash = 0;
-		ProfileTokenSet dirtyProfiles;
+	// Refresh
+	atomic<long> progressCounter(0);
 
-		auto doRefresh = [&](const ShareBuilderPtr& i) {
-			auto& ri = *i.get();
+	ShareRefreshStats totalStats;
+	// int64_t totalHash = 0;
+	ProfileTokenSet dirtyProfiles;
+	bool allBuildersSucceed = true;
 
-			setRefreshState(ri.path, RefreshState::STATE_RUNNING, false);
+	auto doRefresh = [&](const ShareBuilderPtr& i) {
+		auto& ri = *i.get();
+		if (!aTask.canceled) {
+			setRefreshState(ri.path, RefreshState::STATE_RUNNING, false, aTask.token);
 
 			// Build the tree
-			auto succeed = ri.buildTree();
-
-			// Don't save cache with an incomplete tree
-			if (stopping)
-				return;
+			auto succeed = ri.buildTree(aTask.canceled);
 
 			// Apply the changes
 			if (succeed) {
-				WLock l(cs);
-				applyRefreshChanges(ri, totalHash, &dirtyProfiles);
+				{
+					WLock l(cs);
+					applyRefreshChanges(ri, &dirtyProfiles);
+				}
+
+				totalStats.merge(ri.stats);
+			} else {
+				allBuildersSucceed = false;
 			}
 
 			// Finish up
-			setRefreshState(ri.path, RefreshState::STATE_NORMAL, succeed);
-			if (progressF) {
-				progressF(static_cast<float>(progressCounter++) / static_cast<float>(refreshDirs.size()));
+			if (!aTask.canceled) {
+				setRefreshState(ri.path, RefreshState::STATE_NORMAL, succeed, nullopt);
 			}
-		};
-
-		try {
-			if (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_ALWAYS || (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_MANUAL && (task->type == TYPE_MANUAL || task->type == TYPE_STARTUP_BLOCKING))) {
-				TaskScheduler s;
-				parallel_for_each(refreshDirs.begin(), refreshDirs.end(), doRefresh);
-			} else {
-				for_each(refreshDirs, doRefresh);
-			}
-		} catch (std::exception& e) {
-			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + string(e.what()), LogMessage::SEV_INFO);
-			continue;
+		} else {
+			allBuildersSucceed = false;
 		}
 
-		if (stopping)
-			break;
+		if (progressF) {
+			progressF(static_cast<float>(progressCounter++) / static_cast<float>(refreshDirs.size()));
+		}
+	};
 
-		if(t.first == REFRESH_ALL) {
+	try {
+		if (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_ALWAYS || (SETTING(REFRESH_THREADING) == SettingsManager::MULTITHREAD_MANUAL && aTask.priority == ShareRefreshPriority::MANUAL)) {
+			TaskScheduler s;
+			parallel_for_each(refreshDirs.begin(), refreshDirs.end(), doRefresh);
+		} else {
+			for_each(refreshDirs, doRefresh);
+		}
+	} catch (const std::exception& e) {
+		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + string(e.what()), LogMessage::SEV_INFO);
+		return;
+	}
+
+	if (allBuildersSucceed) {
+		if (aTask.type == ShareRefreshType::REFRESH_ALL) {
 			// Reset the bloom so that removed files are nulled (which won't happen with partial refreshes)
 
 			WLock l(cs);
 			bloom.reset(refreshBloom);
 		}
 
-		setProfilesDirty(dirtyProfiles, task->type == TYPE_MANUAL || t.first == REFRESH_ALL || t.first == ADD_BUNDLE);
-		reportTaskStatus(t.first, dirs, true, totalHash, task->displayName, task->type);
-
-		fire(ShareManagerListener::RefreshCompleted(), t.first, dirs);
+		setProfilesDirty(dirtyProfiles, aTask.priority == ShareRefreshPriority::MANUAL || aTask.type == ShareRefreshType::REFRESH_ALL || aTask.type == ShareRefreshType::BUNDLE);
 	}
 
-#ifdef _DEBUG
-	validateDirectoryTreeDebug();
-#endif
+	reportTaskStatus(aTask, true, &totalStats);
+	fire(ShareManagerListener::RefreshCompleted(), aTask, allBuildersSucceed, totalStats);
 }
 
-void ShareManager::RefreshInfo::mergeRefreshChanges(Directory::MultiMap& lowerDirNameMap_, Directory::Map& rootPaths_, HashFileMap& tthIndex_, int64_t& totalHash_, int64_t& totalAdded_, ProfileTokenSet* dirtyProfiles_) noexcept {
+void ShareRefreshStats::merge(const ShareRefreshStats& aOther) noexcept {
+	hashSize += aOther.hashSize;
+	addedSize += aOther.addedSize;
+
+	newDirectoryCount += aOther.newDirectoryCount;
+	newFileCount += aOther.newFileCount;
+
+	skippedFileCount += aOther.skippedFileCount;
+	skippedDirectoryCount += aOther.skippedDirectoryCount;
+
+	existingFileCount += aOther.existingFileCount;
+	existingDirectoryCount += aOther.existingDirectoryCount;
+}
+
+void ShareManager::RefreshInfo::applyRefreshChanges(Directory::MultiMap& lowerDirNameMap_, Directory::Map& rootPaths_, HashFileMap& tthIndex_, int64_t& sharedBytes_, ProfileTokenSet* dirtyProfiles_) noexcept {
 #ifdef _DEBUG
 	for (const auto& d: lowerDirNameMapNew | map_values) {
 		checkAddedDirNameDebug(d, lowerDirNameMap_);
@@ -2188,8 +2295,7 @@ void ShareManager::RefreshInfo::mergeRefreshChanges(Directory::MultiMap& lowerDi
 		rootPaths_[rp.first] = rp.second;
 	}
 
-	totalHash_ += hashSize;
-	totalAdded_ += addedSize;
+	sharedBytes_ += stats.addedSize;
 
 	if (dirtyProfiles_) {
 		newShareDirectory->copyRootProfiles(*dirtyProfiles_, true);
@@ -2202,7 +2308,7 @@ void ShareManager::RefreshInfo::mergeRefreshChanges(Directory::MultiMap& lowerDi
 	newShareDirectory = nullptr;
 }
 
-void ShareManager::setRefreshState(const string& aRefreshPath, RefreshState aState, bool aUpdateRefreshTime) noexcept {
+void ShareManager::setRefreshState(const string& aRefreshPath, RefreshState aState, bool aUpdateRefreshTime, const optional<ShareRefreshTaskToken>& aRefreshTaskToken) noexcept {
 	RootDirectory::Ptr rootDir;
 
 	{
@@ -2222,6 +2328,7 @@ void ShareManager::setRefreshState(const string& aRefreshPath, RefreshState aSta
 	// but don't change the refresh state
 	if (aRefreshPath == rootDir->getPath()) {
 		rootDir->setRefreshState(aState);
+		rootDir->setRefreshTaskToken(aRefreshTaskToken);
 		if (aUpdateRefreshTime) {
 			rootDir->setLastRefreshTime(GET_TIME());
 		}
@@ -2230,7 +2337,49 @@ void ShareManager::setRefreshState(const string& aRefreshPath, RefreshState aSta
 	fire(ShareManagerListener::RootRefreshState(), rootDir->getPath());
 }
 
-bool ShareManager::applyRefreshChanges(RefreshInfo& ri, int64_t& totalHash_, ProfileTokenSet* aDirtyProfiles) {
+ShareRefreshTaskList ShareManager::getRefreshTasks() const noexcept {
+	ShareRefreshTaskList ret;
+
+	{
+		Lock l(tasks.cs);
+		for (const auto& t : tasks.getTasks()) {
+			if (t.first == TaskType::REFRESH) {
+				auto refreshTask = static_cast<ShareRefreshTask*>(t.second.get());
+				ret.push_back(*refreshTask);
+			}
+		}
+	}
+
+	return ret;
+}
+
+bool ShareManager::abortRefresh(optional<ShareRefreshTaskToken> aToken) noexcept {
+	RefreshPathList paths;
+
+	{
+		Lock l(tasks.cs);
+
+		auto& tl = tasks.getTasks();
+
+		for (const auto& t : tl) {
+			if (t.first == TaskType::REFRESH) {
+				auto refreshTask = static_cast<ShareRefreshTask*>(t.second.get());
+				if (!aToken || refreshTask->token == *aToken) {
+					refreshTask->canceled = true;
+					boost::copy(refreshTask->dirs, inserter(paths, paths.begin()));
+				}
+			}
+		}
+	}
+
+	for (const auto& d: paths) {
+		setRefreshState(d, RefreshState::STATE_NORMAL, false, nullopt);
+	}
+
+	return !paths.empty();
+}
+
+bool ShareManager::applyRefreshChanges(RefreshInfo& ri, ProfileTokenSet* aDirtyProfiles) {
 	Directory::Ptr parent = nullptr;
 
 	// Recursively remove the content of this dir from TTHIndex and directory name map
@@ -2268,7 +2417,7 @@ bool ShareManager::applyRefreshChanges(RefreshInfo& ri, int64_t& totalHash_, Pro
 		}
 	}
 
-	ri.mergeRefreshChanges(lowerDirNameMap, rootPaths, tthIndex, totalHash_, sharedSize, aDirtyProfiles);
+	ri.applyRefreshChanges(lowerDirNameMap, rootPaths, tthIndex, sharedSize, aDirtyProfiles);
 	dcdebug("Share changes applied for the directory %s\n", ri.path.c_str());
 	return true;
 }
@@ -2281,10 +2430,10 @@ void ShareManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	if(SETTING(AUTO_REFRESH_TIME) > 0 && lastFullUpdate + SETTING(AUTO_REFRESH_TIME) * 60 * 1000 <= aTick) {
 		lastIncomingUpdate = aTick;
 		lastFullUpdate = aTick;
-		refresh(false, TYPE_SCHEDULED);
+		refresh(ShareRefreshType::REFRESH_ALL, ShareRefreshPriority::SCHEDULED);
 	} else if(SETTING(INCOMING_REFRESH_TIME) > 0 && lastIncomingUpdate + SETTING(INCOMING_REFRESH_TIME) * 60 * 1000 <= aTick) {
 		lastIncomingUpdate = aTick;
-		refresh(true, TYPE_SCHEDULED);
+		refresh(ShareRefreshType::REFRESH_INCOMING, ShareRefreshPriority::SCHEDULED);
 	}
 }
 
@@ -2303,6 +2452,7 @@ ShareDirectoryInfoPtr ShareManager::getRootInfo(const Directory::Ptr& aDir) cons
 	info->virtualName = rootDir->getName();
 	info->refreshState = static_cast<uint8_t>(rootDir->getRefreshState());
 	info->lastRefreshTime = rootDir->getLastRefreshTime();
+	info->refreshTaskToken = rootDir->getRefreshTaskToken();
 	return info;
 }
 
@@ -3010,19 +3160,19 @@ void ShareManager::shareBundle(const BundlePtr& aBundle) noexcept {
 	}
 
 	auto path = aBundle->getTarget();
-	addRefreshTask(ADD_BUNDLE, { aBundle->getTarget() }, RefreshType::TYPE_BUNDLE, aBundle->getTarget());
+	addRefreshTask(ShareRefreshPriority::NORMAL, { aBundle->getTarget() }, ShareRefreshType::BUNDLE, aBundle->getTarget());
 }
 
-bool ShareManager::allowShareDirectoryHooked(const string& aRealPath) const noexcept {
+bool ShareManager::allowShareDirectoryHooked(const string& aRealPath, const void* aCaller) const noexcept {
 	try {
-		validatePathHooked(aRealPath, false);
+		validatePathHooked(aRealPath, false, aCaller);
 		return true;
 	} catch (const Exception&) { }
 
 	return false;
 }
 
-void ShareManager::validatePathHooked(const string& aRealPath, bool aSkipQueueCheck) const {
+void ShareManager::validatePathHooked(const string& aRealPath, bool aSkipQueueCheck, const void* aCaller) const {
 	StringList tokens;
 	Directory::Ptr baseDirectory = nullptr;
 
@@ -3044,16 +3194,16 @@ void ShareManager::validatePathHooked(const string& aRealPath, bool aSkipQueueCh
 
 
 	// Validate missing directory path tokens
-	validator->validateDirectoryPathTokensHooked(baseDirectory->getRealPath(), tokens, aSkipQueueCheck);
+	validator->validateNewDirectoryPathTokensHooked(baseDirectory->getRealPath(), tokens, aSkipQueueCheck, aCaller);
 
 	if (!isDirectoryPath && !isFileShared) {
 		// Validate the file
-		validator->validatePathHooked(aRealPath, aSkipQueueCheck);
+		validator->validateNewPathHooked(aRealPath, aSkipQueueCheck, !tokens.empty(), aCaller);
 	}
 }
 
 ShareManager::Directory::Ptr ShareManager::findDirectory(const string& aRealPath, StringList& remainingTokens_) const noexcept {
-	auto mi = find_if(rootPaths | map_keys, IsParentOrExact(aRealPath, PATH_SEPARATOR)).base();
+	auto mi = find_if(rootPaths | map_values, Directory::RootIsParentOrExact(aRealPath)).base();
 	if (mi == rootPaths.end()) {
 		return nullptr;
 	}

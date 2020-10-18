@@ -52,14 +52,15 @@ namespace dcpp {
 		ViewFilePtr addUserFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText);
 
 		// Add a file by real path
-		ViewFilePtr addLocalFile(const TTHValue& aTTH, bool aIsText) noexcept;
+		ViewFilePtr addLocalFileNotify(const TTHValue& aTTH, bool aIsText, const string& aFileName) noexcept;
+		ViewFilePtr addLocalFileThrow(const TTHValue& aTTH, bool aIsText);
 
 		bool removeFile(const TTHValue& aTTH) noexcept;
 
 		ViewFilePtr getFile(const TTHValue& aTTH) const noexcept;
 		bool setRead(const TTHValue& aTTH) noexcept;
 	private:
-		ViewFilePtr createFile(const string& aFileName, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile) noexcept;
+		ViewFilePtr createFile(const string& aFileName, const string& aPath, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile) noexcept;
 		static bool isViewedItem(const QueueItemPtr& aQI) noexcept;
 
 		void on(QueueManagerListener::ItemFinished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t aSpeed) noexcept;

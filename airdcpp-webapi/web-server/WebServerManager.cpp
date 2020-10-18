@@ -17,8 +17,8 @@
 */
 
 #include "stdinc.h"
-#include <api/ApiSettingItem.h>
 
+#include <web-server/ApiSettingItem.h>
 #include <web-server/ContextMenuManager.h>
 #include <web-server/ExtensionManager.h>
 #include <web-server/WebServerSettings.h>

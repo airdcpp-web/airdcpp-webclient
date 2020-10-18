@@ -21,6 +21,7 @@
 #include <api/PrivateChatApi.h>
 
 #include <api/common/Deserializer.h>
+#include <api/common/MessageUtils.h>
 #include <api/common/Serializer.h>
 
 #include <airdcpp/ClientManager.h>
@@ -33,12 +34,13 @@ namespace webserver {
 		"private_chat_removed"
 	};
 
-	ActionHookResult<> PrivateChatApi::incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<>& aResultGetter) {
-		return HookCompletionData::toResult(
+	ActionHookResult<MessageHighlightList> PrivateChatApi::incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) {
+		return HookCompletionData::toResult<MessageHighlightList>(
 			fireHook("private_chat_incoming_message_hook", 2, [&]() {
-				return Serializer::serializeChatMessage(aMessage);
+				return MessageUtils::serializeChatMessage(aMessage);
 			}),
-			aResultGetter
+			aResultGetter,
+			MessageUtils::getMessageHookHighlightDeserializer(aMessage->getText())
 		);
 	}
 
@@ -65,14 +67,14 @@ namespace webserver {
 
 		PrivateChatManager::getInstance()->addListener(this);
 
-		createHook("private_chat_incoming_message_hook", [this](const string& aId, const string& aName) {
-			return ClientManager::getInstance()->incomingPrivateMessageHook.addSubscriber(aId, aName, HOOK_HANDLER(PrivateChatApi::incomingMessageHook));
+		createHook("private_chat_incoming_message_hook", [this](ActionHookSubscriber&& aSubscriber) {
+			return ClientManager::getInstance()->incomingPrivateMessageHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(PrivateChatApi::incomingMessageHook));
 		}, [this](const string& aId) {
 			ClientManager::getInstance()->incomingPrivateMessageHook.removeSubscriber(aId);
 		});
 
-		createHook("private_chat_outgoing_message_hook", [this](const string& aId, const string& aName) {
-			return ClientManager::getInstance()->outgoingPrivateMessageHook.addSubscriber(aId, aName, HOOK_HANDLER(PrivateChatApi::outgoingMessageHook));
+		createHook("private_chat_outgoing_message_hook", [this](ActionHookSubscriber&& aSubscriber) {
+			return ClientManager::getInstance()->outgoingPrivateMessageHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(PrivateChatApi::outgoingMessageHook));
 		}, [this](const string& aId) {
 			ClientManager::getInstance()->outgoingPrivateMessageHook.removeSubscriber(aId);
 		});
@@ -112,22 +114,22 @@ namespace webserver {
 
 	api_return PrivateChatApi::handlePostMessage(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
-
-		auto user = Deserializer::deserializeHintedUser(reqJson);
-		auto message = Deserializer::deserializeChatMessage(reqJson);
-		auto echo = JsonUtil::getOptionalFieldDefault<bool>("echo", reqJson, false);
-
-		const auto complete = aRequest.defer();
-		addAsyncTask([=] {
+		addAsyncTask([
+			message = Deserializer::deserializeChatMessage(reqJson),
+			user = Deserializer::deserializeHintedUser(reqJson),
+			echo = JsonUtil::getOptionalFieldDefault<bool>("echo", reqJson, false),
+			callerPtr = aRequest.getOwnerPtr(),
+			complete = aRequest.defer()
+		] {
 			string error_;
-			if (!ClientManager::getInstance()->privateMessageHooked(user, OutgoingChatMessage(message.first, aRequest.getSession().get(), message.second), error_, echo)) {
+			if (!ClientManager::getInstance()->privateMessageHooked(user, OutgoingChatMessage(message.first, callerPtr, message.second), error_, echo)) {
 				complete(websocketpp::http::status_code::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error_));
 			} else {
 				complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
 			}
 		});
 
-		return websocketpp::http::status_code::see_other;
+		return CODE_DEFERRED;
 	}
 
 	void PrivateChatApi::on(PrivateChatManagerListener::ChatRemoved, const PrivateChatPtr& aChat) noexcept {
@@ -158,7 +160,7 @@ namespace webserver {
 			{ "id", aChat->getUser()->getCID().toBase32() },
 			{ "user", Serializer::serializeHintedUser(aChat->getHintedUser()) },
 			{ "ccpm_state", PrivateChatInfo::serializeCCPMState(aChat) },
-			{ "message_counts", Serializer::serializeCacheInfo(aChat->getCache(), Serializer::serializeUnreadChat) },
+			{ "message_counts", MessageUtils::serializeCacheInfo(aChat->getCache(), MessageUtils::serializeUnreadChat) },
 		};
 	}
 }

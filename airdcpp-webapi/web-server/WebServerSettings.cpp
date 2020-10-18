@@ -31,8 +31,8 @@ namespace webserver {
 			{ "web_tls_port", ResourceManager::WEB_CFG_PORT, 5601, ApiSettingItem::TYPE_NUMBER, false, { 0, 65535 } },
 			{ "web_tls_bind_address", ResourceManager::WEB_CFG_BIND_ADDRESS, "", ApiSettingItem::TYPE_STRING, true },
 
-			{ "web_tls_certificate_path", ResourceManager::WEB_CFG_CERT_PATH, "", ApiSettingItem::TYPE_FILE_PATH, true },
-			{ "web_tls_certificate_key_path", ResourceManager::WEB_CFG_CERT_KEY_PATH, "", ApiSettingItem::TYPE_FILE_PATH, true },
+			{ "web_tls_certificate_path", ResourceManager::WEB_CFG_CERT_PATH, "", ApiSettingItem::TYPE_EXISTING_FILE_PATH, true },
+			{ "web_tls_certificate_key_path", ResourceManager::WEB_CFG_CERT_KEY_PATH, "", ApiSettingItem::TYPE_EXISTING_FILE_PATH, true },
 
 			{ "web_server_threads", ResourceManager::WEB_CFG_SERVER_THREADS, 4, ApiSettingItem::TYPE_NUMBER, false, { 1, 100 } },
 

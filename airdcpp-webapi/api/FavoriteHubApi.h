@@ -51,6 +51,8 @@ namespace webserver {
 		HubView view;
 
 		static FavoriteHubEntryList getEntryList() noexcept;
+
+		static tribool deserializeTribool(const string& aFieldName, const json& aJson);
 	};
 }
 

@@ -31,28 +31,30 @@ namespace dcpp {
 		typedef X<0> ShareLoaded;
 
 		typedef X<1> RefreshQueued;
-		typedef X<2> RefreshCompleted;
+		typedef X<2> RefreshStarted;
+		typedef X<3> RefreshCompleted;
 
-		typedef X<3> ProfileAdded;
-		typedef X<4> ProfileUpdated;
-		typedef X<5> ProfileRemoved;
-		typedef X<6> DefaultProfileChanged;
+		typedef X<4> ProfileAdded;
+		typedef X<5> ProfileUpdated;
+		typedef X<6> ProfileRemoved;
+		typedef X<7> DefaultProfileChanged;
 
-		typedef X<7> RootCreated;
-		typedef X<8> RootRemoved;
-		typedef X<9> RootUpdated;
-		typedef X<10> RootRefreshState;
+		typedef X<8> RootCreated;
+		typedef X<9> RootRemoved;
+		typedef X<10> RootUpdated;
+		typedef X<11> RootRefreshState;
 
-		typedef X<11> ExcludeAdded;
-		typedef X<12> ExcludeRemoved;
+		typedef X<12> ExcludeAdded;
+		typedef X<13> ExcludeRemoved;
 
-		typedef X<13> TempFileAdded;
-		typedef X<14> TempFileRemoved;
+		typedef X<14> TempFileAdded;
+		typedef X<15> TempFileRemoved;
 
 
 		virtual void on(ShareLoaded) noexcept{}
-		virtual void on(RefreshCompleted, uint8_t /*tasktype*/, const RefreshPathList&) noexcept{}
-		virtual void on(RefreshQueued, uint8_t /*tasktype*/, const RefreshPathList&) noexcept {}
+		virtual void on(RefreshQueued, const ShareRefreshTask&) noexcept {}
+		virtual void on(RefreshStarted, const ShareRefreshTask&) noexcept {}
+		virtual void on(RefreshCompleted, const ShareRefreshTask&, bool /*aSucceed*/, const ShareRefreshStats& /*stats*/) noexcept{}
 
 		virtual void on(ProfileAdded, ProfileToken) noexcept {}
 		virtual void on(ProfileUpdated, ProfileToken, bool /*aIsMajorChange*/) noexcept {}

@@ -86,7 +86,7 @@ namespace webserver {
 
 		api_return handleGetFileSegments(ApiRequest& aRequest);
 		api_return handleAddFileSegment(ApiRequest& aRequest);
-		api_return handleRemoveFileSegment(ApiRequest& aRequest);
+		api_return handleResetFileSegments(ApiRequest& aRequest);
 		static json serializeSegment(const Segment& aSegment) noexcept;
 		static Segment parseSegment(const QueueItemPtr& aQI, ApiRequest& aRequest);
 

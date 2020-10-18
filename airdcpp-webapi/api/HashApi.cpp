@@ -18,6 +18,8 @@
 
 #include "stdinc.h"
 
+#include <airdcpp/SettingsManager.h>
+
 #include <web-server/JsonUtil.h>
 #include <web-server/Timer.h>
 
@@ -43,6 +45,8 @@ namespace webserver {
 
 		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,	(EXACT_PARAM("database_status")),	HashApi::handleGetDbStatus);
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("optimize_database")),	HashApi::handleOptimize);
+
+		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,	(EXACT_PARAM("stats")),				HashApi::handleGetStats);
 
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("pause")),				HashApi::handlePause);
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("resume")),			HashApi::handleResume);
@@ -72,29 +76,36 @@ namespace webserver {
 		return websocketpp::http::status_code::no_content;
 	}
 
-	void HashApi::onTimer() noexcept {
-		if (!subscriptionActive("hash_statistics"))
-			return;
+	api_return HashApi::handleGetStats(ApiRequest& aRequest) {
+		auto stats = HashManager::getInstance()->getStats();
+		aRequest.setResponseBody(serializeHashStatistics(stats));
+		return websocketpp::http::status_code::ok;
+	}
 
-		string curFile;
-		int64_t bytesLeft = 0, speed = 0;
-		size_t filesLeft = 0;
-		int hashers = 0;
-
-		HashManager::getInstance()->getStats(curFile, bytesLeft, filesLeft, speed, hashers);
-
-		json j = {
-			{ "hash_speed", speed },
-			{ "hash_bytes_left", bytesLeft },
-			{ "hash_files_left", filesLeft },
-			{ "hashers", hashers },
+	json HashApi::serializeHashStatistics(const HashManager::HashStats& aStats) noexcept {
+		return {
+			{ "hash_speed", aStats.speed },
+			{ "hash_bytes_left", aStats.bytesLeft },
+			{ "hash_files_left", aStats.filesLeft },
+			{ "hash_bytes_added", aStats.bytesAdded },
+			{ "hash_files_added", aStats.filesAdded },
+			{ "hashers", aStats.hashersRunning },
+			{ "pause_forced", aStats.isPaused },
+			{ "max_hash_speed", SETTING(MAX_HASH_SPEED) },
 		};
+	}
 
-		if (previousStats == j)
+	void HashApi::onTimer() noexcept {
+		if (!subscriptionActive("hash_statistics")) {
+			return;
+		}
+
+		auto newStats = serializeHashStatistics(HashManager::getInstance()->getStats());
+		if (previousStats == newStats)
 			return;
 
-		send("hash_statistics", j);
-		previousStats.swap(j);
+		send("hash_statistics", Serializer::serializeChangedProperties(newStats, previousStats));
+		previousStats.swap(newStats);
 	}
 
 	void HashApi::on(HashManagerListener::MaintananceStarted) noexcept {

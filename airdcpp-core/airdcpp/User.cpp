@@ -43,8 +43,12 @@ OnlineUser::~OnlineUser() noexcept {
 
 }
 
-bool Identity::isTcpActive(const ClientPtr& c) const noexcept {
-	return isTcp4Active(c) || isTcp6Active();
+bool Identity::hasActiveTcpConnectivity(const ClientPtr& c) const noexcept {
+	if (user->isSet(User::NMDC) || isMe()) {
+		return isTcp4Active(c) || isTcp6Active();
+	}
+
+	return isActiveMode(adcTcpConnectMode);
 }
 
 bool Identity::isTcp4Active(const ClientPtr& c) const noexcept {
@@ -53,7 +57,7 @@ bool Identity::isTcp4Active(const ClientPtr& c) const noexcept {
 		return !user->isSet(User::PASSIVE);
 	} else {
 		// NMDC flag is not set for our own user (and neither the global User::PASSIVE flag can be used here)
-		if (c && user == ClientManager::getInstance()->getMe()) {
+		if (c && isMe()) {
 			return c->isActiveV4();
 		}
 
@@ -64,10 +68,6 @@ bool Identity::isTcp4Active(const ClientPtr& c) const noexcept {
 
 bool Identity::isTcp6Active() const noexcept {
 	return !getIp6().empty() && supports(AdcHub::TCP6_FEATURE);
-}
-
-bool Identity::isUdpActive() const noexcept {
-	return isUdp4Active() || isUdp6Active();
 }
 
 bool Identity::isUdp4Active() const noexcept {
@@ -90,8 +90,20 @@ string Identity::getUdpPort() const noexcept {
 	return getUdp6Port();
 }
 
-string Identity::getIp() const noexcept {
-	return !allowV6Connections() ? getIp4() : getIp6();
+string Identity::getTcpConnectIp() const noexcept {
+	if (user->isNMDC()) {
+		return getIp4();
+	}
+
+	return !allowV6Connections(adcTcpConnectMode) ? getIp4() : getIp6();
+}
+
+string Identity::getUdpIp() const noexcept {
+	if (user->isNMDC()) {
+		return getIp4();
+	}
+
+	return !allowV6Connections(adcUdpConnectMode) ? getIp4() : getIp6();
 }
 
 string Identity::getConnectionString() const noexcept {
@@ -174,11 +186,11 @@ string Identity::getV6ModeString() const noexcept {
 		return "-";
 }
 
-Identity::Identity() : sid(0), connectMode(MODE_UNDEFINED) { }
+Identity::Identity() : sid(0) { }
 
-Identity::Identity(const UserPtr& ptr, uint32_t aSID) : user(ptr), sid(aSID), connectMode(MODE_UNDEFINED) { }
+Identity::Identity(const UserPtr& ptr, uint32_t aSID) : user(ptr), sid(aSID) { }
 
-Identity::Identity(const Identity& rhs) : Flags(), sid(0), connectMode(rhs.getConnectMode()) { 
+Identity::Identity(const Identity& rhs) : Flags(), sid(0) { 
 	*this = rhs;  // Use operator= since we have to lock before reading...
 }
 
@@ -188,7 +200,7 @@ Identity& Identity::operator = (const Identity& rhs) {
 	user = rhs.user;
 	sid = rhs.sid;
 	info = rhs.info;
-	connectMode = rhs.connectMode;
+	adcTcpConnectMode = rhs.adcTcpConnectMode;
 	return *this;
 }
 
@@ -247,6 +259,10 @@ bool Identity::supports(const string& name) const noexcept {
 	return false;
 }
 
+bool Identity::isMe() const noexcept {
+	return ClientManager::getInstance()->getMe() == user;
+}
+
 std::map<string, string> Identity::getInfo() const noexcept {
 	std::map<string, string> ret;
 
@@ -262,57 +278,114 @@ int Identity::getTotalHubCount() const noexcept {
 	return Util::toInt(get("HN")) + Util::toInt(get("HR")) + Util::toInt(get("HO"));
 }
 
-bool Identity::updateConnectMode(const Identity& me, const Client* aClient) noexcept {
-	Mode newMode = MODE_NOCONNECT_IP;
-	bool meSupports6 = !me.getIp6().empty();
+Identity::Mode Identity::detectConnectMode(const Identity& aMe, const Identity& aOther, bool aMeActive4, bool aMeActive6, bool aOtherActive4, bool aOtherActive6, bool aNatTravelsal, const Client* aClient) noexcept {
+	if (aMe.getUser() == aOther.getUser()) {
+		return MODE_ME;
+	}
 
-	if (meSupports6 && !getIp6().empty()) {
+	auto mode = MODE_NOCONNECT_IP;
+
+	if (!aMe.getIp6().empty() && !aOther.getIp6().empty()) {
 		// IPv6? active / NAT-T
-		if (isTcp6Active()) {
-			newMode = MODE_ACTIVE_V6;
-		} else if (me.isTcp6Active() || supports(AdcHub::NAT0_FEATURE)) {
-			newMode = MODE_PASSIVE_V6;
+		if (aOtherActive6) {
+			mode = MODE_ACTIVE_V6;
+		} else if (aMeActive6 || aNatTravelsal) {
+			mode = MODE_PASSIVE_V6;
 		}
 	}
 
-	if (!me.getIp4().empty() && !getIp4().empty()) {
-		if (isTcp4Active()) {
-			newMode = newMode == MODE_ACTIVE_V6 ? MODE_ACTIVE_DUAL : MODE_ACTIVE_V4;
-		} else if (newMode == MODE_NOCONNECT_IP && (me.isTcp4Active() || supports(AdcHub::NAT0_FEATURE))) { //passive v4 isn't any better than passive v6
-			newMode = MODE_PASSIVE_V4;
+	if (!aMe.getIp4().empty() && !aOther.getIp4().empty()) {
+		if (aOtherActive4) {
+			mode = mode == MODE_ACTIVE_V6 ? MODE_ACTIVE_DUAL : MODE_ACTIVE_V4;
+		} else if (mode == MODE_NOCONNECT_IP && (aMeActive4 || aNatTravelsal)) { //passive v4 isn't any better than passive v6
+			mode = MODE_PASSIVE_V4;
 		}
 	}
 
-	if (newMode == MODE_NOCONNECT_IP) {
-		// the hub doesn't support hybrid connectivity or we weren't able to authenticate the secondary protocol? we are passive via that protocol in that case
-		if (isTcp4Active() && aClient->get(HubSettings::Connection) != SettingsManager::INCOMING_DISABLED) {
-			newMode = MODE_ACTIVE_V4;
-		} else if (isTcp6Active() && aClient->get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED) {
-			newMode = MODE_ACTIVE_V6;
-		} else if (!me.isTcpActive()) {
-			//this user is passive with no NAT-T (or the hub is hiding all IP addresses)
-			if (!supports(AdcHub::NAT0_FEATURE) && !aClient->isActive()) {
-				newMode = MODE_NOCONNECT_PASSIVE;
+	if (mode == MODE_NOCONNECT_IP) {
+		// The hub doesn't support hybrid connectivity or we weren't able to authenticate the secondary protocol? We are passive via that protocol in that case
+		if (aOtherActive4 && aClient->get(HubSettings::Connection) != SettingsManager::INCOMING_DISABLED) {
+			mode = MODE_ACTIVE_V4;
+		} else if (aOtherActive6 && aClient->get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED) {
+			mode = MODE_ACTIVE_V6;
+		} else if (!aMeActive4 && !aMeActive6) {
+			// Other user is passive with no NAT-T (or the hub is hiding all IP addresses)
+			if (!aNatTravelsal && !aClient->isActive()) {
+				mode = MODE_NOCONNECT_PASSIVE;
 			}
 		} else {
-			//could this user still support the same protocol? can't know for sure
-			newMode = meSupports6 ? MODE_PASSIVE_V6_UNKNOWN : MODE_PASSIVE_V4_UNKNOWN;
+			// Could this user still support the same protocol? Can't know for sure
+			mode = !aMe.getIp6().empty() ? MODE_PASSIVE_V6_UNKNOWN : MODE_PASSIVE_V4_UNKNOWN;
 		}
 	}
 
-	if (connectMode != newMode) {
-		connectMode = newMode;
-		return true;
+	return mode;
+}
+
+Identity::Mode Identity::detectConnectModeTcp(const Identity& aMe, const Identity& aOther, const Client* aClient) noexcept {
+	return detectConnectMode(aMe, aOther, aMe.isTcp4Active(), aMe.isTcp6Active(), aOther.isTcp4Active(), aOther.isTcp6Active(), aOther.supports(AdcHub::NAT0_FEATURE), aClient);
+}
+
+Identity::Mode Identity::detectConnectModeUdp(const Identity& aMe, const Identity& aOther, const Client* aClient) noexcept {
+	return detectConnectMode(aMe, aOther, aMe.isUdp4Active(), aMe.isUdp6Active(), aOther.isUdp4Active(), aOther.isUdp6Active(), false, aClient);
+}
+
+Identity::Mode Identity::getTcpConnectMode() const noexcept {
+	if (isMe()) {
+		return Mode::MODE_ME;
 	}
-	return false;
+
+	if (user->isNMDC()) {
+		return isTcp4Active() ? Mode::MODE_ACTIVE_V4 : Mode::MODE_PASSIVE_V4;
+	}
+
+	return adcTcpConnectMode;
 }
 
-bool Identity::allowV6Connections() const noexcept {
-	return connectMode == MODE_PASSIVE_V6 || connectMode == MODE_ACTIVE_V6 || connectMode == MODE_PASSIVE_V6_UNKNOWN || connectMode == MODE_ACTIVE_DUAL;
+bool Identity::isUdpActive() const noexcept {
+	if (user->isNMDC()) {
+		return isUdp4Active();
+	}
+
+	return isActiveMode(adcUdpConnectMode);
 }
 
-bool Identity::allowV4Connections() const noexcept {
-	return connectMode == MODE_PASSIVE_V4 || connectMode == MODE_ACTIVE_V4 || connectMode == MODE_PASSIVE_V4_UNKNOWN || connectMode == MODE_ACTIVE_DUAL;
+bool Identity::updateAdcConnectModes(const Identity& me, const Client* aClient) noexcept {
+	bool updated = false;
+
+	{
+		auto newModeTcp = detectConnectModeTcp(me, *this, aClient);
+		if (adcTcpConnectMode != newModeTcp) {
+			adcTcpConnectMode = newModeTcp;
+			updated = true;
+		}
+	}
+
+	{
+		auto newModeUdp = detectConnectModeUdp(me, *this, aClient);
+		if (adcUdpConnectMode != newModeUdp) {
+			adcUdpConnectMode = newModeUdp;
+			updated = true;
+		}
+	}
+
+	return updated;
+}
+
+bool Identity::allowConnections(Mode aConnectMode) noexcept {
+	return allowV4Connections(aConnectMode) || allowV6Connections(aConnectMode);
+}
+
+bool Identity::allowV4Connections(Mode aConnectMode) noexcept {
+	return aConnectMode == MODE_PASSIVE_V4 || aConnectMode == MODE_ACTIVE_V4 || aConnectMode == MODE_PASSIVE_V4_UNKNOWN || aConnectMode == MODE_ACTIVE_DUAL;
+}
+
+bool Identity::allowV6Connections(Mode aConnectMode) noexcept {
+	return aConnectMode == MODE_PASSIVE_V6 || aConnectMode == MODE_ACTIVE_V6 || aConnectMode == MODE_PASSIVE_V6_UNKNOWN || aConnectMode == MODE_ACTIVE_DUAL;
+}
+
+bool Identity::isActiveMode(Mode aConnectMode) noexcept {
+	return aConnectMode == MODE_ACTIVE_V6 || aConnectMode == MODE_ACTIVE_V4 || aConnectMode == MODE_ACTIVE_DUAL;
 }
 
 const string& OnlineUser::getHubUrl() const noexcept {

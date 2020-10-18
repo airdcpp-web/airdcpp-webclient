@@ -144,7 +144,7 @@ public:
 	void setDataMode(int64_t aBytes = -1) noexcept { dcassert(socket); socket->setDataMode(aBytes); }
 	void setLineMode(size_t rollback) noexcept { dcassert(socket); socket->setLineMode(rollback); }
 
-	void connect(const Socket::AddressInfo& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const UserPtr& aUser = nullptr);
+	void connect(const AddressInfo& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const UserPtr& aUser = nullptr);
 	void accept(const Socket& aServer);
 
 	void handlePM(const AdcCommand& c, bool echo) noexcept;

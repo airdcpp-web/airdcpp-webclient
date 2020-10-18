@@ -24,6 +24,7 @@
 #include <api/base/ApiModule.h>
 #include <api/common/Deserializer.h>
 #include <api/common/Serializer.h>
+#include <api/common/MessageUtils.h>
 
 #include <airdcpp/StringTokenizer.h>
 
@@ -41,6 +42,8 @@ namespace webserver {
 			MODULE_METHOD_HANDLER(aModule, aViewPermission, METHOD_GET, (EXACT_PARAM("messages"), RANGE_MAX_PARAM), ChatController::handleGetMessages);
 			MODULE_METHOD_HANDLER(aModule, aViewPermission, METHOD_POST, (EXACT_PARAM("messages"), EXACT_PARAM("read")), ChatController::handleSetRead);
 			MODULE_METHOD_HANDLER(aModule, aEditPermission, METHOD_DELETE, (EXACT_PARAM("messages")), ChatController::handleClear);
+
+			MODULE_METHOD_HANDLER(aModule, aEditPermission, METHOD_GET, (EXACT_PARAM("messages"), EXACT_PARAM("highlights"), TOKEN_PARAM), ChatController::handleGetMessageHighlight);
 		}
 
 		void onChatMessage(const ChatMessagePtr& aMessage) noexcept {
@@ -51,7 +54,7 @@ namespace webserver {
 				return;
 			}
 
-			module->send(s, Serializer::serializeChatMessage(aMessage));
+			module->send(s, MessageUtils::serializeChatMessage(aMessage));
 		}
 
 		void onStatusMessage(const LogMessagePtr& aMessage) noexcept {
@@ -62,7 +65,7 @@ namespace webserver {
 				return;
 			}
 
-			module->send(s, Serializer::serializeLogMessage(aMessage));
+			module->send(s, MessageUtils::serializeLogMessage(aMessage));
 		}
 
 		void onMessagesUpdated() {
@@ -101,7 +104,7 @@ namespace webserver {
 			}
 
 			module->send(s, {
-				{ "message_counts",  Serializer::serializeCacheInfo(chatF()->getCache(), Serializer::serializeUnreadChat) },
+				{ "message_counts",  MessageUtils::serializeCacheInfo(chatF()->getCache(), MessageUtils::serializeUnreadChat) },
 			});
 		}
 
@@ -124,19 +127,22 @@ namespace webserver {
 
 		api_return handlePostChatMessage(ApiRequest& aRequest) {
 			const auto& reqJson = aRequest.getRequestBody();
-			auto message = Deserializer::deserializeChatMessage(reqJson);
 
-			const auto complete = aRequest.defer();
-			module->addAsyncTask([=] {
+			module->addAsyncTask([
+				this,
+				message = Deserializer::deserializeChatMessage(reqJson),
+				complete = aRequest.defer(),
+				callerPtr = aRequest.getOwnerPtr()
+			] {
 				string error;
-				if (!chatF()->sendMessageHooked(OutgoingChatMessage(message.first, aRequest.getSession().get(), message.second), error) && !error.empty()) {
+				if (!chatF()->sendMessageHooked(OutgoingChatMessage(message.first, callerPtr, message.second), error) && !error.empty()) {
 					complete(websocketpp::http::status_code::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error));
 				} else {
 					complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
 				}
 			});
 
-			return websocketpp::http::status_code::see_other;
+			return CODE_DEFERRED;
 		}
 
 		api_return handlePostStatusMessage(ApiRequest& aRequest) {
@@ -157,11 +163,24 @@ namespace webserver {
 			return websocketpp::http::status_code::no_content;
 		}
 
+		api_return handleGetMessageHighlight(ApiRequest& aRequest) {
+			const auto id = aRequest.getTokenParam();
+			auto highlight = chatF()->getCache().findMessageHighlight(id);
+			if (!highlight) {
+				aRequest.setResponseErrorStr("Message highlight " + Util::toString(id) + " was not found");
+				return websocketpp::http::status_code::not_found;
+			}
+
+			aRequest.setResponseBody(MessageUtils::serializeMessageHighlight(highlight));
+			return websocketpp::http::status_code::ok;
+		}
+
 		api_return handleGetMessages(ApiRequest& aRequest) {
 			auto j = Serializer::serializeFromEnd(
 				aRequest.getRangeParam(MAX_COUNT),
 				chatF()->getCache().getMessages(),
-				Serializer::serializeMessage);
+				MessageUtils::serializeMessage
+			);
 
 			aRequest.setResponseBody(j);
 			return websocketpp::http::status_code::ok;

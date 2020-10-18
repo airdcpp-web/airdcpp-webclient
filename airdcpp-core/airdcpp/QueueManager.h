@@ -36,7 +36,6 @@
 #include "HashBloom.h"
 #include "MerkleTree.h"
 #include "Singleton.h"
-#include "Socket.h"
 #include "StringMatch.h"
 #include "TaskQueue.h"
 #include "UserQueue.h"
@@ -163,6 +162,12 @@ public:
 	// Set the maximum number of segments for the specified target
 	void setSegments(const string& aTarget, uint8_t aSegments) noexcept;
 
+	void getChunksVisualisation(const QueueItemPtr& qi, vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const noexcept { RLock l(cs); qi->getChunksVisualisation(running, downloaded, done); }
+
+	void addDoneSegment(const QueueItemPtr& aQI, const Segment& aSegment) noexcept;
+	void resetDownloadedSegments(const QueueItemPtr& aQI) noexcept;
+
+
 	bool isWaiting(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->isWaiting(); }
 
 	uint64_t getDownloadedBytes(const QueueItemPtr& qi) const noexcept { RLock l(cs); return qi->getDownloadedBytes(); }
@@ -174,9 +179,6 @@ public:
 
 	Bundle::SourceList getBundleSources(const BundlePtr& b) const noexcept { RLock l(cs); return b->getSources(); }
 	Bundle::SourceList getBadBundleSources(const BundlePtr& b) const noexcept { RLock l(cs); return b->getBadSources(); }
-
-	void getChunksVisualisation(const QueueItemPtr& qi, vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const noexcept { RLock l(cs); qi->getChunksVisualisation(running, downloaded, done); }
-
 
 	// Get information about the next valid file in the queue
 	// Used for displaying initial information for a transfer before the connection has been established and the real download is created
@@ -384,6 +386,9 @@ public:
 	// The integrity of all finished segments will be verified and SFV will be validated for finished files
 	// The bundle will be paused if running
 	void recheckBundle(QueueToken aBundleToken) noexcept;
+
+	// Update download URL for a viewed filelist
+	void updateFilelistUrl(const HintedUser& aUser) noexcept;
 private:
 	IGETSET(uint64_t, lastXmlSave, LastXmlSave, 0);
 	IGETSET(uint64_t, lastAutoPrio, LastAutoPrio, 0);
@@ -398,7 +403,7 @@ private:
 	
 	mutable SharedMutex cs;
 
-	Socket udp;
+	unique_ptr<Socket> udp;
 
 	/** QueueItems by target and TTH */
 	FileQueue fileQueue;
@@ -520,8 +525,8 @@ private:
 	StringMatch skipList;
 
 	// TimerManagerListener
-	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
-	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
 
 	// Request information about finished segments from all partial sources
 	void requestPartialSourceInfo(uint64_t aTick) noexcept;
@@ -537,15 +542,16 @@ private:
 	void calculatePriorities(uint64_t aTick) noexcept;
 	
 	// SearchManagerListener
-	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept;
+	void on(SearchManagerListener::SR, const SearchResultPtr&) noexcept override;
 
 	// ClientManagerListener
-	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept;
-	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
+	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool wasOffline) noexcept override;
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept override;
 
 	// ShareManagerListener
-	void on(ShareManagerListener::RefreshCompleted, uint8_t, const RefreshPathList& aPaths) noexcept;
-	void on(ShareLoaded) noexcept;
+	void on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, const ShareRefreshStats&) noexcept override;
+	void on(ShareLoaded) noexcept override;
+
 	void onPathRefreshed(const string& aPath, bool startup) noexcept;
 
 	DelayedEvents<QueueToken> delayEvents;

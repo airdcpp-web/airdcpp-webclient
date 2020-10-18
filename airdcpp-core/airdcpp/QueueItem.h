@@ -139,17 +139,34 @@ public:
 		};
 
 		Source(const HintedUser& aUser) : user(aUser), partialSource(nullptr) { }
-		//Source(const Source& aSource) : Flags(aSource), user(aSource.user), partialSource(aSource.partialSource), remotePath(aSource.remotePath) { }
 
 		bool operator==(const UserPtr& aUser) const { return user == aUser; }
 		PartialSource::Ptr& getPartialSource() { return partialSource; }
 
-		GETSET(HintedUser, user, User);
 		IGETSET(PartialSource::Ptr, partialSource, PartialSource, nullptr);
-		//GETSET(string, remotePath, RemotePath);
-		OrderedStringSet blockedHubs;
-		bool updateHubUrl(const OrderedStringSet& aOnlineHubs, string& hubUrl_, bool aIsFileList) noexcept;
+
+		// Update the hinted download hub URL based if the provided one can't be used
+		bool updateDownloadHubUrl(const OrderedStringSet& aOnlineHubs, string& hubUrl_, bool aIsFileList) const noexcept;
+
+		// Update the hinted source URL
+		void setHubUrl(const string& aHubUrl) noexcept;
+
 		static string formatError(const Flags& aFlags) noexcept;
+		const HintedUser& getUser() const noexcept {
+			return user;
+		}
+
+		const OrderedStringSet& getBlockedHubs() const noexcept {
+			return blockedHubs;
+		}
+
+		void addBlockedHub(const string& aHubUrl) noexcept {
+			blockedHubs.insert(aHubUrl);
+		}
+	private:
+		HintedUser user;
+
+		OrderedStringSet blockedHubs;
 	};
 
 	typedef vector<Source> SourceList;

@@ -130,6 +130,8 @@ void DirectoryListing::setHubUrlImpl(const string& aHubUrl) noexcept {
 
 	hintedUser.hint = aHubUrl;
 	fire(DirectoryListingListener::UserUpdated());
+
+	QueueManager::getInstance()->updateFilelistUrl(hintedUser);
 }
 
 void DirectoryListing::setShareProfileImpl(ProfileToken aProfile) noexcept {
@@ -1261,13 +1263,13 @@ void DirectoryListing::onListRemovedQueue(const string& aTarget, const string& a
 	TrackableDownloadItem::onRemovedQueue(aTarget, aFinished);
 }
 
-void DirectoryListing::on(ShareManagerListener::RefreshCompleted, uint8_t, const RefreshPathList& aPaths) noexcept{
-	if (!partialList)
+void DirectoryListing::on(ShareManagerListener::RefreshCompleted, const ShareRefreshTask& aTask, bool aSucceed, const ShareRefreshStats&) noexcept{
+	if (!aSucceed || !partialList)
 		return;
 
 	// Reload all locations by virtual path
 	string lastVirtual;
-	for (const auto& p : aPaths) {
+	for (const auto& p : aTask.dirs) {
 		auto vPath = ShareManager::getInstance()->realToVirtualAdc(p, getShareProfile());
 		if (!vPath.empty() && lastVirtual != vPath && findDirectory(vPath)) {
 			addPartialListTask(Util::emptyString, vPath, true);

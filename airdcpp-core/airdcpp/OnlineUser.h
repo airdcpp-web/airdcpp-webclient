@@ -114,13 +114,18 @@ public:
 	bool isHidden() const noexcept { return isClientType(CT_HIDDEN) || isClientType(CT_HUB) || isSet("HI"); }
 	bool isBot() const noexcept { return isClientType(CT_BOT) || isSet("BO"); }
 	bool isAway() const noexcept { return (getStatus() & AWAY) || isSet("AW"); }
-	bool isTcpActive(const ClientPtr& = nullptr) const noexcept;
+	bool isUser() const noexcept { return !isBot() && !isHub() && !isHidden(); }
+	bool isMe() const noexcept;
+
+	// Check if the user has any active protocol that we both support (works also with my own identity)
+	// Meant for displaying purposes only
+	bool hasActiveTcpConnectivity(const ClientPtr& = nullptr) const noexcept;
+
 	bool isTcp4Active(const ClientPtr& = nullptr) const noexcept;
 	bool isTcp6Active() const noexcept;
-	bool isUdpActive() const noexcept;
-	bool isUdp4Active() const noexcept;
-	bool isUdp6Active() const noexcept;
-	string getIp() const noexcept;
+
+	string getTcpConnectIp() const noexcept;
+	string getUdpIp() const noexcept;
 	string getUdpPort() const noexcept;
 	string getV4ModeString() const noexcept;
 	string getV6ModeString() const noexcept;
@@ -141,13 +146,32 @@ public:
 	UserPtr& getUser() noexcept { return user; }
 	uint32_t getSID() const noexcept { return sid; }
 
-	//this caches the mode, taking into account what we support too
-	GETSET(Mode, connectMode, ConnectMode);
-	bool updateConnectMode(const Identity& me, const Client* aClient) noexcept;
+	bool updateAdcConnectModes(const Identity& me, const Client* aClient) noexcept;
 
-	bool allowV4Connections() const noexcept;
-	bool allowV6Connections() const noexcept;
+	static bool allowConnections(Mode aConnectMode) noexcept;
+	static bool allowV4Connections(Mode aConnectMode) noexcept;
+	static bool allowV6Connections(Mode aConnectMode) noexcept;
+	static bool isActiveMode(Mode aConnectMode) noexcept;
+
+	static Mode detectConnectModeTcp(const Identity& aMe, const Identity& aOther, const Client* aClient) noexcept;
+	static Mode detectConnectModeUdp(const Identity& aMe, const Identity& aOther, const Client* aClient) noexcept;
+
+	Mode getTcpConnectMode() const noexcept;
+
+	// For the UDP, only active (send directly) / passive (send through the hub) mode matters
+	// Check the TCP mode for transfer support
+	bool isUdpActive() const noexcept;
 private:
+	// These cache connect mode to this other, taking into account what we and the other user support
+	Mode adcTcpConnectMode = Mode::MODE_UNDEFINED;
+	Mode adcUdpConnectMode = Mode::MODE_UNDEFINED;
+
+	bool isUdp4Active() const noexcept;
+	bool isUdp6Active() const noexcept;
+
+	// Get TCP/UDP connect mode with another user
+	static Mode detectConnectMode(const Identity& aMe, const Identity& aOther, bool aMeActive4, bool aMeActive6, bool aOtherActive4, bool aOtherActive6, bool aNatTravelsal, const Client* aClient) noexcept;
+
 	UserPtr user;
 	uint32_t sid;
 

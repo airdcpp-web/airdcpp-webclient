@@ -221,6 +221,7 @@
     <ClCompile Include="airdcpp\GroupedSearchResult.cpp" />
     <ClCompile Include="airdcpp\IgnoreManager.cpp" />
     <ClCompile Include="airdcpp\MessageCache.cpp" />
+    <ClCompile Include="airdcpp\MessageHighlight.cpp" />
     <ClCompile Include="airdcpp\PrivateChatManager.cpp" />
     <ClCompile Include="airdcpp\modules\AutoSearch.cpp" />
     <ClCompile Include="airdcpp\modules\AutoSearchManager.cpp" />
@@ -340,6 +341,7 @@
     <ClInclude Include="airdcpp\ActivityManager.h" />
     <ClInclude Include="airdcpp\AdcCommand.h" />
     <ClInclude Include="airdcpp\AdcHub.h" />
+    <ClInclude Include="airdcpp\AddressInfo.h" />
     <ClInclude Include="airdcpp\BundleInfo.h" />
     <ClInclude Include="airdcpp\constants.h" />
     <ClInclude Include="airdcpp\DirectoryDownload.h" />
@@ -348,6 +350,7 @@
     <ClInclude Include="airdcpp\ErrorCollector.h" />
     <ClInclude Include="airdcpp\GroupedSearchResult.h" />
     <ClInclude Include="airdcpp\HashManagerListener.h" />
+    <ClInclude Include="airdcpp\MessageHighlight.h" />
     <ClInclude Include="airdcpp\StreamBase.h" />
     <ClInclude Include="airdcpp\TransferInfo.h" />
     <ClInclude Include="airdcpp\IgnoreManager.h" />

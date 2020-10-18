@@ -113,44 +113,61 @@ void Client::on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noe
 	}
 }
 
+/// @todo update the nick in ADC hubs?
 void Client::reloadSettings(bool aUpdateNick) noexcept {
-	/// @todo update the nick in ADC hubs?
-	string prevNick;
-	if(!aUpdateNick)
-		prevNick = get(Nick);
+	HubSettings oldHubSettings = *static_cast<HubSettings*>(this);
 
-	auto fav = FavoriteManager::getInstance()->getFavoriteHubEntry(getHubUrl());
-
+	// Merging
 	*static_cast<HubSettings*>(this) = SettingsManager::getInstance()->getHubSettings();
 
+	auto fav = FavoriteManager::getInstance()->getFavoriteHubEntry(getHubUrl());
 	if(fav) {
 		FavoriteManager::getInstance()->mergeHubSettings(fav, *this);
+		favToken = fav->getToken();
+	}
+
+	// Restore the old nick if nick change is not allowed
+	if (aUpdateNick) {
+		checkNick(get(Nick));
+	} else {
+		get(Nick) = oldHubSettings.get(Nick);
+	}
+
+	// Avoid unnecessary listener updates
+	if (oldHubSettings == *static_cast<HubSettings*>(this)) {
+		return;
+	}
+
+	// Something has changed
+	if (fav) {
 		if (!fav->getPassword().empty()) {
 			setPassword(fav->getPassword());
 		}
-
-		favToken = fav->getToken();
 	} else {
 		setPassword(Util::emptyString);
 	}
 
 	searchQueue.setMinInterval(get(HubSettings::SearchInterval) * 1000); //convert from seconds
-	if (aUpdateNick) {
-		checkNick(get(Nick));
-	} else {
-		get(Nick) = prevNick;
-	}
+
+	fire(ClientListener::SettingsUpdated(), this);
 }
 
-bool Client::changeBoolHubSetting(HubSettings::HubBoolSetting aSetting) noexcept {
+
+bool Client::toggleHubBoolSetting(HubSettings::HubBoolSetting aSetting) noexcept {
 	auto newValue = static_cast<bool>(!get(aSetting));
-	get(aSetting) = newValue;
+	setHubSetting(aSetting, newValue);
+	return newValue;
+}
+
+void Client::setHubSetting(HubSettings::HubBoolSetting aSetting, bool aNewValue) noexcept {
+	get(aSetting) = aNewValue;
 
 	//save for a favorite hub if needed
 	if (favToken > 0) {
-		FavoriteManager::getInstance()->setHubSetting(hubUrl, aSetting, newValue);
+		FavoriteManager::getInstance()->setHubSetting(hubUrl, aSetting, aNewValue);
 	}
-	return newValue;
+
+	fire(ClientListener::SettingsUpdated(), this);
 }
 
 void Client::updated(const OnlineUserPtr& aUser) noexcept {
@@ -214,7 +231,7 @@ void Client::connect(bool withKeyprint) noexcept {
 		sock = BufferedSocket::getSocket(separator, v4only());
 		sock->addListener(this);
 		sock->connect(
-			Socket::AddressInfo(address, Socket::AddressInfo::TYPE_URL), 
+			AddressInfo(address, AddressInfo::TYPE_URL), 
 			port, 
 			AirUtil::isSecure(hubUrl), 
 			SETTING(ALLOW_UNTRUSTED_HUBS), 
@@ -366,7 +383,7 @@ bool Client::sendMessageHooked(const OutgoingChatMessage& aMessage, string& erro
 		return false;
 	}
 
-	auto error = ClientManager::getInstance()->outgoingHubMessageHook.runHooksError(aMessage, *this);
+	auto error = ClientManager::getInstance()->outgoingHubMessageHook.runHooksError(this, aMessage, *this);
 	if (error) {
 		error_ = ActionHookRejection::formatError(error);
 		return false;
@@ -386,7 +403,7 @@ bool Client::sendPrivateMessageHooked(const OnlineUserPtr& aUser, const Outgoing
 		return false;
 	}
 
-	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage, HintedUser(aUser->getUser(), aUser->getHubUrl()), aEcho);
+	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(this, aMessage, HintedUser(aUser->getUser(), aUser->getHubUrl()), aEcho);
 	if (error) {
 		error_ = ActionHookRejection::formatError(error);
 		return false;
@@ -400,7 +417,7 @@ bool Client::sendPrivateMessageHooked(const OnlineUserPtr& aUser, const Outgoing
 }
 
 void Client::onPrivateMessage(const ChatMessagePtr& aMessage) noexcept {
-	if (!ClientManager::getInstance()->incomingPrivateMessageHook.runHooksBasic(aMessage)) {
+	if (!ClientManager::processChatMessage(aMessage, getMyIdentity(), ClientManager::getInstance()->incomingPrivateMessageHook)) {
 		return;
 	}
 
@@ -408,7 +425,7 @@ void Client::onPrivateMessage(const ChatMessagePtr& aMessage) noexcept {
 }
 
 void Client::onChatMessage(const ChatMessagePtr& aMessage) noexcept {
-	if (!ClientManager::getInstance()->incomingHubMessageHook.runHooksBasic(aMessage)) {
+	if (!ClientManager::processChatMessage(aMessage, getMyIdentity(), ClientManager::getInstance()->incomingHubMessageHook)) {
 		return;
 	}
 

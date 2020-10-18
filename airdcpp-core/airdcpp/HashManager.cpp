@@ -914,6 +914,8 @@ bool HashManager::Hasher::hashFile(const string& fileName, const string& filePat
 	if (ret.second) {
 		devices[(*ret.first).deviceId]++; 
 		totalBytesLeft += size;
+		totalBytesAdded += size;
+		totalFilesAdded++;
 		s.signal();
 		return true;
 	}
@@ -933,6 +935,10 @@ void HashManager::Hasher::resume() {
 
 bool HashManager::Hasher::isPaused() const noexcept {
 	return paused;
+}
+
+bool HashManager::Hasher::isRunning() const noexcept {
+	return running;
 }
 
 void HashManager::Hasher::removeDevice(devid aDevice) noexcept {
@@ -969,11 +975,22 @@ void HashManager::setPriority(Thread::Priority p) noexcept {
 		h->setThreadPriority(p); 
 }
 
-void HashManager::getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed, int& hasherCount) const noexcept {
+HashManager::HashStats HashManager::getStats() const noexcept {
+	HashStats stats;
+
 	RLock l(Hasher::hcs);
-	hasherCount = hashers.size();
-	for (auto i: hashers)
-		i->getStats(curFile, bytesLeft, filesLeft, speed);
+	for (auto i: hashers) {
+		i->getStats(stats.curFile, stats.bytesLeft, stats.filesLeft, stats.speed, stats.filesAdded, stats.bytesAdded);
+		if (!i->isPaused()) {
+			stats.isPaused = false;
+		}
+
+		if (i->isRunning()) {
+			stats.hashersRunning++;
+		}
+	}
+
+	return stats;
 }
 
 void HashManager::startMaintenance(bool verify){
@@ -1046,25 +1063,43 @@ void HashManager::shutdown(ProgressFunction progressF) noexcept {
 void HashManager::Hasher::clear() noexcept {
 	w.clear();
 	devices.clear();
-	totalBytesLeft = 0;
+
+	clearStats();
 }
 
-void HashManager::Hasher::getStats(string& curFile, int64_t& bytesLeft, size_t& filesLeft, int64_t& speed) const noexcept {
-	curFile = currentFile;
-	filesLeft += w.size();
-	if (running)
-		filesLeft++;
-	bytesLeft += totalBytesLeft;
-	speed += lastSpeed;
+void HashManager::Hasher::clearStats() noexcept {
+	totalBytesLeft = 0;
+	totalBytesAdded = 0;
+	totalFilesAdded = 0;
+	totalHashTime = 0;
+	totalSizeHashed = 0;
+	totalDirsHashed = 0;
+	totalFilesHashed = 0;
+	lastSpeed = 0;
+}
+
+void HashManager::Hasher::getStats(string& curFile_, int64_t& bytesLeft_, size_t& filesLeft_, int64_t& speed_, size_t& filesAdded_, int64_t& bytesAdded_) const noexcept {
+	curFile_ = currentFile;
+	filesLeft_ += w.size();
+	if (running) {
+		filesLeft_++;
+		speed_ += lastSpeed;
+	}
+
+	bytesLeft_ += totalBytesLeft;
+
+	filesAdded_ += totalFilesAdded;
+	bytesAdded_ += totalBytesAdded;
 }
 
 void HashManager::Hasher::instantPause() {
-	if(paused) {
+	if (paused) {
+		running = false;
 		t_suspend();
 	}
 }
 
-HashManager::Hasher::Hasher(bool isPaused, int aHasherID) : paused(isPaused), hasherID(aHasherID), totalBytesLeft(0), lastSpeed(0) {
+HashManager::Hasher::Hasher(bool aIsPaused, int aHasherID) : paused(aIsPaused), hasherID(aHasherID), totalBytesLeft(0), lastSpeed(0), totalBytesAdded(0), totalFilesAdded(0) {
 	start();
 }
 
@@ -1106,10 +1141,13 @@ int HashManager::Hasher::run() {
 				fname.clear();
 			}
 		}
-		running = true;
 
 		HashedFile fi;
-		if(!fname.empty()) {
+		if (fname.empty()) {
+			running = false;
+		} else {
+			running = true;
+
 			int64_t sizeLeft = originalSize;
 			try {
 				if (initialDir.empty()) {
@@ -1239,7 +1277,10 @@ int HashManager::Hasher::run() {
 				removeDevice(curDevID);
 
 			if (w.empty()) {
+				// Finished hashing
+				running = false;
 				getInstance()->fire(HashManagerListener::HasherFinished(), totalDirsHashed, totalFilesHashed, totalSizeHashed, totalHashTime, hasherID);
+
 				if (totalSizeHashed > 0) {
 					if (totalDirsHashed == 0) {
 						onDirHashed();
@@ -1251,18 +1292,15 @@ int HashManager::Hasher::run() {
 							(Util::formatBytes(totalHashTime > 0 ? ((totalSizeHashed * 1000) / totalHashTime) : 0)  + "/s" )), hasherID, false, false);
 					}
 				} else if(!fname.empty()) {
-					//all files failed to hash?
+					// All files failed to hash?
 					getInstance()->log(STRING(HASHING_FINISHED), hasherID, false, false);
 
-					//always clear the directory so that the will be a fresh start when more files are added for hashing
+					// Always clear the directory so that there will be a fresh start when more files are added for hashing
 					initialDir.clear();
 				}
 
-				totalHashTime = 0;
-				totalSizeHashed = 0;
-				totalDirsHashed = 0;
-				totalFilesHashed = 0;
-				lastSpeed = 0;
+				clearStats();
+
 				deleteThis = hasherID != 0;
 				sfv.unload();
 			} else if (!AirUtil::isParentOrExactLocal(initialDir, w.front().filePath)) {
@@ -1272,21 +1310,20 @@ int HashManager::Hasher::run() {
 			currentFile.clear();
 		}
 
-		if (!failed && !fname.empty())
+		if (!failed && !fname.empty()) {
 			getInstance()->fire(HashManagerListener::FileHashed(), fname, fi);
+		}
 
 		if (deleteThis) {
-			//check again if we have added new items while this was unlocked
+			// Check again if we have added new items while this was unlocked
 
 			WLock l(hcs);
 			if (w.empty()) {
-				//Nothing more to hash, delete this hasher
+				// Nothing more to hash, delete this hasher
 				getInstance()->removeHasher(this);
 				break;
 			}
 		}
-
-		running = false;
 	}
 
 	delete this;

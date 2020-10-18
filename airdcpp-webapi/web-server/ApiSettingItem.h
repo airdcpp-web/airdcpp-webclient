@@ -36,11 +36,14 @@ namespace webserver {
 			TYPE_NUMBER,
 			TYPE_BOOLEAN,
 			TYPE_STRING,
+			TYPE_EXISTING_FILE_PATH,
 			TYPE_FILE_PATH,
 			TYPE_DIRECTORY_PATH,
 			TYPE_TEXT,
 			TYPE_LIST,
 			TYPE_STRUCT,
+			TYPE_HINTER_USER,
+			TYPE_HUB_URL,
 			TYPE_LAST
 		};
 
@@ -58,7 +61,7 @@ namespace webserver {
 		ApiSettingItem(const string& aName, Type aType, Type aItemType);
 
 		static bool isString(Type aType) noexcept {
-			return aType == TYPE_STRING || aType == TYPE_TEXT || aType == TYPE_FILE_PATH || aType == TYPE_DIRECTORY_PATH;
+			return aType == TYPE_STRING || aType == TYPE_TEXT || aType == TYPE_FILE_PATH || aType == TYPE_EXISTING_FILE_PATH || aType == TYPE_DIRECTORY_PATH || aType == TYPE_HUB_URL;
 		}
 
 		static bool optionsAllowed(Type aType, Type aItemType) {

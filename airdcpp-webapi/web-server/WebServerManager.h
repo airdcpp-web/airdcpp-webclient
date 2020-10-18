@@ -201,7 +201,7 @@ namespace webserver {
 					if (!responseJson.is_null()) {
 						try {
 							data = responseJson.dump();
-						} catch (const std::exception & e) {
+						} catch (const std::exception& e) {
 							logDebugError(s, "Failed to convert data to JSON: " + string(e.what()), websocketpp::log::elevel::fatal);
 
 							con->set_body("Failed to convert data to JSON: " + string(e.what()));
@@ -348,7 +348,14 @@ namespace webserver {
 		server_plain endpoint_plain;
 		server_tls endpoint_tls;
 
+		// Web server threads
 		unique_ptr<boost::thread_group> ios_threads;
+
+		// Task threads (running of hooks, timers or other long running task, or just to avoid deadlocks)
+		// 
+		// IMPORTANT:
+		// Calling hooks and handling the hook return data must be handled by separate thread pools to avoid the case when 
+		// all task threads are waiting for a hook response (and there are no threads left to handle those)
 		unique_ptr<boost::thread_group> task_threads;
 
 		CallBack shutdownF;

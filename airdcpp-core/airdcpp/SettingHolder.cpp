@@ -35,6 +35,10 @@ SettingHolder::SettingHolder(ErrorFunction aErrorF) : errorF(aErrorF)  {
 }
 
 SettingHolder::~SettingHolder() {
+
+}
+
+void SettingHolder::apply() {
 	if (SETTING(DISCONNECT_SPEED) < 1) {
 		SettingsManager::getInstance()->set(SettingsManager::DISCONNECT_SPEED, 1);
 	}
@@ -50,14 +54,23 @@ SettingHolder::~SettingHolder() {
 	try {
 		ConnectivityManager::getInstance()->setup(v4Changed, v6Changed);
 	} catch (const Exception& e) {
-		showError(e.getError());
+		showError(STRING_F(PORT_BYSY, e.getError()));
 	}
 
-	auto outConns = CONNSETTING(OUTGOING_CONNECTIONS);
-	if (outConns != prevProxy || outConns == SettingsManager::OUTGOING_SOCKS5) {
-		Socket::socksUpdated();
-	}
+	auto outConnsChanged = 
+		SETTING(OUTGOING_CONNECTIONS) != prevOutConn ||
+		SETTING(SOCKS_SERVER) != prevSocksServer ||
+		SETTING(SOCKS_PORT) != prevSocksPort ||
+		SETTING(SOCKS_USER) != prevSocksUser ||
+		SETTING(SOCKS_PASSWORD) != prevSocksPassword;
 
+	if (outConnsChanged) {
+		try {
+			Socket::socksUpdated();
+		} catch (const SocketException& e) {
+			showError(e.getError());
+		}
+	}
 
 	ClientManager::getInstance()->infoUpdated();
 

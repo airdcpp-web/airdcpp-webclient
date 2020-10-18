@@ -30,7 +30,6 @@
 #include "CriticalSection.h"
 #include "OfflineUser.h"
 #include "Singleton.h"
-#include "Socket.h"
 #include "TimerManager.h"
 
 
@@ -46,9 +45,11 @@ class ClientManager : public Speaker<ClientManagerListener>,
 	typedef UserMap::iterator UserIter;
 
 public:
-	ActionHook<nullptr_t, const ChatMessagePtr> incomingHubMessageHook, incomingPrivateMessageHook;
+	ActionHook<MessageHighlightList, const ChatMessagePtr> incomingHubMessageHook, incomingPrivateMessageHook;
 	ActionHook<nullptr_t, const OutgoingChatMessage&, const HintedUser, const bool /*echo*/> outgoingPrivateMessageHook;
 	ActionHook<nullptr_t, const OutgoingChatMessage&, const Client&> outgoingHubMessageHook;
+
+	static bool processChatMessage(const ChatMessagePtr& aMessage, const Identity& aMyIdentity, const ActionHook<MessageHighlightList, const ChatMessagePtr>& aHook);
 
 	// Returns the new ClientPtr
 	// NOTE: the main app should perform connecting to the new hub
@@ -260,7 +261,7 @@ private:
 
 	UserPtr me;
 
-	Socket udp;
+	unique_ptr<Socket> udp;
 	
 	CID pid;
 	uint64_t lastOfflineUserCleanup;

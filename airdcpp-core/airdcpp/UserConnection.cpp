@@ -150,7 +150,7 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 	}
 }
 
-void UserConnection::connect(const Socket::AddressInfo& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const UserPtr& aUser /*nullptr*/) {
+void UserConnection::connect(const AddressInfo& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const UserPtr& aUser /*nullptr*/) {
 	dcassert(!socket);
 
 	socket = BufferedSocket::getSocket(0);
@@ -234,7 +234,7 @@ void UserConnection::inf(bool withToken, int mcnSlots) {
 }
 
 bool UserConnection::sendPrivateMessageHooked(const OutgoingChatMessage& aMessage, string& error_) {
-	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage, getHintedUser(), true);
+	auto error = ClientManager::getInstance()->outgoingPrivateMessageHook.runHooksError(aMessage.owner, aMessage, getHintedUser(), true);
 	if (error) {
 		error_ = ActionHookRejection::formatError(error);
 		return false;
@@ -268,7 +268,7 @@ void UserConnection::handle(AdcCommand::PMI t, const AdcCommand& c) {
 }
 
 
-void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
+void UserConnection::handlePM(const AdcCommand& c, bool aEcho) noexcept{
 	const string& message = c.getParam(0);
 
 	auto cm = ClientManager::getInstance();
@@ -283,7 +283,7 @@ void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 		return;
 	}
 
-	if (echo) {
+	if (aEcho) {
 		std::swap(peer, me);
 	}
 
@@ -295,7 +295,7 @@ void UserConnection::handlePM(const AdcCommand& c, bool echo) noexcept{
 		msg->setTime(Util::toTimeT(tmp));
 	}
 
-	if (!ClientManager::getInstance()->incomingPrivateMessageHook.runHooksBasic(msg)) {
+	if (!ClientManager::processChatMessage(msg, me->getIdentity(), ClientManager::getInstance()->incomingPrivateMessageHook)) {
 		disconnect(true);
 		return;
 	}

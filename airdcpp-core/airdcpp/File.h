@@ -37,7 +37,14 @@ struct FilesystemItem {
 	string getPath(const string& aBasePath) const noexcept;
 };
 
-class File : public IOStream {
+struct FileItemInfoBase {
+	virtual bool isDirectory() const noexcept = 0;
+	virtual bool isHidden() const noexcept = 0;
+	virtual bool isLink() const noexcept = 0;
+	virtual int64_t getSize() const noexcept = 0;
+};
+
+class File: public IOStream {
 public:
 	enum Mode {
 		OPEN = 0x01,
@@ -66,8 +73,8 @@ public:
 		RW = READ | WRITE
 	};
 
-	static time_t convertTime(FILETIME* f);
-	static FILETIME convertTime(time_t f);
+	static time_t convertTime(const FILETIME* f) noexcept;
+	static FILETIME convertTime(time_t f) noexcept;
 #else // !_WIN32
 
 	enum {
@@ -98,7 +105,7 @@ public:
 
 #endif // !_WIN32
 
-	File(const string& aFileName, int aAccess, int aMode, BufferMode aBufferMode = BUFFER_AUTO, bool aIsAbsolute = true, bool aIsDirectory = false);
+	File(const string& aFileName, int aAccess, int aMode, BufferMode aBufferMode = BUFFER_AUTO, bool aIsAbsolute = true);
 	~File();
 
 	bool isOpen() const noexcept;
@@ -181,8 +188,9 @@ public:
 	static std::string makeAbsolutePath(const std::string& filename);
 	static std::string makeAbsolutePath(const std::string& path, const std::string& filename);
 
-	static bool isAbsolutePath(const string& path) noexcept;
-	static bool isHidden(const string& path) noexcept;
+	static bool isAbsolutePath(const string& aPath) noexcept;
+	static bool isHidden(const string& aPath) noexcept;
+	static bool isDirectory(const string& aPath) noexcept;
 
 	string readFromEnd(size_t len);
 	string read(size_t len);
@@ -207,6 +215,7 @@ public:
 #define HandleType HANDLE
 #else
 #define HandleType int
+	static bool isLink(const string& aPath) noexcept;
 #endif
 
 	HandleType getNativeHandle() const noexcept { return h; }
@@ -219,37 +228,38 @@ protected:
 
 class FileFindIter {
 public:
-	/** End iterator constructor */
+	// End iterator constructor
 	FileFindIter();
-	/** Begin iterator constructor, path in utf-8. Note that the dirsOnly option isn't fully reliable. */
-	FileFindIter(const string& path, const string& pattern = Util::emptyString, bool dirsOnly = false);
+
+	// Begin iterator constructor, path in utf-8. Note that the dirsOnly option isn't fully reliable.
+	// It will also work for getting basic information about a single path on Windows, but there may be issues with certain special paths (such as drive letters)
+	// This constructor will throw when being used without a pattern on Linux
+	FileFindIter(const string& aPath, const string& aPattern = Util::emptyString, bool aDirsOnlyHint = false);
 
 	~FileFindIter();
 
 	FileFindIter& operator++();
 	bool operator!=(const FileFindIter& rhs) const;
 
-	struct DirData
-#ifdef _WIN32
-		: public WIN32_FIND_DATA
-#endif
-	{
+	struct DirData: FileItemInfoBase {
 		DirData();
 
-		string getFileName();
-		bool isDirectory();
-		bool isHidden();
-		bool isLink();
-		int64_t getSize();
-		time_t getLastWriteTime();
+		string getFileName() const noexcept;
+		bool isDirectory() const noexcept override;
+		bool isHidden() const noexcept override;
+		bool isLink() const noexcept override;
+		int64_t getSize() const noexcept override;
+		time_t getLastWriteTime() const noexcept;
 		#ifndef _WIN32
 			dirent *ent;
 			string base;
+		#else
+			WIN32_FIND_DATA fd;
 		#endif
 	};
 
-	DirData& operator*() { return data; }
-	DirData* operator->() { return &data; }
+	const DirData& operator*() const noexcept { return data; }
+	const DirData* operator->() const noexcept { return &data; }
 
 private:
 	FileFindIter& validateCurrent();
@@ -261,6 +271,22 @@ private:
 #endif
 
 	DirData data;
+};
+
+class FileItem : public FileItemInfoBase {
+public:
+	FileItem(const string& aPath);
+
+	bool isDirectory() const noexcept override;
+	bool isHidden() const noexcept override;
+	bool isLink() const noexcept override;
+	int64_t getSize() const noexcept override;
+private:
+#ifdef _WIN32
+	FileFindIter ff;
+#else
+	string path;
+#endif
 };
 
 #ifdef _WIN32

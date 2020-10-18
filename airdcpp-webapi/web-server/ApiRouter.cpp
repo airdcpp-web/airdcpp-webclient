@@ -42,7 +42,7 @@ namespace webserver {
 
 	}
 
-	void ApiRouter::handleSocketRequest(const string& aMessage, WebSocketPtr& aSocket, bool aIsSecure) noexcept {
+	void ApiRouter::handleSocketRequest(const string& aMessage, const WebSocketPtr& aSocket, bool aIsSecure) noexcept {
 
 		dcdebug("Received socket request: %s\n", aMessage.size() > 500 ? (aMessage.substr(0, 500) + "...").c_str() : aMessage.c_str());
 
@@ -123,7 +123,7 @@ namespace webserver {
 			}
 
 			// Require using the same protocol that was used for logging in
-			if ((aRequest.getSession()->getSessionType() == Session::TYPE_SECURE) != aIsSecure) {
+			if (aRequest.getSession()->getSessionType() != Session::TYPE_BASIC_AUTH && (aRequest.getSession()->getSessionType() == Session::TYPE_SECURE) != aIsSecure) {
 				aRequest.setResponseErrorStr("Protocol mismatch");
 				return websocketpp::http::status_code::not_acceptable;
 			}

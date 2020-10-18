@@ -110,6 +110,24 @@ CryptoManager::CryptoManager()
 
 void CryptoManager::setContextOptions(SSL_CTX* aCtx, bool aServer) {
 	// TLS <= 1.2 ciphers
+#ifdef _DEBUG
+	bool useStrictConfig = true;
+#else
+	bool useStrictConfig = GET_TIME() > 1609459200; // 1.1.2021
+#endif
+	if (useStrictConfig) {
+		// Only require TLS 1.2 => for now, other requirements need to be tested first for compatibility issues
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+		SSL_CTX_set_min_proto_version(aCtx, TLS1_2_VERSION);
+		// SSL_CTX_set_security_level(aCtx, 2);
+#endif
+		// From DC++
+		// Connections with an unsupported cipher would just time out without any error, so don't use these yet
+
+		// const char ciphersuitesTls12[] = "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256";
+		// SSL_CTX_set_cipher_list(aCtx, ciphersuitesTls12);
+	}
+
 	const char ciphersuitesTls12[] =
 		"ECDHE-ECDSA-AES128-GCM-SHA256:"
 		"ECDHE-RSA-AES128-GCM-SHA256:"

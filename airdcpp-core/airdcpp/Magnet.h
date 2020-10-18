@@ -33,13 +33,10 @@ using std::string;
 /** Struct for a magnet uri */
 struct Magnet {
 	static string makeMagnet(const TTHValue& aHash, const string& aFile, int64_t aSize) noexcept;
+	static optional<Magnet> parseMagnet(const string& aLink) noexcept;
 
 	string fname, type, param, hash;
-	//TTHValue tth;
-	int64_t fsize;
-
-	//extra information for downloading the files
-	//string target, nick;
+	int64_t fsize = -1;
 
 	explicit Magnet(const string& aLink);
 

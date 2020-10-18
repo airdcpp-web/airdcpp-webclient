@@ -63,6 +63,7 @@ namespace dcpp {
 			size = aInfo->size;
 			lastRefreshTime = aInfo->lastRefreshTime;
 			refreshState = aInfo->refreshState;
+			refreshTaskToken = aInfo->refreshTaskToken;
 			contentInfo = aInfo->contentInfo;
 		}
 
@@ -79,6 +80,7 @@ namespace dcpp {
 
 		uint8_t refreshState = 0;
 		time_t lastRefreshTime = 0;
+		optional<ShareRefreshTaskToken> refreshTaskToken = nullopt;
 
 		class PathCompare {
 		public:

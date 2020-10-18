@@ -48,7 +48,7 @@ namespace dcpp {
 
 using boost::find_if;
 
-ClientManager::ClientManager() : udp(Socket::TYPE_UDP), lastOfflineUserCleanup(GET_TICK()) {
+ClientManager::ClientManager() : udp(make_unique<Socket>(Socket::TYPE_UDP)), lastOfflineUserCleanup(GET_TICK()) {
 	TimerManager::getInstance()->addListener(this);
 }
 
@@ -869,7 +869,7 @@ bool ClientManager::sendUDP(AdcCommand& cmd, const CID& aCID, bool aNoCID /*fals
 		u->getClient()->send(cmd);
 	} else {
 		try {
-			COMMAND_DEBUG(cmd.toString(), DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, u->getIdentity().getIp() + ":" + u->getIdentity().getUdpPort());
+			COMMAND_DEBUG(cmd.toString(), DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, u->getIdentity().getUdpIp() + ":" + u->getIdentity().getUdpPort());
 			auto cmdStr = aNoCID ? cmd.toString() : cmd.toString(getMe()->getCID());
 			if (!aKey.empty() && Encoder::isBase32(aKey.c_str())) {
 				uint8_t keyChar[16];
@@ -900,7 +900,8 @@ bool ClientManager::sendUDP(AdcCommand& cmd, const CID& aCID, bool aNoCID /*fals
 				cmdStr.insert(0, (char*)out, aLen);
 				delete[] out;
 			}
-			udp.writeTo(u->getIdentity().getIp(), u->getIdentity().getUdpPort(), cmdStr);
+
+			udp->writeTo(u->getIdentity().getUdpIp(), u->getIdentity().getUdpPort(), cmdStr);
 		} catch(const SocketException&) {
 			dcdebug("Socket exception sending ADC UDP command\n");
 		}
@@ -986,9 +987,11 @@ void ClientManager::on(ClientListener::NmdcSearch, Client* aClient, const string
 				if(port.empty()) 
 					port = "412";
 
-				for(const auto& sr: l)
-					udp.writeTo(ip, port, sr->toSR(*aClient));
-
+				for (const auto& sr: l) {
+					auto data = sr->toSR(*aClient);
+					COMMAND_DEBUG(data, DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, ip + ":" + port);
+					udp->writeTo(ip, port, data);
+				}
 			} catch(...) {
 				dcdebug("Search caught error\n");
 			}
@@ -1013,7 +1016,9 @@ void ClientManager::on(ClientListener::NmdcSearch, Client* aClient, const string
 		
 		try {
 			AdcCommand cmd = SearchManager::getInstance()->toPSR(true, aClient->getMyNick(), aClient->getIpPort(), aTTH.toBase32(), partialInfo);
-			udp.writeTo(Socket::resolve(ip), port, cmd.toString(getMe()->getCID()));
+			auto data = cmd.toString(getMe()->getCID());
+			COMMAND_DEBUG(data, DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, ip + ":" + port);
+			udp->writeTo(Socket::resolve(ip), port, data);
 		} catch(...) {
 			dcdebug("Partial search caught error\n");		
 		}
@@ -1203,7 +1208,7 @@ optional<ClientManager::ClientStats> ClientManager::getClientStats() const noexc
 				stats.operators++;
 			}
 
-			if (ou->getIdentity().isTcpActive()) {
+			if (ou->getIdentity().hasActiveTcpConnectivity()) {
 				stats.activeUsers++;
 			}
 
@@ -1473,6 +1478,26 @@ bool ClientManager::connectNMDCSearchResult(const string& aUserIP, const string&
 	auto ou = findOnlineUser(user_);
 	if (ou) {
 		connection_ = ou->getIdentity().getConnectionString();
+	}
+
+	return true;
+}
+
+
+bool ClientManager::processChatMessage(const ChatMessagePtr& aMessage, const Identity& aMyIdentity, const ActionHook<MessageHighlightList, const ChatMessagePtr>& aHook) {
+	aMessage->parseMention(aMyIdentity);
+
+	{
+		MessageHighlightList highlights;
+
+		try {
+			auto results = aHook.runHooksDataThrow(ClientManager::getInstance(), aMessage);
+			highlights = ActionHook<MessageHighlightList>::normalizeListItems(results);
+		} catch (const HookRejectException&) {
+			return false;
+		}
+
+		aMessage->parseHighlights(aMyIdentity, highlights);
 	}
 
 	return true;

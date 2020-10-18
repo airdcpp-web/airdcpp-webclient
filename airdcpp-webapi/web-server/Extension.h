@@ -20,12 +20,13 @@
 #define DCPLUSPLUS_DCPP_EXTENSION_H
 
 #include "stdinc.h"
-#include <web-server/ExtensionListener.h>
 
-#include <api/ApiSettingItem.h>
+#include <web-server/ExtensionListener.h>
+#include <web-server/ApiSettingItem.h>
 
 #include <airdcpp/GetSet.h>
 #include <airdcpp/Speaker.h>
+#include <airdcpp/User.h>
 #include <airdcpp/Util.h>
 
 namespace webserver {
@@ -95,7 +96,7 @@ namespace webserver {
 		void resetSettings() noexcept;
 
 		typedef map<string, json> SettingValueMap;
-		void setSettingValues(const SettingValueMap& aValues);
+		void setSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences);
 		SettingValueMap getSettingValues() noexcept;
 
 		// Throws on errors
@@ -113,6 +114,9 @@ namespace webserver {
 		static SharedMutex cs;
 		ExtensionSettingItem::List settings;
 
+		// Keep references to all users in settings to avoid them from being deleted
+		unordered_set<UserPtr, User::Hash> userReferences;
+
 		// Load package JSON
 		// Throws on errors
 		void initialize(const json& aJson);
@@ -123,7 +127,9 @@ namespace webserver {
 		const bool managed;
 		bool privateExtension = false;
 
-		StringList getLaunchParams(WebServerManager* wsm, const SessionPtr& aSession) const noexcept;
+		// Get the arguments for launching the extension
+		// The escape option should be used only when the args can't be passed separately (the extension is launched with one string command)
+		StringList getLaunchParams(WebServerManager* wsm, const SessionPtr& aSession, bool aEscape) const noexcept;
 		static string getConnectUrl(WebServerManager* wsm) noexcept;
 
 		bool running = false;

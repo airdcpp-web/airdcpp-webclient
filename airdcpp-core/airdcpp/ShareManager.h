@@ -48,6 +48,7 @@
 namespace dcpp {
 
 class File;
+class ErrorCollector;
 class OutputStream;
 class MemoryInputStream;
 class SearchQuery;
@@ -69,6 +70,51 @@ struct TempShareInfo {
 
 	bool hasAccess(const UserPtr& aUser) const noexcept;
 };
+
+struct ShareRefreshStats {
+	int64_t hashSize = 0;
+	int64_t addedSize = 0;
+
+	size_t existingDirectoryCount = 0;
+	size_t existingFileCount = 0;
+	size_t newDirectoryCount = 0;
+	size_t newFileCount = 0;
+	size_t skippedDirectoryCount = 0;
+	size_t skippedFileCount = 0;
+
+	void merge(const ShareRefreshStats& aOther) noexcept;
+};
+
+enum class ShareRefreshType : uint8_t {
+	ADD_DIR,
+	REFRESH_DIRS,
+	REFRESH_INCOMING,
+	REFRESH_ALL,
+	STARTUP,
+	BUNDLE
+};
+
+enum class ShareRefreshPriority : uint8_t {
+	MANUAL,
+	SCHEDULED,
+	NORMAL,
+	BLOCKING,
+};
+
+struct ShareRefreshTask : public Task {
+	ShareRefreshTask(ShareRefreshTaskToken aToken, const RefreshPathList& aDirs, const string& aDisplayName, ShareRefreshType aRefreshType, ShareRefreshPriority aPriority);
+
+	const ShareRefreshTaskToken token;
+	const RefreshPathList dirs;
+	const string displayName;
+	const ShareRefreshType type;
+	const ShareRefreshPriority priority;
+
+	bool canceled = false;
+	bool running = false;
+};
+
+typedef vector<ShareRefreshTask> ShareRefreshTaskList;
 
 class ShareManager : public Singleton<ShareManager>, public Speaker<ShareManagerListener>, private Thread, private SettingsManagerListener, 
 	private TimerManagerListener, private HashManagerListener
@@ -102,39 +148,37 @@ public:
 	// virtualFile = name requested by the other user (Transfer::USER_LIST_NAME_BZ or Transfer::USER_LIST_NAME)
 	// Throws ShareException
 	TTHValue getListTTH(const string& virtualFile, ProfileToken aProfile) const;
-	
-	enum RefreshType: uint8_t {
-		TYPE_MANUAL,
-		TYPE_SCHEDULED,
-		TYPE_STARTUP_BLOCKING,
-		TYPE_STARTUP_DELAYED,
-		TYPE_BUNDLE
-	};
 
 	enum TaskType: uint8_t {
 		ASYNC,
-		ADD_DIR,
-		REFRESH_ALL,
-		REFRESH_DIRS,
-		REFRESH_INCOMING,
-		ADD_BUNDLE
+		REFRESH,
 	};
 
-	enum class RefreshResult {
-		REFRESH_STARTED = 0,
-		REFRESH_PATH_NOT_FOUND = 1,
-		REFRESH_IN_PROGRESS = 2,
-		REFRESH_ALREADY_QUEUED = 3
+	enum class RefreshTaskQueueResult : uint8_t {
+		STARTED,
+		QUEUED,
+		EXISTS,
+	};
+
+	struct RefreshTaskQueueInfo {
+		optional<ShareRefreshTaskToken> token;
+		RefreshTaskQueueResult result;
 	};
 
 	// Refresh the whole share or in
-	RefreshResult refresh(bool incoming, RefreshType aType = RefreshType::TYPE_MANUAL, function<void(float)> progressF = nullptr) noexcept;
+	RefreshTaskQueueInfo refresh(ShareRefreshType aType, ShareRefreshPriority aPriority, function<void(float)> progressF = nullptr) noexcept;
 
 	// Refresh a single single path or all paths under a virtual name (roots only)
-	RefreshResult refreshVirtualName(const string& aDir) noexcept;
+	// Returns nullopt if the path doesn't exist in share
+	optional<RefreshTaskQueueInfo> refreshVirtualName(const string& aVirtualName, ShareRefreshPriority aPriority) noexcept;
 
 	// Refresh the specific directories
-	void refreshPaths(const StringList& aPaths, const string& displayName = Util::emptyString, function<void(float)> progressF = nullptr) noexcept;
+	// Returns nullopt if the path doesn't exist in share (and it can't be added there)
+	optional<RefreshTaskQueueInfo> refreshPathsHooked(ShareRefreshPriority aPriority, const StringList& aPaths, const void* aCaller, const string& aDisplayName = Util::emptyString, function<void(float)> aProgressF = nullptr) noexcept;
+
+	// Refresh the specific directories
+	// Throws if the path doesn't exist in share and can't be added there
+	RefreshTaskQueueInfo refreshPathsHookedThrow(ShareRefreshPriority aPriority, const StringList& aPaths, const void* aCaller, const string& aDisplayName = Util::emptyString, function<void(float)> aProgressF = nullptr);
 
 	bool isRefreshing() const noexcept { return refreshRunning; }
 	
@@ -144,8 +188,10 @@ public:
 	void startup(function<void(const string&)> stepF, function<void(float)> progressF) noexcept;
 	void shutdown(function<void(float)> progressF) noexcept;
 
-	// Should only be called on shutdown for now
-	void abortRefresh() noexcept;
+	// Abort filelist refresh (or an individual refresh task)
+	bool abortRefresh(optional<ShareRefreshTaskToken> aToken = nullopt) noexcept;
+
+	ShareRefreshTaskList getRefreshTasks() const noexcept;
 
 	void nmdcSearch(SearchResultList& l, const string& aString, int aSearchType, int64_t aSize, int aFileType, StringList::size_type maxResults, bool aHideShare) noexcept;
 
@@ -165,11 +211,11 @@ public:
 	bool isRealPathShared(const string& aPath) const noexcept;
 
 	// Returns true if the real path can be added in share
-	bool allowShareDirectoryHooked(const string& aPath) const noexcept;
+	bool allowShareDirectoryHooked(const string& aPath, const void* aCaller) const noexcept;
 
 	// Validate a file/directory path
 	// Throws on errors
-	void validatePathHooked(const string& aPath, bool aSkipQueueCheck) const;
+	void validatePathHooked(const string& aPath, bool aSkipQueueCheck, const void* aCaller) const;
 
 	// Returns the dupe paths by directory name/NMDC path
 	StringList getAdcDirectoryPaths(const string& aAdcPath) const noexcept;
@@ -204,7 +250,7 @@ public:
 
 	// Get real paths for an ADC virtual path
 	// Throws ShareException
-	void getRealPaths(const string& path, StringList& ret, const OptionalProfileToken& aProfile = nullopt) const;
+	void getRealPaths(const string& aVirtualPath, StringList& realPaths_, const OptionalProfileToken& aProfile = nullopt) const;
 
 	StringList getRealPaths(const TTHValue& root) const noexcept;
 
@@ -213,10 +259,11 @@ public:
 
 	typedef unordered_multimap<TTHValue, TempShareInfo> TempShareMap;
 
-	optional<TempShareInfo> addTempShare(const TTHValue& tth, const string& aName, const string& filePath, int64_t aSize, ProfileToken aProfile, const UserPtr& aUser) noexcept;
+	optional<TempShareInfo> addTempShare(const TTHValue& aTTH, const string& aName, const string& aFilePath, int64_t aSize, ProfileToken aProfile, const UserPtr& aUser) noexcept;
 
 	bool hasTempShares() const noexcept;
 	TempShareInfoList getTempShares() const noexcept;
+	TempShareInfoList getTempShares(const TTHValue& aTTH) const noexcept;
 
 	bool removeTempShare(const UserPtr& aUser, const TTHValue& tth) noexcept;
 	bool removeTempShare(TempShareToken aId) noexcept;
@@ -343,6 +390,7 @@ private:
 			IGETSET(bool, cacheDirty, CacheDirty, false);
 			IGETSET(bool, incoming, Incoming, false);
 			IGETSET(RefreshState, refreshState, RefreshState, RefreshState::STATE_NORMAL);
+			IGETSET(optional<ShareRefreshTaskToken>, refreshTaskToken, RefreshTaskToken, nullopt);
 			IGETSET(time_t, lastRefreshTime, LastRefreshTime, 0);
 
 			bool hasRootProfile(ProfileToken aProfile) const noexcept;
@@ -362,6 +410,10 @@ private:
 				return path;
 			}
 
+			inline const string& getPathLower() const noexcept {
+				return pathLower;
+			}
+
 			void setName(const string& aName) noexcept;
 			string getCacheXmlPath() const noexcept;
 		private:
@@ -369,6 +421,7 @@ private:
 
 			unique_ptr<DualString> virtualName;
 			const string path;
+			const string pathLower;
 	};
 
 	typedef vector<RootDirectory::Ptr> RootDirectoryList;
@@ -537,6 +590,21 @@ private:
 		Directory::Ptr findDirectoryByPath(const string& aPath, char separator) const noexcept;
 
 		Directory::Ptr findDirectoryByName(const string& aName) const noexcept;
+
+
+		class RootIsParentOrExact {
+		public:
+			// Returns true for items matching the predicate that are parent directories of compareTo (or exact matches)
+			RootIsParentOrExact(const string& aCompareTo) : compareToLower(Text::toLower(aCompareTo)), separator(PATH_SEPARATOR) {}
+			bool operator()(const Directory::Ptr& aDirectory) const noexcept { 
+				return AirUtil::isParentOrExactLower(aDirectory->getRoot()->getPathLower(), compareToLower, separator);
+			}
+
+			RootIsParentOrExact& operator=(const RootIsParentOrExact&) = delete;
+		private:
+			const string compareToLower;
+			const char separator;
+		};
 	private:
 		void cleanIndices(int64_t& sharedSize_, File::TTHMap& tthIndex_, Directory::MultiMap& dirNames_) noexcept;
 
@@ -604,10 +672,8 @@ private:
 	FileList* getFileList(ProfileToken aProfile) const;
 
 	bool loadCache(function<void(float)> progressF) noexcept;
-
-	bool stopping = false;
 	
-	static atomic_flag refreshing;
+	static atomic_flag tasksRunning;
 	bool refreshRunning = false;
 
 	uint64_t lastFullUpdate = GET_TICK();
@@ -629,9 +695,9 @@ private:
 
 		Directory::Ptr oldShareDirectory;
 		Directory::Ptr newShareDirectory;
-		int64_t hashSize = 0;
-		int64_t addedSize = 0;
-		size_t newDirectoriesCount = 0;
+
+		ShareRefreshStats stats;
+
 		Directory::Map rootPathsNew;
 		Directory::MultiMap lowerDirNameMapNew;
 		HashFileMap tthIndexNew;
@@ -640,7 +706,7 @@ private:
 
 		ShareManager::ShareBloom& bloom;
 
-		void mergeRefreshChanges(Directory::MultiMap& aDirNameMap, Directory::Map& aRootPaths, HashFileMap& aTTHIndex, int64_t& totalHash, int64_t& totalAdded, ProfileTokenSet* dirtyProfiles) noexcept;
+		void applyRefreshChanges(Directory::MultiMap& lowerDirNameMap_, Directory::Map& rootPaths_, HashFileMap& tthIndex_, int64_t& sharedBytes_, ProfileTokenSet* dirtyProfiles) noexcept;
 		bool checkContent(const Directory::Ptr& aDirectory) noexcept;
 	};
 
@@ -649,9 +715,12 @@ private:
 		ShareBuilder(const string& aPath, const Directory::Ptr& aOldRoot, time_t aLastWrite, ShareBloom& bloom_, ShareManager* sm);
 
 		// Recursive function for building a new share tree from a path
-		bool buildTree() noexcept;
+		bool buildTree(const bool& aStopping) noexcept;
 	private:
-		void buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aCurrentDirectory, const Directory::Ptr& aOldDirectory);
+		void buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aCurrentDirectory, const Directory::Ptr& aOldDirectory, const bool& aStopping);
+
+		typedef function<void()> ValidatorF;
+		bool validateFileItem(const FileItemInfoBase& aFileItem, const string& aPath, bool aIsNew, bool aNewParent, ErrorCollector& aErrorCollector) noexcept;
 
 		const ShareManager& sm;
 	};
@@ -659,20 +728,20 @@ private:
 	typedef shared_ptr<ShareBuilder> ShareBuilderPtr;
 	typedef set<ShareBuilderPtr, std::less<ShareBuilderPtr>> ShareBuilderSet;
 
-	bool applyRefreshChanges(RefreshInfo& ri, int64_t& totalHash_, ProfileTokenSet* aDirtyProfiles);
+	bool applyRefreshChanges(RefreshInfo& ri, ProfileTokenSet* aDirtyProfiles);
 
 	// Display a log message if the refresh can't be started immediately
-	void reportPendingRefresh(TaskType aTask, const RefreshPathList& aDirectories, const string& displayName) const noexcept;
+	void reportPendingRefresh(ShareRefreshType aTask, const RefreshPathList& aDirectories, const string& displayName) const noexcept;
 
 	// Add directories for refresh
-	RefreshResult addRefreshTask(TaskType aTaskType, const StringList& aDirs, RefreshType aRefreshType, const string& displayName = Util::emptyString, function<void(float)> progressF = nullptr) noexcept;
+	RefreshTaskQueueInfo addRefreshTask(ShareRefreshPriority aPriority, const StringList& aDirs, ShareRefreshType aRefreshType, const string& displayName = Util::emptyString, function<void(float)> progressF = nullptr) noexcept;
 
 	// Remove directories that have already been queued for refresh
 	void validateRefreshTask(StringList& dirs_) noexcept;
 
 	// Change the refresh status for a directory and its subroots
 	// Safe to call with non-root directories
-	void setRefreshState(const string& aPath, RefreshState aState, bool aUpdateRefreshTime) noexcept;
+	void setRefreshState(const string& aPath, RefreshState aState, bool aUpdateRefreshTime, const optional<ShareRefreshTaskToken>& aRefreshTaskToken) noexcept;
 
 	static void addFile(DualString&& aName, const Directory::Ptr& aDir, const HashedFile& fi, HashFileMap& tthIndex_, ShareBloom& aBloom_, int64_t& sharedSize_, ProfileTokenSet* dirtyProfiles_ = nullptr) noexcept;
 
@@ -760,6 +829,7 @@ private:
 	int run() override;
 
 	void runTasks(function<void (float)> progressF = nullptr) noexcept;
+	void runRefreshTask(const ShareRefreshTask& aTask, function<void(float)> progressF) noexcept;
 
 	// HashManagerListener
 	void on(HashManagerListener::FileHashed, const string& aPath, HashedFile& fi) noexcept override { onFileHashed(aPath, fi); }
@@ -781,7 +851,7 @@ private:
 	void loadProfile(SimpleXML& aXml, const string& aName, ProfileToken aToken);
 	void save(SimpleXML& aXml);
 
-	void reportTaskStatus(uint8_t aTask, const RefreshPathList& aDirectories, bool finished, int64_t aHashSize, const string& displayName, RefreshType aRefreshType) const noexcept;
+	void reportTaskStatus(const ShareRefreshTask& aTask, bool aFinished, const ShareRefreshStats* aStats) const noexcept;
 	
 	ShareProfileList shareProfiles;
 }; //sharemanager end

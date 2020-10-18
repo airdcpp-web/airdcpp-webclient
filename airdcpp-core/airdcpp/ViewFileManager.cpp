@@ -82,8 +82,8 @@ namespace dcpp {
 		removeFile(aQI->getTTH());
 	}
 
-	ViewFilePtr ViewFileManager::createFile(const string& aFileName, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile) noexcept {
-		auto file = std::make_shared<ViewFile>(aFileName, aTTH, aIsText, aIsLocalFile,
+	ViewFilePtr ViewFileManager::createFile(const string& aFileName, const string& aPath, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile) noexcept {
+		auto file = std::make_shared<ViewFile>(aFileName, aPath, aTTH, aIsText, aIsLocalFile,
 			std::bind(&ViewFileManager::onFileStateUpdated, this, std::placeholders::_1));
 
 		{
@@ -126,29 +126,37 @@ namespace dcpp {
 		return p->second;
 	}
 
-	ViewFilePtr ViewFileManager::addLocalFile(const TTHValue& aTTH, bool aIsText) noexcept {
+	ViewFilePtr ViewFileManager::addLocalFileThrow(const TTHValue& aTTH, bool aIsText) {
 		if (getFile(aTTH)) {
 			return nullptr;
 		}
 
 		auto paths = ShareManager::getInstance()->getRealPaths(aTTH);
 		if (paths.empty()) {
-			return nullptr;
+			throw Exception(STRING(FILE_NOT_FOUND));
 		}
 
-		auto file = createFile(paths.front(), aTTH, aIsText, true);
+		string name;
+		auto tempShares = ShareManager::getInstance()->getTempShares(aTTH);
+		if (!tempShares.empty()) {
+			name = tempShares.front().name;
+		} else {
+			name = Util::getFileName(paths.front());
+		}
+
+		auto file = createFile(name, paths.front(), aTTH, aIsText, true);
 
 		fire(ViewFileManagerListener::FileFinished(), file);
 		return file;
 	}
 	
 	ViewFilePtr ViewFileManager::addUserFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) {
-		if (ShareManager::getInstance()->isFileShared(aTTH)) {
-			return addLocalFile(aTTH, aIsText);
+		if (ShareManager::getInstance()->isFileShared(aTTH) || ShareManager::getInstance()->isTempShared(nullptr, aTTH)) {
+			return addLocalFileThrow(aTTH, aIsText);
 		}
 
 		if (aUser == ClientManager::getInstance()->getMe()) {
-			return nullptr;
+			throw Exception(STRING(NO_DOWNLOADS_FROM_SELF));
 		}
 
 		if (getFile(aTTH)) {
@@ -157,7 +165,7 @@ namespace dcpp {
 
 		auto qi = QueueManager::getInstance()->addOpenedItem(aFileName, aSize, aTTH, aUser, true, aIsText);
 
-		auto file = createFile(qi->getTarget(), qi->getTTH(), aIsText, false);
+		auto file = createFile(aFileName, qi->getTarget(), qi->getTTH(), aIsText, false);
 		if (file) {
 			file->onAddedQueue(qi->getTarget(), qi->getSize());
 		}
@@ -175,6 +183,21 @@ namespace dcpp {
 			LogManager::getInstance()->message(STRING_F(FILE_ALREADY_VIEWED, aFileName), LogMessage::SEV_NOTIFY);
 		} catch (const Exception& e) {
 			LogManager::getInstance()->message(STRING_F(ADD_FILE_ERROR, aFileName % ClientManager::getInstance()->getFormatedNicks(aUser) % e.getError()), LogMessage::SEV_NOTIFY);
+		}
+
+		return nullptr;
+	}
+
+	ViewFilePtr ViewFileManager::addLocalFileNotify(const TTHValue& aTTH, bool aIsText, const string& aFileName) noexcept {
+		try {
+			auto file = addLocalFileThrow(aTTH, aIsText);
+			if (file) {
+				return file;
+			}
+
+			LogManager::getInstance()->message(STRING_F(FILE_ALREADY_VIEWED, aFileName), LogMessage::SEV_NOTIFY);
+		} catch (const Exception& e) {
+			LogManager::getInstance()->message(STRING_F(FAILED_TO_OPEN_FILE, aFileName % e.getError()), LogMessage::SEV_NOTIFY);
 		}
 
 		return nullptr;

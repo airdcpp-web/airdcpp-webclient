@@ -20,29 +20,16 @@
 
 #include "ContextMenuManager.h"
 
-#include <airdcpp/DirectoryListingManager.h>
-#include <airdcpp/QueueManager.h>
-#include <airdcpp/SearchManager.h>
-
 
 namespace webserver {
+	const string ContextMenuManager::URLS_SUPPORT("urls");
+
 	ContextMenuManager::ContextMenuManager() {
 
 	}
 
 	ContextMenuManager::~ContextMenuManager() {
 
-	}
-
-	ContextMenuItemList ContextMenuManager::normalizeMenuItems(const ActionHookDataList<ContextMenuItemList>& aResult) noexcept {
-		ContextMenuItemList ret;
-		for (const auto& i : aResult) {
-			for (const auto& s : i->data) {
-				ret.push_back(s);
-			}
-		}
-
-		return ret;
 	}
 
 } // namespace webserver

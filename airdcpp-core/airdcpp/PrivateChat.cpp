@@ -215,8 +215,8 @@ int PrivateChat::clearCache() noexcept {
 void PrivateChat::statusMessage(const string& aMessage, LogMessage::Severity aSeverity) noexcept {
 	auto message = std::make_shared<LogMessage>(aMessage, aSeverity);
 
-	fire(PrivateChatListener::StatusMessage(), this, message);
 	cache.addMessage(message);
+	fire(PrivateChatListener::StatusMessage(), this, message);
 }
 
 void PrivateChat::close() {
@@ -280,8 +280,8 @@ void PrivateChat::checkAlwaysCCPM() {
 void PrivateChat::checkCCPMTimeout() {
 	if (ccpmState == CONNECTING) {
 		statusMessage(STRING(CCPM_TIMEOUT), LogMessage::SEV_INFO);
-		fire(PrivateChatListener::CCPMStatusUpdated(), this);
 		ccpmState = DISCONNECTED;
+		fire(PrivateChatListener::CCPMStatusUpdated(), this);
 	} 
 }
 
