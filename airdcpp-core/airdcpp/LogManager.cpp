@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -121,12 +121,12 @@ string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache
 	return path;
 }
 
-void LogManager::message(const string& msg, LogMessage::Severity severity) noexcept {
-	auto messageData = std::make_shared<LogMessage>(msg, severity);
-	if (severity != LogMessage::SEV_NOTIFY) {
+void LogManager::message(const string& aMsg, LogMessage::Severity aSeverity, const string& aLabel) noexcept {
+	auto messageData = std::make_shared<LogMessage>(aMsg, aSeverity, aLabel);
+	if (aSeverity != LogMessage::SEV_NOTIFY) {
 		if (SETTING(LOG_SYSTEM)) {
 			ParamMap params;
-			params["message"] = msg;
+			params["message"] = aMsg;
 			log(SYSTEM, params);
 		}
 
@@ -195,7 +195,7 @@ void LogManager::log(const string& area, const string& msg) noexcept {
 			f.write(msg + "\r\n");
 		} catch (const FileException& e) {
 			// Just don't try to write the error into a file...
-			message(STRING_F(WRITE_FAILED_X, aArea % e.what()), LogMessage::SEV_NOTIFY);
+			message(STRING_F(WRITE_FAILED_X, aArea % e.what()), LogMessage::SEV_NOTIFY, STRING(APPLICATION));
 		}
 	});
 }

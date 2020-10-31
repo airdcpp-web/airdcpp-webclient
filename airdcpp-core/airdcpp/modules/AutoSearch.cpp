@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 #include "stdinc.h"
 
 #include "AutoSearch.h"
-#include "ShareScannerManager.h"
 
 #include <airdcpp/ActionHook.h>
 #include <airdcpp/Bundle.h>
@@ -32,6 +31,9 @@
 
 #include <boost/range/algorithm/max_element.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+
+#define SHARE_SCANNER_ERROR_MISSING "error_missing"
+#define SHARE_SCANNER_ERROR_INVALID_CONTENT "error_invalid"
 
 namespace dcpp {
 
@@ -66,6 +68,15 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 };
 
 AutoSearch::~AutoSearch() noexcept {};
+
+
+bool AutoSearch::hasHookFilesMissing(const ActionHookRejectionPtr& aRejection) noexcept {
+	return !!aRejection && aRejection->rejectId == SHARE_SCANNER_ERROR_MISSING;
+}
+
+bool AutoSearch::hasHookInvalidContent(const ActionHookRejectionPtr& aRejection) noexcept {
+	return !!aRejection && aRejection->rejectId == SHARE_SCANNER_ERROR_INVALID_CONTENT;
+}
 
 bool AutoSearch::allowNewItems() const noexcept {
 	if (!enabled)
@@ -308,10 +319,9 @@ void AutoSearch::updateStatus() noexcept {
 	} else {
 		auto maxBundle = *boost::max_element(bundles, Bundle::StatusOrder());
 		if(maxBundle->getStatus() == Bundle::STATUS_VALIDATION_ERROR) {
-			if (ActionHookRejection::matches(maxBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_MISSING)) {
+			if (AutoSearch::hasHookFilesMissing(maxBundle->getHookError())) {
 				status = AutoSearch::STATUS_FAILED_MISSING;
-			}
-			else if (ActionHookRejection::matches(maxBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_INVALID_CONTENT)) {
+			} else if (AutoSearch::hasHookInvalidContent(maxBundle->getHookError())) {
 				status = AutoSearch::STATUS_FAILED_EXTRAS;
 			}
 		} else {

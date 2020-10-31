@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
 
 #include "AirUtil.h"
 #include "ClientManager.h"
-#include "LogManager.h"
 #include "RelevanceSearch.h"
 #include "ResourceManager.h"
 #include "ShareManager.h"
@@ -688,7 +687,7 @@ void FavoriteManager::loadFavoriteHubs(SimpleXML& aXml) {
 
 			auto server = aXml.getChildAttrib("Server");
 			if (server.empty()) {
-				LogManager::getInstance()->message("A favorite hub with an empty address wasn't loaded: " + e->getName(), LogMessage::SEV_WARNING);
+				dcdebug("A favorite hub with an empty address wasn't loaded: %s\n", e->getName().c_str());
 				continue;
 			}
 

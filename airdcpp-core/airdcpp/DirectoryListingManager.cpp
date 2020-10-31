@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2019 AirDC++ Project
+ * Copyright (C) 2011-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -238,11 +238,15 @@ void DirectoryListingManager::processList(const string& aFileName, const string&
 			dirList->loadFile();
 		}
 	} catch (const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, aFileName % e.getError()), LogMessage::SEV_ERROR);
+		log(STRING_F(LIST_LOAD_FAILED, aFileName % e.getError()), LogMessage::SEV_ERROR);
 		return;
 	}
 
 	processListAction(dirList, aRemotePath, aFlags);
+}
+
+void DirectoryListingManager::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
+	LogManager::getInstance()->message(aMsg, aSeverity, STRING(FILE_LISTS));
 }
 
 void DirectoryListingManager::handleDownload(const DirectoryDownloadPtr& aDownloadInfo, const DirectoryListingPtr& aList, bool aListDownloaded/* = true*/) noexcept {
@@ -273,7 +277,7 @@ void DirectoryListingManager::handleDownload(const DirectoryDownloadPtr& aDownlo
 
 	// Owner, when available, is responsible for error reporting
 	if (!aDownloadInfo->getOwner() && !errorMsg.empty()) {
-		LogManager::getInstance()->message(STRING_F(ADD_BUNDLE_ERRORS_OCC, target % aList->getNick(false) % errorMsg), LogMessage::SEV_WARNING);
+		log(STRING_F(ADD_BUNDLE_ERRORS_OCC, target % aList->getNick(false) % errorMsg), LogMessage::SEV_WARNING);
 	}
 
 
@@ -320,7 +324,7 @@ void DirectoryListingManager::processListAction(DirectoryListingPtr aList, const
 			return;
 		}
 
-		LogManager::getInstance()->message(aList->getNick(false) + ": " + 
+		log(aList->getNick(false) + ": " +
 			AirUtil::formatMatchResults(matches, newFiles, bundles), LogMessage::SEV_INFO);
 	}
 }

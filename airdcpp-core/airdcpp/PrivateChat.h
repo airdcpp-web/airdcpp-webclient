@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@ namespace dcpp {
 
 		bool sendMessageHooked(const OutgoingChatMessage& aMessage, string& error_);
 		void handleMessage(const ChatMessagePtr& aMessage) noexcept;
-		void statusMessage(const string& aMessage, LogMessage::Severity aSeverity) noexcept;
+		void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, const string& aLabel = Util::emptyString) noexcept;
 
 		void close();
 

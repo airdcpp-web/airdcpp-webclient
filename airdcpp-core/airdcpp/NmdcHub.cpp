@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -299,10 +299,10 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		}
 
 		if((line.find("Hub-Security") != string::npos) && (line.find("was kicked by") != string::npos)) {
-			statusMessage(unescape(line), LogMessage::SEV_INFO, ClientListener::FLAG_IS_SPAM);
+			statusMessage(unescape(line), LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SPAM);
 			return;
 		} else if((line.find("is kicking") != string::npos) && (line.find("because:") != string::npos)) {
-			statusMessage(unescape(line), LogMessage::SEV_INFO, ClientListener::FLAG_IS_SPAM);
+			statusMessage(unescape(line), LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SPAM);
 			return;
 		}
 

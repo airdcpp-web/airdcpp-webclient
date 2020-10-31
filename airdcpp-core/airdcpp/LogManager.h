@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ public:
 	enum: uint8_t { FILE, FORMAT };
 
 	void log(Area area, ParamMap& params) noexcept;
-	void message(const string& msg, LogMessage::Severity severity) noexcept;
+	void message(const string& aMsg, LogMessage::Severity aSeverity, const string& aLabel) noexcept;
 
 	string getPath(Area area, ParamMap& params) const noexcept;
 	string getPath(Area area) const noexcept;

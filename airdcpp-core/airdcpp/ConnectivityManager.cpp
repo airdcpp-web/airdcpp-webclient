@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -431,7 +431,7 @@ void ConnectivityManager::mappingFinished(const string& mapper, bool v6) {
 
 void ConnectivityManager::log(const string& aMessage, LogMessage::Severity sev, LogType aType) {
 	if (aType == TYPE_NORMAL) {
-		LogManager::getInstance()->message(aMessage, sev);
+		LogManager::getInstance()->message(aMessage, sev, STRING(CONNECTIVITY));
 	} else {
 		string proto;
 		if (aType == TYPE_BOTH && runningV4 && runningV6) {
@@ -446,7 +446,7 @@ void ConnectivityManager::log(const string& aMessage, LogMessage::Severity sev, 
 			statusV6 = aMessage;
 		}
 
-		LogManager::getInstance()->message(STRING(CONNECTIVITY) + " (" + proto + "): " + aMessage, sev);
+		LogManager::getInstance()->message(aMessage, sev, STRING(CONNECTIVITY) + " (" + proto + ")");
 		fire(ConnectivityManagerListener::Message(), proto + ": " + aMessage);
 	}
 }

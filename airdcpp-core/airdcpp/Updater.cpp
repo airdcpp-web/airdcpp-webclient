@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2019 AirDC++ Project
+ * Copyright (C) 2012-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 
 #include "File.h"
 #include "HashCalc.h"
+#include "HttpDownload.h"
 #include "LogManager.h"
 #include "ScopedFunctor.h"
 #include "SimpleXML.h"
@@ -50,6 +51,10 @@
 #endif
 
 namespace dcpp {
+
+void Updater::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
+	LogManager::getInstance()->message(aMsg, aSeverity, STRING(UPDATER));
+}
 
 int Updater::cleanExtraFiles(const string& aCurPath, const optional<StringSet>& aProtectedFiles) noexcept {
 	int deletedFiles = 0;
@@ -388,7 +393,7 @@ void Updater::completeUpdateDownload(int aBuildID, bool aManualCheck) {
 		try {
 			auto updaterExeFile = extractUpdater(updaterFile, aBuildID, sessionToken);
 
-			LogManager::getInstance()->message(STRING(UPDATE_DOWNLOADED), LogMessage::SEV_INFO);
+			log(STRING(UPDATE_DOWNLOADED), LogMessage::SEV_INFO);
 			installedUpdate = aBuildID;
 
 			conn.reset(); //prevent problems when closing
@@ -501,7 +506,7 @@ bool Updater::checkPendingUpdates(const string& aAppPath, string& updaterFile_, 
 
 			}
 		} catch (const Exception& e) {
-			LogManager::getInstance()->message(STRING_F(FAILED_TO_READ, infoFilePath % e.getError()), LogMessage::SEV_WARNING);
+			log(STRING_F(FAILED_TO_READ, infoFilePath % e.getError()), LogMessage::SEV_WARNING);
 		}
 	}
 
@@ -511,10 +516,10 @@ bool Updater::checkPendingUpdates(const string& aAppPath, string& updaterFile_, 
 void Updater::failUpdateDownload(const string& aError, bool manualCheck) {
 	auto msg = STRING_F(UPDATING_FAILED, aError);
 	if (manualCheck) {
-		LogManager::getInstance()->message(msg, LogMessage::SEV_ERROR);
+		log(msg, LogMessage::SEV_ERROR);
 		um->fire(UpdateManagerListener::UpdateFailed(), msg);
 	} else {
-		LogManager::getInstance()->message(msg, LogMessage::SEV_WARNING);
+		log(msg, LogMessage::SEV_WARNING);
 	}
 }
 
@@ -591,7 +596,7 @@ bool Updater::onVersionDownloaded(SimpleXML& xml, bool aVerified, bool aManualCh
 			}
 			//fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, true);
 		} else if (updateMethod == UPDATE_AUTO) {
-			LogManager::getInstance()->message(STRING_F(BACKGROUND_UPDATER_START, versionString), LogMessage::SEV_INFO);
+			log(STRING_F(BACKGROUND_UPDATER_START, versionString), LogMessage::SEV_INFO);
 			downloadUpdate(updateUrl, remoteBuild, aManualCheck);
 		}
 		xml.resetCurrentChild();

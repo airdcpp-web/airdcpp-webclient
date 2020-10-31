@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -84,7 +84,8 @@ void ResourceManager::loadLanguage(const string& aFile) {
 		createWide();
 #endif
 	} catch(const Exception& e) {
-		LogManager::getInstance()->message("Failed to load the language file " + aFile + ": " + e.getError(), LogMessage::SEV_ERROR);
+		// No translated strings in here
+		LogManager::getInstance()->message("Failed to load the language file " + aFile + ": " + e.getError(), LogMessage::SEV_ERROR, "Localizations");
 	}
 }
 

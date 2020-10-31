@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 #include "Exception.h"
 #include "HashBloom.h"
 #include "HashedFile.h"
+#include "Message.h"
 #include "MerkleTree.h"
 #include "Pointer.h"
 #include "SearchQuery.h"
@@ -120,6 +121,8 @@ class ShareManager : public Singleton<ShareManager>, public Speaker<ShareManager
 	private TimerManagerListener, private HashManagerListener
 {
 public:
+	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
+
 	const unique_ptr<SharePathValidator> validator;
 
 	SharePathValidator& getValidator() noexcept {

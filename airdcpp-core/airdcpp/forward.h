@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,6 +49,9 @@ using ActionHookDataList = vector<ActionHookDataPtr<DataT>>;
 
 template<typename DataT = nullptr_t>
 using ActionHookResultGetter = ActionHookDataGetter<DataT>;
+
+struct AdapterInfo;
+typedef vector<AdapterInfo> AdapterInfoList;
 
 class AdcCommand;
 

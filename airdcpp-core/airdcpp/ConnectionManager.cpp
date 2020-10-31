@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -104,9 +104,9 @@ void ConnectionManager::listen() {
 		dcdebug("Skipping secure port: %d\n", CONNSETTING(TLS_PORT));
 		return;
 	}
-	if (CONNSETTING(TCP_PORT) == CONNSETTING(TLS_PORT))
-	{
-		LogManager::getInstance()->message(STRING(ERROR_TLS_PORT), LogMessage::SEV_ERROR);
+
+	if (CONNSETTING(TCP_PORT) == CONNSETTING(TLS_PORT)) {
+		LogManager::getInstance()->message(STRING(ERROR_TLS_PORT), LogMessage::SEV_ERROR, STRING(CONNECTIVITY));
 	}
 
 	secureServer.reset(new Server(true, Util::toString(CONNSETTING(TLS_PORT)), CONNSETTING(BIND_ADDRESS), CONNSETTING(BIND_ADDRESS6)));
@@ -475,7 +475,7 @@ int ConnectionManager::Server::run() noexcept {
 				port = sock.listen(port);
 
 				if(failed) {
-					LogManager::getInstance()->message("Connectivity restored", LogMessage::SEV_INFO);
+					LogManager::getInstance()->message("Connectivity restored", LogMessage::SEV_INFO, STRING(CONNECTIVITY));
 					failed = false;
 				}
 				break;
@@ -483,7 +483,7 @@ int ConnectionManager::Server::run() noexcept {
 				dcdebug("ConnectionManager::Server::run Stopped listening: %s\n", e.getError().c_str());
 
 				if(!failed) {
-					LogManager::getInstance()->message(str(boost::format("Connectivity error: %1%") % e.getError()), LogMessage::SEV_ERROR);
+					LogManager::getInstance()->message(str(boost::format("Connectivity error: %1%") % e.getError()), LogMessage::SEV_ERROR, STRING(CONNECTIVITY));
 					failed = true;
 				}
 

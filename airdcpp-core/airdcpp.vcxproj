@@ -219,6 +219,7 @@
     <ClCompile Include="airdcpp\DirectSearch.cpp" />
     <ClCompile Include="airdcpp\ErrorCollector.cpp" />
     <ClCompile Include="airdcpp\GroupedSearchResult.cpp" />
+    <ClCompile Include="airdcpp\Hasher.cpp" />
     <ClCompile Include="airdcpp\IgnoreManager.cpp" />
     <ClCompile Include="airdcpp\MessageCache.cpp" />
     <ClCompile Include="airdcpp\MessageHighlight.cpp" />
@@ -226,14 +227,11 @@
     <ClCompile Include="airdcpp\modules\AutoSearch.cpp" />
     <ClCompile Include="airdcpp\modules\AutoSearchManager.cpp" />
     <ClCompile Include="airdcpp\modules\ColorSettings.cpp" />
-    <ClCompile Include="airdcpp\modules\DirectoryMonitor.cpp" />
     <ClCompile Include="airdcpp\modules\FinishedManager.cpp" />
     <ClCompile Include="airdcpp\modules\HighlightManager.cpp" />
     <ClCompile Include="airdcpp\modules\HublistManager.cpp" />
     <ClCompile Include="airdcpp\modules\PreviewAppManager.cpp" />
     <ClCompile Include="airdcpp\modules\RSSManager.cpp" />
-    <ClCompile Include="airdcpp\modules\ShareMonitorManager.cpp" />
-    <ClCompile Include="airdcpp\modules\ShareScannerManager.cpp" />
     <ClCompile Include="airdcpp\modules\WebShortcuts.cpp" />
     <ClCompile Include="airdcpp\PrivateChat.cpp" />
     <ClCompile Include="airdcpp\RecentManager.cpp" />
@@ -349,6 +347,7 @@
     <ClInclude Include="airdcpp\DupeType.h" />
     <ClInclude Include="airdcpp\ErrorCollector.h" />
     <ClInclude Include="airdcpp\GroupedSearchResult.h" />
+    <ClInclude Include="airdcpp\Hasher.h" />
     <ClInclude Include="airdcpp\HashManagerListener.h" />
     <ClInclude Include="airdcpp\MessageHighlight.h" />
     <ClInclude Include="airdcpp\StreamBase.h" />
@@ -360,8 +359,6 @@
     <ClInclude Include="airdcpp\modules\AutoSearchManagerListener.h" />
     <ClInclude Include="airdcpp\modules\AutoSearchQueue.h" />
     <ClInclude Include="airdcpp\modules\ColorSettings.h" />
-    <ClInclude Include="airdcpp\modules\DirectoryMonitor.h" />
-    <ClInclude Include="airdcpp\modules\DirectoryMonitorListener.h" />
     <ClInclude Include="airdcpp\modules\FinishedManager.h" />
     <ClInclude Include="airdcpp\modules\FinishedManagerListener.h" />
     <ClInclude Include="airdcpp\modules\HighlightManager.h" />
@@ -370,8 +367,6 @@
     <ClInclude Include="airdcpp\modules\HublistManagerListener.h" />
     <ClInclude Include="airdcpp\modules\PreviewAppManager.h" />
     <ClInclude Include="airdcpp\modules\RSSManager.h" />
-    <ClInclude Include="airdcpp\modules\ShareMonitorManager.h" />
-    <ClInclude Include="airdcpp\modules\ShareScannerManager.h" />
     <ClInclude Include="airdcpp\modules\WebShortcuts.h" />
     <ClInclude Include="airdcpp\Priority.h" />
     <ClInclude Include="airdcpp\RecentEntry.h" />

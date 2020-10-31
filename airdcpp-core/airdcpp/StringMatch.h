@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,6 @@ using std::string;
 
 /** Provides ways of matching a pattern against strings. */
 struct StringMatch {
-
 	StringMatch(bool aVerboseErrors = true) : verbosePatternErrors(aVerboseErrors) {}
 
 	enum Method {
@@ -44,22 +43,15 @@ struct StringMatch {
 		METHOD_LAST
 	};
 
-	static StringMatch getSearch(const string& aPattern, Method aMethod) {
-		StringMatch m;
-		m.pattern = aPattern;
-		m.setMethod(aMethod);
-		m.prepare();
-		return m;
-	}
+	static StringMatch getSearch(const string& aPattern, Method aMethod);
 
 	string pattern;
 
-	//Method getMethod() const { return m; }
-	Method getMethod() const;
+	Method getMethod() const noexcept;
 	void setMethod(Method method);
-	void setVerbosePatternErrors(bool v) { verbosePatternErrors = v; }
+	void setVerbosePatternErrors(bool v) noexcept { verbosePatternErrors = v; }
 
-	bool operator==(const StringMatch& rhs) const;
+	bool operator==(const StringMatch& rhs) const noexcept;
 
 	bool prepare();
 	bool match(const string& str) const;
@@ -67,10 +59,8 @@ struct StringMatch {
 
 private:
 	boost::variant<StringSearch, string, boost::regex> search;
-	bool isWildCard;
+	bool isWildCard = false;
 	bool verbosePatternErrors = true;
-
-	//Method m;
 };
 
 } // namespace dcpp

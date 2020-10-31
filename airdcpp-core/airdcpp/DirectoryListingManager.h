@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2019 AirDC++ Project
+ * Copyright (C) 2011-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 
 #include "CriticalSection.h"
 #include "DirectoryDownload.h"
-#include "DirectoryListing.h"
+#include "Message.h"
 #include "Singleton.h"
 #include "TimerManagerListener.h"
 
@@ -63,8 +63,9 @@ namespace dcpp {
 
 		DirectoryListingMap getLists() const noexcept;
 		DirectoryListingPtr findList(const UserPtr& aUser) noexcept;
+
+		static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 	private:
-		// bool removeDirectoryDownload(const UserPtr& aUser, const string& aPath, bool aForced) noexcept;
 		void removeDirectoryDownload(const DirectoryDownloadPtr& aDownloadInfo) noexcept;
 		DirectoryDownloadList getPendingDirectoryDownloadsUnsafe(const UserPtr& aUser) const noexcept;
 		DirectoryDownloadPtr getPendingDirectoryDownloadUnsafe(const UserPtr& aUser, const string& aPath) const noexcept;

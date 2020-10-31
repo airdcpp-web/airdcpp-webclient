@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,9 +32,9 @@
 #include "DupeType.h"
 #include "GetSet.h"
 #include "HintedUser.h"
+#include "Message.h"
 #include "MerkleTree.h"
 #include "Priority.h"
-#include "SearchQuery.h"
 #include "TaskQueue.h"
 #include "UserInfoBase.h"
 #include "Streams.h"
@@ -43,6 +43,7 @@
 namespace dcpp {
 
 class ListLoader;
+class SearchQuery;
 typedef uint32_t DirectoryListingToken;
 
 class DirectoryListing : public UserInfoBase, public TrackableDownloadItem,
@@ -244,7 +245,7 @@ public:
 
 	bool nextResult(bool prev) noexcept;
 
-	unique_ptr<SearchQuery> curSearch = nullptr;
+	unique_ptr<SearchQuery> curSearch;
 
 	bool isCurrentSearchPath(const string& path) const noexcept;
 	size_t getResultCount() const noexcept { return searchResults.size(); }
@@ -279,6 +280,8 @@ protected:
 	void onStateChanged() noexcept override;
 
 private:
+	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
+
 	void setDirectoryLoadingState(const Directory::Ptr& aDir, bool aLoading) noexcept;
 
 	// Returns the number of loaded dirs

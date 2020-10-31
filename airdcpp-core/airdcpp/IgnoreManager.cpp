@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -176,7 +176,7 @@ ActionHookResult<MessageHighlightList> IgnoreManager::isIgnoredOrFiltered(const 
 				tmp = (filter ? STRING(MC_MESSAGE_FILTERED) : STRING(MC_MESSAGE_IGNORED));
 			}
 			tmp += "<" + fromIdentity.getNick() + "> " + msg->getText();
-			LogManager::getInstance()->message(tmp, LogMessage::SEV_INFO);
+			LogManager::getInstance()->message(tmp, LogMessage::SEV_INFO, STRING(SETTINGS_CHATFILTER));
 		}
 	};
 

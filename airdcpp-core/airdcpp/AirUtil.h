@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2019 AirDC++ Project
+ * Copyright (C) 2011-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,16 @@
 #include "SettingsManager.h"
 
 namespace dcpp {
+
+struct AdapterInfo {
+	AdapterInfo(const string& aName, const string& aIP, uint8_t aPrefix) : adapterName(aName), ip(aIP), prefix(aPrefix) { }
+
+	string adapterName;
+	string ip;
+	uint8_t prefix;
+};
+
+typedef vector<AdapterInfo> AdapterInfoList;
 
 class AirUtil {
 	
@@ -68,21 +78,15 @@ public:
 
 	static string toOpenFileName(const string& aFileName, const TTHValue& aTTH) noexcept;
 
-	struct AdapterInfo {
-		AdapterInfo(const string& aName, const string& aIP, uint8_t aPrefix) : adapterName(aName), ip(aIP), prefix(aPrefix) { }
-
-		string adapterName;
-		string ip;
-		uint8_t prefix;
-	};
-	typedef vector<AdapterInfo> AdapterInfoList;
-
 	// Get a list of network adapters for the wanted protocol
 	static AdapterInfoList getNetworkAdapters(bool v6);
 
 	// Get a sorted list of available bind adapters for the wanted protocol
 	// Ensures that the current bind address is listed as well
-	static AdapterInfoList getBindAdapters(bool v6);
+	static AdapterInfoList getCoreBindAdapters(bool v6);
+
+	static void ensureBindAddress(AdapterInfoList& adapters_, const string& aBindAddress) noexcept;
+	static int adapterSort(const AdapterInfo& a, const AdapterInfo& b) noexcept;
 
 	// Get current bind address
 	// The best adapter address is returned if no bind address is configured
@@ -134,7 +138,7 @@ public:
 	inline static string getAdcReleaseDir(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, ADC_SEPARATOR); };
 	static string getReleaseDir(const string& dir, bool cut, const char separator) noexcept;
 
-	static void removeDirectoryIfEmpty(const string& tgt, int maxAttempts, bool silent);
+	static bool removeDirectoryIfEmpty(const string& aPath, int aMaxAttempts);
 
 	static bool isAdcHub(const string& aHubUrl) noexcept;
 	static bool isSecure(const string& aHubUrl) noexcept;
@@ -185,7 +189,7 @@ private:
 	static string subtractCommonDirs(const string& toCompare, const string& toSubtract, char separator) noexcept;
 	static size_t compareFromEnd(const string& aMainPath, const string& aSubPath, char aSubSeparator) noexcept;
 
-	static bool removeDirectoryIfEmptyRe(const string& tgt, int maxAttempts, int curAttempts);
+	static bool removeDirectoryIfEmptyRecursive(const string& aTarget, int aMaxAttempts, int aCurAttempts);
 };
 
 class IsParentOrExact {

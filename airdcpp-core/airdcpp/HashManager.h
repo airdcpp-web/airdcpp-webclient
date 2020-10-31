@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,29 +23,24 @@
 #include "typedefs.h"
 
 #include "DbHandler.h"
-#include "HashedFile.h"
 #include "HashManagerListener.h"
 #include "MerkleTree.h"
-#include "Semaphore.h"
-#include "SFVReader.h"
+#include "Message.h"
 #include "Singleton.h"
-#include "SortedVector.h"
 #include "Speaker.h"
 #include "Thread.h"
 
 namespace dcpp {
 
 class File;
+class Hasher;
+class HashedFile;
 class HashLoader;
 class FileException;
 
 class HashManager : public Singleton<HashManager>, public Speaker<HashManagerListener> {
 
 public:
-
-	/** We don't keep leaves for blocks smaller than this... */
-	static const int64_t MIN_BLOCK_SIZE;
-
 	HashManager();
 	~HashManager();
 
@@ -57,6 +52,7 @@ public:
 	void stopHashing(const string& baseDir) noexcept;
 	void setPriority(Thread::Priority p) noexcept;
 
+
 	// @return HashedFileInfo
 	// Throws HashException
 	void getFileInfo(const string& fileLower, const string& aFileName, HashedFile& aFileInfo);
@@ -65,6 +61,8 @@ public:
 
 	/** Return block size of the tree associated with root, or 0 if no such tree is in the store */
 	size_t getBlockSize(const TTHValue& root) noexcept;
+
+	static int64_t getMinBlockSize() noexcept;
 
 	// Throws HashException
 	void addTree(const TigerTree& tree) { store.addTree(tree); }
@@ -130,94 +128,12 @@ public:
 	// Throws HashException
 	bool addFile(const string& aFilePathLower, const HashedFile& fi_);
 private:
-	typedef int64_t devid;
-
 	int pausers = 0;
-	class Hasher : public Thread {
-	public:
-		Hasher(bool isPaused, int aHasherID);
-
-		bool hashFile(const string& filePath, const string& filePathLower, int64_t size, devid aDeviceId) noexcept;
-
-		/// @return whether hashing was already paused
-		bool pause() noexcept;
-		void resume();
-		bool isPaused() const noexcept;
-		bool isRunning() const noexcept;
-		
-		void clear() noexcept;
-
-		void stopHashing(const string& baseDir) noexcept;
-		int run();
-		void getStats(string& curFile_, int64_t& bytesLeft_, size_t& filesLeft_, int64_t& speed_, size_t& filesAdded_, int64_t& bytesAdded_) const noexcept;
-		void shutdown();
-
-		bool hasFile(const string& aPath) const noexcept;
-		bool hasDevice(int64_t aDeviceId) const noexcept { return devices.find(aDeviceId) != devices.end(); }
-		bool hasDevices() const noexcept { return !devices.empty(); }
-		int64_t getTimeLeft() const noexcept;
-
-		int64_t getBytesLeft() const noexcept { return totalBytesLeft; }
-		static SharedMutex hcs;
-
-		const int hasherID;
-	private:
-		void clearStats() noexcept;
-
-		class WorkItem {
-		public:
-			WorkItem(const string& aFilePathLower, const string& aFilePath, int64_t aSize, devid aDeviceId) noexcept
-				: filePath(aFilePath), fileSize(aSize), deviceId(aDeviceId), filePathLower(aFilePathLower) { }
-			WorkItem(WorkItem&& rhs) = default;
-			WorkItem& operator=(WorkItem&&) = default;
-			WorkItem(const WorkItem&) = delete;
-			WorkItem& operator=(const WorkItem&) = delete;
-
-			string filePath;
-			int64_t fileSize;
-			devid deviceId;
-			string filePathLower;
-
-			struct NameLower {
-				const string& operator()(const WorkItem& a) const { return a.filePathLower; }
-			};
-		};
-
-		SortedVector<WorkItem, std::deque, string, Util::PathSortOrderInt, WorkItem::NameLower> w;
-
-		Semaphore s;
-		void removeDevice(devid aDevice) noexcept;
-
-		bool closing = false;
-		bool running = false;
-		bool paused;
-
-		string currentFile;
-		atomic<int64_t> totalBytesLeft;
-		atomic<int64_t> totalBytesAdded;
-		atomic<int64_t> lastSpeed;
-		atomic<int64_t> totalFilesAdded;
-
-		void instantPause();
-
-		int64_t totalSizeHashed = 0;
-		uint64_t totalHashTime = 0;
-		int totalDirsHashed = 0;
-		int totalFilesHashed = 0;
-
-		int64_t dirSizeHashed = 0;
-		uint64_t dirHashTime = 0;
-		int dirFilesHashed = 0;
-		string initialDir;
-
-		DirSFVReader sfv;
-
-		map<devid, int> devices;
-	};
 
 	friend class Hasher;
-	void removeHasher(Hasher* aHasher);
-	void log(const string& aMessage, int hasherID, bool isError, bool lock);
+	void removeHasher(const Hasher* aHasher);
+	void logHasher(const string& aMessage, int aHasherID, bool aIsError, bool aLock);
+	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 
 	void optimize(bool doVerify) noexcept { store.optimize(doVerify); }
 
@@ -278,7 +194,7 @@ private:
 	friend class HashLoader;
 
 	bool hashFile(const string& filePath, const string& pathLower, int64_t size);
-	bool aShutdown = false;
+	bool isShutdown = false;
 
 	typedef vector<Hasher*> HasherList;
 	HasherList hashers;
@@ -288,7 +204,7 @@ private:
 	/** Single node tree where node = root, no storage in HashData.dat */
 	static const int64_t SMALL_TREE = -1;
 
-	void hashDone(const string& aFileName, const string& pathLower, const TigerTree& tt, int64_t speed, HashedFile& aFileInfo, int hasherID = 0) noexcept;
+	void hasherDone(const string& aFileName, const string& pathLower, const TigerTree& tt, int64_t speed, HashedFile& aFileInfo, int hasherID = 0) noexcept;
 
 	class Optimizer : public Thread {
 	public:

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -146,7 +146,7 @@ void DirSFVReader::load() noexcept {
 		}
 
 		if (!error.empty()) {
-			LogManager::getInstance()->message(curPath + ": " + error, LogMessage::SEV_ERROR);
+			LogManager::getInstance()->message(curPath + ": " + error, LogMessage::SEV_ERROR, STRING(SFV_READER));
 			failedFiles.push_back(curPath);
 		}
 	}
