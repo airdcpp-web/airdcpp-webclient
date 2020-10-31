@@ -90,7 +90,7 @@ bool ConfigPrompt::runConfigure(webserver::WebServerManager* wsm) {
 	promptPort(tlsServerConfig, "HTTPS");
 	std::cout << std::endl;
 
-	if (!wsm->getUserManager().hasUsers()) {
+	if (!wsm->hasUsers()) {
 		std::cout << toBold("No existing users were found, adding new one.") << std::endl;
 
 		addUser(wsm);
@@ -100,7 +100,7 @@ bool ConfigPrompt::runConfigure(webserver::WebServerManager* wsm) {
 
 	std::cout << std::endl;
 
-	if (!wsm->hasValidConfig()) {
+	if (!wsm->hasValidServerConfig() || !wsm->hasUsers()) {
 		std::cout << toBold("No valid configuration was entered. Please re-run the command.") << std::endl;
 		return false;
 	} else {

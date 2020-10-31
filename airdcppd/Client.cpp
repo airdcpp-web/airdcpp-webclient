@@ -24,6 +24,7 @@
 #include <airdcpp/ActivityManager.h>
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/DirectoryListing.h>
 #include <airdcpp/DirectoryListingManager.h>
 #include <airdcpp/FavoriteManager.h>
 #include <airdcpp/LogManager.h>
@@ -87,7 +88,7 @@ void webErrorF(const string& aError) {
 
 bool Client::startup() {
 	webserver::WebServerManager::newInstance();
-	if (!webserver::WebServerManager::getInstance()->load(webErrorF)) {
+	if (!webserver::WebServerManager::getInstance()->load(webErrorF) || !webserver::WebServerManager::getInstance()->hasUsers()) {
 		webserver::WebServerManager::deleteInstance();
 		printf("%s\n", "No valid configuration found. Run the application with --configure parameter to set up initial configuration.");
 		return false;
