@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -145,7 +145,7 @@ namespace webserver {
 	}
 
 	bool WebServerManager::start(const ErrorF& errorF) {
-		if (!hasValidConfig()) {
+		if (!hasValidServerConfig()) {
 			return false;
 		}
 
@@ -399,7 +399,7 @@ namespace webserver {
 		if(endpoint_tls.is_listening())
 			endpoint_tls.stop_listening();
 
-		disconnectSockets("Shutting down");
+		disconnectSockets(STRING(WEB_SERVER_SHUTTING_DOWN));
 
 		bool hasSockets = false;
 
@@ -486,7 +486,7 @@ namespace webserver {
 			return;
 		}
 
-		LogManager::getInstance()->message(aMsg, aSeverity);
+		LogManager::getInstance()->message(aMsg, aSeverity, STRING(WEB_SERVER));
 	}
 
 	WebServerManager::ErrorF WebServerManager::getDefaultErrorLogger() const noexcept {
@@ -515,8 +515,12 @@ namespace webserver {
 		return ret;
 	}
 
-	bool WebServerManager::hasValidConfig() const noexcept {
-		return (plainServerConfig.hasValidConfig() || tlsServerConfig.hasValidConfig()) && userManager->hasUsers();
+	bool WebServerManager::hasValidServerConfig() const noexcept {
+		return plainServerConfig.hasValidConfig() || tlsServerConfig.hasValidConfig();
+	}
+
+	bool WebServerManager::hasUsers() const noexcept {
+		return userManager->hasUsers();
 	}
 
 	bool WebServerManager::load(const ErrorF& aErrorF) noexcept {
@@ -552,12 +556,17 @@ namespace webserver {
 			}
 		}, aErrorF);
 
-		return hasValidConfig();
+		return hasValidServerConfig();
 	}
 
 	void WebServerManager::loadServer(SimpleXML& aXml, const string& aTagName, ServerConfig& config_, bool aTls) noexcept {
 		if (aXml.findChild(aTagName)) {
-			config_.port.setValue(aXml.getIntChildAttrib("Port"));
+			// getChildIntAttrib returns 0 also for non-existing attributes, get as string instead...
+			const auto port = aXml.getChildAttrib("Port");
+			if (!port.empty()) {
+				config_.port.setValue(Util::toInt(port));
+			}
+
 			config_.bindAddress.setValue(aXml.getChildAttrib("BindAddress"));
 
 			if (aTls) {
@@ -590,8 +599,13 @@ namespace webserver {
 			plainServerConfig.save(xml, "Server");
 
 			tlsServerConfig.save(xml, "TLSServer");
-			xml.addChildAttrib("Certificate", WEBCFG(TLS_CERT_PATH).str());
-			xml.addChildAttrib("CertificateKey", WEBCFG(TLS_CERT_KEY_PATH).str());
+			if (!WEBCFG(TLS_CERT_PATH).isDefault()) {
+				xml.addChildAttrib("Certificate", WEBCFG(TLS_CERT_PATH).str());
+			}
+
+			if (!WEBCFG(TLS_CERT_KEY_PATH).isDefault()) {
+				xml.addChildAttrib("CertificateKey", WEBCFG(TLS_CERT_KEY_PATH).str());
+			}
 
 			if (!WEBCFG(SERVER_THREADS).isDefault()) {
 				xml.addTag("Threads");
@@ -631,9 +645,12 @@ namespace webserver {
 
 	void ServerConfig::save(SimpleXML& xml_, const string& aTagName) noexcept {
 		xml_.addTag(aTagName);
-		xml_.addChildAttrib("Port", port.num());
 
-		if (!bindAddress.str().empty()) {
+		if (!port.isDefault()) {
+			xml_.addChildAttrib("Port", port.num());
+		}
+
+		if (!bindAddress.isDefault()) {
 			xml_.addChildAttrib("BindAddress", bindAddress.str());
 		}
 	}

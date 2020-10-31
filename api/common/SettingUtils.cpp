@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -68,8 +68,8 @@ namespace webserver {
 		if (aItem.type == ApiSettingItem::TYPE_LIST) {
 			ret["item_type"] = typeToStr(aItem.itemType);
 			if (aItem.itemType == ApiSettingItem::TYPE_STRUCT) {
-				dcassert(!aItem.getValueTypes().empty());
-				for (const auto& valueType: aItem.getValueTypes()) {
+				dcassert(!aItem.getListObjectFields().empty());
+				for (const auto& valueType: aItem.getListObjectFields()) {
 					ret["definitions"].push_back(serializeDefinition(*valueType));
 				}
 			}
@@ -114,7 +114,7 @@ namespace webserver {
 	}
 
 	json SettingUtils::validateValue(const json& aValue, const ApiSettingItem& aItem, UserList* userReferences_) {
-		auto convertedValue = convertValue(aValue, aItem.name, aItem.type, aItem.itemType, aItem.isOptional(), aItem.getMinMax(), aItem.getValueTypes(), userReferences_);
+		auto convertedValue = convertValue(aValue, aItem.name, aItem.type, aItem.itemType, aItem.isOptional(), aItem.getMinMax(), aItem.getListObjectFields(), userReferences_);
 		if (!aItem.getEnumOptions().empty()) {
 			validateEnumValue(convertedValue, aItem.name, aItem.type, aItem.itemType, aItem.getEnumOptions());
 		}
@@ -123,7 +123,7 @@ namespace webserver {
 	}
 
 	void SettingUtils::validateEnumValue(const json& aValue, const string& aKey, ApiSettingItem::Type aType, ApiSettingItem::Type aItemType, const ApiSettingItem::EnumOption::List& aEnumOptions) {
-		if (!ApiSettingItem::optionsAllowed(aType, aItemType)) {
+		if (!ApiSettingItem::enumOptionsAllowed(aType, aItemType)) {
 			JsonUtil::throwError(aKey, JsonUtil::ERROR_INVALID, "options not supported for type " + typeToStr(aType));
 		}
 				
@@ -288,7 +288,7 @@ namespace webserver {
 		);
 
 		ApiSettingItem::EnumOption::List enumOptions;
-		if (ApiSettingItem::optionsAllowed(type, itemType)) {
+		if (ApiSettingItem::enumOptionsAllowed(type, itemType)) {
 			auto optionsJson = JsonUtil::getOptionalRawField("options", aJson, false);
 			if (!optionsJson.is_null()) {
 				for (const auto& opt : optionsJson) {

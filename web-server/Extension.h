@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -34,11 +34,15 @@ namespace webserver {
 
 	class Extension : public Speaker<ExtensionListener> {
 	public:
-		typedef std::function<void(Extension*, uint32_t /*exitCode*/)> ErrorF;
+		typedef std::function<void(const Extension*)> StateUpdatedF;
+		typedef std::function<void(const Extension*, uint32_t /*exitCode*/)> ErrorF;
 
+		// Managed extension
 		// Throws on errors
-		Extension(const string& aPackageDirectory, ErrorF&& aErrorF, bool aSkipPathValidation = false);
-		Extension(const SessionPtr& aSession, const json& aPackageJson);
+		Extension(const string& aPackageDirectory, ErrorF&& aErrorF, StateUpdatedF&& aStateUpdatedF, bool aSkipPathValidation = false);
+
+		// Unmanaged extension
+		Extension(const SessionPtr& aSession, const json& aPackageJson, StateUpdatedF&& aStateUpdatedF);
 
 		~Extension();
 
@@ -94,6 +98,7 @@ namespace webserver {
 		ExtensionSettingItem::List getSettings() const noexcept;
 		ExtensionSettingItem* getSetting(const string& aKey) noexcept;
 		void resetSettings() noexcept;
+		void resetSession() noexcept;
 
 		typedef map<string, json> SettingValueMap;
 		void setSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences);
@@ -138,6 +143,7 @@ namespace webserver {
 		void createProcess(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession);
 
 		const ErrorF errorF;
+		const StateUpdatedF stateUpdatedF;
 		SessionPtr session = nullptr;
 
 		void checkRunningState(WebServerManager* wsm) noexcept;

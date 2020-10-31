@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -82,7 +82,7 @@ namespace webserver {
 
 				return authenticateSession(username, password, Session::TYPE_BASIC_AUTH, 60, aIP, token);
 			} else {
-				throw std::domain_error("Invalid authorization token (session expired?)");
+				throw std::domain_error(STRING(WEB_SESSIONS_INVALID_TOKEN));
 			}
 		}
 
@@ -121,13 +121,13 @@ namespace webserver {
 	SessionPtr WebUserManager::authenticateSession(const string& aUserName, const string& aPassword, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP, const string& aSessionToken) {
 		if (!authFloodCounter.checkFlood(aIP)) {
 			server->log(STRING_F(WEB_SERVER_MULTIPLE_FAILED_ATTEMPTS, aIP), LogMessage::SEV_WARNING);
-			throw std::domain_error("Too many failed login attempts detected (wait for a while before retrying)");
+			throw std::domain_error(STRING(WEB_SESSIONS_TOO_MANY_ATTEMPTS));
 		}
 
 		auto user = getUser(aUserName);
 		if (!user || user->getPassword() != aPassword) {
 			authFloodCounter.addAttempt(aIP);
-			throw std::domain_error("Invalid username or password");
+			throw std::domain_error(STRING(WEB_SESSIONS_INVALID_USER_PW));
 		}
 
 		return createSession(user, aSessionToken, aType, aMaxInactivityMinutes, aIP);

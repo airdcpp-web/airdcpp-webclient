@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2012-2019 AirDC++ Project
+* Copyright (C) 2012-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -29,18 +29,26 @@ namespace webserver {
 		template<int I>	struct X { enum { TYPE = I }; };
 
 		typedef X<0> ExtensionAdded;
-		typedef X<1> ExtensionRemoved;
+		typedef X<1> ExtensionStateUpdated;
+		typedef X<2> ExtensionRemoved;
 
-		typedef X<2> InstallationStarted;
-		typedef X<3> InstallationSucceeded;
-		typedef X<4> InstallationFailed;
+		typedef X<3> InstallationStarted;
+		typedef X<4> InstallationSucceeded;
+		typedef X<5> InstallationFailed;
+
+		typedef X<6> Started;
+		typedef X<7> Stopped;
 
 		virtual void on(ExtensionAdded, const ExtensionPtr&) noexcept { }
+		virtual void on(ExtensionStateUpdated, const Extension*) noexcept { }
 		virtual void on(ExtensionRemoved, const ExtensionPtr&) noexcept { }
 
-		virtual void on(InstallationStarted, const string&) noexcept { }
-		virtual void on(InstallationSucceeded, const string&) noexcept { }
-		virtual void on(InstallationFailed, const string&, const string&) noexcept { }
+		virtual void on(InstallationStarted, const string& /*installId*/) noexcept { }
+		virtual void on(InstallationSucceeded, const string& /*installId*/, const ExtensionPtr&, bool /*updated*/) noexcept { }
+		virtual void on(InstallationFailed, const string& /*installId*/, const string& /*error*/) noexcept { }
+
+		virtual void on(Started) noexcept { }
+		virtual void on(Stopped) noexcept { }
 	};
 
 }
