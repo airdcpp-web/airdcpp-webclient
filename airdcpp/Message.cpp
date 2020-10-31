@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,8 +32,8 @@ ChatMessage::ChatMessage(const string& aText, const OnlineUserPtr& aFrom, const 
 	read = aFrom && aFrom->getUser() == ClientManager::getInstance()->getMe();
 }
 
-LogMessage::LogMessage(const string& aMessage, LogMessage::Severity aSeverity, bool aHistory) noexcept : 
-	id(messageIdCounter++), text(aMessage), time(aHistory ? 0 : GET_TIME()), severity(aSeverity), read(aHistory) {
+LogMessage::LogMessage(const string& aMessage, LogMessage::Severity aSeverity, const string& aLabel, bool aHistory) noexcept : 
+	id(messageIdCounter++), text(aMessage), label(aLabel), time(aHistory ? 0 : GET_TIME()), severity(aSeverity), read(aHistory) {
 
 	highlights = MessageHighlight::parseHighlights(aMessage, Util::emptyString, nullptr);
 }

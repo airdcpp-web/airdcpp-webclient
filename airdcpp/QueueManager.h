@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@
 #include "FileQueue.h"
 #include "HashBloom.h"
 #include "MerkleTree.h"
+#include "Message.h"
 #include "Singleton.h"
 #include "StringMatch.h"
 #include "TaskQueue.h"
@@ -390,6 +391,8 @@ public:
 	// Update download URL for a viewed filelist
 	void updateFilelistUrl(const HintedUser& aUser) noexcept;
 private:
+	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
+
 	IGETSET(uint64_t, lastXmlSave, LastXmlSave, 0);
 	IGETSET(uint64_t, lastAutoPrio, LastAutoPrio, 0);
 

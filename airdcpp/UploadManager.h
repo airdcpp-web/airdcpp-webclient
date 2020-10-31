@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include "FastAlloc.h"
 #include "HintedUser.h"
 #include "MerkleTree.h"
+#include "Message.h"
 #include "Singleton.h"
 #include "Speaker.h"
 #include "StringMatch.h"
@@ -135,6 +136,7 @@ public:
 		return uploads;
 	}
 private:
+	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 	StringMatch freeSlotMatcher;
 
 	uint8_t running;

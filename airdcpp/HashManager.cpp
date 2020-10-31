@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,14 +19,13 @@
 #include "stdinc.h"
 #include "HashManager.h"
 
-#include "AirUtil.h"
 #include "File.h"
 #include "FileReader.h"
 #include "LogManager.h"
+#include "Hasher.h"
 #include "QueueManager.h"
 #include "ShareManager.h"
 #include "ResourceManager.h"
-#include "ScopedFunctor.h"
 #include "SimpleXMLReader.h"
 #include "Util.h"
 #include "version.h"
@@ -41,9 +40,6 @@ namespace dcpp {
 
 using boost::range::find_if;
 
-SharedMutex HashManager::Hasher::hcs;
-const int64_t HashManager::MIN_BLOCK_SIZE = 64 * 1024;
-
 HashManager::HashManager() {
 
 }
@@ -52,12 +48,17 @@ HashManager::~HashManager() {
 	optimizer.join();
 }
 
+void HashManager::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
+	LogManager::getInstance()->message(aMsg, aSeverity, STRING(HASHING));
+}
+
 bool HashManager::checkTTH(const string& aFileLower, const string& aFileName, HashedFile& fi_) {
 	dcassert(Text::isLower(aFileLower));
 	if (!store.checkTTH(aFileLower, fi_)) {
 		hashFile(aFileName, aFileLower, fi_.getSize());
 		return false;
 	}
+
 	return true;
 }
 
@@ -66,8 +67,10 @@ void HashManager::getFileInfo(const string& aFileLower, const string& aFileName,
 	auto found = store.getFileInfo(aFileLower, fi_);
 	if (!found) {
 		auto size = File::getSize(aFileName);
-		if (size >= 0)
+		if (size >= 0) {
 			hashFile(aFileName, aFileLower, size);
+		}
+
 		throw HashException();
 	}
 }
@@ -80,17 +83,14 @@ size_t HashManager::getBlockSize(const TTHValue& root) noexcept {
 	return static_cast<size_t>(store.getRootInfo(root, HashStore::TYPE_BLOCKSIZE));
 }
 
-int64_t HashManager::Hasher::getTimeLeft() const noexcept {
-	return lastSpeed > 0 ? (totalBytesLeft / lastSpeed) : 0;
-}
-
-bool HashManager::Hasher::hasFile(const string& aPath) const noexcept {
-	return w.find(aPath) != w.end();
+int64_t HashManager::getMinBlockSize() noexcept {
+	return Hasher::MIN_BLOCK_SIZE;
 }
 
 bool HashManager::hashFile(const string& filePath, const string& pathLower, int64_t size) {
-	if(aShutdown) //we cant allow adding more hashers if we are shutting down, it will result in infinite loop
+	if (isShutdown) { //we cant allow adding more hashers if we are shutting down, it will result in infinite loop
 		return false;
+	}
 
 	Hasher* h = nullptr;
 
@@ -150,7 +150,7 @@ bool HashManager::hashFile(const string& filePath, const string& pathLower, int6
 				id++;
 			}
 
-			LogManager::getInstance()->message(STRING_F(HASHER_X_CREATED, id), LogMessage::SEV_INFO);
+			log(STRING_F(HASHER_X_CREATED, id), LogMessage::SEV_INFO);
 			h = new Hasher(pausers > 0, id);
 			hashers.push_back(h);
 		}
@@ -166,12 +166,12 @@ void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, 
 
 	if (!store.checkTTH(pathLower, fi)) {
 		File f(aFile, File::READ, File::OPEN);
-		int64_t bs = max(TigerTree::calcBlockSize(aSize, 10), MIN_BLOCK_SIZE);
 		auto timestamp = f.getLastModified();
 		if (timestamp < 0) {
 			throw FileException(STRING(INVALID_MODIFICATION_DATE));
 		}
 
+		int64_t bs = max(TigerTree::calcBlockSize(aSize, 10), Hasher::MIN_BLOCK_SIZE);
 		TigerTree tt(bs);
 
 		auto start = GET_TICK();
@@ -210,11 +210,11 @@ void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, 
 	}
 }
 
-void HashManager::hashDone(const string& aFileName, const string& pathLower, const TigerTree& tt, int64_t speed, HashedFile& aFileInfo, int hasherID /*0*/) noexcept {
+void HashManager::hasherDone(const string& aFileName, const string& pathLower, const TigerTree& tt, int64_t speed, HashedFile& aFileInfo, int hasherID /*0*/) noexcept {
 	try {
 		store.addHashedFile(pathLower, tt, aFileInfo);
 	} catch (const Exception& e) {
-		log(STRING_F(HASHING_FAILED_X, e.getError()), hasherID, true, true);
+		logHasher(STRING_F(HASHING_FAILED_X, e.getError()), hasherID, true, true);
 	}
 	
 	if(SETTING(LOG_HASHING)) {
@@ -227,9 +227,9 @@ void HashManager::hashDone(const string& aFileName, const string& pathLower, con
 		}
 	
 		if (speed > 0) {
-			log(STRING_F(HASHING_FINISHED_X, fn) + " (" + Util::formatBytes(speed) + "/s)", hasherID, false, true);
+			logHasher(STRING_F(HASHING_FINISHED_X, fn) + " (" + Util::formatBytes(speed) + "/s)", hasherID, false, true);
 		} else {
-			log(STRING_F(HASHING_FINISHED_X, fn), hasherID, false, true);
+			logHasher(STRING_F(HASHING_FINISHED_X, fn), hasherID, false, true);
 		}
 	}
 }
@@ -241,7 +241,7 @@ bool HashManager::addFile(const string& aPath, const HashedFile& fi_) {
 	}
 
 	//check that the tree exists
-	if (fi_.getSize() < MIN_BLOCK_SIZE) {
+	if (fi_.getSize() < Hasher::MIN_BLOCK_SIZE) {
 		TigerTree tt = TigerTree(fi_.getSize(), fi_.getSize(), fi_.getRoot());
 		store.addTree(tt);
 	} else if (!store.hasTree(fi_.getRoot())) {
@@ -322,7 +322,7 @@ bool HashManager::HashStore::getTree(const TTHValue& aRoot, TigerTree& tt) {
 			return loadTree(aValue, valueLen, aRoot, tt, true);
 		});
 	} catch(DbException& e) {
-		LogManager::getInstance()->message(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
+		log(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
 	}
 
 	return false;
@@ -368,7 +368,7 @@ bool HashManager::HashStore::loadTree(const void* src, size_t len, const TTHValu
 		aTree = TigerTree(fileSize, blockSize, &buf[0]);
 		if (aTree.getRoot() != aRoot) {
 			if (aReportCorruption) {
-				LogManager::getInstance()->message(STRING_F(TREE_LOAD_FAILED_DB, aRoot.toBase32() % STRING(INVALID_TREE) % "/verifydb"), LogMessage::SEV_ERROR);
+				log(STRING_F(TREE_LOAD_FAILED_DB, aRoot.toBase32() % STRING(INVALID_TREE) % "/verifydb"), LogMessage::SEV_ERROR);
 			}
 			return false;
 		}
@@ -465,7 +465,7 @@ int64_t HashManager::HashStore::getRootInfo(const TTHValue& root, InfoType aType
 			return true;
 		});
 	} catch(DbException& e) {
-		LogManager::getInstance()->message(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
+		log(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
 	}
 	return ret;
 }
@@ -489,7 +489,7 @@ bool HashManager::HashStore::getFileInfo(const string& aFileLower, HashedFile& f
 			return loadFileInfo(aValue, valueLen, fi_);
 		});
 	} catch(const DbException& e) {
-		LogManager::getInstance()->message(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
+		log(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
 	}
 
 	return false;
@@ -500,14 +500,14 @@ void HashManager::HashStore::optimize(bool doVerify) noexcept {
 
 	int unusedTrees = 0;
 	int failedTrees = 0;
-	int unusedFiles=0; 
+	int unusedFiles = 0; 
 	int validFiles = 0;
 	int validTrees = 0;
 	int missingTrees = 0;
 	int removedFiles = 0;
 	int64_t failedSize = 0;
 
-	LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_STARTED), LogMessage::SEV_INFO);
+	log(STRING(HASHDB_MAINTENANCE_STARTED), LogMessage::SEV_INFO);
 	{
 		unordered_set<TTHValue> usedRoots;
 
@@ -535,8 +535,8 @@ void HashManager::HashStore::optimize(bool doVerify) noexcept {
 				}
 			}, fileSnapshot.get());
 		} catch(DbException& e) {
-			LogManager::getInstance()->message(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
-			LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_FAILED), LogMessage::SEV_ERROR);
+			log(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
+			log(STRING(HASHDB_MAINTENANCE_FAILED), LogMessage::SEV_ERROR);
 			getInstance()->fire(HashManagerListener::MaintananceFinished());
 			return;
 		}
@@ -567,8 +567,8 @@ void HashManager::HashStore::optimize(bool doVerify) noexcept {
 				return true;
 			}, hashSnapshot.get());
 		} catch(DbException& e) {
-			LogManager::getInstance()->message(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
-			LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_FAILED), LogMessage::SEV_ERROR);
+			log(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
+			log(STRING(HASHDB_MAINTENANCE_FAILED), LogMessage::SEV_ERROR);
 			getInstance()->fire(HashManagerListener::MaintananceFinished());
 			return;
 		}
@@ -589,8 +589,8 @@ void HashManager::HashStore::optimize(bool doVerify) noexcept {
 					return false;
 				}, fileSnapshot.get());
 			} catch(DbException& e) {
-				LogManager::getInstance()->message(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
-				LogManager::getInstance()->message(STRING(HASHDB_MAINTENANCE_FAILED), LogMessage::SEV_ERROR);
+				log(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
+				log(STRING(HASHDB_MAINTENANCE_FAILED), LogMessage::SEV_ERROR);
 				getInstance()->fire(HashManagerListener::MaintananceFinished());
 				return;
 			}
@@ -599,14 +599,14 @@ void HashManager::HashStore::optimize(bool doVerify) noexcept {
 
 	SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, SETTING(CUR_REMOVED_FILES) + unusedFiles + missingTrees);
 	if (validFiles == 0 || (static_cast<double>(SETTING(CUR_REMOVED_FILES)) / static_cast<double>(validFiles)) > 0.05) {
-		LogManager::getInstance()->message(STRING_F(COMPACTING_X, fileDb->getNameLower()), LogMessage::SEV_INFO);
+		log(STRING_F(COMPACTING_X, fileDb->getNameLower()), LogMessage::SEV_INFO);
 		fileDb->compact();
 		SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_FILES, 0);
 	}
 
 	SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_TREES, SETTING(CUR_REMOVED_TREES) + unusedTrees + failedTrees);
 	if (validTrees == 0 || (static_cast<double>(SETTING(CUR_REMOVED_TREES)) / static_cast<double>(validTrees)) > 0.05) {
-		LogManager::getInstance()->message(STRING_F(COMPACTING_X, hashDb->getNameLower()), LogMessage::SEV_INFO);
+		log(STRING_F(COMPACTING_X, hashDb->getNameLower()), LogMessage::SEV_INFO);
 		hashDb->compact();
 		SettingsManager::getInstance()->set(SettingsManager::CUR_REMOVED_TREES, 0);
 	}
@@ -618,7 +618,7 @@ void HashManager::HashStore::optimize(bool doVerify) noexcept {
 		msg = STRING(HASHDB_MAINTENANCE_NO_UNUSED);
 	}
 
-	LogManager::getInstance()->message(msg, LogMessage::SEV_INFO);
+	log(msg, LogMessage::SEV_INFO);
 
 	if (failedTrees > 0 || missingTrees > 0) {
 		if (doVerify) {
@@ -628,18 +628,18 @@ void HashManager::HashStore::optimize(bool doVerify) noexcept {
 		}
 
 		msg += ". " + STRING_F(REBUILD_REFRESH_PROMPT, Util::formatBytes(failedSize));
-		LogManager::getInstance()->message(msg, LogMessage::SEV_ERROR);
+		log(msg, LogMessage::SEV_ERROR);
 	}
 
 	getInstance()->fire(HashManagerListener::MaintananceFinished());
 }
 
 void HashManager::HashStore::compact() noexcept {
-	LogManager::getInstance()->message(STRING_F(COMPACTING_X, fileDb->getNameLower()), LogMessage::SEV_INFO);
+	log(STRING_F(COMPACTING_X, fileDb->getNameLower()), LogMessage::SEV_INFO);
 	fileDb->compact();
-	LogManager::getInstance()->message(STRING_F(COMPACTING_X, hashDb->getNameLower()), LogMessage::SEV_INFO);
+	log(STRING_F(COMPACTING_X, hashDb->getNameLower()), LogMessage::SEV_INFO);
 	hashDb->compact();
-	LogManager::getInstance()->message("Done", LogMessage::SEV_INFO);
+	log("Done", LogMessage::SEV_INFO);
 }
 
 string HashManager::HashStore::getDbStats() noexcept {
@@ -706,194 +706,9 @@ void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF
 	}
 }
 
-class HashLoader: public SimpleXMLReader::CallBack {
-public:
-	HashLoader(HashManager::HashStore& s, const CountedInputStream<false>& countedStream, uint64_t fileSize, ProgressFunction progressF) :
-		store(s),
-		countedStream(countedStream),
-		streamPos(0),
-		fileSize(fileSize),
-		progressF(progressF),
-		version(0),
-		inTrees(false),
-		inFiles(false),
-		inHashStore(false),
-		dataFile(nullptr),
-		readDataBytes(0),
-		migratedFiles(0),
-		migratedTrees(0),
-		failedTrees(0)
-	{ }
-
-	void startTag(const string& name, StringPairList& attribs, bool simple);
-	void endTag(const string& name);
-	int64_t readDataBytes;
-
-	int failedTrees;
-	int migratedTrees;
-	int migratedFiles;
-private:
-	HashManager::HashStore& store;
-
-	const CountedInputStream<false>& countedStream;
-	uint64_t streamPos;
-	uint64_t fileSize;
-	ProgressFunction progressF;
-
-	int version;
-	string file;
-
-	bool inTrees;
-	bool inFiles;
-	bool inHashStore;
-
-	unique_ptr<File> dataFile;
-	unordered_map<TTHValue, int64_t> sizeMap;
-};
-
 void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) {
-	auto dataFile = Util::getPath(Util::PATH_USER_CONFIG) + "HashData.dat";
-	auto indexFile = Util::getPath(Util::PATH_USER_CONFIG) + "HashIndex.xml";
-
-	//check if we have and old database to convert
-	Util::migrate(indexFile);
-	Util::migrate(dataFile);
-
-	auto hashDataSize = File::getSize(dataFile);
-	auto hashIndexSize = File::getSize(indexFile);
-
-	bool migrating = hashDataSize != -1 && hashIndexSize != -1;
-	if (migrating) {
-		auto ret = messageF(STRING_F(DB_MIGRATION_INFO, shortVersionString) + "\r\n\r\n" + STRING(WANT_CONTINUE), true, false);
-		if (!ret) {
-			throw HashException();
-		}
-
-		// check the free space for out new databases
-		auto volume = File::getMountPath(Util::getPath(Util::PATH_USER_CONFIG));
-		if (!volume.empty()) {
-			auto freeSpace = File::getFreeSpace(volume);
-			if (hashDataSize + hashIndexSize > freeSpace) {
-				messageF(STRING_F(DB_MIGRATION_FREE_SPACE, Util::formatBytes(freeSpace) % volume % Util::formatBytes(hashDataSize + hashIndexSize)), false, true);
-				throw HashException();
-			}
-		}
-	}
-
-
 	// Open the new database
 	openDb(stepF, messageF);
-
-	// Migrate the old database file
-	if (migrating) {
-		stepF(STRING(UPGRADING_HASHDATA));
-		try {
-			int migratedFiles, migratedTrees, failedTrees;
-			{
-				File f(indexFile, File::READ, File::OPEN, File::BUFFER_SEQUENTIAL);
-				CountedInputStream<false> countedStream(&f);
-				HashLoader l(*this, countedStream, hashDataSize + hashIndexSize, progressF);
-				SimpleXMLReader(&l).parse(countedStream);
-				migratedFiles = l.migratedFiles;
-				migratedTrees = l.migratedTrees;
-				failedTrees = l.failedTrees;
-			}
-
-			File::renameFile(dataFile, dataFile + ".bak");
-			File::renameFile(indexFile, indexFile + ".bak");
-			messageF(STRING_F(DB_MIGRATION_COMPLETE, migratedFiles % migratedTrees % failedTrees % Util::formatBytes(hashIndexSize) % Util::formatBytes(hashDataSize)), false, false);
-		} catch (const Exception&) {
-			// ...
-		}
-	}
-}
-
-static const string sHashStore = "HashStore";
-static const string sVersion = "Version";
-static const string sTrees = "Trees";
-static const string sFiles = "Files";
-static const string sFile = "File";
-static const string sName = "Name";
-static const string sSize = "Size";
-static const string sHash = "Hash";
-static const string sType = "Type";
-static const string sTTH = "TTH";
-static const string sIndex = "Index";
-static const string sBlockSize = "BlockSize";
-static const string sTimeStamp = "TimeStamp";
-static const string sRoot = "Root";
-
-void HashLoader::startTag(const string& name, StringPairList& attribs, bool simple) {
-	auto readIndexBytes = countedStream.getReadBytes();
-	if(readIndexBytes != streamPos) {
-		streamPos = readIndexBytes;
-		progressF(static_cast<float>(readIndexBytes+readDataBytes) / static_cast<float>(fileSize));
-	}
-
-	if (!inHashStore && name == sHashStore) {
-		version = Util::toInt(getAttrib(attribs, sVersion, 0));
-		inHashStore = !simple;
-	} else if (inHashStore && (version == 2 || version == 3)) {
-		if (inTrees && name == sHash) {
-			//migrate old trees
-
-			const string& type = getAttrib(attribs, sType, 0);
-			int64_t index = Util::toInt64(getAttrib(attribs, sIndex, 1));
-			int64_t blockSize = Util::toInt64(getAttrib(attribs, sBlockSize, 2));
-			int64_t size = Util::toInt64(getAttrib(attribs, sSize, 3));
-			const string& root = getAttrib(attribs, sRoot, 4);
-			if (!root.empty() && type == sTTH && (index >= 8 || index == HashManager::SMALL_TREE) && blockSize >= 1024) {
-				auto tth = TTHValue(root);
-				try {
-					if (!dataFile) {
-						dataFile.reset(new File(Util::getPath(Util::PATH_USER_CONFIG) + "HashData.dat", File::READ, File::OPEN | File::SHARED_WRITE, File::BUFFER_RANDOM));
-					}
-
-					if (dataFile) {
-						TigerTree tt;
-						if (index == HashManager::SMALL_TREE) {
-							tt = TigerTree(size, blockSize, tth);
-						} else {
-							size_t datalen = TigerTree::calcBlocks(size, blockSize) * TTHValue::BYTES;
-							readDataBytes += datalen;
-							store.loadLegacyTree(*dataFile.get(), size, index, blockSize, datalen, tth, tt);
-						}
-
-						store.addTree(tt);
-						sizeMap.emplace(tth, size);
-						migratedTrees++;
-					}
-				} catch (const Exception& /*e*/) {
-					failedTrees++;
-				}
-			}
-		} else if (inFiles && name == sFile) {
-			file = getAttrib(attribs, sName, 0);
-			auto timeStamp = Util::toTimeT(getAttrib(attribs, sTimeStamp, 1));
-			const string& root = getAttrib(attribs, sRoot, 2);
-
-			if (!file.empty() && timeStamp > 0 && !root.empty()) {
-				string fileLower = Text::toLower(file);
-				auto tth = TTHValue(root);
-				auto p = sizeMap.find(tth);
-				if (p != sizeMap.end()) {
-					auto fi = HashedFile(tth, timeStamp, p->second);
-					store.addFile(fileLower, fi);
-					migratedFiles++;
-				}
-			}
-		} else if (name == sTrees) {
-			inTrees = !simple;
-		} else if (name == sFiles) {
-			inFiles = !simple;
-		}
-	}
-}
-
-void HashLoader::endTag(const string& name) {
-	if (name == sFile) {
-		file.clear();
-	}
 }
 
 HashManager::HashStore::HashStore() {
@@ -906,61 +721,6 @@ void HashManager::HashStore::closeDb() noexcept {
 
 HashManager::HashStore::~HashStore() {
 	closeDb();
-}
-
-bool HashManager::Hasher::hashFile(const string& fileName, const string& filePathLower, int64_t size, devid aDeviceId) noexcept {
-	//always locked
-	auto ret = w.emplace_sorted(filePathLower, fileName, size, aDeviceId);
-	if (ret.second) {
-		devices[(*ret.first).deviceId]++; 
-		totalBytesLeft += size;
-		totalBytesAdded += size;
-		totalFilesAdded++;
-		s.signal();
-		return true;
-	}
-
-	return false;
-}
-
-bool HashManager::Hasher::pause() noexcept {
-	paused = true;
-	return paused;
-}
-
-void HashManager::Hasher::resume() {
-	paused = false;
-	t_resume();
-}
-
-bool HashManager::Hasher::isPaused() const noexcept {
-	return paused;
-}
-
-bool HashManager::Hasher::isRunning() const noexcept {
-	return running;
-}
-
-void HashManager::Hasher::removeDevice(devid aDevice) noexcept {
-	dcassert(aDevice >= 0);
-	auto dp = devices.find(aDevice);
-	if (dp != devices.end()) {
-		dp->second--;
-		if (dp->second == 0)
-			devices.erase(dp);
-	}
-}
-
-void HashManager::Hasher::stopHashing(const string& baseDir) noexcept {
-	for (auto i = w.begin(); i != w.end();) {
-		if (Util::strnicmp(baseDir, i->filePath, baseDir.length()) == 0) {
-			totalBytesLeft -= i->fileSize;
-			removeDevice(i->deviceId);
-			i = w.erase(i);
-		} else {
-			++i;
-		}
-	}
 }
 
 void HashManager::stopHashing(const string& baseDir) noexcept {
@@ -1024,35 +784,21 @@ void HashManager::startup(StepFunction stepF, ProgressFunction progressF, Messag
 	store.load(stepF, progressF, messageF); 
 }
 
-void HashManager::stop() noexcept {
-	WLock l(Hasher::hcs);
-	for (auto h: hashers)
-		h->clear();
-}
-
-void HashManager::Hasher::shutdown() { 
-	closing = true; 
-	clear();
-	if(paused) 
-		resume(); 
-	s.signal(); 
-}
-
 void HashManager::shutdown(ProgressFunction progressF) noexcept {
-	aShutdown = true;
+	isShutdown = true;
 
 	{
 		WLock l(Hasher::hcs);
-		for (auto h: hashers) {
+		for (auto h : hashers) {
 			h->shutdown();
 		}
 	}
 
 	// Wait for the hashers to shut down
-	while(true) {
+	while (true) {
 		{
 			RLock l(Hasher::hcs);
-			if(hashers.empty()) {
+			if (hashers.empty()) {
 				break;
 			}
 		}
@@ -1060,278 +806,49 @@ void HashManager::shutdown(ProgressFunction progressF) noexcept {
 	}
 }
 
-void HashManager::Hasher::clear() noexcept {
-	w.clear();
-	devices.clear();
-
-	clearStats();
-}
-
-void HashManager::Hasher::clearStats() noexcept {
-	totalBytesLeft = 0;
-	totalBytesAdded = 0;
-	totalFilesAdded = 0;
-	totalHashTime = 0;
-	totalSizeHashed = 0;
-	totalDirsHashed = 0;
-	totalFilesHashed = 0;
-	lastSpeed = 0;
-}
-
-void HashManager::Hasher::getStats(string& curFile_, int64_t& bytesLeft_, size_t& filesLeft_, int64_t& speed_, size_t& filesAdded_, int64_t& bytesAdded_) const noexcept {
-	curFile_ = currentFile;
-	filesLeft_ += w.size();
-	if (running) {
-		filesLeft_++;
-		speed_ += lastSpeed;
-	}
-
-	bytesLeft_ += totalBytesLeft;
-
-	filesAdded_ += totalFilesAdded;
-	bytesAdded_ += totalBytesAdded;
-}
-
-void HashManager::Hasher::instantPause() {
-	if (paused) {
-		running = false;
-		t_suspend();
+void HashManager::stop() noexcept {
+	WLock l(Hasher::hcs);
+	for (auto h: hashers) {
+		h->stop();
 	}
 }
 
-HashManager::Hasher::Hasher(bool aIsPaused, int aHasherID) : paused(aIsPaused), hasherID(aHasherID), totalBytesLeft(0), lastSpeed(0), totalBytesAdded(0), totalFilesAdded(0) {
-	start();
-}
-
-void HashManager::log(const string& aMessage, int hasherID, bool isError, bool lock) {
-	ConditionalRLock l(Hasher::hcs, lock);
-	LogManager::getInstance()->message((hashers.size() > 1 ? "[" + STRING_F(HASHER_X, hasherID) + "] " + ": " : Util::emptyString) + aMessage, isError ? LogMessage::SEV_ERROR : LogMessage::SEV_INFO);
-}
-
-int HashManager::Hasher::run() {
-	setThreadPriority(Thread::IDLE);
-
-	string fname;
-	for(;;) {
-		s.wait();
-		instantPause(); //suspend the thread...
-		if(closing) {
-			WLock l(hcs);
-			HashManager::getInstance()->removeHasher(this);
-			break;
-		}
-		
-		int64_t originalSize = 0;
-		bool failed = true;
-		bool dirChanged = false;
-		devid curDevID = -1;
-		string pathLower;
-		{
-			WLock l(hcs);
-			if(!w.empty()) {
-				auto& wi = w.front();
-				dirChanged = initialDir.empty() || compare(Util::getFilePath(wi.filePath), Util::getFilePath(fname)) != 0;
-				currentFile = fname = move(wi.filePath);
-				curDevID = move(wi.deviceId);
-				pathLower = move(wi.filePathLower);
-				originalSize = wi.fileSize;
-				dcassert(curDevID >= 0);
-				w.pop_front();
-			} else {
-				fname.clear();
-			}
-		}
-
-		HashedFile fi;
-		if (fname.empty()) {
-			running = false;
-		} else {
-			running = true;
-
-			int64_t sizeLeft = originalSize;
-			try {
-				if (initialDir.empty()) {
-					initialDir = Util::getFilePath(fname);
-				}
-
-				if (dirChanged)
-					sfv.loadPath(Util::getFilePath(fname));
-				uint64_t start = GET_TICK();
-
-				File f(fname, File::READ, File::OPEN);
-
-				// size changed since adding?
-				int64_t size = f.getSize();
-				sizeLeft = size;
-				totalBytesLeft += size - originalSize;
-
-				int64_t bs = max(TigerTree::calcBlockSize(size, 10), MIN_BLOCK_SIZE);
-
-				auto timestamp = f.getLastModified();
-				if (timestamp < 0) {
-					throw FileException(STRING(INVALID_MODIFICATION_DATE));
-				}
-
-				TigerTree tt(bs);
-
-				CRC32Filter crc32;
-
-				auto fileCRC = sfv.hasFile(Text::toLower(Util::getFileName(fname)));
-
-				uint64_t lastRead = GET_TICK();
- 
-                FileReader fr(true);
-				fr.read(fname, [&](const void* buf, size_t n) -> bool {
-					if(SETTING(MAX_HASH_SPEED)> 0) {
-						uint64_t now = GET_TICK();
-						uint64_t minTime = n * 1000LL / Util::convertSize(SETTING(MAX_HASH_SPEED), Util::MB);
- 
-						if(lastRead + minTime > now) {
-							Thread::sleep(minTime - (now - lastRead));
-						}
-						lastRead = lastRead + minTime;
-					} else {
-						lastRead = GET_TICK();
-					}
-					tt.update(buf, n);
-				
-					if(fileCRC)
-						crc32(buf, n);
-
-					sizeLeft -= n;
-					uint64_t end = GET_TICK();
-
-					if(totalBytesLeft > 0)
-						totalBytesLeft -= n;
-					if(end > start)
-						lastSpeed = (size - sizeLeft)*1000 / (end -start);
-
-					return !closing;
-				});
-
-				tt.finalize();
-
-				failed = fileCRC && crc32.getValue() != *fileCRC;
-
-				uint64_t end = GET_TICK();
-				int64_t averageSpeed = 0;
-
-				if (!failed) {
-					totalSizeHashed += size;
-					dirSizeHashed += size;
-
-					dirFilesHashed++;
-					totalFilesHashed++;
-				}
-
-				if(end > start) {
-					totalHashTime += (end - start);
-					dirHashTime += (end - start);
-					averageSpeed = size * 1000 / (end - start);
-				}
-
-				if(failed) {
-					getInstance()->log(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), hasherID, true, true);
-					getInstance()->fire(HashManagerListener::FileFailed(), fname, fi);
-				} else {
-					fi = HashedFile(tt.getRoot(), timestamp, size);
-					getInstance()->hashDone(fname, pathLower, tt, averageSpeed, fi, hasherID);
-				}
-			} catch(const FileException& e) {
-				totalBytesLeft -= sizeLeft;
-				getInstance()->log(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), hasherID, true, true);
-				getInstance()->fire(HashManagerListener::FileFailed(), fname, fi);
-				failed = true;
-			}
-		
-		}
-
-		auto onDirHashed = [&] () -> void {
-			if ((SETTING(HASHERS_PER_VOLUME) == 1 || w.empty()) && (dirFilesHashed > 1 || !failed)) {
-				getInstance()->fire(HashManagerListener::DirectoryHashed(), initialDir, dirFilesHashed, dirSizeHashed, dirHashTime, hasherID);
-				if (dirFilesHashed == 1) {
-					getInstance()->log(STRING_F(HASHING_FINISHED_FILE, currentFile % 
-						Util::formatBytes(dirSizeHashed) % 
-						Util::formatTime(dirHashTime / 1000, true) % 
-						(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), hasherID, false, false);
-				} else {
-					getInstance()->log(STRING_F(HASHING_FINISHED_DIR, Util::getFilePath(initialDir) % 
-						dirFilesHashed %
-						Util::formatBytes(dirSizeHashed) % 
-						Util::formatTime(dirHashTime / 1000, true) % 
-						(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s" )), hasherID, false, false);
-				}
-			}
-
-			totalDirsHashed++;
-			dirHashTime = 0;
-			dirSizeHashed = 0;
-			dirFilesHashed = 0;
-			initialDir.clear();
-		};
-
-		bool deleteThis = false;
-		{
-			WLock l(hcs);
-			if (!fname.empty())
-				removeDevice(curDevID);
-
-			if (w.empty()) {
-				// Finished hashing
-				running = false;
-				getInstance()->fire(HashManagerListener::HasherFinished(), totalDirsHashed, totalFilesHashed, totalSizeHashed, totalHashTime, hasherID);
-
-				if (totalSizeHashed > 0) {
-					if (totalDirsHashed == 0) {
-						onDirHashed();
-						//LogManager::getInstance()->message(STRING(HASHING_FINISHED_TOTAL_PLAIN), LogMessage::SEV_INFO);
-					} else {
-						onDirHashed();
-						getInstance()->log(STRING_F(HASHING_FINISHED_TOTAL, totalFilesHashed % Util::formatBytes(totalSizeHashed) % totalDirsHashed %
-							Util::formatTime(totalHashTime / 1000, true) %
-							(Util::formatBytes(totalHashTime > 0 ? ((totalSizeHashed * 1000) / totalHashTime) : 0)  + "/s" )), hasherID, false, false);
-					}
-				} else if(!fname.empty()) {
-					// All files failed to hash?
-					getInstance()->log(STRING(HASHING_FINISHED), hasherID, false, false);
-
-					// Always clear the directory so that there will be a fresh start when more files are added for hashing
-					initialDir.clear();
-				}
-
-				clearStats();
-
-				deleteThis = hasherID != 0;
-				sfv.unload();
-			} else if (!AirUtil::isParentOrExactLocal(initialDir, w.front().filePath)) {
-				onDirHashed();
-			}
-
-			currentFile.clear();
-		}
-
-		if (!failed && !fname.empty()) {
-			getInstance()->fire(HashManagerListener::FileHashed(), fname, fi);
-		}
-
-		if (deleteThis) {
-			// Check again if we have added new items while this was unlocked
-
-			WLock l(hcs);
-			if (w.empty()) {
-				// Nothing more to hash, delete this hasher
-				getInstance()->removeHasher(this);
-				break;
-			}
-		}
-	}
-
-	delete this;
-	return 0;
-}
-
-void HashManager::removeHasher(Hasher* aHasher) {
+void HashManager::removeHasher(const Hasher* aHasher) {
 	hashers.erase(remove(hashers.begin(), hashers.end(), aHasher), hashers.end());
+}
+
+bool HashManager::pauseHashing() noexcept {
+	pausers++;
+	if (pausers == 1) {
+		RLock l(Hasher::hcs);
+		for (auto h : hashers)
+			h->pause();
+		return isHashingPaused(false);
+	}
+	return true;
+}
+
+void HashManager::resumeHashing(bool forced) {
+	if (forced)
+		pausers = 0;
+	else if (pausers > 0)
+		pausers--;
+
+	if (pausers == 0) {
+		RLock l(Hasher::hcs);
+		for (auto h : hashers)
+			h->resume();
+	}
+}
+
+void HashManager::logHasher(const string& aMessage, int hasherID, bool isError, bool lock) {
+	ConditionalRLock l(Hasher::hcs, lock);
+	log((hashers.size() > 1 ? "[" + STRING_F(HASHER_X, hasherID) + "] " + ": " : Util::emptyString) + aMessage, isError ? LogMessage::SEV_ERROR : LogMessage::SEV_INFO);
+}
+
+bool HashManager::isHashingPaused(bool lock /*true*/) const noexcept {
+	ConditionalRLock l(Hasher::hcs, lock);
+	return all_of(hashers.begin(), hashers.end(), [](const Hasher* h) { return h->isPaused(); });
 }
 
 HashManager::HashPauser::HashPauser() {
@@ -1340,35 +857,6 @@ HashManager::HashPauser::HashPauser() {
 
 HashManager::HashPauser::~HashPauser() {
 	HashManager::getInstance()->resumeHashing();
-}
-
-bool HashManager::pauseHashing() noexcept {
-	pausers++;
-	if (pausers == 1) {
-		RLock l (Hasher::hcs);
-		for (auto h: hashers)
-			h->pause();
-		return isHashingPaused(false);
-	}
-	return true;
-}
-
-void HashManager::resumeHashing(bool forced) {
-	if (forced )
-		pausers = 0;
-	else if (pausers > 0)
-		pausers--;
-
-	if (pausers == 0) {
-		RLock l(Hasher::hcs);
-		for(auto h: hashers)
-			h->resume();
-	}
-}
-
-bool HashManager::isHashingPaused(bool lock /*true*/) const noexcept {
-	ConditionalRLock l(Hasher::hcs, lock);
-	return all_of(hashers.begin(), hashers.end(), [](const Hasher* h) { return h->isPaused(); });
 }
 
 } // namespace dcpp

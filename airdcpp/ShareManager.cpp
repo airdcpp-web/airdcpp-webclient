@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -92,6 +92,11 @@ ShareManager::ShareManager() : bloom(new ShareBloom(1 << 20)), validator(new Sha
 ShareManager::~ShareManager() {
 	HashManager::getInstance()->removeListener(this);
 	SettingsManager::getInstance()->removeListener(this);
+}
+
+
+void ShareManager::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
+	LogManager::getInstance()->message(aMsg, aSeverity, STRING(SHARE));
 }
 
 // Note that settings are loaded before this function is called
@@ -776,7 +781,7 @@ void ShareManager::on(SettingsManagerListener::LoadCompleted, bool) noexcept {
 				removeDirName(*dp.second.get(), lowerDirNameMap);
 				rootPaths.erase(dp.first);
 
-				LogManager::getInstance()->message("The directory " + dp.first + " was not loaded: parent of this directory is shared in another profile, which is not supported in this client version.", LogMessage::SEV_WARNING);
+				log("The directory " + dp.first + " was not loaded: parent of this directory is shared in another profile, which is not supported in this client version.", LogMessage::SEV_WARNING);
 			}
 		}
 	}
@@ -1028,12 +1033,12 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 
 		try {
 			parallel_for_each(cacheLoaders.begin(), cacheLoaders.end(), [&](ShareLoaderPtr& i) {
-				//LogManager::getInstance()->message("Thread: " + Util::toString(::GetCurrentThreadId()) + "Size " + Util::toString(loader.size), LogMessage::SEV_INFO);
+				//log("Thread: " + Util::toString(::GetCurrentThreadId()) + "Size " + Util::toString(loader.size), LogMessage::SEV_INFO);
 				auto& loader = *i;
 				try {
 					SimpleXMLReader(&loader).parse(*loader.file);
 				} catch (SimpleXMLException& e) {
-					LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, loader.xmlPath % e.getError()), LogMessage::SEV_ERROR);
+					log(STRING_F(LOAD_FAILED_X, loader.xmlPath % e.getError()), LogMessage::SEV_ERROR);
 					hasFailedCaches = true;
 					File::deleteFile(loader.xmlPath);
 				} catch (...) {
@@ -1047,7 +1052,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 			});
 		} catch (std::exception& e) {
 			hasFailedCaches = true;
-			LogManager::getInstance()->message("Loading the share cache failed: " + string(e.what()), LogMessage::SEV_INFO);
+			log("Loading the share cache failed: " + string(e.what()), LogMessage::SEV_INFO);
 		}
 
 		if (hasFailedCaches) {
@@ -1068,7 +1073,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 #endif
 
 	if (stats.hashSize > 0) {
-		LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(stats.hashSize)), LogMessage::SEV_INFO);
+		log(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(stats.hashSize)), LogMessage::SEV_INFO);
 	}
 
 	return true;
@@ -1449,10 +1454,10 @@ bool ShareManager::ShareBuilder::buildTree(const bool& aStopping) noexcept {
 	try {
 		buildTree(path, Text::toLower(path), newShareDirectory, oldShareDirectory, aStopping);
 	} catch (const std::bad_alloc&) {
-		LogManager::getInstance()->message(STRING_F(DIR_REFRESH_FAILED, path % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
+		log(STRING_F(DIR_REFRESH_FAILED, path % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		return false;
 	} catch (...) {
-		LogManager::getInstance()->message(STRING_F(DIR_REFRESH_FAILED, path % STRING(UNKNOWN_ERROR)), LogMessage::SEV_ERROR);
+		log(STRING_F(DIR_REFRESH_FAILED, path % STRING(UNKNOWN_ERROR)), LogMessage::SEV_ERROR);
 		return false;
 	}
 
@@ -1465,7 +1470,7 @@ bool ShareManager::ShareBuilder::validateFileItem(const FileItemInfoBase& aFileI
 	} catch (const ShareValidatorException& e) {
 		if (SETTING(REPORT_BLOCKED_SHARE) && ShareValidatorException::isReportableError(e.getType())) {
 			if (aFileItem.isDirectory()) {
-				LogManager::getInstance()->message(STRING_F(SHARE_DIRECTORY_BLOCKED, aPath % e.getError()), LogMessage::SEV_INFO);
+				log(STRING_F(SHARE_DIRECTORY_BLOCKED, aPath % e.getError()), LogMessage::SEV_INFO);
 			} else {
 				aErrorCollector.add(e.getError(), Util::getFileName(aPath), false);
 			}
@@ -1575,7 +1580,7 @@ void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aP
 
 	auto msg = errors.getMessage();
 	if (!msg.empty()) {
-		LogManager::getInstance()->message(STRING_F(SHARE_FILES_BLOCKED, aPath % msg), LogMessage::SEV_INFO);
+		log(STRING_F(SHARE_FILES_BLOCKED, aPath % msg), LogMessage::SEV_INFO);
 	}
 }
 
@@ -1786,7 +1791,7 @@ void ShareManager::reportPendingRefresh(ShareRefreshType aType, const RefreshPat
 	};
 
 	if (!msg.empty()) {
-		LogManager::getInstance()->message(msg, LogMessage::SEV_INFO);
+		log(msg, LogMessage::SEV_INFO);
 	}
 }
 
@@ -1841,7 +1846,7 @@ ShareManager::RefreshTaskQueueInfo ShareManager::addRefreshTask(ShareRefreshPrio
 		try {
 			start();
 		} catch(const ThreadException& e) {
-			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError(), LogMessage::SEV_WARNING);
+			log(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError(), LogMessage::SEV_WARNING);
 			tasksRunning.clear();
 		}
 	}
@@ -1993,7 +1998,7 @@ bool ShareManager::removeRootDirectory(const string& aPath) noexcept {
 
 	HashManager::getInstance()->stopHashing(aPath);
 
-	LogManager::getInstance()->message(STRING_F(SHARED_DIR_REMOVED, aPath), LogMessage::SEV_INFO);
+	log(STRING_F(SHARED_DIR_REMOVED, aPath), LogMessage::SEV_INFO);
 
 	fire(ShareManagerListener::RootRemoved(), aPath);
 	setProfilesDirty(dirtyProfiles, true);
@@ -2093,7 +2098,8 @@ void ShareManager::reportTaskStatus(const ShareRefreshTask& aTask, bool aFinishe
 		} else if (aTask.priority == ShareRefreshPriority::SCHEDULED && !SETTING(LOG_SCHEDULED_REFRESHES)) {
 			return;
 		}
-		LogManager::getInstance()->message(msg, LogMessage::SEV_INFO);
+
+		log(msg, LogMessage::SEV_INFO);
 	}
 }
 
@@ -2243,7 +2249,7 @@ void ShareManager::runRefreshTask(const ShareRefreshTask& aTask, function<void(f
 			for_each(refreshDirs, doRefresh);
 		}
 	} catch (const std::exception& e) {
-		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + string(e.what()), LogMessage::SEV_INFO);
+		log(STRING(FILE_LIST_REFRESH_FAILED) + string(e.what()), LogMessage::SEV_ERROR);
 		return;
 	}
 
@@ -2547,7 +2553,7 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 				fl->generationFinished(false);
 			} catch (const Exception& e) {
 				// No new file lists...
-				LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, fl->getFileName() % e.getError()), LogMessage::SEV_ERROR);
+				log(STRING_F(SAVE_FAILED_X, fl->getFileName() % e.getError()), LogMessage::SEV_ERROR);
 				fl->generationFinished(true);
 
 				// do we have anything to send?
@@ -2732,7 +2738,7 @@ void ShareManager::FilelistDirectory::filesToXml(OutputStream& xmlFile, string& 
 		for (const auto& d : shareDirs)
 			paths.push_back(d->getRealPath());
 
-		LogManager::getInstance()->message(STRING_F(DUPLICATE_FILES_DETECTED, dupeFiles % Util::toString(", ", paths)), LogMessage::SEV_WARNING);
+		log(STRING_F(DUPLICATE_FILES_DETECTED, dupeFiles % Util::toString(", ", paths)), LogMessage::SEV_WARNING);
 	}
 }
 
@@ -2830,7 +2836,7 @@ void ShareManager::saveXmlList(function<void(float)> progressF /*nullptr*/) noex
 					File::deleteFile(path);
 					File::renameFile(path + ".tmp", path);
 				} catch (Exception& e) {
-					LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, path % e.getError()), LogMessage::SEV_WARNING);
+					log(STRING_F(SAVE_FAILED_X, path % e.getError()), LogMessage::SEV_WARNING);
 				}
 
 				d->getRoot()->setCacheDirty(false);
@@ -2840,7 +2846,7 @@ void ShareManager::saveXmlList(function<void(float)> progressF /*nullptr*/) noex
 				}
 			});
 		} catch (std::exception& e) {
-			LogManager::getInstance()->message("Saving the share cache failed: " + string(e.what()), LogMessage::SEV_INFO);
+			log("Saving the share cache failed: " + string(e.what()), LogMessage::SEV_INFO);
 		}
 	}
 
@@ -3153,7 +3159,7 @@ void ShareManager::shareBundle(const BundlePtr& aBundle) noexcept {
 			HashManager::getInstance()->getFileInfo(Text::toLower(aBundle->getTarget()), aBundle->getTarget(), fi);
 			onFileHashed(aBundle->getTarget(), fi);
 
-			LogManager::getInstance()->message(STRING_F(SHARED_FILE_ADDED, aBundle->getTarget()), LogMessage::SEV_INFO);
+			log(STRING_F(SHARED_FILE_ADDED, aBundle->getTarget()), LogMessage::SEV_INFO);
 		} catch (...) { dcassert(0); }
 
 		return;

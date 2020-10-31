@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2019 AirDC++ Project
+ * Copyright (C) 2012-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,12 +19,13 @@
 #ifndef DCPLUSPLUS_DCPP_UPDATER_H
 #define DCPLUSPLUS_DCPP_UPDATER_H
 
-#include "HttpDownload.h"
+#include "Message.h"
 
 namespace dcpp {
 
 class File;
 class FileException;
+struct HttpDownload;
 class UpdateManager;
 class ZipFileException;
 
@@ -79,6 +80,8 @@ public:
 	// Returns the path of the extracted updater executable
 	// Throws FileException, ZipFileException
 	static string extractUpdater(const string& aUpdaterPath, int aBuildID, const string& aSessionToken);
+
+	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 private:
 	// Copy files recursively from the temp directory to application directory
 	static bool applyUpdaterFiles(const string& aCurTempPath, const string& aCurDestinationPath, string& error_, StringSet& updatedFiles_, FileLogger& aLogger) noexcept;

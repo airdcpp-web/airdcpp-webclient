@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -82,7 +82,7 @@ public:
 		SEV_LAST 
 	};
 
-	LogMessage(const string& aMessage, Severity sev, bool aHistory = false) noexcept;
+	LogMessage(const string& aMessage, Severity sev, const string& aLabel, bool aHistory = false) noexcept;
 
 	uint64_t getId() const noexcept {
 		return id;
@@ -109,9 +109,14 @@ public:
 	const MessageHighlight::SortedList& getHighlights() const noexcept {
 		return highlights;
 	}
+
+	const string& getLabel() const noexcept {
+		return label;
+	}
 private:
 	const uint64_t id;
 	string text;
+	const string label;
 	const time_t time;
 	const Severity severity;
 	MessageHighlight::SortedList highlights;

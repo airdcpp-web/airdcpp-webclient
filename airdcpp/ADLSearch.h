@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,9 +24,10 @@
 #ifndef DCPLUSPLUS_DCPP_A_D_L_SEARCH_H
 #define DCPLUSPLUS_DCPP_A_D_L_SEARCH_H
 
+#include "DirectoryListing.h"
+#include "Message.h"
 #include "StringSearch.h"
 #include "Singleton.h"
-#include "DirectoryListing.h"
 #include "StringMatch.h"
 
 namespace dcpp {
@@ -153,6 +154,8 @@ public:
 	bool changeState(int index, bool enabled) noexcept;
 	bool updateCollection(ADLSearch& search, int index) noexcept;
 	int8_t getRunning() { return running; }
+
+	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 private:
 	ADLSearch::SourceType StringToSourceType(const string& s);
 	bool dirty;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2019 AirDC++ Project
+ * Copyright (C) 2012-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include "CryptoManager.h"
 #include "GeoManager.h"
 #include "HashCalc.h"
+#include "HttpDownload.h"
 #include "Localization.h"
 #include "LogManager.h"
 #include "ResourceManager.h"
@@ -33,6 +34,7 @@
 #include "SimpleXML.h"
 #include "Text.h"
 #include "TimerManager.h"
+#include "Updater.h"
 #include "version.h"
 
 #include "pubkey.h"
@@ -63,6 +65,10 @@ UpdateManager::UpdateManager() : lastIPUpdate(GET_TICK()) {
 
 UpdateManager::~UpdateManager() { 
 	TimerManager::getInstance()->removeListener(this);
+}
+
+void UpdateManager::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
+	LogManager::getInstance()->message(aMsg, aSeverity, STRING(UPDATER));
 }
 
 void UpdateManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
@@ -164,7 +170,7 @@ void UpdateManager::updateGeo() {
 	if(conn)
 		return;
 
-	LogManager::getInstance()->message(STRING(GEOIP_UPDATING), LogMessage::SEV_INFO);
+	log(STRING(GEOIP_UPDATING), LogMessage::SEV_INFO);
 	conn = make_unique<HttpDownload>(
 		links.geoip,
 		[this] { completeGeoDownload(); }
@@ -180,11 +186,12 @@ void UpdateManager::completeGeoDownload() {
 		try {
 			File(GeoManager::getDbPath() + ".gz", File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
 			GeoManager::getInstance()->update();
-			LogManager::getInstance()->message(STRING(GEOIP_UPDATED), LogMessage::SEV_INFO);
+			log(STRING(GEOIP_UPDATED), LogMessage::SEV_INFO);
 			return;
 		} catch(const FileException&) { }
 	}
-	LogManager::getInstance()->message(STRING(GEOIP_UPDATING_FAILED), LogMessage::SEV_WARNING);
+
+	log(STRING(GEOIP_UPDATING_FAILED), LogMessage::SEV_WARNING);
 }
 
 void UpdateManager::completeLanguageDownload() {
@@ -197,17 +204,17 @@ void UpdateManager::completeLanguageDownload() {
 			auto path = Localization::getCurLanguageFilePath();
 			File::ensureDirectory(Util::getFilePath(path));
 			File(path, File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
-			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATED, Localization::getCurLanguageName()), LogMessage::SEV_INFO);
+			log(STRING_F(LANGUAGE_UPDATED, Localization::getCurLanguageName()), LogMessage::SEV_INFO);
 			fire(UpdateManagerListener::LanguageFinished());
 
 			return;
 		} catch(const FileException& e) { 
-			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName() % e.getError()), LogMessage::SEV_WARNING);
+			log(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName() % e.getError()), LogMessage::SEV_WARNING);
 		}
 	}
 
 	fire(UpdateManagerListener::LanguageFailed(), conn->status);
-	LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName() % conn->status), LogMessage::SEV_WARNING);
+	log(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName() % conn->status), LogMessage::SEV_WARNING);
 }
 
 void UpdateManager::completeVersionDownload(bool manualCheck) {
@@ -286,10 +293,10 @@ void UpdateManager::failVersionDownload(const string& aError, bool manualCheck) 
 	auto msg = STRING_F(VERSION_CHECK_FAILED, aError);
 
 	if (manualCheck) {
-		LogManager::getInstance()->message(msg, LogMessage::SEV_ERROR);
+		log(msg, LogMessage::SEV_ERROR);
 		fire(UpdateManagerListener::UpdateFailed(), msg);
 	} else {
-		LogManager::getInstance()->message(msg, LogMessage::SEV_WARNING);
+		log(msg, LogMessage::SEV_WARNING);
 	}
 
 	checkAdditionalUpdates(manualCheck);

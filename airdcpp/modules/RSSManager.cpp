@@ -1,6 +1,6 @@
 
 /*
-* Copyright (C) 2012-2019 AirDC++ Project
+* Copyright (C) 2012-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -169,7 +169,7 @@ void RSSManager::downloadComplete(const string& aUrl) {
 	ScopedFunctor([&] { feed->rssDownload.reset(); });
 
 	if (feed->rssDownload->buf.empty()) {
-		LogManager::getInstance()->message(feed->rssDownload->status, LogMessage::SEV_ERROR);
+		log(feed->rssDownload->status, LogMessage::SEV_ERROR);
 		return;
 	}
 
@@ -184,10 +184,15 @@ void RSSManager::downloadComplete(const string& aUrl) {
 			parseAtomFeed(xml, feed);
 		}
 	} catch(const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(ERROR_UPDATING_FEED, aUrl) + " : " + e.getError().c_str(), LogMessage::SEV_ERROR);
+		log(STRING_F(ERROR_UPDATING_FEED, aUrl) + " : " + e.getError().c_str(), LogMessage::SEV_ERROR);
 	}
 
 	fire(RSSManagerListener::RSSFeedUpdated(), feed);
+}
+
+
+void RSSManager::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
+	LogManager::getInstance()->message(aMsg, aSeverity, STRING(RSS_FEEDS));
 }
 
 bool RSSManager::checkTitle(const RSSPtr& aFeed, string& aTitle) {
@@ -330,7 +335,7 @@ void RSSManager::downloadFeed(const RSSPtr& aFeed, bool verbose/*false*/) noexce
 			[this, aFeed] { downloadComplete(aFeed->getUrl()); }));
 
 		if(verbose)
-			LogManager::getInstance()->message(STRING(UPDATING) + " " + aFeed->getUrl(), LogMessage::SEV_INFO);
+			log(STRING(UPDATING) + " " + aFeed->getUrl(), LogMessage::SEV_INFO);
 	});
 
 	//Lets resort the list to get a better chance for all other items to update and not end up updating the same one.
@@ -433,7 +438,7 @@ void RSSManager::load() {
 					SimpleXMLReader(&loader).parse(f);
 				}
 				catch (const Exception& e) {
-					LogManager::getInstance()->message(e.getError(), LogMessage::SEV_INFO);
+					log(e.getError(), LogMessage::SEV_INFO);
 					File::deleteFile(path);
 				}
 			}
@@ -558,7 +563,7 @@ void RSSManager::savedatabase(const RSSPtr& aFeed) {
 		File::renameFile(path + ".tmp", path);
 	}
 	catch (Exception& e) {
-		LogManager::getInstance()->message("Saving RSSDatabase failed: " + e.getError(), LogMessage::SEV_WARNING);
+		log("Saving RSSDatabase failed: " + e.getError(), LogMessage::SEV_WARNING);
 	}
 	
 }

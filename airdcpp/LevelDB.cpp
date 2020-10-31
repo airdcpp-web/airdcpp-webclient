@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2019 AirDC++ Project
+ * Copyright (C) 2011-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -108,7 +108,7 @@ void LevelDB::repair(StepFunction stepF, MessageFunction messageF) {
 		messageF(STRING_F(DB_REPAIR_FAILED, getNameLower() % Text::toUtf8(ret.ToString()) % dbPath % APPNAME % APPNAME), false, true);
 	}
 
-	LogManager::getInstance()->message(STRING_F(DB_X_REPAIRED, friendlyName % logPath), LogMessage::SEV_INFO);
+	messageF(STRING_F(DB_X_REPAIRED, friendlyName % logPath), false, false);
 
 	//reset the options
 	delete defaultOptions.info_log;

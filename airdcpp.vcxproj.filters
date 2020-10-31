@@ -341,15 +341,6 @@
     <ClCompile Include="airdcpp\GroupedSearchResult.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\modules\DirectoryMonitor.cpp">
-      <Filter>Source Files\modules</Filter>
-    </ClCompile>
-    <ClCompile Include="airdcpp\modules\ShareMonitorManager.cpp">
-      <Filter>Source Files\modules</Filter>
-    </ClCompile>
-    <ClCompile Include="airdcpp\modules\ShareScannerManager.cpp">
-      <Filter>Source Files\modules</Filter>
-    </ClCompile>
     <ClCompile Include="airdcpp\SharePathValidator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -366,6 +357,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="airdcpp\MessageHighlight.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\Hasher.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -928,18 +922,6 @@
     <ClInclude Include="airdcpp\ActionHook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\modules\DirectoryMonitorListener.h">
-      <Filter>Header Files\modules</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\modules\DirectoryMonitor.h">
-      <Filter>Header Files\modules</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\modules\ShareMonitorManager.h">
-      <Filter>Header Files\modules</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\modules\ShareScannerManager.h">
-      <Filter>Header Files\modules</Filter>
-    </ClInclude>
     <ClInclude Include="airdcpp\SharePathValidator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -977,6 +959,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\MessageHighlight.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\Hasher.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

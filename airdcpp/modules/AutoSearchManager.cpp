@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2019 AirDC++ Project
+ * Copyright (C) 2011-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 #include "stdinc.h"
 
 #include "AutoSearchManager.h"
-#include "ShareScannerManager.h"
 
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/LogManager.h>
@@ -59,7 +58,7 @@ AutoSearchManager::~AutoSearchManager() noexcept {
 }
 
 void AutoSearchManager::logMessage(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
-	LogManager::getInstance()->message(STRING(AUTO_SEARCH) + ": " +  aMsg, aSeverity);
+	LogManager::getInstance()->message(aMsg, aSeverity, STRING(AUTO_SEARCH));
 }
 
 /* Adding new items for external use */
@@ -319,7 +318,7 @@ void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const Bund
 		return;
 	}
 
-	auto filesMissing = ActionHookRejection::matches(aBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_MISSING);
+	auto filesMissing = AutoSearch::hasHookFilesMissing(aBundle->getHookError());
 	auto items = getSearchesByBundle(aBundle);
 	bool found = false, searched = false;
 	for (auto& as : items) {

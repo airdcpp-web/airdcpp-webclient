@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -195,6 +195,9 @@ public:
 	bool removeOnCompleted() const noexcept;
 	bool maxNumberReached() const noexcept;
 	bool expirationTimeReached() const noexcept;
+
+	static bool hasHookFilesMissing(const ActionHookRejectionPtr& aRejection) noexcept;
+	static bool hasHookInvalidContent(const ActionHookRejectionPtr& aRejection) noexcept;
 private:
 	StringMatch userMatcher;
 	time_t nextSearchChange = 0;
