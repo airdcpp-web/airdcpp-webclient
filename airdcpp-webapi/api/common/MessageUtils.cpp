@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "Serializer.h"
 
 #include <web-server/JsonUtil.h>
+#include <web-server/Session.h>
 
 #include <airdcpp/ActionHook.h>
 #include <airdcpp/AirUtil.h>
@@ -109,6 +110,7 @@ namespace webserver {
 			{ "text", aMessage->getText() },
 			{ "time", aMessage->getTime() },
 			{ "severity", getMessageSeverity(aMessage->getSeverity()) },
+			{ "label", aMessage->getLabel() },
 			{ "is_read", aMessage->getRead() },
 			{ "highlights", Serializer::serializeList(aMessage->getHighlights(), serializeMessageHighlight) }
 		};
@@ -205,5 +207,9 @@ namespace webserver {
 		}
 
 		return ret;
+	}
+
+	string MessageUtils::parseStatusMessageLabel(const SessionPtr& aSession) noexcept {
+		return aSession->getUser()->getUserName();
 	}
 }

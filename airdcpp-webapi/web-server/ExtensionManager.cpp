@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -52,14 +52,19 @@ namespace webserver {
 
 	void ExtensionManager::on(WebServerManagerListener::Started) noexcept {
 		load();
+		fire(ExtensionManagerListener::Started());
 	}
 
 	void ExtensionManager::on(WebServerManagerListener::Stopping) noexcept {
-		RLock l(cs);
-		for (const auto& ext: extensions) {
-			ext->removeListeners();
-			ext->stop();
+		{
+			RLock l(cs);
+			for (const auto& ext: extensions) {
+				ext->removeListeners();
+				ext->stop();
+			}
 		}
+
+		fire(ExtensionManagerListener::Stopped());
 	}
 
 	void ExtensionManager::on(WebServerManagerListener::Stopped) noexcept {
@@ -73,14 +78,15 @@ namespace webserver {
 			return;
 		}
 
-		aSocket->getSession()->getServer()->addAsyncTask([=] {
+		const auto session = aSocket->getSession();
+		aSocket->getSession()->getServer()->addAsyncTask([session, this] {
 			ExtensionPtr extension = nullptr;
 
 			// Remove possible unmanaged extensions matching this session
 			{
 				RLock l(cs);
 				auto i = find_if(extensions.begin(), extensions.end(), [&](const ExtensionPtr& aExtension) {
-					return aExtension->getSession() == aSocket->getSession();
+					return aExtension->getSession() == session;
 				});
 
 				if (i == extensions.end() || (*i)->isManaged()) {
@@ -121,6 +127,8 @@ namespace webserver {
 
 			// Remove from disk
 			File::removeDirectoryForced(aExtension->getRootPath());
+		} else {
+			aExtension->resetSession();
 		}
 
 		// Remove from list
@@ -260,7 +268,7 @@ namespace webserver {
 		string extensionName;
 		try {
 			// Validate the package content
-			Extension extensionInfo(tempPackageDirectory, nullptr, true);
+			Extension extensionInfo(tempPackageDirectory, nullptr, nullptr, true);
 
 			extensionInfo.checkCompatibility();
 			extensionName = extensionInfo.getName();
@@ -297,7 +305,8 @@ namespace webserver {
 			return;
 		}
 
-		if (extension) {
+		bool updated = !!extension;
+		if (updated) {
 			// Updating
 			try {
 				extension->reload();
@@ -322,7 +331,7 @@ namespace webserver {
 		}
 
 		startExtensionImpl(extension);
-		fire(ExtensionManagerListener::InstallationSucceeded(), aInstallId);
+		fire(ExtensionManagerListener::InstallationSucceeded(), aInstallId, extension, updated);
 	}
 
 	void ExtensionManager::failInstallation(const string& aInstallId, const string& aMessage, const string& aException) noexcept {
@@ -337,7 +346,7 @@ namespace webserver {
 	}
 
 	ExtensionPtr ExtensionManager::registerRemoteExtension(const SessionPtr& aSession, const json& aPackageJson) {
-		auto ext = std::make_shared<Extension>(aSession, aPackageJson);
+		auto ext = std::make_shared<Extension>(aSession, aPackageJson, std::bind(&ExtensionManager::onExtensionStateUpdated, this, std::placeholders::_1));
 
 		auto existing = getExtension(ext->getName());
 		if (existing) {
@@ -355,6 +364,10 @@ namespace webserver {
 
 		fire(ExtensionManagerListener::ExtensionAdded(), ext);
 		return ext;
+	}
+
+	void ExtensionManager::onExtensionStateUpdated(const Extension* aExtension) noexcept {
+		fire(ExtensionManagerListener::ExtensionStateUpdated(), aExtension);
 	}
 
 #define EXIT_CODE_TIMEOUT 124
@@ -387,9 +400,11 @@ namespace webserver {
 		// Parse
 		ExtensionPtr ext = nullptr;
 		try {
-			ext = std::make_shared<Extension>(Util::joinDirectory(aPath, EXT_PACKAGE_DIR), [this](Extension* aExtension, uint32_t aExitCode) {
-				onExtensionFailed(aExtension, aExitCode);
-			});
+			ext = std::make_shared<Extension>(
+				Util::joinDirectory(aPath, EXT_PACKAGE_DIR),
+				std::bind(&ExtensionManager::onExtensionFailed, this, std::placeholders::_1, std::placeholders::_2),
+				std::bind(&ExtensionManager::onExtensionStateUpdated, this, std::placeholders::_1)
+			);
 		} catch (const Exception& e) {
 			wsm->log(STRING_F(WEB_EXTENSION_LOAD_ERROR_X, aPath % e.what()), LogMessage::SEV_ERROR);
 			return nullptr;

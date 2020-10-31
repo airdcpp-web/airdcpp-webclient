@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -48,11 +48,11 @@ namespace webserver {
 		return Util::joinDirectory(getRootPath(), EXT_LOG_DIR) + "error.log";
 	}
 
-	Extension::Extension(const string& aPackageDirectory, ErrorF&& aErrorF, bool aSkipPathValidation) : errorF(std::move(aErrorF)), managed(true) {
+	Extension::Extension(const string& aPackageDirectory, ErrorF&& aErrorF, StateUpdatedF&& aStateUpdatedF, bool aSkipPathValidation) : stateUpdatedF(aStateUpdatedF), errorF(std::move(aErrorF)), managed(true) {
 		initialize(aPackageDirectory, aSkipPathValidation);
 	}
 
-	Extension::Extension(const SessionPtr& aSession, const json& aPackageJson) : managed(false), session(aSession) {
+	Extension::Extension(const SessionPtr& aSession, const json& aPackageJson, StateUpdatedF&& aStateUpdatedF) : stateUpdatedF(aStateUpdatedF), managed(false), session(aSession) {
 		initialize(aPackageJson);
 	}
 
@@ -135,7 +135,7 @@ namespace webserver {
 				const StringList osList = *osJson;
 				auto currentOs = SystemUtil::getPlatform();
 				if (std::find(osList.begin(), osList.end(), currentOs) == osList.end() && currentOs != "other") {
-					throw Exception("Extension is not compatible with your operating system (check the extension documentation for more information)");
+					throw Exception(STRING(WEB_EXTENSION_OS_UNSUPPORTED));
 				}
 			}
 		}
@@ -145,11 +145,11 @@ namespace webserver {
 
 	void Extension::checkCompatibility() {
 		if (apiVersion != API_VERSION) {
-			throw Exception("Extension requires API version " + Util::toString(apiVersion) + " while the application uses version " + Util::toString(API_VERSION));
+			throw Exception(STRING_F(WEB_EXTENSION_API_VERSION_UNSUPPORTED, Util::toString(apiVersion) % Util::toString(API_VERSION)));
 		}
 
 		if (minApiFeatureLevel > API_FEATURE_LEVEL) {
-			throw Exception("Extension requires API feature level " + Util::toString(minApiFeatureLevel) + " or newer while the application uses version " + Util::toString(API_FEATURE_LEVEL));
+			throw Exception(STRING_F(WEB_EXTENSION_API_FEATURES_UNSUPPORTED, Util::toString(minApiFeatureLevel) % Util::toString(API_FEATURE_LEVEL)));
 		}
 	}
 
@@ -244,8 +244,12 @@ namespace webserver {
 			return;
 		}
 
+		if (!wsm->isRunning()) {
+			throw Exception(STRING(WEB_EXTENSION_SERVER_NOT_RUNNING));
+		}
+
 		if (!wsm->isListeningPlain()) {
-			throw Exception("Extensions require the (plain) HTTP protocol to be enabled");
+			throw Exception(STRING(WEB_EXTENSION_HTTP_NOT_ENABLED));
 		}
 
 		if (isRunning()) {
@@ -264,6 +268,10 @@ namespace webserver {
 
 		running = true;
 		fire(ExtensionListener::ExtensionStarted());
+
+		if (stateUpdatedF) {
+			stateUpdatedF(this);
+		}
 
 		// Monitor the running state of the script
 		timer = wsm->addTimer([this, wsm] { checkRunningState(wsm); }, 2500);
@@ -368,6 +376,13 @@ namespace webserver {
 		}
 	}
 
+	void Extension::resetSession() noexcept {
+		if (session) {
+			session->getServer()->getUserManager().logout(session);
+			session = nullptr;
+		}
+	}
+
 	void Extension::onStopped(bool aFailed) noexcept {
 		fire(ExtensionListener::ExtensionStopped(), aFailed);
 		
@@ -377,16 +392,16 @@ namespace webserver {
 		}
 		dcdebug("\n");
 
-		if (session) {
-			session->getServer()->getUserManager().logout(session);
-			session = nullptr;
-		}
-
+		resetSession();
 		resetProcessState();
 		resetSettings();
 
 		dcassert(running);
 		running = false;
+
+		if (stateUpdatedF) {
+			stateUpdatedF(this);
+		}
 	}
 #ifdef _WIN32
 	void Extension::initLog(HANDLE& aHandle, const string& aPath) {

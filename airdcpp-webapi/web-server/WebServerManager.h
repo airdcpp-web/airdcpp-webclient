@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -107,7 +107,8 @@ namespace webserver {
 			return *contextMenuManager.get();
 		}
 
-		bool hasValidConfig() const noexcept;
+		bool hasValidServerConfig() const noexcept;
+		bool hasUsers() const noexcept;
 
 		ServerConfig& getPlainServerConfig() noexcept {
 			return plainServerConfig;

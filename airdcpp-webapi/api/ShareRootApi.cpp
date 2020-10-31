@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -162,11 +162,6 @@ namespace webserver {
 	}
 
 	void ShareRootApi::on(ShareManagerListener::RootRemoved, const string& aPath) noexcept {
-		ShareDirectoryInfoPtr info = nullptr;
-		if (!rootView.isActive() && !subscriptionActive("share_root_removed")) {
-			return;
-		}
-
 		auto root = findRoot(aPath);
 		if (!root) {
 			dcassert(0);
@@ -181,7 +176,7 @@ namespace webserver {
 		}
 
 		maybeSend("share_root_removed", [&] {
-			return Serializer::serializeItem(info, ShareUtils::propertyHandler);
+			return Serializer::serializeItem(root, ShareUtils::propertyHandler);
 		});
 	}
 
