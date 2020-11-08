@@ -46,6 +46,7 @@ namespace webserver {
 			PING_TIMEOUT,
 
 			EXTENSIONS_DEBUG_MODE,
+			EXTENSIONS_INIT_TIMEOUT,
 		};
 
 		ServerSettingItem& getValue(ServerSettings aSetting) noexcept {

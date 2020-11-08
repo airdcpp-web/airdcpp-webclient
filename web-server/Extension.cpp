@@ -49,24 +49,24 @@ namespace webserver {
 	}
 
 	Extension::Extension(const string& aPackageDirectory, ErrorF&& aErrorF, StateUpdatedF&& aStateUpdatedF, bool aSkipPathValidation) : stateUpdatedF(aStateUpdatedF), errorF(std::move(aErrorF)), managed(true) {
-		initialize(aPackageDirectory, aSkipPathValidation);
+		initializeThrow(aPackageDirectory, aSkipPathValidation);
 	}
 
 	Extension::Extension(const SessionPtr& aSession, const json& aPackageJson, StateUpdatedF&& aStateUpdatedF) : stateUpdatedF(aStateUpdatedF), managed(false), session(aSession) {
-		initialize(aPackageJson);
+		initializeThrow(aPackageJson);
 	}
 
 	Extension::~Extension() {
 		dcdebug("Extension %s was destroyed\n", name.c_str());
 	}
 
-	void Extension::reload() {
-		initialize(Util::joinDirectory(getRootPath(), EXT_PACKAGE_DIR), false);
+	void Extension::reloadThrow() {
+		initializeThrow(Util::joinDirectory(getRootPath(), EXT_PACKAGE_DIR), false);
 
 		fire(ExtensionListener::PackageUpdated());
 	}
 
-	void Extension::initialize(const string& aPackageDirectory, bool aSkipPathValidation) {
+	void Extension::initializeThrow(const string& aPackageDirectory, bool aSkipPathValidation) {
 		string packageStr;
 		try {
 			packageStr = File(aPackageDirectory + "package.json", File::READ, File::OPEN).read();
@@ -77,7 +77,7 @@ namespace webserver {
 		try {
 			const json packageJson = json::parse(packageStr);
 
-			initialize(packageJson);
+			initializeThrow(packageJson);
 		} catch (const std::exception& e) {
 			throw Exception("Could not parse package.json (" + string(e.what()) + ")");
 		}
@@ -87,7 +87,7 @@ namespace webserver {
 		}
 	}
 
-	void Extension::initialize(const json& aJson) {
+	void Extension::initializeThrow(const json& aJson) {
 		// Required fields
 		const string packageName = aJson.at("name");
 		const string packageDescription = aJson.at("description");
@@ -140,10 +140,10 @@ namespace webserver {
 			}
 		}
 
-		parseApiData(aJson.at("airdcpp"));
+		parseApiDataThrow(aJson.at("airdcpp"));
 	}
 
-	void Extension::checkCompatibility() {
+	void Extension::checkCompatibilityThrow() {
 		if (apiVersion != API_VERSION) {
 			throw Exception(STRING_F(WEB_EXTENSION_API_VERSION_UNSUPPORTED, Util::toString(apiVersion) % Util::toString(API_VERSION)));
 		}
@@ -153,9 +153,10 @@ namespace webserver {
 		}
 	}
 
-	void Extension::parseApiData(const json& aJson) {
+	void Extension::parseApiDataThrow(const json& aJson) {
 		apiVersion = aJson.at("apiVersion");
 		minApiFeatureLevel = aJson.value("minApiFeatureLevel", 0);
+		signalReady = aJson.value("signalReady", false);
 	}
 
 	FilesystemItemList Extension::getLogs() const noexcept {
@@ -189,7 +190,7 @@ namespace webserver {
 		return settings;
 	}
 
-	void Extension::swapSettingDefinitions(ExtensionSettingItem::List& aDefinitions) {
+	void Extension::swapSettingDefinitions(ExtensionSettingItem::List& aDefinitions) noexcept {
 		{
 			WLock l(cs);
 			settings.swap(aDefinitions);
@@ -208,13 +209,14 @@ namespace webserver {
 		fire(ExtensionListener::SettingDefinitionsUpdated());
 	}
 
-	void Extension::setSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences) {
+	void Extension::setValidatedSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences) noexcept {
 		{
 			WLock l(cs);
 			for (const auto& vp: aValues) {
 				auto setting = ApiSettingItem::findSettingItem<ExtensionSettingItem>(settings, vp.first);
 				if (!setting) {
-					throw Exception("Setting " + vp.first + " was not found");
+					dcassert(0);
+					continue;
 				}
 
 				setting->setValue(vp.second);
@@ -239,7 +241,7 @@ namespace webserver {
 		return values;
 	}
 
-	void Extension::start(const string& aEngine, WebServerManager* wsm) {
+	void Extension::startThrow(const string& aEngine, WebServerManager* wsm) {
 		if (!managed) {
 			return;
 		}
@@ -260,11 +262,11 @@ namespace webserver {
 		File::ensureDirectory(Util::joinDirectory(getRootPath(), EXT_LOG_DIR));
 		File::ensureDirectory(Util::joinDirectory(getRootPath(), EXT_CONFIG_DIR));
 
-		checkCompatibility();
+		checkCompatibilityThrow();
 
 		session = wsm->getUserManager().createExtensionSession(name);
 		
-		createProcess(aEngine, wsm, session);
+		createProcessThrow(aEngine, wsm, session);
 
 		running = true;
 		fire(ExtensionListener::ExtensionStarted());
@@ -343,25 +345,30 @@ namespace webserver {
 			addParam("debug");
 		}
 
+		if (signalReady) {
+			addParam("signalReady");
+		}
+
 		return ret;
 	}
 
-	bool Extension::stop() noexcept {
+	void Extension::stopThrow() {
 		if (!managed) {
-			return false;
+			throw Exception("Remote extensions can't be stopped");
 		}
 
 		if (!isRunning()) {
-			return true;
+			return;
 		}
 
 		timer->stop(false);
-		if (!terminateProcess()) {
-			return false;
+		try {
+			terminateProcessThrow();
+		} catch (const Exception& e) {
+			throw Exception(STRING_F(WEB_EXTENSION_TERMINATE_PROCESS_FAILED, e.what()));
 		}
 
 		onStopped(false);
-		return true;
 	}
 
 	void Extension::onFailed(uint32_t aExitCode) noexcept {
@@ -379,6 +386,8 @@ namespace webserver {
 	void Extension::resetSession() noexcept {
 		if (session) {
 			session->getServer()->getUserManager().logout(session);
+
+			dcassert(session.use_count() == 1);
 			session = nullptr;
 		}
 	}
@@ -446,7 +455,7 @@ namespace webserver {
 		}
 	}
 
-	void Extension::createProcess(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {
+	void Extension::createProcessThrow(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {
 		// Setup log file for console output
 		initLog(messageLogHandle, getMessageLogPath());
 		initLog(errorLogHandle, getErrorLogPath());
@@ -530,15 +539,16 @@ namespace webserver {
 		}
 	}
 
-	bool Extension::terminateProcess() noexcept {
+	void Extension::terminateProcessThrow() {
 		if (TerminateProcess(piProcInfo.hProcess, 0) == 0) {
-			dcdebug("Failed to terminate the extension %s: %s\n", name.c_str(), Util::translateError(::GetLastError()).c_str());
-			dcassert(0);
-			return false;
+			throw Exception(Util::translateError(::GetLastError()));
 		}
 
-		WaitForSingleObject(piProcInfo.hProcess, 5000);
-		return true;
+		auto res = WaitForSingleObject(piProcInfo.hProcess, 5000);
+		if (res != WAIT_OBJECT_0) {
+			auto error = res == WAIT_FAILED ? Util::translateError(res).c_str() : STRING(SETTINGS_ODC_SHUTDOWNTIMEOUT);
+			throw Exception(error);
+		}
 	}
 #else
 #include <sys/wait.h>
@@ -563,7 +573,7 @@ namespace webserver {
 		return make_unique<File>(aPath, File::RW, File::CREATE | File::TRUNCATE);
 	}
 
-	void Extension::createProcess(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {
+	void Extension::createProcessThrow(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {
 		// Init logs
 		auto messageLog = std::move(initLog(getMessageLogPath()));
 		auto errorLog = std::move(initLog(getErrorLogPath()));
@@ -614,22 +624,16 @@ namespace webserver {
 		}
 	}
 
-	bool Extension::terminateProcess() noexcept {
+	void Extension::terminateProcessThrow() {
 		auto res = kill(pid, SIGTERM);
 		if (res == -1) {
-			dcdebug("Failed to terminate the extension %s: %s\n", name.c_str(), Util::translateError(errno).c_str());
-			return false;
+			throw Exception(Util::translateError(errno));
 		}
 
 		int exitStatus = 0;
 		if (waitpid(pid, &exitStatus, 0) == -1) {
-			dcdebug("Failed to terminate the extension %s: %s\n", name.c_str(), Util::translateError(errno).c_str());
-			return false;
+			throw Exception(Util::translateError(errno));
 		}
-
-
-
-		return true;
 	}
 
 #endif

@@ -46,6 +46,7 @@ namespace webserver {
 	{
 		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (EXACT_PARAM("start")), ExtensionInfo::handleStartExtension);
 		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (EXACT_PARAM("stop")), ExtensionInfo::handleStopExtension);
+		METHOD_HANDLER(Access::ANY, METHOD_POST, (EXACT_PARAM("ready")), ExtensionInfo::handleReady);
 
 		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET, (EXACT_PARAM("settings"), EXACT_PARAM("definitions")), ExtensionInfo::handleGetSettingDefinitions);
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST, (EXACT_PARAM("settings"), EXACT_PARAM("definitions")), ExtensionInfo::handlePostSettingDefinitions);
@@ -69,7 +70,7 @@ namespace webserver {
 	api_return ExtensionInfo::handleStartExtension(ApiRequest& aRequest) {
 		try {
 			auto server = aRequest.getSession()->getServer();
-			extension->start(server->getExtensionManager().getStartCommand(extension->getEngines()), server);
+			extension->startThrow(server->getExtensionManager().getStartCommandThrow(extension->getEngines()), server);
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.what());
 			return websocketpp::http::status_code::internal_server_error;
@@ -79,7 +80,18 @@ namespace webserver {
 	}
 
 	api_return ExtensionInfo::handleStopExtension(ApiRequest& aRequest) {
-		extension->stop();
+		try {
+			extension->stopThrow();
+		} catch (const Exception& e) {
+			aRequest.setResponseErrorStr(e.what());
+			return websocketpp::http::status_code::internal_server_error;
+		}
+
+		return websocketpp::http::status_code::no_content;
+	}
+
+	api_return ExtensionInfo::handleReady(ApiRequest& aRequest) {
+		extension->setReady(true);
 		return websocketpp::http::status_code::no_content;
 	}
 
@@ -123,7 +135,8 @@ namespace webserver {
 			settings[elem.key()] = SettingUtils::validateValue(elem.value(), *setting, &userReferences);
 		}
 
-		extension->setSettingValues(settings, userReferences);
+		// Update
+		extension->setValidatedSettingValues(settings, userReferences);
 		return websocketpp::http::status_code::no_content;
 	}
 

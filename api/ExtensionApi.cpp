@@ -76,7 +76,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		try {
-			auto ext = em.registerRemoteExtension(aRequest.getSession(), reqJson);
+			auto ext = em.registerRemoteExtensionThrow(aRequest.getSession(), reqJson);
 			aRequest.setResponseBody(ExtensionInfo::serializeExtension(ext));
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
@@ -107,9 +107,12 @@ namespace webserver {
 
 	api_return ExtensionApi::handleDeleteSubmodule(ApiRequest& aRequest) {
 		auto extensionInfo = getSubModule(aRequest);
-
 		try {
-			em.removeExtension(extensionInfo->getExtension());
+			if (extensionInfo->getExtension()->isManaged()) {
+				em.uninstallLocalExtensionThrow(extensionInfo->getExtension());
+			} else {
+				em.unregisterRemoteExtension(extensionInfo->getExtension());
+			}
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::internal_server_error;

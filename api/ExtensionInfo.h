@@ -60,6 +60,7 @@ namespace webserver {
 
 		api_return handleStartExtension(ApiRequest& aRequest);
 		api_return handleStopExtension(ApiRequest& aRequest);
+		api_return handleReady(ApiRequest& aRequest);
 
 		api_return handleGetSettingDefinitions(ApiRequest& aRequest);
 		api_return handlePostSettingDefinitions(ApiRequest& aRequest);

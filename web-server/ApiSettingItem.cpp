@@ -33,9 +33,10 @@
 #include <airdcpp/StringTokenizer.h>
 
 namespace webserver {
-	string ApiSettingItem::formatTitle(ResourceManager::Strings aDesc, ResourceManager::Strings aUnit) noexcept {
-		auto title = ResourceManager::getInstance()->getString(aDesc);
+	string ApiSettingItem::formatTitle(const string& aDesc, ResourceManager::Strings aUnit) noexcept {
+		// auto title = ResourceManager::getInstance()->getString(aDesc);
 
+		auto title = aDesc;
 		if (aUnit != ResourceManager::LAST) {
 			title += " (" + ResourceManager::getInstance()->getString(aUnit) + ")";
 		}
@@ -80,7 +81,7 @@ namespace webserver {
 
 
 	ServerSettingItem::ServerSettingItem(const string& aKey, const ResourceManager::Strings aTitleKey, const json& aDefaultValue, Type aType, bool aOptional,
-		const MinMax& aMinMax, const ResourceManager::Strings aUnit): JsonSettingItem(aKey, aDefaultValue, aType, aOptional, aMinMax), titleKey(aTitleKey) {
+		const MinMax& aMinMax, const ResourceManager::Strings aUnit): JsonSettingItem(aKey, aDefaultValue, aType, aOptional, aMinMax), titleKey(aTitleKey), unitKey(aUnit) {
 
 	}
 
@@ -89,7 +90,8 @@ namespace webserver {
 	}
 
 	string ServerSettingItem::getTitle() const noexcept {
-		return ResourceManager::getInstance()->getString(titleKey);
+		auto title = ResourceManager::getInstance()->getString(titleKey);
+		return ApiSettingItem::formatTitle(title, unitKey);
 	}
 
 	ExtensionSettingItem::ExtensionSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType,
@@ -401,7 +403,8 @@ namespace webserver {
 	}
 
 	string CoreSettingItem::getTitle() const noexcept {
-		return ApiSettingItem::formatTitle(si.desc, unit);
+		auto title = ResourceManager::getInstance()->getString(si.desc);
+		return ApiSettingItem::formatTitle(title, unit);
 	}
 
 	void CoreSettingItem::unset() noexcept {

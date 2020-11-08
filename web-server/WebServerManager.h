@@ -109,6 +109,7 @@ namespace webserver {
 
 		bool hasValidServerConfig() const noexcept;
 		bool hasUsers() const noexcept;
+		bool waitExtensionsLoaded() const noexcept;
 
 		ServerConfig& getPlainServerConfig() noexcept {
 			return plainServerConfig;

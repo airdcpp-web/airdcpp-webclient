@@ -41,5 +41,6 @@ namespace webserver {
 			{ "ping_timeout", ResourceManager::WEB_CFG_PING_TIMEOUT, 10, ApiSettingItem::TYPE_NUMBER, false, { 1, 10000 }, ResourceManager::SECONDS_LOWER },
 
 			{ "extensions_debug_mode", ResourceManager::WEB_CFG_EXTENSIONS_DEBUG_MODE, false, ApiSettingItem::TYPE_BOOLEAN, false },
+			{ "extensions_init_timeout", ResourceManager::WEB_CFG_EXTENSIONS_INIT_TIMEOUT, 5, ApiSettingItem::TYPE_NUMBER, false, { 1, 60 }, ResourceManager::SECONDS_LOWER },
 		}) {}
 }

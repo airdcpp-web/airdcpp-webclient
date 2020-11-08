@@ -55,7 +55,7 @@ namespace webserver {
 			const int max = 0;
 		};
 
-		static string formatTitle(ResourceManager::Strings aDesc, ResourceManager::Strings aUnit) noexcept;
+		static string formatTitle(const string& aDesc, ResourceManager::Strings aUnit) noexcept;
 		static const MinMax defaultMinMax;
 
 		ApiSettingItem(const string& aName, Type aType, Type aItemType);
@@ -213,6 +213,7 @@ namespace webserver {
 		ApiSettingItem::PtrList getListObjectFields() const noexcept override;
 	private:
 		const ResourceManager::Strings titleKey;
+		const ResourceManager::Strings unitKey;
 	};
 
 	class ExtensionSettingItem : public JsonSettingItem {
