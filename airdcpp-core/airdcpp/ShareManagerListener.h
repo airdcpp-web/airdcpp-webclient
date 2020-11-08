@@ -28,8 +28,6 @@ namespace dcpp {
 		virtual ~ShareManagerListener() {}
 		template<int I>	struct X { enum { TYPE = I }; };
 
-		typedef X<0> ShareLoaded;
-
 		typedef X<1> RefreshQueued;
 		typedef X<2> RefreshStarted;
 		typedef X<3> RefreshCompleted;
@@ -50,8 +48,6 @@ namespace dcpp {
 		typedef X<14> TempFileAdded;
 		typedef X<15> TempFileRemoved;
 
-
-		virtual void on(ShareLoaded) noexcept{}
 		virtual void on(RefreshQueued, const ShareRefreshTask&) noexcept {}
 		virtual void on(RefreshStarted, const ShareRefreshTask&) noexcept {}
 		virtual void on(RefreshCompleted, const ShareRefreshTask&, bool /*aSucceed*/, const ShareRefreshStats& /*stats*/) noexcept{}

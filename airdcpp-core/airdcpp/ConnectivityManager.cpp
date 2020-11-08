@@ -22,6 +22,7 @@
 #include "AirUtil.h"
 #include "ClientManager.h"
 #include "ConnectionManager.h"
+#include "DCPlusPlus.h"
 #include "format.h"
 #include "LogManager.h"
 #include "MappingManager.h"
@@ -43,18 +44,18 @@ mapperV4(false)
 }
 
 
-void ConnectivityManager::startup(const function<bool(const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)>& aMessageF) noexcept {
+void ConnectivityManager::startup(StartupLoader& aLoader) noexcept {
 	try {
 		ConnectivityManager::getInstance()->setup(true, true);
 	} catch (const Exception& e) {
-		aMessageF(STRING_F(PORT_BYSY, e.getError()), false, true);
+		aLoader.messageF(STRING_F(PORT_BYSY, e.getError()), false, true);
 	}
 
 	if (CONNSETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5) {
 		try {
 			Socket::socksUpdated();
 		} catch (const SocketException& e) {
-			aMessageF(e.getError(), false, true);
+			aLoader.messageF(e.getError(), false, true);
 		}
 	}
 }

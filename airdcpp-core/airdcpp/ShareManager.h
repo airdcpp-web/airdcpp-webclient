@@ -188,7 +188,7 @@ public:
 	// aIsMajor will regenerate the file list on next time when someone requests it
 	void setProfilesDirty(const ProfileTokenSet& aProfiles, bool aIsMajor) noexcept;
 
-	void startup(function<void(const string&)> stepF, function<void(float)> progressF) noexcept;
+	void startup(StartupLoader& aLoader) noexcept;
 	void shutdown(function<void(float)> progressF) noexcept;
 
 	// Abort filelist refresh (or an individual refresh task)

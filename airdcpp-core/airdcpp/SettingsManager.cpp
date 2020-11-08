@@ -22,6 +22,7 @@
 #include "AirUtil.h"
 #include "CID.h"
 #include "ConnectivityManager.h"
+#include "DCPlusPlus.h"
 #include "File.h"
 #include "LogManager.h"
 #include "Mapper_MiniUPnPc.h"
@@ -896,7 +897,7 @@ string SettingsManager::getProfileName(int profile) const noexcept {
 	}
 }
 
-void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF) noexcept {
+void SettingsManager::load(StartupLoader& aLoader) noexcept {
 	auto fileLoaded = loadSettingFile(CONFIG_DIR, CONFIG_NAME, [this](SimpleXML& xml) {
 		if (xml.findChild("DCPlusPlus")) {
 			xml.stepIn();
@@ -1011,7 +1012,7 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 		if (!isDefault(aSetting)) {
 			auto adapters = AirUtil::getNetworkAdapters(v6);
 			auto p = boost::find_if(adapters, [this, aSetting](const AdapterInfo& aInfo) { return aInfo.ip == get(aSetting); });
-			if (p == adapters.end() && messageF(STRING_F(BIND_ADDRESS_MISSING, (v6 ? "IPv6" : "IPv4") % get(aSetting)), true, false)) {
+			if (p == adapters.end() && aLoader.messageF(STRING_F(BIND_ADDRESS_MISSING, (v6 ? "IPv6" : "IPv4") % get(aSetting)), true, false)) {
 				unsetKey(aSetting);
 			}
 		}
