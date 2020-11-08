@@ -462,7 +462,15 @@ namespace webserver {
 	}
 
 	void WebServerManager::handleSocketDisconnected(websocketpp::connection_hdl hdl) {
-		WebSocketPtr socket = nullptr;
+		WebSocketPtr socket = getSocket(hdl);
+		if (!socket) {
+			dcassert(0);
+			return;
+		}
+
+		// Process all listener events before removing the socket from the list to avoid issues on shutdown
+		dcdebug("Socket disconnected: %s\n", socket->getSession() ? socket->getSession()->getAuthToken().c_str() : "(no session)");
+		fire(WebServerManagerListener::SocketDisconnected(), socket);
 
 		{
 			WLock l(cs);
@@ -472,12 +480,10 @@ namespace webserver {
 				return;
 			}
 
-			socket = s->second;
 			sockets.erase(s);
 		}
 
-		dcdebug("Socket disconnected: %s\n", socket->getSession() ? socket->getSession()->getAuthToken().c_str() : "(no session)");
-		fire(WebServerManagerListener::SocketDisconnected(), socket);
+		dcassert(socket.use_count() == 1);
 	}
 
 	void WebServerManager::log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
@@ -521,6 +527,10 @@ namespace webserver {
 
 	bool WebServerManager::hasUsers() const noexcept {
 		return userManager->hasUsers();
+	}
+
+	bool WebServerManager::waitExtensionsLoaded() const noexcept {
+		return extManager->waitLoaded();
 	}
 
 	bool WebServerManager::load(const ErrorF& aErrorF) noexcept {
