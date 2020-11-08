@@ -173,8 +173,6 @@ void destroyModules() {
 }
 
 void Client::shutdown() {
-	webserver::WebServerManager::getInstance()->stop();
-
 	cdmDebug.reset(nullptr);
 
 	ClientManager::getInstance()->putClients();
