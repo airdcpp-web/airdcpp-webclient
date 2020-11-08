@@ -194,6 +194,7 @@ class SimpleXML;
 class Socket;
 class SocketException;
 
+class StartupLoader;
 class StringSearch;
 
 class TigerHash;

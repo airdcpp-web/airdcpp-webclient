@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "HashManager.h"
 
+#include "DCPlusPlus.h"
 #include "File.h"
 #include "FileReader.h"
 #include "LogManager.h"
@@ -675,7 +676,7 @@ void HashManager::HashStore::getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSiz
 	hashDbSize_ = hashDb->getSizeOnDisk();
 }
 
-void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF) {
+void HashManager::HashStore::openDb(StartupLoader& aLoader) {
 	auto hashDataPath = Util::getPath(Util::PATH_USER_CONFIG) + "HashData" + PATH_SEPARATOR;
 	auto fileIndexPath = Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex" + PATH_SEPARATOR;
 
@@ -699,16 +700,17 @@ void HashManager::HashStore::openDb(StepFunction stepF, MessageFunction messageF
 		fileDb.reset(new LevelDB(fileIndexPath, STRING(FILE_INDEX), cacheSize, 50, true, 64 * 1024));
 
 
-		hashDb->open(stepF, messageF);
-		fileDb->open(stepF, messageF);
+		hashDb->open(aLoader.stepF, aLoader.messageF);
+		fileDb->open(aLoader.stepF, aLoader.messageF);
 	} catch (const DbException& e) {
-		throw HashException(e.getError());
+		// Can't continue without hash database, abort startup
+		throw AbortException(e.getError());
 	}
 }
 
-void HashManager::HashStore::load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) {
+void HashManager::HashStore::load(StartupLoader& aLoader) {
 	// Open the new database
-	openDb(stepF, messageF);
+	openDb(aLoader);
 }
 
 HashManager::HashStore::HashStore() {
@@ -779,9 +781,9 @@ int HashManager::Optimizer::run() {
 	return 0;
 }
 
-void HashManager::startup(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF) {
+void HashManager::startup(StartupLoader& aLoader) {
 	hashers.push_back(new Hasher(false, 0));
-	store.load(stepF, progressF, messageF); 
+	store.load(aLoader); 
 }
 
 void HashManager::shutdown(ProgressFunction progressF) noexcept {

@@ -287,7 +287,7 @@ public:
 	void unsetKey(size_t key) noexcept { isSet[key] = false; }
 	bool isKeySet(size_t key) const noexcept { return isSet[key]; }
 
-	void load(function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF) noexcept;
+	void load(StartupLoader& aLoader) noexcept;
 	void save() noexcept;
 	
 	void reloadPages(int group = 0) noexcept {

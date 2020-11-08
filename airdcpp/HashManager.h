@@ -102,7 +102,7 @@ public:
 	void startMaintenance(bool verify);
 
 	// Throws Exception in case of fatal errors
-	void startup(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF);
+	void startup(StartupLoader& aLoader);
 	void stop() noexcept;
 	void shutdown(ProgressFunction progressF) noexcept;
 
@@ -145,7 +145,7 @@ private:
 		void addHashedFile(const string& aFilePathLower, const TigerTree& tt, const HashedFile& fi_);
 		void addFile(const string& aFilePathLower, const HashedFile& fi_);
 		void removeFile(const string& aFilePathLower);
-		void load(StepFunction stepF, ProgressFunction progressF, MessageFunction messageF);
+		void load(StartupLoader& aLoader);
 
 		void optimize(bool doVerify) noexcept;
 
@@ -164,7 +164,7 @@ private:
 
 		string getDbStats() noexcept;
 
-		void openDb(StepFunction stepF, MessageFunction messageF);
+		void openDb(StartupLoader& aLoader);
 		void closeDb() noexcept;
 
 		void onScheduleRepair(bool aSchedule);

@@ -67,8 +67,8 @@ static bool isNameChar(int c) {
 		;
 }
 
-SimpleXMLReader::ThreadedCallBack::ThreadedCallBack(const string& path) {
-	file.reset(new File(path, dcpp::File::READ, dcpp::File::OPEN, File::BUFFER_SEQUENTIAL, false));
+SimpleXMLReader::ThreadedCallBack::ThreadedCallBack(const string& aPath) : xmlPath(aPath) {
+	file.reset(new File(aPath, dcpp::File::READ, dcpp::File::OPEN, File::BUFFER_SEQUENTIAL, false));
 	size = file->getSize();
 }
 

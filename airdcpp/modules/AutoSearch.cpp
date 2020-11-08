@@ -32,8 +32,7 @@
 #include <boost/range/algorithm/max_element.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#define SHARE_SCANNER_ERROR_MISSING "error_missing"
-#define SHARE_SCANNER_ERROR_INVALID_CONTENT "error_invalid"
+#define SHARE_SCANNER_ERROR_MISSING "items_missing"
 
 namespace dcpp {
 
@@ -75,7 +74,7 @@ bool AutoSearch::hasHookFilesMissing(const ActionHookRejectionPtr& aRejection) n
 }
 
 bool AutoSearch::hasHookInvalidContent(const ActionHookRejectionPtr& aRejection) noexcept {
-	return !!aRejection && aRejection->rejectId == SHARE_SCANNER_ERROR_INVALID_CONTENT;
+	return !!aRejection && aRejection->rejectId != SHARE_SCANNER_ERROR_MISSING;
 }
 
 bool AutoSearch::allowNewItems() const noexcept {
