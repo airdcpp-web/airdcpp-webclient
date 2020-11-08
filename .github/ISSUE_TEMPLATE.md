@@ -10,7 +10,7 @@ By submitting this report, I thereby confirm that I have read the guidelines for
 
 Copy from *Settings* -> *About*
 
-UI related issues should also include the browser version.
+UI related issues should also include the browser version. Please ensure that you are using the latest application and UI versions that are available.
 
 ### Operating system:
 
