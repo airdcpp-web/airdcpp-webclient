@@ -22,10 +22,13 @@
 #include "stdinc.h"
 
 #include <airdcpp/CriticalSection.h>
+#include <airdcpp/Message.h>
 #include <airdcpp/Singleton.h>
 #include <airdcpp/Speaker.h>
+#include <airdcpp/UpdateManagerListener.h>
 #include <airdcpp/Util.h>
 
+#include <web-server/ExtensionListener.h>
 #include <web-server/ExtensionManagerListener.h>
 #include <web-server/WebServerManagerListener.h>
 
@@ -34,13 +37,21 @@ namespace dcpp {
 }
 
 namespace webserver {
-	class ExtensionManager: public Speaker<ExtensionManagerListener>, private WebServerManagerListener {
+	class NpmRepository;
+	class ExtensionManager: public Speaker<ExtensionManagerListener>, private WebServerManagerListener, private UpdateManagerListener, ExtensionListener {
 	public:
+
+#ifdef _WIN32
+		static const string localNodeDirectoryName;
+#endif
+
 		ExtensionManager(WebServerManager* aWsm);
 		~ExtensionManager();
 
 		// Load and start all managed extensions from disk
 		void load() noexcept;
+
+		void checkExtensionUpdates() const noexcept;
 
 		// Wait for the extensions to be ready
 		// (allow them to connect the socket, add listeners etc.)
@@ -75,6 +86,10 @@ namespace webserver {
 
 		// Parses the engine command param (command1;command2;...) and tests each token for an existing application
 		static string selectEngineCommand(const string& aEngineCommands) noexcept;
+
+		NpmRepository& getNpmRepository() noexcept {
+			return *npmRepository.get();
+		}
 	private:
 		bool removeExtension(const ExtensionPtr& aExtension) noexcept;
 		void onExtensionStateUpdated(const Extension* aExtension) noexcept;
@@ -88,6 +103,8 @@ namespace webserver {
 
 		typedef map<string, shared_ptr<HttpDownload>> HttpDownloadMap;
 		HttpDownloadMap httpDownloads;
+
+		unique_ptr<NpmRepository> npmRepository;
 
 		mutable SharedMutex cs;
 
@@ -103,6 +120,17 @@ namespace webserver {
 		void on(WebServerManagerListener::Stopping) noexcept override;
 		void on(WebServerManagerListener::Stopped) noexcept override;
 		void on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept override;
+
+		virtual void on(ExtensionListener::ExtensionStarted, const Extension*) noexcept override;
+		virtual void on(ExtensionListener::ExtensionStopped, const Extension*, bool /*aFailed*/) noexcept override;
+
+		virtual void on(ExtensionListener::SettingValuesUpdated, const Extension*, const SettingValueMap&) noexcept override;
+		virtual void on(ExtensionListener::SettingDefinitionsUpdated, const Extension*) noexcept override;
+		virtual void on(ExtensionListener::PackageUpdated, const Extension*) noexcept override;
+
+		void on(UpdateManagerListener::VersionFileDownloaded, SimpleXML& aXml) noexcept override;
+
+		void log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
 	};
 }
 

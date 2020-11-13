@@ -48,11 +48,11 @@ namespace webserver {
 		return Util::joinDirectory(getRootPath(), EXT_LOG_DIR) + "error.log";
 	}
 
-	Extension::Extension(const string& aPackageDirectory, ErrorF&& aErrorF, StateUpdatedF&& aStateUpdatedF, bool aSkipPathValidation) : stateUpdatedF(aStateUpdatedF), errorF(std::move(aErrorF)), managed(true) {
+	Extension::Extension(const string& aPackageDirectory, ErrorF&& aErrorF, bool aSkipPathValidation) : errorF(std::move(aErrorF)), managed(true) {
 		initializeThrow(aPackageDirectory, aSkipPathValidation);
 	}
 
-	Extension::Extension(const SessionPtr& aSession, const json& aPackageJson, StateUpdatedF&& aStateUpdatedF) : stateUpdatedF(aStateUpdatedF), managed(false), session(aSession) {
+	Extension::Extension(const SessionPtr& aSession, const json& aPackageJson) : managed(false), session(aSession) {
 		initializeThrow(aPackageJson);
 	}
 
@@ -63,7 +63,7 @@ namespace webserver {
 	void Extension::reloadThrow() {
 		initializeThrow(Util::joinDirectory(getRootPath(), EXT_PACKAGE_DIR), false);
 
-		fire(ExtensionListener::PackageUpdated());
+		fire(ExtensionListener::PackageUpdated(), this);
 	}
 
 	void Extension::initializeThrow(const string& aPackageDirectory, bool aSkipPathValidation) {
@@ -124,7 +124,7 @@ namespace webserver {
 			}
 
 			if (engines.empty()) {
-				engines.emplace_back("node");
+				engines.emplace_back(EXT_ENGINE_NODE);
 			}
 		}
 
@@ -196,7 +196,7 @@ namespace webserver {
 			settings.swap(aDefinitions);
 		}
 
-		fire(ExtensionListener::SettingDefinitionsUpdated());
+		fire(ExtensionListener::SettingDefinitionsUpdated(), this);
 	}
 
 	void Extension::resetSettings() noexcept {
@@ -206,7 +206,7 @@ namespace webserver {
 			userReferences.clear();
 		}
 
-		fire(ExtensionListener::SettingDefinitionsUpdated());
+		fire(ExtensionListener::SettingDefinitionsUpdated(), this);
 	}
 
 	void Extension::setValidatedSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences) noexcept {
@@ -225,7 +225,7 @@ namespace webserver {
 			userReferences.insert(aUserReferences.begin(), aUserReferences.end());
 		}
 
-		fire(ExtensionListener::SettingValuesUpdated(), aValues);
+		fire(ExtensionListener::SettingValuesUpdated(), this, aValues);
 	}
 
 	Extension::SettingValueMap Extension::getSettingValues() noexcept {
@@ -269,11 +269,7 @@ namespace webserver {
 		createProcessThrow(aEngine, wsm, session);
 
 		running = true;
-		fire(ExtensionListener::ExtensionStarted());
-
-		if (stateUpdatedF) {
-			stateUpdatedF(this);
-		}
+		fire(ExtensionListener::ExtensionStarted(), this);
 
 		// Monitor the running state of the script
 		timer = wsm->addTimer([this, wsm] { checkRunningState(wsm); }, 2500);
@@ -281,17 +277,7 @@ namespace webserver {
 	}
 
 	string Extension::getConnectUrl(WebServerManager* wsm) noexcept {
-		const auto& serverConfig = wsm->getPlainServerConfig();
-
-		auto bindAddress = serverConfig.bindAddress.str();
-		if (bindAddress.empty()) {
-			auto protocol = WebServerManager::getDefaultListenProtocol();
-			bindAddress = protocol == boost::asio::ip::tcp::v6() ? "[::1]" : "127.0.0.1";
-		} else {
-			bindAddress = wsm->resolveAddress(bindAddress, serverConfig.port.str());
-		}
-
-		return bindAddress + ":" + Util::toString(serverConfig.port.num()) + "/api/v1/";
+		return wsm->getLocalServerAddress(wsm->getPlainServerConfig()) + "/api/v1/";
 	}
 
 	StringList Extension::getLaunchParams(WebServerManager* wsm, const SessionPtr& aSession, bool aEscape) const noexcept {
@@ -393,7 +379,7 @@ namespace webserver {
 	}
 
 	void Extension::onStopped(bool aFailed) noexcept {
-		fire(ExtensionListener::ExtensionStopped(), aFailed);
+		fire(ExtensionListener::ExtensionStopped(), this, aFailed);
 		
 		dcdebug("Extension %s was stopped", name.c_str());
 		if (session) {
@@ -407,10 +393,6 @@ namespace webserver {
 
 		dcassert(running);
 		running = false;
-
-		if (stateUpdatedF) {
-			stateUpdatedF(this);
-		}
 	}
 #ifdef _WIN32
 	void Extension::initLog(HANDLE& aHandle, const string& aPath) {

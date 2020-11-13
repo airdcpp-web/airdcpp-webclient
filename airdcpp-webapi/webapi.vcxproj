@@ -252,6 +252,7 @@
     <ClInclude Include="web-server\JsonUtil.h" />
     <ClInclude Include="web-server\LazyInitWrapper.h" />
     <ClInclude Include="web-server\Access.h" />
+    <ClInclude Include="web-server\NpmRepository.h" />
     <ClInclude Include="web-server\Session.h" />
     <ClInclude Include="web-server\SessionListener.h" />
     <ClInclude Include="web-server\SystemUtil.h" />
@@ -341,6 +342,7 @@
     <ClCompile Include="web-server\FloodCounter.cpp" />
     <ClCompile Include="web-server\HttpUtil.cpp" />
     <ClCompile Include="web-server\JsonUtil.cpp" />
+    <ClCompile Include="web-server\NpmRepository.cpp" />
     <ClCompile Include="web-server\Session.cpp" />
     <ClCompile Include="web-server\SystemUtil.cpp" />
     <ClCompile Include="web-server\TarFile.cpp" />
