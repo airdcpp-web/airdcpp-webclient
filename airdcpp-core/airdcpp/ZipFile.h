@@ -114,7 +114,7 @@ public:
 
 	// Zip file creation
 	static void CreateZipFile(const string& dstPath, const StringPairList& files);
-	static void CreateZipFileList(StringPairList& files, const string& srcPath, const string& dstPath, const string& aPattern = Util::emptyString, bool keepEmpty = true) noexcept;
+	static int CreateZipFileList(StringPairList& files, const string& srcPath, const string& dstPath, const string& aPattern = Util::emptyString, bool keepEmpty = true) noexcept;
 
 	static void CreateZipFile(const string& dstPath, const string& srcDir, const string& aPattern = Util::emptyString, bool keepEmpty = true) {
 		StringPairList files;

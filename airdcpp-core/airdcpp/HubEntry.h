@@ -48,6 +48,8 @@ namespace dcpp {
 		GETSET(string, description, Description);
 		GETSET(string, password, Password);
 		GETSET(string, server, Server);
+
+		// GUI settings
 		GETSET(string, headerOrder, HeaderOrder);
 		GETSET(string, headerWidths, HeaderWidths);
 		GETSET(string, headerVisible, HeaderVisible);
@@ -56,12 +58,13 @@ namespace dcpp {
 		IGETSET(uint16_t, left, Left, 0);
 		IGETSET(uint16_t, right, Right, 0);
 
+		IGETSET(int, chatUserSplit, ChatUserSplit, 0);
+		IGETSET(bool, userliststate, UserListState, true);
+
 		IGETSET(ConnectState, connectState, ConnectState, STATE_DISCONNECTED);
 		IGETSET(ClientToken, currentHubToken, CurrentHubToken, 0);
 
 		IGETSET(bool, autoConnect, AutoConnect, true);
-		IGETSET(int, chatusersplit, ChatUserSplit, 0);
-		IGETSET(bool, userliststate, UserListState, true);
 		GETSET(string, group, Group);
 		GETSET(ProfileToken, token, Token);
 

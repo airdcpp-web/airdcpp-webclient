@@ -21,8 +21,8 @@
 
 namespace dcpp {
 
-HttpDownload::HttpDownload(const string& address, CompletionF f, bool v4only /*false*/) :
-	c(new HttpConnection(true, v4only)),
+HttpDownload::HttpDownload(const string& address, CompletionF f, const HttpOptions& aOptions) :
+	c(new HttpConnection(true, aOptions)),
 f(f)
 {
 	c->addListener(this);

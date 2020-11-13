@@ -1135,10 +1135,11 @@ bool QueueManager::addSource(const QueueItemPtr& qi, const HintedUser& aUser, Fl
 	qi->addSource(aUser);
 	userQueue.addQI(qi, aUser, isBad);
 
-#ifdef _WIN32
+#if defined(_WIN32) && defined(HAVE_GUI)
 	if ((!SETTING(SOURCEFILE).empty()) && (!SETTING(SOUNDS_DISABLED)))
 		PlaySound(Text::toT(SETTING(SOURCEFILE)).c_str(), NULL, SND_FILENAME | SND_ASYNC);
 #endif
+
 	if (qi->getBundle()) {
 		qi->getBundle()->setDirty();
 	}
