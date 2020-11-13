@@ -157,13 +157,13 @@ namespace webserver {
 		};
 	}
 
-	void ExtensionInfo::on(ExtensionListener::SettingValuesUpdated, const SettingValueMap& aUpdatedSettings) noexcept {
+	void ExtensionInfo::on(ExtensionListener::SettingValuesUpdated, const Extension*, const SettingValueMap& aUpdatedSettings) noexcept {
 		maybeSend("extension_settings_updated", [&aUpdatedSettings] {
 			return aUpdatedSettings;
 		});
 	}
 
-	void ExtensionInfo::on(ExtensionListener::SettingDefinitionsUpdated) noexcept {
+	void ExtensionInfo::on(ExtensionListener::SettingDefinitionsUpdated, const Extension*) noexcept {
 		onUpdated([&] {
 			return json({
 				{ "has_settings", extension->hasSettings() }
@@ -175,7 +175,7 @@ namespace webserver {
 		return Serializer::serializeList(aExtension->getLogs(), Serializer::serializeFilesystemItem);
 	}
 
-	void ExtensionInfo::on(ExtensionListener::ExtensionStarted) noexcept {
+	void ExtensionInfo::on(ExtensionListener::ExtensionStarted, const Extension*) noexcept {
 		onUpdated([&] {
 			return json({
 				{ "running", extension->isRunning() }
@@ -187,7 +187,7 @@ namespace webserver {
 		});
 	}
 
-	void ExtensionInfo::on(ExtensionListener::ExtensionStopped, bool) noexcept {
+	void ExtensionInfo::on(ExtensionListener::ExtensionStopped, const Extension*, bool) noexcept {
 		onUpdated([&] {
 			return json({
 				{ "running", extension->isRunning() }
@@ -199,7 +199,7 @@ namespace webserver {
 		});
 	}
 
-	void ExtensionInfo::on(ExtensionListener::PackageUpdated) noexcept {
+	void ExtensionInfo::on(ExtensionListener::PackageUpdated, const Extension*) noexcept {
 		onUpdated([&] {
 			return serializeExtension(extension);
 		});

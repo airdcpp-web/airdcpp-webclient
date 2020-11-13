@@ -34,16 +34,15 @@ namespace webserver {
 
 	class Extension : public Speaker<ExtensionListener> {
 	public:
-		typedef std::function<void(const Extension*)> StateUpdatedF;
 		typedef std::function<void(const Extension*, uint32_t /*exitCode*/)> ErrorF;
 
 		// Managed extension
 		// Throws on errors
-		Extension(const string& aPackageDirectory, ErrorF&& aErrorF, StateUpdatedF&& aStateUpdatedF, bool aSkipPathValidation = false);
+		Extension(const string& aPackageDirectory, ErrorF&& aErrorF, bool aSkipPathValidation = false);
 
 		// Unmanaged extension
 		// Throws on errors
-		Extension(const SessionPtr& aSession, const json& aPackageJson, StateUpdatedF&& aStateUpdatedF);
+		Extension(const SessionPtr& aSession, const json& aPackageJson);
 
 		~Extension();
 
@@ -61,6 +60,8 @@ namespace webserver {
 		// Check that the extension is compatible with the current API
 		// Throws on errors
 		void checkCompatibilityThrow();
+
+#define EXT_ENGINE_NODE "node"
 
 #define EXT_PACKAGE_DIR "package"
 #define EXT_CONFIG_DIR "settings"
@@ -147,7 +148,6 @@ namespace webserver {
 		void createProcessThrow(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession);
 
 		const ErrorF errorF;
-		const StateUpdatedF stateUpdatedF;
 		SessionPtr session = nullptr;
 
 		void checkRunningState(WebServerManager* wsm) noexcept;

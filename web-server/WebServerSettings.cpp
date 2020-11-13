@@ -42,5 +42,6 @@ namespace webserver {
 
 			{ "extensions_debug_mode", ResourceManager::WEB_CFG_EXTENSIONS_DEBUG_MODE, false, ApiSettingItem::TYPE_BOOLEAN, false },
 			{ "extensions_init_timeout", ResourceManager::WEB_CFG_EXTENSIONS_INIT_TIMEOUT, 5, ApiSettingItem::TYPE_NUMBER, false, { 1, 60 }, ResourceManager::SECONDS_LOWER },
+			{ "extensions_auto_update", ResourceManager::WEB_CFG_EXTENSIONS_AUTO_UPDATE, true, ApiSettingItem::TYPE_BOOLEAN, false },
 		}) {}
 }

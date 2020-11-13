@@ -37,12 +37,12 @@ namespace webserver {
 		typedef X<4> PackageUpdated;
 
 
-		virtual void on(ExtensionStarted) noexcept { }
-		virtual void on(ExtensionStopped, bool /*aFailed*/) noexcept { }
+		virtual void on(ExtensionStarted, const Extension*) noexcept { }
+		virtual void on(ExtensionStopped, const Extension*, bool /*aFailed*/) noexcept { }
 
-		virtual void on(SettingValuesUpdated, const SettingValueMap&) noexcept { }
-		virtual void on(SettingDefinitionsUpdated) noexcept { }
-		virtual void on(PackageUpdated) noexcept { }
+		virtual void on(SettingValuesUpdated, const Extension*, const SettingValueMap&) noexcept { }
+		virtual void on(SettingDefinitionsUpdated, const Extension*) noexcept { }
+		virtual void on(PackageUpdated, const Extension*) noexcept { }
 	};
 
 }

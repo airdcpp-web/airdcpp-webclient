@@ -44,11 +44,11 @@
 namespace webserver {
 	using namespace dcpp;
 	WebServerManager::WebServerManager() : 
-		ios(settings.getValue(WebServerSettings::SERVER_THREADS).getDefaultValue()),
-		tasks(settings.getValue(WebServerSettings::SERVER_THREADS).getDefaultValue()),
+		ios(settings.getSettingItem(WebServerSettings::SERVER_THREADS).getDefaultValue()),
+		tasks(settings.getSettingItem(WebServerSettings::SERVER_THREADS).getDefaultValue()),
 		work(tasks),
-		plainServerConfig(settings.getValue(WebServerSettings::PLAIN_PORT), settings.getValue(WebServerSettings::PLAIN_BIND)),
-		tlsServerConfig(settings.getValue(WebServerSettings::TLS_PORT), settings.getValue(WebServerSettings::TLS_BIND))
+		plainServerConfig(settings.getSettingItem(WebServerSettings::PLAIN_PORT), settings.getSettingItem(WebServerSettings::PLAIN_BIND)),
+		tlsServerConfig(settings.getSettingItem(WebServerSettings::TLS_PORT), settings.getSettingItem(WebServerSettings::TLS_BIND))
 	{
 
 		fileServer.setResourcePath(Util::getPath(Util::PATH_RESOURCES) + "web-resources" + PATH_SEPARATOR);
@@ -155,7 +155,13 @@ namespace webserver {
 			has_io_service = initialize(errorF);
 		}
 
-		return listen(errorF);
+		if (!listen(errorF)) {
+			// Stop possible running ios services
+			stop();
+			return false;
+		}
+
+		return true;
 	}
 
 	bool WebServerManager::initialize(const ErrorF& errorF) {
@@ -209,7 +215,11 @@ namespace webserver {
 			return false;
 		}
 
+		// Keep reuse disabled on Windows to avoid hiding errors when multiple instances are being run with the same ports
+#ifndef _WIN32
+		// https://github.com/airdcpp-web/airdcpp-webclient/issues/39
 		aEndpoint.set_reuse_addr(true);
+#endif
 		try {
 			const auto bindAddress = aConfig.bindAddress.str();
 			if (!bindAddress.empty()) {
@@ -499,6 +509,46 @@ namespace webserver {
 		return [this](const string& aMessage) {
 			log(aMessage, LogMessage::SEV_ERROR);
 		};
+	}
+
+	string WebServerManager::getLocalServerHttpUrl() noexcept {
+		bool isPlain = isListeningPlain();
+		decltype(auto) config = isPlain ? plainServerConfig : tlsServerConfig;
+		return (isPlain ? "http://" : "https://") + getLocalServerAddress(config);
+	}
+
+	bool WebServerManager::isAnyAddress(const string& aAddress) noexcept {
+		if (aAddress.empty()) {
+			return true;
+		}
+
+		try {
+			auto ip = boost::asio::ip::make_address(aAddress);
+			if (ip == boost::asio::ip::address_v4::any() || ip == boost::asio::ip::address_v6::any()) {
+				return true;
+			}
+		} catch (...) {
+			return true;
+		}
+
+		return false;
+	}
+
+	string WebServerManager::getLocalServerAddress(const ServerConfig& aConfig) noexcept {
+		auto bindAddress = aConfig.bindAddress.str();
+		if (isAnyAddress(bindAddress)) {
+			websocketpp::lib::asio::error_code ec;
+			auto isV6 = endpoint_plain.get_local_endpoint(ec).protocol().family() == AF_INET6;
+			if (ec) {
+				dcassert(0);
+			}
+
+			bindAddress = isV6 ? "[::1]" : "127.0.0.1";
+		} else {
+			bindAddress = resolveAddress(bindAddress, aConfig.port.str());
+		}
+
+		return bindAddress + ":" + Util::toString(aConfig.port.num());
 	}
 
 	string WebServerManager::resolveAddress(const string& aHostname, const string& aPort) noexcept {
