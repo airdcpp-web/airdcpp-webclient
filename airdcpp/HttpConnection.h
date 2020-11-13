@@ -21,6 +21,8 @@
 
 #include "BufferedSocketListener.h"
 #include "HttpConnectionListener.h"
+
+#include "GetSet.h"
 #include "Speaker.h"
 #include "Util.h"
 
@@ -28,10 +30,18 @@ namespace dcpp {
 
 using std::string;
 
+class HttpOptions {
+public:
+	IGETSET(bool, isUnique, IsUnique, false);
+	IGETSET(bool, v4Only, V4Only, false);
+	GETSET(StringPairList, headers, Headers);
+};
+
+
 class HttpConnection : BufferedSocketListener, public Speaker<HttpConnectionListener>, boost::noncopyable
 {
 public:
-	HttpConnection(bool aIsUnique = false, bool v4only = false);
+	HttpConnection(bool aIsUnique = false, const HttpOptions& aOptions = HttpOptions());
 	virtual ~HttpConnection();
 
 	void downloadFile(const string& aUrl);
@@ -75,7 +85,7 @@ private:
 	void on(ModeChange) noexcept;
 	void on(Failed, const string&) noexcept;
 	const bool isUnique;
-	const bool v4only;
+	const HttpOptions options;
 };
 
 } // namespace dcpp

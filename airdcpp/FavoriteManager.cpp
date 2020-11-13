@@ -598,16 +598,18 @@ void FavoriteManager::saveFavoriteHubs(SimpleXML& aXml) const noexcept {
 			aXml.addChildAttrib("Description", i->getDescription());
 			aXml.addChildAttrib("Password", i->getPassword());
 			aXml.addChildAttrib("Server", i->getServer());
+			aXml.addChildAttrib("Group", i->getGroup());
 			aXml.addChildAttrib("ChatUserSplit", i->getChatUserSplit());
 			aXml.addChildAttrib("UserListState", i->getUserListState());
+#ifdef HAVE_GUI
 			aXml.addChildAttrib("HubFrameOrder", i->getHeaderOrder());
 			aXml.addChildAttrib("HubFrameWidths", i->getHeaderWidths());
 			aXml.addChildAttrib("HubFrameVisible", i->getHeaderVisible());
-			aXml.addChildAttrib("Group", i->getGroup());
 			aXml.addChildAttrib("Bottom", Util::toString(i->getBottom()));
 			aXml.addChildAttrib("Top", Util::toString(i->getTop()));
 			aXml.addChildAttrib("Right", Util::toString(i->getRight()));
 			aXml.addChildAttrib("Left", Util::toString(i->getLeft()));
+#endif
 			i->save(aXml);
 		}
 	}
@@ -701,6 +703,7 @@ void FavoriteManager::loadFavoriteHubs(SimpleXML& aXml) {
 
 			e->setChatUserSplit(aXml.getIntChildAttrib("ChatUserSplit"));
 			e->setUserListState(aXml.getBoolChildAttrib("UserListState"));
+#ifdef HAVE_GUI
 			e->setHeaderOrder(aXml.getChildAttrib("HubFrameOrder", SETTING(HUBFRAME_ORDER)));
 			e->setHeaderWidths(aXml.getChildAttrib("HubFrameWidths", SETTING(HUBFRAME_WIDTHS)));
 			e->setHeaderVisible(aXml.getChildAttrib("HubFrameVisible", SETTING(HUBFRAME_VISIBLE)));
@@ -708,6 +711,7 @@ void FavoriteManager::loadFavoriteHubs(SimpleXML& aXml) {
 			e->setTop((uint16_t)aXml.getIntChildAttrib("Top"));
 			e->setRight((uint16_t)aXml.getIntChildAttrib("Right"));
 			e->setLeft((uint16_t)aXml.getIntChildAttrib("Left"));
+#endif
 			e->setGroup(aXml.getChildAttrib("Group"));
 			if (aXml.getBoolChildAttrib("HideShare")) {
 				// For compatibility with very old favorites

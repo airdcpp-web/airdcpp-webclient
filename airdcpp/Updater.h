@@ -35,10 +35,13 @@ class Updater {
 
 #define UPDATE_TEMP_DIR Util::getTempPath() + "Updater" + PATH_SEPARATOR_STR
 #define UPDATE_TEMP_LOG Util::getTempPath() + "airdcpp_updater.log"
+#define UPDATE_FINAL_LOG Util::getPath(Util::PATH_USER_LOCAL) + "updater.log"
 
 //#define FORCE_UPDATE
 
 public:
+	typedef std::function<void(StringPairList& files_, const string& aUpdateFilePath)> FileListF;
+
 	class FileLogger {
 	public:
 		FileLogger(const string& aPath, bool aResetFile);
@@ -54,7 +57,7 @@ public:
 
 	// Create an updater zip file from the current application (it must be in the default "compiled" path)
 	// Returns the path of the created updater file
-	static string createUpdate() noexcept;
+	static string createUpdate(const FileListF& aFileListF) noexcept;
 
 	// Returns true if there are pending updates available for this instance
 	// This will also remove obsolate updater directories for this instance

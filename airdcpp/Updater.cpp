@@ -219,22 +219,19 @@ bool Updater::applyUpdate(const string& aSourcePath, const string& aApplicationP
 	return true;
 }
 
-string Updater::createUpdate() noexcept {
+string Updater::createUpdate(const FileListF& aFileListF) noexcept {
 	auto updaterFilePath = Util::getParentDir(Util::getAppPath());
 	string updaterFile = "updater_" ARCH_STR "_" + VERSIONSTRING + ".zip";
 
-	StringPairList files;
-	ZipFile::CreateZipFileList(files, Util::getAppFilePath(), Util::emptyString, "^(AirDC.exe|AirDC.pdb)$");
+	// Create zip
+	{
+		StringPairList files;
 
-	//add the theme folder
-	auto installer = Util::getParentDir(updaterFilePath) + "installer" + PATH_SEPARATOR;
-	ZipFile::CreateZipFileList(files, installer, Util::emptyString, "^(Themes)$");
-	//Add the web-resources
-	ZipFile::CreateZipFileList(files, installer, Util::emptyString, "^(Web-resources)$");
-	ZipFile::CreateZipFileList(files, installer, Util::emptyString, "^(EmoPacks)$");
+		aFileListF(files, updaterFilePath);
+		ZipFile::CreateZipFile(updaterFilePath + updaterFile, files);
+	}
 
-	ZipFile::CreateZipFile(updaterFilePath + updaterFile, files);
-
+	// Update version file
 	try {
 		SimpleXML xml;
 		xml.fromXML(File(updaterFilePath + "version.xml", File::READ, File::OPEN).read());
@@ -417,7 +414,7 @@ string Updater::extractUpdater(const string& aUpdaterPath, int aBuildID, const s
 	if (zip.GoToFirstFile()) {
 		do {
 			zip.OpenCurrentFile();
-			if (zip.GetCurrentFileName().find(Util::getFileExt(updaterExeFile)) != string::npos) {
+			if (zip.GetCurrentFileName().find(Util::getFileExt(updaterExeFile)) != string::npos && zip.GetCurrentFileName().find('/') == string::npos) {
 				zip.ReadCurrentFile(updaterExeFile);
 			} else zip.ReadCurrentFile(srcPath);
 			zip.CloseCurrentFile();

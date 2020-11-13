@@ -29,15 +29,15 @@
 
 namespace dcpp {
 
-HttpConnection::HttpConnection(bool aIsUnique, bool aV4only /*false*/) :
+HttpConnection::HttpConnection(bool aIsUnique, const HttpOptions& aOptions) :
 port("80"),
 isUnique(aIsUnique),
-v4only(aV4only)
+options(aOptions)
 {
 }
 
 HttpConnection::~HttpConnection() {
-	if(socket) {
+	if (socket) {
 		abortRequest(true);
 	}
 }
@@ -63,7 +63,7 @@ void HttpConnection::postData(const string& aUrl, const StringMap& aData) {
 	currentUrl = aUrl;
 	requestBody.clear();
 
-	for(StringMap::const_iterator i = aData.begin(); i != aData.end(); ++i)
+	for (StringMap::const_iterator i = aData.begin(); i != aData.end(); ++i)
 		requestBody += "&" + Util::encodeURI(i->first) + "=" + Util::encodeURI(i->second);
 
 	if (!requestBody.empty()) requestBody = requestBody.substr(1);
@@ -83,34 +83,37 @@ void HttpConnection::prepareRequest(RequestType type) {
 	method = (connType == TYPE_POST) ? "POST" : "GET";
 
 	// set download type
-	if(Util::stricmp(currentUrl.substr(currentUrl.size() - 4).c_str(), ".bz2") == 0) {
+	if (Util::stricmp(currentUrl.substr(currentUrl.size() - 4).c_str(), ".bz2") == 0) {
 		mimeType = "application/x-bzip2";
-	} else mimeType.clear();
+	}
+	else mimeType.clear();
 
 	string proto, fragment;
 	if (SETTING(HTTP_PROXY).empty()) {
 		Util::decodeUrl(currentUrl, proto, server, port, file, query, fragment);
-		if(file.empty())
+		if (file.empty())
 			file = "/";
-	} else {
+	}
+	else {
 		Util::decodeUrl(SETTING(HTTP_PROXY), proto, server, port, file, query, fragment);
 		file = currentUrl;
 	}
 
-	if(!query.empty())
+	if (!query.empty())
 		file += '?' + query;
 
-	if(port.empty())
+	if (port.empty())
 		port = "80";
 
-	if(!socket)
-		socket = BufferedSocket::getSocket(0x0a, v4only);
+	if (!socket)
+		socket = BufferedSocket::getSocket(0x0a, options.getV4Only());
 
 
 	socket->addListener(this);
 	try {
 		socket->connect(AddressInfo(server, AddressInfo::TYPE_URL), port, (proto == "https"), true, false);
-	} catch(const Exception& e) {
+	}
+	catch (const Exception& e) {
 		fire(HttpConnectionListener::Failed(), this, e.getError() + " (" + currentUrl + ")");
 		connState = CONN_FAILED;
 		if (isUnique) delete this;
@@ -121,7 +124,7 @@ void HttpConnection::abortRequest(bool disconnect) {
 	dcassert(socket);
 
 	socket->removeListener(this);
-	if(disconnect) socket->disconnect();
+	if (disconnect) socket->disconnect();
 
 	BufferedSocket::putSocket(socket);
 	socket = nullptr;
@@ -130,7 +133,13 @@ void HttpConnection::abortRequest(bool disconnect) {
 void HttpConnection::on(BufferedSocketListener::Connected) noexcept {
 	dcassert(socket);
 	socket->write("GET " + file + " HTTP/1.1\r\n");
-	socket->write("User-Agent: Airdcpp/" + static_cast<string>(VERSIONSTRING) + " " + Util::getOsVersion(true) + "\r\n");
+
+	const auto addHeader = [&](const string& aKey, const string& aValue) {
+		const auto value = aKey + ": " + aValue + "\r\n";
+		socket->write(aKey + ": " + aValue + "\r\n");
+	};
+
+	addHeader("User-Agent", "Airdcpp/" + static_cast<string>(VERSIONSTRING) + " " + Util::getOsVersion(true));
 
 	string sRemoteServer = server;
 	if(!SETTING(HTTP_PROXY).empty())
@@ -139,9 +148,15 @@ void HttpConnection::on(BufferedSocketListener::Connected) noexcept {
 		Util::decodeUrl(file, proto, sRemoteServer, tport, tfile, queryTmp, fragment);
 	}
 
-	socket->write("Host: " + sRemoteServer + "\r\n");
-	socket->write("Connection: close\r\n");	// we'll only be doing one request
-	socket->write("Cache-Control: no-cache\r\n\r\n");
+	addHeader("Host", sRemoteServer);
+	addHeader("Connection", "close"); // we'll only be doing one request
+
+	for (const auto& h: options.getHeaders()) {
+		addHeader(h.first, h.second);
+	}
+
+	addHeader("Cache-Control", "no-cache");
+	socket->write("\r\n");
 	if (connType == TYPE_POST) socket->write(requestBody);
 }
 

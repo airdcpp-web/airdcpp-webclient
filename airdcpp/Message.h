@@ -140,6 +140,8 @@ struct Message {
 	const Type type;
 };
 
+typedef std::function<void(const string&, LogMessage::Severity)> ModuleLogger;
+
 } // namespace dcpp
 
 #endif // !defined(DCPLUSPLUS_DCPP_CHAT_MESSAGE_H)
