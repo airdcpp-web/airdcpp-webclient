@@ -91,8 +91,8 @@ bool messageF(const string& aStr, bool isQuestion, bool isError) {
 	return true;
 }
 
-void stepF(const string& aStr) { 
-	printf("Loading %s\n", aStr.c_str()); 
+void stepF(const string& aStr) {
+	printf("Loading %s\n", aStr.c_str());
 }
 
 void progressF(float aProgress) {
@@ -118,13 +118,13 @@ bool Client::startup() {
 		nullptr, // module init
 		[&](StartupLoader& aLoader) { // module load
 			auto webResources = Util::getStartupParam("--web-resources");
-        	aLoader.stepF(STRING(WEB_SERVER));
-        	serverStarted = wsm->startup(
-                webErrorF,
-                webResources ? *webResources : "",
-                [this]() { stop(); }
-        	);
-			
+			aLoader.stepF(STRING(WEB_SERVER));
+			serverStarted = wsm->startup(
+				webErrorF,
+				webResources ? *webResources : "",
+				[this]() { stop(); }
+			);
+
 			wsm->waitExtensionsLoaded();
 		}
 	);

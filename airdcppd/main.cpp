@@ -54,8 +54,8 @@ static void uninit() {
 }
 
 static void handleCrash(int sig) {
-    if(crashed)
-        abort();
+	if(crashed)
+		abort();
 
 	crashed = true;
 
