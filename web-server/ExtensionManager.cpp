@@ -45,8 +45,6 @@ namespace webserver {
 	ExtensionManager::ExtensionManager(WebServerManager* aWsm) : wsm(aWsm) {
 		wsm->addListener(this);
 
-		UpdateManager::getInstance()->addListener(this);
-
 		engines = {
 #ifdef _WIN32
 			{ EXT_ENGINE_NODE, "./" + localNodeDirectoryName + "/node.exe;node" },
@@ -64,7 +62,6 @@ namespace webserver {
 
 	ExtensionManager::~ExtensionManager() {
 		wsm->removeListener(this);
-		UpdateManager::getInstance()->removeListener(this);
 	}
 
 	void ExtensionManager::log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
@@ -73,6 +70,9 @@ namespace webserver {
 	}
 
 	void ExtensionManager::on(WebServerManagerListener::Started) noexcept {
+		// Don't add in the constructor as core may not have been initialized at that point
+		UpdateManager::getInstance()->addListener(this);
+
 		load();
 		fire(ExtensionManagerListener::Started());
 	}
@@ -95,6 +95,7 @@ namespace webserver {
 			}
 		}
 
+		UpdateManager::getInstance()->removeListener(this);
 		fire(ExtensionManagerListener::Stopped());
 	}
 
