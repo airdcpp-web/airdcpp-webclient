@@ -131,6 +131,8 @@ namespace webserver {
 		void on(UpdateManagerListener::VersionFileDownloaded, SimpleXML& aXml) noexcept override;
 
 		void log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
+
+		TimerPtr updateCheckTask = nullptr;
 	};
 }
 

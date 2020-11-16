@@ -78,6 +78,10 @@ namespace webserver {
 	}
 
 	void ExtensionManager::on(WebServerManagerListener::Stopping) noexcept {
+		if (updateCheckTask) {
+			updateCheckTask->stop(true);
+		}
+
 		{
 			RLock l(cs);
 			for (const auto& ext: extensions) {
@@ -100,6 +104,17 @@ namespace webserver {
 	}
 
 	void ExtensionManager::on(WebServerManagerListener::Stopped) noexcept {
+		for (;;) {
+			{
+				RLock l(cs);
+				if (httpDownloads.empty()) {
+					break;
+				}
+			}
+
+			Thread::sleep(50);
+		}
+
 		WLock l(cs);
 		dcassert(all_of(extensions.begin(), extensions.end(), [](const ExtensionPtr& aExtension) { return !aExtension->getSession(); }));
 		extensions.clear();
@@ -134,7 +149,18 @@ namespace webserver {
 
 	void ExtensionManager::on(UpdateManagerListener::VersionFileDownloaded, SimpleXML& aXml) noexcept {
 		if (WEBCFG(EXTENSIONS_AUTO_UPDATE).boolean()) {
-			checkExtensionUpdates();
+			// Wait 10 seconds so that the extensions aren't updated right after they were started
+			// (stopping the extensions may fail in such case)
+			updateCheckTask = wsm->addTimer([this] {
+				checkExtensionUpdates();
+
+				updateCheckTask->stop(true);
+				wsm->addAsyncTask([this] {
+					updateCheckTask.reset();
+				});
+			}, 10000);
+
+			updateCheckTask->start(false);
 		}
 	}
 
@@ -443,7 +469,7 @@ namespace webserver {
 
 		fire(ExtensionManagerListener::InstallationFailed(), aInstallId, msg);
 
-		log(STRING_F(WEB_EXTENSION_INSTALLATION_FAILED, msg), LogMessage::SEV_ERROR);
+		log(STRING_F(WEB_EXTENSION_INSTALLATION_FAILED, aInstallId % msg), LogMessage::SEV_ERROR);
 	}
 
 	ExtensionPtr ExtensionManager::registerRemoteExtensionThrow(const SessionPtr& aSession, const json& aPackageJson) {

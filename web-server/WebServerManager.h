@@ -72,9 +72,12 @@ namespace webserver {
 
 	class WebServerManager : public dcpp::Singleton<WebServerManager>, public Speaker<WebServerManagerListener> {
 	public:
+		// Add a scheduled task
+		// Note: the returned timer pointer must be kept alive by the caller while the timer is active
 		TimerPtr addTimer(CallBack&& aCallBack, time_t aIntervalMillis, const Timer::CallbackWrapper& aCallbackWrapper = nullptr) noexcept;
+
+		// Run a task in the task thread pool
 		void addAsyncTask(CallBack&& aCallBack) noexcept;
-		void setDirty() noexcept;
 
 		WebServerManager();
 		~WebServerManager();
@@ -84,16 +87,24 @@ namespace webserver {
 		// Leave the path empty to use the default resource path
 		bool startup(const ErrorF& errorF, const string& aWebResourcePath, const CallBack& aShutdownF);
 
+		// Start the server 
+		// Throws Exception on errors
 		bool start(const ErrorF& errorF);
-		void stop();
+		void stop() noexcept;
 
+		// Disconnect all sockets
 		void disconnectSockets(const std::string& aMessage) noexcept;
 
 		// Reset sessions for associated sockets
 		WebSocketPtr getSocket(LocalSessionId aSessionToken) noexcept;
 
+		void setDirty() noexcept;
 		bool load(const ErrorF& aErrorF) noexcept;
 		bool save(const ErrorF& aErrorF) noexcept;
+		string getConfigFilePath() const noexcept;
+		WebServerSettings& getSettings() noexcept {
+			return settings;
+		}
 
 		WebUserManager& getUserManager() noexcept {
 			return *userManager.get();
@@ -119,9 +130,13 @@ namespace webserver {
 			return tlsServerConfig;
 		}
 
-		string getConfigPath() const noexcept;
+		// Get location of the file server root directory (Web UI files)
 		string getResourcePath() const noexcept {
 			return fileServer.getResourcePath();
+		}
+
+		const FileServer& getFileServer() const noexcept {
+			return fileServer;
 		}
 
 		bool isRunning() const noexcept;
@@ -131,13 +146,29 @@ namespace webserver {
 
 		static boost::asio::ip::tcp getDefaultListenProtocol() noexcept;
 
+		// Get the function for shutting down the application
 		const CallBack getShutdownF() const noexcept {
 			return shutdownF;
 		}
 
+		// Logging
+		void log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
+		ErrorF getDefaultErrorLogger() const noexcept;
+
+		// Address utils
+		string resolveAddress(const string& aHostname, const string& aPort) noexcept;
+		string getLocalServerHttpUrl() noexcept;
+		string getLocalServerAddress(const ServerConfig& aConfig) noexcept;
+		static bool isAnyAddress(const string& aAddress) noexcept;
+
 		// For command debugging
 		void onData(const string& aData, TransportType aType, Direction aDirection, const string& aIP) noexcept;
 
+		template <typename EndpointType>
+		void logDebugError(EndpointType* s, const string& aMessage, websocketpp::log::level aErrorLevel) {
+			s->get_elog().write(aErrorLevel, aMessage);
+		}
+	private:
 		// Websocketpp event handlers
 		template <typename EndpointType>
 		void handleSocketConnected(EndpointType* aServer, websocketpp::connection_hdl hdl, bool aIsSecure) {
@@ -166,12 +197,6 @@ namespace webserver {
 
 			onData(msg->get_payload(), TransportType::TYPE_SOCKET, Direction::INCOMING, socket->getIp());
 			api.handleSocketRequest(msg->get_payload(), socket, aIsSecure);
-		}
-
-
-		template <typename EndpointType>
-		void logDebugError(EndpointType* s, const string& aMessage, websocketpp::log::level aErrorLevel) {
-			s->get_elog().write(aErrorLevel, aMessage);
 		}
 
 		template <typename EndpointType>
@@ -296,22 +321,19 @@ namespace webserver {
 			}
 		}
 
-		void log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
-		ErrorF getDefaultErrorLogger() const noexcept;
+		template<class T>
+		void setEndpointHandlers(T& aEndpoint, bool aIsSecure, WebServerManager* aServer) {
+			aEndpoint.set_http_handler(
+				std::bind(&WebServerManager::handleHttpRequest<T>, aServer, &aEndpoint, _1, aIsSecure));
+			aEndpoint.set_message_handler(
+				std::bind(&WebServerManager::handleSocketMessage<T>, aServer, &aEndpoint, _1, _2, aIsSecure));
 
-		string resolveAddress(const string& aHostname, const string& aPort) noexcept;
-		string getLocalServerHttpUrl() noexcept;
-		string getLocalServerAddress(const ServerConfig& aConfig) noexcept;
-		static bool isAnyAddress(const string& aAddress) noexcept;
+			aEndpoint.set_close_handler(std::bind(&WebServerManager::handleSocketDisconnected, aServer, _1));
+			aEndpoint.set_open_handler(std::bind(&WebServerManager::handleSocketConnected<T>, aServer, &aEndpoint, _1, aIsSecure));
 
-		WebServerSettings& getSettings() noexcept {
-			return settings;
+			aEndpoint.set_pong_timeout_handler(std::bind(&WebServerManager::handlePongTimeout, aServer, _1, _2));
 		}
 
-		const FileServer& getFileServer() const noexcept {
-			return fileServer;
-		}
-	private:
 		WebServerSettings settings;
 
 		context_ptr handleInitTls(websocketpp::connection_hdl hdl);
