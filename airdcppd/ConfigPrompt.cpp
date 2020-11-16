@@ -72,7 +72,7 @@ ConfigPrompt::ConfigF ConfigPrompt::checkArgs() {
 		std::cout << std::endl;
 		if (save) {
 			if (wsm->save(errorF)) {
-				cout << toBold("Configuration was written to " + wsm->getConfigPath()) << std::endl;
+				cout << toBold("Configuration was written to " + wsm->getConfigFilePath()) << std::endl;
 			}
 		}
 	};
