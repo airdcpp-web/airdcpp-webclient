@@ -1884,7 +1884,7 @@ enum Strings { // @DontAdd
 	WEB_EXTENSION_START_ERROR, // "Failed to start the extension %1%: %2%"
 	WEB_EXTENSION_INSTALLED, // "Extension %1% was installed successfully"
 	WEB_EXTENSION_UPDATED, // "Extension %1% was updated successfully"
-	WEB_EXTENSION_INSTALLATION_FAILED, // "Extension installation failed: %1%"
+	WEB_EXTENSION_INSTALLATION_FAILED, // "Failed to install the extension %1%: %2%"
 	WEB_EXTENSION_EXISTS, // "Extension with the same name exists already"
 	WEB_EXTENSION_EXITED, // "Extension %1% has exited (see the extension log %2% for error details)"
 	WEB_EXTENSION_TIMED_OUT, // "Extension %1% timed out and was restarted"
