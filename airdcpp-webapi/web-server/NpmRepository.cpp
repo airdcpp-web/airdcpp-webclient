@@ -25,6 +25,7 @@
 #include <airdcpp/HttpDownload.h>
 #include <airdcpp/ResourceManager.h>
 #include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/Thread.h>
 
 
 namespace webserver {
@@ -35,7 +36,16 @@ namespace webserver {
 	}
 
 	NpmRepository::~NpmRepository() {
+		for (;;) {
+			{
+				RLock l(cs);
+				if (httpDownloads.empty()) {
+					break;
+				}
+			}
 
+			Thread::sleep(50);
+		}
 	}
 
 	void NpmRepository::checkUpdates(const string& aName, const string& aCurrentVersion) noexcept {

@@ -34,11 +34,12 @@ namespace webserver {
 			timer(aIO),
 			cbWrapper(aWrapper)
 		{
-
+			dcdebug("Timer %p was created\n", this);
 		}
 
 		~Timer() {
 			stop(true);
+			dcdebug("Timer %p was destroyed\n", this);
 		}
 
 		bool start(bool aInstantTick) {

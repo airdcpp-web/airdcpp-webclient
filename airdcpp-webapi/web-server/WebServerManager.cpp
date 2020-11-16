@@ -68,7 +68,7 @@ namespace webserver {
 		userManager.reset();
 	}
 
-	string WebServerManager::getConfigPath() const noexcept {
+	string WebServerManager::getConfigFilePath() const noexcept {
 		return Util::getPath(CONFIG_DIR) + CONFIG_NAME;
 	}
 
@@ -116,20 +116,11 @@ namespace webserver {
 		aEndpoint.get_elog().set_ostream(&aStream);
 	}
 
+
 	template<class T>
-	void setEndpointHandlers(T& aEndpoint, bool aIsSecure, WebServerManager* aServer) {
-		aEndpoint.set_http_handler(
-			std::bind(&WebServerManager::handleHttpRequest<T>, aServer, &aEndpoint, _1, aIsSecure));
-		aEndpoint.set_message_handler(
-			std::bind(&WebServerManager::handleSocketMessage<T>, aServer, &aEndpoint, _1, _2, aIsSecure));
-
-		aEndpoint.set_close_handler(std::bind(&WebServerManager::handleSocketDisconnected, aServer, _1));
-		aEndpoint.set_open_handler(std::bind(&WebServerManager::handleSocketConnected<T>, aServer, &aEndpoint, _1, aIsSecure));
-
+	void setEndpointOptions(T& aEndpoint) {
 		aEndpoint.set_open_handshake_timeout(HANDSHAKE_TIMEOUT);
-
 		aEndpoint.set_pong_timeout(WEBCFG(PING_TIMEOUT).num() * 1000);
-		aEndpoint.set_pong_timeout_handler(std::bind(&WebServerManager::handlePongTimeout, aServer, _1, _2));
 
 		// Workaround for https://github.com/zaphoyd/websocketpp/issues/549
 		aEndpoint.set_listen_backlog(boost::asio::socket_base::max_connections);
@@ -185,6 +176,10 @@ namespace webserver {
 		// Handlers
 		setEndpointHandlers(endpoint_plain, false, this);
 		setEndpointHandlers(endpoint_tls, true, this);
+
+		// Misc options
+		setEndpointOptions(endpoint_plain);
+		setEndpointOptions(endpoint_tls);
 
 		// TLS endpoint has an extra handler for the tls init
 		endpoint_tls.set_tls_init_handler(std::bind(&WebServerManager::handleInitTls, this, _1));
@@ -394,7 +389,7 @@ namespace webserver {
 		}
 	}
 
-	void WebServerManager::stop() {
+	void WebServerManager::stop() noexcept {
 		fileServer.stop();
 
 		if (minuteTimer)
@@ -411,19 +406,15 @@ namespace webserver {
 
 		disconnectSockets(STRING(WEB_SERVER_SHUTTING_DOWN));
 
-		bool hasSockets = false;
-
 		for (;;) {
 			{
 				RLock l(cs);
-				hasSockets = !sockets.empty();
+				if (sockets.empty()) {
+					break;
+				}
 			}
 
-			if (hasSockets) {
-				Thread::sleep(50);
-			} else {
-				break;
-			}
+			Thread::sleep(50);
 		}
 
 		ios.stop();
