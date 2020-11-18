@@ -241,9 +241,13 @@ public:
 	// Returns empty string in case of errors
 	string getADCSearchHubUrl(const CID& aCID, const string& aHubIpPort) const noexcept;
 
-	// Get NMDC user + hub URL for UDP commands
+	// Get NMDC user + hub URL for UDP commands encoded in legacy encoding
 	// Returns null user in case of errors
-	HintedUser getNmdcSearchHintedUser(const string& aNick, const string& aHubIpPort, const string& aUserIP, string& encoding_) noexcept;
+	HintedUser getNmdcSearchHintedUserEncoded(const string& aNick, const string& aHubIpPort, const string& aUserIP, string& encoding_) noexcept;
+
+	// Get NMDC user + hub URL for UDP commands encoded in UTF-8
+	// Returns null user in case of errors
+	HintedUser getNmdcSearchHintedUserUtf8(const string& aUtf8Nick, const string& aHubIpPort, const string& aUserIP) noexcept;
 
 	//return users supporting the ASCH extension (and total users)
 	pair<size_t, size_t> countAschSupport(const OrderedStringSet& aHubs) const noexcept;

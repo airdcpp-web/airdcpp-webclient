@@ -1464,7 +1464,7 @@ string ClientManager::getADCSearchHubUrl(const CID& aCID, const string& aHubIpPo
 	return hubUrl;
 }
 
-HintedUser ClientManager::getNmdcSearchHintedUser(const string& aNick, const string& aHubIpPort, const string& aUserIP, string& encoding_) noexcept {
+HintedUser ClientManager::getNmdcSearchHintedUserEncoded(const string& aNick, const string& aHubIpPort, const string& aUserIP, string& encoding_) noexcept {
 	HintedUser ret;
 	ret.hint = findHub(aHubIpPort, true);
 	if (ret.hint.empty()) {
@@ -1489,8 +1489,27 @@ HintedUser ClientManager::getNmdcSearchHintedUser(const string& aNick, const str
 	return ret;
 }
 
+HintedUser ClientManager::getNmdcSearchHintedUserUtf8(const string& aUtf8Nick, const string& aHubIpPort, const string& aUserIP) noexcept {
+	auto hubUrl = ClientManager::getInstance()->findHub(aHubIpPort, true);
+	if (!hubUrl.empty()) {
+		auto u = ClientManager::getInstance()->findUser(aUtf8Nick, hubUrl);
+		if (u) {
+			setIPUser(u, aUserIP);
+			return HintedUser(u, hubUrl);
+		}
+	}
+
+	// Could happen if hub has multiple URLs / IPs
+	auto ret = ClientManager::getInstance()->findLegacyUser(aUtf8Nick);
+	if (ret) {
+		setIPUser(ret, aUserIP);
+	}
+
+	return ret;
+}
+
 bool ClientManager::connectNMDCSearchResult(const string& aUserIP, const string& aHubIpPort, const string& aNick, HintedUser& user_, string& connection_, string& hubEncoding_) noexcept {
-	user_ = getNmdcSearchHintedUser(aNick, aHubIpPort, aUserIP, hubEncoding_);
+	user_ = getNmdcSearchHintedUserEncoded(aNick, aHubIpPort, aUserIP, hubEncoding_);
 	if (!user_) {
 		return false;
 	}
