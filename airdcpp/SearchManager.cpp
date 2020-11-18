@@ -565,8 +565,7 @@ void SearchManager::onPSR(const AdcCommand& aCmd, UserPtr from, const string& aR
 			return;
 		}
 		
-		string hubEncoding;
-		auto u = ClientManager::getInstance()->getNmdcSearchHintedUser(nick, hubIpPort, aRemoteIp, hubEncoding);
+		auto u = ClientManager::getInstance()->getNmdcSearchHintedUserUtf8(nick, hubIpPort, aRemoteIp);
 		if (!u) {
 			dbgMsg("PSR: result from an unknown NMDC user", LogMessage::SEV_WARNING);
 			return;
