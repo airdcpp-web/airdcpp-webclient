@@ -55,7 +55,9 @@ public:
 };
 
 /** Yes, this should probably be called a Hub */
-class Client : public ClientBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, private ShareManagerListener, public HubSettings, private boost::noncopyable {
+class Client : 
+	public ClientBase, public ChatHandlerBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, 
+	private ShareManagerListener, public HubSettings, private boost::noncopyable {
 public:
 	typedef unordered_map<string*, ClientPtr, noCaseStringHash, noCaseStringEq> UrlMap;
 	typedef unordered_map<ClientToken, ClientPtr> IdMap;
@@ -64,10 +66,10 @@ public:
 	virtual void disconnect(bool graceless) noexcept;
 
 	// Default message method
-	bool sendMessageHooked(const OutgoingChatMessage& aMessage, string& error_) noexcept;
+	bool sendMessageHooked(const OutgoingChatMessage& aMessage, string& error_) noexcept override;
 	bool sendPrivateMessageHooked(const OnlineUserPtr& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho = true) noexcept;
 
-	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) noexcept = 0;
+	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) noexcept override = 0;
 	virtual void sendUserCmd(const UserCommand& command, const ParamMap& params) = 0;
 
 	uint64_t queueSearch(const SearchPtr& aSearch) noexcept;
@@ -92,7 +94,7 @@ public:
 	std::string getEncryptionInfo() const noexcept;
 	ByteVector getKeyprint() const noexcept;
 
-	bool isOp() const noexcept { return getMyIdentity().isOp(); }
+	bool isOp() const noexcept override { return getMyIdentity().isOp(); }
 
 	virtual void refreshUserList(bool) noexcept = 0;
 	virtual void getUserList(OnlineUserList& list, bool aListHidden) const noexcept = 0;
@@ -119,7 +121,7 @@ public:
 	void send(const char* aMessage, size_t aLen);
 
 	string getMyNick() const noexcept { return myIdentity.getNick(); }
-	string getHubName() const noexcept { return hubIdentity.getNick().empty() ? getHubUrl() : hubIdentity.getNick(); }
+	string getHubName() const noexcept override { return hubIdentity.getNick().empty() ? getHubUrl() : hubIdentity.getNick(); }
 	string getHubDescription() const noexcept { return hubIdentity.getDescription(); }
 	
 	void addLine(const string& msg) noexcept;
@@ -127,7 +129,7 @@ public:
 	GETSET(Identity, myIdentity, MyIdentity);
 	GETSET(Identity, hubIdentity, HubIdentity);
 
-	const string& getHubUrl() const noexcept { return hubUrl; }
+	const string& getHubUrl() const noexcept override { return hubUrl; }
 
 	GETSET(string, defpassword, Password);
 
@@ -160,16 +162,19 @@ public:
 
 	bool isSharingHub() const noexcept;
 
-	void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, const string& aLabel = Util::emptyString, int = ClientListener::FLAG_NORMAL) noexcept;
+	void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, const string& aLabel, int = ClientListener::FLAG_NORMAL) noexcept;
+	void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, const string& aLabel = Util::emptyString) noexcept override {
+		statusMessage(aMessage, aSeverity, aLabel, ClientListener::FLAG_NORMAL);
+	}
 
 	virtual ~Client();
 
-	const MessageCache& getCache() const noexcept {
+	const MessageCache& getCache() const noexcept override {
 		return cache;
 	}
 
-	int clearCache() noexcept;
-	void setRead() noexcept;
+	int clearCache() noexcept override;
+	void setRead() noexcept override;
 	const string& getRedirectUrl() const noexcept {
 		return redirectUrl;
 	}
@@ -198,7 +203,7 @@ public:
 	bool isKeyprintMismatch() const noexcept;
 protected:
 	virtual bool hubMessage(const string& aMessage, string& error_, bool aThirdPerson = false) noexcept = 0;
-	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept = 0;
+	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept override = 0;
 	virtual void clearUsers() noexcept = 0;
 
 	void setConnectState(State aState) noexcept;
@@ -227,17 +232,17 @@ protected:
 	virtual void infoImpl() noexcept = 0;
 
 	// TimerManagerListener
-	virtual void on(Second, uint64_t aTick) noexcept;
+	virtual void on(Second, uint64_t aTick) noexcept override;
 
 	// BufferedSocketListener
-	virtual void on(BufferedSocketListener::Connecting) noexcept;
-	virtual void on(BufferedSocketListener::Connected) noexcept;
-	virtual void on(BufferedSocketListener::Line, const string& aLine) noexcept;
-	virtual void on(BufferedSocketListener::Failed, const string&) noexcept;
+	virtual void on(BufferedSocketListener::Connecting) noexcept override;
+	virtual void on(BufferedSocketListener::Connected) noexcept override;
+	virtual void on(BufferedSocketListener::Line, const string& aLine) noexcept override;
+	virtual void on(BufferedSocketListener::Failed, const string&) noexcept override;
 
 	// ShareManagerListener
-	void on(ShareManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept;
-	void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept;
+	void on(ShareManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept override;
+	void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept override;
 
 	virtual bool v4only() const noexcept = 0;
 	void onPassword() noexcept;

@@ -206,12 +206,14 @@ void UDPServer::handle(AdcCommand::PBD, AdcCommand& c, const string&) noexcept {
 		return;
 
 	const auto user = ClientManager::getInstance()->findUser(CID(cid));
+	if (!user) {
+		return;
+	}
 
 	// Remove the CID
 	c.getParameters().erase(c.getParameters().begin());
 
-	if (user)
-		SearchManager::getInstance()->onPBD(c, user);
+	SearchManager::getInstance()->onPBD(c, user);
 }
 
 void UDPServer::handle(AdcCommand::UBD, AdcCommand& c, const string&) noexcept {

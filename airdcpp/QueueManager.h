@@ -463,7 +463,7 @@ private:
 
 	// Check that we can download from this user
 	// Throws QueueException in case of errors
-	void checkSource(const HintedUser& aUser) const;
+	void checkSource(const HintedUser& aUser, bool aCheckTLS = true) const;
 
 	// Validate bundle file against ignore and dupe options + performs target validity check (see checkTarget)
 	// Throws QueueException, FileException, DupeException

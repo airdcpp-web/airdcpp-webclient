@@ -65,7 +65,6 @@ enum class ToolbarIconEnum {
 class SettingsManager : public Singleton<SettingsManager>, public Speaker<SettingsManagerListener>
 {
 public:
-	static bool lanMode;
 	static StringList connectionSpeeds;
 
 	enum StrSetting { STR_FIRST,

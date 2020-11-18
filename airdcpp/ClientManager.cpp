@@ -1451,29 +1451,49 @@ bool ClientManager::connectADCSearchResult(const CID& aCID, string& token_, stri
 	return true;
 }
 
-bool ClientManager::connectNMDCSearchResult(const string& aUserIP, const string& hubIpPort, HintedUser& user_, string& nick_, string& connection_, string& file_, string& hubName_) noexcept {
-	user_.hint = findHub(hubIpPort, true);
-	if(user_.hint.empty()) {
+string ClientManager::getADCSearchHubUrl(const CID& aCID, const string& aHubIpPort) const noexcept {
+	auto hubUrl = findHub(aHubIpPort, false);
+	if (hubUrl.empty()) {
+		// Pick any hub where the user is online
+		auto hubUrls = getHubUrls(aCID);
+		if (!hubUrls.empty()) {
+			return hubUrls.front();
+		}
+	}
+
+	return hubUrl;
+}
+
+HintedUser ClientManager::getNmdcSearchHintedUser(const string& aNick, const string& aHubIpPort, const string& aUserIP, string& encoding_) noexcept {
+	HintedUser ret;
+	ret.hint = findHub(aHubIpPort, true);
+	if (ret.hint.empty()) {
 		// Could happen if hub has multiple URLs / IPs
-		user_ = findLegacyUser(nick_);
-		if (!user_) {
-			return false;
+		ret = findLegacyUser(aNick);
+		if (!ret || ret.hint.empty()) {
+			return ret;
 		}
 	}
 
-	auto encoding = findHubEncoding(user_.hint);
-	nick_ = Text::toUtf8(nick_, encoding);
-	file_ = Text::toUtf8(file_, encoding);
-	hubName_ = Text::toUtf8(hubName_, encoding);
+	encoding_ = findHubEncoding(ret.hint);
+	if (!ret.user) {
+		auto utf8Nick = Text::toUtf8(aNick, encoding_);
 
-	if (!user_.user) {
-		user_.user = findUser(nick_, user_.hint);
-		if (!user_.user) {
-			return false;
+		ret.user = findUser(utf8Nick, ret.hint);
+		if (!ret.user) {
+			return ret;
 		}
 	}
 
-	setIPUser(user_, aUserIP);
+	setIPUser(ret, aUserIP);
+	return ret;
+}
+
+bool ClientManager::connectNMDCSearchResult(const string& aUserIP, const string& aHubIpPort, const string& aNick, HintedUser& user_, string& connection_, string& hubEncoding_) noexcept {
+	user_ = getNmdcSearchHintedUser(aNick, aHubIpPort, aUserIP, hubEncoding_);
+	if (!user_) {
+		return false;
+	}
 
 	auto ou = findOnlineUser(user_);
 	if (ou) {

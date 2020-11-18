@@ -22,6 +22,7 @@
 #include "AdcHub.h"
 #include "AirUtil.h"
 #include "ClientManager.h"
+#include "LogManager.h"
 #include "QueueManager.h"
 #include "ResourceManager.h"
 #include "ScopedFunctor.h"
@@ -35,6 +36,8 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <boost/range/algorithm/copy.hpp>
+
+const auto DEBUG_SEARCH = false;
 
 namespace dcpp {
 
@@ -306,24 +309,28 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 		return;
 	}
 
-	string connection;
+	string connection, hubEncoding;
 	HintedUser user;
-	if (!ClientManager::getInstance()->connectNMDCSearchResult(aRemoteIP, x.substr(i, j - i), user, nick, connection, file, hubName))
+	if (!ClientManager::getInstance()->connectNMDCSearchResult(aRemoteIP, x.substr(i, j - i), nick, user, connection, hubEncoding)) {
 		return;
+	}
 
 
 	string tth;
-	if(hubName.compare(0, 4, "TTH:") == 0) {
+	if (hubName.compare(0, 4, "TTH:") == 0) {
 		tth = hubName.substr(4);
 	}
 
-	if(tth.empty() && type == SearchResult::TYPE_FILE && !SettingsManager::lanMode) {
+	if (tth.empty() && type == SearchResult::TYPE_FILE) {
 		return;
 	}
 
+	auto adcPath = Util::toAdcFile(Text::toUtf8(file, hubEncoding));
+	auto sr = make_shared<SearchResult>(
+		user, type, slots, freeSlots, size,
+		adcPath, aRemoteIP, TTHValue(tth), Util::emptyString, 0, connection, DirectoryContentInfo()
+	);
 
-	auto sr = make_shared<SearchResult>(user, type, slots, freeSlots, size,
-		Util::toAdcFile(file), aRemoteIP, SettingsManager::lanMode ? TTHValue() : TTHValue(tth), Util::emptyString, 0, connection, DirectoryContentInfo());
 	fire(SearchManagerListener::SR(), sr);
 }
 
@@ -337,7 +344,7 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 	int files = -1, folders = -1;
 
 	for(auto& str: cmd.getParameters()) {
-		if(str.compare(0, 2, "FN") == 0) {
+		if (str.compare(0, 2, "FN") == 0) {
 			adcPath = str.substr(2);
 		} else if(str.compare(0, 2, "SL") == 0) {
 			freeSlots = Util::toInt(str.substr(2));
@@ -360,19 +367,20 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		//connect to a correct hub
 		string hubUrl, connection;
 		uint8_t slots = 0;
-		if (!ClientManager::getInstance()->connectADCSearchResult(from->getCID(), token, hubUrl, connection, slots))
+		if (!ClientManager::getInstance()->connectADCSearchResult(from->getCID(), token, hubUrl, connection, slots)) {
 			return;
+		}
 
 		if (adcPath.empty()) {
 			return;
 		}
 
 		auto type = adcPath.back() == ADC_SEPARATOR ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE;
-		if(type == SearchResult::TYPE_FILE && tth.empty())
+		if (type == SearchResult::TYPE_FILE && tth.empty())
 			return;
 
 		TTHValue th;
-		if (type == SearchResult::TYPE_DIRECTORY || SettingsManager::lanMode) {
+		if (type == SearchResult::TYPE_DIRECTORY) {
 			//calculate a TTH from the directory name and size
 			th = AirUtil::getTTH(type == SearchResult::TYPE_FILE ? Util::getAdcFileName(adcPath) : Util::getAdcLastDir(adcPath), size);
 		} else {
@@ -418,82 +426,107 @@ void SearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 }
 
+void SearchManager::dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
+	if (DEBUG_SEARCH) {
+		LogManager::getInstance()->message(aMsg, aSeverity, STRING(SEARCH));
+	} else if (aSeverity == LogMessage::SEV_WARNING || aSeverity == LogMessage::SEV_ERROR) {
+#ifdef _DEBUG
+		LogManager::getInstance()->message(aMsg, aSeverity, STRING(SEARCH));
+		dcdebug("%s\n", aMsg.c_str());
+#endif
+	}
+}
+
+// Partial bundle sharing (ADC)
 void SearchManager::onPBD(const AdcCommand& aCmd, const UserPtr& from) {
+	dcassert(!!from);
+
 	string remoteBundle;
 	string hubIpPort;
 	string tth;
-	bool add=false, update=false, reply=false, notify = false, remove = false;
+	bool add = false, update = false, reply = false, notify = false, remove = false;
 
-	for(auto& str: aCmd.getParameters()) {
-		if(str.compare(0, 2, "HI") == 0) {
+	for (auto& str: aCmd.getParameters()) {
+		if (str.compare(0, 2, "HI") == 0) {
 			hubIpPort = str.substr(2);
-		} else if(str.compare(0, 2, "BU") == 0) {
+		} else if (str.compare(0, 2, "BU") == 0) {
 			remoteBundle = str.substr(2);
-		} else if(str.compare(0, 2, "TH") == 0) {
+		} else if (str.compare(0, 2, "TH") == 0) {
 			tth = str.substr(2);
-		} else if(str.compare(0, 2, "UP") == 0) { //new notification of a finished TTH
-			update=true;
+		} else if (str.compare(0, 2, "UP") == 0) { //new notification of a finished TTH
+			update = true;
 		} else if (str.compare(0, 2, "AD") == 0) { //add TTHList
-			add=true;
+			add = true;
 		} else if (str.compare(0, 2, "RE") == 0) { //require reply
-			reply=true;
+			reply = true;
 		} else if (str.compare(0, 2, "NO") == 0) { //notify only, don't download TTHList
-			notify=true;
+			notify = true;
 		} else if (str.compare(0, 2, "RM") == 0) { //remove notifications for a selected user and bundle
-			remove=true;
+			remove = true;
 		} else {
-			//LogManager::getInstance()->message("ONPBD UNKNOWN PARAM: " + str);
+			dbgMsg("PBD: unknown param " + str, LogMessage::SEV_WARNING);
 		}
 	}
 
 	if (remove && !remoteBundle.empty()) {
-		//LogManager::getInstance()->message("ONPBD REMOVE");
+		dbgMsg("PBD: remove finished notify", LogMessage::SEV_INFO);
 		// Local bundle really...
 		QueueManager::getInstance()->removeBundleNotify(from, Util::toUInt32(remoteBundle));
 	}
 
 	if (tth.empty()) {
-		//LogManager::getInstance()->message("ONPBD EMPTY TTH");
+		dbgMsg("PBD: empty TTH", LogMessage::SEV_WARNING);
 		return;
 	}
 
-	string url = ClientManager::getInstance()->findHub(hubIpPort, !from);
+	auto hubUrl = ClientManager::getInstance()->getADCSearchHubUrl(from->getCID(), hubIpPort);
+	if (hubUrl.empty()) {
+		dbgMsg("PBD: no online hubs for a CID %s", LogMessage::SEV_WARNING);
+		return;
+	}
 
 	if (update) {
-		//LogManager::getInstance()->message("PBD UPDATE TTH");
-		QueueManager::getInstance()->updatePBD(HintedUser(from, url), TTHValue(tth));
+		dbgMsg("PBD: add file source", LogMessage::SEV_INFO);
+		QueueManager::getInstance()->updatePBD(HintedUser(from, hubUrl), TTHValue(tth));
 		return;
 	} else if (remoteBundle.empty()) {
-		//LogManager::getInstance()->message("ONPBD EMPTY BUNDLE");
+		dbgMsg("PBD: empty remote bundle", LogMessage::SEV_WARNING);
 		return;
 	}
 
-	HintedUser u = HintedUser(from, url);
+	auto u = HintedUser(from, hubUrl);
 	if (notify) {
-		//LogManager::getInstance()->message("PBD NOTIFY");
+		dbgMsg("PBD: add finished notify", LogMessage::SEV_INFO);
 		QueueManager::getInstance()->addFinishedNotify(u, TTHValue(tth), remoteBundle);
 	} else if (reply) {
-		//LogManager::getInstance()->message("PBD REQUIRE REPLY");
+		dbgMsg("PBD: reply required", LogMessage::SEV_INFO);
 
 		string localBundle;
 		bool sendNotify = false, sendAdd = false;
 		if (QueueManager::getInstance()->checkPBDReply(u, TTHValue(tth), localBundle, sendNotify, sendAdd, remoteBundle)) {
-			//LogManager::getInstance()->message("PBD REPLY: ACCEPTED");
 			AdcCommand cmd = toPBD(hubIpPort, localBundle, tth, false, sendAdd, sendNotify);
-			ClientManager::getInstance()->sendUDP(cmd, from->getCID(), false, true);
+			if (!ClientManager::getInstance()->sendUDP(cmd, from->getCID(), false, true)) {
+				dbgMsg("PBD: reply sent", LogMessage::SEV_INFO);
+			} else {
+				dbgMsg("PBD: could not send reply (UDP error)", LogMessage::SEV_WARNING);
+			}
 		} else {
-			//LogManager::getInstance()->message("PBD REPLY: QUEUEMANAGER FAIL");
+			dbgMsg("PBD: can't send reply (no bundle)", LogMessage::SEV_INFO);
 		}
 	}
 
 	if (add) {
 		try {
 			QueueManager::getInstance()->addBundleTTHList(u, remoteBundle, TTHValue(tth));
-		}catch(const Exception&) { }
+			dbgMsg("PBD: TTH list queued", LogMessage::SEV_INFO);
+		} catch (const Exception& e) {
+			dbgMsg("PBD: error when queueing TTH list: " + string(e.what()), LogMessage::SEV_WARNING);
+		}
 	}
 }
 
-void SearchManager::onPSR(const AdcCommand& aCmd, UserPtr from, const string& remoteIp) {
+// NMDC/ADC
+void SearchManager::onPSR(const AdcCommand& aCmd, UserPtr from, const string& aRemoteIp) {
 	if (!SETTING(USE_PARTIAL_SHARING)) {
 		return;
 	}
@@ -505,63 +538,70 @@ void SearchManager::onPSR(const AdcCommand& aCmd, UserPtr from, const string& re
 	string nick;
 	PartsInfo partialInfo;
 
-	for(auto& str: aCmd.getParameters()) {
-		if(str.compare(0, 2, "U4") == 0) {
+	for (auto& str: aCmd.getParameters()) {
+		if (str.compare(0, 2, "U4") == 0) {
 			udpPort = str.substr(2);
-		} else if(str.compare(0, 2, "NI") == 0) {
+		} else if (str.compare(0, 2, "NI") == 0) {
 			nick = str.substr(2);
-		} else if(str.compare(0, 2, "HI") == 0) {
+		} else if (str.compare(0, 2, "HI") == 0) {
 			hubIpPort = str.substr(2);
-		} else if(str.compare(0, 2, "TR") == 0) {
+		} else if (str.compare(0, 2, "TR") == 0) {
 			tth = str.substr(2);
-		} else if(str.compare(0, 2, "PC") == 0) {
+		} else if (str.compare(0, 2, "PC") == 0) {
 			partialCount = Util::toUInt32(str.substr(2))*2;
-		} else if(str.compare(0, 2, "PI") == 0) {
+		} else if (str.compare(0, 2, "PI") == 0) {
 			StringTokenizer<string> tok(str.substr(2), ',');
-			for(auto& i: tok.getTokens()) {
+			for (auto& i: tok.getTokens()) {
 				partialInfo.push_back((uint16_t)Util::toInt(i));
 			}
 		}
 	}
 
-	string url = ClientManager::getInstance()->findHub(hubIpPort, !from);
-	if(!from || from == ClientManager::getInstance()->getMe()) {
+	string hubUrl;
+	if (!from || from == ClientManager::getInstance()->getMe()) {
 		// for NMDC support
-		
-		if(nick.empty() || hubIpPort.empty()) {
+		if (nick.empty() || hubIpPort.empty()) {
+			dbgMsg("PSR: NMDC nick/hub ip:port empty", LogMessage::SEV_WARNING);
 			return;
 		}
 		
-		from = ClientManager::getInstance()->findUser(nick, url);
-		if(!from) {
-			// Could happen if hub has multiple URLs / IPs
-			from = ClientManager::getInstance()->findLegacyUser(nick);
-			if(!from) {
-				dcdebug("Search result from unknown user");
-				return;
-			}
+		string hubEncoding;
+		auto u = ClientManager::getInstance()->getNmdcSearchHintedUser(nick, hubIpPort, aRemoteIp, hubEncoding);
+		if (!u) {
+			dbgMsg("PSR: result from an unknown NMDC user", LogMessage::SEV_WARNING);
+			return;
 		}
 
-		ClientManager::getInstance()->setIPUser(from, remoteIp, udpPort);
+		dcassert(!u.hint.empty());
+		from = u.user;
+		hubUrl = u.hint;
+	} else {
+		// ADC
+		hubUrl = ClientManager::getInstance()->getADCSearchHubUrl(from->getCID(), hubIpPort);
+		if (hubUrl.empty()) {
+			dbgMsg("PSR: result from an unknown ADC hub", LogMessage::SEV_WARNING);
+			return;
+		}
 	}
 
-	if(partialInfo.size() != partialCount) {
+	if (partialInfo.size() != partialCount) {
+		dbgMsg("PSR: invalid size", LogMessage::SEV_WARNING);
 		// what to do now ? just ignore partial search result :-/
 		return;
 	}
 
 	PartsInfo outPartialInfo;
-	QueueItem::PartialSource ps(from->isNMDC() ? ClientManager::getInstance()->getMyNick(url) : Util::emptyString, hubIpPort, remoteIp, udpPort);
+	QueueItem::PartialSource ps(from->isNMDC() ? ClientManager::getInstance()->getMyNick(hubUrl) : Util::emptyString, hubIpPort, aRemoteIp, udpPort);
 	ps.setPartialInfo(partialInfo);
 
-	QueueManager::getInstance()->handlePartialResult(HintedUser(from, url), TTHValue(tth), ps, outPartialInfo);
+	QueueManager::getInstance()->handlePartialResult(HintedUser(from, hubUrl), TTHValue(tth), ps, outPartialInfo);
 	
 	if(Util::toInt(udpPort) > 0 && !outPartialInfo.empty()) {
 		try {
 			AdcCommand cmd = SearchManager::getInstance()->toPSR(false, ps.getMyNick(), hubIpPort, tth, outPartialInfo);
-			ClientManager::getInstance()->sendUDP(cmd, from->getCID(), false, true, Util::emptyString, url);
-		} catch(...) {
-			dcdebug("Partial search caught error\n");
+			ClientManager::getInstance()->sendUDP(cmd, from->getCID(), false, true, Util::emptyString, hubUrl);
+		} catch (const Exception& e) {
+			dbgMsg("PSR: failed to send reply (" + string(e.what()) + ")", LogMessage::SEV_WARNING);
 		}
 	}
 
@@ -614,15 +654,21 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 		QueueManager::getInstance()->handlePartialSearch(aUser.getUser(), TTHValue(tth), partialInfo, bundle, reply, add);
 
 		if (!partialInfo.empty()) {
-			//LogManager::getInstance()->message("SEARCH RESPOND: PARTIALINFO NOT EMPTY");
 			AdcCommand cmd = toPSR(isUdpActive, Util::emptyString, hubIpPort, tth, partialInfo);
-			ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl());
+			if (!ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl())) {
+				dbgMsg("ADC response: partial file info not empty, failed to send response", LogMessage::SEV_WARNING);
+			} else {
+				dbgMsg("ADC respond: partial file info not empty, response sent", LogMessage::SEV_INFO);
+			}
 		}
 		
 		if (!bundle.empty()) {
-			//LogManager::getInstance()->message("SEARCH RESPOND: BUNDLE NOT EMPTY");
 			AdcCommand cmd = toPBD(hubIpPort, bundle, tth, reply, add);
-			ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl());
+			if (!ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl())) {
+				dbgMsg("ADC respond: matching bundle in queue, failed to send PBD response", LogMessage::SEV_WARNING);
+			} else {
+				dbgMsg("ADC respond: matching bundle in queue, PBD response sent", LogMessage::SEV_INFO);
+			}
 		}
 
 		goto end;
@@ -664,6 +710,7 @@ AdcCommand SearchManager::toPSR(bool aWantResponse, const string& aMyNick, const
 	AdcCommand cmd(AdcCommand::CMD_PSR, AdcCommand::TYPE_UDP);
 		
 	if (!aMyNick.empty()) {
+		// NMDC
 		auto hubUrl = ClientManager::getInstance()->findHub(aHubIpPort, true);
 		cmd.addParam("NI", Text::fromUtf8(aMyNick, ClientManager::getInstance()->findHubEncoding(hubUrl)));
 	}

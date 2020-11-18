@@ -235,7 +235,15 @@ public:
 	const CID& getMyPID() noexcept;
 
 	bool connectADCSearchResult(const CID& aCID, string& token_, string& hubUrl_, string& connection_, uint8_t& slots_) const noexcept;
-	bool connectNMDCSearchResult(const string& aUserIP, const string& aHubIpPort, HintedUser& user_, string& aNick, string& connection_, string& file_, string& hubName_) noexcept;
+	bool connectNMDCSearchResult(const string& aUserIP, const string& aHubIpPort, const string& aNick, HintedUser& user_, string& connection_, string& hubEncoding_) noexcept;
+
+	// Get ADC hub URL for UDP commands
+	// Returns empty string in case of errors
+	string getADCSearchHubUrl(const CID& aCID, const string& aHubIpPort) const noexcept;
+
+	// Get NMDC user + hub URL for UDP commands
+	// Returns null user in case of errors
+	HintedUser getNmdcSearchHintedUser(const string& aNick, const string& aHubIpPort, const string& aUserIP, string& encoding_) noexcept;
 
 	//return users supporting the ASCH extension (and total users)
 	pair<size_t, size_t> countAschSupport(const OrderedStringSet& aHubs) const noexcept;

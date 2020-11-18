@@ -69,7 +69,7 @@ namespace dcpp {
 					auto highlight = make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_LINK_URL, "url");
 
 					if (link.find("magnet:?") == 0) {
-						auto m = Magnet::parseMagnet(link);
+						auto m = Magnet::parseMagnet(link, aUser);
 						if (m) {
 							highlight->setMagnet(m);
 

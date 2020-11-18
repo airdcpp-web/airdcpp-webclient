@@ -78,6 +78,17 @@ namespace dcpp {
 
 		mutable SharedMutex cs;
 	};
+
+	class ChatHandlerBase {
+	public:
+		virtual const string& getHubUrl() const noexcept = 0;
+		virtual int clearCache() noexcept = 0;
+		virtual void setRead() noexcept = 0;
+
+		virtual const MessageCache& getCache() const noexcept = 0;
+		virtual bool sendMessageHooked(const OutgoingChatMessage& aMessage, string& error_) = 0;
+		virtual void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, const string& aLabel = Util::emptyString) noexcept = 0;
+	};
 }
 
 #endif
