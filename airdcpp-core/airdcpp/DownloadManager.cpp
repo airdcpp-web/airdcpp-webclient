@@ -209,7 +209,7 @@ void DownloadManager::revive(UserConnection* uc) {
 }
 
 void DownloadManager::addConnection(UserConnection* conn) {
-	if((!conn->isSet(UserConnection::FLAG_SUPPORTS_TTHF) && !SettingsManager::lanMode) || !conn->isSet(UserConnection::FLAG_SUPPORTS_ADCGET)) {
+	if (!conn->isSet(UserConnection::FLAG_SUPPORTS_TTHF) || !conn->isSet(UserConnection::FLAG_SUPPORTS_ADCGET)) {
 		// Can't download from these...
 		conn->getUser()->setFlag(User::OLD_CLIENT);
 		QueueManager::getInstance()->removeSource(conn->getUser(), QueueItem::Source::FLAG_NO_TTHF);

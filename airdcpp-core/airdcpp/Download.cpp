@@ -263,7 +263,7 @@ void Download::open(int64_t bytes, bool z, bool hasDownloadedBytes) {
 		output.reset(new BufferedOutputStream<true>(output.release()));
 	}
 
-	if(getType() == Transfer::TYPE_FILE && !SettingsManager::lanMode) {
+	if (getType() == Transfer::TYPE_FILE) {
 		typedef MerkleCheckOutputStream<TigerTree, true> MerkleStream;
 
 		output.reset(new MerkleStream(tt, output.release(), getStartPos()));

@@ -188,18 +188,18 @@ UserPtr DirectoryListing::getUserFromFilename(const string& fileName) noexcept {
 	stripExtensions(name);
 
 	// Find CID
-	string::size_type i = name.rfind('.');
-	if(i == string::npos) {
-		return UserPtr();
+	auto i = name.rfind('.');
+	if (i == string::npos) {
+		return nullptr;
 	}
 
 	size_t n = name.length() - (i + 1);
 	// CID's always 39 chars long...
-	if(n != 39)
-		return UserPtr();
+	if (n != 39)
+		return nullptr;
 
 	CID cid(name.substr(i + 1));
-	if(!cid)
+	if (!cid)
 		return UserPtr();
 
 	return ClientManager::getInstance()->getUser(cid);
@@ -328,13 +328,13 @@ static const string sName = "Name";
 static const string sSize = "Size";
 static const string sTTH = "TTH";
 static const string sDate = "Date";
-void ListLoader::startTag(const string& name, StringPairList& attribs, bool simple) {
+void ListLoader::startTag(const string& name, StringPairList& attribs, bool aSimple) {
 	if(list->getClosing()) {
 		throw AbortException();
 	}
 
-	if(inListing) {
-		if(name == sFile) {
+	if (inListing) {
+		if (name == sFile) {
 			const string& n = getAttrib(attribs, sName, 0);
 			validateName(n);
 
@@ -345,14 +345,14 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			auto size = Util::toInt64(s);
 
 			const string& h = getAttrib(attribs, sTTH, 2);
-			if(h.empty() && !SettingsManager::lanMode)
+			if (h.empty())
 				return;		
 
 			TTHValue tth(h); /// @todo verify validity?
 
 			auto f = make_shared<DirectoryListing::File>(cur, n, size, tth, checkDupe, Util::toTimeT(getAttrib(attribs, sDate, 3)));
 			cur->files.push_back(f);
-		} else if(name == sDirectory) {
+		} else if (name == sDirectory) {
 			const string& n = getAttrib(attribs, sName, 0);
 			validateName(n);
 
@@ -380,7 +380,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				}
 			}
 
-			if(!d) {
+			if (!d) {
 				auto type = incomp ? (children ? DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD : DirectoryListing::Directory::TYPE_INCOMPLETE_NOCHILD) :
 					DirectoryListing::Directory::TYPE_NORMAL;
 
@@ -393,7 +393,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 			cur = d.get();
 
-			if(simple) {
+			if (aSimple) {
 				// To handle <Directory Name="..." />
 				endTag(name);
 			}
@@ -423,7 +423,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 		inListing = true;
 
-		if(simple) {
+		if (aSimple) {
 			// To handle <Directory Name="..." />
 			endTag(name);
 		}
@@ -601,11 +601,19 @@ void DirectoryListing::Directory::toBundleInfoList(const string& aTarget, Bundle
 	}
 }
 
+HintedUser DirectoryListing::getDownloadSourceUser() const noexcept {
+	if (hintedUser.hint.empty() || (isMyCID() && !isOwnList)) {
+		return HintedUser();
+	}
+
+	return hintedUser;
+}
+
 optional<DirectoryBundleAddInfo> DirectoryListing::createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPriority, string& errorMsg_) noexcept {
 	auto bundleFiles = aDir->toBundleInfoList();
 
 	try {
-		auto info = QueueManager::getInstance()->createDirectoryBundle(aTarget, hintedUser.user == ClientManager::getInstance()->getMe() && !isOwnList ? HintedUser() : hintedUser,
+		auto info = QueueManager::getInstance()->createDirectoryBundle(aTarget, getDownloadSourceUser(),
 			bundleFiles, aPriority, aDir->getRemoteDate(), errorMsg_);
 
 		return info;

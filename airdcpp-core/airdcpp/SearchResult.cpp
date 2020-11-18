@@ -78,8 +78,9 @@ AdcCommand SearchResult::toRES(char aType) const noexcept {
 	cmd.addParam("SI", Util::toString(size));
 	cmd.addParam("SL", Util::toString(freeSlots));
 	cmd.addParam("FN", path);
-	if (!SettingsManager::lanMode && type != TYPE_DIRECTORY)
+	if (type != TYPE_DIRECTORY) {
 		cmd.addParam("TR", getTTH().toBase32());
+	}
 	cmd.addParam("DM", Util::toString(date));
 
 	if (type == TYPE_DIRECTORY) {

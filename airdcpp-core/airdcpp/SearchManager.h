@@ -27,6 +27,7 @@
 #include "AdcCommand.h"
 #include "CriticalSection.h"
 #include "GetSet.h"
+#include "Message.h"
 #include "Search.h"
 #include "Singleton.h"
 #include "Speaker.h"
@@ -141,6 +142,8 @@ private:
 
 	typedef map<SearchInstanceToken, SearchInstancePtr> SearchInstanceMap;
 	SearchInstanceMap searchInstances;
+
+	void dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 };
 
 } // namespace dcpp

@@ -2071,6 +2071,14 @@ void ShareManager::reportTaskStatus(const ShareRefreshTask& aTask, bool aFinishe
 				msg = aFinished ? STRING_F(DIRECTORY_REFRESHED, *aTask.dirs.begin()) : STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *aTask.dirs.begin());
 			} else {
 				msg = aFinished ? STRING_F(X_DIRECTORIES_REFRESHED, aTask.dirs.size()) : STRING_F(FILE_LIST_REFRESH_INITIATED_X_PATHS, aTask.dirs.size());
+				if (aTask.dirs.size() < 30) {
+					StringList dirNames;
+					for (const auto& d : aTask.dirs) {
+						dirNames.push_back(Util::getLastDir(d));
+					}
+
+					msg += " (" + Util::listToString(dirNames) + ")";
+				}
 			}
 			break;
 		case(ShareRefreshType::ADD_DIR):

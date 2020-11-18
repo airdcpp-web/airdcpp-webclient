@@ -195,6 +195,8 @@ public:
 
 	optional<DirectoryBundleAddInfo> createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPrio, string& errorMsg_) noexcept;
 
+	HintedUser getDownloadSourceUser() const noexcept;
+
 	int64_t getTotalListSize(bool adls = false) const noexcept { return root->getTotalSize(adls); }
 	int64_t getDirSize(const string& aDir) const noexcept;
 	size_t getTotalFileCount(bool adls = false) const noexcept { return root->getTotalFileCount(adls); }

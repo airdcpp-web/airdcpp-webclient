@@ -39,8 +39,6 @@ namespace dcpp {
 #define CONFIG_NAME "DCPlusPlus.xml"
 #define CONFIG_DIR Util::PATH_USER_CONFIG
 
-bool SettingsManager::lanMode = false;
-
 StringList SettingsManager::connectionSpeeds = { "0.1", "0.2", "0.5", "1", "2", "5", "8", "10", "20", "30", "40", "50", "60", "100", "200", "1000" };
 
 

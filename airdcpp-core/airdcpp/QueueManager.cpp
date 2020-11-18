@@ -515,9 +515,6 @@ QueueItemPtr QueueManager::addList(const HintedUser& aUser, Flags::MaskType aFla
 
 	// Pre-checks
 	checkSource(aUser);
-	if (aUser.hint.empty()) {
-		throw QueueException(STRING(HUB_UNKNOWN));
-	}
 
 	// Format the target
 	auto target = getListPath(aUser);
@@ -596,14 +593,23 @@ void QueueManager::setMatchers() noexcept {
 	highPrioFiles.prepare();
 }
 
-void QueueManager::checkSource(const HintedUser& aUser) const {
+void QueueManager::checkSource(const HintedUser& aUser, bool aCheckTLS) const {
+	if (!aUser.user) { //atleast magnet links can cause this to happen.
+		throw QueueException(STRING(UNKNOWN_USER));
+	}
+
+	if (aUser.hint.empty()) {
+		dcassert(0);
+		throw QueueException(STRING(HUB_UNKNOWN));
+	}
+
 	// Check that we're not downloading from ourselves...
-	if(aUser.user == ClientManager::getInstance()->getMe()) {
+	if (aUser.user == ClientManager::getInstance()->getMe()) {
 		throw QueueException(STRING(NO_DOWNLOADS_FROM_SELF));
 	}
 
 	// Check the encryption
-	if (aUser.user && aUser.user->isOnline() && !aUser.user->isNMDC() && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
+	if (aCheckTLS && aUser.user && aUser.user->isOnline() && !aUser.user->isNMDC() && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
 		throw QueueException(ClientManager::getInstance()->getFormatedNicks(aUser) + ": " + STRING(SOURCE_NO_ENCRYPTION));
 	}
 }
@@ -670,11 +676,12 @@ void QueueManager::validateBundleFile(const string& aBundleDir, string& bundleFi
 }
 
 QueueItemPtr QueueManager::addOpenedItem(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsClientView, bool aIsText) {
-	//check the source
-	if (aUser.user)
-		checkSource(aUser);
+	dcassert(aUser);
 
-	//check the size
+	// Check source
+	checkSource(aUser);
+
+	// Check size
 	if (aSize == 0) {
 		//can't view this...
 		throw QueueException(STRING(CANT_OPEN_EMPTY_FILE));
@@ -684,10 +691,10 @@ QueueItemPtr QueueManager::addOpenedItem(const string& aFileName, int64_t aSize,
 		throw QueueException(msg);
 	}
 
-	//check the target
+	// Check target
 	auto target = Util::getOpenPath() + AirUtil::toOpenFileName(aFileName, aTTH);
 
-	//add in queue
+	// Add in queue
 	QueueItemPtr qi = nullptr;
 	bool wantConnection = false, added = false;
 
@@ -712,7 +719,7 @@ QueueItemPtr QueueManager::addOpenedItem(const string& aFileName, int64_t aSize,
 		fire(QueueManagerListener::ItemAdded(), qi);
 	}
 
-	//connect
+	// Connect
 	if(wantConnection || qi->usesSmallSlot()) {
 		ConnectionManager::getInstance()->getDownloadConnection(aUser, qi->usesSmallSlot());
 	}
@@ -1105,14 +1112,8 @@ string QueueManager::checkTarget(const string& toValidate, const string& aParent
 }
 
 /** Add a source to an existing queue item */
-bool QueueManager::addSource(const QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, bool checkTLS /*true*/) {
-	if (!aUser.user) { //atleast magnet links can cause this to happen.
-		throw QueueException(STRING(UNKNOWN_USER));
-	}
-
-	if (checkTLS && !aUser.user->isSet(User::NMDC) && !aUser.user->isSet(User::TLS) && SETTING(TLS_MODE) == SettingsManager::TLS_FORCED) {
-		throw QueueException(STRING(SOURCE_NO_ENCRYPTION));
-	}
+bool QueueManager::addSource(const QueueItemPtr& qi, const HintedUser& aUser, Flags::MaskType addBad, bool aCheckTLS /*true*/) {
+	checkSource(aUser, aCheckTLS);
 
 	if (qi->isDownloaded()) //no need to add source to finished item.
 		throw QueueException(STRING(FILE_ALREADY_FINISHED) + ": " + Util::getFileName(qi->getTarget()));
@@ -2679,7 +2680,8 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 			
 				WLock l(qm->cs);
 				qm->addSource(curFile, hintedUser, 0, false);
-			} catch (const Exception&) {
+			} catch (const Exception& e) {
+				qm->log("Could not add source " + nick + ": " + e.what(), LogMessage::SEV_WARNING);
 				return;
 			}
 		} else if (name == sFinished && (inDirBundle || inFileBundle)) {
@@ -3178,9 +3180,9 @@ bool QueueManager::checkDropSlowSource(Download* d) noexcept {
 	return false;
 }
 
-bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& tth, const QueueItem::PartialSource& partialSource, PartsInfo& outPartialInfo) noexcept {
+bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& aTTH, const QueueItem::PartialSource& aPartialSource, PartsInfo& outPartialInfo_) noexcept {
 	bool wantConnection = false;
-	dcassert(outPartialInfo.empty());
+	dcassert(outPartialInfo_.empty());
 	QueueItemPtr qi = nullptr;
 
 	// Locate target QueueItem in download queue
@@ -3188,7 +3190,7 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 		QueueItemList ql;
 
 		RLock l(cs);
-		fileQueue.findFiles(tth, ql);
+		fileQueue.findFiles(aTTH, ql);
 		
 		if(ql.empty()){
 			dcdebug("Not found in download queue\n");
@@ -3215,10 +3217,10 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 
 	{
 		WLock l(cs);
-		qi->getPartialInfo(outPartialInfo, blockSize);
+		qi->getPartialInfo(outPartialInfo_, blockSize);
 		
 		// Any parts for me?
-		wantConnection = qi->isNeededPart(partialSource.getPartialInfo(), blockSize);
+		wantConnection = qi->isNeededPart(aPartialSource.getPartialInfo(), blockSize);
 
 		// If this user isn't a source and has no parts needed, ignore it
 		auto si = qi->getSource(aUser);
@@ -3237,8 +3239,8 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 				si = qi->getSource(aUser);
 				si->setFlag(QueueItem::Source::FLAG_PARTIAL);
 
-				auto ps = make_shared<QueueItem::PartialSource>(partialSource.getMyNick(),
-					partialSource.getHubIpPort(), partialSource.getIp(), partialSource.getUdpPort());
+				auto ps = make_shared<QueueItem::PartialSource>(aPartialSource.getMyNick(),
+					aPartialSource.getHubIpPort(), aPartialSource.getIp(), aPartialSource.getUdpPort());
 				si->setPartialSource(ps);
 
 				userQueue.addQI(qi, aUser);
@@ -3247,8 +3249,8 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 		}
 
 		// Update source's parts info
-		if(si->getPartialSource()) {
-			si->getPartialSource()->setPartialInfo(partialSource.getPartialInfo());
+		if (si->getPartialSource()) {
+			si->getPartialSource()->setPartialInfo(aPartialSource.getPartialInfo());
 		}
 	}
 	

@@ -28,7 +28,7 @@
 #include "UserConnection.h"
 
 namespace dcpp {
-	class PrivateChat : public Speaker<PrivateChatListener>, public UserConnectionListener,
+	class PrivateChat: public ChatHandlerBase, public Speaker<PrivateChatListener>, public UserConnectionListener,
 		private ClientManagerListener, private boost::noncopyable {
 	public:
 		
@@ -58,9 +58,9 @@ namespace dcpp {
 			return replyTo.user->getCID();
 		}
 
-		bool sendMessageHooked(const OutgoingChatMessage& aMessage, string& error_);
+		bool sendMessageHooked(const OutgoingChatMessage& aMessage, string& error_) override;
 		void handleMessage(const ChatMessagePtr& aMessage) noexcept;
-		void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, const string& aLabel = Util::emptyString) noexcept;
+		void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, const string& aLabel = Util::emptyString) noexcept override;
 
 		void close();
 
@@ -75,7 +75,7 @@ namespace dcpp {
 
 		void setHubUrl(const string& hint) noexcept;
 		const UserPtr& getUser() const noexcept { return replyTo.user; }
-		const string& getHubUrl() const noexcept { return replyTo.hint; }
+		const string& getHubUrl() const noexcept override { return replyTo.hint; }
 		const HintedUser& getHintedUser() const noexcept { return replyTo; }
 
 		ClientPtr getClient() const noexcept;
@@ -93,12 +93,12 @@ namespace dcpp {
 			return ccpmState;
 		}
 
-		const MessageCache& getCache() const noexcept {
+		const MessageCache& getCache() const noexcept override {
 			return cache;
 		}
 
-		void setRead() noexcept;
-		int clearCache() noexcept;
+		void setRead() noexcept override;
+		int clearCache() noexcept override;
 
 		// Posts an info status message of the user is ignored
 		void checkIgnored() noexcept;
@@ -127,16 +127,15 @@ namespace dcpp {
 		DelayedEvents<uint8_t> delayEvents;
 
 		// UserConnectionListener
-		virtual void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessagePtr& message) noexcept{
+		virtual void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessagePtr& message) noexcept override {
 			handleMessage(message);
 		}
-		virtual void on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) noexcept;
-		void onUserUpdated(const OnlineUser& aUser) noexcept;
+		virtual void on(AdcCommand::PMI, UserConnection*, const AdcCommand& cmd) noexcept override;
 
 		// ClientManagerListener
-		void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool aWasOffline) noexcept;
-		void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept;
-		void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool aWentOffline) noexcept;
+		void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool aWasOffline) noexcept override;
+		void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept override;
+		void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool aWentOffline) noexcept override;
 
 		bool online = true;
 
@@ -145,6 +144,8 @@ namespace dcpp {
 
 		// Checks that the user still exists in the hinted hub and changes to another hub when needed
 		void checkUserHub(bool aWentOffline) noexcept;
+
+		void onUserUpdated(const OnlineUser& aUser) noexcept;
 	};
 }
 
