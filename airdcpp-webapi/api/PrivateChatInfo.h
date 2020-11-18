@@ -85,7 +85,7 @@ namespace webserver {
 
 		void onSessionUpdated(const json& aData) noexcept;
 
-		ChatController<PrivateChatPtr> chatHandler;
+		ChatController chatHandler;
 		PrivateChatPtr chat;
 	};
 

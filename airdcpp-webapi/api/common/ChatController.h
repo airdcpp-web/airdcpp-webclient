@@ -29,12 +29,10 @@
 #include <airdcpp/StringTokenizer.h>
 
 namespace webserver {
-	template<class T>
 	class ChatController {
 	public:
-		typedef typename std::function<const T&()> ChatGetterF;
-		ChatController(SubscribableApiModule* aModule, const ChatGetterF& aChatF, const string& aSubscriptionId, Access aViewPermission, Access aEditPermission, Access aSendPermission) :
-			module(aModule), subscriptionId(aSubscriptionId), chatF(aChatF)
+		ChatController(SubscribableApiModule* aModule, ChatHandlerBase* aChat, const string& aSubscriptionId, Access aViewPermission, Access aEditPermission, Access aSendPermission) :
+			module(aModule), subscriptionId(aSubscriptionId), chat(aChat)
 		{
 			MODULE_METHOD_HANDLER(aModule, aSendPermission, METHOD_POST, (EXACT_PARAM("chat_message")), ChatController::handlePostChatMessage);
 			MODULE_METHOD_HANDLER(aModule, aEditPermission, METHOD_POST, (EXACT_PARAM("status_message")), ChatController::handlePostStatusMessage);
@@ -104,7 +102,7 @@ namespace webserver {
 			}
 
 			module->send(s, {
-				{ "message_counts",  MessageUtils::serializeCacheInfo(chatF()->getCache(), MessageUtils::serializeUnreadChat) },
+				{ "message_counts",  MessageUtils::serializeCacheInfo(chat->getCache(), MessageUtils::serializeUnreadChat) },
 			});
 		}
 
@@ -135,7 +133,7 @@ namespace webserver {
 				callerPtr = aRequest.getOwnerPtr()
 			] {
 				string error;
-				if (!chatF()->sendMessageHooked(OutgoingChatMessage(message.first, callerPtr, message.second), error) && !error.empty()) {
+				if (!chat->sendMessageHooked(OutgoingChatMessage(message.first, callerPtr, message.second), error) && !error.empty()) {
 					complete(websocketpp::http::status_code::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error));
 				} else {
 					complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
@@ -149,23 +147,23 @@ namespace webserver {
 			const auto& reqJson = aRequest.getRequestBody();
 
 			auto message = Deserializer::deserializeStatusMessage(reqJson);
-			chatF()->statusMessage(message.first, message.second, MessageUtils::parseStatusMessageLabel(aRequest.getSession()));
+			chat->statusMessage(message.first, message.second, MessageUtils::parseStatusMessageLabel(aRequest.getSession()));
 			return websocketpp::http::status_code::no_content;
 		}
 
 		api_return handleClear(ApiRequest&) {
-			chatF()->clearCache();
+			chat->clearCache();
 			return websocketpp::http::status_code::no_content;
 		}
 
 		api_return handleSetRead(ApiRequest&) {
-			chatF()->setRead();
+			chat->setRead();
 			return websocketpp::http::status_code::no_content;
 		}
 
 		api_return handleGetMessageHighlight(ApiRequest& aRequest) {
 			const auto id = aRequest.getTokenParam();
-			auto highlight = chatF()->getCache().findMessageHighlight(id);
+			auto highlight = chat->getCache().findMessageHighlight(id);
 			if (!highlight) {
 				aRequest.setResponseErrorStr("Message highlight " + Util::toString(id) + " was not found");
 				return websocketpp::http::status_code::not_found;
@@ -178,7 +176,7 @@ namespace webserver {
 		api_return handleGetMessages(ApiRequest& aRequest) {
 			auto j = Serializer::serializeFromEnd(
 				aRequest.getRangeParam(MAX_COUNT),
-				chatF()->getCache().getMessages(),
+				chat->getCache().getMessages(),
 				MessageUtils::serializeMessage
 			);
 
@@ -190,7 +188,7 @@ namespace webserver {
 			return subscriptionId + "_" + aSubscription;
 		}
 
-		ChatGetterF chatF;
+		ChatHandlerBase* chat;
 		string subscriptionId;
 		SubscribableApiModule* module;
 	};
