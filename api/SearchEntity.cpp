@@ -191,7 +191,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		// Parse user and query
-		auto user = Deserializer::deserializeHintedUser(reqJson, false);
+		auto user = Deserializer::deserializeHintedUser(reqJson);
 		auto s = FileSearchParser::parseSearch(reqJson, true, Util::toString(Util::rand()));
 
 		string error;

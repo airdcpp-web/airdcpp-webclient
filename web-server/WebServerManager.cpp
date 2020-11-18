@@ -514,7 +514,11 @@ namespace webserver {
 		}
 
 		try {
+#if BOOST_VERSION >= 106600
 			auto ip = boost::asio::ip::make_address(aAddress);
+#else
+			auto ip = boost::asio::ip::address::from_string(aAddress);
+#endif
 			if (ip == boost::asio::ip::address_v4::any() || ip == boost::asio::ip::address_v6::any()) {
 				return true;
 			}

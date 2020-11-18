@@ -97,7 +97,7 @@ namespace webserver {
 
 		auto name = JsonUtil::getField<string>("name", j, false);
 		auto size = JsonUtil::getField<int64_t>("size", j);
-		auto user = Deserializer::deserializeHintedUser(j, true);
+		auto user = Deserializer::deserializeHintedUser(j);
 		auto isText = JsonUtil::getOptionalFieldDefault<bool>("text", j, false);
 
 		ViewFilePtr file = nullptr;
@@ -119,14 +119,11 @@ namespace webserver {
 
 	api_return ViewFileApi::handleAddLocalFile(ApiRequest& aRequest) {
 		auto tth = aRequest.getTTHParam();
-		if (!ShareManager::getInstance()->isFileShared(tth)) {
-			aRequest.setResponseErrorStr("TTH not shared");
-			return websocketpp::http::status_code::bad_request;
-		}
+		auto isText = JsonUtil::getOptionalFieldDefault<bool>("text", aRequest.getRequestBody(), false);
 
 		ViewFilePtr file = nullptr;
 		try {
-			file = ViewFileManager::getInstance()->addLocalFileThrow(tth, JsonUtil::getOptionalFieldDefault<bool>("text", aRequest.getRequestBody(), false));
+			file = ViewFileManager::getInstance()->addLocalFileThrow(tth, isText);
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.getError());
 			return websocketpp::http::status_code::bad_request;

@@ -167,16 +167,18 @@ namespace webserver {
 	void ExtensionManager::load() noexcept {
 		auto directories = File::findFiles(EXTENSION_DIR_ROOT, "*", File::TYPE_DIRECTORY);
 
+		int started = 0;
 		for (const auto& path : directories) {
 			auto ext = loadLocalExtension(path);
 			if (ext && startExtensionImpl(ext)) {
-				auto isDebug = WEBCFG(EXTENSIONS_DEBUG_MODE).boolean();
-				auto message = isDebug ? 
-					STRING_F(WEB_EXTENSION_LOADED_DBG, ext->getName()) : 
-					STRING_F(WEB_EXTENSION_LOADED, ext->getName());
-
-				log(message, LogMessage::SEV_INFO);
+				started++;
 			}
+		}
+
+		if (started > 0) {
+			auto isDebug = WEBCFG(EXTENSIONS_DEBUG_MODE).boolean();
+			auto message = STRING_F(X_EXTENSIONS_LOADED, started);
+			log(isDebug ? STRING_F(X_DEBUG_MODE, message) : message, LogMessage::SEV_INFO);
 		}
 	}
 

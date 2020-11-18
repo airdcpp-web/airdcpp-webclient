@@ -111,7 +111,7 @@ namespace webserver {
 
 		void onTimer() noexcept;
 
-		ChatController<ClientPtr> chatHandler;
+		ChatController chatHandler;
 		ClientPtr client;
 
 		typedef ListViewController<OnlineUserPtr, OnlineUserUtils::PROP_LAST> UserView;
