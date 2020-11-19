@@ -40,12 +40,7 @@ public:
 	~UpdateManager();
 
 	struct {
-		string homepage;
-		string downloads;
 		string geoip;
-		string guides;
-		string customize;
-		string discuss;
 		string language;
 		string ipcheck4;
 		string ipcheck6;

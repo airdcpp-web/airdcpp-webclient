@@ -600,7 +600,7 @@ void QueueManager::checkSource(const HintedUser& aUser, bool aCheckTLS) const {
 
 	if (aUser.hint.empty()) {
 		dcassert(0);
-		throw QueueException(STRING(HUB_UNKNOWN));
+		throw QueueException(ClientManager::getInstance()->getFormatedNicks(aUser) + ": " + STRING(HUB_UNKNOWN));
 	}
 
 	// Check that we're not downloading from ourselves...
@@ -2681,7 +2681,7 @@ void QueueLoader::startTag(const string& name, StringPairList& attribs, bool sim
 				WLock l(qm->cs);
 				qm->addSource(curFile, hintedUser, 0, false);
 			} catch (const Exception& e) {
-				qm->log("Could not add source " + nick + ": " + e.what(), LogMessage::SEV_WARNING);
+				qm->log(STRING_F(SOURCE_ADD_ERROR, e.what()), LogMessage::SEV_WARNING);
 				return;
 			}
 		} else if (name == sFinished && (inDirBundle || inFileBundle)) {
@@ -3207,7 +3207,7 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 	}
 
 	// Check min size
-	if(qi->getSize() < PARTIAL_SHARE_MIN_SIZE){
+	if (qi->getSize() < PARTIAL_SHARE_MIN_SIZE){
 		dcassert(0);
 		return false;
 	}
@@ -3224,16 +3224,23 @@ bool QueueManager::handlePartialResult(const HintedUser& aUser, const TTHValue& 
 
 		// If this user isn't a source and has no parts needed, ignore it
 		auto si = qi->getSource(aUser);
-		if(si == qi->getSources().end()){
+		if(si == qi->getSources().end()) {
 			si = qi->getBadSource(aUser);
 
-			if(si != qi->getBadSources().end() && si->isSet(QueueItem::Source::FLAG_TTH_INCONSISTENCY))
+			if (si != qi->getBadSources().end() && si->isSet(QueueItem::Source::FLAG_TTH_INCONSISTENCY))
 				return false;
 
-			if(!wantConnection) {
-				if(si == qi->getBadSources().end())
+			if (!wantConnection) {
+				if (si == qi->getBadSources().end())
 					return false;
 			} else {
+				try {
+					checkSource(aUser);
+				} catch (const QueueException& e) {
+					log(STRING_F(SOURCE_ADD_ERROR, e.what()), LogMessage::SEV_WARNING);
+					return false;
+				}
+
 				// add this user as partial file sharing source
 				qi->addSource(aUser);
 				si = qi->getSource(aUser);
@@ -3426,6 +3433,13 @@ int QueueManager::addSources(const HintedUser& aUser, const QueueItemList& aItem
 }
 
 int QueueManager::addSources(const HintedUser& aUser, const QueueItemList& aItems, Flags::MaskType aAddBad, BundleList& matchingBundles_) noexcept {
+	try {
+		checkSource(aUser);
+	} catch (const QueueException& e) {
+		log(STRING_F(SOURCE_ADD_ERROR, e.what()), LogMessage::SEV_WARNING);
+		return 0;
+	}
+
 	bool wantConnection = false;
 
 	QueueItemList addedItems;
@@ -3444,7 +3458,7 @@ int QueueManager::addSources(const HintedUser& aUser, const QueueItemList& aItem
 				}
 
 				return false;
-			} catch (...) {
+			} catch (const QueueException&) {
 				// Ignore...
 			}
 

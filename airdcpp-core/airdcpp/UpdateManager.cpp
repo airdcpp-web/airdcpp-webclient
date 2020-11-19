@@ -52,12 +52,7 @@ const char* UpdateManager::versionUrl[VERSION_LAST] = {
 UpdateManager::UpdateManager() : lastIPUpdate(GET_TICK()) {
 	TimerManager::getInstance()->addListener(this);
 
-	links.homepage = "https://www.airdcpp.net/";
-	links.downloads = links.homepage + "download/";
 	links.geoip = "http://geoip.airdcpp.net";
-	links.guides = links.homepage + "guides/";
-	links.customize = links.homepage + "customizations/";
-	links.discuss = links.homepage + "forum/";
 	links.ipcheck4 = "http://checkip.dyndns.org/";
 	links.ipcheck6 = "http://checkip.dyndns.org/";
 	links.language = "http://languages.airdcpp.net/tx/";
@@ -240,43 +235,23 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 		xml.fromXML(conn->buf);
 		xml.stepIn();
 
-
-		//Check for updated HTTP links
-		if(xml.findChild("Links")) {
+		// Check for updated HTTP links
+		if (xml.findChild("Links")) {
 			xml.stepIn();
-			if(xml.findChild("Homepage")) {
-				links.homepage = xml.getChildData();
-			}
-			xml.resetCurrentChild();
-			if(xml.findChild("Downloads")) {
-				links.downloads = xml.getChildData();
-			}
-			xml.resetCurrentChild();
-			if(xml.findChild("GeoIP")) {
-				links.geoip = xml.getChildData();
-			}
-			xml.resetCurrentChild();
-			if(xml.findChild("Customize")) {
-				links.customize = xml.getChildData();
-			}
-			xml.resetCurrentChild();
-			if(xml.findChild("Forum")) {
-				links.discuss = xml.getChildData();
-			}
-			xml.resetCurrentChild();
-			if(xml.findChild("Languages")) {
+
+			if (xml.findChild("Languages")) {
 				links.language = xml.getChildData();
 			}
 			xml.resetCurrentChild();
-			if(xml.findChild("Guides")) {
-				links.guides = xml.getChildData();
+			if (xml.findChild("GeoIP")) {
+				links.geoip = xml.getChildData();
 			}
 			xml.resetCurrentChild();
-			if(xml.findChild("IPCheck")) {
+			if (xml.findChild("IPCheck")) {
 				links.ipcheck4 = xml.getChildData();
 			}
 			xml.resetCurrentChild();
-			if(xml.findChild("IPCheck6")) {
+			if (xml.findChild("IPCheck6")) {
 				links.ipcheck6 = xml.getChildData();
 			}
 			xml.stepOut();

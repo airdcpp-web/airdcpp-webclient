@@ -1243,7 +1243,7 @@ optional<ClientManager::ClientStats> ClientManager::getClientStats() const noexc
 			if (pos != string::npos) {
 				clientNames[app.substr(0, pos)]++;
 			} else {
-				clientNames["Unknown"]++;
+				clientNames[STRING(UNKNOWN)]++;
 			}
 		}
 	}

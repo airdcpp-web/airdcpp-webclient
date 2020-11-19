@@ -1573,6 +1573,7 @@ enum Strings { // @DontAdd
 	SOURCE_NO_ENCRYPTION, // "Remote ADC client does not use TLS encryption"
 	SOURCE_TOO_OLD, // "Remote client does not fully support TTH - cannot download"
 	SOURCE_TYPE, // "Source type"
+	SOURCE_ADD_ERROR, // "Failed to add source (%1%)"
 	SPECIFY_SEARCH_STRING, // "Specify a search string"
 	SPECIFY_SERVER, // "Specify a server to connect to"
 	SPEED, // "Speed"

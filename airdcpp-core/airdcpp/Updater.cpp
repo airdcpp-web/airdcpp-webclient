@@ -50,6 +50,8 @@
 # define UPGRADE_TAG "UpdateURL"
 #endif
 
+#define UPDATER_LOCATION_BASE "https://builds.airdcpp.net/updater/"
+
 namespace dcpp {
 
 void Updater::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
@@ -249,7 +251,7 @@ string Updater::createUpdate(const FileListF& aFileListF) noexcept {
 					//xml.replaceChildAttrib("Commit", Util::toString(COMMIT_NUMBER));
 					xml.replaceChildAttrib("VersionString", VERSIONSTRING);
 					xml.stepIn();
-					xml.setData("https://builds.airdcpp.net/updater/" + updaterFile);
+					xml.setData(UPDATER_LOCATION_BASE + updaterFile);
 
 					// Replace the line endings to use Unix format (it would be converted by the hosting provider anyway, which breaks the signature)
 					auto content = SimpleXML::utf8Header;
@@ -619,6 +621,7 @@ void Updater::downloadUpdate(const string& aUrl, int newBuildID, bool manualChec
 }
 
 bool Updater::getUpdateVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild) {
+	xml.resetCurrentChild();
 	while (xml.findChild("VersionInfo")) {
 		//the latest OS must come first
 		StringTokenizer<string> t(xml.getChildAttrib("MinOsVersion"), '.');
