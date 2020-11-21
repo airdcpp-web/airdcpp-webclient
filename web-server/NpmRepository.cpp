@@ -140,6 +140,7 @@ namespace webserver {
 			const auto sha = dist.at("shasum");
 
 			installF(aName, url, sha);
+			return;
 		}
 	}
 }
