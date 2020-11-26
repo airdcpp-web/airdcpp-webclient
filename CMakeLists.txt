@@ -9,6 +9,7 @@ endif (APPLE)
 
 set (PROJECT_NAME "AirDC++ Web Client")
 set (TAG_APPLICATION "AirDC++w")
+set (APPLICATION_ID "airdcpp-web")
 set (VERSION "2.10.0b") # NOTE: the minor version must match the lastest UI version
 set (SOVERSION "2.10.0b" )
 
@@ -205,7 +206,7 @@ endif (WIN32 OR HAIKU)
 # SCRIPTS
 
 # Version information for the client
-execute_process (COMMAND sh scripts/generate_version.sh ./airdcpp-core/airdcpp/version.inc ${VERSION} ${TAG_APPLICATION} 
+execute_process (COMMAND sh scripts/generate_version.sh ./airdcpp-core/airdcpp/version.inc ${VERSION} ${TAG_APPLICATION} ${APPLICATION_ID}
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             RESULT_VARIABLE SCRIPT_RESULT)
 

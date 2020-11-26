@@ -1,12 +1,13 @@
 #!/bin/sh
 
-if [ -z "$3" ]
+if [ -z "$4" ]
   then
-    echo "Usage: generate_version.sh <output file> <version number> <application name>"
+    echo "Usage: generate_version.sh <output file> <version number> <application name> <application id>"
 fi
 
 version=$2
 appName=$3
+appId=$4
 versionDate=`date +%s`
 commitCount=0
 
@@ -29,6 +30,7 @@ echo "#define GIT_TAG \"$version\"" >> $tmpFile
 echo "#define GIT_COMMIT_COUNT $commitCount" >> $tmpFile
 echo "#define VERSION_DATE $versionDate" >> $tmpFile
 echo "#define APPNAME_INC \"$appName\"" >> $tmpFile
+echo "#define APPID_INC \"$appId\"" >> $tmpFile
 
 if diff -q "$file" "$tmpFile" > /dev/null 2>&1; then
     : # files are the same
