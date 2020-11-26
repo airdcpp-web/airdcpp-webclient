@@ -80,7 +80,7 @@ namespace webserver {
 			DirectoryListingPtr dl = nullptr;
 			try {
 				auto listData = FilelistAddData(hintedUser, caller, directory);
-				dl = DirectoryListingManager::getInstance()->openRemoteFileListHooked(listData, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW);
+				dl = DirectoryListingManager::getInstance()->openRemoteFileListHookedThrow(listData, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW);
 			} catch (const Exception& e) {
 				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 				return;
@@ -269,7 +269,7 @@ namespace webserver {
 			try {
 				auto listData = FilelistAddData(hintedUser, caller, listPath);
 				auto errorMethod = logBundleErrors ? DirectoryDownload::ErrorMethod::LOG : DirectoryDownload::ErrorMethod::NONE;
-				auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownloadHooked(listData, targetBundleName, listPath, prio, errorMethod);
+				auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownloadHookedThrow(listData, targetBundleName, listPath, prio, errorMethod);
 				complete(websocketpp::http::status_code::ok, Serializer::serializeDirectoryDownload(directoryDownload), nullptr);
 				return;
 			} catch (const Exception& e) {
