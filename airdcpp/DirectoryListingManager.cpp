@@ -149,7 +149,7 @@ DirectoryDownloadPtr DirectoryListingManager::getDirectoryDownload(DirectoryDown
 	return i == dlDirectories.end() ? nullptr : *i;
 }
 
-DirectoryDownloadPtr DirectoryListingManager::addDirectoryDownloadHooked(const FilelistAddData& aListData, const string& aBundleName, const string& aTarget, Priority p, DirectoryDownload::ErrorMethod aErrorMethod) {
+DirectoryDownloadPtr DirectoryListingManager::addDirectoryDownloadHookedThrow(const FilelistAddData& aListData, const string& aBundleName, const string& aTarget, Priority p, DirectoryDownload::ErrorMethod aErrorMethod) {
 	dcassert(!aTarget.empty() && !aListData.listPath.empty() && !aBundleName.empty());
 	auto downloadInfo = make_shared<DirectoryDownload>(aListData, Util::cleanPathSeparators(aBundleName), aTarget, p, aErrorMethod);
 	
@@ -182,15 +182,15 @@ DirectoryDownloadPtr DirectoryListingManager::addDirectoryDownloadHooked(const F
 	fire(DirectoryListingManagerListener::DirectoryDownloadAdded(), downloadInfo);
 
 	if (!dl && needList) {
-		queueListHooked(downloadInfo);
-	} else if(dl) {
+		queueListHookedThrow(downloadInfo);
+	} else if (dl) {
 		dl->addAsyncTask([=] { handleDownloadHooked(downloadInfo, dl, false); });
 	}
 
 	return downloadInfo;
 }
 
-void DirectoryListingManager::queueListHooked(const DirectoryDownloadPtr& aDownloadInfo) {
+void DirectoryListingManager::queueListHookedThrow(const DirectoryDownloadPtr& aDownloadInfo) {
 	auto user = aDownloadInfo->getUser();
 
 	Flags flags = QueueItem::FLAG_DIRECTORY_DOWNLOAD;
@@ -201,7 +201,7 @@ void DirectoryListingManager::queueListHooked(const DirectoryDownloadPtr& aDownl
 	try {
 		auto qi = QueueManager::getInstance()->addListHooked(aDownloadInfo->getListData(), flags.getFlags());
 		aDownloadInfo->setQueueItem(qi);
-	} catch(const DupeException&) {
+	} catch (const DupeException&) {
 		// We have a list queued already
 	} catch (const Exception& e) {
 		// Failed
@@ -249,22 +249,35 @@ void DirectoryListingManager::log(const string& aMsg, LogMessage::Severity aSeve
 	LogManager::getInstance()->message(aMsg, aSeverity, STRING(FILE_LISTS));
 }
 
+void DirectoryListingManager::maybeReportDownloadError(const DirectoryDownloadPtr& aDownloadInfo, const string& aError, LogMessage::Severity aSeverity) noexcept {
+	if (aDownloadInfo->getErrorMethod() == DirectoryDownload::ErrorMethod::LOG && !aError.empty()) {
+		auto nick = ClientManager::getInstance()->getFormatedNicks(aDownloadInfo->getUser());
+		auto fullTarget = Util::joinDirectory(aDownloadInfo->getTarget(), aDownloadInfo->getBundleName());
+		log(STRING_F(ADD_BUNDLE_ERRORS_OCC, fullTarget % nick % aError), aSeverity);
+	}
+}
+
 void DirectoryListingManager::handleDownloadHooked(const DirectoryDownloadPtr& aDownloadInfo, const DirectoryListingPtr& aList, bool aListDownloaded/* = true*/) noexcept {
 	auto dir = aList->findDirectory(aDownloadInfo->getListPath());
 
 	// Check the content
 	{
-		if (!dir) {
-			// Downloading directory for an open list? Try to download a list from the dir...
+		if (!dir || (aList->getPartialList() && dir->findIncomplete())) {
 			if (!aListDownloaded) {
-				queueListHooked(aDownloadInfo);
+				// Downloading directory from an open list and it's missing/incomplete, queue with the wanted path
+				try {
+					queueListHookedThrow(aDownloadInfo);
+				} catch (const Exception& e) {
+					// Failure handled in queueListHookedThrow
+					maybeReportDownloadError(aDownloadInfo, e.getError());
+				}
+			} else {
+				// List downloaded but the directory is still missing/incomplete, abort to avoid an infinite downloading loop
+				string error = !dir ? "Filelist directory not found" : "Invalid filelist directory content";
+				failDirectoryDownload(aDownloadInfo, error);
+				maybeReportDownloadError(aDownloadInfo, error);
 			}
-			return;
-		}
 
-		if (aList->getPartialList() && dir->findIncomplete()) {
-			// Non-recursive partial list
-			queueListHooked(aDownloadInfo);
 			return;
 		}
 	}
@@ -273,11 +286,6 @@ void DirectoryListingManager::handleDownloadHooked(const DirectoryDownloadPtr& a
 
 	string errorMsg;
 	auto queueInfo = aList->createBundleHooked(dir, aDownloadInfo->getTarget(), aDownloadInfo->getBundleName(), aDownloadInfo->getPriority(), errorMsg);
-
-	if (aDownloadInfo->getErrorMethod() == DirectoryDownload::ErrorMethod::LOG && !errorMsg.empty()) {
-		log(STRING_F(ADD_BUNDLE_ERRORS_OCC, Util::joinDirectory(aDownloadInfo->getTarget(), aDownloadInfo->getBundleName()) % aList->getNick(false) % errorMsg), LogMessage::SEV_WARNING);
-	}
-
 	if (queueInfo) {
 		aDownloadInfo->setError(errorMsg);
 		aDownloadInfo->setQueueInfo(queueInfo);
@@ -285,8 +293,11 @@ void DirectoryListingManager::handleDownloadHooked(const DirectoryDownloadPtr& a
 		aDownloadInfo->setProcessedTick(GET_TICK());
 		aDownloadInfo->setState(DirectoryDownload::State::QUEUED);
 		fire(DirectoryListingManagerListener::DirectoryDownloadProcessed(), aDownloadInfo, *queueInfo, errorMsg);
+
+		maybeReportDownloadError(aDownloadInfo, errorMsg, LogMessage::Severity::SEV_WARNING);
 	} else {
 		failDirectoryDownload(aDownloadInfo, errorMsg);
+		maybeReportDownloadError(aDownloadInfo, errorMsg);
 	}
 }
 
@@ -392,6 +403,7 @@ void DirectoryListingManager::on(QueueManagerListener::ItemRemoved, const QueueI
 			auto error = QueueItem::Source::formatError(qi->getSources()[0]);
 			if (!error.empty()) {
 				failDirectoryDownload(ddl, error);
+				maybeReportDownloadError(ddl, error);
 			} else {
 				removeDirectoryDownload(ddl);
 			}
@@ -423,6 +435,8 @@ void DirectoryListingManager::on(QueueManagerListener::ItemRemoved, const QueueI
 
 
 void DirectoryListingManager::failDirectoryDownload(const DirectoryDownloadPtr& aDownloadInfo, const string& aError) noexcept {
+	dcassert(!aError.empty());
+
 	aDownloadInfo->setState(DirectoryDownload::State::FAILED);
 	aDownloadInfo->setError(aError);
 	aDownloadInfo->setProcessedTick(GET_TICK());
@@ -498,7 +512,7 @@ DirectoryListingPtr DirectoryListingManager::findList(const UserPtr& aUser) noex
 	return nullptr;
 }
 
-DirectoryListingPtr DirectoryListingManager::openRemoteFileListHooked(const FilelistAddData& aListData, Flags::MaskType aFlags) {
+DirectoryListingPtr DirectoryListingManager::openRemoteFileListHookedThrow(const FilelistAddData& aListData, Flags::MaskType aFlags) {
 	{
 		auto dl = findList(aListData.user);
 		if (dl) {
