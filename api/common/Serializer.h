@@ -68,7 +68,7 @@ namespace webserver {
 		
 		static string getDirectoryDownloadStateId(DirectoryDownload::State aState) noexcept;
 		static json serializeDirectoryDownload(const DirectoryDownloadPtr& aDownload) noexcept;
-		static json serializeDirectoryBundleAddInfo(const DirectoryBundleAddInfo& aInfo, const string& aError) noexcept;
+		static json serializeDirectoryBundleAddResult(const DirectoryBundleAddResult& aInfo, const string& aError) noexcept;
 		static json serializeBundleAddInfo(const BundleAddInfo& aInfo) noexcept;
 
 		static json serializePriorityId(Priority aPriority) noexcept;

@@ -371,9 +371,11 @@ namespace webserver {
 
 	void Extension::resetSession() noexcept {
 		if (session) {
-			session->getServer()->getUserManager().logout(session);
+			if (managed) {
+				session->getServer()->getUserManager().logout(session);
+				dcassert(session.use_count() == 1);
+			}
 
-			dcassert(session.use_count() == 1);
 			session = nullptr;
 		}
 	}
@@ -394,6 +396,24 @@ namespace webserver {
 		dcassert(running);
 		running = false;
 	}
+
+	void Extension::rotateLog(const string& aPath) {
+		auto oldFilePath = aPath + ".old";
+
+		try {
+			if (Util::fileExists(oldFilePath)) {
+				File::deleteFileThrow(oldFilePath);
+			}
+
+			if (Util::fileExists(aPath)) {
+				File::copyFile(aPath, oldFilePath);
+				File::deleteFileThrow(aPath);
+			}
+		} catch (const FileException& e) {
+			throw Exception("Failed to initialize the extension log " + aPath + ": " + e.getError());
+		}
+	}
+
 #ifdef _WIN32
 	void Extension::initLog(HANDLE& aHandle, const string& aPath) {
 		dcassert(aHandle == INVALID_HANDLE_VALUE);
@@ -403,11 +423,7 @@ namespace webserver {
 		saAttr.bInheritHandle = TRUE;
 		saAttr.lpSecurityDescriptor = NULL;
 
-
-		if (Util::fileExists(aPath) && !File::deleteFile(aPath)) {
-			dcdebug("Failed to delete the old extension output log %s: %s\n", aPath.c_str(), Util::translateError(::GetLastError()).c_str());
-			throw Exception("Failed to delete the old extension output log");
-		}
+		rotateLog(aPath);
 
 		aHandle = CreateFile(Text::toT(aPath).c_str(),
 			FILE_APPEND_DATA,
@@ -552,6 +568,7 @@ namespace webserver {
 	}
 
 	unique_ptr<File> Extension::initLog(const string& aPath) {
+		rotateLog(aPath);
 		return make_unique<File>(aPath, File::RW, File::CREATE | File::TRUNCATE);
 	}
 

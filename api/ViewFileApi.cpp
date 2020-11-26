@@ -93,28 +93,35 @@ namespace webserver {
 
 	api_return ViewFileApi::handleAddFile(ApiRequest& aRequest) {
 		const auto& j = aRequest.getRequestBody();
-		auto tth = Deserializer::deserializeTTH(j);
+		addAsyncTask([
+			tth = Deserializer::deserializeTTH(j),
+			name = JsonUtil::getField<string>("name", j, false),
+			size = JsonUtil::getField<int64_t>("size", j),
+			user = Deserializer::deserializeHintedUser(j),
+			isText = JsonUtil::getOptionalFieldDefault<bool>("text", j, false),
+			complete = aRequest.defer(),
+			caller = aRequest.getOwnerPtr()
+		] {
+			ViewFilePtr file = nullptr;
+			try {
+				auto fileData = ViewedFileAddData(name, tth, size, caller, user, isText);
+				file = ViewFileManager::getInstance()->addUserFileHookedThrow(fileData);
+			} catch (const Exception& e) {
+				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+				return;
+			}
 
-		auto name = JsonUtil::getField<string>("name", j, false);
-		auto size = JsonUtil::getField<int64_t>("size", j);
-		auto user = Deserializer::deserializeHintedUser(j);
-		auto isText = JsonUtil::getOptionalFieldDefault<bool>("text", j, false);
+			if (!file) {
+				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr("File with the same TTH is open already"));
+				return;
+			}
 
-		ViewFilePtr file = nullptr;
-		try {
-			file = ViewFileManager::getInstance()->addUserFileThrow(name, size, tth, user, isText);
-		} catch (const Exception& e) {
-			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::bad_request;
-		}
 
-		if (!file) {
-			aRequest.setResponseErrorStr("File with the same TTH is open already");
-			return websocketpp::http::status_code::bad_request;
-		}
+			complete(websocketpp::http::status_code::ok, serializeFile(file), nullptr);
+			return;
+		});
 
-		aRequest.setResponseBody(serializeFile(file));
-		return websocketpp::http::status_code::ok;
+		return CODE_DEFERRED;
 	}
 
 	api_return ViewFileApi::handleAddLocalFile(ApiRequest& aRequest) {

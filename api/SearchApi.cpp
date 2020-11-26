@@ -23,7 +23,7 @@
 #include <api/common/Deserializer.h>
 #include <api/common/FileSearchParser.h>
 
-#include <airdcpp/BundleInfo.h>
+#include <airdcpp/QueueAddInfo.h>
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/DirectSearch.h>
 #include <airdcpp/SearchInstance.h>
