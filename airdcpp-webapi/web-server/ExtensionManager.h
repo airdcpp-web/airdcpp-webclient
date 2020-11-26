@@ -71,7 +71,7 @@ namespace webserver {
 
 		// Remove extension from disk
 		// Throws FileException on disk errors and Exception on other errors
-		void uninstallLocalExtensionThrow(const ExtensionPtr& aExtension);
+		void uninstallLocalExtensionThrow(const ExtensionPtr& aExtension, bool aForced = false);
 
 		ExtensionPtr getExtension(const string& aName) const noexcept;
 		ExtensionList getExtensions() const noexcept;
@@ -97,6 +97,11 @@ namespace webserver {
 		bool startExtensionImpl(const ExtensionPtr& aExtension) noexcept;
 
 		EngineMap engines;
+
+		typedef map<string, string> BlockedExtensionMap;
+		BlockedExtensionMap blockedExtensions;
+
+		void uninstallBlockedExtensions() noexcept;
 
 		void onExtensionDownloadCompleted(const string& aInstallId, const string& aUrl, const string& aSha1) noexcept;
 		void failInstallation(const string& aInstallId, const string& aMessage, const string& aException) noexcept;

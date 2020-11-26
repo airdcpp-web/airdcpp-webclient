@@ -84,7 +84,6 @@ namespace webserver {
 
 			vector<ItemT> ret;
 			for (const auto& item: arrayJson) {
-				// ret.push_back(aF ? aF(item) : JsonUtil::parseValue<ItemT>(aFieldName, item, false));
 				ret.push_back(aF(item, aFieldName));
 			}
 

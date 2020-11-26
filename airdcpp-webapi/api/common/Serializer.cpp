@@ -266,12 +266,12 @@ namespace webserver {
 			{ "priority", Serializer::serializePriorityId(aDownload->getPriority()) },
 			{ "list_path", aDownload->getListPath() },
 			{ "state", getDirectoryDownloadStateId(aDownload->getState()) },
-			{ "queue_info", aDownload->getQueueInfo() ? serializeDirectoryBundleAddInfo(*aDownload->getQueueInfo(), aDownload->getError()) : json() },
+			{ "queue_info", aDownload->getQueueInfo() ? serializeDirectoryBundleAddResult(*aDownload->getQueueInfo(), aDownload->getError()) : json() },
 			{ "error", aDownload->getError() },
 		};
 	}
 
-	json Serializer::serializeDirectoryBundleAddInfo(const DirectoryBundleAddInfo& aInfo, const string& aError) noexcept {
+	json Serializer::serializeDirectoryBundleAddResult(const DirectoryBundleAddResult& aInfo, const string& aError) noexcept {
 		return {
 			{ "files_queued", aInfo.filesAdded },
 			{ "files_updated", aInfo.filesUpdated },

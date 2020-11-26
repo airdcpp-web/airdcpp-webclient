@@ -31,6 +31,7 @@
 #include <airdcpp/HttpDownload.h>
 #include <airdcpp/LogManager.h>
 #include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/SimpleXML.h>
 #include <airdcpp/Thread.h>
 #include <airdcpp/TimerManager.h>
 #include <airdcpp/UpdateManager.h>
@@ -147,7 +148,7 @@ namespace webserver {
 		});
 	}
 
-	void ExtensionManager::on(UpdateManagerListener::VersionFileDownloaded, SimpleXML& aXml) noexcept {
+	void ExtensionManager::on(UpdateManagerListener::VersionFileDownloaded, SimpleXML& xml) noexcept {
 		if (WEBCFG(EXTENSIONS_AUTO_UPDATE).boolean()) {
 			// Wait 10 seconds so that the extensions aren't updated right after they were started
 			// (stopping the extensions may fail in such case)
@@ -161,6 +162,55 @@ namespace webserver {
 			}, 10000);
 
 			updateCheckTask->start(false);
+		}
+
+		try {
+			xml.resetCurrentChild();
+			if (xml.findChild("BlockedExtensions")) {
+				xml.stepIn();
+
+				while (xml.findChild("BlockedExtension")) {
+					const auto& reason = xml.getChildAttrib("Reason");
+
+					xml.stepIn();
+					const auto& name = xml.getData();
+					xml.stepOut();
+
+					{
+						WLock l(cs);
+						blockedExtensions.emplace(name, reason);
+					}
+				}
+
+				xml.stepOut();
+			}
+		} catch (const SimpleXMLException& e) {
+			log("Failed to read blocked extensions: " + e.getError(), LogMessage::SEV_ERROR);
+		}
+
+		uninstallBlockedExtensions();
+	}
+
+	void ExtensionManager::uninstallBlockedExtensions() noexcept {
+		vector<pair<ExtensionPtr, string>> toRemove;
+
+		{
+			RLock l(cs);
+			for (const auto& e : extensions) {
+				auto i = blockedExtensions.find(e->getName());
+				if (i != blockedExtensions.end()) {
+					toRemove.emplace_back(e, i->second);
+				}
+			}
+		}
+
+		for (const auto& blockedInfo: toRemove) {
+			try {
+				log(STRING_F(WEB_EXTENSION_UNINSTALL_BLOCKED, blockedInfo.first->getName() % blockedInfo.second), LogMessage::SEV_WARNING);
+				uninstallLocalExtensionThrow(blockedInfo.first, true);
+			} catch (const Exception& e) {
+				log(e.what(), LogMessage::SEV_ERROR);
+			}
 		}
 	}
 
@@ -251,12 +301,21 @@ namespace webserver {
 		return true;
 	}
 
-	void ExtensionManager::uninstallLocalExtensionThrow(const ExtensionPtr& aExtension) {
+	void ExtensionManager::uninstallLocalExtensionThrow(const ExtensionPtr& aExtension, bool aForced) {
 		dcassert(aExtension->isManaged());
 		aExtension->removeListeners();
 
 		// Stop running extensions
-		aExtension->stopThrow();
+		try {
+			aExtension->stopThrow();
+		} catch (const Exception& e) {
+			if (!aForced) {
+				throw e;
+			}
+
+			// Try to continue in any case...
+			log(e.getError(), LogMessage::SEV_ERROR);
+		}
 
 		// Remove from disk
 		File::removeDirectoryForced(aExtension->getRootPath());
@@ -266,6 +325,7 @@ namespace webserver {
 			throw Exception("Extension was not found");
 		}
 
+		log(STRING_F(WEB_EXTENSION_UNINSTALLED, aExtension->getName()), LogMessage::SEV_INFO);
 		fire(ExtensionManagerListener::ExtensionRemoved(), aExtension);
 	}
 

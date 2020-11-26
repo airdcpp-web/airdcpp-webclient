@@ -157,6 +157,8 @@ namespace webserver {
 
 		void terminateProcessThrow();
 		void resetProcessState() noexcept;
+
+		static void rotateLog(const string& aPath);
 #ifdef _WIN32
 		static void initLog(HANDLE& aHandle, const string& aPath);
 		static void disableLogInheritance(HANDLE& aHandle);
