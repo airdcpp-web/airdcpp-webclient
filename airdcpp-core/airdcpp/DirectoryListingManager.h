@@ -44,7 +44,7 @@ namespace dcpp {
 		
 		// Add a managed filelist session from remove user, throws queueing errors
 		// Returns nullptr on duplicates
-		DirectoryListingPtr openRemoteFileListHooked(const FilelistAddData& aListData, Flags::MaskType aFlags);
+		DirectoryListingPtr openRemoteFileListHookedThrow(const FilelistAddData& aListData, Flags::MaskType aFlags);
 		bool removeList(const UserPtr& aUser) noexcept;
 
 		DirectoryListingManager() noexcept;
@@ -55,7 +55,7 @@ namespace dcpp {
 
 		// Throws on queueing errors (such as invalid source)
 		// If owner is specified, no errors are logged if queueing of the directory fails
-		DirectoryDownloadPtr addDirectoryDownloadHooked(const FilelistAddData& aListData, const string& aBundleName, const string& aTarget, Priority p, DirectoryDownload::ErrorMethod aErrorMethod);
+		DirectoryDownloadPtr addDirectoryDownloadHookedThrow(const FilelistAddData& aListData, const string& aBundleName, const string& aTarget, Priority p, DirectoryDownload::ErrorMethod aErrorMethod);
 		DirectoryDownloadList getDirectoryDownloads() const noexcept;
 		DirectoryDownloadPtr getDirectoryDownload(DirectoryDownloadId aId) const noexcept;
 
@@ -70,10 +70,12 @@ namespace dcpp {
 		void removeDirectoryDownload(const DirectoryDownloadPtr& aDownloadInfo) noexcept;
 		DirectoryDownloadList getPendingDirectoryDownloadsUnsafe(const UserPtr& aUser) const noexcept;
 		DirectoryDownloadPtr getPendingDirectoryDownloadUnsafe(const UserPtr& aUser, const string& aPath) const noexcept;
+
+		void maybeReportDownloadError(const DirectoryDownloadPtr& aDownloadInfo, const string& aError, LogMessage::Severity aSeverity = LogMessage::SEV_ERROR) noexcept;
 		void failDirectoryDownload(const DirectoryDownloadPtr& aDownloadInfo, const string& aError) noexcept;
 
 		// Throws on errors
-		void queueListHooked(const DirectoryDownloadPtr& aDownloadInfo);
+		void queueListHookedThrow(const DirectoryDownloadPtr& aDownloadInfo);
 
 		void handleDownloadHooked(const DirectoryDownloadPtr& aDownloadInfo, const DirectoryListingPtr& aList, bool aListDownloaded = true) noexcept;
 

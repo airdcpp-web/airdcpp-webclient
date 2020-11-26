@@ -162,7 +162,7 @@ namespace dcpp {
 		boost::for_each(pickDownloadResults(), [&](const SearchResultPtr& aSR) {
 			try {
 				auto listData = FilelistAddData(aSR->getUser(), aCaller, aTargetDirectory);
-				auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownloadHooked(listData, aTargetName, aSR->getAdcFilePath(), aPrio, DirectoryDownload::ErrorMethod::LOG);
+				auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownloadHookedThrow(listData, aTargetName, aSR->getAdcFilePath(), aPrio, DirectoryDownload::ErrorMethod::LOG);
 				directoryDownloads.push_back(directoryDownload);
 			} catch (const Exception& e) {
 				lastError = e.getError();

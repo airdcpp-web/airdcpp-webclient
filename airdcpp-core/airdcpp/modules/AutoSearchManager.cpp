@@ -887,7 +887,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 
 				auto listData = FilelistAddData(sr->getUser(), as.get(), sr->getAdcFilePath());
 				auto priority = as->getAction() == AutoSearch::ACTION_QUEUE ? Priority::PAUSED : Priority::DEFAULT;
-				DirectoryListingManager::getInstance()->addDirectoryDownloadHooked(listData, sr->getFileName(), as->getTarget(), priority, DirectoryDownload::ErrorMethod::NONE);
+				DirectoryListingManager::getInstance()->addDirectoryDownloadHookedThrow(listData, sr->getFileName(), as->getTarget(), priority, DirectoryDownload::ErrorMethod::NONE);
 			} else {
 				auto prio = as->getAction() == AutoSearch::ACTION_QUEUE ? Priority::PAUSED : Priority::DEFAULT;
 				auto fileInfo = BundleFileAddData(sr->getFileName(), sr->getTTH(), sr->getSize(), prio, sr->getDate());
