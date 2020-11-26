@@ -131,13 +131,15 @@ namespace dcpp {
 		return results;
 	}
 
-	BundleAddInfo GroupedSearchResult::downloadFile(const string& aTargetDirectory, const string& aTargetName, Priority aPrio) {
+	BundleAddInfo GroupedSearchResult::downloadFileHooked(const string& aTargetDirectory, const string& aTargetName, Priority aPrio, const void* aCaller) {
 		string lastError;
 		optional<BundleAddInfo> bundleAddInfo;
 
 		boost::for_each(pickDownloadResults(), [&](const SearchResultPtr& aSR) {
 			try {
-				auto curInfo = QueueManager::getInstance()->createFileBundle(aTargetDirectory + aTargetName, aSR->getSize(), aSR->getTTH(), aSR->getUser(), aSR->getDate(), 0, aPrio);
+				auto fileInfo = BundleFileAddData(aTargetName, aSR->getTTH(), aSR->getSize(), aPrio, aSR->getDate());
+				auto options = BundleAddOptions(aTargetDirectory, aSR->getUser(), aCaller);
+				auto curInfo = QueueManager::getInstance()->createFileBundleHooked(options, fileInfo);
 				if (!bundleAddInfo) {
 					bundleAddInfo = curInfo;
 				}
@@ -153,13 +155,14 @@ namespace dcpp {
 		return *bundleAddInfo;
 	}
 
-	DirectoryDownloadList GroupedSearchResult::downloadDirectory(const string& aTargetDirectory, const string& aTargetName, Priority aPrio) {
+	DirectoryDownloadList GroupedSearchResult::downloadDirectoryHooked(const string& aTargetDirectory, const string& aTargetName, Priority aPrio, const void* aCaller) {
 		string lastError;
 		DirectoryDownloadList directoryDownloads;
 
 		boost::for_each(pickDownloadResults(), [&](const SearchResultPtr& aSR) {
 			try {
-				auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownload(aSR->getUser(), aTargetName, aSR->getAdcFilePath(), aTargetDirectory, aPrio);
+				auto listData = FilelistAddData(aSR->getUser(), aCaller, aTargetDirectory);
+				auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownloadHooked(listData, aTargetName, aSR->getAdcFilePath(), aPrio, DirectoryDownload::ErrorMethod::LOG);
 				directoryDownloads.push_back(directoryDownload);
 			} catch (const Exception& e) {
 				lastError = e.getError();

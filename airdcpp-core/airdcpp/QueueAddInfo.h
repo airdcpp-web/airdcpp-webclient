@@ -28,6 +28,7 @@
 namespace dcpp {
 
 
+// Queue results
 struct BundleAddInfo {
 	BundleAddInfo(const BundlePtr& aBundle, bool aMerged) : bundle(aBundle), merged(aMerged) {}
 	BundleAddInfo() {}
@@ -36,32 +37,69 @@ struct BundleAddInfo {
 	bool merged = false;
 };
 
-struct DirectoryBundleAddInfo {
+struct DirectoryBundleAddResult {
 	int filesAdded = 0; // New files
 	int filesUpdated = 0; // Source added
 	int filesFailed = 0; // Adding failed
 	//int filesExist = 0; // Files existing on disk already
 
 	BundleAddInfo bundleInfo;
-
-	typedef vector<DirectoryBundleAddInfo> List;
 };
 
-struct BundleDirectoryItemInfo {
-	BundleDirectoryItemInfo(BundleDirectoryItemInfo&& rhs) = default;
-	BundleDirectoryItemInfo& operator=(BundleDirectoryItemInfo&& rhs) = default;
-	BundleDirectoryItemInfo(BundleDirectoryItemInfo&) = delete;
-	BundleDirectoryItemInfo& operator=(BundleDirectoryItemInfo&) = delete;
 
-	BundleDirectoryItemInfo(string aFile, const TTHValue& aTTH, int64_t aSize, Priority aPrio = Priority::DEFAULT) noexcept :
-		file(move(aFile)), tth(aTTH), size(aSize), prio(aPrio) { }
+// Adding bundles
+struct BundleAddOptions {
+	BundleAddOptions(string aTarget, const HintedUser& aOptionalUser, const void* aCaller) noexcept :
+		target(move(aTarget)), optionalUser(aOptionalUser), caller(aCaller) { }
+
+	string target;
+	HintedUser optionalUser;
+	const void* caller;
+};
+
+struct DirectoryBundleAddData {
+	DirectoryBundleAddData(string aName, Priority aPrio, time_t aDate) noexcept :
+		name(move(aName)), prio(aPrio), date(aDate) { }
+
+	string name;
+	Priority prio;
+	time_t date;
+};
+
+struct BundleFileAddData {
+	BundleFileAddData(string aFile, const TTHValue& aTTH, int64_t aSize, Priority aPrio, time_t aDate) noexcept :
+		file(move(aFile)), tth(aTTH), size(aSize), prio(aPrio), date(aDate) { }
 
 	string file;
 	TTHValue tth;
 	int64_t size;
 	Priority prio;
+	time_t date;
 
-	typedef vector<BundleDirectoryItemInfo> List;
+	typedef vector<BundleFileAddData> List;
+};
+
+// Filelist
+struct FilelistAddData {
+	FilelistAddData(const HintedUser& aUser, const void* aCaller, const string& aListPath) noexcept :
+		user(aUser), caller(aCaller), listPath(aListPath) { }
+
+	HintedUser user;
+	const void* caller;
+	string listPath;
+};
+
+// Viewed files
+struct ViewedFileAddData {
+	ViewedFileAddData(string aFile, const TTHValue& aTTH, int64_t aSize, const void* aCaller, const HintedUser& aUser, bool aIsText) noexcept :
+		file(move(aFile)), tth(aTTH), size(aSize), caller(aCaller), user(aUser), isText(aIsText) { }
+
+	string file;
+	TTHValue tth;
+	int64_t size;
+	const void* caller;
+	HintedUser user;
+	bool isText;
 };
 
 }

@@ -114,8 +114,6 @@ public:
 
 	static string formatMatchResults(int aMatchingFiles, int aNewFiles, const BundleList& aBundles) noexcept;
 
-	static void fileEvent(const string& tgt, bool file=false);
-
 	// Returns true if aDir is a sub directory of aParent
 	// Note: matching is always case insensitive. This will also handle directory paths in aParent without the trailing slash to work with Windows limitations (share monitoring)
 	inline static bool isSubAdc(const string& aDir, const string& aParent) noexcept { return isSub(aDir, aParent, ADC_SEPARATOR);	}

@@ -140,7 +140,7 @@ private:
 	void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept override { onRemoveBundle(aBundle, false); }
 	void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept override;
 
-	void on(DirectoryListingManagerListener::DirectoryDownloadProcessed, const DirectoryDownloadPtr& aDirectoryInfo, const DirectoryBundleAddInfo& aQueueInfo, const string& aError) noexcept override;
+	void on(DirectoryListingManagerListener::DirectoryDownloadProcessed, const DirectoryDownloadPtr& aDirectoryInfo, const DirectoryBundleAddResult& aQueueInfo, const string& aError) noexcept override;
 	void on(DirectoryDownloadFailed, const DirectoryDownloadPtr&, const string&) noexcept override;
 
 	//bool onBundleStatus(BundlePtr& aBundle, const ProfileTokenSet& aSearches);

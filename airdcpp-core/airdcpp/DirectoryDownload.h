@@ -21,7 +21,7 @@
 
 #include "forward.h"
 
-#include "BundleInfo.h"
+#include "QueueAddInfo.h"
 #include "GetSet.h"
 #include "Priority.h"
 
@@ -35,13 +35,18 @@ namespace dcpp {
 			FAILED
 		};
 
-		DirectoryDownload(const HintedUser& aUser, const string& aBundleName, const string& aListPath, const string& aTarget, Priority p, const void* aOwner = nullptr);
+		enum class ErrorMethod {
+			NONE,
+			LOG,
+		};
+
+		DirectoryDownload(const FilelistAddData& aListData, const string& aBundleName, const string& aTarget, Priority p, ErrorMethod aErrorMethod);
 
 		IGETSET(QueueItemPtr, queueItem, QueueItem, nullptr);
 		IGETSET(uint64_t, processedTick, ProcessedTick, 0);
 		IGETSET(State, state, State, State::PENDING);
 
-		GETSET(optional<DirectoryBundleAddInfo>, queueInfo, QueueInfo);
+		GETSET(optional<DirectoryBundleAddResult>, queueInfo, QueueInfo);
 		GETSET(string, error, Error);
 
 		struct HasOwner {
@@ -54,22 +59,23 @@ namespace dcpp {
 			HasOwner& operator=(const HasOwner&) = delete;
 		};
 
-		const HintedUser& getUser() const noexcept { return user; }
+		const HintedUser& getUser() const noexcept { return listData.user; }
 		const string& getBundleName() const noexcept { return bundleName; }
 		const string& getTarget() const noexcept { return target; }
-		const string& getListPath() const noexcept { return listPath; }
+		const string& getListPath() const noexcept { return listData.listPath; }
 		Priority getPriority() const noexcept { return priority; }
-		const void* getOwner() const noexcept { return owner; }
+		const void* getOwner() const noexcept { return listData.caller; }
 		DirectoryDownloadId getId() const noexcept { return id; }
+		ErrorMethod getErrorMethod() const noexcept { return errorMethod; }
+		const FilelistAddData& getListData() const noexcept { return listData; }
 	private:
 		const DirectoryDownloadId id;
 		const Priority priority;
-		const HintedUser user;
 		const string target;
 		const string bundleName;
-		const string listPath;
 		const time_t created;
-		const void* owner;
+		const FilelistAddData listData;
+		const ErrorMethod errorMethod;
 	};
 }
 

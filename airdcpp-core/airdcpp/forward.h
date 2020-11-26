@@ -61,10 +61,10 @@ class ADLSearch;
 
 class BufferedSocket;
 
-struct BundleDirectoryItemInfo;
+struct BundleFileInfo;
 
 struct BundleAddInfo;
-struct DirectoryBundleAddInfo;
+struct DirectoryBundleAddResult;
 
 class Bundle;
 typedef std::shared_ptr<Bundle> BundlePtr;

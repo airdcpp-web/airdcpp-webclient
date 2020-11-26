@@ -581,13 +581,13 @@ void DirectoryListing::Directory::getContentInfo(size_t& directories_, size_t& f
 	}
 }
 
-BundleDirectoryItemInfo::List DirectoryListing::Directory::toBundleInfoList() const noexcept {
-	BundleDirectoryItemInfo::List bundleFiles;
+BundleFileAddData::List DirectoryListing::Directory::toBundleInfoList() const noexcept {
+	BundleFileAddData::List bundleFiles;
 	toBundleInfoList(Util::emptyString, bundleFiles);
 	return bundleFiles;
 }
 
-void DirectoryListing::Directory::toBundleInfoList(const string& aTarget, BundleDirectoryItemInfo::List& aFiles) const noexcept {
+void DirectoryListing::Directory::toBundleInfoList(const string& aTarget, BundleFileAddData::List& aFiles) const noexcept {
 	// First, recurse over the directories
 	for (const auto& d: directories | map_values) {
 		d->toBundleInfoList(aTarget + d->getName() + PATH_SEPARATOR, aFiles);
@@ -597,7 +597,7 @@ void DirectoryListing::Directory::toBundleInfoList(const string& aTarget, Bundle
 
 	//sort(files.begin(), files.end(), File::Sort());
 	for (const auto& f: files) {
-		aFiles.emplace_back(aTarget + f->getName(), f->getTTH(), f->getSize());
+		aFiles.emplace_back(aTarget + f->getName(), f->getTTH(), f->getSize(), Priority::DEFAULT, f->getRemoteDate());
 	}
 }
 
@@ -609,14 +609,15 @@ HintedUser DirectoryListing::getDownloadSourceUser() const noexcept {
 	return hintedUser;
 }
 
-optional<DirectoryBundleAddInfo> DirectoryListing::createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPriority, string& errorMsg_) noexcept {
+optional<DirectoryBundleAddResult> DirectoryListing::createBundleHooked(const Directory::Ptr& aDir, const string& aTarget, const string& aName, Priority aPriority, string& errorMsg_) noexcept {
 	auto bundleFiles = aDir->toBundleInfoList();
 
 	try {
-		auto info = QueueManager::getInstance()->createDirectoryBundle(aTarget, getDownloadSourceUser(),
-			bundleFiles, aPriority, aDir->getRemoteDate(), errorMsg_);
+		auto addInfo = DirectoryBundleAddData(aName, aPriority, aDir->getRemoteDate());
+		auto options = BundleAddOptions(aTarget, getDownloadSourceUser(), this);
+		auto result = QueueManager::getInstance()->createDirectoryBundleHooked(options, addInfo, bundleFiles, errorMsg_);
 
-		return info;
+		return result;
 	} catch (const std::bad_alloc&) {
 		errorMsg_ = STRING(OUT_OF_MEMORY);
 		log(STRING_F(BUNDLE_CREATION_FAILED, aTarget % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
@@ -1209,7 +1210,8 @@ void DirectoryListing::changeDirectoryImpl(const string& aAdcPath, bool aReload,
 				if (isOwnList) {
 					addPartialListTask(Util::emptyString, aAdcPath, false);
 				} else {
-					QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, aAdcPath);
+					auto listData = FilelistAddData(hintedUser, this, aAdcPath);
+					QueueManager::getInstance()->addListHooked(listData, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW);
 				}
 			} catch (const Exception& e) {
 				fire(DirectoryListingListener::LoadingFailed(), e.getError());

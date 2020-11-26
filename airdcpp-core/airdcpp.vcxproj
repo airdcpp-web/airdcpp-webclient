@@ -340,7 +340,7 @@
     <ClInclude Include="airdcpp\AdcCommand.h" />
     <ClInclude Include="airdcpp\AdcHub.h" />
     <ClInclude Include="airdcpp\AddressInfo.h" />
-    <ClInclude Include="airdcpp\BundleInfo.h" />
+    <ClInclude Include="airdcpp\QueueAddInfo.h" />
     <ClInclude Include="airdcpp\constants.h" />
     <ClInclude Include="airdcpp\DirectoryDownload.h" />
     <ClInclude Include="airdcpp\DirectSearch.h" />
@@ -517,16 +517,16 @@
     <ClInclude Include="airdcpp\ZipFile.h" />
     <CustomBuild Include="airdcpp\StringDefs.h">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building StringDefs.cpp and Example.xml from StringDefs.h...</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" $(ProjectDir)airdcpp\StringDefs.h $(ProjectDir)airdcpp\StringDefs.cpp $(ProjectDir)EN_Example.xml</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" "$(ProjectDir)airdcpp\StringDefs.h" "$(ProjectDir)airdcpp\StringDefs.cpp" "$(ProjectDir)EN_Example.xml"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)airdcpp\StringDefs.cpp;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building StringDefs.cpp and Example.xml from StringDefs.h...</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" $(ProjectDir)airdcpp\StringDefs.h $(ProjectDir)airdcpp\StringDefs.cpp $(ProjectDir)EN_Example.xml</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" "$(ProjectDir)airdcpp\StringDefs.h" "$(ProjectDir)airdcpp\StringDefs.cpp" "$(ProjectDir)EN_Example.xml"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)airdcpp\StringDefs.cpp;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building StringDefs.cpp and Example.xml from StringDefs.h...</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" $(ProjectDir)airdcpp\StringDefs.h $(ProjectDir)airdcpp\StringDefs.cpp $(ProjectDir)EN_Example.xml</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" "$(ProjectDir)airdcpp\StringDefs.h" "$(ProjectDir)airdcpp\StringDefs.cpp" "$(ProjectDir)EN_Example.xml"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)airdcpp\StringDefs.cpp;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building StringDefs.cpp and Example.xml from StringDefs.h...</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" $(ProjectDir)airdcpp\StringDefs.h $(ProjectDir)airdcpp\StringDefs.cpp $(ProjectDir)EN_Example.xml</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" "$(ProjectDir)airdcpp\StringDefs.h" "$(ProjectDir)airdcpp\StringDefs.cpp" "$(ProjectDir)EN_Example.xml"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)airdcpp\StringDefs.cpp;%(Outputs)</Outputs>
     </CustomBuild>
     <ClInclude Include="airdcpp\StringSearch.h" />
