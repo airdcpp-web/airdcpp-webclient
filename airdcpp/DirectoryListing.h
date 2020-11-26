@@ -26,7 +26,7 @@
 #include "ShareManagerListener.h"
 #include "TimerManagerListener.h"
 
-#include "BundleInfo.h"
+#include "QueueAddInfo.h"
 #include "DirectSearch.h"
 #include "DispatcherQueue.h"
 #include "DupeType.h"
@@ -139,7 +139,7 @@ public:
 		bool getAdls() const noexcept { return type == TYPE_ADLS; }
 
 		// Create recursive bundle file info listing with relative paths
-		BundleDirectoryItemInfo::List toBundleInfoList() const noexcept;
+		BundleFileAddData::List toBundleInfoList() const noexcept;
 
 		const string& getName() const noexcept {
 			return name;
@@ -158,7 +158,7 @@ public:
 			contentInfo.directories = aContentInfo.directories;
 		}
 	protected:
-		void toBundleInfoList(const string& aTarget, BundleDirectoryItemInfo::List& aFiles) const noexcept;
+		void toBundleInfoList(const string& aTarget, BundleFileAddData::List& aFiles) const noexcept;
 
 		Directory(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool aCheckDupe, const DirectoryContentInfo& aContentInfo, const string& aSize, time_t aRemoteDate);
 
@@ -193,7 +193,7 @@ public:
 	// Throws AbortException
 	int loadPartialXml(const string& aXml, const string& aAdcBase);
 
-	optional<DirectoryBundleAddInfo> createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPrio, string& errorMsg_) noexcept;
+	optional<DirectoryBundleAddResult> createBundleHooked(const Directory::Ptr& aDir, const string& aTarget, const string& aName, Priority aPrio, string& errorMsg_) noexcept;
 
 	HintedUser getDownloadSourceUser() const noexcept;
 

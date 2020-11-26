@@ -174,7 +174,7 @@ const string SettingsManager::settingTags[] =
 	// Generic
 	"Nick", "UploadSpeed", "DownloadSpeed", "Description", "DownloadDirectory", "EMail", "ExternalIp", "ExternalIp6",
 	"LanguageFile", "HublistServers",  "HttpProxy", "Mapper",
-	"BindAddress", "BindAddress6", "SocksServer", "SocksUser", "SocksPassword", "ConfigVersion", 
+	"BindAddress", "BindAddress6", "SocksServer", "SocksUser", "SocksPassword", "ConfigVersion", "ConfigName",
 	"DefaultAwayMessage", "TimeStampsFormat", "CID", "NmdcEncoding",
 
 	"LogDirectory", "LogFormatPostDownload", "LogFormatPostUpload", "LogFormatMainChat", "LogFormatPrivateChat",
@@ -308,7 +308,7 @@ const string SettingsManager::settingTags[] =
 	"AutoDetectionUseLimited", "LogScheduledRefreshes", "AutoCompleteBundles",
 	"EnableSUDP", "NmdcMagnetWarn", "UpdateIPHourly",
 	"UseSlowDisconnectingDefault", "PrioListHighest",
-	"UseFTPLogger", "QIAutoPrio", "ReportAddedSources", "OverlapSlowUser", "FormatDirRemoteTime",
+	"QIAutoPrio", "ReportAddedSources", "OverlapSlowUser", "FormatDirRemoteTime",
 	"LogHashedFiles", "UsePartialSharing",
 	"ReportBlockedShare", "MCNAutoDetect", "DLAutoDetect", "ULAutoDetect",
 	"DupesInFilelists", "DupesInChat", "NoZeroByte",
@@ -333,7 +333,7 @@ const string SettingsManager::settingTags[] =
 	"MagnetAsk", "MagnetRegister", "MinimizeToTray",
 	"PopunderFilelist", "PopunderPm", "PromptPassword",
 	"ShowMenuBar", "ShowStatusbar", "ShowToolbar",
-	"ShowTransferview", "StatusInChat",
+	"ShowTransferview", "StatusInChat", "ShowIpCountryChat",
 
 	"ToggleActiveTab", "UrlHandler", "UseCTRLForLineHistory", "UseSystemIcons",
 	"UsersFilterFavorite", "UsersFilterOnline", "UsersFilterQueue", "UsersFilterWaiting",
@@ -386,10 +386,6 @@ const string SettingsManager::settingTags[] =
 
 SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 {
-	//make sure it can fit our events without using push_back since
-	//that might cause them to be in the wrong position.
-	fileEvents.resize(2);
-
 	setDefault(NICK, Util::getSystemUsername());
 
 	setDefault(MAX_UPLOAD_SPEED_MAIN, 0);
@@ -564,7 +560,6 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(USE_PARTIAL_SHARING, true);
 	setDefault(LOG_HASHING, false);
 	setDefault(RECENT_BUNDLE_HOURS, 24);
-	setDefault(USE_FTP_LOGGER, false);
 	setDefault(QI_AUTOPRIO, true);
 	setDefault(ALLOW_MATCH_FULL_LIST, true);
 	setDefault(REPORT_ADDED_SOURCES, false);
@@ -662,6 +657,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(MINIMIZE_TRAY, false);
 	setDefault(CLEAR_SEARCH, true);
 	setDefault(STATUS_IN_CHAT, true);
+	setDefault(SHOW_IP_COUNTRY_CHAT, false);
 	setDefault(PRIVATE_MESSAGE_BEEP, false);
 	setDefault(SHOW_PROGRESS_BARS, true);
 	setDefault(PRIVATE_MESSAGE_BEEP_OPEN, false);
@@ -1101,25 +1097,6 @@ void SettingsManager::load(StartupLoader& aLoader) noexcept {
 				xml.resetCurrentChild();
 			}
 
-			if (xml.findChild("FileEvents")) {
-				xml.stepIn();
-				if (xml.findChild("OnFileComplete")) {
-					StringPair sp;
-					sp.first = xml.getChildAttrib("Command");
-					sp.second = xml.getChildAttrib("CommandLine");
-					fileEvents[ON_FILE_COMPLETE] = sp;
-				}
-				xml.resetCurrentChild();
-				if (xml.findChild("OnDirCreated")) {
-					StringPair sp;
-					sp.first = xml.getChildAttrib("Command");
-					sp.second = xml.getChildAttrib("CommandLine");
-					fileEvents[ON_DIR_CREATED] = sp;
-				}
-				xml.stepOut();
-			}
-			xml.resetCurrentChild();
-
 			fire(SettingsManagerListener::Load(), xml);
 
 			xml.stepOut();
@@ -1307,6 +1284,9 @@ void SettingsManager::save() noexcept {
 		if (i == CONFIG_VERSION) {
 			xml.addTag(settingTags[i], VERSIONSTRING);
 			xml.addChildAttrib(type, curType);
+		} else if (i == CONFIG_APP) {
+			xml.addTag(settingTags[i], APPID);
+			xml.addChildAttrib(type, curType);
 		} else if(isSet[i]) {
 			xml.addTag(settingTags[i], get(StrSetting(i), false));
 			xml.addChildAttrib(type, curType);
@@ -1356,17 +1336,6 @@ void SettingsManager::save() noexcept {
 			xml.stepOut();
 		}
 	}
-
-	xml.addTag("FileEvents");
-	xml.stepIn();
-	xml.addTag("OnFileComplete");
-	xml.addChildAttrib("Command", fileEvents[ON_FILE_COMPLETE].first);
-	xml.addChildAttrib("CommandLine", fileEvents[ON_FILE_COMPLETE].second);
-	xml.addTag("OnDirCreated");
-	xml.addChildAttrib("Command", fileEvents[ON_DIR_CREATED].first);
-	xml.addChildAttrib("CommandLine", fileEvents[ON_DIR_CREATED].second);
-	xml.stepOut();
-
 
 	fire(SettingsManagerListener::Save(), xml);
 	saveSettingFile(xml, CONFIG_DIR, CONFIG_NAME);

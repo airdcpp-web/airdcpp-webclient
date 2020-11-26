@@ -462,10 +462,11 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 			destDirVector[is.ddIndex].dir->files.push_back(copyFile);
 			destDirVector[is.ddIndex].fileAdded = true;
 
-			if(is.isAutoQueue){
+			if (is.isAutoQueue){
+				auto fileInfo = BundleFileAddData(currentFile->getName(), currentFile->getTTH(), currentFile->getSize(), Priority::DEFAULT, currentFile->getRemoteDate());
 				try {
-					QueueManager::getInstance()->createFileBundle(SETTING(DOWNLOAD_DIRECTORY) + currentFile->getName(),
-						currentFile->getSize(), currentFile->getTTH(), getUser(), currentFile->getRemoteDate());
+					auto options = BundleAddOptions(SETTING(DOWNLOAD_DIRECTORY), getUser(), this);
+					QueueManager::getInstance()->createFileBundleHooked(options, fileInfo);
 				} catch(const Exception&) { }
 			}
 

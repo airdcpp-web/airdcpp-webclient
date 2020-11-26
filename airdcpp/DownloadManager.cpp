@@ -474,7 +474,7 @@ void DownloadManager::endData(UserConnection* aSource) {
 			fire(DownloadManagerListener::Failed(), d, STRING(INVALID_TREE));
 
 			QueueManager::getInstance()->removeFileSource(d->getPath(), aSource->getUser(), QueueItem::Source::FLAG_BAD_TREE, false);
-			QueueManager::getInstance()->putDownload(d, false);
+			QueueManager::getInstance()->putDownloadHooked(d, false);
 
 			checkDownloads(aSource);
 			return;
@@ -491,7 +491,7 @@ void DownloadManager::endData(UserConnection* aSource) {
 
 	fire(DownloadManagerListener::Complete(), d, d->getType() == Transfer::TYPE_TREE);
 	try {
-		QueueManager::getInstance()->putDownload(d, true);
+		QueueManager::getInstance()->putDownloadHooked(d, true);
 	} catch (const HashException& e) {
 		removeRunningUser(aSource);
 		removeConnection(aSource);
@@ -556,7 +556,7 @@ void DownloadManager::failDownload(UserConnection* aSource, const string& reason
 	if(d) {
 		removeDownload(d);
 		fire(DownloadManagerListener::Failed(), d, reason);
-		QueueManager::getInstance()->putDownload(d, false, false, rotateQueue);
+		QueueManager::getInstance()->putDownloadHooked(d, false, false, rotateQueue);
 	}
 
 	removeRunningUser(aSource);
@@ -734,7 +734,7 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess, 
 		QueueManager::getInstance()->removeFileSource(d->getPath(), aSource->getUser(), (Flags::MaskType)(d->getType() == Transfer::TYPE_TREE ? QueueItem::Source::FLAG_NO_TREE : QueueItem::Source::FLAG_FILE_NOT_AVAILABLE), false);
 	}
 
-	QueueManager::getInstance()->putDownload(d, false, aNoAccess);
+	QueueManager::getInstance()->putDownloadHooked(d, false, aNoAccess);
 	checkDownloads(aSource);
 }
 

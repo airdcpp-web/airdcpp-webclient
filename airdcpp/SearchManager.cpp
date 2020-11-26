@@ -487,7 +487,7 @@ void SearchManager::onPBD(const AdcCommand& aCmd, const UserPtr& from) {
 
 	if (update) {
 		dbgMsg("PBD: add file source", LogMessage::SEV_INFO);
-		QueueManager::getInstance()->updatePBD(HintedUser(from, hubUrl), TTHValue(tth));
+		QueueManager::getInstance()->updatePBDHooked(HintedUser(from, hubUrl), TTHValue(tth));
 		return;
 	} else if (remoteBundle.empty()) {
 		dbgMsg("PBD: empty remote bundle", LogMessage::SEV_WARNING);
@@ -517,7 +517,7 @@ void SearchManager::onPBD(const AdcCommand& aCmd, const UserPtr& from) {
 
 	if (add) {
 		try {
-			QueueManager::getInstance()->addBundleTTHList(u, remoteBundle, TTHValue(tth));
+			QueueManager::getInstance()->addBundleTTHListHooked(u, remoteBundle, TTHValue(tth));
 			dbgMsg("PBD: TTH list queued", LogMessage::SEV_INFO);
 		} catch (const Exception& e) {
 			dbgMsg("PBD: error when queueing TTH list: " + string(e.what()), LogMessage::SEV_WARNING);
@@ -593,7 +593,7 @@ void SearchManager::onPSR(const AdcCommand& aCmd, UserPtr from, const string& aR
 	QueueItem::PartialSource ps(from->isNMDC() ? ClientManager::getInstance()->getMyNick(hubUrl) : Util::emptyString, hubIpPort, aRemoteIp, udpPort);
 	ps.setPartialInfo(partialInfo);
 
-	QueueManager::getInstance()->handlePartialResult(HintedUser(from, hubUrl), TTHValue(tth), ps, outPartialInfo);
+	QueueManager::getInstance()->handlePartialResultHooked(HintedUser(from, hubUrl), TTHValue(tth), ps, outPartialInfo);
 	
 	if(Util::toInt(udpPort) > 0 && !outPartialInfo.empty()) {
 		try {

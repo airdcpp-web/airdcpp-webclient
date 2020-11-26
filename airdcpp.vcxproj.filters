@@ -853,9 +853,6 @@
     <ClInclude Include="airdcpp\SettingsManagerListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\BundleInfo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="airdcpp\Priority.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -962,6 +959,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\Hasher.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\QueueAddInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

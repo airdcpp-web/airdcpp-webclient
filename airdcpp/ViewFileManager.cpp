@@ -154,22 +154,22 @@ namespace dcpp {
 		return file;
 	}
 	
-	ViewFilePtr ViewFileManager::addUserFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) {
-		if (ShareManager::getInstance()->isFileShared(aTTH) || ShareManager::getInstance()->isTempShared(nullptr, aTTH)) {
-			return addLocalFileThrow(aTTH, aIsText);
+	ViewFilePtr ViewFileManager::addUserFileHookedThrow(const ViewedFileAddData& aFileInfo) {
+		if (ShareManager::getInstance()->isFileShared(aFileInfo.tth) || ShareManager::getInstance()->isTempShared(nullptr, aFileInfo.tth)) {
+			return addLocalFileThrow(aFileInfo.tth, aFileInfo.isText);
 		}
 
-		if (aUser == ClientManager::getInstance()->getMe()) {
+		if (aFileInfo.user == ClientManager::getInstance()->getMe()) {
 			throw Exception(STRING(NO_DOWNLOADS_FROM_SELF));
 		}
 
-		if (getFile(aTTH)) {
+		if (getFile(aFileInfo.tth)) {
 			return nullptr;
 		}
 
-		auto qi = QueueManager::getInstance()->addOpenedItem(aFileName, aSize, aTTH, aUser, true, aIsText);
+		auto qi = QueueManager::getInstance()->addOpenedItemHooked(aFileInfo, true);
 
-		auto file = createFile(aFileName, qi->getTarget(), qi->getTTH(), aIsText, false);
+		auto file = createFile(aFileInfo.file, qi->getTarget(), qi->getTTH(), aFileInfo.isText, false);
 		if (file) {
 			file->onAddedQueue(qi->getTarget(), qi->getSize());
 		}
@@ -177,16 +177,16 @@ namespace dcpp {
 		return file;
 	}
 
-	ViewFilePtr ViewFileManager::addUserFileNotify(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) noexcept {
+	ViewFilePtr ViewFileManager::addUserFileHookedNotify(const ViewedFileAddData& aFileInfo) noexcept {
 		try {
-			auto file = addUserFileThrow(aFileName, aSize, aTTH, aUser, aIsText);
+			auto file = addUserFileHookedThrow(aFileInfo);
 			if (file) {
 				return file;
 			}
 
-			log(STRING_F(FILE_ALREADY_VIEWED, aFileName), LogMessage::SEV_NOTIFY);
+			log(STRING_F(FILE_ALREADY_VIEWED, aFileInfo.file), LogMessage::SEV_NOTIFY);
 		} catch (const Exception& e) {
-			log(STRING_F(ADD_FILE_ERROR, aFileName % ClientManager::getInstance()->getFormatedNicks(aUser) % e.getError()), LogMessage::SEV_NOTIFY);
+			log(STRING_F(ADD_FILE_ERROR, aFileInfo.file % ClientManager::getInstance()->getFormatedNicks(aFileInfo.user) % e.getError()), LogMessage::SEV_NOTIFY);
 		}
 
 		return nullptr;
