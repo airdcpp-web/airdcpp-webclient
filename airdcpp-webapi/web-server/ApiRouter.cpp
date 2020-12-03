@@ -44,7 +44,7 @@ namespace webserver {
 
 	void ApiRouter::handleSocketRequest(const string& aMessage, const WebSocketPtr& aSocket, bool aIsSecure) noexcept {
 
-		dcdebug("Received socket request: %s\n", aMessage.size() > 500 ? (aMessage.substr(0, 500) + "...").c_str() : aMessage.c_str());
+		dcdebug("Received socket request: %s\n", Util::truncate(aMessage, 500).c_str());
 
 		// Parse request
 		websocketpp::http::status_code::value code;
