@@ -225,6 +225,8 @@ public:
 	static wstring getFileExt(const wstring& aPath) noexcept;
 	static wstring getLastDir(const wstring& aPath) noexcept;
 
+	static string truncate(const string& aStr, int aMaxLength) noexcept;
+
 	template<typename string_t>
 	static void replace(const string_t& search, const string_t& replacement, string_t& str) noexcept {
 		typename string_t::size_type i = 0;
