@@ -252,7 +252,7 @@ namespace webserver {
 		const auto fileId = JsonUtil::getField<string>("file_id", aRequest.getRequestBody(), false);
 		const auto name = JsonUtil::getField<string>("name", aRequest.getRequestBody(), false);
 		const auto user = Deserializer::deserializeUser(aRequest.getRequestBody(), false, true);
-		const auto client = Deserializer::deserializeClient(aRequest.getRequestBody());
+		const auto optionalClient = Deserializer::deserializeClient(aRequest.getRequestBody(), true);
 
 		const auto filePath = aRequest.getSession()->getServer()->getFileServer().getTempFilePath(fileId);
 		if (filePath.empty() || !Util::fileExists(filePath)) {
@@ -276,7 +276,8 @@ namespace webserver {
 			}
 		}
 
-		auto item = ShareManager::getInstance()->addTempShare(tth, name, filePath, size, client->get(HubSettings::ShareProfile), user);
+		auto shareProfileToken = optionalClient ? optionalClient->get(HubSettings::ShareProfile) : SETTING(DEFAULT_SP);
+		auto item = ShareManager::getInstance()->addTempShare(tth, name, filePath, size, shareProfileToken, user);
 
 		aRequest.setResponseBody({
 			{ "magnet", Magnet::makeMagnet(tth, name, size) },
