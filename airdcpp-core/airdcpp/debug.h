@@ -27,7 +27,7 @@
 
 #ifdef _MSC_VER
 
-#define dcdebug debugTrace
+#define dcdebug
 #include <crtdbg.h>
 
 inline void __cdecl debugTrace(const char* format, ...) {
@@ -35,10 +35,10 @@ inline void __cdecl debugTrace(const char* format, ...) {
 	//show the debug info in output window. 	 
 	va_list args;
 	va_start(args, format);
-	char str[1024];
+	char str[4096];
 	vsprintf(str, format, args);
-	wchar_t str2[1024];
-	::MultiByteToWideChar(CP_UTF8, NULL, str, -1, str2, sizeof(str2) -1);
+	wchar_t str2[4096];
+	::MultiByteToWideChar(CP_UTF8, NULL, str, -1, str2, (int)sizeof(str2) -1);
 	OutputDebugString(str2);
 	va_end(args);
 }
@@ -54,7 +54,8 @@ _CrtDbgBreak(); } } while(false)
 #endif
 #define dcdrun(exp) exp
 #else //_DEBUG
-#define dcdebug if (false) printf
+#define dcdebug 
+/*if (false) printf*/
 #define dcassert(exp)
 #define dcdrun(exp)
 #endif //_DEBUG

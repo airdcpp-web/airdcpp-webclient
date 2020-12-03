@@ -200,7 +200,7 @@ namespace dcpp {
 				);
 
 				if (res.error) {
-					dcdebug("Hook rejected by handler %s: %s (%s)\n", res.error->hookId.c_str(), res.error->rejectId.c_str(), res.error->message.c_str());
+					dcdebug("Hook rejected by handler %s: %s\n", res.error->hookId.c_str(), res.error->rejectId.c_str());
 					return res.error;
 				}
 			}
@@ -271,7 +271,8 @@ namespace dcpp {
 				);
 
 				if (handlerRes.error) {
-					dcdebug("Hook rejected by handler %s: %s (%s)\n", handlerRes.error->hookId.c_str(), handlerRes.error->rejectId.c_str(), handlerRes.error->message.c_str());
+					dcdebug("Hook rejected by handler %s: %s\n", handlerRes.error->hookId.c_str(), handlerRes.error->rejectId.c_str());
+
 					if (aRejectHandler) {
 						aRejectHandler(handlerRes.error);
 					}

@@ -1544,6 +1544,10 @@ wstring Util::getLastDir(const wstring& path) noexcept {
 	return path.substr(j+1, i-j-1);
 }
 
+string Util::truncate(const string& aStr, int aMaxLength) noexcept {
+	return aStr.size() > aMaxLength ? (aStr.substr(0, aMaxLength) + "...") : aStr;
+}
+
 string Util::translateError(int aError) noexcept {
 #ifdef _WIN32
 	LPTSTR lpMsgBuf;
