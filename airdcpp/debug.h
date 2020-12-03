@@ -54,8 +54,7 @@ _CrtDbgBreak(); } } while(false)
 #endif
 #define dcdrun(exp) exp
 #else //_DEBUG
-#define dcdebug 
-/*if (false) printf*/
+#define dcdebug if (false) printf
 #define dcassert(exp)
 #define dcdrun(exp)
 #endif //_DEBUG
