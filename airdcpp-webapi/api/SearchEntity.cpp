@@ -230,7 +230,7 @@ namespace webserver {
 		searchView.onItemUpdated(aResult, {
 			SearchUtils::PROP_RELEVANCE, SearchUtils::PROP_CONNECTION,
 			SearchUtils::PROP_HITS, SearchUtils::PROP_SLOTS,
-			SearchUtils::PROP_USERS
+			SearchUtils::PROP_USERS, SearchUtils::PROP_DATE
 		});
 		
 		if (subscriptionActive("search_result_updated")) {
