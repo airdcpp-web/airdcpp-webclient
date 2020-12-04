@@ -682,12 +682,12 @@ File::~File() {
 	File::close();
 }
 
-std::string File::makeAbsolutePath(const std::string& filename) {
-	return makeAbsolutePath(Util::getAppFilePath(), filename);
+std::string File::makeAbsolutePath(const std::string& aFilename) {
+	return makeAbsolutePath(Util::getAppFilePath(), aFilename);
 }
 
-std::string File::makeAbsolutePath(const std::string& path, const std::string& filename) {
-	return isAbsolutePath(filename) ? filename : path + filename;
+std::string File::makeAbsolutePath(const std::string& aPath, const std::string& aFilename) {
+	return isAbsolutePath(aFilename) ? aFilename : aPath + aFilename;
 }
 
 void File::removeDirectoryForced(const string& aPath) {

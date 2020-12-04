@@ -149,6 +149,8 @@ public:
 		PATH_BUNDLES,
 		/** XML files for cached share structure */
 		PATH_SHARECACHE,
+		/** Temp files (viewed files, temp shared items...) */
+		PATH_TEMP,
 
 		PATH_LAST
 	};
@@ -182,7 +184,6 @@ public:
 #endif
 
 	/** Path of temporary storage */
-	static string getTempPath() noexcept;
 	static string getOpenPath() noexcept;
 
 	/** Path of configuration files */
