@@ -1,6 +1,8 @@
 <Boot>
     <!--
     ConfigPath specifies where settings, queue and other runtime data should be saved.
+    TempPath specifies the path for temp shared files, files opened in the application and other temporary data.
+
     You may use the following variables, which are interpreted on a per-user basis:
 
     %[HOME] - User's home directory, typically /home/<username>/
@@ -11,4 +13,8 @@
     -->
     <LocalMode>1</LocalMode>
     <ConfigPath>./config/</ConfigPath>
+
+    <!--
+    <TempPath>./tmp/</TempPath>
+    -->
 </Boot>
