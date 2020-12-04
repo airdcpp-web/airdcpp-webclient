@@ -161,7 +161,7 @@ namespace webserver {
 			}
 
 			const auto fileName = Util::toString(Util::rand());
-			const auto filePath = Util::getTempPath() + fileName;
+			const auto filePath = Util::getPath(Util::PATH_TEMP) + fileName;
 
 			try {
 				File file(filePath, File::WRITE, File::TRUNCATE | File::CREATE, File::BUFFER_SEQUENTIAL);
