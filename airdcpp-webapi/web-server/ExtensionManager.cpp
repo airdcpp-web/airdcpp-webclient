@@ -347,7 +347,7 @@ namespace webserver {
 	}
 
 	void ExtensionManager::onExtensionDownloadCompleted(const string& aInstallId, const string& aUrl, const string& aSha1) noexcept {
-		auto tempFile = Util::getTempPath() + Util::validateFileName(aUrl) + ".tmp";
+		auto tempFile = Util::getPath(Util::PATH_TEMP) + Util::validateFileName(aUrl) + ".tmp";
 
 		// Don't allow the same download to be initiated again until the installation has finished
 		ScopedFunctor([&]() {
@@ -419,7 +419,7 @@ namespace webserver {
 			return;
 		}
 
-		string tempRoot = Util::getTempPath() + "extension_" + Util::getFileName(aInstallFilePath) + PATH_SEPARATOR_STR;
+		string tempRoot = Util::getPath(Util::PATH_TEMP) + "extension_" + Util::getFileName(aInstallFilePath) + PATH_SEPARATOR_STR;
 		ScopedFunctor([&tempRoot]() {
 			try {
 				File::removeDirectoryForced(tempRoot);
