@@ -251,7 +251,7 @@ namespace webserver {
 	api_return ShareApi::handleAddTempShare(ApiRequest& aRequest) {
 		const auto fileId = JsonUtil::getField<string>("file_id", aRequest.getRequestBody(), false);
 		const auto name = JsonUtil::getField<string>("name", aRequest.getRequestBody(), false);
-		const auto user = Deserializer::deserializeUser(aRequest.getRequestBody(), false, true);
+		const auto user = Deserializer::deserializeUser(aRequest.getRequestBody(), true, true);
 		const auto optionalClient = Deserializer::deserializeClient(aRequest.getRequestBody(), true);
 
 		const auto filePath = aRequest.getSession()->getServer()->getFileServer().getTempFilePath(fileId);
