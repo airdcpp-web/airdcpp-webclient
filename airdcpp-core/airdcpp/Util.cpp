@@ -100,18 +100,8 @@ static string getDownloadsPath(const string& def) noexcept {
 
 #endif
 
-string Util::getTempPath() noexcept {
-#ifdef _WIN32
-	TCHAR buf[MAX_PATH + 1];
-	DWORD x = GetTempPath(MAX_PATH, buf);
-	return Text::fromT(tstring(buf, x)) + INST_NAME + PATH_SEPARATOR_STR;
-#else
-	return "/tmp/";
-#endif
-}
-
 string Util::getOpenPath() noexcept {
-	return getTempPath() + "Opened Items" + PATH_SEPARATOR_STR;
+	return paths[PATH_TEMP] + "Opened Items" + PATH_SEPARATOR_STR;
 }
 
 void Util::addStartupParam(const string& aParam) noexcept {
@@ -269,12 +259,22 @@ void Util::initialize(const string& aConfigPath) {
 	};
 
 #ifdef _WIN32
-	File::ensureDirectory(getTempPath());
 
 	_set_invalid_parameter_handler(reinterpret_cast<_invalid_parameter_handler>(invalidParameterHandler));
 
 	paths[PATH_GLOBAL_CONFIG] = exeDirectoryPath;
 	initConfig();
+
+	{
+		// Instance-specific temp path
+		if (paths[PATH_TEMP].empty()) {
+			TCHAR buf[MAX_PATH + 1];
+			DWORD x = GetTempPath(MAX_PATH, buf);
+			paths[PATH_TEMP] = Text::fromT(tstring(buf, x)) + INST_NAME + PATH_SEPARATOR_STR;
+		}
+
+		File::ensureDirectory(paths[PATH_TEMP]);
+	}
 
 	if (!localMode) {
 		TCHAR buf[MAX_PATH + 1] = { 0 };
@@ -303,6 +303,13 @@ void Util::initialize(const string& aConfigPath) {
 		paths[PATH_DOWNLOADS] = home + "/Downloads/";
 		paths[PATH_USER_LOCAL] = paths[PATH_USER_CONFIG];
 		paths[PATH_RESOURCES] = RESOURCE_DIRECTORY;
+	}
+
+	// Temp path
+	if (paths[PATH_TEMP].empty()) {
+		paths[PATH_TEMP] = "/tmp/";
+	} else {
+		File::ensureDirectory(paths[PATH_TEMP]);
 	}
 #endif
 
@@ -378,8 +385,17 @@ bool Util::loadBootConfig(const string& aDirectoryPath) noexcept {
 			localMode = boot.getChildData() != "0";
 		}
 		boot.resetCurrentChild();
-	
-		if(boot.findChild("ConfigPath")) {
+
+		auto validatePath = [](Util::Paths aPathType) {
+			if (!paths[aPathType].empty()) {
+				paths[aPathType] = ensureTrailingSlash(paths[aPathType]);
+				if (!File::isAbsolutePath(paths[aPathType])) {
+					paths[aPathType] = File::makeAbsolutePath(paths[aPathType]);
+				}
+			}
+		};
+
+		auto getSystemPathParams = []() {
 			ParamMap params;
 #ifdef _WIN32
 			// @todo load environment variables instead? would make it more useful on *nix
@@ -391,10 +407,22 @@ bool Util::loadBootConfig(const string& aDirectoryPath) noexcept {
 			const char* home_ = getenv("HOME");
 			params["HOME"] = home_ ? home_ : "/tmp/";
 #endif
-
-			paths[PATH_USER_CONFIG] = Util::formatParams(boot.getChildData(), params);
+			return params;
+		};
+	
+		if (boot.findChild("ConfigPath")) {
+			paths[PATH_USER_CONFIG] = formatParams(boot.getChildData(), getSystemPathParams());
 		}
 		boot.resetCurrentChild();
+
+		if (boot.findChild("TempPath")) {
+			paths[PATH_TEMP] = formatParams(boot.getChildData(), getSystemPathParams());
+			validatePath(PATH_TEMP);
+		}
+
+		boot.resetCurrentChild();
+
+
 		return true;
 	} catch(const Exception& ) {
 		// Unable to load boot settings...
