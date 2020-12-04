@@ -310,7 +310,7 @@ message(STATUS "CMAKE will use this libs (and headers) during build:
     iconv (headers): ${ICONV_LIBRARIES} (${ICONV_INCLUDE_DIR})
     maxminddb (headers): ${LIBMAXMINDDB_LIBRARY} (${LIBMAXMINDDB_INCLUDE_DIR})
     leveldb (headers): ${LevelDB_LIBRARY} (${LevelDB_INCLUDE_DIR})
-    websocketpp (headers): (${WEBSOCKETPP_INCLUDE_DIR})
+    websocketpp (headers): ${websocketpp_INCLUDE_DIR}
     natpmp (headers): ${LibNatpmp_LIBRARY} (${LibNatpmp_INCLUDE_DIR})
     tbb (headers): ${TBB_LIBRARIES} (${TBB_INCLUDE_DIRS})
     ")
