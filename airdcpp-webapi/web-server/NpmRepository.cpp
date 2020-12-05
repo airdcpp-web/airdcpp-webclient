@@ -26,6 +26,7 @@
 #include <airdcpp/ResourceManager.h>
 #include <airdcpp/ScopedFunctor.h>
 #include <airdcpp/Thread.h>
+#include <airdcpp/Util.h>
 
 
 namespace webserver {

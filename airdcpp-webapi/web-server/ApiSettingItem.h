@@ -19,6 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_APISETTINGITEM_H
 #define DCPLUSPLUS_DCPP_APISETTINGITEM_H
 
+#include "stdinc.h"
+
 #include <airdcpp/GetSet.h>
 #include <airdcpp/SettingItem.h>
 #include <airdcpp/ResourceManager.h>

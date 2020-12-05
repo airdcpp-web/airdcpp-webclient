@@ -462,6 +462,16 @@ namespace webserver {
 			return;
 		}
 
+		// Check blocked extensions
+		{
+			RLock l(cs);
+			auto i = blockedExtensions.find(extensionName);
+			if (i != blockedExtensions.end()) {
+				failInstallation(aInstallId, STRING(WEB_EXTENSION_INSTALL_BLOCKED), i->second);
+				return;
+			}
+		}
+
 		// Updating an existing extension?
 		auto extension = getExtension(extensionName);
 		if (extension) {

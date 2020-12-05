@@ -25,7 +25,6 @@
 #include <web-server/Session.h>
 
 #include <airdcpp/ActionHook.h>
-#include <airdcpp/AirUtil.h>
 #include <airdcpp/Magnet.h>
 #include <airdcpp/MessageCache.h>
 #include <airdcpp/ShareManager.h>
