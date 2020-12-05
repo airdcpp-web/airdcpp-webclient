@@ -19,7 +19,6 @@
 #include "stdinc.h"
 #include "FavoriteManager.h"
 
-#include "AirUtil.h"
 #include "ClientManager.h"
 #include "RelevanceSearch.h"
 #include "ResourceManager.h"

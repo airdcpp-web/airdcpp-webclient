@@ -487,7 +487,6 @@ bool Updater::checkPendingUpdates(const string& aAppPath, string& updaterFile_, 
 								auto removed = destroyDirectory(updateDirectory);
 								logger.log(Util::toString(removed) + " files were removed from the updater directory " + updateDirectory);
 								if (Util::fileExists(updateDirectory)) {
-									//AirUtil::removeD
 									logger.log("WARNING: update directory " + updateDirectory + " could not be removed");
 								}
 

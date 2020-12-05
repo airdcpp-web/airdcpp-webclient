@@ -161,6 +161,10 @@ void ShareManager::setProfilesDirty(const ProfileTokenSet& aProfiles, bool aIsMa
 	}
 }
 
+bool ShareManager::Directory::RootIsParentOrExact::operator()(const Directory::Ptr& aDirectory) const noexcept {
+	return AirUtil::isParentOrExactLower(aDirectory->getRoot()->getPathLower(), compareToLower, separator);
+}
+
 ShareManager::Directory::Directory(DualString&& aRealName, const ShareManager::Directory::Ptr& aParent, time_t aLastWrite, const RootDirectory::Ptr& aRoot) :
 	parent(aParent.get()),
 	root(aRoot),

@@ -21,7 +21,6 @@
 #include "FileQueue.h"
 #include "SettingsManager.h"
 #include "Text.h"
-#include "Util.h"
 
 #include <boost/range/algorithm/copy.hpp>
 

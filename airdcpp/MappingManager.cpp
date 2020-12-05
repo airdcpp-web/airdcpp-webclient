@@ -19,7 +19,6 @@
 #include "stdinc.h"
 #include "MappingManager.h"
 
-#include "AirUtil.h"
 #include "ConnectionManager.h"
 #include "ConnectivityManager.h"
 #include "format.h"

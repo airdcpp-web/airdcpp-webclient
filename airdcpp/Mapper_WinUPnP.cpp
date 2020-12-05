@@ -22,7 +22,6 @@
 #include "Util.h"
 #include "Text.h"
 #include "w.h"
-#include "AirUtil.h"
 
 #include <ole2.h>
 #include <natupnp.h>

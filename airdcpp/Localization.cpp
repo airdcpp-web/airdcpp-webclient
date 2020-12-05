@@ -18,9 +18,9 @@
 
 #include "stdinc.h"
 
-#include "AirUtil.h"
 #include "File.h"
 #include "Localization.h"
+#include "SettingsManager.h"
 #include "SimpleXML.h"
 #include "Util.h"
 

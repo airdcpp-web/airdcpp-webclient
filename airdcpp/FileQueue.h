@@ -27,7 +27,6 @@
 #include "DupeType.h"
 #include "HashBloom.h"
 #include "QueueItem.h"
-#include "Util.h"
 
 namespace dcpp {
 

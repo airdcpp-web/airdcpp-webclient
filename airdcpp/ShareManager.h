@@ -599,9 +599,7 @@ private:
 		public:
 			// Returns true for items matching the predicate that are parent directories of compareTo (or exact matches)
 			RootIsParentOrExact(const string& aCompareTo) : compareToLower(Text::toLower(aCompareTo)), separator(PATH_SEPARATOR) {}
-			bool operator()(const Directory::Ptr& aDirectory) const noexcept { 
-				return AirUtil::isParentOrExactLower(aDirectory->getRoot()->getPathLower(), compareToLower, separator);
-			}
+			bool operator()(const Directory::Ptr& aDirectory) const noexcept;
 
 			RootIsParentOrExact& operator=(const RootIsParentOrExact&) = delete;
 		private:

@@ -24,7 +24,6 @@
 #include "ConnectionManager.h"
 #include "IgnoreManager.h"
 
-#include "AirUtil.h"
 #include "Message.h"
 #include "PrivateChat.h"
 #include "Util.h"

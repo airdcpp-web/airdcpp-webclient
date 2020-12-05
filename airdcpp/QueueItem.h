@@ -197,8 +197,8 @@ public:
 	SourceList& getBadSources() noexcept { return badSources; }
 	const SourceList& getBadSources() const noexcept { return badSources; }
 
-	string getTargetFileName() const noexcept { return Util::getFileName(target); }
-	string getFilePath() const noexcept { return Util::getFilePath(target); }
+	string getTargetFileName() const noexcept;
+	string getFilePath() const noexcept;
 
 	SourceIter getSource(const UserPtr& aUser) noexcept { return find(sources.begin(), sources.end(), aUser); }
 	SourceIter getBadSource(const UserPtr& aUser) noexcept { return find(badSources.begin(), badSources.end(), aUser); }
@@ -275,7 +275,7 @@ public:
 	IGETSET(uint64_t, nextPublishingTime, NextPublishingTime, 0);
 	IGETSET(uint8_t, maxSegments, MaxSegments, 1);
 	IGETSET(BundlePtr, bundle, Bundle, nullptr);
-	IGETSET(string, lastSource, LastSource, Util::emptyString);
+	GETSET(string, lastSource, LastSource);
 	IGETSET(Status, status, Status, STATUS_NEW);
 	IGETSET(ActionHookRejectionPtr, hookError, HookError, nullptr);
 	

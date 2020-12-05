@@ -21,7 +21,6 @@
 
 #include <openssl/rsa.h>
 
-#include "AirUtil.h"
 #include "CryptoManager.h"
 #include "GeoManager.h"
 #include "HashCalc.h"

@@ -401,6 +401,7 @@ enum Strings { // @DontAdd
 	EXTENSION_WEB_CFG_DESC, // "The value of this setting can currently be configured only from the web user interface"
 	EXTENSIONS_EMPTY, // "No extensions have been defined"
 	EXTENSIONS_DEV_HELP, // "How to write a new extension?"
+	EXTENSIONS_INSTALL_URL, // "Install extensions from URL..."
 	EXTRA_SLOTS_SET, // "Extra slots set"
 	EiB, // "EiB"
 	FAILED, // "Failed"
@@ -1906,6 +1907,7 @@ enum Strings { // @DontAdd
 
 	WEB_EXTENSION_CHECKSUM_MISMATCH, // "Checksum validation mismatch"
 	WEB_EXTENSION_DOWNLOAD_FAILED, // "Download failed"
+	WEB_EXTENSION_INSTALL_BLOCKED, // "Extension has been blocked"
 	WEB_EXTENSION_PACKAGE_EXTRACT_FAILED, // "Failed to extract the package"
 	WEB_EXTENSION_PACKAGE_SAVE_FAILED, // "Failed to save the package"
 	WEB_EXTENSION_PACKAGE_MALFORMED_CONTENT, // "Malformed package content"

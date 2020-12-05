@@ -24,7 +24,6 @@
 #include "UploadBundle.h"
 #include "Flags.h"
 #include "GetSet.h"
-#include "Util.h"
 
 namespace dcpp {
 
@@ -38,9 +37,7 @@ public:
 		FLAG_PARTIAL = 0x10
 	};
 
-	bool operator==(const Upload* u) const {
-		return compare(getToken(), u->getToken()) == 0;
-	}
+	bool operator==(const Upload* u) const noexcept;
 
 	Upload(UserConnection& aSource, const string& aPath, const TTHValue& aTTH, unique_ptr<InputStream> aIS);
 	~Upload();
