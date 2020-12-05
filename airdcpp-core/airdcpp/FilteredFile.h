@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_FILTERED_FILE_H
 
 #include "Streams.h"
-#include "Util.h"
 
 namespace dcpp {
 

@@ -23,7 +23,6 @@
 #include "forward.h"
 
 #include "SearchQuery.h"
-#include "Util.h"
 
 #include <string>
 

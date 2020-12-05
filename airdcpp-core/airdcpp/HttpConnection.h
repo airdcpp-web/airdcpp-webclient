@@ -24,7 +24,7 @@
 
 #include "GetSet.h"
 #include "Speaker.h"
-#include "Util.h"
+#include "typedefs.h"
 
 namespace dcpp {
 

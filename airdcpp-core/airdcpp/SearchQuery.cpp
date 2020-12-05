@@ -17,11 +17,11 @@
  */
 
 #include "stdinc.h"
-#include "SearchQuery.h"
-#include "Util.h"
+
 #include "AdcHub.h"
+#include "SearchQuery.h"
 #include "StringTokenizer.h"
-#include "AirUtil.h"
+#include "Util.h"
 
 
 namespace {

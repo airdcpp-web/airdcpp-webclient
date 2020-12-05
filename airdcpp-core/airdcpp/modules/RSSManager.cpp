@@ -30,7 +30,6 @@
 #include <airdcpp/ClientManager.h>
 
 #include <airdcpp/ScopedFunctor.h>
-#include <airdcpp/AirUtil.h>
 #include <airdcpp/SimpleXML.h>
 #include <airdcpp/SimpleXMLReader.h>
 

@@ -716,6 +716,15 @@ bool QueueItem::usesSmallSlot() const noexcept {
 	return (isSet(FLAG_PARTIAL_LIST) || (size <= 65792 && !isSet(FLAG_USER_LIST) && isSet(FLAG_CLIENT_VIEW)));
 }
 
+
+string QueueItem::getTargetFileName() const noexcept {
+	return Util::getFileName(target); 
+}
+
+string QueueItem::getFilePath() const noexcept {
+	return Util::getFilePath(target); 
+}
+
 QueueItemPtr QueueItem::pickSearchItem(const QueueItemList& aItems) noexcept {
 	QueueItemPtr searchItem = nullptr;
 
