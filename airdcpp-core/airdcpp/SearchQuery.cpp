@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2019 AirDC++ Project
+ * Copyright (C) 2011-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +17,11 @@
  */
 
 #include "stdinc.h"
-#include "SearchQuery.h"
-#include "Util.h"
+
 #include "AdcHub.h"
+#include "SearchQuery.h"
 #include "StringTokenizer.h"
-#include "AirUtil.h"
+#include "Util.h"
 
 
 namespace {

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -161,7 +161,7 @@ namespace webserver {
 			}
 
 			const auto fileName = Util::toString(Util::rand());
-			const auto filePath = Util::getTempPath() + fileName;
+			const auto filePath = Util::getPath(Util::PATH_TEMP) + fileName;
 
 			try {
 				File file(filePath, File::WRITE, File::TRUNCATE | File::CREATE, File::BUFFER_SEQUENTIAL);

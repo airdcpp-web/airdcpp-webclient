@@ -306,6 +306,9 @@
     <ClInclude Include="web-server\ApiSettingItem.h">
       <Filter>Header Files\web-server</Filter>
     </ClInclude>
+    <ClInclude Include="web-server\NpmRepository.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
@@ -510,6 +513,9 @@
       <Filter>Source Files\api\common</Filter>
     </ClCompile>
     <ClCompile Include="web-server\ApiSettingItem.cpp">
+      <Filter>Source Files\web-server</Filter>
+    </ClCompile>
+    <ClCompile Include="web-server\NpmRepository.cpp">
       <Filter>Source Files\web-server</Filter>
     </ClCompile>
   </ItemGroup>

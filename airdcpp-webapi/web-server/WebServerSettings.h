@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -46,9 +46,11 @@ namespace webserver {
 			PING_TIMEOUT,
 
 			EXTENSIONS_DEBUG_MODE,
+			EXTENSIONS_INIT_TIMEOUT,
+			EXTENSIONS_AUTO_UPDATE,
 		};
 
-		ServerSettingItem& getValue(ServerSettings aSetting) noexcept {
+		ServerSettingItem& getSettingItem(ServerSettings aSetting) noexcept {
 			return settings[aSetting];
 		}
 
@@ -60,7 +62,7 @@ namespace webserver {
 		vector<ServerSettingItem> settings;
 	};
 
-#define WEBCFG(k) (webserver::WebServerManager::getInstance()->getSettings().getValue(webserver::WebServerSettings::k))
+#define WEBCFG(k) (webserver::WebServerManager::getInstance()->getSettings().getSettingItem(webserver::WebServerSettings::k))
 }
 
 #endif

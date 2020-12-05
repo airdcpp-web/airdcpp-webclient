@@ -1,5 +1,5 @@
 /* 
-* Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+* Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -16,13 +16,10 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef USERINFOBASE_H
-#define USERINFOBASE_H
+#ifndef DCPP_USERINFOBASE_H
+#define DCPP_USERINFOBASE_H
 
 #include "forward.h"
-
-#include "User.h"
-#include "Util.h"
 
 
 namespace dcpp

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2019 AirDC++ Project
+ * Copyright (C) 2012-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,15 +33,17 @@ using std::string;
 /** Struct for a magnet uri */
 struct Magnet {
 	static string makeMagnet(const TTHValue& aHash, const string& aFile, int64_t aSize) noexcept;
-	static optional<Magnet> parseMagnet(const string& aLink) noexcept;
+	static optional<Magnet> parseMagnet(const string& aLink, const UserPtr& aSender) noexcept;
 
 	string fname, type, param, hash;
 	int64_t fsize = -1;
 
-	explicit Magnet(const string& aLink);
+	explicit Magnet(const string& aLink, const UserPtr& aSender = nullptr);
 
 	DupeType getDupeType() const;
 	TTHValue getTTH() const;
+
+	UserPtr sender;
 };
 
 }

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ namespace webserver {
 
 	HubInfo::HubInfo(ParentType* aParentModule, const ClientPtr& aClient) :
 		SubApiModule(aParentModule, aClient->getToken(), subscriptionList), client(aClient),
-		chatHandler(this, std::bind(&HubInfo::getClient, this), "hub", Access::HUBS_VIEW, Access::HUBS_EDIT, Access::HUBS_SEND), 
+		chatHandler(this, aClient.get(), "hub", Access::HUBS_VIEW, Access::HUBS_EDIT, Access::HUBS_SEND),
 		view("hub_user_view", this, OnlineUserUtils::propertyHandler, std::bind(&HubInfo::getUsers, this), 500), 
 		timer(getTimer([this] { onTimer(); }, 1000)) 
 	{

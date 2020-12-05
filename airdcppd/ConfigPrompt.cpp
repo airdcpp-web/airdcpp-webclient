@@ -72,7 +72,7 @@ ConfigPrompt::ConfigF ConfigPrompt::checkArgs() {
 		std::cout << std::endl;
 		if (save) {
 			if (wsm->save(errorF)) {
-				cout << toBold("Configuration was written to " + wsm->getConfigPath()) << std::endl;
+				cout << toBold("Configuration was written to " + wsm->getConfigFilePath()) << std::endl;
 			}
 		}
 	};
@@ -90,7 +90,7 @@ bool ConfigPrompt::runConfigure(webserver::WebServerManager* wsm) {
 	promptPort(tlsServerConfig, "HTTPS");
 	std::cout << std::endl;
 
-	if (!wsm->getUserManager().hasUsers()) {
+	if (!wsm->hasUsers()) {
 		std::cout << toBold("No existing users were found, adding new one.") << std::endl;
 
 		addUser(wsm);
@@ -100,7 +100,7 @@ bool ConfigPrompt::runConfigure(webserver::WebServerManager* wsm) {
 
 	std::cout << std::endl;
 
-	if (!wsm->hasValidConfig()) {
+	if (!wsm->hasValidServerConfig() || !wsm->hasUsers()) {
 		std::cout << toBold("No valid configuration was entered. Please re-run the command.") << std::endl;
 		return false;
 	} else {

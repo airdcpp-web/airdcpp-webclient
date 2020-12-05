@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2019 AirDC++ Project
+ * Copyright (C) 2011-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 #include "stdinc.h"
 
 #include "AutoSearchManager.h"
-#include "ShareScannerManager.h"
 
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/LogManager.h>
@@ -59,7 +58,7 @@ AutoSearchManager::~AutoSearchManager() noexcept {
 }
 
 void AutoSearchManager::logMessage(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
-	LogManager::getInstance()->message(STRING(AUTO_SEARCH) + ": " +  aMsg, aSeverity);
+	LogManager::getInstance()->message(aMsg, aSeverity, STRING(AUTO_SEARCH));
 }
 
 /* Adding new items for external use */
@@ -271,7 +270,7 @@ void AutoSearchManager::clearError(AutoSearchPtr& as) noexcept {
 	fire(AutoSearchManagerListener::ItemUpdated(), as, true);
 }
 
-void AutoSearchManager::on(DirectoryListingManagerListener::DirectoryDownloadProcessed, const DirectoryDownloadPtr& aDirectoryInfo, const DirectoryBundleAddInfo& aQueueInfo, const string& /*aError*/) noexcept {
+void AutoSearchManager::on(DirectoryListingManagerListener::DirectoryDownloadProcessed, const DirectoryDownloadPtr& aDirectoryInfo, const DirectoryBundleAddResult& aQueueInfo, const string& /*aError*/) noexcept {
 	onBundleCreated(aQueueInfo.bundleInfo.bundle, aDirectoryInfo->getOwner());
 
 	//if (aQueueInfo.bundle) {
@@ -298,8 +297,9 @@ void AutoSearchManager::onBundleCreated(const BundlePtr& aBundle, const void* aS
 		}
 	}
 
-	if(found)
+	if (found) {
 		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK()); }, 1000);
+	}
 }
 
 void AutoSearchManager::onBundleError(const void* aSearch, const string& aError, const string& aBundleName, const HintedUser& aUser) noexcept {
@@ -319,7 +319,7 @@ void AutoSearchManager::on(QueueManagerListener::BundleStatusChanged, const Bund
 		return;
 	}
 
-	auto filesMissing = ActionHookRejection::matches(aBundle->getHookError(), SHARE_SCANNER_HOOK_ID, SHARE_SCANNER_ERROR_MISSING);
+	auto filesMissing = AutoSearch::hasHookFilesMissing(aBundle->getHookError());
 	auto items = getSearchesByBundle(aBundle);
 	bool found = false, searched = false;
 	for (auto& as : items) {
@@ -880,19 +880,21 @@ void AutoSearchManager::downloadList(SearchResultList& srl, AutoSearchPtr& as, i
 void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& as) noexcept {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
 		try {
-			if(sr->getType() == SearchResult::TYPE_DIRECTORY) {
+			if (sr->getType() == SearchResult::TYPE_DIRECTORY) {
 				if ((as->getRemove() || as->usingIncrementation()) && DirectoryListingManager::getInstance()->hasDirectoryDownload(sr->getFileName(), as.get())) {
 					return;
 				}
 
+				auto listData = FilelistAddData(sr->getUser(), as.get(), sr->getAdcFilePath());
 				auto priority = as->getAction() == AutoSearch::ACTION_QUEUE ? Priority::PAUSED : Priority::DEFAULT;
-				DirectoryListingManager::getInstance()->addDirectoryDownload(sr->getUser(), sr->getFileName(), sr->getAdcFilePath(), as->getTarget(), priority, as.get());
+				DirectoryListingManager::getInstance()->addDirectoryDownloadHookedThrow(listData, sr->getFileName(), as->getTarget(), priority, DirectoryDownload::ErrorMethod::NONE);
 			} else {
-				auto info = QueueManager::getInstance()->createFileBundle(as->getTarget() + sr->getFileName(), sr->getSize(), sr->getTTH(), 
-					sr->getUser(), sr->getDate(), 0, 
-					((as->getAction() == AutoSearch::ACTION_QUEUE) ? Priority::PAUSED : Priority::DEFAULT));
+				auto prio = as->getAction() == AutoSearch::ACTION_QUEUE ? Priority::PAUSED : Priority::DEFAULT;
+				auto fileInfo = BundleFileAddData(sr->getFileName(), sr->getTTH(), sr->getSize(), prio, sr->getDate());
+				auto options = BundleAddOptions(as->getTarget(), sr->getUser(), as.get());
+				auto result = QueueManager::getInstance()->createFileBundleHooked(options, fileInfo);
 
-				onBundleCreated(info.bundle, as.get());
+				onBundleCreated(result.bundle, as.get());
 			}
 		} catch (const Exception& e) {
 			onBundleError(as.get(), e.getError(), sr->getFileName(), sr->getUser());

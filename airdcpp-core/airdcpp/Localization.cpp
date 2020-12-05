@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2019 AirDC++ Project
+ * Copyright (C) 2012-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,9 @@
 
 #include "stdinc.h"
 
-#include "AirUtil.h"
 #include "File.h"
 #include "Localization.h"
+#include "SettingsManager.h"
 #include "SimpleXML.h"
 #include "Util.h"
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2019 AirDC++ Project
+ * Copyright (C) 2012-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,10 +21,10 @@
 
 #include <openssl/rsa.h>
 
-#include "AirUtil.h"
 #include "CryptoManager.h"
 #include "GeoManager.h"
 #include "HashCalc.h"
+#include "HttpDownload.h"
 #include "Localization.h"
 #include "LogManager.h"
 #include "ResourceManager.h"
@@ -33,6 +33,7 @@
 #include "SimpleXML.h"
 #include "Text.h"
 #include "TimerManager.h"
+#include "Updater.h"
 #include "version.h"
 
 #include "pubkey.h"
@@ -50,12 +51,7 @@ const char* UpdateManager::versionUrl[VERSION_LAST] = {
 UpdateManager::UpdateManager() : lastIPUpdate(GET_TICK()) {
 	TimerManager::getInstance()->addListener(this);
 
-	links.homepage = "https://www.airdcpp.net/";
-	links.downloads = links.homepage + "download/";
 	links.geoip = "http://geoip.airdcpp.net";
-	links.guides = links.homepage + "guides/";
-	links.customize = links.homepage + "customizations/";
-	links.discuss = links.homepage + "forum/";
 	links.ipcheck4 = "http://checkip.dyndns.org/";
 	links.ipcheck6 = "http://checkip.dyndns.org/";
 	links.language = "http://languages.airdcpp.net/tx/";
@@ -63,6 +59,10 @@ UpdateManager::UpdateManager() : lastIPUpdate(GET_TICK()) {
 
 UpdateManager::~UpdateManager() { 
 	TimerManager::getInstance()->removeListener(this);
+}
+
+void UpdateManager::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
+	LogManager::getInstance()->message(aMsg, aSeverity, STRING(UPDATER));
 }
 
 void UpdateManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
@@ -110,10 +110,13 @@ void UpdateManager::completeSignatureDownload(bool manualCheck) {
 }
 
 void UpdateManager::checkIP(bool manual, bool v6) {
+	HttpOptions options;
+	options.setV4Only(!v6);
+
 	conns[v6 ? CONN_IP6 : CONN_IP4] = make_unique<HttpDownload>(
 		v6 ? links.ipcheck6 : links.ipcheck4,
 		[=] { completeIPCheck(manual, v6); }, 
-		!v6
+		options
 	);
 }
 
@@ -164,7 +167,7 @@ void UpdateManager::updateGeo() {
 	if(conn)
 		return;
 
-	LogManager::getInstance()->message(STRING(GEOIP_UPDATING), LogMessage::SEV_INFO);
+	log(STRING(GEOIP_UPDATING), LogMessage::SEV_INFO);
 	conn = make_unique<HttpDownload>(
 		links.geoip,
 		[this] { completeGeoDownload(); }
@@ -180,11 +183,12 @@ void UpdateManager::completeGeoDownload() {
 		try {
 			File(GeoManager::getDbPath() + ".gz", File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
 			GeoManager::getInstance()->update();
-			LogManager::getInstance()->message(STRING(GEOIP_UPDATED), LogMessage::SEV_INFO);
+			log(STRING(GEOIP_UPDATED), LogMessage::SEV_INFO);
 			return;
 		} catch(const FileException&) { }
 	}
-	LogManager::getInstance()->message(STRING(GEOIP_UPDATING_FAILED), LogMessage::SEV_WARNING);
+
+	log(STRING(GEOIP_UPDATING_FAILED), LogMessage::SEV_WARNING);
 }
 
 void UpdateManager::completeLanguageDownload() {
@@ -197,17 +201,17 @@ void UpdateManager::completeLanguageDownload() {
 			auto path = Localization::getCurLanguageFilePath();
 			File::ensureDirectory(Util::getFilePath(path));
 			File(path, File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
-			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATED, Localization::getCurLanguageName()), LogMessage::SEV_INFO);
+			log(STRING_F(LANGUAGE_UPDATED, Localization::getCurLanguageName()), LogMessage::SEV_INFO);
 			fire(UpdateManagerListener::LanguageFinished());
 
 			return;
 		} catch(const FileException& e) { 
-			LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName() % e.getError()), LogMessage::SEV_WARNING);
+			log(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName() % e.getError()), LogMessage::SEV_WARNING);
 		}
 	}
 
 	fire(UpdateManagerListener::LanguageFailed(), conn->status);
-	LogManager::getInstance()->message(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName() % conn->status), LogMessage::SEV_WARNING);
+	log(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName() % conn->status), LogMessage::SEV_WARNING);
 }
 
 void UpdateManager::completeVersionDownload(bool manualCheck) {
@@ -230,43 +234,23 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 		xml.fromXML(conn->buf);
 		xml.stepIn();
 
-
-		//Check for updated HTTP links
-		if(xml.findChild("Links")) {
+		// Check for updated HTTP links
+		if (xml.findChild("Links")) {
 			xml.stepIn();
-			if(xml.findChild("Homepage")) {
-				links.homepage = xml.getChildData();
-			}
-			xml.resetCurrentChild();
-			if(xml.findChild("Downloads")) {
-				links.downloads = xml.getChildData();
-			}
-			xml.resetCurrentChild();
-			if(xml.findChild("GeoIP")) {
-				links.geoip = xml.getChildData();
-			}
-			xml.resetCurrentChild();
-			if(xml.findChild("Customize")) {
-				links.customize = xml.getChildData();
-			}
-			xml.resetCurrentChild();
-			if(xml.findChild("Forum")) {
-				links.discuss = xml.getChildData();
-			}
-			xml.resetCurrentChild();
-			if(xml.findChild("Languages")) {
+
+			if (xml.findChild("Languages")) {
 				links.language = xml.getChildData();
 			}
 			xml.resetCurrentChild();
-			if(xml.findChild("Guides")) {
-				links.guides = xml.getChildData();
+			if (xml.findChild("GeoIP")) {
+				links.geoip = xml.getChildData();
 			}
 			xml.resetCurrentChild();
-			if(xml.findChild("IPCheck")) {
+			if (xml.findChild("IPCheck")) {
 				links.ipcheck4 = xml.getChildData();
 			}
 			xml.resetCurrentChild();
-			if(xml.findChild("IPCheck6")) {
+			if (xml.findChild("IPCheck6")) {
 				links.ipcheck6 = xml.getChildData();
 			}
 			xml.stepOut();
@@ -286,10 +270,10 @@ void UpdateManager::failVersionDownload(const string& aError, bool manualCheck) 
 	auto msg = STRING_F(VERSION_CHECK_FAILED, aError);
 
 	if (manualCheck) {
-		LogManager::getInstance()->message(msg, LogMessage::SEV_ERROR);
+		log(msg, LogMessage::SEV_ERROR);
 		fire(UpdateManagerListener::UpdateFailed(), msg);
 	} else {
-		LogManager::getInstance()->message(msg, LogMessage::SEV_WARNING);
+		log(msg, LogMessage::SEV_WARNING);
 	}
 
 	checkAdditionalUpdates(manualCheck);

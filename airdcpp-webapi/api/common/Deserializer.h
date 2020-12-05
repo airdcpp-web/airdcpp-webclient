@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -57,7 +57,7 @@ namespace webserver {
 
 		static UserPtr deserializeUser(const json& aJson, bool aAllowMe, bool aOptional = false);
 		static HintedUser deserializeHintedUser(const json& aJson, bool aAllowMe = false, bool aOptional = false, const string& aFieldName = "user");
-		static OnlineUserPtr deserializeOnlineUser(const json& aJson, bool aAllowMe = false, const string& aFieldName = "user");
+
 		static TTHValue deserializeTTH(const json& aJson);
 		static Priority deserializePriority(const json& aJson, bool allowDefault);
 
@@ -84,7 +84,6 @@ namespace webserver {
 
 			vector<ItemT> ret;
 			for (const auto& item: arrayJson) {
-				// ret.push_back(aF ? aF(item) : JsonUtil::parseValue<ItemT>(aFieldName, item, false));
 				ret.push_back(aF(item, aFieldName));
 			}
 

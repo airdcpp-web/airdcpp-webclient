@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -682,12 +682,12 @@ File::~File() {
 	File::close();
 }
 
-std::string File::makeAbsolutePath(const std::string& filename) {
-	return makeAbsolutePath(Util::getAppFilePath(), filename);
+std::string File::makeAbsolutePath(const std::string& aFilename) {
+	return makeAbsolutePath(Util::getAppFilePath(), aFilename);
 }
 
-std::string File::makeAbsolutePath(const std::string& path, const std::string& filename) {
-	return isAbsolutePath(filename) ? filename : path + filename;
+std::string File::makeAbsolutePath(const std::string& aPath, const std::string& aFilename) {
+	return isAbsolutePath(aFilename) ? aFilename : aPath + aFilename;
 }
 
 void File::removeDirectoryForced(const string& aPath) {

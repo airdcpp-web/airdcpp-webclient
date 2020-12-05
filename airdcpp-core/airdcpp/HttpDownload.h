@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ struct HttpDownload : private HttpConnectionListener, private boost::noncopyable
 	typedef std::function<void ()> CompletionF;
 	CompletionF f;
 
-	explicit HttpDownload(const string& address, CompletionF f, bool v4only = false);
+	explicit HttpDownload(const string& address, CompletionF f, const HttpOptions& aOptions = HttpOptions());
 	~HttpDownload();
 
 	// HttpConnectionListener

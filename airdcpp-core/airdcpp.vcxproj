@@ -219,6 +219,7 @@
     <ClCompile Include="airdcpp\DirectSearch.cpp" />
     <ClCompile Include="airdcpp\ErrorCollector.cpp" />
     <ClCompile Include="airdcpp\GroupedSearchResult.cpp" />
+    <ClCompile Include="airdcpp\Hasher.cpp" />
     <ClCompile Include="airdcpp\IgnoreManager.cpp" />
     <ClCompile Include="airdcpp\MessageCache.cpp" />
     <ClCompile Include="airdcpp\MessageHighlight.cpp" />
@@ -226,14 +227,11 @@
     <ClCompile Include="airdcpp\modules\AutoSearch.cpp" />
     <ClCompile Include="airdcpp\modules\AutoSearchManager.cpp" />
     <ClCompile Include="airdcpp\modules\ColorSettings.cpp" />
-    <ClCompile Include="airdcpp\modules\DirectoryMonitor.cpp" />
     <ClCompile Include="airdcpp\modules\FinishedManager.cpp" />
     <ClCompile Include="airdcpp\modules\HighlightManager.cpp" />
     <ClCompile Include="airdcpp\modules\HublistManager.cpp" />
     <ClCompile Include="airdcpp\modules\PreviewAppManager.cpp" />
     <ClCompile Include="airdcpp\modules\RSSManager.cpp" />
-    <ClCompile Include="airdcpp\modules\ShareMonitorManager.cpp" />
-    <ClCompile Include="airdcpp\modules\ShareScannerManager.cpp" />
     <ClCompile Include="airdcpp\modules\WebShortcuts.cpp" />
     <ClCompile Include="airdcpp\PrivateChat.cpp" />
     <ClCompile Include="airdcpp\RecentManager.cpp" />
@@ -342,13 +340,14 @@
     <ClInclude Include="airdcpp\AdcCommand.h" />
     <ClInclude Include="airdcpp\AdcHub.h" />
     <ClInclude Include="airdcpp\AddressInfo.h" />
-    <ClInclude Include="airdcpp\BundleInfo.h" />
+    <ClInclude Include="airdcpp\QueueAddInfo.h" />
     <ClInclude Include="airdcpp\constants.h" />
     <ClInclude Include="airdcpp\DirectoryDownload.h" />
     <ClInclude Include="airdcpp\DirectSearch.h" />
     <ClInclude Include="airdcpp\DupeType.h" />
     <ClInclude Include="airdcpp\ErrorCollector.h" />
     <ClInclude Include="airdcpp\GroupedSearchResult.h" />
+    <ClInclude Include="airdcpp\Hasher.h" />
     <ClInclude Include="airdcpp\HashManagerListener.h" />
     <ClInclude Include="airdcpp\MessageHighlight.h" />
     <ClInclude Include="airdcpp\StreamBase.h" />
@@ -360,8 +359,6 @@
     <ClInclude Include="airdcpp\modules\AutoSearchManagerListener.h" />
     <ClInclude Include="airdcpp\modules\AutoSearchQueue.h" />
     <ClInclude Include="airdcpp\modules\ColorSettings.h" />
-    <ClInclude Include="airdcpp\modules\DirectoryMonitor.h" />
-    <ClInclude Include="airdcpp\modules\DirectoryMonitorListener.h" />
     <ClInclude Include="airdcpp\modules\FinishedManager.h" />
     <ClInclude Include="airdcpp\modules\FinishedManagerListener.h" />
     <ClInclude Include="airdcpp\modules\HighlightManager.h" />
@@ -370,8 +367,6 @@
     <ClInclude Include="airdcpp\modules\HublistManagerListener.h" />
     <ClInclude Include="airdcpp\modules\PreviewAppManager.h" />
     <ClInclude Include="airdcpp\modules\RSSManager.h" />
-    <ClInclude Include="airdcpp\modules\ShareMonitorManager.h" />
-    <ClInclude Include="airdcpp\modules\ShareScannerManager.h" />
     <ClInclude Include="airdcpp\modules\WebShortcuts.h" />
     <ClInclude Include="airdcpp\Priority.h" />
     <ClInclude Include="airdcpp\RecentEntry.h" />
@@ -522,16 +517,16 @@
     <ClInclude Include="airdcpp\ZipFile.h" />
     <CustomBuild Include="airdcpp\StringDefs.h">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building StringDefs.cpp and Example.xml from StringDefs.h...</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" $(ProjectDir)airdcpp\StringDefs.h $(ProjectDir)airdcpp\StringDefs.cpp $(ProjectDir)EN_Example.xml</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" "$(ProjectDir)airdcpp\StringDefs.h" "$(ProjectDir)airdcpp\StringDefs.cpp" "$(ProjectDir)EN_Example.xml"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)airdcpp\StringDefs.cpp;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building StringDefs.cpp and Example.xml from StringDefs.h...</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" $(ProjectDir)airdcpp\StringDefs.h $(ProjectDir)airdcpp\StringDefs.cpp $(ProjectDir)EN_Example.xml</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" "$(ProjectDir)airdcpp\StringDefs.h" "$(ProjectDir)airdcpp\StringDefs.cpp" "$(ProjectDir)EN_Example.xml"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)airdcpp\StringDefs.cpp;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building StringDefs.cpp and Example.xml from StringDefs.h...</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" $(ProjectDir)airdcpp\StringDefs.h $(ProjectDir)airdcpp\StringDefs.cpp $(ProjectDir)EN_Example.xml</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" "$(ProjectDir)airdcpp\StringDefs.h" "$(ProjectDir)airdcpp\StringDefs.cpp" "$(ProjectDir)EN_Example.xml"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)airdcpp\StringDefs.cpp;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building StringDefs.cpp and Example.xml from StringDefs.h...</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" $(ProjectDir)airdcpp\StringDefs.h $(ProjectDir)airdcpp\StringDefs.cpp $(ProjectDir)EN_Example.xml</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(SolutionDir)vc14\$(Platform)\$(Configuration)\MakeDefs\MakeDefs.exe" "$(ProjectDir)airdcpp\StringDefs.h" "$(ProjectDir)airdcpp\StringDefs.cpp" "$(ProjectDir)EN_Example.xml"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)airdcpp\StringDefs.cpp;%(Outputs)</Outputs>
     </CustomBuild>
     <ClInclude Include="airdcpp\StringSearch.h" />

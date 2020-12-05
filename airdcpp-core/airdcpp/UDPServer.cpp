@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2019 AirDC++ Project
+ * Copyright (C) 2011-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -92,7 +92,7 @@ int UDPServer::run() {
 				socket->disconnect();
 				port = socket->listen(Util::toString(CONNSETTING(UDP_PORT)));
 				if(failed) {
-					LogManager::getInstance()->message("Search enabled again", LogMessage::SEV_INFO);
+					LogManager::getInstance()->message("Search enabled again", LogMessage::SEV_INFO, STRING(CONNECTIVITY));
 					failed = false;
 				}
 				break;
@@ -100,7 +100,7 @@ int UDPServer::run() {
 				dcdebug("SearchManager::run Stopped listening: %s\n", e.getError().c_str());
 
 				if(!failed) {
-					LogManager::getInstance()->message(STRING_F(SEARCH_DISABLED_X, e.getError()), LogMessage::SEV_ERROR);
+					LogManager::getInstance()->message(STRING_F(SEARCH_DISABLED_X, e.getError()), LogMessage::SEV_ERROR, STRING(CONNECTIVITY));
 					failed = true;
 				}
 
@@ -206,12 +206,14 @@ void UDPServer::handle(AdcCommand::PBD, AdcCommand& c, const string&) noexcept {
 		return;
 
 	const auto user = ClientManager::getInstance()->findUser(CID(cid));
+	if (!user) {
+		return;
+	}
 
 	// Remove the CID
 	c.getParameters().erase(c.getParameters().begin());
 
-	if (user)
-		SearchManager::getInstance()->onPBD(c, user);
+	SearchManager::getInstance()->onPBD(c, user);
 }
 
 void UDPServer::handle(AdcCommand::UBD, AdcCommand& c, const string&) noexcept {

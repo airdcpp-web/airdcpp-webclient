@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,10 +30,34 @@ typedef function<void(float)> ProgressF;
 typedef function<void()> Callback;
 typedef function<bool(const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> MessageF;
 
-// This will throw Exception on fatal errors (such as hash database initialization errors)
-extern void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progressF, Callback moduleInitF = nullptr, Callback moduleLoadF = nullptr);
+class StartupLoader {
+public:
+	StartupLoader(const StepF& aStepF, const ProgressF& aProgressF, const MessageF& aMessageF) : stepF(aStepF), progressF(aProgressF), messageF(aMessageF) {}
 
-extern void shutdown(StepF stepF, ProgressF progressF, Callback moduleDestroyF = nullptr);
+	const StepF stepF;
+	const ProgressF& progressF;
+	const MessageF& messageF;
+
+	// Tasks to run after everything has finished loading
+	// Use for task involving hooks
+	void addPostLoadTask(Callback&& aCallback) noexcept {
+		postLoadTasks.push_back(aCallback);
+	}
+
+	const vector<Callback>& getPostLoadTasks() const noexcept {
+		return postLoadTasks;
+	}
+private:
+	vector<Callback> postLoadTasks;
+};
+
+typedef function<void(StartupLoader&)> StartupLoadCallback;
+typedef function<void(StepF&, ProgressF&)> ShutdownUnloadCallback;
+
+// This will throw AbortException in case of fatal errors (such as hash database initialization errors)
+extern void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progressF, Callback moduleInitF = nullptr, StartupLoadCallback moduleLoadF = nullptr);
+
+extern void shutdown(StepF stepF, ProgressF progressF, ShutdownUnloadCallback moduleUnloadF = nullptr, Callback moduleDestroyF = nullptr);
 
 } // namespace dcpp
 

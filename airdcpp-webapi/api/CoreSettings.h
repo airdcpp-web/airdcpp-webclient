@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -192,7 +192,6 @@ namespace webserver {
 		{ "report_scheduled_refreshes", SettingsManager::LOG_SCHEDULED_REFRESHES, ResourceManager::SETTINGS_LOG_SCHEDULED_REFRESHES },
 		{ "report_filelist_dupes", SettingsManager::FL_REPORT_FILE_DUPES, ResourceManager::REPORT_DUPLICATE_FILES },
 		{ "report_ignored_messages", SettingsManager::LOG_IGNORED, ResourceManager::REPORT_IGNORED },
-		{ "report_crc_ok", SettingsManager::LOG_CRC_OK, ResourceManager::LOG_CRC_OK },
 
 		//{ ResourceManager::HISTORIES },
 		{ "history_search_max", SettingsManager::HISTORY_SEARCH_MAX, ResourceManager::SEARCH_STRINGS },

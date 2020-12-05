@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,8 @@
 
 #ifndef DCPLUSPLUS_DCPP_APISETTINGITEM_H
 #define DCPLUSPLUS_DCPP_APISETTINGITEM_H
+
+#include "stdinc.h"
 
 #include <airdcpp/GetSet.h>
 #include <airdcpp/SettingItem.h>
@@ -55,19 +57,14 @@ namespace webserver {
 			const int max = 0;
 		};
 
-		static string formatTitle(ResourceManager::Strings aDesc, ResourceManager::Strings aUnit) noexcept;
+		static string formatTitle(const string& aDesc, ResourceManager::Strings aUnit) noexcept;
 		static const MinMax defaultMinMax;
 
 		ApiSettingItem(const string& aName, Type aType, Type aItemType);
 
-		static bool isString(Type aType) noexcept {
-			return aType == TYPE_STRING || aType == TYPE_TEXT || aType == TYPE_FILE_PATH || aType == TYPE_EXISTING_FILE_PATH || aType == TYPE_DIRECTORY_PATH || aType == TYPE_HUB_URL;
-		}
+		static bool isString(Type aType) noexcept;
 
-		static bool optionsAllowed(Type aType, Type aItemType) {
-			return aType == ApiSettingItem::TYPE_STRING || aType == ApiSettingItem::TYPE_NUMBER ||
-				(aType == ApiSettingItem::TYPE_LIST && (aItemType == ApiSettingItem::TYPE_STRING || aItemType == ApiSettingItem::TYPE_NUMBER));
-		}
+		static bool enumOptionsAllowed(Type aType, Type aItemType) noexcept;
 
 		// Returns the value and bool indicating whether it's an auto detected value
 		virtual string getTitle() const noexcept = 0;
@@ -76,7 +73,7 @@ namespace webserver {
 		virtual void unset() noexcept = 0;
 		virtual json getValue() const noexcept = 0;
 		virtual json getDefaultValue() const noexcept = 0;
-		virtual PtrList getValueTypes() const noexcept = 0;
+		virtual PtrList getListObjectFields() const noexcept = 0;
 		virtual const string& getHelpStr() const noexcept = 0;
 
 		virtual bool isOptional() const noexcept = 0;
@@ -135,7 +132,7 @@ namespace webserver {
 		// Returns the value and bool indicating whether it's an auto detected value
 		json getValue() const noexcept override;
 		json getAutoValue() const noexcept override;
-		ApiSettingItem::PtrList getValueTypes() const noexcept override;
+		ApiSettingItem::PtrList getListObjectFields() const noexcept override;
 		const string& getHelpStr() const noexcept override;
 
 		// Throws on invalid JSON
@@ -165,7 +162,7 @@ namespace webserver {
 			Type aItemType = TYPE_LAST, const EnumOption::List& aEnumOptions = EnumOption::List());
 
 		virtual string getTitle() const noexcept override = 0;
-		virtual ApiSettingItem::PtrList getValueTypes() const noexcept override = 0;
+		virtual ApiSettingItem::PtrList getListObjectFields() const noexcept override = 0;
 
 		json getValue() const noexcept override;
 		const json& getValueRef() const noexcept;
@@ -192,6 +189,7 @@ namespace webserver {
 
 		const MinMax& getMinMax() const noexcept override;
 		json getDefaultValue() const noexcept override;
+		void setDefaultValue(const json& aValue) noexcept;
 
 		EnumOption::List getEnumOptions() const noexcept override;
 		//ServerSettingItem(ServerSettingItem&& rhs) noexcept = default;
@@ -203,7 +201,7 @@ namespace webserver {
 		const string help;
 		const bool optional;
 		json value;
-		const json defaultValue;
+		json defaultValue;
 	};
 
 	class ServerSettingItem : public JsonSettingItem {
@@ -214,9 +212,10 @@ namespace webserver {
 			const MinMax& aMinMax = MinMax(), const ResourceManager::Strings aUnit = ResourceManager::LAST);
 
 		string getTitle() const noexcept override;
-		ApiSettingItem::PtrList getValueTypes() const noexcept override;
+		ApiSettingItem::PtrList getListObjectFields() const noexcept override;
 	private:
 		const ResourceManager::Strings titleKey;
+		const ResourceManager::Strings unitKey;
 	};
 
 	class ExtensionSettingItem : public JsonSettingItem {
@@ -231,7 +230,7 @@ namespace webserver {
 			return title;
 		}
 
-		ApiSettingItem::PtrList getValueTypes() const noexcept override;
+		ApiSettingItem::PtrList getListObjectFields() const noexcept override;
 	private:
 		const string title;
 

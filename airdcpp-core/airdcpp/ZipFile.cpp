@@ -270,36 +270,44 @@ void ZipFile::CreateZipFile(const string& dstPath, const StringPairList& files) 
 }
 
 // dstPath: path inside zip file (use forward slashes, not backslashes)
-void ZipFile::CreateZipFileList(StringPairList& files, const string& srcPath, const string& dstPath, const string& aPattern, bool keepEmpty) noexcept {
+int ZipFile::CreateZipFileList(StringPairList& files_, const string& srcPath, const string& dstPath, const string& aPattern, bool aKeepEmpty) noexcept {
+	int addedFiles = 0;
+
 	FileFindIter end;
 	for(FileFindIter i(srcPath, "*"); i != end; ++i) {
 		string name = i->getFileName();
-		if(i->isHidden() || i->isLink() || name.empty())
+		if (i->isHidden() || i->isLink() || name.empty()) {
 			continue;
-
-		if(!aPattern.empty()) {
-			try {
-				boost::regex reg(aPattern);
-				if(!boost::regex_search(name.begin(), name.end(), reg))
-					continue;
-			} catch(...) { /* ... */ }
 		}
 
-		if(i->isDirectory()) {
+		if (!aPattern.empty()) {
+			boost::regex reg(aPattern);
+			if (!boost::regex_search(name.begin(), name.end(), reg)) {
+				continue;
+			}
+		}
+
+		if (i->isDirectory()) {
 			string newSrcPath = srcPath + name + PATH_SEPARATOR;
 			string newDstPath = dstPath + name + '/';
 
 			StringPairList subFiles;
-			ZipFile::CreateZipFileList(subFiles, newSrcPath, newDstPath); //don't pass the pattern to sub directories
+			addedFiles += ZipFile::CreateZipFileList(subFiles, newSrcPath, newDstPath); //don't pass the pattern to sub directories
 
-			if(keepEmpty || !subFiles.empty()) {
-				files.emplace_back(newSrcPath, newDstPath);
-				files.insert(files.end(), subFiles.begin(), subFiles.end());
+			if (aKeepEmpty || !subFiles.empty()) {
+				// Subdirectory
+				files_.emplace_back(newSrcPath, newDstPath);
+
+				// Subfiles
+				files_.insert(files_.end(), subFiles.begin(), subFiles.end());
 			}
 		} else {
-			files.emplace_back(srcPath + name, dstPath + name);
+			files_.emplace_back(srcPath + name, dstPath + name);
+			addedFiles++;
 		}
 	}
+
+	return addedFiles;
 }
 
 } // namespace dcpp

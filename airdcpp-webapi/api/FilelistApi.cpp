@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -71,47 +71,59 @@ namespace webserver {
 
 	api_return FilelistApi::handlePostList(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
+		addAsyncTask([
+			hintedUser = Deserializer::deserializeHintedUser(reqJson),
+			directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, ADC_ROOT_STR),
+			complete = aRequest.defer(),
+			caller = aRequest.getOwnerPtr()
+		]{
+			DirectoryListingPtr dl = nullptr;
+			try {
+				auto listData = FilelistAddData(hintedUser, caller, directory);
+				dl = DirectoryListingManager::getInstance()->openRemoteFileListHookedThrow(listData, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW);
+			} catch (const Exception& e) {
+				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+				return;
+			}
 
-		auto user = Deserializer::deserializeHintedUser(reqJson);
-		auto directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, ADC_ROOT_STR);
+			if (!dl) {
+				complete(websocketpp::http::status_code::conflict, nullptr, ApiRequest::toResponseErrorStr("Filelist from this user is open already"));
+				return;
+			}
 
-		DirectoryListingPtr dl = nullptr;
-		try {
-			dl = DirectoryListingManager::getInstance()->openRemoteFileList(user, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, directory);
-		} catch (const Exception& e) {
-			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::bad_request;
-		}
+			complete(websocketpp::http::status_code::ok, serializeList(dl), nullptr);
+			return;
+		});
 
-		if (!dl) {
-			aRequest.setResponseErrorStr("Filelist from this user is open already");
-			return websocketpp::http::status_code::conflict;
-		}
-
-		aRequest.setResponseBody(serializeList(dl));
-		return websocketpp::http::status_code::ok;
+		return CODE_DEFERRED;
 	}
 
 	api_return FilelistApi::handleMatchQueue(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
+		addAsyncTask([
+			hintedUser = Deserializer::deserializeHintedUser(reqJson),
+			directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, ADC_ROOT_STR),
+			complete = aRequest.defer(),
+			caller = aRequest.getOwnerPtr()
+		] {
+			QueueItem::Flags flags = QueueItem::FLAG_MATCH_QUEUE;
+			if (directory != ADC_ROOT_STR) {
+				flags.setFlag(QueueItem::FLAG_RECURSIVE_LIST);
+				flags.setFlag(QueueItem::FLAG_PARTIAL_LIST);
+			}
 
-		auto user = Deserializer::deserializeHintedUser(reqJson);
-		auto directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, ADC_ROOT_STR);
+			try {
+				auto listData = FilelistAddData(hintedUser, caller, directory);
+				QueueManager::getInstance()->addListHooked(listData, flags.getFlags());
+			} catch (const Exception& e) {
+				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+				return;
+			}
 
-		QueueItem::Flags flags = QueueItem::FLAG_MATCH_QUEUE;
-		if (directory != ADC_ROOT_STR) {
-			flags.setFlag(QueueItem::FLAG_RECURSIVE_LIST);
-			flags.setFlag(QueueItem::FLAG_PARTIAL_LIST);
-		}
+			complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+		});
 
-		try {
-			QueueManager::getInstance()->addList(user, flags.getFlags(), directory);
-		} catch (const Exception& e) {
-			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::bad_request;
-		}
-
-		return websocketpp::http::status_code::no_content;
+		return CODE_DEFERRED;
 	}
 
 	api_return FilelistApi::handleOwnList(ApiRequest& aRequest) {
@@ -170,14 +182,14 @@ namespace webserver {
 		send("filelist_directory_download_removed", Serializer::serializeDirectoryDownload(aDownload));
 	}
 
-	void FilelistApi::on(DirectoryListingManagerListener::DirectoryDownloadProcessed, const DirectoryDownloadPtr& aDirectoryInfo, const DirectoryBundleAddInfo& aQueueInfo, const string& aError) noexcept {
+	void FilelistApi::on(DirectoryListingManagerListener::DirectoryDownloadProcessed, const DirectoryDownloadPtr& aDirectoryInfo, const DirectoryBundleAddResult& aQueueInfo, const string& aError) noexcept {
 		if (!subscriptionActive("filelist_directory_download_processed")) {
 			return;
 		}
 
 		send("filelist_directory_download_processed", {
 			{ "directory_download", Serializer::serializeDirectoryDownload(aDirectoryInfo) },
-			{ "result", Serializer::serializeDirectoryBundleAddInfo(aQueueInfo, aError) }
+			{ "result", Serializer::serializeDirectoryBundleAddResult(aQueueInfo, aError) }
 		});
 	}
 
@@ -244,17 +256,29 @@ namespace webserver {
 		Priority prio;
 		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetBundleName, prio);
 
-		auto user = Deserializer::deserializeHintedUser(reqJson);
+		addAsyncTask([
+			hintedUser = Deserializer::deserializeHintedUser(reqJson),
+			logBundleErrors = JsonUtil::getOptionalFieldDefault<bool>("log_bundle_errors", reqJson, true),
+			complete = aRequest.defer(),
+			caller = aRequest.getOwnerPtr(),
+			targetDirectory,
+			targetBundleName,
+			prio,
+			listPath
+		] {
+			try {
+				auto listData = FilelistAddData(hintedUser, caller, listPath);
+				auto errorMethod = logBundleErrors ? DirectoryDownload::ErrorMethod::LOG : DirectoryDownload::ErrorMethod::NONE;
+				auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownloadHookedThrow(listData, targetBundleName, targetDirectory, prio, errorMethod);
+				complete(websocketpp::http::status_code::ok, Serializer::serializeDirectoryDownload(directoryDownload), nullptr);
+				return;
+			} catch (const Exception& e) {
+				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+				return;
+			}
+		});
 
-		try {
-			auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownload(user, targetBundleName, listPath, targetDirectory, prio);
-			aRequest.setResponseBody(Serializer::serializeDirectoryDownload(directoryDownload));
-		} catch (const Exception& e) {
-			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::bad_request;
-		}
-
-		return websocketpp::http::status_code::ok;
+		return CODE_DEFERRED;
 	}
 
 	api_return FilelistApi::handleDeleteDirectoryDownload(ApiRequest& aRequest) {

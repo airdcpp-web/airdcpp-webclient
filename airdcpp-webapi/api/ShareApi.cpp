@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -61,6 +61,7 @@ namespace webserver {
 		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("find_dupe_paths")),					ShareApi::handleFindDupePaths);
 		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("search")),							ShareApi::handleSearch);
 		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("validate_path")),						ShareApi::handleValidatePath);
+		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("check_path_shared")),					ShareApi::handleIsPathShared);
 
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh")),							ShareApi::handleRefreshShare);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("refresh")),							ShareApi::handleAbortRefreshShare);
@@ -250,8 +251,8 @@ namespace webserver {
 	api_return ShareApi::handleAddTempShare(ApiRequest& aRequest) {
 		const auto fileId = JsonUtil::getField<string>("file_id", aRequest.getRequestBody(), false);
 		const auto name = JsonUtil::getField<string>("name", aRequest.getRequestBody(), false);
-		const auto user = Deserializer::deserializeUser(aRequest.getRequestBody(), false, true);
-		const auto client = Deserializer::deserializeClient(aRequest.getRequestBody());
+		const auto user = Deserializer::deserializeUser(aRequest.getRequestBody(), true, true);
+		const auto optionalClient = Deserializer::deserializeClient(aRequest.getRequestBody(), true);
 
 		const auto filePath = aRequest.getSession()->getServer()->getFileServer().getTempFilePath(fileId);
 		if (filePath.empty() || !Util::fileExists(filePath)) {
@@ -275,7 +276,8 @@ namespace webserver {
 			}
 		}
 
-		auto item = ShareManager::getInstance()->addTempShare(tth, name, filePath, size, client->get(HubSettings::ShareProfile), user);
+		auto shareProfileToken = optionalClient ? optionalClient->get(HubSettings::ShareProfile) : SETTING(DEFAULT_SP);
+		auto item = ShareManager::getInstance()->addTempShare(tth, name, filePath, size, shareProfileToken, user);
 
 		aRequest.setResponseBody({
 			{ "magnet", Magnet::makeMagnet(tth, name, size) },
@@ -407,11 +409,13 @@ namespace webserver {
 			complete = aRequest.defer(),
 			callerPtr = aRequest.getOwnerPtr()
 		] {
-			try {
-				auto refreshInfo = ShareManager::getInstance()->refreshPathsHookedThrow(priority, paths, callerPtr);
+			ShareManager::RefreshTaskQueueInfo refreshInfo;
+			const auto refreshF = [&] {
+				refreshInfo = ShareManager::getInstance()->refreshPathsHookedThrow(priority, paths, callerPtr);
+			};
+
+			if (runPathValidatorF(refreshF, complete)) {
 				complete(websocketpp::http::status_code::ok, serializeRefreshQueueInfo(refreshInfo), nullptr);
-			} catch (const Exception& e) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, e.getError());
 			}
 		});
 
@@ -499,35 +503,55 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
+	api_return ShareApi::handleIsPathShared(ApiRequest& aRequest) {
+		auto path = JsonUtil::getField<string>("path", aRequest.getRequestBody());
+		auto isShared = ShareManager::getInstance()->isRealPathShared(path);
+		aRequest.setResponseBody({
+			{ "is_shared", isShared },
+		});
+
+		return websocketpp::http::status_code::ok;
+	}
+
+	bool ShareApi::runPathValidatorF(const std::function<void()>& aValidationF, const ApiCompletionF& aErrorF) noexcept {
+		try {
+			aValidationF();
+		} catch (const QueueException& e) {
+			// Queued bundle
+			aErrorF(websocketpp::http::status_code::conflict, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+			return false;
+		} catch (const ShareValidatorException& e) {
+			// Validation error
+			aErrorF(websocketpp::http::status_code::forbidden, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+			return false;
+		} catch (const ShareException& e) {
+			// Path not inside a shared directory
+			aErrorF(websocketpp::http::status_code::expectation_failed, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+			return false;
+		} catch (const FileException& e) {
+			// File doesn't exist
+			aErrorF(websocketpp::http::status_code::not_found, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+			return false;
+		}
+
+		return true;
+	}
+
 	api_return ShareApi::handleValidatePath(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 		addAsyncTask([
 			path = JsonUtil::getField<string>("path", reqJson), // File/directory path
-			skipCheckQueue = JsonUtil::getOptionalFieldDefault<bool>("skip_check_queue", reqJson, false),
-			complete = aRequest.defer(),
-			callerPtr = aRequest.getOwnerPtr()
-		] {
-			try {
+				skipCheckQueue = JsonUtil::getOptionalFieldDefault<bool>("skip_check_queue", reqJson, false),
+				complete = aRequest.defer(),
+				callerPtr = aRequest.getOwnerPtr()
+		]{
+			const auto validateF = [&] {
 				ShareManager::getInstance()->validatePathHooked(path, skipCheckQueue, callerPtr);
-			} catch (const QueueException& e) {
-				// Queued bundle
-				complete(websocketpp::http::status_code::conflict, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
-				return;
-			} catch (const ShareValidatorException& e) {
-				// Validation error
-				complete(websocketpp::http::status_code::forbidden, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
-				return;
-			} catch (const ShareException& e) {
-				// Path not inside a shared directory
-				complete(websocketpp::http::status_code::expectation_failed, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
-				return;
-			} catch (const FileException& e) {
-				// File doesn't exist
-				complete(websocketpp::http::status_code::not_found, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
-				return;
-			}
+			};
 
-			complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+			if (runPathValidatorF(validateF, complete)) {
+				complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+			}
 		});
 
 		return CODE_DEFERRED;

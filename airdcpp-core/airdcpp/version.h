@@ -35,11 +35,13 @@ namespace dcpp {
 	string getVersionTag();
 	time_t getVersionDate();
 	const char* getAppName();
+	const char* getAppId();
 	string getConfigurationType();
 	VersionType getVersionType();
 }
 
 #define APPNAME getAppName()
+#define APPID getAppId()
 #define VERSIONSTRING getVersionTag()
 #define CONFIGURATION_TYPE getConfigurationType()
 

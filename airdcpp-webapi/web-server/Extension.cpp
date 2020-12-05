@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -49,24 +49,24 @@ namespace webserver {
 	}
 
 	Extension::Extension(const string& aPackageDirectory, ErrorF&& aErrorF, bool aSkipPathValidation) : errorF(std::move(aErrorF)), managed(true) {
-		initialize(aPackageDirectory, aSkipPathValidation);
+		initializeThrow(aPackageDirectory, aSkipPathValidation);
 	}
 
 	Extension::Extension(const SessionPtr& aSession, const json& aPackageJson) : managed(false), session(aSession) {
-		initialize(aPackageJson);
+		initializeThrow(aPackageJson);
 	}
 
 	Extension::~Extension() {
 		dcdebug("Extension %s was destroyed\n", name.c_str());
 	}
 
-	void Extension::reload() {
-		initialize(Util::joinDirectory(getRootPath(), EXT_PACKAGE_DIR), false);
+	void Extension::reloadThrow() {
+		initializeThrow(Util::joinDirectory(getRootPath(), EXT_PACKAGE_DIR), false);
 
-		fire(ExtensionListener::PackageUpdated());
+		fire(ExtensionListener::PackageUpdated(), this);
 	}
 
-	void Extension::initialize(const string& aPackageDirectory, bool aSkipPathValidation) {
+	void Extension::initializeThrow(const string& aPackageDirectory, bool aSkipPathValidation) {
 		string packageStr;
 		try {
 			packageStr = File(aPackageDirectory + "package.json", File::READ, File::OPEN).read();
@@ -77,7 +77,7 @@ namespace webserver {
 		try {
 			const json packageJson = json::parse(packageStr);
 
-			initialize(packageJson);
+			initializeThrow(packageJson);
 		} catch (const std::exception& e) {
 			throw Exception("Could not parse package.json (" + string(e.what()) + ")");
 		}
@@ -87,7 +87,7 @@ namespace webserver {
 		}
 	}
 
-	void Extension::initialize(const json& aJson) {
+	void Extension::initializeThrow(const json& aJson) {
 		// Required fields
 		const string packageName = aJson.at("name");
 		const string packageDescription = aJson.at("description");
@@ -124,7 +124,7 @@ namespace webserver {
 			}
 
 			if (engines.empty()) {
-				engines.emplace_back("node");
+				engines.emplace_back(EXT_ENGINE_NODE);
 			}
 		}
 
@@ -135,27 +135,28 @@ namespace webserver {
 				const StringList osList = *osJson;
 				auto currentOs = SystemUtil::getPlatform();
 				if (std::find(osList.begin(), osList.end(), currentOs) == osList.end() && currentOs != "other") {
-					throw Exception("Extension is not compatible with your operating system (check the extension documentation for more information)");
+					throw Exception(STRING(WEB_EXTENSION_OS_UNSUPPORTED));
 				}
 			}
 		}
 
-		parseApiData(aJson.at("airdcpp"));
+		parseApiDataThrow(aJson.at("airdcpp"));
 	}
 
-	void Extension::checkCompatibility() {
+	void Extension::checkCompatibilityThrow() {
 		if (apiVersion != API_VERSION) {
-			throw Exception("Extension requires API version " + Util::toString(apiVersion) + " while the application uses version " + Util::toString(API_VERSION));
+			throw Exception(STRING_F(WEB_EXTENSION_API_VERSION_UNSUPPORTED, Util::toString(apiVersion) % Util::toString(API_VERSION)));
 		}
 
 		if (minApiFeatureLevel > API_FEATURE_LEVEL) {
-			throw Exception("Extension requires API feature level " + Util::toString(minApiFeatureLevel) + " or newer while the application uses version " + Util::toString(API_FEATURE_LEVEL));
+			throw Exception(STRING_F(WEB_EXTENSION_API_FEATURES_UNSUPPORTED, Util::toString(minApiFeatureLevel) % Util::toString(API_FEATURE_LEVEL)));
 		}
 	}
 
-	void Extension::parseApiData(const json& aJson) {
+	void Extension::parseApiDataThrow(const json& aJson) {
 		apiVersion = aJson.at("apiVersion");
 		minApiFeatureLevel = aJson.value("minApiFeatureLevel", 0);
+		signalReady = aJson.value("signalReady", false);
 	}
 
 	FilesystemItemList Extension::getLogs() const noexcept {
@@ -189,13 +190,13 @@ namespace webserver {
 		return settings;
 	}
 
-	void Extension::swapSettingDefinitions(ExtensionSettingItem::List& aDefinitions) {
+	void Extension::swapSettingDefinitions(ExtensionSettingItem::List& aDefinitions) noexcept {
 		{
 			WLock l(cs);
 			settings.swap(aDefinitions);
 		}
 
-		fire(ExtensionListener::SettingDefinitionsUpdated());
+		fire(ExtensionListener::SettingDefinitionsUpdated(), this);
 	}
 
 	void Extension::resetSettings() noexcept {
@@ -205,16 +206,17 @@ namespace webserver {
 			userReferences.clear();
 		}
 
-		fire(ExtensionListener::SettingDefinitionsUpdated());
+		fire(ExtensionListener::SettingDefinitionsUpdated(), this);
 	}
 
-	void Extension::setSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences) {
+	void Extension::setValidatedSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences) noexcept {
 		{
 			WLock l(cs);
 			for (const auto& vp: aValues) {
 				auto setting = ApiSettingItem::findSettingItem<ExtensionSettingItem>(settings, vp.first);
 				if (!setting) {
-					throw Exception("Setting " + vp.first + " was not found");
+					dcassert(0);
+					continue;
 				}
 
 				setting->setValue(vp.second);
@@ -223,7 +225,7 @@ namespace webserver {
 			userReferences.insert(aUserReferences.begin(), aUserReferences.end());
 		}
 
-		fire(ExtensionListener::SettingValuesUpdated(), aValues);
+		fire(ExtensionListener::SettingValuesUpdated(), this, aValues);
 	}
 
 	Extension::SettingValueMap Extension::getSettingValues() noexcept {
@@ -239,13 +241,17 @@ namespace webserver {
 		return values;
 	}
 
-	void Extension::start(const string& aEngine, WebServerManager* wsm) {
+	void Extension::startThrow(const string& aEngine, WebServerManager* wsm) {
 		if (!managed) {
 			return;
 		}
 
+		if (!wsm->isRunning()) {
+			throw Exception(STRING(WEB_EXTENSION_SERVER_NOT_RUNNING));
+		}
+
 		if (!wsm->isListeningPlain()) {
-			throw Exception("Extensions require the (plain) HTTP protocol to be enabled");
+			throw Exception(STRING(WEB_EXTENSION_HTTP_NOT_ENABLED));
 		}
 
 		if (isRunning()) {
@@ -256,14 +262,14 @@ namespace webserver {
 		File::ensureDirectory(Util::joinDirectory(getRootPath(), EXT_LOG_DIR));
 		File::ensureDirectory(Util::joinDirectory(getRootPath(), EXT_CONFIG_DIR));
 
-		checkCompatibility();
+		checkCompatibilityThrow();
 
 		session = wsm->getUserManager().createExtensionSession(name);
 		
-		createProcess(aEngine, wsm, session);
+		createProcessThrow(aEngine, wsm, session);
 
 		running = true;
-		fire(ExtensionListener::ExtensionStarted());
+		fire(ExtensionListener::ExtensionStarted(), this);
 
 		// Monitor the running state of the script
 		timer = wsm->addTimer([this, wsm] { checkRunningState(wsm); }, 2500);
@@ -271,17 +277,7 @@ namespace webserver {
 	}
 
 	string Extension::getConnectUrl(WebServerManager* wsm) noexcept {
-		const auto& serverConfig = wsm->getPlainServerConfig();
-
-		auto bindAddress = serverConfig.bindAddress.str();
-		if (bindAddress.empty()) {
-			auto protocol = WebServerManager::getDefaultListenProtocol();
-			bindAddress = protocol == boost::asio::ip::tcp::v6() ? "[::1]" : "127.0.0.1";
-		} else {
-			bindAddress = wsm->resolveAddress(bindAddress, serverConfig.port.str());
-		}
-
-		return bindAddress + ":" + Util::toString(serverConfig.port.num()) + "/api/v1/";
+		return wsm->getLocalServerAddress(wsm->getPlainServerConfig()) + "/api/v1/";
 	}
 
 	StringList Extension::getLaunchParams(WebServerManager* wsm, const SessionPtr& aSession, bool aEscape) const noexcept {
@@ -335,25 +331,30 @@ namespace webserver {
 			addParam("debug");
 		}
 
+		if (signalReady) {
+			addParam("signalReady");
+		}
+
 		return ret;
 	}
 
-	bool Extension::stop() noexcept {
+	void Extension::stopThrow() {
 		if (!managed) {
-			return false;
+			throw Exception("Remote extensions can't be stopped");
 		}
 
 		if (!isRunning()) {
-			return true;
+			return;
 		}
 
 		timer->stop(false);
-		if (!terminateProcess()) {
-			return false;
+		try {
+			terminateProcessThrow();
+		} catch (const Exception& e) {
+			throw Exception(STRING_F(WEB_EXTENSION_TERMINATE_PROCESS_FAILED, e.what()));
 		}
 
 		onStopped(false);
-		return true;
 	}
 
 	void Extension::onFailed(uint32_t aExitCode) noexcept {
@@ -368,8 +369,19 @@ namespace webserver {
 		}
 	}
 
+	void Extension::resetSession() noexcept {
+		if (session) {
+			if (managed) {
+				session->getServer()->getUserManager().logout(session);
+				dcassert(session.use_count() == 1);
+			}
+
+			session = nullptr;
+		}
+	}
+
 	void Extension::onStopped(bool aFailed) noexcept {
-		fire(ExtensionListener::ExtensionStopped(), aFailed);
+		fire(ExtensionListener::ExtensionStopped(), this, aFailed);
 		
 		dcdebug("Extension %s was stopped", name.c_str());
 		if (session) {
@@ -377,17 +389,31 @@ namespace webserver {
 		}
 		dcdebug("\n");
 
-		if (session) {
-			session->getServer()->getUserManager().logout(session);
-			session = nullptr;
-		}
-
+		resetSession();
 		resetProcessState();
 		resetSettings();
 
 		dcassert(running);
 		running = false;
 	}
+
+	void Extension::rotateLog(const string& aPath) {
+		auto oldFilePath = aPath + ".old";
+
+		try {
+			if (Util::fileExists(oldFilePath)) {
+				File::deleteFileThrow(oldFilePath);
+			}
+
+			if (Util::fileExists(aPath)) {
+				File::copyFile(aPath, oldFilePath);
+				File::deleteFileThrow(aPath);
+			}
+		} catch (const FileException& e) {
+			throw Exception("Failed to initialize the extension log " + aPath + ": " + e.getError());
+		}
+	}
+
 #ifdef _WIN32
 	void Extension::initLog(HANDLE& aHandle, const string& aPath) {
 		dcassert(aHandle == INVALID_HANDLE_VALUE);
@@ -397,11 +423,7 @@ namespace webserver {
 		saAttr.bInheritHandle = TRUE;
 		saAttr.lpSecurityDescriptor = NULL;
 
-
-		if (Util::fileExists(aPath) && !File::deleteFile(aPath)) {
-			dcdebug("Failed to delete the old extension output log %s: %s\n", aPath.c_str(), Util::translateError(::GetLastError()).c_str());
-			throw Exception("Failed to delete the old extension output log");
-		}
+		rotateLog(aPath);
 
 		aHandle = CreateFile(Text::toT(aPath).c_str(),
 			FILE_APPEND_DATA,
@@ -431,7 +453,7 @@ namespace webserver {
 		}
 	}
 
-	void Extension::createProcess(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {
+	void Extension::createProcessThrow(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {
 		// Setup log file for console output
 		initLog(messageLogHandle, getMessageLogPath());
 		initLog(errorLogHandle, getErrorLogPath());
@@ -515,15 +537,16 @@ namespace webserver {
 		}
 	}
 
-	bool Extension::terminateProcess() noexcept {
+	void Extension::terminateProcessThrow() {
 		if (TerminateProcess(piProcInfo.hProcess, 0) == 0) {
-			dcdebug("Failed to terminate the extension %s: %s\n", name.c_str(), Util::translateError(::GetLastError()).c_str());
-			dcassert(0);
-			return false;
+			throw Exception(Util::translateError(::GetLastError()));
 		}
 
-		WaitForSingleObject(piProcInfo.hProcess, 5000);
-		return true;
+		auto res = WaitForSingleObject(piProcInfo.hProcess, 5000);
+		if (res != WAIT_OBJECT_0) {
+			auto error = res == WAIT_FAILED ? Util::translateError(res).c_str() : STRING(SETTINGS_ODC_SHUTDOWNTIMEOUT);
+			throw Exception(error);
+		}
 	}
 #else
 #include <sys/wait.h>
@@ -545,10 +568,11 @@ namespace webserver {
 	}
 
 	unique_ptr<File> Extension::initLog(const string& aPath) {
+		rotateLog(aPath);
 		return make_unique<File>(aPath, File::RW, File::CREATE | File::TRUNCATE);
 	}
 
-	void Extension::createProcess(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {
+	void Extension::createProcessThrow(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {
 		// Init logs
 		auto messageLog = std::move(initLog(getMessageLogPath()));
 		auto errorLog = std::move(initLog(getErrorLogPath()));
@@ -599,22 +623,16 @@ namespace webserver {
 		}
 	}
 
-	bool Extension::terminateProcess() noexcept {
+	void Extension::terminateProcessThrow() {
 		auto res = kill(pid, SIGTERM);
 		if (res == -1) {
-			dcdebug("Failed to terminate the extension %s: %s\n", name.c_str(), Util::translateError(errno).c_str());
-			return false;
+			throw Exception(Util::translateError(errno));
 		}
 
 		int exitStatus = 0;
 		if (waitpid(pid, &exitStatus, 0) == -1) {
-			dcdebug("Failed to terminate the extension %s: %s\n", name.c_str(), Util::translateError(errno).c_str());
-			return false;
+			throw Exception(Util::translateError(errno));
 		}
-
-
-
-		return true;
 	}
 
 #endif

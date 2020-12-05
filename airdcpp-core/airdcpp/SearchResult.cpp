@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -78,8 +78,9 @@ AdcCommand SearchResult::toRES(char aType) const noexcept {
 	cmd.addParam("SI", Util::toString(size));
 	cmd.addParam("SL", Util::toString(freeSlots));
 	cmd.addParam("FN", path);
-	if (!SettingsManager::lanMode && type != TYPE_DIRECTORY)
+	if (type != TYPE_DIRECTORY) {
 		cmd.addParam("TR", getTTH().toBase32());
+	}
 	cmd.addParam("DM", Util::toString(date));
 
 	if (type == TYPE_DIRECTORY) {

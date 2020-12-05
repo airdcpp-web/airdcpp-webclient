@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 #include "Exception.h"
 #include "HashBloom.h"
 #include "HashedFile.h"
+#include "Message.h"
 #include "MerkleTree.h"
 #include "Pointer.h"
 #include "SearchQuery.h"
@@ -120,6 +121,8 @@ class ShareManager : public Singleton<ShareManager>, public Speaker<ShareManager
 	private TimerManagerListener, private HashManagerListener
 {
 public:
+	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
+
 	const unique_ptr<SharePathValidator> validator;
 
 	SharePathValidator& getValidator() noexcept {
@@ -185,7 +188,7 @@ public:
 	// aIsMajor will regenerate the file list on next time when someone requests it
 	void setProfilesDirty(const ProfileTokenSet& aProfiles, bool aIsMajor) noexcept;
 
-	void startup(function<void(const string&)> stepF, function<void(float)> progressF) noexcept;
+	void startup(StartupLoader& aLoader) noexcept;
 	void shutdown(function<void(float)> progressF) noexcept;
 
 	// Abort filelist refresh (or an individual refresh task)
@@ -596,9 +599,7 @@ private:
 		public:
 			// Returns true for items matching the predicate that are parent directories of compareTo (or exact matches)
 			RootIsParentOrExact(const string& aCompareTo) : compareToLower(Text::toLower(aCompareTo)), separator(PATH_SEPARATOR) {}
-			bool operator()(const Directory::Ptr& aDirectory) const noexcept { 
-				return AirUtil::isParentOrExactLower(aDirectory->getRoot()->getPathLower(), compareToLower, separator);
-			}
+			bool operator()(const Directory::Ptr& aDirectory) const noexcept;
 
 			RootIsParentOrExact& operator=(const RootIsParentOrExact&) = delete;
 		private:

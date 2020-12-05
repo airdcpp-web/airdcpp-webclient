@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -50,11 +50,11 @@ namespace dcpp {
 
 		// Selects the best individual files to download and queues them
 		// Throws if none of the children could not be queued
-		BundleAddInfo downloadFile(const string& aTargetDirectory, const string& aTargetName, Priority p);
+		BundleAddInfo downloadFileHooked(const string& aTargetDirectory, const string& aTargetName, Priority p, const void* aCaller);
 
 		// Selects the best individual folders to download and queues them
 		// Throws if none of the children could not be queued
-		DirectoryDownloadList downloadDirectory(const string& aTargetDirectory, const string& aTargetName, Priority p);
+		DirectoryDownloadList downloadDirectoryHooked(const string& aTargetDirectory, const string& aTargetName, Priority p, const void* aCaller);
 
 		bool isDirectory() const noexcept {
 			return baseResult->getType() == SearchResult::TYPE_DIRECTORY;

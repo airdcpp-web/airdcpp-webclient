@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -284,7 +284,7 @@ namespace webserver {
 		}
 
 		template <class T>
-		static void validateValue(typename std::enable_if<!std::is_same<std::string, T>::value, T>::type& value_) {
+		static void validateValue(typename std::enable_if<!std::is_same<std::string, T>::value, T>::type&) {
 
 		}
 

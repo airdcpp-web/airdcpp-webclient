@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -188,18 +188,18 @@ UserPtr DirectoryListing::getUserFromFilename(const string& fileName) noexcept {
 	stripExtensions(name);
 
 	// Find CID
-	string::size_type i = name.rfind('.');
-	if(i == string::npos) {
-		return UserPtr();
+	auto i = name.rfind('.');
+	if (i == string::npos) {
+		return nullptr;
 	}
 
 	size_t n = name.length() - (i + 1);
 	// CID's always 39 chars long...
-	if(n != 39)
-		return UserPtr();
+	if (n != 39)
+		return nullptr;
 
 	CID cid(name.substr(i + 1));
-	if(!cid)
+	if (!cid)
 		return UserPtr();
 
 	return ClientManager::getInstance()->getUser(cid);
@@ -328,13 +328,13 @@ static const string sName = "Name";
 static const string sSize = "Size";
 static const string sTTH = "TTH";
 static const string sDate = "Date";
-void ListLoader::startTag(const string& name, StringPairList& attribs, bool simple) {
+void ListLoader::startTag(const string& name, StringPairList& attribs, bool aSimple) {
 	if(list->getClosing()) {
 		throw AbortException();
 	}
 
-	if(inListing) {
-		if(name == sFile) {
+	if (inListing) {
+		if (name == sFile) {
 			const string& n = getAttrib(attribs, sName, 0);
 			validateName(n);
 
@@ -345,14 +345,14 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			auto size = Util::toInt64(s);
 
 			const string& h = getAttrib(attribs, sTTH, 2);
-			if(h.empty() && !SettingsManager::lanMode)
+			if (h.empty())
 				return;		
 
 			TTHValue tth(h); /// @todo verify validity?
 
 			auto f = make_shared<DirectoryListing::File>(cur, n, size, tth, checkDupe, Util::toTimeT(getAttrib(attribs, sDate, 3)));
 			cur->files.push_back(f);
-		} else if(name == sDirectory) {
+		} else if (name == sDirectory) {
 			const string& n = getAttrib(attribs, sName, 0);
 			validateName(n);
 
@@ -380,7 +380,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 				}
 			}
 
-			if(!d) {
+			if (!d) {
 				auto type = incomp ? (children ? DirectoryListing::Directory::TYPE_INCOMPLETE_CHILD : DirectoryListing::Directory::TYPE_INCOMPLETE_NOCHILD) :
 					DirectoryListing::Directory::TYPE_NORMAL;
 
@@ -393,7 +393,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 			}
 			cur = d.get();
 
-			if(simple) {
+			if (aSimple) {
 				// To handle <Directory Name="..." />
 				endTag(name);
 			}
@@ -423,7 +423,7 @@ void ListLoader::startTag(const string& name, StringPairList& attribs, bool simp
 
 		inListing = true;
 
-		if(simple) {
+		if (aSimple) {
 			// To handle <Directory Name="..." />
 			endTag(name);
 		}
@@ -581,13 +581,13 @@ void DirectoryListing::Directory::getContentInfo(size_t& directories_, size_t& f
 	}
 }
 
-BundleDirectoryItemInfo::List DirectoryListing::Directory::toBundleInfoList() const noexcept {
-	BundleDirectoryItemInfo::List bundleFiles;
+BundleFileAddData::List DirectoryListing::Directory::toBundleInfoList() const noexcept {
+	BundleFileAddData::List bundleFiles;
 	toBundleInfoList(Util::emptyString, bundleFiles);
 	return bundleFiles;
 }
 
-void DirectoryListing::Directory::toBundleInfoList(const string& aTarget, BundleDirectoryItemInfo::List& aFiles) const noexcept {
+void DirectoryListing::Directory::toBundleInfoList(const string& aTarget, BundleFileAddData::List& aFiles) const noexcept {
 	// First, recurse over the directories
 	for (const auto& d: directories | map_values) {
 		d->toBundleInfoList(aTarget + d->getName() + PATH_SEPARATOR, aFiles);
@@ -597,21 +597,30 @@ void DirectoryListing::Directory::toBundleInfoList(const string& aTarget, Bundle
 
 	//sort(files.begin(), files.end(), File::Sort());
 	for (const auto& f: files) {
-		aFiles.emplace_back(aTarget + f->getName(), f->getTTH(), f->getSize());
+		aFiles.emplace_back(aTarget + f->getName(), f->getTTH(), f->getSize(), Priority::DEFAULT, f->getRemoteDate());
 	}
 }
 
-optional<DirectoryBundleAddInfo> DirectoryListing::createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPriority, string& errorMsg_) noexcept {
+HintedUser DirectoryListing::getDownloadSourceUser() const noexcept {
+	if (hintedUser.hint.empty() || (isMyCID() && !isOwnList)) {
+		return HintedUser();
+	}
+
+	return hintedUser;
+}
+
+optional<DirectoryBundleAddResult> DirectoryListing::createBundleHooked(const Directory::Ptr& aDir, const string& aTarget, const string& aName, Priority aPriority, string& errorMsg_) noexcept {
 	auto bundleFiles = aDir->toBundleInfoList();
 
 	try {
-		auto info = QueueManager::getInstance()->createDirectoryBundle(aTarget, hintedUser.user == ClientManager::getInstance()->getMe() && !isOwnList ? HintedUser() : hintedUser,
-			bundleFiles, aPriority, aDir->getRemoteDate(), errorMsg_);
+		auto addInfo = DirectoryBundleAddData(aName, aPriority, aDir->getRemoteDate());
+		auto options = BundleAddOptions(aTarget, getDownloadSourceUser(), this);
+		auto result = QueueManager::getInstance()->createDirectoryBundleHooked(options, addInfo, bundleFiles, errorMsg_);
 
-		return info;
+		return result;
 	} catch (const std::bad_alloc&) {
 		errorMsg_ = STRING(OUT_OF_MEMORY);
-		LogManager::getInstance()->message(STRING_F(BUNDLE_CREATION_FAILED, aTarget % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
+		log(STRING_F(BUNDLE_CREATION_FAILED, aTarget % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 	}
 
 	return nullopt;
@@ -933,16 +942,20 @@ void DirectoryListing::addAsyncTask(DispatcherQueue::Callback&& f) noexcept {
 	}
 }
 
+void DirectoryListing::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
+	LogManager::getInstance()->message(aMsg, aSeverity, STRING(FILE_LISTS));
+}
+
 void DirectoryListing::dispatch(DispatcherQueue::Callback& aCallback) noexcept {
 	try {
 		aCallback();
 	} catch (const std::bad_alloc&) {
-		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, getNick(false) % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
+		log(STRING_F(LIST_LOAD_FAILED, getNick(false) % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		fire(DirectoryListingListener::LoadingFailed(), "Out of memory");
 	} catch (const AbortException& e) {
 		// The error is empty on user cancellations
 		if (!e.getError().empty()) {
-			LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, getNick(false) % e.getError()), LogMessage::SEV_ERROR);
+			log(STRING_F(LIST_LOAD_FAILED, getNick(false) % e.getError()), LogMessage::SEV_ERROR);
 		}
 
 		fire(DirectoryListingListener::LoadingFailed(), e.getError());
@@ -951,7 +964,7 @@ void DirectoryListing::dispatch(DispatcherQueue::Callback& aCallback) noexcept {
 	} catch (const QueueException& e) {
 		fire(DirectoryListingListener::UpdateStatusMessage(), "Queueing failed:" + e.getError());
 	} catch (const Exception& e) {
-		LogManager::getInstance()->message(STRING_F(LIST_LOAD_FAILED, getNick(false) % e.getError()), LogMessage::SEV_ERROR);
+		log(STRING_F(LIST_LOAD_FAILED, getNick(false) % e.getError()), LogMessage::SEV_ERROR);
 		fire(DirectoryListingListener::LoadingFailed(), getNick(false) + ": " + e.getError());
 	}
 }
@@ -1197,7 +1210,8 @@ void DirectoryListing::changeDirectoryImpl(const string& aAdcPath, bool aReload,
 				if (isOwnList) {
 					addPartialListTask(Util::emptyString, aAdcPath, false);
 				} else {
-					QueueManager::getInstance()->addList(hintedUser, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW, aAdcPath);
+					auto listData = FilelistAddData(hintedUser, this, aAdcPath);
+					QueueManager::getInstance()->addListHooked(listData, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW);
 				}
 			} catch (const Exception& e) {
 				fire(DirectoryListingListener::LoadingFailed(), e.getError());

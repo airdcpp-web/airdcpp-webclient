@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -68,7 +68,7 @@ namespace webserver {
 		
 		static string getDirectoryDownloadStateId(DirectoryDownload::State aState) noexcept;
 		static json serializeDirectoryDownload(const DirectoryDownloadPtr& aDownload) noexcept;
-		static json serializeDirectoryBundleAddInfo(const DirectoryBundleAddInfo& aInfo, const string& aError) noexcept;
+		static json serializeDirectoryBundleAddResult(const DirectoryBundleAddResult& aInfo, const string& aError) noexcept;
 		static json serializeBundleAddInfo(const BundleAddInfo& aInfo) noexcept;
 
 		static json serializePriorityId(Priority aPriority) noexcept;

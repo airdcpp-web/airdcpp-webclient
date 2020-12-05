@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -56,6 +56,8 @@ namespace webserver {
 
 		static string getHighlighType(MessageHighlight::HighlightType aType) noexcept;
 		static json getContentType(const MessageHighlightPtr& aHighlight) noexcept;
+
+		static string parseStatusMessageLabel(const SessionPtr& aSession) noexcept;
 	private:
 		static MessageHighlightList deserializeHookMessageHighlights(const json& aData, const ActionHookResultGetter<MessageHighlightList>& aResultGetter, const string& aMessageText);
 		static MessageHighlightPtr deserializeMessageHighlight(const json& aJson, const string& aMessageText, const string& aDefaultDescriptionId);

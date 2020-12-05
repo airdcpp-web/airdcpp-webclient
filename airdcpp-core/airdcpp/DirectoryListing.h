@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,15 +26,15 @@
 #include "ShareManagerListener.h"
 #include "TimerManagerListener.h"
 
-#include "BundleInfo.h"
+#include "QueueAddInfo.h"
 #include "DirectSearch.h"
 #include "DispatcherQueue.h"
 #include "DupeType.h"
 #include "GetSet.h"
 #include "HintedUser.h"
+#include "Message.h"
 #include "MerkleTree.h"
 #include "Priority.h"
-#include "SearchQuery.h"
 #include "TaskQueue.h"
 #include "UserInfoBase.h"
 #include "Streams.h"
@@ -43,6 +43,7 @@
 namespace dcpp {
 
 class ListLoader;
+class SearchQuery;
 typedef uint32_t DirectoryListingToken;
 
 class DirectoryListing : public UserInfoBase, public TrackableDownloadItem,
@@ -138,7 +139,7 @@ public:
 		bool getAdls() const noexcept { return type == TYPE_ADLS; }
 
 		// Create recursive bundle file info listing with relative paths
-		BundleDirectoryItemInfo::List toBundleInfoList() const noexcept;
+		BundleFileAddData::List toBundleInfoList() const noexcept;
 
 		const string& getName() const noexcept {
 			return name;
@@ -157,7 +158,7 @@ public:
 			contentInfo.directories = aContentInfo.directories;
 		}
 	protected:
-		void toBundleInfoList(const string& aTarget, BundleDirectoryItemInfo::List& aFiles) const noexcept;
+		void toBundleInfoList(const string& aTarget, BundleFileAddData::List& aFiles) const noexcept;
 
 		Directory(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool aCheckDupe, const DirectoryContentInfo& aContentInfo, const string& aSize, time_t aRemoteDate);
 
@@ -192,7 +193,9 @@ public:
 	// Throws AbortException
 	int loadPartialXml(const string& aXml, const string& aAdcBase);
 
-	optional<DirectoryBundleAddInfo> createBundle(const Directory::Ptr& aDir, const string& aTarget, Priority aPrio, string& errorMsg_) noexcept;
+	optional<DirectoryBundleAddResult> createBundleHooked(const Directory::Ptr& aDir, const string& aTarget, const string& aName, Priority aPrio, string& errorMsg_) noexcept;
+
+	HintedUser getDownloadSourceUser() const noexcept;
 
 	int64_t getTotalListSize(bool adls = false) const noexcept { return root->getTotalSize(adls); }
 	int64_t getDirSize(const string& aDir) const noexcept;
@@ -244,7 +247,7 @@ public:
 
 	bool nextResult(bool prev) noexcept;
 
-	unique_ptr<SearchQuery> curSearch = nullptr;
+	unique_ptr<SearchQuery> curSearch;
 
 	bool isCurrentSearchPath(const string& path) const noexcept;
 	size_t getResultCount() const noexcept { return searchResults.size(); }
@@ -279,6 +282,8 @@ protected:
 	void onStateChanged() noexcept override;
 
 private:
+	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
+
 	void setDirectoryLoadingState(const Directory::Ptr& aDir, bool aLoading) noexcept;
 
 	// Returns the number of loaded dirs

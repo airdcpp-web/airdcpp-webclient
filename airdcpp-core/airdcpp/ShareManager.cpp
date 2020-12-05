@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include "Bundle.h"
 #include "BZUtils.h"
 #include "ClientManager.h"
+#include "DCPlusPlus.h"
 #include "ErrorCollector.h"
 #include "File.h"
 #include "FilteredFile.h"
@@ -94,21 +95,26 @@ ShareManager::~ShareManager() {
 	SettingsManager::getInstance()->removeListener(this);
 }
 
+
+void ShareManager::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
+	LogManager::getInstance()->message(aMsg, aSeverity, STRING(SHARE));
+}
+
 // Note that settings are loaded before this function is called
 // This function shouldn't initialize anything that is needed by the startup wizard
-void ShareManager::startup(function<void(const string&)> splashF, function<void(float)> progressF) noexcept {
+void ShareManager::startup(StartupLoader& aLoader) noexcept {
 	bool refreshed = false;
-	if(!loadCache(progressF)) {
-		if (splashF)
-			splashF(STRING(REFRESHING_SHARE));
-		refresh(ShareRefreshType::STARTUP, ShareRefreshPriority::BLOCKING, progressF);
+	if (!loadCache(aLoader.progressF)) {
+		// Refresh involves hooks, let everything load first
+		aLoader.addPostLoadTask([this, &aLoader] {
+			aLoader.stepF(STRING(REFRESHING_SHARE));
+			refresh(ShareRefreshType::STARTUP, ShareRefreshPriority::BLOCKING, aLoader.progressF);
+		});
+
 		refreshed = true;
 	}
 
 	addAsyncTask([=] {
-		if (!refreshed)
-			fire(ShareManagerListener::ShareLoaded());
-
 		TimerManager::getInstance()->addListener(this);
 
 		if (SETTING(STARTUP_REFRESH) && !refreshed) {
@@ -153,6 +159,10 @@ void ShareManager::setProfilesDirty(const ProfileTokenSet& aProfiles, bool aIsMa
 	for (const auto token : aProfiles) {
 		fire(ShareManagerListener::ProfileUpdated(), token, aIsMajorChange);
 	}
+}
+
+bool ShareManager::Directory::RootIsParentOrExact::operator()(const Directory::Ptr& aDirectory) const noexcept {
+	return AirUtil::isParentOrExactLower(aDirectory->getRoot()->getPathLower(), compareToLower, separator);
 }
 
 ShareManager::Directory::Directory(DualString&& aRealName, const ShareManager::Directory::Ptr& aParent, time_t aLastWrite, const RootDirectory::Ptr& aRoot) :
@@ -776,7 +786,7 @@ void ShareManager::on(SettingsManagerListener::LoadCompleted, bool) noexcept {
 				removeDirName(*dp.second.get(), lowerDirNameMap);
 				rootPaths.erase(dp.first);
 
-				LogManager::getInstance()->message("The directory " + dp.first + " was not loaded: parent of this directory is shared in another profile, which is not supported in this client version.", LogMessage::SEV_WARNING);
+				log("The directory " + dp.first + " was not loaded: parent of this directory is shared in another profile, which is not supported in this client version.", LogMessage::SEV_WARNING);
 			}
 		}
 	}
@@ -977,44 +987,40 @@ private:
 typedef shared_ptr<ShareManager::ShareLoader> ShareLoaderPtr;
 typedef vector<ShareLoaderPtr> LoaderList;
 
-bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
+bool ShareManager::loadCache(function<void(float)> progressF) noexcept {
 	HashManager::HashPauser pauser;
 
 	Util::migrate(Util::getPath(Util::PATH_SHARECACHE), "ShareCache_*");
 
-	// Get all cache XMLs
-	StringList fileList = File::findFiles(Util::getPath(Util::PATH_SHARECACHE), "ShareCache_*", File::TYPE_FILE);
-
-	if (fileList.empty()) {
-		return rootPaths.empty();
-	}
-
 	LoaderList cacheLoaders;
 
 	// Create loaders
-	for (const auto& p : fileList) {
-		if (Util::getFileExt(p) == ".xml") {
-			// Find the corresponding directory pointer for this path
-			auto rp = find_if(rootPaths | map_values, [&p](const Directory::Ptr& aDir) {
-				return Util::stricmp(aDir->getRoot()->getCacheXmlPath(), p) == 0; 
-			});
-
-			if (rp.base() != rootPaths.end()) {
-				try {
-					auto loader = std::make_shared<ShareLoader>(rp.base()->first, *rp, *bloom.get());
-					cacheLoaders.emplace_back(loader);
-					continue;
-				} catch (...) {}
-			}
+	for (const auto& rp: rootPaths) {
+		try {
+			auto loader = std::make_shared<ShareLoader>(rp.first, rp.second, *bloom.get());
+			cacheLoaders.emplace_back(loader);
+		} catch (const FileException&) {
+			log(STRING_F(SHARE_CACHE_FILE_MISSING, rp.first), LogMessage::SEV_ERROR);
+			return false;
 		}
-
-		// No use for this cache file
-		File::deleteFile(p);
 	}
 
-	// XML missing for some of the roots?
-	if (cacheLoaders.size() < rootPaths.size()) {
-		return false;
+	{
+		// Remove obsolete cache files
+		auto fileList = File::findFiles(Util::getPath(Util::PATH_SHARECACHE), "ShareCache_*", File::TYPE_FILE);
+		for (const auto& p: fileList) {
+			auto rp = find_if(cacheLoaders, [&p](const ShareLoaderPtr& aLoader) {
+				return p == aLoader->xmlPath;
+			});
+
+			if (rp == cacheLoaders.end()) {
+				File::deleteFile(p);
+			}
+		}
+	}
+
+	if (cacheLoaders.empty()) {
+		return true;
 	}
 
 	{
@@ -1028,12 +1034,12 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 
 		try {
 			parallel_for_each(cacheLoaders.begin(), cacheLoaders.end(), [&](ShareLoaderPtr& i) {
-				//LogManager::getInstance()->message("Thread: " + Util::toString(::GetCurrentThreadId()) + "Size " + Util::toString(loader.size), LogMessage::SEV_INFO);
+				//log("Thread: " + Util::toString(::GetCurrentThreadId()) + "Size " + Util::toString(loader.size), LogMessage::SEV_INFO);
 				auto& loader = *i;
 				try {
 					SimpleXMLReader(&loader).parse(*loader.file);
 				} catch (SimpleXMLException& e) {
-					LogManager::getInstance()->message(STRING_F(LOAD_FAILED_X, loader.xmlPath % e.getError()), LogMessage::SEV_ERROR);
+					log(STRING_F(LOAD_FAILED_X, loader.xmlPath % e.getError()), LogMessage::SEV_ERROR);
 					hasFailedCaches = true;
 					File::deleteFile(loader.xmlPath);
 				} catch (...) {
@@ -1047,7 +1053,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 			});
 		} catch (std::exception& e) {
 			hasFailedCaches = true;
-			LogManager::getInstance()->message("Loading the share cache failed: " + string(e.what()), LogMessage::SEV_INFO);
+			log("Loading the share cache failed: " + string(e.what()), LogMessage::SEV_INFO);
 		}
 
 		if (hasFailedCaches) {
@@ -1068,7 +1074,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept{
 #endif
 
 	if (stats.hashSize > 0) {
-		LogManager::getInstance()->message(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(stats.hashSize)), LogMessage::SEV_INFO);
+		log(STRING_F(FILES_ADDED_FOR_HASH_STARTUP, Util::formatBytes(stats.hashSize)), LogMessage::SEV_INFO);
 	}
 
 	return true;
@@ -1449,10 +1455,10 @@ bool ShareManager::ShareBuilder::buildTree(const bool& aStopping) noexcept {
 	try {
 		buildTree(path, Text::toLower(path), newShareDirectory, oldShareDirectory, aStopping);
 	} catch (const std::bad_alloc&) {
-		LogManager::getInstance()->message(STRING_F(DIR_REFRESH_FAILED, path % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
+		log(STRING_F(DIR_REFRESH_FAILED, path % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		return false;
 	} catch (...) {
-		LogManager::getInstance()->message(STRING_F(DIR_REFRESH_FAILED, path % STRING(UNKNOWN_ERROR)), LogMessage::SEV_ERROR);
+		log(STRING_F(DIR_REFRESH_FAILED, path % STRING(UNKNOWN_ERROR)), LogMessage::SEV_ERROR);
 		return false;
 	}
 
@@ -1465,7 +1471,7 @@ bool ShareManager::ShareBuilder::validateFileItem(const FileItemInfoBase& aFileI
 	} catch (const ShareValidatorException& e) {
 		if (SETTING(REPORT_BLOCKED_SHARE) && ShareValidatorException::isReportableError(e.getType())) {
 			if (aFileItem.isDirectory()) {
-				LogManager::getInstance()->message(STRING_F(SHARE_DIRECTORY_BLOCKED, aPath % e.getError()), LogMessage::SEV_INFO);
+				log(STRING_F(SHARE_DIRECTORY_BLOCKED, aPath % e.getError()), LogMessage::SEV_INFO);
 			} else {
 				aErrorCollector.add(e.getError(), Util::getFileName(aPath), false);
 			}
@@ -1575,7 +1581,7 @@ void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aP
 
 	auto msg = errors.getMessage();
 	if (!msg.empty()) {
-		LogManager::getInstance()->message(STRING_F(SHARE_FILES_BLOCKED, aPath % msg), LogMessage::SEV_INFO);
+		log(STRING_F(SHARE_FILES_BLOCKED, aPath % msg), LogMessage::SEV_INFO);
 	}
 }
 
@@ -1786,7 +1792,7 @@ void ShareManager::reportPendingRefresh(ShareRefreshType aType, const RefreshPat
 	};
 
 	if (!msg.empty()) {
-		LogManager::getInstance()->message(msg, LogMessage::SEV_INFO);
+		log(msg, LogMessage::SEV_INFO);
 	}
 }
 
@@ -1841,7 +1847,7 @@ ShareManager::RefreshTaskQueueInfo ShareManager::addRefreshTask(ShareRefreshPrio
 		try {
 			start();
 		} catch(const ThreadException& e) {
-			LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError(), LogMessage::SEV_WARNING);
+			log(STRING(FILE_LIST_REFRESH_FAILED) + " " + e.getError(), LogMessage::SEV_WARNING);
 			tasksRunning.clear();
 		}
 	}
@@ -1993,7 +1999,7 @@ bool ShareManager::removeRootDirectory(const string& aPath) noexcept {
 
 	HashManager::getInstance()->stopHashing(aPath);
 
-	LogManager::getInstance()->message(STRING_F(SHARED_DIR_REMOVED, aPath), LogMessage::SEV_INFO);
+	log(STRING_F(SHARED_DIR_REMOVED, aPath), LogMessage::SEV_INFO);
 
 	fire(ShareManagerListener::RootRemoved(), aPath);
 	setProfilesDirty(dirtyProfiles, true);
@@ -2069,6 +2075,14 @@ void ShareManager::reportTaskStatus(const ShareRefreshTask& aTask, bool aFinishe
 				msg = aFinished ? STRING_F(DIRECTORY_REFRESHED, *aTask.dirs.begin()) : STRING_F(FILE_LIST_REFRESH_INITIATED_RPATH, *aTask.dirs.begin());
 			} else {
 				msg = aFinished ? STRING_F(X_DIRECTORIES_REFRESHED, aTask.dirs.size()) : STRING_F(FILE_LIST_REFRESH_INITIATED_X_PATHS, aTask.dirs.size());
+				if (aTask.dirs.size() < 30) {
+					StringList dirNames;
+					for (const auto& d : aTask.dirs) {
+						dirNames.push_back(Util::getLastDir(d));
+					}
+
+					msg += " (" + Util::listToString(dirNames) + ")";
+				}
 			}
 			break;
 		case(ShareRefreshType::ADD_DIR):
@@ -2093,7 +2107,8 @@ void ShareManager::reportTaskStatus(const ShareRefreshTask& aTask, bool aFinishe
 		} else if (aTask.priority == ShareRefreshPriority::SCHEDULED && !SETTING(LOG_SCHEDULED_REFRESHES)) {
 			return;
 		}
-		LogManager::getInstance()->message(msg, LogMessage::SEV_INFO);
+
+		log(msg, LogMessage::SEV_INFO);
 	}
 }
 
@@ -2243,7 +2258,7 @@ void ShareManager::runRefreshTask(const ShareRefreshTask& aTask, function<void(f
 			for_each(refreshDirs, doRefresh);
 		}
 	} catch (const std::exception& e) {
-		LogManager::getInstance()->message(STRING(FILE_LIST_REFRESH_FAILED) + string(e.what()), LogMessage::SEV_INFO);
+		log(STRING(FILE_LIST_REFRESH_FAILED) + string(e.what()), LogMessage::SEV_ERROR);
 		return;
 	}
 
@@ -2547,7 +2562,7 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 				fl->generationFinished(false);
 			} catch (const Exception& e) {
 				// No new file lists...
-				LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, fl->getFileName() % e.getError()), LogMessage::SEV_ERROR);
+				log(STRING_F(SAVE_FAILED_X, fl->getFileName() % e.getError()), LogMessage::SEV_ERROR);
 				fl->generationFinished(true);
 
 				// do we have anything to send?
@@ -2732,7 +2747,7 @@ void ShareManager::FilelistDirectory::filesToXml(OutputStream& xmlFile, string& 
 		for (const auto& d : shareDirs)
 			paths.push_back(d->getRealPath());
 
-		LogManager::getInstance()->message(STRING_F(DUPLICATE_FILES_DETECTED, dupeFiles % Util::toString(", ", paths)), LogMessage::SEV_WARNING);
+		log(STRING_F(DUPLICATE_FILES_DETECTED, dupeFiles % Util::toString(", ", paths)), LogMessage::SEV_WARNING);
 	}
 }
 
@@ -2830,7 +2845,7 @@ void ShareManager::saveXmlList(function<void(float)> progressF /*nullptr*/) noex
 					File::deleteFile(path);
 					File::renameFile(path + ".tmp", path);
 				} catch (Exception& e) {
-					LogManager::getInstance()->message(STRING_F(SAVE_FAILED_X, path % e.getError()), LogMessage::SEV_WARNING);
+					log(STRING_F(SAVE_FAILED_X, path % e.getError()), LogMessage::SEV_WARNING);
 				}
 
 				d->getRoot()->setCacheDirty(false);
@@ -2840,7 +2855,7 @@ void ShareManager::saveXmlList(function<void(float)> progressF /*nullptr*/) noex
 				}
 			});
 		} catch (std::exception& e) {
-			LogManager::getInstance()->message("Saving the share cache failed: " + string(e.what()), LogMessage::SEV_INFO);
+			log("Saving the share cache failed: " + string(e.what()), LogMessage::SEV_INFO);
 		}
 	}
 
@@ -3153,7 +3168,7 @@ void ShareManager::shareBundle(const BundlePtr& aBundle) noexcept {
 			HashManager::getInstance()->getFileInfo(Text::toLower(aBundle->getTarget()), aBundle->getTarget(), fi);
 			onFileHashed(aBundle->getTarget(), fi);
 
-			LogManager::getInstance()->message(STRING_F(SHARED_FILE_ADDED, aBundle->getTarget()), LogMessage::SEV_INFO);
+			log(STRING_F(SHARED_FILE_ADDED, aBundle->getTarget()), LogMessage::SEV_INFO);
 		} catch (...) { dcassert(0); }
 
 		return;

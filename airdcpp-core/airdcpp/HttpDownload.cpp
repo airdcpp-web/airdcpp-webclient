@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@
 
 namespace dcpp {
 
-HttpDownload::HttpDownload(const string& address, CompletionF f, bool v4only /*false*/) :
-	c(new HttpConnection(true, v4only)),
+HttpDownload::HttpDownload(const string& address, CompletionF f, const HttpOptions& aOptions) :
+	c(new HttpConnection(true, aOptions)),
 f(f)
 {
 	c->addListener(this);

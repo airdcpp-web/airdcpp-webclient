@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,6 +65,7 @@
 #include <deque>
 #include <functional>
 #include <list>
+#include <optional>
 #include <map>
 #include <memory>
 #include <set>
@@ -87,15 +88,6 @@
 #include <boost/scoped_array.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/regex.hpp>
-
-#if defined(_MSC_VER)
-	#include <optional>
-	using std::optional;
-#else
-	#include <boost/optional.hpp>
-	using boost::optional;
-	#define nullopt boost::none
-#endif
 
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/adaptor/reversed.hpp>

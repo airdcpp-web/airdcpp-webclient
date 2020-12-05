@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "AdcCommand.h"
 #include "CriticalSection.h"
 #include "GetSet.h"
+#include "Message.h"
 #include "Search.h"
 #include "Singleton.h"
 #include "Speaker.h"
@@ -141,6 +142,8 @@ private:
 
 	typedef map<SearchInstanceToken, SearchInstancePtr> SearchInstanceMap;
 	SearchInstanceMap searchInstances;
+
+	void dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 };
 
 } // namespace dcpp

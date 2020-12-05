@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,10 @@ Upload::Upload(UserConnection& conn, const string& path, const TTHValue& tth, un
 	Transfer(conn, path, tth), stream(move(aIS)) { 
 
 	conn.setUpload(this);
+}
+
+bool Upload::operator==(const Upload* u) const noexcept {
+	return compare(getToken(), u->getToken()) == 0;
 }
 
 InputStream* Upload::getStream() { 

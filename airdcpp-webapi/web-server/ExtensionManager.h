@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -22,10 +22,13 @@
 #include "stdinc.h"
 
 #include <airdcpp/CriticalSection.h>
+#include <airdcpp/Message.h>
 #include <airdcpp/Singleton.h>
 #include <airdcpp/Speaker.h>
+#include <airdcpp/UpdateManagerListener.h>
 #include <airdcpp/Util.h>
 
+#include <web-server/ExtensionListener.h>
 #include <web-server/ExtensionManagerListener.h>
 #include <web-server/WebServerManagerListener.h>
 
@@ -34,12 +37,25 @@ namespace dcpp {
 }
 
 namespace webserver {
-	class ExtensionManager: public Speaker<ExtensionManagerListener>, private WebServerManagerListener {
+	class NpmRepository;
+	class ExtensionManager: public Speaker<ExtensionManagerListener>, private WebServerManagerListener, private UpdateManagerListener, ExtensionListener {
 	public:
+
+#ifdef _WIN32
+		static const string localNodeDirectoryName;
+#endif
+
 		ExtensionManager(WebServerManager* aWsm);
 		~ExtensionManager();
 
+		// Load and start all managed extensions from disk
 		void load() noexcept;
+
+		void checkExtensionUpdates() const noexcept;
+
+		// Wait for the extensions to be ready
+		// (allow them to connect the socket, add listeners etc.)
+		bool waitLoaded() const noexcept;
 
 		// Download extension from the given URL and install it
 		// SHA1 checksum is optional
@@ -50,11 +66,12 @@ namespace webserver {
 		void installLocalExtension(const string& aInstallId, const string& aPath) noexcept;
 
 		// Register non-local extension
-		ExtensionPtr registerRemoteExtension(const SessionPtr& aSession, const json& aPackageJson);
+		ExtensionPtr registerRemoteExtensionThrow(const SessionPtr& aSession, const json& aPackageJson);
+		void unregisterRemoteExtension(const ExtensionPtr& aExtension) noexcept;
 
 		// Remove extension from disk
 		// Throws FileException on disk errors and Exception on other errors
-		void removeExtension(const ExtensionPtr& aExtension);
+		void uninstallLocalExtensionThrow(const ExtensionPtr& aExtension, bool aForced = false);
 
 		ExtensionPtr getExtension(const string& aName) const noexcept;
 		ExtensionList getExtensions() const noexcept;
@@ -63,23 +80,36 @@ namespace webserver {
 
 		// Get the engine start command for extension
 		// Throws on errors
-		string getStartCommand(const StringList& aEngines) const;
+		string getStartCommandThrow(const StringList& aEngines) const;
 
 		EngineMap getEngines() const noexcept;
 
 		// Parses the engine command param (command1;command2;...) and tests each token for an existing application
 		static string selectEngineCommand(const string& aEngineCommands) noexcept;
+
+		NpmRepository& getNpmRepository() noexcept {
+			return *npmRepository.get();
+		}
 	private:
+		bool removeExtension(const ExtensionPtr& aExtension) noexcept;
+		void onExtensionStateUpdated(const Extension* aExtension) noexcept;
 		void onExtensionFailed(const Extension* aExtension, uint32_t aExitCode) noexcept;
 		bool startExtensionImpl(const ExtensionPtr& aExtension) noexcept;
 
 		EngineMap engines;
+
+		typedef map<string, string> BlockedExtensionMap;
+		BlockedExtensionMap blockedExtensions;
+
+		void uninstallBlockedExtensions() noexcept;
 
 		void onExtensionDownloadCompleted(const string& aInstallId, const string& aUrl, const string& aSha1) noexcept;
 		void failInstallation(const string& aInstallId, const string& aMessage, const string& aException) noexcept;
 
 		typedef map<string, shared_ptr<HttpDownload>> HttpDownloadMap;
 		HttpDownloadMap httpDownloads;
+
+		unique_ptr<NpmRepository> npmRepository;
 
 		mutable SharedMutex cs;
 
@@ -95,6 +125,19 @@ namespace webserver {
 		void on(WebServerManagerListener::Stopping) noexcept override;
 		void on(WebServerManagerListener::Stopped) noexcept override;
 		void on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept override;
+
+		virtual void on(ExtensionListener::ExtensionStarted, const Extension*) noexcept override;
+		virtual void on(ExtensionListener::ExtensionStopped, const Extension*, bool /*aFailed*/) noexcept override;
+
+		virtual void on(ExtensionListener::SettingValuesUpdated, const Extension*, const SettingValueMap&) noexcept override;
+		virtual void on(ExtensionListener::SettingDefinitionsUpdated, const Extension*) noexcept override;
+		virtual void on(ExtensionListener::PackageUpdated, const Extension*) noexcept override;
+
+		void on(UpdateManagerListener::VersionFileDownloaded, SimpleXML& aXml) noexcept override;
+
+		void log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
+
+		TimerPtr updateCheckTask = nullptr;
 	};
 }
 

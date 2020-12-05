@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -34,11 +34,12 @@ namespace webserver {
 			timer(aIO),
 			cbWrapper(aWrapper)
 		{
-
+			dcdebug("Timer %p was created\n", this);
 		}
 
 		~Timer() {
 			stop(true);
+			dcdebug("Timer %p was destroyed\n", this);
 		}
 
 		bool start(bool aInstantTick) {

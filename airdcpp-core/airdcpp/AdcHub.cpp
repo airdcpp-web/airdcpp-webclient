@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -196,8 +196,9 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 					nick = "[nick unknown]";
 				}
 
-				statusMessage(u->getIdentity().getNick() + " (" + u->getIdentity().getSIDString() + 
-					") has same CID {" + cid + "} as " + nick + " (" + AdcCommand::fromSID(c.getFrom()) + "), ignoring.", LogMessage::SEV_INFO, ClientListener::FLAG_IS_SPAM);
+				auto message = u->getIdentity().getNick() + " (" + u->getIdentity().getSIDString() +
+					") has same CID {" + cid + "} as " + nick + " (" + AdcCommand::fromSID(c.getFrom()) + "), ignoring.";
+				statusMessage(message, LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SPAM);
 				return;
 			}
 		} else {
@@ -422,7 +423,7 @@ void AdcHub::handle(AdcCommand::QUI, AdcCommand& c) noexcept {
 				tmp = victim->getIdentity().getNick() + " was kicked: " + tmp;
 			}
 
-			statusMessage(tmp, LogMessage::SEV_INFO, ClientListener::FLAG_IS_SPAM);
+			statusMessage(tmp, LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SPAM);
 		}
 	
 		putUser(s, c.getParam("DI", 1, tmp)); 
@@ -1069,7 +1070,7 @@ void AdcHub::connect(const OnlineUser& aUser, const string& aToken, bool aSecure
 		const string& ownPort = aSecure ? ConnectionManager::getInstance()->getSecurePort() : ConnectionManager::getInstance()->getPort();
 		if(ownPort.empty()) {
 			// Oops?
-			LogManager::getInstance()->message(STRING(NOT_LISTENING), LogMessage::SEV_ERROR);
+			LogManager::getInstance()->message(STRING(NOT_LISTENING), LogMessage::SEV_ERROR, STRING(CONNECTIVITY));
 			return;
 		}
 

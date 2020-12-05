@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -79,7 +79,7 @@ namespace webserver {
 	}
 
 	HintedUser Deserializer::deserializeHintedUser(const json& aJson, bool aAllowMe, bool aOptional, const string& aFieldName) {
-		auto userJson = JsonUtil::getOptionalRawField(aFieldName, aJson);
+		auto userJson = JsonUtil::getOptionalRawField(aFieldName, aJson, !aOptional);
 		if (userJson.is_null()) {
 			return HintedUser();
 		}
@@ -89,7 +89,7 @@ namespace webserver {
 
 	HintedUser Deserializer::parseHintedUser(const json& aJson, const string& aFieldName, bool aAllowMe) {
 		auto user = deserializeUser(aJson, aAllowMe, false);
-		auto hubUrl = JsonUtil::getField<string>("hub_url", aJson, aAllowMe && user == ClientManager::getInstance()->getMe());
+		auto hubUrl = JsonUtil::getField<string>("hub_url", aJson, false);
 		return HintedUser(user, hubUrl);
 	}
 
@@ -102,7 +102,7 @@ namespace webserver {
 
 	Deserializer::OfflineHintedUser Deserializer::parseOfflineHintedUser(const json& aJson, const string& aFieldName, bool aAllowMe) {
 		const auto cid = JsonUtil::getField<string>("cid", aJson, false);
-		const auto hubUrl = JsonUtil::getField<string>("hub_url", aJson, aAllowMe);
+		const auto hubUrl = JsonUtil::getField<string>("hub_url", aJson, false);
 		const auto nicks = JsonUtil::getField<string>("nicks", aJson, false);
 
 		auto user = getOfflineUser(cid, nicks, hubUrl, aAllowMe);
@@ -111,17 +111,6 @@ namespace webserver {
 		}
 
 		return OfflineHintedUser(user, hubUrl, nicks);
-	}
-
-	OnlineUserPtr Deserializer::deserializeOnlineUser(const json& aJson, bool aAllowMe, const string& aFieldName) {
-		auto hintedUser = deserializeHintedUser(aJson, aAllowMe, false, aFieldName);
-
-		auto onlineUser = ClientManager::getInstance()->findOnlineUser(hintedUser, false);
-		if (!onlineUser) {
-			throw std::invalid_argument("User is offline");
-		}
-
-		return onlineUser;
 	}
 
 	TTHValue Deserializer::deserializeTTH(const json& aJson) {

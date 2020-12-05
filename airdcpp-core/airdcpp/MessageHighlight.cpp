@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -69,7 +69,7 @@ namespace dcpp {
 					auto highlight = make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_LINK_URL, "url");
 
 					if (link.find("magnet:?") == 0) {
-						auto m = Magnet::parseMagnet(link);
+						auto m = Magnet::parseMagnet(link, aUser);
 						if (m) {
 							highlight->setMagnet(m);
 

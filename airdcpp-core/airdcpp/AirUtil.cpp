@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2019 AirDC++ Project
+ * Copyright (C) 2011-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -68,7 +68,7 @@ AirUtil::TimeCounter::TimeCounter(string aMsg) : start(GET_TICK()), msg(move(aMs
 
 AirUtil::TimeCounter::~TimeCounter() {
 	auto end = GET_TICK();
-	LogManager::getInstance()->message(msg + ", took " + Util::toString(end - start) + " ms", LogMessage::SEV_INFO);
+	LogManager::getInstance()->message(msg + ", took " + Util::toString(end - start) + " ms", LogMessage::SEV_INFO, "Debug");
 }
 
 StringList AirUtil::getAdcDirectoryDupePaths(DupeType aType, const string& aAdcPath) {
@@ -210,32 +210,38 @@ void AirUtil::init() {
 #endif
 }
 
-AirUtil::AdapterInfoList AirUtil::getBindAdapters(bool v6) {
+AdapterInfoList AirUtil::getCoreBindAdapters(bool v6) {
 	// Get the addresses and sort them
 	auto bindAddresses = getNetworkAdapters(v6);
-	sort(bindAddresses.begin(), bindAddresses.end(), [](const AdapterInfo& lhs, const AdapterInfo& rhs) {
-		if (lhs.adapterName.empty() && rhs.adapterName.empty()) {
-			return Util::stricmp(lhs.ip, rhs.ip) < 0;
-		}
-
-		return Util::stricmp(lhs.adapterName, rhs.adapterName) < 0;
-	});
+	sort(bindAddresses.begin(), bindAddresses.end(), adapterSort);
 
 	// "Any" adapter
 	bindAddresses.emplace(bindAddresses.begin(), STRING(ANY), v6 ? "::" : "0.0.0.0", static_cast<uint8_t>(0));
 
 	// Current address not listed?
 	const auto& setting = v6 ? SETTING(BIND_ADDRESS6) : SETTING(BIND_ADDRESS);
-	auto cur = boost::find_if(bindAddresses, [&setting](const AirUtil::AdapterInfo& aInfo) { return aInfo.ip == setting; });
-	if (cur == bindAddresses.end()) {
-		bindAddresses.emplace_back(STRING(UNKNOWN), setting, static_cast<uint8_t>(0));
-		cur = bindAddresses.end() - 1;
-	}
+	ensureBindAddress(bindAddresses, setting);
 
 	return bindAddresses;
 }
 
-AirUtil::AdapterInfoList AirUtil::getNetworkAdapters(bool v6) {
+int AirUtil::adapterSort(const AdapterInfo& lhs, const AdapterInfo& rhs) noexcept {
+	if (lhs.adapterName.empty() && rhs.adapterName.empty()) {
+		return Util::stricmp(lhs.ip, rhs.ip) < 0;
+	}
+
+	return Util::stricmp(lhs.adapterName, rhs.adapterName) < 0;
+}
+
+void AirUtil::ensureBindAddress(AdapterInfoList& adapters_, const string& aBindAddress) noexcept {
+	auto cur = boost::find_if(adapters_, [&aBindAddress](const AdapterInfo& aInfo) { return aInfo.ip == aBindAddress; });
+	if (cur == adapters_.end()) {
+		adapters_.emplace_back(STRING(UNKNOWN), aBindAddress, static_cast<uint8_t>(0));
+		cur = adapters_.end() - 1;
+	}
+}
+
+AdapterInfoList AirUtil::getNetworkAdapters(bool v6) {
 	AdapterInfoList adapterInfos;
 
 #ifdef _WIN32
@@ -556,93 +562,6 @@ string AirUtil::formatMatchResults(int aMatchingFiles, int aNewFiles, const Bund
 	return STRING(NO_MATCHED_FILES);;
 }
 
-//fuldc ftp logger support
-void AirUtil::fileEvent(const string& tgt, bool file /*false*/) {
-#ifdef _WIN32
-	string target = tgt;
-	if(file) {
-		if(File::getSize(target) != -1) {
-			StringPair sp = SettingsManager::getInstance()->getFileEvent(SettingsManager::ON_FILE_COMPLETE);
-			if(sp.first.length() > 0) {
-				STARTUPINFO si = { sizeof(si), 0 };
-				PROCESS_INFORMATION pi = { 0 };
-				ParamMap params;
-				params["file"] = target;
-				wstring cmdLine = Text::toT(Util::formatParams(sp.second, params));
-				wstring cmd = Text::toT(sp.first);
-
-				boost::scoped_array<TCHAR> cmdLineBuf(new TCHAR[cmdLine.length() + 1]);
-				_tcscpy(&cmdLineBuf[0], cmdLine.c_str());
-
-				boost::scoped_array<TCHAR> cmdBuf(new TCHAR[cmd.length() + 1]);
-				_tcscpy(&cmdBuf[0], cmd.c_str());
-
-				if(::CreateProcess(&cmdBuf[0], &cmdLineBuf[0], NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
-					::CloseHandle(pi.hThread);
-					::CloseHandle(pi.hProcess);
-				}
-			}
-		}
-	} else {
-	if(File::createDirectory(target)) {
-		StringPair sp = SettingsManager::getInstance()->getFileEvent(SettingsManager::ON_DIR_CREATED);
-		if(sp.first.length() > 0) {
-			STARTUPINFO si = { sizeof(si), 0 };
-			PROCESS_INFORMATION pi = { 0 };
-			ParamMap params;
-			params["dir"] = target;
-			wstring cmdLine = Text::toT(Util::formatParams(sp.second, params));
-			wstring cmd = Text::toT(sp.first);
-
-			boost::scoped_array<TCHAR> cmdLineBuf(new TCHAR[cmdLine.length() + 1]);
-			_tcscpy(&cmdLineBuf[0], cmdLine.c_str());
-
-			boost::scoped_array<TCHAR> cmdBuf(new TCHAR[cmd.length() + 1]);
-			_tcscpy(&cmdBuf[0], cmd.c_str());
-
-			if(::CreateProcess(&cmdBuf[0], &cmdLineBuf[0], NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
-				//wait for the process to finish executing
-				if(WAIT_OBJECT_0 == WaitForSingleObject(pi.hProcess, INFINITE)) {
-					DWORD code = 0;
-					//retrieve the error code to check if we should stop this download.
-					if(0 != GetExitCodeProcess(pi.hProcess, &code)) {
-						if(code != 0) { //assume 0 is the only valid return code, everything else is an error
-							string::size_type end = target.find_last_of("\\/");
-							if(end != string::npos) {
-								tstring tmp = Text::toT(target.substr(0, end));
-								RemoveDirectory(tmp.c_str());
-
-								//the directory we removed might be a sub directory of
-								//the real one, check to see if that's the case.
-								end = tmp.find_last_of(_T("\\/"));
-								if(end != string::npos) {
-									tstring dir = tmp.substr(end+1);
-									if(Util::strnicmp(dir, _T("sample"), 6) == 0 ||
-										Util::strnicmp(dir, _T("subs"), 4) == 0 ||
-										Util::strnicmp(dir, _T("cover"), 5) == 0 ||
-										Util::strnicmp(dir, _T("cd"), 2) == 0) {
-											RemoveDirectory(tmp.substr(0, end).c_str());
-									}
-								}
-								
-								::CloseHandle(pi.hThread);
-								::CloseHandle(pi.hProcess);
-
-								throw QueueException("An external sfv tool stopped the download of this file");
-							}
-						}
-					}
-				}
-				
-				::CloseHandle(pi.hThread);
-				::CloseHandle(pi.hProcess);
-				}
-			}
-		}
-	}
-#endif
-}
-
 bool AirUtil::stringRegexMatch(const string& aReg, const string& aString) {
 	if (aReg.empty())
 		return false;
@@ -721,13 +640,13 @@ string AirUtil::getReleaseDir(const string& aDir, bool cut, const char separator
 	return p.second == string::npos ? aDir : aDir.substr(0, p.second);
 }
 
-bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int aMaxAttempts, int aAttempts) {
+bool AirUtil::removeDirectoryIfEmptyRecursive(const string& aPath, int aMaxAttempts, int aAttempts) {
 	/* recursive check for empty dirs */
 	for(FileFindIter i(aPath, "*"); i != FileFindIter(); ++i) {
 		try {
 			if(i->isDirectory()) {
 				string dir = aPath + i->getFileName() + PATH_SEPARATOR;
-				if (!removeDirectoryIfEmptyRe(dir, aMaxAttempts, 0))
+				if (!removeDirectoryIfEmptyRecursive(dir, aMaxAttempts, 0))
 					return false;
 			} else if (Util::getFileExt(i->getFileName()) == ".dctmp") {
 				if (aAttempts == aMaxAttempts) {
@@ -735,7 +654,7 @@ bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int aMaxAttempts, in
 				}
 
 				Thread::sleep(500);
-				return removeDirectoryIfEmptyRe(aPath, aMaxAttempts, aAttempts + 1);
+				return removeDirectoryIfEmptyRecursive(aPath, aMaxAttempts, aAttempts + 1);
 			} else {
 				return false;
 			}
@@ -746,10 +665,8 @@ bool AirUtil::removeDirectoryIfEmptyRe(const string& aPath, int aMaxAttempts, in
 	return true;
 }
 
-void AirUtil::removeDirectoryIfEmpty(const string& aPath, int aMaxAttempts /*3*/, bool aSilent /*false*/) {
-	if (!removeDirectoryIfEmptyRe(aPath, aMaxAttempts, 0) && !aSilent) {
-		LogManager::getInstance()->message(STRING_F(DIRECTORY_NOT_REMOVED, aPath), LogMessage::SEV_INFO);
-	}
+bool AirUtil::removeDirectoryIfEmpty(const string& aPath, int aMaxAttempts) {
+	return removeDirectoryIfEmptyRecursive(aPath, aMaxAttempts, 0);
 }
 
 bool AirUtil::isAdcHub(const string& aHubUrl) noexcept {

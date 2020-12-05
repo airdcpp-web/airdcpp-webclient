@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -67,8 +67,8 @@ static bool isNameChar(int c) {
 		;
 }
 
-SimpleXMLReader::ThreadedCallBack::ThreadedCallBack(const string& path) {
-	file.reset(new File(path, dcpp::File::READ, dcpp::File::OPEN, File::BUFFER_SEQUENTIAL, false));
+SimpleXMLReader::ThreadedCallBack::ThreadedCallBack(const string& aPath) : xmlPath(aPath) {
+	file.reset(new File(aPath, dcpp::File::READ, dcpp::File::OPEN, File::BUFFER_SEQUENTIAL, false));
 	size = file->getSize();
 }
 

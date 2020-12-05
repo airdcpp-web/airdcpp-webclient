@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 namespace webserver {
 #define API_VERSION 1
-#define API_FEATURE_LEVEL 5
+#define API_FEATURE_LEVEL 6
 
 }
 

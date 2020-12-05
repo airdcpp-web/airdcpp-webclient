@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "AirUtil.h"
 #include "CID.h"
 #include "ConnectivityManager.h"
+#include "DCPlusPlus.h"
 #include "File.h"
 #include "LogManager.h"
 #include "Mapper_MiniUPnPc.h"
@@ -38,20 +39,16 @@ namespace dcpp {
 #define CONFIG_NAME "DCPlusPlus.xml"
 #define CONFIG_DIR Util::PATH_USER_CONFIG
 
-bool SettingsManager::lanMode = false;
-
 StringList SettingsManager::connectionSpeeds = { "0.1", "0.2", "0.5", "1", "2", "5", "8", "10", "20", "30", "40", "50", "60", "100", "200", "1000" };
 
 
 const ResourceManager::Strings SettingsManager::encryptionStrings[TLS_LAST] { ResourceManager::DISABLED, ResourceManager::ENABLED, ResourceManager::ENCRYPTION_FORCED };
-const ResourceManager::Strings SettingsManager::delayStrings[DELAY_LAST] { ResourceManager::MONITOR_DELAY_DIR, ResourceManager::MONITOR_DELAY_VOLUME, ResourceManager::MONITOR_DELAY_ANY };
 const ResourceManager::Strings SettingsManager::bloomStrings[BLOOM_LAST] { ResourceManager::DISABLED, ResourceManager::ENABLED, ResourceManager::AUTO };
 const ResourceManager::Strings SettingsManager::profileStrings[PROFILE_LAST] { ResourceManager::NORMAL, ResourceManager::RAR_HUBS, ResourceManager::LAN_HUBS };
 const ResourceManager::Strings SettingsManager::refreshStrings[MULTITHREAD_LAST] { ResourceManager::NEVER, ResourceManager::MANUAL_REFRESHES, ResourceManager::ALWAYS };
 const ResourceManager::Strings SettingsManager::prioStrings[PRIO_LAST] { ResourceManager::DISABLED, ResourceManager::PRIOPAGE_ORDER_BALANCED, ResourceManager::PRIOPAGE_ORDER_PROGRESS };
 const ResourceManager::Strings SettingsManager::incomingStrings[INCOMING_LAST] { ResourceManager::DISABLED, ResourceManager::SETTINGS_ACTIVE, ResourceManager::SETTINGS_ACTIVE_UPNP, ResourceManager::SETTINGS_PASSIVE };
 const ResourceManager::Strings SettingsManager::outgoingStrings[OUTGOING_LAST] { ResourceManager::SETTINGS_DIRECT, ResourceManager::SETTINGS_SOCKS5 };
-const ResourceManager::Strings SettingsManager::monitoringStrings[MONITORING_LAST] { ResourceManager::DISABLED, ResourceManager::INCOMING_ONLY, ResourceManager::ALL_DIRS };
 const ResourceManager::Strings SettingsManager::dropStrings[QUEUE_LAST] { ResourceManager::FILE, ResourceManager::BUNDLE, ResourceManager::ALL };
 const ResourceManager::Strings SettingsManager::updateStrings[VERSION_LAST] { ResourceManager::CHANNEL_STABLE, ResourceManager::CHANNEL_BETA, ResourceManager::CHANNEL_NIGHTLY };
 
@@ -70,10 +67,6 @@ SettingsManager::EnumStringMap SettingsManager::getEnumStrings(int aKey, bool aV
 
 	if ((aKey == INCOMING_CONNECTIONS || aKey == INCOMING_CONNECTIONS6)) {
 		insertStrings(incomingStrings, INCOMING_LAST, -1);
-	}
-
-	if (aKey == MONITORING_MODE) {
-		insertStrings(monitoringStrings, MONITORING_LAST);
 	}
 
 	if (aKey == REFRESH_THREADING) {
@@ -96,10 +89,6 @@ SettingsManager::EnumStringMap SettingsManager::getEnumStrings(int aKey, bool aV
 		insertStrings(bloomStrings, BLOOM_LAST);
 	}
 
-	if (aKey == DELAY_COUNT_MODE) {
-		insertStrings(delayStrings, DELAY_LAST);
-	}
-
 	if (aKey == AUTOPRIO_TYPE) {
 		insertStrings(prioStrings, PRIO_LAST);
 	}
@@ -111,47 +100,69 @@ SettingsManager::EnumStringMap SettingsManager::getEnumStrings(int aKey, bool aV
 	return ret;
 }
 
-const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFILE_LAST][10] = {
+const ProfileSettingItem::List SettingsManager::profileSettings[SettingsManager::PROFILE_LAST] = {
 
 { 
 	// profile normal
 	{ SettingsManager::MULTI_CHUNK, true, ResourceManager::SEGMENTS },
-	{ SettingsManager::CHECK_SFV, false, ResourceManager::CHECK_SFV },
-	{ SettingsManager::CHECK_NFO, false, ResourceManager::CHECK_NFO },
-	{ SettingsManager::CHECK_EXTRA_SFV_NFO, false, ResourceManager::CHECK_EXTRA_SFV_NFO },
-	{ SettingsManager::CHECK_EXTRA_FILES, false, ResourceManager::CHECK_EXTRA_FILES },
-	{ SettingsManager::CHECK_DUPES, false, ResourceManager::CHECK_DUPES },
 	{ SettingsManager::MAX_FILE_SIZE_SHARED, 0, ResourceManager::DONT_SHARE_BIGGER_THAN },
 	{ SettingsManager::MINIMUM_SEARCH_INTERVAL, 15, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, true, ResourceManager::SETTINGS_AUTO_FOLLOW },
-	{ SettingsManager::TOOLBAR_ORDER, (string)"0,-1,1,2,-1,3,4,5,-1,6,7,8,-1,9,10,12,-1,13,14,-1,15,16,-1,17,18,-1,20", ResourceManager::TOOLBAR_ORDER },
+#ifdef HAVE_GUI
+	{ SettingsManager::TOOLBAR_ORDER, SettingsManager::buildToolbarOrder(SettingsManager::getDefaultToolbarOrder()), ResourceManager::TOOLBAR_ORDER },
+#endif
 }, {
 	// profile RAR
 	{ SettingsManager::MULTI_CHUNK, false, ResourceManager::SEGMENTS },
-	{ SettingsManager::CHECK_SFV, true, ResourceManager::CHECK_SFV },
-	{ SettingsManager::CHECK_NFO, true, ResourceManager::CHECK_NFO },
-	{ SettingsManager::CHECK_EXTRA_SFV_NFO, true, ResourceManager::CHECK_EXTRA_SFV_NFO },
-	{ SettingsManager::CHECK_EXTRA_FILES, true, ResourceManager::CHECK_EXTRA_FILES },
-	{ SettingsManager::CHECK_DUPES, true, ResourceManager::CHECK_DUPES },
 	{ SettingsManager::MAX_FILE_SIZE_SHARED, 600, ResourceManager::DONT_SHARE_BIGGER_THAN },
 	{ SettingsManager::MINIMUM_SEARCH_INTERVAL, 10, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, false, ResourceManager::SETTINGS_AUTO_FOLLOW },
-	{ SettingsManager::TOOLBAR_ORDER, (string)"1,-1,3,4,-1,6,7,8,-1,9,10,12,-1,13,14,-1,15,16,-1,17,18,-1,20", ResourceManager::TOOLBAR_ORDER },
+#ifdef HAVE_GUI
+	{ SettingsManager::TOOLBAR_ORDER, SettingsManager::buildToolbarOrder({
+		ToolbarIconEnum::RECONNECT,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::FAVORITE_HUBS,
+		ToolbarIconEnum::USERS,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::QUEUE,
+		ToolbarIconEnum::UPLOAD_QUEUE,
+		ToolbarIconEnum::FINISHED_UPLOADS,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::SEARCH,
+		ToolbarIconEnum::ADL_SEARCH,
+		ToolbarIconEnum::AUTO_SEARCH,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::NOTEPAD,
+		ToolbarIconEnum::SYSTEM_LOG,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::REFRESH_FILELIST,
+		ToolbarIconEnum::EXTENSIONS,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::OPEN_FILELIST,
+		ToolbarIconEnum::OPEN_DOWNLOADS,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::SETTINGS
+	}), ResourceManager::TOOLBAR_ORDER },
+#endif
 }, {
 	// profile LAN
 	{ SettingsManager::MULTI_CHUNK, true, ResourceManager::SEGMENTS },
-	{ SettingsManager::CHECK_SFV, false, ResourceManager::CHECK_SFV },
-	{ SettingsManager::CHECK_NFO, false, ResourceManager::CHECK_NFO },
-	{ SettingsManager::CHECK_EXTRA_SFV_NFO, false, ResourceManager::CHECK_EXTRA_SFV_NFO },
-	{ SettingsManager::CHECK_EXTRA_FILES, false, ResourceManager::CHECK_EXTRA_FILES },
-	{ SettingsManager::CHECK_DUPES, false, ResourceManager::CHECK_DUPES },
 	{ SettingsManager::MAX_FILE_SIZE_SHARED, 0, ResourceManager::DONT_SHARE_BIGGER_THAN },
 	{ SettingsManager::MINIMUM_SEARCH_INTERVAL, 10, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, true, ResourceManager::SETTINGS_AUTO_FOLLOW },
-	{ SettingsManager::TOOLBAR_ORDER, (string)"0,-1,1,2,-1,3,4,5,-1,6,7,8,-1,9,10,12,-1,13,14,-1,15,16,-1,17,18,-1,20", ResourceManager::TOOLBAR_ORDER },
+#ifdef HAVE_GUI
+	{ SettingsManager::TOOLBAR_ORDER, SettingsManager::buildToolbarOrder(SettingsManager::getDefaultToolbarOrder()), ResourceManager::TOOLBAR_ORDER },
+#endif
 } 
 
 };
@@ -159,129 +170,215 @@ const ProfileSettingItem SettingsManager::profileSettings[SettingsManager::PROFI
 const string SettingsManager::settingTags[] =
 {
 	// Strings
-	"Nick", "UploadSpeed", "Description", "DownloadDirectory", "EMail", "ExternalIp", "ExternalIp6",
-	"Font", "TransferViewOrder", "TransferViewWidths", "HubFrameOrder", "HubFrameWidths", 
-	"LanguageFile", "SearchFrameOrder", "SearchFrameWidths", "FavoritesFrameOrder", "FavoritesFrameWidths", 
-	"HublistServers", "QueueFrmOrder", "QueueFrmWidths", "PublicHubsFrameOrder", "PublicHubsFrameWidths", 
-	"UsersFrmOrder2", "UsersFrmWidths2", "HttpProxy", "LogDirectory", "LogFormatPostDownload", 
-	"LogFormatPostUpload", "LogFormatMainChat", "LogFormatPrivateChat", "FinishedOrder", "FinishedWidths",	 
-	"BindAddress", "BindAddress6", "SocksServer", "SocksUser", "SocksPassword", "ConfigVersion", 
-	"DefaultAwayMessage", "TimeStampsFormat", "ADLSearchFrameOrder", "ADLSearchFrameWidths", 
-	"FinishedULWidths", "FinishedULOrder", "CID", "SpyFrameWidths", "SpyFrameOrder", 
+
+	// Generic
+	"Nick", "UploadSpeed", "DownloadSpeed", "Description", "DownloadDirectory", "EMail", "ExternalIp", "ExternalIp6",
+	"LanguageFile", "HublistServers",  "HttpProxy", "Mapper",
+	"BindAddress", "BindAddress6", "SocksServer", "SocksUser", "SocksPassword", "ConfigVersion", "ConfigName",
+	"DefaultAwayMessage", "TimeStampsFormat", "CID", "NmdcEncoding",
+
+	"LogDirectory", "LogFormatPostDownload", "LogFormatPostUpload", "LogFormatMainChat", "LogFormatPrivateChat",
+	"LogFileMainChat","LogFilePrivateChat", "LogFileStatus", "LogFileUpload", 
+	"LogFileDownload", "LogFileSystem", "LogFormatSystem", "LogFormatStatus", 
+	"TLSPrivateKeyFile", "TLSCertificateFile", "TLSTrustedCertificatesPath",
+	"CountryFormat", "DateFormat", "SkiplistShare", "FreeSlotsExtensions", "SkiplistDownload", "HighPrioFiles",
+	"AsDefaultFailedGroup",
+
+#ifdef HAVE_GUI
+	// Windows GUI
+	"Font", "TransferViewOrder", "TransferViewWidths", "HubFrameOrder", "HubFrameWidths",
+	"SearchFrameOrder", "SearchFrameWidths", "FavoritesFrameOrder", "FavoritesFrameWidths",
+	"QueueFrmOrder", "QueueFrmWidths", "PublicHubsFrameOrder", "PublicHubsFrameWidths",
+	"UsersFrmOrder2", "UsersFrmWidths2", "FinishedOrder", "FinishedWidths", "ADLSearchFrameOrder", "ADLSearchFrameWidths",
+	"FinishedULWidths", "FinishedULOrder", "SpyFrameWidths", "SpyFrameOrder",
+	"FinishedVisible", "FinishedULVisible", "DirectoryListingFrameVisible",
+	"RecentFrameOrder", "RecentFrameWidths", "DirectoryListingFrameOrder", "DirectoryListingFrameWidths",
+	"MainFrameVisible", "SearchFrameVisible", "QueueFrameVisible", "HubFrameVisible", "UploadQueueFrameVisible",
+	"EmoticonsFile",
+
 	"BeepFile", "BeginFile", "FinishedFile", "SourceFile", "UploadFile", "ChatNameFile", "WinampFormat",
-	"KickMsgRecent01", "KickMsgRecent02", "KickMsgRecent03", "KickMsgRecent04", "KickMsgRecent05", 
-	"KickMsgRecent06", "KickMsgRecent07", "KickMsgRecent08", "KickMsgRecent09", "KickMsgRecent10", 
-	"KickMsgRecent11", "KickMsgRecent12", "KickMsgRecent13", "KickMsgRecent14", "KickMsgRecent15", 
+	"KickMsgRecent01", "KickMsgRecent02", "KickMsgRecent03", "KickMsgRecent04", "KickMsgRecent05",
+	"KickMsgRecent06", "KickMsgRecent07", "KickMsgRecent08", "KickMsgRecent09", "KickMsgRecent10",
+	"KickMsgRecent11", "KickMsgRecent12", "KickMsgRecent13", "KickMsgRecent14", "KickMsgRecent15",
 	"KickMsgRecent16", "KickMsgRecent17", "KickMsgRecent18", "KickMsgRecent19", "KickMsgRecent20",
 	"ToolbarOrder", "UploadQueueFrameOrder", "UploadQueueFrameWidths",
 	"SoundException", "SoundHubConnected", "SoundHubDisconnected", "SoundFavUserOnline", "SoundTypingNotify",
-	"LogFileMainChat", 
-"LogFilePrivateChat", "LogFileStatus", "LogFileUpload", "LogFileDownload", "LogFileSystem", "LogFormatSystem",
-"LogFormatStatus", "DirectoryListingFrameOrder", "DirectoryListingFrameWidths",
-"MainFrameVisible", "SearchFrameVisible", "QueueFrameVisible", "HubFrameVisible", "UploadQueueFrameVisible",
-"EmoticonsFile", "TLSPrivateKeyFile", "TLSCertificateFile", "TLSTrustedCertificatesPath",
-"FinishedVisible", "FinishedULVisible", "DirectoryListingFrameVisible",
-"RecentFrameOrder", "RecentFrameWidths", "Mapper", "CountryFormat", "DateFormat",
 
-"BackgroundImage", "MPLAYERCformat", "ITUNESformat", "WMPformat", "Spotifyformat", "WinampPath",
-"SkiplistShare", "FreeSlotsExtensions",
-"PopupFont", "PopupTitleFont", "PopupFile", "SkiplistDownload", "HighPrioFiles",
-"MediaToolbar", "password", "DownloadSpeed", "HighlightList", "IconPath",
-"AutoSearchFrame2Order", "AutoSearchFrame2Widths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs", "LastASFiletype", "LastSearchExcluded",
-"UsersFrmVisible2", "ListViewFont", "LogShareScanPath", "LastFilelistFiletype", "NmdcEncoding", "AsDefaultFailedGroup", "AutosearchFrmVisible",
-"RssFrameOrder", "RssFrameWidths", "RssFrameVisible",
-
-"SENTRY",
-// Ints
-"IncomingConnections", "IncomingConnections6", "InPort", "Slots", "BackgroundColor", "TextColor", "BufferSize", "DownloadSlots", "MaxDownloadSpeed", "MinUploadSpeed", "MainWindowState",
-"MainWindowSizeX", "MainWindowSizeY", "MainWindowPosX", "MainWindowPosY", "SocksPort", "MaxTabRows",
-"MaxCompression", "DownloadBarColor", "UploadBarColor", "SetMinislotSize", "ShutdownInterval", "ExtraSlots", "ExtraPartialSlots",
-"TextGeneralBackColor", "TextGeneralForeColor",
-"TextMyOwnBackColor", "TextMyOwnForeColor",
-"TextPrivateBackColor", "TextPrivateForeColor",
-"TextSystemBackColor", "TextSystemForeColor",
-"TextServerBackColor", "TextServerForeColor",
-"TextTimestampBackColor", "TextTimestampForeColor",
-"TextMyNickBackColor", "TextMyNickForeColor",
-"TextFavBackColor", "TextFavForeColor",
-"TextOPBackColor", "TextOPForeColor",
-"TextURLBackColor", "TextURLForeColor",
-"Progress3DDepth",
-"ProgressTextDown", "ProgressTextUp", "ExtraDownloadSlots", "ErrorColor", "TransferSplitSize",
-"DisconnectSpeed", "DisconnectFileSpeed", "DisconnectTime", "RemoveSpeed", "MenubarLeftColor",
-"MenubarRightColor", "DisconnectFileSize", "NumberOfSegments", "MaxHashSpeed", "PMLogLines", "SearchAlternateColour", "SearchTime",
-"MagnetAction", "PopupType", "ShutdownAction", "MinimumSearchInterval", "MaxAutoMatchSource", "ReservedSlotColor", "IgnoredColor", "FavoriteColor", "NormalColour",
-"PasiveColor", "OpColor", "ProgressBackColor", "ProgressSegmentColor", "UDPPort",
-"UserListDoubleClick", "TransferListDoubleClick", "ChatDoubleClick", "OutgoingConnections", "SocketInBuffer", "SocketOutBuffer",
-"ColorDone", "AutoRefreshTime", "AutoSearchLimit",
-"MaxCommandLength", "TLSPort", "DownConnPerSec", "HighestPrioSize", "HighPrioSize", "NormalPrioSize", "LowPrioSize",
-
-"BandwidthLimitStart", "BandwidthLimitEnd", "MaxDownloadSpeedRealTime",
-"MaxUploadSpeedTime", "MaxDownloadSpeedPrimary", "MaxUploadSpeedPrimary",
-"SlotsAlternateLimiting", "SlotsPrimaryLimiting",
-
-//AirDC
-"tabactivebg", "TabActiveText", "TabActiveBorder", "TabInactiveBg", "TabInactiveBgDisconnected", "TabInactiveText", "TabInactiveBorder", "TabInactiveBgNotify", "TabDirtyBlend", "TabSize", "MediaPlayer",
-"FavDownloadSpeed", "PopupTime", "MaxMsgLength", "PopupBackColor", "PopupTextColor", "PopupTitleTextColor", "AutoSearchEvery", "TbImageSize", "TbImageSizeHot",
-"DupeColor", "TextDupeBackColor", "MinSegmentSize", "AutoSlots", "MaxResizeLines", "IncomingRefreshTime", "TextNormBackColor", "TextNormForeColor", "SettingsProfile", "LogLines",
-"MaxFileSizeShared", "FavTop", "FavBottom", "FavLeft", "FavRight", "SyslogTop", "SyslogBottom", "SyslogLeft", "SyslogRight", "NotepadTop", "NotepadBottom",
-"NotepadLeft", "NotepadRight", "QueueTop", "QueueBottom", "QueueLeft", "QueueRight", "SearchTop", "SearchBottom", "SearchLeft", "SearchRight", "UsersTop", "UsersBottom",
-"UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
-"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", "MaxMCNDownloads", "MaxMCNUploads", "ListHighlightBackColor", "ListHighlightColor", "QueueColor", "TextQueueBackColor",
-"RecentBundleHours", "DisconnectMinSources", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays", "WinampBarIconSize", "TBProgressTextColor", "TLSMode", "UpdateMethod",
-"QueueSplitterPosition", "FullListDLLimit", "ASDelayHours", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "FavUsersSplitterPos", "AwayIdleTime",
-"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", "RemovedTrees", "RemovedFiles", "MultithreadedRefresh", "MonitoringMode",
-"MonitoringDelay", "DelayCountMode", "MaxRunningBundles", "DefaultShareProfile", "UpdateChannel", "ColorStatusFinished", "ColorStatusShared", "ProgressLighten",
-"ConfigBuildNumber", "PmMessageCache", "HubMessageCache", "LogMessageCache", "MaxRecentHubs", "MaxRecentPrivateChats", "MaxRecentFilelists",
-"SENTRY",
-
-// Bools
-"AdlsBreakOnFirst",
-"AllowUntrustedClients", "AllowUntrustedHubs",
-"AutoDetectIncomingConnection", "AutoDetectIncomingConnection6", "AutoFollow", "AutoKick", "AutoKickNoFavs", "AutoSearch",
-"BoldFinishedDownloads", "BoldFinishedUploads", "BoldHub", "BoldPm",
-"BoldQueue", "BoldSearch", "BoldSystemLog", "ClearSearch",
-"CompressTransfers", "ConfirmADLSRemoval", "ConfirmExit",
-"ConfirmHubRemoval", "ConfirmUserRemoval",
-"DontDlAlreadyQueued", "DontDLAlreadyShared", "FavShowJoins", "FilterMessages",
-"GetUserCountry", "GetUserInfo", "HubUserCommands",
-"KeepLists",
-"LogDownloads", "LogFilelistTransfers", "LogFinishedDownloads", "LogMainChat",
-"LogPrivateChat", "LogStatusMessages", "LogSystem", "LogUploads", "MagnetAsk",
-"MagnetRegister", "MinimizeToTray", "NoAwayMsgToBots", "NoIpOverride",
-"PopupBotPms", "PopupHubPms", "PopunderFilelist", "PopunderPm",
-"LowestPrio", "PromptPassword",
-"ShareHidden", "ShowJoins", "ShowMenuBar", "ShowStatusbar", "ShowToolbar",
-"ShowTransferview", "SocksResolve", "SortFavUsersFirst",
-"StatusInChat", "TimeDependentThrottle", "TimeStamps",
-"ToggleActiveTab", "UrlHandler", "UseCTRLForLineHistory", "UseSystemIcons",
-"UsersFilterFavorite", "UsersFilterOnline", "UsersFilterQueue", "UsersFilterWaiting",
-
-"PrivateMessageBeep", "PrivateMessageBeepOpen", "ShowProgressBars", "MDIMaxmimized", "SearchPassiveAlways", "RemoveForbidden", "ShowInfoTips", "MinimizeOnStratup", "ConfirmDelete",
-"SpyFrameIgnoreTthSearches", "OpenWaitingUsers", "BoldWaitingUsers", "TabsOnTop", "OpenPublic", "OpenFavoriteHubs", "OpenFavoriteUsers", "OpenQueue",
-"OpenFinishedUploads", "OpenSearchSpy", "OpenNotepad", "ProgressbaroDCStyle", "MultiChunk", "PopupAway", "PopupMinimized", "Away", "PopupHubConnected", "PopupHubDisconnected", "PopupFavoriteConnected",
-"PopupDownloadStart", "PopupDownloadFailed", "PopupDownloadFinished", "PopupUploadFinished", "PopupPm", "PopupNewPM", "UploadQueueFrameShowTree", "SegmentsManual", "SoundsDisabled", "ReportFoundAlternates",
-"UseAutoPriorityByDefault", "UseOldSharingUI", "DefaultSearchFreeSlots",
-
-"TextGeneralBold", "TextGeneralItalic", "TextMyOwnBold", "TextMyOwnItalic", "TextPrivateBold", "TextPrivateItalic", "TextSystemBold", "TextSystemItalic", "TextServerBold", "TextServerItalic", "TextTimestampBold", "TextTimestampItalic",
-"TextMyNickBold", "TextMyNickItalic", "TextFavBold", "TextFavItalic", "TextOPBold", "TextOPItalic", "TextURLBold", "TextURLItalic", "ProgressOverrideColors", "ProgressOverrideColors2", "MenubarTwoColors", "MenubarBumped", 
-
-"AutoDetectionUseLimited", "LogScheduledRefreshes", "AutoCompleteBundles", "SearchSaveHubsState", "ConfirmHubExit", "ConfirmASRemove", "EnableSUDP", "NmdcMagnetWarn",
-"UpdateIPHourly", "OpenTextOnBackground", "LockTB", "PopunderPartialList", "ShowTBStatusBar", "UseSlowDisconnectingDefault", "PrioListHighest",
-"UseFTPLogger", "QIAutoPrio", "ShowSharedDirsFav", "ReportAddedSources", "ExpandBundles", "OverlapSlowUser", "FormatDirRemoteTime", "TextQueueBold", "TextQueueItalic", "UnderlineQueue", "LogHashedFiles",
-"UsePartialSharing", "PopupBundleDLs", "PopupBundleULs", "ListHighlightBold", "ListHighlightItalic", "ReportBlockedShare", "ScanDLBundles", "MCNAutoDetect", "DLAutoDetect", "ULAutoDetect", "CheckUseSkiplist", "CheckIgnoreZeroByte",
-"TextDupeBold", "TextDupeItalic", "UnderlineLinks", "UnderlineDupes", "DupesInFilelists", "DupesInChat", "NoZeroByte", "CheckEmptyDirs", "CheckEmptyReleases", "CheckMissing", "CheckInvalidSFV", "CheckSfv",
-"CheckNfo", "CheckMp3Dir", "CheckExtraSfvNfo", "CheckExtraFiles", "CheckDupes", "CheckDiskCounts", "SortDirs", "WizardRunNew", "FormatRelease", "TextNormBold", "TextNormItalic", "SystemShowUploads", "SystemShowDownloads",
-"UseAdls", "DupeSearch", "passwd_protect", "passwd_protect_tray", "DisAllowConnectionToPassedHubs", "BoldHubTabsOnKick",
-"AutoAddSource", "UseExplorerTheme", "TestWrite", "OpenSystemLog", "OpenLogsInternal", "UcSubMenu", "ShowQueueBars", "ExpandDefault",
-"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight", "FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick", "IPUpdate", "serverCommands", "ClientCommands",
-"PreviewPm", "IgnoreUseRegexpOrWc", "HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn", "FavUsersShowInfo",
-"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "ShowSendMessage", "WarnElevated", "SkipEmptyDirsShare", "LogShareScans",
-	"RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "ScanMonitoredFolders", "ConfirmFileDeletions", "UseDefaultCertPaths", "StartupRefresh", "FLReportDupeFiles",
-	"FilterFLShared", "FilterFLQueued", "FilterFLInversed", "FilterFLTop", "FilterFLPartialDupes", "FilterFLResetChange", "FilterSearchShared", "FilterSearchQueued", "FilterSearchInversed", "FilterSearchTop", "FilterSearchPartialDupes", "FilterSearchResetChange",
-	"SearchAschOnlyMan", "UseUploadBundles", "CloseMinimize", "LogIgnored", "UsersFilterIgnore", "NfoExternal", "SingleClickTray", "QueueShowFinished", "RemoveFinishedBundles", "LogCRCOk",
-	"FilterQueueInverse", "FilterQueueTop", "FilterQueueReset", "AlwaysCCPM", "OpenAutoSearch", "SaveLastState",
+	"BackgroundImage", "MPLAYERCformat", "ITUNESformat", "WMPformat", "Spotifyformat", "WinampPath",
+	"PopupFont", "PopupTitleFont", "PopupFile", 
+	"MediaToolbar", "password", "HighlightList", "IconPath",
+	"AutoSearchFrame2Order", "AutoSearchFrame2Widths", "ToolbarPos", "TBProgressFont", "LastSearchFiletype", "LastSearchDisabledHubs", "LastASFiletype", "LastSearchExcluded",
+	"UsersFrmVisible2", "ListViewFont", "LastFilelistFiletype", "AutosearchFrmVisible",
+	"RssFrameOrder", "RssFrameWidths", "RssFrameVisible",
+#endif
 	"SENTRY",
+
+	// Ints
+
+	// Generic
+	"IncomingConnections", "IncomingConnections6", "InPort", "Slots", 
+	"BufferSize", "DownloadSlots", "MaxDownloadSpeed", "MinUploadSpeed", "SocksPort",
+	"MaxCompression", "SetMinislotSize", "ShutdownInterval", "ExtraSlots", "ExtraPartialSlots", "ExtraDownloadSlots",
+
+	"DisconnectSpeed", "DisconnectFileSpeed", "DisconnectTime", "RemoveSpeed", 
+	"DisconnectFileSize", "NumberOfSegments", "MaxHashSpeed", "PMLogLines", "SearchTime",
+	"MinimumSearchInterval", "MaxAutoMatchSource", 
+	"UDPPort", "OutgoingConnections", "SocketInBuffer", "SocketOutBuffer",
+	"AutoRefreshTime", "AutoSearchLimit", "MaxCommandLength", "TLSPort", "DownConnPerSec", 
+	"HighestPrioSize", "HighPrioSize", "NormalPrioSize", "LowPrioSize",
+
+	"BandwidthLimitStart", "BandwidthLimitEnd", "MaxDownloadSpeedRealTime",
+	"MaxUploadSpeedTime", "MaxDownloadSpeedPrimary", "MaxUploadSpeedPrimary",
+	"SlotsAlternateLimiting", "SlotsPrimaryLimiting",
+
+	"MaxFileSizeShared", "MinSegmentSize", "AutoSlots",  "IncomingRefreshTime", 
+	"ConfigBuildNumber", "PmMessageCache", "HubMessageCache", "LogMessageCache", "MaxRecentHubs", "MaxRecentPrivateChats", "MaxRecentFilelists",
+
+
+	"FavDownloadSpeed", "SettingsProfile", "LogLines", "MaxMCNDownloads", "MaxMCNUploads",
+	"RecentBundleHours", "DisconnectMinSources", "AutoprioType", "AutoprioInterval", "AutosearchExpireDays",  "TLSMode", "UpdateMethod",
+
+	"FullListDLLimit", "LastListProfile", "MaxHashingThreads", "HashersPerVolume", "SubtractlistSkip", "BloomMode", "AwayIdleTime",
+	"SearchHistoryMax", "ExcludeHistoryMax", "DirectoryHistoryMax", "MinDupeCheckSize", "DbCacheSize", "DLAutoDisconnectMode", 
+	"RemovedTrees", "RemovedFiles", "MultithreadedRefresh",
+	"MaxRunningBundles", "DefaultShareProfile", "UpdateChannel",
+
+	"AutoSearchEvery", "ASDelayHours",
+
+#ifdef HAVE_GUI
+	// Windows GUI
+	"BackgroundColor", "TextColor", "MainWindowState",
+	"MainWindowSizeX", "MainWindowSizeY", "MainWindowPosX", "MainWindowPosY", "MaxTabRows",
+	"DownloadBarColor", "UploadBarColor", "MenubarLeftColor", "MenubarRightColor", "SearchAlternateColour",
+	"ReservedSlotColor", "IgnoredColor", "FavoriteColor", "NormalColour",
+	"PasiveColor", "OpColor", "ProgressBackColor", "ProgressSegmentColor", "ColorDone",
+
+	"MagnetAction", "PopupType", "ShutdownAction",
+	"UserListDoubleClick", "TransferListDoubleClick", "ChatDoubleClick",
+
+	"TextGeneralBackColor", "TextGeneralForeColor",
+	"TextMyOwnBackColor", "TextMyOwnForeColor",
+	"TextPrivateBackColor", "TextPrivateForeColor",
+	"TextSystemBackColor", "TextSystemForeColor",
+	"TextServerBackColor", "TextServerForeColor",
+	"TextTimestampBackColor", "TextTimestampForeColor",
+	"TextMyNickBackColor", "TextMyNickForeColor",
+	"TextFavBackColor", "TextFavForeColor",
+	"TextOPBackColor", "TextOPForeColor",
+	"TextURLBackColor", "TextURLForeColor",
+	"Progress3DDepth",
+	"ProgressTextDown", "ProgressTextUp", "ErrorColor", "TransferSplitSize",
+
+	"tabactivebg", "TabActiveText", "TabActiveBorder", "TabInactiveBg", "TabInactiveBgDisconnected", "TabInactiveText", 
+	"TabInactiveBorder", "TabInactiveBgNotify", "TabDirtyBlend", "TabSize", "MediaPlayer",
+	"PopupTime", "MaxMsgLength", "PopupBackColor", "PopupTextColor", "PopupTitleTextColor", 
+	"TbImageSize", "TbImageSizeHot", "MaxResizeLines",
+	"DupeColor", "TextDupeBackColor", 
+	"TextNormBackColor", "TextNormForeColor", 
+	"FavTop", "FavBottom", "FavLeft", "FavRight", "SyslogTop", "SyslogBottom", "SyslogLeft", "SyslogRight", "NotepadTop", "NotepadBottom",
+	"NotepadLeft", "NotepadRight", "QueueTop", "QueueBottom", "QueueLeft", "QueueRight", "SearchTop", "SearchBottom", "SearchLeft", "SearchRight", "UsersTop", "UsersBottom",
+	"UsersLeft", "UsersRight", "FinishedTop", "FinishedBottom", "FinishedLeft", "FinishedRight", "TextTop", "TextBottom", "TextLeft", "TextRight", "DirlistTop", "DirlistBottom",
+	"DirlistLeft", "DirlistRight", "StatsTop", "StatsBottom", "StatsLeft", "StatsRight", 
+
+	"ListHighlightBackColor", "ListHighlightColor", "QueueColor", "TextQueueBackColor", "QueueSplitterPosition",
+	"WinampBarIconSize", "TBProgressTextColor",
+	"ColorStatusFinished", "ColorStatusShared", "ProgressLighten", "FavUsersSplitterPos",
+#endif
+	"SENTRY",
+
+	// Bools
+
+	// Generic
+	"AdlsBreakOnFirst",
+	"AllowUntrustedClients", "AllowUntrustedHubs",
+	"AutoDetectIncomingConnection", "AutoDetectIncomingConnection6", "AutoFollow", "AutoKick", "AutoKickNoFavs", "AutoSearch",
+	"CompressTransfers",
+
+	"DontDlAlreadyQueued", "DontDLAlreadyShared", "FavShowJoins", "FilterMessages",
+	"GetUserCountry", "GetUserInfo", "HubUserCommands", "KeepLists",
+	"LogDownloads", "LogFilelistTransfers", "LogFinishedDownloads", "LogMainChat",
+	"LogPrivateChat", "LogStatusMessages", "LogSystem", "LogUploads",
+
+	"SocksResolve", "NoAwayMsgToBots", "NoIpOverride", "LowestPrio", "ShareHidden", "ShowJoins",
+	"TimeDependentThrottle", "TimeStamps",
+	"SearchPassiveAlways", "RemoveForbidden", "MultiChunk", "Away",
+		
+	"SegmentsManual", "ReportFoundAlternates", "UseAutoPriorityByDefault",
+
+	"AutoDetectionUseLimited", "LogScheduledRefreshes", "AutoCompleteBundles",
+	"EnableSUDP", "NmdcMagnetWarn", "UpdateIPHourly",
+	"UseSlowDisconnectingDefault", "PrioListHighest",
+	"QIAutoPrio", "ReportAddedSources", "OverlapSlowUser", "FormatDirRemoteTime",
+	"LogHashedFiles", "UsePartialSharing",
+	"ReportBlockedShare", "MCNAutoDetect", "DLAutoDetect", "ULAutoDetect",
+	"DupesInFilelists", "DupesInChat", "NoZeroByte",
+
+	"SystemShowUploads", "SystemShowDownloads", "WizardRunNew", "FormatRelease",
+	"UseAdls", "DupeSearch", "DisAllowConnectionToPassedHubs", "AutoAddSource",
+	"ShareSkiplistUseRegexp", "DownloadSkiplistUseRegexp", "HighestPriorityUseRegexp", "UseHighlight",
+	"IPUpdate",
+
+	"IgnoreUseRegexpOrWc", "AllowMatchFullList", "ShowChatNotify", "FreeSpaceWarn",
+	"ClearDirectoryHistory", "ClearExcludeHistory", "ClearDirHistory", "NoIpOverride6", "IPUpdate6",
+	"SkipEmptyDirsShare", "RemoveExpiredAs", "AdcLogGroupCID", "ShareFollowSymlinks", "UseDefaultCertPaths", "StartupRefresh",
+	"FLReportDupeFiles", "UseUploadBundles", "LogIgnored", "RemoveFinishedBundles", "AlwaysCCPM",
+
+	"PopupBotPms", "PopupHubPms", "SortFavUsersFirst",
+#ifdef HAVE_GUI
+	// Windows GUI
+	"BoldFinishedDownloads", "BoldFinishedUploads", "BoldHub", "BoldPm",
+	"BoldQueue", "BoldSearch", "BoldSystemLog", "ClearSearch", "DefaultSearchFreeSlots",
+	"ConfirmADLSRemoval", "ConfirmExit", "ConfirmHubRemoval", "ConfirmUserRemoval",
+
+	"MagnetAsk", "MagnetRegister", "MinimizeToTray",
+	"PopunderFilelist", "PopunderPm", "PromptPassword",
+	"ShowMenuBar", "ShowStatusbar", "ShowToolbar",
+	"ShowTransferview", "StatusInChat", "ShowIpCountryChat",
+
+	"ToggleActiveTab", "UrlHandler", "UseCTRLForLineHistory", "UseSystemIcons",
+	"UsersFilterFavorite", "UsersFilterOnline", "UsersFilterQueue", "UsersFilterWaiting",
+	"PrivateMessageBeep", "PrivateMessageBeepOpen", "ShowProgressBars", "MDIMaxmimized",
+
+	"ShowInfoTips", "MinimizeOnStratup", "ConfirmDelete",
+	"SpyFrameIgnoreTthSearches", "OpenWaitingUsers", "BoldWaitingUsers", "TabsOnTop",
+	"OpenPublic", "OpenFavoriteHubs", "OpenFavoriteUsers", "OpenQueue",
+	"OpenFinishedUploads", "OpenSearchSpy", "OpenNotepad", "ProgressbaroDCStyle",
+
+	"PopupAway", "PopupMinimized", "PopupHubConnected", "PopupHubDisconnected", "PopupFavoriteConnected",
+	"PopupDownloadStart", "PopupDownloadFailed", "PopupDownloadFinished", "PopupUploadFinished", "PopupPm", "PopupNewPM",
+
+	"UploadQueueFrameShowTree", "SoundsDisabled", "UseOldSharingUI",
+	"TextGeneralBold", "TextGeneralItalic", "TextMyOwnBold", "TextMyOwnItalic", "TextPrivateBold", "TextPrivateItalic", "TextSystemBold",
+	"TextSystemItalic", "TextServerBold", "TextServerItalic", "TextTimestampBold", "TextTimestampItalic",
+	"TextMyNickBold", "TextMyNickItalic", "TextFavBold", "TextFavItalic", "TextOPBold", "TextOPItalic", "TextURLBold", "TextURLItalic",
+	"ProgressOverrideColors", "ProgressOverrideColors2", "MenubarTwoColors", "MenubarBumped",
+
+	"SearchSaveHubsState", "ConfirmHubExit", "ConfirmASRemove", 
+	"OpenTextOnBackground", "LockTB", "PopunderPartialList", "ShowTBStatusBar", "ShowSharedDirsFav", "ExpandBundles",
+		
+	"TextQueueBold", "TextQueueItalic", "UnderlineQueue", 
+	"PopupBundleDLs", "PopupBundleULs", "ListHighlightBold", "ListHighlightItalic",
+	"TextDupeBold", "TextDupeItalic", "UnderlineLinks", "UnderlineDupes", 
+
+	"SortDirs", "TextNormBold", "TextNormItalic", 
+	"passwd_protect", "passwd_protect_tray", "BoldHubTabsOnKick",
+	"UseExplorerTheme", "TestWrite", "OpenSystemLog", "OpenLogsInternal", "UcSubMenu", "ShowQueueBars", "ExpandDefault",
+	"FlashWindowOnPm", "FlashWindowOnNewPm", "FlashWindowOnMyNick",
+
+	"serverCommands", "ClientCommands", "PreviewPm", 
+		
+	"HubBoldTabs", "showWinampControl", "BlendTabs", "TabShowIcons", 
+	"FavUsersShowInfo", "SearchUseExcluded", "AutoSearchBold", "ShowEmoticon", "ShowMultiline", "ShowMagnet", "ShowSendMessage", "WarnElevated",
+	"ConfirmFileDeletions", "CloseMinimize",
+
+	"FilterFLShared", "FilterFLQueued", "FilterFLInversed", "FilterFLTop", "FilterFLPartialDupes", "FilterFLResetChange", "FilterSearchShared", 
+	"FilterSearchQueued", "FilterSearchInversed", "FilterSearchTop", "FilterSearchPartialDupes", "FilterSearchResetChange", "SearchAschOnlyMan", 
+		
+	"UsersFilterIgnore", "NfoExternal", "SingleClickTray", "QueueShowFinished", 
+	"FilterQueueInverse", "FilterQueueTop", "FilterQueueReset", "OpenAutoSearch", "SaveLastState",
+#endif
+	"SENTRY",
+
 	// Int64
 	"TotalUpload", "TotalDownload",
 	"SENTRY"
@@ -289,10 +386,6 @@ const string SettingsManager::settingTags[] =
 
 SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 {
-	//make sure it can fit our events without using push_back since
-	//that might cause them to be in the wrong position.
-	fileEvents.resize(2);
-
 	setDefault(NICK, Util::getSystemUsername());
 
 	setDefault(MAX_UPLOAD_SPEED_MAIN, 0);
@@ -326,15 +419,10 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(AUTO_DETECT_CONNECTION6, true);
 
 	setDefault(AUTO_FOLLOW, true);
-	setDefault(CLEAR_SEARCH, true);
 	setDefault(SHARE_HIDDEN, false);
 	setDefault(FILTER_MESSAGES, true);
-	setDefault(MINIMIZE_TRAY, false);
 	setDefault(AUTO_SEARCH, true);
 	setDefault(TIME_STAMPS, true);
-	setDefault(CONFIRM_EXIT, true);
-	setDefault(POPUP_HUB_PMS, true);
-	setDefault(POPUP_BOT_PMS, true);
 	setDefault(BUFFER_SIZE, 64);
 	setDefault(HUBLIST_SERVERS, "https://www.te-home.net/?do=hublist&get=hublist.xml.bz2;https://dchublist.org/hublist.xml.bz2;https://dchublist.ru/hublist.xml.bz2;https://tankafett.biz/?do=hublist&get=hublist.xml.bz2;https://dcnf.github.io/Hublist/hublist.xml.bz2;");
 	setDefault(DOWNLOAD_SLOTS, 50);
@@ -344,12 +432,8 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(LOG_DOWNLOADS, false);
 	setDefault(LOG_PRIVATE_CHAT, false);
 	setDefault(LOG_MAIN_CHAT, false);
-	setDefault(STATUS_IN_CHAT, true);
 	setDefault(SHOW_JOINS, false);
 	setDefault(UPLOAD_SPEED, connectionSpeeds[0]);
-	setDefault(PRIVATE_MESSAGE_BEEP, false);
-	setDefault(PRIVATE_MESSAGE_BEEP_OPEN, false);
-	setDefault(USE_SYSTEM_ICONS, true);
 	setDefault(MIN_UPLOAD_SPEED, 0);
 	setDefault(LOG_FORMAT_POST_DOWNLOAD, "%Y-%m-%d %H:%M: %[target] " + STRING(DOWNLOADED_FROM) + " %[userNI] (%[userCID]), %[fileSI] (%[fileSIchunk]), %[speed], %[time]");
 	setDefault(LOG_FORMAT_POST_UPLOAD, "%Y-%m-%d %H:%M: %[source] " + STRING(UPLOADED_TO) + " %[userNI] (%[userCID]), %[fileSI] (%[fileSIchunk]), %[speed], %[time]");
@@ -364,17 +448,14 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(LOG_FILE_DOWNLOAD, "Downloads.log");
 	setDefault(LOG_FILE_SYSTEM, "%Y-%m-system.log");
 	setDefault(GET_USER_INFO, true);
-	setDefault(URL_HANDLER, true);
 	setDefault(SOCKS_PORT, 1080);
 	setDefault(SOCKS_RESOLVE, true);
 	setDefault(CONFIG_VERSION, "0.181");		// 0.181 is the last version missing configversion
 	setDefault(KEEP_LISTS, false);
 	setDefault(AUTO_KICK, false);
 	setDefault(COMPRESS_TRANSFERS, true);
-	setDefault(SHOW_PROGRESS_BARS, true);
 	setDefault(DEFAULT_AWAY_MESSAGE, "I'm away. State your business and I might answer later if you're lucky.");
 	setDefault(TIME_STAMPS_FORMAT, "%H:%M:%S");
-	setDefault(MAX_TAB_ROWS, 4);
 	setDefault(MAX_COMPRESSION, 6);
 	setDefault(NO_AWAYMSG_TO_BOTS, true);
 	setDefault(ADLS_BREAK_ON_FIRST, false);
@@ -385,6 +466,204 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(GET_USER_COUNTRY, true);
 	setDefault(FAV_SHOW_JOINS, false);
 	setDefault(LOG_STATUS_MESSAGES, false);
+
+	setDefault(DONT_DL_ALREADY_SHARED, false);
+	setDefault(MAX_PM_HISTORY_LINES, 10);
+	setDefault(SET_MINISLOT_SIZE, 512);
+	setDefault(PRIO_HIGHEST_SIZE, 64);
+	setDefault(PRIO_HIGH_SIZE, 0);
+	setDefault(PRIO_NORMAL_SIZE, 0);
+	setDefault(PRIO_LOW_SIZE, 0);
+	setDefault(PRIO_LOWEST, false);
+	setDefault(NO_IP_OVERRIDE, false);
+	setDefault(NO_IP_OVERRIDE6, false);
+	setDefault(SOCKET_IN_BUFFER, 64*1024);
+	setDefault(SOCKET_OUT_BUFFER, 64*1024);
+	setDefault(TLS_TRUSTED_CERTIFICATES_PATH, Util::getPath(Util::PATH_USER_CONFIG) + "Certificates" PATH_SEPARATOR_STR);
+	setDefault(TLS_PRIVATE_KEY_FILE, Util::getPath(Util::PATH_USER_CONFIG) + "Certificates" PATH_SEPARATOR_STR "client.key");
+	setDefault(TLS_CERTIFICATE_FILE, Util::getPath(Util::PATH_USER_CONFIG) + "Certificates" PATH_SEPARATOR_STR "client.crt");
+	setDefault(AUTO_REFRESH_TIME, 60);
+	setDefault(AUTO_SEARCH_LIMIT, 15);
+	setDefault(AUTO_KICK_NO_FAVS, false);
+	setDefault(ALLOW_UNTRUSTED_HUBS, true);
+	setDefault(ALLOW_UNTRUSTED_CLIENTS, true);
+	setDefault(NUMBER_OF_SEGMENTS, 3);
+	setDefault(SEGMENTS_MANUAL, false);
+	setDefault(EXTRA_SLOTS, 3);
+	setDefault(EXTRA_PARTIAL_SLOTS, 1);
+	setDefault(SHUTDOWN_TIMEOUT, 150);
+	setDefault(SEARCH_PASSIVE, false);
+	setDefault(AUTO_PRIORITY_DEFAULT, false);
+	setDefault(REMOVE_FORBIDDEN, true);
+	setDefault(EXTRA_DOWNLOAD_SLOTS, 3);
+
+
+	setDefault(MAX_AUTO_MATCH_SOURCES, 5);
+	setDefault(MULTI_CHUNK, true);
+	setDefault(DOWNCONN_PER_SEC, 2);
+	setDefault(REPORT_ALTERNATES, true);
+
+	setDefault(BUNDLE_SEARCH_TIME, 15);
+	setDefault(AUTO_SLOTS, 5);
+	setDefault(MINIMUM_SEARCH_INTERVAL, 5);
+	setDefault(AWAY, false);
+
+	setDefault(DISCONNECT_SPEED, 5);
+	setDefault(DISCONNECT_FILE_SPEED, 15);
+	setDefault(DISCONNECT_TIME, 40);
+	setDefault(DISCONNECT_FILESIZE, 50);
+	setDefault(REMOVE_SPEED, 2);
+
+	setDefault(IGNORE_USE_REGEXP_OR_WC, true);
+	setDefault(FAV_DL_SPEED, 0);
+	setDefault(IP_UPDATE, true);
+	setDefault(IP_UPDATE6, false);
+	setDefault(SKIPLIST_SHARE, "(.*\\.(scn|asd|lnk|url|log|crc|dat|sfk|mxm))$|(rushchk.log)");
+	setDefault(FREE_SLOTS_EXTENSIONS, "*.nfo|*.sfv");
+	setDefault(SKIPLIST_DOWNLOAD, ".*|*All-Files-CRC-OK*|Descript.ion|thumbs.db|*.bad|*.missing|rushchk.log");
+	setDefault(HIGH_PRIO_FILES, "*.sfv|*.nfo|*sample*|*subs*|*.jpg|*cover*|*.pls|*.m3u");
+	setDefault(AUTOSEARCH_EVERY, 5);
+	setDefault(USE_HIGHLIGHT, false);
+	setDefault(BLOOM_MODE, BLOOM_DISABLED);
+	setDefault(SHARE_SKIPLIST_USE_REGEXP, true);
+	setDefault(DOWNLOAD_SKIPLIST_USE_REGEXP, false);
+	setDefault(HIGHEST_PRIORITY_USE_REGEXP, false);
+	setDefault(OVERLAP_SLOW_SOURCES, true);
+	setDefault(MIN_SEGMENT_SIZE, 1024);
+	setDefault(DUPE_SEARCH, true);
+	setDefault(DISALLOW_CONNECTION_TO_PASSED_HUBS, false);
+	setDefault(AUTO_ADD_SOURCE, true);
+	setDefault(INCOMING_REFRESH_TIME, 60);
+	setDefault(USE_ADLS, true);
+	setDefault(DONT_DL_ALREADY_QUEUED, false);
+	setDefault(SYSTEM_SHOW_UPLOADS, false);
+	setDefault(SYSTEM_SHOW_DOWNLOADS, false);
+	setDefault(SETTINGS_PROFILE, PROFILE_NORMAL);
+	setDefault(DOWNLOAD_SPEED, connectionSpeeds[0]);
+	setDefault(WIZARD_PENDING, true); // run wizard on startup
+	setDefault(FORMAT_RELEASE, true);
+	setDefault(LOG_LINES, 500);
+
+	setDefault(MAX_FILE_SIZE_SHARED, 0);
+	setDefault(MAX_MCN_DOWNLOADS, 1);
+	setDefault(NO_ZERO_BYTE, false);
+	setDefault(MCN_AUTODETECT, true);
+	setDefault(DL_AUTODETECT, true);
+	setDefault(UL_AUTODETECT, true);
+	setDefault(MAX_MCN_UPLOADS, 1);
+	setDefault(SKIP_SUBTRACT, 0);
+	setDefault(DUPES_IN_FILELIST, true);
+	setDefault(DUPES_IN_CHAT, true);
+	setDefault(REPORT_BLOCKED_SHARE, true);
+
+
+	setDefault(USE_PARTIAL_SHARING, true);
+	setDefault(LOG_HASHING, false);
+	setDefault(RECENT_BUNDLE_HOURS, 24);
+	setDefault(QI_AUTOPRIO, true);
+	setDefault(ALLOW_MATCH_FULL_LIST, true);
+	setDefault(REPORT_ADDED_SOURCES, false);
+	setDefault(COUNTRY_FORMAT, "%[2code]");
+	setDefault(FORMAT_DIR_REMOTE_TIME, false);
+	setDefault(DISCONNECT_MIN_SOURCES, 2);
+	setDefault(USE_SLOW_DISCONNECTING_DEFAULT, true);
+	setDefault(PRIO_LIST_HIGHEST, false);
+	setDefault(AUTOPRIO_TYPE, PRIO_BALANCED);
+	setDefault(AUTOPRIO_INTERVAL, 10);
+	setDefault(AUTOSEARCH_EXPIRE_DAYS, 5);
+	setDefault(TLS_MODE, 1);
+	setDefault(UPDATE_METHOD, 2);
+	setDefault(UPDATE_IP_HOURLY, false);
+	setDefault(FULL_LIST_DL_LIMIT, 30000);
+
+	setDefault(ENABLE_SUDP, false);
+	setDefault(NMDC_MAGNET_WARN, true);
+	setDefault(AUTO_COMPLETE_BUNDLES, false);
+	setDefault(LOG_SCHEDULED_REFRESHES, true);
+	setDefault(AUTO_DETECTION_USE_LIMITED, true);
+	setDefault(AS_DELAY_HOURS, 12);
+	setDefault(LAST_LIST_PROFILE, 0);
+	setDefault(SHOW_CHAT_NOTIFY, false);
+	setDefault(AWAY_IDLE_TIME, 5);
+	setDefault(FREE_SPACE_WARN, true);
+
+	setDefault(HISTORY_SEARCH_MAX, 10);
+	setDefault(HISTORY_EXCLUDE_MAX, 10);
+	setDefault(HISTORY_DIR_MAX, 10);
+
+	setDefault(HISTORY_SEARCH_CLEAR, false);
+	setDefault(HISTORY_EXCLUDE_CLEAR, false);
+	setDefault(HISTORY_DIR_CLEAR, false);
+
+	//set depending on the cpu count
+	setDefault(MAX_HASHING_THREADS, std::thread::hardware_concurrency());
+
+	setDefault(HASHERS_PER_VOLUME, 1);
+
+	setDefault(MIN_DUPE_CHECK_SIZE, 512);
+	setDefault(SKIP_EMPTY_DIRS_SHARE, true);
+
+	setDefault(DB_CACHE_SIZE, 8);
+	setDefault(CUR_REMOVED_TREES, 0);
+	setDefault(CUR_REMOVED_FILES, 0);
+
+	setDefault(DL_AUTO_DISCONNECT_MODE, QUEUE_FILE);
+	setDefault(REFRESH_THREADING, MULTITHREAD_MANUAL);
+
+	setDefault(REMOVE_EXPIRED_AS, false);
+
+	setDefault(PM_LOG_GROUP_CID, true);
+	setDefault(SHARE_FOLLOW_SYMLINKS, true);
+	setDefault(AS_FAILED_DEFAULT_GROUP, "Failed Bundles");
+
+	setDefault(USE_DEFAULT_CERT_PATHS, true);
+
+	setDefault(MAX_RUNNING_BUNDLES, 0);
+	setDefault(DEFAULT_SP, 0);
+	setDefault(STARTUP_REFRESH, true);
+	setDefault(FL_REPORT_FILE_DUPES, true);
+	setDefault(DATE_FORMAT, "%Y-%m-%d %H:%M");
+
+	setDefault(UPDATE_CHANNEL, VERSION_STABLE);
+	setDefault(LOG_IGNORED, true);
+	setDefault(REMOVE_FINISHED_BUNDLES, false);
+	setDefault(ALWAYS_CCPM, false);
+
+	setDefault(MAX_RECENT_HUBS, 30);
+	setDefault(MAX_RECENT_PRIVATE_CHATS, 15);
+	setDefault(MAX_RECENT_FILELISTS, 15);
+
+	// not in GUI
+	setDefault(USE_UPLOAD_BUNDLES, true);
+	setDefault(CONFIG_BUILD_NUMBER, 2029);
+
+	setDefault(PM_MESSAGE_CACHE, 20); // Just so that we won't lose messages while the tab is being created
+	setDefault(HUB_MESSAGE_CACHE, 0);
+	setDefault(LOG_MESSAGE_CACHE, 100);
+
+	setDefault(POPUP_HUB_PMS, true);
+	setDefault(POPUP_BOT_PMS, true);
+	setDefault(SORT_FAVUSERS_FIRST, false);
+
+#ifdef _WIN32
+	setDefault(NMDC_ENCODING, Text::systemCharset);
+#else
+	setDefault(NMDC_ENCODING, "CP1252");
+#endif
+
+	// GUI SETTINGS
+#ifdef HAVE_GUI
+	setDefault(CONFIRM_EXIT, true);
+	setDefault(MINIMIZE_TRAY, false);
+	setDefault(CLEAR_SEARCH, true);
+	setDefault(STATUS_IN_CHAT, true);
+	setDefault(SHOW_IP_COUNTRY_CHAT, false);
+	setDefault(PRIVATE_MESSAGE_BEEP, false);
+	setDefault(SHOW_PROGRESS_BARS, true);
+	setDefault(PRIVATE_MESSAGE_BEEP_OPEN, false);
+	setDefault(USE_SYSTEM_ICONS, true);
+	setDefault(MAX_TAB_ROWS, 4);
+	setDefault(URL_HANDLER, true);
 	setDefault(SHOW_TRANSFERVIEW, true);
 	setDefault(SHOW_STATUSBAR, true);
 	setDefault(SHOW_TOOLBAR, true);
@@ -393,18 +672,11 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(MAGNET_REGISTER, false);
 	setDefault(MAGNET_ASK, true);
 	setDefault(MAGNET_ACTION, MAGNET_DOWNLOAD);
-	setDefault(DONT_DL_ALREADY_SHARED, false);
 	setDefault(CONFIRM_HUB_REMOVAL, true);
 	setDefault(USE_CTRL_FOR_LINE_HISTORY, true);
-	setDefault(MAX_PM_HISTORY_LINES, 10);
 	setDefault(CONFIRM_QUEUE_REMOVAL, true);
 	setDefault(TOGGLE_ACTIVE_WINDOW, true);
-	setDefault(SET_MINISLOT_SIZE, 512);
-	setDefault(PRIO_HIGHEST_SIZE, 64);
-	setDefault(PRIO_HIGH_SIZE, 0);
-	setDefault(PRIO_NORMAL_SIZE, 0);
-	setDefault(PRIO_LOW_SIZE, 0);
-	setDefault(PRIO_LOWEST, false);
+
 	setDefault(OPEN_PUBLIC, false);
 	setDefault(OPEN_FAVORITE_HUBS, false);
 	setDefault(OPEN_FAVORITE_USERS, false);
@@ -414,14 +686,8 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(OPEN_FINISHED_UPLOADS, false);
 	setDefault(OPEN_SEARCH_SPY, false);
 	setDefault(OPEN_NOTEPAD, false);
-	setDefault(NO_IP_OVERRIDE, false);
-	setDefault(NO_IP_OVERRIDE6, false);
-	setDefault(SOCKET_IN_BUFFER, 64*1024);
-	setDefault(SOCKET_OUT_BUFFER, 64*1024);
+
 	setDefault(OPEN_WAITING_USERS, false);
-	setDefault(TLS_TRUSTED_CERTIFICATES_PATH, Util::getPath(Util::PATH_USER_CONFIG) + "Certificates" PATH_SEPARATOR_STR);
-	setDefault(TLS_PRIVATE_KEY_FILE, Util::getPath(Util::PATH_USER_CONFIG) + "Certificates" PATH_SEPARATOR_STR "client.key");
-	setDefault(TLS_CERTIFICATE_FILE, Util::getPath(Util::PATH_USER_CONFIG) + "Certificates" PATH_SEPARATOR_STR "client.crt");
 	setDefault(BOLD_FINISHED_DOWNLOADS, true);
 	setDefault(BOLD_FINISHED_UPLOADS, true);
 	setDefault(BOLD_QUEUE, true);
@@ -429,28 +695,12 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(BOLD_PM, true);
 	setDefault(BOLD_SEARCH, true);
 	setDefault(BOLD_WAITING_USERS, true);
-	setDefault(AUTO_REFRESH_TIME, 0);
-	setDefault(AUTO_SEARCH_LIMIT, 15);
-	setDefault(AUTO_KICK_NO_FAVS, false);
 	setDefault(PROMPT_PASSWORD, true);
 	setDefault(SPY_FRAME_IGNORE_TTH_SEARCHES, false);
-	setDefault(ALLOW_UNTRUSTED_HUBS, true);
-	setDefault(ALLOW_UNTRUSTED_CLIENTS, true);		
-	setDefault(SORT_FAVUSERS_FIRST, false);
-	setDefault(NUMBER_OF_SEGMENTS, 3);
-	setDefault(SEGMENTS_MANUAL, false);
 	setDefault(TEXT_FONT, "Tahoma,-11,400,0");
-	setDefault(EXTRA_SLOTS, 3);
-	setDefault(EXTRA_PARTIAL_SLOTS, 1);
-	setDefault(SHUTDOWN_TIMEOUT, 150);
-	setDefault(SEARCH_PASSIVE, false);
-	setDefault(TOOLBAR_ORDER, "0,-1,1,2,-1,3,4,5,-1,6,7,8,-1,9,10,12,-1,13,14,-1,15,16,-1,17,18,-1,20");
+	setDefault(TOOLBAR_ORDER, SettingsManager::buildToolbarOrder(SettingsManager::getDefaultToolbarOrder()));
 	setDefault(MEDIATOOLBAR, "0,-1,1,-1,2,3,4,5,6,7,8,9,-1");
-	setDefault(AUTO_PRIORITY_DEFAULT, false);
-	setDefault(REMOVE_FORBIDDEN, true);
-	setDefault(EXTRA_DOWNLOAD_SLOTS, 3);
 
-#ifdef _WIN32
 	setDefault(SEARCH_ALTERNATE_COLOUR, RGB(255, 200, 0));
 
 	setDefault(BACKGROUND_COLOR, RGB(255, 255, 255));
@@ -605,16 +855,10 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 
 	setDefault(COLOR_STATUS_FINISHED, RGB(145, 183, 4));
 	setDefault(COLOR_STATUS_SHARED, RGB(102, 158, 18));
-#endif
-
-	setDefault(REPORT_ALTERNATES, true);	
 
 	setDefault(SOUNDS_DISABLED, false);
 	setDefault(UPLOADQUEUEFRAME_SHOW_TREE, true);
 
-	setDefault(BUNDLE_SEARCH_TIME, 15);
-	setDefault(AUTO_SLOTS, 5);	
-	
 	// default sounds
 	setDefault(BEGINFILE, Util::emptyString);
 	setDefault(BEEPFILE, Util::emptyString);
@@ -641,15 +885,11 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(POPUP_AWAY, false);
 	setDefault(POPUP_MINIMIZED, true);
 
-	setDefault(AWAY, false);
 	setDefault(SHUTDOWN_ACTION, 0);
-	setDefault(MINIMUM_SEARCH_INTERVAL, 5);
 	setDefault(PROGRESSBAR_ODC_STYLE, true);
 
 	setDefault(PROGRESS_3DDEPTH, 4);
 	setDefault(PROGRESS_OVERRIDE_COLORS, true);
-	setDefault(MAX_AUTO_MATCH_SOURCES, 5);
-	setDefault(MULTI_CHUNK, true);
 	setDefault(USERLIST_DBLCLICK, 0);
 	setDefault(TRANSFERLIST_DBLCLICK, 0);
 	setDefault(CHAT_DBLCLICK, 0);	
@@ -660,167 +900,71 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(QUEUEFRAME_VISIBLE, "1,1,1,1,1,1,1,0,1,1,1");
 	setDefault(EMOTICONS_FILE, "Atlantis");
 	setDefault(TABS_ON_TOP, false);
-	setDefault(DOWNCONN_PER_SEC, 2);
 	setDefault(UC_SUBMENU, true);
 
-	setDefault(DISCONNECT_SPEED, 5);
-	setDefault(DISCONNECT_FILE_SPEED, 15);
-	setDefault(DISCONNECT_TIME, 40);
-	setDefault(DISCONNECT_FILESIZE, 50);
-    setDefault(REMOVE_SPEED, 2);
-	
 	setDefault(SHOW_WINAMP_CONTROL, false);
 	setDefault(MEDIA_PLAYER, 0);
 	setDefault(WMP_FORMAT, "/me playing: %[title] at %[bitrate] <Windows Media Player %[version]>");
 	setDefault(ITUNES_FORMAT, "/me playing: %[title] at %[bitrate] <iTunes %[version]>");
 	setDefault(MPLAYERC_FORMAT, "/me playing: %[title] <Media Player Classic>");
 	setDefault(WINAMP_PATH, "C:\\Program Files\\Winamp\\winamp.exe");
-	setDefault(IGNORE_USE_REGEXP_OR_WC, true);
-	setDefault(FAV_DL_SPEED, 0);
-	setDefault(IP_UPDATE, true);
-	setDefault(IP_UPDATE6, false);
+
 	setDefault(SERVER_COMMANDS, true);
 	setDefault(CLIENT_COMMANDS, true);
-	setDefault(SKIPLIST_SHARE, "(.*\\.(scn|asd|lnk|url|log|crc|dat|sfk|mxm))$|(rushchk.log)");
-	setDefault(FREE_SLOTS_EXTENSIONS, "*.nfo|*.sfv");
 	setDefault(POPUP_FONT, "MS Shell Dlg,-11,400,0");
 	setDefault(POPUP_TITLE_FONT, "MS Shell Dlg,-11,400,0");
 	setDefault(POPUPFILE, Util::getPath(Util::PATH_RESOURCES) + "popup.bmp");
 	setDefault(PM_PREVIEW, true);
 	setDefault(POPUP_TIME, 5);
 	setDefault(MAX_MSG_LENGTH, 120);
-	setDefault(SKIPLIST_DOWNLOAD, ".*|*All-Files-CRC-OK*|Descript.ion|thumbs.db|*.bad|*.missing|rushchk.log");
-	setDefault(HIGH_PRIO_FILES, "*.sfv|*.nfo|*sample*|*subs*|*.jpg|*cover*|*.pls|*.m3u");
 	setDefault(FLASH_WINDOW_ON_PM, false);
 	setDefault(FLASH_WINDOW_ON_NEW_PM, false);
 	setDefault(FLASH_WINDOW_ON_MYNICK, false);
-	setDefault(AUTOSEARCH_EVERY, 5);
 	setDefault(TB_IMAGE_SIZE, 24);
 	setDefault(TB_IMAGE_SIZE_HOT, 24);
-	setDefault(USE_HIGHLIGHT, false);
 	setDefault(SHOW_QUEUE_BARS, true);
-	setDefault(BLOOM_MODE, BLOOM_DISABLED);
 	setDefault(EXPAND_DEFAULT, false);
-	setDefault(SHARE_SKIPLIST_USE_REGEXP, true);
-	setDefault(DOWNLOAD_SKIPLIST_USE_REGEXP, false);
-	setDefault(HIGHEST_PRIORITY_USE_REGEXP, false);
-	setDefault(OVERLAP_SLOW_SOURCES, true);
-	setDefault(MIN_SEGMENT_SIZE, 1024);
+
 	setDefault(OPEN_LOGS_INTERNAL, true);
 	setDefault(OPEN_SYSTEM_LOG, true);
 	setDefault(USE_OLD_SHARING_UI, false);
 	setDefault(LAST_SEARCH_FILETYPE, "0");
 	setDefault(LAST_AS_FILETYPE, "7");
 	setDefault(MAX_RESIZE_LINES, 4);
-	setDefault(DUPE_SEARCH, true);
 	setDefault(PASSWD_PROTECT, false);
 	setDefault(PASSWD_PROTECT_TRAY, false);
-	setDefault(DISALLOW_CONNECTION_TO_PASSED_HUBS, false);
 	setDefault(BOLD_HUB_TABS_ON_KICK, false);
 	setDefault(SEARCH_USE_EXCLUDED, false);
-	setDefault(AUTO_ADD_SOURCE, true);
 	setDefault(USE_EXPLORER_THEME, true);
 	setDefault(TESTWRITE, true);
-	setDefault(INCOMING_REFRESH_TIME, 0);
-	setDefault(USE_ADLS, true);
-	setDefault(DONT_DL_ALREADY_QUEUED, false);
-	setDefault(SYSTEM_SHOW_UPLOADS, false);
-	setDefault(SYSTEM_SHOW_DOWNLOADS, false);
-	setDefault(SETTINGS_PROFILE, PROFILE_NORMAL);
-	setDefault(DOWNLOAD_SPEED, connectionSpeeds[0]);
-	setDefault(WIZARD_PENDING, true); // run wizard on startup
-	setDefault(FORMAT_RELEASE, true);
-	setDefault(LOG_LINES, 500);
-
-	setDefault(CHECK_MISSING, true);
-	setDefault(CHECK_INVALID_SFV, true);
-	setDefault(CHECK_SFV, false);
-	setDefault(CHECK_NFO, false);
-	setDefault(CHECK_MP3_DIR, false);
-	setDefault(CHECK_EXTRA_SFV_NFO, false);
-	setDefault(CHECK_EXTRA_FILES, false);
-	setDefault(CHECK_DUPES, false);
-	setDefault(CHECK_EMPTY_DIRS, true);
-	setDefault(CHECK_EMPTY_RELEASES, true);
-	setDefault(CHECK_USE_SKIPLIST, false);
-	setDefault(CHECK_IGNORE_ZERO_BYTE, false);
-	setDefault(CHECK_DISK_COUNTS, true);
 
 	setDefault(SORT_DIRS, false);
-	setDefault(MAX_FILE_SIZE_SHARED, 0);
-	setDefault(MAX_MCN_DOWNLOADS, 1);
-	setDefault(NO_ZERO_BYTE, false);
-	setDefault(MCN_AUTODETECT, true);
-	setDefault(DL_AUTODETECT, true);
-	setDefault(UL_AUTODETECT, true);
-	setDefault(MAX_MCN_UPLOADS, 1);
-	setDefault(SKIP_SUBTRACT, 0);
-	setDefault(DUPES_IN_FILELIST, true);
-	setDefault(DUPES_IN_CHAT, true);
 	setDefault(HIGHLIGHT_LIST, "");
-	setDefault(REPORT_BLOCKED_SHARE, true);
 
-
-	setDefault(SCAN_DL_BUNDLES, true);
-	setDefault(USE_PARTIAL_SHARING, true);
 	setDefault(POPUP_BUNDLE_DLS, true);
 	setDefault(POPUP_BUNDLE_ULS, false);
-	setDefault(LOG_HASHING, false);
-	setDefault(RECENT_BUNDLE_HOURS, 24);
-	setDefault(USE_FTP_LOGGER, false);
 	setDefault(ICON_PATH, "");
-	setDefault(QI_AUTOPRIO, true);
 	setDefault(SHOW_SHARED_DIRS_DL, true);
-	setDefault(ALLOW_MATCH_FULL_LIST, true);
-	setDefault(REPORT_ADDED_SOURCES, false);
 	setDefault(EXPAND_BUNDLES, false);
-	setDefault(COUNTRY_FORMAT, "%[2code]");
-	setDefault(FORMAT_DIR_REMOTE_TIME, false);
-	setDefault(DISCONNECT_MIN_SOURCES, 2);
-	setDefault(USE_SLOW_DISCONNECTING_DEFAULT, true);
-	setDefault(PRIO_LIST_HIGHEST, false);
-	setDefault(AUTOPRIO_TYPE, PRIO_BALANCED);
-	setDefault(AUTOPRIO_INTERVAL, 10);
-	setDefault(AUTOSEARCH_EXPIRE_DAYS, 5);
+
 	setDefault(WTB_IMAGE_SIZE, 16);
 	setDefault(SHOW_TBSTATUS, true);
-
 	setDefault(TB_PROGRESS_FONT, "Arial,-11,400,0");
 	setDefault(LOCK_TB, false);
 	setDefault(POPUNDER_PARTIAL_LIST, false);
-	setDefault(TLS_MODE, 1);
 	setDefault(LAST_SEARCH_DISABLED_HUBS, Util::emptyString);
-	setDefault(UPDATE_METHOD, 2);
 	setDefault(QUEUE_SPLITTER_POS, 750);
-	setDefault(UPDATE_IP_HOURLY, false);
 	setDefault(POPUNDER_TEXT, false);
-	setDefault(FULL_LIST_DL_LIMIT, 30000);
 	setDefault(SEARCH_SAVE_HUBS_STATE, false);
 	setDefault(CONFIRM_HUB_CLOSING, true);
 	setDefault(CONFIRM_AS_REMOVAL, true);
-	setDefault(ENABLE_SUDP, false);
-	setDefault(NMDC_MAGNET_WARN, true);
-	setDefault(AUTO_COMPLETE_BUNDLES, false);
-	setDefault(LOG_SCHEDULED_REFRESHES, true);
-	setDefault(AUTO_DETECTION_USE_LIMITED, true);
-	setDefault(AS_DELAY_HOURS, 12);
-	setDefault(LAST_LIST_PROFILE, 0);
-	setDefault(SHOW_CHAT_NOTIFY, false);
+
 	setDefault(FAV_USERS_SPLITTER_POS, 7500);
-	setDefault(AWAY_IDLE_TIME, 5);
-	setDefault(FREE_SPACE_WARN, true);
 	setDefault(FAV_USERS_SHOW_INFO, true);
 	setDefault(USERS_FILTER_FAVORITE, false);
 	setDefault(USERS_FILTER_QUEUE, false);
 	setDefault(USERS_FILTER_ONLINE, false);
 
-	setDefault(HISTORY_SEARCH_MAX, 10);
-	setDefault(HISTORY_EXCLUDE_MAX, 10);
-	setDefault(HISTORY_DIR_MAX, 10);
-
-	setDefault(HISTORY_SEARCH_CLEAR, false);
-	setDefault(HISTORY_EXCLUDE_CLEAR, false);
-	setDefault(HISTORY_DIR_CLEAR, false);
 	setDefault(AUTOSEARCH_BOLD, true);
 	setDefault(LIST_VIEW_FONT, "");
 	setDefault(SHOW_EMOTICON, true);
@@ -828,52 +972,9 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(SHOW_MAGNET, true);
 	setDefault(SHOW_SEND_MESSAGE, true);
 
-	//set depending on the cpu count
-	setDefault(MAX_HASHING_THREADS, std::thread::hardware_concurrency());
-
-	setDefault(HASHERS_PER_VOLUME, 1);
-
-	setDefault(MIN_DUPE_CHECK_SIZE, 512);
 	setDefault(WARN_ELEVATED, true);
-	setDefault(SKIP_EMPTY_DIRS_SHARE, true);
-
-	setDefault(LOG_SHARE_SCANS, false);
-	setDefault(LOG_SHARE_SCAN_PATH, "Scan Results" + string(PATH_SEPARATOR_STR) + "Scan %Y-%m-%d %H:%M.log");
-
 	setDefault(LAST_FL_FILETYPE, "0");
-
-	setDefault(DB_CACHE_SIZE, 8);
-	setDefault(CUR_REMOVED_TREES, 0);
-	setDefault(CUR_REMOVED_FILES, 0);
-
-	setDefault(DL_AUTO_DISCONNECT_MODE, QUEUE_FILE);
-	setDefault(REFRESH_THREADING, MULTITHREAD_MANUAL);
-
-	setDefault(REMOVE_EXPIRED_AS, false);
-
-	setDefault(PM_LOG_GROUP_CID, true);
-	setDefault(SHARE_FOLLOW_SYMLINKS, true);
-	setDefault(SCAN_MONITORED_FOLDERS, true);
-	setDefault(AS_FAILED_DEFAULT_GROUP, "Failed Bundles");
-
-#ifdef _WIN32
-	setDefault(MONITORING_MODE, MONITORING_ALL);
-#else
-	// TODO: implement monitoring
-	setDefault(MONITORING_MODE, MONITORING_DISABLED);
-#endif
-
-	setDefault(MONITORING_DELAY, 30);
-	setDefault(DELAY_COUNT_MODE, DELAY_VOLUME);
-
 	setDefault(CONFIRM_FILE_DELETIONS, true);
-	setDefault(USE_DEFAULT_CERT_PATHS, true);
-
-	setDefault(MAX_RUNNING_BUNDLES, 0);
-	setDefault(DEFAULT_SP, 0);
-	setDefault(STARTUP_REFRESH, true);
-	setDefault(FL_REPORT_FILE_DUPES, true);
-	setDefault(DATE_FORMAT, "%Y-%m-%d %H:%M");
 	setDefault(SEARCH_ASCH_ONLY, false);
 
 	setDefault(FILTER_FL_SHARED, true);
@@ -894,36 +995,14 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(FILTER_QUEUE_TOP, true);
 	setDefault(FILTER_QUEUE_RESET_CHANGE, true);
 
-	setDefault(UPDATE_CHANNEL, VERSION_STABLE);
 	setDefault(CLOSE_USE_MINIMIZE, false);
-	setDefault(LOG_IGNORED, true);
 	setDefault(USERS_FILTER_IGNORE, false);
 	setDefault(NFO_EXTERNAL, false);
 	setDefault(SINGLE_CLICK_TRAY, false);
 	setDefault(QUEUE_SHOW_FINISHED, true);
 	setDefault(PROGRESS_LIGHTEN, 25);
-	setDefault(REMOVE_FINISHED_BUNDLES, false);
-	setDefault(LOG_CRC_OK, false);
-	setDefault(ALWAYS_CCPM, false);
 	setDefault(AUTOSEARCHFRAME_VISIBLE, "1,1,1,1,1,1,1,1,1,1,1");
 	setDefault(SAVE_LAST_STATE, true);
-
-	setDefault(MAX_RECENT_HUBS, 30);
-	setDefault(MAX_RECENT_PRIVATE_CHATS, 15);
-	setDefault(MAX_RECENT_FILELISTS, 15);
-
-
-	// not in GUI
-	setDefault(USE_UPLOAD_BUNDLES, true);
-	setDefault(CONFIG_BUILD_NUMBER, 2029);
-
-	setDefault(PM_MESSAGE_CACHE, 20); // Just so that we won't lose messages while the tab is being created
-	setDefault(HUB_MESSAGE_CACHE, 0);
-	setDefault(LOG_MESSAGE_CACHE, 100);
-#ifdef _WIN32
-	setDefault(NMDC_ENCODING, Text::systemCharset);
-#else
-	setDefault(NMDC_ENCODING, "CP1252");
 #endif
 }
 
@@ -951,7 +1030,7 @@ string SettingsManager::getProfileName(int profile) const noexcept {
 	}
 }
 
-void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> messageF) noexcept {
+void SettingsManager::load(StartupLoader& aLoader) noexcept {
 	auto fileLoaded = loadSettingFile(CONFIG_DIR, CONFIG_NAME, [this](SimpleXML& xml) {
 		if (xml.findChild("DCPlusPlus")) {
 			xml.stepIn();
@@ -1018,42 +1097,6 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 				xml.resetCurrentChild();
 			}
 
-			if (xml.findChild("FileEvents")) {
-				xml.stepIn();
-				if (xml.findChild("OnFileComplete")) {
-					StringPair sp;
-					sp.first = xml.getChildAttrib("Command");
-					sp.second = xml.getChildAttrib("CommandLine");
-					fileEvents[ON_FILE_COMPLETE] = sp;
-				}
-				xml.resetCurrentChild();
-				if (xml.findChild("OnDirCreated")) {
-					StringPair sp;
-					sp.first = xml.getChildAttrib("Command");
-					sp.second = xml.getChildAttrib("CommandLine");
-					fileEvents[ON_DIR_CREATED] = sp;
-				}
-				xml.stepOut();
-			}
-			xml.resetCurrentChild();
-
-#ifdef _WIN32
-			auto prevVersion = Util::toDouble(SETTING(CONFIG_VERSION));
-			//auto prevBuild = SETTING(CONFIG_BUILD_NUMBER);
-
-			if (prevVersion <= 2.50 && SETTING(MONITORING_MODE) != MONITORING_DISABLED) {
-				set(MONITORING_MODE, MONITORING_ALL);
-				set(INCOMING_REFRESH_TIME, 0);
-				set(AUTO_REFRESH_TIME, 0);
-			}
-
-			if (prevVersion < 2.70) {
-				unsetKey(SEARCHFRAME_ORDER);
-				unsetKey(SEARCHFRAME_WIDTHS);
-				unsetKey(SEARCHFRAME_VISIBLE);
-			}
-#endif
-
 			fire(SettingsManagerListener::Load(), xml);
 
 			xml.stepOut();
@@ -1072,8 +1115,8 @@ void SettingsManager::load(function<bool (const string& /*Message*/, bool /*isQu
 	auto checkBind = [&] (SettingsManager::StrSetting aSetting, bool v6) {
 		if (!isDefault(aSetting)) {
 			auto adapters = AirUtil::getNetworkAdapters(v6);
-			auto p = boost::find_if(adapters, [this, aSetting](const AirUtil::AdapterInfo& aInfo) { return aInfo.ip == get(aSetting); });
-			if (p == adapters.end() && messageF(STRING_F(BIND_ADDRESS_MISSING, (v6 ? "IPv6" : "IPv4") % get(aSetting)), true, false)) {
+			auto p = boost::find_if(adapters, [this, aSetting](const AdapterInfo& aInfo) { return aInfo.ip == get(aSetting); });
+			if (p == adapters.end() && aLoader.messageF(STRING_F(BIND_ADDRESS_MISSING, (v6 ? "IPv6" : "IPv4") % get(aSetting)), true, false)) {
 				unsetKey(aSetting);
 			}
 		}
@@ -1178,8 +1221,10 @@ void SettingsManager::set(IntSetting key, int value, bool aForceSet) noexcept {
 		value = 5;
 	} else if (key == MINIMUM_SEARCH_INTERVAL && value < 5) {
 		value = 5;
+#ifdef HAVE_GUI
 	} else if (key == MAX_RESIZE_LINES && value < 1) {
 		value = 1;
+#endif
 	}
 
 	intSettings[key - INT_FIRST] = value;
@@ -1239,6 +1284,9 @@ void SettingsManager::save() noexcept {
 		if (i == CONFIG_VERSION) {
 			xml.addTag(settingTags[i], VERSIONSTRING);
 			xml.addChildAttrib(type, curType);
+		} else if (i == CONFIG_APP) {
+			xml.addTag(settingTags[i], APPID);
+			xml.addChildAttrib(type, curType);
 		} else if(isSet[i]) {
 			xml.addTag(settingTags[i], get(StrSetting(i), false));
 			xml.addChildAttrib(type, curType);
@@ -1289,17 +1337,6 @@ void SettingsManager::save() noexcept {
 		}
 	}
 
-	xml.addTag("FileEvents");
-	xml.stepIn();
-	xml.addTag("OnFileComplete");
-	xml.addChildAttrib("Command", fileEvents[ON_FILE_COMPLETE].first);
-	xml.addChildAttrib("CommandLine", fileEvents[ON_FILE_COMPLETE].second);
-	xml.addTag("OnDirCreated");
-	xml.addChildAttrib("Command", fileEvents[ON_DIR_CREATED].first);
-	xml.addChildAttrib("CommandLine", fileEvents[ON_DIR_CREATED].second);
-	xml.stepOut();
-
-
 	fire(SettingsManagerListener::Save(), xml);
 	saveSettingFile(xml, CONFIG_DIR, CONFIG_NAME);
 }
@@ -1324,10 +1361,63 @@ HubSettings SettingsManager::getHubSettings() const noexcept {
 
 void settingXmlMessage(const string& aMessage, LogMessage::Severity aSeverity, const SettingsManager::CustomReportF& aCustomErrorF) noexcept {
 	if (!aCustomErrorF) {
-		LogManager::getInstance()->message(aMessage, aSeverity);
+		LogManager::getInstance()->message(aMessage, aSeverity, STRING(SETTINGS));
 	} else {
 		aCustomErrorF(aMessage);
 	}
+}
+
+string SettingsManager::buildToolbarOrder(const vector<ToolbarIconEnum>& aIcons) noexcept {
+	string ret;
+	for (const auto& i: aIcons) {
+		if (!ret.empty()) {
+			ret += ',';
+		}
+
+		ret += Util::toString(static_cast<int>(i));
+	}
+
+	return ret;
+}
+
+vector<ToolbarIconEnum> SettingsManager::getDefaultToolbarOrder() noexcept {
+	return vector<ToolbarIconEnum>({
+		ToolbarIconEnum::PUBLIC_HUBS,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::RECONNECT,
+		ToolbarIconEnum::FOLLOW_REDIRECT,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::FAVORITE_HUBS,
+		ToolbarIconEnum::USERS,
+		ToolbarIconEnum::RECENT_HUBS,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::QUEUE,
+		ToolbarIconEnum::UPLOAD_QUEUE,
+		ToolbarIconEnum::FINISHED_UPLOADS,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::SEARCH,
+		ToolbarIconEnum::ADL_SEARCH,
+		ToolbarIconEnum::AUTO_SEARCH,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::NOTEPAD,
+		ToolbarIconEnum::SYSTEM_LOG,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::REFRESH_FILELIST,
+		ToolbarIconEnum::EXTENSIONS,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::OPEN_FILELIST,
+		ToolbarIconEnum::OPEN_DOWNLOADS,
+		ToolbarIconEnum::DIVIDER,
+
+		ToolbarIconEnum::SETTINGS
+	});
 }
 
 bool SettingsManager::loadSettingFile(Util::Paths aPath, const string& aFileName, ParseCallback&& aParseCallback, const CustomReportF& aCustomReportF) noexcept {

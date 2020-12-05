@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -34,28 +34,34 @@ namespace webserver {
 
 	class Extension : public Speaker<ExtensionListener> {
 	public:
-		typedef std::function<void(Extension*, uint32_t /*exitCode*/)> ErrorF;
+		typedef std::function<void(const Extension*, uint32_t /*exitCode*/)> ErrorF;
 
+		// Managed extension
 		// Throws on errors
 		Extension(const string& aPackageDirectory, ErrorF&& aErrorF, bool aSkipPathValidation = false);
+
+		// Unmanaged extension
+		// Throws on errors
 		Extension(const SessionPtr& aSession, const json& aPackageJson);
 
 		~Extension();
 
 		// Reload package.json from the supplied path
 		// Throws on errors
-		void reload();
+		void reloadThrow();
 
 		// Throws on errors
-		void start(const string& aEngine, WebServerManager* wsm);
+		void startThrow(const string& aEngine, WebServerManager* wsm);
 
 		// Stop the extension and wait until it's not running anymore
 		// Returns false if the process couldn't be stopped
-		bool stop() noexcept;
+		void stopThrow();
 
 		// Check that the extension is compatible with the current API
 		// Throws on errors
-		void checkCompatibility();
+		void checkCompatibilityThrow();
+
+#define EXT_ENGINE_NODE "node"
 
 #define EXT_PACKAGE_DIR "package"
 #define EXT_CONFIG_DIR "settings"
@@ -76,6 +82,8 @@ namespace webserver {
 		GETSET(string, version, Version);
 		GETSET(string, author, Author);
 		GETSET(string, homepage, Homepage);
+		IGETSET(bool, signalReady, SignalReady, false);
+		IGETSET(bool, ready, Ready, false);
 		GETSET(StringList, engines, Engines);
 
 		bool isRunning() const noexcept {
@@ -94,13 +102,15 @@ namespace webserver {
 		ExtensionSettingItem::List getSettings() const noexcept;
 		ExtensionSettingItem* getSetting(const string& aKey) noexcept;
 		void resetSettings() noexcept;
+		void resetSession() noexcept;
 
 		typedef map<string, json> SettingValueMap;
-		void setSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences);
+
+		// Values and keys should have been validated earlier
+		void setValidatedSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences) noexcept;
 		SettingValueMap getSettingValues() noexcept;
 
-		// Throws on errors
-		void swapSettingDefinitions(ExtensionSettingItem::List& aDefinitions);
+		void swapSettingDefinitions(ExtensionSettingItem::List& aDefinitions) noexcept;
 
 		FilesystemItemList getLogs() const noexcept;
 	private:
@@ -109,7 +119,7 @@ namespace webserver {
 
 		// Reload package.json from the supplied path
 		// Throws on errors
-		void initialize(const string& aPackageDirectory, bool aSkipPathValidation);
+		void initializeThrow(const string& aPackageDirectory, bool aSkipPathValidation);
 
 		static SharedMutex cs;
 		ExtensionSettingItem::List settings;
@@ -119,10 +129,10 @@ namespace webserver {
 
 		// Load package JSON
 		// Throws on errors
-		void initialize(const json& aJson);
+		void initializeThrow(const json& aJson);
 
 		// Parse airdcpp-specific package.json fields
-		void parseApiData(const json& aJson);
+		void parseApiDataThrow(const json& aJson);
 
 		const bool managed;
 		bool privateExtension = false;
@@ -135,7 +145,7 @@ namespace webserver {
 		bool running = false;
 
 		// Throws on errors
-		void createProcess(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession);
+		void createProcessThrow(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession);
 
 		const ErrorF errorF;
 		SessionPtr session = nullptr;
@@ -145,8 +155,10 @@ namespace webserver {
 		void onStopped(bool aFailed) noexcept;
 		TimerPtr timer = nullptr;
 
-		bool terminateProcess() noexcept;
+		void terminateProcessThrow();
 		void resetProcessState() noexcept;
+
+		static void rotateLog(const string& aPath);
 #ifdef _WIN32
 		static void initLog(HANDLE& aHandle, const string& aPath);
 		static void disableLogInheritance(HANDLE& aHandle);

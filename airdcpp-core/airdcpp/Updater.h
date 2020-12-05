@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2019 AirDC++ Project
+ * Copyright (C) 2012-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,12 +19,13 @@
 #ifndef DCPLUSPLUS_DCPP_UPDATER_H
 #define DCPLUSPLUS_DCPP_UPDATER_H
 
-#include "HttpDownload.h"
+#include "Message.h"
 
 namespace dcpp {
 
 class File;
 class FileException;
+struct HttpDownload;
 class UpdateManager;
 class ZipFileException;
 
@@ -32,12 +33,15 @@ class ZipFileException;
 
 class Updater {
 
-#define UPDATE_TEMP_DIR Util::getTempPath() + "Updater" + PATH_SEPARATOR_STR
-#define UPDATE_TEMP_LOG Util::getTempPath() + "airdcpp_updater.log"
+#define UPDATE_TEMP_DIR Util::getPath(Util::PATH_TEMP) + "Updater" + PATH_SEPARATOR_STR
+#define UPDATE_TEMP_LOG Util::getPath(Util::PATH_TEMP) + "airdcpp_updater.log"
+#define UPDATE_FINAL_LOG Util::getPath(Util::PATH_USER_LOCAL) + "updater.log"
 
 //#define FORCE_UPDATE
 
 public:
+	typedef std::function<void(StringPairList& files_, const string& aUpdateFilePath)> FileListF;
+
 	class FileLogger {
 	public:
 		FileLogger(const string& aPath, bool aResetFile);
@@ -53,7 +57,7 @@ public:
 
 	// Create an updater zip file from the current application (it must be in the default "compiled" path)
 	// Returns the path of the created updater file
-	static string createUpdate() noexcept;
+	static string createUpdate(const FileListF& aFileListF) noexcept;
 
 	// Returns true if there are pending updates available for this instance
 	// This will also remove obsolate updater directories for this instance
@@ -79,6 +83,8 @@ public:
 	// Returns the path of the extracted updater executable
 	// Throws FileException, ZipFileException
 	static string extractUpdater(const string& aUpdaterPath, int aBuildID, const string& aSessionToken);
+
+	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 private:
 	// Copy files recursively from the temp directory to application directory
 	static bool applyUpdaterFiles(const string& aCurTempPath, const string& aCurDestinationPath, string& error_, StringSet& updatedFiles_, FileLogger& aLogger) noexcept;

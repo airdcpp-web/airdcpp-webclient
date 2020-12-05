@@ -24,6 +24,7 @@
 #include <airdcpp/ActivityManager.h>
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/DirectoryListing.h>
 #include <airdcpp/DirectoryListingManager.h>
 #include <airdcpp/FavoriteManager.h>
 #include <airdcpp/LogManager.h>
@@ -85,30 +86,47 @@ void webErrorF(const string& aError) {
 	printf("%s\n", aError.c_str());
 };
 
+bool messageF(const string& aStr, bool isQuestion, bool isError) {
+	printf("%s\n", aStr.c_str());
+	return true;
+}
+
+void stepF(const string& aStr) {
+	printf("Loading %s\n", aStr.c_str());
+}
+
+void progressF(float aProgress) {
+	// Not implemented
+}
+
 bool Client::startup() {
 	webserver::WebServerManager::newInstance();
-	if (!webserver::WebServerManager::getInstance()->load(webErrorF)) {
+
+	auto wsm = webserver::WebServerManager::getInstance();
+	if (!wsm->load(webErrorF) || !wsm->hasUsers()) {
 		webserver::WebServerManager::deleteInstance();
 		printf("%s\n", "No valid configuration found. Run the application with --configure parameter to set up initial configuration.");
 		return false;
 	}
 
+	bool serverStarted = false;
 	dcpp::startup(
-		[&](const string& aStr) { printf("Loading %s\n", aStr.c_str()); },
-		[&](const string& aStr, bool isQuestion, bool isError) {
-				printf("%s\n", aStr.c_str());
-				return true;
-		},
-		nullptr,
-		[&](float aProgress) {}
-	);
+		stepF,
+		messageF,
+		nullptr, // wizard
+		progressF,
+		nullptr, // module init
+		[&](StartupLoader& aLoader) { // module load
+			auto webResources = Util::getStartupParam("--web-resources");
+			aLoader.stepF(STRING(WEB_SERVER));
+			serverStarted = wsm->startup(
+				webErrorF,
+				webResources ? *webResources : "",
+				[this]() { stop(); }
+			);
 
-	auto webResources = Util::getStartupParam("--web-resources");
-	printf("Starting web server");
-	auto serverStarted = webserver::WebServerManager::getInstance()->startup(
-		webErrorF, 
-		webResources ? *webResources : "",
-		[this]() { stop(); }
+			wsm->waitExtensionsLoaded();
+		}
 	);
 
 	if (!serverStarted) {
@@ -143,9 +161,18 @@ bool Client::startup() {
 	return true;
 }
 
-void Client::shutdown() {
-	webserver::WebServerManager::getInstance()->stop();
 
+void unloadModules(StepF& aStepF, ProgressF&) {
+	aStepF("Stopping web server");
+	webserver::WebServerManager::getInstance()->stop();
+	webserver::WebServerManager::getInstance()->save(webErrorF);
+}
+
+void destroyModules() {
+	webserver::WebServerManager::deleteInstance();
+}
+
+void Client::shutdown() {
 	cdmDebug.reset(nullptr);
 
 	ClientManager::getInstance()->putClients();
@@ -156,11 +183,10 @@ void Client::shutdown() {
 
 	dcpp::shutdown(
 			[](const string& aStr) { printf("%s\n", aStr.c_str()); },
-			[](float aProgress) {}
+			progressF,
+			unloadModules,
+			destroyModules
 	);
-
-	webserver::WebServerManager::getInstance()->save(webErrorF);
-	webserver::WebServerManager::deleteInstance();
 }
 
 void Client::on(DirectoryListingManagerListener::OpenListing, const DirectoryListingPtr& aList, const string& aDir, const string& aXML) noexcept {

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -44,11 +44,11 @@
 namespace webserver {
 	using namespace dcpp;
 	WebServerManager::WebServerManager() : 
-		ios(settings.getValue(WebServerSettings::SERVER_THREADS).getDefaultValue()),
-		tasks(settings.getValue(WebServerSettings::SERVER_THREADS).getDefaultValue()),
+		ios(settings.getSettingItem(WebServerSettings::SERVER_THREADS).getDefaultValue()),
+		tasks(settings.getSettingItem(WebServerSettings::SERVER_THREADS).getDefaultValue()),
 		work(tasks),
-		plainServerConfig(settings.getValue(WebServerSettings::PLAIN_PORT), settings.getValue(WebServerSettings::PLAIN_BIND)),
-		tlsServerConfig(settings.getValue(WebServerSettings::TLS_PORT), settings.getValue(WebServerSettings::TLS_BIND))
+		plainServerConfig(settings.getSettingItem(WebServerSettings::PLAIN_PORT), settings.getSettingItem(WebServerSettings::PLAIN_BIND)),
+		tlsServerConfig(settings.getSettingItem(WebServerSettings::TLS_PORT), settings.getSettingItem(WebServerSettings::TLS_BIND))
 	{
 
 		fileServer.setResourcePath(Util::getPath(Util::PATH_RESOURCES) + "web-resources" + PATH_SEPARATOR);
@@ -68,7 +68,7 @@ namespace webserver {
 		userManager.reset();
 	}
 
-	string WebServerManager::getConfigPath() const noexcept {
+	string WebServerManager::getConfigFilePath() const noexcept {
 		return Util::getPath(CONFIG_DIR) + CONFIG_NAME;
 	}
 
@@ -116,20 +116,11 @@ namespace webserver {
 		aEndpoint.get_elog().set_ostream(&aStream);
 	}
 
+
 	template<class T>
-	void setEndpointHandlers(T& aEndpoint, bool aIsSecure, WebServerManager* aServer) {
-		aEndpoint.set_http_handler(
-			std::bind(&WebServerManager::handleHttpRequest<T>, aServer, &aEndpoint, _1, aIsSecure));
-		aEndpoint.set_message_handler(
-			std::bind(&WebServerManager::handleSocketMessage<T>, aServer, &aEndpoint, _1, _2, aIsSecure));
-
-		aEndpoint.set_close_handler(std::bind(&WebServerManager::handleSocketDisconnected, aServer, _1));
-		aEndpoint.set_open_handler(std::bind(&WebServerManager::handleSocketConnected<T>, aServer, &aEndpoint, _1, aIsSecure));
-
+	void setEndpointOptions(T& aEndpoint) {
 		aEndpoint.set_open_handshake_timeout(HANDSHAKE_TIMEOUT);
-
 		aEndpoint.set_pong_timeout(WEBCFG(PING_TIMEOUT).num() * 1000);
-		aEndpoint.set_pong_timeout_handler(std::bind(&WebServerManager::handlePongTimeout, aServer, _1, _2));
 
 		// Workaround for https://github.com/zaphoyd/websocketpp/issues/549
 		aEndpoint.set_listen_backlog(boost::asio::socket_base::max_connections);
@@ -145,7 +136,7 @@ namespace webserver {
 	}
 
 	bool WebServerManager::start(const ErrorF& errorF) {
-		if (!hasValidConfig()) {
+		if (!hasValidServerConfig()) {
 			return false;
 		}
 
@@ -155,7 +146,13 @@ namespace webserver {
 			has_io_service = initialize(errorF);
 		}
 
-		return listen(errorF);
+		if (!listen(errorF)) {
+			// Stop possible running ios services
+			stop();
+			return false;
+		}
+
+		return true;
 	}
 
 	bool WebServerManager::initialize(const ErrorF& errorF) {
@@ -179,6 +176,10 @@ namespace webserver {
 		// Handlers
 		setEndpointHandlers(endpoint_plain, false, this);
 		setEndpointHandlers(endpoint_tls, true, this);
+
+		// Misc options
+		setEndpointOptions(endpoint_plain);
+		setEndpointOptions(endpoint_tls);
 
 		// TLS endpoint has an extra handler for the tls init
 		endpoint_tls.set_tls_init_handler(std::bind(&WebServerManager::handleInitTls, this, _1));
@@ -209,7 +210,11 @@ namespace webserver {
 			return false;
 		}
 
+		// Keep reuse disabled on Windows to avoid hiding errors when multiple instances are being run with the same ports
+#ifndef _WIN32
+		// https://github.com/airdcpp-web/airdcpp-webclient/issues/39
 		aEndpoint.set_reuse_addr(true);
+#endif
 		try {
 			const auto bindAddress = aConfig.bindAddress.str();
 			if (!bindAddress.empty()) {
@@ -384,7 +389,7 @@ namespace webserver {
 		}
 	}
 
-	void WebServerManager::stop() {
+	void WebServerManager::stop() noexcept {
 		fileServer.stop();
 
 		if (minuteTimer)
@@ -399,21 +404,17 @@ namespace webserver {
 		if(endpoint_tls.is_listening())
 			endpoint_tls.stop_listening();
 
-		disconnectSockets("Shutting down");
-
-		bool hasSockets = false;
+		disconnectSockets(STRING(WEB_SERVER_SHUTTING_DOWN));
 
 		for (;;) {
 			{
 				RLock l(cs);
-				hasSockets = !sockets.empty();
+				if (sockets.empty()) {
+					break;
+				}
 			}
 
-			if (hasSockets) {
-				Thread::sleep(50);
-			} else {
-				break;
-			}
+			Thread::sleep(50);
 		}
 
 		ios.stop();
@@ -462,7 +463,15 @@ namespace webserver {
 	}
 
 	void WebServerManager::handleSocketDisconnected(websocketpp::connection_hdl hdl) {
-		WebSocketPtr socket = nullptr;
+		WebSocketPtr socket = getSocket(hdl);
+		if (!socket) {
+			dcassert(0);
+			return;
+		}
+
+		// Process all listener events before removing the socket from the list to avoid issues on shutdown
+		dcdebug("Socket disconnected: %s\n", socket->getSession() ? socket->getSession()->getAuthToken().c_str() : "(no session)");
+		fire(WebServerManagerListener::SocketDisconnected(), socket);
 
 		{
 			WLock l(cs);
@@ -472,12 +481,10 @@ namespace webserver {
 				return;
 			}
 
-			socket = s->second;
 			sockets.erase(s);
 		}
 
-		dcdebug("Socket disconnected: %s\n", socket->getSession() ? socket->getSession()->getAuthToken().c_str() : "(no session)");
-		fire(WebServerManagerListener::SocketDisconnected(), socket);
+		dcassert(socket.use_count() == 1);
 	}
 
 	void WebServerManager::log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
@@ -486,13 +493,57 @@ namespace webserver {
 			return;
 		}
 
-		LogManager::getInstance()->message(aMsg, aSeverity);
+		LogManager::getInstance()->message(aMsg, aSeverity, STRING(WEB_SERVER));
 	}
 
 	WebServerManager::ErrorF WebServerManager::getDefaultErrorLogger() const noexcept {
 		return [this](const string& aMessage) {
 			log(aMessage, LogMessage::SEV_ERROR);
 		};
+	}
+
+	string WebServerManager::getLocalServerHttpUrl() noexcept {
+		bool isPlain = isListeningPlain();
+		decltype(auto) config = isPlain ? plainServerConfig : tlsServerConfig;
+		return (isPlain ? "http://" : "https://") + getLocalServerAddress(config);
+	}
+
+	bool WebServerManager::isAnyAddress(const string& aAddress) noexcept {
+		if (aAddress.empty()) {
+			return true;
+		}
+
+		try {
+#if BOOST_VERSION >= 106600
+			auto ip = boost::asio::ip::make_address(aAddress);
+#else
+			auto ip = boost::asio::ip::address::from_string(aAddress);
+#endif
+			if (ip == boost::asio::ip::address_v4::any() || ip == boost::asio::ip::address_v6::any()) {
+				return true;
+			}
+		} catch (...) {
+			return true;
+		}
+
+		return false;
+	}
+
+	string WebServerManager::getLocalServerAddress(const ServerConfig& aConfig) noexcept {
+		auto bindAddress = aConfig.bindAddress.str();
+		if (isAnyAddress(bindAddress)) {
+			websocketpp::lib::asio::error_code ec;
+			auto isV6 = endpoint_plain.get_local_endpoint(ec).protocol().family() == AF_INET6;
+			if (ec) {
+				dcassert(0);
+			}
+
+			bindAddress = isV6 ? "[::1]" : "127.0.0.1";
+		} else {
+			bindAddress = resolveAddress(bindAddress, aConfig.port.str());
+		}
+
+		return bindAddress + ":" + Util::toString(aConfig.port.num());
 	}
 
 	string WebServerManager::resolveAddress(const string& aHostname, const string& aPort) noexcept {
@@ -515,8 +566,16 @@ namespace webserver {
 		return ret;
 	}
 
-	bool WebServerManager::hasValidConfig() const noexcept {
-		return (plainServerConfig.hasValidConfig() || tlsServerConfig.hasValidConfig()) && userManager->hasUsers();
+	bool WebServerManager::hasValidServerConfig() const noexcept {
+		return plainServerConfig.hasValidConfig() || tlsServerConfig.hasValidConfig();
+	}
+
+	bool WebServerManager::hasUsers() const noexcept {
+		return userManager->hasUsers();
+	}
+
+	bool WebServerManager::waitExtensionsLoaded() const noexcept {
+		return extManager->waitLoaded();
 	}
 
 	bool WebServerManager::load(const ErrorF& aErrorF) noexcept {
@@ -552,12 +611,17 @@ namespace webserver {
 			}
 		}, aErrorF);
 
-		return hasValidConfig();
+		return hasValidServerConfig();
 	}
 
 	void WebServerManager::loadServer(SimpleXML& aXml, const string& aTagName, ServerConfig& config_, bool aTls) noexcept {
 		if (aXml.findChild(aTagName)) {
-			config_.port.setValue(aXml.getIntChildAttrib("Port"));
+			// getChildIntAttrib returns 0 also for non-existing attributes, get as string instead...
+			const auto port = aXml.getChildAttrib("Port");
+			if (!port.empty()) {
+				config_.port.setValue(Util::toInt(port));
+			}
+
 			config_.bindAddress.setValue(aXml.getChildAttrib("BindAddress"));
 
 			if (aTls) {
@@ -590,8 +654,13 @@ namespace webserver {
 			plainServerConfig.save(xml, "Server");
 
 			tlsServerConfig.save(xml, "TLSServer");
-			xml.addChildAttrib("Certificate", WEBCFG(TLS_CERT_PATH).str());
-			xml.addChildAttrib("CertificateKey", WEBCFG(TLS_CERT_KEY_PATH).str());
+			if (!WEBCFG(TLS_CERT_PATH).isDefault()) {
+				xml.addChildAttrib("Certificate", WEBCFG(TLS_CERT_PATH).str());
+			}
+
+			if (!WEBCFG(TLS_CERT_KEY_PATH).isDefault()) {
+				xml.addChildAttrib("CertificateKey", WEBCFG(TLS_CERT_KEY_PATH).str());
+			}
 
 			if (!WEBCFG(SERVER_THREADS).isDefault()) {
 				xml.addTag("Threads");
@@ -631,9 +700,12 @@ namespace webserver {
 
 	void ServerConfig::save(SimpleXML& xml_, const string& aTagName) noexcept {
 		xml_.addTag(aTagName);
-		xml_.addChildAttrib("Port", port.num());
 
-		if (!bindAddress.str().empty()) {
+		if (!port.isDefault()) {
+			xml_.addChildAttrib("Port", port.num());
+		}
+
+		if (!bindAddress.isDefault()) {
 			xml_.addChildAttrib("BindAddress", bindAddress.str());
 		}
 	}

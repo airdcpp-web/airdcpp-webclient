@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2019 AirDC++ Project
+ * Copyright (C) 2012-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 
 #include "File.h"
 #include "HashCalc.h"
+#include "HttpDownload.h"
 #include "LogManager.h"
 #include "ScopedFunctor.h"
 #include "SimpleXML.h"
@@ -49,7 +50,13 @@
 # define UPGRADE_TAG "UpdateURL"
 #endif
 
+#define UPDATER_LOCATION_BASE "https://builds.airdcpp.net/updater/"
+
 namespace dcpp {
+
+void Updater::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
+	LogManager::getInstance()->message(aMsg, aSeverity, STRING(UPDATER));
+}
 
 int Updater::cleanExtraFiles(const string& aCurPath, const optional<StringSet>& aProtectedFiles) noexcept {
 	int deletedFiles = 0;
@@ -214,22 +221,19 @@ bool Updater::applyUpdate(const string& aSourcePath, const string& aApplicationP
 	return true;
 }
 
-string Updater::createUpdate() noexcept {
+string Updater::createUpdate(const FileListF& aFileListF) noexcept {
 	auto updaterFilePath = Util::getParentDir(Util::getAppPath());
 	string updaterFile = "updater_" ARCH_STR "_" + VERSIONSTRING + ".zip";
 
-	StringPairList files;
-	ZipFile::CreateZipFileList(files, Util::getAppFilePath(), Util::emptyString, "^(AirDC.exe|AirDC.pdb)$");
+	// Create zip
+	{
+		StringPairList files;
 
-	//add the theme folder
-	auto installer = Util::getParentDir(updaterFilePath) + "installer" + PATH_SEPARATOR;
-	ZipFile::CreateZipFileList(files, installer, Util::emptyString, "^(Themes)$");
-	//Add the web-resources
-	ZipFile::CreateZipFileList(files, installer, Util::emptyString, "^(Web-resources)$");
-	ZipFile::CreateZipFileList(files, installer, Util::emptyString, "^(EmoPacks)$");
+		aFileListF(files, updaterFilePath);
+		ZipFile::CreateZipFile(updaterFilePath + updaterFile, files);
+	}
 
-	ZipFile::CreateZipFile(updaterFilePath + updaterFile, files);
-
+	// Update version file
 	try {
 		SimpleXML xml;
 		xml.fromXML(File(updaterFilePath + "version.xml", File::READ, File::OPEN).read());
@@ -247,7 +251,7 @@ string Updater::createUpdate() noexcept {
 					//xml.replaceChildAttrib("Commit", Util::toString(COMMIT_NUMBER));
 					xml.replaceChildAttrib("VersionString", VERSIONSTRING);
 					xml.stepIn();
-					xml.setData("https://builds.airdcpp.net/updater/" + updaterFile);
+					xml.setData(UPDATER_LOCATION_BASE + updaterFile);
 
 					// Replace the line endings to use Unix format (it would be converted by the hosting provider anyway, which breaks the signature)
 					auto content = SimpleXML::utf8Header;
@@ -388,7 +392,7 @@ void Updater::completeUpdateDownload(int aBuildID, bool aManualCheck) {
 		try {
 			auto updaterExeFile = extractUpdater(updaterFile, aBuildID, sessionToken);
 
-			LogManager::getInstance()->message(STRING(UPDATE_DOWNLOADED), LogMessage::SEV_INFO);
+			log(STRING(UPDATE_DOWNLOADED), LogMessage::SEV_INFO);
 			installedUpdate = aBuildID;
 
 			conn.reset(); //prevent problems when closing
@@ -412,7 +416,7 @@ string Updater::extractUpdater(const string& aUpdaterPath, int aBuildID, const s
 	if (zip.GoToFirstFile()) {
 		do {
 			zip.OpenCurrentFile();
-			if (zip.GetCurrentFileName().find(Util::getFileExt(updaterExeFile)) != string::npos) {
+			if (zip.GetCurrentFileName().find(Util::getFileExt(updaterExeFile)) != string::npos && zip.GetCurrentFileName().find('/') == string::npos) {
 				zip.ReadCurrentFile(updaterExeFile);
 			} else zip.ReadCurrentFile(srcPath);
 			zip.CloseCurrentFile();
@@ -483,7 +487,6 @@ bool Updater::checkPendingUpdates(const string& aAppPath, string& updaterFile_, 
 								auto removed = destroyDirectory(updateDirectory);
 								logger.log(Util::toString(removed) + " files were removed from the updater directory " + updateDirectory);
 								if (Util::fileExists(updateDirectory)) {
-									//AirUtil::removeD
 									logger.log("WARNING: update directory " + updateDirectory + " could not be removed");
 								}
 
@@ -501,7 +504,7 @@ bool Updater::checkPendingUpdates(const string& aAppPath, string& updaterFile_, 
 
 			}
 		} catch (const Exception& e) {
-			LogManager::getInstance()->message(STRING_F(FAILED_TO_READ, infoFilePath % e.getError()), LogMessage::SEV_WARNING);
+			log(STRING_F(FAILED_TO_READ, infoFilePath % e.getError()), LogMessage::SEV_WARNING);
 		}
 	}
 
@@ -511,10 +514,10 @@ bool Updater::checkPendingUpdates(const string& aAppPath, string& updaterFile_, 
 void Updater::failUpdateDownload(const string& aError, bool manualCheck) {
 	auto msg = STRING_F(UPDATING_FAILED, aError);
 	if (manualCheck) {
-		LogManager::getInstance()->message(msg, LogMessage::SEV_ERROR);
+		log(msg, LogMessage::SEV_ERROR);
 		um->fire(UpdateManagerListener::UpdateFailed(), msg);
 	} else {
-		LogManager::getInstance()->message(msg, LogMessage::SEV_WARNING);
+		log(msg, LogMessage::SEV_WARNING);
 	}
 }
 
@@ -591,7 +594,7 @@ bool Updater::onVersionDownloaded(SimpleXML& xml, bool aVerified, bool aManualCh
 			}
 			//fire(UpdateManagerListener::UpdateAvailable(), title, xml.getChildData(), Util::toString(remoteVer), url, true);
 		} else if (updateMethod == UPDATE_AUTO) {
-			LogManager::getInstance()->message(STRING_F(BACKGROUND_UPDATER_START, versionString), LogMessage::SEV_INFO);
+			log(STRING_F(BACKGROUND_UPDATER_START, versionString), LogMessage::SEV_INFO);
 			downloadUpdate(updateUrl, remoteBuild, aManualCheck);
 		}
 		xml.resetCurrentChild();
@@ -617,6 +620,7 @@ void Updater::downloadUpdate(const string& aUrl, int newBuildID, bool manualChec
 }
 
 bool Updater::getUpdateVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild) {
+	xml.resetCurrentChild();
 	while (xml.findChild("VersionInfo")) {
 		//the latest OS must come first
 		StringTokenizer<string> t(xml.getChildAttrib("MinOsVersion"), '.');

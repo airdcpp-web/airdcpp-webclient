@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -51,15 +51,16 @@ namespace webserver {
 		static json serializeLogs(const ExtensionPtr& aExtension) noexcept;
 		static json serializeExtension(const ExtensionPtr& aExtension) noexcept;
 	private:
-		void on(ExtensionListener::SettingValuesUpdated, const SettingValueMap& aUpdatedSettings) noexcept override;
-		void on(ExtensionListener::SettingDefinitionsUpdated) noexcept override;
+		void on(ExtensionListener::SettingValuesUpdated, const Extension*, const SettingValueMap& aUpdatedSettings) noexcept override;
+		void on(ExtensionListener::SettingDefinitionsUpdated, const Extension*) noexcept override;
 
-		void on(ExtensionListener::ExtensionStarted) noexcept override;
-		void on(ExtensionListener::ExtensionStopped, bool aFailed) noexcept override;
-		void on(ExtensionListener::PackageUpdated) noexcept override;
+		void on(ExtensionListener::ExtensionStarted, const Extension*) noexcept override;
+		void on(ExtensionListener::ExtensionStopped, const Extension*, bool aFailed) noexcept override;
+		void on(ExtensionListener::PackageUpdated, const Extension*) noexcept override;
 
 		api_return handleStartExtension(ApiRequest& aRequest);
 		api_return handleStopExtension(ApiRequest& aRequest);
+		api_return handleReady(ApiRequest& aRequest);
 
 		api_return handleGetSettingDefinitions(ApiRequest& aRequest);
 		api_return handlePostSettingDefinitions(ApiRequest& aRequest);

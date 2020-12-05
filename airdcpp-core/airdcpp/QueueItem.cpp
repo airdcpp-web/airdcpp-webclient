@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -714,6 +714,15 @@ bool QueueItem::isPausedPrio() const noexcept {
 
 bool QueueItem::usesSmallSlot() const noexcept {
 	return (isSet(FLAG_PARTIAL_LIST) || (size <= 65792 && !isSet(FLAG_USER_LIST) && isSet(FLAG_CLIENT_VIEW)));
+}
+
+
+string QueueItem::getTargetFileName() const noexcept {
+	return Util::getFileName(target); 
+}
+
+string QueueItem::getFilePath() const noexcept {
+	return Util::getFilePath(target); 
 }
 
 QueueItemPtr QueueItem::pickSearchItem(const QueueItemList& aItems) noexcept {

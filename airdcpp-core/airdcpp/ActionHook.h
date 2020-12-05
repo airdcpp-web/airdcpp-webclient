@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+* Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -200,7 +200,7 @@ namespace dcpp {
 				);
 
 				if (res.error) {
-					dcdebug("Hook rejected by handler %s: %s (%s)\n", res.error->hookId.c_str(), res.error->rejectId.c_str(), res.error->message.c_str());
+					dcdebug("Hook rejected by handler %s: %s\n", res.error->hookId.c_str(), res.error->rejectId.c_str());
 					return res.error;
 				}
 			}
@@ -271,7 +271,8 @@ namespace dcpp {
 				);
 
 				if (handlerRes.error) {
-					dcdebug("Hook rejected by handler %s: %s (%s)\n", handlerRes.error->hookId.c_str(), handlerRes.error->rejectId.c_str(), handlerRes.error->message.c_str());
+					dcdebug("Hook rejected by handler %s: %s\n", handlerRes.error->hookId.c_str(), handlerRes.error->rejectId.c_str());
+
 					if (aRejectHandler) {
 						aRejectHandler(handlerRes.error);
 					}

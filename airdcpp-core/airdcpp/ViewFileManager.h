@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,9 @@
 #include "ViewFileManagerListener.h"
 #include "ViewFile.h"
 
+#include "QueueAddInfo.h"
 #include "CriticalSection.h"
+#include "Message.h"
 #include "QueueManagerListener.h"
 #include "Singleton.h"
 #include "Speaker.h"
@@ -44,12 +46,12 @@ namespace dcpp {
 
 		// Adds the file and shows a notification in case of errors
 		// Can be used for viewing own files by TTH as well
-		ViewFilePtr addUserFileNotify(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText) noexcept;
+		ViewFilePtr addUserFileHookedNotify(const ViewedFileAddData& aFileInfo) noexcept;
 
 		// Adds the file and throws if there are errors
 		// Can be used for viewing own files by TTH as well
 		// Throws on errors (QueueException, FileException)
-		ViewFilePtr addUserFileThrow(const string& aFileName, int64_t aSize, const TTHValue& aTTH, const HintedUser& aUser, bool aIsText);
+		ViewFilePtr addUserFileHookedThrow(const ViewedFileAddData& aFileInfo);
 
 		// Add a file by real path
 		ViewFilePtr addLocalFileNotify(const TTHValue& aTTH, bool aIsText, const string& aFileName) noexcept;
@@ -59,6 +61,8 @@ namespace dcpp {
 
 		ViewFilePtr getFile(const TTHValue& aTTH) const noexcept;
 		bool setRead(const TTHValue& aTTH) noexcept;
+
+		static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 	private:
 		ViewFilePtr createFile(const string& aFileName, const string& aPath, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile) noexcept;
 		static bool isViewedItem(const QueueItemPtr& aQI) noexcept;

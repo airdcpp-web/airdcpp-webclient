@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@
 #include <airdcpp/Download.h>
 #include <airdcpp/Upload.h>
 
-#include <airdcpp/AirUtil.h>
 #include <airdcpp/DownloadManager.h>
 #include <airdcpp/ConnectionManager.h>
 #include <airdcpp/QueueManager.h>

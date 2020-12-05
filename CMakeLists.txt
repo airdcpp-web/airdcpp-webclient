@@ -9,10 +9,11 @@ endif (APPLE)
 
 set (PROJECT_NAME "AirDC++ Web Client")
 set (TAG_APPLICATION "AirDC++w")
-set (VERSION "2.9.0") # NOTE: the minor version must match the lastest UI version
-set (SOVERSION "2.9.0" )
+set (APPLICATION_ID "airdcpp-web")
+set (VERSION "2.10.0") # NOTE: the minor version must match the lastest UI version
+set (SOVERSION "2.10.0" )
 
-set (GNUCXX_MINIMUM_VERSION "4.9")
+set (GNUCXX_MINIMUM_VERSION "7.0")
 
 include (GNUInstallDirs)
 include (CheckIncludeFile)
@@ -205,7 +206,7 @@ endif (WIN32 OR HAIKU)
 # SCRIPTS
 
 # Version information for the client
-execute_process (COMMAND sh scripts/generate_version.sh ./airdcpp-core/airdcpp/version.inc ${VERSION} ${TAG_APPLICATION} 
+execute_process (COMMAND sh scripts/generate_version.sh ./airdcpp-core/airdcpp/version.inc ${VERSION} ${TAG_APPLICATION} ${APPLICATION_ID}
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             RESULT_VARIABLE SCRIPT_RESULT)
 
@@ -237,7 +238,7 @@ add_definitions (-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT
                  -D_DATADIR="${CLIENT_DATA_DIR}" -DLOCALE_DIR="${LOCALE_DIR}" -DBUILDING_AIRDCPP)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID STREQUAL Clang)
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pipe -Wformat -Werror=format-security")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pipe -Wformat -Werror=format-security")
     if (USE_GOLD)
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-linker-plugin")
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-linker-plugin")
@@ -309,7 +310,7 @@ message(STATUS "CMAKE will use this libs (and headers) during build:
     iconv (headers): ${ICONV_LIBRARIES} (${ICONV_INCLUDE_DIR})
     maxminddb (headers): ${LIBMAXMINDDB_LIBRARY} (${LIBMAXMINDDB_INCLUDE_DIR})
     leveldb (headers): ${LevelDB_LIBRARY} (${LevelDB_INCLUDE_DIR})
-    websocketpp (headers): (${WEBSOCKETPP_INCLUDE_DIR})
+    websocketpp (headers): ${websocketpp_INCLUDE_DIR}
     natpmp (headers): ${LibNatpmp_LIBRARY} (${LibNatpmp_INCLUDE_DIR})
     tbb (headers): ${TBB_LIBRARIES} (${TBB_INCLUDE_DIRS})
     ")

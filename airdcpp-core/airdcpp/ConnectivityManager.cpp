@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "AirUtil.h"
 #include "ClientManager.h"
 #include "ConnectionManager.h"
+#include "DCPlusPlus.h"
 #include "format.h"
 #include "LogManager.h"
 #include "MappingManager.h"
@@ -43,18 +44,18 @@ mapperV4(false)
 }
 
 
-void ConnectivityManager::startup(const function<bool(const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)>& aMessageF) noexcept {
+void ConnectivityManager::startup(StartupLoader& aLoader) noexcept {
 	try {
 		ConnectivityManager::getInstance()->setup(true, true);
 	} catch (const Exception& e) {
-		aMessageF(STRING_F(PORT_BYSY, e.getError()), false, true);
+		aLoader.messageF(STRING_F(PORT_BYSY, e.getError()), false, true);
 	}
 
 	if (CONNSETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5) {
 		try {
 			Socket::socksUpdated();
 		} catch (const SocketException& e) {
-			aMessageF(e.getError(), false, true);
+			aLoader.messageF(e.getError(), false, true);
 		}
 	}
 }
@@ -431,7 +432,7 @@ void ConnectivityManager::mappingFinished(const string& mapper, bool v6) {
 
 void ConnectivityManager::log(const string& aMessage, LogMessage::Severity sev, LogType aType) {
 	if (aType == TYPE_NORMAL) {
-		LogManager::getInstance()->message(aMessage, sev);
+		LogManager::getInstance()->message(aMessage, sev, STRING(CONNECTIVITY));
 	} else {
 		string proto;
 		if (aType == TYPE_BOTH && runningV4 && runningV6) {
@@ -446,7 +447,7 @@ void ConnectivityManager::log(const string& aMessage, LogMessage::Severity sev, 
 			statusV6 = aMessage;
 		}
 
-		LogManager::getInstance()->message(STRING(CONNECTIVITY) + " (" + proto + "): " + aMessage, sev);
+		LogManager::getInstance()->message(aMessage, sev, STRING(CONNECTIVITY) + " (" + proto + ")");
 		fire(ConnectivityManagerListener::Message(), proto + ": " + aMessage);
 	}
 }

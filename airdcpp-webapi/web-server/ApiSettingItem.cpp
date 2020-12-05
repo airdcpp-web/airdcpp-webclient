@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -33,9 +33,10 @@
 #include <airdcpp/StringTokenizer.h>
 
 namespace webserver {
-	string ApiSettingItem::formatTitle(ResourceManager::Strings aDesc, ResourceManager::Strings aUnit) noexcept {
-		auto title = ResourceManager::getInstance()->getString(aDesc);
+	string ApiSettingItem::formatTitle(const string& aDesc, ResourceManager::Strings aUnit) noexcept {
+		// auto title = ResourceManager::getInstance()->getString(aDesc);
 
+		auto title = aDesc;
 		if (aUnit != ResourceManager::LAST) {
 			title += " (" + ResourceManager::getInstance()->getString(aUnit) + ")";
 		}
@@ -48,6 +49,16 @@ namespace webserver {
 	ApiSettingItem::ApiSettingItem(const string& aName, Type aType, Type aItemType) :
 		name(aName), type(aType), itemType(aItemType) {
 
+	}
+
+
+	bool ApiSettingItem::isString(Type aType) noexcept {
+		return aType == TYPE_STRING || aType == TYPE_TEXT || aType == TYPE_FILE_PATH || aType == TYPE_EXISTING_FILE_PATH || aType == TYPE_DIRECTORY_PATH || aType == TYPE_HUB_URL;
+	}
+
+	bool ApiSettingItem::enumOptionsAllowed(Type aType, Type aItemType) noexcept {
+		return aType == ApiSettingItem::TYPE_STRING || aType == ApiSettingItem::TYPE_NUMBER ||
+			(aType == ApiSettingItem::TYPE_LIST && (aItemType == ApiSettingItem::TYPE_STRING || aItemType == ApiSettingItem::TYPE_NUMBER));
 	}
 
 	bool ApiSettingItem::usingAutoValue(bool aForce) const noexcept {
@@ -70,16 +81,17 @@ namespace webserver {
 
 
 	ServerSettingItem::ServerSettingItem(const string& aKey, const ResourceManager::Strings aTitleKey, const json& aDefaultValue, Type aType, bool aOptional,
-		const MinMax& aMinMax, const ResourceManager::Strings aUnit): JsonSettingItem(aKey, aDefaultValue, aType, aOptional, aMinMax), titleKey(aTitleKey) {
+		const MinMax& aMinMax, const ResourceManager::Strings aUnit): JsonSettingItem(aKey, aDefaultValue, aType, aOptional, aMinMax), titleKey(aTitleKey), unitKey(aUnit) {
 
 	}
 
-	ApiSettingItem::PtrList ServerSettingItem::getValueTypes() const noexcept {
+	ApiSettingItem::PtrList ServerSettingItem::getListObjectFields() const noexcept {
 		return ApiSettingItem::PtrList();
 	}
 
 	string ServerSettingItem::getTitle() const noexcept {
-		return ResourceManager::getInstance()->getString(titleKey);
+		auto title = ResourceManager::getInstance()->getString(titleKey);
+		return ApiSettingItem::formatTitle(title, unitKey);
 	}
 
 	ExtensionSettingItem::ExtensionSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType,
@@ -89,7 +101,7 @@ namespace webserver {
 
 	}
 
-	ApiSettingItem::PtrList ExtensionSettingItem::getValueTypes() const noexcept {
+	ApiSettingItem::PtrList ExtensionSettingItem::getListObjectFields() const noexcept {
 		return valueTypesToPtrList(objectValues);
 	}
 
@@ -111,7 +123,7 @@ namespace webserver {
 	}
 
 	bool JsonSettingItem::setValue(const json& aJson) {
-		if (aJson.is_null()) {
+		if (aJson.is_null() || aJson == defaultValue) {
 			unset();
 		} else {
 			// The value should have been validated before
@@ -155,6 +167,10 @@ namespace webserver {
 
 	json JsonSettingItem::getDefaultValue() const noexcept {
 		return defaultValue;
+	}
+
+	void JsonSettingItem::setDefaultValue(const json& aValue) noexcept {
+		defaultValue = aValue;
 	}
 
 	ApiSettingItem::EnumOption::List JsonSettingItem::getEnumOptions() const noexcept {
@@ -323,7 +339,7 @@ namespace webserver {
 		return optionalSettingKeys.find(si.key) != optionalSettingKeys.end();
 	}
 
-	ApiSettingItem::PtrList CoreSettingItem::getValueTypes() const noexcept {
+	ApiSettingItem::PtrList CoreSettingItem::getListObjectFields() const noexcept {
 		return ApiSettingItem::PtrList();
 	}
 
@@ -367,7 +383,7 @@ namespace webserver {
 				ret.emplace_back(EnumOption({ i.first, ResourceManager::getInstance()->getString(i.second) }));
 			}
 		} else if (si.key == SettingsManager::BIND_ADDRESS || si.key == SettingsManager::BIND_ADDRESS6) {
-			auto bindAddresses = AirUtil::getBindAdapters(si.key == SettingsManager::BIND_ADDRESS6);
+			auto bindAddresses = AirUtil::getCoreBindAdapters(si.key == SettingsManager::BIND_ADDRESS6);
 			for (const auto& adapter : bindAddresses) {
 				auto title = adapter.ip + (!adapter.adapterName.empty() ? " (" + adapter.adapterName + ")" : Util::emptyString);
 				ret.emplace_back(EnumOption({ adapter.ip, title }));
@@ -387,7 +403,8 @@ namespace webserver {
 	}
 
 	string CoreSettingItem::getTitle() const noexcept {
-		return ApiSettingItem::formatTitle(si.desc, unit);
+		auto title = ResourceManager::getInstance()->getString(si.desc);
+		return ApiSettingItem::formatTitle(title, unit);
 	}
 
 	void CoreSettingItem::unset() noexcept {

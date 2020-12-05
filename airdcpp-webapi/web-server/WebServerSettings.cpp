@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2019 AirDC++ Project
+* Copyright (C) 2011-2021 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -41,5 +41,7 @@ namespace webserver {
 			{ "ping_timeout", ResourceManager::WEB_CFG_PING_TIMEOUT, 10, ApiSettingItem::TYPE_NUMBER, false, { 1, 10000 }, ResourceManager::SECONDS_LOWER },
 
 			{ "extensions_debug_mode", ResourceManager::WEB_CFG_EXTENSIONS_DEBUG_MODE, false, ApiSettingItem::TYPE_BOOLEAN, false },
+			{ "extensions_init_timeout", ResourceManager::WEB_CFG_EXTENSIONS_INIT_TIMEOUT, 5, ApiSettingItem::TYPE_NUMBER, false, { 1, 60 }, ResourceManager::SECONDS_LOWER },
+			{ "extensions_auto_update", ResourceManager::WEB_CFG_EXTENSIONS_AUTO_UPDATE, true, ApiSettingItem::TYPE_BOOLEAN, false },
 		}) {}
 }

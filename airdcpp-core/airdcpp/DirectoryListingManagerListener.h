@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2019 AirDC++ Project
+ * Copyright (C) 2012-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 #define DIRECTORYLISTING_MANAGER_LISTENER_H
 
 #include "forward.h"
-#include "BundleInfo.h"
+#include "QueueAddInfo.h"
 
 namespace dcpp {
 
@@ -44,7 +44,7 @@ public:
 
 	virtual void on(DirectoryDownloadAdded, const DirectoryDownloadPtr&) noexcept { }
 	virtual void on(DirectoryDownloadRemoved, const DirectoryDownloadPtr&) noexcept { }
-	virtual void on(DirectoryDownloadProcessed, const DirectoryDownloadPtr&, const DirectoryBundleAddInfo&, const string&) noexcept { }
+	virtual void on(DirectoryDownloadProcessed, const DirectoryDownloadPtr&, const DirectoryBundleAddResult&, const string&) noexcept { }
 	virtual void on(DirectoryDownloadFailed, const DirectoryDownloadPtr&, const string&) noexcept { }
 };
 
