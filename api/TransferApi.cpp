@@ -25,7 +25,6 @@
 #include <airdcpp/Download.h>
 #include <airdcpp/Upload.h>
 
-#include <airdcpp/AirUtil.h>
 #include <airdcpp/DownloadManager.h>
 #include <airdcpp/ConnectionManager.h>
 #include <airdcpp/QueueManager.h>
