@@ -126,7 +126,7 @@ static void init() {
 
 	sigdelset(&mask, SIGCONT);
 	sigdelset(&mask, SIGFPE);
-	sigdelset(&mask, SIGBUS);
+	// sigdelset(&mask, SIGBUS);
 	sigdelset(&mask, SIGINT);
 	sigdelset(&mask, SIGTRAP);
 	//pthread_sigmask(SIG_SETMASK, &mask, NULL);
@@ -144,6 +144,7 @@ static void installHandler() {
 	signal(SIGINT, &breakHandler);
 	signal(SIGTERM, &breakHandler);
 
+	signal(SIGBUS, &handleCrash);
 	signal(SIGFPE, &handleCrash);
 	signal(SIGSEGV, &handleCrash);
 	signal(SIGILL, &handleCrash);
