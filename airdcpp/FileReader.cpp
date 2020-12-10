@@ -42,14 +42,13 @@ static const size_t READ_FAILED = static_cast<size_t>(-1);
 size_t FileReader::read(const string& aPath, const DataCallback& callback) {
 	size_t ret = READ_FAILED;
 
-	if(direct) {
+	if (direct) {
 		ret = readDirect(aPath, callback);
 	}
 
-	if(ret == READ_FAILED) {
-			ret = readMapped(aPath, callback);
-
-		if(ret == READ_FAILED) {
+	if (ret == READ_FAILED) {
+		ret = readMapped(aPath, callback);
+		if (ret == READ_FAILED) {
 			ret = readCached(aPath, callback);
 		}
 	}
@@ -265,17 +264,17 @@ size_t FileReader::readMapped(const string& /*file*/, const DataCallback& /*call
 
 #else
 
-#include <sys/mman.h> // mmap, munmap, madvise
+size_t FileReader::readDirect(const string& file, const DataCallback& callback) {
+	return READ_FAILED;
+}
+
+/*#include <sys/mman.h> // mmap, munmap, madvise
 #include <signal.h>  // for handling read errors from previous trio
 #include <setjmp.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
-
-size_t FileReader::readDirect(const string& file, const DataCallback& callback) {
-	return READ_FAILED;
-}
 
 static const int64_t BUF_SIZE = 0x1000000 - (0x1000000 % getpagesize());
 static sigjmp_buf sb_env;
@@ -285,10 +284,19 @@ static void sigbus_handler(int signum, siginfo_t* info, void* context) {
 	// a file in Solaris sets si_code to BUS_OBJERR
 	if (signum == SIGBUS && (info->si_code == BUS_ADRERR || info->si_code == BUS_OBJERR))
 		siglongjmp(sb_env, 1);
-}
+}*/
 
-size_t FileReader::readMapped(const string& filename, const DataCallback& callback) {
-	int fd = open(filename.c_str(), O_RDONLY);
+size_t FileReader::readMapped(const string& /*filename*/, const DataCallback& /*callback*/) {
+	// Disable mmap as the current code can't handle reading of files from multiple threads
+	// because of global setting and resetting of SIGBUS (or handling it correctly) and mmap also 
+	// seems to be slower than the regular file read:
+	// 
+	// readMapped: 671 files (21.70 GiB) in 9 directories have been hashed in 4 minutes 21 seconds (84.87 MiB/s)
+	// readCached: 671 files (21.70 GiB) in 9 directories have been hashed in 3 minutes 58 seconds (93.08 MiB/s)
+
+	return READ_FAILED;
+
+	/*int fd = open(filename.c_str(), O_RDONLY);
 	if(fd == -1) {
 		dcdebug("Error opening file %s: %s\n", filename.c_str(), Util::translateError(errno).c_str());
 		return READ_FAILED;
@@ -367,7 +375,7 @@ size_t FileReader::readMapped(const string& filename, const DataCallback& callba
 		dcdebug("Failed to reset old signal handler for SIGBUS\n");
 	}
 
-	return pos == size ? pos : READ_FAILED;
+	return pos == size ? pos : READ_FAILED;*/
 }
 
 #endif
