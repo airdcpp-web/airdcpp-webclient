@@ -91,12 +91,7 @@ namespace webserver {
 
 		{
 			RLock l(cs);
-			auto curDir = dl->getCurrentLocationInfo().directory;
-			if (!curDir || !curDir->isComplete() || !currentViewItemsInitialized) {
-				aRequest.setResponseErrorStr("Content of this directory is not yet available");
-				return websocketpp::http::status_code::service_unavailable;
-			}
-
+			auto curDir = ensureCurrentDirectoryLoaded();
 			aRequest.setResponseBody({
 				{ "list_path", curDir->getAdcPath() },
 				{ "items", Serializer::serializeItemList(start, count, FilelistUtils::propertyHandler, currentViewItems) },
@@ -106,6 +101,14 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
+	DirectoryListing::Directory::Ptr FilelistInfo::ensureCurrentDirectoryLoaded() {
+		auto curDir = dl->getCurrentLocationInfo().directory;
+		if (!curDir || !curDir->isComplete() || !currentViewItemsInitialized) {
+			throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of this directory is not yet available");
+		}
+
+		return curDir;
+	}
 
 	api_return FilelistInfo::handleGetItem(ApiRequest& aRequest) {
 		FilelistItemInfoPtr item = nullptr;
@@ -114,6 +117,7 @@ namespace webserver {
 		// TODO: refactor filelists and do something better than this
 		{
 			RLock l(cs);
+			auto curDir = ensureCurrentDirectoryLoaded();
 
 			// Check view items
 			auto i = boost::find_if(currentViewItems, [itemId](const FilelistItemInfoPtr& aInfo) {
@@ -122,12 +126,9 @@ namespace webserver {
 
 			if (i == currentViewItems.end()) {
 				// Check current location
-				const auto& location = dl->getCurrentLocationInfo();
-				if (location.directory) {
-					auto dir = std::make_shared<FilelistItemInfo>(location.directory);
-					if (dir->getToken() == itemId) {
-						item = dir;
-					}
+				auto dirInfo = std::make_shared<FilelistItemInfo>(curDir);
+				if (dirInfo->getToken() == itemId) {
+					item = dirInfo;
 				}
 			} else {
 				item = *i;
