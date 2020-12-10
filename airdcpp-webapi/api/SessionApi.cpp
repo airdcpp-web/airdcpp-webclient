@@ -188,25 +188,25 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return SessionApi::handleGetSession(ApiRequest& aRequest) {
-		auto s = session->getServer()->getUserManager().getSession(aRequest.getTokenParam());
+	SessionPtr SessionApi::parseSessionParam(ApiRequest& aRequest) {
+		auto sessionId = aRequest.getTokenParam();
+		auto s = session->getServer()->getUserManager().getSession(sessionId);
 		if (!s) {
-			aRequest.setResponseErrorStr("Session not found");
-			return websocketpp::http::status_code::not_found;
+			throw RequestException(websocketpp::http::status_code::not_found, "Session " + Util::toString(sessionId) + " was not found");
 		}
 
+		return s;
+	}
+
+	api_return SessionApi::handleGetSession(ApiRequest& aRequest) {
+		auto s = parseSessionParam(aRequest);
 		aRequest.setResponseBody(serializeSession(s));
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return SessionApi::handleRemoveSession(ApiRequest& aRequest) {
-		auto removeSession = session->getServer()->getUserManager().getSession(aRequest.getTokenParam());
-		if (!removeSession) {
-			aRequest.setResponseErrorStr("Session not found");
-			return websocketpp::http::status_code::not_found;
-		}
-
-		return logout(aRequest, removeSession);
+		auto s = parseSessionParam(aRequest);
+		return logout(aRequest, s);
 	}
 
 	api_return SessionApi::handleGetCurrentSession(ApiRequest& aRequest) {

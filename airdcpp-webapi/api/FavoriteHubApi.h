@@ -53,6 +53,7 @@ namespace webserver {
 		static FavoriteHubEntryList getEntryList() noexcept;
 
 		static tribool deserializeTribool(const string& aFieldName, const json& aJson);
+		FavoriteHubEntryPtr parseFavoriteHubParam(ApiRequest& aRequest);
 	};
 }
 

@@ -145,34 +145,31 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return ViewFileApi::handleGetFile(ApiRequest& aRequest) {
-		auto file = ViewFileManager::getInstance()->getFile(aRequest.getTTHParam());
+	ViewFilePtr ViewFileApi::parseViewFileParam(ApiRequest& aRequest) {
+		auto fileId = aRequest.getTTHParam();
+		auto file = ViewFileManager::getInstance()->getFile(fileId);
 		if (!file) {
-			aRequest.setResponseErrorStr("File not found");
-			return websocketpp::http::status_code::not_found;
+			throw RequestException(websocketpp::http::status_code::not_found, "File " + fileId.toBase32() + " was not found");
 		}
 
+		return file;
+	}
+
+	api_return ViewFileApi::handleGetFile(ApiRequest& aRequest) {
+		auto file = parseViewFileParam(aRequest);
 		aRequest.setResponseBody(serializeFile(file));
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return ViewFileApi::handleRemoveFile(ApiRequest& aRequest) {
-		auto success = ViewFileManager::getInstance()->removeFile(aRequest.getTTHParam());
-		if (!success) {
-			aRequest.setResponseErrorStr("File not found");
-			return websocketpp::http::status_code::not_found;
-		}
-
+		auto file = parseViewFileParam(aRequest);
+		ViewFileManager::getInstance()->removeFile(file->getTTH());
 		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return ViewFileApi::handleSetRead(ApiRequest& aRequest) {
-		auto success = ViewFileManager::getInstance()->setRead(aRequest.getTTHParam());
-		if (!success) {
-			aRequest.setResponseErrorStr("File not found");
-			return websocketpp::http::status_code::not_found;
-		}
-
+		auto file = parseViewFileParam(aRequest);
+		ViewFileManager::getInstance()->setRead(file->getTTH());
 		return websocketpp::http::status_code::no_content;
 	}
 

@@ -256,8 +256,7 @@ namespace webserver {
 
 		const auto filePath = aRequest.getSession()->getServer()->getFileServer().getTempFilePath(fileId);
 		if (filePath.empty() || !Util::fileExists(filePath)) {
-			aRequest.setResponseErrorStr("File with an ID " + fileId + " was not found");
-			return websocketpp::http::status_code::bad_request;
+			JsonUtil::throwError("file_id", JsonUtil::ERROR_INVALID, "Source file was not found");
 		}
 
 		const auto size = File::getSize(filePath);
@@ -290,7 +289,7 @@ namespace webserver {
 	api_return ShareApi::handleRemoveTempShare(ApiRequest& aRequest) {
 		auto token = aRequest.getTokenParam();
 		if (!ShareManager::getInstance()->removeTempShare(token)) {
-			aRequest.setResponseErrorStr("Temp share was not found");
+			aRequest.setResponseErrorStr("Temp share item " + Util::toString(token) + " was not found");
 			return websocketpp::http::status_code::bad_request;
 		}
 
@@ -338,8 +337,7 @@ namespace webserver {
 	api_return ShareApi::handleRemoveExclude(ApiRequest& aRequest) {
 		auto path = JsonUtil::getField<string>("path", aRequest.getRequestBody(), false);
 		if (!ShareManager::getInstance()->removeExcludedPath(path)) {
-			aRequest.setResponseErrorStr("Excluded path was not found");
-			return websocketpp::http::status_code::bad_request;
+			JsonUtil::throwError("path", JsonUtil::ERROR_INVALID, "Excluded path was not found");
 		}
 
 		return websocketpp::http::status_code::no_content;
@@ -384,7 +382,7 @@ namespace webserver {
 	api_return ShareApi::handleAbortRefreshTask(ApiRequest& aRequest) {
 		const auto token = aRequest.getTokenParam();
 		if (!ShareManager::getInstance()->abortRefresh(token)) {
-			aRequest.setResponseErrorStr("Refresh task was not found");
+			aRequest.setResponseErrorStr("Refresh task " + Util::toString(token) + " was not found");
 			return websocketpp::http::status_code::bad_request;
 		}
 

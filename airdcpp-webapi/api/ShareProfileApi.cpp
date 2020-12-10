@@ -19,6 +19,7 @@
 #include "stdinc.h"
 
 #include <api/ShareProfileApi.h>
+#include <api/common/Serializer.h>
 
 #include <web-server/JsonUtil.h>
 
@@ -68,13 +69,22 @@ namespace webserver {
 		};
 	}
 
-	api_return ShareProfileApi::handleGetProfile(ApiRequest& aRequest) {
-		auto profile = ShareManager::getInstance()->getShareProfile(aRequest.getTokenParam());
+	ShareProfilePtr ShareProfileApi::parseProfileToken(ApiRequest& aRequest, bool aAllowHidden) {
+		auto profileId = aRequest.getTokenParam();
+		auto profile = ShareManager::getInstance()->getShareProfile(profileId);
 		if (!profile) {
-			aRequest.setResponseErrorStr("Profile not found");
-			return websocketpp::http::status_code::not_found;
+			throw RequestException(websocketpp::http::status_code::not_found, "Share profile " + Util::toString(profileId) + " was not found");
 		}
 
+		if (!aAllowHidden && profile->isHidden()) {
+			throw RequestException(websocketpp::http::status_code::bad_request, "Hidden share profile isn't valid for this API method");
+		}
+
+		return profile;
+	}
+
+	api_return ShareProfileApi::handleGetProfile(ApiRequest& aRequest) {
+		auto profile = parseProfileToken(aRequest, true);
 		aRequest.setResponseBody(serializeShareProfile(profile));
 		return websocketpp::http::status_code::ok;
 	}
@@ -90,14 +100,9 @@ namespace webserver {
 	}
 
 	api_return ShareProfileApi::handleSetDefaultProfile(ApiRequest& aRequest) {
-		auto token = aRequest.getTokenParam();
-		auto profile = ShareManager::getInstance()->getShareProfile(token);
-		if (!profile) {
-			aRequest.setResponseErrorStr("Profile not found");
-			return websocketpp::http::status_code::not_found;
-		}
+		auto profile = parseProfileToken(aRequest, true);
 
-		ShareManager::getInstance()->setDefaultProfile(token);
+		ShareManager::getInstance()->setDefaultProfile(profile->getToken());
 		return websocketpp::http::status_code::no_content;
 	}
 
@@ -124,7 +129,7 @@ namespace webserver {
 		});
 	}
 
-	void ShareProfileApi::parseProfile(ShareProfilePtr& aProfile, const json& j) {
+	void ShareProfileApi::updateProfileProperties(ShareProfilePtr& aProfile, const json& j) {
 		auto name = JsonUtil::getField<string>("name", j, false);
 
 		auto token = ShareManager::getInstance()->getProfileByName(name);
@@ -139,7 +144,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto profile = std::make_shared<ShareProfile>();
-		parseProfile(profile, reqJson);
+		updateProfileProperties(profile, reqJson);
 
 		ShareManager::getInstance()->addProfile(profile);
 
@@ -150,19 +155,9 @@ namespace webserver {
 	api_return ShareProfileApi::handleUpdateProfile(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		auto token = aRequest.getTokenParam();
-		if (token == SP_HIDDEN) {
-			aRequest.setResponseErrorStr("Hidden profile can't be edited");
-			return websocketpp::http::status_code::not_found;
-		}
+		auto profile = parseProfileToken(aRequest, false);
 
-		auto profile = ShareManager::getInstance()->getShareProfile(token);
-		if (!profile) {
-			aRequest.setResponseErrorStr("Profile not found");
-			return websocketpp::http::status_code::not_found;
-		}
-
-		parseProfile(profile, reqJson);
+		updateProfileProperties(profile, reqJson);
 		ShareManager::getInstance()->updateProfile(profile);
 
 		aRequest.setResponseBody(serializeShareProfile(profile));
@@ -170,37 +165,22 @@ namespace webserver {
 	}
 
 	api_return ShareProfileApi::handleRemoveProfile(ApiRequest& aRequest) {
-		auto token = aRequest.getTokenParam();
-		if (token == SP_HIDDEN) {
-			aRequest.setResponseErrorStr("Hidden profile can't be deleted");
-			return websocketpp::http::status_code::bad_request;
-		}
-
-		if (static_cast<int>(token) == SETTING(DEFAULT_SP)) {
+		auto profile = parseProfileToken(aRequest, false);
+		if (profile->isDefault()) {
 			aRequest.setResponseErrorStr("The default profile can't be deleted (set another profile as default first)");
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		if (!ShareManager::getInstance()->getShareProfile(token)) {
-			aRequest.setResponseErrorStr("Profile not found");
-			return websocketpp::http::status_code::not_found;
-		}
-
-		ShareManager::getInstance()->removeProfile(token);
+		ShareManager::getInstance()->removeProfile(profile->getToken());
 		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return ShareProfileApi::handleGetProfiles(ApiRequest& aRequest) {
-		json j;
-
 		auto profiles = ShareManager::getInstance()->getProfiles();
 
-		// Profiles can't be empty
-		for (const auto& p : profiles) {
-			j.push_back(serializeShareProfile(p));
-		}
-
+		auto j = Serializer::serializeList(profiles, serializeShareProfile);
 		aRequest.setResponseBody(j);
+
 		return websocketpp::http::status_code::ok;
 	}
 }

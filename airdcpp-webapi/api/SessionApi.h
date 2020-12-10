@@ -54,6 +54,8 @@ namespace webserver {
 
 		void on(WebUserManagerListener::SessionCreated, const SessionPtr& aSession) noexcept override;
 		void on(WebUserManagerListener::SessionRemoved, const SessionPtr& aSession, bool aTimedOut) noexcept override;
+
+		SessionPtr parseSessionParam(ApiRequest& aRequest);
 	};
 }
 
