@@ -55,6 +55,8 @@ namespace webserver {
 		api_return handleGetItems(ApiRequest& aRequest);
 		api_return handleGetItem(ApiRequest& aRequest);
 
+		DirectoryListing::Directory::Ptr ensureCurrentDirectoryLoaded();
+
 		void on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aDir, bool aBackgroundTask) noexcept override;
 		void on(DirectoryListingListener::LoadingFailed, const string& aReason) noexcept override;
 		void on(DirectoryListingListener::LoadingStarted, bool changeDir) noexcept override;
