@@ -73,6 +73,8 @@ namespace webserver {
 
 		typedef ListViewController<GroupedSearchResultPtr, SearchUtils::PROP_LAST> SearchView;
 		SearchView searchView;
+
+		GroupedSearchResultPtr parseResultParam(ApiRequest& aRequest);
 	};
 }
 

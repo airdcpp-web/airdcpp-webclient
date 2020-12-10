@@ -286,9 +286,10 @@ namespace webserver {
 	}
 
 	BundlePtr QueueApi::getBundle(ApiRequest& aRequest) {
-		auto b = QueueManager::getInstance()->findBundle(aRequest.getTokenParam());
+		auto bundleId = aRequest.getTokenParam();
+		auto b = QueueManager::getInstance()->findBundle(bundleId);
 		if (!b) {
-			throw RequestException(websocketpp::http::status_code::not_found, "Bundle not found");
+			throw RequestException(websocketpp::http::status_code::not_found, "Bundle " + Util::toString(bundleId) + " was not found");
 		}
 
 		return b;

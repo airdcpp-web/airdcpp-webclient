@@ -60,18 +60,24 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return WebUserApi::handleGetUser(ApiRequest& aRequest) {
-		auto user = um.getUser(aRequest.getStringParam(USERNAME_PARAM));
+	WebUserPtr WebUserApi::parseUserNameParam(ApiRequest& aRequest) {
+		auto userName = aRequest.getStringParam(USERNAME_PARAM);
+		auto user = um.getUser(userName);
 		if (!user) {
-			aRequest.setResponseErrorStr("User not found");
-			return websocketpp::http::status_code::not_found;
+			throw RequestException(websocketpp::http::status_code::not_found, "User " + userName + " was not found");
 		}
+
+		return user;
+	}
+
+	api_return WebUserApi::handleGetUser(ApiRequest& aRequest) {
+		auto user = parseUserNameParam(aRequest);
 
 		aRequest.setResponseBody(Serializer::serializeItem(user, WebUserUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
 	}
 
-	bool WebUserApi::parseUser(WebUserPtr& aUser, const json& j, bool aIsNew) {
+	bool WebUserApi::updateUserProperties(WebUserPtr& aUser, const json& j, bool aIsNew) {
 		auto hasChanges = false;
 
 		{
@@ -93,7 +99,6 @@ namespace webserver {
 		return hasChanges;
 	}
 
-
 	api_return WebUserApi::handleAddUser(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
@@ -104,7 +109,7 @@ namespace webserver {
 
 		auto user = std::make_shared<WebUser>(userName, Util::emptyString);
 
-		parseUser(user, reqJson, true);
+		updateUserProperties(user, reqJson, true);
 
 		if (!um.addUser(user)) {
 			JsonUtil::throwError("username", JsonUtil::ERROR_EXISTS, "User with the same name exists already");
@@ -116,16 +121,9 @@ namespace webserver {
 
 	api_return WebUserApi::handleUpdateUser(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
+		auto user = parseUserNameParam(aRequest);
 
-		auto userName = aRequest.getStringParam(USERNAME_PARAM);
-
-		auto user = um.getUser(userName);
-		if (!user) {
-			aRequest.setResponseErrorStr("User not found");
-			return websocketpp::http::status_code::not_found;
-		}
-
-		auto hasChanges = parseUser(user, reqJson, false);
+		auto hasChanges = updateUserProperties(user, reqJson, false);
 		if (hasChanges) {
 			um.updateUser(user, aRequest.getSession()->getUser() != user);
 		}
@@ -137,7 +135,7 @@ namespace webserver {
 	api_return WebUserApi::handleRemoveUser(ApiRequest& aRequest) {
 		auto userName = aRequest.getStringParam(USERNAME_PARAM);
 		if (!um.removeUser(userName)) {
-			aRequest.setResponseErrorStr("User not found");
+			aRequest.setResponseErrorStr("User " + userName + " was not found");
 			return websocketpp::http::status_code::not_found;
 		}
 

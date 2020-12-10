@@ -50,6 +50,8 @@ namespace webserver {
 		void on(ViewFileManagerListener::FileStateUpdated, const ViewFilePtr& aFile) noexcept override;
 		void on(ViewFileManagerListener::FileFinished, const ViewFilePtr& aFile) noexcept override;
 		void on(ViewFileManagerListener::FileRead, const ViewFilePtr& aFile) noexcept override;
+
+		ViewFilePtr parseViewFileParam(ApiRequest& aRequest);
 	};
 }
 
