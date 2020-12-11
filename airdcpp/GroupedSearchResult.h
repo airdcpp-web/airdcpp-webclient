@@ -40,7 +40,7 @@ namespace dcpp {
 
 		typedef vector<Ptr> List;
 		typedef unordered_map<TTHValue, Ptr> Map;
-		typedef set<Ptr, RelevanceSort> Set;
+		typedef multiset<Ptr, RelevanceSort> Set;
 
 		GroupedSearchResult(const SearchResultPtr& aSR, SearchResult::RelevanceInfo&& aRelevance);
 		~GroupedSearchResult() { }

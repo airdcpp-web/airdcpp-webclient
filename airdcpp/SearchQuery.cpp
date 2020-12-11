@@ -43,7 +43,7 @@ double SearchQuery::getRelevanceScore(const SearchQuery& aSearch, int aLevel, bo
 
 	dcassert(boost::find_if(positions, CompareFirst<size_t, int>(string::npos)) == positions.end());
 
-	// check the recursion level (ignore recurions if the last item was fully matched)
+	// check the recursion level (ignore recursions if the last item was fully matched)
 	int recursionLevel = 0;
 	if (aSearch.recursion && aSearch.getLastIncludeMatches() != static_cast<int>(aSearch.include.count())) {
 		recursionLevel = aSearch.recursion->recursionLevel;
