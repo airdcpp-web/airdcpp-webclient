@@ -103,8 +103,16 @@ namespace webserver {
 
 	DirectoryListing::Directory::Ptr FilelistInfo::ensureCurrentDirectoryLoaded() {
 		auto curDir = dl->getCurrentLocationInfo().directory;
-		if (!curDir || !curDir->isComplete() || !currentViewItemsInitialized) {
-			throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of this directory is not yet available");
+		if (!curDir) {
+			throw RequestException(websocketpp::http::status_code::service_unavailable, "Filelist has not finished loading yet");
+		}
+
+		if (!curDir->isComplete()) {
+			throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of this directory is not available");
+		}
+
+		if (!currentViewItemsInitialized) {
+			throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of this directory has not finished loading yet");
 		}
 
 		return curDir;
