@@ -108,11 +108,24 @@ namespace webserver {
 		}
 
 		if (!curDir->isComplete()) {
-			throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of this directory is not available");
+			throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of directory " + curDir->getAdcPath() + " is not yet available");
 		}
 
 		if (!currentViewItemsInitialized) {
-			throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of this directory has not finished loading yet");
+			// The list content is know but the module hasn't initialized view items yet
+			// It can especially with extensions having filelist context menu items that try get fetch 
+			// items by ID for the first time (that will trigger initialization of the filelist module)
+
+			// Wait as that shouldn't take too long
+			for (auto i = 0; i < (2000 / 20); ++i) {
+				if (!currentViewItemsInitialized) {
+					Thread::sleep(20);
+				}
+			}
+
+			if (!currentViewItemsInitialized) {
+				throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of directory " + curDir->getAdcPath() + " has not finished loading yet");
+			}
 		}
 
 		return curDir;
