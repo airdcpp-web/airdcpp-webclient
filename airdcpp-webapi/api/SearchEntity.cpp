@@ -76,22 +76,14 @@ namespace webserver {
 	}
 
 	api_return SearchEntity::handleGetChildren(ApiRequest& aRequest) {
-		auto result = search->getResult(aRequest.getTTHParam());
-		if (!result) {
-			aRequest.setResponseErrorStr("Result not found");
-			return websocketpp::http::status_code::not_found;
-		}
+		auto result = parseResultParam(aRequest);
 
 		aRequest.setResponseBody(Serializer::serializeList(result->getChildren(), serializeSearchResult));
 		return websocketpp::http::status_code::ok;
 	}
 
 	api_return SearchEntity::handleGetResult(ApiRequest& aRequest) {
-		auto result = search->getResult(aRequest.getTTHParam());
-		if (!result) {
-			aRequest.setResponseErrorStr("Result not found");
-			return websocketpp::http::status_code::not_found;
-		}
+		auto result = parseResultParam(aRequest);
 
 		auto j = Serializer::serializeItem(result, SearchUtils::propertyHandler);
 		aRequest.setResponseBody(j);
@@ -125,12 +117,18 @@ namespace webserver {
 		};
 	}
 
-	api_return SearchEntity::handleDownload(ApiRequest& aRequest) {
-		auto result = search->getResult(aRequest.getTTHParam());
+	GroupedSearchResultPtr SearchEntity::parseResultParam(ApiRequest& aRequest) {
+		auto resultId = aRequest.getTTHParam();
+		auto result = search->getResult(resultId);
 		if (!result) {
-			aRequest.setResponseErrorStr("Result not found");
-			return websocketpp::http::status_code::not_found;
+			throw RequestException(websocketpp::http::status_code::not_found, "Result " + resultId.toBase32() + " was not found");
 		}
+
+		return result;
+	}
+
+	api_return SearchEntity::handleDownload(ApiRequest& aRequest) {
+		auto result = parseResultParam(aRequest);
 
 		string targetDirectory, targetName = result->getFileName();
 		Priority prio;

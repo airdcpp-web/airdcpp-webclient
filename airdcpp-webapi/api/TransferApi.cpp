@@ -120,11 +120,11 @@ namespace webserver {
 	}
 
 	TransferInfoPtr TransferApi::getTransfer(ApiRequest& aRequest) const {
-		auto wantedId = aRequest.getTokenParam();
+		auto transferId = aRequest.getTokenParam();
 
-		auto t = TransferInfoManager::getInstance()->findTransfer(wantedId);
+		auto t = TransferInfoManager::getInstance()->findTransfer(transferId);
 		if (!t) {
-			throw RequestException(websocketpp::http::status_code::not_found, "Transfer not found");
+			throw RequestException(websocketpp::http::status_code::not_found, "Transfer " + Util::toString(transferId) + " was not found");
 		}
 
 		return t;

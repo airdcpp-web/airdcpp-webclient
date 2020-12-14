@@ -181,10 +181,12 @@ namespace webserver {
 	}
 
 	ShareDirectoryInfoPtr ShareRootApi::getRoot(const ApiRequest& aRequest) {
+		auto rootId = aRequest.getTTHParam();
+
 		RLock l(cs);
-		auto i = boost::find_if(roots, ShareDirectoryInfo::IdCompare(aRequest.getTTHParam()));
+		auto i = boost::find_if(roots, ShareDirectoryInfo::IdCompare(rootId));
 		if (i == roots.end()) {
-			throw RequestException(websocketpp::http::status_code::not_found, "Root not found");
+			throw RequestException(websocketpp::http::status_code::not_found, "Root " + rootId.toBase32() + " not found");
 		}
 
 		return *i;

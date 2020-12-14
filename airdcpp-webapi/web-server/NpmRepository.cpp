@@ -127,10 +127,10 @@ namespace webserver {
 				auto comp = (*curSemver).compare(remoteSemver);
 				if (comp >= 0) {
 					// No new version available
-					dcdebug("No updates available for extension %s", aName.c_str());
+					dcdebug("No updates available for extension %s\n", aName.c_str());
 					return;
 				} else {
-					dcdebug("New update available for extension %s (current version %s, available version %s)", aName.c_str(), aCurrentVersion.c_str(), elem.key().c_str());
+					dcdebug("New update available for extension %s (current version %s, available version %s)\n", aName.c_str(), aCurrentVersion.c_str(), elem.key().c_str());
 				}
 			}
 

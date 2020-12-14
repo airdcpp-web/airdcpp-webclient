@@ -238,9 +238,10 @@ namespace webserver {
 
 
 	api_return FilelistApi::handleGetDirectoryDownload(ApiRequest& aRequest) {
-		auto download = DirectoryListingManager::getInstance()->getDirectoryDownload(aRequest.getTokenParam());
+		auto downloadId = aRequest.getTokenParam();
+		auto download = DirectoryListingManager::getInstance()->getDirectoryDownload(downloadId);
 		if (!download) {
-			aRequest.setResponseErrorStr("Directory download not found");
+			aRequest.setResponseErrorStr("Directory download " + Util::toString(downloadId) + " was not found");
 			return websocketpp::http::status_code::not_found;
 		}
 
@@ -282,9 +283,10 @@ namespace webserver {
 	}
 
 	api_return FilelistApi::handleDeleteDirectoryDownload(ApiRequest& aRequest) {
-		auto removed = DirectoryListingManager::getInstance()->cancelDirectoryDownload(aRequest.getTokenParam());
+		auto downloadId = aRequest.getTokenParam();
+		auto removed = DirectoryListingManager::getInstance()->cancelDirectoryDownload(downloadId);
 		if (!removed) {
-			aRequest.setResponseErrorStr("Directory download not found");
+			aRequest.setResponseErrorStr("Directory download " + Util::toString(downloadId) + " was not found");
 			return websocketpp::http::status_code::not_found;
 		}
 

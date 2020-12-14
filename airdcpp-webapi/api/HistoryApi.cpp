@@ -73,7 +73,7 @@ namespace webserver {
 		}
 
 		dcassert(0);
-		throw RequestException(websocketpp::http::status_code::bad_request, "Invalid entry history type");
+		throw RequestException(websocketpp::http::status_code::bad_request, "Invalid entry history type " + name);
 	}
 
 	SettingsManager::HistoryType HistoryApi::toHistoryType(ApiRequest& aRequest) {
@@ -87,7 +87,7 @@ namespace webserver {
 		}
 
 		dcassert(0);
-		throw RequestException(websocketpp::http::status_code::bad_request, "Invalid string history type");
+		throw RequestException(websocketpp::http::status_code::bad_request, "Invalid string history type " + name);
 	}
 
 	json HistoryApi::serializeRecentEntry(const RecentEntryPtr& aEntry) noexcept {

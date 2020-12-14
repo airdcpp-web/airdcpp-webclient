@@ -50,8 +50,10 @@ namespace webserver {
 		dl->addListener(this);
 
 		if (dl->isLoaded()) {
+			auto start = GET_TICK();
 			addListTask([=] {
 				updateItems(dl->getCurrentLocationInfo().directory->getAdcPath());
+				dcdebug("Filelist %s was loaded in " I64_FMT " milliseconds\n", dl->getNick(false).c_str(), GET_TICK() - start);
 			});
 		}
 	}
@@ -90,13 +92,7 @@ namespace webserver {
 		int count = aRequest.getRangeParam(MAX_COUNT);
 
 		{
-			RLock l(cs);
-			auto curDir = dl->getCurrentLocationInfo().directory;
-			if (!curDir || !curDir->isComplete() || !currentViewItemsInitialized) {
-				aRequest.setResponseErrorStr("Content of this directory is not yet available");
-				return websocketpp::http::status_code::service_unavailable;
-			}
-
+			auto curDir = ensureCurrentDirectoryLoaded();
 			aRequest.setResponseBody({
 				{ "list_path", curDir->getAdcPath() },
 				{ "items", Serializer::serializeItemList(start, count, FilelistUtils::propertyHandler, currentViewItems) },
@@ -106,27 +102,56 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
+	DirectoryListing::Directory::Ptr FilelistInfo::ensureCurrentDirectoryLoaded() {
+		auto curDir = dl->getCurrentLocationInfo().directory;
+		if (!curDir) {
+			throw RequestException(websocketpp::http::status_code::service_unavailable, "Filelist has not finished loading yet");
+		}
+
+		if (!curDir->isComplete()) {
+			throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of directory " + curDir->getAdcPath() + " is not yet available");
+		}
+
+		if (!currentViewItemsInitialized) {
+			// The list content is know but the module hasn't initialized view items yet
+			// It can especially with extensions having filelist context menu items that try get fetch 
+			// items by ID for the first time (that will trigger initialization of the filelist module)
+
+			// Wait as that shouldn't take too long
+			for (auto i = 0; i < (2000 / 20); ++i) {
+				if (!currentViewItemsInitialized) {
+					Thread::sleep(20);
+				}
+			}
+
+			if (!currentViewItemsInitialized) {
+				throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of directory " + curDir->getAdcPath() + " has not finished loading yet");
+			}
+		}
+
+		return curDir;
+	}
 
 	api_return FilelistInfo::handleGetItem(ApiRequest& aRequest) {
 		FilelistItemInfoPtr item = nullptr;
+		auto itemId = aRequest.getTokenParam();
+
+		auto curDir = ensureCurrentDirectoryLoaded();
 
 		// TODO: refactor filelists and do something better than this
 		{
 			RLock l(cs);
 
 			// Check view items
-			auto i = boost::find_if(currentViewItems, [&aRequest](const FilelistItemInfoPtr& aInfo) {
-				return aInfo->getToken() == aRequest.getTokenParam();
+			auto i = boost::find_if(currentViewItems, [itemId](const FilelistItemInfoPtr& aInfo) {
+				return aInfo->getToken() == itemId;
 			});
 
 			if (i == currentViewItems.end()) {
 				// Check current location
-				const auto& location = dl->getCurrentLocationInfo();
-				if (location.directory) {
-					auto dir = std::make_shared<FilelistItemInfo>(location.directory);
-					if (dir->getToken() == aRequest.getTokenParam()) {
-						item = dir;
-					}
+				auto dirInfo = std::make_shared<FilelistItemInfo>(curDir);
+				if (dirInfo->getToken() == itemId) {
+					item = dirInfo;
 				}
 			} else {
 				item = *i;
@@ -134,7 +159,7 @@ namespace webserver {
 		}
 
 		if (!item) {
-			aRequest.setResponseErrorStr("Item not found");
+			aRequest.setResponseErrorStr("Item " + Util::toString(itemId) + " was not found");
 			return websocketpp::http::status_code::not_found;
 		}
 
@@ -211,8 +236,6 @@ namespace webserver {
 
 		{
 			WLock l(cs);
-			currentViewItems.clear();
-
 			for (auto& d : curDir->directories | map_values) {
 				currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(d));
 			}

@@ -139,7 +139,7 @@ namespace webserver {
 		if (paths.empty()) {
 			auto file = ViewFileManager::getInstance()->getFile(tth);
 			if (!file) {
-				throw RequestException(websocketpp::http::status_code::not_found, "No files matching the TTH were found");
+				throw RequestException(websocketpp::http::status_code::not_found, "No viewed file matching the TTH " + tthStr + " was found");
 			}
 
 			paths.push_back(file->getPath());
@@ -211,8 +211,9 @@ namespace webserver {
 
 		// Get the disk path
 		string filePath;
+		auto isViewFile = requestUrl.length() >= 6 && requestUrl.compare(0, 6, "/view/") == 0;
 		try {
-			if (requestUrl.length() >= 6 && requestUrl.compare(0, 6, "/view/") == 0) {
+			if (isViewFile) {
 				filePath = parseViewFilePath(requestUrl.substr(6), headers_, aSession);
 			} else if (requestUrl.length() >= 6 && requestUrl.compare(0, 6, "/proxy") == 0) {
 				if (!aSession) {
@@ -240,7 +241,10 @@ namespace webserver {
 			output_ = f.read(static_cast<size_t>(endPos) + 1);
 		} catch (const FileException& e) {
 			dcdebug("Failed to serve the file %s: %s\n", filePath.c_str(), e.getError().c_str());
-			output_ = e.getError();
+
+			// Don't show the local file path for public resources
+			auto responsePath = isViewFile ? filePath : requestUrl;
+			output_ = e.getError() + " (" + responsePath + ")";
 			return websocketpp::http::status_code::not_found;
 		} catch (const std::bad_alloc&) {
 			output_ = "Not enough memory on the server to serve this request";
@@ -284,15 +288,17 @@ namespace webserver {
 		string protocol, host, port, path, query, fragment;
 		Util::decodeUrl(aRequestUrl, protocol, host, port, path, query, fragment);
 
+		// Parse query
 		auto proxyUrlEscaped = Util::decodeQuery(query)["url"];
 		if (proxyUrlEscaped.empty()) {
 			output_ = "Proxy URL missing";
 			return websocketpp::http::status_code::bad_request;
 		}
 
+		// Decode URL
 		string proxyUrl;
 		if (!HttpUtil::unespaceUrl(proxyUrlEscaped, proxyUrl)) {
-			output_ = "Invalid URL";
+			output_ = "Invalid URL " + proxyUrlEscaped;
 			return websocketpp::http::status_code::bad_request;
 		}
 

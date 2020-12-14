@@ -94,6 +94,10 @@ namespace webserver {
 				{ "permissions",  Serializer::serializePermissions(parseMessageAuthorAccess(aMessage)) },
 			});
 		}
+
+		void setChat(ChatHandlerBase* aChat) noexcept {
+			chat = aChat;
+		}
 	private:
 		void sendUnread() noexcept {
 			auto s = toListenerName("updated");
