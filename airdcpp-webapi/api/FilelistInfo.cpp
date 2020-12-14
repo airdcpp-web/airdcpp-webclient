@@ -50,8 +50,10 @@ namespace webserver {
 		dl->addListener(this);
 
 		if (dl->isLoaded()) {
+			auto start = GET_TICK();
 			addListTask([=] {
 				updateItems(dl->getCurrentLocationInfo().directory->getAdcPath());
+				dcdebug("Filelist %s was loaded in " I64_FMT " milliseconds\n", dl->getNick(false).c_str(), GET_TICK() - start);
 			});
 		}
 	}
@@ -90,7 +92,6 @@ namespace webserver {
 		int count = aRequest.getRangeParam(MAX_COUNT);
 
 		{
-			RLock l(cs);
 			auto curDir = ensureCurrentDirectoryLoaded();
 			aRequest.setResponseBody({
 				{ "list_path", curDir->getAdcPath() },
@@ -135,10 +136,11 @@ namespace webserver {
 		FilelistItemInfoPtr item = nullptr;
 		auto itemId = aRequest.getTokenParam();
 
+		auto curDir = ensureCurrentDirectoryLoaded();
+
 		// TODO: refactor filelists and do something better than this
 		{
 			RLock l(cs);
-			auto curDir = ensureCurrentDirectoryLoaded();
 
 			// Check view items
 			auto i = boost::find_if(currentViewItems, [itemId](const FilelistItemInfoPtr& aInfo) {
@@ -234,8 +236,6 @@ namespace webserver {
 
 		{
 			WLock l(cs);
-			currentViewItems.clear();
-
 			for (auto& d : curDir->directories | map_values) {
 				currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(d));
 			}
