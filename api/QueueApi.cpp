@@ -146,18 +146,9 @@ namespace webserver {
 		DownloadManager::getInstance()->removeListener(this);
 	}
 
-	ActionHookResult<> QueueApi::fileCompletionHook(const QueueItemPtr& aFile, const ActionHookResultGetter<>& aResultGetter) noexcept {
-		return HookCompletionData::toResult(
-			fireHook(HOOK_FILE_FINISHED, 60, [&]() {
-				return Serializer::serializeItem(aFile, QueueFileUtils::propertyHandler);
-			}),
-			aResultGetter
-		);
-	}
-
 	ActionHookResult<> QueueApi::bundleFileAddHook(const string& aTarget, BundleFileAddData& aInfo, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook(HOOK_ADD_BUNDLE_FILE, 5, [&]() {
+			fireHook(HOOK_ADD_BUNDLE_FILE, WEBCFG(QUEUE_ADD_BUNDLE_FILE_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "target_directory", aTarget },
 					{ "file_data", serializeBundleFileInfo(aInfo) },
@@ -169,7 +160,7 @@ namespace webserver {
 
 	ActionHookResult<> QueueApi::directoryBundleAddHook(const string& aTarget, DirectoryBundleAddData& aDirectory, const HintedUser& aUser, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook(HOOK_ADD_DIRECTORY_BUNDLE, 10, [&]() {
+			fireHook(HOOK_ADD_DIRECTORY_BUNDLE, WEBCFG(QUEUE_ADD_DIRECTORY_BUNDLE_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "target_directory", aTarget },
 					{ "bundle_data", {
@@ -185,7 +176,7 @@ namespace webserver {
 
 	ActionHookResult<> QueueApi::sourceAddHook(const HintedUser& aUser, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook(HOOK_ADD_SOURCE, 5, [&]() {
+			fireHook(HOOK_ADD_SOURCE, WEBCFG(QUEUE_ADD_SOURCE_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "user", Serializer::serializeHintedUser(aUser) },
 				});
@@ -194,9 +185,18 @@ namespace webserver {
 		);
 	}
 
+	ActionHookResult<> QueueApi::fileCompletionHook(const QueueItemPtr& aFile, const ActionHookResultGetter<>& aResultGetter) noexcept {
+		return HookCompletionData::toResult(
+			fireHook(HOOK_FILE_FINISHED, WEBCFG(QUEUE_FILE_FINISHED_HOOK_TIMEOUT).num(), [&]() {
+				return Serializer::serializeItem(aFile, QueueFileUtils::propertyHandler);
+			}),
+			aResultGetter
+		);
+	}
+
 	ActionHookResult<> QueueApi::bundleCompletionHook(const BundlePtr& aBundle, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook(HOOK_BUNDLE_FINISHED, 60, [&]() {
+			fireHook(HOOK_BUNDLE_FINISHED, WEBCFG(QUEUE_BUNDLE_FINISHED_HOOK_TIMEOUT).num(), [&]() {
 				return Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler);
 			}),
 			aResultGetter

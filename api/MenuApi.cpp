@@ -217,6 +217,17 @@ namespace webserver {
 		return ContextMenuItemClickData(hookId, menuItemId, supports, aPermissions, formValues);
 	}
 
+	HookApiModule::HookCompletionDataPtr MenuApi::fireMenuHook(const string& aMenuId, const json& aSelectedIds, const ContextMenuItemListData& aListData, const json& aEntityId) {
+		return fireHook(toHookId(aMenuId), WEBCFG(LIST_MENUITEMS_HOOK_TIMEOUT).num(), [&]() {
+			return json({
+				{ "selected_ids", aSelectedIds },
+				{ "permissions", Serializer::serializePermissions(aListData.access) },
+				{ "entity_id", aEntityId },
+				{ "supports", aListData.supports },
+			});
+		});
+	}
+
 	json MenuApi::serializeMenuItem(const ContextMenuItemPtr& aMenuItem) {
 		return {
 			{ "id", aMenuItem->getId() },
