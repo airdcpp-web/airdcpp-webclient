@@ -112,7 +112,7 @@ namespace webserver {
 
 	ActionHookResult<> ShareApi::fileValidationHook(const string& aPath, int64_t aSize, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook("share_file_validation_hook", 30, [&]() {
+			fireHook("share_file_validation_hook", WEBCFG(SHARE_FILE_VALIDATION_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "path", aPath },
 					{ "size", aSize },
@@ -124,9 +124,22 @@ namespace webserver {
 
 	ActionHookResult<> ShareApi::directoryValidationHook(const string& aPath, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook("share_directory_validation_hook", 30, [&]() {
+			fireHook("share_directory_validation_hook", WEBCFG(SHARE_DIRECTORY_VALIDATION_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "path", aPath },
+				});
+			}),
+			aResultGetter
+		);
+	}
+
+	ActionHookResult<> ShareApi::newFileValidationHook(const string& aPath, int64_t aSize, bool aNewParent, const ActionHookResultGetter<>& aResultGetter) noexcept {
+		return HookCompletionData::toResult(
+			fireHook("new_share_file_validation_hook", WEBCFG(NEW_SHARE_FILE_VALIDATION_HOOK_TIMEOUT).num(), [&]() {
+				return json({
+					{ "path", aPath },
+					{ "size", aSize },
+					{ "new_parent", aNewParent },
 				});
 			}),
 			aResultGetter
@@ -135,26 +148,12 @@ namespace webserver {
 
 	ActionHookResult<> ShareApi::newDirectoryValidationHook(const string& aPath, bool aNewParent, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook("new_share_directory_validation_hook", 60, [&]() {
+			fireHook("new_share_directory_validation_hook", WEBCFG(NEW_SHARE_DIRECTORY_VALIDATION_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "path", aPath },
 					{ "new_parent", aNewParent },
-				});
-			}),
-			aResultGetter
-		);
-	}
-
-
-	ActionHookResult<> ShareApi::newFileValidationHook(const string& aPath, int64_t aSize, bool aNewParent, const ActionHookResultGetter<>& aResultGetter) noexcept {
-		return HookCompletionData::toResult(
-			fireHook("new_share_file_validation_hook", 60, [&]() {
-				return json({
-					{ "path", aPath },
-					{ "size", aSize },
-					{ "new_parent", aNewParent },
-				});
-			}),
+					});
+				}),
 			aResultGetter
 		);
 	}
