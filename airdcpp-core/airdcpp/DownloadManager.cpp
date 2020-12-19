@@ -692,7 +692,7 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 					fileNotAvailable(aSource, true);
 					return;
 				case AdcCommand::ERROR_UNKNOWN_USER:
-					failDownload(aSource, STRING(UNKNOWN_USER), !aSource->getDownload()->isFileList());
+					failDownload(aSource, STRING(UNKNOWN_USER), !aSource->getDownload()->isFilelist());
 					return;
 			}
 		case AdcCommand::SEV_SUCCESS:

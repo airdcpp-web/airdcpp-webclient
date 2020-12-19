@@ -519,7 +519,7 @@ private:
 
 	string getListPath(const HintedUser& user) const noexcept;
 
-	void onFileFinished(const QueueItemPtr& aQI, Download* aDownload, const string& aListDirectory) noexcept;
+	void logDownload(Download* aDownload) noexcept;
 	void onDownloadFailed(const QueueItemPtr& aQI, Download* aDownload, bool aNoAccess, bool aRotateQueue) noexcept;
 	void onFileDownloadCompleted(const QueueItemPtr& aQI, Download* aDownload) noexcept;
 	// Throws HashException
