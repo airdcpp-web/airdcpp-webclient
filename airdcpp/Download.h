@@ -66,8 +66,6 @@ public:
 
 	~Download();
 
-	bool isFileList() const noexcept;
-
 	/** @return Target filename without path. */
 	string getTargetFileName() const noexcept;
 

@@ -121,6 +121,10 @@ const string& Transfer::getToken() const noexcept {
 	return getUserConnection().getToken(); 
 }
 
+bool Transfer::isFilelist() const noexcept {
+	return type == TYPE_FULL_LIST || type == TYPE_PARTIAL_LIST;
+}
+
 void Transfer::appendFlags(OrderedStringSet& flags_) const noexcept {
 	if (getUserConnection().isSet(UserConnection::FLAG_MCN1)) {
 		flags_.insert("M");

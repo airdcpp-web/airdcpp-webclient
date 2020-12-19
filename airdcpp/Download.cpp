@@ -174,10 +174,6 @@ void Download::getParams(const UserConnection& aSource, ParamMap& params) const 
 	params["target"] = getPath();
 }
 
-bool Download::isFileList() const noexcept {
-	return getType() == Transfer::TYPE_FULL_LIST || getType() == Transfer::TYPE_PARTIAL_LIST;
-}
-
 string Download::getTargetFileName() const noexcept {
 	return Util::getFileName(getPath());
 }

@@ -1877,6 +1877,22 @@ enum Strings { // @DontAdd
 	WEB_CFG_EXTENSIONS_INIT_TIMEOUT, // "Initialization timeout for extensions"
 	WEB_CFG_EXTENSIONS_AUTO_UPDATE, // "Update extensions automatically"
 
+	WEB_CFG_SHARE_FILE_VALIDATION_HOOK_TIMEOUT, // "Share file validation"
+	WEB_CFG_SHARE_DIRECTORY_VALIDATION_HOOK_TIMEOUT, // "Share directory validation"
+	WEB_CFG_NEW_SHARE_FILE_VALIDATION_HOOK_TIMEOUT, // "New share file validation"
+	WEB_CFG_NEW_SHARE_DIRECTORY_VALIDATION_HOOK_TIMEOUT, // "New share directory validation"
+
+	WEB_CFG_OUTGOING_CHAT_MESSAGE_HOOK_TIMEOUT, // "Outgoing chat message"
+	WEB_CFG_INCOMING_CHAT_MESSAGE_HOOK_TIMEOUT, // "Incoming chat message"
+
+	WEB_CFG_QUEUE_ADD_BUNDLE_FILE_HOOK_TIMEOUT, // "Add bundle file"
+	WEB_CFG_QUEUE_ADD_DIRECTORY_BUNDLE_HOOK_TIMEOUT, // "Add directory bundle"
+	WEB_CFG_QUEUE_ADD_SOURCE_HOOK_TIMEOUT, // "Add queue source"
+	WEB_CFG_QUEUE_BUNDLE_FINISHED_HOOK_TIMEOUT, // "Bundle downloaded"
+	WEB_CFG_QUEUE_FILE_FINISHED_HOOK_TIMEOUT, // "File downloaded"
+
+	WEB_CFG_LIST_MENUITEMS_HOOK_TIMEOUT, // "List menu items"
+
 	X_EXTENSIONS_LOADED, // "%1% extensions were loaded"
 	X_DEBUG_MODE, // "%1% (debug mode)"
 

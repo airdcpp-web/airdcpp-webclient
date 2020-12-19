@@ -89,6 +89,8 @@ public:
 	IGETSET(uint64_t, start, Start, 0);
 
 	virtual void appendFlags(OrderedStringSet& flags_) const noexcept;
+
+	bool isFilelist() const noexcept;
 private:
 	typedef std::pair<uint64_t, int64_t> Sample;
 	typedef deque<Sample> SampleList;

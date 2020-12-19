@@ -1434,13 +1434,11 @@ void QueueManager::updateFilelistUrl(const HintedUser& aUser) noexcept {
 	}
 }
 
-void QueueManager::onFileFinished(const QueueItemPtr& aQI, Download* aDownload, const string& aListDirectory) noexcept {
-	auto isFilelist = aQI->isSet(QueueItem::FLAG_USER_LIST);
-	auto nicks = ClientManager::getInstance()->getFormatedNicks(aDownload->getHintedUser());
-
-	if (!isFilelist || SETTING(LOG_FILELIST_TRANSFERS)) {
+void QueueManager::logDownload(Download* aDownload) noexcept {
+	if (!aDownload->isFilelist() || SETTING(LOG_FILELIST_TRANSFERS)) {
 		if (SETTING(SYSTEM_SHOW_DOWNLOADS)) {
-			log(STRING_F(FINISHED_DOWNLOAD, aQI->getTarget() % nicks), LogMessage::SEV_INFO);
+			auto nicks = ClientManager::getInstance()->getFormatedNicks(aDownload->getHintedUser());
+			log(STRING_F(FINISHED_DOWNLOAD, aDownload->getPath() % nicks), LogMessage::SEV_INFO);
 		}
 
 		if (SETTING(LOG_DOWNLOADS)) {
@@ -1449,9 +1447,6 @@ void QueueManager::onFileFinished(const QueueItemPtr& aQI, Download* aDownload, 
 			LOG(LogManager::DOWNLOAD, params);
 		}
 	}
-
-	aQI->setLastSource(nicks);
-	fire(QueueManagerListener::ItemFinished(), aQI, aListDirectory, aDownload->getHintedUser(), aDownload->getAverageSpeed());
 }
 
 void QueueManager::renameDownloadedFile(const string& source, const string& target, const QueueItemPtr& aQI) noexcept {
@@ -1806,8 +1801,10 @@ void QueueManager::onFilelistDownloadCompletedHooked(const QueueItemPtr& aQI, Do
 	} else if (aDownload->getType() == Transfer::TYPE_PARTIAL_LIST) {
 		fire(QueueManagerListener::PartialListFinished(), aDownload->getHintedUser(), aDownload->getPFS(), aQI->getListDirectoryPath());
 	} else {
-		onFileFinished(aQI, aDownload, aQI->getListDirectoryPath());
+		fire(QueueManagerListener::ItemFinished(), aQI, aQI->getListDirectoryPath(), aDownload->getHintedUser(), aDownload->getAverageSpeed());
 	}
+
+	logDownload(aDownload);
 
 	{
 		WLock l(cs);
@@ -1872,7 +1869,11 @@ void QueueManager::onFileDownloadCompleted(const QueueItemPtr& aQI, Download* aD
 			renameDownloadedFile(aDownload->getTempTarget(), aQI->getTarget(), aQI);
 		}
 
-		onFileFinished(aQI, aDownload, Util::emptyString);
+		logDownload(aDownload);
+
+		auto nicks = ClientManager::getInstance()->getFormatedNicks(aDownload->getHintedUser());
+		aQI->setLastSource(nicks);
+		fire(QueueManagerListener::ItemFinished(), aQI, Util::emptyString, aDownload->getHintedUser(), aDownload->getAverageSpeed());
 	}
 
 	if (wholeFileCompleted && !aQI->getBundle()) {
