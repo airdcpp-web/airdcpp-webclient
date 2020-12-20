@@ -71,3 +71,18 @@ Download links:
 - [Debugging symbols for develop builds](https://web-builds.airdcpp.net/develop/dbg_symbols/)
 
 Extract the content of the symbol package to the directory where the airdcppd executable is located before launching the debugger.
+
+### Extension-related issues
+
+Extension crashes/timeouts should first be reported on the issue tracker of the respective extension.
+
+**Enabling debug mode for extensions**
+
+***Web UI***: go to *Settings* -> *Extensions* -> *Extension options* and enable *Run extensions in debug mode*
+***Windows GUI***: go to *Extensions* tab and enable *Run extensions in debug mode* under the *Options* menu
+
+Note that the extension to be debugged must be restarted after enabling the debug mode.
+
+**Debug output**
+
+Extension logs are located at *path_to_application_settings/extensions/EXTENSION_NAME/logs/*. The full debug output is logged in `output.log` and possible error messages in `error.log` (or if the extension was restarted after the issue occurred, see `output.log.old` and `error.log.old` instead).
