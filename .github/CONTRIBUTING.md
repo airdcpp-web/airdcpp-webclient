@@ -76,10 +76,13 @@ Extract the content of the symbol package to the directory where the airdcppd ex
 
 Extension crashes/timeouts should first be reported on the issue tracker of the respective extension.
 
-**Enabling debug mode for extensions**
+#### Debug information for extensions
 
-***Web UI***: go to *Settings* -> *Extensions* -> *Extension options* and enable *Run extensions in debug mode*
-***Windows GUI***: go to *Extensions* tab and enable *Run extensions in debug mode* under the *Options* menu
+***Enabling debug mode***
+
+*Web UI*: go to *Settings* -> *Extensions* -> *Extension options* and enable *Run extensions in debug mode*
+
+*Windows GUI*: go to *Extensions* tab and enable *Run extensions in debug mode* under the *Options* menu
 
 Note that the extension to be debugged must be restarted after enabling the debug mode.
 
