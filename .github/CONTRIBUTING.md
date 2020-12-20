@@ -88,4 +88,4 @@ Note that the extension to be debugged must be restarted after enabling the debu
 
 **Debug output**
 
-Extension logs are located at *path_to_application_settings/extensions/EXTENSION_NAME/logs/*. The full debug output is logged in `output.log` and possible error messages in `error.log` (or if the extension was restarted after the issue occurred, see `output.log.old` and `error.log.old` instead).
+View the debug output after the issue to be debugged has occurred. Extension logs are located at *PATH_TO_APP_SETTINGS/extensions/EXTENSION_NAME/logs/*. The full debug output is logged in `output.log` and possible error messages in `error.log` (or if the extension was restarted after the issue occurred, see `output.log.old` and `error.log.old` instead).
