@@ -240,7 +240,7 @@ public:
 	void addFullListTask(const string& aDir) noexcept;
 	void addQueueMatchTask() noexcept;
 
-	void addAsyncTask(DispatcherQueue::Callback&& f) noexcept;
+	void addAsyncTask(Callback&& f) noexcept;
 	void close() noexcept;
 
 	void addSearchTask(const SearchPtr& aSearch) noexcept;
@@ -305,7 +305,7 @@ private:
 
 	Directory::Ptr root;
 
-	void dispatch(DispatcherQueue::Callback& aCallback) noexcept;
+	void dispatch(Callback& aCallback) noexcept;
 
 	atomic_flag running;
 
