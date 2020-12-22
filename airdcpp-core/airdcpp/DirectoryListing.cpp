@@ -934,7 +934,7 @@ void DirectoryListing::addSearchTask(const SearchPtr& aSearch) noexcept {
 	addAsyncTask([=] { searchImpl(aSearch); });
 }
 
-void DirectoryListing::addAsyncTask(DispatcherQueue::Callback&& f) noexcept {
+void DirectoryListing::addAsyncTask(Callback&& f) noexcept {
 	if (isClientView) {
 		tasks.addTask(move(f));
 	} else {
@@ -946,7 +946,7 @@ void DirectoryListing::log(const string& aMsg, LogMessage::Severity aSeverity) n
 	LogManager::getInstance()->message(aMsg, aSeverity, STRING(FILE_LISTS));
 }
 
-void DirectoryListing::dispatch(DispatcherQueue::Callback& aCallback) noexcept {
+void DirectoryListing::dispatch(Callback& aCallback) noexcept {
 	try {
 		aCallback();
 	} catch (const std::bad_alloc&) {

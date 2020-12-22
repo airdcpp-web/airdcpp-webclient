@@ -69,10 +69,6 @@ private:
 template<typename T1>
 inline int compare(const T1& v1, const T1& v2) noexcept { return (v1 < v2) ? -1 : ((v1 == v2) ? 0 : 1); }
 
-typedef std::function<void (const string&)> StepFunction;
-typedef std::function<bool (const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> MessageFunction;
-typedef std::function<void (float)> ProgressFunction;
-
 // Recursively collected information about directory content
 struct DirectoryContentInfo {
 	DirectoryContentInfo() : directories(-1), files(-1) {  }

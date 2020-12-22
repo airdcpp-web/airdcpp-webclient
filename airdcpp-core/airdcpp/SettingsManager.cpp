@@ -1359,7 +1359,7 @@ HubSettings SettingsManager::getHubSettings() const noexcept {
 	return ret;
 }
 
-void settingXmlMessage(const string& aMessage, LogMessage::Severity aSeverity, const SettingsManager::CustomReportF& aCustomErrorF) noexcept {
+void settingXmlMessage(const string& aMessage, LogMessage::Severity aSeverity, const MessageCallback& aCustomErrorF) noexcept {
 	if (!aCustomErrorF) {
 		LogManager::getInstance()->message(aMessage, aSeverity, STRING(SETTINGS));
 	} else {
@@ -1420,18 +1420,9 @@ vector<ToolbarIconEnum> SettingsManager::getDefaultToolbarOrder() noexcept {
 	});
 }
 
-bool SettingsManager::loadSettingFile(Util::Paths aPath, const string& aFileName, ParseCallback&& aParseCallback, const CustomReportF& aCustomReportF) noexcept {
-	const auto fullPath = Util::getPath(aPath) + aFileName;
-
-	Util::migrate(fullPath);
-
-	if (!Util::fileExists(fullPath)) {
-		return false;
-	}
-
-	const auto parseFile = [&](const string& aPath) {
+bool SettingsManager::loadSettingFile(Util::Paths aPath, const string& aFileName, XMLParseCallback&& aParseCallback, const MessageCallback& aCustomReportF) noexcept {
+	const auto parseXmlFile = [&](const string& aPath) {
 		SimpleXML xml;
-
 		try {
 			// Some legacy config files (such as favorites and recent hubs) may contain invalid UTF-8 data
 			// so don't throw in case of validation errors
@@ -1446,10 +1437,22 @@ bool SettingsManager::loadSettingFile(Util::Paths aPath, const string& aFileName
 		return true;
 	};
 
+	return loadSettingFile(aPath, aFileName, parseXmlFile, aCustomReportF);
+}
+
+bool SettingsManager::loadSettingFile(Util::Paths aPath, const string& aFileName, PathParseCallback&& aParseCallback, const MessageCallback& aCustomReportF) noexcept {
+	const auto fullPath = Util::getPath(aPath) + aFileName;
+
+	Util::migrate(fullPath);
+
+	if (!Util::fileExists(fullPath)) {
+		return false;
+	}
+
 	const auto backupPath = fullPath + ".bak";
-	if (!parseFile(fullPath)) {
+	if (!aParseCallback(fullPath)) {
 		// Try to load the file that was previously loaded succesfully
-		if (!Util::fileExists(backupPath) || !parseFile(backupPath)) {
+		if (!Util::fileExists(backupPath) || !aParseCallback(backupPath)) {
 			return false;
 		}
 
@@ -1478,17 +1481,19 @@ bool SettingsManager::loadSettingFile(Util::Paths aPath, const string& aFileName
 	return true;
 }
 
-bool SettingsManager::saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, const CustomReportF& aCustomErrorF) noexcept {
-	string fname = Util::getPath(aPath) + aFileName;
+bool SettingsManager::saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF) noexcept {
+	return saveSettingFile(SimpleXML::utf8Header + aXML.toXML(), aPath, aFileName, aCustomErrorF);
+}
 
+bool SettingsManager::saveSettingFile(const string& aContent, Util::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF) noexcept {
+	auto fname = Util::getPath(aPath) + aFileName;
 	try {
 		{
 			File f(fname + ".tmp", File::WRITE, File::CREATE | File::TRUNCATE, File::BUFFER_WRITE_THROUGH);
-			f.write(SimpleXML::utf8Header);
-			f.write(aXML.toXML());
+			f.write(aContent);
 		}
 
-		//dont overWrite with empty file.
+		// Dont overwrite with empty file.
 		if (File::getSize(fname + ".tmp") > 0) {
 			File::deleteFile(fname);
 			File::renameFile(fname + ".tmp", fname);

@@ -421,13 +421,15 @@ public:
 	string getProfileName(int profile) const noexcept;
 
 	// Reports errors to system log if no custom error function is supplied
-	typedef std::function<void(const string&)> CustomReportF;
-	static bool saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, const CustomReportF& aCustomErrorF = nullptr) noexcept;
+	static bool saveSettingFile(SimpleXML& aXML, Util::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF = nullptr) noexcept;
+	static bool saveSettingFile(const string& aContent, Util::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF = nullptr) noexcept;
 
 	// Attempts to load the setting file and creates a backup after completion
 	// Settings are recovered automatically from the backup file in case the main setting file is malformed/corrupted
-	typedef std::function<void(SimpleXML&)> ParseCallback;
-	static bool loadSettingFile(Util::Paths aPath, const string& aFileName, ParseCallback&& aParseCallback, const CustomReportF& aCustomErrorF = nullptr) noexcept;
+	typedef std::function<void(SimpleXML&)> XMLParseCallback;
+	typedef std::function<bool(const string&)> PathParseCallback;
+	static bool loadSettingFile(Util::Paths aPath, const string& aFileName, XMLParseCallback&& aParseCallback, const MessageCallback& aCustomErrorF = nullptr) noexcept;
+	static bool loadSettingFile(Util::Paths aPath, const string& aFileName, PathParseCallback&& aParseCallback, const MessageCallback& aCustomErrorF = nullptr) noexcept;
 private:
 	boost::regex connectionRegex;
 

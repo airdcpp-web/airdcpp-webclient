@@ -25,18 +25,13 @@
 
 namespace dcpp {
 
-typedef function<void(const string&)> StepF;
-typedef function<void(float)> ProgressF;
-typedef function<void()> Callback;
-typedef function<bool(const string& /*Message*/, bool /*isQuestion*/, bool /*isError*/)> MessageF;
-
 class StartupLoader {
 public:
-	StartupLoader(const StepF& aStepF, const ProgressF& aProgressF, const MessageF& aMessageF) : stepF(aStepF), progressF(aProgressF), messageF(aMessageF) {}
+	StartupLoader(const StepFunction& aStepF, const ProgressFunction& aProgressF, const MessageFunction& aMessageF) : stepF(aStepF), progressF(aProgressF), messageF(aMessageF) {}
 
-	const StepF stepF;
-	const ProgressF& progressF;
-	const MessageF& messageF;
+	const StepFunction stepF;
+	const ProgressFunction& progressF;
+	const MessageFunction& messageF;
 
 	// Tasks to run after everything has finished loading
 	// Use for task involving hooks
@@ -52,12 +47,12 @@ private:
 };
 
 typedef function<void(StartupLoader&)> StartupLoadCallback;
-typedef function<void(StepF&, ProgressF&)> ShutdownUnloadCallback;
+typedef function<void(StepFunction&, ProgressFunction&)> ShutdownUnloadCallback;
 
 // This will throw AbortException in case of fatal errors (such as hash database initialization errors)
-extern void startup(StepF stepF, MessageF messageF, Callback runWizard, ProgressF progressF, Callback moduleInitF = nullptr, StartupLoadCallback moduleLoadF = nullptr);
+extern void startup(StepFunction stepF, MessageFunction messageF, Callback runWizard, ProgressFunction progressF, Callback moduleInitF = nullptr, StartupLoadCallback moduleLoadF = nullptr);
 
-extern void shutdown(StepF stepF, ProgressF progressF, ShutdownUnloadCallback moduleUnloadF = nullptr, Callback moduleDestroyF = nullptr);
+extern void shutdown(StepFunction stepF, ProgressFunction progressF, ShutdownUnloadCallback moduleUnloadF = nullptr, Callback moduleDestroyF = nullptr);
 
 } // namespace dcpp
 

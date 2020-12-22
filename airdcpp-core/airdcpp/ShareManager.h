@@ -720,7 +720,6 @@ private:
 	private:
 		void buildTree(const string& aPath, const string& aPathLower, const Directory::Ptr& aCurrentDirectory, const Directory::Ptr& aOldDirectory, const bool& aStopping);
 
-		typedef function<void()> ValidatorF;
 		bool validateFileItem(const FileItemInfoBase& aFileItem, const string& aPath, bool aIsNew, bool aNewParent, ErrorCollector& aErrorCollector) noexcept;
 
 		const ShareManager& sm;
