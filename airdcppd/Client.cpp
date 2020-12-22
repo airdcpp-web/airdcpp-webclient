@@ -162,7 +162,7 @@ bool Client::startup() {
 }
 
 
-void unloadModules(StepF& aStepF, ProgressF&) {
+void unloadModules(StepFunction& aStepF, ProgressFunction&) {
 	aStepF("Stopping web server");
 	webserver::WebServerManager::getInstance()->stop();
 	webserver::WebServerManager::getInstance()->save(webErrorF);
