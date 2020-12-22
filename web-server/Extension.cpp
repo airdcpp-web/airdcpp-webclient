@@ -304,36 +304,50 @@ namespace webserver {
 		// Script to launch
 		ret.push_back(maybeEscape(Util::joinDirectory(getRootPath(), EXT_PACKAGE_DIR) + entry));
 
-		// Params (string/flag)
-		auto addParam = [&ret, &maybeEscape](const string& aName, const string& aParam = Util::emptyString) {
+
+		// Params
+		auto addParamImpl = [&ret, &maybeEscape](const string& aName, const string& aParam = Util::emptyString) {
 			auto arg = "--" + aName;
 			if (!aParam.empty()) {
-				arg += "=" + maybeEscape(aParam);
+				arg += "=" + aParam;
 			}
 
 			ret.push_back(arg);
 		};
 
+		auto addStrParam = [&maybeEscape, &addParamImpl](const string& aName, const string& aParam) {
+			addParamImpl(aName, maybeEscape(aParam));
+		};
+
+		auto addIntParam = [&addParamImpl](const string& aName, int aParam) {
+			addParamImpl(aName, Util::toString(aParam));
+		};
+
+		auto addFlagParam = addParamImpl;
+
 		// Name
-		addParam("name", name);
+		addStrParam("name", name);
 
 		// Connect URL
-		addParam("apiUrl", getConnectUrl(wsm));
+		addStrParam("apiUrl", getConnectUrl(wsm));
 
 		// Session token
-		addParam("authToken", aSession->getAuthToken());
+		addStrParam("authToken", aSession->getAuthToken());
 
 		// Paths
-		addParam("logPath", Util::joinDirectory(getRootPath(), EXT_LOG_DIR));
-		addParam("settingsPath", Util::joinDirectory(getRootPath(), EXT_CONFIG_DIR));
+		addStrParam("logPath", Util::joinDirectory(getRootPath(), EXT_LOG_DIR));
+		addStrParam("settingsPath", Util::joinDirectory(getRootPath(), EXT_CONFIG_DIR));
 
 		if (WEBCFG(EXTENSIONS_DEBUG_MODE).boolean()) {
-			addParam("debug");
+			addFlagParam("debug");
 		}
 
 		if (signalReady) {
-			addParam("signalReady");
+			addFlagParam("signalReady");
 		}
+
+		// Process ID
+		addIntParam("appPid", getAppPid());
 
 		return ret;
 	}
@@ -548,6 +562,10 @@ namespace webserver {
 			throw Exception(error);
 		}
 	}
+
+	int Extension::getAppPid() noexcept {
+		return GetCurrentProcessId();
+	}
 #else
 #include <sys/wait.h>
 
@@ -635,5 +653,8 @@ namespace webserver {
 		}
 	}
 
+	int Extension::getAppPid() noexcept {
+		return getpid();
+	}
 #endif
 }

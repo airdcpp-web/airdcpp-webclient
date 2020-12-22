@@ -593,11 +593,16 @@ namespace webserver {
 	}
 
 #define EXIT_CODE_TIMEOUT 124
+#define EXIT_CODE_IO_ERROR 74
+#define EXIT_CODE_TEMP_ERROR 75
 	void ExtensionManager::onExtensionFailed(const Extension* aExtension, uint32_t aExitCode) noexcept {
-		if (aExitCode == EXIT_CODE_TIMEOUT) {
+		if (aExitCode == EXIT_CODE_TIMEOUT || aExitCode == EXIT_CODE_IO_ERROR || aExitCode == EXIT_CODE_TEMP_ERROR) {
 			// Attempt to restart it (but outside of extension's timer thread)
 			auto name = aExtension->getName();
 			wsm->addAsyncTask([=] {
+				// Wait for the log file handles to get closed
+				Thread::sleep(3000);
+
 				auto extension = getExtension(name);
 				if (extension && startExtensionImpl(extension)) {
 					log(STRING_F(WEB_EXTENSION_TIMED_OUT, aExtension->getName()), LogMessage::SEV_INFO);

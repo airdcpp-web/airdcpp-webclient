@@ -171,6 +171,7 @@ namespace webserver {
 		static unique_ptr<File> initLog(const string& aPath);
 		pid_t pid = 0;
 #endif
+		static int getAppPid() noexcept;
 	};
 
 	inline bool operator==(const ExtensionPtr& a, const string& b) { return Util::stricmp(a->getName(), b) == 0; }
