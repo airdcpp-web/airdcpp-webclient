@@ -221,11 +221,11 @@ namespace webserver {
 			dcassert(0);
 		}
 
-		void addAsyncTask(CallBack&& aTask) override {
+		void addAsyncTask(Callback&& aTask) override {
 			SubscribableApiModule::addAsyncTask(getAsyncWrapper(move(aTask)));
 		}
 
-		TimerPtr getTimer(CallBack&& aTask, time_t aIntervalMillis) override {
+		TimerPtr getTimer(Callback&& aTask, time_t aIntervalMillis) override {
 			return session->getServer()->addTimer(move(aTask), aIntervalMillis, 
 				std::bind(&SubApiModule::moduleAsyncRunWrapper<ParentType>, std::placeholders::_1, parentModule, getId(), session->getId())
 			);
@@ -233,7 +233,7 @@ namespace webserver {
 
 		// All custom async tasks should be run inside this to
 		// ensure that the submodule (or the session) won't get deleted
-		CallBack getAsyncWrapper(CallBack&& aTask) noexcept override {
+		Callback getAsyncWrapper(Callback&& aTask) noexcept override {
 			auto sessionId = session->getId();
 			auto moduleId = getId();
 			return [=] {
@@ -242,7 +242,7 @@ namespace webserver {
 		}
 	private:
 		template<class ParentType>
-		static void moduleAsyncRunWrapper(const CallBack& aTask, ParentType* aParentModule, const IdType& aId, LocalSessionId aSessionId) {
+		static void moduleAsyncRunWrapper(const Callback& aTask, ParentType* aParentModule, const IdType& aId, LocalSessionId aSessionId) {
 			// Ensure that we have a session
 			SubscribableApiModule::asyncRunWrapper([=] {
 				// Ensure that we have a submodule (the parent must exist if we have a session)

@@ -510,7 +510,7 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	bool ShareApi::runPathValidatorF(const std::function<void()>& aValidationF, const ApiCompletionF& aErrorF) noexcept {
+	bool ShareApi::runPathValidatorF(const Callback& aValidationF, const ApiCompletionF& aErrorF) noexcept {
 		try {
 			aValidationF();
 		} catch (const QueueException& e) {

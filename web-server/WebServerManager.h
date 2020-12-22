@@ -74,22 +74,20 @@ namespace webserver {
 	public:
 		// Add a scheduled task
 		// Note: the returned timer pointer must be kept alive by the caller while the timer is active
-		TimerPtr addTimer(CallBack&& aCallBack, time_t aIntervalMillis, const Timer::CallbackWrapper& aCallbackWrapper = nullptr) noexcept;
+		TimerPtr addTimer(Callback&& aCallback, time_t aIntervalMillis, const Timer::CallbackWrapper& aCallbackWrapper = nullptr) noexcept;
 
 		// Run a task in the task thread pool
-		void addAsyncTask(CallBack&& aCallBack) noexcept;
+		void addAsyncTask(Callback&& aCallback) noexcept;
 
 		WebServerManager();
 		~WebServerManager();
 
-		typedef std::function<void(const string&)> ErrorF;
-
 		// Leave the path empty to use the default resource path
-		bool startup(const ErrorF& errorF, const string& aWebResourcePath, const CallBack& aShutdownF);
+		bool startup(const MessageCallback& errorF, const string& aWebResourcePath, const Callback& aShutdownF);
 
 		// Start the server 
 		// Throws Exception on errors
-		bool start(const ErrorF& errorF);
+		bool start(const MessageCallback& errorF);
 		void stop() noexcept;
 
 		// Disconnect all sockets
@@ -99,8 +97,8 @@ namespace webserver {
 		WebSocketPtr getSocket(LocalSessionId aSessionToken) noexcept;
 
 		void setDirty() noexcept;
-		bool load(const ErrorF& aErrorF) noexcept;
-		bool save(const ErrorF& aErrorF) noexcept;
+		bool load(const MessageCallback& aErrorF) noexcept;
+		bool save(const MessageCallback& aErrorF) noexcept;
 		string getConfigFilePath() const noexcept;
 		WebServerSettings& getSettings() noexcept {
 			return settings;
@@ -147,13 +145,13 @@ namespace webserver {
 		static boost::asio::ip::tcp getDefaultListenProtocol() noexcept;
 
 		// Get the function for shutting down the application
-		const CallBack getShutdownF() const noexcept {
+		const Callback getShutdownF() const noexcept {
 			return shutdownF;
 		}
 
 		// Logging
 		void log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
-		ErrorF getDefaultErrorLogger() const noexcept;
+		MessageCallback getDefaultErrorLogger() const noexcept;
 
 		// Address utils
 		string resolveAddress(const string& aHostname, const string& aPort) noexcept;
@@ -340,9 +338,9 @@ namespace webserver {
 
 		void addSocket(websocketpp::connection_hdl hdl, const WebSocketPtr& aSocket) noexcept;
 		WebSocketPtr getSocket(websocketpp::connection_hdl hdl) const noexcept;
-		bool listen(const ErrorF& errorF);
+		bool listen(const MessageCallback& errorF);
 
-		bool initialize(const ErrorF& errorF);
+		bool initialize(const MessageCallback& errorF);
 
 		ServerConfig plainServerConfig;
 		ServerConfig tlsServerConfig;
@@ -385,7 +383,7 @@ namespace webserver {
 		// all task threads are waiting for a hook response (and there are no threads left to handle those)
 		unique_ptr<boost::thread_group> task_threads;
 
-		CallBack shutdownF;
+		Callback shutdownF;
 		bool isDirty = false;
 	};
 }

@@ -16,8 +16,10 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_APIMODULE_H
-#define DCPLUSPLUS_DCPP_APIMODULE_H
+#ifndef DCPLUSPLUS_WEBSERVER_APIMODULE_H
+#define DCPLUSPLUS_WEBSERVER_APIMODULE_H
+
+#include "stdinc.h"
 
 #include <web-server/Access.h>
 #include <web-server/ApiRequest.h>
@@ -90,8 +92,8 @@ namespace webserver {
 		ApiModule(ApiModule&) = delete;
 		ApiModule& operator=(ApiModule&) = delete;
 
-		virtual void addAsyncTask(CallBack&& aTask);
-		virtual TimerPtr getTimer(CallBack&& aTask, time_t aIntervalMillis);
+		virtual void addAsyncTask(Callback&& aTask);
+		virtual TimerPtr getTimer(Callback&& aTask, time_t aIntervalMillis);
 
 		Session* getSession() const noexcept {
 			return session;
@@ -103,9 +105,9 @@ namespace webserver {
 
 		// All custom async tasks should be run inside this to
 		// ensure that the session won't get deleted
-		virtual CallBack getAsyncWrapper(CallBack&& aTask) noexcept;
+		virtual Callback getAsyncWrapper(Callback&& aTask) noexcept;
 	protected:
-		static void asyncRunWrapper(const CallBack& aTask, LocalSessionId aSessionId);
+		static void asyncRunWrapper(const Callback& aTask, LocalSessionId aSessionId);
 
 		Session* session;
 

@@ -62,7 +62,7 @@ namespace webserver {
 		api_return handleIsPathShared(ApiRequest& aRequest);
 
 		// Run a function that will involve path validations with correct error reporting
-		static bool runPathValidatorF(const std::function<void()>& aValidationF, const ApiCompletionF& aErrorF) noexcept;
+		static bool runPathValidatorF(const Callback& aValidationF, const ApiCompletionF& aErrorF) noexcept;
 
 		void on(ShareManagerListener::RefreshQueued, const ShareRefreshTask& aTask) noexcept override;
 		void on(ShareManagerListener::RefreshStarted, const ShareRefreshTask& aTask) noexcept override;

@@ -23,24 +23,6 @@
 #define _WEBSOCKETPP_CPP11_STL_
 #endif
 
-#if defined _MSC_VER
-
-#ifndef _SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING
-#define _SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING // boost\bimap\detail\manage_additional_parameters.hpp(86): error C4996: 'std::allocator<void>': warning STL4009: std::allocator<void> is deprecated in C++17.
-#endif
-
-#ifndef _SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING 
-#define _SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING // boost\detail\allocator_utilities.hpp(125): error C4996: 'std::allocator<_Other>::rebind<Type>::other': warning STL4010: Various members of std::allocator are deprecated in C++17.
-#endif
-
-#ifndef _SILENCE_CXX17_NEGATORS_DEPRECATION_WARNING // TODO: fix when GCC 7 is required with support for std::not_fn
-#define _SILENCE_CXX17_NEGATORS_DEPRECATION_WARNING // api\common\serializer.cpp(235): error C4996: 'std::not1': warning STL4008: std::not1(), std::not2(), std::unary_negate, and std::binary_negate are deprecated in C++17. They are superseded by std::not_fn().
-#endif
-
-# pragma warning(disable: 4834) // boost\asio\buffer.hpp(710): warning C4834: discarding return value of function with 'nodiscard' attribute
-
-#endif
-
 #include <airdcpp/stdinc.h>
 #include <airdcpp/StringTokenizer.h>
 
@@ -80,8 +62,6 @@ namespace webserver {
 
 	class ApiRequest;
 
-	typedef std::function<void()> CallBack;
-
 	class ContextMenuItem;
 	typedef std::shared_ptr<ContextMenuItem> ContextMenuItemPtr;
 	typedef std::vector<ContextMenuItemPtr> ContextMenuItemList;
@@ -104,6 +84,9 @@ namespace webserver {
 	typedef std::shared_ptr<WebSocket> WebSocketPtr;
 
 	class WebServerManager;
+
+	typedef std::function<void()> Callback;
+	typedef std::function<void(const string&)> MessageCallback;
 }
 
 #endif // !defined(DCPLUSPLUS_WEBSERVER_STDINC_H)

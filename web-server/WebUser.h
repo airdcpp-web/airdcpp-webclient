@@ -32,14 +32,13 @@ namespace webserver {
 
 	class WebUser {
 	public:
-		WebUser(const std::string& aUserName, const std::string& aPassword, bool aIsAdmin = false);
+		WebUser(const std::string& aUserName, const std::string& aPasswordHashOrPlain, bool aIsAdmin = false);
 
 		const string& getToken() const noexcept {
 			return userName;
 		}
 
 		GETSET(std::string, userName, UserName);
-		GETSET(std::string , password, Password);
 		IGETSET(time_t, lastLogin, LastLogin, 0);
 
 		WebUser(WebUser&) = delete;
@@ -76,11 +75,21 @@ namespace webserver {
 		int countPermissions() const noexcept;
 
 		static bool validateUsername(const string& aUsername) noexcept;
+
+		bool matchPassword(const string& aPasswordPlain) noexcept;
+		void setPassword(const std::string& aPasswordHashOrPlain) noexcept;
+		const string& getPasswordHash() const noexcept {
+			return passwordHash;
+		}
 	private:
 		void clearPermissions() noexcept;
 		int activeSessions = 0;
 
 		AccessMap permissions;
+
+		static string hashPassword(const string& aPasswordPlain) noexcept;
+
+		string passwordHash;
 	};
 
 }

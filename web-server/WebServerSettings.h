@@ -74,6 +74,12 @@ namespace webserver {
 			return ApiSettingItem::findSettingItem<ServerSettingItem>(settings, aKey);
 		}
 
+		typedef std::function<void(const json&, int /*aConfigVersion*/)> JsonParseCallback;
+		static bool loadSettingFile(Util::Paths aPath, const string& aFileName, JsonParseCallback&& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept;
+		static bool saveSettingFile(const json& aJson, Util::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF, int aConfigVersion) noexcept;
+
+		json toJson() const noexcept;
+		void fromJsonThrow(const json& aJson);
 	private:
 		vector<ServerSettingItem> settings;
 	};
