@@ -19,7 +19,9 @@
 #include "stdinc.h"
 
 #include <web-server/WebServerSettings.h>
+#include <api/common/SettingUtils.h>
 
+#include <airdcpp/File.h>
 #include <airdcpp/TimerManager.h>
 
 namespace webserver {
@@ -60,4 +62,68 @@ namespace webserver {
 
 			{ "list_menuitems_hook_timeout",				ResourceManager::WEB_CFG_LIST_MENUITEMS_HOOK_TIMEOUT,					1,	ApiSettingItem::TYPE_NUMBER, false, { 1, 60 }, ResourceManager::SECONDS_LOWER },
 		}) {}
+
+
+	bool WebServerSettings::loadSettingFile(Util::Paths aPath, const string& aFileName, JsonParseCallback&& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept {
+		const auto parseJsonFile = [&](const string& aPath) {
+			// SimpleXML xml;
+			try {
+				// Some legacy config files (such as favorites and recent hubs) may contain invalid UTF-8 data
+				// so don't throw in case of validation errors
+				// xml.fromXML(File(aPath, File::READ, File::OPEN).read(), SimpleXMLReader::FLAG_REPLACE_INVALID_UTF8);
+
+				auto parsed = json::parse(File(aPath, File::READ, File::OPEN).read());
+				int configVersion = parsed.at("version");
+				if (configVersion > aMaxConfigVersion) {
+					throw std::invalid_argument("Config version " + Util::toString(configVersion) + " is not supported");
+				}
+
+				aParseCallback(parsed.at("settings"), configVersion);
+			} catch (const std::exception& e) {
+				aCustomErrorF(STRING_F(LOAD_FAILED_X, aPath % e.what()));
+				return false;
+			}
+
+			return true;
+		};
+
+		return SettingsManager::loadSettingFile(aPath, aFileName, parseJsonFile, aCustomErrorF);
+	}
+
+	bool WebServerSettings::saveSettingFile(const json& aJson, Util::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF, int aConfigVersion) noexcept {
+		auto data = json({
+			{ "version", aConfigVersion },
+			{ "settings", aJson },
+		});
+
+		return SettingsManager::saveSettingFile(data.dump(2), aPath, aFileName, aCustomErrorF);
+	}
+
+	json WebServerSettings::toJson() const noexcept {
+		json ret;
+		for (const auto s: settings) {
+			if (!s.isDefault()) {
+				ret[s.name] = s.getValue();
+			}
+		}
+
+		return ret;
+	}
+
+	void WebServerSettings::fromJsonThrow(const json& aJson) {
+		for (const auto& elem: aJson.items()) {
+			auto setting = getSettingItem(elem.key());
+			if (!setting) {
+				dcdebug("Web server settings: loaded key %s was not found, skipping\n", elem.key().c_str());
+				continue;
+			}
+
+			try {
+				setting->setValue(SettingUtils::validateValue(elem.value(), *setting, nullptr));
+			} catch (const ArgumentException& e) {
+				dcdebug("Web server settings: validation failed for setting %s (%s)\n", elem.key().c_str(), e.what());
+				// ...
+			}
+		}
+	}
 }

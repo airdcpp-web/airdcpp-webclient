@@ -99,20 +99,20 @@ namespace webserver {
 		return handler->f(aRequest);
 	}
 
-	TimerPtr ApiModule::getTimer(CallBack&& aTask, time_t aIntervalMillis) {
+	TimerPtr ApiModule::getTimer(Callback&& aTask, time_t aIntervalMillis) {
 		return session->getServer()->addTimer(move(aTask), aIntervalMillis,
 			std::bind(&ApiModule::asyncRunWrapper, std::placeholders::_1, session->getId())
 		);
 	}
 
-	CallBack ApiModule::getAsyncWrapper(CallBack&& aTask) noexcept {
+	Callback ApiModule::getAsyncWrapper(Callback&& aTask) noexcept {
 		auto sessionId = session->getId();
 		return [aTask, sessionId] {
 			return asyncRunWrapper(aTask, sessionId);
 		};
 	}
 
-	void ApiModule::asyncRunWrapper(const CallBack& aTask, LocalSessionId aSessionId) {
+	void ApiModule::asyncRunWrapper(const Callback& aTask, LocalSessionId aSessionId) {
 		// Ensure that the session (and socket) won't be deleted
 		auto s = WebServerManager::getInstance()->getUserManager().getSession(aSessionId);
 		if (!s) {
@@ -122,7 +122,7 @@ namespace webserver {
 		aTask();
 	}
 
-	void ApiModule::addAsyncTask(CallBack&& aTask) {
+	void ApiModule::addAsyncTask(Callback&& aTask) {
 		session->getServer()->addAsyncTask(getAsyncWrapper(move(aTask)));
 	}
 

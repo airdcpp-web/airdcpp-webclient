@@ -44,6 +44,10 @@
 
 #define REFRESH_TOKEN_VALIDITY_DAYS 30ULL
 
+#define CONFIG_NAME_JSON "web-users.json"
+#define CONFIG_DIR Util::PATH_USER_CONFIG
+#define CONFIG_VERSION 1
+
 namespace webserver {
 	WebUserManager::WebUserManager(WebServerManager* aServer) : server(aServer), authFloodCounter(FLOOD_COUNT, FLOOD_PERIOD) {
 		aServer->addListener(this);
@@ -125,7 +129,7 @@ namespace webserver {
 		}
 
 		auto user = getUser(aUserName);
-		if (!user || user->getPassword() != aPassword) {
+		if (!user || !user->matchPassword(aPassword)) {
 			authFloodCounter.addAttempt(aIP);
 			throw std::domain_error(STRING(WEB_SESSIONS_INVALID_USER_PW));
 		}
@@ -320,96 +324,8 @@ namespace webserver {
 		}
 	}
 
-	void WebUserManager::on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept {
-		resetSocketSession(aSocket);
-	}
-
-	void WebUserManager::on(WebServerManagerListener::LoadSettings, SimpleXML& xml_) noexcept {
-		if (xml_.findChild("WebUsers")) {
-			xml_.stepIn();
-			while (xml_.findChild("WebUser")) {
-				const auto& username = xml_.getChildAttrib("Username");
-				const auto& password = xml_.getChildAttrib("Password");
-
-				if (username.empty() || password.empty()) {
-					continue;
-				}
-
-				const auto& permissions = xml_.getChildAttrib("Permissions");
-
-				// Set as admin mainly for compatibility with old accounts if no permissions were found
-				auto user = std::make_shared<WebUser>(username, password, permissions.empty());
-
-				user->setLastLogin(xml_.getIntChildAttrib("LastLogin"));
-				if (!permissions.empty()) {
-					user->setPermissions(permissions);
-				}
-
-				users.emplace(username, user);
-
-			}
-			xml_.stepOut();
-		}
-
-		if (xml_.findChild("RefreshTokens")) {
-			xml_.stepIn();
-			while (xml_.findChild("TokenInfo")) {
-				const auto& token = xml_.getChildAttrib("Token");
-				const auto& username = xml_.getChildAttrib("Username");
-				const auto& expiresOn = static_cast<time_t>(xml_.getLongLongChildAttrib("ExpiresOn"));
-
-				if (username.empty() || token.empty() || GET_TIME() > expiresOn) {
-					continue;
-				}
-
-				auto user = getUser(username);
-				if (!user) {
-					continue;
-				}
-
-				refreshTokens.emplace(token, TokenInfo({ token, user, expiresOn }));
-			}
-			xml_.stepOut();
-		}
-
-		xml_.resetCurrentChild();
-	}
-
-	void WebUserManager::on(WebServerManagerListener::SaveSettings, SimpleXML& xml_) noexcept {
-		{
-			xml_.addTag("WebUsers");
-			xml_.stepIn();
-			{
-				RLock l(cs);
-				for (const auto& u: users | map_values) {
-					xml_.addTag("WebUser");
-					xml_.addChildAttrib("Username", u->getUserName());
-					xml_.addChildAttrib("Password", u->getPassword());
-					xml_.addChildAttrib("LastLogin", u->getLastLogin());
-					xml_.addChildAttrib("Permissions", u->getPermissionsStr());
-				}
-			}
-			xml_.stepOut();
-		}
-
-		{
-			xml_.addTag("RefreshTokens");
-			xml_.stepIn();
-			{
-				RLock l(cs);
-				for (const auto& t: refreshTokens | map_values) {
-					xml_.addTag("TokenInfo");
-					xml_.addChildAttrib("Token", t.token);
-					xml_.addChildAttrib("Username", t.user->getUserName());
-					xml_.addChildAttrib("ExpiresOn", t.expiresOn);
-				}
-			}
-			xml_.stepOut();
-		}
-	}
-
 	void WebUserManager::setDirty() noexcept {
-		server->setDirty();
+		isDirty = true;
 	}
 
 	bool WebUserManager::hasUsers() const noexcept {
@@ -559,5 +475,149 @@ namespace webserver {
 		}
 
 		setDirty();
+	}
+
+
+	void WebUserManager::on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept {
+		resetSocketSession(aSocket);
+	}
+
+	void WebUserManager::on(WebServerManagerListener::LoadLegacySettings, SimpleXML& xml_) noexcept {
+		if (xml_.findChild("WebUsers")) {
+			xml_.stepIn();
+			while (xml_.findChild("WebUser")) {
+				const auto& username = xml_.getChildAttrib("Username");
+				const auto& password = xml_.getChildAttrib("Password");
+
+				if (username.empty() || password.empty()) {
+					continue;
+				}
+
+				const auto& permissions = xml_.getChildAttrib("Permissions");
+
+				// Set as admin mainly for compatibility with old accounts if no permissions were found
+				auto user = std::make_shared<WebUser>(username, password, permissions.empty());
+
+				user->setLastLogin(xml_.getIntChildAttrib("LastLogin"));
+				if (!permissions.empty()) {
+					user->setPermissions(permissions);
+				}
+
+				users.emplace(username, user);
+
+			}
+			xml_.stepOut();
+		}
+
+		if (xml_.findChild("RefreshTokens")) {
+			xml_.stepIn();
+			while (xml_.findChild("TokenInfo")) {
+				const auto& token = xml_.getChildAttrib("Token");
+				const auto& username = xml_.getChildAttrib("Username");
+				const auto& expiresOn = static_cast<time_t>(xml_.getLongLongChildAttrib("ExpiresOn"));
+
+				if (username.empty() || token.empty() || GET_TIME() > expiresOn) {
+					continue;
+				}
+
+				auto user = getUser(username);
+				if (!user) {
+					continue;
+				}
+
+				refreshTokens.emplace(token, TokenInfo({ token, user, expiresOn }));
+			}
+			xml_.stepOut();
+		}
+
+		xml_.resetCurrentChild();
+		setDirty();
+	}
+
+	void WebUserManager::on(WebServerManagerListener::LoadSettings, const MessageCallback& aErrorF) noexcept {
+		WebServerSettings::loadSettingFile(CONFIG_DIR, CONFIG_NAME_JSON, [this](const json& aJson, int) {
+			{
+				auto usersJson = aJson.at("users");
+				if (!usersJson.is_null()) {
+					for (const auto u: usersJson) {
+						const string& username = u.at("username");
+						const string& password = u.at("password");
+						if (username.empty() || password.empty()) {
+							continue;
+						}
+
+						const StringList& permissions = u.at("permissions");
+
+						// Set as admin mainly for compatibility with old accounts if no permissions were found
+						auto user = std::make_shared<WebUser>(username, password, permissions.empty());
+
+						user->setLastLogin(u.at("last_login"));
+						if (!permissions.empty()) {
+							user->setPermissions(permissions);
+						}
+
+						users.emplace(username, user);
+					}
+				}
+			}
+
+			{
+				auto refreshTokensJson = aJson.at("refresh_tokens");
+				if (!refreshTokensJson.is_null()) {
+					for (const auto t: refreshTokensJson) {
+						const string& token = t.at("token");
+						const string& username = t.at("username");
+						const time_t& expiresOn = t.at("expires_on");
+
+						if (username.empty() || token.empty() || GET_TIME() > expiresOn) {
+							continue;
+						}
+
+						auto user = getUser(username);
+						if (!user) {
+							continue;
+						}
+
+						refreshTokens.emplace(token, TokenInfo({ token, user, expiresOn }));
+					}
+				}
+			}
+		}, aErrorF, CONFIG_VERSION);
+	}
+
+	void WebUserManager::on(WebServerManagerListener::SaveSettings, const MessageCallback& aErrorF) noexcept {
+		if (!isDirty) {
+			return;
+		}
+		isDirty = false;
+
+		// Save
+		json settings;
+
+		{
+			RLock l(cs);
+
+			for (const auto& u : users | map_values) {
+				settings["users"].push_back({
+					{ "username", u->getUserName() },
+					{ "password", u->getPasswordHash() },
+					{ "last_login", u->getLastLogin() },
+					{ "permissions", WebUser::permissionsToStringList(u->getPermissions()) },
+				});
+			}
+		}
+
+		{
+			RLock l(cs);
+			for (const auto& t : refreshTokens | map_values) {
+				settings["refresh_tokens"].push_back({
+					{ "token", t.token },
+					{ "username", t.user->getUserName() },
+					{ "expires_on", t.expiresOn },
+				});
+			}
+		}
+
+		WebServerSettings::saveSettingFile(settings, CONFIG_DIR, CONFIG_NAME_JSON, aErrorF, CONFIG_VERSION);
 	}
 }

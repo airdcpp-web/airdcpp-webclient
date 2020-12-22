@@ -66,7 +66,7 @@ namespace webserver {
 		dl->removeListener(this);
 	}
 
-	void FilelistInfo::addListTask(CallBack&& aTask) noexcept {
+	void FilelistInfo::addListTask(Callback&& aTask) noexcept {
 		dl->addAsyncTask(getAsyncWrapper(move(aTask)));
 	}
 

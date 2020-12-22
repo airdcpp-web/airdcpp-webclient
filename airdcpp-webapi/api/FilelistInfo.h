@@ -67,7 +67,7 @@ namespace webserver {
 		void on(DirectoryListingListener::Read) noexcept override;
 		void on(DirectoryListingListener::ShareProfileChanged) noexcept override;
 
-		void addListTask(CallBack&& aTask) noexcept;
+		void addListTask(Callback&& aTask) noexcept;
 
 		/*void on(DirectoryListingListener::QueueMatched, const string& aMessage) noexcept;
 		void on(DirectoryListingListener::Close) noexcept;
