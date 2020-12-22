@@ -1,6 +1,6 @@
 language: cpp
 
-dist: bionic
+dist: focal
 sudo: required
 
 matrix:
@@ -10,10 +10,10 @@ matrix:
       addons:
         apt:
           packages:
-            - libboost1.65-dev
-            - libboost-regex1.65
-            - libboost-thread1.65
-            - libboost-system1.65
+            - libboost1.67-dev
+            - libboost-regex1.67
+            - libboost-thread1.67
+            - libboost-system1.67
 #    - os: linux
 #      compiler: gcc
 #      addons:
@@ -28,7 +28,7 @@ matrix:
 #      env: COMPILER=g++-8
     - os: osx
       compiler: clang
-      osx_image: xcode12
+      osx_image: xcode12.3
       env: COMPILER=clang++
 before_install:
   # Linux
