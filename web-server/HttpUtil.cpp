@@ -20,11 +20,11 @@
 
 #include <web-server/HttpUtil.h>
 
+#include <airdcpp/StringTokenizer.h>
 #include <airdcpp/Util.h>
 
 #include "boost/algorithm/string/replace.hpp"
 
-//#include <sstream>
 
 namespace webserver {
 	using namespace dcpp;

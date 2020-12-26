@@ -124,11 +124,11 @@ namespace webserver {
 	api_return ExtensionApi::handleGetEngineStatuses(ApiRequest& aRequest) {
 		auto ret = json::object();
 		for (const auto& e: em.getEngines()) {
-			auto command = ExtensionManager::selectEngineCommand(e.second);
+			auto command = ExtensionManager::selectEngineCommand(e.name);
 			if (!command.empty()) {
-				ret[e.first] = command;
+				ret[e.name] = command;
 			} else {
-				ret[e.first] = nullptr;
+				ret[e.name] = nullptr;
 			}
 		}
 

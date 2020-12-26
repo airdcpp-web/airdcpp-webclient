@@ -16,8 +16,8 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_WEBSERVER_H
-#define DCPLUSPLUS_DCPP_WEBSERVER_H
+#ifndef DCPLUSPLUS_WEBSERVER_WEBSERVERMANAGER_H
+#define DCPLUSPLUS_WEBSERVER_WEBSERVERMANAGER_H
 
 #include "stdinc.h"
 
@@ -59,7 +59,6 @@ namespace webserver {
 		ServerSettingItem& bindAddress;
 
 		bool hasValidConfig() const noexcept;
-		void save(SimpleXML& aXml, const string& aTagName) noexcept;
 	};
 
 	// alias some of the bind related functions as they are a bit long

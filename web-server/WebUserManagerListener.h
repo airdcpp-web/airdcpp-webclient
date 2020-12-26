@@ -17,10 +17,10 @@
 */
 
 
-#ifndef DCPLUSPLUS_DCPP_WEBUSER_LISTENER_H
-#define DCPLUSPLUS_DCPP_WEBUSER_LISTENER_H
+#ifndef DCPLUSPLUS_WEBSERVER_WEBUSERMANAGER_LISTENER_H
+#define DCPLUSPLUS_WEBSERVER_WEBUSERMANAGER_LISTENER_H
 
-#include "stdinc.h"
+#include "forward.h"
 #include <web-server/WebUser.h>
 
 namespace webserver {

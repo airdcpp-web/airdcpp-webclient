@@ -21,7 +21,6 @@
 
 #include <api/base/ApiModule.h>
 
-//#include <airdcpp/SettingsManager.h>
 
 namespace webserver {
 	class ApiSettingItem;

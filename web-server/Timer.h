@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_WEBSERVER_TIMER_H
 #define DCPLUSPLUS_WEBSERVER_TIMER_H
 
-#include "stdinc.h"
+#include "forward.h"
 
 namespace webserver {
 	class Timer : boost::noncopyable {

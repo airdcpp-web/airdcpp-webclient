@@ -17,10 +17,10 @@
 */
 
 
-#ifndef DCPLUSPLUS_WEBSERVER_LISTENER_H
-#define DCPLUSPLUS_WEBSERVER_LISTENER_H
+#ifndef DCPLUSPLUS_WEBSERVER_WEBSERVERMANAGER_LISTENER_H
+#define DCPLUSPLUS_WEBSERVER_WEBSERVERMANAGER_LISTENER_H
 
-#include "stdinc.h"
+#include "forward.h"
 
 namespace webserver {
 	enum class TransportType {

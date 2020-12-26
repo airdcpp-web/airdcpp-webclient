@@ -24,6 +24,7 @@
 #include <api/common/Deserializer.h>
 #include <api/common/Serializer.h>
 
+#include <web-server/ApiRequest.h>
 #include <web-server/ContextMenuManager.h>
 #include <web-server/JsonUtil.h>
 #include <web-server/Session.h>

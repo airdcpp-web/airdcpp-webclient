@@ -24,11 +24,6 @@
 #endif
 
 #include <airdcpp/stdinc.h>
-#include <airdcpp/StringTokenizer.h>
-
-#include <nlohmann/json.hpp>
-
-#include <web-server/Exception.h>
 
 #include <websocketpp/http/constants.hpp>
 #include <websocketpp/config/asio.hpp>
@@ -37,9 +32,8 @@
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/algorithm/cxx11/copy_if.hpp>
 
+#include "json.h"
 
-
-#define CODE_UNPROCESSABLE_ENTITY 422
 
 namespace webserver {
 	// define types for two different server endpoints, one for each config we are
@@ -56,37 +50,6 @@ namespace webserver {
 	using namespace dcpp;
 
 	using json = nlohmann::json;
-
-	using ArgumentException = webserver::JsonException;
-
-
-	class ApiRequest;
-
-	class ContextMenuItem;
-	typedef std::shared_ptr<ContextMenuItem> ContextMenuItemPtr;
-	typedef std::vector<ContextMenuItemPtr> ContextMenuItemList;
-
-	class Extension;
-	typedef shared_ptr<Extension> ExtensionPtr;
-	typedef vector<ExtensionPtr> ExtensionList;
-
-	class Session;
-	typedef std::shared_ptr<Session> SessionPtr;
-	typedef std::vector<SessionPtr> SessionList;
-	typedef uint32_t LocalSessionId;
-
-	typedef map<string, json> SettingValueMap;
-
-	class Timer;
-	typedef shared_ptr<Timer> TimerPtr;
-
-	class WebSocket;
-	typedef std::shared_ptr<WebSocket> WebSocketPtr;
-
-	class WebServerManager;
-
-	typedef std::function<void()> Callback;
-	typedef std::function<void(const string&)> MessageCallback;
 }
 
 #endif // !defined(DCPLUSPLUS_WEBSERVER_STDINC_H)

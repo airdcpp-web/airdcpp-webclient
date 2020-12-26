@@ -71,22 +71,25 @@ namespace webserver {
 	}
 
 	JsonSettingItem::JsonSettingItem(const string& aKey, const json& aDefaultValue, Type aType,
-		bool aOptional, const MinMax& aMinMax, const string& aHelp, Type aItemType, const EnumOption::List& aEnumOptions) :
+		bool aOptional, const MinMax& aMinMax, Type aItemType, const EnumOption::List& aEnumOptions) :
 
 		ApiSettingItem(aKey, aType, aItemType), defaultValue(aDefaultValue),
-		optional(aOptional), minMax(aMinMax), help(aHelp), enumOptions(aEnumOptions)
+		optional(aOptional), minMax(aMinMax), enumOptions(aEnumOptions)
 	{
 		dcassert(aType != TYPE_NUMBER || minMax.min != minMax.max);
 	}
 
+	ServerSettingItem::List ServerSettingItem::emptyDefinitionList;
 
 	ServerSettingItem::ServerSettingItem(const string& aKey, const ResourceManager::Strings aTitleKey, const json& aDefaultValue, Type aType, bool aOptional,
-		const MinMax& aMinMax, const ResourceManager::Strings aUnit): JsonSettingItem(aKey, aDefaultValue, aType, aOptional, aMinMax), titleKey(aTitleKey), unitKey(aUnit) {
+		const NumberInfo& aNumInfo, const ResourceManager::Strings aHelpKey, Type aListItemType, const List& aListObjectFields) :
+		JsonSettingItem(aKey, aDefaultValue, aType, aOptional, aNumInfo, aListItemType),
+		titleKey(aTitleKey), unitKey(aNumInfo.unitKey), helpKey(aHelpKey), listObjectFields(aListObjectFields) {
 
 	}
 
 	ApiSettingItem::PtrList ServerSettingItem::getListObjectFields() const noexcept {
-		return ApiSettingItem::PtrList();
+		return valueTypesToPtrList(listObjectFields);
 	}
 
 	string ServerSettingItem::getTitle() const noexcept {
@@ -94,15 +97,28 @@ namespace webserver {
 		return ApiSettingItem::formatTitle(title, unitKey);
 	}
 
+	const string& ServerSettingItem::getHelpStr() const noexcept {
+		if (helpKey == ResourceManager::LAST) {
+			return Util::emptyString;
+		}
+
+		return ResourceManager::getInstance()->getString(helpKey);
+	}
+
 	ExtensionSettingItem::ExtensionSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType,
-		bool aOptional, const MinMax& aMinMax, const List& aObjectValues, const string& aHelp, Type aItemType, const EnumOption::List& aEnumOptions) : 
+		bool aOptional, const MinMax& aMinMax, const List& aListObjectFields, const string& aHelp, Type aItemType, const EnumOption::List& aEnumOptions) :
 
-		JsonSettingItem(aKey, aDefaultValue, aType, aOptional, aMinMax, aHelp, aItemType, aEnumOptions), title(aTitle), objectValues(aObjectValues) {
-
+		JsonSettingItem(aKey, aDefaultValue, aType, aOptional, aMinMax, aItemType, aEnumOptions), 
+		title(aTitle), help(aHelp), listObjectFields(aListObjectFields) { 
+	
 	}
 
 	ApiSettingItem::PtrList ExtensionSettingItem::getListObjectFields() const noexcept {
-		return valueTypesToPtrList(objectValues);
+		return valueTypesToPtrList(listObjectFields);
+	}
+
+	const string& ExtensionSettingItem::getHelpStr() const noexcept {
+		return help;
 	}
 
 	// Returns the value and bool indicating whether it's an auto detected value
@@ -112,10 +128,6 @@ namespace webserver {
 
 	const json& JsonSettingItem::getValueRef() const noexcept {
 		return isDefault() ? defaultValue : value;
-	}
-
-	const string& JsonSettingItem::getHelpStr() const noexcept {
-		return help;
 	}
 
 	void JsonSettingItem::unset() noexcept {

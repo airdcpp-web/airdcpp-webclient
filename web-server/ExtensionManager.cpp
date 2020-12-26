@@ -32,6 +32,7 @@
 #include <airdcpp/LogManager.h>
 #include <airdcpp/ScopedFunctor.h>
 #include <airdcpp/SimpleXML.h>
+#include <airdcpp/StringTokenizer.h>
 #include <airdcpp/Thread.h>
 #include <airdcpp/TimerManager.h>
 #include <airdcpp/UpdateManager.h>
@@ -39,21 +40,8 @@
 
 
 namespace webserver {
-#ifdef _WIN32
-	const string ExtensionManager::localNodeDirectoryName = "Node.js";
-#endif
-
 	ExtensionManager::ExtensionManager(WebServerManager* aWsm) : wsm(aWsm) {
 		wsm->addListener(this);
-
-		engines = {
-#ifdef _WIN32
-			{ EXT_ENGINE_NODE, "./" + localNodeDirectoryName + "/node.exe;node" },
-#else
-			{ EXT_ENGINE_NODE, "nodejs;node" },
-#endif
-			{ "python3", "python3;python" },
-		};
 
 		npmRepository = make_unique<NpmRepository>(
 			std::bind(&ExtensionManager::downloadExtension, this, placeholders::_1, placeholders::_2, placeholders::_3),
@@ -216,11 +204,12 @@ namespace webserver {
 
 	void ExtensionManager::load() noexcept {
 		auto directories = File::findFiles(EXTENSION_DIR_ROOT, "*", File::TYPE_DIRECTORY);
+		auto engines = getEngines();
 
 		int started = 0;
 		for (const auto& path : directories) {
 			auto ext = loadLocalExtension(path);
-			if (ext && startExtensionImpl(ext)) {
+			if (ext && startExtensionImpl(ext, engines)) {
 				started++;
 			}
 		}
@@ -529,7 +518,7 @@ namespace webserver {
 			log(STRING_F(WEB_EXTENSION_INSTALLED, extension->getName()), LogMessage::SEV_INFO);
 		}
 
-		startExtensionImpl(extension);
+		startExtensionImpl(extension, getEngines());
 		fire(ExtensionManagerListener::InstallationSucceeded(), aInstallId, extension, updated);
 	}
 
@@ -604,7 +593,7 @@ namespace webserver {
 				Thread::sleep(3000);
 
 				auto extension = getExtension(name);
-				if (extension && startExtensionImpl(extension)) {
+				if (extension && startExtensionImpl(extension, getEngines())) {
 					log(STRING_F(WEB_EXTENSION_TIMED_OUT, aExtension->getName()), LogMessage::SEV_INFO);
 				}
 			});
@@ -652,10 +641,10 @@ namespace webserver {
 		return ext;
 	}
 
-	bool ExtensionManager::startExtensionImpl(const ExtensionPtr& aExtension) noexcept {
+	bool ExtensionManager::startExtensionImpl(const ExtensionPtr& aExtension, const ExtensionEngine::List& aInstalledEngines) noexcept {
 		try {
-			auto command = getStartCommandThrow(aExtension->getEngines());
-			aExtension->startThrow(command, wsm);
+			auto launchInfo = getStartCommandThrow(aExtension->getEngines(), aInstalledEngines);
+			aExtension->startThrow(launchInfo.command, wsm, launchInfo.arguments);
 		} catch (const Exception& e) {
 			log(STRING_F(WEB_EXTENSION_START_ERROR, aExtension->getName() % e.what()), LogMessage::SEV_ERROR);
 			return false;
@@ -664,37 +653,31 @@ namespace webserver {
 		return true;
 	}
 
-	string ExtensionManager::getStartCommandThrow(const StringList& aEngines) const {
+	ExtensionManager::ExtensionLaunchInfo ExtensionManager::getStartCommandThrow(const StringList& aSupportedExtEngines, const ExtensionEngine::List& aInstalledEngines) const {
 		string lastError;
-		for (const auto& extEngine : aEngines) {
-			string engineCommandStr;
-
-			{
-				RLock l(cs);
-				auto i = engines.find(extEngine);
-				if (i == engines.end()) {
-					lastError = STRING_F(WEB_EXTENSION_ENGINE_NO_CONFIG, extEngine);
-					continue;
-				}
-
-				engineCommandStr = i->second;
+		for (const auto& supportedExtEngine: aSupportedExtEngines) {
+			// Find an installed engine that can run this extension
+			auto engineIter = find_if(aInstalledEngines.begin(), aInstalledEngines.end(), [&supportedExtEngine](const auto& e) { return e.name == supportedExtEngine; });
+			if (engineIter == aInstalledEngines.end()) {
+				lastError = STRING_F(WEB_EXTENSION_ENGINE_NO_CONFIG, supportedExtEngine);
+				continue;
 			}
 
-			// We have a match
-			auto parsedCommand = selectEngineCommand(engineCommandStr);
+			// We have a match, choose the correct command
+			auto parsedCommand = selectEngineCommand(engineIter->command);
 			if (!parsedCommand.empty()) {
-				return parsedCommand;
+				return { parsedCommand, engineIter->arguments };
 			}
 
-			lastError = STRING_F(WEB_EXTENSION_ENGINE_NOT_INSTALLED, extEngine % engineCommandStr);
+			lastError = STRING_F(WEB_EXTENSION_ENGINE_NOT_INSTALLED, supportedExtEngine % engineIter->command);
 		}
 
 		dcassert(!lastError.empty());
 		throw Exception(lastError);
 	}
 
-	ExtensionManager::EngineMap ExtensionManager::getEngines() const noexcept {
-		return engines;
+	ExtensionEngine::List ExtensionManager::getEngines() const noexcept {
+		return WEBCFG(EXTENSION_ENGINES).getValue().get<ExtensionEngine::List>();
 	}
 
 	string ExtensionManager::selectEngineCommand(const string& aEngineCommands) noexcept {

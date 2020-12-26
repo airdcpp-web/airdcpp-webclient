@@ -25,6 +25,29 @@
 #include <airdcpp/TimerManager.h>
 
 namespace webserver {
+
+#ifdef _WIN32
+	const string WebServerSettings::localNodeDirectoryName = "Node.js";
+#endif
+	json WebServerSettings::getDefaultExtensionEngines() noexcept {
+		return {
+			{
+				{ "name", "node" },
+#ifdef _WIN32
+				{ "command", "./" + localNodeDirectoryName + "/node.exe;node" },
+#else
+				{ "command", "nodejs;node" },
+#endif
+				{ "arguments", json::array() },
+			},
+			{
+				{ "name", "python3" },
+				{ "command", "python3;python" },
+				{ "arguments", json::array() },
+			}
+		};
+	}
+
 	WebServerSettings::WebServerSettings(): 
 		settings({
 			{ "web_plain_port",			ResourceManager::WEB_CFG_PORT,			5600,	ApiSettingItem::TYPE_NUMBER, false, { 0, 65535 } },
@@ -36,48 +59,53 @@ namespace webserver {
 			{ "web_tls_certificate_path",		ResourceManager::WEB_CFG_CERT_PATH,		"", ApiSettingItem::TYPE_EXISTING_FILE_PATH, true },
 			{ "web_tls_certificate_key_path",	ResourceManager::WEB_CFG_CERT_KEY_PATH, "", ApiSettingItem::TYPE_EXISTING_FILE_PATH, true },
 
-			{ "web_server_threads",			ResourceManager::WEB_CFG_SERVER_THREADS,			4,		ApiSettingItem::TYPE_NUMBER,	false, { 1, 100 } },
+			{ "web_server_threads",			ResourceManager::WEB_CFG_SERVER_THREADS,	4,								ApiSettingItem::TYPE_NUMBER,	false, { 1, 100 } },
+			{ "extension_engines",			ResourceManager::WEB_CFG_EXTENSION_ENGINES,	getDefaultExtensionEngines(),	ApiSettingItem::TYPE_LIST,		false, {}, ResourceManager::LAST, ApiSettingItem::TYPE_STRUCT, extensionEngines },
 
-			{ "default_idle_timeout",		ResourceManager::WEB_CFG_IDLE_TIMEOUT,				20,		ApiSettingItem::TYPE_NUMBER,	false, { 0, MAX_INT_VALUE },	ResourceManager::MINUTES_LOWER },
-			{ "ping_interval",				ResourceManager::WEB_CFG_PING_INTERVAL,				30,		ApiSettingItem::TYPE_NUMBER,	false, { 1, 10000 },			ResourceManager::SECONDS_LOWER },
-			{ "ping_timeout",				ResourceManager::WEB_CFG_PING_TIMEOUT,				10,		ApiSettingItem::TYPE_NUMBER,	false, { 1, 10000 },			ResourceManager::SECONDS_LOWER },
+			{ "default_idle_timeout",		ResourceManager::WEB_CFG_IDLE_TIMEOUT,				20,		ApiSettingItem::TYPE_NUMBER,	false, { 0, MAX_INT_VALUE, ResourceManager::MINUTES_LOWER }, },
+			{ "ping_interval",				ResourceManager::WEB_CFG_PING_INTERVAL,				30,		ApiSettingItem::TYPE_NUMBER,	false, { 1, 10000, ResourceManager::SECONDS_LOWER },		 },
+			{ "ping_timeout",				ResourceManager::WEB_CFG_PING_TIMEOUT,				10,		ApiSettingItem::TYPE_NUMBER,	false, { 1, 10000, ResourceManager::SECONDS_LOWER },		 },
 
 			{ "extensions_debug_mode",		ResourceManager::WEB_CFG_EXTENSIONS_DEBUG_MODE,		false,	ApiSettingItem::TYPE_BOOLEAN,	false },
-			{ "extensions_init_timeout",	ResourceManager::WEB_CFG_EXTENSIONS_INIT_TIMEOUT,	5,		ApiSettingItem::TYPE_NUMBER,	false, { 1, 60 }, ResourceManager::SECONDS_LOWER },
+			{ "extensions_init_timeout",	ResourceManager::WEB_CFG_EXTENSIONS_INIT_TIMEOUT,	5,		ApiSettingItem::TYPE_NUMBER,	false, { 1, 60, ResourceManager::SECONDS_LOWER } },
 			{ "extensions_auto_update",		ResourceManager::WEB_CFG_EXTENSIONS_AUTO_UPDATE,	true,	ApiSettingItem::TYPE_BOOLEAN,	false },
 
-			{ "share_file_validation_hook_timeout",			ResourceManager::WEB_CFG_SHARE_FILE_VALIDATION_HOOK_TIMEOUT,			30, ApiSettingItem::TYPE_NUMBER, false, { 1, 300 }, ResourceManager::SECONDS_LOWER },
-			{ "share_directory_validation_hook_timeout",	ResourceManager::WEB_CFG_SHARE_DIRECTORY_VALIDATION_HOOK_TIMEOUT,		30, ApiSettingItem::TYPE_NUMBER, false, { 1, 300 }, ResourceManager::SECONDS_LOWER },
-			{ "new_share_file_validation_hook_timeout",		ResourceManager::WEB_CFG_NEW_SHARE_FILE_VALIDATION_HOOK_TIMEOUT,		60, ApiSettingItem::TYPE_NUMBER, false, { 1, 3600 }, ResourceManager::SECONDS_LOWER },
-			{ "new_share_directory_validation_hook_timeout", ResourceManager::WEB_CFG_NEW_SHARE_DIRECTORY_VALIDATION_HOOK_TIMEOUT,	60, ApiSettingItem::TYPE_NUMBER, false, { 1, 3600 }, ResourceManager::SECONDS_LOWER },
+			{ "share_file_validation_hook_timeout",			ResourceManager::WEB_CFG_SHARE_FILE_VALIDATION_HOOK_TIMEOUT,			30, ApiSettingItem::TYPE_NUMBER, false, { 1, 300,	ResourceManager::SECONDS_LOWER } },
+			{ "share_directory_validation_hook_timeout",	ResourceManager::WEB_CFG_SHARE_DIRECTORY_VALIDATION_HOOK_TIMEOUT,		30, ApiSettingItem::TYPE_NUMBER, false, { 1, 300,	ResourceManager::SECONDS_LOWER } },
+			{ "new_share_file_validation_hook_timeout",		ResourceManager::WEB_CFG_NEW_SHARE_FILE_VALIDATION_HOOK_TIMEOUT,		60, ApiSettingItem::TYPE_NUMBER, false, { 1, 3600,	ResourceManager::SECONDS_LOWER } },
+			{ "new_share_directory_validation_hook_timeout", ResourceManager::WEB_CFG_NEW_SHARE_DIRECTORY_VALIDATION_HOOK_TIMEOUT,	60, ApiSettingItem::TYPE_NUMBER, false, { 1, 3600,	ResourceManager::SECONDS_LOWER } },
 
-			{ "outgoing_chat_message_hook_timeout",			ResourceManager::WEB_CFG_OUTGOING_CHAT_MESSAGE_HOOK_TIMEOUT,			2, ApiSettingItem::TYPE_NUMBER, false, { 1, 60 }, ResourceManager::SECONDS_LOWER },
-			{ "incoming_chat_message_hook_timeout",			ResourceManager::WEB_CFG_INCOMING_CHAT_MESSAGE_HOOK_TIMEOUT,			2, ApiSettingItem::TYPE_NUMBER, false, { 1, 60 }, ResourceManager::SECONDS_LOWER },
+			{ "outgoing_chat_message_hook_timeout",			ResourceManager::WEB_CFG_OUTGOING_CHAT_MESSAGE_HOOK_TIMEOUT,			2, ApiSettingItem::TYPE_NUMBER, false,	{ 1, 60,	ResourceManager::SECONDS_LOWER } },
+			{ "incoming_chat_message_hook_timeout",			ResourceManager::WEB_CFG_INCOMING_CHAT_MESSAGE_HOOK_TIMEOUT,			2, ApiSettingItem::TYPE_NUMBER, false,	{ 1, 60,	ResourceManager::SECONDS_LOWER } },
 
-			{ "queue_add_bundle_file_hook_timeout",			ResourceManager::WEB_CFG_QUEUE_ADD_BUNDLE_FILE_HOOK_TIMEOUT,			5,	ApiSettingItem::TYPE_NUMBER, false, { 1, 300 }, ResourceManager::SECONDS_LOWER },
-			{ "queue_add_directory_bundle_hook_timeout",	ResourceManager::WEB_CFG_QUEUE_ADD_DIRECTORY_BUNDLE_HOOK_TIMEOUT,		10, ApiSettingItem::TYPE_NUMBER, false, { 1, 600 }, ResourceManager::SECONDS_LOWER },
-			{ "queue_add_source_hook_timeout",				ResourceManager::WEB_CFG_QUEUE_ADD_SOURCE_HOOK_TIMEOUT,					5,	ApiSettingItem::TYPE_NUMBER, false, { 1, 60 }, ResourceManager::SECONDS_LOWER },
-			{ "queue_file_finished_hook_timeout",			ResourceManager::WEB_CFG_QUEUE_FILE_FINISHED_HOOK_TIMEOUT,				60, ApiSettingItem::TYPE_NUMBER, false, { 1, 3600 }, ResourceManager::SECONDS_LOWER },
-			{ "queue_bundle_finished_hook_timeout",			ResourceManager::WEB_CFG_QUEUE_BUNDLE_FINISHED_HOOK_TIMEOUT,			120,ApiSettingItem::TYPE_NUMBER, false, { 1, 3600 }, ResourceManager::SECONDS_LOWER },
+			{ "queue_add_bundle_file_hook_timeout",			ResourceManager::WEB_CFG_QUEUE_ADD_BUNDLE_FILE_HOOK_TIMEOUT,			5,	ApiSettingItem::TYPE_NUMBER, false, { 1, 300,	ResourceManager::SECONDS_LOWER } },
+			{ "queue_add_directory_bundle_hook_timeout",	ResourceManager::WEB_CFG_QUEUE_ADD_DIRECTORY_BUNDLE_HOOK_TIMEOUT,		10, ApiSettingItem::TYPE_NUMBER, false, { 1, 600,	ResourceManager::SECONDS_LOWER } },
+			{ "queue_add_source_hook_timeout",				ResourceManager::WEB_CFG_QUEUE_ADD_SOURCE_HOOK_TIMEOUT,					5,	ApiSettingItem::TYPE_NUMBER, false, { 1, 60,	ResourceManager::SECONDS_LOWER } },
+			{ "queue_file_finished_hook_timeout",			ResourceManager::WEB_CFG_QUEUE_FILE_FINISHED_HOOK_TIMEOUT,				60, ApiSettingItem::TYPE_NUMBER, false, { 1, 3600,	ResourceManager::SECONDS_LOWER } },
+			{ "queue_bundle_finished_hook_timeout",			ResourceManager::WEB_CFG_QUEUE_BUNDLE_FINISHED_HOOK_TIMEOUT,			120,ApiSettingItem::TYPE_NUMBER, false, { 1, 3600,	ResourceManager::SECONDS_LOWER } },
 
-			{ "list_menuitems_hook_timeout",				ResourceManager::WEB_CFG_LIST_MENUITEMS_HOOK_TIMEOUT,					1,	ApiSettingItem::TYPE_NUMBER, false, { 1, 60 }, ResourceManager::SECONDS_LOWER },
+			{ "list_menuitems_hook_timeout",				ResourceManager::WEB_CFG_LIST_MENUITEMS_HOOK_TIMEOUT,					1,	ApiSettingItem::TYPE_NUMBER, false, { 1, 60,	ResourceManager::SECONDS_LOWER } },
+		}),
+		extensionEngines({
+			{ "name",					ResourceManager::NAME,				"",				ApiSettingItem::TYPE_STRING,	false },
+			{ "command",				ResourceManager::COMMAND,			"",				ApiSettingItem::TYPE_STRING,	false,	{}, ResourceManager::WEB_CFG_EXTENSION_ENGINES_ARGS_HELP },
+			{ "arguments",				ResourceManager::SETTINGS_ARGUMENT,	json::array(),	ApiSettingItem::TYPE_LIST,		true,	{}, ResourceManager::WEB_CFG_EXTENSION_ENGINES_COMMAND_HELP, ApiSettingItem::TYPE_STRING },
 		}) {}
 
 
 	bool WebServerSettings::loadSettingFile(Util::Paths aPath, const string& aFileName, JsonParseCallback&& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept {
 		const auto parseJsonFile = [&](const string& aPath) {
-			// SimpleXML xml;
 			try {
-				// Some legacy config files (such as favorites and recent hubs) may contain invalid UTF-8 data
-				// so don't throw in case of validation errors
-				// xml.fromXML(File(aPath, File::READ, File::OPEN).read(), SimpleXMLReader::FLAG_REPLACE_INVALID_UTF8);
-
+				// Parse
 				auto parsed = json::parse(File(aPath, File::READ, File::OPEN).read());
+
+				// Check version
 				int configVersion = parsed.at("version");
 				if (configVersion > aMaxConfigVersion) {
 					throw std::invalid_argument("Config version " + Util::toString(configVersion) + " is not supported");
 				}
 
+				// Parse settings
 				aParseCallback(parsed.at("settings"), configVersion);
 			} catch (const std::exception& e) {
 				aCustomErrorF(STRING_F(LOAD_FAILED_X, aPath % e.what()));
