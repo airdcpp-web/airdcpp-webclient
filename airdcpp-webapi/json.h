@@ -1,5 +1,6 @@
+#pragma once
 /*
-* Copyright (C) 2011-2021 AirDC++ Project
+* Copyright (C) 2011-2015 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -16,23 +17,20 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_WEBSERVER_TARFILE_H
-#define DCPLUSPLUS_WEBSERVER_TARFILE_H
+#ifndef DCPLUSPLUS_WEBSERVER_JSON_H
+#define DCPLUSPLUS_WEBSERVER_JSON_H
 
-#include "forward.h"
+#include <nlohmann/json.hpp>
 
-#include <microtar/microtar.h>
+#include <web-server/Exception.h>
+
 
 namespace webserver {
-	class TarFile {
-	public:
-		TarFile(const string& aPath);
-		~TarFile();
+	using json = nlohmann::json;
 
-		void extract(const string& aDestPath);
-	private:
-		mtar_t tar;
-	};
+	using ArgumentException = webserver::JsonException;
+
+	typedef std::map<std::string, json> SettingValueMap;
 }
 
-#endif
+#endif // !defined(DCPLUSPLUS_WEBSERVER_JSON_H)

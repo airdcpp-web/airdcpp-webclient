@@ -36,6 +36,7 @@
 #include <airdcpp/SearchResult.h>
 #include <airdcpp/ShareManager.h>
 #include <airdcpp/SharePathValidator.h>
+#include <airdcpp/StringTokenizer.h>
 
 namespace webserver {
 	ShareApi::ShareApi(Session* aSession) : 

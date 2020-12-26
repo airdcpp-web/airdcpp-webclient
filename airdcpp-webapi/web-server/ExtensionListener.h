@@ -17,10 +17,10 @@
 */
 
 
-#ifndef DCPLUSPLUS_DCPP_EXTENSION_LISTENER_H
-#define DCPLUSPLUS_DCPP_EXTENSION_LISTENER_H
+#ifndef DCPLUSPLUS_WEBSERVER_EXTENSION_LISTENER_H
+#define DCPLUSPLUS_WEBSERVER_EXTENSION_LISTENER_H
 
-#include "stdinc.h"
+#include "forward.h"
 
 namespace webserver {
 	class ExtensionListener {
@@ -47,4 +47,4 @@ namespace webserver {
 
 }
 
-#endif // !defined(DCPLUSPLUS_DCPP_EXTENSION_LISTENER_H)
+#endif // !defined(DCPLUSPLUS_WEBSERVER_EXTENSION_LISTENER_H)

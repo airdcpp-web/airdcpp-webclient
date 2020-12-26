@@ -16,10 +16,10 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_MENU_MANAGER_H
-#define DCPLUSPLUS_DCPP_MENU_MANAGER_H
+#ifndef DCPLUSPLUS_WEBSERVER_MENU_MANAGER_H
+#define DCPLUSPLUS_WEBSERVER_MENU_MANAGER_H
 
-#include "stdinc.h"
+#include "forward.h"
 
 #include "Access.h"
 
@@ -65,7 +65,7 @@ namespace webserver {
 	};
 
 	struct ContextMenuItemClickData {
-		ContextMenuItemClickData(const string& aHookId, const string& aMenuItemId, const ContextMenuSupportList& aSupports, const AccessList aAccess, const SettingValueMap aFormValues) noexcept :
+		ContextMenuItemClickData(const string& aHookId, const string& aMenuItemId, const ContextMenuSupportList& aSupports, const AccessList aAccess, const SettingValueMap& aFormValues) noexcept :
 			hookId(aHookId), menuItemId(aMenuItemId), supports(aSupports), access(aAccess), formValues(aFormValues) {}
 
 		const string hookId;
@@ -160,4 +160,4 @@ namespace webserver {
 
 } // namespace webserver
 
-#endif // DCPLUSPLUS_DCPP_MENU_MANAGER_H
+#endif // DCPLUSPLUS_WEBSERVER_MENU_MANAGER_H

@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_WEBSERVER_WEBUSERMANAGER_H
 #define DCPLUSPLUS_WEBSERVER_WEBUSERMANAGER_H
 
-#include "stdinc.h"
+#include "forward.h"
 
 #include <airdcpp/CriticalSection.h>
 #include <airdcpp/Speaker.h>

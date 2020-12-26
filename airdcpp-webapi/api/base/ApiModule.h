@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_WEBSERVER_APIMODULE_H
 #define DCPLUSPLUS_WEBSERVER_APIMODULE_H
 
-#include "stdinc.h"
+#include "forward.h"
 
 #include <web-server/Access.h>
 #include <web-server/ApiRequest.h>

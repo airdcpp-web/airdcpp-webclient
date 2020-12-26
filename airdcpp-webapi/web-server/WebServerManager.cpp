@@ -666,16 +666,4 @@ namespace webserver {
 	bool ServerConfig::hasValidConfig() const noexcept {
 		return port.num() > 0;
 	}
-
-	void ServerConfig::save(SimpleXML& xml_, const string& aTagName) noexcept {
-		xml_.addTag(aTagName);
-
-		if (!port.isDefault()) {
-			xml_.addChildAttrib("Port", port.num());
-		}
-
-		if (!bindAddress.isDefault()) {
-			xml_.addChildAttrib("BindAddress", bindAddress.str());
-		}
-	}
 }

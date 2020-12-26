@@ -16,10 +16,10 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_EXTENSION_H
-#define DCPLUSPLUS_DCPP_EXTENSION_H
+#ifndef DCPLUSPLUS_WEBSERVER_EXTENSION_H
+#define DCPLUSPLUS_WEBSERVER_EXTENSION_H
 
-#include "stdinc.h"
+#include "forward.h"
 
 #include <web-server/ExtensionListener.h>
 #include <web-server/ApiSettingItem.h>
@@ -51,7 +51,7 @@ namespace webserver {
 		void reloadThrow();
 
 		// Throws on errors
-		void startThrow(const string& aEngine, WebServerManager* wsm);
+		void startThrow(const string& aEngine, WebServerManager* wsm, const StringList& aExtraArgs);
 
 		// Stop the extension and wait until it's not running anymore
 		// Returns false if the process couldn't be stopped
@@ -139,13 +139,13 @@ namespace webserver {
 
 		// Get the arguments for launching the extension
 		// The escape option should be used only when the args can't be passed separately (the extension is launched with one string command)
-		StringList getLaunchParams(WebServerManager* wsm, const SessionPtr& aSession, bool aEscape) const noexcept;
+		StringList getLaunchParams(WebServerManager* wsm, const SessionPtr& aSession, bool aEscape, const StringList& aExtraArgs) const noexcept;
 		static string getConnectUrl(WebServerManager* wsm) noexcept;
 
 		bool running = false;
 
 		// Throws on errors
-		void createProcessThrow(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession);
+		void createProcessThrow(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession, const StringList& aExtraArgs);
 
 		const ErrorF errorF;
 		SessionPtr session = nullptr;

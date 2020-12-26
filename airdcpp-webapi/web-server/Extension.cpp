@@ -241,7 +241,7 @@ namespace webserver {
 		return values;
 	}
 
-	void Extension::startThrow(const string& aEngine, WebServerManager* wsm) {
+	void Extension::startThrow(const string& aEngine, WebServerManager* wsm, const StringList& aExtraArgs) {
 		if (!managed) {
 			return;
 		}
@@ -266,7 +266,7 @@ namespace webserver {
 
 		session = wsm->getUserManager().createExtensionSession(name);
 		
-		createProcessThrow(aEngine, wsm, session);
+		createProcessThrow(aEngine, wsm, session, aExtraArgs);
 
 		running = true;
 		fire(ExtensionListener::ExtensionStarted(), this);
@@ -280,8 +280,9 @@ namespace webserver {
 		return wsm->getLocalServerAddress(wsm->getPlainServerConfig()) + "/api/v1/";
 	}
 
-	StringList Extension::getLaunchParams(WebServerManager* wsm, const SessionPtr& aSession, bool aEscape) const noexcept {
-		StringList ret;
+	StringList Extension::getLaunchParams(WebServerManager* wsm, const SessionPtr& aSession, bool aEscape, const StringList& aExtraArgs) const noexcept {
+		// Add custom args before the file path
+		StringList ret = aExtraArgs;
 
 		// Wrap strings possibly containing whitespaces in doube quotes
 		auto maybeEscape = [aEscape](const string& aStr) {
@@ -467,7 +468,7 @@ namespace webserver {
 		}
 	}
 
-	void Extension::createProcessThrow(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {
+	void Extension::createProcessThrow(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession, const StringList& aExtraArgs) {
 		// Setup log file for console output
 		initLog(messageLogHandle, getMessageLogPath());
 		initLog(errorLogHandle, getErrorLogPath());
@@ -482,7 +483,7 @@ namespace webserver {
 
 		ZeroMemory(&piProcInfo, sizeof(PROCESS_INFORMATION));
 
-		auto paramList = getLaunchParams(wsm, aSession, true);
+		auto paramList = getLaunchParams(wsm, aSession, true, aExtraArgs);
 
 		string command(aEngine + " ");
 		for (const auto& p: paramList) {
@@ -590,7 +591,7 @@ namespace webserver {
 		return make_unique<File>(aPath, File::RW, File::CREATE | File::TRUNCATE);
 	}
 
-	void Extension::createProcessThrow(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession) {
+	void Extension::createProcessThrow(const string& aEngine, WebServerManager* wsm, const SessionPtr& aSession, const StringList& aExtraArgs) {
 		// Init logs
 		auto messageLog = std::move(initLog(getMessageLogPath()));
 		auto errorLog = std::move(initLog(getErrorLogPath()));
@@ -602,7 +603,7 @@ namespace webserver {
 		vector<char*> argv;
 		argv.push_back(app);
 
-		auto paramList = getLaunchParams(wsm, aSession, false);
+		auto paramList = getLaunchParams(wsm, aSession, false, aExtraArgs);
 		for (const auto& p : paramList) {
 			argv.push_back((char*)p.c_str());
 		}

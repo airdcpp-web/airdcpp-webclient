@@ -70,7 +70,9 @@ namespace webserver {
 	api_return ExtensionInfo::handleStartExtension(ApiRequest& aRequest) {
 		try {
 			auto server = aRequest.getSession()->getServer();
-			extension->startThrow(server->getExtensionManager().getStartCommandThrow(extension->getEngines()), server);
+			auto installedEngines = server->getExtensionManager().getEngines();
+			auto launchInfo = server->getExtensionManager().getStartCommandThrow(extension->getEngines(), installedEngines);
+			extension->startThrow(launchInfo.command, server, launchInfo.arguments);
 		} catch (const Exception& e) {
 			aRequest.setResponseErrorStr(e.what());
 			return websocketpp::http::status_code::internal_server_error;

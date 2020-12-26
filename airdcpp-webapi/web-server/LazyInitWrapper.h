@@ -16,10 +16,10 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_LAZYWRAPPER_H
-#define DCPLUSPLUS_DCPP_LAZYWRAPPER_H
+#ifndef DCPLUSPLUS_WEBSERVER_LAZYWRAPPER_H
+#define DCPLUSPLUS_WEBSERVER_LAZYWRAPPER_H
 
-#include "stdinc.h"
+#include "forward.h"
 
 namespace webserver {
 	template <class T>
