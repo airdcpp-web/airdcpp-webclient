@@ -16,6 +16,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#include "stdinc.h"
 #include "Client.h"
 
 #include <airdcpp/DCPlusPlus.h>
@@ -36,8 +37,6 @@
 #include <web-server/WebServerSettings.h>
 
 namespace airdcppd {
-
-using namespace dcpp;
 
 Client::Client(bool aAsDaemon) : asDaemon(aAsDaemon) {
 

@@ -19,19 +19,17 @@
 #ifndef AIRDCPPD_CDMDEBUG_H
 #define AIRDCPPD_CDMDEBUG_H
 
-#include <airdcpp/stdinc.h>
+// #include "stdinc.h"
+
 #include <airdcpp/DebugManager.h>
 
 namespace dcpp {
-	class SimpleXML;
+        class SimpleXML;
 }
 
 #include <web-server/WebServerManagerListener.h>
 
 namespace airdcppd {
-
-using namespace dcpp;
-using namespace webserver;
 
 class CDMDebug : private DebugManagerListener, private WebServerManagerListener {
 
@@ -41,11 +39,11 @@ public:
 private:
 	void on(DebugManagerListener::DebugCommand, const string& aLine, uint8_t aType, uint8_t aDirection, const string& ip) noexcept override;
 	void on(WebServerManagerListener::Data, const string& aData, TransportType aType, Direction aDirection, const string& aIP) noexcept override;
-	
+
 	bool showHubCommands = false;
 	bool showClientCommands = false;
 	bool showWebCommands = false;
-	
+
 	static void printMessage(const string& aType, bool aIncoming, const string& aData, const string& aIP) noexcept;
 };
 

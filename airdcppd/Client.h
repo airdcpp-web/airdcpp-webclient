@@ -19,16 +19,16 @@
 #ifndef AIRDCPPD_CLIENT_H
 #define AIRDCPPD_CLIENT_H
 
-#include <airdcpp/stdinc.h>
+#include "CDMDebug.h"
+
 #include <airdcpp/ClientManagerListener.h>
 #include <airdcpp/DirectoryListingManagerListener.h>
 #include <airdcpp/Semaphore.h>
 
-#include "CDMDebug.h"
 
 namespace airdcppd {
 
-using namespace dcpp;
+class CDMDebug;
 
 class Client : private ClientManagerListener, private DirectoryListingManagerListener {
 
@@ -45,7 +45,7 @@ private:
 
 	bool running = false;
 	bool asDaemon = false;
-	
+
 	unique_ptr<CDMDebug> cdmDebug;
 	Semaphore shutdownSemaphore;
 };
