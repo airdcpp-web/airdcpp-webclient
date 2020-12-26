@@ -1868,7 +1868,11 @@ enum Strings { // @DontAdd
 	WEB_CFG_BIND_ADDRESS, // "Bind address"
 	WEB_CFG_CERT_PATH, // "Certificate path"
 	WEB_CFG_CERT_KEY_PATH, // "Certificate key path"
+
 	WEB_CFG_SERVER_THREADS, // "Server threads"
+	WEB_CFG_EXTENSION_ENGINES, // "Extension engines"
+	WEB_CFG_EXTENSION_ENGINES_COMMAND_HELP, // "Multiple commands can specified, separate with \";\". Application will use the first command that is available on the system."
+	WEB_CFG_EXTENSION_ENGINES_ARGS_HELP, // "Startup arguments to be passed to the engine"
 
 	WEB_CFG_IDLE_TIMEOUT, // "Default session inactivity timeout"
 	WEB_CFG_PING_INTERVAL, // "Socket ping interval"
