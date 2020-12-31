@@ -626,31 +626,30 @@ void QueueManager::validateBundleFileHooked(const string& aBundleDir, BundleFile
 		throw QueueException(STRING(ZERO_BYTE_QUEUE));
 	}
 
-	//check the skiplist
-
 	auto matchSkipList = [&] (string&& aName) -> void {
 		if(skipList.match(aName)) {
 			throw QueueException(STRING(SKIPLIST_DOWNLOAD_MATCH));
 		}
 	};
 
-	//no skiplist for private (magnet) downloads
+	// Check the skiplist
+	// No skiplist for private (magnet) downloads
 	if (!(aFlags & QueueItem::FLAG_PRIVATE)) {
-		//match the file name
-		matchSkipList(Util::getFileName(fileInfo_.file));
+		// Match the file name
+		matchSkipList(Util::getFileName(fileInfo_.name));
 
-		//match all dirs (if any)
+		// Match all subdirectories (if any)
 		string::size_type i = 0, j = 0;
-		while ((i = fileInfo_.file.find(PATH_SEPARATOR, j)) != string::npos) {
-			matchSkipList(fileInfo_.file.substr(j, i - j));
+		while ((i = fileInfo_.name.find(PATH_SEPARATOR, j)) != string::npos) {
+			matchSkipList(fileInfo_.name.substr(j, i - j));
 			j = i + 1;
 		}
 	}
 
-	//validate the target and check the existance
-	fileInfo_.file = checkTarget(fileInfo_.file, aBundleDir);
+	// Validate the target and check the existance
+	fileInfo_.name = checkTarget(fileInfo_.name, aBundleDir);
 
-	//check share dupes
+	// Check share dupes
 	if (SETTING(DONT_DL_ALREADY_SHARED) && ShareManager::getInstance()->isFileShared(fileInfo_.tth)) {
 		auto paths = ShareManager::getInstance()->getRealPaths(fileInfo_.tth);
 		if (!paths.empty()) {
@@ -659,28 +658,31 @@ void QueueManager::validateBundleFileHooked(const string& aBundleDir, BundleFile
 		}
 	}
 
-	//check queue dupes
+	// Check queue dupes
 	if (SETTING(DONT_DL_ALREADY_QUEUED)) {
 		RLock l(cs);
 		auto q = fileQueue.getQueuedFile(fileInfo_.tth);
-		if (q && q->getTarget() != aBundleDir + fileInfo_.file) {
+		if (q && q->getTarget() != aBundleDir + fileInfo_.name) {
 			auto path = AirUtil::subtractCommonDirectories(aBundleDir, q->getFilePath());
 			throw DupeException(STRING_F(FILE_ALREADY_QUEUED, path));
 		}
 	}
 
-	{
-		auto error = bundleFileValidationHook.runHooksError(aCaller, aBundleDir, fileInfo_);
-		if (error) {
-			throw QueueException(ActionHookRejection::formatError(error));
+	try {
+		auto data = bundleFileValidationHook.runHooksDataThrow(aCaller, aBundleDir, fileInfo_);
+		for (const auto& bundleAddData: data) {
+			if (bundleAddData->data.priority != Priority::DEFAULT) {
+				fileInfo_.prio = bundleAddData->data.priority;
+			}
 		}
+	} catch (const HookRejectException& e) {
+		throw QueueException(ActionHookRejection::formatError(e.getRejection()));
 	}
 
+	// Valid file
 
-	//valid file
-
-	//set the prio
-	if (highPrioFiles.match(Util::getFileName(fileInfo_.file))) {
+	// Priority
+	if (fileInfo_.prio == Priority::DEFAULT && highPrioFiles.match(Util::getFileName(fileInfo_.name))) {
 		fileInfo_.prio = SETTING(PRIO_LIST_HIGHEST) ? Priority::HIGHEST : Priority::HIGH;
 	}
 }
@@ -693,7 +695,7 @@ QueueItemPtr QueueManager::addOpenedItemHooked(const ViewedFileAddData& aFileInf
 
 	// Check size
 	if (aFileInfo.size == 0) {
-		//can't view this...
+		// Can't view this...
 		throw QueueException(STRING(CANT_OPEN_EMPTY_FILE));
 	} else if (aIsClientView && aFileInfo.isText && aFileInfo.size > Util::convertSize(1, Util::MB)) {
 		auto msg = STRING_F(VIEWED_FILE_TOO_BIG, aFileInfo.file % Util::formatBytes(aFileInfo.size));
@@ -754,9 +756,19 @@ void QueueManager::log(const string& aMsg, LogMessage::Severity aSeverity) noexc
 	LogManager::getInstance()->message(aMsg, aSeverity, STRING(SETTINGS_QUEUE));
 }
 
-optional<DirectoryBundleAddResult> QueueManager::createDirectoryBundleHooked(const BundleAddOptions& aOptions, DirectoryBundleAddData& aDirectory, BundleFileAddData::List& aFiles, string& errorMsg_) noexcept {
+optional<DirectoryBundleAddResult> QueueManager::createDirectoryBundleHooked(const BundleAddOptions& aOptions, BundleAddData& aDirectory, BundleFileAddData::List& aFiles, string& errorMsg_) noexcept {
+	string target = aOptions.target;
+
+	// Bundle validation
+	try {
+		runAddBundleHooksThrow(target, aDirectory, aOptions.optionalUser, false);
+	} catch (const HookRejectException& e) {
+		errorMsg_ = ActionHookRejection::formatError(e.getRejection());
+		return nullopt;
+	}
+
 	// Generic validations
-	auto target = Util::joinDirectory(formatBundleTarget(aOptions.target, aDirectory.date), Util::validatePath(aDirectory.name));
+	target = Util::joinDirectory(formatBundleTarget(target, aDirectory.date), Util::validatePath(aDirectory.name));
 
 	{
 		// There can't be existing bundles inside this directory
@@ -788,13 +800,6 @@ optional<DirectoryBundleAddResult> QueueManager::createDirectoryBundleHooked(con
 		}
 	}
 
-	// Bundle validation
-	auto error = directoryBundleValidationHook.runHooksError(this, aOptions.target, aDirectory, aOptions.optionalUser);
-	if (error) {
-		errorMsg_ = ActionHookRejection::formatError(error);
-		return nullopt;
-	}
-
 	// File validation
 	int smallDupes = 0, fileCount = aFiles.size(), filesExist = 0;
 
@@ -806,14 +811,14 @@ optional<DirectoryBundleAddResult> QueueManager::createDirectoryBundleHooked(con
 			validateBundleFileHooked(target, bfi, aOptions.caller);
 			return false; // valid
 		} catch(const QueueException& e) {
-			errors.add(e.getError(), bfi.file, false);
+			errors.add(e.getError(), bfi.name, false);
 			info.filesFailed++;
 		} catch(const FileException& e) {
-			errors.add(e.getError(), bfi.file, true);
+			errors.add(e.getError(), bfi.name, true);
 			filesExist++;
 		} catch(const DupeException& e) {
 			bool isSmall = bfi.size < Util::convertSize(SETTING(MIN_DUPE_CHECK_SIZE), Util::KB);
-			errors.add(e.getError(), bfi.file, isSmall);
+			errors.add(e.getError(), bfi.name, isSmall);
 			if (isSmall) {
 				smallDupes++;
 				return false;
@@ -856,7 +861,7 @@ optional<DirectoryBundleAddResult> QueueManager::createDirectoryBundleHooked(con
 		//add the files
 		for (auto& bfi: aFiles) {
 			try {
-				auto addInfo = addBundleFile(target + bfi.file, bfi.size, bfi.tth, aOptions.optionalUser, 0, true, bfi.prio, wantConnection, b);
+				auto addInfo = addBundleFile(target + bfi.name, bfi.size, bfi.tth, aOptions.optionalUser, 0, true, bfi.prio, wantConnection, b);
 				if (addInfo.second) {
 					info.filesAdded++;
 				} else {
@@ -865,11 +870,11 @@ optional<DirectoryBundleAddResult> QueueManager::createDirectoryBundleHooked(con
 
 				queueItems.push_back(std::move(addInfo));
 			} catch(QueueException& e) {
-				errors.add(e.getError(), bfi.file, false);
+				errors.add(e.getError(), bfi.name, false);
 				info.filesFailed++;
 			} catch(FileException& e) {
 				//the file has finished after we made the initial target check
-				errors.add(e.getError(), bfi.file, true);
+				errors.add(e.getError(), bfi.name, true);
 				filesExist++;
 			}
 		}
@@ -969,6 +974,23 @@ void QueueManager::onBundleAdded(const BundlePtr& aBundle, Bundle::Status aOldSt
 	}
 }
 
+void QueueManager::runAddBundleHooksThrow(string& target_, BundleAddData& aDirectory, const HintedUser& aOptionalUser, bool aIsFile) {
+	auto results = bundleValidationHook.runHooksDataThrow(this, target_, aDirectory, aOptionalUser, aIsFile);
+	for (const auto& result: results) {
+		auto& data = result->data;
+
+		// Prio
+		if (data.priority != Priority::DEFAULT) {
+			aDirectory.prio = data.priority;
+		}
+
+		// Target
+		if (!data.target.empty()) {
+			target_ = data.target;
+		}
+	}
+}
+
 string QueueManager::formatBundleTarget(const string& aPath, time_t aRemoteDate) noexcept {
 	ParamMap params;
 	params["username"] = [] { return Util::getSystemUsername(); };
@@ -979,10 +1001,18 @@ string QueueManager::formatBundleTarget(const string& aPath, time_t aRemoteDate)
 }
 
 BundleAddInfo QueueManager::createFileBundleHooked(const BundleAddOptions& aOptions, BundleFileAddData& aFileInfo, Flags::MaskType aFlags) {
+	auto filePath = aOptions.target;
 
-	string filePath = formatBundleTarget(aOptions.target, aFileInfo.date);
+	// Bundle validation
+	try {
+		runAddBundleHooksThrow(filePath, aFileInfo, aOptions.optionalUser, true);
+	} catch (const HookRejectException& e) {
+		throw QueueException(ActionHookRejection::formatError(e.getRejection()));
+	}
 
-	//check the source
+	filePath = formatBundleTarget(filePath, aFileInfo.date);
+
+	// Source validation
 	if (aOptions.optionalUser) {
 		checkSourceHooked(aOptions.optionalUser, aOptions.caller);
 	}
@@ -992,7 +1022,7 @@ BundleAddInfo QueueManager::createFileBundleHooked(const BundleAddOptions& aOpti
 	BundlePtr b = nullptr;
 	bool wantConnection = false;
 
-	auto target = filePath + aFileInfo.file;
+	auto target = filePath + aFileInfo.name;
 
 	Bundle::Status oldStatus;
 	FileAddInfo fileAddInfo;
@@ -3550,6 +3580,17 @@ void QueueManager::readdBundle(const BundlePtr& aBundle) noexcept {
 DupeType QueueManager::isAdcDirectoryQueued(const string& aDir, int64_t aSize) const noexcept{
 	RLock l(cs);
 	return bundleQueue.isAdcDirectoryQueued(aDir, aSize);
+}
+
+BundlePtr QueueManager::isRealPathQueued(const string& aPath) const noexcept {
+	RLock l(cs);
+	if (!aPath.empty() && aPath.back() == PATH_SEPARATOR) {
+		auto b = bundleQueue.isLocalDirectoryQueued(aPath);
+		return b;
+	} else {
+		auto qi = fileQueue.findFile(aPath);
+		return qi ? qi->getBundle() : nullptr;
+	}
 }
 
 BundlePtr QueueManager::findDirectoryBundle(const string& aPath) const noexcept {

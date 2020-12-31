@@ -57,8 +57,8 @@ struct BundleAddOptions {
 	const void* caller;
 };
 
-struct DirectoryBundleAddData {
-	DirectoryBundleAddData(string aName, Priority aPrio, time_t aDate) noexcept :
+struct BundleAddData {
+	BundleAddData(string aName, Priority aPrio, time_t aDate) noexcept :
 		name(move(aName)), prio(aPrio), date(aDate) { }
 
 	string name;
@@ -66,15 +66,12 @@ struct DirectoryBundleAddData {
 	time_t date;
 };
 
-struct BundleFileAddData {
+struct BundleFileAddData : public BundleAddData {
 	BundleFileAddData(string aFile, const TTHValue& aTTH, int64_t aSize, Priority aPrio, time_t aDate) noexcept :
-		file(move(aFile)), tth(aTTH), size(aSize), prio(aPrio), date(aDate) { }
+		BundleAddData(move(aFile), aPrio, aDate), tth(aTTH), size(aSize) { }
 
-	string file;
 	TTHValue tth;
 	int64_t size;
-	Priority prio;
-	time_t date;
 
 	typedef vector<BundleFileAddData> List;
 };

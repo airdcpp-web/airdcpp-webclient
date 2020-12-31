@@ -61,14 +61,23 @@ class UserConnection;
 class QueueLoader;
 struct SearchQueueInfo;
 
+struct BundleAddHookResult {
+	string target;
+	Priority priority = Priority::DEFAULT;
+};
+
+struct BundleFileAddHookResult {
+	Priority priority = Priority::DEFAULT;
+};
+
 class QueueManager : public Singleton<QueueManager>, public Speaker<QueueManagerListener>, private TimerManagerListener, 
 	private SearchManagerListener, private ClientManagerListener, private ShareManagerListener
 {
 public:
 	ActionHook<nullptr_t, const BundlePtr> bundleCompletionHook;
 	ActionHook<nullptr_t, const QueueItemPtr> fileCompletionHook;
-	ActionHook<nullptr_t, const string& /*aTarget*/, BundleFileAddData&> bundleFileValidationHook;
-	ActionHook<nullptr_t, const string& /*aTarget*/, DirectoryBundleAddData& /*aDirectory*/, const HintedUser& /*aUser*/> directoryBundleValidationHook;
+	ActionHook<BundleFileAddHookResult, const string& /*aTarget*/, BundleFileAddData&> bundleFileValidationHook;
+	ActionHook<BundleAddHookResult, const string& /*aTarget*/, BundleAddData& /*aData*/, const HintedUser& /*aUser*/, const bool /*aIsFile*/> bundleValidationHook;
 	ActionHook<nullptr_t, const HintedUser& /*aUser*/> sourceValidationHook;
 
 	// Add all queued TTHs in the supplied bloom filter
@@ -240,7 +249,7 @@ public:
 	// No result is returned if no bundle was added or used for merging
 	// Source can be nullptr
 	// errorMsg_ will contain errors related to queueing the files
-	optional<DirectoryBundleAddResult> createDirectoryBundleHooked(const BundleAddOptions& aOptions, DirectoryBundleAddData& aDirectory, BundleFileAddData::List& aFiles, string& errorMsg_) noexcept;
+	optional<DirectoryBundleAddResult> createDirectoryBundleHooked(const BundleAddOptions& aOptions, BundleAddData& aDirectory, BundleFileAddData::List& aFiles, string& errorMsg_) noexcept;
 
 	// Create a file bundle with the supplied target path
 	// 
@@ -359,6 +368,9 @@ public:
 	// Return dupe information about the directory
 	DupeType isAdcDirectoryQueued(const string& aDir, int64_t aSize) const noexcept;
 
+	// Return bundle with a file/directory matching the supplied path (directory/file must exist in the bundle)
+	BundlePtr isRealPathQueued(const string& aPath) const noexcept;
+
 	// Get bundle by (exact) real path
 	BundlePtr findDirectoryBundle(const string& aPath) const noexcept;
 
@@ -368,10 +380,10 @@ public:
 	StringList getAdcDirectoryPaths(const string& aDir) const noexcept;
 
 	// Get the paths of all bundles
-	void getBundlePaths(OrderedStringSet& bundles) const noexcept;
+	void getBundlePaths(OrderedStringSet& bundles_) const noexcept;
 
 	// Set size for a file list its size is known
-	void setFileListSize(const string& path, int64_t newSize) noexcept;
+	void setFileListSize(const string& aPath, int64_t aNewSize) noexcept;
 
 
 	// Attempt to add a bundle in share
@@ -392,6 +404,8 @@ public:
 	// Update download URL for a viewed filelist
 	void updateFilelistUrl(const HintedUser& aUser) noexcept;
 private:
+	void runAddBundleHooksThrow(string& target_, BundleAddData& aDirectory, const HintedUser& aOptionalUser, bool aIsFile);
+
 	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 
 	IGETSET(uint64_t, lastXmlSave, LastXmlSave, 0);

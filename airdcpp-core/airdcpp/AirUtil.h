@@ -124,7 +124,7 @@ public:
 	// Note: matching is always case insensitive. This will also handle directory paths in aSub without the trailing slash to work with Windows limitations (share monitoring)
 	inline static bool isParentOrExactAdc(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, ADC_SEPARATOR); }
 	inline static bool isParentOrExactLocal(const string& aDir, const string& aSub) noexcept { return isParentOrExact(aDir, aSub, PATH_SEPARATOR); }
-	static bool isParentOrExact(const string& aDir, const string& aSub, const char separator) noexcept;
+	static bool isParentOrExact(const string& aDir, const string& aSub, const char aSeparator) noexcept;
 	static bool isParentOrExactLower(const string& aParentLower, const string& aSubLower, const char aSeparator) noexcept;
 
 	static const string getReleaseRegLong(bool chat) noexcept;
@@ -174,17 +174,22 @@ public:
 		return getLastCommonDirectoryPathFromSub(aMainPath, aSubPath, ADC_SEPARATOR, aMainBaseLength);
 	}
 
-	/* Returns the name without subdirs and possible position from where the subdir starts */
+	// Returns the name without subdirs and possible position from where the subdir starts
 	static pair<string, string::size_type> getAdcDirectoryName(const string& aName) noexcept {
-		return getDirName(aName, ADC_SEPARATOR);
+		return getDirectoryName(aName, ADC_SEPARATOR);
+	}
+
+	// Returns the name without subdirs and possible position from where the subdir starts
+	static pair<string, string::size_type> getLocalDirectoryName(const string& aName) noexcept {
+		return getDirectoryName(aName, PATH_SEPARATOR);
 	}
 
 	static string getTitle(const string& searchTerm) noexcept;
 private:
-	static pair<string, string::size_type> getDirName(const string& aName, char separator) noexcept;
+	static pair<string, string::size_type> getDirectoryName(const string& aName, char aSeparator) noexcept;
 	static string getLastCommonDirectoryPathFromSub(const string& aMainPath, const string& aSubPath, char aSubSeparator, size_t aMainBaseLength) noexcept;
 
-	static string subtractCommonDirs(const string& toCompare, const string& toSubtract, char separator) noexcept;
+	static string subtractCommonDirs(const string& toCompare, const string& toSubtract, char aSeparator) noexcept;
 	static size_t compareFromEnd(const string& aMainPath, const string& aSubPath, char aSubSeparator) noexcept;
 
 	static bool removeDirectoryIfEmptyRecursive(const string& aTarget, int aMaxAttempts, int aCurAttempts);
