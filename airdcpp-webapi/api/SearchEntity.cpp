@@ -132,7 +132,7 @@ namespace webserver {
 
 		string targetDirectory, targetName = result->getFileName();
 		Priority prio;
-		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetName, prio);
+		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession().get(), targetDirectory, targetName, prio);
 		addAsyncTask([
 			result,
 			targetName,
