@@ -255,7 +255,7 @@ namespace webserver {
 
 		string targetDirectory, targetBundleName = Util::getAdcLastDir(listPath);
 		Priority prio;
-		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession(), targetDirectory, targetBundleName, prio);
+		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession().get(), targetDirectory, targetBundleName, prio);
 
 		addAsyncTask([
 			hintedUser = Deserializer::deserializeHintedUser(reqJson),

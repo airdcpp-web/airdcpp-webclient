@@ -537,9 +537,9 @@ namespace webserver {
 	void WebUserManager::on(WebServerManagerListener::LoadSettings, const MessageCallback& aErrorF) noexcept {
 		WebServerSettings::loadSettingFile(CONFIG_DIR, CONFIG_NAME_JSON, [this](const json& aJson, int) {
 			{
-				auto usersJson = aJson.at("users");
-				if (!usersJson.is_null()) {
-					for (const auto u: usersJson) {
+				auto usersJson = aJson.find("users");
+				if (usersJson != aJson.end()) {
+					for (const auto u: *usersJson) {
 						const string& username = u.at("username");
 						const string& password = u.at("password");
 						if (username.empty() || password.empty()) {
@@ -562,9 +562,9 @@ namespace webserver {
 			}
 
 			{
-				auto refreshTokensJson = aJson.at("refresh_tokens");
-				if (!refreshTokensJson.is_null()) {
-					for (const auto t: refreshTokensJson) {
+				auto refreshTokensJson = aJson.find("refresh_tokens");
+				if (refreshTokensJson != aJson.end()) {
+					for (const auto t: *refreshTokensJson) {
 						const string& token = t.at("token");
 						const string& username = t.at("username");
 						const time_t& expiresOn = t.at("expires_on");

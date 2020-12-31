@@ -54,11 +54,11 @@ namespace webserver {
 			return id;
 		}
 
-		WebUserPtr getUser() {
+		WebUserPtr getUser() const noexcept {
 			return user;
 		}
 
-		SessionType getSessionType() const {
+		SessionType getSessionType() const noexcept {
 			return sessionType;
 		}
 

@@ -128,13 +128,17 @@ namespace webserver {
 		return static_cast<Priority>(*priority);
 	}
 
-	void Deserializer::deserializeDownloadParams(const json& aJson, const SessionPtr& aSession, string& targetDirectory_, string& targetName_, Priority& priority_) {
-		// Target path
-		targetDirectory_ = JsonUtil::getOptionalFieldDefault<string>("target_directory", aJson, SETTING(DOWNLOAD_DIRECTORY));
+	string Deserializer::deserializeTargetDirectory(const json& aJson, const Session* aSession, const string& aDefaultValue) {
+		auto targetDirectory = JsonUtil::getOptionalFieldDefault<string>("target_directory", aJson, aDefaultValue);
 
 		ParamMap params;
 		params["username"] = aSession->getUser()->getUserName();
-		targetDirectory_ = Util::formatParams(targetDirectory_, params, nullptr, 0);
+		return Util::formatParams(targetDirectory, params, nullptr, 0);
+	}
+
+	void Deserializer::deserializeDownloadParams(const json& aJson, const Session* aSession, string& targetDirectory_, string& targetName_, Priority& priority_) {
+		// Target path
+		targetDirectory_ = deserializeTargetDirectory(aJson, aSession, SETTING(DOWNLOAD_DIRECTORY));
 
 		// A default target name can be provided
 		auto name = JsonUtil::getOptionalField<string>("target_name", aJson, targetName_.empty());
@@ -142,6 +146,7 @@ namespace webserver {
 			targetName_ = *name;
 		}
 
+		// Priority
 		priority_ = deserializePriority(aJson, true);
 	}
 
