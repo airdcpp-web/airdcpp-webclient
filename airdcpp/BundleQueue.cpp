@@ -68,21 +68,31 @@ void BundleQueue::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& 
 	}
 }
 
-BundlePtr BundleQueue::findBundle(QueueToken bundleToken) const noexcept {
-	auto i = bundles.find(bundleToken);
+BundlePtr BundleQueue::findBundle(QueueToken aBundleToken) const noexcept {
+	auto i = bundles.find(aBundleToken);
 	return i != bundles.end() ? i->second : nullptr;
 }
 
 DupeType BundleQueue::isAdcDirectoryQueued(const string& aPath, int64_t aSize) const noexcept {
 	PathInfoPtrList infos;
-	findAdcDirectories(aPath, infos);
+	findAdcDirectoryPathInfos(aPath, infos);
 
-	if (infos.empty())
+	if (infos.empty()) {
 		return DUPE_NONE;
+	}
 
 	const auto& pathInfo = *infos.front();
 
 	return pathInfo.toDupeType(aSize);
+}
+
+BundlePtr BundleQueue::isLocalDirectoryQueued(const string& aPath) const noexcept {
+	auto pathInfo = findLocalDirectoryPathInfo(aPath);
+	if (!pathInfo) {
+		return nullptr;
+	}
+
+	return pathInfo->bundle;
 }
 
 DupeType BundleQueue::PathInfo::toDupeType(int64_t aSize) const noexcept {
@@ -121,9 +131,9 @@ size_t BundleQueue::getDirectoryCount(const BundlePtr& aBundle) const noexcept {
 	return (*pathInfos).size();
 }
 
-StringList BundleQueue::getAdcDirectoryPaths(const string& aPath) const noexcept {
+StringList BundleQueue::getAdcDirectoryPaths(const string& aAdcPath) const noexcept {
 	PathInfoPtrList infos;
-	findAdcDirectories(aPath, infos);
+	findAdcDirectoryPathInfos(aAdcPath, infos);
 
 	StringList ret;
 	for (const auto& p : infos) {
@@ -133,9 +143,9 @@ StringList BundleQueue::getAdcDirectoryPaths(const string& aPath) const noexcept
 	return ret;
 }
 
-void BundleQueue::findAdcDirectories(const string& aPath, PathInfoPtrList& pathInfos_) const noexcept {
+void BundleQueue::findAdcDirectoryPathInfos(const string& aAdcPath, PathInfoPtrList& pathInfos_) const noexcept {
 	// Get the last meaningful directory to look up
-	auto dirNameInfo = AirUtil::getAdcDirectoryName(aPath);
+	auto dirNameInfo = AirUtil::getAdcDirectoryName(aAdcPath);
 	auto directories = dirNameMap.equal_range(dirNameInfo.first);
 	if (directories.first == directories.second)
 		return;
@@ -144,7 +154,7 @@ void BundleQueue::findAdcDirectories(const string& aPath, PathInfoPtrList& pathI
 	for (auto s = directories.first; s != directories.second; ++s) {
 		if (dirNameInfo.second != string::npos) {
 			// Confirm that we have the subdirectory as well
-			auto subDir = getAdcSubDirectoryInfo(aPath.substr(dirNameInfo.second), s->second.bundle);
+			auto subDir = getAdcSubDirectoryInfo(aAdcPath.substr(dirNameInfo.second), s->second.bundle);
 			if (subDir) {
 				pathInfos_.push_back(subDir);
 			}
@@ -152,6 +162,30 @@ void BundleQueue::findAdcDirectories(const string& aPath, PathInfoPtrList& pathI
 			pathInfos_.push_back(&s->second);
 		}
 	}
+}
+
+const BundleQueue::PathInfo* BundleQueue::findLocalDirectoryPathInfo(const string& aRealPath) const noexcept {
+	// Get the last meaningful directory to look up
+	auto dirNameInfo = AirUtil::getLocalDirectoryName(aRealPath);
+	auto directories = dirNameMap.equal_range(dirNameInfo.first);
+	if (directories.first == directories.second) {
+		return nullptr;
+	}
+
+	for (auto s = directories.first; s != directories.second; ++s) {
+		auto pathInfos = getPathInfos(s->second.bundle->getTarget());
+
+		// Find exact match
+		auto i = find_if(pathInfos->begin(), pathInfos->end(), [&aRealPath](const PathInfo* aInfo) {
+			return Util::stricmp(aInfo->path, aRealPath) == 0;
+		});
+
+		if (i != pathInfos->end()) {
+			return *i;
+		}
+	}
+
+	return nullptr;
 }
 
 const BundleQueue::PathInfo* BundleQueue::getAdcSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept {
@@ -190,11 +224,11 @@ BundlePtr BundleQueue::getMergeBundle(const string& aTarget) const noexcept {
 	return nullptr;
 }
 
-void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles) const noexcept {
+void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles_) const noexcept {
 	/* Returns bundles that are inside aTarget */
 	for(const auto& compareBundle: bundles | map_values) {
 		if (AirUtil::isSubLocal(compareBundle->getTarget(), aTarget)) {
-			retBundles.push_back(compareBundle);
+			retBundles_.push_back(compareBundle);
 		}
 	}
 }

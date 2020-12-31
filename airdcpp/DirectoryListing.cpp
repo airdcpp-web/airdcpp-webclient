@@ -613,7 +613,7 @@ optional<DirectoryBundleAddResult> DirectoryListing::createBundleHooked(const Di
 	auto bundleFiles = aDir->toBundleInfoList();
 
 	try {
-		auto addInfo = DirectoryBundleAddData(aName, aPriority, aDir->getRemoteDate());
+		auto addInfo = BundleAddData(aName, aPriority, aDir->getRemoteDate());
 		auto options = BundleAddOptions(aTarget, getDownloadSourceUser(), this);
 		auto result = QueueManager::getInstance()->createDirectoryBundleHooked(options, addInfo, bundleFiles, errorMsg_);
 

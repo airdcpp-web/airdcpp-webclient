@@ -630,9 +630,9 @@ const string AirUtil::getSubDirReg() noexcept {
 	return R"((((S(eason)?)|DVD|CD|(D|DIS(K|C))).?([0-9](0-9)?))|Sample.?|Proof.?|Cover.?|.{0,5}Sub(s|pack)?)";
 }
 
-string AirUtil::getReleaseDir(const string& aDir, bool cut, const char separator) noexcept {
-	auto p = getDirName(Util::getFilePath(aDir, separator), separator);
-	if (cut) {
+string AirUtil::getReleaseDir(const string& aDir, bool aCut, const char aSeparator) noexcept {
+	auto p = getDirectoryName(Util::getFilePath(aDir, aSeparator), aSeparator);
+	if (aCut) {
 		return p.first;
 	}
 
@@ -714,13 +714,13 @@ string AirUtil::subtractCommonParents(const string& aToCompare, const StringList
 	return Util::listToString(converted);
 }
 
-string AirUtil::subtractCommonDirs(const string& toCompare, const string& toSubtract, char separator) noexcept {
-	auto res = compareFromEnd(toCompare, toSubtract, separator);
+string AirUtil::subtractCommonDirs(const string& aToCompare, const string& aToSubtract, char aSeparator) noexcept {
+	auto res = compareFromEnd(aToCompare, aToSubtract, aSeparator);
 	if (res == string::npos) {
-		return toSubtract;
+		return aToSubtract;
 	}
 
-	return toSubtract.substr(0, res);
+	return aToSubtract.substr(0, res);
 }
 
 string AirUtil::getLastCommonDirectoryPathFromSub(const string& aMainPath, const string& aSubPath, char aSubSeparator, size_t aMainBaseLength) noexcept {
@@ -787,7 +787,7 @@ string AirUtil::getAdcMatchPath(const string& aRemoteFile, const string& aLocalF
 	return AirUtil::getLastCommonAdcDirectoryPathFromSub(localBundleFileDir, remoteFileDir, aLocalBundlePath.length());
 }
 
-pair<string, string::size_type> AirUtil::getDirName(const string& aPath, char aSeparator) noexcept {
+pair<string, string::size_type> AirUtil::getDirectoryName(const string& aPath, char aSeparator) noexcept {
 	if (aPath.size() < 3)
 		return { aPath, false };
 
@@ -857,7 +857,7 @@ string AirUtil::getTitle(const string& searchTerm) noexcept {
 }
 
 /* returns true if aDir is a subdir of aParent */
-bool AirUtil::isSub(const string& aTestSub, const string& aParent, const char separator) noexcept {
+bool AirUtil::isSub(const string& aTestSub, const string& aParent, const char aSeparator) noexcept {
 	if (aTestSub.length() <= aParent.length())
 		return false;
 
@@ -865,7 +865,7 @@ bool AirUtil::isSub(const string& aTestSub, const string& aParent, const char se
 		return false;
 
 	// either the parent must end with a separator or it must follow in the subdirectory
-	return aParent.empty() || aParent.back() == separator || aTestSub[aParent.length()] == separator;
+	return aParent.empty() || aParent.back() == aSeparator || aTestSub[aParent.length()] == aSeparator;
 }
 
 /* returns true if aSub is a subdir of aDir OR both are the same dir */
