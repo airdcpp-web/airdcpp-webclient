@@ -34,8 +34,6 @@
 
 namespace webserver {
 	string ApiSettingItem::formatTitle(const string& aDesc, ResourceManager::Strings aUnit) noexcept {
-		// auto title = ResourceManager::getInstance()->getString(aDesc);
-
 		auto title = aDesc;
 		if (aUnit != ResourceManager::LAST) {
 			title += " (" + ResourceManager::getInstance()->getString(aUnit) + ")";
@@ -44,7 +42,7 @@ namespace webserver {
 		return title;
 	}
 
-	const ApiSettingItem::MinMax ApiSettingItem::defaultMinMax = { 0, MAX_INT_VALUE };
+	const ApiSettingItem::MinMax ApiSettingItem::defaultMinMax = MinMax();
 
 	ApiSettingItem::ApiSettingItem(const string& aName, Type aType, Type aItemType) :
 		name(aName), type(aType), itemType(aItemType) {
@@ -134,15 +132,13 @@ namespace webserver {
 		value = nullptr;
 	}
 
-	bool JsonSettingItem::setValue(const json& aJson) {
+	void JsonSettingItem::setValue(const json& aJson) {
 		if (aJson.is_null() || aJson == defaultValue) {
 			unset();
 		} else {
 			// The value should have been validated before
 			value = aJson;
 		}
-
-		return true;
 	}
 
 	int JsonSettingItem::num() const {
@@ -181,7 +177,7 @@ namespace webserver {
 		return defaultValue;
 	}
 
-	void JsonSettingItem::setDefaultValue(const json& aValue) noexcept {
+	void JsonSettingItem::setDefaultValue(const json& aValue) {
 		defaultValue = aValue;
 	}
 
@@ -198,6 +194,7 @@ namespace webserver {
 		{ SettingsManager::TCP_PORT, { 1, 65535 } },
 		{ SettingsManager::UDP_PORT, { 1, 65535 } },
 		{ SettingsManager::TLS_PORT, { 1, 65535 } },
+		{ SettingsManager::SOCKS_PORT, { 1, 65535 } },
 
 		{ SettingsManager::MAX_HASHING_THREADS, { 1, 100 } },
 		{ SettingsManager::HASHERS_PER_VOLUME, { 1, 100 } },
@@ -209,7 +206,11 @@ namespace webserver {
 		{ SettingsManager::DOWNLOAD_SLOTS, { 0, 250 } },
 		{ SettingsManager::SET_MINISLOT_SIZE, { 64, MAX_INT_VALUE } },
 		{ SettingsManager::EXTRA_SLOTS, { 1, 100 } },
+		{ SettingsManager::EXTRA_DOWNLOAD_SLOTS, { 0, 100 } },
+		{ SettingsManager::MAX_MCN_DOWNLOADS, { 0, 100 } },
+		{ SettingsManager::MAX_MCN_UPLOADS, { 0, 100 } },
 
+		{ SettingsManager::MIN_SEGMENT_SIZE, { 1024, MAX_INT_VALUE } },
 		{ SettingsManager::NUMBER_OF_SEGMENTS, { 1, 10 } },
 		{ SettingsManager::BUNDLE_SEARCH_TIME, { 5, MAX_INT_VALUE } },
 
@@ -423,7 +424,7 @@ namespace webserver {
 		si.unset();
 	}
 
-	bool CoreSettingItem::setValue(const json& aJson) {
+	void CoreSettingItem::setValue(const json& aJson) {
 		if (isString(type)) {
 			SettingsManager::getInstance()->set(static_cast<SettingsManager::StrSetting>(si.key), JsonUtil::parseValue<string>(name, aJson));
 		} else if (type == TYPE_NUMBER) {
@@ -432,9 +433,18 @@ namespace webserver {
 			SettingsManager::getInstance()->set(static_cast<SettingsManager::BoolSetting>(si.key), JsonUtil::parseValue<bool>(name, aJson));
 		} else {
 			dcassert(0);
-			return false;
 		}
+	}
 
-		return true;
+	void CoreSettingItem::setDefaultValue(const json& aJson) {
+		if (isString(type)) {
+			SettingsManager::getInstance()->setDefault(static_cast<SettingsManager::StrSetting>(si.key), JsonUtil::parseValue<string>(name, aJson));
+		} else if (type == TYPE_NUMBER) {
+			SettingsManager::getInstance()->setDefault(static_cast<SettingsManager::IntSetting>(si.key), JsonUtil::parseValue<int>(name, aJson));
+		} else if (type == TYPE_BOOLEAN) {
+			SettingsManager::getInstance()->setDefault(static_cast<SettingsManager::BoolSetting>(si.key), JsonUtil::parseValue<bool>(name, aJson));
+		} else {
+			dcassert(0);
+		}
 	}
 }
