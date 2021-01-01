@@ -55,7 +55,7 @@ namespace webserver {
 			MinMax(int aMin, int aMax) : min(aMin), max(aMax) {}
 
 			const int min = 0;
-			const int max = 0;
+			const int max = MAX_INT_VALUE;
 		};
 
 		static string formatTitle(const string& aDesc, ResourceManager::Strings aUnit) noexcept;
@@ -70,7 +70,8 @@ namespace webserver {
 		// Returns the value and bool indicating whether it's an auto detected value
 		virtual string getTitle() const noexcept = 0;
 
-		virtual bool setValue(const json& aJson) = 0;
+		virtual void setValue(const json& aJson) = 0;
+		virtual void setDefaultValue(const json& aJson) = 0;
 		virtual void unset() noexcept = 0;
 		virtual json getValue() const noexcept = 0;
 		virtual json getDefaultValue() const noexcept = 0;
@@ -137,7 +138,8 @@ namespace webserver {
 		const string& getHelpStr() const noexcept override;
 
 		// Throws on invalid JSON
-		bool setValue(const json& aJson) override;
+		void setValue(const json& aJson) override;
+		void setDefaultValue(const json& aJson) override;
 		void unset() noexcept override;
 
 		string getTitle() const noexcept override;
@@ -168,7 +170,7 @@ namespace webserver {
 		json getValue() const noexcept override;
 		const json& getValueRef() const noexcept;
 
-		bool setValue(const json& aJson) override;
+		void setValue(const json& aJson) override;
 
 		void unset() noexcept override;
 
@@ -188,7 +190,7 @@ namespace webserver {
 
 		const MinMax& getMinMax() const noexcept override;
 		json getDefaultValue() const noexcept override;
-		void setDefaultValue(const json& aValue) noexcept;
+		void setDefaultValue(const json& aValue) override;
 
 		EnumOption::List getEnumOptions() const noexcept override;
 		//ServerSettingItem(ServerSettingItem&& rhs) noexcept = default;

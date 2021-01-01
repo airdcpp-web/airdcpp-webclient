@@ -33,9 +33,15 @@ namespace webserver {
 		api_return handleGetValues(ApiRequest& aRequest);
 		api_return handleSetValues(ApiRequest& aRequest);
 		api_return handleResetValues(ApiRequest& aRequest);
+		api_return handleGetDefaultValues(ApiRequest& aRequest);
+		api_return handleSetDefaultValues(ApiRequest& aRequest);
 
-		typedef function<void(ApiSettingItem&)> ParserF;
-		void parseSettingKeys(const json& aJson, ParserF aHandler, WebServerManager* aWsm);
+		typedef function<void(ApiSettingItem&)> KeyParserF;
+		void parseSettingKeys(const json& aJson, KeyParserF aHandler, WebServerManager* aWsm);
+
+		typedef function<void(ApiSettingItem&, const json& aValue)> ValueParserF;
+		void parseSettingValues(const json& aJson, ValueParserF aHandler, WebServerManager* aWsm);
+
 		static ApiSettingItem* getSettingItem(const string& aKey, WebServerManager* aWsm) noexcept;
 	};
 }

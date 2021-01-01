@@ -56,9 +56,7 @@ namespace webserver {
 		if (aItem.type == ApiSettingItem::TYPE_NUMBER) {
 			const auto& minMax = aItem.getMinMax();
 
-			if (minMax.min != 0) {
-				ret["min"] = minMax.min;
-			}
+			ret["min"] = minMax.min;
 
 			if (minMax.max != MAX_INT_VALUE) {
 				ret["max"] = minMax.max;
