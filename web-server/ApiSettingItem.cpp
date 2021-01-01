@@ -377,9 +377,9 @@ namespace webserver {
 		if (isString(type)) {
 			return SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::StrSetting>(si.key));
 		} else if (type == TYPE_NUMBER) {
-			return SettingsManager::getInstance()->get(static_cast<SettingsManager::IntSetting>(si.key));
+			return SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::IntSetting>(si.key));
 		} else if (type == TYPE_BOOLEAN) {
-			return SettingsManager::getInstance()->get(static_cast<SettingsManager::BoolSetting>(si.key));
+			return SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::BoolSetting>(si.key));
 		} else {
 			dcassert(0);
 		}
