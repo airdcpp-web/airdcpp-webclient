@@ -66,6 +66,7 @@ public:
 
 	// Throws HashException
 	void addTree(const TigerTree& tree) { store.addTree(tree); }
+	void renameFileThrow(const string& aOldPath, const string& aNewPath);
 
 	struct HashStats {
 		string curFile;
@@ -145,6 +146,11 @@ private:
 		void addHashedFile(const string& aFilePathLower, const TigerTree& tt, const HashedFile& fi_);
 		void addFile(const string& aFilePathLower, const HashedFile& fi_);
 		void removeFile(const string& aFilePathLower);
+
+		// Rename a file in the database
+		// Throws HashException
+		void renameFileThrow(const string& aOldPath, const string& aNewPath);
+
 		void load(StartupLoader& aLoader);
 
 		void optimize(bool doVerify) noexcept;

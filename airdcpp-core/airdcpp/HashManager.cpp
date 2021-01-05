@@ -75,6 +75,38 @@ void HashManager::getFileInfo(const string& aFileLower, const string& aFileName,
 		throw HashException();
 	}
 }
+void HashManager::renameFileThrow(const string& aOldPath, const string& aNewPath) {
+	return store.renameFileThrow(aOldPath, aNewPath);
+}
+
+void HashManager::HashStore::renameFileThrow(const string& aOldPath, const string& aNewPath) {
+	auto oldPathLower = Text::toLower(aOldPath);
+	auto newPathLower = Text::toLower(aNewPath);
+
+	// Check the old file
+	HashedFile hashedFile;
+	if (!getFileInfo(oldPathLower, hashedFile)) {
+		throw HashException("Path " + aOldPath + " doesn't exist in hash database");
+	}
+
+	try {
+		FileItem newFileInfo(aNewPath);
+
+		// Check the size of the new file
+		if (newFileInfo.getSize() != hashedFile.getSize()) {
+			throw HashException("Size of " + aOldPath + " (" + Util::toString(hashedFile.getSize()) + ") differs from the size of " + aNewPath + "(" + Util::toString(newFileInfo.getSize()) + ")");
+		}
+
+		// Update timestamp for the new database entry
+		hashedFile.setTimeStamp(newFileInfo.getLastWriteTime());
+	} catch (const FileException& e) {
+		throw HashException("Could not open path " + aNewPath + ": " + e.getError());
+	}
+
+	// Rename
+	removeFile(oldPathLower);
+	addFile(newPathLower, hashedFile);
+}
 
 bool HashManager::getTree(const TTHValue& root, TigerTree& tt) noexcept {
 	return store.getTree(root, tt);
@@ -178,7 +210,7 @@ void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool addStore, 
 		auto start = GET_TICK();
 		int64_t tickHashed = 0;
 
-		FileReader fr(true);
+		FileReader fr(FileReader::ASYNC);
 		fr.read(aFile, [&](const void* buf, size_t n) -> bool {
 			tt.update(buf, n);
 

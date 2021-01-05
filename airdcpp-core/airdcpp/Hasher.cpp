@@ -248,7 +248,7 @@ namespace dcpp {
 
 					uint64_t lastRead = GET_TICK();
 
-					FileReader fr(true);
+					FileReader fr(FileReader::ASYNC);
 					fr.read(fname, [&](const void* buf, size_t n) -> bool {
 						if (SETTING(MAX_HASH_SPEED) > 0) {
 							uint64_t now = GET_TICK();
