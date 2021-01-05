@@ -172,7 +172,7 @@ namespace webserver {
 
 	ActionHookResult<BundleAddHookResult> QueueApi::bundleAddHook(const string& aTarget, BundleAddData& aData, const HintedUser& aUser, const bool aIsFile, const ActionHookResultGetter<BundleAddHookResult>& aResultGetter) noexcept {
 		return HookCompletionData::toResult<BundleAddHookResult>(
-			fireHook(HOOK_ADD_BUNDLE, WEBCFG(QUEUE_ADD_DIRECTORY_BUNDLE_HOOK_TIMEOUT).num(), [&]() {
+			fireHook(HOOK_ADD_BUNDLE, WEBCFG(QUEUE_ADD_BUNDLE_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "target_directory", aTarget },
 					{ "bundle_data", {
