@@ -52,6 +52,8 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("resume")),			HashApi::handleResume);
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("stop")),				HashApi::handleStop);
 
+		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("rename_path")),		HashApi::handleRenamePath);
+
 		timer->start(false);
 	}
 
@@ -170,6 +172,21 @@ namespace webserver {
 
 		auto verify = JsonUtil::getField<bool>("verify", aRequest.getRequestBody());
 		HashManager::getInstance()->startMaintenance(verify);
+		return websocketpp::http::status_code::no_content;
+	}
+
+	api_return HashApi::handleRenamePath(ApiRequest& aRequest) {
+		const auto& j = aRequest.getRequestBody();
+		auto oldPath = JsonUtil::getField<string>("old_path", j);
+		auto newPath = JsonUtil::getField<string>("new_path", j);
+
+		try {
+			HashManager::getInstance()->renameFileThrow(oldPath, newPath);
+		} catch (const HashException& e) {
+			aRequest.setResponseErrorStr(e.getError());
+			return websocketpp::http::status_code::bad_request;
+		}
+
 		return websocketpp::http::status_code::no_content;
 	}
 }

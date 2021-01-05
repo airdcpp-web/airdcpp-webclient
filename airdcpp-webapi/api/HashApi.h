@@ -46,6 +46,8 @@ namespace webserver {
 		api_return handleGetDbStatus(ApiRequest& aRequest);
 		api_return handleGetStats(ApiRequest& aRequest);
 
+		api_return handleRenamePath(ApiRequest& aRequest);
+
 		void on(HashManagerListener::DirectoryHashed, const string& aPath, int aFilesHashed, int64_t aSizeHashed, time_t aHashDuration, int aHasherId) noexcept override;
 		void on(HashManagerListener::HasherFinished, int aDirshashed, int aFilesHashed, int64_t aSizeHashed, time_t aHashDuration, int aHasherId) noexcept override;
 

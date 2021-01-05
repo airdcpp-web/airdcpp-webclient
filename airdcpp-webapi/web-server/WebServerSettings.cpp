@@ -79,7 +79,7 @@ namespace webserver {
 			{ "incoming_chat_message_hook_timeout",			ResourceManager::WEB_CFG_INCOMING_CHAT_MESSAGE_HOOK_TIMEOUT,			2, ApiSettingItem::TYPE_NUMBER, false,	{ 1, 60,	ResourceManager::SECONDS_LOWER } },
 
 			{ "queue_add_bundle_file_hook_timeout",			ResourceManager::WEB_CFG_QUEUE_ADD_BUNDLE_FILE_HOOK_TIMEOUT,			5,	ApiSettingItem::TYPE_NUMBER, false, { 1, 300,	ResourceManager::SECONDS_LOWER } },
-			{ "queue_add_directory_bundle_hook_timeout",	ResourceManager::WEB_CFG_QUEUE_ADD_DIRECTORY_BUNDLE_HOOK_TIMEOUT,		10, ApiSettingItem::TYPE_NUMBER, false, { 1, 600,	ResourceManager::SECONDS_LOWER } },
+			{ "queue_add_bundle_hook_timeout",				ResourceManager::WEB_CFG_QUEUE_ADD_BUNDLE_HOOK_TIMEOUT,					10, ApiSettingItem::TYPE_NUMBER, false, { 1, 600,	ResourceManager::SECONDS_LOWER } },
 			{ "queue_add_source_hook_timeout",				ResourceManager::WEB_CFG_QUEUE_ADD_SOURCE_HOOK_TIMEOUT,					5,	ApiSettingItem::TYPE_NUMBER, false, { 1, 60,	ResourceManager::SECONDS_LOWER } },
 			{ "queue_file_finished_hook_timeout",			ResourceManager::WEB_CFG_QUEUE_FILE_FINISHED_HOOK_TIMEOUT,				60, ApiSettingItem::TYPE_NUMBER, false, { 1, 3600,	ResourceManager::SECONDS_LOWER } },
 			{ "queue_bundle_finished_hook_timeout",			ResourceManager::WEB_CFG_QUEUE_BUNDLE_FINISHED_HOOK_TIMEOUT,			120,ApiSettingItem::TYPE_NUMBER, false, { 1, 3600,	ResourceManager::SECONDS_LOWER } },
@@ -88,8 +88,8 @@ namespace webserver {
 		}),
 		extensionEngines({
 			{ "name",					ResourceManager::NAME,				"",				ApiSettingItem::TYPE_STRING,	false },
-			{ "command",				ResourceManager::COMMAND,			"",				ApiSettingItem::TYPE_STRING,	false,	{}, ResourceManager::WEB_CFG_EXTENSION_ENGINES_ARGS_HELP },
-			{ "arguments",				ResourceManager::SETTINGS_ARGUMENT,	json::array(),	ApiSettingItem::TYPE_LIST,		true,	{}, ResourceManager::WEB_CFG_EXTENSION_ENGINES_COMMAND_HELP, ApiSettingItem::TYPE_STRING },
+			{ "command",				ResourceManager::COMMAND,			"",				ApiSettingItem::TYPE_STRING,	false,	{}, ResourceManager::WEB_CFG_EXTENSION_ENGINES_COMMAND_HELP },
+			{ "arguments",				ResourceManager::SETTINGS_ARGUMENT,	json::array(),	ApiSettingItem::TYPE_LIST,		true,	{}, ResourceManager::WEB_CFG_EXTENSION_ENGINES_ARGS_HELP, ApiSettingItem::TYPE_STRING },
 		}) {}
 
 
