@@ -251,7 +251,7 @@ public:
 		bool isHidden() const noexcept override;
 		bool isLink() const noexcept override;
 		int64_t getSize() const noexcept override;
-		time_t getLastWriteTime() const noexcept;
+		time_t getLastWriteTime() const noexcept override;
 		#ifndef _WIN32
 			dirent *ent;
 			string base;
