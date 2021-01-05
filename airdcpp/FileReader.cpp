@@ -26,10 +26,6 @@
 #include "Text.h"
 #include "Util.h"
 
-#ifndef _WIN32
-#include <fcntl.h>
-#endif
-
 namespace dcpp {
 
 using std::make_pair;
@@ -39,36 +35,49 @@ namespace {
 static const size_t READ_FAILED = static_cast<size_t>(-1);
 }
 
+// Benchmarking: https://bugs.launchpad.net/dcplusplus/+bug/1909861/comments/9
+const size_t FileReader::DEFAULT_BLOCK_SIZE = 1024 * 1024;
+
 size_t FileReader::read(const string& aPath, const DataCallback& callback) {
 	size_t ret = READ_FAILED;
 
-	if (direct) {
-		ret = readDirect(aPath, callback);
+	if (preferredStrategy == ASYNC) {
+		ret = readAsync(aPath, callback);
 	}
 
 	if (ret == READ_FAILED) {
-		ret = readMapped(aPath, callback);
-		if (ret == READ_FAILED) {
-			ret = readCached(aPath, callback);
-		}
+		ret = readSync(aPath, callback);
 	}
 
 	return ret;
 }
 
-
 /** Read entire file, never returns READ_FAILED */
-size_t FileReader::readCached(const string& aPath, const DataCallback& callback) {
+size_t FileReader::readSync(const string& aPath, const DataCallback& callback) {
 	buffer.resize(getBlockSize(0));
 
 	auto buf = &buffer[0];
 	File f(aPath, File::READ, File::OPEN | File::SHARED_WRITE, File::BUFFER_SEQUENTIAL);
 
+#ifdef F_NOCACHE
+	// macOS
+	// Avoid memory caching (fadvise is not available)
+	fcntl(f.getNativeHandle(), F_NOCACHE, 1);
+#endif
+
 	size_t total = 0;
 	size_t n = buffer.size();
 	bool go = true;
-	while(f.read(buf, n) > 0 && go) {
+	while (f.read(buf, n) > 0 && go) {
 		go = callback(buf, n);
+
+#ifdef POSIX_FADV_DONTNEED
+		// Allow read bytes to be purged from the memory cache
+		if (posix_fadvise(f.getNativeHandle(), total, n, POSIX_FADV_DONTNEED) != 0) {
+			throw FileException(Util::translateError(errno));
+		}
+#endif
+
 		total += n;
 		n = buffer.size();
 	}
@@ -101,7 +110,7 @@ struct Handle : boost::noncopyable {
 	HANDLE h;
 };
 
-size_t FileReader::readDirect(const string& aPath, const DataCallback& callback) {
+size_t FileReader::readAsync(const string& aPath, const DataCallback& callback) {
 	DWORD sector = 0, y;
 
 	auto tfile = Text::toT(aPath);
@@ -196,186 +205,12 @@ size_t FileReader::readDirect(const string& aPath, const DataCallback& callback)
 	return *((size_t*)&over.Offset);
 }
 
-size_t FileReader::readMapped(const string& /*file*/, const DataCallback& /*callback*/) {
-	/** @todo mapped reads can fail on Windows by throwing an exception that may only be caught by
-	SEH. MinGW doesn't have that, thus making this method of reading prone to unrecoverable
-	failures. disabling this for now should be fine as DC++ always tries overlapped reads first
-	(at the moment this file reader is only used in places where overlapped reads make the most
-	sense).
-	more info:
-	<http://msdn.microsoft.com/en-us/library/aa366801(VS.85).aspx>
-	<http://stackoverflow.com/q/7244645> */
-#if 1
-	return READ_FAILED;
 #else
 
-	auto tfile = Text::toT(file);
-
-	auto tmp = ::CreateFile(tfile.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
-		FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-
-	if (tmp == INVALID_HANDLE_VALUE) {
-		dcdebug("Failed to open unbuffered file: %s\n", Util::translateError(::GetLastError()).c_str());
-		return READ_FAILED;
-	}
-
-	Handle h(tmp);
-
-	LARGE_INTEGER size = { 0 };
-	if(!::GetFileSizeEx(h, &size)) {
-		dcdebug("Couldn't get file size: %s\n", Util::translateError(::GetLastError()).c_str());
-		return READ_FAILED;
-	}
-
-	if(!(tmp = ::CreateFileMapping(h, NULL, PAGE_READONLY, 0, 0, NULL))) {
-		dcdebug("Couldn't create file mapping: %s\n", Util::translateError(::GetLastError()).c_str());
-		return READ_FAILED;
-	}
-
-	Handle hmap(tmp);
-
-	SYSTEM_INFO si = { 0 };
-	::GetSystemInfo(&si);
-
-	auto blockSize = getBlockSize(si.dwPageSize);
-
-	LARGE_INTEGER total = { 0 };
-	bool go = true;
-	while(size.QuadPart > 0 && go) {
-		auto n = min(size.QuadPart, (int64_t)blockSize);
-		auto p = ::MapViewOfFile(hmap, FILE_MAP_READ, total.HighPart, total.LowPart, static_cast<DWORD>(n));
-		if(!p || (::GetLastError() == EXCEPTION_IN_PAGE_ERROR)) { //we should throw on I/O errors anyway.
-			throw FileException(Util::translateError(::GetLastError()));
-		}
-
-		go = callback(p, n);
-
-		if(!::UnmapViewOfFile(p)) {
-			throw FileException(Util::translateError(::GetLastError()));
-		}
-
-		size.QuadPart -= n;
-		total.QuadPart += n;
-	}
-
-	return total.QuadPart;
-#endif
-}
-
-#else
-
-size_t FileReader::readDirect(const string& file, const DataCallback& callback) {
+size_t FileReader::readAsync(const string& file, const DataCallback& callback) {
+	// Not implemented yet
+	// https://bugs.launchpad.net/dcplusplus/+bug/1909861
 	return READ_FAILED;
-}
-
-/*#include <sys/mman.h> // mmap, munmap, madvise
-#include <signal.h>  // for handling read errors from previous trio
-#include <setjmp.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-
-static const int64_t BUF_SIZE = 0x1000000 - (0x1000000 % getpagesize());
-static sigjmp_buf sb_env;
-
-static void sigbus_handler(int signum, siginfo_t* info, void* context) {
-	// Jump back to the readMapped which will return error. Apparently truncating
-	// a file in Solaris sets si_code to BUS_OBJERR
-	if (signum == SIGBUS && (info->si_code == BUS_ADRERR || info->si_code == BUS_OBJERR))
-		siglongjmp(sb_env, 1);
-}*/
-
-size_t FileReader::readMapped(const string& /*filename*/, const DataCallback& /*callback*/) {
-	// Disable mmap as the current code can't handle reading of files from multiple threads
-	// because of global setting and resetting of SIGBUS (or handling it correctly) and mmap also 
-	// seems to be slower than the regular file read:
-	// 
-	// readMapped: 671 files (21.70 GiB) in 9 directories have been hashed in 4 minutes 21 seconds (84.87 MiB/s)
-	// readCached: 671 files (21.70 GiB) in 9 directories have been hashed in 3 minutes 58 seconds (93.08 MiB/s)
-
-	return READ_FAILED;
-
-	/*int fd = open(filename.c_str(), O_RDONLY);
-	if(fd == -1) {
-		dcdebug("Error opening file %s: %s\n", filename.c_str(), Util::translateError(errno).c_str());
-		return READ_FAILED;
-	}
-
-	struct stat statbuf;
-	if (fstat(fd, &statbuf) == -1) {
-		dcdebug("Error opening file %s: %s\n", filename.c_str(), Util::translateError(errno).c_str());
-		close(fd);
-		return READ_FAILED;
-	}
-
-	int64_t pos = 0;
-	auto size = statbuf.st_size;
-
-	// Prepare and setup a signal handler in case of SIGBUS during mmapped file reads.
-	// SIGBUS can be sent when the file is truncated or in case of read errors.
-	struct sigaction act, oldact;
-	sigset_t signalset;
-
-	sigemptyset(&signalset);
-
-	act.sa_handler = NULL;
-	act.sa_sigaction = sigbus_handler;
-	act.sa_mask = signalset;
-	act.sa_flags = SA_SIGINFO | SA_RESETHAND;
-
-	if (sigaction(SIGBUS, &act, &oldact) == -1) {
-		dcdebug("Failed to set signal handler for fastHash\n");
-		close(fd);
-		return READ_FAILED;	// Better luck with the slow hash.
-	}
-
-	void* buf = NULL;
-	int64_t size_read = 0;
-
-	//uint64_t lastRead = GET_TICK();
-	while (pos < size) {
-		size_read = std::min(size - pos, BUF_SIZE);
-		buf = mmap(0, size_read, PROT_READ, MAP_SHARED, fd, pos);
-		if (buf == MAP_FAILED) {
-			dcdebug("Error calling mmap for file %s: %s\n", filename.c_str(), Util::translateError(errno).c_str());
-			break;
-		}
-
-		if (sigsetjmp(sb_env, 1)) {
-			dcdebug("Caught SIGBUS for file %s\n", filename.c_str());
-			break;
-		}
-
-		if (posix_madvise(buf, size_read, POSIX_MADV_SEQUENTIAL | POSIX_MADV_WILLNEED) == -1) {
-			dcdebug("Error calling madvise for file %s: %s\n", filename.c_str(), Util::translateError(errno).c_str());
-			break;
-		}
-
-		if(!callback(buf, size_read)) {
-			break;
-		}
-
-		if (munmap(buf, size_read) == -1) {
-			dcdebug("Error calling munmap for file %s: %s\n", filename.c_str(), Util::translateError(errno).c_str());
-			break;
-		}
-
-		buf = NULL;
-		pos += size_read;
-	}
-
-	if (buf != NULL && buf != MAP_FAILED && munmap(buf, size_read) == -1) {
-		dcdebug("Error calling munmap for file %s: %s\n", filename.c_str(), Util::translateError(errno).c_str());
-	}
-
-	::close(fd);
-
-	if (sigaction(SIGBUS, &oldact, NULL) == -1) {
-		dcdebug("Failed to reset old signal handler for SIGBUS\n");
-	}
-
-	return pos == size ? pos : READ_FAILED;*/
 }
 
 #endif

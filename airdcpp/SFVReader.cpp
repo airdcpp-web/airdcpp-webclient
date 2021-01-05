@@ -77,7 +77,7 @@ bool DirSFVReader::isCrcValid(const string& aFileName) const {
 	auto p = content.find(aFileName);
 	if (p != content.end()) {
 		CRC32Filter crc32;
-		FileReader(true).read(path + aFileName, [&](const void* x, size_t n) {
+		FileReader(FileReader::ASYNC).read(path + aFileName, [&](const void* x, size_t n) {
 			return crc32(x, n), true;
 		});
 		return crc32.getValue() == p->second;

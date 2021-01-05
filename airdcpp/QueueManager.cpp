@@ -315,7 +315,7 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 	CRC32Filter crc32;
 
 	try {
-		FileReader().read(checkTarget, [&](const void* x, size_t n) {
+		FileReader(FileReader::ASYNC).read(checkTarget, [&](const void* x, size_t n) {
 			if (fileCRC)
 				crc32(x, n);
 			return ttFile.update(x, n), true;
