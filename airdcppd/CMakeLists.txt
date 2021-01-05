@@ -1,5 +1,5 @@
 project(airdcppd)
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0.2)
 
 aux_source_directory(${PROJECT_SOURCE_DIR} airdcppd_SRCS)
 include_directories(${Boost_INCLUDE_DIRS})

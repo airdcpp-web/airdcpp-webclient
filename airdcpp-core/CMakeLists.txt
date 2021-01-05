@@ -1,6 +1,6 @@
 project (airdcpp)
 include_directories(${PROJECT_BINARY_DIR})
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 3.0.2)
 
 aux_source_directory(${PROJECT_SOURCE_DIR}/airdcpp airdcpp_srcs)
 file (GLOB airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/*.h)
