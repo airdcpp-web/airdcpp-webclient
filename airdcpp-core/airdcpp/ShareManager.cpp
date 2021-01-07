@@ -1477,6 +1477,7 @@ bool ShareManager::ShareBuilder::validateFileItem(const FileItemInfoBase& aFileI
 			}
 		}
 
+		dcdebug("Item %s won't be shared: %s\n", aPath.c_str(), e.what());
 		return false;
 	} catch (...) {
 		return false;
