@@ -309,6 +309,12 @@
     <ClInclude Include="web-server\NpmRepository.h">
       <Filter>Header Files\web-server</Filter>
     </ClInclude>
+    <ClInclude Include="forward.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">

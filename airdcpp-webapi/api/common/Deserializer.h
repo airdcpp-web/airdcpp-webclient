@@ -59,9 +59,10 @@ namespace webserver {
 		static HintedUser deserializeHintedUser(const json& aJson, bool aAllowMe = false, bool aOptional = false, const string& aFieldName = "user");
 
 		static TTHValue deserializeTTH(const json& aJson);
-		static Priority deserializePriority(const json& aJson, bool allowDefault);
+		static Priority deserializePriority(const json& aJson, bool aAllowDefault);
+		static string deserializeTargetDirectory(const json& aJson, const Session* aSession, const string& aDefaultValue);
 
-		static void deserializeDownloadParams(const json& aJson, const SessionPtr& aSession, string& targetDirectory_, string& targetName_, Priority& priority_);
+		static void deserializeDownloadParams(const json& aJson, const Session* aSession, string& targetDirectory_, string& targetName_, Priority& priority_);
 
 		// Returns all connected hubs if the list is not found from the JSON
 		static StringList deserializeHubUrls(const json& aJson);

@@ -211,7 +211,7 @@ namespace webserver {
 		//{ ResourceManager::SETTINGS_ADVANCED },
 		{ "socket_read_buffer", SettingsManager::SOCKET_IN_BUFFER, ResourceManager::SETTINGS_SOCKET_IN_BUFFER, ApiSettingItem::TYPE_LAST, ResourceManager::Strings::B },
 		{ "socket_write_buffer", SettingsManager::SOCKET_OUT_BUFFER, ResourceManager::SETTINGS_SOCKET_OUT_BUFFER, ApiSettingItem::TYPE_LAST, ResourceManager::Strings::B },
-		{ "buffer_size", SettingsManager::BUFFER_SIZE, ResourceManager::SETTINGS_WRITE_BUFFER, ApiSettingItem::TYPE_LAST, ResourceManager::Strings::KiBS },
+		{ "buffer_size", SettingsManager::BUFFER_SIZE, ResourceManager::SETTINGS_WRITE_BUFFER, ApiSettingItem::TYPE_LAST, ResourceManager::Strings::KiB },
 		{ "compress_transfers", SettingsManager::COMPRESS_TRANSFERS, ResourceManager::SETTINGS_COMPRESS_TRANSFERS },
 		{ "max_compression", SettingsManager::MAX_COMPRESSION, ResourceManager::SETTINGS_MAX_COMPRESS },
 		{ "bloom_mode", SettingsManager::BLOOM_MODE, ResourceManager::BLOOM_MODE },

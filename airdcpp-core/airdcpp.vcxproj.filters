@@ -362,6 +362,9 @@
     <ClCompile Include="airdcpp\Hasher.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="airdcpp\HashStore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="airdcpp\AdcCommand.h">
@@ -962,6 +965,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\QueueAddInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\HashStore.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

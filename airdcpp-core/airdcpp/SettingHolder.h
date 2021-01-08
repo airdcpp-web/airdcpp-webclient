@@ -26,9 +26,7 @@ namespace dcpp {
 
 class SettingHolder {
 public:
-	typedef std::function < void(const string&)> ErrorFunction;
-
-	SettingHolder(ErrorFunction errorF);
+	SettingHolder(MessageCallback errorF);
 	~SettingHolder();
 
 	void apply();
@@ -67,7 +65,7 @@ private:
 
 	const int prevUpdateChannel = SETTING(UPDATE_CHANNEL);
 
-	ErrorFunction errorF;
+	MessageCallback errorF;
 	void showError(const string& aError) const noexcept;
 };
 

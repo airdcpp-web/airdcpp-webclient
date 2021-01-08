@@ -19,7 +19,9 @@
 #include "stdinc.h"
 #include <web-server/WebUser.h>
 
+#include <airdcpp/Encoder.h>
 #include <airdcpp/StringTokenizer.h>
+#include <airdcpp/MerkleTree.h>
 #include <airdcpp/Util.h>
 
 #include <boost/range/numeric.hpp>
@@ -75,10 +77,27 @@ namespace webserver {
 		return accessStrings[static_cast<AccessType>(aAccess)];
 	}
 
-	WebUser::WebUser(const std::string& aUserName, const std::string& aPassword, bool aIsAdmin) : userName(aUserName), password(aPassword) {
+	string WebUser::hashPassword(const string& aPasswordPlain) noexcept {
+		TigerHash tmp;
+		tmp.update(aPasswordPlain.c_str(), aPasswordPlain.length());
+		return TTHValue(tmp.finalize());
+	}
+
+	WebUser::WebUser(const std::string& aUserName, const std::string& aPasswordHashOrPlain, bool aIsAdmin) : userName(aUserName) {
+		setPassword(aPasswordHashOrPlain);
 		clearPermissions();
 		if (aIsAdmin) {
 			permissions[Access::ADMIN] = true;
+		}
+	}
+
+	void WebUser::setPassword(const std::string& aPasswordHashOrPlain) noexcept {
+		if (aPasswordHashOrPlain.length() == 39 && Encoder::isBase32(aPasswordHashOrPlain.c_str())) {
+			// Hashed already
+			passwordHash = aPasswordHashOrPlain;
+		} else {
+			// Convert to hash
+			passwordHash = hashPassword(aPasswordHashOrPlain);
 		}
 	}
 
@@ -135,6 +154,10 @@ namespace webserver {
 	bool WebUser::validateUsername(const string& aUsername) noexcept {
 		boost::regex reg(R"(\w+)");
 		return boost::regex_match(aUsername, reg);
+	}
+
+	bool WebUser::matchPassword(const string& aPasswordPlain) noexcept {
+		return hashPassword(aPasswordPlain) == passwordHash;
 	}
 
 	string WebUser::getPermissionsStr() const noexcept {

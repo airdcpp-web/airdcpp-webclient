@@ -1321,7 +1321,7 @@ enum Strings { // @DontAdd
 	SETTINGS_DIRECTORIES, // "Directories"
 	SETTINGS_DISPLAY_DC_UPDATE, // "Don't announce new AirDC++ versions (version.xml is still downloaded)"
 	SETTINGS_DONT_DL_ALREADY_SHARED, // "Don't download files already in share"
-	SETTINGS_DOWNCONN, // "Dwnld attempts/second"
+	SETTINGS_DOWNCONN, // "Download attempts/second"
 	SETTINGS_DOWNLOADS, // "Downloads"
 	SETTINGS_DOWNLOADS_MAX, // "Maximum simultaneous downloads (0 = infinite)"
 	SETTINGS_DOWNLOADS_SPEED_PAUSE, // "No new downloads if speed exceeds (0 = disable)"
@@ -1449,8 +1449,8 @@ enum Strings { // @DontAdd
 	SETTINGS_SHOW_QUEUE_BARS, // "Show progress bars in queue"
 	SETTINGS_SKIPLIST_DOWNLOAD, // "Download skiplist (separate files with '|', wildcards allowed)"
 	SETTINGS_SKIPPING_OPTIONS, // "Skipping options"
-	SETTINGS_SOCKET_IN_BUFFER, // "Socket read buffer"
-	SETTINGS_SOCKET_OUT_BUFFER, // "Socket write buffer"
+	SETTINGS_SOCKET_IN_BUFFER, // "Socket read buffer (0 = system default)"
+	SETTINGS_SOCKET_OUT_BUFFER, // "Socket write buffer (0 = system default)"
 	SETTINGS_SOCKS5, // "SOCKS5"
 	SETTINGS_SOCKS5_IP, // "Socks IP"
 	SETTINGS_SOCKS5_RESOLVE, // "Use SOCKS5 server to resolve host names"
@@ -1868,7 +1868,11 @@ enum Strings { // @DontAdd
 	WEB_CFG_BIND_ADDRESS, // "Bind address"
 	WEB_CFG_CERT_PATH, // "Certificate path"
 	WEB_CFG_CERT_KEY_PATH, // "Certificate key path"
+
 	WEB_CFG_SERVER_THREADS, // "Server threads"
+	WEB_CFG_EXTENSION_ENGINES, // "Extension engines"
+	WEB_CFG_EXTENSION_ENGINES_COMMAND_HELP, // "Multiple commands can specified, separate with \";\". Application will use the first command that is available on the system."
+	WEB_CFG_EXTENSION_ENGINES_ARGS_HELP, // "Startup arguments to be passed to the engine"
 
 	WEB_CFG_IDLE_TIMEOUT, // "Default session inactivity timeout"
 	WEB_CFG_PING_INTERVAL, // "Socket ping interval"
@@ -1876,6 +1880,22 @@ enum Strings { // @DontAdd
 	WEB_CFG_EXTENSIONS_DEBUG_MODE, // "Run extensions in debug mode"
 	WEB_CFG_EXTENSIONS_INIT_TIMEOUT, // "Initialization timeout for extensions"
 	WEB_CFG_EXTENSIONS_AUTO_UPDATE, // "Update extensions automatically"
+
+	WEB_CFG_SHARE_FILE_VALIDATION_HOOK_TIMEOUT, // "Share file validation"
+	WEB_CFG_SHARE_DIRECTORY_VALIDATION_HOOK_TIMEOUT, // "Share directory validation"
+	WEB_CFG_NEW_SHARE_FILE_VALIDATION_HOOK_TIMEOUT, // "New share file validation"
+	WEB_CFG_NEW_SHARE_DIRECTORY_VALIDATION_HOOK_TIMEOUT, // "New share directory validation"
+
+	WEB_CFG_OUTGOING_CHAT_MESSAGE_HOOK_TIMEOUT, // "Outgoing chat message"
+	WEB_CFG_INCOMING_CHAT_MESSAGE_HOOK_TIMEOUT, // "Incoming chat message"
+
+	WEB_CFG_QUEUE_ADD_BUNDLE_FILE_HOOK_TIMEOUT, // "Add bundle file"
+	WEB_CFG_QUEUE_ADD_BUNDLE_HOOK_TIMEOUT, // "Add bundle"
+	WEB_CFG_QUEUE_ADD_SOURCE_HOOK_TIMEOUT, // "Add queue source"
+	WEB_CFG_QUEUE_BUNDLE_FINISHED_HOOK_TIMEOUT, // "Bundle downloaded"
+	WEB_CFG_QUEUE_FILE_FINISHED_HOOK_TIMEOUT, // "File downloaded"
+
+	WEB_CFG_LIST_MENUITEMS_HOOK_TIMEOUT, // "List menu items"
 
 	X_EXTENSIONS_LOADED, // "%1% extensions were loaded"
 	X_DEBUG_MODE, // "%1% (debug mode)"

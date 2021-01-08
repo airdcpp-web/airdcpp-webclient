@@ -38,9 +38,8 @@ class FileReader : boost::noncopyable {
 public:
 
 	enum Strategy {
-		DIRECT,
-		MAPPED,
-		CACHED
+		ASYNC = 1,
+		SYNC = 0
 	};
 
 	typedef function<bool(const void*, size_t)> DataCallback;
@@ -50,7 +49,7 @@ public:
 	 * @param direct Bypass system caches - good for reading files which are not in the cache and should not be there (for example when hashing)
 	 * @param blockSize Read block size, 0 = use default
 	 */
-	FileReader(bool direct = false, size_t blockSize = 0) : direct(direct), blockSize(blockSize) { }
+	FileReader(Strategy preferredStrategy, size_t blockSize = 0) : preferredStrategy(preferredStrategy), blockSize(blockSize) { }
 
 	/**
 	 * Read file - callback will be called for each read chunk which may or may not be a multiple of the requested block size.
@@ -62,11 +61,10 @@ public:
 	size_t read(const string& file, const DataCallback& callback);
 
 private:
-	static const size_t DEFAULT_BLOCK_SIZE = 256*1024;
-	static const size_t DEFAULT_MMAP_SIZE = 64*1024*1024;
+	static const size_t DEFAULT_BLOCK_SIZE;
 
 	string file;
-	bool direct;
+	Strategy preferredStrategy;
 	size_t blockSize;
 
 	vector<uint8_t> buffer;
@@ -75,9 +73,8 @@ private:
 	size_t getBlockSize(size_t alignment);
 	void* align(void* buf, size_t alignment);
 
-	size_t readDirect(const string& aFile, const DataCallback& callback);
-	size_t readMapped(const string& aFile, const DataCallback& callback);
-	size_t readCached(const string& aFile, const DataCallback& callback);
+	size_t readAsync(const string& aFile, const DataCallback& callback);
+	size_t readSync(const string& aFile, const DataCallback& callback);
 };
 
 }

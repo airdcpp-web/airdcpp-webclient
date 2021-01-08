@@ -16,10 +16,10 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_HTTPUTIL_H
-#define DCPLUSPLUS_DCPP_HTTPUTIL_H
+#ifndef DCPLUSPLUS_WEBSERVER_HTTPUTIL_H
+#define DCPLUSPLUS_WEBSERVER_HTTPUTIL_H
 
-#include "stdinc.h"
+#include "forward.h"
 
 #include <airdcpp/typedefs.h>
 

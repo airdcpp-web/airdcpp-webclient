@@ -235,6 +235,8 @@
     <ClInclude Include="api\ViewFileApi.h" />
     <ClInclude Include="api\WebUserApi.h" />
     <ClInclude Include="api\WebUserUtils.h" />
+    <ClInclude Include="forward.h" />
+    <ClInclude Include="json.h" />
     <ClInclude Include="microtar\microtar.h" />
     <ClInclude Include="stdinc.h" />
     <ClInclude Include="web-server\ApiRequest.h" />

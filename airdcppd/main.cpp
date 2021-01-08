@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2015 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2012-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include <airdcpp/stdinc.h>
+#include "stdinc.h"
+
 #include <airdcpp/DCPlusPlus.h>
 #include <airdcpp/Util.h>
 #include <airdcpp/version.h>
@@ -33,14 +34,14 @@
 #include <locale.h>
 #include <fstream>
 
-using namespace std;
+
 using namespace dcpp;
 
-static unique_ptr<File> pidFile;
-static string pidFileName;
+static std::unique_ptr<File> pidFile;
+static std::string pidFileName;
 static bool asdaemon = false;
 static bool crashed = false;
-static unique_ptr<airdcppd::Client> client;
+static std::unique_ptr<airdcppd::Client> client;
 
 static void installHandler();
 
@@ -270,8 +271,8 @@ static void printUsage() {
 	printf("Usage: airdcppd [options]\n");
 
 	auto printHelp = [](const std::string& aCommand, const std::string& aHelp) {
-		cout << std::left << std::setw(HELP_WIDTH) << std::setfill(' ') << aCommand;
-		cout << std::left << std::setw(HELP_WIDTH) << std::setfill(' ') << aHelp << std::endl;
+		std::cout << std::left << std::setw(HELP_WIDTH) << std::setfill(' ') << aCommand;
+		std::cout << std::left << std::setw(HELP_WIDTH) << std::setfill(' ') << aHelp << std::endl;
 	};
 
 	cout << std::endl;
@@ -318,12 +319,12 @@ int main(int argc, char* argv[]) {
 		argv++;
 	}
 
-	if (Util::hasStartupParam("-h") || Util::hasStartupParam("--help")) {
+	if (dcpp::Util::hasStartupParam("-h") || Util::hasStartupParam("--help")) {
 		printUsage();
 		return 0;
 	}
 
-	if (Util::hasStartupParam("-v") || Util::hasStartupParam("--version")) {
+	if (dcpp::Util::hasStartupParam("-v") || Util::hasStartupParam("--version")) {
 		printf("%s\n", shortVersionString.c_str());
 		return 0;
 	}
@@ -347,7 +348,7 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	if (Util::hasStartupParam("-d")) {
+	if (dcpp::Util::hasStartupParam("-d")) {
 		asdaemon = true;
 	}
 

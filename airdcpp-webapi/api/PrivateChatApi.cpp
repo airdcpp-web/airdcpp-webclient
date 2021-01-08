@@ -36,7 +36,7 @@ namespace webserver {
 
 	ActionHookResult<MessageHighlightList> PrivateChatApi::incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) {
 		return HookCompletionData::toResult<MessageHighlightList>(
-			fireHook("private_chat_incoming_message_hook", 2, [&]() {
+			fireHook("private_chat_incoming_message_hook", WEBCFG(INCOMING_CHAT_MESSAGE_HOOK_TIMEOUT).num(), [&]() {
 				return MessageUtils::serializeChatMessage(aMessage);
 			}),
 			aResultGetter,
@@ -46,7 +46,7 @@ namespace webserver {
 
 	ActionHookResult<> PrivateChatApi::outgoingMessageHook(const OutgoingChatMessage& aMessage, const HintedUser& aUser, bool aEcho, const ActionHookResultGetter<>& aResultGetter) {
 		return HookCompletionData::toResult(
-			fireHook("private_chat_outgoing_message_hook", 2, [&]() {
+			fireHook("private_chat_outgoing_message_hook", WEBCFG(OUTGOING_CHAT_MESSAGE_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "text", aMessage.text },
 					{ "third_person", aMessage.thirdPerson },

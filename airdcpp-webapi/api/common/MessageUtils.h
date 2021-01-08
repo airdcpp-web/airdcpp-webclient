@@ -19,6 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_MESSAGEUTILS_H
 #define DCPLUSPLUS_DCPP_MESSAGEUTILS_H
 
+#include "forward.h"
+
 #include <airdcpp/typedefs.h>
 
 #include <airdcpp/DupeType.h>

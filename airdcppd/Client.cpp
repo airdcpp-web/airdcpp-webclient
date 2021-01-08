@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2015 AirDC++ Project
+ * Copyright (C) 2012-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#include "stdinc.h"
 #include "Client.h"
 
 #include <airdcpp/DCPlusPlus.h>
@@ -36,8 +37,6 @@
 #include <web-server/WebServerSettings.h>
 
 namespace airdcppd {
-
-using namespace dcpp;
 
 Client::Client(bool aAsDaemon) : asDaemon(aAsDaemon) {
 
@@ -162,7 +161,7 @@ bool Client::startup() {
 }
 
 
-void unloadModules(StepF& aStepF, ProgressF&) {
+void unloadModules(StepFunction& aStepF, ProgressFunction&) {
 	aStepF("Stopping web server");
 	webserver::WebServerManager::getInstance()->stop();
 	webserver::WebServerManager::getInstance()->save(webErrorF);

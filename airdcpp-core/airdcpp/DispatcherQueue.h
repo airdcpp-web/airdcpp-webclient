@@ -29,7 +29,6 @@ namespace dcpp {
 
 class DispatcherQueue : public Thread {
 public:
-	typedef std::function<void()> Callback;
 	typedef std::function<void(Callback&)> DispatchF;
 
 	// You may pass an optional function that will handle executing the callbacks (can be used for exception handling)

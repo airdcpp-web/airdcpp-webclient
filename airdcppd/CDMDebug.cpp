@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2015 AirDC++ Project
+ * Copyright (C) 2012-2021 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+
+#include "stdinc.h"
 #include "CDMDebug.h"
 
 #include <web-server/WebServerManager.h>

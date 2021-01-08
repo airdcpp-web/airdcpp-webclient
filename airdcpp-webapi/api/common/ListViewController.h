@@ -16,8 +16,8 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_LISTVIEW_H
-#define DCPLUSPLUS_DCPP_LISTVIEW_H
+#ifndef DCPLUSPLUS_WEBSERVER_LISTVIEW_H
+#define DCPLUSPLUS_WEBSERVER_LISTVIEW_H
 
 #include <web-server/JsonUtil.h>
 #include <web-server/SessionListener.h>

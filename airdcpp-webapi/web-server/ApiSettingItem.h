@@ -16,10 +16,11 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_APISETTINGITEM_H
-#define DCPLUSPLUS_DCPP_APISETTINGITEM_H
+#ifndef DCPLUSPLUS_WEBSERVER_APISETTINGITEM_H
+#define DCPLUSPLUS_WEBSERVER_APISETTINGITEM_H
 
-#include "stdinc.h"
+#include "forward.h"
+#include "json.h"
 
 #include <airdcpp/GetSet.h>
 #include <airdcpp/SettingItem.h>
@@ -54,7 +55,7 @@ namespace webserver {
 			MinMax(int aMin, int aMax) : min(aMin), max(aMax) {}
 
 			const int min = 0;
-			const int max = 0;
+			const int max = MAX_INT_VALUE;
 		};
 
 		static string formatTitle(const string& aDesc, ResourceManager::Strings aUnit) noexcept;
@@ -69,7 +70,8 @@ namespace webserver {
 		// Returns the value and bool indicating whether it's an auto detected value
 		virtual string getTitle() const noexcept = 0;
 
-		virtual bool setValue(const json& aJson) = 0;
+		virtual void setValue(const json& aJson) = 0;
+		virtual void setDefaultValue(const json& aJson) = 0;
 		virtual void unset() noexcept = 0;
 		virtual json getValue() const noexcept = 0;
 		virtual json getDefaultValue() const noexcept = 0;
@@ -136,7 +138,8 @@ namespace webserver {
 		const string& getHelpStr() const noexcept override;
 
 		// Throws on invalid JSON
-		bool setValue(const json& aJson) override;
+		void setValue(const json& aJson) override;
+		void setDefaultValue(const json& aJson) override;
 		void unset() noexcept override;
 
 		string getTitle() const noexcept override;
@@ -158,7 +161,7 @@ namespace webserver {
 	class JsonSettingItem : public ApiSettingItem {
 	public:
 		JsonSettingItem(const string& aKey, const json& aDefaultValue, Type aType, bool aOptional,
-			const MinMax& aMinMax = MinMax(), const string& aHelp = "", 
+			const MinMax& aMinMax = MinMax(), 
 			Type aItemType = TYPE_LAST, const EnumOption::List& aEnumOptions = EnumOption::List());
 
 		virtual string getTitle() const noexcept override = 0;
@@ -167,9 +170,7 @@ namespace webserver {
 		json getValue() const noexcept override;
 		const json& getValueRef() const noexcept;
 
-		bool setValue(const json& aJson) override;
-
-		const string& getHelpStr() const noexcept override;
+		void setValue(const json& aJson) override;
 
 		void unset() noexcept override;
 
@@ -189,7 +190,7 @@ namespace webserver {
 
 		const MinMax& getMinMax() const noexcept override;
 		json getDefaultValue() const noexcept override;
-		void setDefaultValue(const json& aValue) noexcept;
+		void setDefaultValue(const json& aValue) override;
 
 		EnumOption::List getEnumOptions() const noexcept override;
 		//ServerSettingItem(ServerSettingItem&& rhs) noexcept = default;
@@ -198,7 +199,6 @@ namespace webserver {
 		const EnumOption::List enumOptions;
 		const MinMax minMax;
 
-		const string help;
 		const bool optional;
 		json value;
 		json defaultValue;
@@ -206,16 +206,28 @@ namespace webserver {
 
 	class ServerSettingItem : public JsonSettingItem {
 	public:
+		struct NumberInfo : MinMax {
+			NumberInfo(int aMin = 0, int aMax = 0, ResourceManager::Strings aUnitKey = ResourceManager::LAST) : MinMax(aMin, aMax) , unitKey(aUnitKey) {}
+
+			const ResourceManager::Strings unitKey;
+		};
+
 		typedef vector<ServerSettingItem> List;
 
 		ServerSettingItem(const string& aKey, const ResourceManager::Strings aTitleKey, const json& aDefaultValue, Type aType, bool aOptional,
-			const MinMax& aMinMax = MinMax(), const ResourceManager::Strings aUnit = ResourceManager::LAST);
+			const NumberInfo& aNumInfo = NumberInfo(), const ResourceManager::Strings aHelpKey = ResourceManager::LAST, Type aListItemType = TYPE_LAST, const List& aListObjectFields = emptyDefinitionList);
 
 		string getTitle() const noexcept override;
 		ApiSettingItem::PtrList getListObjectFields() const noexcept override;
+		const string& getHelpStr() const noexcept override;
+
+		static List emptyDefinitionList;
 	private:
 		const ResourceManager::Strings titleKey;
 		const ResourceManager::Strings unitKey;
+		const ResourceManager::Strings helpKey;
+
+		const List& listObjectFields;
 	};
 
 	class ExtensionSettingItem : public JsonSettingItem {
@@ -223,18 +235,21 @@ namespace webserver {
 		typedef vector<ExtensionSettingItem> List;
 
 		ExtensionSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType, bool aOptional,
-			const MinMax& aMinMax = MinMax(), const List& aObjectValues = List(), const string& aHelp = "",
-			Type aItemType = TYPE_LAST, const EnumOption::List& aEnumOptions = EnumOption::List());
+			const MinMax& aMinMax = MinMax(), const List& aListObjectFields = List(), const string& aHelp = "",
+			Type aListItemType = TYPE_LAST, const EnumOption::List& aEnumOptions = EnumOption::List());
 
 		string getTitle() const noexcept override {
 			return title;
 		}
 
 		ApiSettingItem::PtrList getListObjectFields() const noexcept override;
+
+		const string& getHelpStr() const noexcept override;
 	private:
 		const string title;
+		const string help;
 
-		const List objectValues;
+		const List listObjectFields;
 	};
 }
 

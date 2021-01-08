@@ -27,7 +27,7 @@
 
 #ifdef _MSC_VER
 
-#define dcdebug
+#define dcdebug debugTrace
 #include <crtdbg.h>
 
 inline void __cdecl debugTrace(const char* format, ...) {

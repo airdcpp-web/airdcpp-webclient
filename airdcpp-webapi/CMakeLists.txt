@@ -1,5 +1,5 @@
 project(airdcpp-webapi)
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0.2)
 # ######### General setup ##########
 
 file (GLOB webapi_hdrs ${PROJECT_SOURCE_DIR}/*.h)

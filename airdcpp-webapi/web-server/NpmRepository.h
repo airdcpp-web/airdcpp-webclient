@@ -16,19 +16,14 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_NPMREPO_H
-#define DCPLUSPLUS_DCPP_NPMREPO_H
+#ifndef DCPLUSPLUS_WEBSERVER_NPMREPOSITORY_H
+#define DCPLUSPLUS_WEBSERVER_NPMREPOSITORY_H
 
-#include "stdinc.h"
+#include "forward.h"
 
 #include <airdcpp/CriticalSection.h>
 #include <airdcpp/Message.h>
 #include <airdcpp/Singleton.h>
-// #include <airdcpp/Speaker.h>
-// #include <airdcpp/Util.h>
-
-// #include <web-server/ExtensionManagerListener.h>
-// #include <web-server/WebServerManagerListener.h>
 
 namespace dcpp {
 	struct HttpDownload;

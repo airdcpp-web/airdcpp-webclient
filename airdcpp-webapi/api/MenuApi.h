@@ -24,6 +24,7 @@
 #include <api/common/Deserializer.h>
 #include <api/common/Serializer.h>
 
+#include <web-server/ApiRequest.h>
 #include <web-server/ContextMenuManager.h>
 #include <web-server/JsonUtil.h>
 #include <web-server/Session.h>
@@ -59,18 +60,13 @@ namespace webserver {
 		template<typename IdT>
 		ActionHookResult<ContextMenuItemList> menuListHookHandler(const vector<IdT>& aSelections, const ContextMenuItemListData& aListData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter, const string& aMenuId, const IdSerializer<IdT>& aIdSerializer, const json& aEntityId = nullptr) {
 			return HookCompletionData::toResult<ContextMenuItemList>(
-				fireHook(toHookId(aMenuId), 1, [&]() {
-					return json({
-						{ "selected_ids", Serializer::serializeList(aSelections, aIdSerializer) },
-						{ "permissions", Serializer::serializePermissions(aListData.access) },
-						{ "entity_id", aEntityId },
-						{ "supports", aListData.supports },
-					});
-				}),
+				fireMenuHook(aMenuId, Serializer::serializeList(aSelections, aIdSerializer), aListData, aEntityId),
 				aResultGetter,
 				MenuApi::deserializeMenuItems
 			);
 		}
+
+		HookCompletionDataPtr fireMenuHook(const string& aMenuId, const json& aSelectedIds, const ContextMenuItemListData& aListData, const json& aEntityId);
 
 		template<typename IdT>
 		static vector<IdT> deserializeItemIds(ApiRequest& aRequest, const Deserializer::ArrayDeserializerFunc<IdT>& aIdDeserializerFunc) {

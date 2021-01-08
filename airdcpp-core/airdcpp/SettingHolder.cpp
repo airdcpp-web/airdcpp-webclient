@@ -30,7 +30,7 @@
 
 namespace dcpp {
 
-SettingHolder::SettingHolder(ErrorFunction aErrorF) : errorF(aErrorF)  {
+SettingHolder::SettingHolder(MessageCallback aErrorF) : errorF(aErrorF)  {
 
 }
 

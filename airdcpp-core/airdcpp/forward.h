@@ -229,6 +229,15 @@ class ViewFile;
 typedef shared_ptr<ViewFile> ViewFilePtr;
 typedef vector<ViewFilePtr> ViewFileList;
 
+// Generic callbacks
+typedef function<void()> Callback;
+typedef function<void(const string&)> MessageCallback;
+
+// Startup callbacks
+typedef std::function<void(const string&)> StepFunction;
+typedef std::function<bool(const string& /*aMessage*/, bool /*aIsQuestion*/, bool /*aIsError*/)> MessageFunction;
+typedef std::function<void(float)> ProgressFunction;
+
 } // namespace dcpp
 
 #endif /*DCPLUSPLUS_CLIENT_FORWARD_H_*/

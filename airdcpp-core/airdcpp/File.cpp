@@ -34,6 +34,10 @@
 #include <utime.h>
 #endif
 
+#ifdef F_NOCACHE
+#include <fcntl.h>
+#endif
+
 #ifdef HAVE_MNTENT_H
 #include <mntent.h>
 #endif
@@ -394,6 +398,13 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 	}
 #endif
 
+#ifdef F_NOCACHE
+	// macOS
+	if (aBufferMode == BUFFER_NONE) {
+		fcntl(h, F_NOCACHE, 1);
+	}
+#endif
+
 #ifdef _DEBUG
 	auto isDirectoryPath = aFileName.back() == PATH_SEPARATOR;
 	dcassert(isDirectory() == isDirectoryPath);
@@ -674,6 +685,12 @@ bool File::isLink(const string& aPath) noexcept {
 	struct stat inode;
 	if (lstat(aPath.c_str(), &inode) == -1) return false;
 	return S_ISLNK(inode.st_mode);
+}
+
+time_t File::getLastWriteTime(const string& aPath) noexcept {
+	struct stat inode;
+	if (stat(aPath.c_str(), &inode) == -1) return 0;
+	return inode.st_mtime;
 }
 
 #endif // !_WIN32
@@ -1028,6 +1045,10 @@ int64_t FileItem::getSize() const noexcept {
 	return ff->getSize();
 }
 
+time_t FileItem::getLastWriteTime() const noexcept {
+	return ff->getLastWriteTime();
+}
+
 #else // _WIN32
 
 FileFindIter::FileFindIter() {
@@ -1127,10 +1148,8 @@ int64_t FileFindIter::DirData::getSize() const noexcept {
 }
 
 time_t FileFindIter::DirData::getLastWriteTime() const noexcept {
-	struct stat inode;
 	if (!ent) return 0;
-	if (stat((base + PATH_SEPARATOR + ent->d_name).c_str(), &inode) == -1) return 0;
-	return inode.st_mtime;
+	return File::getLastWriteTime(base + PATH_SEPARATOR + ent->d_name);
 }
 
 FileItem::FileItem(const string& aPath) : path(aPath) {
@@ -1154,6 +1173,10 @@ bool FileItem::isLink() const noexcept {
 
 int64_t FileItem::getSize() const noexcept {
 	return File::getSize(path);
+}
+
+time_t FileItem::getLastWriteTime() const noexcept {
+	return File::getLastWriteTime(path);
 }
 
 #endif // _WIN32

@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_WEBSERVER_FLOODCOUNTER_H
 #define DCPLUSPLUS_WEBSERVER_FLOODCOUNTER_H
 
-#include "stdinc.h"
+#include "forward.h"
 
 #include <airdcpp/CriticalSection.h>
 

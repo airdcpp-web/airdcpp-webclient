@@ -270,21 +270,6 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 				statusMessage("WARNING: This hub is not displaying the connection speed fields, which prevents the client from choosing the best sources for downloads. Please advise the hub owner to fix this.", LogMessage::SEV_WARNING);
 			}
 
-			if (isSocketSecure()) {
-				auto encryption = getEncryptionInfo();
-				if (encryption.find("TLSv1.2") == string::npos && encryption.find("TLSv1.3") == string::npos) {
-					string warningMessage =
-						"This hub uses an outdated cryptographic protocol (" + encryption + ") with known security issues. "
-						"\n\n"
-						"IMPORTANT: IF THE HUB DECIDES TO TAKE NO ACTION, YOU WILL NOT BE ABLE TO JOIN THIS HUB AFTER 1ST OF JANUARY 2021"
-						"\n\n"
-						"For more information, please see https://www.airdcpp.net/hubsoft-warnings"
-						"\n";
-
-					statusMessage(warningMessage, LogMessage::SEV_ERROR);
-				}
-			}
-
 			if (isHubsoftVersionOrOlder("luadch", 2.18)) {
 				statusMessage("This hub uses an outdated hubsoft version that doesn't forward Advanced Direct Connect protocol messages according to the protocol specifications, which may silently break various client features. Certain functionality may have been disabled automatically in this hub. For more information, please see https://www.airdcpp.net/hubsoft-warnings", LogMessage::SEV_WARNING);
 			}
