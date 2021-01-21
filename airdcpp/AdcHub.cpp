@@ -1602,7 +1602,7 @@ void AdcHub::on(Line l, const string& aLine) noexcept {
 	Client::on(l, aLine);
 
 	if(!Text::validateUtf8(aLine)) {
-		statusMessage(STRING(UTF_VALIDATION_ERROR), LogMessage::SEV_ERROR);
+		statusMessage(STRING(UTF_VALIDATION_ERROR) + "(" + Text::sanitizeUtf8(aLine) + ")", LogMessage::SEV_ERROR);
 		return;
 	}
 

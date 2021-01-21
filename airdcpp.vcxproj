@@ -224,6 +224,7 @@
     <ClCompile Include="airdcpp\IgnoreManager.cpp" />
     <ClCompile Include="airdcpp\MessageCache.cpp" />
     <ClCompile Include="airdcpp\MessageHighlight.cpp" />
+    <ClCompile Include="airdcpp\modules\ADLSearch.cpp" />
     <ClCompile Include="airdcpp\PrivateChatManager.cpp" />
     <ClCompile Include="airdcpp\modules\AutoSearch.cpp" />
     <ClCompile Include="airdcpp\modules\AutoSearchManager.cpp" />
@@ -238,7 +239,6 @@
     <ClCompile Include="airdcpp\RecentManager.cpp" />
     <ClCompile Include="airdcpp\SearchInstance.cpp" />
     <ClCompile Include="airdcpp\SearchQuery.cpp" />
-    <ClCompile Include="airdcpp\ADLSearch.cpp" />
     <ClCompile Include="airdcpp\AirUtil.cpp" />
     <ClCompile Include="airdcpp\BufferedSocket.cpp" />
     <ClCompile Include="airdcpp\Bundle.cpp" />
@@ -342,6 +342,7 @@
     <ClInclude Include="airdcpp\AdcHub.h" />
     <ClInclude Include="airdcpp\AddressInfo.h" />
     <ClInclude Include="airdcpp\HashStore.h" />
+    <ClInclude Include="airdcpp\modules\ADLSearch.h" />
     <ClInclude Include="airdcpp\QueueAddInfo.h" />
     <ClInclude Include="airdcpp\constants.h" />
     <ClInclude Include="airdcpp\DirectoryDownload.h" />
@@ -390,7 +391,6 @@
     <ClInclude Include="airdcpp\PrivateChatListener.h" />
     <ClInclude Include="airdcpp\RelevanceSearch.h" />
     <ClInclude Include="airdcpp\SearchQuery.h" />
-    <ClInclude Include="airdcpp\ADLSearch.h" />
     <ClInclude Include="airdcpp\AirUtil.h" />
     <ClInclude Include="airdcpp\BloomFilter.h" />
     <ClInclude Include="airdcpp\BufferedSocket.h" />

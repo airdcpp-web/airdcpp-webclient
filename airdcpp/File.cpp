@@ -1094,6 +1094,11 @@ FileFindIter& FileFindIter::validateCurrent() {
 		return this->operator++();
 	}
 
+	if (!Text::validateUtf8((*this)->ent->d_name)) {
+		dcdebug("FileFindIter: UTF-8 validation failed for the item name (%s)\n", Text::sanitizeUtf8((*this)->ent->d_name).c_str());
+		return this->operator++();
+	}
+
 	return *this;
 }
 

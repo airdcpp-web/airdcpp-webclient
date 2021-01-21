@@ -24,11 +24,11 @@
 #include "stdinc.h"
 #include "ADLSearch.h"
 
-#include "File.h"
-#include "LogManager.h"
-#include "QueueManager.h"
-#include "ScopedFunctor.h"
-#include "SimpleXML.h"
+#include <airdcpp/File.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/SimpleXML.h>
 
 #define CONFIG_NAME "ADLSearch.xml"
 #define CONFIG_DIR Util::PATH_USER_CONFIG
@@ -197,12 +197,12 @@ bool ADLSearch::matchesDirectory(const string& d) {
 }
 
 // Constructor/destructor
-ADLSearchManager::ADLSearchManager() : running(0), user(HintedUser()), dirty(false) {
-	load();
+ADLSearchManager::ADLSearchManager() {
+
 }
 
 ADLSearchManager::~ADLSearchManager() {
-	save(true);
+
 }
 
 ADLSearch::SourceType ADLSearchManager::StringToSourceType(const string& s) {
@@ -434,8 +434,8 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 	// Add to any substructure being stored
 	for(auto& id: destDirVector) {
 		if(id.subdir != NULL) {
-			auto copyFile = make_shared<DirectoryListing::File>(*currentFile, true);
-			dcassert(id.subdir->getAdls());
+			auto copyFile = make_shared<DirectoryListing::File>(*currentFile, this);
+			dcassert(id.subdir->isVirtual());
 
 			id.subdir->files.push_back(copyFile);
 		}
@@ -458,7 +458,7 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 			continue;
 		}
 		if(is.matchesFile(currentFile->getName(), nmdcPath, currentFile->getSize())) {
-			auto copyFile = make_shared<DirectoryListing::File>(*currentFile, true);
+			auto copyFile = make_shared<DirectoryListing::File>(*currentFile, this);
 			destDirVector[is.ddIndex].dir->files.push_back(copyFile);
 			destDirVector[is.ddIndex].fileAdded = true;
 
@@ -484,7 +484,7 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const Direct
 	// Add to any substructure being stored
 	for (auto& id: destDirVector) {
 		if (id.subdir) {
-			auto newDir = DirectoryListing::AdlDirectory::create(aAdcPath, id.subdir, currentDir->getName());
+			auto newDir = DirectoryListing::VirtualDirectory::create(aAdcPath, id.subdir, currentDir->getName());
 			id.subdir = newDir.get();
 		}
 	}
@@ -500,7 +500,7 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const Direct
 		}
 
 		if(is.matchesDirectory(currentDir->getName())) {
-			auto newDir = DirectoryListing::AdlDirectory::create(aAdcPath, destDirVector[is.ddIndex].dir.get(), currentDir->getName());;
+			auto newDir = DirectoryListing::VirtualDirectory::create(aAdcPath, destDirVector[is.ddIndex].dir.get(), currentDir->getName());;
 			destDirVector[is.ddIndex].subdir = newDir.get();
 			if(breakOnFirst) {
 				// Found a match, search no more
@@ -524,7 +524,7 @@ void ADLSearchManager::stepUpDirectory(DestDirList& destDirVector) noexcept {
 void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, DirectoryListing::Directory::Ptr& root) noexcept {
 	// Load default destination directory (index = 0)
 	destDirs.clear();
-	DestDir dir = { "ADLSearch", DirectoryListing::Directory::create(root.get(), "<<<ADLSearch>>>", DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) };
+	DestDir dir = { "ADLSearch", DirectoryListing::Directory::create(root.get(), "<<<ADLSearch>>>", DirectoryListing::Directory::TYPE_VIRTUAL, GET_TIME()) };
 	destDirs.push_back(std::move(dir));
 
 	// Scan all loaded searches
@@ -552,7 +552,7 @@ void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, Dire
 			// Add new destination directory
 			DestDir newDir = { is.getDestDir(),
 				DirectoryListing::Directory::create(root.get(), "<<<" + is.getDestDir() + ">>>",
-					DirectoryListing::Directory::TYPE_ADLS, GET_TIME()) 
+					DirectoryListing::Directory::TYPE_VIRTUAL, GET_TIME())
 			};
 
 			destDirs.push_back(std::move(newDir));

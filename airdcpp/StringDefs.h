@@ -951,7 +951,6 @@ enum Strings { // @DontAdd
 	OWN_CERTIFICATE, // "Own certificate"
 	OWN_CERTIFICATE_FILE, // "Own certificate file"
 	OWN_FILELIST, // "Own file list"
-	OWN_LIST_ADL, // "Match own list with ADL search\tCtrl+M"
 	PARAMS, // "Params"
 	PARTIAL_DUPES_EQUAL, // "Treat partial dupes similar to exact dupes"
 	PARTIAL_FILELIST, // "Partial file list"

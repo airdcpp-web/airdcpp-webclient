@@ -37,7 +37,7 @@ namespace dcpp {
 		typedef unordered_map<UserPtr, DirectoryListingPtr, User::Hash> DirectoryListingMap;
 
 		// Browse own share, will always success
-		DirectoryListingPtr openOwnList(ProfileToken aProfile, bool useADL=false, const string& aDir = ADC_ROOT_STR) noexcept;
+		DirectoryListingPtr openOwnList(ProfileToken aProfile, const string& aDir = ADC_ROOT_STR) noexcept;
 
 		// Open local file, returns nullptr on duplicates
 		DirectoryListingPtr openLocalFileList(const HintedUser& aUser, const string& aFile, const string& aDir = ADC_ROOT_STR, bool aPartial = false) noexcept;
