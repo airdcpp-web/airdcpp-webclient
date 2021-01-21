@@ -29,12 +29,10 @@
 #include <airdcpp/TransferInfo.h>
 
 #include <airdcpp/TransferInfoManager.h>
-#include <airdcpp/DownloadManagerListener.h>
-#include <airdcpp/UploadManagerListener.h>
 
 
 namespace webserver {
-	class TransferApi : public SubscribableApiModule, private TransferInfoManagerListener, private DownloadManagerListener, private UploadManagerListener {
+	class TransferApi : public SubscribableApiModule, private TransferInfoManagerListener {
 	public:
 		TransferApi(Session* aSession);
 		~TransferApi();
@@ -51,9 +49,6 @@ namespace webserver {
 
 		void onTimer();
 
-		void on(DownloadManagerListener::BundleTick, const BundleList& bundles, uint64_t aTick) noexcept override;
-		void on(UploadManagerListener::BundleTick, const UploadBundleList& bundles) noexcept override;
-
 		void on(TransferInfoManagerListener::Added, const TransferInfoPtr& aInfo) noexcept override;
 		void on(TransferInfoManagerListener::Updated, const TransferInfoPtr& aInfo, int aUpdatedProperties, bool aTick) noexcept override;
 		void on(TransferInfoManagerListener::Removed, const TransferInfoPtr& aInfo) noexcept override;
@@ -62,9 +57,6 @@ namespace webserver {
 		void on(TransferInfoManagerListener::Completed, const TransferInfoPtr& aInfo) noexcept override;
 
 		json previousStats;
-
-		int lastUploadBundles = 0;
-		int lastDownloadBundles = 0;
 
 		TimerPtr timer;
 

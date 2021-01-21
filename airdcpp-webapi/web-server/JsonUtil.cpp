@@ -40,17 +40,4 @@ namespace webserver {
 			{ "code", errorTypeToString(aType) }
 		};
 	}
-
-	json JsonUtil::filterExactValues(const json& aNew, const json& aCompareTo) noexcept {
-		json ret = aNew;
-		for (const auto& v: aCompareTo.items()) {
-			auto key = v.key();
-			auto i = aNew.find(key);
-			if (i != aNew.end() && aNew.at(key) == aCompareTo.at(key)) {
-				ret.erase(key);
-			}
-		}
-
-		return ret;
-	}
 }
