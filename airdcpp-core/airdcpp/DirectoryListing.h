@@ -63,7 +63,7 @@ public:
 		typedef List::const_iterator Iter;
 		
 		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe, time_t aRemoteDate) noexcept;
-		File(const File& rhs, bool _adls = false) noexcept;
+		File(const File& rhs, const void* aOwner) noexcept;
 
 		~File() { }
 
@@ -76,11 +76,16 @@ public:
 		GETSET(int64_t, size, Size);
 		GETSET(Directory*, parent, Parent);
 		GETSET(TTHValue, tthRoot, TTH);
-		IGETSET(bool, adls, Adls, false);
 		IGETSET(DupeType, dupe, Dupe, DUPE_NONE);
 		IGETSET(time_t, remoteDate, RemoteDate, 0);
 
 		bool isInQueue() const noexcept;
+
+		const void* getOwner() const noexcept {
+			return owner;
+		}
+	private:
+		const void* owner = nullptr;
 	};
 
 	class Directory : boost::noncopyable {
@@ -89,7 +94,7 @@ public:
 			TYPE_NORMAL,
 			TYPE_INCOMPLETE_CHILD,
 			TYPE_INCOMPLETE_NOCHILD,
-			TYPE_ADLS,
+			TYPE_VIRTUAL,
 		};
 
 		typedef std::shared_ptr<Directory> Ptr;
@@ -109,12 +114,12 @@ public:
 
 		virtual ~Directory();
 
-		size_t getTotalFileCount(bool countAdls) const noexcept;
-		int64_t getTotalSize(bool countAdls) const noexcept;
+		size_t getTotalFileCount(bool aCountVirtual) const noexcept;
+		int64_t getTotalSize(bool aCountVirtual) const noexcept;
 		void filterList(DirectoryListing& dirList) noexcept;
 		void filterList(TTHSet& l) noexcept;
 		void getHashList(TTHSet& l) const noexcept;
-		void clearAdls() noexcept;
+		void clearVirtualDirectories() noexcept;
 		void clearAll() noexcept;
 
 		bool findIncomplete() const noexcept;
@@ -134,9 +139,9 @@ public:
 		IGETSET(time_t, lastUpdateDate, LastUpdateDate, 0);
 		IGETSET(bool, loading, Loading, false);
 
-		bool isComplete() const noexcept { return type == TYPE_ADLS || type == TYPE_NORMAL; }
+		bool isComplete() const noexcept { return type == TYPE_VIRTUAL || type == TYPE_NORMAL; }
 		void setComplete() noexcept { type = TYPE_NORMAL; }
-		bool getAdls() const noexcept { return type == TYPE_ADLS; }
+		bool isVirtual() const noexcept { return type == TYPE_VIRTUAL; }
 
 		// Create recursive bundle file info listing with relative paths
 		BundleFileAddData::List toBundleInfoList() const noexcept;
@@ -146,7 +151,7 @@ public:
 		}
 
 		// This function not thread safe as it will go through all complete directories
-		DirectoryContentInfo getContentInfoRecursive(bool aCountAdls) const noexcept;
+		DirectoryContentInfo getContentInfoRecursive(bool aCountVirtual) const noexcept;
 
 		// Partial list content info only
 		const DirectoryContentInfo& getContentInfo() const noexcept {
@@ -162,22 +167,22 @@ public:
 
 		Directory(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool aCheckDupe, const DirectoryContentInfo& aContentInfo, const string& aSize, time_t aRemoteDate);
 
-		void getContentInfo(size_t& directories_, size_t& files_, bool aCountAdls) const noexcept;
+		void getContentInfo(size_t& directories_, size_t& files_, bool aCountVirtual) const noexcept;
 
 		DirectoryContentInfo contentInfo;
 		const string name;
 	};
 
-	class AdlDirectory : public Directory {
+	class VirtualDirectory : public Directory {
 	public:
-		typedef shared_ptr<AdlDirectory> Ptr;
+		typedef shared_ptr<VirtualDirectory> Ptr;
 		GETSET(string, fullAdcPath, FullAdcPath);
 		static Ptr create(const string& aFullAdcPath, Directory* aParent, const string& aName);
 	private:
-		AdlDirectory(const string& aFullPath, Directory* aParent, const string& aName);
+		VirtualDirectory(const string& aFullPath, Directory* aParent, const string& aName);
 	};
 
-	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool isClientView, bool aIsOwnList=false);
+	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList = false);
 	~DirectoryListing();
 	
 	const CID& getToken() const noexcept {
@@ -197,9 +202,9 @@ public:
 
 	HintedUser getDownloadSourceUser() const noexcept;
 
-	int64_t getTotalListSize(bool adls = false) const noexcept { return root->getTotalSize(adls); }
+	int64_t getTotalListSize() const noexcept { return root->getTotalSize(false); }
 	int64_t getDirSize(const string& aDir) const noexcept;
-	size_t getTotalFileCount(bool adls = false) const noexcept { return root->getTotalFileCount(adls); }
+	size_t getTotalFileCount() const noexcept { return root->getTotalFileCount(false); }
 
 	const Directory::Ptr getRoot() const noexcept { return root; }
 	Directory::Ptr getRoot() noexcept { return root; }
@@ -227,13 +232,9 @@ public:
 	const string& getHubUrl() const noexcept override { return hintedUser.hint; }
 		
 	GETSET(bool, partialList, PartialList);
-	GETSET(bool, isOwnList, IsOwnList);
-	GETSET(bool, isClientView, IsClientView);
 	GETSET(string, fileName, FileName);
-	GETSET(bool, matchADL, MatchADL);
 	IGETSET(bool, closing, Closing, false);
 
-	void addMatchADLTask() noexcept;
 	void addListDiffTask(const string& aFile, bool aOwnList) noexcept;
 
 	void addPartialListTask(const string& aXml, const string& aBase, bool aBackgroundTask = false, const AsyncF& aCompletionF = nullptr) noexcept;
@@ -278,10 +279,21 @@ public:
 	void setRead() noexcept;
 
 	void addDirectoryChangeTask(const string& aPath, bool aReload, bool aIsSearchChange = false, bool aForceQueue = false) noexcept;
+
+	bool getIsOwnList() const noexcept {
+		return isOwnList;
+	}
+
+	bool getIsClientView() const noexcept {
+		return isClientView;
+	}
 protected:
 	void onStateChanged() noexcept override;
 
 private:
+	const bool isOwnList;
+	const bool isClientView;
+
 	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 
 	void setDirectoryLoadingState(const Directory::Ptr& aDir, bool aLoading) noexcept;
@@ -339,8 +351,6 @@ private:
 	// Throws Exception, AbortException
 	void loadPartialImpl(const string& aXml, const string& aBasePath, bool aBackgroundTask, const AsyncF& aCompletionF);
 
-	// Throws AbortException
-	void matchAdlImpl();
 	void matchQueueImpl() noexcept;
 
 	HintedUser hintedUser;

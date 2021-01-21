@@ -20,7 +20,6 @@
 
 #include "DirectoryListing.h"
 
-#include "ADLSearch.h"
 #include "AirUtil.h"
 #include "BZUtils.h"
 #include "ClientManager.h"
@@ -44,7 +43,7 @@ using boost::range::find_if;
 DirectoryListing::DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList) : 
 	TrackableDownloadItem(aIsOwnList || (!aPartial && Util::fileExists(aFileName))), // API requires the download state to be set correctly
 	hintedUser(aUser), root(Directory::create(nullptr, ADC_ROOT_STR, Directory::TYPE_INCOMPLETE_NOCHILD, 0)), partialList(aPartial), isOwnList(aIsOwnList), fileName(aFileName),
-	isClientView(aIsClientView), matchADL(SETTING(USE_ADLS) && !aPartial), 
+	isClientView(aIsClientView), 
 	tasks(isClientView, Thread::NORMAL, std::bind(&DirectoryListing::dispatch, this, std::placeholders::_1))
 {
 	running.clear();
@@ -457,14 +456,14 @@ DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize
 	//dcdebug("DirectoryListing::File (copy) %s was created\n", aName.c_str());
 }
 
-DirectoryListing::File::File(const File& rhs, bool _adls) noexcept : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), adls(_adls), dupe(rhs.dupe), remoteDate(rhs.remoteDate)
+DirectoryListing::File::File(const File& rhs, const void* aOwner) noexcept : name(rhs.name), size(rhs.size), parent(rhs.parent), tthRoot(rhs.tthRoot), dupe(rhs.dupe), remoteDate(rhs.remoteDate), owner(aOwner)
 {
 	//dcdebug("DirectoryListing::File (copy) %s was created\n", rhs.getName().c_str());
 }
 
 DirectoryListing::Directory::Ptr DirectoryListing::Directory::create(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, bool aCheckDupe, const DirectoryContentInfo& aContentInfo, const string& aSize, time_t aRemoteDate) {
 	auto dir = Ptr(new Directory(aParent, aName, aType, aUpdateDate, aCheckDupe, aContentInfo, aSize, aRemoteDate));
-	if (aParent && aType != TYPE_ADLS) { // This would cause an infinite recursion in ADL search
+	if (aParent && aType != TYPE_VIRTUAL) { // This would cause an infinite recursion in ADL search
 		dcassert(aParent->directories.find(&dir->getName()) == aParent->directories.end());
 		auto res = aParent->directories.emplace(&dir->getName(), dir);
 		if (!res.second) {
@@ -475,7 +474,7 @@ DirectoryListing::Directory::Ptr DirectoryListing::Directory::create(Directory* 
 	return dir;
 }
 
-DirectoryListing::AdlDirectory::Ptr DirectoryListing::AdlDirectory::create(const string& aFullPath, Directory* aParent, const string& aName) {
+DirectoryListing::VirtualDirectory::Ptr DirectoryListing::VirtualDirectory::create(const string& aFullPath, Directory* aParent, const string& aName) {
 	dcassert(aParent);
 
 	auto name = aName;
@@ -490,7 +489,7 @@ DirectoryListing::AdlDirectory::Ptr DirectoryListing::AdlDirectory::create(const
 		}
 	}
 
-	auto dir = Ptr(new AdlDirectory(aFullPath, aParent, name));
+	auto dir = Ptr(new VirtualDirectory(aFullPath, aParent, name));
 
 	dcassert(aParent->directories.find(&dir->getName()) == aParent->directories.end());
 	aParent->directories.emplace(&dir->getName(), dir);
@@ -498,8 +497,8 @@ DirectoryListing::AdlDirectory::Ptr DirectoryListing::AdlDirectory::create(const
 	return dir;
 }
 
-DirectoryListing::AdlDirectory::AdlDirectory(const string& aFullAdcPath, DirectoryListing::Directory* aParent, const string& aName) : 
-	Directory(aParent, aName, Directory::TYPE_ADLS, GET_TIME(), false, DirectoryContentInfo(), Util::emptyString, 0), fullAdcPath(aFullAdcPath) {
+DirectoryListing::VirtualDirectory::VirtualDirectory(const string& aFullAdcPath, DirectoryListing::Directory* aParent, const string& aName) :
+	Directory(aParent, aName, Directory::TYPE_VIRTUAL, GET_TIME(), false, DirectoryContentInfo(), Util::emptyString, 0), fullAdcPath(aFullAdcPath) {
 
 }
 
@@ -518,7 +517,7 @@ DirectoryListing::Directory::Directory(Directory* aParent, const string& aName, 
 }
 
 void DirectoryListing::Directory::search(OrderedStringSet& aResults, SearchQuery& aStrings) const noexcept {
-	if (getAdls())
+	if (isVirtual())
 		return;
 
 	if (aStrings.matchesDirectory(name)) {
@@ -544,7 +543,7 @@ void DirectoryListing::Directory::search(OrderedStringSet& aResults, SearchQuery
 
 bool DirectoryListing::Directory::findIncomplete() const noexcept {
 	/* Recursive check for incomplete dirs */
-	if(!isComplete()) {
+	if (!isComplete()) {
 		return true;
 	}
 
@@ -553,18 +552,18 @@ bool DirectoryListing::Directory::findIncomplete() const noexcept {
 	}).base() != directories.end();
 }
 
-DirectoryContentInfo DirectoryListing::Directory::getContentInfoRecursive(bool aCountAdls) const noexcept {
+DirectoryContentInfo DirectoryListing::Directory::getContentInfoRecursive(bool aCountVirtual) const noexcept {
 	if (isComplete()) {
 		size_t directoryCount = 0, fileCount = 0;
-		getContentInfo(directoryCount, fileCount, aCountAdls);
+		getContentInfo(directoryCount, fileCount, aCountVirtual);
 		return DirectoryContentInfo(directoryCount, fileCount);
 	}
 
 	return contentInfo;
 }
 
-void DirectoryListing::Directory::getContentInfo(size_t& directories_, size_t& files_, bool aCountAdls) const noexcept {
-	if (!aCountAdls && getAdls()) {
+void DirectoryListing::Directory::getContentInfo(size_t& directories_, size_t& files_, bool aCountVirtual) const noexcept {
+	if (!aCountVirtual && isVirtual()) {
 		return;
 	}
 
@@ -573,7 +572,7 @@ void DirectoryListing::Directory::getContentInfo(size_t& directories_, size_t& f
 		files_ += files.size();
 
 		for (const auto& d : directories | map_values) {
-			d->getContentInfo(directories_, files_, aCountAdls);
+			d->getContentInfo(directories_, files_, aCountVirtual);
 		}
 	} else if (Util::hasContentInfo(contentInfo)) {
 		directories_ += contentInfo.directories;
@@ -733,15 +732,16 @@ void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSe
 }
 	
 void DirectoryListing::getLocalPaths(const File::Ptr& f, StringList& ret) const {
-	if(f->getParent()->getAdls() && (f->getParent()->getParent() == root.get() || !isOwnList))
+	if (f->getParent()->isVirtual() && (f->getParent()->getParent() == root.get() || !isOwnList))
 		return;
 
 	if (isOwnList) {
 		string path;
-		if (f->getParent()->getAdls())
-			path = ((AdlDirectory*) f->getParent())->getFullAdcPath();
-		else
+		if (f->getParent()->isVirtual()) {
+			path = ((VirtualDirectory*)f->getParent())->getFullAdcPath();
+		} else {
 			path = f->getParent()->getAdcPath();
+		}
 
 		ShareManager::getInstance()->getRealPaths(path + f->getName(), ret, getShareProfile());
 	} else {
@@ -750,14 +750,15 @@ void DirectoryListing::getLocalPaths(const File::Ptr& f, StringList& ret) const 
 }
 
 void DirectoryListing::getLocalPaths(const Directory::Ptr& d, StringList& ret) const {
-	if(d->getAdls() && (d->getParent() == root.get() || !isOwnList))
+	if (d->isVirtual() && (d->getParent() == root.get() || !isOwnList))
 		return;
 
 	string path;
-	if (d->getAdls())
-		path = ((AdlDirectory*) d.get())->getFullAdcPath();
-	else
+	if (d->isVirtual()) {
+		path = ((VirtualDirectory*)d.get())->getFullAdcPath();
+	} else {
 		path = d->getAdcPath();
+	}
 
 	if (isOwnList) {
 		ShareManager::getInstance()->getRealPaths(path, ret, getShareProfile());
@@ -766,26 +767,26 @@ void DirectoryListing::getLocalPaths(const Directory::Ptr& d, StringList& ret) c
 	}
 }
 
-int64_t DirectoryListing::Directory::getTotalSize(bool countAdls) const noexcept {
-	if(!isComplete())
+int64_t DirectoryListing::Directory::getTotalSize(bool aCountVirtual) const noexcept {
+	if (!isComplete())
 		return partialSize;
-	if(!countAdls && getAdls())
-		return 0;
 	
 	auto x = getFilesSize();
 	for (const auto& d: directories | map_values) {
-		if(!countAdls && d->getAdls())
+		if (!aCountVirtual && d->isVirtual()) {
 			continue;
-		x += d->getTotalSize(getAdls());
+		}
+
+		x += d->getTotalSize(d->isVirtual());
 	}
 	return x;
 }
 
-size_t DirectoryListing::Directory::getTotalFileCount(bool aCountAdls) const noexcept {
-	if (!aCountAdls && getAdls())
+size_t DirectoryListing::Directory::getTotalFileCount(bool aCountVirtual) const noexcept {
+	if (!aCountVirtual && isVirtual())
 		return 0;
 
-	const auto childContentInfo = getContentInfoRecursive(aCountAdls);
+	const auto childContentInfo = getContentInfoRecursive(aCountVirtual);
 	if (Util::hasContentInfo(childContentInfo)) {
 		return childContentInfo.files;
 	}
@@ -793,9 +794,9 @@ size_t DirectoryListing::Directory::getTotalFileCount(bool aCountAdls) const noe
 	return 0;
 }
 
-void DirectoryListing::Directory::clearAdls() noexcept {
+void DirectoryListing::Directory::clearVirtualDirectories() noexcept {
 	for (auto i = directories.begin(); i != directories.end();) {
-		if (i->second->getAdls()) {
+		if (i->second->isVirtual()) {
 			i = directories.erase(i);
 		} else {
 			++i;
@@ -901,10 +902,6 @@ void DirectoryListing::checkShareDupes() noexcept {
 	root->setDupe(DUPE_NONE); //never show the root as a dupe or partial dupe.
 }
 
-void DirectoryListing::addMatchADLTask() noexcept {
-	addAsyncTask([=] { matchAdlImpl(); });
-}
-
 void DirectoryListing::addListDiffTask(const string& aFile, bool aOwnList) noexcept {
 	addAsyncTask([=] { listDiffImpl(aFile, aOwnList); });
 }
@@ -984,23 +981,6 @@ void DirectoryListing::listDiffImpl(const string& aFile, bool aOwnList) {
 	fire(DirectoryListingListener::LoadingFinished(), start, ADC_ROOT_STR, false);
 }
 
-void DirectoryListing::matchAdlImpl() {
-	fire(DirectoryListingListener::LoadingStarted(), false);
-
-	int64_t start = GET_TICK();
-	root->clearAdls();
-
-	if (isOwnList) {
-		// No point in matching own partial list
-		setMatchADL(true);
-		loadFileImpl(ADC_ROOT_STR);
-	} else {
-		fire(DirectoryListingListener::UpdateStatusMessage(), CSTRING(MATCHING_ADL));
-		ADLSearchManager::getInstance()->matchListing(*this);
-		fire(DirectoryListingListener::LoadingFinished(), start, ADC_ROOT_STR, false);
-	}
-}
-
 void DirectoryListing::loadFileImpl(const string& aInitialDir) {
 	int64_t start = GET_TICK();
 	partialList = false;
@@ -1011,17 +991,11 @@ void DirectoryListing::loadFileImpl(const string& aInitialDir) {
 	root->clearAll();
 
 	loadFile();
-
-	if (matchADL) {
-		fire(DirectoryListingListener::UpdateStatusMessage(), CSTRING(MATCHING_ADL));
-		ADLSearchManager::getInstance()->matchListing(*this);
-	}
-
 	onLoadingFinished(start, aInitialDir, false);
 }
 
 void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aBasePath, bool aBackgroundTask) noexcept {
-	if (!getIsOwnList() && SETTING(DUPES_IN_FILELIST) && isClientView)
+	if (!isOwnList && SETTING(DUPES_IN_FILELIST) && isClientView)
 		checkShareDupes();
 
 	auto dir = findDirectory(aBasePath);

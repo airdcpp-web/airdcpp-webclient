@@ -91,7 +91,9 @@ public:
 	void setFreeSlotMatcher();
 
 	/** @return Number of uploads. */ 
-	size_t getUploadCount() const;
+	size_t getUploadCount() const noexcept;
+
+	size_t getRunningBundleCount() const noexcept;
 
 	/**
 	 * @remarks This is only used in the tray icons. Could be used in
@@ -131,8 +133,8 @@ public:
 	GETSET(uint8_t, extra, Extra);
 	GETSET(uint64_t, lastGrant, LastGrant);
 
-	SharedMutex& getCS() { return cs; }
-	const UploadList& getUploads() const {
+	SharedMutex& getCS() noexcept { return cs; }
+	const UploadList& getUploads() const noexcept {
 		return uploads;
 	}
 private:
@@ -190,22 +192,22 @@ private:
 	void logUpload(const Upload* u);
 
 	// ClientManagerListener
-	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept;
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept override;
 	
 	// TimerManagerListener
-	void on(Second, uint64_t aTick) noexcept;
-	void on(Minute, uint64_t aTick) noexcept;
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
 
 	// UserConnectionListener
-	void on(BytesSent, UserConnection*, size_t, size_t) noexcept;
-	void on(Failed, UserConnection*, const string&) noexcept;
-	void on(Get, UserConnection*, const string&, int64_t) noexcept;
-	void on(Send, UserConnection*) noexcept;
-	void on(GetListLength, UserConnection* conn) noexcept;
-	void on(TransmitDone, UserConnection*) noexcept;
+	void on(BytesSent, UserConnection*, size_t, size_t) noexcept override;
+	void on(Failed, UserConnection*, const string&) noexcept override;
+	void on(Get, UserConnection*, const string&, int64_t) noexcept override;
+	void on(Send, UserConnection*) noexcept override;
+	void on(GetListLength, UserConnection* conn) noexcept override;
+	void on(TransmitDone, UserConnection*) noexcept override;
 	
-	void on(AdcCommand::GET, UserConnection*, const AdcCommand&) noexcept;
-	void on(AdcCommand::GFI, UserConnection*, const AdcCommand&) noexcept;
+	void on(AdcCommand::GET, UserConnection*, const AdcCommand&) noexcept override;
+	void on(AdcCommand::GFI, UserConnection*, const AdcCommand&) noexcept override;
 
 	bool prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aResume, int64_t& aBytes, const string& userSID, bool listRecursive=false, bool tthList=false);
 };

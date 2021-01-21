@@ -24,7 +24,6 @@
 #include "StringTokenizer.h"
 
 #include "ActivityManager.h"
-#include "ADLSearch.h"
 #include "AirUtil.h"
 #include "ClientManager.h"
 #include "ConnectionManager.h"
@@ -91,7 +90,6 @@ void startup(StepFunction aStepF, MessageFunction aMessageF, Callback aRunWizard
 	ThrottleManager::newInstance();
 	QueueManager::newInstance();
 	FavoriteManager::newInstance();
-	ADLSearchManager::newInstance();
 	ConnectivityManager::newInstance();
 	DirectoryListingManager::newInstance();
 	DebugManager::newInstance();
@@ -220,7 +218,6 @@ void shutdown(StepFunction stepF, ProgressFunction progressF, ShutdownUnloadCall
 	GeoManager::deleteInstance();
 	ConnectivityManager::deleteInstance();
 	DebugManager::deleteInstance();
-	ADLSearchManager::deleteInstance();
 	CryptoManager::deleteInstance();
 	ThrottleManager::deleteInstance();
 	DirectoryListingManager::deleteInstance();

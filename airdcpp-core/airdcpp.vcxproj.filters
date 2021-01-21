@@ -23,9 +23,6 @@
     <ClCompile Include="airdcpp\AdcHub.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ADLSearch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="airdcpp\BufferedSocket.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -365,15 +362,15 @@
     <ClCompile Include="airdcpp\HashStore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="airdcpp\modules\ADLSearch.cpp">
+      <Filter>Source Files\modules</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="airdcpp\AdcCommand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\AdcHub.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\ADLSearch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\BloomFilter.h">
@@ -969,6 +966,9 @@
     </ClInclude>
     <ClInclude Include="airdcpp\HashStore.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\ADLSearch.h">
+      <Filter>Header Files\modules</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -98,7 +98,7 @@ void PrivateChat::checkCCPMHubBlocked() noexcept {
 
 	// Only report if the client is known to support CCPM
 	auto app = ou->getIdentity().getApplication();
-	if (app.find("AirDC++ 3.") == string::npos && app.find("AirDC++w") == string::npos) {
+	if (app.find("AirDC++") == string::npos) {
 		return;
 	}
 

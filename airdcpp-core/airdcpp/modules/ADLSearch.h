@@ -24,11 +24,11 @@
 #ifndef DCPLUSPLUS_DCPP_A_D_L_SEARCH_H
 #define DCPLUSPLUS_DCPP_A_D_L_SEARCH_H
 
-#include "DirectoryListing.h"
-#include "Message.h"
-#include "StringSearch.h"
-#include "Singleton.h"
-#include "StringMatch.h"
+#include <airdcpp/DirectoryListing.h>
+#include <airdcpp/Message.h>
+// #include <airdcpp/StringSearch.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/StringMatch.h>
 
 namespace dcpp {
 
@@ -158,7 +158,7 @@ public:
 	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 private:
 	ADLSearch::SourceType StringToSourceType(const string& s);
-	bool dirty;
+	bool dirty = false;
 
 	// @internal
 	// Throws AbortException
@@ -175,7 +175,7 @@ private:
 	// Finalize destination directories
 	void FinalizeDestinationDirectories(DestDirList& destDirVector, DirectoryListing::Directory::Ptr& root) noexcept;
 
-	int8_t running;
+	int8_t running = 0;
 };
 
 } // namespace dcpp
