@@ -104,6 +104,9 @@ bool ConfigPrompt::runConfigure(webserver::WebServerManager* wsm) {
 		std::cout << toBold("No valid configuration was entered. Please re-run the command.") << std::endl;
 		return false;
 	} else {
+		// Set the dirty flag, otherwise we wont save web-server.json
+		wsm->setDirty();
+
 		std::cout << toBold("Configuration finished")
 			<< std::endl
 			<< std::endl
