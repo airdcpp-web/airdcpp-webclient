@@ -174,7 +174,7 @@ namespace webserver {
 		auto listPath = JsonUtil::getField<string>("list_path", j, false);
 		auto reload = JsonUtil::getOptionalFieldDefault<bool>("reload", j, false);
 
-		dl->addDirectoryChangeTask(listPath, reload);
+		dl->addDirectoryChangeTask(listPath, reload ? DirectoryListing::DirectoryLoadType::CHANGE_RELOAD : DirectoryListing::DirectoryLoadType::CHANGE_NORMAL);
 		return websocketpp::http::status_code::no_content;
 	}
 
@@ -198,7 +198,7 @@ namespace webserver {
 
 	json FilelistInfo::serializeState(const DirectoryListingPtr& aList) noexcept {
 		if (aList->getDownloadState() == DirectoryListing::STATE_DOWNLOADED) {
-			bool loading = !aList->getCurrentLocationInfo().directory || aList->getCurrentLocationInfo().directory->getLoading();
+			bool loading = !aList->getCurrentLocationInfo().directory || aList->getCurrentLocationInfo().directory->getLoading() != DirectoryListing::DirectoryLoadType::NONE;
 			return {
 				{ "id", loading ? "loading" : "loaded" },
 				{ "str", loading ? "Parsing data" : "Loaded" },
@@ -263,13 +263,14 @@ namespace webserver {
 
 	}
 
-	void FilelistInfo::on(DirectoryListingListener::LoadingFinished, int64_t /*aStart*/, const string& aPath, bool /*aBackgroundTask*/) noexcept {
-		if (aPath == dl->getCurrentLocationInfo().directory->getAdcPath()) {
+	void FilelistInfo::on(DirectoryListingListener::LoadingFinished, int64_t /*aStart*/, const string& aPath, uint8_t aType) noexcept {
+		// if (aPath == dl->getCurrentLocationInfo().directory->getAdcPath()) {
+		if (static_cast<DirectoryListing::DirectoryLoadType>(aType) != DirectoryListing::DirectoryLoadType::LOAD_CONTENT) {
 			updateItems(aPath);
 		}
 	}
 
-	void FilelistInfo::on(DirectoryListingListener::ChangeDirectory, const string& aPath, bool /*aIsSearchChange*/) noexcept {
+	void FilelistInfo::on(DirectoryListingListener::ChangeDirectory, const string& aPath, uint8_t /*aChangeType*/) noexcept {
 		updateItems(aPath);
 	}
 

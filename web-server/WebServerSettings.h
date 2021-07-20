@@ -22,17 +22,23 @@
 #include "forward.h"
 
 #include <web-server/ApiSettingItem.h>
+#include <web-server/WebServerManagerListener.h>
 
 #include <airdcpp/SettingsManager.h>
 
+namespace dcpp {
+	class SimpleXML;
+}
+
 namespace webserver {
-	class WebServerSettings {
+	class WebServerSettings : private WebServerManagerListener {
 	public:
 #ifdef _WIN32
 		static const string localNodeDirectoryName;
 #endif
 
-		WebServerSettings();
+		WebServerSettings(WebServerManager* aServer);
+		~WebServerSettings();
 
 		enum ServerSettings {
 			PLAIN_PORT,
@@ -85,15 +91,34 @@ namespace webserver {
 		static bool saveSettingFile(const json& aJson, Util::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF, int aConfigVersion) noexcept;
 
 		json toJson() const noexcept;
-		void fromJsonThrow(const json& aJson);
+		void fromJsonThrow(const json& aJson, int aVersion);
+
+		string getConfigFilePath() const noexcept;
+
+		void setValue(ApiSettingItem& aItem, const json& aJson);
+		void setDefaultValue(ApiSettingItem& aItem, const json& aJson);
+		void unset(ApiSettingItem& aItem) noexcept;
 	private:
+		WebServerManager* wsm;
+
 		ServerSettingItem::List settings;
 		ServerSettingItem::List extensionEngines;
 
 		json getDefaultExtensionEngines() noexcept;
+
+		bool isDirty = false;
+
+		void setDirty() noexcept;
+
+		void on(WebServerManagerListener::LoadLegacySettings, SimpleXML& aXml) noexcept override;
+		void on(WebServerManagerListener::LoadSettings, const MessageCallback& aErrorF) noexcept override;
+		void on(WebServerManagerListener::SaveSettings, const MessageCallback& aErrorF) noexcept override;
+
+		bool loadLegacySettings(const MessageCallback& aErrorF) noexcept;
+		void loadLegacyServer(SimpleXML& aXml, const string& aTagName, ServerSettingItem& aPort, ServerSettingItem& aBindAddress, bool aTls) noexcept;
 	};
 
-#define WEBCFG(k) (webserver::WebServerManager::getInstance()->getSettings().getSettingItem(webserver::WebServerSettings::k))
+#define WEBCFG(k) (webserver::WebServerManager::getInstance()->getSettingsManager().getSettingItem(webserver::WebServerSettings::k))
 }
 
 #endif

@@ -18,13 +18,19 @@
 
 #include "stdinc.h"
 
+#include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
 #include <api/common/SettingUtils.h>
 
 #include <airdcpp/File.h>
+#include <airdcpp/SimpleXML.h>
 #include <airdcpp/TimerManager.h>
 
 namespace webserver {
+
+#define CONFIG_NAME "web-server.json"
+#define CONFIG_DIR Util::PATH_USER_CONFIG
+#define CONFIG_VERSION 1
 
 #ifdef _WIN32
 	const string WebServerSettings::localNodeDirectoryName = "Node.js";
@@ -48,7 +54,8 @@ namespace webserver {
 		};
 	}
 
-	WebServerSettings::WebServerSettings(): 
+	WebServerSettings::WebServerSettings(WebServerManager* aServer) :
+		wsm(aServer),
 		settings({
 			{ "web_plain_port",			ResourceManager::WEB_CFG_PORT,			5600,	ApiSettingItem::TYPE_NUMBER, false, { 0, 65535 } },
 			{ "web_plain_bind_address", ResourceManager::WEB_CFG_BIND_ADDRESS,	"",		ApiSettingItem::TYPE_STRING, true },
@@ -90,8 +97,14 @@ namespace webserver {
 			{ "name",					ResourceManager::NAME,				"",				ApiSettingItem::TYPE_STRING,	false },
 			{ "command",				ResourceManager::COMMAND,			"",				ApiSettingItem::TYPE_STRING,	false,	{}, ResourceManager::WEB_CFG_EXTENSION_ENGINES_COMMAND_HELP },
 			{ "arguments",				ResourceManager::SETTINGS_ARGUMENT,	json::array(),	ApiSettingItem::TYPE_LIST,		true,	{}, ResourceManager::WEB_CFG_EXTENSION_ENGINES_ARGS_HELP, ApiSettingItem::TYPE_STRING },
-		}) {}
+		}) {
+	
+		aServer->addListener(this);
+	}
 
+	WebServerSettings::~WebServerSettings() {
+		wsm->removeListener(this);
+	}
 
 	bool WebServerSettings::loadSettingFile(Util::Paths aPath, const string& aFileName, JsonParseCallback&& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept {
 		const auto parseJsonFile = [&](const string& aPath) {
@@ -118,6 +131,67 @@ namespace webserver {
 		return SettingsManager::loadSettingFile(aPath, aFileName, parseJsonFile, aCustomErrorF);
 	}
 
+
+	void WebServerSettings::loadLegacyServer(SimpleXML& aXml, const string& aTagName, ServerSettingItem& aPort, ServerSettingItem& aBindAddress, bool aTls) noexcept {
+		if (aXml.findChild(aTagName)) {
+			// getChildIntAttrib returns 0 also for non-existing attributes, get as string instead...
+			const auto port = aXml.getChildAttrib("Port");
+			if (!port.empty()) {
+				aPort.setValue(Util::toInt(port));
+			}
+
+			aBindAddress.setValue(aXml.getChildAttrib("BindAddress"));
+
+			if (aTls) {
+				getSettingItem(WebServerSettings::TLS_CERT_PATH).setValue(aXml.getChildAttrib("Certificate"));
+				getSettingItem(WebServerSettings::TLS_CERT_KEY_PATH).setValue(aXml.getChildAttrib("CertificateKey"));
+			}
+		}
+
+		aXml.resetCurrentChild();
+	}
+
+	void WebServerSettings::on(WebServerManagerListener::LoadLegacySettings, SimpleXML& aXml) noexcept {
+		if (aXml.findChild("Config")) {
+			aXml.stepIn();
+			loadLegacyServer(aXml, "Server", getSettingItem(WebServerSettings::PLAIN_PORT), getSettingItem(WebServerSettings::PLAIN_BIND), false);
+			loadLegacyServer(aXml, "TLSServer", getSettingItem(WebServerSettings::TLS_PORT), getSettingItem(WebServerSettings::TLS_BIND), true);
+
+			if (aXml.findChild("Threads")) {
+				aXml.stepIn();
+				getSettingItem(WebServerSettings::SERVER_THREADS).setValue(max(Util::toInt(aXml.getData()), 1));
+				aXml.stepOut();
+			}
+			aXml.resetCurrentChild();
+
+			if (aXml.findChild("ExtensionsDebugMode")) {
+				aXml.stepIn();
+				getSettingItem(WebServerSettings::EXTENSIONS_DEBUG_MODE).setValue(Util::toInt(aXml.getData()) > 0 ? true : false);
+				aXml.stepOut();
+			}
+			aXml.resetCurrentChild();
+
+			aXml.stepOut();
+		}
+	}
+
+
+	string WebServerSettings::getConfigFilePath() const noexcept {
+		return Util::getPath(CONFIG_DIR) + CONFIG_NAME;
+	}
+
+	void WebServerSettings::on(WebServerManagerListener::LoadSettings, const MessageCallback& aErrorF) noexcept {
+		loadSettingFile(CONFIG_DIR, CONFIG_NAME, std::bind(&WebServerSettings::fromJsonThrow, this, placeholders::_1, placeholders::_2), aErrorF, CONFIG_VERSION);
+	}
+
+	void WebServerSettings::on(WebServerManagerListener::SaveSettings, const MessageCallback& aErrorF) noexcept {
+		if (!isDirty) {
+			return;
+		}
+
+		saveSettingFile(toJson(), CONFIG_DIR, CONFIG_NAME, aErrorF, CONFIG_VERSION);
+	}
+
 	bool WebServerSettings::saveSettingFile(const json& aJson, Util::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF, int aConfigVersion) noexcept {
 		auto data = json({
 			{ "version", aConfigVersion },
@@ -125,6 +199,10 @@ namespace webserver {
 		});
 
 		return SettingsManager::saveSettingFile(data.dump(2), aPath, aFileName, aCustomErrorF);
+	}
+
+	void WebServerSettings::setDirty() noexcept {
+		isDirty = true;
 	}
 
 	json WebServerSettings::toJson() const noexcept {
@@ -138,7 +216,7 @@ namespace webserver {
 		return ret;
 	}
 
-	void WebServerSettings::fromJsonThrow(const json& aJson) {
+	void WebServerSettings::fromJsonThrow(const json& aJson, int /*aVersion*/) {
 		for (const auto& elem: aJson.items()) {
 			auto setting = getSettingItem(elem.key());
 			if (!setting) {
@@ -153,5 +231,19 @@ namespace webserver {
 				// ...
 			}
 		}
+	}
+
+	void WebServerSettings::setValue(ApiSettingItem& aItem, const json& aJson) {
+		aItem.setValue(aJson);
+		setDirty();
+	}
+
+	void WebServerSettings::setDefaultValue(ApiSettingItem& aItem, const json& aJson) {
+		aItem.setDefaultValue(aJson);
+	}
+
+	void WebServerSettings::unset(ApiSettingItem& aItem) noexcept {
+		aItem.unset();
+		setDirty();
 	}
 }
