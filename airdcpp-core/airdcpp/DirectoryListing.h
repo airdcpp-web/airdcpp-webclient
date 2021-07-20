@@ -88,6 +88,14 @@ public:
 		const void* owner = nullptr;
 	};
 
+	enum class DirectoryLoadType {
+		CHANGE_NORMAL,
+		CHANGE_SEARCH,
+		CHANGE_RELOAD,
+		LOAD_CONTENT,
+		NONE,
+	};
+
 	class Directory : boost::noncopyable {
 	public:
 		enum DirType {
@@ -137,7 +145,7 @@ public:
 		IGETSET(DupeType, dupe, Dupe, DUPE_NONE);
 		IGETSET(time_t, remoteDate, RemoteDate, 0);
 		IGETSET(time_t, lastUpdateDate, LastUpdateDate, 0);
-		IGETSET(bool, loading, Loading, false);
+		IGETSET(DirectoryLoadType, loading, Loading, DirectoryLoadType::NONE);
 
 		bool isComplete() const noexcept { return type == TYPE_VIRTUAL || type == TYPE_NORMAL; }
 		void setComplete() noexcept { type = TYPE_NORMAL; }
@@ -278,7 +286,7 @@ public:
 
 	void setRead() noexcept;
 
-	void addDirectoryChangeTask(const string& aPath, bool aReload, bool aIsSearchChange = false, bool aForceQueue = false) noexcept;
+	void addDirectoryChangeTask(const string& aPath, DirectoryLoadType aType, bool aForceQueue = false) noexcept;
 
 	bool getIsOwnList() const noexcept {
 		return isOwnList;
@@ -296,7 +304,7 @@ private:
 
 	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 
-	void setDirectoryLoadingState(const Directory::Ptr& aDir, bool aLoading) noexcept;
+	void setDirectoryLoadingState(const Directory::Ptr& aDir, DirectoryLoadType aLoading) noexcept;
 
 	// Returns the number of loaded dirs
 	// Throws AbortException
@@ -305,7 +313,7 @@ private:
 	// Create and insert a base directory with the given path (or return an existing one)
 	Directory::Ptr createBaseDirectory(const string& aPath, time_t aDownloadDate = GET_TIME()) noexcept;
 
-	void changeDirectoryImpl(const string& aPath, bool aReload, bool aIsSearchChange = false, bool aForceQueue = false) noexcept;
+	void changeDirectoryImpl(const string& aPath, DirectoryLoadType aType, bool aForceQueue = false) noexcept;
 
 	void setShareProfileImpl(ProfileToken aProfile) noexcept;
 	void setHubUrlImpl(const string& aHubUrl) noexcept;
@@ -357,7 +365,7 @@ private:
 	bool read = false;
 
 	void checkShareDupes() noexcept;
-	void onLoadingFinished(int64_t aStartTime, const string& aDir, bool aBackgroundTask) noexcept;
+	void onLoadingFinished(int64_t aStartTime, const string& aLoadedPath, const string& aCurrentPath, bool aBackgroundTask) noexcept;
 
 	unique_ptr<DirectSearch> directSearch;
 	DispatcherQueue tasks;

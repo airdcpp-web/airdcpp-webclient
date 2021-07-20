@@ -407,7 +407,7 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 
 #ifdef _DEBUG
 	auto isDirectoryPath = aFileName.back() == PATH_SEPARATOR;
-	dcassert(isDirectory() == isDirectoryPath);
+	dcassert(isDirectory(aFileName) == isDirectoryPath);
 #endif
 }
 
