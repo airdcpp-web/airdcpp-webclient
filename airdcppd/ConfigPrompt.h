@@ -34,17 +34,17 @@ class ConfigPrompt {
 public:
 	typedef std::function<void()> ConfigF;
 	static ConfigF checkArgs();
-	
+
 	static void setPasswordMode(bool enabled) noexcept;
 private:
 	static bool runConfigure(webserver::WebServerManager* wsm);
-	
+
 	static bool addUser(webserver::WebServerManager* wsm);
 	static bool removeUser(webserver::WebServerManager* wsm);
 	static bool listUsers(webserver::WebServerManager* wsm);
 
 	static std::string toBold(const std::string& aText);
-	static void promptPort(webserver::ServerConfig& config_, const std::string& aText);
+	static void promptPort(const webserver::ServerConfig& config_, const std::string& aText, webserver::WebServerManager* wsm);
 };
 
 } // namespace airdcppd

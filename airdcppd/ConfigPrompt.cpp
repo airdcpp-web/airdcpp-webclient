@@ -72,7 +72,7 @@ ConfigPrompt::ConfigF ConfigPrompt::checkArgs() {
 		std::cout << std::endl;
 		if (save) {
 			if (wsm->save(errorF)) {
-				cout << toBold("Configuration was written to " + wsm->getConfigFilePath()) << std::endl;
+				cout << toBold("Configuration was written to " + wsm->getSettingsManager().getConfigFilePath()) << std::endl;
 			}
 		}
 	};
@@ -84,10 +84,10 @@ bool ConfigPrompt::runConfigure(webserver::WebServerManager* wsm) {
 	auto& plainServerConfig = wsm->getPlainServerConfig();
 	auto& tlsServerConfig = wsm->getTlsServerConfig();
 
-	promptPort(plainServerConfig, "HTTP");
+	promptPort(plainServerConfig, "HTTP", wsm);
 	std::cout << std::endl;
 
-	promptPort(tlsServerConfig, "HTTPS");
+	promptPort(tlsServerConfig, "HTTPS", wsm);
 	std::cout << std::endl;
 
 	if (!wsm->hasUsers()) {
@@ -226,7 +226,7 @@ bool ConfigPrompt::listUsers(webserver::WebServerManager* wsm) {
 	return false;
 }
 
-void ConfigPrompt::promptPort(webserver::ServerConfig& config_, const std::string& aProtocol) {
+void ConfigPrompt::promptPort(const webserver::ServerConfig& config_, const std::string& aProtocol, webserver::WebServerManager* wsm) {
 	auto port = config_.port.num();
 
 	std::cout << "Enter " << aProtocol << " port (empty: " << port << ", 0 = disabled): ";
@@ -238,14 +238,14 @@ void ConfigPrompt::promptPort(webserver::ServerConfig& config_, const std::strin
 		port = atoi(input.c_str());
 		if (port < 0 || port > 65535) {
 			std::cout << "Invalid port number\n";
-			promptPort(config_, aProtocol);
+			promptPort(config_, aProtocol, wsm);
 			return;
 		}
 
 		std::cout << std::endl;
 	}
 
-	config_.port.setValue(port);
+	wsm->getSettingsManager().setValue(config_.port, port);
 	if (port > 0) {
 		std::cout << toBold(aProtocol + " port set to: ") << port << std::endl;
 	} else {
