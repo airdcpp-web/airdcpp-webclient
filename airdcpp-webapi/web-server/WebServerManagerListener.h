@@ -22,6 +22,8 @@
 
 #include "forward.h"
 
+#include <airdcpp/forward.h>
+
 namespace webserver {
 	enum class TransportType {
 		TYPE_SOCKET, TYPE_HTTP_API, TYPE_HTTP_FILE

@@ -73,7 +73,9 @@ namespace webserver {
 
 		auto hasSet = false;
 		parseSettingValues(aRequest.getRequestBody(), [&](ApiSettingItem& aItem, const json& aValue) {
-			aItem.setDefaultValue(aValue);
+			auto settings = aRequest.getSession()->getServer()->getSettingsManager();
+			settings.setDefaultValue(aItem, aValue);
+
 			hasSet = true;
 		}, aRequest.getSession()->getServer());
 
@@ -128,9 +130,10 @@ namespace webserver {
 
 	api_return SettingApi::handleResetValues(ApiRequest& aRequest) {
 		const auto& requestJson = aRequest.getRequestBody();
+		auto settings = aRequest.getSession()->getServer()->getSettingsManager();
 
 		parseSettingKeys(requestJson, [&](ApiSettingItem& aItem) {
-			aItem.unset();
+			settings.unset(aItem);
 		}, aRequest.getSession()->getServer());
 
 		return websocketpp::http::status_code::no_content;
@@ -138,6 +141,7 @@ namespace webserver {
 
 	api_return SettingApi::handleSetValues(ApiRequest& aRequest) {
 		auto server = aRequest.getSession()->getServer();
+		auto settings = aRequest.getSession()->getServer()->getSettingsManager();
 		auto holder = make_shared<SettingHolder>(
 			[=](const string& aError) {
 				server->log(aError, LogMessage::SEV_ERROR);
@@ -147,14 +151,13 @@ namespace webserver {
 		bool hasSet = false;
 
 		parseSettingValues(aRequest.getRequestBody(), [&](ApiSettingItem& aItem, const json& aValue) {
-			aItem.setValue(aValue);
+			server->getSettingsManager().setValue(aItem, aValue);
 			hasSet = true;
 		}, aRequest.getSession()->getServer());
 
 		dcassert(hasSet);
 
 		SettingsManager::getInstance()->save();
-		server->setDirty();
 
 		// This may take a while, don't wait
 		addAsyncTask([=] {
@@ -170,6 +173,6 @@ namespace webserver {
 			return p;
 		}
 
-		return aWsm->getSettings().getSettingItem(aKey);
+		return aWsm->getSettingsManager().getSettingItem(aKey);
 	}
 }

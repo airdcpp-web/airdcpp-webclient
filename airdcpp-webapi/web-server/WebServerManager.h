@@ -95,12 +95,11 @@ namespace webserver {
 		// Reset sessions for associated sockets
 		WebSocketPtr getSocket(LocalSessionId aSessionToken) noexcept;
 
-		void setDirty() noexcept;
 		bool load(const MessageCallback& aErrorF) noexcept;
 		bool save(const MessageCallback& aErrorF) noexcept;
 		string getConfigFilePath() const noexcept;
-		WebServerSettings& getSettings() noexcept {
-			return settings;
+		WebServerSettings& getSettingsManager() noexcept {
+			return *settingsManager.get();
 		}
 
 		WebUserManager& getUserManager() noexcept {
@@ -119,12 +118,12 @@ namespace webserver {
 		bool hasUsers() const noexcept;
 		bool waitExtensionsLoaded() const noexcept;
 
-		ServerConfig& getPlainServerConfig() noexcept {
-			return plainServerConfig;
+		const ServerConfig& getPlainServerConfig() noexcept {
+			return *plainServerConfig;
 		}
 
-		ServerConfig& getTlsServerConfig() noexcept {
-			return tlsServerConfig;
+		const ServerConfig& getTlsServerConfig() noexcept {
+			return *tlsServerConfig;
 		}
 
 		// Get location of the file server root directory (Web UI files)
@@ -331,8 +330,6 @@ namespace webserver {
 			aEndpoint.set_pong_timeout_handler(std::bind(&WebServerManager::handlePongTimeout, aServer, _1, _2));
 		}
 
-		WebServerSettings settings;
-
 		context_ptr handleInitTls(websocketpp::connection_hdl hdl);
 
 		void addSocket(websocketpp::connection_hdl hdl, const WebSocketPtr& aSocket) noexcept;
@@ -341,8 +338,8 @@ namespace webserver {
 
 		bool initialize(const MessageCallback& errorF);
 
-		ServerConfig plainServerConfig;
-		ServerConfig tlsServerConfig;
+		unique_ptr<ServerConfig> plainServerConfig;
+		unique_ptr<ServerConfig> tlsServerConfig;
 
 		void loadServer(SimpleXML& xml_, const string& aTagName, ServerConfig& config_, bool aTls) noexcept;
 		void pingTimer() noexcept;
@@ -365,6 +362,7 @@ namespace webserver {
 		unique_ptr<WebUserManager> userManager;
 		unique_ptr<ExtensionManager> extManager;
 		unique_ptr<ContextMenuManager> contextMenuManager;
+		unique_ptr<WebServerSettings> settingsManager;
 
 		TimerPtr minuteTimer;
 		TimerPtr socketPingTimer;
@@ -383,7 +381,6 @@ namespace webserver {
 		unique_ptr<boost::thread_group> task_threads;
 
 		Callback shutdownF;
-		bool isDirty = false;
 	};
 }
 
