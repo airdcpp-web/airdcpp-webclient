@@ -41,8 +41,6 @@ if (CMAKE_COMPILER_IS_GNUCXX)
   if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS GNUCXX_MINIMUM_VERSION)
     message (FATAL_ERROR "GCC version must be at least ${GNUCXX_MINIMUM_VERSION}!")
   endif()
-#else()
-#  message (FATAL_ERROR "Invalid compiler!")
 endif()
 
 
@@ -57,10 +55,8 @@ OPTION(ENABLE_TBB "Enable support of the TBB library to improve performance"
 unset(INSTALL_RUNTIME_PATH CACHE)
 
 option (INSTALL_RUNTIME_PATH "Install rpath" ON)
-#option (LOCAL_BOOST "Use local boost headers" OFF)
 option (STRIP "Strip debugging symbols to a separate file" OFF)
 option (INSTALL_WEB_UI "Download and install the Web UI package" ON)
-#option (OPENSSL_MSVC "Use MSVC build openssl (only for Windows)" OFF)
 option (WITH_ASAN "Enable address sanitizer" OFF) # With clang: http://clang.llvm.org/docs/AddressSanitizer.html
 
 
@@ -76,14 +72,6 @@ elseif (NOT BUILD_SHARED_LIBS)
 
   set(Boost_USE_STATIC_RUNTIME ON)
   set(Boost_USE_STATIC_LIBS ON)
-
-  #message(STATUS "CMAKE_EXE_LINKER_FLAGS: ${CMAKE_EXE_LINKER_FLAGS}")
-  #message(STATUS "CMAKE_EXE_LINK_DYNAMIC_C_FLAGS: ${CMAKE_EXE_LINK_DYNAMIC_C_FLAGS}")
-  #message(STATUS "CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS: ${CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS}")
-  #message(STATUS "CMAKE_SHARED_LIBRARY_C_FLAGS: ${CMAKE_SHARED_LIBRARY_C_FLAGS}")
-  #message(STATUS "CMAKE_SHARED_LIBRARY_CXX_FLAGS: ${CMAKE_SHARED_LIBRARY_CXX_FLAGS}")
-  #message(STATUS "CMAKE_SHARED_LIBRARY_LINK_C_FLAGS: ${CMAKE_SHARED_LIBRARY_LINK_C_FLAGS}")
-  #message(STATUS "CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS: ${CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS}")
 
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++ -static")
 
@@ -187,22 +175,6 @@ elseif (UNIX)
 endif (WIN32 OR HAIKU)
 
 
-#find_program(GIT_EXECUTABLE git PATHS /sw/bin)
-
-#if (GIT_EXECUTABLE)
-#	# Version number for the library naming and UI installation
-#	execute_process (COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
-#									 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-#									 OUTPUT_VARIABLE GIT_TAG
-#									 ERROR_VARIABLE DUMMYERROR
-#									 OUTPUT_STRIP_TRAILING_WHITESPACE)
-#	if (GIT_TAG)
-#		message (STATUS "-- Git tag: ${GIT_TAG}")
-#		set (SOVERSION ${GIT_TAG})
-#	endif(GIT_TAG)
-#endif (GIT_EXECUTABLE)
-
-
 # SCRIPTS
 
 # Version information for the client
@@ -262,21 +234,6 @@ if (WITH_ASAN)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address")
     message(STATUS "Address sanitizer is enabled")
 endif()
-
-#if (NOT CMAKE_BUILD_TYPE MATCHES "Debug" AND NOT ARM_OPTIMIZE_FULL)
-#  if (CMAKE_SYSTEM_PROCESSOR STREQUAL "arm" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "armv6l")
-#    set (CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Os")
-#    set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-DNDEBUG -Os -g")
-
-#    message (STATUS "---------------------------------------------------------------------------------------------------------")
-#    message (STATUS "IMPORTANT")
-#    message (STATUS "Certain code optimizations are disabled by default on ARM architectures due to possible stability issues")
-#    message (STATUS "If you want to compile the client with full optimizations enabled, run cmake with the option -DARM_OPTIMIZE_FULL=1 (please report back your findings if there are no issues)")
-#    message (STATUS "More information: https://github.com/airdcpp-web/airdcpp-webclient/issues/141#issuecomment-233186424")
-#    message (STATUS "---------------------------------------------------------------------------------------------------------")
-#  endif()
-#endif()
-
 
 
 # FILES TO COMPILE
