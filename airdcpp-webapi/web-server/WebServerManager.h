@@ -97,7 +97,6 @@ namespace webserver {
 
 		bool load(const MessageCallback& aErrorF) noexcept;
 		bool save(const MessageCallback& aErrorF) noexcept;
-		string getConfigFilePath() const noexcept;
 		WebServerSettings& getSettingsManager() noexcept {
 			return *settingsManager.get();
 		}
@@ -341,7 +340,6 @@ namespace webserver {
 		unique_ptr<ServerConfig> plainServerConfig;
 		unique_ptr<ServerConfig> tlsServerConfig;
 
-		void loadServer(SimpleXML& xml_, const string& aTagName, ServerConfig& config_, bool aTls) noexcept;
 		void pingTimer() noexcept;
 
 		mutable SharedMutex cs;
