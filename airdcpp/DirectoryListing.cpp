@@ -1016,7 +1016,6 @@ void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aLoad
 
 	read = false;
 
-	// auto changeType = aBackgroundTask ? DirectoryLoadType::LOAD_CONTENT : (loadedDir->getLoading() == DirectoryLoadType::NONE ? DirectoryLoadType::CHANGE_NORMAL : loadedDir->getLoading());
 	auto changeType = loadedDir->getLoading();
 	if (changeType == DirectoryLoadType::NONE) {
 		// Initial loading/directory download
@@ -1152,7 +1151,7 @@ void DirectoryListing::endSearch(bool timedOut /*false*/) noexcept {
 		fire(DirectoryListingListener::SearchFailed(), timedOut);
 	} else {
 		curResult = searchResults.begin();
-		addDirectoryChangeTask(*curResult, DirectoryLoadType::CHANGE_SEARCH);
+		addDirectoryChangeTask(*curResult, DirectoryLoadType::CHANGE_NORMAL);
 	}
 }
 
@@ -1224,7 +1223,7 @@ bool DirectoryListing::nextResult(bool prev) noexcept {
 		advance(curResult, 1);
 	}
 
-	addDirectoryChangeTask(*curResult, DirectoryLoadType::CHANGE_SEARCH);
+	addDirectoryChangeTask(*curResult, DirectoryLoadType::CHANGE_NORMAL);
 	return true;
 }
 
