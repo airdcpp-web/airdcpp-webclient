@@ -90,7 +90,6 @@ public:
 
 	enum class DirectoryLoadType {
 		CHANGE_NORMAL,
-		CHANGE_SEARCH,
 		CHANGE_RELOAD,
 		LOAD_CONTENT,
 		NONE,

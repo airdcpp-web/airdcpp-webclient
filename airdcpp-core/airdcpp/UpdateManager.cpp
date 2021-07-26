@@ -184,11 +184,12 @@ void UpdateManager::completeGeoDownload() {
 			File(GeoManager::getDbPath() + ".gz", File::WRITE, File::CREATE | File::TRUNCATE).write(conn->buf);
 			GeoManager::getInstance()->update();
 			log(STRING(GEOIP_UPDATED), LogMessage::SEV_INFO);
-			return;
-		} catch(const FileException&) { }
+		} catch(const FileException& e) {
+			log(STRING(GEOIP_UPDATING_FAILED) + " (" + e.what() + ")", LogMessage::SEV_WARNING);
+		}
+	} else {
+		log(STRING(GEOIP_UPDATING_FAILED) + " (" + conn->status + ")", LogMessage::SEV_WARNING);
 	}
-
-	log(STRING(GEOIP_UPDATING_FAILED), LogMessage::SEV_WARNING);
 }
 
 void UpdateManager::completeLanguageDownload() {
