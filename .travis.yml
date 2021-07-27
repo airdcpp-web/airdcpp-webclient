@@ -28,7 +28,7 @@ matrix:
 #      env: COMPILER=g++-8
     - os: osx
       compiler: clang
-      osx_image: xcode12.3
+      osx_image: xcode12.5
       env: COMPILER=clang++
 before_install:
   # Linux
@@ -36,9 +36,7 @@ before_install:
         sudo apt install -y cmake nodejs python pkg-config libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev libmaxminddb-dev libleveldb-dev;
     fi
   # OSX
-  - if [ $TRAVIS_OS_NAME == osx ]; then brew update;
-        brew install boost libmaxminddb leveldb libnatpmp miniupnpc openssl pkg-config tbb;
-        export OPENSSL_ROOT_DIR=/usr/local/opt/openssl/;
+  - if [ $TRAVIS_OS_NAME == osx ]; then export OPENSSL_ROOT_DIR=/usr/local/opt/openssl/;
     fi
 
   - git clone git://github.com/zaphoyd/websocketpp.git
@@ -55,3 +53,12 @@ branches:
   only:
     - master
     - develop
+addons:
+  homebrew:
+    packages:
+    - libmaxminddb 
+    - leveldb 
+    - libnatpmp 
+    - miniupnpc 
+    - openssl
+

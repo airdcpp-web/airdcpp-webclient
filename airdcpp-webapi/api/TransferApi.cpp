@@ -62,16 +62,12 @@ namespace webserver {
 
 		timer->start(false);
 
-		DownloadManager::getInstance()->addListener(this);
-		UploadManager::getInstance()->addListener(this);
 		TransferInfoManager::getInstance()->addListener(this);
 	}
 
 	TransferApi::~TransferApi() {
 		timer->stop(true);
 
-		DownloadManager::getInstance()->removeListener(this);
-		UploadManager::getInstance()->removeListener(this);
 		TransferInfoManager::getInstance()->removeListener(this);
 	}
 
@@ -158,8 +154,8 @@ namespace webserver {
 			{ "speed_up", upSpeed },
 			{ "limit_down", ThrottleManager::getDownLimit() },
 			{ "limit_up", ThrottleManager::getUpLimit() },
-			{ "upload_bundles", lastUploadBundles },
-			{ "download_bundles", lastDownloadBundles },
+			{ "upload_bundles", UploadManager::getInstance()->getRunningBundleCount() },
+			{ "download_bundles", DownloadManager::getInstance()->getRunningBundleCount() },
 			{ "uploads", uploads },
 			{ "downloads", downloads },
 			{ "queued_bytes", QueueManager::getInstance()->getTotalQueueSize() },
@@ -176,19 +172,8 @@ namespace webserver {
 		if (previousStats == newStats)
 			return;
 
-		lastUploadBundles = 0;
-		lastDownloadBundles = 0;
-
-		send("transfer_statistics", JsonUtil::filterExactValues(newStats, previousStats));
+		send("transfer_statistics", Serializer::serializeChangedProperties(newStats, previousStats));
 		previousStats.swap(newStats);
-	}
-
-	void TransferApi::on(DownloadManagerListener::BundleTick, const BundleList& bundles, uint64_t /*aTick*/) noexcept {
-		lastDownloadBundles = bundles.size();
-	}
-
-	void TransferApi::on(UploadManagerListener::BundleTick, const UploadBundleList& bundles) noexcept {
-		lastUploadBundles = bundles.size();
 	}
 
 	void TransferApi::on(TransferInfoManagerListener::Added, const TransferInfoPtr& aInfo) noexcept {

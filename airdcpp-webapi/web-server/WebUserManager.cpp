@@ -49,12 +49,12 @@
 #define CONFIG_VERSION 1
 
 namespace webserver {
-	WebUserManager::WebUserManager(WebServerManager* aServer) : server(aServer), authFloodCounter(FLOOD_COUNT, FLOOD_PERIOD) {
+	WebUserManager::WebUserManager(WebServerManager* aServer) : wsm(aServer), authFloodCounter(FLOOD_COUNT, FLOOD_PERIOD) {
 		aServer->addListener(this);
 	}
 
 	WebUserManager::~WebUserManager() {
-		server->removeListener(this);
+		wsm->removeListener(this);
 	}
 
 	SessionPtr WebUserManager::parseHttpSession(const string& aAuthToken, const string& aIP) {
@@ -124,7 +124,7 @@ namespace webserver {
 
 	SessionPtr WebUserManager::authenticateSession(const string& aUserName, const string& aPassword, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP, const string& aSessionToken) {
 		if (!authFloodCounter.checkFlood(aIP)) {
-			server->log(STRING_F(WEB_SERVER_MULTIPLE_FAILED_ATTEMPTS, aIP), LogMessage::SEV_WARNING);
+			wsm->log(STRING_F(WEB_SERVER_MULTIPLE_FAILED_ATTEMPTS, aIP), LogMessage::SEV_WARNING);
 			throw std::domain_error(STRING(WEB_SESSIONS_TOO_MANY_ATTEMPTS));
 		}
 
@@ -140,7 +140,7 @@ namespace webserver {
 	SessionPtr WebUserManager::createSession(const WebUserPtr& aUser, const string& aSessionToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP) noexcept {
 		dcassert(aType != Session::TYPE_BASIC_AUTH || aSessionToken.find(':') != string::npos);
 
-		auto session = std::make_shared<Session>(aUser, aSessionToken, aType, server, aMaxInactivityMinutes, aIP);
+		auto session = std::make_shared<Session>(aUser, aSessionToken, aType, wsm, aMaxInactivityMinutes, aIP);
 
 		aUser->setLastLogin(GET_TIME());
 		aUser->addSession();
@@ -216,7 +216,7 @@ namespace webserver {
 	void WebUserManager::logout(const SessionPtr& aSession) {
 		removeSession(aSession, false);
 
-		auto socket = server->getSocket(aSession->getId());
+		auto socket = wsm->getSocket(aSession->getId());
 		if (socket) {
 			resetSocketSession(socket);
 		} else {
@@ -247,7 +247,7 @@ namespace webserver {
 
 		for (const auto& s : removedSession) {
 			// Don't remove sessions with active socket
-			if (!server->getSocket(s->getId())) {
+			if (!wsm->getSocket(s->getId())) {
 				removeSession(s, true);
 			}
 		}
@@ -286,7 +286,7 @@ namespace webserver {
 	}
 
 	void WebUserManager::on(WebServerManagerListener::Started) noexcept {
-		expirationTimer = server->addTimer([this] { 
+		expirationTimer = wsm->addTimer([this] {
 			checkExpiredSessions();
 			checkExpiredTokens();
 			authFloodCounter.prune();
@@ -409,7 +409,7 @@ namespace webserver {
 		}
 
 		for (const auto& s: removedSession) {
-			auto socket = server->getSocket(s->getId());
+			auto socket = wsm->getSocket(s->getId());
 			if (socket) {
 				socket->close(websocketpp::close::status::normal, "Re-authentication required");
 			}

@@ -64,10 +64,11 @@ public:
 
 	// This will ignore bundles with no downloads and 
 	// bundles using highest priority
-	void getRunningBundles(QueueTokenSet& bundles_) const;
+	void getRunningBundles(QueueTokenSet& bundles_) const noexcept;
+	size_t getRunningBundleCount() const noexcept;
 
-	SharedMutex& getCS() { return cs; }
-	const DownloadList& getDownloads() const {
+	SharedMutex& getCS() noexcept { return cs; }
+	const DownloadList& getDownloads() const noexcept {
 		return downloads;
 	}
 

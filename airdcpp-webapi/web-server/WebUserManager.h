@@ -113,9 +113,8 @@ namespace webserver {
 		void on(WebServerManagerListener::LoadLegacySettings, SimpleXML& aXml) noexcept override;
 		void on(WebServerManagerListener::LoadSettings, const MessageCallback& aErrorF) noexcept override;
 		void on(WebServerManagerListener::SaveSettings, const MessageCallback& aErrorF) noexcept override;
-		// void on(WebServerManagerListener::SaveSettings, SimpleXML& aXml) noexcept override;
 
-		WebServerManager* server;
+		WebServerManager* wsm;
 		void setDirty() noexcept;
 
 		bool isDirty = false;

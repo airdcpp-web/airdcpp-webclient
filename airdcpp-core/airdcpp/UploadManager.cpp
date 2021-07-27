@@ -36,6 +36,9 @@
 #include "UploadBundle.h"
 #include "UserConnection.h"
 
+#include <boost/range/numeric.hpp>
+
+
 namespace dcpp {
 
 using boost::range::find_if;
@@ -1186,9 +1189,22 @@ void UploadManager::on(GetListLength, UserConnection* conn) noexcept {
 	conn->disconnect(false);
 }
 
-size_t UploadManager::getUploadCount() const { 
+size_t UploadManager::getUploadCount() const noexcept { 
 	RLock l(cs); 
 	return uploads.size(); 
+}
+
+size_t UploadManager::getRunningBundleCount() const noexcept {
+	RLock l(cs);
+	auto ret = accumulate(bundles | map_values, (size_t)0, [&](size_t old, const UploadBundlePtr& b) {
+		if (b->getSpeed() == 0) {
+			return old;
+		}
+
+		return old + 1;
+	});
+
+	return ret;
 }
 
 bool UploadManager::hasReservedSlot(const UserPtr& aUser) const { 

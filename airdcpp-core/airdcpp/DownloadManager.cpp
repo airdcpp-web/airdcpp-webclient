@@ -33,6 +33,8 @@
 #include <limits>
 #include <cmath>
 
+#include <boost/range/numeric.hpp>
+
 
 // some strange mac definition
 #ifdef ff
@@ -222,7 +224,7 @@ void DownloadManager::addConnection(UserConnection* conn) {
 	checkDownloads(conn);
 }
 
-void DownloadManager::getRunningBundles(QueueTokenSet& bundles_) const {
+void DownloadManager::getRunningBundles(QueueTokenSet& bundles_) const noexcept {
 	RLock l(cs);
 	for (const auto& b : bundles | map_values) {
 		// we need to check this to ignore previous bundles for running connections 
@@ -238,6 +240,19 @@ void DownloadManager::getRunningBundles(QueueTokenSet& bundles_) const {
 
 		bundles_.insert(b->getToken());
 	}
+}
+
+size_t DownloadManager::getRunningBundleCount() const noexcept {
+	RLock l(cs);
+	auto ret = accumulate(bundles | map_values, (size_t)0, [&](size_t old, const BundlePtr& b) {
+		if (b->getSpeed() == 0) {
+			return old;
+		}
+
+		return old + 1;
+	});
+
+	return ret;
 }
 
 void DownloadManager::checkDownloads(UserConnection* aConn) {

@@ -407,7 +407,7 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 
 #ifdef _DEBUG
 	auto isDirectoryPath = aFileName.back() == PATH_SEPARATOR;
-	dcassert(isDirectory() == isDirectoryPath);
+	dcassert(isDirectory(aFileName) == isDirectoryPath);
 #endif
 }
 
@@ -1091,6 +1091,11 @@ FileFindIter& FileFindIter::validateCurrent() {
 	}
 
 	if (pattern && fnmatch(pattern->c_str(), data.ent->d_name, 0) != 0) {
+		return this->operator++();
+	}
+
+	if (!Text::validateUtf8((*this)->ent->d_name)) {
+		dcdebug("FileFindIter: UTF-8 validation failed for the item name (%s)\n", Text::sanitizeUtf8((*this)->ent->d_name).c_str());
 		return this->operator++();
 	}
 

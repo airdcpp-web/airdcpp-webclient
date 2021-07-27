@@ -227,9 +227,6 @@ namespace webserver {
 		}
 
 		static json getError(const string& aFieldName, ErrorType aType, const string& aMessage) noexcept;
-
-		// Return a new JSON object with exact key-value pairs removed
-		static json filterExactValues(const json& aNew, const json& aCompareTo) noexcept;
 	private:
 		// Returns raw JSON value and optionally throws
 		template <typename JsonT>

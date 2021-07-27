@@ -37,7 +37,6 @@ then
   echo "Installing package airdcpp"
   ln -s ${AIR_BR_PATH}/package/airdcpp/ ${BR_PATH}/package/
   echo 'source "package/airdcpp/Config.in"' >> "${BR_PATH}/package/Config.in"
-  # echo "${BR_PATH}/package/Config.in >> source package/airdcpp/Config.in"
 else
   echo "package airdcpp is installed already"
 fi
@@ -61,9 +60,3 @@ if [ ! -f ${BR_PATH}/.config ]; then
 else
   echo "build config is installed already"
 fi
-
-# sed -i.bak 's/^\(VAR5=\).*/\1VALUE10/' file
-
-#ln -s ${AIR_BR_PATH}/package/websocketpp/ ${BR_PATH}/package/
-#ln -s ${AIR_BR_PATH}/package/airdcpp/ ${BR_PATH}/package/
-

@@ -57,10 +57,10 @@ namespace webserver {
 
 		DirectoryListing::Directory::Ptr ensureCurrentDirectoryLoaded();
 
-		void on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aDir, bool aBackgroundTask) noexcept override;
+		void on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aDir, uint8_t aType) noexcept override;
 		void on(DirectoryListingListener::LoadingFailed, const string& aReason) noexcept override;
 		void on(DirectoryListingListener::LoadingStarted, bool changeDir) noexcept override;
-		void on(DirectoryListingListener::ChangeDirectory, const string& aDir, bool isSearchChange) noexcept override;
+		void on(DirectoryListingListener::ChangeDirectory, const string& aDir, uint8_t aChangeType) noexcept override;
 		void on(DirectoryListingListener::UpdateStatusMessage, const string& aMessage) noexcept override;
 		void on(DirectoryListingListener::UserUpdated) noexcept override;
 		void on(DirectoryListingListener::StateChanged) noexcept override;

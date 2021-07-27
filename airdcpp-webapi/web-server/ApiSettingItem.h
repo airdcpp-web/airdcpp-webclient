@@ -70,9 +70,6 @@ namespace webserver {
 		// Returns the value and bool indicating whether it's an auto detected value
 		virtual string getTitle() const noexcept = 0;
 
-		virtual void setValue(const json& aJson) = 0;
-		virtual void setDefaultValue(const json& aJson) = 0;
-		virtual void unset() noexcept = 0;
 		virtual json getValue() const noexcept = 0;
 		virtual json getDefaultValue() const noexcept = 0;
 		virtual PtrList getListObjectFields() const noexcept = 0;
@@ -115,6 +112,13 @@ namespace webserver {
 
 			return ret;
 		}
+
+		friend class WebServerSettings;
+
+	protected:
+		virtual void setValue(const json& aJson) = 0;
+		virtual void setDefaultValue(const json& aJson) = 0;
+		virtual void unset() noexcept = 0;
 	};
 
 	class CoreSettingItem : public ApiSettingItem {
@@ -137,11 +141,6 @@ namespace webserver {
 		ApiSettingItem::PtrList getListObjectFields() const noexcept override;
 		const string& getHelpStr() const noexcept override;
 
-		// Throws on invalid JSON
-		void setValue(const json& aJson) override;
-		void setDefaultValue(const json& aJson) override;
-		void unset() noexcept override;
-
 		string getTitle() const noexcept override;
 
 		const ResourceManager::Strings unit;
@@ -154,6 +153,12 @@ namespace webserver {
 
 		EnumOption::List getEnumOptions() const noexcept override;
 		bool usingAutoValue(bool aForce) const noexcept override;
+	protected:
+		friend class WebServerSettings;
+		// Throws on invalid JSON
+		void setValue(const json& aJson) override;
+		void setDefaultValue(const json& aJson) override;
+		void unset() noexcept override;
 	private:
 		const SettingItem si;
 	};
@@ -169,10 +174,6 @@ namespace webserver {
 
 		json getValue() const noexcept override;
 		const json& getValueRef() const noexcept;
-
-		void setValue(const json& aJson) override;
-
-		void unset() noexcept override;
 
 		int num() const;
 		uint64_t uint64() const;
@@ -190,11 +191,15 @@ namespace webserver {
 
 		const MinMax& getMinMax() const noexcept override;
 		json getDefaultValue() const noexcept override;
-		void setDefaultValue(const json& aValue) override;
 
 		EnumOption::List getEnumOptions() const noexcept override;
 		//ServerSettingItem(ServerSettingItem&& rhs) noexcept = default;
 		//ServerSettingItem& operator=(ServerSettingItem&& rhs) noexcept = default;
+
+		void setValue(const json& aJson) override;
+		void unset() noexcept override;
+		void setDefaultValue(const json& aValue) override;
+
 	private:
 		const EnumOption::List enumOptions;
 		const MinMax minMax;

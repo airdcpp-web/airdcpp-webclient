@@ -444,7 +444,7 @@ void DirectoryListingManager::failDirectoryDownload(const DirectoryDownloadPtr& 
 	fire(DirectoryListingManagerListener::DirectoryDownloadFailed(), aDownloadInfo, aError);
 }
 
-DirectoryListingPtr DirectoryListingManager::openOwnList(ProfileToken aProfile, bool useADL /*false*/, const string& aDir/* = Util::emptyString*/) noexcept {
+DirectoryListingPtr DirectoryListingManager::openOwnList(ProfileToken aProfile, const string& aDir /* = Util::emptyString*/) noexcept {
 	auto me = HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString);
 
 	{
@@ -456,8 +456,8 @@ DirectoryListingPtr DirectoryListingManager::openOwnList(ProfileToken aProfile, 
 		}
 	}
 
-	auto dl = createList(me, !useADL, Util::toString(aProfile), true);
-	dl->setMatchADL(useADL);
+	auto dl = createList(me, true, Util::toString(aProfile), true);
+	// dl->setMatchADL(useADL);
 
 	fire(DirectoryListingManagerListener::OpenListing(), dl, aDir, Util::emptyString);
 	return dl;
