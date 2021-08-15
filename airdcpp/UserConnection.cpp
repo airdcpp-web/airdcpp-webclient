@@ -59,12 +59,12 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 
 	COMMAND_DEBUG(aLine, DebugManager::TYPE_CLIENT, DebugManager::INCOMING, getRemoteIp());
 	
-	if(aLine.length() < 2) {
-		fire(UserConnectionListener::ProtocolError(), this, STRING(MALFORMED_DATA));
+	if (aLine.length() < 2) {
+		fire(UserConnectionListener::ProtocolError(), this, STRING(MALFORMED_DATA) + " (" + aLine + ")");
 		return;
 	}
 
-	if(aLine[0] == 'C' && !isSet(FLAG_NMDC)) {
+	if (aLine[0] == 'C' && !isSet(FLAG_NMDC)) {
 		if(!Text::validateUtf8(aLine)) {
 			fire(UserConnectionListener::ProtocolError(), this, STRING(UTF_VALIDATION_ERROR));
 			return;
@@ -75,7 +75,7 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 		setFlag(FLAG_NMDC);
 	} else {
 		// We shouldn't be here?
-		fire(UserConnectionListener::ProtocolError(), this, STRING(MALFORMED_DATA));
+		fire(UserConnectionListener::ProtocolError(), this, STRING(MALFORMED_DATA) + " (" + aLine + ")");
 		return;
 	}
 
@@ -146,7 +146,7 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 			fire(UserConnectionListener::ListLength(), this, param);
 		}
 	} else {
-		fire(UserConnectionListener::ProtocolError(), this, STRING(MALFORMED_DATA));
+		fire(UserConnectionListener::ProtocolError(), this, STRING(MALFORMED_DATA) + " (" + cmd + ")");
 	}
 }
 
