@@ -168,11 +168,17 @@ bool SearchResult::matches(SearchQuery& aQuery, const string& aLocalSearchToken)
 	} else {
 		// NMDC results must be matched manually
 
-		// Exludes
+		// Included extensions
+		if (!aQuery.hasExt(path)) {
+			return false;
+		}
+
+		// Excluded extensions
 		if (aQuery.isExcluded(path)) {
 			return false;
 		}
 
+		// TTH
 		if (aQuery.root && *aQuery.root != tth) {
 			return false;
 		}
