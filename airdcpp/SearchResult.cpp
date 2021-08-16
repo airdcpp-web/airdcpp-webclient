@@ -168,12 +168,12 @@ bool SearchResult::matches(SearchQuery& aQuery, const string& aLocalSearchToken)
 	} else {
 		// NMDC results must be matched manually
 
-		// Included extensions
+		// File extensions
 		if (!aQuery.hasExt(path)) {
 			return false;
 		}
 
-		// Excluded extensions
+		// Excluded words
 		if (aQuery.isExcluded(path)) {
 			return false;
 		}

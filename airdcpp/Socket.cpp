@@ -464,7 +464,7 @@ void Socket::socksConnect(addr& addr_, std::function<void(ByteVector& connStr_)>
 	socksWrite(&connStr[0], connStr.size(), timeLeft(start, aTimeout));
 
 	// Read response
-	connStr.resize(22);
+	connStr.resize(22); // Make it fit the IPv6 response
 	auto len = socksRead(
 		connStr,
 		22,
@@ -479,6 +479,7 @@ void Socket::socksConnect(addr& addr_, std::function<void(ByteVector& connStr_)>
 		timeLeft(start, aTimeout)
 	);
 
+	connStr.resize(len);
 	socksParseResponseAddress(connStr, len, addr_);
 }
 
@@ -999,6 +1000,10 @@ void Socket::socksParseResponseAddress(const ByteVector& aData, size_t aDataLeng
 	}
 
 	const auto port = *((uint16_t*)(&aData[aData.size() - 2])); // 2 bytes
+	if (port == 0) {
+		throw SocketException(STRING(SOCKS_UNSUPPORTED_RESPONSE));
+	}
+
 	if (addr_.sa.sa_family == AF_INET6) {
 		addr_.sai6.sin6_port = port;
 	} else {
