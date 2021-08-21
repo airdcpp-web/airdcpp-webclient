@@ -858,12 +858,24 @@ bool UploadManager::getAutoSlot() {
 	return getRunningAverage(false) < Util::convertSize(AirUtil::getSpeedLimit(false), Util::KB);
 }
 
-void UploadManager::removeUpload(Upload* aUpload, bool delay) {
+void UploadManager::removeUpload(Upload* aUpload, bool aDelay) {
 	WLock l(cs);
+
+	{
+		auto i = find(delayUploads.begin(), delayUploads.end(), aUpload);
+		if (i != delayUploads.end()) {
+			delayUploads.erase(i);
+			dcassert(!aDelay);
+			dcassert(find(uploads.begin(), uploads.end(), aUpload) == uploads.end());
+			delete aUpload;
+			return;
+		}
+	}
+
 	dcassert(find(uploads.begin(), uploads.end(), aUpload) != uploads.end());
 	uploads.erase(remove(uploads.begin(), uploads.end(), aUpload), uploads.end());
 
-	if(delay) {
+	if (aDelay) {
 		delayUploads.push_back(aUpload);
 	} else {
 		delete aUpload;
@@ -1304,19 +1316,6 @@ void UploadManager::on(ClientManagerListener::UserDisconnected, const UserPtr& a
 	if(wentOffline) {
 		clearUserFiles(aUser, true);
 	}
-}
-
-void UploadManager::removeDelayUpload(const UserConnection& aSource) {
-	WLock l(cs);
-	auto i = find_if(delayUploads.begin(), delayUploads.end(), [&](Upload* up) { return &aSource == &up->getUserConnection(); });
-	if (i != delayUploads.end()) {
-		Upload* up = *i;
-		delayUploads.erase(i);
-		dcassert(find_if(uploads.begin(), uploads.end(), [&](Upload* up) { return &aSource == &up->getUserConnection(); }) == uploads.end());
-		delete up;
-		return;
-	}
-	//dcassert(find_if(uploads.begin(), uploads.end(), [&](Upload* up) { return &aSource == &up->getUserConnection(); }) != uploads.end());
 }
 
 void UploadManager::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
