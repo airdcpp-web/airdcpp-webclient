@@ -126,7 +126,6 @@ public:
 
 	/** @internal */
 	void addConnection(UserConnectionPtr conn);
-	void removeDelayUpload(const UserConnection& source);
 	void abortUpload(const string& aFile, bool waiting = true);
 		
 	GETSET(uint8_t, extraPartial, ExtraPartial);

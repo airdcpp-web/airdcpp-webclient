@@ -1130,9 +1130,6 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 				dcassert(i != container.end());
 				putCQI(*i);
 			}
-
-			if (type == CONNECTION_TYPE_UPLOAD)
-				UploadManager::getInstance()->removeDelayUpload(*aSource);
 		}
 	}
 	putConnection(aSource);
