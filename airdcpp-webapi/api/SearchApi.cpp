@@ -116,8 +116,10 @@ namespace webserver {
 			break;
 		case Session::TYPE_BASIC_AUTH:
 			ret = "basic_auth";
+			break;
 		default:
 			ret = "session:" + Util::toString(session->getId());
+			break;
 		}
 
 		if (!aSuffix.empty()) {

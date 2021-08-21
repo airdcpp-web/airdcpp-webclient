@@ -90,6 +90,10 @@ namespace webserver {
 			return !requestJson.is_null();
 		}
 
+		bool hasErrorMessage() const noexcept {
+			return !responseJsonError.is_null();
+		}
+
 		const json& getRequestBody() const noexcept {
 			return requestJson;
 		}
