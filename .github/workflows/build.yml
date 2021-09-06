@@ -23,6 +23,9 @@ jobs:
         # Not testing with GCC on macOS.
         - os: macos-latest
           compiler: gcc
+        # TODO
+        - os: ubuntu-latest
+          compiler: clang
         include:
         - compiler: clang
           CC: clang
@@ -47,6 +50,9 @@ jobs:
         brew upgrade
         brew install boost libmaxminddb leveldb libnatpmp miniupnpc openssl pkg-config tbb
         export OPENSSL_ROOT_DIR=/usr/local/opt/openssl/
+
+    - name: Install websocketpp
+      run: |
         git clone git://github.com/zaphoyd/websocketpp.git
         cd websocketpp
         cmake .
