@@ -1,0 +1,76 @@
+name: ci
+on: [push, pull_request]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Debug
+
+jobs:
+  build:
+    # The CMake configure and build commands are platform agnostic and should work equally
+    # well on Windows or Mac.  You can convert this to a matrix build if you need
+    # cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    # runs-on: ubuntu-latest
+    
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [clang, gcc]
+        os: [ubuntu-latest, macos-latest]
+        exclude:
+        # Not testing with GCC on macOS.
+        - os: macos-latest
+          compiler: gcc
+        include:
+        - compiler: clang
+          CC: clang
+          CXX: clang++
+        - compiler: gcc
+          CC: gcc
+          CXX: g++
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies on Linux
+      if: ${{ runner.os == 'Linux' }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install cmake nodejs python pkg-config libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev \
+            libmaxminddb-dev libleveldb-dev libboost1.67-dev libboost-regex1.67 libboost-thread1.67 libboost-system1.67
+
+    - name: Install dependencies on macOS
+      if: ${{ runner.os == 'macOS' }}
+      run: |
+        brew upgrade
+        brew install boost libmaxminddb leveldb libnatpmp miniupnpc openssl pkg-config tbb
+        export OPENSSL_ROOT_DIR=/usr/local/opt/openssl/
+        git clone git://github.com/zaphoyd/websocketpp.git
+        cd websocketpp
+        cmake .
+        sudo make install
+        cd ..
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} .
+
+    - name: Build
+      # Build your program with the given configuration
+      run: cmake --build --config ${{env.BUILD_TYPE}} . -j2
+
+    - name: Test startup
+      # working-directory: ${{ github.workspace }}/build
+      if: ${{ runner.os == 'Linux' }}
+      run: |
+        sh ./test/initial_run.sh
+        
+    # - name: Test
+      # working-directory: ${{github.workspace}}/build
+      # Execute tests defined by the CMake configuration.  
+      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+      # run: ctest -C ${{env.BUILD_TYPE}}
+      
