@@ -23,6 +23,7 @@
 #include <api/common/Deserializer.h>
 #include <web-server/JsonUtil.h>
 
+#include <airdcpp/AirUtil.h>
 #include <airdcpp/Client.h>
 #include <airdcpp/DirectoryListingManager.h>
 
@@ -263,10 +264,13 @@ namespace webserver {
 
 	}
 
-	void FilelistInfo::on(DirectoryListingListener::LoadingFinished, int64_t /*aStart*/, const string& aPath, uint8_t aType) noexcept {
-		// if (aPath == dl->getCurrentLocationInfo().directory->getAdcPath()) {
+	void FilelistInfo::on(DirectoryListingListener::LoadingFinished, int64_t /*aStart*/, const string& aLoadedPath, uint8_t aType) noexcept {
 		if (static_cast<DirectoryListing::DirectoryLoadType>(aType) != DirectoryListing::DirectoryLoadType::LOAD_CONTENT) {
-			updateItems(aPath);
+			// Insert new items
+			updateItems(aLoadedPath);
+		} else if (AirUtil::isParentOrExactAdc(aLoadedPath, dl->getCurrentLocationInfo().directory->getAdcPath())) {
+			// Reload directory content
+			updateItems(dl->getCurrentLocationInfo().directory->getAdcPath());
 		}
 	}
 
