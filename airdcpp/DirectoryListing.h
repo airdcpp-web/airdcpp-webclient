@@ -244,7 +244,9 @@ public:
 
 	void addListDiffTask(const string& aFile, bool aOwnList) noexcept;
 
-	void addPartialListTask(const string& aXml, const string& aBase, bool aBackgroundTask = false, const AsyncF& aCompletionF = nullptr) noexcept;
+	void addPartialListLoadTask(const string& aXml, const string& aBasePath, bool aBackgroundTask = false, const AsyncF& aCompletionF = nullptr) noexcept;
+	void addOwnListLoadTask(const string& aBasePath, bool aBackgroundTask = false) noexcept;
+
 	void addFullListTask(const string& aDir) noexcept;
 	void addQueueMatchTask() noexcept;
 

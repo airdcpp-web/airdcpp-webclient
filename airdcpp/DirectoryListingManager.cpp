@@ -224,7 +224,7 @@ void DirectoryListingManager::processListHooked(const string& aFileName, const s
 		if (p != viewedLists.end()) {
 			if (p->second->getPartialList() && isPartialList) {
 				//we don't want multiple threads to load those simultaneously. load in the list thread and return here after that
-				p->second->addPartialListTask(aXml, aRemotePath, true, [=] { processListActionHooked(p->second, aRemotePath, aFlags); });
+				p->second->addPartialListLoadTask(aXml, aRemotePath, true, [=] { processListActionHooked(p->second, aRemotePath, aFlags); });
 				return;
 			}
 		}
@@ -380,7 +380,7 @@ void DirectoryListingManager::on(QueueManagerListener::PartialListFinished, cons
 	dl->addHubUrlChangeTask(aUser.hint);
 
 	if (dl->hasCompletedDownloads()) {
-		dl->addPartialListTask(aXML, aBase);
+		dl->addPartialListLoadTask(aXML, aBase);
 	} else {
 		fire(DirectoryListingManagerListener::OpenListing(), dl, aBase, aXML);
 	}
