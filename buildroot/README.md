@@ -7,7 +7,7 @@ You should first create a new directory (e.g. `buildroot`) where you will put th
 Download buildroot in the newly created directory:
 
 ```
-wget https://buildroot.org/downloads/buildroot-2021.02.3.tar.bz2
+wget https://buildroot.org/downloads/buildroot-2021.08.tar.bz2
 ```
 
 Note: check https://buildroot.org/download.html for the latest patch release to get the latest fixes and security updates.
@@ -20,9 +20,9 @@ Repeat the following steps for all wanted architectures.
 
 Extract the package and rename the output directory based on the current architecture: 
 
-`tar jxvf buildroot-2021.02.3.tar.bz2`
+`tar jxvf buildroot-2021.08.tar.bz2`
 
-`mv -f buildroot-2021.02.3 armhf` (replace `armhf` with the wanted arch name)
+`mv -f buildroot-2021.08 armhf` (replace `armhf` with the wanted arch name)
 
 The architecture name can be freely chosen. The following architecture names are used for the shipped binaries: `armhf`, `x86_64`, `i786`
 
