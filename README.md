@@ -1,4 +1,4 @@
-[![GitHub Actions][build-badge]][build]
+![build](https://github.com/airdcpp-web/airdcpp-webclient/actions/workflows/build.yml/badge.svg)
 
 # AirDC++ Web Client
 
