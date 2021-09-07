@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/airdcpp-web/airdcpp-webclient.svg)](https://travis-ci.org/airdcpp-web/airdcpp-webclient)
+![build](https://github.com/airdcpp-web/airdcpp-webclient/actions/workflows/build.yml/badge.svg)
 
 # AirDC++ Web Client
 

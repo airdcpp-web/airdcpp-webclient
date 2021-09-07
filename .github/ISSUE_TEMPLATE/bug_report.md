@@ -1,3 +1,12 @@
+---
+name: Bug report
+about: Report an issue with the application
+title: ''
+labels: ''
+assignees: ''
+
+---
+
 <!--
 If you are posting a question/feature requests, all prefilled information can be removed.
 
@@ -10,7 +19,7 @@ By submitting this report, I thereby confirm that I have read the guidelines for
 
 Copy from *Settings* -> *About*
 
-UI related issues should also include the browser version.
+UI related issues should also include the browser version. Please ensure that you are using the latest application and UI versions that are available (visit https://airdcpp-web.github.io/blog/).
 
 ### Operating system:
 
@@ -19,3 +28,7 @@ Name and version of the operating system on which the application is installed o
 ### Steps to reproduce the issue:
 
 If you are unable to reproduce the issue, you can explain that what was happening before the crash/issue occurred. If it is a recurring issue, please mention how often does it occur.
+
+### Screenshots
+
+If applicable, add screenshots to help explain your problem.
