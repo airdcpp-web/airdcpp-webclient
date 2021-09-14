@@ -154,6 +154,8 @@ static void installHandler() {
 	signal(SIGSEGV, &handleCrash);
 	signal(SIGILL, &handleCrash);
 
+	signal(SIGPIPE, SIG_IGN);
+
 	// Note: separate from SIGTERM
 	std::set_terminate([] {
 		handleCrash(0);
