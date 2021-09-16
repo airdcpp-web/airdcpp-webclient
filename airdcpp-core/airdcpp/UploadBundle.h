@@ -45,36 +45,37 @@ public:
 	GETSET(string, target, Target);
 	int delayTime = 0;
 
-	GETSET(UploadList, uploads, Uploads);
-	UploadList& getUploads() { return uploads; }
+	const UploadList& getUploads() const noexcept { return uploads; }
 	
-	int getRunning() const { return (int)uploads.size(); }
+	int getRunning() const noexcept { return (int)uploads.size(); }
 
-	uint64_t getStart() const { return start; }
+	uint64_t getStart() const noexcept { return start; }
 
-	bool getSingleUser() const { return singleUser; }
-	void setSingleUser(bool aSingleUser, int64_t aUploadedSegments = 0);
+	bool getSingleUser() const noexcept { return singleUser; }
+	void setSingleUser(bool aSingleUser, int64_t aUploadedSegments = 0) noexcept;
 
-	string getName() const;
-	string getToken() const { return token; }
+	string getName() const noexcept;
+	string getToken() const noexcept { return token; }
 
-	uint64_t getSecondsLeft() const;
-	uint64_t getUploaded() const { return uploaded + uploadedSegments; }
+	uint64_t getSecondsLeft() const noexcept;
+	uint64_t getUploaded() const noexcept { return uploaded + uploadedSegments; }
 
-	void findBundlePath(const string& aName);
+	void findBundlePath(const string& aName) noexcept;
 
 	/* DownloadManager */
-	void addUploadedSegment(int64_t aSize);
+	void addUploadedSegment(int64_t aSize) noexcept;
 
-	void addUpload(Upload* u);
-	bool removeUpload(Upload* u);
+	void addUpload(Upload* u) noexcept;
+	bool removeUpload(Upload* u) noexcept;
 
-	uint64_t countSpeed();
+	uint64_t countSpeed() noexcept;
 
 private:
 	uint64_t uploaded = 0;
 	bool singleUser = true;
 	time_t start = GET_TICK();
+
+	UploadList uploads;
 
 	string token;
 };
