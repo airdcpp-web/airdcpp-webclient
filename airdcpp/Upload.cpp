@@ -48,7 +48,6 @@ void Upload::setFiltered() {
 Upload::~Upload() {
 	if (bundle) {
 		bundle->removeUpload(this);
-		bundle = nullptr;
 	}
 
 	getUserConnection().setUpload(nullptr);

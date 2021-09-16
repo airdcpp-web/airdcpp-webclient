@@ -56,15 +56,15 @@ public:
 		COLUMN_LAST
 	};
 		
-	const tstring getText(uint8_t col) const;
-	int getImageIndex() const;
+	const tstring getText(uint8_t col) const noexcept;
+	int getImageIndex() const noexcept;
 
-	int64_t getSize() const { return size; }
-	uint64_t getTime() const { return time; }
-	const string& getFile() const { return file; }
-	const UserPtr& getUser() const { return user.user; }
-	const HintedUser& getHintedUser() const { return user; }
-	const string& getHubUrl() const { return user.hint; }
+	int64_t getSize() const noexcept { return size; }
+	uint64_t getTime() const noexcept { return time; }
+	const string& getFile() const noexcept { return file; }
+	const UserPtr& getUser() const noexcept { return user.user; }
+	const HintedUser& getHintedUser() const noexcept { return user; }
+	const string& getHubUrl() const noexcept { return user.hint; }
 
 	GETSET(int64_t, pos, Pos);
 	
@@ -101,36 +101,36 @@ public:
 	 *
 	 * @return Running average download speed in Bytes/s
 	 */
-	int64_t getRunningAverage(bool lock=true);
+	int64_t getRunningAverage(bool aLock = true) const noexcept;
 	
-	uint8_t getSlots() const;
+	uint8_t getSlots() const noexcept;
 
 	/** @return Number of free slots. */
-	uint8_t getFreeSlots() const;
+	uint8_t getFreeSlots() const noexcept;
 	
 	/** @internal */
-	int getFreeExtraSlots() const;
+	int getFreeExtraSlots() const noexcept;
 	
 	/** @param aUser Reserve an upload slot for this user and connect. */
-	void reserveSlot(const HintedUser& aUser, uint64_t aTime);
-	void unreserveSlot(const UserPtr& aUser);
-	void clearUserFiles(const UserPtr& aUser, bool lock);
-	bool hasReservedSlot(const UserPtr& aUser) const;
-	bool isNotifiedUser(const UserPtr& aUser) const;
+	void reserveSlot(const HintedUser& aUser, uint64_t aTime) noexcept;
+	void unreserveSlot(const UserPtr& aUser) noexcept;
+	void clearUserFiles(const UserPtr& aUser, bool lock) noexcept;
+	bool hasReservedSlot(const UserPtr& aUser) const noexcept;
+	bool isNotifiedUser(const UserPtr& aUser) const noexcept;
 	typedef vector<WaitingUser> SlotQueue;
-	SlotQueue getUploadQueue() const;
+	SlotQueue getUploadQueue() const noexcept;
 
 	void onUBD(const AdcCommand& cmd);
 	void onUBN(const AdcCommand& cmd);
-	UploadBundlePtr findBundle(const string& aBundleToken);
+	UploadBundlePtr findBundle(const string& aBundleToken) const noexcept;
 
 	/** @internal */
-	void addConnection(UserConnectionPtr conn);
-	void abortUpload(const string& aFile, bool waiting = true);
+	void addConnection(UserConnectionPtr conn) noexcept;
+	void abortUpload(const string& aFile, bool aWaitDisconnected = true) noexcept;
 		
-	GETSET(uint8_t, extraPartial, ExtraPartial);
-	GETSET(uint8_t, extra, Extra);
-	GETSET(uint64_t, lastGrant, LastGrant);
+	IGETSET(uint8_t, extraPartial, ExtraPartial, 0);
+	IGETSET(uint8_t, extra, Extra, 0);
+	IGETSET(uint64_t, lastGrant, LastGrant, 0);
 
 	SharedMutex& getCS() noexcept { return cs; }
 	const UploadList& getUploads() const noexcept {
@@ -140,15 +140,15 @@ private:
 	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 	StringMatch freeSlotMatcher;
 
-	uint8_t running;
-	uint8_t mcnSlots;
-	uint8_t smallSlots;
+	uint8_t running = 0;
+	uint8_t mcnSlots = 0;
+	uint8_t smallSlots = 0;
 
 	UploadList uploads;
 	UploadList delayUploads;
 	mutable SharedMutex cs;
 
-	int lastFreeSlots; /// amount of free slots at the previous minute
+	int lastFreeSlots = -1; /// amount of free slots at the previous minute
 	
 	typedef unordered_map<UserPtr, uint16_t, User::Hash> MultiConnMap;
 	MultiConnMap multiUploads;
@@ -159,15 +159,15 @@ private:
 	SlotMap notifiedUsers;
 	SlotQueue uploadQueue;
 
-	size_t addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size);
-	void notifyQueuedUsers();
-	void connectUser(const HintedUser& aUser, const string& aToken);
+	size_t addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size) noexcept;
+	void notifyQueuedUsers() noexcept;
+	void connectUser(const HintedUser& aUser, const string& aToken) noexcept;
 
-	bool isUploading(const UserPtr& aUser) const { return multiUploads.find(aUser) != multiUploads.end(); }
-	bool getMultiConn(const UserConnection& aSource);
-	void changeMultiConnSlot(const UserPtr& aUser, bool remove);
-	void checkMultiConn();
-	void UpdateSlotCounts(UserConnection& aSource, uint8_t slotType);
+	bool isUploadingLocked(const UserPtr& aUser) const noexcept { return multiUploads.find(aUser) != multiUploads.end(); }
+	bool getMultiConnLocked(const UserConnection& aSource) noexcept;
+	void changeMultiConnSlot(const UserPtr& aUser, bool aRemove) noexcept;
+	void checkMultiConn() noexcept;
+	void updateSlotCounts(UserConnection& aSource, uint8_t aSlotType) noexcept;
 
 	/* bundles */
 	typedef unordered_map<string, UploadBundlePtr> RemoteBundleTokenMap;
@@ -179,19 +179,19 @@ private:
 	void finishBundle(const AdcCommand& cmd);
 	void removeBundleConnection(const AdcCommand& cmd);
 
-	Upload* findUpload(const string& aToken);
+	Upload* findUpload(const string& aToken) noexcept;
 
 	friend class Singleton<UploadManager>;
 	UploadManager() noexcept;
 	~UploadManager();
 
-	bool getAutoSlot();
-	void removeConnection(UserConnection* aConn);
-	void removeUpload(Upload* aUpload, bool delay = false);
-	void logUpload(const Upload* u);
+	bool getAutoSlot() const noexcept;
+	void removeConnection(UserConnection* aConn) noexcept;
+	void removeUpload(Upload* aUpload, bool aDelay = false) noexcept;
+	void logUpload(const Upload* u) noexcept;
 
 	// ClientManagerListener
-	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool wentOffline) noexcept override;
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool aWentOffline) noexcept override;
 	
 	// TimerManagerListener
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
@@ -208,7 +208,7 @@ private:
 	void on(AdcCommand::GET, UserConnection*, const AdcCommand&) noexcept override;
 	void on(AdcCommand::GFI, UserConnection*, const AdcCommand&) noexcept override;
 
-	bool prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aResume, int64_t& aBytes, const string& userSID, bool listRecursive=false, bool tthList=false);
+	bool prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aResume, int64_t& aBytes, const string& aUserSID, bool aListRecursive = false, bool aIsTTHList = false);
 };
 
 } // namespace dcpp
