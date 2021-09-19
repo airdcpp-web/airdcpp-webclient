@@ -181,6 +181,7 @@ namespace webserver {
 			return websocketpp::http::status_code::no_content;
 		}
 
+		aRequest.setResponseErrorStr("No such subscription: " + subscription);
 		return websocketpp::http::status_code::not_found;
 	}
 

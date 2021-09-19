@@ -19,11 +19,14 @@ endif (Backtrace_FOUND)
 
 # actual target:
 add_executable (${PROJECT_NAME} MACOSX_BUNDLE WIN32
-                ${airdcppd_SRCS}
-                )
+                 ${airdcppd_SRCS}
+               )
 
-target_link_libraries (${PROJECT_NAME} ${LIBS} airdcpp airdcpp-webapi ${Backtrace_LIBRARIES})
+target_link_libraries (${PROJECT_NAME} airdcpp airdcpp-webapi)
 
+if (Backtrace_FOUND)
+  target_link_libraries (${PROJECT_NAME} ${Backtrace_LIBRARIES})
+endif (Backtrace_FOUND)
 
 if (CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(-D_DEBUG)

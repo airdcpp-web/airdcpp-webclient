@@ -142,6 +142,7 @@ namespace webserver {
 			code = websocketpp::http::status_code::bad_request;
 		}
 
+		dcassert(HttpUtil::isStatusOk(code) || code == CODE_DEFERRED || aRequest.hasErrorMessage());
 		return static_cast<api_return>(code);
 	}
 

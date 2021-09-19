@@ -19,8 +19,31 @@ if [ -z "$2" ]
     echo "BUILD_THREADS: number of compiler threads to use (default: auto)"
     echo "SKIP_EXISTING: don't build/overwrite existing target packages (default: disabled)"
     echo "DEBUG: create debug build with extra logging/assertions (default: disabled)"
+    echo "UPLOAD: upload created files to a remote server over SCP (default: disabled)"
     echo ""
     exit 1
+fi
+
+# Check and load SSH config for uploading (if enabled)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+if [[ $UPLOAD ]]; then
+  if [[ ! -f ${SCRIPT_DIR}/.ssh_config.user ]]; then
+    echo "File ${SCRIPT_DIR}/.ssh_config.user doesn't exist"
+    exit 1
+  fi
+
+  . ${SCRIPT_DIR}/.ssh_config.user
+
+  if [[ ! $SSH_ADDRESS ]]; then
+    echo "SSH_ADDRESS missing"
+    exit 1
+  fi
+
+  if [[ ! $SSH_PATH ]]; then
+    echo "SSH_PATH missing"
+    exit 1
+  fi
 fi
 
 # Source
@@ -93,6 +116,13 @@ FetchGit()
   git fetch --prune --tags
 }
 
+# SCP uploading to a remote server
+UploadFile()
+{
+  echo ""
+  echo "${bold}Uploading $1...${normal}"
+  scp $1 ${SSH_ADDRESS}:${SSH_PATH}/packages/$2
+}
 
 # Call with the current arch
 SetArch()
@@ -129,7 +159,7 @@ SetArch()
   fi
 
   if [[ $BRANCH = "master" ]]; then
-    PKG_OUTPUT_DIR=${PKG_DIR}/stable
+    PKG_SUBDIR=stable
     ARCH_GIT_VERSION=$(git describe --abbrev=0 --tags)
     ARCH_VERSION=$(cat ${AIR_ARCH_ROOT}/CMakeLists.txt | pcregrep -o1 'set \(VERSION \"([0-9]+\.[0-9]+\.[0-9]+)\"\)')
 
@@ -139,10 +169,11 @@ SetArch()
       exit 1
     fi
   else
-    PKG_OUTPUT_DIR=${PKG_DIR}/$BRANCH
+    PKG_SUBDIR=$BRANCH
     ARCH_VERSION=$(git describe --tags --abbrev=4 --dirty=-d)
   fi
 
+  PKG_OUTPUT_DIR=${PKG_DIR}/${PKG_SUBDIR}
   ARCH_PKG_UI_VERSION=$(sh ./scripts/parse_webui_version.sh ${ARCH_VERSION})
   ARCH_PKG_BASE="airdcpp_${ARCH_VERSION}_webui-${ARCH_PKG_UI_VERSION}_${ARCHSTR}_portable${ARCH_PKG_BASE_EXTRA}"
   ARCH_PKG_PATH="$PKG_OUTPUT_DIR/$ARCH_PKG_BASE.tar.gz"
@@ -211,7 +242,16 @@ CreatePackage()
   APP_PKG_SUMMARY="${APP_PKG_SUMMARY}${ARCH_PKG_PATH}\n"
   APP_PKG_SUMMARY="${APP_PKG_SUMMARY}${ARCH_LATEST_PKG_PATH}\n"
 
+  # Upload
+  if [[ $UPLOAD ]]; then
+    UploadFile ${ARCH_PKG_PATH} ${PKG_SUBDIR}
+    UploadFile ${ARCH_LATEST_PKG_PATH} ${PKG_SUBDIR}
+  fi
+
+  # Symbols
   CreateSymbols
+
+  # Cleanup
   DeleteTmpDir
 }
 
@@ -227,12 +267,18 @@ CreateSymbols()
 
   cp -r ${AIR_ARCH_ROOT}/airdcppd/.debug ${TMP_DIR}
 
+  # Compress
   ARCH_SYMBOL_PKG_PATH=$SYMBOLS_OUTPUT_DIR/dbg_symbols_$ARCH_PKG_BASE.tar.gz
   tar czvf $ARCH_SYMBOL_PKG_PATH -C ${TMP_DIR} .debug
 
+  # Report
   echo "${bold}Symbols were saved to ${ARCH_SYMBOL_PKG_PATH}${normal}"
-
   SYMBOLS_PKG_SUMMARY="${SYMBOLS_PKG_SUMMARY}${ARCH_SYMBOL_PKG_PATH}\n"
+
+  # Upload
+  if [[ $UPLOAD ]]; then
+    UploadFile ${ARCH_SYMBOL_PKG_PATH} ${PKG_SUBDIR}/dbg_symbols
+  fi
 }
 
 # Call with the current arch

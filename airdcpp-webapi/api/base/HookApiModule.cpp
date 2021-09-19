@@ -121,7 +121,7 @@ namespace webserver {
 		auto& hook = getHookSubscriber(aRequest);
 		hook.disable();
 
-		return websocketpp::http::status_code::not_found;
+		return websocketpp::http::status_code::no_content;
 	}
 
 	HookApiModule::HookCompletionData::HookCompletionData(bool aRejected, const json& aJson) : rejected(aRejected) {

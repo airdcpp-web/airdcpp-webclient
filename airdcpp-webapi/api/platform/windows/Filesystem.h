@@ -24,7 +24,7 @@
 namespace webserver {
 	class Filesystem {
 	public:
-		static json getDriveListing(bool aListCdrom) {
+		static json getDriveListing(bool aListCdrom) noexcept {
 			json retJson;
 
 			//Enumerate the drive letters
@@ -50,7 +50,7 @@ namespace webserver {
 		}
 
 	private:
-		static json serializeDrive(const tstring& aDrive, UINT aDriveType) {
+		static json serializeDrive(const tstring& aDrive, UINT aDriveType) noexcept {
 			return {
 				{ "name", Text::fromT(aDrive) },
 				{ "type", {
@@ -59,7 +59,7 @@ namespace webserver {
 			};
 		}
 
-		static string driveTypeToString(UINT aDriveType) {
+		static string driveTypeToString(UINT aDriveType) noexcept {
 			switch (aDriveType) {
 				case DRIVE_RAMDISK:
 				case DRIVE_CDROM:

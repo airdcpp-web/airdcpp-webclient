@@ -62,8 +62,12 @@ static void handleCrash(int sig) {
 
 	uninit();
 
-	std::cerr << std::to_string(sig) << std::endl;
-	std::cerr << "pid: " << getpid() << std::endl;
+        std::cerr << std::endl << std::endl;
+        std::cerr << "Signal: " << std::to_string(sig) << std::endl;
+        std::cerr << "Process ID: " << getpid() << std::endl;
+        std::cerr << "Time: " << Util::getTimeString() << std::endl;
+        std::cerr << "OS version: " << Util::getOsVersion() << std::endl;
+        std::cerr << "Client version: " << shortVersionString << std::endl << std::endl;
 #if USE_STACKTRACE
 	std::cerr << "Collecting crash information, please wait..." << std::endl;
 	cow::StackTrace trace(Util::getAppPath());
@@ -149,6 +153,8 @@ static void installHandler() {
 	signal(SIGFPE, &handleCrash);
 	signal(SIGSEGV, &handleCrash);
 	signal(SIGILL, &handleCrash);
+
+	signal(SIGPIPE, SIG_IGN);
 
 	// Note: separate from SIGTERM
 	std::set_terminate([] {

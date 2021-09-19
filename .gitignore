@@ -32,3 +32,6 @@ Makefile
 # Precompiled headers
 cotire
 *_cotire.cmake
+
+# SSH config
+buildroot/.ssh_config.user
