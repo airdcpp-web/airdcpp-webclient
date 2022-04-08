@@ -110,12 +110,15 @@ public:
 	string getTypeIdByExtension(const string& aExtension, bool aDefaultsOnly = false) const noexcept;
 
 	bool decryptPacket(string& x, size_t aLen, const ByteVector& aBuf);
+	static string encryptSUDP(const uint8_t* aKey, const string& aCmd);
+	static bool decryptSUDP(const uint8_t* aKey, const ByteVector& aData, size_t aDataLen, string& result_);
 
 	SearchInstancePtr createSearchInstance(const string& aOwnerId, uint64_t aExpirationTick = 0) noexcept;
 	SearchInstancePtr removeSearchInstance(SearchInstanceToken aToken) noexcept;
 	SearchInstancePtr getSearchInstance(SearchInstanceToken aToken) const noexcept;
 	SearchInstanceList getSearchInstances() const noexcept;
 private:
+	static void testSUDP();
 	vector<pair<uint8_t*, uint64_t>> searchKeys;
 
 	mutable SharedMutex cs;

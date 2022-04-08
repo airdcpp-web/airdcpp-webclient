@@ -53,23 +53,26 @@ public:
 	scoped_handle(scoped_handle&& rhs) : t(rhs.t) { rhs.t = nullptr; }
 	scoped_handle& operator=(scoped_handle&& rhs) { if(&rhs != this) { t = rhs.t; rhs.t = nullptr; } return *this; }
 
+	scoped_handle(const scoped_handle<T, Release>&) = delete;
+	scoped_handle<T, Release>& operator=(const scoped_handle<T, Release>&) = delete;
 private:
-	scoped_handle(const scoped_handle<T, Release>&);
-	scoped_handle<T, Release>& operator=(const scoped_handle<T, Release>&);
-
 	T* t;
 };
 
-typedef scoped_handle<ASN1_INTEGER, ASN1_INTEGER_free> ASN1_INTEGER;
-typedef scoped_handle<BIGNUM, BN_free> BIGNUM;
-typedef scoped_handle<DH, DH_free> DH;
-typedef scoped_handle<DSA, DSA_free> DSA;
-typedef scoped_handle<EVP_PKEY, EVP_PKEY_free> EVP_PKEY;
-typedef scoped_handle<RSA, RSA_free> RSA;
-typedef scoped_handle<SSL, SSL_free> SSL;
-typedef scoped_handle<SSL_CTX, SSL_CTX_free> SSL_CTX;
-typedef scoped_handle<X509, X509_free> X509;
-typedef scoped_handle<X509_NAME, X509_NAME_free> X509_NAME;
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
+typedef scoped_handle<::DH, DH_free> DH;
+typedef scoped_handle<::DSA, DSA_free> DSA;
+typedef scoped_handle<::RSA, RSA_free> RSA;
+#endif
+
+typedef scoped_handle<::X509, X509_free> X509;
+typedef scoped_handle<::ASN1_INTEGER, ASN1_INTEGER_free> ASN1_INTEGER;
+typedef scoped_handle<::BIGNUM, BN_free> BIGNUM;
+typedef scoped_handle<::EVP_PKEY, EVP_PKEY_free> EVP_PKEY;
+typedef scoped_handle<::SSL, SSL_free> SSL;
+typedef scoped_handle<::SSL_CTX, SSL_CTX_free> SSL_CTX;
+typedef scoped_handle<::X509, X509_free> X509;
+typedef scoped_handle<::X509_NAME, X509_NAME_free> X509_NAME;
 
 // functions that operate with file paths - here in order to support UTF16 Windows paths
 bool SSL_CTX_use_certificate_file(::SSL_CTX* ctx, const char* file, int type);

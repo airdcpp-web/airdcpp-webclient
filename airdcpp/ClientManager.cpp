@@ -38,9 +38,6 @@
 #include "AdcHub.h"
 #include "NmdcHub.h"
 
-#include <openssl/aes.h>
-#include <openssl/rand.h>
-
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
@@ -875,30 +872,7 @@ bool ClientManager::sendUDP(AdcCommand& cmd, const CID& aCID, bool aNoCID /*fals
 				uint8_t keyChar[16];
 				Encoder::fromBase32(aKey.c_str(), keyChar, 16);
 
-				uint8_t ivd[16] = { };
-
-				// prepend 16 random bytes to message
-				RAND_bytes(ivd, 16);
-				cmdStr.insert(0, (char*)ivd, 16);
-					
-				// use PKCS#5 padding to align the message length to the cypher block size (16)
-				uint8_t pad = 16 - (cmdStr.length() & 15);
-				cmdStr.append(pad, (char)pad);
-
-				// encrypt it
-				uint8_t* out = new uint8_t[cmdStr.length()];
-				memset(ivd, 0, 16);
-				int aLen = cmdStr.length();
-
-				AES_KEY key;
-				AES_set_encrypt_key(keyChar, 128, &key);
-				AES_cbc_encrypt((unsigned char*)cmdStr.c_str(), out, cmdStr.length(), &key, ivd, AES_ENCRYPT);
-
-				dcassert((aLen & 15) == 0);
-
-				cmdStr.clear();
-				cmdStr.insert(0, (char*)out, aLen);
-				delete[] out;
+				SearchManager::encryptSUDP(keyChar, cmdStr);
 			}
 
 			udp->writeTo(u->getIdentity().getUdpIp(), u->getIdentity().getUdpPort(), cmdStr);

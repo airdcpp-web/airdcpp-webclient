@@ -598,7 +598,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 				BufferedSocket::NAT_CLIENT, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), connectSecure);
 
 			// ... and signal other client to do likewise.
-			send("$ConnectToMe " + senderNick + " " + localIp + ":" + Util::toString(sock->getLocalPort()) + (connectSecure ? "RS" : "R") + "|");
+			send("$ConnectToMe " + fromUtf8(senderNick) + " " + localIp + ":" + Util::toString(sock->getLocalPort()) + (connectSecure ? "RS" : "R") + "|");
 			return;
 		} else if(senderPort[senderPort.size() - 1] == 'R') {
 			senderPort.erase(senderPort.size() - 1);

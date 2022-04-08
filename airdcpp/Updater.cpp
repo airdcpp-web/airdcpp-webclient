@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "Updater.h"
 
+#include "CryptoManager.h"
 #include "File.h"
 #include "HashCalc.h"
 #include "HttpDownload.h"
@@ -269,7 +270,7 @@ string Updater::createUpdate(const FileListF& aFileListF) noexcept {
 	return updaterFilePath + updaterFile;
 }
 
-void Updater::signVersionFile(const string& file, const string& key, bool makeHeader) {
+void Updater::signVersionFile(const string& aVersionFilePath, const string& aPrivateKeyFilePath, bool aMakeHeader) {
 	string versionData;
 	unsigned int sig_len = 0;
 
@@ -278,11 +279,11 @@ void Updater::signVersionFile(const string& file, const string& key, bool makeHe
 	try {
 		// Read All Data from files
 		{
-			File versionFile(file, File::READ, File::OPEN);
+			File versionFile(aVersionFilePath, File::READ, File::OPEN);
 			versionData = versionFile.read();
 		}
 
-		FILE* f = fopen(key.c_str(), "r");
+		FILE* f = fopen(aPrivateKeyFilePath.c_str(), "r");
 		PEM_read_RSAPrivateKey(f, &rsa, NULL, NULL);
 		fclose(f);
 	} catch(const FileException&) { return; }
@@ -313,10 +314,10 @@ void Updater::signVersionFile(const string& file, const string& key, bool makeHe
 	boost::shared_array<uint8_t> sig = boost::shared_array<uint8_t>(new uint8_t[RSA_size(rsa)]);
 	RSA_sign(NID_sha1, digest, sizeof(digest), sig.get(), &sig_len, rsa);
 
-	if(sig_len > 0) {
+	if (sig_len > 0) {
 		string c_key = Util::emptyString;
 
-		if(makeHeader) {
+		if (aMakeHeader) {
 			int buf_size = i2d_RSAPublicKey(rsa, 0);
 			boost::shared_array<uint8_t> buf = boost::shared_array<uint8_t>(new uint8_t[buf_size]);
 
@@ -343,19 +344,19 @@ void Updater::signVersionFile(const string& file, const string& key, bool makeHe
 		try {
 			// Write signature file
 			{
-				File outSig(file + ".sign", File::WRITE, File::TRUNCATE | File::CREATE);
+				File outSig(aVersionFilePath + ".sign", File::WRITE, File::TRUNCATE | File::CREATE);
 				outSig.write(sig.get(), sig_len);
 			}
 
-			if(!c_key.empty()) {
+			if (!c_key.empty()) {
 				// Write the public key header (openssl probably has something to generate similar file, but couldn't locate it)
-				File pubKey(Util::getFilePath(file) + "pubkey.h", File::WRITE, File::TRUNCATE | File::CREATE);
+				File pubKey(Util::getFilePath(aVersionFilePath) + "pubkey.h", File::WRITE, File::TRUNCATE | File::CREATE);
 				pubKey.write(c_key);
 			}
 		} catch(const FileException&) { }
 	}
 
-	if(rsa) {
+	if (rsa) {
 		RSA_free(rsa);
 		rsa = NULL;
 	}

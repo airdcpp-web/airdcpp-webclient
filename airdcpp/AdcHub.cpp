@@ -269,10 +269,6 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 			if (u->getIdentity().getAdcConnectionSpeed(false) == 0) {
 				statusMessage("WARNING: This hub is not displaying the connection speed fields, which prevents the client from choosing the best sources for downloads. Please advise the hub owner to fix this.", LogMessage::SEV_WARNING);
 			}
-
-			if (isHubsoftVersionOrOlder("luadch", 2.18)) {
-				statusMessage("This hub uses an outdated hubsoft version that doesn't forward Advanced Direct Connect protocol messages according to the protocol specifications, which may silently break various client features. Certain functionality may have been disabled automatically in this hub. For more information, please see https://www.airdcpp.net/hubsoft-warnings", LogMessage::SEV_WARNING);
-			}
 		}
 
 		//we have to update the modes in case our connectivity changed
@@ -1151,31 +1147,9 @@ StringList AdcHub::parseSearchExts(int flag) noexcept {
 	return ret;
 }
 
-bool AdcHub::isHubsoftVersionOrOlder(const string& aHubsoft, double aVersion) {
-	const auto& app = getHubIdentity().getApplication();
-	auto i = app.find(" ");
-	if (i == string::npos) return false;
-
-	if (Text::toLower(app.substr(0, i)).find(aHubsoft) == string::npos) return false;
-
-	auto version = app.substr(i + 1);
-	if (version.empty()) return false;
-
-	if (version.front() == 'v') {
-		version.erase(0, 1);
-	}
-
-	return Util::toDouble(version) <= aVersion;
-}
-
 bool AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch, string& error_) noexcept {
 	if (!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
-		return false;
-	}
-
-	if (isHubsoftVersionOrOlder("luadch", 2.18)) {
-		error_ = "Feature is blocked by hub " + Client::getHubName() + " (the hub is using an outdated hubsoft version)";
 		return false;
 	}
 
