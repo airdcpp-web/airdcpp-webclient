@@ -163,6 +163,9 @@ namespace webserver {
 		void logDebugError(EndpointType* s, const string& aMessage, websocketpp::log::level aErrorLevel) {
 			s->get_elog().write(aErrorLevel, aMessage);
 		}
+
+		WebServerManager(WebServerManager&) = delete;
+		WebServerManager& operator=(WebServerManager&) = delete;
 	private:
 		// Websocketpp event handlers
 		template <typename EndpointType>

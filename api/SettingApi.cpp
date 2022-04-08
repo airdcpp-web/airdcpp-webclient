@@ -73,7 +73,7 @@ namespace webserver {
 
 		auto hasSet = false;
 		parseSettingValues(aRequest.getRequestBody(), [&](ApiSettingItem& aItem, const json& aValue) {
-			auto settings = aRequest.getSession()->getServer()->getSettingsManager();
+			decltype(auto) settings = aRequest.getSession()->getServer()->getSettingsManager();
 			settings.setDefaultValue(aItem, aValue);
 
 			hasSet = true;
@@ -130,7 +130,7 @@ namespace webserver {
 
 	api_return SettingApi::handleResetValues(ApiRequest& aRequest) {
 		const auto& requestJson = aRequest.getRequestBody();
-		auto settings = aRequest.getSession()->getServer()->getSettingsManager();
+		decltype(auto) settings = aRequest.getSession()->getServer()->getSettingsManager();
 
 		parseSettingKeys(requestJson, [&](ApiSettingItem& aItem) {
 			settings.unset(aItem);
@@ -141,7 +141,7 @@ namespace webserver {
 
 	api_return SettingApi::handleSetValues(ApiRequest& aRequest) {
 		auto server = aRequest.getSession()->getServer();
-		auto settings = aRequest.getSession()->getServer()->getSettingsManager();
+		decltype(auto) settings = aRequest.getSession()->getServer()->getSettingsManager();
 		auto holder = make_shared<SettingHolder>(
 			[=](const string& aError) {
 				server->log(aError, LogMessage::SEV_ERROR);

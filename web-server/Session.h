@@ -91,6 +91,7 @@ namespace webserver {
 
 		void reportError(const string& aError) noexcept;
 	private:
+	private:
 		const uint64_t maxInactivity;
 		const time_t started;
 		uint64_t lastActivity;

@@ -137,7 +137,10 @@ namespace webserver {
 		FilelistItemInfoPtr item = nullptr;
 		auto itemId = aRequest.getTokenParam();
 
-		auto curDir = ensureCurrentDirectoryLoaded();
+		auto curDir = dl->getCurrentLocationInfo().directory;
+		if (!curDir) {
+			throw RequestException(websocketpp::http::status_code::service_unavailable, "Filelist has not finished loading yet");
+		}
 
 		// TODO: refactor filelists and do something better than this
 		{

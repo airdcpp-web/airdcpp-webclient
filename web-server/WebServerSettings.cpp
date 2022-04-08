@@ -190,6 +190,7 @@ namespace webserver {
 		}
 
 		saveSettingFile(toJson(), CONFIG_DIR, CONFIG_NAME, aErrorF, CONFIG_VERSION);
+		isDirty = false;
 	}
 
 	bool WebServerSettings::saveSettingFile(const json& aJson, Util::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF, int aConfigVersion) noexcept {

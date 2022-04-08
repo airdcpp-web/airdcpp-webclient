@@ -41,6 +41,9 @@ namespace webserver {
 
 		void checkUpdates(const string& aName, const string& aCurrentVersion) noexcept;
 		void install(const string& aName) noexcept;
+
+		NpmRepository(NpmRepository&) = delete;
+		NpmRepository& operator=(NpmRepository&) = delete;
 	private:
 		void onPackageInfoDownloaded(const string& aName, const string& aCurrentVersion) noexcept;
 		void checkPackageData(const string& aPackageData, const string& aName, const string& aCurrentVersion);
