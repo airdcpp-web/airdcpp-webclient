@@ -84,6 +84,10 @@ SearchManager::SearchManager() {
 	setSearchTypeDefaults();
 	TimerManager::getInstance()->addListener(this);
 	SettingsManager::getInstance()->addListener(this);
+
+#ifdef _DEBUG
+	testSUDP();
+#endif
 }
 
 SearchManager::~SearchManager() {
@@ -193,42 +197,100 @@ SearchInstanceList SearchManager::getSearchInstances() const noexcept {
 	return ret;
 }
 
-bool SearchManager::decryptPacket(string& x, size_t aLen, const ByteVector& aBuf) {
-	RLock l (cs);
-	for(auto& i: searchKeys | reversed) {
-		boost::scoped_array<uint8_t> out(new uint8_t[aBuf.size()]);
+void SearchManager::testSUDP() {
+	uint8_t keyChar[16];
+	string data = "URES SI30744059452 SL8 FN/Downloads/ DM1644168099 FI440 FO124 TORLHTR7KH7GV7W";
+	Encoder::fromBase32("DR6AOECCMYK5DQ2VDATONKFSWU", keyChar, 16);
+	auto encrypted = encryptSUDP(keyChar, data);
 
-		uint8_t ivd[16] = { };
+	string result;
+	auto success = decryptSUDP(keyChar, ByteVector(begin(encrypted), end(encrypted)), encrypted.length(), result);
+	dcassert(success);
+	dcassert(compare(data, result) == 0);
+}
 
-		auto ctx = EVP_CIPHER_CTX_new();
+string SearchManager::encryptSUDP(const uint8_t* aKey, const string& aCmd) {
+	string inData = aCmd;
+	uint8_t ivd[16] = { };
 
-		int len = 0, tmpLen=0;
-		EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, i.first, ivd);
-		EVP_DecryptUpdate(ctx, &out[0], &len, aBuf.data(), aLen);
-		EVP_DecryptFinal_ex(ctx, &out[0] + aLen, &tmpLen);
-		EVP_CIPHER_CTX_free(ctx);
+	// prepend 16 random bytes to message
+	RAND_bytes(ivd, 16);
+	inData.insert(0, (char*)ivd, 16);
 
-		// Validate padding and replace with 0-bytes.
-		int padlen = out[aLen-1];
-		if(padlen < 1 || padlen > 16) {
-			continue;
-		}
+	// use PKCS#5 padding to align the message length to the cypher block size (16)
+	uint8_t pad = 16 - (aCmd.length() & 15);
+	inData.append(pad, (char)pad);
 
-		bool valid = true;
-		for(auto r=0; r<padlen; r++) {
-			if(out[aLen-padlen+r] != padlen) {
-				valid = false;
-				break;
-			} else
-				out[aLen-padlen+r] = 0;
-		}
+	// encrypt it
+	boost::scoped_array<uint8_t> out(new uint8_t[inData.length()]);
+	memset(ivd, 0, 16);
+	auto commandLength = inData.length();
 
-		if (valid) {
-			x = (char*)&out[0]+16;
+#define CHECK(n) if(!(n)) { dcassert(0); }
+
+	int len, tmpLen;
+	auto ctx = EVP_CIPHER_CTX_new();
+	CHECK(EVP_CipherInit_ex(ctx, EVP_aes_128_cbc(), NULL, aKey, ivd, 1));
+	CHECK(EVP_CIPHER_CTX_set_padding(ctx, 0));
+	CHECK(EVP_EncryptUpdate(ctx, out.get(), &len, (unsigned char*)inData.c_str(), inData.length()));
+	CHECK(EVP_EncryptFinal_ex(ctx, out.get() + len, &tmpLen));
+	EVP_CIPHER_CTX_free(ctx);
+
+	dcassert((commandLength & 15) == 0);
+
+	inData.clear();
+	inData.insert(0, (char*)out.get(), commandLength);
+	return inData;
+}
+
+bool SearchManager::decryptSUDP(const uint8_t* aKey, const ByteVector& aData, size_t aDataLen, string& result_) {
+	boost::scoped_array<uint8_t> out(new uint8_t[aData.size()]);
+
+	uint8_t ivd[16] = { };
+
+	auto ctx = EVP_CIPHER_CTX_new();
+
+#define CHECK(n) if(!(n)) { dcassert(0); }
+	int len;
+	CHECK(EVP_CipherInit_ex(ctx, EVP_aes_128_cbc(), NULL, aKey, ivd, 0));
+	CHECK(EVP_CIPHER_CTX_set_padding(ctx, 0));
+	CHECK(EVP_DecryptUpdate(ctx, out.get(), &len, aData.data(), aDataLen));
+	CHECK(EVP_DecryptFinal_ex(ctx, out.get() + len, &len));
+	EVP_CIPHER_CTX_free(ctx);
+
+	// Validate padding and replace with 0-bytes.
+	int padlen = out[aDataLen - 1];
+	if (padlen < 1 || padlen > 16) {
+		return false;
+	}
+
+	bool valid = true;
+	for (auto r = 0; r < padlen; r++) {
+		if (out[aDataLen - padlen + r] != padlen) {
+			valid = false;
 			break;
+		} else {
+			out[aDataLen - padlen + r] = 0;
 		}
 	}
-	return true;
+
+	if (valid) {
+		result_ = (char*)&out[0] + 16;
+		return true;
+	}
+
+	return false;
+}
+
+bool SearchManager::decryptPacket(string& x, size_t aLen, const ByteVector& aBuf) {
+	RLock l (cs);
+	for (const auto& i: searchKeys | reversed) {
+		if (decryptSUDP(i.first, aBuf, aLen, x)) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 const string& SearchManager::getPort() const { 

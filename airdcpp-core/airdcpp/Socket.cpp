@@ -937,6 +937,7 @@ void Socket::socksUpdated() {
 	udpAddrLen = sizeof(udpAddr);
 
 	if(CONNSETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5) {
+		// Set up a UDP relay with the server
 		try {
 			Socket s(TYPE_TCP);
 			s.setBlocking(false);
@@ -955,15 +956,24 @@ void Socket::socksUpdated() {
 				},
 				SOCKS_TIMEOUT
 			);
+
 		} catch (const SocketException& e) {
 			dcdebug("Socket: Failed to register with socks server (%s)\n", e.getError().c_str());
 			throw SocketException(STRING_F(SOCKS_SETUP_ERROR, e.getError()));
 		}
 
 		auto isV6 = udpAddr.sa.sa_family == AF_INET6;
+		auto port = isV6 ? udpAddr.sai6.sin6_port : udpAddr.sai.sin_port;
+
+		// We can't send any data without a valid port (IP could be validated as well...)
+		if (port == 0) {
+			dcdebug("SOCKS5: invalid port number was received\n");
+			throw SocketException(STRING_F(SOCKS_SETUP_ERROR, STRING(SOCKS_UNSUPPORTED_RESPONSE)));
+		}
+
 		udpAddrLen = isV6 ? sizeof(udpAddr.sai6) : sizeof(udpAddr.sai);
 
-		dcdebug("SOCKS5: UDP initialized with address %s:%d (v6: %s)\n", resolveName(&udpAddr.sa, udpAddrLen).c_str(), isV6 ? udpAddr.sai6.sin6_port : udpAddr.sai.sin_port, isV6 ? "true" : "false");
+		dcdebug("SOCKS5: UDP initialized with address %s:%d (v6: %s)\n", resolveName(&udpAddr.sa, udpAddrLen).c_str(), port, isV6 ? "true" : "false");
 	}
 }
 
@@ -999,11 +1009,9 @@ void Socket::socksParseResponseAddress(const ByteVector& aData, size_t aDataLeng
 		throw SocketException(STRING(SOCKS_UNSUPPORTED_RESPONSE));
 	}
 
+	// Some server implementations may not return any IP/port for regular connect responses (those are required only for binding)
+	// The caller should handle validation
 	const auto port = *((uint16_t*)(&aData[aData.size() - 2])); // 2 bytes
-	if (port == 0) {
-		throw SocketException(STRING(SOCKS_UNSUPPORTED_RESPONSE));
-	}
-
 	if (addr_.sa.sa_family == AF_INET6) {
 		addr_.sai6.sin6_port = port;
 	} else {

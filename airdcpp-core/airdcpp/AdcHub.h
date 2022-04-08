@@ -83,8 +83,6 @@ public:
 	AdcHub(const AdcHub&) = delete;
 	AdcHub& operator=(const AdcHub&) = delete;
 private:
-	bool isHubsoftVersionOrOlder(const string& aHubsoft, double aVersion);
-
 	friend class ClientManager;
 	friend class CommandHandler<AdcHub>;
 	friend class Identity;

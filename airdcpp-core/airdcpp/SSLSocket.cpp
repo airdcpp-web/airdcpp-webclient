@@ -36,13 +36,9 @@ SSLSocket::SSLSocket(CryptoManager::SSLContext context) : Socket(TYPE_TCP), ctx(
 	ctx = CryptoManager::getInstance()->getSSLContext(context);
 }
 
-#if OPENSSL_VERSION_NUMBER < 0x1000200fL
-static int SSL_is_server(SSL *s)
-{
-	return s->server;
-}
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
+#   define SSL_get1_peer_certificate SSL_get_peer_certificate
 #endif
-
 
 void SSLSocket::connect(const AddressInfo& aAddr, const string& aPort, const string& aLocalPort) {
 	if (aAddr.getType() == AddressInfo::TYPE_URL) {
@@ -234,8 +230,8 @@ bool SSLSocket::isTrusted() const noexcept {
 		return false;
 	}
 
-	X509* cert = SSL_get_peer_certificate(ssl);
-	if(!cert) {
+	X509* cert = SSL_get1_peer_certificate(ssl);
+	if (!cert) {
 		return false;
 	}
 
@@ -263,7 +259,7 @@ std::string SSLSocket::getEncryptionInfo() const noexcept {
 ByteVector SSLSocket::getKeyprint() const noexcept {
 	if(!ssl)
 		return ByteVector();
-	X509* x509 = SSL_get_peer_certificate(ssl);
+	X509* x509 = SSL_get1_peer_certificate(ssl);
 
 	if(!x509)
 		return ByteVector();
@@ -290,7 +286,7 @@ bool SSLSocket::verifyKeyprint(const string& expKP, bool allowUntrusted) noexcep
 	int err = SSL_get_verify_result(ssl);
 	if (ssl_ctx && store) {
 		X509_STORE_CTX* vrfy_ctx = X509_STORE_CTX_new();
-		X509* cert = SSL_get_peer_certificate(ssl);
+		X509* cert = SSL_get1_peer_certificate(ssl);
 
 		if (vrfy_ctx && cert && X509_STORE_CTX_init(vrfy_ctx, store, cert, SSL_get_peer_cert_chain(ssl))) {
 			X509_STORE_CTX_set_ex_data(vrfy_ctx, SSL_get_ex_data_X509_STORE_CTX_idx(), ssl);

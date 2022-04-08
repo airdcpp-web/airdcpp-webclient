@@ -28,12 +28,11 @@
 
 #include <boost/scoped_array.hpp>
 
-//#include "MD5Hash.h"
-//#include "SHA1Hash.h"
 #include "MerkleTree.h"
 
 #include "File.h"
 #include "Encoder.h"
+#include "Exception.h"
 #include "Util.h"
 
 namespace dcpp {

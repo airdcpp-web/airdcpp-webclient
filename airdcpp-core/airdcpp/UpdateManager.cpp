@@ -72,40 +72,45 @@ void UpdateManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 }
 
-bool UpdateManager::verifyVersionData(const string& data, const ByteVector& signature) {
-	int res = -1;
-
-	auto digest = CryptoManager::calculateSha1(data);
+bool UpdateManager::verifyVersionData(const string& aVersionData, const ByteVector& aPrivateKey) {
+	auto digest = CryptoManager::calculateSha1(aVersionData);
 	if (!digest) {
 		return false;
 	}
 
-	// Extract Key
 	const uint8_t* key = UpdateManager::publicKey;
-	RSA* rsa = d2i_RSAPublicKey(NULL, &key, sizeof(UpdateManager::publicKey));
-	if(rsa) {
-		res = RSA_verify(NID_sha1, (*digest).data(), (*digest).size(), &signature[0], signature.size(), rsa);
+	auto keySize = sizeof(UpdateManager::publicKey);
 
-		RSA_free(rsa);
-		rsa = NULL;
-	} else return false;
+#define CHECK(n) if(!(n)) { dcassert(0); }
+	EVP_PKEY* pkey = EVP_PKEY_new();
+	CHECK(d2i_PublicKey(EVP_PKEY_RSA, &pkey, &key, keySize));
 
-	return (res == 1); 
+	auto verify_ctx = EVP_PKEY_CTX_new(pkey, nullptr);
+	CHECK(EVP_PKEY_verify_init(verify_ctx));
+	CHECK(EVP_PKEY_CTX_set_rsa_padding(verify_ctx, RSA_PKCS1_PADDING));
+	CHECK(EVP_PKEY_CTX_set_signature_md(verify_ctx, EVP_sha1()));
+
+	auto res = EVP_PKEY_verify(verify_ctx, aPrivateKey.data(), aPrivateKey.size(), (*digest).data(), (*digest).size());
+
+	EVP_PKEY_free(pkey);
+	EVP_PKEY_CTX_free(verify_ctx);
+
+	return (res == 1);
 }
 
-void UpdateManager::completeSignatureDownload(bool manualCheck) {
+void UpdateManager::completeSignatureDownload(bool aManualCheck) {
 	auto& conn = conns[CONN_SIGNATURE];
 	ScopedFunctor([&conn] { conn.reset(); });
 
 	if(conn->buf.empty()) {
-		failVersionDownload(STRING_F(DOWNLOAD_SIGN_FAILED, conn->status), manualCheck);
+		failVersionDownload(STRING_F(DOWNLOAD_SIGN_FAILED, conn->status), aManualCheck);
 	} else {
 		versionSig.assign(conn->buf.begin(), conn->buf.end());
 	}
 
 	conns[CONN_VERSION] = make_unique<HttpDownload>(
 		getVersionUrl(),
-		[this, manualCheck] { completeVersionDownload(manualCheck); }
+		[this, aManualCheck] { completeVersionDownload(aManualCheck); }
 	);
 }
 
@@ -215,19 +220,19 @@ void UpdateManager::completeLanguageDownload() {
 	log(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName() % conn->status), LogMessage::SEV_WARNING);
 }
 
-void UpdateManager::completeVersionDownload(bool manualCheck) {
+void UpdateManager::completeVersionDownload(bool aManualCheck) {
 	auto& conn = conns[CONN_VERSION];
 	if(!conn) { return; }
 	ScopedFunctor([&conn] { conn.reset(); });
 
 	if (conn->buf.empty()) {
-		failVersionDownload(STRING_F(DOWNLOAD_VERSION_FAILED, conn->status), manualCheck);
+		failVersionDownload(STRING_F(DOWNLOAD_VERSION_FAILED, conn->status), aManualCheck);
 		return; 
 	}
 
-	bool verified = !versionSig.empty() && UpdateManager::verifyVersionData(conn->buf, versionSig);
-	if(!verified) {
-		failVersionDownload(STRING(VERSION_VERIFY_FAILED), manualCheck);
+	auto verified = !versionSig.empty() && verifyVersionData(conn->buf, versionSig);
+	if (!verified) {
+		failVersionDownload(STRING(VERSION_VERIFY_FAILED), aManualCheck);
 	}
 
 	try {
@@ -259,12 +264,12 @@ void UpdateManager::completeVersionDownload(bool manualCheck) {
 		xml.resetCurrentChild();
 
 		fire(UpdateManagerListener::VersionFileDownloaded(), xml);
-		updater->onVersionDownloaded(xml, verified, manualCheck);
+		updater->onVersionDownloaded(xml, verified, aManualCheck);
 	} catch (const Exception& e) {
-		failVersionDownload(STRING_F(VERSION_PARSING_FAILED, e.getError()), manualCheck);
+		failVersionDownload(STRING_F(VERSION_PARSING_FAILED, e.getError()), aManualCheck);
 	}
 
-	checkAdditionalUpdates(manualCheck);
+	checkAdditionalUpdates(aManualCheck);
 }
 
 void UpdateManager::failVersionDownload(const string& aError, bool manualCheck) {
