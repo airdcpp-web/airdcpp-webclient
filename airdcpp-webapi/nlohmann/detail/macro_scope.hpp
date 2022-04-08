@@ -1,7 +1,8 @@
 #pragma once
 
-#include <utility> // pair
+#include <utility> // declval, pair
 #include <nlohmann/thirdparty/hedley/hedley.hpp>
+#include <nlohmann/detail/meta/detected.hpp>
 
 // This file contains all internal macro definitions
 // You MUST include macro_unscope.hpp at the end of json.hpp to undef all of them
@@ -36,6 +37,66 @@
     #define JSON_HAS_CPP_11
 #endif
 
+#if !defined(JSON_HAS_FILESYSTEM) && !defined(JSON_HAS_EXPERIMENTAL_FILESYSTEM)
+    #ifdef JSON_HAS_CPP_17
+        #if defined(__cpp_lib_filesystem)
+            #define JSON_HAS_FILESYSTEM 1
+        #elif defined(__cpp_lib_experimental_filesystem)
+            #define JSON_HAS_EXPERIMENTAL_FILESYSTEM 1
+        #elif !defined(__has_include)
+            #define JSON_HAS_EXPERIMENTAL_FILESYSTEM 1
+        #elif __has_include(<filesystem>)
+            #define JSON_HAS_FILESYSTEM 1
+        #elif __has_include(<experimental/filesystem>)
+            #define JSON_HAS_EXPERIMENTAL_FILESYSTEM 1
+        #endif
+
+        // std::filesystem does not work on MinGW GCC 8: https://sourceforge.net/p/mingw-w64/bugs/737/
+        #if defined(__MINGW32__) && defined(__GNUC__) && __GNUC__ == 8
+            #undef JSON_HAS_FILESYSTEM
+            #undef JSON_HAS_EXPERIMENTAL_FILESYSTEM
+        #endif
+
+        // no filesystem support before GCC 8: https://en.cppreference.com/w/cpp/compiler_support
+        #if defined(__GNUC__) && !defined(__clang__) && __GNUC__ < 8
+            #undef JSON_HAS_FILESYSTEM
+            #undef JSON_HAS_EXPERIMENTAL_FILESYSTEM
+        #endif
+
+        // no filesystem support before Clang 7: https://en.cppreference.com/w/cpp/compiler_support
+        #if defined(__clang_major__) && __clang_major__ < 7
+            #undef JSON_HAS_FILESYSTEM
+            #undef JSON_HAS_EXPERIMENTAL_FILESYSTEM
+        #endif
+
+        // no filesystem support before MSVC 19.14: https://en.cppreference.com/w/cpp/compiler_support
+        #if defined(_MSC_VER) && _MSC_VER < 1940
+            #undef JSON_HAS_FILESYSTEM
+            #undef JSON_HAS_EXPERIMENTAL_FILESYSTEM
+        #endif
+
+        // no filesystem support before iOS 13
+        #if defined(__IPHONE_OS_VERSION_MIN_REQUIRED) && __IPHONE_OS_VERSION_MIN_REQUIRED < 130000
+            #undef JSON_HAS_FILESYSTEM
+            #undef JSON_HAS_EXPERIMENTAL_FILESYSTEM
+        #endif
+
+        // no filesystem support before macOS Catalina
+        #if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED < 101500
+            #undef JSON_HAS_FILESYSTEM
+            #undef JSON_HAS_EXPERIMENTAL_FILESYSTEM
+        #endif
+    #endif
+#endif
+
+#ifndef JSON_HAS_EXPERIMENTAL_FILESYSTEM
+    #define JSON_HAS_EXPERIMENTAL_FILESYSTEM 0
+#endif
+
+#ifndef JSON_HAS_FILESYSTEM
+    #define JSON_HAS_FILESYSTEM 0
+#endif
+
 // disable documentation warnings on clang
 #if defined(__clang__)
     #pragma clang diagnostic push
@@ -43,7 +104,7 @@
     #pragma clang diagnostic ignored "-Wdocumentation-unknown-command"
 #endif
 
-// allow to disable exceptions
+// allow disabling exceptions
 #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && !defined(JSON_NOEXCEPTION)
     #define JSON_THROW(exception) throw exception
     #define JSON_TRY try
@@ -77,7 +138,7 @@
     #define JSON_INTERNAL_CATCH JSON_INTERNAL_CATCH_USER
 #endif
 
-// allow to override assert
+// allow overriding assert
 #if !defined(JSON_ASSERT)
     #include <cassert> // assert
     #define JSON_ASSERT(x) assert(x)
@@ -291,6 +352,45 @@
 #define NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Type, ...)  \
     inline void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
     inline void from_json(const nlohmann::json& nlohmann_json_j, Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_FROM, __VA_ARGS__)) }
+
+
+// inspired from https://stackoverflow.com/a/26745591
+// allows to call any std function as if (e.g. with begin):
+// using std::begin; begin(x);
+//
+// it allows using the detected idiom to retrieve the return type
+// of such an expression
+#define NLOHMANN_CAN_CALL_STD_FUNC_IMPL(std_name)                                 \
+    namespace detail {                                                            \
+    using std::std_name;                                                          \
+    \
+    template<typename... T>                                                       \
+    using result_of_##std_name = decltype(std_name(std::declval<T>()...));        \
+    }                                                                             \
+    \
+    namespace detail2 {                                                           \
+    struct std_name##_tag                                                         \
+    {                                                                             \
+    };                                                                            \
+    \
+    template<typename... T>                                                       \
+    std_name##_tag std_name(T&&...);                                              \
+    \
+    template<typename... T>                                                       \
+    using result_of_##std_name = decltype(std_name(std::declval<T>()...));        \
+    \
+    template<typename... T>                                                       \
+    struct would_call_std_##std_name                                              \
+    {                                                                             \
+        static constexpr auto const value = ::nlohmann::detail::                  \
+                                            is_detected_exact<std_name##_tag, result_of_##std_name, T...>::value; \
+    };                                                                            \
+    } /* namespace detail2 */ \
+    \
+    template<typename... T>                                                       \
+    struct would_call_std_##std_name : detail2::would_call_std_##std_name<T...>   \
+    {                                                                             \
+    }
 
 #ifndef JSON_USE_IMPLICIT_CONVERSIONS
     #define JSON_USE_IMPLICIT_CONVERSIONS 1

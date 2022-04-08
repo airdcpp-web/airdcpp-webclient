@@ -113,6 +113,9 @@ namespace webserver {
 		void swapSettingDefinitions(ExtensionSettingItem::List& aDefinitions) noexcept;
 
 		FilesystemItemList getLogs() const noexcept;
+
+		Extension(Extension&) = delete;
+		Extension& operator=(Extension&) = delete;
 	private:
 		int apiVersion = 0;
 		int minApiFeatureLevel = 0;

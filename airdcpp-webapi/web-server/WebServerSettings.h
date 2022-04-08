@@ -98,6 +98,9 @@ namespace webserver {
 		void setValue(ApiSettingItem& aItem, const json& aJson);
 		void setDefaultValue(ApiSettingItem& aItem, const json& aJson);
 		void unset(ApiSettingItem& aItem) noexcept;
+
+		WebServerSettings(WebServerSettings&) = delete;
+		WebServerSettings& operator=(WebServerSettings&) = delete;
 	private:
 		WebServerManager* wsm;
 

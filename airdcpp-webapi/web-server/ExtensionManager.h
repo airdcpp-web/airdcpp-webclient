@@ -99,6 +99,9 @@ namespace webserver {
 		NpmRepository& getNpmRepository() noexcept {
 			return *npmRepository.get();
 		}
+
+		ExtensionManager(ExtensionManager&) = delete;
+		ExtensionManager& operator=(ExtensionManager&) = delete;
 	private:
 		bool removeExtension(const ExtensionPtr& aExtension) noexcept;
 		void onExtensionStateUpdated(const Extension* aExtension) noexcept;

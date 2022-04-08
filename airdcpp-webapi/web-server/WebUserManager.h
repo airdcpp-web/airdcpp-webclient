@@ -67,6 +67,9 @@ namespace webserver {
 
 		size_t getUserSessionCount() const noexcept;
 		string createRefreshToken(const WebUserPtr& aUser) noexcept;
+
+		WebUserManager(WebUserManager&) = delete;
+		WebUserManager& operator=(WebUserManager&) = delete;
 	private:
 		enum AuthType {
 			AUTH_UNKNOWN,

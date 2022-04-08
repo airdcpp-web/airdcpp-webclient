@@ -19,6 +19,20 @@
 #include <nlohmann/detail/meta/type_traits.hpp>
 #include <nlohmann/detail/value_t.hpp>
 
+#if JSON_HAS_EXPERIMENTAL_FILESYSTEM
+#include <experimental/filesystem>
+namespace nlohmann::detail
+{
+namespace std_fs = std::experimental::filesystem;
+} // namespace nlohmann::detail
+#elif JSON_HAS_FILESYSTEM
+#include <filesystem>
+namespace nlohmann::detail
+{
+namespace std_fs = std::filesystem;
+} // namespace nlohmann::detail
+#endif
+
 namespace nlohmann
 {
 namespace detail
@@ -169,7 +183,7 @@ void from_json(const BasicJsonType& j, std::valarray<T>& l)
 }
 
 template<typename BasicJsonType, typename T, std::size_t N>
-auto from_json(const BasicJsonType& j, T (&arr)[N]) // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
+auto from_json(const BasicJsonType& j, T (&arr)[N])  // NOLINT(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
 -> decltype(j.template get<T>(), void())
 {
     for (std::size_t i = 0; i < N; ++i)
@@ -443,6 +457,18 @@ void from_json(const BasicJsonType& j, std::unordered_map<Key, Value, Hash, KeyE
         m.emplace(p.at(0).template get<Key>(), p.at(1).template get<Value>());
     }
 }
+
+#if JSON_HAS_FILESYSTEM || JSON_HAS_EXPERIMENTAL_FILESYSTEM
+template<typename BasicJsonType>
+void from_json(const BasicJsonType& j, std_fs::path& p)
+{
+    if (JSON_HEDLEY_UNLIKELY(!j.is_string()))
+    {
+        JSON_THROW(type_error::create(302, "type must be string, but is " + std::string(j.type_name()), j));
+    }
+    p = *j.template get_ptr<const typename BasicJsonType::string_t*>();
+}
+#endif
 
 struct from_json_fn
 {
