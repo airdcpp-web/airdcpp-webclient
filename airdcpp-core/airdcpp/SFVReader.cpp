@@ -96,7 +96,7 @@ bool DirSFVReader::loadFile(const string& aContent) noexcept {
 		line = Text::toUtf8(rawLine);
 
 		// Make sure that the line is valid
-		if (!regex_search(line, AirUtil::crcReg) || line.find(';') != string::npos) {
+		if (!regex_search(line, AirUtil::crcReg) || line.find(';') == 0) {
 			continue;
 		}
 
