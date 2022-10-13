@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -433,6 +433,14 @@ void AdcHub::handle(AdcCommand::QUI, AdcCommand& c) noexcept {
 	}
 }
 
+#define ASSERT_DIRECT_TO_ME(c) \
+	if (c.getType() == AdcCommand::TYPE_DIRECT) { \
+		if (c.getTo() != myIdentity.getSID()) { \
+			statusMessage("SECURITY WARNING: received a " + c.getFourCC() + " message that should have been sent to a different user. This should never happen. Please inform the hub owner in order to get the security issue fixed.", LogMessage::SEV_WARNING); \
+			return; \
+		} \
+	}
+
 void AdcHub::handle(AdcCommand::CTM, AdcCommand& c) noexcept {
 	OnlineUser* u = findUser(c.getFrom());
 	if(!u || u->getUser() == ClientManager::getInstance()->getMe())
@@ -440,6 +448,7 @@ void AdcHub::handle(AdcCommand::CTM, AdcCommand& c) noexcept {
 	if(c.getParameters().size() < 3)
 		return;
 
+	ASSERT_DIRECT_TO_ME(c)
 	const string& protocol = c.getParam(0);
 	const string& remotePort = c.getParam(1);
 	const string& token = c.getParam(2);
@@ -482,6 +491,7 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 	if(!u || u->getUser() == ClientManager::getInstance()->getMe())
 		return;
 
+	ASSERT_DIRECT_TO_ME(c)
 	const string& protocol = c.getParam(0);
 	const string& token = c.getParam(1);
 
@@ -661,6 +671,8 @@ void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
 		return;
 	}
 
+	ASSERT_DIRECT_TO_ME(c)
+
 	// Filter own searches
 	ClientManager::getInstance()->fire(ClientManagerListener::IncomingADCSearch(), c);
 	if(ou->getUser() == ClientManager::getInstance()->getMe())
@@ -682,6 +694,7 @@ void AdcHub::handle(AdcCommand::RES, AdcCommand& c) noexcept {
 		dcdebug("Invalid user in AdcHub::onRES\n");
 		return;
 	}
+	ASSERT_DIRECT_TO_ME(c)
 	SearchManager::getInstance()->onRES(c, ou->getUser(), ou->getIdentity().getUdpIp());
 }
 
@@ -691,6 +704,7 @@ void AdcHub::handle(AdcCommand::PSR, AdcCommand& c) noexcept {
 		dcdebug("Invalid user in AdcHub::onPSR\n");
 		return;
 	}
+	ASSERT_DIRECT_TO_ME(c)
 	SearchManager::getInstance()->onPSR(c, ou->getUser(), ou->getIdentity().getUdpIp());
 }
 
@@ -701,6 +715,7 @@ void AdcHub::handle(AdcCommand::PBD, AdcCommand& c) noexcept {
 		dcdebug("Invalid user in AdcHub::onPBD\n");
 		return;
 	}
+	ASSERT_DIRECT_TO_ME(c)
 	SearchManager::getInstance()->onPBD(c, ou->getUser());
 }
 
@@ -787,6 +802,7 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::NAT, AdcCommand& c) noexcept {
+	ASSERT_DIRECT_TO_ME(c)
 	OnlineUser* u = findUser(c.getFrom());
 	if(!u || u->getUser() == ClientManager::getInstance()->getMe() || c.getParameters().size() < 3)
 		return;
@@ -810,6 +826,7 @@ void AdcHub::handle(AdcCommand::NAT, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::RNT, AdcCommand& c) noexcept {
+	ASSERT_DIRECT_TO_ME(c)
 	// Sent request for NAT traversal cooperation, which
 	// was acknowledged (with requisite local port information).
 	OnlineUser* u = findUser(c.getFrom());
