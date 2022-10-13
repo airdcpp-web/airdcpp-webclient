@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -68,7 +68,10 @@ void Client::setActive() noexcept {
 }
 
 void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
-	FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
+	if (aClient->isConnected()) {
+		FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
+	}
+
 	TimerManager::getInstance()->removeListener(this);
 	ShareManager::getInstance()->removeListener(this);
 

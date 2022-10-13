@@ -234,7 +234,6 @@
     <ClCompile Include="airdcpp\modules\HublistManager.cpp" />
     <ClCompile Include="airdcpp\modules\PreviewAppManager.cpp" />
     <ClCompile Include="airdcpp\modules\RSSManager.cpp" />
-    <ClCompile Include="airdcpp\modules\WebShortcuts.cpp" />
     <ClCompile Include="airdcpp\PrivateChat.cpp" />
     <ClCompile Include="airdcpp\RecentManager.cpp" />
     <ClCompile Include="airdcpp\SearchInstance.cpp" />
@@ -370,7 +369,6 @@
     <ClInclude Include="airdcpp\modules\HublistManagerListener.h" />
     <ClInclude Include="airdcpp\modules\PreviewAppManager.h" />
     <ClInclude Include="airdcpp\modules\RSSManager.h" />
-    <ClInclude Include="airdcpp\modules\WebShortcuts.h" />
     <ClInclude Include="airdcpp\Priority.h" />
     <ClInclude Include="airdcpp\RecentEntry.h" />
     <ClInclude Include="airdcpp\RecentManager.h" />
