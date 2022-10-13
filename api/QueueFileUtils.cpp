@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2021 AirDC++ Project
+* Copyright (C) 2011-2022 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -156,7 +156,7 @@ namespace webserver {
 		case PROP_STATUS:
 		{
 			return {
-				{ "id", aFile->isDownloaded() },
+				{ "id", formatStatusId(aFile) },
 				{ "downloaded", aFile->isDownloaded() },
 				{ "completed", aFile->isCompleted() },
 				{ "failed", QueueItem::isFailedStatus(aFile->getStatus()) },

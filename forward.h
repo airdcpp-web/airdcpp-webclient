@@ -34,6 +34,7 @@ namespace webserver {
 	class ContextMenuItem;
 	typedef std::shared_ptr<ContextMenuItem> ContextMenuItemPtr;
 	typedef std::vector<ContextMenuItemPtr> ContextMenuItemList;
+	struct ContextMenuItemClickData;
 
 	class Extension;
 	typedef std::shared_ptr<Extension> ExtensionPtr;
