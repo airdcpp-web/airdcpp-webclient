@@ -30,9 +30,9 @@ The architecture name can be freely chosen. The following architecture names are
 
 Install the default configuration and patches by running the following command:  
 
-`/AIRDCPP_SOURCE_PATH/buildroot/setup-buildroot.sh /BUILDROOT_ENV_PATH/` 
+`/AIRDCPP_SOURCE_PATH/buildroot/setup-buildroot-config.sh /BUILDROOT_ENV_PATH/` 
 
-Example command: `/home/airdcpp/airdcpp-webclient/buildroot/setup-buildroot.sh /home/airdcpp/buildroot/armhf/`
+Example command: `/home/airdcpp/airdcpp-webclient/buildroot/setup-buildroot-config.sh /home/airdcpp/buildroot/armhf/`
 
 ### Configure and build
 
