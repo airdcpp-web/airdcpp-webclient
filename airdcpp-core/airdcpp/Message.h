@@ -47,6 +47,7 @@ public:
 	GETSET(bool, read, Read);
 
 	string format() const noexcept;
+	string formatAuthor() const noexcept;
 	void parseMention(const Identity& aMe) noexcept;
 	void parseHighlights(const Identity& aMe, const MessageHighlightList& aHighlights) noexcept;
 
@@ -66,6 +67,8 @@ public:
 		return highlights;
 	}
 private:
+	static string cleanText(const string& aText) noexcept;
+
 	MessageHighlight::SortedList highlights;
 	string mentionedNick;
 	string text;
@@ -82,7 +85,19 @@ public:
 		SEV_LAST 
 	};
 
-	LogMessage(const string& aMessage, Severity sev, const string& aLabel, bool aHistory = false) noexcept;
+
+	enum Flags {
+		FLAG_NORMAL = 0x00,
+		FLAG_READ = 0x01,
+		FLAG_DISABLE_HIGHLIGHTS = 0x02,
+		FLAG_DISABLE_TIMESTAMP = 0x04,
+		/** Match the queue against this list */
+		//FLAG_MATCH_QUEUE = 0x08,
+		/** The file list downloaded was actually an .xml.bz2 list */
+		//FLAG_XML_BZLIST = 0x10,
+	};
+
+	LogMessage(const string& aMessage, Severity sev, const string& aLabel, int aFlags = LogMessage::Flags::FLAG_NORMAL) noexcept;
 
 	uint64_t getId() const noexcept {
 		return id;
@@ -91,6 +106,8 @@ public:
 	const string& getText() const noexcept {
 		return text;
 	}
+
+	string format() const noexcept;
 
 	Severity getSeverity() const noexcept {
 		return severity;
@@ -125,6 +142,7 @@ private:
 struct Message {
 	Message(const ChatMessagePtr& aMessage) noexcept : type(TYPE_CHAT), chatMessage(aMessage) {}
 	Message(const LogMessagePtr& aMessage) noexcept : type(TYPE_LOG), logMessage(aMessage) {}
+	static Message fromText(const string& aMessage, int aFlags = LogMessage::Flags::FLAG_NORMAL) noexcept;
 
 	enum Type {
 		TYPE_CHAT,
@@ -137,7 +155,21 @@ struct Message {
 		return type == TYPE_CHAT ? chatMessage->getHighlights() : logMessage->getHighlights();
 	}
 
+	const string& getText() const noexcept {
+		return type == TYPE_CHAT ? chatMessage->getText() : logMessage->getText();
+	}
+
+	time_t getTime() const noexcept {
+		return type == TYPE_CHAT ? chatMessage->getTime() : logMessage->getTime();
+	}
+
+	const string format() const noexcept {
+		return type == TYPE_CHAT ? chatMessage->format() : logMessage->format();
+	}
+
 	const Type type;
+
+	static string unifyLineEndings(const string& aText);
 };
 
 typedef std::function<void(const string&, LogMessage::Severity)> ModuleLogger;

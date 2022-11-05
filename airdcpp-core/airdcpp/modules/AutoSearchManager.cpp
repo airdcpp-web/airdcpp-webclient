@@ -906,8 +906,8 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 			auto client = u->getClient();
 			if (client && client->isConnected()) {
 				//TODO: use magnet link
-				client->addLine(STRING(AUTO_SEARCH) + ": " +
-					STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::TYPE_DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)) % sr->getFileName() % u->getIdentity().getNick()));
+				client->statusMessage(STRING(AUTO_SEARCH) + ": " +
+					STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::TYPE_DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)) % sr->getFileName() % u->getIdentity().getNick()), LogMessage::SEV_INFO);
 			}
 
 			if (as->getRemove()) {

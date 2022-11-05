@@ -123,8 +123,6 @@ public:
 	string getMyNick() const noexcept { return myIdentity.getNick(); }
 	string getHubName() const noexcept override { return hubIdentity.getNick().empty() ? getHubUrl() : hubIdentity.getNick(); }
 	string getHubDescription() const noexcept { return hubIdentity.getDescription(); }
-	
-	void addLine(const string& msg) noexcept;
 
 	GETSET(Identity, myIdentity, MyIdentity);
 	GETSET(Identity, hubIdentity, HubIdentity);

@@ -95,11 +95,13 @@ public:
 		 uint8_t* buf = getResult();
 
 		string ret;
-		if(!base32) {
+		if (!base32) {
 			ret.resize(Hash::BYTES * 2, '\0');
 			for(uint32_t i = 0; i < Hash::BYTES; ++i)
-				sprintf(&ret[i*2], "%02x", (uint8_t)buf[i]);
-		} else Encoder::toBase32(buf, Hash::BYTES, ret);
+				snprintf(&ret[i*2], sizeof(ret), "%02x", (uint8_t)buf[i]);
+		} else {
+			Encoder::toBase32(buf, Hash::BYTES, ret);
+		}
 
 		return ret;
 	}

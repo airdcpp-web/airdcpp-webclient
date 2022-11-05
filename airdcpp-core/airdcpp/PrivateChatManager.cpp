@@ -178,7 +178,7 @@ void PrivateChatManager::onPrivateMessage(const ChatMessagePtr& aMessage) {
 	const auto client = aMessage->getFrom()->getClient();
 	const auto& identity = aMessage->getReplyTo()->getIdentity();
 	if ((identity.isBot() && !SETTING(POPUP_BOT_PMS)) || (identity.isHub() && !SETTING(POPUP_HUB_PMS))) {
-		client->addLine(STRING(PRIVATE_MESSAGE_FROM) + " " + identity.getNick() + ": " + aMessage->format());
+		client->statusMessage(STRING(PRIVATE_MESSAGE_FROM) + " " + identity.getNick() + ": " + aMessage->getText(), LogMessage::SEV_INFO);
 		return;
 	}
 

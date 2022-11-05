@@ -21,11 +21,18 @@
 #include "MessageHighlight.h"
 
 #include "AirUtil.h"
+#include "FavoriteManager.h"
 #include "ShareManager.h"
 #include "OnlineUser.h"
 
 
 namespace dcpp {
+
+	string MessageHighlight::TAG_ME = "me";
+	string MessageHighlight::TAG_FAVORITE = "favorite";
+	string MessageHighlight::TAG_RELEASE = "release";
+	string MessageHighlight::TAG_MAGNET = "magnet";
+	string MessageHighlight::TAG_TEMP_SHARE = "temp_share";
 
 	atomic<MessageHighlightToken> messageHighlightIdCounter { 1 };
 
@@ -54,45 +61,50 @@ namespace dcpp {
 		MessageHighlight::SortedList ret;
 
 		// Note: the earlier formatters will override the later ones in case of duplicates
+		parseLinkHighlights(aText, ret, aUser);
+		parseReleaseHighlights(aText, ret);
+		parseUserHighlights(aText, ret, aMyNick);
+		return ret;
+	}
 
-		// Parse links
-		{
-			try {
-				auto start = aText.cbegin();
-				auto end = aText.cend();
-				boost::match_results<string::const_iterator> result;
-				int pos = 0;
+	void MessageHighlight::parseLinkHighlights(const string& aText, MessageHighlight::SortedList& highlights_, const UserPtr& aUser) {
+		try {
+			auto start = aText.cbegin();
+			auto end = aText.cend();
+			boost::match_results<string::const_iterator> result;
+			int pos = 0;
 
-				while (boost::regex_search(start, end, result, AirUtil::urlReg, boost::match_default)) {
-					string link(result[0].first, result[0].second);
+			while (boost::regex_search(start, end, result, AirUtil::urlReg, boost::match_default)) {
+				string link(result[0].first, result[0].second);
 
-					auto highlight = make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_LINK_URL, "url");
+				auto highlight = make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_LINK_URL, "url");
 
-					if (link.find("magnet:?") == 0) {
-						auto m = Magnet::parseMagnet(link, aUser);
-						if (m) {
-							highlight->setMagnet(m);
+				if (link.find("magnet:?") == 0) {
+					auto m = Magnet::parseMagnet(link, aUser);
+					if (m) {
+						highlight->setMagnet(m);
 
-							if (ShareManager::getInstance()->isTempShared(aUser, (*m).getTTH())) {
-								highlight->setTag("temp_share");
-							} else {
-								highlight->setTag("magnet");
-							}
+						if (ShareManager::getInstance()->isTempShared(aUser, (*m).getTTH())) {
+							highlight->setTag(TAG_TEMP_SHARE);
+						}
+						else {
+							highlight->setTag(TAG_MAGNET);
 						}
 					}
-
-					ret.insert_sorted(std::move(highlight));
-
-					start = result[0].second;
-					pos += result.position() + link.length();
 				}
 
-			} catch (...) {
-				//...
-			}
-		}
+				highlights_.insert_sorted(std::move(highlight));
 
-		// Parse release names
+				start = result[0].second;
+				pos += result.position() + link.length();
+			}
+
+		} catch (...) {
+			//...
+		}
+	}
+
+	void MessageHighlight::parseReleaseHighlights(const string& aText, MessageHighlight::SortedList& highlights_) {
 		if (SETTING(FORMAT_RELEASE) || SETTING(DUPES_IN_CHAT)) {
 			auto start = aText.cbegin();
 			auto end = aText.cend();
@@ -102,25 +114,44 @@ namespace dcpp {
 			while (boost::regex_search(start, end, result, AirUtil::releaseRegChat, boost::match_default)) {
 				std::string link(result[0].first, result[0].second);
 
-				ret.insert_sorted(make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_LINK_TEXT, "release"));
+				highlights_.insert_sorted(make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_LINK_TEXT, TAG_RELEASE));
 				start = result[0].second;
 				pos += result.position() + link.length();
 			}
 		}
+	}
 
+	void MessageHighlight::parseUserHighlights(const string& aText, MessageHighlight::SortedList& highlights_, const string& aMyNick) {
 		// My nick
 		if (!aMyNick.empty()) {
-			size_t lMyNickStart = string::npos;
-			size_t lSearchFrom = 0;
-			while ((lMyNickStart = aText.find(aMyNick, lSearchFrom)) != string::npos) {
-				auto lMyNickEnd = lMyNickStart + aMyNick.size();
-				lSearchFrom = lMyNickEnd;
+			size_t start = string::npos;
+			size_t pos = 0;
+			while ((start = aText.find(aMyNick, pos)) != string::npos) {
+				auto nickEnd = start + aMyNick.size();
+				pos = nickEnd;
 
-				ret.insert_sorted(make_shared<MessageHighlight>(lMyNickStart, aMyNick, MessageHighlight::HighlightType::TYPE_USER, "me"));
+				highlights_.insert_sorted(make_shared<MessageHighlight>(start, aMyNick, MessageHighlight::HighlightType::TYPE_USER, TAG_ME));
 			}
 		}
 
-		return ret;
+		// Favorite users
+		{
+			RLock l(FavoriteManager::getInstance()->cs);
+			auto& ul = FavoriteManager::getInstance()->getFavoriteUsers();
+			for (const auto& favUser : ul | map_values) {
+				decltype(auto) nick = favUser.getNick();
+				if (nick.empty()) continue;
+
+				size_t start = string::npos;
+				size_t pos = 0;
+				while ((start = (long)aText.find(nick, pos)) != tstring::npos) {
+					auto lMyNickEnd = start + nick.size();
+					pos = lMyNickEnd;
+
+					highlights_.insert_sorted(make_shared<MessageHighlight>(start, nick, MessageHighlight::HighlightType::TYPE_USER, TAG_FAVORITE));
+				}
+			}
+		}
 	}
 
 	DupeType MessageHighlight::getDupe() const noexcept {

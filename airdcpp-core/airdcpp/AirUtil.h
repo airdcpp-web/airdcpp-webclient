@@ -131,6 +131,7 @@ public:
 	static const string getReleaseRegBasic() noexcept;
 	static const string getSubDirReg() noexcept;
 	static const string getUrlReg() noexcept;
+	static const string getPathReg() noexcept;
 
 	inline static string getReleaseDirLocal(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, PATH_SEPARATOR); };
 	inline static string getAdcReleaseDir(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, ADC_SEPARATOR); };
