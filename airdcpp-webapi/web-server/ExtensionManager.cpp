@@ -372,7 +372,7 @@ namespace webserver {
 				if (calculatedSha1) {
 					char mdString[SHA_DIGEST_LENGTH * 2 + 1];
 					for (int i = 0; i < SHA_DIGEST_LENGTH; i++)
-						sprintf(&mdString[i * 2], "%02x", (*calculatedSha1)[i]);
+						snprintf(&mdString[i * 2], sizeof(mdString), "%02x", (*calculatedSha1)[i]);
 
 					if (compare(string(mdString), aSha1) != 0) {
 						failInstallation(aInstallId, STRING(WEB_EXTENSION_DOWNLOAD_FAILED), STRING(WEB_EXTENSION_CHECKSUM_MISMATCH));
