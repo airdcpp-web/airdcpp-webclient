@@ -615,6 +615,10 @@ const string AirUtil::getUrlReg() noexcept {
 	return R"(((?:[a-z][\w-]{0,10})?:/{1,3}|www\d{0,3}[.]|magnet:\?[^\s=]+=|spotify:|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`()\[\]{};:'\".,<>?«»“”‘’]))";
 }
 
+const string AirUtil::getPathReg() noexcept {
+	return R"((?<=\s)(([A-Za-z0-9]:)|(\\))(\\[^\\:]+)(\\([^\s:])([^\\:])*)*((\.[a-z0-9]{2,10})|(\\))(?=(\s|$|:|,)))";
+}
+
 const string AirUtil::getReleaseRegLong(bool chat) noexcept {
 	if (chat)
 		return R"(((?<=\s)|^)(?=\S*[A-Z]\S*)(([A-Z0-9]|\w[A-Z0-9])[A-Za-z0-9-]*)(\.|_|(-(?=\S*\d{4}\S+)))(\S+)-(\w{2,})(?=(\W)?\s|$))";
