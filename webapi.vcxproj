@@ -193,6 +193,7 @@
     <ClInclude Include="api\common\PropertyFilter.h" />
     <ClInclude Include="api\common\Serializer.h" />
     <ClInclude Include="api\common\SettingUtils.h" />
+    <ClInclude Include="api\common\Validation.h" />
     <ClInclude Include="api\common\ViewTasks.h" />
     <ClInclude Include="api\ConnectivityApi.h" />
     <ClInclude Include="api\CoreSettings.h" />
@@ -279,6 +280,7 @@
     <ClCompile Include="api\common\PropertyFilter.cpp" />
     <ClCompile Include="api\common\Serializer.cpp" />
     <ClCompile Include="api\common\SettingUtils.cpp" />
+    <ClCompile Include="api\common\Validation.cpp" />
     <ClCompile Include="api\ConnectivityApi.cpp" />
     <ClCompile Include="api\ExtensionApi.cpp" />
     <ClCompile Include="api\ExtensionInfo.cpp" />
