@@ -21,6 +21,7 @@
 #include <api/FilelistInfo.h>
 
 #include <api/common/Deserializer.h>
+#include <api/common/Validation.h>
 #include <web-server/JsonUtil.h>
 
 #include <airdcpp/AirUtil.h>
@@ -175,7 +176,7 @@ namespace webserver {
 	api_return FilelistInfo::handleChangeDirectory(ApiRequest& aRequest) {
 		const auto& j = aRequest.getRequestBody();
 
-		auto listPath = JsonUtil::getField<string>("list_path", j, false);
+		auto listPath = Validation::validateAdcDirectoryPath(JsonUtil::getField<string>("list_path", j, false));
 		auto reload = JsonUtil::getOptionalFieldDefault<bool>("reload", j, false);
 
 		dl->addDirectoryChangeTask(listPath, reload ? DirectoryListing::DirectoryLoadType::CHANGE_RELOAD : DirectoryListing::DirectoryLoadType::CHANGE_NORMAL);

@@ -26,6 +26,7 @@
 #include <api/common/Deserializer.h>
 #include <api/common/FileSearchParser.h>
 #include <api/common/Serializer.h>
+#include <api/common/Validation.h>
 
 #include <web-server/JsonUtil.h>
 
@@ -432,16 +433,11 @@ namespace webserver {
 	api_return ShareApi::handleRefreshVirtualPath(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 		addAsyncTask([
-			virtualPath = JsonUtil::getField<string>("path", reqJson, false),
+			virtualPath = Validation::validateAdcDirectoryPath(JsonUtil::getField<string>("path", reqJson, false)),
 			priority = parseRefreshPriority(reqJson),
 			complete = aRequest.defer(),
 			callerPtr = aRequest.getOwnerPtr()
 		] {
-			if (!Util::isAdcDirectoryPath(virtualPath)) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr("Path " + virtualPath + " isn't a valid ADC directory path"));
-				return;
-			}
-
 			StringList refreshPaths;
 			try {
 				ShareManager::getInstance()->getRealPaths(virtualPath, refreshPaths);
