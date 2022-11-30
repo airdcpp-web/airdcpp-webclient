@@ -36,7 +36,7 @@ LogMessage::LogMessage(const string& aOriginalText, LogMessage::Severity aSeveri
 	id(messageIdCounter++), text(Message::unifyLineEndings(aOriginalText)), label(aLabel),
 	time(aFlags & FLAG_DISABLE_TIMESTAMP ? 0 : GET_TIME()), severity(aSeverity), read(aFlags & FLAG_DISABLE_TIMESTAMP) {
 
-	if (aFlags ^ FLAG_DISABLE_HIGHLIGHTS) {
+	if (!(aFlags & FLAG_DISABLE_HIGHLIGHTS)) {
 		highlights = MessageHighlight::parseHighlights(text, Util::emptyString, nullptr);
 	}
 }
