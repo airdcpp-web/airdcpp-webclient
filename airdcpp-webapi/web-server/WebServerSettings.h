@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2021 AirDC++ Project
+* Copyright (C) 2011-2022 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -98,6 +98,9 @@ namespace webserver {
 		void setValue(ApiSettingItem& aItem, const json& aJson);
 		void setDefaultValue(ApiSettingItem& aItem, const json& aJson);
 		void unset(ApiSettingItem& aItem) noexcept;
+
+		WebServerSettings(WebServerSettings&) = delete;
+		WebServerSettings& operator=(WebServerSettings&) = delete;
 	private:
 		WebServerManager* wsm;
 

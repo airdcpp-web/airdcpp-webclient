@@ -1,13 +1,15 @@
 #!/bin/bash
 
+# Debug mode
+# set -x
+
 if [ -z "$1" ]
   then
-    echo "Usage: setup-buildroot <full buildroot path>"
+    echo "Usage: setup-buildroot-config <full buildroot path>"
     exit 1
 fi
 
-
-AIR_BR_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+AIR_BR_PATH=$(cd "$(dirname "$0")" && pwd)
 BR_PATH=$1
 
 echo "Setup file location: ${AIR_BR_PATH}"

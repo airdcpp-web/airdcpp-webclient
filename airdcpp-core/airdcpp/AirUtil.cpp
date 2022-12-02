@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2021 AirDC++ Project
+ * Copyright (C) 2011-2022 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -613,6 +613,10 @@ void AirUtil::getRegexMatches(const string& aString, StringList& l, const boost:
 
 const string AirUtil::getUrlReg() noexcept {
 	return R"(((?:[a-z][\w-]{0,10})?:/{1,3}|www\d{0,3}[.]|magnet:\?[^\s=]+=|spotify:|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`()\[\]{};:'\".,<>?«»“”‘’]))";
+}
+
+const string AirUtil::getPathReg() noexcept {
+	return R"((?<=\s)(([A-Za-z0-9]:)|(\\))(\\[^\\:]+)(\\([^\s:])([^\\:])*)*((\.[a-z0-9]{2,10})|(\\))(?=(\s|$|:|,)))";
 }
 
 const string AirUtil::getReleaseRegLong(bool chat) noexcept {

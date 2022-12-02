@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2021 AirDC++ Project
+* Copyright (C) 2011-2022 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -39,6 +39,9 @@ namespace webserver {
 
 		string getTempFilePath(const string& fileId) const noexcept;
 		void stop() noexcept;
+
+		FileServer(FileServer&) = delete;
+		FileServer& operator=(FileServer&) = delete;
 	private:
 		websocketpp::http::status_code::value handleGetRequest(const websocketpp::http::parser::request& aRequest,
 			std::string& output_, StringPairList& headers_, const SessionPtr& aSession, const FileDeferredHandler& aDeferF);

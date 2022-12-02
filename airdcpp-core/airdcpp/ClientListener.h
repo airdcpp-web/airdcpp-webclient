@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,7 +47,6 @@ public:
 	typedef X<15> SearchFlood;
 	typedef X<16> NmdcSearch;
 	typedef X<17> HubTopic;
-	typedef X<18> AddLine;
 	typedef X<19> SetActive;
 	typedef X<20> Close;
 	typedef X<21> MessagesRead;
@@ -84,7 +83,6 @@ public:
 	virtual void on(SearchFlood, const Client*, const string&) noexcept { }
 	virtual void on(NmdcSearch, Client*, const string&, int, int64_t, int, const string&, bool) noexcept { }
 	virtual void on(HubTopic, const Client*, const string&) noexcept { }
-	virtual void on(AddLine, const Client*, const string&) noexcept { }
 	virtual void on(SetActive, const Client*) noexcept {}
 	virtual void on(Close, const Client*) noexcept {}
 	virtual void on(MessagesRead, const Client*) noexcept {}

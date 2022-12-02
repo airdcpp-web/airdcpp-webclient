@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2021 AirDC++ Project
+* Copyright (C) 2011-2022 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include <api/FilelistInfo.h>
 
 #include <api/common/Deserializer.h>
+#include <api/common/Validation.h>
 #include <web-server/JsonUtil.h>
 
 #include <airdcpp/AirUtil.h>
@@ -137,7 +138,10 @@ namespace webserver {
 		FilelistItemInfoPtr item = nullptr;
 		auto itemId = aRequest.getTokenParam();
 
-		auto curDir = ensureCurrentDirectoryLoaded();
+		auto curDir = dl->getCurrentLocationInfo().directory;
+		if (!curDir) {
+			throw RequestException(websocketpp::http::status_code::service_unavailable, "Filelist has not finished loading yet");
+		}
 
 		// TODO: refactor filelists and do something better than this
 		{
@@ -172,7 +176,7 @@ namespace webserver {
 	api_return FilelistInfo::handleChangeDirectory(ApiRequest& aRequest) {
 		const auto& j = aRequest.getRequestBody();
 
-		auto listPath = JsonUtil::getField<string>("list_path", j, false);
+		auto listPath = Validation::validateAdcDirectoryPath(JsonUtil::getField<string>("list_path", j, false));
 		auto reload = JsonUtil::getOptionalFieldDefault<bool>("reload", j, false);
 
 		dl->addDirectoryChangeTask(listPath, reload ? DirectoryListing::DirectoryLoadType::CHANGE_RELOAD : DirectoryListing::DirectoryLoadType::CHANGE_NORMAL);

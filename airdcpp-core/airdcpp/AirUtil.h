@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2021 AirDC++ Project
+ * Copyright (C) 2011-2022 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -131,6 +131,7 @@ public:
 	static const string getReleaseRegBasic() noexcept;
 	static const string getSubDirReg() noexcept;
 	static const string getUrlReg() noexcept;
+	static const string getPathReg() noexcept;
 
 	inline static string getReleaseDirLocal(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, PATH_SEPARATOR); };
 	inline static string getAdcReleaseDir(const string& aDir, bool aCut) noexcept { return getReleaseDir(aDir, aCut, ADC_SEPARATOR); };

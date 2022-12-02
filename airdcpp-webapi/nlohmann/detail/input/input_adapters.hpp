@@ -1,3 +1,11 @@
+//     __ _____ _____ _____
+//  __|  |   __|     |   | |  JSON for Modern C++
+// |  |  |__   |  |  | | | |  version 3.11.2
+// |_____|_____|_____|_|___|  https://github.com/nlohmann/json
+//
+// SPDX-FileCopyrightText: 2013-2022 Niels Lohmann <https://nlohmann.me>
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include <array> // array
@@ -18,12 +26,12 @@
 #include <nlohmann/detail/iterators/iterator_traits.hpp>
 #include <nlohmann/detail/macro_scope.hpp>
 
-namespace nlohmann
-{
+NLOHMANN_JSON_NAMESPACE_BEGIN
 namespace detail
 {
+
 /// the supported input formats
-enum class input_format_t { json, cbor, msgpack, ubjson, bson };
+enum class input_format_t { json, cbor, msgpack, ubjson, bson, bjdata };
 
 ////////////////////
 // input adapters //
@@ -42,7 +50,9 @@ class file_input_adapter
     JSON_HEDLEY_NON_NULL(2)
     explicit file_input_adapter(std::FILE* f) noexcept
         : m_file(f)
-    {}
+    {
+        JSON_ASSERT(m_file != nullptr);
+    }
 
     // make class move-only
     file_input_adapter(const file_input_adapter&) = delete;
@@ -104,7 +114,7 @@ class input_stream_adapter
 
     // std::istream/std::streambuf use std::char_traits<char>::to_int_type, to
     // ensure that std::char_traits<char>::eof() and the character 0xFF do not
-    // end up as the same value, eg. 0xFFFFFFFF.
+    // end up as the same value, e.g. 0xFFFFFFFF.
     std::char_traits<char>::int_type get_character()
     {
         auto res = sb->sbumpc();
@@ -400,7 +410,7 @@ struct container_input_adapter_factory< ContainerType,
 }
        };
 
-} // namespace container_input_adapter_factory_impl
+}  // namespace container_input_adapter_factory_impl
 
 template<typename ContainerType>
 typename container_input_adapter_factory_impl::container_input_adapter_factory<ContainerType>::adapter_type input_adapter(const ContainerType& container)
@@ -450,7 +460,7 @@ auto input_adapter(T (&array)[N]) -> decltype(input_adapter(array, array + N)) /
 }
 
 // This class only handles inputs of input_buffer_adapter type.
-// It's required so that expressions like {ptr, len} can be implicitely casted
+// It's required so that expressions like {ptr, len} can be implicitly cast
 // to the correct adapter.
 class span_input_adapter
 {
@@ -479,5 +489,6 @@ class span_input_adapter
   private:
     contiguous_bytes_input_adapter ia;
 };
+
 }  // namespace detail
-}  // namespace nlohmann
+NLOHMANN_JSON_NAMESPACE_END

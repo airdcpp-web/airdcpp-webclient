@@ -1,10 +1,21 @@
+//     __ _____ _____ _____
+//  __|  |   __|     |   | |  JSON for Modern C++
+// |  |  |__   |  |  | | | |  version 3.11.2
+// |_____|_____|_____|_|___|  https://github.com/nlohmann/json
+//
+// SPDX-FileCopyrightText: 2013-2022 Niels Lohmann <https://nlohmann.me>
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
-#include <utility> // pair
+#include <utility> // declval, pair
+#include <nlohmann/detail/meta/detected.hpp>
 #include <nlohmann/thirdparty/hedley/hedley.hpp>
 
-// This file contains all internal macro definitions
+// This file contains all internal macro definitions (except those affecting ABI)
 // You MUST include macro_unscope.hpp at the end of json.hpp to undef all of them
+
+#include <nlohmann/detail/abi_macros.hpp>
 
 // exclude unsupported compilers
 #if !defined(JSON_SKIP_UNSUPPORTED_COMPILER_CHECK)
@@ -36,6 +47,104 @@
     #define JSON_HAS_CPP_11
 #endif
 
+#ifdef __has_include
+    #if __has_include(<version>)
+        #include <version>
+    #endif
+#endif
+
+#if !defined(JSON_HAS_FILESYSTEM) && !defined(JSON_HAS_EXPERIMENTAL_FILESYSTEM)
+    #ifdef JSON_HAS_CPP_17
+        #if defined(__cpp_lib_filesystem)
+            #define JSON_HAS_FILESYSTEM 1
+        #elif defined(__cpp_lib_experimental_filesystem)
+            #define JSON_HAS_EXPERIMENTAL_FILESYSTEM 1
+        #elif !defined(__has_include)
+            #define JSON_HAS_EXPERIMENTAL_FILESYSTEM 1
+        #elif __has_include(<filesystem>)
+            #define JSON_HAS_FILESYSTEM 1
+        #elif __has_include(<experimental/filesystem>)
+            #define JSON_HAS_EXPERIMENTAL_FILESYSTEM 1
+        #endif
+
+        // std::filesystem does not work on MinGW GCC 8: https://sourceforge.net/p/mingw-w64/bugs/737/
+        #if defined(__MINGW32__) && defined(__GNUC__) && __GNUC__ == 8
+            #undef JSON_HAS_FILESYSTEM
+            #undef JSON_HAS_EXPERIMENTAL_FILESYSTEM
+        #endif
+
+        // no filesystem support before GCC 8: https://en.cppreference.com/w/cpp/compiler_support
+        #if defined(__GNUC__) && !defined(__clang__) && __GNUC__ < 8
+            #undef JSON_HAS_FILESYSTEM
+            #undef JSON_HAS_EXPERIMENTAL_FILESYSTEM
+        #endif
+
+        // no filesystem support before Clang 7: https://en.cppreference.com/w/cpp/compiler_support
+        #if defined(__clang_major__) && __clang_major__ < 7
+            #undef JSON_HAS_FILESYSTEM
+            #undef JSON_HAS_EXPERIMENTAL_FILESYSTEM
+        #endif
+
+        // no filesystem support before MSVC 19.14: https://en.cppreference.com/w/cpp/compiler_support
+        #if defined(_MSC_VER) && _MSC_VER < 1914
+            #undef JSON_HAS_FILESYSTEM
+            #undef JSON_HAS_EXPERIMENTAL_FILESYSTEM
+        #endif
+
+        // no filesystem support before iOS 13
+        #if defined(__IPHONE_OS_VERSION_MIN_REQUIRED) && __IPHONE_OS_VERSION_MIN_REQUIRED < 130000
+            #undef JSON_HAS_FILESYSTEM
+            #undef JSON_HAS_EXPERIMENTAL_FILESYSTEM
+        #endif
+
+        // no filesystem support before macOS Catalina
+        #if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED < 101500
+            #undef JSON_HAS_FILESYSTEM
+            #undef JSON_HAS_EXPERIMENTAL_FILESYSTEM
+        #endif
+    #endif
+#endif
+
+#ifndef JSON_HAS_EXPERIMENTAL_FILESYSTEM
+    #define JSON_HAS_EXPERIMENTAL_FILESYSTEM 0
+#endif
+
+#ifndef JSON_HAS_FILESYSTEM
+    #define JSON_HAS_FILESYSTEM 0
+#endif
+
+#ifndef JSON_HAS_THREE_WAY_COMPARISON
+    #if defined(__cpp_impl_three_way_comparison) && __cpp_impl_three_way_comparison >= 201907L \
+        && defined(__cpp_lib_three_way_comparison) && __cpp_lib_three_way_comparison >= 201907L
+        #define JSON_HAS_THREE_WAY_COMPARISON 1
+    #else
+        #define JSON_HAS_THREE_WAY_COMPARISON 0
+    #endif
+#endif
+
+#ifndef JSON_HAS_RANGES
+    // ranges header shipping in GCC 11.1.0 (released 2021-04-27) has syntax error
+    #if defined(__GLIBCXX__) && __GLIBCXX__ == 20210427
+        #define JSON_HAS_RANGES 0
+    #elif defined(__cpp_lib_ranges)
+        #define JSON_HAS_RANGES 1
+    #else
+        #define JSON_HAS_RANGES 0
+    #endif
+#endif
+
+#ifdef JSON_HAS_CPP_17
+    #define JSON_INLINE_VARIABLE inline
+#else
+    #define JSON_INLINE_VARIABLE
+#endif
+
+#if JSON_HEDLEY_HAS_ATTRIBUTE(no_unique_address)
+    #define JSON_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#else
+    #define JSON_NO_UNIQUE_ADDRESS
+#endif
+
 // disable documentation warnings on clang
 #if defined(__clang__)
     #pragma clang diagnostic push
@@ -43,7 +152,7 @@
     #pragma clang diagnostic ignored "-Wdocumentation-unknown-command"
 #endif
 
-// allow to disable exceptions
+// allow disabling exceptions
 #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && !defined(JSON_NOEXCEPTION)
     #define JSON_THROW(exception) throw exception
     #define JSON_TRY try
@@ -77,7 +186,7 @@
     #define JSON_INTERNAL_CATCH JSON_INTERNAL_CATCH_USER
 #endif
 
-// allow to override assert
+// allow overriding assert
 #if !defined(JSON_ASSERT)
     #include <cassert> // assert
     #define JSON_ASSERT(x) assert(x)
@@ -273,6 +382,7 @@
 
 #define NLOHMANN_JSON_TO(v1) nlohmann_json_j[#v1] = nlohmann_json_t.v1;
 #define NLOHMANN_JSON_FROM(v1) nlohmann_json_j.at(#v1).get_to(nlohmann_json_t.v1);
+#define NLOHMANN_JSON_FROM_WITH_DEFAULT(v1) nlohmann_json_t.v1 = nlohmann_json_j.value(#v1, nlohmann_json_default_obj.v1);
 
 /*!
 @brief macro
@@ -283,6 +393,10 @@
     friend void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
     friend void from_json(const nlohmann::json& nlohmann_json_j, Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_FROM, __VA_ARGS__)) }
 
+#define NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Type, ...)  \
+    friend void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
+    friend void from_json(const nlohmann::json& nlohmann_json_j, Type& nlohmann_json_t) { Type nlohmann_json_default_obj; NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_FROM_WITH_DEFAULT, __VA_ARGS__)) }
+
 /*!
 @brief macro
 @def NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE
@@ -291,6 +405,49 @@
 #define NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Type, ...)  \
     inline void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
     inline void from_json(const nlohmann::json& nlohmann_json_j, Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_FROM, __VA_ARGS__)) }
+
+#define NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Type, ...)  \
+    inline void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
+    inline void from_json(const nlohmann::json& nlohmann_json_j, Type& nlohmann_json_t) { Type nlohmann_json_default_obj; NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_FROM_WITH_DEFAULT, __VA_ARGS__)) }
+
+
+// inspired from https://stackoverflow.com/a/26745591
+// allows to call any std function as if (e.g. with begin):
+// using std::begin; begin(x);
+//
+// it allows using the detected idiom to retrieve the return type
+// of such an expression
+#define NLOHMANN_CAN_CALL_STD_FUNC_IMPL(std_name)                                 \
+    namespace detail {                                                            \
+    using std::std_name;                                                          \
+    \
+    template<typename... T>                                                       \
+    using result_of_##std_name = decltype(std_name(std::declval<T>()...));        \
+    }                                                                             \
+    \
+    namespace detail2 {                                                           \
+    struct std_name##_tag                                                         \
+    {                                                                             \
+    };                                                                            \
+    \
+    template<typename... T>                                                       \
+    std_name##_tag std_name(T&&...);                                              \
+    \
+    template<typename... T>                                                       \
+    using result_of_##std_name = decltype(std_name(std::declval<T>()...));        \
+    \
+    template<typename... T>                                                       \
+    struct would_call_std_##std_name                                              \
+    {                                                                             \
+        static constexpr auto const value = ::nlohmann::detail::                  \
+                                            is_detected_exact<std_name##_tag, result_of_##std_name, T...>::value; \
+    };                                                                            \
+    } /* namespace detail2 */ \
+    \
+    template<typename... T>                                                       \
+    struct would_call_std_##std_name : detail2::would_call_std_##std_name<T...>   \
+    {                                                                             \
+    }
 
 #ifndef JSON_USE_IMPLICIT_CONVERSIONS
     #define JSON_USE_IMPLICIT_CONVERSIONS 1
@@ -302,6 +459,10 @@
     #define JSON_EXPLICIT explicit
 #endif
 
-#ifndef JSON_DIAGNOSTICS
-    #define JSON_DIAGNOSTICS 0
+#ifndef JSON_DISABLE_ENUM_SERIALIZATION
+    #define JSON_DISABLE_ENUM_SERIALIZATION 0
+#endif
+
+#ifndef JSON_USE_GLOBAL_UDLS
+    #define JSON_USE_GLOBAL_UDLS 1
 #endif

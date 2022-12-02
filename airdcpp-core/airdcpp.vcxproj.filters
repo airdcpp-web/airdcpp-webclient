@@ -314,9 +314,6 @@
     <ClCompile Include="airdcpp\modules\RSSManager.cpp">
       <Filter>Source Files\modules</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\modules\WebShortcuts.cpp">
-      <Filter>Source Files\modules</Filter>
-    </ClCompile>
     <ClCompile Include="airdcpp\modules\FinishedManager.cpp">
       <Filter>Source Files\modules</Filter>
     </ClCompile>
@@ -869,9 +866,6 @@
       <Filter>Header Files\modules</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\modules\RSSManager.h">
-      <Filter>Header Files\modules</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\modules\WebShortcuts.h">
       <Filter>Header Files\modules</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\modules\AutoSearchQueue.h">

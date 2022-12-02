@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2021 AirDC++ Project
+* Copyright (C) 2011-2022 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -90,6 +90,7 @@ namespace webserver {
 		}
 
 		void reportError(const string& aError) noexcept;
+	private:
 	private:
 		const uint64_t maxInactivity;
 		const time_t started;

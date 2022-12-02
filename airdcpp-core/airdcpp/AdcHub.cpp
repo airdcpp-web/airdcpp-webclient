@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -269,10 +269,6 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 			if (u->getIdentity().getAdcConnectionSpeed(false) == 0) {
 				statusMessage("WARNING: This hub is not displaying the connection speed fields, which prevents the client from choosing the best sources for downloads. Please advise the hub owner to fix this.", LogMessage::SEV_WARNING);
 			}
-
-			if (isHubsoftVersionOrOlder("luadch", 2.18)) {
-				statusMessage("This hub uses an outdated hubsoft version that doesn't forward Advanced Direct Connect protocol messages according to the protocol specifications, which may silently break various client features. Certain functionality may have been disabled automatically in this hub. For more information, please see https://www.airdcpp.net/hubsoft-warnings", LogMessage::SEV_WARNING);
-			}
 		}
 
 		//we have to update the modes in case our connectivity changed
@@ -437,6 +433,14 @@ void AdcHub::handle(AdcCommand::QUI, AdcCommand& c) noexcept {
 	}
 }
 
+#define ASSERT_DIRECT_TO_ME(c) \
+	if (c.getType() == AdcCommand::TYPE_DIRECT) { \
+		if (c.getTo() != myIdentity.getSID()) { \
+			statusMessage("SECURITY WARNING: received a " + c.getFourCC() + " message that should have been sent to a different user. This should never happen. Please inform the hub owner in order to get the security issue fixed.", LogMessage::SEV_WARNING); \
+			return; \
+		} \
+	}
+
 void AdcHub::handle(AdcCommand::CTM, AdcCommand& c) noexcept {
 	OnlineUser* u = findUser(c.getFrom());
 	if(!u || u->getUser() == ClientManager::getInstance()->getMe())
@@ -444,6 +448,7 @@ void AdcHub::handle(AdcCommand::CTM, AdcCommand& c) noexcept {
 	if(c.getParameters().size() < 3)
 		return;
 
+	ASSERT_DIRECT_TO_ME(c)
 	const string& protocol = c.getParam(0);
 	const string& remotePort = c.getParam(1);
 	const string& token = c.getParam(2);
@@ -486,6 +491,7 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 	if(!u || u->getUser() == ClientManager::getInstance()->getMe())
 		return;
 
+	ASSERT_DIRECT_TO_ME(c)
 	const string& protocol = c.getParam(0);
 	const string& token = c.getParam(1);
 
@@ -665,6 +671,8 @@ void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
 		return;
 	}
 
+	ASSERT_DIRECT_TO_ME(c)
+
 	// Filter own searches
 	ClientManager::getInstance()->fire(ClientManagerListener::IncomingADCSearch(), c);
 	if(ou->getUser() == ClientManager::getInstance()->getMe())
@@ -686,6 +694,7 @@ void AdcHub::handle(AdcCommand::RES, AdcCommand& c) noexcept {
 		dcdebug("Invalid user in AdcHub::onRES\n");
 		return;
 	}
+	ASSERT_DIRECT_TO_ME(c)
 	SearchManager::getInstance()->onRES(c, ou->getUser(), ou->getIdentity().getUdpIp());
 }
 
@@ -695,6 +704,7 @@ void AdcHub::handle(AdcCommand::PSR, AdcCommand& c) noexcept {
 		dcdebug("Invalid user in AdcHub::onPSR\n");
 		return;
 	}
+	ASSERT_DIRECT_TO_ME(c)
 	SearchManager::getInstance()->onPSR(c, ou->getUser(), ou->getIdentity().getUdpIp());
 }
 
@@ -705,6 +715,7 @@ void AdcHub::handle(AdcCommand::PBD, AdcCommand& c) noexcept {
 		dcdebug("Invalid user in AdcHub::onPBD\n");
 		return;
 	}
+	ASSERT_DIRECT_TO_ME(c)
 	SearchManager::getInstance()->onPBD(c, ou->getUser());
 }
 
@@ -791,6 +802,7 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::NAT, AdcCommand& c) noexcept {
+	ASSERT_DIRECT_TO_ME(c)
 	OnlineUser* u = findUser(c.getFrom());
 	if(!u || u->getUser() == ClientManager::getInstance()->getMe() || c.getParameters().size() < 3)
 		return;
@@ -814,6 +826,7 @@ void AdcHub::handle(AdcCommand::NAT, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::RNT, AdcCommand& c) noexcept {
+	ASSERT_DIRECT_TO_ME(c)
 	// Sent request for NAT traversal cooperation, which
 	// was acknowledged (with requisite local port information).
 	OnlineUser* u = findUser(c.getFrom());
@@ -1151,31 +1164,9 @@ StringList AdcHub::parseSearchExts(int flag) noexcept {
 	return ret;
 }
 
-bool AdcHub::isHubsoftVersionOrOlder(const string& aHubsoft, double aVersion) {
-	const auto& app = getHubIdentity().getApplication();
-	auto i = app.find(" ");
-	if (i == string::npos) return false;
-
-	if (Text::toLower(app.substr(0, i)).find(aHubsoft) == string::npos) return false;
-
-	auto version = app.substr(i + 1);
-	if (version.empty()) return false;
-
-	if (version.front() == 'v') {
-		version.erase(0, 1);
-	}
-
-	return Util::toDouble(version) <= aVersion;
-}
-
 bool AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch, string& error_) noexcept {
 	if (!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
-		return false;
-	}
-
-	if (isHubsoftVersionOrOlder("luadch", 2.18)) {
-		error_ = "Feature is blocked by hub " + Client::getHubName() + " (the hub is using an outdated hubsoft version)";
 		return false;
 	}
 

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -68,7 +68,10 @@ void Client::setActive() noexcept {
 }
 
 void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
-	FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
+	if (aClient->isConnected()) {
+		FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
+	}
+
 	TimerManager::getInstance()->removeListener(this);
 	ShareManager::getInstance()->removeListener(this);
 
@@ -345,7 +348,7 @@ void Client::onUserConnected(const OnlineUserPtr& aUser) noexcept {
 
 		if (aUser->getUser() != ClientManager::getInstance()->getMe()) {
 			if (!aUser->isHidden() && get(HubSettings::ShowJoins) || (get(HubSettings::FavShowJoins) && aUser->getUser()->isFavorite())) {
-				statusMessage("*** " + STRING(JOINS) + ": " + aUser->getIdentity().getNick(), LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SYSTEM);
+				statusMessage(STRING(JOINS) + ": " + aUser->getIdentity().getNick(), LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SYSTEM);
 			}
 		}
 	}
@@ -359,7 +362,7 @@ void Client::onUserDisconnected(const OnlineUserPtr& aUser, bool aDisconnectTran
 
 		if (aUser->getUser() != ClientManager::getInstance()->getMe()) {
 			if (!aUser->isHidden() && get(HubSettings::ShowJoins) || (get(HubSettings::FavShowJoins) && aUser->getUser()->isFavorite())) {
-				statusMessage("*** " + STRING(PARTS) + ": " + aUser->getIdentity().getNick(), LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SYSTEM);
+				statusMessage(STRING(PARTS) + ": " + aUser->getIdentity().getNick(), LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SYSTEM);
 			}
 		}
 	}
@@ -555,7 +558,7 @@ bool Client::updateCounts(bool aRemove) noexcept {
 		} else {
 			//disconnect before the hubcount is updated.
 			if(SETTING(DISALLOW_CONNECTION_TO_PASSED_HUBS)) {
-				addLine(STRING(HUB_NOT_PROTECTED));
+				statusMessage(STRING(HUB_NOT_PROTECTED), LogMessage::SEV_ERROR);
 				disconnect(true);
 				setAutoReconnect(false);
 				return false;
@@ -592,10 +595,6 @@ string Client::getAllCountsStr() noexcept {
 long Client::getDisplayCount(CountType aCountType) const noexcept {
 	//return SETTING(SEPARATE_NOSHARE_HUBS) && isSharingHub() ? sharingCounts[aCountType] : allCounts[aCountType];
 	return allCounts[aCountType];
-}
-
-void Client::addLine(const string& msg) noexcept {
-	fire(ClientListener::AddLine(), this, msg);
 }
  
 void Client::on(BufferedSocketListener::Line, const string& aLine) noexcept {

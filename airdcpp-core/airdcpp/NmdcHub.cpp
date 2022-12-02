@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -598,7 +598,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 				BufferedSocket::NAT_CLIENT, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), connectSecure);
 
 			// ... and signal other client to do likewise.
-			send("$ConnectToMe " + senderNick + " " + localIp + ":" + Util::toString(sock->getLocalPort()) + (connectSecure ? "RS" : "R") + "|");
+			send("$ConnectToMe " + fromUtf8(senderNick) + " " + localIp + ":" + Util::toString(sock->getLocalPort()) + (connectSecure ? "RS" : "R") + "|");
 			return;
 		} else if(senderPort[senderPort.size() - 1] == 'R') {
 			senderPort.erase(senderPort.size() - 1);

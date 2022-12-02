@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -83,8 +83,6 @@ public:
 	AdcHub(const AdcHub&) = delete;
 	AdcHub& operator=(const AdcHub&) = delete;
 private:
-	bool isHubsoftVersionOrOlder(const string& aHubsoft, double aVersion);
-
 	friend class ClientManager;
 	friend class CommandHandler<AdcHub>;
 	friend class Identity;

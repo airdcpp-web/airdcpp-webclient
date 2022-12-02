@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -115,7 +115,6 @@ const ProfileSettingItem::List SettingsManager::profileSettings[SettingsManager:
 }, {
 	// profile RAR
 	{ SettingsManager::MULTI_CHUNK, false, ResourceManager::SEGMENTS },
-	{ SettingsManager::MAX_FILE_SIZE_SHARED, 600, ResourceManager::DONT_SHARE_BIGGER_THAN },
 	{ SettingsManager::MINIMUM_SEARCH_INTERVAL, 10, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
 	{ SettingsManager::AUTO_FOLLOW, false, ResourceManager::SETTINGS_AUTO_FOLLOW },
@@ -424,7 +423,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(AUTO_SEARCH, true);
 	setDefault(TIME_STAMPS, true);
 	setDefault(BUFFER_SIZE, 256);
-	setDefault(HUBLIST_SERVERS, "https://www.te-home.net/?do=hublist&get=hublist.xml.bz2;https://dchublist.org/hublist.xml.bz2;https://dchublist.ru/hublist.xml.bz2;https://tankafett.biz/?do=hublist&get=hublist.xml.bz2;https://dcnf.github.io/Hublist/hublist.xml.bz2;");
+	setDefault(HUBLIST_SERVERS, "https://www.te-home.net/?do=hublist&get=hublist.xml.bz2;https://dchublist.org/hublist.xml.bz2;https://dchublist.ru/hublist.xml.bz2;https://dcnf.github.io/Hublist/hublist.xml.bz2;https://hublist.pwiam.com/hublist.xml.bz2;");
 	setDefault(DOWNLOAD_SLOTS, 50);
 	setDefault(MAX_DOWNLOAD_SPEED, 0);
 	setDefault(LOG_DIRECTORY, Util::getPath(Util::PATH_USER_CONFIG) + "Logs" PATH_SEPARATOR_STR);

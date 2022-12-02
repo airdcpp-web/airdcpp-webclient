@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2021 AirDC++ Project
+ * Copyright (C) 2012-2022 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ public:
 
 	static bool applyUpdate(const string& aSourcePath, const string& aInstallPath, string& error_, int aMaxRetries) noexcept;
 
-	static void signVersionFile(const string& file, const string& key, bool makeHeader = false);
+	static void signVersionFile(const string& aVersionFilePath, const string& aPrivateKeyFilePath, bool aMakeHeader = false);
 
 	// Create an updater zip file from the current application (it must be in the default "compiled" path)
 	// Returns the path of the created updater file

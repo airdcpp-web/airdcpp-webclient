@@ -1,3 +1,11 @@
+//     __ _____ _____ _____
+//  __|  |   __|     |   | |  JSON for Modern C++
+// |  |  |__   |  |  | | | |  version 3.11.2
+// |_____|_____|_____|_|___|  https://github.com/nlohmann/json
+//
+// SPDX-FileCopyrightText: 2013-2022 Niels Lohmann <https://nlohmann.me>
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include <algorithm> // copy
@@ -14,10 +22,10 @@
 
 #include <nlohmann/detail/macro_scope.hpp>
 
-namespace nlohmann
-{
+NLOHMANN_JSON_NAMESPACE_BEGIN
 namespace detail
 {
+
 /// abstract output adapter interface
 template<typename CharType> struct output_adapter_protocol
 {
@@ -37,11 +45,11 @@ template<typename CharType>
 using output_adapter_t = std::shared_ptr<output_adapter_protocol<CharType>>;
 
 /// output adapter for byte vectors
-template<typename CharType>
+template<typename CharType, typename AllocatorType = std::allocator<CharType>>
 class output_vector_adapter : public output_adapter_protocol<CharType>
 {
   public:
-    explicit output_vector_adapter(std::vector<CharType>& vec) noexcept
+    explicit output_vector_adapter(std::vector<CharType, AllocatorType>& vec) noexcept
         : v(vec)
     {}
 
@@ -53,11 +61,11 @@ class output_vector_adapter : public output_adapter_protocol<CharType>
     JSON_HEDLEY_NON_NULL(2)
     void write_characters(const CharType* s, std::size_t length) override
     {
-        std::copy(s, s + length, std::back_inserter(v));
+        v.insert(v.end(), s, s + length);
     }
 
   private:
-    std::vector<CharType>& v;
+    std::vector<CharType, AllocatorType>& v;
 };
 
 #ifndef JSON_NO_IO
@@ -114,8 +122,9 @@ template<typename CharType, typename StringType = std::basic_string<CharType>>
 class output_adapter
 {
   public:
-    output_adapter(std::vector<CharType>& vec)
-        : oa(std::make_shared<output_vector_adapter<CharType>>(vec)) {}
+    template<typename AllocatorType = std::allocator<CharType>>
+    output_adapter(std::vector<CharType, AllocatorType>& vec)
+        : oa(std::make_shared<output_vector_adapter<CharType, AllocatorType>>(vec)) {}
 
 #ifndef JSON_NO_IO
     output_adapter(std::basic_ostream<CharType>& s)
@@ -133,5 +142,6 @@ class output_adapter
   private:
     output_adapter_t<CharType> oa = nullptr;
 };
+
 }  // namespace detail
-}  // namespace nlohmann
+NLOHMANN_JSON_NAMESPACE_END

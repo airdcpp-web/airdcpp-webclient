@@ -1,3 +1,12 @@
+//     __ _____ _____ _____
+//  __|  |   __|     |   | |  JSON for Modern C++
+// |  |  |__   |  |  | | | |  version 3.11.2
+// |_____|_____|_____|_|___|  https://github.com/nlohmann/json
+//
+// SPDX-FileCopyrightText: 2008-2009 Björn Hoehrmann <bjoern@hoehrmann.de>
+// SPDX-FileCopyrightText: 2013-2022 Niels Lohmann <https://nlohmann.me>
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include <algorithm> // reverse, remove, fill, find, none_of
@@ -9,6 +18,7 @@
 #include <cstdio> // snprintf
 #include <limits> // numeric_limits
 #include <string> // string, char_traits
+#include <iomanip> // setfill, setw
 #include <type_traits> // is_same
 #include <utility> // move
 
@@ -18,12 +28,13 @@
 #include <nlohmann/detail/meta/cpp_future.hpp>
 #include <nlohmann/detail/output/binary_writer.hpp>
 #include <nlohmann/detail/output/output_adapters.hpp>
+#include <nlohmann/detail/string_concat.hpp>
 #include <nlohmann/detail/value_t.hpp>
 
-namespace nlohmann
-{
+NLOHMANN_JSON_NAMESPACE_BEGIN
 namespace detail
 {
+
 ///////////////////
 // serialization //
 ///////////////////
@@ -455,16 +466,16 @@ class serializer
                                 if (codepoint <= 0xFFFF)
                                 {
                                     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
-                                    (std::snprintf)(string_buffer.data() + bytes, 7, "\\u%04x",
-                                                    static_cast<std::uint16_t>(codepoint));
+                                    static_cast<void>((std::snprintf)(string_buffer.data() + bytes, 7, "\\u%04x",
+                                                                      static_cast<std::uint16_t>(codepoint)));
                                     bytes += 6;
                                 }
                                 else
                                 {
                                     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
-                                    (std::snprintf)(string_buffer.data() + bytes, 13, "\\u%04x\\u%04x",
-                                                    static_cast<std::uint16_t>(0xD7C0u + (codepoint >> 10u)),
-                                                    static_cast<std::uint16_t>(0xDC00u + (codepoint & 0x3FFu)));
+                                    static_cast<void>((std::snprintf)(string_buffer.data() + bytes, 13, "\\u%04x\\u%04x",
+                                                                      static_cast<std::uint16_t>(0xD7C0u + (codepoint >> 10u)),
+                                                                      static_cast<std::uint16_t>(0xDC00u + (codepoint & 0x3FFu))));
                                     bytes += 12;
                                 }
                             }
@@ -499,10 +510,7 @@ class serializer
                     {
                         case error_handler_t::strict:
                         {
-                            std::string sn(9, '\0');
-                            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
-                            (std::snprintf)(&sn[0], sn.size(), "%.2X", byte);
-                            JSON_THROW(type_error::create(316, "invalid UTF-8 byte at index " + std::to_string(i) + ": 0x" + sn, BasicJsonType()));
+                            JSON_THROW(type_error::create(316, concat("invalid UTF-8 byte at index ", std::to_string(i), ": 0x", hex_bytes(byte | 0)), nullptr));
                         }
 
                         case error_handler_t::ignore:
@@ -594,10 +602,7 @@ class serializer
             {
                 case error_handler_t::strict:
                 {
-                    std::string sn(9, '\0');
-                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
-                    (std::snprintf)(&sn[0], sn.size(), "%.2X", static_cast<std::uint8_t>(s.back()));
-                    JSON_THROW(type_error::create(316, "incomplete UTF-8 string; last byte: 0x" + sn, BasicJsonType()));
+                    JSON_THROW(type_error::create(316, concat("incomplete UTF-8 string; last byte: 0x", hex_bytes(static_cast<std::uint8_t>(s.back() | 0))), nullptr));
                 }
 
                 case error_handler_t::ignore:
@@ -665,6 +670,33 @@ class serializer
     }
 
     /*!
+     * @brief convert a byte to a uppercase hex representation
+     * @param[in] byte byte to represent
+     * @return representation ("00".."FF")
+     */
+    static std::string hex_bytes(std::uint8_t byte)
+    {
+        std::string result = "FF";
+        constexpr const char* nibble_to_hex = "0123456789ABCDEF";
+        result[0] = nibble_to_hex[byte / 16];
+        result[1] = nibble_to_hex[byte % 16];
+        return result;
+    }
+
+    // templates to avoid warnings about useless casts
+    template <typename NumberType, enable_if_t<std::is_signed<NumberType>::value, int> = 0>
+    bool is_negative_number(NumberType x)
+    {
+        return x < 0;
+    }
+
+    template < typename NumberType, enable_if_t <std::is_unsigned<NumberType>::value, int > = 0 >
+    bool is_negative_number(NumberType /*unused*/)
+    {
+        return false;
+    }
+
+    /*!
     @brief dump an integer
 
     Dump a given integer to output stream @a o. Works internally with
@@ -707,12 +739,11 @@ class serializer
         // use a pointer to fill the buffer
         auto buffer_ptr = number_buffer.begin(); // NOLINT(llvm-qualified-auto,readability-qualified-auto,cppcoreguidelines-pro-type-vararg,hicpp-vararg)
 
-        const bool is_negative = std::is_signed<NumberType>::value && !(x >= 0); // see issue #755
         number_unsigned_t abs_value;
 
         unsigned int n_chars{};
 
-        if (is_negative)
+        if (is_negative_number(x))
         {
             *buffer_ptr = '-';
             abs_value = remove_sign(static_cast<number_integer_t>(x));
@@ -729,7 +760,7 @@ class serializer
         // spare 1 byte for '\0'
         JSON_ASSERT(n_chars < number_buffer.size() - 1);
 
-        // jump to the end to generate the string from backward
+        // jump to the end to generate the string from backward,
         // so we later avoid reversing the result
         buffer_ptr += n_chars;
 
@@ -811,8 +842,8 @@ class serializer
         // erase thousands separator
         if (thousands_sep != '\0')
         {
-            auto* const end = std::remove(number_buffer.begin(),
-                                          number_buffer.begin() + len, thousands_sep);
+            // NOLINTNEXTLINE(readability-qualified-auto,llvm-qualified-auto): std::remove returns an iterator, see https://github.com/nlohmann/json/issues/3081
+            const auto end = std::remove(number_buffer.begin(), number_buffer.begin() + len, thousands_sep);
             std::fill(end, number_buffer.end(), '\0');
             JSON_ASSERT((end - number_buffer.begin()) <= len);
             len = (end - number_buffer.begin());
@@ -821,7 +852,8 @@ class serializer
         // convert decimal point to '.'
         if (decimal_point != '\0' && decimal_point != '.')
         {
-            auto* const dec_pos = std::find(number_buffer.begin(), number_buffer.end(), decimal_point);
+            // NOLINTNEXTLINE(readability-qualified-auto,llvm-qualified-auto): std::find returns an iterator, see https://github.com/nlohmann/json/issues/3081
+            const auto dec_pos = std::find(number_buffer.begin(), number_buffer.end(), decimal_point);
             if (dec_pos != number_buffer.end())
             {
                 *dec_pos = '.';
@@ -830,7 +862,7 @@ class serializer
 
         o->write_characters(number_buffer.data(), static_cast<std::size_t>(len));
 
-        // determine if need to append ".0"
+        // determine if we need to append ".0"
         const bool value_is_int_like =
             std::none_of(number_buffer.begin(), number_buffer.begin() + len + 1,
                          [](char c)
@@ -951,5 +983,6 @@ class serializer
     /// error_handler how to react on decoding errors
     const error_handler_t error_handler;
 };
+
 }  // namespace detail
-}  // namespace nlohmann
+NLOHMANN_JSON_NAMESPACE_END

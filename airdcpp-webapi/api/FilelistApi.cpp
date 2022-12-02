@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2021 AirDC++ Project
+* Copyright (C) 2011-2022 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include <api/FilelistApi.h>
 
 #include <api/common/Deserializer.h>
+#include <api/common/Validation.h>
 #include <web-server/JsonUtil.h>
 
 #include <airdcpp/QueueManager.h>
@@ -73,7 +74,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 		addAsyncTask([
 			hintedUser = Deserializer::deserializeHintedUser(reqJson),
-			directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, ADC_ROOT_STR),
+			directory = Validation::validateAdcDirectoryPath(JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, ADC_ROOT_STR)),
 			complete = aRequest.defer(),
 			caller = aRequest.getOwnerPtr()
 		]{
@@ -102,7 +103,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 		addAsyncTask([
 			hintedUser = Deserializer::deserializeHintedUser(reqJson),
-			directory = JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, ADC_ROOT_STR),
+			directory = Validation::validateAdcDirectoryPath(JsonUtil::getOptionalFieldDefault<string>("directory", reqJson, ADC_ROOT_STR)),
 			complete = aRequest.defer(),
 			caller = aRequest.getOwnerPtr()
 		] {
@@ -251,7 +252,7 @@ namespace webserver {
 
 	api_return FilelistApi::handlePostDirectoryDownload(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
-		auto listPath = JsonUtil::getField<string>("list_path", aRequest.getRequestBody(), false);
+		auto listPath = Validation::validateAdcDirectoryPath(JsonUtil::getField<string>("list_path", aRequest.getRequestBody(), false));
 
 		string targetDirectory, targetBundleName = Util::getAdcLastDir(listPath);
 		Priority prio;

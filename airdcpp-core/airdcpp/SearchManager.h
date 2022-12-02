@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2021 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -110,12 +110,15 @@ public:
 	string getTypeIdByExtension(const string& aExtension, bool aDefaultsOnly = false) const noexcept;
 
 	bool decryptPacket(string& x, size_t aLen, const ByteVector& aBuf);
+	static string encryptSUDP(const uint8_t* aKey, const string& aCmd);
+	static bool decryptSUDP(const uint8_t* aKey, const ByteVector& aData, size_t aDataLen, string& result_);
 
 	SearchInstancePtr createSearchInstance(const string& aOwnerId, uint64_t aExpirationTick = 0) noexcept;
 	SearchInstancePtr removeSearchInstance(SearchInstanceToken aToken) noexcept;
 	SearchInstancePtr getSearchInstance(SearchInstanceToken aToken) const noexcept;
 	SearchInstanceList getSearchInstances() const noexcept;
 private:
+	static void testSUDP();
 	vector<pair<uint8_t*, uint64_t>> searchKeys;
 
 	mutable SharedMutex cs;
