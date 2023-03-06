@@ -96,7 +96,7 @@ void ChatMessage::parseHighlights(const Identity& aMe, const MessageHighlightLis
 	}
 
 	// Insert our highlights (that won't overlap)
-	const auto defaultHighlights = MessageHighlight::parseHighlights(text, aMe.getNick(), from->getUser());
+	const auto defaultHighlights = MessageHighlight::parseHighlights(text, aMe.getNick(), to ? to->getUser() : nullptr);
 	for (const auto& hl: defaultHighlights) {
 		highlights.insert_sorted(hl);
 	}

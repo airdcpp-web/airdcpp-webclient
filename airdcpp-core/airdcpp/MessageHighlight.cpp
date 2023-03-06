@@ -57,17 +57,17 @@ namespace dcpp {
 		return *aHighlight;
 	}
 
-	MessageHighlight::SortedList MessageHighlight::parseHighlights(const string& aText, const string& aMyNick, const UserPtr& aUser) {
+	MessageHighlight::SortedList MessageHighlight::parseHighlights(const string& aText, const string& aMyNick, const UserPtr& aTo) {
 		MessageHighlight::SortedList ret;
 
 		// Note: the earlier formatters will override the later ones in case of duplicates
-		parseLinkHighlights(aText, ret, aUser);
+		parseLinkHighlights(aText, ret, aTo);
 		parseReleaseHighlights(aText, ret);
 		parseUserHighlights(aText, ret, aMyNick);
 		return ret;
 	}
 
-	void MessageHighlight::parseLinkHighlights(const string& aText, MessageHighlight::SortedList& highlights_, const UserPtr& aUser) {
+	void MessageHighlight::parseLinkHighlights(const string& aText, MessageHighlight::SortedList& highlights_, const UserPtr& aTo) {
 		try {
 			auto start = aText.cbegin();
 			auto end = aText.cend();
@@ -80,11 +80,11 @@ namespace dcpp {
 				auto highlight = make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_LINK_URL, "url");
 
 				if (link.find("magnet:?") == 0) {
-					auto m = Magnet::parseMagnet(link, aUser);
+					auto m = Magnet::parseMagnet(link, aTo);
 					if (m) {
 						highlight->setMagnet(m);
 
-						if (ShareManager::getInstance()->isTempShared(aUser, (*m).getTTH())) {
+						if (ShareManager::getInstance()->isTempShared(aTo, (*m).getTTH())) {
 							highlight->setTag(TAG_TEMP_SHARE);
 						}
 						else {
