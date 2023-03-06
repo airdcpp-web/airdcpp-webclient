@@ -234,6 +234,7 @@ namespace webserver {
 			currentViewItems.clear();
 		}
 
+		auto currentPath = dl->getCurrentLocationInfo().directory->getAdcPath();
 		auto curDir = dl->findDirectory(aPath);
 		if (!curDir) {
 			return;
@@ -252,7 +253,8 @@ namespace webserver {
 			currentViewItemsInitialized = true;
 		}
 
-		directoryView.resetItems();
+		auto resetFilters = aPath != currentPath;
+		directoryView.resetItems(resetFilters);
 
 		onSessionUpdated({
 			{ "location", serializeLocation(dl) },
