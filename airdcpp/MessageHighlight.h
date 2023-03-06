@@ -81,9 +81,9 @@ namespace dcpp {
 		static string TAG_MAGNET;
 		static string TAG_TEMP_SHARE;
 
-		static MessageHighlight::SortedList parseHighlights(const string& aText, const string& aMyNick, const UserPtr& aUser);
+		static MessageHighlight::SortedList parseHighlights(const string& aText, const string& aMyNick, const UserPtr& aTo);
 
-		static void parseLinkHighlights(const string& aText, MessageHighlight::SortedList& highlights_, const UserPtr& aUser);
+		static void parseLinkHighlights(const string& aText, MessageHighlight::SortedList& highlights_, const UserPtr& aTo);
 		static void parseReleaseHighlights(const string& aText, MessageHighlight::SortedList& highlights_);
 		static void parseUserHighlights(const string& aText, MessageHighlight::SortedList& highlights_, const string& aMyNick);
 	private:

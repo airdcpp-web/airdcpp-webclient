@@ -55,7 +55,7 @@ Upload::~Upload() {
 
 void Upload::getParams(const UserConnection& aSource, ParamMap& params) const {
 	Transfer::getParams(aSource, params);
-	params["source"] = (getType() == TYPE_PARTIAL_LIST ? STRING(PARTIAL_FILELIST) : getPath());
+	params["source"] = (getType() == TYPE_PARTIAL_LIST ? STRING(PARTIAL_FILELIST) + " (" + getPath() + ")" : getPath());
 }
 
 void Upload::resume(int64_t aStart, int64_t aSize) noexcept {

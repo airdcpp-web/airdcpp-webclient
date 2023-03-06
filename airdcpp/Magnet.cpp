@@ -32,8 +32,8 @@ using std::map;
 
 
 
-optional<Magnet> Magnet::parseMagnet(const string& aLink, const UserPtr& aSender) noexcept {
-	Magnet m(aLink, aSender);
+optional<Magnet> Magnet::parseMagnet(const string& aLink, const UserPtr& aTo) noexcept {
+	Magnet m(aLink, aTo);
 	if (m.fname.empty() || m.fsize == -1 || m.hash.empty()) {
 		return nullopt;
 	}
@@ -52,7 +52,7 @@ string Magnet::makeMagnet(const TTHValue& aHash, const string& aFile, int64_t aS
 	return ret + "&dn=" + Util::encodeURI(aFile);
 }
 
-Magnet::Magnet(const string& aLink, const UserPtr& aSender) : sender(aSender) {
+Magnet::Magnet(const string& aLink, const UserPtr& aTo) : to(aTo) {
 	// official types that are of interest to us
 	//  xt = exact topic
 	//  xs = exact substitute
@@ -103,7 +103,7 @@ Magnet::Magnet(const string& aLink, const UserPtr& aSender) : sender(aSender) {
 
 DupeType Magnet::getDupeType() const {
 	auto dupe = AirUtil::checkFileDupe(getTTH());
-	if (sender && ShareManager::getInstance()->isTempShared(sender, getTTH())) {
+	if (ShareManager::getInstance()->isTempShared(to, getTTH())) {
 		dupe = DUPE_SHARE_FULL;
 	}
 
