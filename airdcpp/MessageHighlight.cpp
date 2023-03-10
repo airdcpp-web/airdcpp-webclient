@@ -105,7 +105,7 @@ namespace dcpp {
 	}
 
 	void MessageHighlight::parseReleaseHighlights(const string& aText, MessageHighlight::SortedList& highlights_) {
-		if (SETTING(FORMAT_RELEASE) || SETTING(DUPES_IN_CHAT)) {
+		if (SETTING(FORMAT_RELEASE)) {
 			auto start = aText.cbegin();
 			auto end = aText.cend();
 			boost::match_results<string::const_iterator> result;
