@@ -85,7 +85,7 @@ namespace webserver {
 		// Serialize n items from end by keeping the list order
 		// Throws for invalid parameters
 		template <class ContainerT, class FuncT>
-		static json serializeFromEnd(int aCount, const ContainerT& aList, FuncT aF) {
+		static json serializeFromEnd(int aCount, const ContainerT& aList, const FuncT& aF) {
 			if (aList.empty()) {
 				return json::array();
 			}
@@ -106,7 +106,7 @@ namespace webserver {
 		// Serialize n items from beginning by keeping the list order
 		// Throws for invalid parameters
 		template <class ContainerT, class FuncT>
-		static json serializeFromBegin(int aCount, const ContainerT& aList, FuncT aF) {
+		static json serializeFromBegin(int aCount, const ContainerT& aList, const FuncT& aF) {
 			if (aList.empty()) {
 				return json::array();
 			}
@@ -126,14 +126,14 @@ namespace webserver {
 		}
 
 		template <class ContainerT, class FuncT>
-		static json serializeList(const ContainerT& aList, FuncT aF) noexcept {
+		static json serializeList(const ContainerT& aList, const FuncT& aF) noexcept {
 			return serializeRange(aList.begin(), aList.end(), aF);
 		}
 
 		// Serialize n messages from position
 		// Throws for invalid parameters
 		template <class ContainerT, class FuncT>
-		static json serializeFromPosition(int aBeginPos, int aCount, const ContainerT& aList, FuncT aF) {
+		static json serializeFromPosition(int aBeginPos, int aCount, const ContainerT& aList, const FuncT& aF) {
 			auto listSize = static_cast<int>(std::distance(aList.begin(), aList.end()));
 			if (listSize == 0) {
 				return json::array();
@@ -226,11 +226,12 @@ namespace webserver {
 		static void appendOnlineUserFlags(const OnlineUserPtr& aUser, StringSet& flags_) noexcept;
 
 		template <class IterT, class FuncT>
-		static json serializeRange(IterT aBegin, IterT aEnd, FuncT aF) noexcept {
-			return std::accumulate(aBegin, aEnd, json::array(), [&](json& list, const typename iterator_traits<IterT>::value_type& elem) {
-				list.push_back(aF(elem));
-				return list;
+		static json serializeRange(const IterT& aBegin, const IterT& aEnd, const FuncT& aF) noexcept {
+			auto ret = json::array();
+			std::for_each(aBegin, aEnd, [&](const auto& elem) {
+				ret.push_back(aF(elem));
 			});
+			return ret;
 		}
 	};
 }
