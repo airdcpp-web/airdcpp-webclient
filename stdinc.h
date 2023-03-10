@@ -48,8 +48,6 @@ namespace webserver {
 	typedef std::function<ApiCompletionF()> ApiDeferredHandler;
 
 	using namespace dcpp;
-
-	using json = nlohmann::json;
 }
 
 #endif // !defined(DCPLUSPLUS_WEBSERVER_STDINC_H)
