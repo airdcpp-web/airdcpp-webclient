@@ -1573,7 +1573,7 @@ wstring Util::getLastDir(const wstring& path) noexcept {
 }
 
 string Util::truncate(const string& aStr, int aMaxLength) noexcept {
-	return aStr.size() > aMaxLength ? (aStr.substr(0, aMaxLength) + "...") : aStr;
+	return aStr.size() > static_cast<size_t>(aMaxLength) ? (aStr.substr(0, aMaxLength) + "...") : aStr;
 }
 
 string Util::translateError(int aError) noexcept {

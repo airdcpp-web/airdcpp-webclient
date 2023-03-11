@@ -171,7 +171,7 @@ AdcCommand Download::getCommand(bool zlib, const string& mySID) const noexcept {
 
 void Download::getParams(const UserConnection& aSource, ParamMap& params) const noexcept {
 	Transfer::getParams(aSource, params);
-	params["target"] = getPath();
+	params["target"] = (getType() == TYPE_PARTIAL_LIST ? STRING(PARTIAL_FILELIST) + " (" + getListDirectoryPath() + ")" : getPath());
 }
 
 string Download::getTargetFileName() const noexcept {

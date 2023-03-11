@@ -44,8 +44,8 @@ jobs:
       if: ${{ runner.os == 'Linux' }}
       run: |
         sudo apt-get update
-        sudo apt-get install cmake nodejs python pkg-config libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev \
-            libmaxminddb-dev libleveldb-dev libboost1.67-dev libboost-regex1.67 libboost-thread1.67 libboost-system1.67
+        sudo apt-get install cmake nodejs python3 pkg-config libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev \
+            libmaxminddb-dev libleveldb-dev libboost1.74-dev libboost-regex1.74 libboost-thread1.74 libboost-system1.74
 
     - name: Install dependencies on macOS
       if: ${{ runner.os == 'macOS' }}

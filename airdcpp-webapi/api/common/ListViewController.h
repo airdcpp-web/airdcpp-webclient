@@ -73,8 +73,8 @@ namespace webserver {
 			currentValues.reset();
 		}
 
-		void resetItems() {
-			clear();
+		void resetItems(bool aClearFilters = false) {
+			clear(aClearFilters);
 
 			currentValues.set(IntCollector::TYPE_RANGE_START, 0);
 
@@ -365,23 +365,32 @@ namespace webserver {
 		}
 
 		int initItems() {
+			auto matchers = getFilterMatcherList();
+
 			WLock l(cs);
 			matchingItems = itemListF();
 
+			// Source filter
 			if (sourceFilter) {
 				auto matcher = PropertyFilter::Matcher<PropertyFilter*>(sourceFilter.get());
 				matchingItems.erase(remove_if(matchingItems.begin(), matchingItems.end(), [&](const T& aItem) {
 					return !matchesFilter<PropertyFilter*>(aItem, matcher);
 				}), matchingItems.end());
 			}
-
 			sourceItems.insert(matchingItems.begin(), matchingItems.end());
+
+			// Normal filters
+			if (matchers.size()) {
+				matchingItems.erase(remove_if(matchingItems.begin(), matchingItems.end(), [&](const T& aItem) {
+					return !matchesFilter(aItem, matchers);
+				}), matchingItems.end());
+			}
 
 			itemListChanged = true;
 			return static_cast<int>(matchingItems.size());
 		}
 
-		void clear() {
+		void clear(bool aClearFilters = true) {
 			WLock l(cs);
 			tasks.clear();
 			currentViewportItems.clear();
@@ -389,7 +398,10 @@ namespace webserver {
 			sourceItems.clear();
 			prevTotalItemCount = -1;
 			prevMatchingItemCount = -1;
-			filters.clear();
+
+			if (aClearFilters) {
+				filters.clear();
+			}
 		}
 
 		static bool itemSort(const T& t1, const T& t2, const PropertyItemHandler<T>& aItemHandler, int aSortProperty, int aSortAscending) {
