@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -222,11 +222,11 @@ namespace webserver {
 		}
 
 		void addAsyncTask(Callback&& aTask) override {
-			SubscribableApiModule::addAsyncTask(getAsyncWrapper(move(aTask)));
+			SubscribableApiModule::addAsyncTask(getAsyncWrapper(std::move(aTask)));
 		}
 
 		TimerPtr getTimer(Callback&& aTask, time_t aIntervalMillis) override {
-			return session->getServer()->addTimer(move(aTask), aIntervalMillis, 
+			return session->getServer()->addTimer(std::move(aTask), aIntervalMillis, 
 				std::bind(&SubApiModule::moduleAsyncRunWrapper<ParentType>, std::placeholders::_1, parentModule, getId(), session->getId())
 			);
 		}

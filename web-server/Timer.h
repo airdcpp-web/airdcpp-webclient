@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ namespace webserver {
 		// CallbackWrapper is meant to ensure the lifetime of the timer
 		// (which necessary only if the timer is called from a class that can be deleted, such as sessions)
 		Timer(Callback&& aCallback, boost::asio::io_service& aIO, time_t aIntervalMillis, const CallbackWrapper& aWrapper) :
-			cb(move(aCallback)),
+			cb(std::move(aCallback)),
 			interval(aIntervalMillis),
 			timer(aIO),
 			cbWrapper(aWrapper)

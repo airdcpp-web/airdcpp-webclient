@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -85,24 +85,32 @@ namespace webserver {
 			return ShareManager::getInstance()->getValidator().fileValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::fileValidationHook));
 		}, [this](const string& aId) {
 			ShareManager::getInstance()->getValidator().fileValidationHook.removeSubscriber(aId);
+		}, [this] {
+			return ShareManager::getInstance()->getValidator().fileValidationHook.getSubscribers();
 		});
 
 		createHook("share_directory_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ShareManager::getInstance()->getValidator().directoryValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::directoryValidationHook));
 		}, [this](const string& aId) {
 			ShareManager::getInstance()->getValidator().directoryValidationHook.removeSubscriber(aId);
+		}, [this] {
+			return ShareManager::getInstance()->getValidator().directoryValidationHook.getSubscribers();
 		});
 
 		createHook("new_share_directory_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ShareManager::getInstance()->getValidator().newDirectoryValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::newDirectoryValidationHook));
 		}, [this](const string& aId) {
 			ShareManager::getInstance()->getValidator().newDirectoryValidationHook.removeSubscriber(aId);
+		}, [this] {
+			return ShareManager::getInstance()->getValidator().newDirectoryValidationHook.getSubscribers();
 		});
 
 		createHook("new_share_file_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ShareManager::getInstance()->getValidator().newFileValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::newFileValidationHook));
 		}, [this](const string& aId) {
 			ShareManager::getInstance()->getValidator().newFileValidationHook.removeSubscriber(aId);
+		}, [this] {
+			return ShareManager::getInstance()->getValidator().newFileValidationHook.getSubscribers();
 		});
 
 		ShareManager::getInstance()->addListener(this);

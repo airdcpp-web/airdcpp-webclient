@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -440,7 +440,7 @@ namespace webserver {
 	}
 
 	TimerPtr WebServerManager::addTimer(Callback&& aCallback, time_t aIntervalMillis, const Timer::CallbackWrapper& aCallbackWrapper) noexcept {
-		return make_shared<Timer>(move(aCallback), tasks, aIntervalMillis, aCallbackWrapper);
+		return make_shared<Timer>(std::move(aCallback), tasks, aIntervalMillis, aCallbackWrapper);
 	}
 
 	void WebServerManager::addAsyncTask(Callback&& aCallback) noexcept {
