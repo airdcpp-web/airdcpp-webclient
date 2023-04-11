@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ struct DirectoryBundleAddResult {
 // Adding bundles
 struct BundleAddOptions {
 	BundleAddOptions(string aTarget, const HintedUser& aOptionalUser, const void* aCaller) noexcept :
-		target(move(aTarget)), optionalUser(aOptionalUser), caller(aCaller) { }
+		target(std::move(aTarget)), optionalUser(aOptionalUser), caller(aCaller) { }
 
 	string target;
 	HintedUser optionalUser;
@@ -59,7 +59,7 @@ struct BundleAddOptions {
 
 struct BundleAddData {
 	BundleAddData(string aName, Priority aPrio, time_t aDate) noexcept :
-		name(move(aName)), prio(aPrio), date(aDate) { }
+		name(std::move(aName)), prio(aPrio), date(aDate) { }
 
 	string name;
 	Priority prio;
@@ -68,7 +68,7 @@ struct BundleAddData {
 
 struct BundleFileAddData : public BundleAddData {
 	BundleFileAddData(string aFile, const TTHValue& aTTH, int64_t aSize, Priority aPrio, time_t aDate) noexcept :
-		BundleAddData(move(aFile), aPrio, aDate), tth(aTTH), size(aSize) { }
+		BundleAddData(std::move(aFile), aPrio, aDate), tth(aTTH), size(aSize) { }
 
 	TTHValue tth;
 	int64_t size;
@@ -89,7 +89,7 @@ struct FilelistAddData {
 // Viewed files
 struct ViewedFileAddData {
 	ViewedFileAddData(string aFile, const TTHValue& aTTH, int64_t aSize, const void* aCaller, const HintedUser& aUser, bool aIsText) noexcept :
-		file(move(aFile)), tth(aTTH), size(aSize), caller(aCaller), user(aUser), isText(aIsText) { }
+		file(std::move(aFile)), tth(aTTH), size(aSize), caller(aCaller), user(aUser), isText(aIsText) { }
 
 	string file;
 	TTHValue tth;

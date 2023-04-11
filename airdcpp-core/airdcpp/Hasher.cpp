@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -197,9 +197,9 @@ namespace dcpp {
 				if (!w.empty()) {
 					auto& wi = w.front();
 					dirChanged = initialDir.empty() || compare(Util::getFilePath(wi.filePath), Util::getFilePath(fname)) != 0;
-					currentFile = fname = move(wi.filePath);
-					curDevID = move(wi.deviceId);
-					pathLower = move(wi.filePathLower);
+					currentFile = fname = std::move(wi.filePath);
+					curDevID = std::move(wi.deviceId);
+					pathLower = std::move(wi.filePathLower);
 					originalSize = wi.fileSize;
 					dcassert(curDevID >= 0);
 					w.pop_front();

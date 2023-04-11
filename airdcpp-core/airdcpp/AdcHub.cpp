@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1219,7 +1219,7 @@ void AdcHub::constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDir
 			c.addParam("LE", Util::toString(aSearch->size));
 		}
 
-		auto searchTokens = move(SearchQuery::parseSearchString(aSearch->query));
+		auto searchTokens = std::move(SearchQuery::parseSearchString(aSearch->query));
 		for(const auto& t: searchTokens)
 			c.addParam("AN", t);
 

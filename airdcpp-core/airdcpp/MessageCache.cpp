@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+* Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -130,7 +130,7 @@ namespace dcpp {
 
 	void MessageCache::add(Message&& aMessage) noexcept {
 		WLock l(cs);
-		messages.push_back(move(aMessage));
+		messages.push_back(std::move(aMessage));
 		for (const auto& hl : aMessage.getHighlights()) {
 			highlights.emplace(hl->getToken(), hl);
 		}

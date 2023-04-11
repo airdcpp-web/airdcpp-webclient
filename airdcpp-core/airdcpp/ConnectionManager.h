@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -101,7 +101,7 @@ public:
 		if(i == expectedConnections.end()) 
 			return make_pair(Util::emptyString, Util::emptyString);
 
-		StringPair tmp = move(i->second);
+		StringPair tmp = std::move(i->second);
 		expectedConnections.erase(i);
 		
 		return tmp;

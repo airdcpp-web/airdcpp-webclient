@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -212,7 +212,7 @@ namespace dcpp {
 			WLock l(cs);
 			auto i = results.find(aResult->getTTH());
 			if (i == results.end()) {
-				parent = std::make_shared<GroupedSearchResult>(aResult, move(relevanceInfo));
+				parent = std::make_shared<GroupedSearchResult>(aResult, std::move(relevanceInfo));
 				results.emplace(aResult->getTTH(), parent);
 				created = true;
 			} else {

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ namespace dcpp {
 	FastCriticalSection GroupedSearchResult::cs;
 
 	GroupedSearchResult::GroupedSearchResult(const SearchResultPtr& aSR, SearchResult::RelevanceInfo&& aRelevance) :
-		/*token(Util::rand()),*/ baseResult(aSR), relevanceInfo(move(aRelevance)) {
+		/*token(Util::rand()),*/ baseResult(aSR), relevanceInfo(std::move(aRelevance)) {
 
 		// check the dupe
 		if (SETTING(DUPE_SEARCH)) {

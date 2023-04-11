@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -80,7 +80,7 @@ void BufferedSocket::setMode (Modes aMode, size_t aRollback) {
 
 void BufferedSocket::setSocket(unique_ptr<Socket>&& s) {
 	dcassert(!sock.get());
-	sock = move(s);
+	sock = std::move(s);
 	sock->setV4only(v4only);
 }
 
@@ -98,7 +98,7 @@ void BufferedSocket::accept(const Socket& srv, bool secure, bool allowUntrusted,
 
 	s->accept(srv);
 
-	setSocket(move(s));
+	setSocket(std::move(s));
 	setOptions();
 
 	Lock l(cs);
@@ -116,7 +116,7 @@ void BufferedSocket::connect(const AddressInfo& aAddress, const string& aPort, c
 	s->setLocalIp4(CONNSETTING(BIND_ADDRESS));
 	s->setLocalIp6(CONNSETTING(BIND_ADDRESS6));
 
-	setSocket(move(s));
+	setSocket(std::move(s));
 
 	Lock l(cs);
 	addTask(CONNECT, new ConnectInfo(aAddress, aPort, localPort, natRole, proxy && (CONNSETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5)));
@@ -441,7 +441,7 @@ bool BufferedSocket::checkEvents() {
 		{
 			Lock l(cs);
 			dcassert(!tasks.empty());
-			p = move(tasks.front());
+			p = std::move(tasks.front());
 			tasks.erase(tasks.begin());
 		}
 
