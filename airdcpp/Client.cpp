@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -501,7 +501,7 @@ bool Client::isKeyprintMismatch() const noexcept {
 
 void Client::callAsync(AsyncF f) noexcept {
 	if (sock) {
-		sock->callAsync(move(f));
+		sock->callAsync(std::move(f));
 	}
 }
 
@@ -609,10 +609,10 @@ void Client::on(TimerManagerListener::Second, uint64_t aTick) noexcept{
 	}
 
 	if (isConnected()){
-		auto s = move(searchQueue.maybePop());
+		auto s = std::move(searchQueue.maybePop());
 		if (s) {
 			fire(ClientListener::OutgoingSearch(), this, s);
-			search(move(s));
+			search(std::move(s));
 		}
 	}
 }

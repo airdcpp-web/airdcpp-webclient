@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2022 AirDC++ Project
+ * Copyright (C) 2011-2023 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,7 +62,7 @@ boost::regex AirUtil::crcReg;
 boost::regex AirUtil::lineBreakRegex;
 boost::regex AirUtil::urlReg;
 
-AirUtil::TimeCounter::TimeCounter(string aMsg) : start(GET_TICK()), msg(move(aMsg)) {
+AirUtil::TimeCounter::TimeCounter(string aMsg) : start(GET_TICK()), msg(std::move(aMsg)) {
 
 }
 

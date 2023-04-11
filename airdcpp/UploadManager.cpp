@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -128,8 +128,8 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 
 			//check that we have a file
 			if (userlist) {
-				auto info = move(ShareManager::getInstance()->getFileListInfo(aFile, *profile));
-				sourceFile = move(info.second);
+				auto info = std::move(ShareManager::getInstance()->getFileListInfo(aFile, *profile));
+				sourceFile = std::move(info.second);
 				fileSize = info.first;
 			} else {
 				//get all hubs with file transfers
@@ -309,7 +309,7 @@ checkslots:
 					auto f = make_unique<File>(sourceFile, File::READ, File::OPEN | File::SHARED_WRITE); // write for partial sharing
 			
 					f->setPos(start);
-					is = move(f);
+					is = std::move(f);
 					if((start + size) < fileSize) {
 						is.reset(new LimitedInputStream<true>(is.release(), size));
 					}
@@ -327,7 +327,7 @@ checkslots:
 
 				start = 0;
 				fileSize = size = mis->getSize();
-				is = move(mis);
+				is = std::move(mis);
 				break;
 			}
 		case Transfer::TYPE_PARTIAL_LIST:
@@ -361,7 +361,7 @@ checkslots:
 
 				start = 0;
 				fileSize = size = mis->getSize();
-				is = move(mis);
+				is = std::move(mis);
 				break;
 			}
 		default:
@@ -394,7 +394,7 @@ checkslots:
 		}
 	}
 
-	u = new Upload(aSource, sourceFile, TTHValue(), move(is));
+	u = new Upload(aSource, sourceFile, TTHValue(), std::move(is));
 	u->setSegment(Segment(start, size));
 	if(u->getSegment().getEnd() != fileSize)
 		u->setFlag(Upload::FLAG_CHUNKED);

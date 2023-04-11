@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -235,7 +235,7 @@ void Download::open(int64_t bytes, bool z, bool hasDownloadedBytes) {
 		}
 
 		f->setPos(getSegment().getStart());
-		output = move(f);
+		output = std::move(f);
 		tempTarget = target;
 	} else if(getType() == Transfer::TYPE_FULL_LIST) {
 		auto target = getPath();
