@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -41,16 +41,21 @@
 
 
 #define CONTEXT_MENU_HANDLER(menuId, hook, hook2, idType, idDeserializerFunc, idSerializerFunc, access) \
-	createHook(toHookId(menuId), [this](ActionHookSubscriber&& aSubscriber) { \
-		return cmm.hook##MenuHook.addSubscriber( \
-			std::move(aSubscriber), \
-			[this](const vector<idType>& aSelections, const ContextMenuItemListData& aListData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter) { \
-				return MenuApi::menuListHookHandler<idType>(aSelections, aListData, aResultGetter, menuId, idSerializerFunc); \
-			} \
-		); \
-	}, [this](const string& aId) { \
-		cmm.hook##MenuHook.removeSubscriber(aId); \
-	}); \
+	createHook( \
+		toHookId(menuId), \
+		[this](ActionHookSubscriber&& aSubscriber) { \
+			return cmm.hook##MenuHook.addSubscriber( \
+				std::move(aSubscriber), \
+				[this](const vector<idType>& aSelections, const ContextMenuItemListData& aListData, const MenuApi::MenuActionHookResultGetter& aResultGetter) { \
+					return MenuApi::menuListHookHandler<idType>(aSelections, aListData, aResultGetter, menuId, idSerializerFunc); \
+				} \
+			); \
+		}, [this](const string& aId) { \
+			cmm.hook##MenuHook.removeSubscriber(aId); \
+		}, [this] { \
+			return cmm.hook##MenuHook.getSubscribers(); \
+		} \
+	); \
 	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("select")), [=](ApiRequest& aRequest) { \
 		return handleClickItem<idType>( \
 			aRequest, \
@@ -65,18 +70,27 @@
 			std::bind(&ContextMenuManager::get##hook2##Menu, &cmm, placeholders::_1, placeholders::_2), \
 			idDeserializerFunc \
 		); \
+	}); \
+	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list_grouped")), [=](ApiRequest& aRequest) { \
+		return handleListItemsGrouped<idType>( \
+			aRequest, \
+			std::bind(&ContextMenuManager::get##hook2##Menu, &cmm, placeholders::_1, placeholders::_2), \
+			idDeserializerFunc \
+		); \
 	});
 
 #define ENTITY_CONTEXT_MENU_HANDLER(menuId, hook, hook2, idType, idDeserializerFunc, idSerializerFunc, entityType, entityDeserializerFunc, access) \
 	createHook(toHookId(menuId), [this](ActionHookSubscriber&& aSubscriber) { \
 		return cmm.hook##MenuHook.addSubscriber( \
 			std::move(aSubscriber), \
-			[this](const vector<idType>& aSelections, const ContextMenuItemListData& aListData, const entityType& aEntity, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter) { \
+			[this](const vector<idType>& aSelections, const ContextMenuItemListData& aListData, const entityType& aEntity, const MenuApi::MenuActionHookResultGetter& aResultGetter) { \
 				return MenuApi::menuListHookHandler<idType>(aSelections, aListData, aResultGetter, menuId, idSerializerFunc, aEntity->getToken()); \
 			} \
 		); \
 	}, [this](const string& aId) { \
 		cmm.hook##MenuHook.removeSubscriber(aId); \
+	}, [this] { \
+		return cmm.hook##MenuHook.getSubscribers(); \
 	}); \
 	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("select")), [=](ApiRequest& aRequest) { \
 		const auto entityId = JsonUtil::getRawField("entity_id", aRequest.getRequestBody()); \
@@ -94,6 +108,17 @@
 		const auto entityId = JsonUtil::getRawField("entity_id", aRequest.getRequestBody()); \
 		auto entity = entityDeserializerFunc(entityId, "entity_id"); \
 		return handleListItems<idType>( \
+			aRequest, \
+			[=](const vector<idType>& aSelectedIds, const ContextMenuItemListData& aListData) { \
+				return cmm.get##hook2##Menu(aSelectedIds, aListData, entity); \
+			}, \
+			idDeserializerFunc \
+		); \
+	}); \
+	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list_grouped")), [=](ApiRequest& aRequest) { \
+		const auto entityId = JsonUtil::getRawField("entity_id", aRequest.getRequestBody()); \
+		auto entity = entityDeserializerFunc(entityId, "entity_id"); \
+		return handleListItemsGrouped<idType>( \
 			aRequest, \
 			[=](const vector<idType>& aSelectedIds, const ContextMenuItemListData& aListData) { \
 				return cmm.get##hook2##Menu(aSelectedIds, aListData, entity); \
@@ -239,15 +264,27 @@ namespace webserver {
 		};
 	}
 
-	ContextMenuItemList MenuApi::deserializeMenuItems(const json& aData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter) {
-		const auto menuItemsJson = JsonUtil::getArrayField("menuitems", aData, true);
+	json MenuApi::serializeGroupedMenuItem(const GroupedContextMenuItemPtr& aMenuItem) {
+		return {
+			{ "id", aMenuItem->getId() },
+			{ "title", aMenuItem->getTitle() },
+			{ "icon", aMenuItem->getIconInfo() },
+			{ "items", Serializer::serializeList(aMenuItem->getItems(), serializeMenuItem) },
+		};
+	}
 
-		ContextMenuItemList ret;
+	GroupedContextMenuItemPtr MenuApi::deserializeMenuItems(const json& aData, const MenuActionHookResultGetter& aResultGetter) {
+		const auto menuItemsJson = JsonUtil::getArrayField("menuitems", aData, true);
+		const auto id = aResultGetter.getSubscriber().getId();
+		const auto title = JsonUtil::getOptionalFieldDefault("title", aData, aResultGetter.getSubscriber().getName());
+		const auto iconInfo = deserializeIconInfo(JsonUtil::getOptionalRawField("icon", aData, false));
+
+		ContextMenuItemList items;
 		for (const auto& menuItem: menuItemsJson) {
-			ret.push_back(toMenuItem(menuItem, aResultGetter));
+			items.push_back(toMenuItem(menuItem, aResultGetter));
 		}
 
-		return ret;
+		return make_shared<GroupedContextMenuItem>(id, title, iconInfo, items);
 	}
 
 	StringMap MenuApi::deserializeIconInfo(const json& aJson) {
@@ -265,7 +302,7 @@ namespace webserver {
 		return iconInfo;
 	}
 
-	ContextMenuItemPtr MenuApi::toMenuItem(const json& aData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter) {
+	ContextMenuItemPtr MenuApi::toMenuItem(const json& aData, const MenuActionHookResultGetter& aResultGetter) {
 		const auto id = JsonUtil::getField<string>("id", aData, false);
 		const auto title = JsonUtil::getField<string>("title", aData, false);
 		const auto iconInfo = deserializeIconInfo(JsonUtil::getOptionalRawField("icon", aData, false));

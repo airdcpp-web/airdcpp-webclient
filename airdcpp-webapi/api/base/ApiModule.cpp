@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -100,7 +100,7 @@ namespace webserver {
 	}
 
 	TimerPtr ApiModule::getTimer(Callback&& aTask, time_t aIntervalMillis) {
-		return session->getServer()->addTimer(move(aTask), aIntervalMillis,
+		return session->getServer()->addTimer(std::move(aTask), aIntervalMillis,
 			std::bind(&ApiModule::asyncRunWrapper, std::placeholders::_1, session->getId())
 		);
 	}
@@ -123,7 +123,7 @@ namespace webserver {
 	}
 
 	void ApiModule::addAsyncTask(Callback&& aTask) {
-		session->getServer()->addAsyncTask(getAsyncWrapper(move(aTask)));
+		session->getServer()->addAsyncTask(getAsyncWrapper(std::move(aTask)));
 	}
 
 

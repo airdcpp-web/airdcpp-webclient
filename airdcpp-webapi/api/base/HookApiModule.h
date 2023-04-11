@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -33,10 +33,11 @@ namespace webserver {
 	public:
 		typedef std::function<bool(ActionHookSubscriber&& aSubscriber)> HookAddF;
 		typedef std::function<void(const string& aSubscriberId)> HookRemoveF;
+		typedef std::function<ActionHookSubscriberList()> HookListF;
 
 		class HookSubscriber {
 		public:
-			HookSubscriber(HookAddF&& aAddHandler, HookRemoveF&& aRemoveF) : addHandler(std::move(aAddHandler)), removeHandler(aRemoveF) {}
+			HookSubscriber(HookAddF&& aAddHandler, HookRemoveF&& aRemoveF, HookListF&& aListF) : addHandler(std::move(aAddHandler)), removeHandler(aRemoveF), listHandler(aListF) {}
 
 			bool enable(const void* aOwner, const json& aJson);
 			void disable();
@@ -48,11 +49,16 @@ namespace webserver {
 			const string& getSubscriberId() const noexcept {
 				return subscriberId;
 			}
+
+			ActionHookSubscriberList getSubscribers() const noexcept {
+				return listHandler();
+			}
 		private:
 			bool active = false;
 
 			const HookAddF addHandler;
 			const HookRemoveF removeHandler;
+			const HookListF listHandler;
 			string subscriberId;
 		};
 
@@ -93,7 +99,7 @@ namespace webserver {
 
 		HookApiModule(Session* aSession, Access aSubscriptionAccess, const StringList& aSubscriptions, Access aHookAccess);
 
-		virtual void createHook(const string& aSubscription, HookAddF&& aAddHandler, HookRemoveF&& aRemoveF) noexcept;
+		virtual void createHook(const string& aSubscription, HookAddF&& aAddHandler, HookRemoveF&& aRemoveF, HookListF&& aListF) noexcept;
 		virtual bool hookActive(const string& aSubscription) const noexcept;
 
 		virtual HookCompletionDataPtr fireHook(const string& aSubscription, int aTimeoutSeconds, JsonCallback&& aJsonCallback);
@@ -104,6 +110,7 @@ namespace webserver {
 
 		virtual api_return handleAddHook(ApiRequest& aRequest);
 		virtual api_return handleRemoveHook(ApiRequest& aRequest);
+		virtual api_return handleListHooks(ApiRequest& aRequest);
 		virtual api_return handleResolveHookAction(ApiRequest& aRequest);
 		virtual api_return handleRejectHookAction(ApiRequest& aRequest);
 	private:

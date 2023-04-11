@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ namespace webserver {
 	{
 	public:
 		JsonException(const json& aError, const std::string& aMessage) : error(aError), std::runtime_error(aMessage.c_str()) { }
-		JsonException(json&& aError, const std::string& aMessage) : error(move(aError)), std::runtime_error(aMessage.c_str()) { }
+		JsonException(json&& aError, const std::string& aMessage) : error(std::move(aError)), std::runtime_error(aMessage.c_str()) { }
 
 		virtual ~JsonException() noexcept { }
 		const json& getErrorJson() const { return error; }

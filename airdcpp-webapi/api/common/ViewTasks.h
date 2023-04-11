@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -98,7 +98,7 @@ private:
 			return;
 		}
 
-		tasks.emplace(aItem, move(aData));
+		tasks.emplace(aItem, std::move(aData));
 	}
 
 	PropertyIdSet updatedProperties;

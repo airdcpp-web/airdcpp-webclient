@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -44,22 +44,24 @@ namespace webserver {
 			return aMenuId + "_list_menuitems";
 		}
 
+		using MenuActionHookResultGetter = ActionHookResultGetter<GroupedContextMenuItemPtr>;
+
 		static StringMap deserializeIconInfo(const json& aJson);
 
-		static ContextMenuItemPtr toMenuItem(const json& aData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter);
-		static ContextMenuItemList deserializeMenuItems(const json& aData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter);
+		static ContextMenuItemPtr toMenuItem(const json& aData, const MenuActionHookResultGetter& aResultGetter);
+		static GroupedContextMenuItemPtr deserializeMenuItems(const json& aData, const MenuActionHookResultGetter& aResultGetter);
 
 		static ExtensionSettingItem::List deserializeFormFieldDefinitions(const json& aJson);
-		// static SettingValueMap deserializeFormValues(const json& aJson, const ExtensionSettingItem::List& aDefinitions);
 
 		static json serializeMenuItem(const ContextMenuItemPtr& aMenuItem);
+		static json serializeGroupedMenuItem(const GroupedContextMenuItemPtr& aMenuItem);
 
 		template<typename IdT>
 		using IdSerializer = std::function<json(const IdT& aId)>;
 
 		template<typename IdT>
-		ActionHookResult<ContextMenuItemList> menuListHookHandler(const vector<IdT>& aSelections, const ContextMenuItemListData& aListData, const ActionHookResultGetter<ContextMenuItemList>& aResultGetter, const string& aMenuId, const IdSerializer<IdT>& aIdSerializer, const json& aEntityId = nullptr) {
-			return HookCompletionData::toResult<ContextMenuItemList>(
+		ActionHookResult<GroupedContextMenuItemPtr> menuListHookHandler(const vector<IdT>& aSelections, const ContextMenuItemListData& aListData, const MenuActionHookResultGetter& aResultGetter, const string& aMenuId, const IdSerializer<IdT>& aIdSerializer, const json& aEntityId = nullptr) {
+			return HookCompletionData::toResult<GroupedContextMenuItemPtr>(
 				fireMenuHook(aMenuId, Serializer::serializeList(aSelections, aIdSerializer), aListData, aEntityId),
 				aResultGetter,
 				MenuApi::deserializeMenuItems
@@ -89,10 +91,40 @@ namespace webserver {
 		ContextMenuItemClickData deserializeClickData(const json& aJson, const AccessList& aPermissions);
 
 		template<typename IdT>
-		using ListHandlerFunc = std::function<ContextMenuItemList(const vector<IdT>& aId, const ContextMenuItemListData& aListData)>;
+		using GroupedListHandlerFunc = std::function<GroupedContextMenuItemList(const vector<IdT>& aId, const ContextMenuItemListData& aListData)>;
+
+		// DEPRECATED
+		template<typename IdT>
+		api_return handleListItems(ApiRequest& aRequest, const GroupedListHandlerFunc<IdT>& aHandlerHooked, const Deserializer::ArrayDeserializerFunc<IdT>& aIdDeserializerFunc) {
+			addAsyncTask([
+				selectedIds = deserializeItemIds<IdT>(aRequest, aIdDeserializerFunc),
+				supports = JsonUtil::getOptionalFieldDefault<StringList>("supports", aRequest.getRequestBody(), StringList()),
+				accessList = aRequest.getSession()->getUser()->getPermissions(),
+				ownerPtr = aRequest.getOwnerPtr(),
+				complete = aRequest.defer(),
+				aHandlerHooked
+			] {
+				const auto groupedItems = aHandlerHooked(selectedIds, ContextMenuItemListData(supports, accessList, ownerPtr));
+
+				auto serializedItems = json::array();
+				for (const auto& groupedItem : groupedItems) {
+					for (const auto& item : groupedItem->getItems()) {
+						serializedItems.push_back(MenuApi::serializeMenuItem(item));
+					}
+				}
+
+				complete(
+					websocketpp::http::status_code::ok,
+					serializedItems,
+					nullptr
+				);
+			});
+
+			return CODE_DEFERRED;
+		}
 
 		template<typename IdT>
-		api_return handleListItems(ApiRequest& aRequest, const ListHandlerFunc<IdT>& aHandlerHooked, const Deserializer::ArrayDeserializerFunc<IdT>& aIdDeserializerFunc) {
+		api_return handleListItemsGrouped(ApiRequest& aRequest, const GroupedListHandlerFunc<IdT>& aHandlerHooked, const Deserializer::ArrayDeserializerFunc<IdT>& aIdDeserializerFunc) {
 			addAsyncTask([
 				selectedIds = deserializeItemIds<IdT>(aRequest, aIdDeserializerFunc),
 				supports = JsonUtil::getOptionalFieldDefault<StringList>("supports", aRequest.getRequestBody(), StringList()),
@@ -104,16 +136,13 @@ namespace webserver {
 				const auto items = aHandlerHooked(selectedIds, ContextMenuItemListData(supports, accessList, ownerPtr));
 				complete(
 					websocketpp::http::status_code::ok,
-					Serializer::serializeList(items, MenuApi::serializeMenuItem),
+					Serializer::serializeList(items, MenuApi::serializeGroupedMenuItem),
 					nullptr
 				);
 			});
 
 			return CODE_DEFERRED;
 		}
-
-		template<typename IdT>
-		using EntityListHandlerFunc = std::function<ContextMenuItemList(const vector<IdT> & aId, const AccessList& aAccessList)>;
 
 		void on(ContextMenuManagerListener::QueueBundleMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData& aClickData) noexcept override;
 		void on(ContextMenuManagerListener::QueueFileMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData& aClickData) noexcept override;

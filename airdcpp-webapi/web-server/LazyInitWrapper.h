@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ namespace webserver {
 	class LazyInitWrapper {
 	public:
 		typedef std::function < unique_ptr<T>() > InitF;
-		LazyInitWrapper(InitF&& aInitF) : initF(move(aInitF)) {}
+		LazyInitWrapper(InitF&& aInitF) : initF(std::move(aInitF)) {}
 
 		T* operator->() {
 			ensureInit();

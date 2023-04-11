@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@ namespace webserver {
 	HookApiModule::HookApiModule(Session* aSession, Access aSubscriptionAccess, const StringList& aSubscriptions, Access aHookAccess) :
 		SubscribableApiModule(aSession, aSubscriptionAccess, aSubscriptions) 
 	{
+		METHOD_HANDLER(aHookAccess, METHOD_GET, (EXACT_PARAM("hooks"), STR_PARAM(LISTENER_PARAM_ID)), HookApiModule::handleListHooks);
 		METHOD_HANDLER(aHookAccess, METHOD_POST, (EXACT_PARAM("hooks"), STR_PARAM(LISTENER_PARAM_ID)), HookApiModule::handleAddHook);
 		METHOD_HANDLER(aHookAccess, METHOD_DELETE, (EXACT_PARAM("hooks"), STR_PARAM(LISTENER_PARAM_ID)), HookApiModule::handleRemoveHook);
 		METHOD_HANDLER(aHookAccess, METHOD_POST, (EXACT_PARAM("hooks"), STR_PARAM(LISTENER_PARAM_ID), TOKEN_PARAM, EXACT_PARAM("resolve")), HookApiModule::handleResolveHookAction);
@@ -73,6 +74,21 @@ namespace webserver {
 		}
 
 		return i->second;
+	}
+
+	api_return HookApiModule::handleListHooks(ApiRequest& aRequest) {
+		auto& hook = getHookSubscriber(aRequest);
+
+		auto ret = json::array();
+		for (auto& h: hook.getSubscribers()) {
+			ret.push_back({
+				{ "id", h.getId() },
+				{ "name", h.getName() },
+			});
+		}
+
+		aRequest.setResponseBody(ret);
+		return websocketpp::http::status_code::ok;
 	}
 
 	bool HookApiModule::HookSubscriber::enable(const void* aOwner, const json& aJson) {
@@ -133,8 +149,8 @@ namespace webserver {
 		}
 	}
 
-	void HookApiModule::createHook(const string& aSubscription, HookAddF&& aAddHandler, HookRemoveF&& aRemoveF) noexcept {
-		hooks.emplace(aSubscription, HookSubscriber(std::move(aAddHandler), std::move(aRemoveF)));
+	void HookApiModule::createHook(const string& aSubscription, HookAddF&& aAddHandler, HookRemoveF&& aRemoveF, HookListF&& aListF) noexcept {
+		hooks.emplace(aSubscription, HookSubscriber(std::move(aAddHandler), std::move(aRemoveF), std::move(aListF)));
 	}
 
 	api_return HookApiModule::handleResolveHookAction(ApiRequest& aRequest) {
