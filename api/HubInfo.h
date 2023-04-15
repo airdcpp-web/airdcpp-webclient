@@ -72,7 +72,6 @@ namespace webserver {
 		void on(ClientListener::Disconnected, const string&, const string&) noexcept override;
 		void on(ClientListener::GetPassword, const Client*) noexcept override;
 		void on(ClientListener::HubUpdated, const Client*) noexcept override;
-		void on(ClientListener::HubTopic, const Client*, const string&) noexcept override;
 		void on(ClientListener::ConnectStateChanged, const Client*, uint8_t) noexcept override;
 		void on(ClientListener::SettingsUpdated, const Client*) noexcept override;
 
@@ -87,8 +86,8 @@ namespace webserver {
 		void on(ClientListener::ChatMessage, const Client*, const ChatMessagePtr& m) noexcept override {
 			chatHandler.onChatMessage(m);
 		}
-		void on(ClientListener::StatusMessage, const Client*, const LogMessagePtr& m, int = ClientListener::FLAG_NORMAL) noexcept override {
-			chatHandler.onStatusMessage(m);
+		void on(ClientListener::StatusMessage, const Client*, const LogMessagePtr& m, const string& aOwner) noexcept override {
+			chatHandler.onStatusMessage(m, aOwner);
 		}
 		void on(ClientListener::MessagesRead, const Client*) noexcept override {
 			chatHandler.onMessagesUpdated();

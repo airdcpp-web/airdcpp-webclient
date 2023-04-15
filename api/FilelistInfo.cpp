@@ -253,8 +253,7 @@ namespace webserver {
 			currentViewItemsInitialized = true;
 		}
 
-		auto resetFilters = aPath != currentPath;
-		directoryView.resetItems(resetFilters);
+		directoryView.resetItems();
 
 		onSessionUpdated({
 			{ "location", serializeLocation(dl) },

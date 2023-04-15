@@ -62,8 +62,8 @@ namespace webserver {
 			chatHandler.onChatMessage(m);
 		}
 
-		void on(PrivateChatListener::StatusMessage, PrivateChat*, const LogMessagePtr& m) noexcept override {
-			chatHandler.onStatusMessage(m);
+		void on(PrivateChatListener::StatusMessage, PrivateChat*, const LogMessagePtr& m, const string& aOwner) noexcept override {
+			chatHandler.onStatusMessage(m, aOwner);
 		}
 
 		void on(PrivateChatListener::Close, PrivateChat*) noexcept override;

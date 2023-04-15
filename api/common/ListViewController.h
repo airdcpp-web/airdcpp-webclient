@@ -69,12 +69,12 @@ namespace webserver {
 			setActive(false);
 			timer->stop(false);
 
-			clear();
+			clear(true);
 			currentValues.reset();
 		}
 
-		void resetItems(bool aClearFilters = false) {
-			clear(aClearFilters);
+		void resetItems() {
+			clear();
 
 			currentValues.set(IntCollector::TYPE_RANGE_START, 0);
 
@@ -390,7 +390,7 @@ namespace webserver {
 			return static_cast<int>(matchingItems.size());
 		}
 
-		void clear(bool aClearFilters = true) {
+		void clear(bool aClearFilters = false) {
 			WLock l(cs);
 			tasks.clear();
 			currentViewportItems.clear();
