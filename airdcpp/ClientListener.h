@@ -43,10 +43,8 @@ public:
 	typedef X<11> StatusMessage;
 	typedef X<12> HubUserCommand;
 	typedef X<13> HubFull;
-	typedef X<14> NickTaken;
 	typedef X<15> SearchFlood;
 	typedef X<16> NmdcSearch;
-	typedef X<17> HubTopic;
 	typedef X<19> SetActive;
 	typedef X<20> Close;
 	typedef X<21> MessagesRead;
@@ -58,12 +56,6 @@ public:
 	typedef X<27> PrivateMessage;
 	typedef X<28> ChatCommand;
 	typedef X<29> SettingsUpdated;
-
-	enum StatusFlags {
-		FLAG_NORMAL = 0x00,
-		FLAG_IS_SPAM = 0x01,
-		FLAG_IS_SYSTEM = 0x02
-	};
 	
 	virtual void on(Connecting, const Client*) noexcept { }
 	virtual void on(Connected, const Client*) noexcept { }
@@ -76,13 +68,11 @@ public:
 	virtual void on(GetPassword, const Client*) noexcept { }
 	virtual void on(HubUpdated, const Client*) noexcept { }
 	virtual void on(ChatMessage, const Client*, const ChatMessagePtr&) noexcept { }
-	virtual void on(StatusMessage, const Client*, const LogMessagePtr&, int = FLAG_NORMAL) noexcept { }
+	virtual void on(StatusMessage, const Client*, const LogMessagePtr&, const string&) noexcept { }
 	virtual void on(HubUserCommand, const Client*, int, int, const string&, const string&) noexcept { }
 	virtual void on(HubFull, const Client*) noexcept { }
-	virtual void on(NickTaken, const Client*) noexcept { }
 	virtual void on(SearchFlood, const Client*, const string&) noexcept { }
 	virtual void on(NmdcSearch, Client*, const string&, int, int64_t, int, const string&, bool) noexcept { }
-	virtual void on(HubTopic, const Client*, const string&) noexcept { }
 	virtual void on(SetActive, const Client*) noexcept {}
 	virtual void on(Close, const Client*) noexcept {}
 	virtual void on(MessagesRead, const Client*) noexcept {}

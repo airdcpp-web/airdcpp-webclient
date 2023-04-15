@@ -116,6 +116,10 @@ namespace dcpp {
 				return aOld;
 			}
 
+			if (aSeverity == LogMessage::SEV_LAST && aMessage.logMessage->getSeverity() == LogMessage::SEV_VERBOSE) {
+				return aOld;
+			}
+
 			if (aSeverity != LogMessage::SEV_LAST && aMessage.logMessage->getSeverity() != aSeverity) {
 				return aOld;
 			}

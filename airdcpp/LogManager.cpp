@@ -122,7 +122,7 @@ string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache
 }
 
 void LogManager::message(const string& aMsg, LogMessage::Severity aSeverity, const string& aLabel) noexcept {
-	auto messageData = std::make_shared<LogMessage>(aMsg, aSeverity, aLabel);
+	auto messageData = std::make_shared<LogMessage>(aMsg, aSeverity, LogMessage::Type::SYSTEM, aLabel);
 	if (aSeverity != LogMessage::SEV_NOTIFY) {
 		if (SETTING(LOG_SYSTEM)) {
 			ParamMap params;

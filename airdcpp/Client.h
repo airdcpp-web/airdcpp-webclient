@@ -160,10 +160,7 @@ public:
 
 	bool isSharingHub() const noexcept;
 
-	void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, const string& aLabel, int = ClientListener::FLAG_NORMAL) noexcept;
-	void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, const string& aLabel = Util::emptyString) noexcept override {
-		statusMessage(aMessage, aSeverity, aLabel, ClientListener::FLAG_NORMAL);
-	}
+	void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, LogMessage::Type aType = LogMessage::Type::SERVER, const string& aLabel = Util::emptyString, const string& aOwner = Util::emptyString) noexcept override;
 
 	virtual ~Client();
 

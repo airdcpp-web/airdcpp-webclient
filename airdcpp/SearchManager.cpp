@@ -531,7 +531,7 @@ void SearchManager::onPBD(const AdcCommand& aCmd, const UserPtr& from) {
 	}
 
 	if (remove && !remoteBundle.empty()) {
-		dbgMsg("PBD: remove finished notify", LogMessage::SEV_INFO);
+		dbgMsg("PBD: remove finished notify", LogMessage::SEV_VERBOSE);
 		// Local bundle really...
 		QueueManager::getInstance()->removeBundleNotify(from, Util::toUInt32(remoteBundle));
 	}
@@ -548,7 +548,7 @@ void SearchManager::onPBD(const AdcCommand& aCmd, const UserPtr& from) {
 	}
 
 	if (update) {
-		dbgMsg("PBD: add file source", LogMessage::SEV_INFO);
+		dbgMsg("PBD: add file source", LogMessage::SEV_VERBOSE);
 		QueueManager::getInstance()->updatePBDHooked(HintedUser(from, hubUrl), TTHValue(tth));
 		return;
 	} else if (remoteBundle.empty()) {
@@ -558,17 +558,17 @@ void SearchManager::onPBD(const AdcCommand& aCmd, const UserPtr& from) {
 
 	auto u = HintedUser(from, hubUrl);
 	if (notify) {
-		dbgMsg("PBD: add finished notify", LogMessage::SEV_INFO);
+		dbgMsg("PBD: add finished notify", LogMessage::SEV_VERBOSE);
 		QueueManager::getInstance()->addFinishedNotify(u, TTHValue(tth), remoteBundle);
 	} else if (reply) {
-		dbgMsg("PBD: reply required", LogMessage::SEV_INFO);
+		dbgMsg("PBD: reply required", LogMessage::SEV_VERBOSE);
 
 		string localBundle;
 		bool sendNotify = false, sendAdd = false;
 		if (QueueManager::getInstance()->checkPBDReply(u, TTHValue(tth), localBundle, sendNotify, sendAdd, remoteBundle)) {
 			AdcCommand cmd = toPBD(hubIpPort, localBundle, tth, false, sendAdd, sendNotify);
 			if (!ClientManager::getInstance()->sendUDP(cmd, from->getCID(), false, true)) {
-				dbgMsg("PBD: reply sent", LogMessage::SEV_INFO);
+				dbgMsg("PBD: reply sent", LogMessage::SEV_VERBOSE);
 			} else {
 				dbgMsg("PBD: could not send reply (UDP error)", LogMessage::SEV_WARNING);
 			}
@@ -580,7 +580,7 @@ void SearchManager::onPBD(const AdcCommand& aCmd, const UserPtr& from) {
 	if (add) {
 		try {
 			QueueManager::getInstance()->addBundleTTHListHooked(u, remoteBundle, TTHValue(tth));
-			dbgMsg("PBD: TTH list queued", LogMessage::SEV_INFO);
+			dbgMsg("PBD: TTH list queued", LogMessage::SEV_VERBOSE);
 		} catch (const Exception& e) {
 			dbgMsg("PBD: error when queueing TTH list: " + string(e.what()), LogMessage::SEV_WARNING);
 		}
@@ -719,7 +719,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 			if (!ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl())) {
 				dbgMsg("ADC response: partial file info not empty, failed to send response", LogMessage::SEV_WARNING);
 			} else {
-				dbgMsg("ADC respond: partial file info not empty, response sent", LogMessage::SEV_INFO);
+				dbgMsg("ADC respond: partial file info not empty, response sent", LogMessage::SEV_VERBOSE);
 			}
 		}
 		
@@ -728,7 +728,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 			if (!ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl())) {
 				dbgMsg("ADC respond: matching bundle in queue, failed to send PBD response", LogMessage::SEV_WARNING);
 			} else {
-				dbgMsg("ADC respond: matching bundle in queue, PBD response sent", LogMessage::SEV_INFO);
+				dbgMsg("ADC respond: matching bundle in queue, PBD response sent", LogMessage::SEV_VERBOSE);
 			}
 		}
 

@@ -32,11 +32,12 @@ ChatMessage::ChatMessage(const string& aOriginalText, const OnlineUserPtr& aFrom
 	read = aFrom && aFrom->getUser() == ClientManager::getInstance()->getMe();
 }
 
-LogMessage::LogMessage(const string& aOriginalText, LogMessage::Severity aSeverity, const string& aLabel, int aFlags) noexcept :
+LogMessage::LogMessage(const string& aOriginalText, LogMessage::Severity aSeverity, Type aType, const string& aLabel, int aInitFlags) noexcept :
 	id(messageIdCounter++), text(Message::unifyLineEndings(aOriginalText)), label(aLabel),
-	time(aFlags & FLAG_DISABLE_TIMESTAMP ? 0 : GET_TIME()), severity(aSeverity), read(aFlags & FLAG_DISABLE_TIMESTAMP) {
+	time(aInitFlags & INIT_DISABLE_TIMESTAMP ? 0 : GET_TIME()), type(aType),
+	severity(aSeverity), read(aInitFlags & INIT_DISABLE_TIMESTAMP) {
 
-	if (!(aFlags & FLAG_DISABLE_HIGHLIGHTS)) {
+	if (!(aInitFlags & INIT_DISABLE_HIGHLIGHTS)) {
 		highlights = MessageHighlight::parseHighlights(text, Util::emptyString, nullptr);
 	}
 }
@@ -112,8 +113,8 @@ string Message::unifyLineEndings(const string& aText) {
 	return text;
 }
 
-Message Message::fromText(const string& aMessage, int aFlags) noexcept {
-	auto logMessage = std::make_shared<LogMessage>(aMessage, LogMessage::SEV_INFO, Util::emptyString, aFlags);
+Message Message::fromText(const string& aMessage, int aInitFlags) noexcept {
+	auto logMessage = std::make_shared<LogMessage>(aMessage, LogMessage::SEV_INFO, LogMessage::Type::SYSTEM, Util::emptyString, aInitFlags);
 	return Message(logMessage);
 }
 
