@@ -299,10 +299,10 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		}
 
 		if((line.find("Hub-Security") != string::npos) && (line.find("was kicked by") != string::npos)) {
-			statusMessage(unescape(line), LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SPAM);
+			statusMessage(unescape(line), LogMessage::SEV_VERBOSE);
 			return;
 		} else if((line.find("is kicking") != string::npos) && (line.find("because:") != string::npos)) {
-			statusMessage(unescape(line), LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SPAM);
+			statusMessage(unescape(line), LogMessage::SEV_VERBOSE);
 			return;
 		}
 
@@ -790,7 +790,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		fire(ClientListener::HubFull(), this);
 	} else if(cmd == "ValidateDenide") {		// Mind the spelling...
 		disconnect(false);
-		fire(ClientListener::NickTaken(), this);
+		statusMessage(STRING(NICK_TAKEN), LogMessage::SEV_ERROR);
 	} else if(cmd == "UserIP") {
 		if(!param.empty()) {
 			OnlineUserList v;
@@ -939,7 +939,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		}
 
 	} else if(cmd == "HubTopic") {
-		fire(ClientListener::HubTopic(), this, param);
+		statusMessage(STRING(HUB_TOPIC) + "\t" + aLine, LogMessage::SEV_INFO, LogMessage::Type::SYSTEM);
 	} else {
 		dcdebug("NmdcHub::onLine Unknown command %s\n", aLine.c_str());
 	} 

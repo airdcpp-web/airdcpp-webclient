@@ -198,7 +198,7 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 
 				auto message = u->getIdentity().getNick() + " (" + u->getIdentity().getSIDString() +
 					") has same CID {" + cid + "} as " + nick + " (" + AdcCommand::fromSID(c.getFrom()) + "), ignoring.";
-				statusMessage(message, LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SPAM);
+				statusMessage(message, LogMessage::SEV_VERBOSE);
 				return;
 			}
 		} else {
@@ -404,7 +404,7 @@ void AdcHub::handle(AdcCommand::QUI, AdcCommand& c) noexcept {
 				tmp = victim->getIdentity().getNick() + " was kicked: " + tmp;
 			}
 
-			statusMessage(tmp, LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SPAM);
+			statusMessage(tmp, LogMessage::SEV_VERBOSE);
 		}
 	
 		putUser(s, c.getParam("DI", 1, tmp)); 

@@ -43,7 +43,7 @@ namespace dcpp {
 		virtual void on(Close, PrivateChat*) noexcept{}
 		virtual void on(UserUpdated, PrivateChat*) noexcept{}
 		virtual void on(PMStatus, PrivateChat*, uint8_t) noexcept{}
-		virtual void on(StatusMessage, PrivateChat*, const LogMessagePtr&) noexcept{}
+		virtual void on(StatusMessage, PrivateChat*, const LogMessagePtr&, const string&) noexcept{}
 		virtual void on(CCPMStatusUpdated, PrivateChat*) noexcept{}
 		virtual void on(MessagesRead, PrivateChat*) noexcept {}
 		virtual void on(MessagesCleared, PrivateChat*) noexcept {}

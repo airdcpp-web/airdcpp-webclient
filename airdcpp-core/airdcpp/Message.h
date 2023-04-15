@@ -26,10 +26,11 @@
 namespace dcpp {
 
 struct OutgoingChatMessage {
-	OutgoingChatMessage(const string& aMessage, const void* aOwner, bool aThirdPerson) noexcept : text(aMessage), owner(aOwner), thirdPerson(aThirdPerson) {}
+	OutgoingChatMessage(const string& aMessage, const void* aOwner, const string& aOwnerId, bool aThirdPerson) noexcept : text(aMessage), owner(aOwner), ownerId(aOwnerId), thirdPerson(aThirdPerson) {}
 
 	const string text;
 	const void* owner;
+	const string ownerId;
 	const bool thirdPerson;
 };
 
@@ -79,6 +80,7 @@ class LogMessage {
 public:
 	enum Severity : uint8_t {
 		SEV_NOTIFY, // Messages with this severity won't be saved to system log, only the event is fired
+		SEV_VERBOSE,
 		SEV_INFO, 
 		SEV_WARNING, 
 		SEV_ERROR, 
@@ -86,18 +88,22 @@ public:
 	};
 
 
-	enum Flags {
-		FLAG_NORMAL = 0x00,
-		FLAG_READ = 0x01,
-		FLAG_DISABLE_HIGHLIGHTS = 0x02,
-		FLAG_DISABLE_TIMESTAMP = 0x04,
-		/** Match the queue against this list */
-		//FLAG_MATCH_QUEUE = 0x08,
-		/** The file list downloaded was actually an .xml.bz2 list */
-		//FLAG_XML_BZLIST = 0x10,
+	enum InitFlags {
+		INIT_NORMAL = 0x00,
+		INIT_READ = 0x01,
+		INIT_DISABLE_HIGHLIGHTS = 0x02,
+		INIT_DISABLE_TIMESTAMP = 0x04,
 	};
 
-	LogMessage(const string& aMessage, Severity sev, const string& aLabel, int aFlags = LogMessage::Flags::FLAG_NORMAL) noexcept;
+	enum class Type {
+		SYSTEM,
+		PRIVATE,
+		HISTORY,
+		SPAM,
+		SERVER,
+	};
+
+	LogMessage(const string& aMessage, Severity sev, Type aType, const string& aLabel, int aInitFlags = LogMessage::InitFlags::INIT_NORMAL) noexcept;
 
 	uint64_t getId() const noexcept {
 		return id;
@@ -130,6 +136,10 @@ public:
 	const string& getLabel() const noexcept {
 		return label;
 	}
+
+	Type getType() const noexcept {
+		return type;
+	}
 private:
 	const uint64_t id;
 	string text;
@@ -137,12 +147,13 @@ private:
 	const time_t time;
 	const Severity severity;
 	MessageHighlight::SortedList highlights;
+	const Type type;
 };
 
 struct Message {
 	Message(const ChatMessagePtr& aMessage) noexcept : type(TYPE_CHAT), chatMessage(aMessage) {}
 	Message(const LogMessagePtr& aMessage) noexcept : type(TYPE_LOG), logMessage(aMessage) {}
-	static Message fromText(const string& aMessage, int aFlags = LogMessage::Flags::FLAG_NORMAL) noexcept;
+	static Message fromText(const string& aMessage, int aInitFlags = LogMessage::InitFlags::INIT_NORMAL) noexcept;
 
 	enum Type {
 		TYPE_CHAT,
