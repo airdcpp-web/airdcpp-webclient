@@ -47,8 +47,8 @@ namespace webserver {
 	}
 
 	api_return EventApi::handlePostMessage(ApiRequest& aRequest) {
-		auto message = Deserializer::deserializeStatusMessage(aRequest.getRequestBody());
-		LogManager::getInstance()->message(message.first, message.second, MessageUtils::parseStatusMessageLabel(aRequest.getSession()));
+		auto messageInput = Deserializer::deserializeStatusMessage(aRequest.getRequestBody());
+		LogManager::getInstance()->message(messageInput.message, messageInput.severity, MessageUtils::parseStatusMessageLabel(aRequest.getSession()));
 		return websocketpp::http::status_code::no_content;
 	}
 

@@ -250,7 +250,7 @@ namespace webserver {
 	}
 
 	void SearchEntity::on(SearchInstanceListener::Reset) noexcept {
-		searchView.resetItems(true);
+		searchView.resetItems();
 	}
 
 

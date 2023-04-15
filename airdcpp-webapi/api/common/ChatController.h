@@ -55,7 +55,11 @@ namespace webserver {
 			module->send(s, MessageUtils::serializeChatMessage(aMessage));
 		}
 
-		void onStatusMessage(const LogMessagePtr& aMessage) noexcept {
+		void onStatusMessage(const LogMessagePtr& aMessage, const string& aOwner) noexcept {
+			if (!aOwner.empty() && getCurrentSessionOwnerId() != aOwner) {
+				return;
+			}
+
 			onMessagesUpdated();
 
 			auto s = toListenerName("status");
@@ -92,6 +96,7 @@ namespace webserver {
 				{ "command", command.substr(1) },
 				{ "args", tokens },
 				{ "permissions",  Serializer::serializePermissions(parseMessageAuthorAccess(aMessage)) },
+				{ "owner", aMessage.ownerId },
 			});
 		}
 
@@ -137,7 +142,7 @@ namespace webserver {
 				callerPtr = aRequest.getOwnerPtr()
 			] {
 				string error;
-				if (!chat->sendMessageHooked(OutgoingChatMessage(message.first, callerPtr, message.second), error) && !error.empty()) {
+				if (!chat->sendMessageHooked(OutgoingChatMessage(message.message, callerPtr, getCurrentSessionOwnerId(), message.thirdPerson), error) && !error.empty()) {
 					complete(websocketpp::http::status_code::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error));
 				} else {
 					complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
@@ -150,8 +155,9 @@ namespace webserver {
 		api_return handlePostStatusMessage(ApiRequest& aRequest) {
 			const auto& reqJson = aRequest.getRequestBody();
 
-			auto message = Deserializer::deserializeStatusMessage(reqJson);
-			chat->statusMessage(message.first, message.second, MessageUtils::parseStatusMessageLabel(aRequest.getSession()));
+			auto message = Deserializer::deserializeChatStatusMessage(reqJson);
+			auto label = MessageUtils::parseStatusMessageLabel(aRequest.getSession());
+			chat->statusMessage(message.message, message.severity, message.type, label, message.ownerId);
 			return websocketpp::http::status_code::no_content;
 		}
 
@@ -191,6 +197,32 @@ namespace webserver {
 		string toListenerName(const string& aSubscription) {
 			return subscriptionId + "_" + aSubscription;
 		}
+
+		string getCurrentSessionOwnerId(const string& aSuffix = Util::emptyString) noexcept {
+			string ret;
+
+			if (!module->getSocket()) {
+				// Owner isn't meaningful for HTTP sessions as targeted messages aren't cached anywhere...
+				return Util::emptyString;
+			}
+
+			const auto session = module->getSession();
+			switch (session->getSessionType()) {
+			case Session::TYPE_EXTENSION:
+				ret = "extension:" + session->getUser()->getUserName();
+				break;
+			default:
+				ret = "session:" + Util::toString(session->getId());
+				break;
+			}
+
+			if (!aSuffix.empty()) {
+				ret += ":" + aSuffix;
+			}
+
+			return ret;
+		}
+
 
 		ChatHandlerBase* chat;
 		string subscriptionId;

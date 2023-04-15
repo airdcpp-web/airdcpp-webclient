@@ -55,6 +55,7 @@ namespace webserver {
 		static bool isUser(const ChatMessagePtr& aMessage) noexcept;
 
 		static string getMessageSeverity(LogMessage::Severity aSeverity) noexcept;
+		static string getMessageType(LogMessage::Type aType) noexcept;
 
 		static string getHighlighType(MessageHighlight::HighlightType aType) noexcept;
 		static json getContentType(const MessageHighlightPtr& aHighlight) noexcept;

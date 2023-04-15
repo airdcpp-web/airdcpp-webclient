@@ -126,7 +126,7 @@ namespace webserver {
 			complete = aRequest.defer()
 		] {
 			string error_;
-			if (!ClientManager::getInstance()->privateMessageHooked(user, OutgoingChatMessage(message.first, callerPtr, message.second), error_, echo)) {
+			if (!ClientManager::getInstance()->privateMessageHooked(user, OutgoingChatMessage(message.message, callerPtr, Util::emptyString, message.thirdPerson), error_, echo)) {
 				complete(websocketpp::http::status_code::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error_));
 			} else {
 				complete(websocketpp::http::status_code::no_content, nullptr, nullptr);

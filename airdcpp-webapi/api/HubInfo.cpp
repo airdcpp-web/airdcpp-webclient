@@ -289,10 +289,6 @@ namespace webserver {
 		});
 	}
 
-	void HubInfo::on(ClientListener::HubTopic, const Client*, const string&) noexcept {
-
-	}
-
 	void HubInfo::sendConnectState() noexcept {
 		onHubUpdated({
 			{ "encryption", Serializer::serializeEncryption(client->getEncryptionInfo(), client->isTrusted()) },
