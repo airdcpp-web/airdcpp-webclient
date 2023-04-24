@@ -154,7 +154,7 @@ namespace webserver {
 
 			if (i == currentViewItems.end()) {
 				// Check current location
-				auto dirInfo = std::make_shared<FilelistItemInfo>(curDir);
+				auto dirInfo = std::make_shared<FilelistItemInfo>(curDir, dl->getShareProfile());
 				if (dirInfo->getToken() == itemId) {
 					item = dirInfo;
 				}
@@ -220,7 +220,7 @@ namespace webserver {
 			return nullptr;
 		}
 
-		auto ret = Serializer::serializeItem(std::make_shared<FilelistItemInfo>(location.directory), FilelistUtils::propertyHandler);
+		auto ret = Serializer::serializeItem(std::make_shared<FilelistItemInfo>(location.directory, aListing->getShareProfile()), FilelistUtils::propertyHandler);
 
 		ret["size"] = location.totalSize;
 		return ret;
@@ -243,11 +243,11 @@ namespace webserver {
 		{
 			WLock l(cs);
 			for (auto& d : curDir->directories | map_values) {
-				currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(d));
+				currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(d, dl->getShareProfile()));
 			}
 
 			for (auto& f : curDir->files) {
-				currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(f));
+				currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(f, dl->getShareProfile()));
 			}
 
 			currentViewItemsInitialized = true;
@@ -307,7 +307,7 @@ namespace webserver {
 
 	void FilelistInfo::on(DirectoryListingListener::ShareProfileChanged) noexcept {
 		onSessionUpdated({
-			{ "share_profile", Serializer::serializeShareProfileSimple(dl->getShareProfile()) }
+			{ "share_profile", Serializer::serializeShareProfileSimple(*dl->getShareProfile()) }
 		});
 	}
 

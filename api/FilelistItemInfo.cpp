@@ -26,11 +26,11 @@ namespace webserver {
 		return hash<string>()(type == DIRECTORY ? dir->getName() : file->getName());
 	}
 
-	FilelistItemInfo::FilelistItemInfo(const DirectoryListing::File::Ptr& f) : type(FILE), file(f) {
+	FilelistItemInfo::FilelistItemInfo(const DirectoryListing::File::Ptr& f, const OptionalProfileToken aShareProfileToken) : type(FILE), file(f), shareProfileToken(aShareProfileToken) {
 		//dcdebug("FilelistItemInfo (file) %s was created\n", f->getName().c_str());
 	}
 
-	FilelistItemInfo::FilelistItemInfo(const DirectoryListing::Directory::Ptr& d) : type(DIRECTORY), dir(d) {
+	FilelistItemInfo::FilelistItemInfo(const DirectoryListing::Directory::Ptr& d, const OptionalProfileToken aShareProfileToken) : type(DIRECTORY), dir(d), shareProfileToken(aShareProfileToken) {
 		//dcdebug("FilelistItemInfo (directory) %s was created\n", d->getName().c_str());
 	}
 
