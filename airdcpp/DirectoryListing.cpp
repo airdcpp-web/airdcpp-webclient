@@ -106,7 +106,11 @@ void stripExtensions(string& aName) noexcept {
 	}
 }
 
-ProfileToken DirectoryListing::getShareProfile() const noexcept {
+OptionalProfileToken DirectoryListing::getShareProfile() const noexcept {
+	if (!isOwnList) {
+		return nullopt;
+	}
+
 	return Util::toInt(fileName);
 }
 
@@ -134,7 +138,7 @@ void DirectoryListing::setHubUrlImpl(const string& aHubUrl) noexcept {
 }
 
 void DirectoryListing::setShareProfileImpl(ProfileToken aProfile) noexcept {
-	if (getShareProfile() == aProfile) {
+	if (*getShareProfile() == aProfile) {
 		return;
 	}
 
@@ -150,8 +154,8 @@ void DirectoryListing::setShareProfileImpl(ProfileToken aProfile) noexcept {
 }
 
 void DirectoryListing::getPartialListInfo(int64_t& totalSize_, size_t& totalFiles_) const noexcept {
-	if (isOwnList) {
-		ShareManager::getInstance()->getProfileInfo(getShareProfile(), totalSize_, totalFiles_);
+	if (getShareProfile()) {
+		ShareManager::getInstance()->getProfileInfo(*getShareProfile(), totalSize_, totalFiles_);
 	}
 
 	auto si = ClientManager::getInstance()->getShareInfo(hintedUser);
@@ -444,10 +448,10 @@ void ListLoader::endTag(const string& name) {
 	}
 }
 
-DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe, time_t aRemoteDate) noexcept : 
+DirectoryListing::File::File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool aCheckDupe, time_t aRemoteDate) noexcept :
 	name(aName), size(aSize), parent(aDir), tthRoot(aTTH), remoteDate(aRemoteDate) {
 
-	if (checkDupe && size > 0) {
+	if (aCheckDupe && size > 0) {
 		dupe = AirUtil::checkFileDupe(tthRoot);
 	}
 
@@ -728,22 +732,29 @@ void DirectoryListing::Directory::getHashList(DirectoryListing::Directory::TTHSe
 	for(const auto& f: files) 
 		l.insert(f->getTTH());
 }
-	
+
 void DirectoryListing::getLocalPaths(const File::Ptr& f, StringList& ret) const {
 	if (f->getParent()->isVirtual() && (f->getParent()->getParent() == root.get() || !isOwnList))
 		return;
 
-	if (isOwnList) {
+	return f->getLocalPaths(ret, getShareProfile());
+}
+
+void DirectoryListing::File::getLocalPaths(StringList& ret, const OptionalProfileToken& aShareProfileToken) const {
+	//if (f->getParent()->isVirtual() && (f->getParent()->getParent() == root.get() || !isOwnList))
+	//	return;
+
+	if (aShareProfileToken) {
 		string path;
-		if (f->getParent()->isVirtual()) {
-			path = ((VirtualDirectory*)f->getParent())->getFullAdcPath();
+		if (parent->isVirtual()) {
+			path = ((VirtualDirectory*)parent)->getFullAdcPath();
 		} else {
-			path = f->getParent()->getAdcPath();
+			path = parent->getAdcPath();
 		}
 
-		ShareManager::getInstance()->getRealPaths(path + f->getName(), ret, getShareProfile());
+		ShareManager::getInstance()->getRealPaths(path + name, ret, aShareProfileToken);
 	} else {
-		ret = AirUtil::getFileDupePaths(f->getDupe(), f->getTTH());
+		ret = AirUtil::getFileDupePaths(dupe, tthRoot);
 	}
 }
 
@@ -751,15 +762,22 @@ void DirectoryListing::getLocalPaths(const Directory::Ptr& d, StringList& ret) c
 	if (d->isVirtual() && (d->getParent() == root.get() || !isOwnList))
 		return;
 
+	return d->getLocalPaths(ret, getShareProfile());
+}
+
+void DirectoryListing::Directory::getLocalPaths(StringList& ret, const OptionalProfileToken& aShareProfileToken) const {
+	//if (d->isVirtual() && (d->getParent() == root.get() || !isOwnList))
+	//	return;
+
 	string path;
-	if (d->isVirtual()) {
-		path = ((VirtualDirectory*)d.get())->getFullAdcPath();
+	if (isVirtual()) {
+		path = ((VirtualDirectory*)this)->getFullAdcPath();
 	} else {
-		path = d->getAdcPath();
+		path = getAdcPath();
 	}
 
-	if (isOwnList) {
-		ShareManager::getInstance()->getRealPaths(path, ret, getShareProfile());
+	if (aShareProfileToken) {
+		ShareManager::getInstance()->getRealPaths(path, ret, aShareProfileToken);
 	} else {
 		ret = ShareManager::getInstance()->getAdcDirectoryPaths(path);
 	}
@@ -824,11 +842,11 @@ bool DirectoryListing::File::isInQueue() const noexcept {
 	return AirUtil::isQueueDupe(dupe) || AirUtil::isFinishedDupe(dupe);
 }
 
-uint8_t DirectoryListing::Directory::checkShareDupes() noexcept {
+uint8_t DirectoryListing::Directory::checkDupesRecursive() noexcept {
 	uint8_t result = DUPE_NONE;
 	bool first = true;
 	for(auto& d: directories | map_values) {
-		result = d->checkShareDupes();
+		result = d->checkDupesRecursive();
 		if(dupe == DUPE_NONE && first)
 			setDupe((DupeType)result);
 
@@ -896,7 +914,7 @@ uint8_t DirectoryListing::Directory::checkShareDupes() noexcept {
 }
 
 void DirectoryListing::checkShareDupes() noexcept {
-	root->checkShareDupes();
+	root->checkDupesRecursive();
 	root->setDupe(DUPE_NONE); //never show the root as a dupe or partial dupe.
 }
 
