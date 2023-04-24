@@ -62,7 +62,7 @@ public:
 		typedef std::vector<Ptr> List;
 		typedef List::const_iterator Iter;
 		
-		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool checkDupe, time_t aRemoteDate) noexcept;
+		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool aCheckDupe, time_t aRemoteDate) noexcept;
 		File(const File& rhs, const void* aOwner) noexcept;
 
 		~File() { }
@@ -84,6 +84,7 @@ public:
 		const void* getOwner() const noexcept {
 			return owner;
 		}
+		void getLocalPaths(StringList& ret, const OptionalProfileToken& aShareProfileToken) const;
 	private:
 		const void* owner = nullptr;
 	};
@@ -116,7 +117,7 @@ public:
 		File::List files;
 
 		static Directory::Ptr create(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, 
-			bool checkDupe = false, const DirectoryContentInfo& aContentInfo = DirectoryContentInfo(),
+			bool aCheckDupe = false, const DirectoryContentInfo& aContentInfo = DirectoryContentInfo(),
 			const string& aSize = Util::emptyString, time_t aRemoteDate = 0);
 
 		virtual ~Directory();
@@ -128,6 +129,7 @@ public:
 		void getHashList(TTHSet& l) const noexcept;
 		void clearVirtualDirectories() noexcept;
 		void clearAll() noexcept;
+		void getLocalPaths(StringList& ret, const OptionalProfileToken& aShareProfileToken) const;
 
 		bool findIncomplete() const noexcept;
 		void search(OrderedStringSet& aResults, SearchQuery& aStrings) const noexcept;
@@ -136,7 +138,7 @@ public:
 		int64_t getFilesSize() const noexcept;
 
 		string getAdcPath() const noexcept;
-		uint8_t checkShareDupes() noexcept;
+		uint8_t checkDupesRecursive() noexcept;
 		
 		IGETSET(int64_t, partialSize, PartialSize, 0);
 		GETSET(Directory*, parent, Parent);
@@ -227,7 +229,7 @@ public:
 	static string getNickFromFilename(const string& fileName) noexcept;
 	static UserPtr getUserFromFilename(const string& fileName) noexcept;
 
-	ProfileToken getShareProfile() const noexcept;
+	OptionalProfileToken getShareProfile() const noexcept;
 
 	void addShareProfileChangeTask(ProfileToken aProfile) noexcept;
 	void addHubUrlChangeTask(const string& aHubUrl) noexcept;
