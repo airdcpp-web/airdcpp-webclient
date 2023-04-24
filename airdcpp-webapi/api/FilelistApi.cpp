@@ -206,11 +206,11 @@ namespace webserver {
 	}
 
 	json FilelistApi::serializeShareProfile(const DirectoryListingPtr& aList) noexcept {
-		if (!aList->getIsOwnList()) {
+		if (!aList->getShareProfile()) {
 			return nullptr;
 		}
 
-		return Serializer::serializeShareProfileSimple(aList->getShareProfile());
+		return Serializer::serializeShareProfileSimple(*aList->getShareProfile());
 	}
 
 	json FilelistApi::serializeList(const DirectoryListingPtr& aList) noexcept {

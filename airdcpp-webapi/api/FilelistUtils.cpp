@@ -55,11 +55,18 @@ namespace webserver {
 			}
 			case PROP_DUPE:
 			{
-				if (aItem->isDirectory()) {
-					return Serializer::serializeDirectoryDupe(aItem->getDupe(), aItem->getAdcPath());
+				if (aItem->getDupe() == DUPE_NONE) {
+					return nullptr;
 				}
 
-				return Serializer::serializeFileDupe(aItem->getDupe(), aItem->file->getTTH());
+				StringList paths;
+				try {
+					aItem->getLocalPaths(paths);
+				} catch (const ShareException&) {
+					// Hmm...
+				}
+
+				return Serializer::serializeDupe(aItem->getDupe(), std::move(paths));
 			}
 			default: dcassert(0); return nullptr;
 		}

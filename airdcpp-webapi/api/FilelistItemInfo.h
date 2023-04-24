@@ -40,14 +40,22 @@ namespace webserver {
 			const DirectoryListing::Directory::Ptr dir;
 		};
 
-		FilelistItemInfo(const DirectoryListing::File::Ptr& f);
-		FilelistItemInfo(const DirectoryListing::Directory::Ptr& d);
+		FilelistItemInfo(const DirectoryListing::File::Ptr& f, const OptionalProfileToken aShareProfileToken);
+		FilelistItemInfo(const DirectoryListing::Directory::Ptr& d, const OptionalProfileToken aShareProfileToken);
 		~FilelistItemInfo();
 
-		DupeType getDupe() const noexcept { return type == DIRECTORY ? dir->getDupe() : file->getDupe(); }
+		DupeType getDupe() const noexcept {
+			if (shareProfileToken) {
+				// Own filelist
+				return DUPE_SHARE_FULL;
+			}
+
+			return type == DIRECTORY ? dir->getDupe() : file->getDupe(); 
+		}
 		const string& getName() const noexcept { return type == DIRECTORY ? dir->getName() : file->getName(); }
 		string getAdcPath() const noexcept { return type == DIRECTORY ? dir->getAdcPath() : file->getAdcPath(); }
 		bool isComplete() const noexcept { return type == DIRECTORY ? dir->isComplete() : true; }
+		void getLocalPaths(StringList& paths_) const { return type == DIRECTORY ? dir->getLocalPaths(paths_, shareProfileToken) : file->getLocalPaths(paths_, shareProfileToken); }
 
 		time_t getDate() const noexcept { return type == DIRECTORY ? dir->getRemoteDate() : file->getRemoteDate(); }
 		int64_t getSize() const noexcept { return type == DIRECTORY ? dir->getTotalSize(false) : file->getSize(); }
@@ -62,6 +70,7 @@ namespace webserver {
 			return type == DIRECTORY;
 		}
 	private:
+		const OptionalProfileToken shareProfileToken;
 		const ItemType type;
 	};
 

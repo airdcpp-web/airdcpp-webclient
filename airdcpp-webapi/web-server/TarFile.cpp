@@ -23,7 +23,7 @@
 #include <airdcpp/File.h>
 #include <airdcpp/Text.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <boost/algorithm/string/replace.hpp>
 #endif
 
@@ -47,7 +47,7 @@ namespace webserver {
 
 				string destFile = aDestPath + h.name;
 
-#ifdef WIN32
+#ifdef _WIN32
 				// Wrong path separators would hit assertions...
 				boost::replace_all(destFile, "/", PATH_SEPARATOR_STR);
 #endif
