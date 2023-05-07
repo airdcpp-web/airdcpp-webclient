@@ -11,7 +11,7 @@ mkdir -p ./node_modules
 wantedVersion=$($2 $1)
 
 if [ -f ./node_modules/airdcpp-webui/package.json ]; then
-  currentVersion=$(cat ./node_modules/airdcpp-webui/package.json | grep '\"version\": \"' | cut -d \" -f4)
+  currentVersion=$(cat ./node_modules/airdcpp-webui/package.json | grep '"version": "' | cut -d \" -f4)
   if [ "$currentVersion" = "$wantedVersion" ]; then
     echo "\033[1mWanted UI version $wantedVersion is installed already\033[0m"
     exit 0
