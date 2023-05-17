@@ -206,7 +206,7 @@ void UserConnection::maxedOut(size_t qPos /*0*/) {
 	}
 }
 
-void UserConnection::accept(const Socket& aServer) {
+void UserConnection::accept(const Socket& aServer, const BufferedSocket::SocketAcceptFloodF& aFloodCheckF) {
 	dcassert(!socket);
 	socket = BufferedSocket::getSocket(0);
 	socket->addListener(this);
@@ -216,7 +216,7 @@ void UserConnection::accept(const Socket& aServer) {
 	also since we most likely requested to be connected to (and we have insufficient info otherwise) deal with TLS options check post handshake
 	-> SSLSocket::verifyKeyprint does full certificate verification after INF
 	*/
-	socket->accept(aServer, secure, true);
+	socket->accept(aServer, secure, true, aFloodCheckF);
 }
 
 void UserConnection::inf(bool withToken, int mcnSlots) { 

@@ -33,6 +33,9 @@ namespace dcpp {
 #define STRING_F(x, args) (dcpp_fmt(ResourceManager::getString(ResourceManager::x)) % args).str()
 #define CSTRING_F(x, args) (dcpp_fmt(ResourceManager::getString(ResourceManager::x)) % args).str().c_str()
 
+#define STRING_FI(x, args) (dcpp_fmt(ResourceManager::getString(x)) % args).str()
+#define CSTRING_FI(x, args) (dcpp_fmt(ResourceManager::getString(x)) % args).str().c_str()
+
 #ifdef UNICODE
 
 #define WSTRING(x) ResourceManager::getInstance()->getStringW(ResourceManager::x)
@@ -43,6 +46,9 @@ namespace dcpp {
 
 #define WSTRING_F(x, args) (dcpp_fmt(ResourceManager::getStringW(ResourceManager::x)) % args).str()
 #define CWSTRING_F(x, args) (dcpp_fmt(ResourceManager::getStringW(ResourceManager::x)) % args).str().c_str()
+
+#define WSTRING_FI(x, args) (dcpp_fmt(ResourceManager::getStringW(x)) % args).str()
+#define CWSTRING_FI(x, args) (dcpp_fmt(ResourceManager::getStringW(x)) % args).str().c_str()
 
 #define TSTRING WSTRING
 #define TSTRING_I WSTRING_I

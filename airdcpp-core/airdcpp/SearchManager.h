@@ -79,7 +79,7 @@ public:
 	SearchQueueInfo search(const SearchPtr& aSearch) noexcept;
 	SearchQueueInfo search(StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner = nullptr) noexcept;
 	
-	void respond(const AdcCommand& cmd, OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
+	void respond(const AdcCommand& cmd, const OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
 
 	const string& getPort() const;
 

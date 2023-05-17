@@ -40,11 +40,7 @@ using std::max;
 #define POLL_TIMEOUT 250
 
 BufferedSocket::BufferedSocket(char aSeparator, bool v4only) :
-separator(aSeparator), useLimiter(false), mode(MODE_LINE), dataBytes(0), rollback(0), state(STARTING),
-disconnecting(false), v4only(v4only)
-{
-	start();
-
+separator(aSeparator), v4only(v4only) {
 	++sockets;
 }
 
@@ -91,15 +87,21 @@ void BufferedSocket::setOptions() {
 		sock->setSocketOpt(SO_SNDBUF, SETTING(SOCKET_OUT_BUFFER));
 }
 
-void BufferedSocket::accept(const Socket& srv, bool secure, bool allowUntrusted, const string& expKP) {
+void BufferedSocket::accept(const Socket& srv, bool aSecure, bool aAllowUntrusted, const SocketAcceptFloodF& aFloodCheckF) {
 	//dcdebug("BufferedSocket::accept() %p\n", (void*)this);
 
-	unique_ptr<Socket> s(secure ? new SSLSocket(CryptoManager::SSL_SERVER, allowUntrusted, expKP) : new Socket(Socket::TYPE_TCP));
+	unique_ptr<Socket> s(aSecure ? new SSLSocket(CryptoManager::SSL_SERVER, aAllowUntrusted, Util::emptyString) : new Socket(Socket::TYPE_TCP));
 
 	s->accept(srv);
+	if (!aFloodCheckF(s->getIp())) {
+		s->disconnect();
+		throw SocketException("Connect limit exceeded");
+	}
 
 	setSocket(std::move(s));
 	setOptions();
+
+	start();
 
 	Lock l(cs);
 	addTask(ACCEPTED, 0);
@@ -109,22 +111,24 @@ void BufferedSocket::connect(const AddressInfo& aAddress, const string& aPort, b
 	connect(aAddress, aPort, Util::emptyString, NAT_NONE, secure, allowUntrusted, proxy, expKP);
 }
 
-void BufferedSocket::connect(const AddressInfo& aAddress, const string& aPort, const string& localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy, const string& expKP) {
+void BufferedSocket::connect(const AddressInfo& aAddress, const string& aPort, const string& aLocalPort, NatRoles aNatRole, bool aSecure, bool aAllowUntrusted, bool aProxy, const string& expKP) {
 	//dcdebug("BufferedSocket::connect() %p\n", (void*)this);
-	unique_ptr<Socket> s(secure ? new SSLSocket(natRole == NAT_SERVER ? CryptoManager::SSL_SERVER : CryptoManager::SSL_CLIENT, allowUntrusted, expKP) : new Socket(Socket::TYPE_TCP));
+	unique_ptr<Socket> s(aSecure ? new SSLSocket(aNatRole == NAT_SERVER ? CryptoManager::SSL_SERVER : CryptoManager::SSL_CLIENT, aAllowUntrusted, expKP) : new Socket(Socket::TYPE_TCP));
 
 	s->setLocalIp4(CONNSETTING(BIND_ADDRESS));
 	s->setLocalIp6(CONNSETTING(BIND_ADDRESS6));
 
 	setSocket(std::move(s));
 
+	start();
+
 	Lock l(cs);
-	addTask(CONNECT, new ConnectInfo(aAddress, aPort, localPort, natRole, proxy && (CONNSETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5)));
+	addTask(CONNECT, new ConnectInfo(aAddress, aPort, aLocalPort, aNatRole, aProxy && (CONNSETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5)));
 }
 
 #define LONG_TIMEOUT 30000
 #define SHORT_TIMEOUT 1000
-void BufferedSocket::threadConnect(const AddressInfo& aAddr, const string& aPort, const string& localPort, NatRoles natRole, bool proxy) {
+void BufferedSocket::threadConnect(const AddressInfo& aAddr, const string& aPort, const string& aLocalPort, NatRoles aNatRole, bool aProxy) {
 	dcassert(state == STARTING);
 
 	fire(BufferedSocketListener::Connecting());
@@ -136,10 +140,10 @@ void BufferedSocket::threadConnect(const AddressInfo& aAddr, const string& aPort
 		//dcdebug("threadConnect attempt %s %s:%s\n", localPort.c_str(), aAddr.c_str(), aPort.c_str());
 		try {
 
-			if(proxy) {
+			if (aProxy) {
 				sock->socksConnect(aAddr, aPort, LONG_TIMEOUT);
 			} else {
-				sock->connect(aAddr, aPort, localPort);
+				sock->connect(aAddr, aPort, aLocalPort);
 			}
 
 			setOptions();
@@ -159,7 +163,7 @@ void BufferedSocket::threadConnect(const AddressInfo& aAddr, const string& aPort
 		catch (const SSLSocketException&) {
 			throw;
 		} catch (const SocketException&) {
-			if (natRole == NAT_NONE)
+			if (aNatRole == NAT_NONE)
 				throw;
 			Thread::sleep(SHORT_TIMEOUT);
 		}

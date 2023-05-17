@@ -54,7 +54,7 @@ ResourceManager::Strings SearchManager::types[Search::TYPE_LAST] = {
 	ResourceManager::FILE
 };
 const string& SearchManager::getTypeStr(int aType) noexcept {
-	return ResourceManager::getInstance()->getString(types[aType]);
+	return STRING_I(types[aType]);
 }
 
 bool SearchManager::isDefaultTypeStr(const string& aType) noexcept {
@@ -668,19 +668,21 @@ void SearchManager::onPSR(const AdcCommand& aCmd, UserPtr from, const string& aR
 
 }
 
-void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile) {
+void SearchManager::respond(const AdcCommand& adc, const OnlineUser& aUser, bool aIsUdpActive, const string& aHubIpPort, ProfileToken aProfile) {
 	auto isDirect = adc.getType() == 'D';
-	string path = ADC_ROOT_STR, key;
-	int maxResults = isUdpActive ? 10 : 5;
 
+	string sudpKey;
+	string path = ADC_ROOT_STR;
+	int maxResults = aIsUdpActive ? 10 : 5;
 	bool replyDirect = false;
+
 	if (isDirect) {
 		adc.getParam("PA", 0, path);
 		replyDirect = adc.hasFlag("RE", 0);
 
 		string tmp;
 		if (adc.getParam("MR", 0, tmp)) 
-			maxResults = min(isUdpActive ? 20 : 10, Util::toInt(tmp));
+			maxResults = min(aIsUdpActive ? 20 : 10, Util::toInt(tmp));
 	}
 
 	SearchResultList results;
@@ -704,7 +706,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 	}
 
 	// TODO: don't send replies to passive users
-	if(results.empty() && SETTING(USE_PARTIAL_SHARING) && aProfile != SP_HIDDEN) {
+	if (results.empty() && SETTING(USE_PARTIAL_SHARING) && aProfile != SP_HIDDEN) {
 		string tth;
 		if(!adc.getParam("TR", 0, tth))
 			goto end;
@@ -715,7 +717,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 		QueueManager::getInstance()->handlePartialSearch(aUser.getUser(), TTHValue(tth), partialInfo, bundle, reply, add);
 
 		if (!partialInfo.empty()) {
-			AdcCommand cmd = toPSR(isUdpActive, Util::emptyString, hubIpPort, tth, partialInfo);
+			AdcCommand cmd = toPSR(aIsUdpActive, Util::emptyString, aHubIpPort, tth, partialInfo);
 			if (!ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl())) {
 				dbgMsg("ADC response: partial file info not empty, failed to send response", LogMessage::SEV_WARNING);
 			} else {
@@ -724,7 +726,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 		}
 		
 		if (!bundle.empty()) {
-			AdcCommand cmd = toPBD(hubIpPort, bundle, tth, reply, add);
+			AdcCommand cmd = toPBD(aHubIpPort, bundle, tth, reply, add);
 			if (!ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl())) {
 				dbgMsg("ADC respond: matching bundle in queue, failed to send PBD response", LogMessage::SEV_WARNING);
 			} else {
@@ -735,13 +737,12 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 		goto end;
 	}
 
-
-	adc.getParam("KY", 0, key);
-	for(const auto& sr: results) {
+	adc.getParam("KY", 0, sudpKey);
+	for (const auto& sr: results) {
 		AdcCommand cmd = sr->toRES(AdcCommand::TYPE_UDP);
 		if(!token.empty())
 			cmd.addParam("TO", token);
-		ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, key, aUser.getHubUrl());
+		ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, sudpKey, aUser.getHubUrl());
 	}
 
 end:

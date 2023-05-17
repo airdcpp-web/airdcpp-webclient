@@ -145,7 +145,7 @@ public:
 	void setLineMode(size_t rollback) noexcept { dcassert(socket); socket->setLineMode(rollback); }
 
 	void connect(const AddressInfo& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const UserPtr& aUser = nullptr);
-	void accept(const Socket& aServer);
+	void accept(const Socket& aServer, const BufferedSocket::SocketAcceptFloodF& aFloodCheckF);
 
 	void handlePM(const AdcCommand& c, bool echo) noexcept;
 	bool sendPrivateMessageHooked(const OutgoingChatMessage& aMessage, string& error_);

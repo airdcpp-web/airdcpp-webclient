@@ -25,6 +25,7 @@
 
 #include "ConnectionType.h"
 #include "CriticalSection.h"
+#include "FloodCounter.h"
 #include "HintedUser.h"
 #include "Singleton.h"
 #include "UserConnection.h"
@@ -117,9 +118,9 @@ private:
 };
 
 // Comparing with a user...
-inline bool operator==(ConnectionQueueItem::Ptr ptr, const UserPtr& aUser) { return ptr->getUser() == aUser; }
+inline bool operator==(ConnectionQueueItem::Ptr ptr, const UserPtr& aUser) noexcept { return ptr->getUser() == aUser; }
 // With a token
-inline bool operator==(ConnectionQueueItem::Ptr ptr, const string& aToken) { return compare(ptr->getToken(), aToken) == 0; }
+inline bool operator==(ConnectionQueueItem::Ptr ptr, const string& aToken) noexcept { return compare(ptr->getToken(), aToken) == 0; }
 
 class ConnectionManager : public Speaker<ConnectionManagerListener>, public ClientManagerListener,
 	public UserConnectionListener, TimerManagerListener, 
@@ -127,51 +128,55 @@ class ConnectionManager : public Speaker<ConnectionManagerListener>, public Clie
 {
 public:
 	TokenManager tokens;
-	void nmdcExpect(const string& aNick, const string& aMyNick, const string& aHubUrl) {
+	void nmdcExpect(const string& aNick, const string& aMyNick, const string& aHubUrl) noexcept {
 		expectedConnections.add(aNick, aMyNick, aHubUrl);
 	}
 	//expecting to get connection from a passive user
-	void adcExpect(const string& aToken, const CID& aCID, const string& aHubUrl) {
+	void adcExpect(const string& aToken, const CID& aCID, const string& aHubUrl) noexcept {
 		expectedConnections.add(aToken, aCID.toBase32(), aHubUrl);
 	}
 
-	void nmdcConnect(const string& aServer, const string& aPort, const string& aMyNick, const string& hubUrl, const string& encoding, bool secure);
-	void nmdcConnect(const string& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aNick, const string& hubUrl, const string& encoding, bool secure);
-	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& aToken, bool secure);
-	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const string& aToken, bool secure);
+	void nmdcConnect(const string& aServer, const string& aPort, const string& aMyNick, const string& aHubUrl, const string& aEncoding, bool aSecure) noexcept;
+	void nmdcConnect(const string& aServer, const string& aPort, const string& aLocalPort, BufferedSocket::NatRoles aNatRole, const string& aNick, const string& aHubUrl, const string& aEncoding, bool aSecure) noexcept;
+	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& aToken, bool aSecure) noexcept;
+	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& aLocalPort, BufferedSocket::NatRoles aNatRole, const string& aToken, bool aSecure) noexcept;
 
-	void getDownloadConnection(const HintedUser& aUser, bool smallSlot=false);
-	void force(const string& token);
+	void getDownloadConnection(const HintedUser& aUser, bool aSmallSlot = false) noexcept;
+	void force(const string& aToken) noexcept;
 	
-	void disconnect(const UserPtr& aUser); // disconnect dall connections to the user
-	void disconnect(const UserPtr& aUser, ConnectionType aConnType);
-	void disconnect(const string& token);
-	bool setBundle(const string& token, const string& bundleToken);
+	void disconnect(const UserPtr& aUser) noexcept; // disconnect all connections to the user
+	void disconnect(const UserPtr& aUser, ConnectionType aConnType) noexcept;
+	void disconnect(const string& aToken) noexcept;
+	bool setBundle(const string& aToken, const string& aBundleToken) noexcept;
 
-	void shutdown(function<void (float)> progressF);
-	bool isShuttingDown() const { return shuttingDown; }
+	void shutdown(function<void (float)> progressF) noexcept;
+	bool isShuttingDown() const noexcept { return shuttingDown; }
 
-	/** Find a suitable port to listen on, and start doing it */
+	/** Find a suitable port to listen on, and start doing it, throws in case of errors (e.g. port taken) */
 	void listen();
 	void disconnect() noexcept;
 
-	const string& getPort() const;
-	const string& getSecurePort() const;
+	const string& getPort() const noexcept;
+	const string& getSecurePort() const noexcept;
 
 	void addRunningMCN(const UserConnection *aSource) noexcept;
 
 	// set fatalError to true if the client shouldn't try to reconnect automatically
-	void failDownload(const string& aToken, const string& aError, bool fatalError);
+	void failDownload(const string& aToken, const string& aError, bool aFatalError) noexcept;
 
-	SharedMutex& getCS() { return cs; }
+	SharedMutex& getCS() noexcept { return cs; }
 
 	// Unsafe
 	const ConnectionQueueItem::List& getTransferConnections(bool aDownloads) const {
 		return aDownloads ? cqis[CONNECTION_TYPE_DOWNLOAD] : cqis[CONNECTION_TYPE_UPLOAD];
 	}
+
+	bool isMCNUser(const UserPtr& aUser) const noexcept;
 private:
-	bool allowNewMCN(const ConnectionQueueItem* aCQI);
-	void createNewMCN(const HintedUser& aUser);
+	FloodCounter floodCounter;
+
+	bool allowNewMCN(const ConnectionQueueItem* aCQI) noexcept;
+	void createNewMCN(const HintedUser& aUser) noexcept;
 
 	class Server : public Thread {
 	public:
@@ -185,8 +190,8 @@ private:
 
 		Socket sock;
 		string port;
-		bool secure;
-		bool die;
+		const bool secure;
+		bool die = false;
 	};
 
 	friend class Server;
@@ -208,33 +213,33 @@ private:
 	typedef delayMap::iterator delayIter;
 	delayMap delayedTokens;
 
-	uint64_t floodCounter;
-
 	unique_ptr<Server> server;
 	unique_ptr<Server> secureServer;
 
-	bool shuttingDown;
+	bool shuttingDown = false;
 
 	friend class Singleton<ConnectionManager>;
 	ConnectionManager();
 
 	~ConnectionManager() { }
 	
-	UserConnection* getConnection(bool aNmdc, bool secure) noexcept;
-	void putConnection(UserConnection* aConn);
+	UserConnection* getConnection(bool aNmdc, bool aSecure) noexcept;
+	void putConnection(UserConnection* aConn) noexcept;
 
-	void addUploadConnection(UserConnection* uc);
-	void addDownloadConnection(UserConnection* uc);
-	void addPMConnection(UserConnection* uc);
+	void addUploadConnection(UserConnection* uc) noexcept;
+	void addDownloadConnection(UserConnection* uc) noexcept;
+	void addPMConnection(UserConnection* uc) noexcept;
 
-	ConnectionQueueItem* getCQI(const HintedUser& aUser, ConnectionType aConnType, const string& aToken = Util::emptyString);
-	void putCQI(ConnectionQueueItem* cqi);
+	ConnectionQueueItem* getCQI(const HintedUser& aUser, ConnectionType aConnType, const string& aToken = Util::emptyString) noexcept;
+	void putCQI(ConnectionQueueItem* cqi) noexcept;
 
-	void accept(const Socket& sock, bool secure) noexcept;
+	void accept(const Socket& sock, bool aSecure) noexcept;
 
-	bool checkKeyprint(UserConnection *aSource);
+	FloodCounter::FloodLimits getIncomingConnectionLimits(const string& aIP) const noexcept;
 
-	void failed(UserConnection* aSource, const string& aError, bool protocolError);
+	bool checkKeyprint(UserConnection *aSource) noexcept;
+
+	void failed(UserConnection* aSource, const string& aError, bool aProtocolError) noexcept;
 	
 	// UserConnectionListener
 	void on(Connected, UserConnection*) noexcept;
@@ -258,8 +263,8 @@ private:
 	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool) noexcept { onUserUpdated(aUser.getUser()); }
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool) noexcept { onUserUpdated(aUser); }
 
-	void onUserUpdated(const UserPtr& aUser);
-	void attemptDownloads(uint64_t aTick, StringList& removedTokens);
+	void onUserUpdated(const UserPtr& aUser) noexcept;
+	void attemptDownloads(uint64_t aTick, StringList& removedTokens_) noexcept;
 };
 
 } // namespace dcpp

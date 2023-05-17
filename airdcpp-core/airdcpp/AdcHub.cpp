@@ -442,9 +442,7 @@ void AdcHub::handle(AdcCommand::QUI, AdcCommand& c) noexcept {
 	}
 
 void AdcHub::handle(AdcCommand::CTM, AdcCommand& c) noexcept {
-	OnlineUser* u = findUser(c.getFrom());
-	if(!u || u->getUser() == ClientManager::getInstance()->getMe())
-		return;
+	auto ou = findUser(c.getFrom());
 	if(c.getParameters().size() < 3)
 		return;
 
@@ -454,10 +452,10 @@ void AdcHub::handle(AdcCommand::CTM, AdcCommand& c) noexcept {
 	const string& token = c.getParam(2);
 
 	bool allowSecure = false;
-	if (!checkProtocol(*u, allowSecure, protocol, token))
+	if (!validateConnectUser(ou, allowSecure, protocol, token, remotePort))
 		return;
 
-	ConnectionManager::getInstance()->adcConnect(*u, remotePort, token, allowSecure);
+	ConnectionManager::getInstance()->adcConnect(*ou, remotePort, token, allowSecure);
 }
 
 void AdcHub::handle(AdcCommand::ZON, AdcCommand& c) noexcept {
@@ -665,10 +663,18 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
-	OnlineUser* ou = findUser(c.getFrom());
-	if(!ou) {
+	auto ou = findUser(c.getFrom());
+	if (!ou) {
 		dcdebug("Invalid user in AdcHub::onSCH\n");
 		return;
+	}
+
+	{
+		auto remotePort = ou->getIdentity().getUdpPort();
+		auto target = !remotePort.empty() ? ou->getIdentity().getUdpIp() + ":" + remotePort : ou->getIdentity().getNick();
+		if (!checkIncomingSearch(target, ou)) {
+			return;
+		}
 	}
 
 	ASSERT_DIRECT_TO_ME(c)
@@ -803,8 +809,8 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 
 void AdcHub::handle(AdcCommand::NAT, AdcCommand& c) noexcept {
 	ASSERT_DIRECT_TO_ME(c)
-	OnlineUser* u = findUser(c.getFrom());
-	if(!u || u->getUser() == ClientManager::getInstance()->getMe() || c.getParameters().size() < 3)
+	auto u = findUser(c.getFrom());
+	if (c.getParameters().size() < 3)
 		return;
 
 	const string& protocol = c.getParam(0);
@@ -812,7 +818,7 @@ void AdcHub::handle(AdcCommand::NAT, AdcCommand& c) noexcept {
 	const string& token = c.getParam(2);
 
 	bool allowSecure = false;
-	if (!checkProtocol(*u, allowSecure, protocol, token))
+	if (!validateConnectUser(u, allowSecure, protocol, token, remotePort))
 		return;
 
 	// Trigger connection attempt sequence locally ...
@@ -829,8 +835,8 @@ void AdcHub::handle(AdcCommand::RNT, AdcCommand& c) noexcept {
 	ASSERT_DIRECT_TO_ME(c)
 	// Sent request for NAT traversal cooperation, which
 	// was acknowledged (with requisite local port information).
-	OnlineUser* u = findUser(c.getFrom());
-	if(!u || u->getUser() == ClientManager::getInstance()->getMe() || c.getParameters().size() < 3)
+	auto u = findUser(c.getFrom());
+	if(c.getParameters().size() < 3)
 		return;
 
 	const string& protocol = c.getParam(0);
@@ -838,7 +844,7 @@ void AdcHub::handle(AdcCommand::RNT, AdcCommand& c) noexcept {
 	const string& token = c.getParam(2);
 
 	bool allowSecure = false;
-	if (!checkProtocol(*u, allowSecure, protocol, token))
+	if (!validateConnectUser(u, allowSecure, protocol, token, remotePort))
 		return;
 
 	// Trigger connection attempt sequence locally
@@ -966,6 +972,23 @@ int AdcHub::connect(const OnlineUser& user, const string& token, string& lastErr
 	}
 
 	return conn;
+}
+
+
+bool AdcHub::validateConnectUser(const OnlineUser* aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken, const string& aRemotePort) noexcept {
+	if (!aUser || aUser->getUser() == ClientManager::getInstance()->getMe())
+		return false;
+
+	if (!checkProtocol(*aUser, secure_, aRemoteProtocol, aToken)) {
+		return false;
+	}
+
+	auto target = aUser->getIdentity().getTcpConnectIp() + ":" + aRemotePort;
+	if (!checkIncomingCTM(target, aUser)) {
+		return false;
+	}
+
+	return true;
 }
 
 bool AdcHub::checkProtocol(const OnlineUser& aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken) noexcept {

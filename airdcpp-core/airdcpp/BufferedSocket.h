@@ -74,9 +74,10 @@ public:
 			Thread::sleep(100);
 	}
 
-	void accept(const Socket& srv, bool secure, bool allowUntrusted, const string& expKP = Util::emptyString);
-	void connect(const AddressInfo& aAddress, const string& aPort, bool secure, bool allowUntrusted, bool proxy, const string& expKP = Util::emptyString);
-	void connect(const AddressInfo& aAddress, const string& aPort, const string& localPort, NatRoles natRole, bool secure, bool allowUntrusted, bool proxy, const string& expKP = Util::emptyString);
+	typedef std::function<bool(const string& aIP)> SocketAcceptFloodF;
+	void accept(const Socket& srv, bool aSecure, bool aAllowUntrusted, const SocketAcceptFloodF& aFloodCheckF);
+	void connect(const AddressInfo& aAddress, const string& aPort, bool aSecure, bool aAllowUntrusted, bool aProxy, const string& expKP = Util::emptyString);
+	void connect(const AddressInfo& aAddress, const string& aPort, const string& aLocalPort, NatRoles aNatRole, bool aSecure, bool aAllowUntrusted, bool aProxy, const string& expKP = Util::emptyString);
 
 	/** Sets data mode for aBytes bytes. Must be called within onLine. */
 	void setDataMode(int64_t aBytes = -1) { mode = MODE_DATA; dataBytes = aBytes; }
@@ -89,16 +90,16 @@ public:
 	void setMode(Modes mode, size_t aRollback = 0);
 	Modes getMode() const { return mode; }
 
-	const string& getIp() const { return sock->getIp(); }
-	bool isSecure() const { return sock->isSecure(); }
-	bool isTrusted() const { return sock->isTrusted(); }
-	bool isKeyprintMatch() const { return sock->isKeyprintMatch(); }
-	std::string getEncryptionInfo() const { return sock->getEncryptionInfo(); }
-	ByteVector getKeyprint() const { return sock->getKeyprint(); }
-	bool verifyKeyprint(const string& expKeyp, bool allowUntrusted) noexcept { return sock->verifyKeyprint(expKeyp, allowUntrusted); };
-	string getLocalIp() const { return sock->getLocalIp(); }
-	uint16_t getLocalPort() const { return sock->getLocalPort(); }
-	bool isV6Valid() const { return sock->isV6Valid(); }
+	const string& getIp() const { return sock ? sock->getIp() : Util::emptyString; }
+	bool isSecure() const { return sock ? sock->isSecure() : false; }
+	bool isTrusted() const { return sock ? sock->isTrusted() : false; }
+	bool isKeyprintMatch() const { return sock ? sock->isKeyprintMatch() : false; }
+	std::string getEncryptionInfo() const { return sock ? sock->getEncryptionInfo() : Util::emptyString; }
+	ByteVector getKeyprint() const { return sock ? sock->getKeyprint() : ByteVector(); }
+	bool verifyKeyprint(const string& expKeyp, bool allowUntrusted) noexcept { return sock ? sock->verifyKeyprint(expKeyp, allowUntrusted) : false; };
+	string getLocalIp() const { return sock ? sock->getLocalIp() : Util::emptyString; }
+	uint16_t getLocalPort() const { return sock ? sock->getLocalPort() : 0; }
+	bool isV6Valid() const { return sock ? sock->isV6Valid() : false; }
 
 	void write(const string& aData) { write(aData.data(), aData.length()); }
 	void write(const char* aBuf, size_t aLen) noexcept;
@@ -109,9 +110,10 @@ public:
 	void callAsync(function<void ()> f) { Lock l(cs); addTask(ASYNC_CALL, new CallData(f)); }
 
 	void disconnect(bool graceless = false) noexcept { Lock l(cs); if(graceless) disconnecting = true; addTask(DISCONNECT, 0); }
+	bool isDisconnecting() const noexcept { return disconnecting; }
 
 	GETSET(char, separator, Separator);
-	GETSET(bool, useLimiter, UseLimiter);
+	IGETSET(bool, useLimiter, UseLimiter, false);
 private:
 	enum Tasks {
 		CONNECT,
@@ -158,18 +160,18 @@ private:
 	Semaphore taskSem;
 	deque<pair<Tasks, unique_ptr<TaskData> > > tasks;
 
-	Modes mode;
+	Modes mode = MODE_LINE;
 	std::unique_ptr<UnZFilter> filterIn;
-	int64_t dataBytes;
-	size_t rollback;
+	int64_t dataBytes = 0;
+	size_t rollback = 0;
 	string line;
 	ByteVector inbuf;
 	ByteVector writeBuf;
 	ByteVector sendBuf;
 
 	std::unique_ptr<Socket> sock;
-	State state;
-	bool disconnecting;
+	State state = STARTING;
+	bool disconnecting = false;
 	bool v4only;
 
 	virtual int run();
