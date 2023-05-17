@@ -39,8 +39,8 @@
 #include <boost/range/algorithm/count_if.hpp>
 
 
-#define FLOOD_COUNT 5
-#define FLOOD_PERIOD 45
+#define AUTH_FLOOD_COUNT 5
+#define AUTH_FLOOD_PERIOD 45
 
 #define REFRESH_TOKEN_VALIDITY_DAYS 30ULL
 
@@ -49,7 +49,7 @@
 #define CONFIG_VERSION 1
 
 namespace webserver {
-	WebUserManager::WebUserManager(WebServerManager* aServer) : wsm(aServer), authFloodCounter(FLOOD_COUNT, FLOOD_PERIOD) {
+	WebUserManager::WebUserManager(WebServerManager* aServer) : wsm(aServer), authFloodCounter(AUTH_FLOOD_PERIOD) {
 		aServer->addListener(this);
 	}
 
@@ -123,14 +123,14 @@ namespace webserver {
 	}
 
 	SessionPtr WebUserManager::authenticateSession(const string& aUserName, const string& aPassword, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP, const string& aSessionToken) {
-		if (!authFloodCounter.checkFlood(aIP)) {
+		if (authFloodCounter.getFloodStatus(aIP, { AUTH_FLOOD_COUNT, AUTH_FLOOD_COUNT }).type != FloodCounter::FloodType::OK) {
 			wsm->log(STRING_F(WEB_SERVER_MULTIPLE_FAILED_ATTEMPTS, aIP), LogMessage::SEV_WARNING);
 			throw std::domain_error(STRING(WEB_SESSIONS_TOO_MANY_ATTEMPTS));
 		}
 
 		auto user = getUser(aUserName);
 		if (!user || !user->matchPassword(aPassword)) {
-			authFloodCounter.addAttempt(aIP);
+			authFloodCounter.addRequst(aIP);
 			throw std::domain_error(STRING(WEB_SESSIONS_INVALID_USER_PW));
 		}
 
@@ -289,8 +289,7 @@ namespace webserver {
 		expirationTimer = wsm->addTimer([this] {
 			checkExpiredSessions();
 			checkExpiredTokens();
-			authFloodCounter.prune();
-		}, FLOOD_PERIOD * 1000);
+		}, 30 * 1000);
 
 		expirationTimer->start(false);
 	}

@@ -50,7 +50,7 @@ namespace webserver {
 		if (!autoEnabled) {
 			auto enumStrings = SettingsManager::getEnumStrings(modeKey, true);
 			if (!enumStrings.empty()) {
-				text = ResourceManager::getInstance()->getString(enumStrings[modeValue]);
+				text = STRING_I(enumStrings[modeValue]);
 			} else {
 				text = "Invalid configuration";
 			}
