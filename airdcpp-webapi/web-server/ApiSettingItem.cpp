@@ -36,7 +36,7 @@ namespace webserver {
 	string ApiSettingItem::formatTitle(const string& aDesc, ResourceManager::Strings aUnit) noexcept {
 		auto title = aDesc;
 		if (aUnit != ResourceManager::LAST) {
-			title += " (" + ResourceManager::getInstance()->getString(aUnit) + ")";
+			title += " (" + STRING_I(aUnit) + ")";
 		}
 
 		return title;
@@ -91,8 +91,7 @@ namespace webserver {
 	}
 
 	string ServerSettingItem::getTitle() const noexcept {
-		auto title = ResourceManager::getInstance()->getString(titleKey);
-		return ApiSettingItem::formatTitle(title, unitKey);
+		return ApiSettingItem::formatTitle(STRING_I(titleKey), unitKey);
 	}
 
 	const string& ServerSettingItem::getHelpStr() const noexcept {
@@ -100,7 +99,7 @@ namespace webserver {
 			return Util::emptyString;
 		}
 
-		return ResourceManager::getInstance()->getString(helpKey);
+		return STRING_I(helpKey);
 	}
 
 	ExtensionSettingItem::ExtensionSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType,
@@ -393,7 +392,7 @@ namespace webserver {
 		auto enumStrings = SettingsManager::getEnumStrings(si.key, false);
 		if (!enumStrings.empty()) {
 			for (const auto& i : enumStrings) {
-				ret.emplace_back(EnumOption({ i.first, ResourceManager::getInstance()->getString(i.second) }));
+				ret.emplace_back(EnumOption({ i.first, STRING_I(i.second) }));
 			}
 		} else if (si.key == SettingsManager::BIND_ADDRESS || si.key == SettingsManager::BIND_ADDRESS6) {
 			auto bindAddresses = AirUtil::getCoreBindAdapters(si.key == SettingsManager::BIND_ADDRESS6);
@@ -416,7 +415,7 @@ namespace webserver {
 	}
 
 	string CoreSettingItem::getTitle() const noexcept {
-		auto title = ResourceManager::getInstance()->getString(si.desc);
+		auto title = STRING_I(si.desc);
 		return ApiSettingItem::formatTitle(title, unit);
 	}
 
