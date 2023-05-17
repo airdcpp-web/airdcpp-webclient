@@ -22,6 +22,7 @@
 #include "AirUtil.h"
 #include "BufferedSocket.h"
 #include "ClientManager.h"
+#include "ConnectionManager.h"
 #include "ConnectivityManager.h"
 #include "DebugManager.h"
 #include "FavoriteManager.h"
@@ -37,12 +38,16 @@ atomic<long> Client::allCounts[COUNT_UNCOUNTED];
 atomic<long> Client::sharingCounts[COUNT_UNCOUNTED];
 atomic<ClientToken> idCounter { 0 };
 
+#define FLOOD_PERIOD 60
+
 Client::Client(const string& aHubUrl, char aSeparator, const ClientPtr& aOldClient) :
 	hubUrl(aHubUrl), separator(aSeparator), 
 	myIdentity(ClientManager::getInstance()->getMe(), 0),
 	clientId(aOldClient ? aOldClient->getToken() : ++idCounter),
 	lastActivity(GET_TICK()),
-	cache(SettingsManager::HUB_MESSAGE_CACHE)
+	cache(SettingsManager::HUB_MESSAGE_CACHE),
+	ctmFloodCounter(FLOOD_PERIOD),
+	searchFloodCounter(FLOOD_PERIOD)
 {
 	TimerManager::getInstance()->addListener(this);
 	ShareManager::getInstance()->addListener(this);
@@ -614,6 +619,81 @@ void Client::on(TimerManagerListener::Second, uint64_t aTick) noexcept{
 			fire(ClientListener::OutgoingSearch(), this, s);
 			search(std::move(s));
 		}
+	}
+}
+
+FloodCounter::FloodLimits Client::getCTMLimits(const OnlineUser* aAdcUser) {
+	// Is it a valid DC client?
+	// There may be many connection attempts with MCN users so we don't want to ban them
+	if (aAdcUser && ConnectionManager::getInstance()->isMCNUser(aAdcUser->getUser())) {
+		return {
+			100,
+			150,
+		};
+	}
+
+	return {
+		15,
+		40,
+	};
+}
+
+FloodCounter::FloodLimits Client::getSearchLimits() {
+	return {
+		20,
+		60,
+	};
+}
+
+bool Client::checkIncomingCTM(const string& aTarget, const OnlineUser* aAdcUser) noexcept {
+	auto result = ctmFloodCounter.handleRequest(aTarget, getCTMLimits(aAdcUser));
+	if (result.type == FloodCounter::FloodType::OK) {
+		return true;
+	}
+
+	auto message = STRING_F(CONNECT_REQUEST_SPAM_FROM, aTarget);
+	if (aAdcUser) {
+		message += " (" + aAdcUser->getIdentity().getNick() + ")";
+	}
+
+	handleFlood(result, message);
+	return false;
+}
+
+bool Client::checkIncomingSearch(const string& aTarget, const OnlineUser* aAdcUser) noexcept {
+	auto result = searchFloodCounter.handleRequest(aTarget, getSearchLimits());
+	if (result.type == FloodCounter::FloodType::OK) {
+		return true;
+	}
+
+	auto message = STRING_F(SEARCH_SPAM_FROM, aTarget);
+	if (aAdcUser) {
+		message += " (" + aAdcUser->getIdentity().getNick() + ")";
+	}
+
+	handleFlood(result, message);
+	return false;
+}
+
+
+void Client::handleFlood(const FloodCounter::FloodResult& aResult, const string& aMessage) noexcept {
+	if (aResult.type == FloodCounter::FloodType::FLOOD_MINOR) {
+		if (aResult.hitLimit) {
+			// Status message only
+			statusMessage(aMessage, LogMessage::SEV_VERBOSE, LogMessage::Type::SPAM);
+		}
+	} else if (aResult.type == FloodCounter::FloodType::FLOOD_SEVERE) {
+		// If the flood is really severe, there may be lots of incoming messages waiting to be processed
+		// We only want to do this once
+		if (sock && sock->isDisconnecting()) {
+			return;
+		}
+
+		auto message = aMessage + " (" + Text::toLower(STRING(SEVERE)) + ")";
+
+		statusMessage(STRING_F(HUB_DDOS_DISCONNECT, message), LogMessage::SEV_ERROR);
+		setReconnDelay(60 * 60); // 1 hour
+		disconnect(true);
 	}
 }
 

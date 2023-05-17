@@ -218,6 +218,7 @@
     <ClCompile Include="airdcpp\AdcHub.cpp" />
     <ClCompile Include="airdcpp\DirectSearch.cpp" />
     <ClCompile Include="airdcpp\ErrorCollector.cpp" />
+    <ClCompile Include="airdcpp\FloodCounter.cpp" />
     <ClCompile Include="airdcpp\GroupedSearchResult.cpp" />
     <ClCompile Include="airdcpp\Hasher.cpp" />
     <ClCompile Include="airdcpp\HashStore.cpp" />
@@ -340,6 +341,7 @@
     <ClInclude Include="airdcpp\AdcCommand.h" />
     <ClInclude Include="airdcpp\AdcHub.h" />
     <ClInclude Include="airdcpp\AddressInfo.h" />
+    <ClInclude Include="airdcpp\FloodCounter.h" />
     <ClInclude Include="airdcpp\HashStore.h" />
     <ClInclude Include="airdcpp\modules\ADLSearch.h" />
     <ClInclude Include="airdcpp\QueueAddInfo.h" />

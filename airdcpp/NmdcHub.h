@@ -79,11 +79,6 @@ private:
 	int64_t lastBytesShared;
 	int supportFlags;
 
-	typedef list<pair<string, uint64_t> > FloodMap;
-	typedef FloodMap::const_iterator FloodIter;
-	FloodMap seekers;
-	FloodMap flooders;
-
 	void clearUsers() noexcept override;
 	void onLine(const string& aLine) noexcept;
 
@@ -105,7 +100,6 @@ private:
 	void revConnectToMe(const OnlineUser& aUser);
 	void myInfo(bool alwaysSend);
 	void supports(const StringList& feat);
-	void clearFlooders(uint64_t tick);
 
 	void updateFromTag(Identity& id, const string& tag);
 	void refreshLocalIp() noexcept;

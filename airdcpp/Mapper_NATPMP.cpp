@@ -28,11 +28,8 @@
 #endif
 
 extern "C" {
-#ifndef STATICLIB
-#define STATICLIB
-#endif
-#if defined(_WIN32) && !defined(WIN32)
-#define WIN32
+#ifndef NATPMP_STATICLIB
+#define NATPMP_STATICLIB
 #endif
 #include <natpmp.h>
 }

@@ -83,7 +83,7 @@ SettingItem::SettingValue SettingItem::getDefaultValue() const noexcept {
 }*/
 
 const string& SettingItem::getDescription() const noexcept {
-	return ResourceManager::getInstance()->getString(desc);
+	return STRING_I(desc);
 }
 
 string SettingItem::currentToString() const noexcept {
@@ -98,7 +98,7 @@ string SettingItem::ToString::operator()(const string& s) const noexcept {
 string SettingItem::ToString::operator()(int val) const noexcept {
 	auto enumStrings = SettingsManager::getEnumStrings(val, true);
 	if (!enumStrings.empty()) {
-		return ResourceManager::getInstance()->getString(enumStrings[val]);
+		return STRING_I(enumStrings[val]);
 	}
 
 	return Util::toString(val);

@@ -365,33 +365,11 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		}
 
 		i = j + 1;
-		
-		uint64_t tick = GET_TICK();
-		clearFlooders(tick);
 
-		seekers.emplace_back(seeker, tick);
-
-		// First, check if it's a flooder
-		for(const auto& f: flooders) {
-			if(f.first == seeker) {
-				return;
-			}
-		}
-
-		int count = 0;
-		for(auto& f: seekers) {
-			if(f.first == seeker)
-				count++;
-
-			if(count > 7) {
-			    if(isOp()) {
-					if(isPassive)
-						fire(ClientListener::SearchFlood(), this, seeker.substr(4));
-					else
-						fire(ClientListener::SearchFlood(), this, seeker + " " + STRING(NICK_UNKNOWN));
-				}
-				
-				flooders.emplace_back(seeker, tick);
+		{
+			// Nick (passive) or IP (active)
+			auto target = isPassive ? seeker.substr(4) : seeker;
+			if (!checkIncomingSearch(target)) {
 				return;
 			}
 		}
@@ -585,6 +563,10 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			if(CryptoManager::getInstance()->TLSOk()) {
 				connectSecure = true;
 			}
+		}
+
+		if (!checkIncomingCTM(server)) {
+			return;
 		}
 
 		if(senderPort[senderPort.size() - 1] == 'N') {
@@ -1155,16 +1137,6 @@ void NmdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {
 		}
 	} else {
 		send(fromUtf8(cmd));
-	}
-}
-
-void NmdcHub::clearFlooders(uint64_t aTick) {
-	while(!seekers.empty() && seekers.front().second + (5 * 1000) < aTick) {
-		seekers.pop_front();
-	}
-
-	while(!flooders.empty() && flooders.front().second + (120 * 1000) < aTick) {
-		flooders.pop_front();
 	}
 }
 

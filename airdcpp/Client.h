@@ -27,6 +27,7 @@
 #include "ShareManagerListener.h"
 #include "TimerManagerListener.h"
 
+#include "FloodCounter.h"
 #include "HubSettings.h"
 #include "MessageCache.h"
 #include "OnlineUser.h"
@@ -250,6 +251,15 @@ protected:
 	void onUserDisconnected(const OnlineUserPtr& aUser, bool aDisconnectTransfers) noexcept;
 
 	string redirectUrl;
+
+	FloodCounter ctmFloodCounter;
+	FloodCounter searchFloodCounter;
+
+	FloodCounter::FloodLimits getCTMLimits(const OnlineUser* aAdcUser);
+	FloodCounter::FloodLimits getSearchLimits();
+
+	bool checkIncomingCTM(const string& aTarget, const OnlineUser* aAdcUser = nullptr) noexcept;
+	bool checkIncomingSearch(const string& aTarget, const OnlineUser* aAdcUser = nullptr) noexcept;
 private:
 	const ClientToken clientId;
 	static atomic<long> allCounts[COUNT_UNCOUNTED];
@@ -271,6 +281,7 @@ private:
 	bool countIsSharing = false;
 
 	void destroySocket(const AsyncF& aShutdownAction = nullptr) noexcept;
+	void handleFlood(const FloodCounter::FloodResult& aResult, const string& aMessage) noexcept;
 };
 
 } // namespace dcpp

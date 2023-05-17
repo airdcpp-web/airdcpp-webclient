@@ -181,10 +181,7 @@ public:
 	GETSET(string, localIp6, LocalIp6);
 	IGETSET(bool, v4only, V4only, false);
 
-	const string& getIp() const noexcept {
-		return sock6.valid() ? ip6 : ip4;
-	}
-
+	const string& getIp() const noexcept;
 	bool isV6Valid() const noexcept;
 	static string resolveName(const sockaddr* sa, socklen_t sa_len, int flags = NI_NUMERICHOST);
 protected:
