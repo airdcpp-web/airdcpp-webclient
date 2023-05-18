@@ -3510,12 +3510,12 @@ int QueueManager::addValidatedSources(const HintedUser& aUser, const QueueItemLi
 					wantConnection = true;
 				}
 
-				return false;
+				return true;
 			} catch (const QueueException&) {
 				// Ignore...
 			}
 
-			return true;
+			return false;
 		});
 	}
 
