@@ -21,7 +21,7 @@
 
 namespace webserver {
 #define API_VERSION 1
-#define API_FEATURE_LEVEL 7
+#define API_FEATURE_LEVEL 8
 
 }
 
