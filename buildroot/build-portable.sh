@@ -19,7 +19,7 @@ if [ -z "$2" ]
     echo "BUILD_THREADS: number of compiler threads to use (default: auto)"
     echo "SKIP_EXISTING: don't build/overwrite existing target packages (default: disabled)"
     echo "DEBUG: create debug build with extra logging/assertions (default: disabled)"
-    echo "UPLOAD: upload created files to a remote server over SCP (default: disabled)"
+    echo "UPLOAD: upload created files to a remote server over sftp (default: disabled)"
     echo ""
     exit 1
 fi
@@ -116,12 +116,12 @@ FetchGit()
   git fetch --prune --tags
 }
 
-# SCP uploading to a remote server
+# SFTP uploading to a remote server
 UploadFile()
 {
   echo ""
   echo "${bold}Uploading $1...${normal}"
-  scp $1 ${SSH_ADDRESS}:${SSH_PATH}/packages/$2
+  sftp ${SSH_ADDRESS}:${SSH_PATH}/$2 <<< $"put $1"
 }
 
 # Call with the current arch
