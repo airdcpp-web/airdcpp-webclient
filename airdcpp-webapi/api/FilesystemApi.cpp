@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 #include <airdcpp/Exception.h>
 #include <airdcpp/File.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <api/platform/windows/Filesystem.h>
 #define ALLOW_LIST_EMPTY_PATH true
 #else
@@ -55,7 +55,7 @@ namespace webserver {
 		]{
 			auto retJson = json::array();
 			if (path.empty()) {
-#ifdef WIN32
+#ifdef _WIN32
 				auto content = Filesystem::getDriveListing(false);
 				complete(websocketpp::http::status_code::ok, content, nullptr);
 				return;

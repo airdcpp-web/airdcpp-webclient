@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -71,12 +71,16 @@ namespace webserver {
 			return ClientManager::getInstance()->incomingPrivateMessageHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(PrivateChatApi::incomingMessageHook));
 		}, [this](const string& aId) {
 			ClientManager::getInstance()->incomingPrivateMessageHook.removeSubscriber(aId);
+		}, [this] {
+			return ClientManager::getInstance()->incomingPrivateMessageHook.getSubscribers();
 		});
 
 		createHook("private_chat_outgoing_message_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ClientManager::getInstance()->outgoingPrivateMessageHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(PrivateChatApi::outgoingMessageHook));
 		}, [this](const string& aId) {
 			ClientManager::getInstance()->outgoingPrivateMessageHook.removeSubscriber(aId);
+		}, [this] {
+			return ClientManager::getInstance()->outgoingPrivateMessageHook.getSubscribers();
 		});
 
 		METHOD_HANDLER(Access::PRIVATE_CHAT_EDIT,	METHOD_POST,	(),								PrivateChatApi::handlePostChat);
@@ -122,7 +126,7 @@ namespace webserver {
 			complete = aRequest.defer()
 		] {
 			string error_;
-			if (!ClientManager::getInstance()->privateMessageHooked(user, OutgoingChatMessage(message.first, callerPtr, message.second), error_, echo)) {
+			if (!ClientManager::getInstance()->privateMessageHooked(user, OutgoingChatMessage(message.message, callerPtr, Util::emptyString, message.thirdPerson), error_, echo)) {
 				complete(websocketpp::http::status_code::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error_));
 			} else {
 				complete(websocketpp::http::status_code::no_content, nullptr, nullptr);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -181,10 +181,7 @@ public:
 	GETSET(string, localIp6, LocalIp6);
 	IGETSET(bool, v4only, V4only, false);
 
-	const string& getIp() const noexcept {
-		return sock6.valid() ? ip6 : ip4;
-	}
-
+	const string& getIp() const noexcept;
 	bool isV6Valid() const noexcept;
 	static string resolveName(const sockaddr* sa, socklen_t sa_len, int flags = NI_NUMERICHOST);
 protected:

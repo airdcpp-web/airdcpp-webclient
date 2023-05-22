@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -96,10 +96,28 @@ namespace webserver {
 	string MessageUtils::getMessageSeverity(LogMessage::Severity aSeverity) noexcept {
 		switch (aSeverity) {
 		case LogMessage::SEV_NOTIFY: return "notify";
+		case LogMessage::SEV_VERBOSE: return "verbose";
 		case LogMessage::SEV_INFO: return "info";
 		case LogMessage::SEV_WARNING: return "warning";
 		case LogMessage::SEV_ERROR: return "error";
 		default: return Util::emptyString;
+		}
+	}
+
+	string MessageUtils::getMessageType(LogMessage::Type aType) noexcept {
+		switch (aType) {
+		case dcpp::LogMessage::Type::SYSTEM:
+			return "system";
+		case dcpp::LogMessage::Type::PRIVATE:
+			return "private";
+		case dcpp::LogMessage::Type::HISTORY:
+			return "history";
+		case dcpp::LogMessage::Type::SPAM:
+			return "spam";
+		case dcpp::LogMessage::Type::SERVER:
+			return "server";
+		default:
+			return Util::emptyString;
 		}
 	}
 
@@ -111,7 +129,8 @@ namespace webserver {
 			{ "severity", getMessageSeverity(aMessage->getSeverity()) },
 			{ "label", aMessage->getLabel() },
 			{ "is_read", aMessage->getRead() },
-			{ "highlights", Serializer::serializeList(aMessage->getHighlights(), serializeMessageHighlight) }
+			{ "highlights", Serializer::serializeList(aMessage->getHighlights(), serializeMessageHighlight) },
+			{ "type", getMessageType(aMessage->getType()) }
 		};
 	}
 
@@ -124,6 +143,7 @@ namespace webserver {
 
 	json MessageUtils::serializeUnreadLog(const MessageCache& aCache) noexcept {
 		return {
+			{ "verbose", aCache.countUnreadLogMessages(LogMessage::SEV_VERBOSE) },
 			{ "info", aCache.countUnreadLogMessages(LogMessage::SEV_INFO) },
 			{ "warning", aCache.countUnreadLogMessages(LogMessage::SEV_WARNING) },
 			{ "error", aCache.countUnreadLogMessages(LogMessage::SEV_ERROR) },
@@ -148,6 +168,7 @@ namespace webserver {
 			{ "user", aCache.countUnreadChatMessages(isUser) },
 			{ "bot", aCache.countUnreadChatMessages(isBot) },
 			{ "status", aCache.countUnreadLogMessages(LogMessage::SEV_LAST) },
+			{ "verbose", aCache.countUnreadLogMessages(LogMessage::SEV_VERBOSE) },
 		};
 	}
 

@@ -1,5 +1,5 @@
+cmake_minimum_required (VERSION 3.12)
 project (airdcpp-webclient)
-cmake_minimum_required (VERSION 3.0.2)
 
 if (APPLE)
   set (PROJECT_NAME_GLOBAL AirDC++ Web Client)
@@ -10,8 +10,8 @@ endif (APPLE)
 set (PROJECT_NAME "AirDC++ Web Client")
 set (TAG_APPLICATION "AirDC++w")
 set (APPLICATION_ID "airdcpp-web")
-set (VERSION "2.11.4") # NOTE: the minor version must match the lastest UI version
-set (SOVERSION "2.11.4" )
+set (VERSION "2.12.0") # NOTE: the minor version must match the lastest UI version
+set (SOVERSION "2.12.0" )
 
 set (GNUCXX_MINIMUM_VERSION "7.0")
 
@@ -209,8 +209,8 @@ endif()
 add_definitions (-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT
                  -D_DATADIR="${CLIENT_DATA_DIR}" -DLOCALE_DIR="${LOCALE_DIR}" -DBUILDING_AIRDCPP)
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID STREQUAL Clang)
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pipe -Wformat -Werror=format-security")
+if (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang)
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pipe")
     if (USE_GOLD)
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-linker-plugin")
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-linker-plugin")

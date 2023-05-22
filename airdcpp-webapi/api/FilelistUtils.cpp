@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -55,11 +55,18 @@ namespace webserver {
 			}
 			case PROP_DUPE:
 			{
-				if (aItem->isDirectory()) {
-					return Serializer::serializeDirectoryDupe(aItem->getDupe(), aItem->getAdcPath());
+				if (aItem->getDupe() == DUPE_NONE) {
+					return nullptr;
 				}
 
-				return Serializer::serializeFileDupe(aItem->getDupe(), aItem->file->getTTH());
+				StringList paths;
+				try {
+					aItem->getLocalPaths(paths);
+				} catch (const ShareException&) {
+					// Hmm...
+				}
+
+				return Serializer::serializeDupe(aItem->getDupe(), std::move(paths));
 			}
 			default: dcassert(0); return nullptr;
 		}

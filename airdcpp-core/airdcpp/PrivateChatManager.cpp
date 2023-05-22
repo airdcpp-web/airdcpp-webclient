@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -191,7 +191,7 @@ void PrivateChatManager::onPrivateMessage(const ChatMessagePtr& aMessage) {
 
 		string error;
 		const auto message = ActivityManager::getInstance()->getAwayMessage(client->get(HubSettings::AwayMsg), params);
-		chat->sendMessageHooked(OutgoingChatMessage(message, nullptr, false), error);
+		chat->sendMessageHooked(OutgoingChatMessage(message, nullptr, Util::emptyString, false), error);
 	}
 }
 

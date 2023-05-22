@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #include <airdcpp/File.h>
 #include <airdcpp/Text.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <boost/algorithm/string/replace.hpp>
 #endif
 
@@ -47,7 +47,7 @@ namespace webserver {
 
 				string destFile = aDestPath + h.name;
 
-#ifdef WIN32
+#ifdef _WIN32
 				// Wrong path separators would hit assertions...
 				boost::replace_all(destFile, "/", PATH_SEPARATOR_STR);
 #endif

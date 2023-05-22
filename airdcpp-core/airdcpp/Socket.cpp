@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -260,6 +260,10 @@ void Socket::setBlocking(bool block) noexcept {
 
 socket_t Socket::create(const addrinfo& ai) {
 	return setSock(check([&] { return ::socket(ai.ai_family, ai.ai_socktype, ai.ai_protocol); }), ai.ai_family);
+}
+
+const string& Socket::getIp() const noexcept {
+	return sock6.valid() ? ip6 : ip4;
 }
 
 bool Socket::isV6Valid() const noexcept {

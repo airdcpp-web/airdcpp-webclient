@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -79,7 +79,7 @@ public:
 	SearchQueueInfo search(const SearchPtr& aSearch) noexcept;
 	SearchQueueInfo search(StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner = nullptr) noexcept;
 	
-	void respond(const AdcCommand& cmd, OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
+	void respond(const AdcCommand& cmd, const OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile);
 
 	const string& getPort() const;
 

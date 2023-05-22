@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -33,9 +33,9 @@
 
 
 #define CONTEXT_MENU(type, name, name2) \
-	ActionHook<ContextMenuItemList, const vector<type>&, const ContextMenuItemListData&> name##MenuHook; \
-	ContextMenuItemList get##name2##Menu(const vector<type>& aItems, const ContextMenuItemListData& aListData) const noexcept { \
-		return ActionHook<ContextMenuItemList>::normalizeListItems(name##MenuHook.runHooksData(aListData.caller, aItems, aListData)); \
+	ActionHook<GroupedContextMenuItemPtr, const vector<type>&, const ContextMenuItemListData&> name##MenuHook; \
+	GroupedContextMenuItemList get##name2##Menu(const vector<type>& aItems, const ContextMenuItemListData& aListData) const noexcept { \
+		return ActionHook<GroupedContextMenuItemPtr>::normalizeData(name##MenuHook.runHooksData(aListData.caller, aItems, aListData)); \
 	} \
 	void onClick##name2##Item(const vector<type>& aItems, const ContextMenuItemClickData& aClickData) noexcept { \
 		fire(ContextMenuManagerListener::name2##MenuSelected(), aItems, aClickData); \
@@ -43,9 +43,9 @@
 
 
 #define ENTITY_CONTEXT_MENU(type, name, name2, entityType) \
-	ActionHook<ContextMenuItemList, const vector<type>&, const ContextMenuItemListData&, const entityType&> name##MenuHook; \
-	ContextMenuItemList get##name2##Menu(const vector<type>& aItems, const ContextMenuItemListData& aListData, const entityType& aEntity) const noexcept { \
-		return ActionHook<ContextMenuItemList>::normalizeListItems(name##MenuHook.runHooksData(aListData.caller, aItems, aListData, aEntity)); \
+	ActionHook<GroupedContextMenuItemPtr, const vector<type>&, const ContextMenuItemListData&, const entityType&> name##MenuHook; \
+	GroupedContextMenuItemList get##name2##Menu(const vector<type>& aItems, const ContextMenuItemListData& aListData, const entityType& aEntity) const noexcept { \
+		return ActionHook<GroupedContextMenuItemPtr>::normalizeData(name##MenuHook.runHooksData(aListData.caller, aItems, aListData, aEntity)); \
 	} \
 	void onClick##name2##Item(const vector<type>& aItems, const ContextMenuItemClickData& aClickData, const entityType& aEntity) noexcept { \
 		fire(ContextMenuManagerListener::name2##MenuSelected(), aItems, aEntity, aClickData); \
@@ -130,6 +130,20 @@ namespace webserver {
 	private:
 	};
 
+	class GroupedContextMenuItem {
+	public:
+		GroupedContextMenuItem(const string& aId, const string& aTitle, const StringMap& aIconInfo, const ContextMenuItemList& aItems) :
+			id(aId), title(aTitle), iconInfo(aIconInfo), items(aItems) {
+
+		}
+
+		GETSET(string, id, Id);
+		GETSET(string, title, Title);
+		GETSET(StringMap, iconInfo, IconInfo);
+
+		GETSET(ContextMenuItemList, items, Items);
+	};
+
 	class ContextMenuManager : public Speaker<ContextMenuManagerListener>
 	{
 
@@ -150,8 +164,6 @@ namespace webserver {
 		ENTITY_CONTEXT_MENU(uint32_t, hubUser, HubUser, ClientPtr);
 		ENTITY_CONTEXT_MENU(uint32_t, hubMessageHighlight, HubMessageHighlight, ClientPtr);
 		ENTITY_CONTEXT_MENU(uint32_t, privateChatMessageHighlight, PrivateChatMessageHighlight, PrivateChatPtr);
-
-		typedef vector<ContextMenuItem> MenuItemList;
 
 		ContextMenuManager();
 		~ContextMenuManager();

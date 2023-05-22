@@ -36,6 +36,10 @@ namespace webserver {
 	typedef std::vector<ContextMenuItemPtr> ContextMenuItemList;
 	struct ContextMenuItemClickData;
 
+	class GroupedContextMenuItem;
+	typedef std::shared_ptr<GroupedContextMenuItem> GroupedContextMenuItemPtr;
+	typedef std::vector<GroupedContextMenuItemPtr> GroupedContextMenuItemList;
+
 	class Extension;
 	typedef std::shared_ptr<Extension> ExtensionPtr;
 	typedef std::vector<ExtensionPtr> ExtensionList;

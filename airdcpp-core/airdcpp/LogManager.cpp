@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -122,7 +122,7 @@ string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache
 }
 
 void LogManager::message(const string& aMsg, LogMessage::Severity aSeverity, const string& aLabel) noexcept {
-	auto messageData = std::make_shared<LogMessage>(aMsg, aSeverity, aLabel);
+	auto messageData = std::make_shared<LogMessage>(aMsg, aSeverity, LogMessage::Type::SYSTEM, aLabel);
 	if (aSeverity != LogMessage::SEV_NOTIFY) {
 		if (SETTING(LOG_SYSTEM)) {
 			ParamMap params;

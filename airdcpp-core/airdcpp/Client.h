@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "ShareManagerListener.h"
 #include "TimerManagerListener.h"
 
+#include "FloodCounter.h"
 #include "HubSettings.h"
 #include "MessageCache.h"
 #include "OnlineUser.h"
@@ -160,10 +161,7 @@ public:
 
 	bool isSharingHub() const noexcept;
 
-	void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, const string& aLabel, int = ClientListener::FLAG_NORMAL) noexcept;
-	void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, const string& aLabel = Util::emptyString) noexcept override {
-		statusMessage(aMessage, aSeverity, aLabel, ClientListener::FLAG_NORMAL);
-	}
+	void statusMessage(const string& aMessage, LogMessage::Severity aSeverity, LogMessage::Type aType = LogMessage::Type::SERVER, const string& aLabel = Util::emptyString, const string& aOwner = Util::emptyString) noexcept override;
 
 	virtual ~Client();
 
@@ -253,6 +251,15 @@ protected:
 	void onUserDisconnected(const OnlineUserPtr& aUser, bool aDisconnectTransfers) noexcept;
 
 	string redirectUrl;
+
+	FloodCounter ctmFloodCounter;
+	FloodCounter searchFloodCounter;
+
+	FloodCounter::FloodLimits getCTMLimits(const OnlineUser* aAdcUser);
+	FloodCounter::FloodLimits getSearchLimits();
+
+	bool checkIncomingCTM(const string& aTarget, const OnlineUser* aAdcUser = nullptr) noexcept;
+	bool checkIncomingSearch(const string& aTarget, const OnlineUser* aAdcUser = nullptr) noexcept;
 private:
 	const ClientToken clientId;
 	static atomic<long> allCounts[COUNT_UNCOUNTED];
@@ -274,6 +281,7 @@ private:
 	bool countIsSharing = false;
 
 	void destroySocket(const AsyncF& aShutdownAction = nullptr) noexcept;
+	void handleFlood(const FloodCounter::FloodResult& aResult, const string& aMessage) noexcept;
 };
 
 } // namespace dcpp

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -22,9 +22,9 @@
 #include "forward.h"
 
 #include <airdcpp/CriticalSection.h>
+#include <airdcpp/FloodCounter.h>
 #include <airdcpp/Speaker.h>
 
-#include <web-server/FloodCounter.h>
 #include <web-server/Session.h>
 #include <web-server/Timer.h>
 #include <web-server/WebServerManagerListener.h>

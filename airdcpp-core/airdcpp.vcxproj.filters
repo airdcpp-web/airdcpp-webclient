@@ -362,6 +362,9 @@
     <ClCompile Include="airdcpp\modules\ADLSearch.cpp">
       <Filter>Source Files\modules</Filter>
     </ClCompile>
+    <ClCompile Include="airdcpp\FloodCounter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="airdcpp\AdcCommand.h">
@@ -963,6 +966,9 @@
     </ClInclude>
     <ClInclude Include="airdcpp\modules\ADLSearch.h">
       <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\FloodCounter.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

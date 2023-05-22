@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -101,6 +101,7 @@ private:
 	AdcCommand::Error allowConnect(const OnlineUser& aUser, bool aSecure, string& failedProtocol_, bool checkBase) const noexcept;
 	/* Does the same thing but also sends the error to the remote user */
 	bool checkProtocol(const OnlineUser& aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken) noexcept;
+	bool validateConnectUser(const OnlineUser* aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken, const string& aRemotePort) noexcept;
 
 	bool oldPassword = false;
 	unique_ptr<Socket> udp;

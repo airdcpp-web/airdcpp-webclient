@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+* Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -107,6 +107,8 @@ namespace dcpp {
 		const void* ignoredOwner;
 	};
 
+	typedef std::vector<ActionHookSubscriber> ActionHookSubscriberList;
+
 	// Helper class to be passed to hook handlers for creating result entities
 	template<typename DataT>
 	class ActionHookDataGetter {
@@ -147,8 +149,8 @@ namespace dcpp {
 
 			ActionHookHandler(ActionHookSubscriber&& aSubscriber, const HookCallback& aCallback) noexcept: dataGetter(ActionHookDataGetter<DataT>(std::move(aSubscriber))), callback(aCallback) {  }
 
-			const string& getId() const noexcept {
-				return dataGetter.getSubscriber().getId();
+			const ActionHookSubscriber& getSubscriber() const noexcept {
+				return dataGetter.getSubscriber();
 			}
 		protected:
 			friend class ActionHook;
@@ -162,11 +164,11 @@ namespace dcpp {
 		using CallbackFunc = std::function<ActionHookResult<DataT>(ArgT&... aArgs, const ActionHookResultGetter<DataT>& aResultGetter)>;
 		bool addSubscriber(ActionHookSubscriber&& aSubscriber, CallbackFunc aCallback) noexcept {
 			Lock l(cs);
-			if (findById(aSubscriber.getId()) != subscribers.end()) {
+			if (findById(aSubscriber.getId()) != handlers.end()) {
 				return false;
 			}
 
-			subscribers.push_back(ActionHookHandler(std::move(aSubscriber), aCallback));
+			handlers.push_back(ActionHookHandler(std::move(aSubscriber), aCallback));
 			return true;
 		}
 
@@ -183,11 +185,11 @@ namespace dcpp {
 		bool removeSubscriber(const string& aId) noexcept {
 			Lock l(cs);
 			auto i = findById(aId);
-			if (i == subscribers.end()) {
+			if (i == handlers.end()) {
 				return false;
 			}
 
-			subscribers.erase(i);
+			handlers.erase(i);
 			return true;
 		}
 
@@ -237,7 +239,18 @@ namespace dcpp {
 
 		bool hasSubscribers() const noexcept {
 			Lock l(cs);
-			return !subscribers.empty();
+			return !handlers.empty();
+		}
+
+		ActionHookSubscriberList getSubscribers() const noexcept {
+			Lock l(cs);
+
+			ActionHookSubscriberList ret;
+			for (const auto& s: handlers) {
+				ret.push_back(s.getSubscriber());
+			}
+
+			return ret;
 		}
 
 		static DataT normalizeListItems(const ActionHookDataList<DataT>& aResult) noexcept {
@@ -250,16 +263,25 @@ namespace dcpp {
 
 			return ret;
 		}
-	private:
-		typedef std::vector<ActionHookHandler> SubscriberList;
 
-		typename SubscriberList::iterator findById(const string& aId) noexcept {
-			return find_if(subscribers.begin(), subscribers.end(), [&aId](const ActionHookHandler& aSubscriber) {
-				return aSubscriber.getId() == aId;
+		static vector<DataT> normalizeData(const ActionHookDataList<DataT>& aResult) noexcept {
+			vector<DataT> ret;
+			for (const auto& i : aResult) {
+				ret.push_back(i->data);
+			}
+
+			return ret;
+		}
+	private:
+		typedef std::vector<ActionHookHandler> ActionHookHandlerList;
+
+		typename ActionHookHandlerList::iterator findById(const string& aId) noexcept {
+			return find_if(handlers.begin(), handlers.end(), [&aId](const ActionHookHandler& aHandler) {
+				return aHandler.getSubscriber().getId() == aId;
 			});
 		}
 
-		SubscriberList subscribers;
+		ActionHookHandlerList handlers;
 		mutable CriticalSection cs;
 
 		ActionHookDataList<DataT> runHooksDataImpl(const void* aOwner, const std::function<void(const ActionHookRejectionPtr&)> aRejectHandler, ArgT&... aItem) const {
@@ -286,12 +308,12 @@ namespace dcpp {
 			return ret;
 		}
 
-		SubscriberList getHookHandlers(const void* aOwner) const noexcept {
-			SubscriberList ret;
+		ActionHookHandlerList getHookHandlers(const void* aOwner) const noexcept {
+			ActionHookHandlerList ret;
 
 			{
 				Lock l(cs);
-				for (const auto& s: subscribers) {
+				for (const auto& s: handlers) {
 					if (!s.dataGetter.getSubscriber().getIgnoredOwner() || s.dataGetter.getSubscriber().getIgnoredOwner() != aOwner) {
 						ret.push_back(s);
 					}

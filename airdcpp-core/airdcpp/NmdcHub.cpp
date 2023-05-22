@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -299,10 +299,10 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		}
 
 		if((line.find("Hub-Security") != string::npos) && (line.find("was kicked by") != string::npos)) {
-			statusMessage(unescape(line), LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SPAM);
+			statusMessage(unescape(line), LogMessage::SEV_VERBOSE);
 			return;
 		} else if((line.find("is kicking") != string::npos) && (line.find("because:") != string::npos)) {
-			statusMessage(unescape(line), LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SPAM);
+			statusMessage(unescape(line), LogMessage::SEV_VERBOSE);
 			return;
 		}
 
@@ -365,33 +365,11 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		}
 
 		i = j + 1;
-		
-		uint64_t tick = GET_TICK();
-		clearFlooders(tick);
 
-		seekers.emplace_back(seeker, tick);
-
-		// First, check if it's a flooder
-		for(const auto& f: flooders) {
-			if(f.first == seeker) {
-				return;
-			}
-		}
-
-		int count = 0;
-		for(auto& f: seekers) {
-			if(f.first == seeker)
-				count++;
-
-			if(count > 7) {
-			    if(isOp()) {
-					if(isPassive)
-						fire(ClientListener::SearchFlood(), this, seeker.substr(4));
-					else
-						fire(ClientListener::SearchFlood(), this, seeker + " " + STRING(NICK_UNKNOWN));
-				}
-				
-				flooders.emplace_back(seeker, tick);
+		{
+			// Nick (passive) or IP (active)
+			auto target = isPassive ? seeker.substr(4) : seeker;
+			if (!checkIncomingSearch(target)) {
 				return;
 			}
 		}
@@ -585,6 +563,10 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			if(CryptoManager::getInstance()->TLSOk()) {
 				connectSecure = true;
 			}
+		}
+
+		if (!checkIncomingCTM(server)) {
+			return;
 		}
 
 		if(senderPort[senderPort.size() - 1] == 'N') {
@@ -790,7 +772,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		fire(ClientListener::HubFull(), this);
 	} else if(cmd == "ValidateDenide") {		// Mind the spelling...
 		disconnect(false);
-		fire(ClientListener::NickTaken(), this);
+		statusMessage(STRING(NICK_TAKEN), LogMessage::SEV_ERROR);
 	} else if(cmd == "UserIP") {
 		if(!param.empty()) {
 			OnlineUserList v;
@@ -939,7 +921,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		}
 
 	} else if(cmd == "HubTopic") {
-		fire(ClientListener::HubTopic(), this, param);
+		statusMessage(STRING(HUB_TOPIC) + "\t" + aLine, LogMessage::SEV_INFO, LogMessage::Type::SYSTEM);
 	} else {
 		dcdebug("NmdcHub::onLine Unknown command %s\n", aLine.c_str());
 	} 
@@ -1155,16 +1137,6 @@ void NmdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {
 		}
 	} else {
 		send(fromUtf8(cmd));
-	}
-}
-
-void NmdcHub::clearFlooders(uint64_t aTick) {
-	while(!seekers.empty() && seekers.front().second + (5 * 1000) < aTick) {
-		seekers.pop_front();
-	}
-
-	while(!flooders.empty() && flooders.front().second + (120 * 1000) < aTick) {
-		flooders.pop_front();
 	}
 }
 

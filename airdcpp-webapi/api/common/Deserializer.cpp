@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -178,15 +178,16 @@ namespace webserver {
 		return client;
 	}
 
-	pair<string, bool> Deserializer::deserializeChatMessage(const json& aJson) {
+	Deserializer::ChatMessageInput Deserializer::deserializeChatMessage(const json& aJson) {
 		return { 
 			JsonUtil::getField<string>("text", aJson, false),
-			JsonUtil::getOptionalFieldDefault<bool>("third_person", aJson, false)
+			JsonUtil::getOptionalFieldDefault<bool>("third_person", aJson, false),
 		};
 	}
 
 	map<string, LogMessage::Severity> severityMappings = {
 		{ "notify", LogMessage::SEV_NOTIFY },
+		{ "verbose", LogMessage::SEV_VERBOSE },
 		{ "info", LogMessage::SEV_INFO },
 		{ "warning", LogMessage::SEV_WARNING },
 		{ "error", LogMessage::SEV_ERROR },
@@ -201,10 +202,38 @@ namespace webserver {
 		throw std::invalid_argument("Invalid severity: " + aText);
 	}
 
-	pair<string, LogMessage::Severity> Deserializer::deserializeStatusMessage(const json& aJson) {
+	map<string, LogMessage::Type> logMessageTypeMappings = {
+		{ "history", LogMessage::Type::HISTORY },
+		{ "private", LogMessage::Type::PRIVATE },
+		{ "server", LogMessage::Type::SERVER },
+		{ "spam", LogMessage::Type::SPAM },
+		{ "system", LogMessage::Type::SYSTEM },
+	};
+
+
+	LogMessage::Type Deserializer::parseLogMessageType(const string& aText) {
+		auto i = logMessageTypeMappings.find(aText);
+		if (i != logMessageTypeMappings.end()) {
+			return i->second;
+		}
+
+		throw std::invalid_argument("Invalid type: " + aText);
+	}
+
+	Deserializer::StatusMessageInput Deserializer::deserializeStatusMessage(const json& aJson) {
 		return {
 			JsonUtil::getField<string>("text", aJson, false),
-			parseSeverity(JsonUtil::getField<string>("severity", aJson, false))
+			parseSeverity(JsonUtil::getField<string>("severity", aJson, false)),
+		};
+	}
+
+	Deserializer::ChatStatusMessageInput Deserializer::deserializeChatStatusMessage(const json& aJson) {
+		const auto base = deserializeStatusMessage(aJson);
+		return {
+			base.message,
+			base.severity,
+			parseLogMessageType(JsonUtil::getOptionalFieldDefault<string>("type", aJson, "system")),
+			JsonUtil::getOptionalFieldDefault<string>("owner", aJson, Util::emptyString)
 		};
 	}
 

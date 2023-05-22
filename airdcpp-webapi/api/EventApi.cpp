@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -47,8 +47,8 @@ namespace webserver {
 	}
 
 	api_return EventApi::handlePostMessage(ApiRequest& aRequest) {
-		auto message = Deserializer::deserializeStatusMessage(aRequest.getRequestBody());
-		LogManager::getInstance()->message(message.first, message.second, MessageUtils::parseStatusMessageLabel(aRequest.getSession()));
+		auto messageInput = Deserializer::deserializeStatusMessage(aRequest.getRequestBody());
+		LogManager::getInstance()->message(messageInput.message, messageInput.severity, MessageUtils::parseStatusMessageLabel(aRequest.getSession()));
 		return websocketpp::http::status_code::no_content;
 	}
 

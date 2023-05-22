@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -169,7 +169,7 @@ ShareManager::Directory::Directory(DualString&& aRealName, const ShareManager::D
 	parent(aParent.get()),
 	root(aRoot),
 	lastWrite(aLastWrite),
-	realName(move(aRealName))
+	realName(std::move(aRealName))
 {
 }
 
@@ -817,7 +817,7 @@ OptionalProfileToken ShareManager::getProfileByName(const string& aName) const n
 }
 
 ShareManager::Directory::Ptr ShareManager::Directory::createNormal(DualString&& aRealName, const Ptr& aParent, time_t aLastWrite, Directory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept {
-	auto dir = Ptr(new Directory(move(aRealName), aParent, aLastWrite, nullptr));
+	auto dir = Ptr(new Directory(std::move(aRealName), aParent, aLastWrite, nullptr));
 
 	if (aParent) {
 		auto added = aParent->directories.insert_sorted(dir).second;
@@ -952,7 +952,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 				DualString name(fname);
 				HashedFile fi;
 				HashManager::getInstance()->getFileInfo(curDirPathLower + name.getLower(), curDirPath + fname, fi);
-				addFile(move(name), cur, fi, tthIndexNew, bloom, stats.addedSize);
+				addFile(std::move(name), cur, fi, tthIndexNew, bloom, stats.addedSize);
 			} catch(Exception& e) {
 				stats.hashSize += File::getSize(curDirPath + fname);
 				dcdebug("Error loading shared file %s \n", e.getError().c_str());
@@ -1528,7 +1528,7 @@ void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aP
 			}
 
 			// Add it
-			auto curDir = Directory::createNormal(move(dualName), aParent, i->getLastWriteTime(), lowerDirNameMapNew, bloom);
+			auto curDir = Directory::createNormal(std::move(dualName), aParent, i->getLastWriteTime(), lowerDirNameMapNew, bloom);
 			if (curDir) {
 				buildTree(curPath, curPathLower, curDir, oldDir, aStopping);
 				if (checkContent(curDir)) {
@@ -1571,7 +1571,7 @@ void ShareManager::ShareBuilder::buildTree(const string& aPath, const string& aP
 			try {
 				HashedFile fi(i->getLastWriteTime(), size);
 				if(HashManager::getInstance()->checkTTH(aPathLower + dualName.getLower(), aPath + name, fi)) {
-					addFile(move(dualName), aParent, fi, tthIndexNew, bloom, stats.addedSize);
+					addFile(std::move(dualName), aParent, fi, tthIndexNew, bloom, stats.addedSize);
 				} else {
 					stats.hashSize += size;
 				}
@@ -2762,7 +2762,7 @@ void ShareManager::Directory::filesToXmlList(OutputStream& xmlFile, string& inde
 }
 
 ShareManager::Directory::File::File(DualString&& aName, const Directory::Ptr& aParent, const HashedFile& aFileInfo) : 
-	size(aFileInfo.getSize()), parent(aParent.get()), tth(aFileInfo.getRoot()), lastWrite(aFileInfo.getTimeStamp()), name(move(aName)) {
+	size(aFileInfo.getSize()), parent(aParent.get()), tth(aFileInfo.getRoot()), lastWrite(aFileInfo.getTimeStamp()), name(std::move(aName)) {
 	
 }
 
@@ -3297,7 +3297,7 @@ void ShareManager::addFile(DualString&& aName, const Directory::Ptr& aDir, const
 		}
 	}
 
-	auto it = aDir->files.insert_sorted(new Directory::File(move(aName), aDir, aFileInfo)).first;
+	auto it = aDir->files.insert_sorted(new Directory::File(std::move(aName), aDir, aFileInfo)).first;
 	(*it)->updateIndices(aBloom_, sharedSize_, tthIndex_);
 
 	if (dirtyProfiles_) {

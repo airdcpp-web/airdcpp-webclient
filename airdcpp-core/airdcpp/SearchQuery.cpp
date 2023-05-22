@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2022 AirDC++ Project
+ * Copyright (C) 2011-2023 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -205,7 +205,7 @@ SearchQuery::SearchQuery(const TTHValue& aRoot) noexcept : root(aRoot) {
 SearchQuery::SearchQuery(const string& aSearch, const StringList& aExcluded, const StringList& aExt, Search::MatchType aMatchType) noexcept : matchType(aMatchType) {
 
 	//add included
-	auto inc = move(parseSearchString(aSearch));
+	auto inc = std::move(parseSearchString(aSearch));
 	for(auto& i: inc)
 		include.addString(i);
 

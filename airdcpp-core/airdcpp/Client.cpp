@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "AirUtil.h"
 #include "BufferedSocket.h"
 #include "ClientManager.h"
+#include "ConnectionManager.h"
 #include "ConnectivityManager.h"
 #include "DebugManager.h"
 #include "FavoriteManager.h"
@@ -37,12 +38,16 @@ atomic<long> Client::allCounts[COUNT_UNCOUNTED];
 atomic<long> Client::sharingCounts[COUNT_UNCOUNTED];
 atomic<ClientToken> idCounter { 0 };
 
+#define FLOOD_PERIOD 60
+
 Client::Client(const string& aHubUrl, char aSeparator, const ClientPtr& aOldClient) :
 	hubUrl(aHubUrl), separator(aSeparator), 
 	myIdentity(ClientManager::getInstance()->getMe(), 0),
 	clientId(aOldClient ? aOldClient->getToken() : ++idCounter),
 	lastActivity(GET_TICK()),
-	cache(SettingsManager::HUB_MESSAGE_CACHE)
+	cache(SettingsManager::HUB_MESSAGE_CACHE),
+	ctmFloodCounter(FLOOD_PERIOD),
+	searchFloodCounter(FLOOD_PERIOD)
 {
 	TimerManager::getInstance()->addListener(this);
 	ShareManager::getInstance()->addListener(this);
@@ -282,10 +287,10 @@ void Client::setConnectState(State aState) noexcept {
 	fire(ClientListener::ConnectStateChanged(), this, aState);
 }
 
-void Client::statusMessage(const string& aMessage, LogMessage::Severity aSeverity, const string& aLabel, int aFlag) noexcept {
-	auto message = std::make_shared<LogMessage>(aMessage, aSeverity, aLabel);
+void Client::statusMessage(const string& aMessage, LogMessage::Severity aSeverity, LogMessage::Type aType, const string& aLabel, const string& aOwner) noexcept {
+	auto message = std::make_shared<LogMessage>(aMessage, aSeverity, aType, aLabel);
 
-	if (aFlag != ClientListener::FLAG_IS_SPAM) {
+	if (aOwner.empty() && aType != LogMessage::Type::SPAM && aType != LogMessage::Type::PRIVATE) {
 		cache.addMessage(message);
 
 		if (SETTING(LOG_STATUS_MESSAGES)) {
@@ -298,7 +303,7 @@ void Client::statusMessage(const string& aMessage, LogMessage::Severity aSeverit
 		}
 	}
 
-	fire(ClientListener::StatusMessage(), this, message, aFlag);
+	fire(ClientListener::StatusMessage(), this, message, aOwner);
 }
 
 void Client::setRead() noexcept {
@@ -348,7 +353,7 @@ void Client::onUserConnected(const OnlineUserPtr& aUser) noexcept {
 
 		if (aUser->getUser() != ClientManager::getInstance()->getMe()) {
 			if (!aUser->isHidden() && get(HubSettings::ShowJoins) || (get(HubSettings::FavShowJoins) && aUser->getUser()->isFavorite())) {
-				statusMessage(STRING(JOINS) + ": " + aUser->getIdentity().getNick(), LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SYSTEM);
+				statusMessage(STRING(JOINS) + ": " + aUser->getIdentity().getNick(), LogMessage::SEV_VERBOSE, LogMessage::Type::SYSTEM);
 			}
 		}
 	}
@@ -362,7 +367,7 @@ void Client::onUserDisconnected(const OnlineUserPtr& aUser, bool aDisconnectTran
 
 		if (aUser->getUser() != ClientManager::getInstance()->getMe()) {
 			if (!aUser->isHidden() && get(HubSettings::ShowJoins) || (get(HubSettings::FavShowJoins) && aUser->getUser()->isFavorite())) {
-				statusMessage(STRING(PARTS) + ": " + aUser->getIdentity().getNick(), LogMessage::SEV_INFO, Util::emptyString, ClientListener::FLAG_IS_SYSTEM);
+				statusMessage(STRING(PARTS) + ": " + aUser->getIdentity().getNick(), LogMessage::SEV_VERBOSE, LogMessage::Type::SYSTEM);
 			}
 		}
 	}
@@ -501,7 +506,7 @@ bool Client::isKeyprintMismatch() const noexcept {
 
 void Client::callAsync(AsyncF f) noexcept {
 	if (sock) {
-		sock->callAsync(move(f));
+		sock->callAsync(std::move(f));
 	}
 }
 
@@ -609,11 +614,86 @@ void Client::on(TimerManagerListener::Second, uint64_t aTick) noexcept{
 	}
 
 	if (isConnected()){
-		auto s = move(searchQueue.maybePop());
+		auto s = std::move(searchQueue.maybePop());
 		if (s) {
 			fire(ClientListener::OutgoingSearch(), this, s);
-			search(move(s));
+			search(std::move(s));
 		}
+	}
+}
+
+FloodCounter::FloodLimits Client::getCTMLimits(const OnlineUser* aAdcUser) {
+	// Is it a valid DC client?
+	// There may be many connection attempts with MCN users so we don't want to ban them
+	if (aAdcUser && ConnectionManager::getInstance()->isMCNUser(aAdcUser->getUser())) {
+		return {
+			100,
+			150,
+		};
+	}
+
+	return {
+		15,
+		40,
+	};
+}
+
+FloodCounter::FloodLimits Client::getSearchLimits() {
+	return {
+		20,
+		60,
+	};
+}
+
+bool Client::checkIncomingCTM(const string& aTarget, const OnlineUser* aAdcUser) noexcept {
+	auto result = ctmFloodCounter.handleRequest(aTarget, getCTMLimits(aAdcUser));
+	if (result.type == FloodCounter::FloodType::OK) {
+		return true;
+	}
+
+	auto message = STRING_F(CONNECT_REQUEST_SPAM_FROM, aTarget);
+	if (aAdcUser) {
+		message += " (" + aAdcUser->getIdentity().getNick() + ")";
+	}
+
+	handleFlood(result, message);
+	return false;
+}
+
+bool Client::checkIncomingSearch(const string& aTarget, const OnlineUser* aAdcUser) noexcept {
+	auto result = searchFloodCounter.handleRequest(aTarget, getSearchLimits());
+	if (result.type == FloodCounter::FloodType::OK) {
+		return true;
+	}
+
+	auto message = STRING_F(SEARCH_SPAM_FROM, aTarget);
+	if (aAdcUser) {
+		message += " (" + aAdcUser->getIdentity().getNick() + ")";
+	}
+
+	handleFlood(result, message);
+	return false;
+}
+
+
+void Client::handleFlood(const FloodCounter::FloodResult& aResult, const string& aMessage) noexcept {
+	if (aResult.type == FloodCounter::FloodType::FLOOD_MINOR) {
+		if (aResult.hitLimit) {
+			// Status message only
+			statusMessage(aMessage, LogMessage::SEV_VERBOSE, LogMessage::Type::SPAM);
+		}
+	} else if (aResult.type == FloodCounter::FloodType::FLOOD_SEVERE) {
+		// If the flood is really severe, there may be lots of incoming messages waiting to be processed
+		// We only want to do this once
+		if (sock && sock->isDisconnecting()) {
+			return;
+		}
+
+		auto message = aMessage + " (" + Text::toLower(STRING(SEVERE)) + ")";
+
+		statusMessage(STRING_F(HUB_DDOS_DISCONNECT, message), LogMessage::SEV_ERROR);
+		setReconnDelay(60 * 60); // 1 hour
+		disconnect(true);
 	}
 }
 

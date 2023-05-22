@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -172,7 +172,7 @@ bool AutoSearch::isExcluded(const string& aString) noexcept {
 void AutoSearch::updateExcluded() noexcept {
 	excluded.clear();
 	if (!excludedString.empty()) {
-		auto ex = move(SearchQuery::parseSearchString(excludedString));
+		auto ex = std::move(SearchQuery::parseSearchString(excludedString));
 		for (const auto& i : ex)
 			excluded.addString(i);
 	}

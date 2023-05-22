@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -79,11 +79,6 @@ private:
 	int64_t lastBytesShared;
 	int supportFlags;
 
-	typedef list<pair<string, uint64_t> > FloodMap;
-	typedef FloodMap::const_iterator FloodIter;
-	FloodMap seekers;
-	FloodMap flooders;
-
 	void clearUsers() noexcept override;
 	void onLine(const string& aLine) noexcept;
 
@@ -105,7 +100,6 @@ private:
 	void revConnectToMe(const OnlineUser& aUser);
 	void myInfo(bool alwaysSend);
 	void supports(const StringList& feat);
-	void clearFlooders(uint64_t tick);
 
 	void updateFromTag(Identity& id, const string& tag);
 	void refreshLocalIp() noexcept;

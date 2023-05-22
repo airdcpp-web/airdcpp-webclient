@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2011-2022 AirDC++ Project
+* Copyright (C) 2011-2023 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -72,12 +72,16 @@ namespace webserver {
 			return ClientManager::getInstance()->incomingHubMessageHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(HubApi::incomingMessageHook));
 		}, [this](const string& aId) {
 			ClientManager::getInstance()->incomingHubMessageHook.removeSubscriber(aId);
+		}, [this] {
+			return ClientManager::getInstance()->incomingHubMessageHook.getSubscribers();
 		});
 
 		createHook("hub_outgoing_message_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ClientManager::getInstance()->outgoingHubMessageHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(HubApi::outgoingMessageHook));
 		}, [this](const string& aId) {
 			ClientManager::getInstance()->outgoingHubMessageHook.removeSubscriber(aId);
+		}, [this] {
+			return ClientManager::getInstance()->outgoingHubMessageHook.getSubscribers();
 		});
 
 		METHOD_HANDLER(Access::HUBS_EDIT,	METHOD_POST,	(),										HubApi::handleConnect);
@@ -116,7 +120,7 @@ namespace webserver {
 			string lastError;
 			for (const auto& url: hubs) {
 				auto c = ClientManager::getInstance()->getClient(url);
-				if (c && c->isConnected() && c->sendMessageHooked(OutgoingChatMessage(message.first, callerPtr, message.second), lastError)) {
+				if (c && c->isConnected() && c->sendMessageHooked(OutgoingChatMessage(message.message, callerPtr, Util::emptyString, message.thirdPerson), lastError)) {
 					succeed++;
 				}
 			}
@@ -136,14 +140,21 @@ namespace webserver {
 	api_return HubApi::handlePostStatus(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		auto message = Deserializer::deserializeStatusMessage(reqJson);
+		auto message = Deserializer::deserializeChatStatusMessage(reqJson);
+		auto label = MessageUtils::parseStatusMessageLabel(aRequest.getSession());
 		auto hubs = Deserializer::deserializeHubUrls(reqJson);
 
 		int succeed = 0;
 		for (const auto& url : hubs) {
 			auto c = ClientManager::getInstance()->getClient(url);
 			if (c) {
-				c->statusMessage(message.first, message.second);
+				c->statusMessage(
+					message.message, 
+					message.severity, 
+					message.type,
+					label,
+					message.ownerId
+				);
 				succeed++;
 			}
 		}

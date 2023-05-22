@@ -135,7 +135,7 @@ SearchPtr SearchQueue::maybePop() noexcept {
 	{
 		Lock l(cs);
 		if(!searchQueue.empty()){
-			auto s = move(searchQueue.front());
+			auto s = std::move(searchQueue.front());
 			searchQueue.pop_front();
 			lastSearchTick = GET_TICK();
 			return s;

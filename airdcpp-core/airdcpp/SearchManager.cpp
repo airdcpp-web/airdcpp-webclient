@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2022 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@ ResourceManager::Strings SearchManager::types[Search::TYPE_LAST] = {
 	ResourceManager::FILE
 };
 const string& SearchManager::getTypeStr(int aType) noexcept {
-	return ResourceManager::getInstance()->getString(types[aType]);
+	return STRING_I(types[aType]);
 }
 
 bool SearchManager::isDefaultTypeStr(const string& aType) noexcept {
@@ -531,7 +531,7 @@ void SearchManager::onPBD(const AdcCommand& aCmd, const UserPtr& from) {
 	}
 
 	if (remove && !remoteBundle.empty()) {
-		dbgMsg("PBD: remove finished notify", LogMessage::SEV_INFO);
+		dbgMsg("PBD: remove finished notify", LogMessage::SEV_VERBOSE);
 		// Local bundle really...
 		QueueManager::getInstance()->removeBundleNotify(from, Util::toUInt32(remoteBundle));
 	}
@@ -548,7 +548,7 @@ void SearchManager::onPBD(const AdcCommand& aCmd, const UserPtr& from) {
 	}
 
 	if (update) {
-		dbgMsg("PBD: add file source", LogMessage::SEV_INFO);
+		dbgMsg("PBD: add file source", LogMessage::SEV_VERBOSE);
 		QueueManager::getInstance()->updatePBDHooked(HintedUser(from, hubUrl), TTHValue(tth));
 		return;
 	} else if (remoteBundle.empty()) {
@@ -558,17 +558,17 @@ void SearchManager::onPBD(const AdcCommand& aCmd, const UserPtr& from) {
 
 	auto u = HintedUser(from, hubUrl);
 	if (notify) {
-		dbgMsg("PBD: add finished notify", LogMessage::SEV_INFO);
+		dbgMsg("PBD: add finished notify", LogMessage::SEV_VERBOSE);
 		QueueManager::getInstance()->addFinishedNotify(u, TTHValue(tth), remoteBundle);
 	} else if (reply) {
-		dbgMsg("PBD: reply required", LogMessage::SEV_INFO);
+		dbgMsg("PBD: reply required", LogMessage::SEV_VERBOSE);
 
 		string localBundle;
 		bool sendNotify = false, sendAdd = false;
 		if (QueueManager::getInstance()->checkPBDReply(u, TTHValue(tth), localBundle, sendNotify, sendAdd, remoteBundle)) {
 			AdcCommand cmd = toPBD(hubIpPort, localBundle, tth, false, sendAdd, sendNotify);
 			if (!ClientManager::getInstance()->sendUDP(cmd, from->getCID(), false, true)) {
-				dbgMsg("PBD: reply sent", LogMessage::SEV_INFO);
+				dbgMsg("PBD: reply sent", LogMessage::SEV_VERBOSE);
 			} else {
 				dbgMsg("PBD: could not send reply (UDP error)", LogMessage::SEV_WARNING);
 			}
@@ -580,7 +580,7 @@ void SearchManager::onPBD(const AdcCommand& aCmd, const UserPtr& from) {
 	if (add) {
 		try {
 			QueueManager::getInstance()->addBundleTTHListHooked(u, remoteBundle, TTHValue(tth));
-			dbgMsg("PBD: TTH list queued", LogMessage::SEV_INFO);
+			dbgMsg("PBD: TTH list queued", LogMessage::SEV_VERBOSE);
 		} catch (const Exception& e) {
 			dbgMsg("PBD: error when queueing TTH list: " + string(e.what()), LogMessage::SEV_WARNING);
 		}
@@ -668,19 +668,21 @@ void SearchManager::onPSR(const AdcCommand& aCmd, UserPtr from, const string& aR
 
 }
 
-void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdpActive, const string& hubIpPort, ProfileToken aProfile) {
+void SearchManager::respond(const AdcCommand& adc, const OnlineUser& aUser, bool aIsUdpActive, const string& aHubIpPort, ProfileToken aProfile) {
 	auto isDirect = adc.getType() == 'D';
-	string path = ADC_ROOT_STR, key;
-	int maxResults = isUdpActive ? 10 : 5;
 
+	string sudpKey;
+	string path = ADC_ROOT_STR;
+	int maxResults = aIsUdpActive ? 10 : 5;
 	bool replyDirect = false;
+
 	if (isDirect) {
 		adc.getParam("PA", 0, path);
 		replyDirect = adc.hasFlag("RE", 0);
 
 		string tmp;
 		if (adc.getParam("MR", 0, tmp)) 
-			maxResults = min(isUdpActive ? 20 : 10, Util::toInt(tmp));
+			maxResults = min(aIsUdpActive ? 20 : 10, Util::toInt(tmp));
 	}
 
 	SearchResultList results;
@@ -704,7 +706,7 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 	}
 
 	// TODO: don't send replies to passive users
-	if(results.empty() && SETTING(USE_PARTIAL_SHARING) && aProfile != SP_HIDDEN) {
+	if (results.empty() && SETTING(USE_PARTIAL_SHARING) && aProfile != SP_HIDDEN) {
 		string tth;
 		if(!adc.getParam("TR", 0, tth))
 			goto end;
@@ -715,33 +717,32 @@ void SearchManager::respond(const AdcCommand& adc, OnlineUser& aUser, bool isUdp
 		QueueManager::getInstance()->handlePartialSearch(aUser.getUser(), TTHValue(tth), partialInfo, bundle, reply, add);
 
 		if (!partialInfo.empty()) {
-			AdcCommand cmd = toPSR(isUdpActive, Util::emptyString, hubIpPort, tth, partialInfo);
+			AdcCommand cmd = toPSR(aIsUdpActive, Util::emptyString, aHubIpPort, tth, partialInfo);
 			if (!ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl())) {
 				dbgMsg("ADC response: partial file info not empty, failed to send response", LogMessage::SEV_WARNING);
 			} else {
-				dbgMsg("ADC respond: partial file info not empty, response sent", LogMessage::SEV_INFO);
+				dbgMsg("ADC respond: partial file info not empty, response sent", LogMessage::SEV_VERBOSE);
 			}
 		}
 		
 		if (!bundle.empty()) {
-			AdcCommand cmd = toPBD(hubIpPort, bundle, tth, reply, add);
+			AdcCommand cmd = toPBD(aHubIpPort, bundle, tth, reply, add);
 			if (!ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl())) {
 				dbgMsg("ADC respond: matching bundle in queue, failed to send PBD response", LogMessage::SEV_WARNING);
 			} else {
-				dbgMsg("ADC respond: matching bundle in queue, PBD response sent", LogMessage::SEV_INFO);
+				dbgMsg("ADC respond: matching bundle in queue, PBD response sent", LogMessage::SEV_VERBOSE);
 			}
 		}
 
 		goto end;
 	}
 
-
-	adc.getParam("KY", 0, key);
-	for(const auto& sr: results) {
+	adc.getParam("KY", 0, sudpKey);
+	for (const auto& sr: results) {
 		AdcCommand cmd = sr->toRES(AdcCommand::TYPE_UDP);
 		if(!token.empty())
 			cmd.addParam("TO", token);
-		ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, key, aUser.getHubUrl());
+		ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, sudpKey, aUser.getHubUrl());
 	}
 
 end:
