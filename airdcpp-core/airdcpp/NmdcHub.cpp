@@ -921,7 +921,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		}
 
 	} else if(cmd == "HubTopic") {
-		statusMessage(STRING(HUB_TOPIC) + "\t" + aLine, LogMessage::SEV_INFO, LogMessage::Type::SYSTEM);
+		statusMessage(STRING(HUB_TOPIC) + "\t" + param, LogMessage::SEV_INFO, LogMessage::Type::SYSTEM);
 	} else {
 		dcdebug("NmdcHub::onLine Unknown command %s\n", aLine.c_str());
 	} 
