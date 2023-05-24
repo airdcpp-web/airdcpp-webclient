@@ -72,7 +72,8 @@ void TokenManager::removeToken(const string& aToken) noexcept {
 #endif
 }
 
-#define CONNECT_FLOOD_COUNT_NORMAL 15
+#define CONNECT_FLOOD_COUNT_NORMAL_MINOR 30
+#define CONNECT_FLOOD_COUNT_NORMAL_SEVERE 45
 #define CONNECT_FLOOD_COUNT_MCN 100
 #define CONNECT_FLOOD_PERIOD 30
 
@@ -526,8 +527,8 @@ FloodCounter::FloodLimits ConnectionManager::getIncomingConnectionLimits(const s
 	}
 
 	return {
-		CONNECT_FLOOD_COUNT_NORMAL,
-		CONNECT_FLOOD_COUNT_NORMAL,
+		CONNECT_FLOOD_COUNT_NORMAL_MINOR,
+		CONNECT_FLOOD_COUNT_NORMAL_SEVERE,
 	};
 }
 
@@ -548,7 +549,7 @@ void ConnectionManager::accept(const Socket& sock, bool aSecure) noexcept {
 				return true;
 			}
 
-			if (floodResult.hitLimit) {
+			if (floodResult.type == FloodCounter::FloodType::FLOOD_SEVERE && floodResult.hitLimit) {
 				LogManager::getInstance()->message(STRING_F(INCOMING_CONNECT_FLOOD_FROM, aIP), LogMessage::SEV_WARNING, STRING(CONNECTIVITY));
 			}
 
