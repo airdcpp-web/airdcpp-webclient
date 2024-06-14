@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -36,7 +36,6 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <boost/range/algorithm/count_if.hpp>
 
 
 #define AUTH_FLOOD_COUNT 5
@@ -154,7 +153,7 @@ namespace webserver {
 			WLock l(cs);
 
 			// Single session per user when using basic auth
-			dcassert(aType != Session::TYPE_BASIC_AUTH || boost::find_if(sessionsRemoteId | map_values, [&](const SessionPtr& aSession) {
+			dcassert(aType != Session::TYPE_BASIC_AUTH || ranges::find_if(sessionsRemoteId | views::values, [&](const SessionPtr& aSession) {
 				return aSession->getSessionType() == Session::TYPE_BASIC_AUTH && aSession->getUser() == aUser;
 			}).base() == sessionsRemoteId.end());
 
@@ -180,7 +179,7 @@ namespace webserver {
 
 		{
 			RLock l(cs);
-			boost::range::copy(sessionsLocalId | map_values, back_inserter(ret));
+			ranges::copy(sessionsLocalId | views::values, back_inserter(ret));
 		}
 
 		return ret;
@@ -208,7 +207,7 @@ namespace webserver {
 
 	size_t WebUserManager::getUserSessionCount() const noexcept {
 		RLock l(cs);
-		return boost::count_if(sessionsLocalId | map_values, [=](const SessionPtr& s) {
+		return ranges::count_if(sessionsLocalId | views::values, [=](const SessionPtr& s) {
 			return s->getSessionType() != Session::TYPE_EXTENSION;
 		});
 	}
@@ -240,7 +239,7 @@ namespace webserver {
 
 		{
 			RLock l(cs);
-			boost::algorithm::copy_if(sessionsLocalId | map_values, back_inserter(removedSession), [=](const SessionPtr& s) {
+			ranges::copy_if(sessionsLocalId | views::values, back_inserter(removedSession), [=](const SessionPtr& s) {
 				return s->getMaxInactivity() > 0 && s->getLastActivity() + s->getMaxInactivity() < tick;
 			});
 		}
@@ -259,7 +258,7 @@ namespace webserver {
 
 		{
 			RLock l(cs);
-			boost::algorithm::copy_if(refreshTokens | map_values, back_inserter(removedTokens), [=](const TokenInfo& ti) {
+			ranges::copy_if(refreshTokens | views::values, back_inserter(removedTokens), [=](const TokenInfo& ti) {
 				return time > ti.expiresOn;
 			});
 		}
@@ -306,14 +305,14 @@ namespace webserver {
 
 		{
 			WLock l(cs);
-			boost::copy(sessionsLocalId | map_values, back_inserter(sessions));
+			ranges::copy(sessionsLocalId | views::values, back_inserter(sessions));
 
 			sessionsLocalId.clear();
 			sessionsRemoteId.clear();
 		}
 
 		while (true) {
-			if (all_of(sessions.begin(), sessions.end(), [](const SessionPtr& aSession) {
+			if (ranges::all_of(sessions, [](const SessionPtr& aSession) {
 				return aSession.use_count() == 1;
 			})) {
 				break;
@@ -381,7 +380,7 @@ namespace webserver {
 
 		{
 			RLock l(cs);
-			boost::algorithm::copy_if(refreshTokens | map_values, back_inserter(removedTokens), [=](const TokenInfo& ti) {
+			ranges::copy_if(refreshTokens | views::values, back_inserter(removedTokens), [=](const TokenInfo& ti) {
 				return ti.user == aUser;
 			});
 		}
@@ -402,7 +401,7 @@ namespace webserver {
 
 		{
 			RLock l(cs);
-			boost::algorithm::copy_if(sessionsLocalId | map_values, back_inserter(removedSession), [=](const SessionPtr& s) {
+			ranges::copy_if(sessionsLocalId | views::values, back_inserter(removedSession), [=](const SessionPtr& s) {
 				return s->getUser() == aUser;
 			});
 		}
@@ -451,7 +450,7 @@ namespace webserver {
 		StringList ret;
 
 		RLock l(cs);
-		boost::copy(users | map_keys, back_inserter(ret));
+		ranges::copy(users | views::keys, back_inserter(ret));
 		return ret;
 	}
 
@@ -459,7 +458,7 @@ namespace webserver {
 		WebUserList ret;
 
 		RLock l(cs);
-		boost::copy(users | map_values, back_inserter(ret));
+		ranges::copy(users | views::values, back_inserter(ret));
 		return ret;
 	}
 
@@ -596,7 +595,7 @@ namespace webserver {
 		{
 			RLock l(cs);
 
-			for (const auto& u : users | map_values) {
+			for (const auto& u : users | views::values) {
 				settings["users"].push_back({
 					{ "username", u->getUserName() },
 					{ "password", u->getPasswordHash() },
@@ -608,7 +607,7 @@ namespace webserver {
 
 		{
 			RLock l(cs);
-			for (const auto& t : refreshTokens | map_values) {
+			for (const auto& t : refreshTokens | views::values) {
 				settings["refresh_tokens"].push_back({
 					{ "token", t.token },
 					{ "username", t.user->getUserName() },

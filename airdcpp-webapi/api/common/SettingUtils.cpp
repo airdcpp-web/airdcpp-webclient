@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -128,14 +128,14 @@ namespace webserver {
 		if (aType == ApiSettingItem::TYPE_LIST) {
 			// Array, validate all values
 			for (const auto& itemId: aValue) {
-				auto i = boost::find_if(aEnumOptions, [&](const ApiSettingItem::EnumOption& opt) { return opt.id == itemId; });
+				auto i = ranges::find_if(aEnumOptions, [&](const ApiSettingItem::EnumOption& opt) { return opt.id == itemId; });
 				if (i == aEnumOptions.end()) {
 					JsonUtil::throwError(aKey, JsonUtil::ERROR_INVALID, "All values can't be found from enum options");
 				}
 			}
 		} else if (aType == ApiSettingItem::TYPE_NUMBER || aType == ApiSettingItem::TYPE_STRING) {
 			// Single value
-			auto i = boost::find_if(aEnumOptions, [&](const ApiSettingItem::EnumOption& opt) { return opt.id == aValue; });
+			auto i = ranges::find_if(aEnumOptions, [&](const ApiSettingItem::EnumOption& opt) { return opt.id == aValue; });
 			if (i == aEnumOptions.end()) {
 				JsonUtil::throwError(aKey, JsonUtil::ERROR_INVALID, "Value is not one of the enum options");
 			}

@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -97,7 +97,7 @@ namespace webserver {
 
 			RLock l(cm->getCS());
 			auto rawHubs = cm->getClientsUnsafe();
-			for (const auto& c : rawHubs | map_values) {
+			for (const auto& c : rawHubs | views::values) {
 				addHub(c);
 			}
 		}
