@@ -8,7 +8,10 @@ file(GLOB_RECURSE webapi_srcs ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/
 set (WEBAPI_SRCS ${webapi_srcs} PARENT_SCOPE)
 set (WEBAPI_HDRS ${webapi_hdrs} PARENT_SCOPE)
 
-include_directories(AIRDCPP_HDRS ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/json ${websocketpp_INCLUDE_DIR})
+include_directories(AIRDCPP_HDRS
+  ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR} ${Boost_INCLUDE_DIRS}
+  ${OPENSSL_INCLUDE_DIRS} ${websocketpp_INCLUDE_DIR}
+)
 
 add_library (airdcpp-webapi ${webapi_srcs})
 
