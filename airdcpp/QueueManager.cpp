@@ -1,9 +1,9 @@
 /* 
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -46,8 +46,7 @@
 #include "ZUtils.h"
 #include "version.h"
 
-#include <boost/range/algorithm/copy.hpp>
-#include <boost/range/algorithm/count_if.hpp>
+#include <boost/range/algorithm_ext/for_each.hpp>
 
 #ifdef _WIN32
 #include <mmsystem.h>
@@ -63,8 +62,6 @@
 #endif
 
 namespace dcpp {
-
-using boost::range::for_each;
 
 QueueManager::QueueManager() : 
 	udp(make_unique<Socket>(Socket::TYPE_UDP)),
@@ -88,7 +85,7 @@ void QueueManager::shutdown() noexcept {
 	if (SETTING(REMOVE_FINISHED_BUNDLES)){
 		WLock l(cs);
 		BundleList bl;
-		for (auto& b : bundleQueue.getBundles() | map_values) {
+		for (auto& b : bundleQueue.getBundles() | views::values) {
 			if (b->isCompleted()) {
 				bl.push_back(b);
 			}
@@ -806,7 +803,7 @@ optional<DirectoryBundleAddResult> QueueManager::createDirectoryBundleHooked(con
 	DirectoryBundleAddResult info;
 	ErrorCollector errors(fileCount);
 
-	aFiles.erase(boost::remove_if(aFiles, [&](BundleFileAddData& bfi) {
+	aFiles.erase(ranges::remove_if(aFiles, [&](BundleFileAddData& bfi) {
 		try {
 			validateBundleFileHooked(target, bfi, aOptions.caller);
 			return false; // valid
@@ -828,7 +825,7 @@ optional<DirectoryBundleAddResult> QueueManager::createDirectoryBundleHooked(con
 		}
 
 		return true;
-	}), aFiles.end());
+	}).begin(), aFiles.end());
 
 
 	// Check file validation errors
@@ -2203,7 +2200,7 @@ int QueueManager::removeCompletedBundles() noexcept {
 	BundleList bundles;
 	{
 		RLock l(cs);
-		boost::algorithm::copy_if(bundleQueue.getBundles() | map_values, back_inserter(bundles), [](const BundlePtr& aBundle) {
+		ranges::copy_if(bundleQueue.getBundles() | views::values, back_inserter(bundles), [](const BundlePtr& aBundle) {
 			return aBundle->isCompleted();
 		});
 	}
@@ -2222,7 +2219,7 @@ void QueueManager::setPriority(Priority p) noexcept {
 		bundles = bundleQueue.getBundles();
 	}
 
-	for (auto& bundle : bundles | map_values) {
+	for (auto& bundle : bundles | views::values) {
 		setBundlePriority(bundle, p);
 	}
 }
@@ -2357,7 +2354,7 @@ size_t QueueManager::removeBundleSource(BundlePtr aBundle, const UserPtr& aUser,
 		aBundle->getItems(aUser, ql);
 
 		//we don't want notifications from this user anymore
-		auto p = boost::find_if(aBundle->getFinishedNotifications(), [&aUser](const Bundle::UserBundlePair& ubp) { return ubp.first.user == aUser; });
+		auto p = ranges::find_if(aBundle->getFinishedNotifications(), [&aUser](const Bundle::UserBundlePair& ubp) { return ubp.first.user == aUser; });
 		if (p != aBundle->getFinishedNotifications().end()) {
 			sendRemovePBD(p->first, p->second);
 		}
@@ -2816,7 +2813,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 		{
 			WLock l(cs);
 			auto& rl = searchResults[selQI->getTarget()];
-			if (boost::find_if(rl, [&sr](const SearchResultPtr& aSR) { return aSR->getUser() == sr->getUser() && aSR->getAdcPath() == sr->getAdcPath(); }) != rl.end()) {
+			if (ranges::find_if(rl, [&sr](const SearchResultPtr& aSR) { return aSR->getUser() == sr->getUser() && aSR->getAdcPath() == sr->getAdcPath(); }) != rl.end()) {
 				//don't add the same result multiple times, makes the counting more reliable
 				return;
 			}
@@ -2964,7 +2961,7 @@ void QueueManager::calculatePriorities(uint64_t aTick) noexcept {
 		RLock l(cs);
 
 		// bundles
-		for (const auto& b : bundleQueue.getBundles() | map_values) {
+		for (const auto& b : bundleQueue.getBundles() | views::values) {
 			if (b->isDownloaded()) {
 				continue;
 			}
@@ -2978,7 +2975,7 @@ void QueueManager::calculatePriorities(uint64_t aTick) noexcept {
 		}
 
 		// queueitems
-		for (const auto& q : fileQueue.getPathQueue() | map_values) {
+		for (const auto& q : fileQueue.getPathQueue() | views::values) {
 			if (!q->isRunning())
 				continue;
 
@@ -3014,7 +3011,7 @@ void QueueManager::checkResumeBundles() noexcept {
 
 	{
 		RLock l(cs);
-		for (const auto& b : bundleQueue.getBundles() | map_values) {
+		for (const auto& b : bundleQueue.getBundles() | views::values) {
 			if (b->isDownloaded()) {
 				continue;
 			}
@@ -3052,7 +3049,7 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 
 		{
 			RLock l(cs);
-			for (const auto& q : fileQueue.getPathQueue() | map_values) {
+			for (const auto& q : fileQueue.getPathQueue() | views::values) {
 				if (!q->isRunning())
 					continue;
 
@@ -3166,7 +3163,7 @@ void QueueManager::calculateBundlePriorities(bool verbose) noexcept {
 
 	{
 		RLock l (cs);
-		for (auto& b: bundleQueue.getBundles() | map_values) {
+		for (auto& b: bundleQueue.getBundles() | views::values) {
 			if (b->isDownloaded()) {
 				continue;
 			}
@@ -3388,7 +3385,7 @@ StringList QueueManager::getAdcDirectoryPaths(const string& aDirName) const noex
 
 void QueueManager::getBundlePaths(OrderedStringSet& retBundles) const noexcept {
 	RLock l(cs);
-	for (const auto& b : bundleQueue.getBundles() | map_values) {
+	for (const auto& b : bundleQueue.getBundles() | views::values) {
 		retBundles.insert(b->getTarget());
 	}
 }
@@ -3412,7 +3409,7 @@ void QueueManager::checkCompletedBundles(const string& aPath, bool aValidateComp
 
 	{
 		RLock l(cs);
-		for (auto& b : bundleQueue.getBundles() | map_values) {
+		for (auto& b : bundleQueue.getBundles() | views::values) {
 			if (b->isCompleted() && AirUtil::isParentOrExactLocal(aPath, b->getTarget())) {
 				bundles.push_back(b);
 			}
@@ -3500,8 +3497,8 @@ int QueueManager::addValidatedSources(const HintedUser& aUser, const QueueItemLi
 		// Add sources
 
 		WLock l(cs);
-		boost::algorithm::copy_if(aItems, back_inserter(addedItems), [&](const QueueItemPtr& q) {
-			if (q->getBundle() && find(matchingBundles_, q->getBundle()) == matchingBundles_.end()) {
+		ranges::copy_if(aItems, back_inserter(addedItems), [&](const QueueItemPtr& q) {
+			if (q->getBundle() && ranges::find(matchingBundles_, q->getBundle()) == matchingBundles_.end()) {
 				matchingBundles_.push_back(q->getBundle());
 			}
 
@@ -3610,7 +3607,7 @@ int QueueManager::getFinishedItemCount(const BundlePtr& aBundle) const noexcept 
 
 int QueueManager::getFinishedBundlesCount() const noexcept {
 	RLock l(cs);
-	return static_cast<int>(boost::count_if(bundleQueue.getBundles() | map_values, [&](const BundlePtr& b) { return b->isDownloaded(); }));
+	return static_cast<int>(ranges::count_if(bundleQueue.getBundles() | views::values, [&](const BundlePtr& b) { return b->isDownloaded(); }));
 }
 
 void QueueManager::addBundleUpdate(const BundlePtr& aBundle) noexcept{

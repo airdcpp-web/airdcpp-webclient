@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -602,7 +602,7 @@ void QueueItem::addFinishedSegment(const Segment& segment) noexcept {
 bool QueueItem::isNeededPart(const PartsInfo& aPartsInfo, int64_t aBlockSize) const noexcept {
 	dcassert(aPartsInfo.size() % 2 == 0);
 	
-	SegmentConstIter i  = done.begin();
+	auto i = done.begin();
 	for(auto j = aPartsInfo.begin(); j != aPartsInfo.end(); j+=2){
 		while(i != done.end() && (*i).getEnd() <= (*j) * aBlockSize)
 			i++;
@@ -618,7 +618,7 @@ void QueueItem::getPartialInfo(PartsInfo& aPartialInfo, int64_t aBlockSize) cons
 	size_t maxSize = min(done.size() * 2, (size_t)510);
 	aPartialInfo.reserve(maxSize);
 
-	SegmentConstIter i = done.begin();
+	auto i = done.begin();
 	for(; i != done.end() && aPartialInfo.size() < maxSize; i++) {
 
 		uint16_t s = (uint16_t)((*i).getStart() / aBlockSize);

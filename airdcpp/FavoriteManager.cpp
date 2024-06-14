@@ -1,9 +1,9 @@
 /* 
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -31,7 +31,7 @@ namespace dcpp {
 #define CONFIG_FAV_NAME "Favorites.xml"
 #define CONFIG_DIR Util::PATH_USER_CONFIG
 
-using boost::range::find_if;
+using ranges::find_if;
 
 FavoriteManager::FavoriteManager() {
 	SettingsManager::getInstance()->addListener(this);
@@ -410,7 +410,7 @@ bool FavoriteManager::removeFavoriteHub(ProfileToken aToken) noexcept {
 
 	{
 		WLock l(cs);
-		auto i = find_if(favoriteHubs, [aToken](const FavoriteHubEntryPtr& f) { return f->getToken() == aToken; });
+		auto i = ranges::find_if(favoriteHubs, [aToken](const FavoriteHubEntryPtr& f) { return f->getToken() == aToken; });
 		if (i == favoriteHubs.end()) {
 			return false;
 		}
@@ -907,11 +907,11 @@ void FavoriteManager::mergeHubSettings(const FavoriteHubEntryPtr& entry, HubSett
 
 FavoriteHubEntryList::const_iterator FavoriteManager::getFavoriteHub(const string& aServer) const noexcept {
 	//find by the primary address
-	return find_if(favoriteHubs, [&aServer](const FavoriteHubEntryPtr& f) { return Util::stricmp(f->getServer(), aServer) == 0; });
+	return ranges::find_if(favoriteHubs, [&aServer](const FavoriteHubEntryPtr& f) { return Util::stricmp(f->getServer(), aServer) == 0; });
 }
 
 FavoriteHubEntryList::const_iterator FavoriteManager::getFavoriteHub(ProfileToken aToken) const noexcept {
-	return find_if(favoriteHubs, [aToken](const FavoriteHubEntryPtr& f) { return f->getToken() == aToken; });
+	return ranges::find_if(favoriteHubs, [aToken](const FavoriteHubEntryPtr& f) { return f->getToken() == aToken; });
 }
 
 UserCommand::List FavoriteManager::getUserCommands(int ctx, const StringList& hubs, bool& op) noexcept {

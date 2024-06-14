@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -29,8 +29,6 @@
 #include "ThrottleManager.h"
 #include "UploadManager.h"
 
-#include <boost/range/algorithm/copy.hpp>
-
 
 namespace dcpp {
 	TransferInfoManager::TransferInfoManager() {
@@ -49,7 +47,7 @@ namespace dcpp {
 		TransferInfo::List ret;
 		{
 			RLock l(cs);
-			boost::range::copy(transfers | map_values, back_inserter(ret));
+			ranges::copy(transfers | views::values, back_inserter(ret));
 		}
 
 		return ret;
@@ -356,7 +354,7 @@ namespace dcpp {
 
 	TransferInfoPtr TransferInfoManager::findTransfer(TransferToken aToken) const noexcept {
 		RLock l(cs);
-		auto ret = boost::find_if(transfers | map_values, [&](const TransferInfoPtr& aInfo) {
+		auto ret = ranges::find_if(transfers | views::values, [&](const TransferInfoPtr& aInfo) {
 			return aInfo->getToken() == aToken;
 		});
 

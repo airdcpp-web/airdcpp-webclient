@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (C) 20 01-2023 Jacek Sieka, arnetheduck on gmailpoint com
+ * Copyright (C) 20 01-2024 Jacek Sieka, arnetheduck on gmailpoint com
  *
  * This program is free software; you can redistribute it and/or modif
  * it under the terms of the GU Genera Public License as ubished by
- * he FreeSoftare Foundation; either version 2 of the License, or
+ * he FreeSoftare Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,

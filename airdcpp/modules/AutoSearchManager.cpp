@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2011-2023 AirDC++ Project
+ * Copyright (C) 2011-2024 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -31,13 +31,11 @@
 
 #include <airdcpp/DirectoryListingManager.h>
 
-#include <boost/range/algorithm/max_element.hpp>
-
 namespace dcpp {
 
-using boost::range::find_if;
-using boost::max_element;
-using boost::algorithm::copy_if;
+using ranges::find_if;
+using ranges::max_element;
+using ranges::copy_if;
 
 #define CONFIG_DIR Util::PATH_USER_CONFIG
 #define CONFIG_NAME "AutoSearch.xml"
@@ -197,7 +195,7 @@ AutoSearchList AutoSearchManager::getSearchesByBundle(const BundlePtr& aBundle) 
 	AutoSearchList ret;
 
 	RLock l(cs);
-	copy_if(searchItems.getItems() | map_values, back_inserter(ret), [&](const AutoSearchPtr& as) { return as->hasBundle(aBundle); });
+	copy_if(searchItems.getItems() | views::values, back_inserter(ret), [&](const AutoSearchPtr& as) { return as->hasBundle(aBundle); });
 	return ret;
 }
 
@@ -205,7 +203,7 @@ AutoSearchList AutoSearchManager::getSearchesByString(const string& aSearchStrin
 	AutoSearchList ret;
 
 	RLock l(cs);
-	copy_if(searchItems.getItems() | map_values, back_inserter(ret), [&](const AutoSearchPtr& as) { return as->getSearchString() == aSearchString && (!ignoredSearch || as != ignoredSearch); });
+	copy_if(searchItems.getItems() | views::values, back_inserter(ret), [&](const AutoSearchPtr& as) { return as->getSearchString() == aSearchString && (!ignoredSearch || as != ignoredSearch); });
 	return ret;
 }
 
@@ -589,7 +587,7 @@ void AutoSearchManager::checkItems() noexcept {
 	{
 		WLock l(cs);
 
-		for(auto& as: searchItems.getItems() | map_values) {
+		for(auto& as: searchItems.getItems() | views::values) {
 			bool fireUpdate = false;
 
 			//update possible priority change
@@ -637,7 +635,7 @@ void AutoSearchManager::checkItems() noexcept {
 		}
 	}
 
-	for_each(updateitems, [=](AutoSearchPtr as) { fire(AutoSearchManagerListener::ItemUpdated(), as, false); });
+	ranges::for_each(updateitems, [=](const AutoSearchPtr& as) { fire(AutoSearchManagerListener::ItemUpdated(), as, false); });
 
 	//No other enabled searches, start searching for the newly enabled immediately...
 	if (itemsEnabled > 0 && nextSearch == 0) {
@@ -660,7 +658,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 
 	{
 		RLock l (cs);
-		for(auto& as: searchItems.getItems() | map_values) {
+		for(auto& as: searchItems.getItems() | views::values) {
 			if (!as->allowNewItems() && !as->getManualSearch())
 				continue;
 			
@@ -784,9 +782,9 @@ void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 
 	//we'll pick one name (or all of them, if the item isn't going to be removed after completion)
 	if (as->getRemove() || as->usingIncrementation()) {
-		auto p = find_if(dirList | map_keys, [](const string& s) { return s.find("proper") != string::npos; }).base();
+		auto p = find_if(dirList | views::keys, [](const string& s) { return s.find("proper") != string::npos; }).base();
 		if (p == dirList.end()) {
-			p = find_if(dirList | map_keys, [](const string& s) { return s.find("repack") != string::npos; }).base();
+			p = find_if(dirList | views::keys, [](const string& s) { return s.find("repack") != string::npos; }).base();
 		}
 
 		if (p == dirList.end()) {
@@ -794,7 +792,7 @@ void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 				return;
 
 			// no repack or proper, pick the one with most matches
-			p = max_element(dirList | map_values, [](const SearchResultList& p1, const SearchResultList& p2) { return p1.size() < p2.size(); }).base();
+			p = ranges::max_element(dirList | views::values, [](const SearchResultList& p1, const SearchResultList& p2) { return p1.size() < p2.size(); }).base();
 		}
 
 		// only download this directory
@@ -957,7 +955,7 @@ void AutoSearchManager::save() noexcept {
 		}
 		xml.stepOut();
 
-		for (auto& as : searchItems.getItems() | map_values) {
+		for (auto& as : searchItems.getItems() | views::values) {
 			as->saveToXml(xml);
 		}
 	}

@@ -1,9 +1,9 @@
 /* 
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -31,7 +31,7 @@
 
 namespace dcpp {
 
-using boost::range::find_if;
+using ranges::find_if;
 
 HashManager::HashManager() {
 	store = make_unique<HashStore>();
@@ -409,7 +409,7 @@ void HashManager::logHasher(const string& aMessage, int hasherID, bool isError, 
 
 bool HashManager::isHashingPaused(bool lock /*true*/) const noexcept {
 	ConditionalRLock l(Hasher::hcs, lock);
-	return all_of(hashers.begin(), hashers.end(), [](const Hasher* h) { return h->isPaused(); });
+	return ranges::all_of(hashers, [](const Hasher* h) { return h->isPaused(); });
 }
 
 HashManager::HashPauser::HashPauser() {

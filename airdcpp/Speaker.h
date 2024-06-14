@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -19,7 +19,6 @@
 #ifndef DCPLUSPLUS_DCPP_SPEAKER_H
 #define DCPLUSPLUS_DCPP_SPEAKER_H
 
-#include <boost/range/algorithm/find.hpp>
 #include <utility>
 #include <vector>
 
@@ -29,7 +28,6 @@
 namespace dcpp {
 
 using std::vector;
-using boost::range::find;
 
 template<typename Listener>
 class Speaker {
@@ -52,20 +50,20 @@ public:
 
 	void addListener(Listener* aListener) noexcept {
 		Lock l(listenerCS);
-		if(find(listeners, aListener) == listeners.end())
+		if(ranges::find(listeners, aListener) == listeners.end())
 			listeners.push_back(aListener);
 	}
 
 	void removeListener(Listener* aListener) noexcept {
 		Lock l(listenerCS);
-		auto it = find(listeners, aListener);
+		auto it = ranges::find(listeners, aListener);
 		if(it != listeners.end())
 			listeners.erase(it);
 	}
 
 	bool hasListener(Listener* aListener) const noexcept {
 		Lock l(listenerCS);
-		return find(listeners, aListener) != listeners.end();
+		return ranges::find(listeners, aListener) != listeners.end();
 	}
 
 	void removeListeners() noexcept {

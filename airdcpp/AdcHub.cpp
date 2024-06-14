@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -92,7 +92,7 @@ size_t AdcHub::getUserCount() const noexcept {
 	size_t userCount = 0;
 
 	RLock l(cs);
-	for (const auto& u: users | map_values) {
+	for (const auto& u: users | views::values) {
 		if (!u->isHidden()) {
 			++userCount;
 		}
@@ -126,7 +126,7 @@ OnlineUser* AdcHub::findUser(const uint32_t aSID) const noexcept {
 
 OnlineUser* AdcHub::findUser(const CID& aCID) const noexcept {
 	RLock l(cs);
-	for(const auto& ou: users | map_values) {
+	for(const auto& ou: users | views::values) {
 		if(ou->getUser()->getCID() == aCID) {
 			return ou;
 		}
@@ -273,14 +273,16 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 
 		//we have to update the modes in case our connectivity changed
 
-		if (oldState != STATE_NORMAL || any_of(c.getParameters().begin(), c.getParameters().end(), [](const string& p) { return p.substr(0, 2) == "SU" || p.substr(0, 2) == "I4" || p.substr(0, 2) == "I6"; })) {
+		if (oldState != STATE_NORMAL || ranges::any_of(c.getParameters(), [](const string& p) { 
+			return p.substr(0, 2) == "SU" || p.substr(0, 2) == "I4" || p.substr(0, 2) == "I6"; 
+		})) {
 			fire(ClientListener::HubUpdated(), this);
 
 			OnlineUserList ouList;
 
 			{
 				RLock l(cs);
-				boost::algorithm::copy_if(users | map_values, back_inserter(ouList), [this](OnlineUser* ou) {
+				ranges::copy_if(users | views::values, back_inserter(ouList), [this](OnlineUser* ou) {
 					return ou->getIdentity().getTcpConnectMode() != Identity::MODE_ME && ou->getIdentity().updateAdcConnectModes(getMyIdentity(), this);
 				});
 			}
@@ -1632,7 +1634,7 @@ void AdcHub::on(Second s, uint64_t aTick) noexcept {
 
 OnlineUserPtr AdcHub::findUser(const string& aNick) const noexcept {
 	RLock l(cs); 
-	for(const auto& ou: users | map_values) { 
+	for(const auto& ou: users | views::values) { 
 		if(ou->getIdentity().getNick() == aNick) { 
 			return ou; 
 		} 

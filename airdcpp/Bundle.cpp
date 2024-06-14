@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2011-2023 AirDC++ Project
+ * Copyright (C) 2011-2024 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -35,13 +35,11 @@
 #include "UserConnection.h"
 
 #include <boost/range/numeric.hpp>
-#include <boost/range/algorithm/copy.hpp>
+#include <boost/range/adaptor/map.hpp>
 
 namespace dcpp {
 
-using boost::range::find_if;
 using boost::accumulate;
-using boost::range::copy;
 	
 Bundle::Bundle(const QueueItemPtr& qi, time_t aFileDate, QueueToken aToken /*0*/, bool aDirty /*true*/) noexcept :
 	Bundle(qi->getTarget(), qi->getTimeAdded(), qi->getPriority(), aFileDate, aToken, aDirty, true) {
@@ -127,7 +125,7 @@ bool Bundle::checkRecent() noexcept {
 }
 
 bool Bundle::filesCompleted() const noexcept {
-	return queueItems.empty() && find_if(finishedFiles, [](const QueueItemPtr& q) { 
+	return queueItems.empty() && ranges::find_if(finishedFiles, [](const QueueItemPtr& q) { 
 		return !q->isCompleted(); }) == finishedFiles.end();
 }
 
@@ -210,7 +208,7 @@ bool Bundle::getDirty() const noexcept {
 }
 
 QueueItemPtr Bundle::findQI(const string& aTarget) const noexcept {
-	auto p = find_if(queueItems, [&aTarget](const QueueItemPtr& q) { return q->getTarget() == aTarget; });
+	auto p = ranges::find_if(queueItems, [&aTarget](const QueueItemPtr& q) { return q->getTarget() == aTarget; });
 	return p != queueItems.end() ? *p : nullptr;
 }
 
@@ -231,7 +229,7 @@ void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
 	for(int i = static_cast<int>(Priority::PAUSED_FORCE); i < static_cast<int>(Priority::LAST); ++i) {
 		auto j = userQueue[i].find(aUser);
 		if(j != userQueue[i].end()) {
-			copy(j->second, back_inserter(ql));
+			ranges::copy(j->second, back_inserter(ql));
 		}
 	}
 }
@@ -253,7 +251,7 @@ void Bundle::addFinishedItem(const QueueItemPtr& qi, bool aFinished) noexcept {
 }
 
 void Bundle::removeFinishedItem(const QueueItemPtr& aQI) noexcept {
-	auto f = find(finishedFiles, aQI);
+	auto f = ranges::find(finishedFiles, aQI);
 	if (f != finishedFiles.end()) {
 		decreaseSize(aQI->getSize());
 		removeFinishedSegment(aQI->getDownloadedSegments());
@@ -273,7 +271,7 @@ void Bundle::addQueue(const QueueItemPtr& qi) noexcept {
 
 	dcassert(qi->getTimeFinished() == 0);
 	dcassert(!qi->isCompleted() && !qi->segmentsDone());
-	dcassert(find(queueItems, qi) == queueItems.end());
+	dcassert(ranges::find(queueItems, qi) == queueItems.end());
 
 	queueItems.push_back(qi);
 	increaseSize(qi->getSize());
@@ -286,7 +284,7 @@ void Bundle::removeQueue(const QueueItemPtr& aQI, bool aFileCompleted) noexcept 
 		return;
 	}
 
-	auto f = find(queueItems, aQI);
+	auto f = ranges::find(queueItems, aQI);
 	if (f != queueItems.end()) {
 		iter_swap(f, queueItems.end() - 1);
 		queueItems.pop_back();
@@ -307,11 +305,11 @@ void Bundle::removeQueue(const QueueItemPtr& aQI, bool aFileCompleted) noexcept 
 }
 
 bool Bundle::isSource(const UserPtr& aUser) const noexcept {
-	return find(sources, aUser) != sources.end();
+	return ranges::find(sources, aUser, &BundleSource::getUser) != sources.end();
 }
 
 bool Bundle::isBadSource(const UserPtr& aUser) const noexcept  {
-	return find(badSources, aUser) != badSources.end();
+	return ranges::find(badSources, aUser, &BundleSource::getUser) != badSources.end();
 }
 
 void Bundle::addUserQueue(const QueueItemPtr& qi) noexcept {
@@ -321,7 +319,7 @@ void Bundle::addUserQueue(const QueueItemPtr& qi) noexcept {
 
 bool Bundle::addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool isBad /*false*/) noexcept {
 	auto& l = userQueue[static_cast<int>(qi->getPriority())][aUser.user];
-	dcassert(find(l, qi) == l.end());
+	dcassert(ranges::find(l, qi) == l.end());
 
 	if (l.size() > 1) {
 		if (!seqOrder) {
@@ -337,7 +335,7 @@ bool Bundle::addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool 
 	}
 
 	if (isBad) {
-		auto i = find(badSources, aUser);
+		auto i = ranges::find(badSources, aUser, &BundleSource::getUser);
 		dcassert(i != badSources.end());
 		if (i != badSources.end()) {
 			(*i).files--;
@@ -349,7 +347,7 @@ bool Bundle::addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool 
 		}
 	}
 
-	auto i = find(sources, aUser);
+	auto i = ranges::find(sources, aUser, &BundleSource::getUser);
 	if (i != sources.end()) {
 		(*i).files++;
 		(*i).size += qi->getSize();
@@ -379,7 +377,7 @@ QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const OrderedStringSet& aOn
 }
 
 bool Bundle::isFinishedNotified(const UserPtr& aUser) const noexcept {
-	return find_if(finishedNotifications, [&aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; }) != finishedNotifications.end();
+	return ranges::find_if(finishedNotifications, [&aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; }) != finishedNotifications.end();
 }
 
 void Bundle::addFinishedNotify(HintedUser& aUser, const string& remoteBundle) noexcept {
@@ -389,7 +387,7 @@ void Bundle::addFinishedNotify(HintedUser& aUser, const string& remoteBundle) no
 }
 
 void Bundle::removeFinishedNotify(const UserPtr& aUser) noexcept {
-	auto p = find_if(finishedNotifications, [&aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; });
+	auto p = ranges::find_if(finishedNotifications, [&aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; });
 	if (p != finishedNotifications.end()) {
 		finishedNotifications.erase(p);
 	}
@@ -432,7 +430,7 @@ void Bundle::rotateUserQueue(const QueueItemPtr& qi, const UserPtr& aUser) noexc
 	}
 	auto& l = j->second;
 	if (l.size() > 1) {
-		auto s = find(l, qi);
+		auto s = ranges::find(l, qi);
 		if (s != l.end()) {
 			l.erase(s);
 			l.push_back(qi);
@@ -456,7 +454,7 @@ bool Bundle::removeUserQueue(const QueueItemPtr& qi, const UserPtr& aUser, Flags
 		return false;
 	}
 	auto& l = j->second;
-	auto s = find(l, qi);
+	auto s = ranges::find(l, qi);
 	if (s != l.end()) {
 		l.erase(s);
 	}
@@ -466,11 +464,11 @@ bool Bundle::removeUserQueue(const QueueItemPtr& qi, const UserPtr& aUser, Flags
 	}
 
 	//remove from bundle sources
-	auto m = find(sources, aUser);
+	auto m = ranges::find(sources, aUser, &BundleSource::getUser);
 	dcassert(m != sources.end());
 
 	if (reason > 0) {
-		auto bsi = find(badSources, aUser);
+		auto bsi = ranges::find(badSources, aUser, &BundleSource::getUser);
 		if (bsi == badSources.end()) {
 			badSources.emplace_back((*m).getUser(), qi->getSize(), reason);
 		} else {
@@ -574,7 +572,7 @@ bool Bundle::allowAutoSearch() const noexcept {
 	if (countOnlineUsers() >= SETTING(AUTO_SEARCH_LIMIT))
 		return false; // can't exceed the user limit
 
-	if (find_if(queueItems, [](const QueueItemPtr& q) { return !q->isPausedPrio(); } ) == queueItems.end())
+	if (ranges::find_if(queueItems, [](const QueueItemPtr& q) { return !q->isPausedPrio(); } ) == queueItems.end())
 		return false; // must have valid queue items
 
 	if (getSecondsLeft() < 20 && getSecondsLeft() != 0)
@@ -590,7 +588,7 @@ void Bundle::addDownload(Download* d) noexcept {
 }
 
 void Bundle::removeDownload(Download* d) noexcept {
-	auto m = find(downloads, d);
+	auto m = ranges::find(downloads, d);
 	dcassert(m != downloads.end());
 	if (m != downloads.end()) {
 		downloads.erase(m);
@@ -675,7 +673,7 @@ bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 }
 
 int Bundle::countConnections() const noexcept {
-	return accumulate(runningUsers | map_values, 0);
+	return accumulate(runningUsers | boost::adaptors::map_values, 0);
 }
 
 bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
