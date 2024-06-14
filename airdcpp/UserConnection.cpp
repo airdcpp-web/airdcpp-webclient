@@ -253,7 +253,7 @@ bool UserConnection::sendPrivateMessageHooked(const OutgoingChatMessage& aMessag
 	send(c);
 
 	// simulate an echo message.
-	callAsync([=]{ handlePM(c, true); });
+	callAsync([=, this]{ handlePM(c, true); });
 	return true;
 }
 

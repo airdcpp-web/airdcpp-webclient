@@ -79,7 +79,7 @@ int UDPServer::run() {
 
 			auto buf = vector<uint8_t>(BUFSIZE);
 			if((len = socket->read(buf.data(), BUFSIZE, remoteAddr)) > 0) {
-				pp.addTask([=] { handlePacket(buf, len, remoteAddr); });
+				pp.addTask([=, this] { handlePacket(buf, len, remoteAddr); });
 				continue;
 			}
 		} catch(const SocketException& e) {

@@ -114,13 +114,13 @@ void UpdateManager::completeSignatureDownload(bool aManualCheck) {
 	);
 }
 
-void UpdateManager::checkIP(bool manual, bool v6) {
+void UpdateManager::checkIP(bool aManual, bool v6) {
 	HttpOptions options;
 	options.setV4Only(!v6);
 
 	conns[v6 ? CONN_IP6 : CONN_IP4] = make_unique<HttpDownload>(
 		v6 ? links.ipcheck6 : links.ipcheck4,
-		[=] { completeIPCheck(manual, v6); }, 
+		[=, this] { completeIPCheck(aManual, v6); },
 		options
 	);
 }

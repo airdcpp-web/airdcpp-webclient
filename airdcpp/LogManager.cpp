@@ -186,7 +186,7 @@ string LogManager::readFromEnd(const string& aPath, int aMaxLines, int64_t aBuff
 }
 
 void LogManager::log(const string& area, const string& msg) noexcept {
-	tasks.addTask([=] {
+	tasks.addTask([=, this] {
 		auto aArea = Util::validatePath(area);
 		try {
 			File::ensureDirectory(aArea);
