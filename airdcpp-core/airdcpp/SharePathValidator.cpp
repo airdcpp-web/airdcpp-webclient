@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+* Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -121,7 +121,7 @@ void SharePathValidator::addExcludedPath(const string& aPath) {
 		StringList rootPaths;
 		ShareManager::getInstance()->getRootPaths(rootPaths);
 
-		if (boost::find_if(rootPaths, [&aPath](const string& aRootPath) { return AirUtil::isSubLocal(aPath, aRootPath); }) == rootPaths.end()) {
+		if (ranges::find_if(rootPaths, [&aPath](const string& aRootPath) { return AirUtil::isSubLocal(aPath, aRootPath); }) == rootPaths.end()) {
 			throw ShareException(STRING(PATH_NOT_SHARED));
 		}
 	}
@@ -132,7 +132,7 @@ void SharePathValidator::addExcludedPath(const string& aPath) {
 		WLock l(cs);
 
 		// Subfolder of an already excluded folder?
-		if (boost::find_if(excludedPaths, [&aPath](const string& aExcludedPath) { return AirUtil::isParentOrExactLocal(aExcludedPath, aPath); }) != excludedPaths.end()) {
+		if (ranges::find_if(excludedPaths, [&aPath](const string& aExcludedPath) { return AirUtil::isParentOrExactLocal(aExcludedPath, aPath); }) != excludedPaths.end()) {
 			throw ShareException(STRING(PATH_ALREADY_EXCLUDED));
 		}
 

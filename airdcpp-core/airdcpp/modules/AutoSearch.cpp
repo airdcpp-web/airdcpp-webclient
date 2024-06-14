@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -29,14 +29,12 @@
 #include <airdcpp/SimpleXML.h>
 #include <airdcpp/TimerManager.h>
 
-#include <boost/range/algorithm/max_element.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #define SHARE_SCANNER_ERROR_MISSING "items_missing"
 
 namespace dcpp {
 
-using boost::max_element;
 using namespace boost::posix_time;
 using namespace boost::gregorian;
 
@@ -231,20 +229,20 @@ string AutoSearch::getDisplayType() const noexcept {
 }
 
 void AutoSearch::addBundle(const BundlePtr& aBundle) noexcept {
-	if (find(bundles, aBundle) == bundles.end())
+	if (ranges::find(bundles, aBundle) == bundles.end())
 		bundles.push_back(aBundle);
 
 	updateStatus();
 }
 
 void AutoSearch::removeBundle(const BundlePtr& aBundle) noexcept {
-	auto p = find(bundles, aBundle);
+	auto p = ranges::find(bundles, aBundle);
 	if (p != bundles.end())
 		bundles.erase(p);
 }
 
 bool AutoSearch::hasBundle(const BundlePtr& aBundle) noexcept {
-	return find(bundles, aBundle) != bundles.end();
+	return ranges::find(bundles, aBundle) != bundles.end();
 }
 
 void AutoSearch::addPath(const string& aPath, time_t aFinishTime) noexcept {
@@ -316,7 +314,7 @@ void AutoSearch::updateStatus() noexcept {
 			status = AutoSearch::STATUS_SEARCHING;
 		}
 	} else {
-		auto maxBundle = *boost::max_element(bundles, Bundle::StatusOrder());
+		auto maxBundle = *ranges::max_element(bundles, Bundle::StatusOrder());
 		if(maxBundle->getStatus() == Bundle::STATUS_VALIDATION_ERROR) {
 			if (AutoSearch::hasHookFilesMissing(maxBundle->getHookError())) {
 				status = AutoSearch::STATUS_FAILED_MISSING;

@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -108,7 +108,12 @@ bool Mapper_MiniUPnPc::init() {
 	UPNPUrls urls;
 	IGDdatas data;
 
+#if (MINIUPNPC_API_VERSION >= 18)
+	auto ret = UPNP_GetValidIGD(devices, &urls, &data, 0, 0, nullptr, 0);
+#else
 	auto ret = UPNP_GetValidIGD(devices, &urls, &data, 0, 0);
+#endif
+
 
 	bool ok = ret == 1;
 	if(ok) {
@@ -127,7 +132,7 @@ bool Mapper_MiniUPnPc::init() {
 				auto adapters = AirUtil::getNetworkAdapters(v6);
 
 				// Find a local IP that is within the same subnet
-				auto p = boost::find_if(adapters, [&routerIp, this](const AdapterInfo& aInfo) { return isIPInRange(aInfo.ip, routerIp, aInfo.prefix, v6); });
+				auto p = ranges::find_if(adapters, [&routerIp, this](const AdapterInfo& aInfo) { return isIPInRange(aInfo.ip, routerIp, aInfo.prefix, v6); });
 				if (p != adapters.end()) {
 					localIp = p->ip;
 				}

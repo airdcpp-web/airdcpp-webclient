@@ -1,9 +1,9 @@
 /* 
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -1672,6 +1672,16 @@ string Util::formatFileType(const string& aPath) noexcept {
 	}
 
 	return type;
+}
+
+#define MIN_REMOTE_FILE_ITEM_DATE 946684800 // 1/1/2000
+
+time_t Util::parseRemoteFileItemDate(const string& aString) noexcept {
+	auto date = static_cast<time_t>(toInt64(aString));
+
+	// Avoid using really old dates as those are most likely invalid and 
+	// would confuse the client/user (e.g. with grouped search results)
+	return date <= MIN_REMOTE_FILE_ITEM_DATE ? 0 : date;
 }
 
 /* natural sorting */

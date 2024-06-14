@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -63,7 +63,7 @@ namespace dcpp {
 
 	bool GroupedSearchResult::hasUser(const UserPtr& aUser) const noexcept {
 		FastLock l(cs);
-		return boost::find_if(children, [&](const SearchResultPtr& aResult) { return aResult->getUser() == aUser; }) != children.end();
+		return ranges::find_if(children, [&](const SearchResultPtr& aResult) { return aResult->getUser() == aUser; }) != children.end();
 	}
 
 	double GroupedSearchResult::getConnectionSpeed() const noexcept {
@@ -96,7 +96,7 @@ namespace dcpp {
 			FastLock l(cs);
 
 			// Attempt to find a user that provides this information
-			auto i = boost::find_if(children, [&](const SearchResultPtr& aResult) { return Util::hasContentInfo(aResult->getContentInfo()); });
+			auto i = ranges::find_if(children, [&](const SearchResultPtr& aResult) { return Util::hasContentInfo(aResult->getContentInfo()); });
 			if (i != children.end()) {
 				return (*i)->getContentInfo();
 			}
@@ -110,6 +110,23 @@ namespace dcpp {
 		FastLock l(cs);
 		auto min = min_element(children.begin(), children.end(), SearchResult::DateOrder());
 		return (*min)->getDate();
+	}
+
+	string GroupedSearchResult::getFileName() const noexcept {
+		map<string, int> nameCounts;
+
+		{
+			FastLock l(cs);
+			for (const auto& child : children)
+				++nameCounts[child->getFileName()];
+		}
+
+		decltype(auto) max = *ranges::max_element(nameCounts, [](const auto& p1, const auto& p2) {
+			return p1.second < p2.second;
+		});
+
+		auto matches = ranges::count(nameCounts | views::values, max.second);
+		return matches == 1 ? max.first : baseResult->getFileName();
 	}
 
 	double GroupedSearchResult::getTotalRelevance() const noexcept {
@@ -135,7 +152,7 @@ namespace dcpp {
 		string lastError;
 		optional<BundleAddInfo> bundleAddInfo;
 
-		boost::for_each(pickDownloadResults(), [&](const SearchResultPtr& aSR) {
+		ranges::for_each(pickDownloadResults(), [&](const SearchResultPtr& aSR) {
 			try {
 				auto fileInfo = BundleFileAddData(aTargetName, aSR->getTTH(), aSR->getSize(), aPrio, aSR->getDate());
 				auto options = BundleAddOptions(aTargetDirectory, aSR->getUser(), aCaller);
@@ -159,7 +176,7 @@ namespace dcpp {
 		string lastError;
 		DirectoryDownloadList directoryDownloads;
 
-		boost::for_each(pickDownloadResults(), [&](const SearchResultPtr& aSR) {
+		ranges::for_each(pickDownloadResults(), [&](const SearchResultPtr& aSR) {
 			try {
 				auto listData = FilelistAddData(aSR->getUser(), aCaller, aSR->getAdcFilePath());
 				auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownloadHookedThrow(listData, aTargetName, aTargetDirectory, aPrio, DirectoryDownload::ErrorMethod::LOG);

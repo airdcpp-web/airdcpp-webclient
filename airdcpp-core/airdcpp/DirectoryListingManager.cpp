@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2011-2023 AirDC++ Project
+ * Copyright (C) 2011-2024 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -24,13 +24,10 @@
 #include "LogManager.h"
 #include "QueueManager.h"
 
-#include <boost/range/algorithm/copy.hpp>
-#include <boost/algorithm/cxx11/all_of.hpp>
-
 namespace dcpp {
 
-using boost::range::for_each;
-using boost::range::find_if;
+using ranges::for_each;
+using ranges::find_if;
 
 #define DIRECTORY_DOWNLOAD_REMOVAL_SECONDS 120
 
@@ -56,7 +53,7 @@ DirectoryListingManager::~DirectoryListingManager() noexcept {
 
 
 DirectoryDownloadPtr DirectoryListingManager::getPendingDirectoryDownloadUnsafe(const UserPtr& aUser, const string& aPath) const noexcept {
-	auto ddlIter = find_if(dlDirectories, [&](const DirectoryDownloadPtr& ddi) {
+	auto ddlIter = ranges::find_if(dlDirectories, [&](const DirectoryDownloadPtr& ddi) {
 		return ddi->getUser() == aUser &&
 			ddi->getState() == DirectoryDownload::State::PENDING &&
 			Util::stricmp(aPath.c_str(), ddi->getListPath().c_str()) == 0;
@@ -104,7 +101,7 @@ void DirectoryListingManager::on(TimerManagerListener::Minute, uint64_t aTick) n
 
 	{
 		RLock l(cs);
-		boost::algorithm::copy_if(dlDirectories, back_inserter(toRemove), [=](const DirectoryDownloadPtr& aDownload) {
+		ranges::copy_if(dlDirectories, back_inserter(toRemove), [=](const DirectoryDownloadPtr& aDownload) {
 			return aDownload->getProcessedTick() > 0 && aDownload->getProcessedTick() + DIRECTORY_DOWNLOAD_REMOVAL_SECONDS * 1000 < aTick;
 		});
 	}
@@ -116,7 +113,7 @@ void DirectoryListingManager::on(TimerManagerListener::Minute, uint64_t aTick) n
 
 bool DirectoryListingManager::hasDirectoryDownload(const string& aBundleName, void* aOwner) const noexcept {
 	RLock l(cs);
-	return find_if(dlDirectories, DirectoryDownload::HasOwner(aOwner, aBundleName)) != dlDirectories.end();
+	return ranges::find_if(dlDirectories, DirectoryDownload::HasOwner(aOwner, aBundleName)) != dlDirectories.end();
 }
 
 DirectoryDownloadList DirectoryListingManager::getDirectoryDownloads() const noexcept {
@@ -124,7 +121,7 @@ DirectoryDownloadList DirectoryListingManager::getDirectoryDownloads() const noe
 
 	{
 		RLock l(cs);
-		boost::range::copy(dlDirectories, back_inserter(ret));
+		ranges::copy(dlDirectories, back_inserter(ret));
 	}
 
 	return ret;
@@ -133,7 +130,7 @@ DirectoryDownloadList DirectoryListingManager::getDirectoryDownloads() const noe
 
 DirectoryDownloadList DirectoryListingManager::getPendingDirectoryDownloadsUnsafe(const UserPtr& aUser) const noexcept {
 	DirectoryDownloadList ret;
-	boost::algorithm::copy_if(dlDirectories, back_inserter(ret), [&](const DirectoryDownloadPtr& aDownload) {
+	ranges::copy_if(dlDirectories, back_inserter(ret), [&](const DirectoryDownloadPtr& aDownload) {
 		return aDownload->getUser() == aUser && aDownload->getState() == DirectoryDownload::State::PENDING;
 	});
 
@@ -142,7 +139,7 @@ DirectoryDownloadList DirectoryListingManager::getPendingDirectoryDownloadsUnsaf
 
 DirectoryDownloadPtr DirectoryListingManager::getDirectoryDownload(DirectoryDownloadId aId) const noexcept {
 	RLock l(cs);
-	auto i = find_if(dlDirectories, [&](const DirectoryDownloadPtr& aDownload) {
+	auto i = ranges::find_if(dlDirectories, [&](const DirectoryDownloadPtr& aDownload) {
 		return aDownload->getId() == aId;
 	});
 

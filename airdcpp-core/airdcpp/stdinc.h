@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -68,6 +68,7 @@
 #include <optional>
 #include <map>
 #include <memory>
+#include <ranges>
 #include <set>
 #include <string>
 #include <numeric>
@@ -77,26 +78,14 @@
 #include <utility>
 #include <vector>
 
-#include <boost/range/algorithm/for_each.hpp>
-#include <boost/range/algorithm_ext/for_each.hpp>
-#include <boost/range/algorithm/find_if.hpp>
-#include <boost/range/algorithm/remove_if.hpp>
-#include <boost/algorithm/cxx11/copy_if.hpp>
-
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/scoped_array.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/regex.hpp>
 
-#include <boost/range/adaptor/map.hpp>
-#include <boost/range/adaptor/reversed.hpp>
-
 namespace dcpp {
 	using namespace std;
-	using boost::adaptors::map_values;
-	using boost::adaptors::map_keys;
-	using boost::adaptors::reversed;
 	
 #ifdef _WIN32
 	inline int stricmp(const string& a, const string& b) { return _stricmp(a.c_str(), b.c_str()); }

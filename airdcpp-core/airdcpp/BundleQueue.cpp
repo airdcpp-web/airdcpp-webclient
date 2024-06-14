@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2011-2023 AirDC++ Project
+ * Copyright (C) 2011-2024 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -19,7 +19,7 @@
 #include "stdinc.h"
 
 #include <boost/range/numeric.hpp>
-#include <boost/range/algorithm/count_if.hpp>
+#include <boost/range/adaptor/map.hpp>
 
 #include "AirUtil.h"
 #include "BundleQueue.h"
@@ -30,14 +30,14 @@
 
 namespace dcpp {
 
-using boost::range::find_if;
+using ranges::find_if;
 
 BundleQueue::BundleQueue() : PrioritySearchQueue(SettingsManager::BUNDLE_SEARCH_TIME) { }
 
 BundleQueue::~BundleQueue() { }
 
 size_t BundleQueue::getTotalFiles() const noexcept {
-	return boost::accumulate(bundles | map_values, (size_t)0, [](size_t old, const BundlePtr& b) { return old + b->getQueueItems().size() + b->getFinishedFiles().size(); });
+	return boost::accumulate(bundles | boost::adaptors::map_values, (size_t)0, [](size_t old, const BundlePtr& b) { return old + b->getQueueItems().size() + b->getFinishedFiles().size(); });
 }
 
 void BundleQueue::addBundle(const BundlePtr& aBundle) noexcept {
@@ -55,7 +55,7 @@ void BundleQueue::addBundle(const BundlePtr& aBundle) noexcept {
 }
 
 void BundleQueue::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept {
-	for(auto& b: bundles | map_values) {
+	for(auto& b: bundles | views::values) {
 		const auto& sources = b->getSources();
 		auto s = find(sources.begin(), sources.end(), aUser);
 		if (s != sources.end())
@@ -209,7 +209,7 @@ BundlePtr BundleQueue::getMergeBundle(const string& aTarget) const noexcept {
 	// In case it's a file bundle
 	auto filePath = Util::getFilePath(aTarget);
 
-	for(const auto& compareBundle: bundles | map_values) {
+	for(const auto& compareBundle: bundles | views::values) {
 		dcassert(!Util::isDirectoryPath(aTarget) || !AirUtil::isSubLocal(compareBundle->getTarget(), filePath));
 
 		if (compareBundle->isFileBundle()) {
@@ -226,7 +226,7 @@ BundlePtr BundleQueue::getMergeBundle(const string& aTarget) const noexcept {
 
 void BundleQueue::getSubBundles(const string& aTarget, BundleList& retBundles_) const noexcept {
 	/* Returns bundles that are inside aTarget */
-	for(const auto& compareBundle: bundles | map_values) {
+	for(const auto& compareBundle: bundles | views::values) {
 		if (AirUtil::isSubLocal(compareBundle->getTarget(), aTarget)) {
 			retBundles_.push_back(compareBundle);
 		}
@@ -291,7 +291,7 @@ QueueItemList BundleQueue::getSearchItems(const BundlePtr& aBundle) const noexce
 
 			// We'll also get search items for parent directories that have no files directly inside them
 			// so we need to filter duplicate items as well
-			if (searchItem && find_if(searchItems, QueueItem::HashComp(searchItem->getTTH())) == searchItems.end()) {
+			if (searchItem && ranges::find_if(searchItems, QueueItem::HashComp(searchItem->getTTH())) == searchItems.end()) {
 				searchItems.push_back(searchItem);
 			}
 		}
@@ -325,7 +325,7 @@ void BundleQueue::removePathInfo(const PathInfo* aPathInfo) noexcept {
 	}
 
 	auto nameRange = dirNameMap.equal_range(Util::getLastDir(aPathInfo->path));
-	auto i = boost::find(nameRange | map_values, aPathInfo).base();
+	auto i = ranges::find(nameRange | pair_to_range | views::values, *aPathInfo).base();
 	if (i != nameRange.second) {
 		dirNameMap.erase(i);
 	}
@@ -441,13 +441,13 @@ void BundleQueue::removeBundle(const BundlePtr& aBundle) noexcept{
 	removeSearchPrio(aBundle);
 	bundles.erase(aBundle->getToken());
 
-	dcassert(bundlePaths.size() == static_cast<size_t>(boost::count_if(bundles | map_values, [](const BundlePtr& b) { return !b->isFileBundle(); })));
+	dcassert(bundlePaths.size() == static_cast<size_t>(ranges::count_if(bundles | views::values, [](const BundlePtr& b) { return !b->isFileBundle(); })));
 
 	aBundle->deleteXmlFile();
 }
 
 void BundleQueue::saveQueue(bool aForce) noexcept {
-	for(auto& b: bundles | map_values) {
+	for(auto& b: bundles | views::values) {
 		if (b->getDirty() || aForce) {
 			try {
 				b->save();

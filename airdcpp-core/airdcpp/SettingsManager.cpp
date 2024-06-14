@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -100,14 +100,13 @@ SettingsManager::EnumStringMap SettingsManager::getEnumStrings(int aKey, bool aV
 	return ret;
 }
 
+// Every profile should contain the same setting keys
 const ProfileSettingItem::List SettingsManager::profileSettings[SettingsManager::PROFILE_LAST] = {
 
-{ 
+{
 	// profile normal
 	{ SettingsManager::MULTI_CHUNK, true, ResourceManager::SEGMENTS },
-	{ SettingsManager::MAX_FILE_SIZE_SHARED, 0, ResourceManager::DONT_SHARE_BIGGER_THAN },
-	{ SettingsManager::MINIMUM_SEARCH_INTERVAL, 15, ResourceManager::MINIMUM_SEARCH_INTERVAL },
-	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
+	{ SettingsManager::MINIMUM_SEARCH_INTERVAL, 10, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	{ SettingsManager::AUTO_FOLLOW, true, ResourceManager::SETTINGS_AUTO_FOLLOW },
 #ifdef HAVE_GUI
 	{ SettingsManager::TOOLBAR_ORDER, SettingsManager::buildToolbarOrder(SettingsManager::getDefaultToolbarOrder()), ResourceManager::TOOLBAR_ORDER },
@@ -115,8 +114,7 @@ const ProfileSettingItem::List SettingsManager::profileSettings[SettingsManager:
 }, {
 	// profile RAR
 	{ SettingsManager::MULTI_CHUNK, false, ResourceManager::SEGMENTS },
-	{ SettingsManager::MINIMUM_SEARCH_INTERVAL, 10, ResourceManager::MINIMUM_SEARCH_INTERVAL },
-	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
+	{ SettingsManager::MINIMUM_SEARCH_INTERVAL, 5, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	{ SettingsManager::AUTO_FOLLOW, false, ResourceManager::SETTINGS_AUTO_FOLLOW },
 #ifdef HAVE_GUI
 	{ SettingsManager::TOOLBAR_ORDER, SettingsManager::buildToolbarOrder({
@@ -155,9 +153,7 @@ const ProfileSettingItem::List SettingsManager::profileSettings[SettingsManager:
 }, {
 	// profile LAN
 	{ SettingsManager::MULTI_CHUNK, true, ResourceManager::SEGMENTS },
-	{ SettingsManager::MAX_FILE_SIZE_SHARED, 0, ResourceManager::DONT_SHARE_BIGGER_THAN },
-	{ SettingsManager::MINIMUM_SEARCH_INTERVAL, 10, ResourceManager::MINIMUM_SEARCH_INTERVAL },
-	//{ SettingsManager::AUTO_SEARCH_LIMIT, 5 },
+	{ SettingsManager::MINIMUM_SEARCH_INTERVAL, 5, ResourceManager::MINIMUM_SEARCH_INTERVAL },
 	{ SettingsManager::AUTO_FOLLOW, true, ResourceManager::SETTINGS_AUTO_FOLLOW },
 #ifdef HAVE_GUI
 	{ SettingsManager::TOOLBAR_ORDER, SettingsManager::buildToolbarOrder(SettingsManager::getDefaultToolbarOrder()), ResourceManager::TOOLBAR_ORDER },
@@ -403,9 +399,9 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(BIND_ADDRESS, "0.0.0.0");
 	setDefault(BIND_ADDRESS6, "::");
 
-	setDefault(TCP_PORT, Util::rand(10000, 32000));
-	setDefault(UDP_PORT, Util::rand(10000, 32000));
-	setDefault(TLS_PORT, Util::rand(10000, 32000));
+	setDefault(TCP_PORT, 0);
+	setDefault(UDP_PORT, 0);
+	setDefault(TLS_PORT, 0);
 
 	setDefault(MAPPER, Mapper_MiniUPnPc::name);
 	setDefault(INCOMING_CONNECTIONS, INCOMING_ACTIVE);
@@ -1114,7 +1110,7 @@ void SettingsManager::load(StartupLoader& aLoader) noexcept {
 	auto checkBind = [&] (SettingsManager::StrSetting aSetting, bool v6) {
 		if (!isDefault(aSetting)) {
 			auto adapters = AirUtil::getNetworkAdapters(v6);
-			auto p = boost::find_if(adapters, [this, aSetting](const AdapterInfo& aInfo) { return aInfo.ip == get(aSetting); });
+			auto p = ranges::find_if(adapters, [this, aSetting](const AdapterInfo& aInfo) { return aInfo.ip == get(aSetting); });
 			if (p == adapters.end() && aLoader.messageF(STRING_F(BIND_ADDRESS_MISSING, (v6 ? "IPv6" : "IPv4") % get(aSetting)), true, false)) {
 				unsetKey(aSetting);
 			}
@@ -1155,7 +1151,7 @@ bool SettingsManager::addToHistory(const string& aString, HistoryType aType) noe
 	StringList& hist = history[aType];
 
 	// Remove existing matching item
-	auto s = boost::find(hist, aString);
+	auto s = ranges::find(hist, aString);
 	if(s != hist.end()) {
 		hist.erase(s);
 	}

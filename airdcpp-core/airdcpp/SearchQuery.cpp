@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2011-2023 AirDC++ Project
+ * Copyright (C) 2011-2024 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -41,7 +41,7 @@ double SearchQuery::getRelevanceScore(const SearchQuery& aSearch, int aLevel, bo
 		return scores / maxPoints;
 	}
 
-	dcassert(boost::find_if(positions, CompareFirst<size_t, int>(string::npos)) == positions.end());
+	dcassert(ranges::find_if(positions, CompareFirst<size_t, int>(string::npos)) == positions.end());
 
 	// check the recursion level (ignore recursions if the last item was fully matched)
 	int recursionLevel = 0;
@@ -107,7 +107,7 @@ double SearchQuery::getRelevanceScore(const SearchQuery& aSearch, int aLevel, bo
 	scores = scores / maxPoints;
 
 	// drop results with no direct matches 
-	if (recursionLevel > 0 && all_of(aSearch.getLastPositions().begin(), aSearch.getLastPositions().end(), [](size_t pos) { return pos == string::npos; })) {
+	if (recursionLevel > 0 && ranges::all_of(aSearch.getLastPositions(), [](size_t pos) { return pos == string::npos; })) {
 		scores = scores / (recursionLevel + 1);
 	}
 
@@ -366,7 +366,7 @@ bool SearchQuery::matchesAdcPath(const string& aPath, Recursion& recursion_) noe
 SearchQuery::ResultPointsList SearchQuery::getResultPositions(const string& aName) const noexcept {
 	// Do we need to use matches from a lower level?
 	auto ret = toPointList(aName);
-	if (recursion && find(lastIncludePositions, string::npos) != lastIncludePositions.end()) {
+	if (recursion && ranges::find(lastIncludePositions, string::npos) != lastIncludePositions.end()) {
 		Recursion::merge(ret, recursion);
 		return ret;
 	}

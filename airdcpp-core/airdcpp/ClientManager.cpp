@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -38,12 +38,11 @@
 #include "AdcHub.h"
 #include "NmdcHub.h"
 
-#include <boost/range/algorithm/copy.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 namespace dcpp {
 
-using boost::find_if;
+using ranges::find_if;
 
 ClientManager::ClientManager() : udp(make_unique<Socket>(Socket::TYPE_UDP)), lastOfflineUserCleanup(GET_TICK()) {
 	TimerManager::getInstance()->addListener(this);
@@ -105,7 +104,7 @@ void ClientManager::putClients() noexcept {
 
 	{
 		RLock l(cs);
-		boost::copy(clientsById | map_keys, back_inserter(tokens));
+		ranges::copy(clientsById | views::keys, back_inserter(tokens));
 	}
 
 	for (const auto& token : tokens) {
@@ -410,7 +409,7 @@ string ClientManager::findHub(const string& aIpPort, bool aNmdc) const noexcept 
 	string url;
 
 	RLock l(cs);
-	for (const auto& c: clients | map_values) {
+	for (const auto& c: clients | views::values) {
 		if (c->getIp() == ip && AirUtil::isAdcHub(c->getHubUrl()) == !aNmdc) {
 			// If exact match is found, return it
 			if (c->getPort() == port) {
@@ -440,7 +439,7 @@ HintedUser ClientManager::findLegacyUser(const string& aNick) const noexcept {
 		return HintedUser();
 
 	RLock l(cs);
-	for (const auto& i: clients | map_values) {
+	for (const auto& i: clients | views::values) {
 		if (!AirUtil::isAdcHub(i->getHubUrl())) {
 			auto nmdcHub = static_cast<NmdcHub*>(i.get());
 
@@ -614,7 +613,7 @@ void ClientManager::listProfiles(const UserPtr& aUser, ProfileTokenSet& profiles
 optional<ProfileToken> ClientManager::findProfile(UserConnection& uc, const string& aUserSID) const noexcept {
 	if (!aUserSID.empty()) {
 		RLock l(cs);
-		auto op = onlineUsers.equal_range(const_cast<CID*>(&uc.getUser()->getCID())) | map_values;
+		auto op = onlineUsers.equal_range(const_cast<CID*>(&uc.getUser()->getCID())) | pair_to_range | views::values;
 		for (const auto& ou: op) {
 			if (compare(ou->getIdentity().getSIDString(), aUserSID) == 0) {
 				uc.setHubUrl(ou->getClient()->getHubUrl());
@@ -722,7 +721,7 @@ User::UserInfoList ClientManager::getUserInfoList(const UserPtr& aUser) const no
 
 HintedUser ClientManager::checkDownloadUrl(const HintedUser& aUser) const noexcept {
 	auto userInfoList = ClientManager::getInstance()->getUserInfoList(aUser);
-	if (!userInfoList.empty() && find(userInfoList, aUser.hint) == userInfoList.end()) {
+	if (!userInfoList.empty() && ranges::find(userInfoList, aUser.hint, &User::UserHubInfo::hubUrl) == userInfoList.end()) {
 		sort(userInfoList.begin(), userInfoList.end(), User::UserHubInfo::ShareSort());
 
 		return { aUser.user, userInfoList.back().hubUrl };
@@ -807,7 +806,7 @@ bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool aAl
 	}
 
 	// Prefer the hinted hub
-	auto p = find_if(op, [&hubHint_](const pair<CID*, OnlineUser*>& ouc) { return ouc.second->getHubUrl() == hubHint_; });
+	auto p = ranges::find_if(op | pair_to_range, [&hubHint_](const auto& ouc) { return ouc.second->getHubUrl() == hubHint_; });
 	if (p != op.second && connectUser(p->second)) {
 		return true;
 	}
@@ -886,7 +885,7 @@ bool ClientManager::sendUDP(AdcCommand& cmd, const CID& aCID, bool aNoCID /*fals
 
 void ClientManager::infoUpdated() noexcept {
 	RLock l(cs);
-	for (auto c: clients | map_values) {
+	for (auto c: clients | views::values) {
 		if (c->isConnected()) {
 			c->info();
 		}
@@ -895,7 +894,7 @@ void ClientManager::infoUpdated() noexcept {
 
 void ClientManager::userUpdated(const UserPtr& aUser) const noexcept {
 	RLock l(cs);
-	auto op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID())) | map_values;
+	auto op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID())) | pair_to_range | views::values;
 	for (const auto& ou : op) {
 		ou->getClient()->callAsync([=] {
 			ou->getClient()->updated(ou);
@@ -908,7 +907,7 @@ pair<size_t, size_t> ClientManager::countAschSupport(const OrderedStringSet& aHu
 	size_t total = 0;
 
 	RLock l(cs);
-	for (const auto& u : onlineUsers | map_values) {
+	for (const auto& u : onlineUsers | views::values) {
 		if (!u->getUser()->isSet(User::BOT) && aHubUrls.find(u->getHubUrl()) != aHubUrls.end()) {
 			total++;
 			if (u->getUser()->isSet(User::ASCH))
@@ -1020,7 +1019,7 @@ bool ClientManager::cancelSearch(const void* aOwner) noexcept {
 
 	{
 		RLock l(cs);
-		for (const auto& c : clients | map_values) {
+		for (const auto& c : clients | views::values) {
 			if (c->cancelSearch(aOwner)) {
 				ret = true;
 			}
@@ -1035,7 +1034,7 @@ optional<uint64_t> ClientManager::getMaxSearchQueueTime(const void* aOwner) cons
 
 	{
 		RLock l(cs);
-		for (const auto& c : clients | map_values) {
+		for (const auto& c : clients | views::values) {
 			auto t = c->getQueueTime(aOwner);
 			if (t) {
 				maxTime = maxTime ? max(*t, *maxTime) : *t;
@@ -1047,7 +1046,7 @@ optional<uint64_t> ClientManager::getMaxSearchQueueTime(const void* aOwner) cons
 }
 
 bool ClientManager::hasSearchQueueOverflow() const noexcept {
-	return find_if(clients | map_values, [](const ClientPtr& aClient) {
+	return find_if(clients | views::values, [](const ClientPtr& aClient) {
 		return aClient->hasSearchOverflow();
 	}).base() != clients.end();
 }
@@ -1057,7 +1056,7 @@ int ClientManager::getMaxSearchQueueSize() const noexcept {
 
 	{
 		RLock l(cs);
-		for (const auto& c : clients | map_values) {
+		for (const auto& c : clients | views::values) {
 			auto s = c->getSearchQueueSize();
 			if (s) {
 				maxSize = maxSize ? max(s, maxSize) : s;
@@ -1091,7 +1090,7 @@ OnlineUserList ClientManager::searchNicks(const string& aPattern, size_t aMaxRes
 
 	{
 		RLock l(cs);
-		for (const auto& c: clients | map_values) {
+		for (const auto& c: clients | views::values) {
 			if (find(aHubUrls.begin(), aHubUrls.end(), c->getHubUrl()) == aHubUrls.end()) {
 				continue;
 			}
@@ -1113,7 +1112,7 @@ OnlineUserList ClientManager::searchNicks(const string& aPattern, size_t aMaxRes
 
 void ClientManager::getOnlineClients(StringList& onlineClients_) const noexcept {
 	RLock l (cs);
-	for (const auto& c: clients | map_values) {
+	for (const auto& c: clients | views::values) {
 		if (c->isConnected())
 			onlineClients_.push_back(c->getHubUrl());
 	}
@@ -1142,7 +1141,7 @@ void ClientManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 
 	RLock l (cs);
-	for(auto c: clients | map_values)
+	for(auto c: clients | views::values)
 		c->info();
 }
 
@@ -1153,7 +1152,7 @@ optional<ClientManager::ClientStats> ClientManager::getClientStats() const noexc
 	{
 		RLock l(cs);
 		map<CID, OnlineUser*> uniqueUserMap;
-		for (const auto& ou : onlineUsers | map_values) {
+		for (const auto& ou : onlineUsers | views::values) {
 			uniqueUserMap.emplace(ou->getUser()->getCID(), ou);
 		}
 
@@ -1164,7 +1163,7 @@ optional<ClientManager::ClientStats> ClientManager::getClientStats() const noexc
 		}
 
 		// User counts
-		for (const auto& ou : uniqueUserMap | map_values) {
+		for (const auto& ou : uniqueUserMap | views::values) {
 			stats.totalShare += Util::toInt64(ou->getIdentity().getShareSize());
 			if (ou->isHidden()) {
 				stats.hiddenUsers++;
@@ -1210,7 +1209,7 @@ optional<ClientManager::ClientStats> ClientManager::getClientStats() const noexc
 		}
 
 		// Client counts
-		for (const auto& ou : uniqueUserMap | map_values) {
+		for (const auto& ou : uniqueUserMap | views::values) {
 			auto app = ou->getIdentity().getApplication();
 			auto pos = app.find(" ");
 
@@ -1394,7 +1393,7 @@ bool ClientManager::connectADCSearchResult(const CID& aCID, string& token_, stri
 	if(slash == string::npos) { return false; }
 
 	auto uniqueId = Util::toUInt32(token_.substr(0, slash));
-	auto client = find_if(clients | map_values, [uniqueId](const ClientPtr& c) { return c->getToken() == uniqueId; });
+	auto client = find_if(clients | views::values, [uniqueId](const ClientPtr& c) { return c->getToken() == uniqueId; });
 	if(client.base() == clients.end()) { return false; }
 	hubUrl_ = (*client)->getHubUrl();
 

@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -61,6 +61,15 @@ private:
 	CompareSecond& operator=(const CompareSecond&) = delete;
 	const T2& a;
 };
+
+struct pair_to_range_t {
+	template <typename I>
+	friend constexpr auto operator|(std::pair<I, I> const& pr, pair_to_range_t) {
+		return std::ranges::subrange(pr.first, pr.second);
+	}
+};
+
+inline constexpr pair_to_range_t pair_to_range{};
 
 /** 
  * Compares two values
@@ -343,6 +352,7 @@ public:
 	static time_t toTimeT(const string& aString) noexcept {
 		return static_cast<time_t>(toInt64(aString));
 	}
+	static time_t parseRemoteFileItemDate(const string& aString) noexcept;
 
 	static int toInt(const string& aString) noexcept {
 		return atoi(aString.c_str());

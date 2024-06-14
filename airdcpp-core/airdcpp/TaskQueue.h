@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -66,7 +66,7 @@ public:
 
 	bool addUnique(uint8_t type, std::unique_ptr<Task> && data) { 
 		Lock l(cs);
-		auto p = boost::find_if(tasks, [type, this](const UniqueTaskPair& tp) { return tp.first == type; });
+		auto p = ranges::find_if(tasks, [type, this](const UniqueTaskPair& tp) { return tp.first == type; });
 		if (p == tasks.end()) {
 			tasks.emplace_back(type, std::move(data));
 			return true;
