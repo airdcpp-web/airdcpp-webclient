@@ -45,13 +45,13 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install cmake nodejs python3 pkg-config libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev \
-            libmaxminddb-dev libleveldb-dev libboost1.74-dev libboost-regex1.74 libboost-thread1.74 libboost-system1.74
+            libmaxminddb-dev libleveldb-dev libboost1.74-dev libboost-regex1.74 libboost-thread1.74 libboost-system1.74 nlohmann-json3-dev
 
     - name: Install dependencies on macOS
       if: ${{ runner.os == 'macOS' }}
       run: |
         brew upgrade
-        brew install boost libmaxminddb leveldb libnatpmp miniupnpc openssl pkg-config tbb
+        brew install boost libmaxminddb leveldb libnatpmp miniupnpc openssl pkg-config tbb nlohmann-json
         export OPENSSL_ROOT_DIR=/usr/local/opt/openssl/
 
     - name: Install websocketpp
