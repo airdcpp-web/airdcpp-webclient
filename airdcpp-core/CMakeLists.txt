@@ -88,13 +88,8 @@ ${OPENSSL_LIBRARIES} ${ICONV_LIBRARIES} ${airdcpp_extra_libs} ${UPNP} ${Boost_LI
 
 set_target_properties(airdcpp PROPERTIES VERSION ${SOVERSION} OUTPUT_NAME "airdcpp")
 
-#set_target_properties(airdcpp PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "airdcpp/stdinc.h")
-#if (COMMAND cotire)
-#  cotire(airdcpp)
-#endif()
 target_precompile_headers(airdcpp PUBLIC
-  "$<$<COMPILE_LANGUAGE:CXX>:stdinc.h>"
-  #"$<$<COMPILE_LANGUAGE:CXX>:<airdcpp/stdinc.h$<ANGLE-R>>"
+  "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/airdcpp/stdinc.h>"
 )
 
 
