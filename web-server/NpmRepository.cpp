@@ -59,7 +59,7 @@ namespace webserver {
 		}));
 
 		WLock l(cs);
-		auto ret = httpDownloads.emplace(aName, make_shared<HttpDownload>(url, [=]() {
+		auto ret = httpDownloads.emplace(aName, make_shared<HttpDownload>(url, [=, this]() {
 			onPackageInfoDownloaded(aName, aCurrentVersion);
 		}, options));
 	}

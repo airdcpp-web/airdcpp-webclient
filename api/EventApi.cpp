@@ -80,7 +80,7 @@ namespace webserver {
 
 	void EventApi::on(LogManagerListener::Message, const LogMessagePtr& aMessageData) noexcept {
 		// Avoid deadlocks if the event is fired from inside a lock
-		addAsyncTask([=] {
+		addAsyncTask([this, aMessageData] {
 			if (subscriptionActive("event_message")) {
 				send("event_message", MessageUtils::serializeLogMessage(aMessageData));
 			}

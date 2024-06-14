@@ -53,7 +53,7 @@ namespace webserver {
 
 		if (dl->isLoaded()) {
 			auto start = GET_TICK();
-			addListTask([=] {
+			addListTask([this, start] {
 				updateItems(dl->getCurrentLocationInfo().directory->getAdcPath());
 				dcdebug("Filelist %s was loaded in " I64_FMT " milliseconds\n", dl->getNick(false).c_str(), GET_TICK() - start);
 			});

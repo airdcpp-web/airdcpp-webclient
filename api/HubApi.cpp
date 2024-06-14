@@ -220,7 +220,7 @@ namespace webserver {
 	// Use async tasks because adding/removing HubInfos require calls to ClientListener (which is likely 
 	// to cause deadlocks if done inside ClientManagerListener)
 	void HubApi::on(ClientManagerListener::ClientCreated, const ClientPtr& aClient) noexcept {
-		addAsyncTask([=] {
+		addAsyncTask([this, aClient] {
 			addHub(aClient);
 			if (!subscriptionActive("hub_created")) {
 				return;
@@ -231,7 +231,7 @@ namespace webserver {
 	}
 
 	void HubApi::on(ClientManagerListener::ClientRemoved, const ClientPtr& aClient) noexcept {
-		addAsyncTask([=] {
+		addAsyncTask([this, aClient] {
 			removeSubModule(aClient->getToken());
 
 			if (!subscriptionActive("hub_removed")) {
