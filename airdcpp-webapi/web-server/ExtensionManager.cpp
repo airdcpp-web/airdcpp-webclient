@@ -328,7 +328,7 @@ namespace webserver {
 		fire(ExtensionManagerListener::InstallationStarted(), aInstallId);
 
 		WLock l(cs);
-		auto ret = httpDownloads.emplace(aUrl, make_shared<HttpDownload>(aUrl, [=]() {
+		auto ret = httpDownloads.emplace(aUrl, make_shared<HttpDownload>(aUrl, [=, this]() {
 			onExtensionDownloadCompleted(aInstallId, aUrl, aSha1);
 		}));
 
@@ -588,7 +588,7 @@ namespace webserver {
 		if (aExitCode == EXIT_CODE_TIMEOUT || aExitCode == EXIT_CODE_IO_ERROR || aExitCode == EXIT_CODE_TEMP_ERROR) {
 			// Attempt to restart it (but outside of extension's timer thread)
 			auto name = aExtension->getName();
-			wsm->addAsyncTask([=] {
+			wsm->addAsyncTask([=, this] {
 				// Wait for the log file handles to get closed
 				Thread::sleep(3000);
 

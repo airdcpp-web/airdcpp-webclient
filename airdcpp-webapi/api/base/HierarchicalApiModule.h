@@ -236,7 +236,7 @@ namespace webserver {
 		Callback getAsyncWrapper(Callback&& aTask) noexcept override {
 			auto sessionId = session->getId();
 			auto moduleId = getId();
-			return [=] {
+			return [=, this] {
 				return moduleAsyncRunWrapper(aTask, parentModule, moduleId, sessionId);
 			};
 		}

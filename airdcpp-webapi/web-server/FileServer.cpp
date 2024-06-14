@@ -307,7 +307,7 @@ namespace webserver {
 		auto downloadId = proxyDownloadCounter++;
 		auto download = std::make_shared<HttpDownload>(
 			proxyUrl,
-			[=]() {
+			[=, this]() {
 				onProxyDownloadCompleted(downloadId, completionHandler);
 			}
 		);
