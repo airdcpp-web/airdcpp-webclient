@@ -1,8 +1,8 @@
 project(airdcppd)
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.16)
 
 aux_source_directory(${PROJECT_SOURCE_DIR} airdcppd_SRCS)
-include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${Boost_INCLUDE_DIRS} ${websocketpp_INCLUDE_DIR})
 
 if (Backtrace_FOUND)
   set_property(SOURCE ${PROJECT_SOURCE_DIR}/main.cpp PROPERTY COMPILE_DEFINITIONS USE_STACKTRACE)

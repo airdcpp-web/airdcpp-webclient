@@ -1,5 +1,5 @@
 project(airdcpp-webapi)
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.16)
 # ######### General setup ##########
 
 file (GLOB webapi_hdrs ${PROJECT_SOURCE_DIR}/*.h)
@@ -20,10 +20,15 @@ endif()
 target_link_libraries (airdcpp-webapi airdcpp ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES})
 set_target_properties(airdcpp-webapi PROPERTIES VERSION ${SOVERSION} OUTPUT_NAME "airdcpp-webapi")
 
-set_target_properties(airdcpp-webapi PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdinc.h")
-if (COMMAND cotire)
-  cotire(airdcpp-webapi)
-endif()
+#set_target_properties(airdcpp-webapi PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdinc.h")
+#if (COMMAND cotire)
+#  cotire(airdcpp-webapi)
+#endif()
+
+target_precompile_headers(airdcpp-webapi PUBLIC
+  "$<$<COMPILE_LANGUAGE:CXX>:stdinc.h>"
+  "$<$<COMPILE_LANGUAGE:CXX>:<airdcpp/stdinc.h$<ANGLE-R>>"
+)
 
 if (APPLE)
   set (LIBDIR1 .)

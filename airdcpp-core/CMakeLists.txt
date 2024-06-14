@@ -1,6 +1,6 @@
 project (airdcpp)
 include_directories(${PROJECT_BINARY_DIR})
-cmake_minimum_required (VERSION 3.0.2)
+cmake_minimum_required (VERSION 3.16)
 
 aux_source_directory(${PROJECT_SOURCE_DIR}/airdcpp airdcpp_srcs)
 file (GLOB airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/*.h)
@@ -88,11 +88,14 @@ ${OPENSSL_LIBRARIES} ${ICONV_LIBRARIES} ${airdcpp_extra_libs} ${UPNP} ${Boost_LI
 
 set_target_properties(airdcpp PROPERTIES VERSION ${SOVERSION} OUTPUT_NAME "airdcpp")
 
-set_target_properties(airdcpp PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "airdcpp/stdinc.h")
-if (COMMAND cotire)
-  cotire(airdcpp)
-endif()
-
+#set_target_properties(airdcpp PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "airdcpp/stdinc.h")
+#if (COMMAND cotire)
+#  cotire(airdcpp)
+#endif()
+target_precompile_headers(airdcpp PUBLIC
+  "$<$<COMPILE_LANGUAGE:CXX>:stdinc.h>"
+  #"$<$<COMPILE_LANGUAGE:CXX>:<airdcpp/stdinc.h$<ANGLE-R>>"
+)
 
 
 #if (WIN32)

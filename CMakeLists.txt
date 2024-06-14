@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.12)
+cmake_minimum_required (VERSION 3.16)
 project (airdcpp-webclient)
 
 if (APPLE)
@@ -22,7 +22,6 @@ include (CheckFunctionExists)
 include (FindPkgConfig)
 include (CheckCXXSourceCompiles)
 include (cmake/CheckAtomic.cmake)
-include (cmake/cotire.cmake)
 
 
 # PRE-CHECKS
