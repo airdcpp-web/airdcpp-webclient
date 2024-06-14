@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -190,9 +190,9 @@ namespace webserver {
 	}
 
 	map<int, CoreSettingItem::MinMax> minMaxMappings = {
-		{ SettingsManager::TCP_PORT, { 1, 65535 } },
-		{ SettingsManager::UDP_PORT, { 1, 65535 } },
-		{ SettingsManager::TLS_PORT, { 1, 65535 } },
+		{ SettingsManager::TCP_PORT, { 0, 65535 } },
+		{ SettingsManager::UDP_PORT, { 0, 65535 } },
+		{ SettingsManager::TLS_PORT, { 0, 65535 } },
 		{ SettingsManager::SOCKS_PORT, { 1, 65535 } },
 
 		{ SettingsManager::MAX_HASHING_THREADS, { 1, 100 } },

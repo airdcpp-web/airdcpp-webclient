@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -27,8 +27,6 @@
 #include <airdcpp/QueueManager.h>
 #include <airdcpp/DownloadManager.h>
 #include <airdcpp/SearchManager.h>
-
-#include <boost/range/algorithm/copy.hpp>
 
 
 
@@ -247,7 +245,7 @@ namespace webserver {
 		auto qm = QueueManager::getInstance();
 
 		RLock l(qm->getCS());
-		boost::range::copy(qm->getBundlesUnsafe() | map_values, back_inserter(bundles));
+		ranges::copy(qm->getBundlesUnsafe() | views::values, back_inserter(bundles));
 		return bundles;
 	}
 
@@ -256,7 +254,7 @@ namespace webserver {
 		auto qm = QueueManager::getInstance();
 
 		RLock l(qm->getCS());
-		boost::range::copy(qm->getFileQueueUnsafe() | map_values, back_inserter(items));
+		ranges::copy(qm->getFileQueueUnsafe() | views::values, back_inserter(items));
 		return items;
 	}
 

@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -105,7 +105,7 @@ namespace webserver {
 		}
 
 		WLock l(cs);
-		dcassert(all_of(extensions.begin(), extensions.end(), [](const ExtensionPtr& aExtension) { return !aExtension->getSession(); }));
+		dcassert(ranges::all_of(extensions, [](const ExtensionPtr& aExtension) { return !aExtension->getSession(); }));
 		extensions.clear();
 	}
 
@@ -242,7 +242,7 @@ namespace webserver {
 		while (GET_TICK() < timeout) {
 			{
 				RLock l(cs);
-				if (all_of(extensions.begin(), extensions.end(), isReady)) {
+				if (ranges::all_of(extensions, isReady)) {
 					return true;
 				}
 			}
@@ -699,7 +699,7 @@ namespace webserver {
 #ifdef _WIN32
 				string testCommand = "where";
 #else
-				string testCommand = "which";
+				string testCommand = "command -v";
 #endif
 				testCommand += " " + token;
 
