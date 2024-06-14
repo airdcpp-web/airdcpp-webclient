@@ -47,7 +47,9 @@
 # endif
 #endif
 
+#ifdef _WIN32
 #include <openssl/applink.c>
+#endif
 
 namespace dcpp {
 

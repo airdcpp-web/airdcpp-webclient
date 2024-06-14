@@ -85,7 +85,7 @@ void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 	}
 
 	if(sock) {
-		destroySocket([=] { // Ensure that the pointer won't be deleted too early
+		destroySocket([=, this] { // Ensure that the pointer won't be deleted too early
 			sock = nullptr;
 
 			// Users store a reference that prevents the client from being deleted

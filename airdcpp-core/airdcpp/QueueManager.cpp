@@ -90,7 +90,7 @@ void QueueManager::shutdown() noexcept {
 				bl.push_back(b);
 			}
 		}
-		for_each(bl.begin(), bl.end(), [=](BundlePtr& b) { bundleQueue.removeBundle(b); });
+		for_each(bl.begin(), bl.end(), [=, this](BundlePtr& b) { bundleQueue.removeBundle(b); });
 	}
 
 	saveQueue(false);
@@ -1492,7 +1492,7 @@ void QueueManager::renameDownloadedFile(const string& source, const string& targ
 		}
 	}
 
-	tasks.addTask([=] {
+	tasks.addTask([=, this] {
 		// Handle the results later...
 		runFileCompletionHooks(aQI);
 
@@ -1595,7 +1595,7 @@ void QueueManager::shareBundle(BundlePtr aBundle, bool aSkipValidations) noexcep
 	if (aBundle->getStatus() == Bundle::STATUS_SHARED)
 		return;
 
-	tasks.addTask([=] {
+	tasks.addTask([=, this] {
 		if (!aSkipValidations && !runBundleCompletionHooks(aBundle)) {
 			return;
 		}
@@ -1702,7 +1702,7 @@ void QueueManager::onDownloadError(const BundlePtr& aBundle, const string& aErro
 
 	//Pause bundle, to give other bundles a chance to get downloaded...
 	if (aBundle->getStatus() == Bundle::STATUS_QUEUED || aBundle->getStatus() == Bundle::STATUS_DOWNLOAD_ERROR) {
-		tasks.addTask([=] { setBundlePriority(aBundle, Priority::PAUSED_FORCE, false); });
+		tasks.addTask([=, this] { setBundlePriority(aBundle, Priority::PAUSED_FORCE, false); });
 	}
 
 	aBundle->setError(aError);
@@ -2819,7 +2819,7 @@ void QueueManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noex
 			}
 			rl.push_back(sr);
 		}
-		delayEvents.addEvent(selQI->getToken(), [=] { pickMatchHooked(selQI); }, 2000);
+		delayEvents.addEvent(selQI->getToken(), [=, this] { pickMatchHooked(selQI); }, 2000);
 	}
 }
 
@@ -3039,7 +3039,7 @@ void QueueManager::checkResumeBundles() noexcept {
 }
 
 void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
-	tasks.addTask([=] {
+	tasks.addTask([=, this] {
 		if ((lastXmlSave + 10000) < aTick) {
 			saveQueue(false);
 			lastXmlSave = aTick;
@@ -3066,7 +3066,7 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 }
 
 void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
-	tasks.addTask([=] {
+	tasks.addTask([=, this] {
 		requestPartialSourceInfo(aTick);
 		searchAlternates(aTick);
 		checkResumeBundles();
@@ -3615,8 +3615,8 @@ void QueueManager::addBundleUpdate(const BundlePtr& aBundle) noexcept{
 	Add as Task to fix Deadlock!!
 	handleBundleUpdate(..) has a Lock and this function is called inside a Lock, while delayEvents has its own locking for add/execute functions.
 	*/
-	tasks.addTask([=] { 
-		delayEvents.addEvent(aBundle->getToken(), [=] { 
+	tasks.addTask([=, this] {
+		delayEvents.addEvent(aBundle->getToken(), [=, this] {
 			handleBundleUpdate(aBundle->getToken()); 
 		}, aBundle->isSet(Bundle::FLAG_SCHEDULE_SEARCH) ? 10000 : 1000); 
 	});
@@ -3678,8 +3678,8 @@ void QueueManager::removeBundleItem(const QueueItemPtr& qi, bool aFinished) noex
 		}
 	} else if (!aFinished ) {
 		//Delay event to prevent multiple scans when removing files...
-		delayEvents.addEvent(bundle->getToken(), [=] { 
-			tasks.addTask([=] {
+		delayEvents.addEvent(bundle->getToken(), [=, this] {
+			tasks.addTask([=, this] {
 				if (!checkBundleFinishedHooked(bundle)) {
 					bundle->setFlag(Bundle::FLAG_UPDATE_SIZE);
 					addBundleUpdate(bundle);

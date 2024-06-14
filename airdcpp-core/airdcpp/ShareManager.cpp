@@ -107,7 +107,7 @@ void ShareManager::startup(StartupLoader& aLoader) noexcept {
 		refreshed = true;
 	}
 
-	addAsyncTask([=] {
+	addAsyncTask([=, this] {
 		TimerManager::getInstance()->addListener(this);
 
 		if (SETTING(STARTUP_REFRESH) && !refreshed) {

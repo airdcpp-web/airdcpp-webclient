@@ -114,13 +114,13 @@ OptionalProfileToken DirectoryListing::getShareProfile() const noexcept {
 }
 
 void DirectoryListing::addHubUrlChangeTask(const string& aHubUrl) noexcept {
-	addAsyncTask([=] {
+	addAsyncTask([=, this] {
 		setHubUrlImpl(aHubUrl);
 	});
 }
 
 void DirectoryListing::addShareProfileChangeTask(ProfileToken aProfile) noexcept {
-	addAsyncTask([=] {
+	addAsyncTask([=, this] {
 		setShareProfileImpl(aProfile);
 	});
 }
@@ -217,7 +217,7 @@ void DirectoryListing::setDirectoryLoadingState(const Directory::Ptr& aDir, Dire
 }
 
 void DirectoryListing::onStateChanged() noexcept {
-	addAsyncTask([=]() { fire(DirectoryListingListener::StateChanged()); });
+	addAsyncTask([=, this]() { fire(DirectoryListingListener::StateChanged()); });
 }
 
 DirectoryListing::Directory::Ptr DirectoryListing::createBaseDirectory(const string& aBasePath, time_t aDownloadDate) noexcept {
@@ -918,37 +918,37 @@ void DirectoryListing::checkShareDupes() noexcept {
 }
 
 void DirectoryListing::addListDiffTask(const string& aFile, bool aOwnList) noexcept {
-	addAsyncTask([=] { listDiffImpl(aFile, aOwnList); });
+	addAsyncTask([=, this] { listDiffImpl(aFile, aOwnList); });
 }
 
 void DirectoryListing::addPartialListLoadTask(const string& aXml, const string& aBase, bool aBackgroundTask /*false*/, const AsyncF& aCompletionF) noexcept {
 	dcassert(!aBase.empty() && aBase.front() == ADC_SEPARATOR);
-	addAsyncTask([=] { loadPartialImpl(aXml, aBase, aBackgroundTask, aCompletionF); });
+	addAsyncTask([=, this] { loadPartialImpl(aXml, aBase, aBackgroundTask, aCompletionF); });
 }
 
 void DirectoryListing::addOwnListLoadTask(const string& aBase, bool aBackgroundTask /*false*/) noexcept {
 	dcassert(!aBase.empty() && aBase.front() == ADC_SEPARATOR);
-	addAsyncTask([=] { loadPartialImpl(Util::emptyString, aBase, aBackgroundTask, nullptr); });
+	addAsyncTask([=, this] { loadPartialImpl(Util::emptyString, aBase, aBackgroundTask, nullptr); });
 }
 
 void DirectoryListing::addFullListTask(const string& aDir) noexcept {
-	addAsyncTask([=] { loadFileImpl(aDir); });
+	addAsyncTask([=, this] { loadFileImpl(aDir); });
 }
 
 void DirectoryListing::addQueueMatchTask() noexcept {
-	addAsyncTask([=] { matchQueueImpl(); });
+	addAsyncTask([=, this] { matchQueueImpl(); });
 }
 
 void DirectoryListing::close() noexcept {
 	closing = true;
-	tasks.stop([=] {
+	tasks.stop([=, this] {
 		fire(DirectoryListingListener::Close());
 	});
 }
 
 void DirectoryListing::addSearchTask(const SearchPtr& aSearch) noexcept {
 	dcassert(Util::isAdcDirectoryPath(aSearch->path));
-	addAsyncTask([=] { searchImpl(aSearch); });
+	addAsyncTask([=, this] { searchImpl(aSearch); });
 }
 
 void DirectoryListing::addAsyncTask(Callback&& f) noexcept {
@@ -1158,7 +1158,7 @@ void DirectoryListing::onUserUpdated(const UserPtr& aUser) noexcept {
 		return;
 	}
 
-	addAsyncTask([=] { fire(DirectoryListingListener::UserUpdated()); });
+	addAsyncTask([=, this] { fire(DirectoryListingListener::UserUpdated()); });
 }
 
 void DirectoryListing::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcept {
@@ -1255,7 +1255,7 @@ bool DirectoryListing::nextResult(bool prev) noexcept {
 }
 
 void DirectoryListing::addDirectoryChangeTask(const string& aPath, DirectoryLoadType aType, bool aForceQueue) noexcept {
-	addAsyncTask([=] {
+	addAsyncTask([=, this] {
 		changeDirectoryImpl(aPath, aType, aForceQueue);
 	});
 }
@@ -1272,7 +1272,7 @@ void DirectoryListing::setRead() noexcept {
 		return;
 	}
 
-	addAsyncTask([=] {
+	addAsyncTask([=, this] {
 		read = true;
 		fire(DirectoryListingListener::Read());
 	});
@@ -1280,7 +1280,7 @@ void DirectoryListing::setRead() noexcept {
 
 void DirectoryListing::onListRemovedQueue(const string& aTarget, const string& aDir, bool aFinished) noexcept {
 	if (!aFinished) {
-		addAsyncTask([=] {
+		addAsyncTask([=, this] {
 			auto dir = findDirectory(aDir);
 			if (dir) {
 				setDirectoryLoadingState(dir, DirectoryLoadType::NONE);

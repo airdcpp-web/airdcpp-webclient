@@ -884,7 +884,7 @@ void AdcHub::handle(AdcCommand::TCP, AdcCommand& c) noexcept {
 
 	statusMessage(STRING_F(HBRI_VALIDATING_X, (v6 ? "IPv6" : "IPv4")), LogMessage::SEV_INFO);
 	stopValidation = false;
-	hbriThread.reset(new std::thread([=] { sendHBRI(hbriHubUrl, hbriPort, token, v6); }));
+	hbriThread.reset(new std::thread([=, this] { sendHBRI(hbriHubUrl, hbriPort, token, v6); }));
 }
 
 void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aToken, bool v6) {
