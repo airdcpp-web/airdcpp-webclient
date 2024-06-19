@@ -382,4 +382,12 @@ namespace webserver {
 	void MenuApi::on(ContextMenuManagerListener::ExtensionMenuSelected, const vector<string>& aSelectedIds, const ContextMenuItemClickData& aClickData) noexcept {
 		onMenuItemSelected("extension", aSelectedIds, aClickData);
 	}
+
+	void MenuApi::on(HubMessageHighlightMenuSelected, const vector<uint32_t>& aSelectedIds, const ClientPtr& aClient, const ContextMenuItemClickData& aClickData) noexcept {
+		onMenuItemSelected("hub_message_highlight", aSelectedIds, aClickData, aClient->getToken());
+	}
+
+	void MenuApi::on(PrivateChatMessageHighlightMenuSelected, const vector<uint32_t>& aSelectedIds, const PrivateChatPtr& aChat, const ContextMenuItemClickData& aClickData) noexcept {
+		onMenuItemSelected("private_chat_message_highlight", aSelectedIds, aClickData, aChat->getToken());
+	}
 }
