@@ -149,13 +149,17 @@ namespace webserver {
 		void on(ContextMenuManagerListener::TransferMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData& aClickData) noexcept override;
 		void on(ContextMenuManagerListener::ShareRootMenuSelected, const vector<TTHValue>&, const ContextMenuItemClickData& aClickData) noexcept override;
 		void on(ContextMenuManagerListener::FavoriteHubMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::ExtensionMenuSelected, const vector<string>&, const ContextMenuItemClickData& aClickData) noexcept override;
+
 		void on(ContextMenuManagerListener::UserMenuSelected, const vector<CID>&, const ContextMenuItemClickData& aClickData) noexcept override;
 		void on(ContextMenuManagerListener::HintedUserMenuSelected, const vector<HintedUser>&, const ContextMenuItemClickData& aClickData) noexcept override;
-		void on(ContextMenuManagerListener::ExtensionMenuSelected, const vector<string>&, const ContextMenuItemClickData& aClickData) noexcept override;
 
 		void on(ContextMenuManagerListener::GroupedSearchResultMenuSelected, const vector<TTHValue>& aSelectedIds, const SearchInstancePtr& aInstance, const ContextMenuItemClickData& aClickData) noexcept override;
 		void on(ContextMenuManagerListener::FilelistItemMenuSelected, const vector<uint32_t>& aSelectedIds, const DirectoryListingPtr& aList, const ContextMenuItemClickData& aClickData) noexcept override;
 		void on(ContextMenuManagerListener::HubUserMenuSelected, const vector<uint32_t>&, const ClientPtr& aClient, const ContextMenuItemClickData& aClickData) noexcept override;
+
+		void on(HubMessageHighlightMenuSelected, const vector<uint32_t>&, const ClientPtr& aClient, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(PrivateChatMessageHighlightMenuSelected, const vector<uint32_t>&, const PrivateChatPtr& aChat, const ContextMenuItemClickData& aClickData) noexcept override;
 
 		void onMenuItemSelected(const string& aMenuId, const json& aSelectedIds, const ContextMenuItemClickData& aClickData, const json& aEntityId = nullptr) noexcept;
 	};
