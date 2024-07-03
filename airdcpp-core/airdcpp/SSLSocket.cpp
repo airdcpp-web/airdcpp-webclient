@@ -194,16 +194,23 @@ int SSLSocket::checkSSL(int ret) {
 		default:
 			//display the cert errors as first choice, if the error is not the certs display the error from the ssl.
 			auto sys_err = ERR_get_error();
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+			if (err == SSL_ERROR_SSL && ERR_GET_REASON(sys_err) == SSL_R_UNEXPECTED_EOF_WHILE_READING) {
+				throw SSLSocketException(STRING(TLS_ERROR) + ": " + STRING(CONNECTION_CLOSED));
+			}
+#endif
+
 			string _error;
 			int v_err = SSL_get_verify_result(ssl);
 			if (v_err == X509_V_ERR_APPLICATION_VERIFICATION) {
 				_error = STRING(KEYPRINT_MISMATCH);
-			}
-			else if (v_err != X509_V_OK) {
+			} else if (v_err != X509_V_OK) {
 				_error = X509_verify_cert_error_string(v_err);
 			} else {
 				_error = ERR_error_string(sys_err, NULL);
 			}
+
 			dcdebug("TLS error: call ret = %d, SSL_get_error = %d, ERR_get_error = %lu,ERROR string: %s \n", ret, err, sys_err, ERR_error_string(sys_err, NULL));
 			throw SSLSocketException(STRING(TLS_ERROR) + (_error.empty() ? "" : + ": " + _error));
 		}
