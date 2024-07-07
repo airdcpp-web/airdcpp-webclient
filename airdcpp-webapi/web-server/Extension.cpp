@@ -77,6 +77,9 @@ namespace webserver {
 		try {
 			const json packageJson = json::parse(packageStr);
 
+			const string packageEntry = packageJson.at("main");
+			entry = packageEntry;
+
 			initializeThrow(packageJson);
 		} catch (const std::exception& e) {
 			throw Exception("Could not parse package.json (" + string(e.what()) + ")");
@@ -91,7 +94,6 @@ namespace webserver {
 		// Required fields
 		const string packageName = aJson.at("name");
 		const string packageDescription = aJson.at("description");
-		const string packageEntry = aJson.at("main");
 		const string packageVersion = aJson.at("version");
 
 		{
@@ -108,7 +110,6 @@ namespace webserver {
 
 		name = packageName;
 		description = packageDescription;
-		entry = packageEntry;
 		version = packageVersion;
 
 		// Optional fields
