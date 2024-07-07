@@ -1,9 +1,9 @@
 /* 
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -34,6 +34,7 @@
 #include <cmath>
 
 #include <boost/range/numeric.hpp>
+#include <boost/range/adaptor/map.hpp>
 
 
 // some strange mac definition
@@ -77,7 +78,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 
 	{
 		RLock l(cs);
-		for (auto& b : bundles | map_values) {
+		for (auto& b : bundles | views::values) {
 			if (b->onDownloadTick(UBNList)) {
 				bundleTicks.push_back(b);
 			}
@@ -226,7 +227,7 @@ void DownloadManager::addConnection(UserConnection* conn) {
 
 void DownloadManager::getRunningBundles(QueueTokenSet& bundles_) const noexcept {
 	RLock l(cs);
-	for (const auto& b : bundles | map_values) {
+	for (const auto& b : bundles | views::values) {
 		// we need to check this to ignore previous bundles for running connections 
 		// (non-running bundles are removed only when no next download was found)
 		if (b->getDownloads().empty())
@@ -235,7 +236,7 @@ void DownloadManager::getRunningBundles(QueueTokenSet& bundles_) const noexcept 
 		// these won't be included in the running bundle limit
 		if (b->getPriority() == Priority::HIGHEST)
 			continue;
-		if (all_of(b->getDownloads().begin(), b->getDownloads().end(), Flags::IsSet(Download::FLAG_HIGHEST_PRIO)))
+		if (ranges::all_of(b->getDownloads(), Flags::IsSet(Download::FLAG_HIGHEST_PRIO)))
 			continue;
 
 		bundles_.insert(b->getToken());
@@ -244,7 +245,7 @@ void DownloadManager::getRunningBundles(QueueTokenSet& bundles_) const noexcept 
 
 size_t DownloadManager::getRunningBundleCount() const noexcept {
 	RLock l(cs);
-	auto ret = accumulate(bundles | map_values, (size_t)0, [&](size_t old, const BundlePtr& b) {
+	auto ret = accumulate(bundles | boost::adaptors::map_values, (size_t)0, [&](size_t old, const BundlePtr& b) {
 		if (b->getSpeed() == 0) {
 			return old;
 		}

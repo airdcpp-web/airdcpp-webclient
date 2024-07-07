@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -71,7 +71,7 @@ namespace webserver {
 
 			{
 				WLock l(cs);
-				dcassert(boost::find_if(subModules | map_values, [](const typename ItemType::Ptr& subModule) {
+				dcassert(ranges::find_if(subModules | views::values, [](const auto& subModule) {
 					return subModule.use_count() != 1;
 				}).base() == subModules.end());
 
@@ -122,7 +122,7 @@ namespace webserver {
 
 		void forEachSubModule(std::function<void(const ItemType&)> aAction) {
 			RLock l(cs);
-			for (const auto& m : subModules | map_values) {
+			for (const auto& m : subModules | views::values) {
 				aAction(*m.get());
 			}
 		}
@@ -236,7 +236,7 @@ namespace webserver {
 		Callback getAsyncWrapper(Callback&& aTask) noexcept override {
 			auto sessionId = session->getId();
 			auto moduleId = getId();
-			return [=] {
+			return [=, this] {
 				return moduleAsyncRunWrapper(aTask, parentModule, moduleId, sessionId);
 			};
 		}

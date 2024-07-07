@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -77,6 +77,9 @@ namespace webserver {
 		try {
 			const json packageJson = json::parse(packageStr);
 
+			const string packageEntry = packageJson.at("main");
+			entry = packageEntry;
+
 			initializeThrow(packageJson);
 		} catch (const std::exception& e) {
 			throw Exception("Could not parse package.json (" + string(e.what()) + ")");
@@ -91,7 +94,6 @@ namespace webserver {
 		// Required fields
 		const string packageName = aJson.at("name");
 		const string packageDescription = aJson.at("description");
-		const string packageEntry = aJson.at("main");
 		const string packageVersion = aJson.at("version");
 
 		{
@@ -108,7 +110,6 @@ namespace webserver {
 
 		name = packageName;
 		description = packageDescription;
-		entry = packageEntry;
 		version = packageVersion;
 
 		// Optional fields

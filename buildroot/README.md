@@ -20,9 +20,9 @@ Repeat the following steps for all wanted architectures.
 
 Extract the package and rename the output directory based on the current architecture: 
 
-`tar jxvf buildroot-2023.02.tar.bz2`
+`tar jxvf buildroot-2024.05.tar.bz2`
 
-`mv -f buildroot-2023.02 armhf` (replace `armhf` with the wanted arch name)
+`mv -f buildroot-2024.05 armhf` (replace `armhf` with the wanted arch name)
 
 The architecture name can be freely chosen. The following architecture names are used for the shipped binaries: `armhf`, `x86_64`, `i786`
 

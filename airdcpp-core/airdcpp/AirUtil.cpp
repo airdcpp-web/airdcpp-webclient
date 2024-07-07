@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2011-2023 AirDC++ Project
+ * Copyright (C) 2011-2024 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -234,7 +234,7 @@ int AirUtil::adapterSort(const AdapterInfo& lhs, const AdapterInfo& rhs) noexcep
 }
 
 void AirUtil::ensureBindAddress(AdapterInfoList& adapters_, const string& aBindAddress) noexcept {
-	auto cur = boost::find_if(adapters_, [&aBindAddress](const AdapterInfo& aInfo) { return aInfo.ip == aBindAddress; });
+	auto cur = ranges::find_if(adapters_, [&aBindAddress](const AdapterInfo& aInfo) { return aInfo.ip == aBindAddress; });
 	if (cur == adapters_.end()) {
 		adapters_.emplace_back(STRING(UNKNOWN), aBindAddress, static_cast<uint8_t>(0));
 		cur = adapters_.end() - 1;
@@ -341,7 +341,7 @@ string AirUtil::getLocalIp(bool v6) noexcept {
 		return Util::emptyString;
 	}
 
-	auto p = boost::find_if(adapters, [v6](const AdapterInfo& aAdapterInfo) { return Util::isPublicIp(aAdapterInfo.ip, v6); });
+	auto p = ranges::find_if(adapters, [v6](const AdapterInfo& aAdapterInfo) { return Util::isPublicIp(aAdapterInfo.ip, v6); });
 	if (p != adapters.end()) {
 		return p->ip;
 	}

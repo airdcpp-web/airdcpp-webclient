@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -39,6 +39,7 @@
 #include <airdcpp/SearchManager.h>
 #include <airdcpp/SearchInstance.h>
 
+#define MYMACRO(...) __VA_ARGS__
 
 #define CONTEXT_MENU_HANDLER(menuId, hook, hook2, idType, idDeserializerFunc, idSerializerFunc, access) \
 	createHook( \
@@ -56,7 +57,7 @@
 			return cmm.hook##MenuHook.getSubscribers(); \
 		} \
 	); \
-	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("select")), [=](ApiRequest& aRequest) { \
+	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("select")), [this](ApiRequest& aRequest) { \
 		return handleClickItem<idType>( \
 			aRequest, \
 			menuId, \
@@ -64,14 +65,14 @@
 			idDeserializerFunc \
 		); \
 	}); \
-	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list")), [=](ApiRequest& aRequest) { \
+	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list")), [this](ApiRequest& aRequest) { \
 		return handleListItems<idType>( \
 			aRequest, \
 			std::bind(&ContextMenuManager::get##hook2##Menu, &cmm, placeholders::_1, placeholders::_2), \
 			idDeserializerFunc \
 		); \
 	}); \
-	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list_grouped")), [=](ApiRequest& aRequest) { \
+	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list_grouped")), [this](ApiRequest& aRequest) { \
 		return handleListItemsGrouped<idType>( \
 			aRequest, \
 			std::bind(&ContextMenuManager::get##hook2##Menu, &cmm, placeholders::_1, placeholders::_2), \
@@ -92,35 +93,35 @@
 	}, [this] { \
 		return cmm.hook##MenuHook.getSubscribers(); \
 	}); \
-	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("select")), [=](ApiRequest& aRequest) { \
+	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("select")), [MYMACRO(=, this)](ApiRequest& aRequest) { \
 		const auto entityId = JsonUtil::getRawField("entity_id", aRequest.getRequestBody()); \
 		auto entity = entityDeserializerFunc(entityId, "entity_id"); \
 		return handleClickItem<idType>( \
 			aRequest,  \
 			menuId, \
-			[=](const vector<idType>& aSelectedIds, const ContextMenuItemClickData& aClickData) { \
+			[MYMACRO(=, this)](const vector<idType>& aSelectedIds, const ContextMenuItemClickData& aClickData) { \
 				return cmm.onClick##hook2##Item(aSelectedIds, aClickData, entity); \
 			}, \
 			idDeserializerFunc \
 		); \
 	}); \
-	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list")), [=](ApiRequest& aRequest) { \
+	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list")), [MYMACRO(=, this)](ApiRequest& aRequest) { \
 		const auto entityId = JsonUtil::getRawField("entity_id", aRequest.getRequestBody()); \
 		auto entity = entityDeserializerFunc(entityId, "entity_id"); \
 		return handleListItems<idType>( \
 			aRequest, \
-			[=](const vector<idType>& aSelectedIds, const ContextMenuItemListData& aListData) { \
+			[MYMACRO(=, this)](const vector<idType>& aSelectedIds, const ContextMenuItemListData& aListData) { \
 				return cmm.get##hook2##Menu(aSelectedIds, aListData, entity); \
 			}, \
 			idDeserializerFunc \
 		); \
 	}); \
-	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list_grouped")), [=](ApiRequest& aRequest) { \
+	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list_grouped")), [MYMACRO(=, this)](ApiRequest& aRequest) { \
 		const auto entityId = JsonUtil::getRawField("entity_id", aRequest.getRequestBody()); \
 		auto entity = entityDeserializerFunc(entityId, "entity_id"); \
 		return handleListItemsGrouped<idType>( \
 			aRequest, \
-			[=](const vector<idType>& aSelectedIds, const ContextMenuItemListData& aListData) { \
+			[MYMACRO(=, this)](const vector<idType>& aSelectedIds, const ContextMenuItemListData& aListData) { \
 				return cmm.get##hook2##Menu(aSelectedIds, aListData, entity); \
 			}, \
 			idDeserializerFunc \
@@ -380,5 +381,13 @@ namespace webserver {
 
 	void MenuApi::on(ContextMenuManagerListener::ExtensionMenuSelected, const vector<string>& aSelectedIds, const ContextMenuItemClickData& aClickData) noexcept {
 		onMenuItemSelected("extension", aSelectedIds, aClickData);
+	}
+
+	void MenuApi::on(HubMessageHighlightMenuSelected, const vector<uint32_t>& aSelectedIds, const ClientPtr& aClient, const ContextMenuItemClickData& aClickData) noexcept {
+		onMenuItemSelected("hub_message_highlight", aSelectedIds, aClickData, aClient->getToken());
+	}
+
+	void MenuApi::on(PrivateChatMessageHighlightMenuSelected, const vector<uint32_t>& aSelectedIds, const PrivateChatPtr& aChat, const ContextMenuItemClickData& aClickData) noexcept {
+		onMenuItemSelected("private_chat_message_highlight", aSelectedIds, aClickData, aChat->getToken());
 	}
 }

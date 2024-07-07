@@ -1,10 +1,10 @@
 
 /*
-* Copyright (C) 2012-2023 AirDC++ Project
+* Copyright (C) 2012-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -218,7 +218,7 @@ void RSSManager::addData(const string& aTitle, const string& aLink, const string
 void RSSManager::matchFilters(const RSSPtr& aFeed) {
 	if (aFeed) {
 		Lock l(cs);
-		for_each(aFeed->getFeedData() | map_values, [&](const RSSDataPtr& data) { matchFilters(aFeed, data); });
+		ranges::for_each(aFeed->getFeedData() | views::values, [&](const RSSDataPtr& data) { matchFilters(aFeed, data); });
 	}
 }
 
@@ -257,7 +257,7 @@ bool RSSManager::addAutoSearchItem(const RSSFilter& aFilter, const RSSDataPtr& a
 	time_t expireTime = aFilter.getExpireDays() > 0 ? GET_TIME() + aFilter.getExpireDays() * 24 * 60 * 60 : 0;
 
 	AutoSearchPtr as = new AutoSearch(aFilter.getFilterAction() == RSSFilter::DOWNLOAD, aData->getTitle(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, aFilter.getDownloadTarget(),
-		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, expireTime, true, true, false, Util::emptyString, AutoSearch::RSS_DOWNLOAD, false);
+		StringMatch::EXACT, Util::emptyString, Util::emptyString, expireTime, true, true, false, Util::emptyString, AutoSearch::RSS_DOWNLOAD, false);
 
 	//format time params, befora adding to autosearch, so we can use RSS date for folder
 	if(aFilter.getFormatTimeParams())
@@ -312,7 +312,8 @@ void RSSManager::enableFeedUpdate(const RSSPtr& aFeed, bool enable) noexcept {
 void RSSManager::removeFeedItem(const RSSPtr& aFeed) noexcept {
 	Lock l(cs);
 	//Delete database file?
-	rssList.erase(boost::remove_if(rssList, [aFeed](const RSSPtr& a) { return aFeed->getToken() == a->getToken(); }), rssList.end());
+	auto [first, last] = ranges::remove_if(rssList, [aFeed](const RSSPtr& a) { return aFeed->getToken() == a->getToken(); });
+	rssList.erase(first, last);
 	fire(RSSManagerListener::RSSFeedRemoved(), aFeed);
 }
 
@@ -535,7 +536,7 @@ void RSSManager::savedatabase(const RSSPtr& aFeed) {
 			indent += '\t';
 
 			Lock l(cs);
-			for (auto r : aFeed->getFeedData() | map_values) {
+			for (auto r : aFeed->getFeedData() | views::values) {
 				//Don't save more than 3 days old entries... Todo: setting?
 				if ((r->getDateAdded() + 3 * 24 * 60 * 60) > GET_TIME()) {
 					xmlFile.write(indent);

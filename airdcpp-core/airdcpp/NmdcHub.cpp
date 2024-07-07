@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -125,7 +125,7 @@ void NmdcHub::refreshUserList(bool refreshOnly) noexcept {
 		Lock l(cs);
 
 		OnlineUserList v;
-		for(auto n: users | map_values)
+		for(auto n: users | views::values)
 			v.push_back(n);
 
 		fire(ClientListener::UsersUpdated(), this, v);
@@ -184,7 +184,7 @@ OnlineUserPtr NmdcHub::findUser(const string& aNick) const noexcept {
 
 
 OnlineUser* NmdcHub::findUser(const uint32_t aSID) const noexcept {
-	auto i = find_if(users | map_values, [=](const OnlineUser* u) {
+	auto i = ranges::find_if(users | views::values, [=](const OnlineUser* u) {
 		return u->getIdentity().getSID() == aSID;
 	});
 
@@ -217,7 +217,7 @@ void NmdcHub::clearUsers() noexcept {
 		availableBytes = 0;
 	}
 
-	for(auto ou: u2 | map_values) {
+	for(auto ou: u2 | views::values) {
 		ClientManager::getInstance()->putOffline(ou);
 		ou->dec();
 	}
@@ -1173,7 +1173,7 @@ void NmdcHub::on(Minute, uint64_t /*aTick*/) noexcept {
 
 void NmdcHub::getUserList(OnlineUserList& list, bool aListHidden) const noexcept {
 	Lock l(cs);
-	for(auto& u: users | map_values) {
+	for(auto& u: users | views::values) {
 		if (!aListHidden && u->isHidden()) {
 			continue;
 		}

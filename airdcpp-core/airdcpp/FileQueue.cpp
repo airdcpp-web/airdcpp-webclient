@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -22,12 +22,10 @@
 #include "SettingsManager.h"
 #include "Text.h"
 
-#include <boost/range/algorithm/copy.hpp>
-
 namespace dcpp {
 
-using boost::range::for_each;
-using boost::range::copy;
+using ranges::for_each;
+using ranges::copy;
 
 FileQueue::~FileQueue() { }
 
@@ -68,7 +66,7 @@ void FileQueue::remove(const QueueItemPtr& qi) noexcept {
 	auto s = tthIndex.equal_range(const_cast<TTHValue*>(&qi->getTTH()));
 	dcassert(s.first != s.second);
 
-	auto k = find(s | map_values, qi);
+	auto k = ranges::find(s | pair_to_range | views::values, qi);
 	if (k.base() != s.second) {
 		tthIndex.erase(k.base());
 	}
@@ -88,7 +86,7 @@ QueueItemPtr FileQueue::findFile(QueueToken aToken) const noexcept {
 }
 
 void FileQueue::findFiles(const TTHValue& tth, QueueItemList& ql_) const noexcept {
-	copy(tthIndex.equal_range(const_cast<TTHValue*>(&tth)) | map_values, back_inserter(ql_));
+	ranges::copy(tthIndex.equal_range(const_cast<TTHValue*>(&tth)) | pair_to_range | views::values, back_inserter(ql_));
 }
 
 void FileQueue::matchListing(const DirectoryListing& dl, QueueItemList& ql_) const noexcept {
@@ -96,7 +94,7 @@ void FileQueue::matchListing(const DirectoryListing& dl, QueueItemList& ql_) con
 }
 
 void FileQueue::matchDir(const DirectoryListing::Directory::Ptr& aDir, QueueItemList& ql_) const noexcept{
-	for(const auto& d: aDir->directories | map_values) {
+	for(const auto& d: aDir->directories | views::values) {
 		if (!d->isVirtual()) {
 			matchDir(d, ql_);
 		}
@@ -105,8 +103,8 @@ void FileQueue::matchDir(const DirectoryListing::Directory::Ptr& aDir, QueueItem
 	for(const auto& f: aDir->files) {
 		auto tthRange = tthIndex.equal_range(const_cast<TTHValue*>(&f->getTTH()));
 
-		for_each(tthRange, [&](const pair<TTHValue*, QueueItemPtr>& tqp) {
-			if (!tqp.second->isDownloaded() && tqp.second->getSize() == f->getSize() && find(ql_, tqp.second) == ql_.end()) {
+		ranges::for_each(tthRange | pair_to_range, [&](const pair<TTHValue*, QueueItemPtr>& tqp) {
+			if (!tqp.second->isDownloaded() && tqp.second->getSize() == f->getSize() && ranges::find(ql_, tqp.second) == ql_.end()) {
 				ql_.push_back(tqp.second);
 			}
 		});
@@ -132,7 +130,7 @@ void FileQueue::findPFSSources(PFSSourceList& sl) const noexcept {
 	Buffer buffer;
 	uint64_t now = GET_TICK();
 
-	for(auto& q: pathQueue | map_values) {
+	for(auto& q: pathQueue | views::values) {
 
 		if(q->getSize() < PARTIAL_SHARE_MIN_SIZE) continue;
 

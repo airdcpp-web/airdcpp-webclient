@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -97,7 +97,7 @@ namespace webserver {
 
 			RLock l(cm->getCS());
 			auto rawHubs = cm->getClientsUnsafe();
-			for (const auto& c : rawHubs | map_values) {
+			for (const auto& c : rawHubs | views::values) {
 				addHub(c);
 			}
 		}
@@ -220,7 +220,7 @@ namespace webserver {
 	// Use async tasks because adding/removing HubInfos require calls to ClientListener (which is likely 
 	// to cause deadlocks if done inside ClientManagerListener)
 	void HubApi::on(ClientManagerListener::ClientCreated, const ClientPtr& aClient) noexcept {
-		addAsyncTask([=] {
+		addAsyncTask([this, aClient] {
 			addHub(aClient);
 			if (!subscriptionActive("hub_created")) {
 				return;
@@ -231,7 +231,7 @@ namespace webserver {
 	}
 
 	void HubApi::on(ClientManagerListener::ClientRemoved, const ClientPtr& aClient) noexcept {
-		addAsyncTask([=] {
+		addAsyncTask([this, aClient] {
 			removeSubModule(aClient->getToken());
 
 			if (!subscriptionActive("hub_removed")) {

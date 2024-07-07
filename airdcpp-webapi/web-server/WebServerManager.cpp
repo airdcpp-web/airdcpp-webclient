@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -114,6 +114,12 @@ namespace webserver {
 		aEndpoint.get_elog().set_ostream(&aStream);
 	}
 
+	template<class T>
+	void disableEndpointLogging(T& aEndpoint) {
+		aEndpoint.clear_access_channels(websocketpp::log::alevel::all);
+		aEndpoint.clear_error_channels(websocketpp::log::elevel::all);
+	}
+
 
 	template<class T>
 	void setEndpointOptions(T& aEndpoint) {
@@ -183,8 +189,13 @@ namespace webserver {
 		endpoint_tls.set_tls_init_handler(std::bind(&WebServerManager::handleInitTls, this, _1));
 
 		// Logging
-		setEndpointLogSettings(endpoint_plain, debugStreamPlain);
-		setEndpointLogSettings(endpoint_tls, debugStreamTls);
+		if (enableSocketLogging) {
+			setEndpointLogSettings(endpoint_plain, debugStreamPlain);
+			setEndpointLogSettings(endpoint_tls, debugStreamTls);
+		} else {
+			disableEndpointLogging(endpoint_plain);
+			disableEndpointLogging(endpoint_tls);
+		}
 
 		return true;
 	}
@@ -298,7 +309,7 @@ namespace webserver {
 
 	void WebServerManager::onData(const string& aData, TransportType aType, Direction aDirection, const string& aIP) noexcept {
 		// Avoid possible deadlocks due to possible simultaneous disconnected/server state listener events
-		addAsyncTask([=] {
+		addAsyncTask([=, this] {
 			fire(WebServerManagerListener::Data(), aData, aType, aDirection, aIP);
 		});
 	}
@@ -334,7 +345,7 @@ namespace webserver {
 
 		{
 			RLock l(cs);
-			for (const auto& socket : sockets | map_values) {
+			for (const auto& socket : sockets | views::values) {
 				//socket->debugMessage("PING");
 				socket->ping();
 
@@ -382,7 +393,7 @@ namespace webserver {
 
 	void WebServerManager::disconnectSockets(const string& aMessage) noexcept {
 		RLock l(cs);
-		for (const auto& socket : sockets | map_values) {
+		for (const auto& socket : sockets | views::values) {
 			socket->close(websocketpp::close::status::going_away, aMessage);
 		}
 	}
@@ -432,7 +443,7 @@ namespace webserver {
 
 	WebSocketPtr WebServerManager::getSocket(LocalSessionId aSessionToken) noexcept {
 		RLock l(cs);
-		auto i = find_if(sockets | map_values, [&](const WebSocketPtr& s) {
+		auto i = ranges::find_if(sockets | views::values, [&](const WebSocketPtr& s) {
 			return s->getSession() && s->getSession()->getId() == aSessionToken;
 		});
 

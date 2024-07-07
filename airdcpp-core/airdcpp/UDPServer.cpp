@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2011-2023 AirDC++ Project
+ * Copyright (C) 2011-2024 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -79,7 +79,7 @@ int UDPServer::run() {
 
 			auto buf = vector<uint8_t>(BUFSIZE);
 			if((len = socket->read(buf.data(), BUFSIZE, remoteAddr)) > 0) {
-				pp.addTask([=] { handlePacket(buf, len, remoteAddr); });
+				pp.addTask([=, this] { handlePacket(buf, len, remoteAddr); });
 				continue;
 			}
 		} catch(const SocketException& e) {

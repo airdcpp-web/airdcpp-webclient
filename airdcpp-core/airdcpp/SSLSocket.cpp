@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -194,16 +194,23 @@ int SSLSocket::checkSSL(int ret) {
 		default:
 			//display the cert errors as first choice, if the error is not the certs display the error from the ssl.
 			auto sys_err = ERR_get_error();
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+			if (err == SSL_ERROR_SSL && ERR_GET_REASON(sys_err) == SSL_R_UNEXPECTED_EOF_WHILE_READING) {
+				throw SSLSocketException(STRING(TLS_ERROR) + ": " + STRING(CONNECTION_CLOSED));
+			}
+#endif
+
 			string _error;
 			int v_err = SSL_get_verify_result(ssl);
 			if (v_err == X509_V_ERR_APPLICATION_VERIFICATION) {
 				_error = STRING(KEYPRINT_MISMATCH);
-			}
-			else if (v_err != X509_V_OK) {
+			} else if (v_err != X509_V_OK) {
 				_error = X509_verify_cert_error_string(v_err);
 			} else {
 				_error = ERR_error_string(sys_err, NULL);
 			}
+
 			dcdebug("TLS error: call ret = %d, SSL_get_error = %d, ERR_get_error = %lu,ERROR string: %s \n", ret, err, sys_err, ERR_error_string(sys_err, NULL));
 			throw SSLSocketException(STRING(TLS_ERROR) + (_error.empty() ? "" : + ": " + _error));
 		}

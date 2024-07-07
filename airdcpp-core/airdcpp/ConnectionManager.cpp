@@ -1,9 +1,9 @@
 /* 
- * Copyright (C) 2001-2023 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -72,7 +72,8 @@ void TokenManager::removeToken(const string& aToken) noexcept {
 #endif
 }
 
-#define CONNECT_FLOOD_COUNT_NORMAL 15
+#define CONNECT_FLOOD_COUNT_NORMAL_MINOR 30
+#define CONNECT_FLOOD_COUNT_NORMAL_SEVERE 45
 #define CONNECT_FLOOD_COUNT_MCN 100
 #define CONNECT_FLOOD_PERIOD 30
 
@@ -109,7 +110,7 @@ void ConnectionManager::listen() {
 		return;
 	}
 
-	if (CONNSETTING(TCP_PORT) == CONNSETTING(TLS_PORT)) {
+	if (CONNSETTING(TCP_PORT) != 0 && CONNSETTING(TCP_PORT) == CONNSETTING(TLS_PORT)) {
 		LogManager::getInstance()->message(STRING(ERROR_TLS_PORT), LogMessage::SEV_ERROR, STRING(CONNECTIVITY));
 	}
 
@@ -526,8 +527,8 @@ FloodCounter::FloodLimits ConnectionManager::getIncomingConnectionLimits(const s
 	}
 
 	return {
-		CONNECT_FLOOD_COUNT_NORMAL,
-		CONNECT_FLOOD_COUNT_NORMAL,
+		CONNECT_FLOOD_COUNT_NORMAL_MINOR,
+		CONNECT_FLOOD_COUNT_NORMAL_SEVERE,
 	};
 }
 
@@ -548,7 +549,7 @@ void ConnectionManager::accept(const Socket& sock, bool aSecure) noexcept {
 				return true;
 			}
 
-			if (floodResult.hitLimit) {
+			if (floodResult.type == FloodCounter::FloodType::FLOOD_SEVERE && floodResult.hitLimit) {
 				LogManager::getInstance()->message(STRING_F(INCOMING_CONNECT_FLOOD_FROM, aIP), LogMessage::SEV_WARNING, STRING(CONNECTIVITY));
 			}
 

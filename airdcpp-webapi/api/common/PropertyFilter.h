@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -64,7 +64,7 @@ namespace webserver {
 			typedef Matcher<FilterT> MatcherT;
 			typedef vector<MatcherT> List;
 			static inline bool match(const List& prep, const NumericFunction& aNumericF, const InfoFunction& aStringF, const CustomFilterFunction& aCustomF) {
-				return std::all_of(prep.begin(), prep.end(), [&](const Matcher& aMatcher) { 
+				return ranges::all_of(prep, [&](const Matcher& aMatcher) { 
 					return aMatcher.filter->match(aNumericF, aStringF, aCustomF); 
 				});
 			}

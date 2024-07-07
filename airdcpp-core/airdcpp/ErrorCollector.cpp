@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -23,8 +23,6 @@
 #include "ResourceManager.h"
 #include "Util.h"
 
-#include <boost/range/algorithm/remove_if.hpp>
-
 namespace dcpp {
 
 ErrorCollector::ErrorCollector(int aTotalFileCount) : totalFileCount(aTotalFileCount) { }
@@ -35,7 +33,8 @@ void ErrorCollector::add(const string& aError, const string& aFile, bool aIsMino
 }
 
 void ErrorCollector::clearMinor() noexcept {
-	errors.erase(boost::remove_if(errors | map_values, [](const Error& e) { return e.isMinor; }).base(), errors.end());
+	auto [first, last] = ranges::remove_if(errors | views::values, [](const Error& e) { return e.isMinor; });
+	errors.erase(first.base(), last.base());
 }
 
 string ErrorCollector::getMessage() const noexcept {
@@ -47,7 +46,7 @@ string ErrorCollector::getMessage() const noexcept {
 
 	//get individual errors
 	StringSet errorNames;
-	for (const auto& p : errors | map_keys) {
+	for (const auto& p : errors | views::keys) {
 		errorNames.insert(p);
 	}
 

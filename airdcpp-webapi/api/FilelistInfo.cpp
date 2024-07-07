@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -53,7 +53,7 @@ namespace webserver {
 
 		if (dl->isLoaded()) {
 			auto start = GET_TICK();
-			addListTask([=] {
+			addListTask([this, start] {
 				updateItems(dl->getCurrentLocationInfo().directory->getAdcPath());
 				dcdebug("Filelist %s was loaded in " I64_FMT " milliseconds\n", dl->getNick(false).c_str(), GET_TICK() - start);
 			});
@@ -148,7 +148,7 @@ namespace webserver {
 			RLock l(cs);
 
 			// Check view items
-			auto i = boost::find_if(currentViewItems, [itemId](const FilelistItemInfoPtr& aInfo) {
+			auto i = ranges::find_if(currentViewItems, [itemId](const FilelistItemInfoPtr& aInfo) {
 				return aInfo->getToken() == itemId;
 			});
 
@@ -242,7 +242,7 @@ namespace webserver {
 
 		{
 			WLock l(cs);
-			for (auto& d : curDir->directories | map_values) {
+			for (auto& d : curDir->directories | views::values) {
 				currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(d, dl->getShareProfile()));
 			}
 

@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.12)
+cmake_minimum_required (VERSION 3.16)
 project (airdcpp-webclient)
 
 if (APPLE)
@@ -10,8 +10,8 @@ endif (APPLE)
 set (PROJECT_NAME "AirDC++ Web Client")
 set (TAG_APPLICATION "AirDC++w")
 set (APPLICATION_ID "airdcpp-web")
-set (VERSION "2.12.1") # NOTE: the minor version must match the lastest UI version
-set (SOVERSION "2.12.1" )
+set (VERSION "2.12.2") # NOTE: the minor version must match the lastest UI version
+set (SOVERSION "2.12.2" )
 
 set (GNUCXX_MINIMUM_VERSION "7.0")
 
@@ -22,7 +22,6 @@ include (CheckFunctionExists)
 include (FindPkgConfig)
 include (CheckCXXSourceCompiles)
 include (cmake/CheckAtomic.cmake)
-include (cmake/cotire.cmake)
 
 
 # PRE-CHECKS
@@ -97,6 +96,7 @@ find_package (OpenSSL REQUIRED)
 find_package (Threads REQUIRED)
 find_package (Iconv REQUIRED)
 find_package (Miniupnpc REQUIRED)
+find_package (nlohmann_json 3.0.0 REQUIRED)
 if(ENABLE_NATPMP)
   find_package (LibNatpmp)
 endif()
@@ -210,7 +210,7 @@ add_definitions (-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT
                  -D_DATADIR="${CLIENT_DATA_DIR}" -DLOCALE_DIR="${LOCALE_DIR}" -DBUILDING_AIRDCPP)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang)
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pipe")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -pipe")
     if (USE_GOLD)
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-linker-plugin")
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-linker-plugin")

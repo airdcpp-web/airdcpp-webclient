@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2012-2023 AirDC++ Project
+ * Copyright (C) 2012-2024 AirDC++ Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -114,13 +114,13 @@ void UpdateManager::completeSignatureDownload(bool aManualCheck) {
 	);
 }
 
-void UpdateManager::checkIP(bool manual, bool v6) {
+void UpdateManager::checkIP(bool aManual, bool v6) {
 	HttpOptions options;
 	options.setV4Only(!v6);
 
 	conns[v6 ? CONN_IP6 : CONN_IP4] = make_unique<HttpDownload>(
 		v6 ? links.ipcheck6 : links.ipcheck4,
-		[=] { completeIPCheck(manual, v6); }, 
+		[=, this] { completeIPCheck(aManual, v6); },
 		options
 	);
 }

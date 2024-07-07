@@ -1,9 +1,9 @@
 /*
-* Copyright (C) 2011-2023 AirDC++ Project
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
+* the Free Software Foundation; either version 3 of the License, or
 * (at your option) any later version.
 *
 * This program is distributed in the hope that it will be useful,
@@ -107,7 +107,7 @@ namespace webserver {
 	string FavoriteDirectoryApi::getPath(const ApiRequest& aRequest) {
 		auto tth = aRequest.getTTHParam();
 		auto dirs = FavoriteManager::getInstance()->getFavoriteDirs();
-		auto p = boost::find_if(dirs | map_keys, [&](const string& aPath) {
+		auto p = ranges::find_if(dirs | views::keys, [&](const string& aPath) {
 			return AirUtil::getPathId(aPath) == tth;
 		});
 
