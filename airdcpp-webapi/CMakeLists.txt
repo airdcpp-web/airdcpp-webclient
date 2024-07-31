@@ -2,8 +2,8 @@ project(airdcpp-webapi)
 cmake_minimum_required(VERSION 3.16)
 # ######### General setup ##########
 
-file (GLOB webapi_hdrs ${PROJECT_SOURCE_DIR}/*.h)
-file(GLOB_RECURSE webapi_srcs ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/*.c)
+file (GLOB_RECURSE webapi_hdrs ${PROJECT_SOURCE_DIR}/*.h)
+file (GLOB_RECURSE webapi_srcs ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/*.c)
 
 set (WEBAPI_SRCS ${webapi_srcs} PARENT_SCOPE)
 set (WEBAPI_HDRS ${webapi_hdrs} PARENT_SCOPE)
@@ -13,7 +13,7 @@ include_directories(AIRDCPP_HDRS
   ${OPENSSL_INCLUDE_DIRS} ${websocketpp_INCLUDE_DIR}
 )
 
-add_library (airdcpp-webapi ${webapi_srcs})
+add_library (airdcpp-webapi ${webapi_srcs} ${webapi_hdrs} )
 
 if (CMAKE_BUILD_TYPE STREQUAL Debug)
   add_definitions(-D_DEBUG)

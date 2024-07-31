@@ -6,7 +6,9 @@
 
 # Output
 airdcppd/airdcppd
+airdcppd/airdcppd.app/
 node_modules
+package.json
 package-lock.json
 trace.txt
 
@@ -37,3 +39,6 @@ cotire
 
 # SSH config
 buildroot/.ssh_config.user
+
+# Project files
+_*

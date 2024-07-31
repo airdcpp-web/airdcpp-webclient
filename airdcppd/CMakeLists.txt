@@ -1,6 +1,8 @@
 project(airdcppd)
 cmake_minimum_required(VERSION 3.16)
 
+file (GLOB_RECURSE airdcppd_hdrs ${PROJECT_SOURCE_DIR}/*.h)
+
 aux_source_directory(${PROJECT_SOURCE_DIR} airdcppd_SRCS)
 include_directories(${Boost_INCLUDE_DIRS} ${websocketpp_INCLUDE_DIR})
 
@@ -19,7 +21,7 @@ endif (Backtrace_FOUND)
 
 # actual target:
 add_executable (${PROJECT_NAME} MACOSX_BUNDLE WIN32
-                 ${airdcppd_SRCS}
+                 ${airdcppd_SRCS} ${airdcppd_hdrs}
                )
 
 target_link_libraries (${PROJECT_NAME} airdcpp airdcpp-webapi)
