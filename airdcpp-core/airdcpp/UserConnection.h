@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_USER_CONNECTION_H
 
 #include "AdcCommand.h"
+#include "AdcSupports.h"
 #include "forward.h"
 #include "BufferedSocketListener.h"
 #include "BufferedSocket.h"
@@ -48,11 +49,9 @@ public:
 	static const string FEATURE_ADC_BZIP;
 	static const string FEATURE_ADC_TIGR;
 	static const string FEATURE_ADC_MCN1;
-	static const string FEATURE_ADC_UBN1;
 	static const string FEATURE_ADC_CPMI;
 
 	static const string FILE_NOT_AVAILABLE;
-	static const string FEATURE_AIRDC;
 
 	enum Modes {
 		MODE_COMMAND = BufferedSocket::MODE_LINE,
@@ -74,12 +73,8 @@ public:
 		FLAG_SUPPORTS_TTHL			= FLAG_SUPPORTS_ZLIB_GET <<1,
 		FLAG_SUPPORTS_TTHF			= FLAG_SUPPORTS_TTHL << 1,
 		FLAG_RUNNING				= FLAG_SUPPORTS_TTHF << 1,
-		FLAG_MCN1					= FLAG_RUNNING << 1,
-		FLAG_SMALL_SLOT				= FLAG_MCN1 << 1,
-		FLAG_UBN1					= FLAG_SMALL_SLOT << 1,
-		FLAG_CPMI					= FLAG_UBN1 << 1,
-		FLAG_TRUSTED				= FLAG_CPMI << 1
-
+		FLAG_SMALL_SLOT				= FLAG_RUNNING << 1,
+		FLAG_TRUSTED				= FLAG_SMALL_SLOT << 1
 	};
 	
 	enum States {
@@ -131,15 +126,15 @@ public:
 	
 	
 	void sendError(const std::string& msg = FILE_NOT_AVAILABLE, AdcCommand::Error aError=AdcCommand::ERROR_FILE_NOT_AVAILABLE);
-	void supports(const StringList& feat);
+	void sendSupports(const StringList& feat);
 	void getListLen() { send("$GetListLen|"); }
 
 	// ADC Stuff
 	void sup(const StringList& features);
 	void inf(bool withToken, int mcnSlots = 0);
-	void get(const string& aType, const string& aName, const int64_t aStart, const int64_t aBytes) {  send(AdcCommand(AdcCommand::CMD_GET).addParam(aType).addParam(aName).addParam(Util::toString(aStart)).addParam(Util::toString(aBytes))); }
-	void snd(const string& aType, const string& aName, const int64_t aStart, const int64_t aBytes) {  send(AdcCommand(AdcCommand::CMD_SND).addParam(aType).addParam(aName).addParam(Util::toString(aStart)).addParam(Util::toString(aBytes))); }
-	void send(const AdcCommand& c) { send(c.toString(0, isSet(FLAG_NMDC))); }
+	void get(const string& aType, const string& aName, const int64_t aStart, const int64_t aBytes);
+	void snd(const string& aType, const string& aName, const int64_t aStart, const int64_t aBytes);
+	void send(const AdcCommand& c);
 
 	void setDataMode(int64_t aBytes = -1) noexcept { dcassert(socket); socket->setDataMode(aBytes); }
 	void setLineMode(size_t rollback) noexcept { dcassert(socket); socket->setLineMode(rollback); }
@@ -197,7 +192,6 @@ public:
 	
 	GETSET(string, hubUrl, HubUrl);
 	GETSET(string, token, Token);
-	GETSET(string, lastBundle, LastBundle);
 	IGETSET(int64_t, speed, Speed, 0);
 	IGETSET(uint64_t, lastActivity, LastActivity, 0);
 	GETSET(string, encoding, Encoding);
@@ -206,7 +200,17 @@ public:
 	
 	const BufferedSocket* getSocket() const noexcept { return socket; }
 
-	void setThreadPriority(Thread::Priority aPriority) ;
+	void setThreadPriority(Thread::Priority aPriority);
+
+	bool isMCN() const noexcept;
+
+	AdcSupports& getSupports() noexcept {
+		return supports;
+	}
+
+	const AdcSupports& getSupports() const noexcept {
+		return supports;
+	}
 private:
 	int64_t chunkSize = 0;
 	BufferedSocket* socket = nullptr;
@@ -241,6 +245,7 @@ private:
 	void on(TransmitDone) noexcept;
 	void on(Failed, const string&) noexcept;
 
+	AdcSupports supports;
 };
 
 inline bool operator==(UserConnection* ptr, const string& aToken) { return compare(ptr->getToken(), aToken) == 0; }

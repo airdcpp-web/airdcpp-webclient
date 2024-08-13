@@ -17,8 +17,11 @@
  */
 
 #include "stdinc.h"
+
 #include "Mapper_MiniUPnPc.h"
-#include "AirUtil.h"
+
+#include "LinkUtil.h"
+#include "NetworkUtil.h"
 
 #include "Util.h"
 #include "Socket.h"
@@ -125,11 +128,11 @@ bool Mapper_MiniUPnPc::init() {
 			auto controlUrl = string(string(data.urlbase).empty() ? urls.controlURL : data.urlbase);
 
 			string routerIp, portTmp, protoTmp, pathTmp, queryTmp, fragmentTmp;
-			Util::decodeUrl(controlUrl, protoTmp, routerIp, portTmp, pathTmp, queryTmp, fragmentTmp);
+			LinkUtil::decodeUrl(controlUrl, protoTmp, routerIp, portTmp, pathTmp, queryTmp, fragmentTmp);
 
 			routerIp = Socket::resolve(routerIp, v6 ? AF_INET6 : AF_INET);
 			if (!routerIp.empty()) {
-				auto adapters = AirUtil::getNetworkAdapters(v6);
+				auto adapters = NetworkUtil::getNetworkAdapters(v6);
 
 				// Find a local IP that is within the same subnet
 				auto p = ranges::find_if(adapters, [&routerIp, this](const AdapterInfo& aInfo) { return isIPInRange(aInfo.ip, routerIp, aInfo.prefix, v6); });

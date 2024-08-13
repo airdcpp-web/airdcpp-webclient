@@ -31,6 +31,8 @@
 #include "stdinc.h"
 #include "ZipFile.h"
 
+#include "PathUtil.h"
+#include "SystemUtil.h"
 #include "TimerManager.h"
 #include "Util.h"
 
@@ -54,7 +56,7 @@ string ZipFileException::TranslateError(int e) {
 		case UNZ_INTERNALERROR:				return "internal error";
 		case UNZ_CRCERROR:					return "crc error, file is corrupt";
 		case UNZ_ERRNO:						return strerror(errno);
-		default:							return "unknown error (" + Util::translateError(e) + ")";
+		default:							return "unknown error (" + SystemUtil::translateError(e) + ")";
 	}
 }
 
@@ -156,7 +158,7 @@ void ZipFile::ReadCurrentFile(const string& aPath) {
 		if (nameInZip[nameInZip.size()-1] != '/' &&  nameInZip[nameInZip.size()-1] != '\\') {
 			pair<uint8_t*,size_t> file = this->ReadCurrentFile();
 
-			const string& fullPath = Util::isDirectoryPath(aPath) ? aPath + nameInZip : aPath;
+			const string& fullPath = PathUtil::isDirectoryPath(aPath) ? aPath + nameInZip : aPath;
 			File::ensureDirectory(fullPath);
 
 			{

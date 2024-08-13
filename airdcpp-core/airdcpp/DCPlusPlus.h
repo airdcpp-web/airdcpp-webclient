@@ -21,7 +21,6 @@
 
 #include "compiler.h"
 #include "typedefs.h"
-#include "Exception.h"
 
 namespace dcpp {
 
@@ -53,6 +52,8 @@ typedef function<void(StepFunction&, ProgressFunction&)> ShutdownUnloadCallback;
 extern void startup(StepFunction stepF, MessageFunction messageF, Callback runWizard, ProgressFunction progressF, Callback moduleInitF = nullptr, StartupLoadCallback moduleLoadF = nullptr);
 
 extern void shutdown(StepFunction stepF, ProgressFunction progressF, ShutdownUnloadCallback moduleUnloadF = nullptr, Callback moduleDestroyF = nullptr);
+
+extern void initializeUtil() noexcept;
 
 } // namespace dcpp
 

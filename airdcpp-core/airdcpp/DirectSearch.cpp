@@ -20,6 +20,7 @@
 
 #include "DirectSearch.h"
 #include "ClientManager.h"
+#include "PathUtil.h"
 #include "SearchManager.h"
 
 
@@ -33,7 +34,7 @@ namespace dcpp {
 		maxResultCount = aSearch->maxResults;
 
 		string error;
-		ClientManager::getInstance()->directSearch(aUser, aSearch, error);
+		ClientManager::getInstance()->directSearchHooked(aUser, aSearch, error);
 	}
 
 	DirectSearch::~DirectSearch() {
@@ -89,7 +90,7 @@ namespace dcpp {
 			auto path = sr->getAdcPath();
 			if (aParents && !sr->getUser().user->isSet(User::ASCH)) {
 				//convert the regular search results
-				path = sr->getType() == SearchResult::TYPE_DIRECTORY ? Util::getAdcParentDir(sr->getAdcPath()) : sr->getAdcFilePath();
+				path = sr->getType() == SearchResult::TYPE_DIRECTORY ? PathUtil::getAdcParentDir(sr->getAdcPath()) : sr->getAdcFilePath();
 			}
 
 			paths_.insert(path);

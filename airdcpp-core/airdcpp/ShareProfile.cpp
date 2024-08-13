@@ -18,6 +18,7 @@
 
 #include "stdinc.h"
 
+#include "AppUtil.h"
 #include "BZUtils.h"
 #include "FilteredFile.h"
 #include "ShareProfile.h"
@@ -29,7 +30,7 @@ namespace dcpp {
 FileList::FileList(ProfileToken aProfile) : profile(aProfile) { }
 
 string FileList::getFileName() const noexcept {
-	return Util::getPath(Util::PATH_USER_CONFIG) + "files_" + Util::toString(profile) + "_" + Util::toString(listN) + ".xml.bz2";
+	return AppUtil::getPath(AppUtil::PATH_USER_CONFIG) + "files_" + Util::toString(profile) + "_" + Util::toString(listN) + ".xml.bz2";
 }
 
 bool FileList::allowGenerateNew(bool aForced) noexcept {
@@ -55,7 +56,7 @@ void FileList::saveList() {
 	bzXmlListLen = File::getSize(getFileName());
 
 	//cleanup old filelists we failed to delete before due to uploading them.
-	StringList list = File::findFiles(Util::getPath(Util::PATH_USER_CONFIG), "files_" + Util::toString(profile) + "?*.xml.bz2");
+	StringList list = File::findFiles(AppUtil::getPath(AppUtil::PATH_USER_CONFIG), "files_" + Util::toString(profile) + "?*.xml.bz2");
 	for (auto& f : list) {
 		if (f != getFileName())
 			File::deleteFile(f);

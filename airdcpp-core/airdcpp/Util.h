@@ -22,14 +22,6 @@
 #include "compiler.h"
 #include "constants.h"
 
-#ifndef _WIN32
-
-#include <sys/stat.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-#endif
-
 #include "Text.h"
 
 namespace dcpp {
@@ -78,15 +70,6 @@ inline constexpr pair_to_range_t pair_to_range{};
 template<typename T1>
 inline int compare(const T1& v1, const T1& v2) noexcept { return (v1 < v2) ? -1 : ((v1 == v2) ? 0 : 1); }
 
-// Recursively collected information about directory content
-struct DirectoryContentInfo {
-	DirectoryContentInfo() : directories(-1), files(-1) {  }
-	DirectoryContentInfo(int aDirectories, int aFiles) : directories(aDirectories), files(aFiles) {  }
-
-	int directories;
-	int files;
-};
-
 /** Uses SFINAE to determine whether a type provides a function; stores the result in "value".
 Inspired by <http://stackoverflow.com/a/8752988>. */
 #define HAS_FUNC(name, funcRet, funcTest) \
@@ -99,66 +82,14 @@ Inspired by <http://stackoverflow.com/a/8752988>. */
 		static const bool value = sizeof(check<HAS_FUNC_T>(nullptr)) == sizeof(yes); \
 	}
 
+struct DirectoryContentInfo;
+
 class Util  
 {
 public:
-	static bool hasContentInfo(const DirectoryContentInfo& aContentInfo) {
-		return aContentInfo.directories >= 0 && aContentInfo.files >= 0;
-	}
-
-	static bool directoryEmpty(const DirectoryContentInfo& aContentInfo) {
-		return aContentInfo.directories == 0 && aContentInfo.files == 0;
-	}
-
-	static int directoryContentSort(const DirectoryContentInfo& a, const DirectoryContentInfo& b) noexcept;
-	static string formatDirectoryContent(const DirectoryContentInfo& aInfo) noexcept;
-	static string formatFileType(const string& aPath) noexcept;
-
-	struct PathSortOrderInt {
-		int operator()(const string& a, const string& b) const noexcept {
-			return pathSort(a, b);
-		}
-	};
-
-	struct PathSortOrderBool {
-		bool operator()(const string& a, const string& b) const noexcept {
-			return pathSort(a, b) < 0;
-		}
-	};
-
 	static tstring emptyStringT;
 	static string emptyString;
 	static wstring emptyStringW;
-	static string getOsVersion(bool http = false) noexcept;
-	static bool IsOSVersionOrGreater(int major, int minor) noexcept;
-
-	// Execute a background process and get exit code
-	static int runSystemCommand(const string& aCommand) noexcept;
-
-	enum Paths {
-		/** Global configuration */
-		PATH_GLOBAL_CONFIG,
-		/** Per-user configuration (queue, favorites, ...) */
-		PATH_USER_CONFIG,
-		/** Language files */
-		PATH_USER_LOCAL,
-		/** Various resources (help files etc) */
-		PATH_RESOURCES,
-		/** Translations */
-		PATH_LOCALE,
-		/** Default download location */
-		PATH_DOWNLOADS,
-		/** Default file list location */
-		PATH_FILE_LISTS,
-		/** XML files for each bundle */
-		PATH_BUNDLES,
-		/** XML files for cached share structure */
-		PATH_SHARECACHE,
-		/** Temp files (viewed files, temp shared items...) */
-		PATH_TEMP,
-
-		PATH_LAST
-	};
 
 	enum SizeUnits {
 		B,
@@ -173,63 +104,6 @@ public:
 
 
 	static int64_t convertSize(int64_t aValue, SizeUnits valueType, SizeUnits to = B) noexcept;
-
-	// The client uses regular config directories or boot config file to determine the config path
-	// if a custom path isn't provided
-	static void initialize(const string& aConfigPath = Util::emptyString);
-
-	static string getAppFilePath() noexcept;
-	static string getAppFileName() noexcept;
-	static string getAppPath() noexcept;
-
-	static string getSystemUsername() noexcept;
-#ifndef _WIN32 
-	static std::string appPath;
-	static void setApp(const string& app) noexcept;
-#endif
-
-	/** Path of temporary storage */
-	static string getOpenPath() noexcept;
-
-	/** Path of configuration files */
-	static const string& getPath(Paths path) noexcept { return paths[path]; }
-
-	/** Migrate from pre-localmode config location */
-	static void migrate(const string& file) noexcept;
-	static void migrate(const string& aDir, const string& aPattern) noexcept;
-
-	/** Path of file lists */
-	static string getListPath() noexcept { return getPath(PATH_FILE_LISTS); }
-	/** Path of bundles */
-	static string getBundlePath() noexcept { return getPath(PATH_BUNDLES); }
-
-	static string translateError(int aError) noexcept;
-	static string formatLastError() noexcept;
-
-	static string getFilePath(const string& aPath, const char aSeparator = PATH_SEPARATOR) noexcept;
-	inline static string getAdcFilePath(const string& aPath) noexcept { return getFilePath(aPath, ADC_SEPARATOR); }
-
-	static string getFileName(const string& aPath, const char aSeparator = PATH_SEPARATOR) noexcept;
-	inline static string getAdcFileName(const string& aPath) noexcept { return getFileName(aPath, ADC_SEPARATOR); };
-
-	static string getLastDir(const string& aPath, const char aSeparator = PATH_SEPARATOR) noexcept;
-	inline static string getAdcLastDir(const string& aPath) noexcept { return getLastDir(aPath, ADC_SEPARATOR); };
-
-	static string getParentDir(const string& aPath, const char aSeparator = PATH_SEPARATOR, bool allowEmpty = false) noexcept;
-	inline static string getAdcParentDir(const string& aPath) noexcept { return getParentDir(aPath, ADC_SEPARATOR, false); };
-
-	template<typename string_t>
-	inline static bool isDirectoryPath(const string_t& aPath, const char aSeparator = PATH_SEPARATOR) noexcept { return !aPath.empty() && aPath.back() == aSeparator; }
-	static string ensureTrailingSlash(const string& aPath, const char aSeparator = PATH_SEPARATOR) noexcept;
-
-	static string joinDirectory(const string& aPath, const string& aDirectoryName, const char separator = PATH_SEPARATOR) noexcept;
-
-	static string getFileExt(const string& aPath) noexcept;
-
-	static wstring getFilePath(const wstring& aPath) noexcept;
-	static wstring getFileName(const wstring& aPath) noexcept;
-	static wstring getFileExt(const wstring& aPath) noexcept;
-	static wstring getLastDir(const wstring& aPath) noexcept;
 
 	static string truncate(const string& aStr, int aMaxLength) noexcept;
 
@@ -261,22 +135,13 @@ public:
 		return countAverage<T1, T2>(aFrom, aTotal) * 100.00;
 	}
 
-	static void sanitizeUrl(string& url) noexcept;
-	static void decodeUrl(const string& aUrl, string& protocol, string& host, string& port, string& path, string& query, string& fragment) noexcept;
-
 	// Used to parse NMDC-style ip:port combination
 	static void parseIpPort(const string& aIpPort, string& ip, string& port) noexcept;
-	static map<string, string> decodeQuery(const string& query) noexcept;
-
-	static bool isAdcDirectoryPath(const string& aPath) noexcept;
-	static bool isAdcRoot(const string& aPath) noexcept;
-
-	static string validatePath(const string& aPath, bool aRequireEndSeparator = false) noexcept;
-	static inline string validateFileName(const string& aFileName) noexcept { return cleanPathChars(aFileName, true); }
-	static string cleanPathSeparators(const string& str) noexcept;
-	static bool checkExtension(const string& tmp) noexcept;
 
 	static string addBrackets(const string& s) noexcept;
+
+	static string formatDirectoryContent(const DirectoryContentInfo& aInfo) noexcept;
+	static string formatFileType(const string& aPath) noexcept;
 
 	static string formatBytes(const string& aString) noexcept { return formatBytes(toInt64(aString)); }
 	static string formatConnectionSpeed(const string& aString) noexcept { return formatConnectionSpeed(toInt64(aString)); }
@@ -290,9 +155,6 @@ public:
 #ifdef _WIN32
 	static wstring getDateTimeW(time_t t) noexcept;
 #endif
-	static string toAdcFile(const string& file) noexcept;
-	static string toNmdcFile(const string& file) noexcept;
-	
 	static string formatBytes(int64_t aBytes) noexcept;
 	static wstring formatBytesW(int64_t aBytes) noexcept;
 
@@ -338,8 +200,6 @@ public:
 	inline static int DefaultSort(const string& a, const string& b) noexcept {
 		return DefaultSort(a.c_str(), b.c_str());
 	}
-
-	static int pathSort(const string& a, const string& b) noexcept;
 
 	static int64_t toInt64(const string& aString) noexcept {
 #ifdef _WIN32
@@ -478,34 +338,6 @@ public:
 	static string listToString(const ListT& lst) noexcept { return listToStringT<ListT, StrChar>(lst, false, true); }
 
 #ifdef WIN32
-	inline static string formatPath(const string& aPath) noexcept {
-		//dont format unless its needed
-		//also we want to limit the unc path lower, no point on endless paths.
-		if (aPath.size() < 250 || aPath.size() > UNC_MAX_PATH) {
-			return aPath;
-		}
-
-		if (aPath[0] == '\\' && aPath[1] == '\\') {
-			return "\\\\?\\UNC\\" + aPath.substr(2);
-		}
-
-		return "\\\\?\\" + aPath;
-	}
-
-	inline static wstring formatPathW(const tstring& aPath) noexcept {
-		//dont format unless its needed
-		//also we want to limit the unc path lower, no point on endless paths. 
-		if (aPath.size() < 250 || aPath.size() > UNC_MAX_PATH) {
-			return aPath;
-		}
-
-		if (aPath[0] == '\\' && aPath[1] == '\\') {
-			return _T("\\\\?\\UNC\\") + aPath.substr(2);
-		}
-
-		return _T("\\\\?\\") + aPath;
-	}
-
 	static wstring toStringW( int32_t val ) noexcept {
 		wchar_t buf[32];
 		snwprintf(buf, sizeof(buf), L"%ld", val);
@@ -564,19 +396,17 @@ public:
 		return t1;
 	}
 
-	static string encodeURI(const string& /*aString*/, bool reverse = false) noexcept;
-	
-	// Return whether the IP is localhost or a link-local address (169.254.0.0/16 or fe80)
-	static bool isLocalIp(const string& ip, bool v6) noexcept;
+	template<typename T>
+	static bool hasCommonElements(const T& a, const T& b) noexcept {
+		return ranges::find_if(a, [&b](auto value) {
+			return ranges::find(b, value) != b.end();
+		}) != a.end();
+	}
 
-	// Returns whether the IP is a private one (non-local)
-	//
-	// Private ranges:
-	// IPv4: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
-	// IPv6: fd prefix
-	static bool isPrivateIp(const string& ip, bool v6) noexcept;
-
-	static bool isPublicIp(const string& ip, bool v6) noexcept;
+	template<typename T>
+	static void concatenate(T& a, const T& toAdd) noexcept {
+		std::copy(toAdd.begin(), toAdd.end(), std::back_inserter(a));
+	}
 
 	/**
 	 * Case insensitive substring search.
@@ -616,37 +446,7 @@ public:
 	static string base64_encode(unsigned char const*, unsigned int len) noexcept;
     static string base64_decode(string const& s) noexcept;
 
-	static bool fileExists(const string &aFile) noexcept;
-
-	static int randInt(int min=0, int max=std::numeric_limits<int>::max()) noexcept;
-	static uint32_t rand() noexcept;
-	static uint32_t rand(uint32_t high) noexcept { return high == 0 ? 0 : rand() % high; }
-	static uint32_t rand(uint32_t low, uint32_t high) noexcept { return rand(high-low) + low; }
-	static double randd() noexcept { return ((double)rand()) / ((double)0xffffffff); }
-
-	static bool hasStartupParam(const string& aParam) noexcept;
-	static string getStartupParams(bool isFirst) noexcept;
-	static void addStartupParam(const string& aParam) noexcept;
-	static optional<string> getStartupParam(const string& aKey) noexcept;
-
-	static bool usingLocalMode() noexcept { return localMode; }
-	static bool wasUncleanShutdown;
-
 	static bool isChatCommand(const string& aText) noexcept;
-private:
-	static string cleanPathChars(string aPath, bool isFileName) noexcept;
-
-	/** In local mode, all config and temp files are kept in the same dir as the executable */
-	static bool localMode;
-
-	static string paths[PATH_LAST];
-
-	static StringList startupParams;
-	
-	static bool loadBootConfig(const string& aDirectoryPath) noexcept;
-
-	static int osMinor;
-	static int osMajor;
 };
 	
 class StringPtrHash {

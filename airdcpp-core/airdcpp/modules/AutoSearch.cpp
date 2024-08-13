@@ -22,12 +22,15 @@
 
 #include <airdcpp/ActionHook.h>
 #include <airdcpp/Bundle.h>
+#include <airdcpp/PathUtil.h>
 #include <airdcpp/ResourceManager.h>
 #include <airdcpp/SearchQuery.h>
 #include <airdcpp/SearchManager.h>
+#include <airdcpp/SearchTypes.h>
 #include <airdcpp/SettingsManager.h>
 #include <airdcpp/SimpleXML.h>
 #include <airdcpp/TimerManager.h>
+#include <airdcpp/ValueGenerator.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -38,7 +41,7 @@ namespace dcpp {
 using namespace boost::posix_time;
 using namespace boost::gregorian;
 
-AutoSearch::AutoSearch() noexcept : token(Util::randInt(10)) {
+AutoSearch::AutoSearch() noexcept : token(ValueGenerator::randInt(10)) {
 
 }
 
@@ -53,7 +56,7 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 		timeAdded = GET_TIME();
 
 	if (token == 0)
-		token = Util::randInt(10);
+		token = ValueGenerator::randInt(10);
 	
 	checkRecent();
 	setPriority(calculatePriority());
@@ -200,7 +203,7 @@ string AutoSearch::getDisplayName() noexcept {
 }
 
 void AutoSearch::setTarget(const string& aTarget) noexcept {
-	target = Util::validatePath(aTarget, true);
+	target = PathUtil::validatePath(aTarget, true);
 }
 
 void AutoSearch::updatePattern() noexcept {
@@ -220,7 +223,8 @@ string AutoSearch::getDisplayType() const noexcept {
 	Search::TypeModes mode;
 	string name;
 	try {
-		SearchManager::getInstance()->getSearchType(fileType, mode, ext, name);
+		auto& typeManager = SearchManager::getInstance()->getSearchTypes();
+		typeManager.getSearchType(fileType, mode, ext, name);
 	} catch (...) {
 		return STRING(ANY);
 	}

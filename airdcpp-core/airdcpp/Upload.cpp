@@ -46,31 +46,13 @@ void Upload::setFiltered() {
 }
 
 Upload::~Upload() {
-	if (bundle) {
-		bundle->removeUpload(this);
-	}
-
 	getUserConnection().setUpload(nullptr);
+	stream.reset();
 }
 
 void Upload::getParams(const UserConnection& aSource, ParamMap& params) const {
 	Transfer::getParams(aSource, params);
 	params["source"] = (getType() == TYPE_PARTIAL_LIST ? STRING(PARTIAL_FILELIST) + " (" + getPath() + ")" : getPath());
-}
-
-void Upload::resume(int64_t aStart, int64_t aSize) noexcept {
-	setSegment(Segment(aStart, aSize));
-	setFlag(Upload::FLAG_RESUMED);
-	delayTime = 0;
-
-	auto s = stream.get()->releaseRootStream();
-	s->setPos(aStart);
-	stream.reset(s);
-	resetPos();
-
-	if((aStart + aSize) < fileSize) {
-		stream.reset(new LimitedInputStream<true>(stream.release(), aSize));
-	}
 }
 
 void Upload::appendFlags(OrderedStringSet& flags_) const noexcept {

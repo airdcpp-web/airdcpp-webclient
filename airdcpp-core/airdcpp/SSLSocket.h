@@ -22,7 +22,6 @@
 
 #include "CryptoManager.h"
 #include "Socket.h"
-#include "Singleton.h"
 
 #include "SSL.h"
 

@@ -19,10 +19,25 @@
 #include "stdinc.h"
 #include "GeoManager.h"
 
+#include "AppUtil.h"
 #include "GeoIP.h"
+#include "SettingsManager.h"
 #include "Util.h"
 
 namespace dcpp {
+
+
+GeoManager::GeoManager() {
+	SettingsManager::getInstance()->registerChangeHandler({
+		SettingsManager::GET_USER_COUNTRY
+	}, [this](auto ...) {
+		if (SETTING(GET_USER_COUNTRY)) {
+			GeoManager::getInstance()->init();
+		} else {
+			GeoManager::getInstance()->close();
+		}
+	});
+}
 
 void GeoManager::init() {
 	geo = make_unique<GeoIP>(getDbPath());
@@ -48,7 +63,7 @@ string GeoManager::getCountry(const string& ip) const {
 }
 
 string GeoManager::getDbPath() {
-	return Util::getPath(Util::PATH_USER_LOCAL) + "country_ip_db.mmdb";
+	return AppUtil::getPath(AppUtil::PATH_USER_LOCAL) + "country_ip_db.mmdb";
 }
 
 } // namespace dcpp

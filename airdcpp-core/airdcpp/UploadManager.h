@@ -93,7 +93,7 @@ public:
 	/** @return Number of uploads. */ 
 	size_t getUploadCount() const noexcept;
 
-	size_t getRunningBundleCount() const noexcept;
+	// size_t getRunningBundleCount() const noexcept;
 
 	/**
 	 * @remarks This is only used in the tray icons. Could be used in
@@ -120,10 +120,6 @@ public:
 	typedef vector<WaitingUser> SlotQueue;
 	SlotQueue getUploadQueue() const noexcept;
 
-	void onUBD(const AdcCommand& cmd);
-	void onUBN(const AdcCommand& cmd);
-	UploadBundlePtr findBundle(const string& aBundleToken) const noexcept;
-
 	/** @internal */
 	void addConnection(UserConnectionPtr conn) noexcept;
 	void abortUpload(const string& aFile, bool aWaitDisconnected = true) noexcept;
@@ -136,6 +132,10 @@ public:
 	const UploadList& getUploads() const noexcept {
 		return uploads;
 	}
+
+	bool callAsync(const string& aToken, std::function<void(const Upload*)>&& aHandler) const noexcept;
+
+	Upload* findUploadUnsafe(const string& aToken) const noexcept;
 private:
 	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 	StringMatch freeSlotMatcher;
@@ -169,18 +169,6 @@ private:
 	void checkMultiConn() noexcept;
 	void updateSlotCounts(UserConnection& aSource, uint8_t aSlotType) noexcept;
 
-	/* bundles */
-	typedef unordered_map<string, UploadBundlePtr> RemoteBundleTokenMap;
-	RemoteBundleTokenMap bundles;
-
-	void createBundle(const AdcCommand& cmd);
-	void changeBundle(const AdcCommand& cmd);
-	void updateBundleInfo(const AdcCommand& cmd);
-	void finishBundle(const AdcCommand& cmd);
-	void removeBundleConnection(const AdcCommand& cmd);
-
-	Upload* findUpload(const string& aToken) noexcept;
-
 	friend class Singleton<UploadManager>;
 	UploadManager() noexcept;
 	~UploadManager();
@@ -209,6 +197,8 @@ private:
 	void on(AdcCommand::GFI, UserConnection*, const AdcCommand&) noexcept override;
 
 	bool prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aResume, int64_t& aBytes, const string& aUserSID, bool aListRecursive = false, bool aIsTTHList = false);
+
+	void deleteDelayUpload(Upload* aUpload, bool aResuming) noexcept;
 };
 
 } // namespace dcpp

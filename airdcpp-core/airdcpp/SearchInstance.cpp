@@ -21,8 +21,8 @@
 
 #include "ClientManager.h"
 #include "SearchManager.h"
-
 #include "SearchQuery.h"
+#include "TimerManager.h"
 
 
 namespace dcpp {
@@ -113,9 +113,9 @@ namespace dcpp {
 		return queueInfo;
 	}
 
-	bool SearchInstance::userSearch(const HintedUser& aUser, const SearchPtr& aSearch, string& error_) noexcept {
+	bool SearchInstance::userSearchHooked(const HintedUser& aUser, const SearchPtr& aSearch, string& error_) noexcept {
 		reset(aSearch);
-		if (!ClientManager::getInstance()->directSearch(aUser, aSearch, error_)) {
+		if (!ClientManager::getInstance()->directSearchHooked(aUser, aSearch, error_)) {
 			return false;
 		}
 

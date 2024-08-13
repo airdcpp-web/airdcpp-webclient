@@ -35,7 +35,6 @@ public:
 	/** Each flag is set if it's true in at least one hub */
 	enum UserFlags {
 		ONLINE					= 0x01,
-		AIRDCPLUSPLUS			= 0x02,
 		PASSIVE					= 0x04,
 		NMDC					= 0x08,
 		BOT						= 0x10,

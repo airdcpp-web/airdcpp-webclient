@@ -75,6 +75,9 @@ public:
 	inline size_t count() const { return patterns.size(); }
 	inline bool empty() const { return patterns.empty(); }
 	inline const PatternList& getPatterns() const { return patterns; }
+
+	string toString() const noexcept;
+	StringList toStringList() const noexcept;
 private:
 	PatternList patterns;
 };

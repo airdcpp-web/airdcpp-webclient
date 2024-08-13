@@ -23,8 +23,9 @@
 #include "typedefs.h"
 
 #include "DbHandler.h"
+#include "HasherManager.h"
+#include "HasherStats.h"
 #include "HashManagerListener.h"
-// #include "HashStore.h"
 #include "MerkleTree.h"
 #include "Message.h"
 #include "Singleton.h"
@@ -35,9 +36,10 @@ namespace dcpp {
 
 class Hasher;
 class HashStore;
+class HasherStats;
 class HashedFile;
 
-class HashManager : public Singleton<HashManager>, public Speaker<HashManagerListener> {
+class HashManager : public Singleton<HashManager>, public Speaker<HashManagerListener>, public HasherManager {
 
 public:
 	HashManager();
@@ -133,8 +135,14 @@ private:
 	int pausers = 0;
 
 	friend class Hasher;
-	void removeHasher(const Hasher* aHasher);
-	void logHasher(const string& aMessage, int aHasherID, bool aIsError, bool aLock);
+
+	void onFileHashed(const string& aPath, HashedFile& aFile, const TigerTree& aTree, int aHasherId) noexcept override;
+	void onFileFailed(const string& aPath, const string& aErrorId, const string& aMessage, int aHasherId) noexcept override;
+	void onDirectoryHashed(const string& aPath, const HasherStats&, int aHasherId) noexcept override;
+	void onHasherFinished(int aDirectoriesHashed, const HasherStats&, int aHasherId) noexcept override;
+	void removeHasher(int aHasherId) noexcept override;
+	void logHasher(const string& aMessage, int aHasherID, LogMessage::Severity aSeverity, bool aLock) const noexcept override;
+
 	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 
 	bool hashFile(const string& filePath, const string& pathLower, int64_t size);
@@ -147,8 +155,6 @@ private:
 
 	/** Single node tree where node = root, no storage in HashData.dat */
 	static const int64_t SMALL_TREE = -1;
-
-	void hasherDone(const string& aFileName, const string& pathLower, const TigerTree& tt, int64_t speed, HashedFile& aFileInfo, int hasherID = 0) noexcept;
 
 	class Optimizer : public Thread {
 	public:

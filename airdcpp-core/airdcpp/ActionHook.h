@@ -264,6 +264,17 @@ namespace dcpp {
 			return ret;
 		}
 
+		static DataT normalizeMap(const ActionHookDataList<DataT>& aResult) noexcept {
+			DataT ret;
+			for (const auto& i : aResult) {
+				for (const auto& s : i->data) {
+					ret.emplace(s.first, s.second);
+				}
+			}
+
+			return ret;
+		}
+
 		static vector<DataT> normalizeData(const ActionHookDataList<DataT>& aResult) noexcept {
 			vector<DataT> ret;
 			for (const auto& i : aResult) {

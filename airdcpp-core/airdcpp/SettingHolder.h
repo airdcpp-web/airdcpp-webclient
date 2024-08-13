@@ -31,42 +31,18 @@ public:
 
 	void apply();
 private:
-	const int prevTCP = SETTING(TCP_PORT);
-	const int prevUDP = SETTING(UDP_PORT);
-	const int prevTLS = SETTING(TLS_PORT);
+	struct SettingValueListHolder {
+		const SettingsManager::SettingChangeHandler& handler;
+		SettingsManager::SettingValueList values;
+	};
 
-	const int prevConn4 = SETTING(INCOMING_CONNECTIONS);
-	const int prevConn6 = SETTING(INCOMING_CONNECTIONS6);
-	const string prevMapper = SETTING(MAPPER);
-	const string prevBind = SETTING(BIND_ADDRESS);
-	const string prevBind6 = SETTING(BIND_ADDRESS6);
+	typedef vector<SettingValueListHolder> ValueHolderList;
 
-	const int prevOutConn = SETTING(OUTGOING_CONNECTIONS);
-	const string prevSocksServer = SETTING(SOCKS_SERVER);
-	const int prevSocksPort = SETTING(SOCKS_PORT);
-	const string prevSocksUser = SETTING(SOCKS_USER);
-	const string prevSocksPassword = SETTING(SOCKS_PASSWORD);
-
-
-	const bool prevGeo = SETTING(GET_USER_COUNTRY);
-	const string prevGeoFormat = SETTING(COUNTRY_FORMAT);
-
-	const string prevHighPrio = SETTING(HIGH_PRIO_FILES);
-	const bool prevHighPrioRegex = SETTING(HIGHEST_PRIORITY_USE_REGEXP);
-
-	const string prevShareSkiplist = SETTING(SKIPLIST_SHARE);
-	const bool prevShareSkiplistRegex = SETTING(SHARE_SKIPLIST_USE_REGEXP);
-
-	const string prevDownloadSkiplist = SETTING(SKIPLIST_DOWNLOAD);
-	const bool prevDownloadSkiplistRegex = SETTING(DOWNLOAD_SKIPLIST_USE_REGEXP);
-
-	const string prevFreeSlotMatcher = SETTING(FREE_SLOTS_EXTENSIONS);
-	const string prevTranslation = SETTING(LANGUAGE_FILE);
-
-	const int prevUpdateChannel = SETTING(UPDATE_CHANNEL);
+	ValueHolderList valueHolders;
+	
+	void showError(const string& aError) const noexcept;
 
 	MessageCallback errorF;
-	void showError(const string& aError) const noexcept;
 };
 
 }

@@ -20,8 +20,10 @@
 #include "HttpConnection.h"
 
 #include "BufferedSocket.h"
+#include "LinkUtil.h"
 #include "format.h"
 #include "SettingsManager.h"
+#include "SystemUtil.h"
 #include "version.h"
 
 #include "ResourceManager.h"
@@ -64,7 +66,7 @@ void HttpConnection::postData(const string& aUrl, const StringMap& aData) {
 	requestBody.clear();
 
 	for (StringMap::const_iterator i = aData.begin(); i != aData.end(); ++i)
-		requestBody += "&" + Util::encodeURI(i->first) + "=" + Util::encodeURI(i->second);
+		requestBody += "&" + LinkUtil::encodeURI(i->first) + "=" + LinkUtil::encodeURI(i->second);
 
 	if (!requestBody.empty()) requestBody = requestBody.substr(1);
 	prepareRequest(TYPE_POST);
@@ -72,7 +74,7 @@ void HttpConnection::postData(const string& aUrl, const StringMap& aData) {
 
 void HttpConnection::prepareRequest(RequestType type) {
 	dcassert(Util::findSubString(currentUrl, "http://") == 0 || Util::findSubString(currentUrl, "https://") == 0);
-	Util::sanitizeUrl(currentUrl);
+	LinkUtil::sanitizeUrl(currentUrl);
 
 	size = -1;
 	done = 0;
@@ -90,12 +92,12 @@ void HttpConnection::prepareRequest(RequestType type) {
 
 	string proto, fragment;
 	if (SETTING(HTTP_PROXY).empty()) {
-		Util::decodeUrl(currentUrl, proto, server, port, file, query, fragment);
+		LinkUtil::decodeUrl(currentUrl, proto, server, port, file, query, fragment);
 		if (file.empty())
 			file = "/";
 	}
 	else {
-		Util::decodeUrl(SETTING(HTTP_PROXY), proto, server, port, file, query, fragment);
+		LinkUtil::decodeUrl(SETTING(HTTP_PROXY), proto, server, port, file, query, fragment);
 		file = currentUrl;
 	}
 
@@ -139,13 +141,13 @@ void HttpConnection::on(BufferedSocketListener::Connected) noexcept {
 		socket->write(aKey + ": " + aValue + "\r\n");
 	};
 
-	addHeader("User-Agent", "Airdcpp/" + static_cast<string>(VERSIONSTRING) + " " + Util::getOsVersion(true));
+	addHeader("User-Agent", "Airdcpp/" + static_cast<string>(VERSIONSTRING) + " " + SystemUtil::getOsVersion(true));
 
 	string sRemoteServer = server;
 	if(!SETTING(HTTP_PROXY).empty())
 	{
 		string tfile, tport, proto, queryTmp, fragment;
-		Util::decodeUrl(file, proto, sRemoteServer, tport, tfile, queryTmp, fragment);
+		LinkUtil::decodeUrl(file, proto, sRemoteServer, tport, tfile, queryTmp, fragment);
 	}
 
 	addHeader("Host", sRemoteServer);
@@ -203,14 +205,14 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 		abortRequest(true);
 
 		string location = aLine.substr(10, aLine.length() - 10);
-		Util::sanitizeUrl(location);
+		LinkUtil::sanitizeUrl(location);
 
 		// make sure we can also handle redirects with relative paths
 		if(location.find("://") == string::npos) {
 			if(location[0] == '/') {
 				//302 doesn't contain the query, use temp one
 				string proto, queryTmp, fragment;
-				Util::decodeUrl(currentUrl, proto, server, port, file, queryTmp, fragment);
+				LinkUtil::decodeUrl(currentUrl, proto, server, port, file, queryTmp, fragment);
 				string tmp = proto + "://" + server;
 				if(port != "80" || port != "443")
 					tmp += ':' + port;

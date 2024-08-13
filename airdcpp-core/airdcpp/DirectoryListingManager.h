@@ -24,10 +24,11 @@
 #include "QueueManagerListener.h"
 #include "DirectoryListingManagerListener.h"
 
-#include "QueueAddInfo.h"
 #include "CriticalSection.h"
 #include "DirectoryDownload.h"
+#include "DirectoryListing.h"
 #include "Message.h"
+#include "QueueAddInfo.h"
 #include "Singleton.h"
 #include "TimerManagerListener.h"
 
@@ -35,6 +36,8 @@ namespace dcpp {
 	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener, public TimerManagerListener {
 	public:
 		typedef unordered_map<UserPtr, DirectoryListingPtr, User::Hash> DirectoryListingMap;
+
+		DirectoryListing::Directory::ValidationHooks loadHooks;
 
 		// Browse own share, will always success
 		DirectoryListingPtr openOwnList(ProfileToken aProfile, const string& aDir = ADC_ROOT_STR) noexcept;

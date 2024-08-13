@@ -32,12 +32,6 @@ namespace dcpp {
 
 	class SearchQuery {
 	public:
-		/*enum MatchType {
-			MATCH_FULL_PATH,
-			MATCH_NAME,
-			MATCH_EXACT
-		};*/
-
 		enum ItemType {
 			TYPE_ANY,
 			TYPE_FILE,

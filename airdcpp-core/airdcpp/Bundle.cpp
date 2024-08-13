@@ -17,22 +17,21 @@
  */
 
 #include "stdinc.h"
+#include "Bundle.h"
 
 #include "ActionHook.h"
-#include "AirUtil.h"
-#include "Bundle.h"
 #include "ClientManager.h"
 #include "ConnectionManager.h"
 #include "Download.h"
 #include "File.h"
-#include "HashManager.h"
 #include "LogManager.h"
+#include "PathUtil.h"
 #include "QueueItem.h"
-#include "SearchResult.h"
 #include "SimpleXML.h"
 #include "Streams.h"
 #include "TimerManager.h"
 #include "UserConnection.h"
+#include "ValueGenerator.h"
 
 #include <boost/range/numeric.hpp>
 #include <boost/range/adaptor/map.hpp>
@@ -52,7 +51,7 @@ Bundle::Bundle(const QueueItemPtr& qi, time_t aFileDate, QueueToken aToken /*0*/
 }
 
 Bundle::Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aBundleDate /*0*/, QueueToken aToken /*0*/, bool aDirty /*true*/, bool aIsFileBundle /*false*/) noexcept :
-	QueueItemBase(Util::validatePath(aTarget, !aIsFileBundle), 0, aPriority, aAdded, aToken, 0), bundleDate(aBundleDate), fileBundle(aIsFileBundle), dirty(aDirty) {
+	QueueItemBase(PathUtil::validatePath(aTarget, !aIsFileBundle), 0, aPriority, aAdded, aToken, 0), bundleDate(aBundleDate), fileBundle(aIsFileBundle), dirty(aDirty) {
 
 	if (aToken == 0) {
 		token = Util::toUInt32(ConnectionManager::getInstance()->tokens.createToken(CONNECTION_TYPE_DOWNLOAD));
@@ -183,15 +182,19 @@ void Bundle::finishBundle() noexcept {
 	timeFinished = GET_TIME();
 }
 
+int64_t Bundle::getDownloadedBytes() const noexcept {
+	return currentDownloaded + finishedSegments; 
+}
+
 int64_t Bundle::getSecondsLeft() const noexcept {
 	return (speed > 0) ? static_cast<int64_t>((size - (currentDownloaded+finishedSegments)) / speed) : 0;
 }
 
 string Bundle::getName() const noexcept  {
 	if (!fileBundle) {
-		return Util::getLastDir(target);
+		return PathUtil::getLastDir(target);
 	} else {
-		return Util::getFileName(target);
+		return PathUtil::getFileName(target);
 	}
 }
 
@@ -213,7 +216,7 @@ QueueItemPtr Bundle::findQI(const string& aTarget) const noexcept {
 }
 
 string Bundle::getXmlFilePath() const noexcept {
-	return Util::getPath(Util::PATH_BUNDLES) + "Bundle" + getStringToken() + ".xml";
+	return AppUtil::getPath(AppUtil::PATH_BUNDLES) + "Bundle" + getStringToken() + ".xml";
 }
 
 void Bundle::deleteXmlFile() noexcept {
@@ -325,7 +328,7 @@ bool Bundle::addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool 
 		if (!seqOrder) {
 			/* Randomize the downloading order for each user if the bundle dir date is newer than 7 days to boost partial bundle sharing */
 			l.push_back(qi);
-			swap(l[Util::rand((uint32_t)l.size())], l[l.size()-1]);
+			swap(l[ValueGenerator::rand(0, (uint32_t)l.size())], l[l.size()-1]);
 		} else {
 			/* Sequential order */
 			l.insert(upper_bound(l.begin(), l.end(), qi, QueueItem::AlphaSortOrder()), qi);
@@ -376,23 +379,6 @@ QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const OrderedStringSet& aOn
 	return nullptr;
 }
 
-bool Bundle::isFinishedNotified(const UserPtr& aUser) const noexcept {
-	return ranges::find_if(finishedNotifications, [&aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; }) != finishedNotifications.end();
-}
-
-void Bundle::addFinishedNotify(HintedUser& aUser, const string& remoteBundle) noexcept {
-	if (!isFinishedNotified(aUser.user) && !isBadSource(aUser)) {
-		finishedNotifications.emplace_back(aUser, remoteBundle);
-	}
-}
-
-void Bundle::removeFinishedNotify(const UserPtr& aUser) noexcept {
-	auto p = ranges::find_if(finishedNotifications, [&aUser](const UserBundlePair& ubp) { return ubp.first.user == aUser; });
-	if (p != finishedNotifications.end()) {
-		finishedNotifications.erase(p);
-	}
-}
-
 void Bundle::getSourceUsers(HintedUserList& l) const noexcept {
 	for (const auto& st : sources) {
 		l.push_back(st.getUser());
@@ -406,7 +392,7 @@ void Bundle::getDirQIs(const string& aDir, QueueItemList& ql) const noexcept {
 	}
 
 	for (const auto& q: queueItems) {
-		if (AirUtil::isSubLocal(q->getTarget(), aDir)) {
+		if (PathUtil::isSubLocal(q->getTarget(), aDir)) {
 			ql.push_back(q);
 		}
 	}
@@ -561,10 +547,6 @@ int Bundle::countOnlineUsers() const noexcept {
 	return (queueItems.size() == 0 ? 0 : (files / queueItems.size()));
 }
 
-void Bundle::clearFinishedNotifications(FinishedNotifyList& fnl) noexcept {
-	finishedNotifications.swap(fnl);
-}
-
 bool Bundle::allowAutoSearch() const noexcept {
 	if (isSet(FLAG_SCHEDULE_SEARCH))
 		return false; // handle this via bundle updates
@@ -584,6 +566,10 @@ bool Bundle::allowAutoSearch() const noexcept {
 /* ONLY CALLED FROM DOWNLOADMANAGER BEGIN */
 
 void Bundle::addDownload(Download* d) noexcept {
+	if (downloads.empty()) {
+		start = GET_TICK();
+	}
+
 	downloads.push_back(d);
 }
 
@@ -593,9 +579,14 @@ void Bundle::removeDownload(Download* d) noexcept {
 	if (m != downloads.end()) {
 		downloads.erase(m);
 	}
+
+	if (downloads.empty()) {
+		speed = 0;
+		currentDownloaded = 0;
+	}
 }
 
-bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
+bool Bundle::onDownloadTick() noexcept {
 	double bundleRatio = 0;
 	int64_t bundleSpeed = 0;
 	int64_t bundlePos = 0;
@@ -618,188 +609,18 @@ bool Bundle::onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept {
 
 		bundleRatio = bundleRatio / down;
 		actual = ((int64_t)((double)(finishedSegments+bundlePos) * (bundleRatio == 0 ? 1.00 : bundleRatio)));
-
-		if (!singleUser && !uploadReports.empty()) {
-
-			string speedStr;
-			double percent = 0;
-
-			if (abs(speed-lastSpeed) > (lastSpeed / 10)) {
-				//LogManager::getInstance()->message("SEND SPEED: " + Util::toString(abs(speed-lastSpeed)) + " is more than " + Util::toString(lastSpeed / 10));
-				auto formatSpeed = [this] () -> string {
-					char buf[64];
-					if(speed < 1024) {
-						snprintf(buf, sizeof(buf), "%d%s", (int)(speed&0xffffffff), "b");
-					} else if(speed < 1048576) {
-						snprintf(buf, sizeof(buf), "%.02f%s", (double)speed/(1024.0), "k");
-					} else {
-						snprintf(buf, sizeof(buf), "%.02f%s", (double)speed/(1048576.0), "m");
-					}
-					return buf;
-				};
-
-				speedStr = formatSpeed();
-				lastSpeed = speed;
-			} else {
-				//LogManager::getInstance()->message("DON'T SEND SPEED: " + Util::toString(abs(speed-lastSpeed)) + " is less than " + Util::toString(lastSpeed / 10));
-			}
-
-			if (abs(lastDownloaded-getDownloadedBytes()) > (size / 200)) {
-				//LogManager::getInstance()->message("SEND PERCENT: " + Util::toString(abs(lastDownloaded-getDownloadedBytes())) + " is more than " + Util::toString(size / 200));
-				percent = getPercentage(getDownloadedBytes());
-				dcassert(percent <= 100.00);
-				lastDownloaded = getDownloadedBytes();
-			} else {
-				//LogManager::getInstance()->message("DON'T SEND PERCENT: " + Util::toString(abs(lastDownloaded-getDownloadedBytes())) + " is less than " + Util::toString(size / 200));
-			}
-
-			if (!speedStr.empty() || percent > 0) {
-				for (const auto& i: uploadReports) {
-					AdcCommand cmd(AdcCommand::CMD_UBN, AdcCommand::TYPE_UDP);
-
-					cmd.addParam("BU", getStringToken());
-					if (!speedStr.empty())
-						cmd.addParam("DS", speedStr);
-					if (percent > 0)
-						cmd.addParam("PE", Util::toString(percent));
-
-					UBNList.emplace_back(i.user->getCID(), cmd);
-				}
-			}
-		}
 		return true;
 	}
 	return false;
 }
 
-int Bundle::countConnections() const noexcept {
-	return accumulate(runningUsers | boost::adaptors::map_values, 0);
-}
-
-bool Bundle::addRunningUser(const UserConnection* aSource) noexcept {
-	bool updateOnly = false;
-	auto y = runningUsers.find(aSource->getUser());
-	if (y == runningUsers.end()) {
-		if (runningUsers.size() == 1) {
-			setUserMode(false);
-		}
-		runningUsers[aSource->getUser()]++;
-	} else {
-		y->second++;
-		updateOnly = true;
+int Bundle::countRunningUsers() const noexcept {
+	unordered_set<UserPtr, User::Hash> uniqueUsers;
+	for (const auto& d : downloads) {
+		uniqueUsers.insert(d->getUser());
 	}
 
-	if (aSource->isSet(UserConnection::FLAG_UBN1)) {
-		//tell the uploader to connect this token to a correct bundle
-		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
-
-		cmd.addParam("TO", aSource->getToken());
-		cmd.addParam("BU", getStringToken());
-		if (!updateOnly) {
-			cmd.addParam("SI", Util::toString(size));
-			cmd.addParam("NA", getName());
-			cmd.addParam("DL", Util::toString(currentDownloaded+finishedSegments));
-			cmd.addParam(singleUser ? "SU1" : "MU1");
-			cmd.addParam("AD1");
-		} else {
-			cmd.addParam("CH1");
-		}
-
-		if (ClientManager::getInstance()->sendUDP(cmd, aSource->getUser()->getCID(), true, true) && !updateOnly) {
-			//add a new upload report
-			if (!uploadReports.empty()) {
-				lastSpeed = 0;
-				lastDownloaded = 0;
-			}
-			uploadReports.push_back(aSource->getHintedUser());
-		}
-	}
-
-	return runningUsers.size() == 1;
-}
-
-void Bundle::setUserMode(bool setSingleUser) noexcept {
-	if (setSingleUser) {
-		lastSpeed = 0;
-		lastDownloaded= 0;
-		singleUser= true;
-	} else {
-		singleUser = false;
-	}
-
-	if (!uploadReports.empty()) {
-		HintedUser& u = uploadReports.front();
-		dcassert(u.user);
-
-		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
-
-		cmd.addParam("BU", getStringToken());
-		cmd.addParam("UD1");
-		if (singleUser) {
-			cmd.addParam("SU1");
-			cmd.addParam("DL", Util::toString(finishedSegments));
-		} else {
-			cmd.addParam("MU1");
-		}
-
-		ClientManager::getInstance()->sendUDP(cmd, u.user->getCID(), true, true);
-	}
-}
-
-bool Bundle::removeRunningUser(const UserConnection* aSource, bool sendRemove) noexcept {
-	bool finished = false;
-	auto y =  runningUsers.find(aSource->getUser());
-	dcassert(y != runningUsers.end());
-	if (y != runningUsers.end()) {
-		y->second--;
-		if (y->second == 0) {
-			runningUsers.erase(aSource->getUser());
-			if (runningUsers.size() == 1) {
-				setUserMode(true);
-			}
-			finished = true;
-		}
-
-		if (aSource->isSet(UserConnection::FLAG_UBN1) && (finished || sendRemove)) {
-			AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
-
-			if (finished) {
-				cmd.addParam("BU", getStringToken());
-				cmd.addParam("FI1");
-			} else {
-				cmd.addParam("TO", aSource->getToken());
-				cmd.addParam("RM1");
-			}
-
-			ClientManager::getInstance()->sendUDP(cmd, aSource->getUser()->getCID(), true, true);
-
-			if (finished)
-				uploadReports.erase(remove(uploadReports.begin(), uploadReports.end(), aSource->getUser()), uploadReports.end());
-		}
-	}
-
-	if (runningUsers.empty()) {
-		speed = 0;
-		currentDownloaded = 0;
-		return true;
-	}
-	return false;
-}
-
-void Bundle::sendSizeUpdate() noexcept {
-	for(const auto& u: uploadReports) {
-		AdcCommand cmd(AdcCommand::CMD_UBD, AdcCommand::TYPE_UDP);
-		cmd.addParam("BU", getStringToken());
-
-		if (isSet(FLAG_UPDATE_SIZE)) {
-			unsetFlag(FLAG_UPDATE_SIZE);
-			cmd.addParam("SI", Util::toString(size));
-		}
-
-		cmd.addParam("UD1");
-
-		ClientManager::getInstance()->sendUDP(cmd, u.user->getCID(), true, true);
-	}
+	return static_cast<int>(uniqueUsers.size());
 }
 
 /* ONLY CALLED FROM DOWNLOADMANAGER END */

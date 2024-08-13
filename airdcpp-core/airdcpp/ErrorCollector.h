@@ -21,13 +21,6 @@
 
 #include <airdcpp/forward.h>
 #include <airdcpp/typedefs.h>
-/*#include <airdcpp/GetSet.h>
-
-#include <airdcpp/ShareManagerListener.h>
-#include <airdcpp/TimerManagerListener.h>
-
-#include <airdcpp/ShareDirectoryInfo.h>
-#include <airdcpp/Singleton.h>*/
 
 namespace dcpp {
 

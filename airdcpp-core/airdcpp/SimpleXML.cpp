@@ -18,6 +18,8 @@
 
 #include "stdinc.h"
 #include "SimpleXML.h"
+
+#include "Exception.h"
 #include "Streams.h"
 
 #include "File.h"
@@ -231,5 +233,44 @@ void SimpleXML::fromXML(const string& aXML, int aFlags) {
 	current = &root;
 	resetCurrentChild();
 }
+
+void SimpleXML::stepIn() {
+	checkChildSelected();
+	current = *currentChild;
+	currentChild = current->children.begin();
+	found = false;
+}
+
+void SimpleXML::stepOut() {
+	if (current == &root)
+		throw SimpleXMLException("Already at lowest level");
+
+	dcassert(current->parent != NULL);
+
+	currentChild = find(current->parent->children.begin(), current->parent->children.end(), current);
+
+	current = current->parent;
+	found = true;
+}
+
+void SimpleXML::resetCurrentChild() noexcept {
+	found = false;
+	dcassert(current != NULL);
+	currentChild = current->children.begin();
+}
+
+void SimpleXML::TagReader::startTag(const string& name, StringPairList& attribs, bool simple) {
+	cur->children.push_back(new Tag(name, attribs, cur));
+	if (!simple)
+		cur = cur->children.back();
+}
+
+void SimpleXML::TagReader::endTag(const string&) {
+	if (cur->parent == NULL)
+		throw SimpleXMLException("Invalid end tag");
+	cur = cur->parent;
+}
+
+
 
 } // namespace dcpp

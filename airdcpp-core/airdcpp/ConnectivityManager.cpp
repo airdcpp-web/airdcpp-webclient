@@ -19,13 +19,13 @@
 #include "stdinc.h"
 #include "ConnectivityManager.h"
 
-#include "AirUtil.h"
 #include "ClientManager.h"
 #include "ConnectionManager.h"
 #include "DCPlusPlus.h"
 #include "format.h"
 #include "LogManager.h"
 #include "MappingManager.h"
+#include "NetworkUtil.h"
 #include "ResourceManager.h"
 #include "SearchManager.h"
 #include "SettingsManager.h"
@@ -33,16 +33,17 @@
 
 namespace dcpp {
 
-ConnectivityManager::ConnectivityManager() :
-autoDetectedV4(false),
-autoDetectedV6(false),
-runningV4(false),
-runningV6(false),
-mapperV6(true),
-mapperV4(false)
-{
-}
+const SettingsManager::SettingKeyList ConnectivityManager::commonIncomingSettings = { SettingsManager::TCP_PORT, SettingsManager::UDP_PORT, SettingsManager::TLS_PORT, SettingsManager::MAPPER };
 
+const SettingsManager::SettingKeyList ConnectivityManager::incomingV4Settings = {
+	SettingsManager::INCOMING_CONNECTIONS, SettingsManager::BIND_ADDRESS,
+};
+
+const SettingsManager::SettingKeyList ConnectivityManager::incomingV6Settings = {
+	SettingsManager::INCOMING_CONNECTIONS6, SettingsManager::BIND_ADDRESS6,
+};
+
+ConnectivityManager::ConnectivityManager() : mapperV6(true), mapperV4(false) { }
 
 void ConnectivityManager::startup(StartupLoader& aLoader) noexcept {
 	try {
@@ -57,6 +58,38 @@ void ConnectivityManager::startup(StartupLoader& aLoader) noexcept {
 		} catch (const SocketException& e) {
 			aLoader.messageF(e.getError(), false, true);
 		}
+	}
+
+	SettingsManager::SettingKeyList outgoingSettings = {
+		SettingsManager::OUTGOING_CONNECTIONS,
+		SettingsManager::SOCKS_SERVER, SettingsManager::SOCKS_PORT, SettingsManager::SOCKS_USER, SettingsManager::SOCKS_PASSWORD
+	};
+
+	auto incomingSettings = commonIncomingSettings;
+	Util::concatenate(incomingSettings, incomingV4Settings);
+	Util::concatenate(incomingSettings, incomingV6Settings);
+
+	SettingsManager::getInstance()->registerChangeHandler(incomingSettings, onIncomingSettingsChanged);
+	SettingsManager::getInstance()->registerChangeHandler(outgoingSettings, onProxySettingsChanged);
+}
+
+void ConnectivityManager::onIncomingSettingsChanged(const MessageCallback& errorF, const SettingsManager::SettingKeyList& aSettings) {
+	auto commonChanged = Util::hasCommonElements(aSettings, commonIncomingSettings);
+	auto v4Changed = commonChanged || Util::hasCommonElements(aSettings, incomingV4Settings);
+	auto v6Changed = commonChanged || Util::hasCommonElements(aSettings, incomingV6Settings);
+
+	try {
+		ConnectivityManager::getInstance()->setup(v4Changed, v6Changed);
+	} catch (const Exception& e) {
+		errorF(STRING_F(PORT_BYSY, e.getError()));
+	}
+}
+
+void ConnectivityManager::onProxySettingsChanged(const MessageCallback& errorF, const SettingsManager::SettingKeyList&) noexcept {
+	try {
+		Socket::socksUpdated();
+	} catch (const SocketException& e) {
+		errorF(e.getError());
 	}
 }
 
@@ -218,7 +251,7 @@ void ConnectivityManager::detectConnection() {
 	autoDetectedV6 = detectV6;
 
 	if (detectV4) {
-		if (Util::isPublicIp(AirUtil::getLocalIp(false), false)) {
+		if (NetworkUtil::isPublicIp(NetworkUtil::getLocalIp(false), false)) {
 			// Direct connection
 			{
 				WLock l(cs);
@@ -237,7 +270,7 @@ void ConnectivityManager::detectConnection() {
 	}
 
 	if (detectV6) {
-		if (Util::isPublicIp(AirUtil::getLocalIp(true), true)) {
+		if (NetworkUtil::isPublicIp(NetworkUtil::getLocalIp(true), true)) {
 			// Direct connection
 			{
 				WLock l(cs);

@@ -27,6 +27,7 @@
 #include "HashValue.h"
 #include "TigerHash.h"
 #include "Util.h"
+#include "ValueGenerator.h"
 
 namespace dcpp {
 
@@ -74,7 +75,7 @@ public:
 		STATE_RENAMED
 	};
 
-	ShareProfileInfo(const string& aName, ProfileToken aToken = Util::randInt(100), State aState = STATE_NORMAL);
+	ShareProfileInfo(const string& aName, ProfileToken aToken = ValueGenerator::randInt(100), State aState = STATE_NORMAL);
 	~ShareProfileInfo() {}
 
 	string name;
@@ -105,7 +106,7 @@ public:
 	IGETSET(int64_t, shareSize, ShareSize, 0);
 	IGETSET(size_t, sharedFiles, SharedFiles, 0);
 
-	ShareProfile(const string& aName = Util::emptyString, ProfileToken aToken = Util::randInt(100));
+	ShareProfile(const string& aName = Util::emptyString, ProfileToken aToken = ValueGenerator::randInt(100));
 	~ShareProfile();
 
 	FileList* getProfileList() noexcept;

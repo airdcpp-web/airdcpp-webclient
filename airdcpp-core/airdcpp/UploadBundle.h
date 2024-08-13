@@ -34,7 +34,10 @@ using std::string;
 
 class UploadBundle : public intrusive_ptr_base<UploadBundle> {
 public:
+	typedef StringSet BundleUploadList;
+
 	UploadBundle(const string& aTarget, const string& aToken, int64_t aSize, bool aSingleUser, int64_t aUploaded);
+	~UploadBundle();
 
 	GETSET(int64_t, size, Size);
 
@@ -45,9 +48,9 @@ public:
 	GETSET(string, target, Target);
 	int delayTime = 0;
 
-	const UploadList& getUploads() const noexcept { return uploads; }
+	const BundleUploadList& getUploads() const noexcept;
 	
-	int getRunning() const noexcept { return (int)uploads.size(); }
+	int getRunning() const noexcept;
 
 	uint64_t getStart() const noexcept { return start; }
 
@@ -55,30 +58,35 @@ public:
 	void setSingleUser(bool aSingleUser, int64_t aUploadedSegments = 0) noexcept;
 
 	string getName() const noexcept;
-	string getToken() const noexcept { return token; }
+	const string& getToken() const noexcept { return token; }
 
 	uint64_t getSecondsLeft() const noexcept;
-	uint64_t getUploaded() const noexcept { return uploaded + uploadedSegments; }
+	uint64_t getUploaded() const noexcept;
 
-	void findBundlePath(const string& aName) noexcept;
+	void findBundlePath(const string& aName, const Upload* aUpload) noexcept;
 
 	/* DownloadManager */
 	void addUploadedSegment(int64_t aSize) noexcept;
 
-	void addUpload(Upload* u) noexcept;
-	bool removeUpload(Upload* u) noexcept;
+	void addUpload(const Upload* u) noexcept;
+	bool removeUpload(const Upload* u) noexcept;
 
-	uint64_t countSpeed() noexcept;
+	uint64_t countSpeed(const UploadList& aUploads) noexcept;
 
 private:
-	uint64_t uploaded = 0;
+	uint64_t currentUploaded = 0;
 	bool singleUser = true;
 	time_t start = GET_TICK();
 
-	UploadList uploads;
+	BundleUploadList uploads;
 
-	string token;
+	const string token;
 };
+
+typedef boost::intrusive_ptr<UploadBundle> UploadBundlePtr;
+typedef std::vector<UploadBundlePtr> UploadBundleList;
+
+typedef std::vector<pair<UploadBundlePtr, OrderedStringSet>> TickUploadBundleList;
 
 }
 

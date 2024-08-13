@@ -1165,6 +1165,7 @@ enum Strings { // @DontAdd
 	RSS_MATCH_PATTERN, // "Match pattern"
 	RSS_FEEDS, // "RSS feeds"
 	RSS_FORMAT_TIME_PARAMS, // "Format time params (ex. %m %d) for location before adding to auto search"
+	RUNNING_HOOKS, // "Running external hooks"
 	RUNNING_PCT, // "Running (%.01f%%)"
 	SAMPLE_TEXT, // "Sample text"
 	SATURDAY, // "Saturday"
@@ -1885,11 +1886,19 @@ enum Strings { // @DontAdd
 	WEB_CFG_OUTGOING_CHAT_MESSAGE_HOOK_TIMEOUT, // "Outgoing chat message"
 	WEB_CFG_INCOMING_CHAT_MESSAGE_HOOK_TIMEOUT, // "Incoming chat message"
 
+	WEB_CFG_OUTGOING_HUB_COMMAND_HOOK_TIMEOUT, // "Outgoing hub command"
+	WEB_CFG_OUTGOING_UDP_COMMAND_HOOK_TIMEOUT, // "Outgoing UDP command"
+
 	WEB_CFG_QUEUE_ADD_BUNDLE_FILE_HOOK_TIMEOUT, // "Add bundle file"
 	WEB_CFG_QUEUE_ADD_BUNDLE_HOOK_TIMEOUT, // "Add bundle"
 	WEB_CFG_QUEUE_ADD_SOURCE_HOOK_TIMEOUT, // "Add queue source"
 	WEB_CFG_QUEUE_BUNDLE_FINISHED_HOOK_TIMEOUT, // "Bundle downloaded"
 	WEB_CFG_QUEUE_FILE_FINISHED_HOOK_TIMEOUT, // "File downloaded"
+
+	WEB_CFG_FILELIST_LOAD_DIRECTORY_HOOK_TIMEOUT, // "Load filelist directory"
+	WEB_CFG_FILELIST_LOAD_FILE_HOOK_TIMEOUT, // "Load filelist file"
+
+	WEB_CFG_SEARCH_INCOMING_USER_RESULT_HOOK_TIMEOUT, // "Incoming search result"
 
 	WEB_CFG_LIST_MENUITEMS_HOOK_TIMEOUT, // "List menu items"
 

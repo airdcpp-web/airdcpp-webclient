@@ -20,384 +20,433 @@
 
 #include "Hasher.h"
 
-#include "AirUtil.h"
 #include "Exception.h"
 #include "File.h"
 #include "FileReader.h"
-#include "HashManager.h"
+#include "HasherStats.h"
 #include "HashedFile.h"
 #include "MerkleTree.h"
+#include "PathUtil.h"
 #include "ResourceManager.h"
+#include "SettingsManager.h"
+#include "SFVReader.h"
 #include "TimerManager.h"
 #include "ZUtils.h"
 
 namespace dcpp {
-	SharedMutex Hasher::hcs;
-	const int64_t Hasher::MIN_BLOCK_SIZE = 64 * 1024;
+
+#define HASH_ERROR_CRC "crc_error"
+#define HASH_ERROR_IO "io_error"
+
+SharedMutex Hasher::hcs;
+const int64_t Hasher::MIN_BLOCK_SIZE = 64 * 1024;
 
 
-	bool Hasher::pause() noexcept {
-		paused = true;
-		return paused;
+Hasher::Hasher(bool aIsPaused, int aHasherID, HasherManager* aManager) : paused(aIsPaused), hasherID(aHasherID), manager(aManager) {
+	start();
+}
+
+bool Hasher::pause() noexcept {
+	paused = true;
+	return paused;
+}
+
+void Hasher::resume() {
+	paused = false;
+	t_resume();
+}
+
+bool Hasher::isPaused() const noexcept {
+	return paused;
+}
+
+bool Hasher::isRunning() const noexcept {
+	return running;
+}
+
+void Hasher::removeDevice(devid aDevice) noexcept {
+	dcassert(aDevice >= 0);
+	auto dp = devices.find(aDevice);
+	if (dp != devices.end()) {
+		dp->second--;
+		if (dp->second == 0)
+			devices.erase(dp);
+	}
+}
+
+void Hasher::logHasher(const string& aMessage, LogMessage::Severity aSeverity, bool aLock) const noexcept {
+	manager->logHasher(aMessage, hasherID, aSeverity, aLock);
+}
+
+
+void Hasher::logHashedDirectory(const string& aPath, const string& aLastFilePath, const HasherStats& aStats) const noexcept {
+	if (aStats.filesHashed == 1) {
+		logHasher(
+			STRING_F(HASHING_FINISHED_FILE,
+				aLastFilePath %
+				aStats.formatSize() %
+				aStats.formatTime() %
+				aStats.formatSpeed()
+			),
+			LogMessage::SEV_INFO,
+			false
+		);
+	} else {
+		logHasher(
+			STRING_F(HASHING_FINISHED_DIR,
+				aPath %
+				aStats.filesHashed %
+				aStats.formatSize() %
+				aStats.formatTime() %
+				aStats.formatSpeed()
+			),
+			LogMessage::SEV_INFO,
+			false
+		);
+	}
+}
+
+void Hasher::logHashedFile(const string& aPath, int64_t aSpeed) const noexcept {
+	if (!SETTING(LOG_HASHING)) {
+		return;
 	}
 
-	void Hasher::resume() {
-		paused = false;
-		t_resume();
+	auto fn = aPath;
+	if (count(fn.begin(), fn.end(), PATH_SEPARATOR) >= 2) {
+		auto i = fn.rfind(PATH_SEPARATOR);
+		i = fn.rfind(PATH_SEPARATOR, i - 1);
+		fn.erase(0, i);
+		fn.insert(0, "...");
 	}
 
-	bool Hasher::isPaused() const noexcept {
-		return paused;
+	if (aSpeed > 0) {
+		logHasher(STRING_F(HASHING_FINISHED_X, fn) + " (" + Util::formatBytes(aSpeed) + "/s)", LogMessage::SEV_INFO, true);
+	} else {
+		logHasher(STRING_F(HASHING_FINISHED_X, fn), LogMessage::SEV_INFO, true);
 	}
+}
 
-	bool Hasher::isRunning() const noexcept {
-		return running;
-	}
+void Hasher::logFailedFile(const string& aPath, const string& aError) const noexcept {
+	auto message = STRING(ERROR_HASHING) + aPath + ": " + aError;
+	logHasher(message, LogMessage::SEV_ERROR, true);
+}
 
-	void Hasher::removeDevice(devid aDevice) noexcept {
-		dcassert(aDevice >= 0);
-		auto dp = devices.find(aDevice);
-		if (dp != devices.end()) {
-			dp->second--;
-			if (dp->second == 0)
-				devices.erase(dp);
-		}
-	}
-
-
-	bool Hasher::hashFile(const string& fileName, const string& filePathLower, int64_t size, devid aDeviceId) noexcept {
-		// always locked
-		auto ret = w.emplace_sorted(filePathLower, fileName, size, aDeviceId);
-		if (ret.second) {
-			devices[(*ret.first).deviceId]++;
-			totalBytesLeft += size;
-			totalBytesAdded += size;
-			totalFilesAdded++;
-			s.signal();
-			return true;
-		}
-
-		return false;
-	}
-
-	void Hasher::stopHashing(const string& baseDir) noexcept {
-		for (auto i = w.begin(); i != w.end();) {
-			if (Util::strnicmp(baseDir, i->filePath, baseDir.length()) == 0) {
-				totalBytesLeft -= i->fileSize;
-				removeDevice(i->deviceId);
-				i = w.erase(i);
-			} else {
-				++i;
-			}
-		}
-	}
-
-	void Hasher::stop() noexcept {
-		clear();
-		stopping = true;
-	}
-
-	void Hasher::shutdown() {
-		isShutdown = true;
-
-		stop();
-		if (paused) {
-			resume();
-		}
-
+bool Hasher::hashFile(const string& fileName, const string& filePathLower, int64_t size, devid aDeviceId) noexcept {
+	// always locked
+	auto ret = w.emplace_sorted(filePathLower, fileName, size, aDeviceId);
+	if (ret.second) {
+		devices[(*ret.first).deviceId]++;
+		totalBytesLeft += size;
+		totalBytesAdded += size;
+		totalFilesAdded++;
 		s.signal();
+		return true;
 	}
 
-	int64_t Hasher::getTimeLeft() const noexcept {
-		return lastSpeed > 0 ? (totalBytesLeft / lastSpeed) : 0;
-	}
+	return false;
+}
 
-	bool Hasher::hasFile(const string& aPath) const noexcept {
-		return w.find(aPath) != w.end();
-	}
-
-	bool Hasher::hasDevice(int64_t aDeviceId) const noexcept {
-		return devices.find(aDeviceId) != devices.end();
-	}
-
-	bool Hasher::hasDevices() const noexcept {
-		return !devices.empty();
-	}
-
-	void Hasher::clear() noexcept {
-		w.clear();
-		devices.clear();
-
-		clearStats();
-	}
-
-	void Hasher::clearStats() noexcept {
-		totalBytesLeft = 0;
-		totalBytesAdded = 0;
-		totalFilesAdded = 0;
-		totalHashTime = 0;
-		totalSizeHashed = 0;
-		totalDirsHashed = 0;
-		totalFilesHashed = 0;
-		lastSpeed = 0;
-	}
-
-	void Hasher::getStats(string& curFile_, int64_t& bytesLeft_, size_t& filesLeft_, int64_t& speed_, size_t& filesAdded_, int64_t& bytesAdded_) const noexcept {
-		curFile_ = currentFile;
-		filesLeft_ += w.size();
-		if (running) {
-			filesLeft_++;
-			speed_ += lastSpeed;
-		}
-
-		bytesLeft_ += totalBytesLeft;
-
-		filesAdded_ += totalFilesAdded;
-		bytesAdded_ += totalBytesAdded;
-	}
-
-	void Hasher::instantPause() {
-		if (paused) {
-			running = false;
-			t_suspend();
+void Hasher::stopHashing(const string& aBaseDir) noexcept {
+	for (auto i = w.begin(); i != w.end();) {
+		if (PathUtil::isParentOrExact(aBaseDir, i->filePath, PATH_SEPARATOR)) {
+			totalBytesLeft -= i->fileSize;
+			removeDevice(i->deviceId);
+			i = w.erase(i);
+		} else {
+			++i;
 		}
 	}
+}
 
-	Hasher::Hasher(bool aIsPaused, int aHasherID) : paused(aIsPaused), hasherID(aHasherID), totalBytesLeft(0), lastSpeed(0), totalBytesAdded(0), totalFilesAdded(0) {
-		start();
+void Hasher::stop() noexcept {
+	clear();
+	stopping = true;
+}
+
+void Hasher::shutdown() {
+	isShutdown = true;
+
+	stop();
+	if (paused) {
+		resume();
 	}
 
-	int Hasher::run() {
-		setThreadPriority(Thread::IDLE);
+	s.signal();
+}
 
-		string fname;
-		for (;;) {
-			s.wait();
-			instantPause(); //suspend the thread...
-			if (stopping) {
-				if (isShutdown) {
-					WLock l(hcs);
-					HashManager::getInstance()->removeHasher(this);
-					break;
-				} else {
-					stopping = false;
+int64_t Hasher::getTimeLeft() const noexcept {
+	return lastSpeed > 0 ? (totalBytesLeft / lastSpeed) : 0;
+}
+
+bool Hasher::hasFile(const string& aPath) const noexcept {
+	return w.find(aPath) != w.end();
+}
+
+bool Hasher::hasDevice(int64_t aDeviceId) const noexcept {
+	return devices.find(aDeviceId) != devices.end();
+}
+
+bool Hasher::hasDevices() const noexcept {
+	return !devices.empty();
+}
+
+void Hasher::clear() noexcept {
+	w.clear();
+	devices.clear();
+
+	clearStats();
+}
+
+void Hasher::clearStats() noexcept {
+	totalBytesLeft = 0;
+	totalBytesAdded = 0;
+	totalFilesAdded = 0;
+	lastSpeed = 0;
+}
+
+void Hasher::getStats(string& curFile_, int64_t& bytesLeft_, size_t& filesLeft_, int64_t& speed_, size_t& filesAdded_, int64_t& bytesAdded_) const noexcept {
+	curFile_ = currentFile;
+	filesLeft_ += w.size();
+	if (running) {
+		filesLeft_++;
+		speed_ += lastSpeed;
+	}
+
+	bytesLeft_ += totalBytesLeft;
+
+	filesAdded_ += totalFilesAdded;
+	bytesAdded_ += totalBytesAdded;
+}
+
+void Hasher::instantPause() {
+	if (paused) {
+		running = false;
+		t_suspend();
+	}
+}
+
+optional<HashedFile> Hasher::hashFile(const WorkItem& aItem, HasherStats& stats_, const DirSFVReader& aSFV) noexcept {
+	auto start = GET_TICK();
+	auto sizeLeft = aItem.fileSize;
+	try {
+		File f(aItem.filePath, File::READ, File::OPEN);
+
+		// size changed since adding?
+		auto size = f.getSize();
+		sizeLeft = size;
+		totalBytesLeft += size - aItem.fileSize;
+
+		auto blockSize = max(TigerTree::calcBlockSize(size, 10), MIN_BLOCK_SIZE);
+
+		auto timestamp = f.getLastModified();
+		if (timestamp < 0) {
+			throw FileException(STRING(INVALID_MODIFICATION_DATE));
+		}
+
+		TigerTree tt(blockSize);
+
+		CRC32Filter crc32;
+
+		auto fileCRC = aSFV.hasFile(Text::toLower(PathUtil::getFileName(aItem.filePath)));
+
+		uint64_t lastRead = GET_TICK();
+
+		FileReader fr(FileReader::ASYNC);
+		fr.read(aItem.filePath, [&](const void* buf, size_t n) -> bool {
+			if (SETTING(MAX_HASH_SPEED) > 0) {
+				uint64_t now = GET_TICK();
+				uint64_t minTime = n * 1000LL / Util::convertSize(SETTING(MAX_HASH_SPEED), Util::MB);
+
+				if (lastRead + minTime > now) {
+					Thread::sleep(minTime - (now - lastRead));
 				}
-			}
-
-			int64_t originalSize = 0;
-			bool failed = true;
-			bool dirChanged = false;
-			devid curDevID = -1;
-			string pathLower;
-			{
-				WLock l(hcs);
-				if (!w.empty()) {
-					auto& wi = w.front();
-					dirChanged = initialDir.empty() || compare(Util::getFilePath(wi.filePath), Util::getFilePath(fname)) != 0;
-					currentFile = fname = std::move(wi.filePath);
-					curDevID = std::move(wi.deviceId);
-					pathLower = std::move(wi.filePathLower);
-					originalSize = wi.fileSize;
-					dcassert(curDevID >= 0);
-					w.pop_front();
-				} else {
-					fname.clear();
-				}
-			}
-
-			HashedFile fi;
-			if (fname.empty()) {
-				running = false;
+				lastRead = lastRead + minTime;
 			} else {
-				running = true;
-
-				int64_t sizeLeft = originalSize;
-				try {
-					if (initialDir.empty()) {
-						initialDir = Util::getFilePath(fname);
-					}
-
-					if (dirChanged) {
-						sfv.loadPath(Util::getFilePath(fname));
-					}
-
-					uint64_t start = GET_TICK();
-
-					File f(fname, File::READ, File::OPEN);
-
-					// size changed since adding?
-					int64_t size = f.getSize();
-					sizeLeft = size;
-					totalBytesLeft += size - originalSize;
-
-					int64_t bs = max(TigerTree::calcBlockSize(size, 10), MIN_BLOCK_SIZE);
-
-					auto timestamp = f.getLastModified();
-					if (timestamp < 0) {
-						throw FileException(STRING(INVALID_MODIFICATION_DATE));
-					}
-
-					TigerTree tt(bs);
-
-					CRC32Filter crc32;
-
-					auto fileCRC = sfv.hasFile(Text::toLower(Util::getFileName(fname)));
-
-					uint64_t lastRead = GET_TICK();
-
-					FileReader fr(FileReader::ASYNC);
-					fr.read(fname, [&](const void* buf, size_t n) -> bool {
-						if (SETTING(MAX_HASH_SPEED) > 0) {
-							uint64_t now = GET_TICK();
-							uint64_t minTime = n * 1000LL / Util::convertSize(SETTING(MAX_HASH_SPEED), Util::MB);
-
-							if (lastRead + minTime > now) {
-								Thread::sleep(minTime - (now - lastRead));
-							}
-							lastRead = lastRead + minTime;
-						} else {
-							lastRead = GET_TICK();
-						}
-
-						tt.update(buf, n);
-
-						if (fileCRC) {
-							crc32(buf, n);
-						}
-
-						sizeLeft -= n;
-						uint64_t end = GET_TICK();
-
-						if (totalBytesLeft > 0)
-							totalBytesLeft -= n;
-						if (end > start)
-							lastSpeed = (size - sizeLeft) * 1000 / (end - start);
-
-						return !stopping;
-					});
-
-					tt.finalize();
-
-					failed = (fileCRC && crc32.getValue() != *fileCRC) || stopping;
-
-					uint64_t end = GET_TICK();
-					int64_t averageSpeed = 0;
-
-					if (!failed) {
-						totalSizeHashed += size;
-						dirSizeHashed += size;
-
-						dirFilesHashed++;
-						totalFilesHashed++;
-					}
-
-					if (end > start) {
-						totalHashTime += (end - start);
-						dirHashTime += (end - start);
-						averageSpeed = size * 1000 / (end - start);
-					}
-
-					if (!stopping) {
-						if (failed) {
-							HashManager::getInstance()->logHasher(STRING(ERROR_HASHING) + fname + ": " + STRING(ERROR_HASHING_CRC32), hasherID, true, true);
-							HashManager::getInstance()->fire(HashManagerListener::FileFailed(), fname, fi);
-						} else {
-							fi = HashedFile(tt.getRoot(), timestamp, size);
-							HashManager::getInstance()->hasherDone(fname, pathLower, tt, averageSpeed, fi, hasherID);
-						}
-					}
-				} catch (const FileException& e) {
-					totalBytesLeft -= sizeLeft;
-					HashManager::getInstance()->logHasher(STRING(ERROR_HASHING) + " " + fname + ": " + e.getError(), hasherID, true, true);
-					HashManager::getInstance()->fire(HashManagerListener::FileFailed(), fname, fi);
-					failed = true;
-				}
-
+				lastRead = GET_TICK();
 			}
 
-			auto onDirHashed = [&]() -> void {
-				if ((SETTING(HASHERS_PER_VOLUME) == 1 || w.empty()) && (dirFilesHashed > 1 || !failed)) {
-					HashManager::getInstance()->fire(HashManagerListener::DirectoryHashed(), initialDir, dirFilesHashed, dirSizeHashed, dirHashTime, hasherID);
-					if (dirFilesHashed == 1) {
-						HashManager::getInstance()->logHasher(STRING_F(HASHING_FINISHED_FILE, currentFile %
-							Util::formatBytes(dirSizeHashed) %
-							Util::formatTime(dirHashTime / 1000, true) %
-							(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s")), hasherID, false, false);
-					} else {
-						HashManager::getInstance()->logHasher(STRING_F(HASHING_FINISHED_DIR, Util::getFilePath(initialDir) %
-							dirFilesHashed %
-							Util::formatBytes(dirSizeHashed) %
-							Util::formatTime(dirHashTime / 1000, true) %
-							(Util::formatBytes(dirHashTime > 0 ? ((dirSizeHashed * 1000) / dirHashTime) : 0) + "/s")), hasherID, false, false);
-					}
-				}
+			tt.update(buf, n);
 
-				totalDirsHashed++;
-				dirHashTime = 0;
-				dirSizeHashed = 0;
-				dirFilesHashed = 0;
-				initialDir.clear();
-			};
-
-			bool deleteThis = false;
-			{
-				WLock l(hcs);
-				if (!fname.empty()) {
-					removeDevice(curDevID);
-				}
-
-				if (w.empty()) {
-					// Finished hashing
-					running = false;
-					HashManager::getInstance()->fire(HashManagerListener::HasherFinished(), totalDirsHashed, totalFilesHashed, totalSizeHashed, totalHashTime, hasherID);
-
-					if (totalSizeHashed > 0) {
-						if (totalDirsHashed == 0) {
-							onDirHashed();
-							//log(STRING(HASHING_FINISHED_TOTAL_PLAIN), LogMessage::SEV_INFO);
-						} else {
-							onDirHashed();
-							HashManager::getInstance()->logHasher(STRING_F(HASHING_FINISHED_TOTAL, totalFilesHashed % Util::formatBytes(totalSizeHashed) % totalDirsHashed %
-								Util::formatTime(totalHashTime / 1000, true) %
-								(Util::formatBytes(totalHashTime > 0 ? ((totalSizeHashed * 1000) / totalHashTime) : 0) + "/s")), hasherID, false, false);
-						}
-					} else if (!fname.empty()) {
-						// All files failed to hash?
-						HashManager::getInstance()->logHasher(STRING(HASHING_FINISHED), hasherID, false, false);
-
-						// Always clear the directory so that there will be a fresh start when more files are added for hashing
-						initialDir.clear();
-					}
-
-					clearStats();
-
-					deleteThis = hasherID != 0;
-					sfv.unload();
-				} else if (!AirUtil::isParentOrExactLocal(initialDir, w.front().filePath)) {
-					onDirHashed();
-				}
-
-				currentFile.clear();
+			if (fileCRC) {
+				crc32(buf, n);
 			}
 
-			if (!failed && !fname.empty()) {
-				HashManager::getInstance()->fire(HashManagerListener::FileHashed(), fname, fi);
+			sizeLeft -= n;
+			uint64_t end = GET_TICK();
+
+			if (totalBytesLeft > 0)
+				totalBytesLeft -= n;
+			if (end > start)
+				lastSpeed = (size - sizeLeft) * 1000 / (end - start);
+
+			return !stopping;
+		});
+
+		tt.finalize();
+
+		auto failed = (fileCRC && crc32.getValue() != *fileCRC) || stopping;
+
+		auto end = GET_TICK();
+		auto duration = end - start;
+		if (!failed) {
+			stats_.addFile(size, duration);
+		}
+
+		if (!stopping) {
+			if (failed) {
+				logFailedFile(aItem.filePath, STRING(ERROR_HASHING_CRC32));
+				manager->onFileFailed(aItem.filePath, HASH_ERROR_CRC, STRING(ERROR_HASHING_CRC32), hasherID);
+			} else {
+				// Log
+				auto averageSpeed = duration > 0 ? size * 1000 / duration : 0;
+				logHashedFile(aItem.filePath, averageSpeed);
+
+				// Save the tree
+				auto fi = HashedFile(tt.getRoot(), timestamp, size);
+				manager->onFileHashed(aItem.filePath, fi, tt, hasherID);
+				return fi;
 			}
+		}
+	} catch (const FileException& e) {
+		totalBytesLeft -= sizeLeft;
 
-			if (deleteThis) {
-				// Check again if we have added new items while this was unlocked
+		logFailedFile(aItem.filePath, e.getError());
+		manager->onFileFailed(aItem.filePath, HASH_ERROR_IO, e.getError(), hasherID);
+	}
 
-				WLock l(hcs);
-				if (w.empty()) {
-					// Nothing more to hash, delete this hasher
-					HashManager::getInstance()->removeHasher(this);
-					break;
-				}
+	return nullopt;
+}
+void Hasher::processQueue() noexcept {
+	int totalDirsHashed = 0;
+	string initialDir;
+
+	HasherStats totalStats;
+	HasherStats dirStats(&totalStats);
+
+	string fname;
+	DirSFVReader sfv;
+	for (;;) {
+		instantPause(); //suspend the thread...
+		if (stopping) {
+			return;
+		}
+
+		WorkItem wi;
+		{
+			WLock l(hcs);
+			if (!w.empty()) {
+				wi = std::move(w.front());
+				w.pop_front();
+			} else {
+				break;
 			}
 		}
 
-		delete this;
-		return 0;
+		auto dirChanged = initialDir.empty() || compare(PathUtil::getFilePath(wi.filePath), PathUtil::getFilePath(fname)) != 0;
+		if (dirChanged) {
+			sfv.loadPath(PathUtil::getFilePath(wi.filePath));
+		}
+
+		fname = wi.filePath;
+		running = true;
+
+		if (initialDir.empty()) {
+			initialDir = PathUtil::getFilePath(wi.filePath);
+		}
+
+		auto fi = hashFile(wi, dirStats, sfv);
+
+		auto onDirHashed = [&]() -> void {
+			manager->onDirectoryHashed(initialDir, dirStats, hasherID);
+			logHashedDirectory(initialDir, wi.filePath, dirStats);
+
+			totalDirsHashed++;
+			dirStats = HasherStats(&totalStats);
+
+			initialDir.clear();
+		};
+
+		{
+			WLock l(hcs);
+			removeDevice(wi.deviceId);
+
+			if (w.empty()) {
+				// Finished hashing
+				running = false;
+
+				if (totalStats.sizeHashed > 0) {
+					onDirHashed();
+					if (totalDirsHashed > 0) {
+						logHasher(
+							STRING_F(HASHING_FINISHED_TOTAL, 
+								totalStats.filesHashed % 
+								totalStats.formatSize() %
+								totalDirsHashed %
+								totalStats.formatTime() %
+								totalStats.formatSpeed()
+							),
+							LogMessage::SEV_INFO,
+							false
+						);
+					}
+				} else {
+					// All files failed to hash?
+					logHasher(STRING(HASHING_FINISHED), LogMessage::SEV_INFO, false);
+				}
+
+				clearStats();
+				manager->onHasherFinished(totalDirsHashed, totalStats, hasherID);
+			} else if (!PathUtil::isParentOrExactLocal(initialDir, w.front().filePath)) {
+				onDirHashed();
+			}
+
+			currentFile.clear();
+		}
 	}
+}
+
+string HasherStats::formatTime() const noexcept {
+	return Util::formatTime(hashTime / 1000, true);
+}
+
+string HasherStats::formatSpeed() const noexcept {
+	return Util::formatBytes(hashTime > 0 ? ((sizeHashed * 1000) / hashTime) : 0) + "/s";
+}
+
+string HasherStats::formatSize() const noexcept {
+	return Util::formatBytes(sizeHashed);
+}
+
+void HasherStats::addFile(int64_t aSize, uint64_t aHashTime) noexcept {
+	filesHashed++;
+	hashTime += aHashTime;
+	sizeHashed += aSize;
+
+	if (parent) {
+		parent->addFile(aSize, aHashTime);
+	}
+}
+
+int Hasher::run() {
+	setThreadPriority(Thread::IDLE);
+
+	for (;;) {
+		s.wait();
+		processQueue();
+
+		{
+			WLock l(hcs);
+			if (isShutdown || (w.empty() && hasherID != 0)) {
+				manager->removeHasher(hasherID);
+				break;
+			}
+		}
+
+		stopping = false;
+	}
+
+	delete this;
+	return 0;
+}
 
 } // namespace dcpp

@@ -34,6 +34,8 @@ public:
 		enum { CMD = T };
 	};
 
+	typedef multimap<string, string> ParamMap;
+
 	enum Error {
 		SUCCESS = 0,
 		ERROR_GENERIC = 0,
@@ -85,36 +87,38 @@ public:
 	static const char TYPE_HUB = 'H';
 	static const char TYPE_UDP = 'U';
 
-#define C(n, a, b, c) static const uint32_t CMD_##n = (((uint32_t)a) | (((uint32_t)b)<<8) | (((uint32_t)c)<<16)); typedef Type<CMD_##n> n
+#define ADC_CMD(n, a, b, c) static const uint32_t CMD_##n = (((uint32_t)a) | (((uint32_t)b)<<8) | (((uint32_t)c)<<16)); typedef AdcCommand::Type<CMD_##n> n
 	// Base commands
-	C(SUP, 'S','U','P');
-	C(STA, 'S','T','A');
-	C(INF, 'I','N','F');
-	C(MSG, 'M','S','G');
-	C(SCH, 'S','C','H');
-	C(RES, 'R','E','S');
-	C(CTM, 'C','T','M');
-	C(RCM, 'R','C','M');
-	C(GPA, 'G','P','A');
-	C(PAS, 'P','A','S');
-	C(QUI, 'Q','U','I');
-	C(GET, 'G','E','T');
-	C(GFI, 'G','F','I');
-	C(SND, 'S','N','D');
-	C(SID, 'S','I','D');
+	ADC_CMD(SUP, 'S','U','P');
+	ADC_CMD(STA, 'S','T','A');
+	ADC_CMD(INF, 'I','N','F');
+	ADC_CMD(MSG, 'M','S','G');
+	ADC_CMD(SCH, 'S','C','H');
+	ADC_CMD(RES, 'R','E','S');
+	ADC_CMD(CTM, 'C','T','M');
+	ADC_CMD(RCM, 'R','C','M');
+	ADC_CMD(GPA, 'G','P','A');
+	ADC_CMD(PAS, 'P','A','S');
+	ADC_CMD(QUI, 'Q','U','I');
+	ADC_CMD(GET, 'G','E','T');
+	ADC_CMD(GFI, 'G','F','I');
+	ADC_CMD(SND, 'S','N','D');
+	ADC_CMD(SID, 'S','I','D');
+
 	// Extensions
-	C(CMD, 'C','M','D');
-	C(NAT, 'N','A','T');
-	C(RNT, 'R','N','T');
-	C(PSR, 'P','S','R');
-	C(ZON, 'Z','O','N');
-	C(ZOF, 'Z','O','F');
-	C(PBD, 'P','B','D');
-	C(UBD, 'U','B','D');
-	C(UBN, 'U','B','N');
-	C(TCP, 'T','C','P');
-	C(PMI, 'P', 'M', 'I');
-#undef C
+	ADC_CMD(CMD, 'C','M','D');
+
+	ADC_CMD(NAT, 'N','A','T');
+	ADC_CMD(RNT, 'R','N','T');
+
+	ADC_CMD(ZON, 'Z','O','N');
+	ADC_CMD(ZOF, 'Z','O','F');
+
+	ADC_CMD(TCP, 'T','C','P');
+
+	ADC_CMD(PMI, 'P', 'M', 'I');
+
+	typedef uint32_t CommandType;
 
 	static const uint32_t HUB_SID = 0xffffffff;		// No client will have this sid
 
@@ -139,6 +143,12 @@ public:
 	const string& getFeatures() const noexcept { return features; }
 	AdcCommand& setFeatures(const string& feat) noexcept { features = feat; return *this; }
 
+	enum class FeatureType {
+		REQUIRED,
+		EXCLUDED,
+	};
+	AdcCommand& addFeature(const string& feat, FeatureType aType) noexcept;
+
 	StringList& getParameters() noexcept { return parameters; }
 	const StringList& getParameters() const noexcept { return parameters; }
 
@@ -155,12 +165,14 @@ public:
 		parameters.push_back(str);
 		return *this;
 	}
+	AdcCommand& addParams(const ParamMap& aParams) noexcept;
 	const string& getParam(size_t n) const noexcept;
 	/** Return a named parameter where the name is a two-letter code */
 	bool getParam(const char* name, size_t start, string& ret) const noexcept;
 	bool getParam(const char* name, size_t start, StringList& ret) const noexcept;
 	bool hasFlag(const char* name, size_t start) const noexcept;
 	static uint16_t toCode(const char* x) noexcept { return *((uint16_t*)x); }
+	static CommandType toCommand(const string& aCmd) noexcept;
 
 	bool operator==(uint32_t aCmd) const noexcept { return cmdInt == aCmd; }
 
@@ -169,6 +181,7 @@ public:
 	AdcCommand& setTo(const uint32_t sid) noexcept { to = sid; return *this; }
 	uint32_t getFrom() const noexcept { return from; }
 	void setFrom(const uint32_t sid) noexcept { from = sid; }
+	static bool isValidType(char aType) noexcept;
 
 	static uint32_t toSID(const string& aSID) noexcept { return *reinterpret_cast<const uint32_t*>(aSID.data()); }
 	static string fromSID(const uint32_t aSID) noexcept { return string(reinterpret_cast<const char*>(&aSID), sizeof(aSID)); }
@@ -193,52 +206,60 @@ private:
 template<class T>
 class CommandHandler {
 public:
-	inline void dispatch(const string& aLine) noexcept {
-		dispatch(aLine, false);
+	typedef std::function<void(const AdcCommand&)> OnCommandParsedF;
+	inline void dispatch(const string& aLine, OnCommandParsedF&& aOnCommandParsedF) noexcept {
+		dispatch(aLine, false, std::move(aOnCommandParsedF));
 	}
 
 	template<typename... ArgT>
-	void dispatch(const string& aLine, bool aNmdc, ArgT&&... args) noexcept {
+	void dispatch(const string& aLine, bool aNmdc, OnCommandParsedF&& aOnCommandParsedF, ArgT&&... args) noexcept {
 		try {
 			AdcCommand c(aLine, aNmdc);
-
-#define C(n) case AdcCommand::CMD_##n: ((T*)this)->handle(AdcCommand::n(), c, std::forward<ArgT>(args)...); break;
-			switch(c.getCommand()) {
-				C(SUP);
-				C(STA);
-				C(INF);
-				C(MSG);
-				C(SCH);
-				C(RES);
-				C(CTM);
-				C(RCM);
-				C(GPA);
-				C(PAS);
-				C(QUI);
-				C(GET);
-				C(GFI);
-				C(SND);
-				C(SID);
-				C(CMD);
-				C(NAT);
-				C(RNT);
-				C(PSR);
-				C(PBD);
-				C(ZON);
-				C(ZOF);
-				C(TCP);
-				C(PMI);
-				C(UBN);
-				C(UBD);
-			default: 
-				dcdebug("Unknown ADC command: %.50s\n", aLine.c_str());
-				break;
-	#undef C
-	
+			if (!aNmdc && aOnCommandParsedF) {
+				aOnCommandParsedF(c);
 			}
-		} catch(const ParseException&) {
+
+			dispatch(c, std::forward<ArgT>(args)...);
+		} catch (const ParseException&) {
 			dcdebug("Invalid ADC command: %.50s\n", aLine.c_str());
 			return;
+		}
+	}
+
+	template<typename... ArgT>
+	void dispatch(AdcCommand& aCmd, ArgT&&... args) noexcept {
+#define C(n) case AdcCommand::CMD_##n: ((T*)this)->handle(AdcCommand::n(), aCmd, std::forward<ArgT>(args)...); break;
+		switch(aCmd.getCommand()) {
+			C(SUP);
+			C(STA);
+			C(INF);
+			C(MSG);
+			C(SCH);
+			C(RES);
+			C(CTM);
+			C(RCM);
+			C(GPA);
+			C(PAS);
+			C(QUI);
+			C(GET);
+			C(GFI);
+			C(SND);
+			C(SID);
+			C(CMD);
+			C(NAT);
+			C(RNT);
+			//C(PSR);
+			//C(PBD);
+			C(ZON);
+			C(ZOF);
+			C(TCP);
+			C(PMI);
+			//C(UBN);
+			//C(UBD);
+		default: 
+			dcdebug("Unknown ADC command: %.50s\n", aCmd.toString().c_str());
+			break;
+#undef C
 		}
 	}
 };

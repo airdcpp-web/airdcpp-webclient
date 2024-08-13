@@ -22,26 +22,29 @@
 #include "typedefs.h"
 
 namespace dcpp {
-	class HashManagerListener {
-	public:
-		virtual ~HashManagerListener() { }
-		template<int I>	struct X { enum { TYPE = I }; };
 
-		typedef X<0> FileHashed;
-		typedef X<1> FileFailed;
-		typedef X<2> MaintananceFinished;
-		typedef X<3> MaintananceStarted;
-		typedef X<4> DirectoryHashed;
-		typedef X<5> HasherFinished;
+class HasherStats;
 
-		virtual void on(FileHashed, const string& /* aFilePath */, HashedFile& /* aFileInfo */) noexcept { }
-		virtual void on(FileFailed, const string& /* aFilePath */, HashedFile& /*null*/) noexcept { }
-		virtual void on(MaintananceStarted) noexcept { }
-		virtual void on(MaintananceFinished) noexcept { }
-		virtual void on(DirectoryHashed, const string& /*aPath*/, int /*aFilesHashed*/, int64_t /*aSizeHashed*/, time_t /*aHashDuration*/, int /*aHasherId*/) noexcept { }
-		virtual void on(HasherFinished, int /*aPath*/, int /*aFilesHashed*/, int64_t /*aSizeHashed*/, time_t /*aHashDuration*/, int /*aHasherId*/) noexcept { }
-	};
+class HashManagerListener {
+public:
+	virtual ~HashManagerListener() { }
+	template<int I>	struct X { enum { TYPE = I }; };
+
+	typedef X<0> FileHashed;
+	typedef X<1> FileFailed;
+	typedef X<2> MaintananceFinished;
+	typedef X<3> MaintananceStarted;
+	typedef X<4> DirectoryHashed;
+	typedef X<5> HasherFinished;
+
+	virtual void on(FileHashed, const string& /* aPath */, HashedFile& /* aFileInfo */, int /*aHasherId*/) noexcept { }
+	virtual void on(FileFailed, const string& /* aPath */, const string& /*aErrorId*/, const string& /*aMessage*/, int /*aHasherId*/) noexcept { }
+	virtual void on(MaintananceStarted) noexcept { }
+	virtual void on(MaintananceFinished) noexcept { }
+	virtual void on(DirectoryHashed, const string& /*aPath*/, const HasherStats&, int /*aHasherId*/) noexcept { }
+	virtual void on(HasherFinished, int /*aDirectoriesHashed*/, const HasherStats&, int /*aHasherId*/) noexcept { }
+};
 
 } // namespace dcpp
 
-#endif // !defined(DCPLUSPLUS_DCPP_SHAREMANAGERLISTENER_H)
+#endif // !defined(DCPLUSPLUS_DCPP_HASHMANAGERLISTENER_H)

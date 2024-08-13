@@ -19,10 +19,9 @@
 #include "stdinc.h"
 #include "SharePathValidator.h"
 
-#include "AirUtil.h"
 #include "LogManager.h"
+#include "PathUtil.h"
 #include "QueueManager.h"
-#include "ShareManager.h"
 #include "SimpleXML.h"
 
 #ifdef _WIN32
@@ -65,7 +64,7 @@ StringSet forbiddenExtension = {
 };
 
 void SharePathValidator::checkSharedName(const string& aPath, bool aIsDir, int64_t aFileSize /*0*/) const {
-	const auto name = aIsDir ? Util::getLastDir(aPath) : Util::getFileName(aPath);
+	const auto name = aIsDir ? PathUtil::getLastDir(aPath) : PathUtil::getFileName(aPath);
 
 	if (matchSkipList(name)) {
 		throw ShareValidatorException(STRING(SKIPLIST_SHARE_MATCH), ShareValidatorErrorType::TYPE_CONFIG_ADJUSTABLE);
@@ -80,7 +79,7 @@ void SharePathValidator::checkSharedName(const string& aPath, bool aIsDir, int64
 		}
 
 		// Check for forbidden file extensions
-		if (SETTING(REMOVE_FORBIDDEN) && forbiddenExtension.find(Text::toLower(Util::getFileExt(name))) != forbiddenExtension.end()) {
+		if (SETTING(REMOVE_FORBIDDEN) && forbiddenExtension.find(Text::toLower(PathUtil::getFileExt(name))) != forbiddenExtension.end()) {
 			throw ShareValidatorException(STRING(FORBIDDEN_FILE_EXT), ShareValidatorErrorType::TYPE_CONFIG_BOOLEAN);
 		}
 
@@ -113,15 +112,11 @@ void SharePathValidator::setExcludedPaths(const StringSet& aPaths) noexcept {
 	excludedPaths = aPaths;
 }
 
-void SharePathValidator::addExcludedPath(const string& aPath) {
+void SharePathValidator::addExcludedPath(const string& aPath, const StringList& aRootPaths) {
 
 	{
 		// Make sure this is a sub folder of a shared folder
-
-		StringList rootPaths;
-		ShareManager::getInstance()->getRootPaths(rootPaths);
-
-		if (ranges::find_if(rootPaths, [&aPath](const string& aRootPath) { return AirUtil::isSubLocal(aPath, aRootPath); }) == rootPaths.end()) {
+		if (ranges::none_of(aRootPaths, [&aPath](const string& aRootPath) { return PathUtil::isSubLocal(aPath, aRootPath); })) {
 			throw ShareException(STRING(PATH_NOT_SHARED));
 		}
 	}
@@ -132,13 +127,13 @@ void SharePathValidator::addExcludedPath(const string& aPath) {
 		WLock l(cs);
 
 		// Subfolder of an already excluded folder?
-		if (ranges::find_if(excludedPaths, [&aPath](const string& aExcludedPath) { return AirUtil::isParentOrExactLocal(aExcludedPath, aPath); }) != excludedPaths.end()) {
+		if (ranges::find_if(excludedPaths, [&aPath](const string& aExcludedPath) { return PathUtil::isParentOrExactLocal(aExcludedPath, aPath); }) != excludedPaths.end()) {
 			throw ShareException(STRING(PATH_ALREADY_EXCLUDED));
 		}
 
 		// No use for excluded subfolders of this path
 		copy_if(excludedPaths.begin(), excludedPaths.end(), back_inserter(toRemove), [&aPath](const string& aExcluded) {
-			return AirUtil::isSubLocal(aExcluded, aPath);
+			return PathUtil::isSubLocal(aExcluded, aPath);
 		});
 
 		excludedPaths.insert(aPath);
@@ -259,7 +254,7 @@ void SharePathValidator::validateRootPath(const string& aRealPath) const {
 	}
 #endif
 
-	if (aRealPath == Util::getAppFilePath() || aRealPath == Util::getPath(Util::PATH_USER_CONFIG) || aRealPath == Util::getPath(Util::PATH_USER_LOCAL)) {
+	if (aRealPath == AppUtil::getAppFilePath() || aRealPath == AppUtil::getPath(AppUtil::PATH_USER_CONFIG) || aRealPath == AppUtil::getPath(AppUtil::PATH_USER_LOCAL)) {
 		throw ShareException(STRING(DONT_SHARE_APP_DIRECTORY));
 	}
 }

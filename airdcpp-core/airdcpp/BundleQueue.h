@@ -27,12 +27,13 @@
 #include "HintedUser.h"
 #include "PrioritySearchQueue.h"
 #include "SortedVector.h"
+#include "Util.h"
 
 namespace dcpp {
 
 /* Stores the queue bundle lists and the bundle search queue */
 
-class BundleQueue : public PrioritySearchQueue<BundlePtr> {
+class BundleQueue {
 public:
 	struct PathInfo {
 		PathInfo(const string& aPath, const BundlePtr& aBundle) noexcept : path(aPath), bundle(aBundle) {  }
@@ -79,10 +80,10 @@ public:
 	void saveQueue(bool aForce) noexcept;
 	QueueItemList getSearchItems(const BundlePtr& aBundle) const noexcept;
 
-	DupeType isAdcDirectoryQueued(const string& aPath, int64_t aSize) const noexcept;
-	BundlePtr isLocalDirectoryQueued(const string& aPath) const noexcept;
+	DupeType getAdcDirectoryDupe(const string& aPath, int64_t aSize) const noexcept;
+	StringList getAdcDirectoryDupePaths(const string& aDirName) const noexcept;
 
-	StringList getAdcDirectoryPaths(const string& aDirName) const noexcept;
+	BundlePtr isLocalDirectoryQueued(const string& aPath) const noexcept;
 	size_t getDirectoryCount(const BundlePtr& aBundle) const noexcept;
 
 	void getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept;
@@ -91,6 +92,8 @@ public:
 	const Bundle::TokenMap& getBundles() const { return bundles; }
 
 	int64_t getTotalQueueSize() const noexcept { return queueSize; }
+
+	PrioritySearchQueue<BundlePtr> searchQueue;
 private:
 	void findAdcDirectoryPathInfos(const string& aAdcPath, PathInfoPtrList& pathInfos_) const noexcept;
 	const PathInfo* findLocalDirectoryPathInfo(const string& aRealPath) const noexcept;

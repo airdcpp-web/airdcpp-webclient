@@ -21,9 +21,10 @@
 #include "HashStore.h"
 #include "DCPlusPlus.h"
 #include "File.h"
-#include "FileReader.h"
+#include "HashedFile.h"
 #include "LevelDB.h"
 #include "LogManager.h"
+#include "PathUtil.h"
 #include "QueueManager.h"
 #include "ShareManager.h"
 #include "ResourceManager.h"
@@ -49,17 +50,17 @@ void HashStore::load(StartupLoader& aLoader) {
 }
 
 void HashStore::openDb(StartupLoader& aLoader) {
-	auto hashDataPath = Util::getPath(Util::PATH_USER_CONFIG) + "HashData" + PATH_SEPARATOR;
-	auto fileIndexPath = Util::getPath(Util::PATH_USER_CONFIG) + "FileIndex" + PATH_SEPARATOR;
+	auto hashDataPath = AppUtil::getPath(AppUtil::PATH_USER_CONFIG) + "HashData" + PATH_SEPARATOR;
+	auto fileIndexPath = AppUtil::getPath(AppUtil::PATH_USER_CONFIG) + "FileIndex" + PATH_SEPARATOR;
 
 	File::ensureDirectory(hashDataPath);
 	File::ensureDirectory(fileIndexPath);
 
-	Util::migrate(fileIndexPath, "*");
-	Util::migrate(hashDataPath, "*");
+	AppUtil::migrate(fileIndexPath, "*");
+	AppUtil::migrate(hashDataPath, "*");
 
 	uint32_t cacheSize = static_cast<uint32_t>(Util::convertSize(max(SETTING(DB_CACHE_SIZE), 1), Util::MB));
-	auto blockSize = File::getBlockSize(Util::getPath(Util::PATH_USER_CONFIG));
+	auto blockSize = File::getBlockSize(AppUtil::getPath(AppUtil::PATH_USER_CONFIG));
 
 	try {
 		// Use the file system block size in here. Using a block size smaller than that reduces the performance significantly especially when writing a lot of data (e.g. when migrating the data)
@@ -361,6 +362,7 @@ void HashStore::optimize(bool doVerify) noexcept {
 	int64_t failedSize = 0;
 
 	log(STRING(HASHDB_MAINTENANCE_STARTED), LogMessage::SEV_INFO);
+
 	{
 		unordered_set<TTHValue> usedRoots;
 
@@ -418,7 +420,7 @@ void HashStore::optimize(bool doVerify) noexcept {
 				//failed to load it
 				failedTrees++;
 				return true;
-				}, hashSnapshot.get());
+			}, hashSnapshot.get());
 		} catch (const DbException& e) {
 			log(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
 			log(STRING(HASHDB_MAINTENANCE_FAILED), LogMessage::SEV_ERROR);
@@ -439,7 +441,7 @@ void HashStore::optimize(bool doVerify) noexcept {
 					}
 
 					return false;
-					}, fileSnapshot.get());
+				}, fileSnapshot.get());
 			} catch (const DbException& e) {
 				log(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
 				log(STRING(HASHDB_MAINTENANCE_FAILED), LogMessage::SEV_ERROR);
@@ -516,7 +518,7 @@ void HashStore::onScheduleRepair(bool aSchedule) {
 }
 
 bool HashStore::isRepairScheduled() const noexcept {
-	return Util::fileExists(hashDb->getRepairFlag()) && Util::fileExists(fileDb->getRepairFlag());
+	return PathUtil::fileExists(hashDb->getRepairFlag()) && PathUtil::fileExists(fileDb->getRepairFlag());
 }
 
 void HashStore::getDbSizes(int64_t& fileDbSize_, int64_t& hashDbSize_) const noexcept {

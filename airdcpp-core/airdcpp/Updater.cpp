@@ -24,12 +24,15 @@
 #include "HashCalc.h"
 #include "HttpDownload.h"
 #include "LogManager.h"
+#include "PathUtil.h"
 #include "ScopedFunctor.h"
 #include "SimpleXML.h"
 #include "StringTokenizer.h"
+#include "SystemUtil.h"
 #include "UpdateManager.h"
 #include "Util.h"
 #include "ZipFile.h"
+#include "ValueGenerator.h"
 #include "version.h"
 
 #include <boost/shared_array.hpp>
@@ -82,7 +85,7 @@ int Updater::destroyDirectory(const string& aPath) {
 	// The updater exe may not shut down instantly
 	for (int i = 0; i < 3; i++) {
 		removed += cleanExtraFiles(aPath, nullopt);
-		if (Util::fileExists(aPath)) {
+		if (PathUtil::fileExists(aPath)) {
 			Sleep(1000);
 		} else {
 			break;
@@ -102,7 +105,7 @@ bool Updater::applyUpdaterFiles(const string& aCurTempPath, const string& aCurDe
 
 			if (!aInfo.isDirectory) {
 				try {
-					if (Util::fileExists(destFilePath)) {
+					if (PathUtil::fileExists(destFilePath)) {
 						File::deleteFile(destFilePath);
 					}
 
@@ -216,14 +219,14 @@ bool Updater::applyUpdate(const string& aSourcePath, const string& aApplicationP
 
 		::RegCloseKey(hk);
 	} else {
-		updaterLog.log("Failed to update registry key: " + Util::translateError(err));
+		updaterLog.log("Failed to update registry key: " + SystemUtil::translateError(err));
 	}
 
 	return true;
 }
 
 string Updater::createUpdate(const FileListF& aFileListF) noexcept {
-	auto updaterFilePath = Util::getParentDir(Util::getAppPath());
+	auto updaterFilePath = PathUtil::getParentDir(AppUtil::getAppPath());
 	string updaterFile = "updater_" ARCH_STR "_" + VERSIONSTRING + ".zip";
 
 	// Create zip
@@ -350,7 +353,7 @@ void Updater::signVersionFile(const string& aVersionFilePath, const string& aPri
 
 			if (!c_key.empty()) {
 				// Write the public key header (openssl probably has something to generate similar file, but couldn't locate it)
-				File pubKey(Util::getFilePath(aVersionFilePath) + "pubkey.h", File::WRITE, File::TRUNCATE | File::CREATE);
+				File pubKey(PathUtil::getFilePath(aVersionFilePath) + "pubkey.h", File::WRITE, File::TRUNCATE | File::CREATE);
 				pubKey.write(c_key);
 			}
 		} catch(const FileException&) { }
@@ -363,7 +366,7 @@ void Updater::signVersionFile(const string& aVersionFilePath, const string& aPri
 }
 
 Updater::Updater(UpdateManager* aUm) noexcept : um(aUm) {
-	sessionToken = Util::toString(Util::rand());
+	sessionToken = Util::toString(ValueGenerator::rand());
 }
 
 void Updater::completeUpdateDownload(int aBuildID, bool aManualCheck) {
@@ -411,13 +414,13 @@ string Updater::extractUpdater(const string& aUpdaterPath, int aBuildID, const s
 	zip.Open(aUpdaterPath);
 
 	string srcPath = UPDATE_TEMP_DIR + aSessionToken + PATH_SEPARATOR;
-	string dstPath = Util::getAppFilePath();
-	string updaterExeFile = srcPath + Util::getAppFileName();
+	string dstPath = AppUtil::getAppFilePath();
+	string updaterExeFile = srcPath + AppUtil::getAppFileName();
 
 	if (zip.GoToFirstFile()) {
 		do {
 			zip.OpenCurrentFile();
-			if (zip.GetCurrentFileName().find(Util::getFileExt(updaterExeFile)) != string::npos && zip.GetCurrentFileName().find('/') == string::npos) {
+			if (zip.GetCurrentFileName().find(PathUtil::getFileExt(updaterExeFile)) != string::npos && zip.GetCurrentFileName().find('/') == string::npos) {
 				zip.ReadCurrentFile(updaterExeFile);
 			} else zip.ReadCurrentFile(srcPath);
 			zip.CloseCurrentFile();
@@ -432,7 +435,7 @@ string Updater::extractUpdater(const string& aUpdaterPath, int aBuildID, const s
 	xml.stepIn();
 	xml.addTag("DestinationPath", dstPath);
 	xml.addTag("SourcePath", srcPath);
-	xml.addTag("ConfigPath", Util::getPath(Util::PATH_USER_CONFIG));
+	xml.addTag("ConfigPath", AppUtil::getPath(AppUtil::PATH_USER_CONFIG));
 	xml.addTag("UpdaterFile", updaterExeFile);
 	xml.addTag("BuildID", aBuildID);
 	xml.stepOut();
@@ -458,7 +461,7 @@ bool Updater::checkPendingUpdates(const string& aAppPath, string& updaterFile_, 
 	}
 
 	for (auto& infoFilePath : infoFileList) {
-		if (Util::getFileExt(infoFilePath) != ".xml") {
+		if (PathUtil::getFileExt(infoFilePath) != ".xml") {
 			continue;
 		}
 
@@ -484,10 +487,10 @@ bool Updater::checkPendingUpdates(const string& aAppPath, string& updaterFile_, 
 							xml.stepIn();
 							if (Util::toInt(xml.getData()) <= BUILD_NUMBER || aUpdateAttempted) {
 								// We have an old update for this instance, delete the files
-								auto updateDirectory = Util::getFilePath(updaterFile_);
+								auto updateDirectory = PathUtil::getFilePath(updaterFile_);
 								auto removed = destroyDirectory(updateDirectory);
 								logger.log(Util::toString(removed) + " files were removed from the updater directory " + updateDirectory);
-								if (Util::fileExists(updateDirectory)) {
+								if (PathUtil::fileExists(updateDirectory)) {
 									logger.log("WARNING: update directory " + updateDirectory + " could not be removed");
 								}
 
@@ -627,7 +630,7 @@ bool Updater::getUpdateVersionInfo(SimpleXML& xml, string& versionString, int& r
 		StringTokenizer<string> t(xml.getChildAttrib("MinOsVersion"), '.');
 		StringList& l = t.getTokens();
 
-		if (!Util::IsOSVersionOrGreater(Util::toInt(l[0]), Util::toInt(l[1]))) {
+		if (!SystemUtil::isOSVersionOrGreater(Util::toInt(l[0]), Util::toInt(l[1]))) {
 			continue;
 		}
 

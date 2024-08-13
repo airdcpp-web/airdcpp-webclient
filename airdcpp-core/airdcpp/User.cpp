@@ -19,14 +19,12 @@
 #include "stdinc.h"
 #include "User.h"
 
-#include "AdcHub.h"
 #include "Client.h"
 #include "StringTokenizer.h"
 #include "FavoriteUser.h"
 #include "GeoManager.h"
 
 #include "ClientManager.h"
-#include "UserCommand.h"
 #include "ResourceManager.h"
 #include "FavoriteManager.h"
 
@@ -35,6 +33,19 @@
 namespace dcpp {
 
 SharedMutex Identity::cs;
+
+const string OnlineUser::CLIENT_PROTOCOL("ADC/1.0");
+const string OnlineUser::SECURE_CLIENT_PROTOCOL_TEST("ADCS/0.10");
+const string OnlineUser::ADCS_FEATURE("ADC0");
+const string OnlineUser::TCP4_FEATURE("TCP4");
+const string OnlineUser::TCP6_FEATURE("TCP6");
+const string OnlineUser::UDP4_FEATURE("UDP4");
+const string OnlineUser::UDP6_FEATURE("UDP6");
+const string OnlineUser::NAT0_FEATURE("NAT0");
+const string OnlineUser::SEGA_FEATURE("SEGA");
+const string OnlineUser::SUD1_FEATURE("SUD1");
+const string OnlineUser::ASCH_FEATURE("ASCH");
+const string OnlineUser::CCPM_FEATURE("CCPM");
 
 OnlineUser::OnlineUser(const UserPtr& ptr, const ClientPtr& client_, uint32_t sid_) : identity(ptr, sid_), client(client_) {
 }
@@ -62,24 +73,24 @@ bool Identity::isTcp4Active(const ClientPtr& c) const noexcept {
 		}
 
 		// ADC
-		return !getIp4().empty() && supports(AdcHub::TCP4_FEATURE);
+		return !getIp4().empty() && hasSupport(OnlineUser::TCP4_FEATURE);
 	}
 }
 
 bool Identity::isTcp6Active() const noexcept {
-	return !getIp6().empty() && supports(AdcHub::TCP6_FEATURE);
+	return !getIp6().empty() && hasSupport(OnlineUser::TCP6_FEATURE);
 }
 
 bool Identity::isUdp4Active() const noexcept {
 	if(getIp4().empty() || getUdp4Port().empty())
 		return false;
-	return user->isSet(User::NMDC) ? !user->isSet(User::PASSIVE) : supports(AdcHub::UDP4_FEATURE);
+	return user->isSet(User::NMDC) ? !user->isSet(User::PASSIVE) : hasSupport(OnlineUser::UDP4_FEATURE);
 }
 
 bool Identity::isUdp6Active() const noexcept {
 	if(getIp6().empty() || getUdp6Port().empty())
 		return false;
-	return user->isSet(User::NMDC) ? false : supports(AdcHub::UDP6_FEATURE);
+	return user->isSet(User::NMDC) ? false : hasSupport(OnlineUser::UDP6_FEATURE);
 }
 
 string Identity::getUdpPort() const noexcept {
@@ -246,13 +257,30 @@ void Identity::set(const char* name, const string& val) noexcept {
 }
 
 StringList Identity::getSupports() const noexcept {
-	string su = get("SU");
-	return StringTokenizer<string>(su, ',').getTokens();
+	StringList ret;
+	for (const auto& s : supports) {
+		ret.push_back(AdcCommand::fromFourCC(s));
+	}
+
+	return ret;
 }
 
-bool Identity::supports(const string& name) const noexcept {
-	for (const auto& s: getSupports()) {
-		if (s == name)
+void Identity::setSupports(const string& aSupports) noexcept {
+	auto tokens = StringTokenizer<string>(aSupports, ',');
+
+	WLock l(cs);
+	supports.clear();
+	for (const auto& support : tokens.getTokens()) {
+		supports.push_back(AdcCommand::toFourCC(support.c_str()));
+	}
+}
+
+bool Identity::hasSupport(const string& name) const noexcept {
+	auto support = AdcCommand::toFourCC(name.c_str());
+
+	RLock l(cs);
+	for (const auto& s: supports) {
+		if (s == support)
 			return true;
 	}
 
@@ -323,7 +351,7 @@ Identity::Mode Identity::detectConnectMode(const Identity& aMe, const Identity& 
 }
 
 Identity::Mode Identity::detectConnectModeTcp(const Identity& aMe, const Identity& aOther, const Client* aClient) noexcept {
-	return detectConnectMode(aMe, aOther, aMe.isTcp4Active(), aMe.isTcp6Active(), aOther.isTcp4Active(), aOther.isTcp6Active(), aOther.supports(AdcHub::NAT0_FEATURE), aClient);
+	return detectConnectMode(aMe, aOther, aMe.isTcp4Active(), aMe.isTcp6Active(), aOther.isTcp4Active(), aOther.isTcp6Active(), aOther.hasSupport(OnlineUser::NAT0_FEATURE), aClient);
 }
 
 Identity::Mode Identity::detectConnectModeUdp(const Identity& aMe, const Identity& aOther, const Client* aClient) noexcept {
@@ -421,7 +449,7 @@ string OnlineUser::getLogPath() const noexcept {
 }
 
 bool OnlineUser::supportsCCPM() const noexcept {
-	return getIdentity().supports(AdcHub::CCPM_FEATURE);
+	return getIdentity().hasSupport(OnlineUser::CCPM_FEATURE);
 }
 
 } // namespace dcpp

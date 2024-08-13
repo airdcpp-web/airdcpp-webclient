@@ -35,6 +35,14 @@ AdcCommand::AdcCommand(const string& aLine, bool nmdc /* = false */) : cmdInt(0)
 	parse(aLine, nmdc);
 }
 
+bool AdcCommand::isValidType(char aType) noexcept {
+	if (aType != TYPE_BROADCAST && aType != TYPE_CLIENT && aType != TYPE_DIRECT && aType != TYPE_ECHO && aType != TYPE_FEATURE && aType != TYPE_INFO && aType != TYPE_HUB && aType != TYPE_UDP) {
+		return false;
+	}
+
+	return true;
+}
+
 void AdcCommand::parse(const string& aLine, bool nmdc /* = false */) {
 	string::size_type i = 5;
 
@@ -57,7 +65,7 @@ void AdcCommand::parse(const string& aLine, bool nmdc /* = false */) {
 		cmd[2] = aLine[3];
 	}
 
-	if(type != TYPE_BROADCAST && type != TYPE_CLIENT && type != TYPE_DIRECT && type != TYPE_ECHO && type != TYPE_FEATURE && type != TYPE_INFO && type != TYPE_HUB && type != TYPE_UDP) {
+	if(!isValidType(type)) {
 		throw ParseException("Invalid type");
 	}
 
@@ -160,6 +168,12 @@ void AdcCommand::parse(const string& aLine, bool nmdc /* = false */) {
 	}
 }
 
+AdcCommand& AdcCommand::addFeature(const string& feat, FeatureType aType) noexcept {
+	features += aType == FeatureType::REQUIRED ? "+" : "-";
+	features += feat;
+	return *this; 
+}
+
 string AdcCommand::toString(const CID& aCID) const noexcept {
 	return getHeaderString(aCID) + getParamString(false);
 }
@@ -237,6 +251,13 @@ string AdcCommand::getHeaderString() const noexcept {
 	return tmp;
 }
 
+AdcCommand& AdcCommand::addParams(const ParamMap& aParams) noexcept {
+	for (const auto& param : aParams) {
+		addParam(param.first, param.second);
+	}
+	return *this;
+}
+
 const string& AdcCommand::getParam(size_t n) const noexcept {
 	return getParameters().size() > n ? getParameters()[n] : Util::emptyString;
 }
@@ -284,6 +305,11 @@ bool AdcCommand::hasFlag(const char* name, size_t start) const noexcept {
 		}
 	}
 	return false;
+}
+
+AdcCommand::CommandType AdcCommand::toCommand(const string& aCmd) noexcept {
+	dcassert(aCmd.length() == 3);
+	return (((uint32_t)aCmd[0]) | (((uint32_t)aCmd[1]) << 8) | (((uint32_t)aCmd[2]) << 16));
 }
 
 } // namespace dcpp

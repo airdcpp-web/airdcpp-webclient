@@ -19,70 +19,29 @@
 #include "stdinc.h"
 #include "SearchManager.h"
 
-#include "AdcHub.h"
-#include "AirUtil.h"
 #include "ClientManager.h"
 #include "LogManager.h"
-#include "QueueManager.h"
-#include "ResourceManager.h"
+#include "PathUtil.h"
 #include "ScopedFunctor.h"
 #include "SearchInstance.h"
+#include "SearchQuery.h"
 #include "SearchResult.h"
+#include "SearchTypes.h"
 #include "ShareManager.h"
-#include "SimpleXML.h"
-#include "StringTokenizer.h"
 #include "TimerManager.h"
+#include "UDPServer.h"
+#include "ValueGenerator.h"
 
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 
-const auto DEBUG_SEARCH = false;
-
 namespace dcpp {
 
-ResourceManager::Strings SearchManager::types[Search::TYPE_LAST] = {
-	ResourceManager::ANY,
-	ResourceManager::AUDIO,
-	ResourceManager::COMPRESSED,
-	ResourceManager::DOCUMENT,
-	ResourceManager::EXECUTABLE,
-	ResourceManager::PICTURE,
-	ResourceManager::VIDEO,
-	ResourceManager::DIRECTORY,
-	ResourceManager::TTH_ROOT,
-	ResourceManager::FILE
-};
-const string& SearchManager::getTypeStr(int aType) noexcept {
-	return STRING_I(types[aType]);
-}
-
-bool SearchManager::isDefaultTypeStr(const string& aType) noexcept {
-	 return aType.size() == 1 && aType[0] >= '0' && aType[0] <= '9';
-}
-
-
-string SearchType::getDisplayName() const noexcept {
-	return isDefault() ? SearchManager::getTypeStr(id[0] - '0') : name;
-}
-
-bool SearchType::isDefault() const noexcept {
-	return SearchManager::isDefaultTypeStr(id);
-}
-
-
-Search::TypeModes SearchType::getTypeMode() const noexcept {
-	if (!isDefault()) {
-		// Custom search type
-		return Search::TYPE_ANY;
-	}
-
-	return static_cast<Search::TypeModes>(id[0] - '0');
-}
-
-SearchManager::SearchManager() {
-	setSearchTypeDefaults();
+SearchManager::SearchManager() : 
+	udpServer(make_unique<UDPServer>()), 
+	searchTypes(make_unique<SearchTypes>([this]{ fire(SearchManagerListener::SearchTypesChanged()); })) 
+{
 	TimerManager::getInstance()->addListener(this);
-	SettingsManager::getInstance()->addListener(this);
 
 #ifdef _DEBUG
 	testSUDP();
@@ -91,9 +50,8 @@ SearchManager::SearchManager() {
 
 SearchManager::~SearchManager() {
 	TimerManager::getInstance()->removeListener(this);
-	SettingsManager::getInstance()->removeListener(this);
 
-	for(auto& p: searchKeys) 
+	for (auto& p: searchKeys) 
 		delete p.first;
 }
 
@@ -293,15 +251,15 @@ bool SearchManager::decryptPacket(string& x, size_t aLen, const ByteVector& aBuf
 }
 
 const string& SearchManager::getPort() const { 
-	return udpServer.getPort(); 
+	return udpServer->getPort(); 
 }
 
 void SearchManager::listen() {
-	udpServer.listen();
+	udpServer->listen();
 }
 
 void SearchManager::disconnect() noexcept {
-	udpServer.disconnect();
+	udpServer->disconnect();
 }
 
 void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyString*/) {
@@ -386,7 +344,7 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 		return;
 	}
 
-	auto adcPath = Util::toAdcFile(Text::toUtf8(file, hubEncoding));
+	auto adcPath = PathUtil::toAdcFile(Text::toUtf8(file, hubEncoding));
 	auto sr = make_shared<SearchResult>(
 		user, type, slots, freeSlots, size,
 		adcPath, aRemoteIP, TTHValue(tth), Util::emptyString, 0, connection, DirectoryContentInfo()
@@ -395,7 +353,7 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 	fire(SearchManagerListener::SR(), sr);
 }
 
-void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const string& remoteIp) {
+void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& aFrom, const string& aRemoteIp) {
 	int freeSlots = -1;
 	int64_t size = -1;
 	string adcPath;
@@ -424,34 +382,43 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& from, const stri
 		}
 	}
 
-	if(freeSlots != -1 && size != -1) {
-		//connect to a correct hub
-		string hubUrl, connection;
-		uint8_t slots = 0;
-		if (!ClientManager::getInstance()->connectADCSearchResult(from->getCID(), token, hubUrl, connection, slots)) {
-			return;
-		}
-
-		if (adcPath.empty()) {
-			return;
-		}
-
-		auto type = adcPath.back() == ADC_SEPARATOR ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE;
-		if (type == SearchResult::TYPE_FILE && tth.empty())
-			return;
-
-		TTHValue th;
-		if (type == SearchResult::TYPE_DIRECTORY) {
-			//calculate a TTH from the directory name and size
-			th = AirUtil::getTTH(type == SearchResult::TYPE_FILE ? Util::getAdcFileName(adcPath) : Util::getAdcLastDir(adcPath), size);
-		} else {
-			th = TTHValue(tth);
-		}
-		
-		auto sr = make_shared<SearchResult>(HintedUser(from, hubUrl), type, slots, (uint8_t)freeSlots, size,
-			adcPath, remoteIp, th, token, date, connection, DirectoryContentInfo(folders, files));
-		fire(SearchManagerListener::SR(), sr);
+	// Validate result
+	if (freeSlots == -1 || size == -1 || adcPath.empty()) {
+		return;
 	}
+
+	auto type = adcPath.back() == ADC_SEPARATOR ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE;
+	if (type == SearchResult::TYPE_FILE && tth.empty()) {
+		return;
+	}
+
+	// Connect the result to a correct hub
+	string hubUrl, connection;
+	uint8_t slots = 0;
+	if (!ClientManager::getInstance()->connectADCSearchResult(aFrom->getCID(), token, hubUrl, connection, slots)) {
+		return;
+	}
+
+	// Parse TTH
+	TTHValue th;
+	if (type == SearchResult::TYPE_DIRECTORY) {
+		// Generate TTH from the directory name and size
+		th = ValueGenerator::generateDirectoryTTH(type == SearchResult::TYPE_FILE ? PathUtil::getAdcFileName(adcPath) : PathUtil::getAdcLastDir(adcPath), size);
+	} else {
+		th = TTHValue(tth);
+	}
+
+	auto sr = make_shared<SearchResult>(HintedUser(aFrom, hubUrl), type, slots, (uint8_t)freeSlots, size,
+		adcPath, aRemoteIp, th, token, date, connection, DirectoryContentInfo(folders, files));
+
+	// Hooks
+	auto error = incomingSearchResultHook.runHooksError(this, sr);
+	if (error) {
+		dcdebug("Hook rejection for search result %s from user %s (%s)\n", sr->getAdcPath().c_str(), ClientManager::getInstance()->getFormatedNicks(sr->getUser()).c_str(), ActionHookRejection::formatError(error).c_str());
+		return;
+	}
+
+	fire(SearchManagerListener::SR(), sr);
 }
 
 void SearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
@@ -487,190 +454,9 @@ void SearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 }
 
-void SearchManager::dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
-	if (DEBUG_SEARCH) {
-		LogManager::getInstance()->message(aMsg, aSeverity, STRING(SEARCH));
-	} else if (aSeverity == LogMessage::SEV_WARNING || aSeverity == LogMessage::SEV_ERROR) {
-#ifdef _DEBUG
-		LogManager::getInstance()->message(aMsg, aSeverity, STRING(SEARCH));
-		dcdebug("%s\n", aMsg.c_str());
-#endif
-	}
-}
-
-// Partial bundle sharing (ADC)
-void SearchManager::onPBD(const AdcCommand& aCmd, const UserPtr& from) {
-	dcassert(!!from);
-
-	string remoteBundle;
-	string hubIpPort;
-	string tth;
-	bool add = false, update = false, reply = false, notify = false, remove = false;
-
-	for (auto& str: aCmd.getParameters()) {
-		if (str.compare(0, 2, "HI") == 0) {
-			hubIpPort = str.substr(2);
-		} else if (str.compare(0, 2, "BU") == 0) {
-			remoteBundle = str.substr(2);
-		} else if (str.compare(0, 2, "TH") == 0) {
-			tth = str.substr(2);
-		} else if (str.compare(0, 2, "UP") == 0) { //new notification of a finished TTH
-			update = true;
-		} else if (str.compare(0, 2, "AD") == 0) { //add TTHList
-			add = true;
-		} else if (str.compare(0, 2, "RE") == 0) { //require reply
-			reply = true;
-		} else if (str.compare(0, 2, "NO") == 0) { //notify only, don't download TTHList
-			notify = true;
-		} else if (str.compare(0, 2, "RM") == 0) { //remove notifications for a selected user and bundle
-			remove = true;
-		} else {
-			dbgMsg("PBD: unknown param " + str, LogMessage::SEV_WARNING);
-		}
-	}
-
-	if (remove && !remoteBundle.empty()) {
-		dbgMsg("PBD: remove finished notify", LogMessage::SEV_VERBOSE);
-		// Local bundle really...
-		QueueManager::getInstance()->removeBundleNotify(from, Util::toUInt32(remoteBundle));
-	}
-
-	if (tth.empty()) {
-		dbgMsg("PBD: empty TTH", LogMessage::SEV_WARNING);
-		return;
-	}
-
-	auto hubUrl = ClientManager::getInstance()->getADCSearchHubUrl(from->getCID(), hubIpPort);
-	if (hubUrl.empty()) {
-		dbgMsg("PBD: no online hubs for a CID %s", LogMessage::SEV_WARNING);
-		return;
-	}
-
-	if (update) {
-		dbgMsg("PBD: add file source", LogMessage::SEV_VERBOSE);
-		QueueManager::getInstance()->updatePBDHooked(HintedUser(from, hubUrl), TTHValue(tth));
-		return;
-	} else if (remoteBundle.empty()) {
-		dbgMsg("PBD: empty remote bundle", LogMessage::SEV_WARNING);
-		return;
-	}
-
-	auto u = HintedUser(from, hubUrl);
-	if (notify) {
-		dbgMsg("PBD: add finished notify", LogMessage::SEV_VERBOSE);
-		QueueManager::getInstance()->addFinishedNotify(u, TTHValue(tth), remoteBundle);
-	} else if (reply) {
-		dbgMsg("PBD: reply required", LogMessage::SEV_VERBOSE);
-
-		string localBundle;
-		bool sendNotify = false, sendAdd = false;
-		if (QueueManager::getInstance()->checkPBDReply(u, TTHValue(tth), localBundle, sendNotify, sendAdd, remoteBundle)) {
-			AdcCommand cmd = toPBD(hubIpPort, localBundle, tth, false, sendAdd, sendNotify);
-			if (!ClientManager::getInstance()->sendUDP(cmd, from->getCID(), false, true)) {
-				dbgMsg("PBD: reply sent", LogMessage::SEV_VERBOSE);
-			} else {
-				dbgMsg("PBD: could not send reply (UDP error)", LogMessage::SEV_WARNING);
-			}
-		} else {
-			dbgMsg("PBD: can't send reply (no bundle)", LogMessage::SEV_INFO);
-		}
-	}
-
-	if (add) {
-		try {
-			QueueManager::getInstance()->addBundleTTHListHooked(u, remoteBundle, TTHValue(tth));
-			dbgMsg("PBD: TTH list queued", LogMessage::SEV_VERBOSE);
-		} catch (const Exception& e) {
-			dbgMsg("PBD: error when queueing TTH list: " + string(e.what()), LogMessage::SEV_WARNING);
-		}
-	}
-}
-
-// NMDC/ADC
-void SearchManager::onPSR(const AdcCommand& aCmd, UserPtr from, const string& aRemoteIp) {
-	if (!SETTING(USE_PARTIAL_SHARING)) {
-		return;
-	}
-
-	string udpPort;
-	uint32_t partialCount = 0;
-	string tth;
-	string hubIpPort;
-	string nick;
-	PartsInfo partialInfo;
-
-	for (auto& str: aCmd.getParameters()) {
-		if (str.compare(0, 2, "U4") == 0) {
-			udpPort = str.substr(2);
-		} else if (str.compare(0, 2, "NI") == 0) {
-			nick = str.substr(2);
-		} else if (str.compare(0, 2, "HI") == 0) {
-			hubIpPort = str.substr(2);
-		} else if (str.compare(0, 2, "TR") == 0) {
-			tth = str.substr(2);
-		} else if (str.compare(0, 2, "PC") == 0) {
-			partialCount = Util::toUInt32(str.substr(2))*2;
-		} else if (str.compare(0, 2, "PI") == 0) {
-			StringTokenizer<string> tok(str.substr(2), ',');
-			for (auto& i: tok.getTokens()) {
-				partialInfo.push_back((uint16_t)Util::toInt(i));
-			}
-		}
-	}
-
-	string hubUrl;
-	if (!from || from == ClientManager::getInstance()->getMe()) {
-		// for NMDC support
-		if (nick.empty() || hubIpPort.empty()) {
-			dbgMsg("PSR: NMDC nick/hub ip:port empty", LogMessage::SEV_WARNING);
-			return;
-		}
-		
-		auto u = ClientManager::getInstance()->getNmdcSearchHintedUserUtf8(nick, hubIpPort, aRemoteIp);
-		if (!u) {
-			dbgMsg("PSR: result from an unknown NMDC user", LogMessage::SEV_WARNING);
-			return;
-		}
-
-		dcassert(!u.hint.empty());
-		from = u.user;
-		hubUrl = u.hint;
-	} else {
-		// ADC
-		hubUrl = ClientManager::getInstance()->getADCSearchHubUrl(from->getCID(), hubIpPort);
-		if (hubUrl.empty()) {
-			dbgMsg("PSR: result from an unknown ADC hub", LogMessage::SEV_WARNING);
-			return;
-		}
-	}
-
-	if (partialInfo.size() != partialCount) {
-		dbgMsg("PSR: invalid size", LogMessage::SEV_WARNING);
-		// what to do now ? just ignore partial search result :-/
-		return;
-	}
-
-	PartsInfo outPartialInfo;
-	QueueItem::PartialSource ps(from->isNMDC() ? ClientManager::getInstance()->getMyNick(hubUrl) : Util::emptyString, hubIpPort, aRemoteIp, udpPort);
-	ps.setPartialInfo(partialInfo);
-
-	QueueManager::getInstance()->handlePartialResultHooked(HintedUser(from, hubUrl), TTHValue(tth), ps, outPartialInfo);
-	
-	if(Util::toInt(udpPort) > 0 && !outPartialInfo.empty()) {
-		try {
-			AdcCommand cmd = SearchManager::getInstance()->toPSR(false, ps.getMyNick(), hubIpPort, tth, outPartialInfo);
-			ClientManager::getInstance()->sendUDP(cmd, from->getCID(), false, true, Util::emptyString, hubUrl);
-		} catch (const Exception& e) {
-			dbgMsg("PSR: failed to send reply (" + string(e.what()) + ")", LogMessage::SEV_WARNING);
-		}
-	}
-
-}
-
-void SearchManager::respond(const AdcCommand& adc, const OnlineUser& aUser, bool aIsUdpActive, const string& aHubIpPort, ProfileToken aProfile) {
+void SearchManager::respond(const AdcCommand& adc, Client* aClient, OnlineUser* aUser, bool aIsUdpActive, ProfileToken aProfile) noexcept {
 	auto isDirect = adc.getType() == 'D';
 
-	string sudpKey;
 	string path = ADC_ROOT_STR;
 	int maxResults = aIsUdpActive ? 10 : 5;
 	bool replyDirect = false;
@@ -687,321 +473,91 @@ void SearchManager::respond(const AdcCommand& adc, const OnlineUser& aUser, bool
 	SearchResultList results;
 	SearchQuery srch(adc.getParameters(), maxResults);
 
+	ScopedFunctor([&] {
+		fire(SearchManagerListener::IncomingSearch(), aClient, aUser, srch, results, aIsUdpActive);
+	});
+
 	string token;
 	adc.getParam("TO", 0, token);
 
 	try {
-		ShareManager::getInstance()->adcSearch(results, srch, aProfile, aUser.getUser()->getCID(), path, token.find("/as") != string::npos);
+		ShareManager::getInstance()->search(results, srch, aProfile, aUser->getUser(), path, token.find("/as") != string::npos);
 	} catch(const ShareException& e) {
 		if (replyDirect) {
 			//path not found (direct search)
 			AdcCommand c(AdcCommand::SEV_FATAL, AdcCommand::ERROR_FILE_NOT_AVAILABLE, e.getError(), AdcCommand::TYPE_DIRECT);
-			c.setTo(aUser.getIdentity().getSID());
+			c.setTo(aUser->getIdentity().getSID());
 			c.addParam("TO", token);
 
-			aUser.getClient()->send(c);
+			aUser->getClient()->sendHooked(c);
 		}
 		return;
 	}
 
-	// TODO: don't send replies to passive users
-	if (results.empty() && SETTING(USE_PARTIAL_SHARING) && aProfile != SP_HIDDEN) {
-		string tth;
-		if(!adc.getParam("TR", 0, tth))
-			goto end;
-			
-		PartsInfo partialInfo;
-		string bundle;
-		bool reply = false, add = false;
-		QueueManager::getInstance()->handlePartialSearch(aUser.getUser(), TTHValue(tth), partialInfo, bundle, reply, add);
-
-		if (!partialInfo.empty()) {
-			AdcCommand cmd = toPSR(aIsUdpActive, Util::emptyString, aHubIpPort, tth, partialInfo);
-			if (!ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl())) {
-				dbgMsg("ADC response: partial file info not empty, failed to send response", LogMessage::SEV_WARNING);
-			} else {
-				dbgMsg("ADC respond: partial file info not empty, response sent", LogMessage::SEV_VERBOSE);
-			}
+	if (!results.empty()) {
+		string sudpKey;
+		adc.getParam("KY", 0, sudpKey);
+		for (const auto& sr: results) {
+			AdcCommand cmd = sr->toRES(AdcCommand::TYPE_UDP);
+			if(!token.empty())
+				cmd.addParam("TO", token);
+			ClientManager::getInstance()->sendUDPHooked(cmd, aUser->getUser()->getCID(), false, false, sudpKey, aUser->getHubUrl());
 		}
-		
-		if (!bundle.empty()) {
-			AdcCommand cmd = toPBD(aHubIpPort, bundle, tth, reply, add);
-			if (!ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, true, Util::emptyString, aUser.getHubUrl())) {
-				dbgMsg("ADC respond: matching bundle in queue, failed to send PBD response", LogMessage::SEV_WARNING);
-			} else {
-				dbgMsg("ADC respond: matching bundle in queue, PBD response sent", LogMessage::SEV_VERBOSE);
-			}
-		}
-
-		goto end;
 	}
 
-	adc.getParam("KY", 0, sudpKey);
-	for (const auto& sr: results) {
-		AdcCommand cmd = sr->toRES(AdcCommand::TYPE_UDP);
-		if(!token.empty())
-			cmd.addParam("TO", token);
-		ClientManager::getInstance()->sendUDP(cmd, aUser.getUser()->getCID(), false, false, sudpKey, aUser.getHubUrl());
-	}
-
-end:
 	if (replyDirect) {
 		AdcCommand c(AdcCommand::SEV_SUCCESS, AdcCommand::SUCCESS, "Succeed", AdcCommand::TYPE_DIRECT);
-		c.setTo(aUser.getIdentity().getSID());
+		c.setTo(aUser->getIdentity().getSID());
 		c.addParam("FC", adc.getFourCC());
 		c.addParam("TO", token);
 		c.addParam("RC", Util::toString(results.size()));
 
-		aUser.getClient()->send(c);
+		aUser->getClient()->sendHooked(c);
 	}
 }
 
-string SearchManager::getPartsString(const PartsInfo& partsInfo) const {
-	string ret;
+void SearchManager::respond(Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize, int aFileType, const string& aString, bool aIsPassive) noexcept {
+	SearchResultList results;
 
-	for(auto i = partsInfo.begin(); i < partsInfo.end(); i+=2){
-		ret += Util::toString(*i) + "," + Util::toString(*(i+1)) + ",";
-	}
+	auto maxResults = aIsPassive ? 5 : 10;
+	auto srch = SearchQuery(aString, static_cast<Search::SizeModes>(aSearchType), aSize, static_cast<Search::TypeModes>(aFileType), maxResults);
+	auto shareProfile = aClient->get(HubSettings::ShareProfile);
+	ShareManager::getInstance()->search(results, srch, shareProfile, nullptr, ADC_ROOT_STR, false);
 
-	return ret.substr(0, ret.size()-1);
-}
+	fire(SearchManagerListener::IncomingSearch(), aClient, nullptr, srch, results, !aIsPassive);
 
-
-AdcCommand SearchManager::toPSR(bool aWantResponse, const string& aMyNick, const string& aHubIpPort, const string& aTTH, const vector<uint16_t>& aPartialInfo) const {
-	AdcCommand cmd(AdcCommand::CMD_PSR, AdcCommand::TYPE_UDP);
-		
-	if (!aMyNick.empty()) {
-		// NMDC
-		auto hubUrl = ClientManager::getInstance()->findHub(aHubIpPort, true);
-		cmd.addParam("NI", Text::fromUtf8(aMyNick, ClientManager::getInstance()->findHubEncoding(hubUrl)));
-	}
-		
-	cmd.addParam("HI", aHubIpPort);
-	cmd.addParam("U4", aWantResponse ? getPort() : "0");
-	cmd.addParam("TR", aTTH);
-	cmd.addParam("PC", Util::toString(aPartialInfo.size() / 2));
-	cmd.addParam("PI", getPartsString(aPartialInfo));
-	
-	return cmd;
-}
-
-AdcCommand SearchManager::toPBD(const string& hubIpPort, const string& bundle, const string& aTTH, bool reply, bool add, bool notify) const {
-	AdcCommand cmd(AdcCommand::CMD_PBD, AdcCommand::TYPE_UDP);
-
-	cmd.addParam("HI", hubIpPort);
-	cmd.addParam("BU", bundle);
-	cmd.addParam("TH", aTTH);
-	if (notify) {
-		cmd.addParam("NO1");
-	} else if (reply) {
-		cmd.addParam("RE1");
-	}
-
-	if (add) {
-		cmd.addParam("AD1");
-	}
-	return cmd;
-}
-
-void SearchManager::validateSearchTypeName(const string& aName) {
-	if (aName.empty() || isDefaultTypeStr(aName)) {
-		throw SearchTypeException("Invalid search type name"); // TODO: localize
-	}
-
-	for (int type = Search::TYPE_ANY; type != Search::TYPE_LAST; ++type) {
-		if (getTypeStr(type) == aName) {
-			throw SearchTypeException("This search type already exists"); // TODO: localize
-		}
-	}
-}
-
-SearchTypeList SearchManager::getSearchTypes() const noexcept {
-	SearchTypeList ret;
-
-	{
-		RLock l(cs);
-		ranges::copy(searchTypes | views::values, back_inserter(ret));
-	}
-
-	return ret;
-}
-
-void SearchManager::setSearchTypeDefaults() {
-	{
-		WLock l(cs);
-		searchTypes.clear();
-
-		// for conveniency, the default search exts will be the same as the ones defined by SEGA.
-		const auto& searchExts = AdcHub::getSearchExts();
-		for (size_t i = 0, n = searchExts.size(); i < n; ++i) {
-			const auto id = string(1, '1' + i);
-			searchTypes[id] = make_shared<SearchType>(id, id, searchExts[i]);
-		}
-	}
-
-	fire(SearchManagerListener::SearchTypesChanged());
-}
-
-SearchTypePtr SearchManager::addSearchType(const string& aName, const StringList& aExtensions) {
-	validateSearchTypeName(aName);
-
-	auto searchType = make_shared<SearchType>(Util::toString(Util::rand()), aName, aExtensions);
-
-	{
-		WLock l(cs);
-		searchTypes[searchType->getId()] = searchType;
-	}
-
-	fire(SearchManagerListener::SearchTypesChanged());
-	return searchType;
-}
-
-void SearchManager::delSearchType(const string& aId) {
-	validateSearchTypeName(aId);
-	{
-		WLock l(cs);
-		searchTypes.erase(aId);
-	}
-	fire(SearchManagerListener::SearchTypesChanged());
-}
-
-SearchTypePtr SearchManager::modSearchType(const string& aId, const optional<string>& aName, const optional<StringList>& aExtensions) {
-	auto type = getSearchType(aId);
-
-	if (aName && !type->isDefault()) {
-		type->setName(*aName);
-	}
-
-	if (aExtensions) {
-		type->setExtensions(*aExtensions);
-	}
-
-	fire(SearchManagerListener::SearchTypesChanged());
-	return type;
-}
-
-SearchTypePtr SearchManager::getSearchType(const string& aId) const {
-	RLock l(cs);
-	auto ret = searchTypes.find(aId);
-	if(ret == searchTypes.end()) {
-		throw SearchTypeException("No such search type"); // TODO: localize
-	}
-	return ret->second;
-}
-
-void SearchManager::getSearchType(int aPos, Search::TypeModes& type_, StringList& extList_, string& typeId_) {
-	// Any, directory or TTH
-	if (aPos < 4) {
-		if (aPos == 0) {
-			typeId_ = SEARCH_TYPE_ANY;
-			type_ = Search::TYPE_ANY;
-		} else if (aPos == 1) {
-			typeId_ = SEARCH_TYPE_DIRECTORY;
-			type_ = Search::TYPE_DIRECTORY;
-		} else if (aPos == 2) {
-			typeId_ = SEARCH_TYPE_TTH;
-			type_ = Search::TYPE_TTH;
-		} else if (aPos == 3) {
-			typeId_ = SEARCH_TYPE_FILE;
-			type_ = Search::TYPE_FILE;
-		}
-		return;
-	}
-
-	{
-		auto typeIndex = aPos - 4;
-		int counter = 0;
-
-		RLock l(cs);
-		for (auto& i : searchTypes) {
-			if (counter++ == typeIndex) {
-				type_ = i.second->getTypeMode();
-				typeId_ = i.second->getId();
-				extList_ = i.second->getExtensions();
-				return;
-			}
-		}
-	}
-
-	throw SearchTypeException("No such search type"); 
-}
-
-void SearchManager::getSearchType(const string& aId, Search::TypeModes& type_, StringList& extList_, string& name_) {
-	if (aId.empty())
-		throw SearchTypeException("No such search type"); 
-
-	// Any, directory or TTH
-	if (aId[0] == SEARCH_TYPE_ANY[0] || aId[0] == SEARCH_TYPE_DIRECTORY[0] || aId[0] == SEARCH_TYPE_TTH[0]  || aId[0] == SEARCH_TYPE_FILE[0]) {
-		type_ = static_cast<Search::TypeModes>(aId[0] - '0');
-		name_ = getTypeStr(aId[0] - '0');
-		return;
-	}
-
-	auto type = getSearchType(aId);
-	extList_ = type->getExtensions();
-	type_ = type->getTypeMode();
-	name_ = type->getDisplayName();
-}
-
-string SearchManager::getTypeIdByExtension(const string& aExtension, bool aDefaultsOnly) const noexcept {
-	auto extensionLower = Text::toLower(aExtension);
-
-	RLock l(cs);
-	for (const auto& type : searchTypes | views::values) {
-		if (aDefaultsOnly && !type->isDefault()) {
-			continue;
-		}
-
-		auto i = ranges::find(type->getExtensions(), extensionLower);
-		if (i != type->getExtensions().end()) {
-			return type->getId();
-		}
-	}
-
-	return Util::emptyString;
-}
-
-
-void SearchManager::on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {
-	xml.addTag("SearchTypes");
-	xml.stepIn();
-	{
-		RLock l(cs);
-		for(auto& t: searchTypes | views::values) {
-			xml.addTag("SearchType", Util::toString(";", t->getExtensions()));
-			xml.addChildAttrib("Id", t->getName());
-			if (!t->isDefault()) {
-				xml.addChildAttrib("UniqueId", t->getId());
-			}
-		}
-	}
-	xml.stepOut();
-}
-
-void SearchManager::on(SettingsManagerListener::Load, SimpleXML& xml) noexcept {
-	xml.resetCurrentChild();
-	if(xml.findChild("SearchTypes")) {
-		searchTypes.clear();
-		xml.stepIn();
-		while(xml.findChild("SearchType")) {
-			const string& extensions = xml.getChildData();
-			if(extensions.empty()) {
-				continue;
-			}
-			const string& name = xml.getChildAttrib("Id");
-			if(name.empty()) {
-				continue;
+	if (results.size() > 0) {
+		if (aIsPassive) {
+			string name = aSeeker.substr(4);
+			// Good, we have a passive seeker, those are easier...
+			string str;
+			for (const auto& sr: results) {
+				str += sr->toSR(*aClient);
+				str[str.length() - 1] = 5;
+				str += Text::fromUtf8(name, aClient->get(HubSettings::NmdcEncoding));
+				str += '|';
 			}
 
-			auto id = xml.getChildAttrib("UniqueId");
-			if (id.empty()) {
-				// Legacy/default type
-				id = name;
-			}
+			if (str.size() > 0)
+				aClient->send(str);
 
-			searchTypes[id] = make_shared<SearchType>(id, name, StringTokenizer<string>(extensions, ';').getTokens());
+		} else {
+			try {
+				string ip, port;
+
+				Util::parseIpPort(aSeeker, ip, port);
+
+				if (port.empty())
+					port = "412";
+
+				for (const auto& sr : results) {
+					auto data = sr->toSR(*aClient);
+					ClientManager::getInstance()->sendUDP(data, ip, port);
+				}
+			} catch (...) {
+				dcdebug("Search caught error\n");
+			}
 		}
-		xml.stepOut();
 	}
 }
 

@@ -28,8 +28,9 @@
 #include "Speaker.h"
 
 #include "CriticalSection.h"
-#include "Bundle.h"
+#include "GetSet.h"
 #include "MerkleTree.h"
+#include "QueueItemBase.h"
 #include "Util.h"
 
 namespace dcpp {
@@ -46,10 +47,7 @@ public:
 
 	/** @internal */
 	void addConnection(UserConnection* conn);
-	bool checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly = false);
-
-	void sendSizeUpdate(const BundlePtr& aBundle) const noexcept;
-	BundlePtr findRunningBundle(QueueToken bundleToken) const noexcept;
+	bool checkIdle(const UserPtr& aUser, bool aSmallSlot, bool aReportOnly = false);
 
 	/** @internal */
 	void abortDownload(const string& aTarget, const UserPtr& aUser = nullptr);
@@ -64,7 +62,7 @@ public:
 
 	// This will ignore bundles with no downloads and 
 	// bundles using highest priority
-	void getRunningBundles(QueueTokenSet& bundles_) const noexcept;
+	QueueTokenSet getRunningBundles(bool aIgnoreHighestPrio = true) const noexcept;
 	size_t getRunningBundleCount() const noexcept;
 
 	SharedMutex& getCS() noexcept { return cs; }
@@ -82,10 +80,9 @@ private:
 	// The list of bundles being download. Note that all of them may not be running
 	// as the bundle is removed from here only after the connection has been 
 	// switched to use another bundle (or no other downloads were found)
-	Bundle::TokenMap bundles;
+	// Bundle::TokenMap bundles;
 	UserConnectionList idlers;
 
-	void removeRunningUser(UserConnection* aSource, bool sendRemoved=false) noexcept;
 	void removeConnection(UserConnectionPtr aConn);
 	void removeDownload(Download* aDown);
 	void fileNotAvailable(UserConnection* aSource, bool aNoAccess, const string& aMessage = Util::emptyString);
@@ -98,10 +95,8 @@ private:
 	DownloadManager();
 	~DownloadManager();
 
-	//typedef unordered_set<CID> CIDList;
 	void checkDownloads(UserConnection* aConn);
 	void startData(UserConnection* aSource, int64_t start, int64_t newSize, bool z);
-	void startBundle(UserConnection* aSource, BundlePtr aBundle);
 
 	void revive(UserConnection* uc);
 	void endData(UserConnection* aSource);

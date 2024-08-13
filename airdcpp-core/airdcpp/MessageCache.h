@@ -25,6 +25,7 @@
 #include "CriticalSection.h"
 #include "Message.h"
 #include "SettingsManager.h"
+#include "Util.h"
 
 namespace dcpp {
 	typedef deque<Message> MessageList;

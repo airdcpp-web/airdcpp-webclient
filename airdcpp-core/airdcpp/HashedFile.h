@@ -33,18 +33,9 @@ public:
 
 	~HashedFile() { }
 
-	//GETSET(string, fileName, FileName);
 	GETSET(TTHValue, root, Root);
 	GETSET(uint64_t, timeStamp, TimeStamp);
 	GETSET(int64_t, size, Size);
-
-	/*struct FileLess {
-		bool operator()(const HashedFilePtr& a, const HashedFilePtr& b) const { return (a->getFileName().compare(b->getFileName()) < 0); }
-	};
-
-	struct Name {
-		const string& operator()(const HashedFilePtr& a) const { return a->getFileName(); }
-	};*/
 };
 
 typedef std::vector<pair<std::string, HashedFile>> RenameList;

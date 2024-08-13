@@ -29,11 +29,11 @@
 #include "CryptoManager.h"
 #include "FavoriteManager.h"
 #include "LogManager.h"
+#include "PathUtil.h"
 #include "QueueManager.h"
 #include "ResourceManager.h"
 #include "ShareManager.h"
 #include "Upload.h"
-#include "UploadBundle.h"
 #include "UserConnection.h"
 
 #include <boost/range/numeric.hpp>
@@ -47,6 +47,13 @@ using ranges::find_if;
 UploadManager::UploadManager() noexcept {	
 	ClientManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
+
+
+	SettingsManager::getInstance()->registerChangeHandler({
+		SettingsManager::FREE_SLOTS_EXTENSIONS
+	}, [this](auto ...) {
+		setFreeSlotMatcher();
+	});
 }
 
 UploadManager::~UploadManager() {
@@ -97,7 +104,7 @@ int UploadManager::getFreeExtraSlots() const noexcept {
 	return max(SETTING(EXTRA_SLOTS) - getExtra(), 0); 
 }
 
-bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aStartPos, int64_t& aBytes, const string& userSID, bool aListRecursive, bool aIsTTHList) {
+bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aStartPos, int64_t& aBytes, const string& aUserSID, bool aListRecursive, bool aIsTTHList) {
 	dcdebug("Preparing %s %s " I64_FMT " " I64_FMT " %d" " " "%s %s\n", aType.c_str(), aFile.c_str(), aStartPos, aBytes, aListRecursive,
 		aSource.getHubUrl().c_str(), ClientManager::getInstance()->getFormatedNicks(aSource.getHintedUser()).c_str());
 
@@ -117,7 +124,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 	bool noAccess = false, partialFileSharing = false;
 
 	//make sure that we have an user
-	auto profile = ClientManager::getInstance()->findProfile(aSource, userSID);
+	auto profile = ClientManager::getInstance()->findProfile(aSource, aUserSID);
 	if (!profile) {
 		aSource.sendError("Unknown user", AdcCommand::ERROR_UNKNOWN_USER);
 		return false;
@@ -143,7 +150,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const string& aType, co
 
 				ShareManager::getInstance()->toRealWithSize(aFile, profiles, aSource.getHintedUser(), sourceFile, fileSize, noAccess);
 
-				miniSlot = freeSlotMatcher.match(Util::getFileName(sourceFile));
+				miniSlot = freeSlotMatcher.match(PathUtil::getFileName(sourceFile));
 			}
 
 			miniSlot = miniSlot || (fileSize <= Util::convertSize(SETTING(SET_MINISLOT_SIZE), Util::KB));
@@ -210,7 +217,7 @@ checkslots:
 		
 			if ((type==Transfer::TYPE_PARTIAL_LIST || (type != Transfer::TYPE_FULL_LIST && fileSize <= 65792)) && smallSlots <= 8) {
 				slotType = UserConnection::SMALLSLOT;
-			} else if (aSource.isSet(UserConnection::FLAG_MCN1)) {
+			} else if (aSource.isMCN()) {
 				if (getMultiConnLocked(aSource) || ((hasReserved || isFavorite|| getAutoSlot()) && !isUploadingLocked(aSource.getUser()))) {
 					slotType = UserConnection::MCNSLOT;
 				} else {
@@ -234,7 +241,7 @@ checkslots:
 				slotType = UserConnection::PARTIALSLOT;
 			} else {
 				auto isUploadingF = [&] { RLock l(cs); return isUploadingLocked(aSource.getUser()); };
-				if (aSource.isSet(UserConnection::FLAG_MCN1) && isUploadingF()) {
+				if (aSource.isMCN() && isUploadingF()) {
 					//don't queue MCN requests for existing uploaders
 					aSource.maxedOut();
 				} else {
@@ -247,45 +254,39 @@ checkslots:
 
 		setLastGrant(GET_TICK());
 	}
-	
+
 	unique_ptr<InputStream> is = nullptr;
 	int64_t start = 0;
 	int64_t size = 0;
 	Upload* u = nullptr;
+	bool resumed = false;
 
 	try {
-		auto countFilePositions = [&] () -> void {
-			start = aStartPos;
-			size = (aBytes == -1) ? fileSize - start : aBytes;
-
-			if((start + size) > fileSize) {
-				throw Exception("Bytes were requested beyond the end of the file");
-			}
-		};
-
-
 		{
-			//are we resuming an existing upload?
-			WLock l(cs);
-			auto i = ranges::find_if(delayUploads, [&aSource](const Upload* up) { return &aSource == &up->getUserConnection(); });
-			if (i != delayUploads.end()) {
-				auto up = *i;
-				delayUploads.erase(i);
+			Upload* delayUploadToDelete = nullptr;
 
-				if(sourceFile != up->getPath()) {
-					if (up->isSet(Upload::FLAG_CHUNKED) && up->getSegment().getEnd() != up->getFileSize()) {
-						logUpload(up);
+			{
+				// Are we resuming an existing upload?
+				WLock l(cs);
+				auto i = ranges::find_if(delayUploads, [&aSource](const Upload* up) { return &aSource == &up->getUserConnection(); });
+				if (i != delayUploads.end()) {
+					auto up = *i;
+					delayUploads.erase(i);
+
+					if (sourceFile == up->getPath() && up->getType() == Transfer::TYPE_FILE && type == Transfer::TYPE_FILE && up->getSegment().getEnd() != fileSize) {
+						// We are resuming the same file, reuse the existing upload (and file handle) because of OS cached stream data
+						dcassert(aSource.getUpload());
+						is.reset(up->getStream()->releaseRootStream());
+
+						resumed = true;
 					}
-				} else if (up->getType() == Transfer::TYPE_FILE && type == Transfer::TYPE_FILE && up->getSegment().getEnd() != fileSize) {
-					//we are resuming the same file, reuse the existing upload
-					countFilePositions();
-					up->resume(start, size);
-					dcassert(aSource.getUpload());
-					uploads.push_back(up);
-					goto end;
-				}
 
-				delete up;
+					delayUploadToDelete = up;
+				}
+			}
+
+			if (delayUploadToDelete) {
+				deleteDelayUpload(delayUploadToDelete, resumed);
 			}
 		}
 
@@ -306,11 +307,20 @@ checkslots:
 					start = 0;
 					fileSize = size = xml.size();
 				} else {
-					countFilePositions();
-					auto f = make_unique<File>(sourceFile, File::READ, File::OPEN | File::SHARED_WRITE); // write for partial sharing
-			
-					f->setPos(start);
-					is = std::move(f);
+					start = aStartPos;
+					size = (aBytes == -1) ? fileSize - start : aBytes;
+
+					if ((start + size) > fileSize) {
+						throw Exception("Bytes were requested beyond the end of the file");
+					}
+
+					if (!is) {
+						auto f = make_unique<File>(sourceFile, File::READ, File::OPEN | File::SHARED_WRITE); // write for partial sharing
+						is = std::move(f);
+					}
+
+					is->setPos(start);
+
 					if((start + size) < fileSize) {
 						is.reset(new LimitedInputStream<true>(is.release(), size));
 					}
@@ -397,24 +407,24 @@ checkslots:
 
 	u = new Upload(aSource, sourceFile, TTHValue(), std::move(is));
 	u->setSegment(Segment(start, size));
-	if(u->getSegment().getEnd() != fileSize)
+	if (u->getSegment().getEnd() != fileSize)
 		u->setFlag(Upload::FLAG_CHUNKED);
-	if(partialFileSharing)
+	if (partialFileSharing)
 		u->setFlag(Upload::FLAG_PARTIAL);
+	if (resumed) {
+		u->setFlag(Upload::FLAG_RESUMED);
+	}
+
 	u->setFileSize(fileSize);
 	u->setType(type);
 
 	{
-		auto bundle = !aSource.getLastBundle().empty() ? findBundle(aSource.getLastBundle()) : nullptr;
-		{
-			WLock l(cs);
-			uploads.push_back(u);
-			if (bundle) {
-				bundle->addUpload(u);
-			}
-		}
+		WLock l(cs);
+		uploads.push_back(u);
 	}
-end:
+
+	fire(UploadManagerListener::Created(), u);
+
 	updateSlotCounts(aSource, slotType);
 	return true;
 }
@@ -542,278 +552,7 @@ void UploadManager::checkMultiConn() noexcept {
 	}
 }
 
-void UploadManager::onUBN(const AdcCommand& cmd) {
-	string bundleToken;
-	float percent = -1;
-	string speedStr;
-
-	for (const auto& str: cmd.getParameters()) {
-		if (str.compare(0, 2, "BU") == 0) {
-			bundleToken = str.substr(2);
-		} else if(str.compare(0, 2, "DS") == 0) {
-			speedStr = str.substr(2);
-		} else if (str.compare(0, 2, "PE") == 0) {
-			percent = Util::toFloat(str.substr(2));
-		} else {
-			//LogManager::getInstance()->message("ONUBN UNKNOWN PARAM: " + str);
-		}
-	}
-
-	if ((percent < 0.00 && speedStr.empty()) || bundleToken.empty()) {
-		return;
-	}
-
-	auto bundle = findBundle(bundleToken);
-	if (bundle) {
-		if (bundle->getSingleUser()) {
-			//LogManager::getInstance()->message("SINGLEUSER, RETURN");
-			return;
-		}
-
-		if (!speedStr.empty() && speedStr.length() > 2) {
-			auto length = speedStr.length();
-			double downloaded = Util::toDouble(speedStr.substr(0, length-1));
-			if (downloaded > 0) {
-				double speed = 0.0;
-				if (speedStr[length-1] == 'k') {
-					speed = downloaded*1024.0;
-				} else if (speedStr[length-1] == 'm') {
-					speed = downloaded*1048576.0;
-				} else if (speedStr[length-1] == 'b') {
-					speed = downloaded;
-				}
-
-				if (speed > 0) {
-					bundle->setTotalSpeed(static_cast<int64_t>(speed));
-				}
-			}
-		}
-
-		if (percent >= 0.00 && percent <= 100.00) {
-			bundle->setUploadedSegments(static_cast<int64_t>(bundle->getSize() * (percent / 100.00000)));
-		}
-	}
-}
-
-void UploadManager::createBundle(const AdcCommand& cmd) {
-	string name, token, bundleToken;
-	int64_t size = 0, downloaded = 0;
-	bool singleUser = false;
-
-	for (const auto& str: cmd.getParameters()) {
-		if (str.compare(0, 2, "BU") == 0) {
-			bundleToken = str.substr(2);
-		} else if(str.compare(0, 2, "TO") == 0) {
-			token = str.substr(2);
-		} else if(str.compare(0, 2, "SI") == 0) {
-			size = Util::toInt64(str.substr(2));
-		} else if (str.compare(0, 2, "NA") == 0) {
-			name = str.substr(2);
-		} else if (str.compare(0, 2, "DL") == 0) {
-			downloaded = Util::toInt64(str.substr(2));
-		} else if (str.compare(0, 2, "SU") == 0) {
-			singleUser = true;
-		} else {
-			//LogManager::getInstance()->message("ONUBD CREATE UNKNOWN PARAM");
-		}
-	}
-	
-	if (bundleToken.empty() || name.empty() || size <= 0 || token.empty()) {
-		//LogManager::getInstance()->message("INVALID UBD1", LogMessage::SEV_ERROR);
-		dcassert(0);
-		return;
-	} else if (!ConnectionManager::getInstance()->tokens.addToken(bundleToken, CONNECTION_TYPE_DOWNLOAD)) {
-		dcassert(0);
-		return;
-	}
-
-	//dcassert(!findBundle(bundleToken));
-	if (findBundle(bundleToken)) {
-		//LogManager::getInstance()->message("ADDBUNDLE, BUNDLE FOUND!");
-		dcassert(0);
-		changeBundle(cmd);
-		return;
-	}
-
-	UploadBundlePtr bundle = UploadBundlePtr(new UploadBundle(name, bundleToken, size, singleUser, downloaded));
-	{
-		WLock l (cs);
-		auto u = findUpload(token);
-		if (u) {
-			bundle->addUpload(u);
-			bundle->findBundlePath(name);
-			bundles[bundle->getToken()] = bundle;
-			u->getUserConnection().setLastBundle(bundleToken);
-			return;
-		}
-		//LogManager::getInstance()->message("ADDBUNDLE, BUNDLE ADDED!");
-	}
-
-	//no upload
-	if (ConnectionManager::getInstance()->setBundle(token, bundleToken)) {
-		WLock l (cs);
-		bundles[bundle->getToken()] = bundle;
-	}
-}
-
-void UploadManager::updateBundleInfo(const AdcCommand& cmd) {
-	string name, bundleToken;
-	int64_t size = 0, downloaded = 0;
-	bool singleUser = false, multiUser = false;
-
-	for (const auto& str: cmd.getParameters()) {
-		if (str.compare(0, 2, "BU") == 0) {
-			bundleToken = str.substr(2);
-		} else if(str.compare(0, 2, "SI") == 0) {
-			size = Util::toInt64(str.substr(2));
-		} else if (str.compare(0, 2, "NA") == 0) {
-			name = str.substr(2);
-		}  else if (str.compare(0, 2, "SU") == 0) {
-			singleUser = true;
-		} else if (str.compare(0, 2, "MU") == 0) {
-			multiUser = true;
-		} else if (str.compare(0, 2, "DL") == 0) {
-			downloaded = Util::toInt64(str.substr(2));
-		} else {
-			//LogManager::getInstance()->message("ONUBD UPDATE UNKNOWN PARAM: " + str);
-		}
-	}
-
-	if (bundleToken.empty()) {
-		//LogManager::getInstance()->message("INVALID UBD1: UPDATE");
-		return;
-	}
-
-	UploadBundlePtr bundle = findBundle(bundleToken);
-	dcassert(bundle);
-	if (bundle) {
-		if (multiUser) {
-			bundle->setSingleUser(false);
-		} else if (singleUser) {
-			bundle->setSingleUser(true, downloaded);
-		} else {
-			if (size > 0) {
-				bundle->setSize(size);
-			}
-			if (!name.empty()) {
-				bundle->findBundlePath(name);
-			}
-			fire(UploadManagerListener::BundleSizeName(), bundle->getToken(), bundle->getTarget(), bundle->getSize());
-		}
-	}
-}
-
-void UploadManager::changeBundle(const AdcCommand& cmd) {
-	string bundleToken;
-	string token;
-
-	for(const auto& str: cmd.getParameters()) {
-		if(str.compare(0, 2, "BU") == 0) {
-			bundleToken = str.substr(2);
-		} else if(str.compare(0, 2, "TO") == 0) {
-			token = str.substr(2);
-		} else {
-			//LogManager::getInstance()->message("ONUBD CHANGE UNKNOWN PARAM");
-		}
-	}
-	
-	if (bundleToken.empty() || token.empty()) {
-		//LogManager::getInstance()->message("INVALID UBD1: CHANGE", LogMessage::SEV_ERROR);
-		return;
-	}
-
-	auto b = findBundle(bundleToken);
-	dcassert(b);
-
-	if (b) {
-		{
-			WLock l (cs);
-			auto u = findUpload(token);
-			if (u) {
-				b->addUpload(u);
-				u->getUserConnection().setLastBundle(bundleToken);
-				return;
-			}
-		}
-
-		//no upload
-		ConnectionManager::getInstance()->setBundle(token, bundleToken);
-	}
-}
-
-
-void UploadManager::finishBundle(const AdcCommand& cmd) {
-	string bundleToken;
-
-	for (const auto& str: cmd.getParameters()) {
-		if (str.compare(0, 2, "BU") == 0) {
-			bundleToken = str.substr(2);
-			break;
-		}
-	}
-	
-	if (bundleToken.empty()) {
-		//LogManager::getInstance()->message("INVALID UBD1: FINISH", LogMessage::SEV_ERROR);
-		return;
-	}
-
-	auto bundle = findBundle(bundleToken);
-	if (bundle) {
-		fire(UploadManagerListener::BundleComplete(), bundle->getToken(), bundle->getName());
-	}
-}
-
-void UploadManager::removeBundleConnection(const AdcCommand& cmd) {
-	string token;
-
-	for(const auto& str: cmd.getParameters()) {
-		if(str.compare(0, 2, "TO") == 0) {
-			token = str.substr(2);
-		}
-	}
-
-	if (!token.empty()) {
-		WLock l (cs);
-		auto u = findUpload(token);
-		if (u && u->getBundle()) {
-			u->getBundle()->removeUpload(u);
-			u->getUserConnection().setLastBundle(Util::emptyString);
-		}
-	}
-}
-
-void UploadManager::onUBD(const AdcCommand& cmd) {
-
-	if (cmd.hasFlag("AD", 1)) {
-		//LogManager::getInstance()->message("ADD UPLOAD BUNDLE");
-		createBundle(cmd);
-	} else if (cmd.hasFlag("CH", 1)) {
-		//LogManager::getInstance()->message("CHANGE UPLOAD BUNDLE");
-		changeBundle(cmd);
-	} else if (cmd.hasFlag("UD", 1)) {
-		//LogManager::getInstance()->message("UPDATE UPLOAD BUNDLE");
-		updateBundleInfo(cmd);
-	} else if (cmd.hasFlag("FI", 1)) {
-		//LogManager::getInstance()->message("FINISH UPLOAD BUNDLE");
-		finishBundle(cmd);
-	} else if (cmd.hasFlag("RM", 1)) {
-		//LogManager::getInstance()->message("REMOVE UPLOAD BUNDLE");
-		removeBundleConnection(cmd);
-	} else {
-		//LogManager::getInstance()->message("NO FLAG");
-	}
-}
-
-UploadBundlePtr UploadManager::findBundle(const string& aBundleToken) const noexcept {
-	RLock l(cs);
-	auto s = bundles.find(aBundleToken);
-	if (s != bundles.end()) {
-		return s->second;
-	}
-	return nullptr;
-}
-
-Upload* UploadManager::findUpload(const string& aToken) noexcept {
+Upload* UploadManager::findUploadUnsafe(const string& aToken) const noexcept {
 	auto u = find_if(uploads.begin(), uploads.end(), [&](Upload* up) { return compare(up->getToken(), aToken) == 0; });
 	if (u != uploads.end()) {
 		return *u;
@@ -827,6 +566,30 @@ Upload* UploadManager::findUpload(const string& aToken) noexcept {
 	return nullptr;
 }
 
+
+bool UploadManager::callAsync(const string& aToken, std::function<void(const Upload*)>&& aHandler) const noexcept {
+	RLock l(cs);
+	auto u = findUploadUnsafe(aToken);
+	if (u) {
+		u->getUserConnection().callAsync([aToken, this, hander = std::move(aHandler)] {
+			Upload* upload = nullptr;
+
+			{
+				// Make sure that the upload hasn't been deleted
+				RLock l(cs);
+				upload = findUploadUnsafe(aToken);
+			}
+
+			if (upload) {
+				hander(upload);
+			}
+		});
+
+		return true;
+	}
+
+	return false;
+}
 
 int64_t UploadManager::getRunningAverage(bool aLock) const noexcept {
 	int64_t avg = 0;
@@ -852,25 +615,31 @@ bool UploadManager::getAutoSlot() const noexcept {
 }
 
 void UploadManager::removeUpload(Upload* aUpload, bool aDelay) noexcept {
-	WLock l(cs);
+	auto deleteUpload = false;
 
 	{
+		WLock l(cs);
 		auto i = find(delayUploads.begin(), delayUploads.end(), aUpload);
 		if (i != delayUploads.end()) {
 			delayUploads.erase(i);
 			dcassert(!aDelay);
 			dcassert(find(uploads.begin(), uploads.end(), aUpload) == uploads.end());
-			delete aUpload;
-			return;
+			deleteUpload = true;
+		} else {
+			dcassert(find(uploads.begin(), uploads.end(), aUpload) != uploads.end());
+			uploads.erase(remove(uploads.begin(), uploads.end(), aUpload), uploads.end());
+
+			if (aDelay) {
+				delayUploads.push_back(aUpload);
+			} else {
+				deleteUpload = true;
+			}
 		}
 	}
 
-	dcassert(find(uploads.begin(), uploads.end(), aUpload) != uploads.end());
-	uploads.erase(remove(uploads.begin(), uploads.end(), aUpload), uploads.end());
-
-	if (aDelay) {
-		delayUploads.push_back(aUpload);
-	} else {
+	if (deleteUpload) {
+		dcdebug("Deleting upload %s (no delay)\n", aUpload->getPath().c_str());
+		fire(UploadManagerListener::Removed(), aUpload);
 		delete aUpload;
 	}
 }
@@ -1030,7 +799,7 @@ void UploadManager::on(UserConnectionListener::TransmitDone, UserConnection* aSo
 		logUpload(u);
 	}
 
-	removeUpload(u, partialSegmentFinished || u->getBundle());
+	removeUpload(u, partialSegmentFinished);
 }
 
 void UploadManager::logUpload(const Upload* u) noexcept {
@@ -1200,19 +969,6 @@ size_t UploadManager::getUploadCount() const noexcept {
 	return uploads.size(); 
 }
 
-size_t UploadManager::getRunningBundleCount() const noexcept {
-	RLock l(cs);
-	auto ret = accumulate(bundles | boost::adaptors::map_values, (size_t)0, [&](size_t old, const UploadBundlePtr& b) {
-		if (b->getSpeed() == 0) {
-			return old;
-		}
-
-		return old + 1;
-	});
-
-	return ret;
-}
-
 bool UploadManager::hasReservedSlot(const UserPtr& aUser) const noexcept {
 	RLock l(cs); 
 	return reservedSlots.find(aUser) != reservedSlots.end(); 
@@ -1255,33 +1011,30 @@ void UploadManager::on(AdcCommand::GFI, UserConnection* aSource, const AdcComman
 	aSource->sendError();
 }
 
+void UploadManager::deleteDelayUpload(Upload* aUpload, bool aResuming) noexcept {
+	if (!aResuming && aUpload->isSet(Upload::FLAG_CHUNKED) && aUpload->getSegment().getEnd() != aUpload->getFileSize()) {
+		logUpload(aUpload);
+	}
+
+	dcdebug("Deleting upload %s (delayed)\n", aUpload->getPath().c_str());
+	fire(UploadManagerListener::Removed(), aUpload);
+	delete aUpload;
+}
+
 // TimerManagerListener
 void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcept {
 	UploadList ticks;
-	UploadBundleList tickBundles;
 	{
 		WLock l(cs);
 		for (auto i = delayUploads.begin(); i != delayUploads.end();) {
 			auto u = *i;
 			if (++u->delayTime > 10) {
-				if (u->isSet(Upload::FLAG_CHUNKED) && u->getSegment().getEnd() != u->getFileSize())
-					logUpload(u);
+				u->getUserConnection().callAsync([u, this] {
+					deleteDelayUpload(u, false);
+				});
 				
-				delete u;
 				i = delayUploads.erase(i);
 			} else {
-				i++;
-			}
-		}
-
-		for (auto i = bundles.begin(); i != bundles.end();) {
-			auto ub = i->second;
-			if (ub->getUploads().empty() && ++ub->delayTime > 10) {
-				ConnectionManager::getInstance()->tokens.removeToken((*i).second->getToken());
-				i = bundles.erase(i);
-			} else {
-				if (ub->countSpeed() > 0)
-					tickBundles.push_back(ub);
 				i++;
 			}
 		}
@@ -1295,11 +1048,6 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 		
 		if (ticks.size() > 0)
 			fire(UploadManagerListener::Tick(), ticks);
-
-		if (!tickBundles.empty())
-			fire(UploadManagerListener::BundleTick(), tickBundles);
-
-
 	}
 
 	notifyQueuedUsers();

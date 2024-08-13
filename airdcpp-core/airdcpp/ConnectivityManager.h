@@ -73,6 +73,13 @@ public:
 	void disconnect();
 	StringList getMappers(bool v6) const;
 private:
+	static const SettingsManager::SettingKeyList commonIncomingSettings;
+	static const SettingsManager::SettingKeyList incomingV4Settings;
+	static const SettingsManager::SettingKeyList incomingV6Settings;
+
+	static void onIncomingSettingsChanged(const MessageCallback& errorF, const SettingsManager::SettingKeyList& aSettings);
+	static void onProxySettingsChanged(const MessageCallback& errorF, const SettingsManager::SettingKeyList& aSettings) noexcept;
+
 	friend class Singleton<ConnectivityManager>;
 	friend class MappingManager;
 	

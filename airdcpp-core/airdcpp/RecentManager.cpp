@@ -32,7 +32,7 @@
 namespace dcpp {
 
 #define CONFIG_RECENTS_NAME "Recents.xml"
-#define CONFIG_DIR Util::PATH_USER_CONFIG
+#define CONFIG_DIR AppUtil::PATH_USER_CONFIG
 
 using ranges::find_if;
 

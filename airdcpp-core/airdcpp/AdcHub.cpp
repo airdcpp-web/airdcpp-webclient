@@ -27,49 +27,41 @@
 #include "ConnectionManager.h"
 #include "ConnectivityManager.h"
 #include "CryptoManager.h"
-#include "DebugManager.h"
+#include "ProtocolCommandManager.h"
 #include "FavoriteManager.h"
 #include "HashBloom.h"
 #include "Localization.h"
 #include "LogManager.h"
+#include "PartialSharingManager.h"
+#include "PathUtil.h"
 #include "QueueManager.h"
 #include "ResourceManager.h"
 #include "ScopedFunctor.h"
 #include "SearchManager.h"
+#include "SearchQuery.h"
 #include "ShareManager.h"
 #include "SSLSocket.h"
 #include "StringTokenizer.h"
 #include "ThrottleManager.h"
+#include "UploadBundleInfoReceiver.h"
 #include "UploadManager.h"
 #include "UserCommand.h"
 #include "Util.h"
 
 namespace dcpp {
 
-const string AdcHub::CLIENT_PROTOCOL("ADC/1.0");
-const string AdcHub::SECURE_CLIENT_PROTOCOL_TEST("ADCS/0.10");
-const string AdcHub::ADCS_FEATURE("ADC0");
-const string AdcHub::TCP4_FEATURE("TCP4");
-const string AdcHub::TCP6_FEATURE("TCP6");
-const string AdcHub::UDP4_FEATURE("UDP4");
-const string AdcHub::UDP6_FEATURE("UDP6");
-const string AdcHub::NAT0_FEATURE("NAT0");
-const string AdcHub::SEGA_FEATURE("SEGA");
-const string AdcHub::BASE_SUPPORT("ADBASE");
-const string AdcHub::BAS0_SUPPORT("ADBAS0");
-const string AdcHub::TIGR_SUPPORT("ADTIGR");
-const string AdcHub::UCM0_SUPPORT("ADUCM0");
-const string AdcHub::BLO0_SUPPORT("ADBLO0");
-const string AdcHub::ZLIF_SUPPORT("ADZLIF");
-const string AdcHub::SUD1_FEATURE("SUD1");
-const string AdcHub::HBRI_SUPPORT("ADHBRI");
-const string AdcHub::ASCH_FEATURE("ASCH");
-const string AdcHub::CCPM_FEATURE("CCPM");
+const string AdcHub::BASE_SUPPORT("BASE");
+const string AdcHub::BAS0_SUPPORT("BAS0");
+const string AdcHub::TIGR_SUPPORT("TIGR");
+const string AdcHub::UCM0_SUPPORT("UCM0");
+const string AdcHub::BLO0_SUPPORT("BLO0");
+const string AdcHub::ZLIF_SUPPORT("ZLIF");
+const string AdcHub::HBRI_SUPPORT("HBRI");
 
 const vector<StringList> AdcHub::searchExtensions;
 
 AdcHub::AdcHub(const string& aHubURL, const ClientPtr& aOldClient) :
-	Client(aHubURL, '\n', aOldClient), udp(make_unique<Socket>(Socket::TYPE_UDP)) {
+	Client(aHubURL, '\n', aOldClient) {
 
 	TimerManager::getInstance()->addListener(this);
 }
@@ -224,14 +216,10 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 			availableBytes -= u->getIdentity().getBytesShared();
 			u->getIdentity().setBytesShared(p.substr(2));
 			availableBytes += u->getIdentity().getBytesShared();
+		} else if (p.substr(0, 2) == "SU") {
+			u->getIdentity().setSupports(p.substr(2));
 		} else {
 			u->getIdentity().set(p.c_str(), p.substr(2));
-		}
-		
-		if((p.substr(0, 2) == "VE") || (p.substr(0, 2) == "AP")) {
-			if (p.find("AirDC++") != string::npos) {
-				u->getUser()->setFlag(User::AIRDCPLUSPLUS);
-			}
 		}
 	}
 
@@ -241,16 +229,16 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 		u->getUser()->unsetFlag(User::BOT);
 	}
 
-	if (u->getIdentity().supports(ADCS_FEATURE)) {
+	if (u->getIdentity().hasSupport(OnlineUser::ADCS_FEATURE)) {
 		u->getUser()->setFlag(User::TLS);
 
 		//CCPM support flag is only sent if we support encryption too, so keep persistent here also...
-		if (u->getIdentity().supports(CCPM_FEATURE)) {
+		if (u->getIdentity().hasSupport(OnlineUser::CCPM_FEATURE)) {
 			u->getUser()->setFlag(User::CCPM);
 		}
 	}
 
-	if (u->getIdentity().supports(ASCH_FEATURE)) {
+	if (u->getIdentity().hasSupport(OnlineUser::ASCH_FEATURE)) {
 		u->getUser()->setFlag(User::ASCH);
 	}
 
@@ -304,32 +292,38 @@ void AdcHub::handle(AdcCommand::INF, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::SUP, AdcCommand& c) noexcept {
-	if(getConnectState() != STATE_PROTOCOL) /** @todo SUP changes */
-		return;
+	for (const auto& param: c.getParameters()) {
+		if (param.size() != 6) {
+			statusMessage("Invalid support " + param + " received from the hub", LogMessage::SEV_WARNING);
+			continue;
+		}
 
-	bool baseOk = false;
-	bool tigrOk = false;
-	for(const auto& p: c.getParameters()) {
-		if(p == BAS0_SUPPORT) {
-			baseOk = true;
-			tigrOk = true;
-		} else if(p == BASE_SUPPORT) {
-			baseOk = true;
-		} else if(p == TIGR_SUPPORT) {
-			tigrOk = true;
-		} else if (p == HBRI_SUPPORT) {
-			supportsHBRI = true;
+		auto adding = param.substr(0, 2) == "AD";
+		auto removing = param.substr(0, 2) == "RM";
+		if (!adding && !removing) {
+			continue;
+		}
+
+		auto support = param.substr(2);
+		if (adding) {
+			supports.add(support);
+		} else if (removing) {
+			supports.remove(support);
 		}
 	}
 	
-	if(!baseOk) {
+	if (!supports.includes(BAS0_SUPPORT) && !supports.includes(BASE_SUPPORT)) {
 		statusMessage("Failed to negotiate base protocol", LogMessage::SEV_ERROR);
 		disconnect(false);
 		return;
-	} else if(!tigrOk) {
+	} else if (!supports.includes(TIGR_SUPPORT)) {
 		oldPassword = true;
 		// Some hubs fake BASE support without TIGR support =/
 		statusMessage("Hub probably uses an old version of ADC, please encourage the owner to upgrade", LogMessage::SEV_ERROR);
+	}
+
+	if (getConnectState() != STATE_PROTOCOL) {
+		fire(ClientListener::HubUpdated(), this);
 	}
 }
 
@@ -505,13 +499,13 @@ void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
 		return;
 	}
 
-	if (!u->getIdentity().supports(NAT0_FEATURE))
+	if (!u->getIdentity().hasSupport(OnlineUser::NAT0_FEATURE))
 		return;
 
 	// Attempt to traverse NATs and/or firewalls with TCP.
 	// If they respond with their own, symmetric, RNT command, both
 	// clients call ConnectionManager::adcConnect.
-	send(AdcCommand(AdcCommand::CMD_NAT, u->getIdentity().getSID(), AdcCommand::TYPE_DIRECT).
+	sendHooked(AdcCommand(AdcCommand::CMD_NAT, u->getIdentity().getSID(), AdcCommand::TYPE_DIRECT).
 		addParam(protocol).addParam(Util::toString(sock->getLocalPort())).addParam(token));
 }
 
@@ -540,35 +534,6 @@ void AdcHub::handle(AdcCommand::CMD, AdcCommand& c) noexcept {
 	if(!c.getParam("TT", 1, txt))
 		return;
 	fire(ClientListener::HubUserCommand(), this, (int)(once ? UserCommand::TYPE_RAW_ONCE : UserCommand::TYPE_RAW), ctx, name, txt);
-}
-
-void AdcHub::sendUDP(const AdcCommand& cmd) noexcept {
-	string command;
-	string remoteIp;
-	string remotePort;
-	{
-		RLock l(cs);
-		auto i = users.find(cmd.getTo());
-		if(i == users.end()) {
-			dcdebug("AdcHub::sendUDP: invalid user\n");
-			return;
-		}
-		OnlineUser& ou = *i->second;
-		if (!ou.getIdentity().isUdpActive()) {
-			return;
-		}
-
-		remoteIp = ou.getIdentity().getUdpIp();
-		remotePort = ou.getIdentity().getUdpPort();
-		command = cmd.toString(ou.getUser()->getCID());
-	}
-
-	try {
-		udp->writeTo(remoteIp, remotePort, command);
-	} catch(const SocketException& e) {
-		dcdebug("AdcHub::sendUDP: write failed: %s\n", e.getError().c_str());
-		udp->close();
-	}
 }
 
 void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
@@ -626,9 +591,9 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 			{
 				string protocol;
 				if(c.getParam("PR", 1, protocol)) {
-					if(protocol == CLIENT_PROTOCOL) {
+					if(protocol == OnlineUser::CLIENT_PROTOCOL) {
 						u->getUser()->setFlag(User::NO_ADC_1_0_PROTOCOL);
-					} else if(protocol == SECURE_CLIENT_PROTOCOL_TEST) {
+					} else if(protocol == OnlineUser::SECURE_CLIENT_PROTOCOL_TEST) {
 						u->getUser()->setFlag(User::NO_ADCS_0_10_PROTOCOL);
 						u->getUser()->unsetFlag(User::TLS);
 					}
@@ -682,7 +647,6 @@ void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
 	ASSERT_DIRECT_TO_ME(c)
 
 	// Filter own searches
-	ClientManager::getInstance()->fire(ClientManagerListener::IncomingADCSearch(), c);
 	if(ou->getUser() == ClientManager::getInstance()->getMe())
 		return;
 
@@ -693,7 +657,7 @@ void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
 	}
 
 	auto isUdpActive = Identity::isActiveMode(mode);
-	SearchManager::getInstance()->respond(c, *ou, isUdpActive, getIpPort(), get(HubSettings::ShareProfile));
+	SearchManager::getInstance()->respond(c, this, ou, isUdpActive, get(HubSettings::ShareProfile));
 }
 
 void AdcHub::handle(AdcCommand::RES, AdcCommand& c) noexcept {
@@ -706,44 +670,18 @@ void AdcHub::handle(AdcCommand::RES, AdcCommand& c) noexcept {
 	SearchManager::getInstance()->onRES(c, ou->getUser(), ou->getIdentity().getUdpIp());
 }
 
-void AdcHub::handle(AdcCommand::PSR, AdcCommand& c) noexcept {
-	OnlineUser* ou = findUser(c.getFrom());
-	if(!ou) {
-		dcdebug("Invalid user in AdcHub::onPSR\n");
-		return;
-	}
-	ASSERT_DIRECT_TO_ME(c)
-	SearchManager::getInstance()->onPSR(c, ou->getUser(), ou->getIdentity().getUdpIp());
-}
-
-void AdcHub::handle(AdcCommand::PBD, AdcCommand& c) noexcept {
-	//LogManager::getInstance()->message("GOT PBD TCP: " + c.toString());
-	OnlineUser* ou = findUser(c.getFrom());
-	if(!ou) {
-		dcdebug("Invalid user in AdcHub::onPBD\n");
-		return;
-	}
-	ASSERT_DIRECT_TO_ME(c)
-	SearchManager::getInstance()->onPBD(c, ou->getUser());
-}
-
-
-void AdcHub::handle(AdcCommand::UBD, AdcCommand& c) noexcept {
-	UploadManager::getInstance()->onUBD(c);
-}
-
 void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 	if(c.getParameters().size() < 5) {
 		if(c.getParameters().size() > 0) {
 			if(c.getParam(0) == "blom") {
-				send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC,
+				sendHooked(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC,
 					"Too few parameters for blom", AdcCommand::TYPE_HUB));
 			} else {
-				send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_TRANSFER_GENERIC,
+				sendHooked(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_TRANSFER_GENERIC,
 					"Unknown transfer type", AdcCommand::TYPE_HUB));
 			}
 		} else {
-			send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC,
+			sendHooked(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC,
 				"Too few parameters for GET", AdcCommand::TYPE_HUB));
 		}
 		return;
@@ -758,12 +696,12 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 		size_t h = Util::toUInt32(sh);
 				
 		if(k > 8 || k < 1) {
-			send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_TRANSFER_GENERIC, 
+			sendHooked(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_TRANSFER_GENERIC,
 				"Unsupported k", AdcCommand::TYPE_HUB));
 			return;
 		}
 		if(h > 64 || h < 1) {
-			send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_TRANSFER_GENERIC, 
+			sendHooked(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_TRANSFER_GENERIC,
 				"Unsupported h", AdcCommand::TYPE_HUB));
 			return;
 		}
@@ -781,7 +719,7 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 		// Ideal size for m is n * k / ln(2), but we allow some slack
 		// When h >= 32, m can't go above 2^h anyway since it's stored in a size_t.
 		if(m > static_cast<size_t>((5 * Util::roundUp((int64_t)(n * k / log(2.)), (int64_t)64))) || (h < 32 && m > static_cast<size_t>(1ULL << h))) {
-			send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_TRANSFER_GENERIC,
+			sendHooked(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_TRANSFER_GENERIC,
 				"Unsupported m", AdcCommand::TYPE_HUB));
 			return;
 		}
@@ -802,7 +740,7 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 		cmd.addParam(c.getParam(2));
 		cmd.addParam(c.getParam(3));
 		cmd.addParam(c.getParam(4));
-		send(cmd);
+		sendHooked(cmd);
 		if (m > 0) {
 			send((char*)&v[0], v.size());
 		}
@@ -829,7 +767,7 @@ void AdcHub::handle(AdcCommand::NAT, AdcCommand& c) noexcept {
 	ConnectionManager::getInstance()->adcConnect(*u, remotePort, localPort, BufferedSocket::NAT_CLIENT, token, allowSecure);
 
 	// ... and signal other client to do likewise.
-	send(AdcCommand(AdcCommand::CMD_RNT, u->getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(protocol).
+	sendHooked(AdcCommand(AdcCommand::CMD_RNT, u->getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(protocol).
 		addParam(localPort).addParam(token));
 }
 
@@ -906,7 +844,7 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 		}
 
 		auto snd = hbriCmd.toString(sid);
-		COMMAND_DEBUG(snd, DebugManager::TYPE_HUB, DebugManager::OUTGOING, aIP + ":" + aPort);
+		COMMAND_DEBUG(snd, ProtocolCommandManager::TYPE_HUB, ProtocolCommandManager::OUTGOING, aIP + ":" + aPort);
 
 		// Connect
 		hbri->connect(AddressInfo(aIP, v6 ? AddressInfo::TYPE_V6 : AddressInfo::TYPE_V4), aPort);
@@ -935,7 +873,7 @@ void AdcHub::sendHBRI(const string& aIP, const string& aPort, const string& aTok
 
 				// We got our reply
 				string l = string ((char*)&buf[0], read);
-				COMMAND_DEBUG(l, DebugManager::TYPE_HUB, DebugManager::INCOMING, hbri->getIp() + ":" + aPort);
+				COMMAND_DEBUG(l, ProtocolCommandManager::TYPE_HUB, ProtocolCommandManager::INCOMING, hbri->getIp() + ":" + aPort);
 
 				AdcCommand response(l);
 				if (response.getParameters().size() < 2) {
@@ -997,9 +935,9 @@ bool AdcHub::checkProtocol(const OnlineUser& aUser, bool& secure_, const string&
 	string failedProtocol;
 	AdcCommand::Error errCode = AdcCommand::SUCCESS;
 
-	if(aRemoteProtocol == CLIENT_PROTOCOL) {
+	if(aRemoteProtocol == OnlineUser::CLIENT_PROTOCOL) {
 		// Nothing special
-	} else if(aRemoteProtocol == SECURE_CLIENT_PROTOCOL_TEST) {
+	} else if(aRemoteProtocol == OnlineUser::SECURE_CLIENT_PROTOCOL_TEST) {
 		if (!CryptoManager::getInstance()->TLSOk())
 			return false;
 		secure_ = true;
@@ -1014,14 +952,14 @@ bool AdcHub::checkProtocol(const OnlineUser& aUser, bool& secure_, const string&
 
 	if (errCode != AdcCommand::SUCCESS) {
 		if (errCode == AdcCommand::ERROR_TLS_REQUIRED) {
-			send(AdcCommand(AdcCommand::SEV_FATAL, errCode, "TLS encryption required", AdcCommand::TYPE_DIRECT).setTo(aUser.getIdentity().getSID()));
+			sendHooked(AdcCommand(AdcCommand::SEV_FATAL, errCode, "TLS encryption required", AdcCommand::TYPE_DIRECT).setTo(aUser.getIdentity().getSID()));
 		} else if (errCode == AdcCommand::ERROR_PROTOCOL_UNSUPPORTED) {
 			AdcCommand cmd(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_UNSUPPORTED, failedProtocol + " protocol not supported", AdcCommand::TYPE_DIRECT);
 			cmd.setTo(aUser.getIdentity().getSID());
 			cmd.addParam("PR", failedProtocol);
 			cmd.addParam("TO", aToken);
 
-			send(cmd);
+			sendHooked(cmd);
 		}
 
 		return false;
@@ -1039,12 +977,12 @@ AdcCommand::Error AdcHub::allowConnect(const OnlineUser& aUser, bool aSecure, st
 		//check the ADC protocol
 		if(aSecure) {
 			if(aUser.getUser()->isSet(User::NO_ADCS_0_10_PROTOCOL)) {
-				failedProtocol_ = SECURE_CLIENT_PROTOCOL_TEST;
+				failedProtocol_ = OnlineUser::SECURE_CLIENT_PROTOCOL_TEST;
 				return AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
 			}
 		} else {
 			if(aUser.getUser()->isSet(User::NO_ADC_1_0_PROTOCOL)) {
-				failedProtocol_ = CLIENT_PROTOCOL;
+				failedProtocol_ = OnlineUser::CLIENT_PROTOCOL;
 				return AdcCommand::ERROR_PROTOCOL_UNSUPPORTED;
 			}
 		}
@@ -1086,7 +1024,7 @@ bool AdcHub::acceptUserConnections(const OnlineUser& aUser) noexcept {
 }
 
 void AdcHub::connect(const OnlineUser& aUser, const string& aToken, bool aSecure, bool aReplyingRCM) noexcept {
-	const string* proto = aSecure ? &SECURE_CLIENT_PROTOCOL_TEST : &CLIENT_PROTOCOL;
+	const string* proto = aSecure ? &OnlineUser::SECURE_CLIENT_PROTOCOL_TEST : &OnlineUser::CLIENT_PROTOCOL;
 
 	// Always let the other user connect if he requested that even if we haven't determined common connectivity
 	if (aReplyingRCM || acceptUserConnections(aUser)) {
@@ -1097,22 +1035,29 @@ void AdcHub::connect(const OnlineUser& aUser, const string& aToken, bool aSecure
 			return;
 		}
 
-		if (send(AdcCommand(AdcCommand::CMD_CTM, aUser.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(ownPort).addParam(aToken))) {
-			//we are expecting an incoming connection from these, map so we know where its coming from.
-			ConnectionManager::getInstance()->adcExpect(aToken, aUser.getUser()->getCID(), getHubUrl());
-		}
+		auto cmd = AdcCommand(AdcCommand::CMD_CTM, aUser.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(ownPort).addParam(aToken);
+		auto user = aUser.getUser();
+		callAsync([=, this, cmd = std::move(cmd)] {
+			if (sendHooked(cmd)) {
+				// We are expecting an incoming connection from these, map so we know where its coming from.
+				ConnectionManager::getInstance()->adcExpect(aToken, user->getCID(), getHubUrl());
+			}
+		});
 	} else {
-		send(AdcCommand(AdcCommand::CMD_RCM, aUser.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(aToken));
+		auto cmd = AdcCommand(AdcCommand::CMD_RCM, aUser.getIdentity().getSID(), AdcCommand::TYPE_DIRECT).addParam(*proto).addParam(aToken);
+		callAsync([this, cmd = std::move(cmd)] {
+			sendHooked(cmd);
+		});
 	}
 }
 
-bool AdcHub::hubMessage(const string& aMessage, string& error_, bool aThirdPerson) noexcept {
+bool AdcHub::hubMessageHooked(const string& aMessage, string& error_, bool aThirdPerson) noexcept {
 	AdcCommand c(AdcCommand::CMD_MSG, AdcCommand::TYPE_BROADCAST);
 	c.addParam(aMessage);
 	if (aThirdPerson)
 		c.addParam("ME", "1");
 
-	if (!send(c)) {
+	if (!sendHooked(c)) {
 		error_ = STRING(MAIN_PERMISSION_DENIED);
 		return false;
 	}
@@ -1120,7 +1065,7 @@ bool AdcHub::hubMessage(const string& aMessage, string& error_, bool aThirdPerso
 	return true;
 }
 
-bool AdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept {
+bool AdcHub::privateMessageHooked(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept {
 	if(!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
@@ -1131,7 +1076,7 @@ bool AdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage, 
 	if(aThirdPerson)
 		c.addParam("ME", "1");
 	c.addParam("PM", getMySID());
-	if (!send(c)) {
+	if (!sendHooked(c)) {
 		error_ = STRING(PM_PERMISSION_DENIED);
 		return false;
 	}
@@ -1139,23 +1084,25 @@ bool AdcHub::privateMessage(const OnlineUserPtr& aUser, const string& aMessage, 
 	return true;
 }
 
-void AdcHub::sendUserCmd(const UserCommand& command, const ParamMap& params) {
+void AdcHub::sendUserCmd(const UserCommand& aUserCommand, const ParamMap& params) {
 	if(!stateNormal())
 		return;
 
-	string cmd = Util::formatParams(command.getCommand(), params, escape);
-	if(command.isChat()) {
-		string error;
-		if(command.getTo().empty()) {
-			hubMessage(cmd, error);
-		} else {
-			auto ou = findUser(command.getTo());
-			if (ou) {
-				privateMessage(ou, cmd, error, false, false);
+	string cmdStr = Util::formatParams(aUserCommand.getCommand(), params, escape);
+	if (aUserCommand.isChat()) {
+		callAsync([aUserCommand, this, cmdStr = std::move(cmdStr)] {
+			string error;
+			if (aUserCommand.getTo().empty()) {
+				hubMessageHooked(cmdStr, error);
+			} else {
+				auto ou = findUser(aUserCommand.getTo());
+				if (ou) {
+					privateMessageHooked(ou, cmdStr, error, false, false);
+				}
 			}
-		}
+		});
 	} else {
-		send(cmd);
+		send(cmdStr);
 	}
 }
 
@@ -1189,18 +1136,16 @@ StringList AdcHub::parseSearchExts(int flag) noexcept {
 	return ret;
 }
 
-bool AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch, string& error_) noexcept {
+bool AdcHub::directSearchHooked(const OnlineUser& user, const SearchPtr& aSearch, string& error_) noexcept {
 	if (!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
 	}
 
 	AdcCommand c(AdcCommand::CMD_SCH, (user.getIdentity().getSID()), AdcCommand::TYPE_DIRECT);
-	constructSearch(c, aSearch, true);
-
 	if (user.getUser()->isSet(User::ASCH)) {
-		if (!Util::isAdcRoot(aSearch->path)) {
-			dcassert(Util::isAdcDirectoryPath(aSearch->path));
+		if (!PathUtil::isAdcRoot(aSearch->path)) {
+			dcassert(PathUtil::isAdcDirectoryPath(aSearch->path));
 			c.addParam("PA", aSearch->path);
 		}
 
@@ -1219,7 +1164,7 @@ bool AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch, stri
 		c.addParam("MR", Util::toString(aSearch->maxResults));
 	}
 
-	if (!send(c)) {
+	if (!sendSearchHooked(c, aSearch, &user)) {
 		error_ = STRING(PERMISSION_DENIED_HUB);
 		return false;
 	}
@@ -1227,7 +1172,7 @@ bool AdcHub::directSearch(const OnlineUser& user, const SearchPtr& aSearch, stri
 	return true;
 }
 
-void AdcHub::constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDirect) noexcept {
+bool AdcHub::sendSearchHooked(AdcCommand& c, const SearchPtr& aSearch, const OnlineUser* aDirectUser) noexcept {
 	if(!aSearch->token.empty())
 		c.addParam("TO", Util::toString(getToken()) + "/" + aSearch->token);
 
@@ -1264,6 +1209,10 @@ void AdcHub::constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDir
 
 		if (aSearch->maxDate) {
 			c.addParam("OT", Util::toString(*aSearch->maxDate));
+		}
+
+		if (!aSearch->key.empty() && Util::strnicmp("adcs://", getHubUrl().c_str(), 7) == 0) {
+			c.addParam("KY", aSearch->key);
 		}
 
 		if(aSearch->exts.size() > 2) {
@@ -1313,7 +1262,7 @@ void AdcHub::constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDir
 			}
 
 			if(gr) {
-				auto appendGroupInfo = [rx, exts, gr] (AdcCommand& aCmd) -> void {
+				auto appendGroupInfo = [&rx, &exts, gr] (AdcCommand& aCmd) -> void {
 					for(const auto& ext: exts)
 						aCmd.addParam("EX", ext);
 
@@ -1322,14 +1271,22 @@ void AdcHub::constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDir
 						aCmd.addParam("RX", i);
 				};
 
-				if (isDirect) {
-					// direct search always uses SEGA, just append the group information in the current command
-					appendGroupInfo(c);
-					return;
+				auto appendAllExtensions = [&aSearch](AdcCommand& aCmd) {
+					for (const auto& ex : aSearch->exts)
+						aCmd.addParam("EX", ex);
+				};
+
+				if (aDirectUser) {
+					if (aDirectUser->getIdentity().hasSupport(OnlineUser::SEGA_FEATURE)) {
+						appendGroupInfo(c);
+					} else {
+						appendAllExtensions(c);
+					}
 				} else {
 					// some extensions can be grouped; let's send a command with grouped exts.
 					AdcCommand c_gr(AdcCommand::CMD_SCH, AdcCommand::TYPE_FEATURE);
-					c_gr.setFeatures('+' + SEGA_FEATURE);
+					c_gr.setFeatures(c.getFeatures());
+					c_gr.addFeature(OnlineUser::SEGA_FEATURE, AdcCommand::FeatureType::REQUIRED);
 
 					const auto& params = c.getParameters();
 					for(const auto& p: params)
@@ -1340,48 +1297,43 @@ void AdcHub::constructSearch(AdcCommand& c, const SearchPtr& aSearch, bool isDir
 
 					// make sure users with the feature don't receive the search twice.
 					c.setType(AdcCommand::TYPE_FEATURE);
-					c.setFeatures('-' + SEGA_FEATURE);
+					c.addFeature(OnlineUser::SEGA_FEATURE, AdcCommand::FeatureType::EXCLUDED);
+
+					appendAllExtensions(c);
 				}
 			}
 		}
-
-		for(const auto& ex: aSearch->exts)
-			c.addParam("EX", ex);
 	}
+
+	return sendHooked(c);
 }
 
 void AdcHub::search(const SearchPtr& s) noexcept {
 	if(!stateNormal())
 		return;
 
-	AdcCommand c(AdcCommand::CMD_SCH, AdcCommand::TYPE_BROADCAST);
+	callAsync([this, s] {
+		AdcCommand c(AdcCommand::CMD_SCH, AdcCommand::TYPE_BROADCAST);
+		if (s->aschOnly) {
+			c.setType(AdcCommand::TYPE_FEATURE);
+			c.addFeature(OnlineUser::ASCH_FEATURE, AdcCommand::FeatureType::REQUIRED);
+		}
 
-	constructSearch(c, s, false);
-
-	if (!s->key.empty() && Util::strnicmp("adcs://", getHubUrl().c_str(), 7) == 0) {
-		c.addParam("KY", s->key);
-	}
-
-	if (s->aschOnly) {
-		c.setType(AdcCommand::TYPE_FEATURE);
-		string features = c.getFeatures();
-		c.setFeatures(features + '+' + ASCH_FEATURE);
-	}
-
-	sendSearch(c);
+		sendSearchHooked(c, s, nullptr);
+	});
 }
 
 void AdcHub::sendSearch(AdcCommand& c) {
-	if(isActive()) {
-		send(c);
+	if (isActive()) {
+		sendHooked(c);
 	} else {
 		c.setType(AdcCommand::TYPE_FEATURE);
 		string features = c.getFeatures();
-		c.setFeatures(features + '+' + TCP4_FEATURE + '-' + NAT0_FEATURE);
-		send(c);		
-		c.setFeatures(features + "+" + NAT0_FEATURE);
+		c.setFeatures(features + '+' + OnlineUser::TCP4_FEATURE + '-' + OnlineUser::NAT0_FEATURE);
+		sendHooked(c);
+		c.setFeatures(features + "+" + OnlineUser::NAT0_FEATURE);
 
-		send(c);
+		sendHooked(c);
 	}
 }
 
@@ -1401,8 +1353,12 @@ void AdcHub::password(const string& pwd) noexcept {
 		}
 		th.update(pwd.data(), pwd.length());
 		th.update(&buf[0], saltBytes);
-		send(AdcCommand(AdcCommand::CMD_PAS, AdcCommand::TYPE_HUB).addParam(Encoder::toBase32(th.finalize(), TigerHash::BYTES)));
 		salt.clear();
+
+		auto cmd = AdcCommand(AdcCommand::CMD_PAS, AdcCommand::TYPE_HUB).addParam(Encoder::toBase32(th.finalize(), TigerHash::BYTES));
+		callAsync([this, cmd = std::move(cmd)] {
+			sendHooked(cmd);
+		});
 	}
 }
 
@@ -1459,8 +1415,44 @@ void AdcHub::appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4,
 	}
 }
 
+
+void AdcHub::appendClientSupports(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6) const noexcept {
+	string su(OnlineUser::SEGA_FEATURE);
+
+	if (CryptoManager::getInstance()->TLSOk()) {
+		su += "," + OnlineUser::ADCS_FEATURE;
+		su += "," + OnlineUser::CCPM_FEATURE;
+	}
+
+	if (SETTING(ENABLE_SUDP)) {
+		su += "," + OnlineUser::SUD1_FEATURE;
+	}
+
+	if (v4 && isActiveV4()) {
+		su += "," + OnlineUser::TCP4_FEATURE;
+		su += "," + OnlineUser::UDP4_FEATURE;
+	}
+
+	if (v6 && isActiveV6()) {
+		su += "," + OnlineUser::TCP6_FEATURE;
+		su += "," + OnlineUser::UDP6_FEATURE;
+	}
+
+	if ((v6 && !isActiveV6() && get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED) ||
+		(v4 && !isActiveV4() && get(HubSettings::Connection) != SettingsManager::INCOMING_DISABLED)) {
+		su += "," + OnlineUser::NAT0_FEATURE;
+	}
+	su += "," + OnlineUser::ASCH_FEATURE;
+
+	for (const auto& support: ClientManager::getInstance()->hubUserSupports.getAll()) {
+		su += ", " + support;
+	}
+
+	addParam(aLastInfoMap, c, "SU", su);
+}
+
 void AdcHub::infoImpl() noexcept {
-	if(getConnectState() != STATE_IDENTIFY && getConnectState() != STATE_NORMAL)
+	if (getConnectState() != STATE_IDENTIFY && getConnectState() != STATE_NORMAL)
 		return;
 
 	reloadSettings(false);
@@ -1468,7 +1460,7 @@ void AdcHub::infoImpl() noexcept {
 	AdcCommand c(AdcCommand::CMD_INF, AdcCommand::TYPE_BROADCAST);
 
 	if (stateNormal()) {
-		if(!updateCounts(false))
+		if (!updateCounts(false))
 			return;
 	}
 
@@ -1506,48 +1498,20 @@ void AdcHub::infoImpl() noexcept {
 	connSpeed = static_cast<int64_t>((Util::toDouble(SETTING(UPLOAD_SPEED)) * 1000.0 * 1000.0) / 8.0);
 	addParam(lastInfoMap, c, "US", Util::toString(limit > 0 ? min(limit, connSpeed) : connSpeed));
 
-	if(CryptoManager::getInstance()->TLSOk()) {
+	if (CryptoManager::getInstance()->TLSOk()) {
 		auto &kp = CryptoManager::getInstance()->getKeyprint();
 		addParam(lastInfoMap, c, "KP", CryptoManager::keyprintToString(kp));
 	}
 
+	auto supportsHBRI = supports.includes(HBRI_SUPPORT);
 	bool addV4 = !sock->isV6Valid() || (get(HubSettings::Connection) != SettingsManager::INCOMING_DISABLED && supportsHBRI);
 	bool addV6 = sock->isV6Valid() || (get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED && supportsHBRI);
 
-
-	// supports
-	string su(SEGA_FEATURE);
-
-	if(CryptoManager::getInstance()->TLSOk()) {
-		su += "," + ADCS_FEATURE;
-		su += "," + CCPM_FEATURE;
-	}
-
-	if (SETTING(ENABLE_SUDP))
-		su += "," + SUD1_FEATURE;
-
-	if(addV4 && isActiveV4()) {
-		su += "," + TCP4_FEATURE;
-		su += "," + UDP4_FEATURE;
-	}
-
-	if(addV6 && isActiveV6()) {
-		su += "," + TCP6_FEATURE;
-		su += "," + UDP6_FEATURE;
-	}
-
-	if ((addV6 && !isActiveV6() && get(HubSettings::Connection6) != SettingsManager::INCOMING_DISABLED) || 
-		(addV4 && !isActiveV4() && get(HubSettings::Connection) != SettingsManager::INCOMING_DISABLED)) {
-		su += "," + NAT0_FEATURE;
-	}
-	su += "," + ASCH_FEATURE;
-	addParam(lastInfoMap, c, "SU", su);
-
-
+	appendClientSupports(lastInfoMap, c, addV4, addV6);
 	appendConnectivity(lastInfoMap, c, addV4, addV6);
 
 	if(c.getParameters().size() > 0) {
-		send(c);
+		sendHooked(c);
 	}
 }
 
@@ -1576,11 +1540,28 @@ string AdcHub::checkNick(const string& aNick) noexcept {
 	return tmp;
 }
 
-bool AdcHub::send(const AdcCommand& cmd) {
+bool AdcHub::sendHooked(const AdcCommand& cmd) {
 	if(forbiddenCommands.find(AdcCommand::toFourCC(cmd.getFourCC().c_str())) == forbiddenCommands.end()) {
-		if(cmd.getType() == AdcCommand::TYPE_UDP)
-			sendUDP(cmd);
-		send(cmd.toString(sid));
+		AdcCommand::ParamMap params;
+
+		// Hooks
+		try {
+			auto results = ClientManager::getInstance()->outgoingHubCommandHook.runHooksDataThrow(ClientManager::getInstance(), cmd, *this);
+			params = ActionHook<AdcCommand::ParamMap>::normalizeMap(results);
+		} catch (const HookRejectException&) {
+			return false;
+		}
+
+		// Listeners
+		ProtocolCommandManager::getInstance()->fire(ProtocolCommandManagerListener::OutgoingHubCommand(), cmd, *this);
+
+		// Send
+		if (!params.empty()) {
+			send(AdcCommand(cmd).addParams(params).toString(sid));
+		} else {
+			send(cmd.toString(sid));
+		}
+
 		return true;
 	}
 	return false;
@@ -1598,20 +1579,28 @@ void AdcHub::on(Connected c) noexcept {
 	forbiddenCommands.clear();
 
 	AdcCommand cmd(AdcCommand::CMD_SUP, AdcCommand::TYPE_HUB);
-	cmd.addParam(BAS0_SUPPORT).addParam(BASE_SUPPORT).addParam(TIGR_SUPPORT);
-	
-	if(SETTING(HUB_USER_COMMANDS)) {
-		cmd.addParam(UCM0_SUPPORT);
+	appendHubSupports(cmd);
+	sendHooked(cmd);
+}
+
+void AdcHub::appendHubSupports(AdcCommand& cmd) {
+	cmd.addParam("AD" + BAS0_SUPPORT).addParam("AD" + BASE_SUPPORT).addParam("AD" + TIGR_SUPPORT);
+
+	if (SETTING(HUB_USER_COMMANDS)) {
+		cmd.addParam("AD" + UCM0_SUPPORT);
 	}
 
-	if(SETTING(BLOOM_MODE) == SettingsManager::BLOOM_ENABLED) {
-		cmd.addParam(BLO0_SUPPORT);
+	if (SETTING(BLOOM_MODE) == SettingsManager::BLOOM_ENABLED) {
+		cmd.addParam("AD" + BLO0_SUPPORT);
 	}
 
-	cmd.addParam(ZLIF_SUPPORT);
-	cmd.addParam(HBRI_SUPPORT);
+	cmd.addParam("AD" + ZLIF_SUPPORT);
+	cmd.addParam("AD" + HBRI_SUPPORT);
 
-	send(cmd);
+
+	for (const auto& support: ClientManager::getInstance()->hubSupports.getAll()) {
+		cmd.addParam("AD" + support);
+	}
 }
 
 void AdcHub::on(Line l, const string& aLine) noexcept {
@@ -1622,7 +1611,9 @@ void AdcHub::on(Line l, const string& aLine) noexcept {
 		return;
 	}
 
-	dispatch(aLine);
+	dispatch(aLine, [&](const AdcCommand& aCmd) {
+		ProtocolCommandManager::getInstance()->fire(ProtocolCommandManagerListener::IncomingHubCommand (), aCmd, *this);
+	});
 }
 
 void AdcHub::on(Second s, uint64_t aTick) noexcept {

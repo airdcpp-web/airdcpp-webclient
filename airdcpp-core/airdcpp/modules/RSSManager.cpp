@@ -24,9 +24,10 @@
 
 #include <airdcpp/HttpConnection.h>
 #include <airdcpp/LogManager.h>
+#include <airdcpp/PathUtil.h>
 #include <airdcpp/ShareManager.h>
 #include <airdcpp/QueueManager.h>
-#include <airdcpp/SearchManager.h>
+#include <airdcpp/SearchTypes.h>
 #include <airdcpp/ClientManager.h>
 
 #include <airdcpp/ScopedFunctor.h>
@@ -38,8 +39,8 @@
 namespace dcpp {
 
 #define CONFIG_NAME "RSS.xml"
-#define CONFIG_DIR Util::PATH_USER_CONFIG
-#define DATABASE_DIR Util::getPath(CONFIG_DIR) + "RSS" PATH_SEPARATOR_STR
+#define CONFIG_DIR AppUtil::PATH_USER_CONFIG
+#define DATABASE_DIR AppUtil::getPath(CONFIG_DIR) + "RSS" PATH_SEPARATOR_STR
 #define DATABASE_VERSION "1"
 
 RSSManager::RSSManager() : tasks(true) {
@@ -236,9 +237,9 @@ void RSSManager::matchFilters(const RSSPtr& aFeed, const RSSDataPtr& aData) {
 	for (auto& aF : aFeed->getRssFilterList()) {
 		if (aF.match(aData->getTitle())) {
 			if (aF.skipDupes) {
-				if(ShareManager::getInstance()->isAdcDirectoryShared(aData->getTitle()))
+				if (ShareManager::getInstance()->getAdcDirectoryDupe(aData->getTitle(), 0) != DUPE_NONE)
 					break; //Need to match other filters?
-				if (QueueManager::getInstance()->isAdcDirectoryQueued(aData->getTitle(), 0) != DUPE_NONE)
+				if (QueueManager::getInstance()->getAdcDirectoryDupe(aData->getTitle(), 0) != DUPE_NONE)
 					break; //Need to match other filters?
 			}
 			if (aF.getFilterAction() == RSSFilter::DOWNLOAD || aF.getFilterAction() == RSSFilter::ADD_AUTOSEARCH) {
@@ -430,7 +431,7 @@ void RSSManager::load() {
 	try {
 		StringList fileList = File::findFiles(DATABASE_DIR, "RSSDataBase*", File::TYPE_FILE);
 		parallel_for_each(fileList.begin(), fileList.end(), [&](const string& path) {
-			if (Util::getFileExt(path) == ".xml") {
+			if (PathUtil::getFileExt(path) == ".xml") {
 				try {
 					RSSLoader loader;
 

@@ -16,30 +16,17 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef DCPLUSPLUS_DCPP_TASK_H
-#define DCPLUSPLUS_DCPP_TASK_H
+#ifndef DCPLUSPLUS_DCPP_TASKQUEUE_H
+#define DCPLUSPLUS_DCPP_TASKQUEUE_H
 
 #include <functional>
 
 #include "forward.h"
+
+#include "Task.h"
 #include "Thread.h"
 
 namespace dcpp {
-
-struct Task {
-	virtual ~Task() { };
-};
-
-struct AsyncTask : public Task {
-	AsyncTask(AsyncF aF) : f(aF) { }
-	AsyncF f;
-};
-
-struct StringTask : public Task {
-	StringTask(const string& str_) : str(str_) { }
-	string str;
-};
-
 
 class TaskQueue {
 public:

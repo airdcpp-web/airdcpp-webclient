@@ -33,6 +33,7 @@
 #include "File.h"
 #include "Encoder.h"
 #include "Exception.h"
+#include "PathUtil.h"
 #include "Util.h"
 
 namespace dcpp {
@@ -48,7 +49,7 @@ public:
 
 	static string getHash(const string& input, bool bBase32) {
 		SimpleHasher<Hash> hash(bBase32);
-		if(Util::fileExists(input))
+		if(PathUtil::fileExists(input))
 			return hash.fromFile(input);
 
 		return hash.fromString(input);

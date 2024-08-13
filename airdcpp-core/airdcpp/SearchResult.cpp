@@ -21,17 +21,20 @@
 
 #include "Client.h"
 #include "ClientManager.h"
+#include "DupeUtil.h"
+#include "PathUtil.h"
 #include "ScopedFunctor.h"
 #include "SearchQuery.h"
 #include "Text.h"
 #include "UploadManager.h"
 #include "User.h"
+#include "ValueGenerator.h"
 
 namespace dcpp {
 
 atomic<SearchResultId> searchResultIdCounter { 0 };
 
-SearchResult::SearchResult(const string& aPath) : path(aPath), type(TYPE_DIRECTORY), id(Util::rand()) { }
+SearchResult::SearchResult(const string& aPath) : path(aPath), type(TYPE_DIRECTORY), id(ValueGenerator::rand()) { }
 
 SearchResult::SearchResult(const HintedUser& aUser, Types aType, uint8_t aTotalSlots, uint8_t aFreeSlots,
 	int64_t aSize, const string& aPath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& aConnection, const DirectoryContentInfo& aContentInfo) :
@@ -53,7 +56,7 @@ string SearchResult::toSR(const Client& c) const noexcept {
 	tmp.append("$SR ", 4);
 	tmp.append(Text::fromUtf8(c.getMyNick(), c.get(HubSettings::NmdcEncoding)));
 	tmp.append(1, ' ');
-	string acpFile = Util::toNmdcFile(Text::fromUtf8(path, c.get(HubSettings::NmdcEncoding)));
+	string acpFile = PathUtil::toNmdcFile(Text::fromUtf8(path, c.get(HubSettings::NmdcEncoding)));
 	if(type == TYPE_FILE) {
 		tmp.append(acpFile);
 		tmp.append(1, '\x05');
@@ -92,9 +95,9 @@ AdcCommand SearchResult::toRES(char aType) const noexcept {
 
 string SearchResult::getFileName() const noexcept {
 	if(getType() == TYPE_FILE) 
-		return Util::getAdcFileName(path); 
+		return PathUtil::getAdcFileName(path); 
 
-	return Util::getAdcLastDir(path);
+	return PathUtil::getAdcLastDir(path);
 }
 
 string SearchResult::getSlotString() const noexcept {
@@ -156,7 +159,7 @@ string SearchResult::getAdcFilePath() const noexcept {
 	if (type == TYPE_DIRECTORY)
 		return path;
 
-	return Util::getAdcFilePath(path);
+	return PathUtil::getAdcFilePath(path);
 }
 
 bool SearchResult::matches(SearchQuery& aQuery, const string& aLocalSearchToken) const noexcept {
@@ -226,6 +229,14 @@ bool SearchResult::getRelevance(SearchQuery& aQuery, RelevanceInfo& relevance_, 
 	relevance_.matchRelevance = matchRelevance;
 	relevance_.sourceScoreFactor = sourceScoreFactor;
 	return true;
+}
+
+DupeType SearchResult::getDupe() const noexcept {
+	if (type == SearchResult::TYPE_DIRECTORY) {
+		return DupeUtil::checkAdcDirectoryDupe(path, size);
+	} else {
+		return DupeUtil::checkFileDupe(tth);
+	}
 }
 
 }

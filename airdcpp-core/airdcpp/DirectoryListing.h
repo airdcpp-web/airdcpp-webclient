@@ -26,8 +26,8 @@
 #include "ShareManagerListener.h"
 #include "TimerManagerListener.h"
 
-#include "QueueAddInfo.h"
-#include "DirectSearch.h"
+#include "ActionHook.h"
+#include "DirectoryContentInfo.h"
 #include "DispatcherQueue.h"
 #include "DupeType.h"
 #include "GetSet.h"
@@ -35,13 +35,14 @@
 #include "Message.h"
 #include "MerkleTree.h"
 #include "Priority.h"
-#include "TaskQueue.h"
-#include "UserInfoBase.h"
+#include "QueueAddInfo.h"
 #include "Streams.h"
 #include "TrackableDownloadItem.h"
+#include "UserInfoBase.h"
 
 namespace dcpp {
 
+class DirectSearch;
 class ListLoader;
 class SearchQuery;
 typedef uint32_t DirectoryListingToken;
@@ -67,6 +68,7 @@ public:
 
 		~File() { }
 
+		typedef ActionHook<nullptr_t, const File::Ptr&, const DirectoryListing&> ValidationHook;
 
 		string getAdcPath() const noexcept {
 			return parent->getAdcPath() + name;
@@ -106,6 +108,16 @@ public:
 		};
 
 		typedef std::shared_ptr<Directory> Ptr;
+		typedef ActionHook<nullptr_t, const Directory::Ptr&, const DirectoryListing&> ValidationHook;
+
+		struct ValidationHooks {
+			ValidationHook directoryLoadHook;
+			File::ValidationHook fileLoadHook;
+
+			bool hasSubscribers() const noexcept {
+				return directoryLoadHook.hasSubscribers() || fileLoadHook.hasSubscribers();
+			}
+		};
 
 		struct Sort { bool operator()(const Ptr& a, const Ptr& b) const; };
 
@@ -132,6 +144,7 @@ public:
 		void getLocalPaths(StringList& ret, const OptionalProfileToken& aShareProfileToken) const;
 
 		bool findIncomplete() const noexcept;
+		bool findCompleteChildren() const noexcept;
 		void search(OrderedStringSet& aResults, SearchQuery& aStrings) const noexcept;
 		void findFiles(const boost::regex& aReg, File::List& aResults) const noexcept;
 		
@@ -139,6 +152,7 @@ public:
 
 		string getAdcPath() const noexcept;
 		uint8_t checkDupesRecursive() noexcept;
+		void runHooksRecursive(const DirectoryListing& aList) noexcept;
 		
 		IGETSET(int64_t, partialSize, PartialSize, 0);
 		GETSET(Directory*, parent, Parent);
@@ -191,7 +205,7 @@ public:
 		VirtualDirectory(const string& aFullPath, Directory* aParent, const string& aName);
 	};
 
-	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, bool aIsOwnList = false);
+	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, Directory::ValidationHooks* aLoadHooks, bool aIsOwnList = false);
 	~DirectoryListing();
 	
 	const CID& getToken() const noexcept {
@@ -302,6 +316,8 @@ protected:
 	void onStateChanged() noexcept override;
 
 private:
+	Directory::ValidationHooks* loadHooks;
+
 	const bool isOwnList;
 	const bool isClientView;
 
@@ -311,10 +327,10 @@ private:
 
 	// Returns the number of loaded dirs
 	// Throws AbortException
-	int loadXML(InputStream& aXml, bool aUpdating, const string& aBase, time_t aListDate = GET_TIME());
+	int loadXML(InputStream& aXml, bool aUpdating, const string& aBase, time_t aListDate);
 
 	// Create and insert a base directory with the given path (or return an existing one)
-	Directory::Ptr createBaseDirectory(const string& aPath, time_t aDownloadDate = GET_TIME()) noexcept;
+	Directory::Ptr createBaseDirectory(const string& aPath, time_t aDownloadDate) noexcept;
 
 	void changeDirectoryImpl(const string& aPath, DirectoryLoadType aType, bool aForceQueue = false) noexcept;
 
@@ -354,6 +370,8 @@ private:
 
 	// Throws Exception, AbortException
 	void listDiffImpl(const string& aFile, bool aOwnList);
+
+	void updateStatus(const string& aMessage) noexcept;
 
 	// Throws Exception, AbortException
 	void loadFileImpl(const string& aInitialDir);

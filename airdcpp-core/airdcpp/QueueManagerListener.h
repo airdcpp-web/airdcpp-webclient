@@ -51,6 +51,7 @@ public:
 	typedef X<19> BundlePriority;
 	typedef X<20> BundleAdded;
 
+	typedef X<21> BundleDownloadStatus;
 	typedef X<22> BundleStatusChanged;
 
 	virtual void on(ItemAdded, const QueueItemPtr&) noexcept { }
@@ -68,6 +69,7 @@ public:
 	virtual void on(BundleSize, const BundlePtr&) noexcept { }
 	virtual void on(BundlePriority, const BundlePtr&) noexcept { }
 	virtual void on(BundleAdded, const BundlePtr&) noexcept { }
+	virtual void on(BundleDownloadStatus, const BundlePtr&) noexcept { }
 	virtual void on(BundleStatusChanged, const BundlePtr&) noexcept { }
 	
 	virtual void on(FileRecheckStarted, const string&) noexcept { }

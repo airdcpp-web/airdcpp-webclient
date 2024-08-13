@@ -52,10 +52,10 @@ namespace dcpp {
 			return timedOut;
 		}
 	private:
-		void on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept;
+		void on(SearchManagerListener::SR, const SearchResultPtr& aSR) noexcept override;
 
 		// ClientManagerListener
-		void on(ClientManagerListener::DirectSearchEnd, const string& aToken, int resultCount) noexcept;
+		void on(ClientManagerListener::DirectSearchEnd, const string& aToken, int aResultCount) noexcept override;
 
 		void removeListeners() noexcept;
 

@@ -21,10 +21,13 @@
 #include "AutoSearchManager.h"
 
 #include <airdcpp/ClientManager.h>
+#include <airdcpp/DupeUtil.h>
 #include <airdcpp/LogManager.h>
 #include <airdcpp/QueueManager.h>
 #include <airdcpp/SearchManager.h>
+#include <airdcpp/SearchQuery.h>
 #include <airdcpp/SearchResult.h>
+#include <airdcpp/SearchTypes.h>
 #include <airdcpp/ShareManager.h>
 #include <airdcpp/SimpleXML.h>
 #include <airdcpp/User.h>
@@ -37,7 +40,7 @@ using ranges::find_if;
 using ranges::max_element;
 using ranges::copy_if;
 
-#define CONFIG_DIR Util::PATH_USER_CONFIG
+#define CONFIG_DIR AppUtil::PATH_USER_CONFIG
 #define CONFIG_NAME "AutoSearch.xml"
 #define XML_GROUPING_VERSION 1
 
@@ -397,13 +400,14 @@ bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) noexcept {
 	if (!lst.empty()) {
 		return false;
 	}
+
 	//allow adding only release dirs, avoid adding too common bundle names to auto search ( will result in bundle growing by pretty much anything that matches... )
-	if (!AirUtil::isRelease(aBundle->getName()))
+	if (!DupeUtil::isRelease(aBundle->getName()))
 		return false;
 
 
 	//7 days expiry
-	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::getParentDir(aBundle->getTarget()), 
+	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, PathUtil::getParentDir(aBundle->getTarget()), 
 		StringMatch::EXACT, Util::emptyString, Util::emptyString, GET_TIME() + 7*24*60*60, false, false, false, Util::emptyString, AutoSearch::FAILED_BUNDLE, false);
 
 	as->setGroup(SETTING(AS_FAILED_DEFAULT_GROUP));
@@ -424,7 +428,8 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 	auto ftype = Search::TYPE_ANY;
 	try {
 		string name;
-		SearchManager::getInstance()->getSearchType(as->getFileType(), ftype, extList, name);
+		auto& typeManager = SearchManager::getInstance()->getSearchTypes();
+		typeManager.getSearchType(as->getFileType(), ftype, extList, name);
 	} catch(const SearchTypeException&) {
 		//reset to default
 		as->setFileType(SEARCH_TYPE_ANY);
@@ -708,7 +713,7 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 
 	//extra checks outside the lock
 	for (auto& as: matches) {
-		if (!SearchManager::isDefaultTypeStr(as->getFileType())) {
+		if (!SearchTypes::isDefaultTypeStr(as->getFileType())) {
 			if (sr->getType() == SearchResult::TYPE_DIRECTORY)
 				continue;
 
@@ -719,7 +724,8 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 				{
 					string typeName;
 					Search::TypeModes tmp;
-					SearchManager::getInstance()->getSearchType(as->getFileType(), tmp, exts, typeName);
+					auto& typeManager = SearchManager::getInstance()->getSearchTypes();
+					typeManager.getSearchType(as->getFileType(), tmp, exts, typeName);
 				}
 
 				auto fileName = sr->getFileName();
@@ -808,7 +814,7 @@ void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 
 			//check shared
 			if (as->getCheckAlreadyShared()) {
-				auto paths = ShareManager::getInstance()->getAdcDirectoryPaths(dir);
+				auto paths = ShareManager::getInstance()->getAdcDirectoryDupePaths(dir);
 				if (!paths.empty()) {
 					as->setLastError(STRING_F(DIR_SHARED_ALREADY, paths.front()));
 					fire(AutoSearchManagerListener::ItemUpdated(), as, true);
@@ -818,7 +824,7 @@ void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 
 			//check queued
 			if (as->getCheckAlreadyQueued() && as->getStatus() != AutoSearch::STATUS_FAILED_MISSING) {
-				auto paths = QueueManager::getInstance()->getAdcDirectoryPaths(dir);
+				auto paths = QueueManager::getInstance()->getAdcDirectoryDupePaths(dir);
 				if (!paths.empty()) {
 					as->setLastError(STRING_F(DIR_QUEUED_ALREADY, dir));
 					fire(AutoSearchManagerListener::ItemUpdated(), as, true);

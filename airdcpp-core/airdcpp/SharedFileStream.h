@@ -23,7 +23,6 @@
 #include "CriticalSection.h"
 #include "File.h"
 #include "GetSet.h"
-#include "Thread.h"
 
 namespace dcpp {
 

@@ -25,7 +25,7 @@
 #include "StringTokenizer.h"
 #include "AdcCommand.h"
 #include "Transfer.h"
-#include "DebugManager.h"
+#include "ProtocolCommandManager.h"
 #include "FavoriteManager.h"
 #include "Message.h"
 
@@ -40,12 +40,12 @@ const string UserConnection::FEATURE_ADCGET = "ADCGet";
 const string UserConnection::FEATURE_ZLIB_GET = "ZLIG";
 const string UserConnection::FEATURE_TTHL = "TTHL";
 const string UserConnection::FEATURE_TTHF = "TTHF";
+
 const string UserConnection::FEATURE_ADC_BAS0 = "BAS0";
 const string UserConnection::FEATURE_ADC_BASE = "BASE";
 const string UserConnection::FEATURE_ADC_BZIP = "BZIP";
 const string UserConnection::FEATURE_ADC_TIGR = "TIGR";
 const string UserConnection::FEATURE_ADC_MCN1 = "MCN1";
-const string UserConnection::FEATURE_ADC_UBN1 = "UBN1";
 const string UserConnection::FEATURE_ADC_CPMI = "CPMI";
 
 const string UserConnection::FILE_NOT_AVAILABLE = "File Not Available";
@@ -53,11 +53,9 @@ const string UserConnection::FILE_NOT_AVAILABLE = "File Not Available";
 const string UserConnection::UPLOAD = "Upload";
 const string UserConnection::DOWNLOAD = "Download";
 
-const string UserConnection::FEATURE_AIRDC = "AIRDC";
-
 void UserConnection::on(BufferedSocketListener::Line, const string& aLine) noexcept {
 
-	COMMAND_DEBUG(aLine, DebugManager::TYPE_CLIENT, DebugManager::INCOMING, getRemoteIp());
+	COMMAND_DEBUG(aLine, ProtocolCommandManager::TYPE_CLIENT, ProtocolCommandManager::INCOMING, getRemoteIp());
 	
 	if(aLine.length() < 2) {
 		fire(UserConnectionListener::ProtocolError(), this, STRING(MALFORMED_DATA));
@@ -69,7 +67,9 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 			fire(UserConnectionListener::ProtocolError(), this, STRING(UTF_VALIDATION_ERROR));
 			return;
 		}
-		dispatch(aLine);
+		dispatch(aLine, [&](const AdcCommand& aCmd) {
+			ProtocolCommandManager::getInstance()->fire(ProtocolCommandManagerListener::IncomingTCPCommand (), aCmd, getRemoteIp(), getUser());
+		});
 		return;
 	} else if(aLine[0] == '$') {
 		setFlag(FLAG_NMDC);
@@ -140,7 +140,7 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 			fire(UserConnectionListener::Supports(), this, StringTokenizer<string>(param, ' ').getTokens());
 	    }
 	} else if(cmd.compare(0, 3, "ADC") == 0) {
-    	dispatch(aLine, true);
+    	dispatch(aLine, true, nullptr);
 	} else if (cmd == "ListLen") {
 		if(!param.empty()) {
 			fire(UserConnectionListener::ListLength(), this, param);
@@ -177,6 +177,10 @@ int64_t UserConnection::getChunkSize() const noexcept {
 
 void UserConnection::setThreadPriority(Thread::Priority aPriority) {
 	socket->setThreadPriority(aPriority);
+}
+
+bool UserConnection::isMCN() const noexcept {
+	return supports.includes(FEATURE_ADC_MCN1);
 }
 
 void UserConnection::setUser(const UserPtr& aUser) noexcept {
@@ -231,6 +235,35 @@ void UserConnection::inf(bool withToken, int mcnSlots) {
 		c.addParam("PM", "1");
 	}
 	send(c);
+}
+
+void UserConnection::get(const string& aType, const string& aName, const int64_t aStart, const int64_t aBytes) {
+	send(
+		AdcCommand(AdcCommand::CMD_GET)
+			.addParam(aType)
+			.addParam(aName)
+			.addParam(Util::toString(aStart))
+			.addParam(Util::toString(aBytes))
+	); 
+}
+
+void UserConnection::snd(const string& aType, const string& aName, const int64_t aStart, const int64_t aBytes) {
+	send(
+		AdcCommand(AdcCommand::CMD_SND)
+			.addParam(aType)
+			.addParam(aName)
+			.addParam(Util::toString(aStart))
+			.addParam(Util::toString(aBytes))
+	); 
+}
+
+void UserConnection::send(const AdcCommand& c) {
+	auto isNmdc = isSet(FLAG_NMDC);
+	if (!isNmdc) {
+		ProtocolCommandManager::getInstance()->fire(ProtocolCommandManagerListener::OutgoingTCPCommand(), c, getRemoteIp(), getUser());
+	}
+
+	send(c.toString(0, isNmdc)); 
 }
 
 bool UserConnection::sendPrivateMessageHooked(const OutgoingChatMessage& aMessage, string& error_) {
@@ -318,7 +351,7 @@ void UserConnection::sendError(const std::string& msg /*FILE_NOT_AVAILABLE*/, Ad
 	}
 }
 
-void UserConnection::supports(const StringList& feat) {
+void UserConnection::sendSupports(const StringList& feat) {
 	string x;
 	for(const auto& f: feat)
 		x += f + ' ';
@@ -410,7 +443,7 @@ void UserConnection::updateChunkSize(int64_t leafSize, int64_t lastChunk, uint64
 
 void UserConnection::send(const string& aString) {
 	lastActivity = GET_TICK();
-	COMMAND_DEBUG(aString, DebugManager::TYPE_CLIENT, DebugManager::OUTGOING, getRemoteIp());
+	COMMAND_DEBUG(aString, ProtocolCommandManager::TYPE_CLIENT, ProtocolCommandManager::OUTGOING, getRemoteIp());
 	socket->write(aString);
 }
 

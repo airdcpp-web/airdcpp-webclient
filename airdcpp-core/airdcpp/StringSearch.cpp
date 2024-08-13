@@ -161,4 +161,26 @@ void StringSearch::clear() {
 	patterns.clear();
 }
 
+string StringSearch::toString() const noexcept {
+	string searchStr;
+	for (const auto& p : patterns) {
+		if (!searchStr.empty()) {
+			searchStr += " ";
+		}
+
+		searchStr += p.str();
+	}
+
+	return searchStr;
+}
+
+StringList StringSearch::toStringList() const noexcept {
+	StringList lst;
+	for (const auto& p : patterns) {
+		lst.push_back(p.str());
+	}
+
+	return lst;
+}
+
 }

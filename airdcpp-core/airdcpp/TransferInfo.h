@@ -22,14 +22,15 @@
 #include "typedefs.h"
 
 #include "HintedUser.h"
+#include "PathUtil.h"
 #include "QueueItemBase.h"
 #include "ResourceManager.h"
 #include "Transfer.h"
-#include "Util.h"
+#include "ValueGenerator.h"
 
 
 namespace dcpp {
-	typedef uint32_t TransferToken;
+	typedef uint32_t TransferInfoToken;
 	class TransferInfo {
 	public:
 
@@ -48,7 +49,7 @@ namespace dcpp {
 			FLAGS = 0x1000,
 			ENCRYPTION = 0x2000,
 			QUEUE_ID = 0x4000,
-			// BUNDLE_ID = 0x8000,
+			SUPPORTS = 0x8000,
 		};
 
 		enum ItemState {
@@ -76,6 +77,7 @@ namespace dcpp {
 		GETSET(string, statusString, StatusString)
 		GETSET(string, bundle, Bundle);
 		GETSET(OrderedStringSet, flags, Flags);
+		GETSET(StringList, supports, Supports);
 
 		IGETSET(Transfer::Type, type, Type, Transfer::TYPE_LAST)
 
@@ -86,7 +88,7 @@ namespace dcpp {
 
 		IGETSET(QueueToken, queueToken, QueueToken, 0);
 
-		const TransferToken getToken() const noexcept {
+		const TransferInfoToken getToken() const noexcept {
 			return token;
 		}
 
@@ -116,17 +118,17 @@ namespace dcpp {
 
 		string getName() {
 			switch (type) {
-			case Transfer::TYPE_TREE: return "TTH: " + Util::getFileName(target);
+			case Transfer::TYPE_TREE: return "TTH: " + PathUtil::getFileName(target);
 			case Transfer::TYPE_FULL_LIST: return STRING(TYPE_FILE_LIST);
 			case Transfer::TYPE_PARTIAL_LIST: return STRING(TYPE_FILE_LIST_PARTIAL);
-			default: return Util::getFileName(target);
+			default: return PathUtil::getFileName(target);
 			}
 		}
 	private:
 		HintedUser user;
 		const bool download;
 
-		const TransferToken token = Util::rand();
+		const TransferInfoToken token = ValueGenerator::rand();
 		const std::string stringToken;
 
 		bool transferFailed = false;
