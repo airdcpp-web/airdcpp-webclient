@@ -79,7 +79,7 @@ public:
 
 	// The client uses regular config directories or boot config file to determine the config path
 	// if a custom path isn't provided
-	static void initialize(const string& aConfigPath = "");
+	static void initialize(const string& aConfigPath);
 
 	static string getAppFilePath() noexcept;
 	static string getAppFileName() noexcept;

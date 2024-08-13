@@ -58,8 +58,8 @@ namespace dcpp {
 
 #define RUNNING_FLAG AppUtil::getPath(AppUtil::PATH_USER_LOCAL) + "RUNNING"
 
-void initializeUtil() noexcept {
-	AppUtil::initialize();
+void initializeUtil(const string& aConfigPath) noexcept {
+	AppUtil::initialize(aConfigPath);
 	ValueGenerator::initialize();
 	Text::initialize();
 }
