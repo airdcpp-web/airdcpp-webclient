@@ -24,8 +24,8 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/AirUtil.h>
 #include <airdcpp/HashManager.h>
+#include <airdcpp/PathUtil.h>
 #include <airdcpp/ShareManager.h>
 
 namespace webserver {
@@ -73,7 +73,7 @@ namespace webserver {
 	api_return ShareRootApi::handleAddRoot(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		auto path = Util::validatePath(JsonUtil::getField<string>("path", reqJson, false), true);
+		auto path = PathUtil::validatePath(JsonUtil::getField<string>("path", reqJson, false), true);
 
 		// Validate the path
 		try {
@@ -239,7 +239,7 @@ namespace webserver {
 
 			for (const auto& p : hashedPaths) {
 				auto i = ranges::find_if(roots, [&](const ShareDirectoryInfoPtr& aInfo) {
-					return AirUtil::isParentOrExactLocal(aInfo->path, p);
+					return PathUtil::isParentOrExactLocal(aInfo->path, p);
 				});
 
 				if (i != roots.end()) {
@@ -264,8 +264,8 @@ namespace webserver {
 		}
 	}
 
-	void ShareRootApi::on(HashManagerListener::FileHashed, const string& aFilePath, HashedFile&) noexcept {
+	void ShareRootApi::on(HashManagerListener::FileHashed, const string& aFilePath, HashedFile&, int) noexcept {
 		WLock l(cs);
-		hashedPaths.insert(Util::getFilePath(aFilePath));
+		hashedPaths.insert(PathUtil::getFilePath(aFilePath));
 	}
 }

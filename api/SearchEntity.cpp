@@ -27,6 +27,7 @@
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/SearchManager.h>
 #include <airdcpp/SearchInstance.h>
+#include <airdcpp/ValueGenerator.h>
 
 
 namespace webserver {
@@ -106,9 +107,15 @@ namespace webserver {
 	}
 
 	json SearchEntity::serializeSearchResult(const SearchResultPtr& aSR) noexcept {
-		return {
+		auto isDirectory = aSR->getType() == SearchResult::TYPE_DIRECTORY;
+		return { 
 			{ "id", aSR->getId() },
+			{ "name", aSR->getFileName() },
+			{ "dupe", isDirectory ? Serializer::serializeDirectoryDupe(aSR->getDupe(), aSR->getAdcPath()) : Serializer::serializeFileDupe(aSR->getDupe(), aSR->getTTH()) },
+			{ "type", isDirectory ? Serializer::serializeFolderType(aSR->getContentInfo()) : Serializer::serializeFileType(aSR->getAdcPath()) },
 			{ "path", aSR->getAdcPath() },
+			{ "tth", isDirectory ? Util::emptyString : aSR->getTTH().toBase32() },
+			{ "size", aSR->getSize() },
 			{ "ip", Serializer::serializeIp(aSR->getIP()) },
 			{ "user", Serializer::serializeHintedUser(aSR->getUser()) },
 			{ "connection", aSR->getConnectionInt() },
@@ -170,7 +177,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		// Parse request
-		auto s = FileSearchParser::parseSearch(reqJson, false, Util::toString(Util::rand()));
+		auto s = FileSearchParser::parseSearch(reqJson, false, Util::toString(ValueGenerator::rand()));
 		auto hubs = Deserializer::deserializeHubUrls(reqJson);
 
 		if (s->priority <= Priority::NORMAL && ClientManager::getInstance()->hasSearchQueueOverflow()) {
@@ -202,15 +209,24 @@ namespace webserver {
 
 		// Parse user and query
 		auto user = Deserializer::deserializeHintedUser(reqJson);
-		auto s = FileSearchParser::parseSearch(reqJson, true, Util::toString(Util::rand()));
+		auto s = FileSearchParser::parseSearch(reqJson, true, Util::toString(ValueGenerator::rand()));
 
-		string error;
-		if (!search->userSearch(user, s, error)) {
-			aRequest.setResponseErrorStr(error);
-			return websocketpp::http::status_code::bad_request;
-		}
+		addAsyncTask([
+			this,
+			user,
+			s,
+			complete = aRequest.defer(),
+			callerPtr = aRequest.getOwnerPtr()
+		] {
+			string error;
+			if (!search->userSearchHooked(user, s, error)) {
+				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(error));
+			} else {
+				complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+			}
+		});
 
-		return websocketpp::http::status_code::no_content;
+		return CODE_DEFERRED;
 	}
 
 	void SearchEntity::on(SearchInstanceListener::GroupedResultAdded, const GroupedSearchResultPtr& aResult) noexcept {

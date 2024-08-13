@@ -75,6 +75,14 @@ namespace webserver {
 			QUEUE_FILE_FINISHED_HOOK_TIMEOUT,
 			QUEUE_BUNDLE_FINISHED_HOOK_TIMEOUT,
 
+			FILELIST_LOAD_DIRECTORY_HOOK_TIMEOUT,
+			FILELIST_LOAD_FILE_HOOK_TIMEOUT,
+
+			OUTGOING_HUB_COMMAND_HOOK_TIMEOUT,
+			OUTGOING_UDP_COMMAND_HOOK_TIMEOUT,
+
+			SEARCH_INCOMING_USER_RESULT_HOOK_TIMEOUT,
+
 			LIST_MENUITEMS_HOOK_TIMEOUT,
 		};
 
@@ -87,8 +95,8 @@ namespace webserver {
 		}
 
 		typedef std::function<void(const json&, int /*aConfigVersion*/)> JsonParseCallback;
-		static bool loadSettingFile(Util::Paths aPath, const string& aFileName, JsonParseCallback&& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept;
-		static bool saveSettingFile(const json& aJson, Util::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF, int aConfigVersion) noexcept;
+		static bool loadSettingFile(AppUtil::Paths aPath, const string& aFileName, JsonParseCallback&& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept;
+		static bool saveSettingFile(const json& aJson, AppUtil::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF, int aConfigVersion) noexcept;
 
 		json toJson() const noexcept;
 		void fromJsonThrow(const json& aJson, int aVersion);
@@ -117,7 +125,6 @@ namespace webserver {
 		void on(WebServerManagerListener::LoadSettings, const MessageCallback& aErrorF) noexcept override;
 		void on(WebServerManagerListener::SaveSettings, const MessageCallback& aErrorF) noexcept override;
 
-		bool loadLegacySettings(const MessageCallback& aErrorF) noexcept;
 		void loadLegacyServer(SimpleXML& aXml, const string& aTagName, ServerSettingItem& aPort, ServerSettingItem& aBindAddress, bool aTls) noexcept;
 	};
 

@@ -113,9 +113,9 @@ namespace webserver {
 		void on(FileRecheckFailed, const QueueItemPtr&, const string&) noexcept override;
 
 		void on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t aTick) noexcept override;
-		void on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept override;
 
 		// QueueItem update listeners
+		void on(QueueManagerListener::BundleDownloadStatus, const BundlePtr& aBundle) noexcept override;
 		void on(QueueManagerListener::ItemRemoved, const QueueItemPtr& aQI, bool /*finished*/) noexcept override;
 		void on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept override;
 		void on(QueueManagerListener::ItemSources, const QueueItemPtr& aQI) noexcept override;

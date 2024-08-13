@@ -47,6 +47,7 @@ namespace webserver {
 			PROP_HUB_ID,
 			PROP_HUB_URL,
 			PROP_HUB_NAME,
+			PROP_SUPPORTS,
 			PROP_FLAGS,
 			PROP_CID,
 			PROP_UPLOAD_SLOTS,

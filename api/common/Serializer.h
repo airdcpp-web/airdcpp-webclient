@@ -26,6 +26,7 @@
 #include <airdcpp/typedefs.h>
 #include <airdcpp/tribool.h>
 
+#include <airdcpp/DirectoryContentInfo.h>
 #include <airdcpp/DirectoryDownload.h>
 #include <airdcpp/DupeType.h>
 #include <airdcpp/QueueItemBase.h>
@@ -45,6 +46,7 @@ namespace webserver {
 		static json serializeUser(const UserPtr& aUser) noexcept;
 		static json serializeHintedUser(const HintedUser& aUser) noexcept;
 		static json serializeOnlineUser(const OnlineUserPtr& aUser) noexcept;
+		static json serializeClient(const Client* aClient) noexcept;
 
 		static string toFileContentType(const string& aExt) noexcept;
 		static string getFileTypeId(const string& aName) noexcept;

@@ -290,7 +290,7 @@ namespace webserver {
 		auto path = JsonUtil::getOptionalField<string>("path", reqJson);
 		if (path) {
 			// Note: non-standard/partial paths are allowed, no strict directory path validation
-			ret = QueueManager::getInstance()->getAdcDirectoryPaths(*path);
+			ret = QueueManager::getInstance()->getAdcDirectoryDupePaths(*path);
 		} else {
 			auto tth = Deserializer::deserializeTTH(reqJson);
 			ret = QueueManager::getInstance()->getTargets(tth);
@@ -800,7 +800,7 @@ namespace webserver {
 		}
 	}
 
-	void QueueApi::on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept {
+	void QueueApi::on(QueueManagerListener::BundleDownloadStatus, const BundlePtr& aBundle) noexcept {
 		// "Waiting" isn't really a status (it's just meant to clear the props for running bundles...)
 		onBundleUpdated(aBundle, TICK_PROPS, "queue_bundle_tick");
 	}

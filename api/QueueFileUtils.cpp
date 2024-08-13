@@ -24,6 +24,7 @@
 
 #include <airdcpp/AirUtil.h>
 #include <airdcpp/Bundle.h>
+#include <airdcpp/PathUtil.h>
 #include <airdcpp/QueueItem.h>
 #include <airdcpp/QueueManager.h>
 
@@ -99,10 +100,10 @@ namespace webserver {
 	int QueueFileUtils::compareFiles(const QueueItemPtr& a, const QueueItemPtr& b, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 		case PROP_NAME: {
-			return Util::pathSort(a->getTarget(), b->getTarget());
+			return PathUtil::pathSort(a->getTarget(), b->getTarget());
 		}
 		case PROP_TYPE: {
-			return Util::stricmp(Util::getFileExt(a->getTarget()), Util::getFileExt(b->getTarget()));
+			return Util::stricmp(PathUtil::getFileExt(a->getTarget()), PathUtil::getFileExt(b->getTarget()));
 		}
 		case PROP_PRIORITY: {
 			COMPARE_IS_DOWNLOADED(a, b);

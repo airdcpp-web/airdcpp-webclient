@@ -24,8 +24,9 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/AirUtil.h>
 #include <airdcpp/FavoriteManager.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/ValueGenerator.h>
 
 namespace webserver {
 	FavoriteDirectoryApi::FavoriteDirectoryApi(Session* aSession) : 
@@ -63,7 +64,7 @@ namespace webserver {
 
 	json FavoriteDirectoryApi::serializeDirectory(const StringPair& aDirectory) noexcept {
 		return {
-			{ "id", AirUtil::getPathId(aDirectory.first).toBase32() },
+			{ "id", ValueGenerator::generatePathId(aDirectory.first).toBase32() },
 			{ "name", aDirectory.second },
 			{ "path", aDirectory.first }
 		};
@@ -72,7 +73,7 @@ namespace webserver {
 	api_return FavoriteDirectoryApi::handleAddDirectory(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		auto path = Util::validatePath(JsonUtil::getField<string>("path", reqJson, false), true);
+		auto path = PathUtil::validatePath(JsonUtil::getField<string>("path", reqJson, false), true);
 		if (FavoriteManager::getInstance()->hasFavoriteDir(path)) {
 			JsonUtil::throwError("path", JsonUtil::ERROR_EXISTS, "Path exists already");
 		}
@@ -108,7 +109,7 @@ namespace webserver {
 		auto tth = aRequest.getTTHParam();
 		auto dirs = FavoriteManager::getInstance()->getFavoriteDirs();
 		auto p = ranges::find_if(dirs | views::keys, [&](const string& aPath) {
-			return AirUtil::getPathId(aPath) == tth;
+			return ValueGenerator::generatePathId(aPath) == tth;
 		});
 
 		if (p.base() == dirs.end()) {
@@ -119,7 +120,7 @@ namespace webserver {
 	}
 
 	StringPair FavoriteDirectoryApi::updatePath(const string& aPath, const json& aRequestJson) {
-		auto virtualName = JsonUtil::getOptionalFieldDefault<string>("name", aRequestJson, Util::getLastDir(aPath));
+		auto virtualName = JsonUtil::getOptionalFieldDefault<string>("name", aRequestJson, PathUtil::getLastDir(aPath));
 		FavoriteManager::getInstance()->setFavoriteDir(aPath, virtualName);
 		return { aPath, virtualName };
 	}

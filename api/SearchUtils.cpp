@@ -23,6 +23,8 @@
 #include <api/common/Format.h>
 #include <api/common/Serializer.h>
 
+#include <airdcpp/PathUtil.h>
+
 
 namespace webserver {
 	const PropertyList SearchUtils::properties = {
@@ -92,10 +94,10 @@ namespace webserver {
 			}
 
 			if (a->isDirectory() && b->isDirectory()) {
-				return Util::directoryContentSort(a->getContentInfo(), b->getContentInfo());
+				return DirectoryContentInfo::Sort(a->getContentInfo(), b->getContentInfo());
 			}
 
-			return Util::DefaultSort(Util::getFileExt(a->getAdcPath()), Util::getFileExt(b->getAdcPath()));
+			return Util::DefaultSort(PathUtil::getFileExt(a->getAdcPath()), PathUtil::getFileExt(b->getAdcPath()));
 		}
 		case PROP_SLOTS: {
 			auto slotsA = a->getSlots();

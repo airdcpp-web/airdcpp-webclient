@@ -44,7 +44,7 @@
 #define REFRESH_TOKEN_VALIDITY_DAYS 30ULL
 
 #define CONFIG_NAME_JSON "web-users.json"
-#define CONFIG_DIR Util::PATH_USER_CONFIG
+#define CONFIG_DIR AppUtil::PATH_USER_CONFIG
 #define CONFIG_VERSION 1
 
 namespace webserver {

@@ -25,6 +25,7 @@
 
 #include <airdcpp/Encoder.h>
 #include <airdcpp/SearchManager.h>
+#include <airdcpp/SearchTypes.h>
 
 namespace webserver {
 	SearchPtr FileSearchParser::parseSearch(const json& aJson, bool aIsDirectSearch, const string& aToken) {
@@ -52,7 +53,8 @@ namespace webserver {
 		if (fileTypeStr) {
 			try {
 				string name;
-				SearchManager::getInstance()->getSearchType(parseSearchType(*fileTypeStr), aSearch->fileType, aSearch->exts, name);
+				auto& typeManager = SearchManager::getInstance()->getSearchTypes();
+				typeManager.getSearchType(parseSearchType(*fileTypeStr), aSearch->fileType, aSearch->exts, name);
 			} catch (...) {
 				throw std::domain_error("Invalid file type");
 			}

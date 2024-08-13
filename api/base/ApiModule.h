@@ -55,6 +55,7 @@ namespace webserver {
 #define INLINE_MODULE_METHOD_HANDLER(access, method, params, func) (this->getRequestHandlers().push_back(ApiModule::RequestHandler(access, method, BRACED_INIT_LIST params, func)))
 
 #define METHOD_HANDLER(access, method, params, func) MODULE_METHOD_HANDLER(this, access, method, params, func)
+#define VARIABLE_METHOD_HANDLER(access, method, params, func, variable) (this->getRequestHandlers().push_back(ApiModule::RequestHandler(access, method, BRACED_INIT_LIST params, std::bind(&func, variable, placeholders::_1))))
 
 		ApiModule(Session* aSession);
 		virtual ~ApiModule();
@@ -128,11 +129,8 @@ namespace webserver {
 		typedef std::function<json()> JsonCallback;
 		virtual bool maybeSend(const string& aSubscription, JsonCallback aCallback);
 
-		// All custom async tasks should be run inside this to
-		// ensure that the session won't get deleted
-
-		virtual void setSubscriptionState(const string& aSubscription, bool active) noexcept {
-			subscriptions[aSubscription] = active;
+		virtual void setSubscriptionState(const string& aSubscription, bool aActive) noexcept {
+			subscriptions[aSubscription] = aActive;
 		}
 
 		virtual bool subscriptionActive(const string& aSubscription) const noexcept {

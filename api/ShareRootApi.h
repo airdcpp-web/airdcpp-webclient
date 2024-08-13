@@ -48,7 +48,7 @@ namespace webserver {
 		void on(ShareManagerListener::RootUpdated, const string& aPath) noexcept override;
 		void on(ShareManagerListener::RootRefreshState, const string& aPath) noexcept override;
 
-		void on(HashManagerListener::FileHashed, const string& aFilePath, HashedFile& aFileInfo) noexcept override;
+		void on(HashManagerListener::FileHashed, const string& aFilePath, HashedFile& aFileInfo, int) noexcept override;
 
 		typedef ListViewController<ShareDirectoryInfoPtr, ShareUtils::PROP_LAST> RootView;
 		RootView rootView;

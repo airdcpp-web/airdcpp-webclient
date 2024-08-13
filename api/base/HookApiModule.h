@@ -27,6 +27,7 @@
 #include <airdcpp/Semaphore.h>
 
 #include <api/base/ApiModule.h>
+#include <api/common/Deserializer.h>
 
 namespace webserver {
 	class HookApiModule : public SubscribableApiModule {
@@ -37,9 +38,10 @@ namespace webserver {
 
 		class HookSubscriber {
 		public:
-			HookSubscriber(HookAddF&& aAddHandler, HookRemoveF&& aRemoveF, HookListF&& aListF) : addHandler(std::move(aAddHandler)), removeHandler(aRemoveF), listHandler(aListF) {}
+			HookSubscriber(const string& aHookId, HookAddF&& aAddHandler, HookRemoveF&& aRemoveF, HookListF&& aListF) : 
+				hookId(aHookId), addHandler(std::move(aAddHandler)), removeHandler(aRemoveF), listHandler(aListF) {}
 
-			bool enable(const void* aOwner, const json& aJson);
+			bool enable(ActionHookSubscriber&& aHookSubscriber);
 			void disable();
 
 			bool isActive() const noexcept {
@@ -48,6 +50,10 @@ namespace webserver {
 
 			const string& getSubscriberId() const noexcept {
 				return subscriberId;
+			}
+
+			const string& getHookId() const noexcept {
+				return hookId;
 			}
 
 			ActionHookSubscriberList getSubscribers() const noexcept {
@@ -59,6 +65,8 @@ namespace webserver {
 			const HookAddF addHandler;
 			const HookRemoveF removeHandler;
 			const HookListF listHandler;
+			const string hookId;
+
 			string subscriberId;
 		};
 
@@ -108,11 +116,17 @@ namespace webserver {
 
 		virtual void on(SessionListener::SocketDisconnected) noexcept override;
 
+		virtual bool addHook(HookSubscriber& aApiSubscriber, ActionHookSubscriber&& aHookSubscriber, const json& aJson);
+
 		virtual api_return handleAddHook(ApiRequest& aRequest);
 		virtual api_return handleRemoveHook(ApiRequest& aRequest);
 		virtual api_return handleListHooks(ApiRequest& aRequest);
 		virtual api_return handleResolveHookAction(ApiRequest& aRequest);
 		virtual api_return handleRejectHookAction(ApiRequest& aRequest);
+
+		static ActionHookSubscriber deserializeSubscriber(const void* aOwner, const json& aJson);
+	protected:
+		mutable SharedMutex cs;
 	private:
 		api_return handleHookAction(ApiRequest& aRequest, bool aRejected);
 
@@ -128,12 +142,90 @@ namespace webserver {
 		map<string, HookSubscriber> hooks;
 
 		int pendingHookIdCounter = 1;
-		mutable SharedMutex cs;
 
 		int getActionId() noexcept;
 	};
 
-	typedef std::unique_ptr<ApiModule> HandlerPtr;
+	template<class IdType>
+	class FilterableHookApiModule : public HookApiModule {
+	public:
+		typedef Deserializer::ArrayDeserializerFunc<IdType> IdDeserializerF;
+		typedef set<IdType> IdSet;
+
+		FilterableHookApiModule(Session* aSession, Access aSubscriptionAccess, const StringList& aSubscriptions, Access aHookAccess, IdDeserializerF aIdDeserializerF) : 
+			HookApiModule(aSession, aSubscriptionAccess, aSubscriptions, aHookAccess), idDeserializer(std::move(aIdDeserializerF)) {}
+
+		bool isIdActive(const string& aSubscription, const IdType& aId) const noexcept {
+			RLock l(cs);
+			auto idMapIter = ids.find(aSubscription);
+			if (idMapIter != ids.end()) {
+				if (!idMapIter->second.contains(aId)) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		bool maybeSend(const string& aSubscription, const IdType& aId, JsonCallback aCallback) {
+			if (!isIdActive(aSubscription, aId)) {
+				return false;
+			}
+
+			return HookApiModule::maybeSend(aSubscription, aCallback);
+		}
+
+		HookCompletionDataPtr maybeFireHook(const string& aSubscription, const IdType& aId, int aTimeoutSeconds, JsonCallback&& aJsonCallback) {
+			if (!isIdActive(aSubscription, aId)) {
+				return nullptr;
+			}
+
+			return HookApiModule::fireHook(aSubscription, aTimeoutSeconds, std::move(aJsonCallback));
+		}
+
+		void setIds(const string& aSubscription, const IdSet& aIds) {
+			if (aIds.empty()) {
+				return;
+			}
+
+			WLock l(cs);
+			ids[aSubscription] = aIds;
+		}
+
+		void removeIds(const string& aSubscription) {
+			WLock l(cs);
+			ids.erase(aSubscription);
+		}
+
+		IdSet deserializeIds(const json& aJson) {
+			auto lst = Deserializer::deserializeList("ids", aJson, idDeserializer, true);
+			return set(lst.begin(), lst.end());
+		}
+
+		void setSubscriptionState(const string& aSubscription, bool aActive, const json& aJson) noexcept {
+			{
+				if (aActive) {
+					auto entityIds = deserializeIds(aJson);
+					setIds(aSubscription, entityIds);
+				} else {
+					removeIds(aSubscription);
+				}
+			}
+
+			HookApiModule::setSubscriptionState(aSubscription, aActive);
+		}
+
+		bool addHook(HookSubscriber& aApiSubscriber, ActionHookSubscriber&& aHookSubscriber, const json& aJson) override {
+			auto entityIds = deserializeIds(aJson);
+			setIds(aApiSubscriber.getHookId(), entityIds);
+
+			return HookApiModule::addHook(aApiSubscriber, std::move(aHookSubscriber), aJson);
+		}
+	private:
+		map<string, IdSet> ids;
+
+		IdDeserializerF idDeserializer;
+	};
 }
 
 #endif

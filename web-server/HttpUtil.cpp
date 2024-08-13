@@ -20,6 +20,7 @@
 
 #include <web-server/HttpUtil.h>
 
+#include <airdcpp/PathUtil.h>
 #include <airdcpp/StringTokenizer.h>
 #include <airdcpp/Util.h>
 
@@ -116,7 +117,7 @@ namespace webserver {
 	}
 
 	string HttpUtil::getExtension(const string& aResource) noexcept {
-		auto extension = Util::getFileExt(aResource);
+		auto extension = PathUtil::getFileExt(aResource);
 		if (!extension.empty()) {
 			// Strip the dot
 			extension = extension.substr(1);

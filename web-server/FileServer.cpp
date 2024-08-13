@@ -25,13 +25,17 @@
 
 #include <api/common/Deserializer.h>
 
-#include <airdcpp/AirUtil.h>
+#include <airdcpp/DupeUtil.h>
+#include <airdcpp/Exception.h>
 #include <airdcpp/File.h>
+#include <airdcpp/PathUtil.h>
 #include <airdcpp/Thread.h>
 #include <airdcpp/Util.h>
 
+#include <airdcpp/LinkUtil.h>
 #include <airdcpp/HttpDownload.h>
 #include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/ValueGenerator.h>
 #include <airdcpp/ViewFileManager.h>
 
 #include <sstream>
@@ -54,11 +58,11 @@ namespace webserver {
 	}
 
 	void FileServer::setResourcePath(const string& aPath) noexcept {
-		resourcePath = Util::validatePath(aPath, true);
+		resourcePath = PathUtil::validatePath(aPath, true);
 	}
 
 	string FileServer::getExtension(const string& aResource) noexcept {
-		auto extension = Util::getFileExt(aResource);
+		auto extension = PathUtil::getFileExt(aResource);
 		if (!extension.empty()) {
 			// Strip the dot
 			extension = extension.substr(1);
@@ -120,11 +124,11 @@ namespace webserver {
 
 	string FileServer::parseViewFilePath(const string& aResource, StringPairList& headers_, const SessionPtr& aSession) const {
 		string protocol, tthStr, port, path, query, fragment;
-		Util::decodeUrl(aResource, protocol, tthStr, port, path, query, fragment);
+		LinkUtil::decodeUrl(aResource, protocol, tthStr, port, path, query, fragment);
 
 		auto session = aSession;
 		if (!session) {
-			auto auth = Util::decodeQuery(query)["auth_token"];
+			auto auth = LinkUtil::decodeQuery(query)["auth_token"];
 			if (!auth.empty()) {
 				session = WebServerManager::getInstance()->getUserManager().getSession(auth);
 			}
@@ -135,7 +139,7 @@ namespace webserver {
 		}
 
 		auto tth = Deserializer::parseTTH(tthStr);
-		auto paths = AirUtil::getFileDupePaths(AirUtil::checkFileDupe(tth), tth);
+		auto paths = DupeUtil::getFileDupePaths(DupeUtil::checkFileDupe(tth), tth);
 		if (paths.empty()) {
 			auto file = ViewFileManager::getInstance()->getFile(tth);
 			if (!file) {
@@ -160,8 +164,8 @@ namespace webserver {
 				return websocketpp::http::status_code::unauthorized;
 			}
 
-			const auto fileName = Util::toString(Util::rand());
-			const auto filePath = Util::getPath(Util::PATH_TEMP) + fileName;
+			const auto fileName = Util::toString(ValueGenerator::rand());
+			const auto filePath = AppUtil::getPath(AppUtil::PATH_TEMP) + fileName;
 
 			try {
 				File file(filePath, File::WRITE, File::TRUNCATE | File::CREATE, File::BUFFER_SEQUENTIAL);
@@ -252,7 +256,7 @@ namespace webserver {
 		}
 
 		{
-			const auto ext = Util::getFileExt(filePath);
+			const auto ext = PathUtil::getFileExt(filePath);
 			if (ext == ".nfo") {
 				string encoding;
 
@@ -286,10 +290,10 @@ namespace webserver {
 
 	websocketpp::http::status_code::value FileServer::handleProxyDownload(const string& aRequestUrl, string& output_, const FileDeferredHandler& aDeferF) noexcept {
 		string protocol, host, port, path, query, fragment;
-		Util::decodeUrl(aRequestUrl, protocol, host, port, path, query, fragment);
+		LinkUtil::decodeUrl(aRequestUrl, protocol, host, port, path, query, fragment);
 
 		// Parse query
-		auto proxyUrlEscaped = Util::decodeQuery(query)["url"];
+		auto proxyUrlEscaped = LinkUtil::decodeQuery(query)["url"];
 		if (proxyUrlEscaped.empty()) {
 			output_ = "Proxy URL missing";
 			return websocketpp::http::status_code::bad_request;

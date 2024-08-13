@@ -20,14 +20,15 @@
 #define DCPLUSPLUS_DCPP_FILELISTAPI_H
 
 #include <api/base/HierarchicalApiModule.h>
+#include <api/base/HookApiModule.h>
 #include <api/FilelistInfo.h>
 
 #include <airdcpp/typedefs.h>
-#include <airdcpp/DirectoryListingManager.h>
+#include <airdcpp/DirectoryListingManagerListener.h>
 #include <airdcpp/QueueItem.h>
 
 namespace webserver {
-	class FilelistApi : public ParentApiModule<CID, FilelistInfo>, private DirectoryListingManagerListener {
+	class FilelistApi : public ParentApiModule<CID, FilelistInfo, HookApiModule>, private DirectoryListingManagerListener {
 	public:
 		static StringList subscriptionList;
 
@@ -57,6 +58,9 @@ namespace webserver {
 
 		static json serializeList(const DirectoryListingPtr& aList) noexcept;
 		static json serializeShareProfile(const DirectoryListingPtr& aList) noexcept;
+
+		ActionHookResult<> directoryLoadHook(const DirectoryListing::Directory::Ptr& aDirectory, const DirectoryListing& aList, const ActionHookResultGetter<>& aResultGetter) noexcept;
+		ActionHookResult<> fileLoadHook(const DirectoryListing::File::Ptr& aFile, const DirectoryListing& aList, const ActionHookResultGetter<>& aResultGetter) noexcept;
 	};
 }
 
