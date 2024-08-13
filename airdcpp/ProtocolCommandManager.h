@@ -19,6 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_DEBUGMANAGER_H
 #define DCPLUSPLUS_DCPP_DEBUGMANAGER_H
 
+#include "forward.h"
 #include "Speaker.h"
 #include "Singleton.h"
 
