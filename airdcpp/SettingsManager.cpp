@@ -57,6 +57,10 @@ const ResourceManager::Strings SettingsManager::dropStrings[QUEUE_LAST] { Resour
 const ResourceManager::Strings SettingsManager::updateStrings[VERSION_LAST] { ResourceManager::CHANNEL_STABLE, ResourceManager::CHANNEL_BETA, ResourceManager::CHANNEL_NIGHTLY };
 
 
+void SettingsManager::registerChangeHandler(const SettingKeyList& aKeys, SettingChangeHandler::OnSettingChangedF&& changeF) noexcept {
+	settingChangeHandlers.push_back(SettingChangeHandler({ changeF, aKeys }));
+}
+
 SettingsManager::SettingValue SettingsManager::getSettingValue(int key, bool useDefault) const noexcept {
 	if (key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
 		return SettingsManager::getInstance()->get(static_cast<SettingsManager::StrSetting>(key), useDefault);

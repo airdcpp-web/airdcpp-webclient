@@ -33,7 +33,7 @@ SettingHolder::SettingHolder(MessageCallback aErrorF) : errorF(aErrorF)  {
 			settingValues.push_back(SettingsManager::getInstance()->getSettingValue(settingKey));
 		}
 
-		valueHolders.emplace_back(SettingValueListHolder(changeHandler, settingValues));
+		valueHolders.emplace_back(SettingValueListHolder({ changeHandler, settingValues }));
 	}
 }
 

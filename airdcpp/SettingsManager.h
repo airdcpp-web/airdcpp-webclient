@@ -329,9 +329,7 @@ public:
 		SettingKeyList settingKeys;
 	};
 
-	void registerChangeHandler(const SettingKeyList& aKeys, SettingChangeHandler::OnSettingChangedF&& changeF) noexcept {
-		settingChangeHandlers.push_back(SettingChangeHandler(changeF, aKeys));
-	}
+	void registerChangeHandler(const SettingKeyList& aKeys, SettingChangeHandler::OnSettingChangedF&& changeF) noexcept;
 
 	SettingValue getSettingValue(int aSetting, bool useDefault = true) const noexcept;
 
