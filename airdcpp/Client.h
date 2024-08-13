@@ -27,6 +27,7 @@
 #include "ShareManagerListener.h"
 #include "TimerManagerListener.h"
 
+#include "AdcSupports.h"
 #include "FloodCounter.h"
 #include "HubSettings.h"
 #include "MessageCache.h"
@@ -48,8 +49,8 @@ public:
 	virtual string getHubName() const noexcept = 0;
 	virtual bool isOp() const noexcept = 0;
 	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) noexcept = 0;
-	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept = 0;
-	virtual bool directSearch(const OnlineUser&, const SearchPtr&, string&) noexcept {
+	virtual bool privateMessageHooked(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept = 0;
+	virtual bool directSearchHooked(const OnlineUser&, const SearchPtr&, string&) noexcept {
 		dcassert(0);
 		return false;
 	}
@@ -85,7 +86,7 @@ public:
 	virtual size_t getUserCount() const noexcept = 0;
 	int64_t getTotalShare() const noexcept { return availableBytes; };
 	
-	virtual bool send(const AdcCommand& command) = 0;
+	virtual bool sendHooked(const AdcCommand& command) = 0;
 
 	void callAsync(AsyncF f) noexcept;
 
@@ -197,9 +198,15 @@ public:
 
 	void allowUntrustedConnect() noexcept;
 	bool isKeyprintMismatch() const noexcept;
+
+	AdcSupports& getSupports() noexcept {
+		return supports;
+	}
 protected:
-	virtual bool hubMessage(const string& aMessage, string& error_, bool aThirdPerson = false) noexcept = 0;
-	virtual bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept override = 0;
+	mutable SharedMutex cs;
+
+	virtual bool hubMessageHooked(const string& aMessage, string& error_, bool aThirdPerson = false) noexcept = 0;
+	virtual bool privateMessageHooked(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept override = 0;
 	virtual void clearUsers() noexcept = 0;
 
 	void setConnectState(State aState) noexcept;
@@ -260,6 +267,8 @@ protected:
 
 	bool checkIncomingCTM(const string& aTarget, const OnlineUser* aAdcUser = nullptr) noexcept;
 	bool checkIncomingSearch(const string& aTarget, const OnlineUser* aAdcUser = nullptr) noexcept;
+
+	AdcSupports supports;
 private:
 	const ClientToken clientId;
 	static atomic<long> allCounts[COUNT_UNCOUNTED];

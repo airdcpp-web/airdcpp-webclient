@@ -70,7 +70,7 @@ public:
 
 	// Add an excluded path
 	// Throws ShareException if validation fails
-	void addExcludedPath(const string& aPath);
+	void addExcludedPath(const string& aPath, const StringList& aRootPaths);
 	bool removeExcludedPath(const string& aPath) noexcept;
 
 	// Prepares the skiplist regex after the pattern has been changed

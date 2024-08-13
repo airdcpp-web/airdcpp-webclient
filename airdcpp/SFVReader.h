@@ -23,7 +23,6 @@
 #include <string>
 
 #include "typedefs.h"
-#include "GetSet.h"
 
 namespace dcpp {
 
@@ -34,6 +33,9 @@ public:
 	DirSFVReader();
 	DirSFVReader(const string& aPath);
 	DirSFVReader(const string& aPath, const StringList& aSfvFiles);
+
+	static boost::regex crcReg;
+	static boost::regex lineBreakRegex;
 
 	/**
 	 * Search for a CRC32 file in all .sfv files in the directory of fileName.
@@ -52,7 +54,7 @@ public:
 	/* Loops through the file names */
 	void read(std::function<void (const string&)> aReadF) const;
 
-	void loadPath(const string& aPath);
+	void loadPath(const string& aPath) noexcept;
 	string getPath() const noexcept { return path; }
 	void unload() noexcept;
 

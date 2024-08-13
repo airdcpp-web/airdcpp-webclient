@@ -22,6 +22,7 @@
 
 #include "ClientManager.h"
 #include "LogManager.h"
+#include "PathUtil.h"
 #include "QueueManager.h"
 #include "ShareManager.h"
 
@@ -143,7 +144,7 @@ namespace dcpp {
 		if (!tempShares.empty()) {
 			name = tempShares.front().name;
 		} else {
-			name = Util::getFileName(paths.front());
+			name = PathUtil::getFileName(paths.front());
 		}
 
 		auto file = createFile(name, paths.front(), aTTH, aIsText, true);

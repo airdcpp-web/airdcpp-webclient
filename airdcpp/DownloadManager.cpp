@@ -17,13 +17,12 @@
  */
 
 #include "stdinc.h"
+#include "DownloadManager.h"
 
 #include "ClientManager.h"
 #include "ConnectionManager.h"
 #include "Download.h"
-#include "DownloadManager.h"
 #include "FavoriteManager.h"
-#include "HashManager.h"
 #include "LogManager.h"
 #include "QueueManager.h"
 #include "ResourceManager.h"
@@ -72,17 +71,11 @@ struct DropInfo {
 
 void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	vector<DropInfo> dropTargets;
-	vector<pair<CID, AdcCommand>> UBNList;
 	BundleList bundleTicks;
 	unordered_map<UserPtr, int64_t, User::Hash> userSpeedMap;
 
 	{
 		RLock l(cs);
-		for (auto& b : bundles | views::values) {
-			if (b->onDownloadTick(UBNList)) {
-				bundleTicks.push_back(b);
-			}
-		}
 
 		DownloadList tickList;
 		// Tick each ongoing download
@@ -93,9 +86,13 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 				userSpeedMap[d->getUser()] += speed;
 				tickList.push_back(d);
 				d->tick();
+
+				if (d->getBundle() && d->getBundle()->onDownloadTick()) {
+					bundleTicks.push_back(d->getBundle());
+				}
 			}
 
-			if (d->getBundle() && d->getBundle()->isSet(Bundle::FLAG_AUTODROP) && d->getStart() > 0 && (int)d->getBundle()->getRunningUsers().size() >= SETTING(DISCONNECT_MIN_SOURCES))
+			if (d->getBundle() && d->getBundle()->isSet(Bundle::FLAG_AUTODROP) && d->getStart() > 0 && d->getBundle()->countRunningUsers() >= SETTING(DISCONNECT_MIN_SOURCES))
 			{
 				if (d->getTigerTree().getFileSize() > (SETTING(DISCONNECT_FILESIZE) * 1048576))
 				{
@@ -141,7 +138,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		lastUpBytes = totalUp;
 		lastDownBytes = totalDown;
 
-		if(!tickList.empty()) {
+		if (!tickList.empty()) {
 			fire(DownloadManagerListener::Tick(), tickList);
 		}
 
@@ -153,34 +150,8 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 	for (auto& usp: userSpeedMap)
 		usp.first->setSpeed(usp.second);
 
-	for(auto& ubp: UBNList)
-		ClientManager::getInstance()->sendUDP(ubp.second, ubp.first, true, true);
-
 	for (auto& dtp: dropTargets)
 		QueueManager::getInstance()->handleSlowDisconnect(dtp.user, dtp.target, dtp.bundle);
-}
-
-void DownloadManager::sendSizeUpdate(const BundlePtr& aBundle) const noexcept {
-	RLock l (cs);
-	aBundle->sendSizeUpdate();
-}
-
-void DownloadManager::startBundle(UserConnection* aSource, BundlePtr aBundle) {
-	if (aSource->getLastBundle().empty() || aSource->getLastBundle() != Util::toString(aBundle->getToken())) {
-		if (!aSource->getLastBundle().empty()) {
-			removeRunningUser(aSource);
-		} 
-
-		{
-			WLock l (cs);
-			if (aBundle->addRunningUser(aSource)) {
-				//this is the first running user for this bundle
-				aBundle->setStart(GET_TICK());
-				bundles[aBundle->getToken()] = aBundle;
-			}
-		}
-		aSource->setLastBundle(aBundle->getStringToken());
-	}
 }
 
 bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly) {
@@ -188,7 +159,7 @@ bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot, bool report
 	RLock l(cs);
 	for (auto uc: idlers) {
 		if (uc->getUser() == user) {
-			if (smallSlot != uc->isSet(UserConnection::FLAG_SMALL_SLOT) && uc->isSet(UserConnection::FLAG_MCN1))
+			if (smallSlot != uc->isSet(UserConnection::FLAG_SMALL_SLOT) && uc->isMCN())
 				continue;
 			if (!reportOnly)
 				uc->callAsync([this, uc] { revive(uc); });
@@ -225,35 +196,33 @@ void DownloadManager::addConnection(UserConnection* conn) {
 	checkDownloads(conn);
 }
 
-void DownloadManager::getRunningBundles(QueueTokenSet& bundles_) const noexcept {
+QueueTokenSet DownloadManager::getRunningBundles(bool aIgnoreHighestPrio) const noexcept {
+	QueueTokenSet bundleTokens;
+
 	RLock l(cs);
-	for (const auto& b : bundles | views::values) {
-		// we need to check this to ignore previous bundles for running connections 
-		// (non-running bundles are removed only when no next download was found)
-		if (b->getDownloads().empty())
+	for (const auto& d : downloads) {
+		const auto& b = d->getBundle();
+		if (!b) {
 			continue;
+		}
 		
 		// these won't be included in the running bundle limit
-		if (b->getPriority() == Priority::HIGHEST)
-			continue;
-		if (ranges::all_of(b->getDownloads(), Flags::IsSet(Download::FLAG_HIGHEST_PRIO)))
-			continue;
+		if (aIgnoreHighestPrio) {
+			if (b->getPriority() == Priority::HIGHEST)
+				continue;
+			if (d->isSet(Download::FLAG_HIGHEST_PRIO)) {
+				continue;
+			}
+		}
 
-		bundles_.insert(b->getToken());
+		bundleTokens.insert(b->getToken());
 	}
+
+	return bundleTokens;
 }
 
 size_t DownloadManager::getRunningBundleCount() const noexcept {
-	RLock l(cs);
-	auto ret = accumulate(bundles | boost::adaptors::map_values, (size_t)0, [&](size_t old, const BundlePtr& b) {
-		if (b->getSpeed() == 0) {
-			return old;
-		}
-
-		return old + 1;
-	});
-
-	return ret;
+	return getRunningBundles(false).size();
 }
 
 void DownloadManager::checkDownloads(UserConnection* aConn) {
@@ -263,7 +232,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	QueueItemBase::DownloadType dlType = QueueItemBase::TYPE_ANY;
 	if (aConn->isSet(UserConnection::FLAG_SMALL_SLOT)) {
 		dlType = QueueItemBase::TYPE_SMALL;
-	} else if (aConn->isSet(UserConnection::FLAG_MCN1)) {
+	} else if (aConn->isMCN()) {
 		dlType = QueueItemBase::TYPE_MCN_NORMAL;
 	}
 
@@ -273,15 +242,13 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	hubs.insert(aConn->getHubUrl());
 
 	string errorMessage;
-	QueueTokenSet runningBundles;
-	getRunningBundles(runningBundles);
-
+	auto runningBundles = getRunningBundles();
 	bool start = QueueManager::getInstance()->startDownload(aConn->getHintedUser(), runningBundles, hubs, dlType, aConn->getSpeed(), errorMessage);
 
 	// not a finished download?
 	if(!start && aConn->getState() != UserConnection::STATE_RUNNING) {
-		removeRunningUser(aConn);
-		removeConnection(aConn);
+		// removeRunningUser(aConn);
+		failDownload(aConn, Util::emptyString, false);
 		return;
 	}
 
@@ -292,7 +259,6 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		d = QueueManager::getInstance()->getDownload(*aConn, runningBundles, hubs, errorMessage, newUrl, dlType);
 
 	if(!d) {
-		//aConn->setDownload(nullptr);
 		aConn->unsetFlag(UserConnection::FLAG_RUNNING);
 		if(!errorMessage.empty()) {
 			fire(DownloadManagerListener::Status(), aConn, errorMessage);
@@ -300,7 +266,8 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 
 		if (!checkIdle(aConn->getUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), true)) {
 			aConn->setState(UserConnection::STATE_IDLE);
-			removeRunningUser(aConn);
+			fire(DownloadManagerListener::Idle(), aConn);
+
 			{
 				WLock l(cs);
  				idlers.push_back(aConn);
@@ -331,7 +298,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	{
 		WLock l(cs);
 		downloads.push_back(d);
-		BundlePtr b = d->getBundle();
+		auto b = d->getBundle();
 		if (b) {
 			b->addDownload(d);
 		}
@@ -416,18 +383,13 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 
 	d->setStart(GET_TICK());
 	d->tick();
-	if (!aSource->isSet(UserConnection::FLAG_RUNNING) && aSource->isSet(UserConnection::FLAG_MCN1) && (d->getType() == Download::TYPE_FILE || d->getType() == Download::TYPE_PARTIAL_LIST)) {
+	if (!aSource->isSet(UserConnection::FLAG_RUNNING) && aSource->isMCN() && (d->getType() == Download::TYPE_FILE || d->getType() == Download::TYPE_PARTIAL_LIST)) {
 		ConnectionManager::getInstance()->addRunningMCN(aSource);
 		aSource->setFlag(UserConnection::FLAG_RUNNING);
 	}
 	aSource->setState(UserConnection::STATE_RUNNING);
 
 	fire(DownloadManagerListener::Starting(), d);
-	if (d->getBundle()) {
-		startBundle(aSource, d->getBundle());
-	} else if (!aSource->getLastBundle().empty()) {
-		removeRunningUser(aSource, true);
-	}
 
 	if (d->getPos() == d->getSegmentSize()) {
 		try {
@@ -509,8 +471,7 @@ void DownloadManager::endData(UserConnection* aSource) {
 	try {
 		QueueManager::getInstance()->putDownloadHooked(d, true);
 	} catch (const HashException& e) {
-		removeRunningUser(aSource);
-		removeConnection(aSource);
+		failDownload(aSource, e.getError(), false);
 		ConnectionManager::getInstance()->failDownload(aSource->getToken(), e.getError(), true);
 		return;
 	}
@@ -567,15 +528,16 @@ void DownloadManager::onFailed(UserConnection* aSource, const string& aError) {
 	failDownload(aSource, aError, false);
 }
 
-void DownloadManager::failDownload(UserConnection* aSource, const string& reason, bool rotateQueue) {
-	Download* d = aSource->getDownload();
-	if(d) {
+void DownloadManager::failDownload(UserConnection* aSource, const string& aReason, bool aRotateQueue) {
+	auto d = aSource->getDownload();
+	if (d) {
 		removeDownload(d);
-		fire(DownloadManagerListener::Failed(), d, reason);
-		QueueManager::getInstance()->putDownloadHooked(d, false, false, rotateQueue);
+		fire(DownloadManagerListener::Failed(), d, aReason);
+		QueueManager::getInstance()->putDownloadHooked(d, false, false, aRotateQueue);
+	} else {
+		fire(DownloadManagerListener::Remove(), aSource);
 	}
 
-	removeRunningUser(aSource);
 	removeConnection(aSource);
 }
 
@@ -609,46 +571,14 @@ void DownloadManager::removeDownload(Download* d) {
 	}
 }
 
-BundlePtr DownloadManager::findRunningBundle(QueueToken aBundleToken) const noexcept {
-	auto s = bundles.find(aBundleToken);
-	if (s != bundles.end()) {
-		return s->second;
-	}
-	return nullptr;
-}
-
-void DownloadManager::removeRunningUser(UserConnection* aSource, bool sendRemove /*false*/) noexcept {
-	if (aSource->getLastBundle().empty()) {
-		return;
-	}
-
-	{
-		WLock l (cs);
-		BundlePtr bundle = findRunningBundle(Util::toUInt32(aSource->getLastBundle()));
-		if (bundle && bundle->removeRunningUser(aSource, sendRemove)) {
-			//no running users for this bundle
-			bundles.erase(bundle->getToken());
-			fire(DownloadManagerListener::BundleWaiting(), bundle);
-		}
-	}
-
-	aSource->setLastBundle(Util::emptyString);
-}
-
 void DownloadManager::disconnectBundle(const BundlePtr& aBundle, const UserPtr& aUser) {
-	//UserConnectionList u;
-	{
-		RLock l(cs);
-		for(auto d: aBundle->getDownloads()) {
-			if (aUser && d->getUser() != aUser) {
-				continue;
-			}
-			d->getUserConnection().disconnect(true);
+	RLock l(cs);
+	for(auto d: aBundle->getDownloads()) {
+		if (aUser && d->getUser() != aUser) {
+			continue;
 		}
+		d->getUserConnection().disconnect(true);
 	}
-	/*for (auto i = u.begin(); i != u.end(); ++i) {
-		(*i)->disconnect(true);
-	} */
 }
 
 void DownloadManager::abortDownload(const string& aTarget, const UserPtr& aUser) {
@@ -731,7 +661,6 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess, 
 	dcdebug("File Not Available: %s\n", d->getPath().c_str());
 
 	removeDownload(d);
-	removeRunningUser(aSource);
 
 	string error;
 	if (aNoAccess) {

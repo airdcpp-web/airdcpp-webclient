@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_SIMPLE_XML_H
 
 #include "forward.h"
-#include "Exception.h"
 #include "Util.h"
 
 #include "SimpleXMLReader.h"
@@ -84,30 +83,10 @@ public:
 		current->data = aData;
 	}
 	
-	void stepIn() {
-		checkChildSelected();
-		current = *currentChild;
-		currentChild = current->children.begin();
-		found = false;
-	}
+	void stepIn();
+	void stepOut();
 
-	void stepOut() {
-		if(current == &root)
-			throw SimpleXMLException("Already at lowest level");
-
-		dcassert(current->parent != NULL);
-
-		currentChild = find(current->parent->children.begin(), current->parent->children.end(), current);
-		
-		current = current->parent;
-		found = true;
-	}
-
-	void resetCurrentChild() noexcept {
-		found = false;
-		dcassert(current != NULL);
-		currentChild = current->children.begin();
-	}
+	void resetCurrentChild() noexcept;
 
 	bool findChild(const string& aName) noexcept;
 
@@ -211,19 +190,11 @@ private:
 	class TagReader : public SimpleXMLReader::CallBack {
 	public:
 		TagReader(Tag* root) : cur(root) { }
-		void startTag(const string& name, StringPairList& attribs, bool simple) {
-			cur->children.push_back(new Tag(name, attribs, cur));
-			if(!simple)
-				cur = cur->children.back();
-		}
+		void startTag(const string& name, StringPairList& attribs, bool simple);
 		void data(const string& data) {
 			cur->data += data;
 		}
-		void endTag(const string&) {
-			if(cur->parent == NULL)
-				throw SimpleXMLException("Invalid end tag");
-			cur = cur->parent;
-		}
+		void endTag(const string&);
 
 		Tag* cur;
 	};

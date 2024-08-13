@@ -87,7 +87,6 @@ namespace dcpp {
 
 			auto t = onTick(ul, false);
 			if (t) {
-				t->setBundle(ul->getBundle() ? ul->getBundle()->getToken() : Util::emptyString);
 				tickTransfers.push_back(t);
 			}
 		}
@@ -280,9 +279,13 @@ namespace dcpp {
 		aInfo->setIp(aTransfer->getUserConnection().getRemoteIp());
 		aInfo->setEncryption(aTransfer->getUserConnection().getEncryptionInfo());
 
-		OrderedStringSet flags;
-		aTransfer->appendFlags(flags);
-		aInfo->setFlags(flags);
+		{
+			OrderedStringSet flags;
+			aTransfer->appendFlags(flags);
+			aInfo->setFlags(flags);
+		}
+
+		aInfo->setSupports(aTransfer->getUserConnection().getSupports().getAll());
 
 		onTransferUpdated(
 			aInfo,
@@ -290,7 +293,8 @@ namespace dcpp {
 			TransferInfo::UpdateFlags::BYTES_TRANSFERRED | TransferInfo::UpdateFlags::TIME_STARTED |
 			TransferInfo::UpdateFlags::SIZE | TransferInfo::UpdateFlags::TARGET | TransferInfo::UpdateFlags::STATE |
 			TransferInfo::UpdateFlags::QUEUE_ID | TransferInfo::UpdateFlags::TYPE |
-			TransferInfo::UpdateFlags::IP | TransferInfo::UpdateFlags::ENCRYPTION | TransferInfo::UpdateFlags::FLAGS
+			TransferInfo::UpdateFlags::IP | TransferInfo::UpdateFlags::ENCRYPTION | TransferInfo::UpdateFlags::FLAGS | 
+			TransferInfo::UpdateFlags::SUPPORTS
 		);
 
 
@@ -342,7 +346,6 @@ namespace dcpp {
 			return;
 		}
 
-		t->setBundle(aUpload->getBundle() ? aUpload->getBundle()->getToken() : Util::emptyString);
 		starting(t, aUpload);
 	}
 
@@ -352,7 +355,7 @@ namespace dcpp {
 		return i != transfers.end() ? i->second : nullptr;
 	}
 
-	TransferInfoPtr TransferInfoManager::findTransfer(TransferToken aToken) const noexcept {
+	TransferInfoPtr TransferInfoManager::findTransfer(TransferInfoToken aToken) const noexcept {
 		RLock l(cs);
 		auto ret = ranges::find_if(transfers | views::values, [&](const TransferInfoPtr& aInfo) {
 			return aInfo->getToken() == aToken;

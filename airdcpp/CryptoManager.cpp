@@ -22,10 +22,11 @@
 #include <boost/scoped_array.hpp>
 #include "ScopedFunctor.h"
 
+#include "ClientManager.h"
 #include "Encoder.h"
 #include "File.h"
-#include "ClientManager.h"
 #include "LogManager.h"
+#include "SystemUtil.h"
 #include "version.h"
 
 #include <openssl/bn.h>
@@ -263,7 +264,7 @@ void CryptoManager::generateCertificate() {
 		File::ensureDirectory(SETTING(TLS_PRIVATE_KEY_FILE));
 		FILE* f = dcpp_fopen(SETTING(TLS_PRIVATE_KEY_FILE).c_str(), "w");
 		if (!f) {
-			throw CryptoException(Util::formatLastError() + " (" + SETTING(TLS_PRIVATE_KEY_FILE) + ")");
+			throw CryptoException(SystemUtil::formatLastError() + " (" + SETTING(TLS_PRIVATE_KEY_FILE) + ")");
 		}
 
 		PEM_write_PrivateKey(f, pkey, NULL, NULL, 0, NULL, NULL);
@@ -274,7 +275,7 @@ void CryptoManager::generateCertificate() {
 		FILE* f = dcpp_fopen(SETTING(TLS_CERTIFICATE_FILE).c_str(), "w");
 		if (!f) {
 			File::deleteFile(SETTING(TLS_PRIVATE_KEY_FILE));
-			throw CryptoException(Util::formatLastError() + " (" + SETTING(TLS_CERTIFICATE_FILE) + ")");
+			throw CryptoException(SystemUtil::formatLastError() + " (" + SETTING(TLS_CERTIFICATE_FILE) + ")");
 		}
 		PEM_write_X509(f, x509ss);
 		fclose(f);
@@ -422,8 +423,8 @@ void CryptoManager::setCertPaths() {
 	if (!SETTING(USE_DEFAULT_CERT_PATHS))
 		return;
 
-	auto privPath = Util::getPath(Util::PATH_USER_LOCAL) + "Certificates" PATH_SEPARATOR_STR "client.key";
-	auto certPath = Util::getPath(Util::PATH_USER_LOCAL) + "Certificates" PATH_SEPARATOR_STR "client.crt";
+	auto privPath = AppUtil::getPath(AppUtil::PATH_USER_LOCAL) + "Certificates" PATH_SEPARATOR_STR "client.key";
+	auto certPath = AppUtil::getPath(AppUtil::PATH_USER_LOCAL) + "Certificates" PATH_SEPARATOR_STR "client.crt";
 
 	SettingsManager::getInstance()->set(SettingsManager::TLS_CERTIFICATE_FILE, certPath);
 	SettingsManager::getInstance()->set(SettingsManager::TLS_PRIVATE_KEY_FILE, privPath);

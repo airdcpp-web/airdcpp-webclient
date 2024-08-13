@@ -19,6 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_SEARCHRESULT_H
 #define DCPLUSPLUS_DCPP_SEARCHRESULT_H
 
+#include "DirectoryContentInfo.h"
+#include "DupeType.h"
 #include "GetSet.h"
 #include "forward.h"
 #include "FastAlloc.h"
@@ -96,6 +98,7 @@ public:
 	bool getRelevance(SearchQuery& aQuery, RelevanceInfo& relevance_, const string& aSearchToken = Util::emptyString) const noexcept;
 
 	const DirectoryContentInfo& getContentInfo() const noexcept { return contentInfo; }
+	DupeType getDupe() const noexcept;
 private:
 	bool matches(SearchQuery& aQuery, const string& aSearchToken) const noexcept;
 

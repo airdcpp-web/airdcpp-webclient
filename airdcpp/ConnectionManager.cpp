@@ -30,6 +30,7 @@
 #include "ScopedFunctor.h"
 #include "UploadManager.h"
 #include "UserConnection.h"
+#include "ValueGenerator.h"
 
 namespace dcpp {
 FastCriticalSection TokenManager::cs;
@@ -39,7 +40,7 @@ string TokenManager::createToken(ConnectionType aConnType) noexcept {
 
 	{
 		FastLock l(cs);
-		do { token = Util::toString(Util::rand()); } while (tokens.find(token) != tokens.end());
+		do { token = Util::toString(ValueGenerator::rand()); } while (tokens.find(token) != tokens.end());
 
 		tokens.emplace(token, aConnType);
 	}
@@ -97,9 +98,6 @@ ConnectionManager::ConnectionManager() : downloads(cqis[CONNECTION_TYPE_DOWNLOAD
 		"AD" + UserConnection::FEATURE_ADC_MCN1, 
 		"AD" + UserConnection::FEATURE_ADC_CPMI
 	};
-
-	if (SETTING(USE_UPLOAD_BUNDLES))
-		adcFeatures.push_back("AD" + UserConnection::FEATURE_ADC_UBN1);
 }
 
 void ConnectionManager::listen() {
@@ -235,7 +233,7 @@ bool ConnectionManager::isMCNUser(const UserPtr& aUser) const noexcept {
 	RLock l(cs);
 
 	auto s = find_if(userConnections.begin(), userConnections.end(), [&](const UserConnection* uc) {
-		return uc->getUser() == aUser && uc->isSet(UserConnection::FLAG_MCN1);
+		return uc->getUser() == aUser && uc->isMCN();
 	});
 
 	return s != userConnections.end();
@@ -410,8 +408,7 @@ bool ConnectionManager::allowNewMCN(const ConnectionQueueItem* aCQI) noexcept {
 }
 
 void ConnectionManager::createNewMCN(const HintedUser& aUser) noexcept {
-	QueueTokenSet runningBundles;
-	DownloadManager::getInstance()->getRunningBundles(runningBundles);
+	auto runningBundles = DownloadManager::getInstance()->getRunningBundles();
 
 	string lastError;
 	auto start = QueueManager::getInstance()->startDownload(aUser, runningBundles, 
@@ -515,7 +512,7 @@ int ConnectionManager::Server::run() noexcept {
 FloodCounter::FloodLimits ConnectionManager::getIncomingConnectionLimits(const string& aIP) const noexcept {
 	RLock l(cs);
 	auto s = find_if(userConnections.begin(), userConnections.end(), [&](const UserConnection* uc) {
-		return uc->getRemoteIp() == aIP && uc->isSet(UserConnection::FLAG_MCN1);
+		return uc->getRemoteIp() == aIP && uc->isMCN();
 	});
 
 	if (s != userConnections.end()) {
@@ -632,6 +629,7 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 	bool baseOk = false;
 	bool tigrOk = false;
 
+	StringList supports;
 	for(auto& i: cmd.getParameters()) {
 		if(i.compare(0, 2, "AD") == 0) {
 			string feat = i.substr(2);
@@ -654,15 +652,12 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 				aSource->setFlag(UserConnection::FLAG_SUPPORTS_XML_BZLIST);
 			} else if(feat == UserConnection::FEATURE_ADC_TIGR) {
 				tigrOk = true;
-			} else if(feat == UserConnection::FEATURE_ADC_MCN1) {
-				aSource->setFlag(UserConnection::FLAG_MCN1);
-			} else if(feat == UserConnection::FEATURE_ADC_UBN1) {
-				aSource->setFlag(UserConnection::FLAG_UBN1);
-			} else if (feat == UserConnection::FEATURE_ADC_CPMI) {
-				aSource->setFlag(UserConnection::FLAG_CPMI);
 			}
+
+			supports.push_back(feat);
 		}
 	}
+	aSource->getSupports().replace(supports);
 
 	// TODO: better error
 	if(!baseOk || !tigrOk) {
@@ -671,16 +666,26 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 		return;
 	}
 
-	if(aSource->isSet(UserConnection::FLAG_INCOMING)) {
-		StringList defFeatures = adcFeatures;
-		if(SETTING(COMPRESS_TRANSFERS)) {
-			defFeatures.push_back("AD" + UserConnection::FEATURE_ZLIB_GET);
-		}
-		aSource->sup(defFeatures);
+	if (aSource->isSet(UserConnection::FLAG_INCOMING)) {
+		aSource->sup(getAdcFeatures());
 	} else {
-		aSource->inf(true, aSource->isSet(UserConnection::FLAG_MCN1) ? AirUtil::getSlotsPerUser(false) : 0);
+		aSource->inf(true, aSource->isMCN() ? AirUtil::getSlotsPerUser(false) : 0);
 	}
+
 	aSource->setState(UserConnection::STATE_INF);
+}
+
+StringList ConnectionManager::getAdcFeatures() const noexcept {
+	StringList defFeatures = adcFeatures;
+	if (SETTING(COMPRESS_TRANSFERS)) {
+		defFeatures.push_back("AD" + UserConnection::FEATURE_ZLIB_GET);
+	}
+
+	for (const auto& support: userConnectionSupports.getAll()) {
+		defFeatures.push_back("AD" + support);
+	}
+
+	return defFeatures;
 }
 
 void ConnectionManager::on(AdcCommand::STA, UserConnection*, const AdcCommand& /*cmd*/) noexcept {
@@ -699,11 +704,7 @@ void ConnectionManager::on(UserConnectionListener::Connected, UserConnection* aS
 		aSource->myNick(aSource->getToken());
 		aSource->lock(CryptoManager::getInstance()->getLock(), CryptoManager::getInstance()->getPk() + "Ref=" + aSource->getHubUrl());
 	} else {
-		StringList defFeatures = adcFeatures;
-		if(SETTING(COMPRESS_TRANSFERS)) {
-			defFeatures.push_back("AD" + UserConnection::FEATURE_ZLIB_GET);
-		}
-		aSource->sup(defFeatures);
+		aSource->sup(getAdcFeatures());
 		aSource->send(AdcCommand(AdcCommand::SEV_SUCCESS, AdcCommand::SUCCESS, Util::emptyString).addParam("RF", aSource->getHubUrl()));
 	}
 	aSource->setState(UserConnection::STATE_SUPNICK);
@@ -791,7 +792,7 @@ void ConnectionManager::on(UserConnectionListener::CLock, UserConnection* aSourc
 			defFeatures.push_back(UserConnection::FEATURE_ZLIB_GET);
 		}
 
-		aSource->supports(defFeatures);
+		aSource->sendSupports(defFeatures);
 	}
 
 	aSource->setState(UserConnection::STATE_DIRECTION);
@@ -861,12 +862,12 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) noexcept {
 	bool addConn = false;
 	{
 		RLock l(cs);
-		auto i = uc->isSet(UserConnection::FLAG_MCN1) ? std::find(downloads.begin(), downloads.end(), uc->getToken()) : std::find(downloads.begin(), downloads.end(), uc->getUser());
+		auto i = uc->isMCN() ? std::find(downloads.begin(), downloads.end(), uc->getToken()) : std::find(downloads.begin(), downloads.end(), uc->getUser());
 		if(i != downloads.end()) {
 			ConnectionQueueItem* cqi = *i;
 			if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
 				cqi->setState(ConnectionQueueItem::ACTIVE);
-				if (uc->isSet(UserConnection::FLAG_MCN1)) {
+				if (uc->isMCN()) {
 					if (cqi->getDownloadType() == ConnectionQueueItem::TYPE_SMALL || cqi->getDownloadType() == ConnectionQueueItem::TYPE_SMALL_CONF) {
 						uc->setFlag(UserConnection::FLAG_SMALL_SLOT);
 						cqi->setDownloadType(ConnectionQueueItem::TYPE_SMALL_CONF);
@@ -900,7 +901,7 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) noexcept {
 	{
 		WLock l(cs);
 		auto &uploads = cqis[CONNECTION_TYPE_UPLOAD];
-		if (!uc->isSet(UserConnection::FLAG_MCN1) && find(uploads.begin(), uploads.end(), uc->getUser()) != uploads.end()) {
+		if (!uc->isMCN() && find(uploads.begin(), uploads.end(), uc->getUser()) != uploads.end()) {
 			//one connection per CID for non-mcn users
 			allowAdd=false;
 		}
@@ -938,7 +939,7 @@ void ConnectionManager::on(UserConnectionListener::Key, UserConnection* aSource,
 		// this will be synced to use CQI's random token
 		addDownloadConnection(aSource);
 	} else {
-		aSource->setToken(Util::toString(Util::rand())); // set a random token instead of using the nick
+		aSource->setToken(Util::toString(ValueGenerator::rand())); // set a random token instead of using the nick
 		addUploadConnection(aSource);
 	}
 }
@@ -1006,7 +1007,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 
 		}
 
-		aSource->inf(false, aSource->isSet(UserConnection::FLAG_MCN1) ? AirUtil::getSlotsPerUser(false) : 0);
+		aSource->inf(false, aSource->isMCN() ? AirUtil::getSlotsPerUser(false) : 0);
 
 	} else {
 		dcassert(aSource->getUser());
@@ -1030,7 +1031,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		auto i = find(downloads.begin(), downloads.end(), token);
 		if (i != downloads.end()) {
 			ConnectionQueueItem* cqi = *i;
-			if(aSource->isSet(UserConnection::FLAG_MCN1)) {
+			if(aSource->isMCN()) {
 				string slots;
 				if (cmd.getParam("CO", 0, slots)) {
 					cqi->setMaxConns(static_cast<uint8_t>(Util::toInt(slots)));
@@ -1197,16 +1198,6 @@ void ConnectionManager::disconnect(const UserPtr& aUser, ConnectionType aConnTyp
 	}
 }
 
-bool ConnectionManager::setBundle(const string& aToken, const string& aBundleToken) noexcept {
-	RLock l (cs);
-	auto s = find(userConnections.begin(), userConnections.end(), aToken);
-	if (s != userConnections.end()) {
-		(*s)->setLastBundle(aBundleToken);
-		return true;
-	}
-	return false;
-}
-
 void ConnectionManager::shutdown(function<void (float)> progressF) noexcept {
 	TimerManager::getInstance()->removeListener(this);
 	ClientManager::getInstance()->removeListener(this);
@@ -1254,9 +1245,6 @@ void ConnectionManager::on(UserConnectionListener::Supports, UserConnection* con
 			conn->setFlag(UserConnection::FLAG_SUPPORTS_TTHL);
 		} else if(i == UserConnection::FEATURE_TTHF) {
 			conn->setFlag(UserConnection::FLAG_SUPPORTS_TTHF);
-		} else if(i == UserConnection::FEATURE_AIRDC) {
-			if(!conn->getUser()->isSet(User::AIRDCPLUSPLUS))
-				conn->getUser()->setFlag(User::AIRDCPLUSPLUS);
 		}
 	}
 }

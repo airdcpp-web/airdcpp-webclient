@@ -21,6 +21,7 @@
 #include "FileQueue.h"
 #include "SettingsManager.h"
 #include "Text.h"
+#include "TimerManager.h"
 
 namespace dcpp {
 
@@ -30,14 +31,14 @@ using ranges::copy;
 FileQueue::~FileQueue() { }
 
 void FileQueue::getBloom(HashBloom& bloom_) const noexcept {
-	for(auto& i: tthIndex) {
+	for (auto& i : tthIndex) {
 		if (i.second->getBundle()) {
 			bloom_.add(*i.first);
 		}
 	}
 }
 
-pair<QueueItemPtr, bool> FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, Priority p, 
+pair<QueueItemPtr, bool> FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, Priority p,
 	const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept {
 
 	auto qi = make_shared<QueueItem>(aTarget, aSize, p, aFlags, aAdded, root, aTempTarget);
@@ -93,14 +94,14 @@ void FileQueue::matchListing(const DirectoryListing& dl, QueueItemList& ql_) con
 	matchDir(dl.getRoot(), ql_);
 }
 
-void FileQueue::matchDir(const DirectoryListing::Directory::Ptr& aDir, QueueItemList& ql_) const noexcept{
-	for(const auto& d: aDir->directories | views::values) {
+void FileQueue::matchDir(const DirectoryListing::Directory::Ptr& aDir, QueueItemList& ql_) const noexcept {
+	for (const auto& d : aDir->directories | views::values) {
 		if (!d->isVirtual()) {
 			matchDir(d, ql_);
 		}
 	}
 
-	for(const auto& f: aDir->files) {
+	for (const auto& f : aDir->files) {
 		auto tthRange = tthIndex.equal_range(const_cast<TTHValue*>(&f->getTTH()));
 
 		ranges::for_each(tthRange | pair_to_range, [&](const pair<TTHValue*, QueueItemPtr>& tqp) {
@@ -122,46 +123,6 @@ DupeType FileQueue::isFileQueued(const TTHValue& aTTH) const noexcept {
 QueueItemPtr FileQueue::getQueuedFile(const TTHValue& aTTH) const noexcept {
 	auto p = tthIndex.find(const_cast<TTHValue*>(&aTTH));
 	return p != tthIndex.end() ? p->second : nullptr;
-}
-
-// compare nextQueryTime, get the oldest ones
-void FileQueue::findPFSSources(PFSSourceList& sl) const noexcept {
-	typedef multimap<time_t, pair<QueueItem::SourceConstIter, const QueueItemPtr> > Buffer;
-	Buffer buffer;
-	uint64_t now = GET_TICK();
-
-	for(auto& q: pathQueue | views::values) {
-
-		if(q->getSize() < PARTIAL_SHARE_MIN_SIZE) continue;
-
-		const QueueItem::SourceList& sources = q->getSources();
-		const QueueItem::SourceList& badSources = q->getBadSources();
-
-		for(auto j = sources.begin(); j != sources.end(); ++j) {
-			if(	(*j).isSet(QueueItem::Source::FLAG_PARTIAL) && (*j).getPartialSource()->getNextQueryTime() <= now &&
-				(*j).getPartialSource()->getPendingQueryCount() < 10 && !(*j).getPartialSource()->getUdpPort().empty())
-			{
-				buffer.emplace((*j).getPartialSource()->getNextQueryTime(), make_pair(j, q));
-			}
-		}
-
-		for(auto j = badSources.begin(); j != badSources.end(); ++j) {
-			if(	(*j).isSet(QueueItem::Source::FLAG_TTH_INCONSISTENCY) == false && (*j).isSet(QueueItem::Source::FLAG_PARTIAL) &&
-				(*j).getPartialSource()->getNextQueryTime() <= now && (*j).getPartialSource()->getPendingQueryCount() < 10 &&
-				!(*j).getPartialSource()->getUdpPort().empty())
-			{
-				buffer.emplace((*j).getPartialSource()->getNextQueryTime(), make_pair(j, q));
-			}
-		}
-	}
-
-	// copy to results
-	dcassert(sl.empty());
-	const uint32_t maxElements = 10;
-	sl.reserve(maxElements);
-	for(auto i = buffer.begin(); i != buffer.end() && sl.size() < maxElements; i++){
-		sl.push_back(i->second);
-	}
 }
 
 } //dcpp

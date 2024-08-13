@@ -21,6 +21,7 @@
 
 #include "forward.h"
 #include "Client.h"
+#include "CriticalSection.h"
 
 namespace dcpp {
 
@@ -34,8 +35,16 @@ public:
 
 	int connect(const OnlineUser& aUser, const string& token, string& lastError_) noexcept override;
 
-	bool hubMessage(const string& aMessage, string& error_, bool /*thirdPerson*/ = false) noexcept override;
-	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept override;
+
+	bool hubMessageHooked(const string& aMessage, string& /*error_*/, bool aThirdPerson = false) noexcept override {
+		return hubMessage(aMessage, aThirdPerson);
+	}
+	bool privateMessageHooked(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept override {
+		return privateMessage(aUser, aMessage, error_, aThirdPerson, aEcho);
+	}
+
+	bool hubMessage(const string& aMessage, bool thirdPerson = false) noexcept;
+	bool privateMessage(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept;
 	void sendUserCmd(const UserCommand& command, const ParamMap& params) override;
 	void search(const SearchPtr& aSearch) noexcept override;
 	void password(const string& aPass) noexcept override;
@@ -46,7 +55,7 @@ public:
 	static string escape(string const& str) { return validateMessage(str, false); }
 	static string unescape(const string& str) { return validateMessage(str, true); }
 
-	bool send(const AdcCommand&) override { dcassert(0); return false; }
+	bool sendHooked(const AdcCommand&) override { dcassert(0); return false; }
 
 	static string validateMessage(string tmp, bool reverse);
 	void refreshUserList(bool) noexcept override;
@@ -64,9 +73,9 @@ private:
 		SUPPORTS_USERCOMMAND	= 0x01,
 		SUPPORTS_NOGETINFO		= 0x02,
 		SUPPORTS_USERIP2		= 0x04
-	};	
+	};
 
-	mutable CriticalSection cs;
+	mutable SharedMutex cs;
 
 	typedef unordered_map<string, OnlineUser*, noCaseStringHash, noCaseStringEq> NickMap;
 	typedef NickMap::const_iterator NickIter;

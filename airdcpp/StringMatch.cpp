@@ -21,6 +21,7 @@
 
 #include "AirUtil.h"
 #include "LogManager.h"
+#include "RegexUtil.h"
 #include "ResourceManager.h"
 #include "StringTokenizer.h"
 
@@ -79,7 +80,7 @@ struct Prepare : boost::static_visitor<bool> {
 	bool operator()(boost::regex& r) const {
 		try {
 			if (wildCard) {
-				r.assign(AirUtil::regexEscape(pattern, true), boost::regex::icase);
+				r.assign(RegexUtil::regexEscape(pattern, true), boost::regex::icase);
 			} else {
 				r.assign(pattern);
 			}

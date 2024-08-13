@@ -16,12 +16,11 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef UPLOAD_H_
-#define UPLOAD_H_
+#ifndef DCPLUSPLUS_DCPP_UPLOAD_H_
+#define DCPLUSPLUS_DCPP_UPLOAD_H_
 
 #include "forward.h"
 #include "Transfer.h"
-#include "UploadBundle.h"
 #include "Flags.h"
 #include "GetSet.h"
 
@@ -45,12 +44,10 @@ public:
 	void getParams(const UserConnection& aSource, ParamMap& params) const;
 
 	IGETSET(int64_t, fileSize, FileSize, -1);
-	IGETSET(UploadBundlePtr, bundle, Bundle, nullptr);
 
 	uint8_t delayTime = 0;
 	InputStream* getStream();
 	void setFiltered();
-	void resume(int64_t aStart, int64_t aSize) noexcept;
 
 	void appendFlags(OrderedStringSet& flags_) const noexcept;
 private:

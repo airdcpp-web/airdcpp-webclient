@@ -36,6 +36,7 @@
 #include <airdcpp/HttpDownload.h>
 #include <airdcpp/Message.h>
 #include <airdcpp/StringMatch.h>
+#include <airdcpp/ValueGenerator.h>
 
 #include <airdcpp/TimerManager.h>
 
@@ -87,7 +88,7 @@ public:
 			updateInterval = 10;
 
 		if (token == 0)
-			token = Util::randInt(10);
+			token = ValueGenerator::randInt(10);
 
 		rssDownload.reset();
 	}
@@ -97,7 +98,7 @@ public:
 		updateInterval = 60;
 
 		if (token == 0)
-			token = Util::randInt(10);
+			token = ValueGenerator::randInt(10);
 
 		rssDownload.reset();
 	}

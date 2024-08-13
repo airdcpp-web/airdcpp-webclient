@@ -19,7 +19,8 @@
 #include "stdinc.h"
 #include "Magnet.h"
 
-#include "AirUtil.h"
+#include "DupeUtil.h"
+#include "LinkUtil.h"
 #include "QueueManager.h"
 #include "ShareManager.h"
 #include "StringTokenizer.h"
@@ -49,7 +50,7 @@ string Magnet::makeMagnet(const TTHValue& aHash, const string& aFile, int64_t aS
 	string ret = "magnet:?xt=urn:tree:tiger:" + aHash.toBase32();
 	if (aSize > 0)
 		ret += "&xl=" + Util::toString(aSize);
-	return ret + "&dn=" + Util::encodeURI(aFile);
+	return ret + "&dn=" + LinkUtil::encodeURI(aFile);
 }
 
 Magnet::Magnet(const string& aLink, const UserPtr& aTo) : to(aTo) {
@@ -65,10 +66,10 @@ Magnet::Magnet(const string& aLink, const UserPtr& aTo) : to(aTo) {
 		// break into pairs
 		auto pos = idx.find('=');
 		if(pos != string::npos) {
-			type = Text::toLower(Util::encodeURI(idx.substr(0, pos), true));
-			param = Util::encodeURI(idx.substr(pos+1), true);
+			type = Text::toLower(LinkUtil::encodeURI(idx.substr(0, pos), true));
+			param = LinkUtil::encodeURI(idx.substr(pos+1), true);
 		} else {
-			type = Util::encodeURI(idx, true);
+			type = LinkUtil::encodeURI(idx, true);
 			param.clear();
 		}
 		// extract what is of value
@@ -102,7 +103,7 @@ Magnet::Magnet(const string& aLink, const UserPtr& aTo) : to(aTo) {
 }
 
 DupeType Magnet::getDupeType() const {
-	auto dupe = AirUtil::checkFileDupe(getTTH());
+	auto dupe = DupeUtil::checkFileDupe(getTTH());
 	if (ShareManager::getInstance()->isTempShared(to, getTTH())) {
 		dupe = DUPE_SHARE_FULL;
 	}

@@ -43,7 +43,6 @@ public:
 	typedef X<11> StatusMessage;
 	typedef X<12> HubUserCommand;
 	typedef X<13> HubFull;
-	typedef X<16> NmdcSearch;
 	typedef X<19> SetActive;
 	typedef X<20> Close;
 	typedef X<21> MessagesRead;
@@ -70,7 +69,6 @@ public:
 	virtual void on(StatusMessage, const Client*, const LogMessagePtr&, const string&) noexcept { }
 	virtual void on(HubUserCommand, const Client*, int, int, const string&, const string&) noexcept { }
 	virtual void on(HubFull, const Client*) noexcept { }
-	virtual void on(NmdcSearch, Client*, const string&, int, int64_t, int, const string&, bool) noexcept { }
 	virtual void on(SetActive, const Client*) noexcept {}
 	virtual void on(Close, const Client*) noexcept {}
 	virtual void on(MessagesRead, const Client*) noexcept {}

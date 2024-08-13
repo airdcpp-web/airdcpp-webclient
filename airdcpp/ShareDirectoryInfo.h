@@ -24,9 +24,12 @@
 #include "forward.h"
 #include "typedefs.h"
 
-#include "AirUtil.h"
+#include "DirectoryContentInfo.h"
 #include "MerkleTree.h"
+#include "PathUtil.h"
 #include "SettingsManager.h"
+#include "Util.h"
+#include "ValueGenerator.h"
 
 namespace dcpp {
 	class ShareDirectoryInfo;
@@ -39,10 +42,10 @@ namespace dcpp {
 	public:
 
 		ShareDirectoryInfo(const string& aPath, const string& aVname = Util::emptyString, bool aIncoming = false, const ProfileTokenSet& aProfiles = ProfileTokenSet()) :
-			virtualName(aVname), path(aPath), incoming(aIncoming), profiles(aProfiles), id(AirUtil::getPathId(aPath)) {
+			virtualName(aVname), path(aPath), incoming(aIncoming), profiles(aProfiles), id(ValueGenerator::generatePathId(aPath)) {
 		
 			if (virtualName.empty()) {
-				virtualName = Util::getLastDir(aPath);
+				virtualName = PathUtil::getLastDir(aPath);
 			}
 
 			if (profiles.empty()) {

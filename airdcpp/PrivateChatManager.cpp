@@ -28,7 +28,7 @@
 #include "PrivateChat.h"
 #include "Util.h"
 
-#define CONFIG_DIR Util::PATH_USER_CONFIG
+#define CONFIG_DIR AppUtil::PATH_USER_CONFIG
 #define CONFIG_NAME "IgnoredUsers.xml"
 
 namespace dcpp 

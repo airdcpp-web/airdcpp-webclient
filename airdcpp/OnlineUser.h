@@ -106,8 +106,7 @@ public:
 	string getApplication() const noexcept;
 	int getTotalHubCount() const noexcept;
 	string getCountry() const noexcept;
-	StringList getSupports() const noexcept;
-	bool supports(const string& name) const noexcept;
+
 	bool isHub() const noexcept { return isClientType(CT_HUB) || isSet("HU"); }
 	bool isOp() const noexcept { return isClientType(CT_OP) || isClientType(CT_SU) || isClientType(CT_OWNER) || isSet("OP"); }
 	bool isRegistered() const noexcept { return isClientType(CT_REGGED) || isSet("RG"); }
@@ -116,6 +115,10 @@ public:
 	bool isAway() const noexcept { return (getStatus() & AWAY) || isSet("AW"); }
 	bool isUser() const noexcept { return !isBot() && !isHub() && !isHidden(); }
 	bool isMe() const noexcept;
+
+	void setSupports(const string& aSupports) noexcept;
+	StringList getSupports() const noexcept;
+	bool hasSupport(const string& name) const noexcept;
 
 	// Check if the user has any active protocol that we both support (works also with my own identity)
 	// Meant for displaying purposes only
@@ -179,10 +182,26 @@ private:
 	InfMap info;
 
 	static SharedMutex cs;
+
+	typedef vector<uint32_t> SupportList;
+	SupportList supports;
 };
 
 class OnlineUser :  public FastAlloc<OnlineUser>, public intrusive_ptr_base<OnlineUser>, private boost::noncopyable {
 public:
+	static const string CLIENT_PROTOCOL;
+	static const string SECURE_CLIENT_PROTOCOL_TEST;
+	static const string ADCS_FEATURE;
+	static const string TCP4_FEATURE;
+	static const string TCP6_FEATURE;
+	static const string UDP4_FEATURE;
+	static const string UDP6_FEATURE;
+	static const string NAT0_FEATURE;
+	static const string SEGA_FEATURE;
+	static const string SUD1_FEATURE;
+	static const string ASCH_FEATURE;
+	static const string CCPM_FEATURE;
+
 	struct Hash {
 		size_t operator()(const OnlineUserPtr& x) const { return ((size_t)(&(*x)))/sizeof(OnlineUser); }
 	};

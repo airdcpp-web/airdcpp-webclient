@@ -31,11 +31,15 @@ public:
 	template<int I>	struct X { enum { TYPE = I };  };
 
 	typedef X<0> SR;
-	typedef X<1> SearchTypesChanged;
-    typedef X<2> SearchInstanceCreated;
-    typedef X<3> SearchInstanceRemoved;
+	typedef X<1> IncomingSearch;
+
+	typedef X<5> SearchTypesChanged;
+    typedef X<6> SearchInstanceCreated;
+    typedef X<7> SearchInstanceRemoved;
 
 	virtual void on(SR, const SearchResultPtr&) noexcept { }
+	virtual void on(IncomingSearch, Client*, const OnlineUserPtr& /*aAdcUser*/, const SearchQuery&, const SearchResultList&, bool /*isActive*/) noexcept {}
+
 	virtual void on(SearchTypesChanged) noexcept { }
     virtual void on(SearchInstanceCreated, const SearchInstancePtr&) noexcept { }
     virtual void on(SearchInstanceRemoved, const SearchInstancePtr&) noexcept { }

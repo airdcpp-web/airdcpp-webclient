@@ -21,6 +21,7 @@
 
 #include "Exception.h"
 #include "ResourceManager.h"
+#include "SystemUtil.h"
 #include "Util.h"
 
 #ifdef _WIN32
@@ -85,9 +86,9 @@ void Thread::t_resume() {
 
 void Thread::setThreadPriority(Priority p) {
 	if (!::SetThreadPriority(threadHandle, p)) {
-		dcdebug("Unable to set thread priority: %s", Util::translateError(GetLastError()).c_str());
+		dcdebug("Unable to set thread priority: %s", SystemUtil::translateError(GetLastError()).c_str());
 		//dcassert(0);
-		//throw ThreadException("Unable to set thread priority: " + Util::translateError(GetLastError()));
+		//throw ThreadException("Unable to set thread priority: " + SystemUtil::translateError(GetLastError()));
 	}
 }
 
@@ -142,7 +143,7 @@ void Thread::join() {
 void Thread::setThreadPriority(Priority p) {
 	if (setpriority(PRIO_PROCESS, 0, p) != 0) {
 		dcassert(0);
-		//throw ThreadException("Unable to set thread priority: " + Util::translateError(errno));
+		//throw ThreadException("Unable to set thread priority: " + SystemUtil::translateError(errno));
 	}
 }
 

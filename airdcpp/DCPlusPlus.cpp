@@ -20,16 +20,18 @@
 #include "DCPlusPlus.h"
 
 #include "format.h"
+#include "AppUtil.h"
 #include "File.h"
+#include "PathUtil.h"
 #include "StringTokenizer.h"
+#include "ValueGenerator.h"
 
 #include "ActivityManager.h"
-#include "AirUtil.h"
 #include "ClientManager.h"
 #include "ConnectionManager.h"
 #include "ConnectivityManager.h"
 #include "CryptoManager.h"
-#include "DebugManager.h"
+#include "ProtocolCommandManager.h"
 #include "DirectoryListingManager.h"
 #include "DownloadManager.h"
 #include "FavoriteManager.h"
@@ -38,6 +40,7 @@
 #include "IgnoreManager.h"
 #include "Localization.h"
 #include "LogManager.h"
+#include "PartialSharingManager.h"
 #include "PrivateChatManager.h"
 #include "QueueManager.h"
 #include "RecentManager.h"
@@ -46,13 +49,20 @@
 #include "SettingsManager.h"
 #include "ThrottleManager.h"
 #include "TransferInfoManager.h"
+#include "UploadBundleManager.h"
 #include "UpdateManager.h"
 #include "UploadManager.h"
 #include "ViewFileManager.h"
 
 namespace dcpp {
 
-#define RUNNING_FLAG Util::getPath(Util::PATH_USER_LOCAL) + "RUNNING"
+#define RUNNING_FLAG AppUtil::getPath(AppUtil::PATH_USER_LOCAL) + "RUNNING"
+
+void initializeUtil() noexcept {
+	AppUtil::initialize();
+	ValueGenerator::initialize();
+	Text::initialize();
+}
 
 void startup(StepFunction aStepF, MessageFunction aMessageF, Callback aRunWizardF, ProgressFunction aProgressF, Callback aModuleInitF /*nullptr*/, StartupLoadCallback aModuleLoadF /*nullptr*/) {
 	// "Dedicated to the near-memory of Nev. Let's start remembering people while they're still alive."
@@ -66,15 +76,14 @@ void startup(StepFunction aStepF, MessageFunction aMessageF, Callback aRunWizard
 #endif
 
 	//create the running flag
-	if (Util::fileExists(RUNNING_FLAG)) {
-		Util::wasUncleanShutdown = true;
+	if (PathUtil::fileExists(RUNNING_FLAG)) {
+		AppUtil::wasUncleanShutdown = true;
 	} else {
 		File::createFile(RUNNING_FLAG);
 	}
 
 	ResourceManager::newInstance();
 	SettingsManager::newInstance();
-	AirUtil::init();
 
 	LogManager::newInstance();
 	TimerManager::newInstance();
@@ -92,7 +101,7 @@ void startup(StepFunction aStepF, MessageFunction aMessageF, Callback aRunWizard
 	FavoriteManager::newInstance();
 	ConnectivityManager::newInstance();
 	DirectoryListingManager::newInstance();
-	DebugManager::newInstance();
+	ProtocolCommandManager::newInstance();
 	GeoManager::newInstance();
 	UpdateManager::newInstance();
 	ViewFileManager::newInstance();
@@ -100,6 +109,8 @@ void startup(StepFunction aStepF, MessageFunction aMessageF, Callback aRunWizard
 	RecentManager::newInstance();
 	IgnoreManager::newInstance();
 	TransferInfoManager::newInstance();
+	PartialSharingManager::newInstance();
+	UploadBundleManager::newInstance();
 
 	if (aModuleInitF) {
 		aModuleInitF();
@@ -209,6 +220,8 @@ void shutdown(StepFunction stepF, ProgressFunction progressF, ShutdownUnloadCall
 		aModuleDestroyF();
 	}
 
+	UploadBundleManager::deleteInstance();
+	PartialSharingManager::deleteInstance();
 	TransferInfoManager::deleteInstance();
 	IgnoreManager::deleteInstance();
 	RecentManager::deleteInstance();
@@ -217,7 +230,7 @@ void shutdown(StepFunction stepF, ProgressFunction progressF, ShutdownUnloadCall
 	UpdateManager::deleteInstance();
 	GeoManager::deleteInstance();
 	ConnectivityManager::deleteInstance();
-	DebugManager::deleteInstance();
+	ProtocolCommandManager::deleteInstance();
 	CryptoManager::deleteInstance();
 	ThrottleManager::deleteInstance();
 	DirectoryListingManager::deleteInstance();

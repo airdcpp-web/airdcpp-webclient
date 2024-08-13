@@ -25,6 +25,7 @@
 #include "HashManager.h"
 #include "MerkleCheckOutputStream.h"
 #include "MerkleTreeOutputStream.h"
+#include "PathUtil.h"
 #include "QueueItem.h"
 #include "SharedFileStream.h"
 #include "UserConnection.h"
@@ -67,7 +68,7 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 	if(getType() == TYPE_FILE && qi.getSize() != -1) {
 		if(HashManager::getInstance()->getTree(getTTH(), getTigerTree())) {
 			setTreeValid(true);
-			setSegment(qi.getNextSegment(getTigerTree().getBlockSize(), conn.getChunkSize(), conn.getSpeed(), source->getPartialSource(), true));
+			setSegment(qi.getNextSegment(getTigerTree().getBlockSize(), conn.getChunkSize(), conn.getSpeed(), source->getPartsInfo(), true));
 			qi.setBlockSize(getTigerTree().getBlockSize());
 		} else if(conn.isSet(UserConnection::FLAG_SUPPORTS_TTHL) && !source->isSet(QueueItem::Source::FLAG_NO_TREE) && qi.getSize() > HashManager::getMinBlockSize()) {
 			// Get the tree unless the file is small (for small files, we'd probably only get the root anyway)
@@ -78,7 +79,7 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 			// Use the root as tree to get some sort of validation at least...
 			getTigerTree() = TigerTree(qi.getSize(), qi.getSize(), getTTH());
 			setTreeValid(true);
-			setSegment(qi.getNextSegment(getTigerTree().getBlockSize(), 0, 0, source->getPartialSource(), true));
+			setSegment(qi.getNextSegment(getTigerTree().getBlockSize(), 0, 0, source->getPartsInfo(), true));
 		}
 		
 		if ((getStartPos() + getSegmentSize()) != qi.getSize() || (conn.getDownload() && conn.getDownload()->isSet(FLAG_CHUNKED))) {
@@ -175,7 +176,7 @@ void Download::getParams(const UserConnection& aSource, ParamMap& params) const 
 }
 
 string Download::getTargetFileName() const noexcept {
-	return Util::getFileName(getPath());
+	return PathUtil::getFileName(getPath());
 }
 
 const string& Download::getDownloadTarget() const noexcept {

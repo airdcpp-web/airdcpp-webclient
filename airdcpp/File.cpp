@@ -19,7 +19,10 @@
 #include "stdinc.h"
 #include "File.h"
 
+#include "AppUtil.h"
 #include "Exception.h"
+#include "PathUtil.h"
+#include "SystemUtil.h"
 #include "Thread.h"
 
 #ifdef _WIN32
@@ -75,7 +78,7 @@ File::File(const string& aFileName, int aAccess, int aMode, BufferMode aBufferMo
 	DWORD dwFlags = aBufferMode;
 	string path = aFileName;
 	if (aIsAbsolute) {
-		path = Util::formatPath(aFileName);
+		path = PathUtil::formatPath(aFileName);
 	}
 
 	auto isDirectoryPath = path.back() == PATH_SEPARATOR;
@@ -84,7 +87,7 @@ File::File(const string& aFileName, int aAccess, int aMode, BufferMode aBufferMo
 
 	h = ::CreateFile(Text::toT(path).c_str(), aAccess, shared, NULL, m, dwFlags, NULL);
 	if(h == INVALID_HANDLE_VALUE) {
-		throw FileException(Util::translateError(GetLastError()));
+		throw FileException(SystemUtil::translateError(GetLastError()));
 	}
 
 #ifdef _DEBUG
@@ -110,7 +113,7 @@ time_t File::getLastModified() const noexcept {
 
 bool File::isDirectory(const string& aPath) noexcept {
 	// FileFindIter doesn't work for drive paths
-	DWORD attr = GetFileAttributes(Text::toT(Util::formatPath(aPath)).c_str());
+	DWORD attr = GetFileAttributes(Text::toT(PathUtil::formatPath(aPath)).c_str());
 	return (attr & FILE_ATTRIBUTE_DIRECTORY) > 0;
 }
 
@@ -186,7 +189,7 @@ void File::movePos(int64_t pos) noexcept {
 size_t File::read(void* buf, size_t& len) {
 	DWORD x;
 	if(!::ReadFile(h, buf, (DWORD)len, &x, NULL)) {
-		throw FileException(Util::translateError(GetLastError()));
+		throw FileException(SystemUtil::translateError(GetLastError()));
 	}
 	len = x;
 	return x;
@@ -195,7 +198,7 @@ size_t File::read(void* buf, size_t& len) {
 size_t File::write(const void* buf, size_t len) {
 	DWORD x;
 	if(!::WriteFile(h, buf, (DWORD)len, &x, NULL)) {
-		throw FileException(Util::translateError(GetLastError()));
+		throw FileException(SystemUtil::translateError(GetLastError()));
 	}
 	dcassert(x == len);
 	return x;
@@ -203,7 +206,7 @@ size_t File::write(const void* buf, size_t len) {
 void File::setEOF() {
 	dcassert(isOpen());
 	if(!SetEndOfFile(h)) {
-		throw FileException(Util::translateError(GetLastError()));
+		throw FileException(SystemUtil::translateError(GetLastError()));
 	}
 }
 
@@ -211,7 +214,7 @@ string File::getRealPath() const {
 	TCHAR buf[UNC_MAX_PATH];
 	auto ret = GetFinalPathNameByHandle(h, buf, UNC_MAX_PATH, FILE_NAME_OPENED);
 	if (!ret) {
-		throw FileException(Util::translateError(GetLastError()));
+		throw FileException(SystemUtil::translateError(GetLastError()));
 	}
 
 	auto path = Text::fromT(buf);
@@ -237,7 +240,7 @@ size_t File::flushBuffers(bool aForce) {
 #endif
 
 	if(isOpen() && !FlushFileBuffers(h))
-		throw FileException(Util::translateError(GetLastError()));
+		throw FileException(SystemUtil::translateError(GetLastError()));
 
 #ifdef _DEBUG
 	dcdebug("File %s was flushed in " I64_FMT " ms\n", getRealPath().c_str(), (boost::posix_time::microsec_clock::universal_time() - start).total_milliseconds());
@@ -247,14 +250,14 @@ size_t File::flushBuffers(bool aForce) {
 }
 
 void File::renameFile(const string& source, const string& target) {
-	if(!::MoveFileEx(Text::toT(Util::formatPath(source)).c_str(), Text::toT(Util::formatPath(target)).c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED | MOVEFILE_WRITE_THROUGH)) {
-		throw FileException(Util::translateError(GetLastError()));
+	if(!::MoveFileEx(Text::toT(PathUtil::formatPath(source)).c_str(), Text::toT(PathUtil::formatPath(target)).c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED | MOVEFILE_WRITE_THROUGH)) {
+		throw FileException(SystemUtil::translateError(GetLastError()));
 	}
 }
 
 void File::copyFile(const string& src, const string& target) {
-	if(!::CopyFile(Text::toT(Util::formatPath(src)).c_str(), Text::toT(Util::formatPath(target)).c_str(), FALSE)) {
-		throw FileException(Util::translateError(GetLastError()));
+	if(!::CopyFile(Text::toT(PathUtil::formatPath(src)).c_str(), Text::toT(PathUtil::formatPath(target)).c_str(), FALSE)) {
+		throw FileException(SystemUtil::translateError(GetLastError()));
 	}
 }
 
@@ -283,13 +286,13 @@ bool File::isHidden(const string& aPath) noexcept {
 }
 
 void File::deleteFileThrow(const string& aFileName) {
-	if (!::DeleteFile(Text::toT(Util::formatPath(aFileName)).c_str())) {
-		throw FileException(Util::translateError(GetLastError()));
+	if (!::DeleteFile(Text::toT(PathUtil::formatPath(aFileName)).c_str())) {
+		throw FileException(SystemUtil::translateError(GetLastError()));
 	}
 }
 
 bool File::removeDirectory(const string& aPath) noexcept {
-	return ::RemoveDirectory(Text::toT(Util::formatPath(aPath)).c_str()) > 0 ? true : false;
+	return ::RemoveDirectory(Text::toT(PathUtil::formatPath(aPath)).c_str()) > 0 ? true : false;
 }
 
 int64_t File::getSize(const string& aFileName) noexcept {
@@ -310,7 +313,7 @@ int File::ensureDirectory(const string& aFile) noexcept {
 
 	start++;
 	while((start = file.find_first_of(_T("\\/"), start)) != string::npos) {
-		result = ::CreateDirectory((Util::formatPathW(file.substr(0, start+1))).c_str(), NULL);
+		result = ::CreateDirectory((PathUtil::formatPathW(file.substr(0, start+1))).c_str(), NULL);
 		start++;
 	}
 
@@ -324,7 +327,7 @@ bool File::createDirectory(const string& aFile) {
 		if(result == ERROR_ALREADY_EXISTS)
 			return false;
 
-		throw FileException(Util::translateError(result));
+		throw FileException(SystemUtil::translateError(result));
 	}
 
 	return true;
@@ -342,19 +345,19 @@ int64_t File::getDeviceId(const string& aPath) noexcept {
 
 string File::getMountPath(const string& aPath) noexcept {
 	unique_ptr<TCHAR[]> buf(new TCHAR[aPath.length()+1]);
-	GetVolumePathName(Text::toT(Util::formatPath(aPath)).c_str(), buf.get(), aPath.length());
+	GetVolumePathName(Text::toT(PathUtil::formatPath(aPath)).c_str(), buf.get(), aPath.length());
 	return Text::fromT(buf.get());
 }
 
 File::DiskInfo File::getDiskInfo(const string& aPath) noexcept {
 	int64_t freeSpace = -1, totalSpace = -1;
-	GetDiskFreeSpaceEx(Text::toT(Util::formatPath(aPath)).c_str(), NULL, (PULARGE_INTEGER)&totalSpace, (PULARGE_INTEGER)&freeSpace);
+	GetDiskFreeSpaceEx(Text::toT(PathUtil::formatPath(aPath)).c_str(), NULL, (PULARGE_INTEGER)&totalSpace, (PULARGE_INTEGER)&freeSpace);
 	return { freeSpace, totalSpace };
 }
 
 int64_t File::getBlockSize(const string& aFileName) noexcept {
 	DWORD sectorBytes, clusterSectors, tmp2, tmp3;
-	auto ret = GetDiskFreeSpace(Text::toT(Util::formatPath(aFileName)).c_str(), &clusterSectors, &sectorBytes, &tmp2, &tmp3);
+	auto ret = GetDiskFreeSpace(Text::toT(PathUtil::formatPath(aFileName)).c_str(), &clusterSectors, &sectorBytes, &tmp2, &tmp3);
 	return ret > 0 ? static_cast<int64_t>(sectorBytes)*static_cast<int64_t>(clusterSectors) : 4096;
 }
 
@@ -385,12 +388,12 @@ File::File(const string& aFileName, int access, int mode, BufferMode aBufferMode
 #endif
 	h = open(aFileName.c_str(), m, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 	if(h == -1)
-		throw FileException(Util::translateError(errno));
+		throw FileException(SystemUtil::translateError(errno));
 
 #ifdef HAVE_POSIX_FADVISE
 	if (aBufferMode != BUFFER_NONE) {
 		if (posix_fadvise(h, 0, 0, aBufferMode) != 0) {
-			throw FileException(Util::translateError(errno));
+			throw FileException(SystemUtil::translateError(errno));
 		}
 	}
 #endif
@@ -428,7 +431,7 @@ string File::getRealPath() const {
 #endif
 
 	if (ret == -1) {
-		throw FileException(Util::translateError(errno));
+		throw FileException(SystemUtil::translateError(errno));
 	}
 
 	return string(buf);
@@ -472,7 +475,7 @@ void File::movePos(int64_t pos) noexcept {
 size_t File::read(void* buf, size_t& len) {
 	ssize_t result = ::read(h, buf, len);
 	if (result == -1) {
-		throw FileException(Util::translateError(errno));
+		throw FileException(SystemUtil::translateError(errno));
 	}
 	len = result;
 	return (size_t)result;
@@ -487,7 +490,7 @@ size_t File::write(const void* buf, size_t len) {
 		result = ::write(h, pointer, left);
 		if (result == -1) {
 			if (errno != EINTR) {
-				throw FileException(Util::translateError(errno));
+				throw FileException(SystemUtil::translateError(errno));
 			}
 		} else {
 			pointer += result;
@@ -521,7 +524,7 @@ void File::setEOF() {
 		ret = ftruncate(h, (off_t)pos);
 	lseek(h, (off_t)pos, SEEK_SET);
 	if (ret == -1)
-		throw FileException(Util::translateError(errno));
+		throw FileException(SystemUtil::translateError(errno));
 }
 
 void File::setSize(int64_t newSize) {
@@ -537,7 +540,7 @@ size_t File::flushBuffers(bool aForce) {
 	}
 
 	if(isOpen() && fsync(h) == -1)
-		throw FileException(Util::translateError(errno));
+		throw FileException(SystemUtil::translateError(errno));
 	return 0;
 }
 
@@ -554,7 +557,7 @@ void File::renameFile(const string& source, const string& target) {
 		copyFile(source, target);
 		deleteFile(source);
 	} else if (ret != 0) {
-		throw FileException(Util::translateError(errno));
+		throw FileException(SystemUtil::translateError(errno));
 	}
 }
 
@@ -580,7 +583,7 @@ void File::copyFile(const string& source, const string& target) {
 void File::deleteFileThrow(const string& aFileName) {
 	auto result = ::unlink(aFileName.c_str());
 	if (result == -1) {
-		throw FileException(Util::translateError(result));
+		throw FileException(SystemUtil::translateError(result));
 	}
 }
 
@@ -598,7 +601,7 @@ bool File::createDirectory(const string& aFile) {
 		if (result == EEXIST)
 			return false;
 
-		throw FileException(Util::translateError(result));
+		throw FileException(SystemUtil::translateError(result));
 	}
 
 	return true;
@@ -697,7 +700,7 @@ File::~File() {
 }
 
 std::string File::makeAbsolutePath(const std::string& aFilename) {
-	return makeAbsolutePath(Util::getAppFilePath(), aFilename);
+	return makeAbsolutePath(AppUtil::getAppFilePath(), aFilename);
 }
 
 std::string File::makeAbsolutePath(const std::string& aPath, const std::string& aFilename) {
@@ -792,7 +795,7 @@ string File::read() {
 
 string FilesystemItem::getPath(const string& aBasePath) const noexcept {
 	if (isDirectory) {
-		return Util::joinDirectory(aBasePath, name);
+		return PathUtil::joinDirectory(aBasePath, name);
 	}
 
 	return aBasePath + name;
@@ -917,7 +920,7 @@ File::VolumeSet File::getVolumes() noexcept {
 
 	while (drives != 0) {
 		if (drives & 1 && (GetDriveType(drive) != DRIVE_CDROM && GetDriveType(drive) == DRIVE_REMOTE)) {
-			string path = Util::ensureTrailingSlash(Text::fromT(drive));
+			string path = PathUtil::ensureTrailingSlash(Text::fromT(drive));
 			volumes.insert(path);
 		}
 
@@ -934,7 +937,7 @@ File::VolumeSet File::getVolumes() noexcept {
 	}
 
 	while ((ent = getmntent(aFile)) != NULL) {
-		auto mountPath = Util::validatePath(ent->mnt_dir, true);
+		auto mountPath = PathUtil::validatePath(ent->mnt_dir, true);
 
 		// Workaround for some standard C libraries not unescaping whitespaces and certain other characters in mount points
 		// https://github.com/airdcpp-web/airdcpp-webclient/issues/362
@@ -955,10 +958,10 @@ File::VolumeSet File::getVolumes() noexcept {
 FileFindIter::FileFindIter() : handle(INVALID_HANDLE_VALUE) { }
 
 FileFindIter::FileFindIter(const string& aPath, const string& aPattern, bool aDirsOnlyHint /*false*/) : handle(INVALID_HANDLE_VALUE) {
-	auto path = Util::formatPath(aPath);
+	auto path = PathUtil::formatPath(aPath);
 
 	// An attempt to open a search with a trailing backslash always fails
-	if (aPattern.empty() && Util::isDirectoryPath(path)) {
+	if (aPattern.empty() && PathUtil::isDirectoryPath(path)) {
 		path.pop_back();
 	}
 
@@ -1022,7 +1025,7 @@ FileItem::FileItem(const string& aPath) : ff(aPath) {
 	if (ff != FileFindIter()) {
 		// ...
 	} else {
-		throw FileException(Util::translateError(GetLastError()));
+		throw FileException(SystemUtil::translateError(GetLastError()));
 	}
 }
 
@@ -1157,7 +1160,7 @@ time_t FileFindIter::DirData::getLastWriteTime() const noexcept {
 FileItem::FileItem(const string& aPath) : path(aPath) {
 	struct stat inode;
 	if (stat(aPath.c_str(), &inode) == -1) {
-		throw FileException(Util::translateError(errno));
+		throw FileException(SystemUtil::translateError(errno));
 	}
 }
 

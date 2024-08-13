@@ -97,28 +97,6 @@ public:
 
 	static bool isFailedStatus(Status aStatus) noexcept;
 
-	/**
-	 * Source parts info
-	 * Meaningful only when Source::FLAG_PARTIAL is set
-	 */
-	class PartialSource : public FastAlloc<PartialSource> {
-	public:
-		PartialSource(const string& aMyNick, const string& aHubIpPort, const string& aIp, const string& udp) : 
-			myNick(aMyNick), hubIpPort(aHubIpPort), ip(aIp), nextQueryTime(0), udpPort(udp), pendingQueryCount(0) {}
-		
-		~PartialSource() { }
-
-		typedef shared_ptr<PartialSource> Ptr;
-
-		GETSET(PartsInfo, partialInfo, PartialInfo);
-		GETSET(string, myNick, MyNick);			// for NMDC support only
-		GETSET(string, hubIpPort, HubIpPort);
-		GETSET(string, ip, Ip);
-		GETSET(uint64_t, nextQueryTime, NextQueryTime);
-		GETSET(string, udpPort, UdpPort);
-		GETSET(uint8_t, pendingQueryCount, PendingQueryCount);
-	};
-
 	class Source : public Flags {
 	public:
 		enum {
@@ -138,12 +116,9 @@ public:
 				| FLAG_NO_TREE | FLAG_TTH_INCONSISTENCY | FLAG_UNTRUSTED
 		};
 
-		Source(const HintedUser& aUser) : user(aUser), partialSource(nullptr) { }
+		Source(const HintedUser& aUser) : user(aUser) { }
 
 		bool operator==(const UserPtr& aUser) const { return user == aUser; }
-		PartialSource::Ptr& getPartialSource() { return partialSource; }
-
-		IGETSET(PartialSource::Ptr, partialSource, PartialSource, nullptr);
 
 		// Update the hinted download hub URL based if the provided one can't be used
 		bool updateDownloadHubUrl(const OrderedStringSet& aOnlineHubs, string& hubUrl_, bool aIsFileList) const noexcept;
@@ -163,7 +138,17 @@ public:
 		void addBlockedHub(const string& aHubUrl) noexcept {
 			blockedHubs.insert(aHubUrl);
 		}
+
+		const PartsInfo* getPartsInfo() const noexcept {
+			return partsInfo.empty() ? nullptr : &partsInfo;
+		}
+
+		void setPartsInfo(const PartsInfo& aPartsInfo) noexcept {
+			partsInfo = aPartsInfo;
+		}
 	private:
+		PartsInfo partsInfo;
+
 		HintedUser user;
 
 		OrderedStringSet blockedHubs;
@@ -236,8 +221,8 @@ public:
 	void removeDownloads(const UserPtr& aUser) noexcept;
 	
 	/** Next segment that is not done and not being downloaded, zero-sized segment returned if there is none is found */
-	Segment getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t aLastSpeed, const PartialSource::Ptr& aPartialSource, bool allowOverlap) const noexcept;
-	Segment checkOverlaps(int64_t blockSize, int64_t aLastSpeed, const PartialSource::Ptr& aPartialSource, bool allowOverlap) const noexcept;
+	Segment getNextSegment(int64_t blockSize, int64_t wantedSize, int64_t aLastSpeed, const PartsInfo* aPartsInfo, bool allowOverlap) const noexcept;
+	Segment checkOverlaps(int64_t blockSize, int64_t aLastSpeed, const PartsInfo* aPartsInfo, bool allowOverlap) const noexcept;
 	
 	void addFinishedSegment(const Segment& segment) noexcept;
 	void resetDownloaded() noexcept;

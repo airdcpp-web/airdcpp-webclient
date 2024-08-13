@@ -20,20 +20,12 @@
 
 #include "SettingItem.h"
 #include "SettingsManager.h"
+#include "Util.h"
 
 namespace dcpp {
 
 SettingItem::SettingValue SettingItem::getCurValue(bool useDefault) const noexcept {
-	if(key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
-		return SettingsManager::getInstance()->get(static_cast<SettingsManager::StrSetting>(key), useDefault);
-	} else if(key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
-		return SettingsManager::getInstance()->get(static_cast<SettingsManager::IntSetting>(key), useDefault);
-	} else if(key >= SettingsManager::BOOL_FIRST && key < SettingsManager::BOOL_LAST) {
-		return SettingsManager::getInstance()->get(static_cast<SettingsManager::BoolSetting>(key), useDefault);
-	} else {
-		dcassert(0);
-	}
-	return 0;
+	return SettingsManager::getInstance()->getSettingValue(key, useDefault);
 }
 
 bool SettingItem::isSet() const noexcept {
@@ -50,7 +42,7 @@ bool SettingItem::isDefault() const noexcept {
 	} else if(key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
 		return SettingsManager::getInstance()->isDefault(static_cast<SettingsManager::IntSetting>(key));
 	} else if(key >= SettingsManager::BOOL_FIRST && key < SettingsManager::BOOL_LAST) {
-			return SettingsManager::getInstance()->isDefault(static_cast<SettingsManager::BoolSetting>(key));
+		return SettingsManager::getInstance()->isDefault(static_cast<SettingsManager::BoolSetting>(key));
 	} else {
 		dcassert(0);
 	}

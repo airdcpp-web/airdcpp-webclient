@@ -19,19 +19,16 @@
 #include "stdinc.h"
 #include "ClientManager.h"
 
-#include "AirUtil.h"
 #include "ConnectivityManager.h"
 #include "ConnectionManager.h"
-#include "CryptoManager.h"
-#include "DebugManager.h"
+#include "ProtocolCommandManager.h"
 #include "FavoriteManager.h"
+#include "LinkUtil.h"
 #include "LogManager.h"
 #include "QueueManager.h"
 #include "RelevanceSearch.h"
 #include "ResourceManager.h"
 #include "SearchManager.h"
-#include "SearchResult.h"
-#include "ShareManager.h"
 #include "SimpleXML.h"
 #include "UserCommand.h"
 
@@ -53,7 +50,7 @@ ClientManager::~ClientManager() {
 }
 
 ClientPtr ClientManager::makeClient(const string& aHubURL, const ClientPtr& aOldClient) noexcept {
-	if (AirUtil::isAdcHub(aHubURL)) {
+	if (LinkUtil::isAdcHub(aHubURL)) {
 		return std::make_shared<AdcHub>(aHubURL, aOldClient);
 	}
 
@@ -410,7 +407,7 @@ string ClientManager::findHub(const string& aIpPort, bool aNmdc) const noexcept 
 
 	RLock l(cs);
 	for (const auto& c: clients | views::values) {
-		if (c->getIp() == ip && AirUtil::isAdcHub(c->getHubUrl()) == !aNmdc) {
+		if (c->getIp() == ip && LinkUtil::isAdcHub(c->getHubUrl()) == !aNmdc) {
 			// If exact match is found, return it
 			if (c->getPort() == port) {
 				return c->getHubUrl();
@@ -440,7 +437,7 @@ HintedUser ClientManager::findLegacyUser(const string& aNick) const noexcept {
 
 	RLock l(cs);
 	for (const auto& i: clients | views::values) {
-		if (!AirUtil::isAdcHub(i->getHubUrl())) {
+		if (!LinkUtil::isAdcHub(i->getHubUrl())) {
 			auto nmdcHub = static_cast<NmdcHub*>(i.get());
 
 			/** @todo run the search directly on non-UTF-8 nicks when we store them. */
@@ -849,7 +846,20 @@ void ClientManager::userCommand(const HintedUser& user, const UserCommand& uc, P
 	ou->getClient()->sendUserCmd(uc, params_);
 }
 
-bool ClientManager::sendUDP(AdcCommand& cmd, const CID& aCID, bool aNoCID /*false*/, bool aNoPassive /*false*/, const string& aKey /*Util::emptyString*/, const string& aHubUrl /*Util::emptyString*/) noexcept {
+bool ClientManager::sendUDP(const string& aData, const string& aIP, const string& aPort) noexcept {
+	try {
+		auto ip = Socket::resolve(aIP);
+		COMMAND_DEBUG(aData, ProtocolCommandManager::TYPE_CLIENT_UDP, ProtocolCommandManager::OUTGOING, ip + ":" + aPort);
+		udp->writeTo(ip, aPort, aData);
+	} catch (const SocketException&) {
+		dcdebug("Socket exception sending NMDC UDP command\n");
+		return false;
+	}
+
+	return true;
+}
+
+bool ClientManager::sendUDPHooked(AdcCommand& cmd, const CID& aCID, bool aNoCID /*false*/, bool aNoPassive /*false*/, const string& aKey /*Util::emptyString*/, const string& aHubUrl /*Util::emptyString*/) noexcept {
 	auto u = findOnlineUser(aCID, aHubUrl);
 	if (!u) {
 		return false;
@@ -862,10 +872,28 @@ bool ClientManager::sendUDP(AdcCommand& cmd, const CID& aCID, bool aNoCID /*fals
 
 		cmd.setType(AdcCommand::TYPE_DIRECT);
 		cmd.setTo(u->getIdentity().getSID());
-		u->getClient()->send(cmd);
+		u->getClient()->sendHooked(cmd);
 	} else {
+		// Hooks
+		{
+			AdcCommand::ParamMap params;
+			try {
+				auto results = outgoingUdpCommandHook.runHooksDataThrow(this, cmd, u);
+				params = ActionHook<AdcCommand::ParamMap>::normalizeMap(results);
+			} catch (const HookRejectException&) {
+				return false;
+			}
+
+			cmd.addParams(params);
+		}
+
+		// Listeners
+		auto ipPort = u->getIdentity().getUdpIp() + ":" + u->getIdentity().getUdpPort();
+		ProtocolCommandManager::getInstance()->fire(ProtocolCommandManagerListener::OutgoingUDPCommand(), cmd, ipPort, u);
+		COMMAND_DEBUG(cmd.toString(), ProtocolCommandManager::TYPE_CLIENT_UDP, ProtocolCommandManager::OUTGOING, ipPort);
+
+		// Send
 		try {
-			COMMAND_DEBUG(cmd.toString(), DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, u->getIdentity().getUdpIp() + ":" + u->getIdentity().getUdpPort());
 			auto cmdStr = aNoCID ? cmd.toString() : cmd.toString(getMe()->getCID());
 			if (!aKey.empty() && Encoder::isBase32(aKey.c_str())) {
 				uint8_t keyChar[16];
@@ -877,6 +905,7 @@ bool ClientManager::sendUDP(AdcCommand& cmd, const CID& aCID, bool aNoCID /*fals
 			udp->writeTo(u->getIdentity().getUdpIp(), u->getIdentity().getUdpPort(), cmdStr);
 		} catch(const SocketException&) {
 			dcdebug("Socket exception sending ADC UDP command\n");
+			return false;
 		}
 	}
 
@@ -924,78 +953,6 @@ void ClientManager::on(ClientListener::OutgoingSearch, const Client* aClient, co
 
 void ClientManager::on(ClientListener::PrivateMessage, const Client*, const ChatMessagePtr& aMessage) noexcept {
 	fire(ClientManagerListener::PrivateMessage(), aMessage);
-}
-
-void ClientManager::on(ClientListener::NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize,
-									int aFileType, const string& aString, bool aIsPassive) noexcept
-{
-	fire(ClientManagerListener::IncomingSearch(), aString);
-
-	bool hideShare = aClient->get(HubSettings::ShareProfile) == SP_HIDDEN;
-
-	SearchResultList l;
-	ShareManager::getInstance()->nmdcSearch(l, aString, aSearchType, aSize, aFileType, aIsPassive ? 5 : 10, hideShare);
-	if(l.size() > 0) {
-		if (aIsPassive) {
-			string name = aSeeker.substr(4);
-			// Good, we have a passive seeker, those are easier...
-			string str;
-			for(const auto& sr: l) {
-				str += sr->toSR(*aClient);
-				str[str.length()-1] = 5;
-				str += Text::fromUtf8(name, aClient->get(HubSettings::NmdcEncoding));
-				str += '|';
-			}
-			
-			if(str.size() > 0)
-				aClient->send(str);
-			
-		} else {
-			try {
-				string ip, port;
-
-				Util::parseIpPort(aSeeker, ip, port);
-				ip = Socket::resolve(ip);
-				
-				if(port.empty()) 
-					port = "412";
-
-				for (const auto& sr: l) {
-					auto data = sr->toSR(*aClient);
-					COMMAND_DEBUG(data, DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, ip + ":" + port);
-					udp->writeTo(ip, port, data);
-				}
-			} catch(...) {
-				dcdebug("Search caught error\n");
-			}
-		}
-	} else if(!aIsPassive && (aFileType == Search::TYPE_TTH) && (aString.compare(0, 4, "TTH:") == 0)) {
-		if (SETTING(EXTRA_PARTIAL_SLOTS) == 0) //disable partial uploads by setting 0
-			return;
-
-		PartsInfo partialInfo;
-		string bundle;
-		bool add = false, reply = false;
-		TTHValue aTTH(aString.substr(4));
-		if(!QueueManager::getInstance()->handlePartialSearch(NULL, aTTH, partialInfo, bundle, reply, add)) {
-			return;
-		}
-		
-		string ip, port;
-		Util::parseIpPort(aSeeker, ip, port);
-
-		if (port.empty())
-			return;
-		
-		try {
-			AdcCommand cmd = SearchManager::getInstance()->toPSR(true, aClient->getMyNick(), aClient->getIpPort(), aTTH.toBase32(), partialInfo);
-			auto data = cmd.toString(getMe()->getCID());
-			COMMAND_DEBUG(data, DebugManager::TYPE_CLIENT_UDP, DebugManager::OUTGOING, ip + ":" + port);
-			udp->writeTo(Socket::resolve(ip), port, data);
-		} catch(...) {
-			dcdebug("Partial search caught error\n");		
-		}
-	}
 }
 
 optional<uint64_t> ClientManager::search(string& aHubUrl, const SearchPtr& aSearch, string& error_) noexcept {
@@ -1068,7 +1025,7 @@ int ClientManager::getMaxSearchQueueSize() const noexcept {
 
 }
 
-bool ClientManager::directSearch(const HintedUser& aUser, const SearchPtr& aSearch, string& error_) noexcept {
+bool ClientManager::directSearchHooked(const HintedUser& aUser, const SearchPtr& aSearch, string& error_) noexcept {
 	if (aUser.user->isNMDC()) {
 		error_ = "Direct search is not supported with NMDC users";
 		return false;
@@ -1080,7 +1037,7 @@ bool ClientManager::directSearch(const HintedUser& aUser, const SearchPtr& aSear
 		return false;
 	}
 
-	return ou->getClient()->directSearch(*ou, aSearch, error_);
+	return ou->getClient()->directSearchHooked(*ou, aSearch, error_);
 }
 
 OnlineUserList ClientManager::searchNicks(const string& aPattern, size_t aMaxResults, bool aIgnorePrefix, const StringList& aHubUrls) const noexcept {

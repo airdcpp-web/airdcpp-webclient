@@ -33,9 +33,9 @@ class ZipFileException;
 
 class Updater {
 
-#define UPDATE_TEMP_DIR Util::getPath(Util::PATH_TEMP) + "Updater" + PATH_SEPARATOR_STR
-#define UPDATE_TEMP_LOG Util::getPath(Util::PATH_TEMP) + "airdcpp_updater.log"
-#define UPDATE_FINAL_LOG Util::getPath(Util::PATH_USER_LOCAL) + "updater.log"
+#define UPDATE_TEMP_DIR AppUtil::getPath(AppUtil::PATH_TEMP) + "Updater" + PATH_SEPARATOR_STR
+#define UPDATE_TEMP_LOG AppUtil::getPath(AppUtil::PATH_TEMP) + "airdcpp_updater.log"
+#define UPDATE_FINAL_LOG AppUtil::getPath(AppUtil::PATH_USER_LOCAL) + "updater.log"
 
 //#define FORCE_UPDATE
 

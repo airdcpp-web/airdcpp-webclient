@@ -23,6 +23,7 @@
 #include "ConnectionManagerListener.h"
 #include "TimerManagerListener.h"
 
+#include "AdcSupports.h"
 #include "ConnectionType.h"
 #include "CriticalSection.h"
 #include "FloodCounter.h"
@@ -127,6 +128,8 @@ class ConnectionManager : public Speaker<ConnectionManagerListener>, public Clie
 	public Singleton<ConnectionManager>
 {
 public:
+	AdcSupports userConnectionSupports;
+
 	TokenManager tokens;
 	void nmdcExpect(const string& aNick, const string& aMyNick, const string& aHubUrl) noexcept {
 		expectedConnections.add(aNick, aMyNick, aHubUrl);
@@ -147,7 +150,6 @@ public:
 	void disconnect(const UserPtr& aUser) noexcept; // disconnect all connections to the user
 	void disconnect(const UserPtr& aUser, ConnectionType aConnType) noexcept;
 	void disconnect(const string& aToken) noexcept;
-	bool setBundle(const string& aToken, const string& aBundleToken) noexcept;
 
 	void shutdown(function<void (float)> progressF) noexcept;
 	bool isShuttingDown() const noexcept { return shuttingDown; }
@@ -265,6 +267,8 @@ private:
 
 	void onUserUpdated(const UserPtr& aUser) noexcept;
 	void attemptDownloads(uint64_t aTick, StringList& removedTokens_) noexcept;
+
+	StringList getAdcFeatures() const noexcept;
 };
 
 } // namespace dcpp

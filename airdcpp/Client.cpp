@@ -19,18 +19,19 @@
 #include "stdinc.h"
 #include "Client.h"
 
-#include "AirUtil.h"
 #include "BufferedSocket.h"
 #include "ClientManager.h"
 #include "ConnectionManager.h"
 #include "ConnectivityManager.h"
-#include "DebugManager.h"
+#include "ProtocolCommandManager.h"
 #include "FavoriteManager.h"
+#include "LinkUtil.h"
 #include "LogManager.h"
 #include "ResourceManager.h"
 #include "ShareManager.h"
 #include "ThrottleManager.h"
 #include "TimerManager.h"
+#include "ValueGenerator.h"
 
 namespace dcpp {
 
@@ -53,9 +54,9 @@ Client::Client(const string& aHubUrl, char aSeparator, const ClientPtr& aOldClie
 	ShareManager::getInstance()->addListener(this);
 
 	string file, proto, query, fragment;
-	Util::decodeUrl(hubUrl, proto, address, port, file, query, fragment);
+	LinkUtil::decodeUrl(hubUrl, proto, address, port, file, query, fragment);
 
-	keyprint = Util::decodeQuery(query)["kp"];
+	keyprint = LinkUtil::decodeQuery(query)["kp"];
 }
 
 Client::~Client() {
@@ -66,6 +67,7 @@ void Client::reconnect() noexcept {
 	disconnect(true);
 	setAutoReconnect(true);
 	setReconnDelay(0);
+	supports.clear();
 }
 
 void Client::setActive() noexcept {
@@ -227,7 +229,7 @@ void Client::connect(bool withKeyprint) noexcept {
 
 	redirectUrl = Util::emptyString;
 	setAutoReconnect(true);
-	setReconnDelay(120 + Util::rand(0, 60));
+	setReconnDelay(120 + ValueGenerator::rand(0, 60));
 	reloadSettings(true);
 	setRegistered(false);
 	setMyIdentity(Identity(ClientManager::getInstance()->getMe(), 0));
@@ -241,7 +243,7 @@ void Client::connect(bool withKeyprint) noexcept {
 		sock->connect(
 			AddressInfo(address, AddressInfo::TYPE_URL), 
 			port, 
-			AirUtil::isSecure(hubUrl), 
+			LinkUtil::isSecure(hubUrl), 
 			SETTING(ALLOW_UNTRUSTED_HUBS), 
 			true, 
 			withKeyprint ? keyprint : Util::emptyString
@@ -264,7 +266,7 @@ void Client::send(const char* aMessage, size_t aLen) {
 	}
 	updateActivity();
 	sock->write(aMessage, aLen);
-	COMMAND_DEBUG(aMessage, DebugManager::TYPE_HUB, DebugManager::OUTGOING, getIpPort());
+	COMMAND_DEBUG(aMessage, ProtocolCommandManager::TYPE_HUB, ProtocolCommandManager::OUTGOING, getIpPort());
 }
 
 void Client::on(BufferedSocketListener::Connected) noexcept {
@@ -376,7 +378,7 @@ void Client::onUserDisconnected(const OnlineUserPtr& aUser, bool aDisconnectTran
 }
 
 void Client::allowUntrustedConnect() noexcept {
-	if (state != STATE_DISCONNECTED || !SETTING(ALLOW_UNTRUSTED_HUBS) || !AirUtil::isSecure(hubUrl))
+	if (state != STATE_DISCONNECTED || !SETTING(ALLOW_UNTRUSTED_HUBS) || !LinkUtil::isSecure(hubUrl))
 		return;
 	//Connect without keyprint just this once...
 	connect(false);
@@ -402,7 +404,7 @@ bool Client::sendMessageHooked(const OutgoingChatMessage& aMessage, string& erro
 		return false;
 	}
 
-	return hubMessage(aMessage.text, error_, aMessage.thirdPerson);
+	return hubMessageHooked(aMessage.text, error_, aMessage.thirdPerson);
 }
 
 bool Client::sendPrivateMessageHooked(const OnlineUserPtr& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho) noexcept {
@@ -421,7 +423,7 @@ bool Client::sendPrivateMessageHooked(const OnlineUserPtr& aUser, const Outgoing
 		return false;
 	}
 
-	return privateMessage(aUser, aMessage.text, error_, aMessage.thirdPerson, aEcho);
+	return privateMessageHooked(aUser, aMessage.text, error_, aMessage.thirdPerson, aEcho);
 }
 
 void Client::onPrivateMessage(const ChatMessagePtr& aMessage) noexcept {
@@ -604,7 +606,7 @@ long Client::getDisplayCount(CountType aCountType) const noexcept {
  
 void Client::on(BufferedSocketListener::Line, const string& aLine) noexcept {
 	updateActivity();
-	COMMAND_DEBUG(aLine, DebugManager::TYPE_HUB, DebugManager::INCOMING, getIpPort());
+	COMMAND_DEBUG(aLine, ProtocolCommandManager::TYPE_HUB, ProtocolCommandManager::INCOMING, getIpPort());
 }
 
 void Client::on(TimerManagerListener::Second, uint64_t aTick) noexcept{

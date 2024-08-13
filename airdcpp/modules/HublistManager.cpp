@@ -23,6 +23,7 @@
 
 #include <airdcpp/BZUtils.h>
 #include <airdcpp/FilteredFile.h>
+#include <airdcpp/PathUtil.h>
 #include <airdcpp/StringTokenizer.h>
 #include <airdcpp/SimpleXML.h>
 
@@ -41,7 +42,7 @@ namespace dcpp {
 	}
 
 	string HublistManager::getHublistPath() noexcept {
-		return Util::getPath(Util::PATH_USER_LOCAL) + "HubLists" + PATH_SEPARATOR_STR;
+		return AppUtil::getPath(AppUtil::PATH_USER_LOCAL) + "HubLists" + PATH_SEPARATOR_STR;
 	}
 
 	HublistEntry::List HublistManager::getPublicHubs() noexcept {
@@ -102,7 +103,7 @@ namespace dcpp {
 
 		if (fromHttp) {
 			try {
-				File f(getHublistPath() + Util::validateFileName(publicListServer), File::WRITE, File::CREATE | File::TRUNCATE);
+				File f(getHublistPath() + PathUtil::validateFileName(publicListServer), File::WRITE, File::CREATE | File::TRUNCATE);
 				f.write(downloadBuf);
 			}
 			catch (const FileException&) {}
@@ -134,7 +135,7 @@ namespace dcpp {
 		}
 
 		if (!forceDownload) {
-			string path = getHublistPath() + Util::validateFileName(publicListServer);
+			string path = getHublistPath() + PathUtil::validateFileName(publicListServer);
 			if (File::getSize(path) > 0) {
 				useHttp = false;
 				string fileDate;

@@ -233,7 +233,7 @@ void PrivateChat::close() {
 
 	//PM window closed, signal it if the user supports CPMI
 	if (ccReady() && uc) {
-		if (uc->isSet(UserConnection::FLAG_CPMI))
+		if (uc->getSupports().includes(UserConnection::FEATURE_ADC_CPMI))
 			sendPMInfo(QUIT);
 		else
 			closeCC(true, false);
@@ -399,7 +399,7 @@ void PrivateChat::setHubUrl(const string& aHubUrl) noexcept {
 }
 
 void PrivateChat::sendPMInfo(uint8_t aType) {
-	if (ccReady() && uc && uc->isSet(UserConnection::FLAG_CPMI)) {
+	if (ccReady() && uc && uc->getSupports().includes(UserConnection::FEATURE_ADC_CPMI)) {
 		AdcCommand c(AdcCommand::CMD_PMI);
 		switch (aType) {
 		case MSG_SEEN:

@@ -21,13 +21,14 @@
 
 #include "Encoder.h"
 #include "Util.h"
+#include "ValueGenerator.h"
 
 namespace dcpp {
 
 CID CID::generate() {
 	uint8_t data[CID::SIZE];
 	for(size_t i = 0; i < sizeof(data); ++i) {
-		data[i] = (uint8_t)Util::rand();
+		data[i] = (uint8_t)ValueGenerator::rand();
 	}
 	return CID(data);
 }

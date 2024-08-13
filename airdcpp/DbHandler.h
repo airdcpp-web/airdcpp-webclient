@@ -21,9 +21,8 @@
 #define DCPLUSPLUS_DCPP_DBHANDLER_H_
 
 #include "stdinc.h"
-#include "Exception.h"
+#include "PathUtil.h"
 #include "Text.h"
-#include "Util.h"
 
 #include <functional>
 
@@ -65,7 +64,7 @@ public:
 	const string& getPath() const noexcept { return dbPath; }
 	uint64_t getCacheSize() const noexcept { return cacheSize; }
 protected:
-	DbHandler(const string& aPath, const string& aFriendlyName, uint64_t aCacheSize) noexcept : dbPath(Util::validatePath(aPath, true)), friendlyName(aFriendlyName), cacheSize(aCacheSize) {
+	DbHandler(const string& aPath, const string& aFriendlyName, uint64_t aCacheSize) noexcept : dbPath(PathUtil::validatePath(aPath, true)), friendlyName(aFriendlyName), cacheSize(aCacheSize) {
 
 	}
 

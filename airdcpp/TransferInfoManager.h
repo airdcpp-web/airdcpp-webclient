@@ -64,7 +64,7 @@ namespace dcpp {
 
 		TransferInfo::List getTransfers() const noexcept;
 		TransferInfoPtr findTransfer(const string& aToken) const noexcept;
-		TransferInfoPtr findTransfer(TransferToken aToken) const noexcept;
+		TransferInfoPtr findTransfer(TransferInfoToken aToken) const noexcept;
 	private:
 		TransferInfoPtr addTransfer(const ConnectionQueueItem* aCqi, const string& aStatus) noexcept;
 

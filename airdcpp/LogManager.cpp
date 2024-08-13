@@ -19,7 +19,9 @@
 #include "stdinc.h"
 #include "LogManager.h"
 
+#include "Exception.h"
 #include "File.h"
+#include "PathUtil.h"
 #include "StringTokenizer.h"
 #include "TimerManager.h"
 #include "User.h"
@@ -101,17 +103,17 @@ string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache
 	auto p = pmPaths.find(aUser->getCID());
 	if (p != pmPaths.end()) {
 		//can we still use the same dir?
-		if (Util::getFilePath(getPath(PM, params)) == Util::getFilePath(p->second))
+		if (PathUtil::getFilePath(getPath(PM, params)) == PathUtil::getFilePath(p->second))
 			return p->second;
 	}
 
 	//check the directory
 	auto fileName = getSetting(PM, FILE);
 	ensureParam("%[userCID]", fileName);
-	auto path = Util::validatePath(SETTING(LOG_DIRECTORY) + 
-		Util::formatParams(fileName, params, Util::cleanPathSeparators));
+	auto path = PathUtil::validatePath(SETTING(LOG_DIRECTORY) + 
+		Util::formatParams(fileName, params, PathUtil::cleanPathSeparators));
 
-	auto files = File::findFiles(Util::getFilePath(path), "*" + aUser->getCID().toBase32() + "*", File::TYPE_FILE);
+	auto files = File::findFiles(PathUtil::getFilePath(path), "*" + aUser->getCID().toBase32() + "*", File::TYPE_FILE);
 	if (!files.empty()) {
 		path = files.front();
 	}
@@ -137,8 +139,8 @@ void LogManager::message(const string& aMsg, LogMessage::Severity aSeverity, con
 }
 
 string LogManager::getPath(Area area, ParamMap& params) const noexcept {
-	return Util::validatePath(SETTING(LOG_DIRECTORY) + 
-		Util::formatParams(getSetting(area, FILE), params, Util::cleanPathSeparators));
+	return PathUtil::validatePath(SETTING(LOG_DIRECTORY) + 
+		Util::formatParams(getSetting(area, FILE), params, PathUtil::cleanPathSeparators));
 }
 
 string LogManager::getPath(Area area) const noexcept {
@@ -187,7 +189,7 @@ string LogManager::readFromEnd(const string& aPath, int aMaxLines, int64_t aBuff
 
 void LogManager::log(const string& area, const string& msg) noexcept {
 	tasks.addTask([=, this] {
-		auto aArea = Util::validatePath(area);
+		auto aArea = PathUtil::validatePath(area);
 		try {
 			File::ensureDirectory(aArea);
 			File f(aArea, File::WRITE, File::OPEN | File::CREATE);

@@ -126,7 +126,7 @@ bool Transfer::isFilelist() const noexcept {
 }
 
 void Transfer::appendFlags(OrderedStringSet& flags_) const noexcept {
-	if (getUserConnection().isSet(UserConnection::FLAG_MCN1)) {
+	if (getUserConnection().isMCN()) {
 		flags_.insert("M");
 	}
 

@@ -24,24 +24,41 @@
 
 namespace dcpp {
 
-class DebugManagerListener {
+class ProtocolCommandManagerListener {
 public:
 template<int I>	struct X { enum { TYPE = I };  };
 
 	typedef X<0> DebugCommand;
 
+	typedef X<1> IncomingHubCommand;
+	typedef X<2> IncomingUDPCommand;
+	typedef X<3> IncomingTCPCommand;
+
+	typedef X<4> OutgoingHubCommand;
+	typedef X<5> OutgoingUDPCommand;
+	typedef X<6> OutgoingTCPCommand;
+
 	virtual void on(DebugCommand, const string&, uint8_t, uint8_t, const string&) noexcept { }
+
+	virtual void on(IncomingHubCommand, const AdcCommand&, const Client&) noexcept { }
+	virtual void on(IncomingUDPCommand, const AdcCommand&, const string&) noexcept { }
+	virtual void on(IncomingTCPCommand, const AdcCommand&, const string&, const UserPtr&) noexcept { }
+
+	virtual void on(OutgoingHubCommand, const AdcCommand&, const Client&) noexcept { }
+	virtual void on(OutgoingUDPCommand, const AdcCommand&, const string&, const OnlineUserPtr&) noexcept { }
+	virtual void on(OutgoingTCPCommand, const AdcCommand&, const string&, const UserPtr&) noexcept { }
 };
 
-class DebugManager : public Singleton<DebugManager>, public Speaker<DebugManagerListener>
+class ProtocolCommandManager : public Singleton<ProtocolCommandManager>, public Speaker<ProtocolCommandManagerListener>
 {
-	friend class Singleton<DebugManager>;
-	DebugManager() { };
+	friend class Singleton<ProtocolCommandManager>;
+	ProtocolCommandManager() { };
 public:
 	void SendCommandMessage(const string& aMess, uint8_t aType, uint8_t aDirection, const string& aIP) {
-		fire(DebugManagerListener::DebugCommand(), aMess, aType, aDirection, aIP);
+		fire(ProtocolCommandManagerListener::DebugCommand(), aMess, aType, aDirection, aIP);
 	}
-	~DebugManager() { };
+
+	~ProtocolCommandManager() { };
 	enum Type {
 		TYPE_HUB, TYPE_CLIENT, TYPE_CLIENT_UDP
 	};
@@ -50,7 +67,7 @@ public:
 		INCOMING, OUTGOING
 	};
 };
-#define COMMAND_DEBUG(a,b,c,d) DebugManager::getInstance()->SendCommandMessage(a,b,c,d);
+#define COMMAND_DEBUG(a,b,c,d) ProtocolCommandManager::getInstance()->SendCommandMessage(a,b,c,d);
 
 } // namespace dcpp
 

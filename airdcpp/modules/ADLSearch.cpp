@@ -26,12 +26,13 @@
 
 #include <airdcpp/File.h>
 #include <airdcpp/LogManager.h>
+#include <airdcpp/PathUtil.h>
 #include <airdcpp/QueueManager.h>
 #include <airdcpp/ScopedFunctor.h>
 #include <airdcpp/SimpleXML.h>
 
 #define CONFIG_NAME "ADLSearch.xml"
-#define CONFIG_DIR Util::PATH_USER_CONFIG
+#define CONFIG_DIR AppUtil::PATH_USER_CONFIG
 
 namespace dcpp {
 	
@@ -152,7 +153,7 @@ void ADLSearch::setPattern(const string& aPattern) {
 
 void ADLSearch::setDestDir(const string& aDestDir) noexcept {
 	if (!aDestDir.empty()) {
-		name = Util::cleanPathSeparators(aDestDir);
+		name = PathUtil::cleanPathSeparators(aDestDir);
 	}
 }
 
@@ -447,10 +448,10 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 		return;
 	}
 
-	dcassert(Util::isAdcDirectoryPath(aAdcPath));
+	dcassert(PathUtil::isAdcDirectoryPath(aAdcPath));
 
 	// Use NMDC path for matching due to compatibility reasons
-	const auto nmdcPath = Util::toNmdcFile(aAdcPath + currentFile->getName());
+	const auto nmdcPath = PathUtil::toNmdcFile(aAdcPath + currentFile->getName());
 
 	// Match searches
 	for(auto& is: collection) {
@@ -479,7 +480,7 @@ void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryLi
 }
 
 void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const DirectoryListing::Directory::Ptr& currentDir, const string& aAdcPath) noexcept {
-	dcassert(Util::isAdcDirectoryPath(aAdcPath));
+	dcassert(PathUtil::isAdcDirectoryPath(aAdcPath));
 
 	// Add to any substructure being stored
 	for (auto& id: destDirVector) {

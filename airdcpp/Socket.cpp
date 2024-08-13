@@ -24,6 +24,7 @@
 #include "SettingsManager.h"
 #include "TimerManager.h"
 #include "ResourceManager.h"
+#include "SystemUtil.h"
 
 /// @todo remove when MinGW has this
 #ifdef __MINGW32__
@@ -203,7 +204,7 @@ Socket::Stats Socket::stats = { 0, 0 };
 static const uint32_t SOCKS_TIMEOUT = 30000;
 
 string SocketException::errorToString(int aError) noexcept {
-	string msg = Util::translateError(aError);
+	string msg = SystemUtil::translateError(aError);
 	if(msg.empty()) {
 		msg = str(boost::format("Unknown error: 0x%1$x") % aError);
 	}

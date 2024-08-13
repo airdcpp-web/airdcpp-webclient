@@ -37,7 +37,7 @@ namespace dcpp {
 		~SearchInstance();
 
 		SearchQueueInfo hubSearch(StringList& aHubUrls, const SearchPtr& aSearch) noexcept;
-		bool userSearch(const HintedUser& aUser, const SearchPtr& aSearch, string& error_) noexcept;
+		bool userSearchHooked(const HintedUser& aUser, const SearchPtr& aSearch, string& error_) noexcept;
 
 		void reset(const SearchPtr& aSearch) noexcept;
 

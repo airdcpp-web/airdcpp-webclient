@@ -103,9 +103,6 @@ public:
 	typedef vector<BundleSource> SourceList;
 	typedef vector<pair<BundlePtr, BundleSource>> SourceBundleList;
 
-	typedef pair<HintedUser, string> UserBundlePair;
-	typedef vector<UserBundlePair> FinishedNotifyList;
-
 	typedef multimap<double, BundlePtr> SourceSpeedMapB;
 	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
 
@@ -121,8 +118,6 @@ public:
 	IGETSET(time_t, lastSearch, LastSearch, 0);				// last time when the bundle was searched for
 	IGETSET(bool, seqOrder, SeqOrder, false);				// using an alphabetical downloading order for files (not enabled by default for fresh bundles)
 
-	IGETSET(bool, singleUser, SingleUser, true);		// the bundle is downloaded from a single user (may have multiple connections)
-
 	IGETSET(int64_t, actual, Actual, 0); 
 	IGETSET(int64_t, speed, Speed, 0);					// the speed calculated on every second in downloadmanager
 	IGETSET(bool, addedByAutoSearch, AddedByAutoSearch, false);		// the bundle was added by auto search
@@ -133,19 +128,17 @@ public:
 	GETSET(SourceList, badSources, BadSources);
 	GETSET(SourceList, sources, Sources);
 
-	QueueItemList& getFinishedFiles() { return finishedFiles; }
-	QueueItemList& getQueueItems() { return queueItems; }
+	QueueItemList& getFinishedFiles() noexcept { return finishedFiles; }
+	QueueItemList& getQueueItems() noexcept { return queueItems; }
 	void setHookError(const ActionHookRejectionPtr& aError) noexcept;
 	const ActionHookRejectionPtr& getHookError() const noexcept {
 		return hookError;
 	}
 
-	const FinishedNotifyList& getFinishedNotifications() const noexcept  { return finishedNotifications; }
-
 	/* Misc */
 	bool isFileBundle() const noexcept { return fileBundle; }
 
-	int64_t getDownloadedBytes() const noexcept { return currentDownloaded + finishedSegments; }
+	int64_t getDownloadedBytes() const noexcept;
 	int64_t getSecondsLeft() const noexcept;
 
 	const string& getTarget() const noexcept { return target; }
@@ -162,6 +155,8 @@ public:
 	/* QueueManager */
 	static bool isFailedStatus(Status aStatus) noexcept;
 	bool isFailed() const noexcept;
+
+	bool allowAutoSearch() const noexcept;
 
 	// Throws on errors
 	void save();
@@ -187,11 +182,6 @@ public:
 	// Safe
 	bool isCompleted() const noexcept;
 
-	void clearFinishedNotifications(FinishedNotifyList& fnl) noexcept;
-	bool isFinishedNotified(const UserPtr& aUser) const noexcept;
-	void addFinishedNotify(HintedUser& aUser, const string& remoteBundle) noexcept;
-	void removeFinishedNotify(const UserPtr& aUser) noexcept;
-
 	QueueItemPtr findQI(const string& aTarget) const noexcept;
 	int countOnlineUsers() const noexcept;
 
@@ -208,21 +198,12 @@ public:
 	string getStatusString() const noexcept;
 
 	/* DownloadManager */
-	int countConnections() const noexcept;
-	const UserIntMap& getRunningUsers() const noexcept { return runningUsers; }
-
-	bool addRunningUser(const UserConnection* aSource) noexcept;
-	bool removeRunningUser(const UserConnection* aSource, bool sendRemove) noexcept;
-	void setUserMode(bool setSingleUser) noexcept;
-
-	void sendSizeUpdate() noexcept;
+	int countRunningUsers() const noexcept;
 
 	void addDownload(Download* d) noexcept;
 	void removeDownload(Download* d) noexcept;
 
-	bool allowAutoSearch() const noexcept;
-
-	bool onDownloadTick(vector<pair<CID, AdcCommand>>& UBNList) noexcept;
+	bool onDownloadTick() noexcept;
 
 	void setDownloadedBytes(int64_t aSize) noexcept;
 
@@ -233,8 +214,8 @@ public:
 
 	/** All queue items indexed by user */
 	void addUserQueue(const QueueItemPtr& qi) noexcept;
-	bool addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool isBad = false) noexcept;
-	QueueItemPtr getNextQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& aLastError, Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept;
+	bool addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool aIsBad = false) noexcept;
+	QueueItemPtr getNextQI(const UserPtr& aUser, const OrderedStringSet& aOnlineHubs, string& aLastError, Priority aMinPrio, int64_t aWantedSize, int64_t aLastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept;
 	void getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept;
 
 	QueueItemList getFailedItems() const noexcept;
@@ -248,9 +229,6 @@ public:
 private:
 	ActionHookRejectionPtr hookError = nullptr;
 
-	int64_t lastSpeed = 0; // the speed sent on last time to UBN sources
-	int64_t lastDownloaded = 0; // the progress percent sent on last time to UBN sources
-
 	int64_t finishedSegments = 0;
 	int64_t currentDownloaded = 0; //total downloaded for the running downloads
 	bool fileBundle = false;
@@ -261,10 +239,6 @@ private:
 	unordered_map<UserPtr, deque<QueueItemPtr>, User::Hash> userQueue[static_cast<int>(Priority::LAST)];
 	/** Currently running downloads, a QueueItem is always either here or in the userQueue */
 	unordered_map<UserPtr, QueueItemList, User::Hash> runningItems;
-
-	UserIntMap runningUsers;					// running users and their connections cached
-	HintedUserList uploadReports;				// sources receiving UBN notifications (running only)
-	FinishedNotifyList finishedNotifications;	// partial bundle sharing sources (mapped to their local tokens)
 };
 
 }

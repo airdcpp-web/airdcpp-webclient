@@ -25,6 +25,8 @@
 #include "TimerManagerListener.h"
 
 #include "ActionHook.h"
+#include "AdcCommand.h"
+#include "AdcSupports.h"
 #include "ConnectionType.h"
 #include "Client.h"
 #include "CriticalSection.h"
@@ -48,6 +50,9 @@ public:
 	ActionHook<MessageHighlightList, const ChatMessagePtr> incomingHubMessageHook, incomingPrivateMessageHook;
 	ActionHook<nullptr_t, const OutgoingChatMessage&, const HintedUser, const bool /*echo*/> outgoingPrivateMessageHook;
 	ActionHook<nullptr_t, const OutgoingChatMessage&, const Client&> outgoingHubMessageHook;
+
+	ActionHook<AdcCommand::ParamMap, const AdcCommand&, const Client&> outgoingHubCommandHook;
+	ActionHook<AdcCommand::ParamMap, const AdcCommand&, const OnlineUserPtr&> outgoingUdpCommandHook;
 
 	static bool processChatMessage(const ChatMessagePtr& aMessage, const Identity& aMyIdentity, const ActionHook<MessageHighlightList, const ChatMessagePtr>& aHook);
 
@@ -148,7 +153,7 @@ public:
 	// Get users with nick matching the pattern. Uses relevancies for priorizing the results.
 	OnlineUserList searchNicks(const string& aPattern, size_t aMaxResults, bool aIgnorePrefix, const StringList& aHubUrls) const noexcept;
 
-	bool directSearch(const HintedUser& user, const SearchPtr& aSearch, string& error_) noexcept;
+	bool directSearchHooked(const HintedUser& user, const SearchPtr& aSearch, string& error_) noexcept;
 	
 	optional<uint64_t> search(string& aHubUrl, const SearchPtr& aSearch, string& error_) noexcept;
 	bool cancelSearch(const void* aOwner) noexcept;
@@ -222,7 +227,8 @@ public:
 	optional<ClientStats> getClientStats() const noexcept;
 	string printClientStats() const noexcept;
 	
-	bool sendUDP(AdcCommand& c, const CID& to, bool aNoCID = false, bool aNoPassive = false, const string& aEncryptionKey = Util::emptyString, const string& aHubUrl = Util::emptyString) noexcept;
+	bool sendUDPHooked(AdcCommand& c, const CID& to, bool aNoCID = false, bool aNoPassive = false, const string& aEncryptionKey = Util::emptyString, const string& aHubUrl = Util::emptyString) noexcept;
+	bool sendUDP(const string& aData, const string& aIP, const string& aPort) noexcept;
 
 	bool connect(const UserPtr& aUser, const string& aToken, bool aAllowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError_, ConnectionType type = CONNECTION_TYPE_LAST) const noexcept;
 	bool privateMessageHooked(const HintedUser& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho = true) noexcept;
@@ -256,6 +262,9 @@ public:
 
 	//return users supporting the ASCH extension (and total users)
 	pair<size_t, size_t> countAschSupport(const OrderedStringSet& aHubs) const noexcept;
+
+	AdcSupports hubSupports;
+	AdcSupports hubUserSupports;
 private:
 	static ClientPtr makeClient(const string& aHubURL, const ClientPtr& aOldClient = nullptr) noexcept;
 
@@ -307,8 +316,6 @@ private:
 	void on(ClientListener::Disconnected, const string&, const string&) noexcept;
 	void on(ClientListener::HubUpdated, const Client* c) noexcept;
 	void on(ClientListener::HubUserCommand, const Client*, int, int, const string&, const string&) noexcept;
-	void on(ClientListener::NmdcSearch, Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize,
-		int aFileType, const string& aString, bool) noexcept;
 	void on(ClientListener::OutgoingSearch, const Client*, const SearchPtr&) noexcept;
 	void on(ClientListener::PrivateMessage, const Client*, const ChatMessagePtr&) noexcept;
 

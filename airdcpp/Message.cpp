@@ -21,6 +21,7 @@
 #include "Message.h"
 #include "ClientManager.h"
 #include "OnlineUser.h"
+#include "TimerManager.h"
 
 namespace dcpp {
 

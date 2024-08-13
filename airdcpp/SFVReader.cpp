@@ -20,7 +20,7 @@
 
 #include "SFVReader.h"
 
-#include "AirUtil.h"
+// #include "AirUtil.h"
 #include "File.h"
 #include "FileReader.h"
 #include "FilteredFile.h"
@@ -38,6 +38,9 @@ namespace dcpp {
 
 using ranges::find_if;
 
+boost::regex DirSFVReader::crcReg = boost::regex(R"(.{5,200}\s(\w{8})$)");
+boost::regex DirSFVReader::lineBreakRegex = boost::regex(R"(\n|\r)");
+
 DirSFVReader::DirSFVReader() : loaded(false) { }
 
 DirSFVReader::DirSFVReader(const string& aPath) {
@@ -48,10 +51,16 @@ DirSFVReader::DirSFVReader(const string& /*aPath*/, const StringList& aSfvFiles)
 	load();
 }
 
-void DirSFVReader::loadPath(const string& aPath) {
+void DirSFVReader::loadPath(const string& aPath) noexcept {
 	content.clear();
 	path = aPath;
-	sfvFiles = File::findFiles(path, "*.sfv", File::TYPE_FILE);
+
+	try {
+		sfvFiles = File::findFiles(path, "*.sfv", File::TYPE_FILE);
+	} catch (const FileException& e) {
+		dcdebug("SFV reader: failed to load path %s (%s)", aPath.c_str(), e.getError().c_str());
+		return;
+	}
 
 	load();
 }
@@ -91,12 +100,12 @@ bool DirSFVReader::loadFile(const string& aContent) noexcept {
 	bool hasValidLines = false;
 	string line;
 
-	StringTokenizer<string> tokenizer(aContent, AirUtil::lineBreakRegex);
+	StringTokenizer<string> tokenizer(aContent, lineBreakRegex);
 	for (const auto& rawLine: tokenizer.getTokens()) {
 		line = Text::toUtf8(rawLine);
 
 		// Make sure that the line is valid
-		if (!regex_search(line, AirUtil::crcReg) || line.find(';') == 0) {
+		if (!regex_search(line, crcReg) || line.find(';') == 0) {
 			continue;
 		}
 

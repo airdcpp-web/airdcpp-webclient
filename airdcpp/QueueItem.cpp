@@ -25,8 +25,10 @@
 #include "Download.h"
 #include "File.h"
 #include "HashManager.h"
-#include "Util.h"
+#include "PathUtil.h"
 #include "SimpleXML.h"
+#include "Util.h"
+#include "ValueGenerator.h"
 
 namespace dcpp {
 
@@ -35,7 +37,7 @@ namespace {
 
 	string getTempName(const string& aFileName, const TTHValue& aRoot) noexcept {
 		string tmp(aFileName);
-		tmp += "_" + Util::toString(Util::rand());
+		tmp += "_" + Util::toString(ValueGenerator::rand());
 		tmp += "." + aRoot.toBase32();
 		tmp += TEMP_EXTENSION;
 		return tmp;
@@ -44,7 +46,7 @@ namespace {
 
 QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, Flags::MaskType aFlag,
 		time_t aAdded, const TTHValue& tth, const string& aTempTarget) :
-		QueueItemBase(aTarget, aSize, aPriority, aAdded, Util::rand(), aFlag),
+		QueueItemBase(aTarget, aSize, aPriority, aAdded, ValueGenerator::rand(), aFlag),
 		tthRoot(tth), tempTarget(aTempTarget)
 	{
 
@@ -157,30 +159,31 @@ Priority QueueItem::calculateAutoPriority() const noexcept {
 
 bool QueueItem::hasPartialSharingTarget() noexcept {
 	// don't share when the file does not exist
-	if(!Util::fileExists(isDownloaded() ? target : getTempTarget()))
+	if(!PathUtil::fileExists(isDownloaded() ? target : getTempTarget()))
 		return false;
 
 	return true;
 }
 
-bool QueueItem::isBadSourceExcept(const UserPtr& aUser, Flags::MaskType exceptions, bool& isBad_) const noexcept {
+bool QueueItem::isBadSourceExcept(const UserPtr& aUser, Flags::MaskType aExceptions, bool& isBad_) const noexcept {
 	const auto i = getBadSource(aUser);
-	if(i != badSources.end()) {
+	if (i != badSources.end()) {
 		isBad_ = true;
-		return i->isAnySet((Flags::MaskType)(exceptions^Source::FLAG_MASK));
+		return i->isAnySet((Flags::MaskType)(aExceptions ^Source::FLAG_MASK));
 	}
+
 	return false;
 }
 
-bool QueueItem::isChunkDownloaded(int64_t startPos, int64_t& len) const noexcept {
-	if(len <= 0) return false;
+bool QueueItem::isChunkDownloaded(int64_t aStartPos, int64_t& len_) const noexcept {
+	if (len_ <= 0) return false;
 
-	for(auto& i: done) {
+	for (auto& i: done) {
 		int64_t first  = i.getStart();
 		int64_t second = i.getEnd();
 
-		if(first <= startPos && startPos < second){
-			len = min(len, second - startPos);
+		if (first <= aStartPos && aStartPos < second){
+			len_ = min(len_, second - aStartPos);
 			return true;
 		}
 	}
@@ -375,14 +378,14 @@ bool QueueItem::isFilelist() const noexcept {
 	return isSet(FLAG_USER_LIST);
 }
 
-Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t aWantedSize, int64_t aLastSpeed, const PartialSource::Ptr& aPartialSource, bool aAllowOverlap) const noexcept {
+Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t aWantedSize, int64_t aLastSpeed, const PartsInfo* aPartsInfo, bool aAllowOverlap) const noexcept {
 	if(size == -1 || aBlockSize == 0) {
 		return Segment(0, -1);
 	}
 	
 	if((!SETTING(MULTI_CHUNK) || aBlockSize >= size) /*&& (done.size() == 0 || (done.size() == 1 && *done.begin()->getStart() == 0))*/) {
 		if(!downloads.empty()) {
-			return checkOverlaps(aBlockSize, aLastSpeed, aPartialSource, aAllowOverlap);
+			return checkOverlaps(aBlockSize, aLastSpeed, aPartsInfo, aAllowOverlap);
 		}
 
 		int64_t start = 0;
@@ -415,11 +418,11 @@ Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t aWantedSize, int64
 	vector<int64_t> posArray;
 	vector<Segment> neededParts;
 
-	if(aPartialSource) {
-		posArray.reserve(aPartialSource->getPartialInfo().size());
+	if (aPartsInfo) {
+		posArray.reserve(aPartsInfo->size());
 
 		// Convert block index to file position
-		for(auto index: aPartialSource->getPartialInfo())
+		for (auto index: *aPartsInfo)
 			posArray.push_back(min(size, (int64_t)(index) * aBlockSize));
 	}
 
@@ -462,7 +465,7 @@ Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t aWantedSize, int64
 		}
 		
 		if(!overlaps) {
-			if(aPartialSource) {
+			if (aPartsInfo) {
 				// store all chunks we could need
 				for(auto j = posArray.begin(); j < posArray.end(); j += 2){
 					if( (*j <= start && start < *(j+1)) || (start <= *j && *j < end) ) {
@@ -482,7 +485,7 @@ Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t aWantedSize, int64
 			}
 		}
 		
-		if(overlaps && (curSize > aBlockSize)) {
+		if (overlaps && (curSize > aBlockSize)) {
 			curSize -= aBlockSize;
 		} else {
 			start = end;
@@ -494,17 +497,17 @@ Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t aWantedSize, int64
 		// select random chunk for download
 		dcdebug("Found chunks: " SIZET_FMT "\n", neededParts.size());
 		
-		Segment& selected = neededParts[Util::rand(0, neededParts.size())];
+		Segment& selected = neededParts[ValueGenerator::rand(0, neededParts.size())];
 		selected.setSize(std::min(selected.getSize(), targetSize));	// request only wanted size
 		
 		return selected;
 	}
 
-	return checkOverlaps(aBlockSize, aLastSpeed, aPartialSource, aAllowOverlap);
+	return checkOverlaps(aBlockSize, aLastSpeed, aPartsInfo, aAllowOverlap);
 }
 
-Segment QueueItem::checkOverlaps(int64_t aBlockSize, int64_t aLastSpeed, const PartialSource::Ptr& aPartialSource, bool aAllowOverlap) const noexcept {
-	if(aAllowOverlap && !aPartialSource && bundle && SETTING(OVERLAP_SLOW_SOURCES) && aLastSpeed > 0) {
+Segment QueueItem::checkOverlaps(int64_t aBlockSize, int64_t aLastSpeed, const PartsInfo* aPartsInfo, bool aAllowOverlap) const noexcept {
+	if(aAllowOverlap && !aPartsInfo && bundle && SETTING(OVERLAP_SLOW_SOURCES) && aLastSpeed > 0) {
 		// overlap slow running chunk
 		for(auto d: downloads) {
 			// current chunk mustn't be already overlapped
@@ -559,14 +562,14 @@ uint64_t QueueItem::getDownloadedBytes() const noexcept {
 	return total;
 }
 
-void QueueItem::addFinishedSegment(const Segment& segment) noexcept {
+void QueueItem::addFinishedSegment(const Segment& aSegment) noexcept {
 #ifdef _DEBUG
 	if (bundle)
-		dcdebug("adding segment segment of size " I64_FMT " (" I64_FMT ", " I64_FMT ")...", segment.getSize(), segment.getStart(), segment.getEnd());
+		dcdebug("adding segment segment of size " I64_FMT " (" I64_FMT ", " I64_FMT ")...", aSegment.getSize(), aSegment.getStart(), aSegment.getEnd());
 #endif
 
-	dcassert(segment.getOverlapped() == false);
-	done.insert(segment);
+	dcassert(aSegment.getOverlapped() == false);
+	done.insert(aSegment);
 
 	// Consolidate segments
 
@@ -577,7 +580,7 @@ void QueueItem::addFinishedSegment(const Segment& segment) noexcept {
 			prev--;
 			if(prev->getEnd() >= i->getStart()) {
 				Segment big(prev->getStart(), i->getEnd() - prev->getStart());
-				auto newBytes = big.getSize() - (*prev == segment ? i->getSize() : prev->getSize()); //minus the part that has been counted before...
+				auto newBytes = big.getSize() - (*prev == aSegment ? i->getSize() : prev->getSize()); //minus the part that has been counted before...
 
 				done.erase(prev);
 				done.erase(i++);
@@ -594,8 +597,8 @@ void QueueItem::addFinishedSegment(const Segment& segment) noexcept {
 	}
 
 	if (!added && bundle) {
-		dcdebug("added " I64_FMT " for the bundle (no merging)\n", segment.getSize());
-		bundle->addFinishedSegment(segment.getSize());
+		dcdebug("added " I64_FMT " for the bundle (no merging)\n", aSegment.getSize());
+		bundle->addFinishedSegment(aSegment.getSize());
 	}
 }
 
@@ -684,7 +687,7 @@ bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& aOnline
 	}
 
 	if(!isSet(QueueItem::FLAG_USER_LIST) && !isSet(QueueItem::FLAG_CLIENT_VIEW)) {
-		Segment segment = getNextSegment(getBlockSize(), aWantedSize, aLastSpeed, source->getPartialSource(), aAllowOverlap);
+		Segment segment = getNextSegment(getBlockSize(), aWantedSize, aLastSpeed, source->getPartsInfo(), aAllowOverlap);
 		if(segment.getSize() == 0) {
 			lastError_ = (segment.getStart() == -1 || getSize() < Util::convertSize(SETTING(MIN_SEGMENT_SIZE), Util::KB)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
 			dcdebug("No segment for %s (%s) in %s, block " I64_FMT "\n", aUser->getCID().toBase32().c_str(), Util::listToString(aOnlineHubs).c_str(), getTarget().c_str(), blockSize);
@@ -718,18 +721,18 @@ bool QueueItem::usesSmallSlot() const noexcept {
 
 
 string QueueItem::getTargetFileName() const noexcept {
-	return Util::getFileName(target); 
+	return PathUtil::getFileName(target); 
 }
 
 string QueueItem::getFilePath() const noexcept {
-	return Util::getFilePath(target); 
+	return PathUtil::getFilePath(target); 
 }
 
 QueueItemPtr QueueItem::pickSearchItem(const QueueItemList& aItems) noexcept {
 	QueueItemPtr searchItem = nullptr;
 
 	for (size_t s = 0; s < aItems.size(); s++) {
-		searchItem = aItems[Util::rand(aItems.size() - 1)];
+		searchItem = aItems[ValueGenerator::rand(0, aItems.size() - 1)];
 
 		if (!searchItem->isRunning() && !searchItem->isPausedPrio()) {
 			break;

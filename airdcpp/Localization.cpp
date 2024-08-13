@@ -20,6 +20,7 @@
 
 #include "File.h"
 #include "Localization.h"
+#include "PathUtil.h"
 #include "SettingsManager.h"
 #include "SimpleXML.h"
 #include "Util.h"
@@ -87,7 +88,7 @@ string Localization::Language::getLanguageFilePath() const noexcept {
 		return Util::emptyString;
 	}
 
-	return Util::getPath(Util::PATH_LOCALE) + fileName;
+	return AppUtil::getPath(AppUtil::PATH_LOCALE) + fileName;
 }
 
 string Localization::Language::getLanguageSettingValue() const noexcept {
@@ -95,7 +96,7 @@ string Localization::Language::getLanguageSettingValue() const noexcept {
 		return Util::emptyString;
 	}
 
-	if (Util::getFileExt(locale) == ".xml") {
+	if (PathUtil::getFileExt(locale) == ".xml") {
 		return locale;
 	}
 
@@ -103,7 +104,7 @@ string Localization::Language::getLanguageSettingValue() const noexcept {
 }
 
 double Localization::Language::getLanguageVersion() const noexcept {
-	if (!Util::fileExists(getLanguageFilePath()))
+	if (!PathUtil::fileExists(getLanguageFilePath()))
 		return 0;
 
 	try {
@@ -200,7 +201,7 @@ string Localization::getCurLanguageLocale() noexcept {
 
 string Localization::getCurLanguageName() noexcept {
 	const auto lang = getCurrentLanguage();
-	return lang ? lang->getLanguageName() : "(Custom " + Util::getFileName(SETTING(LANGUAGE_FILE)) + ")";
+	return lang ? lang->getLanguageName() : "(Custom " + PathUtil::getFileName(SETTING(LANGUAGE_FILE)) + ")";
 }
 
 

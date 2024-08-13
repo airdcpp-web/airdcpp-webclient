@@ -19,6 +19,7 @@
 #include "stdinc.h"
 #include "GeoIP.h"
 
+#include "Exception.h"
 #include "File.h"
 #include "Localization.h"
 #include "format.h"

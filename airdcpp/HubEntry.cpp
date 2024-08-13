@@ -19,7 +19,7 @@
 #include "stdinc.h"
 #include "HubEntry.h"
 
-#include "AirUtil.h"
+#include "LinkUtil.h"
 #include "ShareManager.h"
 #include "StringTokenizer.h"
 
@@ -28,10 +28,10 @@
 namespace dcpp {
 
 FavoriteHubEntry::FavoriteHubEntry() noexcept : 
-	token(Util::randInt()) { }
+	token(ValueGenerator::randInt()) { }
 
 bool FavoriteHubEntry::isAdcHub() const noexcept {
-	return AirUtil::isAdcHub(server);
+	return LinkUtil::isAdcHub(server);
 }
 
 string FavoriteHubEntry::getShareProfileName() const noexcept {

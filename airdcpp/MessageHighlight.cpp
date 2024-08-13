@@ -20,8 +20,9 @@
 
 #include "MessageHighlight.h"
 
-#include "AirUtil.h"
+#include "DupeUtil.h"
 #include "FavoriteManager.h"
+#include "LinkUtil.h"
 #include "ShareManager.h"
 #include "OnlineUser.h"
 
@@ -74,7 +75,7 @@ namespace dcpp {
 			boost::match_results<string::const_iterator> result;
 			int pos = 0;
 
-			while (boost::regex_search(start, end, result, AirUtil::urlReg, boost::match_default)) {
+			while (boost::regex_search(start, end, result, LinkUtil::urlReg, boost::match_default)) {
 				string link(result[0].first, result[0].second);
 
 				auto highlight = make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_LINK_URL, "url");
@@ -111,7 +112,7 @@ namespace dcpp {
 			boost::match_results<string::const_iterator> result;
 			int pos = 0;
 
-			while (boost::regex_search(start, end, result, AirUtil::releaseRegChat, boost::match_default)) {
+			while (boost::regex_search(start, end, result, DupeUtil::releaseRegChat, boost::match_default)) {
 				std::string link(result[0].first, result[0].second);
 
 				highlights_.insert_sorted(make_shared<MessageHighlight>(pos + result.position(), link, MessageHighlight::HighlightType::TYPE_LINK_TEXT, TAG_RELEASE));
@@ -157,7 +158,7 @@ namespace dcpp {
 	DupeType MessageHighlight::getDupe() const noexcept {
 		switch (type) {
 			case TYPE_LINK_TEXT: {
-				return AirUtil::checkAdcDirectoryDupe(text, 0);
+				return DupeUtil::checkAdcDirectoryDupe(text, 0);
 			}
 			case TYPE_LINK_URL: {
 				if (magnet) {

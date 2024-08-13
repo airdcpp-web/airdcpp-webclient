@@ -37,7 +37,6 @@ public:
 	~FileQueue();
 
 	void getBloom(HashBloom& bloom) const noexcept;
-	typedef vector<pair<QueueItem::SourceConstIter, const QueueItemPtr> > PFSSourceList;
 
 	pair<QueueItem::StringMap::const_iterator, bool> add(QueueItemPtr& qi) noexcept;
 	pair<QueueItemPtr, bool> add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;
@@ -48,9 +47,6 @@ public:
 	void findFiles(const TTHValue& tth, QueueItemList& ql_) const noexcept;
 	void matchListing(const DirectoryListing& dl, QueueItemList& ql_) const noexcept;
 	void matchDir(const DirectoryListing::Directory::Ptr& dir, QueueItemList& ql_) const noexcept;
-
-	// find some PFS sources to exchange parts info
-	void findPFSSources(PFSSourceList&) const noexcept;
 
 	size_t getSize() noexcept { return pathQueue.size(); }
 	QueueItem::StringMap& getPathQueue() noexcept { return pathQueue; }
