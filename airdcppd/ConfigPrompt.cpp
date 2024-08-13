@@ -19,6 +19,8 @@
 #include "ConfigPrompt.h"
 
 #include <airdcpp/stdinc.h>
+
+#include <airdcpp/AppUtil.h>
 #include <airdcpp/ScopedFunctor.h>
 #include <airdcpp/Util.h>
 
@@ -28,9 +30,6 @@
 
 namespace airdcppd {
 
-//using namespace std;
-//using dcpp::ScopedFunctor;
-//using Util = dcpp::Util;
 using namespace dcpp;
 
 std::string ConfigPrompt::toBold(const std::string& aText) {
@@ -39,13 +38,13 @@ std::string ConfigPrompt::toBold(const std::string& aText) {
 
 ConfigPrompt::ConfigF ConfigPrompt::checkArgs() {
 	std::function<bool(webserver::WebServerManager*)> f = nullptr;
-	if (Util::hasStartupParam("--configure")) {
+	if (AppUtil::hasStartupParam("--configure")) {
 		f = &runConfigure;
-	} else if (Util::hasStartupParam("--add-user")) {
+	} else if (AppUtil::hasStartupParam("--add-user")) {
 		f = &addUser;
-	} else if (Util::hasStartupParam("--remove-user")) {
+	} else if (AppUtil::hasStartupParam("--remove-user")) {
 		f = &removeUser;
-	} else if (Util::hasStartupParam("--list-users")) {
+	} else if (AppUtil::hasStartupParam("--list-users")) {
 		f = &listUsers;
 	}
 

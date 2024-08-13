@@ -19,7 +19,10 @@
 #include "stdinc.h"
 
 #include <airdcpp/DCPlusPlus.h>
+#include <airdcpp/AppUtil.h>
+#include <airdcpp/Exception.h>
 #include <airdcpp/Util.h>
+#include <airdcpp/SystemUtil.h>
 #include <airdcpp/version.h>
 #include <airdcpp/File.h>
 
@@ -66,21 +69,21 @@ static void handleCrash(int sig) {
         std::cerr << "Signal: " << std::to_string(sig) << std::endl;
         std::cerr << "Process ID: " << getpid() << std::endl;
         std::cerr << "Time: " << Util::getTimeString() << std::endl;
-        std::cerr << "OS version: " << Util::getOsVersion() << std::endl;
+        std::cerr << "OS version: " << SystemUtil::getOsVersion() << std::endl;
         std::cerr << "Client version: " << shortVersionString << std::endl << std::endl;
 #if USE_STACKTRACE
 	std::cerr << "Collecting crash information, please wait..." << std::endl;
-	cow::StackTrace trace(Util::getAppPath());
+	cow::StackTrace trace(AppUtil::getAppPath());
 	trace.generate_frames();
 	std::copy(trace.begin(), trace.end(),
 	std::ostream_iterator<cow::StackFrame>(std::cerr, "\n"));
 
-	auto stackPath = Util::getPath(Util::PATH_USER_CONFIG) + "exceptioninfo.txt";
+	auto stackPath = AppUtil::getPath(AppUtil::PATH_USER_CONFIG) + "exceptioninfo.txt";
 	std::ofstream f;
 	f.open(stackPath.c_str());
 
 	f << "Time: " + Util::getTimeString() << std::endl;
-	f << "OS version: " + Util::getOsVersion() << std::endl;
+	f << "OS version: " + SystemUtil::getOsVersion() << std::endl;
 	f << "Client version: " + shortVersionString << std::endl << std::endl;
 
 	std::copy(trace.begin(), trace.end(),
@@ -163,7 +166,7 @@ static void installHandler() {
 }
 
 static void savePid(int aPid, const string& aConfigPath) noexcept {
-	auto pidParam = Util::getStartupParam("-p");
+	auto pidParam = AppUtil::getStartupParam("-p");
 	if (pidParam) {
 		pidFileName = *pidParam;
 	} else {
@@ -313,31 +316,31 @@ static void setApp(char* argv[]) {
 		path = getenv("_");
 	}
 
-	Util::setApp(path == NULL ? argv[0] : path);
+	AppUtil::setApp(path == NULL ? argv[0] : path);
 }
 
 int main(int argc, char* argv[]) {
 	setApp(argv);
 
 	while (argc > 0) {
-		Util::addStartupParam(Text::toUtf8(*argv));
+		AppUtil::addStartupParam(Text::toUtf8(*argv));
 		argc--;
 		argv++;
 	}
 
-	if (dcpp::Util::hasStartupParam("-h") || Util::hasStartupParam("--help")) {
+	if (dcpp::AppUtil::hasStartupParam("-h") || AppUtil::hasStartupParam("--help")) {
 		printUsage();
 		return 0;
 	}
 
-	if (dcpp::Util::hasStartupParam("-v") || Util::hasStartupParam("--version")) {
+	if (dcpp::AppUtil::hasStartupParam("-v") || AppUtil::hasStartupParam("--version")) {
 		printf("%s\n", shortVersionString.c_str());
 		return 0;
 	}
 
-	auto configDir = Util::getStartupParam("-c");
+	auto configDir = AppUtil::getStartupParam("-c");
 
-	dcpp::Util::initialize(configDir ? *configDir : "");
+	initializeUtil(configDir ? *configDir : "");
 	auto configF = airdcppd::ConfigPrompt::checkArgs();
 	if (configF) {
 		init();
@@ -354,14 +357,14 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	if (dcpp::Util::hasStartupParam("-d")) {
+	if (dcpp::AppUtil::hasStartupParam("-d")) {
 		asdaemon = true;
 	}
 
 
 	setlocale(LC_ALL, "");
 
-	string configPath = Util::getPath(Util::PATH_USER_CONFIG);
+	string configPath = AppUtil::getPath(AppUtil::PATH_USER_CONFIG);
 	if (asdaemon) {
 		runDaemon(configPath);
 	} else {
