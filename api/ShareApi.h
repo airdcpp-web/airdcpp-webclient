@@ -37,7 +37,7 @@ namespace webserver {
 			ShareItem(const ShareDirectory::Ptr& aDirectory) : directory(aDirectory) {}
 
 			const ShareDirectory::File* file = nullptr;
-			const ShareDirectory::Ptr& directory = nullptr;
+			const ShareDirectory::Ptr directory = nullptr;
 
 			typedef vector<ShareItem> List;
 		};

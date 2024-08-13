@@ -347,7 +347,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 
 		auto value = JsonUtil::getField<string>("value", aJson, false);
 
-		return AdcParam(name, value);
+		return AdcParam({ name, value });
 	}
 
 	AdcCommand::ParamMap AdcCommandApi::deserializeParams(const json& aJson, bool aAllowEmpty) {
@@ -366,7 +366,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 
 		auto type = JsonUtil::getField<string>("type", commandJson, false)[0];
 		if (!AdcCommand::isValidType(type)) {
-			JsonUtil::throwError("type", JsonUtil::ERROR_INVALID, "Invalid type " + type);
+			JsonUtil::throwError("type", JsonUtil::ERROR_INVALID, "Invalid type " + string(1, type));
 		}
 
 		auto command = deserializeCommandString(JsonUtil::getRawField("command", commandJson), "command");
