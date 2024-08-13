@@ -25,6 +25,7 @@
 
 #include <airdcpp/Exception.h>
 #include <airdcpp/File.h>
+#include <airdcpp/PathUtil.h>
 
 #ifdef _WIN32
 #include <api/platform/windows/Filesystem.h>
@@ -99,7 +100,7 @@ namespace webserver {
 	api_return FilesystemApi::handlePostDirectory(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		auto path = JsonUtil::getField<string>("path", reqJson, false);
+		auto path = PathUtil::validatePath(JsonUtil::getField<string>("path", reqJson, false), true);
 		try {
 			if (!File::createDirectory(path)) {
 				aRequest.setResponseErrorStr("Directory exists");

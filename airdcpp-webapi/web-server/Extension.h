@@ -30,7 +30,7 @@
 #include <airdcpp/Util.h>
 
 namespace webserver {
-#define EXTENSION_DIR_ROOT Util::getPath(Util::PATH_USER_CONFIG) + "extensions" + PATH_SEPARATOR_STR
+#define EXTENSION_DIR_ROOT AppUtil::getPath(AppUtil::PATH_USER_CONFIG) + "extensions" + PATH_SEPARATOR_STR
 
 	class Extension : public Speaker<ExtensionListener> {
 	public:

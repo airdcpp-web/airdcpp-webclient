@@ -154,7 +154,7 @@ namespace webserver {
 			{ "speed_up", upSpeed },
 			{ "limit_down", ThrottleManager::getDownLimit() },
 			{ "limit_up", ThrottleManager::getUpLimit() },
-			{ "upload_bundles", UploadManager::getInstance()->getRunningBundleCount() },
+			{ "upload_bundles", 0 }, // API doesn't use upload bundles at the moment
 			{ "download_bundles", DownloadManager::getInstance()->getRunningBundleCount() },
 			{ "uploads", uploads },
 			{ "downloads", downloads },
@@ -208,6 +208,8 @@ namespace webserver {
 			updatedProps.insert(TransferUtils::PROP_IP);
 		if (aUpdatedProperties & TransferInfo::UpdateFlags::FLAGS)
 			updatedProps.insert(TransferUtils::PROP_FLAGS);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::SUPPORTS)
+			updatedProps.insert(TransferUtils::PROP_SUPPORTS);
 		if (aUpdatedProperties & TransferInfo::UpdateFlags::ENCRYPTION)
 			updatedProps.insert(TransferUtils::PROP_ENCRYPTION);
 		if (aUpdatedProperties & TransferInfo::UpdateFlags::QUEUE_ID)

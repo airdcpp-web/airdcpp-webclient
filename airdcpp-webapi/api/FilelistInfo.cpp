@@ -24,9 +24,9 @@
 #include <api/common/Validation.h>
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/AirUtil.h>
 #include <airdcpp/Client.h>
 #include <airdcpp/DirectoryListingManager.h>
+#include <airdcpp/PathUtil.h>
 
 
 namespace webserver {
@@ -273,7 +273,7 @@ namespace webserver {
 		if (static_cast<DirectoryListing::DirectoryLoadType>(aType) != DirectoryListing::DirectoryLoadType::LOAD_CONTENT) {
 			// Insert new items
 			updateItems(aLoadedPath);
-		} else if (AirUtil::isParentOrExactAdc(aLoadedPath, dl->getCurrentLocationInfo().directory->getAdcPath())) {
+		} else if (PathUtil::isParentOrExactAdc(aLoadedPath, dl->getCurrentLocationInfo().directory->getAdcPath())) {
 			// Reload directory content
 			updateItems(dl->getCurrentLocationInfo().directory->getAdcPath());
 		}

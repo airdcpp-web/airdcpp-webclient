@@ -24,6 +24,7 @@
 #include <api/common/Deserializer.h>
 
 #include <airdcpp/HintedUser.h>
+#include <airdcpp/PathUtil.h>
 #include <airdcpp/Util.h>
 
 
@@ -227,12 +228,12 @@ namespace webserver {
 
 		// Validate paths
 		if (aType == ApiSettingItem::TYPE_DIRECTORY_PATH) {
-			value = Util::validatePath(value, true);
+			value = PathUtil::validatePath(value, true);
 		} else if (aType == ApiSettingItem::TYPE_FILE_PATH) {
-			value = Util::validatePath(value, false);
+			value = PathUtil::validatePath(value, false);
 		} else if (aType == ApiSettingItem::TYPE_EXISTING_FILE_PATH) {
-			value = Util::validatePath(value, false);
-			// if (!Util::fileExists()) {
+			value = PathUtil::validatePath(value, false);
+			// if (!PathUtil::fileExists()) {
 
 			//}
 		}

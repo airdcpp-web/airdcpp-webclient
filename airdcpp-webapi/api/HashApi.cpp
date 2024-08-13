@@ -18,6 +18,8 @@
 
 #include "stdinc.h"
 
+#include <airdcpp/Exception.h>
+#include <airdcpp/HashedFile.h>
 #include <airdcpp/SettingsManager.h>
 
 #include <web-server/JsonUtil.h>
@@ -33,9 +35,11 @@ namespace webserver {
 			aSession, 
 			Access::SETTINGS_VIEW, 
 			{ 
-				"hash_database_status", 
-				"hash_statistics", 
-				"hasher_directory_finished", 
+				"hash_database_status",
+				"hash_statistics",
+				"hasher_file_hashed",
+				"hasher_file_failed",
+				"hasher_directory_finished",
 				"hasher_finished",
 			}
 		),
@@ -118,25 +122,47 @@ namespace webserver {
 		updateDbStatus(false);
 	}
 
-	void HashApi::on(HashManagerListener::DirectoryHashed, const string& aPath, int aFilesHashed, int64_t aSizeHashed, time_t aHashDuration, int aHasherId) noexcept {
-		maybeSend("hasher_directory_finished", [&] { 
+	void HashApi::on(HashManagerListener::FileHashed, const string& aPath, HashedFile& aFileInfo, int aHasherId) noexcept {
+		maybeSend("hasher_file_hashed", [&] {
 			return json({
 				{ "path", aPath },
-				{ "size", aSizeHashed },
-				{ "files", aFilesHashed },
-				{ "duration", aHashDuration },
+				{ "tth", aFileInfo.getRoot() },
+				{ "size", aFileInfo.getSize() },
 				{ "hasher_id", aHasherId },
 			});
 		});
 	}
 
-	void HashApi::on(HashManagerListener::HasherFinished, int aDirshashed, int aFilesHashed, int64_t aSizeHashed, time_t aHashDuration, int aHasherId) noexcept {
+	void HashApi::on(HashManagerListener::FileFailed, const string& aPath, const string& aErrorId, const string& aMessage, int aHasherId) noexcept {
+		maybeSend("hasher_file_failed", [&] {
+			return json({
+				{ "path", aPath },
+				{ "error_id", aErrorId },
+				{ "message", aMessage },
+				{ "hasher_id", aHasherId },
+			});
+		});
+	}
+
+	void HashApi::on(HashManagerListener::DirectoryHashed, const string& aPath, const HasherStats& aStats, int aHasherId) noexcept {
+		maybeSend("hasher_directory_finished", [&] { 
+			return json({
+				{ "path", aPath },
+				{ "size", aStats.sizeHashed },
+				{ "files", aStats.filesHashed },
+				{ "duration", aStats.hashTime },
+				{ "hasher_id", aHasherId },
+			});
+		});
+	}
+
+	void HashApi::on(HashManagerListener::HasherFinished, int aDirsHashed, const HasherStats& aStats, int aHasherId) noexcept {
 		maybeSend("hasher_finished", [&] {
 			return json({
-				{ "size", aSizeHashed },
-				{ "files", aFilesHashed },
-				{ "directories", aDirshashed },
-				{ "duration", aHashDuration },
+				{ "size", aStats.sizeHashed },
+				{ "files", aStats.filesHashed },
+				{ "directories", aDirsHashed },
+				{ "duration", aStats.hashTime },
 				{ "hasher_id", aHasherId },
 			});
 		});

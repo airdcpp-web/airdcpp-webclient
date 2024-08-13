@@ -39,6 +39,7 @@ namespace webserver {
 		{ PROP_SECONDS_LEFT, "seconds_left", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
 		{ PROP_IP, "ip", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
 		{ PROP_FLAGS, "flags", TYPE_LIST_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_SUPPORTS, "supports", TYPE_LIST_TEXT, SERIALIZE_CUSTOM, SORT_NONE },
 		{ PROP_ENCRYPTION, "encryption", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
 		{ PROP_QUEUE_ID, "queue_file_id", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
 	};
@@ -130,6 +131,7 @@ namespace webserver {
 				return Serializer::serializeFileType(aItem->getTarget());
 			}
 			case PROP_FLAGS: return aItem->getFlags();
+			case PROP_SUPPORTS: return aItem->getSupports();
 			case PROP_ENCRYPTION:
 			{
 				auto trusted = aItem->getFlags().find("S") != aItem->getFlags().end();

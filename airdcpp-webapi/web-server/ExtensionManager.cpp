@@ -27,12 +27,15 @@
 
 #include <airdcpp/CryptoManager.h>
 #include <airdcpp/Encoder.h>
+#include <airdcpp/Exception.h>
 #include <airdcpp/File.h>
 #include <airdcpp/HttpDownload.h>
 #include <airdcpp/LogManager.h>
+#include <airdcpp/PathUtil.h>
 #include <airdcpp/ScopedFunctor.h>
 #include <airdcpp/SimpleXML.h>
 #include <airdcpp/StringTokenizer.h>
+#include <airdcpp/SystemUtil.h>
 #include <airdcpp/Thread.h>
 #include <airdcpp/TimerManager.h>
 #include <airdcpp/UpdateManager.h>
@@ -336,7 +339,7 @@ namespace webserver {
 	}
 
 	void ExtensionManager::onExtensionDownloadCompleted(const string& aInstallId, const string& aUrl, const string& aSha1) noexcept {
-		auto tempFile = Util::getPath(Util::PATH_TEMP) + Util::validateFileName(aUrl) + ".tmp";
+		auto tempFile = AppUtil::getPath(AppUtil::PATH_TEMP) + PathUtil::validateFileName(aUrl) + ".tmp";
 
 		// Don't allow the same download to be initiated again until the installation has finished
 		ScopedFunctor([&]() {
@@ -408,7 +411,7 @@ namespace webserver {
 			return;
 		}
 
-		string tempRoot = Util::getPath(Util::PATH_TEMP) + "extension_" + Util::getFileName(aInstallFilePath) + PATH_SEPARATOR_STR;
+		string tempRoot = AppUtil::getPath(AppUtil::PATH_TEMP) + "extension_" + PathUtil::getFileName(aInstallFilePath) + PATH_SEPARATOR_STR;
 		ScopedFunctor([&tempRoot]() {
 			try {
 				File::removeDirectoryForced(tempRoot);
@@ -478,16 +481,16 @@ namespace webserver {
 			}
 
 			try {
-				File::removeDirectoryForced(Util::joinDirectory(extension->getRootPath(), EXT_PACKAGE_DIR));
+				File::removeDirectoryForced(PathUtil::joinDirectory(extension->getRootPath(), EXT_PACKAGE_DIR));
 			} catch (const FileException& e) {
-				failInstallation(aInstallId, "Failed to remove the old extension package directory " + Util::joinDirectory(extension->getRootPath(), EXT_PACKAGE_DIR), e.getError());
+				failInstallation(aInstallId, "Failed to remove the old extension package directory " + PathUtil::joinDirectory(extension->getRootPath(), EXT_PACKAGE_DIR), e.getError());
 				return;
 			}
 		}
 
 		try {
 			// Move files to final destination directory
-			File::moveDirectory(tempPackageDirectory, Util::joinDirectory(Extension::getRootPath(extensionName), EXT_PACKAGE_DIR));
+			File::moveDirectory(tempPackageDirectory, PathUtil::joinDirectory(Extension::getRootPath(extensionName), EXT_PACKAGE_DIR));
 		} catch (const FileException& e) {
 			failInstallation(aInstallId, "Failed to move extension files to the final destination directory", e.what());
 			return;
@@ -617,7 +620,7 @@ namespace webserver {
 		ExtensionPtr ext = nullptr;
 		try {
 			ext = std::make_shared<Extension>(
-				Util::joinDirectory(aPath, EXT_PACKAGE_DIR),
+				PathUtil::joinDirectory(aPath, EXT_PACKAGE_DIR),
 				std::bind(&ExtensionManager::onExtensionFailed, this, std::placeholders::_1, std::placeholders::_2)
 			);
 		} catch (const Exception& e) {
@@ -685,13 +688,13 @@ namespace webserver {
 		for (const auto& token: tokens.getTokens()) {
 			if (File::isAbsolutePath(token)) {
 				// Full path
-				if (Util::fileExists(token)) {
+				if (PathUtil::fileExists(token)) {
 					return token;
 				}
 			} else if (token.length() >= 2 && token.compare(0, 2, "./") == 0) {
 				// Relative path
-				auto fullPath = Util::getAppFilePath() + token.substr(2);
-				if (Util::fileExists(fullPath)) {
+				auto fullPath = AppUtil::getAppFilePath() + token.substr(2);
+				if (PathUtil::fileExists(fullPath)) {
 					return fullPath;
 				}
 			} else {
@@ -703,7 +706,7 @@ namespace webserver {
 #endif
 				testCommand += " " + token;
 
-				if (Util::runSystemCommand(testCommand) == 0) {
+				if (dcpp::SystemUtil::runSystemCommand(testCommand) == 0) {
 					return token;
 				}
 			}

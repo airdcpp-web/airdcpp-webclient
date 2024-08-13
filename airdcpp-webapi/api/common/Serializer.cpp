@@ -31,11 +31,14 @@
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/DirectoryListing.h>
 #include <airdcpp/DirectoryListingManager.h>
+#include <airdcpp/DupeUtil.h>
 #include <airdcpp/GeoManager.h>
 #include <airdcpp/OnlineUser.h>
 #include <airdcpp/QueueItem.h>
 #include <airdcpp/QueueManager.h>
 #include <airdcpp/SearchManager.h>
+#include <airdcpp/SearchResult.h>
+#include <airdcpp/SearchTypes.h>
 #include <airdcpp/ShareManager.h>
 
 namespace webserver {
@@ -138,6 +141,15 @@ namespace webserver {
 	}
 
 
+	json Serializer::serializeClient(const Client* aClient) noexcept {
+		return {
+			{ "id", aClient->getToken() },
+			{ "name", aClient->getHubName() },
+			{ "hub_url", aClient->getHubUrl() },
+		};
+	}
+
+
 	// FILE TYPES/DUPES
 	std::string Serializer::getFileTypeId(const string& aId) noexcept {
 		if (aId.length() != 1) {
@@ -156,7 +168,8 @@ namespace webserver {
 	}
 
 	string Serializer::toFileContentType(const string& aExt) noexcept {
-		auto typeName = getFileTypeId(SearchManager::getInstance()->getTypeIdByExtension(aExt, true));
+		auto& typeManager = SearchManager::getInstance()->getSearchTypes();
+		auto typeName = getFileTypeId(typeManager.getTypeIdByExtension(aExt, true));
 		return typeName;
 	}
 
@@ -175,7 +188,7 @@ namespace webserver {
 			{ "str", Util::formatDirectoryContent(aContentInfo) }
 		};
 
-		if (Util::hasContentInfo(aContentInfo)) {
+		if (aContentInfo.isInitialized()) {
 			retJson["files"] = aContentInfo.files;
 			retJson["directories"] = aContentInfo.directories;
 		}
@@ -201,7 +214,7 @@ namespace webserver {
 			return nullptr;
 		}
 
-		return serializeDupe(aDupeType, AirUtil::getFileDupePaths(aDupeType, aTTH));
+		return serializeDupe(aDupeType, DupeUtil::getFileDupePaths(aDupeType, aTTH));
 	}
 
 	json Serializer::serializeDirectoryDupe(DupeType aDupeType, const string& aAdcPath) noexcept {
@@ -209,7 +222,7 @@ namespace webserver {
 			return nullptr;
 		}
 
-		return serializeDupe(aDupeType, AirUtil::getAdcDirectoryDupePaths(aDupeType, aAdcPath));
+		return serializeDupe(aDupeType, DupeUtil::getAdcDirectoryDupePaths(aDupeType, aAdcPath));
 	}
 
 	json Serializer::serializeDupe(DupeType aDupeType, StringList&& aPaths) noexcept {

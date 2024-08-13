@@ -25,12 +25,14 @@
 #include <airdcpp/ConnectionManager.h>
 #include <airdcpp/ConnectivityManager.h>
 #include <airdcpp/Localization.h>
+#include <airdcpp/NetworkUtil.h>
 #include <airdcpp/ResourceManager.h>
 #include <airdcpp/SearchManager.h>
 #include <airdcpp/SettingHolder.h>
 #include <airdcpp/SettingItem.h>
 #include <airdcpp/SettingsManager.h>
 #include <airdcpp/StringTokenizer.h>
+#include <airdcpp/SystemUtil.h>
 
 namespace webserver {
 	string ApiSettingItem::formatTitle(const string& aDesc, ResourceManager::Strings aUnit) noexcept {
@@ -395,7 +397,7 @@ namespace webserver {
 				ret.emplace_back(EnumOption({ i.first, STRING_I(i.second) }));
 			}
 		} else if (si.key == SettingsManager::BIND_ADDRESS || si.key == SettingsManager::BIND_ADDRESS6) {
-			auto bindAddresses = AirUtil::getCoreBindAdapters(si.key == SettingsManager::BIND_ADDRESS6);
+			auto bindAddresses = NetworkUtil::getCoreBindAdapters(si.key == SettingsManager::BIND_ADDRESS6);
 			for (const auto& adapter : bindAddresses) {
 				auto title = adapter.ip + (!adapter.adapterName.empty() ? " (" + adapter.adapterName + ")" : Util::emptyString);
 				ret.emplace_back(EnumOption({ adapter.ip, title }));

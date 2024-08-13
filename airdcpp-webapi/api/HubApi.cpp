@@ -29,6 +29,10 @@
 #include <airdcpp/HubEntry.h>
 
 namespace webserver {
+
+#define HOOK_INCOMING_MESSAGE "hub_incoming_message_hook"
+#define HOOK_OUTGOING_MESSAGE "hub_outgoing_message_hook"
+
 	StringList HubApi::subscriptionList = {
 		"hub_created",
 		"hub_removed"
@@ -36,7 +40,7 @@ namespace webserver {
 
 	ActionHookResult<MessageHighlightList> HubApi::incomingMessageHook(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) {
 		return HookCompletionData::toResult<MessageHighlightList>(
-			fireHook("hub_incoming_message_hook", WEBCFG(INCOMING_CHAT_MESSAGE_HOOK_TIMEOUT).num(), [&]() {
+			fireHook(HOOK_INCOMING_MESSAGE, WEBCFG(INCOMING_CHAT_MESSAGE_HOOK_TIMEOUT).num(), [&]() {
 				return MessageUtils::serializeChatMessage(aMessage);
 			}),
 			aResultGetter,
@@ -46,7 +50,7 @@ namespace webserver {
 
 	ActionHookResult<> HubApi::outgoingMessageHook(const OutgoingChatMessage& aMessage, const Client& aClient, const ActionHookResultGetter<>& aResultGetter) {
 		return HookCompletionData::toResult(
-			fireHook("hub_outgoing_message_hook", WEBCFG(OUTGOING_CHAT_MESSAGE_HOOK_TIMEOUT).num(), [&]() {
+			fireHook(HOOK_OUTGOING_MESSAGE, WEBCFG(OUTGOING_CHAT_MESSAGE_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "text", aMessage.text },
 					{ "third_person", aMessage.thirdPerson },
@@ -68,7 +72,7 @@ namespace webserver {
 
 		ClientManager::getInstance()->addListener(this);
 
-		createHook("hub_incoming_message_hook", [this](ActionHookSubscriber&& aSubscriber) {
+		createHook(HOOK_INCOMING_MESSAGE, [this](ActionHookSubscriber&& aSubscriber) {
 			return ClientManager::getInstance()->incomingHubMessageHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(HubApi::incomingMessageHook));
 		}, [this](const string& aId) {
 			ClientManager::getInstance()->incomingHubMessageHook.removeSubscriber(aId);
@@ -76,7 +80,7 @@ namespace webserver {
 			return ClientManager::getInstance()->incomingHubMessageHook.getSubscribers();
 		});
 
-		createHook("hub_outgoing_message_hook", [this](ActionHookSubscriber&& aSubscriber) {
+		createHook(HOOK_OUTGOING_MESSAGE, [this](ActionHookSubscriber&& aSubscriber) {
 			return ClientManager::getInstance()->outgoingHubMessageHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(HubApi::outgoingMessageHook));
 		}, [this](const string& aId) {
 			ClientManager::getInstance()->outgoingHubMessageHook.removeSubscriber(aId);

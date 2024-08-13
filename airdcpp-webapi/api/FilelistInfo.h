@@ -22,6 +22,7 @@
 #include <api/FilelistUtils.h>
 #include <api/FilelistItemInfo.h>
 
+#include <api/base/HookApiModule.h>
 #include <api/base/HierarchicalApiModule.h>
 #include <api/common/ListViewController.h>
 
@@ -31,7 +32,7 @@
 
 namespace webserver {
 
-	class FilelistInfo : public SubApiModule<CID, FilelistInfo, std::string>, private DirectoryListingListener {
+	class FilelistInfo : public SubApiModule<CID, FilelistInfo, std::string, HookApiModule>, private DirectoryListingListener {
 	public:
 		typedef shared_ptr<FilelistInfo> Ptr;
 

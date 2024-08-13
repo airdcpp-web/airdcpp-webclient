@@ -180,6 +180,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="api\AdcCommandApi.h" />
     <ClInclude Include="api\base\ApiModule.h" />
     <ClInclude Include="api\base\HierarchicalApiModule.h" />
     <ClInclude Include="api\base\HookApiModule.h" />
@@ -270,6 +271,7 @@
     <ClInclude Include="web-server\WebUserManagerListener.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="api\AdcCommandApi.cpp" />
     <ClCompile Include="api\base\ApiModule.cpp" />
     <ClCompile Include="api\base\HookApiModule.cpp" />
     <ClCompile Include="api\common\Deserializer.cpp" />

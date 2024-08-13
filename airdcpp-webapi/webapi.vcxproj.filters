@@ -315,6 +315,9 @@
     <ClInclude Include="api\common\Validation.h">
       <Filter>Header Files\api\common</Filter>
     </ClInclude>
+    <ClInclude Include="api\AdcCommandApi.h">
+      <Filter>Header Files\api</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
@@ -523,6 +526,9 @@
     </ClCompile>
     <ClCompile Include="api\common\Validation.cpp">
       <Filter>Source Files\api\common</Filter>
+    </ClCompile>
+    <ClCompile Include="api\AdcCommandApi.cpp">
+      <Filter>Source Files\api</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

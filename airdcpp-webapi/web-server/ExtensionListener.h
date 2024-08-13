@@ -22,6 +22,8 @@
 
 #include "forward.h"
 
+#include "json.h"
+
 namespace webserver {
 	class ExtensionListener {
 	public:

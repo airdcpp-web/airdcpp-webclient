@@ -91,16 +91,22 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	bool HookApiModule::HookSubscriber::enable(const void* aOwner, const json& aJson) {
+	ActionHookSubscriber HookApiModule::deserializeSubscriber(const void* aOwner, const json& aJson) {
+		auto id = JsonUtil::getField<string>("id", aJson, false);
+		auto name = JsonUtil::getField<string>("name", aJson, false);
+		auto data = JsonUtil::getOptionalRawField("data", aJson);
+		// auto skipOwner = JsonUtil::getOptionalFieldDefault<bool>("skip_owner", aJson, true);
+		auto skipOwner = true;
+		return ActionHookSubscriber(id, name, skipOwner ? aOwner : nullptr);
+	}
+
+	bool HookApiModule::HookSubscriber::enable(ActionHookSubscriber&& aHookSubscriber) {
 		if (active) {
 			return true;
 		}
 
-		auto id = JsonUtil::getField<string>("id", aJson, false);
-		auto name = JsonUtil::getField<string>("name", aJson, false);
-		// auto skipOwner = JsonUtil::getOptionalFieldDefault<bool>("skip_owner", aJson, true);
-		auto skipOwner = true;
-		if (!addHandler(ActionHookSubscriber(id, name, skipOwner ? aOwner : nullptr))) {
+		auto id = aHookSubscriber.getId();
+		if (!addHandler(std::move(aHookSubscriber))) {
 			return false;
 		}
 
@@ -118,6 +124,10 @@ namespace webserver {
 		active = false;
 	}
 
+	bool HookApiModule::addHook(HookSubscriber& aApiSubscriber, ActionHookSubscriber&& aHookSubscriber, const json&) {
+		return aApiSubscriber.enable(std::move(aHookSubscriber));
+	}
+
 	api_return HookApiModule::handleAddHook(ApiRequest& aRequest) {
 		if (!SubscribableApiModule::getSocket()) {
 			aRequest.setResponseErrorStr("Socket required");
@@ -125,7 +135,9 @@ namespace webserver {
 		}
 
 		auto& hook = getHookSubscriber(aRequest);
-		if (!hook.enable(aRequest.getOwnerPtr(), aRequest.getRequestBody())) {
+		auto subscriber = deserializeSubscriber(aRequest.getOwnerPtr(), aRequest.getRequestBody());
+
+		if (!addHook(hook, std::move(subscriber), aRequest.getRequestBody())) {
 			aRequest.setResponseErrorStr("Subscription ID exists already for this hook event");
 			return websocketpp::http::status_code::conflict;
 		}
@@ -150,7 +162,7 @@ namespace webserver {
 	}
 
 	void HookApiModule::createHook(const string& aSubscription, HookAddF&& aAddHandler, HookRemoveF&& aRemoveF, HookListF&& aListF) noexcept {
-		hooks.emplace(aSubscription, HookSubscriber(std::move(aAddHandler), std::move(aRemoveF), std::move(aListF)));
+		hooks.emplace(aSubscription, HookSubscriber(aSubscription, std::move(aAddHandler), std::move(aRemoveF), std::move(aListF)));
 	}
 
 	api_return HookApiModule::handleResolveHookAction(ApiRequest& aRequest) {

@@ -142,7 +142,11 @@ namespace webserver {
 
 		template <typename JsonT>
 		static const json& getArrayField(const string& aFieldName, const JsonT& aJson, bool aAllowEmpty) {
-			const auto& ret = getRawValue<JsonT>(aFieldName, aJson, true);
+			const auto& ret = getRawValue<JsonT>(aFieldName, aJson, !aAllowEmpty);
+			if (ret.is_null() && aAllowEmpty) {
+				return ret;
+			}
+
 			if (!ret.is_array()) {
 				throwError(aFieldName, ERROR_INVALID, "Field must be an array");
 			}

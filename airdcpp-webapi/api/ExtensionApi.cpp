@@ -27,6 +27,7 @@
 #include <web-server/Session.h>
 #include <web-server/WebServerManager.h>
 
+#include <airdcpp/Exception.h>
 #include <airdcpp/File.h>
 
 

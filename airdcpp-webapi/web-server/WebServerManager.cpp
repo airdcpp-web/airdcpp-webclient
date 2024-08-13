@@ -27,15 +27,17 @@
 
 #include <airdcpp/typedefs.h>
 
-#include <airdcpp/AirUtil.h>
 #include <airdcpp/CryptoManager.h>
 #include <airdcpp/LogManager.h>
+#include <airdcpp/NetworkUtil.h>
+#include <airdcpp/PathUtil.h>
 #include <airdcpp/SettingsManager.h>
 #include <airdcpp/SimpleXML.h>
+#include <airdcpp/SystemUtil.h>
 #include <airdcpp/TimerManager.h>
 
 #define LEGACY_CONFIG_NAME_XML "WebServer.xml"
-#define CONFIG_DIR Util::PATH_USER_CONFIG
+#define CONFIG_DIR AppUtil::PATH_USER_CONFIG
 
 #define AUTHENTICATION_TIMEOUT 60 // seconds
 
@@ -49,7 +51,7 @@ namespace webserver {
 		work(tasks)
 	{
 
-		fileServer.setResourcePath(Util::getPath(Util::PATH_RESOURCES) + "web-resources" + PATH_SEPARATOR);
+		fileServer.setResourcePath(AppUtil::getPath(AppUtil::PATH_RESOURCES) + "web-resources" + PATH_SEPARATOR);
 
 		settingsManager = make_unique<WebServerSettings>(this);
 		extManager = make_unique<ExtensionManager>(this);
@@ -201,7 +203,7 @@ namespace webserver {
 	}
 
 	boost::asio::ip::tcp WebServerManager::getDefaultListenProtocol() noexcept {
-		auto v6Supported = !AirUtil::getLocalIp(true).empty();
+		auto v6Supported = !NetworkUtil::getLocalIp(true).empty();
 		return v6Supported ? boost::asio::ip::tcp::v6() : boost::asio::ip::tcp::v4();
 	}
 
@@ -584,8 +586,8 @@ namespace webserver {
 	}
 
 	bool WebServerManager::load(const MessageCallback& aErrorF) noexcept {
-		const auto legacyXmlPath = Util::getPath(CONFIG_DIR) + LEGACY_CONFIG_NAME_XML;
-		if (Util::fileExists(legacyXmlPath)) {
+		const auto legacyXmlPath = AppUtil::getPath(CONFIG_DIR) + LEGACY_CONFIG_NAME_XML;
+		if (PathUtil::fileExists(legacyXmlPath)) {
 			SettingsManager::loadSettingFile(CONFIG_DIR, LEGACY_CONFIG_NAME_XML, [this](SimpleXML& xml) {
 				if (xml.findChild("WebServer")) {
 					xml.stepIn();

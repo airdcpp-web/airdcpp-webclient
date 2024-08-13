@@ -22,8 +22,8 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/AirUtil.h>
 #include <airdcpp/FavoriteManager.h>
+#include <airdcpp/LinkUtil.h>
 #include <airdcpp/ShareManager.h>
 
 
@@ -84,7 +84,7 @@ namespace webserver {
 			if (key == "share_profile") {
 				auto shareProfileToken = JsonUtil::getOptionalFieldDefault("share_profile", j, HUB_SETTING_DEFAULT_INT);
 				if (shareProfileToken != HUB_SETTING_DEFAULT_INT) {
-					if (!AirUtil::isAdcHub(aEntry->getServer()) && shareProfileToken != SETTING(DEFAULT_SP) && shareProfileToken != SP_HIDDEN) {
+					if (!LinkUtil::isAdcHub(aEntry->getServer()) && shareProfileToken != SETTING(DEFAULT_SP) && shareProfileToken != SP_HIDDEN) {
 						JsonUtil::throwError("share_profile", JsonUtil::ERROR_INVALID, "Share profiles can't be changed for NMDC hubs");
 					}
 

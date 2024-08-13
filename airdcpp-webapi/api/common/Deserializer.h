@@ -99,12 +99,14 @@ namespace webserver {
 		using ArrayDeserializerFunc = std::function<ItemT(const json& aJson, const string& aFieldName)>;
 
 		template <typename ItemT>
-		static vector<ItemT> deserializeList(const string& aFieldName, const json& aList, const ArrayDeserializerFunc<ItemT>& aF, bool aAllowEmpty) {
-			const auto arrayJson = JsonUtil::getArrayField(aFieldName, aList, aAllowEmpty);
+		static vector<ItemT> deserializeList(const string& aFieldName, const json& aJson, const ArrayDeserializerFunc<ItemT>& aF, bool aAllowEmpty) {
+			const auto arrayJson = JsonUtil::getArrayField(aFieldName, aJson, aAllowEmpty);
 
 			vector<ItemT> ret;
-			for (const auto& item: arrayJson) {
-				ret.push_back(aF(item, aFieldName));
+			if (!arrayJson.is_null()) {
+				for (const auto& item: arrayJson) {
+					ret.push_back(aF(item, aFieldName));
+				}
 			}
 
 			return ret;

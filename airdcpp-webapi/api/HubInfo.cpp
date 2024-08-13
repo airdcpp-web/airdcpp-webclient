@@ -167,6 +167,7 @@ namespace webserver {
 		return {
 			{ "name", aClient->getHubName() },
 			{ "description", aClient->getHubDescription() },
+			{ "supports", aClient->getSupports().getAll() },
 		};
 	}
 
@@ -338,7 +339,7 @@ namespace webserver {
 			OnlineUserUtils::PROP_SHARED, OnlineUserUtils::PROP_DESCRIPTION, 
 			OnlineUserUtils::PROP_TAG, OnlineUserUtils::PROP_UPLOAD_SPEED, 
 			OnlineUserUtils::PROP_DOWNLOAD_SPEED, OnlineUserUtils::PROP_EMAIL, 
-			OnlineUserUtils::PROP_FILES, OnlineUserUtils::PROP_FLAGS,
+			OnlineUserUtils::PROP_FILES, OnlineUserUtils::PROP_FLAGS, OnlineUserUtils::PROP_SUPPORTS,
 			OnlineUserUtils::PROP_UPLOAD_SLOTS
 		});
 	}

@@ -21,13 +21,14 @@
 
 #include <api/SearchEntity.h>
 
+#include <api/base/HookApiModule.h>
 #include <api/base/HierarchicalApiModule.h>
 
 #include <airdcpp/typedefs.h>
 #include <airdcpp/SearchManagerListener.h>
 
 namespace webserver {
-	class SearchApi: public ParentApiModule<SearchInstanceToken, SearchEntity>, public SearchManagerListener {
+	class SearchApi: public ParentApiModule<SearchInstanceToken, SearchEntity, HookApiModule>, public SearchManagerListener {
 	public:
 		static StringList subscriptionList;
 
@@ -48,10 +49,15 @@ namespace webserver {
 		void on(SearchManagerListener::SearchTypesChanged) noexcept override;
 		void on(SearchManagerListener::SearchInstanceCreated, const SearchInstancePtr& aInstance) noexcept override;
 		void on(SearchManagerListener::SearchInstanceRemoved, const SearchInstancePtr& aInstance) noexcept override;
+		void on(SearchManagerListener::IncomingSearch, Client* aClient, const OnlineUserPtr& aAdcUser, const SearchQuery& aQuery, const SearchResultList& aResults, bool) noexcept override;
 
+		static string serializeSearchQueryItemType(const SearchQuery& aQuery) noexcept;
+		static json serializeSearchQuery(const SearchQuery& aQuery) noexcept;
 		static json serializeSearchType(const SearchTypePtr& aType) noexcept;
 		static string parseSearchTypeId(ApiRequest& aRequest) noexcept;
 		string createCurrentSessionOwnerId(const string& aSuffix) noexcept;
+
+		ActionHookResult<> incomingUserResultHook(const SearchResultPtr& aResult, const ActionHookResultGetter<>& aResultGetter) noexcept;
 	};
 }
 
