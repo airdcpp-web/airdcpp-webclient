@@ -242,7 +242,7 @@ ContainerT pickRandomItems(const ContainerT& aItems, size_t aMaxCount) noexcept 
 
 	while (ret.size() < aMaxCount && !selectableItems.empty()) {
 		auto pos = selectableItems.begin();
-		auto rand = ValueGenerator::rand(0, selectableItems.size());
+		auto rand = ValueGenerator::rand(0, selectableItems.size() - 1);
 		advance(pos, rand);
 
 		ret.insert(*pos);

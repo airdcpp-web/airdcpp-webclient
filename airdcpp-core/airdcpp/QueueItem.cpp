@@ -493,11 +493,11 @@ Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t aWantedSize, int64
 		}
 	}
 
-	if(!neededParts.empty()) {
+	if (!neededParts.empty()) {
 		// select random chunk for download
 		dcdebug("Found chunks: " SIZET_FMT "\n", neededParts.size());
 		
-		Segment& selected = neededParts[ValueGenerator::rand(0, neededParts.size())];
+		Segment& selected = neededParts[ValueGenerator::rand(0, neededParts.size() - 1)];
 		selected.setSize(std::min(selected.getSize(), targetSize));	// request only wanted size
 		
 		return selected;
