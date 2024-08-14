@@ -211,6 +211,7 @@ Identity& Identity::operator = (const Identity& rhs) {
 	user = rhs.user;
 	sid = rhs.sid;
 	info = rhs.info;
+	supports = rhs.supports;
 	adcTcpConnectMode = rhs.adcTcpConnectMode;
 	return *this;
 }

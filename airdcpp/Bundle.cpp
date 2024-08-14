@@ -324,13 +324,13 @@ bool Bundle::addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool 
 	auto& l = userQueue[static_cast<int>(qi->getPriority())][aUser.user];
 	dcassert(ranges::find(l, qi) == l.end());
 
-	if (l.size() > 1) {
+	if (l.size() >= 1) {
 		if (!seqOrder) {
-			/* Randomize the downloading order for each user if the bundle dir date is newer than 7 days to boost partial bundle sharing */
-			l.push_back(qi);
-			swap(l[ValueGenerator::rand(0, (uint32_t)l.size())], l[l.size()-1]);
+			// Randomize the downloading order for each user if the bundle dir date is newer than 7 days to boost partial bundle sharing
+			auto position = ValueGenerator::rand(0, (uint32_t)l.size());
+			l.insert(l.begin() + position, qi);
 		} else {
-			/* Sequential order */
+			// Sequential order
 			l.insert(upper_bound(l.begin(), l.end(), qi, QueueItem::AlphaSortOrder()), qi);
 		}
 	} else {
