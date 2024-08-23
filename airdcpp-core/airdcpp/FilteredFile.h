@@ -216,6 +216,10 @@ public:
 		auto as = f.release();
 		return as->releaseRootStream();
 	}
+
+	int64_t getSize() const noexcept {
+		return f->getSize();
+	}
 private:
 	static const size_t BUF_SIZE = 128*1024; //increase buffer from 64
 

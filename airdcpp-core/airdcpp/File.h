@@ -213,19 +213,19 @@ public:
 	// Stops if the handler returns false
 	static void forEachFile(const string& aPath, const string& aNamePattern, FileIterF aHandlerF, bool aSkipHidden = true);
 #ifdef _WIN32
-#define HandleType HANDLE
+#define FileHandleType HANDLE
 #else
-#define HandleType int
+#define FileHandleType int
 	static bool isLink(const string& aPath) noexcept;
 	static time_t getLastWriteTime(const string& aPath) noexcept;
 #endif
 
-	HandleType getNativeHandle() const noexcept { return h; }
+	FileHandleType getNativeHandle() const noexcept { return h; }
 
 protected:
 	void close() noexcept;
 
-	HandleType h;
+	FileHandleType h;
 };
 
 class FileFindIter {

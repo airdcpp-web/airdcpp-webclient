@@ -179,11 +179,11 @@ bool QueueItem::isChunkDownloaded(int64_t aStartPos, int64_t& len_) const noexce
 	if (len_ <= 0) return false;
 
 	for (auto& i: done) {
-		int64_t first  = i.getStart();
-		int64_t second = i.getEnd();
+		int64_t start  = i.getStart();
+		int64_t end = i.getEnd();
 
-		if (first <= aStartPos && aStartPos < second){
-			len_ = min(len_, second - aStartPos);
+		if (start <= aStartPos && aStartPos < end){
+			len_ = min(len_, end - aStartPos);
 			return true;
 		}
 	}

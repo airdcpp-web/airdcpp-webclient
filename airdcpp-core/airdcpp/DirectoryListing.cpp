@@ -366,7 +366,7 @@ void ListLoader::startTag(const string& aName, StringPairList& attribs, bool aSi
 			auto directoriesStr = getAttrib(attribs, sDirectories, 2);
 			auto filesStr = getAttrib(attribs, sFiles, 3);
 
-			DirectoryContentInfo contentInfo;
+			auto contentInfo(DirectoryContentInfo::empty());
 			if (!incomp || !filesStr.empty() || !directoriesStr.empty()) {
 				contentInfo = DirectoryContentInfo(Util::toInt(directoriesStr), Util::toInt(filesStr));
 			}
@@ -508,7 +508,7 @@ DirectoryListing::VirtualDirectory::Ptr DirectoryListing::VirtualDirectory::crea
 }
 
 DirectoryListing::VirtualDirectory::VirtualDirectory(const string& aFullAdcPath, DirectoryListing::Directory* aParent, const string& aName) :
-	Directory(aParent, aName, Directory::TYPE_VIRTUAL, GET_TIME(), false, DirectoryContentInfo(), Util::emptyString, 0), fullAdcPath(aFullAdcPath) {
+	Directory(aParent, aName, Directory::TYPE_VIRTUAL, GET_TIME(), false, DirectoryContentInfo::uninitialized(), Util::emptyString, 0), fullAdcPath(aFullAdcPath) {
 
 }
 

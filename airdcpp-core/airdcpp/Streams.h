@@ -35,10 +35,10 @@ using std::min;
 
 class MemoryInputStream : public InputStream {
 public:
-	MemoryInputStream(const uint8_t* src, size_t len) : pos(0), size(len), buf(new uint8_t[len]) {
+	MemoryInputStream(const uint8_t* src, size_t len) : size(len), buf(new uint8_t[len]) {
 		memcpy(buf, src, len);
 	}
-	MemoryInputStream(const string& src) : pos(0), size(src.size()), buf(new uint8_t[src.size()]) {
+	MemoryInputStream(const string& src) : size(src.size()), buf(new uint8_t[src.size()]) {
 		memcpy(buf, src.data(), src.size());
 	}
 
@@ -53,10 +53,10 @@ public:
 		return len;
 	}
 
-	size_t getSize() const { return size; }
+	int64_t getSize() const noexcept { return static_cast<int64_t>(size); }
 
 private:
-	size_t pos;
+	size_t pos = 0;
 	size_t size;
 	uint8_t* buf;
 };
@@ -65,7 +65,7 @@ private:
 template<bool managed>
 class CountedInputStream : public InputStream {
 public:
-	CountedInputStream(InputStream* is) : readBytes(0) {
+	CountedInputStream(InputStream* is) {
 		s.reset(is);
 	}
 
@@ -87,7 +87,7 @@ public:
 	}
 private:
 	unique_ptr<InputStream> s;
-	uint64_t readBytes;
+	uint64_t readBytes = 0;
 };
 
 template<bool managed>
@@ -114,6 +114,10 @@ public:
 	InputStream* releaseRootStream() override { 
 		auto as = s.release();
 		return as->releaseRootStream();
+	}
+
+	int64_t getSize() const noexcept {
+		return s->getSize();
 	}
 private:
 	unique_ptr<InputStream> s;
@@ -159,7 +163,7 @@ class BufferedOutputStream : public OutputStream {
 public:
 	using OutputStream::write;
 
-	BufferedOutputStream(OutputStream* aStream, size_t aBufSize = SETTING(BUFFER_SIZE) * 1024) : pos(0), buf(aBufSize) { 
+	BufferedOutputStream(OutputStream* aStream, size_t aBufSize = SETTING(BUFFER_SIZE) * 1024) : buf(aBufSize) { 
 		s.reset(aStream);
 	}
 
@@ -211,7 +215,7 @@ public:
 	}
 private:
 	unique_ptr<OutputStream> s;
-	size_t pos;
+	size_t pos = 0;
 	ByteVector buf;
 };
 

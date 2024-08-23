@@ -33,11 +33,13 @@ namespace dcpp {
 PartialBundleSharingManager::PartialBundleSharingManager() {
 	SearchManager::getInstance()->addListener(this);
 	QueueManager::getInstance()->addListener(this);
+	ProtocolCommandManager::getInstance()->addListener(this);
 }
 
 PartialBundleSharingManager::~PartialBundleSharingManager() {
 	SearchManager::getInstance()->removeListener(this);
 	QueueManager::getInstance()->removeListener(this);
+	ProtocolCommandManager::getInstance()->removeListener(this);
 }
 
 void PartialBundleSharingManager::dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
@@ -336,6 +338,10 @@ void PartialBundleSharingManager::on(ProtocolCommandManagerListener::IncomingUDP
 }
 
 void PartialBundleSharingManager::on(ProtocolCommandManagerListener::IncomingHubCommand, const AdcCommand& aCmd, const Client& aClient) noexcept {
+	if (aCmd.getCommand() != PartialBundleSharingManager::CMD_PBD) {
+		return;
+	}
+
 	OnlineUser* ou = aClient.findUser(aCmd.getFrom());
 	if (!ou) {
 		dcdebug("Invalid user in AdcHub::onPBD\n");

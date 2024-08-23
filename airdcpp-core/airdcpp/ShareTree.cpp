@@ -619,7 +619,7 @@ bool ShareTree::applyRefreshChanges(ShareRefreshInfo& ri, ProfileTokenSet* aDirt
 ShareDirectoryInfoPtr ShareTree::getRootInfo(const ShareDirectory::Ptr& aDir) const noexcept {
 	auto& rootDir = aDir->getRoot();
 
-	DirectoryContentInfo contentInfo;
+	auto contentInfo(DirectoryContentInfo::empty());
 	int64_t size = 0;
 	aDir->getContentInfo(size, contentInfo);
 
@@ -782,7 +782,7 @@ bool ShareTree::addDirectoryResult(const ShareDirectory* aDir, SearchResultList&
 	// Count date and content information
 	time_t date = 0;
 	int64_t size = 0;
-	DirectoryContentInfo contentInfo;
+	auto contentInfo(DirectoryContentInfo::empty());
 	for(const auto& d: result) {
 		d->getContentInfo(size, contentInfo);
 		date = max(date, d->getLastWrite());
@@ -820,7 +820,7 @@ void ShareTree::search(SearchResultList& results, SearchQuery& srch, const Optio
 		for(const auto& item: items) {
 			if (item.hasAccess(aUser)) {
 				//TODO: fix the date?
-				auto sr = make_shared<SearchResult>(SearchResult::TYPE_FILE, item.size, "/tmp/" + item.name, *srch.root, item.timeAdded, DirectoryContentInfo());
+				auto sr = make_shared<SearchResult>(SearchResult::TYPE_FILE, item.size, "/tmp/" + item.name, *srch.root, item.timeAdded, DirectoryContentInfo::uninitialized());
 				results.push_back(sr);
 			}
 		}

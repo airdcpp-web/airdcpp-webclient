@@ -34,7 +34,6 @@ namespace dcpp {
 	
 #ifdef _WIN32
 
-DWORD threadId;
 void Thread::start() {
 	join();
 	if ((threadHandle = reinterpret_cast<HANDLE>(_beginthreadex(NULL, 0, &starter, this, 0, reinterpret_cast<unsigned int*>(&threadId)))) == NULL) {
@@ -96,7 +95,15 @@ void Thread::yield() {
 	::Sleep(0);
 }
 
+#ifdef _DEBUG
+bool Thread::isCurrentThread() const noexcept {
+	auto currentThreadId = GetCurrentThreadId();
+	return currentThreadId == threadId;
+}
+#endif
+
 #else
+
 void Thread::start() {
 	join();
 	if (pthread_create(&threadHandle, NULL, &starter, this) != 0) {

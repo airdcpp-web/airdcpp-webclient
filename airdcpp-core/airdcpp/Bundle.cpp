@@ -566,7 +566,7 @@ bool Bundle::allowAutoSearch() const noexcept {
 /* ONLY CALLED FROM DOWNLOADMANAGER BEGIN */
 
 void Bundle::addDownload(Download* d) noexcept {
-	if (downloads.empty()) {
+	if (start == 0) {
 		start = GET_TICK();
 	}
 

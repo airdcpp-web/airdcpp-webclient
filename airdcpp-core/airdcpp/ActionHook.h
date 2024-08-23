@@ -52,6 +52,8 @@ namespace dcpp {
 
 			return aRejection->hookId == aHookId && aRejection->rejectId == aRejectId;
 		}
+
+		typedef vector<ActionHookRejectionPtr> List;
 	};
 
 	class HookRejectException : public Exception {
@@ -209,6 +211,30 @@ namespace dcpp {
 
 			return nullptr;
 		}
+
+
+		// Return data from the first successful hook, collect errors
+		optional<DataT> runHooksDataAny(const void* aOwner, ActionHookRejection::List& errors_, ArgT&... aItem) const {
+			for (const auto& handler : getHookHandlers(aOwner)) {
+				auto handlerRes = handler.callback(
+					aItem...,
+					handler.dataGetter
+				);
+
+				if (handlerRes.error) {
+					dcdebug("Hook rejected by handler %s: %s\n", handlerRes.error->hookId.c_str(), handlerRes.error->rejectId.c_str());
+
+					errors_.push_back(handlerRes.error);
+				}
+
+				if (handlerRes.data) {
+					return handlerRes.data;
+				}
+			}
+
+			return nullopt;
+		}
+
 
 		// Get data from all hooks, throw in case of rejections
 		ActionHookDataList<DataT> runHooksDataThrow(const void* aOwner, ArgT&... aItem) const {

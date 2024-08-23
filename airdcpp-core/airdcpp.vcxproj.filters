@@ -425,9 +425,6 @@
     <ClCompile Include="airdcpp\SearchTypes.cpp">
       <Filter>Source Files\search</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\UploadBundleInfoReceiver.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="airdcpp\UploadBundleInfoSender.cpp">
       <Filter>Source Files\transfer</Filter>
     </ClCompile>
@@ -463,6 +460,9 @@
     </ClCompile>
     <ClCompile Include="airdcpp\RegexUtil.cpp">
       <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\UploadBundleInfoReceiver.cpp">
+      <Filter>Source Files\transfer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

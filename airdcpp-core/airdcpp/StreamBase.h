@@ -79,6 +79,7 @@ public:
 	/* This only works for file streams */
 	virtual void setPos(int64_t /*pos*/) noexcept { }
 	virtual InputStream* releaseRootStream() { return this; }
+	virtual int64_t getSize() const noexcept = 0;
 };
 
 class IOStream : public InputStream, public OutputStream {

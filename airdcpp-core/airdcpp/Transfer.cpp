@@ -30,7 +30,7 @@ const string Transfer::names[] = {
 	"file", "file", "list", "tthl"
 };
 
-const string Transfer::USER_LIST_NAME = "files.xml";
+const string Transfer::USER_LIST_NAME_EXTRACTED = "files.xml";
 const string Transfer::USER_LIST_NAME_BZ = "files.xml.bz2";
 
 Transfer::Transfer(UserConnection& conn, const string& path_, const TTHValue& tth_) : segment(0, -1),

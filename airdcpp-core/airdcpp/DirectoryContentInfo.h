@@ -25,11 +25,18 @@ namespace dcpp {
 
 // Recursively collected information about directory content
 struct DirectoryContentInfo {
-	DirectoryContentInfo() : directories(-1), files(-1) {  }
+	static DirectoryContentInfo uninitialized() {
+		return DirectoryContentInfo(-1, -1);
+	}
+
+	static DirectoryContentInfo empty() {
+		return DirectoryContentInfo(0, 0);
+	}
+
 	DirectoryContentInfo(int aDirectories, int aFiles) : directories(aDirectories), files(aFiles) {  }
 
-	int directories;
-	int files;
+	int directories = 0;
+	int files = 0;
 
 	bool isInitialized() const noexcept {
 		return directories >= 0 && files >= 0;

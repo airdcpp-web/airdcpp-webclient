@@ -119,7 +119,7 @@ private:
 	const size_t totalSlots = 0;
 	const size_t freeSlots = 0;
 
-	const DirectoryContentInfo contentInfo;
+	const DirectoryContentInfo contentInfo = DirectoryContentInfo::uninitialized();
 	
 	const HintedUser user;
 	const Types type;
