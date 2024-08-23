@@ -40,7 +40,7 @@ public:
 	
 	static const string names[TYPE_LAST];
 
-	static const string USER_LIST_NAME;
+	static const string USER_LIST_NAME_EXTRACTED;
 	static const string USER_LIST_NAME_BZ;
 
 	Transfer(UserConnection& conn, const string& path, const TTHValue& tth);

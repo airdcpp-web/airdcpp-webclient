@@ -50,7 +50,7 @@ public:
 
 	const BundleUploadList& getUploads() const noexcept;
 	
-	int getRunning() const noexcept;
+	int getConnectionCount() const noexcept;
 
 	uint64_t getStart() const noexcept { return start; }
 

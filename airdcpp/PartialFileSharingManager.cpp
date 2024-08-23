@@ -33,11 +33,13 @@ namespace dcpp {
 PartialFileSharingManager::PartialFileSharingManager() {
 	TimerManager::getInstance()->addListener(this);
 	SearchManager::getInstance()->addListener(this);
+	ProtocolCommandManager::getInstance()->addListener(this);
 }
 
 PartialFileSharingManager::~PartialFileSharingManager() {
 	TimerManager::getInstance()->removeListener(this);
 	SearchManager::getInstance()->removeListener(this);
+	ProtocolCommandManager::getInstance()->removeListener(this);
 }
 
 void PartialFileSharingManager::dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
@@ -236,6 +238,10 @@ void PartialFileSharingManager::on(ProtocolCommandManagerListener::IncomingUDPCo
 }
 
 void PartialFileSharingManager::on(ProtocolCommandManagerListener::IncomingHubCommand, const AdcCommand& aCmd, const Client& aClient) noexcept {
+	if (aCmd.getCommand() != PartialFileSharingManager::CMD_PSR) {
+		return;
+	}
+
 	OnlineUser* ou = aClient.findUser(aCmd.getFrom());
 	if (!ou) {
 		dcdebug("Invalid user in AdcHub::onPBD\n");

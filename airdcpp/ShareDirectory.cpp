@@ -504,7 +504,7 @@ void ShareDirectory::File::addSR(SearchResultList& aResults, bool aAddParent) co
 		aResults.push_back(sr);
 	} else {
 		auto sr = make_shared<SearchResult>(SearchResult::TYPE_FILE,
-			size, getAdcPath(), getTTH(), getLastWrite(), DirectoryContentInfo());
+			size, getAdcPath(), getTTH(), getLastWrite(), DirectoryContentInfo::uninitialized());
 
 		aResults.push_back(sr);
 	}
@@ -624,7 +624,7 @@ void FilelistDirectory::toXml(OutputStream& xmlFile, string& indent, string& tmp
 		xmlFile.write(LITERAL("</Directory>\r\n"));
 	}
 	else {
-		DirectoryContentInfo contentInfo;
+		auto contentInfo(DirectoryContentInfo::empty());
 		int64_t totalSize = 0;
 		for (const auto& d : shareDirs) {
 			d->getContentInfo(totalSize, contentInfo);

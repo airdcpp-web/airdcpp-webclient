@@ -236,7 +236,10 @@ namespace dcpp {
 			return;
 		}
 
-		t->setState(TransferInfo::STATE_WAITING);
+		if (t->getState() != TransferInfo::STATE_RUNNING) {
+			t->setState(TransferInfo::STATE_WAITING);
+		}
+
 		t->setStatusString(STRING(CONNECTING_FORCED));
 		onTransferUpdated(t, TransferInfo::UpdateFlags::STATUS | TransferInfo::UpdateFlags::STATE);
 	}

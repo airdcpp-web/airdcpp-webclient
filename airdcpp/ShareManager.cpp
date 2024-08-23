@@ -147,7 +147,7 @@ string ShareManager::toVirtual(const TTHValue& aTTH, ProfileToken aProfile) cons
 	if (aTTH == fl->getBzXmlRoot()) {
 		return Transfer::USER_LIST_NAME_BZ;
 	} else if(aTTH == fl->getXmlRoot()) {
-		return Transfer::USER_LIST_NAME;
+		return Transfer::USER_LIST_NAME_EXTRACTED;
 	}
 
 	return tree->toVirtual(aTTH);
@@ -167,7 +167,7 @@ pair<int64_t, string> ShareManager::getFileListInfo(const string& aVirtualFile, 
 	if (aVirtualFile == "MyList.DcLst")
 		throw ShareException("NMDC-style lists no longer supported, please upgrade your client");
 
-	if (aVirtualFile == Transfer::USER_LIST_NAME_BZ || aVirtualFile == Transfer::USER_LIST_NAME) {
+	if (aVirtualFile == Transfer::USER_LIST_NAME_BZ || aVirtualFile == Transfer::USER_LIST_NAME_EXTRACTED) {
 		FileList* fl = generateXmlList(aProfile);
 		return { fl->getBzXmlListLen(), fl->getFileName() };
 	}
@@ -184,7 +184,7 @@ TTHValue ShareManager::getListTTH(const string& aVirtualFile, ProfileToken aProf
 	RLock l(cs);
 	if (aVirtualFile == Transfer::USER_LIST_NAME_BZ) {
 		return getFileList(aProfile)->getBzXmlRoot();
-	} else if (aVirtualFile == Transfer::USER_LIST_NAME) {
+	} else if (aVirtualFile == Transfer::USER_LIST_NAME_EXTRACTED) {
 		return getFileList(aProfile)->getXmlRoot();
 	}
 
@@ -210,7 +210,7 @@ MemoryInputStream* ShareManager::getTree(const string& aVirtualFile, ProfileToke
 }
 
 AdcCommand ShareManager::getFileInfo(const string& aFile, ProfileToken aProfile) {
-	if(aFile == Transfer::USER_LIST_NAME) {
+	if(aFile == Transfer::USER_LIST_NAME_EXTRACTED) {
 		FileList* fl = generateXmlList(aProfile);
 		AdcCommand cmd(AdcCommand::CMD_RES);
 		cmd.addParam("FN", aFile);

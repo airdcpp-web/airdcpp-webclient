@@ -144,7 +144,7 @@ AdcCommand Download::getCommand(bool zlib, const string& mySID) const noexcept {
 		if(isSet(Download::FLAG_XML_BZ_LIST)) {
 			cmd.addParam(USER_LIST_NAME_BZ);
 		} else {
-			cmd.addParam(USER_LIST_NAME);
+			cmd.addParam(USER_LIST_NAME_EXTRACTED);
 		}
 	} else {
 		cmd.addParam("TTH/" + getTTH().toBase32());

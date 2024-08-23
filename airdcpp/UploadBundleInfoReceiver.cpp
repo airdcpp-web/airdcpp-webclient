@@ -51,11 +51,13 @@ void UploadBundleInfoReceiver::dbgMsg(const string& aMsg, LogMessage::Severity a
 UploadBundleInfoReceiver::UploadBundleInfoReceiver() noexcept {
 	TimerManager::getInstance()->addListener(this);
 	UploadManager::getInstance()->addListener(this);
+	ProtocolCommandManager::getInstance()->addListener(this);
 }
 
 UploadBundleInfoReceiver::~UploadBundleInfoReceiver() {
 	TimerManager::getInstance()->removeListener(this);
 	UploadManager::getInstance()->removeListener(this);
+	ProtocolCommandManager::getInstance()->removeListener(this);
 }
 
 void UploadBundleInfoReceiver::onUBN(const AdcCommand& cmd) {

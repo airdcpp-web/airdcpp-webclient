@@ -76,7 +76,7 @@ string UploadBundle::getName() const noexcept {
 }
 
 void UploadBundle::addUpload(const Upload* u) noexcept {
-	dcassert(uploads.find(u->getToken()) == uploads.end());
+	// dcassert(uploads.find(u->getToken()) == uploads.end());
 	uploads.insert(u->getToken());
 
 	if (uploads.size() == 1) {
@@ -89,7 +89,7 @@ const UploadBundle::BundleUploadList& UploadBundle::getUploads() const noexcept 
 	return uploads; 
 }
 
-int UploadBundle::getRunning() const noexcept {
+int UploadBundle::getConnectionCount() const noexcept {
 	return (int)uploads.size(); 
 }
 

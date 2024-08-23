@@ -79,7 +79,7 @@ namespace dcpp {
 		bool incoming = false;
 
 		int64_t size = 0;
-		DirectoryContentInfo contentInfo;
+		DirectoryContentInfo contentInfo = DirectoryContentInfo::empty();
 
 		uint8_t refreshState = 0;
 		time_t lastRefreshTime = 0;

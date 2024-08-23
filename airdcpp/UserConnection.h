@@ -169,7 +169,7 @@ public:
 	const string& getRemoteIp() const noexcept { if(socket) return socket->getIp(); else return Util::emptyString; }
 	Download* getDownload() noexcept { dcassert(isSet(FLAG_DOWNLOAD)); return download; }
 	void setDownload(Download* d) noexcept { dcassert(isSet(FLAG_DOWNLOAD)); download = d; }
-	Upload* getUpload() noexcept { dcassert(isSet(FLAG_UPLOAD)); return upload; }
+	Upload* getUpload() const noexcept { dcassert(isSet(FLAG_UPLOAD)); return upload; }
 	void setUpload(Upload* u) noexcept { dcassert(isSet(FLAG_UPLOAD)); upload = u; }
 	
 	void handle(AdcCommand::SUP t, const AdcCommand& c) { fire(t, this, c); }

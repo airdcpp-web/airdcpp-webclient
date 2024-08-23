@@ -29,6 +29,7 @@ namespace dcpp {
 Upload::Upload(UserConnection& conn, const string& path, const TTHValue& tth, unique_ptr<InputStream> aIS) : 
 	Transfer(conn, path, tth), stream(std::move(aIS)) { 
 
+	dcassert(!conn.getUpload());
 	conn.setUpload(this);
 }
 
@@ -46,8 +47,13 @@ void Upload::setFiltered() {
 }
 
 Upload::~Upload() {
+	// auto otherThread = getUserConnection().getSocket()->getThreadHandle();
+	// auto thisThread = Thread::getCurrentThread();
+
+	// dcassert(getUserConnection().getSocket()->threadEquals(Thread::getCurrentThread()));
+	// dcassert(getUserConnection().getSocket()->isCurrentThread());
 	getUserConnection().setUpload(nullptr);
-	stream.reset();
+	// stream.reset();
 }
 
 void Upload::getParams(const UserConnection& aSource, ParamMap& params) const {

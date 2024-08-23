@@ -1712,12 +1712,29 @@ void QueueManager::onDownloadFailed(const QueueItemPtr& aQI, Download* aDownload
 			ConnectionManager::getInstance()->getDownloadConnection(u);
 	}
 
+	onFileDownloadRemoved(aQI, true);
+	return;
+}
+
+void QueueManager::onFileDownloadRemoved(const QueueItemPtr& aQI, bool aFailed) noexcept {
 	fire(QueueManagerListener::ItemStatus(), aQI);
 	if (aQI->getBundle()) {
-		fire(QueueManagerListener::BundleDownloadStatus(), aQI->getBundle());
-	}
+		auto checkWaiting = [this, bundle = aQI->getBundle()] {
+			auto downloads = DownloadManager::getInstance()->getBundleDownloadConnectionCount(bundle);
+			if (downloads == 0) {
+				fire(QueueManagerListener::BundleDownloadStatus(), bundle);
+				bundle->setStart(0);
+			}
+		};
 
-	return;
+		if (aFailed) {
+			checkWaiting();
+		} else {
+			delayEvents.addEvent(aQI->getBundle()->getToken(), [this, checkWaiting] {
+				checkWaiting();
+				}, 1000);
+		}
+	}
 }
 
 void QueueManager::onFilelistDownloadCompletedHooked(const QueueItemPtr& aQI, Download* aDownload) noexcept {
@@ -1824,10 +1841,7 @@ void QueueManager::onFileDownloadCompleted(const QueueItemPtr& aQI, Download* aD
 	if (wholeFileCompleted && !aQI->getBundle()) {
 		fire(QueueManagerListener::ItemRemoved(), aQI, true);
 	} else {
-		fire(QueueManagerListener::ItemStatus(), aQI);
-		if (aQI->getBundle()) {
-			fire(QueueManagerListener::BundleDownloadStatus(), aQI->getBundle());
-		}
+		onFileDownloadRemoved(aQI, false);
 	}
 }
 
@@ -3135,6 +3149,24 @@ bool QueueManager::checkDropSlowSource(Download* d) noexcept {
 	return false;
 }
 
+void QueueManager::toRealWithSize(const string& aFile, string& path_, int64_t& size_, const Segment& segment_) {
+	if (aFile.compare(0, 4, "TTH/") == 0 && SETTING(USE_PARTIAL_SHARING)) {
+		TTHValue fileHash(aFile.substr(4));
+
+		auto end = segment_.getEnd();
+		if (isChunkDownloaded(fileHash, segment_.getStart(), end, size_, path_)) {
+			if (end != segment_.getEnd()) {
+				// TODO: is this needed?
+				// segment_.setEnd(end);
+			}
+
+			return;
+		}
+	}
+
+	throw QueueException(UserConnection::FILE_NOT_AVAILABLE);
+}
+
 void QueueManager::getPartialInfo(const QueueItemPtr& aQI, PartsInfo& partialInfo_) const noexcept {
 	auto blockSize = aQI->getBlockSize();
 
@@ -3290,7 +3322,7 @@ void QueueManager::setFileStatus(const QueueItemPtr& aFile, QueueItem::Status aN
 	}
 }
 
-bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, int64_t& fileSize_, string& target) noexcept {
+bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t aStartPos, int64_t& bytes_, int64_t& fileSize_, string& target_) noexcept {
 	QueueItemList ql;
 
 	RLock l(cs);
@@ -3304,9 +3336,9 @@ bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t startPos, int6
 		return false;
 
 	fileSize_ = qi->getSize();
-	target = qi->isDownloaded() ? qi->getTarget() : qi->getTempTarget();
+	target_ = qi->isDownloaded() ? qi->getTarget() : qi->getTempTarget();
 
-	return qi->isChunkDownloaded(startPos, bytes);
+	return qi->isChunkDownloaded(aStartPos, bytes_);
 }
 
 void QueueManager::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept {

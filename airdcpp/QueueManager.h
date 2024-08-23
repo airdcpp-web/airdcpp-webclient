@@ -286,6 +286,8 @@ public:
 	bool addPartialSourceHooked(const HintedUser& aUser, const QueueItemPtr& aQI, const PartsInfo& aInPartialInfo) noexcept;
 	void getPartialInfo(const QueueItemPtr& aQI, PartsInfo& partialInfo_) const noexcept;
 
+	void toRealWithSize(const string& aVirtualPath, string& path_, int64_t& size_, const Segment& segment_);
+
 	// Queue a TTH list from the user containing the supplied TTH
 	// Throws on errors
 	void addBundleTTHListHooked(const HintedUser& aUser, const BundlePtr& aBundle, const string& aRemoteBundleToken);
@@ -543,6 +545,7 @@ private:
 	// Throws HashException
 	void onTreeDownloadCompleted(const QueueItemPtr& aQI, Download* aDownload);
 	void onFilelistDownloadCompletedHooked(const QueueItemPtr& aQI, Download* aDownload) noexcept;
+	void onFileDownloadRemoved(const QueueItemPtr& aQI, bool aFailed) noexcept;
 
 	StringMatch highPrioFiles;
 	StringMatch skipList;

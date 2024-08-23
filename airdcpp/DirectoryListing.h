@@ -129,7 +129,7 @@ public:
 		File::List files;
 
 		static Directory::Ptr create(Directory* aParent, const string& aName, DirType aType, time_t aUpdateDate, 
-			bool aCheckDupe = false, const DirectoryContentInfo& aContentInfo = DirectoryContentInfo(),
+			bool aCheckDupe = false, const DirectoryContentInfo& aContentInfo = DirectoryContentInfo::uninitialized(),
 			const string& aSize = Util::emptyString, time_t aRemoteDate = 0);
 
 		virtual ~Directory();
@@ -192,7 +192,7 @@ public:
 
 		void getContentInfo(size_t& directories_, size_t& files_, bool aCountVirtual) const noexcept;
 
-		DirectoryContentInfo contentInfo;
+		DirectoryContentInfo contentInfo = DirectoryContentInfo::uninitialized();
 		const string name;
 	};
 

@@ -27,10 +27,12 @@
 #include "HintedUser.h"
 #include "MerkleTree.h"
 #include "Message.h"
+#include "Segment.h"
 #include "Singleton.h"
 #include "Speaker.h"
 #include "StringMatch.h"
 #include "TimerManagerListener.h"
+#include "Transfer.h"
 #include "UploadManagerListener.h"
 #include "UserConnectionListener.h"
 #include "UserInfoBase.h"
@@ -92,8 +94,6 @@ public:
 
 	/** @return Number of uploads. */ 
 	size_t getUploadCount() const noexcept;
-
-	// size_t getRunningBundleCount() const noexcept;
 
 	/**
 	 * @remarks This is only used in the tray icons. Could be used in
@@ -177,6 +177,8 @@ private:
 	void removeConnection(UserConnection* aConn) noexcept;
 	void removeUpload(Upload* aUpload, bool aDelay = false) noexcept;
 	void logUpload(const Upload* u) noexcept;
+	
+	void startTransfer(Upload* aUpload) noexcept;
 
 	// ClientManagerListener
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool aWentOffline) noexcept override;
@@ -196,7 +198,64 @@ private:
 	void on(AdcCommand::GET, UserConnection*, const AdcCommand&) noexcept override;
 	void on(AdcCommand::GFI, UserConnection*, const AdcCommand&) noexcept override;
 
-	bool prepareFile(UserConnection& aSource, const string& aType, const string& aFile, int64_t aResume, int64_t& aBytes, const string& aUserSID, bool aListRecursive = false, bool aIsTTHList = false);
+	struct UploadRequest {
+		UploadRequest(const string& aType, const string& aFile, const Segment& aSegment) : type(aType), file(aFile), segment(aSegment) {}
+		UploadRequest(const string& aType, const string& aFile, const Segment& aSegment, const string& aUserSID, bool aListRecursive, bool aIsTTHList) : UploadRequest(aType, aFile, aSegment) {
+			userSID = aUserSID;
+			isTTHList = aIsTTHList;
+			listRecursive = aListRecursive;
+		}
+
+		bool validate() const noexcept {
+			auto failed = file.empty() || segment.getStart() < 0 || segment.getSize() < -1 || segment.getSize() == 0;
+			return !failed;
+		}
+
+		bool isUserlist() const noexcept {
+			return file == Transfer::USER_LIST_NAME_BZ || file == Transfer::USER_LIST_NAME_EXTRACTED;
+		}
+
+
+		const string& type;
+		const string& file;
+		Segment segment;
+		string userSID;
+		bool listRecursive = false;
+		bool isTTHList = false;
+	};
+
+	class UploadParser {
+	public:
+		class UploadParserException : public Exception {
+		public:
+			UploadParserException(const string& aError, bool aNoAccess) : Exception(aError), noAccess(aNoAccess) {
+
+			}
+
+			const bool noAccess;
+		};
+
+		UploadParser(const StringMatch& aFreeSlotMatcher) : freeSlotMatcher(aFreeSlotMatcher) {}
+
+		void parseFileInfo(const UploadRequest& aRequest, ProfileToken aProfile, const HintedUser& aUser);
+		Upload* toUpload(UserConnection& aSource, const UploadRequest& aRequest, unique_ptr<InputStream>& is, ProfileToken aProfile);
+
+		string sourceFile;
+		Transfer::Type type = Transfer::TYPE_LAST;
+		int64_t fileSize = 0;
+
+		bool partialFileSharing = false;
+		bool miniSlot = false;
+	private:
+
+		void toRealWithSize(const UploadRequest& aRequest, ProfileToken aProfile, const HintedUser& aUser);
+		const StringMatch& freeSlotMatcher;
+	};
+
+	bool prepareFile(UserConnection& aSource, const UploadRequest& aRequest);
+
+	unique_ptr<InputStream> resumeStream(const UserConnection& aSource, const UploadParser& aParser);
+	uint8_t parseSlotType(const UserConnection& aSource, const UploadParser& aParser);
 
 	void deleteDelayUpload(Upload* aUpload, bool aResuming) noexcept;
 };

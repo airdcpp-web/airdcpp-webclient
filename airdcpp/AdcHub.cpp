@@ -43,7 +43,6 @@
 #include "SSLSocket.h"
 #include "StringTokenizer.h"
 #include "ThrottleManager.h"
-#include "UploadBundleInfoReceiver.h"
 #include "UploadManager.h"
 #include "UserCommand.h"
 #include "Util.h"
