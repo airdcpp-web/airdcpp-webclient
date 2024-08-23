@@ -217,7 +217,7 @@ public:
 		return as->releaseRootStream();
 	}
 
-	int64_t getSize() const noexcept {
+	int64_t getSize() const noexcept override {
 		return f->getSize();
 	}
 private:

@@ -48,7 +48,7 @@ public:
 	size_t write(const void* buf, size_t len) override;
 	size_t read(void* buf, size_t& len) override;
 
-	int64_t getSize() const noexcept;
+	int64_t getSize() const noexcept override;
 	void setSize(int64_t newSize);
 
 	size_t flushBuffers(bool aForce) override;

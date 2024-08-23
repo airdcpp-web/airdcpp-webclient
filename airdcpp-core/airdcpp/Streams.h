@@ -53,7 +53,7 @@ public:
 		return len;
 	}
 
-	int64_t getSize() const noexcept { return static_cast<int64_t>(size); }
+	int64_t getSize() const noexcept override { return static_cast<int64_t>(size); }
 
 private:
 	size_t pos = 0;
@@ -116,7 +116,7 @@ public:
 		return as->releaseRootStream();
 	}
 
-	int64_t getSize() const noexcept {
+	int64_t getSize() const noexcept override {
 		return s->getSize();
 	}
 private:

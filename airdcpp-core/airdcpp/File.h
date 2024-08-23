@@ -110,7 +110,7 @@ public:
 	~File();
 
 	bool isOpen() const noexcept;
-	int64_t getSize() const noexcept;
+	int64_t getSize() const noexcept override;
 	void setSize(int64_t newSize);
 
 	int64_t getPos() const noexcept;
