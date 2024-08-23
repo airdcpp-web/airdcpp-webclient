@@ -187,7 +187,7 @@ namespace webserver {
 						{ "name", aData.name },
 						{ "time", aData.date },
 						{ "priority", Serializer::serializePriorityId(aData.prio) },
-						{ "type", aIsFile ? Serializer::serializeFileType(aData.name) : Serializer::serializeFolderType(DirectoryContentInfo()) },
+						{ "type", aIsFile ? Serializer::serializeFileType(aData.name) : Serializer::serializeFolderType(DirectoryContentInfo::uninitialized()) },
 					} },
 				});
 			}),

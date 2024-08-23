@@ -201,7 +201,7 @@ namespace webserver {
 	}
 
 	json ShareApi::serializeDirectory(const ShareDirectory::Ptr& aDirectory) noexcept {
-		DirectoryContentInfo contentInfo;
+		auto contentInfo(DirectoryContentInfo::empty());
 		int64_t totalSize = 0;
 		aDirectory->getContentInfo(totalSize, contentInfo);
 
