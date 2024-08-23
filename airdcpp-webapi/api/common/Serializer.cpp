@@ -396,7 +396,7 @@ namespace webserver {
 		};
 
 		if (aInfo.isDirectory) {
-			ret["type"] = Serializer::serializeFolderType(DirectoryContentInfo());
+			ret["type"] = Serializer::serializeFolderType(DirectoryContentInfo::uninitialized());
 		} else {
 			ret["type"] = Serializer::serializeFileType(aInfo.name);
 			ret["size"] = aInfo.size;
