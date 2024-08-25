@@ -57,7 +57,15 @@ const string AdcHub::BLO0_SUPPORT("BLO0");
 const string AdcHub::ZLIF_SUPPORT("ZLIF");
 const string AdcHub::HBRI_SUPPORT("HBRI");
 
-const vector<StringList> AdcHub::searchExtensions;
+const vector<StringList> AdcHub::searchExtensions = {
+	// these extensions *must* be sorted alphabetically!
+	{ "ape", "flac", "m4a", "mid", "mp3", "mpc", "ogg", "ra", "wav", "wma" },
+	{ "7z", "ace", "arj", "bz2", "gz", "lha", "lzh", "rar", "tar", "z", "zip" },
+	{ "doc", "docx", "htm", "html", "nfo", "odf", "odp", "ods", "odt", "pdf", "ppt", "pptx", "rtf", "txt", "xls", "xlsx", "xml", "xps" },
+	{ "app", "bat", "cmd", "com", "dll", "exe", "jar", "msi", "ps1", "vbs", "wsf" },
+	{ "bmp", "cdr", "eps", "gif", "ico", "img", "jpeg", "jpg", "png", "ps", "psd", "sfw", "tga", "tif", "webp" },
+	{ "3gp", "asf", "asx", "avi", "divx", "flv", "mkv", "mov", "mp4", "mpeg", "mpg", "ogm", "pxp", "qt", "rm", "rmvb", "swf", "vob", "webm", "wmv" }
+};
 
 AdcHub::AdcHub(const string& aHubURL, const ClientPtr& aOldClient) :
 	Client(aHubURL, '\n', aOldClient) {
@@ -1106,21 +1114,6 @@ void AdcHub::sendUserCmd(const UserCommand& aUserCommand, const ParamMap& params
 }
 
 const vector<StringList>& AdcHub::getSearchExts() noexcept {
-	if(!searchExtensions.empty())
-		return searchExtensions;
-
-	// the list is always immutable except for this function where it is initially being filled.
-	const_cast<vector<StringList>&>(searchExtensions) = {
-		// these extensions *must* be sorted alphabetically!
-		{ "ape", "flac", "m4a", "mid", "mp3", "mpc", "ogg", "ra", "wav", "wma" },
-		{ "7z", "ace", "arj", "bz2", "gz", "lha", "lzh", "rar", "tar", "z", "zip" },
-		{ "doc", "docx", "htm", "html", "nfo", "odf", "odp", "ods", "odt", "pdf", "ppt", "pptx", "rtf", "txt", "xls", "xlsx", "xml", "xps" },
-		{ "app", "bat", "cmd", "com", "dll", "exe", "jar", "msi", "ps1", "vbs", "wsf" },
-		{ "bmp", "cdr", "eps", "gif", "ico", "img", "jpeg", "jpg", "png", "ps", "psd", "sfw", "tga", "tif", "webp" },
-		{ "3gp", "asf", "asx", "avi", "divx", "flv", "mkv", "mov", "mp4", "mpeg", "mpg", "ogm", "pxp", "qt", "rm", "rmvb", "swf", "vob", "webm", "wmv" }
-	};
-
-
 	return searchExtensions;
 }
 
