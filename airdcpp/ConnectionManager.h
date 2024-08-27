@@ -62,21 +62,20 @@ public:
 	};
 
 	enum Flags {
-		FLAG_MCN1				= 0x01,
-		FLAG_REMOVE				= 0x08
+		FLAG_REMOVE				= 0x01
 	};
 
-	enum DownloadType {
-		TYPE_ANY,
-		TYPE_SMALL,
-		TYPE_SMALL_CONF,
-		TYPE_MCN_NORMAL
+	enum class DownloadType {
+		ANY,
+		SMALL,
+		SMALL_CONF,
+		MCN_NORMAL
 	};
 
 	ConnectionQueueItem(const HintedUser& aUser, ConnectionType aConntype, const string& aToken);
 	
 	GETSET(string, token, Token);
-	IGETSET(DownloadType, downloadType, DownloadType, TYPE_ANY);
+	IGETSET(DownloadType, downloadType, DownloadType, DownloadType::ANY);
 	GETSET(string, lastBundle, LastBundle);
 	IGETSET(uint64_t, lastAttempt, LastAttempt, 0);
 	IGETSET(int, errors, Errors, 0); // Number of connection errors, or -1 after a protocol error
@@ -88,6 +87,18 @@ public:
 	void setHubUrl(const string& aHubUrl) noexcept { user.hint = aHubUrl; }
 	const HintedUser& getUser() const noexcept { return user; }
 	bool allowNewConnections(int running) const noexcept;
+
+	bool isSmallSlot() const noexcept {
+		return downloadType == DownloadType::SMALL_CONF || downloadType == DownloadType::SMALL;
+	}
+
+	bool isActive() const noexcept {
+		return state == ACTIVE || state == RUNNING;
+	}
+
+	bool isMcn() const noexcept {
+		return downloadType == DownloadType::SMALL_CONF || downloadType == DownloadType::MCN_NORMAL;
+	}
 private:
 	HintedUser user;
 };
@@ -213,9 +224,11 @@ private:
 	StringList adcFeatures;
 
 	ExpectedMap expectedConnections;
-	typedef unordered_map<string, uint64_t> delayMap;
-	typedef delayMap::iterator delayIter;
-	delayMap delayedTokens;
+	typedef unordered_map<string, uint64_t> DelayMap;
+
+	// Keep track own our own downloads if they are removed before the handshake is finished
+	// (unknown tokens would be shown as uploads)
+	DelayMap removedDownloadTokens;
 
 	unique_ptr<Server> server;
 	unique_ptr<Server> secureServer;

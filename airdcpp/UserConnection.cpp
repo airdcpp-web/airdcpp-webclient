@@ -150,23 +150,6 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 	}
 }
 
-void UserConnection::connect(const AddressInfo& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const UserPtr& aUser /*nullptr*/) {
-	dcassert(!socket);
-
-	socket = BufferedSocket::getSocket(0);
-	socket->setUseLimiter(true);
-	socket->addListener(this);
-
-	//string expKP;
-	if (aUser) {
-		// @see UserConnection::accept, additionally opt to treat connections in both directions identically to avoid unforseen issues
-		//expKP = ClientManager::getInstance()->getField(aUser->getCID(), hubUrl, "KP");
-		setUser(aUser);
-	}
-
-	socket->connect(aServer, aPort, localPort, natRole, secure, /*SETTING(ALLOW_UNTRUSTED_CLIENTS)*/ true, true);
-}
-
 int64_t UserConnection::getChunkSize() const noexcept {
 	int64_t min_seg_size = (SETTING(MIN_SEGMENT_SIZE)*1024);
 	if(chunkSize < min_seg_size) {
@@ -214,10 +197,28 @@ void UserConnection::maxedOut(size_t qPos /*0*/) {
 	}
 }
 
-void UserConnection::accept(const Socket& aServer, const BufferedSocket::SocketAcceptFloodF& aFloodCheckF) {
+void UserConnection::initSocket() {
 	dcassert(!socket);
 	socket = BufferedSocket::getSocket(0);
+	socket->setUseLimiter(true);
 	socket->addListener(this);
+}
+
+void UserConnection::connect(const AddressInfo& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const UserPtr& aUser /*nullptr*/) {
+	initSocket();
+
+	//string expKP;
+	if (aUser) {
+		// @see UserConnection::accept, additionally opt to treat connections in both directions identically to avoid unforseen issues
+		//expKP = ClientManager::getInstance()->getField(aUser->getCID(), hubUrl, "KP");
+		setUser(aUser);
+	}
+
+	socket->connect(aServer, aPort, localPort, natRole, secure, /*SETTING(ALLOW_UNTRUSTED_CLIENTS)*/ true, true);
+}
+
+void UserConnection::accept(const Socket& aServer, const BufferedSocket::SocketAcceptFloodF& aFloodCheckF) {
+	initSocket();
 
 	/*
 	Technically only one side needs to verify KeyPrint, 
@@ -454,4 +455,9 @@ void UserConnection::send(const string& aString) {
 UserConnection::UserConnection(bool secure_) noexcept : encoding(SETTING(NMDC_ENCODING)),
 	secure(secure_), download(nullptr) {
 }
+
+UserConnection::~UserConnection() {
+	BufferedSocket::putSocket(socket);
+}
+
 } // namespace dcpp

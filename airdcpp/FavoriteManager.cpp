@@ -457,6 +457,8 @@ void FavoriteManager::loadFavoriteDirectories(SimpleXML& aXml) {
 		}
 		aXml.stepOut();
 	}
+
+	aXml.resetCurrentChild();
 }
 
 FavoriteHubEntryList FavoriteManager::getFavoriteHubs(const string& group) const noexcept {

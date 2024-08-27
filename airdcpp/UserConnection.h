@@ -219,6 +219,8 @@ public:
 
 	void setUseLimiter(bool aEnabled) noexcept;
 private:
+	void initSocket();
+
 	int64_t chunkSize = 0;
 	BufferedSocket* socket = nullptr;
 	const bool secure;
@@ -233,10 +235,7 @@ private:
 
 	// We only want ConnectionManager to create this...
 	UserConnection(bool secure_) noexcept;
-
-	virtual ~UserConnection() {
-		BufferedSocket::putSocket(socket);
-	}
+	virtual ~UserConnection();
 
 	friend struct DeleteFunction;
 
@@ -244,13 +243,13 @@ private:
 	
 	void send(const string& aString);
 
-	void on(Connected) noexcept;
-	void on(Line, const string&) noexcept;
-	void on(Data, uint8_t* data, size_t len) noexcept;
-	void on(BytesSent, size_t bytes, size_t actual) noexcept ;
-	void on(ModeChange) noexcept;
-	void on(TransmitDone) noexcept;
-	void on(Failed, const string&) noexcept;
+	void on(BufferedSocketListener::Connected) noexcept override;
+	void on(BufferedSocketListener::Line, const string&) noexcept override;
+	void on(BufferedSocketListener::Data, uint8_t* data, size_t len) noexcept override;
+	void on(BufferedSocketListener::BytesSent, size_t bytes, size_t actual) noexcept override;
+	void on(BufferedSocketListener::ModeChange) noexcept override;
+	void on(BufferedSocketListener::TransmitDone) noexcept override;
+	void on(BufferedSocketListener::Failed, const string&) noexcept override;
 
 	AdcSupports supports;
 };

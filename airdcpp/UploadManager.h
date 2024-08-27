@@ -215,6 +215,7 @@ private:
 	SlotType parseAutoGrantHookedThrow(const UserConnection& aSource, const UploadParser& aParser) const;
 
 	void deleteDelayUpload(Upload* aUpload, bool aResuming) noexcept;
+	void disconnectOfflineUsers() noexcept;
 };
 
 } // namespace dcpp
