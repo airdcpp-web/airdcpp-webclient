@@ -217,7 +217,7 @@ Upload* UploadManager::UploadParser::toUpload(UserConnection& aSource, const Upl
 	}
 	case Transfer::TYPE_TREE:
 	{
-		// sourceFile = aRequest.file;
+		sourceFile = aRequest.file; // sourceFile was changed to the path
 		unique_ptr<MemoryInputStream> mis(ShareManager::getInstance()->getTree(sourceFile, aProfile));
 		if (!mis.get()) {
 			return nullptr;
@@ -859,32 +859,34 @@ void UploadManager::removeConnection(UserConnection* aSource) noexcept {
 	aSource->setSlotType(UserConnection::NOSLOT);
 }
 
-void UploadManager::on(TimerManagerListener::Minute, uint64_t) noexcept {
+void UploadManager::disconnectOfflineUsers() noexcept {
+	if (!SETTING(AUTO_KICK)) {
+		return;
+	}
+
 	UserList disconnects;
 	{
-		WLock l(cs);
-		if (SETTING(AUTO_KICK)) {
-			for (auto u: uploads) {
-				if (u->getUser()->isOnline()) {
-					u->unsetFlag(Upload::FLAG_PENDING_KICK);
-					continue;
-				}
-
-				if (u->isSet(Upload::FLAG_PENDING_KICK)) {
-					disconnects.push_back(u->getUser());
-					continue;
-				}
-
-				if (SETTING(AUTO_KICK_NO_FAVS) && u->getUser()->isFavorite()) {
-					continue;
-				}
-
-				u->setFlag(Upload::FLAG_PENDING_KICK);
+		RLock l(cs);
+		for (auto u : uploads) {
+			if (u->getUser()->isOnline()) {
+				u->unsetFlag(Upload::FLAG_PENDING_KICK);
+				continue;
 			}
+
+			if (u->isSet(Upload::FLAG_PENDING_KICK)) {
+				disconnects.push_back(u->getUser());
+				continue;
+			}
+
+			if (SETTING(AUTO_KICK_NO_FAVS) && u->getUser()->isFavorite()) {
+				continue;
+			}
+
+			u->setFlag(Upload::FLAG_PENDING_KICK);
 		}
 	}
-		
-	for (auto& u: disconnects) {
+
+	for (auto& u : disconnects) {
 		log(STRING(DISCONNECTED_USER) + " " + Util::listToString(ClientManager::getInstance()->getNicks(u->getCID())), LogMessage::SEV_INFO);
 		ConnectionManager::getInstance()->disconnect(u, CONNECTION_TYPE_UPLOAD);
 	}
@@ -972,6 +974,11 @@ void UploadManager::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcep
 			fire(UploadManagerListener::Tick(), ticks);
 	}
 }
+
+void UploadManager::on(TimerManagerListener::Minute, uint64_t) noexcept {
+	disconnectOfflineUsers();
+}
+
 
 void UploadManager::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
 	LogManager::getInstance()->message(aMsg, aSeverity, STRING(MENU_TRANSFERS));
