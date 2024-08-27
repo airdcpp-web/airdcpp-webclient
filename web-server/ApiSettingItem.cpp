@@ -331,10 +331,10 @@ namespace webserver {
 			case SettingsManager::NO_IP_OVERRIDE6: return ConnectivityManager::getInstance()->get(static_cast<SettingsManager::BoolSetting>(si.key));
 
 			case SettingsManager::DOWNLOAD_SLOTS: return AirUtil::getSlots(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
-			case SettingsManager::MAX_DOWNLOAD_SPEED: return AirUtil::getSpeedLimit(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
+			case SettingsManager::MAX_DOWNLOAD_SPEED: return AirUtil::getSpeedLimitKbps(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
 
 			case SettingsManager::UPLOAD_SLOTS: return AirUtil::getSlots(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
-			case SettingsManager::MIN_UPLOAD_SPEED: return AirUtil::getSpeedLimit(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
+			case SettingsManager::MIN_UPLOAD_SPEED: return AirUtil::getSpeedLimitKbps(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
 			case SettingsManager::AUTO_SLOTS: return AirUtil::getMaxAutoOpened(Util::toDouble(SETTING(UPLOAD_SPEED)));
 
 			case SettingsManager::MAX_MCN_DOWNLOADS: return AirUtil::getSlotsPerUser(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
