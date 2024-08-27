@@ -154,6 +154,7 @@ void UserConnection::connect(const AddressInfo& aServer, const string& aPort, co
 	dcassert(!socket);
 
 	socket = BufferedSocket::getSocket(0);
+	socket->setUseLimiter(true);
 	socket->addListener(this);
 
 	//string expKP;
@@ -183,16 +184,19 @@ bool UserConnection::isMCN() const noexcept {
 	return supports.includes(FEATURE_ADC_MCN1);
 }
 
+void UserConnection::setUseLimiter(bool aEnabled) noexcept {
+	if (socket) {
+		socket->setUseLimiter(aEnabled);
+	}
+}
+
 void UserConnection::setUser(const UserPtr& aUser) noexcept {
 	user = aUser;
+
 	if (aUser && socket) {
-		socket->setUseLimiter(true);
-		if (aUser->isSet(User::FAVORITE)) {
-			auto u = FavoriteManager::getInstance()->getFavoriteUser(aUser);
-			if (u) {
-				socket->setUseLimiter(!u->isSet(FavoriteUser::FLAG_SUPERUSER));
-			}
-		}
+		socket->callAsync([this] {
+			fire(UserConnectionListener::UserSet(), this);
+		});
 	}
 }
 

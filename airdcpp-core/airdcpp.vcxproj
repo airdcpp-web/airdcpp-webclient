@@ -220,6 +220,7 @@
     <ClCompile Include="airdcpp\DirectSearch.cpp" />
     <ClCompile Include="airdcpp\DupeUtil.cpp" />
     <ClCompile Include="airdcpp\ErrorCollector.cpp" />
+    <ClCompile Include="airdcpp\FavoriteUserManager.cpp" />
     <ClCompile Include="airdcpp\FloodCounter.cpp" />
     <ClCompile Include="airdcpp\GroupedSearchResult.cpp" />
     <ClCompile Include="airdcpp\Hasher.cpp" />
@@ -340,8 +341,11 @@
     <ClCompile Include="airdcpp\UploadBundle.cpp" />
     <ClCompile Include="airdcpp\UploadBundleInfoReceiver.cpp" />
     <ClCompile Include="airdcpp\UploadManager.cpp" />
+    <ClCompile Include="airdcpp\UploadQueueManager.cpp" />
+    <ClCompile Include="airdcpp\ReservedSlotManager.cpp" />
     <ClCompile Include="airdcpp\User.cpp" />
     <ClCompile Include="airdcpp\UserCommand.cpp" />
+    <ClCompile Include="airdcpp\UserCommandManager.cpp" />
     <ClCompile Include="airdcpp\UserConnection.cpp" />
     <ClCompile Include="airdcpp\UserQueue.cpp" />
     <ClCompile Include="airdcpp\Util.cpp" />
@@ -362,6 +366,8 @@
     <ClInclude Include="airdcpp\AppUtil.h" />
     <ClInclude Include="airdcpp\DirectoryContentInfo.h" />
     <ClInclude Include="airdcpp\DupeUtil.h" />
+    <ClInclude Include="airdcpp\FavoriteUserManager.h" />
+    <ClInclude Include="airdcpp\FavoriteUserManagerListener.h" />
     <ClInclude Include="airdcpp\FloodCounter.h" />
     <ClInclude Include="airdcpp\HasherManager.h" />
     <ClInclude Include="airdcpp\HasherStats.h" />
@@ -427,6 +433,10 @@
     <ClInclude Include="airdcpp\UploadBundleInfoReceiver.h" />
     <ClInclude Include="airdcpp\UploadBundleInfoReceiverListener.h" />
     <ClInclude Include="airdcpp\UploadBundleManager.h" />
+    <ClInclude Include="airdcpp\UploadQueueManager.h" />
+    <ClInclude Include="airdcpp\UploadQueueManagerListener.h" />
+    <ClInclude Include="airdcpp\ReservedSlotManager.h" />
+    <ClInclude Include="airdcpp\UserCommandManager.h" />
     <ClInclude Include="airdcpp\ValueGenerator.h" />
     <ClInclude Include="airdcpp\ViewFileManagerListener.h" />
     <ClInclude Include="airdcpp\MessageCache.h" />

@@ -97,7 +97,7 @@ namespace dcpp {
 		}
 	}
 
-	void TransferInfoManager::on(DownloadManagerListener::Tick, const DownloadList& aDownloads) noexcept {
+	void TransferInfoManager::on(DownloadManagerListener::Tick, const DownloadList& aDownloads, uint64_t) noexcept {
 		TransferInfo::List tickTransfers;
 		for (const auto& dl : aDownloads) {
 			auto t = onTick(dl, true);

@@ -57,6 +57,11 @@ private:
 	bz_stream zs;
 };
 
+class BZUtil {
+public:
+	static void decodeBZ2(const uint8_t* is, size_t sz, string& os);
+};
+
 } // namespace dcpp
 
 #endif // !defined(DCPLUSPLUS_DCPP_BZUTILS_H)

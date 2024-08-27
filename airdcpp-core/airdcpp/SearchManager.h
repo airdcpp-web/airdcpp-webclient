@@ -65,8 +65,6 @@ public:
 	void onRES(const AdcCommand& cmd, const UserPtr& aFrom, const string& aRemoteIp);
 
 	bool decryptPacket(string& x, size_t aLen, const ByteVector& aBuf);
-	static string encryptSUDP(const uint8_t* aKey, const string& aCmd);
-	static bool decryptSUDP(const uint8_t* aKey, const ByteVector& aData, size_t aDataLen, string& result_);
 
 	SearchInstancePtr createSearchInstance(const string& aOwnerId, uint64_t aExpirationTick = 0) noexcept;
 	SearchInstancePtr removeSearchInstance(SearchInstanceToken aToken) noexcept;
@@ -81,8 +79,9 @@ public:
 		return *udpServer.get();
 	}
 private:
-	static void testSUDP();
-	vector<pair<uint8_t*, uint64_t>> searchKeys;
+	vector<pair<std::unique_ptr<uint8_t[]>, uint64_t>> searchKeys;
+
+	string generateSUDPKey();
 
 	mutable SharedMutex cs;
 

@@ -53,8 +53,6 @@ public:
 	const string& getPk() { return pk; }
 	bool isExtended(const string& aLock) { return strncmp(aLock.c_str(), "EXTENDEDPROTOCOL", 16) == 0; }
 
-	void decodeBZ2(const uint8_t* is, size_t sz, string& os);
-
 	SSL_CTX* getSSLContext(SSLContext wanted);
 
 	void loadCertificates() noexcept;
@@ -75,7 +73,14 @@ public:
 	static string keyprintToString(const ByteVector& aKP) noexcept;
 
 	static optional<ByteVector> calculateSha1(const string& aData) noexcept;
+
+	static string encryptSUDP(const uint8_t* aKey, const string& aCmd);
+	static bool decryptSUDP(const uint8_t* aKey, const ByteVector& aData, size_t aDataLen, string& result_);
+
+	typedef std::unique_ptr<uint8_t[]> SUDPKey;
+	static SUDPKey generateSUDPKey();
 private:
+	static void testSUDP();
 
 	friend class Singleton<CryptoManager>;
 

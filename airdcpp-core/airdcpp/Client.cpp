@@ -31,6 +31,7 @@
 #include "ShareManager.h"
 #include "ThrottleManager.h"
 #include "TimerManager.h"
+#include "UserCommandManager.h"
 #include "ValueGenerator.h"
 
 namespace dcpp {
@@ -76,7 +77,7 @@ void Client::setActive() noexcept {
 
 void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 	if (aClient->isConnected()) {
-		FavoriteManager::getInstance()->removeUserCommand(getHubUrl());
+		UserCommandManager::getInstance()->removeUserCommand(getHubUrl());
 	}
 
 	TimerManager::getInstance()->removeListener(this);
@@ -489,7 +490,7 @@ void Client::on(BufferedSocketListener::Failed, const string& aLine) noexcept {
 	clearUsers();
 	
 	if (stateNormal()) {
-		FavoriteManager::getInstance()->removeUserCommand(hubUrl);
+		UserCommandManager::getInstance()->removeUserCommand(hubUrl);
 	}
 
 	setConnectState(STATE_DISCONNECTED);

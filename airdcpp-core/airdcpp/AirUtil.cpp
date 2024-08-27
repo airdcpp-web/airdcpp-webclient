@@ -173,7 +173,7 @@ int AirUtil::getSlots(bool aIsDownload, double aValue, SettingsManager::SettingP
 
 }
 
-int AirUtil::getSpeedLimit(bool download, double value) {
+int AirUtil::getSpeedLimitKbps(bool download, double value) {
 
 	if (!SETTING(DL_AUTODETECT) && value == 0 && download) {
 		//LogManager::getInstance()->message("Slots1");

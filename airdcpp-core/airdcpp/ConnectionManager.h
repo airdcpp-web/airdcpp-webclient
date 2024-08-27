@@ -37,10 +37,12 @@ class SocketException;
 
 class TokenManager {
 public:
+	~TokenManager();
+
 	string createToken(ConnectionType aConnType) noexcept;
 	bool addToken(const string& aToken, ConnectionType aConnType) noexcept;
 	void removeToken(const string& aToken) noexcept;
-	bool hasToken(const string& aToken, ConnectionType aConnType) const noexcept;
+	bool hasToken(const string& aToken, ConnectionType aConnType = CONNECTION_TYPE_LAST) const noexcept;
 private:
 	unordered_map<string, ConnectionType> tokens;
 	static FastCriticalSection cs;
@@ -244,26 +246,27 @@ private:
 	void failed(UserConnection* aSource, const string& aError, bool aProtocolError) noexcept;
 	
 	// UserConnectionListener
-	void on(Connected, UserConnection*) noexcept;
-	void on(Failed, UserConnection*, const string&) noexcept;
-	void on(ProtocolError, UserConnection*, const string&) noexcept;
-	void on(CLock, UserConnection*, const string&) noexcept;
-	void on(Key, UserConnection*, const string&) noexcept;
-	void on(Direction, UserConnection*, const string&, const string&) noexcept;
-	void on(MyNick, UserConnection*, const string&) noexcept;
-	void on(Supports, UserConnection*, const StringList&) noexcept;
+	void on(UserConnectionListener::Connected, UserConnection*) noexcept override;
+	void on(UserConnectionListener::Failed, UserConnection*, const string&) noexcept override;
+	void on(UserConnectionListener::ProtocolError, UserConnection*, const string&) noexcept override;
+	void on(UserConnectionListener::CLock, UserConnection*, const string&) noexcept override;
+	void on(UserConnectionListener::Key, UserConnection*, const string&) noexcept override;
+	void on(UserConnectionListener::Direction, UserConnection*, const string&, const string&) noexcept override;
+	void on(UserConnectionListener::MyNick, UserConnection*, const string&) noexcept override;
+	void on(UserConnectionListener::Supports, UserConnection*, const StringList&) noexcept override;
+	void on(UserConnectionListener::UserSet, UserConnection*) noexcept override;
 
-	void on(AdcCommand::SUP, UserConnection*, const AdcCommand&) noexcept;
-	void on(AdcCommand::INF, UserConnection*, const AdcCommand&) noexcept;
-	void on(AdcCommand::STA, UserConnection*, const AdcCommand&) noexcept;
+	void on(AdcCommand::SUP, UserConnection*, const AdcCommand&) noexcept override;
+	void on(AdcCommand::INF, UserConnection*, const AdcCommand&) noexcept override;
+	void on(AdcCommand::STA, UserConnection*, const AdcCommand&) noexcept override;
 
 	// TimerManagerListener
-	void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
-	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
 
 	// ClientManagerListener
-	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool) noexcept { onUserUpdated(aUser.getUser()); }
-	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool) noexcept { onUserUpdated(aUser); }
+	void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool) noexcept override { onUserUpdated(aUser.getUser()); }
+	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool) noexcept override { onUserUpdated(aUser); }
 
 	void onUserUpdated(const UserPtr& aUser) noexcept;
 	void attemptDownloads(uint64_t aTick, StringList& removedTokens_) noexcept;

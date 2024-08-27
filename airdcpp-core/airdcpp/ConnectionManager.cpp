@@ -35,6 +35,11 @@
 namespace dcpp {
 FastCriticalSection TokenManager::cs;
 
+
+TokenManager::~TokenManager() {
+	// dcassert(tokens.empty());
+}
+
 string TokenManager::createToken(ConnectionType aConnType) noexcept {
 	string token;
 
@@ -57,7 +62,7 @@ bool TokenManager::addToken(const string& aToken, ConnectionType aConnType) noex
 bool TokenManager::hasToken(const string& aToken, ConnectionType aConnType) const noexcept{
 	FastLock l(cs);
 	const auto res = tokens.find(aToken);
-	return res != tokens.end() && res->second == aConnType;
+	return res != tokens.end() && (aConnType == CONNECTION_TYPE_LAST || res->second == aConnType);
 }
 
 void TokenManager::removeToken(const string& aToken) noexcept {
@@ -193,6 +198,7 @@ ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, Connecti
 	auto& container = cqis[aConnType];
 	auto cqi = new ConnectionQueueItem(aUser, aConnType, !aToken.empty() ? aToken : tokens.createToken(aConnType));
 	container.emplace_back(cqi);
+	dcassert(tokens.hasToken(cqi->getToken()));
 
 	fire(ConnectionManagerListener::Added(), cqi);
 	return cqi;
@@ -842,10 +848,10 @@ void ConnectionManager::addPMConnection(UserConnection* uc) noexcept {
 		auto& container = cqis[CONNECTION_TYPE_PM];
 		auto i = find(container.begin(), container.end(), uc->getUser());
 		if (i == container.end()) {
+			dcassert(!uc->getToken().empty());
 			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 			auto cqi = getCQI(uc->getHintedUser(), CONNECTION_TYPE_PM, uc->getToken());
 			cqi->setState(ConnectionQueueItem::ACTIVE);
-			uc->setToken(cqi->getToken());
 
 			fire(ConnectionManagerListener::Connected(), cqi, uc);
 
@@ -903,14 +909,15 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) noexcept {
 		auto &uploads = cqis[CONNECTION_TYPE_UPLOAD];
 		if (!uc->isMCN() && find(uploads.begin(), uploads.end(), uc->getUser()) != uploads.end()) {
 			//one connection per CID for non-mcn users
-			allowAdd=false;
+			allowAdd = false;
 		}
 
 		if (allowAdd) {
 			allowAdd = tokens.addToken(uc->getToken(), CONNECTION_TYPE_UPLOAD);
 			if (allowAdd) {
 				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
-				ConnectionQueueItem* cqi = getCQI(uc->getHintedUser(), CONNECTION_TYPE_UPLOAD, uc->getToken());
+
+				auto cqi = getCQI(uc->getHintedUser(), CONNECTION_TYPE_UPLOAD, uc->getToken());
 				cqi->setState(ConnectionQueueItem::ACTIVE);
 				fire(ConnectionManagerListener::Connected(), cqi, uc);
 			}
@@ -988,22 +995,14 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 
 		// set the PM flag now in order to send a INF with PM1
 		if ((tokens.hasToken(token, CONNECTION_TYPE_PM) || cmd.hasFlag("PM", 0))) {
-			if(!aSource->isSet(UserConnection::FLAG_PM))
+			if (!aSource->isSet(UserConnection::FLAG_PM)) {
 				aSource->setFlag(UserConnection::FLAG_PM);
+			}
 
 			if (!aSource->getUser()->isSet(User::TLS)) {
 				fail(AdcCommand::ERROR_GENERIC, "Unencrypted PM connections not allowed");
 				return;
 			}
-
-			/*
-			This means we rely on hubs to distribute the CCPM flag correctly to both sides,
-			some hubs don't do this...
-			*/
-			//if (!aSource->getUser()->isSet(User::CCPM)) {
-				//fail(AdcCommand::ERROR_GENERIC, "Attempted to establish CCPM without supports flag");
-				//return;
-			//}
 
 		}
 
@@ -1047,8 +1046,22 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 	if (aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
 		addDownloadConnection(aSource);
 	} else if (aSource->isSet(UserConnection::FLAG_PM) || cmd.hasFlag("PM", 0)) {
-		if (!aSource->isSet(UserConnection::FLAG_PM)) 
+		// Flag
+		if (!aSource->isSet(UserConnection::FLAG_PM)) {
 			aSource->setFlag(UserConnection::FLAG_PM);
+		}
+
+		// Token
+		if (cmd.hasFlag("PM", 0)) {
+			if (!tokens.addToken(token, CONNECTION_TYPE_PM)) {
+				dcassert(0);
+				fail(AdcCommand::ERROR_GENERIC, "Duplicate token");
+				return;
+			}
+		} else {
+			dcassert(tokens.hasToken(token));
+		}
+
 		addPMConnection(aSource);
 	} else if (!delayedToken) {
 		if (!aSource->isSet(UserConnection::FLAG_UPLOAD))
@@ -1247,6 +1260,10 @@ void ConnectionManager::on(UserConnectionListener::Supports, UserConnection* con
 			conn->setFlag(UserConnection::FLAG_SUPPORTS_TTHF);
 		}
 	}
+}
+
+void ConnectionManager::on(UserConnectionListener::UserSet, UserConnection* aUserConnection) noexcept {
+	fire(ConnectionManagerListener::UserSet(), aUserConnection);
 }
 
 } // namespace dcpp

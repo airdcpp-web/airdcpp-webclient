@@ -63,6 +63,12 @@
     <Filter Include="Header Files\util">
       <UniqueIdentifier>{8efbdcb2-b6bb-4946-b182-da4030f212a3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\favorites">
+      <UniqueIdentifier>{242828a7-1d0f-4cf4-a515-f9f3c53c25df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\favorites">
+      <UniqueIdentifier>{d4f75934-6d6c-4fe8-bb71-7b57fa2c54a5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="airdcpp\AdcCommand.cpp">
@@ -84,9 +90,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="airdcpp\Encoder.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="airdcpp\FavoriteManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="airdcpp\File.cpp">
@@ -195,9 +198,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="airdcpp\StringMatch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="airdcpp\HubEntry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="airdcpp\UpdateManager.cpp">
@@ -464,6 +464,24 @@
     <ClCompile Include="airdcpp\UploadBundleInfoReceiver.cpp">
       <Filter>Source Files\transfer</Filter>
     </ClCompile>
+    <ClCompile Include="airdcpp\UploadQueueManager.cpp">
+      <Filter>Source Files\transfer</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\UserCommandManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\ReservedSlotManager.cpp">
+      <Filter>Source Files\favorites</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\FavoriteUserManager.cpp">
+      <Filter>Source Files\favorites</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\FavoriteManager.cpp">
+      <Filter>Source Files\favorites</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\HubEntry.cpp">
+      <Filter>Source Files\favorites</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="airdcpp\AdcCommand.h">
@@ -508,18 +526,6 @@
     <ClInclude Include="airdcpp\FastAlloc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\FavHubGroup.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\FavoriteManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\FavoriteManagerListener.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\FavoriteUser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="airdcpp\File.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -536,9 +542,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\HashValue.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\HubEntry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\LogManager.h">
@@ -1158,6 +1161,39 @@
     </ClInclude>
     <ClInclude Include="airdcpp\UploadBundleInfo.h">
       <Filter>Header Files\transfer</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\UploadQueueManager.h">
+      <Filter>Header Files\transfer</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\UploadQueueManagerListener.h">
+      <Filter>Header Files\transfer</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\UserCommandManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\ReservedSlotManager.h">
+      <Filter>Header Files\favorites</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\FavHubGroup.h">
+      <Filter>Header Files\favorites</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\FavoriteManager.h">
+      <Filter>Header Files\favorites</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\FavoriteManagerListener.h">
+      <Filter>Header Files\favorites</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\FavoriteUser.h">
+      <Filter>Header Files\favorites</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\FavoriteUserManager.h">
+      <Filter>Header Files\favorites</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\FavoriteUserManagerListener.h">
+      <Filter>Header Files\favorites</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\HubEntry.h">
+      <Filter>Header Files\favorites</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

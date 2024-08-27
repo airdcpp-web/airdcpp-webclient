@@ -21,10 +21,8 @@
 
 #include "forward.h"
 
-#include "ClientManagerListener.h"
+#include "ActionHook.h"
 #include "CriticalSection.h"
-#include "FastAlloc.h"
-#include "HintedUser.h"
 #include "MerkleTree.h"
 #include "Message.h"
 #include "Segment.h"
@@ -39,57 +37,51 @@
 
 namespace dcpp {
 
-class UploadQueueItem : public FastAlloc<UploadQueueItem>, public intrusive_ptr_base<UploadQueueItem>, public UserInfoBase {
-public:
-	UploadQueueItem(const HintedUser& _user, const string& _file, int64_t _pos, int64_t _size);
+class UploadQueueManager;
 
-	static int compareItems(const UploadQueueItem* a, const UploadQueueItem* b, uint8_t col);
+// typedef UserConnection::SlotTypes SlotType;
+typedef uint8_t SlotType;
 
-	enum {
-		COLUMN_FIRST,
-		COLUMN_FILE = COLUMN_FIRST,
-		COLUMN_PATH,
-		COLUMN_NICK,
-		COLUMN_HUB,
-		COLUMN_TRANSFERRED,
-		COLUMN_SIZE,
-		COLUMN_ADDED,
-		COLUMN_WAITING,
-		COLUMN_LAST
-	};
-		
-	const tstring getText(uint8_t col) const noexcept;
-	int getImageIndex() const noexcept;
+struct UploadRequest {
+	UploadRequest(const string& aType, const string& aFile, const Segment& aSegment) : type(aType), file(aFile), segment(aSegment) {}
+	UploadRequest(const string& aType, const string& aFile, const Segment& aSegment, const string& aUserSID, bool aListRecursive, bool aIsTTHList) : UploadRequest(aType, aFile, aSegment) {
+		userSID = aUserSID;
+		isTTHList = aIsTTHList;
+		listRecursive = aListRecursive;
+	}
 
-	int64_t getSize() const noexcept { return size; }
-	uint64_t getTime() const noexcept { return time; }
-	const string& getFile() const noexcept { return file; }
-	const UserPtr& getUser() const noexcept { return user.user; }
-	const HintedUser& getHintedUser() const noexcept { return user; }
-	const string& getHubUrl() const noexcept { return user.hint; }
+	bool validate() const noexcept {
+		auto failed = file.empty() || segment.getStart() < 0 || segment.getSize() < -1 || segment.getSize() == 0;
+		return !failed;
+	}
 
-	GETSET(int64_t, pos, Pos);
-	
-private:
-	HintedUser	user;
-	string		file;
-	int64_t		size;
-	uint64_t	time;
+	bool isUserlist() const noexcept {
+		return file == Transfer::USER_LIST_NAME_BZ || file == Transfer::USER_LIST_NAME_EXTRACTED;
+	}
+
+	const string& type;
+	const string& file;
+	Segment segment;
+	string userSID;
+	bool listRecursive = false;
+	bool isTTHList = false;
 };
 
-struct WaitingUser {
+struct ParsedUpload {
+	string sourceFile;
+	Transfer::Type type = Transfer::TYPE_LAST;
+	int64_t fileSize = 0;
 
-	WaitingUser(const HintedUser& _user, const std::string& _token) : user(_user), token(_token) { }
-	operator const UserPtr&() const { return user.user; }
-
-	set<UploadQueueItem*>	files;
-	HintedUser				user;
-	string					token;
+	bool partialFileSharing = false;
+	bool miniSlot = false;
 };
 
-class UploadManager : private ClientManagerListener, private UserConnectionListener, public Speaker<UploadManagerListener>, private TimerManagerListener, public Singleton<UploadManager>
+
+class UploadManager : private UserConnectionListener, public Speaker<UploadManagerListener>, private TimerManagerListener, public Singleton<UploadManager>
 {
 public:
+	ActionHook<SlotType, const HintedUser&, const ParsedUpload&> slotTypeHook;
+
 	void setFreeSlotMatcher();
 
 	/** @return Number of uploads. */ 
@@ -101,7 +93,11 @@ public:
 	 *
 	 * @return Running average download speed in Bytes/s
 	 */
-	int64_t getRunningAverage(bool aLock = true) const noexcept;
+	int64_t getRunningAverageUnsafe() const noexcept;
+	int64_t getRunningAverage() const noexcept {
+		RLock l(cs);
+		return getRunningAverageUnsafe();
+	}
 	
 	uint8_t getSlots() const noexcept;
 
@@ -110,15 +106,6 @@ public:
 	
 	/** @internal */
 	int getFreeExtraSlots() const noexcept;
-	
-	/** @param aUser Reserve an upload slot for this user and connect. */
-	void reserveSlot(const HintedUser& aUser, uint64_t aTime) noexcept;
-	void unreserveSlot(const UserPtr& aUser) noexcept;
-	void clearUserFiles(const UserPtr& aUser, bool lock) noexcept;
-	bool hasReservedSlot(const UserPtr& aUser) const noexcept;
-	bool isNotifiedUser(const UserPtr& aUser) const noexcept;
-	typedef vector<WaitingUser> SlotQueue;
-	SlotQueue getUploadQueue() const noexcept;
 
 	/** @internal */
 	void addConnection(UserConnectionPtr conn) noexcept;
@@ -136,52 +123,50 @@ public:
 	bool callAsync(const string& aToken, std::function<void(const Upload*)>&& aHandler) const noexcept;
 
 	Upload* findUploadUnsafe(const string& aToken) const noexcept;
+
+	UploadQueueManager& getQueue() noexcept {
+		return *queue.get();
+	}
 private:
+	unique_ptr<UploadQueueManager> queue;
+
 	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 	StringMatch freeSlotMatcher;
 
-	uint8_t running = 0;
-	uint8_t mcnSlots = 0;
-	uint8_t smallSlots = 0;
+	uint8_t runningUsers = 0;
+	uint8_t mcnConnections = 0;
+	uint8_t smallFileConnections = 0;
+
+	int getFreeMultiConnUnsafe() const noexcept;
 
 	UploadList uploads;
 	UploadList delayUploads;
 	mutable SharedMutex cs;
-
-	int lastFreeSlots = -1; /// amount of free slots at the previous minute
+	mutable CriticalSection slotCS;
 	
 	typedef unordered_map<UserPtr, uint16_t, User::Hash> MultiConnMap;
 	MultiConnMap multiUploads;
 
-	typedef unordered_map<UserPtr, uint64_t, User::Hash> SlotMap;
-	typedef SlotMap::iterator SlotIter;
-	SlotMap reservedSlots;
-	SlotMap notifiedUsers;
-	SlotQueue uploadQueue;
-
-	size_t addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size) noexcept;
-	void notifyQueuedUsers() noexcept;
-	void connectUser(const HintedUser& aUser, const string& aToken) noexcept;
-
-	bool isUploadingLocked(const UserPtr& aUser) const noexcept { return multiUploads.find(aUser) != multiUploads.end(); }
-	bool getMultiConnLocked(const UserConnection& aSource) noexcept;
+	bool isUploadingMCN(const UserPtr& aUser) const noexcept;
+	bool allowNewMultiConn(const UserConnection& aSource) const noexcept;
 	void changeMultiConnSlot(const UserPtr& aUser, bool aRemove) noexcept;
-	void checkMultiConn() noexcept;
-	void updateSlotCounts(UserConnection& aSource, uint8_t aSlotType) noexcept;
+	void disconnectExtraMultiConn() noexcept;
+
+	void removeSlot(UserConnection& aSource) noexcept;
+	void updateSlotCounts(UserConnection& aSource, SlotType aNewSlotType) noexcept;
 
 	friend class Singleton<UploadManager>;
 	UploadManager() noexcept;
 	~UploadManager();
 
-	bool getAutoSlot() const noexcept;
+	bool standardSlotsRemaining(const UserPtr& aUser) const noexcept;
+	bool lowSpeedSlotsRemaining() const noexcept;
+
 	void removeConnection(UserConnection* aConn) noexcept;
 	void removeUpload(Upload* aUpload, bool aDelay = false) noexcept;
 	void logUpload(const Upload* u) noexcept;
 	
 	void startTransfer(Upload* aUpload) noexcept;
-
-	// ClientManagerListener
-	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool aWentOffline) noexcept override;
 	
 	// TimerManagerListener
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
@@ -198,33 +183,7 @@ private:
 	void on(AdcCommand::GET, UserConnection*, const AdcCommand&) noexcept override;
 	void on(AdcCommand::GFI, UserConnection*, const AdcCommand&) noexcept override;
 
-	struct UploadRequest {
-		UploadRequest(const string& aType, const string& aFile, const Segment& aSegment) : type(aType), file(aFile), segment(aSegment) {}
-		UploadRequest(const string& aType, const string& aFile, const Segment& aSegment, const string& aUserSID, bool aListRecursive, bool aIsTTHList) : UploadRequest(aType, aFile, aSegment) {
-			userSID = aUserSID;
-			isTTHList = aIsTTHList;
-			listRecursive = aListRecursive;
-		}
-
-		bool validate() const noexcept {
-			auto failed = file.empty() || segment.getStart() < 0 || segment.getSize() < -1 || segment.getSize() == 0;
-			return !failed;
-		}
-
-		bool isUserlist() const noexcept {
-			return file == Transfer::USER_LIST_NAME_BZ || file == Transfer::USER_LIST_NAME_EXTRACTED;
-		}
-
-
-		const string& type;
-		const string& file;
-		Segment segment;
-		string userSID;
-		bool listRecursive = false;
-		bool isTTHList = false;
-	};
-
-	class UploadParser {
+	class UploadParser : public ParsedUpload {
 	public:
 		class UploadParserException : public Exception {
 		public:
@@ -239,13 +198,6 @@ private:
 
 		void parseFileInfo(const UploadRequest& aRequest, ProfileToken aProfile, const HintedUser& aUser);
 		Upload* toUpload(UserConnection& aSource, const UploadRequest& aRequest, unique_ptr<InputStream>& is, ProfileToken aProfile);
-
-		string sourceFile;
-		Transfer::Type type = Transfer::TYPE_LAST;
-		int64_t fileSize = 0;
-
-		bool partialFileSharing = false;
-		bool miniSlot = false;
 	private:
 
 		void toRealWithSize(const UploadRequest& aRequest, ProfileToken aProfile, const HintedUser& aUser);
@@ -255,7 +207,12 @@ private:
 	bool prepareFile(UserConnection& aSource, const UploadRequest& aRequest);
 
 	unique_ptr<InputStream> resumeStream(const UserConnection& aSource, const UploadParser& aParser);
-	uint8_t parseSlotType(const UserConnection& aSource, const UploadParser& aParser);
+
+	// Parse slot type for the connection
+	// Throws in case of hook errors
+	SlotType parseSlotTypeHookedThrow(const UserConnection& aSource, const UploadParser& aParser) const;
+
+	SlotType parseAutoGrantHookedThrow(const UserConnection& aSource, const UploadParser& aParser) const;
 
 	void deleteDelayUpload(Upload* aUpload, bool aResuming) noexcept;
 };

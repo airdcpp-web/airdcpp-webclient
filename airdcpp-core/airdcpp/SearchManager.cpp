@@ -20,6 +20,7 @@
 #include "SearchManager.h"
 
 #include "ClientManager.h"
+#include "CryptoManager.h"
 #include "LogManager.h"
 #include "PathUtil.h"
 #include "ScopedFunctor.h"
@@ -32,9 +33,6 @@
 #include "UDPServer.h"
 #include "ValueGenerator.h"
 
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-
 namespace dcpp {
 
 SearchManager::SearchManager() : 
@@ -42,17 +40,10 @@ SearchManager::SearchManager() :
 	searchTypes(make_unique<SearchTypes>([this]{ fire(SearchManagerListener::SearchTypesChanged()); })) 
 {
 	TimerManager::getInstance()->addListener(this);
-
-#ifdef _DEBUG
-	testSUDP();
-#endif
 }
 
 SearchManager::~SearchManager() {
 	TimerManager::getInstance()->removeListener(this);
-
-	for (auto& p: searchKeys) 
-		delete p.first;
 }
 
 string SearchManager::normalizeWhitespace(const string& aString){
@@ -72,22 +63,26 @@ SearchQueueInfo SearchManager::search(const SearchPtr& aSearch) noexcept {
 	return search(who, aSearch);
 }
 
-SearchQueueInfo SearchManager::search(StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner /* NULL */) noexcept {
-
-	string keyStr;
-	if (SETTING(ENABLE_SUDP)) {
-		//generate a random key and store it so we can check the results
-		uint8_t* key = new uint8_t[16];
-		RAND_bytes(key, 16);
-		{
-			WLock l (cs);
-			searchKeys.emplace_back(key, GET_TICK());
-		}
-		keyStr = Encoder::toBase32(key, 16);
+string SearchManager::generateSUDPKey() {
+	if (!SETTING(ENABLE_SUDP)) {
+		return Util::emptyString;
 	}
 
+	// generate a random key and store it so we can check the results
+	auto key = CryptoManager::generateSUDPKey();
+	auto keyStr = Encoder::toBase32(key.get(), 16);
+
+	{
+		WLock l(cs);
+		searchKeys.emplace_back(std::move(key), GET_TICK());
+	}
+
+	return keyStr;
+}
+
+SearchQueueInfo SearchManager::search(StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner /* NULL */) noexcept {
 	aSearch->owner = aOwner;
-	aSearch->key = keyStr;
+	aSearch->key = generateSUDPKey();
 
 	StringSet queued;
 	uint64_t estimateSearchSpan = 0;
@@ -154,95 +149,10 @@ SearchInstanceList SearchManager::getSearchInstances() const noexcept {
 	return ret;
 }
 
-void SearchManager::testSUDP() {
-	uint8_t keyChar[16];
-	string data = "URES SI30744059452 SL8 FN/Downloads/ DM1644168099 FI440 FO124 TORLHTR7KH7GV7W";
-	Encoder::fromBase32("DR6AOECCMYK5DQ2VDATONKFSWU", keyChar, 16);
-	auto encrypted = encryptSUDP(keyChar, data);
-
-	string result;
-	auto success = decryptSUDP(keyChar, ByteVector(begin(encrypted), end(encrypted)), encrypted.length(), result);
-	dcassert(success);
-	dcassert(compare(data, result) == 0);
-}
-
-string SearchManager::encryptSUDP(const uint8_t* aKey, const string& aCmd) {
-	string inData = aCmd;
-	uint8_t ivd[16] = { };
-
-	// prepend 16 random bytes to message
-	RAND_bytes(ivd, 16);
-	inData.insert(0, (char*)ivd, 16);
-
-	// use PKCS#5 padding to align the message length to the cypher block size (16)
-	uint8_t pad = 16 - (aCmd.length() & 15);
-	inData.append(pad, (char)pad);
-
-	// encrypt it
-	boost::scoped_array<uint8_t> out(new uint8_t[inData.length()]);
-	memset(ivd, 0, 16);
-	auto commandLength = inData.length();
-
-#define CHECK(n) if(!(n)) { dcassert(0); }
-
-	int len, tmpLen;
-	auto ctx = EVP_CIPHER_CTX_new();
-	CHECK(EVP_CipherInit_ex(ctx, EVP_aes_128_cbc(), NULL, aKey, ivd, 1));
-	CHECK(EVP_CIPHER_CTX_set_padding(ctx, 0));
-	CHECK(EVP_EncryptUpdate(ctx, out.get(), &len, (unsigned char*)inData.c_str(), inData.length()));
-	CHECK(EVP_EncryptFinal_ex(ctx, out.get() + len, &tmpLen));
-	EVP_CIPHER_CTX_free(ctx);
-
-	dcassert((commandLength & 15) == 0);
-
-	inData.clear();
-	inData.insert(0, (char*)out.get(), commandLength);
-	return inData;
-}
-
-bool SearchManager::decryptSUDP(const uint8_t* aKey, const ByteVector& aData, size_t aDataLen, string& result_) {
-	boost::scoped_array<uint8_t> out(new uint8_t[aData.size()]);
-
-	uint8_t ivd[16] = { };
-
-	auto ctx = EVP_CIPHER_CTX_new();
-
-#define CHECK(n) if(!(n)) { dcassert(0); }
-	int len;
-	CHECK(EVP_CipherInit_ex(ctx, EVP_aes_128_cbc(), NULL, aKey, ivd, 0));
-	CHECK(EVP_CIPHER_CTX_set_padding(ctx, 0));
-	CHECK(EVP_DecryptUpdate(ctx, out.get(), &len, aData.data(), aDataLen));
-	CHECK(EVP_DecryptFinal_ex(ctx, out.get() + len, &len));
-	EVP_CIPHER_CTX_free(ctx);
-
-	// Validate padding and replace with 0-bytes.
-	int padlen = out[aDataLen - 1];
-	if (padlen < 1 || padlen > 16) {
-		return false;
-	}
-
-	bool valid = true;
-	for (auto r = 0; r < padlen; r++) {
-		if (out[aDataLen - padlen + r] != padlen) {
-			valid = false;
-			break;
-		} else {
-			out[aDataLen - padlen + r] = 0;
-		}
-	}
-
-	if (valid) {
-		result_ = (char*)&out[0] + 16;
-		return true;
-	}
-
-	return false;
-}
-
 bool SearchManager::decryptPacket(string& x, size_t aLen, const ByteVector& aBuf) {
 	RLock l (cs);
 	for (const auto& i: searchKeys | views::reverse) {
-		if (decryptSUDP(i.first, aBuf, aLen, x)) {
+		if (CryptoManager::decryptSUDP(i.first.get(), aBuf, aLen, x)) {
 			return true;
 		}
 	}
@@ -443,7 +353,6 @@ void SearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 		WLock l(cs);
 		for (auto i = searchKeys.begin(); i != searchKeys.end();) {
 			if (i->second + 1000 * 60 * 15 < aTick) {
-				delete i->first;
 				searchKeys.erase(i);
 				i = searchKeys.begin();
 			} else {

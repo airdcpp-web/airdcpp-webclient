@@ -35,6 +35,7 @@
 #include "DirectoryListingManager.h"
 #include "DownloadManager.h"
 #include "FavoriteManager.h"
+#include "FavoriteUserManager.h"
 #include "GeoManager.h"
 #include "HashManager.h"
 #include "IgnoreManager.h"
@@ -52,6 +53,7 @@
 #include "UploadBundleManager.h"
 #include "UpdateManager.h"
 #include "UploadManager.h"
+#include "UserCommandManager.h"
 #include "ViewFileManager.h"
 
 namespace dcpp {
@@ -99,6 +101,7 @@ void startup(StepFunction aStepF, MessageFunction aMessageF, Callback aRunWizard
 	ThrottleManager::newInstance();
 	QueueManager::newInstance();
 	FavoriteManager::newInstance();
+	FavoriteUserManager::newInstance();
 	ConnectivityManager::newInstance();
 	DirectoryListingManager::newInstance();
 	ProtocolCommandManager::newInstance();
@@ -111,6 +114,7 @@ void startup(StepFunction aStepF, MessageFunction aMessageF, Callback aRunWizard
 	TransferInfoManager::newInstance();
 	PartialSharingManager::newInstance();
 	UploadBundleManager::newInstance();
+	UserCommandManager::newInstance();
 
 	if (aModuleInitF) {
 		aModuleInitF();
@@ -220,6 +224,7 @@ void shutdown(StepFunction stepF, ProgressFunction progressF, ShutdownUnloadCall
 		aModuleDestroyF();
 	}
 
+	UserCommandManager::deleteInstance();
 	UploadBundleManager::deleteInstance();
 	PartialSharingManager::deleteInstance();
 	TransferInfoManager::deleteInstance();
@@ -234,6 +239,7 @@ void shutdown(StepFunction stepF, ProgressFunction progressF, ShutdownUnloadCall
 	CryptoManager::deleteInstance();
 	ThrottleManager::deleteInstance();
 	DirectoryListingManager::deleteInstance();
+	FavoriteUserManager::deleteInstance();
 	QueueManager::deleteInstance();
 	DownloadManager::deleteInstance();
 	UploadManager::deleteInstance();

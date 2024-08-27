@@ -16,35 +16,29 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef DCPLUSPLUS_DCPP_UPLOADMANAGERLISTENER_H_
-#define DCPLUSPLUS_DCPP_UPLOADMANAGERLISTENER_H_
+#ifndef DCPLUSPLUS_DCPP_UPLOADQUEUEMANAGERLISTENER_H_
+#define DCPLUSPLUS_DCPP_UPLOADQUEUEMANAGERLISTENER_H_
 
 #include "forward.h"
 #include "typedefs.h"
 
 namespace dcpp {
 
-class UploadManagerListener {
+class UploadQueueManagerListener {
 	friend class UploadQueueItem;
 public:
-	virtual ~UploadManagerListener() { }
+	virtual ~UploadQueueManagerListener() { }
 	template<int I>	struct X { enum { TYPE = I }; };
 
-	typedef X<0> Complete;
-	typedef X<1> Failed;
-	typedef X<2> Starting;
-	typedef X<3> Tick;
+	typedef X<1> QueueAdd;
+	typedef X<2> QueueRemove;
+	typedef X<3> QueueItemRemove;
+	typedef X<4> QueueUpdate;
 
-	typedef X<8> Created;
-	typedef X<9> Removed;
-
-	virtual void on(Starting, const Upload*) noexcept { }
-	virtual void on(Tick, const UploadList&) noexcept { }
-	virtual void on(Complete, const Upload*) noexcept { }
-	virtual void on(Failed, const Upload*, const string&) noexcept { }
-
-	virtual void on(Created, Upload*) noexcept { }
-	virtual void on(Removed, const Upload*) noexcept { }
+	virtual void on(QueueAdd, UploadQueueItem*) noexcept { }
+	virtual void on(QueueRemove, const UserPtr&) noexcept { }
+	virtual void on(QueueItemRemove, UploadQueueItem*) noexcept { }
+	virtual void on(QueueUpdate) noexcept { }
 };
 
 } // namespace dcpp

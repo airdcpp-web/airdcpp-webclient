@@ -16,39 +16,29 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef DCPLUSPLUS_DCPP_FAVORITEMANAGERLISTENER_H_
-#define DCPLUSPLUS_DCPP_FAVORITEMANAGERLISTENER_H_
+#ifndef DCPLUSPLUS_DCPP_FAVORITEUSERMANAGERLISTENER_H_
+#define DCPLUSPLUS_DCPP_FAVORITEUSERMANAGERLISTENER_H_
 
 #include "forward.h"
 
 namespace dcpp {
 
-class SimpleXML;
-
-class FavoriteManagerListener {
+class FavoriteUserManagerListener {
 public:
-	virtual ~FavoriteManagerListener() { }
+	virtual ~FavoriteUserManagerListener() { }
 	template<int I>	struct X { enum { TYPE = I };  };
 
-	typedef X<0> FavoriteHubAdded;
-	typedef X<1> FavoriteHubRemoved;
-	typedef X<2> FavoriteHubUpdated;
-	typedef X<3> FavoriteHubsUpdated;
+	typedef X<0> FavoriteUserAdded;
+	typedef X<1> FavoriteUserRemoved;
+	typedef X<2> FavoriteUserUpdated;
 
-	typedef X<7> FavoriteDirectoriesUpdated;
+	typedef X<3> SlotsUpdated;
 
-	typedef X<8> Load;
-	typedef X<9> Save;
+	virtual void on(FavoriteUserAdded, const FavoriteUser&) noexcept { }
+	virtual void on(FavoriteUserRemoved, const FavoriteUser&) noexcept { }
+	virtual void on(FavoriteUserUpdated, const UserPtr&) noexcept { }
 
-	virtual void on(FavoriteHubAdded, const FavoriteHubEntryPtr&) noexcept { }
-	virtual void on(FavoriteHubRemoved, const FavoriteHubEntryPtr&) noexcept {}
-	virtual void on(FavoriteHubUpdated, const FavoriteHubEntryPtr&) noexcept { }
-	virtual void on(FavoriteHubsUpdated) noexcept { }
-
-	virtual void on(FavoriteDirectoriesUpdated) noexcept { }
-
-	virtual void on(Load, SimpleXML&) noexcept {}
-	virtual void on(Save, SimpleXML&) noexcept {}
+	virtual void on(SlotsUpdated, const UserPtr&) noexcept { }
 };
 
 } // namespace dcpp

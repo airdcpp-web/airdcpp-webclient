@@ -34,7 +34,6 @@
 #include "ValueGenerator.h"
 
 #include <boost/range/numeric.hpp>
-#include <boost/range/adaptor/map.hpp>
 
 namespace dcpp {
 

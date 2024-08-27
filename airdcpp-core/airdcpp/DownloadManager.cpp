@@ -22,7 +22,6 @@
 #include "ClientManager.h"
 #include "ConnectionManager.h"
 #include "Download.h"
-#include "FavoriteManager.h"
 #include "LogManager.h"
 #include "QueueManager.h"
 #include "ResourceManager.h"
@@ -31,9 +30,6 @@
 
 #include <limits>
 #include <cmath>
-
-#include <boost/range/numeric.hpp>
-#include <boost/range/adaptor/map.hpp>
 
 
 // some strange mac definition
@@ -69,10 +65,35 @@ struct DropInfo {
 	UserPtr user;
 };
 
+
+bool DownloadManager::disconnectSlowSpeed(Download* d, uint64_t aTick) const noexcept {
+	if (d->getBundle() && d->getBundle()->isSet(Bundle::FLAG_AUTODROP) && d->getStart() > 0 && d->getBundle()->countRunningUsers() >= SETTING(DISCONNECT_MIN_SOURCES))
+	{
+		if (d->getTigerTree().getFileSize() > (SETTING(DISCONNECT_FILESIZE) * 1048576))
+		{
+			if (d->getAverageSpeed() < Util::convertSize(SETTING(DISCONNECT_SPEED), Util::KB))
+			{
+				if (aTick - d->getLastTick() > (uint32_t)SETTING(DISCONNECT_TIME) * 1000)
+				{
+					if (QueueManager::getInstance()->checkDropSlowSource(d))
+					{
+						return true;
+					}
+				}
+			} else {
+				d->setLastTick(aTick);
+			}
+		}
+	}
+
+	return false;
+}
+
+typedef unordered_map<UserPtr, int64_t, User::Hash> UserSpeedMap;
 void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	vector<DropInfo> dropTargets;
 	BundleList bundleTicks;
-	unordered_map<UserPtr, int64_t, User::Hash> userSpeedMap;
+	UserSpeedMap userSpeedMap;
 
 	{
 		RLock l(cs);
@@ -80,10 +101,8 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		DownloadList tickList;
 		// Tick each ongoing download
 		for(auto d: downloads) {
-			auto speed = d->getAverageSpeed();
-
-			if(d->getPos() > 0) {
-				userSpeedMap[d->getUser()] += speed;
+			if (d->getPos() > 0) {
+				userSpeedMap[d->getUser()] += d->getAverageSpeed();
 				tickList.push_back(d);
 				d->tick();
 
@@ -92,31 +111,8 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 				}
 			}
 
-			if (d->getBundle() && d->getBundle()->isSet(Bundle::FLAG_AUTODROP) && d->getStart() > 0 && d->getBundle()->countRunningUsers() >= SETTING(DISCONNECT_MIN_SOURCES))
-			{
-				if (d->getTigerTree().getFileSize() > (SETTING(DISCONNECT_FILESIZE) * 1048576))
-				{
-					if(speed < Util::convertSize(SETTING(DISCONNECT_SPEED), Util::KB))
-					{
-						if(aTick - d->getLastTick() > (uint32_t)SETTING(DISCONNECT_TIME) * 1000)
-						{
-							if(QueueManager::getInstance()->checkDropSlowSource(d))
-							{
-								dropTargets.emplace_back(d->getPath(), d->getBundle(), d->getUser());
-							}
-						}
-					} else {
-						d->setLastTick(aTick);
-					}
-				}
-			}
-
-			if(SETTING(FAV_DL_SPEED) > 0) {
-				HintedUser fstusr = d->getHintedUser();
-				if(speed > Util::convertSize(SETTING(FAV_DL_SPEED), Util::KB) && (aTick - d->getStart()) > 7000 && !fstusr.user->isFavorite()) {
-					FavoriteManager::getInstance()->addFavoriteUser(fstusr);
-					FavoriteManager::getInstance()->setUserDescription(fstusr, ("!fast user! (" + Util::toString(getRunningAverage()/1000) + "KB/s)"));
-				}
+			if (disconnectSlowSpeed(d, aTick)) {
+				dropTargets.emplace_back(d->getPath(), d->getBundle(), d->getUser());
 			}
 		}
 
@@ -139,7 +135,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		lastDownBytes = totalDown;
 
 		if (!tickList.empty()) {
-			fire(DownloadManagerListener::Tick(), tickList);
+			fire(DownloadManagerListener::Tick(), tickList, aTick);
 		}
 
 		if (!bundleTicks.empty()) {
@@ -154,14 +150,14 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		QueueManager::getInstance()->handleSlowDisconnect(dtp.user, dtp.target, dtp.bundle);
 }
 
-bool DownloadManager::checkIdle(const UserPtr& user, bool smallSlot, bool reportOnly) {
+bool DownloadManager::checkIdle(const UserPtr& aUser, bool aSmallSlot, bool aReportOnly) {
 
 	RLock l(cs);
 	for (auto uc: idlers) {
-		if (uc->getUser() == user) {
-			if (smallSlot != uc->isSet(UserConnection::FLAG_SMALL_SLOT) && uc->isMCN())
+		if (uc->getUser() == aUser) {
+			if (aSmallSlot != uc->isSet(UserConnection::FLAG_SMALL_SLOT) && uc->isMCN())
 				continue;
-			if (!reportOnly)
+			if (!aReportOnly)
 				uc->callAsync([this, uc] { revive(uc); });
 			//dcdebug("uc updated");
 			return true;

@@ -35,6 +35,7 @@ public:
 	typedef X<4> Connecting;
 	typedef X<5> UserUpdated;
 	typedef X<6> Forced;
+	typedef X<7> UserSet;
 
 	virtual void on(Added, const ConnectionQueueItem*) noexcept { }
 	virtual void on(Connected, const ConnectionQueueItem*, UserConnection*) noexcept{}
@@ -43,6 +44,8 @@ public:
 	virtual void on(Connecting, const ConnectionQueueItem*) noexcept { }
 	virtual void on(UserUpdated, const ConnectionQueueItem*) noexcept { }
 	virtual void on(Forced, const ConnectionQueueItem*) noexcept { }
+
+	virtual void on(UserSet, UserConnection*) noexcept { }
 };
 
 } // namespace dcpp
