@@ -21,7 +21,6 @@
 #include "MessageHighlight.h"
 
 #include "DupeUtil.h"
-#include "FavoriteManager.h"
 #include "LinkUtil.h"
 #include "ShareManager.h"
 #include "OnlineUser.h"
@@ -132,25 +131,6 @@ namespace dcpp {
 				pos = nickEnd;
 
 				highlights_.insert_sorted(make_shared<MessageHighlight>(start, aMyNick, MessageHighlight::HighlightType::TYPE_USER, TAG_ME));
-			}
-		}
-
-		// Favorite users
-		{
-			RLock l(FavoriteManager::getInstance()->cs);
-			auto& ul = FavoriteManager::getInstance()->getFavoriteUsers();
-			for (const auto& favUser : ul | views::values) {
-				decltype(auto) nick = favUser.getNick();
-				if (nick.empty()) continue;
-
-				size_t start = string::npos;
-				size_t pos = 0;
-				while ((start = (long)aText.find(nick, pos)) != tstring::npos) {
-					auto lMyNickEnd = start + nick.size();
-					pos = lMyNickEnd;
-
-					highlights_.insert_sorted(make_shared<MessageHighlight>(start, nick, MessageHighlight::HighlightType::TYPE_USER, TAG_FAVORITE));
-				}
 			}
 		}
 	}

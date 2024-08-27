@@ -21,6 +21,7 @@
 
 #include "ConnectivityManager.h"
 #include "ConnectionManager.h"
+#include "CryptoManager.h"
 #include "ProtocolCommandManager.h"
 #include "FavoriteManager.h"
 #include "LinkUtil.h"
@@ -28,9 +29,8 @@
 #include "QueueManager.h"
 #include "RelevanceSearch.h"
 #include "ResourceManager.h"
-#include "SearchManager.h"
 #include "SimpleXML.h"
-#include "UserCommand.h"
+#include "UserCommandManager.h"
 
 #include "AdcHub.h"
 #include "NmdcHub.h"
@@ -899,7 +899,7 @@ bool ClientManager::sendUDPHooked(AdcCommand& cmd, const CID& aCID, bool aNoCID 
 				uint8_t keyChar[16];
 				Encoder::fromBase32(aKey.c_str(), keyChar, 16);
 
-				SearchManager::encryptSUDP(keyChar, cmdStr);
+				CryptoManager::encryptSUDP(keyChar, cmdStr);
 			}
 
 			udp->writeTo(u->getIdentity().getUdpIp(), u->getIdentity().getUdpPort(), cmdStr);
@@ -1318,13 +1318,13 @@ void ClientManager::on(ClientListener::Disconnected, const string& aHubUrl, cons
 void ClientManager::on(ClientListener::HubUserCommand, const Client* client, int aType, int ctx, const string& name, const string& command) noexcept {
 	if(SETTING(HUB_USER_COMMANDS)) {
 		if(aType == UserCommand::TYPE_REMOVE) {
-			int cmd = FavoriteManager::getInstance()->findUserCommand(name, client->getHubUrl());
+			int cmd = UserCommandManager::getInstance()->findUserCommand(name, client->getHubUrl());
 			if(cmd != -1)
-				FavoriteManager::getInstance()->removeUserCommand(cmd);
+				UserCommandManager::getInstance()->removeUserCommand(cmd);
 		} else if(aType == UserCommand::TYPE_CLEAR) {
- 			FavoriteManager::getInstance()->removeHubUserCommands(ctx, client->getHubUrl());
+			UserCommandManager::getInstance()->removeHubUserCommands(ctx, client->getHubUrl());
  		} else {
-			FavoriteManager::getInstance()->addUserCommand(aType, ctx, UserCommand::FLAG_NOSAVE, name, command, "", client->getHubUrl());
+			UserCommandManager::getInstance()->addUserCommand(aType, ctx, UserCommand::FLAG_NOSAVE, name, command, "", client->getHubUrl());
 		}
 	}
 }

@@ -42,7 +42,7 @@ public:
 	static int getSlots(bool download, double value=0, SettingsManager::SettingProfile aProfile = static_cast<SettingsManager::SettingProfile>(SETTING(SETTINGS_PROFILE)));
 
 	// Maximum wanted download/upload speed. Uses set connection values by default.
-	static int getSpeedLimit(bool download, double value=0);
+	static int getSpeedLimitKbps(bool download, double value=0);
 	static int getMaxAutoOpened(double value = 0);
 
 	static string getPrioText(Priority aPriority) noexcept;

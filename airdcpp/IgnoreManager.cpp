@@ -21,7 +21,7 @@
 #include "IgnoreManager.h"
 
 #include "ClientManager.h"
-#include "FavoriteManager.h"
+#include "FavoriteUserManager.h"
 #include "LogManager.h"
 #include "PrivateChatManager.h"
 #include "SettingsManager.h"
@@ -218,7 +218,7 @@ void IgnoreManager::save() {
 			xml.addChildAttrib("CID", u.first->getCID().toBase32());
 			xml.addChildAttrib("IgnoredMessages", u.second);
 
-			FavoriteManager::getInstance()->addSavedUser(u.first);
+			FavoriteUserManager::getInstance()->addSavedUser(u.first);
 		}
 	}
 

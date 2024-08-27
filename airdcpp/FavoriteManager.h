@@ -26,11 +26,9 @@
 #include "TimerManagerListener.h"
 
 #include "FavHubGroup.h"
-#include "FavoriteUser.h"
 #include "HubEntry.h"
 #include "Singleton.h"
 #include "Speaker.h"
-#include "UserCommand.h"
 
 namespace dcpp {
 
@@ -38,22 +36,6 @@ class FavoriteManager : public Speaker<FavoriteManagerListener>, public Singleto
 	private SettingsManagerListener, private ClientManagerListener, private ShareManagerListener, private TimerManagerListener
 {
 public:
-// Favorite Users
-	typedef unordered_map<CID, FavoriteUser> FavoriteMap;
-
-	//remember to lock this
-	const FavoriteMap& getFavoriteUsers() const noexcept { return users; }
-
-	void addFavoriteUser(const HintedUser& aUser) noexcept;
-	void addSavedUser(const UserPtr& aUser) noexcept;
-	void removeFavoriteUser(const UserPtr& aUser) noexcept;
-	optional<FavoriteUser> getFavoriteUser(const UserPtr& aUser) const noexcept;
-
-	bool hasSlot(const UserPtr& aUser) const noexcept;
-	void setUserDescription(const UserPtr& aUser, const string& description) noexcept;
-	void setAutoGrant(const UserPtr& aUser, bool grant) noexcept;
-	time_t getLastSeen(const UserPtr& aUser) const noexcept;
-	void changeLimiterOverride(const UserPtr& aUser) noexcept;
 // Favorite Hubs
 	void autoConnect() noexcept;
 	FavoriteHubEntryList& getFavoriteHubs() noexcept { return favoriteHubs; }
@@ -86,19 +68,6 @@ public:
 	GroupedDirectoryMap getGroupedFavoriteDirs() const noexcept;
 	FavoriteDirectoryMap getFavoriteDirs() const noexcept;
 
-// User Commands
-	UserCommand addUserCommand(int type, int ctx, Flags::MaskType flags, const string& name, const string& command, const string& to, const string& hub) noexcept;
-	bool getUserCommand(int cid, UserCommand& uc) noexcept;
-	int findUserCommand(const string& aName, const string& aUrl) noexcept;
-	bool moveUserCommand(int cid, int pos) noexcept;
-	void updateUserCommand(const UserCommand& uc) noexcept;
-	void removeUserCommand(int cid) noexcept;
-	void removeUserCommand(const string& srv) noexcept;
-	void removeHubUserCommands(int ctx, const string& hub) noexcept;
-
-	UserCommand::List getUserCommands() noexcept { RLock l(cs); return userCommands; }
-	UserCommand::List getUserCommands(int ctx, const StringList& hub, bool& op) noexcept;
-
 	void load() noexcept;
 	void setDirty() { xmlDirty = true; }
 	void shutdown() noexcept;
@@ -110,19 +79,10 @@ private:
 	FavoriteHubEntryList favoriteHubs;
 	FavHubGroups favHubGroups;
 	FavoriteDirectoryMap favoriteDirectories;
-	UserCommand::List userCommands;
-	int lastId = 0;
 
 	uint64_t lastXmlSave = 0;
 	atomic<bool> xmlDirty{ false };
 	void save() noexcept;
-
-	//Favorite users
-	FavoriteMap users;
-	//Saved users
-	unordered_set<UserPtr, User::Hash> savedUsers;
-
-	FavoriteUser createUser(const UserPtr& aUser, const string& aUrl);
 	
 	friend class Singleton<FavoriteManager>;
 	
@@ -142,9 +102,6 @@ private:
 	void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept;
 
 	// ClientManagerListener
-	void on(ClientManagerListener::UserConnected, const OnlineUser& user, bool wasOffline) noexcept;
-	void on(ClientManagerListener::UserDisconnected, const UserPtr& user, bool wentOffline) noexcept;
-
 	void on(ClientManagerListener::ClientCreated, const ClientPtr& c) noexcept;
 	void on(ClientManagerListener::ClientConnected, const ClientPtr& c) noexcept;
 	void on(ClientManagerListener::ClientRemoved, const ClientPtr& c) noexcept;
@@ -158,13 +115,9 @@ private:
 
 	void loadFavoriteHubs(SimpleXML& aXml);
 	void loadFavoriteDirectories(SimpleXML& aXml);
-	void loadFavoriteUsers(SimpleXML& aXml);
-	void loadUserCommands(SimpleXML& aXml);
 
 	void saveFavoriteHubs(SimpleXML& aXml) const noexcept;
-	void saveFavoriteUsers(SimpleXML& aXml) noexcept;
 	void saveFavoriteDirectories(SimpleXML& aXml) const noexcept;
-	void saveUserCommands(SimpleXML& aXml) const noexcept;
 
 	void loadCID() noexcept;
 };

@@ -102,13 +102,18 @@ public:
 
 	};
 	
+	// Note: the "best" slot type should have the highest number
 	enum SlotTypes: uint8_t {	
 		NOSLOT		= 0,
-		STDSLOT		= 1,
+
+		// File-specific
+		PARTIALSLOT	= 1,
 		EXTRASLOT	= 2,
-		PARTIALSLOT	= 3,
+		SMALLSLOT	= 3,
+
+		// Persistent
 		MCNSLOT		= 4,
-		SMALLSLOT	= 5
+		STDSLOT		= 5
 	};
 
 	short getNumber() const { return (short)((((size_t)this)>>2) & 0x7fff); }
@@ -211,6 +216,8 @@ public:
 	const AdcSupports& getSupports() const noexcept {
 		return supports;
 	}
+
+	void setUseLimiter(bool aEnabled) noexcept;
 private:
 	int64_t chunkSize = 0;
 	BufferedSocket* socket = nullptr;

@@ -75,7 +75,7 @@ namespace dcpp {
 		TransferInfoPtr onTick(const Transfer* aTransfer, bool aIsDownload) noexcept;
 		void updateQueueInfo(TransferInfoPtr& aInfo) noexcept;
 
-		void on(DownloadManagerListener::Tick, const DownloadList& aDownloads) noexcept override;
+		void on(DownloadManagerListener::Tick, const DownloadList& aDownloads, uint64_t) noexcept override;
 		void on(UploadManagerListener::Tick, const UploadList& aUploads) noexcept override;
 
 		void on(ConnectionManagerListener::Added, const ConnectionQueueItem* aCqi) noexcept override;

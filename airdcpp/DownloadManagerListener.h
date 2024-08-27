@@ -66,7 +66,7 @@ public:
 	/**
 	 * Sent once a second if something has actually been downloaded.
 	 */
-	virtual void on(Tick, const DownloadList&) noexcept { }
+	virtual void on(Tick, const DownloadList&, uint64_t) noexcept { }
 
 	/**
 	 * This is the last message sent before a download is deleted.

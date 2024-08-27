@@ -20,12 +20,12 @@
 #include "CryptoManager.h"
 
 #include <boost/scoped_array.hpp>
-#include "ScopedFunctor.h"
 
 #include "ClientManager.h"
 #include "Encoder.h"
 #include "File.h"
 #include "LogManager.h"
+#include "ScopedFunctor.h"
 #include "SystemUtil.h"
 #include "version.h"
 
@@ -33,8 +33,6 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
-
-#include <bzlib.h>
 
 
 #ifdef _MSC_VER
@@ -83,6 +81,10 @@ CryptoManager::CryptoManager()
 		SSL_CTX_set_verify(clientContext, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback);
 		SSL_CTX_set_verify(serverContext, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback);
 	}
+
+#ifdef _DEBUG
+	testSUDP();
+#endif
 }
 
 void CryptoManager::setContextOptions(SSL_CTX* aCtx, bool aServer) {
@@ -600,47 +602,6 @@ string CryptoManager::getNameEntryByNID(X509_NAME* name, int nid) noexcept{
 	return out;
 }
 
-void CryptoManager::decodeBZ2(const uint8_t* is, size_t sz, string& os) {
-	bz_stream bs = { 0 };
-
-	if(BZ2_bzDecompressInit(&bs, 0, 0) != BZ_OK)
-		throw CryptoException(STRING(DECOMPRESSION_ERROR));
-
-	// We assume that the files aren't compressed more than 2:1...if they are it'll work anyway,
-	// but we'll have to do multiple passes...
-	size_t bufsize = 2*sz;
-	boost::scoped_array<char> buf(new char[bufsize]);
-
-	bs.avail_in = sz;
-	bs.avail_out = bufsize;
-	bs.next_in = reinterpret_cast<char*>(const_cast<uint8_t*>(is));
-	bs.next_out = &buf[0];
-
-	int err;
-
-	os.clear();
-
-	while((err = BZ2_bzDecompress(&bs)) == BZ_OK) {
-		if (bs.avail_in == 0 && bs.avail_out > 0) { // error: BZ_UNEXPECTED_EOF
-			BZ2_bzDecompressEnd(&bs);
-			throw CryptoException(STRING(DECOMPRESSION_ERROR));
-		}
-		os.append(&buf[0], bufsize-bs.avail_out);
-		bs.avail_out = bufsize;
-		bs.next_out = &buf[0];
-	}
-
-	if(err == BZ_STREAM_END)
-		os.append(&buf[0], bufsize-bs.avail_out);
-
-	BZ2_bzDecompressEnd(&bs);
-
-	if(err < 0) {
-		// This was a real error
-		throw CryptoException(STRING(DECOMPRESSION_ERROR));
-	}
-}
-
 string CryptoManager::keySubst(const uint8_t* aKey, size_t len, size_t n) {
 	boost::scoped_array<uint8_t> temp(new uint8_t[len + n * 10]);
 
@@ -695,6 +656,97 @@ string CryptoManager::makeKey(const string& aLock) {
 	}
 
 	return keySubst(&temp[0], aLock.length(), extra);
+}
+
+void CryptoManager::testSUDP() {
+	uint8_t keyChar[16];
+	string data = "URES SI30744059452 SL8 FN/Downloads/ DM1644168099 FI440 FO124 TORLHTR7KH7GV7W";
+	Encoder::fromBase32("DR6AOECCMYK5DQ2VDATONKFSWU", keyChar, 16);
+	auto encrypted = encryptSUDP(keyChar, data);
+
+	string result;
+	auto success = decryptSUDP(keyChar, ByteVector(begin(encrypted), end(encrypted)), encrypted.length(), result);
+	dcassert(success);
+	dcassert(compare(data, result) == 0);
+}
+
+string CryptoManager::encryptSUDP(const uint8_t* aKey, const string& aCmd) {
+	string inData = aCmd;
+	uint8_t ivd[16] = { };
+
+	// prepend 16 random bytes to message
+	RAND_bytes(ivd, 16);
+	inData.insert(0, (char*)ivd, 16);
+
+	// use PKCS#5 padding to align the message length to the cypher block size (16)
+	uint8_t pad = 16 - (aCmd.length() & 15);
+	inData.append(pad, (char)pad);
+
+	// encrypt it
+	boost::scoped_array<uint8_t> out(new uint8_t[inData.length()]);
+	memset(ivd, 0, 16);
+	auto commandLength = inData.length();
+
+#define CHECK(n) if(!(n)) { dcassert(0); }
+
+	int len, tmpLen;
+	auto ctx = EVP_CIPHER_CTX_new();
+	CHECK(EVP_CipherInit_ex(ctx, EVP_aes_128_cbc(), NULL, aKey, ivd, 1));
+	CHECK(EVP_CIPHER_CTX_set_padding(ctx, 0));
+	CHECK(EVP_EncryptUpdate(ctx, out.get(), &len, (unsigned char*)inData.c_str(), inData.length()));
+	CHECK(EVP_EncryptFinal_ex(ctx, out.get() + len, &tmpLen));
+	EVP_CIPHER_CTX_free(ctx);
+
+	dcassert((commandLength & 15) == 0);
+
+	inData.clear();
+	inData.insert(0, (char*)out.get(), commandLength);
+	return inData;
+}
+
+bool CryptoManager::decryptSUDP(const uint8_t* aKey, const ByteVector& aData, size_t aDataLen, string& result_) {
+	boost::scoped_array<uint8_t> out(new uint8_t[aData.size()]);
+
+	uint8_t ivd[16] = { };
+
+	auto ctx = EVP_CIPHER_CTX_new();
+
+#define CHECK(n) if(!(n)) { dcassert(0); }
+	int len;
+	CHECK(EVP_CipherInit_ex(ctx, EVP_aes_128_cbc(), NULL, aKey, ivd, 0));
+	CHECK(EVP_CIPHER_CTX_set_padding(ctx, 0));
+	CHECK(EVP_DecryptUpdate(ctx, out.get(), &len, aData.data(), aDataLen));
+	CHECK(EVP_DecryptFinal_ex(ctx, out.get() + len, &len));
+	EVP_CIPHER_CTX_free(ctx);
+
+	// Validate padding and replace with 0-bytes.
+	int padlen = out[aDataLen - 1];
+	if (padlen < 1 || padlen > 16) {
+		return false;
+	}
+
+	bool valid = true;
+	for (auto r = 0; r < padlen; r++) {
+		if (out[aDataLen - padlen + r] != padlen) {
+			valid = false;
+			break;
+		} else {
+			out[aDataLen - padlen + r] = 0;
+		}
+	}
+
+	if (valid) {
+		result_ = (char*)&out[0] + 16;
+		return true;
+	}
+
+	return false;
+}
+
+CryptoManager::SUDPKey CryptoManager::generateSUDPKey() {
+	auto key = std::make_unique<uint8_t[]>(16);
+	RAND_bytes(key.get(), 16);
+	return key;
 }
 
 } // namespace dcpp

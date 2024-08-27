@@ -77,6 +77,7 @@ public:
 
 	/** @internal */
 	TigerTree& getTigerTree() { return tt; }
+	const TigerTree& getTigerTree() const noexcept { return tt; }
 	const string& getPFS() const { return pfs; }
 
 	/** @internal */

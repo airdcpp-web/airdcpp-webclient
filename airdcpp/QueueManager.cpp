@@ -1223,7 +1223,7 @@ bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& ru
 
 	size_t downloadCount = DownloadManager::getInstance()->getFileDownloadConnectionCount();
 	bool slotsFull = (AirUtil::getSlots(true) != 0) && (downloadCount >= static_cast<size_t>(AirUtil::getSlots(true)));
-	bool speedFull = (AirUtil::getSpeedLimit(true) != 0) && (DownloadManager::getInstance()->getRunningAverage() >= Util::convertSize(AirUtil::getSpeedLimit(true), Util::KB));
+	bool speedFull = (AirUtil::getSpeedLimitKbps(true) != 0) && (DownloadManager::getInstance()->getRunningAverage() >= Util::convertSize(AirUtil::getSpeedLimitKbps(true), Util::KB));
 	//log("Speedlimit: " + Util::toString(Util::getSpeedLimit(true)*1024) + " slots: " + Util::toString(Util::getSlots(true)) + " (avg: " + Util::toString(getRunningAverage()) + ")");
 
 	if (slotsFull || speedFull) {
