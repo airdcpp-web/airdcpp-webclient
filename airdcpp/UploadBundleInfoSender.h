@@ -21,7 +21,6 @@
 
 #include "CriticalSection.h"
 #include "Message.h"
-#include "QueueItemBase.h"
 #include "User.h"
 
 #include "DownloadManagerListener.h"
@@ -91,7 +90,7 @@ private:
 	void on(DownloadManagerListener::Failed, const Download*, const string&) noexcept override;
 	void on(DownloadManagerListener::BundleTick, const BundleList& aBundles, uint64_t aTick) noexcept override;
 	void on(DownloadManagerListener::Remove, const UserConnection* aConn) noexcept override;
-	void on(DownloadManagerListener::Idle, const UserConnection* aConn) noexcept override;
+	void on(DownloadManagerListener::Idle, const UserConnection* aConn, const string& aError) noexcept override;
 
 
 	unordered_map<QueueToken, UBNBundle::Ptr> bundleTokenMap;

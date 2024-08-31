@@ -84,8 +84,7 @@ public:
 	 * display an error string.
 	 */
 	virtual void on(Failed, const Download*, const string&) noexcept { }
-	virtual void on(Status, const UserConnection*, const string&) noexcept { }
-	virtual void on(Idle, const UserConnection*) noexcept { }
+	virtual void on(Idle, const UserConnection*, const string&) noexcept { }
 	virtual void on(Remove, const UserConnection*) noexcept { }
 };
 

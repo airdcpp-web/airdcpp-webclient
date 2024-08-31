@@ -27,7 +27,6 @@
 #include "LogManager.h"
 #include "QueueManager.h"
 #include "ResourceManager.h"
-#include "ScopedFunctor.h"
 #include "UploadManager.h"
 #include "UserConnection.h"
 #include "ValueGenerator.h"
@@ -126,9 +125,50 @@ ConnectionQueueItem::ConnectionQueueItem(const HintedUser& aUser, ConnectionType
 }
 
 bool ConnectionQueueItem::allowNewConnections(int aRunning) const noexcept {
-	return (aRunning < AirUtil::getSlotsPerUser(true) || AirUtil::getSlotsPerUser(true) == 0) && (aRunning < maxConns || maxConns == 0);
+	if (maxRemoteConns != 0 && aRunning >= maxRemoteConns) {
+		return false;
+	}
+
+	auto maxOwnConns = AirUtil::getSlotsPerUser(true);
+	if (maxOwnConns != 0 && aRunning >= maxOwnConns) {
+		return false;
+	}
+
+	return true;
 }
 
+bool ConnectionQueueItem::isSmallSlot() const noexcept {
+	return downloadType == QueueDownloadType::SMALL;
+}
+
+bool ConnectionQueueItem::isActive() const noexcept {
+	return state == State::ACTIVE;
+}
+
+bool ConnectionQueueItem::isMcn() const noexcept {
+	return isSet(FLAG_MCN);
+}
+
+bool ConnectionQueueItem::allowConnect(int aAttempts, int aAttemptLimit, uint64_t aTick) const noexcept {
+	// No attempts?
+	if (lastAttempt == 0 && aAttempts < aAttemptLimit * 2) {
+		return true;
+	}
+
+	// Enough time ellapsed since the last attempt?
+	return (aAttemptLimit == 0 || aAttempts < aAttemptLimit) &&
+		lastAttempt + 60 * 1000 * max(1, errors) < aTick;
+}
+
+bool ConnectionQueueItem::isTimeout(uint64_t aTick) const noexcept {
+	return state == ConnectionQueueItem::State::CONNECTING && lastAttempt + 50 * 1000 < aTick;
+}
+
+void ConnectionQueueItem::resetFatalError() noexcept {
+	if (getLastAttempt() == -1) {
+		setLastAttempt(0);
+	}
+}
 
 /**
  * Request a connection for downloading.
@@ -143,63 +183,79 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool aSma
 		return;
 	}
 
-	bool supportMcn = false;
-
-	ConnectionQueueItem* cqi = nullptr;
-	int running = 0;
-
 	{
 		WLock l(cs);
-		for(const auto& i: downloads) {
-			cqi = i;
-			if (cqi->getUser() != aUser.user || cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-				continue;
-			}
-
-			if (cqi->getDownloadType() == ConnectionQueueItem::DownloadType::MCN_NORMAL) {
-				supportMcn = true;
-				if (cqi->getState() != ConnectionQueueItem::RUNNING) {
-					//already has a waiting item? small slot doesn't count
-					if (!aSmallSlot) {
-						// force in case we joined a new hub and there was a protocol error
-						if (cqi->getLastAttempt() == -1) {
-							cqi->setLastAttempt(0);
-						}
-						return;
-					}
-				} else {
-					running++;
-				}
-			} else if (cqi->getDownloadType() == ConnectionQueueItem::DownloadType::SMALL_CONF) {
-				supportMcn = true;
-				//no need to continue with small slot if an item with the same type exists already (no mather whether it's running or not)
-				if (aSmallSlot) {
-					// force in case we joined a new hub and there was a protocol error
-					if (cqi->getLastAttempt() == -1) {
-						cqi->setLastAttempt(0);
-					}
-					return;
-				}
-			} else {
-				//no need to continue with non-MCN users
-				return;
-			}
-		}
-
-		if (supportMcn && !aSmallSlot && !cqi->allowNewConnections(running)) {
+		if (!allowNewMCNUnsafe(aUser, aSmallSlot, [](ConnectionQueueItem* aWaitingCQI) {
+			// Force in case we joined a new hub and there was a protocol error
+			aWaitingCQI->resetFatalError();
+		})) {
 			return;
 		}
 
-		//WLock l (cs);
-		dcdebug("Get cqi");
-		cqi = getCQI(aUser, CONNECTION_TYPE_DOWNLOAD);
+		auto cqi = getCQIUnsafe(aUser, CONNECTION_TYPE_DOWNLOAD);
 		if (aSmallSlot) {
-			cqi->setDownloadType(supportMcn ? ConnectionQueueItem::DownloadType::SMALL_CONF : ConnectionQueueItem::DownloadType::SMALL);
+			cqi->setDownloadType(QueueDownloadType::SMALL);
 		}
+
+		dcdebug("DownloadManager::getDownloadConnection: created new item %s for user %s (small slot: %s)\n", cqi->getToken().c_str(), ClientManager::getInstance()->getFormatedNicks(aUser).c_str(), aSmallSlot ? "true" : "false");
 	}
 }
 
-ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, ConnectionType aConnType, const string& aToken) noexcept {
+bool ConnectionManager::allowNewMCNUnsafe(const UserPtr& aUser, bool aSmallSlot, ConnectionQueueItemCallback&& aWaitingCallback) noexcept {
+	// We need to check if we have queued something also while the small file connection was being established
+	ConnectionQueueItem* cqi = nullptr;
+	int runningNormal = 0;
+	auto supportMcn = false;
+
+	for(const auto& i: downloads) {
+		cqi = i;
+		if (cqi->getUser() != aUser) {
+			continue;
+		}
+
+		if (!cqi->isMcn()) {
+			// We already have a connection, no need to continue
+			return false;
+		}
+
+		supportMcn = true;
+
+		if (cqi->getDownloadType() == QueueDownloadType::MCN_NORMAL) {
+			if (!cqi->isActive()) {
+				// Already has a waiting item? Small slot doesn't count
+				if (!aSmallSlot) {
+					// Force in case we joined a new hub and there was a protocol error
+					if (aWaitingCallback) {
+						aWaitingCallback(cqi);
+					}
+					return false;
+				}
+			} else {
+				runningNormal++;
+			}
+		} else if (cqi->getDownloadType() == QueueDownloadType::SMALL) {
+			// No need to continue with small slot if an item with the same type exists already
+			// (regardless of whether it's running or not)
+			if (aSmallSlot) {
+				// Force in case we joined a new hub and there was a protocol error
+				if (!cqi->isActive() && aWaitingCallback) {
+					aWaitingCallback(cqi);
+				}
+
+				return false;
+			}
+		}
+	}
+
+	if (supportMcn && !aSmallSlot && !cqi->allowNewConnections(runningNormal)) {
+		return false;
+	}
+
+	return true;
+}
+
+
+ConnectionQueueItem* ConnectionManager::getCQIUnsafe(const HintedUser& aUser, ConnectionType aConnType, const string& aToken) noexcept {
 	auto& container = cqis[aConnType];
 	auto cqi = new ConnectionQueueItem(aUser, aConnType, !aToken.empty() ? aToken : tokens.createToken(aConnType));
 	container.emplace_back(cqi);
@@ -209,9 +265,7 @@ ConnectionQueueItem* ConnectionManager::getCQI(const HintedUser& aUser, Connecti
 	return cqi;
 }
 
-void ConnectionManager::putCQI(ConnectionQueueItem* cqi) noexcept {
-	//allways called from inside lock
-
+void ConnectionManager::putCQIUnsafe(ConnectionQueueItem* cqi) noexcept {
 	fire(ConnectionManagerListener::Removed(), cqi);
 	
 	auto& container = cqis[cqi->getConnType()];
@@ -283,156 +337,157 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 		for(auto& m: removedTokens) {
 			auto s = find(downloads.begin(), downloads.end(), m);
 			if (s != downloads.end()) {
-				putCQI(*s);
+				putCQIUnsafe(*s);
 			}
 		}
 	}
 }
 
 void ConnectionManager::attemptDownloads(uint64_t aTick, StringList& removedTokens_) noexcept {
-	RLock l(cs);
 	int attemptLimit = SETTING(DOWNCONN_PER_SEC);
-	uint16_t attempts = 0;
+	int attempts = 0;
+
+	RLock l(cs);
 	for (auto cqi : downloads) {
-		if (!cqi->isActive()) {
-			if (!cqi->getUser().user->isOnline() || cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-				removedTokens_.push_back(cqi->getToken());
-				continue;
-			}
+		// Already active?
+		if (cqi->isActive()) {
+			continue;
+		}
 
-			if (cqi->getErrors() == -1 && cqi->getLastAttempt() != 0) {
-				// protocol error, don't reconnect except after a forced attempt
-				continue;
-			}
+		// Removing?
+		if (!cqi->getUser().user->isOnline()) {
+			removedTokens_.push_back(cqi->getToken());
+			continue;
+		}
 
-			if ((cqi->getLastAttempt() == 0 && attempts < attemptLimit * 2) || ((attemptLimit == 0 || attempts < attemptLimit) &&
-				cqi->getLastAttempt() + 60 * 1000 * max(1, cqi->getErrors()) < aTick))
-			{
-				// TODO: no one can understand this code, fix!
-				ScopedFunctor([=] { cqi->setLastAttempt(aTick); });
+		// No attempts?
+		if (cqi->getErrors() == -1 && cqi->getLastAttempt() != 0) {
+			// protocol error, don't reconnect except after a forced attempt
+			continue;
+		}
 
-				QueueToken bundleToken = 0;
-				string lastError, hubHint = cqi->getHubUrl();
-				bool allowUrlChange = true;
-				bool hasDownload = false;
-
-				auto type = cqi->isSmallSlot() ? QueueItem::TYPE_SMALL : cqi->getDownloadType() == ConnectionQueueItem::DownloadType::MCN_NORMAL ? QueueItem::TYPE_MCN_NORMAL : QueueItem::TYPE_ANY;
-
-				//we'll also validate the hubhint (and that the user is online) before making any connection attempt
-				auto startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, type, bundleToken, allowUrlChange, hasDownload, lastError);
-				if (!hasDownload && cqi->getDownloadType() == ConnectionQueueItem::DownloadType::SMALL && count_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* aCQI) { return aCQI != cqi && aCQI->getUser() == cqi->getUser(); }) == 0) {
-					//the small file finished already? try with any type
-					cqi->setDownloadType(ConnectionQueueItem::DownloadType::ANY);
-					startDown = QueueManager::getInstance()->startDownload(cqi->getUser(), hubHint, QueueItem::TYPE_ANY,
-						bundleToken, allowUrlChange, hasDownload, lastError);
-				} else if (cqi->getDownloadType() == ConnectionQueueItem::DownloadType::ANY && startDown.first == QueueItem::TYPE_SMALL &&
-					count_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* aCQI) {
-					return aCQI->getUser() == cqi->getUser() && cqi->isSmallSlot();
-				}) == 0) {
-					// a small file has been added after the CQI was created
-					cqi->setDownloadType(ConnectionQueueItem::DownloadType::SMALL);
-				}
-
-
-				if (!hasDownload) {
-					removedTokens_.push_back(cqi->getToken());
-					continue;
-				}
-
-				cqi->setLastBundle(bundleToken != 0 ? Util::toString(bundleToken) : Util::emptyString);
-				cqi->setHubUrl(hubHint);
-
-				if (cqi->getState() == ConnectionQueueItem::WAITING || 
-					// Forcing the connection and it's not connected yet? Retry
-					(cqi->getLastAttempt() == 0 && cqi->getState() == ConnectionQueueItem::CONNECTING && find(userConnections.begin(), userConnections.end(), cqi->getToken()) == userConnections.end())
-				) {
-					if (startDown.second) {
-						cqi->setState(ConnectionQueueItem::CONNECTING);
-						bool protocolError = false;
-
-						if (!ClientManager::getInstance()->connect(cqi->getUser(), cqi->getToken(), allowUrlChange, lastError, hubHint, protocolError)) {
-							cqi->setState(ConnectionQueueItem::WAITING);
-							cqi->setErrors(protocolError ? -1 : (cqi->getErrors() + 1)); // protocol error
-							dcassert(!lastError.empty());
-							fire(ConnectionManagerListener::Failed(), cqi, lastError);
-						} else {
-							cqi->setHubUrl(hubHint);
-							fire(ConnectionManagerListener::Connecting(), cqi);
-							attempts++;
-						}
-					} else {
-						fire(ConnectionManagerListener::Failed(), cqi, lastError);
-					}
-				}
-			} else if (cqi->getState() == ConnectionQueueItem::CONNECTING && cqi->getLastAttempt() + 50 * 1000 < aTick) {
-
+		// Not enough time since the last attempt?
+		if (!cqi->allowConnect(attempts, attemptLimit, aTick)) {
+			if (cqi->isTimeout(aTick)) {
 				cqi->setErrors(cqi->getErrors() + 1);
 				fire(ConnectionManagerListener::Failed(), cqi, STRING(CONNECTION_TIMEOUT));
-				cqi->setState(ConnectionQueueItem::WAITING);
+				cqi->setState(ConnectionQueueItem::State::WAITING);
 			}
-		} else if (cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-			cqi->unsetFlag(ConnectionQueueItem::FLAG_REMOVE);
+
+			continue;
 		}
+
+		// Try to connect 
+		if (attemptDownloadUnsafe(cqi, removedTokens_)) {
+			attempts++;
+		}
+
+		cqi->setLastAttempt(aTick);
 	}
 }
 
+bool ConnectionManager::attemptDownloadUnsafe(ConnectionQueueItem* cqi, StringList& removedTokens_) noexcept {
 
-void ConnectionManager::addRunningMCN(const UserConnection *aSource) noexcept {
+	// We'll also validate the hubhint (and that the user is online) before making any connection attempt
+	auto startResult = QueueManager::getInstance()->startDownload(cqi->getUser(), cqi->getDownloadType());
+	if (!startResult.hasDownload && cqi->getDownloadType() == QueueDownloadType::SMALL && ranges::none_of(downloads, [&](const ConnectionQueueItem* aCQI) { return aCQI != cqi && aCQI->getUser() == cqi->getUser(); })) {
+		// The small file finished already? Try with any type
+		cqi->setDownloadType(QueueDownloadType::ANY);
+		startResult = QueueManager::getInstance()->startDownload(cqi->getUser(), QueueDownloadType::ANY);
+	} else if (
+		cqi->getDownloadType() == QueueDownloadType::ANY &&
+		startResult.downloadType == QueueDownloadType::SMALL &&
+		ranges::none_of(downloads, [&](const ConnectionQueueItem* aCQI) {
+			return aCQI->getUser() == cqi->getUser() && cqi->isSmallSlot();
+		})
+	) {
+		// a Small file has been added after the CQI was created
+		cqi->setDownloadType(QueueDownloadType::SMALL);
+	}
+
+	// No files to download from this user?
+	if (!startResult.hasDownload) {
+		dcdebug("ConnectionManager::attemptDownload: no downloads from user %s (conn %s), removing (small slot: %s)\n", ClientManager::getInstance()->getFormatedNicks(cqi->getUser()).c_str(), cqi->getToken().c_str(), cqi->isSmallSlot() ? "true" : "false");
+		removedTokens_.push_back(cqi->getToken());
+		return false;
+	}
+
+	cqi->setLastBundle(startResult.bundleToken ? Util::toString(*startResult.bundleToken) : Util::emptyString);
+	cqi->setHubUrl(startResult.hubHint);
+
+	if (cqi->getState() == ConnectionQueueItem::State::WAITING ||
+		// Forcing the connection and it's not connected yet? Retry
+		(cqi->getLastAttempt() == 0 && cqi->getState() == ConnectionQueueItem::State::CONNECTING && find(userConnections.begin(), userConnections.end(), cqi->getToken()) == userConnections.end())
+	) {
+		if (startResult.startDownload) {
+			return connectUnsafe(cqi, startResult.allowUrlChange);
+		} else {
+			// Download limits full or similar temporary error
+			dcdebug("ConnectionManager::attemptDownload: can't start download from user %s (connection %s): %s (small slot: %s)\n", ClientManager::getInstance()->getFormatedNicks(cqi->getUser()).c_str(), cqi->getToken().c_str(), startResult.lastError.c_str(), cqi->isSmallSlot() ? "true" : "false");
+			fire(ConnectionManagerListener::Failed(), cqi, startResult.lastError);
+		}
+	}
+
+	return false;
+}
+
+bool ConnectionManager::connectUnsafe(ConnectionQueueItem* cqi, bool aAllowUrlChange) noexcept {
+	cqi->setState(ConnectionQueueItem::State::CONNECTING);
+
+	auto connectResult = ClientManager::getInstance()->connect(cqi->getUser(), cqi->getToken(), aAllowUrlChange);
+	if (!connectResult.getIsSuccess()) {
+		cqi->setState(ConnectionQueueItem::State::WAITING);
+		cqi->setErrors(connectResult.getIsProtocolError() ? -1 : (cqi->getErrors() + 1)); // protocol error
+		dcassert(!connectResult.getError().empty());
+		fire(ConnectionManagerListener::Failed(), cqi, connectResult.getError());
+		return false;
+	}
+
+	// Success
+	cqi->setHubUrl(connectResult.getHubHint());
+	fire(ConnectionManagerListener::Connecting(), cqi);
+	return true;
+}
+
+void ConnectionManager::onDownloadRunning(const UserConnection *aSource) noexcept {
 	{
 		RLock l(cs);
-		auto i = find(downloads.begin(), downloads.end(), aSource->getToken());
-		if (i != downloads.end()) {
-			ConnectionQueueItem* cqi = *i;
-			cqi->setState(ConnectionQueueItem::RUNNING);
-			//LogManager::getInstance()->message("Running downloads for the user: " + Util::toString(runningDownloads[aSource->getUser()]));
+		auto cqi = findDownloadUnsafe(aSource);
+		if (!cqi || cqi->isSet(ConnectionQueueItem::FLAG_RUNNING)) {
+			return;
+		}
 
-			if (!allowNewMCN(cqi))
-				return;
+		cqi->setFlag(ConnectionQueueItem::FLAG_RUNNING);
+		if (!cqi->isMcn()) {
+			return;
+		}
+
+		if (!allowNewMCNUnsafe(cqi->getUser(), false)) {
+			dcdebug("ConnectionManager::addRunningMCN: can't add new connections for user %s, conn %s (small slot: %s)\n", ClientManager::getInstance()->getFormatedNicks(aSource->getHintedUser()).c_str(), cqi->getToken().c_str(), cqi->isSmallSlot() ? "true" : "false");
+			return;
 		}
 	}
 
 	createNewMCN(aSource->getHintedUser());
 }
 
-bool ConnectionManager::allowNewMCN(const ConnectionQueueItem* aCQI) noexcept {
-	//we need to check if we have queued something also while the small file connection was being established
-	if (!aCQI->isMcn()) {
-		return false;
-	}
-
-	//count the running MCN connections
-	int running = 0;
-	for(const auto& cqi: downloads) {
-		if (cqi->getUser() == aCQI->getUser() && cqi->getDownloadType() != ConnectionQueueItem::DownloadType::SMALL_CONF && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-			if (!cqi->isActive()) {
-				return false;
-			}
-			running++;
-		}
-	}
-
-	if (running > 0 && aCQI->getDownloadType() == ConnectionQueueItem::DownloadType::SMALL_CONF)
-		return false;
-
-	if (!aCQI->allowNewConnections(running) && !aCQI->isSet(ConnectionQueueItem::FLAG_REMOVE))
-		return false;
-
-	return true;
-}
-
 void ConnectionManager::createNewMCN(const HintedUser& aUser) noexcept {
-	auto runningBundles = DownloadManager::getInstance()->getRunningBundles();
+	auto result = QueueManager::getInstance()->startDownload(aUser, QueueDownloadType::MCN_NORMAL);
+	if (!result.hasDownload) {
+		dcdebug("ConnectionManager::createNewMCN: no downloads from user %s (type normal)\n", ClientManager::getInstance()->getFormatedNicks(aUser).c_str());
+		return;
+	}
 
-	string lastError;
-	auto start = QueueManager::getInstance()->startDownload(aUser, runningBundles, 
-		ClientManager::getInstance()->getHubSet(aUser.user->getCID()), QueueItem::TYPE_MCN_NORMAL, 0, lastError); // don't overlap...
-	if (start) {
+	{
 		WLock l (cs);
-		ConnectionQueueItem* cqiNew = getCQI(aUser, CONNECTION_TYPE_DOWNLOAD);
-		cqiNew->setDownloadType(ConnectionQueueItem::DownloadType::MCN_NORMAL);
+		auto cqiNew = getCQIUnsafe(aUser, CONNECTION_TYPE_DOWNLOAD);
+		cqiNew->setDownloadType(QueueDownloadType::MCN_NORMAL);
+
+		dcdebug("ConnectionManager::createNewMCN: creating new connection for user %s\n", ClientManager::getInstance()->getFormatedNicks(aUser).c_str());
 	}
 }
 
+#define MAX_UC_INACTIVITY_SECONDS 180
 void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	WLock l(cs);
 	for (auto i = removedDownloadTokens.begin(); i != removedDownloadTokens.end();) {
@@ -446,12 +501,13 @@ void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcep
 	for(auto j: userConnections) {
 		if (j->isSet(UserConnection::FLAG_PM)) {
 			//Send a write check to the socket to detect half connected state, a good interval?
-			if ((j->getLastActivity() + 180 * 1000) < aTick) {
+			if ((j->getLastActivity() + MAX_UC_INACTIVITY_SECONDS * 1000) < aTick) {
 				AdcCommand c(AdcCommand::CMD_PMI);
 				c.addParam("\n");
 				j->send(c);
 			}
-		} else if ((j->getLastActivity() + 180 * 1000) < aTick) {
+		} else if ((j->getLastActivity() + MAX_UC_INACTIVITY_SECONDS * 1000) < aTick) {
+			dcdebug("ConnectionManager::timer: disconnecting an inactive connection %s for user %s\n", j->getToken().c_str(), ClientManager::getInstance()->getFormatedNicks(j->getHintedUser()).c_str());
 			j->disconnect(true);
 		}
 	}
@@ -754,7 +810,7 @@ void ConnectionManager::on(UserConnectionListener::MyNick, UserConnection* aSour
 		RLock l(cs);
 		for(auto cqi: downloads) {
 			cqi->setErrors(0);
-			if((cqi->getState() == ConnectionQueueItem::CONNECTING || cqi->getState() == ConnectionQueueItem::WAITING) && 
+			if(!cqi->isActive() &&
 				cqi->getUser().user->getCID() == cid)
 			{
 				aSource->setUser(cqi->getUser());
@@ -855,8 +911,9 @@ void ConnectionManager::addPMConnection(UserConnection* uc) noexcept {
 		if (i == container.end()) {
 			dcassert(!uc->getToken().empty());
 			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
-			auto cqi = getCQI(uc->getHintedUser(), CONNECTION_TYPE_PM, uc->getToken());
-			cqi->setState(ConnectionQueueItem::ACTIVE);
+
+			auto cqi = getCQIUnsafe(uc->getHintedUser(), CONNECTION_TYPE_PM, uc->getToken());
+			cqi->setState(ConnectionQueueItem::State::ACTIVE);
 
 			fire(ConnectionManagerListener::Connected(), cqi, uc);
 
@@ -864,6 +921,7 @@ void ConnectionManager::addPMConnection(UserConnection* uc) noexcept {
 			return;
 		}
 	}
+
 	putConnection(uc);
 }
 
@@ -873,27 +931,25 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) noexcept {
 	bool addConn = false;
 	{
 		RLock l(cs);
-		auto i = uc->isMCN() ? std::find(downloads.begin(), downloads.end(), uc->getToken()) : std::find(downloads.begin(), downloads.end(), uc->getUser());
-		if(i != downloads.end()) {
-			ConnectionQueueItem* cqi = *i;
-			if(cqi->getState() == ConnectionQueueItem::WAITING || cqi->getState() == ConnectionQueueItem::CONNECTING) {
-				cqi->setState(ConnectionQueueItem::ACTIVE);
-				if (uc->isMCN()) {
-					if (cqi->isSmallSlot()) {
-						uc->setFlag(UserConnection::FLAG_SMALL_SLOT);
-						cqi->setDownloadType(ConnectionQueueItem::DownloadType::SMALL_CONF);
-					} else {
-						cqi->setDownloadType(ConnectionQueueItem::DownloadType::MCN_NORMAL);
-					}
+		auto cqi = findDownloadUnsafe(uc);
+		if (cqi && !cqi->isActive()) {
+			cqi->setState(ConnectionQueueItem::State::ACTIVE);
+			if (uc->isMCN()) {
+				if (cqi->isSmallSlot()) {
+					uc->setFlag(UserConnection::FLAG_SMALL_SLOT);
+				} else {
+					cqi->setDownloadType(QueueDownloadType::MCN_NORMAL);
 				}
 
-				uc->setToken(cqi->getToken()); // sync for NMDC users
-				uc->setHubUrl(cqi->getHubUrl()); //set the correct hint for the uc, it might not even have a hint at first.
-				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
-				fire(ConnectionManagerListener::Connected(), cqi, uc);
-				dcdebug("ConnectionManager::addDownloadConnection, leaving to downloadmanager\n");
-				addConn = true;
+				cqi->setFlag(ConnectionQueueItem::FLAG_MCN);
 			}
+
+			uc->setToken(cqi->getToken()); // sync for NMDC users
+			uc->setHubUrl(cqi->getHubUrl()); //set the correct hint for the uc, it might not even have a hint at first.
+			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
+			fire(ConnectionManagerListener::Connected(), cqi, uc);
+			dcdebug("ConnectionManager::addDownloadConnection, leaving to downloadmanager\n");
+			addConn = true;
 		}
 	}
 
@@ -910,9 +966,9 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) noexcept {
 
 	{
 		WLock l(cs);
-		auto &uploads = cqis[CONNECTION_TYPE_UPLOAD];
+		auto& uploads = cqis[CONNECTION_TYPE_UPLOAD];
 		if (!uc->isMCN() && find(uploads.begin(), uploads.end(), uc->getUser()) != uploads.end()) {
-			//one connection per CID for non-mcn users
+			// One connection per CID for non-mcn users
 			allowAdd = false;
 		}
 
@@ -921,8 +977,8 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) noexcept {
 			if (allowAdd) {
 				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 
-				auto cqi = getCQI(uc->getHintedUser(), CONNECTION_TYPE_UPLOAD, uc->getToken());
-				cqi->setState(ConnectionQueueItem::ACTIVE);
+				auto cqi = getCQIUnsafe(uc->getHintedUser(), CONNECTION_TYPE_UPLOAD, uc->getToken());
+				cqi->setState(ConnectionQueueItem::State::ACTIVE);
 				fire(ConnectionManagerListener::Connected(), cqi, uc);
 			}
 		}
@@ -986,11 +1042,13 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			fail(AdcCommand::ERROR_GENERIC, "Connection not expected");
 			return;
 		} 
+
+		// Hub URL
 		aSource->setHubUrl(i.second);
 
+		// User
 		auto user = ClientManager::getInstance()->findUser(CID(i.first));
 		aSource->setUser(user);
-
 		if (!aSource->getUser()) {
 			dcdebug("CM::onINF: User not found");
 			fail(AdcCommand::ERROR_GENERIC, "User not found");
@@ -1033,11 +1091,11 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		RLock l(cs);
 		auto i = find(downloads.begin(), downloads.end(), token);
 		if (i != downloads.end()) {
-			ConnectionQueueItem* cqi = *i;
-			if(aSource->isMCN()) {
+			auto cqi = *i;
+			if (aSource->isMCN()) {
 				string slots;
 				if (cmd.getParam("CO", 0, slots)) {
-					cqi->setMaxConns(static_cast<uint8_t>(Util::toInt(slots)));
+					cqi->setMaxRemoteConns(static_cast<uint8_t>(Util::toInt(slots)));
 				}
 			}
 			cqi->setErrors(0);
@@ -1077,11 +1135,17 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 }
 
 void ConnectionManager::force(const string& aToken) noexcept {
+	if (DownloadManager::getInstance()->checkIdle(aToken)) {
+		dcdebug("ConnectionManager::force: idler %s\n", aToken.c_str());
+		return;
+	}
+
 	RLock l(cs);
 	auto i = find(downloads.begin(), downloads.end(), aToken);
 	if (i != downloads.end()) {
 		fire(ConnectionManagerListener::Forced(), *i);
 		(*i)->setLastAttempt(0);
+		dcdebug("ConnectionManager::force: download %s\n", aToken.c_str());
 	}
 }
 
@@ -1106,67 +1170,89 @@ void ConnectionManager::failDownload(const string& aToken, const string& aError,
 		}
 
 		auto cqi = *i;
-		if (cqi->getState() == ConnectionQueueItem::WAITING)
-			return;
+		if (cqi->isMcn()) {
+			removeExtraMCNUnsafe(cqi);
 
-
-		if (cqi->getDownloadType() == ConnectionQueueItem::DownloadType::MCN_NORMAL && !cqi->isSet(ConnectionQueueItem::FLAG_REMOVE)) {
-			// Remove an existing waiting item (if exists)
-			auto s = find_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* c) { 
-				return c->getUser() == cqi->getUser() && !c->isSmallSlot() &&
-					!c->isActive() && c != cqi && !c->isSet(ConnectionQueueItem::FLAG_REMOVE);
-			});
-
-			if (s != downloads.end()) {
-				// (*s)->setFlag(ConnectionQueueItem::FLAG_REMOVE);
-				dcdebug("ConnectionManager::failDownload: removing an existing inactive CQI %s\n", (*s)->getToken().c_str());
-				putCQI(*s);
+			if (cqi->isSmallSlot() && cqi->getState() == ConnectionQueueItem::State::ACTIVE) {
+				// Small slot item that was never used for downloading anything? Check if we have normal files to download
+				if (allowNewMCNUnsafe(cqi->getUser(), false)) {
+					mcnUser = cqi->getUser();
+				}
 			}
-		} 
-				
-		if (cqi->getDownloadType() == ConnectionQueueItem::DownloadType::SMALL_CONF && cqi->getState() == ConnectionQueueItem::ACTIVE) {
-			//small slot item that was never used for downloading anything? check if we have normal files to download
-			if (allowNewMCN(cqi))
-				mcnUser = cqi->getUser();
 		}
 
-		cqi->setState(ConnectionQueueItem::WAITING);
+		if (cqi->getState() != ConnectionQueueItem::State::WAITING) {
+			cqi->setState(ConnectionQueueItem::State::WAITING);
 
-		cqi->setErrors(aFatalError ? -1 : (cqi->getErrors() + 1));
-		cqi->setLastAttempt(GET_TICK());
+			cqi->setErrors(aFatalError ? -1 : (cqi->getErrors() + 1));
+			cqi->setLastAttempt(GET_TICK());
+		}
+
+		cqi->unsetFlag(ConnectionQueueItem::FLAG_RUNNING);
 		fire(ConnectionManagerListener::Failed(), cqi, aError);
 	}
 
-	if (mcnUser)
+	if (mcnUser) {
 		createNewMCN(*mcnUser);
+	}
+}
+
+void ConnectionManager::onIdle(UserConnection* aSource) noexcept {
+	WLock l(cs); //this may flag other user connections as removed which would possibly cause threading issues
+	auto cqi = findDownloadUnsafe(aSource);
+	if (!cqi || !cqi->isSet(ConnectionQueueItem::FLAG_RUNNING)) {
+		return;
+	}
+
+	cqi->unsetFlag(ConnectionQueueItem::FLAG_RUNNING);
+	removeExtraMCNUnsafe(cqi);
+}
+
+void ConnectionManager::removeExtraMCNUnsafe(const ConnectionQueueItem* aFailedCQI) noexcept {
+	if (!aFailedCQI->isMcn()) {
+		return;
+	}
+
+	if (aFailedCQI->getDownloadType() != QueueDownloadType::MCN_NORMAL) {
+		return;
+	}
+
+	// Remove an existing waiting item (if exists)
+	auto s = find_if(downloads.begin(), downloads.end(), [&](const ConnectionQueueItem* c) {
+		return c->getUser() == aFailedCQI->getUser() && !c->isSmallSlot() &&
+			!c->isActive() && c != aFailedCQI;
+	});
+
+	if (s != downloads.end()) {
+		// (*s)->setFlag(ConnectionQueueItem::FLAG_REMOVE);
+		dcdebug("ConnectionManager::disconnectExtraMCN: removing an existing inactive MCN item %s\n", (*s)->getToken().c_str());
+		putCQIUnsafe(*s);
+	}
+}
+
+ConnectionQueueItem* ConnectionManager::findDownloadUnsafe(const UserConnection* aSource) noexcept {
+	// Token may not be synced for NMDC users
+	auto i = aSource->isMCN() ? std::find(downloads.begin(), downloads.end(), aSource->getToken()) : std::find(downloads.begin(), downloads.end(), aSource->getUser());
+	if (i == downloads.end()) {
+		return nullptr;
+	}
+
+	return *i;
+}
+
+void ConnectionManager::on(UserConnectionListener::State, UserConnection* aSource) noexcept {
+	if (aSource->getState() == UserConnection::STATE_IDLE) {
+		onIdle(aSource);
+	} else if (aSource->isSet(UserConnection::FLAG_DOWNLOAD) && aSource->getState() == UserConnection::STATE_RUNNING) {
+		onDownloadRunning(aSource);
+	}
 }
 
 void ConnectionManager::failed(UserConnection* aSource, const string& aError, bool aProtocolError) noexcept {
 	if(aSource->isSet(UserConnection::FLAG_ASSOCIATED)) {
 		if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
-			if (aSource->getState() == UserConnection::STATE_IDLE) {
-				// don't remove the CQI if we are only out of downloading slots
-
-				bool allowChange = false, hasDownload = false;
-				QueueToken unusedBundleToken = 0;
-				string unusedHubUrl, lastError;
-				QueueManager::getInstance()->startDownload(aSource->getHintedUser(), unusedHubUrl,
-					aSource->isSet(UserConnection::FLAG_SMALL_SLOT) ? QueueItem::TYPE_SMALL : QueueItem::TYPE_ANY, 
-					unusedBundleToken, allowChange, hasDownload, lastError);
-
-				if (hasDownload) {
-					failDownload(aSource->getToken(), lastError, aProtocolError);
-				} else {
-					WLock l(cs);
-					auto i = find(downloads.begin(), downloads.end(), aSource->getToken());
-					dcassert(i != downloads.end());
-					if (i != downloads.end()) {
-						putCQI(*i);
-					}
-				}
-			} else {
-				failDownload(aSource->getToken(), aError, aProtocolError);
-			}
+			failDownload(aSource->getToken(), aError, aProtocolError);
+			dcdebug("ConnectionManager::failed: download %s failed\n", aSource->getToken().c_str());
 		} else {
 
 			auto type = aSource->isSet(UserConnection::FLAG_UPLOAD) ? CONNECTION_TYPE_UPLOAD :
@@ -1178,7 +1264,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 				auto i = type == CONNECTION_TYPE_PM ? find(container.begin(), container.end(), aSource->getUser()) :
 					find(container.begin(), container.end(), aSource->getToken());
 				dcassert(i != container.end());
-				putCQI(*i);
+				putCQIUnsafe(*i);
 			}
 		}
 	}

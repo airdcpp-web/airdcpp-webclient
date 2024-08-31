@@ -755,72 +755,71 @@ OnlineUserPtr ClientManager::findOnlineUser(const CID& cid, const string& hintUr
 	return aAllowFallback ? p.first->second : nullptr;
 }
 
-bool ClientManager::connect(const UserPtr& aUser, const string& aToken, bool aAllowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError_, ConnectionType aConnType) const noexcept {
+ClientManager::ConnectResult ClientManager::connect(const HintedUser& aUser, const string& aToken, bool aAllowUrlChange, ConnectionType aConnType) const noexcept {
+	ConnectResult result;
+
 	RLock l(cs);
-	auto op = onlineUsers.equal_range(const_cast<CID*>(&aUser->getCID()));
+	auto op = onlineUsers.equal_range(const_cast<CID*>(&aUser.user->getCID()));
 
 	auto connectUser = [&] (OnlineUser* ou) -> bool {
-		isProtocolError_ = false;
+		result.resetError();
+		// result.isProtocolError = false;
 
-		auto ret = ou->getClient()->connect(*ou, aToken, lastError_);
+		string connectError;
+		auto ret = ou->getClient()->connect(*ou, aToken, connectError);
 		if (ret == AdcCommand::SUCCESS) {
 			return true;
 		}
 
 		//get the error string
 		if (ret == AdcCommand::ERROR_TLS_REQUIRED) {
-			isProtocolError_ = true;
-			lastError_ = STRING(SOURCE_NO_ENCRYPTION);
+			result.onProtocolError(STRING(SOURCE_NO_ENCRYPTION));
 		} else if (ret == AdcCommand::ERROR_PROTOCOL_UNSUPPORTED) {
-			isProtocolError_ = true;
-			lastError_ = STRING_F(REMOTE_PROTOCOL_UNSUPPORTED, lastError_);
+			result.onProtocolError(STRING_F(REMOTE_PROTOCOL_UNSUPPORTED, connectError));
 		} else if (ret == AdcCommand::ERROR_BAD_STATE) {
-			lastError_ = STRING(CONNECTING_IN_PROGRESS);
+			result.onMinorError(STRING(CONNECTING_IN_PROGRESS));
 		} else if (ret == AdcCommand::ERROR_FEATURE_MISSING) {
-			isProtocolError_ = true;
-			lastError_ = STRING(NO_NATT_SUPPORT);
+			result.onProtocolError(STRING(NO_NATT_SUPPORT));
 		} else if (ret == AdcCommand::ERROR_PROTOCOL_GENERIC) {
-			isProtocolError_ = true;
-			lastError_ = STRING(UNABLE_CONNECT_USER);
+			result.onProtocolError(STRING(UNABLE_CONNECT_USER));
 		}
 
 		return false;
 	};
 
 	if (aConnType == CONNECTION_TYPE_PM) {
-		if (!aUser->isSet(User::TLS)) {
-			isProtocolError_ = true;
-			lastError_ = STRING(SOURCE_NO_ENCRYPTION);
-			return false;
+		if (!aUser.user->isSet(User::TLS)) {
+			result.onProtocolError(STRING(SOURCE_NO_ENCRYPTION));
+			return result;
 		}
 
 		// We don't care which hub we use to establish the connection all we need to know is the user supports the CCPM feature.
-		if (!aUser->isSet(User::CCPM)) {
-			isProtocolError_ = true;
-			lastError_ = STRING(CCPM_NOT_SUPPORTED);
-			return false;
+		if (!aUser.user->isSet(User::CCPM)) {
+			result.onProtocolError(STRING(CCPM_NOT_SUPPORTED));
+			return result;
 		}
 	}
 
 	// Prefer the hinted hub
-	auto p = ranges::find_if(op | pair_to_range, [&hubHint_](const auto& ouc) { return ouc.second->getHubUrl() == hubHint_; });
+	auto p = ranges::find_if(op | pair_to_range, [&aUser](const auto& ouc) { return ouc.second->getHubUrl() == aUser.hint; });
 	if (p != op.second && connectUser(p->second)) {
-		return true;
+		result.onSuccess(aUser.hint);
+		return result;
 	}
 
 	if (!aAllowUrlChange) {
-		return false;
+		return result;
 	}
 
 	// Connect via any available hub
 	for (auto i = op.first; i != op.second; ++i) {
 		if (connectUser(i->second)) {
-			hubHint_ = i->second->getHubUrl();
-			return true;
+			result.onSuccess(i->second->getHubUrl());
+			return result;
 		}
 	}
 
-	return false;
+	return result;
 }
 
 bool ClientManager::privateMessageHooked(const HintedUser& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho) noexcept {

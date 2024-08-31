@@ -72,8 +72,7 @@ public:
 		FLAG_SUPPORTS_ZLIB_GET		= FLAG_SUPPORTS_ADCGET << 1,
 		FLAG_SUPPORTS_TTHL			= FLAG_SUPPORTS_ZLIB_GET <<1,
 		FLAG_SUPPORTS_TTHF			= FLAG_SUPPORTS_TTHL << 1,
-		FLAG_RUNNING				= FLAG_SUPPORTS_TTHF << 1,
-		FLAG_SMALL_SLOT				= FLAG_RUNNING << 1,
+		FLAG_SMALL_SLOT				= FLAG_SUPPORTS_TTHF << 1,
 		FLAG_TRUSTED				= FLAG_SMALL_SLOT << 1
 	};
 	
@@ -200,7 +199,7 @@ public:
 	IGETSET(int64_t, speed, Speed, 0);
 	IGETSET(uint64_t, lastActivity, LastActivity, 0);
 	GETSET(string, encoding, Encoding);
-	IGETSET(States, state, State, STATE_UNCONNECTED);
+	IGETPROP(States, state, State, STATE_UNCONNECTED);
 	IGETSET(uint8_t, slotType, SlotType, NOSLOT);
 	
 	const BufferedSocket* getSocket() const noexcept { return socket; }
@@ -218,6 +217,7 @@ public:
 	}
 
 	void setUseLimiter(bool aEnabled) noexcept;
+	void setState(States aNewState) noexcept;
 private:
 	void initSocket();
 

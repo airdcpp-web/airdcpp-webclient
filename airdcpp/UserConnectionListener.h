@@ -49,7 +49,8 @@ public:
 	typedef X<18> Supports;
 	typedef X<19> ProtocolError;
 	typedef X<20> FileNotAvailable;
-	typedef X<21> ListLength; 
+	typedef X<21> ListLength;
+	typedef X<22> State;
 
 	virtual void on(BytesSent, UserConnection*, size_t, size_t) noexcept { }
 	virtual void on(Connected, UserConnection*) noexcept { }
@@ -71,6 +72,7 @@ public:
 	virtual void on(ListLength, UserConnection*, const string&) noexcept { }
 	virtual void on(PrivateMessage, UserConnection*, const ChatMessagePtr&) noexcept{}
 	virtual void on(UserSet, UserConnection*) noexcept {}
+	virtual void on(State, UserConnection*) noexcept {}
 
 	virtual void on(AdcCommand::SUP, UserConnection*, const AdcCommand&) noexcept { }
 	virtual void on(AdcCommand::INF, UserConnection*, const AdcCommand&) noexcept { }

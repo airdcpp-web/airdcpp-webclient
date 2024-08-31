@@ -360,20 +360,20 @@ bool Bundle::addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool 
 	}
 }
 
-QueueItemPtr Bundle::getNextQI(const UserPtr& aUser, const OrderedStringSet& aOnlineHubs, string& aLastError, Priority aMinPrio, int64_t aWantedSize, int64_t aLastSpeed, QueueItemBase::DownloadType aType, bool aAllowOverlap) noexcept {
+QueueItemPtr Bundle::getNextQI(const QueueDownloadQuery& aQuery, string& lastError_, bool aAllowOverlap) noexcept {
 	int p = static_cast<int>(Priority::LAST) - 1;
 	do {
-		auto i = userQueue[p].find(aUser);
+		auto i = userQueue[p].find(aQuery.user);
 		if(i != userQueue[p].end()) {
 			dcassert(!i->second.empty());
 			for(auto& qi: i->second) {
-				if (qi->hasSegment(aUser, aOnlineHubs, aLastError, aWantedSize, aLastSpeed, aType, aAllowOverlap)) {
+				if (qi->hasSegment(aQuery, lastError_, aAllowOverlap)) {
 					return qi;
 				}
 			}
 		}
 		p--;
-	} while(p >= static_cast<int>(aMinPrio));
+	} while(p >= static_cast<int>(aQuery.minPrio));
 
 	return nullptr;
 }

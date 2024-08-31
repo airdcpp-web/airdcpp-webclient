@@ -56,12 +56,8 @@ UploadQueueItem::UploadQueueItem(const HintedUser& _user, const string& _file, i
 }
 
 void UploadQueueManager::connectUser(const HintedUser& aUser, const string& aToken) noexcept {
-	string lastError;
-	string hubUrl = aUser.hint;
-	bool protocolError = false;
-	ClientManager::getInstance()->connect(aUser.user, aToken, true, lastError, hubUrl, protocolError);
-
-	//TODO: report errors?
+	// TODO: report errors?
+	ClientManager::getInstance()->connect(aUser, aToken, true);
 }
 
 void UploadQueueManager::connectUser(const HintedUser& aUser) noexcept {

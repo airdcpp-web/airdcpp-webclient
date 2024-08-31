@@ -27,7 +27,6 @@
 #include "CriticalSection.h"
 #include "ProtocolCommandManager.h"
 #include "Message.h"
-#include "QueueItemBase.h"
 
 
 namespace dcpp {

@@ -173,6 +173,17 @@ void UserConnection::setUseLimiter(bool aEnabled) noexcept {
 	}
 }
 
+void UserConnection::setState(States aNewState) noexcept {
+	if (aNewState == state) {
+		return;
+	}
+
+	state = aNewState;
+	callAsync([this] {
+		fire(UserConnectionListener::State(), this);
+	});
+}
+
 void UserConnection::setUser(const UserPtr& aUser) noexcept {
 	user = aUser;
 
@@ -458,6 +469,7 @@ UserConnection::UserConnection(bool secure_) noexcept : encoding(SETTING(NMDC_EN
 
 UserConnection::~UserConnection() {
 	BufferedSocket::putSocket(socket);
+	dcdebug("User connection %s was deleted\n", getToken().c_str());
 }
 
 } // namespace dcpp

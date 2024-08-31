@@ -31,17 +31,8 @@ namespace dcpp {
 
 using std::string;
 
-typedef uint32_t QueueToken;
-typedef unordered_set<QueueToken> QueueTokenSet;
 class QueueItemBase : public Flags {
 public:
-	enum DownloadType {
-		TYPE_NONE,
-		TYPE_ANY,
-		TYPE_SMALL,
-		TYPE_MCN_NORMAL
-	};
-
 	QueueItemBase(const string& aTarget, int64_t aSize, Priority aPriority, time_t aAdded, QueueToken aToken, Flags::MaskType aFlags);
 
 	const DownloadList& getDownloads() { return downloads; }

@@ -389,6 +389,7 @@
     <ClInclude Include="airdcpp\Hasher.h" />
     <ClInclude Include="airdcpp\HashManagerListener.h" />
     <ClInclude Include="airdcpp\MessageHighlight.h" />
+    <ClInclude Include="airdcpp\QueueDownloadInfo.h" />
     <ClInclude Include="airdcpp\RegexUtil.h" />
     <ClInclude Include="airdcpp\SearchTypes.h" />
     <ClInclude Include="airdcpp\ShareDirectory.h" />

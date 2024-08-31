@@ -20,7 +20,6 @@
 #include "DownloadManager.h"
 
 #include "ClientManager.h"
-#include "ConnectionManager.h"
 #include "Download.h"
 #include "LogManager.h"
 #include "QueueManager.h"
@@ -30,12 +29,6 @@
 
 #include <limits>
 #include <cmath>
-
-
-// some strange mac definition
-#ifdef ff
-#undef ff
-#endif
 
 namespace dcpp {
 
@@ -150,16 +143,26 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		QueueManager::getInstance()->handleSlowDisconnect(dtp.user, dtp.target, dtp.bundle);
 }
 
-bool DownloadManager::checkIdle(const UserPtr& aUser, bool aSmallSlot, bool aReportOnly) {
+bool DownloadManager::checkIdle(const string& aToken) {
+	RLock l(cs);
+	for (auto uc : idlers) {
+		if (uc->getToken() == aToken) {
+			uc->callAsync([this, uc] { revive(uc); });
+			return true;
+		}
+	}
+	return false;
+}
+
+bool DownloadManager::checkIdle(const UserPtr& aUser, bool aSmallSlot) {
 
 	RLock l(cs);
 	for (auto uc: idlers) {
 		if (uc->getUser() == aUser) {
 			if (aSmallSlot != uc->isSet(UserConnection::FLAG_SMALL_SLOT) && uc->isMCN())
 				continue;
-			if (!aReportOnly)
-				uc->callAsync([this, uc] { revive(uc); });
-			//dcdebug("uc updated");
+
+			uc->callAsync([this, uc] { revive(uc); });
 			return true;
 		}	
 	}
@@ -178,18 +181,19 @@ void DownloadManager::revive(UserConnection* uc) {
 	checkDownloads(uc);
 }
 
-void DownloadManager::addConnection(UserConnection* conn) {
-	if (!conn->isSet(UserConnection::FLAG_SUPPORTS_TTHF) || !conn->isSet(UserConnection::FLAG_SUPPORTS_ADCGET)) {
+void DownloadManager::addConnection(UserConnection* aSource) {
+	if (!aSource->isSet(UserConnection::FLAG_SUPPORTS_TTHF) || !aSource->isSet(UserConnection::FLAG_SUPPORTS_ADCGET)) {
 		// Can't download from these...
-		conn->getUser()->setFlag(User::OLD_CLIENT);
-		QueueManager::getInstance()->removeSource(conn->getUser(), QueueItem::Source::FLAG_NO_TTHF);
-		conn->disconnect();
+		aSource->getUser()->setFlag(User::OLD_CLIENT);
+		QueueManager::getInstance()->removeSource(aSource->getUser(), QueueItem::Source::FLAG_NO_TTHF);
+		dcdebug("DownloadManager::addConnection: outdated user (%s)\n", aSource->getToken().c_str());
+		disconnect(aSource);
 		return;
 	}
 
 
-	conn->addListener(this);
-	checkDownloads(conn);
+	aSource->addListener(this);
+	checkDownloads(aSource);
 }
 
 QueueTokenSet DownloadManager::getRunningBundles(bool aIgnoreHighestPrio) const noexcept {
@@ -225,52 +229,38 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	//We may have download assigned for a connection if we are downloading in segments
 	//dcassert(!aConn->getDownload() || aConn->getDownload()->isSet(Download::FLAG_CHUNKED));
 
-	QueueItemBase::DownloadType dlType = QueueItemBase::TYPE_ANY;
-	if (aConn->isSet(UserConnection::FLAG_SMALL_SLOT)) {
-		dlType = QueueItemBase::TYPE_SMALL;
-	} else if (aConn->isMCN()) {
-		dlType = QueueItemBase::TYPE_MCN_NORMAL;
-	}
-
 	auto hubs = ClientManager::getInstance()->getHubSet(aConn->getUser()->getCID());
 
-	//always make sure that the current hub is also compared even if it is offline
+	// always make sure that the current hub is also compared even if it is offline
 	hubs.insert(aConn->getHubUrl());
 
-	string errorMessage;
 	auto runningBundles = getRunningBundles();
-	bool start = QueueManager::getInstance()->startDownload(aConn->getHintedUser(), runningBundles, hubs, dlType, aConn->getSpeed(), errorMessage);
 
-	// not a finished download?
-	if(!start && aConn->getState() != UserConnection::STATE_RUNNING) {
-		// removeRunningUser(aConn);
-		failDownload(aConn, Util::emptyString, false);
-		return;
+	auto result = QueueManager::getInstance()->getDownload(*aConn, runningBundles, hubs);
+
+	// Nothing to download? Skip finished download connections as they should be added in idlers
+	if (!result.hasDownload) {
+		dcdebug("DownloadManager::checkDownloads: no downloads from user %s (small slot: %s)\n", ClientManager::getInstance()->getFormatedNicks(aConn->getHintedUser()).c_str(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT) ? "true" : "false");
+		if (aConn->getState() != UserConnection::STATE_RUNNING) {
+			failDownload(aConn, Util::emptyString, false);
+			return;
+		}
 	}
 
-	string newUrl;
-	Download* d = nullptr;
-
-	if (start)
-		d = QueueManager::getInstance()->getDownload(*aConn, runningBundles, hubs, errorMessage, newUrl, dlType);
-
-	if(!d) {
-		aConn->unsetFlag(UserConnection::FLAG_RUNNING);
-		if(!errorMessage.empty()) {
-			fire(DownloadManagerListener::Status(), aConn, errorMessage);
+	auto d = result.download;
+	if (!d) {
+		if (result.hasDownload) {
+			dcdebug("DownloadManager::checkDownloads: can't start download from user %s (%s)\n", ClientManager::getInstance()->getFormatedNicks(aConn->getHintedUser()).c_str(), result.lastError.c_str());
 		}
 
-		if (!checkIdle(aConn->getUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), true)) {
-			aConn->setState(UserConnection::STATE_IDLE);
-			fire(DownloadManagerListener::Idle(), aConn);
+		aConn->setState(UserConnection::STATE_IDLE);
+		fire(DownloadManagerListener::Idle(), aConn, result.lastError);
 
-			{
-				WLock l(cs);
- 				idlers.push_back(aConn);
-			}
-		} else {
-			aConn->disconnect(true);
+		{
+			WLock l(cs);
+			idlers.push_back(aConn);
 		}
+
 		return;
 	}
 
@@ -281,8 +271,8 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	*/
 
 	string mySID;
-	if(!aConn->getUser()->isNMDC()) {
-		mySID = ClientManager::getInstance()->findMySID(aConn->getUser(), newUrl, false); //no fallback, keep the old hint even if the hub is offline
+	if (!aConn->getUser()->isNMDC()) {
+		mySID = ClientManager::getInstance()->findMySID(aConn->getUser(), result.hubHint, false); //no fallback, keep the old hint even if the hub is offline
 	}
 
 	aConn->setState(UserConnection::STATE_SND);
@@ -300,15 +290,16 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		}
 	}
 
-	dcdebug("Requesting " I64_FMT "/" I64_FMT "\n", d->getStartPos(), d->getSegmentSize());
+	dcdebug("DownloadManager::checkDownloads: requesting " I64_FMT "/" I64_FMT " (connection %s)\n", d->getStartPos(), d->getSegmentSize(), d->getToken().c_str());
 
 	//only update the hub if it has been changed
-	if (compare(newUrl, aConn->getHubUrl()) == 0) {
+	if (compare(result.hubHint, aConn->getHubUrl()) == 0) {
 		mySID.clear();
-	} else if (!newUrl.empty()) {
-		aConn->setHubUrl(newUrl);
+	} else if (!result.hubHint.empty()) {
+		aConn->setHubUrl(result.hubHint);
 	}
 
+	dcassert(aConn->getDownload());
 	fire(DownloadManagerListener::Requesting(), d, !mySID.empty());
 	aConn->send(d->getCommand(aConn->isSet(UserConnection::FLAG_SUPPORTS_ZLIB_GET), mySID));
 }
@@ -320,7 +311,8 @@ void DownloadManager::on(AdcCommand::SND, UserConnection* aSource, const AdcComm
 	}
 
 	if(!aSource->getDownload()) {
-		aSource->disconnect(true);
+		dcdebug("DownloadManager::AdcCommand::SND: no download (%s)\n", aSource->getToken().c_str());
+		disconnect(aSource, true);
 		return;
 	}
 
@@ -333,7 +325,8 @@ void DownloadManager::on(AdcCommand::SND, UserConnection* aSource, const AdcComm
 	
 	if(type != Transfer::names[aSource->getDownload()->getType()]) {
 		// Uhh??? We didn't ask for this...
-		aSource->disconnect();
+		dcdebug("DownloadManager::AdcCommand::SND: transfer type mismatch (%s)\n", aSource->getToken().c_str());
+		disconnect(aSource);
 		return;
 	}
 
@@ -344,7 +337,7 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 	Download* d = aSource->getDownload();
 	dcassert(d);
 
-	dcdebug("Preparing " I64_FMT ":" I64_FMT ", " I64_FMT ":" I64_FMT"\n", d->getStartPos(), start, d->getSegmentSize(), bytes);
+	dcdebug("DownloadManager::startData: preparing " I64_FMT ":" I64_FMT ", " I64_FMT ":" I64_FMT"\n", d->getStartPos(), start, d->getSegmentSize(), bytes);
 	if (d->getSegmentSize() == -1) {
 		if(bytes >= 0) {
 			d->setSegmentSize(bytes);
@@ -379,10 +372,6 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 
 	d->setStart(GET_TICK());
 	d->tick();
-	if (!aSource->isSet(UserConnection::FLAG_RUNNING) && aSource->isMCN() && (d->getType() == Download::TYPE_FILE || d->getType() == Download::TYPE_PARTIAL_LIST)) {
-		ConnectionManager::getInstance()->addRunningMCN(aSource);
-		aSource->setFlag(UserConnection::FLAG_RUNNING);
-	}
 	aSource->setState(UserConnection::STATE_RUNNING);
 
 	fire(DownloadManagerListener::Starting(), d);
@@ -401,8 +390,12 @@ void DownloadManager::startData(UserConnection* aSource, int64_t start, int64_t 
 
 void DownloadManager::on(UserConnectionListener::Data, UserConnection* aSource, const uint8_t* aData, size_t aLen) noexcept {
 	Download* d = aSource->getDownload();
-	if (!d) //No download but receiving data??
-		aSource->disconnect(true);
+	if (!d) {
+		//No download but receiving data??
+		dcassert(0);
+		dcdebug("DownloadManager::UserConnectionListener::Data: no download (%s)\n", aSource->getToken().c_str());
+		disconnect(aSource, true);
+	}
 
 	try {
 		d->addPos(d->getOutput()->write(aData, aLen), aLen);
@@ -444,12 +437,12 @@ void DownloadManager::endData(UserConnection* aSource) {
 
 		if(!(d->getTTH() == d->getTigerTree().getRoot())) {
 			// This tree is for a different file, remove from queue...
-			removeDownload(d);
 			fire(DownloadManagerListener::Failed(), d, STRING(INVALID_TREE));
 
 			QueueManager::getInstance()->removeFileSource(d->getPath(), aSource->getUser(), QueueItem::Source::FLAG_BAD_TREE, false);
-			QueueManager::getInstance()->putDownloadHooked(d, false);
 
+			dcdebug("DownloadManager::endData: invalid tree received from user %s (received %s while %s was excpected)\n", ClientManager::getInstance()->getFormatedNicks(d->getHintedUser()).c_str(), d->getTTH().toBase32().c_str(), d->getTigerTree().getRoot().toBase32().c_str());
+			putDownloadHooked(d, false);
 			checkDownloads(aSource);
 			return;
 		}
@@ -458,21 +451,24 @@ void DownloadManager::endData(UserConnection* aSource) {
 		aSource->setSpeed(static_cast<int64_t>(d->getAverageSpeed()));
 		aSource->updateChunkSize(d->getTigerTree().getBlockSize(), d->getSegmentSize(), GET_TICK() - d->getStart());
 		
-		dcdebug("Download finished: %s, size " I64_FMT ", downloaded " I64_FMT " in " U64_FMT " ms\n", d->getPath().c_str(), d->getSegmentSize(), d->getPos(), GET_TICK() - d->getStart());
+		dcdebug("DownloadManager::endData: %s (connection %s), size " I64_FMT ", downloaded " I64_FMT " in " U64_FMT " ms\n", d->getPath().c_str(), d->getToken().c_str(), d->getSegmentSize(), d->getPos(), GET_TICK() - d->getStart());
 	}
-
-	removeDownload(d);
 
 	fire(DownloadManagerListener::Complete(), d, d->getType() == Transfer::TYPE_TREE);
+	putDownloadHooked(d, true);
+	checkDownloads(aSource);
+}
+
+void DownloadManager::putDownloadHooked(Download* aDownload, bool aFinished, bool aNoAccess, bool aRotateQueue) {
+	unique_ptr<Download> d(aDownload);
+
+	removeDownload(d.get());
 	try {
-		QueueManager::getInstance()->putDownloadHooked(d, true);
+		QueueManager::getInstance()->putDownloadHooked(d.get(), aFinished, aNoAccess, aRotateQueue);
 	} catch (const HashException& e) {
-		failDownload(aSource, e.getError(), false);
-		ConnectionManager::getInstance()->failDownload(aSource->getToken(), e.getError(), true);
+		failDownload(&aDownload->getUserConnection(), e.getError(), false);
 		return;
 	}
-
-	checkDownloads(aSource);
 }
 
 int64_t DownloadManager::getRunningAverage() const {
@@ -508,7 +504,7 @@ void DownloadManager::on(UserConnectionListener::MaxedOut, UserConnection* aSour
 void DownloadManager::noSlots(UserConnection* aSource, const string& param) {
 	if(aSource->getState() != UserConnection::STATE_SND) {
 		dcdebug("DM::noSlots Bad state, disconnecting\n");
-		aSource->disconnect();
+		disconnect(aSource);
 		return;
 	}
 
@@ -527,9 +523,9 @@ void DownloadManager::onFailed(UserConnection* aSource, const string& aError) {
 void DownloadManager::failDownload(UserConnection* aSource, const string& aReason, bool aRotateQueue) {
 	auto d = aSource->getDownload();
 	if (d) {
-		removeDownload(d);
+		dcdebug("DownloadManager::failDownload: %s failed (%s)\n", aSource->getToken().c_str(), aReason.c_str());
 		fire(DownloadManagerListener::Failed(), d, aReason);
-		QueueManager::getInstance()->putDownloadHooked(d, false, false, aRotateQueue);
+		putDownloadHooked(d, false, false, aRotateQueue);
 	} else {
 		fire(DownloadManagerListener::Remove(), aSource);
 	}
@@ -543,16 +539,14 @@ void DownloadManager::removeConnection(UserConnectionPtr aConn) {
 	aConn->disconnect();
 }
 
+void DownloadManager::disconnect(UserConnectionPtr aConn, bool aGraceless) {
+	dcdebug("DownloadManager::disconnect: %s (graceless: %s)\n", aConn->getToken().c_str(), aGraceless ? "true" : "false");
+	aConn->disconnect(aGraceless);
+}
+
 void DownloadManager::removeDownload(Download* d) {
 	// Write the leftover bytes into file
-	if(d->getOutput()) {
-		if(d->getActual() > 0) {
-			try {
-				d->getOutput()->flushBuffers(false);
-			} catch(const Exception&) {
-			}
-		}
-	}
+	d->flush();
 
 	{
 		WLock l(cs);
@@ -587,7 +581,7 @@ void DownloadManager::abortDownload(const string& aTarget, const UserPtr& aUser)
 					continue;
 				}
 			}
-			dcdebug("Trying to close connection for download %p\n", d);
+			dcdebug("Trying to close connection for download %s\n", d->getToken().c_str());
 			d->getUserConnection().disconnect(true);
 		}
 	}
@@ -595,7 +589,8 @@ void DownloadManager::abortDownload(const string& aTarget, const UserPtr& aUser)
 
 void DownloadManager::on(UserConnectionListener::FileNotAvailable, UserConnection* aSource) noexcept {
 	if(!aSource->getDownload()) {
-		aSource->disconnect(true);
+		dcdebug("DM::FileNotAvailable: no download (%s)\n", aSource->getToken().c_str());
+		disconnect(aSource, true);
 		return;
 	}
 	fileNotAvailable(aSource, false);
@@ -604,20 +599,23 @@ void DownloadManager::on(UserConnectionListener::FileNotAvailable, UserConnectio
 /** @todo Handle errors better */
 void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcCommand& cmd) noexcept {
 	if(cmd.getParameters().size() < 2) {
-		aSource->disconnect();
+		dcdebug("DM::AdcCommand::STA: not enough parameters (%s)\n", aSource->getToken().c_str());
+		disconnect(aSource);
 		return;
 	}
 
 	const string& errorCode = cmd.getParam(0);
 	const string& errorMessage = cmd.getParam(1);
 	if(errorCode.length() != 3) {
-		aSource->disconnect();
+		dcdebug("DM::AdcCommand::STA: invalid error code (%s)\n", aSource->getToken().c_str());
+		disconnect(aSource);
 		return;
 	}
 
 	switch(Util::toInt(errorCode.substr(0, 1))) {
 		case AdcCommand::SEV_FATAL:
-			aSource->disconnect();
+			dcdebug("DM::AdcCommand::STA: fatal error (%s)\n", aSource->getToken().c_str());
+			disconnect(aSource);
 			return;
 		case AdcCommand::SEV_RECOVERABLE:
 			switch(Util::toInt(errorCode.substr(1))) {
@@ -642,21 +640,21 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 			dcdebug("Unknown success message %s %s", errorCode.c_str(), errorMessage.c_str());
 			return;
 	}
-	aSource->disconnect();
+
+	dcdebug("DM::AdcCommand::STA: disconnecting (%s)\n", aSource->getToken().c_str());
+	disconnect(aSource);
 }
 
 void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess, const string& aMessage) {
 	if(aSource->getState() != UserConnection::STATE_SND) {
 		dcdebug("DM::fileNotAvailable Invalid state, disconnecting");
-		aSource->disconnect();
+		disconnect(aSource);
 		return;
 	}
 	
 	Download* d = aSource->getDownload();
 	dcassert(d);
 	dcdebug("File Not Available: %s\n", d->getPath().c_str());
-
-	removeDownload(d);
 
 	string error;
 	if (aNoAccess) {
@@ -675,7 +673,7 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess, 
 		QueueManager::getInstance()->removeFileSource(d->getPath(), aSource->getUser(), (Flags::MaskType)(d->getType() == Transfer::TYPE_TREE ? QueueItem::Source::FLAG_NO_TREE : QueueItem::Source::FLAG_FILE_NOT_AVAILABLE), false);
 	}
 
-	QueueManager::getInstance()->putDownloadHooked(d, false, aNoAccess);
+	putDownloadHooked(d, false, aNoAccess);
 	checkDownloads(aSource);
 }
 

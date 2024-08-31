@@ -89,6 +89,7 @@ namespace dcpp {
 		void on(DownloadManagerListener::Complete, const Download* aDownload, bool) noexcept override;
 		void on(DownloadManagerListener::Failed, const Download* aDownload, const string& reason) noexcept override;
 		void on(DownloadManagerListener::Requesting, const Download* aDownload, bool hubChanged) noexcept override;
+		void on(DownloadManagerListener::Idle, const UserConnection* aConn, const string& aError) noexcept override;
 
 		void on(UploadManagerListener::Starting, const Upload* aUpload) noexcept override;
 		void on(UploadManagerListener::Complete, const Upload* aUpload) noexcept override;

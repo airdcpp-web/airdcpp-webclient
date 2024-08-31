@@ -33,13 +33,9 @@ public:
 	void addQI(const QueueItemPtr& qi, const HintedUser& aUser, bool aIsBadSource = false) noexcept;
 	void getUserQIs(const UserPtr& aUser, QueueItemList& ql) noexcept;
 
-	QueueItemPtr getNext(const UserPtr& aUser, const QueueTokenSet& runningBundles, const OrderedStringSet& onlineHubs, string& lastError_, bool& hasDownload,
-		Priority minPrio = Priority::LOWEST, int64_t wantedSize = 0, int64_t lastSpeed = 0, QueueItemBase::DownloadType aType = QueueItem::TYPE_ANY, bool allowOverlap = false) noexcept;
-	QueueItemPtr getNextPrioQI(const UserPtr& aUser, const OrderedStringSet& onlineHubs, int64_t wantedSize, int64_t lastSpeed, 
-		QueueItemBase::DownloadType aType, bool allowOverlap, string& lastError_) noexcept;
-	QueueItemPtr getNextBundleQI(const UserPtr& aUser, const QueueTokenSet& runningBundles, const OrderedStringSet& onlineHubs,
-		Priority minPrio, int64_t wantedSize, int64_t lastSpeed, QueueItemBase::DownloadType aType, 
-		bool allowOverlap, string& lastError_, bool& hasDownload) noexcept;
+	QueueItemPtr getNext(const QueueDownloadQuery& aQuery, string& lastError_, bool& hasDownload_, bool aAllowOverlap = false) noexcept;
+	QueueItemPtr getNextPrioQI(const QueueDownloadQuery& aQuery, string& lastError_, bool aAllowOverlap) noexcept;
+	QueueItemPtr getNextBundleQI(const QueueDownloadQuery& aQuery, string& lastError_, bool& hasDownload, bool aAllowOverlap) noexcept;
 
 	void addDownload(const QueueItemPtr& qi, Download* d) noexcept;
 	void removeDownload(const QueueItemPtr& qi, const string& aToken) noexcept;

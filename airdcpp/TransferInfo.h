@@ -23,7 +23,6 @@
 
 #include "HintedUser.h"
 #include "PathUtil.h"
-#include "QueueItemBase.h"
 #include "ResourceManager.h"
 #include "Transfer.h"
 #include "ValueGenerator.h"

@@ -1143,59 +1143,148 @@ bool QueueManager::addValidatedSource(const QueueItemPtr& qi, const HintedUser& 
 	
 }
 
-Download* QueueManager::getDownload(UserConnection& aSource, const QueueTokenSet& aRunningBundles, const OrderedStringSet& aOnlineHubs, string& lastError_, string& newUrl, QueueItemBase::DownloadType aType) noexcept{
+QueueManager::DownloadResult QueueManager::getDownload(UserConnection& aSource, const QueueTokenSet& aRunningBundles, const OrderedStringSet& aOnlineHubs) noexcept {
+	const auto& user = aSource.getUser();
+
+	DownloadResult result;
+
 	QueueItemPtr q = nullptr;
-	Download* d = nullptr;
 
 	{
-		WLock l(cs);
-		dcdebug("Getting download for %s...", aSource.getUser()->getCID().toBase32().c_str());
+		// Segments shouldn't be assigned simultaneously for multiple connections
+		Lock slotLock(slotAssignCS);
 
-		const UserPtr& u = aSource.getUser();
-		bool hasDownload = false;
-
-		q = userQueue.getNext(aSource.getUser(), aRunningBundles, aOnlineHubs, lastError_, hasDownload, Priority::LOWEST, aSource.getChunkSize(), aSource.getSpeed(), aType);
-		if (!q) {
-			dcdebug("none\n");
-			return nullptr;
-		}
-
-		auto source = q->getSource(aSource.getUser());
-
-		//update the hub hint
-		newUrl = aSource.getHubUrl();
-		source->updateDownloadHubUrl(aOnlineHubs, newUrl, (q->isSet(QueueItem::FLAG_USER_LIST) && !q->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
-
-		//check partial sources
-		if (source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
-			Segment segment = q->getNextSegment(q->getBlockSize(), aSource.getChunkSize(), aSource.getSpeed(), source->getPartsInfo(), false);
-			if (segment.getStart() != -1 && segment.getSize() == 0) {
-				// no other partial chunk from this user, remove him from queue
-				userQueue.removeQI(q, u);
-				q->removeSource(u, QueueItem::Source::FLAG_NO_NEED_PARTS);
-				lastError_ = STRING(NO_NEEDED_PART);
-				return nullptr;
+		{
+			auto downloadType = QueueDownloadType::ANY;
+			if (aSource.isSet(UserConnection::FLAG_SMALL_SLOT)) {
+				downloadType = QueueDownloadType::SMALL;
+			} else if (aSource.isMCN()) {
+				downloadType = QueueDownloadType::MCN_NORMAL;
 			}
-		}
 
-		// Check that the file we will be downloading to exists
-		if (q->getDownloadedBytes() > 0) {
-			if (!PathUtil::fileExists(q->getTempTarget())) {
-				// Temp target gone?
-				q->resetDownloaded();
+			auto startResult = startDownload(aSource.getHintedUser(), downloadType, aRunningBundles, aOnlineHubs, aSource.getSpeed());
+			result.merge(startResult);
+
+			if (!startResult.startDownload) {
+				// dcdebug("none\n");
+				return result;
 			}
+
+			q = startResult.qi;
+			dcassert(q);
 		}
 
-		d = new Download(aSource, *q);
-		userQueue.addDownload(q, d);
+		{
+			WLock l(cs);
+
+			// Check partial sources
+			auto source = q->getSource(user);
+			if (source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
+				auto segment = q->getNextSegment(q->getBlockSize(), aSource.getChunkSize(), aSource.getSpeed(), source->getPartsInfo(), false);
+				if (segment.getStart() != -1 && segment.getSize() == 0) {
+					// dcdebug("no needed chunks)\n");
+					// no other partial chunk from this user, remove him from queue
+					userQueue.removeQI(q, user);
+					q->removeSource(user, QueueItem::Source::FLAG_NO_NEED_PARTS);
+					result.lastError = STRING(NO_NEEDED_PART);
+					return result;
+				}
+			}
+
+			// Check that the file we will be downloading to exists
+			if (q->getDownloadedBytes() > 0) {
+				if (!PathUtil::fileExists(q->getTempTarget())) {
+					// Temp target gone?
+					q->resetDownloaded();
+				}
+			}
+
+			result.download = new Download(aSource, *q);
+			userQueue.addDownload(q, result.download);
+		}
 	}
 
 	fire(QueueManagerListener::ItemSources(), q);
-	dcdebug("found %s for %s (" I64_FMT ", " I64_FMT ")\n", q->getTarget().c_str(), d->getToken().c_str(), d->getSegment().getStart(), d->getSegment().getEnd());
-	return d;
+	dcdebug("QueueManager::getDownload: found %s for %s (segment " I64_FMT ", " I64_FMT ")\n", q->getTarget().c_str(), result.download->getToken().c_str(), result.download->getSegment().getStart(), result.download->getSegment().getEnd());
+	return result;
 }
 
-bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& runningBundles, string& lastError_, bool mcn /*false*/) noexcept{
+bool QueueManager::checkLowestPrioRules(const QueueItemPtr& aQI, const QueueTokenSet& aRunningBundles, string& lastError_) const noexcept {
+	auto& b = aQI->getBundle();
+	if (!b) {
+		return true;
+	}
+
+	if (b->getPriority() == Priority::LOWEST) {
+		// Don't start if there are other bundles running
+		if (!aRunningBundles.empty() && aRunningBundles.find(b->getToken()) == aRunningBundles.end()) {
+			lastError_ = STRING(LOWEST_PRIO_ERR_BUNDLES);
+			return false;
+		}
+	}
+
+	if (aQI->getPriority() == Priority::LOWEST) {
+		// Start only if there are no other downloads running in this bundle 
+		// (or all bundle downloads belong to this file)
+		auto bundleDownloads = DownloadManager::getInstance()->getBundleDownloadConnectionCount(aQI->getBundle());
+
+		RLock l(cs);
+		auto start = bundleDownloads == 0 || bundleDownloads == aQI->getDownloads().size();
+		if (!start) {
+			lastError_ = STRING(LOWEST_PRIO_ERR_FILES);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool QueueManager::checkDownloadLimits(const QueueItemPtr& aQI, string& lastError_) const noexcept {
+	auto downloadSlots = AirUtil::getSlots(true);
+	auto downloadCount = static_cast<int>(DownloadManager::getInstance()->getFileDownloadConnectionCount());
+	bool slotsFull = downloadSlots != 0 && downloadCount >= downloadSlots;
+
+	auto speedLimit = Util::convertSize(AirUtil::getSpeedLimitKbps(true), Util::KB);
+	auto downloadSpeed = DownloadManager::getInstance()->getRunningAverage();
+	bool speedFull = speedLimit != 0 && downloadSpeed >= speedLimit;
+	//log("Speedlimit: " + Util::toString(Util::getSpeedLimit(true)*1024) + " slots: " + Util::toString(Util::getSlots(true)) + " (avg: " + Util::toString(getRunningAverage()) + ")");
+
+	if (slotsFull || speedFull) {
+		bool extraFull = downloadSlots != 0 && downloadCount >= downloadSlots + SETTING(EXTRA_DOWNLOAD_SLOTS);
+		if (extraFull || aQI->getPriority() != Priority::HIGHEST) {
+			if (slotsFull) {
+				lastError_ = STRING(ALL_DOWNLOAD_SLOTS_TAKEN);
+			} else {
+				lastError_ = STRING(MAX_DL_SPEED_REACHED);
+			}
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool QueueManager::checkDiskSpace(const QueueItemPtr& aQI, string& lastError_) noexcept {
+	auto& b = aQI->getBundle();
+	if (!b) {
+		return true;
+	}
+
+	//check if we have free space to continue the download now... otherwise results in paused priority..
+	if (aQI->getBundle()->getStatus() == Bundle::STATUS_DOWNLOAD_ERROR) {
+		if (File::getFreeSpace(b->getTarget()) >= static_cast<int64_t>(aQI->getSize() - aQI->getDownloadedBytes())) {
+			setBundleStatus(b, Bundle::STATUS_QUEUED);
+		} else {
+			lastError_ = b->getError();
+			onDownloadError(b, lastError_);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& aRunningBundles, string& lastError_) noexcept{
 	// nothing to download?
 	if (!aQI)
 		return false;
@@ -1209,109 +1298,66 @@ bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& ru
 	if (aQI->isPausedPrio())
 		return false;
 
-
-	//check if we have free space to continue the download now... otherwise results in paused priority..
-	if (aQI->getBundle() && (aQI->getBundle()->getStatus() == Bundle::STATUS_DOWNLOAD_ERROR)) {
-		if (File::getFreeSpace(aQI->getBundle()->getTarget()) >= static_cast<int64_t>(aQI->getSize() - aQI->getDownloadedBytes())) {
-			setBundleStatus(aQI->getBundle(), Bundle::STATUS_QUEUED);
-		} else {
-			lastError_ = aQI->getBundle()->getError();
-			onDownloadError(aQI->getBundle(), lastError_);
-			return false;
-		}
-	}
-
-	size_t downloadCount = DownloadManager::getInstance()->getFileDownloadConnectionCount();
-	bool slotsFull = (AirUtil::getSlots(true) != 0) && (downloadCount >= static_cast<size_t>(AirUtil::getSlots(true)));
-	bool speedFull = (AirUtil::getSpeedLimitKbps(true) != 0) && (DownloadManager::getInstance()->getRunningAverage() >= Util::convertSize(AirUtil::getSpeedLimitKbps(true), Util::KB));
-	//log("Speedlimit: " + Util::toString(Util::getSpeedLimit(true)*1024) + " slots: " + Util::toString(Util::getSlots(true)) + " (avg: " + Util::toString(getRunningAverage()) + ")");
-
-	if (slotsFull || speedFull) {
-		size_t slots = AirUtil::getSlots(true);
-		bool extraFull = (slots != 0) && (downloadCount >= (slots + static_cast<size_t>(SETTING(EXTRA_DOWNLOAD_SLOTS))));
-		if (extraFull || mcn || aQI->getPriority() != Priority::HIGHEST) {
-			lastError_ = slotsFull ? STRING(ALL_DOWNLOAD_SLOTS_TAKEN) : STRING(MAX_DL_SPEED_REACHED);
-			return false;
-		}
-		return true;
-	}
-
-	// bundle with the lowest prio? don't start if there are other bundle running
-	if (aQI->getBundle() && aQI->getBundle()->getPriority() == Priority::LOWEST && !runningBundles.empty() && runningBundles.find(aQI->getBundle()->getToken()) == runningBundles.end()) {
-		lastError_ = STRING(LOWEST_PRIO_ERR_BUNDLES);
+	if (!checkDiskSpace(aQI, lastError_)) {
 		return false;
 	}
 
-	if (aQI->getPriority() == Priority::LOWEST) {
-		if (aQI->getBundle()) {
-			// start only if there are no other downloads running in this bundle (or the downloads belong to this file)
-			auto bundleDownloads = DownloadManager::getInstance()->getBundleDownloadConnectionCount(aQI->getBundle());
+	if (!checkDownloadLimits(aQI, lastError_)) {
+		return false;
+	}
 
-			RLock l(cs);
-			bool start = bundleDownloads == 0 || bundleDownloads == aQI->getDownloads().size();
-			if (!start) {
-				lastError_ = STRING(LOWEST_PRIO_ERR_FILES);
-			}
-
-			return start;
-		} else {
-			// shouldn't happen at the moment
-			dcassert(0);
-			return downloadCount == 0;
-		}
+	if (!checkLowestPrioRules(aQI, aRunningBundles, lastError_)) {
+		return false;
 	}
 
 	return true;
 }
 
-bool QueueManager::startDownload(const UserPtr& aUser, const QueueTokenSet& runningBundles, const OrderedStringSet& onlineHubs,
-	QueueItemBase::DownloadType aType, int64_t aLastSpeed, string& lastError_) noexcept{
-
-	bool hasDownload = false;
-	QueueItemPtr qi = nullptr;
-	{
-		RLock l(cs);
-		qi = userQueue.getNext(aUser, runningBundles, onlineHubs, lastError_, hasDownload, Priority::LOWEST, 0, aLastSpeed, aType);
-	}
-
-	return allowStartQI(qi, runningBundles, lastError_);
+QueueDownloadResult QueueManager::startDownload(const HintedUser& aUser, QueueDownloadType aType) noexcept{
+	auto hubs = ClientManager::getInstance()->getHubSet(aUser.user->getCID());
+	auto runningBundleTokens = DownloadManager::getInstance()->getRunningBundles();
+	return startDownload(aUser, aType, runningBundleTokens, hubs, 0);
 }
 
-pair<QueueItem::DownloadType, bool> QueueManager::startDownload(const UserPtr& aUser, string& hubHint, QueueItemBase::DownloadType aType, 
-	QueueToken& bundleToken, bool& allowUrlChange, bool& hasDownload, string& lastError_) noexcept{
-
-	auto runningBundleTokens = DownloadManager::getInstance()->getRunningBundles();
-	auto hubs = ClientManager::getInstance()->getHubSet(aUser->getCID());
-	if (!hubs.empty()) {
-		QueueItemPtr qi = nullptr;
-		{
-			RLock l(cs);
-			qi = userQueue.getNext(aUser, runningBundleTokens, hubs, lastError_, hasDownload, Priority::LOWEST, 0, 0, aType);
-
-			if (qi) {
-				if (qi->getBundle()) {
-					bundleToken = qi->getBundle()->getToken();
-				}
-
-				if (hubs.find(hubHint) == hubs.end()) {
-					//we can't connect via a hub that is offline...
-					hubHint = *hubs.begin();
-				}
-
-				allowUrlChange = !qi->isSet(QueueItem::FLAG_USER_LIST);
-				qi->getSource(aUser)->updateDownloadHubUrl(hubs, hubHint, (qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_TTHLIST_BUNDLE)));
-			}
-		}
-
-		if (qi) {
-			bool start = allowStartQI(qi, runningBundleTokens, lastError_);
-			return { qi->usesSmallSlot() ? QueueItem::TYPE_SMALL : QueueItem::TYPE_ANY, start };
-		}
-	} else {
-		lastError_ = STRING(USER_OFFLINE);
+QueueDownloadResult QueueManager::startDownload(const HintedUser& aUser, QueueDownloadType aType, const QueueTokenSet& aRunningBundles, const OrderedStringSet& aOnlineHubs, int64_t aLastSpeed) noexcept {
+	QueueDownloadResult result;
+	if (aOnlineHubs.empty()) {
+		result.lastError = STRING(USER_OFFLINE);
+		return result;
 	}
 
-	return { QueueItem::TYPE_NONE, false };
+	QueueDownloadQuery query(aUser, aOnlineHubs, aRunningBundles);
+	query.lastSpeed = aLastSpeed;
+	query.downloadType = aType;
+
+	{
+		RLock l(cs);
+		auto qi = userQueue.getNext(query, result.lastError, result.hasDownload);
+
+		if (qi) {
+			result.qi = qi;
+			if (qi->getBundle()) {
+				result.bundleToken = qi->getBundle()->getToken();
+			}
+
+			if (aOnlineHubs.find(aUser.hint) == aOnlineHubs.end()) {
+				//we can't connect via a hub that is offline...
+				result.hubHint = *aOnlineHubs.begin();
+			}
+
+			result.allowUrlChange = !qi->isSet(QueueItem::FLAG_USER_LIST);
+
+			auto isFilelist = qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_TTHLIST_BUNDLE);
+			qi->getSource(aUser)->updateDownloadHubUrl(aOnlineHubs, result.hubHint, isFilelist);
+		}
+	}
+
+	if (result.qi) {
+		result.startDownload = allowStartQI(result.qi, aRunningBundles, result.lastError);
+		result.downloadType = result.qi->usesSmallSlot() ? QueueDownloadType::SMALL : QueueDownloadType::ANY;
+	}
+
+	return result;
 }
 
 QueueItemList QueueManager::findFiles(const TTHValue& tth) const noexcept {
@@ -1337,24 +1383,6 @@ void QueueManager::matchListing(const DirectoryListing& dl, int& matchingFiles_,
 	matchingFiles_ = static_cast<int>(matchingItems.size());
 
 	newFiles_ = addValidatedSources(dl.getHintedUser(), matchingItems, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, bundles_);
-}
-
-QueueItemPtr QueueManager::getQueueInfo(const HintedUser& aUser) noexcept {
-	OrderedStringSet hubs;
-	hubs.insert(aUser.hint);
-
-	auto runningBundles = DownloadManager::getInstance()->getRunningBundles();
-
-	QueueItemPtr qi = nullptr;
-	string lastError_;
-	bool hasDownload = false;
-
-	{
-		RLock l(cs);
-		qi = userQueue.getNext(aUser, runningBundles, hubs, lastError_, hasDownload);
-	}
-
-	return qi;
 }
 
 void QueueManager::toggleSlowDisconnectBundle(QueueToken aBundleToken) noexcept {
@@ -1623,12 +1651,12 @@ void QueueManager::onDownloadError(const BundlePtr& aBundle, const string& aErro
 	setBundleStatus(aBundle, Bundle::STATUS_DOWNLOAD_ERROR);
 }
 
-void QueueManager::putDownloadHooked(Download* aDownload, bool aFinished, bool aNoAccess /*false*/, bool aRotateQueue /*false*/) {
+void QueueManager::putDownloadHooked(Download* d, bool aFinished, bool aNoAccess /*false*/, bool aRotateQueue /*false*/) {
 	QueueItemPtr q = nullptr;
 
 	// Make sure the download gets killed
-	unique_ptr<Download> d(aDownload);
-	aDownload = nullptr;
+	// unique_ptr<Download> d(aDownload);
+	// aDownload = nullptr;
 
 	d->close();
 
@@ -1656,13 +1684,13 @@ void QueueManager::putDownloadHooked(Download* aDownload, bool aFinished, bool a
 	}
 
 	if (!aFinished) {
-		onDownloadFailed(q, d.get(), aNoAccess, aRotateQueue);
+		onDownloadFailed(q, d, aNoAccess, aRotateQueue);
 	} else if (q->isSet(QueueItem::FLAG_USER_LIST)) {
-		onFilelistDownloadCompletedHooked(q, d.get());
+		onFilelistDownloadCompletedHooked(q, d);
 	} else if (d->getType() == Transfer::TYPE_TREE) {
-		onTreeDownloadCompleted(q, d.get());
+		onTreeDownloadCompleted(q, d);
 	} else {
-		onFileDownloadCompleted(q, d.get());
+		onFileDownloadCompleted(q, d);
 	}
 }
 
@@ -1732,7 +1760,7 @@ void QueueManager::onFileDownloadRemoved(const QueueItemPtr& aQI, bool aFailed) 
 		} else {
 			delayEvents.addEvent(aQI->getBundle()->getToken(), [this, checkWaiting] {
 				checkWaiting();
-				}, 1000);
+			}, 1000);
 		}
 	}
 }
@@ -1799,7 +1827,7 @@ void QueueManager::onFileDownloadCompleted(const QueueItemPtr& aQI, Download* aD
 		aQI->addFinishedSegment(aDownload->getSegment());
 		wholeFileCompleted = aQI->segmentsDone();
 
-		dcdebug("Finish segment for %s (" I64_FMT ", " I64_FMT ")\n", aDownload->getToken().c_str(), aDownload->getSegment().getStart(), aDownload->getSegment().getEnd());
+		// dcdebug("Finish segment for %s (" I64_FMT ", " I64_FMT ")\n", aDownload->getToken().c_str(), aDownload->getSegment().getStart(), aDownload->getSegment().getEnd());
 
 		if (wholeFileCompleted) {
 			// Disconnect all possible overlapped downloads
@@ -2994,7 +3022,6 @@ void QueueManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 
 void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	tasks.addTask([=, this] {
-		// requestPartialSourceInfo(aTick);
 		searchAlternates(aTick);
 		checkResumeBundles();
 	});

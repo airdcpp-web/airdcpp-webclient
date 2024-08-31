@@ -230,7 +230,37 @@ public:
 	bool sendUDPHooked(AdcCommand& c, const CID& to, bool aNoCID = false, bool aNoPassive = false, const string& aEncryptionKey = Util::emptyString, const string& aHubUrl = Util::emptyString) noexcept;
 	bool sendUDP(const string& aData, const string& aIP, const string& aPort) noexcept;
 
-	bool connect(const UserPtr& aUser, const string& aToken, bool aAllowUrlChange, string& lastError_, string& hubHint_, bool& isProtocolError_, ConnectionType type = CONNECTION_TYPE_LAST) const noexcept;
+	struct ConnectResult {
+	public:
+		void onSuccess(const string& aHubHint) noexcept {
+			success = true;
+			hubHint = aHubHint;
+		}
+
+		void onMinorError(const string& aError) noexcept {
+			lastError = aError;
+			protocolError = false;
+		}
+
+		void onProtocolError(const string& aError) noexcept {
+			lastError = aError;
+			protocolError = true;
+		}
+
+		void resetError() noexcept {
+			lastError = Util::emptyString;
+			protocolError = false;
+		}
+
+
+		GETPROP(string, lastError, Error);
+		IGETPROP(bool, protocolError, IsProtocolError, false);
+
+		GETPROP(string, hubHint, HubHint);
+		IGETPROP(bool, success, IsSuccess, false);
+	};
+
+	ConnectResult connect(const HintedUser& aUser, const string& aToken, bool aAllowUrlChange, ConnectionType type = CONNECTION_TYPE_LAST) const noexcept;
 	bool privateMessageHooked(const HintedUser& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho = true) noexcept;
 	void userCommand(const HintedUser& aUser, const UserCommand& uc, ParamMap& params_, bool aCompatibility) noexcept;
 

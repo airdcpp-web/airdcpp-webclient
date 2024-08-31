@@ -94,6 +94,7 @@ public:
 	string getBundleStringToken() const noexcept;
 
 	void appendFlags(OrderedStringSet& flags_) const noexcept;
+	void flush() noexcept;
 private:
 	Download(const Download&);
 	Download& operator=(const Download&) = delete;
