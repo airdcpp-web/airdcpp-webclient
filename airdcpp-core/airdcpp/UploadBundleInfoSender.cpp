@@ -144,7 +144,7 @@ void UploadBundleInfoSender::on(DownloadManagerListener::Starting, const Downloa
 	}
 }*/
 
-void UploadBundleInfoSender::on(DownloadManagerListener::Idle, const UserConnection* aSource) noexcept {
+void UploadBundleInfoSender::on(DownloadManagerListener::Idle, const UserConnection* aSource, const string&) noexcept {
 	removeRunningUser(aSource, false);
 }
 

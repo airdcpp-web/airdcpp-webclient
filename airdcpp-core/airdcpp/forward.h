@@ -150,6 +150,8 @@ class OutputStream;
 class PrivateChat;
 typedef std::shared_ptr<PrivateChat> PrivateChatPtr;
 
+typedef uint32_t QueueToken;
+typedef unordered_set<QueueToken> QueueTokenSet;
 class QueueItemBase;
 
 class QueueItem;

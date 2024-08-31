@@ -94,14 +94,13 @@ namespace dcpp {
 		/** Lists open in the client **/
 		DirectoryListingMap viewedLists;
 
-		void on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept;
-		void on(QueueManagerListener::ItemFinished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t aSpeed) noexcept;
-		void on(QueueManagerListener::ItemRemoved, const QueueItemPtr& qi, bool finished) noexcept;
+		void on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept override;
+		void on(QueueManagerListener::ItemFinished, const QueueItemPtr& qi, const string& dir, const HintedUser& aUser, int64_t aSpeed) noexcept override;
+		void on(QueueManagerListener::ItemRemoved, const QueueItemPtr& qi, bool finished) noexcept override;
 
-		void on(QueueManagerListener::PartialListFinished, const HintedUser& aUser, const string& aXml, const string& aBase) noexcept;
+		void on(QueueManagerListener::PartialListFinished, const HintedUser& aUser, const string& aXml, const string& aBase) noexcept override;
 
-
-		void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
+		void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
 	};
 
 }

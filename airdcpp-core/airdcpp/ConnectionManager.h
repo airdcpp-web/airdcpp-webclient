@@ -28,6 +28,7 @@
 #include "CriticalSection.h"
 #include "FloodCounter.h"
 #include "HintedUser.h"
+#include "QueueDownloadInfo.h"
 #include "Singleton.h"
 #include "UserConnection.h"
 
@@ -54,33 +55,26 @@ public:
 	typedef vector<Ptr> List;
 	typedef List::const_iterator Iter;
 	
-	enum State {
+	enum class State {
 		CONNECTING,					// Recently sent request to connect
 		WAITING,					// Waiting to send request to connect
 		ACTIVE,						// In one up/downmanager
-		RUNNING						// Running/idle
 	};
 
 	enum Flags {
-		FLAG_REMOVE				= 0x01
-	};
-
-	enum class DownloadType {
-		ANY,
-		SMALL,
-		SMALL_CONF,
-		MCN_NORMAL
+		FLAG_MCN				= 0x02,
+		FLAG_RUNNING			= 0x04,
 	};
 
 	ConnectionQueueItem(const HintedUser& aUser, ConnectionType aConntype, const string& aToken);
 	
 	GETSET(string, token, Token);
-	IGETSET(DownloadType, downloadType, DownloadType, DownloadType::ANY);
+	IGETSET(QueueDownloadType, downloadType, DownloadType, QueueDownloadType::ANY);
 	GETSET(string, lastBundle, LastBundle);
 	IGETSET(uint64_t, lastAttempt, LastAttempt, 0);
 	IGETSET(int, errors, Errors, 0); // Number of connection errors, or -1 after a protocol error
-	IGETSET(State, state, State, WAITING);
-	IGETSET(uint8_t, maxConns, MaxConns, 0);
+	IGETSET(State, state, State, State::WAITING);
+	IGETSET(uint8_t, maxRemoteConns, MaxRemoteConns, 0);
 	GETSET(ConnectionType, connType, ConnType);
 
 	const string& getHubUrl() const noexcept { return user.hint; }
@@ -88,17 +82,14 @@ public:
 	const HintedUser& getUser() const noexcept { return user; }
 	bool allowNewConnections(int running) const noexcept;
 
-	bool isSmallSlot() const noexcept {
-		return downloadType == DownloadType::SMALL_CONF || downloadType == DownloadType::SMALL;
-	}
+	bool isSmallSlot() const noexcept;
+	bool isActive() const noexcept;
+	bool isMcn() const noexcept;
 
-	bool isActive() const noexcept {
-		return state == ACTIVE || state == RUNNING;
-	}
+	bool allowConnect(int aAttempts, int aAttemptLimit, uint64_t aTick) const noexcept;
+	bool isTimeout(uint64_t aTick) const noexcept;
 
-	bool isMcn() const noexcept {
-		return downloadType == DownloadType::SMALL_CONF || downloadType == DownloadType::MCN_NORMAL;
-	}
+	void resetFatalError() noexcept;
 private:
 	HintedUser user;
 };
@@ -174,8 +165,6 @@ public:
 	const string& getPort() const noexcept;
 	const string& getSecurePort() const noexcept;
 
-	void addRunningMCN(const UserConnection *aSource) noexcept;
-
 	// set fatalError to true if the client shouldn't try to reconnect automatically
 	void failDownload(const string& aToken, const string& aError, bool aFatalError) noexcept;
 
@@ -190,8 +179,18 @@ public:
 private:
 	FloodCounter floodCounter;
 
-	bool allowNewMCN(const ConnectionQueueItem* aCQI) noexcept;
+	typedef std::function<void(ConnectionQueueItem*)> ConnectionQueueItemCallback;
+
+	// Can we create a new regular MCN connection?
+	bool allowNewMCNUnsafe(const UserPtr& aUser, bool aSmallSlot, ConnectionQueueItemCallback&& aWaitingCallback = nullptr) noexcept;
+
+	// Create a new regular MCN connection
 	void createNewMCN(const HintedUser& aUser) noexcept;
+
+	// Remove an extra waiting MCN connection (we should keep only one waiting connection)
+	void removeExtraMCNUnsafe(const ConnectionQueueItem* aFailedCQI) noexcept;
+
+	void onDownloadRunning(const UserConnection* aSource) noexcept;
 
 	class Server : public Thread {
 	public:
@@ -247,8 +246,8 @@ private:
 	void addDownloadConnection(UserConnection* uc) noexcept;
 	void addPMConnection(UserConnection* uc) noexcept;
 
-	ConnectionQueueItem* getCQI(const HintedUser& aUser, ConnectionType aConnType, const string& aToken = Util::emptyString) noexcept;
-	void putCQI(ConnectionQueueItem* cqi) noexcept;
+	ConnectionQueueItem* getCQIUnsafe(const HintedUser& aUser, ConnectionType aConnType, const string& aToken = Util::emptyString) noexcept;
+	void putCQIUnsafe(ConnectionQueueItem* cqi) noexcept;
 
 	void accept(const Socket& sock, bool aSecure) noexcept;
 
@@ -268,6 +267,8 @@ private:
 	void on(UserConnectionListener::MyNick, UserConnection*, const string&) noexcept override;
 	void on(UserConnectionListener::Supports, UserConnection*, const StringList&) noexcept override;
 	void on(UserConnectionListener::UserSet, UserConnection*) noexcept override;
+	// void on(UserConnectionListener::Idle, UserConnection*) noexcept override;
+	void on(UserConnectionListener::State, UserConnection*) noexcept override;
 
 	void on(AdcCommand::SUP, UserConnection*, const AdcCommand&) noexcept override;
 	void on(AdcCommand::INF, UserConnection*, const AdcCommand&) noexcept override;
@@ -282,7 +283,13 @@ private:
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool) noexcept override { onUserUpdated(aUser); }
 
 	void onUserUpdated(const UserPtr& aUser) noexcept;
+	void onIdle(UserConnection* aSource) noexcept;
 	void attemptDownloads(uint64_t aTick, StringList& removedTokens_) noexcept;
+
+	bool attemptDownloadUnsafe(ConnectionQueueItem* cqi, StringList& removedTokens_) noexcept;
+	bool connectUnsafe(ConnectionQueueItem* cqi, bool aAllowUrlChange) noexcept;
+
+	ConnectionQueueItem* findDownloadUnsafe(const UserConnection* aSource) noexcept;
 
 	StringList getAdcFeatures() const noexcept;
 };

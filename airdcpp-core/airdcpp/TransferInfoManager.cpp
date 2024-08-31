@@ -192,21 +192,21 @@ namespace dcpp {
 			return;
 		}
 
-		auto qi = QueueManager::getInstance()->getQueueInfo(aInfo->getHintedUser());
-		if (!qi) {
+		auto result = QueueManager::getInstance()->startDownload(aInfo->getHintedUser(), QueueDownloadType::ANY);
+		if (!result.qi) {
 			return;
 		}
 
 		auto type = Transfer::TYPE_FILE;
-		if (qi->getFlags() & QueueItem::FLAG_PARTIAL_LIST)
+		if (result.qi->getFlags() & QueueItem::FLAG_PARTIAL_LIST)
 			type = Transfer::TYPE_PARTIAL_LIST;
-		else if (qi->getFlags() & QueueItem::FLAG_USER_LIST)
+		else if (result.qi->getFlags() & QueueItem::FLAG_USER_LIST)
 			type = Transfer::TYPE_FULL_LIST;
 
 		aInfo->setType(type);
-		aInfo->setTarget(qi->getTarget());
-		aInfo->setSize(qi->getSize());
-		aInfo->setQueueToken(qi->getToken());
+		aInfo->setTarget(result.qi->getTarget());
+		aInfo->setSize(result.qi->getSize());
+		aInfo->setQueueToken(result.qi->getToken());
 	}
 
 	void TransferInfoManager::on(ConnectionManagerListener::Connecting, const ConnectionQueueItem* aCqi) noexcept {
@@ -306,6 +306,20 @@ namespace dcpp {
 
 	void TransferInfoManager::on(DownloadManagerListener::Requesting, const Download* aDownload, bool /*hubChanged*/) noexcept {
 		starting(aDownload, STRING(REQUESTING), true);
+	}
+
+	void TransferInfoManager::on(DownloadManagerListener::Idle, const UserConnection* aConn, const string& aError) noexcept {
+		if (aError.empty()) {
+			return;
+		}
+
+		auto t = findTransfer(aConn->getToken());
+		if (!t) {
+			return;
+		}
+
+		t->setStatusString(aError);
+		onTransferUpdated(t, TransferInfo::UpdateFlags::STATUS);
 	}
 
 	void TransferInfoManager::starting(const Download* aDownload, const string& aStatus, bool aFullUpdate) noexcept {

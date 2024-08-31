@@ -57,7 +57,7 @@ namespace dcpp {
 			}
 		}
 
-		dcdebug("download state: %d\n", state);
+		// dcdebug("download state: %d\n", state);
 		return state;
 	}
 

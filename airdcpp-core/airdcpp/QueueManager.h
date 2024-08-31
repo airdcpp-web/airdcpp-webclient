@@ -27,7 +27,6 @@
 #include "TimerManagerListener.h"
 
 #include "ActionHook.h"
-#include "QueueAddInfo.h"
 #include "BundleQueue.h"
 #include "DelayedEvents.h"
 #include "DupeType.h"
@@ -36,6 +35,8 @@
 #include "HashBloom.h"
 #include "MerkleTree.h"
 #include "Message.h"
+#include "QueueAddInfo.h"
+#include "QueueDownloadInfo.h"
 #include "Singleton.h"
 #include "StringMatch.h"
 #include "TaskQueue.h"
@@ -194,30 +195,18 @@ public:
 	Bundle::SourceList getBundleSources(const BundlePtr& b) const noexcept { RLock l(cs); return b->getSources(); }
 	Bundle::SourceList getBadBundleSources(const BundlePtr& b) const noexcept { RLock l(cs); return b->getBadSources(); }
 
-	// Get information about the next valid file in the queue
-	// Used for displaying initial information for a transfer before the connection has been established and the real download is created
-	QueueItemPtr getQueueInfo(const HintedUser& aUser) noexcept;
-
 	// Check if a download can be started for the specified user
-	// 
-	// lastError_ will contain the last error why a file can't be started (not cleared if a download is found afterwards)
-	// TODO: FINISH
-	bool startDownload(const UserPtr& aUser, const QueueTokenSet& runningBundles, const OrderedStringSet& onlineHubs,
-		QueueItemBase::DownloadType aType, int64_t aLastSpeed, string& lastError_) noexcept;
+	QueueDownloadResult startDownload(const HintedUser& aUser, QueueDownloadType aType) noexcept;
 
-	// The same thing but only used before any connect requests
-	// newUrl can be changed if the download is for a filelist from a different hub
-	// lastError_ will contain the last error why a file can't be started (not cleared if a download is found afterwards)
-	// hasDownload will be set to true if there are any files queued from the user
-	// TODO: FINISH
-	pair<QueueItem::DownloadType, bool> startDownload(const UserPtr& aUser, string& hubUrl, QueueItemBase::DownloadType aType, QueueToken& bundleToken,
-		bool& allowUrlChange_, bool& hasDownload_, string& lastError_) noexcept;
+	struct DownloadResult : QueueDownloadResultBase {
+		Download* download = nullptr;
+	};
 
 	// Creates new download for the specified user
-	// This won't check various download limits so startDownload should be called first
+	// Runs all necessary validations in startDownload
 	// newUrl can be changed if the download is for a filelist from a different hub
 	// lastError_ will contain the last error why a file can't be started (not cleared if a download is found afterwards)
-	Download* getDownload(UserConnection& aSource, const QueueTokenSet& aRunningBundles, const OrderedStringSet& aOnlineHubs, string& lastError_, string& newUrl_, QueueItemBase::DownloadType aType) noexcept;
+	DownloadResult getDownload(UserConnection& aSource, const QueueTokenSet& aRunningBundles, const OrderedStringSet& aOnlineHubs) noexcept;
 
 	// Handle an ended transfer
 	// finished should be true if the file/segment was finished successfully (false if disconnected/failed). Always false for finished trees.
@@ -225,7 +214,6 @@ public:
 	// rotateQueue will put current bundle file at the end of the transfer source's user queue (e.g. there's a problem with the local target and other files should be tried next).
 	// HashException will thrown only for tree transfers that could not be stored in the hash database.
 	void putDownloadHooked(Download* aDownload, bool aFinished, bool aNoAccess = false, bool aRotateQueue = false);
-	
 
 	void loadQueue(StartupLoader& aLoader) noexcept;
 
@@ -423,6 +411,7 @@ private:
 	QueueManager();
 	~QueueManager();
 	
+	mutable CriticalSection slotAssignCS;
 	mutable SharedMutex cs;
 
 	unique_ptr<Socket> udp;
@@ -443,7 +432,15 @@ private:
 	void handleFailedRecheckItems(const QueueItemList& ql) noexcept;
 
 	void connectBundleSources(const BundlePtr& aBundle) noexcept;
-	bool allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& runningBundles, string& lastError_, bool mcn = false) noexcept;
+
+	// Check if a download can be started for the specified user
+	QueueDownloadResult startDownload(const HintedUser& aUser, QueueDownloadType aType, const QueueTokenSet& runningBundles, const OrderedStringSet& aOnlineHubs, int64_t aLastSpeed) noexcept;
+
+	bool allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& runningBundles, string& lastError_) noexcept;
+
+	bool checkLowestPrioRules(const QueueItemPtr& aQI, const QueueTokenSet& aRunningBundles, string& lastError_) const noexcept;
+	bool checkDownloadLimits(const QueueItemPtr& aQI, string& lastError_) const noexcept;
+	bool checkDiskSpace(const QueueItemPtr& aQI, string& lastError_) noexcept;
 
 	void removeBundleItem(const QueueItemPtr& qi, bool finished) noexcept;
 	void addLoadedBundle(const BundlePtr& aBundle) noexcept;
@@ -553,9 +550,6 @@ private:
 	// TimerManagerListener
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
-
-	// Request information about finished segments from all partial sources
-	// void requestPartialSourceInfo(uint64_t aTick) noexcept;
 
 	// Perform automatic search for alternate sources
 	void searchAlternates(uint64_t aTick) noexcept;

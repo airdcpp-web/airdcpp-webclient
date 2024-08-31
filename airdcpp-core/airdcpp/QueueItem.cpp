@@ -132,9 +132,9 @@ bool QueueItem::isFailedStatus(Status aStatus) noexcept {
 }
 
 Priority QueueItem::calculateAutoPriority() const noexcept {
-	if(getAutoPriority()) {
+	if (getAutoPriority()) {
 		Priority p;
-		int percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
+		auto percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
 		switch(percent){
 				case 0:
 				case 1:
@@ -565,7 +565,7 @@ uint64_t QueueItem::getDownloadedBytes() const noexcept {
 void QueueItem::addFinishedSegment(const Segment& aSegment) noexcept {
 #ifdef _DEBUG
 	if (bundle)
-		dcdebug("adding segment segment of size " I64_FMT " (" I64_FMT ", " I64_FMT ")...", aSegment.getSize(), aSegment.getStart(), aSegment.getEnd());
+		dcdebug("QueueItem::addFinishedSegment: adding segment of size " I64_FMT " (" I64_FMT ", " I64_FMT ")...", aSegment.getSize(), aSegment.getStart(), aSegment.getEnd());
 #endif
 
 	dcassert(aSegment.getOverlapped() == false);
@@ -649,54 +649,89 @@ void QueueItem::getChunksVisualisation(vector<Segment>& running_, vector<Segment
 	}
 }
 
-bool QueueItem::hasSegment(const UserPtr& aUser, const OrderedStringSet& aOnlineHubs, string& lastError_, int64_t aWantedSize, int64_t aLastSpeed, DownloadType aType, bool aAllowOverlap) noexcept {
-	if (isPausedPrio())
-		return false;
-
-	auto source = getSource(aUser);
-	if (!source->getBlockedHubs().empty() && includes(source->getBlockedHubs().begin(), source->getBlockedHubs().end(), aOnlineHubs.begin(), aOnlineHubs.end())) {
+bool QueueItem::Source::matchesDownloadQuery(const QueueDownloadQuery& aQuery, string& lastError_) const noexcept {
+	// Only blocked hubs?
+	if (!blockedHubs.empty() && includes(blockedHubs.begin(), blockedHubs.end(), aQuery.onlineHubs.begin(), aQuery.onlineHubs.end())) {
 		lastError_ = STRING(NO_ACCESS_ONLINE_HUBS);
 		return false;
 	}
 
-	//can't download a filelist if the hub is offline... don't be too strict with NMDC hubs
-	if (!aUser->isSet(User::NMDC) && (isSet(FLAG_USER_LIST) && !isSet(FLAG_TTHLIST_BUNDLE)) && aOnlineHubs.find(source->getUser().hint) == aOnlineHubs.end()) {
+	// Can't download a filelist if the hub is offline... don't be too strict with NMDC hubs
+	if (!aQuery.user->isSet(User::NMDC) && (isSet(FLAG_USER_LIST) && !isSet(FLAG_TTHLIST_BUNDLE)) && aQuery.onlineHubs.find(user.hint) == aQuery.onlineHubs.end()) {
 		lastError_ = STRING(USER_OFFLINE);
 		return false;
 	}
 
-	dcassert(isSource(aUser));
+	return true;
+}
+
+bool QueueItem::matchesDownloadType(QueueDownloadType aType) const noexcept {
+	if (aType == QueueDownloadType::SMALL && !usesSmallSlot()) {
+		//don't even think of stealing our priority channel
+		return false;
+	} else if (aType == QueueDownloadType::MCN_NORMAL && usesSmallSlot()) {
+		return false;
+	}
+
+	return true;
+}
+
+bool QueueItem::allowSegmentedDownloads() const noexcept {
+	// Don't try to create multiple connections for filelists or files viewed in client
+	if (isSet(QueueItem::FLAG_USER_LIST) || isSet(QueueItem::FLAG_CLIENT_VIEW)) {
+		return false;
+	}
+
+	// No segmented downloading when getting the tree
+	if (getDownloads()[0]->getType() == Transfer::TYPE_TREE) {
+		return false;
+	}
+
+	return true;
+}
+
+bool QueueItem::hasSegment(const QueueDownloadQuery& aQuery, string& lastError_, bool aAllowOverlap) noexcept {
+	if (isPausedPrio())
+		return false;
+
+	dcassert(isSource(aQuery.user));
+	auto source = getSource(aQuery.user);
+
+	// Check source
+	if (!source->matchesDownloadQuery(aQuery, lastError_)) {
+		return false;
+	}
+
+	// Finished?
 	if (segmentsDone()) {
 		return false;
 	}
 
-	if(aType == TYPE_SMALL && !usesSmallSlot()) {
-		//don't even think of stealing our priority channel
-		return false;
-	} else if (aType == TYPE_MCN_NORMAL && usesSmallSlot()) {
+	// Slot type
+	if (!matchesDownloadType(aQuery.downloadType)) {
 		return false;
 	}
 
-	if(isWaiting()) {
+	// See if we have an available segment
+
+	if (isWaiting()) {
 		return true;
 	}
-				
-	// No segmented downloading when getting the tree
-	if(getDownloads()[0]->getType() == Transfer::TYPE_TREE) {
+
+	// Running item
+
+	if (!allowSegmentedDownloads()) {
 		return false;
 	}
 
-	if(!isSet(QueueItem::FLAG_USER_LIST) && !isSet(QueueItem::FLAG_CLIENT_VIEW)) {
-		Segment segment = getNextSegment(getBlockSize(), aWantedSize, aLastSpeed, source->getPartsInfo(), aAllowOverlap);
-		if(segment.getSize() == 0) {
-			lastError_ = (segment.getStart() == -1 || getSize() < Util::convertSize(SETTING(MIN_SEGMENT_SIZE), Util::KB)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
-			dcdebug("No segment for %s (%s) in %s, block " I64_FMT "\n", aUser->getCID().toBase32().c_str(), Util::listToString(aOnlineHubs).c_str(), getTarget().c_str(), blockSize);
-			return false;
-		}
-	} else if (!isWaiting()) {
-		//don't try to create multiple connections for filelists or files viewed in client
+	// File segment?
+	auto segment = getNextSegment(getBlockSize(), aQuery.wantedSize, aQuery.lastSpeed, source->getPartsInfo(), aAllowOverlap);
+	if (segment.getSize() == 0) {
+		lastError_ = (segment.getStart() == -1 || getSize() < Util::convertSize(SETTING(MIN_SEGMENT_SIZE), Util::KB)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
+		dcdebug("No segment for %s (%s) in %s, block " I64_FMT "\n", aQuery.user->getCID().toBase32().c_str(), Util::listToString(aQuery.onlineHubs).c_str(), getTarget().c_str(), blockSize);
 		return false;
 	}
+
 	return true;
 }
 

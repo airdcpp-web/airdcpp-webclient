@@ -1195,6 +1195,9 @@
     <ClInclude Include="airdcpp\HubEntry.h">
       <Filter>Header Files\favorites</Filter>
     </ClInclude>
+    <ClInclude Include="airdcpp\QueueDownloadInfo.h">
+      <Filter>Header Files\queue</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="airdcpp\StringDefs.h">

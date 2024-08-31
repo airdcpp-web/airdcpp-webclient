@@ -36,6 +36,7 @@ namespace dcpp {
 Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn, qi.getTarget(), qi.getTTH()),
 	tempTarget(qi.getTempTarget()), listDirectoryPath(qi.isFilelist() ? qi.getListDirectoryPath() : Util::emptyString)
 {
+	dcassert(!conn.getDownload());
 	conn.setDownload(this);
 	
 	QueueItem::SourceConstIter source = qi.getSource(getUser());
@@ -101,7 +102,9 @@ Download::Download(UserConnection& conn, QueueItem& qi) noexcept : Transfer(conn
 }
 
 Download::~Download() {
-	getUserConnection().setDownload(0);
+	dcassert(getUserConnection().getDownload() == this);
+	// dcdebug("Deleting download %s\n", getToken().c_str());
+	getUserConnection().setDownload(nullptr);
 }
 
 string Download::getBundleStringToken() const noexcept {
@@ -113,6 +116,17 @@ string Download::getBundleStringToken() const noexcept {
 
 bool Download::operator==(const Download* d) const {
 	return compare(getToken(), d->getToken()) == 0;
+}
+
+void Download::flush() noexcept {
+	if (getOutput()) {
+		if (getActual() > 0) {
+			try {
+				getOutput()->flushBuffers(false);
+			} catch (const Exception&) {
+			}
+		}
+	}
 }
 
 void Download::appendFlags(OrderedStringSet& flags_) const noexcept {

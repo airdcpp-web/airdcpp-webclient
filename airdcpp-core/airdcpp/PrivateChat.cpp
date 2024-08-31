@@ -243,28 +243,24 @@ void PrivateChat::close() {
 }
 
 void PrivateChat::startCC() {
-	bool protocolError;
 	if (!replyTo.user->isOnline() || ccpmState < DISCONNECTED) {
 		return;
 	}
 
 	ccpmState = CONNECTING;
-	string lastError;
 
 	auto token = ConnectionManager::getInstance()->tokens.createToken(CONNECTION_TYPE_PM);
-
-	auto newUrl = replyTo.hint;
-	bool connecting = ClientManager::getInstance()->connect(replyTo.user, token, true, lastError, newUrl, protocolError, CONNECTION_TYPE_PM);
-	if (replyTo.hint != newUrl) {
-		setHubUrl(newUrl);
+	auto connectResult = ClientManager::getInstance()->connect(replyTo, token, true, CONNECTION_TYPE_PM);
+	if (replyTo.hint != connectResult.getHubHint()) {
+		setHubUrl(connectResult.getHubHint());
 	}
 
-	allowAutoCCPM = !protocolError;
+	allowAutoCCPM = !connectResult.getIsProtocolError();
 
-	if (!connecting) {
+	if (!connectResult.getIsSuccess()) {
 		ccpmState = DISCONNECTED;
-		if (!lastError.empty()) {
-			statusMessage(lastError, LogMessage::SEV_ERROR, LogMessage::Type::SERVER);
+		if (!connectResult.getError().empty()) {
+			statusMessage(connectResult.getError(), LogMessage::SEV_ERROR, LogMessage::Type::SERVER);
 		}
 	} else {
 		statusMessage(STRING(CCPM_ESTABLISHING), LogMessage::SEV_INFO, LogMessage::Type::SERVER);

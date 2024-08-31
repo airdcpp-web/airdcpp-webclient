@@ -26,6 +26,7 @@
 #include "MerkleTree.h"
 #include "User.h"
 
+#include "QueueDownloadInfo.h"
 #include "QueueItemBase.h"
 
 namespace dcpp {
@@ -215,7 +216,7 @@ public:
 	/** All queue items indexed by user */
 	void addUserQueue(const QueueItemPtr& qi) noexcept;
 	bool addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool aIsBad = false) noexcept;
-	QueueItemPtr getNextQI(const UserPtr& aUser, const OrderedStringSet& aOnlineHubs, string& aLastError, Priority aMinPrio, int64_t aWantedSize, int64_t aLastSpeed, QueueItemBase::DownloadType aType, bool allowOverlap) noexcept;
+	QueueItemPtr getNextQI(const QueueDownloadQuery& aQuery, string& lastError_, bool aAllowOverlap) noexcept;
 	void getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept;
 
 	QueueItemList getFailedItems() const noexcept;

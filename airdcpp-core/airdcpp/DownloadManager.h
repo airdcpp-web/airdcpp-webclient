@@ -47,7 +47,8 @@ public:
 
 	/** @internal */
 	void addConnection(UserConnection* conn);
-	bool checkIdle(const UserPtr& aUser, bool aSmallSlot, bool aReportOnly = false);
+	bool checkIdle(const UserPtr& aUser, bool aSmallSlot);
+	bool checkIdle(const string& aToken);
 
 	/** @internal */
 	void abortDownload(const string& aTarget, const UserPtr& aUser = nullptr);
@@ -83,10 +84,14 @@ private:
 	// Bundle::TokenMap bundles;
 	UserConnectionList idlers;
 
+	void disconnect(UserConnectionPtr aConn, bool aGraceless = false);
 	void removeConnection(UserConnectionPtr aConn);
 	void removeDownload(Download* aDown);
 	void fileNotAvailable(UserConnection* aSource, bool aNoAccess, const string& aMessage = Util::emptyString);
 	void noSlots(UserConnection* aSource, const string& param = Util::emptyString);
+
+
+	void putDownloadHooked(Download* aDownload, bool aFinished, bool aNoAccess = false, bool aRotateQueue = false);
 
 	void failDownload(UserConnection* aSource, const string& reason, bool rotateQueue);
 

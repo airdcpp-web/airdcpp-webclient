@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_DCPP_QUEUE_ITEM_H
 
 #include "QueueItemBase.h"
+#include "QueueDownloadInfo.h"
 
 #include "FastAlloc.h"
 #include "HintedUser.h"
@@ -146,6 +147,8 @@ public:
 		void setPartsInfo(const PartsInfo& aPartsInfo) noexcept {
 			partsInfo = aPartsInfo;
 		}
+
+		bool matchesDownloadQuery(const QueueDownloadQuery& aQuery, string& lastError_) const noexcept;
 	private:
 		PartsInfo partsInfo;
 
@@ -174,7 +177,7 @@ public:
 	void save(OutputStream &save, string tmp, string b32tmp);
 	int countOnlineUsers() const noexcept;
 	void getOnlineUsers(HintedUserList& l) const noexcept;
-	bool hasSegment(const UserPtr& aUser, const OrderedStringSet& onlineHubs, string& lastError, int64_t wantedSize, int64_t lastSpeed, DownloadType aType, bool allowOverlap) noexcept;
+	bool hasSegment(const QueueDownloadQuery& aQuery, string& lastError_, bool aAllowOverlap) noexcept;
 	bool isPausedPrio() const noexcept;
 
 	SourceList& getSources() noexcept { return sources; }
@@ -284,6 +287,9 @@ private:
 	void blockSourceHub(const HintedUser& aUser) noexcept;
 	bool isHubBlocked(const UserPtr& aUser, const string& aUrl) const noexcept;
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept;
+
+	bool matchesDownloadType(QueueDownloadType aType) const noexcept;
+	bool allowSegmentedDownloads() const noexcept;
 
 	static uint8_t getMaxSegments(int64_t aFileSize) noexcept;
 
