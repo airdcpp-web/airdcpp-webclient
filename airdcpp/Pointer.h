@@ -49,8 +49,17 @@ protected:
 	
 private:
 	friend void intrusive_ptr_add_ref(intrusive_ptr_base* p) { ++p->ref; }
-	friend void intrusive_ptr_release(intrusive_ptr_base* p) { if(--p->ref == 0) { delete static_cast<T*>(p); } }
 
+#if defined (__GNUC__)
+// warning: ‘long unsigned int __atomic_sub_fetch_8(volatile void*, long unsigned int, int)’ writing 8 bytes into a region of size 0 overflows the destination
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107694
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+	friend void intrusive_ptr_release(intrusive_ptr_base* p) { if(--p->ref == 0) { delete static_cast<T*>(p); } }
+#if defined (__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 	atomic<long> ref;
 };
 

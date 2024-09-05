@@ -44,7 +44,7 @@ using ranges::copy;
 
 ShareTree::ShareTree() : bloom(new ShareBloom(1 << 20))
 { 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(_WIN32)
 	testDualString();
 #endif
 }
@@ -937,6 +937,7 @@ void ShareTree::addHashedFile(const string& aRealPath, const HashedFile& aFileIn
 // DEBUG CODE
 #ifdef _DEBUG
 
+#ifdef _WIN32 // Text::wideToUtf8 is available only on Windows
 void ShareTree::testDualString() {
 	{
 		auto emoji = Text::wideToUtf8(L"\U0001F30D");
@@ -952,6 +953,7 @@ void ShareTree::testDualString() {
 		dcassert(d2.getNormal() != d2.getLower());
 	}
 }
+#endif
 
 void ShareTree::validateDirectoryTreeDebug() const noexcept {
 	RLock l(cs);
