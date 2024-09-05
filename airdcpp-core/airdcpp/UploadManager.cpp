@@ -301,20 +301,24 @@ unique_ptr<InputStream> UploadManager::resumeStream(const UserConnection& aSourc
 
 void UploadManager::removeSlot(UserConnection& aSource) noexcept {
 	switch (aSource.getSlotType()) {
-	case UploadSlot::USERSLOT:
-		if (aSource.isMCN()) {
-			changeMultiConnSlot(aSource.getUser(), true);
-		} else {
-			runningUsers--;
+		case UploadSlot::USERSLOT: {
+			if (aSource.isMCN()) {
+				changeMultiConnSlot(aSource.getUser(), true);
+			} else {
+				runningUsers--;
+			}
+			break;
 		}
-		break;
-	case UploadSlot::FILESLOT:
-		if (aSource.hasSlotSource(SLOT_SOURCE_MINISLOT)) {
-			extra--;
-		} else if (aSource.hasSlotSource(SLOT_SOURCE_MCN)) {
-			smallFileConnections--;
+		case UploadSlot::FILESLOT: {
+			if (aSource.hasSlotSource(SLOT_SOURCE_MINISLOT)) {
+				extra--;
+			} else if (aSource.hasSlotSource(SLOT_SOURCE_MCN)) {
+				smallFileConnections--;
+			}
+			break;
 		}
-		break;
+		case UploadSlot::NOSLOT:
+			break;
 	}
 }
 
@@ -332,7 +336,7 @@ void UploadManager::updateSlotCounts(UserConnection& aSource, const UploadSlot& 
 
 	// set new slot count
 	switch (newSlotType) {
-		case UploadSlot::USERSLOT:
+		case UploadSlot::USERSLOT: {
 			if (aSource.isMCN()) {
 				changeMultiConnSlot(aSource.getUser(), false);
 			} else {
@@ -340,13 +344,17 @@ void UploadManager::updateSlotCounts(UserConnection& aSource, const UploadSlot& 
 			}
 			disconnectExtraMultiConn();
 			break;
-		case UploadSlot::FILESLOT:
+		}
+		case UploadSlot::FILESLOT: {
 			if (aSource.hasSlotSource(SLOT_SOURCE_MINISLOT)) {
 				extra++;
 			} else if (aSource.hasSlotSource(SLOT_SOURCE_MCN)) {
 				smallFileConnections++;
 			}
 
+			break;
+		}
+		case UploadSlot::NOSLOT:
 			break;
 	}
 
