@@ -23,7 +23,7 @@ jobs:
         - os: macos-latest
           compiler: gcc
         # TODO
-        - os: ubuntu-latest
+        - os: ubuntu-24.04
           compiler: clang
         include:
         - compiler: clang
