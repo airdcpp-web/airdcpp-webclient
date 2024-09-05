@@ -68,7 +68,7 @@ static void handleCrash(int sig) {
         std::cerr << std::endl << std::endl;
         std::cerr << "Signal: " << std::to_string(sig) << std::endl;
         std::cerr << "Process ID: " << getpid() << std::endl;
-        std::cerr << "Time: " << Util::getTimeString() << std::endl;
+        std::cerr << "Time: " << Util::formatCurrentTime() << std::endl;
         std::cerr << "OS version: " << SystemUtil::getOsVersion() << std::endl;
         std::cerr << "Client version: " << shortVersionString << std::endl << std::endl;
 #if USE_STACKTRACE
@@ -82,7 +82,7 @@ static void handleCrash(int sig) {
 	std::ofstream f;
 	f.open(stackPath.c_str());
 
-	f << "Time: " + Util::getTimeString() << std::endl;
+	f << "Time: " + Util::formatCurrentTime() << std::endl;
 	f << "OS version: " + SystemUtil::getOsVersion() << std::endl;
 	f << "Client version: " + shortVersionString << std::endl << std::endl;
 
