@@ -81,7 +81,6 @@ private:
 	// The list of bundles being download. Note that all of them may not be running
 	// as the bundle is removed from here only after the connection has been 
 	// switched to use another bundle (or no other downloads were found)
-	// Bundle::TokenMap bundles;
 	UserConnectionList idlers;
 
 	void disconnect(UserConnectionPtr aConn, bool aGraceless = false);
@@ -89,9 +88,6 @@ private:
 	void removeDownload(Download* aDown);
 	void fileNotAvailable(UserConnection* aSource, bool aNoAccess, const string& aMessage = Util::emptyString);
 	void noSlots(UserConnection* aSource, const string& param = Util::emptyString);
-
-
-	void putDownloadHooked(Download* aDownload, bool aFinished, bool aNoAccess = false, bool aRotateQueue = false);
 
 	void failDownload(UserConnection* aSource, const string& reason, bool rotateQueue);
 
@@ -110,19 +106,17 @@ private:
 	void onFailed(UserConnection* aSource, const string& aError);
 
 	// UserConnectionListener
-	void on(Data, UserConnection*, const uint8_t*, size_t) noexcept override;
-	void on(Failed, UserConnection* aSource, const string& aError) noexcept override { onFailed(aSource, aError); }
-	void on(ProtocolError, UserConnection* aSource, const string& aError) noexcept override { onFailed(aSource, aError); }
-	void on(MaxedOut, UserConnection*, const string& param) noexcept override;
-	void on(FileNotAvailable, UserConnection*) noexcept override;
+	void on(UserConnectionListener::Data, UserConnection*, const uint8_t*, size_t) noexcept override;
+	void on(UserConnectionListener::Failed, UserConnection* aSource, const string& aError) noexcept override { onFailed(aSource, aError); }
+	void on(UserConnectionListener::ProtocolError, UserConnection* aSource, const string& aError) noexcept override { onFailed(aSource, aError); }
+	void on(UserConnectionListener::MaxedOut, UserConnection*, const string& param) noexcept override;
+	void on(UserConnectionListener::FileNotAvailable, UserConnection*) noexcept override;
 		
 	void on(AdcCommand::SND, UserConnection*, const AdcCommand&) noexcept override;
 	void on(AdcCommand::STA, UserConnection*, const AdcCommand&) noexcept override;
 
 	// TimerManagerListener
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
-
-	typedef pair< string, int64_t > StringIntPair;
 
 	// Statistics
 	uint64_t lastUpdate = 0;

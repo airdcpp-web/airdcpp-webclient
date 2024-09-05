@@ -23,17 +23,42 @@
 
 #include "PartialBundleSharingManager.h"
 #include "PartialFileSharingManager.h"
+#include "UploadFileProvider.h"
+#include "UploadManagerListener.h"
+#include "UploadSlot.h"
 
 
 namespace dcpp {
 
-class PartialSharingManager : public Singleton<PartialSharingManager>
+struct ParsedUpload;
+class UserConnection;
+class PartialSharingManager : public Singleton<PartialSharingManager>, public UploadFileProvider, public UploadManagerListener
 {
 public:
 	PartialBundleSharingManager bundles;
 	PartialFileSharingManager files;
-private:
 
+	PartialSharingManager();
+
+	bool toRealWithSize(const UploadFileQuery& aQuery, string& path_, int64_t& size_, bool& noAccess_) const noexcept override;
+	void getRealPaths(const TTHValue& root, StringList& paths_) const noexcept override;
+	void getBloom(ProfileToken aToken, HashBloom& bloom_) const noexcept override;
+	void getBloomFileCount(ProfileToken aToken, size_t& fileCount_) const noexcept override;
+
+	// void search(SearchResultList& results, const TTHValue& aTTH, const ShareSearch& aSearchInfo) const noexcept override;
+	const string& getProviderName() const noexcept override {
+		return providerName;
+	}
+
+	const string providerName = "partial_sharing";
+private:
+	uint8_t extraPartial = 0;
+	ActionHookResult<OptionalUploadSlot> onSlotType(const UserConnection& aUserConnection, const ParsedUpload&, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) noexcept;
+
+	void on(UploadManagerListener::Created, Upload*, const UploadSlot& aNewSlot) noexcept override;
+	void on(UploadManagerListener::Failed, const Upload*, const string&) noexcept override;
+
+	QueueItemList getBloomFiles() const noexcept;
 };
 
 } // namespace dcpp

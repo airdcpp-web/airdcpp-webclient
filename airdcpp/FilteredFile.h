@@ -19,7 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_FILTERED_FILE_H
 #define DCPLUSPLUS_DCPP_FILTERED_FILE_H
 
-#include "Streams.h"
+#include "Exception.h"
+#include "StreamBase.h"
 
 namespace dcpp {
 

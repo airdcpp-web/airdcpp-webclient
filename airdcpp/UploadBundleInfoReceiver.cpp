@@ -165,7 +165,7 @@ void UploadBundleInfoReceiver::createBundle(const AdcCommand& cmd) {
 		bundles[bundle->getToken()] = bundle;
 	}
 
-	addBundleConnection(token, bundle);
+	handleAddBundleConnection(token, bundle);
 }
 
 void UploadBundleInfoReceiver::updateBundleInfo(const AdcCommand& cmd) {
@@ -246,7 +246,7 @@ void UploadBundleInfoReceiver::changeBundle(const AdcCommand& cmd) {
 		return;
 	}
 
-	addBundleConnection(token, b);
+	handleAddBundleConnection(token, b);
 }
 
 void UploadBundleInfoReceiver::removeBundleConnection(const AdcCommand& cmd) {
@@ -263,13 +263,13 @@ void UploadBundleInfoReceiver::removeBundleConnection(const AdcCommand& cmd) {
 		return;
 	}
 
-	auto bundle = findByUploadToken(token);
+	auto bundle = findByConnectionToken(token);
 	if (!bundle) {
 		return;
 	}
 
 	dbgMsg("connection removal request received", LogMessage::SEV_WARNING);
-	removeBundleConnection(token, bundle);
+	handleRemoveBundleConnection(token, bundle);
 }
 
 void UploadBundleInfoReceiver::finishBundle(const AdcCommand& cmd) {
@@ -297,32 +297,40 @@ void UploadBundleInfoReceiver::finishBundle(const AdcCommand& cmd) {
 	fire(UploadBundleInfoReceiverListener::BundleComplete(), bundle->getToken(), bundle->getName());
 }
 
-void UploadBundleInfoReceiver::addBundleConnection(const string& aUploadToken, const UploadBundlePtr& aBundle) noexcept {
-	auto oldBundle = findByUploadToken(aUploadToken);
+bool UploadBundleInfoReceiver::callAsync(const string& aToken, UploadCallback&& aCallback) const noexcept {
+	return ConnectionManager::getInstance()->findUserConnection(aToken, [&](UserConnection* uc) {
+		if (uc->isSet(UserConnection::FLAG_UPLOAD) && uc->getUpload()) {
+			uc->callAsync(UploadManager::getInstance()->getAsyncWrapper(uc->getUpload()->getToken(), std::move(aCallback)));
+		}
+	});
+}
+
+void UploadBundleInfoReceiver::handleAddBundleConnection(const string& aConnectionToken, const UploadBundlePtr& aBundle) noexcept {
+	auto oldBundle = findByConnectionToken(aConnectionToken);
 	if (oldBundle && oldBundle != aBundle) {
-		dbgMsg("add connection, removing connection " + aUploadToken + " from the previous bundle " + oldBundle->getName(), LogMessage::SEV_VERBOSE);
-		removeBundleConnection(aUploadToken, aBundle);
+		dbgMsg("add connection, removing connection " + aConnectionToken + " from the previous bundle " + oldBundle->getName(), LogMessage::SEV_VERBOSE);
+		handleRemoveBundleConnection(aConnectionToken, aBundle);
 	} else if (oldBundle == aBundle) {
-		dbgMsg("add connection, connection " + aUploadToken + " exist in " + aBundle->getName(), LogMessage::SEV_VERBOSE);
+		dbgMsg("add connection, connection " + aConnectionToken + " exist in " + aBundle->getName(), LogMessage::SEV_VERBOSE);
 	}
 
-	auto found = UploadManager::getInstance()->callAsync(aUploadToken, [aBundle, this](const Upload* aUpload) {
-		dbgMsg("add connection, upload " + aUpload->getToken() + " for bundle " + aBundle->getName(), LogMessage::SEV_VERBOSE);
+	auto found = callAsync(aConnectionToken, [aBundle, this](auto aUpload) {
+		dbgMsg("add connection, upload " + aUpload->getConnectionToken() + " for bundle " + aBundle->getName(), LogMessage::SEV_VERBOSE);
 
 		WLock l(cs);
 		addBundleConnectionUnsafe(aUpload, aBundle);
 	});
 
 	if (!found) {
-		dbgMsg("add connection, upload " + aUploadToken + " doesn't exist for bundle " + aBundle->getName() + " (saving info for possible incoming connections)", LogMessage::SEV_WARNING);
+		dbgMsg("add connection, upload " + aConnectionToken + " doesn't exist for bundle " + aBundle->getName() + " (saving info for possible incoming connections)", LogMessage::SEV_WARNING);
 
 		WLock l(cs);
-		uploadMap[aUploadToken] = aBundle;
+		uploadMap[aConnectionToken] = aBundle;
 	}
 }
 
-void UploadBundleInfoReceiver::removeBundleConnection(const string& aUploadToken, const UploadBundlePtr& aBundle) noexcept {
-	auto found = UploadManager::getInstance()->callAsync(aUploadToken, [aBundle, this](const Upload* aUpload) {
+void UploadBundleInfoReceiver::handleRemoveBundleConnection(const string& aUploadToken, const UploadBundlePtr& aBundle) noexcept {
+	auto found = callAsync(aUploadToken, [aBundle, this](auto aUpload) {
 		WLock l(cs);
 		removeBundleConnectionUnsafe(aUpload, aBundle);
 	});
@@ -335,14 +343,14 @@ void UploadBundleInfoReceiver::removeBundleConnection(const string& aUploadToken
 void UploadBundleInfoReceiver::addBundleConnectionUnsafe(const Upload* aUpload, const UploadBundlePtr& aBundle) noexcept {
 	aBundle->addUpload(aUpload);
 
-	uploadMap[aUpload->getToken()] = aBundle;
+	uploadMap[aUpload->getConnectionToken()] = aBundle;
 }
 
 void UploadBundleInfoReceiver::removeBundleConnectionUnsafe(const Upload* aUpload, const UploadBundlePtr& aBundle) noexcept {
 	if (aBundle->removeUpload(aUpload)) {
-		dbgMsg("remove connection " + aUpload->getToken() + ", bundle " + aBundle->getName() + " empty (removal delayed), completed segments " + Util::formatBytes(aBundle->getUploadedSegments()), LogMessage::SEV_VERBOSE);
+		dbgMsg("remove connection " + aUpload->getConnectionToken() + ", bundle " + aBundle->getName() + " empty (removal delayed), completed segments " + Util::formatBytes(aBundle->getUploadedSegments()), LogMessage::SEV_VERBOSE);
 	} else {
-		dbgMsg("remove connection " + aUpload->getToken() + ", keeping bundle " + aBundle->getName() + " (uploads remain), completed segments " + Util::formatBytes(aBundle->getUploadedSegments()), LogMessage::SEV_VERBOSE);
+		dbgMsg("remove connection " + aUpload->getConnectionToken() + ", keeping bundle " + aBundle->getName() + " (uploads remain), completed segments " + Util::formatBytes(aBundle->getUploadedSegments()), LogMessage::SEV_VERBOSE);
 	}
 }
 
@@ -363,7 +371,7 @@ void UploadBundleInfoReceiver::onUBD(const AdcCommand& cmd) {
 	}
 }
 
-UploadBundlePtr UploadBundleInfoReceiver::findByUploadToken(const string& aUploadToken) const noexcept {
+UploadBundlePtr UploadBundleInfoReceiver::findByConnectionToken(const string& aUploadToken) const noexcept {
 	RLock l(cs);
 	auto s = uploadMap.find(aUploadToken);
 	if (s != uploadMap.end()) {
@@ -468,24 +476,25 @@ size_t UploadBundleInfoReceiver::getRunningBundleCount() const noexcept {
 	return ret;
 }
 
-void UploadBundleInfoReceiver::on(UploadManagerListener::Created, Upload* aUpload) noexcept {
-	auto b = findByUploadToken(aUpload->getToken());
+void UploadBundleInfoReceiver::on(UploadManagerListener::Created, Upload* aUpload, const UploadSlot&) noexcept {
+	auto b = findByConnectionToken(aUpload->getConnectionToken());
 	if (!b) {
 		return;
 	}
 
-	dbgMsg("upload " + aUpload->getToken() + " created, bundle " + b->getName(), LogMessage::SEV_VERBOSE);
+	dbgMsg("upload " + aUpload->getConnectionToken() + " created, bundle " + b->getName(), LogMessage::SEV_VERBOSE);
 
-	addBundleConnection(aUpload->getToken(), b);
+	WLock l(cs);
+	addBundleConnectionUnsafe(aUpload, b);
 }
 
 void UploadBundleInfoReceiver::on(UploadManagerListener::Removed, const Upload* aUpload) noexcept {
-	auto b = findByUploadToken(aUpload->getToken());
+	auto b = findByConnectionToken(aUpload->getConnectionToken());
 	if (!b) {
 		return;
 	}
 
-	dbgMsg("upload " + aUpload->getToken() + " removed, bundle " + b->getName(), LogMessage::SEV_VERBOSE);
+	dbgMsg("upload " + aUpload->getConnectionToken() + " removed, bundle " + b->getName(), LogMessage::SEV_VERBOSE);
 
 	WLock l(cs);
 	removeBundleConnectionUnsafe(aUpload, b);

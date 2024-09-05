@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
+* Copyright (C) 2011-2024 AirDC++ Project
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -16,36 +16,25 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_TEMPSHARE_ITEM_H
-#define DCPLUSPLUS_DCPP_TEMPSHARE_ITEM_H
+#ifndef DCPLUSPLUS_DCPP_TEMP_SHAREMANAGERLISTENER_H
+#define DCPLUSPLUS_DCPP_TEMP_SHAREMANAGERLISTENER_H
 
 #include "typedefs.h"
 
-#include "MerkleTree.h"
-
 namespace dcpp {
 
-typedef uint32_t TempShareToken;
-struct TempShareInfo {
-	TempShareInfo(const string& aName, const string& aRealPath, int64_t aSize, const TTHValue& aTTH, const UserPtr& aUser) noexcept;
+	class TempShareManagerListener {
+	public:
+		virtual ~TempShareManagerListener() {}
+		template<int I>	struct X { enum { TYPE = I }; };
 
-	const TempShareToken id;
-	const string name;
-	const UserPtr user; //CID or hubUrl
-	const string realPath; //filepath
-	const int64_t size; //filesize
-	const TTHValue tth;
-	const time_t timeAdded;
+		typedef X<1> TempFileAdded;
+		typedef X<2> TempFileRemoved;
 
-	bool hasAccess(const UserPtr& aUser) const noexcept;
+		virtual void on(TempFileAdded, const TempShareInfo&) noexcept {}
+		virtual void on(TempFileRemoved, const TempShareInfo&) noexcept {}
+	};
 
-	string getVirtualPath() const noexcept {
-		return "/tmp/" + name;
-	}
-};
+} // namespace dcpp
 
-typedef vector<TempShareInfo> TempShareInfoList;
-
-}
-
-#endif
+#endif // !defined(DCPLUSPLUS_DCPP_SHAREMANAGERLISTENER_H)

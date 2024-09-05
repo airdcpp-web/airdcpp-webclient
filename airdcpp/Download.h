@@ -58,7 +58,7 @@ public:
 		FLAG_HIGHEST_PRIO		= 0x2000
 	};
 
-	bool operator==(const Download* d) const;
+	// bool operator==(const Download* d) const;
 
 	Download(UserConnection& conn, QueueItem& qi) noexcept;
 

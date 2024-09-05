@@ -22,8 +22,8 @@
 #include "DupeUtil.h"
 #include "LinkUtil.h"
 #include "QueueManager.h"
-#include "ShareManager.h"
 #include "StringTokenizer.h"
+#include "TempShareManager.h"
 #include "Text.h"
 #include "Util.h"
 
@@ -104,7 +104,7 @@ Magnet::Magnet(const string& aLink, const UserPtr& aTo) : to(aTo) {
 
 DupeType Magnet::getDupeType() const {
 	auto dupe = DupeUtil::checkFileDupe(getTTH());
-	if (ShareManager::getInstance()->isTempShared(to, getTTH())) {
+	if (TempShareManager::getInstance()->isTempShared(to, getTTH())) {
 		dupe = DUPE_SHARE_FULL;
 	}
 

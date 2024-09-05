@@ -25,6 +25,7 @@
 #include "PathUtil.h"
 #include "QueueManager.h"
 #include "ShareManager.h"
+#include "TempShareManager.h"
 
 
 namespace dcpp {
@@ -134,27 +135,20 @@ namespace dcpp {
 			return nullptr;
 		}
 
-		auto paths = ShareManager::getInstance()->getRealPaths(aTTH);
-		if (paths.empty()) {
+		UploadFileQuery query(aTTH);
+		auto fileInfo = ShareManager::getInstance()->toRealWithSize(query);
+		if (!fileInfo.found) {
 			throw Exception(STRING(FILE_NOT_FOUND));
 		}
 
-		string name;
-		auto tempShares = ShareManager::getInstance()->getTempShares(aTTH);
-		if (!tempShares.empty()) {
-			name = tempShares.front().name;
-		} else {
-			name = PathUtil::getFileName(paths.front());
-		}
-
-		auto file = createFile(name, paths.front(), aTTH, aIsText, true);
+		auto file = createFile(PathUtil::getFileName(fileInfo.path), fileInfo.path, aTTH, aIsText, true);
 
 		fire(ViewFileManagerListener::FileFinished(), file);
 		return file;
 	}
 	
 	ViewFilePtr ViewFileManager::addUserFileHookedThrow(const ViewedFileAddData& aFileInfo) {
-		if (ShareManager::getInstance()->isFileShared(aFileInfo.tth) || ShareManager::getInstance()->isTempShared(nullptr, aFileInfo.tth)) {
+		if (ShareManager::getInstance()->isFileShared(aFileInfo.tth) || TempShareManager::getInstance()->isTempShared(nullptr, aFileInfo.tth)) {
 			return addLocalFileThrow(aFileInfo.tth, aFileInfo.isText);
 		}
 

@@ -199,7 +199,7 @@ public:
 	
 	void getChunksVisualisation(vector<Segment>& running, vector<Segment>& downloaded, vector<Segment>& done) const noexcept;
 
-	bool isChunkDownloaded(int64_t startPos, int64_t& len) const noexcept;
+	bool isChunkDownloaded(const Segment& aSegment) const noexcept;
 
 	/**
 	 * Is specified parts needed by this download?
@@ -218,7 +218,7 @@ public:
 	void addDownload(Download* d) noexcept;
 
 	// Erase a single download
-	void removeDownload(const string& aToken) noexcept;
+	void removeDownload(const Download* d) noexcept;
 
 	// Erase all downloads from this user
 	void removeDownloads(const UserPtr& aUser) noexcept;

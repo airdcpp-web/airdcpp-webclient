@@ -20,7 +20,6 @@
 
 #include "DirectoryListing.h"
 
-#include "AirUtil.h"
 #include "BZUtils.h"
 #include "ClientManager.h"
 #include "DirectSearch.h"
@@ -33,6 +32,7 @@
 #include "SearchQuery.h"
 #include "SimpleXML.h"
 #include "SimpleXMLReader.h"
+#include "Streams.h"
 #include "StringTokenizer.h"
 #include "User.h"
 
@@ -1123,8 +1123,10 @@ void DirectoryListing::searchImpl(const SearchPtr& aSearch) noexcept {
 	curSearch.reset(SearchQuery::getSearch(aSearch));
 	if (isOwnList && partialList) {
 		SearchResultList results;
+
+		ShareSearch shareSearch(*curSearch, getShareProfile(), nullptr, aSearch->path);
 		try {
-			ShareManager::getInstance()->search(results, *curSearch, getShareProfile(), nullptr, aSearch->path);
+			ShareManager::getInstance()->search(results, shareSearch);
 		} catch (...) {}
 
 		for (const auto& sr : results)
@@ -1191,10 +1193,8 @@ bool DirectoryListing::isLoaded() const noexcept {
 }
 
 void DirectoryListing::matchQueueImpl() noexcept {
-	int matches = 0, newFiles = 0;
-	BundleList bundles;
-	QueueManager::getInstance()->matchListing(*this, matches, newFiles, bundles);
-	fire(DirectoryListingListener::QueueMatched(), AirUtil::formatMatchResults(matches, newFiles, bundles));
+	auto results = QueueManager::getInstance()->matchListing(*this);
+	fire(DirectoryListingListener::QueueMatched(), results.format());
 }
 
 void DirectoryListing::on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool /*wentOffline*/) noexcept {

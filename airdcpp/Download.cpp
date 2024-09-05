@@ -27,7 +27,9 @@
 #include "MerkleTreeOutputStream.h"
 #include "PathUtil.h"
 #include "QueueItem.h"
+#include "SettingsManager.h"
 #include "SharedFileStream.h"
+#include "Streams.h"
 #include "UserConnection.h"
 #include "ZUtils.h"
 
@@ -114,9 +116,9 @@ string Download::getBundleStringToken() const noexcept {
 	return bundle->getStringToken();
 }
 
-bool Download::operator==(const Download* d) const {
-	return compare(getToken(), d->getToken()) == 0;
-}
+//bool Download::operator==(const Download* d) const {
+//	return compare(getToken(), d->getToken()) == 0;
+//}
 
 void Download::flush() noexcept {
 	if (getOutput()) {
@@ -152,7 +154,7 @@ AdcCommand Download::getCommand(bool zlib, const string& mySID) const noexcept {
 	
 	cmd.addParam(Transfer::names[getType()]);
 
-	if(getType() == TYPE_PARTIAL_LIST) {
+	if(getType() == TYPE_PARTIAL_LIST || getType() == TYPE_TTH_LIST) {
 		cmd.addParam(getListDirectoryPath());
 	} else if(getType() == TYPE_FULL_LIST) {
 		if(isSet(Download::FLAG_XML_BZ_LIST)) {

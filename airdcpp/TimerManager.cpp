@@ -21,6 +21,11 @@
 
 #include <boost/date_time/posix_time/ptime.hpp>
 
+#ifndef _WIN32
+#include <sys/time.h>
+#endif
+
+
 namespace dcpp {
 
 using namespace boost::posix_time;
@@ -75,6 +80,10 @@ int TimerManager::run() {
 uint64_t TimerManager::getTick() {
 	static ptime start = microsec_clock::universal_time();
 	return (microsec_clock::universal_time() - start).total_milliseconds();
+}
+
+time_t TimerManager::getTime() {
+	return (time_t)time(NULL); 
 }
 
 time_t TimerManager::getStartTime() noexcept {

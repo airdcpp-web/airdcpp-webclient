@@ -16,35 +16,38 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_TEMPSHARE_ITEM_H
-#define DCPLUSPLUS_DCPP_TEMPSHARE_ITEM_H
+#ifndef DCPLUSPLUS_DCPP_UPLOAD_SLOT_H
+#define DCPLUSPLUS_DCPP_UPLOAD_SLOT_H
 
 #include "typedefs.h"
 
-#include "MerkleTree.h"
-
 namespace dcpp {
 
-typedef uint32_t TempShareToken;
-struct TempShareInfo {
-	TempShareInfo(const string& aName, const string& aRealPath, int64_t aSize, const TTHValue& aTTH, const UserPtr& aUser) noexcept;
+struct UploadSlot {
 
-	const TempShareToken id;
-	const string name;
-	const UserPtr user; //CID or hubUrl
-	const string realPath; //filepath
-	const int64_t size; //filesize
-	const TTHValue tth;
-	const time_t timeAdded;
+	// Note: the "best" slot type should have the highest number
+	enum Type : uint8_t {
+		NOSLOT = 0,
 
-	bool hasAccess(const UserPtr& aUser) const noexcept;
+		// File-specific
+		FILESLOT = 1,
 
-	string getVirtualPath() const noexcept {
-		return "/tmp/" + name;
+		// Persistent
+		USERSLOT = 2
+	};
+
+
+	UploadSlot(Type aType, const string& aSource) : type(aType), source(aSource) {}
+
+	Type type;
+	string source;
+
+	static Type toType(const std::optional<UploadSlot>& aSlot) noexcept {
+		return aSlot ? aSlot->type : NOSLOT;
 	}
 };
 
-typedef vector<TempShareInfo> TempShareInfoList;
+typedef std::optional<UploadSlot> OptionalUploadSlot;
 
 }
 

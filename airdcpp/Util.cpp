@@ -36,17 +36,6 @@ string Util::addBrackets(const string& s) noexcept {
 	return '<' + s + '>';
 }
 
-string Util::getShortTimeString(time_t t) noexcept {
-	char buf[255];
-	tm* _tm = localtime(&t);
-	if(_tm == NULL) {
-		strcpy(buf, "xx:xx");
-	} else {
-		strftime(buf, 254, SETTING(TIME_STAMPS_FORMAT).c_str(), _tm);
-	}
-	return Text::toUtf8(buf);
-}
-
 void Util::parseIpPort(const string& aIpPort, string& ip, string& port) noexcept {
 	string::size_type i = aIpPort.rfind(':');
 	if (i == string::npos) {
@@ -55,89 +44,6 @@ void Util::parseIpPort(const string& aIpPort, string& ip, string& port) noexcept
 		ip = aIpPort.substr(0, i);
 		port = aIpPort.substr(i + 1);
 	}
-}
-
-#ifdef _WIN32
-wstring Util::formatSecondsW(int64_t aSec, bool supressHours /*false*/) noexcept {
-	wchar_t buf[64];
-	if (!supressHours)
-		snwprintf(buf, sizeof(buf), L"%01lu:%02d:%02d", (unsigned long)(aSec / (60*60)), (int)((aSec / 60) % 60), (int)(aSec % 60));
-	else
-		snwprintf(buf, sizeof(buf), L"%02d:%02d", (int)(aSec / 60), (int)(aSec % 60));	
-	return buf;
-}
-#endif
-
-string Util::formatSeconds(int64_t aSec, bool supressHours /*false*/) noexcept {
-	char buf[64];
-	if (!supressHours)
-		snprintf(buf, sizeof(buf), "%01lu:%02d:%02d", (unsigned long)(aSec / (60*60)), (int)((aSec / 60) % 60), (int)(aSec % 60));
-	else
-		snprintf(buf, sizeof(buf), "%02d:%02d", (int)(aSec / 60), (int)(aSec % 60));	
-	return buf;
-}
-
-string Util::formatTime(uint64_t aSec, bool aTranslate, bool aPerMinute) noexcept {
-	string formatedTime;
-
-	decltype(aSec) n, added = 0;
-
-	auto appendTime = [&] (const string& aTranslatedS, const string& aEnglishS, const string& aTranslatedP, const string& aEnglishP) -> void {
-		if (aPerMinute && added == 2) //add max 2 values
-			return;
-
-		char buf[128];
-		if(n >= 2) {
-			snprintf(buf, sizeof(buf), (U64_FMT " " + ((aTranslate ? Text::toLower(aTranslatedP) : aEnglishP) + " ")).c_str(), n);
-		} else {
-			snprintf(buf, sizeof(buf), (U64_FMT " " + ((aTranslate ? Text::toLower(aTranslatedS) : aEnglishS) + " ")).c_str(), n);
-		}
-		formatedTime += (string)buf;
-		added++;
-	};
-
-	n = aSec / (24*3600*365);
-	aSec %= (24*3600*365);
-	if(n) {
-		appendTime(STRING(YEAR), "year", STRING(YEARS), "years");
-	}
-
-	n = aSec / (24*3600*30);
-	aSec %= (24*3600*30);
-	if(n) {
-		appendTime(STRING(MONTH), "month", STRING(MONTHS), "months");
-	}
-
-	n = aSec / (24*3600*7);
-	aSec %= (24*3600*7);
-	if(n) {
-		appendTime(STRING(WEEK), "week", STRING(WEEKS), "weeks");
-	}
-
-	n = aSec / (24*3600);
-	aSec %= (24*3600);
-	if(n) {
-		appendTime(STRING(DAY), "day", STRING(DAYS), "days");
-	}
-
-	n = aSec / (3600);
-	aSec %= (3600);
-	if(n) {
-		appendTime(STRING(HOUR), "hour", STRING(HOURS), "hours");
-	}
-
-	n = aSec / (60);
-	aSec %= (60);
-	if(n || aPerMinute) {
-		appendTime(STRING(MINUTE), "min", STRING(MINUTES_LOWER), "min");
-	}
-
-	n = aSec;
-	if(++added <= 3 && !aPerMinute) {
-		appendTime(STRING(SECOND), "sec", STRING(SECONDS_LOWER), "sec");
-	}
-
-	return (!formatedTime.empty() ? formatedTime.erase(formatedTime.size()-1) : formatedTime);
 }
 
 string Util::formatBytes(int64_t aBytes) noexcept {
@@ -237,6 +143,19 @@ string Util::formatConnectionSpeed(int64_t aBytes) noexcept {
 	}
 
 	return buf;
+}
+
+string Util::formatPriority(Priority aPriority) noexcept {
+	switch (aPriority) {
+	case Priority::PAUSED_FORCE: return STRING(PAUSED_FORCED);
+	case Priority::PAUSED: return STRING(PAUSED);
+	case Priority::LOWEST: return STRING(LOWEST);
+	case Priority::LOW: return STRING(LOW);
+	case Priority::NORMAL: return STRING(NORMAL);
+	case Priority::HIGH: return STRING(HIGH);
+	case Priority::HIGHEST: return STRING(HIGHEST);
+	default: return STRING(PAUSED);
+	}
 }
 
 #ifdef _WIN32
@@ -583,7 +502,7 @@ string Util::formatTime(const string &msg, const time_t t) noexcept {
 }
 
 #ifdef _WIN32
-string Util::getDateTime(time_t t) noexcept {
+string Util::formatDateTime(time_t t) noexcept {
 	if (t == 0)
 		return Util::emptyString;
 
@@ -600,7 +519,7 @@ string Util::getDateTime(time_t t) noexcept {
 	return buf;
 }
 
-wstring Util::getDateTimeW(time_t t) noexcept {
+wstring Util::formatDateTimeW(time_t t) noexcept {
 	if (t == 0)
 		return Util::emptyStringT;
 
@@ -617,7 +536,7 @@ wstring Util::getDateTimeW(time_t t) noexcept {
 	return buf;
 }
 #else
-string Util::getDateTime(time_t t) noexcept {
+string Util::formatDateTime(time_t t) noexcept {
 	if (t == 0)
 		return Util::emptyString;
 
@@ -634,7 +553,7 @@ string Util::getDateTime(time_t t) noexcept {
 }
 #endif
 
-string Util::getTimeString() noexcept {
+string Util::formatCurrentTime() noexcept {
 	char buf[64];
 	time_t _tt;
 	time(&_tt);
@@ -652,11 +571,96 @@ string Util::getTimeStamp(time_t t) noexcept {
 	tm* _tm = localtime(&t);
 	if (_tm == NULL) {
 		strcpy(buf, "xx:xx");
-	} else {
+	}
+	else {
 		strftime(buf, 254, SETTING(TIME_STAMPS_FORMAT).c_str(), _tm);
 	}
+	return Text::toUtf8(buf);
+}
+
+#ifdef _WIN32
+wstring Util::formatSecondsW(int64_t aSec, bool supressHours /*false*/) noexcept {
+	wchar_t buf[64];
+	if (!supressHours)
+		snwprintf(buf, sizeof(buf), L"%01lu:%02d:%02d", (unsigned long)(aSec / (60*60)), (int)((aSec / 60) % 60), (int)(aSec % 60));
+	else
+		snwprintf(buf, sizeof(buf), L"%02d:%02d", (int)(aSec / 60), (int)(aSec % 60));	
 	return buf;
 }
+#endif
+
+string Util::formatSeconds(int64_t aSec, bool supressHours /*false*/) noexcept {
+	char buf[64];
+	if (!supressHours)
+		snprintf(buf, sizeof(buf), "%01lu:%02d:%02d", (unsigned long)(aSec / (60*60)), (int)((aSec / 60) % 60), (int)(aSec % 60));
+	else
+		snprintf(buf, sizeof(buf), "%02d:%02d", (int)(aSec / 60), (int)(aSec % 60));	
+	return buf;
+}
+
+string Util::formatDuration(uint64_t aSec, bool aTranslate, bool aPerMinute) noexcept {
+	string formatedTime;
+
+	decltype(aSec) n, added = 0;
+
+	auto appendTime = [&] (const string& aTranslatedS, const string& aEnglishS, const string& aTranslatedP, const string& aEnglishP) -> void {
+		if (aPerMinute && added == 2) //add max 2 values
+			return;
+
+		char buf[128];
+		if(n >= 2) {
+			snprintf(buf, sizeof(buf), (U64_FMT " " + ((aTranslate ? Text::toLower(aTranslatedP) : aEnglishP) + " ")).c_str(), n);
+		} else {
+			snprintf(buf, sizeof(buf), (U64_FMT " " + ((aTranslate ? Text::toLower(aTranslatedS) : aEnglishS) + " ")).c_str(), n);
+		}
+		formatedTime += (string)buf;
+		added++;
+	};
+
+	n = aSec / (24*3600*365);
+	aSec %= (24*3600*365);
+	if(n) {
+		appendTime(STRING(YEAR), "year", STRING(YEARS), "years");
+	}
+
+	n = aSec / (24*3600*30);
+	aSec %= (24*3600*30);
+	if(n) {
+		appendTime(STRING(MONTH), "month", STRING(MONTHS), "months");
+	}
+
+	n = aSec / (24*3600*7);
+	aSec %= (24*3600*7);
+	if(n) {
+		appendTime(STRING(WEEK), "week", STRING(WEEKS), "weeks");
+	}
+
+	n = aSec / (24*3600);
+	aSec %= (24*3600);
+	if(n) {
+		appendTime(STRING(DAY), "day", STRING(DAYS), "days");
+	}
+
+	n = aSec / (3600);
+	aSec %= (3600);
+	if(n) {
+		appendTime(STRING(HOUR), "hour", STRING(HOURS), "hours");
+	}
+
+	n = aSec / (60);
+	aSec %= (60);
+	if(n || aPerMinute) {
+		appendTime(STRING(MINUTE), "min", STRING(MINUTES_LOWER), "min");
+	}
+
+	n = aSec;
+	if(++added <= 3 && !aPerMinute) {
+		appendTime(STRING(SECOND), "sec", STRING(SECONDS_LOWER), "sec");
+	}
+
+	return (!formatedTime.empty() ? formatedTime.erase(formatedTime.size()-1) : formatedTime);
+}
+
 
 string Util::truncate(const string& aStr, int aMaxLength) noexcept {
 	return aStr.size() > static_cast<size_t>(aMaxLength) ? (aStr.substr(0, aMaxLength) + "...") : aStr;

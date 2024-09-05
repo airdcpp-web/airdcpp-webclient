@@ -41,7 +41,7 @@ class UserCommand;
 
 class ClientManager : public Speaker<ClientManagerListener>, 
 	private ClientListener, public Singleton<ClientManager>, 
-	private TimerManagerListener, private ShareManagerListener
+	private TimerManagerListener
 {
 	typedef unordered_map<CID*, UserPtr> UserMap;
 	typedef UserMap::iterator UserIter;
@@ -340,17 +340,17 @@ private:
 	OnlineUser* findOnlineUserHintUnsafe(const CID& aCID, const string& aHubUrl, OnlinePairC& p) const noexcept;
 
 	// ClientListener
-	void on(ClientListener::Connected, const Client* c) noexcept;
-	void on(ClientListener::UserUpdated, const Client*, const OnlineUserPtr& user) noexcept;
-	void on(ClientListener::UsersUpdated, const Client* c, const OnlineUserList&) noexcept;
-	void on(ClientListener::Disconnected, const string&, const string&) noexcept;
-	void on(ClientListener::HubUpdated, const Client* c) noexcept;
-	void on(ClientListener::HubUserCommand, const Client*, int, int, const string&, const string&) noexcept;
-	void on(ClientListener::OutgoingSearch, const Client*, const SearchPtr&) noexcept;
-	void on(ClientListener::PrivateMessage, const Client*, const ChatMessagePtr&) noexcept;
+	void on(ClientListener::Connected, const Client* c) noexcept override;
+	void on(ClientListener::UserUpdated, const Client*, const OnlineUserPtr& user) noexcept override;
+	void on(ClientListener::UsersUpdated, const Client* c, const OnlineUserList&) noexcept override;
+	void on(ClientListener::Disconnected, const string&, const string&) noexcept override;
+	void on(ClientListener::HubUpdated, const Client* c) noexcept override;
+	void on(ClientListener::HubUserCommand, const Client*, int, int, const string&, const string&) noexcept override;
+	void on(ClientListener::OutgoingSearch, const Client*, const SearchPtr&) noexcept override;
+	void on(ClientListener::PrivateMessage, const Client*, const ChatMessagePtr&) noexcept override;
 
 	// TimerManagerListener
-	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
 };
 
 } // namespace dcpp

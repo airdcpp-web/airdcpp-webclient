@@ -21,6 +21,8 @@
 #include "TempShareManager.h"
 
 #include "HintedUser.h"
+#include "SearchResult.h"
+#include "ShareManager.h"
 #include "TimerManager.h"
 #include "Util.h"
 #include "ValueGenerator.h"
@@ -28,18 +30,65 @@
 namespace dcpp {
 
 TempShareInfo::TempShareInfo(const string& aName, const string& aPath, int64_t aSize, const TTHValue& aTTH, const UserPtr& aUser) noexcept :
-	id(ValueGenerator::rand()), user(aUser), name(aName), path(aPath), size(aSize), tth(aTTH), timeAdded(GET_TIME()) { }
+	id(ValueGenerator::rand()), user(aUser), name(aName), realPath(aPath), size(aSize), tth(aTTH), timeAdded(GET_TIME()) { }
 
 bool TempShareInfo::hasAccess(const UserPtr& aUser) const noexcept {
 	return !user || user == aUser;
 }
 
+TempShareManager::TempShareManager() {
+	ShareManager::getInstance()->registerUploadFileProvider(this);
+}
+
+TempShareManager::~TempShareManager() {
+
+}
+
+bool TempShareManager::toRealWithSize(const UploadFileQuery& aQuery, string& path_, int64_t& size_, bool& noAccess_) const noexcept {
+	for (const auto& item: getTempShares(aQuery.tth)) {
+		if (!item.hasAccess(aQuery.user)) {
+			noAccess_ = true;
+		} else {
+			noAccess_ = false;
+			path_ = item.realPath;
+			size_ = item.size;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void TempShareManager::getRealPaths(const TTHValue& aTTH, StringList& paths_) const noexcept {
+	for (const auto& item : getTempShares(aTTH)) {
+		paths_.push_back(item.realPath);
+	}
+}
+
+void TempShareManager::getBloom(ProfileToken, HashBloom& bloom_) const noexcept {
+	RLock l(cs);
+	for (const auto& item : tempShares | views::values)
+		bloom_.add(item.tth);
+}
+
+void TempShareManager::getBloomFileCount(ProfileToken, size_t& fileCount_) const noexcept {
+	RLock l(cs);
+	fileCount_ += tempShares.size();
+}
+
+void TempShareManager::search(SearchResultList& results, const TTHValue& aTTH, const ShareSearch& aSearchInfo) const noexcept {
+	const auto items = getTempShares(aTTH);
+	for (const auto& item : items) {
+		if (item.hasAccess(aSearchInfo.optionalUser)) {
+			auto sr = make_shared<SearchResult>(SearchResult::TYPE_FILE, item.size, item.getVirtualPath(), aTTH, item.timeAdded, DirectoryContentInfo::uninitialized());
+			results.push_back(sr);
+		}
+	}
+}
+
 optional<TempShareToken> TempShareManager::isTempShared(const UserPtr& aUser, const TTHValue& aTTH) const noexcept {
+	RLock l(cs);
 	const auto fp = tempShares.equal_range(aTTH);
-	/*auto file = ranges::find_if(fp | pair_to_range | views::values, [&aUser](const auto& f) = > f.hasAccess(aUser));
-	if (file.base() != aDirNames.end()) {
-		return *file;
-	}*/
 
 	for (const auto& file : fp | pair_to_range | views::values) {
 		if (file.hasAccess(aUser)) {
@@ -52,11 +101,51 @@ optional<TempShareToken> TempShareManager::isTempShared(const UserPtr& aUser, co
 
 TempShareInfoList TempShareManager::getTempShares() const noexcept {
 	TempShareInfoList ret;
-	ranges::copy(tempShares | views::values, back_inserter(ret));
+	{
+		RLock l(cs);
+		ranges::copy(tempShares | views::values, back_inserter(ret));
+	}
 	return ret;
 }
 
-pair<TempShareInfo, bool> TempShareManager::addTempShare(const TTHValue& aTTH, const string& aName, const string& aFilePath, int64_t aSize, const UserPtr& aUser) noexcept {
+optional<TempShareInfo> TempShareManager::addTempShare(const TTHValue& aTTH, const string& aName, const string& aFilePath, int64_t aSize, ProfileToken aProfile, const UserPtr& aUser) noexcept {
+	// Regular shared file?
+	if (ShareManager::getInstance()->isFileShared(aTTH, aProfile)) {
+		return nullopt;
+	}
+
+	optional<pair<TempShareInfo, bool>> addInfo;
+
+	{
+		WLock l(cs);
+		addInfo.emplace(addTempShareImpl(aTTH, aName, aFilePath, aSize, aUser));
+	}
+
+	if (addInfo->second) {
+		fire(TempShareManagerListener::TempFileAdded(), addInfo->first);
+	}
+
+	return addInfo->first;
+}
+
+bool TempShareManager::removeTempShare(TempShareToken aId) noexcept {
+	optional<TempShareInfo> removedItem;
+
+	{
+		WLock l(cs);
+		auto removed = removeTempShareImpl(aId);
+		if (!removed) {
+			return false;
+		}
+
+		removedItem.emplace(*removed);
+	}
+
+	fire(TempShareManagerListener::TempFileRemoved(), *removedItem);
+	return true;
+}
+
+pair<TempShareInfo, bool> TempShareManager::addTempShareImpl(const TTHValue& aTTH, const string& aName, const string& aFilePath, int64_t aSize, const UserPtr& aUser) noexcept {
 	const auto files = tempShares.equal_range(aTTH);
 	for (const auto& file : files | pair_to_range | views::values) {
 		if (file.hasAccess(aUser)) {
@@ -84,7 +173,7 @@ TempShareInfoList TempShareManager::getTempShares(const TTHValue& aTTH) const no
 	return ret;
 }
 
-optional<TempShareInfo> TempShareManager::removeTempShare(TempShareToken aId) noexcept {
+optional<TempShareInfo> TempShareManager::removeTempShareImpl(TempShareToken aId) noexcept {
 	optional<TempShareInfo> removedItem;
 
 	const auto i = ranges::find_if(tempShares | views::values, [aId](const TempShareInfo& ti) {

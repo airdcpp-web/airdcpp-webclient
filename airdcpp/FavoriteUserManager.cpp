@@ -362,9 +362,13 @@ ActionHookResult<MessageHighlightList> FavoriteUserManager::onHubMessage(const C
 	return formatFavoriteUsers(aMessage, aResultGetter);
 }
 
-ActionHookResult<uint8_t> FavoriteUserManager::onSlotType(const HintedUser& aUser, const ParsedUpload&, const ActionHookResultGetter<uint8_t>& aResultGetter) noexcept {
-	auto autoGrant = hasSlot(aUser);
-	return aResultGetter.getData(autoGrant ? UserConnection::STDSLOT : UserConnection::NOSLOT);
+ActionHookResult<OptionalUploadSlot> FavoriteUserManager::onSlotType(const UserConnection& aUserConnection, const ParsedUpload&, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) noexcept {
+	auto autoGrant = hasSlot(aUserConnection.getHintedUser());
+	if (autoGrant) {
+		return aResultGetter.getData(UploadSlot(UploadSlot::Type::USERSLOT, FAVORITE_USERS_HOOK_ID));
+	}
+
+	return aResultGetter.getData(nullopt);
 }
 
 } // namespace dcpp

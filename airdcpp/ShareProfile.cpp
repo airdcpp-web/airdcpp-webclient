@@ -21,9 +21,10 @@
 #include "AppUtil.h"
 #include "BZUtils.h"
 #include "FilteredFile.h"
+#include "ResourceManager.h"
+#include "SettingsManager.h"
 #include "ShareProfile.h"
 #include "TimerManager.h"
-#include "Streams.h"
 
 namespace dcpp {
 
@@ -119,6 +120,13 @@ bool ShareProfile::isDefault() const noexcept {
 
 bool ShareProfile::isHidden() const noexcept {
 	return token == SP_HIDDEN;
+}
+
+void ShareProfile::setDirty(bool aForceRefresh) noexcept {
+	setProfileContentInfoDirty(true);
+	if (aForceRefresh)
+		getProfileList()->setForceXmlRefresh(true);
+	getProfileList()->setXmlDirty(true);
 }
 
 } //dcpp

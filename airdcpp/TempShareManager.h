@@ -21,27 +21,49 @@
 
 #include "typedefs.h"
 
+#include "CriticalSection.h"
+#include "UploadFileProvider.h"
+#include "Singleton.h"
+#include "Speaker.h"
 #include "TempShareItem.h"
+#include "TempShareManagerListener.h"
 
 namespace dcpp {
 
-class TempShareManager {
+class TempShareManager : public Speaker<TempShareManagerListener>, public Singleton<TempShareManager>, public UploadFileProvider {
 public:
-	typedef unordered_multimap<TTHValue, TempShareInfo> TempShareMap;
+	TempShareManager();
+	~TempShareManager();
 
-	// Add temp share item
-	// The boolean will false for files that are temp shared already
-	pair<TempShareInfo, bool> addTempShare(const TTHValue& aTTH, const string& aName, const string& aFilePath, int64_t aSize, const UserPtr& aUser) noexcept;
+	optional<TempShareInfo> addTempShare(const TTHValue& aTTH, const string& aName, const string& aFilePath, int64_t aSize, ProfileToken aProfile, const UserPtr& aUser) noexcept;
+	bool removeTempShare(TempShareToken aId) noexcept;
+
+	typedef unordered_multimap<TTHValue, TempShareInfo> TempShareMap;
 
 	TempShareInfoList getTempShares() const noexcept;
 	TempShareInfoList getTempShares(const TTHValue& aTTH) const noexcept;
 
-	// optional<TempShareInfo> removeTempShare(const UserPtr& aUser, const TTHValue& aTTH) noexcept;
-	optional<TempShareInfo> removeTempShare(TempShareToken aId) noexcept;
 	optional<TempShareToken> isTempShared(const UserPtr& aUser, const TTHValue& aTTH) const noexcept;
+
+	bool toRealWithSize(const UploadFileQuery& aQuery, string& path_, int64_t& size_, bool& noAccess_) const noexcept override;
+	void getRealPaths(const TTHValue& root, StringList& paths_) const noexcept override;
+	void getBloom(ProfileToken aToken, HashBloom& bloom_) const noexcept override;
+	void getBloomFileCount(ProfileToken aToken, size_t& fileCount_) const noexcept override;
+	void search(SearchResultList& results, const TTHValue& aTTH, const ShareSearch& aSearchInfo) const noexcept override;
+	const string& getProviderName() const noexcept override {
+		return providerName;
+	}
+
+	const string providerName = "temp_share";
 private:
+	mutable SharedMutex cs;
 
 	TempShareMap tempShares;
+
+	// Add temp share item
+	// The boolean will false for files that are temp shared already
+	pair<TempShareInfo, bool> addTempShareImpl(const TTHValue& aTTH, const string& aName, const string& aFilePath, int64_t aSize, const UserPtr& aUser) noexcept;
+	optional<TempShareInfo> removeTempShareImpl(TempShareToken aId) noexcept;
 };
 
 

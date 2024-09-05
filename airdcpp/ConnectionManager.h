@@ -152,8 +152,7 @@ public:
 	void force(const string& aToken) noexcept;
 	
 	void disconnect(const UserPtr& aUser) noexcept; // disconnect all connections to the user
-	void disconnect(const UserPtr& aUser, ConnectionType aConnType) noexcept;
-	void disconnect(const string& aToken) noexcept;
+	void disconnect(const string& aToken) const noexcept;
 
 	void shutdown(function<void (float)> progressF) noexcept;
 	bool isShuttingDown() const noexcept { return shuttingDown; }
@@ -176,6 +175,10 @@ public:
 	}
 
 	bool isMCNUser(const UserPtr& aUser) const noexcept;
+
+
+	typedef std::function<void(UserConnection*)> UserConnectionCallback;
+	bool findUserConnection(const string& aToken, UserConnectionCallback&& aCallback) const noexcept;
 private:
 	FloodCounter floodCounter;
 

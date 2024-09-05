@@ -35,6 +35,7 @@
 #ifndef _WIN32
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/socket.h>
 
 #ifdef HAVE_IFADDRS_H
 #include <ifaddrs.h>
@@ -59,15 +60,17 @@ bool NetworkUtil::isPrivateIp(const string& ip, bool v6) noexcept {
 		// https://en.wikipedia.org/wiki/Unique_local_address
 		return ip.length() > 2 && ip.substr(0, 2) == "fd";
 	} else {
+		dcassert(ip.length() <= INET_ADDRSTRLEN);
 		struct in_addr addr;
 
-		addr.s_addr = inet_addr(ip.c_str());
+		inet_pton(AF_INET, ip.c_str(), &addr.s_addr);
 
 		if (addr.s_addr  != INADDR_NONE) {
 			unsigned long haddr = ntohl(addr.s_addr);
-			return ((haddr & 0xff000000) == 0x0a000000 || // 10.0.0.0/8
+			auto result = ((haddr & 0xff000000) == 0x0a000000 || // 10.0.0.0/8
 					(haddr & 0xfff00000) == 0xac100000 || // 172.16.0.0/12
 					(haddr & 0xffff0000) == 0xc0a80000);  // 192.168.0.0/16
+			return result;
 		}
 	}
 	return false;

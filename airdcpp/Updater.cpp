@@ -273,6 +273,8 @@ string Updater::createUpdate(const FileListF& aFileListF) noexcept {
 	return updaterFilePath + updaterFile;
 }
 
+// Deprecations, TODO: fix
+# pragma warning(disable: 4996) 
 void Updater::signVersionFile(const string& aVersionFilePath, const string& aPrivateKeyFilePath, bool aMakeHeader) {
 	string versionData;
 	unsigned int sig_len = 0;

@@ -29,6 +29,7 @@
 #include "LogManager.h"
 #include "ResourceManager.h"
 #include "ShareManager.h"
+#include "ShareProfileManager.h"
 #include "ThrottleManager.h"
 #include "TimerManager.h"
 #include "UserCommandManager.h"
@@ -52,7 +53,7 @@ Client::Client(const string& aHubUrl, char aSeparator, const ClientPtr& aOldClie
 	searchFloodCounter(FLOOD_PERIOD)
 {
 	TimerManager::getInstance()->addListener(this);
-	ShareManager::getInstance()->addListener(this);
+	ShareManager::getInstance()->getProfileMgr().addListener(this);
 
 	string file, proto, query, fragment;
 	LinkUtil::decodeUrl(hubUrl, proto, address, port, file, query, fragment);
@@ -81,7 +82,7 @@ void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
 	}
 
 	TimerManager::getInstance()->removeListener(this);
-	ShareManager::getInstance()->removeListener(this);
+	ShareManager::getInstance()->getProfileMgr().removeListener(this);
 
 	if (!aRedirect) {
 		fire(ClientListener::Close(), this);
@@ -112,13 +113,13 @@ string Client::getDescription() const noexcept {
 	return ret;
 }
 
-void Client::on(ShareManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken /*aNewDefault*/) noexcept {
+void Client::on(ShareProfileManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken /*aNewDefault*/) noexcept {
 	if (get(HubSettings::ShareProfile) == aOldDefault) {
 		reloadSettings(false);
 	}
 }
 
-void Client::on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept {
+void Client::on(ShareProfileManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept {
 	if (get(HubSettings::ShareProfile) == aProfile) {
 		reloadSettings(false);
 	}

@@ -22,7 +22,7 @@
 #include "ClientManagerListener.h"
 #include "FavoriteManagerListener.h"
 #include "SettingsManagerListener.h"
-#include "ShareManagerListener.h"
+#include "ShareProfileManagerListener.h"
 #include "TimerManagerListener.h"
 
 #include "FavHubGroup.h"
@@ -33,7 +33,7 @@
 namespace dcpp {
 
 class FavoriteManager : public Speaker<FavoriteManagerListener>, public Singleton<FavoriteManager>,
-	private SettingsManagerListener, private ClientManagerListener, private ShareManagerListener, private TimerManagerListener
+	private SettingsManagerListener, private ClientManagerListener, private ShareProfileManagerListener, private TimerManagerListener
 {
 public:
 // Favorite Hubs
@@ -95,23 +95,23 @@ private:
 	int resetProfile(ProfileToken oldProfile, ProfileToken newProfile, bool nmdcOnly) noexcept;
 
 	// TimerManagerListener
-	void on(TimerManagerListener::Second, uint64_t tick) noexcept;
+	void on(TimerManagerListener::Second, uint64_t tick) noexcept override;
 
 	// ShareManagerListener
-	void on(ShareManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept;
-	void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept;
+	void on(ShareProfileManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept override;
+	void on(ShareProfileManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept override;
 
 	// ClientManagerListener
-	void on(ClientManagerListener::ClientCreated, const ClientPtr& c) noexcept;
-	void on(ClientManagerListener::ClientConnected, const ClientPtr& c) noexcept;
-	void on(ClientManagerListener::ClientRemoved, const ClientPtr& c) noexcept;
-	void on(ClientManagerListener::ClientRedirected, const ClientPtr& aOldClient, const ClientPtr& aNewClient) noexcept;
+	void on(ClientManagerListener::ClientCreated, const ClientPtr& c) noexcept override;
+	void on(ClientManagerListener::ClientConnected, const ClientPtr& c) noexcept override;
+	void on(ClientManagerListener::ClientRemoved, const ClientPtr& c) noexcept override;
+	void on(ClientManagerListener::ClientRedirected, const ClientPtr& aOldClient, const ClientPtr& aNewClient) noexcept override;
 
 	void onConnectStateChanged(const ClientPtr& aClient, FavoriteHubEntry::ConnectState aState) noexcept;
 	void setConnectState(const FavoriteHubEntryPtr& aEntry) noexcept;
 
 	// SettingsManagerListener
-	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept;
+	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept override;
 
 	void loadFavoriteHubs(SimpleXML& aXml);
 	void loadFavoriteDirectories(SimpleXML& aXml);

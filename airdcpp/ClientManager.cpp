@@ -26,7 +26,6 @@
 #include "FavoriteManager.h"
 #include "LinkUtil.h"
 #include "LogManager.h"
-#include "QueueManager.h"
 #include "RelevanceSearch.h"
 #include "ResourceManager.h"
 #include "SimpleXML.h"

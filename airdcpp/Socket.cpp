@@ -282,7 +282,7 @@ uint16_t Socket::accept(const Socket& listeningSocket) {
 
 #ifdef _WIN32
 	// Make sure we disable any inherited windows message things for this socket.
-	::WSAAsyncSelect(sock, NULL, 0, 0);
+	::WSAEventSelect(sock, NULL, 0);
 #endif
 	auto remoteIP = resolveName(&sock_addr.sa, sz);
 

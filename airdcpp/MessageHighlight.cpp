@@ -22,7 +22,7 @@
 
 #include "DupeUtil.h"
 #include "LinkUtil.h"
-#include "ShareManager.h"
+#include "TempShareManager.h"
 #include "OnlineUser.h"
 
 
@@ -84,10 +84,9 @@ namespace dcpp {
 					if (m) {
 						highlight->setMagnet(m);
 
-						if (ShareManager::getInstance()->isTempShared(aTo, (*m).getTTH())) {
+						if (TempShareManager::getInstance()->isTempShared(aTo, (*m).getTTH())) {
 							highlight->setTag(TAG_TEMP_SHARE);
-						}
-						else {
+						} else {
 							highlight->setTag(TAG_MAGNET);
 						}
 					}

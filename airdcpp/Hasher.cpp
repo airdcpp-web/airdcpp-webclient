@@ -85,7 +85,7 @@ void Hasher::logHashedDirectory(const string& aPath, const string& aLastFilePath
 			STRING_F(HASHING_FINISHED_FILE,
 				aLastFilePath %
 				aStats.formatSize() %
-				aStats.formatTime() %
+				aStats.formatDuration() %
 				aStats.formatSpeed()
 			),
 			LogMessage::SEV_INFO,
@@ -97,7 +97,7 @@ void Hasher::logHashedDirectory(const string& aPath, const string& aLastFilePath
 				aPath %
 				aStats.filesHashed %
 				aStats.formatSize() %
-				aStats.formatTime() %
+				aStats.formatDuration() %
 				aStats.formatSpeed()
 			),
 			LogMessage::SEV_INFO,
@@ -382,7 +382,7 @@ void Hasher::processQueue() noexcept {
 								totalStats.filesHashed % 
 								totalStats.formatSize() %
 								totalDirsHashed %
-								totalStats.formatTime() %
+								totalStats.formatDuration() %
 								totalStats.formatSpeed()
 							),
 							LogMessage::SEV_INFO,
@@ -405,8 +405,8 @@ void Hasher::processQueue() noexcept {
 	}
 }
 
-string HasherStats::formatTime() const noexcept {
-	return Util::formatTime(hashTime / 1000, true);
+string HasherStats::formatDuration() const noexcept {
+	return Util::formatDuration(hashTime / 1000, true);
 }
 
 string HasherStats::formatSpeed() const noexcept {

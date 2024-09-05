@@ -389,8 +389,10 @@ void SearchManager::respond(const AdcCommand& adc, Client* aClient, OnlineUser* 
 	string token;
 	adc.getParam("TO", 0, token);
 
+	ShareSearch shareSearch(srch, aProfile, aUser->getUser(), path);
+	shareSearch.isAutoSearch = token.find("/as") != string::npos;
 	try {
-		ShareManager::getInstance()->search(results, srch, aProfile, aUser->getUser(), path, token.find("/as") != string::npos);
+		ShareManager::getInstance()->search(results, shareSearch);
 	} catch(const ShareException& e) {
 		if (replyDirect) {
 			//path not found (direct search)
@@ -431,7 +433,9 @@ void SearchManager::respond(Client* aClient, const string& aSeeker, int aSearchT
 	auto maxResults = aIsPassive ? 5 : 10;
 	auto srch = SearchQuery(aString, static_cast<Search::SizeModes>(aSearchType), aSize, static_cast<Search::TypeModes>(aFileType), maxResults);
 	auto shareProfile = aClient->get(HubSettings::ShareProfile);
-	ShareManager::getInstance()->search(results, srch, shareProfile, nullptr, ADC_ROOT_STR, false);
+
+	ShareSearch shareSearch(srch, shareProfile, nullptr, ADC_ROOT_STR);
+	ShareManager::getInstance()->search(results, shareSearch);
 
 	fire(SearchManagerListener::IncomingSearch(), aClient, nullptr, srch, results, !aIsPassive);
 

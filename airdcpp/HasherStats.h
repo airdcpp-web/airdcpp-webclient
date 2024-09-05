@@ -31,7 +31,7 @@ namespace dcpp {
 		uint64_t hashTime = 0;
 		int filesHashed = 0;
 
-		string formatTime() const noexcept;
+		string formatDuration() const noexcept;
 		string formatSpeed() const noexcept;
 		string formatSize() const noexcept;
 

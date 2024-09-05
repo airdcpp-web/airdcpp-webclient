@@ -21,9 +21,7 @@
 
 #include "LinkUtil.h"
 #include "ShareManager.h"
-#include "StringTokenizer.h"
-
-#include <boost/algorithm/string/trim.hpp>
+#include "ShareProfile.h"
 
 namespace dcpp {
 

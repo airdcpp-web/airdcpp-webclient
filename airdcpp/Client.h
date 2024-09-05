@@ -24,7 +24,7 @@
 
 #include "BufferedSocketListener.h"
 #include "ClientListener.h"
-#include "ShareManagerListener.h"
+#include "ShareProfileManagerListener.h"
 #include "TimerManagerListener.h"
 
 #include "AdcSupports.h"
@@ -59,7 +59,7 @@ public:
 /** Yes, this should probably be called a Hub */
 class Client : 
 	public ClientBase, public ChatHandlerBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, 
-	private ShareManagerListener, public HubSettings, private boost::noncopyable {
+	private ShareProfileManagerListener, public HubSettings, private boost::noncopyable {
 public:
 	typedef unordered_map<string*, ClientPtr, noCaseStringHash, noCaseStringEq> UrlMap;
 	typedef unordered_map<ClientToken, ClientPtr> IdMap;
@@ -244,8 +244,8 @@ protected:
 	virtual void on(BufferedSocketListener::Failed, const string&) noexcept override;
 
 	// ShareManagerListener
-	void on(ShareManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept override;
-	void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept override;
+	void on(ShareProfileManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept override;
+	void on(ShareProfileManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept override;
 
 	virtual bool v4only() const noexcept = 0;
 	void onPassword() noexcept;

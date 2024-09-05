@@ -33,14 +33,16 @@
 
 namespace dcpp {
 
-const SettingsManager::SettingKeyList ConnectivityManager::commonIncomingSettings = { SettingsManager::TCP_PORT, SettingsManager::UDP_PORT, SettingsManager::TLS_PORT, SettingsManager::MAPPER };
+const SettingsManager::SettingKeyList ConnectivityManager::commonIncomingSettings = { 
+	SettingsManager::TCP_PORT, SettingsManager::UDP_PORT, SettingsManager::TLS_PORT, SettingsManager::MAPPER 
+};
 
 const SettingsManager::SettingKeyList ConnectivityManager::incomingV4Settings = {
-	SettingsManager::INCOMING_CONNECTIONS, SettingsManager::BIND_ADDRESS,
+	SettingsManager::INCOMING_CONNECTIONS, SettingsManager::BIND_ADDRESS, SettingsManager::AUTO_DETECT_CONNECTION,
 };
 
 const SettingsManager::SettingKeyList ConnectivityManager::incomingV6Settings = {
-	SettingsManager::INCOMING_CONNECTIONS6, SettingsManager::BIND_ADDRESS6,
+	SettingsManager::INCOMING_CONNECTIONS6, SettingsManager::BIND_ADDRESS6, SettingsManager::AUTO_DETECT_CONNECTION6,
 };
 
 ConnectivityManager::ConnectivityManager() : mapperV6(true), mapperV4(false) { }

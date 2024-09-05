@@ -48,6 +48,7 @@
 #include "ShareManager.h"
 #include "SearchManager.h"
 #include "SettingsManager.h"
+#include "TempShareManager.h"
 #include "ThrottleManager.h"
 #include "TransferInfoManager.h"
 #include "UploadBundleManager.h"
@@ -115,6 +116,7 @@ void startup(StepFunction aStepF, MessageFunction aMessageF, Callback aRunWizard
 	PartialSharingManager::newInstance();
 	UploadBundleManager::newInstance();
 	UserCommandManager::newInstance();
+	TempShareManager::newInstance();
 
 	if (aModuleInitF) {
 		aModuleInitF();
@@ -224,6 +226,7 @@ void shutdown(StepFunction stepF, ProgressFunction progressF, ShutdownUnloadCall
 		aModuleDestroyF();
 	}
 
+	TempShareManager::deleteInstance();
 	UserCommandManager::deleteInstance();
 	UploadBundleManager::deleteInstance();
 	PartialSharingManager::deleteInstance();

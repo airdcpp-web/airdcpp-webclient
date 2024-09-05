@@ -175,15 +175,18 @@ bool QueueItem::isBadSourceExcept(const UserPtr& aUser, Flags::MaskType aExcepti
 	return false;
 }
 
-bool QueueItem::isChunkDownloaded(int64_t aStartPos, int64_t& len_) const noexcept {
-	if (len_ <= 0) return false;
+bool QueueItem::isChunkDownloaded(const Segment& aSegment) const noexcept {
+	auto requestStart = aSegment.getStart();
+	auto requestLen = aSegment.getSize();
+
+	if (requestLen <= 0) return false;
 
 	for (auto& i: done) {
-		int64_t start  = i.getStart();
-		int64_t end = i.getEnd();
+		auto start  = i.getStart();
+		auto end = i.getEnd();
 
-		if (start <= aStartPos && aStartPos < end){
-			len_ = min(len_, end - aStartPos);
+		if (start <= requestStart && requestStart < end && aSegment.getEnd() <= end){
+			// len_ = min(len_, end - requestStart);
 			return true;
 		}
 	}
@@ -268,7 +271,7 @@ uint8_t QueueItem::getMaxSegments(int64_t aFileSize) noexcept {
 }
 
 int QueueItem::countOnlineUsers() const noexcept {
-	return static_cast<int>(count_if(sources.begin(), sources.end(), [](const Source& s) { return s.getUser().user->isOnline(); } ));
+	return static_cast<int>(ranges::count_if(sources, [](const Source& s) { return s.getUser().user->isOnline(); } ));
 }
 
 QueueItem::~QueueItem() { }
@@ -783,8 +786,8 @@ void QueueItem::addDownload(Download* d) noexcept {
 	downloads.push_back(d);
 }
 
-void QueueItem::removeDownload(const string& aToken) noexcept {
-	auto m = find_if(downloads.begin(), downloads.end(), [&](const Download* d) { return compare(d->getToken(), aToken) == 0; });
+void QueueItem::removeDownload(const Download* d) noexcept {
+	auto m = ranges::find(downloads, d);
 	dcassert(m != downloads.end());
 	if (m != downloads.end()) {
 		downloads.erase(m);

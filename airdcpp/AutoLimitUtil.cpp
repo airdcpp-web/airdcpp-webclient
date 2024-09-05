@@ -18,29 +18,36 @@
 
 #include "stdinc.h"
 
-#include "AirUtil.h"
+#include "AutoLimitUtil.h"
 
-#include "Bundle.h"
-#include "LogManager.h"
-#include "MerkleTree.h"
-#include "PathUtil.h"
 #include "ResourceManager.h"
 #include "SettingsManager.h"
 #include "ThrottleManager.h"
+#include "Util.h"
+
+
+#ifdef _DEBUG
+
+#include "LogManager.h"
 #include "TimerManager.h"
 
 namespace dcpp {
 
-AirUtil::TimeCounter::TimeCounter(string aMsg) : start(GET_TICK()), msg(std::move(aMsg)) {
+TimeCounter::TimeCounter(string aMsg) : start(GET_TICK()), msg(std::move(aMsg)) {
 
 }
 
-AirUtil::TimeCounter::~TimeCounter() {
+TimeCounter::~TimeCounter() {
 	auto end = GET_TICK();
 	LogManager::getInstance()->message(msg + ", took " + Util::toString(end - start) + " ms", LogMessage::SEV_INFO, "Debug");
 }
 
-int AirUtil::getSlotsPerUser(bool download, double value, int aSlots, SettingsManager::SettingProfile aProfile) {
+}
+#endif
+
+namespace dcpp {
+
+int AutoLimitUtil::getSlotsPerUser(bool download, double value, int aSlots, SettingsManager::SettingProfile aProfile) {
 	if (!SETTING(MCN_AUTODETECT) && value == 0) {
 		return download ? SETTING(MAX_MCN_DOWNLOADS) : SETTING(MAX_MCN_UPLOADS);
 	}
@@ -81,7 +88,7 @@ int AirUtil::getSlotsPerUser(bool download, double value, int aSlots, SettingsMa
 }
 
 
-int AirUtil::getSlots(bool aIsDownload, double aValue, SettingsManager::SettingProfile aProfile) {
+int AutoLimitUtil::getSlots(bool aIsDownload, double aValue, SettingsManager::SettingProfile aProfile) {
 	if (!SETTING(DL_AUTODETECT) && aValue == 0 && aIsDownload) {
 		//LogManager::getInstance()->message("Slots1");
 		return SETTING(DOWNLOAD_SLOTS);
@@ -173,7 +180,7 @@ int AirUtil::getSlots(bool aIsDownload, double aValue, SettingsManager::SettingP
 
 }
 
-int AirUtil::getSpeedLimitKbps(bool download, double value) {
+int AutoLimitUtil::getSpeedLimitKbps(bool download, double value) {
 
 	if (!SETTING(DL_AUTODETECT) && value == 0 && download) {
 		//LogManager::getInstance()->message("Slots1");
@@ -189,7 +196,7 @@ int AirUtil::getSpeedLimitKbps(bool download, double value) {
 	return static_cast<int>(download ? value*105 : value*60);
 }
 
-int AirUtil::getMaxAutoOpened(double value) {
+int AutoLimitUtil::getMaxAutoOpened(double value) {
 	if (!SETTING(UL_AUTODETECT) && value == 0) {
 		return SETTING(AUTO_SLOTS);
 	}
@@ -214,32 +221,6 @@ int AirUtil::getMaxAutoOpened(double value) {
 	}
 
 	return slots;
-}
-
-string AirUtil::getPrioText(Priority aPriority) noexcept {
-	switch(aPriority) {
-		case Priority::PAUSED_FORCE: return STRING(PAUSED_FORCED);
-		case Priority::PAUSED: return STRING(PAUSED);
-		case Priority::LOWEST: return STRING(LOWEST);
-		case Priority::LOW: return STRING(LOW);
-		case Priority::NORMAL: return STRING(NORMAL);
-		case Priority::HIGH: return STRING(HIGH);
-		case Priority::HIGHEST: return STRING(HIGHEST);
-		default: return STRING(PAUSED);
-	}
-}
-
-string AirUtil::formatMatchResults(int aMatchingFiles, int aNewFiles, const BundleList& aBundles) noexcept {
-	if (aMatchingFiles > 0) {
-		if (aBundles.size() == 1) {
-			return STRING_F(MATCHED_FILES_BUNDLE, aMatchingFiles % aBundles.front()->getName().c_str() % aNewFiles);
-		}
-		else {
-			return STRING_F(MATCHED_FILES_X_BUNDLES, aMatchingFiles % (int)aBundles.size() % aNewFiles);
-		}
-	}
-
-	return STRING(NO_MATCHED_FILES);;
 }
 
 }

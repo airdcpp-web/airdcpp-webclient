@@ -137,8 +137,8 @@ void UserQueue::addDownload(const QueueItemPtr& qi, Download* d) noexcept {
 	qi->addDownload(d);
 }
 
-void UserQueue::removeDownload(const QueueItemPtr& qi, const string& aToken) noexcept {
-	qi->removeDownload(aToken);
+void UserQueue::removeDownload(const QueueItemPtr& qi, const Download* d) noexcept {
+	qi->removeDownload(d);
 }
 
 void UserQueue::setQIPriority(const QueueItemPtr& qi, Priority p) noexcept {

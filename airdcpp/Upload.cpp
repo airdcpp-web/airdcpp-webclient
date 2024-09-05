@@ -19,9 +19,10 @@
 #include "stdinc.h"
 #include "Upload.h"
 
-#include "UserConnection.h"
-#include "Streams.h"
 #include "FilteredFile.h"
+#include "ResourceManager.h"
+#include "StreamBase.h"
+#include "UserConnection.h"
 #include "ZUtils.h"
 
 namespace dcpp {
@@ -33,9 +34,9 @@ Upload::Upload(UserConnection& conn, const string& path, const TTHValue& tth, un
 	conn.setUpload(this);
 }
 
-bool Upload::operator==(const Upload* u) const noexcept {
+/*bool Upload::operator==(const Upload* u) const noexcept {
 	return compare(getToken(), u->getToken()) == 0;
-}
+}*/
 
 InputStream* Upload::getStream() { 
 	return stream.get(); 
@@ -47,13 +48,7 @@ void Upload::setFiltered() {
 }
 
 Upload::~Upload() {
-	// auto otherThread = getUserConnection().getSocket()->getThreadHandle();
-	// auto thisThread = Thread::getCurrentThread();
-
-	// dcassert(getUserConnection().getSocket()->threadEquals(Thread::getCurrentThread()));
-	// dcassert(getUserConnection().getSocket()->isCurrentThread());
 	getUserConnection().setUpload(nullptr);
-	// stream.reset();
 }
 
 void Upload::getParams(const UserConnection& aSource, ParamMap& params) const {

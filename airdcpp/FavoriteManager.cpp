@@ -23,6 +23,7 @@
 #include "HintedUser.h"
 #include "ResourceManager.h"
 #include "ShareManager.h"
+#include "ShareProfileManager.h"
 #include "SimpleXML.h"
 
 namespace dcpp {
@@ -35,13 +36,13 @@ using ranges::find_if;
 FavoriteManager::FavoriteManager() {
 	SettingsManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);
-	ShareManager::getInstance()->addListener(this);
+	ShareManager::getInstance()->getProfileMgr().addListener(this);
 }
 
 FavoriteManager::~FavoriteManager() {
 	ClientManager::getInstance()->removeListener(this);
 	SettingsManager::getInstance()->removeListener(this);
-	ShareManager::getInstance()->removeListener(this);
+	ShareManager::getInstance()->getProfileMgr().removeListener(this);
 }
 
 void FavoriteManager::shutdown() noexcept {
@@ -193,11 +194,11 @@ bool FavoriteManager::isUnique(const string& url, ProfileToken aToken) const noe
 	return aToken == (*i)->getToken();
 }
 
-void FavoriteManager::on(ShareManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept {
+void FavoriteManager::on(ShareProfileManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept {
 	resetProfile(aOldDefault, aNewDefault, true);
 }
 
-void FavoriteManager::on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept {
+void FavoriteManager::on(ShareProfileManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept {
 	resetProfile(aProfile, HUB_SETTING_DEFAULT_INT, false);
 }
 

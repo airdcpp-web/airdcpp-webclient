@@ -97,7 +97,7 @@ private:
 	unordered_map<string, UBNBundle::Ptr> connectionTokenMap;
 
 	UBNBundle::Ptr findInfoByBundleToken(QueueToken aBundleToken) const noexcept;
-	UBNBundle::Ptr findInfoByTransferToken(const string& aDownloadToken) const noexcept;
+	UBNBundle::Ptr findInfoByConnectionToken(const string& aDownloadToken) const noexcept;
 
 	void removeRunningUser(const UserConnection* aSource, bool aSendRemove) noexcept;
 

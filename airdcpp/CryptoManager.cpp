@@ -658,6 +658,7 @@ string CryptoManager::makeKey(const string& aLock) {
 	return keySubst(&temp[0], aLock.length(), extra);
 }
 
+#ifdef _DEBUG
 void CryptoManager::testSUDP() {
 	uint8_t keyChar[16];
 	string data = "URES SI30744059452 SL8 FN/Downloads/ DM1644168099 FI440 FO124 TORLHTR7KH7GV7W";
@@ -669,6 +670,7 @@ void CryptoManager::testSUDP() {
 	dcassert(success);
 	dcassert(compare(data, result) == 0);
 }
+#endif
 
 string CryptoManager::encryptSUDP(const uint8_t* aKey, const string& aCmd) {
 	string inData = aCmd;
