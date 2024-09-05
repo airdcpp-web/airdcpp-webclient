@@ -1321,7 +1321,7 @@ QueueDownloadResult QueueManager::startDownload(const HintedUser& aUser, QueueDo
 }
 
 QueueDownloadResult QueueManager::startDownload(const HintedUser& aUser, QueueDownloadType aType, const QueueTokenSet& aRunningBundles, const OrderedStringSet& aOnlineHubs, int64_t aLastSpeed) noexcept {
-	QueueDownloadResult result;
+	QueueDownloadResult result(aUser.hint);
 	if (aOnlineHubs.empty()) {
 		result.lastError = STRING(USER_OFFLINE);
 		return result;
@@ -3747,6 +3747,7 @@ MemoryInputStream* QueueManager::generateTTHList(QueueToken aBundleToken, bool i
 }
 
 void QueueManager::addBundleTTHListHooked(const HintedUser& aUser, const BundlePtr& aBundle, const string& aRemoteBundleToken) {
+	dcassert(!aUser.hint.empty());
 	auto info = FilelistAddData(aUser, this, aRemoteBundleToken);
 	addListHooked(info, (QueueItem::FLAG_TTHLIST_BUNDLE | QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_MATCH_QUEUE), aBundle);
 }

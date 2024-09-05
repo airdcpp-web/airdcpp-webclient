@@ -180,7 +180,7 @@ AdcCommand Download::getCommand(bool zlib, const string& mySID) const noexcept {
 	}
 	
 	if(isSet(Download::FLAG_QUEUE) && getType() == TYPE_PARTIAL_LIST) {	 
-		cmd.addParam("TL1");	 
+		cmd.addParam("TL1");
 	}
 
 	return cmd;

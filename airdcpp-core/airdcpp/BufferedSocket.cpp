@@ -304,7 +304,7 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 
 	if(disconnecting)
 		return;
-	dcassert(file != NULL);
+	dcassert(file);
 	size_t sockSize = (size_t)sock->getSocketOptInt(SO_SNDBUF);
 	size_t bufSize = max(sockSize, (size_t)64*1024);
 
