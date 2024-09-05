@@ -22,10 +22,14 @@
 #include <api/base/ApiModule.h>
 
 #include <airdcpp/typedefs.h>
-#include <airdcpp/ShareManagerListener.h>
+#include <airdcpp/ShareProfileManagerListener.h>
+
+namespace dcpp {
+	class ShareProfileManager;
+}
 
 namespace webserver {
-	class ShareProfileApi : public SubscribableApiModule, private ShareManagerListener {
+	class ShareProfileApi : public SubscribableApiModule, private ShareProfileManagerListener {
 	public:
 		ShareProfileApi(Session* aSession);
 		~ShareProfileApi();
@@ -44,11 +48,13 @@ namespace webserver {
 
 		void updateProfileProperties(ShareProfilePtr& aProfile, const json& j);
 
-		void on(ShareManagerListener::ProfileAdded, ProfileToken aProfile) noexcept override;
-		void on(ShareManagerListener::ProfileUpdated, ProfileToken aProfile, bool aIsMajorChange) noexcept override;
-		void on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept override;
+		void on(ShareProfileManagerListener::ProfileAdded, ProfileToken aProfile) noexcept override;
+		void on(ShareProfileManagerListener::ProfileUpdated, ProfileToken aProfile, bool aIsMajorChange) noexcept override;
+		void on(ShareProfileManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept override;
 
 		ShareProfilePtr parseProfileToken(ApiRequest& aRequest, bool aAllowHidden);
+
+		ShareProfileManager& mgr;
 	};
 }
 

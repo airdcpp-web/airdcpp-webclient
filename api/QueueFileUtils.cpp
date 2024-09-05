@@ -22,7 +22,6 @@
 #include <api/common/Format.h>
 #include <api/common/Serializer.h>
 
-#include <airdcpp/AirUtil.h>
 #include <airdcpp/Bundle.h>
 #include <airdcpp/PathUtil.h>
 #include <airdcpp/QueueItem.h>
@@ -66,7 +65,7 @@ namespace webserver {
 		case PROP_TARGET: return aItem->getTarget();
 		case PROP_TYPE: return Util::formatFileType(aItem->getTarget());
 		case PROP_STATUS: return formatDisplayStatus(aItem);
-		case PROP_PRIORITY: return AirUtil::getPrioText(aItem->getPriority());
+		case PROP_PRIORITY: return Util::formatPriority(aItem->getPriority());
 		case PROP_SOURCES: return formatFileSources(aItem);
 		case PROP_TTH: return aItem->getTTH().toBase32();
 		default: dcassert(0); return Util::emptyString;

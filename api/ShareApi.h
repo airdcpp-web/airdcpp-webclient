@@ -24,10 +24,11 @@
 #include <airdcpp/typedefs.h>
 #include <airdcpp/ShareDirectory.h>
 #include <airdcpp/ShareManagerListener.h>
+#include <airdcpp/TempShareManagerListener.h>
 #include <airdcpp/ShareRefreshTask.h>
 
 namespace webserver {
-	class ShareApi : public HookApiModule, private ShareManagerListener {
+	class ShareApi : public HookApiModule, private ShareManagerListener, private TempShareManagerListener {
 	public:
 		ShareApi(Session* aSession);
 		~ShareApi();
@@ -87,8 +88,8 @@ namespace webserver {
 		void on(ShareManagerListener::ExcludeAdded, const string& aPath) noexcept override;
 		void on(ShareManagerListener::ExcludeRemoved, const string& aPath) noexcept override;
 
-		void on(ShareManagerListener::TempFileAdded, const TempShareInfo& aFile) noexcept override;
-		void on(ShareManagerListener::TempFileRemoved, const TempShareInfo& aFile) noexcept override;
+		void on(TempShareManagerListener::TempFileAdded, const TempShareInfo& aFile) noexcept override;
+		void on(TempShareManagerListener::TempFileRemoved, const TempShareInfo& aFile) noexcept override;
 
 		static string refreshTypeToString(ShareRefreshType aType) noexcept;
 
