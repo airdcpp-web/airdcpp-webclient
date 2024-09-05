@@ -80,7 +80,9 @@ public:
 	typedef std::unique_ptr<uint8_t[]> SUDPKey;
 	static SUDPKey generateSUDPKey();
 private:
+#ifdef _DEBUG
 	static void testSUDP();
+#endif
 
 	friend class Singleton<CryptoManager>;
 

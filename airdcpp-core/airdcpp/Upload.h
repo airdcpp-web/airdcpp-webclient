@@ -36,7 +36,7 @@ public:
 		FLAG_PARTIAL = 0x10
 	};
 
-	bool operator==(const Upload* u) const noexcept;
+	// bool operator==(const Upload* u) const noexcept;
 
 	Upload(UserConnection& aSource, const string& aPath, const TTHValue& aTTH, unique_ptr<InputStream> aIS);
 	~Upload();
@@ -45,7 +45,7 @@ public:
 
 	IGETSET(int64_t, fileSize, FileSize, -1);
 
-	uint8_t delayTime = 0;
+	int8_t delayTime = 0;
 	InputStream* getStream();
 	void setFiltered();
 

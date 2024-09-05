@@ -29,12 +29,10 @@
 #include "CryptoManager.h"
 #include "ProtocolCommandManager.h"
 #include "FavoriteManager.h"
-#include "HashBloom.h"
 #include "Localization.h"
 #include "LogManager.h"
 #include "PartialSharingManager.h"
 #include "PathUtil.h"
-#include "QueueManager.h"
 #include "ResourceManager.h"
 #include "ScopedFunctor.h"
 #include "SearchManager.h"
@@ -713,15 +711,15 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 			return;
 		}
 
-		size_t n = 0;
+		size_t n = ShareManager::getInstance()->getBloomFileCount(get(HubSettings::ShareProfile));
 		
-		if (isSharingHub()) {
-			if (SETTING(USE_PARTIAL_SHARING))
-				n = QueueManager::getInstance()->getQueuedBundleFiles();
+		// if (isSharingHub()) {
+			// if (SETTING(USE_PARTIAL_SHARING))
+			//	n = QueueManager::getInstance()->getQueuedBundleFiles();
 
-			int64_t tmp = 0;
-			ShareManager::getInstance()->getProfileInfo(get(HubSettings::ShareProfile), tmp, n);
-		}
+			// int64_t tmp = 0;
+			// ShareManager::getInstance()->getProfileInfo(get(HubSettings::ShareProfile), tmp, n);
+		// }
 		
 		// Ideal size for m is n * k / ln(2), but we allow some slack
 		// When h >= 32, m can't go above 2^h anyway since it's stored in a size_t.
@@ -733,13 +731,7 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 		
 		if (m > 0) {
 			dcdebug("Creating bloom filter, k=" SIZET_FMT ", m=" SIZET_FMT ", h=" SIZET_FMT "\n", k, m, h);
-
-			HashBloom bloom;
-			bloom.reset(k, m, h);
-			ShareManager::getInstance()->getBloom(bloom);
-			if (SETTING(USE_PARTIAL_SHARING))
-				QueueManager::getInstance()->getBloom(bloom);
-			bloom.copy_to(v);
+			ShareManager::getInstance()->getBloom(get(HubSettings::ShareProfile), v, k, m, h);
 		}
 		AdcCommand cmd(AdcCommand::CMD_SND, AdcCommand::TYPE_HUB);
 		cmd.addParam(c.getParam(0));
@@ -1463,15 +1455,14 @@ void AdcHub::infoImpl() noexcept {
 	addParam(lastInfoMap, c, "SL", Util::toString(UploadManager::getInstance()->getSlots()));
 	addParam(lastInfoMap, c, "FS", Util::toString(UploadManager::getInstance()->getFreeSlots()));
 
-	size_t fileCount = 0;
-	int64_t size = 0;
+	int64_t sharedSize = 0;
 	if (isSharingHub()) {
-		fileCount = SETTING(USE_PARTIAL_SHARING) ? QueueManager::getInstance()->getQueuedBundleFiles() : 0;
-		ShareManager::getInstance()->getProfileInfo(get(HubSettings::ShareProfile), size, fileCount);
+		size_t fileCount = 0;
+		ShareManager::getInstance()->getProfileInfo(get(HubSettings::ShareProfile), sharedSize, fileCount);
 	}
 
-	addParam(lastInfoMap, c, "SS", Util::toString(size));
-	addParam(lastInfoMap, c, "SF", Util::toString(fileCount));
+	addParam(lastInfoMap, c, "SS", Util::toString(sharedSize));
+	addParam(lastInfoMap, c, "SF", Util::toString(ShareManager::getInstance()->getBloomFileCount(get(HubSettings::ShareProfile))));
 
 	addParam(lastInfoMap, c, "EM", get(Email));
 	addParam(lastInfoMap, c, "HN", Util::toString(getDisplayCount(COUNT_NORMAL)));

@@ -77,8 +77,8 @@ ShareDirectory::Ptr ShareDirectory::createRoot(const string& aRootPath, const st
 {
 	auto dir = Ptr(new ShareDirectory(PathUtil::getLastDir(aRootPath), nullptr, aLastWrite, ShareRoot::create(aRootPath, aVname, aProfiles, aIncoming, aLastRefreshTime)));
 
-	dcassert(rootPaths_.find(dir->getRealPath()) == rootPaths_.end());
-	rootPaths_[dir->getRealPath()] = dir;
+	dcassert(rootPaths_.find(dir->getRealPathUnsafe()) == rootPaths_.end());
+	rootPaths_[dir->getRealPathUnsafe()] = dir;
 
 	addDirName(dir, dirNameMap_, bloom);
 	return dir;
@@ -100,7 +100,7 @@ bool ShareDirectory::setParent(const ShareDirectory::Ptr& aDirectory, const Shar
 }
 
 void ShareDirectory::updateModifyDate() {
-	lastWrite = dcpp::File::getLastModified(getRealPath());
+	lastWrite = dcpp::File::getLastModified(getRealPathUnsafe());
 }
 
 int64_t ShareDirectory::getLevelSize() const noexcept {
@@ -116,9 +116,9 @@ int64_t ShareDirectory::getTotalSize() const noexcept {
 	return tmp;
 }
 
-string ShareDirectory::getAdcPath() const noexcept {
+string ShareDirectory::getAdcPathUnsafe() const noexcept {
 	if (parent) {
-		return parent->getAdcPath() + realName.getNormal() + ADC_SEPARATOR;
+		return parent->getAdcPathUnsafe() + realName.getNormal() + ADC_SEPARATOR;
 	}
 
 	if (!root) {
@@ -390,8 +390,8 @@ void ShareDirectory::checkAddedDirNameDebug(const ShareDirectory::Ptr& aDir, Sha
 	auto directories = aDirNames.equal_range(const_cast<string*>(&aDir->getVirtualNameLower()));
 	auto findByPtr = ranges::find(directories | pair_to_range | views::values, aDir);
 	auto findByPath = ranges::find_if(directories | pair_to_range | views::values, [&](const ShareDirectory::Ptr& d) {
-		return d->getRealPath() == aDir->getRealPath();
-		});
+		return d->getRealPathUnsafe() == aDir->getRealPathUnsafe();
+	});
 
 	dcassert(findByPtr.base() == directories.second);
 	dcassert(findByPath.base() == directories.second);
@@ -500,7 +500,7 @@ void ShareDirectory::search(SearchResultInfo::Set& results_, SearchQuery& aStrin
 
 void ShareDirectory::File::addSR(SearchResultList& aResults, bool aAddParent) const noexcept {
 	if (aAddParent) {
-		auto sr = make_shared<SearchResult>(parent->getAdcPath());
+		auto sr = make_shared<SearchResult>(parent->getAdcPathUnsafe());
 		aResults.push_back(sr);
 	} else {
 		auto sr = make_shared<SearchResult>(SearchResult::TYPE_FILE,
@@ -545,24 +545,40 @@ void ShareDirectory::filesToCacheXmlList(OutputStream& xmlFile, string& indent, 
 
 
 // FILELISTS
-void ShareDirectory::toFileList(FilelistDirectory& aListDir, bool aRecursive) {
-	FilelistDirectory* newListDir = nullptr;
-	auto pos = aListDir.listDirs.find(const_cast<string*>(&getVirtualNameLower()));
-	if (pos != aListDir.listDirs.end()) {
-		newListDir = pos->second;
-		newListDir->date = max(newListDir->date, lastWrite);
-	} else {
-		newListDir = new FilelistDirectory(getVirtualName(), lastWrite);
-		aListDir.listDirs.emplace(const_cast<string*>(&newListDir->name), newListDir);
+
+FilelistDirectory::FilelistDirectory(const string& aName, time_t aDate) : name(aName), date(aDate) { }
+
+unique_ptr<FilelistDirectory> FilelistDirectory::generateRoot(const ShareDirectory::List& aRootDirectory, const ShareDirectory::List& aChildren, bool aRecursive) {
+	auto listRoot = make_unique<FilelistDirectory>(Util::emptyString, 0);
+
+	for (const auto& child : aChildren) {
+		listRoot->toFileList(child, aRecursive);
 	}
 
-	newListDir->shareDirs.push_back(this);
+	listRoot->shareDirs = aRootDirectory;
+	return std::move(listRoot);
+}
+
+void FilelistDirectory::toFileList(const ShareDirectory::Ptr& aShareDirectory, bool aRecursive) {
+	FilelistDirectory* listDirectory = nullptr;
+	auto pos = listDirectories.find(const_cast<string*>(&aShareDirectory->getVirtualNameLower()));
+	if (pos != listDirectories.end()) {
+		listDirectory = pos->second.get();
+	} else {
+		auto newListDir = std::make_unique<FilelistDirectory>(aShareDirectory->getVirtualName(), aShareDirectory->getLastWrite());
+		listDirectory = newListDir.get();
+		listDirectories.emplace(const_cast<string*>(&newListDir->name), std::move(newListDir));
+	}
+
+	listDirectory->shareDirs.push_back(aShareDirectory);
 
 	if (aRecursive) {
-		for (const auto& d : directories) {
-			d->toFileList(*newListDir, aRecursive);
+		for (const auto& childDirectory: aShareDirectory->getDirectories()) {
+			listDirectory->toFileList(childDirectory, true);
 		}
 	}
+
+	date = max(date, aShareDirectory->getLastWrite());
 }
 
 void ShareDirectory::File::toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool addDate) const {
@@ -596,12 +612,6 @@ void ShareDirectory::toTTHList(OutputStream& tthList, string& tmp2, bool recursi
 	}
 }
 
-FilelistDirectory::FilelistDirectory(const string& aName, time_t aDate) : name(aName), date(aDate) { }
-
-FilelistDirectory::~FilelistDirectory() {
-	ranges::for_each(listDirs | views::values, DeleteFunction());
-}
-
 void FilelistDirectory::toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool aRecursive, const DuplicateFileHandler& aDuplicateFileHandler) const {
 	xmlFile.write(indent);
 	xmlFile.write(LITERAL("<Directory Name=\""));
@@ -613,7 +623,7 @@ void FilelistDirectory::toXml(OutputStream& xmlFile, string& indent, string& tmp
 		xmlFile.write(LITERAL("\">\r\n"));
 
 		indent += '\t';
-		for (const auto& d : listDirs | views::values) {
+		for (const auto& d : listDirectories | views::values) {
 			d->toXml(xmlFile, indent, tmp2, aRecursive, aDuplicateFileHandler);
 		}
 
@@ -622,8 +632,7 @@ void FilelistDirectory::toXml(OutputStream& xmlFile, string& indent, string& tmp
 		indent.erase(indent.length() - 1);
 		xmlFile.write(indent);
 		xmlFile.write(LITERAL("</Directory>\r\n"));
-	}
-	else {
+	} else {
 		auto contentInfo(DirectoryContentInfo::empty());
 		int64_t totalSize = 0;
 		for (const auto& d : shareDirs) {
@@ -676,7 +685,7 @@ void FilelistDirectory::filesToXml(OutputStream& xmlFile, string& indent, string
 	if (dupeFileCount > 0 && SETTING(FL_REPORT_FILE_DUPES) && shareDirs.size() > 1) {
 		StringList paths;
 		for (const auto& d : shareDirs)
-			paths.push_back(d->getRealPath());
+			paths.push_back(d->getRealPathUnsafe());
 
 		aDuplicateFileHandler(paths, dupeFileCount);
 	}

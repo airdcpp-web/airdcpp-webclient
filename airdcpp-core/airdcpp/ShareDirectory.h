@@ -32,7 +32,6 @@
 
 namespace dcpp {
 
-
 typedef BloomFilter<5> ShareBloom;
 
 enum class ShareRootRefreshState : uint8_t {
@@ -89,7 +88,7 @@ private:
 	const string pathLower;
 };
 
-struct FilelistDirectory;
+class FilelistDirectory;
 class ShareDirectory : public intrusive_ptr_base<ShareDirectory> {
 public:
 	typedef boost::intrusive_ptr<ShareDirectory> Ptr;
@@ -115,7 +114,7 @@ public:
 		File(DualString&& aName, ShareDirectory* aParent, const HashedFile& aFileInfo);
 		~File();
 
-		inline string getAdcPath() const noexcept { return parent->getAdcPath() + name.getNormal(); }
+		inline string getAdcPath() const noexcept { return parent->getAdcPathUnsafe() + name.getNormal(); }
 		inline string getRealPath() const noexcept { return parent->getRealPath(name.getNormal()); }
 		inline bool hasProfile(const OptionalProfileToken& aProfile) const noexcept { return parent->hasProfile(aProfile); }
 
@@ -190,11 +189,18 @@ public:
 		HasRootProfile& operator=(const HasRootProfile&) = delete;
 	};
 
-	string getAdcPath() const noexcept;
+	static ShareRoot::Ptr ToRoot(const ShareDirectory::Ptr& aDirectory) noexcept {
+		dcassert(aDirectory->getRoot());
+		return aDirectory->getRoot();
+	}
+
+
+	string getAdcPathUnsafe() const noexcept;
 	string getVirtualName() const noexcept;
 	const string& getVirtualNameLower() const noexcept;
 
-	inline string getRealPath() const noexcept { return getRealPath(Util::emptyString); };
+	// Parents may be deleted
+	inline string getRealPathUnsafe() const noexcept { return getRealPath(Util::emptyString); };
 
 	bool hasProfile(const ProfileTokenSet& aProfiles) const noexcept;
 	bool hasProfile(const OptionalProfileToken& aProfile) const noexcept;
@@ -211,7 +217,6 @@ public:
 
 	void search(SearchResultInfo::Set& aResults, SearchQuery& aStrings, int aLevel) const noexcept;
 
-	void toFileList(FilelistDirectory& aListDir, bool aRecursive);
 	void toTTHList(OutputStream& tthList, string& tmp2, bool aRecursive) const;
 
 	//for file list caching
@@ -303,22 +308,34 @@ private:
 };
 
 
-struct FilelistDirectory {
-	typedef unordered_map<string*, FilelistDirectory*, noCaseStringHash, noCaseStringEq> Map;
-	ShareDirectory::List shareDirs;
+class FilelistDirectory {
+public:
+	typedef unordered_map<string*, unique_ptr<FilelistDirectory>, noCaseStringHash, noCaseStringEq> Map;
 
-	FilelistDirectory(const string& aName, time_t aDate);
-	~FilelistDirectory();
-
-	const string name;
-	time_t date;
-
-	Map listDirs;
+	static unique_ptr<FilelistDirectory> generateRoot(const ShareDirectory::List& aRootDirectory, const ShareDirectory::List& aChildren, bool aRecursive);
 
 	typedef std::function<void(const StringList& /*directoryPaths*/, int /*dupeFileCount*/)> DuplicateFileHandler;
 	void toXml(OutputStream& xmlFile, string& indent, string& tmp2, bool aFullList, const DuplicateFileHandler& aDuplicateFileHandler) const;
 	void filesToXml(OutputStream& xmlFile, string& indent, string& tmp2, bool aAddDate, const DuplicateFileHandler& aDuplicateFileHandler) const;
+
+	FilelistDirectory(FilelistDirectory&) = delete;
+	FilelistDirectory& operator=(FilelistDirectory&) = delete;
+
+	GETPROP(time_t, date, Date);
+	GETPROP(Map, listDirectories, ListDirectories);
+
+	FilelistDirectory(const string& aName, time_t aDate);
+private:
+	void toFileList(const ShareDirectory::Ptr& aShareDirectory, bool aRecursive);
+
+	ShareDirectory::List shareDirs;
+	const string name;
 };
+
+typedef function<void(const ShareDirectory::Ptr&)> ShareDirectoryCallback;
+typedef function<void(const ShareDirectory::File&)> ShareFileCallback;
+
+typedef vector<ShareRoot::Ptr> ShareRootList;
 
 } // namespace dcpp
 

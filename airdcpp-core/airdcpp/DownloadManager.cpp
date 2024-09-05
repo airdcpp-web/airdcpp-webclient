@@ -290,7 +290,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		}
 	}
 
-	dcdebug("DownloadManager::checkDownloads: requesting " I64_FMT "/" I64_FMT " (connection %s)\n", d->getStartPos(), d->getSegmentSize(), d->getToken().c_str());
+	dcdebug("DownloadManager::checkDownloads: requesting " I64_FMT "/" I64_FMT " (connection %s)\n", d->getStartPos(), d->getSegmentSize(), d->getConnectionToken().c_str());
 
 	//only update the hub if it has been changed
 	if (compare(result.hubHint, aConn->getHubUrl()) == 0) {
@@ -442,7 +442,9 @@ void DownloadManager::endData(UserConnection* aSource) {
 			QueueManager::getInstance()->removeFileSource(d->getPath(), aSource->getUser(), QueueItem::Source::FLAG_BAD_TREE, false);
 
 			dcdebug("DownloadManager::endData: invalid tree received from user %s (received %s while %s was excpected)\n", ClientManager::getInstance()->getFormatedNicks(d->getHintedUser()).c_str(), d->getTTH().toBase32().c_str(), d->getTigerTree().getRoot().toBase32().c_str());
-			putDownloadHooked(d, false);
+
+			removeDownload(d);
+			QueueManager::getInstance()->putDownloadHooked(d, false);
 			checkDownloads(aSource);
 			return;
 		}
@@ -451,24 +453,21 @@ void DownloadManager::endData(UserConnection* aSource) {
 		aSource->setSpeed(static_cast<int64_t>(d->getAverageSpeed()));
 		aSource->updateChunkSize(d->getTigerTree().getBlockSize(), d->getSegmentSize(), GET_TICK() - d->getStart());
 		
-		dcdebug("DownloadManager::endData: %s (connection %s), size " I64_FMT ", downloaded " I64_FMT " in " U64_FMT " ms\n", d->getPath().c_str(), d->getToken().c_str(), d->getSegmentSize(), d->getPos(), GET_TICK() - d->getStart());
+		dcdebug("DownloadManager::endData: %s (connection %s), size " I64_FMT ", downloaded " I64_FMT " in " U64_FMT " ms\n", d->getPath().c_str(), d->getConnectionToken().c_str(), d->getSegmentSize(), d->getPos(), GET_TICK() - d->getStart());
 	}
 
 	fire(DownloadManagerListener::Complete(), d, d->getType() == Transfer::TYPE_TREE);
-	putDownloadHooked(d, true);
-	checkDownloads(aSource);
-}
+	removeDownload(d);
 
-void DownloadManager::putDownloadHooked(Download* aDownload, bool aFinished, bool aNoAccess, bool aRotateQueue) {
-	unique_ptr<Download> d(aDownload);
-
-	removeDownload(d.get());
 	try {
-		QueueManager::getInstance()->putDownloadHooked(d.get(), aFinished, aNoAccess, aRotateQueue);
+		QueueManager::getInstance()->putDownloadHooked(d, true);
 	} catch (const HashException& e) {
-		failDownload(&aDownload->getUserConnection(), e.getError(), false);
+		dcdebug("DownloadManager::endData: could not save tree into hash database, removing connection (%s)\n", e.getError().c_str());
+		removeConnection(aSource);
 		return;
 	}
+
+	checkDownloads(aSource);
 }
 
 int64_t DownloadManager::getRunningAverage() const {
@@ -525,7 +524,8 @@ void DownloadManager::failDownload(UserConnection* aSource, const string& aReaso
 	if (d) {
 		dcdebug("DownloadManager::failDownload: %s failed (%s)\n", aSource->getToken().c_str(), aReason.c_str());
 		fire(DownloadManagerListener::Failed(), d, aReason);
-		putDownloadHooked(d, false, false, aRotateQueue);
+		removeDownload(d);
+		QueueManager::getInstance()->putDownloadHooked(d, false, false, aRotateQueue);
 	} else {
 		fire(DownloadManagerListener::Remove(), aSource);
 	}
@@ -581,7 +581,7 @@ void DownloadManager::abortDownload(const string& aTarget, const UserPtr& aUser)
 					continue;
 				}
 			}
-			dcdebug("Trying to close connection for download %s\n", d->getToken().c_str());
+			dcdebug("DownloadManager::abortDownload: trying to disconnect %s\n", d->getConnectionToken().c_str());
 			d->getUserConnection().disconnect(true);
 		}
 	}
@@ -673,8 +673,8 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess, 
 		QueueManager::getInstance()->removeFileSource(d->getPath(), aSource->getUser(), (Flags::MaskType)(d->getType() == Transfer::TYPE_TREE ? QueueItem::Source::FLAG_NO_TREE : QueueItem::Source::FLAG_FILE_NOT_AVAILABLE), false);
 	}
 
-	putDownloadHooked(d, false, aNoAccess);
-	checkDownloads(aSource);
+	removeDownload(d);
+	QueueManager::getInstance()->putDownloadHooked(d, false, aNoAccess);
 }
 
 } // namespace dcpp

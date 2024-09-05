@@ -271,7 +271,7 @@ string AutoSearch::getSearchingStatus() const noexcept {
 	} else if (status == STATUS_WAITING) {
 		auto time = GET_TIME();
 		if (nextSearchChange > time) {
-			auto timeStr = Util::formatTime(nextSearchChange - time, true, true);
+			auto timeStr = Util::formatDuration(nextSearchChange - time, true, true);
 			return nextIsDisable ? STRING_F(ACTIVE_FOR, timeStr) : STRING_F(WAITING_LEFT, timeStr);
 		}
 	} else if (remove || usingIncrementation()) {
@@ -295,7 +295,7 @@ string AutoSearch::getExpiration() const noexcept {
 	if (expireTime <= curTime) {
 		return STRING(EXPIRED);
 	} else {
-		return Util::formatTime(expireTime - curTime, true, true);
+		return Util::formatDuration(expireTime - curTime, true, true);
 	}
 }
 

@@ -92,10 +92,10 @@ void UploadBundleInfoSender::on(DownloadManagerListener::Starting, const Downloa
 	if (!bundle) {
 		// Existing bundle connection being used for non-bundle files (or filelists)?
 		WLock l(cs);
-		auto i = connectionTokenMap.find(aDownload->getToken());
+		auto i = connectionTokenMap.find(aDownload->getConnectionToken());
 		if (i != connectionTokenMap.end()) {
 			removeRunningUserUnsafe(i->second, &aDownload->getUserConnection(), true);
-			dbgMsg("no new bundle for a connection " + aDownload->getToken() + ", previously " + i->second->getBundle()->getName(), LogMessage::SEV_VERBOSE);
+			dbgMsg("no new bundle for a connection " + aDownload->getConnectionToken() + ", previously " + i->second->getBundle()->getName(), LogMessage::SEV_VERBOSE);
 			connectionTokenMap.erase(i);
 		}
 
@@ -116,20 +116,20 @@ void UploadBundleInfoSender::on(DownloadManagerListener::Starting, const Downloa
 			bundleTokenMap[bundle->getToken()] = ubnBundle;
 		}
 
-		dbgMsg("created a new info " + bundle->getName() + " for a connection " + aDownload->getToken(), LogMessage::SEV_VERBOSE);
+		dbgMsg("created a new info " + bundle->getName() + " for a connection " + aDownload->getConnectionToken(), LogMessage::SEV_VERBOSE);
 	} else {
-		dbgMsg("found an existing info " + bundle->getName() + " for a connection " + aDownload->getToken(), LogMessage::SEV_VERBOSE);
+		dbgMsg("found an existing info " + bundle->getName() + " for a connection " + aDownload->getConnectionToken(), LogMessage::SEV_VERBOSE);
 	}
 
 	{
 		WLock l(cs);
-		auto i = connectionTokenMap.find(aDownload->getToken());
+		auto i = connectionTokenMap.find(aDownload->getConnectionToken());
 		if (i != connectionTokenMap.end()) {
 			// Existing bundle connection being moved to an existing bundle?
 			if (i->second != ubnBundle) {
 				removeRunningUserUnsafe(i->second, &aDownload->getUserConnection(), false);
 				addRunningUserUnsafe(ubnBundle, &aDownload->getUserConnection());
-				dbgMsg("moved connection " + aDownload->getToken() + " to an info " + bundle->getName() + ", previously in " + i->second->getBundle()->getName(), LogMessage::SEV_VERBOSE);
+				dbgMsg("moved connection " + aDownload->getConnectionToken() + " to an info " + bundle->getName() + ", previously in " + i->second->getBundle()->getName(), LogMessage::SEV_VERBOSE);
 			}
 		} else {
 			// New bundle connection
@@ -179,7 +179,7 @@ void UploadBundleInfoSender::removeRunningUser(const UserConnection* aSource, bo
 		return;
 	}
 
-	auto ubnBundle = findInfoByTransferToken(aSource->getToken());
+	auto ubnBundle = findInfoByConnectionToken(aSource->getToken());
 	if (!ubnBundle) {
 		// Non-bundle download
 		return;
@@ -210,7 +210,7 @@ UploadBundleInfoSender::UBNBundle::Ptr UploadBundleInfoSender::findInfoByBundleT
 	return i != bundleTokenMap.end() ? i->second : nullptr;
 }
 
-UploadBundleInfoSender::UBNBundle::Ptr UploadBundleInfoSender::findInfoByTransferToken(const string& aDownloadToken) const noexcept {
+UploadBundleInfoSender::UBNBundle::Ptr UploadBundleInfoSender::findInfoByConnectionToken(const string& aDownloadToken) const noexcept {
 	RLock l(cs);
 	auto i = connectionTokenMap.find(aDownloadToken);
 	return i != connectionTokenMap.end() ? i->second : nullptr;

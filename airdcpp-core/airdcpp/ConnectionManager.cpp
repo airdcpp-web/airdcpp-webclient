@@ -19,7 +19,7 @@
 #include "stdinc.h"
 #include "ConnectionManager.h"
 
-#include "AirUtil.h"
+#include "AutoLimitUtil.h"
 #include "ClientManager.h"
 #include "ConnectivityManager.h"
 #include "CryptoManager.h"
@@ -129,7 +129,7 @@ bool ConnectionQueueItem::allowNewConnections(int aRunning) const noexcept {
 		return false;
 	}
 
-	auto maxOwnConns = AirUtil::getSlotsPerUser(true);
+	auto maxOwnConns = AutoLimitUtil::getSlotsPerUser(true);
 	if (maxOwnConns != 0 && aRunning >= maxOwnConns) {
 		return false;
 	}
@@ -295,10 +295,21 @@ UserConnection* ConnectionManager::getConnection(bool aNmdc, bool aSecure) noexc
 	return uc;
 }
 
+bool ConnectionManager::findUserConnection(const string& aToken, UserConnectionCallback&& aCallback) const noexcept {
+	RLock l(cs);
+	auto i = find(userConnections.begin(), userConnections.end(), aToken);
+	if (i != userConnections.end()) {
+		aCallback(*i);
+		return true;
+	}
+
+	return false;
+}
+
 bool ConnectionManager::isMCNUser(const UserPtr& aUser) const noexcept {
 	RLock l(cs);
 
-	auto s = find_if(userConnections.begin(), userConnections.end(), [&](const UserConnection* uc) {
+	auto s = ranges::find_if(userConnections, [&](const UserConnection* uc) {
 		return uc->getUser() == aUser && uc->isMCN();
 	});
 
@@ -578,7 +589,7 @@ int ConnectionManager::Server::run() noexcept {
 
 FloodCounter::FloodLimits ConnectionManager::getIncomingConnectionLimits(const string& aIP) const noexcept {
 	RLock l(cs);
-	auto s = find_if(userConnections.begin(), userConnections.end(), [&](const UserConnection* uc) {
+	auto s = ranges::find_if(userConnections, [&](const UserConnection* uc) {
 		return uc->getRemoteIp() == aIP && uc->isMCN();
 	});
 
@@ -736,7 +747,7 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 	if (aSource->isSet(UserConnection::FLAG_INCOMING)) {
 		aSource->sup(getAdcFeatures());
 	} else {
-		aSource->inf(true, aSource->isMCN() ? AirUtil::getSlotsPerUser(false) : 0);
+		aSource->inf(true, aSource->isMCN() ? AutoLimitUtil::getSlotsPerUser(false) : 0);
 	}
 
 	aSource->setState(UserConnection::STATE_INF);
@@ -1068,7 +1079,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 
 		}
 
-		aSource->inf(false, aSource->isMCN() ? AirUtil::getSlotsPerUser(false) : 0);
+		aSource->inf(false, aSource->isMCN() ? AutoLimitUtil::getSlotsPerUser(false) : 0);
 
 	} else {
 		dcassert(aSource->getUser());
@@ -1287,21 +1298,10 @@ void ConnectionManager::disconnect(const UserPtr& aUser) noexcept {
 	}
 }
 
-void ConnectionManager::disconnect(const string& aToken) noexcept {
-	RLock l(cs);
-	auto s = find(userConnections.begin(), userConnections.end(), aToken);
-	if (s != userConnections.end())
-		(*s)->disconnect(true);
-}
-
-void ConnectionManager::disconnect(const UserPtr& aUser, ConnectionType aConnType) noexcept {
-	RLock l(cs);
-	for(auto uc: userConnections) {
-		if (uc->getUser() == aUser && uc->isSet(aConnType == CONNECTION_TYPE_DOWNLOAD ? UserConnection::FLAG_DOWNLOAD :
-			aConnType == CONNECTION_TYPE_UPLOAD ? UserConnection::FLAG_UPLOAD : UserConnection::FLAG_PM)) {
-			uc->disconnect(true);
-		}
-	}
+void ConnectionManager::disconnect(const string& aToken) const noexcept {
+	findUserConnection(aToken, [](auto uc) {
+		uc->disconnect();
+	});
 }
 
 void ConnectionManager::shutdown(function<void (float)> progressF) noexcept {

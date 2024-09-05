@@ -233,6 +233,7 @@
     <ClCompile Include="airdcpp\NetworkUtil.cpp" />
     <ClCompile Include="airdcpp\PartialFileSharingManager.cpp" />
     <ClCompile Include="airdcpp\PartialBundleSharingManager.cpp" />
+    <ClCompile Include="airdcpp\PartialSharingManager.cpp" />
     <ClCompile Include="airdcpp\PathUtil.cpp" />
     <ClCompile Include="airdcpp\PrivateChatManager.cpp" />
     <ClCompile Include="airdcpp\modules\AutoSearch.cpp" />
@@ -248,7 +249,7 @@
     <ClCompile Include="airdcpp\RegexUtil.cpp" />
     <ClCompile Include="airdcpp\SearchInstance.cpp" />
     <ClCompile Include="airdcpp\SearchQuery.cpp" />
-    <ClCompile Include="airdcpp\AirUtil.cpp" />
+    <ClCompile Include="airdcpp\AutoLimitUtil.cpp" />
     <ClCompile Include="airdcpp\BufferedSocket.cpp" />
     <ClCompile Include="airdcpp\Bundle.cpp" />
     <ClCompile Include="airdcpp\BundleQueue.cpp" />
@@ -307,6 +308,7 @@
     <ClCompile Include="airdcpp\ShareManager.cpp" />
     <ClCompile Include="airdcpp\SharePathValidator.cpp" />
     <ClCompile Include="airdcpp\ShareProfile.cpp" />
+    <ClCompile Include="airdcpp\ShareProfileManager.cpp" />
     <ClCompile Include="airdcpp\ShareTasks.cpp" />
     <ClCompile Include="airdcpp\ShareTree.cpp" />
     <ClCompile Include="airdcpp\SimpleXML.cpp" />
@@ -340,6 +342,7 @@
     <ClCompile Include="airdcpp\Upload.cpp" />
     <ClCompile Include="airdcpp\UploadBundle.cpp" />
     <ClCompile Include="airdcpp\UploadBundleInfoReceiver.cpp" />
+    <ClCompile Include="airdcpp\UploadFileParser.cpp" />
     <ClCompile Include="airdcpp\UploadManager.cpp" />
     <ClCompile Include="airdcpp\UploadQueueManager.cpp" />
     <ClCompile Include="airdcpp\ReservedSlotManager.cpp" />
@@ -369,6 +372,8 @@
     <ClInclude Include="airdcpp\FavoriteUserManager.h" />
     <ClInclude Include="airdcpp\FavoriteUserManagerListener.h" />
     <ClInclude Include="airdcpp\FloodCounter.h" />
+    <ClInclude Include="airdcpp\UploadFileParser.h" />
+    <ClInclude Include="airdcpp\UploadFileProvider.h" />
     <ClInclude Include="airdcpp\HasherManager.h" />
     <ClInclude Include="airdcpp\HasherStats.h" />
     <ClInclude Include="airdcpp\HashStore.h" />
@@ -393,8 +398,11 @@
     <ClInclude Include="airdcpp\RegexUtil.h" />
     <ClInclude Include="airdcpp\SearchTypes.h" />
     <ClInclude Include="airdcpp\ShareDirectory.h" />
+    <ClInclude Include="airdcpp\ShareProfileManager.h" />
+    <ClInclude Include="airdcpp\ShareProfileManagerListener.h" />
     <ClInclude Include="airdcpp\ShareRefreshInfo.h" />
     <ClInclude Include="airdcpp\ShareRefreshTask.h" />
+    <ClInclude Include="airdcpp\ShareSearchInfo.h" />
     <ClInclude Include="airdcpp\ShareStats.h" />
     <ClInclude Include="airdcpp\ShareTasks.h" />
     <ClInclude Include="airdcpp\ShareTree.h" />
@@ -403,6 +411,7 @@
     <ClInclude Include="airdcpp\Task.h" />
     <ClInclude Include="airdcpp\TempShareItem.h" />
     <ClInclude Include="airdcpp\TempShareManager.h" />
+    <ClInclude Include="airdcpp\TempShareManagerListener.h" />
     <ClInclude Include="airdcpp\TransferInfo.h" />
     <ClInclude Include="airdcpp\IgnoreManager.h" />
     <ClInclude Include="airdcpp\IgnoreManagerListener.h" />
@@ -437,6 +446,8 @@
     <ClInclude Include="airdcpp\UploadQueueManager.h" />
     <ClInclude Include="airdcpp\UploadQueueManagerListener.h" />
     <ClInclude Include="airdcpp\ReservedSlotManager.h" />
+    <ClInclude Include="airdcpp\UploadRequest.h" />
+    <ClInclude Include="airdcpp\UploadSlot.h" />
     <ClInclude Include="airdcpp\UserCommandManager.h" />
     <ClInclude Include="airdcpp\ValueGenerator.h" />
     <ClInclude Include="airdcpp\ViewFileManagerListener.h" />
@@ -449,7 +460,7 @@
     <ClInclude Include="airdcpp\PrivateChatListener.h" />
     <ClInclude Include="airdcpp\RelevanceSearch.h" />
     <ClInclude Include="airdcpp\SearchQuery.h" />
-    <ClInclude Include="airdcpp\AirUtil.h" />
+    <ClInclude Include="airdcpp\AutoLimitUtil.h" />
     <ClInclude Include="airdcpp\BloomFilter.h" />
     <ClInclude Include="airdcpp\BufferedSocket.h" />
     <ClInclude Include="airdcpp\BufferedSocketListener.h" />

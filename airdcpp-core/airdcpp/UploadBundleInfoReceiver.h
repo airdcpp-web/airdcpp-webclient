@@ -41,7 +41,7 @@ public:
 	void onUBN(const AdcCommand& cmd);
 
 	UploadBundlePtr findByBundleToken(const string& aBundleToken) const noexcept;
-	UploadBundlePtr findByUploadToken(const string& aUploadToken) const noexcept;
+	UploadBundlePtr findByConnectionToken(const string& aConnectionToken) const noexcept;
 
 	size_t getRunningBundleCount() const noexcept;
 
@@ -59,18 +59,21 @@ private:
 
 	friend class Singleton<UploadBundleInfoReceiver>;
 
-	void addBundleConnection(const string& aUploadToken, const UploadBundlePtr& aBundle) noexcept;
-	void removeBundleConnection(const string& aUploadToken, const UploadBundlePtr& aBundle) noexcept;
+	void handleAddBundleConnection(const string& aConnectionToken, const UploadBundlePtr& aBundle) noexcept;
+	void handleRemoveBundleConnection(const string& aConnectionToken, const UploadBundlePtr& aBundle) noexcept;
 
 	void addBundleConnectionUnsafe(const Upload* aUpload, const UploadBundlePtr& aBundle) noexcept;
 	void removeBundleConnectionUnsafe(const Upload* aUpload, const UploadBundlePtr& aBundle) noexcept;
 
 	void removeIdleBundles() noexcept;
 
+	typedef std::function<void(Upload*)>&& UploadCallback;
+	bool callAsync(const string& aToken, UploadCallback&& aCallback) const noexcept;
+
 	// Listeners
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
 
-	void on(UploadManagerListener::Created, Upload*) noexcept override;
+	void on(UploadManagerListener::Created, Upload*, const UploadSlot&) noexcept override;
 	void on(UploadManagerListener::Removed, const Upload*) noexcept override;
 
 	void on(ProtocolCommandManagerListener::IncomingUDPCommand, const AdcCommand&, const string&) noexcept override;

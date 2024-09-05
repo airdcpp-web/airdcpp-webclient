@@ -25,32 +25,31 @@
 #include "ShareManagerListener.h"
 #include "TimerManagerListener.h"
 
-#include "CriticalSection.h"
 #include "DupeType.h"
 #include "Exception.h"
+#include "UploadFileProvider.h"
 #include "Message.h"
 #include "MerkleTree.h"
-#include "Pointer.h"
 #include "ShareDirectory.h"
 #include "ShareDirectoryInfo.h"
-#include "ShareProfile.h"
 #include "ShareRefreshInfo.h"
 #include "ShareRefreshTask.h"
+#include "ShareSearchInfo.h"
 #include "ShareStats.h"
 #include "Singleton.h"
-#include "TempShareItem.h"
 #include "TimerManager.h"
 
 namespace dcpp {
 
 class File;
+struct FileItemInfoBase;
 class ErrorCollector;
-class HashBloom;
 class HashedFile;
 class OutputStream;
 class MemoryInputStream;
 class SearchQuery;
 class SharePathValidator;
+class ShareProfileManager;
 class ShareTasks;
 class ShareTree;
 
@@ -70,29 +69,29 @@ public:
 	void startup(StartupLoader& aLoader) noexcept;
 	void shutdown(function<void(float)> progressF) noexcept;
 
-
 	// Validate that the new root can be added in share (sub/parent/existing directory matching)
 	// Throws ShareException
 	void validateRootPath(const string& aRealPath, bool aMatchCurrentRoots = true) const;
-
-	// Returns virtual path of a TTH
-	// Throws ShareException
-	string toVirtual(const TTHValue& aTTH, ProfileToken aProfile) const;
 
 	// Returns size and file name of a filelist
 	// virtualFile = name requested by the other user (Transfer::USER_LIST_NAME_BZ or Transfer::USER_LIST_NAME)
 	// Throws ShareException
 	pair<int64_t, string> getFileListInfo(const string& virtualFile, ProfileToken aProfile);
 
-	// Get real path and size for a virtual path
-	// noAccess_ will be set to true if the file is availabe but not in the supplied profiles
-	// Throws ShareException
-	void toRealWithSize(const string& aVirtualPath, const ProfileTokenSet& aProfiles, const HintedUser& aUser, string& path_, int64_t& size_, bool& noAccess_);
+	struct HashedFileInfo {
+		string path;
+		int64_t size = 0;
 
-	// Returns TTH value for a file list (not very useful but the ADC specs...)
-	// virtualFile = name requested by the other user (Transfer::USER_LIST_NAME_BZ or Transfer::USER_LIST_NAME)
-	// Throws ShareException
-	TTHValue getListTTH(const string& aVirtualPath, ProfileToken aProfile) const;
+		// Will be set to true if the file is available but not accessible by the user
+		bool noAccess = false;
+
+		const UploadFileProvider* provider;
+		bool found = false;
+	};
+
+	// Get real path and size for a virtual path
+	HashedFileInfo toRealWithSize(const string& aVirtualPath, const ProfileTokenSet& aProfiles, const UserPtr& aOptionalUser, const Segment& aSegment) const noexcept;
+	HashedFileInfo toRealWithSize(const UploadFileQuery& aQuery) const noexcept;
 
 	// Refresh the whole share or in
 	RefreshTaskQueueInfo refresh(ShareRefreshType aType, ShareRefreshPriority aPriority, function<void(float)> progressF = nullptr) noexcept;
@@ -123,7 +122,7 @@ public:
 	ShareRefreshTaskList getRefreshTasks() const noexcept;
 
 	// Throws ShareException in case an invalid path is provided
-	void search(SearchResultList& l, SearchQuery& aSearch, const OptionalProfileToken& aProfile, const UserPtr& aUser, const string& aDir, bool aIsAutoSearch = false);
+	void search(SearchResultList& l, ShareSearch& aSearch);
 
 	// Mostly for dupe check with size comparison (partial/exact dupe)
 	// You may also give a path in NMDC format and the relevant 
@@ -158,9 +157,13 @@ public:
 
 	// Get share size and number of files for a specified profile
 	void getProfileInfo(ProfileToken aProfile, int64_t& totalSize_, size_t& fileCount_) const noexcept;
+
+	// If allowFallback is true, the default profile will be returned if the requested one is not found
+	ShareProfilePtr getShareProfile(ProfileToken aProfile, bool allowFallback = false) const noexcept;
 	
 	// Adds all shared TTHs (permanent and temp) to the filter
-	void getBloom(HashBloom& bloom) const noexcept;
+	void getBloom(ProfileToken aProfile, ByteVector& v, size_t k, size_t m, size_t h) const noexcept;
+	size_t getBloomFileCount(ProfileToken aProfile) const noexcept;
 
 	// Removes path characters from virtual name
 	string validateVirtualName(const string& aName) const noexcept;
@@ -169,7 +172,7 @@ public:
 	// Throws ShareException
 	string generateOwnList(ProfileToken aProfile);
 
-	bool isTTHShared(const TTHValue& tth) const noexcept;
+	// bool isTTHShared(const TTHValue& tth) const noexcept;
 
 	// Get real paths for an ADC virtual path
 	// Throws ShareException
@@ -179,24 +182,11 @@ public:
 
 	int64_t getSharedSize() const noexcept;
 
-	optional<TempShareInfo> addTempShare(const TTHValue& aTTH, const string& aName, const string& aFilePath, int64_t aSize, ProfileToken aProfile, const UserPtr& aUser) noexcept;
-
-	TempShareInfoList getTempShares() const noexcept;
-	TempShareInfoList getTempShares(const TTHValue& aTTH) const noexcept;
-
-	bool removeTempShare(TempShareToken aId) noexcept;
-	optional<TempShareToken> isTempShared(const UserPtr& aUser, const TTHValue& aTTH) const noexcept;
-	//tempShares end
-
 	optional<ShareItemStats> getShareItemStats() const noexcept;
 	ShareSearchStats getSearchMatchingStats() const noexcept;
 
 	ShareDirectoryInfoList getRootInfos() const noexcept;
 	ShareDirectoryInfoPtr getRootInfo(const string& aPath) const noexcept;
-
-	void addRootDirectories(const ShareDirectoryInfoList& aNewDirs) noexcept;
-	void updateRootDirectories(const ShareDirectoryInfoList& renameDirs) noexcept;
-	void removeRootDirectories(const StringList& removeDirs) noexcept;
 
 	bool addRootDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo) noexcept;
 	bool updateRootDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo) noexcept;
@@ -204,30 +194,8 @@ public:
 	// Removes the root path entirely share (from all profiles)
 	bool removeRootDirectory(const string& aPath) noexcept;
 
-	void addProfiles(const ShareProfileInfo::List& aProfiles) noexcept;
-	void removeProfiles(const ShareProfileInfo::List& aProfiles) noexcept;
-	void renameProfiles(const ShareProfileInfo::List& aProfiles) noexcept;
-
-	void addProfile(const ShareProfilePtr& aProfile) noexcept;
-	void updateProfile(const ShareProfilePtr& aProfile) noexcept;
-	bool removeProfile(ProfileToken aToken) noexcept;
-
 	// Convert real path to virtual path. Returns an empty string if not shared.
 	string realToVirtualAdc(const string& aPath, const OptionalProfileToken& aToken = nullopt) const noexcept;
-
-	// If allowFallback is true, the default profile will be returned if the requested one is not found
-	ShareProfilePtr getShareProfile(ProfileToken aProfile, bool allowFallback = false) const noexcept;
-
-	ShareProfileList getProfiles() const noexcept;
-	ShareProfileInfo::List getProfileInfos() const noexcept;
-
-	// Get a profile token by its display name
-	OptionalProfileToken getProfileByName(const string& aName) const noexcept;
-
-	void setDefaultProfile(ProfileToken aNewDefault) noexcept;
-
-	// aIsMajor will regenerate the file list on next time when someone requests it
-	void setProfilesDirty(const ProfileTokenSet& aProfiles, bool aIsMajor) noexcept;
 
 	void shareBundle(const BundlePtr& aBundle) noexcept;
 	void onFileHashed(const string& aRealPath, const HashedFile& aFileInfo) noexcept;
@@ -239,19 +207,28 @@ public:
 	void reloadSkiplist();
 	void setExcludedPaths(const StringSet& aPaths) noexcept;
 
-	typedef function<void(const ShareDirectory::Ptr&)> DirectoryCallback;
-	typedef function<void(const ShareDirectory::File&)> FileCallback;
-	bool findDirectoryByRealPath(const string& aPath, const DirectoryCallback& aCallback = nullptr) const noexcept;
-	bool findFileByRealPath(const string& aPath, const FileCallback& aCallback = nullptr) const noexcept;
+	bool findDirectoryByRealPath(const string& aPath, const ShareDirectoryCallback& aCallback = nullptr) const noexcept;
+	bool findFileByRealPath(const string& aPath, const ShareFileCallback& aCallback = nullptr) const noexcept;
 	ShareDirectory::File::ConstSet findFiles(const TTHValue& aTTH) const noexcept;
 
 	struct ShareLoader;
+
+	void registerUploadFileProvider(const UploadFileProvider* aProvider) noexcept;
+
+	ShareProfileManager& getProfileMgr() noexcept {
+		return *profiles.get();
+	}
+	ShareProfileList getProfiles() const noexcept;
 private:
+	void removeRootProfile(const ShareProfilePtr& aProfile) noexcept;
+
+	typedef vector< const UploadFileProvider*> UploadFileProviderList;
+	UploadFileProviderList hashedFileProviders;
+
+	const unique_ptr<ShareProfileManager> profiles;
 	const unique_ptr<SharePathValidator> validator;
 	const unique_ptr<ShareTasks> tasks;
 	const unique_ptr<ShareTree> tree;
-
-	mutable SharedMutex cs;
 
 	friend class Singleton<ShareManager>;
 	
@@ -261,9 +238,6 @@ private:
 	// Throws ShareException
 	FileList* generateXmlList(ProfileToken aProfile, bool aForced = false);
 
-	// Throws ShareException
-	FileList* getFileList(ProfileToken aProfile) const;
-
 	bool loadCache(function<void(float)> progressF) noexcept;
 
 	uint64_t lastFullUpdate = GET_TICK();
@@ -271,8 +245,6 @@ private:
 	uint64_t lastSave = 0;
 	
 	bool shareCacheSaving = false;
-
-	void removeCachedFilelists() noexcept;
 
 	struct RefreshTaskHandler : public ShareTasksManager::RefreshTaskHandler {
 		typedef function<bool(const string& aRefreshPath, const ShareRefreshTask& aTask, ShareRefreshStats& totalStats, ShareBloom* bloom_, ProfileTokenSet& dirtyProfiles_)> PathRefreshF;
@@ -317,10 +289,10 @@ private:
 
 	// SettingsManagerListener
 	void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept override {
-		save(xml);
+		saveProfiles(xml);
 	}
 	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept override {
-		load(xml);
+		loadProfiles(xml);
 	}
 
 	void on(SettingsManagerListener::LoadCompleted, bool aFileLoaded) noexcept override;
@@ -328,11 +300,11 @@ private:
 	// TimerManagerListener
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
 
-	void load(SimpleXML& aXml);
-	void loadProfile(SimpleXML& aXml, const string& aName, ProfileToken aToken);
-	void save(SimpleXML& aXml);
-	
-	ShareProfileList shareProfiles;
+	void loadProfiles(SimpleXML& aXml);
+	void loadProfile(SimpleXML& aXml, bool aIsDefault);
+	void saveProfiles(SimpleXML& aXml);
+
+	ShareSearchCounters searchCounters;
 }; //sharemanager end
 
 } // namespace dcpp

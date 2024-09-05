@@ -104,7 +104,6 @@ bool UploadBundle::removeUpload(const Upload* u) noexcept {
 		return isEmpty;
 	}
 
-	dcassert(0);
 	return uploads.empty();
 }
 

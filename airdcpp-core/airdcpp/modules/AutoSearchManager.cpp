@@ -307,7 +307,7 @@ void AutoSearchManager::onBundleError(const void* aSearch, const string& aError,
 	RLock l(cs);
 	auto as = searchItems.getItem(aSearch);
 	if (as) {
-		as->setLastError(STRING_F(AS_ERROR, aBundleName % aError % Util::getTimeString() % ClientManager::getInstance()->getFormatedNicks(aUser)));
+		as->setLastError(STRING_F(AS_ERROR, aBundleName % aError % Util::formatCurrentTime() % ClientManager::getInstance()->getFormatedNicks(aUser)));
 		fire(AutoSearchManagerListener::ItemUpdated(), as, true);
 	}
 

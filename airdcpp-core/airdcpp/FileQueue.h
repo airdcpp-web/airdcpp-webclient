@@ -25,7 +25,7 @@
 
 #include "DirectoryListing.h"
 #include "DupeType.h"
-#include "HashBloom.h"
+// #include "HashBloom.h"
 #include "QueueItem.h"
 
 namespace dcpp {
@@ -36,7 +36,7 @@ public:
 	FileQueue() { }
 	~FileQueue();
 
-	void getBloom(HashBloom& bloom) const noexcept;
+	// void getBloom(HashBloom& bloom) const noexcept;
 
 	pair<QueueItem::StringMap::const_iterator, bool> add(QueueItemPtr& qi) noexcept;
 	pair<QueueItemPtr, bool> add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;

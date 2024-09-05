@@ -157,7 +157,8 @@ int MappingManager::run() {
 
 	for(auto& i: mappers) {
 		auto setting = v6 ? SettingsManager::BIND_ADDRESS6 : SettingsManager::BIND_ADDRESS;
-		unique_ptr<Mapper> pMapper(i.second((SettingsManager::getInstance()->isDefault(setting) ? Util::emptyString : SettingsManager::getInstance()->get(setting)), v6));
+		auto bindAddress = SettingsManager::getInstance()->isDefault(setting) ? Util::emptyString : SettingsManager::getInstance()->get(setting);
+		unique_ptr<Mapper> pMapper(i.second(bindAddress, v6));
 		Mapper& mapper = *pMapper;
 
 		ScopedFunctor([&mapper] { mapper.uninit(); });

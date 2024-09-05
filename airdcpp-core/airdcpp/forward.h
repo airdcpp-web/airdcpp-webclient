@@ -191,7 +191,6 @@ struct ShareRefreshTask;
 typedef uint32_t ShareRefreshTaskToken;
 
 struct TempShareInfo;
-typedef vector<TempShareInfo> TempShareInfoList;
 
 class SimpleXML;
 
@@ -204,6 +203,7 @@ class StringSearch;
 class TigerHash;
 
 class Transfer;
+typedef uint32_t TransferToken;
 
 typedef HashValue<TigerHash> TTHValue;
 

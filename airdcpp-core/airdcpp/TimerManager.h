@@ -26,10 +26,6 @@
 
 #include <boost/thread/mutex.hpp>
 
-#ifndef _WIN32
-#include <sys/time.h>
-#endif
-
 namespace dcpp {
 
 class TimerManager : public Speaker<TimerManagerListener>, public Singleton<TimerManager>, public Thread
@@ -37,7 +33,7 @@ class TimerManager : public Speaker<TimerManagerListener>, public Singleton<Time
 public:
 	void shutdown();
 
-	static time_t getTime() { return (time_t)time(NULL); }
+	static time_t getTime();
 	static uint64_t getTick();
 
 	static time_t getStartTime() noexcept;

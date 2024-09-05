@@ -54,7 +54,8 @@ static natpmp_t nat;
 
 bool Mapper_NATPMP::init() {
 	if (initnatpmp(&nat, 0, 0) >= 0) {
-		gateway = inet_ntoa(*(struct in_addr *)&nat.gateway);
+		char str[INET_ADDRSTRLEN];
+		gateway = inet_ntop(AF_INET, &nat.gateway, str, INET_ADDRSTRLEN);
 		return true;
 	}
 
@@ -112,10 +113,16 @@ bool Mapper_NATPMP::add(const string& port, const Protocol protocol, const strin
 	auto port_ = Util::toInt(port);
 	if(sendRequest(static_cast<uint16_t>(port_), protocol, 3600)) {
 		natpmpresp_t response;
-		if(read(response) && response.type == respType(protocol) && response.pnu.newportmapping.mappedpublicport == port_) {
-			lifetime = std::min(3600u, response.pnu.newportmapping.lifetime) / 60;
-			return true;
+		if (!read(response) || response.type != respType(protocol)) {
+			return false;
 		}
+		
+		if (response.pnu.newportmapping.mappedpublicport != port_) {
+			return false;
+		}
+
+		lifetime = std::min(3600u, response.pnu.newportmapping.lifetime) / 60;
+		return true;
 	}
 	return false;
 }
@@ -124,7 +131,20 @@ bool Mapper_NATPMP::remove(const string& port, const Protocol protocol) {
 	auto port_ = Util::toInt(port);
 	if(sendRequest(static_cast<uint16_t>(port_), protocol, 0)) {
 		natpmpresp_t response;
-		return read(response) && response.type == respType(protocol) && response.pnu.newportmapping.mappedpublicport == port_;
+		if (!read(response)) {
+			return false;
+		}
+
+		if (response.type != respType(protocol)) {
+			return false;
+		}
+
+		// https://datatracker.ietf.org/doc/html/rfc6886#section-3.4
+		if (response.pnu.newportmapping.privateport != port_ || response.pnu.newportmapping.lifetime != 0) {
+			return false;
+		}
+
+		return true;
 	}
 	return false;
 }
@@ -137,7 +157,10 @@ string Mapper_NATPMP::getExternalIP() {
 	if(sendpublicaddressrequest(&nat) >= 0) {
 		natpmpresp_t response;
 		if(read(response) && response.type == NATPMP_RESPTYPE_PUBLICADDRESS) {
-			return inet_ntoa(response.pnu.publicaddress.addr);
+
+			char str[INET_ADDRSTRLEN];
+			auto ip = inet_ntop(AF_INET, &response.pnu.publicaddress.addr, str, INET_ADDRSTRLEN);
+			return ip;
 		}
 	}
 	return Util::emptyString;

@@ -18,7 +18,6 @@
 
 #include "stdinc.h"
 
-#include "AirUtil.h"
 #include "ClientManager.h"
 #include "DirectoryListingManager.h"
 #include "LogManager.h"
@@ -324,15 +323,12 @@ void DirectoryListingManager::processListActionHooked(DirectoryListingPtr aList,
 	}
 
 	if(aFlags & QueueItem::FLAG_MATCH_QUEUE) {
-		int matches=0, newFiles=0;
-		BundleList bundles;
-		QueueManager::getInstance()->matchListing(*aList, matches, newFiles, bundles);
-		if ((aFlags & QueueItem::FLAG_PARTIAL_LIST) && (!SETTING(REPORT_ADDED_SOURCES) || newFiles == 0 || bundles.empty())) {
+		auto results = QueueManager::getInstance()->matchListing(*aList);
+		if ((aFlags & QueueItem::FLAG_PARTIAL_LIST) && (!SETTING(REPORT_ADDED_SOURCES) || results.newFiles == 0 || results.bundles.empty())) {
 			return;
 		}
 
-		log(aList->getNick(false) + ": " +
-			AirUtil::formatMatchResults(matches, newFiles, bundles), LogMessage::SEV_INFO);
+		log(aList->getNick(false) + ": " + results.format(), LogMessage::SEV_INFO);
 	}
 }
 

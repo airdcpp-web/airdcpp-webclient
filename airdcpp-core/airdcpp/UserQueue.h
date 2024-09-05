@@ -38,7 +38,7 @@ public:
 	QueueItemPtr getNextBundleQI(const QueueDownloadQuery& aQuery, string& lastError_, bool& hasDownload, bool aAllowOverlap) noexcept;
 
 	void addDownload(const QueueItemPtr& qi, Download* d) noexcept;
-	void removeDownload(const QueueItemPtr& qi, const string& aToken) noexcept;
+	void removeDownload(const QueueItemPtr& qi, const Download* d) noexcept;
 
 	void removeQI(const QueueItemPtr& qi, bool removeRunning = true) noexcept;
 	void removeQI(const QueueItemPtr& qi, const UserPtr& aUser, bool removeRunning = true, Flags::MaskType reason = 0) noexcept;

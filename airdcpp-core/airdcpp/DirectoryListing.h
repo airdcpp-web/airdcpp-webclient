@@ -36,7 +36,8 @@
 #include "MerkleTree.h"
 #include "Priority.h"
 #include "QueueAddInfo.h"
-#include "Streams.h"
+#include "Speaker.h"
+#include "StreamBase.h"
 #include "TrackableDownloadItem.h"
 #include "UserInfoBase.h"
 

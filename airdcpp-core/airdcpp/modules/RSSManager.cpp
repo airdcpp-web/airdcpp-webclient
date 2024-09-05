@@ -33,6 +33,7 @@
 #include <airdcpp/ScopedFunctor.h>
 #include <airdcpp/SimpleXML.h>
 #include <airdcpp/SimpleXMLReader.h>
+#include <airdcpp/Streams.h>
 
 #include <boost/algorithm/string/trim.hpp>
 

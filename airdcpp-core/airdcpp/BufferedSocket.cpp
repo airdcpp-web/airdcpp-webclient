@@ -26,7 +26,7 @@
 #include "ConnectivityManager.h"
 #include "SettingsManager.h"
 #include "SSLSocket.h"
-#include "Streams.h"
+#include "StreamBase.h"
 #include "ThrottleManager.h"
 #include "TimerManager.h"
 #include "ZUtils.h"

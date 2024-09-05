@@ -28,6 +28,7 @@
 #include "FavoriteUser.h"
 #include "Singleton.h"
 #include "Speaker.h"
+#include "UploadSlot.h"
 
 namespace dcpp {
 
@@ -42,7 +43,7 @@ public:
 	typedef unordered_map<CID, FavoriteUser> FavoriteMap;
 
 	//remember to lock this
-	const FavoriteMap& getFavoriteUsers() const noexcept { return users; }
+	const FavoriteMap& getFavoriteUsersUnsafe() const noexcept { return users; }
 
 	void addFavoriteUser(const HintedUser& aUser) noexcept;
 	void removeFavoriteUser(const UserPtr& aUser) noexcept;
@@ -82,7 +83,7 @@ private:
 	ActionHookResult<MessageHighlightList> onPrivateMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept;
 	ActionHookResult<MessageHighlightList> onHubMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept;
 
-	ActionHookResult<uint8_t> onSlotType(const HintedUser& aUser, const ParsedUpload& aUploadInfo, const ActionHookResultGetter<uint8_t>& aResultGetter) noexcept;
+	ActionHookResult<OptionalUploadSlot> onSlotType(const UserConnection& aUser, const ParsedUpload& aUploadInfo, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) noexcept;
 
 	ActionHookResult<MessageHighlightList> formatFavoriteUsers(const ChatMessagePtr& msg, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept;
 

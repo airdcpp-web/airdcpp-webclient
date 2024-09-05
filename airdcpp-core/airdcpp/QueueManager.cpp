@@ -19,7 +19,7 @@
 #include "stdinc.h"
 #include "QueueManager.h"
 
-#include "AirUtil.h"
+#include "AutoLimitUtil.h"
 #include "Bundle.h"
 #include "ClientManager.h"
 #include "ConnectionManager.h"
@@ -42,6 +42,7 @@
 #include "SFVReader.h"
 #include "ShareManager.h"
 #include "SimpleXMLReader.h"
+#include "Streams.h"
 #include "SystemUtil.h"
 #include "Transfer.h"
 #include "UploadManager.h"
@@ -420,10 +421,10 @@ bool QueueManager::recheckFileImpl(const string& aPath, bool isBundleCheck, int6
 	return false;
 }
 
-void QueueManager::getBloom(HashBloom& bloom) const noexcept {
+/*void QueueManager::getBloom(HashBloom& bloom) const noexcept {
 	RLock l(cs);
 	fileQueue.getBloom(bloom);
-}
+}*/
 
 size_t QueueManager::getQueuedBundleFiles() const noexcept {
 	RLock l(cs);
@@ -1205,7 +1206,7 @@ QueueManager::DownloadResult QueueManager::getDownload(UserConnection& aSource, 
 	}
 
 	fire(QueueManagerListener::ItemSources(), q);
-	dcdebug("QueueManager::getDownload: found %s for %s (segment " I64_FMT ", " I64_FMT ")\n", q->getTarget().c_str(), result.download->getToken().c_str(), result.download->getSegment().getStart(), result.download->getSegment().getEnd());
+	dcdebug("QueueManager::getDownload: found %s for connection %s (segment " I64_FMT ", " I64_FMT ")\n", q->getTarget().c_str(), result.download->getConnectionToken().c_str(), result.download->getSegment().getStart(), result.download->getSegment().getEnd());
 	return result;
 }
 
@@ -1240,11 +1241,11 @@ bool QueueManager::checkLowestPrioRules(const QueueItemPtr& aQI, const QueueToke
 }
 
 bool QueueManager::checkDownloadLimits(const QueueItemPtr& aQI, string& lastError_) const noexcept {
-	auto downloadSlots = AirUtil::getSlots(true);
+	auto downloadSlots = AutoLimitUtil::getSlots(true);
 	auto downloadCount = static_cast<int>(DownloadManager::getInstance()->getFileDownloadConnectionCount());
 	bool slotsFull = downloadSlots != 0 && downloadCount >= downloadSlots;
 
-	auto speedLimit = Util::convertSize(AirUtil::getSpeedLimitKbps(true), Util::KB);
+	auto speedLimit = Util::convertSize(AutoLimitUtil::getSpeedLimitKbps(true), Util::KB);
 	auto downloadSpeed = DownloadManager::getInstance()->getRunningAverage();
 	bool speedFull = speedLimit != 0 && downloadSpeed >= speedLimit;
 	//log("Speedlimit: " + Util::toString(Util::getSpeedLimit(true)*1024) + " slots: " + Util::toString(Util::getSlots(true)) + " (avg: " + Util::toString(getRunningAverage()) + ")");
@@ -1369,9 +1370,22 @@ QueueItemList QueueManager::findFiles(const TTHValue& tth) const noexcept {
 	return ql;
 }
 
-void QueueManager::matchListing(const DirectoryListing& dl, int& matchingFiles_, int& newFiles_, BundleList& bundles_) noexcept {
+string QueueManager::QueueMatchResults::format() const noexcept {
+	if (matchingFiles > 0) {
+		if (bundles.size() == 1) {
+			return STRING_F(MATCHED_FILES_BUNDLE, matchingFiles % bundles.front()->getName().c_str() % newFiles);
+		} else {
+			return STRING_F(MATCHED_FILES_X_BUNDLES, matchingFiles % (int)bundles.size() % newFiles);
+		}
+	}
+
+	return STRING(NO_MATCHED_FILES);
+}
+
+QueueManager::QueueMatchResults QueueManager::matchListing(const DirectoryListing& dl) noexcept {
+	QueueMatchResults results;
 	if (dl.getUser() == ClientManager::getInstance()->getMe())
-		return;
+		return results;
 
 	QueueItemList matchingItems;
 
@@ -1380,9 +1394,10 @@ void QueueManager::matchListing(const DirectoryListing& dl, int& matchingFiles_,
 		fileQueue.matchListing(dl, matchingItems);
 	}
 
-	matchingFiles_ = static_cast<int>(matchingItems.size());
+	results.matchingFiles = static_cast<int>(matchingItems.size());
 
-	newFiles_ = addValidatedSources(dl.getHintedUser(), matchingItems, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, bundles_);
+	results.newFiles = addValidatedSources(dl.getHintedUser(), matchingItems, QueueItem::Source::FLAG_FILE_NOT_AVAILABLE, results.bundles);
+	return results;
 }
 
 void QueueManager::toggleSlowDisconnectBundle(QueueToken aBundleToken) noexcept {
@@ -1651,15 +1666,15 @@ void QueueManager::onDownloadError(const BundlePtr& aBundle, const string& aErro
 	setBundleStatus(aBundle, Bundle::STATUS_DOWNLOAD_ERROR);
 }
 
-void QueueManager::putDownloadHooked(Download* d, bool aFinished, bool aNoAccess /*false*/, bool aRotateQueue /*false*/) {
-	QueueItemPtr q = nullptr;
+void QueueManager::putDownloadHooked(Download* aDownload, bool aFinished, bool aNoAccess /*false*/, bool aRotateQueue /*false*/) {
 
 	// Make sure the download gets killed
-	// unique_ptr<Download> d(aDownload);
-	// aDownload = nullptr;
+	unique_ptr<Download> d(aDownload);
+	aDownload = nullptr;
 
 	d->close();
 
+	QueueItemPtr q = nullptr;
 	{
 		RLock l(cs);
 		q = fileQueue.findFile(d->getPath());
@@ -1684,13 +1699,13 @@ void QueueManager::putDownloadHooked(Download* d, bool aFinished, bool aNoAccess
 	}
 
 	if (!aFinished) {
-		onDownloadFailed(q, d, aNoAccess, aRotateQueue);
+		onDownloadFailed(q, d.get(), aNoAccess, aRotateQueue);
 	} else if (q->isSet(QueueItem::FLAG_USER_LIST)) {
-		onFilelistDownloadCompletedHooked(q, d);
+		onFilelistDownloadCompletedHooked(q, d.get());
 	} else if (d->getType() == Transfer::TYPE_TREE) {
-		onTreeDownloadCompleted(q, d);
+		onTreeDownloadCompleted(q, d.get());
 	} else {
-		onFileDownloadCompleted(q, d);
+		onFileDownloadCompleted(q, d.get());
 	}
 }
 
@@ -1732,7 +1747,7 @@ void QueueManager::onDownloadFailed(const QueueItemPtr& aQI, Download* aDownload
 			aQI->getOnlineUsers(getConn);
 		}
 
-		userQueue.removeDownload(aQI, aDownload->getToken());
+		userQueue.removeDownload(aQI, aDownload);
 	}
 
 	for (const auto& u : getConn) {
@@ -1808,11 +1823,17 @@ void QueueManager::onFilelistDownloadCompletedHooked(const QueueItemPtr& aQI, Do
 void QueueManager::onTreeDownloadCompleted(const QueueItemPtr& aQI, Download* aDownload) {
 	{
 		WLock l(cs);
-		userQueue.removeDownload(aQI, aDownload->getToken());
+		userQueue.removeDownload(aQI, aDownload);
 	}
 
 	dcassert(aDownload->getTreeValid());
-	HashManager::getInstance()->addTree(aDownload->getTigerTree());
+	try {
+		HashManager::getInstance()->addTree(aDownload->getTigerTree());
+	} catch (const HashException& e) {
+		ConnectionManager::getInstance()->failDownload(aDownload->getConnectionToken(), e.getError(), true);
+		throw e;
+	}
+
 	fire(QueueManagerListener::ItemStatus(), aQI);
 }
 
@@ -1831,9 +1852,10 @@ void QueueManager::onFileDownloadCompleted(const QueueItemPtr& aQI, Download* aD
 
 		if (wholeFileCompleted) {
 			// Disconnect all possible overlapped downloads
-			for (auto aD : aQI->getDownloads()) {
-				if (compare(aD->getToken(), aDownload->getToken()) != 0)
-					aD->getUserConnection().disconnect();
+			for (auto qiDownload : aQI->getDownloads()) {
+				if (qiDownload != aDownload) {
+					qiDownload->getUserConnection().disconnect();
+				}
 			}
 
 			aQI->setTimeFinished(GET_TIME());
@@ -1844,7 +1866,7 @@ void QueueManager::onFileDownloadCompleted(const QueueItemPtr& aQI, Download* aD
 				fileQueue.remove(aQI);
 			}
 		} else {
-			userQueue.removeDownload(aQI, aDownload->getToken());
+			userQueue.removeDownload(aQI, aDownload);
 		}
 	}
 
@@ -1935,7 +1957,7 @@ void QueueManager::matchTTHList(const string& aName, const HintedUser& aUser, in
 }
 
 void QueueManager::removeQI(const QueueItemPtr& q, bool aDeleteData /*false*/) noexcept {
-	StringList x;
+	StringList disconnectTokens;
 	dcassert(q);
 
 	// For partial-share
@@ -1949,7 +1971,7 @@ void QueueManager::removeQI(const QueueItemPtr& q, bool aDeleteData /*false*/) n
 
 		if(q->isRunning()) {
 			for(const auto& d: q->getDownloads()) 
-				x.push_back(d->getToken());
+				disconnectTokens.push_back(d->getConnectionToken());
 		} else if(!q->getTempTarget().empty() && q->getTempTarget() != q->getTarget()) {
 			File::deleteFile(q->getTempTarget());
 		}
@@ -1968,7 +1990,7 @@ void QueueManager::removeQI(const QueueItemPtr& q, bool aDeleteData /*false*/) n
 	fire(QueueManagerListener::ItemRemoved(), q, false);
 
 	removeBundleItem(q, false);
-	for (auto& token : x)
+	for (auto& token: disconnectTokens)
 		ConnectionManager::getInstance()->disconnect(token);
 }
 
@@ -3100,7 +3122,7 @@ static void calculateBalancedPriorities(vector<pair<T, Priority>>& priorities, m
 		}
 
 		if (verbose) {
-			LogManager::getInstance()->message(i.second->getTarget() + " points: " + Util::toString(i.first) + " using prio " + AirUtil::getPrioText(newItemPrio), LogMessage::SEV_INFO, "Debug");
+			LogManager::getInstance()->message(i.second->getTarget() + " points: " + Util::toString(i.first) + " using prio " + Util::formatPriority(newItemPrio), LogMessage::SEV_INFO, "Debug");
 		}
 
 		if (i.second->getPriority() != newItemPrio) {
@@ -3176,7 +3198,7 @@ bool QueueManager::checkDropSlowSource(Download* d) noexcept {
 	return false;
 }
 
-void QueueManager::toRealWithSize(const string& aFile, string& path_, int64_t& size_, const Segment& segment_) {
+/*void QueueManager::toRealWithSize(const string& aFile, string& path_, int64_t& size_, const Segment& segment_) {
 	if (aFile.compare(0, 4, "TTH/") == 0 && SETTING(USE_PARTIAL_SHARING)) {
 		TTHValue fileHash(aFile.substr(4));
 
@@ -3192,7 +3214,7 @@ void QueueManager::toRealWithSize(const string& aFile, string& path_, int64_t& s
 	}
 
 	throw QueueException(UserConnection::FILE_NOT_AVAILABLE);
-}
+}*/
 
 void QueueManager::getPartialInfo(const QueueItemPtr& aQI, PartsInfo& partialInfo_) const noexcept {
 	auto blockSize = aQI->getBlockSize();
@@ -3349,7 +3371,7 @@ void QueueManager::setFileStatus(const QueueItemPtr& aFile, QueueItem::Status aN
 	}
 }
 
-bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t aStartPos, int64_t& bytes_, int64_t& fileSize_, string& target_) noexcept {
+bool QueueManager::isChunkDownloaded(const TTHValue& tth, const Segment* aSegment, int64_t& fileSize_, string& target_) noexcept {
 	QueueItemList ql;
 
 	RLock l(cs);
@@ -3365,7 +3387,11 @@ bool QueueManager::isChunkDownloaded(const TTHValue& tth, int64_t aStartPos, int
 	fileSize_ = qi->getSize();
 	target_ = qi->isDownloaded() ? qi->getTarget() : qi->getTempTarget();
 
-	return qi->isChunkDownloaded(aStartPos, bytes_);
+	if (!aSegment) {
+		return qi->isDownloaded();
+	}
+
+	return qi->isChunkDownloaded(*aSegment);
 }
 
 void QueueManager::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept {
@@ -3669,7 +3695,7 @@ void QueueManager::removeBundle(const BundlePtr& aBundle, bool aRemoveFinishedFi
 		log(STRING_F(BUNDLE_X_REMOVED, aBundle->getName()), LogMessage::SEV_INFO);
 	}
 
-	for (const auto& aUser : sources)
+	for (const auto& aUser: sources)
 		fire(QueueManagerListener::SourceFilesUpdated(), aUser);
 
 	removeBundleLists(aBundle);

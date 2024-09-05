@@ -30,13 +30,13 @@ using ranges::copy;
 
 FileQueue::~FileQueue() { }
 
-void FileQueue::getBloom(HashBloom& bloom_) const noexcept {
+/*void FileQueue::getBloom(HashBloom& bloom_) const noexcept {
 	for (auto& i : tthIndex) {
 		if (i.second->getBundle()) {
 			bloom_.add(*i.first);
 		}
 	}
-}
+}*/
 
 pair<QueueItemPtr, bool> FileQueue::add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, Priority p,
 	const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept {

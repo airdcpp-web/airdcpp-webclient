@@ -21,14 +21,14 @@
 
 #if defined (__clang__)
 
-#if __clang_major__ < 3 || (__clang_major__ == 3 && __clang_minor__ < 4)
-#error Clang 3.4 is required
+#if __clang_major__ < 15
+#error Clang 15 is required
 #endif
 
 #elif defined(__GNUC__)
 
-#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 9)
-#error GCC 4.9 is required
+#if __GNUC__ < 8
+#error GCC 8.0 is required
 #endif
 
 #ifdef _WIN32
@@ -41,8 +41,8 @@
 #endif // _WIN32
 
 #elif defined(_MSC_VER)
-#if _MSC_FULL_VER < 191125506
-#error Visual Studio 2017.3 or newer is required
+#if _MSC_FULL_VER < 193732822
+#error Visual Studio 2022 17.7.0 or newer is required
 #endif
 
 //disable the deprecated warnings for the CRT functions.
@@ -118,19 +118,19 @@
 #endif
 
 // https://github.com/airdcpp-web/airdcpp-webclient/issues/60
-//#define BOOST_MOVE_USE_STANDARD_LIBRARY_MOVE
+#define BOOST_MOVE_USE_STANDARD_LIBRARY_MOVE
 
 #ifndef _REENTRANT
 # define _REENTRANT 1
 #endif
 
 #ifdef _MSC_VER
-# pragma warning(disable: 4290) // C++ Exception Specification ignored
-# pragma warning(disable: 4127) // typedlistviewctrl.h(110): warning C4127: conditional expression is constant
-# pragma warning(disable: 4996) // Function call with parameters that may be unsafe - this call relies on the caller to check that the passed values are correct.
+//# pragma warning(disable: 4290) // C++ Exception Specification ignored
+# pragma warning(disable: 4127) // websocketpp\frame.hpp(598,24): warning C4127: conditional expression is constant
+//# pragma warning(disable: 4996) // Function call with parameters that may be unsafe - this call relies on the caller to check that the passed values are correct.
 
 # pragma warning(disable: 4267) // conversion from 'xxx' to 'yyy', possible loss of data
-# pragma warning(disable: 4706) // assignment within conditional expression
+//# pragma warning(disable: 4706) // assignment within conditional expression
 
 #define BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE 1
 

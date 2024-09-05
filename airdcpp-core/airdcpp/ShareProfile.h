@@ -100,7 +100,7 @@ public:
 
 	GETSET(ProfileToken, token, Token);
 	GETSET(string, plainName, PlainName);
-	IGETSET(bool, profileInfoDirty, ProfileInfoDirty, true);
+	IGETSET(bool, profileContentInfoDirty, ProfileContentInfoDirty, true);
 
 	// For caching the last information (these should only be accessed from ShareManager, use ShareManager::getProfileInfo for up-to-date information)
 	IGETSET(int64_t, shareSize, ShareSize, 0);
@@ -122,6 +122,8 @@ public:
 			return !aProfile->isHidden();
 		}
 	};
+
+	void setDirty(bool aForceRefresh) noexcept;
 private:
 	FileList fileList;
 };

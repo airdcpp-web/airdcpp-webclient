@@ -22,6 +22,7 @@
 #include "compiler.h"
 #include "constants.h"
 
+#include "Priority.h"
 #include "Text.h"
 
 namespace dcpp {
@@ -105,20 +106,6 @@ public:
 
 	static int64_t convertSize(int64_t aValue, SizeUnits valueType, SizeUnits to = B) noexcept;
 
-	static string truncate(const string& aStr, int aMaxLength) noexcept;
-
-	template<typename string_t>
-	static void replace(const string_t& search, const string_t& replacement, string_t& str) noexcept {
-		typename string_t::size_type i = 0;
-		while((i = str.find(search, i)) != string_t::npos) {
-			str.replace(i, search.size(), replacement);
-			i += replacement.size();
-		}
-	}
-	template<typename string_t>
-	static inline void replace(const typename string_t::value_type* search, const typename string_t::value_type* replacement, string_t& str) noexcept {
-		replace(string_t(search), string_t(replacement), str);
-	}
 
 	template<typename T1, typename T2>
 	static double countAverage(T1 aFrom, T2 aTotal) {
@@ -140,26 +127,39 @@ public:
 
 	static string addBrackets(const string& s) noexcept;
 
+	// FILE TYPE/CONTENT FORMAT
+
 	static string formatDirectoryContent(const DirectoryContentInfo& aInfo) noexcept;
 	static string formatFileType(const string& aPath) noexcept;
 
-	static string formatBytes(const string& aString) noexcept { return formatBytes(toInt64(aString)); }
-	static string formatConnectionSpeed(const string& aString) noexcept { return formatConnectionSpeed(toInt64(aString)); }
+	// DATETIME FORMAT
 
-	static string getShortTimeString(time_t t = time(NULL) ) noexcept;
+	// Timestamp based on the TIME_STAMPS_FORMAT setting
+	// Default: %H:%M:%S
 	static string getTimeStamp(time_t t = time(NULL) ) noexcept;
 
-	static string getTimeString() noexcept;
+	// Localized current timestamp with second
+	static string formatCurrentTime() noexcept;
 
-	static string getDateTime(time_t t) noexcept;
+	// Current datetime based on the DATE_FORMAT setting
+	// Default: %Y-%m-%d %H:%M
+	static string formatDateTime(time_t t) noexcept;
 #ifdef _WIN32
-	static wstring getDateTimeW(time_t t) noexcept;
+	static wstring formatDateTimeW(time_t t) noexcept;
 #endif
+
+	static string formatTime(const string& msg, const time_t t) noexcept;
+	static string formatDuration(uint64_t aSec, bool aTranslate, bool aPerMinute = false) noexcept;
+
+	// xx:xx:xx duration format
+	static string formatSeconds(int64_t aSec, bool supressHours = false) noexcept;
+	static wstring formatSecondsW(int64_t aSec, bool supressHours = false) noexcept;
+
+	// SIZE FORMAT
+
+	static string formatBytes(const string& aString) noexcept { return formatBytes(toInt64(aString)); }
 	static string formatBytes(int64_t aBytes) noexcept;
 	static wstring formatBytesW(int64_t aBytes) noexcept;
-
-	static string formatConnectionSpeed(int64_t aBytes) noexcept;
-	static wstring formatConnectionSpeedW(int64_t aBytes) noexcept;
 
 	static string formatExactSize(int64_t aBytes) noexcept;
 	static wstring formatExactSizeW(int64_t aBytes) noexcept;
@@ -167,15 +167,24 @@ public:
 	static string formatAbbreviated(int aNum) noexcept;
 	static wstring formatAbbreviatedW(int aNum) noexcept;
 
-	static wstring formatSecondsW(int64_t aSec, bool supressHours = false) noexcept;
-	static string formatSeconds(int64_t aSec, bool supressHours = false) noexcept;
+	// SPEED FORMAT
+
+	static string formatConnectionSpeed(const string& aString) noexcept { return formatConnectionSpeed(toInt64(aString)); }
+	static string formatConnectionSpeed(int64_t aBytes) noexcept;
+	static wstring formatConnectionSpeedW(int64_t aBytes) noexcept;
+
+	static string formatPriority(Priority aPriority) noexcept;
+
+
+	// PARAMS FORMAT
 
 	typedef string (*FilterF)(const string&);
 
 	// Set aTime to 0 to avoid formating of time variable
 	static string formatParams(const string& msg, const ParamMap& params, FilterF filter = nullptr, time_t aTime = time(NULL)) noexcept;
 
-	static string formatTime(const string &msg, const time_t t) noexcept;
+
+	// CONVERSIONS
 
 	static inline int64_t roundDown(int64_t size, int64_t blockSize) noexcept {
 		return ((size + blockSize / 2) / blockSize) * blockSize;
@@ -192,8 +201,6 @@ public:
 	static inline int roundUp(int size, int blockSize) noexcept {
 		return ((size + blockSize - 1) / blockSize) * blockSize;
 	}
-
-	static string formatTime(uint64_t aSec, bool aTranslate, bool aPerMinute = false) noexcept;
 
 	static int DefaultSort(const char* a, const char* b) noexcept;
 	static int DefaultSort(const wchar_t* a, const wchar_t* b) noexcept;
@@ -247,7 +254,7 @@ public:
 	static double toDouble(const string& aString) noexcept {
 		// Work-around for atof and locales...
 		lconv* lv = localeconv();
-		string::size_type i = aString.find_last_of(".,");
+		auto i = aString.find_last_of(".,");
 		if(i != string::npos && aString[i] != lv->decimal_point[0]) {
 			string tmp(aString);
 			tmp[i] = lv->decimal_point[0];
@@ -258,6 +265,10 @@ public:
 
 	static float toFloat(const string& aString) noexcept {
 		return (float)toDouble(aString);
+	}
+
+	static bool toBool(const int aNumber) noexcept {
+		return (aNumber > 0 ? true : false);
 	}
 
 	static string toString(short val) noexcept {
@@ -385,6 +396,8 @@ public:
 		return static_cast<char>(res);
 	}
 
+	// LIST HELPERS
+
 	template<typename T>
 	static T& intersect(T& t1, const T& t2) noexcept {
 		for(typename T::iterator i = t1.begin(); i != t1.end();) {
@@ -407,6 +420,8 @@ public:
 	static void concatenate(T& a, const T& toAdd) noexcept {
 		std::copy(toAdd.begin(), toAdd.end(), std::back_inserter(a));
 	}
+
+	// STRING SEARCH/COMPARE
 
 	/**
 	 * Case insensitive substring search.
@@ -436,13 +451,29 @@ public:
 	static int stricmp(const wstring& a, const wstring& b) noexcept { return stricmp(a.c_str(), b.c_str()); }
 	static int strnicmp(const wstring& a, const wstring& b, size_t n) noexcept { return strnicmp(a.c_str(), b.c_str(), n); }
 	
+
+	// STRING MODIFICATIONS
+
 	static void replace(string& aString, const string& findStr, const string& replaceStr) noexcept;
 	static tstring replaceT(const tstring& aString, const tstring& fStr, const tstring& rStr) noexcept;
 
-	static bool toBool(const int aNumber) noexcept {
-		return (aNumber > 0 ? true : false);
+	static string truncate(const string& aStr, int aMaxLength) noexcept;
+
+	template<typename string_t>
+	static void replace(const string_t& search, const string_t& replacement, string_t& str) noexcept {
+		typename string_t::size_type i = 0;
+		while ((i = str.find(search, i)) != string_t::npos) {
+			str.replace(i, search.size(), replacement);
+			i += replacement.size();
+		}
+	}
+	template<typename string_t>
+	static inline void replace(const typename string_t::value_type* search, const typename string_t::value_type* replacement, string_t& str) noexcept {
+		replace(string_t(search), string_t(replacement), str);
 	}
 	
+	// BASE64
+
 	static string base64_encode(unsigned char const*, unsigned int len) noexcept;
     static string base64_decode(string const& s) noexcept;
 

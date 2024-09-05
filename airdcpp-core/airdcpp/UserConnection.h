@@ -26,6 +26,7 @@
 #include "BufferedSocket.h"
 #include "HintedUser.h"
 #include "MerkleTree.h"
+#include "UploadSlot.h"
 #include "User.h"
 #include "UserConnectionListener.h"
 
@@ -99,20 +100,6 @@ public:
 		// Up & down
 		STATE_RUNNING,		// Transmitting data
 
-	};
-	
-	// Note: the "best" slot type should have the highest number
-	enum SlotTypes: uint8_t {	
-		NOSLOT		= 0,
-
-		// File-specific
-		PARTIALSLOT	= 1,
-		EXTRASLOT	= 2,
-		SMALLSLOT	= 3,
-
-		// Persistent
-		MCNSLOT		= 4,
-		STDSLOT		= 5
 	};
 
 	short getNumber() const { return (short)((((size_t)this)>>2) & 0x7fff); }
@@ -200,7 +187,18 @@ public:
 	IGETSET(uint64_t, lastActivity, LastActivity, 0);
 	GETSET(string, encoding, Encoding);
 	IGETPROP(States, state, State, STATE_UNCONNECTED);
-	IGETSET(uint8_t, slotType, SlotType, NOSLOT);
+	GETSET(OptionalUploadSlot, slot, Slot);
+
+	UploadSlot::Type getSlotType() const noexcept {
+		return UploadSlot::toType(slot);
+	}
+
+	bool hasSlot(UploadSlot::Type aType, const string& aSource) const noexcept {
+		return slot && (*slot).type == aType && (*slot).source == aSource;
+	}
+	bool hasSlotSource(const string& aSource) const noexcept {
+		return slot && (*slot).source == aSource;
+	}
 	
 	const BufferedSocket* getSocket() const noexcept { return socket; }
 

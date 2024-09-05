@@ -58,6 +58,7 @@ namespace dcpp {
 
 namespace bimaps = boost::bimaps;
 
+class MemoryInputStream;
 class UserConnection;
 class QueueLoader;
 struct SearchQueueInfo;
@@ -82,7 +83,7 @@ public:
 	ActionHook<nullptr_t, const HintedUser& /*aUser*/> sourceValidationHook;
 
 	// Add all queued TTHs in the supplied bloom filter
-	void getBloom(HashBloom& bloom) const noexcept;
+	// void getBloom(HashBloom& bloom) const noexcept;
 
 	// Get the total number of queued bundle files
 	size_t getQueuedBundleFiles() const noexcept;
@@ -114,8 +115,16 @@ public:
 	// Change bundle to use sequential order (instead of random order)
 	void onUseSeqOrder(const BundlePtr& aBundle) noexcept;
 
+	struct QueueMatchResults {
+		int matchingFiles = 0;
+		int newFiles = 0;
+		BundleList bundles;
+
+		string format() const noexcept;
+	};
+
 	/** Add a directory to the queue (downloads filelist and matches the directory). */
-	void matchListing(const DirectoryListing& dl, int& matchingFiles_, int& newFiles_, BundleList& bundles_) noexcept;
+	QueueMatchResults matchListing(const DirectoryListing& dl) noexcept;
 
 	QueueItemList findFiles(const TTHValue& tth) const noexcept;
 	QueueItemPtr findFile(QueueToken aToken) const noexcept { RLock l(cs); return fileQueue.findFile(aToken); }
@@ -274,7 +283,7 @@ public:
 	bool addPartialSourceHooked(const HintedUser& aUser, const QueueItemPtr& aQI, const PartsInfo& aInPartialInfo) noexcept;
 	void getPartialInfo(const QueueItemPtr& aQI, PartsInfo& partialInfo_) const noexcept;
 
-	void toRealWithSize(const string& aVirtualPath, string& path_, int64_t& size_, const Segment& segment_);
+	// void toRealWithSize(const string& aVirtualPath, string& path_, int64_t& size_, const Segment& segment_);
 
 	// Queue a TTH list from the user containing the supplied TTH
 	// Throws on errors
@@ -350,7 +359,7 @@ public:
 	// Check if there are finished chuncks for the TTH
 	// Gets various information about the actual file and the length of downloaded segment
 	// Used for partial file sharing checks
-	bool isChunkDownloaded(const TTHValue& tth, int64_t startPos, int64_t& bytes, int64_t& fileSize_, string& tempTarget) noexcept;
+	bool isChunkDownloaded(const TTHValue& tth, const Segment* aSegment, int64_t& fileSize_, string& tempTarget) noexcept;
 
 	DupeType isFileQueued(const TTHValue& aTTH) const noexcept { RLock l(cs); return fileQueue.isFileQueued(aTTH); }
 

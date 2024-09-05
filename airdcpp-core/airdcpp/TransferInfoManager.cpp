@@ -54,7 +54,7 @@ namespace dcpp {
 	}
 
 	TransferInfoPtr TransferInfoManager::onTick(const Transfer* aTransfer, bool aIsDownload) noexcept {
-		auto t = findTransfer(aTransfer->getToken());
+		auto t = findTransfer(aTransfer->getConnectionToken());
 		if (!t) {
 			return nullptr;
 		}
@@ -255,7 +255,7 @@ namespace dcpp {
 	}
 
 	void TransferInfoManager::on(DownloadManagerListener::Failed, const Download* aDownload, const string& aReason) noexcept {
-		auto t = findTransfer(aDownload->getToken());
+		auto t = findTransfer(aDownload->getConnectionToken());
 		if (!t) {
 			return;
 		}
@@ -323,7 +323,7 @@ namespace dcpp {
 	}
 
 	void TransferInfoManager::starting(const Download* aDownload, const string& aStatus, bool aFullUpdate) noexcept {
-		auto t = findTransfer(aDownload->getToken());
+		auto t = findTransfer(aDownload->getConnectionToken());
 		if (!t) {
 			return;
 		}
@@ -358,7 +358,7 @@ namespace dcpp {
 	}
 
 	void TransferInfoManager::on(UploadManagerListener::Starting, const Upload* aUpload) noexcept {
-		auto t = findTransfer(aUpload->getToken());
+		auto t = findTransfer(aUpload->getConnectionToken());
 		if (!t) {
 			return;
 		}
@@ -394,7 +394,7 @@ namespace dcpp {
 	}
 
 	void TransferInfoManager::onTransferCompleted(const Transfer* aTransfer, bool aIsDownload) noexcept {
-		auto t = findTransfer(aTransfer->getToken());
+		auto t = findTransfer(aTransfer->getConnectionToken());
 		if (!t) {
 			return;
 		}

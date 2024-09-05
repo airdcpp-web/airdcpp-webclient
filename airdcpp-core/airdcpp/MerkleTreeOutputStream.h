@@ -19,8 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_MERKLE_TREE_OUTPUT_STREAM_H
 #define DCPLUSPLUS_DCPP_MERKLE_TREE_OUTPUT_STREAM_H
 
-#include "Streams.h"
 #include "MerkleTree.h"
+#include "StreamBase.h"
 
 namespace dcpp {
 

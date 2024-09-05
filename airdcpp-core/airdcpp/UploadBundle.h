@@ -34,7 +34,7 @@ using std::string;
 
 class UploadBundle : public intrusive_ptr_base<UploadBundle> {
 public:
-	typedef StringSet BundleUploadList;
+	typedef set<TransferToken> BundleUploadList;
 
 	UploadBundle(const string& aTarget, const string& aToken, int64_t aSize, bool aSingleUser, int64_t aUploaded);
 	~UploadBundle();

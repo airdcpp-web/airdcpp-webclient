@@ -16,19 +16,15 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef DCPLUSPLUS_DCPP_AIRUTIL_H
-#define DCPLUSPLUS_DCPP_AIRUTIL_H
+#ifndef DCPLUSPLUS_DCPP_AUTOLIMIT_UTIL_H
+#define DCPLUSPLUS_DCPP_AUTOLIMIT_UTIL_H
 
 #include "compiler.h"
 
-#include "Priority.h"
 #include "SettingsManager.h"
 
 namespace dcpp {
-
-class AirUtil {
-	
-public:
+#ifdef _DEBUG
 	class TimeCounter {
 	public:
 		TimeCounter(string aMsg);
@@ -37,17 +33,17 @@ public:
 		time_t start;
 		string msg;
 	};
+#endif
 
+class AutoLimitUtil {
+	
+public:
 	static int getSlotsPerUser(bool download, double value=0, int aSlots=0, SettingsManager::SettingProfile aProfile = static_cast<SettingsManager::SettingProfile>(SETTING(SETTINGS_PROFILE)));
 	static int getSlots(bool download, double value=0, SettingsManager::SettingProfile aProfile = static_cast<SettingsManager::SettingProfile>(SETTING(SETTINGS_PROFILE)));
 
 	// Maximum wanted download/upload speed. Uses set connection values by default.
 	static int getSpeedLimitKbps(bool download, double value=0);
 	static int getMaxAutoOpened(double value = 0);
-
-	static string getPrioText(Priority aPriority) noexcept;
-
-	static string formatMatchResults(int aMatchingFiles, int aNewFiles, const BundleList& aBundles) noexcept;
 };
 
 }
