@@ -21,7 +21,7 @@
 #include <web-server/ApiSettingItem.h>
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/AirUtil.h>
+#include <airdcpp/AutoLimitUtil.h>
 #include <airdcpp/ConnectionManager.h>
 #include <airdcpp/ConnectivityManager.h>
 #include <airdcpp/Localization.h>
@@ -330,15 +330,15 @@ namespace webserver {
 			case SettingsManager::IP_UPDATE6: 
 			case SettingsManager::NO_IP_OVERRIDE6: return ConnectivityManager::getInstance()->get(static_cast<SettingsManager::BoolSetting>(si.key));
 
-			case SettingsManager::DOWNLOAD_SLOTS: return AirUtil::getSlots(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
-			case SettingsManager::MAX_DOWNLOAD_SPEED: return AirUtil::getSpeedLimitKbps(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
+			case SettingsManager::DOWNLOAD_SLOTS: return AutoLimitUtil::getSlots(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
+			case SettingsManager::MAX_DOWNLOAD_SPEED: return AutoLimitUtil::getSpeedLimitKbps(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
 
-			case SettingsManager::UPLOAD_SLOTS: return AirUtil::getSlots(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
-			case SettingsManager::MIN_UPLOAD_SPEED: return AirUtil::getSpeedLimitKbps(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
-			case SettingsManager::AUTO_SLOTS: return AirUtil::getMaxAutoOpened(Util::toDouble(SETTING(UPLOAD_SPEED)));
+			case SettingsManager::UPLOAD_SLOTS: return AutoLimitUtil::getSlots(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
+			case SettingsManager::MIN_UPLOAD_SPEED: return AutoLimitUtil::getSpeedLimitKbps(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
+			case SettingsManager::AUTO_SLOTS: return AutoLimitUtil::getMaxAutoOpened(Util::toDouble(SETTING(UPLOAD_SPEED)));
 
-			case SettingsManager::MAX_MCN_DOWNLOADS: return AirUtil::getSlotsPerUser(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
-			case SettingsManager::MAX_MCN_UPLOADS: return AirUtil::getSlotsPerUser(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
+			case SettingsManager::MAX_MCN_DOWNLOADS: return AutoLimitUtil::getSlotsPerUser(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
+			case SettingsManager::MAX_MCN_UPLOADS: return AutoLimitUtil::getSlotsPerUser(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
 		}
 
 		return ApiSettingItem::getAutoValue();

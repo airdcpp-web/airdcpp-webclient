@@ -40,6 +40,7 @@
 #include <airdcpp/ShareManager.h>
 #include <airdcpp/SharePathValidator.h>
 #include <airdcpp/StringTokenizer.h>
+#include <airdcpp/TempShareManager.h>
 #include <airdcpp/ValueGenerator.h>
 
 namespace webserver {
@@ -205,12 +206,12 @@ namespace webserver {
 		int64_t totalSize = 0;
 		aDirectory->getContentInfo(totalSize, contentInfo);
 
-		auto realPath = aDirectory->getRealPath();
+		auto realPath = aDirectory->getRealPathUnsafe();
 		return {
 			{ "id", ValueGenerator::generatePathId(realPath) },
 			{ "name", aDirectory->getRealName().getNormal() },
 			{ "path", realPath },
-			{ "virtual_path", aDirectory->getAdcPath() },
+			{ "virtual_path", aDirectory->getAdcPathUnsafe() },
 			{ "size", totalSize },
 			{ "tth", Util::emptyString },
 			{ "time", aDirectory->getLastWrite() },
@@ -299,8 +300,9 @@ namespace webserver {
 		
 		{
 			unique_ptr<SearchQuery> matcher(SearchQuery::getSearch(s));
+			ShareSearch search(*matcher, profile, nullptr, s->path);
 			try {
-				ShareManager::getInstance()->search(results, *matcher, profile, nullptr, s->path);
+				ShareManager::getInstance()->search(results, search);
 			} catch (...) {}
 		}
 
@@ -389,7 +391,7 @@ namespace webserver {
 		}
 
 		auto shareProfileToken = optionalClient ? optionalClient->get(HubSettings::ShareProfile) : SETTING(DEFAULT_SP);
-		auto item = ShareManager::getInstance()->addTempShare(tth, name, filePath, size, shareProfileToken, user);
+		auto item = TempShareManager::getInstance()->addTempShare(tth, name, filePath, size, shareProfileToken, user);
 
 		aRequest.setResponseBody({
 			{ "magnet", Magnet::makeMagnet(tth, name, size) },
@@ -401,7 +403,7 @@ namespace webserver {
 
 	api_return ShareApi::handleRemoveTempShare(ApiRequest& aRequest) {
 		auto token = aRequest.getTokenParam();
-		if (!ShareManager::getInstance()->removeTempShare(token)) {
+		if (!TempShareManager::getInstance()->removeTempShare(token)) {
 			aRequest.setResponseErrorStr("Temp share item " + Util::toString(token) + " was not found");
 			return websocketpp::http::status_code::bad_request;
 		}
@@ -413,7 +415,7 @@ namespace webserver {
 		return {
 			{ "id", aInfo.id },
 			{ "name", aInfo.name },
-			{ "path", aInfo.path },
+			{ "path", aInfo.realPath },
 			{ "size", aInfo.size },
 			{ "tth", aInfo.tth.toBase32() },
 			{ "time_added", aInfo.timeAdded },
@@ -423,7 +425,7 @@ namespace webserver {
 	}
 
 	api_return ShareApi::handleGetTempShares(ApiRequest& aRequest) {
-		const auto tempShares = ShareManager::getInstance()->getTempShares();
+		const auto tempShares = TempShareManager::getInstance()->getTempShares();
 
 		aRequest.setResponseBody(Serializer::serializeList(tempShares, serializeTempShare));
 		return websocketpp::http::status_code::ok;
@@ -469,13 +471,13 @@ namespace webserver {
 	}
 
 
-	void ShareApi::on(ShareManagerListener::TempFileAdded, const TempShareInfo& aFile) noexcept {
+	void ShareApi::on(TempShareManagerListener::TempFileAdded, const TempShareInfo& aFile) noexcept {
 		maybeSend("share_temp_item_added", [&] {
 			return serializeTempShare(aFile);
 		});
 	}
 
-	void ShareApi::on(ShareManagerListener::TempFileRemoved, const TempShareInfo& aFile) noexcept {
+	void ShareApi::on(TempShareManagerListener::TempFileRemoved, const TempShareInfo& aFile) noexcept {
 		maybeSend("share_temp_item_removed", [&] {
 			return serializeTempShare(aFile);
 		});

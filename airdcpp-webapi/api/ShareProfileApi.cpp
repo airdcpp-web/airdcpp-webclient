@@ -24,6 +24,7 @@
 #include <web-server/JsonUtil.h>
 
 #include <airdcpp/ShareManager.h>
+#include <airdcpp/ShareProfileManager.h>
 
 namespace webserver {
 	ShareProfileApi::ShareProfileApi(Session* aSession) : 
@@ -35,7 +36,8 @@ namespace webserver {
 				"share_profile_updated", 
 				"share_profile_removed" 
 			}
-		) 
+		),
+		mgr(ShareManager::getInstance()->getProfileMgr())
 	{
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(),										ShareProfileApi::handleGetProfiles);
 
@@ -47,11 +49,11 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(TOKEN_PARAM),							ShareProfileApi::handleRemoveProfile);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(TOKEN_PARAM, EXACT_PARAM("default")),	ShareProfileApi::handleSetDefaultProfile);
 
-		ShareManager::getInstance()->addListener(this);
+		mgr.addListener(this);
 	}
 
 	ShareProfileApi::~ShareProfileApi() {
-		ShareManager::getInstance()->removeListener(this);
+		mgr.removeListener(this);
 	}
 
 	json ShareProfileApi::serializeShareProfile(const ShareProfilePtr& aProfile) noexcept {
@@ -71,7 +73,7 @@ namespace webserver {
 
 	ShareProfilePtr ShareProfileApi::parseProfileToken(ApiRequest& aRequest, bool aAllowHidden) {
 		auto profileId = aRequest.getTokenParam();
-		auto profile = ShareManager::getInstance()->getShareProfile(profileId);
+		auto profile = mgr.getShareProfile(profileId);
 		if (!profile) {
 			throw RequestException(websocketpp::http::status_code::not_found, "Share profile " + Util::toString(profileId) + " was not found");
 		}
@@ -90,7 +92,7 @@ namespace webserver {
 	}
 
 	api_return ShareProfileApi::handleGetDefaultProfile(ApiRequest& aRequest) {
-		auto profile = ShareManager::getInstance()->getShareProfile(SETTING(DEFAULT_SP));
+		auto profile = mgr.getShareProfile(SETTING(DEFAULT_SP));
 		if (!profile) {
 			return websocketpp::http::status_code::internal_server_error;
 		}
@@ -102,28 +104,28 @@ namespace webserver {
 	api_return ShareProfileApi::handleSetDefaultProfile(ApiRequest& aRequest) {
 		auto profile = parseProfileToken(aRequest, true);
 
-		ShareManager::getInstance()->setDefaultProfile(profile->getToken());
+		mgr.setDefaultProfile(profile->getToken());
 		return websocketpp::http::status_code::no_content;
 	}
 
-	void ShareProfileApi::on(ShareManagerListener::ProfileAdded, ProfileToken aProfile) noexcept {
+	void ShareProfileApi::on(ShareProfileManagerListener::ProfileAdded, ProfileToken aProfile) noexcept {
 		maybeSend("share_profile_added", [&] {
-			return serializeShareProfile(ShareManager::getInstance()->getShareProfile(aProfile));
+			return serializeShareProfile(mgr.getShareProfile(aProfile));
 		});
 	}
 
-	void ShareProfileApi::on(ShareManagerListener::ProfileUpdated, ProfileToken aProfile, bool aIsMajorChange) noexcept {
+	void ShareProfileApi::on(ShareProfileManagerListener::ProfileUpdated, ProfileToken aProfile, bool aIsMajorChange) noexcept {
 		if (!aIsMajorChange) {
 			// Don't spam when files are hashed
 			return;
 		}
 
 		maybeSend("share_profile_updated", [&] {
-			return serializeShareProfile(ShareManager::getInstance()->getShareProfile(aProfile));
+			return serializeShareProfile(mgr.getShareProfile(aProfile));
 		});
 	}
 
-	void ShareProfileApi::on(ShareManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept {
+	void ShareProfileApi::on(ShareProfileManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept {
 		maybeSend("share_profile_removed", [&] {
 			return json({ "id", aProfile });
 		});
@@ -132,7 +134,7 @@ namespace webserver {
 	void ShareProfileApi::updateProfileProperties(ShareProfilePtr& aProfile, const json& j) {
 		auto name = JsonUtil::getField<string>("name", j, false);
 
-		auto token = ShareManager::getInstance()->getProfileByName(name);
+		auto token = mgr.getProfileByName(name);
 		if (token && token != aProfile->getToken()) {
 			JsonUtil::throwError("name", JsonUtil::ERROR_EXISTS, "Profile with the same name exists");
 		}
@@ -146,7 +148,7 @@ namespace webserver {
 		auto profile = std::make_shared<ShareProfile>();
 		updateProfileProperties(profile, reqJson);
 
-		ShareManager::getInstance()->addProfile(profile);
+		mgr.addProfile(profile);
 
 		aRequest.setResponseBody(serializeShareProfile(profile));
 		return websocketpp::http::status_code::ok;
@@ -158,7 +160,7 @@ namespace webserver {
 		auto profile = parseProfileToken(aRequest, false);
 
 		updateProfileProperties(profile, reqJson);
-		ShareManager::getInstance()->updateProfile(profile);
+		mgr.updateProfile(profile);
 
 		aRequest.setResponseBody(serializeShareProfile(profile));
 		return websocketpp::http::status_code::ok;
@@ -171,12 +173,12 @@ namespace webserver {
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		ShareManager::getInstance()->removeProfile(profile->getToken());
+		mgr.removeProfile(profile->getToken());
 		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return ShareProfileApi::handleGetProfiles(ApiRequest& aRequest) {
-		auto profiles = ShareManager::getInstance()->getProfiles();
+		auto profiles = mgr.getProfiles();
 
 		auto j = Serializer::serializeList(profiles, serializeShareProfile);
 		aRequest.setResponseBody(j);
