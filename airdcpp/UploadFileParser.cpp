@@ -162,6 +162,10 @@ Upload* UploadParser::toUpload(UserConnection& aSource, const UploadRequest& aRe
 		if (!mis.get()) {
 			return nullptr;
 		}
+
+		startPos = 0;
+		fileSize = bytes = mis->getSize();
+		is = std::move(mis);
 		break;
 	}
 	case Transfer::TYPE_PARTIAL_LIST: {
@@ -184,6 +188,7 @@ Upload* UploadParser::toUpload(UserConnection& aSource, const UploadRequest& aRe
 
 	// Upload
 	// auto size = is->getSize();
+	dcassert(is);
 	auto u = new Upload(aSource, sourceFile, TTHValue(), std::move(is));
 	u->setSegment(Segment(startPos, bytes));
 	if (u->getSegment().getEnd() != fileSize) {

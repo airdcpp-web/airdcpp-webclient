@@ -755,6 +755,7 @@ OnlineUserPtr ClientManager::findOnlineUser(const CID& cid, const string& hintUr
 }
 
 ClientManager::ConnectResult ClientManager::connect(const HintedUser& aUser, const string& aToken, bool aAllowUrlChange, ConnectionType aConnType) const noexcept {
+	dcassert(aAllowUrlChange || !aUser.hint.empty());
 	ConnectResult result;
 
 	RLock l(cs);
@@ -807,6 +808,7 @@ ClientManager::ConnectResult ClientManager::connect(const HintedUser& aUser, con
 	}
 
 	if (!aAllowUrlChange) {
+		result.onMinorError(STRING(USER_OFFLINE));
 		return result;
 	}
 

@@ -1660,6 +1660,7 @@ enum Strings { // @DontAdd
 	TYPE_CONTENT, // "Type/Content"
 	TYPE_FILE_LIST, // "file list"
 	TYPE_FILE_LIST_PARTIAL, // "file list partial"
+	TYPE_TTHLIST, // "tth list"
 	TiB, // "TiB"
 	UC_SUBMENU, // "Place user commands to submenu"
 	UL_STATUS_POPUP, // "Upload speed - click to adjust limiter value"

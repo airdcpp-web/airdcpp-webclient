@@ -51,6 +51,10 @@ struct QueueDownloadResultBase {
 
 // Queue results
 struct QueueDownloadResult : QueueDownloadResultBase {
+	QueueDownloadResult(const string& aHubHint) {
+		hubHint = aHubHint;
+	}
+
 	// Whether the returned hubHint should be strictly followed (e.g. a filelist download)
 	bool allowUrlChange = true;
 
