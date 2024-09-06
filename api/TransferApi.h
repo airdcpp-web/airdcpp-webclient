@@ -26,9 +26,7 @@
 
 #include <airdcpp/typedefs.h>
 
-#include <airdcpp/TransferInfo.h>
-
-#include <airdcpp/TransferInfoManager.h>
+#include <airdcpp/TransferInfoManagerListener.h>
 
 
 namespace webserver {

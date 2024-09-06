@@ -29,6 +29,7 @@
 #include <airdcpp/ConnectionManager.h>
 #include <airdcpp/QueueManager.h>
 #include <airdcpp/ThrottleManager.h>
+#include <airdcpp/TransferInfoManager.h>
 #include <airdcpp/UploadManager.h>
 
 
