@@ -1346,10 +1346,9 @@ QueueDownloadResult QueueManager::startDownload(const HintedUser& aUser, QueueDo
 				result.hubHint = *aOnlineHubs.begin();
 			}
 
-			result.allowUrlChange = !qi->isSet(QueueItem::FLAG_USER_LIST);
+			result.allowUrlChange = qi->allowUrlChange();
 
-			auto isFilelist = qi->isSet(QueueItem::FLAG_USER_LIST) && !qi->isSet(QueueItem::FLAG_TTHLIST_BUNDLE);
-			qi->getSource(aUser)->updateDownloadHubUrl(aOnlineHubs, result.hubHint, isFilelist);
+			qi->getSource(aUser)->updateDownloadHubUrl(aOnlineHubs, result.hubHint, result.allowUrlChange);
 		}
 	}
 
@@ -2887,8 +2886,9 @@ void QueueManager::on(ClientManagerListener::UserConnected, const OnlineUser& aU
 
 		for(const auto& q: ql) {
 			fire(QueueManagerListener::ItemSources(), q);
-			if(!hasDown && !q->isPausedPrio() && !q->isHubBlocked(aUser.getUser(), aUser.getHubUrl()))
+			if (!hasDown && !q->isPausedPrio() && q->validateHub(aUser.getUser(), aUser.getHubUrl())) {
 				hasDown = true;
+			}
 		}
 
 		for (const auto& b : bl) 

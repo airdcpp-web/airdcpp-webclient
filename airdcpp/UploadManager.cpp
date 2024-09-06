@@ -222,7 +222,7 @@ OptionalUploadSlot UploadManager::parseSlotHookedThrow(const UserConnection& aSo
 	}
 
 	// Existing uploader and no new connections allowed?
-	if (isUploadingMCN(aSource.getUser()) && !allowNewMultiConn(aSource)) {
+	if (!aParser.usesSmallSlot() && isUploadingMCN(aSource.getUser()) && !allowNewMultiConn(aSource)) {
 		dcdebug("UploadManager::parseSlotType: new MCN connections not allowed for %s\n", aSource.getToken().c_str());
 		return nullopt;
 	}
@@ -423,7 +423,7 @@ bool UploadManager::allowNewMultiConn(const UserConnection& aSource) const noexc
 
 				// Check per user limits
 				auto totalMcnSlots = AutoLimitUtil::getSlotsPerUser(false);
-				if (totalMcnSlots > 0 && newUserConnCount >= totalMcnSlots) {
+				if (totalMcnSlots > 0 && newUserConnCount > totalMcnSlots) {
 					return false;
 				}
 

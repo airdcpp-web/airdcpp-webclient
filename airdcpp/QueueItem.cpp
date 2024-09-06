@@ -300,9 +300,9 @@ void QueueItem::blockSourceHub(const HintedUser& aUser) noexcept {
 	s->addBlockedHub(aUser.hint);
 }
 
-bool QueueItem::isHubBlocked(const UserPtr& aUser, const string& aUrl) const noexcept {
+bool QueueItem::validateHub(const UserPtr& aUser, const string& aUrl) const noexcept {
 	auto s = getSource(aUser);
-	return !s->getBlockedHubs().empty() && s->getBlockedHubs().find(aUrl) != s->getBlockedHubs().end();
+	return s->validateHub(aUrl, allowUrlChange());
 }
 
 void QueueItem::removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept {
@@ -652,20 +652,32 @@ void QueueItem::getChunksVisualisation(vector<Segment>& running_, vector<Segment
 	}
 }
 
-bool QueueItem::Source::matchesDownloadQuery(const QueueDownloadQuery& aQuery, string& lastError_) const noexcept {
+bool QueueItem::allowUrlChange() const noexcept {
+	return !isSet(QueueItem::FLAG_USER_LIST) || isSet(QueueItem::FLAG_TTHLIST_BUNDLE);
+}
+
+bool QueueItem::Source::validateHub(const OrderedStringSet& aOnlineHubs, bool aAllowUrlChange, string& lastError_) const noexcept {
 	// Only blocked hubs?
-	if (!blockedHubs.empty() && includes(blockedHubs.begin(), blockedHubs.end(), aQuery.onlineHubs.begin(), aQuery.onlineHubs.end())) {
+	if (!blockedHubs.empty() && includes(blockedHubs.begin(), blockedHubs.end(), aOnlineHubs.begin(), aOnlineHubs.end())) {
 		lastError_ = STRING(NO_ACCESS_ONLINE_HUBS);
 		return false;
 	}
 
 	// Can't download a filelist if the hub is offline... don't be too strict with NMDC hubs
-	if (!aQuery.user->isSet(User::NMDC) && (isSet(FLAG_USER_LIST) && !isSet(FLAG_TTHLIST_BUNDLE)) && aQuery.onlineHubs.find(user.hint) == aQuery.onlineHubs.end()) {
-		lastError_ = STRING(USER_OFFLINE);
-		return false;
+	if (!user.user->isSet(User::NMDC)) {
+		if (!aAllowUrlChange && aOnlineHubs.find(user.hint) == aOnlineHubs.end()) {
+			lastError_ = STRING(USER_OFFLINE);
+			return false;
+		}
 	}
 
 	return true;
+}
+
+bool QueueItem::Source::validateHub(const string& aHubUrl, bool aAllowUrlChange) const noexcept {
+	string lastError;
+	OrderedStringSet onlineHubs({ aHubUrl });
+	return validateHub(onlineHubs, aAllowUrlChange, lastError);
 }
 
 bool QueueItem::matchesDownloadType(QueueDownloadType aType) const noexcept {
@@ -701,7 +713,7 @@ bool QueueItem::hasSegment(const QueueDownloadQuery& aQuery, string& lastError_,
 	auto source = getSource(aQuery.user);
 
 	// Check source
-	if (!source->matchesDownloadQuery(aQuery, lastError_)) {
+	if (!source->validateHub(aQuery.onlineHubs, allowUrlChange(), lastError_)) {
 		return false;
 	}
 
@@ -887,8 +899,8 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
 	f.write(LIT("</Download>\r\n"));
 }
 
-bool QueueItem::Source::updateDownloadHubUrl(const OrderedStringSet& aOnlineHubs, string& hubUrl_, bool aIsFileList) const noexcept {
-	if (aIsFileList) {
+bool QueueItem::Source::updateDownloadHubUrl(const OrderedStringSet& aOnlineHubs, string& hubUrl_, bool aAllowUrlChange) const noexcept {
+	if (!aAllowUrlChange) {
 		// we already know that the hub is online
 		dcassert(aOnlineHubs.find(user.hint) != aOnlineHubs.end());
 		hubUrl_ = user.hint;
