@@ -30,33 +30,11 @@
 
 #include "ConnectionManagerListener.h"
 #include "DownloadManagerListener.h"
+#include "TransferInfoManagerListener.h"
 #include "UploadManagerListener.h"
 
 
 namespace dcpp {
-	class TransferInfoManagerListener {
-	public:
-		virtual ~TransferInfoManagerListener() { }
-		template<int I>	struct X { enum { TYPE = I }; };
-
-		typedef X<0> Added;
-		typedef X<1> Updated;
-		typedef X<2> Removed;
-		typedef X<3> Failed;
-		typedef X<4> Starting;
-		typedef X<5> Completed;
-		typedef X<6> Tick;
-
-		virtual void on(Added, const TransferInfoPtr&) noexcept { }
-		virtual void on(Updated, const TransferInfoPtr&, int, bool) noexcept {}
-		virtual void on(Removed, const TransferInfoPtr&) noexcept { }
-		virtual void on(Failed, const TransferInfoPtr&) noexcept { }
-		virtual void on(Starting, const TransferInfoPtr&) noexcept { }
-		virtual void on(Completed, const TransferInfoPtr&) noexcept { }
-		virtual void on(Tick, const TransferInfo::List&, int) noexcept { }
-	};
-
-
 	class TransferInfoManager : public Singleton<TransferInfoManager>, public Speaker<TransferInfoManagerListener>, private ConnectionManagerListener, private DownloadManagerListener, private UploadManagerListener {
 	public:
 		TransferInfoManager();

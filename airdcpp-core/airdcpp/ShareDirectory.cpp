@@ -58,7 +58,7 @@ ShareDirectory::File::~File() {
 
 
 
-ShareDirectory::Ptr ShareDirectory::createNormal(DualString&& aRealName, const Ptr& aParent, time_t aLastWrite, ShareDirectory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept {
+ShareDirectory::Ptr ShareDirectory::createNormal(DualString&& aRealName, const Ptr& aParent, time_t aLastWrite, ShareTreeMaps& maps_) noexcept {
 	auto dir = Ptr(new ShareDirectory(std::move(aRealName), aParent, aLastWrite, nullptr));
 
 	if (aParent) {
@@ -68,20 +68,29 @@ ShareDirectory::Ptr ShareDirectory::createNormal(DualString&& aRealName, const P
 		}
 	}
 
-	addDirName(dir, dirNameMap_, bloom);
+	addDirName(dir, maps_.lowerDirNameMap, maps_.getBloom());
 	return dir;
 }
 
 ShareDirectory::Ptr ShareDirectory::createRoot(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming,
-	time_t aLastWrite, Map& rootPaths_, ShareDirectory::MultiMap& dirNameMap_, ShareBloom& bloom, time_t aLastRefreshTime) noexcept
+	time_t aLastWrite, ShareTreeMaps& maps_, time_t aLastRefreshTime) noexcept
 {
 	auto dir = Ptr(new ShareDirectory(PathUtil::getLastDir(aRootPath), nullptr, aLastWrite, ShareRoot::create(aRootPath, aVname, aProfiles, aIncoming, aLastRefreshTime)));
 
-	dcassert(rootPaths_.find(dir->getRealPathUnsafe()) == rootPaths_.end());
-	rootPaths_[dir->getRealPathUnsafe()] = dir;
+	dcassert(maps_.rootPaths.find(dir->getRealPathUnsafe()) == maps_.rootPaths.end());
+	maps_.rootPaths[dir->getRealPathUnsafe()] = dir;
 
-	addDirName(dir, dirNameMap_, bloom);
+	addDirName(dir, maps_.lowerDirNameMap, maps_.getBloom());
 	return dir;
+}
+
+ShareDirectory::Ptr ShareDirectory::cloneRoot(const Ptr& aOldRoot, time_t aLastWrite, ShareTreeMaps& maps_) noexcept {
+	auto root = aOldRoot->getRoot();
+	return ShareDirectory::createRoot(
+		root->getPath(), root->getName(),
+		root->getRootProfiles(), root->getIncoming(),
+		aLastWrite, maps_, root->getLastRefreshTime()
+	);
 }
 
 bool ShareDirectory::setParent(const ShareDirectory::Ptr& aDirectory, const ShareDirectory::Ptr& aParent) noexcept {
@@ -145,19 +154,19 @@ const string& ShareDirectory::getVirtualNameLower() const noexcept {
 	return realName.getLower();
 }
 
-void ShareDirectory::addFile(DualString&& aName, const HashedFile& aFileInfo, ShareDirectory::File::TTHMap& tthIndex_, ShareBloom& aBloom_, int64_t& sharedSize_, ProfileTokenSet* dirtyProfiles_) noexcept {
+void ShareDirectory::addFile(DualString&& aName, const HashedFile& aFileInfo, ShareTreeMaps& maps_, int64_t& sharedSize_, ProfileTokenSet* dirtyProfiles_) noexcept {
 	{
 		auto i = files.find(aName.getLower());
 		if (i != files.end()) {
 			// Get rid of false constness...
-			(*i)->cleanIndices(sharedSize_, tthIndex_);
+			(*i)->cleanIndices(sharedSize_, maps_.tthIndex);
 			delete* i;
 			files.erase(i);
 		}
 	}
 
 	auto it = files.insert_sorted(new ShareDirectory::File(std::move(aName), this, aFileInfo)).first;
-	(*it)->updateIndices(aBloom_, sharedSize_, tthIndex_);
+	(*it)->updateIndices(maps_.getBloom(), sharedSize_, maps_.tthIndex);
 
 	if (dirtyProfiles_) {
 		copyRootProfiles(*dirtyProfiles_, true);

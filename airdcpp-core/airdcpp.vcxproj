@@ -372,6 +372,7 @@
     <ClInclude Include="airdcpp\FavoriteUserManager.h" />
     <ClInclude Include="airdcpp\FavoriteUserManagerListener.h" />
     <ClInclude Include="airdcpp\FloodCounter.h" />
+    <ClInclude Include="airdcpp\TransferInfoManagerListener.h" />
     <ClInclude Include="airdcpp\UploadFileParser.h" />
     <ClInclude Include="airdcpp\UploadFileProvider.h" />
     <ClInclude Include="airdcpp\HasherManager.h" />

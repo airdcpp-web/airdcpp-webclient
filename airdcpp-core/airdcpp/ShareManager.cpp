@@ -155,7 +155,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 		curDirPath(aOldRoot->getRoot()->getPath()),
 		curDirPathLower(aOldRoot->getRoot()->getPathLower())
 	{ 
-		cur = newShareDirectory;
+		cur = newDirectory;
 	}
 
 
@@ -167,7 +167,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 			if (!name.empty()) {
 				curDirPath += name + PATH_SEPARATOR;
 
-				cur = ShareDirectory::createNormal(name, cur, Util::toTimeT(date), lowerDirNameMapNew, bloom);
+				cur = ShareDirectory::createNormal(name, cur, Util::toTimeT(date), *this);
 				if (!cur) {
 					throw Exception("Duplicate directory name");
 				}
@@ -191,7 +191,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 				DualString name(fname);
 				HashedFile fi;
 				HashManager::getInstance()->getFileInfo(curDirPathLower + name.getLower(), curDirPath + fname, fi);
-				cur->addFile(std::move(name), fi, tthIndexNew, bloom, stats.addedSize);
+				cur->addFile(std::move(name), fi, *this, stats.addedSize);
 			} catch(Exception& e) {
 				stats.hashSize += File::getSize(curDirPath + fname);
 				dcdebug("Error loading shared file %s \n", e.getError().c_str());
@@ -416,6 +416,10 @@ ShareProfileList ShareManager::getProfiles() const noexcept {
 }
 
 void ShareManager::getProfileInfo(ProfileToken aProfile, int64_t& totalSize_, size_t& filesCount_) const noexcept {
+	if (aProfile == SP_HIDDEN) {
+		return;
+	}
+
 	auto sp = getShareProfile(aProfile);
 	if (!sp)
 		return;
@@ -535,7 +539,10 @@ string ShareManager::realToVirtualAdc(const string& aPath, const OptionalProfile
 }
 
 int64_t ShareManager::getTotalShareSize(ProfileToken aProfile) const noexcept {
-	return tree->getTotalShareSize(aProfile);
+	int64_t totalSize = 0;
+	size_t fileCount = 0;
+	getProfileInfo(aProfile, totalSize, fileCount);
+	return totalSize;
 }
 
 DupeType ShareManager::getAdcDirectoryDupe(const string& aAdcPath, int64_t aSize) const noexcept {
@@ -624,7 +631,7 @@ ShareManager::RefreshTaskHandler::ShareBuilder::ShareBuilder(const string& aPath
 
 bool ShareManager::RefreshTaskHandler::ShareBuilder::buildTree(const bool& aStopping) noexcept {
 	try {
-		buildTree(path, Text::toLower(path), newShareDirectory, oldShareDirectory, aStopping);
+		buildTree(path, Text::toLower(path), newDirectory, optionalOldDirectory, aStopping);
 	} catch (const std::bad_alloc&) {
 		log(STRING_F(DIR_REFRESH_FAILED, path % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		return false;
@@ -696,7 +703,7 @@ void ShareManager::RefreshTaskHandler::ShareBuilder::buildTree(const string& aPa
 			}
 
 			// Add it
-			auto curDir = ShareDirectory::createNormal(std::move(dualName), aParent, i->getLastWriteTime(), lowerDirNameMapNew, bloom);
+			auto curDir = ShareDirectory::createNormal(std::move(dualName), aParent, i->getLastWriteTime(), *this);
 			if (curDir) {
 				buildTree(curPath, curPathLower, curDir, oldDir, aStopping);
 				if (checkContent(curDir)) {
@@ -738,7 +745,7 @@ void ShareManager::RefreshTaskHandler::ShareBuilder::buildTree(const string& aPa
 			try {
 				HashedFile fi(i->getLastWriteTime(), size);
 				if(HashManager::getInstance()->checkTTH(aPathLower + dualName.getLower(), aPath + name, fi)) {
-					aParent->addFile(std::move(dualName), fi, tthIndexNew, bloom, stats.addedSize);
+					aParent->addFile(std::move(dualName), fi, *this, stats.addedSize);
 				} else {
 					stats.hashSize += size;
 				}
@@ -808,18 +815,14 @@ RefreshTaskQueueInfo ShareManager::refreshPathsHookedThrow(ShareRefreshPriority 
 }
 
 bool ShareManager::handleRefreshPath(const string& aRefreshPath, const ShareRefreshTask& aTask, ShareRefreshStats& totalStats, ShareBloom* bloom_, ProfileTokenSet& dirtyProfiles_) noexcept {
-	ShareDirectory::Ptr directory = nullptr;
+	ShareDirectory::Ptr optionalOldDirectory = nullptr;
 
 	{
 		RLock l(tree->getCS());
-		directory = tree->findDirectoryUnsafe(aRefreshPath);
+		optionalOldDirectory = tree->findDirectoryUnsafe(aRefreshPath);
 	}
 
-	if (!directory) {
-		return false;
-	}
-
-	auto ri = RefreshTaskHandler::ShareBuilder(aRefreshPath, directory, File::getLastModified(aRefreshPath), *bloom_, this);
+	auto ri = RefreshTaskHandler::ShareBuilder(aRefreshPath, optionalOldDirectory, File::getLastModified(aRefreshPath), *bloom_, this);
 	setRefreshState(ri.path, ShareRootRefreshState::STATE_RUNNING, false, aTask.token);
 
 	// Build the tree

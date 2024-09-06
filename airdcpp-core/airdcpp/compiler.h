@@ -26,9 +26,9 @@
 #endif
 
 #elif defined(__GNUC__)
-
-#if __GNUC__ < 8
-#error GCC 8.0 is required
+// NOTE: also defined by GCC, always check __clang__ first
+#if __GNUC__ < 12
+#error GCC 12.0 is required
 #endif
 
 #ifdef _WIN32

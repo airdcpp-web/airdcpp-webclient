@@ -43,7 +43,7 @@ class ShareRefreshInfo;
 
 #define SHARE_CACHE_VERSION "3"
 
-class ShareTree : public UploadFileProvider {
+class ShareTree : public UploadFileProvider, private ShareTreeMaps {
 public:
 	// Mostly for dupe check with size comparison (partial/exact dupe)
 	// You may also give a path in NMDC format and the relevant 
@@ -63,8 +63,6 @@ public:
 
 	// Throws ShareException
 	AdcCommand getFileInfo(const TTHValue& aTTH) const;
-
-	int64_t getTotalShareSize(ProfileToken aProfile) const noexcept;
 
 	// Removes path characters from virtual name
 	string validateVirtualName(const string& aName) const noexcept;
@@ -183,14 +181,6 @@ private:
 
 	ShareDirectoryInfoPtr getRootInfoUnsafe(const ShareDirectory::Ptr& aDir) const noexcept;
 
-	HashFileMap tthIndex;
-
-	// Map real name to virtual name - multiple real names may be mapped to a single virtual one
-	ShareDirectory::Map rootPaths;
-
-	// All directory names cached for easy lookups
-	ShareDirectory::MultiMap lowerDirNameMap;
-
 	bool addDirectoryResultUnsafe(const ShareDirectory* aDir, SearchResultList& aResults, const OptionalProfileToken& aProfile, SearchQuery& srch) const noexcept;
 
 	// Get root directories matching the provided token
@@ -206,6 +196,7 @@ private:
 	ShareDirectory::File* findFileUnsafe(const string& aPath) const noexcept;
 
 	void getRootsUnsafe(const OptionalProfileToken& aProfile, ShareDirectory::List& dirs_) const noexcept;
+	ShareDirectory::Ptr findRootUnsafe(const string& aPath) const noexcept;
 	
 	// Get directories matching the virtual path (root path is not accepted here)
 	// Can be used with a single profile token or a set of them

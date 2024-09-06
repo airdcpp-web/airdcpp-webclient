@@ -52,18 +52,15 @@ ShareRefreshInfo::ShareRefreshInfo::~ShareRefreshInfo() {
 
 }
 
-ShareRefreshInfo::ShareRefreshInfo(const string& aPath, const ShareDirectory::Ptr& aOldShareDirectory, time_t aLastWrite, ShareBloom& bloom_) :
-	path(aPath), oldShareDirectory(aOldShareDirectory), bloom(bloom_) {
+ShareRefreshInfo::ShareRefreshInfo(const string& aPath, const ShareDirectory::Ptr& aOptionalOldShareDirectory, time_t aLastWrite, ShareBloom& bloom_) :
+	path(aPath), optionalOldDirectory(aOptionalOldShareDirectory), ShareTreeMaps([&bloom_] { return &bloom_; }) {
 
 	// Use a different directory for building the tree
-	if (aOldShareDirectory && aOldShareDirectory->isRoot()) {
-		newShareDirectory = ShareDirectory::createRoot(
-			aPath, aOldShareDirectory->getVirtualName(), aOldShareDirectory->getRoot()->getRootProfiles(), aOldShareDirectory->getRoot()->getIncoming(),
-			aLastWrite, rootPathsNew, lowerDirNameMapNew, bloom_, aOldShareDirectory->getRoot()->getLastRefreshTime()
-		);
+	if (optionalOldDirectory && optionalOldDirectory->isRoot()) {
+		newDirectory = ShareDirectory::cloneRoot(aOptionalOldShareDirectory, aLastWrite, *this);
 	} else {
 		// We'll set the parent later
-		newShareDirectory = ShareDirectory::createNormal(PathUtil::getLastDir(aPath), nullptr, aLastWrite, lowerDirNameMapNew, bloom_);
+		newDirectory = ShareDirectory::createNormal(PathUtil::getLastDir(aPath), nullptr, aLastWrite, *this);
 	}
 }
 
@@ -71,7 +68,7 @@ ShareRefreshInfo::ShareRefreshInfo(const string& aPath, const ShareDirectory::Pt
 bool ShareRefreshInfo::checkContent(const ShareDirectory::Ptr& aDirectory) noexcept {
 	if (SETTING(SKIP_EMPTY_DIRS_SHARE) && aDirectory->getDirectories().empty() && aDirectory->getFiles().empty()) {
 		// Remove from parent
-		ShareDirectory::cleanIndices(*aDirectory.get(), stats.addedSize, tthIndexNew, lowerDirNameMapNew);
+		ShareDirectory::cleanIndices(*aDirectory.get(), stats.addedSize, tthIndex, lowerDirNameMap);
 		return false;
 	}
 
@@ -81,19 +78,19 @@ bool ShareRefreshInfo::checkContent(const ShareDirectory::Ptr& aDirectory) noexc
 
 void ShareRefreshInfo::applyRefreshChanges(ShareDirectory::MultiMap& lowerDirNameMap_, ShareDirectory::Map& rootPaths_, ShareDirectory::File::TTHMap& tthIndex_, int64_t& sharedBytes_, ProfileTokenSet* dirtyProfiles_) noexcept {
 #ifdef _DEBUG
-	for (const auto& d : lowerDirNameMapNew | views::values) {
+	for (const auto& d : lowerDirNameMap | views::values) {
 		ShareDirectory::checkAddedDirNameDebug(d, lowerDirNameMap_);
 	}
 
-	for (const auto& f : tthIndexNew | views::values) {
+	for (const auto& f : tthIndex | views::values) {
 		ShareDirectory::File::checkAddedTTHDebug(f, tthIndex_);
 	}
 #endif
 
-	lowerDirNameMap_.insert(lowerDirNameMapNew.begin(), lowerDirNameMapNew.end());
-	tthIndex_.insert(tthIndexNew.begin(), tthIndexNew.end());
+	lowerDirNameMap_.insert(lowerDirNameMap.begin(), lowerDirNameMap.end());
+	tthIndex_.insert(tthIndex.begin(), tthIndex.end());
 
-	for (const auto& rp : rootPathsNew) {
+	for (const auto& rp : rootPaths) {
 		//dcassert(rootPaths_.find(rp.first) == rootPaths_.end());
 		rootPaths_[rp.first] = rp.second;
 	}
@@ -101,14 +98,14 @@ void ShareRefreshInfo::applyRefreshChanges(ShareDirectory::MultiMap& lowerDirNam
 	sharedBytes_ += stats.addedSize;
 
 	if (dirtyProfiles_) {
-		newShareDirectory->copyRootProfiles(*dirtyProfiles_, true);
+		newDirectory->copyRootProfiles(*dirtyProfiles_, true);
 	}
 
 	// Save some memory
-	lowerDirNameMapNew.clear();
-	tthIndexNew.clear();
-	oldShareDirectory = nullptr;
-	newShareDirectory = nullptr;
+	lowerDirNameMap.clear();
+	tthIndex.clear();
+	optionalOldDirectory = nullptr;
+	newDirectory = nullptr;
 }
 
 void ShareRefreshStats::merge(const ShareRefreshStats& aOther) noexcept {

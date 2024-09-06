@@ -42,8 +42,8 @@ using ranges::find_if;
 using ranges::copy;
 
 
-ShareTree::ShareTree() : bloom(new ShareBloom(1 << 20))
-{ 
+ShareTree::ShareTree() : bloom(make_unique<ShareBloom>(1 << 20)), ShareTreeMaps([this] { return bloom.get(); })
+{
 #if defined(_DEBUG) && defined(_WIN32)
 	testDualString();
 #endif
@@ -180,6 +180,11 @@ void ShareTree::getRootsUnsafe(const OptionalProfileToken& aProfile, ShareDirect
 	ranges::copy(rootPaths | views::values | views::filter(ShareDirectory::HasRootProfile(aProfile)), back_inserter(dirs_));
 }
 
+ShareDirectory::Ptr ShareTree::findRootUnsafe(const string& aPath) const noexcept {
+	auto i = rootPaths.find(aPath);
+	return i != rootPaths.end() ? i->second : nullptr;
+}
+
 ShareDirectory::List ShareTree::getRoots(const OptionalProfileToken& aProfile) const noexcept {
 	ShareDirectory::List dirs;
 	{
@@ -209,21 +214,6 @@ void ShareTree::getRootsByVirtualUnsafe(const string& aVirtualName, const Profil
 			dirs_.push_back(d);
 		}
 	}
-}
-
-int64_t ShareTree::getTotalShareSize(ProfileToken aProfile) const noexcept {
-	int64_t ret = 0;
-
-	{
-		RLock l(cs);
-		for (const auto& d : rootPaths | views::values) {
-			if (d->getRoot()->hasRootProfile(aProfile)) {
-				ret += d->getTotalSize();
-			}
-		}
-	}
-
-	return ret;
 }
 
 DupeType ShareTree::getAdcDirectoryDupe(const string& aAdcPath, int64_t aSize) const noexcept{
@@ -392,7 +382,7 @@ ShareRoot::Ptr ShareTree::addShareRoot(const string& aPath, const string& aVirtu
 	dcassert(find_if(rootPaths | views::keys, IsParentOrExact(aPath, PATH_SEPARATOR)).base() == rootPaths.end());
 
 	// It's a new parent, will be handled in the task thread
-	auto root = ShareDirectory::createRoot(aPath, aVirtualName, aProfiles, aIncoming, aLastModified, rootPaths, lowerDirNameMap, *bloom.get(), aLastRefreshed);
+	auto root = ShareDirectory::createRoot(aPath, aVirtualName, aProfiles, aIncoming, aLastModified, *this, aLastRefreshed);
 	return root->getRoot();
 }
 
@@ -425,7 +415,7 @@ ShareRoot::Ptr ShareTree::removeShareRoot(const string& aPath) noexcept {
 
 void ShareTree::removeProfile(ProfileToken aProfile, StringList& rootsToRemove_) noexcept {
 	WLock l(cs);
-	for (auto& root : rootPaths) {
+	for (auto& root: rootPaths) {
 		if (root.second->getRoot()->removeRootProfile(aProfile)) {
 			rootsToRemove_.push_back(root.first);
 		}
@@ -438,16 +428,16 @@ ShareRoot::Ptr ShareTree::updateShareRoot(const ShareDirectoryInfoPtr& aDirector
 	auto vName = validateVirtualName(aDirectoryInfo->virtualName);
 	{
 		WLock l(cs);
-		auto p = rootPaths.find(aDirectoryInfo->path);
-		if (p == rootPaths.end()) {
+		auto directory = findRootUnsafe(aDirectoryInfo->path);
+		if (!directory) {
 			return nullptr;
 		}
 
-		rootDirectory = p->second->getRoot();
+		rootDirectory = directory->getRoot();
 
-		ShareDirectory::removeDirName(*p->second, lowerDirNameMap);
+		ShareDirectory::removeDirName(*directory, lowerDirNameMap);
 		rootDirectory->setName(vName);
-		ShareDirectory::addDirName(p->second, lowerDirNameMap, *bloom.get());
+		ShareDirectory::addDirName(directory, lowerDirNameMap, *bloom.get());
 	}
 
 	rootDirectory->setIncoming(aDirectoryInfo->incoming);
@@ -466,23 +456,23 @@ bool ShareTree::applyRefreshChanges(ShareRefreshInfo& ri, ProfileTokenSet* aDirt
 	WLock l(cs);
 
 	// Recursively remove the content of this dir from TTHIndex and directory name map
-	if (ri.oldShareDirectory) {
+	if (ri.optionalOldDirectory) {
 		// Root removed while refreshing?
-		if (ri.oldShareDirectory->isRoot() && rootPaths.find(ri.path) == rootPaths.end()) {
+		if (ri.optionalOldDirectory->isRoot() && !findRootUnsafe(ri.path)) {
 			return false;
 		}
 
-		parent = ri.oldShareDirectory->getParent();
+		parent = ri.optionalOldDirectory->getParent();
 
 		// Remove the old directory
-		ShareDirectory::cleanIndices(*ri.oldShareDirectory, sharedSize, tthIndex, lowerDirNameMap);
+		ShareDirectory::cleanIndices(*ri.optionalOldDirectory, sharedSize, tthIndex, lowerDirNameMap);
 	}
 
 	// Set the parent for refreshed subdirectories
 	// (previous directory should always be available for roots)
-	if (!ri.oldShareDirectory || !ri.oldShareDirectory->isRoot()) {
+	if (!ri.optionalOldDirectory || !ri.optionalOldDirectory->isRoot()) {
 		// All content was removed?
-		if (!ri.checkContent(ri.newShareDirectory)) {
+		if (!ri.checkContent(ri.newDirectory)) {
 			return false;
 		}
 
@@ -495,7 +485,7 @@ bool ShareTree::applyRefreshChanges(ShareRefreshInfo& ri, ProfileTokenSet* aDirt
 		}
 
 		// Set the parent
-		if (!ShareDirectory::setParent(ri.newShareDirectory, parent)) {
+		if (!ShareDirectory::setParent(ri.newDirectory, parent)) {
 			return false;
 		}
 	}
@@ -526,9 +516,9 @@ ShareDirectoryInfoPtr ShareTree::getRootInfoUnsafe(const ShareDirectory::Ptr& aD
 
 ShareDirectoryInfoPtr ShareTree::getRootInfo(const string& aPath) const noexcept {
 	RLock l(cs);
-	auto p = rootPaths.find(aPath);
-	if (p != rootPaths.end()) {
-		return getRootInfoUnsafe(p->second);
+	auto directory = findRootUnsafe(aPath);
+	if (directory) {
+		return getRootInfoUnsafe(directory);
 	}
 
 	return nullptr;
@@ -557,13 +547,6 @@ void ShareTree::getBloom(ProfileToken aToken, HashBloom& bloom_) const noexcept 
 void ShareTree::getBloomFileCount(ProfileToken aToken, size_t& fileCount_) const noexcept {
 	int64_t totalSize = 0;
 	getProfileInfo(aToken, totalSize, fileCount_);
-
-	/*RLock l(cs);
-	for (const auto tfp : tthIndex) {
-		if (tfp.second->hasProfile(aToken)) {
-			fileCount_++;
-		}
-	}*/
 }
 
 void ShareTree::setBloom(ShareBloom* aBloom) noexcept {
@@ -706,13 +689,6 @@ void ShareTree::getProfileInfo(ProfileToken aProfile, int64_t& totalSize_, size_
 	ShareDirectory::List roots;
 
 	RLock l(cs);
-	/*for (const auto tfp : tthIndex) {
-		if (tfp.second->hasProfile(aProfile)) {
-			totalSize_ += tfp.second->getSize();
-			filesCount_++;
-		}
-	}*/
-
 	getRootsUnsafe(aProfile, roots);
 	for (const auto& d : roots) {
 		d->getProfileInfo(aProfile, totalSize_, filesCount_);
@@ -864,7 +840,7 @@ ShareDirectory::Ptr ShareTree::ensureDirectoryUnsafe(const string& aRealPath) no
 	// Tokens should have been validated earlier
 	for (const auto& curName: tokens) {
 		curDir->updateModifyDate();
-		curDir = ShareDirectory::createNormal(DualString(curName), curDir, File::getLastModified(curDir->getRealPathUnsafe()), lowerDirNameMap, *bloom.get());
+		curDir = ShareDirectory::createNormal(DualString(curName), curDir, File::getLastModified(curDir->getRealPathUnsafe()), *this);
 	}
 
 	return curDir;
@@ -930,7 +906,7 @@ void ShareTree::addHashedFile(const string& aRealPath, const HashedFile& aFileIn
 		return;
 	}
 
-	d->addFile(PathUtil::getFileName(aRealPath), aFileInfo, tthIndex, *bloom.get(), sharedSize, dirtyProfiles);
+	d->addFile(PathUtil::getFileName(aRealPath), aFileInfo, *this, sharedSize, dirtyProfiles);
 }
 
 

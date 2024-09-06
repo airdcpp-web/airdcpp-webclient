@@ -122,7 +122,7 @@ public:
 		bool operator==(const UserPtr& aUser) const { return user == aUser; }
 
 		// Update the hinted download hub URL based if the provided one can't be used
-		bool updateDownloadHubUrl(const OrderedStringSet& aOnlineHubs, string& hubUrl_, bool aIsFileList) const noexcept;
+		bool updateDownloadHubUrl(const OrderedStringSet& aOnlineHubs, string& hubUrl_, bool aAllowUrlChange) const noexcept;
 
 		// Update the hinted source URL
 		void setHubUrl(const string& aHubUrl) noexcept;
@@ -148,7 +148,8 @@ public:
 			partsInfo = aPartsInfo;
 		}
 
-		bool matchesDownloadQuery(const QueueDownloadQuery& aQuery, string& lastError_) const noexcept;
+		bool validateHub(const OrderedStringSet& aOnlineHubs, bool aAllowUrlChange, string& lastError_) const noexcept;
+		bool validateHub(const string& aHubUrl, bool aAllowUrlChange) const noexcept;
 	private:
 		PartsInfo partsInfo;
 
@@ -285,11 +286,12 @@ private:
 
 	void addSource(const HintedUser& aUser) noexcept;
 	void blockSourceHub(const HintedUser& aUser) noexcept;
-	bool isHubBlocked(const UserPtr& aUser, const string& aUrl) const noexcept;
+	bool validateHub(const UserPtr& aUser, const string& aUrl) const noexcept;
 	void removeSource(const UserPtr& aUser, Flags::MaskType reason) noexcept;
 
 	bool matchesDownloadType(QueueDownloadType aType) const noexcept;
 	bool allowSegmentedDownloads() const noexcept;
+	bool allowUrlChange() const noexcept;
 
 	static uint8_t getMaxSegments(int64_t aFileSize) noexcept;
 

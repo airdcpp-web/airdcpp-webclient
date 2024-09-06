@@ -1465,6 +1465,9 @@
     <ClInclude Include="airdcpp\w.h">
       <Filter>Header Files\core\header</Filter>
     </ClInclude>
+    <ClInclude Include="airdcpp\TransferInfoManagerListener.h">
+      <Filter>Header Files\transfer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

@@ -42,23 +42,17 @@ struct ShareRefreshStats {
 	void merge(const ShareRefreshStats& aOther) noexcept;
 };
 
-class ShareRefreshInfo {
+class ShareRefreshInfo : public ShareTreeMaps {
 public:
-	ShareRefreshInfo(const string& aPath, const ShareDirectory::Ptr& aOldRoot, time_t aLastWrite, ShareBloom& bloom_);
+	ShareRefreshInfo(const string& aPath, const ShareDirectory::Ptr& aOptionalOldRoot, time_t aLastWrite, ShareBloom& bloom_);
 	~ShareRefreshInfo();
 
-	ShareDirectory::Ptr oldShareDirectory;
-	ShareDirectory::Ptr newShareDirectory;
+	ShareDirectory::Ptr optionalOldDirectory;
+	ShareDirectory::Ptr newDirectory;
 
 	ShareRefreshStats stats;
 
-	ShareDirectory::Map rootPathsNew;
-	ShareDirectory::MultiMap lowerDirNameMapNew;
-	ShareDirectory::File::TTHMap tthIndexNew;
-
 	string path;
-
-	ShareBloom& bloom;
 
 	bool checkContent(const ShareDirectory::Ptr& aDirectory) noexcept;
 	void applyRefreshChanges(ShareDirectory::MultiMap& lowerDirNameMap_, ShareDirectory::Map& rootPaths_, ShareDirectory::File::TTHMap& tthIndex_, int64_t& sharedBytes_, ProfileTokenSet* dirtyProfiles) noexcept;

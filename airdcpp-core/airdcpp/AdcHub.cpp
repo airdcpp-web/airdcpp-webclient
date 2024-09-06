@@ -1455,13 +1455,7 @@ void AdcHub::infoImpl() noexcept {
 	addParam(lastInfoMap, c, "SL", Util::toString(UploadManager::getInstance()->getSlots()));
 	addParam(lastInfoMap, c, "FS", Util::toString(UploadManager::getInstance()->getFreeSlots()));
 
-	int64_t sharedSize = 0;
-	if (isSharingHub()) {
-		size_t fileCount = 0;
-		ShareManager::getInstance()->getProfileInfo(get(HubSettings::ShareProfile), sharedSize, fileCount);
-	}
-
-	addParam(lastInfoMap, c, "SS", Util::toString(sharedSize));
+	addParam(lastInfoMap, c, "SS", Util::toString(ShareManager::getInstance()->getTotalShareSize(get(HubSettings::ShareProfile))));
 	addParam(lastInfoMap, c, "SF", Util::toString(ShareManager::getInstance()->getBloomFileCount(get(HubSettings::ShareProfile))));
 
 	addParam(lastInfoMap, c, "EM", get(Email));

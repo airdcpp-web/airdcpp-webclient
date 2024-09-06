@@ -88,6 +88,7 @@ private:
 	const string pathLower;
 };
 
+class ShareTreeMaps;
 class FilelistDirectory;
 class ShareDirectory : public intrusive_ptr_base<ShareDirectory> {
 public:
@@ -169,8 +170,9 @@ public:
 
 	typedef SortedVector<Ptr, std::vector, string, Compare, NameLower> Set;
 
-	static Ptr createNormal(DualString&& aRealName, const Ptr& aParent, time_t aLastWrite, ShareDirectory::MultiMap& dirNameMap_, ShareBloom& bloom) noexcept;
-	static Ptr createRoot(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, time_t aLastWrite, Map& rootPaths_, ShareDirectory::MultiMap& dirNameMap_, ShareBloom& bloom_, time_t aLastRefreshTime) noexcept;
+	static Ptr createNormal(DualString&& aRealName, const Ptr& aParent, time_t aLastWrite, ShareTreeMaps& maps_) noexcept;
+	static Ptr createRoot(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, time_t aLastWrite, ShareTreeMaps& maps_, time_t aLastRefreshTime) noexcept;
+	static Ptr cloneRoot(const Ptr& aOldRoot, time_t aLastWrite, ShareTreeMaps& maps_) noexcept;
 
 	// Set a new parent for the directory
 	// Possible directories with the same name must be removed from the parent first
@@ -280,7 +282,7 @@ public:
 	static void checkAddedDirNameDebug(const ShareDirectory::Ptr& aDir, ShareDirectory::MultiMap& aDirNames) noexcept;
 #endif
 
-	void addFile(DualString&& aName, const HashedFile& fi, File::TTHMap& tthIndex_, ShareBloom& aBloom_, int64_t& sharedSize_, ProfileTokenSet* dirtyProfiles_ = nullptr) noexcept;
+	void addFile(DualString&& aName, const HashedFile& fi, ShareTreeMaps& maps_, int64_t& sharedSize_, ProfileTokenSet* dirtyProfiles_ = nullptr) noexcept;
 
 	File::Set getFiles() const noexcept {
 		return files;
@@ -307,6 +309,24 @@ private:
 	DualString realName;
 };
 
+class ShareTreeMaps {
+public:
+	typedef std::function<ShareBloom*()> GetBloomF;
+	ShareTreeMaps(GetBloomF&& aGetBloomF) : getBloomF(aGetBloomF) {}
+
+	// Map real name to virtual name - multiple real names may be mapped to a single virtual one
+	ShareDirectory::Map rootPaths;
+
+	// All directory names cached for easy lookups (mostly for directory dupe checks)
+	ShareDirectory::MultiMap lowerDirNameMap;
+
+	ShareDirectory::File::TTHMap tthIndex;
+	ShareBloom& getBloom() noexcept {
+		return *getBloomF();
+	}
+private:
+	GetBloomF getBloomF;
+};
 
 class FilelistDirectory {
 public:
