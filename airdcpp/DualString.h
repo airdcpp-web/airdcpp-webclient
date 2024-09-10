@@ -27,27 +27,30 @@ using std::string;
 
 /* Class for storing a string as lowercase and normal with minimum memory usage overhead. Optimized for accessing the lowercase representation. */
 
-class DualString : private string {
+class DualString {
 public:
 	typedef uint32_t MaskType;
 
 	DualString(const string& aStr);
-	~DualString();
 
-	const string& getLower() const { return *this; }
-	string getNormal() const;
+	const string& getLower() const noexcept { return str; }
+	string getNormal() const noexcept;
 
-	size_t size() const noexcept { return std::string::size(); }
+	size_t length() const noexcept;
 
 	bool lowerCaseOnly() const noexcept;
 
-	DualString(DualString&& rhs);
-	DualString& operator=(DualString&&);
+	DualString(DualString&& rhs) noexcept;
 	DualString(const DualString&) = delete;
+
+	DualString& operator=(DualString&& rhs) = delete;
 	DualString& operator= (const DualString& other) = delete;
 private:
-	size_t initSizeArray(size_t strLen);
-	MaskType* charSizes = nullptr;
+	void init(const string& aNormalStr) noexcept;
+	size_t initSizeArray(size_t strLen) noexcept;
+	std::unique_ptr<MaskType[]> charSizes;
+
+	const string str;
 };
 
 #endif

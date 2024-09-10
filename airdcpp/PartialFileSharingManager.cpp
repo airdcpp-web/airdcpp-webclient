@@ -406,7 +406,7 @@ PartialFileSharingManager::PFSSourceList PartialFileSharingManager::findPFSSourc
 	// Pick the oldest matches
 	PFSSourceList sourceList;
 	sourceList.reserve(aMaxSources);
-	for (auto i = buffer.begin(); i != buffer.end() && sourceList.size() < aMaxSources; i++) {
+	for (auto i = buffer.begin(); i != buffer.end() && sourceList.size() < static_cast<size_t>(aMaxSources); i++) {
 		sourceList.emplace_back(i->second);
 	}
 

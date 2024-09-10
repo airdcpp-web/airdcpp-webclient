@@ -31,6 +31,7 @@
 #include "ResourceManager.h"
 #include "SettingsManager.h"
 #include "SimpleXML.h"
+#include "StartupParams.h"
 #include "Util.h"
 #include "ValueGenerator.h"
 
@@ -43,7 +44,6 @@ FastCriticalSection FastAllocBase::cs;
 #endif
 
 string AppUtil::paths[AppUtil::PATH_LAST];
-StringList AppUtil::startupParams;
 
 #ifdef _WIN32
 	bool AppUtil::localMode = true;
@@ -81,28 +81,43 @@ string AppUtil::getOpenPath() noexcept {
 	return paths[PATH_TEMP] + "Opened Items" + PATH_SEPARATOR_STR;
 }
 
-void AppUtil::addStartupParam(const string& aParam) noexcept {
+void StartupParams::addParam(const string& aParam) noexcept {
 	if (aParam.empty())
 		return;
 
-	if (!hasStartupParam(aParam))
-		startupParams.push_back(aParam);
+	if (!hasParam(aParam))
+		params.push_back(aParam);
 }
 
-bool AppUtil::hasStartupParam(const string& aParam) noexcept {
-	return find(startupParams.begin(), startupParams.end(), aParam) != startupParams.end();
+bool StartupParams::removeParam(const string& aParam) noexcept {
+	auto param = find(params.begin(), params.end(), aParam);
+	if (param != params.end()) {
+		params.erase(param);
+		return true;
+	}
+
+	return false;
 }
 
-string AppUtil::getStartupParams(bool isFirst) noexcept {
-	if (startupParams.empty()) {
+bool StartupParams::hasParam(const string& aParam, size_t aPos) const noexcept {
+	auto param = find(params.begin(), params.end(), aParam);
+	if (param != params.end()) {
+		return aPos == -1 || distance(params.begin(), param) == static_cast<int>(aPos);
+	}
+
+	return false;
+}
+
+string StartupParams::formatParams(bool aIsFirst) const noexcept {
+	if (params.empty()) {
 		return Util::emptyString;
 	}
 
-	return string(isFirst ? Util::emptyString : " ") + Util::toString(" ", startupParams);
+	return string(aIsFirst ? Util::emptyString : " ") + Util::toString(" ", StringList(params.begin(), params.end()));
 }
 
-optional<string> AppUtil::getStartupParam(const string& aKey) noexcept {
-	for (const auto& p : startupParams) {
+optional<string> StartupParams::getValue(const string& aKey) const noexcept {
+	for (const auto& p: params) {
 		auto pos = p.find("=");
 		if (pos != string::npos && pos != p.length() && Util::strnicmp(p, aKey, pos) == 0)
 			return p.substr(pos + 1, p.length() - pos - 1);

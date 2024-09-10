@@ -43,7 +43,7 @@ SettingHolder::~SettingHolder() {
 
 void SettingHolder::apply() {
 	for (const auto& valueHolder: valueHolders) {
-		for (auto i = 0; i < valueHolder.handler.settingKeys.size(); ++i) {
+		for (size_t i = 0; i < valueHolder.handler.settingKeys.size(); ++i) {
 			SettingsManager::SettingKeyList changedValues;
 
 			auto settingKey = valueHolder.handler.settingKeys[i];

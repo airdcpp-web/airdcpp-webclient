@@ -27,19 +27,24 @@ using std::string;
 
 // Text::toLower should be used for initial conversion due to UTF-16 surrogate handling
 // Text::utf8ToWc should be sufficient for equality checks
-DualString::DualString(const string& aStr) : string(dcpp::Text::toLower(aStr)) {
+DualString::DualString(const string& aStr) : str(dcpp::Text::toLower(aStr)) {
+	init(aStr);
+}
+
+// Set possible uppercase characters
+void DualString::init(const string& aNormalStr) noexcept {
 	int arrayPos = 0, bitPos = 0;
-	auto a = aStr.c_str();
-	auto b = this->c_str();
+	auto a = aNormalStr.c_str();
+	auto b = str.c_str();
 	while (*a) {
 		wchar_t ca = 0, cb = 0;
 		int na = dcpp::Text::utf8ToWc(a, ca);
 		int nb = dcpp::Text::utf8ToWc(b, cb);
 		if (ca != cb) {
 			if (!charSizes) {
-				initSizeArray(aStr.size());
+				initSizeArray(aNormalStr.size());
 			}
-			charSizes[arrayPos] |= (1 << bitPos);
+			charSizes.get()[arrayPos] |= (1 << bitPos);
 		}
 
 		a += abs(na);
@@ -55,45 +60,35 @@ DualString::DualString(const string& aStr) : string(dcpp::Text::toLower(aStr)) {
 	}
 }
 
-// Create an array with minumum possible length that will store the character sizes (unset=lowercase, set=uppercase)
-size_t DualString::initSizeArray(size_t strLen) {
+size_t DualString::length() const noexcept {
+	return str.length();
+}
+
+// Create an array with minimum possible length that will store the character sizes (unset=lowercase, set=uppercase)
+size_t DualString::initSizeArray(size_t strLen) noexcept {
 	size_t arrSize = strLen % ARRAY_BITS == 0 ? strLen / ARRAY_BITS : (strLen / ARRAY_BITS) + 1;
-	charSizes = new MaskType[arrSize];
+	charSizes = std::make_unique<MaskType[]>(arrSize);
 	for (size_t s = 0; s < arrSize; ++s) {
-		charSizes[s] = 0;
+		charSizes.get()[s] = 0;
 	}
 
 	return arrSize;
 }
 
-DualString& DualString::operator=(DualString&& rhs) {
-	assign(rhs.begin(), rhs.end());
-	charSizes = rhs.charSizes;
-	rhs.charSizes = nullptr;
-	return *this; 
+DualString::DualString(DualString&& rhs) noexcept : charSizes(std::move(rhs.charSizes)), str(std::move(rhs.str)) {
 }
 
-DualString::DualString(DualString&& rhs) : charSizes(rhs.charSizes) {
-	assign(rhs.begin(), rhs.end());
-	rhs.charSizes = nullptr;
-}
-
-DualString::~DualString() { 
-	if (charSizes)
-		delete[] charSizes; 
-}
-
-string DualString::getNormal() const {
+string DualString::getNormal() const noexcept {
 	if (!charSizes)
-		return *this;
+		return str;
 
 	string ret;
-	ret.reserve(size());
+	ret.reserve(length());
 
 	int bitPos = 0, arrayPos = 0;
-	const char* end = &c_str()[0] + string::size();
-	for (const char* p = &c_str()[0]; p < end;) {
-		if (charSizes[arrayPos] & (1 << bitPos)) {
+	const char* end = &str.c_str()[0] + str.size();
+	for (const char* p = &str.c_str()[0]; p < end;) {
+		if (charSizes.get()[arrayPos] & (1 << bitPos)) {
 			wchar_t c = 0;
 			int n = dcpp::Text::utf8ToWc(p, c);
 

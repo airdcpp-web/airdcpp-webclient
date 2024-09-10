@@ -1830,7 +1830,7 @@ void QueueManager::onTreeDownloadCompleted(const QueueItemPtr& aQI, Download* aD
 		HashManager::getInstance()->addTree(aDownload->getTigerTree());
 	} catch (const HashException& e) {
 		ConnectionManager::getInstance()->failDownload(aDownload->getConnectionToken(), e.getError(), true);
-		throw e;
+		throw;
 	}
 
 	fire(QueueManagerListener::ItemStatus(), aQI);

@@ -34,8 +34,6 @@ class ZipFileException;
 class Updater {
 
 #define UPDATE_TEMP_DIR AppUtil::getPath(AppUtil::PATH_TEMP) + "Updater" + PATH_SEPARATOR_STR
-#define UPDATE_TEMP_LOG AppUtil::getPath(AppUtil::PATH_TEMP) + "airdcpp_updater.log"
-#define UPDATE_FINAL_LOG AppUtil::getPath(AppUtil::PATH_USER_LOCAL) + "updater.log"
 
 //#define FORCE_UPDATE
 
@@ -47,11 +45,15 @@ public:
 		FileLogger(const string& aPath, bool aResetFile);
 		void log(const string& aLine, bool aAddDate = true) noexcept;
 		void separator() noexcept;
+
+		FileLogger(FileLogger&) = delete;
+		FileLogger& operator=(FileLogger&) = delete;
 	private:
 		unique_ptr<File> f;
 	};
 
-	static bool applyUpdate(const string& aSourcePath, const string& aInstallPath, string& error_, int aMaxRetries) noexcept;
+	static FileLogger createInstallLogger(const string& aSourcePath) noexcept;
+	static bool applyUpdate(const string& aSourcePath, const string& aInstallPath, string& error_, int aMaxRetries, FileLogger& logger_) noexcept;
 
 	static void signVersionFile(const string& aVersionFilePath, const string& aPrivateKeyFilePath, bool aMakeHeader = false);
 
@@ -60,9 +62,9 @@ public:
 	static string createUpdate(const FileListF& aFileListF) noexcept;
 
 	// Returns true if there are pending updates available for this instance
-	// This will also remove obsolate updater directories for this instance
+	// This will also remove obsolete updater directories for this instance
 	// aUpdateAttempted should be set to true if updating was just attempted (succeed or failed)
-	static bool checkPendingUpdates(const string& aAppPath, string& updaterFile_, bool aUpdateAttempted);
+	static bool checkAndCleanUpdaterFiles(const string& aAppPath, string& updaterFile_, bool aUpdateAttempted);
 
 	static bool getUpdateVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild);
 
@@ -85,6 +87,8 @@ public:
 	static string extractUpdater(const string& aUpdaterPath, int aBuildID, const string& aSessionToken);
 
 	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
+
+	static string getFinalLogFilePath() noexcept;
 private:
 	// Copy files recursively from the temp directory to application directory
 	static bool applyUpdaterFiles(const string& aCurTempPath, const string& aCurDestinationPath, string& error_, StringSet& updatedFiles_, FileLogger& aLogger) noexcept;
@@ -106,6 +110,8 @@ private:
 	void completeUpdateDownload(int aBuildID, bool aManualCheck);
 
 	void failUpdateDownload(const string& aError, bool manualCheck);
+
+	static string toLoggerFilePath(const string& aDirectoryPath) noexcept;
 };
 
 #else

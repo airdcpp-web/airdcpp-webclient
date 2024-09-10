@@ -248,13 +248,13 @@ namespace dcpp {
 
 					throw HookRejectException(aRejection);
 				},
-				std::forward<ArgT>(aItem)...
+				aItem...
 			);
 		}
 
 		// Get data from all hooks, ignore errors
 		ActionHookDataList<DataT> runHooksData(const void* aOwner, ArgT&... aItem) const {
-			return runHooksDataImpl(aOwner, nullptr, std::forward<ArgT>(aItem)...);
+			return runHooksDataImpl(aOwner, nullptr, aItem...);
 		}
 
 		// Run all validation hooks, returns false in case of rejections

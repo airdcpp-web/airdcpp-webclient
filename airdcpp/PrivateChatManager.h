@@ -60,14 +60,14 @@ namespace dcpp {
 		UserConnection* getPMConn(const UserPtr& user); //LOCK usage!!
 
 		// ConnectionManagerListener
-		void on(ConnectionManagerListener::Connected, const ConnectionQueueItem* cqi, UserConnection* uc) noexcept;
-		void on(ConnectionManagerListener::Removed, const ConnectionQueueItem* cqi) noexcept;
+		void on(ConnectionManagerListener::Connected, const ConnectionQueueItem* cqi, UserConnection* uc) noexcept override;
+		void on(ConnectionManagerListener::Removed, const ConnectionQueueItem* cqi) noexcept override;
 
 		// UserConnectionListener
-		void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessagePtr& message) noexcept;
-		void on(AdcCommand::PMI, UserConnection* uc, const AdcCommand& cmd) noexcept;
+		void on(UserConnectionListener::PrivateMessage, UserConnection*, const ChatMessagePtr& message) noexcept override;
+		void on(AdcCommand::PMI, UserConnection* uc, const AdcCommand& cmd) noexcept override;
 
-		void on(ClientManagerListener::PrivateMessage, const ChatMessagePtr& aMessage) noexcept;
+		void on(ClientManagerListener::PrivateMessage, const ChatMessagePtr& aMessage) noexcept override;
 	};
 
 }

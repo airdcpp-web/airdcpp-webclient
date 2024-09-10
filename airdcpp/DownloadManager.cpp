@@ -395,6 +395,7 @@ void DownloadManager::on(UserConnectionListener::Data, UserConnection* aSource, 
 		dcassert(0);
 		dcdebug("DownloadManager::UserConnectionListener::Data: no download (%s)\n", aSource->getToken().c_str());
 		disconnect(aSource, true);
+		return;
 	}
 
 	try {

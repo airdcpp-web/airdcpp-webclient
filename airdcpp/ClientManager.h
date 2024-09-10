@@ -96,9 +96,9 @@ public:
 	// URL won't be changed for offline users
 	HintedUser checkOnlineUrl(const HintedUser& aUser) const noexcept;
 
-	StringList getNicks(const HintedUser& aUser) const noexcept;
-	StringList getHubNames(const HintedUser& aUser) const noexcept;
-	StringList getHubUrls(const HintedUser& aUser) const noexcept;
+	StringList getNicks(const UserPtr& aUser) const noexcept;
+	StringList getHubNames(const UserPtr& aUser) const noexcept;
+	StringList getHubUrls(const UserPtr& aUser) const noexcept;
 
 	template<class NameOperator>
 	string formatUserProperty(const HintedUser& aUser, bool aRemoveDuplicates = true) const noexcept {

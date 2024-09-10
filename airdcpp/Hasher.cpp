@@ -214,7 +214,7 @@ void Hasher::getStats(string& curFile_, int64_t& bytesLeft_, size_t& filesLeft_,
 
 	bytesLeft_ += totalBytesLeft;
 
-	filesAdded_ += totalFilesAdded;
+	filesAdded_ += static_cast<size_t>(totalFilesAdded);
 	bytesAdded_ += totalBytesAdded;
 }
 

@@ -117,11 +117,11 @@ namespace dcpp {
 
 		HintedUser replyTo;
 
-		int ccpmAttempts;
-		bool allowAutoCCPM;
-		uint64_t lastCCPMAttempt;
+		int ccpmAttempts = 0;
+		bool allowAutoCCPM = true;
+		uint64_t lastCCPMAttempt = 0;
 
-		atomic<CCPMState> ccpmState;
+		atomic<CCPMState> ccpmState = DISCONNECTED;
 		UserConnection* uc;
 
 		DelayedEvents<uint8_t> delayEvents;

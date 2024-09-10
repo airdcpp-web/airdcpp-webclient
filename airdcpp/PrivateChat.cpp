@@ -29,8 +29,8 @@
 namespace dcpp {
 
 PrivateChat::PrivateChat(const HintedUser& aUser, UserConnection* aUc) :
-	uc(aUc), replyTo(aUser), ccpmAttempts(0), allowAutoCCPM(true), lastCCPMAttempt(0), ccpmState(DISCONNECTED),
-	online(aUser.user->isOnline()), hubName(ClientManager::getInstance()->getHubName(aUser.hint)), cache(SettingsManager::PM_MESSAGE_CACHE) {
+	uc(aUc), replyTo(aUser), online(aUser.user->isOnline()), 
+	hubName(ClientManager::getInstance()->getHubName(aUser.hint)), cache(SettingsManager::PM_MESSAGE_CACHE) {
 		
 	if (aUc) {
 		ccpmState = CONNECTED;
