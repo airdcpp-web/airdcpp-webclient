@@ -24,6 +24,7 @@
 #include <airdcpp/ClientManagerListener.h>
 #include <airdcpp/DirectoryListingManagerListener.h>
 #include <airdcpp/Semaphore.h>
+#include <airdcpp/StartupParams.h>
 
 
 namespace airdcppd {
@@ -34,10 +35,10 @@ class Client : private ClientManagerListener, private DirectoryListingManagerLis
 
 public:
 	Client(bool aAsDaemon);
-	void run();
+	void run(const dcpp::StartupParams& aStartupParams);
 	void stop();
 private:
-	bool startup();
+	bool startup(const dcpp::StartupParams& aStartupParams);
 	void shutdown();
 
 	void on(DirectoryListingManagerListener::OpenListing, const DirectoryListingPtr& aList, const string& aDir, const string& aXML) noexcept;

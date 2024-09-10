@@ -21,7 +21,6 @@
 
 #include <airdcpp/DCPlusPlus.h>
 #include <airdcpp/AppUtil.h>
-// #include <airdcpp/Util.h>
 
 #include <airdcpp/ActivityManager.h>
 #include <airdcpp/ClientManager.h>
@@ -43,8 +42,8 @@ Client::Client(bool aAsDaemon) : asDaemon(aAsDaemon) {
 
 }
 
-void Client::run() {
-	if (!startup()) {
+void Client::run(const dcpp::StartupParams& aStartupParams) {
+	if (!startup(aStartupParams)) {
 		return;
 	}
 
@@ -99,7 +98,7 @@ void progressF(float aProgress) {
 	// Not implemented
 }
 
-bool Client::startup() {
+bool Client::startup(const dcpp::StartupParams& aStartupParams) {
 	webserver::WebServerManager::newInstance();
 
 	auto wsm = webserver::WebServerManager::getInstance();
@@ -117,7 +116,7 @@ bool Client::startup() {
 		progressF,
 		nullptr, // module init
 		[&](StartupLoader& aLoader) { // module load
-			auto webResources = AppUtil::getStartupParam("--web-resources");
+			auto webResources = aStartupParams.getValue("--web-resources");
 			aLoader.stepF(STRING(WEB_SERVER));
 			serverStarted = wsm->startup(
 				webErrorF,
@@ -146,16 +145,18 @@ bool Client::startup() {
 	TimerManager::getInstance()->start();
 	UpdateManager::getInstance()->init();
 
-	if (!AppUtil::hasStartupParam("--no-autoconnect")) {
+	if (!aStartupParams.hasParam("--no-autoconnect")) {
 		FavoriteManager::getInstance()->autoConnect();
 	}
 
-	auto cdmHub = AppUtil::hasStartupParam("--cdm-hub");
-	auto cdmClient = AppUtil::hasStartupParam("--cdm-client");
-	auto cdmWeb = AppUtil::hasStartupParam("--cdm-web");
-	if (cdmHub || cdmClient || cdmWeb) {
-		cdmDebug.reset(new CDMDebug(cdmClient, cdmHub, cdmWeb));
-	}
+    {
+        auto cdmHub = aStartupParams.hasParam("--cdm-hub");
+        auto cdmClient = aStartupParams.hasParam("--cdm-client");
+        auto cdmWeb = aStartupParams.hasParam("--cdm-web");
+        if (cdmHub || cdmClient || cdmWeb) {
+            cdmDebug.reset(new CDMDebug(cdmClient, cdmHub, cdmWeb));
+        }
+    }
 
 	running = true;
 	return true;

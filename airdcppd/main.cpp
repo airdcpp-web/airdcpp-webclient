@@ -165,14 +165,16 @@ static void installHandler() {
 	});
 }
 
-static void savePid(int aPid, const string& aConfigPath) noexcept {
-	auto pidParam = AppUtil::getStartupParam("-p");
-	if (pidParam) {
-		pidFileName = *pidParam;
-	} else {
-		pidFileName = File::makeAbsolutePath(aConfigPath, "airdcppd.pid");
-	}
+static void setPidFilePath(const string& aConfigPath, const dcpp::StartupParams& aStartupParams) {
+    auto pidParam = aStartupParams.getValue("-p");
+    if (pidParam) {
+        pidFileName = *pidParam;
+    } else {
+        pidFileName = File::makeAbsolutePath(aConfigPath, "airdcppd.pid");
+    }
+}
 
+static void savePid(int aPid) noexcept {
 	try {
 		pidFile.reset(new File(pidFileName, File::WRITE, File::CREATE | File::OPEN | File::TRUNCATE));
 		pidFile->write(Util::toString(aPid));
@@ -188,8 +190,8 @@ static void reportError(const char* aMessage) noexcept {
 
 #include <fcntl.h>
 
-static void daemonize(const string& aConfigPath) noexcept {
-	auto doFork = [&aConfigPath](const char* aErrorMessage) {
+static void daemonize(const dcpp::StartupParams& aStartupParams) noexcept {
+	auto doFork = [&](const char* aErrorMessage) {
 		auto ret = fork();
 
 		switch(ret) {
@@ -198,7 +200,7 @@ static void daemonize(const string& aConfigPath) noexcept {
 			exit(5);
 		case 0: break;
 		default:
-			savePid(ret, aConfigPath);
+			savePid(ret);
 			//printf("%d\n", ret); fflush(stdout);
 			_exit(0);
 		}
@@ -237,15 +239,15 @@ static void daemonize(const string& aConfigPath) noexcept {
 
 #include <sys/wait.h>
 
-static void runDaemon(const string& aConfigPath) {
-	daemonize(aConfigPath);
+static void runDaemon(const dcpp::StartupParams& aStartupParams) {
+	daemonize(aStartupParams);
 
 	try {
 		client = unique_ptr<airdcppd::Client>(new airdcppd::Client(asdaemon));
 
 		init();
 
-		client->run();
+		client->run(aStartupParams);
 
 		client.reset();
 	} catch(const std::exception& e) {
@@ -255,10 +257,10 @@ static void runDaemon(const string& aConfigPath) {
 	uninit();
 }
 
-static void runConsole(const string& aConfigPath) {
+static void runConsole(const dcpp::StartupParams& aStartupParams) {
 	printf("Starting.\n"); fflush(stdout);
 
-	savePid(static_cast<int>(getpid()), aConfigPath);
+	savePid(static_cast<int>(getpid()));
 
 	try {
 		client = unique_ptr<airdcppd::Client>(new airdcppd::Client(asdaemon));
@@ -266,7 +268,7 @@ static void runConsole(const string& aConfigPath) {
 
 		init();
 
-		client->run();
+		client->run(aStartupParams);
 
 		client.reset();
 	} catch(const std::exception& e) {
@@ -322,26 +324,28 @@ static void setApp(char* argv[]) {
 int main(int argc, char* argv[]) {
 	setApp(argv);
 
+    dcpp::StartupParams startupParams;
 	while (argc > 0) {
-		AppUtil::addStartupParam(Text::toUtf8(*argv));
+        startupParams.addParam(Text::toUtf8(*argv));
 		argc--;
 		argv++;
 	}
 
-	if (dcpp::AppUtil::hasStartupParam("-h") || AppUtil::hasStartupParam("--help")) {
+	if (startupParams.hasParam("-h") || startupParams.hasParam("--help")) {
 		printUsage();
 		return 0;
 	}
 
-	if (dcpp::AppUtil::hasStartupParam("-v") || AppUtil::hasStartupParam("--version")) {
+	if (startupParams.hasParam("-v") || startupParams.hasParam("--version")) {
 		printf("%s\n", shortVersionString.c_str());
 		return 0;
 	}
 
-	auto configDir = AppUtil::getStartupParam("-c");
-
-	initializeUtil(configDir ? *configDir : "");
-	auto configF = airdcppd::ConfigPrompt::checkArgs();
+    {
+        auto customConfigDir = startupParams.getValue("-c");
+        initializeUtil(customConfigDir ? *customConfigDir : "");
+    }
+	auto configF = airdcppd::ConfigPrompt::checkArgs(startupParams);
 	if (configF) {
 		init();
 		signal(SIGINT, [](int) {
@@ -357,7 +361,7 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	if (dcpp::AppUtil::hasStartupParam("-d")) {
+	if (startupParams.hasParam("-d")) {
 		asdaemon = true;
 	}
 
@@ -365,9 +369,10 @@ int main(int argc, char* argv[]) {
 	setlocale(LC_ALL, "");
 
 	string configPath = AppUtil::getPath(AppUtil::PATH_USER_CONFIG);
+    setPidFilePath(configPath, startupParams);
 	if (asdaemon) {
-		runDaemon(configPath);
+		runDaemon(startupParams);
 	} else {
-		runConsole(configPath);
+		runConsole(startupParams);
 	}
 }
