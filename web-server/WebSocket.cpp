@@ -120,7 +120,7 @@ namespace webserver {
 			str = aJson.dump();
 		} catch (const std::exception& e) {
 			logError("Failed to convert data to JSON: " + string(e.what()), websocketpp::log::elevel::fatal);
-			throw e;
+			throw;
 		}
 
 		wsm->onData(str, TransportType::TYPE_SOCKET, Direction::OUTGOING, getIp());

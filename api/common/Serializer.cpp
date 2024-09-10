@@ -110,7 +110,7 @@ namespace webserver {
 		return {
 			{ "id", aUser->getCID().toBase32() },
 			{ "cid", aUser->getCID().toBase32() },
-			{ "nicks", Util::listToString(ClientManager::getInstance()->getNicks(aUser->getCID())) },
+			{ "nicks",  Util::listToString(ClientManager::getInstance()->getNicks(aUser->getCID())) },
 			{ "hub_names", Util::listToString(ClientManager::getInstance()->getHubNames(aUser->getCID())) },
 			{ "hub_urls", ClientManager::getInstance()->getHubUrls(aUser->getCID()) },
 			{ "flags", getUserFlags(aUser) }
