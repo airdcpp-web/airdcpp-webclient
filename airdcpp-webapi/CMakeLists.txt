@@ -8,6 +8,9 @@ file (GLOB_RECURSE webapi_srcs ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}
 set (WEBAPI_SRCS ${webapi_srcs} PARENT_SCOPE)
 set (WEBAPI_HDRS ${webapi_hdrs} PARENT_SCOPE)
 
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${webapi_srcs})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${webapi_hdrs})
+
 include_directories(AIRDCPP_HDRS
   ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR} ${Boost_INCLUDE_DIRS}
   ${OPENSSL_INCLUDE_DIRS} ${websocketpp_INCLUDE_DIR}
