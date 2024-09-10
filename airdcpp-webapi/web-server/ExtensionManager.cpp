@@ -302,7 +302,7 @@ namespace webserver {
 			aExtension->stopThrow();
 		} catch (const Exception& e) {
 			if (!aForced) {
-				throw e;
+				throw;
 			}
 
 			// Try to continue in any case...

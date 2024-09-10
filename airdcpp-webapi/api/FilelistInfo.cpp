@@ -235,7 +235,7 @@ namespace webserver {
 		}
 
 		auto currentPath = dl->getCurrentLocationInfo().directory->getAdcPath();
-		auto curDir = dl->findDirectory(aPath);
+		auto curDir = dl->findDirectoryUnsafe(aPath);
 		if (!curDir) {
 			return;
 		}

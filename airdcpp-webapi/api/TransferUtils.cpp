@@ -56,7 +56,7 @@ namespace webserver {
 		case PROP_TYPE: return Util::formatFileType(aItem->getTarget());
 		case PROP_STATUS: return aItem->getStatusString();
 		case PROP_IP: return aItem->getIp();
-		case PROP_USER: return Format::formatNicks(aItem->getHintedUser());
+		case PROP_USER: return Format::nicksToString(aItem->getHintedUser());
 		case PROP_ENCRYPTION: return aItem->getEncryption();
 		default: dcassert(0); return Util::emptyString;
 		}
@@ -86,7 +86,7 @@ namespace webserver {
 				return a->isDownload() ? -1 : 1;
 			}
 
-			return Util::DefaultSort(Format::formatNicks(a->getHintedUser()), Format::formatNicks(b->getHintedUser()));
+			return Util::DefaultSort(Format::nicksToString(a->getHintedUser()), Format::nicksToString(b->getHintedUser()));
 		}
 		case PROP_STATUS: {
 			if (a->getState() != b->getState()) {
