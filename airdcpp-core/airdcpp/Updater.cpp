@@ -55,11 +55,16 @@
 #endif
 
 #define UPDATER_LOCATION_BASE "https://builds.airdcpp.net/updater/"
+#define UPDATER_LOG_FILE "updater.log"
 
 namespace dcpp {
 
 void Updater::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
 	LogManager::getInstance()->message(aMsg, aSeverity, STRING(UPDATER));
+}
+
+string Updater::toLoggerFilePath(const string& aDirectoryPath) noexcept {
+	return aDirectoryPath + UPDATER_LOG_FILE;
 }
 
 int Updater::cleanExtraFiles(const string& aCurPath, const optional<StringSet>& aProtectedFiles) noexcept {
@@ -163,17 +168,24 @@ void Updater::FileLogger::separator() noexcept {
 	log("\r\n", false);
 }
 
-bool Updater::applyUpdate(const string& aSourcePath, const string& aApplicationPath, string& error_, int aMaxRetries) noexcept {
-	FileLogger updaterLog(UPDATE_TEMP_LOG, true);
-	updaterLog.log("Starting to install build " + BUILD_NUMBER_STR);
+Updater::FileLogger Updater::createInstallLogger(const string& aSourcePath) noexcept {
+	// The path must be provided via startup params in case we are using a custom temp path (the installer won't load the boot config)
+	// We need to put it in the root directory as we don't know the session token in the beginning after
+	// starting the updated instance
+	auto updaterFileRoot = PathUtil::getParentDir(aSourcePath);
+	return FileLogger(toLoggerFilePath(updaterFileRoot), true);
+}
+
+bool Updater::applyUpdate(const string& aSourcePath, const string& aApplicationPath, string& error_, int aMaxRetries, FileLogger& logger_) noexcept {
+	logger_.log("Starting to install build " + BUILD_NUMBER_STR);
 
 	{
 		// Copy new files
 		StringSet updatedFiles;
 
 		bool success = false;
-		for (int i = 0; i < aMaxRetries && (success = Updater::applyUpdaterFiles(aSourcePath, aApplicationPath, error_, updatedFiles, updaterLog)) == false; ++i) {
-			updaterLog.log("Updating failed, retrying after one second...");
+		for (int i = 0; i < aMaxRetries && (success = Updater::applyUpdaterFiles(aSourcePath, aApplicationPath, error_, updatedFiles, logger_)) == false; ++i) {
+			logger_.log("Updating failed, retrying after one second...");
 			Thread::sleep(1000);
 		}
 
@@ -181,45 +193,13 @@ bool Updater::applyUpdate(const string& aSourcePath, const string& aApplicationP
 			return false;
 		}
 
-		updaterLog.log(Util::toString(updatedFiles.size()) + " files were updated successfully");
+		logger_.log(Util::toString(updatedFiles.size()) + " files were updated successfully");
 
 		// Clean up files from old directories
 
 		// Web UI filenames contain unique hashes that will change in each version
 		auto removed = cleanExtraFiles(aApplicationPath + "Web-resources" + PATH_SEPARATOR, updatedFiles);
-		updaterLog.log("Web-resources: " + Util::toString(removed) + " obsolete files were removed");
-	}
-
-
-	// Update the version in the registry
-	HKEY hk;
-	TCHAR Buf[512];
-	Buf[0] = 0;
-
-#ifdef _WIN64
-	string regkey = "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AirDC++\\";
-	int flags = KEY_WRITE | KEY_QUERY_VALUE | KEY_WOW64_64KEY;
-#else
-	string regkey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AirDC++\\";
-	int flags = KEY_WRITE | KEY_QUERY_VALUE;
-#endif
-
-	auto err = ::RegOpenKeyEx(HKEY_LOCAL_MACHINE, Text::toT(regkey).c_str(), 0, flags, &hk);
-	if(err == ERROR_SUCCESS) {
-		DWORD bufLen = sizeof(Buf);
-		DWORD type;
-		::RegQueryValueEx(hk, _T("InstallLocation"), 0, &type, (LPBYTE)Buf, &bufLen);
-
-		if(Util::stricmp(Text::toT(aApplicationPath).c_str(), Buf) == 0) {
-			::RegSetValueEx(hk, _T("DisplayVersion"), 0, REG_SZ, (LPBYTE) Text::toT(shortVersionString).c_str(), sizeof(TCHAR) * (shortVersionString.length() + 1));
-			updaterLog.log("Registry key was updated successfully");
-		} else {
-			updaterLog.log("Skipping updating of registry key (existing key is for a different installation)");
-		}
-
-		::RegCloseKey(hk);
-	} else {
-		updaterLog.log("Failed to update registry key: " + SystemUtil::translateError(err));
+		logger_.log("Web-resources: " + Util::toString(removed) + " obsolete files were removed");
 	}
 
 	return true;
@@ -451,13 +431,27 @@ string Updater::extractUpdater(const string& aUpdaterPath, int aBuildID, const s
 	return updaterExeFile;
 }
 
-bool Updater::checkPendingUpdates(const string& aAppPath, string& updaterFile_, bool aUpdateAttempted) {
+string Updater::getFinalLogFilePath() noexcept {
+	return toLoggerFilePath(AppUtil::getPath(AppUtil::PATH_USER_LOCAL));
+}
+
+bool Updater::checkAndCleanUpdaterFiles(const string& aAppPath, string& updaterFile_, bool aUpdateAttempted) {
 	const auto infoFileList = File::findFiles(UPDATE_TEMP_DIR, "UpdateInfo_*");
 	if (infoFileList.empty()) {
 		return false;
 	}
 
-	FileLogger logger(UPDATE_TEMP_LOG, false);
+	if (aUpdateAttempted) {
+		// Save the log before the temp directory gets deleted 
+		try {
+			auto tempLogFilePath = toLoggerFilePath(UPDATE_TEMP_DIR);
+			File::renameFile(tempLogFilePath, getFinalLogFilePath());
+		} catch (...) {
+
+		}
+	}
+
+	FileLogger logger(getFinalLogFilePath(), false);
 	if (aUpdateAttempted) {
 		logger.log("New instance was started, cleaning up files...");
 	}

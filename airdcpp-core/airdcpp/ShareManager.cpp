@@ -1263,7 +1263,7 @@ void ShareManager::validateRootPath(const string& aRealPath, bool aMatchCurrentR
 		auto formatProfiles = [&shareProfiles](const ProfileTokenSet& aProfiles) {
 			auto rootProfileNames = ShareProfile::getProfileNames(aProfiles, shareProfiles);
 			return Util::listToString(rootProfileNames);
-			};
+		};
 
 		tree->validateRootPath(aRealPath, formatProfiles);
 	}

@@ -216,13 +216,13 @@ void ShareDirectory::countStats(time_t& totalAge_, size_t& totalDirs_, int64_t& 
 	for (const auto& f : files) {
 		totalSize_ += f->getSize();
 		totalAge_ += f->getLastWrite();
-		totalStrLen_ += f->getName().getLower().length();
+		totalStrLen_ += f->getName().length();
 		if (f->getName().lowerCaseOnly()) {
 			lowerCaseFiles_++;
 		}
 	}
 
-	totalStrLen_ += realName.getLower().length();
+	totalStrLen_ += realName.length();
 	totalDirs_ += directories.size();
 	totalFiles_ += files.size();
 }

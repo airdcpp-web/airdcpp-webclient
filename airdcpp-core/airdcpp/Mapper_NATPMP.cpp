@@ -98,7 +98,7 @@ bool read(natpmpresp_t& response) {
 		if(getnatpmprequesttimeout(&nat, &timeout) >= 0) {
 			fd_set fds;
 			FD_ZERO(&fds);
-			FD_SET(nat.s, &fds);
+			FD_SET(static_cast<uint32_t>(nat.s), &fds);
 			select(FD_SETSIZE, &fds, 0, 0, &timeout);
 		}
 

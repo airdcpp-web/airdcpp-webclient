@@ -23,31 +23,7 @@
 #include "constants.h"
 #include "typedefs.h"
 
-#ifndef _WIN32
-
-#include <sys/stat.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-#endif
-
-#include "Text.h"
-
-#include <random>
-
 namespace dcpp {
-
-/** Uses SFINAE to determine whether a type provides a function; stores the result in "value".
-Inspired by <http://stackoverflow.com/a/8752988>. */
-/*#define HAS_FUNC(name, funcRet, funcTest) \
-	template<typename HAS_FUNC_T> struct name { \
-		typedef char yes[1]; \
-		typedef char no[2]; \
-		template<typename HAS_FUNC_U> static yes& check( \
-		typename std::enable_if<std::is_same<funcRet, decltype(std::declval<HAS_FUNC_U>().funcTest)>::value>::type*); \
-		template<typename> static no& check(...); \
-		static const bool value = sizeof(check<HAS_FUNC_T>(nullptr)) == sizeof(yes); \
-	}*/
 
 class AppUtil  
 {
@@ -104,16 +80,6 @@ public:
 	/** Path of bundles */
 	static string getBundlePath() noexcept { return getPath(PATH_BUNDLES); }
 
-	// static string translateError(int aError) noexcept;
-	// static string formatLastError() noexcept;
-
-	// static string truncate(const string& aStr, int aMaxLength) noexcept;
-
-	static bool hasStartupParam(const string& aParam) noexcept;
-	static string getStartupParams(bool isFirst) noexcept;
-	static void addStartupParam(const string& aParam) noexcept;
-	static optional<string> getStartupParam(const string& aKey) noexcept;
-
 	static bool usingLocalMode() noexcept { return localMode; }
 	static bool wasUncleanShutdown;
 private:
@@ -121,8 +87,6 @@ private:
 	static bool localMode;
 
 	static string paths[PATH_LAST];
-
-	static StringList startupParams;
 	
 	static bool loadBootConfig(const string& aDirectoryPath) noexcept;
 

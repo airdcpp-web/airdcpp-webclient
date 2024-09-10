@@ -320,31 +320,38 @@ public:
 	static string toString(const string& sep, const StringList& lst) noexcept;
 
 	template<typename T, class NameOperator>
-	static string listToStringT(const T& lst, bool forceBrackets, bool squareBrackets) noexcept {
-		if(lst.size() == 1 && !forceBrackets)
+	static string listToStringT(const T& lst, bool aForceBrackets, bool aSquareBrackets) noexcept {
+		if (lst.size() == 1 && !aForceBrackets) {
 			return NameOperator()(*lst.begin());
+		}
 
-		string tmp;
-		tmp.push_back(squareBrackets ? '[' : '(');
+		string str;
+
+		// Opening bracket
+		str.push_back(aSquareBrackets ? '[' : '(');
+
+		// Items with commas
 		for(auto i = lst.begin(), iend = lst.end(); i != iend; ++i) {
-			tmp += NameOperator()(*i);
-			tmp += ", ";
+			str += NameOperator()(*i);
+			str += ", ";
 		}
 
-		if(tmp.length() == 1) {
-			tmp.push_back(squareBrackets ? ']' : ')');
+		if(str.length() == 1) {
+			// No items
+			str.push_back(aSquareBrackets ? ']' : ')');
 		} else {
-			tmp.pop_back();
-			tmp[tmp.length()-1] = squareBrackets ? ']' : ')';
+			str.pop_back();
+			str[str.length()-1] = aSquareBrackets ? ']' : ')';
 		}
 
-		return tmp;
+		return str;
 	}
 
 	struct StrChar {
 		const char* operator()(const string& u) noexcept { return u.c_str(); }
 	};
 
+	// Format stringlist with brackets for multiple items (or plain string for a single item)
 	template<typename ListT>
 	static string listToString(const ListT& lst) noexcept { return listToStringT<ListT, StrChar>(lst, false, true); }
 

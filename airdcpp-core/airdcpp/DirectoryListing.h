@@ -226,18 +226,18 @@ public:
 
 	HintedUser getDownloadSourceUser() const noexcept;
 
-	int64_t getTotalListSize() const noexcept { return root->getTotalSize(false); }
-	int64_t getDirSize(const string& aDir) const noexcept;
-	size_t getTotalFileCount() const noexcept { return root->getTotalFileCount(false); }
+	int64_t getTotalListSizeUnsafe() const noexcept { return root->getTotalSize(false); }
+	int64_t getDirectorySizeUnsafe(const string& aDir) const noexcept;
+	size_t getTotalFileCountUnsafe() const noexcept { return root->getTotalFileCount(false); }
 
 	const Directory::Ptr getRoot() const noexcept { return root; }
 	Directory::Ptr getRoot() noexcept { return root; }
 
 	// Throws ShareException
-	void getLocalPaths(const Directory::Ptr& d, StringList& ret) const;
+	void getLocalPathsUnsafe(const Directory::Ptr& d, StringList& ret) const;
 
 	// Throws ShareException
-	void getLocalPaths(const File::Ptr& f, StringList& ret) const;
+	void getLocalPathsUnsafe(const File::Ptr& f, StringList& ret) const;
 
 	bool isMyCID() const noexcept;
 	string getNick(bool firstOnly) const noexcept;
@@ -279,8 +279,8 @@ public:
 	bool isCurrentSearchPath(const string& path) const noexcept;
 	size_t getResultCount() const noexcept { return searchResults.size(); }
 
-	Directory::Ptr findDirectory(const string& aName) const noexcept { return findDirectory(aName, root.get()); }
-	Directory::Ptr findDirectory(const string& aName, const Directory* current) const noexcept;
+	Directory::Ptr findDirectoryUnsafe(const string& aName) const noexcept { return findDirectoryUnsafe(aName, root.get()); }
+	Directory::Ptr findDirectoryUnsafe(const string& aName, const Directory* current) const noexcept;
 	
 	bool supportsASCH() const noexcept;
 
@@ -297,6 +297,7 @@ public:
 	}
 
 	void onListRemovedQueue(const string& aTarget, const string& aDir, bool aFinished) noexcept;
+	void addDisableLoadingTask(const string& aTarget) noexcept;
 
 	bool isRead() const noexcept {
 		return read;

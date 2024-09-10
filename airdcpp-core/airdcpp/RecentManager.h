@@ -66,15 +66,15 @@ namespace dcpp {
 
 		mutable SharedMutex cs;
 
-		void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
+		void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
 
-		void on(ClientManagerListener::ClientCreated, const ClientPtr& c) noexcept;
-		void on(ClientManagerListener::ClientRedirected, const ClientPtr& aOldClient, const ClientPtr& aNewClient) noexcept;
-		void on(ClientManagerListener::ClientUpdated, const ClientPtr& c) noexcept;
+		void on(ClientManagerListener::ClientCreated, const ClientPtr& c) noexcept override;
+		void on(ClientManagerListener::ClientRedirected, const ClientPtr& aOldClient, const ClientPtr& aNewClient) noexcept override;
+		void on(ClientManagerListener::ClientUpdated, const ClientPtr& c) noexcept override;
 
-		void on(PrivateChatManagerListener::ChatCreated, const PrivateChatPtr&, bool /* received message */) noexcept;
+		void on(PrivateChatManagerListener::ChatCreated, const PrivateChatPtr&, bool /* received message */) noexcept override;
 
-		void on(DirectoryListingManagerListener::ListingCreated, const DirectoryListingPtr&) noexcept;
+		void on(DirectoryListingManagerListener::ListingCreated, const DirectoryListingPtr&) noexcept override;
 
 
 		RecentManager();

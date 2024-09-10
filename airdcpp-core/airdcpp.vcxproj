@@ -85,7 +85,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\maxminddb;$(SolutionDir)\bzip2;$(SolutionDir)\boost;$(SolutionDir)\zlib;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\third-party\natpmp;$(SolutionDir)\third-party;$(SolutionDir)\third-party\leveldb\helpers;$(SolutionDir)\third-party\leveldb\include;$(SolutionDir)\third-party\maxminddb;$(SolutionDir)\third-party\bzip2;$(SolutionDir)\third-party\boost;$(SolutionDir)\third-party\zlib;$(SolutionDir)\third-party\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -109,7 +109,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\maxminddb;$(SolutionDir)\bzip2;$(SolutionDir)\boost;$(SolutionDir)\zlib;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\third-party\natpmp;$(SolutionDir)\third-party;$(SolutionDir)\third-party\leveldb\helpers;$(SolutionDir)\third-party\leveldb\include;$(SolutionDir)\third-party\maxminddb;$(SolutionDir)\third-party\bzip2;$(SolutionDir)\third-party\boost;$(SolutionDir)\third-party\zlib;$(SolutionDir)\third-party\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -145,7 +145,7 @@
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\maxminddb;$(SolutionDir)\bzip2;$(SolutionDir)\boost;$(SolutionDir)\zlib;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\third-party\natpmp;$(SolutionDir)\third-party;$(SolutionDir)\third-party\leveldb\helpers;$(SolutionDir)\third-party\leveldb\include;$(SolutionDir)\third-party\maxminddb;$(SolutionDir)\third-party\bzip2;$(SolutionDir)\third-party\boost;$(SolutionDir)\third-party\zlib;$(SolutionDir)\third-party\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -186,7 +186,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\natpmp;$(SolutionDir);$(SolutionDir)\leveldb\helpers;$(SolutionDir)\leveldb\include;$(SolutionDir)\maxminddb;$(SolutionDir)\bzip2;$(SolutionDir)\boost;$(SolutionDir)\zlib;$(SolutionDir)\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\airdcpp;$(SolutionDir)\third-party\natpmp;$(SolutionDir)\third-party;$(SolutionDir)\third-party\leveldb\helpers;$(SolutionDir)\third-party\leveldb\include;$(SolutionDir)\third-party\maxminddb;$(SolutionDir)\third-party\bzip2;$(SolutionDir)\third-party\boost;$(SolutionDir)\third-party\zlib;$(SolutionDir)\third-party\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -372,6 +372,7 @@
     <ClInclude Include="airdcpp\FavoriteUserManager.h" />
     <ClInclude Include="airdcpp\FavoriteUserManagerListener.h" />
     <ClInclude Include="airdcpp\FloodCounter.h" />
+    <ClInclude Include="airdcpp\StartupParams.h" />
     <ClInclude Include="airdcpp\TransferInfoManagerListener.h" />
     <ClInclude Include="airdcpp\UploadFileParser.h" />
     <ClInclude Include="airdcpp\UploadFileProvider.h" />
@@ -623,7 +624,7 @@
     <ClInclude Include="airdcpp\ZUtils.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="$(SolutionDir)boost\boost.vcxproj">
+    <ProjectReference Include="$(SolutionDir)third-party\boost\boost.vcxproj">
       <Project>{d1095e8a-63a5-4592-ae93-2d638f20f66a}</Project>
       <Private>true</Private>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
@@ -631,7 +632,7 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
     </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)bzip2\bzip2.vcxproj">
+    <ProjectReference Include="$(SolutionDir)third-party\bzip2\bzip2.vcxproj">
       <Project>{8b162f1b-5d6c-41c1-8a80-858b379de07d}</Project>
       <Private>true</Private>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
@@ -639,17 +640,17 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
     </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)leveldb\LevelDB.vcxproj">
+    <ProjectReference Include="$(SolutionDir)third-party\leveldb\LevelDB.vcxproj">
       <Project>{a7ff59d3-eafd-43a1-8aa7-5087229c75d1}</Project>
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)MakeDefs\MakeDefs.vcxproj">
       <Project>{aef82786-9da2-4cdf-8602-02643cafc727}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)minizip\minizip.vcxproj">
+    <ProjectReference Include="$(SolutionDir)third-party\minizip\minizip.vcxproj">
       <Project>{cce1d62b-cf3b-4705-a24e-75be18963c99}</Project>
     </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)zlib\zlib.vcxproj">
+    <ProjectReference Include="$(SolutionDir)third-party\zlib\zlib.vcxproj">
       <Project>{dfbbe42a-45f4-4188-89c2-17f5dfe50673}</Project>
       <Private>false</Private>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
@@ -657,16 +658,16 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
     </ProjectReference>
-    <ProjectReference Include="..\maxminddb\libmaxminddb.vcxproj">
+    <ProjectReference Include="$(SolutionDir)third-party\maxminddb\libmaxminddb.vcxproj">
       <Project>{82953bda-2960-4ada-a6d5-92e65ccb4a3d}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\miniupnpc\miniupnpc.vcxproj">
+    <ProjectReference Include="$(SolutionDir)third-party\miniupnpc\miniupnpc.vcxproj">
       <Project>{51015502-c27c-43cf-9fa4-12ab9db5d36e}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\natpmp\natpmp.vcxproj">
+    <ProjectReference Include="$(SolutionDir)third-party\natpmp\natpmp.vcxproj">
       <Project>{6bd1d0b7-ec0c-4473-533b-5ec961138415}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\snappy\Snappy.vcxproj">
+    <ProjectReference Include="$(SolutionDir)third-party\snappy\Snappy.vcxproj">
       <Project>{b60e6ad9-779d-4cb4-8dab-f86d7dae0752}</Project>
     </ProjectReference>
   </ItemGroup>
