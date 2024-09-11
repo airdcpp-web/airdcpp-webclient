@@ -215,7 +215,6 @@ private:
 
 		ShareDirectory::List virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
 		{
-			RLock l(cs);
 			getRootsByVirtualUnsafe(aVirtualPath.substr(1, start - 1), aProfile, virtuals);
 			if (virtuals.empty()) {
 				throw ShareException(UserConnection::FILE_NOT_AVAILABLE);

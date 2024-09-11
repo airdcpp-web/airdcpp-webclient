@@ -99,10 +99,10 @@ bool StartupParams::removeParam(const string& aParam) noexcept {
 	return false;
 }
 
-bool StartupParams::hasParam(const string& aParam, size_t aPos) const noexcept {
+bool StartupParams::hasParam(const string& aParam, int aPos) const noexcept {
 	auto param = find(params.begin(), params.end(), aParam);
 	if (param != params.end()) {
-		return aPos == -1 || distance(params.begin(), param) == static_cast<int>(aPos);
+		return aPos == -1 || distance(params.begin(), param) == aPos;
 	}
 
 	return false;
