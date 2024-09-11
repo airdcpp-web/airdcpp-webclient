@@ -183,7 +183,7 @@ bool UploadManager::standardSlotsRemaining(const UserPtr& aUser) const noexcept 
 		return true;
 	}
 
-	return true;
+	return false;
 }
 
 OptionalUploadSlot UploadManager::parseAutoGrantHookedThrow(const UserConnection& aSource, const UploadParser& aParser) const {

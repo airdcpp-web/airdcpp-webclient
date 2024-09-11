@@ -27,7 +27,7 @@ class StartupParams {
 public:
 	typedef deque<string> ParamList;
 
-	bool hasParam(const string& aParam, size_t aPos = -1) const noexcept;
+	bool hasParam(const string& aParam, int aPos = -1) const noexcept;
 	void addParam(const string& aParam) noexcept;
 	bool removeParam(const string& aParam) noexcept;
 	optional<string> getValue(const string& aKey) const noexcept;
