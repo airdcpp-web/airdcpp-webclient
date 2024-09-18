@@ -32,14 +32,14 @@
 namespace webserver {
 	class HookApiModule : public SubscribableApiModule {
 	public:
-		typedef std::function<bool(ActionHookSubscriber&& aSubscriber)> HookAddF;
-		typedef std::function<void(const string& aSubscriberId)> HookRemoveF;
-		typedef std::function<ActionHookSubscriberList()> HookListF;
+		using HookAddF = std::function<bool (ActionHookSubscriber &&)>;
+		using HookRemoveF = std::function<void (const string &)>;
+		using HookListF = std::function<ActionHookSubscriberList ()>;
 
 		class HookSubscriber {
 		public:
 			HookSubscriber(const string& aHookId, HookAddF&& aAddHandler, HookRemoveF&& aRemoveF, HookListF&& aListF) : 
-				hookId(aHookId), addHandler(std::move(aAddHandler)), removeHandler(aRemoveF), listHandler(aListF) {}
+				addHandler(std::move(aAddHandler)), removeHandler(std::move(aRemoveF)), listHandler(std::move(aListF)), hookId(aHookId) {}
 
 			bool enable(ActionHookSubscriber&& aHookSubscriber);
 			void disable();
@@ -79,7 +79,7 @@ namespace webserver {
 			string rejectMessage;
 			const bool rejected;
 
-			typedef std::shared_ptr<HookCompletionData> Ptr;
+			using Ptr = std::shared_ptr<HookCompletionData>;
 
 			template<typename DataT>
 			using HookDataGetter = std::function<DataT(const json& aDataJson, const ActionHookResultGetter<DataT>& aResultGetter)>;
@@ -103,18 +103,18 @@ namespace webserver {
 				return { nullptr, nullptr };
 			}
 		};
-		typedef HookCompletionData::Ptr HookCompletionDataPtr;
+		using HookCompletionDataPtr = HookCompletionData::Ptr;
 
 		HookApiModule(Session* aSession, Access aSubscriptionAccess, const StringList& aSubscriptions, Access aHookAccess);
 
 		virtual void createHook(const string& aSubscription, HookAddF&& aAddHandler, HookRemoveF&& aRemoveF, HookListF&& aListF) noexcept;
 		virtual bool hookActive(const string& aSubscription) const noexcept;
 
-		virtual HookCompletionDataPtr fireHook(const string& aSubscription, int aTimeoutSeconds, JsonCallback&& aJsonCallback);
+		virtual HookCompletionDataPtr fireHook(const string& aSubscription, int aTimeoutSeconds, const JsonCallback& aJsonCallback);
 	protected:
 		HookSubscriber& getHookSubscriber(ApiRequest& aRequest);
 
-		virtual void on(SessionListener::SocketDisconnected) noexcept override;
+		void on(SessionListener::SocketDisconnected) noexcept override;
 
 		virtual bool addHook(HookSubscriber& aApiSubscriber, ActionHookSubscriber&& aHookSubscriber, const json& aJson);
 
@@ -124,7 +124,7 @@ namespace webserver {
 		virtual api_return handleResolveHookAction(ApiRequest& aRequest);
 		virtual api_return handleRejectHookAction(ApiRequest& aRequest);
 
-		static ActionHookSubscriber deserializeSubscriber(const void* aOwner, const json& aJson);
+		static ActionHookSubscriber deserializeSubscriber(CallerPtr aOwner, const json& aJson);
 	protected:
 		mutable SharedMutex cs;
 	private:
@@ -135,7 +135,7 @@ namespace webserver {
 			HookCompletionDataPtr completionData;
 		};
 
-		typedef map<int, PendingAction> PendingHookActionMap;
+		using PendingHookActionMap = map<int, PendingAction>;
 
 		PendingHookActionMap pendingHookActions;
 
@@ -149,8 +149,8 @@ namespace webserver {
 	template<class IdType>
 	class FilterableHookApiModule : public HookApiModule {
 	public:
-		typedef Deserializer::ArrayDeserializerFunc<IdType> IdDeserializerF;
-		typedef set<IdType> IdSet;
+		using IdDeserializerF = Deserializer::ArrayDeserializerFunc<IdType>;
+		using IdSet = set<IdType>;
 
 		FilterableHookApiModule(Session* aSession, Access aSubscriptionAccess, const StringList& aSubscriptions, Access aHookAccess, IdDeserializerF aIdDeserializerF) : 
 			HookApiModule(aSession, aSubscriptionAccess, aSubscriptions, aHookAccess), idDeserializer(std::move(aIdDeserializerF)) {}
@@ -167,7 +167,7 @@ namespace webserver {
 			return true;
 		}
 
-		bool maybeSend(const string& aSubscription, const IdType& aId, JsonCallback aCallback) {
+		bool maybeSend(const string& aSubscription, const IdType& aId, const JsonCallback& aCallback) {
 			if (!isIdActive(aSubscription, aId)) {
 				return false;
 			}
@@ -175,12 +175,12 @@ namespace webserver {
 			return HookApiModule::maybeSend(aSubscription, aCallback);
 		}
 
-		HookCompletionDataPtr maybeFireHook(const string& aSubscription, const IdType& aId, int aTimeoutSeconds, JsonCallback&& aJsonCallback) {
+		HookCompletionDataPtr maybeFireHook(const string& aSubscription, const IdType& aId, int aTimeoutSeconds, const JsonCallback& aJsonCallback) {
 			if (!isIdActive(aSubscription, aId)) {
 				return nullptr;
 			}
 
-			return HookApiModule::fireHook(aSubscription, aTimeoutSeconds, std::move(aJsonCallback));
+			return HookApiModule::fireHook(aSubscription, aTimeoutSeconds, aJsonCallback);
 		}
 
 		void setIds(const string& aSubscription, const IdSet& aIds) {

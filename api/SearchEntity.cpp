@@ -107,7 +107,7 @@ namespace webserver {
 	}
 
 	json SearchEntity::serializeSearchResult(const SearchResultPtr& aSR) noexcept {
-		auto isDirectory = aSR->getType() == SearchResult::TYPE_DIRECTORY;
+		auto isDirectory = aSR->getType() == SearchResult::Type::DIRECTORY;
 		return { 
 			{ "id", aSR->getId() },
 			{ "name", aSR->getFileName() },

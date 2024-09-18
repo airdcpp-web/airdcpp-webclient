@@ -53,7 +53,7 @@ namespace webserver {
 		if (fileTypeStr) {
 			try {
 				string name;
-				auto& typeManager = SearchManager::getInstance()->getSearchTypes();
+				const auto& typeManager = SearchManager::getInstance()->getSearchTypes();
 				typeManager.getSearchType(parseSearchType(*fileTypeStr), aSearch->fileType, aSearch->exts, name);
 			} catch (...) {
 				throw std::domain_error("Invalid file type");

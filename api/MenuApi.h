@@ -25,7 +25,8 @@
 #include <api/common/Serializer.h>
 
 #include <web-server/ApiRequest.h>
-#include <web-server/ContextMenuManager.h>
+#include <web-server/ContextMenuItem.h>
+#include <web-server/ContextMenuManagerListener.h>
 #include <web-server/JsonUtil.h>
 #include <web-server/Session.h>
 
@@ -33,10 +34,11 @@
 
 
 namespace webserver {
+	class ContextMenuManager;
 	class MenuApi : public HookApiModule, private ContextMenuManagerListener {
 	public:
-		MenuApi(Session* aSession);
-		~MenuApi();
+		explicit MenuApi(Session* aSession);
+		~MenuApi() final;
 	private:
 		ContextMenuManager& cmm;
 
@@ -71,7 +73,7 @@ namespace webserver {
 		HookCompletionDataPtr fireMenuHook(const string& aMenuId, const json& aSelectedIds, const ContextMenuItemListData& aListData, const json& aEntityId);
 
 		template<typename IdT>
-		static vector<IdT> deserializeItemIds(ApiRequest& aRequest, const Deserializer::ArrayDeserializerFunc<IdT>& aIdDeserializerFunc) {
+		static vector<IdT> deserializeItemIds(const ApiRequest& aRequest, const Deserializer::ArrayDeserializerFunc<IdT>& aIdDeserializerFunc) {
 			return Deserializer::deserializeList<IdT>("selected_ids", aRequest.getRequestBody(), aIdDeserializerFunc, false);
 		}
 
@@ -88,7 +90,7 @@ namespace webserver {
 			return websocketpp::http::status_code::no_content;
 		}
 
-		ContextMenuItemClickData deserializeClickData(const json& aJson, const AccessList& aPermissions);
+		static ContextMenuItemClickData deserializeClickData(const json& aJson, const AccessList& aPermissions);
 
 		template<typename IdT>
 		using GroupedListHandlerFunc = std::function<GroupedContextMenuItemList(const vector<IdT>& aId, const ContextMenuItemListData& aListData)>;
@@ -144,22 +146,22 @@ namespace webserver {
 			return CODE_DEFERRED;
 		}
 
-		void on(ContextMenuManagerListener::QueueBundleMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData& aClickData) noexcept override;
-		void on(ContextMenuManagerListener::QueueFileMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData& aClickData) noexcept override;
-		void on(ContextMenuManagerListener::TransferMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::QueueBundleMenuSelected, const vector<QueueToken>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::QueueFileMenuSelected, const vector<QueueToken>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::TransferMenuSelected, const vector<TransferToken>&, const ContextMenuItemClickData& aClickData) noexcept override;
 		void on(ContextMenuManagerListener::ShareRootMenuSelected, const vector<TTHValue>&, const ContextMenuItemClickData& aClickData) noexcept override;
-		void on(ContextMenuManagerListener::FavoriteHubMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::FavoriteHubMenuSelected, const vector<FavoriteHubToken>&, const ContextMenuItemClickData& aClickData) noexcept override;
 		void on(ContextMenuManagerListener::ExtensionMenuSelected, const vector<string>&, const ContextMenuItemClickData& aClickData) noexcept override;
 
 		void on(ContextMenuManagerListener::UserMenuSelected, const vector<CID>&, const ContextMenuItemClickData& aClickData) noexcept override;
 		void on(ContextMenuManagerListener::HintedUserMenuSelected, const vector<HintedUser>&, const ContextMenuItemClickData& aClickData) noexcept override;
 
 		void on(ContextMenuManagerListener::GroupedSearchResultMenuSelected, const vector<TTHValue>& aSelectedIds, const SearchInstancePtr& aInstance, const ContextMenuItemClickData& aClickData) noexcept override;
-		void on(ContextMenuManagerListener::FilelistItemMenuSelected, const vector<uint32_t>& aSelectedIds, const DirectoryListingPtr& aList, const ContextMenuItemClickData& aClickData) noexcept override;
-		void on(ContextMenuManagerListener::HubUserMenuSelected, const vector<uint32_t>&, const ClientPtr& aClient, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::FilelistItemMenuSelected, const vector<DirectoryListingItemToken>& aSelectedIds, const DirectoryListingPtr& aList, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::HubUserMenuSelected, const vector<dcpp::SID>&, const ClientPtr& aClient, const ContextMenuItemClickData& aClickData) noexcept override;
 
-		void on(HubMessageHighlightMenuSelected, const vector<uint32_t>&, const ClientPtr& aClient, const ContextMenuItemClickData& aClickData) noexcept override;
-		void on(PrivateChatMessageHighlightMenuSelected, const vector<uint32_t>&, const PrivateChatPtr& aChat, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(HubMessageHighlightMenuSelected, const vector<MessageHighlightToken>&, const ClientPtr& aClient, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(PrivateChatMessageHighlightMenuSelected, const vector<MessageHighlightToken>&, const PrivateChatPtr& aChat, const ContextMenuItemClickData& aClickData) noexcept override;
 
 		void onMenuItemSelected(const string& aMenuId, const json& aSelectedIds, const ContextMenuItemClickData& aClickData, const json& aEntityId = nullptr) noexcept;
 	};

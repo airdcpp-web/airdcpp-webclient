@@ -32,7 +32,7 @@ namespace webserver {
 	class ChatController {
 	public:
 		ChatController(SubscribableApiModule* aModule, ChatHandlerBase* aChat, const string& aSubscriptionId, Access aViewPermission, Access aEditPermission, Access aSendPermission) :
-			module(aModule), subscriptionId(aSubscriptionId), chat(aChat)
+			subscriptionId(aSubscriptionId), apiModule(aModule), chat(aChat)
 		{
 			MODULE_METHOD_HANDLER(aModule, aSendPermission, METHOD_POST, (EXACT_PARAM("chat_message")), ChatController::handlePostChatMessage);
 			MODULE_METHOD_HANDLER(aModule, aEditPermission, METHOD_POST, (EXACT_PARAM("status_message")), ChatController::handlePostStatusMessage);
@@ -48,11 +48,11 @@ namespace webserver {
 			onMessagesUpdated();
 
 			auto s = toListenerName("message");
-			if (!module->subscriptionActive(s)) {
+			if (!apiModule->subscriptionActive(s)) {
 				return;
 			}
 
-			module->send(s, MessageUtils::serializeChatMessage(aMessage));
+			apiModule->send(s, MessageUtils::serializeChatMessage(aMessage));
 		}
 
 		void onStatusMessage(const LogMessagePtr& aMessage, const string& aOwner) noexcept {
@@ -63,11 +63,11 @@ namespace webserver {
 			onMessagesUpdated();
 
 			auto s = toListenerName("status");
-			if (!module->subscriptionActive(s)) {
+			if (!apiModule->subscriptionActive(s)) {
 				return;
 			}
 
-			module->send(s, MessageUtils::serializeLogMessage(aMessage));
+			apiModule->send(s, MessageUtils::serializeLogMessage(aMessage));
 		}
 
 		void onMessagesUpdated() {
@@ -76,7 +76,7 @@ namespace webserver {
 
 		void onChatCommand(const OutgoingChatMessage& aMessage) {
 			auto s = toListenerName("text_command");
-			if (!module->subscriptionActive(s)) {
+			if (!apiModule->subscriptionActive(s)) {
 				return;
 			}
 
@@ -92,7 +92,7 @@ namespace webserver {
 
 			tokens.pop_front();
 
-			module->send(s, {
+			apiModule->send(s, {
 				{ "command", command.substr(1) },
 				{ "args", tokens },
 				{ "permissions",  Serializer::serializePermissions(parseMessageAuthorAccess(aMessage)) },
@@ -106,18 +106,18 @@ namespace webserver {
 	private:
 		void sendUnread() noexcept {
 			auto s = toListenerName("updated");
-			if (!module->subscriptionActive(s)) {
+			if (!apiModule->subscriptionActive(s)) {
 				return;
 			}
 
-			module->send(s, {
+			apiModule->send(s, {
 				{ "message_counts",  MessageUtils::serializeCacheInfo(chat->getCache(), MessageUtils::serializeUnreadChat) },
 			});
 		}
 
 		AccessList parseMessageAuthorAccess(const OutgoingChatMessage& aMessage) {
-			const auto sessions = module->getSession()->getServer()->getUserManager().getSessions();
-			const auto ownerSessionIter = std::find_if(sessions.begin(), sessions.end(), [&aMessage](const SessionPtr& aSession) {
+			const auto sessions = apiModule->getSession()->getServer()->getUserManager().getSessions();
+			const auto ownerSessionIter = ranges::find_if(sessions, [&aMessage](const SessionPtr& aSession) {
 				return aSession.get() == aMessage.owner;
 			});
 
@@ -135,7 +135,7 @@ namespace webserver {
 		api_return handlePostChatMessage(ApiRequest& aRequest) {
 			const auto& reqJson = aRequest.getRequestBody();
 
-			module->addAsyncTask([
+			apiModule->addAsyncTask([
 				this,
 				message = Deserializer::deserializeChatMessage(reqJson),
 				complete = aRequest.defer(),
@@ -201,12 +201,12 @@ namespace webserver {
 		string getCurrentSessionOwnerId(const string& aSuffix = Util::emptyString) noexcept {
 			string ret;
 
-			if (!module->getSocket()) {
+			if (!apiModule->getSocket()) {
 				// Owner isn't meaningful for HTTP sessions as targeted messages aren't cached anywhere...
 				return Util::emptyString;
 			}
 
-			const auto session = module->getSession();
+			const auto session = apiModule->getSession();
 			switch (session->getSessionType()) {
 			case Session::TYPE_EXTENSION:
 				ret = "extension:" + session->getUser()->getUserName();
@@ -226,7 +226,7 @@ namespace webserver {
 
 		ChatHandlerBase* chat;
 		string subscriptionId;
-		SubscribableApiModule* module;
+		SubscribableApiModule* apiModule;
 	};
 }
 

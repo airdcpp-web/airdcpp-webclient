@@ -32,19 +32,19 @@ namespace webserver {
 	public:
 		static StringList subscriptionList;
 
-		SearchApi(Session* aSession);
-		~SearchApi();
+		explicit SearchApi(Session* aSession);
+		~SearchApi() final;
 	private:
 		static json serializeSearchInstance(const SearchInstancePtr& aSearch) noexcept;
 
-		api_return handleCreateInstance(ApiRequest& aRequest);
+		api_return handleCreateInstance(ApiRequest& aRequest) const;
 		api_return handleDeleteSubmodule(ApiRequest& aRequest) override;
 
-		api_return handleGetTypes(ApiRequest& aRequest);
-		api_return handlePostType(ApiRequest& aRequest);
-		api_return handleGetType(ApiRequest& aRequest);
-		api_return handleUpdateType(ApiRequest& aRequest);
-		api_return handleRemoveType(ApiRequest& aRequest);
+		api_return handleGetTypes(ApiRequest& aRequest) const;
+		api_return handlePostType(ApiRequest& aRequest) const;
+		api_return handleGetType(ApiRequest& aRequest) const;
+		api_return handleUpdateType(ApiRequest& aRequest) const;
+		api_return handleRemoveType(ApiRequest& aRequest) const;
 
 		void on(SearchManagerListener::SearchTypesChanged) noexcept override;
 		void on(SearchManagerListener::SearchInstanceCreated, const SearchInstancePtr& aInstance) noexcept override;
@@ -55,7 +55,7 @@ namespace webserver {
 		static json serializeSearchQuery(const SearchQuery& aQuery) noexcept;
 		static json serializeSearchType(const SearchTypePtr& aType) noexcept;
 		static string parseSearchTypeId(ApiRequest& aRequest) noexcept;
-		string createCurrentSessionOwnerId(const string& aSuffix) noexcept;
+		string createCurrentSessionOwnerId(const string& aSuffix) const noexcept;
 
 		ActionHookResult<> incomingUserResultHook(const SearchResultPtr& aResult, const ActionHookResultGetter<>& aResultGetter) noexcept;
 	};

@@ -107,8 +107,8 @@ namespace webserver {
 
 	Callback ApiModule::getAsyncWrapper(Callback&& aTask) noexcept {
 		auto sessionId = session->getId();
-		return [aTask, sessionId] {
-			return asyncRunWrapper(aTask, sessionId);
+		return [task = std::move(aTask), sessionId] {
+			return asyncRunWrapper(task, sessionId);
 		};
 	}
 
@@ -151,8 +151,8 @@ namespace webserver {
 
 	void SubscribableApiModule::on(SessionListener::SocketDisconnected) noexcept {
 		// Disable all subscriptions
-		for (auto& s : subscriptions) {
-			s.second = false;
+		for (auto& [_, enabled] : subscriptions) {
+			enabled = false;
 		}
 
 		socket = nullptr;
@@ -194,7 +194,7 @@ namespace webserver {
 
 		try {
 			s->sendPlain(aJson);
-		} catch (const std::exception&) {
+		} catch (const json::exception&) {
 			// Ignore JSON errors...
 			return false;
 		}
@@ -209,7 +209,7 @@ namespace webserver {
 		});
 	}
 
-	bool SubscribableApiModule::maybeSend(const string& aSubscription, JsonCallback aCallback) {
+	bool SubscribableApiModule::maybeSend(const string& aSubscription, const JsonCallback& aCallback) {
 		if (!subscriptionActive(aSubscription)) {
 			return false;
 		}

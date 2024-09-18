@@ -26,8 +26,8 @@ namespace webserver {
 	class ApiSettingItem;
 	class SettingApi : public ApiModule {
 	public:
-		SettingApi(Session* aSession);
-		~SettingApi();
+		explicit SettingApi(Session* aSession);
+		~SettingApi() final;
 	private:
 		api_return handleGetDefinitions(ApiRequest& aRequest);
 		api_return handleGetValues(ApiRequest& aRequest);
@@ -36,11 +36,11 @@ namespace webserver {
 		api_return handleGetDefaultValues(ApiRequest& aRequest);
 		api_return handleSetDefaultValues(ApiRequest& aRequest);
 
-		typedef function<void(ApiSettingItem&)> KeyParserF;
-		void parseSettingKeys(const json& aJson, KeyParserF aHandler, WebServerManager* aWsm);
+		using KeyParserF = function<void (ApiSettingItem &)>;
+		void parseSettingKeys(const json& aJson, const KeyParserF& aHandler, WebServerManager* aWsm);
 
-		typedef function<void(ApiSettingItem&, const json& aValue)> ValueParserF;
-		void parseSettingValues(const json& aJson, ValueParserF aHandler, WebServerManager* aWsm);
+		using ValueParserF = function<void (ApiSettingItem &, const json &)>;
+		void parseSettingValues(const json& aJson, const ValueParserF& aHandler, WebServerManager* aWsm);
 
 		static ApiSettingItem* getSettingItem(const string& aKey, WebServerManager* aWsm) noexcept;
 	};

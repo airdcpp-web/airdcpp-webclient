@@ -74,41 +74,41 @@ namespace webserver {
 
 		createHook(HOOK_FILE_FINISHED, [this](ActionHookSubscriber&& aSubscriber) {
 			return QueueManager::getInstance()->fileCompletionHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(QueueApi::fileCompletionHook));
-		}, [this](const string& aId) {
+		}, [](const string& aId) {
 			QueueManager::getInstance()->fileCompletionHook.removeSubscriber(aId);
-		}, [this] {
+		}, [] {
 			return QueueManager::getInstance()->fileCompletionHook.getSubscribers();
 		});
 
 		createHook(HOOK_BUNDLE_FINISHED, [this](ActionHookSubscriber&& aSubscriber) {
 			return QueueManager::getInstance()->bundleCompletionHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(QueueApi::bundleCompletionHook));
-		}, [this](const string& aId) {
+		}, [](const string& aId) {
 			QueueManager::getInstance()->bundleCompletionHook.removeSubscriber(aId);
-		}, [this] {
+		}, [] {
 			return QueueManager::getInstance()->bundleCompletionHook.getSubscribers();
 		});
 
 		createHook(HOOK_ADD_BUNDLE, [this](ActionHookSubscriber&& aSubscriber) {
 			return QueueManager::getInstance()->bundleValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(QueueApi::bundleAddHook));
-		}, [this](const string& aId) {
+		}, [](const string& aId) {
 			QueueManager::getInstance()->bundleValidationHook.removeSubscriber(aId);
-		}, [this] {
+		}, [] {
 			return QueueManager::getInstance()->bundleValidationHook.getSubscribers();
 		});
 
 		createHook(HOOK_ADD_BUNDLE_FILE, [this](ActionHookSubscriber&& aSubscriber) {
 			return QueueManager::getInstance()->bundleFileValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(QueueApi::bundleFileAddHook));
-		}, [this](const string& aId) {
+		}, [](const string& aId) {
 			QueueManager::getInstance()->bundleFileValidationHook.removeSubscriber(aId);
-		}, [this] {
+		}, [] {
 			return QueueManager::getInstance()->bundleFileValidationHook.getSubscribers();
 		});
 
 		createHook(HOOK_ADD_SOURCE, [this](ActionHookSubscriber&& aSubscriber) {
 			return QueueManager::getInstance()->sourceValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(QueueApi::sourceAddHook));
-		}, [this](const string& aId) {
+		}, [](const string& aId) {
 			QueueManager::getInstance()->sourceValidationHook.removeSubscriber(aId);
-		}, [this] {
+		}, [] {
 			return QueueManager::getInstance()->sourceValidationHook.getSubscribers();
 		});
 
@@ -164,7 +164,7 @@ namespace webserver {
 				});
 			}),
 			aResultGetter,
-			[=](const json& aData, const ActionHookResultGetter<BundleFileAddHookResult>& aResultGetter) {
+			[](const json& aData, const ActionHookResultGetter<BundleFileAddHookResult>& aResultGetter) {
 				if (aData.is_null()) {
 					return BundleFileAddHookResult();
 				}

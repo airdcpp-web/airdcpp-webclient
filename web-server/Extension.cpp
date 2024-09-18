@@ -51,7 +51,7 @@ namespace webserver {
 		return PathUtil::joinDirectory(getRootPath(), EXT_LOG_DIR) + "error.log";
 	}
 
-	Extension::Extension(const string& aPackageDirectory, ErrorF&& aErrorF, bool aSkipPathValidation) : errorF(std::move(aErrorF)), managed(true) {
+	Extension::Extension(const string& aPackageDirectory, ErrorF&& aErrorF, bool aSkipPathValidation) : managed(true), errorF(std::move(aErrorF)) {
 		initializeThrow(aPackageDirectory, aSkipPathValidation);
 	}
 
@@ -138,7 +138,7 @@ namespace webserver {
 			if (osJson != aJson.end()) {
 				const StringList osList = *osJson;
 				auto currentOs = SystemUtil::getPlatform();
-				if (std::find(osList.begin(), osList.end(), currentOs) == osList.end() && currentOs != "other") {
+				if (ranges::find(osList, currentOs) == osList.end() && currentOs != "other") {
 					throw Exception(STRING(WEB_EXTENSION_OS_UNSUPPORTED));
 				}
 			}
@@ -147,7 +147,7 @@ namespace webserver {
 		parseApiDataThrow(aJson.at("airdcpp"));
 	}
 
-	void Extension::checkCompatibilityThrow() {
+	void Extension::checkCompatibilityThrow() const {
 		if (apiVersion != API_VERSION) {
 			throw Exception(STRING_F(WEB_EXTENSION_API_VERSION_UNSUPPORTED, Util::toString(apiVersion) % Util::toString(API_VERSION)));
 		}
@@ -167,7 +167,7 @@ namespace webserver {
 		FilesystemItemList ret;
 
 		if (managed) {
-			File::forEachFile(PathUtil::joinDirectory(getRootPath(), EXT_LOG_DIR), "*.log", [&](const FilesystemItem& aInfo) {
+			File::forEachFile(PathUtil::joinDirectory(getRootPath(), EXT_LOG_DIR), "*.log", [&ret](const FilesystemItem& aInfo) {
 				if (aInfo.isDirectory) {
 					return;
 				}
@@ -216,14 +216,14 @@ namespace webserver {
 	void Extension::setValidatedSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences) noexcept {
 		{
 			WLock l(cs);
-			for (const auto& vp: aValues) {
-				auto setting = ApiSettingItem::findSettingItem<ExtensionSettingItem>(settings, vp.first);
+			for (const auto& [key, value] : aValues) {
+				auto setting = ApiSettingItem::findSettingItem<ExtensionSettingItem>(settings, key);
 				if (!setting) {
 					dcassert(0);
 					continue;
 				}
 
-				setting->setValue(vp.second);
+				setting->setValue(value);
 			}
 
 			userReferences.insert(aUserReferences.begin(), aUserReferences.end());
@@ -232,7 +232,7 @@ namespace webserver {
 		fire(ExtensionListener::SettingValuesUpdated(), this, aValues);
 	}
 
-	Extension::SettingValueMap Extension::getSettingValues() noexcept {
+	Extension::SettingValueMap Extension::getSettingValues() const noexcept {
 		SettingValueMap values;
 
 		{
@@ -294,16 +294,16 @@ namespace webserver {
 				return aStr;
 			}
 
-			string ret = "\"" + aStr;
+			string escaped = "\"" + aStr;
 
 			// At least Windows has problems with backslashes before double quotes 
 			// (the slash won't be escaped properly in argv)
-			if (ret.back() == '\\') {
+			if (escaped.back() == '\\') {
 				// Make it double backslash
-				ret += "\\";
+				escaped += "\\";
 			}
 
-			return ret + "\"";
+			return escaped + "\"";
 		};
 
 		// Script to launch
@@ -311,7 +311,7 @@ namespace webserver {
 
 
 		// Params
-		auto addParamImpl = [&ret, &maybeEscape](const string& aName, const string& aParam = Util::emptyString) {
+		auto addParamImpl = [&ret](const string& aName, const string& aParam = Util::emptyString) {
 			auto arg = "--" + aName;
 			if (!aParam.empty()) {
 				arg += "=" + aParam;

@@ -29,7 +29,7 @@
 
 
 namespace webserver {
-	typedef std::function<api_return(const string& aTarget, Priority aPriority)> DownloadHandler;
+	using DownloadHandler = std::function<api_return (const string &, Priority)>;
 
 	class Deserializer {
 	public:
@@ -100,7 +100,7 @@ namespace webserver {
 
 		template <typename ItemT>
 		static vector<ItemT> deserializeList(const string& aFieldName, const json& aJson, const ArrayDeserializerFunc<ItemT>& aF, bool aAllowEmpty) {
-			const auto arrayJson = JsonUtil::getArrayField(aFieldName, aJson, aAllowEmpty);
+			const auto& arrayJson = JsonUtil::getArrayField(aFieldName, aJson, aAllowEmpty);
 
 			vector<ItemT> ret;
 			if (!arrayJson.is_null()) {

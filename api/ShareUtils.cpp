@@ -89,7 +89,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case PROP_PROFILES:
 		{
-			return aItem->profiles.find(static_cast<int>(aNumericMatcher)) != aItem->profiles.end();
+			return aItem->profiles.contains(static_cast<int>(aNumericMatcher));
 		}
 		}
 

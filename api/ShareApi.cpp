@@ -93,33 +93,33 @@ namespace webserver {
 
 		createHook("share_file_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ShareManager::getInstance()->getValidator().fileValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::fileValidationHook));
-		}, [this](const string& aId) {
+		}, [](const string& aId) {
 			ShareManager::getInstance()->getValidator().fileValidationHook.removeSubscriber(aId);
-		}, [this] {
+		}, [] {
 			return ShareManager::getInstance()->getValidator().fileValidationHook.getSubscribers();
 		});
 
 		createHook("share_directory_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ShareManager::getInstance()->getValidator().directoryValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::directoryValidationHook));
-		}, [this](const string& aId) {
+		}, [](const string& aId) {
 			ShareManager::getInstance()->getValidator().directoryValidationHook.removeSubscriber(aId);
-		}, [this] {
+		}, [] {
 			return ShareManager::getInstance()->getValidator().directoryValidationHook.getSubscribers();
 		});
 
 		createHook("new_share_directory_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ShareManager::getInstance()->getValidator().newDirectoryValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::newDirectoryValidationHook));
-		}, [this](const string& aId) {
+		}, [](const string& aId) {
 			ShareManager::getInstance()->getValidator().newDirectoryValidationHook.removeSubscriber(aId);
-		}, [this] {
+		}, [] {
 			return ShareManager::getInstance()->getValidator().newDirectoryValidationHook.getSubscribers();
 		});
 
 		createHook("new_share_file_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ShareManager::getInstance()->getValidator().newFileValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::newFileValidationHook));
-		}, [this](const string& aId) {
+		}, [](const string& aId) {
 			ShareManager::getInstance()->getValidator().newFileValidationHook.removeSubscriber(aId);
-		}, [this] {
+		}, [] {
 			return ShareManager::getInstance()->getValidator().newFileValidationHook.getSubscribers();
 		});
 
@@ -222,7 +222,7 @@ namespace webserver {
 
 
 	json ShareApi::serializeVirtualItem(const SearchResultPtr& aSR) noexcept {
-		auto isDirectory = aSR->getType() == SearchResult::TYPE_DIRECTORY;
+		auto isDirectory = aSR->getType() == SearchResult::Type::DIRECTORY;
 		auto path = aSR->getAdcPath();
 
 		StringList realPaths;

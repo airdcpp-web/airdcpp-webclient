@@ -48,7 +48,7 @@ namespace webserver {
 		template <typename T, typename JsonT>
 		static optional<T> getOptionalEnumField(const string& aFieldName, const JsonT& aJson, bool aRequired, const std::vector<T>& aAllowedValues) {
 			auto value = getOptionalField<T, JsonT>(aFieldName, aJson, aRequired);
-			if (value && find(aAllowedValues.begin(), aAllowedValues.end(), *value) == aAllowedValues.end()) {
+			if (value && ranges::find(aAllowedValues, *value) == aAllowedValues.end()) {
 				string allowedValuesStr;
 				for (const auto& v: aAllowedValues) {
 					if (!allowedValuesStr.empty()) {
@@ -256,36 +256,36 @@ namespace webserver {
 		}
 
 		template <class T, typename JsonT>
-		static bool isEmpty(const typename std::enable_if<std::is_same<std::string, T>::value, T>::type& aStr, const JsonT&) {
+		static bool isEmpty(const typename std::enable_if_t<std::is_same_v<std::string, T>, T>& aStr, const JsonT&) {
 			return aStr.empty();
 		}
 
 		template <class T, typename JsonT>
-		static bool isEmpty(const typename std::enable_if<!std::is_same<std::string, T>::value, T>::type&, const JsonT& aJson) {
+		static bool isEmpty(const typename std::enable_if_t<!std::is_same_v<std::string, T>, T>&, const JsonT& aJson) {
 			return aJson.empty();
 		}
 
 		// Non-integral types should be initialized with the default constructor
 		template <class T>
-		static typename std::enable_if<!std::is_integral<T>::value, T>::type convertNullValue(const string&) {
+		static typename std::enable_if_t<!std::is_integral_v<T>, T> convertNullValue(const string&) {
 			return T();
 		}
 
 		template <class T>
-		static typename std::enable_if<std::is_integral<T>::value, T>::type convertNullValue(const string& aFieldName) {
+		static typename std::enable_if_t<std::is_integral_v<T>, T> convertNullValue(const string& aFieldName) {
 			throwError(aFieldName, ERROR_INVALID, "Field can't be empty");
 			return T(); // Not used
 		}
 
 
 		template <class T>
-		static void validateValue(typename std::enable_if<std::is_same<std::string, T>::value, T>::type& value_) {
+		static void validateValue(typename std::enable_if_t<std::is_same_v<std::string, T>, T>& value_) {
 			// Remove null characters as they may cause issues as string terminators
-			value_.erase(std::find(value_.begin(), value_.end(), '\0'), value_.end());
+			value_.erase(ranges::find(value_, '\0'), value_.end());
 		}
 
 		template <class T>
-		static void validateValue(typename std::enable_if<!std::is_same<std::string, T>::value, T>::type&) {
+		static void validateValue(typename std::enable_if_t<!std::is_same_v<std::string, T>, T>&) {
 
 		}
 

@@ -318,6 +318,15 @@
     <ClInclude Include="api\AdcCommandApi.h">
       <Filter>Header Files\api</Filter>
     </ClInclude>
+    <ClInclude Include="web-server\HttpRequest.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="web-server\ContextMenuItem.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="web-server\ContextMenuManagerListener.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">

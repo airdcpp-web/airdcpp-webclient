@@ -123,7 +123,7 @@ namespace webserver {
 			int succeed = 0;
 			string lastError;
 			for (const auto& url: hubs) {
-				auto c = ClientManager::getInstance()->getClient(url);
+				auto c = ClientManager::getInstance()->findClient(url);
 				if (c && c->isConnected() && c->sendMessageHooked(OutgoingChatMessage(message.message, callerPtr, Util::emptyString, message.thirdPerson), lastError)) {
 					succeed++;
 				}
@@ -150,7 +150,7 @@ namespace webserver {
 
 		int succeed = 0;
 		for (const auto& url : hubs) {
-			auto c = ClientManager::getInstance()->getClient(url);
+			auto c = ClientManager::getInstance()->findClient(url);
 			if (c) {
 				c->statusMessage(
 					message.message, 
@@ -263,7 +263,7 @@ namespace webserver {
 
 	api_return HubApi::handleDeleteSubmodule(ApiRequest& aRequest) {
 		auto hub = getSubModule(aRequest);
-		ClientManager::getInstance()->putClient(hub->getId());
+		ClientManager::getInstance()->putClient(hub->getClient());
 		return websocketpp::http::status_code::no_content;
 	}
 

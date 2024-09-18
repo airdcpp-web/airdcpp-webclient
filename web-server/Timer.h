@@ -22,17 +22,17 @@
 #include "forward.h"
 
 namespace webserver {
-	class Timer : boost::noncopyable {
+	class Timer : public boost::noncopyable {
 	public:
-		typedef std::function<void(const Callback&)> CallbackWrapper;
+		using CallbackWrapper = std::function<void (const Callback &)>;
 
 		// CallbackWrapper is meant to ensure the lifetime of the timer
 		// (which necessary only if the timer is called from a class that can be deleted, such as sessions)
 		Timer(Callback&& aCallback, boost::asio::io_service& aIO, time_t aIntervalMillis, const CallbackWrapper& aWrapper) :
 			cb(std::move(aCallback)),
-			interval(aIntervalMillis),
+			cbWrapper(aWrapper),
 			timer(aIO),
-			cbWrapper(aWrapper)
+			interval(aIntervalMillis)
 		{
 			dcdebug("Timer %p was created\n", this);
 		}
@@ -71,7 +71,7 @@ namespace webserver {
 
 			if (cbWrapper) {
 				// We must ensure that the timer still exists when a new start call is performed
-				cbWrapper(bind(&Timer::runTask, aTimer));
+				cbWrapper(std::bind(&Timer::runTask, aTimer));
 			} else {
 				aTimer->runTask();
 			}
@@ -101,7 +101,7 @@ namespace webserver {
 		bool shutdown = false;
 	};
 
-	typedef shared_ptr<Timer> TimerPtr;
+	using TimerPtr = shared_ptr<Timer>;
 }
 
 #endif

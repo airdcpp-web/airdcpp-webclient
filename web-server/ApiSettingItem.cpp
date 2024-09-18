@@ -73,8 +73,8 @@ namespace webserver {
 	JsonSettingItem::JsonSettingItem(const string& aKey, const json& aDefaultValue, Type aType,
 		bool aOptional, const MinMax& aMinMax, Type aItemType, const EnumOption::List& aEnumOptions) :
 
-		ApiSettingItem(aKey, aType, aItemType), defaultValue(aDefaultValue),
-		optional(aOptional), minMax(aMinMax), enumOptions(aEnumOptions)
+		ApiSettingItem(aKey, aType, aItemType), enumOptions(aEnumOptions),
+		minMax(aMinMax), optional(aOptional), defaultValue(aDefaultValue)
 	{
 		dcassert(aType != TYPE_NUMBER || minMax.min != minMax.max);
 	}
@@ -191,7 +191,7 @@ namespace webserver {
 		return minMax;
 	}
 
-	map<int, CoreSettingItem::MinMax> minMaxMappings = {
+	const map<int, CoreSettingItem::MinMax> minMaxMappings = {
 		{ SettingsManager::TCP_PORT, { 0, 65535 } },
 		{ SettingsManager::UDP_PORT, { 0, 65535 } },
 		{ SettingsManager::TLS_PORT, { 0, 65535 } },
@@ -220,7 +220,7 @@ namespace webserver {
 		{ SettingsManager::INCOMING_CONNECTIONS6, { SettingsManager::INCOMING_DISABLED, SettingsManager::INCOMING_LAST } },
 	};
 
-	set<int> optionalSettingKeys = {
+	const set<int> optionalSettingKeys = {
 		SettingsManager::DESCRIPTION,
 		SettingsManager::EMAIL,
 
@@ -240,7 +240,7 @@ namespace webserver {
 		SettingsManager::LANGUAGE_FILE,
 	};
 
-	map<int, CoreSettingItem::Group> groupMappings = {
+	const map<int, CoreSettingItem::Group> groupMappings = {
 		{ SettingsManager::TCP_PORT, CoreSettingItem::GROUP_CONN_GEN },
 		{ SettingsManager::UDP_PORT, CoreSettingItem::GROUP_CONN_GEN },
 		{ SettingsManager::TLS_PORT, CoreSettingItem::GROUP_CONN_GEN },
@@ -270,7 +270,7 @@ namespace webserver {
 	};
 
 	CoreSettingItem::CoreSettingItem(const string& aName, int aKey, ResourceManager::Strings aDesc, Type aType, ResourceManager::Strings aUnit) :
-		ApiSettingItem(aName, parseAutoType(aType, aKey), ApiSettingItem::TYPE_LAST), si({ aKey, aDesc }), unit(aUnit) {
+		ApiSettingItem(aName, parseAutoType(aType, aKey), ApiSettingItem::TYPE_LAST), unit(aUnit), si({ aKey, aDesc }) {
 
 	}
 
@@ -350,7 +350,7 @@ namespace webserver {
 	}
 
 	bool CoreSettingItem::isOptional() const noexcept {
-		return optionalSettingKeys.find(si.key) != optionalSettingKeys.end();
+		return optionalSettingKeys.contains(si.key);
 	}
 
 	ApiSettingItem::PtrList CoreSettingItem::getListObjectFields() const noexcept {
@@ -393,23 +393,23 @@ namespace webserver {
 
 		auto enumStrings = SettingsManager::getEnumStrings(si.key, false);
 		if (!enumStrings.empty()) {
-			for (const auto& i : enumStrings) {
-				ret.emplace_back(EnumOption({ i.first, STRING_I(i.second) }));
+			for (const auto& [value, nameKey] : enumStrings) {
+				ret.emplace_back(value, STRING_I(nameKey));
 			}
 		} else if (si.key == SettingsManager::BIND_ADDRESS || si.key == SettingsManager::BIND_ADDRESS6) {
 			auto bindAddresses = NetworkUtil::getCoreBindAdapters(si.key == SettingsManager::BIND_ADDRESS6);
 			for (const auto& adapter : bindAddresses) {
 				auto title = adapter.ip + (!adapter.adapterName.empty() ? " (" + adapter.adapterName + ")" : Util::emptyString);
-				ret.emplace_back(EnumOption({ adapter.ip, title }));
+				ret.emplace_back(adapter.ip, title);
 			}
 		} else if (si.key == SettingsManager::MAPPER) {
 			auto mappers = ConnectivityManager::getInstance()->getMappers(false);
 			for (const auto& mapper : mappers) {
-				ret.emplace_back(EnumOption({ mapper, mapper }));
+				ret.emplace_back(mapper, mapper);
 			}
 		} else if (si.key == SettingsManager::LANGUAGE_FILE) {
 			for (const auto& language: Localization::getLanguages()) {
-				ret.emplace_back(EnumOption({ language.getLanguageSettingValue(), language.getLanguageName() }));
+				ret.emplace_back(language.getLanguageSettingValue(), language.getLanguageName());
 			}
 		}
 
@@ -417,7 +417,7 @@ namespace webserver {
 	}
 
 	string CoreSettingItem::getTitle() const noexcept {
-		auto title = STRING_I(si.desc);
+		const auto& title = STRING_I(si.desc);
 		return ApiSettingItem::formatTitle(title, unit);
 	}
 

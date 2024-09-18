@@ -61,7 +61,7 @@ public:
 		}
 	};
 
-	typedef map<T, MergeTask> TaskMap;
+	using TaskMap = map<T, MergeTask>;
 
 	void addItem(const T& aItem) {
 		WLock l(cs);

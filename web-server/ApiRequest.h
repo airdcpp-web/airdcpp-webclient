@@ -44,10 +44,10 @@ namespace webserver {
 
 	class ApiRequest {
 	public:
-		typedef std::deque<std::string> PathTokenList;
-		typedef std::map<std::string, std::string> NamedParamMap;
+		using PathTokenList = std::deque<std::string>;
+		using NamedParamMap = std::map<std::string, std::string>;
 
-		// Throws on errors
+		// Throws std::invalid_argument on validation errors
 		ApiRequest(const std::string& aUrl, const std::string& aMethod, json&& aBody, const SessionPtr& aSession, const ApiDeferredHandler& aDeferredHandler, json& output_, json& error_);
 
 		int getApiVersion() const noexcept {
@@ -82,7 +82,7 @@ namespace webserver {
 		CID getCIDParam(const string& aName = CID_PARAM_ID) const;
 
 		// Use different naming to avoid accidentally using wrong conversion...
-		uint32_t getTokenParam(const string& aName = TOKEN_PARAM_ID) const noexcept;
+		size_t getTokenParam(const string& aName = TOKEN_PARAM_ID) const noexcept;
 		int getRangeParam(const string& aName) const noexcept;
 		int64_t getSizeParam(const string& aName) const noexcept;
 
@@ -120,7 +120,7 @@ namespace webserver {
 			return session;
 		}
 
-		const void* getOwnerPtr() const noexcept {
+		CallerPtr getOwnerPtr() const noexcept {
 			return session.get();
 		}
 
@@ -130,7 +130,7 @@ namespace webserver {
 
 		void setNamedParams(const NamedParamMap& aParams) noexcept;
 
-		ApiCompletionF defer();
+		ApiCompletionF defer() const noexcept;
 	private:
 		SessionPtr session;
 		void validate();

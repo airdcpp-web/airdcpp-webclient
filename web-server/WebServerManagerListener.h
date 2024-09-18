@@ -21,6 +21,7 @@
 #define DCPLUSPLUS_WEBSERVER_WEBSERVERMANAGER_LISTENER_H
 
 #include "forward.h"
+#include "stdinc.h"
 
 #include <airdcpp/forward.h>
 

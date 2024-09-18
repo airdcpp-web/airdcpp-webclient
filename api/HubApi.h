@@ -32,8 +32,8 @@ namespace webserver {
 	public:
 		static StringList subscriptionList;
 
-		HubApi(Session* aSession);
-		~HubApi();
+		explicit HubApi(Session* aSession);
+		~HubApi() final;
 
 		static json serializeClient(const ClientPtr& aClient) noexcept;
 	private:

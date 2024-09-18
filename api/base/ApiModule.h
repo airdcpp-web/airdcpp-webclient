@@ -51,13 +51,13 @@ namespace webserver {
 #define EXACT_PARAM(pattern) (ApiModule::RequestHandler::Param(pattern, regex("^" + string(pattern) + "$")))
 
 #define BRACED_INIT_LIST(...) {__VA_ARGS__}
-#define MODULE_METHOD_HANDLER(module, access, method, params, func) (module->getRequestHandlers().push_back(ApiModule::RequestHandler(access, method, BRACED_INIT_LIST params, std::bind(&func, this, placeholders::_1))))
+#define MODULE_METHOD_HANDLER(module, access, method, params, func) (module->getRequestHandlers().push_back(ApiModule::RequestHandler(access, method, BRACED_INIT_LIST params, std::bind_front(&func, this))))
 #define INLINE_MODULE_METHOD_HANDLER(access, method, params, func) (this->getRequestHandlers().push_back(ApiModule::RequestHandler(access, method, BRACED_INIT_LIST params, func)))
 
 #define METHOD_HANDLER(access, method, params, func) MODULE_METHOD_HANDLER(this, access, method, params, func)
-#define VARIABLE_METHOD_HANDLER(access, method, params, func, variable) (this->getRequestHandlers().push_back(ApiModule::RequestHandler(access, method, BRACED_INIT_LIST params, std::bind(&func, variable, placeholders::_1))))
+#define VARIABLE_METHOD_HANDLER(access, method, params, func, variable) (this->getRequestHandlers().push_back(ApiModule::RequestHandler(access, method, BRACED_INIT_LIST params, std::bind_front(&func, variable))))
 
-		ApiModule(Session* aSession);
+		explicit ApiModule(Session* aSession);
 		virtual ~ApiModule();
 
 		struct RequestHandler {
@@ -68,13 +68,13 @@ namespace webserver {
 				regex reg;
 			};
 
-			typedef vector<Param> ParamList;
+			using ParamList = vector<Param>;
 
-			typedef std::function<api_return(ApiRequest& aRequest)> HandlerFunction;
+			using HandlerFunction = std::function<api_return (ApiRequest &)>;
 
 			// Regular handler
-			RequestHandler(Access aAccess, RequestMethod aMethod, ParamList&& aParams, HandlerFunction aFunction) :
-				method(aMethod), params(std::move(aParams)), f(aFunction), access(aAccess) {
+			RequestHandler(Access aAccess, RequestMethod aMethod, ParamList&& aParams, HandlerFunction&& aFunction) :
+				method(aMethod), params(std::move(aParams)), f(std::move(aFunction)), access(aAccess) {
 			
 			}
 
@@ -86,7 +86,7 @@ namespace webserver {
 			optional<ApiRequest::NamedParamMap> matchParams(const ApiRequest::PathTokenList& aPathTokens) const noexcept;
 		};
 
-		typedef std::vector<RequestHandler> RequestHandlerList;
+		using RequestHandlerList = std::vector<RequestHandler>;
 
 		api_return handleRequest(ApiRequest& aRequest);
 
@@ -119,15 +119,15 @@ namespace webserver {
 	class SubscribableApiModule : public ApiModule, protected SessionListener {
 	public:
 		SubscribableApiModule(Session* aSession, Access aSubscriptionAccess, const StringList& aSubscriptions);
-		virtual ~SubscribableApiModule();
+		~SubscribableApiModule() override;
 
-		typedef std::map<const string, bool> SubscriptionMap;
+		using SubscriptionMap = std::map<const string, bool>;
 
 		virtual bool send(const json& aJson);
 		virtual bool send(const string& aSubscription, const json& aJson);
 
-		typedef std::function<json()> JsonCallback;
-		virtual bool maybeSend(const string& aSubscription, JsonCallback aCallback);
+		using JsonCallback = std::function<json ()>;
+		virtual bool maybeSend(const string& aSubscription, const JsonCallback& aCallback);
 
 		virtual void setSubscriptionState(const string& aSubscription, bool aActive) noexcept {
 			subscriptions[aSubscription] = aActive;
@@ -157,8 +157,8 @@ namespace webserver {
 			return socket;
 		}
 	protected:
-		virtual void on(SessionListener::SocketConnected, const WebSocketPtr&) noexcept override;
-		virtual void on(SessionListener::SocketDisconnected) noexcept override;
+		void on(SessionListener::SocketConnected, const WebSocketPtr&) noexcept override;
+		void on(SessionListener::SocketDisconnected) noexcept override;
 
 		const Access subscriptionAccess;
 
@@ -169,7 +169,7 @@ namespace webserver {
 		SubscriptionMap subscriptions;
 	};
 
-	typedef std::unique_ptr<ApiModule> HandlerPtr;
+	using HandlerPtr = std::unique_ptr<ApiModule>;
 }
 
 #endif

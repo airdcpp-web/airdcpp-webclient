@@ -37,8 +37,8 @@ namespace webserver {
 		static const string localNodeDirectoryName;
 #endif
 
-		WebServerSettings(WebServerManager* aServer);
-		~WebServerSettings();
+		explicit WebServerSettings(WebServerManager* aServer);
+		~WebServerSettings() final;
 
 		enum ServerSettings {
 			PLAIN_PORT,
@@ -94,8 +94,8 @@ namespace webserver {
 			return ApiSettingItem::findSettingItem<ServerSettingItem>(settings, aKey);
 		}
 
-		typedef std::function<void(const json&, int /*aConfigVersion*/)> JsonParseCallback;
-		static bool loadSettingFile(AppUtil::Paths aPath, const string& aFileName, JsonParseCallback&& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept;
+		using JsonParseCallback = std::function<void (const json&, int /*configVersion*/)>;
+		static bool loadSettingFile(AppUtil::Paths aPath, const string& aFileName, const JsonParseCallback& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept;
 		static bool saveSettingFile(const json& aJson, AppUtil::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF, int aConfigVersion) noexcept;
 
 		json toJson() const noexcept;
@@ -115,7 +115,7 @@ namespace webserver {
 		ServerSettingItem::List settings;
 		ServerSettingItem::List extensionEngines;
 
-		json getDefaultExtensionEngines() noexcept;
+		static json getDefaultExtensionEngines() noexcept;
 
 		bool isDirty = false;
 

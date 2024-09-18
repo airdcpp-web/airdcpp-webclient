@@ -166,12 +166,8 @@ namespace webserver {
 			return nullptr;
 		}
 
-		auto client = ClientManager::getInstance()->getClient(*hubUrl);
+		auto client = ClientManager::getInstance()->findClient(*hubUrl);
 		if (!client) {
-			//if (aOptional) {
-			//	return nullptr;
-			//}
-
 			throw std::invalid_argument("Hub " + *hubUrl + " was not found");
 		}
 
@@ -185,7 +181,7 @@ namespace webserver {
 		};
 	}
 
-	map<string, LogMessage::Severity> severityMappings = {
+	const map<string, LogMessage::Severity> severityMappings = {
 		{ "notify", LogMessage::SEV_NOTIFY },
 		{ "verbose", LogMessage::SEV_VERBOSE },
 		{ "info", LogMessage::SEV_INFO },
@@ -202,7 +198,7 @@ namespace webserver {
 		throw std::invalid_argument("Invalid severity: " + aText);
 	}
 
-	map<string, LogMessage::Type> logMessageTypeMappings = {
+	const map<string, LogMessage::Type> logMessageTypeMappings = {
 		{ "history", LogMessage::Type::HISTORY },
 		{ "private", LogMessage::Type::PRIVATE },
 		{ "server", LogMessage::Type::SERVER },

@@ -16,38 +16,21 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_WEBSERVER_LAZYWRAPPER_H
-#define DCPLUSPLUS_WEBSERVER_LAZYWRAPPER_H
+#ifndef DCPLUSPLUS_WEBSERVER_HTTP_REQUEST_H
+#define DCPLUSPLUS_WEBSERVER_HTTP_REQUEST_H
 
 #include "forward.h"
 
+#include <airdcpp/typedefs.h>
+
+
 namespace webserver {
-	template <class T>
-
-	// NOTE: initialization is not thread safe
-	class LazyInitWrapper {
-	public:
-		using InitF = std::function<unique_ptr<T> ()>;
-		explicit LazyInitWrapper(InitF&& aInitF) : initF(std::move(aInitF)) {}
-
-		T* operator->() {
-			ensureInit();
-			return apiModule.operator->();
-		}
-
-		T* get() {
-			ensureInit();
-			return apiModule.get();
-		}
-	private:
-		void ensureInit() {
-			if (!apiModule) {
-				apiModule = initF();
-			}
-		}
-
-		unique_ptr<T> apiModule;
-		InitF initF;
+	struct HttpRequest {
+		const SessionPtr& session;
+		const string& ip;
+		const std::string& path;
+		const websocketpp::http::parser::request& httpRequest;
+		const bool secure;
 	};
 }
 

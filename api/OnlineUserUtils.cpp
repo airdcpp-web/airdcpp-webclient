@@ -99,7 +99,7 @@ namespace webserver {
 		case PROP_IP4: return Format::formatIp(aUser->getIdentity().getIp4());
 		case PROP_IP6: return Format::formatIp(aUser->getIdentity().getIp6());
 		case PROP_CID: return aUser->getUser()->getCID().toBase32();
-		default: dcassert(0); return 0;
+		default: dcassert(0); return Util::emptyString;
 		}
 	}
 	double OnlineUserUtils::getNumericInfo(const OnlineUserPtr& aUser, int aPropertyName) noexcept {

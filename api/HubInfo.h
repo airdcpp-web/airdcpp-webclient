@@ -40,13 +40,14 @@ namespace webserver {
 	public:
 		static const StringList subscriptionList;
 
-		typedef shared_ptr<HubInfo> Ptr;
-		typedef vector<Ptr> List;
+		using Ptr = shared_ptr<HubInfo>;
+		using List = vector<Ptr>;
 
 		HubInfo(ParentType* aParentModule, const ClientPtr& aClient);
 		~HubInfo();
 
 		const ClientPtr& getClient() const noexcept { return client; }
+		ClientPtr& getClient() noexcept { return client; }
 
 		static json serializeConnectState(const ClientPtr& aClient) noexcept;
 		static json serializeIdentity(const ClientPtr& aClient) noexcept;
@@ -113,13 +114,13 @@ namespace webserver {
 		ChatController chatHandler;
 		ClientPtr client;
 
-		typedef ListViewController<OnlineUserPtr, OnlineUserUtils::PROP_LAST> UserView;
+		using UserView = ListViewController<OnlineUserPtr, OnlineUserUtils::PROP_LAST>;
 		UserView view;
 
 		TimerPtr timer;
 	};
 
-	typedef HubInfo::Ptr HubInfoPtr;
+	using HubInfoPtr = HubInfo::Ptr;
 }
 
 #endif

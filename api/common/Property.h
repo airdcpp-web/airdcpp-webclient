@@ -48,10 +48,6 @@ namespace webserver {
 		SORT_NONE
 	};
 
-	//bool isNumericType(FilterPropertyType aType) {
-	//	return aType == TYPE_SIZE || aType == TYPE_SPEED  || aType == TYPE_NUMERIC_OTHER;
-	//}
-
 	struct Property {
 		const int id;
 		const std::string name;
@@ -60,9 +56,9 @@ namespace webserver {
 		const SortMethod sortMethod;
 	};
 
-	typedef vector<Property> PropertyList;
+	using PropertyList = vector<Property>;
 
-	typedef std::set<int> PropertyIdSet;
+	using PropertyIdSet = std::set<int>;
 
 	// Creates a list of numeric IDs of all properties
 	static inline PropertyIdSet toPropertyIdSet(const PropertyList& aProperties) {
@@ -84,14 +80,14 @@ namespace webserver {
 
 	template <class T>
 	struct PropertyItemHandler {
-		typedef vector<T> ItemList;
-		typedef std::function<json(const T& aItem, int aPropertyName)> CustomPropertySerializer;
-		typedef std::function<bool(const T& aItem, int aPropertyName, const StringMatch& aTextMatcher, double aNumericMatcher)> CustomFilterFunction;
+		using ItemList = vector<T>;
+		using CustomPropertySerializer = std::function<json (const T &, int)>;
+		using CustomFilterFunction = std::function<bool (const T &, int, const StringMatch &, double)>;
 
-		typedef std::function<int(const T& t1, const T& t2, int aSortProperty)> SorterFunction;
-		typedef std::function<string(const T& aItem, int aPropertyName)> StringFunction;
-		typedef std::function<double(const T& aItem, int aPropertyName)> NumberFunction;
-		typedef std::function<ItemList()> ItemListFunction;
+		using SorterFunction = std::function<int (const T &, const T &, int)>;
+		using StringFunction = std::function<string (const T &, int)>;
+		using NumberFunction = std::function<double (const T &, int)>;
+		using ItemListFunction = std::function<ItemList ()>;
 
 		PropertyItemHandler(const PropertyList& aProperties,
 			StringFunction aStringF, NumberFunction aNumberF, 

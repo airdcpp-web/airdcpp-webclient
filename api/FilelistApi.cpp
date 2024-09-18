@@ -52,17 +52,17 @@ namespace webserver {
 
 		createHook(HOOK_LOAD_DIRECTORY, [this](ActionHookSubscriber&& aSubscriber) {
 			return DirectoryListingManager::getInstance()->loadHooks.directoryLoadHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(FilelistApi::directoryLoadHook));
-		}, [this](const string& aId) {
+		}, [](const string& aId) {
 			DirectoryListingManager::getInstance()->loadHooks.directoryLoadHook.removeSubscriber(aId);
-		}, [this] {
+		}, [] {
 			return DirectoryListingManager::getInstance()->loadHooks.directoryLoadHook.getSubscribers();
 		});
 
 		createHook(HOOK_LOAD_FILE, [this](ActionHookSubscriber&& aSubscriber) {
 			return DirectoryListingManager::getInstance()->loadHooks.fileLoadHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(FilelistApi::fileLoadHook));
-		}, [this](const string& aId) {
+		}, [](const string& aId) {
 			DirectoryListingManager::getInstance()->loadHooks.fileLoadHook.removeSubscriber(aId);
-		}, [this] {
+		}, [] {
 			return DirectoryListingManager::getInstance()->loadHooks.fileLoadHook.getSubscribers();
 		});
 
