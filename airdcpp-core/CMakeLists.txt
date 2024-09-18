@@ -16,7 +16,7 @@ include_directories (${Boost_INCLUDE_DIR} ${BZIP2_INCLUDE_DIR} ${ZLIB_INCLUDE_DI
 if (NOT WIN32)
   list (REMOVE_ITEM airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/ZipFile.h)
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/ZipFile.cpp)
-  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/Updater.cpp)
+  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/UpdateDownloader.cpp)
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/Mapper_WinUPnP.cpp)
 
   if (NOT CMAKE_CROSSCOMPILING)
@@ -26,7 +26,7 @@ if (NOT WIN32)
   set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS RESOURCE_DIRECTORY="${RESOURCE_DIRECTORY}")
   set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS GLOBAL_CONFIG_DIRECTORY="${GLOBAL_CONFIG_DIRECTORY}")
 
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/Updater.h PROPERTY COMPILE_DEFINITIONS NO_CLIENT_UPDATER)
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/UpdateDownloader.h PROPERTY COMPILE_DEFINITIONS NO_CLIENT_UPDATER)
   add_definitions (-DNO_CLIENT_UPDATER)
 endif ()
 
