@@ -27,8 +27,8 @@
 
 namespace webserver {
 	class WebUser;
-	typedef std::shared_ptr<WebUser> WebUserPtr;
-	typedef vector<WebUserPtr> WebUserList;
+	using WebUserPtr = std::shared_ptr<WebUser>;
+	using WebUserList = vector<WebUserPtr>;
 
 	class WebUser {
 	public:
@@ -44,7 +44,7 @@ namespace webserver {
 		WebUser(WebUser&) = delete;
 		WebUser& operator=(WebUser&) = delete;
 
-		// Sesszions
+		// Sessions
 		int getActiveSessions() const noexcept {
 			return activeSessions;
 		}
@@ -76,7 +76,7 @@ namespace webserver {
 
 		static bool validateUsername(const string& aUsername) noexcept;
 
-		bool matchPassword(const string& aPasswordPlain) noexcept;
+		bool matchPassword(const string& aPasswordPlain) const noexcept;
 		void setPassword(const std::string& aPasswordHashOrPlain) noexcept;
 		const string& getPasswordHash() const noexcept {
 			return passwordHash;

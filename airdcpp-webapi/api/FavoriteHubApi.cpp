@@ -80,7 +80,7 @@ namespace webserver {
 
 		// Optional values
 		for (const auto& i : j.items()) {
-			auto key = i.key();
+			const auto& key = i.key();
 			if (key == "share_profile") {
 				auto shareProfileToken = JsonUtil::getOptionalFieldDefault("share_profile", j, HUB_SETTING_DEFAULT_INT);
 				if (shareProfileToken != HUB_SETTING_DEFAULT_INT) {

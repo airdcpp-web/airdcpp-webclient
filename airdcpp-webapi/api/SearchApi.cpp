@@ -121,9 +121,9 @@ namespace webserver {
 		}
 
 		switch (aQuery.itemType) {
-			case SearchQuery::ItemType::TYPE_DIRECTORY: return "directory";
-			case SearchQuery::ItemType::TYPE_FILE: return "file";
-			case SearchQuery::ItemType::TYPE_ANY: 
+			case SearchQuery::ItemType::DIRECTORY: return "directory";
+			case SearchQuery::ItemType::FILE: return "file";
+			case SearchQuery::ItemType::ANY: 
 			default: return "any";
 		};
 	}
@@ -166,7 +166,7 @@ namespace webserver {
 	}
 
 
-	string SearchApi::createCurrentSessionOwnerId(const string& aSuffix) noexcept {
+	string SearchApi::createCurrentSessionOwnerId(const string& aSuffix) const noexcept {
 		string ret;
 
 		switch (session->getSessionType()) {
@@ -188,7 +188,7 @@ namespace webserver {
 		return ret;
 	}
 
-	api_return SearchApi::handleCreateInstance(ApiRequest& aRequest) {
+	api_return SearchApi::handleCreateInstance(ApiRequest& aRequest) const {
 		auto expirationMinutes = JsonUtil::getRangeFieldDefault<int>("expiration", aRequest.getRequestBody(), DEFAULT_INSTANCE_EXPIRATION_MINUTES, 0);
 		auto ownerIdSuffix = JsonUtil::getOptionalFieldDefault<string>(
 			"owner_suffix", aRequest.getRequestBody(), 
@@ -210,23 +210,23 @@ namespace webserver {
 		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return SearchApi::handleGetTypes(ApiRequest& aRequest) {
-		auto& typeManager = SearchManager::getInstance()->getSearchTypes();
+	api_return SearchApi::handleGetTypes(ApiRequest& aRequest) const {
+		const auto& typeManager = SearchManager::getInstance()->getSearchTypes();
 		auto types = typeManager.getSearchTypes();
 		aRequest.setResponseBody(Serializer::serializeList(types, serializeSearchType));
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return SearchApi::handleGetType(ApiRequest& aRequest) {
+	api_return SearchApi::handleGetType(ApiRequest& aRequest) const {
 		auto id = parseSearchTypeId(aRequest);
 
-		auto& typeManager = SearchManager::getInstance()->getSearchTypes();
+		const auto& typeManager = SearchManager::getInstance()->getSearchTypes();
 		auto type = typeManager.getSearchType(id);
 		aRequest.setResponseBody(serializeSearchType(type));
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return SearchApi::handlePostType(ApiRequest& aRequest) {
+	api_return SearchApi::handlePostType(ApiRequest& aRequest) const {
 		const auto& reqJson = aRequest.getRequestBody();
 
 		auto name = JsonUtil::getField<string>("name", reqJson, false);
@@ -239,7 +239,7 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return SearchApi::handleUpdateType(ApiRequest& aRequest) {
+	api_return SearchApi::handleUpdateType(ApiRequest& aRequest) const {
 		auto id = parseSearchTypeId(aRequest);
 
 		const auto& reqJson = aRequest.getRequestBody();
@@ -253,7 +253,7 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	api_return SearchApi::handleRemoveType(ApiRequest& aRequest) {
+	api_return SearchApi::handleRemoveType(ApiRequest& aRequest) const {
 		auto id = parseSearchTypeId(aRequest);
 		auto& typeManager = SearchManager::getInstance()->getSearchTypes();
 		typeManager.delSearchType(id);

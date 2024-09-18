@@ -63,7 +63,7 @@ namespace webserver {
 
 				StringList paths;
 				try {
-					aItem->getLocalPaths(paths);
+					aItem->getLocalPathsThrow(paths);
 				} catch (const ShareException&) {
 					// Hmm...
 				}

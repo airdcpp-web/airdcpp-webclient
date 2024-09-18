@@ -30,17 +30,17 @@
 namespace webserver {
 	class ShareApi : public HookApiModule, private ShareManagerListener, private TempShareManagerListener {
 	public:
-		ShareApi(Session* aSession);
-		~ShareApi();
+		explicit ShareApi(Session* aSession);
+		~ShareApi() final;
 	private:
 		struct ShareItem {
-			ShareItem(const ShareDirectory::File* aFile) : file(aFile) {}
-			ShareItem(const ShareDirectory::Ptr& aDirectory) : directory(aDirectory) {}
+			explicit ShareItem(const ShareDirectory::File* aFile) : file(aFile) {}
+			explicit ShareItem(const ShareDirectory::Ptr& aDirectory) : directory(aDirectory) {}
 
 			const ShareDirectory::File* file = nullptr;
 			const ShareDirectory::Ptr directory = nullptr;
 
-			typedef vector<ShareItem> List;
+			using List = vector<ShareItem>;
 		};
 
 		ActionHookResult<> fileValidationHook(const string& aPath, int64_t aSize, const ActionHookResultGetter<>& aResultGetter) noexcept;

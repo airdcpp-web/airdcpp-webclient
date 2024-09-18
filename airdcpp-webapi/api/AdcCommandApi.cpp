@@ -100,19 +100,19 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 		VARIABLE_METHOD_HANDLER(Access::ADMIN, METHOD_DELETE, (EXACT_PARAM("hub_user_supports"), SUPPORT_PARAM), SupportHandler::handleRemoveSupport, hubUserSupports);
 		VARIABLE_METHOD_HANDLER(Access::ADMIN, METHOD_DELETE, (EXACT_PARAM("user_connection_supports"), SUPPORT_PARAM), SupportHandler::handleRemoveSupport, userConnectionSupports);
 
-		createHook(HOOK_OUTGOING_HUB_COMMAND, [this](ActionHookSubscriber&& aSubscriber) {
+		HookApiModule::createHook(HOOK_OUTGOING_HUB_COMMAND, [this](ActionHookSubscriber&& aSubscriber) {
 			return ClientManager::getInstance()->outgoingHubCommandHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(AdcCommandApi::outgoingHubMessageHook));
-		}, [this](const string& aId) {
+		}, [](const string& aId) {
 			ClientManager::getInstance()->outgoingHubCommandHook.removeSubscriber(aId);
-		}, [this] {
+		}, [] {
 			return ClientManager::getInstance()->outgoingHubCommandHook.getSubscribers();
 		});
 
-		createHook(HOOK_OUTGOING_UDP_COMMAND, [this](ActionHookSubscriber&& aSubscriber) {
+		HookApiModule::createHook(HOOK_OUTGOING_UDP_COMMAND, [this](ActionHookSubscriber&& aSubscriber) {
 			return ClientManager::getInstance()->outgoingUdpCommandHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(AdcCommandApi::outgoingUdpMessageHook));
-		}, [this](const string& aId) {
+		}, [](const string& aId) {
 			ClientManager::getInstance()->outgoingUdpCommandHook.removeSubscriber(aId);
-		}, [this] {
+		}, [] {
 			return ClientManager::getInstance()->outgoingUdpCommandHook.getSubscribers();
 		});
 	}
@@ -216,13 +216,13 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 		return CODE_DEFERRED;
 	}
 	api_return AdcCommandApi::SupportHandler::handleAddSupport(ApiRequest& aRequest) {
-		auto support = aRequest.getStringParam(SUPPORT_PARAM_ID);
+		const auto& support = aRequest.getStringParam(SUPPORT_PARAM_ID);
 		auto success = supportStore.add(support);
 		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return AdcCommandApi::SupportHandler::handleRemoveSupport(ApiRequest& aRequest) {
-		auto support = aRequest.getStringParam(SUPPORT_PARAM_ID);
+		const auto& support = aRequest.getStringParam(SUPPORT_PARAM_ID);
 		auto success = supportStore.remove(support);
 		if (!success) {
 			aRequest.setResponseErrorStr("Support " + support + " was not found");
@@ -296,9 +296,8 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 		return nullptr;
 	}
 
-	json AdcCommandApi::serializeUser(uint32_t aSID, const Client& aClient) noexcept {
-		auto user = aClient.findUser(aSID);
-		if (user) {
+	json AdcCommandApi::serializeUser(dcpp::SID aSID, const Client& aClient) noexcept {
+		if (auto user = aClient.findUser(aSID)) {
 			return Serializer::serializeOnlineUser(user);
 		}
 
@@ -327,7 +326,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 
 	json AdcCommandApi::serializeCommand(const AdcCommand& aCmd) noexcept {
 		auto code = aCmd.getFourCC();
-		auto tmp = code[0];
+		// auto tmp = code[0];
 		return {
 			{ "command", code.substr(1) },
 			{ "type", string(1, code[0]) },
@@ -362,7 +361,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 	}
 
 	AdcCommand AdcCommandApi::deserializeCommand(const json& aJson) {
-		auto commandJson = JsonUtil::getRawField("command", aJson);
+		const auto& commandJson = JsonUtil::getRawField("command", aJson);
 
 		auto type = JsonUtil::getField<string>("type", commandJson, false)[0];
 		if (!AdcCommand::isValidType(type)) {

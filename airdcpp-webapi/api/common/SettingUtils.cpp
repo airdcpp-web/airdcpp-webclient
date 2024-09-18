@@ -233,9 +233,6 @@ namespace webserver {
 			value = PathUtil::validatePath(value, false);
 		} else if (aType == ApiSettingItem::TYPE_EXISTING_FILE_PATH) {
 			value = PathUtil::validatePath(value, false);
-			// if (!PathUtil::fileExists()) {
-
-			//}
 		}
 
 		return value;
@@ -291,10 +288,10 @@ namespace webserver {
 			auto optionsJson = JsonUtil::getOptionalRawField("options", aJson, false);
 			if (!optionsJson.is_null()) {
 				for (const auto& opt : optionsJson) {
-					enumOptions.push_back({
+					enumOptions.emplace_back(
 						parseEnumOptionId(opt, type),
 						JsonUtil::getField<string>("name", opt, false)
-					});
+					);
 				}
 			}
 		}

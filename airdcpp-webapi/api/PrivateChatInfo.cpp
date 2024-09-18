@@ -93,9 +93,9 @@ namespace webserver {
 
 	string PrivateChatInfo::formatCCPMState(PrivateChat::CCPMState aState) noexcept {
 		switch (aState) {
-			case PrivateChat::DISCONNECTED: return "disconnected";
-			case PrivateChat::CONNECTING: return "connecting";
-			case PrivateChat::CONNECTED: return "connected";
+			case PrivateChat::CCPMState::DISCONNECTED: return "disconnected";
+			case PrivateChat::CCPMState::CONNECTING: return "connecting";
+			case PrivateChat::CCPMState::CONNECTED: return "connected";
 		}
 
 		dcassert(0);

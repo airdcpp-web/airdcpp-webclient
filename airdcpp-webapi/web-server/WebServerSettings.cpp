@@ -114,7 +114,7 @@ namespace webserver {
 		wsm->removeListener(this);
 	}
 
-	bool WebServerSettings::loadSettingFile(AppUtil::Paths aPath, const string& aFileName, JsonParseCallback&& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept {
+	bool WebServerSettings::loadSettingFile(AppUtil::Paths aPath, const string& aFileName, const JsonParseCallback& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept {
 		const auto parseJsonFile = [&](const string& aPath) {
 			try {
 				// Parse
@@ -143,7 +143,7 @@ namespace webserver {
 	void WebServerSettings::loadLegacyServer(SimpleXML& aXml, const string& aTagName, ServerSettingItem& aPort, ServerSettingItem& aBindAddress, bool aTls) noexcept {
 		if (aXml.findChild(aTagName)) {
 			// getChildIntAttrib returns 0 also for non-existing attributes, get as string instead...
-			const auto port = aXml.getChildAttrib("Port");
+			const auto& port = aXml.getChildAttrib("Port");
 			if (!port.empty()) {
 				aPort.setValue(Util::toInt(port));
 			}
@@ -189,7 +189,7 @@ namespace webserver {
 	}
 
 	void WebServerSettings::on(WebServerManagerListener::LoadSettings, const MessageCallback& aErrorF) noexcept {
-		loadSettingFile(CONFIG_DIR, CONFIG_NAME, std::bind(&WebServerSettings::fromJsonThrow, this, placeholders::_1, placeholders::_2), aErrorF, CONFIG_VERSION);
+		loadSettingFile(CONFIG_DIR, CONFIG_NAME, std::bind_front(&WebServerSettings::fromJsonThrow, this), aErrorF, CONFIG_VERSION);
 	}
 
 	void WebServerSettings::on(WebServerManagerListener::SaveSettings, const MessageCallback& aErrorF) noexcept {
@@ -216,7 +216,7 @@ namespace webserver {
 
 	json WebServerSettings::toJson() const noexcept {
 		json ret;
-		for (const auto s: settings) {
+		for (const auto& s: settings) {
 			if (!s.isDefault()) {
 				ret[s.name] = s.getValue();
 			}

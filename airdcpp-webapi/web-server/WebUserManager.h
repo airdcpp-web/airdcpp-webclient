@@ -34,8 +34,8 @@
 namespace webserver {
 	class WebUserManager : private WebServerManagerListener, public Speaker<WebUserManagerListener> {
 	public:
-		WebUserManager(WebServerManager* aServer);
-		~WebUserManager();
+		explicit WebUserManager(WebServerManager* aServer);
+		~WebUserManager() final;
 
 		// Parse Authentication header from an HTTP request
 		// Throws on errors, returns nullptr if no Authorization header is present
@@ -82,7 +82,7 @@ namespace webserver {
 			const WebUserPtr user;
 			const time_t expiresOn;
 
-			typedef vector<TokenInfo> List;
+			using List = vector<TokenInfo>;
 		};
 
 		FloodCounter authFloodCounter;
@@ -116,6 +116,9 @@ namespace webserver {
 		void on(WebServerManagerListener::LoadLegacySettings, SimpleXML& aXml) noexcept override;
 		void on(WebServerManagerListener::LoadSettings, const MessageCallback& aErrorF) noexcept override;
 		void on(WebServerManagerListener::SaveSettings, const MessageCallback& aErrorF) noexcept override;
+
+		void loadUsers(const json& aJson);
+		void loadRefreshTokens(const json& aJson);
 
 		WebServerManager* wsm;
 		void setDirty() noexcept;

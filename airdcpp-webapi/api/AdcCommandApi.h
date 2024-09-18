@@ -35,8 +35,8 @@ namespace webserver {
 	public:
 		static StringList subscriptionList;
 
-		AdcCommandApi(Session* aSession);
-		~AdcCommandApi();
+		explicit AdcCommandApi(Session* aSession);
+		~AdcCommandApi() final;
 
 		struct AdcParam {
 			string name;
@@ -46,7 +46,7 @@ namespace webserver {
 		static json serializeCommand(const AdcCommand& aCmd) noexcept;
 		static json serializeTo(const AdcCommand& aCmd, const Client&) noexcept;
 		static json serializeFrom(const AdcCommand& aCmd, const Client&) noexcept;
-		static json serializeUser(uint32_t aSID, const Client&) noexcept;
+		static json serializeUser(dcpp::SID aSID, const Client&) noexcept;
 
 		static string deserializeSupportString(const json& aCmd, const string& aFieldName);
 		static AdcCommand::CommandType deserializeCommandString(const json& aCmd, const string& aFieldName);
@@ -61,7 +61,7 @@ namespace webserver {
 	private:
 		class SupportHandler {
 		public:
-			SupportHandler(AdcSupports& aSupportStore) : supportStore(aSupportStore) {}
+			explicit SupportHandler(AdcSupports& aSupportStore) : supportStore(aSupportStore) {}
 
 			api_return handleAddSupport(ApiRequest& aRequest);
 			api_return handleRemoveSupport(ApiRequest& aRequest);

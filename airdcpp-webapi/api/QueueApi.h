@@ -40,8 +40,8 @@ namespace dcpp {
 namespace webserver {
 	class QueueApi : public HookApiModule, private QueueManagerListener, private DownloadManagerListener {
 	public:
-		QueueApi(Session* aSession);
-		~QueueApi();
+		explicit QueueApi(Session* aSession);
+		~QueueApi() final;
 	private:
 		ActionHookResult<> bundleCompletionHook(const BundlePtr& aBundle, const ActionHookResultGetter<>& aResultGetter) noexcept;
 		ActionHookResult<> fileCompletionHook(const QueueItemPtr& aFile, const ActionHookResultGetter<>& aResultGetter) noexcept;
@@ -49,7 +49,7 @@ namespace webserver {
 		ActionHookResult<BundleAddHookResult> bundleAddHook(const string& aTarget, BundleAddData& aData, const HintedUser& aUser, const bool aIsFile, const ActionHookResultGetter<BundleAddHookResult>& aResultGetter) noexcept;
 		ActionHookResult<> sourceAddHook(const HintedUser& aUser, const ActionHookResultGetter<>& aResultGetter) noexcept;
 
-		typedef std::function<BundleAddHookResult(const json&, const ActionHookResultGetter<BundleAddHookResult>&)> BundleAddHookResultDeserializer;
+		using BundleAddHookResultDeserializer = std::function<BundleAddHookResult (const json &, const ActionHookResultGetter<BundleAddHookResult> &)>;
 		static BundleAddHookResultDeserializer getBundleAddHookDeserializer(const Session* aSession);
 
 		// COMMON
@@ -126,10 +126,10 @@ namespace webserver {
 		void onFileUpdated(const QueueItemPtr& aQI, const PropertyIdSet& aUpdatedProperties, const string& aSubscription);
 		void onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription);
 
-		typedef ListViewController<BundlePtr, QueueBundleUtils::PROP_LAST> BundleListView;
+		using BundleListView = ListViewController<BundlePtr, QueueBundleUtils::PROP_LAST>;
 		BundleListView bundleView;
 
-		typedef ListViewController<QueueItemPtr, QueueFileUtils::PROP_LAST> FileListView;
+		using FileListView = ListViewController<QueueItemPtr, QueueFileUtils::PROP_LAST>;
 		FileListView fileView;
 
 		static BundleList getBundleList() noexcept;

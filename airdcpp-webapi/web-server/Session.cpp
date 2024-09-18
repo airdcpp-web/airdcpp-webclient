@@ -54,10 +54,10 @@ namespace webserver {
 #define ADD_MODULE(name, type) (apiHandlers.emplace(name, LazyModuleWrapper([this] { return make_unique<type>(this); })))
 
 	Session::Session(const WebUserPtr& aUser, const string& aToken, SessionType aSessionType, WebServerManager* aServer, uint64_t maxInactivityMinutes, const string& aIP) :
-		id(ValueGenerator::rand()), user(aUser), token(aToken), started(GET_TICK()), 
-		lastActivity(GET_TICK()), sessionType(aSessionType), server(aServer),
-		maxInactivity(maxInactivityMinutes*1000*60),
-		ip(aIP) {
+		maxInactivity(maxInactivityMinutes*1000*60), started(GET_TICK()), lastActivity(GET_TICK()), id(ValueGenerator::rand()), 
+		token(aToken), sessionType(aSessionType), ip(aIP),
+		user(aUser),
+		server(aServer) {
 
 		ADD_MODULE("adc_commands", AdcCommandApi);
 		ADD_MODULE("connectivity", ConnectivityApi);
@@ -97,13 +97,13 @@ namespace webserver {
 	}
 
 	websocketpp::http::status_code::value Session::handleRequest(ApiRequest& aRequest) {
-		auto module = getModule(aRequest.getApiModule());
-		if (!module) {
+		auto m = getModule(aRequest.getApiModule());
+		if (!m) {
 			aRequest.setResponseErrorStr("Section not found");
 			return websocketpp::http::status_code::not_found;
 		}
 
-		return module->handleRequest(aRequest);
+		return m->handleRequest(aRequest);
 	}
 
 	void Session::onSocketConnected(const WebSocketPtr& aSocket) noexcept {

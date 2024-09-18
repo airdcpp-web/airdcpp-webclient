@@ -28,7 +28,7 @@
 
 namespace webserver {
 	ApiRequest::ApiRequest(const string& aUrl, const string& aMethod, json&& aBody, const SessionPtr& aSession, const ApiDeferredHandler& aDeferredHandler, json& output_, json& error_) :
-		methodStr(aMethod), session(aSession), requestJson(std::move(aBody)), path(aUrl), deferredHandler(aDeferredHandler), responseJsonData(output_), responseJsonError(error_)
+		session(aSession), path(aUrl), methodStr(aMethod), requestJson(std::move(aBody)), responseJsonData(output_), responseJsonError(error_), deferredHandler(aDeferredHandler)
 	{
 
 		if (aUrl.compare(0, 4, "/api") != 0) {
@@ -64,7 +64,7 @@ namespace webserver {
 		}
 
 		// Version
-		auto version = pathTokens.front();
+		const auto version = pathTokens.front();
 		pathTokens.pop_front();
 
 		// API Module
@@ -86,8 +86,8 @@ namespace webserver {
 		pathTokens.erase(pathTokens.begin(), pathTokens.begin() + aCount);
 	}
 
-	uint32_t ApiRequest::getTokenParam(const string& aName) const noexcept {
-		return Util::toUInt32(namedParameters.at(aName));
+	size_t ApiRequest::getTokenParam(const string& aName) const noexcept {
+		return Util::toSizeT(namedParameters.at(aName));
 	}
 
 	const string& ApiRequest::getStringParam(const string& aName) const noexcept {
@@ -107,7 +107,7 @@ namespace webserver {
 	}
 
 	TTHValue ApiRequest::getTTHParam(const string& aName) const {
-		auto param = getStringParam(aName);
+		const auto& param = getStringParam(aName);
 		if (!Encoder::isBase32(param.c_str())) {
 			throw std::invalid_argument("Invalid TTH URL parameter");
 		}
@@ -116,7 +116,7 @@ namespace webserver {
 	}
 
 	CID ApiRequest::getCIDParam(const string& aName) const {
-		auto param = getStringParam(aName);
+		const auto& param = getStringParam(aName);
 		if (!Encoder::isBase32(param.c_str())) {
 			throw std::invalid_argument("Invalid CID URL parameter");
 		}
@@ -125,7 +125,7 @@ namespace webserver {
 	}
 
 
-	ApiCompletionF ApiRequest::defer() {
+	ApiCompletionF ApiRequest::defer() const noexcept {
 		return deferredHandler();
 	}
 }

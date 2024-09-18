@@ -42,13 +42,13 @@ namespace webserver {
 		"extension_installation_failed",
 	};
 
-	ExtensionApi::ExtensionApi(Session* aSession) : /*HookApiModule(aSession, Access::ADMIN, nullptr, Access::ADMIN),*/ 
-		em(aSession->getServer()->getExtensionManager()),
+	ExtensionApi::ExtensionApi(Session* aSession) : 
 		ParentApiModule(EXTENSION_PARAM, Access::SETTINGS_VIEW, aSession, ExtensionApi::subscriptionList,
 			ExtensionInfo::subscriptionList,
 			[](const string& aId) { return aId; },
 			[](const ExtensionInfo& aInfo) { return ExtensionInfo::serializeExtension(aInfo.getExtension()); }
-		)
+		),
+		em(aSession->getServer()->getExtensionManager())
 	{
 		em.addListener(this);
 

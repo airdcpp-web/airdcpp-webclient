@@ -27,14 +27,10 @@ namespace webserver {
 	FilterToken lastFilterToken = 0;
 
 	PropertyFilter::PropertyFilter(const PropertyList& aPropertyTypes) :
-		propertyCount(aPropertyTypes.size()),
-		defMethod(StringMatch::PARTIAL),
-		currentFilterProperty(aPropertyTypes.size()),
-		inverse(false),
-		usingTypedMethod(false),
-		numComparisonMode(LAST),
+		id(lastFilterToken++),
 		propertyTypes(aPropertyTypes),
-		id(lastFilterToken++)
+		currentFilterProperty(static_cast<int>(aPropertyTypes.size())),
+		propertyCount(static_cast<int>(aPropertyTypes.size()))
 	{
 	}
 
@@ -84,7 +80,7 @@ namespace webserver {
 				}
 			} else {
 				type = TYPE_TEXT;
-				matcher.setMethod(static_cast<StringMatch::Method>(defMethod));
+				matcher.setMethod(defMethod);
 				matcher.prepare();
 			}
 		} else if (propertyTypes[currentFilterProperty].filterType == TYPE_SIZE) {
@@ -102,6 +98,26 @@ namespace webserver {
 		}
 	}
 
+	bool PropertyFilter::matchAnyColumn(const NumericFunction& numericF, const InfoFunction& infoF) const {
+		if (defMethod < StringMatch::METHOD_LAST && numComparisonMode == LAST) {
+			// String
+			for (auto i = 0; i < propertyCount; ++i) {
+				if (propertyTypes[i].filterType == type && matchText(i, infoF)) {
+					return true;
+				}
+			}
+		} else {
+			// Numeric
+			for (auto i = 0; i < propertyCount; ++i) {
+				if (type == propertyTypes[i].filterType && matchNumeric(i, numericF)) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
 	bool PropertyFilter::match(const NumericFunction& numericF, const InfoFunction& infoF, const CustomFilterFunction& aCustomF) const {
 		if (empty())
 			return true;
@@ -109,23 +125,9 @@ namespace webserver {
 		bool hasMatch = false;
 		if (currentFilterProperty < 0 || currentFilterProperty >= propertyCount) {
 			// Any column
-			if (defMethod < StringMatch::METHOD_LAST && numComparisonMode == LAST) {
-				for (auto i = 0; i < propertyCount; ++i) {
-					if (propertyTypes[i].filterType == type && matchText(i, infoF)) {
-						hasMatch = true;
-						break;
-					}
-				}
-			} else {
-				for (auto i = 0; i < propertyCount; ++i) {
-					if (type == propertyTypes[i].filterType && matchNumeric(i, numericF)) {
-						hasMatch = true;
-						break;
-					}
-				}
-			}
+			hasMatch = matchAnyColumn(numericF, infoF);
 		} else if (propertyTypes[currentFilterProperty].filterType == TYPE_LIST_NUMERIC || propertyTypes[currentFilterProperty].filterType == TYPE_LIST_TEXT) {
-			// No default matcher for list properies
+			// No default matcher for list properties
 			hasMatch = aCustomF(currentFilterProperty, matcher, numericMatcher);
 		} else if (propertyTypes[currentFilterProperty].filterType == TYPE_TEXT) {
 			hasMatch = matchText(currentFilterProperty, infoF);
@@ -217,8 +219,8 @@ namespace webserver {
 	pair<double, bool> PropertyFilter::prepareTime() const noexcept {
 		size_t end;
 		time_t multiplier;
-		auto hasType = [&end, this](std::string&& id) {
-			end = Util::findSubString(matcher.pattern, id, matcher.pattern.size() - id.size());
+		auto hasType = [&end, this](const std::string& aUnitId) {
+			end = Util::findSubString(matcher.pattern, aUnitId, matcher.pattern.size() - aUnitId.size());
 			return end != std::string::npos;
 		};
 
@@ -259,9 +261,9 @@ namespace webserver {
 
 	pair<double, bool> PropertyFilter::prepareSize() const noexcept {
 		size_t end;
-		int64_t multiplier;
-		auto hasType = [&end, this](std::string  && id) {
-			end = Util::findSubString(matcher.pattern, id, matcher.pattern.size() - id.size());
+		double multiplier;
+		auto hasType = [&end, this](const std::string& aUnitId) {
+			end = Util::findSubString(matcher.pattern, aUnitId, matcher.pattern.size() - aUnitId.size());
 			return end != std::string::npos;
 		};
 
@@ -302,37 +304,29 @@ namespace webserver {
 
 	pair<double, bool> PropertyFilter::prepareSpeed() const noexcept {
 		size_t end;
-		int64_t multiplier;
-		auto hasType = [&end, this](std::string  && id) {
-			end = Util::findSubString(matcher.pattern, id, matcher.pattern.size() - id.size());
+		double multiplier;
+		auto hasType = [&end, this](const std::string& aUnitId) {
+			end = Util::findSubString(matcher.pattern, aUnitId, matcher.pattern.size() - aUnitId.size());
 			return end != std::string::npos;
 		};
 
 		if (hasType("tbit")) {
 			multiplier = 1000LL * 1000LL * 1000LL * 1000LL / 8LL;
-		}
-		else if (hasType("gbit")) {
+		} else if (hasType("gbit")) {
 			multiplier = 1000 * 1000 * 1000 / 8;
-		}
-		else if (hasType("mbit")) {
+		} else if (hasType("mbit")) {
 			multiplier = 1000 * 1000 / 8;
-		}
-		else if (hasType("kbit")) {
+		} else if (hasType("kbit")) {
 			multiplier = 1000 / 8;
-		}
-		else if (hasType("tibit")) {
+		} else if (hasType("tibit")) {
 			multiplier = 1024LL * 1024LL * 1024LL * 1024LL / 8LL;
-		}
-		else if (hasType("gibit")) {
+		} else if (hasType("gibit")) {
 			multiplier = 1024 * 1024 * 1024 / 8;
-		}
-		else if (hasType("mibit")) {
+		} else if (hasType("mibit")) {
 			multiplier = 1024 * 1024 / 8;
-		}
-		else if (hasType("kibit")) {
+		} else if (hasType("kibit")) {
 			multiplier = 1024 / 8;
-		}
-		else {
+		} else {
 			multiplier = 1;
 		}
 

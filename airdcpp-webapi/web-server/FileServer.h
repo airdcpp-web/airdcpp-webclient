@@ -26,6 +26,7 @@
 
 
 namespace webserver {
+	struct HttpRequest;
 	class FileServer {
 	public:
 		FileServer();
@@ -34,8 +35,8 @@ namespace webserver {
 		void setResourcePath(const string& aPath) noexcept;
 		const string& getResourcePath() const noexcept;
 
-		websocketpp::http::status_code::value handleRequest(const websocketpp::http::parser::request& aRequest, 
-			std::string& output_, StringPairList& headers_, const SessionPtr& aSession, const FileDeferredHandler& aDeferF);
+		websocketpp::http::status_code::value handleRequest(const HttpRequest& aRequest, 
+			std::string& output_, StringPairList& headers_, const FileDeferredHandler& aDeferF);
 
 		string getTempFilePath(const string& fileId) const noexcept;
 		void stop() noexcept;

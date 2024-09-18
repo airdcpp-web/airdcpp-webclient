@@ -21,7 +21,7 @@
 
 
 namespace webserver {
-	typedef int8_t AccessType;
+	using AccessType = int8_t;
 
 	// Remember to edit WebUser::accessStrings as well
 	enum class Access: AccessType {
@@ -65,8 +65,8 @@ namespace webserver {
 		LAST,
 	};
 
-	typedef map<Access, bool> AccessMap;
-	typedef vector<Access> AccessList;
+	using AccessMap = std::map<Access, bool>;
+	using AccessList = std::vector<Access>;
 }
 
 #endif

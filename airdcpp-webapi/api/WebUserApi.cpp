@@ -32,8 +32,8 @@
 namespace webserver {
 	WebUserApi::WebUserApi(Session* aSession) : 
 		SubscribableApiModule(aSession, Access::ADMIN, { "web_user_added", "web_user_updated", "web_user_removed" }),
-		um(aSession->getServer()->getUserManager()),
-		view("web_user_view", this, WebUserUtils::propertyHandler, std::bind(&WebUserApi::getUsers, this)) 
+		view("web_user_view", this, WebUserUtils::propertyHandler, std::bind(&WebUserApi::getUsers, this)),
+		um(aSession->getServer()->getUserManager()) 
 	{
 
 		METHOD_HANDLER(Access::ADMIN, METHOD_GET,		(),								WebUserApi::handleGetUsers);
@@ -61,7 +61,7 @@ namespace webserver {
 	}
 
 	WebUserPtr WebUserApi::parseUserNameParam(ApiRequest& aRequest) {
-		auto userName = aRequest.getStringParam(USERNAME_PARAM);
+		const auto& userName = aRequest.getStringParam(USERNAME_PARAM);
 		auto user = um.getUser(userName);
 		if (!user) {
 			throw RequestException(websocketpp::http::status_code::not_found, "User " + userName + " was not found");
@@ -71,7 +71,7 @@ namespace webserver {
 	}
 
 	api_return WebUserApi::handleGetUser(ApiRequest& aRequest) {
-		auto user = parseUserNameParam(aRequest);
+		const auto& user = parseUserNameParam(aRequest);
 
 		aRequest.setResponseBody(Serializer::serializeItem(user, WebUserUtils::propertyHandler));
 		return websocketpp::http::status_code::ok;
@@ -133,7 +133,7 @@ namespace webserver {
 	}
 
 	api_return WebUserApi::handleRemoveUser(ApiRequest& aRequest) {
-		auto userName = aRequest.getStringParam(USERNAME_PARAM);
+		const auto& userName = aRequest.getStringParam(USERNAME_PARAM);
 		if (!um.removeUser(userName)) {
 			aRequest.setResponseErrorStr("User " + userName + " was not found");
 			return websocketpp::http::status_code::not_found;

@@ -83,11 +83,11 @@ namespace webserver {
 	private:
 		class dbgview_buffer : public std::stringbuf {
 		public:
-			~dbgview_buffer() {
+			~dbgview_buffer() override {
 				sync(); // can be avoided
 			}
 
-			int sync() {
+			int sync() override {
 				OutputDebugString(Text::toT(str()).c_str());
 				str("");
 				return 0;
@@ -171,7 +171,7 @@ namespace webserver {
 			endpoint_tls.init_asio(&ios);
 
 			//endpoint_plain.set_pong_handler(std::bind(&WebServerManager::onPongReceived, this, _1, _2));
-		} catch (const std::exception& e) {
+		} catch (const websocketpp::exception& e) {
 			if (errorF) {
 				errorF(e.what());
 			}
@@ -188,7 +188,7 @@ namespace webserver {
 		setEndpointOptions(endpoint_tls);
 
 		// TLS endpoint has an extra handler for the tls init
-		endpoint_tls.set_tls_init_handler(std::bind(&WebServerManager::handleInitTls, this, _1));
+		endpoint_tls.set_tls_init_handler(std::bind_front(&WebServerManager::handleInitTls, this));
 
 		// Logging
 		if (enableSocketLogging) {
@@ -348,7 +348,6 @@ namespace webserver {
 		{
 			RLock l(cs);
 			for (const auto& socket : sockets | views::values) {
-				//socket->debugMessage("PING");
 				socket->ping();
 
 				// Disconnect sockets without a session after one minute
@@ -365,7 +364,7 @@ namespace webserver {
 
 	context_ptr WebServerManager::handleInitTls(websocketpp::connection_hdl hdl) {
 		//std::cout << "on_tls_init called with hdl: " << hdl.lock().get() << std::endl;
-		context_ptr ctx(new boost::asio::ssl::context(boost::asio::ssl::context::tls));
+		auto ctx = make_shared<boost::asio::ssl::context>(boost::asio::ssl::context::tls);
 
 		try {
 			ctx->set_options(boost::asio::ssl::context::default_workarounds |
@@ -457,7 +456,7 @@ namespace webserver {
 	}
 
 	void WebServerManager::addAsyncTask(Callback&& aCallback) noexcept {
-		tasks.post(aCallback);
+		tasks.post(std::move(aCallback));
 	}
 
 	void WebServerManager::addSocket(websocketpp::connection_hdl hdl, const WebSocketPtr& aSocket) noexcept {
@@ -511,7 +510,7 @@ namespace webserver {
 
 	string WebServerManager::getLocalServerHttpUrl() noexcept {
 		bool isPlain = isListeningPlain();
-		decltype(auto) config = isPlain ? plainServerConfig : tlsServerConfig;
+		const auto& config = isPlain ? plainServerConfig : tlsServerConfig;
 		return (isPlain ? "http://" : "https://") + getLocalServerAddress(*config);
 	}
 

@@ -22,15 +22,15 @@
 
 
 namespace webserver {
-	DirectoryListingToken FilelistItemInfo::getToken() const noexcept {
-		return hash<string>()(type == DIRECTORY ? dir->getName() : file->getName());
+	DirectoryListingItemToken FilelistItemInfo::getToken() const noexcept {
+		return type == DIRECTORY ? dir->getToken() : file->getToken();
 	}
 
-	FilelistItemInfo::FilelistItemInfo(const DirectoryListing::File::Ptr& f, const OptionalProfileToken aShareProfileToken) : type(FILE), file(f), shareProfileToken(aShareProfileToken) {
+	FilelistItemInfo::FilelistItemInfo(const DirectoryListing::File::Ptr& f, const OptionalProfileToken aShareProfileToken) : file(f), shareProfileToken(aShareProfileToken), type(FILE) {
 		//dcdebug("FilelistItemInfo (file) %s was created\n", f->getName().c_str());
 	}
 
-	FilelistItemInfo::FilelistItemInfo(const DirectoryListing::Directory::Ptr& d, const OptionalProfileToken aShareProfileToken) : type(DIRECTORY), dir(d), shareProfileToken(aShareProfileToken) {
+	FilelistItemInfo::FilelistItemInfo(const DirectoryListing::Directory::Ptr& d, const OptionalProfileToken aShareProfileToken) : dir(d), shareProfileToken(aShareProfileToken), type(DIRECTORY) {
 		//dcdebug("FilelistItemInfo (directory) %s was created\n", d->getName().c_str());
 	}
 
@@ -42,6 +42,15 @@ namespace webserver {
 			file.~shared_ptr();
 		} else {
 			dir.~shared_ptr();
+		}
+	}
+
+	void FilelistItemInfo::getLocalPathsThrow(StringList& paths_) const {
+		// TODO
+		if (type == DIRECTORY) {
+			dir->getLocalPathsUnsafe(paths_, shareProfileToken);
+		} else {
+			file->getLocalPathsUnsafe(paths_, shareProfileToken);
 		}
 	}
 }

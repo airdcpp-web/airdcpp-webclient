@@ -87,8 +87,8 @@ namespace webserver {
 		}
 	}
 
-#define COMPARE_IS_DOWNLOADED(a, b) if (a->isDownloaded() != b->isDownloaded()) return a->isDownloaded() ? 1 : -1;
-#define COMPARE_TYPE(a, b) if (a->isFileBundle() != b->isFileBundle()) return a->isFileBundle() ? 1 : -1;
+#define COMPARE_IS_DOWNLOADED(a, b) if (a->isDownloaded() != b->isDownloaded()) return a->isDownloaded() ? 1 : -1
+#define COMPARE_TYPE(a, b) if (a->isFileBundle() != b->isFileBundle()) return a->isFileBundle() ? 1 : -1
 
 	int QueueBundleUtils::compareBundles(const BundlePtr& a, const BundlePtr& b, int aPropertyName) noexcept {
 		switch (aPropertyName) {

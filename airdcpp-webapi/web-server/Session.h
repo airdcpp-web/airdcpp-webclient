@@ -44,7 +44,7 @@ namespace webserver {
 		};
 
 		Session(const WebUserPtr& aUser, const std::string& aToken, SessionType aSessionType, WebServerManager* aServer, uint64_t maxInactivityMinutes, const string& aIP);
-		~Session();
+		~Session() final;
 
 		const std::string& getAuthToken() const noexcept {
 			return token;
@@ -91,7 +91,6 @@ namespace webserver {
 
 		void reportError(const string& aError) noexcept;
 	private:
-	private:
 		const uint64_t maxInactivity;
 		const time_t started;
 		uint64_t lastActivity;
@@ -106,7 +105,7 @@ namespace webserver {
 
 		mutable CriticalSection cs;
 
-		typedef LazyInitWrapper<ApiModule> LazyModuleWrapper;
+		using LazyModuleWrapper = LazyInitWrapper<ApiModule>;
 		std::map<std::string, LazyModuleWrapper> apiHandlers;
 	};
 }

@@ -28,7 +28,7 @@ namespace webserver {
 	class HttpUtil {
 	public:
 		static const char* getMimeType(const string& aFileName) noexcept;
-		static bool unespaceUrl(const std::string& in, std::string& out) noexcept;
+		static bool unescapeUrl(const std::string& in, std::string& out) noexcept;
 		static string getExtension(const string& aResource) noexcept;
 
 		// Parses start and end position from a range HTTP request field

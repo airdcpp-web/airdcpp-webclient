@@ -34,7 +34,7 @@ namespace webserver {
 
 	class Extension : public Speaker<ExtensionListener> {
 	public:
-		typedef std::function<void(const Extension*, uint32_t /*exitCode*/)> ErrorF;
+		using ErrorF = std::function<void (const Extension*, uint32_t /*exitCode*/)>;
 
 		// Managed extension
 		// Throws on errors
@@ -44,7 +44,7 @@ namespace webserver {
 		// Throws on errors
 		Extension(const SessionPtr& aSession, const json& aPackageJson);
 
-		~Extension();
+		~Extension() final;
 
 		// Reload package.json from the supplied path
 		// Throws on errors
@@ -59,7 +59,7 @@ namespace webserver {
 
 		// Check that the extension is compatible with the current API
 		// Throws on errors
-		void checkCompatibilityThrow();
+		void checkCompatibilityThrow() const;
 
 #define EXT_ENGINE_NODE "node"
 
@@ -104,11 +104,11 @@ namespace webserver {
 		void resetSettings() noexcept;
 		void resetSession() noexcept;
 
-		typedef map<string, json> SettingValueMap;
+		using SettingValueMap = map<string, json>;
 
 		// Values and keys should have been validated earlier
 		void setValidatedSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences) noexcept;
-		SettingValueMap getSettingValues() noexcept;
+		SettingValueMap getSettingValues() const noexcept;
 
 		void swapSettingDefinitions(ExtensionSettingItem::List& aDefinitions) noexcept;
 

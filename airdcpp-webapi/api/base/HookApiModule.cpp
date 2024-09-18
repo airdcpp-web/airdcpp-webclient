@@ -77,10 +77,10 @@ namespace webserver {
 	}
 
 	api_return HookApiModule::handleListHooks(ApiRequest& aRequest) {
-		auto& hook = getHookSubscriber(aRequest);
+		const auto& hook = getHookSubscriber(aRequest);
 
 		auto ret = json::array();
-		for (auto& h: hook.getSubscribers()) {
+		for (const auto& h: hook.getSubscribers()) {
 			ret.push_back({
 				{ "id", h.getId() },
 				{ "name", h.getName() },
@@ -91,7 +91,7 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	ActionHookSubscriber HookApiModule::deserializeSubscriber(const void* aOwner, const json& aJson) {
+	ActionHookSubscriber HookApiModule::deserializeSubscriber(CallerPtr aOwner, const json& aJson) {
 		auto id = JsonUtil::getField<string>("id", aJson, false);
 		auto name = JsonUtil::getField<string>("name", aJson, false);
 		auto data = JsonUtil::getOptionalRawField("data", aJson);
@@ -197,7 +197,7 @@ namespace webserver {
 		return pendingHookIdCounter++;
 	}
 
-	HookApiModule::HookCompletionDataPtr HookApiModule::fireHook(const string& aSubscription, int aTimeoutSeconds, JsonCallback&& aJsonCallback) {
+	HookApiModule::HookCompletionDataPtr HookApiModule::fireHook(const string& aSubscription, int aTimeoutSeconds, const JsonCallback& aJsonCallback) {
 		if (!hookActive(aSubscription)) {
 			return nullptr;
 		}
@@ -213,7 +213,7 @@ namespace webserver {
 		{
 			WLock l(cs);
 			id = getActionId();
-			pendingHookActions.emplace(id, PendingAction({ completionSemaphore, nullptr }));
+			pendingHookActions.try_emplace(id, completionSemaphore, nullptr);
 			//dcdebug("Adding action %d for hook %s, total pending count %d\n", id, aSubscription.c_str(), pendingHookActions.size());
 		}
 

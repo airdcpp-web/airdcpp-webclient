@@ -134,7 +134,7 @@ namespace webserver {
 			case PROP_SUPPORTS: return aItem->getSupports();
 			case PROP_ENCRYPTION:
 			{
-				auto trusted = aItem->getFlags().find("S") != aItem->getFlags().end();
+				auto trusted = aItem->getFlags().contains("S");
 				return Serializer::serializeEncryption(aItem->getEncryption(), trusted);
 			}
 			case PROP_QUEUE_ID:

@@ -38,7 +38,7 @@ namespace webserver {
 	}
 
 	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, const websocketpp::http::parser::request& aRequest, WebServerManager* aWsm) :
-		secure(aIsSecure), hdl(aHdl), timeCreated(GET_TICK()), wsm(aWsm) 
+		hdl(aHdl), wsm(aWsm), secure(aIsSecure), timeCreated(GET_TICK()) 
 	{
 		debugMessage("Websocket created");
 
@@ -118,7 +118,7 @@ namespace webserver {
 		string str;
 		try {
 			str = aJson.dump();
-		} catch (const std::exception& e) {
+		} catch (const json::exception& e) {
 			logError("Failed to convert data to JSON: " + string(e.what()), websocketpp::log::elevel::fatal);
 			throw;
 		}
@@ -131,7 +131,7 @@ namespace webserver {
 			} else {
 				plainServer->send(hdl, str, websocketpp::frame::opcode::text);
 			}
-		} catch (const std::exception& e) {
+		} catch (const websocketpp::exception& e) {
 			logError("Failed to send data: " + string(e.what()), websocketpp::log::elevel::fatal);
 		}
 	}
@@ -144,7 +144,7 @@ namespace webserver {
 				plainServer->ping(hdl, Util::emptyString);
 			}
 
-		} catch (const std::exception& e) {
+		} catch (const websocketpp::exception& e) {
 			debugMessage("WebSocket::ping failed: " + string(e.what()));
 		}
 	}
@@ -157,7 +157,7 @@ namespace webserver {
 			} else {
 				plainServer->close(hdl, aCode, aMsg);
 			}
-		} catch (const std::exception& e) {
+		} catch (const websocketpp::exception& e) {
 			debugMessage("WebSocket::close failed: " + string(e.what()));
 		}
 	}

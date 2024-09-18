@@ -33,7 +33,7 @@
 
 
 namespace webserver {
-	string MessageUtils::getHighlighType(MessageHighlight::HighlightType aType) noexcept {
+	string MessageUtils::getHighlightType(MessageHighlight::HighlightType aType) noexcept {
 		switch (aType) {
 			case MessageHighlight::HighlightType::TYPE_BOLD: return "bold";
 			case MessageHighlight::HighlightType::TYPE_USER: return "user";
@@ -185,7 +185,7 @@ namespace webserver {
 		return {
 			{ "id", aHighlight->getToken() },
 			{ "text", aHighlight->getText() },
-			{ "type", getHighlighType(aHighlight->getType()) },
+			{ "type", getHighlightType(aHighlight->getType()) },
 			{ "tag", aHighlight->getTag() },
 			{ "position", {
 				{ "start", aHighlight->getStart() },
@@ -203,7 +203,7 @@ namespace webserver {
 		const auto end = JsonUtil::getField<size_t>("end", aJson, false);
 		const auto descriptionId = JsonUtil::getOptionalFieldDefault<string>("tag", aJson, aDefaultDescriptionId);
 
-		if (end > aMessageText.size() || start < 0 || end <= start) {
+		if (end > aMessageText.size() || end <= start) {
 			throw RequestException(websocketpp::http::status_code::bad_request, "Invalid range");
 		}
 
@@ -211,13 +211,13 @@ namespace webserver {
 	}
 
 	MessageUtils::MessageHighlightDeserializer MessageUtils::getMessageHookHighlightDeserializer(const string& aMessageText) {
-		return [=](const json& aData, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) {
+		return [aMessageText](const json& aData, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) {
 			return deserializeHookMessageHighlights(aData, aResultGetter, aMessageText);
 		};
 	}
 
 	MessageHighlightList MessageUtils::deserializeHookMessageHighlights(const json& aData, const ActionHookResultGetter<MessageHighlightList>& aResultGetter, const string& aMessageText) {
-		const auto highlightItems = JsonUtil::getOptionalArrayField("highlights", aData);
+		const auto& highlightItems = JsonUtil::getOptionalArrayField("highlights", aData);
 
 		MessageHighlightList ret;
 		if (!highlightItems.is_null()) {

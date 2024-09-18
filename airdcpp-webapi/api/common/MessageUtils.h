@@ -38,14 +38,14 @@ namespace webserver {
 	public:
 		static json serializeMessageHighlight(const MessageHighlightPtr& aHighlight);
 
-		typedef std::function<MessageHighlightList(const json&, const ActionHookResultGetter<MessageHighlightList>&)> MessageHighlightDeserializer;
+		using MessageHighlightDeserializer = std::function<MessageHighlightList (const json&, const ActionHookResultGetter<MessageHighlightList>&)>;
 		static MessageHighlightDeserializer getMessageHookHighlightDeserializer(const string& aMessage);
 
 		static json serializeMessage(const Message& aMessage) noexcept;
 		static json serializeChatMessage(const ChatMessagePtr& aMessage) noexcept;
 		static json serializeLogMessage(const LogMessagePtr& aMessageData) noexcept;
 
-		typedef std::function<json(const MessageCache& aCache)> UnreadSerializerF;
+		using UnreadSerializerF = std::function<json (const MessageCache&)>;
 		static json serializeCacheInfo(const MessageCache& aCache, const UnreadSerializerF& unreadF) noexcept;
 		static json serializeUnreadChat(const MessageCache& aCache) noexcept;
 		static json serializeUnreadLog(const MessageCache& aCache) noexcept;
@@ -57,7 +57,7 @@ namespace webserver {
 		static string getMessageSeverity(LogMessage::Severity aSeverity) noexcept;
 		static string getMessageType(LogMessage::Type aType) noexcept;
 
-		static string getHighlighType(MessageHighlight::HighlightType aType) noexcept;
+		static string getHighlightType(MessageHighlight::HighlightType aType) noexcept;
 		static json getContentType(const MessageHighlightPtr& aHighlight) noexcept;
 
 		static string parseStatusMessageLabel(const SessionPtr& aSession) noexcept;

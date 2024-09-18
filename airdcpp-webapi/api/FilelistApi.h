@@ -32,8 +32,8 @@ namespace webserver {
 	public:
 		static StringList subscriptionList;
 
-		FilelistApi(Session* aSession);
-		~FilelistApi();
+		explicit FilelistApi(Session* aSession);
+		~FilelistApi() final;
 	private:
 		void addList(const DirectoryListingPtr& aList) noexcept;
 

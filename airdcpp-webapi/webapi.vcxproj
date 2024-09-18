@@ -244,13 +244,16 @@
     <ClInclude Include="web-server\ApiRequest.h" />
     <ClInclude Include="web-server\ApiRouter.h" />
     <ClInclude Include="web-server\ApiSettingItem.h" />
+    <ClInclude Include="web-server\ContextMenuItem.h" />
     <ClInclude Include="web-server\ContextMenuManager.h" />
+    <ClInclude Include="web-server\ContextMenuManagerListener.h" />
     <ClInclude Include="web-server\Exception.h" />
     <ClInclude Include="web-server\Extension.h" />
     <ClInclude Include="web-server\ExtensionListener.h" />
     <ClInclude Include="web-server\ExtensionManager.h" />
     <ClInclude Include="web-server\ExtensionManagerListener.h" />
     <ClInclude Include="web-server\FileServer.h" />
+    <ClInclude Include="web-server\HttpRequest.h" />
     <ClInclude Include="web-server\HttpUtil.h" />
     <ClInclude Include="web-server\JsonUtil.h" />
     <ClInclude Include="web-server\LazyInitWrapper.h" />

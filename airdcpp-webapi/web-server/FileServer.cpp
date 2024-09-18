@@ -19,6 +19,7 @@
 #include "stdinc.h"
 
 #include <web-server/FileServer.h>
+#include <web-server/HttpRequest.h>
 #include <web-server/HttpUtil.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebUserManager.h>
@@ -48,8 +49,8 @@ namespace webserver {
 
 	FileServer::~FileServer() {
 		RLock l(cs);
-		for (const auto& f: tempFiles) {
-			File::deleteFile(f.second);
+		for (const auto& [_, path] : tempFiles) {
+			File::deleteFile(path);
 		}
 	}
 
@@ -177,7 +178,7 @@ namespace webserver {
 
 			{
 				WLock l(cs);
-				tempFiles.emplace(fileName, filePath);
+				tempFiles.try_emplace(fileName, filePath);
 			}
 
 			headers_.emplace_back("Location", fileName);
@@ -194,13 +195,14 @@ namespace webserver {
 		return i != tempFiles.end() ? i->second : Util::emptyString;
 	}
 
-	websocketpp::http::status_code::value FileServer::handleRequest(const websocketpp::http::parser::request& aRequest,
-		string& output_, StringPairList& headers_, const SessionPtr& aSession, const FileDeferredHandler& aDeferF) {
+	websocketpp::http::status_code::value FileServer::handleRequest(const HttpRequest& aRequest,
+		string& output_, StringPairList& headers_, const FileDeferredHandler& aDeferF) {
 
-		if (aRequest.get_method() == "GET") {
-			return handleGetRequest(aRequest, output_, headers_, aSession, aDeferF);
-		} else if (aRequest.get_method() == "POST") {
-			return handlePostRequest(aRequest, output_, headers_, aSession);
+		const auto& httpRequest = aRequest.httpRequest;
+		if (httpRequest.get_method() == "GET") {
+			return handleGetRequest(httpRequest, output_, headers_, aRequest.session, aDeferF);
+		} else if (httpRequest.get_method() == "POST") {
+			return handlePostRequest(httpRequest, output_, headers_, aRequest.session);
 		}
 
 		output_ = "Requested resource was not found";
@@ -213,7 +215,17 @@ namespace webserver {
 		const auto& requestUrl = aRequest.get_uri();
 		dcdebug("Requesting file %s\n", requestUrl.c_str());
 
-		// Get the disk path
+		// Proxy request?
+		if (requestUrl.starts_with("/proxy")) {
+			if (!aSession) {
+				output_ = "Not authorized";
+				return websocketpp::http::status_code::unauthorized;
+			}
+
+			return handleProxyDownload(requestUrl, output_, aDeferF);
+		}
+
+		// File request
 		string filePath;
 		auto isViewFile = requestUrl.length() >= 6 && requestUrl.compare(0, 6, "/view/") == 0;
 		try {
@@ -272,7 +284,7 @@ namespace webserver {
 
 		{
 			// Get the mime type (but get it from the original request with gzipped content)
-			auto usingEncoding = find_if(headers_.begin(), headers_.end(), CompareFirst<string, string>("Content-Encoding")) != headers_.end();
+			auto usingEncoding = ranges::find(headers_ | views::values, "Content-Encoding").base() != headers_.end();
 			auto type = HttpUtil::getMimeType(usingEncoding ? requestUrl : filePath);
 			if (type) {
 				headers_.emplace_back("Content-Type", type);
@@ -301,24 +313,22 @@ namespace webserver {
 
 		// Decode URL
 		string proxyUrl;
-		if (!HttpUtil::unespaceUrl(proxyUrlEscaped, proxyUrl)) {
+		if (!HttpUtil::unescapeUrl(proxyUrlEscaped, proxyUrl)) {
 			output_ = "Invalid URL " + proxyUrlEscaped;
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		auto completionHandler = aDeferF();
-
 		auto downloadId = proxyDownloadCounter++;
 		auto download = std::make_shared<HttpDownload>(
 			proxyUrl,
-			[=, this]() {
+			[this, downloadId, completionHandler = aDeferF()]() {
 				onProxyDownloadCompleted(downloadId, completionHandler);
 			}
 		);
 
 		{
 			WLock l(cs);
-			proxyDownloads.emplace(downloadId, download);
+			proxyDownloads.try_emplace(downloadId, download);
 		}
 
 		return websocketpp::http::status_code::accepted;
