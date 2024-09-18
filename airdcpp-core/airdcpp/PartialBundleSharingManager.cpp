@@ -42,7 +42,7 @@ PartialBundleSharingManager::~PartialBundleSharingManager() {
 	ProtocolCommandManager::getInstance()->removeListener(this);
 }
 
-void PartialBundleSharingManager::dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
+void PartialBundleSharingManager::dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
 	if (ENABLE_DEBUG) {
 		LogManager::getInstance()->message(aMsg, aSeverity, "PBD");
 	} else if (aSeverity == LogMessage::SEV_WARNING || aSeverity == LogMessage::SEV_ERROR) {
@@ -178,9 +178,9 @@ void PartialBundleSharingManager::sendFileCompletionNotifications(const QueueIte
 		//collect the users that don't have this file yet
 		auto bundleFNL = getRemoteBundleNotificationsUnsafe(qi->getBundle());
 		if (bundleFNL) {
-			for (auto& fn: *bundleFNL) {
-				if (!qi->isSource(fn.first.user)) {
-					notified.push_back(fn.first);
+			for (const auto& [user, _] : *bundleFNL) {
+				if (!qi->isSource(user)) {
+					notified.push_back(user);
 				}
 			}
 		}
@@ -226,8 +226,8 @@ void PartialBundleSharingManager::sendBundleCompletedNotifications(const BundleP
 	FinishedNotifyList fnl;
 	clearRemoteNotifications(aBundle, fnl);
 
-	for (const auto& ubp : fnl) {
-		sendRemovePBD(ubp.first, ubp.second);
+	for (const auto& [user, bundleToken] : fnl) {
+		sendRemovePBD(user, bundleToken);
 	}
 }
 
@@ -243,7 +243,7 @@ void PartialBundleSharingManager::on(QueueManagerListener::ItemStatus, const Que
 	}
 }
 
-bool PartialBundleSharingManager::matchIncomingSearch(const UserPtr& aUser, const TTHValue& tth, string& _bundle, bool& _reply, bool& _add) noexcept {
+bool PartialBundleSharingManager::matchIncomingSearch(const UserPtr& aUser, const TTHValue& tth, string& _bundle, bool& _reply, bool& _add) const noexcept {
 	QueueItemPtr qi = nullptr;
 	{
 		// Locate target QueueItem in download queue
@@ -322,7 +322,7 @@ void PartialBundleSharingManager::on(ProtocolCommandManagerListener::IncomingUDP
 	if (aCmd.getParameters().empty())
 		return;
 
-	const auto cid = aCmd.getParam(0);
+	const auto& cid = aCmd.getParam(0);
 	if (cid.size() != 39)
 		return;
 

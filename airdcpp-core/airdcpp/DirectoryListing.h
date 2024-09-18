@@ -46,7 +46,6 @@ namespace dcpp {
 class DirectSearch;
 class ListLoader;
 class SearchQuery;
-typedef uint32_t DirectoryListingToken;
 
 class DirectoryListing : public UserInfoBase, public TrackableDownloadItem,
 	public Speaker<DirectoryListingListener>, private TimerManagerListener, 
@@ -54,25 +53,26 @@ class DirectoryListing : public UserInfoBase, public TrackableDownloadItem,
 {
 public:
 	class Directory;
-	class File : boost::noncopyable {
+	class File: public boost::noncopyable {
 
 	public:
-		typedef std::shared_ptr<File> Ptr;
+		using Owner = const void*;
+		using Ptr = std::shared_ptr<File>;
 
 		struct Sort { bool operator()(const Ptr& a, const Ptr& b) const; };
 
-		typedef std::vector<Ptr> List;
-		typedef List::const_iterator Iter;
+		using List = std::vector<Ptr>;
+		using Iter = List::const_iterator;
 		
 		File(Directory* aDir, const string& aName, int64_t aSize, const TTHValue& aTTH, bool aCheckDupe, time_t aRemoteDate) noexcept;
-		File(const File& rhs, const void* aOwner) noexcept;
+		File(const File& rhs, Owner aOwner) noexcept;
 
-		~File() { }
+		~File() = default;
 
-		typedef ActionHook<nullptr_t, const File::Ptr&, const DirectoryListing&> ValidationHook;
+		using ValidationHook = ActionHook<nullptr_t, const File::Ptr &, const DirectoryListing &>;
 
-		string getAdcPath() const noexcept {
-			return parent->getAdcPath() + name;
+		string getAdcPathUnsafe() const noexcept {
+			return parent->getAdcPathUnsafe() + name;
 		}
 
 		GETSET(string, name, Name);
@@ -84,12 +84,16 @@ public:
 
 		bool isInQueue() const noexcept;
 
-		const void* getOwner() const noexcept {
+		Owner getOwner() const noexcept {
 			return owner;
 		}
-		void getLocalPaths(StringList& ret, const OptionalProfileToken& aShareProfileToken) const;
+		DirectoryListingItemToken getToken() const noexcept {
+			return token;
+		}
+		void getLocalPathsUnsafe(StringList& ret, const OptionalProfileToken& aShareProfileToken) const;
 	private:
-		const void* owner = nullptr;
+		Owner owner = nullptr;
+		const DirectoryListingItemToken token;
 	};
 
 	enum class DirectoryLoadType {
@@ -99,7 +103,7 @@ public:
 		NONE,
 	};
 
-	class Directory : boost::noncopyable {
+	class Directory : public boost::noncopyable {
 	public:
 		enum DirType {
 			TYPE_NORMAL,
@@ -108,8 +112,8 @@ public:
 			TYPE_VIRTUAL,
 		};
 
-		typedef std::shared_ptr<Directory> Ptr;
-		typedef ActionHook<nullptr_t, const Directory::Ptr&, const DirectoryListing&> ValidationHook;
+		using Ptr = std::shared_ptr<Directory>;
+		using ValidationHook = ActionHook<nullptr_t, const Directory::Ptr &, const DirectoryListing &>;
 
 		struct ValidationHooks {
 			ValidationHook directoryLoadHook;
@@ -122,9 +126,9 @@ public:
 
 		struct Sort { bool operator()(const Ptr& a, const Ptr& b) const; };
 
-		typedef std::vector<Ptr> List;
-		typedef unordered_set<TTHValue> TTHSet;
-		typedef map<const string*, Ptr, noCaseStringLess> Map;
+		using List = std::vector<Ptr>;
+		using TTHSet = unordered_set<TTHValue>;
+		using Map = map<const string *, Ptr, noCaseStringLess>;
 		
 		Map directories;
 		File::List files;
@@ -137,21 +141,21 @@ public:
 
 		size_t getTotalFileCount(bool aCountVirtual) const noexcept;
 		int64_t getTotalSize(bool aCountVirtual) const noexcept;
-		void filterList(DirectoryListing& dirList) noexcept;
+		void filterList(const DirectoryListing& dirList) noexcept;
 		void filterList(TTHSet& l) noexcept;
 		void getHashList(TTHSet& l) const noexcept;
 		void clearVirtualDirectories() noexcept;
 		void clearAll() noexcept;
-		void getLocalPaths(StringList& ret, const OptionalProfileToken& aShareProfileToken) const;
+		void getLocalPathsUnsafe(StringList& ret, const OptionalProfileToken& aShareProfileToken) const;
 
 		bool findIncomplete() const noexcept;
 		bool findCompleteChildren() const noexcept;
 		void search(OrderedStringSet& aResults, SearchQuery& aStrings) const noexcept;
 		void findFiles(const boost::regex& aReg, File::List& aResults) const noexcept;
 		
-		int64_t getFilesSize() const noexcept;
+		int64_t getFilesSizeUnsafe() const noexcept;
 
-		string getAdcPath() const noexcept;
+		string getAdcPathUnsafe() const noexcept;
 		uint8_t checkDupesRecursive() noexcept;
 		void runHooksRecursive(const DirectoryListing& aList) noexcept;
 		
@@ -166,6 +170,7 @@ public:
 		bool isComplete() const noexcept { return type == TYPE_VIRTUAL || type == TYPE_NORMAL; }
 		void setComplete() noexcept { type = TYPE_NORMAL; }
 		bool isVirtual() const noexcept { return type == TYPE_VIRTUAL; }
+		bool isRoot() const noexcept { return !parent; }
 
 		// Create recursive bundle file info listing with relative paths
 		BundleFileAddData::List toBundleInfoList() const noexcept;
@@ -186,6 +191,14 @@ public:
 			contentInfo.files = aContentInfo.files;
 			contentInfo.directories = aContentInfo.directories;
 		}
+
+		static bool NotVirtual(const Directory::Ptr& aDirectory) noexcept {
+			return !aDirectory->isVirtual();
+		}
+
+		DirectoryListingItemToken getToken() const noexcept {
+			return token;
+		}
 	protected:
 		void toBundleInfoList(const string& aTarget, BundleFileAddData::List& aFiles) const noexcept;
 
@@ -195,19 +208,20 @@ public:
 
 		DirectoryContentInfo contentInfo = DirectoryContentInfo::uninitialized();
 		const string name;
+		const DirectoryListingItemToken token;
 	};
 
 	class VirtualDirectory : public Directory {
 	public:
-		typedef shared_ptr<VirtualDirectory> Ptr;
+		using Ptr = shared_ptr<VirtualDirectory>;
 		GETSET(string, fullAdcPath, FullAdcPath);
-		static Ptr create(const string& aFullAdcPath, Directory* aParent, const string& aName);
+		static Ptr create(const string& aFullAdcPath, Directory* aParent, const string& aName, bool aAddToParent = true);
 	private:
 		VirtualDirectory(const string& aFullPath, Directory* aParent, const string& aName);
 	};
 
 	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, Directory::ValidationHooks* aLoadHooks, bool aIsOwnList = false);
-	~DirectoryListing();
+	~DirectoryListing() final;
 	
 	const CID& getToken() const noexcept {
 		return hintedUser.user->getCID();
@@ -222,7 +236,7 @@ public:
 	// Throws AbortException
 	int loadPartialXml(const string& aXml, const string& aAdcBase);
 
-	optional<DirectoryBundleAddResult> createBundleHooked(const Directory::Ptr& aDir, const string& aTarget, const string& aName, Priority aPrio, string& errorMsg_) noexcept;
+	optional<DirectoryBundleAddResult> createBundleHooked(const Directory::Ptr& aDir, const string& aTarget, const string& aName, Priority aPrio, string& errorMsg_) const noexcept;
 
 	HintedUser getDownloadSourceUser() const noexcept;
 
@@ -230,8 +244,7 @@ public:
 	int64_t getDirectorySizeUnsafe(const string& aDir) const noexcept;
 	size_t getTotalFileCountUnsafe() const noexcept { return root->getTotalFileCount(false); }
 
-	const Directory::Ptr getRoot() const noexcept { return root; }
-	Directory::Ptr getRoot() noexcept { return root; }
+	Directory::Ptr getRoot() const noexcept { return root; }
 
 	// Throws ShareException
 	void getLocalPathsUnsafe(const Directory::Ptr& d, StringList& ret) const;
@@ -276,7 +289,7 @@ public:
 
 	unique_ptr<SearchQuery> curSearch;
 
-	bool isCurrentSearchPath(const string& path) const noexcept;
+	bool isCurrentSearchPath(const string_view& aPath) const noexcept;
 	size_t getResultCount() const noexcept { return searchResults.size(); }
 
 	Directory::Ptr findDirectoryUnsafe(const string& aName) const noexcept { return findDirectoryUnsafe(aName, root.get()); }
@@ -332,12 +345,12 @@ private:
 	int loadXML(InputStream& aXml, bool aUpdating, const string& aBase, time_t aListDate);
 
 	// Create and insert a base directory with the given path (or return an existing one)
-	Directory::Ptr createBaseDirectory(const string& aPath, time_t aDownloadDate) noexcept;
+	Directory::Ptr createBaseDirectory(const string& aPath, time_t aDownloadDate);
 
 	void changeDirectoryImpl(const string& aPath, DirectoryLoadType aType, bool aForceQueue = false) noexcept;
 
 	void setShareProfileImpl(ProfileToken aProfile) noexcept;
-	void setHubUrlImpl(const string& aHubUrl) noexcept;
+	void setHubUrlImpl(const string_view& aHubUrl) noexcept;
 
 	LocationInfo currentLocation;
 	void updateCurrentLocation(const Directory::Ptr& aCurrentDirectory) noexcept;

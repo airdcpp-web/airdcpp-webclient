@@ -144,11 +144,11 @@ bool PathUtil::checkExtension(const string& tmp) noexcept {
 	return true;
 }
 
-bool PathUtil::isAdcDirectoryPath(const string& aPath) noexcept {
+bool PathUtil::isAdcDirectoryPath(const string_view aPath) noexcept {
 	return !aPath.empty() && aPath.front() == ADC_ROOT && aPath.back() == ADC_SEPARATOR;
 }
 
-bool PathUtil::isAdcRoot(const string& aPath) noexcept {
+bool PathUtil::isAdcRoot(const string_view aPath) noexcept {
 	return aPath.size() == 1 && aPath.front() == ADC_ROOT;
 }
 
@@ -179,7 +179,7 @@ string PathUtil::toAdcFile(const string& file) noexcept {
 	}
 	return ret;
 }
-string PathUtil::toNmdcFile(const string& file) noexcept {
+string PathUtil::toNmdcFile(const string_view file) noexcept {
 	if(file.empty())
 		return Util::emptyString;
 
@@ -325,7 +325,7 @@ bool PathUtil::isParentOrExactLower(const string& aParentLower, const string& aS
 }
 
 
-string PathUtil::subtractCommonParents(const string& aToCompare, const StringList& aToSubtract) noexcept {
+string PathUtil::subtractCommonParents(const string_view aToCompare, const StringList& aToSubtract) noexcept {
 	StringList converted;
 	for (const auto& p : aToSubtract) {
 		if (p.length() > aToCompare.length()) {

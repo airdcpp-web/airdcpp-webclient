@@ -18,6 +18,7 @@
 
 #include "stdinc.h"
 #include "UpdateManager.h"
+#include "UpdateDownloader.h"
 
 #include <openssl/rsa.h>
 
@@ -34,7 +35,6 @@
 #include "SimpleXML.h"
 #include "Text.h"
 #include "TimerManager.h"
-#include "Updater.h"
 #include "version.h"
 
 #include "pubkey.h"
@@ -139,12 +139,32 @@ void UpdateManager::checkIP(bool aManual, bool v6) {
 
 	conns[v6 ? CONN_IP6 : CONN_IP4] = make_unique<HttpDownload>(
 		v6 ? links.ipcheck6 : links.ipcheck4,
-		[=, this] { completeIPCheck(aManual, v6); },
+		[this, aManual, v6] { completeIPCheck(aManual, v6); },
 		options
 	);
 }
 
-void UpdateManager::completeIPCheck(bool manual, bool v6) {
+string UpdateManager::parseIP(const string& aText, bool v6) {
+	const string pattern = !v6 ? 
+		"\\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b" : 
+		"(\\A([0-9a-f]{1,4}:){1,1}(:[0-9a-f]{1,4}){1,6}\\Z)|(\\A([0-9a-f]{1,4}:){1,2}(:[0-9a-f]{1,4}){1,5}\\Z)|(\\A([0-9a-f]{1,4}:){1,3}(:[0-9a-f]{1,4}){1,4}\\Z)|(\\A([0-9a-f]{1,4}:){1,4}(:[0-9a-f]{1,4}){1,3}\\Z)|(\\A([0-9a-f]{1,4}:){1,5}(:[0-9a-f]{1,4}){1,2}\\Z)|(\\A([0-9a-f]{1,4}:){1,6}(:[0-9a-f]{1,4}){1,1}\\Z)|(\\A(([0-9a-f]{1,4}:){1,7}|:):\\Z)|(\\A:(:[0-9a-f]{1,4}){1,7}\\Z)|(\\A((([0-9a-f]{1,4}:){6})(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})\\Z)|(\\A(([0-9a-f]{1,4}:){5}[0-9a-f]{1,4}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})\\Z)|(\\A([0-9a-f]{1,4}:){5}:[0-9a-f]{1,4}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A([0-9a-f]{1,4}:){1,1}(:[0-9a-f]{1,4}){1,4}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A([0-9a-f]{1,4}:){1,2}(:[0-9a-f]{1,4}){1,3}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A([0-9a-f]{1,4}:){1,3}(:[0-9a-f]{1,4}){1,2}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A([0-9a-f]{1,4}:){1,4}(:[0-9a-f]{1,4}){1,1}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A(([0-9a-f]{1,4}:){1,5}|:):(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A:(:[0-9a-f]{1,4}){1,5}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)";
+
+	const boost::regex reg(pattern);
+	boost::match_results<string::const_iterator> results;
+	// RSX++ workaround for msvc std lib problems
+	auto start = aText.begin();
+	auto end = aText.end();
+
+	if (boost::regex_search(start, end, results, reg, boost::match_default)) {
+		if (!results.empty()) {
+			return results.str(0);
+		}
+	}
+
+	return Util::emptyString;
+}
+
+void UpdateManager::completeIPCheck(bool aManual, bool v6) {
 	auto& conn = conns[v6 ? CONN_IP6 : CONN_IP4];
 	if(!conn) { return; }
 
@@ -154,20 +174,9 @@ void UpdateManager::completeIPCheck(bool manual, bool v6) {
 
 	if (!conn->buf.empty()) {
 		try {
-			const string pattern = !v6 ? "\\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b" : "(\\A([0-9a-f]{1,4}:){1,1}(:[0-9a-f]{1,4}){1,6}\\Z)|(\\A([0-9a-f]{1,4}:){1,2}(:[0-9a-f]{1,4}){1,5}\\Z)|(\\A([0-9a-f]{1,4}:){1,3}(:[0-9a-f]{1,4}){1,4}\\Z)|(\\A([0-9a-f]{1,4}:){1,4}(:[0-9a-f]{1,4}){1,3}\\Z)|(\\A([0-9a-f]{1,4}:){1,5}(:[0-9a-f]{1,4}){1,2}\\Z)|(\\A([0-9a-f]{1,4}:){1,6}(:[0-9a-f]{1,4}){1,1}\\Z)|(\\A(([0-9a-f]{1,4}:){1,7}|:):\\Z)|(\\A:(:[0-9a-f]{1,4}){1,7}\\Z)|(\\A((([0-9a-f]{1,4}:){6})(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})\\Z)|(\\A(([0-9a-f]{1,4}:){5}[0-9a-f]{1,4}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})\\Z)|(\\A([0-9a-f]{1,4}:){5}:[0-9a-f]{1,4}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A([0-9a-f]{1,4}:){1,1}(:[0-9a-f]{1,4}){1,4}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A([0-9a-f]{1,4}:){1,2}(:[0-9a-f]{1,4}){1,3}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A([0-9a-f]{1,4}:){1,3}(:[0-9a-f]{1,4}){1,2}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A([0-9a-f]{1,4}:){1,4}(:[0-9a-f]{1,4}){1,1}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A(([0-9a-f]{1,4}:){1,5}|:):(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)|(\\A:(:[0-9a-f]{1,4}){1,5}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}\\Z)";
-			const boost::regex reg(pattern);
-			boost::match_results<string::const_iterator> results;
-			// RSX++ workaround for msvc std lib problems
-			string::const_iterator start = conn->buf.begin();
-			string::const_iterator end = conn->buf.end();
-
-			if(boost::regex_search(start, end, results, reg, boost::match_default)) {
-				if(!results.empty()) {
-					ip = results.str(0);
-					//const string& ip = results.str(0);
-					if (!manual)
-						SettingsManager::getInstance()->set(setting, ip);
-				}
+			ip = parseIP(conn->buf, v6);
+			if (!aManual && !ip.empty()) {
+				SettingsManager::getInstance()->set(setting, ip);
 			}
 		} catch(...) { }
 	}
@@ -179,7 +188,7 @@ void UpdateManager::checkGeoUpdate() {
 	// update when the database is non-existent or older than X days 
 	try {
 		File f(GeoManager::getDbPath() + ".gz", File::READ, File::OPEN);
-		if(f.getSize() > 0 && static_cast<time_t>(f.getLastModified()) > GET_TIME() - 3600 * 24 * IP_DB_EXPIRATION_DAYS) {
+		if(f.getSize() > 0 && f.getLastModified() > GET_TIME() - 3600 * 24 * IP_DB_EXPIRATION_DAYS) {
 			return;
 		}
 	} catch(const FileException&) { }
@@ -376,7 +385,7 @@ string UpdateManager::getVersionUrl() const {
 }
 
 void UpdateManager::init() {
-	updater = make_unique<Updater>(this);
+	updater = make_unique<UpdateDownloader>(this);
 
 	checkVersion(false);
 }

@@ -176,7 +176,7 @@ optional<ByteVector> CryptoManager::calculateSha1(const string& aData) noexcept 
 	const EVP_MD* md = EVP_get_digestbyname("SHA1");
 	ScopedFunctor([mdctx] { EVP_MD_CTX_free(mdctx); });
 
-	unsigned int len = aData.size();
+	auto len = static_cast<unsigned int>(aData.size());
 	auto res = EVP_DigestInit_ex(mdctx, md, NULL);
 	if (res != 1)
 		return nullopt;
@@ -284,7 +284,7 @@ void CryptoManager::generateCertificate() {
 	}
 }
 
-void CryptoManager::sslRandCheck() {
+void CryptoManager::sslRandCheck() noexcept {
 	if (!RAND_status()) {
 #ifdef _WIN32
 		RAND_poll();
@@ -292,7 +292,7 @@ void CryptoManager::sslRandCheck() {
 	}
 }
 
-int CryptoManager::getKeyLength(TLSTmpKeys key) {
+int CryptoManager::getKeyLength(TLSTmpKeys key) noexcept {
 	switch (key) {
 	case KEY_DH_2048:
 	case KEY_RSA_2048:
@@ -357,7 +357,7 @@ void CryptoManager::loadCertificates() noexcept{
 	auto certs2 = File::findFiles(SETTING(TLS_TRUSTED_CERTIFICATES_PATH), "*.crt", File::TYPE_FILE);
 	certs.insert(certs.end(), certs2.begin(), certs2.end());
 
-	for (auto& i : certs) {
+	for (const auto& i : certs) {
 		if (
 			SSL_CTX_load_verify_locations(clientContext, i.c_str(), NULL) != SSL_SUCCESS ||
 			SSL_CTX_load_verify_locations(serverContext, i.c_str(), NULL) != SSL_SUCCESS
@@ -377,7 +377,7 @@ bool CryptoManager::checkCertificate(int minValidityDays) noexcept{
 		return false;
 	}
 
-	ASN1_INTEGER* sn = X509_get_serialNumber(x509);
+	const ASN1_INTEGER* sn = X509_get_serialNumber(x509);
 	if (!sn || !ASN1_INTEGER_get(sn)) {
 		return false;
 	}
@@ -434,8 +434,8 @@ void CryptoManager::setCertPaths() {
 
 int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 	int err = X509_STORE_CTX_get_error(ctx);
-	SSL* ssl = (SSL*)X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
-	SSLVerifyData* verifyData = (SSLVerifyData*)SSL_get_ex_data(ssl, CryptoManager::idxVerifyData);
+	auto ssl = (SSL*)X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+	auto verifyData = (SSLVerifyData*)SSL_get_ex_data(ssl, CryptoManager::idxVerifyData);
 
 	// verifyData is unset only when KeyPrint has been pinned and we are not skipping errors due to incomplete chains
 	// we can fail here f.ex. if the certificate has expired but is still pinned with KeyPrint
@@ -472,7 +472,7 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 
 			if (err != X509_V_OK) {
 				// This is the right way to get the certificate store, although it is rather roundabout
-				SSL_CTX* ssl_ctx = SSL_get_SSL_CTX(ssl);
+				auto ssl_ctx = SSL_get_SSL_CTX(ssl);
 
 #if OPENSSL_VERSION_NUMBER >= 0x1000200fL
 				X509_STORE* store = X509_STORE_CTX_get0_store(ctx);
@@ -584,8 +584,8 @@ string CryptoManager::getNameEntryByNID(X509_NAME* name, int nid) noexcept{
 		return Util::emptyString;
 	}
 
-	X509_NAME_ENTRY* entry = X509_NAME_get_entry(name, i);
-	ASN1_STRING* str = X509_NAME_ENTRY_get_data(entry);
+	const X509_NAME_ENTRY* entry = X509_NAME_get_entry(name, i);
+	const ASN1_STRING* str = X509_NAME_ENTRY_get_data(entry);
 	if (!str) {
 		return Util::emptyString;
 	}
@@ -602,7 +602,7 @@ string CryptoManager::getNameEntryByNID(X509_NAME* name, int nid) noexcept{
 	return out;
 }
 
-string CryptoManager::keySubst(const uint8_t* aKey, size_t len, size_t n) {
+string CryptoManager::keySubst(const uint8_t* aKey, size_t len, size_t n) noexcept {
 	boost::scoped_array<uint8_t> temp(new uint8_t[len + n * 10]);
 
 	size_t j=0;

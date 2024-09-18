@@ -39,11 +39,7 @@ class FavoriteUserManager : public Speaker<FavoriteUserManagerListener>, public 
 	private ClientManagerListener, private FavoriteManagerListener, private ConnectionManagerListener, private DownloadManagerListener
 {
 public:
-// Favorite Users
-	typedef unordered_map<CID, FavoriteUser> FavoriteMap;
-
-	//remember to lock this
-	const FavoriteMap& getFavoriteUsersUnsafe() const noexcept { return users; }
+	using FavoriteMap = unordered_map<CID, FavoriteUser>;
 
 	void addFavoriteUser(const HintedUser& aUser) noexcept;
 	void removeFavoriteUser(const UserPtr& aUser) noexcept;
@@ -59,12 +55,12 @@ public:
 
 	void setDirty() noexcept;
 
-	mutable SharedMutex cs;
-
 	ReservedSlotManager& getReservedSlots() noexcept {
 		return *reservedSlots.get();
 	}
 private:
+
+	mutable SharedMutex cs;
 	unique_ptr<ReservedSlotManager> reservedSlots;
 
 	//Favorite users
@@ -73,17 +69,17 @@ private:
 	//Saved users
 	unordered_set<UserPtr, User::Hash> savedUsers;
 
-	FavoriteUser createUser(const UserPtr& aUser, const string& aUrl);
+	static FavoriteUser createUser(const UserPtr& aUser, const string& aUrl);
 	
 	friend class Singleton<FavoriteUserManager>;
 	
 	FavoriteUserManager();
-	~FavoriteUserManager();
+	~FavoriteUserManager() final;
 
 	ActionHookResult<MessageHighlightList> onPrivateMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept;
 	ActionHookResult<MessageHighlightList> onHubMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept;
 
-	ActionHookResult<OptionalUploadSlot> onSlotType(const UserConnection& aUser, const ParsedUpload& aUploadInfo, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) noexcept;
+	ActionHookResult<OptionalUploadSlot> onSlotType(const UserConnection& aUser, const ParsedUpload& aUploadInfo, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) const noexcept;
 
 	ActionHookResult<MessageHighlightList> formatFavoriteUsers(const ChatMessagePtr& msg, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept;
 

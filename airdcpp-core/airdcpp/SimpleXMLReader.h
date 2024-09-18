@@ -29,7 +29,7 @@ namespace dcpp {
 class SimpleXMLReader {
 public:
 	struct CallBack : private boost::noncopyable {
-		virtual ~CallBack() { }
+		virtual ~CallBack() = default;
 
 		/** A new XML tag has been encountered.
 		@param name Name of the tag.
@@ -54,7 +54,7 @@ public:
 	};
 
 	struct ThreadedCallBack : public CallBack {
-		ThreadedCallBack(const string& path);
+		explicit ThreadedCallBack(const string& path);
 		std::unique_ptr<File> file;
 		int64_t size;
 		string xmlPath;
@@ -69,7 +69,7 @@ public:
 			}
 		};
 	};
-	typedef std::set<ThreadedCallBack, ThreadedCallBack::SizeSort> ThreadedCallBackSet;
+	using ThreadedCallBackSet = std::set<ThreadedCallBack, ThreadedCallBack::SizeSort>;
 
 	enum Flags {
 		// Replace invalid UTF-8 data with placeholder characters
@@ -77,7 +77,7 @@ public:
 	};
 
 	SimpleXMLReader(CallBack* callback, int aFlags = 0);
-	virtual ~SimpleXMLReader() { }
+	virtual ~SimpleXMLReader() = default;
 
 	void parse(InputStream& is, size_t maxSize = 0);
 	bool parse(const char* data, size_t len);
@@ -164,8 +164,8 @@ private:
 
 
 	std::string buf;
-	std::string::size_type bufPos;
-	uint64_t pos;
+	std::string::size_type bufPos = 0;
+	uint64_t pos = 0;
 
 	StringPairList attribs;
 	std::string value;
@@ -173,12 +173,12 @@ private:
 	CallBack* cb;
 	std::string encoding;
 
-	ParseState state;
+	ParseState state = STATE_START;
 
 	StringList elements;
 
-	void append(std::string& str, size_t maxLen, int c);
-	void append(std::string& str, size_t maxLen, std::string::const_iterator begin, std::string::const_iterator end);
+	void append(std::string& str, size_t maxLen, int c) const;
+	void append(std::string& str, size_t maxLen, std::string::const_iterator begin, std::string::const_iterator end) const;
 
 	bool needChars(size_t n) const;
 	int charAt(size_t n) const;
@@ -213,9 +213,9 @@ private:
 	bool process();
 	bool spaceOrError(const char* error);
 
-	bool error(const char* message);
+	bool error(const char* message) const;
 
-	void decodeString(string& str_);
+	void decodeString(string& str_) const;
 
 	const int flags;
 };

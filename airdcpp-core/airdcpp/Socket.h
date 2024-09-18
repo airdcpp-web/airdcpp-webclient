@@ -54,21 +54,21 @@ namespace dcpp {
 class SocketException : public Exception {
 public:
 #ifdef _DEBUG
-	SocketException(const string& aError) noexcept : Exception("SocketException: " + aError) { }
+	explicit SocketException(const string& aError) noexcept : Exception("SocketException: " + aError) { }
 #else //_DEBUG
 	SocketException(const string& aError) noexcept : Exception(aError) { }
 #endif // _DEBUG
-	SocketException(int aError) noexcept;
-	virtual ~SocketException() noexcept { }
+	explicit SocketException(int aError) noexcept;
+	~SocketException() noexcept override = default;
 private:
 	static string errorToString(int aError) noexcept;
 };
 
 /** RAII socket handle */
-class SocketHandle : boost::noncopyable {
+class SocketHandle : public boost::noncopyable {
 public:
 	SocketHandle() : sock(INVALID_SOCKET) { }
-	SocketHandle(socket_t sock) : sock(sock) { }
+	explicit SocketHandle(socket_t sock) : sock(sock) { }
 	~SocketHandle() { reset(); }
 
 	operator socket_t() const { return get(); }
@@ -81,7 +81,7 @@ private:
 	socket_t sock;
 };
 
-class Socket : boost::noncopyable
+class Socket : public boost::noncopyable
 {
 public:
 	enum SocketType {
@@ -89,12 +89,12 @@ public:
 		TYPE_UDP = IPPROTO_UDP
 	};
 
-	typedef std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> addrinfo_p;
-	typedef vector<addrinfo_p> AddrinfoList;
+	using addrinfo_p = std::unique_ptr<addrinfo, decltype(&freeaddrinfo)>;
+	using AddrinfoList = vector<addrinfo_p>;
 
 	explicit Socket(SocketType type) : type(type) { }
 
-	virtual ~Socket() { }
+	virtual ~Socket() = default;
 
 	/**
 	 * Connects a socket to an address/ip, closing any other connections made with
@@ -111,10 +111,10 @@ public:
 	 */
 	void socksConnect(const AddressInfo& aIp, const string& aPort, uint64_t timeout = 0);
 
-	virtual int write(const void* aBuffer, int aLen);
-	int write(const string& aData) { return write(aData.data(), (int)aData.length()); }
-	virtual void writeTo(const string& aIp, const string& aPort, const void* aBuffer, int aLen);
-	void writeTo(const string& aIp, const string& aPort, const string& aData) { writeTo(aIp, aPort, aData.data(), (int)aData.length()); }
+	virtual int write(const void* aBuffer, size_t aLen);
+	int write(const string_view& aData) { return write(aData.data(), aData.length()); }
+	virtual void writeTo(const string& aIp, const string& aPort, const void* aBuffer, size_t aLen);
+	void writeTo(const string& aIp, const string& aPort, const string_view& aData) { writeTo(aIp, aPort, aData.data(), aData.length()); }
 	virtual void shutdown() noexcept;
 	virtual void close() noexcept;
 	void disconnect() noexcept;
@@ -129,7 +129,7 @@ public:
 	 * @return Number of bytes read, 0 if disconnected and -1 if the call would block.
 	 * @throw SocketException On any failure.
 	 */
-	virtual int read(void* aBuffer, int aBufLen);
+	virtual int read(void* aBuffer, size_t aBufLen);
 	/**
 	 * Reads zero to aBufLen characters from this socket,
 	 * @param aBuffer A buffer to store the data in.
@@ -138,7 +138,7 @@ public:
 	 * @return Number of bytes read, 0 if disconnected and -1 if the call would block.
 	 * @throw SocketException On any failure.
 	 */
-	virtual int read(void* aBuffer, int aBufLen, string &aIP);
+	virtual int read(void* aBuffer, size_t aBufLen, string &aIP);
 
 	virtual std::pair<bool, bool> wait(uint64_t millis, bool checkRead, bool checkWrite);
 
@@ -150,8 +150,8 @@ public:
 
 	void setBlocking(bool block) noexcept;
 
-	string getLocalIp() noexcept;
-	uint16_t getLocalPort() noexcept;
+	string getLocalIp() const noexcept;
+	uint16_t getLocalPort() const noexcept;
 
 	/** Binds a socket to a certain local port and possibly IP. */
 	virtual string listen(const string& port);
@@ -185,14 +185,15 @@ public:
 	bool isV6Valid() const noexcept;
 	static string resolveName(const sockaddr* sa, socklen_t sa_len, int flags = NI_NUMERICHOST);
 protected:
-	typedef union {
+	using addr = union {
 		sockaddr sa;
 		sockaddr_in sai;
 		sockaddr_in6 sai6;
 		sockaddr_storage sas;
-	} addr;
+	};
 
 	socket_t getSock() const;
+	bool hasSocket() const noexcept;
 
 	mutable SocketHandle sock4;
 	mutable SocketHandle sock6;
@@ -212,7 +213,7 @@ private:
 		TYPE_V6 = 4,
 	};
 
-	void connect(const string& aAddr, const string& aPort, const string& localPort, string& lastError_);
+	void connect(const string& aAddr, const string& aPort, const string& localPort, int aFamily, string& lastError_);
 
 	socket_t setSock(socket_t s, int af);
 
@@ -225,7 +226,9 @@ private:
 	static socklen_t udpAddrLen;
 
 	static void socksParseResponseAddress(const ByteVector& aData, size_t aDataLength, addr& addr_);
-	void socksConnect(addr& addr_, std::function<void(ByteVector& connStr_)>&& aConstructConnStr, uint64_t aTimeout);
+
+	using SocksConstructConnF = std::function<void(ByteVector& connStr_)>;
+	void socksConnect(addr& addr_, const SocksConstructConnF& aConstructConnStr, uint64_t aTimeout);
 	void appendSocksAddress(const string& aName, const string& aPort, ByteVector& connStr_) const;
 
 	/**
@@ -234,15 +237,16 @@ private:
 	 * @param aLen Data length
 	 * @throw SocketExcpetion Send failed.
 	 */
-	void socksWrite(const void* aBuffer, int aLen, uint64_t timeout = 0);
+	void socksWrite(const void* aBuffer, size_t aLen, uint64_t timeout = 0);
 
+	using SocksCompleteF = std::function<bool(const ByteVector&, int)>;
 	/**
 	 * Reads data until aIsComplete returns true.
 	 * If the socket is closed, or the timeout is reached, the number of bytes read
 	 * actually read is returned.
 	 * On exception, an unspecified amount of bytes might have already been read.
 	 */
-	int socksRead(ByteVector& aBuffer, int aBufLen, std::function<bool(const ByteVector&, int)>&& aIsComplete, uint64_t aTimeout = 0);
+	int socksRead(ByteVector& aBuffer, size_t aBufLen, const SocksCompleteF& aIsComplete, uint64_t aTimeout = 0);
 
 	/**
 	 * Reads data until aBufLen bytes have been read or an error occurs.
@@ -250,7 +254,7 @@ private:
 	 * actually read is returned.
 	 * On exception, an unspecified amount of bytes might have already been read.
 	 */
-	int socksRead(ByteVector& aBuffer, int aBufLen, uint64_t timeout = 0);
+	int socksRead(ByteVector& aBuffer, size_t aBufLen, uint64_t timeout = 0);
 
 	void socksAuth(uint64_t timeout);
 };

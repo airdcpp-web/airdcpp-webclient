@@ -43,8 +43,7 @@
 
 namespace dcpp {
 
-NmdcHub::NmdcHub(const string& aHubURL, const ClientPtr& aOldClient) : Client(aHubURL, '|', aOldClient), supportFlags(0),
-	lastBytesShared(0), lastUpdate(0)
+NmdcHub::NmdcHub(const string& aHubURL, const ClientPtr& aOldClient) : Client(aHubURL, '|', aOldClient)
 {
 }
 
@@ -137,7 +136,7 @@ void NmdcHub::refreshUserList(bool refreshOnly) noexcept {
 }
 
 OnlineUser& NmdcHub::getUser(const string& aNick) noexcept {
-	OnlineUser* u = NULL;
+	OnlineUser* u = nullptr;
 	{
 		RLock l(cs);
 		
@@ -150,10 +149,10 @@ OnlineUser& NmdcHub::getUser(const string& aNick) noexcept {
 	if(aNick == get(Nick)) {
 		p = ClientManager::getInstance()->getMe();
 	} else {
-		p = ClientManager::getInstance()->getUser(aNick, getHubUrl());
+		p = ClientManager::getInstance()->getNmdcUser(aNick, getHubUrl());
 	}
 
-	auto client = ClientManager::getInstance()->getClient(getHubUrl());
+	auto client = ClientManager::getInstance()->findClient(getHubUrl());
 
 	{
 		WLock l(cs);
@@ -180,11 +179,11 @@ void NmdcHub::supports(const StringList& feat) {
 OnlineUserPtr NmdcHub::findUser(const string& aNick) const noexcept {
 	RLock l(cs);
 	NickIter i = users.find(aNick);
-	return i == users.end() ? NULL : i->second;
+	return i == users.end() ? nullptr : i->second;
 }
 
 
-OnlineUser* NmdcHub::findUser(const uint32_t aSID) const noexcept {
+OnlineUser* NmdcHub::findUser(dcpp::SID aSID) const noexcept {
 	auto i = ranges::find_if(users | views::values, [=](const OnlineUser* u) {
 		return u->getIdentity().getSID() == aSID;
 	});
@@ -193,7 +192,7 @@ OnlineUser* NmdcHub::findUser(const uint32_t aSID) const noexcept {
 }
 
 void NmdcHub::putUser(const string& aNick) noexcept {
-	OnlineUser* ou = NULL;
+	OnlineUser* ou = nullptr;
 	{
 		WLock l(cs);
 		NickIter i = users.find(aNick);
@@ -577,8 +576,9 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			senderPort.erase(senderPort.size() - 1);
 
 			// Trigger connection attempt sequence locally ...
-			ConnectionManager::getInstance()->nmdcConnect(server, senderPort, Util::toString(sock->getLocalPort()),
-				BufferedSocket::NAT_CLIENT, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), connectSecure);
+			SocketConnectOptions connectOptions(senderPort, connectSecure, NatRole::CLIENT);
+			ConnectionManager::getInstance()->nmdcConnect(server, connectOptions, Util::toString(sock->getLocalPort()),
+				getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding));
 
 			// ... and signal other client to do likewise.
 			send("$ConnectToMe " + fromUtf8(senderNick) + " " + localIp + ":" + Util::toString(sock->getLocalPort()) + (connectSecure ? "RS" : "R") + "|");
@@ -587,8 +587,9 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			senderPort.erase(senderPort.size() - 1);
 				
 			// Trigger connection attempt sequence locally
-			ConnectionManager::getInstance()->nmdcConnect(server, senderPort, Util::toString(sock->getLocalPort()),
-				BufferedSocket::NAT_SERVER, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), connectSecure);
+			SocketConnectOptions connectOptions(senderPort, connectSecure, NatRole::SERVER);
+			ConnectionManager::getInstance()->nmdcConnect(server, connectOptions, Util::toString(sock->getLocalPort()),
+				getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding));
 			return;
 		}
 		
@@ -596,7 +597,8 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			return;
 			
 		// For simplicity, we make the assumption that users on a hub have the same character encoding
-		ConnectionManager::getInstance()->nmdcConnect(server, senderPort, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding), connectSecure);
+		SocketConnectOptions connectOptions(senderPort, connectSecure);
+		ConnectionManager::getInstance()->nmdcConnect(server, connectOptions, getMyNick(), getHubUrl(), get(HubSettings::NmdcEncoding));
 	} else if(cmd == "RevConnectToMe") {
 		if(!stateNormal()) {
 			return;
@@ -608,7 +610,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		}
 
 		OnlineUserPtr u = findUser(param.substr(0, j));
-		if(u == NULL)
+		if (!u)
 			return;
 
 		if(isActive()) {
@@ -660,8 +662,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 	} else if(cmd == "Supports") {
 		StringTokenizer<string> st(param, ' ', true);
-		StringList& sl = st.getTokens();
-		for(auto& i: sl) {
+		for(const auto& i: st.getTokens()) {
 			if(i == "UserCommand") {
 				supportFlags |= SUPPORTS_USERCOMMAND;
 			} else if(i == "NoGetINFO") {
@@ -725,15 +726,15 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 			if(CryptoManager::getInstance()->isExtended(lock)) {
 				StringList feat;
-				feat.push_back("UserCommand");
-				feat.push_back("NoGetINFO");
-				feat.push_back("NoHello");
-				feat.push_back("UserIP2");
-				feat.push_back("TTHSearch");
-				feat.push_back("ZPipe0");
+				feat.emplace_back("UserCommand");
+				feat.emplace_back("NoGetINFO");
+				feat.emplace_back("NoHello");
+				feat.emplace_back("UserIP2");
+				feat.emplace_back("TTHSearch");
+				feat.emplace_back("ZPipe0");
 					
 				if(CryptoManager::getInstance()->TLSOk())
-					feat.push_back("TLS");
+					feat.emplace_back("TLS");
 					
 				supports(feat);
 			}
@@ -778,8 +779,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		if(!param.empty()) {
 			OnlineUserList v;
 			StringTokenizer<string> t(param, "$$", true);
-			StringList& l = t.getTokens();
-			for(auto& it: l) {
+			for(const auto& it: t.getTokens()) {
 				string::size_type j = 0;
 				if((j = it.find(' ')) == string::npos)
 					continue;
@@ -998,7 +998,7 @@ void NmdcHub::myInfo(bool alwaysSend) {
 	}
 
 	string uploadSpeed;
-	int upLimit = ThrottleManager::getInstance()->getUpLimit();
+	auto upLimit = ThrottleManager::getInstance()->getUpLimit();
 	if (upLimit > 0) {
 		uploadSpeed = Util::toString(upLimit) + " KiB/s";
 	} else {
@@ -1185,8 +1185,8 @@ void NmdcHub::getUserList(OnlineUserList& list, bool aListHidden) const noexcept
 size_t NmdcHub::getUserCount() const noexcept { 
 	RLock l(cs); 
 	size_t userCount = 0;
-	for(auto& i: users) {
-		if(!i.second->isHidden()) {
+	for (const auto& [_, ou] : users) {
+		if (!ou->isHidden()) {
 			++userCount;
 		}
 	}

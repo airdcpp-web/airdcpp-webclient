@@ -59,7 +59,7 @@ void HashStore::openDb(StartupLoader& aLoader) {
 	AppUtil::migrate(fileIndexPath, "*");
 	AppUtil::migrate(hashDataPath, "*");
 
-	uint32_t cacheSize = static_cast<uint32_t>(Util::convertSize(max(SETTING(DB_CACHE_SIZE), 1), Util::MB));
+	auto cacheSize = static_cast<uint32_t>(Util::convertSize(max(SETTING(DB_CACHE_SIZE), 1), Util::MB));
 	auto blockSize = File::getBlockSize(AppUtil::getPath(AppUtil::PATH_USER_CONFIG));
 
 	try {
@@ -428,12 +428,12 @@ void HashStore::optimize(bool doVerify) noexcept {
 		}
 
 		//remove file entries that don't have a corresponding hash data entry
-		missingTrees = usedRoots.size() - failedTrees;
-		if (usedRoots.size() > 0) {
+		missingTrees = static_cast<int>(usedRoots.size()) - failedTrees;
+		if (!usedRoots.empty()) {
 			try {
 				fileDb->remove_if([&](void* /*aKey*/, size_t /*key_len*/, void* aValue, size_t valueLen) {
 					loadFileInfo(aValue, valueLen, fi);
-					if (usedRoots.find(fi.getRoot()) != usedRoots.end()) {
+					if (usedRoots.contains(fi.getRoot())) {
 						failedSize += fi.getSize();
 						validFiles--;
 						removedFiles++;

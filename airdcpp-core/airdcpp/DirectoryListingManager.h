@@ -74,7 +74,7 @@ namespace dcpp {
 		DirectoryDownloadList getPendingDirectoryDownloadsUnsafe(const UserPtr& aUser) const noexcept;
 		DirectoryDownloadPtr getPendingDirectoryDownloadUnsafe(const UserPtr& aUser, const string& aPath) const noexcept;
 
-		void maybeReportDownloadError(const DirectoryDownloadPtr& aDownloadInfo, const string& aError, LogMessage::Severity aSeverity = LogMessage::SEV_ERROR) noexcept;
+		static void maybeReportDownloadError(const DirectoryDownloadPtr& aDownloadInfo, const string& aError, LogMessage::Severity aSeverity = LogMessage::SEV_ERROR) noexcept;
 		void failDirectoryDownload(const DirectoryDownloadPtr& aDownloadInfo, const string& aError) noexcept;
 
 		// Throws on errors
@@ -83,6 +83,13 @@ namespace dcpp {
 		void handleDownloadHooked(const DirectoryDownloadPtr& aDownloadInfo, const DirectoryListingPtr& aList, bool aListDownloaded = true) noexcept;
 
 		DirectoryListingPtr createList(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsOwnList) noexcept;
+
+
+		// Updates the hinted URL in case the user is not online in the original one
+		// Selects the hub where the user is sharing most files
+		// URL won't be changed for offline users
+		HintedUser checkDownloadUrl(const HintedUser& aUser) const noexcept;
+
 
 		friend class Singleton<DirectoryListingManager>;
 

@@ -90,7 +90,7 @@ namespace dcpp {
 			auto path = sr->getAdcPath();
 			if (aParents && !sr->getUser().user->isSet(User::ASCH)) {
 				//convert the regular search results
-				path = sr->getType() == SearchResult::TYPE_DIRECTORY ? PathUtil::getAdcParentDir(sr->getAdcPath()) : sr->getAdcFilePath();
+				path = sr->getType() == SearchResult::Type::DIRECTORY ? PathUtil::getAdcParentDir(sr->getAdcPath()) : sr->getAdcFilePath();
 			}
 
 			paths_.insert(path);

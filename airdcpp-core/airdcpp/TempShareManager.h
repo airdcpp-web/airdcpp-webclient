@@ -33,12 +33,12 @@ namespace dcpp {
 class TempShareManager : public Speaker<TempShareManagerListener>, public Singleton<TempShareManager>, public UploadFileProvider {
 public:
 	TempShareManager();
-	~TempShareManager();
+	~TempShareManager() final;
 
 	optional<TempShareInfo> addTempShare(const TTHValue& aTTH, const string& aName, const string& aFilePath, int64_t aSize, ProfileToken aProfile, const UserPtr& aUser) noexcept;
 	bool removeTempShare(TempShareToken aId) noexcept;
 
-	typedef unordered_multimap<TTHValue, TempShareInfo> TempShareMap;
+	using TempShareMap = unordered_multimap<TTHValue, TempShareInfo>;
 
 	TempShareInfoList getTempShares() const noexcept;
 	TempShareInfoList getTempShares(const TTHValue& aTTH) const noexcept;

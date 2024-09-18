@@ -67,7 +67,7 @@ namespace dcpp {
 		{
 			WLock l(cs);
 			first = downloads.empty();
-			downloads.emplace(aPath, PathInfo(aSize));
+			downloads.try_emplace(aPath, aSize);
 		}
 
 		if (first) {

@@ -64,7 +64,7 @@ class FileList {
 };
 
 class ShareProfileInfo;
-typedef std::shared_ptr<ShareProfileInfo> ShareProfileInfoPtr;
+using ShareProfileInfoPtr = std::shared_ptr<ShareProfileInfo>;
 
 class ShareProfileInfo : public FastAlloc<ShareProfileInfo> {
 public:
@@ -83,7 +83,7 @@ public:
 	bool isDefault = false;
 	State state;
 
-	typedef vector<ShareProfileInfoPtr> List;
+	using List = vector<ShareProfileInfoPtr>;
 	string getDisplayName() const;
 };
 
@@ -114,8 +114,8 @@ public:
 	bool isHidden() const noexcept;
 	string getDisplayName() const noexcept;
 
-	typedef unordered_set<ShareProfilePtr, Hash> Set;
-	typedef vector<ShareProfilePtr> List;
+	using Set = unordered_set<ShareProfilePtr, Hash>;
+	using List = vector<ShareProfilePtr>;
 
 	struct NotHidden {
 		bool operator()(const ShareProfilePtr& aProfile) const {

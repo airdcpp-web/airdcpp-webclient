@@ -83,7 +83,7 @@ private:
 	// switched to use another bundle (or no other downloads were found)
 	UserConnectionList idlers;
 
-	void disconnect(UserConnectionPtr aConn, bool aGraceless = false);
+	void disconnect(UserConnectionPtr aConn, bool aGraceless = false) const noexcept;
 	void removeConnection(UserConnectionPtr aConn);
 	void removeDownload(Download* aDown);
 	void fileNotAvailable(UserConnection* aSource, bool aNoAccess, const string& aMessage = Util::emptyString);
@@ -94,7 +94,7 @@ private:
 	friend class Singleton<DownloadManager>;
 
 	DownloadManager();
-	~DownloadManager();
+	~DownloadManager() final;
 
 	void checkDownloads(UserConnection* aConn);
 	bool disconnectSlowSpeed(Download* aDownload, uint64_t aTick) const noexcept;
@@ -122,6 +122,8 @@ private:
 	uint64_t lastUpdate = 0;
 	int64_t lastUpBytes = 0;
 	int64_t lastDownBytes = 0;
+
+	string updateConnectionHubUrl(UserConnection* aSource, const string& aNewHubUrl) const noexcept;
 };
 
 } // namespace dcpp

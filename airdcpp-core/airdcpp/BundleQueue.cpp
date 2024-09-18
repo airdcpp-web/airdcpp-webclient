@@ -60,8 +60,7 @@ void BundleQueue::addBundle(const BundlePtr& aBundle) noexcept {
 void BundleQueue::getSourceInfo(const UserPtr& aUser, Bundle::SourceBundleList& aSources, Bundle::SourceBundleList& aBad) const noexcept {
 	for(auto& b: bundles | views::values) {
 		const auto& sources = b->getSources();
-		auto s = find(sources.begin(), sources.end(), aUser);
-		if (s != sources.end())
+		if (auto s = find(sources.begin(), sources.end(), aUser); s != sources.end())
 			aSources.emplace_back(b, *s);
 
 		const auto& badSources = b->getBadSources();
@@ -148,38 +147,33 @@ StringList BundleQueue::getAdcDirectoryDupePaths(const string& aAdcPath) const n
 
 void BundleQueue::findAdcDirectoryPathInfos(const string& aAdcPath, PathInfoPtrList& pathInfos_) const noexcept {
 	// Get the last meaningful directory to look up
-	auto dirNameInfo = DupeUtil::getAdcDirectoryName(aAdcPath);
-	auto directories = dirNameMap.equal_range(dirNameInfo.first);
-	if (directories.first == directories.second)
-		return;
+	auto [dirName, subdirStart] = DupeUtil::getAdcDirectoryName(aAdcPath);
+	auto directories = dirNameMap.equal_range(dirName);
 
 	// Go through all directories with this name
-	for (auto s = directories.first; s != directories.second; ++s) {
-		if (dirNameInfo.second != string::npos) {
+	for (const auto& pathInfo: directories | pair_to_range | views::values) {
+		if (subdirStart != string::npos) {
 			// Confirm that we have the subdirectory as well
-			auto subDir = getAdcSubDirectoryInfo(aAdcPath.substr(dirNameInfo.second), s->second.bundle);
+			auto subDir = getAdcSubDirectoryInfo(aAdcPath.substr(subdirStart), pathInfo.bundle);
 			if (subDir) {
 				pathInfos_.push_back(subDir);
 			}
 		} else {
-			pathInfos_.push_back(&s->second);
+			pathInfos_.push_back(&pathInfo);
 		}
 	}
 }
 
 const BundleQueue::PathInfo* BundleQueue::findLocalDirectoryPathInfo(const string& aRealPath) const noexcept {
 	// Get the last meaningful directory to look up
-	auto dirNameInfo = DupeUtil::getLocalDirectoryName(aRealPath);
-	auto directories = dirNameMap.equal_range(dirNameInfo.first);
-	if (directories.first == directories.second) {
-		return nullptr;
-	}
+	auto [dirName, _] = DupeUtil::getLocalDirectoryName(aRealPath);
+	auto directories = dirNameMap.equal_range(dirName);
 
-	for (auto s = directories.first; s != directories.second; ++s) {
-		auto pathInfos = getPathInfos(s->second.bundle->getTarget());
+	for (const auto& pathInfo : directories | pair_to_range | views::values) {
+		auto pathInfos = getPathInfos(pathInfo.bundle->getTarget());
 
 		// Find exact match
-		auto i = find_if(pathInfos->begin(), pathInfos->end(), [&aRealPath](const PathInfo* aInfo) {
+		auto i = ranges::find_if(*pathInfos, [&aRealPath](const PathInfo* aInfo) {
 			return Util::stricmp(aInfo->path, aRealPath) == 0;
 		});
 
@@ -192,12 +186,11 @@ const BundleQueue::PathInfo* BundleQueue::findLocalDirectoryPathInfo(const strin
 }
 
 const BundleQueue::PathInfo* BundleQueue::getAdcSubDirectoryInfo(const string& aSubPath, const BundlePtr& aBundle) const noexcept {
-	auto pathInfos = getPathInfos(aBundle->getTarget());
-	if (pathInfos) {
-		for (const auto& p : *pathInfos) {
-			auto pos = PathUtil::compareFromEndAdc(p->path, aSubPath);
+	if (auto pathInfos = getPathInfos(aBundle->getTarget())) {
+		for (const auto& pathInfo : *pathInfos) {
+			auto pos = PathUtil::compareFromEndAdc(pathInfo->path, aSubPath);
 			if (pos == 0) {
-				return p;
+				return pathInfo;
 			}
 		}
 	}
@@ -242,7 +235,7 @@ ContainerT pickRandomItems(const ContainerT& aItems, size_t aMaxCount) noexcept 
 
 	while (ret.size() < aMaxCount && !selectableItems.empty()) {
 		auto pos = selectableItems.begin();
-		auto rand = ValueGenerator::rand(0, selectableItems.size() - 1);
+		auto rand = ValueGenerator::rand(0, static_cast<uint32_t>(selectableItems.size() - 1));
 		advance(pos, rand);
 
 		ret.insert(*pos);
@@ -334,7 +327,7 @@ void BundleQueue::removePathInfo(const PathInfo* aPathInfo) noexcept {
 	}
 }
 
-void BundleQueue::forEachPath(const BundlePtr& aBundle, const string& aFilePath, PathInfoHandler&& aHandler) noexcept {
+void BundleQueue::forEachPath(const BundlePtr& aBundle, const string& aFilePath, const PathInfoHandler& aHandler) noexcept {
 	auto currentPath = PathUtil::getFilePath(aFilePath);
 	auto& pathInfos = bundlePaths[const_cast<string*>(&aBundle->getTarget())];
 
@@ -431,7 +424,7 @@ void BundleQueue::removeBundle(const BundlePtr& aBundle) noexcept{
 	{
 		auto infoPtr = getPathInfos(aBundle->getTarget());
 		if (infoPtr) {
-			auto pathInfos = *infoPtr;
+			auto& pathInfos = *infoPtr;
 			for (const auto& p : pathInfos) {
 				removePathInfo(p);
 			}
@@ -450,7 +443,7 @@ void BundleQueue::removeBundle(const BundlePtr& aBundle) noexcept{
 }
 
 void BundleQueue::saveQueue(bool aForce) noexcept {
-	for(auto& b: bundles | views::values) {
+	for (const auto& b: bundles | views::values) {
 		if (b->getDirty() || aForce) {
 			try {
 				b->save();

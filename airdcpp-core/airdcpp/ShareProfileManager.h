@@ -32,7 +32,7 @@ class ShareProfileManager : public Speaker<ShareProfileManagerListener> {
 public:
 	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 
-	void shutdown(function<void(float)> progressF) noexcept;
+	void shutdown(const ProgressFunction& progressF) noexcept;
 
 	// Returns TTH value for a file list (not very useful but the ADC specs...)
 	// virtualFile = name requested by the other user (Transfer::USER_LIST_NAME_BZ or Transfer::USER_LIST_NAME)
@@ -66,10 +66,10 @@ public:
 	void removeCachedFilelists() noexcept;
 
 	ShareProfilePtr loadProfile(SimpleXML& aXml, bool aIsDefault);
-	void saveProfile(const ShareProfilePtr& aProfile, SimpleXML& aXml);
+	void saveProfile(const ShareProfilePtr& aProfile, SimpleXML& aXml) const;
 
-	typedef std::function<void(const ShareProfilePtr&)> ProfileCallback;
-	ShareProfileManager(ProfileCallback&& aOnRemoveProfile);
+	using ProfileCallback = std::function<void (const ShareProfilePtr &)>;
+	explicit ShareProfileManager(ProfileCallback&& aOnRemoveProfile);
 	~ShareProfileManager();
 private:
 	ShareProfilePtr getShareProfileUnsafe(ProfileToken aProfile) const noexcept;

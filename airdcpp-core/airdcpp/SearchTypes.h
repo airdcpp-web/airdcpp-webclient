@@ -55,9 +55,9 @@ public:
 class SearchTypes: private SettingsManagerListener
 {
 public:
-	typedef map<string, SearchTypePtr> SearchTypeMap;
+	using SearchTypeMap = map<string, SearchTypePtr>;
 
-	typedef std::function<void()> SearchTypeChangeHandler;
+	using SearchTypeChangeHandler = std::function<void ()>;
 
 	static const string& getTypeStr(int aType) noexcept;
 	static bool isDefaultTypeStr(const string& aType) noexcept;
@@ -72,20 +72,20 @@ public:
 	SearchTypeList getSearchTypes() const noexcept;
 
 	void getSearchType(int aPos, Search::TypeModes& type_, StringList& extList_, string& typeId_);
-	void getSearchType(const string& aId, Search::TypeModes& type_, StringList& extList_, string& name_);
+	void getSearchType(const string& aId, Search::TypeModes& type_, StringList& extList_, string& name_) const;
 
 	SearchTypePtr getSearchType(const string& aId) const;
 	string getTypeIdByExtension(const string& aExtension, bool aDefaultsOnly = false) const noexcept;
 
-	SearchTypes(SearchTypeChangeHandler&& aSearchTypeChangeHandler);
-	~SearchTypes();
+	explicit SearchTypes(SearchTypeChangeHandler&& aSearchTypeChangeHandler);
+	~SearchTypes() final;
 private:
 	static ResourceManager::Strings types[Search::TYPE_LAST];
 
 	mutable SharedMutex cs;
 
-	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept;
-	void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept;
+	void on(SettingsManagerListener::Load, SimpleXML& xml) noexcept override;
+	void on(SettingsManagerListener::Save, SimpleXML& xml) noexcept override;
 
 	const SearchTypeChangeHandler onSearchTypesChanged;
 

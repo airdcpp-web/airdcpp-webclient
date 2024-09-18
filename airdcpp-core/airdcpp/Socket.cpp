@@ -277,7 +277,9 @@ uint16_t Socket::accept(const Socket& listeningSocket) {
 	addr sock_addr = { { 0 } };
 	socklen_t sz = sizeof(sock_addr);
 
-	auto sock = check([&] { return ::accept(readable(listeningSocket.sock4, listeningSocket.sock6), &sock_addr.sa, &sz); });
+	auto sock = check([&listeningSocket, &sock_addr, &sz] { 
+		return ::accept(readable(listeningSocket.sock4, listeningSocket.sock6), &sock_addr.sa, &sz); 
+	});
 	setSock(sock, sock_addr.sa.sa_family);
 
 #ifdef _WIN32
@@ -319,12 +321,12 @@ string Socket::listen(const string& port) {
 					((sockaddr_in6*)a->ai_addr)->sin6_port = ret;
 				}
 
-				check([&] { return ::bind(sock6, a->ai_addr, a->ai_addrlen); });
-				check([&] { return ::getsockname(sock6, a->ai_addr, (socklen_t*)&a->ai_addrlen); });
+				check([this, a] { return ::bind(sock6, a->ai_addr, static_cast<int>(a->ai_addrlen)); });
+				check([this, a] { return ::getsockname(sock6, a->ai_addr, (socklen_t*)&a->ai_addrlen); });
 				ret = ((sockaddr_in6*)a->ai_addr)->sin6_port;
 
 				if(type == TYPE_TCP) {
-					check([&] { return ::listen(sock6, 20); });
+					check([this] { return ::listen(sock6, 20); });
 				}
 			} catch(const SocketException&) { }
 		}
@@ -339,12 +341,12 @@ string Socket::listen(const string& port) {
 				((sockaddr_in*)a->ai_addr)->sin_port = ret;
 			}
 
-			check([&] { return ::bind(sock4, a->ai_addr, a->ai_addrlen); });
-			check([&] { return ::getsockname(sock4, a->ai_addr, (socklen_t*)&a->ai_addrlen); });
+			check([this, &a] { return ::bind(sock4, a->ai_addr, static_cast<int>(a->ai_addrlen)); });
+			check([this, &a] { return ::getsockname(sock4, a->ai_addr, (socklen_t*)&a->ai_addrlen); });
 			ret = ((sockaddr_in*)a->ai_addr)->sin_port;
 
 			if(type == TYPE_TCP) {
-				check([&] { return ::listen(sock4, 20); });
+				check([this] { return ::listen(sock4, 20); });
 			}
 		} catch(const SocketException&) { }
 	}
@@ -361,12 +363,16 @@ void Socket::connect(const AddressInfo& aAddr, const string& aPort, const string
 	// We try to connect to both IPv4 and IPv6 if available
 	string lastError;
 
-	if (aAddr.hasV6CompatibleAddress()) {
-		connect(aAddr.getV6CompatibleAddress(), aPort, aLocalPort, lastError);
-	}
+	if (aAddr.getType() == AddressInfo::TYPE_URL) {
+		connect(aAddr.getV6CompatibleAddress(), aPort, aLocalPort, AF_UNSPEC, lastError);
+	} else {
+		if (aAddr.hasV6CompatibleAddress()) {
+			connect(aAddr.getV6CompatibleAddress(), aPort, aLocalPort, AF_INET6, lastError);
+		}
 
-	if (aAddr.hasV4CompatibleAddress() && aAddr.getType() != AddressInfo::TYPE_URL) {
-		connect(aAddr.getV4CompatibleAddress(), aPort, aLocalPort, lastError);
+		if (aAddr.hasV4CompatibleAddress()) {
+			connect(aAddr.getV4CompatibleAddress(), aPort, aLocalPort, AF_INET, lastError);
+		}
 	}
 
 	// IP should be set if at least one connection attempt succeed
@@ -374,8 +380,8 @@ void Socket::connect(const AddressInfo& aAddr, const string& aPort, const string
 		throw SocketException(lastError);
 }
 
-void Socket::connect(const string& aAddr, const string& aPort, const string& aLocalPort, string& lastError_) {
-	auto addr = resolveAddr(aAddr, aPort);
+void Socket::connect(const string& aAddr, const string& aPort, const string& aLocalPort, int aFamily, string& lastError_) {
+	auto addr = resolveAddr(aAddr, aPort, aFamily);
 	for (auto ai = addr.get(); ai; ai = ai->ai_next) {
 		if ((ai->ai_family == AF_INET && !sock4.valid()) ||
 			(ai->ai_family == AF_INET6 && !sock6.valid())) {
@@ -391,12 +397,12 @@ void Socket::connect(const string& aAddr, const string& aPort, const string& aLo
 
 				if (!aLocalPort.empty() || !localIp.empty()) {
 					auto local = resolveAddr(localIp, aLocalPort, ai->ai_family);
-					check([&] { return ::bind(sock, local->ai_addr, local->ai_addrlen); });
+					check([&local, &sock] { return ::bind(sock, local->ai_addr, static_cast<int>(local->ai_addrlen)); });
 				}
 
-				check([&] { return ::connect(sock, ai->ai_addr, ai->ai_addrlen); }, true);
+				check([&sock, &ai] { return ::connect(sock, ai->ai_addr, static_cast<int>(ai->ai_addrlen)); }, true);
 
-				auto ip = resolveName(ai->ai_addr, ai->ai_addrlen);
+				auto ip = resolveName(ai->ai_addr, static_cast<int>(ai->ai_addrlen));
 				ai->ai_family == AF_INET ? setIp4(ip) : setIp6(ip);
 			} catch (const SocketException& e) {
 				ai->ai_family == AF_INET ? sock4.reset() : sock6.reset();
@@ -426,22 +432,22 @@ void Socket::appendSocksAddress(const string& aAddr, const string& aPort, ByteVe
 		auto ai = resolveAddr(aAddr, aPort);
 		if (ai->ai_family == AF_INET) {
 			connStr_.push_back(SocksAddrType::TYPE_V4);
-			uint8_t* paddr = (uint8_t*)&((sockaddr_in*)ai->ai_addr)->sin_addr;
+			auto paddr = (uint8_t*)&((sockaddr_in*)ai->ai_addr)->sin_addr;
 			connStr_.insert(connStr_.end(), paddr, paddr + 4);
 		} else if (ai->ai_family == AF_INET6) {
 			connStr_.push_back(SocksAddrType::TYPE_V6);
-			uint8_t* paddr = (uint8_t*)&((sockaddr_in6*)ai->ai_addr)->sin6_addr;
+			auto paddr = (uint8_t*)&((sockaddr_in6*)ai->ai_addr)->sin6_addr;
 			connStr_.insert(connStr_.end(), paddr, paddr + 16);
 		}
 	}
 
 	uint16_t port = htons(static_cast<uint16_t>(Util::toInt(aPort)));
-	uint8_t* pport = (uint8_t*)&port;
+	auto pport = (uint8_t*)&port;
 	connStr_.push_back(pport[0]);
 	connStr_.push_back(pport[1]);
 }
 
-void Socket::socksConnect(addr& addr_, std::function<void(ByteVector& connStr_)>&& aConstructConnStr, uint64_t aTimeout) {
+void Socket::socksConnect(addr& addr_, const SocksConstructConnF& aConstructConnStr, uint64_t aTimeout) {
 	if (SETTING(SOCKS_SERVER).empty() || SETTING(SOCKS_PORT) == 0) {
 		throw SocketException(STRING(SOCKS_FAILED));
 	}
@@ -492,7 +498,7 @@ void Socket::socksConnect(const AddressInfo& aAddr, const string& aPort, uint64_
 	addr sock_addr;
 	socksConnect(
 		sock_addr,
-		[&](ByteVector& connStr_) {
+		[this, &aAddr, &aPort](ByteVector& connStr_) {
 			connStr_.push_back(5);			// SOCKSv5
 			connStr_.push_back(1);			// Connect
 			connStr_.push_back(0);			// Reserved
@@ -570,26 +576,30 @@ void Socket::socksAuth(uint64_t timeout) {
 int Socket::getSocketOptInt(int option) {
 	int val;
 	socklen_t len = sizeof(val);
-	check([&] { return ::getsockopt(getSock(), SOL_SOCKET, option, (char*)&val, &len); });
+	check([&val, option, this, &len] { return ::getsockopt(getSock(), SOL_SOCKET, option, (char*)&val, &len); });
 	return val;
 }
 
 void Socket::setSocketOpt(int option, int val) {
 	int len = sizeof(val);
 	if(sock4.valid()) {
-		check([&] { return ::setsockopt(sock4, SOL_SOCKET, option, (char*)&val, len); });
+		check([this, option, val, len] { 
+			return ::setsockopt(sock4, SOL_SOCKET, option, (char*)&val, len); 
+		});
 	}
 
 	if(sock6.valid()) {
-		check([&] { return ::setsockopt(sock6, SOL_SOCKET, option, (char*)&val, len); });
+		check([this, option, val, len] { 
+			return ::setsockopt(sock6, SOL_SOCKET, option, (char*)&val, len); 
+		});
 	}
 }
 
-int Socket::read(void* aBuffer, int aBufLen) {
-	auto len = check([&] {
+int Socket::read(void* aBuffer, size_t aBufLen) {
+	auto len = check([&aBuffer, aBufLen, this] {
 		return type == TYPE_TCP
-			? ::recv(getSock(), (char*)aBuffer, aBufLen, 0)
-			: ::recvfrom(readable(sock4, sock6), (char*)aBuffer, aBufLen, 0, NULL, NULL);
+			? ::recv(getSock(), (char*)aBuffer, static_cast<int>(aBufLen), 0)
+			: ::recvfrom(readable(sock4, sock6), (char*)aBuffer, static_cast<int>(aBufLen), 0, NULL, NULL);
 	}, true);
 
 	if(len > 0) {
@@ -599,14 +609,14 @@ int Socket::read(void* aBuffer, int aBufLen) {
 	return len;
 }
 
-int Socket::read(void* aBuffer, int aBufLen, string &aIP) {
+int Socket::read(void* aBuffer, size_t aBufLen, string &aIP) {
 	dcassert(type == TYPE_UDP);
 
 	addr remote_addr = { { 0 } };
 	socklen_t addr_length = sizeof(remote_addr);
 
 	auto len = check([&] {
-		return ::recvfrom(readable(sock4, sock6), (char*)aBuffer, aBufLen, 0, &remote_addr.sa, &addr_length);
+		return ::recvfrom(readable(sock4, sock6), (char*)aBuffer, static_cast<int>(aBufLen), 0, &remote_addr.sa, &addr_length);
 	}, true);
 
 	if(len > 0) {
@@ -619,7 +629,7 @@ int Socket::read(void* aBuffer, int aBufLen, string &aIP) {
 	return len;
 }
 
-int Socket::socksRead(ByteVector& aBuffer, int aBufLen, std::function<bool(const ByteVector& aBuffer, int aBufLen)>&& aIsComplete, uint64_t aTimeout) {
+int Socket::socksRead(ByteVector& aBuffer, size_t aBufLen, const SocksCompleteF& aIsComplete, uint64_t aTimeout) {
 	int i = 0;
 	while (i <= 0 || !aIsComplete(aBuffer, i)) {
 		int j = Socket::read(&aBuffer[i], aBufLen - i);
@@ -637,23 +647,23 @@ int Socket::socksRead(ByteVector& aBuffer, int aBufLen, std::function<bool(const
 	return i;
 }
 
-int Socket::socksRead(ByteVector& aBuffer, int aBufLen, uint64_t aTimeout) {
+int Socket::socksRead(ByteVector& aBuffer, size_t aBufLen, uint64_t aTimeout) {
 	return socksRead(
 		aBuffer, 
 		aBufLen, 
-		[aBufLen](const ByteVector&, int aLen) { return aLen == aBufLen; }, 
+		[aBufLen](const ByteVector&, int aLen) { return static_cast<size_t>(aLen) == aBufLen; }, 
 		aTimeout
 	);
 }
 
-void Socket::socksWrite(const void* aBuffer, int aLen, uint64_t timeout) {
-	const uint8_t* buf = (const uint8_t*)aBuffer;
-	int pos = 0;
+void Socket::socksWrite(const void* aBuffer, size_t aLen, uint64_t timeout) {
+	auto buf = (const uint8_t*)aBuffer;
+	size_t pos = 0;
 	// No use sending more than this at a time...
 	int sendSize = getSocketOptInt(SO_SNDBUF);
 
 	while(pos < aLen) {
-		int i = Socket::write(buf+pos, (int)std::min(aLen-pos, sendSize));
+		int i = Socket::write(buf+pos, std::min(aLen - pos, static_cast<size_t>(sendSize)));
 		if (i == -1) {
 			Socket::wait(timeout, false, true);
 		} else {
@@ -663,8 +673,8 @@ void Socket::socksWrite(const void* aBuffer, int aLen, uint64_t timeout) {
 	}
 }
 
-int Socket::write(const void* aBuffer, int aLen) {
-	auto sent = check([&] { return ::send(getSock(), (const char*)aBuffer, aLen, 0); }, true);
+int Socket::write(const void* aBuffer, size_t aLen) {
+	auto sent = check([&aBuffer, &aLen, this] { return ::send(getSock(), (const char*)aBuffer, static_cast<int>(aLen), 0); }, true);
 	if(sent > 0) {
 		stats.totalUp += sent;
 	}
@@ -677,7 +687,7 @@ int Socket::write(const void* aBuffer, int aLen) {
  * @param aLen Data length
  * @throw SocketExcpetion Send failed.
  */
-void Socket::writeTo(const string& aAddr, const string& aPort, const void* aBuffer, int aLen) {
+void Socket::writeTo(const string& aAddr, const string& aPort, const void* aBuffer, size_t aLen) {
 	if(aLen <= 0)
 		return;
 
@@ -692,7 +702,7 @@ void Socket::writeTo(const string& aAddr, const string& aPort, const void* aBuff
 		// Create connect string
 		ByteVector connStr;
 
-		connStr.reserve((size_t)aLen + 24);
+		connStr.reserve(aLen + 24);
 
 		connStr.push_back(0);		// Reserved
 		connStr.push_back(0);		// Reserved
@@ -714,7 +724,7 @@ void Socket::writeTo(const string& aAddr, const string& aPort, const void* aBuff
 		}
 
 		// Send
-		sent = check([&] { 
+		sent = check([&connStr, this] {
 			return ::sendto(
 				udpAddr.sa.sa_family == AF_INET ? sock4 : sock6,
 				(const char*)&connStr[0], 
@@ -730,14 +740,14 @@ void Socket::writeTo(const string& aAddr, const string& aPort, const void* aBuff
 			create(*ai);
 		}
 
-		sent = check([&] { 
+		sent = check([this, &ai, &aBuffer, aLen] { 
 			return ::sendto(
 				ai->ai_family == AF_INET ? sock4 : sock6,
 				(const char*)aBuffer, 
-				(int)aLen, 
+				static_cast<int>(aLen), 
 				0, 
 				ai->ai_addr, 
-				ai->ai_addrlen
+				static_cast<int>(ai->ai_addrlen)
 			); 
 		});
 	}
@@ -862,7 +872,7 @@ string Socket::resolve(const string& aDns, int af) noexcept {
 	string ret;
 
 	if(!::getaddrinfo(aDns.c_str(), NULL, &hints, &result)) {
-		try { ret = resolveName(result->ai_addr, result->ai_addrlen); }
+		try { ret = resolveName(result->ai_addr, static_cast<int>(result->ai_addrlen)); }
 		catch(const SocketException&) { }
 
 		::freeaddrinfo(result);
@@ -880,8 +890,7 @@ Socket::addrinfo_p Socket::resolveAddr(const string& name, const string& port, i
 
 	addrinfo *result = 0;
 
-	auto err = ::getaddrinfo(name.c_str(), port.empty() ? NULL : port.c_str(), &hints, &result);
-	if(err) {
+	if (auto err = ::getaddrinfo(name.c_str(), port.empty() ? NULL : port.c_str(), &hints, &result)) {
 		throw SocketException(err);
 	}
 
@@ -894,21 +903,29 @@ Socket::addrinfo_p Socket::resolveAddr(const string& name, const string& port, i
 string Socket::resolveName(const sockaddr* sa, socklen_t sa_len, int flags) {
 	char buf[1024];
 
-	auto err = ::getnameinfo(sa, sa_len, buf, sizeof(buf), NULL, 0, flags);
-	if (err) {
+	if (auto err = ::getnameinfo(sa, sa_len, buf, sizeof(buf), NULL, 0, flags)) {
 		throw SocketException(err);
 	}
 
 	return string(buf);
 }
 
-string Socket::getLocalIp() noexcept {
-	if(getSock() == INVALID_SOCKET)
+bool Socket::hasSocket() const noexcept {
+	try {
+		return getSock() == INVALID_SOCKET;
+	} catch (const SocketException&) {
+		//...
+	}
+
+	return false;
+}
+
+string Socket::getLocalIp() const noexcept {
+	if(!hasSocket())
 		return Util::emptyString;
 
 	addr sock_addr;
-	socklen_t len = sizeof(sock_addr);
-	if(::getsockname(getSock(), &sock_addr.sa, &len) == 0) {
+	if(socklen_t len = sizeof(sock_addr); ::getsockname(getSock(), &sock_addr.sa, &len) == 0) {
 		try { return resolveName(&sock_addr.sa, len); }
 		catch(const SocketException&) { }
 	}
@@ -916,13 +933,12 @@ string Socket::getLocalIp() noexcept {
 	return Util::emptyString;
 }
 
-uint16_t Socket::getLocalPort() noexcept {
-	if(getSock() == INVALID_SOCKET)
+uint16_t Socket::getLocalPort() const noexcept {
+	if(!hasSocket())
 		return 0;
 
 	addr sock_addr;
-	socklen_t len = sizeof(sock_addr);
-	if(::getsockname(getSock(), &sock_addr.sa, &len) == 0) {
+	if(socklen_t len = sizeof(sock_addr); ::getsockname(getSock(), &sock_addr.sa, &len) == 0) {
 		if(sock_addr.sa.sa_family == AF_INET) {
 			return ntohs(sock_addr.sai.sin_port);
 		} else if(sock_addr.sa.sa_family == AF_INET6) {

@@ -68,7 +68,7 @@ public:
 		INCOMING, OUTGOING
 	};
 };
-#define COMMAND_DEBUG(a,b,c,d) ProtocolCommandManager::getInstance()->SendCommandMessage(a,b,c,d);
+#define COMMAND_DEBUG(a,b,c,d) ProtocolCommandManager::getInstance()->SendCommandMessage(a,b,c,d)
 
 } // namespace dcpp
 

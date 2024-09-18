@@ -67,18 +67,21 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 			fire(UserConnectionListener::ProtocolError(), this, STRING(UTF_VALIDATION_ERROR));
 			return;
 		}
-		dispatch(aLine, [&](const AdcCommand& aCmd) {
+		dispatch(aLine, [this](const AdcCommand& aCmd) {
 			ProtocolCommandManager::getInstance()->fire(ProtocolCommandManagerListener::IncomingTCPCommand (), aCmd, getRemoteIp(), getUser());
 		});
 		return;
 	} else if(aLine[0] == '$') {
+		onNmdcLine(aLine);
 		setFlag(FLAG_NMDC);
 	} else {
 		// We shouldn't be here?
 		fire(UserConnectionListener::ProtocolError(), this, STRING(MALFORMED_DATA));
 		return;
 	}
+}
 
+void UserConnection::onNmdcLine(const string & aLine) noexcept {
 	string cmd;
 	string param;
 
@@ -215,7 +218,7 @@ void UserConnection::initSocket() {
 	socket->addListener(this);
 }
 
-void UserConnection::connect(const AddressInfo& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const UserPtr& aUser /*nullptr*/) {
+void UserConnection::connect(const AddressInfo& aServer, const SocketConnectOptions& aOptions, const string& localPort, const UserPtr& aUser /*nullptr*/) {
 	initSocket();
 
 	//string expKP;
@@ -225,10 +228,10 @@ void UserConnection::connect(const AddressInfo& aServer, const string& aPort, co
 		setUser(aUser);
 	}
 
-	socket->connect(aServer, aPort, localPort, natRole, secure, /*SETTING(ALLOW_UNTRUSTED_CLIENTS)*/ true, true);
+	socket->connect(aServer, aOptions, localPort, /*SETTING(ALLOW_UNTRUSTED_CLIENTS)*/ true, true);
 }
 
-void UserConnection::accept(const Socket& aServer, const BufferedSocket::SocketAcceptFloodF& aFloodCheckF) {
+void UserConnection::accept(const Socket& aServer, bool aSecure, const BufferedSocket::SocketAcceptFloodF& aFloodCheckF) {
 	initSocket();
 
 	/*
@@ -236,7 +239,7 @@ void UserConnection::accept(const Socket& aServer, const BufferedSocket::SocketA
 	also since we most likely requested to be connected to (and we have insufficient info otherwise) deal with TLS options check post handshake
 	-> SSLSocket::verifyKeyprint does full certificate verification after INF
 	*/
-	socket->accept(aServer, secure, true, aFloodCheckF);
+	socket->accept(aServer, aSecure, true, aFloodCheckF);
 }
 
 void UserConnection::inf(bool withToken, int mcnSlots) { 
@@ -325,7 +328,7 @@ void UserConnection::handlePM(const AdcCommand& c, bool aEcho) noexcept{
 	//try to use the same hub so nicks match to a hub, not the perfect solution for CCPM, nicks keep changing when hubs go offline.
 	if(peer && peer->getHubUrl() != hubUrl) 
 		setHubUrl(peer->getHubUrl());
-	auto me = cm->findOnlineUser(cm->getMe()->getCID(), getHubUrl());
+	auto me = cm->findOnlineUser(cm->getMyCID(), getHubUrl());
 
 	if (!me || !peer){ //ChatMessage cant be formatted without the OnlineUser!
 		disconnect(true);
@@ -463,8 +466,7 @@ void UserConnection::send(const string& aString) {
 	socket->write(aString);
 }
 
-UserConnection::UserConnection(bool secure_) noexcept : encoding(SETTING(NMDC_ENCODING)),
-	secure(secure_), download(nullptr) {
+UserConnection::UserConnection() noexcept : encoding(SETTING(NMDC_ENCODING)), download(nullptr) {
 }
 
 UserConnection::~UserConnection() {

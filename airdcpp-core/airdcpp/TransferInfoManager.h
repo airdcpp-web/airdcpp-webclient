@@ -38,7 +38,7 @@ namespace dcpp {
 	class TransferInfoManager : public Singleton<TransferInfoManager>, public Speaker<TransferInfoManagerListener>, private ConnectionManagerListener, private DownloadManagerListener, private UploadManagerListener {
 	public:
 		TransferInfoManager();
-		~TransferInfoManager();
+		~TransferInfoManager() final;
 
 		TransferInfo::List getTransfers() const noexcept;
 		TransferInfoPtr findTransfer(const string& aToken) const noexcept;
@@ -51,7 +51,7 @@ namespace dcpp {
 		void starting(TransferInfoPtr& aInfo, const Transfer* aTransfer) noexcept;
 		void onTransferCompleted(const Transfer* aTransfer, bool aIsDownload) noexcept;
 		TransferInfoPtr onTick(const Transfer* aTransfer, bool aIsDownload) noexcept;
-		void updateQueueInfo(TransferInfoPtr& aInfo) noexcept;
+		static void updateQueueInfo(const TransferInfoPtr& aInfo) noexcept;
 
 		void on(DownloadManagerListener::Tick, const DownloadList& aDownloads, uint64_t) noexcept override;
 		void on(UploadManagerListener::Tick, const UploadList& aUploads) noexcept override;

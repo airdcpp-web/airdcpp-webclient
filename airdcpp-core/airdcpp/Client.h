@@ -61,8 +61,8 @@ class Client :
 	public ClientBase, public ChatHandlerBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, 
 	private ShareProfileManagerListener, public HubSettings, private boost::noncopyable {
 public:
-	typedef unordered_map<string*, ClientPtr, noCaseStringHash, noCaseStringEq> UrlMap;
-	typedef unordered_map<ClientToken, ClientPtr> IdMap;
+	using UrlMap = unordered_map<string *, ClientPtr, noCaseStringHash, noCaseStringEq>;
+	using IdMap = unordered_map<ClientToken, ClientPtr>;
 
 	virtual void connect(bool withKeyprint = true) noexcept;
 	virtual void disconnect(bool graceless) noexcept;
@@ -75,8 +75,8 @@ public:
 	virtual void sendUserCmd(const UserCommand& command, const ParamMap& params) = 0;
 
 	uint64_t queueSearch(const SearchPtr& aSearch) noexcept;
-	optional<uint64_t> getQueueTime(const void* aOwner) const noexcept;
-	bool cancelSearch(const void* aOwner) noexcept { return searchQueue.cancelSearch(aOwner); }
+	optional<uint64_t> getQueueTime(CallerPtr aOwner) const noexcept;
+	bool cancelSearch(CallerPtr aOwner) noexcept { return searchQueue.cancelSearch(aOwner); }
 	int getSearchQueueSize() const noexcept { return searchQueue.getQueueSize(); }
 	bool hasSearchOverflow() const noexcept { return searchQueue.hasOverflow(); }
 	
@@ -101,7 +101,7 @@ public:
 	virtual void refreshUserList(bool) noexcept = 0;
 	virtual void getUserList(OnlineUserList& list, bool aListHidden) const noexcept = 0;
 	virtual OnlineUserPtr findUser(const string& aNick) const noexcept = 0;
-	virtual OnlineUser* findUser(const uint32_t aSID) const noexcept = 0;
+	virtual OnlineUser* findUser(dcpp::SID aSID) const noexcept = 0;
 	
 	const string& getPort() const noexcept { return port; }
 	const string& getAddress() const noexcept { return address; }
@@ -138,7 +138,7 @@ public:
 	
 	IGETSET(bool, registered, Registered, false);
 	IGETSET(bool, autoReconnect, AutoReconnect, false);
-	IGETSET(ProfileToken, favToken, FavToken, 0);
+	IGETSET(FavoriteHubToken, favToken, FavToken, 0);
 
 	ClientToken getToken() const noexcept {
 		return clientId;
@@ -262,8 +262,8 @@ protected:
 	FloodCounter ctmFloodCounter;
 	FloodCounter searchFloodCounter;
 
-	FloodCounter::FloodLimits getCTMLimits(const OnlineUser* aAdcUser);
-	FloodCounter::FloodLimits getSearchLimits();
+	static FloodCounter::FloodLimits getCTMLimits(const OnlineUser* aAdcUser) noexcept;
+	static FloodCounter::FloodLimits getSearchLimits() noexcept;
 
 	bool checkIncomingCTM(const string& aTarget, const OnlineUser* aAdcUser = nullptr) noexcept;
 	bool checkIncomingSearch(const string& aTarget, const OnlineUser* aAdcUser = nullptr) noexcept;

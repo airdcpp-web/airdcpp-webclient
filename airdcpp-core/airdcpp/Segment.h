@@ -26,7 +26,7 @@ namespace dcpp {
 
 class Segment {
 public:
-	Segment() { }
+	Segment() = default;
 	Segment(int64_t start_, int64_t size_, bool overlapped_ = false) : start(start_), size(size_), overlapped(overlapped_) { }
 	
 	int64_t getStart() const noexcept { return start; }
@@ -61,9 +61,9 @@ public:
 	}
 
 	bool inSet(const set<Segment>& segmentSet) const noexcept {
-		return find_if(segmentSet.begin(), segmentSet.end(), [&](const Segment& s) {
+		return ranges::any_of(segmentSet, [&](const Segment& s) {
 			return s.contains(*this);
-		}) != segmentSet.end();
+		});
 	}
 	
 	bool contains(const Segment& rhs) const noexcept {

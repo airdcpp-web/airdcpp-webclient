@@ -31,8 +31,8 @@ using std::string;
 class Exception : public std::exception
 {
 public:
-	Exception() { }
-	Exception(const string& aError) : errorString(aError), errorCode(0) { dcdrun(if(errorString.size()>0)) dcdebug("Thrown: %s\n", errorString.c_str()); }
+	Exception() = default;
+	explicit Exception(const string& aError) : errorString(aError), errorCode(0) { dcdrun(if(errorString.size()>0)) dcdebug("Thrown: %s\n", errorString.c_str()); }
 	Exception(const string& aError, int eCode) : errorString(aError), errorCode(eCode) { dcdrun(if (errorString.size()>0)) dcdebug("Thrown: %s\n", errorString.c_str()); }
 
 	//should start using some codes for the exceptions since most of them are translated...
@@ -41,9 +41,9 @@ public:
 		TTH_INCONSISTENCY = 1
 	};
 
-	virtual const char* what() const noexcept { return getError().c_str(); }
+	const char* what() const noexcept override { return getError().c_str(); }
 	
-	virtual ~Exception() noexcept { }
+	~Exception() noexcept override = default;
 	virtual const string& getError() const noexcept { return errorString; }
 	virtual const int& getErrorCode() const noexcept { return errorCode; }
 protected:

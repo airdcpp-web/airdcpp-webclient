@@ -49,12 +49,12 @@ struct DirectoryBundleAddResult {
 
 // Adding bundles
 struct BundleAddOptions {
-	BundleAddOptions(string aTarget, const HintedUser& aOptionalUser, const void* aCaller) noexcept :
+	BundleAddOptions(string aTarget, const HintedUser& aOptionalUser, CallerPtr aCaller) noexcept :
 		target(std::move(aTarget)), optionalUser(aOptionalUser), caller(aCaller) { }
 
 	string target;
 	HintedUser optionalUser;
-	const void* caller;
+	CallerPtr caller;
 };
 
 struct BundleAddData {
@@ -73,28 +73,28 @@ struct BundleFileAddData : public BundleAddData {
 	TTHValue tth;
 	int64_t size;
 
-	typedef vector<BundleFileAddData> List;
+	using List = vector<BundleFileAddData>;
 };
 
 // Filelist
 struct FilelistAddData {
-	FilelistAddData(const HintedUser& aUser, const void* aCaller, const string& aListPath) noexcept :
+	FilelistAddData(const HintedUser& aUser, CallerPtr aCaller, const string& aListPath) noexcept :
 		user(aUser), caller(aCaller), listPath(aListPath) { }
 
 	HintedUser user;
-	const void* caller;
+	CallerPtr caller;
 	string listPath;
 };
 
 // Viewed files
 struct ViewedFileAddData {
-	ViewedFileAddData(string aFile, const TTHValue& aTTH, int64_t aSize, const void* aCaller, const HintedUser& aUser, bool aIsText) noexcept :
+	ViewedFileAddData(string aFile, const TTHValue& aTTH, int64_t aSize, CallerPtr aCaller, const HintedUser& aUser, bool aIsText) noexcept :
 		file(std::move(aFile)), tth(aTTH), size(aSize), caller(aCaller), user(aUser), isText(aIsText) { }
 
 	string file;
 	TTHValue tth;
 	int64_t size;
-	const void* caller;
+	CallerPtr caller;
 	HintedUser user;
 	bool isText;
 };

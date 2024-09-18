@@ -28,12 +28,15 @@
 
 namespace dcpp {
 
+using StringHashToken = size_t;
+using RandomNumericToken = uint32_t;
+using IncrementToken = uint32_t;
 
 template<typename DataT>
 class ActionHookDataGetter;
 
 struct ActionHookRejection;
-typedef std::shared_ptr<ActionHookRejection> ActionHookRejectionPtr;
+using ActionHookRejectionPtr = std::shared_ptr<ActionHookRejection>;
 
 template<typename DataT = nullptr_t>
 struct ActionHookData;
@@ -49,9 +52,10 @@ using ActionHookDataList = vector<ActionHookDataPtr<DataT>>;
 
 template<typename DataT = nullptr_t>
 using ActionHookResultGetter = ActionHookDataGetter<DataT>;
+using CallerPtr = const void*;
 
 struct AdapterInfo;
-typedef vector<AdapterInfo> AdapterInfoList;
+using AdapterInfoList = vector<AdapterInfo>;
 
 class AdcCommand;
 
@@ -67,15 +71,15 @@ struct BundleAddInfo;
 struct DirectoryBundleAddResult;
 
 class Bundle;
-typedef std::shared_ptr<Bundle> BundlePtr;
-typedef std::vector<BundlePtr> BundleList;
+using BundlePtr = std::shared_ptr<Bundle>;
+using BundleList = std::vector<BundlePtr>;
 
 class CID;
 
 typedef std::vector<uint16_t> PartsInfo;
 
 class Client;
-typedef std::shared_ptr<Client> ClientPtr;
+using ClientPtr = std::shared_ptr<Client>;
 typedef uint32_t ClientToken;
 
 class ClientManager;
@@ -85,26 +89,28 @@ class ConnectionQueueItem;
 struct DirectoryContentInfo;
 
 class DirectoryListing;
-typedef std::shared_ptr<DirectoryListing> DirectoryListingPtr;
-typedef std::vector<DirectoryListingPtr> DirectoryListingList;
+using DirectoryListingPtr = std::shared_ptr<DirectoryListing>;
+using DirectoryListingList = std::vector<DirectoryListingPtr>;
+using DirectoryListingItemToken = StringHashToken;
 
 class DirectoryDownload;
-typedef std::shared_ptr<DirectoryDownload> DirectoryDownloadPtr;
-typedef vector<DirectoryDownloadPtr> DirectoryDownloadList;
+using DirectoryDownloadPtr = std::shared_ptr<DirectoryDownload>;
+using DirectoryDownloadList = vector<DirectoryDownloadPtr>;
 
 class Download;
-typedef Download* DownloadPtr;
-typedef std::vector<DownloadPtr> DownloadList;
+using DownloadPtr = Download *;
+using DownloadList = std::vector<DownloadPtr>;
 
 class FavoriteHubEntry;
-typedef boost::intrusive_ptr<FavoriteHubEntry> FavoriteHubEntryPtr;
-typedef std::vector<FavoriteHubEntryPtr> FavoriteHubEntryList;
+using FavoriteHubEntryPtr = boost::intrusive_ptr<FavoriteHubEntry>;
+using FavoriteHubEntryList = std::vector<FavoriteHubEntryPtr>;
+using FavoriteHubToken = RandomNumericToken;
 
 class FavoriteUser;
 
 class File;
 struct FilesystemItem;
-typedef vector<FilesystemItem> FilesystemItemList;
+using FilesystemItemList = vector<FilesystemItem>;
 
 class FinishedManager;
 
@@ -114,7 +120,7 @@ struct HashValue;
 class HashedFile;
 
 struct HintedUser;
-typedef std::vector<HintedUser> HintedUserList;
+using HintedUserList = std::vector<HintedUser>;
 
 class HttpConnection;
 
@@ -130,65 +136,67 @@ struct Message;
 struct OutgoingChatMessage;
 
 class MessageHighlight;
-typedef shared_ptr<MessageHighlight> MessageHighlightPtr;
-typedef vector<MessageHighlightPtr> MessageHighlightList;
+using MessageHighlightPtr = shared_ptr<MessageHighlight>;
+using MessageHighlightList = vector<MessageHighlightPtr>;
+using MessageHighlightToken = uint32_t;
 
 class ChatMessage;
-typedef std::shared_ptr<ChatMessage> ChatMessagePtr;
-typedef std::deque<ChatMessagePtr> ChatMessageList;
+using ChatMessagePtr = std::shared_ptr<ChatMessage>;
+using ChatMessageList = std::deque<ChatMessagePtr>;
 
 class LogMessage;
-typedef std::shared_ptr<LogMessage> LogMessagePtr;
-typedef std::deque<LogMessagePtr> LogMessageList;
+using LogMessagePtr = std::shared_ptr<LogMessage>;
+using LogMessageList = std::deque<LogMessagePtr>;
 
 class OnlineUser;
-typedef boost::intrusive_ptr<OnlineUser> OnlineUserPtr;
-typedef std::vector<OnlineUserPtr> OnlineUserList;
+using OnlineUserPtr = boost::intrusive_ptr<OnlineUser>;
+using OnlineUserList = std::vector<OnlineUserPtr>;
+using SID = uint32_t;
 
 class OutputStream;
 
 class PrivateChat;
-typedef std::shared_ptr<PrivateChat> PrivateChatPtr;
+using PrivateChatPtr = std::shared_ptr<PrivateChat>;
 
-typedef uint32_t QueueToken;
-typedef unordered_set<QueueToken> QueueTokenSet;
+using QueueToken = uint32_t;
+using QueueTokenSet = unordered_set<QueueToken>;
 class QueueItemBase;
 
 class QueueItem;
-typedef std::shared_ptr<QueueItem> QueueItemPtr;
-typedef std::vector<QueueItemPtr> QueueItemList;
+using QueueItemPtr = std::shared_ptr<QueueItem>;
+using QueueItemList = std::vector<QueueItemPtr>;
 
 class Search;
-typedef shared_ptr<Search> SearchPtr;
+using SearchPtr = shared_ptr<Search>;
 
 class SearchInstance;
-typedef shared_ptr<SearchInstance> SearchInstancePtr;
-typedef vector<SearchInstancePtr> SearchInstanceList;
-typedef uint32_t SearchInstanceToken;
+using SearchInstancePtr = shared_ptr<SearchInstance>;
+using SearchInstanceList = vector<SearchInstancePtr>;
+using SearchInstanceToken = uint32_t;
 
 class SearchResult;
-typedef std::shared_ptr<SearchResult> SearchResultPtr;
-typedef std::vector<SearchResultPtr> SearchResultList;
+using SearchResultPtr = std::shared_ptr<SearchResult>;
+using SearchResultList = std::vector<SearchResultPtr>;
 
 class SearchType;
-typedef shared_ptr<SearchType> SearchTypePtr;
-typedef vector<SearchTypePtr> SearchTypeList;
+using SearchTypePtr = shared_ptr<SearchType>;
+using SearchTypeList = vector<SearchTypePtr>;
 
 class GroupedSearchResult;
-typedef std::shared_ptr<GroupedSearchResult> GroupedSearchResultPtr;
-typedef std::vector<GroupedSearchResultPtr> GroupedSearchResultList;
+using GroupedSearchResultPtr = std::shared_ptr<GroupedSearchResult>;
+using GroupedSearchResultList = std::vector<GroupedSearchResultPtr>;
 
 class ServerSocket;
 
 class ShareProfile;
-typedef std::shared_ptr<ShareProfile> ShareProfilePtr;
-typedef vector<ShareProfilePtr> ShareProfileList;
+using ShareProfilePtr = std::shared_ptr<ShareProfile>;
+using ShareProfileList = vector<ShareProfilePtr>;
 
-typedef set<string> RefreshPathList;
+using RefreshPathList = set<string>;
 struct ShareRefreshStats;
 
 struct ShareRefreshTask;
-typedef uint32_t ShareRefreshTaskToken;
+using ShareRefreshTaskToken = uint32_t;
 
 struct TempShareInfo;
 
@@ -203,40 +211,40 @@ class StringSearch;
 class TigerHash;
 
 class Transfer;
-typedef uint32_t TransferToken;
+using TransferToken = uint32_t;
 
-typedef HashValue<TigerHash> TTHValue;
+using TTHValue = HashValue<TigerHash>;
 
 class UnZFilter;
 
 class Upload;
-typedef Upload* UploadPtr;
-typedef std::vector<UploadPtr> UploadList;
+using UploadPtr = Upload *;
+using UploadList = std::vector<UploadPtr>;
 
 class UploadQueueItem;
 
 class User;
-typedef boost::intrusive_ptr<User> UserPtr;
-typedef std::vector<UserPtr> UserList;
+using UserPtr = boost::intrusive_ptr<User>;
+using UserList = std::vector<UserPtr>;
 
 class UserCommand;
 
 class UserConnection;
-typedef UserConnection* UserConnectionPtr;
-typedef std::vector<UserConnectionPtr> UserConnectionList;
+using UserConnectionPtr = UserConnection *;
+using UserConnectionList = std::vector<UserConnectionPtr>;
 
 class ViewFile;
-typedef shared_ptr<ViewFile> ViewFilePtr;
-typedef vector<ViewFilePtr> ViewFileList;
+using ViewFilePtr = shared_ptr<ViewFile>;
+using ViewFileList = vector<ViewFilePtr>;
 
 // Generic callbacks
-typedef function<void()> Callback;
-typedef function<void(const string&)> MessageCallback;
+using Callback = function<void ()>;
+using MessageCallback = function<void (const string &)>;
 
 // Startup callbacks
-typedef std::function<void(const string&)> StepFunction;
-typedef std::function<bool(const string& /*aMessage*/, bool /*aIsQuestion*/, bool /*aIsError*/)> MessageFunction;
-typedef std::function<void(float)> ProgressFunction;
+using StepFunction = std::function<void (const string &)>;
+using MessageFunction = std::function<bool (const string &, bool, bool)>;
+using ProgressFunction = std::function<void (float)>;
 
 } // namespace dcpp
 

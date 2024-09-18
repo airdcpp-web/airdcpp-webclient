@@ -34,7 +34,7 @@ namespace dcpp {
 	class SearchInstance : public Speaker<SearchInstanceListener>, private SearchManagerListener, private ClientManagerListener {
 	public:
 		SearchInstance(const string& aOwnerId, uint64_t aExpirationTick = 0);
-		~SearchInstance();
+		~SearchInstance() final;
 
 		SearchQueueInfo hubSearch(StringList& aHubUrls, const SearchPtr& aSearch) noexcept;
 		bool userSearchHooked(const HintedUser& aUser, const SearchPtr& aSearch, string& error_) noexcept;

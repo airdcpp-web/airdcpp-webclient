@@ -33,7 +33,7 @@ struct HintedUser {
 	UserPtr user = nullptr;
 	string hint;
 
-	HintedUser() { }
+	HintedUser() = default;
 	HintedUser(const UserPtr& user_, const string& hint_) : user(user_), hint(hint_) { }
 
 	bool operator==(const UserPtr& rhs) const noexcept {

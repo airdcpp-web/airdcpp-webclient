@@ -58,7 +58,7 @@ public:
 	// HIGH - manual foreground searches
 	// NORMAL - manual background searches
 	// LOW - automated queue searches
-	Search(Priority aPriority, const string& aToken) noexcept : priority(aPriority), token(aToken) { }
+	Search(Priority aPriority, const string& aToken) noexcept : token(aToken), priority(aPriority) { }
 	~Search() { }
 
 	SizeModes	sizeType = SIZE_DONTCARE;
@@ -67,7 +67,7 @@ public:
 	string		query;
 	StringList	exts;
 	StringList	excluded;
-	const void*	owner = nullptr;
+	CallerPtr	owner = nullptr;
 	string		key;
 
 	bool		aschOnly = false;
@@ -129,13 +129,13 @@ public:
 
 	class CompareOwner {
 	public:
-		CompareOwner(const void* compareTo) : a(compareTo) { }
+		CompareOwner(CallerPtr compareTo) : a(compareTo) { }
 		bool operator()(const SearchPtr& p) const noexcept {
 			return !a ? true : p->owner == a;
 		}
 	private:
 		CompareOwner& operator=(const CompareOwner&) = delete;
-		const void* a;
+		CallerPtr a;
 	};
 
 	struct PrioritySort {

@@ -25,7 +25,7 @@ namespace dcpp {
 
 class StartupParams {
 public:
-	typedef deque<string> ParamList;
+	using ParamList = deque<string>;
 
 	bool hasParam(const string& aParam, int aPos = -1) const noexcept;
 	void addParam(const string& aParam) noexcept;

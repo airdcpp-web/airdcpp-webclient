@@ -29,10 +29,10 @@ namespace dcpp {
 /**
 	* A simple output stream. Intended to be used for nesting streams one inside the other.
 	*/
-class OutputStream : boost::noncopyable {
+class OutputStream : public boost::noncopyable {
 public:
-	OutputStream() { }
-	virtual ~OutputStream() { }
+	OutputStream() = default;
+	virtual ~OutputStream() = default;
 
 	/**
 		* @return The actual number of bytes written. len bytes will always be
@@ -60,15 +60,14 @@ public:
 		*/
 	virtual bool eof() { return false; }
 
-	size_t write(std::string&& str) { return write(str.c_str(), str.size()); }
 	size_t write(const std::string& str) { return write(str.c_str(), str.size()); }
 	virtual OutputStream* releaseRootStream() { return this; }
 };
 
-class InputStream : boost::noncopyable {
+class InputStream : public boost::noncopyable {
 public:
-	InputStream() { }
-	virtual ~InputStream() { }
+	InputStream() = default;
+	virtual ~InputStream() = default;
 	/**
 		* Call this function until it returns 0 to get all bytes.
 		* @return The number of bytes read. len reflects the number of bytes

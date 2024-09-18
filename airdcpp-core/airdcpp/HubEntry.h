@@ -33,8 +33,8 @@ namespace dcpp {
 	class ShareProfile;
 	class FavoriteHubEntry : public HubSettings, public intrusive_ptr_base<FavoriteHubEntry> {
 	public:
-		typedef FavoriteHubEntry* Ptr;
-		typedef vector<Ptr> List;
+		using Ptr = FavoriteHubEntry *;
+		using List = vector<Ptr>;
 
 		enum ConnectState {
 			STATE_DISCONNECTED,
@@ -66,7 +66,7 @@ namespace dcpp {
 
 		IGETSET(bool, autoConnect, AutoConnect, true);
 		GETSET(string, group, Group);
-		GETSET(ProfileToken, token, Token);
+		GETSET(FavoriteHubToken, token, Token);
 
 		bool isAdcHub() const noexcept;
 		string getShareProfileName() const noexcept;

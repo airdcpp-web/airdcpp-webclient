@@ -510,7 +510,7 @@ string Util::formatDateTime(time_t t) noexcept {
 	tm _tm;
 	auto err = localtime_s(&_tm, &t);
 	if (err > 0) {
-		dcdebug("Failed to parse date " I64_FMT ": %s\n", static_cast<int64_t>(t), SystemUtil::translateError(err).c_str());
+		dcdebug("Failed to parse date " I64_FMT ": %s\n", t, SystemUtil::translateError(err).c_str());
 		return Util::emptyString;
 	}
 
@@ -527,7 +527,7 @@ wstring Util::formatDateTimeW(time_t t) noexcept {
 	tm _tm;
 	auto err = localtime_s(&_tm, &t);
 	if (err > 0) {
-		dcdebug("Failed to parse date " I64_FMT ": %s\n", static_cast<int64_t>(t), SystemUtil::translateError(err).c_str());
+		dcdebug("Failed to parse date " I64_FMT ": %s\n", t, SystemUtil::translateError(err).c_str());
 		return Util::emptyStringW;
 	}
 
@@ -710,7 +710,7 @@ string Util::formatFileType(const string& aPath) noexcept {
 #define MIN_REMOTE_FILE_ITEM_DATE 946684800 // 1/1/2000
 
 time_t Util::parseRemoteFileItemDate(const string& aString) noexcept {
-	auto date = static_cast<time_t>(toInt64(aString));
+	auto date = static_cast<time_t>(toInt64(aString)); // handle negative values too
 
 	// Avoid using really old dates as those are most likely invalid and 
 	// would confuse the client/user (e.g. with grouped search results)

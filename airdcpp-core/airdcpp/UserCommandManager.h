@@ -19,6 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_USER_COMMAND_MANAGER_H
 #define DCPLUSPLUS_DCPP_USER_COMMAND_MANAGER_H
 
+#include "ClientManagerListener.h"
 #include "FavoriteManagerListener.h"
 
 #include "CriticalSection.h"
@@ -27,7 +28,7 @@
 
 namespace dcpp {
 
-class UserCommandManager : public Singleton<UserCommandManager>, public FavoriteManagerListener
+class UserCommandManager : public Singleton<UserCommandManager>, public FavoriteManagerListener, public ClientManagerListener
 {
 public:
 	UserCommand addUserCommand(int type, int ctx, Flags::MaskType flags, const string& name, const string& command, const string& to, const string& hub) noexcept;
@@ -38,6 +39,8 @@ public:
 	void removeUserCommand(int cid) noexcept;
 	void removeUserCommand(const string& srv) noexcept;
 	void removeHubUserCommands(int ctx, const string& hub) noexcept;
+
+	void userCommand(const HintedUser& aUser, const UserCommand& uc, ParamMap& params_, bool aCompatibility) const noexcept;
 
 	UserCommand::List getUserCommands() noexcept { RLock l(cs); return userCommands; }
 	UserCommand::List getUserCommands(int ctx, const StringList& hub, bool& op) noexcept;
@@ -60,6 +63,10 @@ private:
 
 	void on(FavoriteManagerListener::Load, SimpleXML& xml) noexcept override;
 	void on(FavoriteManagerListener::Save, SimpleXML& xml) noexcept override;
+
+	void on(ClientManagerListener::ClientUserCommand, const Client*, int, int, const string&, const string&) noexcept override;
+	void on(ClientManagerListener::ClientRedirected, const ClientPtr& aOldClient, const ClientPtr& aNewClient) noexcept override;
+	void on(ClientManagerListener::ClientDisconnected, const string& aHubUrl) noexcept override;
 };
 
 } // namespace dcpp

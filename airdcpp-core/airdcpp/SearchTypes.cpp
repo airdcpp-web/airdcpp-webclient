@@ -67,7 +67,7 @@ Search::TypeModes SearchType::getTypeMode() const noexcept {
 	return static_cast<Search::TypeModes>(id[0] - '0');
 }
 
-SearchTypes::SearchTypes(SearchTypeChangeHandler&& aSearchTypeChangeHandler) : onSearchTypesChanged(aSearchTypeChangeHandler) {
+SearchTypes::SearchTypes(SearchTypeChangeHandler&& aSearchTypeChangeHandler) : onSearchTypesChanged(std::move(aSearchTypeChangeHandler)) {
 	setSearchTypeDefaults();
 	SettingsManager::getInstance()->addListener(this);
 }
@@ -107,7 +107,7 @@ void SearchTypes::setSearchTypeDefaults() {
 		// for conveniency, the default search exts will be the same as the ones defined by SEGA.
 		const auto& searchExts = AdcHub::getSearchExts();
 		for (size_t i = 0, n = searchExts.size(); i < n; ++i) {
-			const auto id = string(1, '1' + i);
+			const auto id = string(1, '1' + static_cast<char>(i));
 			searchTypes[id] = make_shared<SearchType>(id, id, searchExts[i]);
 		}
 	}
@@ -187,11 +187,11 @@ void SearchTypes::getSearchType(int aPos, Search::TypeModes& type_, StringList& 
 		int counter = 0;
 
 		RLock l(cs);
-		for (auto& i : searchTypes) {
+		for (const auto& [_, type] : searchTypes) {
 			if (counter++ == typeIndex) {
-				type_ = i.second->getTypeMode();
-				typeId_ = i.second->getId();
-				extList_ = i.second->getExtensions();
+				type_ = type->getTypeMode();
+				typeId_ = type->getId();
+				extList_ = type->getExtensions();
 				return;
 			}
 		}
@@ -200,7 +200,7 @@ void SearchTypes::getSearchType(int aPos, Search::TypeModes& type_, StringList& 
 	throw SearchTypeException("No such search type"); 
 }
 
-void SearchTypes::getSearchType(const string& aId, Search::TypeModes& type_, StringList& extList_, string& name_) {
+void SearchTypes::getSearchType(const string& aId, Search::TypeModes& type_, StringList& extList_, string& name_) const {
 	if (aId.empty())
 		throw SearchTypeException("No such search type"); 
 
@@ -241,7 +241,7 @@ void SearchTypes::on(SettingsManagerListener::Save, SimpleXML& xml) noexcept {
 	xml.stepIn();
 	{
 		RLock l(cs);
-		for(auto& t: searchTypes | views::values) {
+		for (const auto& t: searchTypes | views::values) {
 			xml.addTag("SearchType", Util::toString(";", t->getExtensions()));
 			xml.addChildAttrib("Id", t->getName());
 			if (!t->isDefault()) {

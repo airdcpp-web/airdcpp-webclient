@@ -47,20 +47,20 @@ public:
 
 	ShareRefreshTaskList getRefreshTasks() const noexcept;
 
-	ShareTasks(ShareTasksManager* const aManager);
-	~ShareTasks();
+	explicit(false) ShareTasks(ShareTasksManager* const aManager);
+	~ShareTasks() final;
 
 	// Add directories for refresh
-	RefreshTaskQueueInfo addRefreshTask(ShareRefreshPriority aPriority, const StringList& aDirs, ShareRefreshType aRefreshType, const string& aDisplayName = Util::emptyString, function<void(float)> aProgressF = nullptr) noexcept;
+	RefreshTaskQueueInfo addRefreshTask(ShareRefreshPriority aPriority, const StringList& aDirs, ShareRefreshType aRefreshType, const string& aDisplayName = Util::emptyString, const ProgressFunction& aProgressF = nullptr) noexcept;
 private:
 	ShareTasksManager* const manager;
 
 	struct TaskData {
-		virtual ~TaskData() { }
+		virtual ~TaskData() = default;
 	};
 
 	struct RefreshTask : public TaskData {
-		RefreshTask(int refreshOptions_) : refreshOptions(refreshOptions_) { }
+		explicit RefreshTask(int refreshOptions_) : refreshOptions(refreshOptions_) { }
 		int refreshOptions;
 	};
 
@@ -77,8 +77,8 @@ private:
 
 	int run() override;
 
-	void runTasks(function<void (float)> progressF = nullptr) noexcept;
-	void runRefreshTask(const ShareRefreshTask& aTask, function<void(float)> progressF) noexcept;
+	void runTasks(const ProgressFunction& progressF = nullptr) noexcept;
+	void runRefreshTask(const ShareRefreshTask& aTask, const ProgressFunction& progressF) noexcept;
 
 	void reportTaskStatus(const ShareRefreshTask& aTask, bool aFinished, const ShareRefreshStats* aStats) const noexcept;
 };

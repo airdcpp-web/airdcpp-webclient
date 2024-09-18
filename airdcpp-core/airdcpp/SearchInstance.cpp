@@ -27,7 +27,7 @@
 
 namespace dcpp {
 	atomic<SearchInstanceToken> searchInstanceIdCounter { 1 };
-	SearchInstance::SearchInstance(const string& aOwnerId, uint64_t aExpirationTick) : ownerId(aOwnerId), token(searchInstanceIdCounter++), expirationTick(aExpirationTick) {
+	SearchInstance::SearchInstance(const string& aOwnerId, uint64_t aExpirationTick) : token(searchInstanceIdCounter++), expirationTick(aExpirationTick), ownerId(aOwnerId) {
 		SearchManager::getInstance()->addListener(this);
 		ClientManager::getInstance()->addListener(this);
 	}
@@ -132,8 +132,7 @@ namespace dcpp {
 	}
 
 	uint64_t SearchInstance::getQueueTime() const noexcept {
-		auto time = ClientManager::getInstance()->getMaxSearchQueueTime(this);
-		if (time) {
+		if (auto time = ClientManager::getInstance()->getMaxSearchQueueTime(this); time) {
 			return *time;
 		}
 
@@ -168,8 +167,7 @@ namespace dcpp {
 
 		{
 			WLock l(cs);
-			auto removed = queuedHubUrls.erase(aHubUrl);
-			if (removed == 0) {
+			if (auto removed = queuedHubUrls.erase(aHubUrl); removed == 0) {
 				return;
 			}
 
@@ -211,7 +209,7 @@ namespace dcpp {
 			auto i = results.find(aResult->getTTH());
 			if (i == results.end()) {
 				parent = std::make_shared<GroupedSearchResult>(aResult, std::move(relevanceInfo));
-				results.emplace(aResult->getTTH(), parent);
+				results.try_emplace(aResult->getTTH(), parent);
 				created = true;
 			} else {
 				parent = i->second;

@@ -40,6 +40,8 @@ public:
 	typedef X<7> ClientDisconnected;
 	typedef X<8> ClientRemoved;
 
+	typedef X<9> ClientUserCommand;
+
 	typedef X<11> DirectSearchEnd;
 	typedef X<12> OutgoingSearch;
 
@@ -61,6 +63,7 @@ public:
 	virtual void on(OutgoingSearch, const string&, const SearchPtr&) noexcept {}
 
 	virtual void on(PrivateMessage, const ChatMessagePtr&) noexcept {}
+	virtual void on(ClientUserCommand, const Client*, int, int, const string&, const string&) noexcept { }
 };
 
 } // namespace dcpp

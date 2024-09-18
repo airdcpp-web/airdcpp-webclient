@@ -416,7 +416,7 @@ time_t File::getLastModified() const noexcept {
 	if (::fstat(h, &s) == -1)
 		return 0;
 
-	return (uint32_t)s.st_mtime;
+	return s.st_mtime;
 }
 
 string File::getRealPath() const {
@@ -790,7 +790,7 @@ string File::read() {
 	int64_t sz = getSize();
 	if(sz == -1)
 		return Util::emptyString;
-	return read((uint32_t)sz);
+	return read((size_t)sz);
 }
 
 string FilesystemItem::getPath(const string& aBasePath) const noexcept {
@@ -802,6 +802,7 @@ string FilesystemItem::getPath(const string& aBasePath) const noexcept {
 }
 
 StringList File::findFiles(const string& aPath, const string& aNamePattern, int aFindFlags) {
+	dcassert(PathUtil::isDirectoryPath(aPath));
 	StringList ret;
 
 	{

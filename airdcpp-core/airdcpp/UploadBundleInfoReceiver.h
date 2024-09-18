@@ -46,10 +46,12 @@ public:
 	size_t getRunningBundleCount() const noexcept;
 
 	UploadBundleInfoReceiver() noexcept;
-	~UploadBundleInfoReceiver();
+	~UploadBundleInfoReceiver() final;
 private:
 	mutable SharedMutex cs;
 	void dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
+
+	static double parseSpeed(const string& aSpeedStr) noexcept;
 
 	void createBundle(const AdcCommand& cmd);
 	void changeBundle(const AdcCommand& cmd);
@@ -67,7 +69,7 @@ private:
 
 	void removeIdleBundles() noexcept;
 
-	typedef std::function<void(Upload*)>&& UploadCallback;
+	using UploadCallback = std::function<void (Upload *)> &&;
 	bool callAsync(const string& aToken, UploadCallback&& aCallback) const noexcept;
 
 	// Listeners
@@ -78,9 +80,9 @@ private:
 
 	void on(ProtocolCommandManagerListener::IncomingUDPCommand, const AdcCommand&, const string&) noexcept override;
 
-	unordered_map<string, UploadBundlePtr> uploadMap;
+	unordered_map<string, UploadBundlePtr> connections;
 
-	typedef unordered_map<string, UploadBundlePtr> RemoteBundleTokenMap;
+	using RemoteBundleTokenMap = unordered_map<string, UploadBundlePtr>;
 	RemoteBundleTokenMap bundles;
 };
 

@@ -30,17 +30,16 @@ struct HttpDownload : private HttpConnectionListener, private boost::noncopyable
 	HttpConnection* c;
 	string buf;
 	string status;
-	typedef std::function<void ()> CompletionF;
+	using CompletionF = std::function<void ()>;
 	CompletionF f;
 
-	explicit HttpDownload(const string& address, CompletionF f, const HttpOptions& aOptions = HttpOptions());
-	~HttpDownload();
+	explicit HttpDownload(const string& address, CompletionF&& f, const HttpOptions& aOptions = HttpOptions());
+	~HttpDownload() final;
 
 	// HttpConnectionListener
-	void on(HttpConnectionListener::Data, HttpConnection*, const uint8_t* buf_, size_t len) noexcept;
-	void on(HttpConnectionListener::Failed, HttpConnection*, const string& status_) noexcept;
-	void on(HttpConnectionListener::Complete, HttpConnection*, const string& status_) noexcept;
-	void on(HttpConnectionListener::Retried, HttpConnection*, bool connected) noexcept;
+	void on(HttpConnectionListener::Data, HttpConnection*, const uint8_t* buf_, size_t len) noexcept override;
+	void on(HttpConnectionListener::Failed, HttpConnection*, const string& status_) noexcept override;
+	void on(HttpConnectionListener::Complete, HttpConnection*, const string& status_) noexcept override;
 };
 
 } // namespace dcpp

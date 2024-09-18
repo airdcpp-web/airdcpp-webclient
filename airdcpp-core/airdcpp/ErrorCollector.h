@@ -33,8 +33,8 @@ public:
 		bool isMinor;
 	};
 
-	ErrorCollector() {}
-	ErrorCollector(int aTotalFileCount);
+	ErrorCollector() = default;
+	explicit ErrorCollector(int aTotalFileCount);
 
 	void add(const string& aError, const string& aFile, bool aIsMinor) noexcept;
 	void clearMinor() noexcept;

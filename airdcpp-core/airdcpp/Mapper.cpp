@@ -42,8 +42,8 @@ bool Mapper::open(const string& port, const Protocol protocol, const string& des
 bool Mapper::close() {
 	bool ret = true;
 
-	for(auto& i: rules)
-		ret &= remove(i.first, i.second);
+	for(const auto& [port, protocol] : rules)
+		ret &= remove(port, protocol);
 	rules.clear();
 
 	return ret;

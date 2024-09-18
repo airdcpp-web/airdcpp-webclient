@@ -32,7 +32,7 @@
 namespace dcpp {
 
 // Application locales mapped to supported GeoIP languages
-map<string, string> localeGeoMappings = {
+const map<string, string> localeGeoMappings = {
 	{ "de-DE", "de" },
 	{ "en-US", "en" },
 	{ "es-ES", "es" },
@@ -49,7 +49,7 @@ static string parseLanguage() noexcept {
 }
 
 GeoIP::GeoIP(string&& aPath) : geo(nullptr), path(std::move(aPath)), language(parseLanguage()) {
-	if(File::getSize(path) > 0 || decompress()) {
+	if (File::getSize(path) > 0 || decompress()) {
 		open();
 	}
 }
@@ -88,7 +88,7 @@ string GeoIP::getCountry(const string& ip) const {
 	if (geo) {
 		int gai_error, mmdb_error;
 		MMDB_lookup_result_s res = MMDB_lookup_string(
-			const_cast<MMDB_s*>(geo), 
+			geo, 
 			ip.c_str(), 
 			&gai_error, 
 			&mmdb_error

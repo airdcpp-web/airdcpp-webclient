@@ -178,7 +178,7 @@ public:
 
 	// PARAMS FORMAT
 
-	typedef string (*FilterF)(const string&);
+	using FilterF = string (*)(const string&);
 
 	// Set aTime to 0 to avoid formating of time variable
 	static string formatParams(const string& msg, const ParamMap& params, FilterF filter = nullptr, time_t aTime = time(NULL)) noexcept;
@@ -219,6 +219,13 @@ public:
 	static time_t toTimeT(const string& aString) noexcept {
 		return static_cast<time_t>(toInt64(aString));
 	}
+
+	static size_t toSizeT(const string& aString) noexcept {
+		size_t res = 0;
+		sscanf(aString.c_str(), "%zu", &res);
+		return res;
+	}
+
 	static time_t parseRemoteFileItemDate(const string& aString) noexcept;
 
 	static int toInt(const string& aString) noexcept {
@@ -253,7 +260,7 @@ public:
 
 	static double toDouble(const string& aString) noexcept {
 		// Work-around for atof and locales...
-		lconv* lv = localeconv();
+		const auto lv = localeconv();
 		auto i = aString.find_last_of(".,");
 		if(i != string::npos && aString[i] != lv->decimal_point[0]) {
 			string tmp(aString);
@@ -322,7 +329,7 @@ public:
 	template<typename T, class NameOperator>
 	static string listToStringT(const T& lst, bool aForceBrackets, bool aSquareBrackets) noexcept {
 		if (lst.size() == 1 && !aForceBrackets) {
-			return NameOperator()(*lst.begin());
+			return NameOperator()(*std::begin(lst));
 		}
 
 		string str;
@@ -331,7 +338,7 @@ public:
 		str.push_back(aSquareBrackets ? '[' : '(');
 
 		// Items with commas
-		for(auto i = lst.begin(), iend = lst.end(); i != iend; ++i) {
+		for(auto i = std::begin(lst), iend = std::end(lst); i != iend; ++i) {
 			str += NameOperator()(*i);
 			str += ", ";
 		}
@@ -348,7 +355,7 @@ public:
 	}
 
 	struct StrChar {
-		const char* operator()(const string& u) noexcept { return u.c_str(); }
+		const char* operator()(const string& u) const noexcept { return u.c_str(); }
 	};
 
 	// Format stringlist with brackets for multiple items (or plain string for a single item)
@@ -403,12 +410,13 @@ public:
 		return static_cast<char>(res);
 	}
 
+
 	// LIST HELPERS
 
 	template<typename T>
 	static T& intersect(T& t1, const T& t2) noexcept {
 		for(typename T::iterator i = t1.begin(); i != t1.end();) {
-			if(find_if(t2.begin(), t2.end(), bind1st(equal_to<typename T::value_type>(), *i)) == t2.end())
+			if(ranges::find_if(t2, bind1st(equal_to<typename T::value_type>(), *i)) == t2.end())
 				i = t1.erase(i);
 			else
 				++i;
@@ -425,7 +433,7 @@ public:
 
 	template<typename T>
 	static void concatenate(T& a, const T& toAdd) noexcept {
-		std::copy(toAdd.begin(), toAdd.end(), std::back_inserter(a));
+		ranges::copy(toAdd, std::back_inserter(a));
 	}
 
 	// STRING SEARCH/COMPARE
@@ -593,7 +601,7 @@ struct noCaseStringLess {
 /* Case insensitive string comparison classes */
 class Stricmp {
 public:
-	Stricmp(const string& compareTo) : a(compareTo) { }
+	explicit Stricmp(const string& compareTo) : a(compareTo) { }
 	bool operator()(const string& p) const noexcept {
 		return Util::stricmp(p.c_str(), a.c_str()) == 0; 
 	}
@@ -604,7 +612,7 @@ private:
 
 class StricmpT {
 public:
-	StricmpT(const wstring& compareTo) : a(compareTo) { }
+	explicit StricmpT(const wstring& compareTo) : a(compareTo) { }
 	bool operator()(const wstring& p) const noexcept { 
 		return Util::stricmp(p.c_str(), a.c_str()) == 0; 
 	}

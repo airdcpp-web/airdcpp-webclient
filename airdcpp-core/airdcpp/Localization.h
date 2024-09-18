@@ -29,7 +29,7 @@ class Localization {
 	public:
 		class Language {
 		public:
-			Language() { }
+			Language() = default;
 			explicit Language(const string& aLanguage, const char* aCountryFlagCode, const string& aLocale) : languageName(aLanguage), 
 				locale(aLocale), countryFlagCode(aCountryFlagCode) {
 			}
@@ -59,7 +59,7 @@ class Localization {
 			const char* countryFlagCode;
 		};
 
-		typedef vector<Language> LanguageList;
+		using LanguageList = vector<Language>;
 
 		static string getSystemLocale() noexcept;
 		static string getCurLanguageFilePath() noexcept;

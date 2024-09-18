@@ -84,7 +84,7 @@ void ActivityManager::setAway(AwayMode aNewMode) {
 	if (awayMode > AWAY_OFF)
 		lastActivity = GET_TICK();
 
-	ClientManager::getInstance()->infoUpdated();
+	ClientManager::getInstance()->myInfoUpdated();
 	fire(ActivityManagerListener::AwayModeChanged(), awayMode);
 }
 

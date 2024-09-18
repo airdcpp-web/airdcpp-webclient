@@ -38,15 +38,8 @@ namespace dcpp {
 	
 // Constructor
 ADLSearch::ADLSearch() :
-isActive(true), 
-isAutoQueue(false), 
-sourceType(OnlyFile), 
-minFileSize(-1), 
-maxFileSize(-1), 
-typeFileSize(SizeBytes), 
-name("ADLSearch"),
-ddIndex(0),
-adlsComment("none") {
+adlsComment("none"),
+name("ADLSearch") {
 	match.pattern = "<Enter string>";
 	setRegEx(false);
 }
@@ -218,6 +211,86 @@ ADLSearch::SourceType ADLSearchManager::StringToSourceType(const string& s) {
 	}
 }
 
+ADLSearch ADLSearchManager::loadSearch(SimpleXML& xml) {
+	ADLSearch search;
+
+	if(xml.findChild("SearchString")) {
+		search.match.pattern = xml.getChildData();
+		if(xml.getBoolChildAttrib("RegEx")) {
+			search.setRegEx(true);
+		}
+	} else {
+		xml.resetCurrentChild();
+	}
+
+	if(xml.findChild("SourceType")) {
+		search.sourceType = search.StringToSourceType(xml.getChildData());
+	} else {
+		xml.resetCurrentChild();
+	}
+
+	if (xml.findChild("DestDirectory")) {
+		search.setDestDir(xml.getChildData());
+	} else {
+		xml.resetCurrentChild();
+	}
+
+	if(xml.findChild("AdlsComment")) {
+		search.adlsComment = xml.getChildData();
+	} else {
+		search.adlsComment = "none";
+		xml.resetCurrentChild();
+	}
+
+	if(xml.findChild("IsActive")) {
+		search.isActive = (Util::toInt(xml.getChildData()) != 0);
+	} else {
+		xml.resetCurrentChild();
+	}
+
+	if(xml.findChild("MaxSize")) {
+		search.maxFileSize = Util::toInt64(xml.getChildData());
+	} else {
+		xml.resetCurrentChild();
+	}
+
+	if(xml.findChild("MinSize")) {
+		search.minFileSize = Util::toInt64(xml.getChildData());
+	} else {
+		xml.resetCurrentChild();
+	}
+
+	if(xml.findChild("SizeType")) {
+		search.typeFileSize = search.StringToSizeType(xml.getChildData());
+	} else {
+		xml.resetCurrentChild();
+	}
+
+	if(xml.findChild("IsAutoQueue")) {
+		search.isAutoQueue = (Util::toInt(xml.getChildData()) != 0);
+	} else {
+		xml.resetCurrentChild();
+	}
+
+	xml.resetCurrentChild();
+	/* For compatibility, remove in some point */
+	if(xml.findChild("IsRegExp")) {
+		if (Util::toInt(xml.getChildData()) > 0) {
+			search.setRegEx(true);
+			xml.resetCurrentChild();
+
+			if(xml.findChild("IsCaseSensitive")) {
+				if (Util::toInt(xml.getChildData()) == 0) {
+					search.match.pattern.insert(0, "(?i:");
+					search.match.pattern.insert(search.match.pattern.size(), ")");
+				}
+			}
+		}
+	}
+
+	return search;
+}
+
 void ADLSearchManager::load() noexcept {
 	if (running > 0) {
 		log(CSTRING(ADLSEARCH_IN_PROGRESS), LogMessage::SEV_ERROR);
@@ -241,86 +314,11 @@ void ADLSearchManager::load() noexcept {
 					xml.stepIn();
 
 					// Found another search, load it
-					ADLSearch search;
-
-					if(xml.findChild("SearchString")) {
-						search.match.pattern = xml.getChildData();
-						if(xml.getBoolChildAttrib("RegEx")) {
-							search.setRegEx(true);
-						}
-					} else {
-						xml.resetCurrentChild();
-					}
-
-					if(xml.findChild("SourceType")) {
-						search.sourceType = search.StringToSourceType(xml.getChildData());
-					} else {
-						xml.resetCurrentChild();
-					}
-
-					if (xml.findChild("DestDirectory")) {
-						search.setDestDir(xml.getChildData());
-					} else {
-						xml.resetCurrentChild();
-					}
-
-					if(xml.findChild("AdlsComment")) {
-						search.adlsComment = xml.getChildData();
-					} else {
-						search.adlsComment = "none";
-						xml.resetCurrentChild();
-					}
-
-					if(xml.findChild("IsActive")) {
-						search.isActive = (Util::toInt(xml.getChildData()) != 0);
-					} else {
-						xml.resetCurrentChild();
-					}
-
-					if(xml.findChild("MaxSize")) {
-						search.maxFileSize = Util::toInt64(xml.getChildData());
-					} else {
-						xml.resetCurrentChild();
-					}
-
-					if(xml.findChild("MinSize")) {
-						search.minFileSize = Util::toInt64(xml.getChildData());
-					} else {
-						xml.resetCurrentChild();
-					}
-
-					if(xml.findChild("SizeType")) {
-						search.typeFileSize = search.StringToSizeType(xml.getChildData());
-					} else {
-						xml.resetCurrentChild();
-					}
-
-					if(xml.findChild("IsAutoQueue")) {
-						search.isAutoQueue = (Util::toInt(xml.getChildData()) != 0);
-					} else {
-						xml.resetCurrentChild();
-					}
-
-					xml.resetCurrentChild();
-					/* For compatibility, remove in some point */
-					if(xml.findChild("IsRegExp")) {
-						if (Util::toInt(xml.getChildData()) > 0) {
-							search.setRegEx(true);
-							xml.resetCurrentChild();
-
-							if(xml.findChild("IsCaseSensitive")) {
-								if (Util::toInt(xml.getChildData()) == 0) {
-									search.match.pattern.insert(0, "(?i:");
-									search.match.pattern.insert(search.match.pattern.size(), ")");
-								}
-							}
-						}
-					}
-
+					auto search = loadSearch(xml);
 
 					// Add search to collection
 					if(!search.getPattern().empty()) {
-						collection.push_back(search);
+						collection.push_back(std::move(search));
 					}
 
 					// Go to next search
@@ -434,7 +432,7 @@ void ADLSearchManager::save(bool force /*false*/) noexcept {
 void ADLSearchManager::MatchesFile(DestDirList& destDirVector, const DirectoryListing::File::Ptr& currentFile, const string& aAdcPath) noexcept {
 	// Add to any substructure being stored
 	for(auto& id: destDirVector) {
-		if(id.subdir != NULL) {
+		if(id.subdir) {
 			auto copyFile = make_shared<DirectoryListing::File>(*currentFile, this);
 			dcassert(id.subdir->isVirtual());
 
@@ -501,7 +499,7 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const Direct
 		}
 
 		if(is.matchesDirectory(currentDir->getName())) {
-			auto newDir = DirectoryListing::VirtualDirectory::create(aAdcPath, destDirVector[is.ddIndex].dir.get(), currentDir->getName());;
+			auto newDir = DirectoryListing::VirtualDirectory::create(aAdcPath, destDirVector[is.ddIndex].dir.get(), currentDir->getName());
 			destDirVector[is.ddIndex].subdir = newDir.get();
 			if(breakOnFirst) {
 				// Found a match, search no more
@@ -512,21 +510,32 @@ void ADLSearchManager::MatchesDirectory(DestDirList& destDirVector, const Direct
 }
 
 void ADLSearchManager::stepUpDirectory(DestDirList& destDirVector) noexcept {
-	for(auto id = destDirVector.begin(); id != destDirVector.end(); ++id) {
-		if(id->subdir) {
-			id->subdir = id->subdir->getParent();
-			if(id->subdir == id->dir.get()) {
-				id->subdir = nullptr;
+	for (auto& destDir: destDirVector) {
+		if (destDir.subdir) {
+			destDir.subdir = destDir.subdir->getParent();
+			if (destDir.subdir == destDir.dir.get()) {
+				destDir.subdir = nullptr;
 			}
 		}
 	}
 }
 
+void ADLSearchManager::addRootDirectory(const string& aName, DestDirList& destDirs_, DirectoryListing::Directory::Ptr& root) noexcept {
+	DestDir newDir = { 
+		aName,
+
+		// Root ADL directories shouldn't be added in the list yet (see the finalize function)
+		DirectoryListing::VirtualDirectory::create(ADC_ROOT_STR, root.get(), "<<<" + aName + ">>>", false)
+	};
+
+	destDirs_.push_back(std::move(newDir));
+}
+
 void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, DirectoryListing::Directory::Ptr& root) noexcept {
-	// Load default destination directory (index = 0)
 	destDirs.clear();
-	DestDir dir = { "ADLSearch", DirectoryListing::Directory::create(root.get(), "<<<ADLSearch>>>", DirectoryListing::Directory::TYPE_VIRTUAL, GET_TIME()) };
-	destDirs.push_back(std::move(dir));
+
+	// Load default destination directory (index = 0)
+	addRootDirectory("ADLSearch", destDirs, root);
 
 	// Scan all loaded searches
 	for(auto& is: collection) {
@@ -551,12 +560,7 @@ void ADLSearchManager::PrepareDestinationDirectories(DestDirList& destDirs, Dire
 
 		if(isNew) {
 			// Add new destination directory
-			DestDir newDir = { is.getDestDir(),
-				DirectoryListing::Directory::create(root.get(), "<<<" + is.getDestDir() + ">>>",
-					DirectoryListing::Directory::TYPE_VIRTUAL, GET_TIME())
-			};
-
-			destDirs.push_back(std::move(newDir));
+			addRootDirectory(is.getDestDir(), destDirs, root);
 			is.ddIndex = ddIndex;
 		}
 	}
@@ -568,14 +572,14 @@ void ADLSearchManager::FinalizeDestinationDirectories(DestDirList& destDirs, Dir
 	// Add non-empty destination directories to the top level
 	for(auto& i: destDirs) {
 		if(i.dir->files.empty() && i.dir->directories.empty()) {
-			continue;;
+			continue;
 		} 
 		
 		if(Util::stricmp(i.dir->getName(), szDiscard) == 0) {
 			continue;
 		}
 
-		root->directories.emplace(&i.dir->getName(), i.dir);
+		root->directories.try_emplace(&i.dir->getName(), i.dir);
 	}
 }
 
@@ -592,17 +596,21 @@ void ADLSearchManager::matchListing(DirectoryListing& aDirList) {
 
 	string path(aDirList.getRoot()->getName());
 	matchRecurse(destDirs, aDirList.getRoot(), path, aDirList);
+	//for (const auto& d: aDirList.getRoot()->directories | views::values /*| views::filter(DirectoryListing::Directory::NotVirtual)*/) {
+	//	matchRecurse(destDirs, d, d->getAdcPath(), aDirList);
+	//}
 
 	FinalizeDestinationDirectories(destDirs, root);
 }
 
 void ADLSearchManager::matchRecurse(DestDirList &aDestList, const DirectoryListing::Directory::Ptr& aDir, const string& aAdcPath, DirectoryListing& aDirList) {
+	dcassert(aDir->getType() != DirectoryListing::Directory::TYPE_VIRTUAL);
 	if (aDirList.getClosing()) {
 		throw AbortException();
 	}
 
 	for (const auto& dir: aDir->directories | views::values) {
-		auto subAdcPath = aAdcPath + dir->getName() + ADC_SEPARATOR_STR;
+		auto subAdcPath = PathUtil::joinAdcDirectory(aAdcPath, dir->getName());
 		MatchesDirectory(aDestList, dir, subAdcPath);
 		matchRecurse(aDestList, dir, subAdcPath, aDirList);
 	}

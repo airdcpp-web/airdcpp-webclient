@@ -38,24 +38,23 @@ public:
 	void onPSR(const AdcCommand& cmd, UserPtr from, const string& remoteIp);
 
 	PartialFileSharingManager();
-	~PartialFileSharingManager();
+	~PartialFileSharingManager() final;
 	
 	ADC_CMD(PSR, 'P', 'S', 'R');
 private:
 	class PartialFileSource : public FastAlloc<PartialFileSource> {
 	public:
-		PartialFileSource(const QueueItemPtr& aQI, const HintedUser& aUser, const string& aMyNick, const string& aHubIpPort, const string& aIp, const string& udp) :
-			myNick(aMyNick), hubIpPort(aHubIpPort), ip(aIp), udpPort(udp), queueItem(aQI), hintedUser(aUser) {}
+		PartialFileSource(const QueueItemPtr& aQI, const HintedUser& aUser, const string& aHubIpPort, const string& aIp, const string& udp) :
+			hubIpPort(aHubIpPort), ip(aIp), udpPort(udp), hintedUser(aUser), queueItem(aQI) {}
 
-		~PartialFileSource() { }
+		~PartialFileSource() = default;
 
-		typedef std::shared_ptr<PartialFileSource> Ptr;
-		typedef std::vector<PartialFileSource::Ptr> List;
+		using Ptr = std::shared_ptr<PartialFileSource>;
+		using List = std::vector<PartialFileSource::Ptr>;
 
 		bool requestPartialSourceInfo(uint64_t aNow) const noexcept;
 		bool isCurrentSource() const noexcept;
 
-		GETSET(string, myNick, MyNick);			// for NMDC support only
 		GETSET(string, hubIpPort, HubIpPort);
 		GETSET(string, ip, Ip);
 		GETSET(string, udpPort, UdpPort);
@@ -69,9 +68,9 @@ private:
 		};
 	};
 
-	AdcCommand toPSR(bool wantResponse, const string& myNick, const string& hubIpPort, const string& tth, const vector<uint16_t>& partialInfo) const;
+	AdcCommand toPSR(bool wantResponse, const string& hubIpPort, const string& tth, const vector<uint16_t>& partialInfo) const;
 
-	typedef vector<PartialFileSource::Ptr> PFSSourceList;
+	using PFSSourceList = vector<PartialFileSource::Ptr>;
 	PFSSourceList findPFSSources(int aMaxSources = 10) noexcept;
 
 	string getPartsString(const PartsInfo& partsInfo) const;
@@ -83,19 +82,19 @@ private:
 	void on(ProtocolCommandManagerListener::IncomingUDPCommand, const AdcCommand&, const string&) noexcept override;
 	void on(ProtocolCommandManagerListener::IncomingHubCommand, const AdcCommand&, const Client&) noexcept override;
 
-	void onIncomingSearch(const Client* aClient, const OnlineUserPtr& aUser, const SearchQuery& aQuery, bool aIsUdpActive) noexcept;
+	void onIncomingSearch(const Client* aClient, const OnlineUserPtr& aUser, const SearchQuery& aQuery, bool aIsUdpActive) const noexcept;
 
 	bool handlePartialResultHooked(const QueueItemPtr& aQI, const PartialFileSource::Ptr& aPartialSource, const PartsInfo& aInPartialInfo) noexcept;
 	void requestPartialSourceInfo(uint64_t aTick, uint64_t aNextQueryTime) noexcept;
 
-	bool handlePartialSearch(const QueueItemPtr& aQI, PartsInfo& _outPartsInfo) noexcept;
+	bool handlePartialSearch(const QueueItemPtr& aQI, PartsInfo& _outPartsInfo) const noexcept;
 
 	bool allowPartialSharing(const QueueItemPtr& aQI) const noexcept;
 
 	void dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
 	QueueItemPtr getQueueFile(const TTHValue& tth) const noexcept;
 
-	void sendUDP(AdcCommand& aCmd, const UserPtr& aUser, const string& aHubUrl);
+	void sendUDP(AdcCommand& aCmd, const UserPtr& aUser, const string& aHubUrl) const noexcept;
 
 	mutable SharedMutex cs;
 

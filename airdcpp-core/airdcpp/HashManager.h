@@ -43,7 +43,7 @@ class HashManager : public Singleton<HashManager>, public Speaker<HashManagerLis
 
 public:
 	HashManager();
-	~HashManager();
+	~HashManager() final;
 
 	/**
 	 * Check if the TTH tree associated with the filename is current.
@@ -145,10 +145,14 @@ private:
 
 	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
 
+	Hasher* createHasher() noexcept;
+	Hasher* getFileHasher(int64_t aDeviceId, int64_t aSize) const noexcept;
+	bool isPathQueued(const string& aPathLower) const noexcept;
+
 	bool hashFile(const string& filePath, const string& pathLower, int64_t size);
 	bool isShutdown = false;
 
-	typedef vector<Hasher*> HasherList;
+	using HasherList = vector<Hasher *>;
 	HasherList hashers;
 
 	unique_ptr<HashStore> store;
@@ -159,14 +163,14 @@ private:
 	class Optimizer : public Thread {
 	public:
 		Optimizer();
-		~Optimizer();
+		~Optimizer() final;
 
 		void startMaintenance(bool verify);
 		bool isRunning() const noexcept { return running; }
 	private:
 		bool verify = true;
 		atomic<bool> running = { false };
-		virtual int run();
+		int run() final;
 	};
 
 	Optimizer optimizer;

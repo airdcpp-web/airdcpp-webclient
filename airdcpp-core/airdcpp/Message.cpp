@@ -28,15 +28,15 @@ namespace dcpp {
 atomic<uint64_t> messageIdCounter { 1 };
 
 ChatMessage::ChatMessage(const string& aOriginalText, const OnlineUserPtr& aFrom, const OnlineUserPtr& aTo, const OnlineUserPtr& aReplyTo) noexcept :
-	text(cleanText(aOriginalText)), from(aFrom), to(aTo), replyTo(aReplyTo), id(messageIdCounter++), time(GET_TIME()) {
+	from(aFrom), to(aTo), replyTo(aReplyTo), time(GET_TIME()), text(cleanText(aOriginalText)), id(messageIdCounter++) {
 
 	read = aFrom && aFrom->getUser() == ClientManager::getInstance()->getMe();
 }
 
 LogMessage::LogMessage(const string& aOriginalText, LogMessage::Severity aSeverity, Type aType, const string& aLabel, int aInitFlags) noexcept :
-	id(messageIdCounter++), text(Message::unifyLineEndings(aOriginalText)), label(aLabel),
-	time(aInitFlags & INIT_DISABLE_TIMESTAMP ? 0 : GET_TIME()), type(aType),
-	severity(aSeverity), read(aInitFlags & INIT_DISABLE_TIMESTAMP) {
+	read(aInitFlags & INIT_DISABLE_TIMESTAMP), id(messageIdCounter++), text(Message::unifyLineEndings(aOriginalText)),
+	label(aLabel), time(aInitFlags & INIT_DISABLE_TIMESTAMP ? 0 : GET_TIME()),
+	severity(aSeverity), type(aType) {
 
 	if (!(aInitFlags & INIT_DISABLE_HIGHLIGHTS)) {
 		highlights = MessageHighlight::parseHighlights(text, Util::emptyString, nullptr);
@@ -80,8 +80,6 @@ string ChatMessage::format() const noexcept {
 }
 
 void ChatMessage::parseMention(const Identity& aMe) noexcept {
-	// highlights = MessageHighlight::parseHighlights(text, aMe.getNick(), from->getUser());
-
 	if (from->getIdentity().getSID() == aMe.getSID() || !from->getIdentity().isUser()) {
 		return;
 	}

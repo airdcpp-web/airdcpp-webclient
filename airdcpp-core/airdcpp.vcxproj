@@ -225,6 +225,7 @@
     <ClCompile Include="airdcpp\GroupedSearchResult.cpp" />
     <ClCompile Include="airdcpp\Hasher.cpp" />
     <ClCompile Include="airdcpp\HashStore.cpp" />
+    <ClCompile Include="airdcpp\HBRIValidation.cpp" />
     <ClCompile Include="airdcpp\IgnoreManager.cpp" />
     <ClCompile Include="airdcpp\LinkUtil.cpp" />
     <ClCompile Include="airdcpp\MessageCache.cpp" />
@@ -335,10 +336,12 @@
     <ClCompile Include="airdcpp\TrackableDownloadItem.cpp" />
     <ClCompile Include="airdcpp\Transfer.cpp" />
     <ClCompile Include="airdcpp\TransferInfoManager.cpp" />
+    <ClCompile Include="airdcpp\UpdateDownloader.cpp" />
+    <ClCompile Include="airdcpp\updater\Updater.cpp" />
+    <ClCompile Include="airdcpp\updater\UpdaterCreator.cpp" />
     <ClCompile Include="airdcpp\UploadBundleInfoSender.cpp" />
     <ClCompile Include="airdcpp\UDPServer.cpp" />
     <ClCompile Include="airdcpp\UpdateManager.cpp" />
-    <ClCompile Include="airdcpp\Updater.cpp" />
     <ClCompile Include="airdcpp\Upload.cpp" />
     <ClCompile Include="airdcpp\UploadBundle.cpp" />
     <ClCompile Include="airdcpp\UploadBundleInfoReceiver.cpp" />
@@ -372,8 +375,14 @@
     <ClInclude Include="airdcpp\FavoriteUserManager.h" />
     <ClInclude Include="airdcpp\FavoriteUserManagerListener.h" />
     <ClInclude Include="airdcpp\FloodCounter.h" />
+    <ClInclude Include="airdcpp\HBRIValidation.h" />
     <ClInclude Include="airdcpp\StartupParams.h" />
     <ClInclude Include="airdcpp\TransferInfoManagerListener.h" />
+    <ClInclude Include="airdcpp\UpdateDownloader.h" />
+    <ClInclude Include="airdcpp\UpdateConstants.h" />
+    <ClInclude Include="airdcpp\updater\Updater.h" />
+    <ClInclude Include="airdcpp\updater\UpdaterCreator.h" />
+    <ClInclude Include="airdcpp\updater\UpdateVersion.h" />
     <ClInclude Include="airdcpp\UploadFileParser.h" />
     <ClInclude Include="airdcpp\UploadFileProvider.h" />
     <ClInclude Include="airdcpp\HasherManager.h" />
@@ -582,7 +591,6 @@
     <ClInclude Include="airdcpp\UDPServer.h" />
     <ClInclude Include="airdcpp\UpdateManager.h" />
     <ClInclude Include="airdcpp\UpdateManagerListener.h" />
-    <ClInclude Include="airdcpp\Updater.h" />
     <ClInclude Include="airdcpp\UploadBundle.h" />
     <ClInclude Include="airdcpp\UserQueue.h" />
     <ClInclude Include="airdcpp\ViewFile.h" />

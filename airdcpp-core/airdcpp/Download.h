@@ -58,13 +58,11 @@ public:
 		FLAG_HIGHEST_PRIO		= 0x2000
 	};
 
-	// bool operator==(const Download* d) const;
-
 	Download(UserConnection& conn, QueueItem& qi) noexcept;
 
-	void getParams(const UserConnection& aSource, ParamMap& params) const noexcept;
+	void getParams(const UserConnection& aSource, ParamMap& params) const noexcept override;
 
-	~Download();
+	~Download() final;
 
 	/** @return Target filename without path. */
 	string getTargetFileName() const noexcept;
@@ -93,9 +91,15 @@ public:
 
 	string getBundleStringToken() const noexcept;
 
-	void appendFlags(OrderedStringSet& flags_) const noexcept;
-	void flush() noexcept;
+	void appendFlags(OrderedStringSet& flags_) const noexcept override;
+	void flush() const noexcept;
 private:
+	void initFlags(const QueueItem& aQI) noexcept;
+	void initOverlapped(const QueueItem& aQI) noexcept;
+	void initSegment(QueueItem& aQI) noexcept;
+
+	void disconnectOverlappedThrow();
+
 	Download(const Download&);
 	Download& operator=(const Download&) = delete;
 

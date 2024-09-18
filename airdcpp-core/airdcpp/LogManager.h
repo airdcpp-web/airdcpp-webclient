@@ -72,7 +72,7 @@ private:
 	int options[LAST][2];
 
 	LogManager();
-	virtual ~LogManager();
+	~LogManager() final;
 
 	unordered_map<CID, string> pmPaths;
 	static void ensureParam(const string& aParam, string& aFile) noexcept;

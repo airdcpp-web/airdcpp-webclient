@@ -36,13 +36,13 @@ public:
 	void unreserveSlot(const UserPtr& aUser) noexcept;
 	bool hasReservedSlot(const UserPtr& aUser) const noexcept;
 
-	typedef std::function<void(const UserPtr&)> SlotsUpdatedF;
-	ReservedSlotManager(SlotsUpdatedF&& aSlotsUpdatedF) noexcept;
-	~ReservedSlotManager();
+	using SlotsUpdatedF = std::function<void (const UserPtr &)>;
+	explicit ReservedSlotManager(SlotsUpdatedF&& aSlotsUpdatedF) noexcept;
+	~ReservedSlotManager() final;
 private:
 	mutable SharedMutex cs;
 
-	typedef unordered_map<UserPtr, uint64_t, User::Hash> SlotMap;
+	using SlotMap = unordered_map<UserPtr, uint64_t, User::Hash>;
 	SlotMap reservedSlots;
 	
 	// TimerManagerListener

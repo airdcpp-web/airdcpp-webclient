@@ -35,10 +35,8 @@ namespace dcpp {
 class SimpleXML : private boost::noncopyable
 {
 public:
-	SimpleXML() : root("BOGUSROOT", Util::emptyString, NULL), current(&root), found(false) { 
-		resetCurrentChild();
-	}
-	~SimpleXML() { }
+	SimpleXML();
+	~SimpleXML() = default;
 	
 	void addTag(const string& aName, const string& aData = Util::emptyString);
 	void addTag(const string& aName, int aData) {
@@ -48,7 +46,7 @@ public:
 		addTag(aName, Util::toString(aData));
 	}
 
-	void forceEndTag(bool force = true) {
+	void forceEndTag(bool force = true) const {
 		checkChildSelected();
 		(*currentChild)->forceEndTag = force;
 	}
@@ -64,22 +62,22 @@ public:
 	}
 	
 	template <typename T>
-    void addChildAttrib(const string& aName, const T& aData) {	
+    void addChildAttrib(const string& aName, const T& aData) const {	
 		addChildAttrib(aName, Util::toString(aData));
 	}
-	void addChildAttrib(const string& aName, const string& aData);
-	void addChildAttrib(const string& aName, bool aData) {	
+	void addChildAttrib(const string& aName, const string& aData) const;
+	void addChildAttrib(const string& aName, bool aData) const {	
 		addChildAttrib(aName, string(aData ? "1" : "0"));
 	}
-	void replaceChildAttrib(const string& aName, const string& aData);
+	void replaceChildAttrib(const string& aName, const string& aData) const;
 
 	const string& getData() const {
-		dcassert(current != NULL);
+		dcassert(current);
 		return current->data;
 	}
 
 	void setData(const string& aData) {
-		dcassert(current != NULL);
+		dcassert(current);
 		current->data = aData;
 	}
 	
@@ -104,9 +102,9 @@ public:
 		checkChildSelected();
 		return Util::toInt(getChildAttrib(aName));
 	}
-	int64_t getLongLongChildAttrib(const string& aName) const {
+	time_t getTimeChildAttrib(const string& aName) const {
 		checkChildSelected();
-		return Util::toInt64(getChildAttrib(aName));
+		return Util::toTimeT(getChildAttrib(aName));
 	}
 	bool getBoolChildAttrib(const string& aName) const {
 		checkChildSelected();
@@ -117,7 +115,7 @@ public:
 	
 	void fromXML(const string& aXML, int aFlags = 0);
 	string toXML();
-	string childToXML();
+	string childToXML() const;
 	void toXML(OutputStream* f);
 	
 	static const string& escape(const string& str, string& tmp, bool aAttrib, bool aLoading = false) {
@@ -134,15 +132,15 @@ public:
 	 * was not needed...
 	 */
 	static bool needsEscape(const string& aString, bool aAttrib, bool aLoading = false) {
-		return (((aLoading) ? aString.find('&') : aString.find_first_of(aAttrib ? "<&>'\"" : "<&>")) != string::npos);
+		return (aLoading ? aString.find('&') : aString.find_first_of(aAttrib ? "<&>'\"" : "<&>")) != string::npos;
 	}
 	static const string utf8Header;
 private:
-	class Tag : boost::noncopyable {
+	class Tag : public boost::noncopyable {
 	public:
-		typedef Tag* Ptr;
-		typedef vector<Ptr> List;
-		typedef List::iterator Iter;
+		using Ptr = Tag *;
+		using List = vector<Ptr>;
+		using Iter = List::iterator;
 
 		/**
 		 * A simple list of children. To find a tag, one must search the entire list.
@@ -173,23 +171,23 @@ private:
 		}
 		
 		const string& getAttrib(const string& aName, const string& aDefault = Util::emptyString) const {
-			StringPairList::const_iterator i = find_if(attribs.begin(), attribs.end(), CompareFirst<string,string>(aName));
+			auto i = ranges::find(attribs | views::keys, aName).base();
 			return (i == attribs.end()) ? aDefault : i->second; 
 		}
-		void toXML(int indent, OutputStream* f, bool noIndent=false);
+		void toXML(int indent, OutputStream* f, bool noIndent=false) const;
 		
-		void appendAttribString(string& tmp);
+		void appendAttribString(string& tmp) const;
 		/** Delete all children! */
 		~Tag() {
-			for(Iter i = children.begin(); i != children.end(); ++i) {
-				delete *i;
+			for(auto& i: children) {
+				delete i;
 			}
 		}
 	};
 
 	class TagReader : public SimpleXMLReader::CallBack {
 	public:
-		TagReader(Tag* root) : cur(root) { }
+		explicit TagReader(Tag* root) : cur(root) { }
 		void startTag(const string& name, StringPairList& attribs, bool simple);
 		void data(const string& data) {
 			cur->data += data;
@@ -208,11 +206,11 @@ private:
 	Tag::Iter currentChild;
 
 	void checkChildSelected() const noexcept {
-		dcassert(current != NULL);
+		dcassert(current);
 		dcassert(currentChild != current->children.end());
 	}
 
-	bool found;
+	bool found = false;
 };
 
 } // namespace dcpp

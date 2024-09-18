@@ -34,12 +34,14 @@ class UploadBundleInfoSender: public DownloadManagerListener, public QueueManage
 public:
 	static const string FEATURE_ADC_UBN1;
 
-	void dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
+	void dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
 
 	class UBNBundle {
 	public:
-		typedef std::function<void(AdcCommand&, const UserPtr&)> SendUpdateF;
-		typedef std::function<void(const string&, LogMessage::Severity)> DebugMsgF;
+		using SendUpdateF = std::function<void (AdcCommand &, const UserPtr &)>;
+		using DebugMsgF = std::function<void (const string &, LogMessage::Severity)>;
+
+		static string formatSpeed(int64_t aSpeed) noexcept;
 
 		void onDownloadTick() noexcept;
 
@@ -47,11 +49,12 @@ public:
 		bool removeRunningUser(const UserConnection* aSource, bool sendRemove) noexcept;
 		void setUserMode(bool aSetSingleUser) noexcept;
 
-		void sendSizeUpdate() noexcept;
+		void sendSizeUpdate() const noexcept;
 
-		typedef shared_ptr<UBNBundle> Ptr;
+		using Ptr = shared_ptr<UBNBundle>;
 
-		UBNBundle(const BundlePtr& aBundle, SendUpdateF&& aSendUpdate, DebugMsgF&& aDebugMsgF) : bundle(aBundle), sendUpdate(aSendUpdate), debugMsg(aDebugMsgF) {}
+		UBNBundle(const BundlePtr& aBundle, SendUpdateF&& aSendUpdate, DebugMsgF&& aDebugMsgF) : 
+			sendUpdate(std::move(aSendUpdate)), debugMsg(std::move(aDebugMsgF)), bundle(aBundle) {}
 
 		AdcCommand getAddCommand(const string& aConnectionToken, bool aNewBundle) const noexcept;
 		AdcCommand getRemoveCommand(const string& aConnectionToken) const noexcept;
@@ -79,14 +82,13 @@ public:
 	};
 
 	UploadBundleInfoSender() noexcept;
-	~UploadBundleInfoSender() noexcept;
+	~UploadBundleInfoSender() noexcept final;
 private:
 	mutable SharedMutex cs;
 
 	void on(QueueManagerListener::BundleSize, const BundlePtr& aBundle) noexcept override;
 
 	void on(DownloadManagerListener::Starting, const Download*) noexcept override;
-	// void on(DownloadManagerListener::Complete, const Download*, bool) noexcept override;
 	void on(DownloadManagerListener::Failed, const Download*, const string&) noexcept override;
 	void on(DownloadManagerListener::BundleTick, const BundleList& aBundles, uint64_t aTick) noexcept override;
 	void on(DownloadManagerListener::Remove, const UserConnection* aConn) noexcept override;
@@ -104,7 +106,7 @@ private:
 	void addRunningUserUnsafe(const UBNBundle::Ptr& aBundle, const UserConnection* aSource) noexcept;
 	void removeRunningUserUnsafe(const UBNBundle::Ptr& aBundle, const UserConnection* aSource, bool sendRemove) noexcept;
 
-	void sendUpdate(AdcCommand& aCmd, const UserPtr& aUser) noexcept;
+	static void sendUpdate(AdcCommand& aCmd, const UserPtr& aUser) noexcept;
 };
 
 }

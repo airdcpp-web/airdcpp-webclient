@@ -366,7 +366,7 @@ string wideToUtf8(const wstring& str) noexcept {
 	int size = 0;
 	tgt.resize(str.length() * 2);
 
-	while ((size = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), str.length(), &tgt[0], tgt.length(), NULL, NULL)) == 0) {
+	while ((size = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), static_cast<int>(str.length()), &tgt[0], static_cast<int>(tgt.length()), NULL, NULL)) == 0) {
 		if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
 			tgt.resize(tgt.size() * 2);
 		else
@@ -399,7 +399,7 @@ wstring utf8ToWide(const string& str) noexcept {
 	wstring tgt;
 	int size = 0;
 	tgt.resize(str.length() + 1);
-	while ((size = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), str.length(), &tgt[0], (int)tgt.length())) == 0) {
+	while ((size = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.length()), &tgt[0], (int)tgt.length())) == 0) {
 		if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
 			tgt.resize(tgt.size() * 2);
 		}

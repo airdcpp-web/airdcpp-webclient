@@ -38,25 +38,26 @@ class FavoriteManager : public Speaker<FavoriteManagerListener>, public Singleto
 public:
 // Favorite Hubs
 	void autoConnect() noexcept;
-	FavoriteHubEntryList& getFavoriteHubs() noexcept { return favoriteHubs; }
+	FavoriteHubEntryList& getFavoriteHubsUnsafe() noexcept { return favoriteHubs; }
 
 	bool addFavoriteHub(const FavoriteHubEntryPtr& aEntry) noexcept;
 	void onFavoriteHubUpdated(const FavoriteHubEntryPtr& aEntry) noexcept;
-	bool removeFavoriteHub(ProfileToken aToken) noexcept;
-	bool isUnique(const string& aUrl, ProfileToken aToken) const noexcept;
+	bool removeFavoriteHub(FavoriteHubToken aToken) noexcept;
+	bool isUnique(const string& aUrl, FavoriteHubToken aExcludedEntryToken) const noexcept;
 	FavoriteHubEntryPtr getFavoriteHubEntry(const string& aServer) const noexcept;
-	FavoriteHubEntryPtr getFavoriteHubEntry(const ProfileToken& aToken) const noexcept;
+	FavoriteHubEntryPtr getFavoriteHubEntry(FavoriteHubToken aToken) const noexcept;
 
 	void mergeHubSettings(const FavoriteHubEntryPtr& entry, HubSettings& settings) const noexcept;
 	void setHubSetting(const string& aUrl, HubSettings::HubBoolSetting aSetting, bool newValue) noexcept;
 // Favorite hub groups
-	const FavHubGroups& getFavHubGroups() const noexcept { return favHubGroups; }
-	void setFavHubGroups(const FavHubGroups& favHubGroups_) noexcept { favHubGroups = favHubGroups_; }
+	const FavHubGroups& getFavHubGroupsUnsafe() const noexcept { return favHubGroups; }
+	void setFavHubGroups(const FavHubGroups& favHubGroups_) noexcept;
 
 	FavoriteHubEntryList getFavoriteHubs(const string& group) const noexcept;
+	FavoriteHubEntryList getFavoriteHubs() const noexcept;
 
 	// Favorite Directories (path -> grouped name)
-	typedef map<string, string> FavoriteDirectoryMap;
+	using FavoriteDirectoryMap = map<string, string>;
 
 	// For adding or renaming of favorite directories
 	bool setFavoriteDir(const string& aPath, const string& aGroupName) noexcept;
@@ -74,8 +75,12 @@ public:
 
 	bool hasActiveHubs() const noexcept;
 
-	mutable SharedMutex cs;
+	SharedMutex& getCS() noexcept {
+		return cs;
+	}
 private:
+	mutable SharedMutex cs;
+
 	FavoriteHubEntryList favoriteHubs;
 	FavHubGroups favHubGroups;
 	FavoriteDirectoryMap favoriteDirectories;
@@ -87,10 +92,10 @@ private:
 	friend class Singleton<FavoriteManager>;
 	
 	FavoriteManager();
-	~FavoriteManager();
+	~FavoriteManager() final;
 	
-	FavoriteHubEntryList::const_iterator getFavoriteHub(const string& aServer) const noexcept;
-	FavoriteHubEntryList::const_iterator getFavoriteHub(ProfileToken aToken) const noexcept;
+	FavoriteHubEntryList::const_iterator getFavoriteHubUnsafe(const string& aServer) const noexcept;
+	FavoriteHubEntryList::const_iterator getFavoriteHubUnsafe(FavoriteHubToken aToken) const noexcept;
 
 	int resetProfile(ProfileToken oldProfile, ProfileToken newProfile, bool nmdcOnly) noexcept;
 
@@ -119,7 +124,7 @@ private:
 	void saveFavoriteHubs(SimpleXML& aXml) const noexcept;
 	void saveFavoriteDirectories(SimpleXML& aXml) const noexcept;
 
-	void loadCID() noexcept;
+	static void loadCID() noexcept;
 };
 
 } // namespace dcpp

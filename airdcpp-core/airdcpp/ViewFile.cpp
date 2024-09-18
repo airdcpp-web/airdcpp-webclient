@@ -24,8 +24,8 @@
 
 namespace dcpp {
 	ViewFile::ViewFile(const string& aFileName, const string& aPath, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile, UpdateF&& aUpdateFunction) noexcept :
-		TrackableDownloadItem(aIsLocalFile), fileName(aFileName), path(aPath), tth(aTTH), timeCreated(GET_TIME()),
-		updateFunction(aUpdateFunction), text(aIsText), localFile(aIsLocalFile) {
+		TrackableDownloadItem(aIsLocalFile), fileName(aFileName), path(aPath), updateFunction(std::move(aUpdateFunction)), tth(aTTH),
+		text(aIsText), localFile(aIsLocalFile), timeCreated(GET_TIME()) {
 
 	}
 

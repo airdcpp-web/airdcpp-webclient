@@ -186,7 +186,7 @@ int64_t Bundle::getDownloadedBytes() const noexcept {
 }
 
 int64_t Bundle::getSecondsLeft() const noexcept {
-	return (speed > 0) ? static_cast<int64_t>((size - (currentDownloaded+finishedSegments)) / speed) : 0;
+	return (speed > 0) ? (size - (currentDownloaded+finishedSegments)) / speed : 0;
 }
 
 string Bundle::getName() const noexcept  {
@@ -228,7 +228,7 @@ void Bundle::deleteXmlFile() noexcept {
 }
 
 void Bundle::getItems(const UserPtr& aUser, QueueItemList& ql) const noexcept {
-	for(int i = static_cast<int>(Priority::PAUSED_FORCE); i < static_cast<int>(Priority::LAST); ++i) {
+	for (auto i = static_cast<int>(Priority::PAUSED_FORCE); i < static_cast<int>(Priority::LAST); ++i) {
 		auto j = userQueue[i].find(aUser);
 		if(j != userQueue[i].end()) {
 			ranges::copy(j->second, back_inserter(ql));
@@ -286,8 +286,7 @@ void Bundle::removeQueue(const QueueItemPtr& aQI, bool aFileCompleted) noexcept 
 		return;
 	}
 
-	auto f = ranges::find(queueItems, aQI);
-	if (f != queueItems.end()) {
+	if (auto f = ranges::find(queueItems, aQI); f != queueItems.end()) {
 		iter_swap(f, queueItems.end() - 1);
 		queueItems.pop_back();
 	} else {
@@ -326,7 +325,7 @@ bool Bundle::addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool 
 	if (l.size() >= 1) {
 		if (!seqOrder) {
 			// Randomize the downloading order for each user if the bundle dir date is newer than 7 days to boost partial bundle sharing
-			auto position = ValueGenerator::rand(0, (uint32_t)l.size());
+			auto position = ValueGenerator::rand(0, static_cast<uint32_t>(l.size()));
 			l.insert(l.begin() + position, qi);
 		} else {
 			// Sequential order
@@ -363,10 +362,9 @@ bool Bundle::addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool 
 QueueItemPtr Bundle::getNextQI(const QueueDownloadQuery& aQuery, string& lastError_, bool aAllowOverlap) noexcept {
 	int p = static_cast<int>(Priority::LAST) - 1;
 	do {
-		auto i = userQueue[p].find(aQuery.user);
-		if(i != userQueue[p].end()) {
+		if(auto i = userQueue[p].find(aQuery.user); i != userQueue[p].end()) {
 			dcassert(!i->second.empty());
-			for(auto& qi: i->second) {
+			for (const auto& qi: i->second) {
 				if (qi->hasSegment(aQuery, lastError_, aAllowOverlap)) {
 					return qi;
 				}
@@ -439,8 +437,7 @@ bool Bundle::removeUserQueue(const QueueItemPtr& qi, const UserPtr& aUser, Flags
 		return false;
 	}
 	auto& l = j->second;
-	auto s = ranges::find(l, qi);
-	if (s != l.end()) {
+	if (auto s = ranges::find(l, qi); s != l.end()) {
 		l.erase(s);
 	}
 
@@ -476,7 +473,7 @@ bool Bundle::removeUserQueue(const QueueItemPtr& qi, const UserPtr& aUser, Flags
 Priority Bundle::calculateProgressPriority() const noexcept {
 	if(getAutoPriority()) {
 		Priority p;
-		int percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
+		auto percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
 		switch(percent){
 			case 0:
 			case 1:
@@ -499,12 +496,12 @@ Priority Bundle::calculateProgressPriority() const noexcept {
 	return getPriority();
 }
 
-pair<int64_t, double> Bundle::getPrioInfo() noexcept {
+pair<int64_t, double> Bundle::getPrioInfo() const noexcept {
 	int64_t bundleSpeed = 0;
 	double bundleSources = 0;
 	for (const auto& s: sources) {
 		if (s.getUser().user->isOnline()) {
-			bundleSpeed += static_cast<int64_t>(s.getUser().user->getSpeed());
+			bundleSpeed += s.getUser().user->getSpeed();
 		}
 
 		bundleSources += s.files;
@@ -514,7 +511,7 @@ pair<int64_t, double> Bundle::getPrioInfo() noexcept {
 	return { bundleSpeed, bundleSources };
 }
 
-multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcept {
+multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() const noexcept {
 	multimap<QueueItemPtr, pair<int64_t, double>> speedSourceMap;
 
 	for (const auto& q: queueItems) {
@@ -523,7 +520,7 @@ multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() noexcep
 			double qiSources = 0;
 			for (const auto& s: q->getSources()) {
 				if (s.getUser().user->isOnline()) {
-					qiSpeed += static_cast<int64_t>(s.getUser().user->getSpeed());
+					qiSpeed += s.getUser().user->getSpeed();
 					qiSources++;
 				} else {
 					qiSources += 2;

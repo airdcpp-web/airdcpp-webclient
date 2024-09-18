@@ -32,7 +32,6 @@
 #include "ShareProfileManager.h"
 #include "ThrottleManager.h"
 #include "TimerManager.h"
-#include "UserCommandManager.h"
 #include "ValueGenerator.h"
 
 namespace dcpp {
@@ -44,13 +43,13 @@ atomic<ClientToken> idCounter { 0 };
 #define FLOOD_PERIOD 60
 
 Client::Client(const string& aHubUrl, char aSeparator, const ClientPtr& aOldClient) :
-	hubUrl(aHubUrl), separator(aSeparator), 
-	myIdentity(ClientManager::getInstance()->getMe(), 0),
-	clientId(aOldClient ? aOldClient->getToken() : ++idCounter),
-	lastActivity(GET_TICK()),
+	myIdentity(ClientManager::getInstance()->getMe(), 0), lastActivity(GET_TICK()), 
 	cache(SettingsManager::HUB_MESSAGE_CACHE),
 	ctmFloodCounter(FLOOD_PERIOD),
-	searchFloodCounter(FLOOD_PERIOD)
+	searchFloodCounter(FLOOD_PERIOD),
+	clientId(aOldClient ? aOldClient->getToken() : ++idCounter),
+	hubUrl(aHubUrl),
+	separator(aSeparator)
 {
 	TimerManager::getInstance()->addListener(this);
 	ShareManager::getInstance()->getProfileMgr().addListener(this);
@@ -77,10 +76,6 @@ void Client::setActive() noexcept {
 }
 
 void Client::shutdown(ClientPtr& aClient, bool aRedirect) {
-	if (aClient->isConnected()) {
-		UserCommandManager::getInstance()->removeUserCommand(getHubUrl());
-	}
-
 	TimerManager::getInstance()->removeListener(this);
 	ShareManager::getInstance()->getProfileMgr().removeListener(this);
 
@@ -244,8 +239,7 @@ void Client::connect(bool withKeyprint) noexcept {
 		sock->addListener(this);
 		sock->connect(
 			AddressInfo(address, AddressInfo::TYPE_URL), 
-			port, 
-			LinkUtil::isSecure(hubUrl), 
+			SocketConnectOptions(port, LinkUtil::isSecure(hubUrl)),
 			SETTING(ALLOW_UNTRUSTED_HUBS), 
 			true, 
 			withKeyprint ? keyprint : Util::emptyString
@@ -337,7 +331,7 @@ void Client::onPassword() noexcept {
 }
 
 void Client::onRedirect(const string& aRedirectUrl) noexcept {
-	if (ClientManager::getInstance()->hasClient(aRedirectUrl)) {
+	if (ClientManager::getInstance()->findClient(aRedirectUrl)) {
 		statusMessage(STRING(REDIRECT_ALREADY_CONNECTED), LogMessage::SEV_INFO);
 		return;
 	}
@@ -477,7 +471,7 @@ void Client::doRedirect() noexcept {
 		return;
 	}
 
-	if (ClientManager::getInstance()->hasClient(redirectUrl)) {
+	if (ClientManager::getInstance()->findClient(redirectUrl)) {
 		statusMessage(STRING(REDIRECT_ALREADY_CONNECTED), LogMessage::SEV_INFO);
 		return;
 	}
@@ -489,10 +483,6 @@ void Client::doRedirect() noexcept {
 void Client::on(BufferedSocketListener::Failed, const string& aLine) noexcept {
 	updateCounts(true);
 	clearUsers();
-	
-	if (stateNormal()) {
-		UserCommandManager::getInstance()->removeUserCommand(hubUrl);
-	}
 
 	setConnectState(STATE_DISCONNECTED);
 	statusMessage(aLine, LogMessage::SEV_WARNING);
@@ -591,7 +581,7 @@ uint64_t Client::queueSearch(const SearchPtr& aSearch) noexcept {
 	return searchQueue.add(aSearch);
 }
 
-optional<uint64_t> Client::getQueueTime(const void* aOwner) const noexcept {
+optional<uint64_t> Client::getQueueTime(CallerPtr aOwner) const noexcept {
 	return searchQueue.getQueueTime(Search::CompareOwner(aOwner));
 }
 
@@ -618,15 +608,15 @@ void Client::on(TimerManagerListener::Second, uint64_t aTick) noexcept{
 	}
 
 	if (isConnected()){
-		auto s = std::move(searchQueue.maybePop());
+		auto s = searchQueue.maybePop();
 		if (s) {
 			fire(ClientListener::OutgoingSearch(), this, s);
-			search(std::move(s));
+			search(s);
 		}
 	}
 }
 
-FloodCounter::FloodLimits Client::getCTMLimits(const OnlineUser* aAdcUser) {
+FloodCounter::FloodLimits Client::getCTMLimits(const OnlineUser* aAdcUser) noexcept {
 	// Is it a valid DC client?
 	// There may be many connection attempts with MCN users so we don't want to ban them
 	if (aAdcUser && ConnectionManager::getInstance()->isMCNUser(aAdcUser->getUser())) {
@@ -642,7 +632,7 @@ FloodCounter::FloodLimits Client::getCTMLimits(const OnlineUser* aAdcUser) {
 	};
 }
 
-FloodCounter::FloodLimits Client::getSearchLimits() {
+FloodCounter::FloodLimits Client::getSearchLimits() noexcept {
 	return {
 		20,
 		60,

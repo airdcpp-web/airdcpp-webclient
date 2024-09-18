@@ -26,7 +26,8 @@
 #include "Priority.h"
 
 namespace dcpp {
-	typedef uint32_t DirectoryDownloadId;
+	using DirectoryDownloadOwner = CallerPtr;
+	using DirectoryDownloadId = uint32_t;
 	class DirectoryDownload {
 	public:
 		enum class State {
@@ -50,11 +51,11 @@ namespace dcpp {
 		GETSET(string, error, Error);
 
 		struct HasOwner {
-			HasOwner(void* aOwner, const string& s) : a(s), owner(aOwner) { }
+			HasOwner(DirectoryDownloadOwner aOwner, const string& s) : a(s), owner(aOwner) { }
 			bool operator()(const DirectoryDownloadPtr& ddi) const noexcept;
 
 			const string& a;
-			void* owner;
+			DirectoryDownloadOwner owner;
 
 			HasOwner& operator=(const HasOwner&) = delete;
 		};
@@ -64,7 +65,7 @@ namespace dcpp {
 		const string& getTarget() const noexcept { return target; }
 		const string& getListPath() const noexcept { return listData.listPath; }
 		Priority getPriority() const noexcept { return priority; }
-		const void* getOwner() const noexcept { return listData.caller; }
+		DirectoryDownloadOwner getOwner() const noexcept { return listData.caller; }
 		DirectoryDownloadId getId() const noexcept { return id; }
 		ErrorMethod getErrorMethod() const noexcept { return errorMethod; }
 		const FilelistAddData& getListData() const noexcept { return listData; }

@@ -145,11 +145,11 @@ SearchPtr SearchQueue::maybePop() noexcept {
 	return nullptr;
 }
 
-bool SearchQueue::cancelSearch(const void* aOwner) noexcept {
+bool SearchQueue::cancelSearch(CallerPtr aOwner) noexcept {
 	dcassert(aOwner);
 
 	Lock l(cs);
-	auto i = find_if(searchQueue.begin(), searchQueue.end(), Search::CompareOwner(aOwner));
+	auto i = ranges::find_if(searchQueue, Search::CompareOwner(aOwner));
 	if (i != searchQueue.end()) {
 		searchQueue.erase(i);
 		return true;

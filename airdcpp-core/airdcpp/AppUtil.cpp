@@ -90,8 +90,7 @@ void StartupParams::addParam(const string& aParam) noexcept {
 }
 
 bool StartupParams::removeParam(const string& aParam) noexcept {
-	auto param = find(params.begin(), params.end(), aParam);
-	if (param != params.end()) {
+	if (auto param = find(params.begin(), params.end(), aParam); param != params.end()) {
 		params.erase(param);
 		return true;
 	}
@@ -100,8 +99,7 @@ bool StartupParams::removeParam(const string& aParam) noexcept {
 }
 
 bool StartupParams::hasParam(const string& aParam, int aPos) const noexcept {
-	auto param = find(params.begin(), params.end(), aParam);
-	if (param != params.end()) {
+	if (auto param = find(params.begin(), params.end(), aParam); param != params.end()) {
 		return aPos == -1 || distance(params.begin(), param) == aPos;
 	}
 

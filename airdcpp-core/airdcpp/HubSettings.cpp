@@ -93,7 +93,7 @@ void HubSettings::load(SimpleXML& xml) {
 		bools[i] = to3boolXml(xml.getIntChildAttrib(boolNames[i]));
 	}
 	for(uint8_t i = 0; i < IntCount; ++i) {
-		auto tmp = xml.getChildAttrib(intNames[i]);
+		const auto& tmp = xml.getChildAttrib(intNames[i]);
 		if (!tmp.empty())
 			ints[i] = Util::toInt(tmp);
 	}

@@ -71,7 +71,7 @@ public:
 
 	class HasStatus {
 	public:
-		HasStatus(Status aStatus) : status(aStatus) { }
+		explicit HasStatus(Status aStatus) : status(aStatus) { }
 		bool operator()(const BundlePtr& aBundle) const noexcept { return aBundle->getStatus() == status; }
 	private:
 		Status status;
@@ -97,15 +97,15 @@ public:
 		}
 	};
 
-	typedef unordered_map<QueueToken, BundlePtr> TokenMap;
-	typedef unordered_set<BundlePtr, Bundle::Hash> Set;
+	using TokenMap = unordered_map<QueueToken, BundlePtr>;
+	using Set = unordered_set<BundlePtr, Bundle::Hash>;
 
-	typedef unordered_map<UserPtr, uint16_t, User::Hash> UserIntMap;
-	typedef vector<BundleSource> SourceList;
-	typedef vector<pair<BundlePtr, BundleSource>> SourceBundleList;
+	using UserIntMap = unordered_map<UserPtr, uint16_t, User::Hash>;
+	using SourceList = vector<BundleSource>;
+	using SourceBundleList = vector<pair<BundlePtr, BundleSource>>;
 
-	typedef multimap<double, BundlePtr> SourceSpeedMapB;
-	typedef multimap<double, QueueItemPtr> SourceSpeedMapQI;
+	using SourceSpeedMapB = multimap<double, BundlePtr>;
+	using SourceSpeedMapQI = multimap<double, QueueItemPtr>;
 
 	Bundle(const QueueItemPtr& qi, time_t aFileDate, QueueToken aToken = 0, bool aDirty = true) noexcept;
 	Bundle(const string& aTarget, time_t aAdded, Priority aPriority, time_t aDirDate = 0, QueueToken aToken = 0, bool aDirty = true, bool aIsFileBundle = false) noexcept;
@@ -187,8 +187,8 @@ public:
 	int countOnlineUsers() const noexcept;
 
 	Priority calculateProgressPriority() const noexcept;
-	multimap<QueueItemPtr, pair<int64_t, double>> getQIBalanceMaps() noexcept;
-	pair<int64_t, double> getPrioInfo() noexcept;
+	multimap<QueueItemPtr, pair<int64_t, double>> getQIBalanceMaps() const noexcept;
+	pair<int64_t, double> getPrioInfo() const noexcept;
 
 	void increaseSize(int64_t aSize) noexcept;
 	void decreaseSize(int64_t aSize) noexcept;

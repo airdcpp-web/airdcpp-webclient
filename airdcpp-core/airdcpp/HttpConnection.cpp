@@ -65,8 +65,8 @@ void HttpConnection::postData(const string& aUrl, const StringMap& aData) {
 	currentUrl = aUrl;
 	requestBody.clear();
 
-	for (StringMap::const_iterator i = aData.begin(); i != aData.end(); ++i)
-		requestBody += "&" + LinkUtil::encodeURI(i->first) + "=" + LinkUtil::encodeURI(i->second);
+	for (const auto& [name, value] : aData)
+		requestBody += "&" + LinkUtil::encodeURI(name) + "=" + LinkUtil::encodeURI(value);
 
 	if (!requestBody.empty()) requestBody = requestBody.substr(1);
 	prepareRequest(TYPE_POST);
@@ -113,7 +113,13 @@ void HttpConnection::prepareRequest(RequestType type) {
 
 	socket->addListener(this);
 	try {
-		socket->connect(AddressInfo(server, AddressInfo::TYPE_URL), port, (proto == "https"), true, false);
+		SocketConnectOptions socketOptions(port, (proto == "https"));
+		socket->connect(
+			AddressInfo(server, AddressInfo::TYPE_URL), 
+			socketOptions,
+			true, 
+			false
+		);
 	}
 	catch (const Exception& e) {
 		fire(HttpConnectionListener::Failed(), this, e.getError() + " (" + currentUrl + ")");
@@ -141,7 +147,7 @@ void HttpConnection::on(BufferedSocketListener::Connected) noexcept {
 		socket->write(aKey + ": " + aValue + "\r\n");
 	};
 
-	addHeader("User-Agent", "Airdcpp/" + static_cast<string>(VERSIONSTRING) + " " + SystemUtil::getOsVersion(true));
+	addHeader("User-Agent", "Airdcpp/" + VERSIONSTRING + " " + SystemUtil::getOsVersion(true));
 
 	string sRemoteServer = server;
 	if(!SETTING(HTTP_PROXY).empty())
@@ -153,8 +159,8 @@ void HttpConnection::on(BufferedSocketListener::Connected) noexcept {
 	addHeader("Host", sRemoteServer);
 	addHeader("Connection", "close"); // we'll only be doing one request
 
-	for (const auto& h: options.getHeaders()) {
-		addHeader(h.first, h.second);
+	for (const auto& [name, value] : options.getHeaders()) {
+		addHeader(name, value);
 	}
 
 	addHeader("Cache-Control", "no-cache");

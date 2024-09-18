@@ -85,20 +85,20 @@ void SimpleXMLReader::ThreadedCallBackLoader::parse(ProgressFunction prog) {
 }*/
 
 SimpleXMLReader::SimpleXMLReader(SimpleXMLReader::CallBack* callback, int aFlags) :
-	bufPos(0), pos(0), cb(callback), state(STATE_START), flags(aFlags)
+	cb(callback), flags(aFlags)
 {
 	elements.reserve(64);
 	attribs.reserve(16);
 }
 
-void SimpleXMLReader::append(std::string& str, size_t maxLen, int c) {
+void SimpleXMLReader::append(std::string& str, size_t maxLen, int c) const {
 	if(str.size() > maxLen) {
 		error("Buffer overflow");
 	}
 	str.append(1, (std::string::value_type)c);
 }
 
-void SimpleXMLReader::append(std::string& str, size_t maxLen, std::string::const_iterator begin, std::string::const_iterator end) {
+void SimpleXMLReader::append(std::string& str, size_t maxLen, std::string::const_iterator begin, std::string::const_iterator end) const {
 	if(str.size() + (end - begin) > maxLen) {
 		error("Buffer overflow");
 	}
@@ -111,7 +111,7 @@ int SimpleXMLReader::charAt(size_t n) const { return buf[bufPos + n]; }
 void SimpleXMLReader::advancePos(size_t n) { bufPos += n; pos += n; }
 string::size_type SimpleXMLReader::bufSize() const { return buf.size() - bufPos; }
 
-bool SimpleXMLReader::error(const char* e) {
+bool SimpleXMLReader::error(const char* e) const {
 	throw SimpleXMLException(Util::toString(pos) + ": " + e);
 }
 
@@ -765,7 +765,7 @@ bool SimpleXMLReader::process() {
 	return false;
 };
 
-void SimpleXMLReader::decodeString(string& str_) {
+void SimpleXMLReader::decodeString(string& str_) const {
 	auto isUtf8 = encoding.empty() || compare(encoding, Text::utf8) == 0;
 
 	if (!isUtf8) {

@@ -28,8 +28,6 @@
 
 
 namespace dcpp {
-	typedef uint32_t MessageHighlightToken;
-
 	struct Position {
 		Position(size_t aStart, size_t aEnd) : start(aStart), end(aEnd) {}
 
@@ -62,8 +60,7 @@ namespace dcpp {
 
 		DupeType getDupe() const noexcept;
 
-		// typedef size_t KeyT;
-		typedef Position KeyT;
+		using KeyT = Position;
 
 		struct HighlightSort {
 			int operator()(const KeyT& a, const KeyT& b) const noexcept;
@@ -73,7 +70,7 @@ namespace dcpp {
 			const KeyT& operator()(const MessageHighlightPtr& a) const noexcept;
 		};
 
-		typedef SortedVector<MessageHighlightPtr, vector, KeyT, HighlightSort, HighlightPosition> SortedList;
+		using SortedList = SortedVector<MessageHighlightPtr, std::vector, KeyT, HighlightSort, HighlightPosition>;
 
 		static string TAG_ME;
 		static string TAG_FAVORITE;

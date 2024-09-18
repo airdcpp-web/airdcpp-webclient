@@ -28,19 +28,18 @@
 #include <airdcpp/SearchResult.h>
 
 namespace dcpp {
-	//typedef uint64_t ResultToken;
-	typedef TTHValue GroupedResultToken;
+	using GroupedResultToken = TTHValue;
 
 	class GroupedSearchResult {
 	public:
-		typedef shared_ptr<GroupedSearchResult> Ptr;
+		using Ptr = shared_ptr<GroupedSearchResult>;
 		struct RelevanceSort {
 			bool operator()(const Ptr& left, const Ptr& right) const noexcept { return left->getTotalRelevance() > right->getTotalRelevance(); }
 		};
 
-		typedef vector<Ptr> List;
-		typedef unordered_map<TTHValue, Ptr> Map;
-		typedef multiset<Ptr, RelevanceSort> Set;
+		using List = vector<Ptr>;
+		using Map = unordered_map<TTHValue, Ptr>;
+		using Set = multiset<Ptr, RelevanceSort>;
 
 		GroupedSearchResult(const SearchResultPtr& aSR, SearchResult::RelevanceInfo&& aRelevance);
 		~GroupedSearchResult() { }
@@ -50,14 +49,14 @@ namespace dcpp {
 
 		// Selects the best individual files to download and queues them
 		// Throws if none of the children could not be queued
-		BundleAddInfo downloadFileHooked(const string& aTargetDirectory, const string& aTargetName, Priority p, const void* aCaller);
+		BundleAddInfo downloadFileHooked(const string& aTargetDirectory, const string& aTargetName, Priority p, CallerPtr aCaller);
 
 		// Selects the best individual folders to download and queues them
 		// Throws if none of the children could not be queued
-		DirectoryDownloadList downloadDirectoryHooked(const string& aTargetDirectory, const string& aTargetName, Priority p, const void* aCaller);
+		DirectoryDownloadList downloadDirectoryHooked(const string& aTargetDirectory, const string& aTargetName, Priority p, CallerPtr aCaller) const;
 
 		bool isDirectory() const noexcept {
-			return baseResult->getType() == SearchResult::TYPE_DIRECTORY;
+			return baseResult->getType() == SearchResult::Type::DIRECTORY;
 		}
 
 		double getTotalRelevance() const noexcept;
@@ -117,8 +116,6 @@ namespace dcpp {
 		const SearchResultPtr baseResult;
 
 		const SearchResult::RelevanceInfo relevanceInfo;
-
-		//const GroupedResultToken token;
 
 		static FastCriticalSection cs;
 	};

@@ -57,6 +57,7 @@ public:
 
 	bool usesSmallSlot() const noexcept;
 private:
+	ProfileTokenSet getShareProfiles(const HintedUser& aUser) const noexcept;
 
 	void toRealWithSize(const UploadRequest& aRequest, ProfileToken aProfile, const HintedUser& aUser);
 	const StringMatch& freeSlotMatcher;

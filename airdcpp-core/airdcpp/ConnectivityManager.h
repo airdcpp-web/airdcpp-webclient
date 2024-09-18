@@ -72,6 +72,8 @@ public:
 	void close();
 	void disconnect();
 	StringList getMappers(bool v6) const;
+
+	bool isActive() const noexcept;
 private:
 	static const SettingsManager::SettingKeyList commonIncomingSettings;
 	static const SettingsManager::SettingKeyList incomingV4Settings;
@@ -84,7 +86,7 @@ private:
 	friend class MappingManager;
 	
 	ConnectivityManager();
-	virtual ~ConnectivityManager() { }
+	~ConnectivityManager() final = default;
 
 	void startMapping();
 	void startMapping(bool v6);

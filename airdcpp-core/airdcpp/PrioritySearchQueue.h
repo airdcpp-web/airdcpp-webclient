@@ -30,9 +30,9 @@ namespace dcpp {
 
 template<class ItemT>
 class PrioritySearchQueue {
-	typedef vector<double> ProbabilityList;
+	using ProbabilityList = vector<double>;
 public:
-	PrioritySearchQueue(SettingsManager::IntSetting aMinInterval) : minIntervalSetting(aMinInterval) {
+	explicit PrioritySearchQueue(SettingsManager::IntSetting aMinInterval) : minIntervalSetting(aMinInterval) {
 
 	}
 
@@ -163,7 +163,7 @@ private:
 		dcassert(!sbq.empty());
 
 		// Find the first item from the search queue that can be searched for
-		auto s = find_if(sbq.begin(), sbq.end(), AllowSearch());
+		auto s = ranges::find_if(sbq, AllowSearch());
 		if (s != sbq.end()) {
 			auto item = *s;
 			//move to the back
@@ -176,7 +176,7 @@ private:
 	}
 
 	int getValidItemCountRecent() const noexcept {
-		return static_cast<int>(count_if(recentSearchQueue.begin(), recentSearchQueue.end(), AllowSearch()));
+		return static_cast<int>(ranges::count_if(recentSearchQueue, AllowSearch()));
 	}
 
 	mt19937 gen;
@@ -185,7 +185,7 @@ private:
 		int itemCount = 0;
 		int p = static_cast<int>(Priority::LOW);
 		do {
-			int dequeItems = static_cast<int>(count_if(prioSearchQueue[p].begin(), prioSearchQueue[p].end(), AllowSearch()));
+			auto dequeItems = static_cast<int>(ranges::count_if(prioSearchQueue[p], AllowSearch()));
 
 			if (probabilities_) {
 				(*probabilities_).push_back((p - 1) * dequeItems); //multiply with a priority factor to get bigger probability for items with higher priority
@@ -198,7 +198,7 @@ private:
 		return itemCount;
 	}
 
-	typedef deque<ItemT> QueueType;
+	using QueueType = deque<ItemT>;
 
 	QueueType& getQueue(const ItemT& aItem) {
 		return aItem->isRecent() ? recentSearchQueue : prioSearchQueue[static_cast<int>(aItem->getPriority())];

@@ -50,10 +50,10 @@ using ranges::find_if;
 using ranges::for_each;
 
 ShareManager::ShareManager() : 
+	profiles(make_unique<ShareProfileManager>([this](const ShareProfilePtr& p) { removeRootProfile(p); })), 
 	validator(make_unique<SharePathValidator>()), 
-	tree(make_unique<ShareTree>()), 
 	tasks(make_unique<ShareTasks>(this)), 
-	profiles(make_unique<ShareProfileManager>([this](const ShareProfilePtr& p) { removeRootProfile(p); }))
+	tree(make_unique<ShareTree>())
 { 
 	SettingsManager::getInstance()->addListener(this);
 	HashManager::getInstance()->addListener(this);
@@ -102,7 +102,7 @@ void ShareManager::startup(StartupLoader& aLoader) noexcept {
 		refreshScheduled = true;
 	}
 
-	aLoader.addPostLoadTask([=, this] {
+	aLoader.addPostLoadTask([refreshScheduled, this] {
 		TimerManager::getInstance()->addListener(this);
 
 		if (!refreshScheduled && SETTING(STARTUP_REFRESH)) {
@@ -111,7 +111,7 @@ void ShareManager::startup(StartupLoader& aLoader) noexcept {
 	});
 }
 
-void ShareManager::shutdown(function<void(float)> progressF) noexcept {
+void ShareManager::shutdown(const ProgressFunction& progressF) noexcept {
 	saveShareCache(progressF);
 	profiles->removeCachedFilelists();
 
@@ -128,13 +128,13 @@ void ShareManager::on(SettingsManagerListener::LoadCompleted, bool) noexcept {
 	{
 		// Validate loaded paths
 		auto rootPathsCopy = tree->getRootPathsUnsafe();
-		for (const auto& dp : rootPathsCopy) {
-			if (find_if(rootPathsCopy | views::keys, [&dp](const string& aPath) {
-				return PathUtil::isSubLocal(dp.first, aPath);
+		for (const auto& [path, directory] : rootPathsCopy) {
+			if (find_if(rootPathsCopy | views::keys, [&path](const string& aOtherPath) {
+				return PathUtil::isSubLocal(path, aOtherPath);
 			}).base() != rootPathsCopy.end()) {
-				tree->removeShareRoot(dp.first);
+				tree->removeShareRoot(path);
 
-				log("The directory " + dp.first + " was not loaded: parent of this directory is shared in another profile, which is not supported in this client version.", LogMessage::SEV_WARNING);
+				log("The directory " + path + " was not loaded: parent of this directory is shared in another profile, which is not supported in this client version.", LogMessage::SEV_WARNING);
 			}
 		}
 	}
@@ -150,16 +150,16 @@ static const string SVERSION = "Version";
 
 struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, public ShareRefreshInfo {
 	ShareLoader(const string& aPath, const ShareDirectory::Ptr& aOldRoot, ShareBloom& aBloom) :
-		ShareRefreshInfo(aPath, aOldRoot, 0, aBloom),
 		ThreadedCallBack(aOldRoot->getRoot()->getCacheXmlPath()),
-		curDirPath(aOldRoot->getRoot()->getPath()),
-		curDirPathLower(aOldRoot->getRoot()->getPathLower())
+		ShareRefreshInfo(aPath, aOldRoot, 0, aBloom),
+		curDirPathLower(aOldRoot->getRoot()->getPathLower()),
+		curDirPath(aOldRoot->getRoot()->getPath())
 	{ 
 		cur = newDirectory;
 	}
 
 
-	void startTag(const string& aName, StringPairList& aAttribs, bool aSimple) {
+	void startTag(const string& aName, StringPairList& aAttribs, bool aSimple) override {
 		if(compare(aName, SDIRECTORY) == 0) {
 			const string& name = getAttrib(aAttribs, SNAME, 0);
 			const string& date = getAttrib(aAttribs, DATE, 1);
@@ -204,7 +204,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 			cur->setLastWrite(Util::toTimeT(getAttrib(aAttribs, DATE, 2)));
 		}
 	}
-	void endTag(const string& name) {
+	void endTag(const string& name) override {
 		if (compare(name, SDIRECTORY) == 0) {
 			if (cur) {
 				curDirPath = PathUtil::getParentDir(curDirPath);
@@ -223,10 +223,10 @@ private:
 	string curDirPath;
 };
 
-typedef shared_ptr<ShareManager::ShareLoader> ShareLoaderPtr;
-typedef vector<ShareLoaderPtr> LoaderList;
+using ShareLoaderPtr = shared_ptr<ShareManager::ShareLoader>;
+using LoaderList = vector<ShareLoaderPtr>;
 
-bool ShareManager::loadCache(function<void(float)> progressF) noexcept {
+bool ShareManager::loadCache(const ProgressFunction& progressF) noexcept {
 	HashManager::HashPauser pauser;
 
 	AppUtil::migrate(AppUtil::getPath(AppUtil::PATH_SHARECACHE), "ShareCache_*");
@@ -234,12 +234,12 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept {
 	LoaderList cacheLoaders;
 
 	// Create loaders
-	for (const auto& rp: tree->getRootPathsUnsafe()) {
+	for (const auto& [rootPath, rootDir] : tree->getRootPathsUnsafe()) {
 		try {
-			auto loader = std::make_shared<ShareLoader>(rp.first, rp.second, *tree->getBloom());
+			auto loader = std::make_shared<ShareLoader>(rootPath, rootDir, *tree->getBloom());
 			cacheLoaders.emplace_back(loader);
 		} catch (const FileException&) {
-			log(STRING_F(SHARE_CACHE_FILE_MISSING, rp.first), LogMessage::SEV_ERROR);
+			log(STRING_F(SHARE_CACHE_FILE_MISSING, rootPath), LogMessage::SEV_ERROR);
 			return false;
 		}
 	}
@@ -272,7 +272,7 @@ bool ShareManager::loadCache(function<void(float)> progressF) noexcept {
 		bool hasFailedCaches = false;
 
 		try {
-			parallel_for_each(cacheLoaders.begin(), cacheLoaders.end(), [&](ShareLoaderPtr& i) {
+			parallel_for_each(cacheLoaders.begin(), cacheLoaders.end(), [&](const ShareLoaderPtr& i) {
 				//log("Thread: " + Util::toString(::GetCurrentThreadId()) + "Size " + Util::toString(loader.size), LogMessage::SEV_INFO);
 				auto& loader = *i;
 				try {
@@ -342,7 +342,7 @@ void ShareManager::loadProfile(SimpleXML& aXml, bool aIsDefault) {
 			p->second->getRoot()->addRootProfile(shareProfile->getToken());
 		} else {
 			auto incoming = aXml.getBoolChildAttrib("Incoming");
-			auto lastRefreshTime = aXml.getLongLongChildAttrib("LastRefreshTime");
+			auto lastRefreshTime = aXml.getTimeChildAttrib("LastRefreshTime");
 
 			// Validate in case we have changed the rules
 			auto vName = validateVirtualName(loadedVirtualName.empty() ? PathUtil::getLastDir(realPath) : loadedVirtualName);
@@ -371,7 +371,7 @@ void ShareManager::loadProfiles(SimpleXML& aXml) {
 	}
 }
 
-void ShareManager::saveProfiles(SimpleXML& aXml) {
+void ShareManager::saveProfiles(SimpleXML& aXml) const {
 	for(const auto& sp: profiles->getProfiles() | views::filter(ShareProfile::NotHidden())) {
 		auto isDefault = sp->getToken() == SETTING(DEFAULT_SP);
 
@@ -779,7 +779,7 @@ optional<RefreshTaskQueueInfo> ShareManager::refreshVirtualName(const string& aV
 }
 
 
-RefreshTaskQueueInfo ShareManager::refresh(ShareRefreshType aType, ShareRefreshPriority aPriority, function<void(float)> progressF /*nullptr*/) noexcept {
+RefreshTaskQueueInfo ShareManager::refresh(ShareRefreshType aType, ShareRefreshPriority aPriority, const ProgressFunction& progressF /*nullptr*/) noexcept {
 	StringList dirs;
 
 	{
@@ -794,7 +794,7 @@ RefreshTaskQueueInfo ShareManager::refresh(ShareRefreshType aType, ShareRefreshP
 	return tasks->addRefreshTask(aPriority, dirs, aType, Util::emptyString, progressF);
 }
 
-optional<RefreshTaskQueueInfo> ShareManager::refreshPathsHooked(ShareRefreshPriority aPriority, const StringList& aPaths, const void* aCaller, const string& aDisplayName /*Util::emptyString*/, function<void(float)> aProgressF /*nullptr*/) noexcept {
+optional<RefreshTaskQueueInfo> ShareManager::refreshPathsHooked(ShareRefreshPriority aPriority, const StringList& aPaths, CallerPtr aCaller, const string& aDisplayName /*Util::emptyString*/, const ProgressFunction& aProgressF /*nullptr*/) noexcept {
 	try {
 		return refreshPathsHookedThrow(aPriority, aPaths, aCaller, aDisplayName, aProgressF);
 	} catch (const Exception&) {
@@ -805,7 +805,7 @@ optional<RefreshTaskQueueInfo> ShareManager::refreshPathsHooked(ShareRefreshPrio
 }
 
 
-RefreshTaskQueueInfo ShareManager::refreshPathsHookedThrow(ShareRefreshPriority aPriority, const StringList& aPaths, const void* aCaller, const string& aDisplayName, function<void(float)> aProgressF) {
+RefreshTaskQueueInfo ShareManager::refreshPathsHookedThrow(ShareRefreshPriority aPriority, const StringList& aPaths, CallerPtr aCaller, const string& aDisplayName, const ProgressFunction& aProgressF) {
 	for (const auto& path : aPaths) {
 		// Ensure that the path exists in share (or it can be added)
 		validatePathHooked(path, false, aCaller);
@@ -860,9 +860,9 @@ void ShareManager::onRefreshTaskCompleted(bool aCompleted, const ShareRefreshTas
 #endif
 }
 
-ShareManager::RefreshTaskHandler::RefreshTaskHandler(ShareBloom* aBloom, PathRefreshF aPathRefreshF, CompletionF aCompletionF) : bloom(std::move(aBloom)), pathRefreshF(aPathRefreshF), completionF(aCompletionF) {
-
-}
+ShareManager::RefreshTaskHandler::RefreshTaskHandler(ShareBloom* aBloom, PathRefreshF&& aPathRefreshF, CompletionF&& aCompletionF) : 
+	pathRefreshF(std::move(aPathRefreshF)), completionF(std::move(aCompletionF)), bloom(std::move(aBloom)) 
+{}
 
 void ShareManager::RefreshTaskHandler::refreshCompleted(bool aCompleted, const ShareRefreshTask& aTask, const ShareRefreshStats& aTotalStats) {
 	return completionF(aCompleted, aTask, aTotalStats, bloom, dirtyProfiles);
@@ -886,8 +886,8 @@ unique_ptr<ShareTasksManager::RefreshTaskHandler> ShareManager::startRefresh(con
 
 	return make_unique<ShareManager::RefreshTaskHandler>(
 		refreshBloom,
-		std::bind(&ShareManager::handleRefreshPath, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
-		std::bind(&ShareManager::onRefreshTaskCompleted, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5)
+		std::bind_front(&ShareManager::handleRefreshPath, this),
+		std::bind_front(&ShareManager::onRefreshTaskCompleted, this)
 	);
 }
 
@@ -1009,13 +1009,13 @@ GroupedDirectoryMap ShareManager::getGroupedDirectories() const noexcept {
 
 
 // FILELISTS
-pair<int64_t, string> ShareManager::getFileListInfo(const string& aVirtualFile, ProfileToken aProfile) {
+pair<int64_t, string> ShareManager::getFileListInfo(const string_view& aVirtualFile, ProfileToken aProfile) {
 	if (aVirtualFile == "MyList.DcLst")
 		throw ShareException("NMDC-style lists no longer supported, please upgrade your client");
 
 	if (aVirtualFile == Transfer::USER_LIST_NAME_BZ || aVirtualFile == Transfer::USER_LIST_NAME_EXTRACTED) {
-		FileList* fl = generateXmlList(aProfile);
-		return { fl->getBzXmlListLen(), fl->getFileName() };
+		auto filelist = generateXmlList(aProfile);
+		return { filelist->getBzXmlListLen(), filelist->getFileName() };
 	}
 
 	throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
@@ -1023,12 +1023,12 @@ pair<int64_t, string> ShareManager::getFileListInfo(const string& aVirtualFile, 
 
 
 string ShareManager::generateOwnList(ProfileToken aProfile) {
-	FileList* fl = generateXmlList(aProfile, true);
-	return fl->getFileName();
+	auto filelist = generateXmlList(aProfile, true);
+	return filelist->getFileName();
 }
 
 
-//forwards the calls to createFileList for creating the filelist that was reguested.
+//forwards the calls to createFileList for creating the filelist that was requested.
 FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*false*/) {
 	auto shareProfile = profiles->getShareProfile(aProfile);
 	if (!shareProfile) {
@@ -1126,7 +1126,7 @@ MemoryInputStream* ShareManager::generateTTHList(const string& aVirtualPath, boo
 
 
 // CACHE
-void ShareManager::saveShareCache(function<void(float)> progressF /*nullptr*/) noexcept {
+void ShareManager::saveShareCache(const ProgressFunction& progressF /*nullptr*/) noexcept {
 	if (shareCacheSaving)
 		return;
 
@@ -1204,7 +1204,7 @@ void ShareManager::onFileHashed(const string& aRealPath, const HashedFile& aFile
 
 
 // VALIDATION
-bool ShareManager::allowShareDirectoryHooked(const string& aRealPath, const void* aCaller) const noexcept {
+bool ShareManager::allowShareDirectoryHooked(const string& aRealPath, CallerPtr aCaller) const noexcept {
 	try {
 		validatePathHooked(aRealPath, false, aCaller);
 		return true;
@@ -1213,7 +1213,7 @@ bool ShareManager::allowShareDirectoryHooked(const string& aRealPath, const void
 	return false;
 }
 
-void ShareManager::validatePathHooked(const string& aRealPath, bool aSkipQueueCheck, const void* aCaller) const {
+void ShareManager::validatePathHooked(const string& aRealPath, bool aSkipQueueCheck, CallerPtr aCaller) const {
 	StringList tokens;
 	ShareDirectory::Ptr baseDirectory = nullptr;
 	string basePath;

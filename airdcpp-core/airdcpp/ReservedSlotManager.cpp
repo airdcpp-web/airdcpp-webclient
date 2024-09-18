@@ -31,7 +31,7 @@ namespace dcpp {
 
 using ranges::find_if;
 
-ReservedSlotManager::ReservedSlotManager(SlotsUpdatedF&& aSlotsUpdatedF) noexcept : onSlotsUpdated(aSlotsUpdatedF) {
+ReservedSlotManager::ReservedSlotManager(SlotsUpdatedF&& aSlotsUpdatedF) noexcept : onSlotsUpdated(std::move(aSlotsUpdatedF)) {
 	TimerManager::getInstance()->addListener(this);
 }
 
@@ -54,7 +54,7 @@ void ReservedSlotManager::reserveSlot(const HintedUser& aUser, uint64_t aTime) n
 
 bool ReservedSlotManager::hasReservedSlot(const UserPtr& aUser) const noexcept {
 	RLock l(cs);
-	return reservedSlots.find(aUser) != reservedSlots.end();
+	return reservedSlots.contains(aUser);
 }
 
 void ReservedSlotManager::unreserveSlot(const UserPtr& aUser) noexcept {
@@ -87,7 +87,7 @@ void ReservedSlotManager::on(TimerManagerListener::Minute, uint64_t aTick) noexc
 		}
 	}
 
-	for (auto& u: reservedRemoved) {
+	for (const auto& u: reservedRemoved) {
 		onSlotsUpdated(u);
 	}
 }

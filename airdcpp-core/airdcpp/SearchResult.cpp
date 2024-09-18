@@ -34,19 +34,19 @@ namespace dcpp {
 
 atomic<SearchResultId> searchResultIdCounter { 0 };
 
-SearchResult::SearchResult(const string& aPath) : path(aPath), type(TYPE_DIRECTORY), id(ValueGenerator::rand()) { }
+SearchResult::SearchResult(const string& aPath) : path(aPath), id(ValueGenerator::rand()), type(Type::DIRECTORY) { }
 
-SearchResult::SearchResult(const HintedUser& aUser, Types aType, uint8_t aTotalSlots, uint8_t aFreeSlots,
+SearchResult::SearchResult(const HintedUser& aUser, Type aType, uint8_t aTotalSlots, uint8_t aFreeSlots,
 	int64_t aSize, const string& aPath, const string& ip, TTHValue aTTH, const string& aToken, time_t aDate, const string& aConnection, const DirectoryContentInfo& aContentInfo) :
 
-	path(aPath), user(aUser), contentInfo(aContentInfo),
-	size(aSize), type(aType), totalSlots(aTotalSlots), freeSlots(aFreeSlots), IP(ip),
-	tth(aTTH), searchToken(aToken), date(aDate), connection(aConnection), id(searchResultIdCounter++) { }
+	tth(aTTH), path(aPath), IP(ip),
+	searchToken(aToken), id(searchResultIdCounter++), size(aSize), totalSlots(aTotalSlots), freeSlots(aFreeSlots),
+	contentInfo(aContentInfo), user(aUser), type(aType), date(aDate), connection(aConnection) { }
 
-SearchResult::SearchResult(Types aType, int64_t aSize, const string& aPath, const TTHValue& aTTH, time_t aDate, const DirectoryContentInfo& aContentInfo) :
-	path(aPath), user(HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString)), size(aSize), type(aType), totalSlots(UploadManager::getInstance()->getSlots()),
+SearchResult::SearchResult(Type aType, int64_t aSize, const string& aPath, const TTHValue& aTTH, time_t aDate, const DirectoryContentInfo& aContentInfo) :
+	tth(aTTH), path(aPath), id(searchResultIdCounter++), size(aSize), totalSlots(UploadManager::getInstance()->getSlots()),
 	freeSlots(UploadManager::getInstance()->getFreeSlots()), contentInfo(aContentInfo),
-	tth(aTTH), date(aDate), id(searchResultIdCounter++) { }
+	user(HintedUser(ClientManager::getInstance()->getMe(), Util::emptyString)), type(aType), date(aDate) { }
 
 string SearchResult::toSR(const Client& c) const noexcept {
 	// File:		"$SR %s %s%c%s %d/%d%c%s (%s)|"
@@ -57,7 +57,7 @@ string SearchResult::toSR(const Client& c) const noexcept {
 	tmp.append(Text::fromUtf8(c.getMyNick(), c.get(HubSettings::NmdcEncoding)));
 	tmp.append(1, ' ');
 	string acpFile = PathUtil::toNmdcFile(Text::fromUtf8(path, c.get(HubSettings::NmdcEncoding)));
-	if(type == TYPE_FILE) {
+	if(type == Type::FILE) {
 		tmp.append(acpFile);
 		tmp.append(1, '\x05');
 		tmp.append(Util::toString(size));
@@ -81,12 +81,12 @@ AdcCommand SearchResult::toRES(char aType) const noexcept {
 	cmd.addParam("SI", Util::toString(size));
 	cmd.addParam("SL", Util::toString(freeSlots));
 	cmd.addParam("FN", path);
-	if (type != TYPE_DIRECTORY) {
+	if (type != Type::DIRECTORY) {
 		cmd.addParam("TR", getTTH().toBase32());
 	}
 	cmd.addParam("DM", Util::toString(date));
 
-	if (type == TYPE_DIRECTORY) {
+	if (type == Type::DIRECTORY) {
 		cmd.addParam("FI", Util::toString(contentInfo.files));
 		cmd.addParam("FO", Util::toString(contentInfo.directories));
 	}
@@ -94,7 +94,7 @@ AdcCommand SearchResult::toRES(char aType) const noexcept {
 }
 
 string SearchResult::getFileName() const noexcept {
-	if(getType() == TYPE_FILE) 
+	if(getType() == Type::FILE)
 		return PathUtil::getAdcFileName(path); 
 
 	return PathUtil::getAdcLastDir(path);
@@ -156,13 +156,13 @@ void SearchResult::pickResults(SearchResultList& aResults, int aMaxCount) noexce
 }
 
 string SearchResult::getAdcFilePath() const noexcept {
-	if (type == TYPE_DIRECTORY)
+	if (type == Type::DIRECTORY)
 		return path;
 
 	return PathUtil::getAdcFilePath(path);
 }
 
-bool SearchResult::matches(SearchQuery& aQuery, const string& aLocalSearchToken) const noexcept {
+bool SearchResult::matches(SearchQuery& aQuery, const string_view& aLocalSearchToken) const noexcept {
 	if (!user.user->isNMDC()) {
 		// ADC
 		if (aLocalSearchToken != searchToken) {
@@ -188,7 +188,7 @@ bool SearchResult::matches(SearchQuery& aQuery, const string& aLocalSearchToken)
 	}
 
 	// All clients can't handle this correctly
-	if (aQuery.itemType == SearchQuery::TYPE_FILE && type != SearchResult::TYPE_FILE) {
+	if (aQuery.itemType == SearchQuery::ItemType::FILE && type != Type::FILE) {
 		return false;
 	}
 
@@ -215,7 +215,7 @@ bool SearchResult::getRelevance(SearchQuery& aQuery, RelevanceInfo& relevance_, 
 	}
 
 	// Don't count the levels because they can't be compared with each others
-	auto matchRelevance = SearchQuery::getRelevanceScore(aQuery, 0, type == SearchResult::TYPE_DIRECTORY, getFileName());
+	auto matchRelevance = SearchQuery::getRelevanceScore(aQuery, 0, type == Type::DIRECTORY, getFileName());
 	double sourceScoreFactor = 0.01;
 	if (aQuery.recursion && aQuery.recursion->isComplete()) {
 		// There are subdirectories/files that have more matches than the main directory
@@ -232,7 +232,7 @@ bool SearchResult::getRelevance(SearchQuery& aQuery, RelevanceInfo& relevance_, 
 }
 
 DupeType SearchResult::getDupe() const noexcept {
-	if (type == SearchResult::TYPE_DIRECTORY) {
+	if (type == Type::DIRECTORY) {
 		return DupeUtil::checkAdcDirectoryDupe(path, size);
 	} else {
 		return DupeUtil::checkFileDupe(tth);

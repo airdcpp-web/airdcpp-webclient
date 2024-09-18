@@ -30,7 +30,7 @@ namespace dcpp {
 	FastCriticalSection GroupedSearchResult::cs;
 
 	GroupedSearchResult::GroupedSearchResult(const SearchResultPtr& aSR, SearchResult::RelevanceInfo&& aRelevance) :
-		/*token(ValueGenerator::rand()),*/ baseResult(aSR), relevanceInfo(std::move(aRelevance)) {
+		baseResult(aSR), relevanceInfo(std::move(aRelevance)) {
 
 		// check the dupe
 		if (SETTING(DUPE_SEARCH)) {
@@ -103,12 +103,12 @@ namespace dcpp {
 
 	time_t GroupedSearchResult::getOldestDate() const noexcept {
 		FastLock l(cs);
-		auto min = min_element(children.begin(), children.end(), SearchResult::DateOrder());
+		auto min = ranges::min_element(children, SearchResult::DateOrder());
 		return (*min)->getDate();
 	}
 
 	string GroupedSearchResult::getFileName() const noexcept {
-		map<string, int> nameCounts;
+		StringIntMap nameCounts;
 
 		{
 			FastLock l(cs);
@@ -116,12 +116,12 @@ namespace dcpp {
 				++nameCounts[child->getFileName()];
 		}
 
-		decltype(auto) max = *ranges::max_element(nameCounts, [](const auto& p1, const auto& p2) {
+		const auto& [maxName, maxCount] = *ranges::max_element(nameCounts, [](const auto& p1, const auto& p2) {
 			return p1.second < p2.second;
 		});
 
-		auto matches = ranges::count(nameCounts | views::values, max.second);
-		return matches == 1 ? max.first : baseResult->getFileName();
+		auto matches = ranges::count(nameCounts | views::values, maxCount);
+		return matches == 1 ? maxName : baseResult->getFileName();
 	}
 
 	double GroupedSearchResult::getTotalRelevance() const noexcept {
@@ -143,7 +143,7 @@ namespace dcpp {
 		return results;
 	}
 
-	BundleAddInfo GroupedSearchResult::downloadFileHooked(const string& aTargetDirectory, const string& aTargetName, Priority aPrio, const void* aCaller) {
+	BundleAddInfo GroupedSearchResult::downloadFileHooked(const string& aTargetDirectory, const string& aTargetName, Priority aPrio, CallerPtr aCaller) {
 		string lastError;
 		optional<BundleAddInfo> bundleAddInfo;
 
@@ -167,7 +167,7 @@ namespace dcpp {
 		return *bundleAddInfo;
 	}
 
-	DirectoryDownloadList GroupedSearchResult::downloadDirectoryHooked(const string& aTargetDirectory, const string& aTargetName, Priority aPrio, const void* aCaller) {
+	DirectoryDownloadList GroupedSearchResult::downloadDirectoryHooked(const string& aTargetDirectory, const string& aTargetName, Priority aPrio, CallerPtr aCaller) const {
 		string lastError;
 		DirectoryDownloadList directoryDownloads;
 

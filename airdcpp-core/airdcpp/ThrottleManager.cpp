@@ -28,7 +28,7 @@ namespace dcpp {
 	// The actual limiting code is from StrongDC++
 	// Bandwidth limiting in DC++ is broken: https://www.airdcpp.net/forum/viewtopic.php?f=7&t=4485&p=8856#p8856
 
-	#define CONDWAIT_TIMEOUT		250
+constexpr auto CONDWAIT_TIMEOUT = 250;
 
 	// constructor
 	ThrottleManager::ThrottleManager(void)
@@ -61,7 +61,7 @@ namespace dcpp {
 		if(downTokens > 0)
 		{
 			size_t slice = (getDownLimit() * 1024) / downs;
-			size_t readSize = min(slice, min(len, downTokens));
+			auto readSize = static_cast<int>(min(slice, min(len, downTokens)));
 				
 			// read from socket
 			readSize = sock->read(buffer, readSize);
@@ -134,7 +134,6 @@ namespace dcpp {
 	SettingsManager::IntSetting ThrottleManager::getCurSetting(SettingsManager::IntSetting setting) noexcept {
 		SettingsManager::IntSetting upLimit = SettingsManager::MAX_UPLOAD_SPEED_MAIN;
 		SettingsManager::IntSetting downLimit = SettingsManager::MAX_DOWNLOAD_SPEED_MAIN;
-		//SettingsManager::IntSetting slots     = SettingsManager::SLOTS_PRIMARY;
 
 		if (SETTING(TIME_DEPENDENT_THROTTLE)) {
 			time_t currentTime;
@@ -147,7 +146,6 @@ namespace dcpp {
 			{
 				upLimit = SettingsManager::MAX_UPLOAD_SPEED_ALTERNATE;
 				downLimit = SettingsManager::MAX_DOWNLOAD_SPEED_ALTERNATE;
-				//slots     = SettingsManager::SLOTS_ALTERNATE_LIMITING;
 			}
 		}
 
@@ -156,8 +154,6 @@ namespace dcpp {
 			return upLimit;
 		case SettingsManager::MAX_DOWNLOAD_SPEED_MAIN:
 			return downLimit;
-			//case SettingsManager::SLOTS:
-			//	return slots;
 		default:
 			return setting;
 		}

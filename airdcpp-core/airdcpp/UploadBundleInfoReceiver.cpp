@@ -60,6 +60,29 @@ UploadBundleInfoReceiver::~UploadBundleInfoReceiver() {
 	ProtocolCommandManager::getInstance()->removeListener(this);
 }
 
+double UploadBundleInfoReceiver::parseSpeed(const string& aSpeedStr) noexcept {
+	if (aSpeedStr.empty() || aSpeedStr.length() <= 2) {
+		return 0;
+	}
+
+	auto length = aSpeedStr.length();
+	auto downloaded = Util::toDouble(aSpeedStr.substr(0, length - 1));
+	if (downloaded > 0) {
+		double speed = 0.0;
+		if (aSpeedStr[length - 1] == 'k') {
+			speed = downloaded * 1024.0;
+		} else if (aSpeedStr[length - 1] == 'm') {
+			speed = downloaded * 1048576.0;
+		} else if (aSpeedStr[length - 1] == 'b') {
+			speed = downloaded;
+		}
+
+		return speed;
+	}
+
+	return 0;
+}
+
 void UploadBundleInfoReceiver::onUBN(const AdcCommand& cmd) {
 	string bundleToken;
 	float percent = -1;
@@ -88,23 +111,9 @@ void UploadBundleInfoReceiver::onUBN(const AdcCommand& cmd) {
 			return;
 		}
 
-		if (!speedStr.empty() && speedStr.length() > 2) {
-			auto length = speedStr.length();
-			double downloaded = Util::toDouble(speedStr.substr(0, length-1));
-			if (downloaded > 0) {
-				double speed = 0.0;
-				if (speedStr[length-1] == 'k') {
-					speed = downloaded*1024.0;
-				} else if (speedStr[length-1] == 'm') {
-					speed = downloaded*1048576.0;
-				} else if (speedStr[length-1] == 'b') {
-					speed = downloaded;
-				}
-
-				if (speed > 0) {
-					bundle->setTotalSpeed(static_cast<int64_t>(speed));
-				}
-			}
+		auto speed = parseSpeed(speedStr);
+		if (speed > 0) {
+			bundle->setTotalSpeed(static_cast<int64_t>(speed));
 		}
 
 		if (percent >= 0.00 && percent <= 100.00) {
@@ -325,7 +334,7 @@ void UploadBundleInfoReceiver::handleAddBundleConnection(const string& aConnecti
 		dbgMsg("add connection, upload " + aConnectionToken + " doesn't exist for bundle " + aBundle->getName() + " (saving info for possible incoming connections)", LogMessage::SEV_WARNING);
 
 		WLock l(cs);
-		uploadMap[aConnectionToken] = aBundle;
+		connections[aConnectionToken] = aBundle;
 	}
 }
 
@@ -343,7 +352,7 @@ void UploadBundleInfoReceiver::handleRemoveBundleConnection(const string& aUploa
 void UploadBundleInfoReceiver::addBundleConnectionUnsafe(const Upload* aUpload, const UploadBundlePtr& aBundle) noexcept {
 	aBundle->addUpload(aUpload);
 
-	uploadMap[aUpload->getConnectionToken()] = aBundle;
+	connections[aUpload->getConnectionToken()] = aBundle;
 }
 
 void UploadBundleInfoReceiver::removeBundleConnectionUnsafe(const Upload* aUpload, const UploadBundlePtr& aBundle) noexcept {
@@ -373,8 +382,7 @@ void UploadBundleInfoReceiver::onUBD(const AdcCommand& cmd) {
 
 UploadBundlePtr UploadBundleInfoReceiver::findByConnectionToken(const string& aUploadToken) const noexcept {
 	RLock l(cs);
-	auto s = uploadMap.find(aUploadToken);
-	if (s != uploadMap.end()) {
+	if (auto s = connections.find(aUploadToken); s != connections.end()) {
 		return s->second;
 	}
 
@@ -383,15 +391,12 @@ UploadBundlePtr UploadBundleInfoReceiver::findByConnectionToken(const string& aU
 
 UploadBundlePtr UploadBundleInfoReceiver::findByBundleToken(const string& aBundleToken) const noexcept {
 	RLock l(cs);
-	auto s = bundles.find(aBundleToken);
-	if (s != bundles.end()) {
+	if (auto s = bundles.find(aBundleToken); s != bundles.end()) {
 		return s->second;
 	}
 
 	return nullptr;
 }
-
-#define BUNDLE_DELAY_SECONDS 60
 
 // TimerManagerListener
 void UploadBundleInfoReceiver::on(TimerManagerListener::Second, uint64_t /*aTick*/) noexcept {
@@ -399,9 +404,9 @@ void UploadBundleInfoReceiver::on(TimerManagerListener::Second, uint64_t /*aTick
 
 	{
 		RLock l(cs);
-		for (const auto& b: bundles) {
-			if (!b.second->getUploads().empty()) {
-				bundleUploads.emplace_back(b.second, b.second->getUploads());
+		for (const auto& [_, b] : bundles) {
+			if (!b->getUploads().empty()) {
+				bundleUploads.emplace_back(b, b->getUploads());
 			}
 		}
 	}
@@ -411,11 +416,11 @@ void UploadBundleInfoReceiver::on(TimerManagerListener::Second, uint64_t /*aTick
 
 	{
 		RLock l(UploadManager::getInstance()->getCS());
-		for (auto& b: bundleUploads) {
+		for (const auto& [b, uploadToken]: bundleUploads) {
 			UploadList uploads;
 			OrderedStringSet flags;
 
-			for (const auto& token: b.second) {
+			for (const auto& token: uploadToken) {
 				auto u = UploadManager::getInstance()->findUploadUnsafe(token);
 				if (!u) {
 					continue;
@@ -425,8 +430,8 @@ void UploadBundleInfoReceiver::on(TimerManagerListener::Second, uint64_t /*aTick
 				uploads.push_back(u);
 			}
 
-			if (b.first->countSpeed(uploads) > 0) {
-				tickBundles.emplace_back(b.first, flags);
+			if (b->countSpeed(uploads) > 0) {
+				tickBundles.emplace_back(b, flags);
 			}
 		}
 	}
@@ -441,26 +446,24 @@ void UploadBundleInfoReceiver::on(TimerManagerListener::Second, uint64_t /*aTick
 
 void UploadBundleInfoReceiver::removeIdleBundles() noexcept {
 	WLock l(cs);
-	for (auto bundleIter = bundles.begin(); bundleIter != bundles.end();) {
-		auto ub = bundleIter->second;
-		if (ub->getUploads().empty() && ++ub->delayTime > BUNDLE_DELAY_SECONDS) {
-			dbgMsg("removing an idle bundle " + bundleIter->second->getName() + ", token " + bundleIter->first, LogMessage::SEV_VERBOSE);
 
-			for (auto upIter = uploadMap.begin(); upIter != uploadMap.end();) {
-				if (upIter->second == ub) {
-					dbgMsg("removing an idle token " + upIter->first, LogMessage::SEV_VERBOSE);
-					upIter = uploadMap.erase(upIter);
-				}
-				else {
-					upIter++;
-				}
-			}
-
-			bundleIter = bundles.erase(bundleIter);
-		} else {
-			bundleIter++;
+	std::erase_if(bundles, [this](const auto& bundleTokenPair) {
+		auto& ub = bundleTokenPair.second;
+		if (!ub->checkDelaySecond()) {
+			return false;
 		}
-	}
+
+		dbgMsg("removing an idle bundle " + ub->getName() + ", token " + ub->getToken(), LogMessage::SEV_VERBOSE);
+
+		std::erase_if(connections, [&ub, this](const auto& connectionTokenPair) {
+			auto remove = connectionTokenPair.second == ub;
+			if (remove) {
+				dbgMsg("removing an idle connection token " + connectionTokenPair.first, LogMessage::SEV_VERBOSE);
+			}
+			return remove;
+		});
+		return true;
+	});
 }
 
 size_t UploadBundleInfoReceiver::getRunningBundleCount() const noexcept {

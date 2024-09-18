@@ -48,29 +48,29 @@ QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, F
 		time_t aAdded, const TTHValue& tth, const string& aTempTarget) :
 		QueueItemBase(aTarget, aSize, aPriority, aAdded, ValueGenerator::rand(), aFlag),
 		tthRoot(tth), tempTarget(aTempTarget)
-	{
+{	
+	using enum dcpp::Priority;
 
-	
 	if(isSet(FLAG_USER_LIST) || isSet(FLAG_CLIENT_VIEW)) {
 		/* Always use highest for the items without bundle */
-		setPriority(Priority::HIGHEST);
+		setPriority(HIGHEST);
 	} else {
-		if (priority == Priority::DEFAULT) {
+		if (priority == DEFAULT) {
 			if(aSize <= Util::convertSize(SETTING(PRIO_HIGHEST_SIZE), Util::KB)) {
-				setPriority(Priority::HIGHEST);
+				setPriority(HIGHEST);
 			} else if (aSize <= Util::convertSize(SETTING(PRIO_HIGH_SIZE), Util::KB)) {
-				setPriority(Priority::HIGH);
+				setPriority(HIGH);
 			} else if (aSize <= Util::convertSize(SETTING(PRIO_NORMAL_SIZE), Util::KB)) {
-				setPriority(Priority::NORMAL);
+				setPriority(NORMAL);
 			} else if (aSize <= Util::convertSize(SETTING(PRIO_LOW_SIZE), Util::KB)) {
-				setPriority(Priority::LOW);
+				setPriority(LOW);
 			} else if(SETTING(PRIO_LOWEST)) {
-				setPriority(Priority::LOWEST);
+				setPriority(LOWEST);
 			} else if(SETTING(AUTO_PRIORITY_DEFAULT)) {
 				setAutoPriority(true);
-				setPriority(Priority::LOW);
+				setPriority(LOW);
 			} else {
-				setPriority(Priority::NORMAL);
+				setPriority(NORMAL);
 			}
 		}
 
@@ -134,8 +134,8 @@ bool QueueItem::isFailedStatus(Status aStatus) noexcept {
 Priority QueueItem::calculateAutoPriority() const noexcept {
 	if (getAutoPriority()) {
 		Priority p;
-		auto percent = static_cast<int>(getDownloadedBytes() * 10.0 / size);
-		switch(percent){
+		auto percent = static_cast<int>(static_cast<double>(getDownloadedBytes()) * 10.0 / static_cast<double>(size));
+		switch(percent) {
 				case 0:
 				case 1:
 				case 2:
@@ -146,8 +146,6 @@ Priority QueueItem::calculateAutoPriority() const noexcept {
 				case 5:			
 					p = Priority::NORMAL;
 					break;
-				case 6:
-				case 7:
 				default:
 					p = Priority::HIGH;
 					break;
@@ -166,32 +164,33 @@ bool QueueItem::hasPartialSharingTarget() noexcept {
 }
 
 bool QueueItem::isBadSourceExcept(const UserPtr& aUser, Flags::MaskType aExceptions, bool& isBad_) const noexcept {
-	const auto i = getBadSource(aUser);
-	if (i != badSources.end()) {
+	if (const auto i = getBadSource(aUser); i != badSources.end()) {
 		isBad_ = true;
-		return i->isAnySet((Flags::MaskType)(aExceptions ^Source::FLAG_MASK));
+		return i->isAnySet(aExceptions ^Source::FLAG_MASK);
 	}
 
 	return false;
 }
 
 bool QueueItem::isChunkDownloaded(const Segment& aSegment) const noexcept {
-	auto requestStart = aSegment.getStart();
 	auto requestLen = aSegment.getSize();
-
 	if (requestLen <= 0) return false;
 
-	for (auto& i: done) {
-		auto start  = i.getStart();
-		auto end = i.getEnd();
-
-		if (start <= requestStart && requestStart < end && aSegment.getEnd() <= end){
+	auto found = ranges::any_of(done, [
+		requestStart = aSegment.getStart(),
+		&aSegment
+	](auto& segment) {
+		auto start = segment.getStart();
+		auto end = segment.getEnd();
+		if (start <= requestStart && requestStart < end && aSegment.getEnd() <= end) {
 			// len_ = min(len_, end - requestStart);
 			return true;
 		}
-	}
 
-	return false;
+		return false;
+	});
+
+	return found;
 }
 
 string QueueItem::getStatusString(int64_t aDownloadedBytes, bool aIsWaiting) const noexcept {
@@ -350,7 +349,7 @@ uint64_t QueueItem::getAverageSpeed() const noexcept {
 	uint64_t totalSpeed = 0;
 	
 	for(auto d: downloads) {
-		totalSpeed += static_cast<int64_t>(d->getAverageSpeed());
+		totalSpeed += d->getAverageSpeed();
 	}
 
 	return totalSpeed;
@@ -362,7 +361,7 @@ uint64_t QueueItem::getSecondsLeft() const noexcept {
 }
 
 double QueueItem::getDownloadedFraction() const noexcept { 
-	return static_cast<double>(getDownloadedBytes()) / size; 
+	return static_cast<double>(getDownloadedBytes()) / static_cast<double>(size);
 }
 
 bool QueueItem::segmentsDone() const noexcept {
@@ -500,7 +499,7 @@ Segment QueueItem::getNextSegment(int64_t aBlockSize, int64_t aWantedSize, int64
 		// select random chunk for download
 		dcdebug("Found chunks: " SIZET_FMT "\n", neededParts.size());
 		
-		Segment& selected = neededParts[ValueGenerator::rand(0, neededParts.size() - 1)];
+		Segment& selected = neededParts[ValueGenerator::rand(0, static_cast<uint32_t>(neededParts.size() - 1))];
 		selected.setSize(std::min(selected.getSize(), targetSize));	// request only wanted size
 		
 		return selected;
@@ -627,8 +626,8 @@ void QueueItem::getPartialInfo(PartsInfo& aPartialInfo, int64_t aBlockSize) cons
 	auto i = done.begin();
 	for(; i != done.end() && aPartialInfo.size() < maxSize; i++) {
 
-		uint16_t s = (uint16_t)((*i).getStart() / aBlockSize);
-		uint16_t e = (uint16_t)(((*i).getEnd() - 1) / aBlockSize + 1);
+		auto s = (uint16_t)((*i).getStart() / aBlockSize);
+		auto e = (uint16_t)(((*i).getEnd() - 1) / aBlockSize + 1);
 
 		aPartialInfo.push_back(s);
 		aPartialInfo.push_back(e);
@@ -665,7 +664,7 @@ bool QueueItem::Source::validateHub(const OrderedStringSet& aOnlineHubs, bool aA
 
 	// Can't download a filelist if the hub is offline... don't be too strict with NMDC hubs
 	if (!user.user->isSet(User::NMDC)) {
-		if (!aAllowUrlChange && aOnlineHubs.find(user.hint) == aOnlineHubs.end()) {
+		if (!aAllowUrlChange && !aOnlineHubs.contains(user.hint)) {
 			lastError_ = STRING(USER_OFFLINE);
 			return false;
 		}
@@ -782,7 +781,7 @@ QueueItemPtr QueueItem::pickSearchItem(const QueueItemList& aItems) noexcept {
 	QueueItemPtr searchItem = nullptr;
 
 	for (size_t s = 0; s < aItems.size(); s++) {
-		searchItem = aItems[ValueGenerator::rand(0, aItems.size() - 1)];
+		searchItem = aItems[ValueGenerator::rand(0, static_cast<uint32_t>(aItems.size() - 1))];
 
 		if (!searchItem->isRunning() && !searchItem->isPausedPrio()) {
 			break;
@@ -819,7 +818,7 @@ void QueueItem::removeDownloads(const UserPtr& aUser) noexcept {
 }
 
 
-void QueueItem::save(OutputStream &f, string tmp, string b32tmp) {
+void QueueItem::save(OutputStream &f, string tmp, string b32tmp) const {
 	string indent = "\t";
 
 	if (segmentsDone()) {
@@ -905,7 +904,7 @@ bool QueueItem::Source::updateDownloadHubUrl(const OrderedStringSet& aOnlineHubs
 		dcassert(aOnlineHubs.find(user.hint) != aOnlineHubs.end());
 		hubUrl_ = user.hint;
 		return true;
-	} else if (blockedHubs.find(hubUrl_) != blockedHubs.end()) {
+	} else if (blockedHubs.contains(hubUrl_)) {
 		//we can't connect via a blocked hub
 		StringList availableHubs;
 		set_difference(aOnlineHubs.begin(), aOnlineHubs.end(), blockedHubs.begin(), blockedHubs.end(), back_inserter(availableHubs));

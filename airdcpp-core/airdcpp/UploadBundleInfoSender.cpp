@@ -61,7 +61,7 @@ UploadBundleInfoSender::~UploadBundleInfoSender() noexcept {
 	QueueManager::getInstance()->removeListener(this);
 }
 
-void UploadBundleInfoSender::dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) noexcept {
+void UploadBundleInfoSender::dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
 	if (ENABLE_DEBUG) {
 		LogManager::getInstance()->message(aMsg, aSeverity, "UBN (sender)");
 	} else if (aSeverity == LogMessage::SEV_WARNING || aSeverity == LogMessage::SEV_ERROR) {
@@ -92,8 +92,7 @@ void UploadBundleInfoSender::on(DownloadManagerListener::Starting, const Downloa
 	if (!bundle) {
 		// Existing bundle connection being used for non-bundle files (or filelists)?
 		WLock l(cs);
-		auto i = connectionTokenMap.find(aDownload->getConnectionToken());
-		if (i != connectionTokenMap.end()) {
+		if (auto i = connectionTokenMap.find(aDownload->getConnectionToken()); i != connectionTokenMap.end()) {
 			removeRunningUserUnsafe(i->second, &aDownload->getUserConnection(), true);
 			dbgMsg("no new bundle for a connection " + aDownload->getConnectionToken() + ", previously " + i->second->getBundle()->getName(), LogMessage::SEV_VERBOSE);
 			connectionTokenMap.erase(i);
@@ -107,8 +106,8 @@ void UploadBundleInfoSender::on(DownloadManagerListener::Starting, const Downloa
 	if (!ubnBundle) {
 		ubnBundle = make_shared<UBNBundle>(
 			bundle, 
-			[this](AdcCommand& cmd, const UserPtr& aUser) { sendUpdate(cmd, aUser); }, 
-			[this](const string& aMsg, LogMessage::Severity aSev) { dbgMsg(aMsg, aSev); }
+			[this](auto... args) { sendUpdate(args...); },
+			bind_front(&UploadBundleInfoSender::dbgMsg, this)
 		);
 
 		{
@@ -137,12 +136,6 @@ void UploadBundleInfoSender::on(DownloadManagerListener::Starting, const Downloa
 		}
 	}
 }
-
-/*void UploadBundleInfoSender::on(DownloadManagerListener::Complete, const Download* aDownload, bool) noexcept {
-	if (aDownload->getBundle()) {
-		removeRunningUser(aDownload->getBundle(), &aDownload->getUserConnection(), false);
-	}
-}*/
 
 void UploadBundleInfoSender::on(DownloadManagerListener::Idle, const UserConnection* aSource, const string&) noexcept {
 	removeRunningUser(aSource, false);
@@ -216,23 +209,23 @@ UploadBundleInfoSender::UBNBundle::Ptr UploadBundleInfoSender::findInfoByConnect
 	return i != connectionTokenMap.end() ? i->second : nullptr;
 }
 
+string UploadBundleInfoSender::UBNBundle::formatSpeed(int64_t aSpeed) noexcept {
+	char buf[64];
+	if (aSpeed < 1024) {
+		snprintf(buf, sizeof(buf), "%d%s", (int)(aSpeed & 0xffffffff), "b");
+	} else if (aSpeed < 1048576) {
+		snprintf(buf, sizeof(buf), "%.02f%s", (double)aSpeed / (1024.0), "k");
+	} else {
+		snprintf(buf, sizeof(buf), "%.02f%s", (double)aSpeed / (1048576.0), "m");
+	}
+	return buf;
+}
+
 void UploadBundleInfoSender::UBNBundle::getTickParams(string& percent_, string& speedStr_) noexcept {
 	auto speed = bundle->getSpeed();
 	if (abs(speed - lastSpeed) > (lastSpeed / 10)) {
 		//LogManager::getInstance()->message("SEND SPEED: " + Util::toString(abs(speed-lastSpeed)) + " is more than " + Util::toString(lastSpeed / 10));
-		auto formatSpeed = [speed]() -> string {
-			char buf[64];
-			if (speed < 1024) {
-				snprintf(buf, sizeof(buf), "%d%s", (int)(speed & 0xffffffff), "b");
-			} else if (speed < 1048576) {
-				snprintf(buf, sizeof(buf), "%.02f%s", (double)speed / (1024.0), "k");
-			} else {
-				snprintf(buf, sizeof(buf), "%.02f%s", (double)speed / (1048576.0), "m");
-			}
-			return buf;
-		};
-
-		speedStr_ = formatSpeed();
+		speedStr_ = formatSpeed(speed);
 		lastSpeed = speed;
 	} else {
 		//LogManager::getInstance()->message("DON'T SEND SPEED: " + Util::toString(abs(speed-lastSpeed)) + " is less than " + Util::toString(lastSpeed / 10));
@@ -259,17 +252,16 @@ void UploadBundleInfoSender::UBNBundle::onDownloadTick() noexcept {
 	getTickParams(speedStr, speedStr);
 
 	if (!speedStr.empty() || !percentStr.empty()) {
-		for (const auto& i: uploadReports) {
+		for (const auto& user: uploadReports | views::keys) {
 			auto cmd = getTickCommand(percentStr, speedStr);
-			sendUpdate(cmd, i.first);
+			sendUpdate(cmd, user);
 		}
 	}
 }
 
 bool UploadBundleInfoSender::UBNBundle::addRunningUser(const UserConnection* aSource) noexcept {
 	bool newBundle = true;
-	auto y = uploadReports.find(aSource->getUser());
-	if (y == uploadReports.end()) {
+	if (auto y = uploadReports.find(aSource->getUser()); y == uploadReports.end()) {
 		if (uploadReports.size() == 1) {
 			setUserMode(false);
 		}
@@ -419,10 +411,10 @@ void UploadBundleInfoSender::sendUpdate(AdcCommand& aCmd, const UserPtr& aUser) 
 	});
 }
 
-void UploadBundleInfoSender::UBNBundle::sendSizeUpdate() noexcept {
-	for (const auto& u : uploadReports) {
+void UploadBundleInfoSender::UBNBundle::sendSizeUpdate() const noexcept {
+	for (const auto& user: uploadReports | views::keys) {
 		auto cmd = getBundleSizeUpdateCommand();
-		sendUpdate(cmd, u.first);
+		sendUpdate(cmd, user);
 	}
 }
 

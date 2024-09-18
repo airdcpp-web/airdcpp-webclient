@@ -58,9 +58,9 @@ public:
 	int64_t getSize() const noexcept { return size; }
 	uint64_t getTime() const noexcept { return time; }
 	const string& getFile() const noexcept { return file; }
-	const UserPtr& getUser() const noexcept { return user.user; }
+	const UserPtr& getUser() const noexcept override { return user.user; }
 	const HintedUser& getHintedUser() const noexcept { return user; }
-	const string& getHubUrl() const noexcept { return user.hint; }
+	const string& getHubUrl() const noexcept override { return user.hint; }
 
 	GETSET(int64_t, pos, Pos);
 	
@@ -90,7 +90,7 @@ public:
 	}
 	void removeQueue(const UserPtr& aUser) noexcept;
 	bool isNotifiedUserUnsafe(const UserPtr& aUser) const noexcept;
-	typedef vector<WaitingUser> SlotQueue;
+	using SlotQueue = vector<WaitingUser>;
 	SlotQueue getUploadQueue() const noexcept;
 		
 	IGETSET(uint8_t, extraPartial, ExtraPartial, 0);
@@ -100,9 +100,9 @@ public:
 	bool allowUser(const UserPtr& aUser) const noexcept;
 	void connectUser(const HintedUser& aUser) noexcept;
 
-	typedef std::function<uint8_t()> FreeSlotF;
-	UploadQueueManager(FreeSlotF aFreeSlotF) noexcept;
-	~UploadQueueManager();
+	using FreeSlotF = std::function<uint8_t ()>;
+	explicit UploadQueueManager(FreeSlotF&& aFreeSlotF) noexcept;
+	~UploadQueueManager() final;
 private:
 	friend class UploadManager;
 
@@ -110,13 +110,13 @@ private:
 
 	mutable SharedMutex cs;
 
-	typedef unordered_map<UserPtr, uint64_t, User::Hash> SlotMap;
+	using SlotMap = unordered_map<UserPtr, uint64_t, User::Hash>;
 	SlotMap notifiedUsers;
 	SlotQueue uploadQueue;
 
 	size_t addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size) noexcept;
 	void notifyQueuedUsers(uint8_t aFreeSlots) noexcept;
-	void connectUser(const HintedUser& aUser, const string& aToken) noexcept;
+	static void connectUser(const HintedUser& aUser, const string& aToken) noexcept;
 
 	// ClientManagerListener
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool aWentOffline) noexcept override;

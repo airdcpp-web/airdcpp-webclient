@@ -34,7 +34,7 @@ class Mapper : boost::noncopyable
 {
 public:
 	Mapper(const string& localIp, bool v6);
-	virtual ~Mapper() { }
+	virtual ~Mapper() = default;
 
 	enum Protocol {
 		PROTOCOL_TCP,

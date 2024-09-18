@@ -92,7 +92,7 @@ void FavoriteUserManager::addFavoriteUser(const HintedUser& aUser) noexcept {
 
 	{
 		RLock l(cs);
-		if(users.find(aUser.user->getCID()) != users.end()) {
+		if(users.contains(aUser.user->getCID())) {
 			return;
 		}
 	}
@@ -100,7 +100,7 @@ void FavoriteUserManager::addFavoriteUser(const HintedUser& aUser) noexcept {
 	auto fu = createUser(aUser.user, aUser.hint);
 	{
 		WLock l (cs);
-		users.emplace(aUser.user->getCID(), fu);
+		users.try_emplace(aUser.user->getCID(), fu);
 	}
 
 	aUser.user->setFlag(User::FAVORITE);
@@ -113,7 +113,7 @@ void FavoriteUserManager::addSavedUser(const UserPtr& aUser) noexcept {
 
 	{
 		RLock l(cs);
-		if (savedUsers.find(aUser) != savedUsers.end()) {
+		if (savedUsers.contains(aUser)) {
 			return;
 		}
 	}
@@ -163,15 +163,15 @@ void FavoriteUserManager::saveFavoriteUsers(SimpleXML& aXml) noexcept {
 
 	{
 		RLock l(cs);
-		for (const auto& i : users) {
+		for (const auto& [cid, user] : users) {
 			aXml.addTag("User");
-			aXml.addChildAttrib("LastSeen", i.second.getLastSeen());
-			aXml.addChildAttrib("GrantSlot", i.second.isSet(FavoriteUser::FLAG_GRANTSLOT));
-			aXml.addChildAttrib("SuperUser", i.second.isSet(FavoriteUser::FLAG_SUPERUSER));
-			aXml.addChildAttrib("UserDescription", i.second.getDescription());
-			aXml.addChildAttrib("Nick", i.second.getNick());
-			aXml.addChildAttrib("URL", i.second.getUrl());
-			aXml.addChildAttrib("CID", i.first.toBase32());
+			aXml.addChildAttrib("LastSeen", user.getLastSeen());
+			aXml.addChildAttrib("GrantSlot", user.isSet(FavoriteUser::FLAG_GRANTSLOT));
+			aXml.addChildAttrib("SuperUser", user.isSet(FavoriteUser::FLAG_SUPERUSER));
+			aXml.addChildAttrib("UserDescription", user.getDescription());
+			aXml.addChildAttrib("Nick", user.getNick());
+			aXml.addChildAttrib("URL", user.getUrl());
+			aXml.addChildAttrib("CID", cid.toBase32());
 			aXml.addChildAttrib("Favorite", true);
 		}
 
@@ -197,21 +197,21 @@ void FavoriteUserManager::loadFavoriteUsers(SimpleXML& aXml) {
 			const string& nick = aXml.getChildAttrib("Nick");
 			const string& hubUrl = aXml.getChildAttrib("URL");
 			bool isFavorite = Util::toBool(Util::toInt(aXml.getChildAttrib("Favorite", "1")));
-			auto lastSeen = (uint32_t)aXml.getIntChildAttrib("LastSeen");
+			auto lastSeen = aXml.getTimeChildAttrib("LastSeen");
 			auto u = ClientManager::getInstance()->loadUser(cid, hubUrl, nick, lastSeen);
 			if(!u || !isFavorite)
 				continue;
 
 			u->setFlag(User::FAVORITE);
-			auto i = users.emplace(u->getCID(), FavoriteUser(u, nick, hubUrl, u->getCID().toBase32())).first;
+			const auto& cidUserPair = users.try_emplace(u->getCID(), u, nick, hubUrl, u->getCID().toBase32()).first;
 
 			if (aXml.getBoolChildAttrib("GrantSlot"))
-				i->second.setFlag(FavoriteUser::FLAG_GRANTSLOT);
+				cidUserPair->second.setFlag(FavoriteUser::FLAG_GRANTSLOT);
 			if (aXml.getBoolChildAttrib("SuperUser"))
-				i->second.setFlag(FavoriteUser::FLAG_SUPERUSER);
+				cidUserPair->second.setFlag(FavoriteUser::FLAG_SUPERUSER);
 
-			i->second.setLastSeen(lastSeen);
-			i->second.setDescription(aXml.getChildAttrib("UserDescription"));
+			cidUserPair->second.setLastSeen(lastSeen);
+			cidUserPair->second.setDescription(aXml.getChildAttrib("UserDescription"));
 			
 		}
 		aXml.stepOut();
@@ -307,7 +307,7 @@ void FavoriteUserManager::setDirty() noexcept {
 }
 
 void FavoriteUserManager::on(ConnectionManagerListener::UserSet, UserConnection* aUserConnection) noexcept {
-	auto user = aUserConnection->getUser();
+	const auto& user = aUserConnection->getUser();
 	if (user->isSet(User::FAVORITE)) {
 		auto favoriteUser = getFavoriteUser(user);
 		if (favoriteUser && favoriteUser->isSet(FavoriteUser::FLAG_SUPERUSER)) {
@@ -362,7 +362,7 @@ ActionHookResult<MessageHighlightList> FavoriteUserManager::onHubMessage(const C
 	return formatFavoriteUsers(aMessage, aResultGetter);
 }
 
-ActionHookResult<OptionalUploadSlot> FavoriteUserManager::onSlotType(const UserConnection& aUserConnection, const ParsedUpload&, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) noexcept {
+ActionHookResult<OptionalUploadSlot> FavoriteUserManager::onSlotType(const UserConnection& aUserConnection, const ParsedUpload&, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) const noexcept {
 	auto autoGrant = hasSlot(aUserConnection.getHintedUser());
 	if (autoGrant) {
 		return aResultGetter.getData(UploadSlot(UploadSlot::Type::USERSLOT, FAVORITE_USERS_HOOK_ID));

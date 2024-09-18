@@ -28,7 +28,7 @@
 
 namespace dcpp {
 
-LogManager::LogManager() : tasks(true, Thread::IDLE), cache(SettingsManager::LOG_MESSAGE_CACHE) {
+LogManager::LogManager() : cache(SettingsManager::LOG_MESSAGE_CACHE), tasks(true, Thread::IDLE) {
 
 	options[UPLOAD][FILE] = SettingsManager::LOG_FILE_UPLOAD;
 	options[UPLOAD][FORMAT] = SettingsManager::LOG_FORMAT_POST_UPLOAD;
@@ -93,7 +93,7 @@ void LogManager::removePmCache(const UserPtr& aUser) noexcept {
 	pmPaths.erase(aUser->getCID());
 }
 
-string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache /*false*/) noexcept {
+string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool aAddCache /*false*/) noexcept {
 	if (aUser->isNMDC() || !SETTING(PM_LOG_GROUP_CID)) {
 		return getPath(PM, params);
 	}
@@ -118,8 +118,8 @@ string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool addCache
 		path = files.front();
 	}
 
-	if (addCache)
-		pmPaths.emplace(aUser->getCID(), path);
+	if (aAddCache)
+		pmPaths.try_emplace(aUser->getCID(), path);
 	return path;
 }
 
@@ -175,7 +175,7 @@ string LogManager::readFromEnd(const string& aPath, int aMaxLines, int64_t aBuff
 			lines = StringTokenizer<string>(buf, "\r\n", true).getTokens();
 		}
 
-		int linesCount = lines.size();
+		auto linesCount = static_cast<int>(lines.size());
 
 		int i = max(linesCount - aMaxLines - 1, 0); // The last line will always be empty
 		for (; i < linesCount; ++i) {
@@ -188,7 +188,7 @@ string LogManager::readFromEnd(const string& aPath, int aMaxLines, int64_t aBuff
 }
 
 void LogManager::log(const string& area, const string& msg) noexcept {
-	tasks.addTask([=, this] {
+	tasks.addTask([msg, area, this] {
 		auto aArea = PathUtil::validatePath(area);
 		try {
 			File::ensureDirectory(aArea);

@@ -19,27 +19,17 @@
 #ifndef DCPLUSPLUS_DCPP_UPDATER_H
 #define DCPLUSPLUS_DCPP_UPDATER_H
 
-#include "Message.h"
+#include <airdcpp/typedefs.h>
 
 namespace dcpp {
 
 class File;
-class FileException;
-struct HttpDownload;
-class UpdateManager;
-class ZipFileException;
 
 #ifndef NO_CLIENT_UPDATER
 
 class Updater {
 
-#define UPDATE_TEMP_DIR AppUtil::getPath(AppUtil::PATH_TEMP) + "Updater" + PATH_SEPARATOR_STR
-
-//#define FORCE_UPDATE
-
 public:
-	typedef std::function<void(StringPairList& files_, const string& aUpdateFilePath)> FileListF;
-
 	class FileLogger {
 	public:
 		FileLogger(const string& aPath, bool aResetFile);
@@ -55,43 +45,23 @@ public:
 	static FileLogger createInstallLogger(const string& aSourcePath) noexcept;
 	static bool applyUpdate(const string& aSourcePath, const string& aInstallPath, string& error_, int aMaxRetries, FileLogger& logger_) noexcept;
 
-	static void signVersionFile(const string& aVersionFilePath, const string& aPrivateKeyFilePath, bool aMakeHeader = false);
-
-	// Create an updater zip file from the current application (it must be in the default "compiled" path)
-	// Returns the path of the created updater file
-	static string createUpdate(const FileListF& aFileListF) noexcept;
-
 	// Returns true if there are pending updates available for this instance
 	// This will also remove obsolete updater directories for this instance
 	// aUpdateAttempted should be set to true if updating was just attempted (succeed or failed)
 	static bool checkAndCleanUpdaterFiles(const string& aAppPath, string& updaterFile_, bool aUpdateAttempted);
 
-	static bool getUpdateVersionInfo(SimpleXML& xml, string& versionString, int& remoteBuild);
-
-	Updater(UpdateManager* aUm) noexcept;
-	int getInstalledUpdate() { return installedUpdate; }
-	bool isUpdating();
-	void downloadUpdate(const string& aUrl, int newBuildID, bool manualCheck);
-
-	bool onVersionDownloaded(SimpleXML& xml, bool aVerified, bool aManualCheck);
-
-	enum UpdateMethod {
-		UPDATE_UNDEFINED,
-		UPDATE_AUTO,
-		UPDATE_PROMPT
-	};
-
-	// Extract the updater package
-	// Returns the path of the extracted updater executable
-	// Throws FileException, ZipFileException
-	static string extractUpdater(const string& aUpdaterPath, int aBuildID, const string& aSessionToken);
-
-	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
-
 	static string getFinalLogFilePath() noexcept;
 private:
 	// Copy files recursively from the temp directory to application directory
 	static bool applyUpdaterFiles(const string& aCurTempPath, const string& aCurDestinationPath, string& error_, StringSet& updatedFiles_, FileLogger& aLogger) noexcept;
+
+	struct UpdaterInfo {
+		string updaterFilePath;
+		int version;
+	};
+
+	static optional<UpdaterInfo> parseUpdaterInfo(const string& aFilePath, const string& aAppPath);
+	static void removeUpdater(const string& aInfoFilePath, const string& aUpdaterPath, FileLogger& logger_);
 
 	// Removes files that are not listed in updatedFiles_ recursively
 	static int cleanExtraFiles(const string& aCurPath, const optional<StringSet>& aProtectedFiles) noexcept;
@@ -99,39 +69,12 @@ private:
 	// Remove all content from the directory
 	// Returns the number of files removed
 	static int destroyDirectory(const string& aPath);
-	 
-	UpdateManager* um;
-	unique_ptr<HttpDownload> clientDownload;
-
-	string updateTTH;
-	string sessionToken;
-	int installedUpdate = 0;
-
-	void completeUpdateDownload(int aBuildID, bool aManualCheck);
-
-	void failUpdateDownload(const string& aError, bool manualCheck);
 
 	static string toLoggerFilePath(const string& aDirectoryPath) noexcept;
-};
-
-#else
-class Updater {
-public:
-	Updater(UpdateManager*) noexcept {
-
-	}
-
-	bool onVersionDownloaded(SimpleXML&, bool, bool) {
-		return false;
-	}
-
-	bool isUpdating() const noexcept {
-		return false;
-	}
 };
 
 #endif
 
 } // namespace dcpp
 
-#endif // UPDATER_H
+#endif // DCPLUSPLUS_DCPP_UPDATER_H

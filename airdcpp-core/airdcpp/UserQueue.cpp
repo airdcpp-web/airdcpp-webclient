@@ -54,8 +54,7 @@ void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) noexcept{
 	/* Returns all queued items from an user */
 
 	/* Highest prio */
-	auto i = userPrioQueue.find(aUser);
-	if(i != userPrioQueue.end()) {
+	if(auto i = userPrioQueue.find(aUser); i != userPrioQueue.end()) {
 		dcassert(!i->second.empty());
 		copy_if(i->second.begin(), i->second.end(), back_inserter(ql), [](const QueueItemPtr& q) { return !q->getBundle(); }); //bundle items will be added from the bundle queue
 	}
@@ -64,7 +63,7 @@ void UserQueue::getUserQIs(const UserPtr& aUser, QueueItemList& ql) noexcept{
 	auto s = userBundleQueue.find(aUser);
 	if(s != userBundleQueue.end()) {
 		dcassert(!s->second.empty());
-		for(auto& b: s->second)
+		for(const auto& b: s->second)
 			b->getItems(aUser, ql);
 	}
 }
@@ -93,10 +92,9 @@ QueueItemPtr UserQueue::getNext(const QueueDownloadQuery& aQuery, string& lastEr
 QueueItemPtr UserQueue::getNextPrioQI(const QueueDownloadQuery& aQuery, string& lastError_, bool aAllowOverlap) noexcept{
 
 	lastError_ = Util::emptyString;
-	auto i = userPrioQueue.find(aQuery.user);
-	if(i != userPrioQueue.end()) {
+	if(auto i = userPrioQueue.find(aQuery.user); i != userPrioQueue.end()) {
 		dcassert(!i->second.empty());
-		for(auto& q: i->second) {
+		for(const auto& q: i->second) {
 			if (q->hasSegment(aQuery, lastError_, aAllowOverlap)) {
 				return q;
 			}
@@ -110,11 +108,10 @@ QueueItemPtr UserQueue::getNextBundleQI(const QueueDownloadQuery& aQuery, string
 	lastError_ = Util::emptyString;
 
 	auto bundleLimit = SETTING(MAX_RUNNING_BUNDLES);
-	auto i = userBundleQueue.find(aQuery.user);
-	if(i != userBundleQueue.end()) {
+	if(auto i = userBundleQueue.find(aQuery.user); i != userBundleQueue.end()) {
 		dcassert(!i->second.empty());
-		for (auto& b: i->second) {
-			if (bundleLimit > 0 && static_cast<int>(aQuery.runningBundles.size()) >= bundleLimit && aQuery.runningBundles.find(b->getToken()) == aQuery.runningBundles.end()) {
+		for (const auto& b: i->second) {
+			if (bundleLimit > 0 && static_cast<int>(aQuery.runningBundles.size()) >= bundleLimit && !aQuery.runningBundles.contains(b->getToken())) {
 				hasDownload_ = true;
 				lastError_ = STRING(MAX_BUNDLES_RUNNING);
 				continue;
@@ -161,8 +158,7 @@ void UserQueue::removeQI(const QueueItemPtr& qi, const UserPtr& aUser, bool remo
 
 	dcassert(qi->isSource(aUser));
 
-	BundlePtr bundle = qi->getBundle();
-	if (bundle) {
+	if (auto bundle = qi->getBundle(); bundle) {
 		if (!bundle->isSource(aUser)) {
 			return;
 		}

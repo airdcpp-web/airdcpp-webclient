@@ -52,7 +52,7 @@ void FavoriteManager::shutdown() noexcept {
 
 bool FavoriteManager::hasFavoriteDir(const string& aPath) const noexcept {
 	RLock l(cs);
-	return favoriteDirectories.find(aPath) != favoriteDirectories.end();
+	return favoriteDirectories.contains(aPath);
 }
 
 bool FavoriteManager::setFavoriteDir(const string& aPath, const string& aGroupName) noexcept {
@@ -108,8 +108,8 @@ GroupedDirectoryMap FavoriteManager::getGroupedFavoriteDirs() const noexcept {
 
 	{
 		RLock l(cs);
-		for (const auto& fd : favoriteDirectories) {
-			ret[fd.second].insert(fd.first);
+		for (const auto& [path, name] : favoriteDirectories) {
+			ret[name].insert(path);
 		}
 	}
 
@@ -125,8 +125,7 @@ FavoriteManager::FavoriteDirectoryMap FavoriteManager::getFavoriteDirs() const n
 bool FavoriteManager::addFavoriteHub(const FavoriteHubEntryPtr& aEntry) noexcept {
 	{
 		WLock l(cs);
-		auto i = getFavoriteHub(aEntry->getServer());
-		if (i != favoriteHubs.end()) {
+		if (auto i = getFavoriteHubUnsafe(aEntry->getServer()); i != favoriteHubs.end()) {
 			return false;
 		}
 
@@ -162,12 +161,12 @@ void FavoriteManager::autoConnect() noexcept {
 	}
 
 	for (const auto& h : hubs) {
-		if (!ClientManager::getInstance()->hasClient(h))
+		if (!ClientManager::getInstance()->findClient(h))
 			ClientManager::getInstance()->createClient(h);
 	}
 }
 
-bool FavoriteManager::removeFavoriteHub(ProfileToken aToken) noexcept {
+bool FavoriteManager::removeFavoriteHub(FavoriteHubToken aToken) noexcept {
 	FavoriteHubEntryPtr entry = nullptr;
 
 	{
@@ -186,12 +185,13 @@ bool FavoriteManager::removeFavoriteHub(ProfileToken aToken) noexcept {
 	return true;
 }
 
-bool FavoriteManager::isUnique(const string& url, ProfileToken aToken) const noexcept {
-	auto i = getFavoriteHub(url);
+bool FavoriteManager::isUnique(const string& url, FavoriteHubToken aExcludedEntryToken) const noexcept {
+	RLock l(cs);
+	auto i = getFavoriteHubUnsafe(url);
 	if (i == favoriteHubs.end())
 		return true;
 
-	return aToken == (*i)->getToken();
+	return aExcludedEntryToken == (*i)->getToken();
 }
 
 void FavoriteManager::on(ShareProfileManagerListener::DefaultProfileChanged, ProfileToken aOldDefault, ProfileToken aNewDefault) noexcept {
@@ -228,7 +228,10 @@ int FavoriteManager::resetProfile(ProfileToken aResetToken, ProfileToken aDefaul
 }
 
 bool FavoriteManager::hasActiveHubs() const noexcept {
-	return any_of(favoriteHubs.begin(), favoriteHubs.end(), [](const FavoriteHubEntryPtr& f) { return f->get(HubSettings::Connection) == SettingsManager::INCOMING_ACTIVE || f->get(HubSettings::Connection6) == SettingsManager::INCOMING_ACTIVE; });
+	RLock l(cs);
+	return ranges::any_of(favoriteHubs, [](const FavoriteHubEntryPtr& f) { 
+		return f->get(HubSettings::Connection) == SettingsManager::INCOMING_ACTIVE || f->get(HubSettings::Connection6) == SettingsManager::INCOMING_ACTIVE; 
+	});
 }
 
 // FAVORITE HUBS END
@@ -273,11 +276,11 @@ void FavoriteManager::saveFavoriteDirectories(SimpleXML& aXml) const noexcept {
 	aXml.stepIn();
 
 	const auto groupedDirs = getGroupedFavoriteDirs();
-	for (const auto& fde : groupedDirs) {
-		aXml.addTag("Directory", fde.first);
-		aXml.addChildAttrib("Name", fde.first);
+	for (const auto& [name, paths]: groupedDirs) {
+		aXml.addTag("Directory", name);
+		aXml.addChildAttrib("Name", name);
 		aXml.stepIn();
-		for (const auto& t : fde.second) {
+		for (const auto& t: paths) {
 			aXml.addTag("Target", t);
 		}
 		aXml.stepOut();
@@ -292,10 +295,10 @@ void FavoriteManager::saveFavoriteHubs(SimpleXML& aXml) const noexcept {
 
 	{
 		RLock l(cs);
-		for (const auto& i : favHubGroups) {
+		for (const auto& [name, group] : favHubGroups) {
 			aXml.addTag("Group");
-			aXml.addChildAttrib("Name", i.first);
-			i.second.save(aXml);
+			aXml.addChildAttrib("Name", name);
+			group.save(aXml);
 		}
 
 		for (const auto& i : favoriteHubs) {
@@ -325,7 +328,7 @@ void FavoriteManager::saveFavoriteHubs(SimpleXML& aXml) const noexcept {
 }
 
 void FavoriteManager::loadCID() noexcept {
-	SettingsManager::loadSettingFile(CONFIG_DIR, CONFIG_FAV_NAME, [this](SimpleXML& xml) {
+	SettingsManager::loadSettingFile(CONFIG_DIR, CONFIG_FAV_NAME, [](SimpleXML& xml) {
 		if (xml.findChild("Favorites")) {
 			xml.stepIn();
 			if (xml.findChild("CID")) {
@@ -386,8 +389,7 @@ void FavoriteManager::loadFavoriteHubs(SimpleXML& aXml) {
 			}
 
 			// Remove failovers
-			auto p = server.find(';');
-			if (p != string::npos) {
+			if (auto p = server.find(';'); p != string::npos) {
 				server = server.substr(0, p);
 			}
 
@@ -468,12 +470,22 @@ FavoriteHubEntryList FavoriteManager::getFavoriteHubs(const string& group) const
 	return ret;
 }
 
+FavoriteHubEntryList FavoriteManager::getFavoriteHubs() const noexcept {
+	RLock l(cs);
+	return favoriteHubs;
+}
+
+void FavoriteManager::setFavHubGroups(const FavHubGroups& favHubGroups_) noexcept {
+	WLock l(cs);
+	favHubGroups = favHubGroups_; 
+}
+
 void FavoriteManager::setHubSetting(const string& aUrl, HubSettings::HubBoolSetting aSetting, bool aNewValue) noexcept {
 	FavoriteHubEntryPtr hub;
 
 	{
 		RLock l(cs);
-		auto p = getFavoriteHub(aUrl);
+		auto p = getFavoriteHubUnsafe(aUrl);
 		if (p == favoriteHubs.end()) {
 			return;
 		}
@@ -482,6 +494,7 @@ void FavoriteManager::setHubSetting(const string& aUrl, HubSettings::HubBoolSett
 		(*p)->get(aSetting) = aNewValue;
 	}
 
+	ClientManager::getInstance()->myInfoUpdated();
 	fire(FavoriteManagerListener::FavoriteHubUpdated(), hub);
 }
 
@@ -491,20 +504,19 @@ void FavoriteManager::on(SettingsManagerListener::Load, SimpleXML&) noexcept {
 
 FavoriteHubEntryPtr FavoriteManager::getFavoriteHubEntry(const string& aServer) const noexcept {
 	RLock l(cs);
-	auto p = getFavoriteHub(aServer);
+	auto p = getFavoriteHubUnsafe(aServer);
 	return p != favoriteHubs.end() ? *p : nullptr;
 }
 
-FavoriteHubEntryPtr FavoriteManager::getFavoriteHubEntry(const ProfileToken& aToken) const noexcept {
+FavoriteHubEntryPtr FavoriteManager::getFavoriteHubEntry(FavoriteHubToken aToken) const noexcept {
 	RLock l(cs);
-	auto p = getFavoriteHub(aToken);
+	auto p = getFavoriteHubUnsafe(aToken);
 	return p != favoriteHubs.end() ? *p : nullptr;
 }
 
 void FavoriteManager::mergeHubSettings(const FavoriteHubEntryPtr& entry, HubSettings& settings) const noexcept {
 	// apply group settings first.
-	const string& name = entry->getGroup();
-	if(!name.empty()) {
+	if (const auto& name = entry->getGroup(); !name.empty()) {
 		auto group = favHubGroups.find(name);
 		if(group != favHubGroups.end())
 			settings.merge(group->second);
@@ -514,12 +526,12 @@ void FavoriteManager::mergeHubSettings(const FavoriteHubEntryPtr& entry, HubSett
 	settings.merge(*entry);
 }
 
-FavoriteHubEntryList::const_iterator FavoriteManager::getFavoriteHub(const string& aServer) const noexcept {
+FavoriteHubEntryList::const_iterator FavoriteManager::getFavoriteHubUnsafe(const string& aServer) const noexcept {
 	//find by the primary address
 	return ranges::find_if(favoriteHubs, [&aServer](const FavoriteHubEntryPtr& f) { return Util::stricmp(f->getServer(), aServer) == 0; });
 }
 
-FavoriteHubEntryList::const_iterator FavoriteManager::getFavoriteHub(ProfileToken aToken) const noexcept {
+FavoriteHubEntryList::const_iterator FavoriteManager::getFavoriteHubUnsafe(FavoriteHubToken aToken) const noexcept {
 	return ranges::find_if(favoriteHubs, [aToken](const FavoriteHubEntryPtr& f) { return f->getToken() == aToken; });
 }
 
@@ -547,7 +559,7 @@ void FavoriteManager::on(ClientManagerListener::ClientRedirected, const ClientPt
 }
 
 void FavoriteManager::setConnectState(const FavoriteHubEntryPtr& aEntry) noexcept {
-	auto client = ClientManager::getInstance()->getClient(aEntry->getServer());
+	auto client = ClientManager::getInstance()->findClient(aEntry->getServer());
 	if (client) {
 		aEntry->setConnectState(client->isConnected() ? FavoriteHubEntry::STATE_CONNECTED : FavoriteHubEntry::STATE_CONNECTING);
 		aEntry->setCurrentHubToken(client->getToken());

@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef CLIENTLISTENER_H_
-#define CLIENTLISTENER_H_
+#ifndef DCPLUSPLUS_DCPP_CLIENTLISTENER_H_
+#define DCPLUSPLUS_DCPP_CLIENTLISTENER_H_
 
 #include "typedefs.h"
 
